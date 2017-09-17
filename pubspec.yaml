@@ -1,0 +1,11 @@
+name: pandas
+version: 0.0.1
+author: Lukas Renggli <renggli@gmail.com>
+homepage: https://github.com/renggli/dart-pandas
+description: Pandas for Dart
+environment:
+  sdk: '>=1.20.1 <2.0.0'
+dependencies:
+  more: ^1.8.0
+dev_dependencies:
+  test: ^0.12.0
