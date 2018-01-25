@@ -11,9 +11,6 @@ abstract class FloatDataType extends DataType<double> {
   bool get isNullable => false;
 
   @override
-  double parse(String value) => double.parse(value, (source) => null);
-
-  @override
   double convert(Object value) {
     if (value is num) {
       return value.toDouble();

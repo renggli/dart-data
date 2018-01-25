@@ -26,14 +26,12 @@ void main() {
     test('new Series.empty', () {
       var series = new Series.empty();
       expect(series.name, '');
-      expect(series.index, isEmpty);
       expect(series.values, isEmpty);
       expect(series.type, DataType.OBJECT);
     });
     test('new Series.fromIterable()', () {
       var series = new Series.fromIterable([5, 4, 0, 3, 4]);
       expect(series.name, '');
-      expect(series.index, [0, 1, 2, 3, 4]);
       expect(series.values, [5, 4, 0, 3, 4]);
       expect(series.type, DataType.UINT_8);
     });

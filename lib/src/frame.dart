@@ -1,11 +1,9 @@
 library pandas.core.frame;
 
-import 'index.dart';
-
 class Frame<V> {
-  Index<Row<V>> rowIndex_;
+  List<Row<V>> rowIndex_;
 
-  Index<Column<V>> columnIndex_;
+  List<Column<V>> columnIndex_;
 
   Frame._(this.rowIndex_, this.columnIndex_);
 
@@ -44,22 +42,23 @@ class Frame<V> {
 
   /// Returns a new frame with the columns satisfying the provided `predicate`.
   Frame<V> filterColumns(bool predicate(Column<V> column)) {
-    return new Frame._(rowIndex_,
-        new Map.fromIterable(
-            columns.where(predicate),
-            key: (Column<V> column) => column.name));
+    return new Frame._(
+      rowIndex_,
+      new List.from(columnIndex_.where(predicate)),
+    );
   }
 
   /// Returns a new frame with the rows satisfying the provided `predicate`.
   Frame<V> filterRows(bool predicate(Row<V> row)) {
     return new Frame._(
-        new Map.fromIterable(
-          rows.where(predicate),
-        ),
-        columnIndex_);
+      new List.from(rowIndex_.where(predicate)),
+      columnIndex_,
+    );
   }
 
-  Frame<V> group(Object grouper(Row<V> row));
+  Frame<V> group(Object grouper(Row<V> row)) {
+    return null;
+  }
 }
 
 /// Abstract view onto a row of elements.

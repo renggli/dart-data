@@ -1,7 +1,6 @@
 library pandas.core.series;
 
 import 'package:pandas/src/type.dart';
-import 'package:pandas/src/index.dart';
 
 /// One-dimensional list with axis labels.
 ///
@@ -69,7 +68,4 @@ class Series<T> {
 
   /// Returns a renamed [Series].
   Series<T> rename(String name) => new Series.fromSeries(this, name: name);
-
-  /// Returns a re-indexed [Series].
-  Series<T> reindex(Index index) => new Series.fromSeries(this, index: index);
 }
