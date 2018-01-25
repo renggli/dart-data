@@ -39,13 +39,13 @@ abstract class DataType<T> {
 
   const DataType();
 
-  @override
+  /// Returns the name of this [DataType].
   String get name;
 
-  /// Returns true, if this [DataType] supports a `null` value.
+  /// Returns true, if this [DataType] supports `null` values.
   bool get isNullable;
 
-  /// Returns a [DataType] wrapper that supports `null` values.
+  /// Returns a [DataType] that supports `null` values.
   DataType<T> get nullable => isNullable ? this : new NullableDataType<T>(this);
 
   /// Converts the argument to this data type, otherwise throw an [ArgumentError].

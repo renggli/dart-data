@@ -52,15 +52,15 @@ void main() {
   });
   group('DataType', () {
     convertListTest(DataType type, List<List> lists) {
-      test('convertList', () {
-        for (List list in lists) {
+      for (List list in lists) {
+        test('convertList: $list', () {
           if (type != DataType.FLOAT_32) {
             expect(new DataType.fromIterable(list), type,
                 reason: 'new DataType.fromIterable($list)');
           }
           expect(type.convertList(list), list, reason: '$type.convertList($list)');
-        }
-      });
+        });
+      }
     }
 
     group('OBJECT', () {

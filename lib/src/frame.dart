@@ -1,17 +1,13 @@
 library pandas.core.frame;
 
 import 'index.dart';
-import 'series.dart';
-import 'dart:collection';
 
 class Frame<V> {
-
   Index<Row<V>> rowIndex_;
 
   Index<Column<V>> columnIndex_;
 
   Frame._(this.rowIndex_, this.columnIndex_);
-
 
   // Row Accessors
   // // // // // // // // // // // // // // // // // // // // // // // //
@@ -28,7 +24,6 @@ class Frame<V> {
   /// Returns the row at the specified `index`.
   Row<V> getRowIndex(int index) => null;
 
-
   // Column Accessors
   // // // // // // // // // // // // // // // // // // // // // // // //
 
@@ -44,48 +39,40 @@ class Frame<V> {
   /// Returns the column at the specified `index`.
   Column<V> getColumnIndex(int index) => null;
 
-
   // Transformations
   // // // // // // // // // // // // // // // // // // // // // // // //
 
   /// Returns a new frame with the columns satisfying the provided `predicate`.
   Frame<V> filterColumns(bool predicate(Column<V> column)) {
-    return new Frame._(rowIndex_, new LinkedHashMap.fromIterable(
-      columns.where(predicate),
-      key: (Column<V> column) => column.name));
+    return new Frame._(rowIndex_,
+        new Map.fromIterable(
+            columns.where(predicate),
+            key: (Column<V> column) => column.name));
   }
 
   /// Returns a new frame with the rows satisfying the provided `predicate`.
   Frame<V> filterRows(bool predicate(Row<V> row)) {
     return new Frame._(
-        new LinkedHashMap.fromIterable(
+        new Map.fromIterable(
           rows.where(predicate),
-
-
-
         ),
-
         columnIndex_);
   }
 
   Frame<V> group(Object grouper(Row<V> row));
-
 }
 
 /// Abstract view onto a row of elements.
 abstract class Row<V> {
-
   Iterable<Column<V>> get columns;
 
   Iterable<V> get values;
 
   int get length;
-
 }
 
 /// Abstract view onto a column of elements
 abstract class Column<V> {
-
   String name;
 
   Iterable<Row<V>> get rows;
@@ -93,5 +80,4 @@ abstract class Column<V> {
   Iterable<V> get values;
 
   int get length;
-
 }

@@ -36,7 +36,7 @@ class Series<T> {
   }
 
   /// Creates a series from a `Series`.
-  factory Series.fromSeries(Series<T> source, {String name, DataType<T> type, Index index}) {
+  factory Series.fromSeries(Series<T> source, {String name, DataType<T> type}) {
     var _name = name ?? source.name;
     var _type = type ?? source.type;
     var _values = _type.convertList(source.values);
