@@ -27,7 +27,7 @@ abstract class IntegerDataType extends DataType<int> {
         return value.toInt().toUnsigned(bits);
       }
     } else if (value is String) {
-      return int.parse(value, onError: (source) => super.convert(value));
+      return int.tryParse(value) ?? super.convert(value);
     }
     return super.convert(value);
   }

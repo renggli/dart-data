@@ -16,11 +16,11 @@ class NumericDataType extends DataType<num> {
     if (value == null || value is num) {
       return value;
     } else if (value is String) {
-      var intValue = int.parse(value, onError: (source) => null);
+      var intValue = int.tryParse(value);
       if (intValue != null) {
         return intValue;
       }
-      var doubleValue = double.parse(value, (source) => null);
+      var doubleValue = double.tryParse(value);
       if (doubleValue != null) {
         return doubleValue;
       }

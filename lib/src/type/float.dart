@@ -15,7 +15,7 @@ abstract class FloatDataType extends DataType<double> {
     if (value is num) {
       return value.toDouble();
     } else if (value is String) {
-      return double.parse(value, (source) => super.convert(value));
+      return double.tryParse(value) ?? super.convert(value);
     }
     return super.convert(value);
   }

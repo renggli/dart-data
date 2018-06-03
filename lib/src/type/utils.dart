@@ -14,8 +14,8 @@ DataType findDataType(Iterable values) {
   int stringCount = 0;
   int intCount = 0;
   int doubleCount = 0;
-  num minValue = double.INFINITY;
-  num maxValue = double.NEGATIVE_INFINITY;
+  num minValue = double.infinity;
+  num maxValue = double.negativeInfinity;
 
   for (var value in values) {
     if (value == null) {

@@ -277,7 +277,7 @@ void main() {
         });
         if (DataType.FLOAT_64 == type) {
           convertListTest(type, [
-            <double>[Math.PI, Math.E],
+            <double>[Math.pi, Math.e],
             <double>[-1.0, 0.0, 1.1],
           ]);
         }
@@ -302,7 +302,7 @@ void main() {
         });
         if (DataType.FLOAT_64 == type) {
           convertListTest(nullableType, [
-            [Math.PI, null, Math.E],
+            [Math.pi, null, Math.e],
             [-1.0, 0.0, 1.1, null],
           ]);
         }
