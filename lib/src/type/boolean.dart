@@ -14,6 +14,9 @@ class BooleanDataType extends DataType<bool> {
   bool get isNullable => false;
 
   @override
+  bool get nullValue => false;
+
+  @override
   List<bool> newList(int length) => BitList(length);
 
   @override

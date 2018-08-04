@@ -12,6 +12,9 @@ class ObjectDataType<T> extends DataType<T> {
   bool get isNullable => true;
 
   @override
+  T get nullValue => null;
+
+  @override
   T convert(Object value) => value;
 
   @override

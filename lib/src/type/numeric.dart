@@ -12,6 +12,9 @@ class NumericDataType extends DataType<num> {
   bool get isNullable => true;
 
   @override
+  num get nullValue => null;
+
+  @override
   num convert(Object value) {
     if (value == null || value is num) {
       return value;

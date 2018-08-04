@@ -19,6 +19,9 @@ abstract class IntegerDataType extends DataType<int> {
   bool get isNullable => false;
 
   @override
+  int get nullValue => 0;
+
+  @override
   int convert(Object value) {
     if (value is num) {
       if (isSigned) {

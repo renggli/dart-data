@@ -1,4 +1,4 @@
-import 'dart:math' show min, max;
+import 'dart:math' as math;
 
 import 'integer.dart';
 import 'type.dart';
@@ -14,8 +14,8 @@ DataType findDataType(Iterable values) {
   var stringCount = 0;
   var intCount = 0;
   var doubleCount = 0;
-  var minValue = double.infinity;
-  var maxValue = double.negativeInfinity;
+  num minValue = double.infinity;
+  num maxValue = double.negativeInfinity;
 
   for (var value in values) {
     if (value == null) {
@@ -25,8 +25,8 @@ DataType findDataType(Iterable values) {
     } else if (value is String) {
       stringCount++;
     } else if (value is num) {
-      minValue = min(minValue, value);
-      maxValue = max(maxValue, value);
+      minValue = math.min(minValue, value);
+      maxValue = math.max(maxValue, value);
       if (value is int) {
         intCount++;
       } else if (value is double) {

@@ -42,6 +42,9 @@ abstract class DataType<T> {
   /// Returns true, if this [DataType] supports `null` values.
   bool get isNullable;
 
+  /// Returns the default null vaue.
+  T get nullValue;
+
   /// Returns a [DataType] that supports `null` values.
   DataType<T> get nullable => isNullable ? this : NullableDataType<T>(this);
 
@@ -53,6 +56,21 @@ abstract class DataType<T> {
 
   /// Creates a new list of this data type.
   List<T> newList(int length) => List(length);
+
+  /// Creates a copy of a list of this data type, possibly with a modified
+  /// [length] and populated with [fillValue].
+  List<T> copyList(List<T> list, {int length, T fillValue}) {
+    final result = newList(length ?? list.length);
+    if (result.length < list.length) {
+      result.setRange(0, result.length, list);
+    } else {
+      result.setRange(0, list.length, list);
+      if (fillValue != null && fillValue != nullValue) {
+        result.fillRange(list.length, result.length, fillValue);
+      }
+    }
+    return result;
+  }
 
   /// Converts an existing list to this data type.
   List<T> convertList(Iterable<Object> elements) {
