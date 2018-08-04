@@ -1,8 +1,8 @@
 library pandas.type.float;
 
-import 'package:pandas/src/type.dart';
-
 import 'dart:typed_data';
+
+import 'package:pandas/src/type.dart';
 
 abstract class FloatDataType extends DataType<double> {
   const FloatDataType();
@@ -28,7 +28,7 @@ class Float32DataType extends FloatDataType {
   String get name => 'FLOAT_32';
 
   @override
-  List<double> newList(int length) => new Float32List(length);
+  List<double> newList(int length) => Float32List(length);
 }
 
 class Float64DataType extends FloatDataType {
@@ -38,5 +38,5 @@ class Float64DataType extends FloatDataType {
   String get name => 'FLOAT_64';
 
   @override
-  List<double> newList(int length) => new Float64List(length);
+  List<double> newList(int length) => Float64List(length);
 }

@@ -4,15 +4,15 @@ import 'dart:collection' show UnmodifiableMapView;
 
 /// Immutable index of labels of type `T` to indexes in a list.
 class Index<T> extends UnmodifiableMapView<T, int> {
-
   /// Constructs an empty index.
-  factory Index.empty() => new Index._(new Map());
+  factory Index.empty() => Index._({});
 
   /// Constructs an index from an iterable.
   factory Index.fromIterable(Iterable source, {T label(label)}) {
     var index = 0;
-    var mapping = new Map.fromIterable(source, key: label, value: (object) => index++);
-    return new Index._(mapping);
+    final mapping =
+        Map.fromIterable(source, key: label, value: (object) => index++);
+    return Index._(mapping);
   }
 
   Index._(Map<T, int> map) : super(map);
@@ -27,9 +27,6 @@ class Index<T> extends UnmodifiableMapView<T, int> {
   int getIndex(T label) => this[label];
 
   /// Returns a list of indexes at the provided labels.
-  List<int> getIndexes(List<T> labels) {
-    return labels
-        .map((label) => getIndex(label))
-        .toList(growable: false);
-  }
+  List<int> getIndexes(List<T> labels) =>
+      labels.map(getIndex).toList(growable: false);
 }

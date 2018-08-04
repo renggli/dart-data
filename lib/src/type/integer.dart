@@ -1,8 +1,8 @@
 library pandas.type.integer;
 
-import 'package:pandas/src/type.dart';
-
 import 'dart:typed_data';
+
+import 'package:pandas/src/type.dart';
 
 abstract class IntegerDataType extends DataType<int> {
   const IntegerDataType();
@@ -49,7 +49,7 @@ class Int8DataType extends IntegerDataType {
   int get bits => 8;
 
   @override
-  List<int> newList(int length) => new Int8List(length);
+  List<int> newList(int length) => Int8List(length);
 }
 
 class Uint8DataType extends IntegerDataType {
@@ -68,7 +68,7 @@ class Uint8DataType extends IntegerDataType {
   int get bits => 8;
 
   @override
-  List<int> newList(int length) => new Uint8List(length);
+  List<int> newList(int length) => Uint8List(length);
 }
 
 class Int16DataType extends IntegerDataType {
@@ -87,7 +87,7 @@ class Int16DataType extends IntegerDataType {
   int get bits => 16;
 
   @override
-  List<int> newList(int length) => new Int16List(length);
+  List<int> newList(int length) => Int16List(length);
 }
 
 class Uint16DataType extends IntegerDataType {
@@ -106,7 +106,7 @@ class Uint16DataType extends IntegerDataType {
   int get bits => 16;
 
   @override
-  List<int> newList(int length) => new Uint16List(length);
+  List<int> newList(int length) => Uint16List(length);
 }
 
 class Int32DataType extends IntegerDataType {
@@ -125,7 +125,7 @@ class Int32DataType extends IntegerDataType {
   int get bits => 32;
 
   @override
-  List<int> newList(int length) => new Int32List(length);
+  List<int> newList(int length) => Int32List(length);
 }
 
 class Uint32DataType extends IntegerDataType {
@@ -144,7 +144,7 @@ class Uint32DataType extends IntegerDataType {
   int get bits => 32;
 
   @override
-  List<int> newList(int length) => new Uint32List(length);
+  List<int> newList(int length) => Uint32List(length);
 }
 
 class Int64DataType extends IntegerDataType {
@@ -163,7 +163,7 @@ class Int64DataType extends IntegerDataType {
   int get bits => 64;
 
   @override
-  List<int> newList(int length) => new Int64List(length);
+  List<int> newList(int length) => Int64List(length);
 }
 
 class Uint64DataType extends IntegerDataType {
@@ -175,12 +175,13 @@ class Uint64DataType extends IntegerDataType {
   @override
   int get min => 0;
 
+  // TODO(renggli): This should actually be 18446744073709551615, but how?
   @override
-  int get max => 18446744073709551615;
+  int get max => 9223372036854775807;
 
   @override
   int get bits => 64;
 
   @override
-  List<int> newList(int length) => new Uint64List(length);
+  List<int> newList(int length) => Uint64List(length);
 }

@@ -1,7 +1,7 @@
 library pandas.type.boolean;
 
-import 'package:pandas/src/type.dart';
 import 'package:more/collection.dart' show BitList;
+import 'package:pandas/src/type.dart';
 
 class BooleanDataType extends DataType<bool> {
   const BooleanDataType();
@@ -13,7 +13,7 @@ class BooleanDataType extends DataType<bool> {
   bool get isNullable => false;
 
   @override
-  List<bool> newList(int length) => new BitList(length);
+  List<bool> newList(int length) => BitList(length);
 
   @override
   bool convert(Object value) {

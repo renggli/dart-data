@@ -1,10 +1,10 @@
 library pandas.type.nullable;
 
-import 'package:pandas/src/type.dart';
-import 'package:more/collection.dart' show BitList;
-import 'package:collection/collection.dart' show NonGrowableListMixin;
-
 import 'dart:collection' show ListBase;
+
+import 'package:collection/collection.dart' show NonGrowableListMixin;
+import 'package:more/collection.dart' show BitList;
+import 'package:pandas/src/type.dart';
 
 /// Some [DataType] instances do not support `null` values in the way they
 /// represent their data. This wrapper turns those types into nullable ones.
@@ -23,10 +23,11 @@ class NullableDataType<T> extends DataType<T> {
   T convert(Object value) => value == null ? null : delegate.convert(value);
 
   @override
-  List<T> newList(int length) => new NullableList(delegate.newList(length));
+  List<T> newList(int length) => NullableList(delegate.newList(length));
 
   @override
-  bool operator ==(Object other) => other is NullableDataType && other.delegate == delegate;
+  bool operator ==(Object other) =>
+      other is NullableDataType && other.delegate == delegate;
 
   @override
   int get hashCode => ~delegate.hashCode;
@@ -36,7 +37,7 @@ class NullableDataType<T> extends DataType<T> {
 /// [BitList]. For certain types of typed lists, this is the only way to track
 /// `null` values.
 class NullableList<T> extends ListBase<T> with NonGrowableListMixin<T> {
-  NullableList(this.delegate) : defined = new BitList(delegate.length);
+  NullableList(this.delegate) : defined = BitList(delegate.length);
 
   final List<T> delegate;
 

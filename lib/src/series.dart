@@ -9,37 +9,38 @@ import 'package:pandas/src/type.dart';
 /// methods for performing operations involving the index. Statistical
 /// methods automatically exclude missing data.
 class Series<T> {
-
   /// Creates an empty series.
   factory Series.empty({String name, DataType<T> type}) {
-    var _name = name ?? '';
-    var _type = type ?? DataType.OBJECT as DataType<T>;
-    var _values = _type.newList(0);
-    return new Series._(name: _name, type: _type, values: _values);
+    final _name = name ?? '';
+    final _type = type ?? DataType.OBJECT as DataType<T>;
+    final _values = _type.newList(0);
+    return Series._(name: _name, type: _type, values: _values);
   }
 
   /// Creates a series from an `Iterable`.
-  factory Series.fromIterable(Iterable<T> source, {String name, DataType<T> type}) {
-    var _name = name ?? '';
-    var _type = type ?? new DataType.fromIterable(source);
-    var _values = _type.convertList(source);
-    return new Series._(name: _name, type: _type, values: _values);
+  factory Series.fromIterable(Iterable<T> source,
+      {String name, DataType<T> type}) {
+    final _name = name ?? '';
+    final _type = type ?? DataType.fromIterable(source);
+    final _values = _type.convertList(source);
+    return Series._(name: _name, type: _type, values: _values);
   }
 
   /// Creates a series from a `Map`.
-  factory Series.fromMap(Map<Object, T> source, {String name, DataType<T> type}) {
-    var _name = name ?? '';
-    var _type = type ?? new DataType.fromIterable(source.values);
-    var _values = _type.convertList(source.values);
-    return new Series._(name: _name, type: _type, values: _values);
+  factory Series.fromMap(Map<Object, T> source,
+      {String name, DataType<T> type}) {
+    final _name = name ?? '';
+    final _type = type ?? DataType.fromIterable(source.values);
+    final _values = _type.convertList(source.values);
+    return Series._(name: _name, type: _type, values: _values);
   }
 
   /// Creates a series from a `Series`.
   factory Series.fromSeries(Series<T> source, {String name, DataType<T> type}) {
-    var _name = name ?? source.name;
-    var _type = type ?? source.type;
-    var _values = _type.convertList(source.values);
-    return new Series._(name: _name, type: _type, values: _values);
+    final _name = name ?? source.name;
+    final _type = type ?? source.type;
+    final _values = _type.convertList(source.values);
+    return Series._(name: _name, type: _type, values: _values);
   }
 
   Series._({this.name, this.type, this.values});
@@ -63,9 +64,9 @@ class Series<T> {
   /// Returns true, if the series contains the element;
   bool containsKey(int key) => 0 <= key && key < values.length;
 
-  /// Returns true, if the this [Series] contains the [element].
+  /// Returns true, if the this [Series] contains the [value].
   bool containsValue(Object value) => values.contains(value);
 
   /// Returns a renamed [Series].
-  Series<T> rename(String name) => new Series.fromSeries(this, name: name);
+  Series<T> rename(String name) => Series.fromSeries(this, name: name);
 }

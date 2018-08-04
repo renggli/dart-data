@@ -1,11 +1,10 @@
 library pandas.test.pandas_test;
 
+import 'dart:math' as math;
+
 import 'package:pandas/pandas.dart';
 import 'package:pandas/src/type/integer.dart' show IntegerDataType;
-
 import 'package:test/test.dart';
-
-import 'dart:math' as Math;
 
 void main() {
 //  group('index', () {
@@ -24,13 +23,13 @@ void main() {
 //  });
   group('Series', () {
     test('new Series.empty', () {
-      var series = new Series.empty();
+      final series = Series.empty();
       expect(series.name, '');
       expect(series.values, isEmpty);
       expect(series.type, DataType.OBJECT);
     });
     test('new Series.fromIterable()', () {
-      var series = new Series.fromIterable([5, 4, 0, 3, 4]);
+      final series = Series.fromIterable([5, 4, 0, 3, 4]);
       expect(series.name, '');
       expect(series.values, [5, 4, 0, 3, 4]);
       expect(series.type, DataType.UINT_8);
@@ -49,20 +48,21 @@ void main() {
 //    });
   });
   group('DataType', () {
-    convertListTest(DataType type, List<List> lists) {
-      for (List list in lists) {
+    void convertListTest(DataType type, List<List> lists) {
+      for (var list in lists) {
         test('convertList: $list', () {
           if (type != DataType.FLOAT_32) {
-            expect(new DataType.fromIterable(list), type,
+            expect(DataType.fromIterable(list), type,
                 reason: 'new DataType.fromIterable($list)');
           }
-          expect(type.convertList(list), list, reason: '$type.convertList($list)');
+          expect(type.convertList(list), list,
+              reason: '$type.convertList($list)');
         });
       }
     }
 
     group('OBJECT', () {
-      var type = DataType.OBJECT;
+      final type = DataType.OBJECT;
       test('name', () {
         expect(type.name, 'OBJECT');
         expect(type.toString(), 'DataType.OBJECT');
@@ -85,7 +85,7 @@ void main() {
       ]);
     });
     group('STRING', () {
-      var type = DataType.STRING;
+      final type = DataType.STRING;
       test('name', () {
         expect(type.name, 'STRING');
         expect(type.toString(), 'DataType.STRING');
@@ -107,7 +107,7 @@ void main() {
       ]);
     });
     group('NUMERIC', () {
-      var type = DataType.NUMERIC;
+      final type = DataType.NUMERIC;
       test('name', () {
         expect(type.name, 'NUMERIC');
         expect(type.toString(), 'DataType.NUMERIC');
@@ -130,7 +130,7 @@ void main() {
       ]);
     });
     group('BOOLEAN', () {
-      var type = DataType.BOOLEAN;
+      final type = DataType.BOOLEAN;
       test('name', () {
         expect(type.name, 'BOOLEAN');
         expect(type.toString(), 'DataType.BOOLEAN');
@@ -155,7 +155,7 @@ void main() {
       ]);
     });
     group('BOOLEAN.nullable', () {
-      var type = DataType.BOOLEAN.nullable;
+      final type = DataType.BOOLEAN.nullable;
       test('name', () {
         expect(type.name, 'BOOLEAN.nullable');
         expect(type.toString(), 'DataType.BOOLEAN.nullable');
@@ -180,8 +180,8 @@ void main() {
         [true, false, null],
       ]);
     });
-    integerGroup(IntegerDataType type, bool isSigned, int bits) {
-      var name = '${isSigned ? '' : 'U'}INT_${bits}';
+    void integerGroup(IntegerDataType type, bool isSigned, int bits) {
+      final name = '${isSigned ? '' : 'U'}INT_$bits';
       group('$name', () {
         test('name', () {
           expect(type.name, name);
@@ -193,11 +193,11 @@ void main() {
         });
         test('min/max', () {
           if (type.isSigned) {
-            expect(type.min, -Math.pow(2, bits - 1));
-            expect(type.max, Math.pow(2, bits - 1) - 1);
+            expect(type.min, -math.pow(2, bits - 1));
+            expect(type.max, math.pow(2, bits - 1) - 1);
           } else {
             expect(type.min, 0);
-            expect(type.max, Math.pow(2, bits) - 1);
+            expect(type.max, math.pow(2, bits) - 1);
           }
         });
         test('nullable', () {
@@ -221,7 +221,7 @@ void main() {
         ]);
       });
       group('$name.nullable', () {
-        var nullableType = type.nullable;
+        final nullableType = type.nullable;
         test('name', () {
           expect(nullableType.name, '$name.nullable');
           expect(nullableType.toString(), 'DataType.$name.nullable');
@@ -257,8 +257,8 @@ void main() {
     integerGroup(DataType.INT_64, true, 64);
     integerGroup(DataType.UINT_64, false, 64);
 
-    floatGroup(DataType type, int bits) {
-      var name = 'FLOAT_$bits';
+    void floatGroup(DataType type, int bits) {
+      final name = 'FLOAT_$bits';
       group('$name', () {
         test('name', () {
           expect(type.name, name);
@@ -277,13 +277,13 @@ void main() {
         });
         if (DataType.FLOAT_64 == type) {
           convertListTest(type, [
-            <double>[Math.pi, Math.e],
+            <double>[math.pi, math.e],
             <double>[-1.0, 0.0, 1.1],
           ]);
         }
       });
       group('$name.nullable', () {
-        var nullableType = type.nullable;
+        final nullableType = type.nullable;
         test('name', () {
           expect(nullableType.name, '$name.nullable');
           expect(nullableType.toString(), 'DataType.$name.nullable');
@@ -302,7 +302,7 @@ void main() {
         });
         if (DataType.FLOAT_64 == type) {
           convertListTest(nullableType, [
-            [Math.pi, null, Math.e],
+            [math.pi, null, math.e],
             [-1.0, 0.0, 1.1, null],
           ]);
         }

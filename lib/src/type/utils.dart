@@ -1,7 +1,7 @@
+import 'dart:math' show min, max;
+
 import 'package:pandas/src/type.dart';
 import 'package:pandas/src/type/integer.dart';
-
-import 'dart:math' show min, max;
 
 /// Finds the most specific data type for the provided values.
 DataType findDataType(Iterable values) {
@@ -9,13 +9,13 @@ DataType findDataType(Iterable values) {
     return DataType.OBJECT;
   }
 
-  int nullCount = 0;
-  int boolCount = 0;
-  int stringCount = 0;
-  int intCount = 0;
-  int doubleCount = 0;
-  num minValue = double.infinity;
-  num maxValue = double.negativeInfinity;
+  var nullCount = 0;
+  var boolCount = 0;
+  var stringCount = 0;
+  var intCount = 0;
+  var doubleCount = 0;
+  var minValue = double.infinity;
+  var maxValue = double.negativeInfinity;
 
   for (var value in values) {
     if (value == null) {
@@ -38,11 +38,20 @@ DataType findDataType(Iterable values) {
   }
 
   DataType resolve() {
-    if (boolCount > 0 && stringCount == 0 && intCount == 0 && doubleCount == 0) {
+    if (boolCount > 0 &&
+        stringCount == 0 &&
+        intCount == 0 &&
+        doubleCount == 0) {
       return DataType.BOOLEAN;
-    } else if (boolCount == 0 && stringCount > 0 && intCount == 0 && doubleCount == 0) {
+    } else if (boolCount == 0 &&
+        stringCount > 0 &&
+        intCount == 0 &&
+        doubleCount == 0) {
       return DataType.STRING;
-    } else if (boolCount == 0 && stringCount == 0 && intCount > 0 && doubleCount == 0) {
+    } else if (boolCount == 0 &&
+        stringCount == 0 &&
+        intCount > 0 &&
+        doubleCount == 0) {
       for (var dataType in INTEGER_DATA_TYPES) {
         if (dataType.min <= minValue &&
             minValue <= dataType.max &&
@@ -52,9 +61,15 @@ DataType findDataType(Iterable values) {
         }
       }
       return DataType.NUMERIC;
-    } else if (boolCount == 0 && stringCount == 0 && intCount == 0 && doubleCount > 0) {
+    } else if (boolCount == 0 &&
+        stringCount == 0 &&
+        intCount == 0 &&
+        doubleCount > 0) {
       return DataType.FLOAT_64;
-    } else if (boolCount == 0 && stringCount == 0 && intCount > 0 && doubleCount > 0) {
+    } else if (boolCount == 0 &&
+        stringCount == 0 &&
+        intCount > 0 &&
+        doubleCount > 0) {
       return DataType.NUMERIC;
     } else {
       return DataType.OBJECT;
@@ -64,7 +79,7 @@ DataType findDataType(Iterable values) {
   return nullCount == 0 ? resolve() : resolve().nullable;
 }
 
-const List<IntegerDataType> INTEGER_DATA_TYPES = const [
+const List<IntegerDataType> INTEGER_DATA_TYPES = [
   DataType.UINT_8,
   DataType.INT_8,
   DataType.UINT_16,

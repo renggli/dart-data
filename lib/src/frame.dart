@@ -1,17 +1,17 @@
 library pandas.core.frame;
 
 class Frame<V> {
-  List<Row<V>> rowIndex_;
+  final List<Row<V>> _rowIndex;
 
-  List<Column<V>> columnIndex_;
+  final List<Column<V>> _columnIndex;
 
-  Frame._(this.rowIndex_, this.columnIndex_);
+  Frame._(this._rowIndex, this._columnIndex);
 
   // Row Accessors
   // // // // // // // // // // // // // // // // // // // // // // // //
 
   /// Returns the number of rows in this frame.
-  int get rowCount => rowIndex_.length;
+  int get rowCount => _rowIndex.length;
 
   /// Returns an iterator over all rows in this frame.
   Iterable<Row<V>> get rows => null;
@@ -26,7 +26,7 @@ class Frame<V> {
   // // // // // // // // // // // // // // // // // // // // // // // //
 
   /// Returns the number of columns in this frame.
-  int get columnCount => columnIndex_.length;
+  int get columnCount => _columnIndex.length;
 
   /// Returns an iterator over all columns in this frame.
   Iterable<Column<V>> get columns => null;
@@ -41,24 +41,18 @@ class Frame<V> {
   // // // // // // // // // // // // // // // // // // // // // // // //
 
   /// Returns a new frame with the columns satisfying the provided `predicate`.
-  Frame<V> filterColumns(bool predicate(Column<V> column)) {
-    return new Frame._(
-      rowIndex_,
-      new List.from(columnIndex_.where(predicate)),
-    );
-  }
+  Frame<V> filterColumns(bool predicate(Column<V> column)) => Frame._(
+        _rowIndex,
+        List.from(_columnIndex.where(predicate)),
+      );
 
   /// Returns a new frame with the rows satisfying the provided `predicate`.
-  Frame<V> filterRows(bool predicate(Row<V> row)) {
-    return new Frame._(
-      new List.from(rowIndex_.where(predicate)),
-      columnIndex_,
-    );
-  }
+  Frame<V> filterRows(bool predicate(Row<V> row)) => Frame._(
+        List.from(_rowIndex.where(predicate)),
+        _columnIndex,
+      );
 
-  Frame<V> group(Object grouper(Row<V> row)) {
-    return null;
-  }
+  Frame<V> group(Object grouper(Row<V> row)) => null;
 }
 
 /// Abstract view onto a row of elements.
