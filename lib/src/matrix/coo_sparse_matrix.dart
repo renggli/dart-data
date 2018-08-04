@@ -77,9 +77,12 @@ class COOSparseMatrix<T> extends SparseMatrix<T> {
           _cols = _indexDataType.copyList(_cols, length: newSize);
           _vals = dataType.copyList(_vals, length: newSize);
         }
-        _rows.setRange(-index, _length + 1, _rows.getRange(-index - 1, _length));
-        _cols.setRange(-index, _length + 1, _cols.getRange(-index - 1, _length));
-        _vals.setRange(-index, _length + 1, _vals.getRange(-index - 1, _length));
+        _rows.setRange(
+            -index, _length + 1, _rows.getRange(-index - 1, _length));
+        _cols.setRange(
+            -index, _length + 1, _cols.getRange(-index - 1, _length));
+        _vals.setRange(
+            -index, _length + 1, _vals.getRange(-index - 1, _length));
         _rows[-index - 1] = row;
         _cols[-index - 1] = col;
         _vals[-index - 1] = val;
