@@ -6,7 +6,7 @@ class StringDataType extends ObjectDataType<String> {
   const StringDataType();
 
   @override
-  String get name => 'STRING';
+  String get name => 'string';
 
   @override
   String convert(Object value) => value?.toString();

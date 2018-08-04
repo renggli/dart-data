@@ -6,7 +6,7 @@ class ObjectDataType<T> extends DataType<T> {
   const ObjectDataType();
 
   @override
-  String get name => 'OBJECT';
+  String get name => 'object';
 
   @override
   bool get isNullable => true;

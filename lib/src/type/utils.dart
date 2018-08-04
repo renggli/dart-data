@@ -6,7 +6,7 @@ import 'type.dart';
 /// Finds the most specific data type for the provided values.
 DataType findDataType(Iterable values) {
   if (values.isEmpty) {
-    return DataType.OBJECT;
+    return DataType.object;
   }
 
   var nullCount = 0;
@@ -33,7 +33,7 @@ DataType findDataType(Iterable values) {
         doubleCount++;
       }
     } else {
-      return DataType.OBJECT;
+      return DataType.object;
     }
   }
 
@@ -42,17 +42,17 @@ DataType findDataType(Iterable values) {
         stringCount == 0 &&
         intCount == 0 &&
         doubleCount == 0) {
-      return DataType.BOOLEAN;
+      return DataType.boolean;
     } else if (boolCount == 0 &&
         stringCount > 0 &&
         intCount == 0 &&
         doubleCount == 0) {
-      return DataType.STRING;
+      return DataType.string;
     } else if (boolCount == 0 &&
         stringCount == 0 &&
         intCount > 0 &&
         doubleCount == 0) {
-      for (var dataType in INTEGER_DATA_TYPES) {
+      for (var dataType in _intDataTypes) {
         if (dataType.min <= minValue &&
             minValue <= dataType.max &&
             dataType.min <= maxValue &&
@@ -60,32 +60,32 @@ DataType findDataType(Iterable values) {
           return dataType;
         }
       }
-      return DataType.NUMERIC;
+      return DataType.numeric;
     } else if (boolCount == 0 &&
         stringCount == 0 &&
         intCount == 0 &&
         doubleCount > 0) {
-      return DataType.FLOAT_64;
+      return DataType.float64;
     } else if (boolCount == 0 &&
         stringCount == 0 &&
         intCount > 0 &&
         doubleCount > 0) {
-      return DataType.NUMERIC;
+      return DataType.numeric;
     } else {
-      return DataType.OBJECT;
+      return DataType.object;
     }
   }
 
   return nullCount == 0 ? resolve() : resolve().nullable;
 }
 
-const List<IntegerDataType> INTEGER_DATA_TYPES = [
-  DataType.UINT_8,
-  DataType.INT_8,
-  DataType.UINT_16,
-  DataType.INT_16,
-  DataType.UINT_32,
-  DataType.INT_32,
-  DataType.UINT_64,
-  DataType.INT_64,
+const List<IntegerDataType> _intDataTypes = [
+  DataType.uint8,
+  DataType.int8,
+  DataType.uint16,
+  DataType.int16,
+  DataType.uint32,
+  DataType.int32,
+  DataType.uint64,
+  DataType.int64,
 ];

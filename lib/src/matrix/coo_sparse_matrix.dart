@@ -1,11 +1,13 @@
 library data.matrix.coo_sparse_matrix;
 
+import 'dart:math' as math;
+
 import 'package:data/src/type/type.dart';
 
 import 'sparse_matrix.dart';
-import 'dart:math' as math;
 
-const int INITIAL_SIZE = 4;
+const int _initialSize = 4;
+const DataType<int> _indexDataType = DataType.int32;
 
 // Coordinate list (COO)
 // COO stores a list of (row, column, value) tuples. Ideally, the entries are sorted first by row index and then by column index, to improve random access times. This is another format that is good for incremental matrix construction.[3]
@@ -25,9 +27,9 @@ class COOSparseMatrix<T> extends SparseMatrix<T> {
   int _length;
 
   COOSparseMatrix(this.dataType, this.rowCount, this.colCount)
-      : _rows = DataType.INT_32.newList(INITIAL_SIZE),
-        _cols = DataType.INT_32.newList(INITIAL_SIZE),
-        _vals = dataType.newList(INITIAL_SIZE),
+      : _rows = _indexDataType.newList(_initialSize),
+        _cols = _indexDataType.newList(_initialSize),
+        _vals = dataType.newList(_initialSize),
         _length = 0;
 
   int _binarySearch(int row, int col) {
@@ -54,16 +56,14 @@ class COOSparseMatrix<T> extends SparseMatrix<T> {
   }
 
   @override
-  T set(int row, int col, T val) {
+  void set(int row, int col, T val) {
     final index = _binarySearch(row, col);
-    if (val == dataType.nullValue) {
-      if (index < 0) {
-        // Tuple absent: nothing to do
-      } else {
-        // Tuple present: remove from list
-        _rows.setRange(index, _length, _rows.getRange(index + 1, _length));
-        _cols.setRange(index, _length, _cols.getRange(index + 1, _length));
-        _vals.setRange(index, _length, _vals.getRange(index + 1, _length));
+    if (val == null || val == dataType.nullValue) {
+      // Remove the tuple from the lists, if present:
+      if (index >= 0) {
+        _rows.setRange(index, _length - 1, _rows.getRange(index + 1, _length));
+        _cols.setRange(index, _length - 1, _cols.getRange(index + 1, _length));
+        _vals.setRange(index, _length - 1, _vals.getRange(index + 1, _length));
         _rows[_length] = _cols[_length] = 0;
         _vals[_length] = dataType.nullValue;
         _length--;
@@ -73,8 +73,8 @@ class COOSparseMatrix<T> extends SparseMatrix<T> {
         // Tuple absent: add a new tuple
         if (_vals.length == _length) {
           final newSize = math.min(_length + _length >> 1, rowCount * colCount);
-          _rows = DataType.INT_32.copyList(_rows, length: newSize);
-          _cols = DataType.INT_32.copyList(_cols, length: newSize);
+          _rows = _indexDataType.copyList(_rows, length: newSize);
+          _cols = _indexDataType.copyList(_cols, length: newSize);
           _vals = dataType.copyList(_vals, length: newSize);
         }
         _rows.setRange(-index, _length + 1, _rows.getRange(-index - 1, _length));

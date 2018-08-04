@@ -15,7 +15,7 @@ abstract class Matrix<T> {
   T get(int row, int col);
 
   /// Sets the value at the provided [row] and [col] index to [value].
-  T set(int row, int col, T value);
+  void set(int row, int col, T value);
 
   /// Returns the number of rows in the matrix.
   int get rowCount;

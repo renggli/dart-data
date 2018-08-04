@@ -6,7 +6,7 @@ class NumericDataType extends DataType<num> {
   const NumericDataType();
 
   @override
-  String get name => 'NUMERIC';
+  String get name => 'numeric';
 
   @override
   bool get isNullable => true;

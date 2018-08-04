@@ -28,7 +28,7 @@ class Float32DataType extends FloatDataType {
   const Float32DataType();
 
   @override
-  String get name => 'FLOAT_32';
+  String get name => 'float32';
 
   @override
   List<double> newList(int length) => Float32List(length);
@@ -38,7 +38,7 @@ class Float64DataType extends FloatDataType {
   const Float64DataType();
 
   @override
-  String get name => 'FLOAT_64';
+  String get name => 'float64';
 
   @override
   List<double> newList(int length) => Float64List(length);

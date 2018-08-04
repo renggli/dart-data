@@ -6,7 +6,7 @@ import 'package:data/type.dart';
 import 'package:test/test.dart';
 
 void listTest(DataType type, List<List> lists) {
-  if (type != DataType.FLOAT_32) {
+  if (type != DataType.float32) {
     for (var list in lists) {
       test('convertList: $list', () {
         expect(DataType.fromIterable(list), type,
@@ -36,7 +36,7 @@ void listTest(DataType type, List<List> lists) {
 }
 
 void floatGroup(DataType type, int bits) {
-  final name = 'FLOAT_$bits';
+  final name = 'float$bits';
   group('$name', () {
     test('name', () {
       expect(type.name, name);
@@ -78,7 +78,7 @@ void floatGroup(DataType type, int bits) {
       expect(nullableType.convert('123.45'), 123.45);
       expect(() => nullableType.convert('abc'), throwsArgumentError);
     });
-    if (DataType.FLOAT_64 == type) {
+    if (DataType.float64 == type) {
       listTest(nullableType, <List<double>>[
         [math.pi, null, math.e],
         [-1.0, 0.0, 1.1, null],
@@ -88,7 +88,7 @@ void floatGroup(DataType type, int bits) {
 }
 
 void integerGroup(IntegerDataType type, bool isSigned, int bits) {
-  final name = '${isSigned ? '' : 'U'}INT_$bits';
+  final name = '${isSigned ? '' : 'u'}int$bits';
   group('$name', () {
     test('name', () {
       expect(type.name, name);
@@ -104,7 +104,7 @@ void integerGroup(IntegerDataType type, bool isSigned, int bits) {
         expect(type.max, math.pow(2, bits - 1) - 1);
       } else {
         expect(type.min, 0);
-        if (type != DataType.UINT_64) {
+        if (type != DataType.uint64) {
           expect(type.max, math.pow(2, bits) - 1);
         }
       }
@@ -160,11 +160,11 @@ void integerGroup(IntegerDataType type, bool isSigned, int bits) {
 }
 
 void main() {
-  group('OBJECT', () {
-    final type = DataType.OBJECT;
+  group('object', () {
+    final type = DataType.object;
     test('name', () {
-      expect(type.name, 'OBJECT');
-      expect(type.toString(), 'DataType.OBJECT');
+      expect(type.name, 'object');
+      expect(type.toString(), 'DataType.object');
     });
     test('nullable', () {
       expect(type.isNullable, isTrue);
@@ -184,11 +184,11 @@ void main() {
       ['abc', 123],
     ]);
   });
-  group('STRING', () {
-    final type = DataType.STRING;
+  group('string', () {
+    final type = DataType.string;
     test('name', () {
-      expect(type.name, 'STRING');
-      expect(type.toString(), 'DataType.STRING');
+      expect(type.name, 'string');
+      expect(type.toString(), 'DataType.string');
     });
     test('nullable', () {
       expect(type.isNullable, isTrue);
@@ -207,11 +207,11 @@ void main() {
       ['abc', 'def'],
     ]);
   });
-  group('NUMERIC', () {
-    final type = DataType.NUMERIC;
+  group('numeric', () {
+    final type = DataType.numeric;
     test('name', () {
-      expect(type.name, 'NUMERIC');
-      expect(type.toString(), 'DataType.NUMERIC');
+      expect(type.name, 'numeric');
+      expect(type.toString(), 'DataType.numeric');
     });
     test('nullable', () {
       expect(type.isNullable, isTrue);
@@ -231,11 +231,11 @@ void main() {
       [1, 2.3, null],
     ]);
   });
-  group('BOOLEAN', () {
-    final type = DataType.BOOLEAN;
+  group('boolean', () {
+    final type = DataType.boolean;
     test('name', () {
-      expect(type.name, 'BOOLEAN');
-      expect(type.toString(), 'DataType.BOOLEAN');
+      expect(type.name, 'boolean');
+      expect(type.toString(), 'DataType.boolean');
     });
     test('nullable', () {
       expect(type.isNullable, isFalse);
@@ -257,11 +257,11 @@ void main() {
       [true, false],
     ]);
   });
-  group('BOOLEAN.nullable', () {
-    final type = DataType.BOOLEAN.nullable;
+  group('boolean.nullable', () {
+    final type = DataType.boolean.nullable;
     test('name', () {
-      expect(type.name, 'BOOLEAN.nullable');
-      expect(type.toString(), 'DataType.BOOLEAN.nullable');
+      expect(type.name, 'boolean.nullable');
+      expect(type.toString(), 'DataType.boolean.nullable');
     });
     test('nullable', () {
       expect(type.isNullable, isTrue);
@@ -284,14 +284,14 @@ void main() {
       [true, false, null],
     ]);
   });
-  integerGroup(DataType.INT_8, true, 8);
-  integerGroup(DataType.UINT_8, false, 8);
-  integerGroup(DataType.INT_16, true, 16);
-  integerGroup(DataType.UINT_16, false, 16);
-  integerGroup(DataType.INT_32, true, 32);
-  integerGroup(DataType.UINT_32, false, 32);
-  integerGroup(DataType.INT_64, true, 64);
-  integerGroup(DataType.UINT_64, false, 64);
-  floatGroup(DataType.FLOAT_32, 32);
-  floatGroup(DataType.FLOAT_64, 64);
+  integerGroup(DataType.int8, true, 8);
+  integerGroup(DataType.uint8, false, 8);
+  integerGroup(DataType.int16, true, 16);
+  integerGroup(DataType.uint16, false, 16);
+  integerGroup(DataType.int32, true, 32);
+  integerGroup(DataType.uint32, false, 32);
+  integerGroup(DataType.int64, true, 64);
+  integerGroup(DataType.uint64, false, 64);
+  floatGroup(DataType.float32, 32);
+  floatGroup(DataType.float64, 64);
 }

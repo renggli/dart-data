@@ -23,5 +23,5 @@ class ColumnMajorMatrix<T> extends Matrix<T> {
   T get(int row, int col) => _data[row + col * rowCount];
 
   @override
-  T set(int row, int col, T value) => _data[row + col * rowCount] = value;
+  void set(int row, int col, T value) => _data[row + col * rowCount] = value;
 }

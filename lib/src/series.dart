@@ -12,7 +12,7 @@ class Series<T> {
   /// Creates an empty series.
   factory Series.empty({String name, DataType<T> type}) {
     final _name = name ?? '';
-    final _type = type ?? DataType.OBJECT as DataType<T>;
+    final _type = type ?? DataType.object as DataType<T>;
     final _values = _type.newList(0);
     return Series._(name: _name, type: _type, values: _values);
   }

@@ -8,7 +8,7 @@ class BooleanDataType extends DataType<bool> {
   const BooleanDataType();
 
   @override
-  String get name => 'BOOLEAN';
+  String get name => 'boolean';
 
   @override
   bool get isNullable => false;

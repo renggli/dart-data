@@ -40,7 +40,7 @@ class Int8DataType extends IntegerDataType {
   const Int8DataType();
 
   @override
-  String get name => 'INT_8';
+  String get name => 'int8';
 
   @override
   int get min => -128;
@@ -59,7 +59,7 @@ class Uint8DataType extends IntegerDataType {
   const Uint8DataType();
 
   @override
-  String get name => 'UINT_8';
+  String get name => 'uint8';
 
   @override
   int get min => 0;
@@ -78,7 +78,7 @@ class Int16DataType extends IntegerDataType {
   const Int16DataType();
 
   @override
-  String get name => 'INT_16';
+  String get name => 'int16';
 
   @override
   int get min => -32768;
@@ -97,7 +97,7 @@ class Uint16DataType extends IntegerDataType {
   const Uint16DataType();
 
   @override
-  String get name => 'UINT_16';
+  String get name => 'uint16';
 
   @override
   int get min => 0;
@@ -116,7 +116,7 @@ class Int32DataType extends IntegerDataType {
   const Int32DataType();
 
   @override
-  String get name => 'INT_32';
+  String get name => 'int32';
 
   @override
   int get min => -2147483648;
@@ -135,7 +135,7 @@ class Uint32DataType extends IntegerDataType {
   const Uint32DataType();
 
   @override
-  String get name => 'UINT_32';
+  String get name => 'uint32';
 
   @override
   int get min => 0;
@@ -154,7 +154,7 @@ class Int64DataType extends IntegerDataType {
   const Int64DataType();
 
   @override
-  String get name => 'INT_64';
+  String get name => 'int64';
 
   @override
   int get min => -9223372036854775808;
@@ -173,14 +173,13 @@ class Uint64DataType extends IntegerDataType {
   const Uint64DataType();
 
   @override
-  String get name => 'UINT_64';
+  String get name => 'uint64';
 
   @override
   int get min => 0;
 
-  // TODO(renggli): This should actually be 18446744073709551615, but how?
   @override
-  int get max => 9223372036854775807;
+  int get max => 9223372036854775807; // 18446744073709551615
 
   @override
   int get bits => 64;
