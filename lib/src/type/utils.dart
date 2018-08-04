@@ -1,7 +1,7 @@
 import 'dart:math' show min, max;
 
-import 'package:pandas/src/type.dart';
-import 'package:pandas/src/type/integer.dart';
+import 'integer.dart';
+import 'type.dart';
 
 /// Finds the most specific data type for the provided values.
 DataType findDataType(Iterable values) {

@@ -1,8 +1,8 @@
-library pandas.type.float;
+library data.type.float;
 
 import 'dart:typed_data';
 
-import 'package:pandas/src/type.dart';
+import 'type.dart';
 
 abstract class FloatDataType extends DataType<double> {
   const FloatDataType();

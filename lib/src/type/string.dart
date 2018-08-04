@@ -1,6 +1,6 @@
-library pandas.type.string;
+library data.type.string;
 
-import 'package:pandas/src/type/object.dart';
+import 'object.dart';
 
 class StringDataType extends ObjectDataType<String> {
   const StringDataType();

@@ -1,8 +1,8 @@
-library pandas.type.integer;
+library data.type.integer;
 
 import 'dart:typed_data';
 
-import 'package:pandas/src/type.dart';
+import 'type.dart';
 
 abstract class IntegerDataType extends DataType<int> {
   const IntegerDataType();

@@ -1,6 +1,6 @@
-library pandas.type.numeric;
+library data.type.numeric;
 
-import 'package:pandas/src/type.dart';
+import 'type.dart';
 
 class NumericDataType extends DataType<num> {
   const NumericDataType();

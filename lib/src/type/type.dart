@@ -1,13 +1,13 @@
-library pandas.type;
+library data.type;
 
-import 'package:pandas/src/type/boolean.dart';
-import 'package:pandas/src/type/float.dart';
-import 'package:pandas/src/type/integer.dart';
-import 'package:pandas/src/type/nullable.dart';
-import 'package:pandas/src/type/numeric.dart';
-import 'package:pandas/src/type/object.dart';
-import 'package:pandas/src/type/string.dart';
-import 'package:pandas/src/type/utils.dart';
+import 'boolean.dart';
+import 'float.dart';
+import 'integer.dart';
+import 'nullable.dart';
+import 'numeric.dart';
+import 'object.dart';
+import 'string.dart';
+import 'utils.dart';
 
 abstract class DataType<T> {
   // Object data types

@@ -1,7 +1,8 @@
-library pandas.type.boolean;
+library data.type.boolean;
 
 import 'package:more/collection.dart' show BitList;
-import 'package:pandas/src/type.dart';
+
+import 'type.dart';
 
 class BooleanDataType extends DataType<bool> {
   const BooleanDataType();

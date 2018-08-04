@@ -1,6 +1,6 @@
-library pandas.type.object;
+library data.type.object;
 
-import 'package:pandas/src/type.dart';
+import 'type.dart';
 
 class ObjectDataType<T> extends DataType<T> {
   const ObjectDataType();

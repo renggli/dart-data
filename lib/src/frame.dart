@@ -1,4 +1,4 @@
-library pandas.core.frame;
+library data.core.frame;
 
 class Frame<V> {
   final List<Row<V>> _rowIndex;

@@ -1,10 +1,11 @@
-library pandas.type.nullable;
+library data.type.nullable;
 
 import 'dart:collection' show ListBase;
 
 import 'package:collection/collection.dart' show NonGrowableListMixin;
 import 'package:more/collection.dart' show BitList;
-import 'package:pandas/src/type.dart';
+
+import 'type.dart';
 
 /// Some [DataType] instances do not support `null` values in the way they
 /// represent their data. This wrapper turns those types into nullable ones.

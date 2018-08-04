@@ -1,9 +1,9 @@
-name: pandas
+name: data
 version: 0.0.1
 
 author: Lukas Renggli <renggli@gmail.com>
-homepage: https://github.com/renggli/dart-pandas
-description: Pandas for Dart
+homepage: https://github.com/renggli/dart-data
+description: Deals different kind of data
 
 environment:
   sdk: '>=2.0.0-dev.69.0 <3.0.0'

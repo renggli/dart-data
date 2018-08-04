@@ -1,1 +1,1 @@
-library pandas.errors;
+library data.errors;

@@ -1,6 +1,6 @@
-library pandas.core.series;
+library data.core.series;
 
-import 'package:pandas/src/type.dart';
+import 'package:data/type.dart';
 
 /// One-dimensional list with axis labels.
 ///

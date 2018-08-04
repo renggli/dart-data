@@ -1,4 +1,4 @@
-library pandas.index;
+library data.index;
 
 import 'dart:collection' show UnmodifiableMapView;
 
