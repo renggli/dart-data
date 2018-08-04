@@ -5,16 +5,34 @@ import 'dart:math' as math;
 import 'package:data/type.dart';
 import 'package:test/test.dart';
 
-void convertListTest(DataType type, List<List> lists) {
-  for (var list in lists) {
-    test('convertList: $list', () {
-      if (type != DataType.FLOAT_32) {
+void listTest(DataType type, List<List> lists) {
+  if (type != DataType.FLOAT_32) {
+    for (var list in lists) {
+      test('convertList: $list', () {
         expect(DataType.fromIterable(list), type,
             reason: 'new DataType.fromIterable($list)');
-      }
-      expect(type.convertList(list), list, reason: '$type.convertList($list)');
-    });
+        expect(type.convertList(list), list,
+            reason: '$type.convertList($list)');
+      });
+    }
   }
+  final example = lists.last;
+  test('copyList', () {
+    final copy = type.copyList(example);
+    expect(copy, example);
+  });
+  test('copyList (smaller)', () {
+    final copy = type.copyList(example, length: example.length - 1);
+    expect(copy.length, example.length - 1);
+    expect(copy, example.getRange(0, example.length - 1));
+  });
+  test('copyList (larger)', () {
+    final copy = type.copyList(example, length: example.length + 5);
+    expect(copy.length, example.length + 5);
+    expect(copy.getRange(0, example.length), example);
+    expect(copy.getRange(example.length, copy.length),
+        List.filled(5, type.nullValue));
+  });
 }
 
 void floatGroup(DataType type, int bits) {
@@ -36,12 +54,10 @@ void floatGroup(DataType type, int bits) {
       expect(type.convert('123.45'), 123.45);
       expect(() => type.convert('abc'), throwsArgumentError);
     });
-    if (DataType.FLOAT_64 == type) {
-      convertListTest(type, <List<double>>[
-        <double>[math.pi, math.e],
-        <double>[-1.0, 0.0, 1.1],
-      ]);
-    }
+    listTest(type, <List<double>>[
+      <double>[math.pi, math.e],
+      <double>[-1.0, 0.0, 0.375],
+    ]);
   });
   group('$name.nullable', () {
     final nullableType = type.nullable;
@@ -63,7 +79,7 @@ void floatGroup(DataType type, int bits) {
       expect(() => nullableType.convert('abc'), throwsArgumentError);
     });
     if (DataType.FLOAT_64 == type) {
-      convertListTest(nullableType, <List<double>>[
+      listTest(nullableType, <List<double>>[
         [math.pi, null, math.e],
         [-1.0, 0.0, 1.1, null],
       ]);
@@ -109,7 +125,7 @@ void integerGroup(IntegerDataType type, bool isSigned, int bits) {
       }
       expect(() => type.convert('abc'), throwsArgumentError);
     });
-    convertListTest(type, <List<int>>[
+    listTest(type, <List<int>>[
       [type.min, 0, type.max],
       [type.min + 123, type.max - 45, type.max - 67],
     ]);
@@ -136,7 +152,7 @@ void integerGroup(IntegerDataType type, bool isSigned, int bits) {
       }
       expect(() => nullableType.convert('abc'), throwsArgumentError);
     });
-    convertListTest(nullableType, <List<int>>[
+    listTest(nullableType, <List<int>>[
       [type.min, 0, null, type.max, null],
       [type.min + 123, type.max - 45, null, type.max - 67],
     ]);
@@ -161,7 +177,7 @@ void main() {
       expect(type.convert('foo'), 'foo');
       expect(type.convert(true), true);
     });
-    convertListTest(type, <List<Object>>[
+    listTest(type, <List<Object>>[
       [],
       [type],
       [1, true],
@@ -185,7 +201,7 @@ void main() {
       expect(type.convert('foo'), 'foo');
       expect(type.convert(true), 'true');
     });
-    convertListTest(type, <List<String>>[
+    listTest(type, <List<String>>[
       ['abc'],
       ['abc', null],
       ['abc', 'def'],
@@ -210,7 +226,7 @@ void main() {
       expect(type.convert('123.4'), 123.4);
       expect(() => type.convert('abc'), throwsArgumentError);
     });
-    convertListTest(type, <List<num>>[
+    listTest(type, <List<num>>[
       [1, 2.3],
       [1, 2.3, null],
     ]);
@@ -236,7 +252,7 @@ void main() {
       expect(type.convert(0), isFalse);
       expect(() => type.convert('abc'), throwsArgumentError);
     });
-    convertListTest(type, <List<bool>>[
+    listTest(type, <List<bool>>[
       [true],
       [true, false],
     ]);
@@ -263,7 +279,7 @@ void main() {
       expect(type.convert(0), isFalse);
       expect(() => type.convert('abc'), throwsArgumentError);
     });
-    convertListTest(type, <List<bool>>[
+    listTest(type, <List<bool>>[
       [true, null],
       [true, false, null],
     ]);
