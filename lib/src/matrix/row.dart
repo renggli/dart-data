@@ -6,7 +6,7 @@ import 'package:collection/collection.dart' show NonGrowableListMixin;
 
 import 'matrix.dart';
 
-class Row<T extends num> extends ListBase<T> with NonGrowableListMixin<T> {
+class Row<T> extends ListBase<T> with NonGrowableListMixin<T> {
   final Matrix<T> matrix;
   final int row;
 

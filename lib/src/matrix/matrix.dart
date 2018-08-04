@@ -5,7 +5,7 @@ import 'package:data/type.dart';
 import 'column.dart';
 import 'row.dart';
 
-abstract class Matrix<T extends num> {
+abstract class Matrix<T> {
   const Matrix();
 
   /// The data type of this matrix.

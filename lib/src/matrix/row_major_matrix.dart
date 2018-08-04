@@ -4,7 +4,7 @@ import 'package:data/type.dart';
 
 import 'matrix.dart';
 
-class RowMajorMatrix<T extends num> extends Matrix<T> {
+class RowMajorMatrix<T> extends Matrix<T> {
   @override
   final DataType<T> dataType;
 
@@ -14,14 +14,14 @@ class RowMajorMatrix<T extends num> extends Matrix<T> {
   @override
   final int colCount;
 
-  final List<T> data;
+  final List<T> _data;
 
   RowMajorMatrix(this.dataType, this.rowCount, this.colCount)
-      : data = dataType.newList(rowCount * colCount);
+      : _data = dataType.newList(rowCount * colCount);
 
   @override
-  T get(int row, int col) => data[row * rowCount + col];
+  T get(int row, int col) => _data[row * colCount + col];
 
   @override
-  T set(int row, int col, T value) => data[row * rowCount + col] = value;
+  T set(int row, int col, T value) => _data[row * colCount + col] = value;
 }
