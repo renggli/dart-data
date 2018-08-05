@@ -24,25 +24,25 @@ class CompressedSparseColumnMatrix<T> extends SparseMatrix<T> {
   int _length;
 
   CompressedSparseColumnMatrix(this.dataType, this.rowCount, this.colCount)
-      : _colExtends = _indexDataType.newList(colCount + 1),
+      : _colExtends = _indexDataType.newList(colCount),
         _rowIndexes = _indexDataType.newList(_initialSize),
         _values = dataType.newList(_initialSize),
         _length = 0;
 
   @override
   T getUnchecked(int row, int col) {
-    final start = _colExtends[col], stop = _colExtends[col + 1];
+    final start = col > 0 ? _colExtends[col - 1] : 0, stop = _colExtends[col];
     final index = binarySearch(_rowIndexes, start, stop, row);
     return index < 0 ? dataType.nullValue : _values[index];
   }
 
   @override
   void setUnchecked(int row, int col, T value) {
-    final start = _colExtends[col], stop = _colExtends[col + 1];
+    final start = col > 0 ? _colExtends[col - 1] : 0, stop = _colExtends[col];
     final index = binarySearch(_rowIndexes, start, stop, row);
     if (index < 0) {
       if (value != dataType.nullValue) {
-        for (var c = col + 1; c <= colCount; c++) {
+        for (var c = col; c < colCount; c++) {
           _colExtends[c]++;
         }
         _rowIndexes =
@@ -54,7 +54,7 @@ class CompressedSparseColumnMatrix<T> extends SparseMatrix<T> {
       if (value != dataType.nullValue) {
         _values[index] = value;
       } else {
-        for (var c = col + 1; c <= colCount; c++) {
+        for (var c = col; c < colCount; c++) {
           _colExtends[c]--;
         }
         _rowIndexes = removeAt(_indexDataType, _rowIndexes, _length, index);

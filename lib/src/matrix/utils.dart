@@ -21,11 +21,11 @@ int binarySearch<T extends num>(List<T> list, int min, int max, T value) {
 List<T> insertAt<T>(
     DataType<T> type, List<T> list, int length, int index, T value) {
   if (list.length == length) {
-    final updatedList = type.newList(2 * length);
-    updatedList.setRange(0, index, list);
-    updatedList[index] = value;
-    updatedList.setRange(index + 1, length + 1, list, index);
-    return updatedList;
+    final newList = type.newList(2 * length);
+    newList.setRange(0, index, list);
+    newList[index] = value;
+    newList.setRange(index + 1, length + 1, list, index);
+    return newList;
   } else {
     list.setRange(index + 1, length + 1, list, index);
     list[index] = value;
