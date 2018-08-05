@@ -20,8 +20,8 @@ class RowMajorMatrix<T> extends Matrix<T> {
       : _data = dataType.newList(rowCount * colCount);
 
   @override
-  T get(int row, int col) => _data[row * colCount + col];
+  T getUnchecked(int row, int col) => _data[row * colCount + col];
 
   @override
-  void set(int row, int col, T value) => _data[row * colCount + col] = value;
+  void setUnchecked(int row, int col, T value) => _data[row * colCount + col] = value;
 }

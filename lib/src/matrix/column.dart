@@ -6,20 +6,26 @@ import 'package:collection/collection.dart' show NonGrowableListMixin;
 
 import 'matrix.dart';
 
-class Col<T> extends ListBase<T> with NonGrowableListMixin<T> {
+class Column<T> extends ListBase<T> with NonGrowableListMixin<T> {
   final Matrix<T> matrix;
   final int col;
 
-  Col(this.matrix, this.col) {
-    RangeError.checkValueInInterval(col, 0, matrix.colCount);
+  Column(this.matrix, this.col) {
+    RangeError.checkValidIndex(col, matrix, 'col', matrix.colCount);
   }
 
   @override
   int get length => matrix.rowCount;
 
   @override
-  T operator [](int index) => matrix.get(index, col);
+  T operator [](int row) {
+    RangeError.checkValidIndex(row, matrix, 'row', matrix.rowCount);
+    return matrix.getUnchecked(row, col);
+  }
 
   @override
-  void operator []=(int index, T value) => matrix.set(index, col, value);
+  void operator []=(int row, T value) {
+    RangeError.checkValidIndex(row, matrix, 'row', matrix.rowCount);
+    matrix.setUnchecked(row, col, value);
+  }
 }

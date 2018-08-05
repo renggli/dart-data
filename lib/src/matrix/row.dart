@@ -11,15 +11,21 @@ class Row<T> extends ListBase<T> with NonGrowableListMixin<T> {
   final int row;
 
   Row(this.matrix, this.row) {
-    RangeError.checkValueInInterval(row, 0, matrix.rowCount);
+    RangeError.checkValidIndex(row, matrix, 'row', matrix.rowCount);
   }
 
   @override
   int get length => matrix.colCount;
 
   @override
-  T operator [](int index) => matrix.get(row, index);
+  T operator [](int col) {
+    RangeError.checkValidIndex(col, matrix, 'col', matrix.colCount);
+    return matrix.getUnchecked(row, col);
+  }
 
   @override
-  void operator []=(int index, T value) => matrix.set(row, index, value);
+  void operator []=(int col, T value) {
+    RangeError.checkValidIndex(col, matrix, 'col', matrix.colCount);
+    matrix.setUnchecked(row, col, value);
+  }
 }
