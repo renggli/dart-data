@@ -8,8 +8,7 @@ import 'utils.dart';
 const int _initialSize = 4;
 const DataType<int> _indexDataType = DataType.int32;
 
-// Coordinate list (COO)
-// COO stores a list of (row, column, value) tuples. Ideally, the entries are sorted first by row index and then by column index, to improve random access times. This is another format that is good for incremental matrix construction.[3]
+// A sparse matrix in coordinate format.
 class CoordinateListSparseMatrix<T> extends SparseMatrix<T> {
   @override
   final DataType<T> dataType;

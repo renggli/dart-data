@@ -116,4 +116,6 @@ void main() {
       (type, rows, cols) => CompressedSparseRowMatrix(type, rows, cols));
   matrixTest('sparse-csc',
       (type, rows, cols) => CompressedSparseColumnMatrix(type, rows, cols));
+  matrixTest('sparse-dia',
+      (type, rows, cols) => DiagonalSparseMatrix(type, rows, cols));
 }

@@ -8,6 +8,7 @@ import 'utils.dart';
 const int _initialSize = 4;
 const DataType<int> _indexDataType = DataType.int32;
 
+/// Compressed sparse column matrix.
 class CompressedSparseColumnMatrix<T> extends SparseMatrix<T> {
   @override
   final DataType<T> dataType;
