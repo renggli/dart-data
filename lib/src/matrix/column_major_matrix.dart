@@ -14,14 +14,15 @@ class ColumnMajorMatrix<T> extends Matrix<T> {
   @override
   final int colCount;
 
-  final List<T> _data;
+  final List<T> _values;
 
   ColumnMajorMatrix(this.dataType, this.rowCount, this.colCount)
-      : _data = dataType.newList(rowCount * colCount);
+      : _values = dataType.newList(rowCount * colCount);
 
   @override
-  T getUnchecked(int row, int col) => _data[row + col * rowCount];
+  T getUnchecked(int row, int col) => _values[row + col * rowCount];
 
   @override
-  void setUnchecked(int row, int col, T value) => _data[row + col * rowCount] = value;
+  void setUnchecked(int row, int col, T value) =>
+      _values[row + col * rowCount] = value;
 }

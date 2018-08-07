@@ -21,7 +21,8 @@ class DictionarySparseMatrix<T> extends SparseMatrix<T> {
       : _values = {};
 
   @override
-  T getUnchecked(int row, int col) => _values[row * colCount + col] ?? dataType.nullValue;
+  T getUnchecked(int row, int col) =>
+      _values[row * colCount + col] ?? dataType.nullValue;
 
   @override
   void setUnchecked(int row, int col, T value) {
