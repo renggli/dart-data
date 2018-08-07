@@ -1,7 +1,7 @@
 *.iml
 .DS_Store
+.dart_tool/
+.pub/
 .idea/
 .packages
-.pub
-packages
 pubspec.lock
