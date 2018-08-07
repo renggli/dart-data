@@ -1,11 +1,12 @@
-library data.matrix.dok_sparse_matrix;
+library data.matrix.keyed_matrix;
 
 import 'package:data/src/type/type.dart';
 
-import 'sparse_matrix.dart';
+import '../matrix.dart';
 
-/// Dictionary of keys based sparse matrix.
-class DictionarySparseMatrix<T> extends SparseMatrix<T> {
+
+/// Dictionary of keys based sparse matrix (DOK).
+class KeyedSparseMatrix<T> extends Matrix<T> {
   @override
   final DataType<T> dataType;
 
@@ -17,7 +18,7 @@ class DictionarySparseMatrix<T> extends SparseMatrix<T> {
 
   final Map<int, T> _values;
 
-  DictionarySparseMatrix(this.dataType, this.rowCount, this.colCount)
+  KeyedSparseMatrix(this.dataType, this.rowCount, this.colCount)
       : _values = {};
 
   @override

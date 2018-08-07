@@ -1,13 +1,13 @@
-library data.matrix.dia_sparse_matrix;
+library data.matrix.sparse.diagonal_matrix;
 
 import 'dart:math' as math;
 
 import 'package:data/src/type/type.dart';
 
-import 'sparse_matrix.dart';
+import '../matrix.dart';
 
-/// Sparse matrix with diagonal storage.
-class DiagonalSparseMatrix<T> extends SparseMatrix<T> {
+/// Sparse matrix with diagonal storage (DIA).
+class DiagonalSparseMatrix<T> extends Matrix<T> {
   @override
   final DataType<T> dataType;
 

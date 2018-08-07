@@ -2,6 +2,10 @@ library data.matrix.utils;
 
 import 'package:data/type.dart';
 
+/// Integer data type to index column and row indexes.
+const DataType<int> indexDataType = DataType.int32;
+
+/// Performs a binary search on the range of a sorted list.
 int binarySearch<T extends num>(List<T> list, int min, int max, T value) {
   while (min < max) {
     final mid = min + ((max - min) >> 1);
@@ -16,6 +20,9 @@ int binarySearch<T extends num>(List<T> list, int min, int max, T value) {
   }
   return -min - 1;
 }
+
+/// Initial size of fixed-length lists.
+const int initialListSize = 4;
 
 /// Inserts an entry into a fixed-length list, possibly reallocates.
 List<T> insertAt<T>(

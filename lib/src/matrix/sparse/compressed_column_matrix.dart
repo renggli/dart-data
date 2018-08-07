@@ -1,15 +1,12 @@
-library data.matrix.csc_sparse_matrix;
+library data.matrix.sparse.compressed_column_matrix;
 
 import 'package:data/src/type/type.dart';
 
-import 'sparse_matrix.dart';
-import 'utils.dart';
+import '../matrix.dart';
+import '../utils.dart';
 
-const int _initialSize = 4;
-const DataType<int> _indexDataType = DataType.int32;
-
-/// Compressed sparse column matrix.
-class CompressedSparseColumnMatrix<T> extends SparseMatrix<T> {
+/// Compressed sparse column matrix (CSC).
+class CompressedSparseColumnMatrix<T> extends Matrix<T> {
   @override
   final DataType<T> dataType;
 
@@ -25,9 +22,9 @@ class CompressedSparseColumnMatrix<T> extends SparseMatrix<T> {
   int _length;
 
   CompressedSparseColumnMatrix(this.dataType, this.rowCount, this.colCount)
-      : _colExtends = _indexDataType.newList(colCount),
-        _rowIndexes = _indexDataType.newList(_initialSize),
-        _values = dataType.newList(_initialSize),
+      : _colExtends = indexDataType.newList(colCount),
+        _rowIndexes = indexDataType.newList(initialListSize),
+        _values = dataType.newList(initialListSize),
         _length = 0;
 
   @override
@@ -47,7 +44,7 @@ class CompressedSparseColumnMatrix<T> extends SparseMatrix<T> {
           _colExtends[c]++;
         }
         _rowIndexes =
-            insertAt(_indexDataType, _rowIndexes, _length, -index - 1, row);
+            insertAt(indexDataType, _rowIndexes, _length, -index - 1, row);
         _values = insertAt(dataType, _values, _length, -index - 1, value);
         _length++;
       }
@@ -58,7 +55,7 @@ class CompressedSparseColumnMatrix<T> extends SparseMatrix<T> {
         for (var c = col; c < colCount; c++) {
           _colExtends[c]--;
         }
-        _rowIndexes = removeAt(_indexDataType, _rowIndexes, _length, index);
+        _rowIndexes = removeAt(indexDataType, _rowIndexes, _length, index);
         _values = removeAt(dataType, _values, _length, index);
         _length--;
       }

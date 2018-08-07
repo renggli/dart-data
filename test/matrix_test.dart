@@ -107,17 +107,31 @@ void matrixTest(String name, MatrixConstructor constructor) {
 
 void main() {
   matrixTest(
-      'row-major', (type, rows, cols) => RowMajorMatrix(type, rows, cols));
-  matrixTest('column-major',
-      (type, rows, cols) => ColumnMajorMatrix(type, rows, cols));
-  matrixTest('sparse-coo',
-      (type, rows, cols) => CoordinateListSparseMatrix(type, rows, cols));
-  matrixTest('sparse-csr',
-      (type, rows, cols) => CompressedSparseRowMatrix(type, rows, cols));
-  matrixTest('sparse-csc',
-      (type, rows, cols) => CompressedSparseColumnMatrix(type, rows, cols));
-  matrixTest('sparse-dia',
-      (type, rows, cols) => DiagonalSparseMatrix(type, rows, cols));
-  matrixTest('sparse-dok',
-      (type, rows, cols) => DictionarySparseMatrix(type, rows, cols));
+    'row-major',
+    (type, rows, cols) => RowMajorMatrix(type, rows, cols),
+  );
+  matrixTest(
+    'column-major',
+    (type, rows, cols) => ColumnMajorMatrix(type, rows, cols),
+  );
+  matrixTest(
+    'sparse-coo',
+    (type, rows, cols) => CoordinateListSparseMatrix(type, rows, cols),
+  );
+  matrixTest(
+    'sparse-csr',
+    (type, rows, cols) => CompressedSparseRowMatrix(type, rows, cols),
+  );
+  matrixTest(
+    'sparse-csc',
+    (type, rows, cols) => CompressedSparseColumnMatrix(type, rows, cols),
+  );
+  matrixTest(
+    'sparse-dia',
+    (type, rows, cols) => DiagonalSparseMatrix(type, rows, cols),
+  );
+  matrixTest(
+    'sparse-dok',
+    (type, rows, cols) => KeyedSparseMatrix(type, rows, cols),
+  );
 }

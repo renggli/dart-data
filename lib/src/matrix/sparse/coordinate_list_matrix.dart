@@ -1,15 +1,12 @@
-library data.matrix.coo_sparse_matrix;
+library data.matrix.sparse.coordinate_list_matrix;
 
 import 'package:data/src/type/type.dart';
 
-import 'sparse_matrix.dart';
-import 'utils.dart';
+import '../matrix.dart';
+import '../utils.dart';
 
-const int _initialSize = 4;
-const DataType<int> _indexDataType = DataType.int32;
-
-// A sparse matrix in coordinate format.
-class CoordinateListSparseMatrix<T> extends SparseMatrix<T> {
+// A sparse matrix in coordinate format (COO).
+class CoordinateListSparseMatrix<T> extends Matrix<T> {
   @override
   final DataType<T> dataType;
 
@@ -25,9 +22,9 @@ class CoordinateListSparseMatrix<T> extends SparseMatrix<T> {
   int _length;
 
   CoordinateListSparseMatrix(this.dataType, this.rowCount, this.colCount)
-      : _rows = _indexDataType.newList(_initialSize),
-        _cols = _indexDataType.newList(_initialSize),
-        _values = dataType.newList(_initialSize),
+      : _rows = indexDataType.newList(initialListSize),
+        _cols = indexDataType.newList(initialListSize),
+        _values = dataType.newList(initialListSize),
         _length = 0;
 
   int _binarySearch(int row, int col) {
@@ -58,8 +55,8 @@ class CoordinateListSparseMatrix<T> extends SparseMatrix<T> {
     final index = _binarySearch(row, col);
     if (index < 0) {
       if (value != dataType.nullValue) {
-        _rows = insertAt(_indexDataType, _rows, _length, -index - 1, row);
-        _cols = insertAt(_indexDataType, _cols, _length, -index - 1, col);
+        _rows = insertAt(indexDataType, _rows, _length, -index - 1, row);
+        _cols = insertAt(indexDataType, _cols, _length, -index - 1, col);
         _values = insertAt(dataType, _values, _length, -index - 1, value);
         _length++;
       }
@@ -67,8 +64,8 @@ class CoordinateListSparseMatrix<T> extends SparseMatrix<T> {
       if (value != dataType.nullValue) {
         _values[index] = value;
       } else {
-        _rows = removeAt(_indexDataType, _rows, _length, index);
-        _cols = removeAt(_indexDataType, _cols, _length, index);
+        _rows = removeAt(indexDataType, _rows, _length, index);
+        _cols = removeAt(indexDataType, _cols, _length, index);
         _values = removeAt(dataType, _values, _length, index);
         _length--;
       }
