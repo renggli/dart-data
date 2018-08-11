@@ -6,7 +6,7 @@ homepage: https://github.com/renggli/dart-data
 description: A library for Dart developers. It is awesome.
 
 environment:
-  sdk: ^2.0.0
+  sdk: '>=2.0.0-dev.61.0 <3.0.0'
 dependencies:
   more: ^1.10.0
   collection: ^1.14.0
