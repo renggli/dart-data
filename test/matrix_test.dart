@@ -4,11 +4,12 @@ import 'package:data/matrix.dart';
 import 'package:data/type.dart';
 import 'package:test/test.dart';
 
-typedef Matrix MatrixConstructor(DataType type, int rows, int cols);
+typedef Matrix<T> MatrixConstructor<T>(
+    DataType<T> type, int rowCount, int colCount);
 
 void matrixTest(String name, MatrixConstructor constructor) {
   group(name, () {
-    test('create - default', () {
+    test('create - empty', () {
       final matrix = constructor(DataType.int8, 3, 4);
       expect(matrix.rowCount, 3);
       expect(matrix.colCount, 4);
@@ -48,8 +49,8 @@ void matrixTest(String name, MatrixConstructor constructor) {
     test('create - random order', () {
       final matrix = constructor(DataType.string, 6, 4);
       final values = <String>[];
-      for (var c = 0; c < matrix.colCount; c++) {
-        for (var r = 0; r < matrix.rowCount; r++) {
+      for (var r = 0; r < matrix.rowCount; r++) {
+        for (var c = 0; c < matrix.colCount; c++) {
           values.add('$r-$c');
         }
       }
@@ -72,8 +73,8 @@ void matrixTest(String name, MatrixConstructor constructor) {
     });
     test('row view', () {
       final matrix = constructor(DataType.string, 4, 5);
-      for (var c = 0; c < matrix.colCount; c++) {
-        for (var r = 0; r < matrix.rowCount; r++) {
+      for (var r = 0; r < matrix.rowCount; r++) {
+        for (var c = 0; c < matrix.colCount; c++) {
           matrix.set(r, c, '$r-$c');
         }
       }
@@ -88,8 +89,8 @@ void matrixTest(String name, MatrixConstructor constructor) {
     });
     test('col view', () {
       final matrix = constructor(DataType.string, 5, 4);
-      for (var c = 0; c < matrix.colCount; c++) {
-        for (var r = 0; r < matrix.rowCount; r++) {
+      for (var r = 0; r < matrix.rowCount; r++) {
+        for (var c = 0; c < matrix.colCount; c++) {
           matrix.set(r, c, '$r-$c');
         }
       }
@@ -101,6 +102,45 @@ void matrixTest(String name, MatrixConstructor constructor) {
         expect(() => col[-1], throwsRangeError);
         expect(() => col[matrix.rowCount], throwsRangeError);
       }
+    });
+    test('sub view', () {
+      final matrix = constructor(DataType.string, 5, 6);
+      for (var r = 0; r < matrix.rowCount; r++) {
+        for (var c = 0; c < matrix.colCount; c++) {
+          matrix.set(r, c, '$r-$c');
+        }
+      }
+      final subMatrix = matrix.subMatrix(1, 3, 1, 4);
+      expect(subMatrix.dataType, matrix.dataType);
+      expect(subMatrix.rowCount, 3);
+      expect(subMatrix.colCount, 4);
+      for (var r = 0; r < subMatrix.rowCount; r++) {
+        for (var c = 0; c < subMatrix.colCount; c++) {
+          expect(subMatrix.get(r, c), '${r + 1}-${c + 1}');
+        }
+      }
+      expect(() => subMatrix.get(-1, 0), throwsRangeError);
+      expect(() => subMatrix.get(0, -1), throwsRangeError);
+      expect(() => subMatrix.get(3, 3), throwsRangeError);
+      expect(() => subMatrix.get(2, 4), throwsRangeError);
+    });
+    test('transpose', () {
+      final matrix = constructor(DataType.string, 7, 5);
+      for (var r = 0; r < matrix.rowCount; r++) {
+        for (var c = 0; c < matrix.colCount; c++) {
+          matrix.set(r, c, '$r-$c');
+        }
+      }
+      final transposedMatrix = matrix.transposed;
+      expect(transposedMatrix.dataType, matrix.dataType);
+      expect(transposedMatrix.rowCount, 5);
+      expect(transposedMatrix.colCount, 7);
+      for (var r = 0; r < transposedMatrix.rowCount; r++) {
+        for (var c = 0; c < transposedMatrix.colCount; c++) {
+          expect(transposedMatrix.get(r, c), '$c-$r');
+        }
+      }
+      expect(transposedMatrix.transposed, matrix);
     });
   });
 }

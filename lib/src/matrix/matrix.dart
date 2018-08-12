@@ -2,12 +2,12 @@ library data.matrix.matrix;
 
 import 'package:data/type.dart';
 
-import 'column.dart';
-import 'row.dart';
+import 'view/column_view.dart';
+import 'view/row_view.dart';
+import 'view/sub_matrix.dart';
+import 'view/transposed_matrix.dart';
 
 abstract class Matrix<T> {
-  const Matrix();
-
   /// The data type of this matrix.
   DataType<T> get dataType;
 
@@ -38,16 +38,24 @@ abstract class Matrix<T> {
   /// Returns the number of rows in the matrix.
   int get rowCount;
 
-  /// Returns a row of the matrix. Throws a [RangeError] if [row] is outside
-  /// of bounds.
-  Row<T> row(int row) => Row<T>(this, row);
+  /// Returns a mutable row of the matrix. Throws a [RangeError] if [row] is
+  /// outside of bounds.
+  RowView<T> row(int row) => RowView<T>(this, row);
 
   /// Returns the number of columns in the matrix.
   int get colCount;
 
-  /// Returns a column of the matrix. Throws a [RangeError] if [col] is outside
-  /// of bounds.
-  Column<T> col(int col) => Column<T>(this, col);
+  /// Returns a mutable column of the matrix. Throws a [RangeError] if [col] is
+  /// outside of bounds.
+  ColumnView<T> col(int col) => ColumnView<T>(this, col);
+
+  /// Returns a mutable view onto a sub-matrix.
+  Matrix<T> subMatrix(
+          int rowOffset, int rowCount, int colOffset, int colCount) =>
+      SubMatrix<T>(this, rowOffset, rowCount, colOffset, colCount);
+
+  /// Returns a mutable view onto the transposed matrix.
+  Matrix<T> get transposed => TransposedMatrix<T>(this);
 
   /// Pretty prints the matrix.
   @override

@@ -1,16 +1,17 @@
-library data.matrix.row;
+library data.matrix.view.row_view;
 
 import 'dart:collection';
 
 import 'package:collection/collection.dart' show NonGrowableListMixin;
 
-import 'matrix.dart';
+import '../matrix.dart';
 
-class Row<T> extends ListBase<T> with NonGrowableListMixin<T> {
+/// A mutable view onto the row of a matrix.
+class RowView<T> extends ListBase<T> with NonGrowableListMixin<T> {
   final Matrix<T> matrix;
   final int row;
 
-  Row(this.matrix, this.row) {
+  RowView(this.matrix, this.row) {
     RangeError.checkValidIndex(row, matrix, 'row', matrix.rowCount);
   }
 

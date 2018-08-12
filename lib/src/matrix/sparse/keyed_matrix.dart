@@ -4,7 +4,6 @@ import 'package:data/src/type/type.dart';
 
 import '../matrix.dart';
 
-
 /// Dictionary of keys based sparse matrix (DOK).
 class KeyedSparseMatrix<T> extends Matrix<T> {
   @override
@@ -18,8 +17,7 @@ class KeyedSparseMatrix<T> extends Matrix<T> {
 
   final Map<int, T> _values;
 
-  KeyedSparseMatrix(this.dataType, this.rowCount, this.colCount)
-      : _values = {};
+  KeyedSparseMatrix(this.dataType, this.rowCount, this.colCount) : _values = {};
 
   @override
   T getUnchecked(int row, int col) =>
