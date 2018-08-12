@@ -1,4 +1,4 @@
-library data.matrix.sparse.compressed_column_matrix;
+library data.matrix.impl.compressed_column_matrix;
 
 import 'package:data/src/type/type.dart';
 
@@ -6,7 +6,7 @@ import '../matrix.dart';
 import '../utils.dart';
 
 /// Compressed sparse column matrix (CSC).
-class CompressedSparseColumnMatrix<T> extends Matrix<T> {
+class CompressedColumnMatrix<T> extends Matrix<T> {
   @override
   final DataType<T> dataType;
 
@@ -21,7 +21,7 @@ class CompressedSparseColumnMatrix<T> extends Matrix<T> {
   List<T> _values;
   int _length;
 
-  CompressedSparseColumnMatrix(this.dataType, this.rowCount, this.colCount)
+  CompressedColumnMatrix(this.dataType, this.rowCount, this.colCount)
       : _colExtends = indexDataType.newList(colCount),
         _rowIndexes = indexDataType.newList(initialListSize),
         _values = dataType.newList(initialListSize),

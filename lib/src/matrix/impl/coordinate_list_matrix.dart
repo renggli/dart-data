@@ -1,4 +1,4 @@
-library data.matrix.sparse.coordinate_list_matrix;
+library data.matrix.impl.coordinate_list_matrix;
 
 import 'package:data/src/type/type.dart';
 
@@ -6,7 +6,7 @@ import '../matrix.dart';
 import '../utils.dart';
 
 // A sparse matrix in coordinate format (COO).
-class CoordinateListSparseMatrix<T> extends Matrix<T> {
+class CoordinateListMatrix<T> extends Matrix<T> {
   @override
   final DataType<T> dataType;
 
@@ -21,7 +21,7 @@ class CoordinateListSparseMatrix<T> extends Matrix<T> {
   List<T> _values;
   int _length;
 
-  CoordinateListSparseMatrix(this.dataType, this.rowCount, this.colCount)
+  CoordinateListMatrix(this.dataType, this.rowCount, this.colCount)
       : _rows = indexDataType.newList(initialListSize),
         _cols = indexDataType.newList(initialListSize),
         _values = dataType.newList(initialListSize),

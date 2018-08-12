@@ -2,15 +2,107 @@ library data.matrix.matrix;
 
 import 'package:data/type.dart';
 
+import 'impl/column_major_matrix.dart';
+import 'impl/compressed_column_matrix.dart';
+import 'impl/compressed_row_matrix.dart';
+import 'impl/coordinate_list_matrix.dart';
+import 'impl/diagonal_matrix.dart';
+import 'impl/keyed_matrix.dart';
+import 'impl/row_major_matrix.dart';
 import 'view/column_view.dart';
 import 'view/row_view.dart';
 import 'view/sub_matrix.dart';
 import 'view/transposed_matrix.dart';
 
+/// Generic function type for all matrix constructors.
 typedef Matrix<T> MatrixConstructor<T>(
-    DataType<T> dataType, int rowCount, int colCount);
+  DataType<T> dataType,
+  int rowCount,
+  int colCount,
+);
 
+/// Abstract matrix type.
 abstract class Matrix<T> {
+  /// Constructor function for a row-major matrix.
+  static Matrix<T> rowMajor<T>(
+          DataType<T> dataType, int rowCount, int colCount) =>
+      RowMajorMatrix<T>(dataType, rowCount, colCount);
+
+  /// Constructor function for a column-major matrix.
+  static Matrix<T> columnMajor<T>(
+          DataType<T> dataType, int rowCount, int colCount) =>
+      ColumnMajorMatrix<T>(dataType, rowCount, colCount);
+
+  /// Constructor function for a compressed-row sparse matrix.
+  static Matrix<T> compressedRow<T>(
+          DataType<T> dataType, int rowCount, int colCount) =>
+      CompressedRowMatrix<T>(dataType, rowCount, colCount);
+
+  /// Constructor function for a compressed-column sparse matrix.
+  static Matrix<T> compressedColumn<T>(
+          DataType<T> dataType, int rowCount, int colCount) =>
+      CompressedColumnMatrix<T>(dataType, rowCount, colCount);
+
+  /// Constructor function for a coordinate-list sparse matrix.
+  static Matrix<T> coordinateList<T>(
+          DataType<T> dataType, int rowCount, int colCount) =>
+      CoordinateListMatrix<T>(dataType, rowCount, colCount);
+
+  /// Constructor function for a diagonal sparse matrix.
+  static Matrix<T> diagonal<T>(
+          DataType<T> dataType, int rowCount, int colCount) =>
+      DiagonalMatrix<T>(dataType, rowCount, colCount);
+
+  /// Constructor function for a keyed sparse matrix.
+  static Matrix<T> keyed<T>(DataType<T> dataType, int rowCount, int colCount) =>
+      KeyedMatrix<T>(dataType, rowCount, colCount);
+
+  /// Constructs a matrix with all values on their default.
+  factory Matrix.zero(MatrixConstructor<T> constructor, DataType<T> dataType,
+          int rowCount, int colCount) =>
+      constructor(dataType, rowCount, colCount);
+
+  /// Constructs a matrix with a constant [value].
+  factory Matrix.constant(MatrixConstructor<T> constructor,
+      DataType<T> dataType, int rowCount, int colCount, T value) {
+    final result = constructor(dataType, rowCount, colCount);
+    for (var row = 0; row < rowCount; row++) {
+      for (var col = 0; col < colCount; col++) {
+        result.setUnchecked(row, col, value);
+      }
+    }
+    return result;
+  }
+
+  /// Constructs an identity matrix.
+  factory Matrix.identity(MatrixConstructor<T> constructor,
+      DataType<T> dataType, int count, T value) {
+    final result = constructor(dataType, count, count);
+    for (var i = 0; i < count; i++) {
+      result.setUnchecked(i, i, value);
+    }
+    return result;
+  }
+
+  /// Constructs a matrix from a callback.
+  factory Matrix.generate(
+      MatrixConstructor<T> constructor,
+      DataType<T> dataType,
+      int rowCount,
+      int colCount,
+      T callback(int row, int col)) {
+    final result = constructor(dataType, rowCount, colCount);
+    for (var row = 0; row < rowCount; row++) {
+      for (var col = 0; col < colCount; col++) {
+        result.setUnchecked(row, col, callback(row, col));
+      }
+    }
+    return result;
+  }
+
+  /// Unnamed default constructor.
+  const Matrix();
+
   /// The data type of this matrix.
   DataType<T> get dataType;
 
@@ -58,7 +150,7 @@ abstract class Matrix<T> {
       SubMatrix<T>(this, rowOffset, rowCount, colOffset, colCount);
 
   /// Returns a mutable view onto the transposed matrix.
-  Matrix<T> get transposed => TransposedMatrix<T>(this);
+  Matrix<T> get transpose => TransposedMatrix<T>(this);
 
   /// Pretty prints the matrix.
   @override

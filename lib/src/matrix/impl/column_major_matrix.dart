@@ -1,8 +1,8 @@
-library data.matrix.column_major_matrix;
+library data.matrix.impl.column_major_matrix;
 
 import 'package:data/type.dart';
 
-import 'matrix.dart';
+import '../matrix.dart';
 
 class ColumnMajorMatrix<T> extends Matrix<T> {
   @override

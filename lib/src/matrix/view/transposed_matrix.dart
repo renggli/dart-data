@@ -6,26 +6,26 @@ import '../matrix.dart';
 
 /// A transposed mutable view onto another matrix.
 class TransposedMatrix<T> extends Matrix<T> {
-  final Matrix<T> matrix;
+  final Matrix<T> _matrix;
 
-  TransposedMatrix(this.matrix);
-
-  @override
-  DataType<T> get dataType => matrix.dataType;
+  TransposedMatrix(this._matrix);
 
   @override
-  int get rowCount => matrix.colCount;
+  DataType<T> get dataType => _matrix.dataType;
 
   @override
-  int get colCount => matrix.rowCount;
+  int get rowCount => _matrix.colCount;
 
   @override
-  T getUnchecked(int row, int col) => matrix.getUnchecked(col, row);
+  int get colCount => _matrix.rowCount;
+
+  @override
+  T getUnchecked(int row, int col) => _matrix.getUnchecked(col, row);
 
   @override
   void setUnchecked(int row, int col, T value) =>
-      matrix.setUnchecked(col, row, value);
+      _matrix.setUnchecked(col, row, value);
 
   @override
-  Matrix<T> get transposed => matrix;
+  Matrix<T> get transpose => _matrix;
 }

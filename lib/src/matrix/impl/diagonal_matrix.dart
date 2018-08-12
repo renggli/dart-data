@@ -1,4 +1,4 @@
-library data.matrix.sparse.diagonal_matrix;
+library data.matrix.impl.diagonal_matrix;
 
 import 'dart:math' as math;
 
@@ -7,7 +7,7 @@ import 'package:data/src/type/type.dart';
 import '../matrix.dart';
 
 /// Sparse matrix with diagonal storage (DIA).
-class DiagonalSparseMatrix<T> extends Matrix<T> {
+class DiagonalMatrix<T> extends Matrix<T> {
   @override
   final DataType<T> dataType;
 
@@ -19,8 +19,7 @@ class DiagonalSparseMatrix<T> extends Matrix<T> {
 
   final Map<int, List<T>> _diagonals;
 
-  DiagonalSparseMatrix(this.dataType, this.rowCount, this.colCount)
-      : _diagonals = {};
+  DiagonalMatrix(this.dataType, this.rowCount, this.colCount) : _diagonals = {};
 
   @override
   T getUnchecked(int row, int col) {

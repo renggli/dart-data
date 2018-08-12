@@ -1,4 +1,4 @@
-library data.matrix.sparse.compressed_row_matrix;
+library data.matrix.impl.compressed_row_matrix;
 
 import 'package:data/src/type/type.dart';
 
@@ -6,7 +6,7 @@ import '../matrix.dart';
 import '../utils.dart';
 
 /// Compressed sparse row matrix (CSR).
-class CompressedSparseRowMatrix<T> extends Matrix<T> {
+class CompressedRowMatrix<T> extends Matrix<T> {
   @override
   final DataType<T> dataType;
 
@@ -21,7 +21,7 @@ class CompressedSparseRowMatrix<T> extends Matrix<T> {
   List<T> _values;
   int _length;
 
-  CompressedSparseRowMatrix(this.dataType, this.rowCount, this.colCount)
+  CompressedRowMatrix(this.dataType, this.rowCount, this.colCount)
       : _rowExtends = indexDataType.newList(rowCount),
         _colIndexes = indexDataType.newList(initialListSize),
         _values = dataType.newList(initialListSize),

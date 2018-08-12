@@ -6,34 +6,32 @@ import '../matrix.dart';
 
 /// A mutable view onto a region of a matrix.
 class SubMatrix<T> extends Matrix<T> {
-  final Matrix<T> matrix;
+  final Matrix<T> _matrix;
+  final int _rowOffset;
+  final int _colOffset;
 
-  final int rowOffset;
+  SubMatrix(this._matrix, this._rowOffset, this.rowCount, this._colOffset,
+      this.colCount);
+
+  @override
+  DataType<T> get dataType => _matrix.dataType;
 
   @override
   final int rowCount;
 
-  final int colOffset;
-
   @override
   final int colCount;
 
-  SubMatrix(this.matrix, this.rowOffset, this.rowCount, this.colOffset,
-      this.colCount);
-
-  @override
-  DataType<T> get dataType => matrix.dataType;
-
   @override
   T getUnchecked(int row, int col) =>
-      matrix.getUnchecked(rowOffset + row, colOffset + col);
+      _matrix.getUnchecked(_rowOffset + row, _colOffset + col);
 
   @override
   void setUnchecked(int row, int col, T value) =>
-      matrix.setUnchecked(rowOffset + row, colOffset + col, value);
+      _matrix.setUnchecked(_rowOffset + row, _colOffset + col, value);
 
   @override
   Matrix<T> subMatrix(
           int rowOffset, int rowCount, int colOffset, int colCount) =>
-      SubMatrix<T>(matrix, rowOffset, rowCount, colOffset, colCount);
+      SubMatrix<T>(_matrix, rowOffset, rowCount, colOffset, colCount);
 }
