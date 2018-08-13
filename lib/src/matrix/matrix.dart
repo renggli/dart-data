@@ -2,103 +2,17 @@ library data.matrix.matrix;
 
 import 'package:data/type.dart';
 
-import 'impl/column_major_matrix.dart';
-import 'impl/compressed_column_matrix.dart';
-import 'impl/compressed_row_matrix.dart';
-import 'impl/coordinate_list_matrix.dart';
-import 'impl/diagonal_matrix.dart';
-import 'impl/keyed_matrix.dart';
-import 'impl/row_major_matrix.dart';
+import 'matrix_builder.dart';
 import 'view/column_view.dart';
 import 'view/row_view.dart';
 import 'view/sub_matrix.dart';
 import 'view/transposed_matrix.dart';
 
-/// Generic function type for all matrix constructors.
-typedef Matrix<T> MatrixConstructor<T>(
-  DataType<T> dataType,
-  int rowCount,
-  int colCount,
-);
-
 /// Abstract matrix type.
 abstract class Matrix<T> {
-  /// Constructor function for a row-major matrix.
-  static Matrix<T> rowMajor<T>(
-          DataType<T> dataType, int rowCount, int colCount) =>
-      RowMajorMatrix<T>(dataType, rowCount, colCount);
-
-  /// Constructor function for a column-major matrix.
-  static Matrix<T> columnMajor<T>(
-          DataType<T> dataType, int rowCount, int colCount) =>
-      ColumnMajorMatrix<T>(dataType, rowCount, colCount);
-
-  /// Constructor function for a compressed-row sparse matrix.
-  static Matrix<T> compressedRow<T>(
-          DataType<T> dataType, int rowCount, int colCount) =>
-      CompressedRowMatrix<T>(dataType, rowCount, colCount);
-
-  /// Constructor function for a compressed-column sparse matrix.
-  static Matrix<T> compressedColumn<T>(
-          DataType<T> dataType, int rowCount, int colCount) =>
-      CompressedColumnMatrix<T>(dataType, rowCount, colCount);
-
-  /// Constructor function for a coordinate-list sparse matrix.
-  static Matrix<T> coordinateList<T>(
-          DataType<T> dataType, int rowCount, int colCount) =>
-      CoordinateListMatrix<T>(dataType, rowCount, colCount);
-
-  /// Constructor function for a diagonal sparse matrix.
-  static Matrix<T> diagonal<T>(
-          DataType<T> dataType, int rowCount, int colCount) =>
-      DiagonalMatrix<T>(dataType, rowCount, colCount);
-
-  /// Constructor function for a keyed sparse matrix.
-  static Matrix<T> keyed<T>(DataType<T> dataType, int rowCount, int colCount) =>
-      KeyedMatrix<T>(dataType, rowCount, colCount);
-
-  /// Constructs a matrix with all values on their default.
-  factory Matrix.zero(MatrixConstructor<T> constructor, DataType<T> dataType,
-          int rowCount, int colCount) =>
-      constructor(dataType, rowCount, colCount);
-
-  /// Constructs a matrix with a constant [value].
-  factory Matrix.constant(MatrixConstructor<T> constructor,
-      DataType<T> dataType, int rowCount, int colCount, T value) {
-    final result = constructor(dataType, rowCount, colCount);
-    for (var row = 0; row < rowCount; row++) {
-      for (var col = 0; col < colCount; col++) {
-        result.setUnchecked(row, col, value);
-      }
-    }
-    return result;
-  }
-
-  /// Constructs an identity matrix.
-  factory Matrix.identity(MatrixConstructor<T> constructor,
-      DataType<T> dataType, int count, T value) {
-    final result = constructor(dataType, count, count);
-    for (var i = 0; i < count; i++) {
-      result.setUnchecked(i, i, value);
-    }
-    return result;
-  }
-
-  /// Constructs a matrix from a callback.
-  factory Matrix.generate(
-      MatrixConstructor<T> constructor,
-      DataType<T> dataType,
-      int rowCount,
-      int colCount,
-      T callback(int row, int col)) {
-    final result = constructor(dataType, rowCount, colCount);
-    for (var row = 0; row < rowCount; row++) {
-      for (var col = 0; col < colCount; col++) {
-        result.setUnchecked(row, col, callback(row, col));
-      }
-    }
-    return result;
-  }
+  /// Default builder for new matrices.
+  static MatrixBuilder<Object> get builder =>
+      MatrixBuilder<Object>(MatrixType.rowMajor, DataType.object, 4, 4);
 
   /// Unnamed default constructor.
   const Matrix();
@@ -156,7 +70,7 @@ abstract class Matrix<T> {
   @override
   String toString() {
     final buffer = StringBuffer(super.toString());
-    buffer.write('[$rowCount * $colCount]');
+    buffer.write('[$rowCount, $colCount]:');
     for (var r = 0; r < rowCount; r++) {
       buffer.writeln();
       for (var c = 0; c < colCount; c++) {
@@ -167,24 +81,16 @@ abstract class Matrix<T> {
   }
 
   /// Helper to copy a matrix from [source].
-  static Matrix<T> copy<T>(
-    Matrix<T> source, {
-    Matrix<T> target,
-    MatrixConstructor<T> constructor,
-    DataType<T> dataType,
-  }) {
+  static Matrix<T> copy<T>(Matrix<T> source,
+      {Matrix<T> target, MatrixBuilder<T> builder}) {
     if (target != null) {
       if (target.rowCount != source.rowCount ||
           target.colCount != source.colCount) {
         throw ArgumentError('Target matrix does not match in size.');
       }
     }
-    final result = target ??
-        constructor(
-          dataType ?? source.dataType,
-          source.rowCount,
-          source.colCount,
-        );
+    final result =
+        target ?? builder.withSize(source.rowCount, source.colCount).build();
     for (var r = 0; r < result.rowCount; r++) {
       for (var c = 0; c < result.colCount; c++) {
         result.setUnchecked(r, c, source.getUnchecked(r, c));
@@ -194,13 +100,8 @@ abstract class Matrix<T> {
   }
 
   /// Helper to add two numeric matrices [sourceA] and [sourceB].
-  static Matrix<T> add<T extends num>(
-    Matrix<T> sourceA,
-    Matrix<T> sourceB, {
-    Matrix<T> target,
-    MatrixConstructor<T> constructor,
-    DataType<T> dataType,
-  }) {
+  static Matrix<T> add<T extends num>(Matrix<T> sourceA, Matrix<T> sourceB,
+      {Matrix<T> target, MatrixBuilder<T> builder}) {
     if (sourceA.rowCount != sourceB.rowCount ||
         sourceA.colCount != sourceB.colCount) {
       throw ArgumentError('Source matrices do not match in size.');
@@ -211,12 +112,8 @@ abstract class Matrix<T> {
         throw ArgumentError('Target matrix does not match in size.');
       }
     }
-    final result = target ??
-        constructor(
-          dataType ?? sourceA.dataType,
-          sourceA.rowCount,
-          sourceA.colCount,
-        );
+    final result =
+        target ?? builder.withSize(sourceA.rowCount, sourceA.colCount).build();
     for (var r = 0; r < result.rowCount; r++) {
       for (var c = 0; c < result.colCount; c++) {
         result.setUnchecked(
@@ -227,13 +124,8 @@ abstract class Matrix<T> {
   }
 
   /// Helper to subtract two numeric matrices [sourceA] and [sourceB].
-  static Matrix<T> sub<T extends num>(
-    Matrix<T> sourceA,
-    Matrix<T> sourceB, {
-    Matrix<T> target,
-    MatrixConstructor<T> constructor,
-    DataType<T> dataType,
-  }) {
+  static Matrix<T> sub<T extends num>(Matrix<T> sourceA, Matrix<T> sourceB,
+      {Matrix<T> target, MatrixBuilder<T> builder}) {
     if (sourceA.rowCount != sourceB.rowCount ||
         sourceA.colCount != sourceB.colCount) {
       throw ArgumentError('Source matrices do not match in size.');
@@ -244,12 +136,8 @@ abstract class Matrix<T> {
         throw ArgumentError('Target matrix does not match in size.');
       }
     }
-    final result = target ??
-        constructor(
-          dataType ?? sourceA.dataType,
-          sourceA.rowCount,
-          sourceA.colCount,
-        );
+    final result =
+        target ?? builder.withSize(sourceA.rowCount, sourceA.colCount).build();
     for (var r = 0; r < result.rowCount; r++) {
       for (var c = 0; c < result.colCount; c++) {
         result.setUnchecked(
@@ -260,13 +148,8 @@ abstract class Matrix<T> {
   }
 
   /// Helper to multiply two numeric matrices [sourceA] and [sourceB].
-  static Matrix<T> mul<T extends num>(
-    Matrix<T> sourceA,
-    Matrix<T> sourceB, {
-    Matrix<T> target,
-    MatrixConstructor<T> constructor,
-    DataType<T> dataType,
-  }) {
+  static Matrix<T> mul<T extends num>(Matrix<T> sourceA, Matrix<T> sourceB,
+      {Matrix<T> target, MatrixBuilder<T> builder}) {
     if (sourceA.colCount != sourceB.rowCount) {
       throw ArgumentError('Inner dimensions of source matrices do not match.');
     }
@@ -276,12 +159,8 @@ abstract class Matrix<T> {
         throw ArgumentError('Target matrix does not match in size.');
       }
     }
-    final result = target ??
-        constructor(
-          dataType ?? sourceA.dataType,
-          sourceA.rowCount,
-          sourceB.colCount,
-        );
+    final result =
+        target ?? builder.withSize(sourceA.rowCount, sourceB.colCount).build();
     for (var r = 0; r < result.rowCount; r++) {
       for (var c = 0; c < result.colCount; c++) {
         var sum = result.dataType.nullValue;
