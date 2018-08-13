@@ -93,11 +93,35 @@ class MatrixBuilder<T> {
   }
 
   /// Builds a matrix from calling a [callback] on every value.
-  Matrix<T> buildGenerated(T callback(int row, int col)) {
+  Matrix<T> buildGenerate(T callback(int row, int col)) {
     final result = build();
     for (var row = 0; row < rowCount; row++) {
       for (var col = 0; col < colCount; col++) {
         result.setUnchecked(row, col, callback(row, col));
+      }
+    }
+    return result;
+  }
+
+  /// Builds a matrix from a nested list of rows.
+  Matrix<T> buildFromRows(List<List<T>> source) {
+    final result = build();
+    for (var row = 0; row < math.min(rowCount, source.length); row++) {
+      final sourceRow = source[row];
+      for (var col = 0; col < math.min(colCount, sourceRow.length); col++) {
+        result.setUnchecked(row, col, sourceRow[col]);
+      }
+    }
+    return result;
+  }
+
+  /// Builds a matrix from a nested list of columns.
+  Matrix<T> buildFromCols(List<List<T>> source) {
+    final result = build();
+    for (var col = 0; col < math.min(colCount, source.length); col++) {
+      final sourceCol = source[col];
+      for (var row = 0; row < math.min(rowCount, sourceCol.length); row++) {
+        result.setUnchecked(row, col, sourceCol[row]);
       }
     }
     return result;

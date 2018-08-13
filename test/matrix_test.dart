@@ -8,8 +8,8 @@ import 'package:test/test.dart';
 
 void matrixTest(String name, MatrixBuilder builder) {
   group(name, () {
-    group('constructors', () {
-      test('Matrix.default', () {
+    group('builder', () {
+      test('default', () {
         final matrix =
             builder.withDataType(DataType.int8).withSize(4, 5).build();
         expect(matrix.dataType, DataType.int8);
@@ -21,7 +21,7 @@ void matrixTest(String name, MatrixBuilder builder) {
           }
         }
       });
-      test('Matrix.constant', () {
+      test('constant', () {
         final matrix = builder
             .withDataType(DataType.int8)
             .withSize(5, 6)
@@ -35,7 +35,7 @@ void matrixTest(String name, MatrixBuilder builder) {
           }
         }
       });
-      test('Matrix.identity', () {
+      test('identity', () {
         final matrix = builder
             .withDataType(DataType.int8)
             .withSize(6, 7)
@@ -49,11 +49,11 @@ void matrixTest(String name, MatrixBuilder builder) {
           }
         }
       });
-      test('Matrix.generate', () {
+      test('generate', () {
         final matrix = builder
             .withDataType(DataType.string)
             .withSize(7, 8)
-            .buildGenerated((row, col) => '($row, $col)');
+            .buildGenerate((row, col) => '($row, $col)');
         expect(matrix.dataType, DataType.string);
         expect(matrix.rowCount, 7);
         expect(matrix.colCount, 8);
@@ -63,34 +63,39 @@ void matrixTest(String name, MatrixBuilder builder) {
           }
         }
       });
-      // custom initialization
-      test('rows first', () {
-        final matrix = builder.withSize(3, 4).build();
-        for (var row = 0; row < matrix.rowCount; row++) {
-          for (var col = 0; col < matrix.colCount; col++) {
-            matrix.set(row, col, '($row, $col)');
-          }
-        }
-        for (var row = 0; row < matrix.rowCount; row++) {
-          for (var col = 0; col < matrix.colCount; col++) {
-            expect(matrix.get(row, col), '($row, $col)');
-          }
-        }
-      });
-      test('columns first', () {
+      test('fromRows', () {
         final matrix =
-            builder.withDataType(DataType.string).withSize(4, 5).build();
-        for (var col = 0; col < matrix.colCount; col++) {
-          for (var row = 0; row < matrix.rowCount; row++) {
-            matrix.set(row, col, '($row, $col)');
-          }
-        }
-        for (var row = 0; row < matrix.rowCount; row++) {
-          for (var col = 0; col < matrix.colCount; col++) {
-            expect(matrix.get(row, col), '($row, $col)');
-          }
-        }
+            builder.withDataType(DataType.int8).withSize(3, 2).buildFromRows([
+          [1, 2],
+          [3, 4],
+        ]);
+        expect(matrix.dataType, DataType.int8);
+        expect(matrix.rowCount, 3);
+        expect(matrix.colCount, 2);
+        expect(matrix.get(0, 0), 1);
+        expect(matrix.get(1, 0), 3);
+        expect(matrix.get(2, 0), 0);
+        expect(matrix.get(0, 1), 2);
+        expect(matrix.get(1, 1), 4);
+        expect(matrix.get(2, 1), 0);
       });
+      test('fromCols', () {
+        final matrix =
+            builder.withDataType(DataType.int8).withSize(2, 3).buildFromCols([
+          [1, 2],
+          [3, 4],
+        ]);
+        expect(matrix.dataType, DataType.int8);
+        expect(matrix.rowCount, 2);
+        expect(matrix.colCount, 3);
+        expect(matrix.get(0, 0), 1);
+        expect(matrix.get(1, 0), 2);
+        expect(matrix.get(0, 1), 3);
+        expect(matrix.get(1, 1), 4);
+        expect(matrix.get(0, 2), 0);
+        expect(matrix.get(1, 2), 0);
+      });
+      // custom initialization
       test('random order', () {
         final matrix = builder.withSize(5, 6).build();
         final points = <Point>[];
@@ -126,7 +131,7 @@ void matrixTest(String name, MatrixBuilder builder) {
         final matrix = builder
             .withDataType(DataType.string)
             .withSize(4, 5)
-            .buildGenerated((row, col) => '($row, $col)');
+            .buildGenerate((row, col) => '($row, $col)');
         for (var row = 0; row < matrix.rowCount; row++) {
           final view = matrix.row(row);
           expect(view.dataType, matrix.dataType);
@@ -141,7 +146,7 @@ void matrixTest(String name, MatrixBuilder builder) {
         final matrix = builder
             .withDataType(DataType.string)
             .withSize(5, 4)
-            .buildGenerated((row, col) => '($row, $col)');
+            .buildGenerate((row, col) => '($row, $col)');
         for (var col = 0; col < matrix.colCount; col++) {
           final view = matrix.col(col);
           expect(view.dataType, matrix.dataType);
@@ -156,7 +161,7 @@ void matrixTest(String name, MatrixBuilder builder) {
         final matrix = builder
             .withDataType(DataType.string)
             .withSize(7, 6)
-            .buildGenerated((row, col) => '($row, $col)');
+            .buildGenerate((row, col) => '($row, $col)');
         final view = matrix.transpose;
         expect(view.dataType, matrix.dataType);
         expect(view.rowCount, 6);
@@ -175,7 +180,7 @@ void matrixTest(String name, MatrixBuilder builder) {
         final source = builder
             .withDataType(DataType.uint8)
             .withSize(5, 4)
-            .buildGenerated((row, col) => random.nextInt(DataType.uint8.max));
+            .buildGenerate((row, col) => random.nextInt(DataType.uint8.max));
         final target =
             builder.withDataType(DataType.uint8).withSize(5, 4).build();
         Matrix.copy(source, target: target);
@@ -189,11 +194,11 @@ void matrixTest(String name, MatrixBuilder builder) {
         final sourceA = builder
             .withDataType(DataType.uint8)
             .withSize(4, 5)
-            .buildGenerated((row, col) => random.nextInt(DataType.uint8.max));
+            .buildGenerate((row, col) => random.nextInt(DataType.uint8.max));
         final sourceB = builder
             .withDataType(DataType.uint8)
             .withSize(4, 5)
-            .buildGenerated((row, col) => random.nextInt(DataType.uint8.max));
+            .buildGenerate((row, col) => random.nextInt(DataType.uint8.max));
         final target =
             builder.withDataType(DataType.uint16).withSize(4, 5).build();
         Matrix.add<int>(sourceA, sourceB, target: target);
@@ -208,11 +213,11 @@ void matrixTest(String name, MatrixBuilder builder) {
         final sourceA = builder
             .withDataType(DataType.uint8)
             .withSize(5, 4)
-            .buildGenerated((row, col) => random.nextInt(DataType.uint8.max));
+            .buildGenerate((row, col) => random.nextInt(DataType.uint8.max));
         final sourceB = builder
             .withDataType(DataType.uint8)
             .withSize(5, 4)
-            .buildGenerated((row, col) => random.nextInt(DataType.uint8.max));
+            .buildGenerate((row, col) => random.nextInt(DataType.uint8.max));
         final target =
             builder.withDataType(DataType.int16).withSize(5, 4).build();
         Matrix.sub<int>(sourceA, sourceB, target: target);
@@ -227,11 +232,11 @@ void matrixTest(String name, MatrixBuilder builder) {
         final sourceA = builder
             .withDataType(DataType.uint8)
             .withSize(4, 5)
-            .buildGenerated((row, col) => random.nextInt(DataType.uint8.max));
+            .buildGenerate((row, col) => random.nextInt(DataType.uint8.max));
         final sourceB = builder
             .withDataType(DataType.uint8)
             .withSize(5, 6)
-            .buildGenerated((row, col) => random.nextInt(DataType.uint8.max));
+            .buildGenerate((row, col) => random.nextInt(DataType.uint8.max));
         final target =
             builder.withDataType(DataType.int32).withSize(4, 6).build();
         Matrix.mul<int>(sourceA, sourceB, target: target);
