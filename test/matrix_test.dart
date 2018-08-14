@@ -21,8 +21,7 @@ void matrixTest(String name, MatrixBuilder builder) {
         }
       });
       test('constant', () {
-        final matrix =
-            builder.withType(DataType.int8).buildConstant(5, 6, 123);
+        final matrix = builder.withType(DataType.int8).buildConstant(5, 6, 123);
         expect(matrix.dataType, DataType.int8);
         expect(matrix.rowCount, 5);
         expect(matrix.colCount, 6);
