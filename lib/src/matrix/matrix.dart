@@ -3,6 +3,7 @@ library data.matrix.matrix;
 import 'package:data/type.dart';
 
 import 'builder.dart';
+import 'impl/row_major_matrix.dart';
 import 'view/column_view.dart';
 import 'view/row_view.dart';
 import 'view/sub_matrix.dart';
@@ -12,13 +13,17 @@ import 'view/transposed_matrix.dart';
 abstract class Matrix<T> {
   /// Default builder for new matrices.
   static Builder<Object> get builder =>
-      Builder<Object>(FormatType.rowMajor, DataType.object);
+      Builder<Object>(RowMajorMatrix, DataType.object);
 
   /// Unnamed default constructor.
   const Matrix();
 
   /// The data type of this matrix.
   DataType<T> get dataType;
+
+  /// Returns a builder that is pre-configured to create matrices of the same
+  /// storage format and data type as the receiver.
+  Builder<T> get toBuilder => Builder<T>(runtimeType, dataType);
 
   /// Returns the value at the provided [row] and [col] index. Throws a
   /// [RangeError] if [row] or [col] are outside of bounds.

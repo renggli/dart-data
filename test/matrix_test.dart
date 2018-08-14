@@ -136,7 +136,6 @@ void matrixTest(String name, Builder builder) {
         expect(matrix.get(2, 0), '(2, 1)');
         expect(matrix.get(2, 1), '(2, 0)');
       });
-
       test('fromRows', () {
         final matrix = builder.withType(DataType.int8).fromRows([
           [1, 2, 3],
@@ -245,20 +244,6 @@ void matrixTest(String name, Builder builder) {
     });
     group('operators', () {
       final random = Random();
-      test('copy', () {
-        final source = builder
-            .withType(DataType.uint8)
-            .generate(3, 4, (row, col) => random.nextInt(DataType.uint8.max));
-        final target = copy(source, builder: builder.withType(DataType.int32));
-        expect(target.dataType, DataType.int32);
-        expect(target.rowCount, 3);
-        expect(target.colCount, 4);
-        for (var row = 0; row < target.rowCount; row++) {
-          for (var col = 0; col < target.colCount; col++) {
-            expect(target.get(row, col), source.get(row, col));
-          }
-        }
-      });
       test('add', () {
         final sourceA = builder
             .withType(DataType.uint8)

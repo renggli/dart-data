@@ -1,4 +1,4 @@
-library data.matrix.algorithm;
+library data.matrix.operators;
 
 import 'builder.dart';
 import 'matrix.dart';
@@ -14,24 +14,6 @@ Matrix<T> _targetOrBuilder<T>(
     }
     return target;
   }
-}
-
-/// Helper to copy a matrix from [source].
-Matrix<T> copy<T>(Matrix<T> source, {Matrix<T> target, Builder<T> builder}) {
-  if (target != null) {
-    if (target.rowCount != source.rowCount ||
-        target.colCount != source.colCount) {
-      throw ArgumentError('Target matrix does not match in size.');
-    }
-  }
-  final result =
-      _targetOrBuilder(source.rowCount, source.colCount, target, builder);
-  for (var r = 0; r < result.rowCount; r++) {
-    for (var c = 0; c < result.colCount; c++) {
-      result.setUnchecked(r, c, source.getUnchecked(r, c));
-    }
-  }
-  return result;
 }
 
 /// Helper to add two numeric matrices [sourceA] and [sourceB].
@@ -89,5 +71,3 @@ Matrix<T> mul<T extends num>(Matrix<T> sourceA, Matrix<T> sourceB,
   }
   return result;
 }
-
-/// Helper to invert a matrix.
