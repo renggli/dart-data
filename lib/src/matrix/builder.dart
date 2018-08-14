@@ -1,4 +1,4 @@
-library data.matrix.matrix_builder;
+library data.matrix.builder;
 
 import 'package:data/type.dart';
 
@@ -22,18 +22,16 @@ enum MatrixFormat {
 }
 
 /// Builds a matrix of a custom type.
-class MatrixBuilder<T> {
-  MatrixBuilder(this.format, this.type);
+class Builder<T> {
+  Builder(this.format, this.type);
 
   final MatrixFormat format;
 
   final DataType<T> type;
 
-  MatrixBuilder<T> withFormat(MatrixFormat format) =>
-      MatrixBuilder<T>(format, type);
+  Builder<T> withFormat(MatrixFormat format) => Builder<T>(format, type);
 
-  MatrixBuilder<S> withType<S>(DataType<S> type) =>
-      MatrixBuilder<S>(format, type);
+  Builder<S> withType<S>(DataType<S> type) => Builder<S>(format, type);
 
   /// Builds a matrix of the configured format.
   Matrix<T> call(int rowCount, int colCount) {

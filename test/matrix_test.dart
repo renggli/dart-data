@@ -6,7 +6,7 @@ import 'package:data/matrix.dart';
 import 'package:data/type.dart';
 import 'package:test/test.dart';
 
-void matrixTest(String name, MatrixBuilder builder) {
+void matrixTest(String name, Builder builder) {
   group(name, () {
     group('builder', () {
       test('default', () {
@@ -164,10 +164,10 @@ void matrixTest(String name, MatrixBuilder builder) {
     group('operators', () {
       final random = Random();
       test('copy', () {
-        final source = builder.withType(DataType.uint8).generate(
-            3, 4, (row, col) => random.nextInt(DataType.uint8.max));
-        final target =
-            Matrix.copy(source, builder: builder.withType(DataType.int32));
+        final source = builder
+            .withType(DataType.uint8)
+            .generate(3, 4, (row, col) => random.nextInt(DataType.uint8.max));
+        final target = copy(source, builder: builder.withType(DataType.int32));
         expect(target.dataType, DataType.int32);
         expect(target.rowCount, 3);
         expect(target.colCount, 4);
@@ -178,12 +178,14 @@ void matrixTest(String name, MatrixBuilder builder) {
         }
       });
       test('add', () {
-        final sourceA = builder.withType(DataType.uint8).generate(
-            4, 5, (row, col) => random.nextInt(DataType.uint8.max));
-        final sourceB = builder.withType(DataType.uint8).generate(
-            4, 5, (row, col) => random.nextInt(DataType.uint8.max));
-        final target = Matrix.add(sourceA, sourceB,
-            builder: builder.withType(DataType.int16));
+        final sourceA = builder
+            .withType(DataType.uint8)
+            .generate(4, 5, (row, col) => random.nextInt(DataType.uint8.max));
+        final sourceB = builder
+            .withType(DataType.uint8)
+            .generate(4, 5, (row, col) => random.nextInt(DataType.uint8.max));
+        final target =
+            add(sourceA, sourceB, builder: builder.withType(DataType.int16));
         expect(target.dataType, DataType.int16);
         expect(target.rowCount, 4);
         expect(target.colCount, 5);
@@ -195,12 +197,14 @@ void matrixTest(String name, MatrixBuilder builder) {
         }
       });
       test('sub', () {
-        final sourceA = builder.withType(DataType.uint8).generate(
-            5, 4, (row, col) => random.nextInt(DataType.uint8.max));
-        final sourceB = builder.withType(DataType.uint8).generate(
-            5, 4, (row, col) => random.nextInt(DataType.uint8.max));
-        final target = Matrix.sub(sourceA, sourceB,
-            builder: builder.withType(DataType.int16));
+        final sourceA = builder
+            .withType(DataType.uint8)
+            .generate(5, 4, (row, col) => random.nextInt(DataType.uint8.max));
+        final sourceB = builder
+            .withType(DataType.uint8)
+            .generate(5, 4, (row, col) => random.nextInt(DataType.uint8.max));
+        final target =
+            sub(sourceA, sourceB, builder: builder.withType(DataType.int16));
         expect(target.dataType, DataType.int16);
         expect(target.rowCount, 5);
         expect(target.colCount, 4);
@@ -212,12 +216,14 @@ void matrixTest(String name, MatrixBuilder builder) {
         }
       });
       test('mul', () {
-        final sourceA = builder.withType(DataType.uint8).generate(
-            4, 5, (row, col) => random.nextInt(DataType.uint8.max));
-        final sourceB = builder.withType(DataType.uint8).generate(
-            5, 6, (row, col) => random.nextInt(DataType.uint8.max));
-        final target = Matrix.mul(sourceA, sourceB,
-            builder: builder.withType(DataType.int32));
+        final sourceA = builder
+            .withType(DataType.uint8)
+            .generate(4, 5, (row, col) => random.nextInt(DataType.uint8.max));
+        final sourceB = builder
+            .withType(DataType.uint8)
+            .generate(5, 6, (row, col) => random.nextInt(DataType.uint8.max));
+        final target =
+            mul(sourceA, sourceB, builder: builder.withType(DataType.int32));
         expect(target.dataType, DataType.int32);
         expect(target.rowCount, 4);
         expect(target.colCount, 6);
