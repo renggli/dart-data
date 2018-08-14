@@ -89,7 +89,7 @@ abstract class Matrix<T> {
         throw ArgumentError('Target matrix does not match in size.');
       }
     }
-    final result = target ?? builder.build(source.rowCount, source.colCount);
+    final result = target ?? builder(source.rowCount, source.colCount);
     for (var r = 0; r < result.rowCount; r++) {
       for (var c = 0; c < result.colCount; c++) {
         result.setUnchecked(r, c, source.getUnchecked(r, c));
@@ -111,7 +111,7 @@ abstract class Matrix<T> {
         throw ArgumentError('Target matrix does not match in size.');
       }
     }
-    final result = target ?? builder.build(sourceA.rowCount, sourceA.colCount);
+    final result = target ?? builder(sourceA.rowCount, sourceA.colCount);
     for (var r = 0; r < result.rowCount; r++) {
       for (var c = 0; c < result.colCount; c++) {
         result.setUnchecked(
@@ -134,7 +134,7 @@ abstract class Matrix<T> {
         throw ArgumentError('Target matrix does not match in size.');
       }
     }
-    final result = target ?? builder.build(sourceA.rowCount, sourceA.colCount);
+    final result = target ?? builder(sourceA.rowCount, sourceA.colCount);
     for (var r = 0; r < result.rowCount; r++) {
       for (var c = 0; c < result.colCount; c++) {
         result.setUnchecked(
@@ -156,7 +156,7 @@ abstract class Matrix<T> {
         throw ArgumentError('Target matrix does not match in size.');
       }
     }
-    final result = target ?? builder.build(sourceA.rowCount, sourceB.colCount);
+    final result = target ?? builder(sourceA.rowCount, sourceB.colCount);
     for (var r = 0; r < result.rowCount; r++) {
       for (var c = 0; c < result.colCount; c++) {
         var sum = result.dataType.nullValue;

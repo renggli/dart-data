@@ -36,7 +36,7 @@ class MatrixBuilder<T> {
       MatrixBuilder<S>(format, type);
 
   /// Builds a matrix of the configured format.
-  Matrix<T> build(int rowCount, int colCount) {
+  Matrix<T> call(int rowCount, int colCount) {
     // The reason for this enum to exist is purely to be able to instantiate
     // the matrix with the right generic type. Constructor tear-offs are current
     // not supported and wrapping the constructor in a closure yields a matrix
@@ -61,8 +61,8 @@ class MatrixBuilder<T> {
   }
 
   /// Builds a matrix with a constant [value].
-  Matrix<T> buildConstant(int rowCount, int colCount, T value) {
-    final result = build(rowCount, colCount);
+  Matrix<T> constant(int rowCount, int colCount, T value) {
+    final result = this(rowCount, colCount);
     for (var row = 0; row < rowCount; row++) {
       for (var col = 0; col < colCount; col++) {
         result.setUnchecked(row, col, value);
@@ -72,8 +72,8 @@ class MatrixBuilder<T> {
   }
 
   /// Builds an identity matrix with a constant [value].
-  Matrix<T> buildIdentity(int count, T value) {
-    final result = build(count, count);
+  Matrix<T> identity(int count, T value) {
+    final result = this(count, count);
     for (var i = 0; i < count; i++) {
       result.setUnchecked(i, i, value);
     }
@@ -81,9 +81,8 @@ class MatrixBuilder<T> {
   }
 
   /// Builds a matrix from calling a [callback] on every value.
-  Matrix<T> buildGenerate(
-      int rowCount, int colCount, T callback(int row, int col)) {
-    final result = build(rowCount, colCount);
+  Matrix<T> generate(int rowCount, int colCount, T callback(int row, int col)) {
+    final result = this(rowCount, colCount);
     for (var row = 0; row < rowCount; row++) {
       for (var col = 0; col < colCount; col++) {
         result.setUnchecked(row, col, callback(row, col));
@@ -93,8 +92,8 @@ class MatrixBuilder<T> {
   }
 
   /// Builds a matrix from another matrix.
-  Matrix<T> buildFromMatrix(Matrix<T> source) {
-    final result = build(source.rowCount, source.colCount);
+  Matrix<T> of(Matrix<T> source) {
+    final result = this(source.rowCount, source.colCount);
     for (var row = 0; row < result.rowCount; row++) {
       for (var col = 0; col < result.colCount; col++) {
         result.setUnchecked(row, col, source.getUnchecked(row, col));
@@ -104,11 +103,11 @@ class MatrixBuilder<T> {
   }
 
   /// Builds a matrix from a nested list of rows.
-  Matrix<T> buildFromRows(List<List<T>> source) {
+  Matrix<T> fromRows(List<List<T>> source) {
     if (source.isEmpty) {
       ArgumentError.value(source, 'source', 'Must be not empty');
     }
-    final result = build(source.length, source[0].length);
+    final result = this(source.length, source[0].length);
     for (var row = 0; row < result.rowCount; row++) {
       final sourceRow = source[row];
       if (sourceRow.length != result.colCount) {
@@ -122,11 +121,11 @@ class MatrixBuilder<T> {
   }
 
   /// Builds a matrix from a nested list of columns.
-  Matrix<T> buildFromCols(List<List<T>> source) {
+  Matrix<T> fromCols(List<List<T>> source) {
     if (source.isEmpty) {
       ArgumentError.value(source, 'source', 'Must be not empty');
     }
-    final result = build(source[0].length, source.length);
+    final result = this(source[0].length, source.length);
     for (var col = 0; col < result.colCount; col++) {
       final sourceCol = source[col];
       if (sourceCol.length != result.rowCount) {
