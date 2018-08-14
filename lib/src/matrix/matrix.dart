@@ -12,7 +12,7 @@ import 'view/transposed_matrix.dart';
 abstract class Matrix<T> {
   /// Default builder for new matrices.
   static MatrixBuilder<Object> get builder =>
-      MatrixBuilder<Object>(MatrixType.rowMajor, DataType.object, 4, 4);
+      MatrixBuilder<Object>(MatrixFormat.rowMajor, DataType.object);
 
   /// Unnamed default constructor.
   const Matrix();
@@ -89,8 +89,7 @@ abstract class Matrix<T> {
         throw ArgumentError('Target matrix does not match in size.');
       }
     }
-    final result =
-        target ?? builder.withSize(source.rowCount, source.colCount).build();
+    final result = target ?? builder.build(source.rowCount, source.colCount);
     for (var r = 0; r < result.rowCount; r++) {
       for (var c = 0; c < result.colCount; c++) {
         result.setUnchecked(r, c, source.getUnchecked(r, c));
@@ -112,8 +111,7 @@ abstract class Matrix<T> {
         throw ArgumentError('Target matrix does not match in size.');
       }
     }
-    final result =
-        target ?? builder.withSize(sourceA.rowCount, sourceA.colCount).build();
+    final result = target ?? builder.build(sourceA.rowCount, sourceA.colCount);
     for (var r = 0; r < result.rowCount; r++) {
       for (var c = 0; c < result.colCount; c++) {
         result.setUnchecked(
@@ -136,8 +134,7 @@ abstract class Matrix<T> {
         throw ArgumentError('Target matrix does not match in size.');
       }
     }
-    final result =
-        target ?? builder.withSize(sourceA.rowCount, sourceA.colCount).build();
+    final result = target ?? builder.build(sourceA.rowCount, sourceA.colCount);
     for (var r = 0; r < result.rowCount; r++) {
       for (var c = 0; c < result.colCount; c++) {
         result.setUnchecked(
@@ -159,8 +156,7 @@ abstract class Matrix<T> {
         throw ArgumentError('Target matrix does not match in size.');
       }
     }
-    final result =
-        target ?? builder.withSize(sourceA.rowCount, sourceB.colCount).build();
+    final result = target ?? builder.build(sourceA.rowCount, sourceB.colCount);
     for (var r = 0; r < result.rowCount; r++) {
       for (var c = 0; c < result.colCount; c++) {
         var sum = result.dataType.nullValue;

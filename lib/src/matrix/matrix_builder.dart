@@ -1,7 +1,5 @@
 library data.matrix.matrix_builder;
 
-import 'dart:math' as math;
-
 import 'package:data/type.dart';
 
 import 'impl/column_major_matrix.dart';
@@ -13,7 +11,7 @@ import 'impl/keyed_matrix.dart';
 import 'impl/row_major_matrix.dart';
 import 'matrix.dart';
 
-enum MatrixType {
+enum MatrixFormat {
   rowMajor,
   columnMajor,
   compressedRow,
@@ -25,55 +23,42 @@ enum MatrixType {
 
 /// Builds a matrix of a custom type.
 class MatrixBuilder<T> {
-  MatrixBuilder(this.matrixType, this.dataType, this.rowCount, this.colCount);
+  MatrixBuilder(this.format, this.type);
 
-  final MatrixType matrixType;
+  final MatrixFormat format;
 
-  final DataType<T> dataType;
+  final DataType<T> type;
 
-  final int rowCount;
+  MatrixBuilder<T> withFormat(MatrixFormat format) =>
+      MatrixBuilder<T>(format, type);
 
-  final int colCount;
-
-  MatrixBuilder<T> withMatrixType(MatrixType matrixType) =>
-      MatrixBuilder<T>(matrixType, dataType, rowCount, colCount);
-
-  MatrixBuilder<S> withDataType<S>(DataType<S> dataType) =>
-      MatrixBuilder<S>(matrixType, dataType, rowCount, colCount);
-
-  MatrixBuilder<T> withRows(int rowCount) =>
-      MatrixBuilder<T>(matrixType, dataType, rowCount, colCount);
-
-  MatrixBuilder<T> withCols(int colCount) =>
-      MatrixBuilder<T>(matrixType, dataType, rowCount, colCount);
-
-  MatrixBuilder<T> withSize(int rowCount, int colCount) =>
-      MatrixBuilder<T>(matrixType, dataType, rowCount, colCount);
+  MatrixBuilder<S> withType<S>(DataType<S> type) =>
+      MatrixBuilder<S>(format, type);
 
   /// Builds a default matrix.
-  Matrix<T> build() {
-    switch (matrixType) {
-      case MatrixType.rowMajor:
-        return RowMajorMatrix<T>(dataType, rowCount, colCount);
-      case MatrixType.columnMajor:
-        return ColumnMajorMatrix<T>(dataType, rowCount, colCount);
-      case MatrixType.compressedRow:
-        return CompressedRowMatrix<T>(dataType, rowCount, colCount);
-      case MatrixType.compressedColumn:
-        return CompressedColumnMatrix<T>(dataType, rowCount, colCount);
-      case MatrixType.coordinateList:
-        return CoordinateListMatrix<T>(dataType, rowCount, colCount);
-      case MatrixType.keyed:
-        return KeyedMatrix<T>(dataType, rowCount, colCount);
-      case MatrixType.diagonal:
-        return DiagonalMatrix<T>(dataType, rowCount, colCount);
+  Matrix<T> build(int rowCount, int colCount) {
+    switch (format) {
+      case MatrixFormat.rowMajor:
+        return RowMajorMatrix<T>(type, rowCount, colCount);
+      case MatrixFormat.columnMajor:
+        return ColumnMajorMatrix<T>(type, rowCount, colCount);
+      case MatrixFormat.compressedRow:
+        return CompressedRowMatrix<T>(type, rowCount, colCount);
+      case MatrixFormat.compressedColumn:
+        return CompressedColumnMatrix<T>(type, rowCount, colCount);
+      case MatrixFormat.coordinateList:
+        return CoordinateListMatrix<T>(type, rowCount, colCount);
+      case MatrixFormat.keyed:
+        return KeyedMatrix<T>(type, rowCount, colCount);
+      case MatrixFormat.diagonal:
+        return DiagonalMatrix<T>(type, rowCount, colCount);
     }
-    throw ArgumentError.value(matrixType, 'matrixType');
+    throw ArgumentError.value(format, 'format');
   }
 
   /// Builds a matrix with a constant [value].
-  Matrix<T> buildConstant(T value) {
-    final result = build();
+  Matrix<T> buildConstant(int rowCount, int colCount, T value) {
+    final result = build(rowCount, colCount);
     for (var row = 0; row < rowCount; row++) {
       for (var col = 0; col < colCount; col++) {
         result.setUnchecked(row, col, value);
@@ -83,9 +68,8 @@ class MatrixBuilder<T> {
   }
 
   /// Builds an identity matrix with a constant [value].
-  Matrix<T> buildIdentity(T value) {
-    final result = build();
-    final count = math.min(rowCount, colCount);
+  Matrix<T> buildIdentity(int count, T value) {
+    final result = build(count, count);
     for (var i = 0; i < count; i++) {
       result.setUnchecked(i, i, value);
     }
@@ -93,8 +77,9 @@ class MatrixBuilder<T> {
   }
 
   /// Builds a matrix from calling a [callback] on every value.
-  Matrix<T> buildGenerate(T callback(int row, int col)) {
-    final result = build();
+  Matrix<T> buildGenerate(
+      int rowCount, int colCount, T callback(int row, int col)) {
+    final result = build(rowCount, colCount);
     for (var row = 0; row < rowCount; row++) {
       for (var col = 0; col < colCount; col++) {
         result.setUnchecked(row, col, callback(row, col));
@@ -103,12 +88,29 @@ class MatrixBuilder<T> {
     return result;
   }
 
+  /// Builds a matrix from another matrix.
+  Matrix<T> buildFromMatrix(Matrix<T> source) {
+    final result = build(source.rowCount, source.colCount);
+    for (var row = 0; row < result.rowCount; row++) {
+      for (var col = 0; col < result.colCount; col++) {
+        result.setUnchecked(row, col, source.getUnchecked(row, col));
+      }
+    }
+    return result;
+  }
+
   /// Builds a matrix from a nested list of rows.
   Matrix<T> buildFromRows(List<List<T>> source) {
-    final result = build();
-    for (var row = 0; row < math.min(rowCount, source.length); row++) {
+    if (source.isEmpty) {
+      ArgumentError.value(source, 'source', 'Must be not empty');
+    }
+    final result = build(source.length, source[0].length);
+    for (var row = 0; row < result.rowCount; row++) {
       final sourceRow = source[row];
-      for (var col = 0; col < math.min(colCount, sourceRow.length); col++) {
+      if (sourceRow.length != result.colCount) {
+        ArgumentError.value(source, 'source', 'Must be equally sized');
+      }
+      for (var col = 0; col < result.colCount; col++) {
         result.setUnchecked(row, col, sourceRow[col]);
       }
     }
@@ -117,10 +119,16 @@ class MatrixBuilder<T> {
 
   /// Builds a matrix from a nested list of columns.
   Matrix<T> buildFromCols(List<List<T>> source) {
-    final result = build();
-    for (var col = 0; col < math.min(colCount, source.length); col++) {
+    if (source.isEmpty) {
+      ArgumentError.value(source, 'source', 'Must be not empty');
+    }
+    final result = build(source[0].length, source.length);
+    for (var col = 0; col < result.colCount; col++) {
       final sourceCol = source[col];
-      for (var row = 0; row < math.min(rowCount, sourceCol.length); row++) {
+      if (sourceCol.length != result.rowCount) {
+        ArgumentError.value(source, 'source', 'Must be equally sized');
+      }
+      for (var row = 0; row < result.rowCount; row++) {
         result.setUnchecked(row, col, sourceCol[row]);
       }
     }
