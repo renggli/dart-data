@@ -3,6 +3,19 @@ library data.matrix.algorithm;
 import 'builder.dart';
 import 'matrix.dart';
 
+Matrix<T> _targetOrBuilder<T>(
+    int rowCount, int colCount, Matrix<T> target, Builder<T> builder) {
+  if (target == null) {
+    return builder(rowCount, colCount);
+  } else {
+    if (target.rowCount != rowCount || target.colCount != colCount) {
+      throw ArgumentError('Expected a matrix with $rowCount * $colCount, '
+          'but got ${target.rowCount} * ${target.colCount}.');
+    }
+    return target;
+  }
+}
+
 /// Helper to copy a matrix from [source].
 Matrix<T> copy<T>(Matrix<T> source, {Matrix<T> target, Builder<T> builder}) {
   if (target != null) {
@@ -11,7 +24,8 @@ Matrix<T> copy<T>(Matrix<T> source, {Matrix<T> target, Builder<T> builder}) {
       throw ArgumentError('Target matrix does not match in size.');
     }
   }
-  final result = target ?? builder(source.rowCount, source.colCount);
+  final result =
+      _targetOrBuilder(source.rowCount, source.colCount, target, builder);
   for (var r = 0; r < result.rowCount; r++) {
     for (var c = 0; c < result.colCount; c++) {
       result.setUnchecked(r, c, source.getUnchecked(r, c));
@@ -27,13 +41,8 @@ Matrix<T> add<T extends num>(Matrix<T> sourceA, Matrix<T> sourceB,
       sourceA.colCount != sourceB.colCount) {
     throw ArgumentError('Source matrices do not match in size.');
   }
-  if (target != null) {
-    if (target.rowCount != sourceA.rowCount ||
-        target.colCount != sourceA.colCount) {
-      throw ArgumentError('Target matrix does not match in size.');
-    }
-  }
-  final result = target ?? builder(sourceA.rowCount, sourceA.colCount);
+  final result =
+      _targetOrBuilder(sourceA.rowCount, sourceA.colCount, target, builder);
   for (var r = 0; r < result.rowCount; r++) {
     for (var c = 0; c < result.colCount; c++) {
       result.setUnchecked(
@@ -50,13 +59,8 @@ Matrix<T> sub<T extends num>(Matrix<T> sourceA, Matrix<T> sourceB,
       sourceA.colCount != sourceB.colCount) {
     throw ArgumentError('Source matrices do not match in size.');
   }
-  if (target != null) {
-    if (target.rowCount != sourceA.rowCount ||
-        target.colCount != sourceA.colCount) {
-      throw ArgumentError('Target matrix does not match in size.');
-    }
-  }
-  final result = target ?? builder(sourceA.rowCount, sourceA.colCount);
+  final result =
+      _targetOrBuilder(sourceA.rowCount, sourceA.colCount, target, builder);
   for (var r = 0; r < result.rowCount; r++) {
     for (var c = 0; c < result.colCount; c++) {
       result.setUnchecked(
@@ -72,13 +76,8 @@ Matrix<T> mul<T extends num>(Matrix<T> sourceA, Matrix<T> sourceB,
   if (sourceA.colCount != sourceB.rowCount) {
     throw ArgumentError('Inner dimensions of source matrices do not match.');
   }
-  if (target != null) {
-    if (target.rowCount != sourceA.rowCount ||
-        target.colCount != sourceB.colCount) {
-      throw ArgumentError('Target matrix does not match in size.');
-    }
-  }
-  final result = target ?? builder(sourceA.rowCount, sourceB.colCount);
+  final result =
+      _targetOrBuilder(sourceA.rowCount, sourceB.colCount, target, builder);
   for (var r = 0; r < result.rowCount; r++) {
     for (var c = 0; c < result.colCount; c++) {
       var sum = result.dataType.nullValue;
@@ -90,3 +89,5 @@ Matrix<T> mul<T extends num>(Matrix<T> sourceA, Matrix<T> sourceB,
   }
   return result;
 }
+
+/// Helper to invert a matrix.

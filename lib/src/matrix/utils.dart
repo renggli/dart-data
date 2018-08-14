@@ -3,7 +3,7 @@ library data.matrix.utils;
 import 'package:data/type.dart';
 
 /// Integer data type to index column and row indexes.
-const DataType<int> indexDataType = DataType.int32;
+const DataType<int> indexDataType = DataType.uint32;
 
 /// Performs a binary search on the range of a sorted list.
 int binarySearch<T extends num>(List<T> list, int min, int max, T value) {

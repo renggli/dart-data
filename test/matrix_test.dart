@@ -9,7 +9,7 @@ import 'package:test/test.dart';
 void matrixTest(String name, Builder builder) {
   group(name, () {
     group('builder', () {
-      test('default', () {
+      test('call', () {
         final matrix = builder.withType(DataType.int8)(4, 5);
         expect(matrix.dataType, DataType.int8);
         expect(matrix.rowCount, 4);
@@ -20,7 +20,7 @@ void matrixTest(String name, Builder builder) {
           }
         }
       });
-      test('MatrixBuilder.constant', () {
+      test('constant', () {
         final matrix = builder.withType(DataType.int8).constant(5, 6, 123);
         expect(matrix.dataType, DataType.int8);
         expect(matrix.rowCount, 5);
@@ -31,7 +31,7 @@ void matrixTest(String name, Builder builder) {
           }
         }
       });
-      test('MatrixBuilder.identity', () {
+      test('identity', () {
         final matrix = builder.withType(DataType.int8).identity(6, -1);
         expect(matrix.dataType, DataType.int8);
         expect(matrix.rowCount, 6);
@@ -42,7 +42,7 @@ void matrixTest(String name, Builder builder) {
           }
         }
       });
-      test('MatrixBuilder.generate', () {
+      test('generate', () {
         final matrix = builder
             .withType(DataType.string)
             .generate(7, 8, (row, col) => '($row, $col)');
@@ -55,7 +55,89 @@ void matrixTest(String name, Builder builder) {
           }
         }
       });
-      test('MatrixBuilder.fromRows', () {
+      test('from', () {
+        final source = builder
+            .withType(DataType.string)
+            .generate(5, 6, (row, col) => '($row, $col)');
+        final matrix = builder.withType(DataType.string).from(source);
+        expect(matrix.dataType, DataType.string);
+        expect(matrix.rowCount, 5);
+        expect(matrix.colCount, 6);
+        for (var row = 0; row < source.rowCount; row++) {
+          for (var col = 0; col < source.colCount; col++) {
+            expect(matrix.get(row, col), '($row, $col)');
+          }
+        }
+      });
+      test('fromRanges', () {
+        final source = builder
+            .withType(DataType.string)
+            .generate(5, 6, (row, col) => '($row, $col)');
+        final matrix =
+            builder.withType(DataType.string).fromRanges(source, 1, 4, 3, 5);
+        expect(matrix.dataType, DataType.string);
+        expect(matrix.rowCount, 3);
+        expect(matrix.colCount, 2);
+        expect(matrix.get(0, 0), '(1, 3)');
+        expect(matrix.get(0, 1), '(1, 4)');
+        expect(matrix.get(1, 0), '(2, 3)');
+        expect(matrix.get(1, 1), '(2, 4)');
+        expect(matrix.get(2, 0), '(3, 3)');
+        expect(matrix.get(2, 1), '(3, 4)');
+      });
+      test('fromRangeAndIndices', () {
+        final source = builder
+            .withType(DataType.string)
+            .generate(5, 6, (row, col) => '($row, $col)');
+        final matrix = builder
+            .withType(DataType.string)
+            .fromRangeAndIndices(source, 1, 3, [0, 0, 5]);
+        expect(matrix.dataType, DataType.string);
+        expect(matrix.rowCount, 2);
+        expect(matrix.colCount, 3);
+        expect(matrix.get(0, 0), '(1, 0)');
+        expect(matrix.get(0, 1), '(1, 0)');
+        expect(matrix.get(0, 2), '(1, 5)');
+        expect(matrix.get(1, 0), '(2, 0)');
+        expect(matrix.get(1, 1), '(2, 0)');
+        expect(matrix.get(1, 2), '(2, 5)');
+      });
+      test('fromIndicesAndRanges', () {
+        final source = builder
+            .withType(DataType.string)
+            .generate(5, 6, (row, col) => '($row, $col)');
+        final matrix = builder
+            .withType(DataType.string)
+            .fromIndicesAndRange(source, [0, 4, 0], 1, 3);
+        expect(matrix.dataType, DataType.string);
+        expect(matrix.rowCount, 3);
+        expect(matrix.colCount, 2);
+        expect(matrix.get(0, 0), '(0, 1)');
+        expect(matrix.get(0, 1), '(0, 2)');
+        expect(matrix.get(1, 0), '(4, 1)');
+        expect(matrix.get(1, 1), '(4, 2)');
+        expect(matrix.get(2, 0), '(0, 1)');
+        expect(matrix.get(2, 1), '(0, 2)');
+      });
+      test('fromIndices', () {
+        final source = builder
+            .withType(DataType.string)
+            .generate(5, 6, (row, col) => '($row, $col)');
+        final matrix = builder
+            .withType(DataType.string)
+            .fromIndices(source, [3, 2, 2], [1, 0]);
+        expect(matrix.dataType, DataType.string);
+        expect(matrix.rowCount, 3);
+        expect(matrix.colCount, 2);
+        expect(matrix.get(0, 0), '(3, 1)');
+        expect(matrix.get(0, 1), '(3, 0)');
+        expect(matrix.get(1, 0), '(2, 1)');
+        expect(matrix.get(1, 1), '(2, 0)');
+        expect(matrix.get(2, 0), '(2, 1)');
+        expect(matrix.get(2, 1), '(2, 0)');
+      });
+
+      test('fromRows', () {
         final matrix = builder.withType(DataType.int8).fromRows([
           [1, 2, 3],
           [4, 5, 6],
@@ -70,7 +152,7 @@ void matrixTest(String name, Builder builder) {
         expect(matrix.get(0, 2), 3);
         expect(matrix.get(1, 2), 6);
       });
-      test('MatrixBuilder.fromCols', () {
+      test('fromCols', () {
         final matrix = builder.withType(DataType.int8).fromCols([
           [1, 2, 3],
           [4, 5, 6],
@@ -248,15 +330,11 @@ void matrixTest(String name, Builder builder) {
 }
 
 void main() {
-  matrixTest('row major', Matrix.builder.withFormat(MatrixFormat.rowMajor));
-  matrixTest(
-      'column major', Matrix.builder.withFormat(MatrixFormat.columnMajor));
-  matrixTest(
-      'sparse-coo', Matrix.builder.withFormat(MatrixFormat.coordinateList));
-  matrixTest(
-      'sparse-csr', Matrix.builder.withFormat(MatrixFormat.compressedRow));
-  matrixTest(
-      'sparse-csc', Matrix.builder.withFormat(MatrixFormat.compressedColumn));
-  matrixTest('sparse-dia', Matrix.builder.withFormat(MatrixFormat.diagonal));
-  matrixTest('sparse-dok', Matrix.builder.withFormat(MatrixFormat.keyed));
+  matrixTest('row major', Matrix.builder.rowMajor);
+  matrixTest('col major', Matrix.builder.columnMajor);
+  matrixTest('sparse-coo', Matrix.builder.coordinateList);
+  matrixTest('sparse-csr', Matrix.builder.compressedRow);
+  matrixTest('sparse-csc', Matrix.builder.compressedColumn);
+  matrixTest('sparse-dia', Matrix.builder.diagonal);
+  matrixTest('sparse-dok', Matrix.builder.keyed);
 }

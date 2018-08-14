@@ -12,7 +12,7 @@ import 'view/transposed_matrix.dart';
 abstract class Matrix<T> {
   /// Default builder for new matrices.
   static Builder<Object> get builder =>
-      Builder<Object>(MatrixFormat.rowMajor, DataType.object);
+      Builder<Object>(FormatType.rowMajor, DataType.object);
 
   /// Unnamed default constructor.
   const Matrix();
