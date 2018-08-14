@@ -2,8 +2,9 @@ library data.matrix.impl.coordinate_list_matrix;
 
 import 'package:data/src/type/type.dart';
 
+import '../../shared/config.dart';
+import '../../shared/lists.dart';
 import '../matrix.dart';
-import '../utils.dart';
 
 // A sparse matrix in coordinate format (COO).
 class CoordinateListMatrix<T> extends Matrix<T> {

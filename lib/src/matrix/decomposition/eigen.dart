@@ -2,8 +2,9 @@ library matrix.decomposition.eigen;
 
 import 'dart:math' as math;
 
+import '../../shared/config.dart';
+import '../../shared/math.dart';
 import '../matrix.dart';
-import '../utils.dart';
 
 /// Eigenvalues and eigenvectors of a real matrix.
 ///

@@ -2,8 +2,8 @@ library matrix.decomposition.lu;
 
 import 'dart:math' as math;
 
+import '../../shared/config.dart';
 import '../matrix.dart';
-import '../utils.dart';
 
 /// LU Decomposition.
 ///

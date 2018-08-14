@@ -2,8 +2,9 @@ library matrix.decomposition.singular_value;
 
 import 'dart:math' as math;
 
+import '../../shared/config.dart';
+import '../../shared/math.dart';
 import '../matrix.dart';
-import '../utils.dart';
 
 /// Singular Value Decomposition.
 ///

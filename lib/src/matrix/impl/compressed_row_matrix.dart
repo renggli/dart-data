@@ -2,8 +2,9 @@ library data.matrix.impl.compressed_row_matrix;
 
 import 'package:data/src/type/type.dart';
 
+import '../../shared/config.dart';
+import '../../shared/lists.dart';
 import '../matrix.dart';
-import '../utils.dart';
 
 /// Compressed sparse row matrix (CSR).
 class CompressedRowMatrix<T> extends Matrix<T> {

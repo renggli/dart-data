@@ -55,10 +55,6 @@ class Builder<T> {
   Matrix<T> call(int rowCount, int colCount) {
     RangeError.checkNotNegative(rowCount, 'rowCount');
     RangeError.checkNotNegative(colCount, 'colCount');
-    // The reason for this enum to exist is purely to be able to instantiate
-    // the matrix with the right generic type. Constructor tear-offs are current
-    // not supported and wrapping the constructor in a closure yields a matrix
-    // of type `Matrix<dynamic>`, which we don't want either.
     switch (format) {
       case RowMajorMatrix:
         return RowMajorMatrix<T>(type, rowCount, colCount);
