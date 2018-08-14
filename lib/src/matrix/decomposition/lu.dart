@@ -18,39 +18,39 @@ import '../utils.dart';
 /// linear equations.  This will fail if [isNonsingular] returns false.
 class LUDecomposition {
   /// Internal storage of decomposition.
-  final Matrix<double> LU;
+  final Matrix<double> _lu;
 
   /// Internal row and column dimensions.
-  final int m, n;
+  final int _m, _n;
 
   /// Internal pivot sign.
-  int pivsign;
+  int _pivSign;
 
   /// Internal storage of pivot vector.
-  final List<int> piv;
+  final List<int> _piv;
 
   LUDecomposition(Matrix<num> A)
-      : LU = Matrix.builder.rowMajor.withType(valueDataType).from(A),
-        m = A.rowCount,
-        n = A.colCount,
-        piv = indexDataType.newList(A.rowCount) {
+      : _lu = Matrix.builder.rowMajor.withType(valueDataType).from(A),
+        _m = A.rowCount,
+        _n = A.colCount,
+        _piv = indexDataType.newList(A.rowCount) {
     // Use a 'left-looking', dot-product, Crout/Doolittle algorithm.
-    for (var i = 0; i < m; i++) {
-      piv[i] = i;
+    for (var i = 0; i < _m; i++) {
+      _piv[i] = i;
     }
-    pivsign = 1;
-    final LUcolj = valueDataType.newList(m);
+    _pivSign = 1;
+    final LUcolj = valueDataType.newList(_m);
 
     // Outer loop.
-    for (var j = 0; j < n; j++) {
+    for (var j = 0; j < _n; j++) {
       // Make a copy of the j-th column to localize references.
-      for (var i = 0; i < m; i++) {
-        LUcolj[i] = LU.getUnchecked(i, j);
+      for (var i = 0; i < _m; i++) {
+        LUcolj[i] = _lu.getUnchecked(i, j);
       }
 
       // Apply previous transformations.
-      for (var i = 0; i < m; i++) {
-        final LUrowi = LU.row(i);
+      for (var i = 0; i < _m; i++) {
+        final LUrowi = _lu.row(i);
 
         // Most of the time is spent in the following dot product.
         var kmax = math.min(i, j);
@@ -64,27 +64,27 @@ class LUDecomposition {
 
       // Find pivot and exchange if necessary.
       var p = j;
-      for (var i = j + 1; i < m; i++) {
+      for (var i = j + 1; i < _m; i++) {
         if (LUcolj[i].abs() > LUcolj[p].abs()) {
           p = i;
         }
       }
       if (p != j) {
-        for (var k = 0; k < n; k++) {
-          final t = LU.getUnchecked(p, k);
-          LU.setUnchecked(p, k, LU.getUnchecked(j, k));
-          LU.setUnchecked(j, k, t);
+        for (var k = 0; k < _n; k++) {
+          final t = _lu.getUnchecked(p, k);
+          _lu.setUnchecked(p, k, _lu.getUnchecked(j, k));
+          _lu.setUnchecked(j, k, t);
         }
-        final k = piv[p];
-        piv[p] = piv[j];
-        piv[j] = k;
-        pivsign = -pivsign;
+        final k = _piv[p];
+        _piv[p] = _piv[j];
+        _piv[j] = k;
+        _pivSign = -_pivSign;
       }
 
       // Compute multipliers.
-      if (j < m && LU.getUnchecked(j, j) != 0.0) {
-        for (var i = j + 1; i < m; i++) {
-          LU.setUnchecked(i, j, LU.getUnchecked(i, j) / LU.getUnchecked(j, j));
+      if (j < _m && _lu.getUnchecked(j, j) != 0.0) {
+        for (var i = j + 1; i < _m; i++) {
+          _lu.setUnchecked(i, j, _lu.getUnchecked(i, j) / _lu.getUnchecked(j, j));
         }
       }
     }
@@ -92,8 +92,8 @@ class LUDecomposition {
 
   /// Is the matrix nonsingular?
   bool get isNonsingular {
-    for (var j = 0; j < n; j++) {
-      if (LU.getUnchecked(j, j) == 0.0) {
+    for (var j = 0; j < _n; j++) {
+      if (_lu.getUnchecked(j, j) == 0.0) {
         return false;
       }
     }
@@ -102,11 +102,11 @@ class LUDecomposition {
 
   /// Returns the lower triangular factor.
   Matrix<double> get L {
-    final X = Matrix.builder.diagonal.withType(valueDataType)(m, n);
-    for (var i = 0; i < m; i++) {
-      for (var j = 0; j < n; j++) {
+    final X = Matrix.builder.diagonal.withType(valueDataType)(_m, _n);
+    for (var i = 0; i < _m; i++) {
+      for (var j = 0; j < _n; j++) {
         if (i > j) {
-          L.setUnchecked(i, j, LU.getUnchecked(i, j));
+          L.setUnchecked(i, j, _lu.getUnchecked(i, j));
         } else if (i == j) {
           L.setUnchecked(i, j, 1.0);
         }
@@ -117,11 +117,11 @@ class LUDecomposition {
 
   /// Returns upper triangular factor.
   Matrix<double> get U {
-    final X = Matrix.builder.diagonal.withType(valueDataType)(n, n);
-    for (var i = 0; i < n; i++) {
-      for (var j = 0; j < n; j++) {
+    final X = Matrix.builder.diagonal.withType(valueDataType)(_n, _n);
+    for (var i = 0; i < _n; i++) {
+      for (var j = 0; j < _n; j++) {
         if (i <= j) {
-          U.setUnchecked(i, j, LU.getUnchecked(i, j));
+          U.setUnchecked(i, j, _lu.getUnchecked(i, j));
         }
       }
     }
@@ -129,18 +129,18 @@ class LUDecomposition {
   }
 
   /// Returns pivot permutation vector.
-  List<int> get pivot => indexDataType.copyList(piv);
+  List<int> get pivot => indexDataType.copyList(_piv);
 
   /// Returns the determinant.
   double get det {
-    if (m != n) {
+    if (_m != _n) {
       throw ArgumentError('Matrix must be square.');
     }
     var d = 1.0;
-    for (var j = 0; j < n; j++) {
-      d *= LU.getUnchecked(j, j);
+    for (var j = 0; j < _n; j++) {
+      d *= _lu.getUnchecked(j, j);
     }
-    return d * pivsign;
+    return d * _pivSign;
   }
 
   /// Solve A*X = B
@@ -149,7 +149,7 @@ class LUDecomposition {
   /// @exception  IllegalArgumentException Matrix row dimensions must agree.
   /// @exception  RuntimeException  Matrix is singular.
   Matrix<double> solve(Matrix<num> B) {
-    if (B.rowCount != m) {
+    if (B.rowCount != _m) {
       throw ArgumentError('Matrix row dimensions must agree.');
     }
     if (!isNonsingular) {
@@ -160,25 +160,25 @@ class LUDecomposition {
     final nx = B.colCount;
     final X = Matrix.builder
         .withType(valueDataType)
-        .fromIndicesAndRange(B, piv, 0, nx);
+        .fromIndicesAndRange(B, _piv, 0, nx);
 
     // Solve L*Y = B(piv,:)
-    for (var k = 0; k < n; k++) {
-      for (var i = k + 1; i < n; i++) {
+    for (var k = 0; k < _n; k++) {
+      for (var i = k + 1; i < _n; i++) {
         for (var j = 0; j < nx; j++) {
           X.setUnchecked(
               i,
               j,
               X.getUnchecked(i, j) -
-                  X.getUnchecked(k, j) * LU.getUnchecked(i, k));
+                  X.getUnchecked(k, j) * _lu.getUnchecked(i, k));
         }
       }
     }
 
     // Solve U*X = Y;
-    for (var k = n - 1; k >= 0; k--) {
+    for (var k = _n - 1; k >= 0; k--) {
       for (var j = 0; j < nx; j++) {
-        X.setUnchecked(k, j, X.getUnchecked(k, j) / LU.getUnchecked(k, k));
+        X.setUnchecked(k, j, X.getUnchecked(k, j) / _lu.getUnchecked(k, k));
       }
       for (var i = 0; i < k; i++) {
         for (var j = 0; j < nx; j++) {
@@ -186,7 +186,7 @@ class LUDecomposition {
               i,
               j,
               X.getUnchecked(i, j) -
-                  X.getUnchecked(k, j) * LU.getUnchecked(i, k));
+                  X.getUnchecked(k, j) * _lu.getUnchecked(i, k));
         }
       }
     }

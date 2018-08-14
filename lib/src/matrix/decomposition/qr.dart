@@ -19,58 +19,58 @@ import '../utils.dart';
 /// returns false.
 class QRDecomposition {
   /// Internal storage of decomposition.
-  final Matrix<double> QR;
+  final Matrix<double> _qr;
 
   /// Row and column dimensions.
-  final int m, n;
+  final int _m, _n;
 
   /// Internal storage of diagonal of R.
-  final List<double> Rdiag;
+  final List<double> _rdiag;
 
   QRDecomposition(Matrix<num> A)
-      : QR = Matrix.builder.rowMajor.withType(valueDataType).from(A),
-        m = A.rowCount,
-        n = A.colCount,
-        Rdiag = valueDataType.newList(A.colCount) {
+      : _qr = Matrix.builder.rowMajor.withType(valueDataType).from(A),
+        _m = A.rowCount,
+        _n = A.colCount,
+        _rdiag = valueDataType.newList(A.colCount) {
     // Main loop.
-    for (var k = 0; k < n; k++) {
+    for (var k = 0; k < _n; k++) {
       // Compute 2-norm of k-th column without under/overflow.
       var nrm = 0.0;
-      for (var i = k; i < m; i++) {
-        nrm = hypot(nrm, QR.getUnchecked(i, k));
+      for (var i = k; i < _m; i++) {
+        nrm = hypot(nrm, _qr.getUnchecked(i, k));
       }
 
       if (nrm != 0.0) {
         // Form k-th Householder vector.
-        if (QR.getUnchecked(k, k) < 0) {
+        if (_qr.getUnchecked(k, k) < 0) {
           nrm = -nrm;
         }
-        for (var i = k; i < m; i++) {
-          QR.setUnchecked(i, k, QR.getUnchecked(i, k) / nrm);
+        for (var i = k; i < _m; i++) {
+          _qr.setUnchecked(i, k, _qr.getUnchecked(i, k) / nrm);
         }
-        QR.setUnchecked(k, k, QR.getUnchecked(k, k) + 1.0);
+        _qr.setUnchecked(k, k, _qr.getUnchecked(k, k) + 1.0);
 
         // Apply transformation to remaining columns.
-        for (var j = k + 1; j < n; j++) {
+        for (var j = k + 1; j < _n; j++) {
           var s = 0.0;
-          for (var i = k; i < m; i++) {
-            s += QR.getUnchecked(i, k) * QR.getUnchecked(i, j);
+          for (var i = k; i < _m; i++) {
+            s += _qr.getUnchecked(i, k) * _qr.getUnchecked(i, j);
           }
-          s = -s / QR.getUnchecked(k, k);
-          for (var i = k; i < m; i++) {
-            QR.setUnchecked(
-                i, j, QR.getUnchecked(i, j) + s * QR.getUnchecked(i, k));
+          s = -s / _qr.getUnchecked(k, k);
+          for (var i = k; i < _m; i++) {
+            _qr.setUnchecked(
+                i, j, _qr.getUnchecked(i, j) + s * _qr.getUnchecked(i, k));
           }
         }
       }
-      Rdiag[k] = -nrm;
+      _rdiag[k] = -nrm;
     }
   }
 
   /// Is the matrix full rank?
   bool get isFullRank {
-    for (var j = 0; j < n; j++) {
-      if (Rdiag[j] == 0) {
+    for (var j = 0; j < _n; j++) {
+      if (_rdiag[j] == 0) {
         return false;
       }
     }
@@ -80,11 +80,11 @@ class QRDecomposition {
   /// Returns the Householder vectors: Lower trapezoidal matrix whose columns
   /// define the reflections.
   Matrix<double> get H {
-    final result = Matrix.builder.withType(valueDataType)(m, n);
-    for (var i = 0; i < m; i++) {
-      for (var j = 0; j < n; j++) {
+    final result = Matrix.builder.withType(valueDataType)(_m, _n);
+    for (var i = 0; i < _m; i++) {
+      for (var j = 0; j < _n; j++) {
         if (i >= j) {
-          result.setUnchecked(i, j, QR.getUnchecked(i, j));
+          result.setUnchecked(i, j, _qr.getUnchecked(i, j));
         }
       }
     }
@@ -93,13 +93,13 @@ class QRDecomposition {
 
   /// Returns the upper triangular factor.
   Matrix<double> get R {
-    final result = Matrix.builder.withType(valueDataType)(n, n);
-    for (var i = 0; i < n; i++) {
-      for (var j = i; j < n; j++) {
+    final result = Matrix.builder.withType(valueDataType)(_n, _n);
+    for (var i = 0; i < _n; i++) {
+      for (var j = i; j < _n; j++) {
         if (i < j) {
-          result.setUnchecked(i, j, QR.getUnchecked(i, j));
+          result.setUnchecked(i, j, _qr.getUnchecked(i, j));
         } else if (i == j) {
-          result.setUnchecked(i, j, Rdiag[i]);
+          result.setUnchecked(i, j, _rdiag[i]);
         }
       }
     }
@@ -108,22 +108,22 @@ class QRDecomposition {
 
   /// Returns the (economy-sized) orthogonal factor.
   Matrix<double> get Q {
-    final result = Matrix.builder.withType(valueDataType)(m, n);
-    for (var k = n - 1; k >= 0; k--) {
-      for (var i = 0; i < m; i++) {
+    final result = Matrix.builder.withType(valueDataType)(_m, _n);
+    for (var k = _n - 1; k >= 0; k--) {
+      for (var i = 0; i < _m; i++) {
         result.setUnchecked(i, k, 0.0);
       }
       result.setUnchecked(k, k, 1.0);
-      for (var j = k; j < n; j++) {
-        if (QR.getUnchecked(k, k) != 0) {
+      for (var j = k; j < _n; j++) {
+        if (_qr.getUnchecked(k, k) != 0) {
           var s = 0.0;
-          for (var i = k; i < m; i++) {
-            s += QR.getUnchecked(i, k) * result.getUnchecked(i, j);
+          for (var i = k; i < _m; i++) {
+            s += _qr.getUnchecked(i, k) * result.getUnchecked(i, j);
           }
-          s = -s / QR.getUnchecked(k, k);
-          for (var i = k; i < m; i++) {
+          s = -s / _qr.getUnchecked(k, k);
+          for (var i = k; i < _m; i++) {
             result.setUnchecked(
-                i, j, result.getUnchecked(i, j) + s * QR.getUnchecked(i, k));
+                i, j, result.getUnchecked(i, j) + s * _qr.getUnchecked(i, k));
           }
         }
       }
@@ -136,7 +136,7 @@ class QRDecomposition {
   /// A Matrix with as many rows as A and any number of columns.
   /// X that minimizes the two norm of Q*R*X-B.
   Matrix<double> solve(Matrix<num> B) {
-    if (B.rowCount != m) {
+    if (B.rowCount != _m) {
       throw ArgumentError('Matrix row dimensions must agree.');
     }
     if (!isFullRank) {
@@ -148,24 +148,24 @@ class QRDecomposition {
     final X = Matrix.builder.withType(valueDataType).from(B);
 
     // Compute Y = transpose(Q)*B
-    for (var k = 0; k < n; k++) {
+    for (var k = 0; k < _n; k++) {
       for (var j = 0; j < nx; j++) {
         var s = 0.0;
-        for (var i = k; i < m; i++) {
-          s += QR.getUnchecked(i, k) * X.getUnchecked(i, j);
+        for (var i = k; i < _m; i++) {
+          s += _qr.getUnchecked(i, k) * X.getUnchecked(i, j);
         }
-        s = -s / QR.getUnchecked(k, k);
-        for (var i = k; i < m; i++) {
+        s = -s / _qr.getUnchecked(k, k);
+        for (var i = k; i < _m; i++) {
           X.setUnchecked(
-              i, j, X.getUnchecked(i, j) + s * QR.getUnchecked(i, k));
+              i, j, X.getUnchecked(i, j) + s * _qr.getUnchecked(i, k));
         }
       }
     }
 
     // Solve R * X = Y;
-    for (var k = n - 1; k >= 0; k--) {
+    for (var k = _n - 1; k >= 0; k--) {
       for (var j = 0; j < nx; j++) {
-        X.setUnchecked(k, j, X.getUnchecked(k, j) / Rdiag[k]);
+        X.setUnchecked(k, j, X.getUnchecked(k, j) / _rdiag[k]);
       }
       for (var i = 0; i < k; i++) {
         for (var j = 0; j < nx; j++) {
@@ -173,7 +173,7 @@ class QRDecomposition {
               i,
               j,
               X.getUnchecked(i, j) -
-                  X.getUnchecked(k, j) * QR.getUnchecked(i, k));
+                  X.getUnchecked(k, j) * _qr.getUnchecked(i, k));
         }
       }
     }

@@ -25,17 +25,17 @@ class CholeskyDecomposition  {
    /** Array for internal storage of decomposition.
    @serial internal array storage.
    */
-   private double[][] L;
+   double[][] L;
 
    /** Row and column dimension (square matrix).
    @serial matrix dimension.
    */
-   private int n;
+   int n;
 
    /** Symmetric and positive definite flag.
    @serial is symmetric and positive definite flag.
    */
-   private boolean isspd;
+   boolean isspd;
 
 /* ------------------------
    Constructor
@@ -92,7 +92,7 @@ class CholeskyDecomposition  {
    *\
 
    \** Array for internal storage of right triangular decomposition. **\
-   private transient double[][] R;
+   transient double[][] R;
 
    \** Cholesky algorithm for symmetric and positive definite matrix.
    @param  A           Square, symmetric matrix.
