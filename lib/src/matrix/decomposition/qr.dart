@@ -1,9 +1,6 @@
 library matrix.decomposition.qr;
 
-import 'package:data/type.dart';
-
 import '../matrix.dart';
-import '../operators.dart';
 import '../utils.dart';
 
 /// QR Decomposition.

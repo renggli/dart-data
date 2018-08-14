@@ -15,7 +15,7 @@ import '../utils.dart';
 /// be queried by the isSPD() method.
 class CholeskyDecomposition {
   /// internal storage of decomposition.
-  Matrix<double> _L;
+  Matrix<double> _l;
 
   /// Row and column dimension (square matrix).
   final int _n;
@@ -25,30 +25,30 @@ class CholeskyDecomposition {
 
   /// Cholesky algorithm for symmetric and positive definite matrix.
   /// Structure to access L and isspd flag.
-  CholeskyDecomposition(Matrix A)
-      : _L = Matrix.builder.withType(valueDataType)(A.rowCount, A.rowCount),
-        _n = A.rowCount,
-        _isSymmetric = A.rowCount == A.colCount {
+  CholeskyDecomposition(Matrix a)
+      : _l = Matrix.builder.withType(valueDataType)(a.rowCount, a.rowCount),
+        _n = a.rowCount,
+        _isSymmetric = a.rowCount == a.colCount {
     // Main loop.
     for (var j = 0; j < _n; j++) {
-      var Lrowj = _L.row(j);
+      final lrowj = _l.row(j);
       var d = 0.0;
       for (var k = 0; k < j; k++) {
-        var Lrowk = _L.row(k);
+        final lrowk = _l.row(k);
         var s = 0.0;
         for (var i = 0; i < k; i++) {
-          s += Lrowk[i] * Lrowj[i];
+          s += lrowk[i] * lrowj[i];
         }
-        Lrowj[k] = s = (A.getUnchecked(j, k) - s) / _L.getUnchecked(k, k);
+        lrowj[k] = s = (a.getUnchecked(j, k) - s) / _l.getUnchecked(k, k);
         d = d + s * s;
         _isSymmetric =
-            _isSymmetric && (A.getUnchecked(k, j) == A.getUnchecked(j, k));
+            _isSymmetric && (a.getUnchecked(k, j) == a.getUnchecked(j, k));
       }
-      d = A.getUnchecked(j, j) - d;
+      d = a.getUnchecked(j, j) - d;
       _isSymmetric = _isSymmetric && (d > 0.0);
-      _L.setUnchecked(j, j, math.sqrt(math.max(d, 0.0)));
+      _l.setUnchecked(j, j, math.sqrt(math.max(d, 0.0)));
       for (var k = j + 1; k < _n; k++) {
-        _L.setUnchecked(j, k, 0.0);
+        _l.setUnchecked(j, k, 0.0);
       }
     }
   }
@@ -57,7 +57,7 @@ class CholeskyDecomposition {
   bool get isSPD => _isSymmetric;
 
   /// Return triangular factor.
-  Matrix<double> get L => _L;
+  Matrix<double> get L => _l;
 
   /// Solve A*X = B
   /// @param  B   A Matrix with as many rows as A and any number of columns.
@@ -84,10 +84,10 @@ class CholeskyDecomposition {
               k,
               j,
               result.getUnchecked(k, j) -
-                  result.getUnchecked(i, j) * _L.getUnchecked(k, i));
+                  result.getUnchecked(i, j) * _l.getUnchecked(k, i));
         }
         result.setUnchecked(
-            k, j, result.getUnchecked(k, j) / _L.getUnchecked(k, k));
+            k, j, result.getUnchecked(k, j) / _l.getUnchecked(k, k));
       }
     }
 
@@ -99,10 +99,10 @@ class CholeskyDecomposition {
               k,
               j,
               result.getUnchecked(k, j) -
-                  result.getUnchecked(i, j) * _L.getUnchecked(i, k));
+                  result.getUnchecked(i, j) * _l.getUnchecked(i, k));
         }
         result.setUnchecked(
-            k, j, result.getUnchecked(k, j) / _L.getUnchecked(k, k));
+            k, j, result.getUnchecked(k, j) / _l.getUnchecked(k, k));
       }
     }
     return result;

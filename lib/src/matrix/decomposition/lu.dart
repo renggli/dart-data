@@ -39,33 +39,33 @@ class LUDecomposition {
       _piv[i] = i;
     }
     _pivSign = 1;
-    final LUcolj = valueDataType.newList(_m);
+    final lucolj = valueDataType.newList(_m);
 
     // Outer loop.
     for (var j = 0; j < _n; j++) {
       // Make a copy of the j-th column to localize references.
       for (var i = 0; i < _m; i++) {
-        LUcolj[i] = _lu.getUnchecked(i, j);
+        lucolj[i] = _lu.getUnchecked(i, j);
       }
 
       // Apply previous transformations.
       for (var i = 0; i < _m; i++) {
-        final LUrowi = _lu.row(i);
+        final lurowi = _lu.row(i);
 
         // Most of the time is spent in the following dot product.
-        var kmax = math.min(i, j);
+        final kmax = math.min(i, j);
         var s = 0.0;
         for (var k = 0; k < kmax; k++) {
-          s += LUrowi[k] * LUcolj[k];
+          s += lurowi[k] * lucolj[k];
         }
 
-        LUrowi[j] = LUcolj[i] -= s;
+        lurowi[j] = lucolj[i] -= s;
       }
 
       // Find pivot and exchange if necessary.
       var p = j;
       for (var i = j + 1; i < _m; i++) {
-        if (LUcolj[i].abs() > LUcolj[p].abs()) {
+        if (lucolj[i].abs() > lucolj[p].abs()) {
           p = i;
         }
       }
@@ -84,7 +84,8 @@ class LUDecomposition {
       // Compute multipliers.
       if (j < _m && _lu.getUnchecked(j, j) != 0.0) {
         for (var i = j + 1; i < _m; i++) {
-          _lu.setUnchecked(i, j, _lu.getUnchecked(i, j) / _lu.getUnchecked(j, j));
+          _lu.setUnchecked(
+              i, j, _lu.getUnchecked(i, j) / _lu.getUnchecked(j, j));
         }
       }
     }

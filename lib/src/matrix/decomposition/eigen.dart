@@ -30,37 +30,37 @@ class EigenvalueDecomposition {
   final List<double> _d, _e;
 
   /// Array for internal storage of eigenvectors.
-  final Matrix<double> _V;
+  final Matrix<double> _v;
 
   /// Array for internal storage of nonsymmetric Hessenberg form.
-  final Matrix<double> _H;
+  final Matrix<double> _h;
 
   /// Working storage for nonsymmetric algorithm.
   final List<double> _ort;
 
   /// Check for symmetry, then construct the eigenvalue decomposition
   //  Structure to access D and V.
-  EigenvalueDecomposition(Matrix<num> A)
-      : _n = A.colCount,
+  EigenvalueDecomposition(Matrix<num> a)
+      : _n = a.colCount,
         _isSymmetric = true,
-        _d = valueDataType.newList(A.colCount),
-        _e = valueDataType.newList(A.colCount),
-        _V = Matrix.builder.rowMajor.withType(valueDataType)(
-            A.colCount, A.colCount),
-        _H = Matrix.builder.rowMajor.withType(valueDataType)(
-            A.colCount, A.colCount),
+        _d = valueDataType.newList(a.colCount),
+        _e = valueDataType.newList(a.colCount),
+        _v = Matrix.builder.rowMajor.withType(valueDataType)(
+            a.colCount, a.colCount),
+        _h = Matrix.builder.rowMajor.withType(valueDataType)(
+            a.colCount, a.colCount),
         _ort = null {
     _isSymmetric = true;
     for (var j = 0; (j < _n) && _isSymmetric; j++) {
       for (var i = 0; (i < _n) && _isSymmetric; i++) {
-        _isSymmetric = A.getUnchecked(i, j) == A.getUnchecked(j, i);
+        _isSymmetric = a.getUnchecked(i, j) == a.getUnchecked(j, i);
       }
     }
 
     if (_isSymmetric) {
       for (var i = 0; i < _n; i++) {
         for (var j = 0; j < _n; j++) {
-          _V.setUnchecked(i, j, A.getUnchecked(i, j));
+          _v.setUnchecked(i, j, a.getUnchecked(i, j));
         }
       }
       // Tridiagonalize.
@@ -70,7 +70,7 @@ class EigenvalueDecomposition {
     } else {
       for (var j = 0; j < _n; j++) {
         for (var i = 0; i < _n; i++) {
-          _H.setUnchecked(i, j, A.getUnchecked(i, j));
+          _h.setUnchecked(i, j, a.getUnchecked(i, j));
         }
       }
       // Reduce to Hessenberg form.
@@ -88,7 +88,7 @@ class EigenvalueDecomposition {
     //  Fortran subroutine in EISPACK.
 
     for (var j = 0; j < _n; j++) {
-      _d[j] = _V.getUnchecked(_n - 1, j);
+      _d[j] = _v.getUnchecked(_n - 1, j);
     }
 
     // Householder reduction to tridiagonal form.
@@ -104,9 +104,9 @@ class EigenvalueDecomposition {
       if (scale == 0.0) {
         _e[i] = _d[i - 1];
         for (var j = 0; j < i; j++) {
-          _d[j] = _V.getUnchecked(i - 1, j);
-          _V.setUnchecked(i, j, 0.0);
-          _V.setUnchecked(j, i, 0.0);
+          _d[j] = _v.getUnchecked(i - 1, j);
+          _v.setUnchecked(i, j, 0.0);
+          _v.setUnchecked(j, i, 0.0);
         }
       } else {
         // Generate Householder vector.
@@ -131,11 +131,11 @@ class EigenvalueDecomposition {
 
         for (var j = 0; j < i; j++) {
           f = _d[j];
-          _V.setUnchecked(j, i, f);
-          g = _e[j] + _V.getUnchecked(j, j) * f;
+          _v.setUnchecked(j, i, f);
+          g = _e[j] + _v.getUnchecked(j, j) * f;
           for (var k = j + 1; k <= i - 1; k++) {
-            g += _V.getUnchecked(k, j) * _d[k];
-            _e[k] += _V.getUnchecked(k, j) * f;
+            g += _v.getUnchecked(k, j) * _d[k];
+            _e[k] += _v.getUnchecked(k, j) * f;
           }
           _e[j] = g;
         }
@@ -144,7 +144,7 @@ class EigenvalueDecomposition {
           _e[j] /= h;
           f += _e[j] * _d[j];
         }
-        var hh = f / (h + h);
+        final hh = f / (h + h);
         for (var j = 0; j < i; j++) {
           _e[j] -= hh * _d[j];
         }
@@ -152,11 +152,11 @@ class EigenvalueDecomposition {
           f = _d[j];
           g = _e[j];
           for (var k = j; k <= i - 1; k++) {
-            _V.setUnchecked(
-                k, j, _V.getUnchecked(k, j) - (f * _e[k] + g * _d[k]));
+            _v.setUnchecked(
+                k, j, _v.getUnchecked(k, j) - (f * _e[k] + g * _d[k]));
           }
-          _d[j] = _V.getUnchecked(i - 1, j);
-          _V.setUnchecked(i, j, 0.0);
+          _d[j] = _v.getUnchecked(i - 1, j);
+          _v.setUnchecked(i, j, 0.0);
         }
       }
       _d[i] = h;
@@ -165,32 +165,32 @@ class EigenvalueDecomposition {
     // Accumulate transformations.
 
     for (var i = 0; i < _n - 1; i++) {
-      _V.setUnchecked(_n - 1, i, _V.getUnchecked(i, i));
-      _V.setUnchecked(i, i, 1.0);
-      var h = _d[i + 1];
+      _v.setUnchecked(_n - 1, i, _v.getUnchecked(i, i));
+      _v.setUnchecked(i, i, 1.0);
+      final h = _d[i + 1];
       if (h != 0.0) {
         for (var k = 0; k <= i; k++) {
-          _d[k] = _V.getUnchecked(k, i + 1) / h;
+          _d[k] = _v.getUnchecked(k, i + 1) / h;
         }
         for (var j = 0; j <= i; j++) {
           var g = 0.0;
           for (var k = 0; k <= i; k++) {
-            g += _V.getUnchecked(k, i + 1) * _V.getUnchecked(k, j);
+            g += _v.getUnchecked(k, i + 1) * _v.getUnchecked(k, j);
           }
           for (var k = 0; k <= i; k++) {
-            _V.setUnchecked(k, j, _V.getUnchecked(k, j) - g * _d[k]);
+            _v.setUnchecked(k, j, _v.getUnchecked(k, j) - g * _d[k]);
           }
         }
       }
       for (var k = 0; k <= i; k++) {
-        _V.setUnchecked(k, i + 1, 0.0);
+        _v.setUnchecked(k, i + 1, 0.0);
       }
     }
     for (var j = 0; j < _n; j++) {
-      _d[j] = _V.getUnchecked(_n - 1, j);
-      _V.setUnchecked(_n - 1, j, 0.0);
+      _d[j] = _v.getUnchecked(_n - 1, j);
+      _v.setUnchecked(_n - 1, j, 0.0);
     }
-    _V.setUnchecked(_n - 1, _n - 1, 1.0);
+    _v.setUnchecked(_n - 1, _n - 1, 1.0);
     _e[0] = 0.0;
   }
 
@@ -209,7 +209,7 @@ class EigenvalueDecomposition {
 
     var f = 0.0;
     var tst1 = 0.0;
-    var eps = math.pow(2.0, -52.0);
+    final eps = math.pow(2.0, -52.0);
     for (var l = 0; l < _n; l++) {
       // Find small subdiagonal element
 
@@ -240,7 +240,7 @@ class EigenvalueDecomposition {
           }
           _d[l] = _e[l] / (p + r);
           _d[l + 1] = _e[l] * (p + r);
-          var dl1 = _d[l + 1];
+          final dl1 = _d[l + 1];
           var h = g - _d[l];
           for (var i = l + 2; i < _n; i++) {
             _d[i] -= h;
@@ -253,7 +253,7 @@ class EigenvalueDecomposition {
           var c = 1.0;
           var c2 = c;
           var c3 = c;
-          var el1 = _e[l + 1];
+          final el1 = _e[l + 1];
           var s = 0.0;
           var s2 = 0.0;
           for (var i = m - 1; i >= l; i--) {
@@ -272,9 +272,9 @@ class EigenvalueDecomposition {
             // Accumulate transformation.
 
             for (var k = 0; k < _n; k++) {
-              h = _V.getUnchecked(k, i + 1);
-              _V.setUnchecked(k, i + 1, s * _V.getUnchecked(k, i) + c * h);
-              _V.setUnchecked(k, i, c * _V.getUnchecked(k, i) - s * h);
+              h = _v.getUnchecked(k, i + 1);
+              _v.setUnchecked(k, i + 1, s * _v.getUnchecked(k, i) + c * h);
+              _v.setUnchecked(k, i, c * _v.getUnchecked(k, i) - s * h);
             }
           }
           p = -s * s2 * c3 * el1 * _e[l] / dl1;
@@ -304,9 +304,9 @@ class EigenvalueDecomposition {
         _d[k] = _d[i];
         _d[i] = p;
         for (var j = 0; j < _n; j++) {
-          p = _V.getUnchecked(j, i);
-          _V.setUnchecked(j, i, _V.getUnchecked(j, k));
-          _V.setUnchecked(j, k, p);
+          p = _v.getUnchecked(j, i);
+          _v.setUnchecked(j, i, _v.getUnchecked(j, k));
+          _v.setUnchecked(j, k, p);
         }
       }
     }
@@ -320,22 +320,22 @@ class EigenvalueDecomposition {
     //  Vol.ii-Linear Algebra, and the corresponding
     //  Fortran subroutines in EISPACK.
 
-    var low = 0;
-    var high = _n - 1;
+    final low = 0;
+    final high = _n - 1;
 
     for (var m = low + 1; m <= high - 1; m++) {
       // Scale column.
 
       var scale = 0.0;
       for (var i = m; i <= high; i++) {
-        scale = scale + _H.getUnchecked(i, m - 1).abs();
+        scale = scale + _h.getUnchecked(i, m - 1).abs();
       }
       if (scale != 0.0) {
         // Compute Householder transformation.
 
         var h = 0.0;
         for (var i = high; i >= m; i--) {
-          _ort[i] = _H.getUnchecked(i, m - 1) / scale;
+          _ort[i] = _h.getUnchecked(i, m - 1) / scale;
           h += _ort[i] * _ort[i];
         }
         var g = math.sqrt(h);
@@ -351,26 +351,26 @@ class EigenvalueDecomposition {
         for (var j = m; j < _n; j++) {
           var f = 0.0;
           for (var i = high; i >= m; i--) {
-            f += _ort[i] * _H.getUnchecked(i, j);
+            f += _ort[i] * _h.getUnchecked(i, j);
           }
           f = f / h;
           for (var i = m; i <= high; i++) {
-            _H.setUnchecked(i, j, _H.getUnchecked(i, j) - f * _ort[i]);
+            _h.setUnchecked(i, j, _h.getUnchecked(i, j) - f * _ort[i]);
           }
         }
 
         for (var i = 0; i <= high; i++) {
           var f = 0.0;
           for (var j = high; j >= m; j--) {
-            f += _ort[j] * _H.getUnchecked(i, j);
+            f += _ort[j] * _h.getUnchecked(i, j);
           }
           f = f / h;
           for (var j = m; j <= high; j++) {
-            _H.setUnchecked(i, j, _H.getUnchecked(i, j) - f * _ort[j]);
+            _h.setUnchecked(i, j, _h.getUnchecked(i, j) - f * _ort[j]);
           }
         }
         _ort[m] = scale * _ort[m];
-        _H.setUnchecked(m, m - 1, scale * g);
+        _h.setUnchecked(m, m - 1, scale * g);
       }
     }
 
@@ -378,24 +378,24 @@ class EigenvalueDecomposition {
 
     for (var i = 0; i < _n; i++) {
       for (var j = 0; j < _n; j++) {
-        _V.setUnchecked(i, j, i == j ? 1.0 : 0.0);
+        _v.setUnchecked(i, j, i == j ? 1.0 : 0.0);
       }
     }
 
     for (var m = high - 1; m >= low + 1; m--) {
-      if (_H.getUnchecked(m, m - 1) != 0.0) {
+      if (_h.getUnchecked(m, m - 1) != 0.0) {
         for (var i = m + 1; i <= high; i++) {
-          _ort[i] = _H.getUnchecked(i, m - 1);
+          _ort[i] = _h.getUnchecked(i, m - 1);
         }
         for (var j = m; j <= high; j++) {
           var g = 0.0;
           for (var i = m; i <= high; i++) {
-            g += _ort[i] * _V.getUnchecked(i, j);
+            g += _ort[i] * _v.getUnchecked(i, j);
           }
           // Double division avoids possible underflow
-          g = (g / _ort[m]) / _H.getUnchecked(m, m - 1);
+          g = (g / _ort[m]) / _h.getUnchecked(m, m - 1);
           for (var i = m; i <= high; i++) {
-            _V.setUnchecked(i, j, _V.getUnchecked(i, j) + g * _ort[i]);
+            _v.setUnchecked(i, j, _v.getUnchecked(i, j) + g * _ort[i]);
           }
         }
       }
@@ -406,15 +406,14 @@ class EigenvalueDecomposition {
   double cdivr, cdivi;
 
   void _cdiv(double xr, double xi, double yr, double yi) {
-    var r, d;
     if (yr.abs() > yi.abs()) {
-      r = yi / yr;
-      d = yr + r * yi;
+      final r = yi / yr;
+      final d = yr + r * yi;
       cdivr = (xr + r * xi) / d;
       cdivi = (xi - r * xr) / d;
     } else {
-      r = yr / yi;
-      d = yi + r * yr;
+      final r = yr / yi;
+      final d = yi + r * yr;
       cdivr = (r * xr + xi) / d;
       cdivi = (r * xi - xr) / d;
     }
@@ -430,11 +429,11 @@ class EigenvalueDecomposition {
 
     // Initialize
 
-    var nn = this._n;
+    final nn = _n;
     var n = nn - 1;
-    var low = 0;
-    var high = nn - 1;
-    var eps = math.pow(2.0, -52.0);
+    final low = 0;
+    final high = nn - 1;
+    final eps = math.pow(2.0, -52.0);
     var exshift = 0.0;
     var p = 0.0,
         q = 0.0,
@@ -451,11 +450,11 @@ class EigenvalueDecomposition {
     var norm = 0.0;
     for (var i = 0; i < nn; i++) {
       if (i < low || i > high) {
-        _d[i] = _H.getUnchecked(i, i);
+        _d[i] = _h.getUnchecked(i, i);
         _e[i] = 0.0;
       }
       for (var j = math.max(i - 1, 0); j < nn; j++) {
-        norm = norm + _H.getUnchecked(i, j).abs();
+        norm = norm + _h.getUnchecked(i, j).abs();
       }
     }
 
@@ -467,11 +466,11 @@ class EigenvalueDecomposition {
 
       var l = n;
       while (l > low) {
-        s = _H.getUnchecked(l - 1, l - 1).abs() + _H.getUnchecked(l, l).abs();
+        s = _h.getUnchecked(l - 1, l - 1).abs() + _h.getUnchecked(l, l).abs();
         if (s == 0.0) {
           s = norm;
         }
-        if (_H.getUnchecked(l, l - 1).abs() < eps * s) {
+        if (_h.getUnchecked(l, l - 1).abs() < eps * s) {
           break;
         }
         l--;
@@ -481,8 +480,8 @@ class EigenvalueDecomposition {
       // One root found
 
       if (l == n) {
-        _H.setUnchecked(n, n, _H.getUnchecked(n, n) + exshift);
-        _d[n] = _H.getUnchecked(n, n);
+        _h.setUnchecked(n, n, _h.getUnchecked(n, n) + exshift);
+        _d[n] = _h.getUnchecked(n, n);
         _e[n] = 0.0;
         n--;
         iter = 0;
@@ -490,13 +489,13 @@ class EigenvalueDecomposition {
         // Two roots found
 
       } else if (l == n - 1) {
-        w = _H.getUnchecked(n, n - 1) * _H.getUnchecked(n - 1, n);
-        p = (_H.getUnchecked(n - 1, n - 1) - _H.getUnchecked(n, n)) / 2.0;
+        w = _h.getUnchecked(n, n - 1) * _h.getUnchecked(n - 1, n);
+        p = (_h.getUnchecked(n - 1, n - 1) - _h.getUnchecked(n, n)) / 2.0;
         q = p * p + w;
         z = math.sqrt(q.abs());
-        _H.setUnchecked(n, n, _H.getUnchecked(n, n) + exshift);
-        _H.setUnchecked(n - 1, n - 1, _H.getUnchecked(n - 1, n - 1) + exshift);
-        x = _H.getUnchecked(n, n);
+        _h.setUnchecked(n, n, _h.getUnchecked(n, n) + exshift);
+        _h.setUnchecked(n - 1, n - 1, _h.getUnchecked(n - 1, n - 1) + exshift);
+        x = _h.getUnchecked(n, n);
 
         // Real pair
 
@@ -513,7 +512,7 @@ class EigenvalueDecomposition {
           }
           _e[n - 1] = 0.0;
           _e[n] = 0.0;
-          x = _H.getUnchecked(n, n - 1);
+          x = _h.getUnchecked(n, n - 1);
           s = x.abs() + z.abs();
           p = x / s;
           q = z / s;
@@ -524,25 +523,25 @@ class EigenvalueDecomposition {
           // Row modification
 
           for (var j = n - 1; j < nn; j++) {
-            z = _H.getUnchecked(n - 1, j);
-            _H.setUnchecked(n - 1, j, q * z + p * _H.getUnchecked(n, j));
-            _H.setUnchecked(n, j, q * _H.getUnchecked(n, j) - p * z);
+            z = _h.getUnchecked(n - 1, j);
+            _h.setUnchecked(n - 1, j, q * z + p * _h.getUnchecked(n, j));
+            _h.setUnchecked(n, j, q * _h.getUnchecked(n, j) - p * z);
           }
 
           // Column modification
 
           for (var i = 0; i <= n; i++) {
-            z = _H.getUnchecked(i, n - 1);
-            _H.setUnchecked(i, n - 1, q * z + p * _H.getUnchecked(i, n));
-            _H.setUnchecked(i, n, q * _H.getUnchecked(i, n) - p * z);
+            z = _h.getUnchecked(i, n - 1);
+            _h.setUnchecked(i, n - 1, q * z + p * _h.getUnchecked(i, n));
+            _h.setUnchecked(i, n, q * _h.getUnchecked(i, n) - p * z);
           }
 
           // Accumulate transformations
 
           for (var i = low; i <= high; i++) {
-            z = _V.getUnchecked(i, n - 1);
-            _V.setUnchecked(i, n - 1, q * z + p * _V.getUnchecked(i, n));
-            _V.setUnchecked(i, n, q * _V.getUnchecked(i, n) - p * z);
+            z = _v.getUnchecked(i, n - 1);
+            _v.setUnchecked(i, n - 1, q * z + p * _v.getUnchecked(i, n));
+            _v.setUnchecked(i, n, q * _v.getUnchecked(i, n) - p * z);
           }
 
           // Complex pair
@@ -561,12 +560,12 @@ class EigenvalueDecomposition {
       } else {
         // Form shift
 
-        x = _H.getUnchecked(n, n);
+        x = _h.getUnchecked(n, n);
         y = 0.0;
         w = 0.0;
         if (l < n) {
-          y = _H.getUnchecked(n - 1, n - 1);
-          w = _H.getUnchecked(n, n - 1) * _H.getUnchecked(n - 1, n);
+          y = _h.getUnchecked(n - 1, n - 1);
+          w = _h.getUnchecked(n, n - 1) * _h.getUnchecked(n - 1, n);
         }
 
         // Wilkinson's original ad hoc shift
@@ -574,10 +573,10 @@ class EigenvalueDecomposition {
         if (iter == 10) {
           exshift += x;
           for (var i = low; i <= n; i++) {
-            _H.setUnchecked(i, i, _H.getUnchecked(i, i) - x);
+            _h.setUnchecked(i, i, _h.getUnchecked(i, i) - x);
           }
-          s = _H.getUnchecked(n, n - 1).abs() +
-              _H.getUnchecked(n - 1, n - 2).abs();
+          s = _h.getUnchecked(n, n - 1).abs() +
+              _h.getUnchecked(n - 1, n - 2).abs();
           x = y = 0.75 * s;
           w = -0.4375 * s * s;
         }
@@ -594,7 +593,7 @@ class EigenvalueDecomposition {
             }
             s = x - w / ((y - x) / 2.0 + s);
             for (var i = low; i <= n; i++) {
-              _H.setUnchecked(i, i, _H.getUnchecked(i, i) - s);
+              _h.setUnchecked(i, i, _h.getUnchecked(i, i) - s);
             }
             exshift += s;
             x = y = w = 0.964;
@@ -607,12 +606,13 @@ class EigenvalueDecomposition {
 
         var m = n - 2;
         while (m >= l) {
-          z = _H.getUnchecked(m, m);
+          z = _h.getUnchecked(m, m);
           r = x - z;
           s = y - z;
-          p = (r * s - w) / _H.getUnchecked(m + 1, m) + _H.getUnchecked(m, m + 1);
-          q = _H.getUnchecked(m + 1, m + 1) - z - r - s;
-          r = _H.getUnchecked(m + 2, m + 1);
+          p = (r * s - w) / _h.getUnchecked(m + 1, m) +
+              _h.getUnchecked(m, m + 1);
+          q = _h.getUnchecked(m + 1, m + 1) - z - r - s;
+          r = _h.getUnchecked(m + 2, m + 1);
           s = p.abs() + q.abs() + r.abs();
           p = p / s;
           q = q / s;
@@ -620,21 +620,21 @@ class EigenvalueDecomposition {
           if (m == l) {
             break;
           }
-          if (_H.getUnchecked(m, m - 1).abs() * (q.abs() + r.abs()) <
+          if (_h.getUnchecked(m, m - 1).abs() * (q.abs() + r.abs()) <
               eps *
                   (p.abs() *
-                      (_H.getUnchecked(m - 1, m - 1).abs() +
+                      (_h.getUnchecked(m - 1, m - 1).abs() +
                           z.abs() +
-                          _H.getUnchecked(m + 1, m + 1).abs()))) {
+                          _h.getUnchecked(m + 1, m + 1).abs()))) {
             break;
           }
           m--;
         }
 
         for (var i = m + 2; i <= n; i++) {
-          _H.setUnchecked(i, i - 2, 0.0);
+          _h.setUnchecked(i, i - 2, 0.0);
           if (i > m + 2) {
-            _H.setUnchecked(i, i - 3, 0.0);
+            _h.setUnchecked(i, i - 3, 0.0);
           }
         }
 
@@ -643,9 +643,9 @@ class EigenvalueDecomposition {
         for (var k = m; k <= n - 1; k++) {
           final notlast = (k != n - 1);
           if (k != m) {
-            p = _H.getUnchecked(k, k - 1);
-            q = _H.getUnchecked(k + 1, k - 1);
-            r = (notlast ? _H.getUnchecked(k + 2, k - 1) : 0.0);
+            p = _h.getUnchecked(k, k - 1);
+            q = _h.getUnchecked(k + 1, k - 1);
+            r = (notlast ? _h.getUnchecked(k + 2, k - 1) : 0.0);
             x = p.abs() + q.abs() + r.abs();
             if (x == 0.0) {
               continue;
@@ -661,9 +661,9 @@ class EigenvalueDecomposition {
           }
           if (s != 0) {
             if (k != m) {
-              _H.setUnchecked(k, k - 1, -s * x);
+              _h.setUnchecked(k, k - 1, -s * x);
             } else if (l != m) {
-              _H.setUnchecked(k, k - 1, -_H.getUnchecked(k, k - 1));
+              _h.setUnchecked(k, k - 1, -_h.getUnchecked(k, k - 1));
             }
             p = p + s;
             x = p / s;
@@ -675,37 +675,37 @@ class EigenvalueDecomposition {
             // Row modification
 
             for (var j = k; j < nn; j++) {
-              p = _H.getUnchecked(k, j) + q * _H.getUnchecked(k + 1, j);
+              p = _h.getUnchecked(k, j) + q * _h.getUnchecked(k + 1, j);
               if (notlast) {
-                p = p + r * _H.getUnchecked(k + 2, j);
-                _H.setUnchecked(k + 2, j, _H.getUnchecked(k + 2, j) - p * z);
+                p = p + r * _h.getUnchecked(k + 2, j);
+                _h.setUnchecked(k + 2, j, _h.getUnchecked(k + 2, j) - p * z);
               }
-              _H.setUnchecked(k, j, _H.getUnchecked(k, j) - p * x);
-              _H.setUnchecked(k + 1, j, _H.getUnchecked(k + 1, j) - p * y);
+              _h.setUnchecked(k, j, _h.getUnchecked(k, j) - p * x);
+              _h.setUnchecked(k + 1, j, _h.getUnchecked(k + 1, j) - p * y);
             }
 
             // Column modification
 
             for (var i = 0; i <= math.min(n, k + 3); i++) {
-              p = x * _H.getUnchecked(i, k) + y * _H.getUnchecked(i, k + 1);
+              p = x * _h.getUnchecked(i, k) + y * _h.getUnchecked(i, k + 1);
               if (notlast) {
-                p = p + z * _H.getUnchecked(i, k + 2);
-                _H.setUnchecked(i, k + 2, _H.getUnchecked(i, k + 2) - p * r);
+                p = p + z * _h.getUnchecked(i, k + 2);
+                _h.setUnchecked(i, k + 2, _h.getUnchecked(i, k + 2) - p * r);
               }
-              _H.setUnchecked(i, k, _H.getUnchecked(i, k) - p);
-              _H.setUnchecked(i, k + 1, _H.getUnchecked(i, k + 1) - p * q);
+              _h.setUnchecked(i, k, _h.getUnchecked(i, k) - p);
+              _h.setUnchecked(i, k + 1, _h.getUnchecked(i, k + 1) - p * q);
             }
 
             // Accumulate transformations
 
             for (var i = low; i <= high; i++) {
-              p = x * _V.getUnchecked(i, k) + y * _V.getUnchecked(i, k + 1);
+              p = x * _v.getUnchecked(i, k) + y * _v.getUnchecked(i, k + 1);
               if (notlast) {
-                p = p + z * _V.getUnchecked(i, k + 2);
-                _V.setUnchecked(i, k + 2, _V.getUnchecked(i, k + 2) - p * r);
+                p = p + z * _v.getUnchecked(i, k + 2);
+                _v.setUnchecked(i, k + 2, _v.getUnchecked(i, k + 2) - p * r);
               }
-              _V.setUnchecked(i, k, _V.getUnchecked(i, k) - p);
-              _V.setUnchecked(i, k + 1, _V.getUnchecked(i, k + 1) - p * q);
+              _v.setUnchecked(i, k, _v.getUnchecked(i, k) - p);
+              _v.setUnchecked(i, k + 1, _v.getUnchecked(i, k + 1) - p * q);
             }
           } // (s != 0)
         } // k loop
@@ -726,12 +726,12 @@ class EigenvalueDecomposition {
 
       if (q == 0) {
         var l = n;
-        _H.setUnchecked(n, n, 1.0);
+        _h.setUnchecked(n, n, 1.0);
         for (var i = n - 1; i >= 0; i--) {
-          w = _H.getUnchecked(i, i) - p;
+          w = _h.getUnchecked(i, i) - p;
           r = 0.0;
           for (var j = l; j <= n; j++) {
-            r = r + _H.getUnchecked(i, j) * _H.getUnchecked(j, n);
+            r = r + _h.getUnchecked(i, j) * _h.getUnchecked(j, n);
           }
           if (_e[i] < 0.0) {
             z = w;
@@ -740,32 +740,32 @@ class EigenvalueDecomposition {
             l = i;
             if (_e[i] == 0.0) {
               if (w != 0.0) {
-                _H.setUnchecked(i, n, -r / w);
+                _h.setUnchecked(i, n, -r / w);
               } else {
-                _H.setUnchecked(i, n, -r / (eps * norm));
+                _h.setUnchecked(i, n, -r / (eps * norm));
               }
 
               // Solve real equations
 
             } else {
-              x = _H.getUnchecked(i, i + 1);
-              y = _H.getUnchecked(i + 1, i);
+              x = _h.getUnchecked(i, i + 1);
+              y = _h.getUnchecked(i + 1, i);
               q = (_d[i] - p) * (_d[i] - p) + _e[i] * _e[i];
               t = (x * s - z * r) / q;
-              _H.setUnchecked(i, n, t);
+              _h.setUnchecked(i, n, t);
               if (x.abs() > z.abs()) {
-                _H.setUnchecked(i + 1, n, (-r - w * t) / x);
+                _h.setUnchecked(i + 1, n, (-r - w * t) / x);
               } else {
-                _H.setUnchecked(i + 1, n, (-s - y * t) / z);
+                _h.setUnchecked(i + 1, n, (-s - y * t) / z);
               }
             }
 
             // Overflow control
 
-            t = _H.getUnchecked(i, n).abs();
+            t = _h.getUnchecked(i, n).abs();
             if ((eps * t) * t > 1) {
               for (var j = i; j <= n; j++) {
-                _H.setUnchecked(j, n, _H.getUnchecked(j, n) / t);
+                _h.setUnchecked(j, n, _h.getUnchecked(j, n) / t);
               }
             }
           }
@@ -778,27 +778,27 @@ class EigenvalueDecomposition {
 
         // Last vector component imaginary so matrix is triangular
 
-        if (_H.getUnchecked(n, n - 1).abs() > _H.getUnchecked(n - 1, n).abs()) {
-          _H.setUnchecked(n - 1, n - 1, q / _H.getUnchecked(n, n - 1));
-          _H.setUnchecked(
-              n - 1, n, -(_H.getUnchecked(n, n) - p) / _H.getUnchecked(n, n - 1));
+        if (_h.getUnchecked(n, n - 1).abs() > _h.getUnchecked(n - 1, n).abs()) {
+          _h.setUnchecked(n - 1, n - 1, q / _h.getUnchecked(n, n - 1));
+          _h.setUnchecked(n - 1, n,
+              -(_h.getUnchecked(n, n) - p) / _h.getUnchecked(n, n - 1));
         } else {
-          _cdiv(0.0, -_H.getUnchecked(n - 1, n),
-              _H.getUnchecked(n - 1, n - 1) - p, q);
-          _H.setUnchecked(n - 1, n - 1, cdivr);
-          _H.setUnchecked(n - 1, n, cdivi);
+          _cdiv(0.0, -_h.getUnchecked(n - 1, n),
+              _h.getUnchecked(n - 1, n - 1) - p, q);
+          _h.setUnchecked(n - 1, n - 1, cdivr);
+          _h.setUnchecked(n - 1, n, cdivi);
         }
-        _H.setUnchecked(n, n - 1, 0.0);
-        _H.setUnchecked(n, n, 1.0);
+        _h.setUnchecked(n, n - 1, 0.0);
+        _h.setUnchecked(n, n, 1.0);
         for (var i = n - 2; i >= 0; i--) {
-          var ra, sa, vr, vi;
+          var ra = 0.0, sa = 0.0, vr = 0.0, vi = 0.0;
           ra = 0.0;
           sa = 0.0;
           for (var j = l; j <= n; j++) {
-            ra = ra + _H.getUnchecked(i, j) * _H.getUnchecked(j, n - 1);
-            sa = sa + _H.getUnchecked(i, j) * _H.getUnchecked(j, n);
+            ra = ra + _h.getUnchecked(i, j) * _h.getUnchecked(j, n - 1);
+            sa = sa + _h.getUnchecked(i, j) * _h.getUnchecked(j, n);
           }
-          w = _H.getUnchecked(i, i) - p;
+          w = _h.getUnchecked(i, i) - p;
 
           if (_e[i] < 0.0) {
             z = w;
@@ -808,13 +808,13 @@ class EigenvalueDecomposition {
             l = i;
             if (_e[i] == 0) {
               _cdiv(-ra, -sa, w, q);
-              _H.setUnchecked(i, n - 1, cdivr);
-              _H.setUnchecked(i, n, cdivi);
+              _h.setUnchecked(i, n - 1, cdivr);
+              _h.setUnchecked(i, n, cdivi);
             } else {
               // Solve complex equations
 
-              x = _H.getUnchecked(i, i + 1);
-              y = _H.getUnchecked(i + 1, i);
+              x = _h.getUnchecked(i, i + 1);
+              y = _h.getUnchecked(i + 1, i);
               vr = (_d[i] - p) * (_d[i] - p) + _e[i] * _e[i] - q * q;
               vi = (_d[i] - p) * 2.0 * q;
               if (vr == 0.0 && vi == 0.0) {
@@ -823,39 +823,39 @@ class EigenvalueDecomposition {
                     (w.abs() + q.abs() + x.abs() + y.abs() + z.abs());
               }
               _cdiv(x * r - z * ra + q * sa, x * s - z * sa - q * ra, vr, vi);
-              _H.setUnchecked(i, n - 1, cdivr);
-              _H.setUnchecked(i, n, cdivi);
+              _h.setUnchecked(i, n - 1, cdivr);
+              _h.setUnchecked(i, n, cdivi);
               if (x.abs() > (z.abs() + q.abs())) {
-                _H.setUnchecked(
+                _h.setUnchecked(
                     i + 1,
                     n - 1,
                     (-ra -
-                            w * _H.getUnchecked(i, n - 1) +
-                            q * _H.getUnchecked(i, n)) /
+                            w * _h.getUnchecked(i, n - 1) +
+                            q * _h.getUnchecked(i, n)) /
                         x);
-                _H.setUnchecked(
+                _h.setUnchecked(
                     i + 1,
                     n,
                     (-sa -
-                            w * _H.getUnchecked(i, n) -
-                            q * _H.getUnchecked(i, n - 1)) /
+                            w * _h.getUnchecked(i, n) -
+                            q * _h.getUnchecked(i, n - 1)) /
                         x);
               } else {
-                _cdiv(-r - y * _H.getUnchecked(i, n - 1),
-                    -s - y * _H.getUnchecked(i, n), z, q);
-                _H.setUnchecked(i + 1, n - 1, cdivr);
-                _H.setUnchecked(i + 1, n, cdivi);
+                _cdiv(-r - y * _h.getUnchecked(i, n - 1),
+                    -s - y * _h.getUnchecked(i, n), z, q);
+                _h.setUnchecked(i + 1, n - 1, cdivr);
+                _h.setUnchecked(i + 1, n, cdivi);
               }
             }
 
             // Overflow control
 
             t = math.max(
-                _H.getUnchecked(i, n - 1).abs(), _H.getUnchecked(i, n).abs());
+                _h.getUnchecked(i, n - 1).abs(), _h.getUnchecked(i, n).abs());
             if ((eps * t) * t > 1) {
               for (var j = i; j <= n; j++) {
-                _H.setUnchecked(j, n - 1, _H.getUnchecked(j, n - 1) / t);
-                _H.setUnchecked(j, n, _H.getUnchecked(j, n) / t);
+                _h.setUnchecked(j, n - 1, _h.getUnchecked(j, n - 1) / t);
+                _h.setUnchecked(j, n, _h.getUnchecked(j, n) / t);
               }
             }
           }
@@ -868,7 +868,7 @@ class EigenvalueDecomposition {
     for (var i = 0; i < nn; i++) {
       if (i < low || i > high) {
         for (var j = i; j < nn; j++) {
-          _V.setUnchecked(i, j, _H.getUnchecked(i, j));
+          _v.setUnchecked(i, j, _h.getUnchecked(i, j));
         }
       }
     }
@@ -879,15 +879,15 @@ class EigenvalueDecomposition {
       for (var i = low; i <= high; i++) {
         z = 0.0;
         for (var k = low; k <= math.min(j, high); k++) {
-          z = z + _V.getUnchecked(i, k) * _H.getUnchecked(k, j);
+          z = z + _v.getUnchecked(i, k) * _h.getUnchecked(k, j);
         }
-        _V.setUnchecked(i, j, z);
+        _v.setUnchecked(i, j, z);
       }
     }
   }
 
   /// Return the eigenvector matrix
-  Matrix<double> get V => _V;
+  Matrix<double> get V => _v;
 
   /// Return the block diagonal eigenvalue matrix
   Matrix<double> get D {

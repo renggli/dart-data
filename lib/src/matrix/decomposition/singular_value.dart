@@ -2,8 +2,6 @@ library matrix.decomposition.singular_value;
 
 import 'dart:math' as math;
 
-import 'package:data/type.dart';
-
 import '../matrix.dart';
 import '../utils.dart';
 
@@ -13,7 +11,7 @@ import '../utils.dart';
 /// an m-by-n orthogonal matrix U, an n-by-n diagonal matrix S, and
 /// an n-by-n orthogonal matrix V so that A = U*S*V'.
 ///
-/// The singular values, sigma[k] = S.getUnchecked(k, k), are ordered so that
+/// The singular values, sigma(k) = S.getUnchecked(k, k), are ordered so that
 /// sigma[0] >= sigma[1] >= ... >= sigma[n-1].
 ///
 /// The singular value decomposition always exists, so the constructor will
@@ -38,15 +36,15 @@ class SingularValueDecomposition {
         _m = A.rowCount,
         _n = A.colCount {
     // Initialize.
-    var e = valueDataType.newList(_n);
-    var work = valueDataType.newList(_m);
-    var wantu = true;
-    var wantv = true;
+    final e = valueDataType.newList(_n);
+    final work = valueDataType.newList(_m);
+    final wantu = true;
+    final wantv = true;
 
     // Reduce A to bidiagonal form, storing the diagonal elements
     // in s and the super-diagonal elements in e.
-    var nct = math.min(_m - 1, _n);
-    var nrt = math.max(0, math.min(_n - 2, _m));
+    final nct = math.min(_m - 1, _n);
+    final nrt = math.max(0, math.min(_n - 2, _m));
     for (var k = 0; k < math.max(nct, nrt); k++) {
       if (k < nct) {
         // Compute the transformation for the k-th column and
@@ -120,7 +118,7 @@ class SingularValueDecomposition {
             }
           }
           for (var j = k + 1; j < _n; j++) {
-            double t = -e[j] / e[k + 1];
+            final double t = -e[j] / e[k + 1];
             for (var i = k + 1; i < _m; i++) {
               A.setUnchecked(i, j, A.getUnchecked(i, j) + t * work[i]);
             }
@@ -210,10 +208,10 @@ class SingularValueDecomposition {
     }
 
     // Main iteration loop for the singular values.
-    var pp = p - 1;
+    final pp = p - 1;
     var iter = 0;
-    var eps = math.pow(2.0, -52.0);
-    var tiny = math.pow(2.0, -966.0);
+    final eps = math.pow(2.0, -52.0);
+    final tiny = math.pow(2.0, -966.0);
     while (p > 0) {
       int k, kase;
 
@@ -245,7 +243,7 @@ class SingularValueDecomposition {
           if (ks == k) {
             break;
           }
-          var t = (ks != p ? e[ks].abs() : 0.0) +
+          final t = (ks != p ? e[ks].abs() : 0.0) +
               (ks != k + 1 ? e[ks - 1].abs() : 0.0);
           if (_s[ks].abs() <= tiny + eps * t) {
             _s[ks] = 0.0;
@@ -272,8 +270,8 @@ class SingularValueDecomposition {
             e[p - 2] = 0.0;
             for (var j = p - 2; j >= k; j--) {
               var t = hypot(_s[j], f);
-              var cs = _s[j] / t;
-              var sn = f / t;
+              final cs = _s[j] / t;
+              final sn = f / t;
               _s[j] = t;
               if (j != k) {
                 f = -sn * e[j - 1];
@@ -302,8 +300,8 @@ class SingularValueDecomposition {
             e[k - 1] = 0.0;
             for (var j = k; j < p; j++) {
               var t = hypot(_s[j], f);
-              var cs = _s[j] / t;
-              var sn = f / t;
+              final cs = _s[j] / t;
+              final sn = f / t;
               _s[j] = t;
               f = -sn * e[j];
               e[j] = cs * e[j];
@@ -328,19 +326,19 @@ class SingularValueDecomposition {
         case 3:
           {
             // Calculate the shift.
-            var scale = math.max(
+            final scale = math.max(
                 math.max(
                     math.max(math.max(_s[p - 1].abs(), _s[p - 2].abs()),
                         e[p - 2].abs()),
                     _s[k].abs()),
                 e[k].abs());
-            var sp = _s[p - 1] / scale;
-            var spm1 = _s[p - 2] / scale;
-            var epm1 = e[p - 2] / scale;
-            var sk = _s[k] / scale;
-            var ek = e[k] / scale;
-            var b = ((spm1 + sp) * (spm1 - sp) + epm1 * epm1) / 2.0;
-            var c = (sp * epm1) * (sp * epm1);
+            final sp = _s[p - 1] / scale;
+            final spm1 = _s[p - 2] / scale;
+            final epm1 = e[p - 2] / scale;
+            final sk = _s[k] / scale;
+            final ek = e[k] / scale;
+            final b = ((spm1 + sp) * (spm1 - sp) + epm1 * epm1) / 2.0;
+            final c = (sp * epm1) * (sp * epm1);
             var shift = 0.0;
             if ((b != 0.0) || (c != 0.0)) {
               shift = math.sqrt(b * b + c);
