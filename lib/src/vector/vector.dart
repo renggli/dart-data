@@ -20,10 +20,6 @@ abstract class Vector<T> {
   /// The dimensionality of this vector.
   int get count;
 
-  /// Returns a builder that is pre-configured to create matrices of the same
-  /// storage format and data type as the receiver.
-  Builder<T> get toBuilder => Builder<T>(runtimeType, dataType);
-
   /// Returns the value at the provided [index].
   T operator [](int index) {
     RangeError.checkValidIndex(index, this, 'index', count);
@@ -47,10 +43,13 @@ abstract class Vector<T> {
   /// Pretty prints the vector.
   @override
   String toString() {
-    final buffer = StringBuffer(super.toString());
-    buffer.write('[$count]:');
+    final buffer = StringBuffer(runtimeType);
+    buffer.write('[$count]: ');
     for (var i = 0; i < count; i++) {
-      buffer.write('  ${getUnchecked(i)}');
+      if (i > 0) {
+        buffer.write(', ');
+      }
+      buffer.write(getUnchecked(i));
     }
     return buffer.toString();
   }
