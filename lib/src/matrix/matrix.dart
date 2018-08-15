@@ -1,11 +1,13 @@
 library data.matrix.matrix;
 
-import 'package:data/type.dart';
+import 'package:data/type.dart' show DataType;
+import 'package:data/vector.dart' show Vector;
 
 import 'builder.dart';
 import 'impl/row_major_matrix.dart';
-import 'view/column_view.dart';
-import 'view/row_view.dart';
+import 'view/column_vector.dart';
+import 'view/diagonal_vector.dart';
+import 'view/row_vector.dart';
 import 'view/sub_matrix.dart';
 import 'view/transposed_matrix.dart';
 
@@ -20,10 +22,6 @@ abstract class Matrix<T> {
 
   /// The data type of this matrix.
   DataType<T> get dataType;
-
-  /// Returns a builder that is pre-configured to create matrices of the same
-  /// storage format and data type as the receiver.
-  Builder<T> get toBuilder => Builder<T>(runtimeType, dataType);
 
   /// Returns the value at the provided [row] and [col] index. Throws a
   /// [RangeError] if [row] or [col] are outside of bounds.
@@ -52,16 +50,20 @@ abstract class Matrix<T> {
   /// Returns the number of rows in the matrix.
   int get rowCount;
 
-  /// Returns a mutable row of the matrix. Throws a [RangeError] if [row] is
-  /// outside of bounds.
-  RowView<T> row(int row) => RowView<T>(this, row);
+  /// Returns a mutable row vector of the matrix. Throws a [RangeError], if
+  /// [row] is out of bounds.
+  Vector<T> row(int row) => RowVector<T>(this, row);
 
   /// Returns the number of columns in the matrix.
   int get colCount;
 
-  /// Returns a mutable column of the matrix. Throws a [RangeError] if [col] is
-  /// outside of bounds.
-  ColumnView<T> col(int col) => ColumnView<T>(this, col);
+  /// Returns a mutable column vector of the matrix. Throws a [RangeError], if
+  /// [col] is out of bounds.
+  Vector<T> column(int col) => ColumnVector<T>(this, col);
+
+  /// Returns a mutable diagonal vector of the matrix. Throws a [RangeError], if
+  //  [offset] is out of bounds.
+  Vector<T> diagonal(int offset) => DiagonalVector<T>(this, offset);
 
   /// Returns a mutable view onto a sub-matrix.
   Matrix<T> subMatrix(
@@ -74,7 +76,7 @@ abstract class Matrix<T> {
   /// Pretty prints the matrix.
   @override
   String toString() {
-    final buffer = StringBuffer(super.toString());
+    final buffer = StringBuffer(runtimeType);
     buffer.write('[$rowCount, $colCount]:');
     for (var r = 0; r < rowCount; r++) {
       buffer.writeln();
