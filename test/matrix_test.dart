@@ -409,6 +409,12 @@ void matrixTest(String name, Builder builder) {
         for (var row = 0; row < view.rowCount; row++) {
           for (var col = 0; col < view.colCount; col++) {
             expect(view.get(row, col), '($col, $row)');
+            view.set(row, col, '${view.get(row, col)}*');
+          }
+        }
+        for (var row = 0; row < matrix.rowCount; row++) {
+          for (var col = 0; col < matrix.colCount; col++) {
+            expect(matrix.get(row, col), '($row, $col)*');
           }
         }
         expect(view.transpose, matrix);
