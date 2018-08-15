@@ -187,13 +187,13 @@ class Builder<T> {
   /// Builds a matrix from a nested list of rows.
   Matrix<T> fromRows(List<List<T>> source) {
     if (source.isEmpty) {
-      ArgumentError.value(source, 'source', 'Must be not empty');
+      throw ArgumentError.value(source, 'source', 'Must be not empty');
     }
     final result = this(source.length, source[0].length);
     for (var row = 0; row < result.rowCount; row++) {
       final sourceRow = source[row];
       if (sourceRow.length != result.colCount) {
-        ArgumentError.value(source, 'source', 'Must be equally sized');
+        throw ArgumentError.value(source, 'source', 'Must be equally sized');
       }
       for (var col = 0; col < result.colCount; col++) {
         result.setUnchecked(row, col, sourceRow[col]);
@@ -205,13 +205,13 @@ class Builder<T> {
   /// Builds a matrix from a nested list of columns.
   Matrix<T> fromCols(List<List<T>> source) {
     if (source.isEmpty) {
-      ArgumentError.value(source, 'source', 'Must be not empty');
+      throw ArgumentError.value(source, 'source', 'Must be not empty');
     }
     final result = this(source[0].length, source.length);
     for (var col = 0; col < result.colCount; col++) {
       final sourceCol = source[col];
       if (sourceCol.length != result.rowCount) {
-        ArgumentError.value(source, 'source', 'Must be equally sized');
+        throw ArgumentError.value(source, 'source', 'Must be equally sized');
       }
       for (var row = 0; row < result.rowCount; row++) {
         result.setUnchecked(row, col, sourceCol[row]);
