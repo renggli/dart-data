@@ -33,7 +33,7 @@ class DiagonalVector<T> extends Vector<T> {
     if (_offset < 0) {
       return _matrix.getUnchecked(index, index - _offset);
     } else {
-      return _matrix.getUnchecked(_offset, index);
+      return _matrix.getUnchecked(index + _offset, index);
     }
   }
 
@@ -42,7 +42,7 @@ class DiagonalVector<T> extends Vector<T> {
     if (_offset < 0) {
       _matrix.setUnchecked(index, index - _offset, value);
     } else {
-      _matrix.setUnchecked(_offset, index, value);
+      _matrix.setUnchecked(index + _offset, index, value);
     }
   }
 }

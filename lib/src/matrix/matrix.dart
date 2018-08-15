@@ -63,7 +63,7 @@ abstract class Matrix<T> {
 
   /// Returns a mutable diagonal vector of the matrix. Throws a [RangeError], if
   //  [offset] is out of bounds.
-  Vector<T> diagonal(int offset) => DiagonalVector<T>(this, offset);
+  Vector<T> diagonal([int offset = 0]) => DiagonalVector<T>(this, offset);
 
   /// Returns a mutable view onto a sub-matrix.
   Matrix<T> subMatrix(

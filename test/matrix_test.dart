@@ -299,12 +299,20 @@ void matrixTest(String name, Builder builder) {
           expect(row.dataType, matrix.dataType);
           for (var c = 0; c < matrix.colCount; c++) {
             expect(row[c], '($r, $c)');
+            row[c] += '*';
           }
           expect(() => row[-1], throwsRangeError);
           expect(() => row[matrix.colCount], throwsRangeError);
+          expect(() => row[-1] += '*', throwsRangeError);
+          expect(() => row[matrix.colCount] += '*', throwsRangeError);
         }
         expect(() => matrix.row(-1), throwsRangeError);
         expect(() => matrix.row(4), throwsRangeError);
+        for (var row = 0; row < matrix.rowCount; row++) {
+          for (var col = 0; col < matrix.colCount; col++) {
+            expect(matrix.get(row, col), '($row, $col)*');
+          }
+        }
       });
       test('column', () {
         final matrix = builder
@@ -315,39 +323,79 @@ void matrixTest(String name, Builder builder) {
           expect(column.dataType, matrix.dataType);
           for (var r = 0; r < matrix.rowCount; r++) {
             expect(column[r], '($r, $c)');
+            column[r] += '*';
           }
           expect(() => column[-1], throwsRangeError);
           expect(() => column[matrix.rowCount], throwsRangeError);
+          expect(() => column[-1] += '*', throwsRangeError);
+          expect(() => column[matrix.rowCount] += '*', throwsRangeError);
         }
         expect(() => matrix.column(-1), throwsRangeError);
         expect(() => matrix.column(4), throwsRangeError);
+        for (var row = 0; row < matrix.rowCount; row++) {
+          for (var col = 0; col < matrix.colCount; col++) {
+            expect(matrix.get(row, col), '($row, $col)*');
+          }
+        }
       });
       group('diagonal', () {
         test('vertical', () {
           final matrix = builder
               .withType(DataType.string)
               .generate(2, 3, (row, col) => '($row, $col)');
-          final diagonals = [1, 0, -1, -2].map(matrix.diagonal).toList();
-          for (var diagonal in diagonals) {
+          final offsets = {
+            1: ['(1, 0)'],
+            0: ['(0, 0)', '(1, 1)'],
+            -1: ['(0, 1)', '(1, 2)'],
+            -2: ['(0, 2)'],
+          };
+          for (var offset in offsets.keys) {
+            final expected = offsets[offset];
+            final diagonal = matrix.diagonal(offset);
             expect(diagonal.dataType, matrix.dataType);
+            expect(diagonal.count, expected.length);
+            for (var i = 0; i < expected.length; i++) {
+              expect(diagonal[i], expected[i]);
+              diagonal[i] += '*';
+            }
           }
-          expect(diagonals.map((diagonal) => diagonal.count), [1, 2, 2, 1]);
-          // test values
           expect(() => matrix.diagonal(2), throwsRangeError);
           expect(() => matrix.diagonal(-3), throwsRangeError);
+          for (var row = 0; row < matrix.rowCount; row++) {
+            for (var col = 0; col < matrix.colCount; col++) {
+              expect(matrix.get(row, col), '($row, $col)*');
+            }
+          }
         });
         test('horizontal', () {
           final matrix = builder
               .withType(DataType.string)
               .generate(3, 2, (row, col) => '($row, $col)');
-          final diagonals = [2, 1, 0, -1].map(matrix.diagonal).toList();
-          for (var diagonal in diagonals) {
+          final offsets = {
+            2: ['(2, 0)'],
+            1: ['(1, 0)', '(2, 1)'],
+            0: ['(0, 0)', '(1, 1)'],
+            -1: ['(0, 1)'],
+          };
+          for (var offset in offsets.keys) {
+            final expected = offsets[offset];
+            final diagonal = matrix.diagonal(offset);
             expect(diagonal.dataType, matrix.dataType);
+            expect(diagonal.count, expected.length);
+            for (var i = 0; i < expected.length; i++) {
+              expect(diagonal[i], expected[i]);
+              diagonal[i] += '*';
+            }
+            expect(() => diagonal[-1], throwsRangeError);
+            expect(() => diagonal[diagonal.count], throwsRangeError);
           }
-          expect(diagonals.map((diagonal) => diagonal.count), [1, 2, 2, 1]);
-          // test values
           expect(() => matrix.diagonal(3), throwsRangeError);
           expect(() => matrix.diagonal(-2), throwsRangeError);
+          for (var row = 0; row < matrix.rowCount; row++) {
+            for (var col = 0; col < matrix.colCount; col++) {
+              expect(matrix.get(row, col), '($row, $col)*');
+            }
+          }
         });
       });
       test('transpose', () {
