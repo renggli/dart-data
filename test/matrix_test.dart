@@ -4,6 +4,7 @@ import 'dart:math';
 
 import 'package:data/matrix.dart';
 import 'package:data/type.dart';
+import 'package:data/vector.dart' show Vector;
 import 'package:test/test.dart';
 
 void matrixTest(String name, Builder builder) {
@@ -55,17 +56,74 @@ void matrixTest(String name, Builder builder) {
           }
         }
       });
-      test('from', () {
+      test('transform', () {
+        final source = builder
+            .withType(DataType.object)
+            .generate(8, 7, (row, col) => Point(row, col));
+        final matrix = builder
+            .withType(DataType.string)
+            .transform(source, (row, col, value) => '($row, $col): $value');
+        expect(matrix.dataType, DataType.string);
+        expect(matrix.rowCount, 8);
+        expect(matrix.colCount, 7);
+        for (var row = 0; row < matrix.rowCount; row++) {
+          for (var col = 0; col < matrix.colCount; col++) {
+            expect(matrix.get(row, col), '($row, $col): Point($row, $col)');
+          }
+        }
+      });
+      test('fromMatrix', () {
         final source = builder
             .withType(DataType.string)
             .generate(5, 6, (row, col) => '($row, $col)');
-        final matrix = builder.withType(DataType.string).from(source);
+        final matrix = builder.withType(DataType.string).fromMatrix(source);
         expect(matrix.dataType, DataType.string);
         expect(matrix.rowCount, 5);
         expect(matrix.colCount, 6);
         for (var row = 0; row < source.rowCount; row++) {
           for (var col = 0; col < source.colCount; col++) {
             expect(matrix.get(row, col), '($row, $col)');
+          }
+        }
+      });
+      test('fromVectorRow', () {
+        final source =
+            Vector.builder.withType(DataType.int8).fromList([2, 5, 6]);
+        final matrix = builder.withType(DataType.int16).fromVectorRow(source);
+        expect(matrix.dataType, DataType.int16);
+        expect(matrix.rowCount, 1);
+        expect(matrix.colCount, 3);
+        for (var row = 0; row < matrix.rowCount; row++) {
+          for (var col = 0; col < matrix.colCount; col++) {
+            expect(matrix.get(row, col), source[col]);
+          }
+        }
+      });
+      test('fromVectorColumn', () {
+        final source =
+            Vector.builder.withType(DataType.int8).fromList([2, 5, 6]);
+        final matrix =
+            builder.withType(DataType.int16).fromVectorColumn(source);
+        expect(matrix.dataType, DataType.int16);
+        expect(matrix.rowCount, 3);
+        expect(matrix.colCount, 1);
+        for (var row = 0; row < matrix.rowCount; row++) {
+          for (var col = 0; col < matrix.colCount; col++) {
+            expect(matrix.get(row, col), source[row]);
+          }
+        }
+      });
+      test('fromVectorDiagonal', () {
+        final source =
+            Vector.builder.withType(DataType.int8).fromList([2, 5, 6]);
+        final matrix =
+            builder.withType(DataType.int16).fromVectorDiagonal(source);
+        expect(matrix.dataType, DataType.int16);
+        expect(matrix.rowCount, 3);
+        expect(matrix.colCount, 3);
+        for (var row = 0; row < matrix.rowCount; row++) {
+          for (var col = 0; col < matrix.colCount; col++) {
+            expect(matrix.get(row, col), row == col ? source[row] : 0);
           }
         }
       });
@@ -166,16 +224,21 @@ void matrixTest(String name, Builder builder) {
         expect(matrix.get(1, 1), 5);
         expect(matrix.get(2, 1), 6);
       });
-      // custom initialization
+    });
+    group('accessing', () {
+      final matrix = builder.withType(DataType.int8).fromRows([
+        [1, 2, 3],
+        [4, 5, 6],
+      ]);
       test('random order', () {
-        final matrix = builder(5, 6);
+        final matrix = builder(8, 12);
         final points = <Point>[];
         for (var row = 0; row < matrix.rowCount; row++) {
           for (var col = 0; col < matrix.colCount; col++) {
             points.add(Point(row, col));
           }
         }
-        // add values in random order
+        // add values
         points.shuffle();
         for (var point in points) {
           matrix.set(point.x, point.y, point);
@@ -185,7 +248,17 @@ void matrixTest(String name, Builder builder) {
             expect(matrix.get(row, col), Point(row, col));
           }
         }
-        // remove values in random order
+        // update values
+        points.shuffle();
+        for (var point in points) {
+          matrix.set(point.x, point.y, Point(point.x + 1, point.y + 1));
+        }
+        for (var row = 0; row < matrix.rowCount; row++) {
+          for (var col = 0; col < matrix.colCount; col++) {
+            expect(matrix.get(row, col), Point(row + 1, col + 1));
+          }
+        }
+        // remove values
         points.shuffle();
         for (var point in points) {
           matrix.set(point.x, point.y, matrix.dataType.nullValue);
@@ -196,35 +269,86 @@ void matrixTest(String name, Builder builder) {
           }
         }
       });
+      test('read (out of bounds)', () {
+        expect(() => matrix.get(-1, 0), throwsRangeError);
+        expect(() => matrix.get(0, -1), throwsRangeError);
+        expect(() => matrix.get(matrix.rowCount, 0), throwsRangeError);
+        expect(() => matrix.get(0, matrix.colCount), throwsRangeError);
+      });
+      test('write (out of bounds)', () {
+        expect(() => matrix.set(-1, 0, 0), throwsRangeError);
+        expect(() => matrix.set(0, -1, 0), throwsRangeError);
+        expect(() => matrix.set(matrix.rowCount, 0, 0), throwsRangeError);
+        expect(() => matrix.set(0, matrix.colCount, 0), throwsRangeError);
+      });
+      test('toString', () {
+        expect(
+            matrix.toString(),
+            '${matrix.runtimeType}[${matrix.rowCount}, ${matrix.colCount}]:\n'
+            '  1  2  3\n'
+            '  4  5  6');
+      });
     });
     group('views', () {
       test('row', () {
         final matrix = builder
             .withType(DataType.string)
-            .generate(4, 5, (row, col) => '($row, $col)');
-        for (var row = 0; row < matrix.rowCount; row++) {
-          final view = matrix.row(row);
-          expect(view.dataType, matrix.dataType);
-          for (var col = 0; col < matrix.colCount; col++) {
-            expect(view[col], '($row, $col)');
+            .generate(4, 5, (r, c) => '($r, $c)');
+        for (var r = 0; r < matrix.rowCount; r++) {
+          final row = matrix.row(r);
+          expect(row.dataType, matrix.dataType);
+          for (var c = 0; c < matrix.colCount; c++) {
+            expect(row[c], '($r, $c)');
           }
-          expect(() => view[-1], throwsRangeError);
-          expect(() => view[matrix.colCount], throwsRangeError);
+          expect(() => row[-1], throwsRangeError);
+          expect(() => row[matrix.colCount], throwsRangeError);
         }
+        expect(() => matrix.row(-1), throwsRangeError);
+        expect(() => matrix.row(4), throwsRangeError);
       });
-      test('col', () {
+      test('column', () {
         final matrix = builder
             .withType(DataType.string)
-            .generate(5, 4, (row, col) => '($row, $col)');
-        for (var col = 0; col < matrix.colCount; col++) {
-          final view = matrix.col(col);
-          expect(view.dataType, matrix.dataType);
-          for (var row = 0; row < matrix.rowCount; row++) {
-            expect(view[row], '($row, $col)');
+            .generate(5, 4, (r, c) => '($r, $c)');
+        for (var c = 0; c < matrix.colCount; c++) {
+          final column = matrix.column(c);
+          expect(column.dataType, matrix.dataType);
+          for (var r = 0; r < matrix.rowCount; r++) {
+            expect(column[r], '($r, $c)');
           }
-          expect(() => view[-1], throwsRangeError);
-          expect(() => view[matrix.rowCount], throwsRangeError);
+          expect(() => column[-1], throwsRangeError);
+          expect(() => column[matrix.rowCount], throwsRangeError);
         }
+        expect(() => matrix.column(-1), throwsRangeError);
+        expect(() => matrix.column(4), throwsRangeError);
+      });
+      group('diagonal', () {
+        test('vertical', () {
+          final matrix = builder
+              .withType(DataType.string)
+              .generate(2, 3, (row, col) => '($row, $col)');
+          final diagonals = [1, 0, -1, -2].map(matrix.diagonal).toList();
+          for (var diagonal in diagonals) {
+            expect(diagonal.dataType, matrix.dataType);
+          }
+          expect(diagonals.map((diagonal) => diagonal.count), [1, 2, 2, 1]);
+          // test values
+          expect(() => matrix.diagonal(2), throwsRangeError);
+          expect(() => matrix.diagonal(-3), throwsRangeError);
+        });
+        test('horizontal', () {
+          final matrix = builder
+              .withType(DataType.string)
+              .generate(3, 2, (row, col) => '($row, $col)');
+          final diagonals = [2, 1, 0, -1].map(matrix.diagonal).toList();
+          for (var diagonal in diagonals) {
+            expect(diagonal.dataType, matrix.dataType);
+          }
+          expect(diagonals.map((diagonal) => diagonal.count), [1, 2, 2, 1]);
+          // test values
+          expect(() => matrix.diagonal(3), throwsRangeError);
+          expect(() => matrix.diagonal(-2), throwsRangeError);
+        });
       });
       test('transpose', () {
         final matrix = builder
@@ -302,13 +426,6 @@ void matrixTest(String name, Builder builder) {
           }
         }
       });
-    });
-    test('get - bounds', () {
-      final matrix = builder.withType(DataType.boolean)(2, 3);
-      expect(() => matrix.get(-1, 0), throwsRangeError);
-      expect(() => matrix.get(0, -1), throwsRangeError);
-      expect(() => matrix.get(matrix.rowCount, 0), throwsRangeError);
-      expect(() => matrix.get(0, matrix.colCount), throwsRangeError);
     });
   });
 }

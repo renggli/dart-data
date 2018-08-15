@@ -34,10 +34,22 @@ void vectorTest(String name, Builder builder) {
           expect(vector[i], '$i');
         }
       });
-      test('from', () {
+      test('transform', () {
+        final source =
+            builder.withType(DataType.int8).generate(9, (i) => 2 * i);
+        final vector = builder
+            .withType(DataType.string)
+            .transform(source, (index, value) => '$index: $value');
+        expect(vector.dataType, DataType.string);
+        expect(vector.count, 9);
+        for (var i = 0; i < vector.count; i++) {
+          expect(vector[i], '$i: ${2 * i}');
+        }
+      });
+      test('fromVector', () {
         final source =
             builder.withType(DataType.string).generate(6, (i) => '$i');
-        final vector = builder.withType(DataType.string).from(source);
+        final vector = builder.withType(DataType.string).fromVector(source);
         expect(vector.dataType, DataType.string);
         expect(vector.count, 6);
         for (var i = 0; i < vector.count; i++) {
@@ -77,7 +89,9 @@ void vectorTest(String name, Builder builder) {
       test('fromList (empty)', () {
         expect(() => builder.fromList([]), throwsArgumentError);
       });
-      // custom initialization
+    });
+    group('accesssing', () {
+      final vector = builder.withType(DataType.int8).fromList([1, 2, 3, 5]);
       test('random order', () {
         final vector = builder(100);
         final values = <int>[];
@@ -109,9 +123,6 @@ void vectorTest(String name, Builder builder) {
           expect(vector[i], vector.dataType.nullValue);
         }
       });
-    });
-    group('accesssing', () {
-      final vector = builder.withType(DataType.int8).fromList([1, 2, 3, 5]);
       test('read (out of bounds)', () {
         expect(() => vector[-1], throwsRangeError);
         expect(() => vector[4], throwsRangeError);
