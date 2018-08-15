@@ -96,10 +96,10 @@ class Builder<T> {
     return result;
   }
 
-  /// Builds a matrix from a nested list of rows.
+  /// Builds a vector from a list of values.
   Vector<T> fromList(List<T> source) {
     if (source.isEmpty) {
-      ArgumentError.value(source, 'source', 'Must be not empty');
+      throw ArgumentError.value(source, 'source', 'Must be not empty');
     }
     final result = this(source.length);
     for (var i = 0; i < source.length; i++) {
