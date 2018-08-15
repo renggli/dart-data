@@ -447,10 +447,10 @@ class SingularValueDecomposition {
   }
 
   /// Return the left singular vectors.
-  Matrix<double> get U => Matrix.builder.withType(valueDataType).from(_u);
+  Matrix<double> get U => Matrix.builder.withType(valueDataType).fromMatrix(_u);
 
   /// Return the right singular vectors.
-  Matrix<double> get V => Matrix.builder.withType(valueDataType).from(_v);
+  Matrix<double> get V => Matrix.builder.withType(valueDataType).fromMatrix(_v);
 
   /// Return the one-dimensional array of singular values.
   List<double> get s => valueDataType.copyList(_s);

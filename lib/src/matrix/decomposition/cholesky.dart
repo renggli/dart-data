@@ -74,7 +74,7 @@ class CholeskyDecomposition {
 
     // Copy right hand side.
     final nx = B.colCount;
-    final result = Matrix.builder.withType(valueDataType).from(B);
+    final result = Matrix.builder.withType(valueDataType).fromMatrix(B);
 
     // Solve L*Y = B;
     for (var k = 0; k < _n; k++) {

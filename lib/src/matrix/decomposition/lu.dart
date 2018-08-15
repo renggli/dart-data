@@ -30,7 +30,7 @@ class LUDecomposition {
   final List<int> _piv;
 
   LUDecomposition(Matrix<num> A)
-      : _lu = Matrix.builder.rowMajor.withType(valueDataType).from(A),
+      : _lu = Matrix.builder.rowMajor.withType(valueDataType).fromMatrix(A),
         _m = A.rowCount,
         _n = A.colCount,
         _piv = indexDataType.newList(A.rowCount) {

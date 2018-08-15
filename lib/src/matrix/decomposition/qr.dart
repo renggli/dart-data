@@ -26,7 +26,7 @@ class QRDecomposition {
   final List<double> _rdiag;
 
   QRDecomposition(Matrix<num> A)
-      : _qr = Matrix.builder.rowMajor.withType(valueDataType).from(A),
+      : _qr = Matrix.builder.rowMajor.withType(valueDataType).fromMatrix(A),
         _m = A.rowCount,
         _n = A.colCount,
         _rdiag = valueDataType.newList(A.colCount) {
@@ -143,7 +143,7 @@ class QRDecomposition {
 
     // Copy right hand side
     final nx = B.colCount;
-    final X = Matrix.builder.withType(valueDataType).from(B);
+    final X = Matrix.builder.withType(valueDataType).fromMatrix(B);
 
     // Compute Y = transpose(Q)*B
     for (var k = 0; k < _n; k++) {
