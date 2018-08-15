@@ -1,6 +1,7 @@
 library data.matrix.builder;
 
 import 'package:data/type.dart';
+import 'package:data/vector.dart' show Vector;
 
 import 'impl/column_major_matrix.dart';
 import 'impl/compressed_column_matrix.dart';
@@ -105,13 +106,53 @@ class Builder<T> {
     return result;
   }
 
+  /// Builds a matrix by transforming another matrix with [callback].
+  Matrix<T> transform<S>(
+      Matrix<S> source, T callback(int row, int col, S value)) {
+    final result = this(source.rowCount, source.colCount);
+    for (var row = 0; row < result.rowCount; row++) {
+      for (var col = 0; col < result.colCount; col++) {
+        result.setUnchecked(
+            row, col, callback(row, col, source.getUnchecked(row, col)));
+      }
+    }
+    return result;
+  }
+
   /// Builds a matrix from another matrix.
-  Matrix<T> from(Matrix<T> source) {
+  Matrix<T> fromMatrix(Matrix<T> source) {
     final result = this(source.rowCount, source.colCount);
     for (var row = 0; row < result.rowCount; row++) {
       for (var col = 0; col < result.colCount; col++) {
         result.setUnchecked(row, col, source.getUnchecked(row, col));
       }
+    }
+    return result;
+  }
+
+  /// Builds a matrix from a row vector.
+  Matrix<T> fromVectorRow(Vector<T> source) {
+    final result = this(1, source.count);
+    for (var index = 0; index < source.count; index++) {
+      result.setUnchecked(0, index, source.getUnchecked(index));
+    }
+    return result;
+  }
+
+  /// Builds a matrix from a column vector.
+  Matrix<T> fromVectorColumn(Vector<T> source) {
+    final result = this(source.count, 1);
+    for (var index = 0; index < source.count; index++) {
+      result.setUnchecked(index, 0, source.getUnchecked(index));
+    }
+    return result;
+  }
+
+  /// Builds a matrix from a diagonal vector.
+  Matrix<T> fromVectorDiagonal(Vector<T> source) {
+    final result = this(source.count, source.count);
+    for (var index = 0; index < source.count; index++) {
+      result.setUnchecked(index, index, source.getUnchecked(index));
     }
     return result;
   }
@@ -125,10 +166,10 @@ class Builder<T> {
     RangeError.checkValidRange(
         colStart, colEnd, source.colCount, 'colStart', 'colEnd');
     final result = this(rowEnd - rowStart, colEnd - colStart);
-    for (var r = rowStart; r < rowEnd; r++) {
-      for (var c = colStart; c < colEnd; c++) {
+    for (var row = rowStart; row < rowEnd; row++) {
+      for (var col = colStart; col < colEnd; col++) {
         result.setUnchecked(
-            r - rowStart, c - colStart, source.getUnchecked(r, c));
+            row - rowStart, col - colStart, source.getUnchecked(row, col));
       }
     }
     return result;
@@ -141,11 +182,11 @@ class Builder<T> {
     RangeError.checkValidRange(
         rowStart, rowEnd, source.rowCount, 'rowStart', 'rowEnd');
     final result = this(rowEnd - rowStart, colIndices.length);
-    for (var c = 0; c < colIndices.length; c++) {
-      RangeError.checkValueInInterval(c, 0, source.colCount, 'colIndices');
-      for (var r = rowStart; r < rowEnd; r++) {
+    for (var col = 0; col < colIndices.length; col++) {
+      RangeError.checkValueInInterval(col, 0, source.colCount, 'colIndices');
+      for (var row = rowStart; row < rowEnd; row++) {
         result.setUnchecked(
-            r - rowStart, c, source.getUnchecked(r, colIndices[c]));
+            row - rowStart, col, source.getUnchecked(row, colIndices[col]));
       }
     }
     return result;
@@ -158,11 +199,11 @@ class Builder<T> {
     RangeError.checkValidRange(
         colStart, colEnd, source.colCount, 'colStart', 'colEnd');
     final result = this(rowIndices.length, colEnd - colStart);
-    for (var r = 0; r < rowIndices.length; r++) {
-      RangeError.checkValueInInterval(r, 0, source.rowCount, 'rowIndices');
-      for (var c = colStart; c < colEnd; c++) {
+    for (var row = 0; row < rowIndices.length; row++) {
+      RangeError.checkValueInInterval(row, 0, source.rowCount, 'rowIndices');
+      for (var col = colStart; col < colEnd; col++) {
         result.setUnchecked(
-            r, c - colStart, source.getUnchecked(rowIndices[r], c));
+            row, col - colStart, source.getUnchecked(rowIndices[row], col));
       }
     }
     return result;
@@ -173,12 +214,12 @@ class Builder<T> {
   Matrix<T> fromIndices(
       Matrix<T> source, List<int> rowIndices, List<int> colIndices) {
     final result = this(rowIndices.length, colIndices.length);
-    for (var r = 0; r < rowIndices.length; r++) {
-      RangeError.checkValueInInterval(r, 0, source.rowCount, 'rowIndices');
-      for (var c = 0; c < colIndices.length; c++) {
-        RangeError.checkValueInInterval(c, 0, source.colCount, 'colIndices');
+    for (var row = 0; row < rowIndices.length; row++) {
+      RangeError.checkValueInInterval(row, 0, source.rowCount, 'rowIndices');
+      for (var col = 0; col < colIndices.length; col++) {
+        RangeError.checkValueInInterval(col, 0, source.colCount, 'colIndices');
         result.setUnchecked(
-            r, c, source.getUnchecked(rowIndices[r], colIndices[c]));
+            row, col, source.getUnchecked(rowIndices[row], colIndices[col]));
       }
     }
     return result;
