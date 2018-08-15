@@ -140,7 +140,7 @@ void vectorTest(String name, Builder builder) {
             .generate(100, (i) => random.nextInt(DataType.uint8.max));
         var expected = 0;
         for (var i = 0; i < sourceA.count; i++) {
-          expected += sourceA[i] *sourceB[i];
+          expected += sourceA[i] * sourceB[i];
         }
         expect(dot(sourceA, sourceB), expected);
       });

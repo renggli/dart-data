@@ -10,8 +10,7 @@ class StandardVector<T> extends Vector<T> {
 
   final List<T> _values;
 
-  StandardVector(this.dataType, int count)
-      : _values = dataType.newList(count);
+  StandardVector(this.dataType, int count) : _values = dataType.newList(count);
 
   @override
   int get count => _values.length;
