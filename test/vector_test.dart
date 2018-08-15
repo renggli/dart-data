@@ -74,6 +74,9 @@ void vectorTest(String name, Builder builder) {
         expect(vector[1], 1);
         expect(vector[2], 3);
       });
+      test('fromList (empty)', () {
+        expect(() => builder.fromList([]), throwsArgumentError);
+      });
       // custom initialization
       test('random order', () {
         final vector = builder(100);
@@ -81,7 +84,7 @@ void vectorTest(String name, Builder builder) {
         for (var i = 0; i < vector.count; i++) {
           values.add(i);
         }
-        // add values in random order
+        // add values
         values.shuffle();
         for (var value in values) {
           vector[value] = value;
@@ -89,7 +92,15 @@ void vectorTest(String name, Builder builder) {
         for (var i = 0; i < vector.count; i++) {
           expect(vector[i], i);
         }
-        // remove values in random order
+        // update values
+        values.shuffle();
+        for (var value in values) {
+          vector[value] = value + 1;
+        }
+        for (var i = 0; i < vector.count; i++) {
+          expect(vector[i], i + 1);
+        }
+        // remove values
         values.shuffle();
         for (var value in values) {
           vector[value] = vector.dataType.nullValue;
@@ -99,37 +110,111 @@ void vectorTest(String name, Builder builder) {
         }
       });
     });
+    group('accesssing', () {
+      final vector = builder.withType(DataType.int8).fromList([1, 2, 3, 5]);
+      test('read (out of bounds)', () {
+        expect(() => vector[-1], throwsRangeError);
+        expect(() => vector[4], throwsRangeError);
+      });
+      test('write (out of bounds)', () {
+        expect(() => vector[-1] = 1, throwsRangeError);
+        expect(() => vector[4] = 1, throwsRangeError);
+      });
+      test('toString', () {
+        expect(vector.toString(), '${vector.runtimeType}[4]: 1, 2, 3, 5');
+      });
+    });
     group('operators', () {
       final random = Random();
       test('add', () {
         final sourceA = builder
             .withType(DataType.uint8)
-            .generate(100, (i) => random.nextInt(DataType.uint8.max));
+            .generate(100, (i) => random.nextInt(100));
         final sourceB = builder
             .withType(DataType.uint8)
-            .generate(100, (i) => random.nextInt(DataType.uint8.max));
-        final target =
-            add(sourceA, sourceB, builder: builder.withType(DataType.int16));
-        expect(target.dataType, DataType.int16);
+            .generate(100, (i) => random.nextInt(100));
+        final target = add(sourceA, sourceB);
+        expect(target.dataType, DataType.uint8);
         expect(target.count, 100);
         for (var i = 0; i < target.count; i++) {
           expect(target[i], sourceA[i] + sourceB[i]);
         }
       });
+      test('add (dimension missmatch)', () {
+        final sourceA = builder.withType(DataType.uint8).fromList([1, 2]);
+        final sourceB = builder.withType(DataType.uint8).fromList([1, 2, 3]);
+        expect(() => add(sourceA, sourceB), throwsArgumentError);
+      });
       test('sub', () {
         final sourceA = builder
-            .withType(DataType.uint8)
-            .generate(100, (i) => random.nextInt(DataType.uint8.max));
+            .withType(DataType.int16)
+            .generate(100, (i) => random.nextInt(100) - 50);
         final sourceB = builder
-            .withType(DataType.uint8)
-            .generate(100, (i) => random.nextInt(DataType.uint8.max));
-        final target =
-            sub(sourceA, sourceB, builder: builder.withType(DataType.int16));
+            .withType(DataType.int16)
+            .generate(100, (i) => random.nextInt(100) - 50);
+        final target = sub(sourceA, sourceB);
         expect(target.dataType, DataType.int16);
         expect(target.count, 100);
         for (var i = 0; i < target.count; i++) {
           expect(target[i], sourceA[i] - sourceB[i]);
         }
+      });
+      test('sub (dimension missmatch)', () {
+        final sourceA = builder.withType(DataType.uint8).fromList([1, 2]);
+        final sourceB = builder.withType(DataType.uint8).fromList([1, 2, 3]);
+        expect(() => sub(sourceA, sourceB), throwsArgumentError);
+      });
+      test('mul', () {
+        final source = builder
+            .withType(DataType.uint32)
+            .generate(100, (i) => random.nextInt(1000));
+        final target = mul(2, source);
+        expect(target.dataType, DataType.uint32);
+        expect(target.count, 100);
+        for (var i = 0; i < target.count; i++) {
+          expect(target[i], 2 * source[i]);
+        }
+      });
+      group('lerp', () {
+        final v0 = builder.withType(DataType.int8).fromList([1, 6, 9]);
+        final v1 = builder.withType(DataType.int8).fromList([9, -2, 9]);
+        test('at start', () {
+          final v = lerp(v0, v1, 0.0);
+          expect(v.dataType, DataType.float64);
+          expect(v.count, 3);
+          expect(v[0], 1.0);
+          expect(v[1], 6.0);
+          expect(v[2], 9.0);
+        });
+        test('at middle', () {
+          final v = lerp(v0, v1, 0.5);
+          expect(v.dataType, DataType.float64);
+          expect(v.count, 3);
+          expect(v[0], 5.0);
+          expect(v[1], 2.0);
+          expect(v[2], 9.0);
+        });
+        test('at end', () {
+          final v = lerp(v0, v1, 1.0);
+          expect(v.dataType, DataType.float64);
+          expect(v.count, 3);
+          expect(v[0], 9.0);
+          expect(v[1], -2.0);
+          expect(v[2], 9.0);
+        });
+        test('at outside', () {
+          final v = lerp(v0, v1, 2.0);
+          expect(v.dataType, DataType.float64);
+          expect(v.count, 3);
+          expect(v[0], 17.0);
+          expect(v[1], -10.0);
+          expect(v[2], 9.0);
+        });
+      });
+      test('lerp (dimension missmatch)', () {
+        final v0 = builder.withType(DataType.int8).fromList([1, 6]);
+        final v1 = builder.withType(DataType.int8).fromList([9, -2, 9]);
+        expect(() => lerp(v0, v1, -1.0), throwsArgumentError);
       });
       test('dot', () {
         final sourceA = builder
@@ -143,6 +228,19 @@ void vectorTest(String name, Builder builder) {
           expected += sourceA[i] * sourceB[i];
         }
         expect(dot(sourceA, sourceB), expected);
+      });
+      test('dot (dimension missmatch)', () {
+        final sourceA = builder.withType(DataType.uint8).fromList([1, 2]);
+        final sourceB = builder.withType(DataType.uint8).fromList([1, 2, 3]);
+        expect(() => dot(sourceA, sourceB), throwsArgumentError);
+      });
+      test('length', () {
+        final source = builder.withType(DataType.uint8).fromList([3, 4]);
+        expect(length(source), 5.0);
+      });
+      test('length2', () {
+        final source = builder.withType(DataType.uint8).fromList([4, 3]);
+        expect(length2(source), 25);
       });
     });
   });
