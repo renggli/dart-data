@@ -67,10 +67,19 @@ class Builder<T> {
     return result;
   }
 
-  /// Builds a vector from another vector.
-  Vector<T> from(Vector<T> source) {
+  /// Builds a vector by transforming another one with a [callback].
+  Vector<T> transform<S>(Vector<S> source, T callback(int index, S value)) {
     final result = this(source.count);
-    for (var i = 0; i < source.count; i++) {
+    for (var i = 0; i < result.count; i++) {
+      result.setUnchecked(i, callback(i, source.getUnchecked(i)));
+    }
+    return result;
+  }
+
+  /// Builds a vector from another vector.
+  Vector<T> fromVector(Vector<T> source) {
+    final result = this(source.count);
+    for (var i = 0; i < result.count; i++) {
       result.setUnchecked(i, source.getUnchecked(i));
     }
     return result;
