@@ -5,14 +5,16 @@ import 'matrix.dart';
 
 Matrix<T> _targetOrBuilder<T>(
     int rowCount, int colCount, Matrix<T> target, Builder<T> builder) {
-  if (target == null) {
-    return builder(rowCount, colCount);
-  } else {
+  if (target != null) {
     if (target.rowCount != rowCount || target.colCount != colCount) {
       throw ArgumentError('Expected a matrix with $rowCount * $colCount, '
           'but got ${target.rowCount} * ${target.colCount}.');
     }
     return target;
+  } else if (builder != null) {
+    return builder(rowCount, colCount);
+  } else {
+    throw ArgumentError('Expected either a "target" or a "builder".');
   }
 }
 

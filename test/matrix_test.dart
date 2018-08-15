@@ -303,7 +303,6 @@ void matrixTest(String name, Builder builder) {
         }
       });
     });
-
     test('get - bounds', () {
       final matrix = builder.withType(DataType.boolean)(2, 3);
       expect(() => matrix.get(-1, 0), throwsRangeError);

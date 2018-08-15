@@ -1,5 +1,7 @@
 library data.test.vector;
 
+import 'dart:math';
+
 import 'package:data/type.dart';
 import 'package:data/vector.dart';
 import 'package:test/test.dart';
@@ -25,7 +27,7 @@ void vectorTest(String name, Builder builder) {
       });
       test('generate', () {
         final vector =
-            builder.withType(DataType.string).generate(7, (index) => '$index');
+            builder.withType(DataType.string).generate(7, (i) => '$i');
         expect(vector.dataType, DataType.string);
         expect(vector.count, 7);
         for (var i = 0; i < vector.count; i++) {
@@ -34,7 +36,7 @@ void vectorTest(String name, Builder builder) {
       });
       test('from', () {
         final source =
-            builder.withType(DataType.string).generate(6, (index) => '$index');
+            builder.withType(DataType.string).generate(6, (i) => '$i');
         final vector = builder.withType(DataType.string).from(source);
         expect(vector.dataType, DataType.string);
         expect(vector.count, 6);
@@ -44,7 +46,7 @@ void vectorTest(String name, Builder builder) {
       });
       test('fromRange', () {
         final source =
-            builder.withType(DataType.string).generate(6, (index) => '$index');
+            builder.withType(DataType.string).generate(6, (i) => '$i');
         final vector =
             builder.withType(DataType.string).fromRange(source, 1, 4);
         expect(vector.dataType, DataType.string);
@@ -55,7 +57,7 @@ void vectorTest(String name, Builder builder) {
       });
       test('fromIndices', () {
         final source =
-            builder.withType(DataType.string).generate(6, (index) => '$index');
+            builder.withType(DataType.string).generate(6, (i) => '$i');
         final vector =
             builder.withType(DataType.string).fromIndices(source, [5, 0, 0]);
         expect(vector.dataType, DataType.string);
@@ -95,6 +97,52 @@ void vectorTest(String name, Builder builder) {
         for (var i = 0; i < vector.count; i++) {
           expect(vector[i], vector.dataType.nullValue);
         }
+      });
+    });
+    group('operators', () {
+      final random = Random();
+      test('add', () {
+        final sourceA = builder
+            .withType(DataType.uint8)
+            .generate(100, (i) => random.nextInt(DataType.uint8.max));
+        final sourceB = builder
+            .withType(DataType.uint8)
+            .generate(100, (i) => random.nextInt(DataType.uint8.max));
+        final target =
+            add(sourceA, sourceB, builder: builder.withType(DataType.int16));
+        expect(target.dataType, DataType.int16);
+        expect(target.count, 100);
+        for (var i = 0; i < target.count; i++) {
+          expect(target[i], sourceA[i] + sourceB[i]);
+        }
+      });
+      test('sub', () {
+        final sourceA = builder
+            .withType(DataType.uint8)
+            .generate(100, (i) => random.nextInt(DataType.uint8.max));
+        final sourceB = builder
+            .withType(DataType.uint8)
+            .generate(100, (i) => random.nextInt(DataType.uint8.max));
+        final target =
+            sub(sourceA, sourceB, builder: builder.withType(DataType.int16));
+        expect(target.dataType, DataType.int16);
+        expect(target.count, 100);
+        for (var i = 0; i < target.count; i++) {
+          expect(target[i], sourceA[i] - sourceB[i]);
+        }
+      });
+      test('dot', () {
+        final sourceA = builder
+            .withType(DataType.uint8)
+            .generate(100, (i) => random.nextInt(DataType.uint8.max));
+        final sourceB = builder
+            .withType(DataType.uint8)
+            .generate(100, (i) => random.nextInt(DataType.uint8.max));
+        var expected = 0;
+        for (var i = 0; i < sourceA.count; i++) {
+          expected += sourceA[i] *sourceB[i];
+        }
+        expect(dot(sourceA, sourceB), expected);
       });
     });
   });

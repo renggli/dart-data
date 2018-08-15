@@ -17,7 +17,7 @@ abstract class Vector<T> {
   /// The data type of this vector.
   DataType<T> get dataType;
 
-  /// The number of elements in this vector.
+  /// The dimensionality of this vector.
   int get count;
 
   /// Returns a builder that is pre-configured to create matrices of the same
