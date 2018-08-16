@@ -58,6 +58,19 @@ Matrix<T> sub<T extends num>(Matrix<T> sourceA, Matrix<T> sourceB,
   return result;
 }
 
+/// Helper to scale a matrix [source] with a [factor].
+Matrix<T> scale<T extends num>(T factor, Matrix<T> source,
+    {Matrix<T> target, Builder<T> builder}) {
+  final result = _targetOrBuilder(
+      source.rowCount, source.colCount, target, builder, source.dataType);
+  for (var r = 0; r < result.rowCount; r++) {
+    for (var c = 0; c < result.colCount; c++) {
+      result.setUnchecked(r, c, factor * source.getUnchecked(r, c));
+    }
+  }
+  return result;
+}
+
 /// Helper to multiply two numeric matrices [sourceA] and [sourceB].
 Matrix<T> mul<T extends num>(Matrix<T> sourceA, Matrix<T> sourceB,
     {Matrix<T> target, Builder<T> builder}) {
