@@ -131,7 +131,7 @@ class Builder<T> {
   }
 
   /// Builds a matrix from a row vector.
-  Matrix<T> fromVectorRow(Vector<T> source) {
+  Matrix<T> fromRow(Vector<T> source) {
     final result = this(1, source.count);
     for (var index = 0; index < source.count; index++) {
       result.setUnchecked(0, index, source.getUnchecked(index));
@@ -140,7 +140,7 @@ class Builder<T> {
   }
 
   /// Builds a matrix from a column vector.
-  Matrix<T> fromVectorColumn(Vector<T> source) {
+  Matrix<T> fromColumn(Vector<T> source) {
     final result = this(source.count, 1);
     for (var index = 0; index < source.count; index++) {
       result.setUnchecked(index, 0, source.getUnchecked(index));
@@ -149,7 +149,7 @@ class Builder<T> {
   }
 
   /// Builds a matrix from a diagonal vector.
-  Matrix<T> fromVectorDiagonal(Vector<T> source) {
+  Matrix<T> fromDiagonal(Vector<T> source) {
     final result = this(source.count, source.count);
     for (var index = 0; index < source.count; index++) {
       result.setUnchecked(index, index, source.getUnchecked(index));
@@ -226,15 +226,15 @@ class Builder<T> {
   }
 
   /// Builds a matrix from a nested list of rows.
-  Matrix<T> fromRows(List<List<T>> source) {
-    if (source.isEmpty) {
-      throw ArgumentError.value(source, 'source', 'Must be not empty');
+  Matrix<T> fromListOfRows(List<List<T>> source) {
+    if (source.isEmpty || source[0].isEmpty) {
+      throw ArgumentError.value(source, 'source', 'Rows must not be empty.');
     }
     final result = this(source.length, source[0].length);
     for (var row = 0; row < result.rowCount; row++) {
       final sourceRow = source[row];
       if (sourceRow.length != result.colCount) {
-        throw ArgumentError.value(source, 'source', 'Must be equally sized');
+        throw ArgumentError.value(source, 'source', 'All rows must be equally sized.');
       }
       for (var col = 0; col < result.colCount; col++) {
         result.setUnchecked(row, col, sourceRow[col]);
@@ -244,15 +244,15 @@ class Builder<T> {
   }
 
   /// Builds a matrix from a nested list of columns.
-  Matrix<T> fromCols(List<List<T>> source) {
-    if (source.isEmpty) {
-      throw ArgumentError.value(source, 'source', 'Must be not empty');
+  Matrix<T> fromListOfColumns(List<List<T>> source) {
+    if (source.isEmpty || source[0].isEmpty) {
+      throw ArgumentError.value(source, 'source', 'Columns must not be empty.');
     }
     final result = this(source[0].length, source.length);
     for (var col = 0; col < result.colCount; col++) {
       final sourceCol = source[col];
       if (sourceCol.length != result.rowCount) {
-        throw ArgumentError.value(source, 'source', 'Must be equally sized');
+        throw ArgumentError.value(source, 'source', 'All columns must be equally sized.');
       }
       for (var row = 0; row < result.rowCount; row++) {
         result.setUnchecked(row, col, sourceCol[row]);
