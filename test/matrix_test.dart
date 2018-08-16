@@ -398,6 +398,61 @@ void matrixTest(String name, Builder builder) {
           }
         });
       });
+      group('submatrix', () {
+        final matrix = builder
+            .withType(DataType.string)
+            .generate(10, 10, (row, col) => '($row, $col)');
+        final view = matrix.subMatrix(2, 5, 4, 9);
+        test('accessing', () {
+          expect(view.dataType, matrix.dataType);
+          expect(view.rowCount, 3);
+          expect(view.colCount, 5);
+          for (var row = 0; row < view.rowCount; row++) {
+            for (var col = 0; col < view.colCount; col++) {
+              expect(view.get(row, col), '(${row + 2}, ${col + 4})');
+              view.set(row, col, '${view.get(row, col)}*');
+            }
+          }
+          for (var row = 0; row < matrix.rowCount; row++) {
+            for (var col = 0; col < matrix.colCount; col++) {
+              if (2 <= row && row < 5 && 4 <= col && col < 9) {
+                expect(matrix.get(row, col), '($row, $col)*');
+              } else {
+                expect(matrix.get(row, col), '($row, $col)');
+              }
+            }
+          }
+        });
+        test('out of bounds', () {
+          expect(
+              matrix.subMatrix(0, matrix.rowCount, 0, matrix.colCount), matrix);
+          expect(
+              () => matrix.subMatrix(-1, matrix.rowCount, 0, matrix.colCount),
+              throwsRangeError);
+          expect(
+              () =>
+                  matrix.subMatrix(0, matrix.rowCount + 1, 0, matrix.colCount),
+              throwsRangeError);
+          expect(
+              () => matrix.subMatrix(0, matrix.rowCount, -1, matrix.colCount),
+              throwsRangeError);
+          expect(
+              () =>
+                  matrix.subMatrix(0, matrix.rowCount, 0, matrix.colCount + 1),
+              throwsRangeError);
+        });
+        test('out of bounds on sub-view', () {
+          expect(view.subMatrix(0, view.rowCount, 0, view.colCount), view);
+          expect(() => view.subMatrix(-1, view.rowCount, 0, view.colCount),
+              throwsRangeError);
+          expect(() => view.subMatrix(0, view.rowCount + 1, 0, view.colCount),
+              throwsRangeError);
+          expect(() => view.subMatrix(0, view.rowCount, -1, view.colCount),
+              throwsRangeError);
+          expect(() => view.subMatrix(0, view.rowCount, 0, view.colCount + 1),
+              throwsRangeError);
+        });
+      });
       test('transpose', () {
         final matrix = builder
             .withType(DataType.string)
@@ -418,6 +473,33 @@ void matrixTest(String name, Builder builder) {
           }
         }
         expect(view.transpose, matrix);
+      });
+      test('unmodifiable', () {
+        final matrix = builder
+            .withType(DataType.string)
+            .generate(2, 3, (row, col) => '($row, $col)');
+        final view = matrix.unmodifiable;
+        expect(view.dataType, matrix.dataType);
+        expect(view.rowCount, 2);
+        expect(view.colCount, 3);
+        for (var row = 0; row < view.rowCount; row++) {
+          for (var col = 0; col < view.colCount; col++) {
+            expect(view.get(row, col), '($row, $col)');
+            expect(() => view.set(row, col, '${view.get(row, col)}*'),
+                throwsUnsupportedError);
+          }
+        }
+        for (var row = 0; row < matrix.rowCount; row++) {
+          for (var col = 0; col < matrix.colCount; col++) {
+            matrix.set(row, col, matrix.get(row, col) + '!');
+          }
+        }
+        for (var row = 0; row < view.rowCount; row++) {
+          for (var col = 0; col < view.colCount; col++) {
+            expect(view.get(row, col), '($row, $col)!');
+          }
+        }
+        expect(view.unmodifiable, view);
       });
     });
     group('operators', () {
@@ -485,11 +567,11 @@ void matrixTest(String name, Builder builder) {
 }
 
 void main() {
-  matrixTest('row major', Matrix.builder.rowMajor);
-  matrixTest('col major', Matrix.builder.columnMajor);
-  matrixTest('sparse-coo', Matrix.builder.coordinateList);
-  matrixTest('sparse-csr', Matrix.builder.compressedRow);
-  matrixTest('sparse-csc', Matrix.builder.compressedColumn);
-  matrixTest('sparse-dia', Matrix.builder.diagonal);
-  matrixTest('sparse-dok', Matrix.builder.keyed);
+  matrixTest('rowMajor', Matrix.builder.rowMajor);
+  matrixTest('columnMajor', Matrix.builder.columnMajor);
+  matrixTest('coordinateList', Matrix.builder.coordinateList);
+  matrixTest('compressedRow', Matrix.builder.compressedRow);
+  matrixTest('compressedColumn', Matrix.builder.compressedColumn);
+  matrixTest('diagonal', Matrix.builder.diagonal);
+  matrixTest('keyed', Matrix.builder.keyed);
 }

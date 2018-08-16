@@ -10,6 +10,7 @@ import 'view/diagonal_vector.dart';
 import 'view/row_vector.dart';
 import 'view/sub_matrix.dart';
 import 'view/transposed_matrix.dart';
+import 'view/unmodifiable_matrix.dart';
 
 /// Abstract matrix type.
 abstract class Matrix<T> {
@@ -62,16 +63,37 @@ abstract class Matrix<T> {
   Vector<T> column(int col) => ColumnVector<T>(this, col);
 
   /// Returns a mutable diagonal vector of the matrix. Throws a [RangeError], if
-  //  [offset] is out of bounds.
+  /// [offset] is out of bounds.
   Vector<T> diagonal([int offset = 0]) => DiagonalVector<T>(this, offset);
 
-  /// Returns a mutable view onto a sub-matrix.
-  Matrix<T> subMatrix(
-          int rowOffset, int rowCount, int colOffset, int colCount) =>
-      SubMatrix<T>(this, rowOffset, rowCount, colOffset, colCount);
+  /// Returns a mutable view onto a sub-matrix. Throws a [RangeError], if
+  /// any of the indexes are out of bounds.
+  Matrix<T> subMatrix(int rowStart, int rowEnd, int colStart, int colEnd) {
+    RangeError.checkValidRange(
+        rowStart, rowEnd, rowCount, 'rowStart', 'rowEnd');
+    RangeError.checkValidRange(
+        colStart, colEnd, colCount, 'colStart', 'colEnd');
+    if (rowStart == 0 &&
+        rowEnd == rowCount &&
+        colStart == 0 &&
+        colEnd == colCount) {
+      return this; // optimize the full sub-view
+    } else {
+      return subMatrixUnchecked(rowStart, rowEnd, colStart, colEnd);
+    }
+  }
+
+  /// Returns a mutable view onto a sub-matrix. The behavior is undefined if
+  /// any of the ranges are out of bounds.
+  Matrix<T> subMatrixUnchecked(
+          int rowStart, int rowEnd, int colStart, int colEnd) =>
+      SubMatrix<T>(this, rowStart, rowEnd, colStart, colEnd);
 
   /// Returns a mutable view onto the transposed matrix.
   Matrix<T> get transpose => TransposedMatrix<T>(this);
+
+  /// Returns a unmodifiable view of the matrix.
+  Matrix<T> get unmodifiable => UnmodifiableMatrix<T>(this);
 
   /// Pretty prints the matrix.
   @override
