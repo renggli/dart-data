@@ -1,10 +1,12 @@
 library data.matrix.operators;
 
+import 'package:data/type.dart';
+
 import 'builder.dart';
 import 'matrix.dart';
 
-Matrix<T> _targetOrBuilder<T>(
-    int rowCount, int colCount, Matrix<T> target, Builder<T> builder) {
+Matrix<T> _targetOrBuilder<T>(int rowCount, int colCount, Matrix<T> target,
+    Builder<T> builder, DataType<T> dataType) {
   if (target != null) {
     if (target.rowCount != rowCount || target.colCount != colCount) {
       throw ArgumentError('Expected a matrix with $rowCount * $colCount, '
@@ -13,6 +15,8 @@ Matrix<T> _targetOrBuilder<T>(
     return target;
   } else if (builder != null) {
     return builder(rowCount, colCount);
+  } else if (dataType != null) {
+    return Matrix.builder.withType(dataType)(rowCount, colCount);
   } else {
     throw ArgumentError('Expected either a "target" or a "builder".');
   }
@@ -25,8 +29,8 @@ Matrix<T> add<T extends num>(Matrix<T> sourceA, Matrix<T> sourceB,
       sourceA.colCount != sourceB.colCount) {
     throw ArgumentError('Source matrices do not match in size.');
   }
-  final result =
-      _targetOrBuilder(sourceA.rowCount, sourceA.colCount, target, builder);
+  final result = _targetOrBuilder(
+      sourceA.rowCount, sourceA.colCount, target, builder, sourceA.dataType);
   for (var r = 0; r < result.rowCount; r++) {
     for (var c = 0; c < result.colCount; c++) {
       result.setUnchecked(
@@ -43,8 +47,8 @@ Matrix<T> sub<T extends num>(Matrix<T> sourceA, Matrix<T> sourceB,
       sourceA.colCount != sourceB.colCount) {
     throw ArgumentError('Source matrices do not match in size.');
   }
-  final result =
-      _targetOrBuilder(sourceA.rowCount, sourceA.colCount, target, builder);
+  final result = _targetOrBuilder(
+      sourceA.rowCount, sourceA.colCount, target, builder, sourceA.dataType);
   for (var r = 0; r < result.rowCount; r++) {
     for (var c = 0; c < result.colCount; c++) {
       result.setUnchecked(
@@ -60,8 +64,8 @@ Matrix<T> mul<T extends num>(Matrix<T> sourceA, Matrix<T> sourceB,
   if (sourceA.colCount != sourceB.rowCount) {
     throw ArgumentError('Inner dimensions of source matrices do not match.');
   }
-  final result =
-      _targetOrBuilder(sourceA.rowCount, sourceB.colCount, target, builder);
+  final result = _targetOrBuilder(
+      sourceA.rowCount, sourceB.colCount, target, builder, sourceA.dataType);
   for (var r = 0; r < result.rowCount; r++) {
     for (var c = 0; c < result.colCount; c++) {
       var sum = result.dataType.nullValue;
