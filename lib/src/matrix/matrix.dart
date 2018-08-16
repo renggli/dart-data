@@ -73,11 +73,15 @@ abstract class Matrix<T> {
   }
 
   /// Returns a mutable column vector of this matrix. The behavior is undefined,
-  /// if [col] is out of bounds.
+  /// if [col] is out of bounds. An offset of `0` refers to the diagonal in the
+  /// center of the matrix, a negative offset to the diagonals above, a positive
+  /// offset to the diagonals below.
   Vector<T> columnUnchecked(int col) => ColumnVector<T>(this, col);
 
   /// Returns a mutable diagonal vector of this matrix. Throws a [RangeError],
-  /// if [offset] is out of bounds.
+  /// if [offset] is out of bounds. An offset of `0` refers to the diagonal
+  /// in the center of the matrix, a negative offset to the diagonals above,
+  /// a positive offset to the diagonals below.
   Vector<T> diagonal([int offset = 0]) {
     RangeError.checkValueInInterval(
         offset, -colCount + 1, rowCount - 1, 'offset');
@@ -100,7 +104,7 @@ abstract class Matrix<T> {
         rowEnd == rowCount &&
         colStart == 0 &&
         colEnd == colCount) {
-      return this; // optimize the full sub-view
+      return this;
     } else {
       return subMatrixUnchecked(rowStart, rowEnd, colStart, colEnd);
     }
