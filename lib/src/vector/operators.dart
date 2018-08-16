@@ -53,7 +53,7 @@ Vector<T> sub<T extends num>(Vector<T> sourceA, Vector<T> sourceB,
 }
 
 /// Scales a vector [source] with a [factor].
-Vector<T> mul<T extends num>(T factor, Vector<T> source,
+Vector<T> scale<T extends num>(T factor, Vector<T> source,
     {Vector<T> target, Builder<T> builder}) {
   final result =
       _targetOrBuilder(source.count, target, builder, source.dataType);
