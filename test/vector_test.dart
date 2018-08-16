@@ -137,24 +137,49 @@ void vectorTest(String name, Builder builder) {
     });
     group('operators', () {
       final random = Random();
-      test('add', () {
+      group('add', () {
         final sourceA = builder
             .withType(DataType.uint8)
             .generate(100, (i) => random.nextInt(100));
         final sourceB = builder
             .withType(DataType.uint8)
             .generate(100, (i) => random.nextInt(100));
-        final target = add(sourceA, sourceB);
-        expect(target.dataType, DataType.uint8);
-        expect(target.count, 100);
-        for (var i = 0; i < target.count; i++) {
-          expect(target[i], sourceA[i] + sourceB[i]);
-        }
-      });
-      test('add (dimension missmatch)', () {
-        final sourceA = builder.withType(DataType.uint8).fromList([1, 2]);
-        final sourceB = builder.withType(DataType.uint8).fromList([1, 2, 3]);
-        expect(() => add(sourceA, sourceB), throwsArgumentError);
+        test('default', () {
+          final target = add(sourceA, sourceB);
+          expect(target.dataType, DataType.uint8);
+          expect(target.count, sourceA.count);
+          for (var i = 0; i < target.count; i++) {
+            expect(target[i], sourceA[i] + sourceB[i]);
+          }
+        });
+        test('default, bad count', () {
+          final sourceA = builder.withType(DataType.uint8).fromList([1, 2]);
+          expect(() => add(sourceA, sourceB), throwsArgumentError);
+        });
+        test('target', () {
+          final target = builder.withType(DataType.uint16)(sourceA.count);
+          final result = add(sourceA, sourceB, target: target);
+          expect(target.dataType, DataType.uint16);
+          expect(target.count, sourceA.count);
+          for (var i = 0; i < target.count; i++) {
+            expect(target[i], sourceA[i] + sourceB[i]);
+          }
+          expect(result, target);
+        });
+        test('target, bad count', () {
+          final target = builder.withType(DataType.uint16)(sourceA.count - 1);
+          expect(
+              () => add(sourceA, sourceB, target: target), throwsArgumentError);
+        });
+        test('builder', () {
+          final target =
+              add(sourceA, sourceB, builder: builder.withType(DataType.uint16));
+          expect(target.dataType, DataType.uint16);
+          expect(target.count, sourceA.count);
+          for (var i = 0; i < target.count; i++) {
+            expect(target[i], sourceA[i] + sourceB[i]);
+          }
+        });
       });
       test('sub', () {
         final sourceA = builder
