@@ -10,9 +10,7 @@ class ColumnVector<T> extends Vector<T> {
   final Matrix<T> _matrix;
   final int _col;
 
-  ColumnVector(this._matrix, this._col) {
-    RangeError.checkValidIndex(_col, _matrix, 'col', _matrix.colCount);
-  }
+  ColumnVector(this._matrix, this._col);
 
   @override
   DataType<T> get dataType => _matrix.dataType;

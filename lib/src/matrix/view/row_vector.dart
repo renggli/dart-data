@@ -10,9 +10,7 @@ class RowVector<T> extends Vector<T> {
   final Matrix<T> _matrix;
   final int _row;
 
-  RowVector(this._matrix, this._row) {
-    RangeError.checkValidIndex(_row, _matrix, 'row', _matrix.rowCount);
-  }
+  RowVector(this._matrix, this._row);
 
   @override
   DataType<T> get dataType => _matrix.dataType;

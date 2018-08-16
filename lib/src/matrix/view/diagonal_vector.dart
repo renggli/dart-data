@@ -17,10 +17,7 @@ class DiagonalVector<T> extends Vector<T> {
       : _count = math.min(
           _matrix.rowCount - _offset,
           _matrix.colCount + _offset,
-        ) {
-    RangeError.checkValueInInterval(
-        _offset, -_matrix.colCount + 1, _matrix.rowCount - 1);
-  }
+        );
 
   @override
   DataType<T> get dataType => _matrix.dataType;

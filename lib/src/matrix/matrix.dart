@@ -51,20 +51,43 @@ abstract class Matrix<T> {
   /// Returns the number of rows in the matrix.
   int get rowCount;
 
-  /// Returns a mutable row vector of the matrix. Throws a [RangeError], if
+  /// Returns a mutable row vector of this matrix. Throws a [RangeError], if
   /// [row] is out of bounds.
-  Vector<T> row(int row) => RowVector<T>(this, row);
+  Vector<T> row(int row) {
+    RangeError.checkValidIndex(row, this, 'row', rowCount);
+    return rowUnchecked(row);
+  }
+
+  /// Returns a mutable row vector of this matrix. The behavior is undefined,
+  /// if [row] is out of bounds.
+  Vector<T> rowUnchecked(int row) => RowVector<T>(this, row);
 
   /// Returns the number of columns in the matrix.
   int get colCount;
 
-  /// Returns a mutable column vector of the matrix. Throws a [RangeError], if
+  /// Returns a mutable column vector of this matrix. Throws a [RangeError], if
   /// [col] is out of bounds.
-  Vector<T> column(int col) => ColumnVector<T>(this, col);
+  Vector<T> column(int col) {
+    RangeError.checkValidIndex(col, this, 'col', colCount);
+    return columnUnchecked(col);
+  }
 
-  /// Returns a mutable diagonal vector of the matrix. Throws a [RangeError], if
-  /// [offset] is out of bounds.
-  Vector<T> diagonal([int offset = 0]) => DiagonalVector<T>(this, offset);
+  /// Returns a mutable column vector of this matrix. The behavior is undefined,
+  /// if [col] is out of bounds.
+  Vector<T> columnUnchecked(int col) => ColumnVector<T>(this, col);
+
+  /// Returns a mutable diagonal vector of this matrix. Throws a [RangeError],
+  /// if [offset] is out of bounds.
+  Vector<T> diagonal([int offset = 0]) {
+    RangeError.checkValueInInterval(
+        offset, -colCount + 1, rowCount - 1, 'offset');
+    return diagonalUnchecked(offset);
+  }
+
+  /// Returns a mutable diagonal vector of the matrix. The behavior is
+  /// undefined, if [offset] is out of bounds.
+  Vector<T> diagonalUnchecked([int offset = 0]) =>
+      DiagonalVector<T>(this, offset);
 
   /// Returns a mutable view onto a sub-matrix. Throws a [RangeError], if
   /// any of the indexes are out of bounds.
