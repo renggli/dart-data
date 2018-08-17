@@ -161,7 +161,7 @@ class LUDecomposition {
     final nx = B.colCount;
     final X = Matrix.builder
         .withType(valueDataType)
-        .fromIndicesAndRange(B, _piv, 0, nx);
+        .fromIndexesAndRange(B, _piv, 0, nx);
 
     // Solve L*Y = B(piv,:)
     for (var k = 0; k < _n; k++) {

@@ -9,7 +9,7 @@ import 'view/column_vector.dart';
 import 'view/diagonal_vector.dart';
 import 'view/row_vector.dart';
 import 'view/sub_matrix.dart';
-import 'view/transposed_matrix.dart';
+import 'view/transpose_matrix.dart';
 import 'view/unmodifiable_matrix.dart';
 
 /// Abstract matrix type.
@@ -117,7 +117,7 @@ abstract class Matrix<T> {
       SubMatrix<T>(this, rowStart, rowEnd, colStart, colEnd);
 
   /// Returns a mutable view onto the transposed matrix.
-  Matrix<T> get transpose => TransposedMatrix<T>(this);
+  Matrix<T> get transpose => TransposeMatrix<T>(this);
 
   /// Returns a unmodifiable view of the matrix.
   Matrix<T> get unmodifiable => UnmodifiableMatrix<T>(this);

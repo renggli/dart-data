@@ -176,57 +176,77 @@ class Builder<T> {
   }
 
   /// Builds a sub-matrix from the row range [rowStart] to [rowEnd] (exclusive)
-  /// and a list of column [colIndices].
-  Matrix<T> fromRangeAndIndices(
-      Matrix<T> source, int rowStart, int rowEnd, List<int> colIndices) {
+  /// and a list of column [colIndexes].
+  Matrix<T> fromRangeAndIndexes(
+      Matrix<T> source, int rowStart, int rowEnd, List<int> colIndexes) {
     RangeError.checkValidRange(
         rowStart, rowEnd, source.rowCount, 'rowStart', 'rowEnd');
-    final result = this(rowEnd - rowStart, colIndices.length);
-    for (var col = 0; col < colIndices.length; col++) {
-      RangeError.checkValueInInterval(col, 0, source.colCount, 'colIndices');
+    if (colIndexes.isEmpty) {
+      throw ArgumentError.value(
+          colIndexes, 'colIndexes', 'Column indexes must not be empty.');
+    }
+    final result = this(rowEnd - rowStart, colIndexes.length);
+    for (var col = 0; col < colIndexes.length; col++) {
+      RangeError.checkValueInInterval(
+          colIndexes[col], 0, source.colCount - 1, 'colIndexes');
       for (var row = rowStart; row < rowEnd; row++) {
         result.setUnchecked(
-            row - rowStart, col, source.getUnchecked(row, colIndices[col]));
+            row - rowStart, col, source.getUnchecked(row, colIndexes[col]));
       }
     }
     return result;
   }
 
-  /// Builds a sub-matrix from a list of [rowIndices] and the column range
+  /// Builds a sub-matrix from a list of [rowIndexes] and the column range
   /// [colStart] to [colEnd] (exclusive).
-  Matrix<T> fromIndicesAndRange(
-      Matrix<T> source, List<int> rowIndices, int colStart, int colEnd) {
+  Matrix<T> fromIndexesAndRange(
+      Matrix<T> source, List<int> rowIndexes, int colStart, int colEnd) {
+    if (rowIndexes.isEmpty) {
+      throw ArgumentError.value(
+          rowIndexes, 'rowIndexes', 'Row indexes must not be empty.');
+    }
     RangeError.checkValidRange(
         colStart, colEnd, source.colCount, 'colStart', 'colEnd');
-    final result = this(rowIndices.length, colEnd - colStart);
-    for (var row = 0; row < rowIndices.length; row++) {
-      RangeError.checkValueInInterval(row, 0, source.rowCount, 'rowIndices');
+    final result = this(rowIndexes.length, colEnd - colStart);
+    for (var row = 0; row < rowIndexes.length; row++) {
+      RangeError.checkValueInInterval(
+          rowIndexes[row], 0, source.rowCount - 1, 'rowIndexes');
       for (var col = colStart; col < colEnd; col++) {
         result.setUnchecked(
-            row, col - colStart, source.getUnchecked(rowIndices[row], col));
+            row, col - colStart, source.getUnchecked(rowIndexes[row], col));
       }
     }
     return result;
   }
 
-  /// Builds a sub-matrix from a list of row [rowIndices] and column
-  /// [colIndices].
-  Matrix<T> fromIndices(
-      Matrix<T> source, List<int> rowIndices, List<int> colIndices) {
-    final result = this(rowIndices.length, colIndices.length);
-    for (var row = 0; row < rowIndices.length; row++) {
-      RangeError.checkValueInInterval(row, 0, source.rowCount, 'rowIndices');
-      for (var col = 0; col < colIndices.length; col++) {
-        RangeError.checkValueInInterval(col, 0, source.colCount, 'colIndices');
+  /// Builds a sub-matrix from a list of row [rowIndexes] and column
+  /// [colIndexes].
+  Matrix<T> fromIndexes(
+      Matrix<T> source, List<int> rowIndexes, List<int> colIndexes) {
+    if (rowIndexes.isEmpty) {
+      throw ArgumentError.value(
+          rowIndexes, 'rowIndexes', 'Row indexes must not be empty.');
+    }
+    if (colIndexes.isEmpty) {
+      throw ArgumentError.value(
+          colIndexes, 'colIndexes', 'Column indexes must not be empty.');
+    }
+    final result = this(rowIndexes.length, colIndexes.length);
+    for (var row = 0; row < rowIndexes.length; row++) {
+      RangeError.checkValueInInterval(
+          rowIndexes[row], 0, source.rowCount - 1, 'rowIndexes');
+      for (var col = 0; col < colIndexes.length; col++) {
+        RangeError.checkValueInInterval(
+            colIndexes[col], 0, source.colCount - 1, 'colIndexes');
         result.setUnchecked(
-            row, col, source.getUnchecked(rowIndices[row], colIndices[col]));
+            row, col, source.getUnchecked(rowIndexes[row], colIndexes[col]));
       }
     }
     return result;
   }
 
   /// Builds a matrix from a nested list of rows.
-  Matrix<T> fromListOfRows(List<List<T>> source) {
+  Matrix<T> fromRows(List<List<T>> source) {
     if (source.isEmpty || source[0].isEmpty) {
       throw ArgumentError.value(source, 'source', 'Rows must not be empty.');
     }
@@ -234,7 +254,8 @@ class Builder<T> {
     for (var row = 0; row < result.rowCount; row++) {
       final sourceRow = source[row];
       if (sourceRow.length != result.colCount) {
-        throw ArgumentError.value(source, 'source', 'All rows must be equally sized.');
+        throw ArgumentError.value(
+            source, 'source', 'All rows must be equally sized.');
       }
       for (var col = 0; col < result.colCount; col++) {
         result.setUnchecked(row, col, sourceRow[col]);
@@ -243,8 +264,27 @@ class Builder<T> {
     return result;
   }
 
+  /// Builds a matrix from a packed list of rows.
+  Matrix<T> fromPackedRows(int rowCount, int colCount, List<T> source) {
+    if (rowCount * colCount != source.length) {
+      throw ArgumentError.value(
+          source, 'source', 'Row and column count do not match.');
+    }
+    if (type == RowMajorMatrix) {
+      // Optimized case for row major matrices.
+      return RowMajorMatrix(type, rowCount, colCount, type.copyList(source));
+    }
+    final result = this(rowCount, colCount);
+    for (var row = 0; row < rowCount; row++) {
+      for (var col = 0; col < result.colCount; col++) {
+        result.set(row, col, source[row * colCount + col]);
+      }
+    }
+    return result;
+  }
+
   /// Builds a matrix from a nested list of columns.
-  Matrix<T> fromListOfColumns(List<List<T>> source) {
+  Matrix<T> fromColumns(List<List<T>> source) {
     if (source.isEmpty || source[0].isEmpty) {
       throw ArgumentError.value(source, 'source', 'Columns must not be empty.');
     }
@@ -252,10 +292,30 @@ class Builder<T> {
     for (var col = 0; col < result.colCount; col++) {
       final sourceCol = source[col];
       if (sourceCol.length != result.rowCount) {
-        throw ArgumentError.value(source, 'source', 'All columns must be equally sized.');
+        throw ArgumentError.value(
+            source, 'source', 'All columns must be equally sized.');
       }
       for (var row = 0; row < result.rowCount; row++) {
         result.setUnchecked(row, col, sourceCol[row]);
+      }
+    }
+    return result;
+  }
+
+  /// Builds a matrix from a packed list of columns.
+  Matrix<T> fromPackedColumns(int rowCount, int colCount, List<T> source) {
+    if (rowCount * colCount != source.length) {
+      throw ArgumentError.value(
+          source, 'source', 'Row and column count do not match.');
+    }
+    if (type == ColumnMajorMatrix) {
+      // Optimized case for row major matrices.
+      return ColumnMajorMatrix(type, rowCount, colCount, type.copyList(source));
+    }
+    final result = this(rowCount, colCount);
+    for (var row = 0; row < rowCount; row++) {
+      for (var col = 0; col < result.colCount; col++) {
+        result.set(row, col, source[row + col * rowCount]);
       }
     }
     return result;

@@ -141,13 +141,24 @@ void matrixTest(String name, Builder builder) {
         expect(matrix.get(2, 0), '(3, 3)');
         expect(matrix.get(2, 1), '(3, 4)');
       });
-      test('fromRangeAndIndices', () {
+      test('fromRanges (argument error)', () {
+        final source = builder(5, 6);
+        expect(
+            () => builder.fromRanges(source, -1, 5, 0, 6), throwsArgumentError);
+        expect(
+            () => builder.fromRanges(source, 0, 6, 0, 6), throwsArgumentError);
+        expect(
+            () => builder.fromRanges(source, 0, 5, -1, 6), throwsArgumentError);
+        expect(
+            () => builder.fromRanges(source, 0, 5, 0, 7), throwsArgumentError);
+      });
+      test('fromRangeAndIndexes', () {
         final source = builder
             .withType(DataType.string)
             .generate(5, 6, (row, col) => '($row, $col)');
         final matrix = builder
             .withType(DataType.string)
-            .fromRangeAndIndices(source, 1, 3, [0, 0, 5]);
+            .fromRangeAndIndexes(source, 1, 3, [0, 0, 5]);
         expect(matrix.dataType, DataType.string);
         expect(matrix.rowCount, 2);
         expect(matrix.colCount, 3);
@@ -158,13 +169,26 @@ void matrixTest(String name, Builder builder) {
         expect(matrix.get(1, 1), '(2, 0)');
         expect(matrix.get(1, 2), '(2, 5)');
       });
-      test('fromIndicesAndRanges', () {
+      test('fromRangeAndIndexes (argument error)', () {
+        final source = builder(5, 6);
+        expect(() => builder.fromRangeAndIndexes(source, -1, 5, [0, 5]),
+            throwsArgumentError);
+        expect(() => builder.fromRangeAndIndexes(source, 0, 6, [0, 5]),
+            throwsArgumentError);
+        expect(() => builder.fromRangeAndIndexes(source, 0, 5, []),
+            throwsArgumentError);
+        expect(() => builder.fromRangeAndIndexes(source, 0, 5, [-1, 5]),
+            throwsArgumentError);
+        expect(() => builder.fromRangeAndIndexes(source, 0, 5, [0, 6]),
+            throwsArgumentError);
+      });
+      test('fromIndexesAndRanges', () {
         final source = builder
             .withType(DataType.string)
             .generate(5, 6, (row, col) => '($row, $col)');
         final matrix = builder
             .withType(DataType.string)
-            .fromIndicesAndRange(source, [0, 4, 0], 1, 3);
+            .fromIndexesAndRange(source, [0, 4, 0], 1, 3);
         expect(matrix.dataType, DataType.string);
         expect(matrix.rowCount, 3);
         expect(matrix.colCount, 2);
@@ -175,13 +199,26 @@ void matrixTest(String name, Builder builder) {
         expect(matrix.get(2, 0), '(0, 1)');
         expect(matrix.get(2, 1), '(0, 2)');
       });
-      test('fromIndices', () {
+      test('fromIndexesAndRanges (argument error)', () {
+        final source = builder(5, 6);
+        expect(() => builder.fromIndexesAndRange(source, [], 0, 5),
+            throwsArgumentError);
+        expect(() => builder.fromIndexesAndRange(source, [-1, 4], 0, 5),
+            throwsArgumentError);
+        expect(() => builder.fromIndexesAndRange(source, [0, 5], 0, 5),
+            throwsArgumentError);
+        expect(() => builder.fromIndexesAndRange(source, [0, 4], -1, 5),
+            throwsArgumentError);
+        expect(() => builder.fromIndexesAndRange(source, [0, 4], 0, 7),
+            throwsArgumentError);
+      });
+      test('fromIndexes', () {
         final source = builder
             .withType(DataType.string)
             .generate(5, 6, (row, col) => '($row, $col)');
         final matrix = builder
             .withType(DataType.string)
-            .fromIndices(source, [3, 2, 2], [1, 0]);
+            .fromIndexes(source, [3, 2, 2], [1, 0]);
         expect(matrix.dataType, DataType.string);
         expect(matrix.rowCount, 3);
         expect(matrix.colCount, 2);
@@ -192,8 +229,23 @@ void matrixTest(String name, Builder builder) {
         expect(matrix.get(2, 0), '(2, 1)');
         expect(matrix.get(2, 1), '(2, 0)');
       });
-      test('fromListOfRows', () {
-        final matrix = builder.withType(DataType.int8).fromListOfRows([
+      test('fromIndexes (argument error)', () {
+        final source = builder(5, 6);
+        expect(
+            () => builder.fromIndexes(source, [], [0, 5]), throwsArgumentError);
+        expect(() => builder.fromIndexes(source, [-1, 4], [0, 5]),
+            throwsArgumentError);
+        expect(() => builder.fromIndexes(source, [0, 5], [0, 5]),
+            throwsArgumentError);
+        expect(
+            () => builder.fromIndexes(source, [0, 4], []), throwsArgumentError);
+        expect(() => builder.fromIndexes(source, [0, 4], [-1, 5]),
+            throwsArgumentError);
+        expect(() => builder.fromIndexes(source, [0, 4], [0, 6]),
+            throwsArgumentError);
+      });
+      test('fromRows', () {
+        final matrix = builder.withType(DataType.int8).fromRows([
           [1, 2, 3],
           [4, 5, 6],
         ]);
@@ -207,18 +259,33 @@ void matrixTest(String name, Builder builder) {
         expect(matrix.get(0, 2), 3);
         expect(matrix.get(1, 2), 6);
       });
-      test('fromListOfRows, errors', () {
-        expect(() => builder.fromListOfRows([]), throwsArgumentError);
-        expect(() => builder.fromListOfRows([[]]), throwsArgumentError);
+      test('fromRows (argument error)', () {
+        expect(() => builder.fromRows([]), throwsArgumentError);
+        expect(() => builder.fromRows([[]]), throwsArgumentError);
         expect(
-            () => builder.fromListOfRows([
+            () => builder.fromRows([
                   [1],
                   [1, 2]
                 ]),
             throwsArgumentError);
       });
-      test('fromListOfColumns', () {
-        final matrix = builder.withType(DataType.int8).fromListOfColumns([
+      test('fromPackedRows', () {
+        final matrix = builder.fromPackedRows(2, 3, [1, 2, 3, 4, 5, 6]);
+        expect(matrix.dataType, DataType.object);
+        expect(matrix.rowCount, 2);
+        expect(matrix.colCount, 3);
+        expect(matrix.get(0, 0), 1);
+        expect(matrix.get(0, 1), 2);
+        expect(matrix.get(0, 2), 3);
+        expect(matrix.get(1, 0), 4);
+        expect(matrix.get(1, 1), 5);
+        expect(matrix.get(1, 2), 6);
+      });
+      test('fromPackedRows (argument errror)', () {
+        expect(() => builder.fromPackedRows(2, 3, []), throwsArgumentError);
+      });
+      test('fromColumns', () {
+        final matrix = builder.withType(DataType.int8).fromColumns([
           [1, 2, 3],
           [4, 5, 6],
         ]);
@@ -232,19 +299,34 @@ void matrixTest(String name, Builder builder) {
         expect(matrix.get(1, 1), 5);
         expect(matrix.get(2, 1), 6);
       });
-      test('fromListOfColumns, errors', () {
-        expect(() => builder.fromListOfColumns([]), throwsArgumentError);
-        expect(() => builder.fromListOfColumns([[]]), throwsArgumentError);
+      test('fromColumns (argument error)', () {
+        expect(() => builder.fromColumns([]), throwsArgumentError);
+        expect(() => builder.fromColumns([[]]), throwsArgumentError);
         expect(
-            () => builder.fromListOfColumns([
+            () => builder.fromColumns([
                   [1],
                   [1, 2]
                 ]),
             throwsArgumentError);
       });
+      test('fromPackedColumns', () {
+        final matrix = builder.fromPackedColumns(2, 3, [1, 2, 3, 4, 5, 6]);
+        expect(matrix.dataType, DataType.object);
+        expect(matrix.rowCount, 2);
+        expect(matrix.colCount, 3);
+        expect(matrix.get(0, 0), 1);
+        expect(matrix.get(1, 0), 2);
+        expect(matrix.get(0, 1), 3);
+        expect(matrix.get(1, 1), 4);
+        expect(matrix.get(0, 2), 5);
+        expect(matrix.get(1, 2), 6);
+      });
+      test('fromPackedColumns (argument error)', () {
+        expect(() => builder.fromPackedColumns(2, 3, []), throwsArgumentError);
+      });
     });
     group('accessing', () {
-      final matrix = builder.withType(DataType.int8).fromListOfRows([
+      final matrix = builder.withType(DataType.int8).fromRows([
         [1, 2, 3],
         [4, 5, 6],
       ]);
@@ -589,9 +671,9 @@ void matrixTest(String name, Builder builder) {
       });
       test('sub', () {
         final target = sub(sourceA, sourceB);
-        expect(target.dataType, DataType.int32);
-        expect(target.rowCount, 5);
-        expect(target.colCount, 4);
+        expect(target.dataType, sourceA.dataType);
+        expect(target.rowCount, sourceA.rowCount);
+        expect(target.colCount, sourceA.colCount);
         for (var row = 0; row < target.rowCount; row++) {
           for (var col = 0; col < target.colCount; col++) {
             expect(target.get(row, col),
@@ -599,21 +681,14 @@ void matrixTest(String name, Builder builder) {
           }
         }
       });
-      test('sub', () {
-        final sourceA = builder
-            .withType(DataType.int32)
-            .generate(5, 4, (row, col) => random.nextInt(100));
-        final sourceB = builder
-            .withType(DataType.int32)
-            .generate(5, 4, (row, col) => random.nextInt(100));
-        final target = sub(sourceA, sourceB);
-        expect(target.dataType, DataType.int32);
-        expect(target.rowCount, 5);
-        expect(target.colCount, 4);
+      test('scale', () {
+        final target = scale(2, sourceA);
+        expect(target.dataType, sourceA.dataType);
+        expect(target.rowCount, sourceA.rowCount);
+        expect(target.colCount, sourceA.colCount);
         for (var row = 0; row < target.rowCount; row++) {
           for (var col = 0; col < target.colCount; col++) {
-            expect(target.get(row, col),
-                sourceA.get(row, col) - sourceB.get(row, col));
+            expect(target.get(row, col), 2 * sourceA.get(row, col));
           }
         }
       });
