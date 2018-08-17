@@ -4,6 +4,7 @@ import 'package:data/type.dart';
 
 import 'builder.dart';
 import 'impl/standard_vector.dart';
+import 'view/sub_vector.dart';
 
 /// Abstract vector type.
 abstract class Vector<T> {
@@ -39,6 +40,22 @@ abstract class Vector<T> {
   /// Sets the value at the provided [index] to [value]. The behavior is
   /// undefined if [index] is outside of bounds.
   void setUnchecked(int index, T value);
+
+  /// Returns a mutable view onto a sub-vector. Throws a [RangeError], if
+  /// the index is out of bounds.
+  Vector<T> subVector(int start, int end) {
+    RangeError.checkValidRange(start, end, count, 'start', 'end');
+    if (start == 0 && end == count) {
+      return this;
+    } else {
+      return subVectorUnchecked(start, end);
+    }
+  }
+
+  /// Returns a mutable view onto a sub-matrix. The behavior is undefined, if
+  /// the ranges is out of bounds.
+  Vector<T> subVectorUnchecked(int start, int end) =>
+      SubVector<T>(this, start, end);
 
   /// Pretty prints the vector.
   @override
