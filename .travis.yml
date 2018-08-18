@@ -11,8 +11,8 @@ jobs:
     script: pub run build_runner build
   - stage: test
     script: pub run test --platform vm
-  - stage: test
-    script: pub run test --platform chrome
+#  - stage: test
+#    script: pub run test --platform chrome
 stages:
 - analyze
 - build
