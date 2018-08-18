@@ -2,6 +2,7 @@ library data.matrix.matrix;
 
 import 'package:data/type.dart' show DataType;
 import 'package:data/vector.dart' show Vector;
+import 'package:more/collection.dart' show IntegerRange;
 
 import 'builder.dart';
 import 'impl/row_major_matrix.dart';
@@ -141,38 +142,34 @@ abstract class Matrix<T> {
 
   /// Returns a mutable view onto row indexes. Throws a [RangeError], if
   /// any of the [rowIndexes] are out of bounds.
-  Matrix<T> rowIndex(Iterable<int> rowIndexes) => index(rowIndexes, null);
+  Matrix<T> rowIndex(Iterable<int> rowIndexes) =>
+      index(rowIndexes, IntegerRange(0, colCount));
 
   /// Returns a mutable view onto row indexes. The behavior is undefined, if
   /// any of the [rowIndexes] are out of bounds.
   Matrix<T> rowIndexUnchecked(Iterable<int> rowIndexes) =>
-      indexUnchecked(rowIndexes, null);
+      indexUnchecked(rowIndexes, IntegerRange(0, colCount));
 
   /// Returns a mutable view onto column indexes. Throws a [RangeError], if
   /// any of the [colIndexes] are out of bounds.
-  Matrix<T> colIndex(Iterable<int> colIndexes) => index(null, colIndexes);
+  Matrix<T> colIndex(Iterable<int> colIndexes) =>
+      index(IntegerRange(0, rowCount), colIndexes);
 
   /// Returns a mutable view onto column indexes. The behavior is undefined, if
   /// any of the [colIndexes] are out of bounds.
   Matrix<T> colIndexUnchecked(Iterable<int> colIndexes) =>
-      indexUnchecked(null, colIndexes);
+      indexUnchecked(IntegerRange(0, rowCount), colIndexes);
 
   /// Returns a mutable view onto row and column indexes. Throws a
   /// [RangeError], if any of the indexes are out of bounds.
   Matrix<T> index(Iterable<int> rowIndexes, Iterable<int> colIndexes) {
-    if (rowIndexes != null) {
-      for (var index in rowIndexes) {
-        RangeError.checkValueInInterval(index, 0, rowCount - 1, 'rowIndexes');
-      }
+    for (var index in rowIndexes) {
+      RangeError.checkValueInInterval(index, 0, rowCount - 1, 'rowIndexes');
     }
-    if (colIndexes != null) {
-      for (var index in colIndexes) {
-        RangeError.checkValueInInterval(index, 0, colCount - 1, 'colIndexes');
-      }
+    for (var index in colIndexes) {
+      RangeError.checkValueInInterval(index, 0, colCount - 1, 'colIndexes');
     }
-    // TODO(renggli): Come up with something more efficient for default indexes.
-    return indexUnchecked(rowIndexes ?? List.generate(rowCount, (i) => i),
-        colIndexes ?? List.generate(colCount, (i) => i));
+    return indexUnchecked(rowIndexes, colIndexes);
   }
 
   /// Returns a mutable view onto row and column indexes. The behavior is
