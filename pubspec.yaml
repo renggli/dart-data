@@ -3,7 +3,7 @@ version: 0.0.1
 
 author: Lukas Renggli <renggli@gmail.com>
 homepage: https://github.com/renggli/dart-data
-description: A library for Dart developers. It is awesome.
+description: A time and space efficient collection of data structures and algorithms to deal with data in Dart.
 
 environment:
   sdk: '>=2.0.0-dev.61.0 <3.0.0'
