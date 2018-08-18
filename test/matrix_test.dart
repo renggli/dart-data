@@ -503,7 +503,7 @@ void matrixTest(String name, Builder builder) {
           expect(view.dataType, source.dataType);
           expect(view.rowCount, 1);
           expect(view.colCount, 1);
-          expect(view.get(0, 0), Point(0, 2));
+          expect(view.get(0, 0), const Point(0, 2));
         });
         test('write', () {
           final original = builder.fromMatrix(source);
@@ -569,7 +569,7 @@ void matrixTest(String name, Builder builder) {
         }
         for (var row = 0; row < matrix.rowCount; row++) {
           for (var col = 0; col < matrix.colCount; col++) {
-            matrix.set(row, col, matrix.get(row, col) + '!');
+            matrix.set(row, col, '${matrix.get(row, col)}!');
           }
         }
         for (var row = 0; row < view.rowCount; row++) {

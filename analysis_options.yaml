@@ -95,7 +95,8 @@ linter:
   - unnecessary_overrides
   - unnecessary_statements
   - unnecessary_this
-  - unrelated_type_equality_checks
+  # TODO(renggli): investigate of how to re-enable
+  # - unrelated_type_equality_checks
   - use_rethrow_when_possible
   - use_setters_to_change_properties
   - use_string_buffers
