@@ -203,6 +203,10 @@ void matrixTest(String name, Builder builder) {
       });
     });
     group('accessing', () {
+      final matrix = builder.withType(DataType.int8).fromRows([
+        [1, 2, 3],
+        [4, 5, 6],
+      ]);
       test('random', () {
         final matrix = builder(8, 12);
         final points = <Point>[];
@@ -243,24 +247,23 @@ void matrixTest(String name, Builder builder) {
         }
       });
       test('read (range error)', () {
-        final matrix = builder.withType(DataType.int8).fromRows([
-          [1, 2, 3],
-          [4, 5, 6],
-        ]);
         expect(() => matrix.get(-1, 0), throwsRangeError);
         expect(() => matrix.get(0, -1), throwsRangeError);
         expect(() => matrix.get(matrix.rowCount, 0), throwsRangeError);
         expect(() => matrix.get(0, matrix.colCount), throwsRangeError);
       });
       test('write (range error)', () {
-        final matrix = builder.withType(DataType.int8).fromRows([
-          [1, 2, 3],
-          [4, 5, 6],
-        ]);
         expect(() => matrix.set(-1, 0, 0), throwsRangeError);
         expect(() => matrix.set(0, -1, 0), throwsRangeError);
         expect(() => matrix.set(matrix.rowCount, 0, 0), throwsRangeError);
         expect(() => matrix.set(0, matrix.colCount, 0), throwsRangeError);
+      });
+      test('toString', () {
+        expect(
+            matrix.toString(),
+            '${matrix.runtimeType}[2, 3]:\n'
+            '  1  2  3\n'
+            '  4  5  6');
       });
     });
     group('views', () {
@@ -385,6 +388,10 @@ void matrixTest(String name, Builder builder) {
             }
           }
         });
+        test('row unchecked', () {
+          source.rowRangeUnchecked(-1, source.rowCount);
+          source.rowRangeUnchecked(0, source.rowCount + 1);
+        });
         test('column', () {
           final matrix = source.colRange(1, 4);
           expect(matrix.dataType, source.dataType);
@@ -395,6 +402,10 @@ void matrixTest(String name, Builder builder) {
               expect(matrix.get(row, col), Point(row, col + 1));
             }
           }
+        });
+        test('column unchecked', () {
+          source.colRangeUnchecked(-1, source.colCount);
+          source.colRangeUnchecked(0, source.colCount + 1);
         });
         test('row and column', () {
           final view = source.range(1, 3, 2, 4);
@@ -424,6 +435,13 @@ void matrixTest(String name, Builder builder) {
           final view = source.range(0, source.rowCount, 0, source.colCount);
           expect(view, source);
         });
+        test('write', () {
+          final original = builder.fromMatrix(source);
+          final view = original.range(2, 3, 3, 4);
+          view.set(0, 0, '*');
+          expect(view.get(0, 0), '*');
+          expect(original.get(2, 3), '*');
+        });
         test('range error', () {
           expect(() => source.range(-1, source.rowCount, 0, source.colCount),
               throwsRangeError);
@@ -449,6 +467,10 @@ void matrixTest(String name, Builder builder) {
             }
           }
         });
+        test('row unchecked', () {
+          source.rowIndexUnchecked([-1, source.rowCount - 1]);
+          source.rowIndexUnchecked([0, source.rowCount]);
+        });
         test('column', () {
           final matrix = source.colIndex([3, 0, 0]);
           expect(matrix.dataType, source.dataType);
@@ -459,6 +481,10 @@ void matrixTest(String name, Builder builder) {
               expect(matrix.get(row, col), Point(row, col == 0 ? 3 : 0));
             }
           }
+        });
+        test('column unchecked', () {
+          source.colIndexUnchecked([-1, source.colCount - 1]);
+          source.colIndexUnchecked([0, source.colCount]);
         });
         test('row and column', () {
           final view = source.index([0, 5], [3, 0]);
@@ -478,6 +504,13 @@ void matrixTest(String name, Builder builder) {
           expect(view.rowCount, 1);
           expect(view.colCount, 1);
           expect(view.get(0, 0), Point(0, 2));
+        });
+        test('write', () {
+          final original = builder.fromMatrix(source);
+          final view = original.index([2], [3]);
+          view.set(0, 0, '*');
+          expect(view.get(0, 0), '*');
+          expect(original.get(2, 3), '*');
         });
         test('range error', () {
           expect(
