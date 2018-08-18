@@ -524,21 +524,14 @@ void matrixTest(String name, Builder builder) {
           }
         });
         test('out of bounds', () {
-          expect(
-              matrix.range(0, matrix.rowCount, 0, matrix.colCount), matrix);
-          expect(
-              () => matrix.range(-1, matrix.rowCount, 0, matrix.colCount),
+          expect(matrix.range(0, matrix.rowCount, 0, matrix.colCount), matrix);
+          expect(() => matrix.range(-1, matrix.rowCount, 0, matrix.colCount),
               throwsRangeError);
-          expect(
-              () =>
-                  matrix.range(0, matrix.rowCount + 1, 0, matrix.colCount),
+          expect(() => matrix.range(0, matrix.rowCount + 1, 0, matrix.colCount),
               throwsRangeError);
-          expect(
-              () => matrix.range(0, matrix.rowCount, -1, matrix.colCount),
+          expect(() => matrix.range(0, matrix.rowCount, -1, matrix.colCount),
               throwsRangeError);
-          expect(
-              () =>
-                  matrix.range(0, matrix.rowCount, 0, matrix.colCount + 1),
+          expect(() => matrix.range(0, matrix.rowCount, 0, matrix.colCount + 1),
               throwsRangeError);
         });
         test('out of bounds on sub-view', () {
