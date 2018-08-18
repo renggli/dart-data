@@ -85,31 +85,8 @@ class Builder<T> {
     return result;
   }
 
-  /// Builds a sub-vector from the range [start] to [end] (exclusive).
-  Vector<T> fromRange(Vector<T> source, int start, int end) {
-    RangeError.checkValidRange(start, end, source.count, 'start', 'end');
-    final result = this(end - start);
-    for (var i = start; i < end; i++) {
-      result.setUnchecked(i - start, source.getUnchecked(i));
-    }
-    return result;
-  }
-
-  /// Builds a sub-vector from a list of column [indices].
-  Vector<T> fromIndices(Vector<T> source, List<int> indices) {
-    final result = this(indices.length);
-    for (var i = 0; i < indices.length; i++) {
-      RangeError.checkValueInInterval(i, 0, source.count, 'indices');
-      result.setUnchecked(i, source.getUnchecked(indices[i]));
-    }
-    return result;
-  }
-
   /// Builds a vector from a list of values.
   Vector<T> fromList(List<T> source) {
-    if (source.isEmpty) {
-      throw ArgumentError.value(source, 'source', 'Must be not empty');
-    }
     final result = this(source.length);
     for (var i = 0; i < source.length; i++) {
       result.setUnchecked(i, source[i]);
