@@ -17,9 +17,8 @@ Matrix<T> _targetOrBuilder<T>(int rowCount, int colCount, Matrix<T> target,
     return builder(rowCount, colCount);
   } else if (dataType != null) {
     return Matrix.builder.withType(dataType)(rowCount, colCount);
-  } else {
-    throw ArgumentError('Expected either a "target" or a "builder".');
   }
+  throw ArgumentError('Expected either a "target" or a "builder".');
 }
 
 /// Helper to add two numeric matrices [sourceA] and [sourceB].

@@ -19,9 +19,8 @@ Vector<T> _targetOrBuilder<T>(
     return builder(count);
   } else if (type != null) {
     return Vector.builder.withType(type)(count);
-  } else {
-    throw ArgumentError('Expected either a "target" or a "builder".');
   }
+  throw ArgumentError('Expected either a "target" or a "builder".');
 }
 
 /// Add two numeric vectors [sourceA] and [sourceB].
