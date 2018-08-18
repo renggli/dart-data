@@ -26,8 +26,8 @@ void vectorTest(String name, Builder builder) {
         }
       });
       test('generate', () {
-        final vector =
-            builder.withType(DataType.string).generate(7, (i) => '$i');
+        final vector = builder.withType(DataType.string).generate(
+            7, (i) => '$i');
         expect(vector.dataType, DataType.string);
         expect(vector.count, 7);
         for (var i = 0; i < vector.count; i++) {
@@ -35,11 +35,10 @@ void vectorTest(String name, Builder builder) {
         }
       });
       test('transform', () {
-        final source =
-            builder.withType(DataType.int8).generate(9, (i) => 2 * i);
-        final vector = builder
-            .withType(DataType.string)
-            .transform(source, (index, value) => '$index: $value');
+        final source = builder.withType(DataType.int8).generate(
+            9, (i) => 2 * i);
+        final vector = builder.withType(DataType.string).transform(
+            source, (index, value) => '$index: $value');
         expect(vector.dataType, DataType.string);
         expect(vector.count, 9);
         for (var i = 0; i < vector.count; i++) {
@@ -47,8 +46,8 @@ void vectorTest(String name, Builder builder) {
         }
       });
       test('fromVector', () {
-        final source =
-            builder.withType(DataType.string).generate(6, (i) => '$i');
+        final source = builder.withType(DataType.string).generate(
+            6, (i) => '$i');
         final vector = builder.withType(DataType.string).fromVector(source);
         expect(vector.dataType, DataType.string);
         expect(vector.count, 6);
@@ -66,7 +65,6 @@ void vectorTest(String name, Builder builder) {
       });
     });
     group('accesssing', () {
-      final vector = builder.withType(DataType.int8).fromList([1, 2, 3, 5]);
       test('random order', () {
         final vector = builder(100);
         final values = <int>[];
@@ -99,16 +97,18 @@ void vectorTest(String name, Builder builder) {
         }
       });
       test('read (range error)', () {
+        final vector = builder.withType(DataType.int8).fromList([1, 2]);
         expect(() => vector[-1], throwsRangeError);
-        expect(() => vector[4], throwsRangeError);
+        expect(() => vector[vector.count], throwsRangeError);
       });
       test('write (range error)', () {
+        final vector = builder.withType(DataType.int8).fromList([1, 2]);
         expect(() => vector[-1] = 1, throwsRangeError);
-        expect(() => vector[4] = 1, throwsRangeError);
+        expect(() => vector[vector.count] = 1, throwsRangeError);
       });
       test('range', () {
-        final source =
-            builder.withType(DataType.string).generate(6, (i) => '$i');
+        final source = builder.withType(DataType.string).generate(
+            6, (i) => '$i');
         final vector = source.range(1, 4);
         expect(vector.dataType, DataType.string);
         expect(vector.count, 3);
@@ -120,11 +120,12 @@ void vectorTest(String name, Builder builder) {
         expect(source[2], '2*');
       });
       test('range (same range)', () {
+        final vector = builder.withType(DataType.int8).fromList([1, 2]);
         expect(vector.range(0, vector.count), vector);
       });
       test('range (sub range)', () {
-        final source =
-            builder.withType(DataType.string).generate(6, (i) => '$i');
+        final source = builder.withType(DataType.string).generate(
+            6, (i) => '$i');
         final vector = source.range(1, 4).range(1, 2);
         expect(vector.dataType, DataType.string);
         expect(vector.count, 1);
@@ -134,12 +135,13 @@ void vectorTest(String name, Builder builder) {
         expect(source[2], '2*');
       });
       test('range (range error)', () {
+        final vector = builder.withType(DataType.int8).fromList([1, 2]);
         expect(() => vector.range(-1, vector.count), throwsRangeError);
         expect(() => vector.range(0, vector.count + 1), throwsRangeError);
       });
       test('index', () {
-        final source =
-            builder.withType(DataType.string).generate(6, (i) => '$i');
+        final source = builder.withType(DataType.string).generate(
+            6, (i) => '$i');
         final vector = source.index([3, 2, 2]);
         expect(vector.dataType, DataType.string);
         expect(vector.count, 3);
@@ -151,8 +153,8 @@ void vectorTest(String name, Builder builder) {
         expect(source[2], '2*');
       });
       test('index (sub index)', () {
-        final source =
-            builder.withType(DataType.string).generate(6, (i) => '$i');
+        final source = builder.withType(DataType.string).generate(
+            6, (i) => '$i');
         final vector = source.index([3, 2, 2]).index([1]);
         expect(vector.dataType, DataType.string);
         expect(vector.count, 1);
@@ -162,21 +164,34 @@ void vectorTest(String name, Builder builder) {
         expect(source[2], '2*');
       });
       test('index (range error)', () {
+        final vector = builder.withType(DataType.int8).fromList([1, 2]);
         expect(() => vector.index([-1, vector.count - 1]), throwsRangeError);
         expect(() => vector.index([0, vector.count]), throwsRangeError);
       });
+      test('unmodifiable', () {
+        final source = builder.withType(DataType.int8).fromList([1, 2]);
+        final vector = source.unmodifiable;
+        expect(vector.dataType, source.dataType);
+        expect(vector.count, source.count);
+        for (var i = 0; i < source.count; i++) {
+          expect(source[i], vector[i]);
+          expect(() => vector[i] = 0, throwsUnsupportedError);
+        }
+        source[1] = 3;
+        expect(vector[1], 3);
+        expect(vector.unmodifiable, vector);
+      });
       test('toString', () {
-        expect(vector.toString(), '${vector.runtimeType}[4]: 1, 2, 3, 5');
+        final vector = builder.withType(DataType.int8).fromList([3, 2, 1]);
+        expect(vector.toString(), '${vector.runtimeType}[3]: 3, 2, 1');
       });
     });
     group('operators', () {
       final random = Random();
-      final sourceA = builder
-          .withType(DataType.int32)
-          .generate(100, (i) => random.nextInt(100));
-      final sourceB = builder
-          .withType(DataType.int32)
-          .generate(100, (i) => random.nextInt(100));
+      final sourceA = builder.withType(DataType.int32).generate(
+          100, (i) => random.nextInt(100));
+      final sourceB = builder.withType(DataType.int32).generate(
+          100, (i) => random.nextInt(100));
       group('add', () {
         test('default', () {
           final target = add(sourceA, sourceB);
@@ -202,12 +217,12 @@ void vectorTest(String name, Builder builder) {
         });
         test('target, bad count', () {
           final target = builder.withType(DataType.int16)(sourceA.count - 1);
-          expect(
-              () => add(sourceA, sourceB, target: target), throwsArgumentError);
+          expect(() => add(sourceA, sourceB, target: target),
+              throwsArgumentError);
         });
         test('builder', () {
-          final target =
-              add(sourceA, sourceB, builder: builder.withType(DataType.int16));
+          final target = add(
+              sourceA, sourceB, builder: builder.withType(DataType.int16));
           expect(target.dataType, DataType.int16);
           expect(target.count, sourceA.count);
           for (var i = 0; i < target.count; i++) {

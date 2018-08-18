@@ -6,6 +6,7 @@ import 'builder.dart';
 import 'impl/standard_vector.dart';
 import 'view/index_vector.dart';
 import 'view/range_vector.dart';
+import 'view/unmodifiable_vector.dart';
 
 /// Abstract vector type.
 abstract class Vector<T> {
@@ -71,6 +72,9 @@ abstract class Vector<T> {
   /// the range is out of bounds.
   Vector<T> indexUnchecked(Iterable<int> indexes) =>
       IndexVector<T>(this, indexes);
+
+  /// Returns a unmodifiable view of the vector.
+  Vector<T> get unmodifiable => UnmodifiableVector<T>(this);
 
   /// Pretty prints the vector.
   @override
