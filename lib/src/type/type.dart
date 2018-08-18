@@ -58,14 +58,15 @@ abstract class DataType<T> {
 
   /// Creates a copy of a list of this data type, possibly with a modified
   /// [length] and if necessary populated with [fillValue].
-  List<T> copyList(List<T> list, {int length, T fillValue}) {
-    final result = newList(length ?? list.length);
-    if (result.length < list.length) {
+  List<T> copyList(Iterable<T> list, {int length, T fillValue}) {
+    final listLength = list.length;
+    final result = newList(length ?? listLength);
+    if (result.length <= listLength) {
       result.setRange(0, result.length, list);
     } else {
-      result.setRange(0, list.length, list);
+      result.setRange(0, listLength, list);
       if (fillValue != null && fillValue != nullValue) {
-        result.fillRange(list.length, result.length, fillValue);
+        result.fillRange(listLength, result.length, fillValue);
       }
     }
     return result;
