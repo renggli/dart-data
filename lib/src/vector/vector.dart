@@ -4,7 +4,8 @@ import 'package:data/type.dart';
 
 import 'builder.dart';
 import 'impl/standard_vector.dart';
-import 'view/sub_vector.dart';
+import 'view/index_vector.dart';
+import 'view/range_vector.dart';
 
 /// Abstract vector type.
 abstract class Vector<T> {
@@ -41,21 +42,35 @@ abstract class Vector<T> {
   /// undefined if [index] is outside of bounds.
   void setUnchecked(int index, T value);
 
-  /// Returns a mutable view onto a sub-vector. Throws a [RangeError], if
+  /// Returns a mutable view onto a vector range. Throws a [RangeError], if
   /// the index is out of bounds.
-  Vector<T> subVector(int start, int end) {
+  Vector<T> range(int start, int end) {
     RangeError.checkValidRange(start, end, count, 'start', 'end');
     if (start == 0 && end == count) {
       return this;
     } else {
-      return subVectorUnchecked(start, end);
+      return rangeUnchecked(start, end);
     }
   }
 
-  /// Returns a mutable view onto a sub-matrix. The behavior is undefined, if
-  /// the ranges is out of bounds.
-  Vector<T> subVectorUnchecked(int start, int end) =>
-      SubVector<T>(this, start, end);
+  /// Returns a mutable view onto a vector range. The behavior is undefined, if
+  /// the range is out of bounds.
+  Vector<T> rangeUnchecked(int start, int end) =>
+      RangeVector<T>(this, start, end);
+
+  /// Returns a mutable view onto indexes of a vector. Throws a [RangeError], if
+  /// any of the indexes index is out of bounds.
+  Vector<T> index(Iterable<int> indexes) {
+    for (var index in indexes) {
+      RangeError.checkValueInInterval(index, 0, count - 1, 'indexes');
+    }
+    return indexUnchecked(indexes);
+  }
+
+  /// Returns a mutable view onto a vector range. The behavior is undefined, if
+  /// the range is out of bounds.
+  Vector<T> indexUnchecked(Iterable<int> indexes) =>
+      IndexVector<T>(this, indexes);
 
   /// Pretty prints the vector.
   @override
