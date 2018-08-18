@@ -5,6 +5,7 @@ import 'package:data/type.dart';
 import '../../shared/config.dart';
 import '../vector.dart';
 
+// A mutable indexed view of a vector.
 class IndexVector<T> extends Vector<T> {
   final Vector<T> _vector;
   final List<int> _indexes;
@@ -27,5 +28,5 @@ class IndexVector<T> extends Vector<T> {
 
   @override
   Vector<T> indexUnchecked(Iterable<int> indexes) =>
-      IndexVector(_vector, indexes.map((index) => _indexes[index]));
+      IndexVector<T>(_vector, indexes.map((index) => _indexes[index]));
 }
