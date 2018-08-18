@@ -69,7 +69,7 @@ abstract class Vector<T> {
   }
 
   /// Returns a mutable view onto a vector range. The behavior is undefined, if
-  /// the range is out of bounds.
+  /// any of the indexes are out of bounds.
   Vector<T> indexUnchecked(Iterable<int> indexes) =>
       IndexVector<T>(this, indexes);
 
