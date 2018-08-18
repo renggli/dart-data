@@ -159,9 +159,7 @@ class LUDecomposition {
 
     // Copy right hand side with pivoting
     final nx = B.colCount;
-    final X = Matrix.builder
-        .withType(valueDataType)
-        .fromIndexesAndRange(B, _piv, 0, nx);
+    final X = B.rowIndexUnchecked(_piv);
 
     // Solve L*Y = B(piv,:)
     for (var k = 0; k < _n; k++) {

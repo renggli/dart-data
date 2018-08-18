@@ -125,125 +125,6 @@ void matrixTest(String name, Builder builder) {
           }
         }
       });
-      test('fromRanges', () {
-        final source = builder
-            .withType(DataType.string)
-            .generate(5, 6, (row, col) => '($row, $col)');
-        final matrix =
-            builder.withType(DataType.string).fromRanges(source, 1, 4, 3, 5);
-        expect(matrix.dataType, DataType.string);
-        expect(matrix.rowCount, 3);
-        expect(matrix.colCount, 2);
-        expect(matrix.get(0, 0), '(1, 3)');
-        expect(matrix.get(0, 1), '(1, 4)');
-        expect(matrix.get(1, 0), '(2, 3)');
-        expect(matrix.get(1, 1), '(2, 4)');
-        expect(matrix.get(2, 0), '(3, 3)');
-        expect(matrix.get(2, 1), '(3, 4)');
-      });
-      test('fromRanges (argument error)', () {
-        final source = builder(5, 6);
-        expect(
-            () => builder.fromRanges(source, -1, 5, 0, 6), throwsArgumentError);
-        expect(
-            () => builder.fromRanges(source, 0, 6, 0, 6), throwsArgumentError);
-        expect(
-            () => builder.fromRanges(source, 0, 5, -1, 6), throwsArgumentError);
-        expect(
-            () => builder.fromRanges(source, 0, 5, 0, 7), throwsArgumentError);
-      });
-      test('fromRangeAndIndexes', () {
-        final source = builder
-            .withType(DataType.string)
-            .generate(5, 6, (row, col) => '($row, $col)');
-        final matrix = builder
-            .withType(DataType.string)
-            .fromRangeAndIndexes(source, 1, 3, [0, 0, 5]);
-        expect(matrix.dataType, DataType.string);
-        expect(matrix.rowCount, 2);
-        expect(matrix.colCount, 3);
-        expect(matrix.get(0, 0), '(1, 0)');
-        expect(matrix.get(0, 1), '(1, 0)');
-        expect(matrix.get(0, 2), '(1, 5)');
-        expect(matrix.get(1, 0), '(2, 0)');
-        expect(matrix.get(1, 1), '(2, 0)');
-        expect(matrix.get(1, 2), '(2, 5)');
-      });
-      test('fromRangeAndIndexes (argument error)', () {
-        final source = builder(5, 6);
-        expect(() => builder.fromRangeAndIndexes(source, -1, 5, [0, 5]),
-            throwsArgumentError);
-        expect(() => builder.fromRangeAndIndexes(source, 0, 6, [0, 5]),
-            throwsArgumentError);
-        expect(() => builder.fromRangeAndIndexes(source, 0, 5, []),
-            throwsArgumentError);
-        expect(() => builder.fromRangeAndIndexes(source, 0, 5, [-1, 5]),
-            throwsArgumentError);
-        expect(() => builder.fromRangeAndIndexes(source, 0, 5, [0, 6]),
-            throwsArgumentError);
-      });
-      test('fromIndexesAndRanges', () {
-        final source = builder
-            .withType(DataType.string)
-            .generate(5, 6, (row, col) => '($row, $col)');
-        final matrix = builder
-            .withType(DataType.string)
-            .fromIndexesAndRange(source, [0, 4, 0], 1, 3);
-        expect(matrix.dataType, DataType.string);
-        expect(matrix.rowCount, 3);
-        expect(matrix.colCount, 2);
-        expect(matrix.get(0, 0), '(0, 1)');
-        expect(matrix.get(0, 1), '(0, 2)');
-        expect(matrix.get(1, 0), '(4, 1)');
-        expect(matrix.get(1, 1), '(4, 2)');
-        expect(matrix.get(2, 0), '(0, 1)');
-        expect(matrix.get(2, 1), '(0, 2)');
-      });
-      test('fromIndexesAndRanges (argument error)', () {
-        final source = builder(5, 6);
-        expect(() => builder.fromIndexesAndRange(source, [], 0, 5),
-            throwsArgumentError);
-        expect(() => builder.fromIndexesAndRange(source, [-1, 4], 0, 5),
-            throwsArgumentError);
-        expect(() => builder.fromIndexesAndRange(source, [0, 5], 0, 5),
-            throwsArgumentError);
-        expect(() => builder.fromIndexesAndRange(source, [0, 4], -1, 5),
-            throwsArgumentError);
-        expect(() => builder.fromIndexesAndRange(source, [0, 4], 0, 7),
-            throwsArgumentError);
-      });
-      test('fromIndexes', () {
-        final source = builder
-            .withType(DataType.string)
-            .generate(5, 6, (row, col) => '($row, $col)');
-        final matrix = builder
-            .withType(DataType.string)
-            .fromIndexes(source, [3, 2, 2], [1, 0]);
-        expect(matrix.dataType, DataType.string);
-        expect(matrix.rowCount, 3);
-        expect(matrix.colCount, 2);
-        expect(matrix.get(0, 0), '(3, 1)');
-        expect(matrix.get(0, 1), '(3, 0)');
-        expect(matrix.get(1, 0), '(2, 1)');
-        expect(matrix.get(1, 1), '(2, 0)');
-        expect(matrix.get(2, 0), '(2, 1)');
-        expect(matrix.get(2, 1), '(2, 0)');
-      });
-      test('fromIndexes (argument error)', () {
-        final source = builder(5, 6);
-        expect(
-            () => builder.fromIndexes(source, [], [0, 5]), throwsArgumentError);
-        expect(() => builder.fromIndexes(source, [-1, 4], [0, 5]),
-            throwsArgumentError);
-        expect(() => builder.fromIndexes(source, [0, 5], [0, 5]),
-            throwsArgumentError);
-        expect(
-            () => builder.fromIndexes(source, [0, 4], []), throwsArgumentError);
-        expect(() => builder.fromIndexes(source, [0, 4], [-1, 5]),
-            throwsArgumentError);
-        expect(() => builder.fromIndexes(source, [0, 4], [0, 6]),
-            throwsArgumentError);
-      });
       test('fromRows', () {
         final matrix = builder.withType(DataType.int8).fromRows([
           [1, 2, 3],
@@ -260,8 +141,6 @@ void matrixTest(String name, Builder builder) {
         expect(matrix.get(1, 2), 6);
       });
       test('fromRows (argument error)', () {
-        expect(() => builder.fromRows([]), throwsArgumentError);
-        expect(() => builder.fromRows([[]]), throwsArgumentError);
         expect(
             () => builder.fromRows([
                   [1],
@@ -300,8 +179,6 @@ void matrixTest(String name, Builder builder) {
         expect(matrix.get(2, 1), 6);
       });
       test('fromColumns (argument error)', () {
-        expect(() => builder.fromColumns([]), throwsArgumentError);
-        expect(() => builder.fromColumns([[]]), throwsArgumentError);
         expect(
             () => builder.fromColumns([
                   [1],
@@ -326,11 +203,7 @@ void matrixTest(String name, Builder builder) {
       });
     });
     group('accessing', () {
-      final matrix = builder.withType(DataType.int8).fromRows([
-        [1, 2, 3],
-        [4, 5, 6],
-      ]);
-      test('random order', () {
+      test('random', () {
         final matrix = builder(8, 12);
         final points = <Point>[];
         for (var row = 0; row < matrix.rowCount; row++) {
@@ -369,24 +242,25 @@ void matrixTest(String name, Builder builder) {
           }
         }
       });
-      test('read (out of bounds)', () {
+      test('read (range error)', () {
+        final matrix = builder.withType(DataType.int8).fromRows([
+          [1, 2, 3],
+          [4, 5, 6],
+        ]);
         expect(() => matrix.get(-1, 0), throwsRangeError);
         expect(() => matrix.get(0, -1), throwsRangeError);
         expect(() => matrix.get(matrix.rowCount, 0), throwsRangeError);
         expect(() => matrix.get(0, matrix.colCount), throwsRangeError);
       });
-      test('write (out of bounds)', () {
+      test('write (range error)', () {
+        final matrix = builder.withType(DataType.int8).fromRows([
+          [1, 2, 3],
+          [4, 5, 6],
+        ]);
         expect(() => matrix.set(-1, 0, 0), throwsRangeError);
         expect(() => matrix.set(0, -1, 0), throwsRangeError);
         expect(() => matrix.set(matrix.rowCount, 0, 0), throwsRangeError);
         expect(() => matrix.set(0, matrix.colCount, 0), throwsRangeError);
-      });
-      test('toString', () {
-        expect(
-            matrix.toString(),
-            '${matrix.runtimeType}[${matrix.rowCount}, ${matrix.colCount}]:\n'
-            '  1  2  3\n'
-            '  4  5  6');
       });
     });
     group('views', () {
@@ -419,7 +293,7 @@ void matrixTest(String name, Builder builder) {
             .withType(DataType.string)
             .generate(5, 4, (r, c) => '($r, $c)');
         for (var c = 0; c < matrix.colCount; c++) {
-          final column = matrix.column(c);
+          final column = matrix.col(c);
           expect(column.dataType, matrix.dataType);
           for (var r = 0; r < matrix.rowCount; r++) {
             expect(column[r], '($r, $c)');
@@ -430,8 +304,8 @@ void matrixTest(String name, Builder builder) {
           expect(() => column[-1] += '*', throwsRangeError);
           expect(() => column[matrix.rowCount] += '*', throwsRangeError);
         }
-        expect(() => matrix.column(-1), throwsRangeError);
-        expect(() => matrix.column(4), throwsRangeError);
+        expect(() => matrix.col(-1), throwsRangeError);
+        expect(() => matrix.col(4), throwsRangeError);
         for (var row = 0; row < matrix.rowCount; row++) {
           for (var col = 0; col < matrix.colCount; col++) {
             expect(matrix.get(row, col), '($row, $col)*');
@@ -498,51 +372,129 @@ void matrixTest(String name, Builder builder) {
           }
         });
       });
-      group('submatrix', () {
-        final matrix = builder
-            .withType(DataType.string)
-            .generate(10, 10, (row, col) => '($row, $col)');
-        final view = matrix.range(2, 5, 4, 9);
-        test('accessing', () {
-          expect(view.dataType, matrix.dataType);
-          expect(view.rowCount, 3);
-          expect(view.colCount, 5);
-          for (var row = 0; row < view.rowCount; row++) {
-            for (var col = 0; col < view.colCount; col++) {
-              expect(view.get(row, col), '(${row + 2}, ${col + 4})');
-              view.set(row, col, '${view.get(row, col)}*');
-            }
-          }
+      group('range', () {
+        final source = builder.generate(7, 8, (row, col) => Point(row, col));
+        test('row', () {
+          final matrix = source.rowRange(1, 3);
+          expect(matrix.dataType, source.dataType);
+          expect(matrix.rowCount, 2);
+          expect(matrix.colCount, source.colCount);
           for (var row = 0; row < matrix.rowCount; row++) {
             for (var col = 0; col < matrix.colCount; col++) {
-              if (2 <= row && row < 5 && 4 <= col && col < 9) {
-                expect(matrix.get(row, col), '($row, $col)*');
-              } else {
-                expect(matrix.get(row, col), '($row, $col)');
-              }
+              expect(matrix.get(row, col), Point(row + 1, col));
             }
           }
         });
-        test('out of bounds', () {
-          expect(matrix.range(0, matrix.rowCount, 0, matrix.colCount), matrix);
-          expect(() => matrix.range(-1, matrix.rowCount, 0, matrix.colCount),
+        test('column', () {
+          final matrix = source.colRange(1, 4);
+          expect(matrix.dataType, source.dataType);
+          expect(matrix.rowCount, source.rowCount);
+          expect(matrix.colCount, 3);
+          for (var row = 0; row < matrix.rowCount; row++) {
+            for (var col = 0; col < matrix.colCount; col++) {
+              expect(matrix.get(row, col), Point(row, col + 1));
+            }
+          }
+        });
+        test('row and column', () {
+          final view = source.range(1, 3, 2, 4);
+          expect(view.dataType, source.dataType);
+          expect(view.rowCount, 2);
+          expect(view.colCount, 2);
+          for (var row = 0; row < view.rowCount; row++) {
+            for (var col = 0; col < view.colCount; col++) {
+              expect(view.get(row, col), Point(row + 1, col + 2));
+            }
+          }
+        });
+        test('sub range', () {
+          final view = source
+              .range(1, source.rowCount - 2, 1, source.colCount - 2)
+              .range(1, source.rowCount - 3, 1, source.colCount - 3);
+          expect(view.dataType, source.dataType);
+          expect(view.rowCount, source.rowCount - 4);
+          expect(view.colCount, source.colCount - 4);
+          for (var row = 0; row < view.rowCount; row++) {
+            for (var col = 0; col < view.colCount; col++) {
+              expect(view.get(row, col), Point(row + 2, col + 2));
+            }
+          }
+        });
+        test('full range', () {
+          final view = source.range(0, source.rowCount, 0, source.colCount);
+          expect(view, source);
+        });
+        test('range error', () {
+          expect(() => source.range(-1, source.rowCount, 0, source.colCount),
               throwsRangeError);
-          expect(() => matrix.range(0, matrix.rowCount + 1, 0, matrix.colCount),
+          expect(() => source.range(0, source.rowCount + 1, 0, source.colCount),
               throwsRangeError);
-          expect(() => matrix.range(0, matrix.rowCount, -1, matrix.colCount),
+          expect(() => source.range(0, source.rowCount, -1, source.colCount),
               throwsRangeError);
-          expect(() => matrix.range(0, matrix.rowCount, 0, matrix.colCount + 1),
+          expect(() => source.range(0, source.rowCount, 0, source.colCount + 1),
               throwsRangeError);
         });
-        test('out of bounds on sub-view', () {
-          expect(view.range(0, view.rowCount, 0, view.colCount), view);
-          expect(() => view.range(-1, view.rowCount, 0, view.colCount),
+      });
+      group('index', () {
+        final source = builder.generate(6, 4, (row, col) => Point(row, col));
+        test('row', () {
+          final matrix = source.rowIndex([5, 0, 4]);
+          expect(matrix.dataType, source.dataType);
+          expect(matrix.rowCount, 3);
+          expect(matrix.colCount, source.colCount);
+          for (var row = 0; row < matrix.rowCount; row++) {
+            for (var col = 0; col < matrix.colCount; col++) {
+              expect(matrix.get(row, col),
+                  Point(row == 0 ? 5 : row == 1 ? 0 : 4, col));
+            }
+          }
+        });
+        test('column', () {
+          final matrix = source.colIndex([3, 0, 0]);
+          expect(matrix.dataType, source.dataType);
+          expect(matrix.rowCount, source.rowCount);
+          expect(matrix.colCount, 3);
+          for (var row = 0; row < matrix.rowCount; row++) {
+            for (var col = 0; col < matrix.colCount; col++) {
+              expect(matrix.get(row, col), Point(row, col == 0 ? 3 : 0));
+            }
+          }
+        });
+        test('row and column', () {
+          final view = source.index([0, 5], [3, 0]);
+          expect(view.dataType, source.dataType);
+          expect(view.rowCount, 2);
+          expect(view.colCount, 2);
+          for (var row = 0; row < view.rowCount; row++) {
+            for (var col = 0; col < view.colCount; col++) {
+              expect(view.get(row, col),
+                  Point(row == 0 ? 0 : 5, col == 0 ? 3 : 0));
+            }
+          }
+        });
+        test('sub index', () {
+          final view = source.index([2, 3, 0], [1, 2]).index([2], [1]);
+          expect(view.dataType, source.dataType);
+          expect(view.rowCount, 1);
+          expect(view.colCount, 1);
+          expect(view.get(0, 0), Point(0, 2));
+        });
+        test('range error', () {
+          expect(
+              () => source
+                  .index([-1, source.rowCount - 1], [0, source.colCount - 1]),
               throwsRangeError);
-          expect(() => view.range(0, view.rowCount + 1, 0, view.colCount),
+          expect(
+              () =>
+                  source.index([0, source.rowCount], [0, source.colCount - 1]),
               throwsRangeError);
-          expect(() => view.range(0, view.rowCount, -1, view.colCount),
+          expect(
+              () => source
+                  .index([0, source.rowCount - 1], [-1, source.colCount - 1]),
               throwsRangeError);
-          expect(() => view.range(0, view.rowCount, 0, view.colCount + 1),
+          expect(
+              () =>
+                  source.index([0, source.rowCount - 1], [0, source.colCount]),
               throwsRangeError);
         });
       });

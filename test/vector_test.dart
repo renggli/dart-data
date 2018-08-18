@@ -66,7 +66,7 @@ void vectorTest(String name, Builder builder) {
       });
     });
     group('accesssing', () {
-      test('random order', () {
+      test('random', () {
         final vector = builder(100);
         final values = <int>[];
         for (var i = 0; i < vector.count; i++) {
@@ -107,6 +107,8 @@ void vectorTest(String name, Builder builder) {
         expect(() => vector[-1] = 1, throwsRangeError);
         expect(() => vector[vector.count] = 1, throwsRangeError);
       });
+    });
+    group('view', () {
       test('range', () {
         final source =
             builder.withType(DataType.string).generate(6, (i) => '$i');
@@ -120,7 +122,7 @@ void vectorTest(String name, Builder builder) {
         expect(vector[1], '2*');
         expect(source[2], '2*');
       });
-      test('range (same range)', () {
+      test('range (full range)', () {
         final vector = builder.withType(DataType.int8).fromList([1, 2]);
         expect(vector.range(0, vector.count), vector);
       });
@@ -137,6 +139,7 @@ void vectorTest(String name, Builder builder) {
       });
       test('range (range error)', () {
         final vector = builder.withType(DataType.int8).fromList([1, 2]);
+        expect(vector.range(0, vector.count), vector);
         expect(() => vector.range(-1, vector.count), throwsRangeError);
         expect(() => vector.range(0, vector.count + 1), throwsRangeError);
       });
@@ -166,6 +169,7 @@ void vectorTest(String name, Builder builder) {
       });
       test('index (range error)', () {
         final vector = builder.withType(DataType.int8).fromList([1, 2]);
+        expect(() => vector.index([0, 1]), isNot(throwsRangeError));
         expect(() => vector.index([-1, vector.count - 1]), throwsRangeError);
         expect(() => vector.index([0, vector.count]), throwsRangeError);
       });

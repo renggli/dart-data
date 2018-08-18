@@ -7,6 +7,7 @@ import 'builder.dart';
 import 'impl/row_major_matrix.dart';
 import 'view/column_vector.dart';
 import 'view/diagonal_vector.dart';
+import 'view/index_matrix.dart';
 import 'view/range_matrix.dart';
 import 'view/row_vector.dart';
 import 'view/transpose_matrix.dart';
@@ -67,21 +68,21 @@ abstract class Matrix<T> {
 
   /// Returns a mutable column vector of this matrix. Throws a [RangeError], if
   /// [col] is out of bounds.
-  Vector<T> column(int col) {
+  Vector<T> col(int col) {
     RangeError.checkValidIndex(col, this, 'col', colCount);
-    return columnUnchecked(col);
+    return colUnchecked(col);
   }
 
   /// Returns a mutable column vector of this matrix. The behavior is undefined,
   /// if [col] is out of bounds. An offset of `0` refers to the diagonal in the
   /// center of the matrix, a negative offset to the diagonals above, a positive
   /// offset to the diagonals below.
-  Vector<T> columnUnchecked(int col) => ColumnVector<T>(this, col);
+  Vector<T> colUnchecked(int col) => ColumnVector<T>(this, col);
 
   /// Returns a mutable diagonal vector of this matrix. Throws a [RangeError],
   /// if [offset] is out of bounds. An offset of `0` refers to the diagonal
   /// in the center of the matrix, a negative offset to the diagonals above,
-  /// a positive offset to the diagonals below.
+  /// and a positive offset to the diagonals below.
   Vector<T> diagonal([int offset = 0]) {
     RangeError.checkValueInInterval(
         offset, -colCount + 1, rowCount - 1, 'offset');
@@ -89,7 +90,9 @@ abstract class Matrix<T> {
   }
 
   /// Returns a mutable diagonal vector of the matrix. The behavior is
-  /// undefined, if [offset] is out of bounds.
+  /// undefined, if [offset] is out of bounds. An offset of `0` refers to the
+  /// diagonal in the center of the matrix, a negative offset to the diagonals
+  /// above, and a positive offset to the diagonals below.
   Vector<T> diagonalUnchecked([int offset = 0]) =>
       DiagonalVector<T>(this, offset);
 
@@ -135,6 +138,48 @@ abstract class Matrix<T> {
   Matrix<T> rangeUnchecked(
           int rowStart, int rowEnd, int colStart, int colEnd) =>
       RangeMatrix<T>(this, rowStart, rowEnd, colStart, colEnd);
+
+  /// Returns a mutable view onto row indexes. Throws a [RangeError], if
+  /// any of the [rowIndexes] are out of bounds.
+  Matrix<T> rowIndex(Iterable<int> rowIndexes) => index(rowIndexes, null);
+
+  /// Returns a mutable view onto row indexes. The behavior is undefined, if
+  /// any of the [rowIndexes] are out of bounds.
+  Matrix<T> rowIndexUnchecked(Iterable<int> rowIndexes) =>
+      indexUnchecked(rowIndexes, null);
+
+  /// Returns a mutable view onto column indexes. Throws a [RangeError], if
+  /// any of the [colIndexes] are out of bounds.
+  Matrix<T> colIndex(Iterable<int> colIndexes) => index(null, colIndexes);
+
+  /// Returns a mutable view onto column indexes. The behavior is undefined, if
+  /// any of the [colIndexes] are out of bounds.
+  Matrix<T> colIndexUnchecked(Iterable<int> colIndexes) =>
+      indexUnchecked(null, colIndexes);
+
+  /// Returns a mutable view onto row and column indexes. Throws a
+  /// [RangeError], if any of the indexes are out of bounds.
+  Matrix<T> index(Iterable<int> rowIndexes, Iterable<int> colIndexes) {
+    if (rowIndexes != null) {
+      for (var index in rowIndexes) {
+        RangeError.checkValueInInterval(index, 0, rowCount - 1, 'rowIndexes');
+      }
+    }
+    if (colIndexes != null) {
+      for (var index in colIndexes) {
+        RangeError.checkValueInInterval(index, 0, colCount - 1, 'colIndexes');
+      }
+    }
+    // TODO(renggli): Come up with something more efficient for default indexes.
+    return indexUnchecked(rowIndexes ?? List.generate(rowCount, (i) => i),
+        colIndexes ?? List.generate(colCount, (i) => i));
+  }
+
+  /// Returns a mutable view onto row and column indexes. The behavior is
+  /// undefined if any of the indexes are out of bounds.
+  Matrix<T> indexUnchecked(
+          Iterable<int> rowIndexes, Iterable<int> colIndexes) =>
+      IndexMatrix<T>(this, rowIndexes, colIndexes);
 
   /// Returns a mutable view onto the transposed matrix.
   Matrix<T> get transpose => TransposeMatrix<T>(this);
