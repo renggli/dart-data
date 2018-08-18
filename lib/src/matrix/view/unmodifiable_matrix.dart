@@ -4,7 +4,7 @@ import 'package:data/src/type/type.dart';
 
 import '../matrix.dart';
 
-/// An immutable matrix.
+/// An unmodifiable matrix.
 class UnmodifiableMatrix<T> extends Matrix<T> {
   final Matrix<T> _matrix;
 
