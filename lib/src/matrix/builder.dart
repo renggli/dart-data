@@ -247,10 +247,7 @@ class Builder<T> {
 
   /// Builds a matrix from a nested list of rows.
   Matrix<T> fromRows(List<List<T>> source) {
-    if (source.isEmpty || source[0].isEmpty) {
-      throw ArgumentError.value(source, 'source', 'Rows must not be empty.');
-    }
-    final result = this(source.length, source[0].length);
+    final result = this(source.length, source.isEmpty ? 0 : source[0].length);
     for (var row = 0; row < result.rowCount; row++) {
       final sourceRow = source[row];
       if (sourceRow.length != result.colCount) {
@@ -285,10 +282,7 @@ class Builder<T> {
 
   /// Builds a matrix from a nested list of columns.
   Matrix<T> fromColumns(List<List<T>> source) {
-    if (source.isEmpty || source[0].isEmpty) {
-      throw ArgumentError.value(source, 'source', 'Columns must not be empty.');
-    }
-    final result = this(source[0].length, source.length);
+    final result = this(source.isEmpty ? 0 : source[0].length, source.length);
     for (var col = 0; col < result.colCount; col++) {
       final sourceCol = source[col];
       if (sourceCol.length != result.rowCount) {
