@@ -7,8 +7,8 @@ import 'builder.dart';
 import 'impl/row_major_matrix.dart';
 import 'view/column_vector.dart';
 import 'view/diagonal_vector.dart';
+import 'view/range_matrix.dart';
 import 'view/row_vector.dart';
-import 'view/sub_matrix.dart';
 import 'view/transpose_matrix.dart';
 import 'view/unmodifiable_matrix.dart';
 
@@ -93,9 +93,29 @@ abstract class Matrix<T> {
   Vector<T> diagonalUnchecked([int offset = 0]) =>
       DiagonalVector<T>(this, offset);
 
-  /// Returns a mutable view onto a sub-matrix. Throws a [RangeError], if
-  /// any of the indexes are out of bounds.
-  Matrix<T> subMatrix(int rowStart, int rowEnd, int colStart, int colEnd) {
+  /// Returns a mutable view onto the row range. Throws a [RangeError], if
+  /// [rowStart] or [rowEnd] are out of bounds.
+  Matrix<T> rowRange(int rowStart, int rowEnd) =>
+      range(rowStart, rowEnd, 0, colCount);
+
+  /// Returns a mutable view onto the row range. The behavior is undefined, if
+  /// [rowStart] or [rowEnd] are out of bounds.
+  Matrix<T> rowRangeUnchecked(int rowStart, int rowEnd) =>
+      rangeUnchecked(rowStart, rowEnd, 0, colCount);
+
+  /// Returns a mutable view onto the row range. Throws a [RangeError], if
+  /// [colStart] or [colEnd] are out of bounds.
+  Matrix<T> colRange(int colStart, int colEnd) =>
+      range(0, rowCount, colStart, colEnd);
+
+  /// Returns a mutable view onto the row range. The behavior is undefed, if
+  /// [colStart] or [colEnd] are out of bounds.
+  Matrix<T> colRangeUnchecked(int colStart, int colEnd) =>
+      rangeUnchecked(0, rowCount, colStart, colEnd);
+
+  /// Returns a mutable view onto the row and column ranges. Throws a
+  /// [RangeError], if any of the ranges are out of bounds.
+  Matrix<T> range(int rowStart, int rowEnd, int colStart, int colEnd) {
     RangeError.checkValidRange(
         rowStart, rowEnd, rowCount, 'rowStart', 'rowEnd');
     RangeError.checkValidRange(
@@ -106,15 +126,15 @@ abstract class Matrix<T> {
         colEnd == colCount) {
       return this;
     } else {
-      return subMatrixUnchecked(rowStart, rowEnd, colStart, colEnd);
+      return rangeUnchecked(rowStart, rowEnd, colStart, colEnd);
     }
   }
 
-  /// Returns a mutable view onto a sub-matrix. The behavior is undefined if
-  /// any of the ranges are out of bounds.
-  Matrix<T> subMatrixUnchecked(
+  /// Returns a mutable view onto the row and column ranges. The behavior is
+  /// undefined if any of the ranges are out of bounds.
+  Matrix<T> rangeUnchecked(
           int rowStart, int rowEnd, int colStart, int colEnd) =>
-      SubMatrix<T>(this, rowStart, rowEnd, colStart, colEnd);
+      RangeMatrix<T>(this, rowStart, rowEnd, colStart, colEnd);
 
   /// Returns a mutable view onto the transposed matrix.
   Matrix<T> get transpose => TransposeMatrix<T>(this);

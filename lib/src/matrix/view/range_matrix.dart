@@ -1,16 +1,16 @@
-library data.matrix.view.sub_matrix;
+library data.matrix.view.range_matrix;
 
 import 'package:data/src/type/type.dart';
 
 import '../matrix.dart';
 
-/// A mutable view onto a region of a matrix.
-class SubMatrix<T> extends Matrix<T> {
+/// A mutable range of the rows and columns of a matrix.
+class RangeMatrix<T> extends Matrix<T> {
   final Matrix<T> _matrix;
   final int _rowStart;
   final int _colStart;
 
-  SubMatrix(
+  RangeMatrix(
       this._matrix, this._rowStart, int rowEnd, this._colStart, int colEnd)
       : rowCount = rowEnd - _rowStart,
         colCount = colEnd - _colStart;
@@ -33,8 +33,8 @@ class SubMatrix<T> extends Matrix<T> {
       _matrix.setUnchecked(_rowStart + row, _colStart + col, value);
 
   @override
-  Matrix<T> subMatrixUnchecked(
+  Matrix<T> rangeUnchecked(
           int rowStart, int rowEnd, int colStart, int colEnd) =>
-      SubMatrix<T>(_matrix, _rowStart + rowStart, _rowStart + rowEnd,
+      RangeMatrix<T>(_matrix, _rowStart + rowStart, _rowStart + rowEnd,
           _colStart + colStart, _colStart + colEnd);
 }

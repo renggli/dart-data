@@ -502,7 +502,7 @@ void matrixTest(String name, Builder builder) {
         final matrix = builder
             .withType(DataType.string)
             .generate(10, 10, (row, col) => '($row, $col)');
-        final view = matrix.subMatrix(2, 5, 4, 9);
+        final view = matrix.range(2, 5, 4, 9);
         test('accessing', () {
           expect(view.dataType, matrix.dataType);
           expect(view.rowCount, 3);
@@ -525,31 +525,31 @@ void matrixTest(String name, Builder builder) {
         });
         test('out of bounds', () {
           expect(
-              matrix.subMatrix(0, matrix.rowCount, 0, matrix.colCount), matrix);
+              matrix.range(0, matrix.rowCount, 0, matrix.colCount), matrix);
           expect(
-              () => matrix.subMatrix(-1, matrix.rowCount, 0, matrix.colCount),
+              () => matrix.range(-1, matrix.rowCount, 0, matrix.colCount),
               throwsRangeError);
           expect(
               () =>
-                  matrix.subMatrix(0, matrix.rowCount + 1, 0, matrix.colCount),
+                  matrix.range(0, matrix.rowCount + 1, 0, matrix.colCount),
               throwsRangeError);
           expect(
-              () => matrix.subMatrix(0, matrix.rowCount, -1, matrix.colCount),
+              () => matrix.range(0, matrix.rowCount, -1, matrix.colCount),
               throwsRangeError);
           expect(
               () =>
-                  matrix.subMatrix(0, matrix.rowCount, 0, matrix.colCount + 1),
+                  matrix.range(0, matrix.rowCount, 0, matrix.colCount + 1),
               throwsRangeError);
         });
         test('out of bounds on sub-view', () {
-          expect(view.subMatrix(0, view.rowCount, 0, view.colCount), view);
-          expect(() => view.subMatrix(-1, view.rowCount, 0, view.colCount),
+          expect(view.range(0, view.rowCount, 0, view.colCount), view);
+          expect(() => view.range(-1, view.rowCount, 0, view.colCount),
               throwsRangeError);
-          expect(() => view.subMatrix(0, view.rowCount + 1, 0, view.colCount),
+          expect(() => view.range(0, view.rowCount + 1, 0, view.colCount),
               throwsRangeError);
-          expect(() => view.subMatrix(0, view.rowCount, -1, view.colCount),
+          expect(() => view.range(0, view.rowCount, -1, view.colCount),
               throwsRangeError);
-          expect(() => view.subMatrix(0, view.rowCount, 0, view.colCount + 1),
+          expect(() => view.range(0, view.rowCount, 0, view.colCount + 1),
               throwsRangeError);
         });
       });
