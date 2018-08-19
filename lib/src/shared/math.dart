@@ -3,7 +3,7 @@ library data.shared.math;
 import 'dart:math' as math;
 
 /// sqrt(a^2 + b^2) without under/overflow. **/
-double hypot(double a, double b) {
+double hypot(num a, num b) {
   if (a.abs() > b.abs()) {
     final r = b / a;
     return a.abs() * math.sqrt(1 + r * r);
