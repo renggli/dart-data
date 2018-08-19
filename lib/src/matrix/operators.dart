@@ -21,7 +21,7 @@ Matrix<T> _targetOrBuilder<T>(int rowCount, int colCount, Matrix<T> target,
   throw ArgumentError('Expected either a "target" or a "builder".');
 }
 
-/// Helper to add two numeric matrices [sourceA] and [sourceB].
+/// Adds two numeric matrices [sourceA] and [sourceB].
 Matrix<T> add<T extends num>(Matrix<T> sourceA, Matrix<T> sourceB,
     {Matrix<T> target, Builder<T> builder}) {
   if (sourceA.rowCount != sourceB.rowCount ||
@@ -39,7 +39,7 @@ Matrix<T> add<T extends num>(Matrix<T> sourceA, Matrix<T> sourceB,
   return result;
 }
 
-/// Helper to subtract two numeric matrices [sourceA] and [sourceB].
+/// Subtracts two numeric matrices [sourceB] from [sourceA].
 Matrix<T> sub<T extends num>(Matrix<T> sourceA, Matrix<T> sourceB,
     {Matrix<T> target, Builder<T> builder}) {
   if (sourceA.rowCount != sourceB.rowCount ||
@@ -57,7 +57,20 @@ Matrix<T> sub<T extends num>(Matrix<T> sourceA, Matrix<T> sourceB,
   return result;
 }
 
-/// Helper to scale a matrix [source] with a [factor].
+/// Negate a numeric matrix [source].
+Matrix<T> neg<T extends num>(Matrix<T> source,
+    {Matrix<T> target, Builder<T> builder}) {
+  final result = _targetOrBuilder(
+      source.rowCount, source.colCount, target, builder, source.dataType);
+  for (var r = 0; r < result.rowCount; r++) {
+    for (var c = 0; c < result.colCount; c++) {
+      result.setUnchecked(r, c, -source.getUnchecked(r, c));
+    }
+  }
+  return result;
+}
+
+/// Scale a numeric matrix [source] with a [factor].
 Matrix<T> scale<T extends num>(T factor, Matrix<T> source,
     {Matrix<T> target, Builder<T> builder}) {
   final result = _targetOrBuilder(
@@ -70,7 +83,25 @@ Matrix<T> scale<T extends num>(T factor, Matrix<T> source,
   return result;
 }
 
-/// Helper to multiply two numeric matrices [sourceA] and [sourceB].
+/// Interpolates linearly between [m0] and [m1] with a factor [t].
+Matrix<double> lerp<T extends num>(Matrix<T> m0, Matrix<T> m1, double t,
+    {Matrix<double> target, Builder<double> builder}) {
+  if (m0.rowCount != m1.rowCount || m0.colCount != m1.colCount) {
+    throw ArgumentError('Source matrices do not match in size.');
+  }
+  final t1 = 1.0 - t;
+  final result = _targetOrBuilder(
+      m0.rowCount, m0.colCount, target, builder, DataType.float64);
+  for (var r = 0; r < result.rowCount; r++) {
+    for (var c = 0; c < result.colCount; c++) {
+      result.setUnchecked(
+          r, c, t1 * m0.getUnchecked(r, c) + t * m1.getUnchecked(r, c));
+    }
+  }
+  return result;
+}
+
+/// Multiplies two numeric matrices [sourceA] and [sourceB].
 Matrix<T> mul<T extends num>(Matrix<T> sourceA, Matrix<T> sourceB,
     {Matrix<T> target, Builder<T> builder}) {
   if (sourceA.colCount != sourceB.rowCount) {

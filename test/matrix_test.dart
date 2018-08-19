@@ -4,7 +4,7 @@ import 'dart:math';
 
 import 'package:data/matrix.dart';
 import 'package:data/type.dart';
-import 'package:data/vector.dart' show Vector;
+import 'package:data/vector.dart' as vector;
 import 'package:test/test.dart';
 
 void matrixTest(String name, Builder builder) {
@@ -99,7 +99,7 @@ void matrixTest(String name, Builder builder) {
       });
       test('fromRow', () {
         final source =
-            Vector.builder.withType(DataType.int8).fromList([2, 5, 6]);
+            vector.Vector.builder.withType(DataType.int8).fromList([2, 5, 6]);
         final matrix = builder.withType(DataType.int16).fromRow(source);
         expect(matrix.dataType, DataType.int16);
         expect(matrix.rowCount, 1);
@@ -112,7 +112,7 @@ void matrixTest(String name, Builder builder) {
       });
       test('fromColumn', () {
         final source =
-            Vector.builder.withType(DataType.int8).fromList([2, 5, 6]);
+            vector.Vector.builder.withType(DataType.int8).fromList([2, 5, 6]);
         final matrix = builder.withType(DataType.int16).fromColumn(source);
         expect(matrix.dataType, DataType.int16);
         expect(matrix.rowCount, 3);
@@ -125,7 +125,7 @@ void matrixTest(String name, Builder builder) {
       });
       test('fromDiagonal', () {
         final source =
-            Vector.builder.withType(DataType.int8).fromList([2, 5, 6]);
+            vector.Vector.builder.withType(DataType.int8).fromList([2, 5, 6]);
         final matrix = builder.withType(DataType.int16).fromDiagonal(source);
         expect(matrix.dataType, DataType.int16);
         expect(matrix.rowCount, 3);
@@ -722,6 +722,17 @@ void matrixTest(String name, Builder builder) {
           }
         }
       });
+      test('neg', () {
+        final target = neg(sourceA);
+        expect(target.dataType, sourceA.dataType);
+        expect(target.rowCount, sourceA.rowCount);
+        expect(target.colCount, sourceA.colCount);
+        for (var row = 0; row < target.rowCount; row++) {
+          for (var col = 0; col < target.colCount; col++) {
+            expect(target.get(row, col), -sourceA.get(row, col));
+          }
+        }
+      });
       test('scale', () {
         final target = scale(2, sourceA);
         expect(target.dataType, sourceA.dataType);
@@ -733,24 +744,81 @@ void matrixTest(String name, Builder builder) {
           }
         }
       });
+      group('lerp', () {
+        final v0 = builder.withType(DataType.int8).fromRows([
+          [1, 6],
+          [9, 9],
+        ]);
+        final v1 = builder.withType(DataType.int8).fromRows([
+          [9, -2],
+          [9, -9],
+        ]);
+        test('at start', () {
+          final v = lerp(v0, v1, 0.0);
+          expect(v.dataType, DataType.float64);
+          expect(v.rowCount, v0.rowCount);
+          expect(v.colCount, v0.colCount);
+          expect(v.get(0, 0), 1.0);
+          expect(v.get(0, 1), 6.0);
+          expect(v.get(1, 0), 9.0);
+          expect(v.get(1, 1), 9.0);
+        });
+        test('at middle', () {
+          final v = lerp(v0, v1, 0.5);
+          expect(v.dataType, DataType.float64);
+          expect(v.rowCount, v0.rowCount);
+          expect(v.colCount, v0.colCount);
+          expect(v.get(0, 0), 5.0);
+          expect(v.get(0, 1), 2.0);
+          expect(v.get(1, 0), 9.0);
+          expect(v.get(1, 1), 0.0);
+        });
+        test('at end', () {
+          final v = lerp(v0, v1, 1.0);
+          expect(v.dataType, DataType.float64);
+          expect(v.rowCount, v0.rowCount);
+          expect(v.colCount, v0.colCount);
+          expect(v.get(0, 0), 9.0);
+          expect(v.get(0, 1), -2.0);
+          expect(v.get(1, 0), 9.0);
+          expect(v.get(1, 1), -9.0);
+        });
+        test('at outside', () {
+          final v = lerp(v0, v1, 2.0);
+          expect(v.dataType, DataType.float64);
+          expect(v.rowCount, v0.rowCount);
+          expect(v.colCount, v0.colCount);
+          expect(v.get(0, 0), 17.0);
+          expect(v.get(0, 1), -10.0);
+          expect(v.get(1, 0), 9.0);
+          expect(v.get(1, 1), -27.0);
+        });
+        test('error', () {
+          final other = builder.withType(DataType.int8).fromRows([
+            [1, 2, 3],
+            [4, 5, 6]
+          ]);
+          expect(() => lerp(v0, other, 2.0), throwsArgumentError);
+        });
+      });
       test('mul', () {
         final sourceA = builder
             .withType(DataType.int32)
-            .generate(4, 5, (row, col) => random.nextInt(100));
+            .generate(13, 42, (row, col) => random.nextInt(100));
         final sourceB = builder
             .withType(DataType.int32)
-            .generate(5, 6, (row, col) => random.nextInt(100));
+            .generate(42, 27, (row, col) => random.nextInt(100));
         final target = mul(sourceA, sourceB);
         expect(target.dataType, DataType.int32);
-        expect(target.rowCount, 4);
-        expect(target.colCount, 6);
-        for (var row = 0; row < target.rowCount; row++) {
-          for (var col = 0; col < target.colCount; col++) {
-            // TODO(renggli): verify the multiplication
-            //expect(target.get(row, col),
-            //    sourceA.get(row, col) * sourceB.get(row, col));
+        expect(target.rowCount, sourceA.rowCount);
+        expect(target.colCount, sourceB.colCount);
+        for (var r = 0; r < target.rowCount; r++) {
+          for (var c = 0; c < target.colCount; c++) {
+            final value = vector.dot(sourceA.row(r), sourceB.col(c));
+            expect(target.get(r, c), value);
           }
         }
+        expect(() => mul(sourceA, sourceA), throwsArgumentError);
       });
     });
   });
