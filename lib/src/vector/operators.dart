@@ -88,6 +88,15 @@ T dot<T extends num>(Vector<T> sourceA, Vector<T> sourceB) {
   return result;
 }
 
+/// Computes the sum of all elements in this vector.
+T sum<T extends num>(Vector<T> source) {
+  var result = source.dataType.nullValue;
+  for (var i = 0; i < source.count; i++) {
+    result += source[i];
+  }
+  return result;
+}
+
 /// Computes the length of a vector.
 double length<T extends num>(Vector<T> source) => math.sqrt(length2(source));
 
