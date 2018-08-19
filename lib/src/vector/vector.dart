@@ -5,6 +5,7 @@ import 'package:data/type.dart';
 import 'builder.dart';
 import 'impl/standard_vector.dart';
 import 'view/index_vector.dart';
+import 'view/mapped_vector.dart';
 import 'view/range_vector.dart';
 import 'view/unmodifiable_vector.dart';
 
@@ -72,6 +73,12 @@ abstract class Vector<T> {
   /// any of the indexes are out of bounds.
   Vector<T> indexUnchecked(Iterable<int> indexes) =>
       IndexVector<T>(this, indexes);
+
+  /// Returns a lazy [Vector] with elements that are created by calling
+  /// `callback` on each element of this `Vector`.
+  Vector<S> map<S>(VectorTransformation<T, S> callback,
+          [DataType<S> dataType]) =>
+      MappedVector<T, S>(this, callback, dataType ?? DataType.fromType(S));
 
   /// Returns a unmodifiable view of the vector.
   Vector<T> get unmodifiable => UnmodifiableVector<T>(this);

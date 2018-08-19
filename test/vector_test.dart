@@ -173,6 +173,45 @@ void vectorTest(String name, Builder builder) {
         expect(() => vector.index([-1, vector.count - 1]), throwsRangeError);
         expect(() => vector.index([0, vector.count]), throwsRangeError);
       });
+      group('map', () {
+        final vector = builder.generate(4, (index) => index);
+        test('to specific type', () {
+          final view = vector.map((index, value) {
+            expect(index, value);
+            return value;
+          }, DataType.uint16);
+          expect(view.dataType, DataType.uint16);
+          expect(view.count, vector.count);
+          for (var i = 0; i < view.count; i++) {
+            expect(view[i], i);
+          }
+        });
+        test('to string', () {
+          final view = vector.map((index, value) => '$index');
+          expect(view.dataType, DataType.string);
+          for (var i = 0; i < view.count; i++) {
+            expect(view[i], '$i');
+          }
+        });
+        test('to int', () {
+          final view = vector.map<int>((index, value) => index);
+          expect(view.dataType, DataType.int64);
+          for (var i = 0; i < view.count; i++) {
+            expect(view[i], i);
+          }
+        });
+        test('to float', () {
+          final view = vector.map<double>((index, value) => index.toDouble());
+          expect(view.dataType, DataType.float64);
+          for (var i = 0; i < view.count; i++) {
+            expect(view[i], i.toDouble());
+          }
+        });
+        test('readonly', () {
+          final view = vector.map<int>((index, value) => index);
+          expect(() => view.setUnchecked(0, 1), throwsUnsupportedError);
+        });
+      });
       test('unmodifiable', () {
         final source = builder.withType(DataType.int8).fromList([1, 2]);
         final vector = source.unmodifiable;

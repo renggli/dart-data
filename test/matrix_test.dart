@@ -544,7 +544,7 @@ void matrixTest(String name, Builder builder) {
       });
       group('map', () {
         final matrix = builder.generate(3, 4, (row, col) => Point(row, col));
-        test('to object', () {
+        test('to specific type', () {
           final view = matrix.map((row, col, value) {
             expect(row, value.x);
             expect(col, value.y);
@@ -591,7 +591,7 @@ void matrixTest(String name, Builder builder) {
         });
         test('readonly', () {
           final view = matrix.map<int>((row, col, value) => row);
-          expect(() => view.setUnchecked(0, 2, 3), throwsUnsupportedError);
+          expect(() => view.setUnchecked(1, 2, 3), throwsUnsupportedError);
         });
       });
       test('transpose', () {
