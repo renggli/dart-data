@@ -21,6 +21,17 @@ void matrixTest(String name, Builder builder) {
           }
         }
       });
+      test('call square', () {
+        final matrix = builder.withType(DataType.int8)(4);
+        expect(matrix.dataType, DataType.int8);
+        expect(matrix.rowCount, 4);
+        expect(matrix.colCount, 4);
+        for (var row = 0; row < matrix.rowCount; row++) {
+          for (var col = 0; col < matrix.colCount; col++) {
+            expect(matrix.get(row, col), 0);
+          }
+        }
+      });
       test('constant', () {
         final matrix = builder.withType(DataType.int8).constant(5, 6, 123);
         expect(matrix.dataType, DataType.int8);

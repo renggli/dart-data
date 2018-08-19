@@ -53,9 +53,13 @@ class Builder<T> {
       this.type == type ? this : Builder<S>(format, type);
 
   /// Builds a new matrix of the configured format.
-  Matrix<T> call(int rowCount, int colCount) {
+  Matrix<T> call(int rowCount, [int colCount]) {
     RangeError.checkNotNegative(rowCount, 'rowCount');
-    RangeError.checkNotNegative(colCount, 'colCount');
+    if (colCount != null) {
+      RangeError.checkNotNegative(colCount, 'colCount');
+    } else {
+      colCount = rowCount;
+    }
     switch (format) {
       case RowMajorMatrix:
         return RowMajorMatrix<T>(type, rowCount, colCount);
