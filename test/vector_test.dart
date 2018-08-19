@@ -5,6 +5,7 @@ import 'dart:math';
 import 'package:data/type.dart';
 import 'package:data/vector.dart';
 import 'package:test/test.dart';
+import 'package:data/matrix.dart' as matrix;
 
 void vectorTest(String name, Builder builder) {
   group(name, () {
@@ -288,6 +289,14 @@ void vectorTest(String name, Builder builder) {
         final sourceB = builder.withType(DataType.uint8)(sourceA.count + 1);
         expect(() => sub(sourceA, sourceB), throwsArgumentError);
       });
+      test('neg', () {
+        final target = neg(sourceA);
+        expect(target.dataType, sourceA.dataType);
+        expect(target.count, sourceA.count);
+        for (var i = 0; i < target.count; i++) {
+          expect(target[i], -sourceA[i]);
+        }
+      });
       test('scale', () {
         final target = scale(2, sourceA);
         expect(target.dataType, sourceA.dataType);
@@ -336,6 +345,23 @@ void vectorTest(String name, Builder builder) {
         final v0 = builder.withType(DataType.int8).fromList([1, 6]);
         final v1 = builder.withType(DataType.int8).fromList([9, -2, 9]);
         expect(() => lerp(v0, v1, -1.0), throwsArgumentError);
+      });
+      test('mul', () {
+        final a = matrix.Matrix.builder
+            .withType(DataType.int64)
+            .generate(37, 42, (r, c) => random.nextInt(100));
+        final b = builder
+            .withType(DataType.int8)
+            .generate(a.colCount, (i) => random.nextInt(100));
+        final v = mul(a, b);
+        for (var i = 0; i < v.count; i++) {
+          expect(v[i], dot(a.row(i), b));
+        }
+      });
+      test('mul (dimension missmatch)', () {
+        final a = matrix.Matrix.builder.withType(DataType.int64)(37, 42);
+        final b = builder.withType(DataType.int8)(a.rowCount);
+        expect(() => mul(a, b), throwsArgumentError);
       });
       test('dot', () {
         var expected = 0;

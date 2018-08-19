@@ -3,6 +3,7 @@ library data.vector.operators;
 import 'dart:math' as math;
 
 import 'package:data/type.dart';
+import 'package:data/matrix.dart' show Matrix;
 
 import 'builder.dart';
 import 'vector.dart';
@@ -23,7 +24,7 @@ Vector<T> _targetOrBuilder<T>(
   throw ArgumentError('Expected either a "target" or a "builder".');
 }
 
-/// Add two numeric vectors [sourceA] and [sourceB].
+/// Adds two numeric vectors [sourceA] and [sourceB].
 Vector<T> add<T extends num>(Vector<T> sourceA, Vector<T> sourceB,
     {Vector<T> target, Builder<T> builder}) {
   if (sourceA.count != sourceB.count) {
@@ -37,7 +38,7 @@ Vector<T> add<T extends num>(Vector<T> sourceA, Vector<T> sourceB,
   return result;
 }
 
-/// Subtract two numeric vectors [sourceA] and [sourceB].
+/// Subtracts two numeric vectors [sourceB] from [sourceA].
 Vector<T> sub<T extends num>(Vector<T> sourceA, Vector<T> sourceB,
     {Vector<T> target, Builder<T> builder}) {
   if (sourceA.count != sourceB.count) {
@@ -51,7 +52,18 @@ Vector<T> sub<T extends num>(Vector<T> sourceA, Vector<T> sourceB,
   return result;
 }
 
-/// Scales a vector [source] with a [factor].
+/// Negates a numeric vector [source].
+Vector<T> neg<T extends num>(Vector<T> source,
+    {Vector<T> target, Builder<T> builder}) {
+  final result =
+      _targetOrBuilder(source.count, target, builder, source.dataType);
+  for (var i = 0; i < result.count; i++) {
+    result.setUnchecked(i, -source.getUnchecked(i));
+  }
+  return result;
+}
+
+/// Scales a numeric vector [source] with a [factor].
 Vector<T> scale<T extends num>(T factor, Vector<T> source,
     {Vector<T> target, Builder<T> builder}) {
   final result =
@@ -69,9 +81,28 @@ Vector<double> lerp<T extends num>(Vector<T> v0, Vector<T> v1, double t,
     throw ArgumentError('Source vector dimensions do not match.');
   }
   final t1 = 1.0 - t;
-  final result = _targetOrBuilder(v1.count, target, builder, DataType.float64);
+  final result = _targetOrBuilder(v0.count, target, builder, DataType.float64);
   for (var i = 0; i < result.count; i++) {
     result.setUnchecked(i, t1 * v0.getUnchecked(i) + t * v1.getUnchecked(i));
+  }
+  return result;
+}
+
+/// Multiplies a numeric [matrix] and a [vector].
+Vector<T> mul<T extends num>(Matrix<T> matrix, Vector<T> vector,
+    {Vector<T> target, Builder<T> builder}) {
+  if (matrix.colCount != vector.count) {
+    throw ArgumentError('Number of columns in matrix (${matrix.colCount}) '
+        'do not match number of elements in vector (${vector.count}).');
+  }
+  final result =
+      _targetOrBuilder(matrix.rowCount, target, builder, matrix.dataType);
+  for (var r = 0; r < matrix.rowCount; r++) {
+    var sum = result.dataType.nullValue;
+    for (var j = 0; j < matrix.colCount; j++) {
+      sum += matrix.getUnchecked(r, j) * vector.getUnchecked(j);
+    }
+    result.setUnchecked(r, sum);
   }
   return result;
 }
@@ -79,7 +110,8 @@ Vector<double> lerp<T extends num>(Vector<T> v0, Vector<T> v1, double t,
 /// Computes the dot product of two vectors [sourceA] and [sourceB].
 T dot<T extends num>(Vector<T> sourceA, Vector<T> sourceB) {
   if (sourceA.count != sourceB.count) {
-    throw ArgumentError('Source vector dimensions do not match.');
+    throw ArgumentError('Source vector dimensions do not match '
+        '(${sourceA.count} and ${sourceB.count}).');
   }
   var result = 0 as T;
   for (var i = 0; i < sourceA.count; i++) {
