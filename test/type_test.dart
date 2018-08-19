@@ -54,11 +54,12 @@ void listTest(DataType type, List<List> lists) {
         List.filled(5, type.nullValue));
   });
   test('copyList (larger, with custom fill)', () {
-    final copy = type.copyList(example, length: example.length + 5, fillValue: example[0]);
+    final copy = type.copyList(example,
+        length: example.length + 5, fillValue: example[0]);
     expect(copy.length, example.length + 5);
     expect(copy.getRange(0, example.length), example);
-    expect(copy.getRange(example.length, copy.length),
-        List.filled(5, example[0]));
+    expect(
+        copy.getRange(example.length, copy.length), List.filled(5, example[0]));
   });
 }
 

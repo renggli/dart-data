@@ -542,6 +542,58 @@ void matrixTest(String name, Builder builder) {
               throwsRangeError);
         });
       });
+      group('map', () {
+        final matrix = builder.generate(3, 4, (row, col) => Point(row, col));
+        test('to object', () {
+          final view = matrix.map((row, col, value) {
+            expect(row, value.x);
+            expect(col, value.y);
+            return value.x + 10 * value.y;
+          }, DataType.uint16);
+          expect(view.dataType, DataType.uint16);
+          expect(view.rowCount, matrix.rowCount);
+          expect(view.colCount, matrix.colCount);
+          for (var row = 0; row < view.rowCount; row++) {
+            for (var col = 0; col < view.colCount; col++) {
+              expect(view.get(row, col), row + 10 * col);
+            }
+          }
+        });
+        test('to string', () {
+          final view =
+              matrix.map((row, col, value) => '${value.x + 10 * value.y}');
+          expect(view.dataType, DataType.string);
+          for (var row = 0; row < view.rowCount; row++) {
+            for (var col = 0; col < view.colCount; col++) {
+              expect(view.get(row, col), '${row + 10 * col}');
+            }
+          }
+        });
+        test('to int', () {
+          final view =
+              matrix.map<int>((row, col, value) => value.x + 10 * value.y);
+          expect(view.dataType, DataType.int64);
+          for (var row = 0; row < view.rowCount; row++) {
+            for (var col = 0; col < view.colCount; col++) {
+              expect(view.get(row, col), row + 10 * col);
+            }
+          }
+        });
+        test('to float', () {
+          final view =
+              matrix.map<double>((row, col, value) => value.x + 10.0 * value.y);
+          expect(view.dataType, DataType.float64);
+          for (var row = 0; row < view.rowCount; row++) {
+            for (var col = 0; col < view.colCount; col++) {
+              expect(view.get(row, col), row + 10.0 * col);
+            }
+          }
+        });
+        test('readonly', () {
+          final view = matrix.map<int>((row, col, value) => row);
+          expect(() => view.setUnchecked(0, 2, 3), throwsUnsupportedError);
+        });
+      });
       test('transpose', () {
         final matrix = builder
             .withType(DataType.string)

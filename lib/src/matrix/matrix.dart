@@ -8,6 +8,7 @@ import 'builder.dart';
 import 'impl/row_major_matrix.dart';
 import 'view/column_vector.dart';
 import 'view/diagonal_vector.dart';
+import 'view/mapped_matrix.dart';
 import 'view/index_matrix.dart';
 import 'view/range_matrix.dart';
 import 'view/row_vector.dart';
@@ -177,6 +178,12 @@ abstract class Matrix<T> {
   Matrix<T> indexUnchecked(
           Iterable<int> rowIndexes, Iterable<int> colIndexes) =>
       IndexMatrix<T>(this, rowIndexes, colIndexes);
+
+  /// Returns a lazy [Matrix] with elements that are created by calling
+  /// `callback` on each element of this `Matrix`.
+  Matrix<S> map<S>(MatrixTransformation<T, S> callback,
+          [DataType<S> dataType]) =>
+      MappedMatrix<T, S>(this, callback, dataType ?? DataType.fromType(S));
 
   /// Returns a mutable view onto the transposed matrix.
   Matrix<T> get transpose => TransposeMatrix<T>(this);
