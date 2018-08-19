@@ -82,9 +82,9 @@ class Builder<T> {
   /// Builds a matrix with a constant [value].
   Matrix<T> constant(int rowCount, int colCount, T value) {
     final result = this(rowCount, colCount);
-    for (var row = 0; row < rowCount; row++) {
-      for (var col = 0; col < colCount; col++) {
-        result.setUnchecked(row, col, value);
+    for (var r = 0; r < rowCount; r++) {
+      for (var c = 0; c < colCount; c++) {
+        result.setUnchecked(r, c, value);
       }
     }
     return result;
@@ -102,9 +102,9 @@ class Builder<T> {
   /// Builds a matrix from calling a [callback] on every value.
   Matrix<T> generate(int rowCount, int colCount, T callback(int row, int col)) {
     final result = this(rowCount, colCount);
-    for (var row = 0; row < rowCount; row++) {
-      for (var col = 0; col < colCount; col++) {
-        result.setUnchecked(row, col, callback(row, col));
+    for (var r = 0; r < rowCount; r++) {
+      for (var c = 0; c < colCount; c++) {
+        result.setUnchecked(r, c, callback(r, c));
       }
     }
     return result;
@@ -114,10 +114,9 @@ class Builder<T> {
   Matrix<T> transform<S>(
       Matrix<S> source, T callback(int row, int col, S value)) {
     final result = this(source.rowCount, source.colCount);
-    for (var row = 0; row < result.rowCount; row++) {
-      for (var col = 0; col < result.colCount; col++) {
-        result.setUnchecked(
-            row, col, callback(row, col, source.getUnchecked(row, col)));
+    for (var r = 0; r < result.rowCount; r++) {
+      for (var c = 0; c < result.colCount; c++) {
+        result.setUnchecked(r, c, callback(r, c, source.getUnchecked(r, c)));
       }
     }
     return result;
@@ -126,9 +125,9 @@ class Builder<T> {
   /// Builds a matrix from another matrix.
   Matrix<T> fromMatrix(Matrix<T> source) {
     final result = this(source.rowCount, source.colCount);
-    for (var row = 0; row < result.rowCount; row++) {
-      for (var col = 0; col < result.colCount; col++) {
-        result.setUnchecked(row, col, source.getUnchecked(row, col));
+    for (var r = 0; r < result.rowCount; r++) {
+      for (var c = 0; c < result.colCount; c++) {
+        result.setUnchecked(r, c, source.getUnchecked(r, c));
       }
     }
     return result;
@@ -137,8 +136,8 @@ class Builder<T> {
   /// Builds a matrix from a row vector.
   Matrix<T> fromRow(Vector<T> source) {
     final result = this(1, source.count);
-    for (var index = 0; index < source.count; index++) {
-      result.setUnchecked(0, index, source.getUnchecked(index));
+    for (var i = 0; i < source.count; i++) {
+      result.setUnchecked(0, i, source.getUnchecked(i));
     }
     return result;
   }
@@ -146,8 +145,8 @@ class Builder<T> {
   /// Builds a matrix from a column vector.
   Matrix<T> fromColumn(Vector<T> source) {
     final result = this(source.count, 1);
-    for (var index = 0; index < source.count; index++) {
-      result.setUnchecked(index, 0, source.getUnchecked(index));
+    for (var i = 0; i < source.count; i++) {
+      result.setUnchecked(i, 0, source.getUnchecked(i));
     }
     return result;
   }
@@ -155,8 +154,8 @@ class Builder<T> {
   /// Builds a matrix from a diagonal vector.
   Matrix<T> fromDiagonal(Vector<T> source) {
     final result = this(source.count, source.count);
-    for (var index = 0; index < source.count; index++) {
-      result.setUnchecked(index, index, source.getUnchecked(index));
+    for (var i = 0; i < source.count; i++) {
+      result.setUnchecked(i, i, source.getUnchecked(i));
     }
     return result;
   }
@@ -164,14 +163,14 @@ class Builder<T> {
   /// Builds a matrix from a nested list of rows.
   Matrix<T> fromRows(List<List<T>> source) {
     final result = this(source.length, source.isEmpty ? 0 : source[0].length);
-    for (var row = 0; row < result.rowCount; row++) {
-      final sourceRow = source[row];
+    for (var r = 0; r < result.rowCount; r++) {
+      final sourceRow = source[r];
       if (sourceRow.length != result.colCount) {
         throw ArgumentError.value(
             source, 'source', 'All rows must be equally sized.');
       }
-      for (var col = 0; col < result.colCount; col++) {
-        result.setUnchecked(row, col, sourceRow[col]);
+      for (var c = 0; c < result.colCount; c++) {
+        result.setUnchecked(r, c, sourceRow[c]);
       }
     }
     return result;
@@ -188,9 +187,9 @@ class Builder<T> {
       return RowMajorMatrix(type, rowCount, colCount, type.copyList(source));
     }
     final result = this(rowCount, colCount);
-    for (var row = 0; row < rowCount; row++) {
-      for (var col = 0; col < result.colCount; col++) {
-        result.set(row, col, source[row * colCount + col]);
+    for (var r = 0; r < rowCount; r++) {
+      for (var c = 0; c < result.colCount; c++) {
+        result.set(r, c, source[r * colCount + c]);
       }
     }
     return result;
@@ -199,14 +198,14 @@ class Builder<T> {
   /// Builds a matrix from a nested list of columns.
   Matrix<T> fromColumns(List<List<T>> source) {
     final result = this(source.isEmpty ? 0 : source[0].length, source.length);
-    for (var col = 0; col < result.colCount; col++) {
-      final sourceCol = source[col];
+    for (var c = 0; c < result.colCount; c++) {
+      final sourceCol = source[c];
       if (sourceCol.length != result.rowCount) {
         throw ArgumentError.value(
             source, 'source', 'All columns must be equally sized.');
       }
-      for (var row = 0; row < result.rowCount; row++) {
-        result.setUnchecked(row, col, sourceCol[row]);
+      for (var r = 0; r < result.rowCount; r++) {
+        result.setUnchecked(r, c, sourceCol[r]);
       }
     }
     return result;
@@ -223,9 +222,9 @@ class Builder<T> {
       return ColumnMajorMatrix(type, rowCount, colCount, type.copyList(source));
     }
     final result = this(rowCount, colCount);
-    for (var row = 0; row < rowCount; row++) {
-      for (var col = 0; col < result.colCount; col++) {
-        result.set(row, col, source[row + col * rowCount]);
+    for (var r = 0; r < rowCount; r++) {
+      for (var c = 0; c < result.colCount; c++) {
+        result.set(r, c, source[r + c * rowCount]);
       }
     }
     return result;

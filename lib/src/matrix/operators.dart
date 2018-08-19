@@ -112,8 +112,8 @@ Matrix<T> mul<T extends num>(Matrix<T> sourceA, Matrix<T> sourceB,
   for (var r = 0; r < result.rowCount; r++) {
     for (var c = 0; c < result.colCount; c++) {
       var sum = result.dataType.nullValue;
-      for (var j = 0; j < sourceA.colCount; j++) {
-        sum += sourceA.getUnchecked(r, j) * sourceB.getUnchecked(j, c);
+      for (var i = 0; i < sourceA.colCount; i++) {
+        sum += sourceA.getUnchecked(r, i) * sourceB.getUnchecked(i, c);
       }
       result.setUnchecked(r, c, sum);
     }
