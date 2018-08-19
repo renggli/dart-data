@@ -29,14 +29,19 @@ class SingularValueDecomposition {
   final int _m, _n;
 
   /// Construct the singular value decomposition Structure to access U, S and V.
-  SingularValueDecomposition(Matrix<num> A)
+  SingularValueDecomposition(Matrix<num> input)
       : _u = Matrix.builder.withType(valueDataType)(
-            A.rowCount, math.min(A.rowCount, A.colCount)),
-        _v = Matrix.builder.withType(valueDataType)(A.colCount, A.colCount),
-        _s = valueDataType.newList(math.min(A.rowCount + 1, A.colCount)),
-        _m = A.rowCount,
-        _n = A.colCount {
+            input.rowCount, math.min(input.rowCount, input.colCount)),
+        _v = Matrix.builder.withType(valueDataType)(
+            input.colCount, input.colCount),
+        _s =
+            valueDataType.newList(math.min(input.rowCount + 1, input.colCount)),
+        _m = input.rowCount,
+        _n = input.colCount {
     // Initialize.
+    final A = Matrix.builder
+        .withType(valueDataType)
+        .transform(input, (r, c, v) => v.toDouble());
     final e = valueDataType.newList(_n);
     final work = valueDataType.newList(_m);
     final wantu = true;

@@ -29,11 +29,13 @@ class LUDecomposition {
   /// Internal storage of pivot vector.
   final List<int> _piv;
 
-  LUDecomposition(Matrix<num> A)
-      : _lu = Matrix.builder.rowMajor.withType(valueDataType).fromMatrix(A),
-        _m = A.rowCount,
-        _n = A.colCount,
-        _piv = indexDataType.newList(A.rowCount) {
+  LUDecomposition(Matrix<num> source)
+      : _lu = Matrix.builder.rowMajor
+            .withType(valueDataType)
+            .transform(source, (r, c, v) => v.toDouble()),
+        _m = source.rowCount,
+        _n = source.colCount,
+        _piv = indexDataType.newList(source.rowCount) {
     // Use a 'left-looking', dot-product, Crout/Doolittle algorithm.
     for (var i = 0; i < _m; i++) {
       _piv[i] = i;
@@ -102,31 +104,31 @@ class LUDecomposition {
   }
 
   /// Returns the lower triangular factor.
-  Matrix<double> get L {
-    final X = Matrix.builder.diagonal.withType(valueDataType)(_m, _n);
+  Matrix<double> get lower {
+    final result = Matrix.builder.diagonal.withType(valueDataType)(_m, _n);
     for (var i = 0; i < _m; i++) {
       for (var j = 0; j < _n; j++) {
         if (i > j) {
-          L.setUnchecked(i, j, _lu.getUnchecked(i, j));
+          result.setUnchecked(i, j, _lu.getUnchecked(i, j));
         } else if (i == j) {
-          L.setUnchecked(i, j, 1.0);
+          result.setUnchecked(i, j, 1.0);
         }
       }
     }
-    return X;
+    return result;
   }
 
   /// Returns upper triangular factor.
-  Matrix<double> get U {
-    final X = Matrix.builder.diagonal.withType(valueDataType)(_n, _n);
+  Matrix<double> get upper {
+    final result = Matrix.builder.diagonal.withType(valueDataType)(_n, _n);
     for (var i = 0; i < _n; i++) {
       for (var j = 0; j < _n; j++) {
         if (i <= j) {
-          U.setUnchecked(i, j, _lu.getUnchecked(i, j));
+          result.setUnchecked(i, j, _lu.getUnchecked(i, j));
         }
       }
     }
-    return X;
+    return result;
   }
 
   /// Returns pivot permutation vector.
