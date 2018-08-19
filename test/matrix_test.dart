@@ -15,9 +15,9 @@ void matrixTest(String name, Builder builder) {
         expect(matrix.dataType, DataType.int8);
         expect(matrix.rowCount, 4);
         expect(matrix.colCount, 5);
-        for (var row = 0; row < matrix.rowCount; row++) {
-          for (var col = 0; col < matrix.colCount; col++) {
-            expect(matrix.get(row, col), 0);
+        for (var r = 0; r < matrix.rowCount; r++) {
+          for (var c = 0; c < matrix.colCount; c++) {
+            expect(matrix.get(r, c), 0);
           }
         }
       });
@@ -26,9 +26,9 @@ void matrixTest(String name, Builder builder) {
         expect(matrix.dataType, DataType.int8);
         expect(matrix.rowCount, 4);
         expect(matrix.colCount, 4);
-        for (var row = 0; row < matrix.rowCount; row++) {
-          for (var col = 0; col < matrix.colCount; col++) {
-            expect(matrix.get(row, col), 0);
+        for (var r = 0; r < matrix.rowCount; r++) {
+          for (var c = 0; c < matrix.colCount; c++) {
+            expect(matrix.get(r, c), 0);
           }
         }
       });
@@ -37,9 +37,9 @@ void matrixTest(String name, Builder builder) {
         expect(matrix.dataType, DataType.int8);
         expect(matrix.rowCount, 5);
         expect(matrix.colCount, 6);
-        for (var row = 0; row < matrix.rowCount; row++) {
-          for (var col = 0; col < matrix.colCount; col++) {
-            expect(matrix.get(row, col), 123);
+        for (var r = 0; r < matrix.rowCount; r++) {
+          for (var c = 0; c < matrix.colCount; c++) {
+            expect(matrix.get(r, c), 123);
           }
         }
       });
@@ -48,9 +48,9 @@ void matrixTest(String name, Builder builder) {
         expect(matrix.dataType, DataType.int8);
         expect(matrix.rowCount, 6);
         expect(matrix.colCount, 6);
-        for (var row = 0; row < matrix.rowCount; row++) {
-          for (var col = 0; col < matrix.colCount; col++) {
-            expect(matrix.get(row, col), row == col ? -1 : 0);
+        for (var r = 0; r < matrix.rowCount; r++) {
+          for (var c = 0; c < matrix.colCount; c++) {
+            expect(matrix.get(r, c), r == c ? -1 : 0);
           }
         }
       });
@@ -61,9 +61,9 @@ void matrixTest(String name, Builder builder) {
         expect(matrix.dataType, DataType.string);
         expect(matrix.rowCount, 7);
         expect(matrix.colCount, 8);
-        for (var row = 0; row < matrix.rowCount; row++) {
-          for (var col = 0; col < matrix.colCount; col++) {
-            expect(matrix.get(row, col), '($row, $col)');
+        for (var r = 0; r < matrix.rowCount; r++) {
+          for (var c = 0; c < matrix.colCount; c++) {
+            expect(matrix.get(r, c), '($r, $c)');
           }
         }
       });
@@ -77,9 +77,9 @@ void matrixTest(String name, Builder builder) {
         expect(matrix.dataType, DataType.string);
         expect(matrix.rowCount, 8);
         expect(matrix.colCount, 7);
-        for (var row = 0; row < matrix.rowCount; row++) {
-          for (var col = 0; col < matrix.colCount; col++) {
-            expect(matrix.get(row, col), '($row, $col): Point($row, $col)');
+        for (var r = 0; r < matrix.rowCount; r++) {
+          for (var c = 0; c < matrix.colCount; c++) {
+            expect(matrix.get(r, c), '($r, $c): Point($r, $c)');
           }
         }
       });
@@ -91,9 +91,9 @@ void matrixTest(String name, Builder builder) {
         expect(matrix.dataType, DataType.string);
         expect(matrix.rowCount, 5);
         expect(matrix.colCount, 6);
-        for (var row = 0; row < source.rowCount; row++) {
-          for (var col = 0; col < source.colCount; col++) {
-            expect(matrix.get(row, col), '($row, $col)');
+        for (var r = 0; r < source.rowCount; r++) {
+          for (var c = 0; c < source.colCount; c++) {
+            expect(matrix.get(r, c), '($r, $c)');
           }
         }
       });
@@ -104,9 +104,9 @@ void matrixTest(String name, Builder builder) {
         expect(matrix.dataType, DataType.int16);
         expect(matrix.rowCount, 1);
         expect(matrix.colCount, 3);
-        for (var row = 0; row < matrix.rowCount; row++) {
-          for (var col = 0; col < matrix.colCount; col++) {
-            expect(matrix.get(row, col), source[col]);
+        for (var r = 0; r < matrix.rowCount; r++) {
+          for (var c = 0; c < matrix.colCount; c++) {
+            expect(matrix.get(r, c), source[c]);
           }
         }
       });
@@ -117,9 +117,9 @@ void matrixTest(String name, Builder builder) {
         expect(matrix.dataType, DataType.int16);
         expect(matrix.rowCount, 3);
         expect(matrix.colCount, 1);
-        for (var row = 0; row < matrix.rowCount; row++) {
-          for (var col = 0; col < matrix.colCount; col++) {
-            expect(matrix.get(row, col), source[row]);
+        for (var r = 0; r < matrix.rowCount; r++) {
+          for (var c = 0; c < matrix.colCount; c++) {
+            expect(matrix.get(r, c), source[r]);
           }
         }
       });
@@ -130,9 +130,9 @@ void matrixTest(String name, Builder builder) {
         expect(matrix.dataType, DataType.int16);
         expect(matrix.rowCount, 3);
         expect(matrix.colCount, 3);
-        for (var row = 0; row < matrix.rowCount; row++) {
-          for (var col = 0; col < matrix.colCount; col++) {
-            expect(matrix.get(row, col), row == col ? source[row] : 0);
+        for (var r = 0; r < matrix.rowCount; r++) {
+          for (var c = 0; c < matrix.colCount; c++) {
+            expect(matrix.get(r, c), r == c ? source[r] : 0);
           }
         }
       });
@@ -221,9 +221,9 @@ void matrixTest(String name, Builder builder) {
       test('random', () {
         final matrix = builder(8, 12);
         final points = <Point>[];
-        for (var row = 0; row < matrix.rowCount; row++) {
-          for (var col = 0; col < matrix.colCount; col++) {
-            points.add(Point(row, col));
+        for (var r = 0; r < matrix.rowCount; r++) {
+          for (var c = 0; c < matrix.colCount; c++) {
+            points.add(Point(r, c));
           }
         }
         // add values
@@ -231,9 +231,9 @@ void matrixTest(String name, Builder builder) {
         for (var point in points) {
           matrix.set(point.x, point.y, point);
         }
-        for (var row = 0; row < matrix.rowCount; row++) {
-          for (var col = 0; col < matrix.colCount; col++) {
-            expect(matrix.get(row, col), Point(row, col));
+        for (var r = 0; r < matrix.rowCount; r++) {
+          for (var c = 0; c < matrix.colCount; c++) {
+            expect(matrix.get(r, c), Point(r, c));
           }
         }
         // update values
@@ -241,9 +241,9 @@ void matrixTest(String name, Builder builder) {
         for (var point in points) {
           matrix.set(point.x, point.y, Point(point.x + 1, point.y + 1));
         }
-        for (var row = 0; row < matrix.rowCount; row++) {
-          for (var col = 0; col < matrix.colCount; col++) {
-            expect(matrix.get(row, col), Point(row + 1, col + 1));
+        for (var r = 0; r < matrix.rowCount; r++) {
+          for (var c = 0; c < matrix.colCount; c++) {
+            expect(matrix.get(r, c), Point(r + 1, c + 1));
           }
         }
         // remove values
@@ -251,9 +251,9 @@ void matrixTest(String name, Builder builder) {
         for (var point in points) {
           matrix.set(point.x, point.y, matrix.dataType.nullValue);
         }
-        for (var row = 0; row < matrix.rowCount; row++) {
-          for (var col = 0; col < matrix.colCount; col++) {
-            expect(matrix.get(row, col), matrix.dataType.nullValue);
+        for (var r = 0; r < matrix.rowCount; r++) {
+          for (var c = 0; c < matrix.colCount; c++) {
+            expect(matrix.get(r, c), matrix.dataType.nullValue);
           }
         }
       });
@@ -296,9 +296,9 @@ void matrixTest(String name, Builder builder) {
         }
         expect(() => matrix.row(-1), throwsRangeError);
         expect(() => matrix.row(4), throwsRangeError);
-        for (var row = 0; row < matrix.rowCount; row++) {
-          for (var col = 0; col < matrix.colCount; col++) {
-            expect(matrix.get(row, col), '($row, $col)*');
+        for (var r = 0; r < matrix.rowCount; r++) {
+          for (var c = 0; c < matrix.colCount; c++) {
+            expect(matrix.get(r, c), '($r, $c)*');
           }
         }
       });
@@ -320,9 +320,9 @@ void matrixTest(String name, Builder builder) {
         }
         expect(() => matrix.col(-1), throwsRangeError);
         expect(() => matrix.col(4), throwsRangeError);
-        for (var row = 0; row < matrix.rowCount; row++) {
-          for (var col = 0; col < matrix.colCount; col++) {
-            expect(matrix.get(row, col), '($row, $col)*');
+        for (var r = 0; r < matrix.rowCount; r++) {
+          for (var c = 0; c < matrix.colCount; c++) {
+            expect(matrix.get(r, c), '($r, $c)*');
           }
         }
       });
@@ -349,9 +349,9 @@ void matrixTest(String name, Builder builder) {
           }
           expect(() => matrix.diagonal(2), throwsRangeError);
           expect(() => matrix.diagonal(-3), throwsRangeError);
-          for (var row = 0; row < matrix.rowCount; row++) {
-            for (var col = 0; col < matrix.colCount; col++) {
-              expect(matrix.get(row, col), '($row, $col)*');
+          for (var r = 0; r < matrix.rowCount; r++) {
+            for (var c = 0; c < matrix.colCount; c++) {
+              expect(matrix.get(r, c), '($r, $c)*');
             }
           }
         });
@@ -379,9 +379,9 @@ void matrixTest(String name, Builder builder) {
           }
           expect(() => matrix.diagonal(3), throwsRangeError);
           expect(() => matrix.diagonal(-2), throwsRangeError);
-          for (var row = 0; row < matrix.rowCount; row++) {
-            for (var col = 0; col < matrix.colCount; col++) {
-              expect(matrix.get(row, col), '($row, $col)*');
+          for (var r = 0; r < matrix.rowCount; r++) {
+            for (var c = 0; c < matrix.colCount; c++) {
+              expect(matrix.get(r, c), '($r, $c)*');
             }
           }
         });
@@ -393,9 +393,9 @@ void matrixTest(String name, Builder builder) {
           expect(matrix.dataType, source.dataType);
           expect(matrix.rowCount, 2);
           expect(matrix.colCount, source.colCount);
-          for (var row = 0; row < matrix.rowCount; row++) {
-            for (var col = 0; col < matrix.colCount; col++) {
-              expect(matrix.get(row, col), Point(row + 1, col));
+          for (var r = 0; r < matrix.rowCount; r++) {
+            for (var c = 0; c < matrix.colCount; c++) {
+              expect(matrix.get(r, c), Point(r + 1, c));
             }
           }
         });
@@ -408,9 +408,9 @@ void matrixTest(String name, Builder builder) {
           expect(matrix.dataType, source.dataType);
           expect(matrix.rowCount, source.rowCount);
           expect(matrix.colCount, 3);
-          for (var row = 0; row < matrix.rowCount; row++) {
-            for (var col = 0; col < matrix.colCount; col++) {
-              expect(matrix.get(row, col), Point(row, col + 1));
+          for (var r = 0; r < matrix.rowCount; r++) {
+            for (var c = 0; c < matrix.colCount; c++) {
+              expect(matrix.get(r, c), Point(r, c + 1));
             }
           }
         });
@@ -423,9 +423,9 @@ void matrixTest(String name, Builder builder) {
           expect(view.dataType, source.dataType);
           expect(view.rowCount, 2);
           expect(view.colCount, 2);
-          for (var row = 0; row < view.rowCount; row++) {
-            for (var col = 0; col < view.colCount; col++) {
-              expect(view.get(row, col), Point(row + 1, col + 2));
+          for (var r = 0; r < view.rowCount; r++) {
+            for (var c = 0; c < view.colCount; c++) {
+              expect(view.get(r, c), Point(r + 1, c + 2));
             }
           }
         });
@@ -436,9 +436,9 @@ void matrixTest(String name, Builder builder) {
           expect(view.dataType, source.dataType);
           expect(view.rowCount, source.rowCount - 4);
           expect(view.colCount, source.colCount - 4);
-          for (var row = 0; row < view.rowCount; row++) {
-            for (var col = 0; col < view.colCount; col++) {
-              expect(view.get(row, col), Point(row + 2, col + 2));
+          for (var r = 0; r < view.rowCount; r++) {
+            for (var c = 0; c < view.colCount; c++) {
+              expect(view.get(r, c), Point(r + 2, c + 2));
             }
           }
         });
@@ -471,10 +471,9 @@ void matrixTest(String name, Builder builder) {
           expect(matrix.dataType, source.dataType);
           expect(matrix.rowCount, 3);
           expect(matrix.colCount, source.colCount);
-          for (var row = 0; row < matrix.rowCount; row++) {
-            for (var col = 0; col < matrix.colCount; col++) {
-              expect(matrix.get(row, col),
-                  Point(row == 0 ? 5 : row == 1 ? 0 : 4, col));
+          for (var r = 0; r < matrix.rowCount; r++) {
+            for (var c = 0; c < matrix.colCount; c++) {
+              expect(matrix.get(r, c), Point(r == 0 ? 5 : r == 1 ? 0 : 4, c));
             }
           }
         });
@@ -487,9 +486,9 @@ void matrixTest(String name, Builder builder) {
           expect(matrix.dataType, source.dataType);
           expect(matrix.rowCount, source.rowCount);
           expect(matrix.colCount, 3);
-          for (var row = 0; row < matrix.rowCount; row++) {
-            for (var col = 0; col < matrix.colCount; col++) {
-              expect(matrix.get(row, col), Point(row, col == 0 ? 3 : 0));
+          for (var r = 0; r < matrix.rowCount; r++) {
+            for (var c = 0; c < matrix.colCount; c++) {
+              expect(matrix.get(r, c), Point(r, c == 0 ? 3 : 0));
             }
           }
         });
@@ -502,10 +501,9 @@ void matrixTest(String name, Builder builder) {
           expect(view.dataType, source.dataType);
           expect(view.rowCount, 2);
           expect(view.colCount, 2);
-          for (var row = 0; row < view.rowCount; row++) {
-            for (var col = 0; col < view.colCount; col++) {
-              expect(view.get(row, col),
-                  Point(row == 0 ? 0 : 5, col == 0 ? 3 : 0));
+          for (var r = 0; r < view.rowCount; r++) {
+            for (var c = 0; c < view.colCount; c++) {
+              expect(view.get(r, c), Point(r == 0 ? 0 : 5, c == 0 ? 3 : 0));
             }
           }
         });
@@ -553,9 +551,9 @@ void matrixTest(String name, Builder builder) {
           expect(view.dataType, DataType.uint16);
           expect(view.rowCount, matrix.rowCount);
           expect(view.colCount, matrix.colCount);
-          for (var row = 0; row < view.rowCount; row++) {
-            for (var col = 0; col < view.colCount; col++) {
-              expect(view.get(row, col), row + 10 * col);
+          for (var r = 0; r < view.rowCount; r++) {
+            for (var c = 0; c < view.colCount; c++) {
+              expect(view.get(r, c), r + 10 * c);
             }
           }
         });
@@ -563,9 +561,9 @@ void matrixTest(String name, Builder builder) {
           final view =
               matrix.map((row, col, value) => '${value.x + 10 * value.y}');
           expect(view.dataType, DataType.string);
-          for (var row = 0; row < view.rowCount; row++) {
-            for (var col = 0; col < view.colCount; col++) {
-              expect(view.get(row, col), '${row + 10 * col}');
+          for (var r = 0; r < view.rowCount; r++) {
+            for (var c = 0; c < view.colCount; c++) {
+              expect(view.get(r, c), '${r + 10 * c}');
             }
           }
         });
@@ -573,9 +571,9 @@ void matrixTest(String name, Builder builder) {
           final view =
               matrix.map<int>((row, col, value) => value.x + 10 * value.y);
           expect(view.dataType, DataType.int64);
-          for (var row = 0; row < view.rowCount; row++) {
-            for (var col = 0; col < view.colCount; col++) {
-              expect(view.get(row, col), row + 10 * col);
+          for (var r = 0; r < view.rowCount; r++) {
+            for (var c = 0; c < view.colCount; c++) {
+              expect(view.get(r, c), r + 10 * c);
             }
           }
         });
@@ -583,9 +581,9 @@ void matrixTest(String name, Builder builder) {
           final view =
               matrix.map<double>((row, col, value) => value.x + 10.0 * value.y);
           expect(view.dataType, DataType.float64);
-          for (var row = 0; row < view.rowCount; row++) {
-            for (var col = 0; col < view.colCount; col++) {
-              expect(view.get(row, col), row + 10.0 * col);
+          for (var r = 0; r < view.rowCount; r++) {
+            for (var c = 0; c < view.colCount; c++) {
+              expect(view.get(r, c), r + 10.0 * c);
             }
           }
         });
@@ -602,15 +600,15 @@ void matrixTest(String name, Builder builder) {
         expect(view.dataType, matrix.dataType);
         expect(view.rowCount, 6);
         expect(view.colCount, 7);
-        for (var row = 0; row < view.rowCount; row++) {
-          for (var col = 0; col < view.colCount; col++) {
-            expect(view.get(row, col), '($col, $row)');
-            view.set(row, col, '${view.get(row, col)}*');
+        for (var r = 0; r < view.rowCount; r++) {
+          for (var c = 0; c < view.colCount; c++) {
+            expect(view.get(r, c), '($c, $r)');
+            view.set(r, c, '${view.get(r, c)}*');
           }
         }
-        for (var row = 0; row < matrix.rowCount; row++) {
-          for (var col = 0; col < matrix.colCount; col++) {
-            expect(matrix.get(row, col), '($row, $col)*');
+        for (var r = 0; r < matrix.rowCount; r++) {
+          for (var c = 0; c < matrix.colCount; c++) {
+            expect(matrix.get(r, c), '($r, $c)*');
           }
         }
         expect(view.transpose, matrix);
@@ -623,21 +621,21 @@ void matrixTest(String name, Builder builder) {
         expect(view.dataType, matrix.dataType);
         expect(view.rowCount, 2);
         expect(view.colCount, 3);
-        for (var row = 0; row < view.rowCount; row++) {
-          for (var col = 0; col < view.colCount; col++) {
-            expect(view.get(row, col), '($row, $col)');
-            expect(() => view.set(row, col, '${view.get(row, col)}*'),
+        for (var r = 0; r < view.rowCount; r++) {
+          for (var c = 0; c < view.colCount; c++) {
+            expect(view.get(r, c), '($r, $c)');
+            expect(() => view.set(r, c, '${view.get(r, c)}*'),
                 throwsUnsupportedError);
           }
         }
-        for (var row = 0; row < matrix.rowCount; row++) {
-          for (var col = 0; col < matrix.colCount; col++) {
-            matrix.set(row, col, '${matrix.get(row, col)}!');
+        for (var r = 0; r < matrix.rowCount; r++) {
+          for (var c = 0; c < matrix.colCount; c++) {
+            matrix.set(r, c, '${matrix.get(r, c)}!');
           }
         }
-        for (var row = 0; row < view.rowCount; row++) {
-          for (var col = 0; col < view.colCount; col++) {
-            expect(view.get(row, col), '($row, $col)!');
+        for (var r = 0; r < view.rowCount; r++) {
+          for (var c = 0; c < view.colCount; c++) {
+            expect(view.get(r, c), '($r, $c)!');
           }
         }
         expect(view.unmodifiable, view);
@@ -663,10 +661,9 @@ void matrixTest(String name, Builder builder) {
           expect(result.dataType, sourceA.dataType);
           expect(result.rowCount, sourceA.rowCount);
           expect(result.colCount, sourceA.colCount);
-          for (var row = 0; row < result.rowCount; row++) {
-            for (var col = 0; col < result.colCount; col++) {
-              expect(result.get(row, col),
-                  sourceA.get(row, col) + sourceB.get(row, col));
+          for (var r = 0; r < result.rowCount; r++) {
+            for (var c = 0; c < result.colCount; c++) {
+              expect(result.get(r, c), sourceA.get(r, c) + sourceB.get(r, c));
             }
           }
         });
@@ -682,10 +679,9 @@ void matrixTest(String name, Builder builder) {
           expect(result.dataType, DataType.uint32);
           expect(result.rowCount, sourceA.rowCount);
           expect(result.colCount, sourceA.colCount);
-          for (var row = 0; row < result.rowCount; row++) {
-            for (var col = 0; col < result.colCount; col++) {
-              expect(result.get(row, col),
-                  sourceA.get(row, col) + sourceB.get(row, col));
+          for (var r = 0; r < result.rowCount; r++) {
+            for (var c = 0; c < result.colCount; c++) {
+              expect(result.get(r, c), sourceA.get(r, c) + sourceB.get(r, c));
             }
           }
           expect(result, target);
@@ -702,10 +698,9 @@ void matrixTest(String name, Builder builder) {
           expect(result.dataType, DataType.uint32);
           expect(result.rowCount, sourceA.rowCount);
           expect(result.colCount, sourceA.colCount);
-          for (var row = 0; row < result.rowCount; row++) {
-            for (var col = 0; col < result.colCount; col++) {
-              expect(result.get(row, col),
-                  sourceA.get(row, col) + sourceB.get(row, col));
+          for (var r = 0; r < result.rowCount; r++) {
+            for (var c = 0; c < result.colCount; c++) {
+              expect(result.get(r, c), sourceA.get(r, c) + sourceB.get(r, c));
             }
           }
         });
@@ -715,10 +710,9 @@ void matrixTest(String name, Builder builder) {
         expect(target.dataType, sourceA.dataType);
         expect(target.rowCount, sourceA.rowCount);
         expect(target.colCount, sourceA.colCount);
-        for (var row = 0; row < target.rowCount; row++) {
-          for (var col = 0; col < target.colCount; col++) {
-            expect(target.get(row, col),
-                sourceA.get(row, col) - sourceB.get(row, col));
+        for (var r = 0; r < target.rowCount; r++) {
+          for (var c = 0; c < target.colCount; c++) {
+            expect(target.get(r, c), sourceA.get(r, c) - sourceB.get(r, c));
           }
         }
       });
@@ -727,9 +721,9 @@ void matrixTest(String name, Builder builder) {
         expect(target.dataType, sourceA.dataType);
         expect(target.rowCount, sourceA.rowCount);
         expect(target.colCount, sourceA.colCount);
-        for (var row = 0; row < target.rowCount; row++) {
-          for (var col = 0; col < target.colCount; col++) {
-            expect(target.get(row, col), -sourceA.get(row, col));
+        for (var r = 0; r < target.rowCount; r++) {
+          for (var c = 0; c < target.colCount; c++) {
+            expect(target.get(r, c), -sourceA.get(r, c));
           }
         }
       });
@@ -738,9 +732,9 @@ void matrixTest(String name, Builder builder) {
         expect(target.dataType, sourceA.dataType);
         expect(target.rowCount, sourceA.rowCount);
         expect(target.colCount, sourceA.colCount);
-        for (var row = 0; row < target.rowCount; row++) {
-          for (var col = 0; col < target.colCount; col++) {
-            expect(target.get(row, col), 2 * sourceA.get(row, col));
+        for (var r = 0; r < target.rowCount; r++) {
+          for (var c = 0; c < target.colCount; c++) {
+            expect(target.get(r, c), 2 * sourceA.get(r, c));
           }
         }
       });
