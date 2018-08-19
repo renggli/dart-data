@@ -6,11 +6,31 @@ import 'package:data/type.dart';
 import 'package:test/test.dart';
 
 void listTest(DataType type, List<List> lists) {
+  if ([
+    DataType.float64,
+    DataType.int64,
+    DataType.boolean,
+    DataType.string,
+    DataType.object,
+  ].contains(type)) {
+    final exampleInstance = lists.expand((list) => list).first;
+    final exampleType = exampleInstance.runtimeType;
+    test('fromInstance: $exampleInstance', () {
+      expect(DataType.fromInstance(exampleInstance), type,
+          reason: 'DataType.fromInstance($exampleInstance)');
+    });
+    test('fromType: $exampleType', () {
+      expect(DataType.fromType(exampleType), type,
+          reason: 'DataType.fromType($exampleType)');
+    });
+  }
   if (type != DataType.float32) {
     for (var list in lists) {
-      test('convertList: $list', () {
+      test('fromIterable: $list', () {
         expect(DataType.fromIterable(list), type,
-            reason: 'new DataType.fromIterable($list)');
+            reason: 'DataType.fromIterable($list)');
+      });
+      test('convertList: $list', () {
         expect(type.convertList(list), list,
             reason: '$type.convertList($list)');
       });
@@ -32,6 +52,13 @@ void listTest(DataType type, List<List> lists) {
     expect(copy.getRange(0, example.length), example);
     expect(copy.getRange(example.length, copy.length),
         List.filled(5, type.nullValue));
+  });
+  test('copyList (larger, with custom fill)', () {
+    final copy = type.copyList(example, length: example.length + 5, fillValue: example[0]);
+    expect(copy.length, example.length + 5);
+    expect(copy.getRange(0, example.length), example);
+    expect(copy.getRange(example.length, copy.length),
+        List.filled(5, example[0]));
   });
 }
 
@@ -64,6 +91,11 @@ void floatGroup(DataType type, int bits) {
     test('name', () {
       expect(nullableType.name, '$name.nullable');
       expect(nullableType.toString(), 'DataType.$name.nullable');
+    });
+    test('equality', () {
+      final sameNullableType = type.nullable;
+      expect(nullableType, sameNullableType);
+      expect(nullableType.hashCode, sameNullableType.hashCode);
     });
     test('nullable', () {
       expect(nullableType.isNullable, isTrue);
@@ -179,7 +211,7 @@ void main() {
     });
     listTest(type, <List<Object>>[
       [],
-      [type],
+      [Uri.parse('https://lukas-renggli.ch/')],
       [1, true],
       ['abc', 123],
     ]);

@@ -7,7 +7,7 @@ import 'nullable.dart';
 import 'numeric.dart';
 import 'object.dart';
 import 'string.dart';
-import 'utils.dart';
+import 'utils.dart' as utils;
 
 abstract class DataType<T> {
   // Object data types
@@ -34,7 +34,15 @@ abstract class DataType<T> {
 
   const DataType();
 
-  factory DataType.fromIterable(Iterable elements) => findDataType(elements);
+  /// Derives a fitting [DataType] from [Object] [instance].
+  factory DataType.fromInstance(Object instance) =>
+      utils.fromInstance(instance);
+
+  /// Derives a fitting [DataType] from a runtime [Type] [type].
+  factory DataType.fromType(Type type) => utils.fromType(type);
+
+  /// Derives a fitting [DataType] from an [Iterable] of [values].
+  factory DataType.fromIterable(Iterable values) => utils.fromIterable(values);
 
   /// Returns the name of this [DataType].
   String get name;

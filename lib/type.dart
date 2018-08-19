@@ -8,4 +8,3 @@ export 'package:data/src/type/numeric.dart';
 export 'package:data/src/type/object.dart';
 export 'package:data/src/type/string.dart';
 export 'package:data/src/type/type.dart';
-export 'package:data/src/type/utils.dart';

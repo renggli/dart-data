@@ -3,8 +3,27 @@ import 'dart:math' as math;
 import 'integer.dart';
 import 'type.dart';
 
-/// Finds the most specific data type for the provided values.
-DataType findDataType(Iterable values) {
+/// Derives a fitting [DataType] from [Object] [instance].
+DataType fromInstance(Object instance) => fromType(instance.runtimeType);
+
+/// Derives a fitting [DataType] from a runtime [Type] [type].
+DataType fromType(Type type) {
+  switch (type) {
+    case double:
+      return DataType.float64;
+    case int:
+      return DataType.int64;
+    case bool:
+      return DataType.boolean;
+    case String:
+      return DataType.string;
+    default:
+      return DataType.object;
+  }
+}
+
+/// Derives a fitting [DataType] from an [Iterable] of [values].
+DataType fromIterable(Iterable values) {
   if (values.isEmpty) {
     return DataType.object;
   }
