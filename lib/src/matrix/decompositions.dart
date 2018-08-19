@@ -65,8 +65,21 @@ T norm1<T extends num>(Matrix<T> source) {
 /// Returns the two norm, the maximum singular value.
 double norm2(Matrix<num> source) => singularValue(source).norm2;
 
+/// Returns the infinity norm, the maximum row sum.
+T normInfinity<T extends num>(Matrix<T> source) {
+  var result = source.dataType.nullValue;
+  for (var r = 0; r < source.rowCount; r++) {
+    var sum = source.dataType.nullValue;
+    for (var c = 0; c < source.colCount; c++) {
+      sum += source.getUnchecked(r, c).abs();
+    }
+    result = math.max(result, sum);
+  }
+  return result;
+}
+
 /// Returns the frobenius norm, the sum of squares of all elements.
-double normF(Matrix<num> source) {
+double normFrobenius(Matrix<num> source) {
   var result = 0.0;
   for (var c = 0; c < source.colCount; c++) {
     for (var r = 0; r < source.rowCount; r++) {
