@@ -374,6 +374,10 @@ void vectorTest(String name, Builder builder) {
         final sourceB = builder.withType(DataType.uint8)(sourceA.count - 1);
         expect(() => dot(sourceA, sourceB), throwsArgumentError);
       });
+      test('sum', () {
+        final source = builder.withType(DataType.uint8).fromList([1, 2, 3, 4]);
+        expect(sum(source), 10);
+      });
       test('length', () {
         final source = builder.withType(DataType.uint8).fromList([3, 4]);
         expect(length(source), 5.0);
