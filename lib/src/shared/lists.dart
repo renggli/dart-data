@@ -1,5 +1,7 @@
 library data.shared.lists;
 
+import 'dart:math' as math;
+
 import 'package:data/type.dart';
 
 /// Initial size of fixed-length lists.
@@ -9,30 +11,32 @@ const int initialListSize = 4;
 List<T> insertAt<T>(
     DataType<T> type, List<T> list, int length, int index, T value) {
   if (list.length == length) {
-    final newList = type.newList(3 * length ~/ 2 + 1);
+    final newLength = 3 * length ~/ 2 + 1;
+    final newList = type.newList(newLength);
     newList.setRange(0, index, list);
     newList[index] = value;
     newList.setRange(index + 1, length + 1, list, index);
     return newList;
-  } else {
-    list.setRange(index + 1, length + 1, list, index);
-    list[index] = value;
-    return list;
   }
+  list.setRange(index + 1, length + 1, list, index);
+  list[index] = value;
+  return list;
 }
 
 /// Removes an entry from a fixed-length list, possibly reallocates.
 List<T> removeAt<T>(DataType<T> type, List<T> list, int length, int index) {
   if (2 * length < list.length) {
-    final newList = type.newList(length - 1);
-    newList.setRange(0, index, list);
-    newList.setRange(index, length - 1, list, index + 1);
-    return newList;
-  } else {
-    list.setRange(index, length - 1, list, index + 1);
-    list[length - 1] = type.nullValue;
-    return list;
+    final newLength = math.max(initialListSize, length - 1);
+    if (newLength < list.length) {
+      final newList = type.newList(newLength);
+      newList.setRange(0, index, list);
+      newList.setRange(index, length - 1, list, index + 1);
+      return newList;
+    }
   }
+  list.setRange(index, length - 1, list, index + 1);
+  list[length - 1] = type.nullValue;
+  return list;
 }
 
 /// Performs a binary search on the range of a sorted list.
