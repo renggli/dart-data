@@ -2,6 +2,8 @@ library data.type.integer;
 
 import 'dart:typed_data';
 
+import 'package:more/printer.dart' show Printer;
+
 import 'type.dart';
 
 abstract class IntegerDataType extends DataType<int> {
@@ -34,6 +36,9 @@ abstract class IntegerDataType extends DataType<int> {
     }
     return super.convert(value);
   }
+
+  @override
+  Printer get printer => Printer.fixed();
 }
 
 class Int8DataType extends IntegerDataType {

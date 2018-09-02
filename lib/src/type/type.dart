@@ -1,5 +1,7 @@
 library data.type;
 
+import 'package:more/printer.dart' show Printer;
+
 import 'boolean.dart';
 import 'float.dart';
 import 'integer.dart';
@@ -89,6 +91,9 @@ abstract class DataType<T> {
     }
     return list;
   }
+
+  /// Returns a default printer for this data type.
+  Printer get printer => Printer.standard();
 
   @override
   String toString() => 'DataType.$name';

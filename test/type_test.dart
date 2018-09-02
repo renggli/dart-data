@@ -61,6 +61,14 @@ void listTest(DataType type, List<List> lists) {
     expect(
         copy.getRange(example.length, copy.length), List.filled(5, example[0]));
   });
+  test('printer', () {
+    final printer = type.printer;
+    final examples = lists.expand((list) => list).toList();
+    for (var example in examples) {
+      final printed = printer(example);
+      expect(printed, contains(example.toString().substring(0, 1)));
+    }
+  });
 }
 
 void floatGroup(DataType type, int bits) {

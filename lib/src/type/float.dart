@@ -2,6 +2,8 @@ library data.type.float;
 
 import 'dart:typed_data';
 
+import 'package:more/printer.dart' show Printer;
+
 import 'type.dart';
 
 abstract class FloatDataType extends DataType<double> {
@@ -32,6 +34,13 @@ class Float32DataType extends FloatDataType {
 
   @override
   List<double> newList(int length) => Float32List(length);
+
+  @override
+  Printer get printer => Printer.scientific(
+        exponentPadding: 3,
+        exponentSign: Printer.negativeAndPositiveSign(),
+        precision: 3,
+      ).padLeft(10);
 }
 
 class Float64DataType extends FloatDataType {
@@ -42,4 +51,11 @@ class Float64DataType extends FloatDataType {
 
   @override
   List<double> newList(int length) => Float64List(length);
+
+  @override
+  Printer get printer => Printer.scientific(
+        exponentPadding: 3,
+        exponentSign: Printer.negativeAndPositiveSign(),
+        precision: 6,
+      ).padLeft(13);
 }
