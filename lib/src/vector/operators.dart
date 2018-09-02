@@ -2,8 +2,8 @@ library data.vector.operators;
 
 import 'dart:math' as math;
 
-import 'package:data/type.dart';
 import 'package:data/matrix.dart' show Matrix;
+import 'package:data/type.dart';
 
 import 'builder.dart';
 import 'vector.dart';

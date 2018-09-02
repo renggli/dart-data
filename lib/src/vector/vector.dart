@@ -1,6 +1,7 @@
 library data.vector.vector;
 
-import 'package:data/type.dart';
+import 'package:data/type.dart' show DataType;
+import 'package:more/printer.dart' show Printer;
 
 import 'builder.dart';
 import 'impl/standard_vector.dart';
@@ -83,17 +84,20 @@ abstract class Vector<T> {
   /// Returns a unmodifiable view of the vector.
   Vector<T> get unmodifiable => UnmodifiableVector<T>(this);
 
-  /// Pretty prints the vector.
-  @override
-  String toString() {
-    final buffer = StringBuffer(runtimeType);
-    buffer.write('[$count]: ');
+  /// Returns a human readable representation of the vector.
+  String format([Printer printer]) {
+    final formatter = printer ?? dataType.printer;
+    final buffer = StringBuffer();
     for (var i = 0; i < count; i++) {
       if (i > 0) {
-        buffer.write(', ');
+        buffer.write(' ');
       }
-      buffer.write(getUnchecked(i));
+      buffer.write(formatter(getUnchecked(i)));
     }
     return buffer.toString();
   }
+
+  /// Pretty prints the vector.
+  @override
+  String toString() => '$runtimeType[$count]: ${format()}';
 }

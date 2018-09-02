@@ -2,10 +2,10 @@ library data.test.vector;
 
 import 'dart:math';
 
+import 'package:data/matrix.dart' as matrix;
 import 'package:data/type.dart';
 import 'package:data/vector.dart';
 import 'package:test/test.dart';
-import 'package:data/matrix.dart' as matrix;
 
 void vectorTest(String name, Builder builder) {
   group(name, () {

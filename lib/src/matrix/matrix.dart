@@ -3,6 +3,7 @@ library data.matrix.matrix;
 import 'package:data/type.dart' show DataType;
 import 'package:data/vector.dart' show Vector;
 import 'package:more/collection.dart' show IntegerRange;
+import 'package:more/printer.dart' show Printer;
 
 import 'builder.dart';
 import 'impl/row_major_matrix.dart';
@@ -191,17 +192,25 @@ abstract class Matrix<T> {
   /// Returns a unmodifiable view of the matrix.
   Matrix<T> get unmodifiable => UnmodifiableMatrix<T>(this);
 
-  /// Pretty prints the matrix.
-  @override
-  String toString() {
-    final buffer = StringBuffer(runtimeType);
-    buffer.write('[$rowCount, $colCount]:');
+  /// Returns a human readable representation of the matrix.
+  String format([Printer printer]) {
+    final formatter = printer ?? dataType.printer;
+    final buffer = StringBuffer();
     for (var r = 0; r < rowCount; r++) {
-      buffer.writeln();
+      if (r > 0) {
+        buffer.writeln();
+      }
       for (var c = 0; c < colCount; c++) {
-        buffer.write('  ${getUnchecked(r, c)}');
+        if (c > 0) {
+          buffer.write(' ');
+        }
+        buffer.write(formatter(getUnchecked(r, c)));
       }
     }
     return buffer.toString();
   }
+
+  /// Pretty prints the matrix.
+  @override
+  String toString() => '$runtimeType[$rowCount, $colCount]: ${format()}';
 }
