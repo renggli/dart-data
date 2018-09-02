@@ -228,7 +228,7 @@ void vectorTest(String name, Builder builder) {
       });
       test('toString', () {
         final vector = builder.withType(DataType.int8).fromList([3, 2, 1]);
-        expect(vector.toString(), '${vector.runtimeType}[3]: 3, 2, 1');
+        expect(vector.toString(), '${vector.runtimeType}[3]: 3 2 1');
       });
     });
     group('operators', () {

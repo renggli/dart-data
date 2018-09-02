@@ -270,11 +270,7 @@ void matrixTest(String name, Builder builder) {
         expect(() => matrix.set(0, matrix.colCount, 0), throwsRangeError);
       });
       test('toString', () {
-        expect(
-            matrix.toString(),
-            '${matrix.runtimeType}[2, 3]:\n'
-            '  1  2  3\n'
-            '  4  5  6');
+        expect(matrix.toString(), '${matrix.runtimeType}[2, 3]: 1 2 3\n4 5 6');
       });
     });
     group('views', () {
