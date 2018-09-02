@@ -9,7 +9,7 @@ const int initialListSize = 4;
 List<T> insertAt<T>(
     DataType<T> type, List<T> list, int length, int index, T value) {
   if (list.length == length) {
-    final newList = type.newList(2 * length);
+    final newList = type.newList(3 * length ~/ 2 + 1);
     newList.setRange(0, index, list);
     newList[index] = value;
     newList.setRange(index + 1, length + 1, list, index);
@@ -21,11 +21,18 @@ List<T> insertAt<T>(
   }
 }
 
-/// Removes an entry from a fixed-length list.
+/// Removes an entry from a fixed-length list, possibly reallocates.
 List<T> removeAt<T>(DataType<T> type, List<T> list, int length, int index) {
-  list.setRange(index, length - 1, list, index + 1);
-  list[length] = type.nullValue;
-  return list;
+  if (2 * length < list.length) {
+    final newList = type.newList(length - 1);
+    newList.setRange(0, index, list);
+    newList.setRange(index, length - 1, list, index + 1);
+    return newList;
+  } else {
+    list.setRange(index, length - 1, list, index + 1);
+    list[length - 1] = type.nullValue;
+    return list;
+  }
 }
 
 /// Performs a binary search on the range of a sorted list.
