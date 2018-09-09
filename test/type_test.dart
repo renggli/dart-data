@@ -2,6 +2,7 @@ library data.test.type;
 
 import 'dart:math' as math;
 
+import 'package:data/src/shared/config.dart' as config;
 import 'package:data/type.dart';
 import 'package:test/test.dart';
 
@@ -91,8 +92,8 @@ void floatGroup(DataType type, int bits) {
       expect(() => type.convert('abc'), throwsArgumentError);
     });
     listTest(type, <List<double>>[
-      <double>[math.pi, math.e],
-      <double>[-1.0, 0.0, 0.375],
+      [math.pi, math.e],
+      [-0.750, 1.5, 0.375],
     ]);
   });
   group('$name.nullable', () {
@@ -122,7 +123,7 @@ void floatGroup(DataType type, int bits) {
     if (DataType.float64 == type) {
       listTest(nullableType, <List<double>>[
         [math.pi, null, math.e],
-        [-1.0, 0.0, 1.1, null],
+        [-1.1, 0.1, 1.1, null],
       ]);
     }
   });
@@ -145,8 +146,22 @@ void integerGroup(IntegerDataType type, bool isSigned, int bits) {
         expect(type.max, math.pow(2, bits - 1) - 1);
       } else {
         expect(type.min, 0);
-        if (type != DataType.uint64) {
-          expect(type.max, math.pow(2, bits) - 1);
+        expect(type.max, math.pow(2, bits) - 1);
+      }
+    });
+    test('safe', () {
+      if (type.bits <= 32) {
+        expect(type.safeBits, type.bits);
+        expect(type.safeMin, type.min);
+        expect(type.safeMax, type.max);
+      } else {
+        expect(type.safeBits <= type.bits, isTrue);
+        if (type.isSigned) {
+          expect(type.safeMin, -math.pow(2, type.safeBits - 1));
+          expect(type.safeMax, math.pow(2, type.safeBits - 1) - 1);
+        } else {
+          expect(type.safeMin, 0);
+          expect(type.safeMax, math.pow(2, type.safeBits) - 1);
         }
       }
     });
@@ -167,8 +182,8 @@ void integerGroup(IntegerDataType type, bool isSigned, int bits) {
       expect(() => type.convert('abc'), throwsArgumentError);
     });
     listTest(type, <List<int>>[
-      [type.min, 0, type.max],
-      [type.min + 123, type.max - 45, type.max - 67],
+      [type.safeMin, 0, type.safeMax],
+      [type.safeMin + 123, type.safeMax - 45, type.safeMax - 67],
     ]);
   });
   group('$name.nullable', () {
@@ -194,8 +209,8 @@ void integerGroup(IntegerDataType type, bool isSigned, int bits) {
       expect(() => nullableType.convert('abc'), throwsArgumentError);
     });
     listTest(nullableType, <List<int>>[
-      [type.min, 0, null, type.max, null],
-      [type.min + 123, type.max - 45, null, type.max - 67],
+      [type.safeMin, 0, null, type.safeMax, null],
+      [type.safeMin + 123, type.safeMax - 45, null, type.safeMax - 67],
     ]);
   });
 }
@@ -331,8 +346,11 @@ void main() {
   integerGroup(DataType.uint16, false, 16);
   integerGroup(DataType.int32, true, 32);
   integerGroup(DataType.uint32, false, 32);
-  integerGroup(DataType.int64, true, 64);
-  integerGroup(DataType.uint64, false, 64);
+  if (config.isVm) {
+    /// int64 and uint64 are only supported in VM
+    integerGroup(DataType.int64, true, 64);
+    integerGroup(DataType.uint64, false, 64);
+  }
   floatGroup(DataType.float32, 32);
   floatGroup(DataType.float64, 64);
 }

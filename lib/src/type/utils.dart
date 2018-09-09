@@ -2,6 +2,7 @@ import 'dart:math' as math;
 
 import 'integer.dart';
 import 'type.dart';
+import '../shared/config.dart' as config;
 
 /// Derives a fitting [DataType] from [Object] [instance].
 DataType fromInstance(Object instance) => fromType(instance.runtimeType);
@@ -33,6 +34,7 @@ DataType fromIterable(Iterable values) {
   var stringCount = 0;
   var intCount = 0;
   var doubleCount = 0;
+  var numberCount = 0;
   num minValue = double.infinity;
   num maxValue = double.negativeInfinity;
 
@@ -46,10 +48,19 @@ DataType fromIterable(Iterable values) {
     } else if (value is num) {
       minValue = math.min(minValue, value);
       maxValue = math.max(maxValue, value);
-      if (value is int) {
-        intCount++;
-      } else if (value is double) {
-        doubleCount++;
+      numberCount++;
+      if (config.isVm) {
+        if (value is int) {
+          intCount++;
+        } else if (value is double) {
+          doubleCount++;
+        }
+      } else {
+        if (value.round() == value) {
+          intCount++;
+        } else {
+          doubleCount++;
+        }
       }
     } else {
       return DataType.object;
@@ -57,42 +68,26 @@ DataType fromIterable(Iterable values) {
   }
 
   DataType resolve() {
-    if (boolCount > 0 &&
-        stringCount == 0 &&
-        intCount == 0 &&
-        doubleCount == 0) {
+    if (boolCount > 0 && stringCount == 0 && numberCount == 0) {
       return DataType.boolean;
-    } else if (boolCount == 0 &&
-        stringCount > 0 &&
-        intCount == 0 &&
-        doubleCount == 0) {
+    } else if (boolCount == 0 && stringCount > 0 && numberCount == 0) {
       return DataType.string;
-    } else if (boolCount == 0 &&
-        stringCount == 0 &&
-        intCount > 0 &&
-        doubleCount == 0) {
-      for (var dataType in _intDataTypes) {
-        if (dataType.min <= minValue &&
-            minValue <= dataType.max &&
-            dataType.min <= maxValue &&
-            maxValue <= dataType.max) {
-          return dataType;
+    } else if (boolCount == 0 && stringCount == 0 && numberCount > 0) {
+      if (intCount > 0 && doubleCount == 0) {
+        for (var dataType in _intDataTypes) {
+          if (dataType.safeMin <= minValue &&
+              minValue <= dataType.safeMax &&
+              dataType.safeMin <= maxValue &&
+              maxValue <= dataType.safeMax) {
+            return dataType;
+          }
         }
+      } else if (intCount == 0 && doubleCount > 0) {
+        return DataType.float64;
       }
       return DataType.numeric;
-    } else if (boolCount == 0 &&
-        stringCount == 0 &&
-        intCount == 0 &&
-        doubleCount > 0) {
-      return DataType.float64;
-    } else if (boolCount == 0 &&
-        stringCount == 0 &&
-        intCount > 0 &&
-        doubleCount > 0) {
-      return DataType.numeric;
-    } else {
-      return DataType.object;
     }
+    return DataType.object;
   }
 
   return nullCount == 0 ? resolve() : resolve().nullable;
