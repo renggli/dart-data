@@ -538,13 +538,23 @@ void matrixTest(String name, Builder builder) {
       });
       group('map', () {
         final matrix = builder.generate(3, 4, (row, col) => Point(row, col));
-        test('to specific type', () {
-          final view = matrix.map((row, col, value) {
-            expect(row, value.x);
-            expect(col, value.y);
-            return value.x + 10 * value.y;
-          }, DataType.uint16);
-          expect(view.dataType, DataType.uint16);
+        test('to string', () {
+          final view = matrix.map(
+              (row, col, value) => '${value.x + 10 * value.y}',
+              DataType.string);
+          expect(view.dataType, DataType.string);
+          expect(view.rowCount, matrix.rowCount);
+          expect(view.colCount, matrix.colCount);
+          for (var r = 0; r < view.rowCount; r++) {
+            for (var c = 0; c < view.colCount; c++) {
+              expect(view.get(r, c), '${r + 10 * c}');
+            }
+          }
+        });
+        test('to int', () {
+          final view = matrix.map(
+              (row, col, value) => value.x + 10 * value.y, DataType.int32);
+          expect(view.dataType, DataType.int32);
           expect(view.rowCount, matrix.rowCount);
           expect(view.colCount, matrix.colCount);
           for (var r = 0; r < view.rowCount; r++) {
@@ -553,30 +563,12 @@ void matrixTest(String name, Builder builder) {
             }
           }
         });
-        test('to string', () {
-          final view =
-              matrix.map((row, col, value) => '${value.x + 10 * value.y}');
-          expect(view.dataType, DataType.string);
-          for (var r = 0; r < view.rowCount; r++) {
-            for (var c = 0; c < view.colCount; c++) {
-              expect(view.get(r, c), '${r + 10 * c}');
-            }
-          }
-        });
-        test('to int', () {
-          final view =
-              matrix.map<int>((row, col, value) => value.x + 10 * value.y);
-          expect(view.dataType, DataType.int64);
-          for (var r = 0; r < view.rowCount; r++) {
-            for (var c = 0; c < view.colCount; c++) {
-              expect(view.get(r, c), r + 10 * c);
-            }
-          }
-        });
         test('to float', () {
-          final view =
-              matrix.map<double>((row, col, value) => value.x + 10.0 * value.y);
+          final view = matrix.map(
+              (row, col, value) => value.x + 10.0 * value.y, DataType.float64);
           expect(view.dataType, DataType.float64);
+          expect(view.rowCount, matrix.rowCount);
+          expect(view.colCount, matrix.colCount);
           for (var r = 0; r < view.rowCount; r++) {
             for (var c = 0; c < view.colCount; c++) {
               expect(view.get(r, c), r + 10.0 * c);
@@ -584,7 +576,7 @@ void matrixTest(String name, Builder builder) {
           }
         });
         test('readonly', () {
-          final view = matrix.map<int>((row, col, value) => row);
+          final view = matrix.map<int>((row, col, value) => row, DataType.int32);
           expect(() => view.setUnchecked(1, 2, 3), throwsUnsupportedError);
         });
       });

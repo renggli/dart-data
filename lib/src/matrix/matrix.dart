@@ -182,9 +182,8 @@ abstract class Matrix<T> {
 
   /// Returns a lazy [Matrix] with elements that are created by calling
   /// `callback` on each element of this `Matrix`.
-  Matrix<S> map<S>(MatrixTransformation<T, S> callback,
-          [DataType<S> dataType]) =>
-      MappedMatrix<T, S>(this, callback, dataType ?? DataType.fromType(S));
+  Matrix<S> map<S>(MatrixTransformation<T, S> callback, DataType<S> dataType) =>
+      MappedMatrix<T, S>(this, callback, dataType);
 
   /// Returns a mutable view onto the transposed matrix.
   Matrix<T> get transpose => TransposeMatrix<T>(this);
