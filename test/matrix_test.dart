@@ -576,7 +576,8 @@ void matrixTest(String name, Builder builder) {
           }
         });
         test('readonly', () {
-          final view = matrix.map<int>((row, col, value) => row, DataType.int32);
+          final view =
+              matrix.map<int>((row, col, value) => row, DataType.int32);
           expect(() => view.setUnchecked(1, 2, 3), throwsUnsupportedError);
         });
       });

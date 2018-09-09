@@ -1,8 +1,8 @@
 import 'dart:math' as math;
 
+import '../shared/config.dart' as config;
 import 'integer.dart';
 import 'type.dart';
-import '../shared/config.dart' as config;
 
 /// Derives a fitting [DataType] from [Object] [instance].
 DataType fromInstance(Object instance) => fromType(instance.runtimeType);

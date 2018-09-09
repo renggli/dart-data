@@ -78,7 +78,7 @@ void main() {
 
   for (var n = 3; n <= 64; n++) {
     final m = magic(n);
-    final md = m.map<double>((row, col, value) => value.toDouble());
+    final md = m.map((row, col, value) => value.toDouble(), DataType.float64);
 
     final buffer = [];
 
