@@ -2,6 +2,9 @@ library data.shared.config;
 
 import 'package:data/type.dart';
 
+/// True, if the code is running in the Dart VM.
+const bool isVm = !identical(1, 1.0);
+
 /// Integer data type to index column and row indexes.
 const DataType<int> indexDataType = DataType.uint32;
 
