@@ -24,5 +24,5 @@ class MappedVector<S, T> extends Vector<T> {
 
   @override
   void setUnchecked(int index, T value) =>
-      throw UnsupportedError('Matrix is not mutable.');
+      throw UnsupportedError('Vector is not mutable.');
 }

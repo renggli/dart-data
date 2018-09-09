@@ -176,40 +176,33 @@ void vectorTest(String name, Builder builder) {
       });
       group('map', () {
         final vector = builder.generate(4, (index) => index);
-        test('to specific type', () {
-          final view = vector.map((index, value) {
-            expect(index, value);
-            return value;
-          }, DataType.uint16);
-          expect(view.dataType, DataType.uint16);
-          expect(view.count, vector.count);
-          for (var i = 0; i < view.count; i++) {
-            expect(view[i], i);
-          }
-        });
         test('to string', () {
-          final view = vector.map((index, value) => '$index');
+          final view = vector.map((index, value) => '$index', DataType.string);
           expect(view.dataType, DataType.string);
+          expect(view.count, vector.count);
           for (var i = 0; i < view.count; i++) {
             expect(view[i], '$i');
           }
         });
         test('to int', () {
-          final view = vector.map<int>((index, value) => index);
-          expect(view.dataType, DataType.int64);
+          final view = vector.map((index, value) => index, DataType.int32);
+          expect(view.dataType, DataType.int32);
+          expect(view.count, vector.count);
           for (var i = 0; i < view.count; i++) {
             expect(view[i], i);
           }
         });
         test('to float', () {
-          final view = vector.map<double>((index, value) => index.toDouble());
+          final view =
+              vector.map((index, value) => index.toDouble(), DataType.float64);
           expect(view.dataType, DataType.float64);
+          expect(view.count, vector.count);
           for (var i = 0; i < view.count; i++) {
             expect(view[i], i.toDouble());
           }
         });
         test('readonly', () {
-          final view = vector.map<int>((index, value) => index);
+          final view = vector.map((index, value) => index, DataType.int32);
           expect(() => view.setUnchecked(0, 1), throwsUnsupportedError);
         });
       });
@@ -348,7 +341,7 @@ void vectorTest(String name, Builder builder) {
       });
       test('mul', () {
         final a = matrix.Matrix.builder
-            .withType(DataType.int64)
+            .withType(DataType.int32)
             .generate(37, 42, (r, c) => random.nextInt(100));
         final b = builder
             .withType(DataType.int8)
@@ -359,7 +352,7 @@ void vectorTest(String name, Builder builder) {
         }
       });
       test('mul (dimension missmatch)', () {
-        final a = matrix.Matrix.builder.withType(DataType.int64)(37, 42);
+        final a = matrix.Matrix.builder.withType(DataType.int32)(37, 42);
         final b = builder.withType(DataType.int8)(a.rowCount);
         expect(() => mul(a, b), throwsArgumentError);
       });

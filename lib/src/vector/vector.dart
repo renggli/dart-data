@@ -77,9 +77,8 @@ abstract class Vector<T> {
 
   /// Returns a lazy [Vector] with elements that are created by calling
   /// `callback` on each element of this `Vector`.
-  Vector<S> map<S>(VectorTransformation<T, S> callback,
-          [DataType<S> dataType]) =>
-      MappedVector<T, S>(this, callback, dataType ?? DataType.fromType(S));
+  Vector<S> map<S>(VectorTransformation<T, S> callback, DataType<S> dataType) =>
+      MappedVector<T, S>(this, callback, dataType);
 
   /// Returns a unmodifiable view of the vector.
   Vector<T> get unmodifiable => UnmodifiableVector<T>(this);
