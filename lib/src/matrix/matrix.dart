@@ -6,7 +6,7 @@ import 'package:more/collection.dart' show IntegerRange;
 import 'package:more/printer.dart' show Printer;
 
 import 'builder.dart';
-import 'impl/row_major_matrix.dart';
+import 'format.dart';
 import 'view/column_vector.dart';
 import 'view/diagonal_vector.dart';
 import 'view/index_matrix.dart';
@@ -20,7 +20,7 @@ import 'view/unmodifiable_matrix.dart';
 abstract class Matrix<T> {
   /// Default builder for new matrices.
   static Builder<Object> get builder =>
-      Builder<Object>(RowMajorMatrix, DataType.object);
+      Builder<Object>(Format.rowMajor, DataType.object);
 
   /// Unnamed default constructor.
   const Matrix();

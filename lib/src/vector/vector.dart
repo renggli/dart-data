@@ -4,7 +4,7 @@ import 'package:data/type.dart' show DataType;
 import 'package:more/printer.dart' show Printer;
 
 import 'builder.dart';
-import 'impl/standard_vector.dart';
+import 'format.dart';
 import 'view/index_vector.dart';
 import 'view/mapped_vector.dart';
 import 'view/range_vector.dart';
@@ -14,7 +14,7 @@ import 'view/unmodifiable_vector.dart';
 abstract class Vector<T> {
   /// Default builder for new vectors.
   static Builder<Object> get builder =>
-      Builder<Object>(StandardVector, DataType.object);
+      Builder<Object>(Format.standard, DataType.object);
 
   /// Unnamed default constructor.
   const Vector();

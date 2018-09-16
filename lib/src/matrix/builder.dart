@@ -3,6 +3,7 @@ library data.matrix.builder;
 import 'package:data/type.dart';
 import 'package:data/vector.dart' show Vector;
 
+import 'format.dart';
 import 'impl/column_major_matrix.dart';
 import 'impl/compressed_column_matrix.dart';
 import 'impl/compressed_row_matrix.dart';
@@ -18,38 +19,39 @@ class Builder<T> {
   Builder(this.format, this.type);
 
   /// Returns the storage format of the builder.
-  final Type format;
+  final Format format;
 
   /// Returns the data type of the builder.
   final DataType<T> type;
 
   /// Returns a builder for row major matrices.
-  Builder<T> get rowMajor => withFormat(RowMajorMatrix);
+  Builder<T> get rowMajor => withFormat(Format.rowMajor);
 
   /// Returns a builder for column major matrices.
-  Builder<T> get columnMajor => withFormat(ColumnMajorMatrix);
+  Builder<T> get columnMajor => withFormat(Format.columnMajor);
 
   /// Returns a builder for compressed row matrices.
-  Builder<T> get compressedRow => withFormat(CompressedRowMatrix);
+  Builder<T> get compressedRow => withFormat(Format.compressedRow);
 
   /// Returns a builder for compressed column matrices.
-  Builder<T> get compressedColumn => withFormat(CompressedColumnMatrix);
+  Builder<T> get compressedColumn => withFormat(Format.compressedColumn);
 
   /// Returns a builder for coordinate list matrices.
-  Builder<T> get coordinateList => withFormat(CoordinateListMatrix);
+  Builder<T> get coordinateList => withFormat(Format.coordinateList);
 
   /// Returns a builder for keyed matrices.
-  Builder<T> get keyed => withFormat(KeyedMatrix);
+  Builder<T> get keyed => withFormat(Format.keyed);
 
   /// Returns a builder for diagonal matrices.
-  Builder<T> get diagonal => withFormat(DiagonalMatrix);
+  Builder<T> get diagonal => withFormat(Format.diagonal);
 
   /// Returns a builder with the provided storage [format].
-  Builder<T> withFormat(Type format) =>
+  Builder<T> withFormat(Format format) =>
       this.format == format ? this : Builder<T>(format, type);
 
   /// Returns a builder with the provided data [type].
   Builder<S> withType<S>(DataType<S> type) =>
+      // ignore: unrelated_type_equality_checks
       this.type == type ? this : Builder<S>(format, type);
 
   /// Builds a new matrix of the configured format.
@@ -61,19 +63,19 @@ class Builder<T> {
       colCount = rowCount;
     }
     switch (format) {
-      case RowMajorMatrix:
+      case Format.rowMajor:
         return RowMajorMatrix<T>(type, rowCount, colCount);
-      case ColumnMajorMatrix:
+      case Format.columnMajor:
         return ColumnMajorMatrix<T>(type, rowCount, colCount);
-      case CompressedRowMatrix:
+      case Format.compressedRow:
         return CompressedRowMatrix<T>(type, rowCount, colCount);
-      case CompressedColumnMatrix:
+      case Format.compressedColumn:
         return CompressedColumnMatrix<T>(type, rowCount, colCount);
-      case CoordinateListMatrix:
+      case Format.coordinateList:
         return CoordinateListMatrix<T>(type, rowCount, colCount);
-      case KeyedMatrix:
+      case Format.keyed:
         return KeyedMatrix<T>(type, rowCount, colCount);
-      case DiagonalMatrix:
+      case Format.diagonal:
         return DiagonalMatrix<T>(type, rowCount, colCount);
     }
     throw ArgumentError.value(format, 'format');
@@ -182,7 +184,7 @@ class Builder<T> {
       throw ArgumentError.value(
           source, 'source', 'Row and column count do not match.');
     }
-    if (type == RowMajorMatrix) {
+    if (Format.rowMajor == format) {
       // Optimized case for row major matrices.
       return RowMajorMatrix(type, rowCount, colCount, type.copyList(source));
     }
@@ -217,8 +219,8 @@ class Builder<T> {
       throw ArgumentError.value(
           source, 'source', 'Row and column count do not match.');
     }
-    if (type == ColumnMajorMatrix) {
-      // Optimized case for row major matrices.
+    if (Format.columnMajor == format) {
+      // Optimized case for column major matrices.
       return ColumnMajorMatrix(type, rowCount, colCount, type.copyList(source));
     }
     final result = this(rowCount, colCount);

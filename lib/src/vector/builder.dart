@@ -2,6 +2,7 @@ library data.vector.builder;
 
 import 'package:data/type.dart';
 
+import 'format.dart';
 import 'impl/keyed_vector.dart';
 import 'impl/list_vector.dart';
 import 'impl/standard_vector.dart';
@@ -13,37 +14,38 @@ class Builder<T> {
   Builder(this.format, this.type);
 
   /// Returns the storage format of the builder.
-  final Type format;
+  final Format format;
 
   /// Returns the data type of the builder.
   final DataType<T> type;
 
   /// Returns a builder for standard vectors.
-  Builder<T> get standard => withFormat(StandardVector);
+  Builder<T> get standard => withFormat(Format.standard);
 
   /// Returns a builder for list vectors.
-  Builder<T> get list => withFormat(ListVector);
+  Builder<T> get list => withFormat(Format.list);
 
   /// Returns a builder for keyed vectors.
-  Builder<T> get keyed => withFormat(KeyedVector);
+  Builder<T> get keyed => withFormat(Format.keyed);
 
   /// Returns a builder with the provided storage [format].
-  Builder<T> withFormat(Type format) =>
+  Builder<T> withFormat(Format format) =>
       this.format == format ? this : Builder<T>(format, type);
 
   /// Returns a builder with the provided data [type].
   Builder<S> withType<S>(DataType<S> type) =>
+      // ignore: unrelated_type_equality_checks
       this.type == type ? this : Builder<S>(format, type);
 
   /// Builds a new vector of the configured format.
   Vector<T> call(int count) {
     RangeError.checkNotNegative(count, 'count');
     switch (format) {
-      case StandardVector:
+      case Format.standard:
         return StandardVector<T>(type, count);
-      case ListVector:
+      case Format.list:
         return ListVector<T>(type, count);
-      case KeyedVector:
+      case Format.keyed:
         return KeyedVector<T>(type, count);
     }
     throw ArgumentError.value(format, 'format');
@@ -87,6 +89,10 @@ class Builder<T> {
 
   /// Builds a vector from a list of values.
   Vector<T> fromList(List<T> source) {
+    if (Format.standard == format) {
+      // Optimized case for flat vectors.
+      return StandardVector(type, source.length, type.copyList(source));
+    }
     final result = this(source.length);
     for (var i = 0; i < source.length; i++) {
       result.setUnchecked(i, source[i]);
