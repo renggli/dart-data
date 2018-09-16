@@ -40,7 +40,8 @@ List<T> removeAt<T>(DataType<T> type, List<T> list, int length, int index) {
 }
 
 /// Performs a binary search on the range of a sorted list.
-int binarySearch<T extends Comparable>(List<T> list, int min, int max, T value) {
+int binarySearch<T extends Comparable>(
+    List<T> list, int min, int max, T value) {
   while (min < max) {
     final mid = min + ((max - min) >> 1);
     final comp = list[mid].compareTo(value);
