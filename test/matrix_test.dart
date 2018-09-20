@@ -795,24 +795,38 @@ void matrixTest(String name, Builder builder) {
           expect(() => lerp(v0, other, 2.0), throwsArgumentError);
         });
       });
-      test('mul', () {
+      group('mul', () {
         final sourceA = builder
             .withType(DataType.int32)
             .generate(13, 42, (row, col) => random.nextInt(100));
         final sourceB = builder
             .withType(DataType.int32)
             .generate(42, 27, (row, col) => random.nextInt(100));
-        final target = mul(sourceA, sourceB);
-        expect(target.dataType, DataType.int32);
-        expect(target.rowCount, sourceA.rowCount);
-        expect(target.colCount, sourceB.colCount);
-        for (var r = 0; r < target.rowCount; r++) {
-          for (var c = 0; c < target.colCount; c++) {
-            final value = vector.dot(sourceA.row(r), sourceB.col(c));
-            expect(target.get(r, c), value);
+        test('default', () {
+          final target = mul(sourceA, sourceB);
+          expect(target.dataType, DataType.int32);
+          expect(target.rowCount, sourceA.rowCount);
+          expect(target.colCount, sourceB.colCount);
+          for (var r = 0; r < target.rowCount; r++) {
+            for (var c = 0; c < target.colCount; c++) {
+              final value = vector.dot(sourceA.row(r), sourceB.col(c));
+              expect(target.get(r, c), value);
+            }
           }
-        }
-        expect(() => mul(sourceA, sourceA), throwsArgumentError);
+        });
+        test('error in-place', () {
+          final squareA = sourceA.range(0, 8, 0, 8);
+          final squareB = sourceB.range(0, 8, 0, 8);
+          expect(() => mul(squareA, squareB, target: squareA),
+              throwsArgumentError);
+          expect(() => mul(squareA, squareB, target: squareB),
+              throwsArgumentError);
+        });
+        test('error dimensions', () {
+          expect(() => mul(sourceA, sourceA), throwsArgumentError);
+          expect(() => mul(sourceB, sourceB), throwsArgumentError);
+          expect(() => mul(sourceB, sourceA), throwsArgumentError);
+        });
       });
     });
   });
