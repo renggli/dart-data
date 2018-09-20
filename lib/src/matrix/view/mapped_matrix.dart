@@ -14,6 +14,9 @@ class MappedMatrix<S, T> extends Matrix<T> {
   MappedMatrix(this._matrix, this._callback, this.dataType);
 
   @override
+  Matrix<T> copy() => MappedMatrix(_matrix.copy(), _callback, dataType);
+
+  @override
   final DataType<T> dataType;
 
   @override

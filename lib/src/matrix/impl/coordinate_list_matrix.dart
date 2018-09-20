@@ -22,11 +22,28 @@ class CoordinateListMatrix<T> extends Matrix<T> {
   List<T> _values;
   int _length;
 
-  CoordinateListMatrix(this.dataType, this.rowCount, this.colCount)
-      : _rows = indexDataType.newList(initialListSize),
-        _cols = indexDataType.newList(initialListSize),
-        _values = dataType.newList(initialListSize),
-        _length = 0;
+  CoordinateListMatrix(DataType<T> dataType, int rowCount, int colCount)
+      : this.internal(
+            dataType,
+            rowCount,
+            colCount,
+            indexDataType.newList(initialListSize),
+            indexDataType.newList(initialListSize),
+            dataType.newList(initialListSize),
+            0);
+
+  CoordinateListMatrix.internal(this.dataType, this.rowCount, this.colCount,
+      this._rows, this._cols, this._values, this._length);
+
+  @override
+  Matrix<T> copy() => CoordinateListMatrix.internal(
+      dataType,
+      rowCount,
+      colCount,
+      indexDataType.copyList(_rows),
+      indexDataType.copyList(_cols),
+      dataType.copyList(_values),
+      _length);
 
   int _binarySearch(int row, int col) {
     var min = 0;

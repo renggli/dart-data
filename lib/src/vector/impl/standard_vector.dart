@@ -10,8 +10,14 @@ class StandardVector<T> extends Vector<T> {
 
   final List<T> _values;
 
-  StandardVector(this.dataType, int count, [List<T> values])
-      : _values = values ?? dataType.newList(count);
+  StandardVector(DataType<T> dataType, int count)
+      : this.internal(dataType, dataType.newList(count));
+
+  StandardVector.internal(this.dataType, this._values);
+
+  @override
+  Vector<T> copy() =>
+      StandardVector.internal(dataType, dataType.copyList(_values));
 
   @override
   int get count => _values.length;

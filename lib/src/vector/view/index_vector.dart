@@ -10,8 +10,13 @@ class IndexVector<T> extends Vector<T> {
   final Vector<T> _vector;
   final List<int> _indexes;
 
-  IndexVector(this._vector, Iterable<int> indexes)
-      : _indexes = indexDataType.copyList(indexes);
+  IndexVector(Vector<T> vector, Iterable<int> indexes)
+      : this.internal(vector, indexDataType.copyList(indexes));
+
+  IndexVector.internal(this._vector, this._indexes);
+
+  @override
+  Vector<T> copy() => IndexVector.internal(_vector.copy(), _indexes);
 
   @override
   DataType<T> get dataType => _vector.dataType;

@@ -13,11 +13,19 @@ class DiagonalVector<T> extends Vector<T> {
   final int _offset;
   final int _count;
 
-  DiagonalVector(this._matrix, this._offset)
-      : _count = math.min(
-          _matrix.rowCount - _offset,
-          _matrix.colCount + _offset,
-        );
+  DiagonalVector(Matrix<T> matrix, int offset)
+      : this.internal(
+            matrix,
+            offset,
+            math.min(
+              matrix.rowCount - offset,
+              matrix.colCount + offset,
+            ));
+
+  DiagonalVector.internal(this._matrix, this._offset, this._count);
+
+  @override
+  Vector<T> copy() => DiagonalVector.internal(_matrix.copy(), _offset, _count);
 
   @override
   DataType<T> get dataType => _matrix.dataType;

@@ -11,6 +11,9 @@ class UnmodifiableVector<T> extends Vector<T> {
   UnmodifiableVector(this._vector);
 
   @override
+  Vector<T> copy() => UnmodifiableVector(_vector.copy());
+
+  @override
   DataType<T> get dataType => _vector.dataType;
 
   @override

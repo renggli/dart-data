@@ -9,7 +9,13 @@ class RangeVector<T> extends Vector<T> {
   final Vector<T> _vector;
   final int _start;
 
-  RangeVector(this._vector, this._start, int end) : count = end - _start;
+  RangeVector(Vector<T> vector, int start, int end)
+      : this.internal(vector, start, end - start);
+
+  RangeVector.internal(this._vector, this._start, this.count);
+
+  @override
+  Vector<T> copy() => RangeVector.internal(_vector.copy(), _start, count);
 
   @override
   DataType<T> get dataType => _vector.dataType;

@@ -14,6 +14,9 @@ class MappedVector<S, T> extends Vector<T> {
   MappedVector(this._vector, this._callback, this.dataType);
 
   @override
+  Vector<T> copy() => MappedVector(_vector.copy(), _callback, dataType);
+
+  @override
   final DataType<T> dataType;
 
   @override

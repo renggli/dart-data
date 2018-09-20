@@ -13,6 +13,9 @@ class ColumnVector<T> extends Vector<T> {
   ColumnVector(this._matrix, this._col);
 
   @override
+  Vector<T> copy() => ColumnVector(_matrix.copy(), _col);
+
+  @override
   DataType<T> get dataType => _matrix.dataType;
 
   @override

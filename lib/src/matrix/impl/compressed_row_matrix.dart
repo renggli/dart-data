@@ -22,11 +22,28 @@ class CompressedRowMatrix<T> extends Matrix<T> {
   List<T> _values;
   int _length;
 
-  CompressedRowMatrix(this.dataType, this.rowCount, this.colCount)
-      : _rowExtends = indexDataType.newList(rowCount),
-        _colIndexes = indexDataType.newList(initialListSize),
-        _values = dataType.newList(initialListSize),
-        _length = 0;
+  CompressedRowMatrix(DataType<T> dataType, int rowCount, int colCount)
+      : this.internal(
+            dataType,
+            rowCount,
+            colCount,
+            indexDataType.newList(rowCount),
+            indexDataType.newList(initialListSize),
+            dataType.newList(initialListSize),
+            0);
+
+  CompressedRowMatrix.internal(this.dataType, this.rowCount, this.colCount,
+      this._rowExtends, this._colIndexes, this._values, this._length);
+
+  @override
+  Matrix<T> copy() => CompressedRowMatrix.internal(
+      dataType,
+      rowCount,
+      colCount,
+      indexDataType.copyList(_rowExtends),
+      indexDataType.copyList(_colIndexes),
+      dataType.copyList(_values),
+      _length);
 
   @override
   T getUnchecked(int row, int col) {

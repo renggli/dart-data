@@ -11,9 +11,16 @@ class IndexMatrix<T> extends Matrix<T> {
   final List<int> _rowIndexes;
   final List<int> _colIndexes;
 
-  IndexMatrix(this._matrix, Iterable<int> rowIndexes, Iterable<int> colIndexes)
-      : _rowIndexes = indexDataType.copyList(rowIndexes),
-        _colIndexes = indexDataType.copyList(colIndexes);
+  IndexMatrix(
+      Matrix<T> _matrix, Iterable<int> rowIndexes, Iterable<int> colIndexes)
+      : this.internal(_matrix, indexDataType.copyList(rowIndexes),
+            indexDataType.copyList(colIndexes));
+
+  IndexMatrix.internal(this._matrix, this._rowIndexes, this._colIndexes);
+
+  @override
+  Matrix<T> copy() =>
+      IndexMatrix.internal(_matrix.copy(), _rowIndexes, _colIndexes);
 
   @override
   DataType<T> get dataType => _matrix.dataType;

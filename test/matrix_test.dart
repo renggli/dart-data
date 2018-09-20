@@ -274,6 +274,17 @@ void matrixTest(String name, Builder builder) {
       });
     });
     group('views', () {
+      test('copy', () {
+        final matrix = builder
+            .withType(DataType.object)
+            .generate(8, 6, (row, col) => Point(row, col));
+        final copy = matrix.copy();
+        expect(matrix.dataType, copy.dataType);
+        expect(matrix.rowCount, copy.rowCount);
+        expect(matrix.colCount, copy.colCount);
+        matrix.set(3, 5, null);
+        expect(copy.get(3, 5), const Point(3, 5));
+      });
       test('row', () {
         final matrix = builder
             .withType(DataType.string)

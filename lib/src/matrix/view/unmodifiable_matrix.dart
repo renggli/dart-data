@@ -11,6 +11,9 @@ class UnmodifiableMatrix<T> extends Matrix<T> {
   UnmodifiableMatrix(this._matrix);
 
   @override
+  Matrix<T> copy() => UnmodifiableMatrix(_matrix.copy());
+
+  @override
   DataType<T> get dataType => _matrix.dataType;
 
   @override

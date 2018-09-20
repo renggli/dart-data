@@ -19,6 +19,9 @@ abstract class Vector<T> {
   /// Unnamed default constructor.
   const Vector();
 
+  /// Returns an identical copy of this vector.
+  Vector<T> copy();
+
   /// The data type of this vector.
   DataType<T> get dataType;
 

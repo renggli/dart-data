@@ -25,6 +25,9 @@ abstract class Matrix<T> {
   /// Unnamed default constructor.
   const Matrix();
 
+  /// Returns an identical copy of this matrix.
+  Matrix<T> copy();
+
   /// The data type of this matrix.
   DataType<T> get dataType;
 

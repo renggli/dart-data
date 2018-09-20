@@ -186,7 +186,8 @@ class Builder<T> {
     }
     if (Format.rowMajor == format) {
       // Optimized case for row major matrices.
-      return RowMajorMatrix(type, rowCount, colCount, type.copyList(source));
+      return RowMajorMatrix.internal(
+          type, rowCount, colCount, type.copyList(source));
     }
     final result = this(rowCount, colCount);
     for (var r = 0; r < rowCount; r++) {
@@ -221,7 +222,8 @@ class Builder<T> {
     }
     if (Format.columnMajor == format) {
       // Optimized case for column major matrices.
-      return ColumnMajorMatrix(type, rowCount, colCount, type.copyList(source));
+      return ColumnMajorMatrix.internal(
+          type, rowCount, colCount, type.copyList(source));
     }
     final result = this(rowCount, colCount);
     for (var r = 0; r < rowCount; r++) {

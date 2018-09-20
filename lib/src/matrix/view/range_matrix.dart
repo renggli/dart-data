@@ -11,9 +11,16 @@ class RangeMatrix<T> extends Matrix<T> {
   final int _colStart;
 
   RangeMatrix(
-      this._matrix, this._rowStart, int rowEnd, this._colStart, int colEnd)
-      : rowCount = rowEnd - _rowStart,
-        colCount = colEnd - _colStart;
+      Matrix<T> matrix, int rowStart, int rowEnd, int colStart, int colEnd)
+      : this.internal(
+            matrix, rowStart, rowEnd - rowStart, colStart, colEnd - colStart);
+
+  RangeMatrix.internal(this._matrix, this._rowStart, this.rowCount,
+      this._colStart, this.colCount);
+
+  @override
+  Matrix<T> copy() => RangeMatrix.internal(
+      _matrix.copy(), _rowStart, rowCount, _colStart, colCount);
 
   @override
   DataType<T> get dataType => _matrix.dataType;

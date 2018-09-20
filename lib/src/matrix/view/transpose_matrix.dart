@@ -11,6 +11,9 @@ class TransposeMatrix<T> extends Matrix<T> {
   TransposeMatrix(this._matrix);
 
   @override
+  Matrix<T> copy() => TransposeMatrix(_matrix.copy());
+
+  @override
   DataType<T> get dataType => _matrix.dataType;
 
   @override

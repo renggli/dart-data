@@ -110,6 +110,20 @@ void vectorTest(String name, Builder builder) {
       });
     });
     group('view', () {
+      test('copy', () {
+        final vector = builder.generate(30, (i) => i);
+        final copy = vector.copy();
+        expect(vector.dataType, copy.dataType);
+        expect(vector.count, copy.count);
+        for (var i = 0; i < vector.count; i++) {
+          vector[i] = i.isEven ? 0 : -i;
+          copy[i] = i.isEven ? -i : 0;
+        }
+        for (var i = 0; i < vector.count; i++) {
+          expect(vector[i], i.isEven ? 0 : -i);
+          expect(copy[i], i.isEven ? -i : 0);
+        }
+      });
       test('range', () {
         final source =
             builder.withType(DataType.string).generate(6, (i) => '$i');

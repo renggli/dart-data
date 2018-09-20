@@ -17,10 +17,16 @@ class ListVector<T> extends Vector<T> {
   List<T> _values;
   int _length;
 
-  ListVector(this.dataType, this.count)
-      : _indexes = indexDataType.newList(initialListSize),
-        _values = dataType.newList(initialListSize),
-        _length = 0;
+  ListVector(DataType<T> dataType, int count)
+      : this.internal(dataType, count, indexDataType.newList(initialListSize),
+            dataType.newList(initialListSize), 0);
+
+  ListVector.internal(
+      this.dataType, this.count, this._indexes, this._values, this._length);
+
+  @override
+  Vector<T> copy() => ListVector.internal(dataType, count,
+      indexDataType.copyList(_indexes), dataType.copyList(_values), _length);
 
   @override
   T getUnchecked(int index) {

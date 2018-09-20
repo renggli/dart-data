@@ -17,7 +17,15 @@ class KeyedMatrix<T> extends Matrix<T> {
 
   final Map<int, T> _values;
 
-  KeyedMatrix(this.dataType, this.rowCount, this.colCount) : _values = {};
+  KeyedMatrix(DataType<T> dataType, int rowCount, int colCount)
+      : this.internal(dataType, rowCount, colCount, <int, T>{});
+
+  KeyedMatrix.internal(
+      this.dataType, this.rowCount, this.colCount, this._values);
+
+  @override
+  Matrix<T> copy() =>
+      KeyedMatrix.internal(dataType, rowCount, colCount, Map.of(_values));
 
   @override
   T getUnchecked(int row, int col) =>

@@ -16,8 +16,16 @@ class RowMajorMatrix<T> extends Matrix<T> {
 
   final List<T> _values;
 
-  RowMajorMatrix(this.dataType, this.rowCount, this.colCount, [List<T> values])
-      : _values = values ?? dataType.newList(rowCount * colCount);
+  RowMajorMatrix(DataType<T> dataType, int rowCount, int colCount)
+      : this.internal(dataType, rowCount, colCount,
+            dataType.newList(rowCount * colCount));
+
+  RowMajorMatrix.internal(
+      this.dataType, this.rowCount, this.colCount, this._values);
+
+  @override
+  Matrix<T> copy() => RowMajorMatrix.internal(
+      dataType, rowCount, colCount, dataType.copyList(_values));
 
   @override
   T getUnchecked(int row, int col) => _values[row * colCount + col];

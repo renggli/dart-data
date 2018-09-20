@@ -19,7 +19,19 @@ class DiagonalMatrix<T> extends Matrix<T> {
 
   final Map<int, List<T>> _diagonals;
 
-  DiagonalMatrix(this.dataType, this.rowCount, this.colCount) : _diagonals = {};
+  DiagonalMatrix(DataType<T> dataType, int rowCount, int colCount)
+      : this.internal(dataType, rowCount, colCount, <int, List<T>>{});
+
+  DiagonalMatrix.internal(
+      this.dataType, this.rowCount, this.colCount, this._diagonals);
+
+  @override
+  Matrix<T> copy() => DiagonalMatrix.internal(
+      dataType,
+      rowCount,
+      colCount,
+      Map.of(_diagonals)
+        ..updateAll((offset, diagonal) => dataType.copyList(diagonal)));
 
   @override
   T getUnchecked(int row, int col) {
