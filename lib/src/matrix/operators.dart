@@ -109,6 +109,9 @@ Matrix<T> mul<T extends num>(Matrix<T> sourceA, Matrix<T> sourceB,
   }
   final result = _targetOrBuilder(
       sourceA.rowCount, sourceB.colCount, target, builder, sourceA.dataType);
+  if (identical(result, sourceA) || identical(result, sourceB)) {
+    throw ArgumentError('Matrix multiplication cannot be done in-place.');
+  }
   for (var r = 0; r < result.rowCount; r++) {
     for (var c = 0; c < result.colCount; c++) {
       var sum = result.dataType.nullValue;
