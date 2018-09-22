@@ -53,6 +53,21 @@ void matrixTest(String name, Builder builder) {
             expect(matrix.get(r, c), r == c ? -1 : 0);
           }
         }
+        expect(() => matrix.set(0, 0, 1), throwsUnsupportedError);
+      });
+      test('identity, mutable', () {
+        final matrix =
+            builder.withType(DataType.int8).identity(6, -1, mutable: true);
+        expect(matrix.dataType, DataType.int8);
+        expect(matrix.rowCount, 6);
+        expect(matrix.colCount, 6);
+        for (var r = 0; r < matrix.rowCount; r++) {
+          for (var c = 0; c < matrix.colCount; c++) {
+            expect(matrix.get(r, c), r == c ? -1 : 0);
+          }
+        }
+        matrix.set(0, 0, 1);
+        expect(matrix.get(0, 0), 1);
       });
       test('generate', () {
         final matrix = builder
@@ -737,6 +752,38 @@ void matrixTest(String name, Builder builder) {
             expect(target.get(r, c), 2 * sourceA.get(r, c));
           }
         }
+      });
+      group('compare', () {
+        test('identity', () {
+          expect(compare(sourceA, sourceA), isTrue);
+          expect(compare(sourceB, sourceB), isTrue);
+          expect(compare(sourceA, sourceB), isFalse);
+          expect(compare(sourceB, sourceA), isFalse);
+        });
+        test('views', () {
+          expect(compare(sourceA.rowRange(0, 3), sourceA.rowIndex([0, 1, 2])),
+              isTrue);
+          expect(compare(sourceA.colRange(0, 3), sourceA.colIndex([0, 1, 2])),
+              isTrue);
+          expect(compare(sourceA.rowRange(0, 3), sourceA.rowIndex([3, 1, 0])),
+              isFalse,
+              reason: 'row order missmatch');
+          expect(compare(sourceA.colRange(0, 3), sourceA.colIndex([2, 1, 0])),
+              isFalse,
+              reason: 'col order missmatch');
+          expect(compare(sourceA.rowRange(0, 3), sourceA.rowIndex([0, 1])),
+              isFalse,
+              reason: 'row count missmatch');
+          expect(compare(sourceA.colRange(0, 3), sourceA.colIndex([0, 1])),
+              isFalse,
+              reason: 'col count missmatch');
+        });
+        test('custom', () {
+          final negated = neg(sourceA);
+          expect(compare(sourceA, negated), isFalse);
+          expect(compare<int, int>(sourceA, negated, equals: (a, b) => a == -b),
+              isTrue);
+        });
       });
       group('lerp', () {
         final v0 = builder.withType(DataType.int8).fromRows([

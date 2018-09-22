@@ -9,6 +9,7 @@ import 'impl/compressed_column_matrix.dart';
 import 'impl/compressed_row_matrix.dart';
 import 'impl/coordinate_list_matrix.dart';
 import 'impl/diagonal_matrix.dart';
+import 'impl/identity_matrix.dart';
 import 'impl/keyed_matrix.dart';
 import 'impl/row_major_matrix.dart';
 import 'matrix.dart';
@@ -93,12 +94,16 @@ class Builder<T> {
   }
 
   /// Builds an identity matrix with a constant [value].
-  Matrix<T> identity(int count, T value) {
-    final result = this(count, count);
-    for (var i = 0; i < count; i++) {
-      result.setUnchecked(i, i, value);
+  Matrix<T> identity(int count, T value, {bool mutable: false}) {
+    if (mutable) {
+      final result = this(count, count);
+      for (var i = 0; i < count; i++) {
+        result.setUnchecked(i, i, value);
+      }
+      return result;
+    } else {
+      return IdentityMatrix(type, count, count, value);
     }
-    return result;
   }
 
   /// Builds a matrix from calling a [callback] on every value.

@@ -5,8 +5,8 @@ import 'package:data/type.dart';
 import 'builder.dart';
 import 'matrix.dart';
 
-Matrix<T> _targetOrBuilder<T>(int rowCount, int colCount, Matrix<T> target,
-    Builder<T> builder, DataType<T> dataType) {
+Matrix<T> _targetOrBuilderOrDataType<T>(int rowCount, int colCount,
+    Matrix<T> target, Builder<T> builder, DataType<T> dataType) {
   if (target != null) {
     if (target.rowCount != rowCount || target.colCount != colCount) {
       throw ArgumentError('Expected a matrix with $rowCount * $colCount, '
@@ -18,14 +18,15 @@ Matrix<T> _targetOrBuilder<T>(int rowCount, int colCount, Matrix<T> target,
   } else if (dataType != null) {
     return Matrix.builder.withType(dataType)(rowCount, colCount);
   }
-  throw ArgumentError('Expected either a "target" or a "builder".');
+  throw ArgumentError(
+      'Expected either a "target", a "builder", or a "dataType".');
 }
 
 /// Generic unary operator on a matrix.
 Matrix<T> unaryOperator<T>(Matrix<T> source, T callback(T a),
     {Matrix<T> target, Builder<T> builder, DataType<T> dataType}) {
-  final result = _targetOrBuilder(source.rowCount, source.colCount, target,
-      builder, dataType ?? source.dataType);
+  final result = _targetOrBuilderOrDataType(source.rowCount, source.colCount,
+      target, builder, dataType ?? source.dataType);
   for (var r = 0; r < result.rowCount; r++) {
     for (var c = 0; c < result.colCount; c++) {
       result.setUnchecked(r, c, callback(source.getUnchecked(r, c)));
@@ -42,8 +43,8 @@ Matrix<T> binaryOperator<T>(
       sourceA.colCount != sourceB.colCount) {
     throw ArgumentError('Source matrices do not match in size.');
   }
-  final result = _targetOrBuilder(sourceA.rowCount, sourceA.colCount, target,
-      builder, dataType ?? sourceA.dataType);
+  final result = _targetOrBuilderOrDataType(sourceA.rowCount, sourceA.colCount,
+      target, builder, dataType ?? sourceA.dataType);
   for (var r = 0; r < result.rowCount; r++) {
     for (var c = 0; c < result.colCount; c++) {
       result.setUnchecked(r, c,
@@ -80,6 +81,9 @@ Matrix<T> scale<T extends num>(T factor, Matrix<T> source,
 /// Compares two matrices [sourceA] and [sourceB] with each other.
 bool compare<A, B>(Matrix<A> sourceA, Matrix<B> sourceB,
     {bool equals(A a, B b)}) {
+  if (identical(sourceA, sourceB)) {
+    return true;
+  }
   if (sourceA.rowCount != sourceB.rowCount ||
       sourceA.colCount != sourceB.colCount) {
     return false;
@@ -102,7 +106,7 @@ Matrix<double> lerp<T extends num>(Matrix<T> m0, Matrix<T> m1, double t,
     throw ArgumentError('Source matrices do not match in size.');
   }
   final t1 = 1.0 - t;
-  final result = _targetOrBuilder(
+  final result = _targetOrBuilderOrDataType(
       m0.rowCount, m0.colCount, target, builder, dataType ?? DataType.float64);
   for (var r = 0; r < result.rowCount; r++) {
     for (var c = 0; c < result.colCount; c++) {
@@ -119,8 +123,8 @@ Matrix<T> mul<T extends num>(Matrix<T> sourceA, Matrix<T> sourceB,
   if (sourceA.colCount != sourceB.rowCount) {
     throw ArgumentError('Inner dimensions of source matrices do not match.');
   }
-  final result = _targetOrBuilder(sourceA.rowCount, sourceB.colCount, target,
-      builder, dataType ?? sourceA.dataType);
+  final result = _targetOrBuilderOrDataType(sourceA.rowCount, sourceB.colCount,
+      target, builder, dataType ?? sourceA.dataType);
   if (identical(result, sourceA) || identical(result, sourceB)) {
     throw ArgumentError('Matrix multiplication cannot be done in-place.');
   }
