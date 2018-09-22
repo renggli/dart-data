@@ -2,8 +2,8 @@ library data.matrix.decompositions;
 
 import 'dart:math' as math;
 
-import '../shared/math.dart';
 import '../shared/config.dart';
+import '../shared/math.dart';
 import 'decomposition/cholesky.dart';
 import 'decomposition/eigen.dart';
 import 'decomposition/lu.dart';
