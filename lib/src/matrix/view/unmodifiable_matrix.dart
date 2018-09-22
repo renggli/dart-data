@@ -3,9 +3,12 @@ library data.matrix.view.unmodifiable_matrix;
 import 'package:data/src/type/type.dart';
 
 import '../matrix.dart';
+import '../mixins/unmodifiable_matrix.dart';
+
+List<int> foo;
 
 /// An unmodifiable matrix.
-class UnmodifiableMatrix<T> extends Matrix<T> {
+class UnmodifiableMatrix<T> extends Matrix<T> with UnmodifiableMatrixMixin<T> {
   final Matrix<T> _matrix;
 
   UnmodifiableMatrix(this._matrix);
@@ -24,10 +27,6 @@ class UnmodifiableMatrix<T> extends Matrix<T> {
 
   @override
   T getUnchecked(int row, int col) => _matrix.getUnchecked(row, col);
-
-  @override
-  void setUnchecked(int row, int col, T value) =>
-      throw UnsupportedError('Matrix is not mutable.');
 
   @override
   Matrix<T> get unmodifiable => this;

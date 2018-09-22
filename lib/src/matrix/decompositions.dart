@@ -36,9 +36,9 @@ Matrix<double> solve(Matrix<num> a, Matrix<num> b) =>
 Matrix<double> solveTranspose(Matrix<num> a, Matrix<num> b) =>
     solve(a.transpose, b.transpose);
 
-/// Returns the inverse if [a] is square, pseudo-inverse otherwise.
-Matrix<double> inverse(Matrix<num> a) =>
-    solve(a, Matrix.builder.diagonal.identity(a.rowCount, 1.0));
+/// Returns the inverse if [source] is square, pseudo-inverse otherwise.
+Matrix<double> inverse(Matrix<num> source) => solve(source,
+    Matrix.builder.diagonal.identity(source.rowCount, source.rowCount, 1.0));
 
 /// Returns the determinant.
 double det(Matrix<num> source) => lu(source).det;

@@ -3,11 +3,12 @@ library data.matrix.view.mapped_matrix;
 import 'package:data/src/type/type.dart';
 
 import '../matrix.dart';
+import '../mixins/unmodifiable_matrix.dart';
 
 typedef T MatrixTransformation<S, T>(int row, int col, S value);
 
 /// A lazy transformed matrix.
-class MappedMatrix<S, T> extends Matrix<T> {
+class MappedMatrix<S, T> extends Matrix<T> with UnmodifiableMatrixMixin<T> {
   final Matrix<S> _matrix;
   final MatrixTransformation<S, T> _callback;
 
@@ -28,8 +29,4 @@ class MappedMatrix<S, T> extends Matrix<T> {
   @override
   T getUnchecked(int row, int col) =>
       _callback(row, col, _matrix.getUnchecked(row, col));
-
-  @override
-  void setUnchecked(int row, int col, T value) =>
-      throw UnsupportedError('Matrix is not mutable.');
 }

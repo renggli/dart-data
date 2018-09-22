@@ -1,5 +1,7 @@
 library data.matrix.builder;
 
+import 'dart:math' as math;
+
 import 'package:data/type.dart';
 import 'package:data/vector.dart' show Vector;
 
@@ -7,6 +9,7 @@ import 'format.dart';
 import 'impl/column_major_matrix.dart';
 import 'impl/compressed_column_matrix.dart';
 import 'impl/compressed_row_matrix.dart';
+import 'impl/constant_matrix.dart';
 import 'impl/coordinate_list_matrix.dart';
 import 'impl/diagonal_matrix.dart';
 import 'impl/identity_matrix.dart';
@@ -83,26 +86,32 @@ class Builder<T> {
   }
 
   /// Builds a matrix with a constant [value].
-  Matrix<T> constant(int rowCount, int colCount, T value) {
-    final result = this(rowCount, colCount);
-    for (var r = 0; r < rowCount; r++) {
-      for (var c = 0; c < colCount; c++) {
-        result.setUnchecked(r, c, value);
+  Matrix<T> constant(int rowCount, int colCount, T value,
+      {bool mutable = false}) {
+    if (mutable) {
+      final result = this(rowCount, colCount);
+      for (var r = 0; r < rowCount; r++) {
+        for (var c = 0; c < colCount; c++) {
+          result.setUnchecked(r, c, value);
+        }
       }
+      return result;
+    } else {
+      return ConstantMatrix(type, rowCount, colCount, value);
     }
-    return result;
   }
 
   /// Builds an identity matrix with a constant [value].
-  Matrix<T> identity(int count, T value, {bool mutable: false}) {
+  Matrix<T> identity(int rowCount, int colCount, T value,
+      {bool mutable = false}) {
     if (mutable) {
-      final result = this(count, count);
-      for (var i = 0; i < count; i++) {
+      final result = this(rowCount, colCount);
+      for (var i = 0; i < math.min(rowCount, colCount); i++) {
         result.setUnchecked(i, i, value);
       }
       return result;
     } else {
-      return IdentityMatrix(type, count, count, value);
+      return IdentityMatrix(type, rowCount, colCount, value);
     }
   }
 

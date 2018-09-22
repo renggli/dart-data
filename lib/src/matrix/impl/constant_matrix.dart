@@ -1,11 +1,11 @@
-library data.matrix.impl.identity_matrix;
+library data.matrix.impl.constant_matrix;
 
 import 'package:data/type.dart';
 
 import '../matrix.dart';
 import '../mixins/unmodifiable_matrix.dart';
 
-class IdentityMatrix<T> extends Matrix<T> with UnmodifiableMatrixMixin<T> {
+class ConstantMatrix<T> extends Matrix<T> with UnmodifiableMatrixMixin<T> {
   @override
   final DataType<T> dataType;
 
@@ -17,11 +17,11 @@ class IdentityMatrix<T> extends Matrix<T> with UnmodifiableMatrixMixin<T> {
 
   final T _value;
 
-  IdentityMatrix(this.dataType, this.rowCount, this.colCount, this._value);
+  ConstantMatrix(this.dataType, this.rowCount, this.colCount, this._value);
 
   @override
   Matrix<T> copy() => this;
 
   @override
-  T getUnchecked(int row, int col) => row == col ? _value : dataType.nullValue;
+  T getUnchecked(int row, int col) => _value;
 }
