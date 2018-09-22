@@ -909,6 +909,165 @@ void matrixTest(String name, Builder builder) {
       });
     });
   });
+  group('decomposition', () {
+    final matrix3 = Matrix.builder.withType(DataType.float64).fromRows([
+      [1.0, 4.0, 7.0, 10.0],
+      [2.0, 5.0, 8.0, 11.0],
+      [3.0, 6.0, 9.0, 12.0],
+    ]);
+    final matrix4 = Matrix.builder.withType(DataType.float64).fromRows([
+      [1.0, 5.0, 9.0],
+      [2.0, 6.0, 10.0],
+      [3.0, 7.0, 11.0],
+      [4.0, 8.0, 12.0],
+    ]);
+    final square = Matrix.builder.withType(DataType.float64).fromRows([
+      [166.0, 188.0, 210.0],
+      [188.0, 214.0, 240.0],
+      [210.0, 240.0, 270.0],
+    ]);
+    final epsilon = pow(2.0, -32.0);
+    bool equals(double a, double b) => (a - b).abs() <= epsilon;
+    test('norm1', () {
+      final result = norm1(matrix3);
+      expect(result, closeTo(33.0, epsilon));
+    });
+    test('normInf', () {
+      final result = normInfinity(matrix3);
+      expect(result, closeTo(30.0, epsilon));
+    });
+    test('normFrobenius', () {
+      final result = normFrobenius(matrix3);
+      expect(result, closeTo(sqrt(650), epsilon));
+    });
+    test('trace', () {
+      final result = trace(matrix3);
+      expect(result, closeTo(15.0, epsilon));
+    });
+    test('det', () {
+      final result =
+          det(matrix3.range(0, matrix3.rowCount, 0, matrix3.rowCount));
+      expect(result, closeTo(0.0, epsilon));
+    });
+    test('QR Decomposition', () {
+      final decomp = qr(matrix4);
+      final result = mul(decomp.orthogonal, decomp.upper);
+      expect(compare(result, matrix4, equals: equals), isTrue);
+    });
+    test('Singular Value Decomposition', () {
+      final decomp = singularValue(matrix4);
+      final result = mul(decomp.U, mul(decomp.S, decomp.V.transpose));
+      expect(compare(result, matrix4, equals: equals), isTrue);
+    });
+    test('LU Decomposition', () {
+      final matrix =
+          matrix4.range(0, matrix4.colCount - 1, 0, matrix4.colCount - 1);
+      final decomp = lu(matrix);
+      final result1 = matrix.rowIndex(decomp.pivot);
+      final result2 = mul(decomp.lower, decomp.upper);
+      expect(compare(result1, result2, equals: equals), isTrue);
+    });
+    test('rank', () {
+      final result = rank(matrix3);
+      expect(result, min(matrix3.rowCount, matrix3.colCount) - 1);
+    });
+    test('cond', () {
+      final matrix = Matrix.builder.withType(DataType.float64).fromRows([
+        [1.0, 3.0],
+        [7.0, 9.0],
+      ]);
+      final decomp = singularValue(matrix);
+      final singularValues = decomp.s;
+      expect(
+          cond(matrix),
+          singularValues[0] /
+              singularValues[min(matrix.rowCount, matrix.colCount) - 1]);
+    });
+    test('inverse', () {
+      final matrix = matrix4.range(0, 3, 0, 3).copy();
+      matrix.set(0, 0, 0.0);
+      final result1 = mul(matrix, inverse(matrix));
+      final result2 = builder.withType(DataType.float64).identity(3, 3, 1.0);
+      expect(compare(result1, result2, equals: equals), isTrue);
+    });
+
+//  X = A.inverse();
+//  try {
+//  check(A.times(X), Matrix.identity(3, 3));
+//  try_success("inverse()...", "");
+//  } catch (java.lang.RuntimeException e) {
+//  errorCount = try_failure(errorCount, "inverse()...",
+//  "incorrect inverse calculation");
+//  }
+
+//  O = new Matrix(SUB.getRowDimension(), 1, 1.0);
+//  SOL = new Matrix(sqSolution);
+//  SQ = SUB.getMatrix(0, SUB.getRowDimension() - 1, 0,
+//  SUB.getRowDimension() - 1);
+//  try {
+//  check(SQ.solve(SOL), O);
+//  try_success("solve()...", "");
+//  } catch (java.lang.IllegalArgumentException e1) {
+//  errorCount = try_failure(errorCount, "solve()...", e1.getMessage());
+//  } catch (java.lang.RuntimeException e) {
+//  errorCount = try_failure(errorCount, "solve()...", e.getMessage());
+//  }
+
+//  A = new Matrix(pvals);
+//  CholeskyDecomposition Chol = A.chol();
+//  Matrix L = Chol.getL();
+//  try {
+//  check(A, L.times(L.transpose()));
+//  try_success("CholeskyDecomposition...", "");
+//  } catch (java.lang.RuntimeException e) {
+//  errorCount = try_failure(errorCount, "CholeskyDecomposition...",
+//  "incorrect Cholesky decomposition calculation");
+//  }
+
+//  X = Chol.solve(Matrix.identity(3, 3));
+//  try {
+//  check(A.times(X), Matrix.identity(3, 3));
+//  try_success("CholeskyDecomposition solve()...", "");
+//  } catch (java.lang.RuntimeException e) {
+//  errorCount = try_failure(errorCount, "CholeskyDecomposition solve()...",
+//  "incorrect Choleskydecomposition solve calculation");
+//  }
+
+//  EigenvalueDecomposition Eig = A.eig();
+//  Matrix D = Eig.getD();
+//  Matrix V = Eig.getV();
+//  try {
+//  check(A.times(V), V.times(D));
+//  try_success("EigenvalueDecomposition (symmetric)...", "");
+//  } catch (java.lang.RuntimeException e) {
+//  errorCount =
+//  try_failure(errorCount, "EigenvalueDecomposition (symmetric)...",
+//  "incorrect symmetric Eigenvalue decomposition calculation");
+//  }
+
+//  A = new Matrix(evals);
+//  Eig = A.eig();
+//  D = Eig.getD();
+//  V = Eig.getV();
+//  try {
+//  check(A.times(V), V.times(D));
+//  try_success("EigenvalueDecomposition (nonsymmetric)...", "");
+//  } catch (java.lang.RuntimeException e) {
+//  errorCount =
+//  try_failure(errorCount, "EigenvalueDecomposition (nonsymmetric)...",
+//  "incorrect nonsymmetric Eigenvalue decomposition calculation");
+//  }
+
+//  try {
+//  print("\nTesting Eigenvalue; If this hangs, we've failed\n");
+//  Matrix bA = new Matrix(badeigs);
+//  EigenvalueDecomposition bEig = bA.eig();
+//  try_success("EigenvalueDecomposition (hang)...", "");
+//  } catch (java.lang.RuntimeException e) {
+//  errorCount = try_failure(errorCount, "EigenvalueDecomposition (hang)...",
+//  "incorrect termination");
+//  }
+  });
 }
 
 void main() {

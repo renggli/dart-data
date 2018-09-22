@@ -3,11 +3,13 @@ library data.matrix.decompositions;
 import 'dart:math' as math;
 
 import '../shared/math.dart';
+import '../shared/config.dart';
 import 'decomposition/cholesky.dart';
 import 'decomposition/eigen.dart';
 import 'decomposition/lu.dart';
 import 'decomposition/qr.dart';
 import 'decomposition/singular_value.dart';
+import 'impl/identity_matrix.dart';
 import 'matrix.dart';
 
 /// Returns the LU Decomposition.
@@ -37,8 +39,10 @@ Matrix<double> solveTranspose(Matrix<num> a, Matrix<num> b) =>
     solve(a.transpose, b.transpose);
 
 /// Returns the inverse if [source] is square, pseudo-inverse otherwise.
-Matrix<double> inverse(Matrix<num> source) => solve(source,
-    Matrix.builder.diagonal.identity(source.rowCount, source.rowCount, 1.0));
+Matrix<double> inverse(Matrix<num> source) => solve(
+    source,
+    IdentityMatrix<double>(
+        valueDataType, source.rowCount, source.rowCount, 1.0));
 
 /// Returns the determinant.
 double det(Matrix<num> source) => lu(source).det;
@@ -48,6 +52,15 @@ int rank(Matrix<num> source) => singularValue(source).rank;
 
 /// Returns the condition, the ratio of largest to smallest singular value.
 double cond(Matrix<num> source) => singularValue(source).cond;
+
+/// Returns the trace.
+T trace<T extends num>(Matrix<T> source) {
+  var result = source.dataType.nullValue;
+  for (var i = 0; i < math.min(source.rowCount, source.colCount); i++) {
+    result += source.getUnchecked(i, i);
+  }
+  return result;
+}
 
 /// Returns the one norm, the maximum column sum.
 T norm1<T extends num>(Matrix<T> source) {
