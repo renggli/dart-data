@@ -2,10 +2,11 @@ library data.vector.view.unmodifiable_vector;
 
 import 'package:data/src/type/type.dart';
 
+import '../mixins/unmodifiable_vector.dart';
 import '../vector.dart';
 
 /// An unmodifiable vector.
-class UnmodifiableVector<T> extends Vector<T> {
+class UnmodifiableVector<T> extends Vector<T> with UnmodifiableVectorMixin<T> {
   final Vector<T> _vector;
 
   UnmodifiableVector(this._vector);
@@ -21,10 +22,6 @@ class UnmodifiableVector<T> extends Vector<T> {
 
   @override
   T getUnchecked(int index) => _vector.getUnchecked(index);
-
-  @override
-  void setUnchecked(int index, T value) =>
-      throw UnsupportedError('Vector is not mutable.');
 
   @override
   Vector<T> get unmodifiable => this;

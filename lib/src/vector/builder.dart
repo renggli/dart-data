@@ -3,6 +3,7 @@ library data.vector.builder;
 import 'package:data/type.dart';
 
 import 'format.dart';
+import 'impl/constant_vector.dart';
 import 'impl/keyed_vector.dart';
 import 'impl/list_vector.dart';
 import 'impl/standard_vector.dart';
@@ -52,12 +53,16 @@ class Builder<T> {
   }
 
   /// Builds a vector with a constant [value].
-  Vector<T> constant(int count, T value) {
-    final result = this(count);
-    for (var i = 0; i < count; i++) {
-      result.setUnchecked(i, value);
+  Vector<T> constant(int count, T value, {bool mutable = false}) {
+    if (mutable) {
+      final result = this(count);
+      for (var i = 0; i < count; i++) {
+        result.setUnchecked(i, value);
+      }
+      return result;
+    } else {
+      return ConstantVector(type, count, value);
     }
-    return result;
   }
 
   /// Builds a vector from calling a [callback] on every value.
