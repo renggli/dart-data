@@ -50,7 +50,7 @@ class EigenvalueDecomposition {
             a.colCount, a.colCount),
         _h = Matrix.builder.rowMajor.withType(valueDataType)(
             a.colCount, a.colCount),
-        _ort = null {
+        _ort = valueDataType.newList(a.colCount) {
     _isSymmetric = true;
     for (var j = 0; (j < _n) && _isSymmetric; j++) {
       for (var i = 0; (i < _n) && _isSymmetric; i++) {
@@ -894,11 +894,11 @@ class EigenvalueDecomposition {
   Matrix<double> get D {
     final result = Matrix.builder.diagonal.withType(valueDataType)(_n, _n);
     for (var i = 0; i < _n; i++) {
-      D.setUnchecked(i, i, _d[i]);
+      result.setUnchecked(i, i, _d[i]);
       if (_e[i] > 0) {
-        D.setUnchecked(i, i + 1, _e[i]);
+        result.setUnchecked(i, i + 1, _e[i]);
       } else if (_e[i] < 0) {
-        D.setUnchecked(i, i - 1, _e[i]);
+        result.setUnchecked(i, i - 1, _e[i]);
       }
     }
     return result;
