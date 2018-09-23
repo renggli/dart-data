@@ -1,17 +1,17 @@
-library data.matrix.view.transpose_matrix;
+library data.matrix.view.transposed_matrix;
 
 import 'package:data/src/type/type.dart';
 
 import '../matrix.dart';
 
 /// A mutable transposed view of a matrix.
-class TransposeMatrix<T> extends Matrix<T> {
+class TransposedMatrix<T> extends Matrix<T> {
   final Matrix<T> _matrix;
 
-  TransposeMatrix(this._matrix);
+  TransposedMatrix(this._matrix);
 
   @override
-  Matrix<T> copy() => TransposeMatrix(_matrix.copy());
+  Matrix<T> copy() => TransposedMatrix(_matrix.copy());
 
   @override
   DataType<T> get dataType => _matrix.dataType;
@@ -30,5 +30,5 @@ class TransposeMatrix<T> extends Matrix<T> {
       _matrix.setUnchecked(col, row, value);
 
   @override
-  Matrix<T> get transpose => _matrix;
+  Matrix<T> get transposed => _matrix;
 }

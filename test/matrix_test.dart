@@ -637,11 +637,11 @@ void matrixTest(String name, Builder builder) {
           expect(() => view.setUnchecked(1, 2, 3), throwsUnsupportedError);
         });
       });
-      test('transpose', () {
+      test('transposed', () {
         final matrix = builder
             .withType(DataType.string)
             .generate(7, 6, (row, col) => '($row, $col)');
-        final view = matrix.transpose;
+        final view = matrix.transposed;
         expect(view.dataType, matrix.dataType);
         expect(view.rowCount, 6);
         expect(view.colCount, 7);
@@ -657,7 +657,7 @@ void matrixTest(String name, Builder builder) {
             expect(matrix.get(r, c), '($r, $c)*');
           }
         }
-        expect(view.transpose, matrix);
+        expect(view.transposed, matrix);
       });
       test('unmodifiable', () {
         final matrix = builder
@@ -972,7 +972,7 @@ void matrixTest(String name, Builder builder) {
     });
     test('Singular Value Decomposition', () {
       final decomp = singularValue(matrix4);
-      final result = mul(decomp.U, mul(decomp.S, decomp.V.transpose));
+      final result = mul(decomp.U, mul(decomp.S, decomp.V.transposed));
       expectMatrix(matrix4, result);
     });
     test('LU Decomposition', () {
@@ -1031,7 +1031,7 @@ void matrixTest(String name, Builder builder) {
       final decomposition = cholesky(matrix);
       test('triangular factor', () {
         final triangularFactor = decomposition.L;
-        expectMatrix(matrix, mul(triangularFactor, triangularFactor.transpose));
+        expectMatrix(matrix, mul(triangularFactor, triangularFactor.transposed));
       });
       test('solve', () {
         final identity = factory.identity(3, 3, 1.0);

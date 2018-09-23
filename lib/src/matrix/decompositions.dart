@@ -36,7 +36,7 @@ Matrix<double> solve(Matrix<num> a, Matrix<num> b) =>
 
 /// Returns the solution of x * [a] = [b], which is also [a]' * x' = [b]'.
 Matrix<double> solveTranspose(Matrix<num> a, Matrix<num> b) =>
-    solve(a.transpose, b.transpose);
+    solve(a.transposed, b.transposed);
 
 /// Returns the inverse if [source] is square, pseudo-inverse otherwise.
 Matrix<double> inverse(Matrix<num> source) => solve(
