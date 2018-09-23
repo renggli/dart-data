@@ -194,6 +194,24 @@ abstract class Matrix<T> {
   /// Returns a unmodifiable view of the matrix.
   Matrix<T> get unmodifiable => UnmodifiableMatrix<T>(this);
 
+  /// Tests if the matrix is square.
+  bool get isSquare => rowCount == colCount;
+
+  /// Tests if the matrix is symmetric (equal to its transposed form).
+  bool get isSymmetric {
+    if (!isSquare) {
+      return false;
+    }
+    for (var r = 1; r < rowCount; r++) {
+      for (var c = 0; c < r; c++) {
+        if (getUnchecked(r, c) != getUnchecked(c, r)) {
+          return false;
+        }
+      }
+    }
+    return true;
+  }
+
   /// Returns a human readable representation of the matrix.
   String format([Printer printer]) {
     final formatter = printer ?? dataType.printer;

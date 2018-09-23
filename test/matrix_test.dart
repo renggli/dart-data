@@ -688,6 +688,19 @@ void matrixTest(String name, Builder builder) {
         expect(view.unmodifiable, view);
       });
     });
+    group('testing', () {
+      test('isSquare', () {
+        expect(builder(4, 5).isSquare, isFalse);
+        expect(builder(5, 4).isSquare, isFalse);
+        expect(builder(4, 4).isSquare, isTrue);
+      });
+      test('isSymmetric', () {
+        expect(builder(4, 5).isSymmetric, isFalse);
+        expect(builder(4, 4).isSymmetric, isTrue);
+        expect(builder.generate(4, 4, (r, c) => r - c).isSymmetric, isFalse);
+        expect(builder.generate(4, 4, (r, c) => r + c).isSymmetric, isTrue);
+      });
+    });
     group('operators', () {
       final random = Random();
       final sourceA = builder
@@ -1064,16 +1077,6 @@ void matrixTest(String name, Builder builder) {
         expectMatrix(mul(a, v), mul(v, d));
       });
     });
-
-//  try {
-//  print("\nTesting Eigenvalue; If this hangs, we've failed\n");
-//  Matrix bA = new Matrix(badeigs);
-//  EigenvalueDecomposition bEig = bA.eig();
-//  try_success("EigenvalueDecomposition (hang)...", "");
-//  } catch (java.lang.RuntimeException e) {
-//  errorCount = try_failure(errorCount, "EigenvalueDecomposition (hang)...",
-//  "incorrect termination");
-//  }
   });
 }
 
