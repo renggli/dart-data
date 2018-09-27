@@ -1031,7 +1031,8 @@ void matrixTest(String name, Builder builder) {
       final decomposition = cholesky(matrix);
       test('triangular factor', () {
         final triangularFactor = decomposition.L;
-        expectMatrix(matrix, mul(triangularFactor, triangularFactor.transposed));
+        expectMatrix(
+            matrix, mul(triangularFactor, triangularFactor.transposed));
       });
       test('solve', () {
         final identity = factory.identity(3, 3, 1.0);
