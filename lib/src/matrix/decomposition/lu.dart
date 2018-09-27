@@ -41,14 +41,10 @@ class LUDecomposition {
       _piv[i] = i;
     }
     _pivSign = 1;
-    final lucolj = valueDataType.newList(_m);
 
     // Outer loop.
     for (var j = 0; j < _n; j++) {
-      // Make a copy of the j-th column to localize references.
-      for (var i = 0; i < _m; i++) {
-        lucolj[i] = _lu.getUnchecked(i, j);
-      }
+      final lucolj = _lu.col(j);
 
       // Apply previous transformations.
       for (var i = 0; i < _m; i++) {
