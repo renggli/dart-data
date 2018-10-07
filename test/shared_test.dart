@@ -10,10 +10,10 @@ void main() {
   group('config', () {
     group('isVm', () {
       test('on vm', () {
-        expect(config.isVm, isTrue);
+        expect(config.isJavaScript, isFalse);
       }, testOn: '!js');
       test('in browser', () {
-        expect(config.isVm, isFalse);
+        expect(config.isJavaScript, isTrue);
       }, testOn: 'js');
     });
     group('data types', () {

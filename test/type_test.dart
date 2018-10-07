@@ -346,7 +346,7 @@ void main() {
   integerGroup(DataType.uint16, false, 16);
   integerGroup(DataType.int32, true, 32);
   integerGroup(DataType.uint32, false, 32);
-  if (config.isVm) {
+  if (!config.isJavaScript) {
     /// int64 and uint64 are only supported in VM
     integerGroup(DataType.int64, true, 64);
     integerGroup(DataType.uint64, false, 64);

@@ -49,16 +49,16 @@ DataType fromIterable(Iterable values) {
       minValue = math.min(minValue, value);
       maxValue = math.max(maxValue, value);
       numberCount++;
-      if (config.isVm) {
-        if (value is int) {
-          intCount++;
-        } else if (value is double) {
-          doubleCount++;
-        }
-      } else {
+      if (config.isJavaScript) {
         if (value.round() == value) {
           intCount++;
         } else {
+          doubleCount++;
+        }
+      } else {
+        if (value is int) {
+          intCount++;
+        } else if (value is double) {
           doubleCount++;
         }
       }

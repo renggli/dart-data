@@ -25,7 +25,7 @@ abstract class IntegerDataType extends DataType<int> {
 
   /// Returns the safe bits of an integer value. In the Dart VM integer are
   /// represented using 63 bits, in JavaScript we only have 53.
-  int get safeBits => math.min(bits, isVm ? 63 : 53);
+  int get safeBits => math.min(bits, isJavaScript ? 53 : 63);
 
   /// Returns the minimum safe value of this integer.
   num get safeMin => isSigned ? -math.pow(2, safeBits - 1) : 0;
