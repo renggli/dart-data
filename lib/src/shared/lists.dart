@@ -1,3 +1,4 @@
+/// Shared operations on lists.
 library data.shared.lists;
 
 import 'dart:math' as math;

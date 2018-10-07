@@ -4,6 +4,9 @@ import 'package:more/collection.dart' show BitList;
 
 import 'type.dart';
 
+const _trueStrings = ['true', 't', 'yes', 'y', '1'];
+const _falseStrings = ['false', 'f', 'no', 'n', '0'];
+
 class BooleanDataType extends DataType<bool> {
   const BooleanDataType();
 
@@ -26,10 +29,10 @@ class BooleanDataType extends DataType<bool> {
     } else if (value is num) {
       return value != 0 && !value.isNaN;
     } else if (value is String) {
-      if (const ['true', 't', 'yes', 'y'].contains(value)) {
+      if (_trueStrings.contains(value)) {
         return true;
       }
-      if (const ['false', 'f', 'no', 'n'].contains(value)) {
+      if (_falseStrings.contains(value)) {
         return false;
       }
     }

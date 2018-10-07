@@ -1,3 +1,4 @@
+/// Shared mathematical helper functions.
 library data.shared.math;
 
 import 'dart:math' as math;

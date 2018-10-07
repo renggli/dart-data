@@ -1,3 +1,4 @@
+/// Shared configuration across packages.
 library data.shared.config;
 
 import 'package:data/type.dart';
