@@ -25,6 +25,13 @@ Vector<T> _targetOrBuilderOrDataType<T>(
       'Expected either a "target", a "builder", or a "dataType".');
 }
 
+void _checkMatchingDimensions<T>(Vector<T> sourceA, Vector<T> sourceB) {
+  if (sourceA.count != sourceB.count) {
+    throw ArgumentError('Vector dimensions do not match: '
+        '${sourceA.count} and ${sourceB.count}.');
+  }
+}
+
 /// Generic unary operator on a vector.
 Vector<T> unaryOperator<T>(Vector<T> source, T callback(T a),
     {Vector<T> target, Builder<T> builder, DataType<T> dataType}) {
@@ -40,9 +47,7 @@ Vector<T> unaryOperator<T>(Vector<T> source, T callback(T a),
 Vector<T> binaryOperator<T>(
     Vector<T> sourceA, Vector<T> sourceB, T callback(T a, T b),
     {Vector<T> target, Builder<T> builder, DataType<T> dataType}) {
-  if (sourceA.count != sourceB.count) {
-    throw ArgumentError('Source vector dimensions do not match.');
-  }
+  _checkMatchingDimensions(sourceA, sourceB);
   final result = _targetOrBuilderOrDataType(
       sourceA.count, target, builder, sourceA.dataType);
   for (var i = 0; i < result.count; i++) {
@@ -97,9 +102,7 @@ bool compare<A, B>(Vector<A> sourceA, Vector<B> sourceB,
 /// Interpolates linearly between [v0] and [v0] with a factor [t].
 Vector<double> lerp<T extends num>(Vector<T> v0, Vector<T> v1, double t,
     {Vector<double> target, Builder<double> builder, DataType<T> dataType}) {
-  if (v0.count != v1.count) {
-    throw ArgumentError('Source vector dimensions do not match.');
-  }
+  _checkMatchingDimensions(v0, v1);
   final t1 = 1.0 - t;
   final result = _targetOrBuilderOrDataType(
       v0.count, target, builder, dataType ?? DataType.float64);
@@ -130,10 +133,7 @@ Vector<T> mul<T extends num>(Matrix<T> matrix, Vector<T> vector,
 
 /// Computes the dot product of two vectors [sourceA] and [sourceB].
 T dot<T extends num>(Vector<T> sourceA, Vector<T> sourceB) {
-  if (sourceA.count != sourceB.count) {
-    throw ArgumentError('Source vector dimensions do not match '
-        '(${sourceA.count} and ${sourceB.count}).');
-  }
+  _checkMatchingDimensions(sourceA, sourceB);
   var result = sourceA.dataType.nullValue;
   for (var i = 0; i < sourceA.count; i++) {
     result += sourceA.getUnchecked(i) * sourceB.getUnchecked(i);

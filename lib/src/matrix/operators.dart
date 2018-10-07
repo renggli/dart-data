@@ -22,6 +22,15 @@ Matrix<T> _targetOrBuilderOrDataType<T>(int rowCount, int colCount,
       'Expected either a "target", a "builder", or a "dataType".');
 }
 
+void _checkMatchingDimensions<T>(Matrix<T> sourceA, Matrix<T> sourceB) {
+  if (sourceA.rowCount != sourceB.rowCount ||
+      sourceA.colCount != sourceB.colCount) {
+    throw ArgumentError('Matrix dimensions do not match: '
+        '${sourceA.rowCount} * ${sourceA.colCount} and '
+        '${sourceB.rowCount} * ${sourceB.colCount}.');
+  }
+}
+
 /// Generic unary operator on a matrix.
 Matrix<T> unaryOperator<T>(Matrix<T> source, T callback(T a),
     {Matrix<T> target, Builder<T> builder, DataType<T> dataType}) {
@@ -39,10 +48,7 @@ Matrix<T> unaryOperator<T>(Matrix<T> source, T callback(T a),
 Matrix<T> binaryOperator<T>(
     Matrix<T> sourceA, Matrix<T> sourceB, T callback(T a, T b),
     {Matrix<T> target, Builder<T> builder, DataType<T> dataType}) {
-  if (sourceA.rowCount != sourceB.rowCount ||
-      sourceA.colCount != sourceB.colCount) {
-    throw ArgumentError('Source matrices do not match in size.');
-  }
+  _checkMatchingDimensions(sourceA, sourceB);
   final result = _targetOrBuilderOrDataType(sourceA.rowCount, sourceA.colCount,
       target, builder, dataType ?? sourceA.dataType);
   for (var r = 0; r < result.rowCount; r++) {
@@ -99,19 +105,18 @@ bool compare<A, B>(Matrix<A> sourceA, Matrix<B> sourceB,
   return true;
 }
 
-/// Interpolates linearly between [m0] and [m1] with a factor [t].
-Matrix<double> lerp<T extends num>(Matrix<T> m0, Matrix<T> m1, double t,
+/// Interpolates linearly between [sourceA] and [sourceB] with a factor [t].
+Matrix<double> lerp<T extends num>(
+    Matrix<T> sourceA, Matrix<T> sourceB, double t,
     {Matrix<double> target, Builder<double> builder, DataType<T> dataType}) {
-  if (m0.rowCount != m1.rowCount || m0.colCount != m1.colCount) {
-    throw ArgumentError('Source matrices do not match in size.');
-  }
+  _checkMatchingDimensions(sourceA, sourceB);
   final t1 = 1.0 - t;
-  final result = _targetOrBuilderOrDataType(
-      m0.rowCount, m0.colCount, target, builder, dataType ?? DataType.float64);
+  final result = _targetOrBuilderOrDataType(sourceA.rowCount, sourceA.colCount,
+      target, builder, dataType ?? DataType.float64);
   for (var r = 0; r < result.rowCount; r++) {
     for (var c = 0; c < result.colCount; c++) {
-      result.setUnchecked(
-          r, c, t1 * m0.getUnchecked(r, c) + t * m1.getUnchecked(r, c));
+      result.setUnchecked(r, c,
+          t1 * sourceA.getUnchecked(r, c) + t * sourceB.getUnchecked(r, c));
     }
   }
   return result;

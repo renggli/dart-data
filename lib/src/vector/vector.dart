@@ -99,7 +99,7 @@ abstract class Vector<T> {
     return buffer.toString();
   }
 
-  /// Pretty prints the vector.
+  /// Returns a string representation of this vector.
   @override
   String toString() => '$runtimeType[$count]: ${format()}';
 }

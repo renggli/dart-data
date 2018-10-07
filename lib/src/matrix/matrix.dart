@@ -230,7 +230,7 @@ abstract class Matrix<T> {
     return buffer.toString();
   }
 
-  /// Pretty prints the matrix.
+  /// Returns a string representation of this matrix.
   @override
   String toString() => '$runtimeType[$rowCount, $colCount]: ${format()}';
 }
