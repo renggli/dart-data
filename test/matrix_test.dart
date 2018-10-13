@@ -689,16 +689,62 @@ void matrixTest(String name, Builder builder) {
       });
     });
     group('testing', () {
+      final random = Random();
+      final matrix = builder.withType(DataType.int32);
+      final identity8x9 = matrix.identity(8, 9, 1);
+      final identity9x8 = matrix.identity(9, 8, 1);
+      final identity8x8 = matrix.identity(8, 8, 1);
+      final fullAsymmetric =
+          matrix.generate(8, 8, (r, c) => random.nextInt(1000));
+      final fullSymmetric = add(fullAsymmetric, fullAsymmetric.transposed);
+      final lowerTriangle =
+          matrix.generate(8, 8, (r, c) => r >= c ? random.nextInt(1000) : 0);
+      final upperTriangle =
+          matrix.generate(8, 8, (r, c) => r <= c ? random.nextInt(1000) : 0);
       test('isSquare', () {
-        expect(builder(4, 5).isSquare, isFalse);
-        expect(builder(5, 4).isSquare, isFalse);
-        expect(builder(4, 4).isSquare, isTrue);
+        expect(identity8x9.isSquare, isFalse);
+        expect(identity9x8.isSquare, isFalse);
+        expect(identity8x8.isSquare, isTrue);
+        expect(fullAsymmetric.isSquare, isTrue);
+        expect(fullSymmetric.isSquare, isTrue);
+        expect(lowerTriangle.isSquare, isTrue);
+        expect(upperTriangle.isSquare, isTrue);
       });
       test('isSymmetric', () {
-        expect(builder(4, 5).isSymmetric, isFalse);
-        expect(builder(4, 4).isSymmetric, isTrue);
-        expect(builder.generate(4, 4, (r, c) => r - c).isSymmetric, isFalse);
-        expect(builder.generate(4, 4, (r, c) => r + c).isSymmetric, isTrue);
+        expect(identity8x9.isSymmetric, isFalse);
+        expect(identity9x8.isSymmetric, isFalse);
+        expect(identity8x8.isSymmetric, isTrue);
+        expect(fullAsymmetric.isSymmetric, isFalse);
+        expect(fullSymmetric.isSymmetric, isTrue);
+        expect(lowerTriangle.isSymmetric, isFalse);
+        expect(upperTriangle.isSymmetric, isFalse);
+      });
+      test('isDiagonal', () {
+        expect(identity8x9.isDiagonal, isTrue);
+        expect(identity9x8.isDiagonal, isTrue);
+        expect(identity8x8.isDiagonal, isTrue);
+        expect(fullAsymmetric.isDiagonal, isFalse);
+        expect(fullSymmetric.isDiagonal, isFalse);
+        expect(lowerTriangle.isDiagonal, isFalse);
+        expect(upperTriangle.isDiagonal, isFalse);
+      });
+      test('isLowerTriangular', () {
+        expect(identity8x9.isLowerTriangular, isTrue);
+        expect(identity9x8.isLowerTriangular, isTrue);
+        expect(identity8x8.isLowerTriangular, isTrue);
+        expect(fullAsymmetric.isLowerTriangular, isFalse);
+        expect(fullSymmetric.isLowerTriangular, isFalse);
+        expect(lowerTriangle.isLowerTriangular, isTrue);
+        expect(upperTriangle.isLowerTriangular, isFalse);
+      });
+      test('isUpperTriangular', () {
+        expect(identity8x9.isUpperTriangular, isTrue);
+        expect(identity9x8.isUpperTriangular, isTrue);
+        expect(identity8x8.isUpperTriangular, isTrue);
+        expect(fullAsymmetric.isUpperTriangular, isFalse);
+        expect(fullSymmetric.isUpperTriangular, isFalse);
+        expect(lowerTriangle.isUpperTriangular, isFalse);
+        expect(upperTriangle.isUpperTriangular, isTrue);
       });
     });
     group('operators', () {

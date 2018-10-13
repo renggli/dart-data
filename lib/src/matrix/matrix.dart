@@ -212,6 +212,45 @@ abstract class Matrix<T> {
     return true;
   }
 
+  /// Tests if the matrix is a diagonal matrix, with non-zero values only on
+  /// the diagonal.
+  bool get isDiagonal {
+    for (var r = 0; r < rowCount; r++) {
+      for (var c = 0; c < colCount; c++) {
+        if (r != c && getUnchecked(r, c) != dataType.nullValue) {
+          return false;
+        }
+      }
+    }
+    return true;
+  }
+
+  /// Tests if the matrix is a lower triangular matrix, with non-zero values
+  /// only in the lower-triangle of the matrix.
+  bool get isLowerTriangular {
+    for (var r = 0; r < rowCount; r++) {
+      for (var c = r + 1; c < colCount; c++) {
+        if (getUnchecked(r, c) != dataType.nullValue) {
+          return false;
+        }
+      }
+    }
+    return true;
+  }
+
+  /// Tests if the matrix is a upper triangular matrix, with non-zero values
+  /// only in the upper-triangle of the matrix.
+  bool get isUpperTriangular {
+    for (var r = 1; r < rowCount; r++) {
+      for (var c = 0; c < colCount && c < r; c++) {
+        if (getUnchecked(r, c) != dataType.nullValue) {
+          return false;
+        }
+      }
+    }
+    return true;
+  }
+
   /// Returns a human readable representation of the matrix.
   String format([Printer printer]) {
     final formatter = printer ?? dataType.printer;
