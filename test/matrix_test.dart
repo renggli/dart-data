@@ -351,44 +351,59 @@ void matrixTest(String name, Builder builder) {
     });
     group('views', () {
       test('copy', () {
-        final view = builder
+        final matrix = builder
             .withType(DataType.object)
             .generate(8, 6, (row, col) => Point(row, col));
-        final copy = view.copy();
-        expect(view.dataType, copy.dataType);
-        expect(view.rowCount, copy.rowCount);
-        expect(view.colCount, copy.colCount);
-        expect(compare(view, copy), isTrue);
-        view.set(3, 5, null);
+        final copy = matrix.copy();
+        expect(matrix.dataType, copy.dataType);
+        expect(matrix.rowCount, copy.rowCount);
+        expect(matrix.colCount, copy.colCount);
+        expect(compare(matrix, copy), isTrue);
+        matrix.set(3, 5, null);
         expect(copy.get(3, 5), const Point(3, 5));
       });
       test('row', () {
-        final view = builder
+        final matrix = builder
             .withType(DataType.string)
             .generate(4, 5, (r, c) => '($r, $c)');
-        for (var r = 0; r < view.rowCount; r++) {
-          final row = view.row(r);
-          expect(row.dataType, view.dataType);
-          expect(row.count, view.colCount);
+        for (var r = 0; r < matrix.rowCount; r++) {
+          final row = matrix.row(r);
+          expect(row.dataType, matrix.dataType);
+          expect(row.count, matrix.colCount);
           expect(v.compare(row.copy(), row), isTrue);
-          for (var c = 0; c < view.colCount; c++) {
+          for (var c = 0; c < matrix.colCount; c++) {
             expect(row[c], '($r, $c)');
             row[c] += '*';
           }
           expect(() => row[-1], throwsRangeError);
-          expect(() => row[view.colCount], throwsRangeError);
+          expect(() => row[matrix.colCount], throwsRangeError);
           expect(() => row[-1] += '*', throwsRangeError);
-          expect(() => row[view.colCount] += '*', throwsRangeError);
+          expect(() => row[matrix.colCount] += '*', throwsRangeError);
         }
-        expect(() => view.row(-1), throwsRangeError);
-        expect(() => view.row(4), throwsRangeError);
-        for (var r = 0; r < view.rowCount; r++) {
-          for (var c = 0; c < view.colCount; c++) {
-            expect(view.get(r, c), '($r, $c)*');
+        expect(() => matrix.row(-1), throwsRangeError);
+        expect(() => matrix.row(4), throwsRangeError);
+        for (var r = 0; r < matrix.rowCount; r++) {
+          for (var c = 0; c < matrix.colCount; c++) {
+            expect(matrix.get(r, c), '($r, $c)*');
           }
         }
       });
-      test('column', () {
+      test('rows', () {
+        final matrix = builder
+            .withType(DataType.object)
+            .generate(7, 5, (r, c) => Point(r, c));
+        var r = 0;
+        for (var row in matrix.rows) {
+          expect(row.dataType, matrix.dataType);
+          expect(row.count, matrix.colCount);
+          for (var c = 0; c < matrix.colCount; c++) {
+            expect(row[c], matrix.get(r, c));
+          }
+          r++;
+        }
+        expect(r, matrix.rowCount);
+      });
+      test('col', () {
         final view = builder
             .withType(DataType.string)
             .generate(5, 4, (r, c) => '($r, $c)');
@@ -414,9 +429,25 @@ void matrixTest(String name, Builder builder) {
           }
         }
       });
+
+      test('cols', () {
+        final matrix = builder
+            .withType(DataType.object)
+            .generate(5, 8, (r, c) => Point(r, c));
+        var c = 0;
+        for (var col in matrix.cols) {
+          expect(col.dataType, matrix.dataType);
+          expect(col.count, matrix.rowCount);
+          for (var r = 0; r < matrix.rowCount; r++) {
+            expect(col[r], matrix.get(r, c));
+          }
+          c++;
+        }
+        expect(c, matrix.colCount);
+      });
       group('diagonal', () {
         test('vertical', () {
-          final view = builder
+          final matrix = builder
               .withType(DataType.string)
               .generate(2, 3, (row, col) => '($row, $col)');
           final offsets = {
@@ -427,8 +458,8 @@ void matrixTest(String name, Builder builder) {
           };
           for (var offset in offsets.keys) {
             final expected = offsets[offset];
-            final diagonal = view.diagonal(offset);
-            expect(diagonal.dataType, view.dataType);
+            final diagonal = matrix.diagonal(offset);
+            expect(diagonal.dataType, matrix.dataType);
             expect(diagonal.count, expected.length);
             expect(v.compare(diagonal.copy(), diagonal), isTrue);
             for (var i = 0; i < expected.length; i++) {
@@ -436,11 +467,11 @@ void matrixTest(String name, Builder builder) {
               diagonal[i] += '*';
             }
           }
-          expect(() => view.diagonal(2), throwsRangeError);
-          expect(() => view.diagonal(-3), throwsRangeError);
-          for (var r = 0; r < view.rowCount; r++) {
-            for (var c = 0; c < view.colCount; c++) {
-              expect(view.get(r, c), '($r, $c)*');
+          expect(() => matrix.diagonal(2), throwsRangeError);
+          expect(() => matrix.diagonal(-3), throwsRangeError);
+          for (var r = 0; r < matrix.rowCount; r++) {
+            for (var c = 0; c < matrix.colCount; c++) {
+              expect(matrix.get(r, c), '($r, $c)*');
             }
           }
         });
@@ -479,14 +510,14 @@ void matrixTest(String name, Builder builder) {
       group('range', () {
         final source = builder.generate(7, 8, (row, col) => Point(row, col));
         test('row', () {
-          final view = source.rowRange(1, 3);
-          expect(view.dataType, source.dataType);
-          expect(view.rowCount, 2);
-          expect(view.colCount, source.colCount);
-          expect(compare(view.copy(), view), isTrue);
-          for (var r = 0; r < view.rowCount; r++) {
-            for (var c = 0; c < view.colCount; c++) {
-              expect(view.get(r, c), Point(r + 1, c));
+          final matrix = source.rowRange(1, 3);
+          expect(matrix.dataType, source.dataType);
+          expect(matrix.rowCount, 2);
+          expect(matrix.colCount, source.colCount);
+          expect(compare(matrix.copy(), matrix), isTrue);
+          for (var r = 0; r < matrix.rowCount; r++) {
+            for (var c = 0; c < matrix.colCount; c++) {
+              expect(matrix.get(r, c), Point(r + 1, c));
             }
           }
         });
@@ -495,14 +526,14 @@ void matrixTest(String name, Builder builder) {
           source.rowRangeUnchecked(0, source.rowCount + 1);
         });
         test('column', () {
-          final view = source.colRange(1, 4);
-          expect(view.dataType, source.dataType);
-          expect(view.rowCount, source.rowCount);
-          expect(view.colCount, 3);
-          expect(compare(view.copy(), view), isTrue);
-          for (var r = 0; r < view.rowCount; r++) {
-            for (var c = 0; c < view.colCount; c++) {
-              expect(view.get(r, c), Point(r, c + 1));
+          final matrix = source.colRange(1, 4);
+          expect(matrix.dataType, source.dataType);
+          expect(matrix.rowCount, source.rowCount);
+          expect(matrix.colCount, 3);
+          expect(compare(matrix.copy(), matrix), isTrue);
+          for (var r = 0; r < matrix.rowCount; r++) {
+            for (var c = 0; c < matrix.colCount; c++) {
+              expect(matrix.get(r, c), Point(r, c + 1));
             }
           }
         });
@@ -511,28 +542,28 @@ void matrixTest(String name, Builder builder) {
           source.colRangeUnchecked(0, source.colCount + 1);
         });
         test('row and column', () {
-          final view = source.range(1, 3, 2, 4);
-          expect(view.dataType, source.dataType);
-          expect(view.rowCount, 2);
-          expect(view.colCount, 2);
-          expect(compare(view.copy(), view), isTrue);
-          for (var r = 0; r < view.rowCount; r++) {
-            for (var c = 0; c < view.colCount; c++) {
-              expect(view.get(r, c), Point(r + 1, c + 2));
+          final matrix = source.range(1, 3, 2, 4);
+          expect(matrix.dataType, source.dataType);
+          expect(matrix.rowCount, 2);
+          expect(matrix.colCount, 2);
+          expect(compare(matrix.copy(), matrix), isTrue);
+          for (var r = 0; r < matrix.rowCount; r++) {
+            for (var c = 0; c < matrix.colCount; c++) {
+              expect(matrix.get(r, c), Point(r + 1, c + 2));
             }
           }
         });
         test('sub range', () {
-          final view = source
+          final matrix = source
               .range(1, source.rowCount - 2, 1, source.colCount - 2)
               .range(1, source.rowCount - 3, 1, source.colCount - 3);
-          expect(view.dataType, source.dataType);
-          expect(view.rowCount, source.rowCount - 4);
-          expect(view.colCount, source.colCount - 4);
-          expect(compare(view.copy(), view), isTrue);
-          for (var r = 0; r < view.rowCount; r++) {
-            for (var c = 0; c < view.colCount; c++) {
-              expect(view.get(r, c), Point(r + 2, c + 2));
+          expect(matrix.dataType, source.dataType);
+          expect(matrix.rowCount, source.rowCount - 4);
+          expect(matrix.colCount, source.colCount - 4);
+          expect(compare(matrix.copy(), matrix), isTrue);
+          for (var r = 0; r < matrix.rowCount; r++) {
+            for (var c = 0; c < matrix.colCount; c++) {
+              expect(matrix.get(r, c), Point(r + 2, c + 2));
             }
           }
         });
@@ -542,9 +573,9 @@ void matrixTest(String name, Builder builder) {
         });
         test('write', () {
           final original = builder.fromMatrix(source);
-          final view = original.range(2, 3, 3, 4);
-          view.set(0, 0, '*');
-          expect(view.get(0, 0), '*');
+          final matrix = original.range(2, 3, 3, 4);
+          matrix.set(0, 0, '*');
+          expect(matrix.get(0, 0), '*');
           expect(original.get(2, 3), '*');
         });
         test('range error', () {
@@ -561,14 +592,14 @@ void matrixTest(String name, Builder builder) {
       group('index', () {
         final source = builder.generate(6, 4, (row, col) => Point(row, col));
         test('row', () {
-          final view = source.rowIndex([5, 0, 4]);
-          expect(view.dataType, source.dataType);
-          expect(view.rowCount, 3);
-          expect(view.colCount, source.colCount);
-          expect(compare(view.copy(), view), isTrue);
-          for (var r = 0; r < view.rowCount; r++) {
-            for (var c = 0; c < view.colCount; c++) {
-              expect(view.get(r, c), Point(r == 0 ? 5 : r == 1 ? 0 : 4, c));
+          final matrix = source.rowIndex([5, 0, 4]);
+          expect(matrix.dataType, source.dataType);
+          expect(matrix.rowCount, 3);
+          expect(matrix.colCount, source.colCount);
+          expect(compare(matrix.copy(), matrix), isTrue);
+          for (var r = 0; r < matrix.rowCount; r++) {
+            for (var c = 0; c < matrix.colCount; c++) {
+              expect(matrix.get(r, c), Point(r == 0 ? 5 : r == 1 ? 0 : 4, c));
             }
           }
         });
@@ -577,14 +608,14 @@ void matrixTest(String name, Builder builder) {
           source.rowIndexUnchecked([0, source.rowCount]);
         });
         test('column', () {
-          final view = source.colIndex([3, 0, 0]);
-          expect(view.dataType, source.dataType);
-          expect(view.rowCount, source.rowCount);
-          expect(view.colCount, 3);
-          expect(compare(view.copy(), view), isTrue);
-          for (var r = 0; r < view.rowCount; r++) {
-            for (var c = 0; c < view.colCount; c++) {
-              expect(view.get(r, c), Point(r, c == 0 ? 3 : 0));
+          final matrix = source.colIndex([3, 0, 0]);
+          expect(matrix.dataType, source.dataType);
+          expect(matrix.rowCount, source.rowCount);
+          expect(matrix.colCount, 3);
+          expect(compare(matrix.copy(), matrix), isTrue);
+          for (var r = 0; r < matrix.rowCount; r++) {
+            for (var c = 0; c < matrix.colCount; c++) {
+              expect(matrix.get(r, c), Point(r, c == 0 ? 3 : 0));
             }
           }
         });
@@ -593,29 +624,29 @@ void matrixTest(String name, Builder builder) {
           source.colIndexUnchecked([0, source.colCount]);
         });
         test('row and column', () {
-          final view = source.index([0, 5], [3, 0]);
-          expect(view.dataType, source.dataType);
-          expect(view.rowCount, 2);
-          expect(view.colCount, 2);
-          expect(compare(view.copy(), view), isTrue);
-          for (var r = 0; r < view.rowCount; r++) {
-            for (var c = 0; c < view.colCount; c++) {
-              expect(view.get(r, c), Point(r == 0 ? 0 : 5, c == 0 ? 3 : 0));
+          final matrix = source.index([0, 5], [3, 0]);
+          expect(matrix.dataType, source.dataType);
+          expect(matrix.rowCount, 2);
+          expect(matrix.colCount, 2);
+          expect(compare(matrix.copy(), matrix), isTrue);
+          for (var r = 0; r < matrix.rowCount; r++) {
+            for (var c = 0; c < matrix.colCount; c++) {
+              expect(matrix.get(r, c), Point(r == 0 ? 0 : 5, c == 0 ? 3 : 0));
             }
           }
         });
         test('sub index', () {
-          final view = source.index([2, 3, 0], [1, 2]).index([2], [1]);
-          expect(view.dataType, source.dataType);
-          expect(view.rowCount, 1);
-          expect(view.colCount, 1);
-          expect(view.get(0, 0), const Point(0, 2));
+          final matrix = source.index([2, 3, 0], [1, 2]).index([2], [1]);
+          expect(matrix.dataType, source.dataType);
+          expect(matrix.rowCount, 1);
+          expect(matrix.colCount, 1);
+          expect(matrix.get(0, 0), const Point(0, 2));
         });
         test('write', () {
           final original = builder.fromMatrix(source);
-          final view = original.index([2], [3]);
-          view.set(0, 0, '*');
-          expect(view.get(0, 0), '*');
+          final matrix = original.index([2], [3]);
+          matrix.set(0, 0, '*');
+          expect(matrix.get(0, 0), '*');
           expect(original.get(2, 3), '*');
         });
         test('range error', () {
@@ -638,100 +669,100 @@ void matrixTest(String name, Builder builder) {
         });
       });
       group('map', () {
-        final matrix = builder.generate(3, 4, (row, col) => Point(row, col));
+        final source = builder.generate(3, 4, (row, col) => Point(row, col));
         test('to string', () {
-          final view = matrix.map(
+          final matrix = source.map(
               (row, col, value) => '${value.x + 10 * value.y}',
               DataType.string);
-          expect(view.dataType, DataType.string);
-          expect(view.rowCount, matrix.rowCount);
-          expect(view.colCount, matrix.colCount);
-          expect(compare(view.copy(), view), isTrue);
-          for (var r = 0; r < view.rowCount; r++) {
-            for (var c = 0; c < view.colCount; c++) {
-              expect(view.get(r, c), '${r + 10 * c}');
+          expect(matrix.dataType, DataType.string);
+          expect(matrix.rowCount, source.rowCount);
+          expect(matrix.colCount, source.colCount);
+          expect(compare(matrix.copy(), matrix), isTrue);
+          for (var r = 0; r < matrix.rowCount; r++) {
+            for (var c = 0; c < matrix.colCount; c++) {
+              expect(matrix.get(r, c), '${r + 10 * c}');
             }
           }
         });
         test('to int', () {
-          final view = matrix.map(
+          final matrix = source.map(
               (row, col, value) => value.x + 10 * value.y, DataType.int32);
-          expect(view.dataType, DataType.int32);
-          expect(view.rowCount, matrix.rowCount);
-          expect(view.colCount, matrix.colCount);
-          for (var r = 0; r < view.rowCount; r++) {
-            for (var c = 0; c < view.colCount; c++) {
-              expect(view.get(r, c), r + 10 * c);
+          expect(matrix.dataType, DataType.int32);
+          expect(matrix.rowCount, source.rowCount);
+          expect(matrix.colCount, source.colCount);
+          for (var r = 0; r < matrix.rowCount; r++) {
+            for (var c = 0; c < matrix.colCount; c++) {
+              expect(matrix.get(r, c), r + 10 * c);
             }
           }
         });
         test('to float', () {
-          final view = matrix.map(
+          final matrix = source.map(
               (row, col, value) => value.x + 10.0 * value.y, DataType.float64);
-          expect(view.dataType, DataType.float64);
-          expect(view.rowCount, matrix.rowCount);
-          expect(view.colCount, matrix.colCount);
-          for (var r = 0; r < view.rowCount; r++) {
-            for (var c = 0; c < view.colCount; c++) {
-              expect(view.get(r, c), r + 10.0 * c);
+          expect(matrix.dataType, DataType.float64);
+          expect(matrix.rowCount, source.rowCount);
+          expect(matrix.colCount, source.colCount);
+          for (var r = 0; r < matrix.rowCount; r++) {
+            for (var c = 0; c < matrix.colCount; c++) {
+              expect(matrix.get(r, c), r + 10.0 * c);
             }
           }
         });
         test('readonly', () {
-          final view =
-              matrix.map<int>((row, col, value) => row, DataType.int32);
-          expect(() => view.setUnchecked(1, 2, 3), throwsUnsupportedError);
+          final matrix =
+              source.map<int>((row, col, value) => row, DataType.int32);
+          expect(() => matrix.setUnchecked(1, 2, 3), throwsUnsupportedError);
         });
       });
       test('transposed', () {
-        final matrix = builder
+        final source = builder
             .withType(DataType.string)
             .generate(7, 6, (row, col) => '($row, $col)');
-        final view = matrix.transposed;
-        expect(view.dataType, matrix.dataType);
-        expect(view.rowCount, 6);
-        expect(view.colCount, 7);
-        expect(compare(view.copy(), view), isTrue);
-        for (var r = 0; r < view.rowCount; r++) {
-          for (var c = 0; c < view.colCount; c++) {
-            expect(view.get(r, c), '($c, $r)');
-            view.set(r, c, '${view.get(r, c)}*');
-          }
-        }
+        final matrix = source.transposed;
+        expect(matrix.dataType, source.dataType);
+        expect(matrix.rowCount, 6);
+        expect(matrix.colCount, 7);
+        expect(compare(matrix.copy(), matrix), isTrue);
         for (var r = 0; r < matrix.rowCount; r++) {
           for (var c = 0; c < matrix.colCount; c++) {
-            expect(matrix.get(r, c), '($r, $c)*');
+            expect(matrix.get(r, c), '($c, $r)');
+            matrix.set(r, c, '${matrix.get(r, c)}*');
           }
         }
-        expect(view.transposed, matrix);
+        for (var r = 0; r < source.rowCount; r++) {
+          for (var c = 0; c < source.colCount; c++) {
+            expect(source.get(r, c), '($r, $c)*');
+          }
+        }
+        expect(matrix.transposed, source);
       });
       test('unmodifiable', () {
-        final matrix = builder
+        final source = builder
             .withType(DataType.string)
             .generate(2, 3, (row, col) => '($row, $col)');
-        final view = matrix.unmodifiable;
-        expect(view.dataType, matrix.dataType);
-        expect(view.rowCount, 2);
-        expect(view.colCount, 3);
-        expect(compare(view.copy(), view), isTrue);
-        for (var r = 0; r < view.rowCount; r++) {
-          for (var c = 0; c < view.colCount; c++) {
-            expect(view.get(r, c), '($r, $c)');
-            expect(() => view.set(r, c, '${view.get(r, c)}*'),
+        final matrix = source.unmodifiable;
+        expect(matrix.dataType, source.dataType);
+        expect(matrix.rowCount, 2);
+        expect(matrix.colCount, 3);
+        expect(compare(matrix.copy(), matrix), isTrue);
+        for (var r = 0; r < matrix.rowCount; r++) {
+          for (var c = 0; c < matrix.colCount; c++) {
+            expect(matrix.get(r, c), '($r, $c)');
+            expect(() => matrix.set(r, c, '${matrix.get(r, c)}*'),
                 throwsUnsupportedError);
           }
         }
+        for (var r = 0; r < source.rowCount; r++) {
+          for (var c = 0; c < source.colCount; c++) {
+            source.set(r, c, '${source.get(r, c)}!');
+          }
+        }
         for (var r = 0; r < matrix.rowCount; r++) {
           for (var c = 0; c < matrix.colCount; c++) {
-            matrix.set(r, c, '${matrix.get(r, c)}!');
+            expect(matrix.get(r, c), '($r, $c)!');
           }
         }
-        for (var r = 0; r < view.rowCount; r++) {
-          for (var c = 0; c < view.colCount; c++) {
-            expect(view.get(r, c), '($r, $c)!');
-          }
-        }
-        expect(view.unmodifiable, view);
+        expect(matrix.unmodifiable, matrix);
       });
     });
     group('testing', () {

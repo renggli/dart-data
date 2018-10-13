@@ -69,6 +69,13 @@ abstract class Matrix<T> {
   /// if [row] is out of bounds.
   Vector<T> rowUnchecked(int row) => RowVector<T>(this, row);
 
+  /// Returns an iterable over the rows of this matrix.
+  Iterable<Vector<T>> get rows sync* {
+    for (var r = 0; r < rowCount; r++) {
+      yield rowUnchecked(r);
+    }
+  }
+
   /// Returns the number of columns in the matrix.
   int get colCount;
 
@@ -84,6 +91,13 @@ abstract class Matrix<T> {
   /// center of the matrix, a negative offset to the diagonals above, a positive
   /// offset to the diagonals below.
   Vector<T> colUnchecked(int col) => ColumnVector<T>(this, col);
+
+  /// Returns an iterable over the columns of this matrix.
+  Iterable<Vector<T>> get cols sync* {
+    for (var c = 0; c < colCount; c++) {
+      yield colUnchecked(c);
+    }
+  }
 
   /// Returns a mutable diagonal vector of this matrix. Throws a [RangeError],
   /// if [offset] is out of bounds. An offset of `0` refers to the diagonal
