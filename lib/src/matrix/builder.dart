@@ -192,6 +192,22 @@ class Builder<T> {
     return result;
   }
 
+  /// Builds a matrix from a list of row vectors.
+  Matrix<T> fromRowVectors(List<Vector<T>> source) {
+    final result = this(source.length, source.isEmpty ? 0 : source[0].count);
+    for (var r = 0; r < result.rowCount; r++) {
+      final sourceRow = source[r];
+      if (sourceRow.count != result.colCount) {
+        throw ArgumentError.value(
+            source, 'source', 'All row vectors must be equally sized.');
+      }
+      for (var c = 0; c < result.colCount; c++) {
+        result.setUnchecked(r, c, sourceRow[c]);
+      }
+    }
+    return result;
+  }
+
   /// Builds a matrix from a packed list of rows.
   Matrix<T> fromPackedRows(int rowCount, int colCount, List<T> source) {
     if (rowCount * colCount != source.length) {
@@ -220,6 +236,22 @@ class Builder<T> {
       if (sourceCol.length != result.rowCount) {
         throw ArgumentError.value(
             source, 'source', 'All columns must be equally sized.');
+      }
+      for (var r = 0; r < result.rowCount; r++) {
+        result.setUnchecked(r, c, sourceCol[r]);
+      }
+    }
+    return result;
+  }
+
+  /// Builds a matrix from a list of column vectors.
+  Matrix<T> fromColumnVectors(List<Vector<T>> source) {
+    final result = this(source.isEmpty ? 0 : source[0].count, source.length);
+    for (var c = 0; c < result.colCount; c++) {
+      final sourceCol = source[c];
+      if (sourceCol.count != result.rowCount) {
+        throw ArgumentError.value(
+            source, 'source', 'All column vectors must be equally sized.');
       }
       for (var r = 0; r < result.rowCount; r++) {
         result.setUnchecked(r, c, sourceCol[r]);

@@ -4,7 +4,7 @@ import 'dart:math';
 
 import 'package:data/matrix.dart';
 import 'package:data/type.dart';
-import 'package:data/vector.dart' as vector;
+import 'package:data/vector.dart' as v;
 import 'package:test/test.dart';
 
 void matrixTest(String name, Builder builder) {
@@ -129,7 +129,7 @@ void matrixTest(String name, Builder builder) {
       });
       test('fromRow', () {
         final source =
-            vector.Vector.builder.withType(DataType.int8).fromList([2, 5, 6]);
+            v.Vector.builder.withType(DataType.int8).fromList([2, 5, 6]);
         final matrix = builder.withType(DataType.int16).fromRow(source);
         expect(matrix.dataType, DataType.int16);
         expect(matrix.rowCount, 1);
@@ -142,7 +142,7 @@ void matrixTest(String name, Builder builder) {
       });
       test('fromColumn', () {
         final source =
-            vector.Vector.builder.withType(DataType.int8).fromList([2, 5, 6]);
+            v.Vector.builder.withType(DataType.int8).fromList([2, 5, 6]);
         final matrix = builder.withType(DataType.int16).fromColumn(source);
         expect(matrix.dataType, DataType.int16);
         expect(matrix.rowCount, 3);
@@ -155,7 +155,7 @@ void matrixTest(String name, Builder builder) {
       });
       test('fromDiagonal', () {
         final source =
-            vector.Vector.builder.withType(DataType.int8).fromList([2, 5, 6]);
+            v.Vector.builder.withType(DataType.int8).fromList([2, 5, 6]);
         final matrix = builder.withType(DataType.int16).fromDiagonal(source);
         expect(matrix.dataType, DataType.int16);
         expect(matrix.rowCount, 3);
@@ -186,6 +186,29 @@ void matrixTest(String name, Builder builder) {
             () => builder.fromRows([
                   [1],
                   [1, 2]
+                ]),
+            throwsArgumentError);
+      });
+      test('fromRowVectors', () {
+        final matrix = builder.withType(DataType.int8).fromRowVectors([
+          v.Vector.builder.withType(DataType.int8).fromList([1, 2, 3]),
+          v.Vector.builder.withType(DataType.int8).fromList([4, 5, 6]),
+        ]);
+        expect(matrix.dataType, DataType.int8);
+        expect(matrix.rowCount, 2);
+        expect(matrix.colCount, 3);
+        expect(matrix.get(0, 0), 1);
+        expect(matrix.get(1, 0), 4);
+        expect(matrix.get(0, 1), 2);
+        expect(matrix.get(1, 1), 5);
+        expect(matrix.get(0, 2), 3);
+        expect(matrix.get(1, 2), 6);
+      });
+      test('fromRowVectors (argument error)', () {
+        expect(
+            () => builder.fromRowVectors([
+                  v.Vector.builder.withType(DataType.int8).fromList([1]),
+                  v.Vector.builder.withType(DataType.int8).fromList([1, 2]),
                 ]),
             throwsArgumentError);
       });
@@ -224,6 +247,29 @@ void matrixTest(String name, Builder builder) {
             () => builder.fromColumns([
                   [1],
                   [1, 2]
+                ]),
+            throwsArgumentError);
+      });
+      test('fromColumnVectors', () {
+        final matrix = builder.withType(DataType.int8).fromColumnVectors([
+          v.Vector.builder.withType(DataType.int8).fromList([1, 2, 3]),
+          v.Vector.builder.withType(DataType.int8).fromList([4, 5, 6]),
+        ]);
+        expect(matrix.dataType, DataType.int8);
+        expect(matrix.rowCount, 3);
+        expect(matrix.colCount, 2);
+        expect(matrix.get(0, 0), 1);
+        expect(matrix.get(1, 0), 2);
+        expect(matrix.get(2, 0), 3);
+        expect(matrix.get(0, 1), 4);
+        expect(matrix.get(1, 1), 5);
+        expect(matrix.get(2, 1), 6);
+      });
+      test('fromColumnVectors (argument error)', () {
+        expect(
+            () => builder.fromColumnVectors([
+                  v.Vector.builder.withType(DataType.int8).fromList([1]),
+                  v.Vector.builder.withType(DataType.int8).fromList([1, 2]),
                 ]),
             throwsArgumentError);
       });
@@ -324,7 +370,7 @@ void matrixTest(String name, Builder builder) {
           final row = view.row(r);
           expect(row.dataType, view.dataType);
           expect(row.count, view.colCount);
-          expect(vector.compare(row.copy(), row), isTrue);
+          expect(v.compare(row.copy(), row), isTrue);
           for (var c = 0; c < view.colCount; c++) {
             expect(row[c], '($r, $c)');
             row[c] += '*';
@@ -350,7 +396,7 @@ void matrixTest(String name, Builder builder) {
           final column = view.col(c);
           expect(column.dataType, view.dataType);
           expect(column.count, view.rowCount);
-          expect(vector.compare(column.copy(), column), isTrue);
+          expect(v.compare(column.copy(), column), isTrue);
           for (var r = 0; r < view.rowCount; r++) {
             expect(column[r], '($r, $c)');
             column[r] += '*';
@@ -384,7 +430,7 @@ void matrixTest(String name, Builder builder) {
             final diagonal = view.diagonal(offset);
             expect(diagonal.dataType, view.dataType);
             expect(diagonal.count, expected.length);
-            expect(vector.compare(diagonal.copy(), diagonal), isTrue);
+            expect(v.compare(diagonal.copy(), diagonal), isTrue);
             for (var i = 0; i < expected.length; i++) {
               expect(diagonal[i], expected[i]);
               diagonal[i] += '*';
@@ -413,7 +459,7 @@ void matrixTest(String name, Builder builder) {
             final diagonal = view.diagonal(offset);
             expect(diagonal.dataType, view.dataType);
             expect(diagonal.count, expected.length);
-            expect(vector.compare(diagonal.copy(), diagonal), isTrue);
+            expect(v.compare(diagonal.copy(), diagonal), isTrue);
             for (var i = 0; i < expected.length; i++) {
               expect(diagonal[i], expected[i]);
               diagonal[i] += '*';
@@ -947,7 +993,7 @@ void matrixTest(String name, Builder builder) {
           expect(target.colCount, sourceB.colCount);
           for (var r = 0; r < target.rowCount; r++) {
             for (var c = 0; c < target.colCount; c++) {
-              final value = vector.dot(sourceA.row(r), sourceB.col(c));
+              final value = v.dot(sourceA.row(r), sourceB.col(c));
               expect(target.get(r, c), value);
             }
           }
