@@ -14,6 +14,8 @@ void vectorTest(String name, Builder builder) {
         final vector = builder.withType(DataType.int8)(4);
         expect(vector.dataType, DataType.int8);
         expect(vector.count, 4);
+        expect(vector.shape, [vector.count]);
+        expect(vector.base, vector);
         for (var i = 0; i < vector.count; i++) {
           expect(vector[i], 0);
         }
@@ -22,6 +24,9 @@ void vectorTest(String name, Builder builder) {
         final vector = builder.withType(DataType.int8).constant(5, 123);
         expect(vector.dataType, DataType.int8);
         expect(vector.count, 5);
+        expect(vector.shape, [vector.count]);
+        expect(vector.base, vector);
+        expect(vector.copy(), vector);
         for (var i = 0; i < vector.count; i++) {
           expect(vector[i], 123);
         }
@@ -32,6 +37,8 @@ void vectorTest(String name, Builder builder) {
             builder.withType(DataType.int8).constant(5, 123, mutable: true);
         expect(vector.dataType, DataType.int8);
         expect(vector.count, 5);
+        expect(vector.shape, [vector.count]);
+        expect(vector.base, vector);
         for (var i = 0; i < vector.count; i++) {
           expect(vector[i], 123);
         }
@@ -43,6 +50,8 @@ void vectorTest(String name, Builder builder) {
             builder.withType(DataType.string).generate(7, (i) => '$i');
         expect(vector.dataType, DataType.string);
         expect(vector.count, 7);
+        expect(vector.shape, [vector.count]);
+        expect(vector.base, vector);
         for (var i = 0; i < vector.count; i++) {
           expect(vector[i], '$i');
         }
@@ -55,6 +64,8 @@ void vectorTest(String name, Builder builder) {
             .transform(source, (index, value) => '$index: $value');
         expect(vector.dataType, DataType.string);
         expect(vector.count, 9);
+        expect(vector.shape, [vector.count]);
+        expect(vector.base, vector);
         for (var i = 0; i < vector.count; i++) {
           expect(vector[i], '$i: ${2 * i}');
         }
@@ -65,6 +76,8 @@ void vectorTest(String name, Builder builder) {
         final vector = builder.withType(DataType.string).fromVector(source);
         expect(vector.dataType, DataType.string);
         expect(vector.count, 6);
+        expect(vector.shape, [vector.count]);
+        expect(vector.base, vector);
         for (var i = 0; i < vector.count; i++) {
           expect(vector[i], '$i');
         }
@@ -73,6 +86,8 @@ void vectorTest(String name, Builder builder) {
         final vector = builder.withType(DataType.int8).fromList([2, 1, 3]);
         expect(vector.dataType, DataType.int8);
         expect(vector.count, 3);
+        expect(vector.shape, [vector.count]);
+        expect(vector.base, vector);
         expect(vector[0], 2);
         expect(vector[1], 1);
         expect(vector[2], 3);
@@ -123,133 +138,143 @@ void vectorTest(String name, Builder builder) {
     });
     group('view', () {
       test('copy', () {
-        final vector = builder.generate(30, (i) => i);
-        final copy = vector.copy();
-        expect(vector.dataType, copy.dataType);
-        expect(vector.count, copy.count);
-        for (var i = 0; i < vector.count; i++) {
-          vector[i] = i.isEven ? 0 : -i;
+        final source = builder.generate(30, (i) => i);
+        final copy = source.copy();
+        expect(copy.dataType, source.dataType);
+        expect(copy.count, source.count);
+        expect(copy.base, copy);
+        for (var i = 0; i < source.count; i++) {
+          source[i] = i.isEven ? 0 : -i;
           copy[i] = i.isEven ? -i : 0;
         }
-        for (var i = 0; i < vector.count; i++) {
-          expect(vector[i], i.isEven ? 0 : -i);
+        for (var i = 0; i < source.count; i++) {
+          expect(source[i], i.isEven ? 0 : -i);
           expect(copy[i], i.isEven ? -i : 0);
         }
       });
       test('range', () {
-        final vector =
+        final source =
             builder.withType(DataType.string).generate(6, (i) => '$i');
-        final view = vector.range(1, 4);
-        expect(view.dataType, DataType.string);
-        expect(view.count, 3);
-        expect(compare(view.copy(), view), isTrue);
-        expect(view[0], '1');
-        expect(view[1], '2');
-        expect(view[2], '3');
-        view[1] += '*';
-        expect(view[1], '2*');
-        expect(vector[2], '2*');
+        final range = source.range(1, 4);
+        expect(range.dataType, DataType.string);
+        expect(range.count, 3);
+        expect(range.base, source);
+        expect(compare(range.copy(), range), isTrue);
+        expect(range[0], '1');
+        expect(range[1], '2');
+        expect(range[2], '3');
+        range[1] += '*';
+        expect(range[1], '2*');
+        expect(source[2], '2*');
       });
       test('range (full range)', () {
-        final view = builder.withType(DataType.int8).fromList([1, 2]);
-        expect(view.range(0, view.count), view);
+        final source = builder.withType(DataType.int8).fromList([1, 2]);
+        expect(source.range(0, source.count), source);
       });
       test('range (sub range)', () {
-        final vector =
+        final source =
             builder.withType(DataType.string).generate(6, (i) => '$i');
-        final view = vector.range(1, 4).range(1, 2);
-        expect(view.dataType, DataType.string);
-        expect(view.count, 1);
-        expect(view[0], '2');
-        view[0] += '*';
-        expect(view[0], '2*');
-        expect(vector[2], '2*');
+        final range = source.range(1, 4).range(1, 2);
+        expect(range.dataType, DataType.string);
+        expect(range.count, 1);
+        expect(range.base, source);
+        expect(range[0], '2');
+        range[0] += '*';
+        expect(range[0], '2*');
+        expect(source[2], '2*');
       });
       test('range (range error)', () {
-        final view = builder.withType(DataType.int8).fromList([1, 2]);
-        expect(view.range(0, view.count), view);
-        expect(() => view.range(-1, view.count), throwsRangeError);
-        expect(() => view.range(0, view.count + 1), throwsRangeError);
+        final source = builder.withType(DataType.int8).fromList([1, 2]);
+        expect(source.range(0, source.count), source);
+        expect(() => source.range(-1, source.count), throwsRangeError);
+        expect(() => source.range(0, source.count + 1), throwsRangeError);
       });
       test('index', () {
-        final vector =
+        final source =
             builder.withType(DataType.string).generate(6, (i) => '$i');
-        final view = vector.index([3, 2, 2]);
-        expect(view.dataType, DataType.string);
-        expect(view.count, 3);
-        expect(compare(view.copy(), view), isTrue);
-        expect(view[0], '3');
-        expect(view[1], '2');
-        expect(view[2], '2');
-        view[1] += '*';
-        expect(view[1], '2*');
-        expect(vector[2], '2*');
+        final index = source.index([3, 2, 2]);
+        expect(index.dataType, DataType.string);
+        expect(index.count, 3);
+        expect(index.base, source);
+        expect(compare(index.copy(), index), isTrue);
+        expect(index[0], '3');
+        expect(index[1], '2');
+        expect(index[2], '2');
+        index[1] += '*';
+        expect(index[1], '2*');
+        expect(source[2], '2*');
       });
       test('index (sub index)', () {
-        final vector =
+        final source =
             builder.withType(DataType.string).generate(6, (i) => '$i');
-        final view = vector.index([3, 2, 2]).index([1]);
-        expect(view.dataType, DataType.string);
-        expect(view.count, 1);
-        expect(view[0], '2');
-        view[0] += '*';
-        expect(view[0], '2*');
-        expect(vector[2], '2*');
+        final index = source.index([3, 2, 2]).index([1]);
+        expect(index.dataType, DataType.string);
+        expect(index.count, 1);
+        expect(index.base, source);
+        expect(index[0], '2');
+        index[0] += '*';
+        expect(index[0], '2*');
+        expect(source[2], '2*');
       });
       test('index (range error)', () {
-        final view = builder.withType(DataType.int8).fromList([1, 2]);
-        expect(() => view.index([0, 1]), isNot(throwsRangeError));
-        expect(() => view.index([-1, view.count - 1]), throwsRangeError);
-        expect(() => view.index([0, view.count]), throwsRangeError);
+        final source = builder.withType(DataType.int8).fromList([1, 2]);
+        expect(() => source.index([0, 1]), isNot(throwsRangeError));
+        expect(() => source.index([-1, source.count - 1]), throwsRangeError);
+        expect(() => source.index([0, source.count]), throwsRangeError);
       });
       group('map', () {
-        final vector = builder.generate(4, (index) => index);
+        final source = builder.generate(4, (index) => index);
         test('to string', () {
-          final view = vector.map((index, value) => '$index', DataType.string);
-          expect(view.dataType, DataType.string);
-          expect(view.count, vector.count);
-          for (var i = 0; i < view.count; i++) {
-            expect(view[i], '$i');
+          final mapped = source.map((index, value) => '$index', DataType.string);
+          expect(mapped.dataType, DataType.string);
+          expect(mapped.count, source.count);
+          expect(mapped.base, source);
+          for (var i = 0; i < mapped.count; i++) {
+            expect(mapped[i], '$i');
           }
         });
         test('to int', () {
-          final view = vector.map((index, value) => index, DataType.int32);
-          expect(view.dataType, DataType.int32);
-          expect(view.count, vector.count);
-          for (var i = 0; i < view.count; i++) {
-            expect(view[i], i);
+          final mapped = source.map((index, value) => index, DataType.int32);
+          expect(mapped.dataType, DataType.int32);
+          expect(mapped.count, source.count);
+          expect(mapped.base, source);
+          for (var i = 0; i < mapped.count; i++) {
+            expect(mapped[i], i);
           }
         });
         test('to float', () {
-          final view =
-              vector.map((index, value) => index.toDouble(), DataType.float64);
-          expect(view.dataType, DataType.float64);
-          expect(view.count, vector.count);
-          for (var i = 0; i < view.count; i++) {
-            expect(view[i], i.toDouble());
+          final mapped =
+              source.map((index, value) => index.toDouble(), DataType.float64);
+          expect(mapped.dataType, DataType.float64);
+          expect(mapped.count, source.count);
+          expect(mapped.base, source);
+          for (var i = 0; i < mapped.count; i++) {
+            expect(mapped[i], i.toDouble());
           }
         });
         test('copy', () {
-          final view = vector.map((index, value) => index, DataType.int32);
-          expect(compare(view.copy(), view), isTrue);
+          final mapped = source.map((index, value) => index, DataType.int32);
+          expect(compare(mapped.copy(), mapped), isTrue);
         });
         test('readonly', () {
-          final view = vector.map((index, value) => index, DataType.int32);
-          expect(() => view.setUnchecked(0, 1), throwsUnsupportedError);
+          final mapped = source.map((index, value) => index, DataType.int32);
+          expect(() => mapped.setUnchecked(0, 1), throwsUnsupportedError);
         });
       });
       test('unmodifiable', () {
         final source = builder.withType(DataType.int8).fromList([1, 2]);
-        final vector = source.unmodifiable;
-        expect(vector.dataType, source.dataType);
-        expect(vector.count, source.count);
+        final readonly = source.unmodifiable;
+        expect(readonly.dataType, source.dataType);
+        expect(readonly.count, source.count);
+        expect(readonly.base, source);
+        expect(compare(readonly.copy(), readonly), isTrue);
         for (var i = 0; i < source.count; i++) {
-          expect(source[i], vector[i]);
-          expect(() => vector[i] = 0, throwsUnsupportedError);
+          expect(source[i], readonly[i]);
+          expect(() => readonly[i] = 0, throwsUnsupportedError);
         }
         source[1] = 3;
-        expect(vector[1], 3);
-        expect(vector.unmodifiable, vector);
+        expect(readonly[1], 3);
+        expect(readonly.unmodifiable, readonly);
       });
       test('toString', () {
         final vector = builder.withType(DataType.int8).fromList([3, 2, 1]);
