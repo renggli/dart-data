@@ -5,9 +5,6 @@ import 'package:data/type.dart';
 import '../vector.dart';
 
 class StandardVector<T> extends Vector<T> {
-  @override
-  final DataType<T> dataType;
-
   final List<T> _values;
 
   StandardVector(DataType<T> dataType, int count)
@@ -16,11 +13,17 @@ class StandardVector<T> extends Vector<T> {
   StandardVector.internal(this.dataType, this._values);
 
   @override
-  Vector<T> copy() =>
-      StandardVector.internal(dataType, dataType.copyList(_values));
+  final DataType<T> dataType;
 
   @override
   int get count => _values.length;
+
+  @override
+  Vector<T> get base => this;
+
+  @override
+  Vector<T> copy() =>
+      StandardVector.internal(dataType, dataType.copyList(_values));
 
   @override
   T getUnchecked(int index) => _values[index];

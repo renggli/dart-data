@@ -13,13 +13,16 @@ class RowVector<T> extends Vector<T> {
   RowVector(this._matrix, this._row);
 
   @override
-  Vector<T> copy() => RowVector(_matrix.copy(), _row);
-
-  @override
   DataType<T> get dataType => _matrix.dataType;
 
   @override
   int get count => _matrix.colCount;
+
+  @override
+  Matrix<T> get base => _matrix.base;
+
+  @override
+  Vector<T> copy() => RowVector(_matrix.copy(), _row);
 
   @override
   T getUnchecked(int index) => _matrix.getUnchecked(_row, index);

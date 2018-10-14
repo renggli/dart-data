@@ -5,18 +5,21 @@ import 'package:data/type.dart';
 import '../vector.dart';
 
 class KeyedVector<T> extends Vector<T> {
-  @override
-  final DataType<T> dataType;
-
-  @override
-  final int count;
-
   final Map<int, T> _values;
 
   KeyedVector(DataType<T> dataType, int count)
       : this.internal(dataType, count, <int, T>{});
 
   KeyedVector.internal(this.dataType, this.count, this._values);
+
+  @override
+  final DataType<T> dataType;
+
+  @override
+  final int count;
+
+  @override
+  Vector<T> get base => this;
 
   @override
   Vector<T> copy() => KeyedVector.internal(dataType, count, Map.of(_values));

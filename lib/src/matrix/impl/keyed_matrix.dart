@@ -6,6 +6,14 @@ import '../matrix.dart';
 
 /// Dictionary of keys based sparse matrix (DOK).
 class KeyedMatrix<T> extends Matrix<T> {
+  final Map<int, T> _values;
+
+  KeyedMatrix(DataType<T> dataType, int rowCount, int colCount)
+      : this.internal(dataType, rowCount, colCount, <int, T>{});
+
+  KeyedMatrix.internal(
+      this.dataType, this.rowCount, this.colCount, this._values);
+
   @override
   final DataType<T> dataType;
 
@@ -15,13 +23,8 @@ class KeyedMatrix<T> extends Matrix<T> {
   @override
   final int colCount;
 
-  final Map<int, T> _values;
-
-  KeyedMatrix(DataType<T> dataType, int rowCount, int colCount)
-      : this.internal(dataType, rowCount, colCount, <int, T>{});
-
-  KeyedMatrix.internal(
-      this.dataType, this.rowCount, this.colCount, this._values);
+  @override
+  Matrix<T> get base => this;
 
   @override
   Matrix<T> copy() =>

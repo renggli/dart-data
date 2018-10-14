@@ -1,5 +1,6 @@
 library data.vector.vector;
 
+import 'package:data/tensor.dart' show Tensor;
 import 'package:data/type.dart' show DataType;
 import 'package:more/printer.dart' show Printer;
 
@@ -11,7 +12,7 @@ import 'view/range_vector.dart';
 import 'view/unmodifiable_vector.dart';
 
 /// Abstract vector type.
-abstract class Vector<T> {
+abstract class Vector<T> implements Tensor<T> {
   /// Default builder for new vectors.
   static Builder<Object> get builder =>
       Builder<Object>(Format.standard, DataType.object);
@@ -19,11 +20,13 @@ abstract class Vector<T> {
   /// Unnamed default constructor.
   const Vector();
 
-  /// Returns an identical copy of this vector.
-  Vector<T> copy();
+  /// Returns the shape of this vector.
+  @override
+  List<int> get shape => [count];
 
-  /// The data type of this vector.
-  DataType<T> get dataType;
+  /// Returns a copy of this tensor.
+  @override
+  Vector<T> copy();
 
   /// The dimensionality of this vector.
   int get count;

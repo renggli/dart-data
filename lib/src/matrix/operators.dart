@@ -130,7 +130,8 @@ Matrix<T> mul<T extends num>(Matrix<T> sourceA, Matrix<T> sourceB,
   }
   final result = _targetOrBuilderOrDataType(sourceA.rowCount, sourceB.colCount,
       target, builder, dataType ?? sourceA.dataType);
-  if (identical(result, sourceA) || identical(result, sourceB)) {
+  if (identical(result.base, sourceA.base) ||
+      identical(result.base, sourceB.base)) {
     throw ArgumentError('Matrix multiplication cannot be done in-place.');
   }
   for (var r = 0; r < result.rowCount; r++) {

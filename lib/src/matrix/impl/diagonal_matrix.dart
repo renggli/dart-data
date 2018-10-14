@@ -8,6 +8,14 @@ import '../matrix.dart';
 
 /// Sparse matrix with diagonal storage (DIA).
 class DiagonalMatrix<T> extends Matrix<T> {
+  final Map<int, List<T>> _diagonals;
+
+  DiagonalMatrix(DataType<T> dataType, int rowCount, int colCount)
+      : this.internal(dataType, rowCount, colCount, <int, List<T>>{});
+
+  DiagonalMatrix.internal(
+      this.dataType, this.rowCount, this.colCount, this._diagonals);
+
   @override
   final DataType<T> dataType;
 
@@ -17,13 +25,8 @@ class DiagonalMatrix<T> extends Matrix<T> {
   @override
   final int colCount;
 
-  final Map<int, List<T>> _diagonals;
-
-  DiagonalMatrix(DataType<T> dataType, int rowCount, int colCount)
-      : this.internal(dataType, rowCount, colCount, <int, List<T>>{});
-
-  DiagonalMatrix.internal(
-      this.dataType, this.rowCount, this.colCount, this._diagonals);
+  @override
+  Matrix<T> get base => this;
 
   @override
   Matrix<T> copy() => DiagonalMatrix.internal(

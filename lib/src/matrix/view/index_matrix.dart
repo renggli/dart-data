@@ -19,10 +19,6 @@ class IndexMatrix<T> extends Matrix<T> {
   IndexMatrix.internal(this._matrix, this._rowIndexes, this._colIndexes);
 
   @override
-  Matrix<T> copy() =>
-      IndexMatrix.internal(_matrix.copy(), _rowIndexes, _colIndexes);
-
-  @override
   DataType<T> get dataType => _matrix.dataType;
 
   @override
@@ -30,6 +26,13 @@ class IndexMatrix<T> extends Matrix<T> {
 
   @override
   int get colCount => _colIndexes.length;
+
+  @override
+  Matrix<T> get base => _matrix.base;
+
+  @override
+  Matrix<T> copy() =>
+      IndexMatrix.internal(_matrix.copy(), _rowIndexes, _colIndexes);
 
   @override
   T getUnchecked(int row, int col) =>

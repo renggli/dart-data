@@ -15,13 +15,16 @@ class RangeVector<T> extends Vector<T> {
   RangeVector.internal(this._vector, this._start, this.count);
 
   @override
-  Vector<T> copy() => RangeVector.internal(_vector.copy(), _start, count);
-
-  @override
   DataType<T> get dataType => _vector.dataType;
 
   @override
   final int count;
+
+  @override
+  Vector<T> get base => _vector.base;
+
+  @override
+  Vector<T> copy() => RangeVector.internal(_vector.copy(), _start, count);
 
   @override
   T getUnchecked(int index) => _vector.getUnchecked(_start + index);

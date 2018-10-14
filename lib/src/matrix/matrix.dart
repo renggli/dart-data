@@ -1,5 +1,6 @@
 library data.matrix.matrix;
 
+import 'package:data/tensor.dart' show Tensor;
 import 'package:data/type.dart' show DataType;
 import 'package:data/vector.dart' show Vector;
 import 'package:more/collection.dart' show IntegerRange;
@@ -17,7 +18,7 @@ import 'view/transposed_matrix.dart';
 import 'view/unmodifiable_matrix.dart';
 
 /// Abstract matrix type.
-abstract class Matrix<T> {
+abstract class Matrix<T> implements Tensor<T> {
   /// Default builder for new matrices.
   static Builder<Object> get builder =>
       Builder<Object>(Format.rowMajor, DataType.object);
@@ -25,11 +26,13 @@ abstract class Matrix<T> {
   /// Unnamed default constructor.
   const Matrix();
 
-  /// Returns an identical copy of this matrix.
-  Matrix<T> copy();
+  /// Returns the shape of this matrix.
+  @override
+  List<int> get shape => [rowCount, colCount];
 
-  /// The data type of this matrix.
-  DataType<T> get dataType;
+  /// Returns a copy of this matrix.
+  @override
+  Matrix<T> copy();
 
   /// Returns the value at the provided [row] and [col] index. Throws a
   /// [RangeError] if [row] or [col] are outside of bounds.

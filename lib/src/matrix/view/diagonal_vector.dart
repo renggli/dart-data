@@ -25,13 +25,16 @@ class DiagonalVector<T> extends Vector<T> {
   DiagonalVector.internal(this._matrix, this._offset, this._count);
 
   @override
-  Vector<T> copy() => DiagonalVector.internal(_matrix.copy(), _offset, _count);
-
-  @override
   DataType<T> get dataType => _matrix.dataType;
 
   @override
   int get count => _count;
+
+  @override
+  Matrix<T> get base => _matrix.base;
+
+  @override
+  Vector<T> copy() => DiagonalVector.internal(_matrix.copy(), _offset, _count);
 
   @override
   T getUnchecked(int index) {

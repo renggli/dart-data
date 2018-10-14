@@ -15,9 +15,6 @@ class MappedMatrix<S, T> extends Matrix<T> with UnmodifiableMatrixMixin<T> {
   MappedMatrix(this._matrix, this._callback, this.dataType);
 
   @override
-  Matrix<T> copy() => MappedMatrix(_matrix.copy(), _callback, dataType);
-
-  @override
   final DataType<T> dataType;
 
   @override
@@ -25,6 +22,12 @@ class MappedMatrix<S, T> extends Matrix<T> with UnmodifiableMatrixMixin<T> {
 
   @override
   int get colCount => _matrix.colCount;
+
+  @override
+  Matrix<S> get base => _matrix.base;
+
+  @override
+  Matrix<T> copy() => MappedMatrix(_matrix.copy(), _callback, dataType);
 
   @override
   T getUnchecked(int row, int col) =>

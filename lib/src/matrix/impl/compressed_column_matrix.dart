@@ -8,15 +8,6 @@ import '../matrix.dart';
 
 /// Compressed sparse column matrix (CSC).
 class CompressedColumnMatrix<T> extends Matrix<T> {
-  @override
-  final DataType<T> dataType;
-
-  @override
-  final int rowCount;
-
-  @override
-  final int colCount;
-
   List<int> _colExtends;
   List<int> _rowIndexes;
   List<T> _values;
@@ -34,6 +25,18 @@ class CompressedColumnMatrix<T> extends Matrix<T> {
 
   CompressedColumnMatrix.internal(this.dataType, this.rowCount, this.colCount,
       this._colExtends, this._rowIndexes, this._values, this._length);
+
+  @override
+  final DataType<T> dataType;
+
+  @override
+  final int rowCount;
+
+  @override
+  final int colCount;
+
+  @override
+  Matrix<T> get base => this;
 
   @override
   Matrix<T> copy() => CompressedColumnMatrix.internal(

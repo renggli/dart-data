@@ -8,15 +8,6 @@ import '../matrix.dart';
 
 /// Compressed sparse row matrix (CSR).
 class CompressedRowMatrix<T> extends Matrix<T> {
-  @override
-  final DataType<T> dataType;
-
-  @override
-  final int rowCount;
-
-  @override
-  final int colCount;
-
   List<int> _rowExtends;
   List<int> _colIndexes;
   List<T> _values;
@@ -34,6 +25,18 @@ class CompressedRowMatrix<T> extends Matrix<T> {
 
   CompressedRowMatrix.internal(this.dataType, this.rowCount, this.colCount,
       this._rowExtends, this._colIndexes, this._values, this._length);
+
+  @override
+  final DataType<T> dataType;
+
+  @override
+  final int rowCount;
+
+  @override
+  final int colCount;
+
+  @override
+  Matrix<T> get base => this;
 
   @override
   Matrix<T> copy() => CompressedRowMatrix.internal(

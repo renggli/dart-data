@@ -7,12 +7,6 @@ import '../../shared/lists.dart';
 import '../vector.dart';
 
 class ListVector<T> extends Vector<T> {
-  @override
-  final DataType<T> dataType;
-
-  @override
-  final int count;
-
   List<int> _indexes;
   List<T> _values;
   int _length;
@@ -23,6 +17,15 @@ class ListVector<T> extends Vector<T> {
 
   ListVector.internal(
       this.dataType, this.count, this._indexes, this._values, this._length);
+
+  @override
+  final DataType<T> dataType;
+
+  @override
+  final int count;
+
+  @override
+  Vector<T> get base => this;
 
   @override
   Vector<T> copy() => ListVector.internal(dataType, count,

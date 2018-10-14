@@ -8,15 +8,6 @@ import '../matrix.dart';
 
 // A sparse matrix in coordinate format (COO).
 class CoordinateListMatrix<T> extends Matrix<T> {
-  @override
-  final DataType<T> dataType;
-
-  @override
-  final int rowCount;
-
-  @override
-  final int colCount;
-
   List<int> _rows;
   List<int> _cols;
   List<T> _values;
@@ -34,6 +25,18 @@ class CoordinateListMatrix<T> extends Matrix<T> {
 
   CoordinateListMatrix.internal(this.dataType, this.rowCount, this.colCount,
       this._rows, this._cols, this._values, this._length);
+
+  @override
+  final DataType<T> dataType;
+
+  @override
+  final int rowCount;
+
+  @override
+  final int colCount;
+
+  @override
+  Matrix<T> get base => this;
 
   @override
   Matrix<T> copy() => CoordinateListMatrix.internal(

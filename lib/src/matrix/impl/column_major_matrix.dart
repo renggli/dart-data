@@ -5,6 +5,15 @@ import 'package:data/type.dart';
 import '../matrix.dart';
 
 class ColumnMajorMatrix<T> extends Matrix<T> {
+  final List<T> _values;
+
+  ColumnMajorMatrix(DataType<T> dataType, int rowCount, int colCount)
+      : this.internal(dataType, rowCount, colCount,
+            dataType.newList(rowCount * colCount));
+
+  ColumnMajorMatrix.internal(
+      this.dataType, this.rowCount, this.colCount, this._values);
+
   @override
   final DataType<T> dataType;
 
@@ -14,14 +23,8 @@ class ColumnMajorMatrix<T> extends Matrix<T> {
   @override
   final int colCount;
 
-  final List<T> _values;
-
-  ColumnMajorMatrix(DataType<T> dataType, int rowCount, int colCount)
-      : this.internal(dataType, rowCount, colCount,
-            dataType.newList(rowCount * colCount));
-
-  ColumnMajorMatrix.internal(
-      this.dataType, this.rowCount, this.colCount, this._values);
+  @override
+  Matrix<T> get base => this;
 
   @override
   Matrix<T> copy() => ColumnMajorMatrix.internal(

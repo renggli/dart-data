@@ -15,13 +15,16 @@ class MappedVector<S, T> extends Vector<T> with UnmodifiableVectorMixin<T> {
   MappedVector(this._vector, this._callback, this.dataType);
 
   @override
-  Vector<T> copy() => MappedVector(_vector.copy(), _callback, dataType);
-
-  @override
   final DataType<T> dataType;
 
   @override
   int get count => _vector.count;
+
+  @override
+  Vector<T> get base => _vector.base;
+
+  @override
+  Vector<T> copy() => MappedVector(_vector.copy(), _callback, dataType);
 
   @override
   T getUnchecked(int index) => _callback(index, _vector.getUnchecked(index));

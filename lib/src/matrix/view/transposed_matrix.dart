@@ -11,9 +11,6 @@ class TransposedMatrix<T> extends Matrix<T> {
   TransposedMatrix(this._matrix);
 
   @override
-  Matrix<T> copy() => TransposedMatrix(_matrix.copy());
-
-  @override
   DataType<T> get dataType => _matrix.dataType;
 
   @override
@@ -21,6 +18,12 @@ class TransposedMatrix<T> extends Matrix<T> {
 
   @override
   int get colCount => _matrix.rowCount;
+
+  @override
+  Matrix<T> get base => _matrix.base;
+
+  @override
+  Matrix<T> copy() => TransposedMatrix(_matrix.copy());
 
   @override
   T getUnchecked(int row, int col) => _matrix.getUnchecked(col, row);

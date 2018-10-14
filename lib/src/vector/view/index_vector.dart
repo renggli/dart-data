@@ -16,13 +16,16 @@ class IndexVector<T> extends Vector<T> {
   IndexVector.internal(this._vector, this._indexes);
 
   @override
-  Vector<T> copy() => IndexVector.internal(_vector.copy(), _indexes);
-
-  @override
   DataType<T> get dataType => _vector.dataType;
 
   @override
   int get count => _indexes.length;
+
+  @override
+  Vector<T> get base => _vector.base;
+
+  @override
+  Vector<T> copy() => IndexVector.internal(_vector.copy(), _indexes);
 
   @override
   T getUnchecked(int index) => _vector.getUnchecked(_indexes[index]);

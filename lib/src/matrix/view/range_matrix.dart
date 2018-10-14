@@ -19,10 +19,6 @@ class RangeMatrix<T> extends Matrix<T> {
       this._colStart, this.colCount);
 
   @override
-  Matrix<T> copy() => RangeMatrix.internal(
-      _matrix.copy(), _rowStart, rowCount, _colStart, colCount);
-
-  @override
   DataType<T> get dataType => _matrix.dataType;
 
   @override
@@ -30,6 +26,13 @@ class RangeMatrix<T> extends Matrix<T> {
 
   @override
   final int colCount;
+
+  @override
+  Matrix<T> get base => _matrix.base;
+
+  @override
+  Matrix<T> copy() => RangeMatrix.internal(
+      _matrix.copy(), _rowStart, rowCount, _colStart, colCount);
 
   @override
   T getUnchecked(int row, int col) =>

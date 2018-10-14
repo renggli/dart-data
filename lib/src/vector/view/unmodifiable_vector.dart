@@ -12,13 +12,16 @@ class UnmodifiableVector<T> extends Vector<T> with UnmodifiableVectorMixin<T> {
   UnmodifiableVector(this._vector);
 
   @override
-  Vector<T> copy() => UnmodifiableVector(_vector.copy());
-
-  @override
   DataType<T> get dataType => _vector.dataType;
 
   @override
   int get count => _vector.count;
+
+  @override
+  Vector<T> get base => _vector.base;
+
+  @override
+  Vector<T> copy() => UnmodifiableVector(_vector.copy());
 
   @override
   T getUnchecked(int index) => _vector.getUnchecked(index);
