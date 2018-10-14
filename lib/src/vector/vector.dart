@@ -12,13 +12,13 @@ import 'view/range_vector.dart';
 import 'view/unmodifiable_vector.dart';
 
 /// Abstract vector type.
-abstract class Vector<T> implements Tensor<T> {
+abstract class Vector<T> extends Tensor<T> {
   /// Default builder for new vectors.
   static Builder<Object> get builder =>
       Builder<Object>(Format.standard, DataType.object);
 
   /// Unnamed default constructor.
-  const Vector();
+  Vector();
 
   /// Returns the shape of this vector.
   @override
@@ -91,6 +91,7 @@ abstract class Vector<T> implements Tensor<T> {
   Vector<T> get unmodifiable => UnmodifiableVector<T>(this);
 
   /// Returns a human readable representation of the vector.
+  @override
   String format([Printer printer]) {
     final formatter = printer ?? dataType.printer;
     final buffer = StringBuffer();
@@ -102,8 +103,4 @@ abstract class Vector<T> implements Tensor<T> {
     }
     return buffer.toString();
   }
-
-  /// Returns a string representation of this vector.
-  @override
-  String toString() => '$runtimeType[$count]: ${format()}';
 }

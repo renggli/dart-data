@@ -18,13 +18,13 @@ import 'view/transposed_matrix.dart';
 import 'view/unmodifiable_matrix.dart';
 
 /// Abstract matrix type.
-abstract class Matrix<T> implements Tensor<T> {
+abstract class Matrix<T> extends Tensor<T> {
   /// Default builder for new matrices.
   static Builder<Object> get builder =>
       Builder<Object>(Format.rowMajor, DataType.object);
 
   /// Unnamed default constructor.
-  const Matrix();
+  Matrix();
 
   /// Returns the shape of this matrix.
   @override
@@ -277,6 +277,7 @@ abstract class Matrix<T> implements Tensor<T> {
   }
 
   /// Returns a human readable representation of the matrix.
+  @override
   String format([Printer printer]) {
     final formatter = printer ?? dataType.printer;
     final buffer = StringBuffer();
@@ -293,8 +294,4 @@ abstract class Matrix<T> implements Tensor<T> {
     }
     return buffer.toString();
   }
-
-  /// Returns a string representation of this matrix.
-  @override
-  String toString() => '$runtimeType[$rowCount, $colCount]: ${format()}';
 }
