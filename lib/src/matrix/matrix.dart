@@ -34,7 +34,15 @@ abstract class Matrix<T> implements Tensor<T> {
   @override
   Matrix<T> copy();
 
-  /// Returns the value at the provided [row] and [col] index. Throws a
+  /// Returns a mutable row vector of this matrix. Convenience method to read
+  /// matrix values using row and column indexes: `matrix[row][col]`.
+  @override
+  Vector<T> operator [](int row) {
+    RangeError.checkValidIndex(row, this, 'row', rowCount);
+    return rowUnchecked(row);
+  }
+
+  /// Returns the scalar at the provided [row] and [col] index. Throws a
   /// [RangeError] if [row] or [col] are outside of bounds.
   T get(int row, int col) {
     RangeError.checkValidIndex(row, this, 'row', rowCount);
@@ -42,11 +50,11 @@ abstract class Matrix<T> implements Tensor<T> {
     return getUnchecked(row, col);
   }
 
-  /// Returns the value at the provided [row] and [col] index. The behavior is
+  /// Returns the scalar at the provided [row] and [col] index. The behavior is
   /// undefined if [row] or [col] are outside of bounds.
   T getUnchecked(int row, int col);
 
-  /// Sets the value at the provided [row] and [col] index to [value]. Throws a
+  /// Sets the scalar at the provided [row] and [col] index to [value]. Throws a
   /// [RangeError] if [row] or [col] are outside of bounds.
   void set(int row, int col, T value) {
     RangeError.checkValidIndex(row, this, 'row', rowCount);
@@ -54,7 +62,7 @@ abstract class Matrix<T> implements Tensor<T> {
     setUnchecked(row, col, value);
   }
 
-  /// Sets the value at the provided [row] and [col] index to [value]. The
+  /// Sets the scalar at the provided [row] and [col] index to [value]. The
   /// behavior is undefined if [row] or [col] are outside of bounds.
   void setUnchecked(int row, int col, T value);
 

@@ -31,23 +31,24 @@ abstract class Vector<T> implements Tensor<T> {
   /// The dimensionality of this vector.
   int get count;
 
-  /// Returns the value at the provided [index].
+  /// Returns the scalar at the provided [index].
+  @override
   T operator [](int index) {
     RangeError.checkValidIndex(index, this, 'index', count);
     return getUnchecked(index);
   }
 
-  /// Returns the value at the provided [index]. The behavior is undefined if
+  /// Returns the scalar at the provided [index]. The behavior is undefined if
   /// [index] is outside of bounds.
   T getUnchecked(int index);
 
-  /// Sets the value at the provided [index] to [value].
+  /// Sets the scalar at the provided [index] to [value].
   void operator []=(int index, T value) {
     RangeError.checkValidIndex(index, this, 'index', count);
     setUnchecked(index, value);
   }
 
-  /// Sets the value at the provided [index] to [value]. The behavior is
+  /// Sets the scalar at the provided [index] to [value]. The behavior is
   /// undefined if [index] is outside of bounds.
   void setUnchecked(int index, T value);
 

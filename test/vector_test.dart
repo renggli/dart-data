@@ -225,7 +225,8 @@ void vectorTest(String name, Builder builder) {
       group('map', () {
         final source = builder.generate(4, (index) => index);
         test('to string', () {
-          final mapped = source.map((index, value) => '$index', DataType.string);
+          final mapped =
+              source.map((index, value) => '$index', DataType.string);
           expect(mapped.dataType, DataType.string);
           expect(mapped.count, source.count);
           expect(mapped.base, source);

@@ -371,6 +371,23 @@ void matrixTest(String name, Builder builder) {
           }
         }
       });
+      test('operator (read)', () {
+        expect(matrix[0][0], 1);
+        expect(matrix[0][1], 2);
+        expect(matrix[0][2], 3);
+        expect(matrix[1][0], 4);
+        expect(matrix[1][1], 5);
+        expect(matrix[1][2], 6);
+      });
+      test('operator (write)', () {
+        final copy = builder(matrix.rowCount, matrix.colCount);
+        for (var r = 0; r < matrix.rowCount; r++) {
+          for (var c = 0; c < matrix.colCount; c++) {
+            copy[r][c] = matrix.get(r, c);
+          }
+        }
+        expect(compare(copy, matrix), isTrue);
+      });
       test('read (range error)', () {
         expect(() => matrix.get(-1, 0), throwsRangeError);
         expect(() => matrix.get(0, -1), throwsRangeError);
