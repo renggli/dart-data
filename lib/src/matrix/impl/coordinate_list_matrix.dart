@@ -6,7 +6,7 @@ import '../../shared/config.dart';
 import '../../shared/lists.dart';
 import '../matrix.dart';
 
-// A sparse matrix in coordinate format (COO).
+// Sparse matrix in coordinate format.
 class CoordinateListMatrix<T> extends Matrix<T> {
   List<int> _rows;
   List<int> _cols;

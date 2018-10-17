@@ -7,7 +7,7 @@ import '../vector.dart';
 
 typedef T VectorTransformation<S, T>(int index, S value);
 
-/// A lazy transformed vector.
+/// Read-only transformed vector.
 class MappedVector<S, T> extends Vector<T> with UnmodifiableVectorMixin<T> {
   final Vector<S> _vector;
   final VectorTransformation<S, T> _callback;

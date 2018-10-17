@@ -5,7 +5,7 @@ import 'package:data/src/type/type.dart';
 import '../../shared/config.dart';
 import '../matrix.dart';
 
-/// A mutable indexed view of the rows and columns of a matrix.
+/// Mutable indexed view of the rows and columns of a matrix.
 class IndexMatrix<T> extends Matrix<T> {
   final Matrix<T> _matrix;
   final List<int> _rowIndexes;

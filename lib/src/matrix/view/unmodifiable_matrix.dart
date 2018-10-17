@@ -7,7 +7,7 @@ import '../mixins/unmodifiable_matrix.dart';
 
 List<int> foo;
 
-/// An unmodifiable matrix.
+/// Read-only view of a mutable matrix.
 class UnmodifiableMatrix<T> extends Matrix<T> with UnmodifiableMatrixMixin<T> {
   final Matrix<T> _matrix;
 
@@ -30,7 +30,4 @@ class UnmodifiableMatrix<T> extends Matrix<T> with UnmodifiableMatrixMixin<T> {
 
   @override
   T getUnchecked(int row, int col) => _matrix.getUnchecked(row, col);
-
-  @override
-  Matrix<T> get unmodifiable => this;
 }

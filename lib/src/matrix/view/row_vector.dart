@@ -5,7 +5,7 @@ import 'package:data/vector.dart';
 
 import '../matrix.dart';
 
-/// A mutable row vector of a matrix.
+/// Mutable row vector of a matrix.
 class RowVector<T> extends Vector<T> {
   final Matrix<T> _matrix;
   final int _row;

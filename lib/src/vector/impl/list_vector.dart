@@ -6,6 +6,7 @@ import '../../shared/config.dart';
 import '../../shared/lists.dart';
 import '../vector.dart';
 
+/// Sparse compressed vector.
 class ListVector<T> extends Vector<T> {
   List<int> _indexes;
   List<T> _values;

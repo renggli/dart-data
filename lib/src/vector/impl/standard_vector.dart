@@ -4,6 +4,7 @@ import 'package:data/type.dart';
 
 import '../vector.dart';
 
+/// Standard vector.
 class StandardVector<T> extends Vector<T> {
   final List<T> _values;
 

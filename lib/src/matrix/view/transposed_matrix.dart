@@ -4,7 +4,7 @@ import 'package:data/src/type/type.dart';
 
 import '../matrix.dart';
 
-/// A mutable transposed view of a matrix.
+/// Mutable transposed view of a matrix.
 class TransposedMatrix<T> extends Matrix<T> {
   final Matrix<T> _matrix;
 

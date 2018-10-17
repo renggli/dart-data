@@ -5,7 +5,7 @@ import 'package:data/src/type/type.dart';
 import '../mixins/unmodifiable_vector.dart';
 import '../vector.dart';
 
-/// An unmodifiable vector.
+/// Read-only view of a mutable vector.
 class UnmodifiableVector<T> extends Vector<T> with UnmodifiableVectorMixin<T> {
   final Vector<T> _vector;
 
@@ -25,7 +25,4 @@ class UnmodifiableVector<T> extends Vector<T> with UnmodifiableVectorMixin<T> {
 
   @override
   T getUnchecked(int index) => _vector.getUnchecked(index);
-
-  @override
-  Vector<T> get unmodifiable => this;
 }

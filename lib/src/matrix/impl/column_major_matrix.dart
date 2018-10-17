@@ -4,6 +4,7 @@ import 'package:data/type.dart';
 
 import '../matrix.dart';
 
+/// Column major matrix.
 class ColumnMajorMatrix<T> extends Matrix<T> {
   final List<T> _values;
 

@@ -6,7 +6,7 @@ import '../../shared/config.dart';
 import '../../shared/lists.dart';
 import '../matrix.dart';
 
-/// Compressed sparse column matrix (CSC).
+/// Sparse compressed column matrix.
 class CompressedColumnMatrix<T> extends Matrix<T> {
   List<int> _colExtends;
   List<int> _rowIndexes;

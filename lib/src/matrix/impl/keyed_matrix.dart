@@ -4,7 +4,7 @@ import 'package:data/src/type/type.dart';
 
 import '../matrix.dart';
 
-/// Dictionary of keys based sparse matrix (DOK).
+/// Sparse keyed matrix.
 class KeyedMatrix<T> extends Matrix<T> {
   final Map<int, T> _values;
 

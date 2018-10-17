@@ -6,7 +6,7 @@ import 'package:data/src/type/type.dart';
 
 import '../matrix.dart';
 
-/// Sparse matrix with diagonal storage (DIA).
+/// Sparse matrix with diagonal storage.
 class DiagonalMatrix<T> extends Matrix<T> {
   final Map<int, List<T>> _diagonals;
 

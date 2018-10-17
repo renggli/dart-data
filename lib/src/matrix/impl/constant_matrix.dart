@@ -5,6 +5,7 @@ import 'package:data/type.dart';
 import '../matrix.dart';
 import '../mixins/unmodifiable_matrix.dart';
 
+/// Read-only matrix with a constant value.
 class ConstantMatrix<T> extends Matrix<T> with UnmodifiableMatrixMixin<T> {
   final T _value;
 

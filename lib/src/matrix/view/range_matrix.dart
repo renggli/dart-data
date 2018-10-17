@@ -4,7 +4,7 @@ import 'package:data/src/type/type.dart';
 
 import '../matrix.dart';
 
-/// A mutable range of the rows and columns of a matrix.
+/// Mutable range of the rows and columns of a matrix.
 class RangeMatrix<T> extends Matrix<T> {
   final Matrix<T> _matrix;
   final int _rowStart;

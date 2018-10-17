@@ -7,7 +7,7 @@ import '../mixins/unmodifiable_matrix.dart';
 
 typedef T MatrixTransformation<S, T>(int row, int col, S value);
 
-/// A lazy transformed matrix.
+/// Read-only transformed matrix.
 class MappedMatrix<S, T> extends Matrix<T> with UnmodifiableMatrixMixin<T> {
   final Matrix<S> _matrix;
   final MatrixTransformation<S, T> _callback;

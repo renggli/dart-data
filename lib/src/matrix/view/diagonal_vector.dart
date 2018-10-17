@@ -7,7 +7,7 @@ import 'package:data/vector.dart';
 
 import '../matrix.dart';
 
-/// A mutable diagonal vector of a matrix.
+/// Mutable diagonal vector of a matrix.
 class DiagonalVector<T> extends Vector<T> {
   final Matrix<T> _matrix;
   final int _offset;

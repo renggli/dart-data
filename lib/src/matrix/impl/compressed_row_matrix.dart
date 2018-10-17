@@ -6,7 +6,7 @@ import '../../shared/config.dart';
 import '../../shared/lists.dart';
 import '../matrix.dart';
 
-/// Compressed sparse row matrix (CSR).
+/// Sparse compressed row matrix.
 class CompressedRowMatrix<T> extends Matrix<T> {
   List<int> _rowExtends;
   List<int> _colIndexes;
