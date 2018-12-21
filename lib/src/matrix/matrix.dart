@@ -278,18 +278,37 @@ abstract class Matrix<T> extends Tensor<T> {
 
   /// Returns a human readable representation of the matrix.
   @override
-  String format([Printer printer]) {
-    final formatter = printer ?? dataType.printer;
+  String format({
+    Printer valuePrinter,
+    bool limit = true,
+    int leadingItems = 3,
+    int trailingItems = 3,
+    String horizontalSeparator = ' ',
+    String verticalSeparator = '\n',
+    String horizontalEllipses = '\u2026',
+    String verticalEllipses = '\u22ee',
+    String diagonalEllipses = '\u22f1',
+  }) {
     final buffer = StringBuffer();
     for (var r = 0; r < rowCount; r++) {
       if (r > 0) {
-        buffer.writeln();
+        buffer.write(verticalSeparator);
       }
-      for (var c = 0; c < colCount; c++) {
-        if (c > 0) {
-          buffer.write(' ');
-        }
-        buffer.write(formatter(getUnchecked(r, c)));
+      if (limit && leadingItems <= r && r < rowCount - trailingItems) {
+        buffer.write(verticalEllipses);
+        r = rowCount - trailingItems - 1;
+      } else {
+        buffer.write(rowUnchecked(r).format(
+          valuePrinter: valuePrinter,
+          limit: limit,
+          leadingItems: leadingItems,
+          trailingItems: trailingItems,
+          horizontalSeparator: horizontalSeparator,
+          verticalSeparator: verticalSeparator,
+          horizontalEllipses: horizontalEllipses,
+          verticalEllipses: verticalEllipses,
+          diagonalEllipses: diagonalEllipses,
+        ));
       }
     }
     return buffer.toString();

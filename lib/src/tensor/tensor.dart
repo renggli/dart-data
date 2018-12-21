@@ -21,7 +21,17 @@ abstract class Tensor<T> {
   Object operator [](int index);
 
   /// Returns the human readable representation of this tensor.
-  String format([Printer printer]);
+  String format({
+    Printer valuePrinter,
+    bool limit = true,
+    int leadingItems = 3,
+    int trailingItems = 3,
+    String horizontalSeparator = ' ',
+    String verticalSeparator = '\n',
+    String horizontalEllipses = '\u2026',
+    String verticalEllipses = '\u22ee',
+    String diagonalEllipses = '\u22f1',
+  });
 
   /// Returns the string representation of this tensor.
   @override

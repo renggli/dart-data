@@ -92,14 +92,29 @@ abstract class Vector<T> extends Tensor<T> {
 
   /// Returns a human readable representation of the vector.
   @override
-  String format([Printer printer]) {
-    final formatter = printer ?? dataType.printer;
+  String format({
+    Printer valuePrinter,
+    bool limit = true,
+    int leadingItems = 3,
+    int trailingItems = 3,
+    String horizontalSeparator = ' ',
+    String verticalSeparator = '\n',
+    String horizontalEllipses = '\u2026',
+    String verticalEllipses = '\u22ee',
+    String diagonalEllipses = '\u22f1',
+  }) {
     final buffer = StringBuffer();
+    final printer = valuePrinter ?? dataType.printer;
     for (var i = 0; i < count; i++) {
       if (i > 0) {
-        buffer.write(' ');
+        buffer.write(horizontalSeparator);
       }
-      buffer.write(formatter(getUnchecked(i)));
+      if (limit && leadingItems <= i && i < count - trailingItems) {
+        buffer.write(horizontalEllipses);
+        i = count - trailingItems - 1;
+      } else {
+        buffer.write(printer(getUnchecked(i)));
+      }
     }
     return buffer.toString();
   }
