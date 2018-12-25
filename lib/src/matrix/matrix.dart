@@ -129,7 +129,7 @@ abstract class Matrix<T> extends Tensor<T> {
 
   /// Returns a mutable view onto the row range. Throws a [RangeError], if
   /// [rowStart] or [rowEnd] are out of bounds.
-  Matrix<T> rowRange(int rowStart, int rowEnd) =>
+  Matrix<T> rowRange(int rowStart, [int rowEnd]) =>
       range(rowStart, rowEnd, 0, colCount);
 
   /// Returns a mutable view onto the row range. The behavior is undefined, if
@@ -139,7 +139,7 @@ abstract class Matrix<T> extends Tensor<T> {
 
   /// Returns a mutable view onto the row range. Throws a [RangeError], if
   /// [colStart] or [colEnd] are out of bounds.
-  Matrix<T> colRange(int colStart, int colEnd) =>
+  Matrix<T> colRange(int colStart, [int colEnd]) =>
       range(0, rowCount, colStart, colEnd);
 
   /// Returns a mutable view onto the row range. The behavior is undefed, if
@@ -150,9 +150,9 @@ abstract class Matrix<T> extends Tensor<T> {
   /// Returns a mutable view onto the row and column ranges. Throws a
   /// [RangeError], if any of the ranges are out of bounds.
   Matrix<T> range(int rowStart, int rowEnd, int colStart, int colEnd) {
-    RangeError.checkValidRange(
+    rowEnd = RangeError.checkValidRange(
         rowStart, rowEnd, rowCount, 'rowStart', 'rowEnd');
-    RangeError.checkValidRange(
+    colEnd = RangeError.checkValidRange(
         colStart, colEnd, colCount, 'colStart', 'colEnd');
     if (rowStart == 0 &&
         rowEnd == rowCount &&

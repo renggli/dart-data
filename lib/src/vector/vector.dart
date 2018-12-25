@@ -24,7 +24,7 @@ abstract class Vector<T> extends Tensor<T> {
   @override
   List<int> get shape => [count];
 
-  /// Returns a copy of this tensor.
+  /// Returns a copy of this vector.
   @override
   Vector<T> copy();
 
@@ -54,8 +54,8 @@ abstract class Vector<T> extends Tensor<T> {
 
   /// Returns a mutable view onto a vector range. Throws a [RangeError], if
   /// the index is out of bounds.
-  Vector<T> range(int start, int end) {
-    RangeError.checkValidRange(start, end, count, 'start', 'end');
+  Vector<T> range(int start, [int end]) {
+    end = RangeError.checkValidRange(start, end, count, 'start', 'end');
     if (start == 0 && end == count) {
       return this;
     } else {
