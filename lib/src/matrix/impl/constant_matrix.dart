@@ -21,9 +21,6 @@ class ConstantMatrix<T> extends Matrix<T> with UnmodifiableMatrixMixin<T> {
   final int colCount;
 
   @override
-  Matrix<T> get base => this;
-
-  @override
   Matrix<T> copy() => this;
 
   @override

@@ -20,9 +20,6 @@ class StandardVector<T> extends Vector<T> {
   int get count => _values.length;
 
   @override
-  Vector<T> get base => this;
-
-  @override
   Vector<T> copy() =>
       StandardVector.internal(dataType, dataType.copyList(_values));
 

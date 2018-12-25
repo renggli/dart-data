@@ -1,5 +1,6 @@
 library data.vector.view.range_vector;
 
+import 'package:data/tensor.dart';
 import 'package:data/type.dart';
 
 import '../vector.dart';
@@ -21,7 +22,7 @@ class RangeVector<T> extends Vector<T> {
   final int count;
 
   @override
-  Vector<T> get base => _vector.base;
+  List<Tensor> get storage => _vector.storage;
 
   @override
   Vector<T> copy() => RangeVector.internal(_vector.copy(), _start, count);

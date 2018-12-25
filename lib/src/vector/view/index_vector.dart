@@ -1,5 +1,6 @@
 library data.vector.view.index_vector;
 
+import 'package:data/tensor.dart';
 import 'package:data/type.dart';
 
 import '../../shared/config.dart';
@@ -22,7 +23,7 @@ class IndexVector<T> extends Vector<T> {
   int get count => _indexes.length;
 
   @override
-  Vector<T> get base => _vector.base;
+  List<Tensor> get storage => _vector.storage;
 
   @override
   Vector<T> copy() => IndexVector.internal(_vector.copy(), _indexes);

@@ -18,9 +18,6 @@ class ConstantVector<T> extends Vector<T> with UnmodifiableVectorMixin<T> {
   final int count;
 
   @override
-  Vector<T> get base => this;
-
-  @override
   Vector<T> copy() => this;
 
   @override

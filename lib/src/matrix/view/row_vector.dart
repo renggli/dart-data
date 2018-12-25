@@ -1,5 +1,6 @@
 library data.matrix.view.row_vector;
 
+import 'package:data/tensor.dart';
 import 'package:data/type.dart';
 import 'package:data/vector.dart';
 
@@ -19,7 +20,7 @@ class RowVector<T> extends Vector<T> {
   int get count => _matrix.colCount;
 
   @override
-  Matrix<T> get base => _matrix.base;
+  List<Tensor> get storage => _matrix.storage;
 
   @override
   Vector<T> copy() => RowVector(_matrix.copy(), _row);

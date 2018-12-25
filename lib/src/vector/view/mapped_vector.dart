@@ -1,6 +1,7 @@
 library data.matrix.view.mapped_matrix;
 
-import 'package:data/src/type/type.dart';
+import 'package:data/tensor.dart';
+import 'package:data/type.dart';
 
 import '../mixins/unmodifiable_vector.dart';
 import '../vector.dart';
@@ -21,7 +22,7 @@ class MappedVector<S, T> extends Vector<T> with UnmodifiableVectorMixin<T> {
   int get count => _vector.count;
 
   @override
-  Vector<S> get base => _vector.base;
+  List<Tensor> get storage => _vector.storage;
 
   @override
   Vector<T> copy() => MappedVector(_vector.copy(), _callback, dataType);

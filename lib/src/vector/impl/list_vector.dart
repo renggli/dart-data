@@ -26,9 +26,6 @@ class ListVector<T> extends Vector<T> {
   final int count;
 
   @override
-  Vector<T> get base => this;
-
-  @override
   Vector<T> copy() => ListVector.internal(dataType, count,
       indexDataType.copyList(_indexes), dataType.copyList(_values), _length);
 

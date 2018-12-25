@@ -2,6 +2,7 @@ library data.matrix.view.diagonal_vector;
 
 import 'dart:math' as math;
 
+import 'package:data/tensor.dart';
 import 'package:data/type.dart';
 import 'package:data/vector.dart';
 
@@ -31,7 +32,7 @@ class DiagonalVector<T> extends Vector<T> {
   int get count => _count;
 
   @override
-  Matrix<T> get base => _matrix.base;
+  List<Tensor> get storage => _matrix.storage;
 
   @override
   Vector<T> copy() => DiagonalVector.internal(_matrix.copy(), _offset, _count);

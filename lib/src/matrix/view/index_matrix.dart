@@ -1,6 +1,7 @@
 library data.matrix.view.index_matrix;
 
-import 'package:data/src/type/type.dart';
+import 'package:data/tensor.dart';
+import 'package:data/type.dart';
 
 import '../../shared/config.dart';
 import '../matrix.dart';
@@ -28,7 +29,7 @@ class IndexMatrix<T> extends Matrix<T> {
   int get colCount => _colIndexes.length;
 
   @override
-  Matrix<T> get base => _matrix.base;
+  List<Tensor> get storage => _matrix.storage;
 
   @override
   Matrix<T> copy() =>

@@ -1,6 +1,6 @@
 library data.matrix.impl.keyed_matrix;
 
-import 'package:data/src/type/type.dart';
+import 'package:data/type.dart';
 
 import '../matrix.dart';
 
@@ -22,9 +22,6 @@ class KeyedMatrix<T> extends Matrix<T> {
 
   @override
   final int colCount;
-
-  @override
-  Matrix<T> get base => this;
 
   @override
   Matrix<T> copy() =>

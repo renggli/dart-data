@@ -1,6 +1,7 @@
 library data.matrix.view.transposed_matrix;
 
-import 'package:data/src/type/type.dart';
+import 'package:data/tensor.dart';
+import 'package:data/type.dart';
 
 import '../matrix.dart';
 
@@ -20,7 +21,7 @@ class TransposedMatrix<T> extends Matrix<T> {
   int get colCount => _matrix.rowCount;
 
   @override
-  Matrix<T> get base => _matrix.base;
+  List<Tensor> get storage => _matrix.storage;
 
   @override
   Matrix<T> copy() => TransposedMatrix(_matrix.copy());

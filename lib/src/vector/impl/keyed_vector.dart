@@ -20,9 +20,6 @@ class KeyedVector<T> extends Vector<T> {
   final int count;
 
   @override
-  Vector<T> get base => this;
-
-  @override
   Vector<T> copy() => KeyedVector.internal(dataType, count, Map.of(_values));
 
   @override

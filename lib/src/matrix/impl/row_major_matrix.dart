@@ -25,9 +25,6 @@ class RowMajorMatrix<T> extends Matrix<T> {
   final int colCount;
 
   @override
-  Matrix<T> get base => this;
-
-  @override
   Matrix<T> copy() => RowMajorMatrix.internal(
       dataType, rowCount, colCount, dataType.copyList(_values));
 

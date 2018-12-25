@@ -2,7 +2,7 @@ library data.matrix.impl.diagonal_matrix;
 
 import 'dart:math' as math;
 
-import 'package:data/src/type/type.dart';
+import 'package:data/type.dart';
 
 import '../matrix.dart';
 
@@ -24,9 +24,6 @@ class DiagonalMatrix<T> extends Matrix<T> {
 
   @override
   final int colCount;
-
-  @override
-  Matrix<T> get base => this;
 
   @override
   Matrix<T> copy() => DiagonalMatrix.internal(

@@ -1,6 +1,6 @@
 library data.matrix.impl.compressed_row_matrix;
 
-import 'package:data/src/type/type.dart';
+import 'package:data/type.dart';
 
 import '../../shared/config.dart';
 import '../../shared/lists.dart';
@@ -34,9 +34,6 @@ class CompressedRowMatrix<T> extends Matrix<T> {
 
   @override
   final int colCount;
-
-  @override
-  Matrix<T> get base => this;
 
   @override
   Matrix<T> copy() => CompressedRowMatrix.internal(

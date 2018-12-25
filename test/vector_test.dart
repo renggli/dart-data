@@ -15,7 +15,7 @@ void vectorTest(String name, Builder builder) {
         expect(vector.dataType, DataType.int8);
         expect(vector.count, 4);
         expect(vector.shape, [vector.count]);
-        expect(vector.base, vector);
+        expect(vector.storage, [vector]);
         for (var i = 0; i < vector.count; i++) {
           expect(vector[i], 0);
         }
@@ -25,7 +25,7 @@ void vectorTest(String name, Builder builder) {
         expect(vector.dataType, DataType.int8);
         expect(vector.count, 5);
         expect(vector.shape, [vector.count]);
-        expect(vector.base, vector);
+        expect(vector.storage, [vector]);
         expect(vector.copy(), vector);
         for (var i = 0; i < vector.count; i++) {
           expect(vector[i], 123);
@@ -38,7 +38,7 @@ void vectorTest(String name, Builder builder) {
         expect(vector.dataType, DataType.int8);
         expect(vector.count, 5);
         expect(vector.shape, [vector.count]);
-        expect(vector.base, vector);
+        expect(vector.storage, [vector]);
         for (var i = 0; i < vector.count; i++) {
           expect(vector[i], 123);
         }
@@ -51,7 +51,7 @@ void vectorTest(String name, Builder builder) {
         expect(vector.dataType, DataType.string);
         expect(vector.count, 7);
         expect(vector.shape, [vector.count]);
-        expect(vector.base, vector);
+        expect(vector.storage, [vector]);
         for (var i = 0; i < vector.count; i++) {
           expect(vector[i], '$i');
         }
@@ -65,7 +65,7 @@ void vectorTest(String name, Builder builder) {
         expect(vector.dataType, DataType.string);
         expect(vector.count, 9);
         expect(vector.shape, [vector.count]);
-        expect(vector.base, vector);
+        expect(vector.storage, [vector]);
         for (var i = 0; i < vector.count; i++) {
           expect(vector[i], '$i: ${2 * i}');
         }
@@ -77,7 +77,7 @@ void vectorTest(String name, Builder builder) {
         expect(vector.dataType, DataType.string);
         expect(vector.count, 6);
         expect(vector.shape, [vector.count]);
-        expect(vector.base, vector);
+        expect(vector.storage, [vector]);
         for (var i = 0; i < vector.count; i++) {
           expect(vector[i], '$i');
         }
@@ -87,7 +87,7 @@ void vectorTest(String name, Builder builder) {
         expect(vector.dataType, DataType.int8);
         expect(vector.count, 3);
         expect(vector.shape, [vector.count]);
-        expect(vector.base, vector);
+        expect(vector.storage, [vector]);
         expect(vector[0], 2);
         expect(vector[1], 1);
         expect(vector[2], 3);
@@ -142,7 +142,7 @@ void vectorTest(String name, Builder builder) {
         final copy = source.copy();
         expect(copy.dataType, source.dataType);
         expect(copy.count, source.count);
-        expect(copy.base, copy);
+        expect(copy.storage, [copy]);
         for (var i = 0; i < source.count; i++) {
           source[i] = i.isEven ? 0 : -i;
           copy[i] = i.isEven ? -i : 0;
@@ -158,7 +158,7 @@ void vectorTest(String name, Builder builder) {
         final range = source.range(1, 4);
         expect(range.dataType, DataType.string);
         expect(range.count, 3);
-        expect(range.base, source);
+        expect(range.storage, [source]);
         expect(compare(range.copy(), range), isTrue);
         expect(range[0], '1');
         expect(range[1], '2');
@@ -177,7 +177,7 @@ void vectorTest(String name, Builder builder) {
         final range = source.range(1, 4).range(1, 2);
         expect(range.dataType, DataType.string);
         expect(range.count, 1);
-        expect(range.base, source);
+        expect(range.storage, [source]);
         expect(range[0], '2');
         range[0] += '*';
         expect(range[0], '2*');
@@ -195,7 +195,7 @@ void vectorTest(String name, Builder builder) {
         final index = source.index([3, 2, 2]);
         expect(index.dataType, DataType.string);
         expect(index.count, 3);
-        expect(index.base, source);
+        expect(index.storage, [source]);
         expect(compare(index.copy(), index), isTrue);
         expect(index[0], '3');
         expect(index[1], '2');
@@ -210,7 +210,7 @@ void vectorTest(String name, Builder builder) {
         final index = source.index([3, 2, 2]).index([1]);
         expect(index.dataType, DataType.string);
         expect(index.count, 1);
-        expect(index.base, source);
+        expect(index.storage, [source]);
         expect(index[0], '2');
         index[0] += '*';
         expect(index[0], '2*');
@@ -229,7 +229,7 @@ void vectorTest(String name, Builder builder) {
               source.map((index, value) => '$index', DataType.string);
           expect(mapped.dataType, DataType.string);
           expect(mapped.count, source.count);
-          expect(mapped.base, source);
+          expect(mapped.storage, [source]);
           for (var i = 0; i < mapped.count; i++) {
             expect(mapped[i], '$i');
           }
@@ -238,7 +238,7 @@ void vectorTest(String name, Builder builder) {
           final mapped = source.map((index, value) => index, DataType.int32);
           expect(mapped.dataType, DataType.int32);
           expect(mapped.count, source.count);
-          expect(mapped.base, source);
+          expect(mapped.storage, [source]);
           for (var i = 0; i < mapped.count; i++) {
             expect(mapped[i], i);
           }
@@ -248,7 +248,7 @@ void vectorTest(String name, Builder builder) {
               source.map((index, value) => index.toDouble(), DataType.float64);
           expect(mapped.dataType, DataType.float64);
           expect(mapped.count, source.count);
-          expect(mapped.base, source);
+          expect(mapped.storage, [source]);
           for (var i = 0; i < mapped.count; i++) {
             expect(mapped[i], i.toDouble());
           }
@@ -267,7 +267,7 @@ void vectorTest(String name, Builder builder) {
         final readonly = source.unmodifiable;
         expect(readonly.dataType, source.dataType);
         expect(readonly.count, source.count);
-        expect(readonly.base, source);
+        expect(readonly.storage, [source]);
         expect(compare(readonly.copy(), readonly), isTrue);
         for (var i = 0; i < source.count; i++) {
           expect(source[i], readonly[i]);

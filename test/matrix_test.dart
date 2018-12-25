@@ -15,7 +15,7 @@ void matrixTest(String name, Builder builder) {
         expect(matrix.dataType, DataType.int8);
         expect(matrix.rowCount, 4);
         expect(matrix.colCount, 5);
-        expect(matrix.base, matrix);
+        expect(matrix.storage, [matrix]);
         expect(matrix.shape, [matrix.rowCount, matrix.colCount]);
         for (var r = 0; r < matrix.rowCount; r++) {
           for (var c = 0; c < matrix.colCount; c++) {
@@ -28,7 +28,7 @@ void matrixTest(String name, Builder builder) {
         expect(matrix.dataType, DataType.int8);
         expect(matrix.rowCount, 4);
         expect(matrix.colCount, 4);
-        expect(matrix.base, matrix);
+        expect(matrix.storage, [matrix]);
         expect(matrix.shape, [matrix.rowCount, matrix.colCount]);
         for (var r = 0; r < matrix.rowCount; r++) {
           for (var c = 0; c < matrix.colCount; c++) {
@@ -41,7 +41,7 @@ void matrixTest(String name, Builder builder) {
         expect(matrix.dataType, DataType.int8);
         expect(matrix.rowCount, 5);
         expect(matrix.colCount, 6);
-        expect(matrix.base, matrix);
+        expect(matrix.storage, [matrix]);
         expect(matrix.copy(), matrix);
         expect(matrix.shape, [matrix.rowCount, matrix.colCount]);
         for (var r = 0; r < matrix.rowCount; r++) {
@@ -57,7 +57,7 @@ void matrixTest(String name, Builder builder) {
         expect(matrix.dataType, DataType.int8);
         expect(matrix.rowCount, 6);
         expect(matrix.colCount, 5);
-        expect(matrix.base, matrix);
+        expect(matrix.storage, [matrix]);
         expect(matrix.shape, [matrix.rowCount, matrix.colCount]);
         for (var r = 0; r < matrix.rowCount; r++) {
           for (var c = 0; c < matrix.colCount; c++) {
@@ -72,7 +72,7 @@ void matrixTest(String name, Builder builder) {
         expect(matrix.dataType, DataType.int8);
         expect(matrix.rowCount, 6);
         expect(matrix.colCount, 7);
-        expect(matrix.base, matrix);
+        expect(matrix.storage, [matrix]);
         expect(matrix.shape, [matrix.rowCount, matrix.colCount]);
         expect(matrix.copy(), matrix);
         for (var r = 0; r < matrix.rowCount; r++) {
@@ -89,7 +89,7 @@ void matrixTest(String name, Builder builder) {
         expect(matrix.rowCount, 7);
         expect(matrix.colCount, 6);
         expect(matrix.shape, [matrix.rowCount, matrix.colCount]);
-        expect(matrix.base, matrix);
+        expect(matrix.storage, [matrix]);
         for (var r = 0; r < matrix.rowCount; r++) {
           for (var c = 0; c < matrix.colCount; c++) {
             expect(matrix.get(r, c), r == c ? -1 : 0);
@@ -106,7 +106,7 @@ void matrixTest(String name, Builder builder) {
         expect(matrix.rowCount, 7);
         expect(matrix.colCount, 8);
         expect(matrix.shape, [matrix.rowCount, matrix.colCount]);
-        expect(matrix.base, matrix);
+        expect(matrix.storage, [matrix]);
         for (var r = 0; r < matrix.rowCount; r++) {
           for (var c = 0; c < matrix.colCount; c++) {
             expect(matrix.get(r, c), '($r, $c)');
@@ -124,7 +124,7 @@ void matrixTest(String name, Builder builder) {
         expect(matrix.rowCount, 8);
         expect(matrix.colCount, 7);
         expect(matrix.shape, [matrix.rowCount, matrix.colCount]);
-        expect(matrix.base, matrix);
+        expect(matrix.storage, [matrix]);
         for (var r = 0; r < matrix.rowCount; r++) {
           for (var c = 0; c < matrix.colCount; c++) {
             expect(matrix.get(r, c), '($r, $c): Point($r, $c)');
@@ -140,7 +140,7 @@ void matrixTest(String name, Builder builder) {
         expect(matrix.rowCount, 5);
         expect(matrix.colCount, 6);
         expect(matrix.shape, [matrix.rowCount, matrix.colCount]);
-        expect(matrix.base, matrix);
+        expect(matrix.storage, [matrix]);
         for (var r = 0; r < source.rowCount; r++) {
           for (var c = 0; c < source.colCount; c++) {
             expect(matrix.get(r, c), '($r, $c)');
@@ -155,7 +155,7 @@ void matrixTest(String name, Builder builder) {
         expect(matrix.rowCount, 1);
         expect(matrix.colCount, 3);
         expect(matrix.shape, [matrix.rowCount, matrix.colCount]);
-        expect(matrix.base, matrix);
+        expect(matrix.storage, [matrix]);
         for (var r = 0; r < matrix.rowCount; r++) {
           for (var c = 0; c < matrix.colCount; c++) {
             expect(matrix.get(r, c), source[c]);
@@ -170,7 +170,7 @@ void matrixTest(String name, Builder builder) {
         expect(matrix.rowCount, 3);
         expect(matrix.colCount, 1);
         expect(matrix.shape, [matrix.rowCount, matrix.colCount]);
-        expect(matrix.base, matrix);
+        expect(matrix.storage, [matrix]);
         for (var r = 0; r < matrix.rowCount; r++) {
           for (var c = 0; c < matrix.colCount; c++) {
             expect(matrix.get(r, c), source[r]);
@@ -185,7 +185,7 @@ void matrixTest(String name, Builder builder) {
         expect(matrix.rowCount, 3);
         expect(matrix.colCount, 3);
         expect(matrix.shape, [matrix.rowCount, matrix.colCount]);
-        expect(matrix.base, matrix);
+        expect(matrix.storage, [matrix]);
         for (var r = 0; r < matrix.rowCount; r++) {
           for (var c = 0; c < matrix.colCount; c++) {
             expect(matrix.get(r, c), r == c ? source[r] : 0);
@@ -201,7 +201,7 @@ void matrixTest(String name, Builder builder) {
         expect(matrix.rowCount, 2);
         expect(matrix.colCount, 3);
         expect(matrix.shape, [matrix.rowCount, matrix.colCount]);
-        expect(matrix.base, matrix);
+        expect(matrix.storage, [matrix]);
         expect(matrix.get(0, 0), 1);
         expect(matrix.get(1, 0), 4);
         expect(matrix.get(0, 1), 2);
@@ -226,7 +226,7 @@ void matrixTest(String name, Builder builder) {
         expect(matrix.rowCount, 2);
         expect(matrix.colCount, 3);
         expect(matrix.shape, [matrix.rowCount, matrix.colCount]);
-        expect(matrix.base, matrix);
+        expect(matrix.storage, [matrix]);
         expect(matrix.get(0, 0), 1);
         expect(matrix.get(1, 0), 4);
         expect(matrix.get(0, 1), 2);
@@ -248,7 +248,7 @@ void matrixTest(String name, Builder builder) {
         expect(matrix.rowCount, 2);
         expect(matrix.colCount, 3);
         expect(matrix.shape, [matrix.rowCount, matrix.colCount]);
-        expect(matrix.base, matrix);
+        expect(matrix.storage, [matrix]);
         expect(matrix.get(0, 0), 1);
         expect(matrix.get(0, 1), 2);
         expect(matrix.get(0, 2), 3);
@@ -268,7 +268,7 @@ void matrixTest(String name, Builder builder) {
         expect(matrix.rowCount, 3);
         expect(matrix.colCount, 2);
         expect(matrix.shape, [matrix.rowCount, matrix.colCount]);
-        expect(matrix.base, matrix);
+        expect(matrix.storage, [matrix]);
         expect(matrix.get(0, 0), 1);
         expect(matrix.get(1, 0), 2);
         expect(matrix.get(2, 0), 3);
@@ -293,7 +293,7 @@ void matrixTest(String name, Builder builder) {
         expect(matrix.rowCount, 3);
         expect(matrix.colCount, 2);
         expect(matrix.shape, [matrix.rowCount, matrix.colCount]);
-        expect(matrix.base, matrix);
+        expect(matrix.storage, [matrix]);
         expect(matrix.get(0, 0), 1);
         expect(matrix.get(1, 0), 2);
         expect(matrix.get(2, 0), 3);
@@ -315,7 +315,7 @@ void matrixTest(String name, Builder builder) {
         expect(matrix.rowCount, 2);
         expect(matrix.colCount, 3);
         expect(matrix.shape, [matrix.rowCount, matrix.colCount]);
-        expect(matrix.base, matrix);
+        expect(matrix.storage, [matrix]);
         expect(matrix.get(0, 0), 1);
         expect(matrix.get(1, 0), 2);
         expect(matrix.get(0, 1), 3);
@@ -418,7 +418,7 @@ void matrixTest(String name, Builder builder) {
         expect(copy.dataType, source.dataType);
         expect(copy.rowCount, source.rowCount);
         expect(copy.colCount, source.colCount);
-        expect(copy.base, copy);
+        expect(copy.storage, [copy]);
         expect(compare(source, copy), isTrue);
         source.set(3, 5, null);
         expect(copy.get(3, 5), const Point(3, 5));
@@ -431,7 +431,7 @@ void matrixTest(String name, Builder builder) {
           final row = source.row(r);
           expect(row.dataType, source.dataType);
           expect(row.count, source.colCount);
-          expect(row.base, source);
+          expect(row.storage, [source]);
           expect(v.compare(row.copy(), row), isTrue);
           for (var c = 0; c < source.colCount; c++) {
             expect(row[c], '($r, $c)');
@@ -458,7 +458,7 @@ void matrixTest(String name, Builder builder) {
         for (var row in source.rows) {
           expect(row.dataType, source.dataType);
           expect(row.count, source.colCount);
-          expect(row.base, source);
+          expect(row.storage, [source]);
           for (var c = 0; c < source.colCount; c++) {
             expect(row[c], source.get(r, c));
           }
@@ -474,7 +474,7 @@ void matrixTest(String name, Builder builder) {
           final column = source.col(c);
           expect(column.dataType, source.dataType);
           expect(column.count, source.rowCount);
-          expect(column.base, source);
+          expect(column.storage, [source]);
           expect(v.compare(column.copy(), column), isTrue);
           for (var r = 0; r < source.rowCount; r++) {
             expect(column[r], '($r, $c)');
@@ -501,7 +501,7 @@ void matrixTest(String name, Builder builder) {
         for (var column in source.cols) {
           expect(column.dataType, source.dataType);
           expect(column.count, source.rowCount);
-          expect(column.base, source);
+          expect(column.storage, [source]);
           for (var r = 0; r < source.rowCount; r++) {
             expect(column[r], source.get(r, c));
           }
@@ -525,7 +525,7 @@ void matrixTest(String name, Builder builder) {
             final diagonal = source.diagonal(offset);
             expect(diagonal.dataType, source.dataType);
             expect(diagonal.count, expected.length);
-            expect(diagonal.base, source);
+            expect(diagonal.storage, [source]);
             expect(v.compare(diagonal.copy(), diagonal), isTrue);
             for (var i = 0; i < expected.length; i++) {
               expect(diagonal[i], expected[i]);
@@ -555,7 +555,7 @@ void matrixTest(String name, Builder builder) {
             final diagonal = source.diagonal(offset);
             expect(diagonal.dataType, source.dataType);
             expect(diagonal.count, expected.length);
-            expect(diagonal.base, source);
+            expect(diagonal.storage, [source]);
             expect(v.compare(diagonal.copy(), diagonal), isTrue);
             for (var i = 0; i < expected.length; i++) {
               expect(diagonal[i], expected[i]);
@@ -580,7 +580,7 @@ void matrixTest(String name, Builder builder) {
           expect(range.dataType, source.dataType);
           expect(range.rowCount, 2);
           expect(range.colCount, source.colCount);
-          expect(range.base, source);
+          expect(range.storage, [source]);
           expect(compare(range.copy(), range), isTrue);
           for (var r = 0; r < range.rowCount; r++) {
             for (var c = 0; c < range.colCount; c++) {
@@ -597,7 +597,7 @@ void matrixTest(String name, Builder builder) {
           expect(range.dataType, source.dataType);
           expect(range.rowCount, source.rowCount);
           expect(range.colCount, 3);
-          expect(range.base, source);
+          expect(range.storage, [source]);
           expect(compare(range.copy(), range), isTrue);
           for (var r = 0; r < range.rowCount; r++) {
             for (var c = 0; c < range.colCount; c++) {
@@ -614,7 +614,7 @@ void matrixTest(String name, Builder builder) {
           expect(range.dataType, source.dataType);
           expect(range.rowCount, 2);
           expect(range.colCount, 2);
-          expect(range.base, source);
+          expect(range.storage, [source]);
           expect(compare(range.copy(), range), isTrue);
           for (var r = 0; r < range.rowCount; r++) {
             for (var c = 0; c < range.colCount; c++) {
@@ -629,7 +629,7 @@ void matrixTest(String name, Builder builder) {
           expect(range.dataType, source.dataType);
           expect(range.rowCount, source.rowCount - 4);
           expect(range.colCount, source.colCount - 4);
-          expect(range.base, source);
+          expect(range.storage, [source]);
           expect(compare(range.copy(), range), isTrue);
           for (var r = 0; r < range.rowCount; r++) {
             for (var c = 0; c < range.colCount; c++) {
@@ -666,7 +666,7 @@ void matrixTest(String name, Builder builder) {
           expect(index.dataType, source.dataType);
           expect(index.rowCount, 3);
           expect(index.colCount, source.colCount);
-          expect(index.base, source);
+          expect(index.storage, [source]);
           expect(compare(index.copy(), index), isTrue);
           for (var r = 0; r < index.rowCount; r++) {
             for (var c = 0; c < index.colCount; c++) {
@@ -683,7 +683,7 @@ void matrixTest(String name, Builder builder) {
           expect(index.dataType, source.dataType);
           expect(index.rowCount, source.rowCount);
           expect(index.colCount, 3);
-          expect(index.base, source);
+          expect(index.storage, [source]);
           expect(compare(index.copy(), index), isTrue);
           for (var r = 0; r < index.rowCount; r++) {
             for (var c = 0; c < index.colCount; c++) {
@@ -700,7 +700,7 @@ void matrixTest(String name, Builder builder) {
           expect(index.dataType, source.dataType);
           expect(index.rowCount, 2);
           expect(index.colCount, 2);
-          expect(index.base, source);
+          expect(index.storage, [source]);
           expect(compare(index.copy(), index), isTrue);
           for (var r = 0; r < index.rowCount; r++) {
             for (var c = 0; c < index.colCount; c++) {
@@ -713,7 +713,7 @@ void matrixTest(String name, Builder builder) {
           expect(index.dataType, source.dataType);
           expect(index.rowCount, 1);
           expect(index.colCount, 1);
-          expect(index.base, source);
+          expect(index.storage, [source]);
           expect(index.get(0, 0), const Point(0, 2));
         });
         test('write', () {
@@ -751,7 +751,7 @@ void matrixTest(String name, Builder builder) {
           expect(mapped.dataType, DataType.string);
           expect(mapped.rowCount, source.rowCount);
           expect(mapped.colCount, source.colCount);
-          expect(mapped.base, source);
+          expect(mapped.storage, [source]);
           expect(compare(mapped.copy(), mapped), isTrue);
           for (var r = 0; r < mapped.rowCount; r++) {
             for (var c = 0; c < mapped.colCount; c++) {
@@ -765,7 +765,7 @@ void matrixTest(String name, Builder builder) {
           expect(mapped.dataType, DataType.int32);
           expect(mapped.rowCount, source.rowCount);
           expect(mapped.colCount, source.colCount);
-          expect(mapped.base, source);
+          expect(mapped.storage, [source]);
           for (var r = 0; r < mapped.rowCount; r++) {
             for (var c = 0; c < mapped.colCount; c++) {
               expect(mapped.get(r, c), r + 10 * c);
@@ -778,7 +778,7 @@ void matrixTest(String name, Builder builder) {
           expect(mapped.dataType, DataType.float64);
           expect(mapped.rowCount, source.rowCount);
           expect(mapped.colCount, source.colCount);
-          expect(mapped.base, source);
+          expect(mapped.storage, [source]);
           for (var r = 0; r < mapped.rowCount; r++) {
             for (var c = 0; c < mapped.colCount; c++) {
               expect(mapped.get(r, c), r + 10.0 * c);
@@ -798,7 +798,7 @@ void matrixTest(String name, Builder builder) {
         expect(transposed.dataType, source.dataType);
         expect(transposed.rowCount, 6);
         expect(transposed.colCount, 7);
-        expect(transposed.base, source);
+        expect(transposed.storage, [source]);
         expect(compare(transposed.copy(), transposed), isTrue);
         for (var r = 0; r < transposed.rowCount; r++) {
           for (var c = 0; c < transposed.colCount; c++) {
@@ -821,7 +821,7 @@ void matrixTest(String name, Builder builder) {
         expect(readonly.dataType, source.dataType);
         expect(readonly.rowCount, 2);
         expect(readonly.colCount, 3);
-        expect(readonly.base, source);
+        expect(readonly.storage, [source]);
         expect(compare(readonly.copy(), readonly), isTrue);
         for (var r = 0; r < readonly.rowCount; r++) {
           for (var c = 0; c < readonly.colCount; c++) {
