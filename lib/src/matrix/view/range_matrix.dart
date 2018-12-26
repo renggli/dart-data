@@ -29,7 +29,7 @@ class RangeMatrix<T> extends Matrix<T> {
   final int colCount;
 
   @override
-  List<Tensor> get storage => _matrix.storage;
+  Set<Tensor> get storage => _matrix.storage;
 
   @override
   Matrix<T> copy() => RangeMatrix.internal(

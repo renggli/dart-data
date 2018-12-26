@@ -24,7 +24,7 @@ class UnmodifiableMatrix<T> extends Matrix<T> with UnmodifiableMatrixMixin<T> {
   int get colCount => _matrix.colCount;
 
   @override
-  List<Tensor> get storage => _matrix.storage;
+  Set<Tensor> get storage => _matrix.storage;
 
   @override
   Matrix<T> copy() => UnmodifiableMatrix(_matrix.copy());

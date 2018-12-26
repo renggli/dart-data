@@ -19,7 +19,7 @@ class UnmodifiableVector<T> extends Vector<T> with UnmodifiableVectorMixin<T> {
   int get count => _vector.count;
 
   @override
-  List<Tensor> get storage => _vector.storage;
+  Set<Tensor> get storage => _vector.storage;
 
   @override
   Vector<T> copy() => UnmodifiableVector(_vector.copy());

@@ -20,7 +20,7 @@ class ColumnVector<T> extends Vector<T> {
   int get count => _matrix.rowCount;
 
   @override
-  List<Tensor> get storage => _matrix.storage;
+  Set<Tensor> get storage => _matrix.storage;
 
   @override
   Vector<T> copy() => ColumnVector(_matrix.copy(), _col);

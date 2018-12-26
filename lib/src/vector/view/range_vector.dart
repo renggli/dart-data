@@ -22,7 +22,7 @@ class RangeVector<T> extends Vector<T> {
   final int count;
 
   @override
-  List<Tensor> get storage => _vector.storage;
+  Set<Tensor> get storage => _vector.storage;
 
   @override
   Vector<T> copy() => RangeVector.internal(_vector.copy(), _start, count);

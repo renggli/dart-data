@@ -11,8 +11,8 @@ abstract class Tensor<T> {
   /// Returns the dimensions of this tensor.
   List<int> get shape;
 
-  /// Returns the underlying storage bases of this tensor.
-  List<Tensor> get storage => <Tensor>[this];
+  /// Returns the underlying storage containers of this tensor.
+  Set<Tensor> get storage => Set.of([this]);
 
   /// Returns a copy of this tensor.
   Tensor<T> copy();

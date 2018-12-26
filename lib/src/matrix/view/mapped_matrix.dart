@@ -6,7 +6,7 @@ import 'package:data/type.dart';
 import '../matrix.dart';
 import '../mixins/unmodifiable_matrix.dart';
 
-typedef T MatrixTransformation<S, T>(int row, int col, S value);
+typedef MatrixTransformation<S, T> = T Function(int row, int col, S value);
 
 /// Read-only transformed matrix.
 class MappedMatrix<S, T> extends Matrix<T> with UnmodifiableMatrixMixin<T> {
@@ -25,7 +25,7 @@ class MappedMatrix<S, T> extends Matrix<T> with UnmodifiableMatrixMixin<T> {
   int get colCount => _matrix.colCount;
 
   @override
-  List<Tensor> get storage => _matrix.storage;
+  Set<Tensor> get storage => _matrix.storage;
 
   @override
   Matrix<T> copy() => MappedMatrix(_matrix.copy(), _callback, dataType);

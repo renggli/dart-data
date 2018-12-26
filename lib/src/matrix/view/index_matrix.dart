@@ -29,7 +29,7 @@ class IndexMatrix<T> extends Matrix<T> {
   int get colCount => _colIndexes.length;
 
   @override
-  List<Tensor> get storage => _matrix.storage;
+  Set<Tensor> get storage => _matrix.storage;
 
   @override
   Matrix<T> copy() =>

@@ -6,7 +6,7 @@ import 'package:data/type.dart';
 import '../mixins/unmodifiable_vector.dart';
 import '../vector.dart';
 
-typedef T VectorTransformation<S, T>(int index, S value);
+typedef VectorTransformation<S, T> = T Function(int index, S value);
 
 /// Read-only transformed vector.
 class MappedVector<S, T> extends Vector<T> with UnmodifiableVectorMixin<T> {
@@ -22,7 +22,7 @@ class MappedVector<S, T> extends Vector<T> with UnmodifiableVectorMixin<T> {
   int get count => _vector.count;
 
   @override
-  List<Tensor> get storage => _vector.storage;
+  Set<Tensor> get storage => _vector.storage;
 
   @override
   Vector<T> copy() => MappedVector(_vector.copy(), _callback, dataType);
