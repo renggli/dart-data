@@ -32,7 +32,7 @@ void _checkMatchingDimensions<T>(Matrix<T> sourceA, Matrix<T> sourceB) {
 }
 
 /// Generic unary operator on a matrix.
-Matrix<T> unaryOperator<T>(Matrix<T> source, T Function(T) callback,
+Matrix<T> unaryOperator<T>(Matrix<T> source, T Function(T a) callback,
     {Matrix<T> target, Builder<T> builder, DataType<T> dataType}) {
   final result = _targetOrBuilderOrDataType(source.rowCount, source.colCount,
       target, builder, dataType ?? source.dataType);
@@ -46,7 +46,7 @@ Matrix<T> unaryOperator<T>(Matrix<T> source, T Function(T) callback,
 
 /// Generic binary operator on two equal sized matrices.
 Matrix<T> binaryOperator<T>(
-    Matrix<T> sourceA, Matrix<T> sourceB, T Function(T, T) callback,
+    Matrix<T> sourceA, Matrix<T> sourceB, T Function(T a, T b) callback,
     {Matrix<T> target, Builder<T> builder, DataType<T> dataType}) {
   _checkMatchingDimensions(sourceA, sourceB);
   final result = _targetOrBuilderOrDataType(sourceA.rowCount, sourceA.colCount,
@@ -86,7 +86,7 @@ Matrix<T> scale<T extends num>(T factor, Matrix<T> source,
 
 /// Compares two matrices [sourceA] and [sourceB] with each other.
 bool compare<A, B>(Matrix<A> sourceA, Matrix<B> sourceB,
-    {bool Function(A, B) equals}) {
+    {bool Function(A a, B b) equals}) {
   if (identical(sourceA, sourceB)) {
     return true;
   }

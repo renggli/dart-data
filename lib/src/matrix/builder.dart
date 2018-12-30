@@ -117,7 +117,7 @@ class Builder<T> {
 
   /// Builds a matrix from calling a [callback] on every value.
   Matrix<T> generate(
-      int rowCount, int colCount, T Function(int, int) callback) {
+      int rowCount, int colCount, T Function(int row, int col) callback) {
     final result = this(rowCount, colCount);
     for (var r = 0; r < rowCount; r++) {
       for (var c = 0; c < colCount; c++) {
@@ -128,7 +128,8 @@ class Builder<T> {
   }
 
   /// Builds a matrix by transforming another matrix with [callback].
-  Matrix<T> transform<S>(Matrix<S> source, T Function(int, int, S) callback) {
+  Matrix<T> transform<S>(
+      Matrix<S> source, T Function(int row, int col, S input) callback) {
     final result = this(source.rowCount, source.colCount);
     for (var r = 0; r < result.rowCount; r++) {
       for (var c = 0; c < result.colCount; c++) {

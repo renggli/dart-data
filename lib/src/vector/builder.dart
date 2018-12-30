@@ -66,7 +66,7 @@ class Builder<T> {
   }
 
   /// Builds a vector from calling a [callback] on every value.
-  Vector<T> generate(int count, T Function(int) callback) {
+  Vector<T> generate(int count, T Function(int index) callback) {
     final result = this(count);
     for (var i = 0; i < count; i++) {
       result.setUnchecked(i, callback(i));
@@ -75,7 +75,8 @@ class Builder<T> {
   }
 
   /// Builds a vector by transforming another one with a [callback].
-  Vector<T> transform<S>(Vector<S> source, T Function(int, S) callback) {
+  Vector<T> transform<S>(
+      Vector<S> source, T Function(int index, S value) callback) {
     final result = this(source.count);
     for (var i = 0; i < result.count; i++) {
       result.setUnchecked(i, callback(i, source.getUnchecked(i)));
