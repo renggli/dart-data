@@ -1108,19 +1108,19 @@ void matrixTest(String name, Builder builder) {
           }
         });
         test('error in-place', () {
-          final squareA = sourceA.range(0, 8, 0, 8);
-          final squareB = sourceB.range(0, 8, 0, 8);
-          expect(() => mul(squareA, squareB, target: squareA),
+          final derivedA = sourceA.range(0, 8, 0, 8);
+          final derivedB = sourceB.range(0, 8, 0, 8);
+          expect(() => mul(derivedA, derivedB, target: derivedA),
               throwsArgumentError);
-          expect(() => mul(squareA, squareB, target: squareB),
+          expect(() => mul(derivedA, derivedB, target: derivedB),
               throwsArgumentError);
-          expect(() => mul(squareA.transposed, squareB, target: squareA),
+          expect(() => mul(derivedA.transposed, derivedB, target: derivedA),
               throwsArgumentError);
-          expect(() => mul(squareA, squareB.transposed, target: squareB),
+          expect(() => mul(derivedA, derivedB.transposed, target: derivedB),
               throwsArgumentError);
-          expect(() => mul(squareA, squareB, target: squareA.transposed),
+          expect(() => mul(derivedA, derivedB, target: derivedA.transposed),
               throwsArgumentError);
-          expect(() => mul(squareA, squareB, target: squareB.transposed),
+          expect(() => mul(derivedA, derivedB, target: derivedB.transposed),
               throwsArgumentError);
         });
         test('error dimensions', () {

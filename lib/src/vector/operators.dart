@@ -121,6 +121,14 @@ Vector<T> mul<T extends num>(Matrix<T> matrix, Vector<T> vector,
   }
   final result = _targetOrBuilderOrDataType(
       matrix.rowCount, target, builder, dataType ?? matrix.dataType);
+  if (identical(result, target)) {
+    final sourcesStorage = Set.identity()
+      ..addAll(matrix.storage)
+      ..addAll(vector.storage);
+    if (result.storage.any(sourcesStorage.contains)) {
+      throw ArgumentError('Vector multiplication cannot be done in-place.');
+    }
+  }
   for (var r = 0; r < matrix.rowCount; r++) {
     var sum = result.dataType.nullValue;
     for (var j = 0; j < matrix.colCount; j++) {

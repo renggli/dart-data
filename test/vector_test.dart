@@ -424,22 +424,33 @@ void vectorTest(String name, Builder builder) {
               isTrue);
         });
       });
-      test('mul', () {
-        final a = matrix.Matrix.builder
+      group('mul', () {
+        final sourceA = matrix.Matrix.builder
             .withType(DataType.int32)
             .generate(37, 42, (r, c) => random.nextInt(100));
-        final b = builder
+        final sourceB = builder
             .withType(DataType.int8)
-            .generate(a.colCount, (i) => random.nextInt(100));
-        final v = mul(a, b);
-        for (var i = 0; i < v.count; i++) {
-          expect(v[i], dot(a.row(i), b));
-        }
-      });
-      test('mul (dimension missmatch)', () {
-        final a = matrix.Matrix.builder.withType(DataType.int32)(37, 42);
-        final b = builder.withType(DataType.int8)(a.rowCount);
-        expect(() => mul(a, b), throwsArgumentError);
+            .generate(sourceA.colCount, (i) => random.nextInt(100));
+        test('default', () {
+          final v = mul(sourceA, sourceB);
+          for (var i = 0; i < v.count; i++) {
+            expect(v[i], dot(sourceA.row(i), sourceB));
+          }
+        });
+        test('error in-place', () {
+          final derivedA = sourceA.range(0, 8, 0, 8);
+          final derivedB = sourceB.range(0, 8);
+          expect(() => mul(derivedA, derivedB, target: derivedB),
+              throwsArgumentError);
+          expect(() => mul(derivedA, derivedB, target: derivedA.row(0)),
+              throwsArgumentError);
+          expect(() => mul(derivedA, derivedB, target: derivedA.col(0)),
+              throwsArgumentError);
+        });
+        test('error dimensions', () {
+          expect(() => mul(sourceA.colRange(1), sourceB), throwsArgumentError);
+          expect(() => mul(sourceA, sourceB.range(1)), throwsArgumentError);
+        });
       });
       test('dot', () {
         var expected = 0;
