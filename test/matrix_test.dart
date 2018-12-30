@@ -1137,7 +1137,8 @@ void matrixTest(String name, Builder builder) {
     // Comparator for floating point numbers:
     final epsilon = pow(2.0, -32.0);
     void expectMatrix(Matrix<num> expected, Matrix<num> actual) => expect(
-          compare(actual, expected, equals: (a, b) => (a - b).abs() <= epsilon),
+          compare<num, num>(actual, expected,
+              equals: (a, b) => (a - b).abs() <= epsilon),
           isTrue,
           reason: 'Expected $expected, but got $actual.',
         );

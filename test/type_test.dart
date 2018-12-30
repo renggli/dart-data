@@ -6,7 +6,7 @@ import 'package:data/src/shared/config.dart' as config;
 import 'package:data/type.dart';
 import 'package:test/test.dart';
 
-void listTest(DataType type, List<List> lists) {
+void listTest<T>(DataType<T> type, List<List<T>> lists) {
   if ([
     DataType.float64,
     DataType.int64,
@@ -25,7 +25,7 @@ void listTest(DataType type, List<List> lists) {
           reason: 'DataType.fromType($exampleType)');
     });
   }
-  if (type != DataType.float32) {
+  if (!identical(type, DataType.float32)) {
     for (var list in lists) {
       test('fromIterable: $list', () {
         expect(DataType.fromIterable(list), type,

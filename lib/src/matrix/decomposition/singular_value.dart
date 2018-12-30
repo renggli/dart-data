@@ -41,7 +41,7 @@ class SingularValueDecomposition {
     // Initialize.
     final A = Matrix.builder
         .withType(valueDataType)
-        .transform(input, (r, c, v) => v.toDouble());
+        .transform<num>(input, (r, c, v) => v.toDouble());
     final e = valueDataType.newList(_n);
     final work = valueDataType.newList(_m);
     final wantu = true;

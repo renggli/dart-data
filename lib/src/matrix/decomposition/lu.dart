@@ -32,7 +32,7 @@ class LUDecomposition {
   LUDecomposition(Matrix<num> source)
       : _lu = Matrix.builder.rowMajor
             .withType(valueDataType)
-            .transform(source, (r, c, v) => v.toDouble()),
+            .transform<num>(source, (r, c, v) => v.toDouble()),
         _m = source.rowCount,
         _n = source.colCount,
         _piv = indexDataType.newList(source.rowCount) {

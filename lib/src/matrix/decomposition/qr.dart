@@ -28,7 +28,7 @@ class QRDecomposition {
   QRDecomposition(Matrix<num> source)
       : _qr = Matrix.builder.rowMajor
             .withType(valueDataType)
-            .transform(source, (r, c, v) => v.toDouble()),
+            .transform<num>(source, (r, c, v) => v.toDouble()),
         _m = source.rowCount,
         _n = source.colCount,
         _rdiag = valueDataType.newList(source.colCount) {
