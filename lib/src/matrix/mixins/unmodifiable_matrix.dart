@@ -3,7 +3,7 @@ library data.matrix.mixins.unmodifiable_matrix;
 import '../matrix.dart';
 
 /// Mixin for unmodifiable matrices.
-abstract class UnmodifiableMatrixMixin<T> implements Matrix<T> {
+mixin UnmodifiableMatrixMixin<T> implements Matrix<T> {
   @override
   Matrix<T> get unmodifiable => this;
 

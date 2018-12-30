@@ -321,10 +321,9 @@ class EigenvalueDecomposition {
     //  Vol.ii-Linear Algebra, and the corresponding
     //  Fortran subroutines in EISPACK.
 
-    final low = 0;
     final high = _n - 1;
 
-    for (var m = low + 1; m <= high - 1; m++) {
+    for (var m = 1; m <= high - 1; m++) {
       // Scale column.
 
       var scale = 0.0;
@@ -383,7 +382,7 @@ class EigenvalueDecomposition {
       }
     }
 
-    for (var m = high - 1; m >= low + 1; m--) {
+    for (var m = high - 1; m >= 1; m--) {
       if (_h.getUnchecked(m, m - 1) != 0.0) {
         for (var i = m + 1; i <= high; i++) {
           _ort[i] = _h.getUnchecked(i, m - 1);
@@ -432,7 +431,7 @@ class EigenvalueDecomposition {
 
     final nn = _n;
     var n = nn - 1;
-    final low = 0;
+    const low = 0;
     final high = nn - 1;
     final eps = math.pow(2.0, -52.0);
     var exshift = 0.0;
@@ -642,11 +641,11 @@ class EigenvalueDecomposition {
         // Double QR step involving rows l:n and columns m:n
 
         for (var k = m; k <= n - 1; k++) {
-          final notlast = (k != n - 1);
+          final notlast = k != n - 1;
           if (k != m) {
             p = _h.getUnchecked(k, k - 1);
             q = _h.getUnchecked(k + 1, k - 1);
-            r = (notlast ? _h.getUnchecked(k + 2, k - 1) : 0.0);
+            r = notlast ? _h.getUnchecked(k + 2, k - 1) : 0.0;
             x = p.abs() + q.abs() + r.abs();
             if (x == 0.0) {
               continue;

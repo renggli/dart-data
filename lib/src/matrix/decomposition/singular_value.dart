@@ -44,8 +44,6 @@ class SingularValueDecomposition {
         .transform<num>(input, (r, c, v) => v.toDouble());
     final e = valueDataType.newList(_n);
     final work = valueDataType.newList(_m);
-    final wantu = true;
-    final wantv = true;
 
     // Reduce A to bidiagonal form, storing the diagonal elements
     // in s and the super-diagonal elements in e.
@@ -88,7 +86,7 @@ class SingularValueDecomposition {
         // subsequent calculation of the row transformation.
         e[j] = A.getUnchecked(k, j);
       }
-      if (wantu && (k < nct)) {
+      if (k < nct) {
         // Place the transformation in U for subsequent back
         // multiplication.
         for (var i = k; i < _m; i++) {
@@ -130,12 +128,10 @@ class SingularValueDecomposition {
             }
           }
         }
-        if (wantv) {
-          // Place the transformation in V for subsequent
-          // back multiplication.
-          for (var i = k + 1; i < _n; i++) {
-            _v.setUnchecked(i, k, e[i]);
-          }
+        // Place the transformation in V for subsequent
+        // back multiplication.
+        for (var i = k + 1; i < _n; i++) {
+          _v.setUnchecked(i, k, e[i]);
         }
       }
     }
@@ -154,63 +150,60 @@ class SingularValueDecomposition {
     e[p - 1] = 0.0;
 
     // If required, generate U.
-    if (wantu) {
-      for (var j = nct; j < _u.colCount; j++) {
-        for (var i = 0; i < _m; i++) {
-          _u.setUnchecked(i, j, 0.0);
-        }
-        _u.setUnchecked(j, j, 1.0);
+
+    for (var j = nct; j < _u.colCount; j++) {
+      for (var i = 0; i < _m; i++) {
+        _u.setUnchecked(i, j, 0.0);
       }
-      for (var k = nct - 1; k >= 0; k--) {
-        if (_s[k] != 0.0) {
-          for (var j = k + 1; j < _u.colCount; j++) {
-            var t = 0.0;
-            for (var i = k; i < _m; i++) {
-              t += _u.getUnchecked(i, k) * _u.getUnchecked(i, j);
-            }
-            t = -t / _u.getUnchecked(k, k);
-            for (var i = k; i < _m; i++) {
-              _u.setUnchecked(
-                  i, j, _u.getUnchecked(i, j) + t * _u.getUnchecked(i, k));
-            }
-          }
+      _u.setUnchecked(j, j, 1.0);
+    }
+    for (var k = nct - 1; k >= 0; k--) {
+      if (_s[k] != 0.0) {
+        for (var j = k + 1; j < _u.colCount; j++) {
+          var t = 0.0;
           for (var i = k; i < _m; i++) {
-            _u.setUnchecked(i, k, -_u.getUnchecked(i, k));
+            t += _u.getUnchecked(i, k) * _u.getUnchecked(i, j);
           }
-          _u.setUnchecked(k, k, 1.0 + _u.getUnchecked(k, k));
-          for (var i = 0; i < k - 1; i++) {
-            _u.setUnchecked(i, k, 0.0);
+          t = -t / _u.getUnchecked(k, k);
+          for (var i = k; i < _m; i++) {
+            _u.setUnchecked(
+                i, j, _u.getUnchecked(i, j) + t * _u.getUnchecked(i, k));
           }
-        } else {
-          for (var i = 0; i < _m; i++) {
-            _u.setUnchecked(i, k, 0.0);
-          }
-          _u.setUnchecked(k, k, 1.0);
         }
+        for (var i = k; i < _m; i++) {
+          _u.setUnchecked(i, k, -_u.getUnchecked(i, k));
+        }
+        _u.setUnchecked(k, k, 1.0 + _u.getUnchecked(k, k));
+        for (var i = 0; i < k - 1; i++) {
+          _u.setUnchecked(i, k, 0.0);
+        }
+      } else {
+        for (var i = 0; i < _m; i++) {
+          _u.setUnchecked(i, k, 0.0);
+        }
+        _u.setUnchecked(k, k, 1.0);
       }
     }
 
     // If required, generate V.
-    if (wantv) {
-      for (var k = _n - 1; k >= 0; k--) {
-        if ((k < nrt) && (e[k] != 0.0)) {
-          for (var j = k + 1; j < _u.colCount; j++) {
-            var t = 0.0;
-            for (var i = k + 1; i < _n; i++) {
-              t += _v.getUnchecked(i, k) * _v.getUnchecked(i, j);
-            }
-            t = -t / _v.getUnchecked(k + 1, k);
-            for (var i = k + 1; i < _n; i++) {
-              _v.setUnchecked(
-                  i, j, _v.getUnchecked(i, j) + t * _v.getUnchecked(i, k));
-            }
+    for (var k = _n - 1; k >= 0; k--) {
+      if ((k < nrt) && (e[k] != 0.0)) {
+        for (var j = k + 1; j < _u.colCount; j++) {
+          var t = 0.0;
+          for (var i = k + 1; i < _n; i++) {
+            t += _v.getUnchecked(i, k) * _v.getUnchecked(i, j);
+          }
+          t = -t / _v.getUnchecked(k + 1, k);
+          for (var i = k + 1; i < _n; i++) {
+            _v.setUnchecked(
+                i, j, _v.getUnchecked(i, j) + t * _v.getUnchecked(i, k));
           }
         }
-        for (var i = 0; i < _n; i++) {
-          _v.setUnchecked(i, k, 0.0);
-        }
-        _v.setUnchecked(k, k, 1.0);
       }
+      for (var i = 0; i < _n; i++) {
+        _v.setUnchecked(i, k, 0.0);
+      }
+      _v.setUnchecked(k, k, 1.0);
     }
 
     // Main iteration loop for the singular values.
@@ -283,17 +276,14 @@ class SingularValueDecomposition {
                 f = -sn * e[j - 1];
                 e[j - 1] = cs * e[j - 1];
               }
-              if (wantv) {
-                for (var i = 0; i < _n; i++) {
-                  t = cs * _v.getUnchecked(i, j) +
-                      sn * _v.getUnchecked(i, p - 1);
-                  _v.setUnchecked(
-                      i,
-                      p - 1,
-                      -sn * _v.getUnchecked(i, j) +
-                          cs * _v.getUnchecked(i, p - 1));
-                  _v.setUnchecked(i, j, t);
-                }
+              for (var i = 0; i < _n; i++) {
+                t = cs * _v.getUnchecked(i, j) + sn * _v.getUnchecked(i, p - 1);
+                _v.setUnchecked(
+                    i,
+                    p - 1,
+                    -sn * _v.getUnchecked(i, j) +
+                        cs * _v.getUnchecked(i, p - 1));
+                _v.setUnchecked(i, j, t);
               }
             }
           }
@@ -311,17 +301,15 @@ class SingularValueDecomposition {
               _s[j] = t;
               f = -sn * e[j];
               e[j] = cs * e[j];
-              if (wantu) {
-                for (var i = 0; i < _m; i++) {
-                  t = cs * _u.getUnchecked(i, j) +
-                      sn * _u.getUnchecked(i, k - 1);
-                  _u.setUnchecked(
-                      i,
-                      k - 1,
-                      -sn * _u.getUnchecked(i, j) +
-                          cs * _u.getUnchecked(i, k - 1));
-                  _u.setUnchecked(i, j, t);
-                }
+
+              for (var i = 0; i < _m; i++) {
+                t = cs * _u.getUnchecked(i, j) + sn * _u.getUnchecked(i, k - 1);
+                _u.setUnchecked(
+                    i,
+                    k - 1,
+                    -sn * _u.getUnchecked(i, j) +
+                        cs * _u.getUnchecked(i, k - 1));
+                _u.setUnchecked(i, j, t);
               }
             }
           }
@@ -368,17 +356,14 @@ class SingularValueDecomposition {
               e[j] = cs * e[j] - sn * _s[j];
               g = sn * _s[j + 1];
               _s[j + 1] = cs * _s[j + 1];
-              if (wantv) {
-                for (var i = 0; i < _n; i++) {
-                  t = cs * _v.getUnchecked(i, j) +
-                      sn * _v.getUnchecked(i, j + 1);
-                  _v.setUnchecked(
-                      i,
-                      j + 1,
-                      -sn * _v.getUnchecked(i, j) +
-                          cs * _v.getUnchecked(i, j + 1));
-                  _v.setUnchecked(i, j, t);
-                }
+              for (var i = 0; i < _n; i++) {
+                t = cs * _v.getUnchecked(i, j) + sn * _v.getUnchecked(i, j + 1);
+                _v.setUnchecked(
+                    i,
+                    j + 1,
+                    -sn * _v.getUnchecked(i, j) +
+                        cs * _v.getUnchecked(i, j + 1));
+                _v.setUnchecked(i, j, t);
               }
               t = hypot(f, g);
               cs = f / t;
@@ -388,7 +373,7 @@ class SingularValueDecomposition {
               _s[j + 1] = -sn * e[j] + cs * _s[j + 1];
               g = sn * e[j + 1];
               e[j + 1] = cs * e[j + 1];
-              if (wantu && (j < _m - 1)) {
+              if (j < _m - 1) {
                 for (var i = 0; i < _m; i++) {
                   t = cs * _u.getUnchecked(i, j) +
                       sn * _u.getUnchecked(i, j + 1);
@@ -411,11 +396,10 @@ class SingularValueDecomposition {
           {
             // Make the singular values positive.
             if (_s[k] <= 0.0) {
-              _s[k] = (_s[k] < 0.0 ? -_s[k] : 0.0);
-              if (wantv) {
-                for (var i = 0; i <= pp; i++) {
-                  _v.setUnchecked(i, k, -_v.getUnchecked(i, k));
-                }
+              _s[k] = _s[k] < 0.0 ? -_s[k] : 0.0;
+
+              for (var i = 0; i <= pp; i++) {
+                _v.setUnchecked(i, k, -_v.getUnchecked(i, k));
               }
             }
 
@@ -427,14 +411,14 @@ class SingularValueDecomposition {
               var t = _s[k];
               _s[k] = _s[k + 1];
               _s[k + 1] = t;
-              if (wantv && (k < _n - 1)) {
+              if (k < _n - 1) {
                 for (var i = 0; i < _n; i++) {
                   t = _v.getUnchecked(i, k + 1);
                   _v.setUnchecked(i, k + 1, _v.getUnchecked(i, k));
                   _v.setUnchecked(i, k, t);
                 }
               }
-              if (wantu && (k < _m - 1)) {
+              if (k < _m - 1) {
                 for (var i = 0; i < _m; i++) {
                   t = _u.getUnchecked(i, k + 1);
                   _u.setUnchecked(i, k + 1, _u.getUnchecked(i, k));

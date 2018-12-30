@@ -217,7 +217,7 @@ void integerGroup(IntegerDataType type, bool isSigned, int bits) {
 
 void main() {
   group('object', () {
-    final type = DataType.object;
+    const type = DataType.object;
     test('name', () {
       expect(type.name, 'object');
       expect(type.toString(), 'DataType.object');
@@ -241,7 +241,7 @@ void main() {
     ]);
   });
   group('string', () {
-    final type = DataType.string;
+    const type = DataType.string;
     test('name', () {
       expect(type.name, 'string');
       expect(type.toString(), 'DataType.string');
@@ -264,7 +264,7 @@ void main() {
     ]);
   });
   group('numeric', () {
-    final type = DataType.numeric;
+    const type = DataType.numeric;
     test('name', () {
       expect(type.name, 'numeric');
       expect(type.toString(), 'DataType.numeric');
@@ -288,7 +288,7 @@ void main() {
     ]);
   });
   group('boolean', () {
-    final type = DataType.boolean;
+    const type = DataType.boolean;
     test('name', () {
       expect(type.name, 'boolean');
       expect(type.toString(), 'DataType.boolean');

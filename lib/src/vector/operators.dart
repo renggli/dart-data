@@ -33,7 +33,7 @@ void _checkMatchingDimensions<T>(Vector<T> sourceA, Vector<T> sourceB) {
 }
 
 /// Generic unary operator on a vector.
-Vector<T> unaryOperator<T>(Vector<T> source, T callback(T a),
+Vector<T> unaryOperator<T>(Vector<T> source, T Function(T) callback,
     {Vector<T> target, Builder<T> builder, DataType<T> dataType}) {
   final result = _targetOrBuilderOrDataType(
       source.count, target, builder, dataType ?? source.dataType);
@@ -45,7 +45,7 @@ Vector<T> unaryOperator<T>(Vector<T> source, T callback(T a),
 
 /// Generic binary operator on two equal sized vectors.
 Vector<T> binaryOperator<T>(
-    Vector<T> sourceA, Vector<T> sourceB, T callback(T a, T b),
+    Vector<T> sourceA, Vector<T> sourceB, T Function(T, T) callback,
     {Vector<T> target, Builder<T> builder, DataType<T> dataType}) {
   _checkMatchingDimensions(sourceA, sourceB);
   final result = _targetOrBuilderOrDataType(
@@ -83,7 +83,7 @@ Vector<T> scale<T extends num>(T factor, Vector<T> source,
 
 /// Compares two vectors [sourceA] and [sourceB] with each other.
 bool compare<A, B>(Vector<A> sourceA, Vector<B> sourceB,
-    {bool equals(A a, B b)}) {
+    {bool Function(A, B) equals}) {
   if (identical(sourceA, sourceB)) {
     return true;
   }

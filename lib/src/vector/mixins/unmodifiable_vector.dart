@@ -3,7 +3,7 @@ library data.vector.mixins.unmodifiable_vector;
 import '../vector.dart';
 
 /// Mixin for unmodifiable vectors.
-abstract class UnmodifiableVectorMixin<T> implements Vector<T> {
+mixin UnmodifiableVectorMixin<T> implements Vector<T> {
   @override
   Vector<T> get unmodifiable => this;
 

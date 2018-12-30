@@ -64,16 +64,27 @@ matrix.Matrix<int> magic(int n) {
   }
 }
 
-Printer fixedWidthIntegerToString(int width) => Printer.fixed().padLeft(width);
+/// Printers for console output.
+Printer integerPrinter() => Printer.fixed();
+Printer doublePrinter(int precision) => Printer.fixed(precision: precision);
+Printer alignPrinter(int width) => Printer.standard().padLeft(width);
 
-Printer fixedWidthDoubleToString(int width, int precision) =>
-    Printer.fixed(precision: precision).padLeft(width);
+/// Configuration of output printing.
+const int width = 14;
+const List<String> columns = [
+  'n',
+  'trace',
+  'max_eig',
+  'rank',
+  'cond',
+  'lu_res',
+  'qr_res'
+];
 
 void main() {
   final eps = math.pow(2.0, -52.0);
 
-  print(
-      '      n     trace       max_eig   rank        cond      lu_res      qr_res');
+  print(columns.map(alignPrinter(width)).join());
   print('');
 
   for (var n = 3; n <= 64; n++) {
@@ -83,33 +94,32 @@ void main() {
     final buffer = [];
 
     // Order of magic square.
-    buffer.add(fixedWidthIntegerToString(7)(n));
+    buffer.add(integerPrinter()(n));
 
     // Diagonal sum, should be the magic sum, (n^3 + n)/2.
     {
       final t = vector.sum(m.diagonal());
-      buffer.add(fixedWidthIntegerToString(10)(t));
+      buffer.add(integerPrinter()(t));
     }
 
     // Maximum eigenvalue of (A + A') / 2, should equal trace.
     {
       final e =
           matrix.eigenvalue(matrix.scale(0.5, matrix.add(md, md.transposed)));
-      buffer.add(fixedWidthDoubleToString(14, 3)(e.realEigenvalues.last));
+      buffer.add(doublePrinter(3)(e.realEigenvalues.last));
     }
 
     // Linear algebraic rank, should equal n if n is odd, be less than n if n
     // is even.
     {
       final r = matrix.rank(m);
-      buffer.add(fixedWidthIntegerToString(7)(r));
+      buffer.add(integerPrinter()(r));
     }
 
     // L_2 condition number, ratio of singular values.
     {
       final c = matrix.cond(m);
-      buffer.add(
-          fixedWidthDoubleToString(12, 3)(c < 1 / eps ? c : double.infinity));
+      buffer.add(doublePrinter(3)(c < 1 / eps ? c : double.infinity));
     }
 
     // Test of LU factorization, norm1(L*U-A(p,:))/(n*eps).
@@ -120,7 +130,7 @@ void main() {
       final p = lu.pivot;
       final r = matrix.sub(matrix.mul(l, u), md.rowIndex(p));
       final res = matrix.norm1(r) / (n * eps);
-      buffer.add(fixedWidthDoubleToString(12, 3)(res));
+      buffer.add(doublePrinter(3)(res));
     }
 
     // Test of QR factorization, norm1(Q*R-A)/(n*eps).
@@ -130,9 +140,9 @@ void main() {
       final r = qr.upper;
       final R = matrix.sub(matrix.mul(q, r), m);
       final res = matrix.norm1(R) / (n * eps);
-      buffer.add(fixedWidthDoubleToString(12, 3)(res));
+      buffer.add(doublePrinter(3)(res));
     }
 
-    print(buffer.join(''));
+    print(buffer.map(alignPrinter(width)).join());
   }
 }
