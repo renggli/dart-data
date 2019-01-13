@@ -84,7 +84,7 @@ Vector<T> scale<T extends num>(T factor, Vector<T> source,
 /// Compares two vectors [sourceA] and [sourceB] with each other.
 bool compare<A, B>(Vector<A> sourceA, Vector<B> sourceB,
     {bool Function(A a, B b) equals}) {
-  if (identical(sourceA, sourceB)) {
+  if (equals == null && identical(sourceA, sourceB)) {
     return true;
   }
   if (sourceA.count != sourceB.count) {

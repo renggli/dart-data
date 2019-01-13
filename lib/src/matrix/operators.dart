@@ -87,7 +87,7 @@ Matrix<T> scale<T extends num>(T factor, Matrix<T> source,
 /// Compares two matrices [sourceA] and [sourceB] with each other.
 bool compare<A, B>(Matrix<A> sourceA, Matrix<B> sourceB,
     {bool Function(A a, B b) equals}) {
-  if (identical(sourceA, sourceB)) {
+  if (equals == null && identical(sourceA, sourceB)) {
     return true;
   }
   if (sourceA.rowCount != sourceB.rowCount ||
