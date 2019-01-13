@@ -277,6 +277,10 @@ void vectorTest(String name, Builder builder) {
         expect(readonly[1], 3);
         expect(readonly.unmodifiable, readonly);
       });
+      test('format', () {
+        final vector = builder.withType(DataType.int8).generate(100, (i) => i);
+        expect(vector.format(), '0 1 2 … 97 98 99');
+      });
       test('toString', () {
         final vector = builder.withType(DataType.int8).fromList([3, 2, 1]);
         expect(

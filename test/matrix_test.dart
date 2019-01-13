@@ -400,6 +400,19 @@ void matrixTest(String name, Builder builder) {
         expect(() => matrix.set(matrix.rowCount, 0, 0), throwsRangeError);
         expect(() => matrix.set(0, matrix.colCount, 0), throwsRangeError);
       });
+      test('format', () {
+        final matrix =
+            builder.withType(DataType.uint16).generate(30, 30, (r, c) => r * c);
+        expect(
+            matrix.format(),
+            '0 0 0 … 0 0 0\n'
+            '0 1 2 … 27 28 29\n'
+            '0 2 4 … 54 56 58\n'
+            '⋮ ⋮ ⋮ ⋱ ⋮ ⋮ ⋮\n'
+            '0 27 54 … 729 756 783\n'
+            '0 28 56 … 756 784 812\n'
+            '0 29 58 … 783 812 841');
+      });
       test('toString', () {
         expect(
             matrix.toString(),

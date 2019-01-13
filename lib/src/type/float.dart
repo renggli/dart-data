@@ -40,7 +40,7 @@ class Float32DataType extends FloatDataType {
         exponentPadding: 3,
         exponentSign: Printer.negativeAndPositiveSign(),
         precision: 3,
-      ).padLeft(10);
+      );
 }
 
 class Float64DataType extends FloatDataType {
@@ -57,5 +57,5 @@ class Float64DataType extends FloatDataType {
         exponentPadding: 3,
         exponentSign: Printer.negativeAndPositiveSign(),
         precision: 6,
-      ).padLeft(13);
+      );
 }

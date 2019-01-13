@@ -20,14 +20,16 @@ abstract class Tensor<T> {
   /// Returns a tensor or a scalar at the provided [index].
   Object operator [](int index);
 
-  /// Returns the human readable representation of this tensor.
+  /// Returns a human readable representation of this tensor.
   String format({
     Printer valuePrinter,
+    Printer paddingPrinter,
     bool limit = true,
     int leadingItems = 3,
     int trailingItems = 3,
     String horizontalSeparator = ' ',
     String verticalSeparator = '\n',
+    Printer ellipsesPrinter,
     String horizontalEllipses = '\u2026',
     String verticalEllipses = '\u22ee',
     String diagonalEllipses = '\u22f1',

@@ -38,7 +38,7 @@ class NullableDataType<T> extends DataType<T> {
   int get hashCode => ~delegate.hashCode;
 
   @override
-  Printer get printer => delegate.printer.undefined('null');
+  Printer get printer => delegate.printer.undefined('n/a');
 }
 
 /// A list with null values, where the null values are tracked in a separate

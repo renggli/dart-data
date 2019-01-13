@@ -280,31 +280,53 @@ abstract class Matrix<T> extends Tensor<T> {
   @override
   String format({
     Printer valuePrinter,
+    Printer paddingPrinter,
     bool limit = true,
     int leadingItems = 3,
     int trailingItems = 3,
     String horizontalSeparator = ' ',
     String verticalSeparator = '\n',
+    Printer ellipsesPrinter,
     String horizontalEllipses = '\u2026',
     String verticalEllipses = '\u22ee',
     String diagonalEllipses = '\u22f1',
   }) {
     final buffer = StringBuffer();
+    valuePrinter ??= dataType.printer;
+    paddingPrinter ??= Printer.standard();
+    ellipsesPrinter ??= Printer.standard();
     for (var r = 0; r < rowCount; r++) {
       if (r > 0) {
         buffer.write(verticalSeparator);
       }
       if (limit && leadingItems <= r && r < rowCount - trailingItems) {
-        buffer.write(verticalEllipses);
-        r = rowCount - trailingItems - 1;
-      } else {
-        buffer.write(rowUnchecked(r).format(
-          valuePrinter: valuePrinter,
+        final ellipsesVector = Vector.builder
+            .withType(DataType.string)
+            .constant(colCount, verticalEllipses);
+        buffer.write(ellipsesVector.format(
+          valuePrinter: ellipsesPrinter,
+          paddingPrinter: paddingPrinter,
           limit: limit,
           leadingItems: leadingItems,
           trailingItems: trailingItems,
           horizontalSeparator: horizontalSeparator,
           verticalSeparator: verticalSeparator,
+          ellipsesPrinter: ellipsesPrinter,
+          horizontalEllipses: diagonalEllipses,
+          verticalEllipses: verticalEllipses,
+          diagonalEllipses: diagonalEllipses,
+        ));
+        r = rowCount - trailingItems - 1;
+      } else {
+        buffer.write(rowUnchecked(r).format(
+          valuePrinter: valuePrinter,
+          paddingPrinter: paddingPrinter,
+          limit: limit,
+          leadingItems: leadingItems,
+          trailingItems: trailingItems,
+          horizontalSeparator: horizontalSeparator,
+          verticalSeparator: verticalSeparator,
+          ellipsesPrinter: ellipsesPrinter,
           horizontalEllipses: horizontalEllipses,
           verticalEllipses: verticalEllipses,
           diagonalEllipses: diagonalEllipses,

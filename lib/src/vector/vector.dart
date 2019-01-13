@@ -94,26 +94,30 @@ abstract class Vector<T> extends Tensor<T> {
   @override
   String format({
     Printer valuePrinter,
+    Printer paddingPrinter,
     bool limit = true,
     int leadingItems = 3,
     int trailingItems = 3,
     String horizontalSeparator = ' ',
     String verticalSeparator = '\n',
+    Printer ellipsesPrinter,
     String horizontalEllipses = '\u2026',
     String verticalEllipses = '\u22ee',
     String diagonalEllipses = '\u22f1',
   }) {
     final buffer = StringBuffer();
-    final printer = valuePrinter ?? dataType.printer;
+    valuePrinter ??= dataType.printer;
+    paddingPrinter ??= Printer.standard();
+    ellipsesPrinter ??= Printer.standard();
     for (var i = 0; i < count; i++) {
       if (i > 0) {
         buffer.write(horizontalSeparator);
       }
       if (limit && leadingItems <= i && i < count - trailingItems) {
-        buffer.write(horizontalEllipses);
+        buffer.write(paddingPrinter(ellipsesPrinter(horizontalEllipses)));
         i = count - trailingItems - 1;
       } else {
-        buffer.write(printer(getUnchecked(i)));
+        buffer.write(paddingPrinter(valuePrinter(getUnchecked(i))));
       }
     }
     return buffer.toString();
