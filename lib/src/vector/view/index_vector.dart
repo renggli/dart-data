@@ -1,4 +1,4 @@
-library data.vector.view.index_vector;
+library data.vector.view.index;
 
 import 'package:data/src/shared/config.dart';
 import 'package:data/src/vector/vector.dart';

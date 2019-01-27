@@ -1,4 +1,4 @@
-library data.vector.impl.constant;
+library data.vector.view.constant;
 
 import 'package:data/src/vector/mixins/unmodifiable_vector.dart';
 import 'package:data/src/vector/vector.dart';

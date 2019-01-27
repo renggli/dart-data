@@ -1,4 +1,4 @@
-library data.matrix.impl.column_major_matrix;
+library data.matrix.impl.column_major;
 
 import 'package:data/src/matrix/matrix.dart';
 import 'package:data/type.dart';

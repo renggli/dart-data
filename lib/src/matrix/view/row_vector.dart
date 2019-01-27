@@ -1,4 +1,4 @@
-library data.matrix.view.row_vector;
+library data.matrix.view.row;
 
 import 'package:data/src/matrix/matrix.dart';
 import 'package:data/tensor.dart';

@@ -1,4 +1,4 @@
-library data.matrix.impl.keyed_matrix;
+library data.matrix.impl.keyed;
 
 import 'package:data/src/matrix/matrix.dart';
 import 'package:data/type.dart';

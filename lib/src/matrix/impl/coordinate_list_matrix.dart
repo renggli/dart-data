@@ -1,4 +1,4 @@
-library data.matrix.impl.coordinate_list_matrix;
+library data.matrix.impl.coordinate_list;
 
 import 'package:data/src/matrix/matrix.dart';
 import 'package:data/src/shared/config.dart';

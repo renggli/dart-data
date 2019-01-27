@@ -7,8 +7,8 @@ import 'package:data/src/matrix/decomposition/eigen.dart';
 import 'package:data/src/matrix/decomposition/lu.dart';
 import 'package:data/src/matrix/decomposition/qr.dart';
 import 'package:data/src/matrix/decomposition/singular_value.dart';
-import 'package:data/src/matrix/impl/identity_matrix.dart';
 import 'package:data/src/matrix/matrix.dart';
+import 'package:data/src/matrix/view/identity_matrix.dart';
 import 'package:data/src/shared/config.dart';
 import 'package:data/src/shared/math.dart';
 

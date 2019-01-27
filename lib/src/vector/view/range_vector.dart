@@ -1,4 +1,4 @@
-library data.vector.view.range_vector;
+library data.vector.view.range;
 
 import 'package:data/src/vector/vector.dart';
 import 'package:data/tensor.dart';

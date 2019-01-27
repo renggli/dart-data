@@ -1,4 +1,4 @@
-library data.matrix.view.column_vector;
+library data.matrix.view.column;
 
 import 'package:data/src/matrix/matrix.dart';
 import 'package:data/tensor.dart';

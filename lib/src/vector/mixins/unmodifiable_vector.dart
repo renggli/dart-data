@@ -1,4 +1,4 @@
-library data.vector.mixins.unmodifiable_vector;
+library data.vector.mixins.unmodifiable;
 
 import 'package:data/src/vector/vector.dart';
 

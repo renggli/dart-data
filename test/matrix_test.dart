@@ -112,6 +112,24 @@ void matrixTest(String name, Builder builder) {
             expect(matrix.get(r, c), '($r, $c)');
           }
         }
+        matrix.set(0, 0, '*');
+        expect(matrix.get(0, 0), '*');
+      });
+      test('generate, lazy', () {
+        final matrix = builder
+            .withType(DataType.string)
+            .generate(7, 8, (row, col) => '($row, $col)', lazy: true);
+        expect(matrix.dataType, DataType.string);
+        expect(matrix.rowCount, 7);
+        expect(matrix.colCount, 8);
+        expect(matrix.shape, [matrix.rowCount, matrix.colCount]);
+        expect(matrix.storage, [matrix]);
+        for (var r = 0; r < matrix.rowCount; r++) {
+          for (var c = 0; c < matrix.colCount; c++) {
+            expect(matrix.get(r, c), '($r, $c)');
+          }
+        }
+        expect(() => matrix.set(0, 0, '*'), throwsUnsupportedError);
       });
       test('transform', () {
         final source = builder
@@ -130,6 +148,27 @@ void matrixTest(String name, Builder builder) {
             expect(matrix.get(r, c), '($r, $c): Point($r, $c)');
           }
         }
+        matrix.set(0, 0, '*');
+        expect(matrix.get(0, 0), '*');
+      });
+      test('transform, lazy', () {
+        final source = builder
+            .withType(DataType.object)
+            .generate(8, 7, (row, col) => Point(row, col));
+        final matrix = builder.withType(DataType.string).transform(
+            source, (row, col, value) => '($row, $col): $value',
+            lazy: true);
+        expect(matrix.dataType, DataType.string);
+        expect(matrix.rowCount, 8);
+        expect(matrix.colCount, 7);
+        expect(matrix.shape, [matrix.rowCount, matrix.colCount]);
+        expect(matrix.storage, [source]);
+        for (var r = 0; r < matrix.rowCount; r++) {
+          for (var c = 0; c < matrix.colCount; c++) {
+            expect(matrix.get(r, c), '($r, $c): Point($r, $c)');
+          }
+        }
+        expect(() => matrix.set(0, 0, '*'), throwsUnsupportedError);
       });
       test('fromMatrix', () {
         final source = builder
@@ -1143,162 +1182,164 @@ void matrixTest(String name, Builder builder) {
         });
       });
     });
-  });
-  group('decomposition', () {
-    // Decomposition primarily works with floating point matrices:
-    final factory = builder.withType(DataType.float64);
-    // Comparator for floating point numbers:
-    final epsilon = pow(2.0, -32.0);
-    void expectMatrix(Matrix<num> expected, Matrix<num> actual) => expect(
-          compare<num, num>(actual, expected,
-              equals: (a, b) => (a - b).abs() <= epsilon),
-          isTrue,
-          reason: 'Expected $expected, but got $actual.',
-        );
-    // Example matrices:
-    final matrix3 = factory.fromRows([
-      [1.0, 4.0, 7.0, 10.0],
-      [2.0, 5.0, 8.0, 11.0],
-      [3.0, 6.0, 9.0, 12.0],
-    ]);
-    final matrix4 = factory.fromRows([
-      [1.0, 5.0, 9.0],
-      [2.0, 6.0, 10.0],
-      [3.0, 7.0, 11.0],
-      [4.0, 8.0, 12.0],
-    ]);
-    test('norm1', () {
-      final result = norm1(matrix3);
-      expect(result, closeTo(33.0, epsilon));
-    });
-    test('normInf', () {
-      final result = normInfinity(matrix3);
-      expect(result, closeTo(30.0, epsilon));
-    });
-    test('normFrobenius', () {
-      final result = normFrobenius(matrix3);
-      expect(result, closeTo(sqrt(650), epsilon));
-    });
-    test('trace', () {
-      final result = trace(matrix3);
-      expect(result, closeTo(15.0, epsilon));
-    });
-    test('det', () {
-      final result =
-          det(matrix3.range(0, matrix3.rowCount, 0, matrix3.rowCount));
-      expect(result, closeTo(0.0, epsilon));
-    });
-    test('QR Decomposition', () {
-      final decomp = qr(matrix4);
-      final result = mul(decomp.orthogonal, decomp.upper);
-      expectMatrix(matrix4, result);
-    });
-    test('Singular Value Decomposition', () {
-      final decomp = singularValue(matrix4);
-      final result = mul(decomp.U, mul(decomp.S, decomp.V.transposed));
-      expectMatrix(matrix4, result);
-    });
-    test('LU Decomposition', () {
-      final matrix =
-          matrix4.range(0, matrix4.colCount - 1, 0, matrix4.colCount - 1);
-      final decomp = lu(matrix);
-      final result1 = matrix.rowIndex(decomp.pivot);
-      final result2 = mul(decomp.lower, decomp.upper);
-      expectMatrix(result1, result2);
-    });
-    test('rank', () {
-      final result = rank(matrix3);
-      expect(result, min(matrix3.rowCount, matrix3.colCount) - 1);
-    });
-    test('cond', () {
-      final matrix = factory.fromRows([
-        [1.0, 3.0],
-        [7.0, 9.0],
+    group('decomposition', () {
+      // Decomposition primarily works with floating point matrices:
+      final factory = builder.withType(DataType.float64);
+      // Comparator for floating point numbers:
+      final epsilon = pow(2.0, -32.0);
+      void expectMatrix(Matrix<num> expected, Matrix<num> actual) => expect(
+            compare<num, num>(actual, expected,
+                equals: (a, b) => (a - b).abs() <= epsilon),
+            isTrue,
+            reason: 'Expected $expected, but got $actual.',
+          );
+      // Example matrices:
+      final matrix3 = factory.fromRows([
+        [1.0, 4.0, 7.0, 10.0],
+        [2.0, 5.0, 8.0, 11.0],
+        [3.0, 6.0, 9.0, 12.0],
       ]);
-      final decomp = singularValue(matrix);
-      final singularValues = decomp.s;
-      expect(
-          cond(matrix),
-          singularValues[0] /
-              singularValues[min(matrix.rowCount, matrix.colCount) - 1]);
-    });
-    test('inverse', () {
-      final matrix = factory.fromRows([
-        [0.0, 5.0, 9.0],
+      final matrix4 = factory.fromRows([
+        [1.0, 5.0, 9.0],
         [2.0, 6.0, 10.0],
         [3.0, 7.0, 11.0],
+        [4.0, 8.0, 12.0],
       ]);
-      final actual = mul(matrix, inverse(matrix));
-      final expected = factory.identity(matrix.rowCount, matrix.colCount, 1.0);
-      expectMatrix(expected, actual);
-    });
-    test('solve', () {
-      final first = factory.fromRows([
-        [5.0, 8.0],
-        [6.0, 9.0],
-      ]);
-      final second = factory.fromRows([
-        [13.0],
-        [15.0],
-      ]);
-      final actual = solve(first, second);
-      final expected = factory.constant(second.rowCount, second.colCount, 1.0);
-      expectMatrix(expected, actual);
-    });
-    group('choleski', () {
-      final matrix = factory.fromRows([
-        [4.0, 1.0, 1.0],
-        [1.0, 2.0, 3.0],
-        [1.0, 3.0, 6.0],
-      ]);
-      final decomposition = cholesky(matrix);
-      test('triangular factor', () {
-        final triangularFactor = decomposition.L;
-        expectMatrix(
-            matrix, mul(triangularFactor, triangularFactor.transposed));
+      test('norm1', () {
+        final result = norm1(matrix3);
+        expect(result, closeTo(33.0, epsilon));
+      });
+      test('normInf', () {
+        final result = normInfinity(matrix3);
+        expect(result, closeTo(30.0, epsilon));
+      });
+      test('normFrobenius', () {
+        final result = normFrobenius(matrix3);
+        expect(result, closeTo(sqrt(650), epsilon));
+      });
+      test('trace', () {
+        final result = trace(matrix3);
+        expect(result, closeTo(15.0, epsilon));
+      });
+      test('det', () {
+        final result =
+            det(matrix3.range(0, matrix3.rowCount, 0, matrix3.rowCount));
+        expect(result, closeTo(0.0, epsilon));
+      });
+      test('QR Decomposition', () {
+        final decomp = qr(matrix4);
+        final result = mul(decomp.orthogonal, decomp.upper);
+        expectMatrix(matrix4, result);
+      });
+      test('Singular Value Decomposition', () {
+        final decomp = singularValue(matrix4);
+        final result = mul(decomp.U, mul(decomp.S, decomp.V.transposed));
+        expectMatrix(matrix4, result);
+      });
+      test('LU Decomposition', () {
+        final matrix =
+            matrix4.range(0, matrix4.colCount - 1, 0, matrix4.colCount - 1);
+        final decomp = lu(matrix);
+        final result1 = matrix.rowIndex(decomp.pivot);
+        final result2 = mul(decomp.lower, decomp.upper);
+        expectMatrix(result1, result2);
+      });
+      test('rank', () {
+        final result = rank(matrix3);
+        expect(result, min(matrix3.rowCount, matrix3.colCount) - 1);
+      });
+      test('cond', () {
+        final matrix = factory.fromRows([
+          [1.0, 3.0],
+          [7.0, 9.0],
+        ]);
+        final decomp = singularValue(matrix);
+        final singularValues = decomp.s;
+        expect(
+            cond(matrix),
+            singularValues[0] /
+                singularValues[min(matrix.rowCount, matrix.colCount) - 1]);
+      });
+      test('inverse', () {
+        final matrix = factory.fromRows([
+          [0.0, 5.0, 9.0],
+          [2.0, 6.0, 10.0],
+          [3.0, 7.0, 11.0],
+        ]);
+        final actual = mul(matrix, inverse(matrix));
+        final expected =
+            factory.identity(matrix.rowCount, matrix.colCount, 1.0);
+        expectMatrix(expected, actual);
       });
       test('solve', () {
-        final identity = factory.identity(3, 3, 1.0);
-        final solution = decomposition.solve(identity);
-        expectMatrix(identity, mul(matrix, solution));
+        final first = factory.fromRows([
+          [5.0, 8.0],
+          [6.0, 9.0],
+        ]);
+        final second = factory.fromRows([
+          [13.0],
+          [15.0],
+        ]);
+        final actual = solve(first, second);
+        final expected =
+            factory.constant(second.rowCount, second.colCount, 1.0);
+        expectMatrix(expected, actual);
       });
-    });
-    group('eigen', () {
-      test('symmetric', () {
-        final a = factory.fromRows([
+      group('choleski', () {
+        final matrix = factory.fromRows([
           [4.0, 1.0, 1.0],
           [1.0, 2.0, 3.0],
           [1.0, 3.0, 6.0],
         ]);
-        final decomposition = eigenvalue(a);
-        final d = decomposition.D;
-        final v = decomposition.V;
-        expectMatrix(mul(a, v), mul(v, d));
+        final decomposition = cholesky(matrix);
+        test('triangular factor', () {
+          final triangularFactor = decomposition.L;
+          expectMatrix(
+              matrix, mul(triangularFactor, triangularFactor.transposed));
+        });
+        test('solve', () {
+          final identity = factory.identity(3, 3, 1.0);
+          final solution = decomposition.solve(identity);
+          expectMatrix(identity, mul(matrix, solution));
+        });
       });
-      test('non-symmetric', () {
-        final a = factory.fromRows([
-          [0.0, 1.0, 0.0, 0.0],
-          [1.0, 0.0, 2.0e-7, 0.0],
-          [0.0, -2.0e-7, 0.0, 1.0],
-          [0.0, 0.0, 1.0, 0.0],
-        ]);
-        final decomposition = eigenvalue(a);
-        final d = decomposition.D;
-        final v = decomposition.V;
-        expectMatrix(mul(a, v), mul(v, d));
-      });
-      test('bad', () {
-        final a = factory.fromRows([
-          [0.0, 0.0, 0.0, 0.0, 0.0],
-          [0.0, 0.0, 0.0, 0.0, 1.0],
-          [0.0, 0.0, 0.0, 1.0, 0.0],
-          [1.0, 1.0, 0.0, 0.0, 1.0],
-          [1.0, 0.0, 1.0, 0.0, 1.0],
-        ]);
-        final decomposition = eigenvalue(a);
-        final d = decomposition.D;
-        final v = decomposition.V;
-        expectMatrix(mul(a, v), mul(v, d));
+      group('eigen', () {
+        test('symmetric', () {
+          final a = factory.fromRows([
+            [4.0, 1.0, 1.0],
+            [1.0, 2.0, 3.0],
+            [1.0, 3.0, 6.0],
+          ]);
+          final decomposition = eigenvalue(a);
+          final d = decomposition.D;
+          final v = decomposition.V;
+          expectMatrix(mul(a, v), mul(v, d));
+        });
+        test('non-symmetric', () {
+          final a = factory.fromRows([
+            [0.0, 1.0, 0.0, 0.0],
+            [1.0, 0.0, 2.0e-7, 0.0],
+            [0.0, -2.0e-7, 0.0, 1.0],
+            [0.0, 0.0, 1.0, 0.0],
+          ]);
+          final decomposition = eigenvalue(a);
+          final d = decomposition.D;
+          final v = decomposition.V;
+          expectMatrix(mul(a, v), mul(v, d));
+        });
+        test('bad', () {
+          final a = factory.fromRows([
+            [0.0, 0.0, 0.0, 0.0, 0.0],
+            [0.0, 0.0, 0.0, 0.0, 1.0],
+            [0.0, 0.0, 0.0, 1.0, 0.0],
+            [1.0, 1.0, 0.0, 0.0, 1.0],
+            [1.0, 0.0, 1.0, 0.0, 1.0],
+          ]);
+          final decomposition = eigenvalue(a);
+          final d = decomposition.D;
+          final v = decomposition.V;
+          expectMatrix(mul(a, v), mul(v, d));
+        });
       });
     });
   });

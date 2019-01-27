@@ -1,18 +1,17 @@
 library data.matrix.builder;
 
-import 'dart:math' as math;
-
 import 'package:data/src/matrix/format.dart';
 import 'package:data/src/matrix/impl/column_major_matrix.dart';
 import 'package:data/src/matrix/impl/compressed_column_matrix.dart';
 import 'package:data/src/matrix/impl/compressed_row_matrix.dart';
-import 'package:data/src/matrix/impl/constant_matrix.dart';
 import 'package:data/src/matrix/impl/coordinate_list_matrix.dart';
 import 'package:data/src/matrix/impl/diagonal_matrix.dart';
-import 'package:data/src/matrix/impl/identity_matrix.dart';
 import 'package:data/src/matrix/impl/keyed_matrix.dart';
 import 'package:data/src/matrix/impl/row_major_matrix.dart';
 import 'package:data/src/matrix/matrix.dart';
+import 'package:data/src/matrix/view/constant_matrix.dart';
+import 'package:data/src/matrix/view/generated_matrix.dart';
+import 'package:data/src/matrix/view/identity_matrix.dart';
 import 'package:data/type.dart';
 import 'package:data/vector.dart' show Vector;
 
@@ -87,55 +86,31 @@ class Builder<T> {
   /// Builds a matrix with a constant [value].
   Matrix<T> constant(int rowCount, int colCount, T value,
       {bool mutable = false}) {
-    if (mutable) {
-      final result = this(rowCount, colCount);
-      for (var r = 0; r < rowCount; r++) {
-        for (var c = 0; c < colCount; c++) {
-          result.setUnchecked(r, c, value);
-        }
-      }
-      return result;
-    } else {
-      return ConstantMatrix(type, rowCount, colCount, value);
-    }
+    final result = ConstantMatrix(type, rowCount, colCount, value);
+    return mutable ? fromMatrix(result) : result;
   }
 
   /// Builds an identity matrix with a constant [value].
   Matrix<T> identity(int rowCount, int colCount, T value,
       {bool mutable = false}) {
-    if (mutable) {
-      final result = this(rowCount, colCount);
-      for (var i = 0; i < math.min(rowCount, colCount); i++) {
-        result.setUnchecked(i, i, value);
-      }
-      return result;
-    } else {
-      return IdentityMatrix(type, rowCount, colCount, value);
-    }
+    final result = IdentityMatrix(type, rowCount, colCount, value);
+    return mutable ? fromMatrix(result) : result;
   }
 
   /// Builds a matrix from calling a [callback] on every value.
   Matrix<T> generate(
-      int rowCount, int colCount, T Function(int row, int col) callback) {
-    final result = this(rowCount, colCount);
-    for (var r = 0; r < rowCount; r++) {
-      for (var c = 0; c < colCount; c++) {
-        result.setUnchecked(r, c, callback(r, c));
-      }
-    }
-    return result;
+      int rowCount, int colCount, T Function(int row, int col) callback,
+      {bool lazy = false}) {
+    final result = GeneratedMatrix(type, rowCount, colCount, callback);
+    return lazy ? result : fromMatrix(result);
   }
 
   /// Builds a matrix by transforming another matrix with [callback].
   Matrix<T> transform<S>(
-      Matrix<S> source, T Function(int row, int col, S input) callback) {
-    final result = this(source.rowCount, source.colCount);
-    for (var r = 0; r < result.rowCount; r++) {
-      for (var c = 0; c < result.colCount; c++) {
-        result.setUnchecked(r, c, callback(r, c, source.getUnchecked(r, c)));
-      }
-    }
-    return result;
+      Matrix<S> source, T Function(int row, int col, S input) callback,
+      {bool lazy = false}) {
+    final result = source.map(callback, type);
+    return lazy ? result : fromMatrix(result);
   }
 
   /// Builds a matrix from another matrix.

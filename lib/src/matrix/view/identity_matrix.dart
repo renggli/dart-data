@@ -1,14 +1,14 @@
-library data.matrix.impl.constant_matrix;
+library data.matrix.view.identity;
 
 import 'package:data/src/matrix/matrix.dart';
 import 'package:data/src/matrix/mixins/unmodifiable_matrix.dart';
 import 'package:data/type.dart';
 
-/// Read-only matrix with a constant value.
-class ConstantMatrix<T> extends Matrix<T> with UnmodifiableMatrixMixin<T> {
+/// Read-only identity matrix.
+class IdentityMatrix<T> extends Matrix<T> with UnmodifiableMatrixMixin<T> {
   final T _value;
 
-  ConstantMatrix(this.dataType, this.rowCount, this.colCount, this._value);
+  IdentityMatrix(this.dataType, this.rowCount, this.colCount, this._value);
 
   @override
   final DataType<T> dataType;
@@ -23,5 +23,5 @@ class ConstantMatrix<T> extends Matrix<T> with UnmodifiableMatrixMixin<T> {
   Matrix<T> copy() => this;
 
   @override
-  T getUnchecked(int row, int col) => _value;
+  T getUnchecked(int row, int col) => row == col ? _value : dataType.nullValue;
 }

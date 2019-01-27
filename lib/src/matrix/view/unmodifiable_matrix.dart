@@ -1,4 +1,4 @@
-library data.matrix.view.unmodifiable_matrix;
+library data.matrix.view.unmodifiable;
 
 import 'package:data/src/matrix/matrix.dart';
 import 'package:data/src/matrix/mixins/unmodifiable_matrix.dart';

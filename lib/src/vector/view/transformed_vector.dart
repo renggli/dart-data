@@ -1,18 +1,17 @@
-library data.matrix.view.mapped_matrix;
+library data.matrix.view.transformed;
 
 import 'package:data/src/vector/mixins/unmodifiable_vector.dart';
 import 'package:data/src/vector/vector.dart';
 import 'package:data/tensor.dart';
 import 'package:data/type.dart';
 
-typedef VectorTransformation<S, T> = T Function(int index, S value);
-
 /// Read-only transformed vector.
-class MappedVector<S, T> extends Vector<T> with UnmodifiableVectorMixin<T> {
+class TransformedVector<S, T> extends Vector<T>
+    with UnmodifiableVectorMixin<T> {
   final Vector<S> _vector;
-  final VectorTransformation<S, T> _callback;
+  final T Function(int index, S value) _callback;
 
-  MappedVector(this._vector, this._callback, this.dataType);
+  TransformedVector(this._vector, this._callback, this.dataType);
 
   @override
   final DataType<T> dataType;
@@ -24,7 +23,7 @@ class MappedVector<S, T> extends Vector<T> with UnmodifiableVectorMixin<T> {
   Set<Tensor> get storage => _vector.storage;
 
   @override
-  Vector<T> copy() => MappedVector(_vector.copy(), _callback, dataType);
+  Vector<T> copy() => TransformedVector(_vector.copy(), _callback, dataType);
 
   @override
   T getUnchecked(int index) => _callback(index, _vector.getUnchecked(index));

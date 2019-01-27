@@ -1,4 +1,4 @@
-library data.matrix.impl.compressed_column_matrix;
+library data.matrix.impl.compressed_column;
 
 import 'package:data/src/matrix/matrix.dart';
 import 'package:data/src/shared/config.dart';

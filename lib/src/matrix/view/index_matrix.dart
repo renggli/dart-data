@@ -1,4 +1,4 @@
-library data.matrix.view.index_matrix;
+library data.matrix.view.index;
 
 import 'package:data/src/matrix/matrix.dart';
 import 'package:data/src/shared/config.dart';

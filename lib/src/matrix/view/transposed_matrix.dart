@@ -1,4 +1,4 @@
-library data.matrix.view.transposed_matrix;
+library data.matrix.view.transposed;
 
 import 'package:data/src/matrix/matrix.dart';
 import 'package:data/tensor.dart';

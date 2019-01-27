@@ -5,9 +5,9 @@ import 'package:data/src/matrix/format.dart';
 import 'package:data/src/matrix/view/column_vector.dart';
 import 'package:data/src/matrix/view/diagonal_vector.dart';
 import 'package:data/src/matrix/view/index_matrix.dart';
-import 'package:data/src/matrix/view/mapped_matrix.dart';
 import 'package:data/src/matrix/view/range_matrix.dart';
 import 'package:data/src/matrix/view/row_vector.dart';
+import 'package:data/src/matrix/view/transformed_matrix.dart';
 import 'package:data/src/matrix/view/transposed_matrix.dart';
 import 'package:data/src/matrix/view/unmodifiable_matrix.dart';
 import 'package:data/tensor.dart' show Tensor;
@@ -209,8 +209,9 @@ abstract class Matrix<T> extends Tensor<T> {
 
   /// Returns a lazy [Matrix] with elements that are created by calling
   /// `callback` on each element of this `Matrix`.
-  Matrix<S> map<S>(MatrixTransformation<T, S> callback, DataType<S> dataType) =>
-      MappedMatrix<T, S>(this, callback, dataType);
+  Matrix<S> map<S>(S Function(int row, int col, T value) callback,
+          DataType<S> dataType) =>
+      TransformedMatrix<T, S>(this, callback, dataType);
 
   /// Returns a mutable view onto the transposed matrix.
   Matrix<T> get transposed => TransposedMatrix<T>(this);

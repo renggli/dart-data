@@ -55,6 +55,21 @@ void vectorTest(String name, Builder builder) {
         for (var i = 0; i < vector.count; i++) {
           expect(vector[i], '$i');
         }
+        vector[3] = '*';
+        expect(vector[3], '*');
+      });
+      test('generate, lazy', () {
+        final vector = builder
+            .withType(DataType.string)
+            .generate(7, (i) => '$i', lazy: true);
+        expect(vector.dataType, DataType.string);
+        expect(vector.count, 7);
+        expect(vector.shape, [vector.count]);
+        expect(vector.storage, [vector]);
+        for (var i = 0; i < vector.count; i++) {
+          expect(vector[i], '$i');
+        }
+        expect(() => vector[3] = '*', throwsUnsupportedError);
       });
       test('transform', () {
         final source =
@@ -69,6 +84,23 @@ void vectorTest(String name, Builder builder) {
         for (var i = 0; i < vector.count; i++) {
           expect(vector[i], '$i: ${2 * i}');
         }
+        vector[3] = '*';
+        expect(vector[3], '*');
+      });
+      test('transform, lazy', () {
+        final source =
+            builder.withType(DataType.int8).generate(9, (i) => 2 * i);
+        final vector = builder
+            .withType(DataType.string)
+            .transform(source, (index, value) => '$index: $value', lazy: true);
+        expect(vector.dataType, DataType.string);
+        expect(vector.count, 9);
+        expect(vector.shape, [vector.count]);
+        expect(vector.storage, [source]);
+        for (var i = 0; i < vector.count; i++) {
+          expect(vector[i], '$i: ${2 * i}');
+        }
+        expect(() => vector[3] = '*', throwsUnsupportedError);
       });
       test('fromVector', () {
         final source =

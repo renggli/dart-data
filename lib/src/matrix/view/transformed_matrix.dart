@@ -1,18 +1,17 @@
-library data.matrix.view.mapped_matrix;
+library data.matrix.view.transformed;
 
 import 'package:data/src/matrix/matrix.dart';
 import 'package:data/src/matrix/mixins/unmodifiable_matrix.dart';
 import 'package:data/tensor.dart';
 import 'package:data/type.dart';
 
-typedef MatrixTransformation<S, T> = T Function(int row, int col, S value);
-
 /// Read-only transformed matrix.
-class MappedMatrix<S, T> extends Matrix<T> with UnmodifiableMatrixMixin<T> {
+class TransformedMatrix<S, T> extends Matrix<T>
+    with UnmodifiableMatrixMixin<T> {
   final Matrix<S> _matrix;
-  final MatrixTransformation<S, T> _callback;
+  final T Function(int row, int col, S value) _callback;
 
-  MappedMatrix(this._matrix, this._callback, this.dataType);
+  TransformedMatrix(this._matrix, this._callback, this.dataType);
 
   @override
   final DataType<T> dataType;
@@ -27,7 +26,7 @@ class MappedMatrix<S, T> extends Matrix<T> with UnmodifiableMatrixMixin<T> {
   Set<Tensor> get storage => _matrix.storage;
 
   @override
-  Matrix<T> copy() => MappedMatrix(_matrix.copy(), _callback, dataType);
+  Matrix<T> copy() => TransformedMatrix(_matrix.copy(), _callback, dataType);
 
   @override
   T getUnchecked(int row, int col) =>

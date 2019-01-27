@@ -1,4 +1,4 @@
-library data.matrix.impl.diagonal_matrix;
+library data.matrix.impl.diagonal;
 
 import 'dart:math' as math;
 

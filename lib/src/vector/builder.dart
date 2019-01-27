@@ -1,11 +1,12 @@
 library data.vector.builder;
 
 import 'package:data/src/vector/format.dart';
-import 'package:data/src/vector/impl/constant_vector.dart';
 import 'package:data/src/vector/impl/keyed_vector.dart';
 import 'package:data/src/vector/impl/list_vector.dart';
 import 'package:data/src/vector/impl/standard_vector.dart';
 import 'package:data/src/vector/vector.dart';
+import 'package:data/src/vector/view/constant_vector.dart';
+import 'package:data/src/vector/view/generated_vector.dart';
 import 'package:data/type.dart';
 
 /// Builds a vector of a custom type.
@@ -53,34 +54,23 @@ class Builder<T> {
 
   /// Builds a vector with a constant [value].
   Vector<T> constant(int count, T value, {bool mutable = false}) {
-    if (mutable) {
-      final result = this(count);
-      for (var i = 0; i < count; i++) {
-        result.setUnchecked(i, value);
-      }
-      return result;
-    } else {
-      return ConstantVector(type, count, value);
-    }
+    final result = ConstantVector(type, count, value);
+    return mutable ? fromVector(result) : result;
   }
 
   /// Builds a vector from calling a [callback] on every value.
-  Vector<T> generate(int count, T Function(int index) callback) {
-    final result = this(count);
-    for (var i = 0; i < count; i++) {
-      result.setUnchecked(i, callback(i));
-    }
-    return result;
+  Vector<T> generate(int count, T Function(int index) callback,
+      {bool lazy = false}) {
+    final result = GeneratedVector(type, count, callback);
+    return lazy ? result : fromVector(result);
   }
 
   /// Builds a vector by transforming another one with a [callback].
   Vector<T> transform<S>(
-      Vector<S> source, T Function(int index, S value) callback) {
-    final result = this(source.count);
-    for (var i = 0; i < result.count; i++) {
-      result.setUnchecked(i, callback(i, source.getUnchecked(i)));
-    }
-    return result;
+      Vector<S> source, T Function(int index, S value) callback,
+      {bool lazy = false}) {
+    final result = source.map(callback, type);
+    return lazy ? result : fromVector(result);
   }
 
   /// Builds a vector from another vector.

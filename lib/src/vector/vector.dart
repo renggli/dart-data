@@ -3,8 +3,8 @@ library data.vector.vector;
 import 'package:data/src/vector/builder.dart';
 import 'package:data/src/vector/format.dart';
 import 'package:data/src/vector/view/index_vector.dart';
-import 'package:data/src/vector/view/mapped_vector.dart';
 import 'package:data/src/vector/view/range_vector.dart';
+import 'package:data/src/vector/view/transformed_vector.dart';
 import 'package:data/src/vector/view/unmodifiable_vector.dart';
 import 'package:data/tensor.dart' show Tensor;
 import 'package:data/type.dart' show DataType;
@@ -83,8 +83,9 @@ abstract class Vector<T> extends Tensor<T> {
 
   /// Returns a lazy [Vector] with elements that are created by calling
   /// `callback` on each element of this `Vector`.
-  Vector<S> map<S>(VectorTransformation<T, S> callback, DataType<S> dataType) =>
-      MappedVector<T, S>(this, callback, dataType);
+  Vector<S> map<S>(
+          S Function(int index, T value) callback, DataType<S> dataType) =>
+      TransformedVector<T, S>(this, callback, dataType);
 
   /// Returns a unmodifiable view of the vector.
   Vector<T> get unmodifiable => UnmodifiableVector<T>(this);
