@@ -3,10 +3,9 @@ library data.type.nullable;
 import 'dart:collection' show ListBase;
 
 import 'package:collection/collection.dart' show NonGrowableListMixin;
+import 'package:data/src/type/type.dart';
 import 'package:more/collection.dart' show BitList;
 import 'package:more/printer.dart' show Printer;
-
-import 'type.dart';
 
 /// Some [DataType] instances do not support `null` values in the way they
 /// represent their data. This wrapper turns those types into nullable ones.

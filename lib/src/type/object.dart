@@ -1,6 +1,6 @@
 library data.type.object;
 
-import 'type.dart';
+import 'package:data/src/type/type.dart';
 
 class ObjectDataType<T> extends DataType<T> {
   const ObjectDataType();

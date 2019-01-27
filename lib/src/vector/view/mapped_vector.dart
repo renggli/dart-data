@@ -1,10 +1,9 @@
 library data.matrix.view.mapped_matrix;
 
+import 'package:data/src/vector/mixins/unmodifiable_vector.dart';
+import 'package:data/src/vector/vector.dart';
 import 'package:data/tensor.dart';
 import 'package:data/type.dart';
-
-import '../mixins/unmodifiable_vector.dart';
-import '../vector.dart';
 
 typedef VectorTransformation<S, T> = T Function(int index, S value);
 

@@ -1,8 +1,7 @@
 library data.matrix.impl.keyed_matrix;
 
+import 'package:data/src/matrix/matrix.dart';
 import 'package:data/type.dart';
-
-import '../matrix.dart';
 
 /// Sparse keyed matrix.
 class KeyedMatrix<T> extends Matrix<T> {

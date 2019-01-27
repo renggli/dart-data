@@ -1,9 +1,8 @@
 library data.matrix.operators;
 
+import 'package:data/src/matrix/builder.dart';
+import 'package:data/src/matrix/matrix.dart';
 import 'package:data/type.dart';
-
-import 'builder.dart';
-import 'matrix.dart';
 
 Matrix<T> _targetOrBuilderOrDataType<T>(int rowCount, int colCount,
     Matrix<T> target, Builder<T> builder, DataType<T> dataType) {

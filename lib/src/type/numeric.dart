@@ -1,6 +1,6 @@
 library data.type.numeric;
 
-import 'type.dart';
+import 'package:data/src/type/type.dart';
 
 class NumericDataType extends DataType<num> {
   const NumericDataType();

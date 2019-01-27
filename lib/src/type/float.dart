@@ -2,9 +2,8 @@ library data.type.float;
 
 import 'dart:typed_data';
 
+import 'package:data/src/type/type.dart';
 import 'package:more/printer.dart' show Printer;
-
-import 'type.dart';
 
 abstract class FloatDataType extends DataType<double> {
   const FloatDataType();

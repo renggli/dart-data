@@ -1,8 +1,7 @@
 library data.vector.impl.keyed;
 
+import 'package:data/src/vector/vector.dart';
 import 'package:data/type.dart';
-
-import '../vector.dart';
 
 /// Sparse keyed vector.
 class KeyedVector<T> extends Vector<T> {

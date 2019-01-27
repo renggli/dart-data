@@ -1,10 +1,9 @@
 library data.matrix.view.unmodifiable_matrix;
 
+import 'package:data/src/matrix/matrix.dart';
+import 'package:data/src/matrix/mixins/unmodifiable_matrix.dart';
 import 'package:data/tensor.dart';
 import 'package:data/type.dart';
-
-import '../matrix.dart';
-import '../mixins/unmodifiable_matrix.dart';
 
 List<int> foo;
 

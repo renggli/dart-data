@@ -1,8 +1,7 @@
 library data.type.boolean;
 
+import 'package:data/src/type/type.dart';
 import 'package:more/collection.dart' show BitList;
-
-import 'type.dart';
 
 const _trueStrings = ['true', 't', 'yes', 'y', '1'];
 const _falseStrings = ['false', 'f', 'no', 'n', '0'];

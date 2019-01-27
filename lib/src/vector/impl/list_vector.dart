@@ -1,10 +1,9 @@
 library data.vector.impl.list;
 
+import 'package:data/src/shared/config.dart';
+import 'package:data/src/shared/lists.dart';
+import 'package:data/src/vector/vector.dart';
 import 'package:data/type.dart';
-
-import '../../shared/config.dart';
-import '../../shared/lists.dart';
-import '../vector.dart';
 
 /// Sparse compressed vector.
 class ListVector<T> extends Vector<T> {

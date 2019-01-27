@@ -1,9 +1,8 @@
 library data.vector.view.range_vector;
 
+import 'package:data/src/vector/vector.dart';
 import 'package:data/tensor.dart';
 import 'package:data/type.dart';
-
-import '../vector.dart';
 
 /// Mutable range of a vector.
 class RangeVector<T> extends Vector<T> {

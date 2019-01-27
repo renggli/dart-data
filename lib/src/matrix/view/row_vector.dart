@@ -1,10 +1,9 @@
 library data.matrix.view.row_vector;
 
+import 'package:data/src/matrix/matrix.dart';
 import 'package:data/tensor.dart';
 import 'package:data/type.dart';
 import 'package:data/vector.dart';
-
-import '../matrix.dart';
 
 /// Mutable row vector of a matrix.
 class RowVector<T> extends Vector<T> {

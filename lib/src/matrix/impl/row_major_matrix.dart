@@ -1,8 +1,7 @@
 library data.matrix.impl.row_major_matrix;
 
+import 'package:data/src/matrix/matrix.dart';
 import 'package:data/type.dart';
-
-import '../matrix.dart';
 
 /// Row major matrix.
 class RowMajorMatrix<T> extends Matrix<T> {

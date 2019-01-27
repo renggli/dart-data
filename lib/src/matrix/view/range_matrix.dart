@@ -1,9 +1,8 @@
 library data.matrix.view.range_matrix;
 
+import 'package:data/src/matrix/matrix.dart';
 import 'package:data/tensor.dart';
 import 'package:data/type.dart';
-
-import '../matrix.dart';
 
 /// Mutable range of the rows and columns of a matrix.
 class RangeMatrix<T> extends Matrix<T> {

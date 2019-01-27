@@ -2,11 +2,10 @@ library data.matrix.view.diagonal_vector;
 
 import 'dart:math' as math;
 
+import 'package:data/src/matrix/matrix.dart';
 import 'package:data/tensor.dart';
 import 'package:data/type.dart';
 import 'package:data/vector.dart';
-
-import '../matrix.dart';
 
 /// Mutable diagonal vector of a matrix.
 class DiagonalVector<T> extends Vector<T> {

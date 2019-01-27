@@ -3,10 +3,9 @@ library data.type.integer;
 import 'dart:math' as math;
 import 'dart:typed_data';
 
+import 'package:data/src/shared/config.dart';
+import 'package:data/src/type/type.dart';
 import 'package:more/printer.dart' show Printer;
-
-import '../shared/config.dart';
-import 'type.dart';
 
 abstract class IntegerDataType extends DataType<int> {
   const IntegerDataType();

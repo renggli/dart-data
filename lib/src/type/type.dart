@@ -1,15 +1,14 @@
 library data.type;
 
+import 'package:data/src/type/boolean.dart';
+import 'package:data/src/type/float.dart';
+import 'package:data/src/type/integer.dart';
+import 'package:data/src/type/nullable.dart';
+import 'package:data/src/type/numeric.dart';
+import 'package:data/src/type/object.dart';
+import 'package:data/src/type/string.dart';
+import 'package:data/src/type/utils.dart' as utils;
 import 'package:more/printer.dart' show Printer;
-
-import 'boolean.dart';
-import 'float.dart';
-import 'integer.dart';
-import 'nullable.dart';
-import 'numeric.dart';
-import 'object.dart';
-import 'string.dart';
-import 'utils.dart' as utils;
 
 abstract class DataType<T> {
   // Object data types

@@ -1,10 +1,9 @@
 library data.matrix.view.column_vector;
 
+import 'package:data/src/matrix/matrix.dart';
 import 'package:data/tensor.dart';
 import 'package:data/type.dart';
 import 'package:data/vector.dart';
-
-import '../matrix.dart';
 
 /// Mutable column vector of a matrix.
 class ColumnVector<T> extends Vector<T> {

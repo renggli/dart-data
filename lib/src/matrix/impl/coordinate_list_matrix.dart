@@ -1,10 +1,9 @@
 library data.matrix.impl.coordinate_list_matrix;
 
+import 'package:data/src/matrix/matrix.dart';
+import 'package:data/src/shared/config.dart';
+import 'package:data/src/shared/lists.dart';
 import 'package:data/type.dart';
-
-import '../../shared/config.dart';
-import '../../shared/lists.dart';
-import '../matrix.dart';
 
 // Sparse matrix in coordinate format.
 class CoordinateListMatrix<T> extends Matrix<T> {

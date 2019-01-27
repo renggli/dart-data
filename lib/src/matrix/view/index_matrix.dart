@@ -1,10 +1,9 @@
 library data.matrix.view.index_matrix;
 
+import 'package:data/src/matrix/matrix.dart';
+import 'package:data/src/shared/config.dart';
 import 'package:data/tensor.dart';
 import 'package:data/type.dart';
-
-import '../../shared/config.dart';
-import '../matrix.dart';
 
 /// Mutable indexed view of the rows and columns of a matrix.
 class IndexMatrix<T> extends Matrix<T> {
