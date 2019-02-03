@@ -1,7 +1,7 @@
 import 'dart:math' as math;
 
 import 'package:data/src/shared/config.dart' as config;
-import 'package:data/src/type/integer.dart';
+import 'package:data/src/type/impl/integer.dart';
 import 'package:data/src/type/type.dart';
 
 /// Derives a fitting [DataType] from [Object] [instance].

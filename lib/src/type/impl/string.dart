@@ -1,6 +1,6 @@
-library data.type.string;
+library data.type.impl.string;
 
-import 'package:data/src/type/object.dart';
+import 'package:data/src/type/impl/object.dart';
 
 class StringDataType extends ObjectDataType<String> {
   const StringDataType();

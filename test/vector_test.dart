@@ -397,39 +397,43 @@ void vectorTest(String name, Builder builder) {
         }
       });
       group('lerp', () {
-        final v0 = builder.withType(DataType.int8).fromList([1, 6, 9]);
-        final v1 = builder.withType(DataType.int8).fromList([9, -2, 9]);
+        final v0 = builder.withType(DataType.float32).fromList([1, 6, 9]);
+        final v1 = builder.withType(DataType.float32).fromList([9, -2, 9]);
         test('at start', () {
           final v = lerp(v0, v1, 0.0);
-          expect(v.dataType, DataType.float64);
-          expect(v.count, 3);
-          expect(v[0], 1.0);
-          expect(v[1], 6.0);
-          expect(v[2], 9.0);
+          expect(v.dataType, v1.dataType);
+          expect(v.count, v1.count);
+          expect(v[0], v0[0]);
+          expect(v[1], v0[1]);
+          expect(v[2], v0[2]);
         });
         test('at middle', () {
           final v = lerp(v0, v1, 0.5);
-          expect(v.dataType, DataType.float64);
-          expect(v.count, 3);
+          expect(v.dataType, v1.dataType);
+          expect(v.count, v1.count);
           expect(v[0], 5.0);
           expect(v[1], 2.0);
           expect(v[2], 9.0);
         });
         test('at end', () {
           final v = lerp(v0, v1, 1.0);
-          expect(v.dataType, DataType.float64);
-          expect(v.count, 3);
-          expect(v[0], 9.0);
-          expect(v[1], -2.0);
-          expect(v[2], 9.0);
+          expect(v.dataType, v1.dataType);
+          expect(v.count, v1.count);
+          expect(v[0], v1[0]);
+          expect(v[1], v1[1]);
+          expect(v[2], v1[2]);
         });
         test('at outside', () {
           final v = lerp(v0, v1, 2.0);
-          expect(v.dataType, DataType.float64);
-          expect(v.count, 3);
+          expect(v.dataType, v1.dataType);
+          expect(v.count, v1.count);
           expect(v[0], 17.0);
           expect(v[1], -10.0);
           expect(v[2], 9.0);
+        });
+        test('error', () {
+          final other = builder.withType(DataType.float32).fromList([0, 1]);
+          expect(() => lerp(v0, other, 2.0), throwsArgumentError);
         });
       });
       test('lerp (dimension missmatch)', () {
@@ -456,7 +460,7 @@ void vectorTest(String name, Builder builder) {
         test('custom', () {
           final negated = neg(sourceA);
           expect(compare(sourceA, negated), isFalse);
-          expect(compare<int, int>(sourceA, negated, equals: (a, b) => a == -b),
+          expect(compare(sourceA, negated, equals: (a, b) => a == -b),
               isTrue);
         });
       });

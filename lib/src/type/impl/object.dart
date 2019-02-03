@@ -1,4 +1,4 @@
-library data.type.object;
+library data.type.impl.object;
 
 import 'package:data/src/type/type.dart';
 

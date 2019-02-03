@@ -1,4 +1,4 @@
-library data.type.nullable;
+library data.type.impl.nullable;
 
 import 'dart:collection' show ListBase;
 

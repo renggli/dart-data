@@ -1,14 +1,20 @@
 library data.type;
 
-import 'package:data/src/type/boolean.dart';
-import 'package:data/src/type/float.dart';
-import 'package:data/src/type/integer.dart';
-import 'package:data/src/type/nullable.dart';
-import 'package:data/src/type/numeric.dart';
-import 'package:data/src/type/object.dart';
-import 'package:data/src/type/string.dart';
+import 'package:data/src/type/impl/boolean.dart';
+import 'package:data/src/type/impl/complex.dart';
+import 'package:data/src/type/impl/composite.dart';
+import 'package:data/src/type/impl/float.dart';
+import 'package:data/src/type/impl/integer.dart';
+import 'package:data/src/type/impl/nullable.dart';
+import 'package:data/src/type/impl/numeric.dart';
+import 'package:data/src/type/impl/object.dart';
+import 'package:data/src/type/impl/quaternion.dart';
+import 'package:data/src/type/impl/string.dart';
+import 'package:data/src/type/models/equality.dart';
+import 'package:data/src/type/models/ordering.dart';
+import 'package:data/src/type/models/system.dart';
 import 'package:data/src/type/utils.dart' as utils;
-import 'package:more/printer.dart' show Printer;
+import 'package:more/printer.dart';
 
 abstract class DataType<T> {
   // Object data types
@@ -33,16 +39,26 @@ abstract class DataType<T> {
   static const FloatDataType float32 = Float32DataType();
   static const FloatDataType float64 = Float64DataType();
 
+  // Composite number systems
+  static const ComplexDataType complex = ComplexDataType();
+  static const QuaternionDataType quaternion = QuaternionDataType();
+
+  // Composite data types
+  static const CompositeDataType float64x2 = Float64x2DataType();
+  static const CompositeDataType float32x4 = Float32x4DataType();
+  static const CompositeDataType int32x4 = Int32x4DataType();
+
+  /// Abstract const constructor.
   const DataType();
 
-  /// Derives a fitting [DataType] from [Object] [instance].
+  /// Derives a fitting [DataType] from [Object] `instance`.
   factory DataType.fromInstance(Object instance) =>
       utils.fromInstance(instance);
 
-  /// Derives a fitting [DataType] from a runtime [Type] [type].
+  /// Derives a fitting [DataType] from a runtime [Type] `type`.
   factory DataType.fromType(Type type) => utils.fromType(type);
 
-  /// Derives a fitting [DataType] from an [Iterable] of [values].
+  /// Derives a fitting [DataType] from an [Iterable] of `values`.
   factory DataType.fromIterable(Iterable values) => utils.fromIterable(values);
 
   /// Returns the name of this [DataType].
@@ -56,6 +72,17 @@ abstract class DataType<T> {
 
   /// Returns a [DataType] that supports `null` values.
   DataType<T> get nullable => isNullable ? this : NullableDataType<T>(this);
+
+  /// Returns an equality relation.
+  Equality<T> get equality => Equality<T>();
+
+  /// Returns an ordering relation, if available.
+  Ordering<T> get ordering =>
+      throw UnsupportedError('No ordering available for $this.');
+
+  /// Returns a (number) system, if available.
+  System<T> get system =>
+      throw UnsupportedError('No system available for $this.');
 
   /// Converts the argument to this data type, otherwise throw an
   /// [ArgumentError].

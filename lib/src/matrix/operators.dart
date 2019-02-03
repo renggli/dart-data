@@ -4,8 +4,8 @@ import 'package:data/src/matrix/builder.dart';
 import 'package:data/src/matrix/matrix.dart';
 import 'package:data/type.dart';
 
-Matrix<T> _targetOrBuilderOrDataType<T>(int rowCount, int colCount,
-    Matrix<T> target, Builder<T> builder, DataType<T> dataType) {
+Matrix<T> _resultMatrix<T>(int rowCount, int colCount, Matrix<T> target,
+    Builder<T> builder, DataType<T> dataType) {
   if (target != null) {
     if (target.rowCount != rowCount || target.colCount != colCount) {
       throw ArgumentError('Expected a matrix with $rowCount * $colCount, '
@@ -21,6 +21,26 @@ Matrix<T> _targetOrBuilderOrDataType<T>(int rowCount, int colCount,
       'Expected either a "target", a "builder", or a "dataType".');
 }
 
+void _unaryOperator<T>(
+    Matrix<T> result, Matrix<T> source, T Function(T a) operator) {
+  for (var r = 0; r < result.rowCount; r++) {
+    for (var c = 0; c < result.colCount; c++) {
+      result.setUnchecked(r, c, operator(source.getUnchecked(r, c)));
+    }
+  }
+}
+
+void _binaryOperator<T>(Matrix<T> result, Matrix<T> sourceA, Matrix<T> sourceB,
+    T Function(T a, T b) operator) {
+  _checkMatchingDimensions(sourceA, sourceB);
+  for (var r = 0; r < result.rowCount; r++) {
+    for (var c = 0; c < result.colCount; c++) {
+      result.setUnchecked(r, c,
+          operator(sourceA.getUnchecked(r, c), sourceB.getUnchecked(r, c)));
+    }
+  }
+}
+
 void _checkMatchingDimensions<T>(Matrix<T> sourceA, Matrix<T> sourceB) {
   if (sourceA.rowCount != sourceB.rowCount ||
       sourceA.colCount != sourceB.colCount) {
@@ -31,104 +51,80 @@ void _checkMatchingDimensions<T>(Matrix<T> sourceA, Matrix<T> sourceB) {
 }
 
 /// Generic unary operator on a matrix.
-Matrix<T> unaryOperator<T>(Matrix<T> source, T Function(T a) callback,
+Matrix<T> unaryOperator<T>(Matrix<T> source, T Function(T a) operator,
     {Matrix<T> target, Builder<T> builder, DataType<T> dataType}) {
-  final result = _targetOrBuilderOrDataType(source.rowCount, source.colCount,
-      target, builder, dataType ?? source.dataType);
-  for (var r = 0; r < result.rowCount; r++) {
-    for (var c = 0; c < result.colCount; c++) {
-      result.setUnchecked(r, c, callback(source.getUnchecked(r, c)));
-    }
-  }
+  final result = _resultMatrix(source.rowCount, source.colCount, target,
+      builder, dataType ?? source.dataType);
+  _unaryOperator(result, source, operator);
   return result;
 }
 
 /// Generic binary operator on two equal sized matrices.
 Matrix<T> binaryOperator<T>(
-    Matrix<T> sourceA, Matrix<T> sourceB, T Function(T a, T b) callback,
+    Matrix<T> sourceA, Matrix<T> sourceB, T Function(T a, T b) operator,
     {Matrix<T> target, Builder<T> builder, DataType<T> dataType}) {
-  _checkMatchingDimensions(sourceA, sourceB);
-  final result = _targetOrBuilderOrDataType(sourceA.rowCount, sourceA.colCount,
-      target, builder, dataType ?? sourceA.dataType);
-  for (var r = 0; r < result.rowCount; r++) {
-    for (var c = 0; c < result.colCount; c++) {
-      result.setUnchecked(r, c,
-          callback(sourceA.getUnchecked(r, c), sourceB.getUnchecked(r, c)));
-    }
-  }
+  final result = _resultMatrix(sourceA.rowCount, sourceA.colCount, target,
+      builder, dataType ?? sourceA.dataType);
+  _binaryOperator(result, sourceA, sourceB, operator);
   return result;
 }
 
-/// Adds two numeric matrices [sourceA] and [sourceB].
-Matrix<T> add<T extends num>(Matrix<T> sourceA, Matrix<T> sourceB,
-        {Matrix<T> target, Builder<T> builder, DataType<T> dataType}) =>
-    binaryOperator(sourceA, sourceB, (a, b) => a + b,
-        target: target, builder: builder, dataType: dataType);
+/// Adds two matrices [sourceA] and [sourceB].
+Matrix<T> add<T>(Matrix<T> sourceA, Matrix<T> sourceB,
+    {Matrix<T> target, Builder<T> builder, DataType<T> dataType}) {
+  final result = _resultMatrix(sourceA.rowCount, sourceA.colCount, target,
+      builder, dataType ?? sourceA.dataType);
+  _binaryOperator(result, sourceA, sourceB, result.dataType.system.add);
+  return result;
+}
 
-/// Subtracts two numeric matrices [sourceB] from [sourceA].
-Matrix<T> sub<T extends num>(Matrix<T> sourceA, Matrix<T> sourceB,
-        {Matrix<T> target, Builder<T> builder, DataType<T> dataType}) =>
-    binaryOperator(sourceA, sourceB, (a, b) => a - b,
-        target: target, builder: builder, dataType: dataType);
+/// Subtracts two matrices [sourceB] from [sourceA].
+Matrix<T> sub<T>(Matrix<T> sourceA, Matrix<T> sourceB,
+    {Matrix<T> target, Builder<T> builder, DataType<T> dataType}) {
+  final result = _resultMatrix(sourceA.rowCount, sourceA.colCount, target,
+      builder, dataType ?? sourceA.dataType);
+  _binaryOperator(result, sourceA, sourceB, result.dataType.system.sub);
+  return result;
+}
 
-/// Negates a numeric matrix [source].
-Matrix<T> neg<T extends num>(Matrix<T> source,
-        {Matrix<T> target, Builder<T> builder, DataType<T> dataType}) =>
-    unaryOperator(source, (a) => -a,
-        target: target, builder: builder, dataType: dataType);
+/// Negates a matrix [source].
+Matrix<T> neg<T>(Matrix<T> source,
+    {Matrix<T> target, Builder<T> builder, DataType<T> dataType}) {
+  final result = _resultMatrix(source.rowCount, source.colCount, target,
+      builder, dataType ?? source.dataType);
+  _unaryOperator(result, source, result.dataType.system.neg);
+  return result;
+}
 
-/// Scales a numeric matrix [source] with a [factor].
-Matrix<T> scale<T extends num>(T factor, Matrix<T> source,
-        {Matrix<T> target, Builder<T> builder, DataType<T> dataType}) =>
-    unaryOperator(source, (a) => factor * a,
-        target: target, builder: builder, dataType: dataType);
-
-/// Compares two matrices [sourceA] and [sourceB] with each other.
-bool compare<A, B>(Matrix<A> sourceA, Matrix<B> sourceB,
-    {bool Function(A a, B b) equals}) {
-  if (equals == null && identical(sourceA, sourceB)) {
-    return true;
-  }
-  if (sourceA.rowCount != sourceB.rowCount ||
-      sourceA.colCount != sourceB.colCount) {
-    return false;
-  }
-  equals ??= (a, b) => a == b;
-  for (var r = 0; r < sourceA.rowCount; r++) {
-    for (var c = 0; c < sourceA.colCount; c++) {
-      if (!equals(sourceA.getUnchecked(r, c), sourceB.getUnchecked(r, c))) {
-        return false;
-      }
-    }
-  }
-  return true;
+/// Scales a matrix [source] with a [factor].
+Matrix<T> scale<T>(num factor, Matrix<T> source,
+    {Matrix<T> target, Builder<T> builder, DataType<T> dataType}) {
+  final result = _resultMatrix(source.rowCount, source.colCount, target,
+      builder, dataType ?? source.dataType);
+  final scale = result.dataType.system.scale;
+  _unaryOperator(result, source, (a) => scale(factor, a));
+  return result;
 }
 
 /// Interpolates linearly between [sourceA] and [sourceB] with a factor [t].
-Matrix<double> lerp<T extends num>(
-    Matrix<T> sourceA, Matrix<T> sourceB, double t,
-    {Matrix<double> target, Builder<double> builder, DataType<T> dataType}) {
-  _checkMatchingDimensions(sourceA, sourceB);
-  final t1 = 1.0 - t;
-  final result = _targetOrBuilderOrDataType(sourceA.rowCount, sourceA.colCount,
-      target, builder, dataType ?? DataType.float64);
-  for (var r = 0; r < result.rowCount; r++) {
-    for (var c = 0; c < result.colCount; c++) {
-      result.setUnchecked(r, c,
-          t1 * sourceA.getUnchecked(r, c) + t * sourceB.getUnchecked(r, c));
-    }
-  }
+Matrix<T> lerp<T>(Matrix<T> sourceA, Matrix<T> sourceB, num t,
+    {Matrix<T> target, Builder<T> builder, DataType<T> dataType}) {
+  final result = _resultMatrix(sourceA.rowCount, sourceA.colCount, target,
+      builder, dataType ?? sourceA.dataType);
+  final system = result.dataType.system;
+  _binaryOperator(result, sourceA, sourceB,
+      (a, b) => system.add(system.scale(1.0 - t, a), system.scale(t, b)));
   return result;
 }
 
 /// Multiplies two numeric matrices [sourceA] and [sourceB].
-Matrix<T> mul<T extends num>(Matrix<T> sourceA, Matrix<T> sourceB,
+Matrix<T> mul<T>(Matrix<T> sourceA, Matrix<T> sourceB,
     {Matrix<T> target, Builder<T> builder, DataType<T> dataType}) {
   if (sourceA.colCount != sourceB.rowCount) {
     throw ArgumentError('Inner dimensions of source matrices do not match.');
   }
-  final result = _targetOrBuilderOrDataType(sourceA.rowCount, sourceB.colCount,
-      target, builder, dataType ?? sourceA.dataType);
+  final result = _resultMatrix(sourceA.rowCount, sourceB.colCount, target,
+      builder, dataType ?? sourceA.dataType);
   if (identical(result, target)) {
     final sourcesStorage = Set.identity()
       ..addAll(sourceA.storage)
@@ -137,14 +133,42 @@ Matrix<T> mul<T extends num>(Matrix<T> sourceA, Matrix<T> sourceB,
       throw ArgumentError('Matrix multiplication cannot be done in-place.');
     }
   }
+  final system = result.dataType.system;
   for (var r = 0; r < result.rowCount; r++) {
     for (var c = 0; c < result.colCount; c++) {
-      var sum = result.dataType.nullValue;
+      var sum = system.additiveIdentity;
       for (var i = 0; i < sourceA.colCount; i++) {
-        sum += sourceA.getUnchecked(r, i) * sourceB.getUnchecked(i, c);
+        sum = system.add(
+          sum,
+          system.mul(
+            sourceA.getUnchecked(r, i),
+            sourceB.getUnchecked(i, c),
+          ),
+        );
       }
       result.setUnchecked(r, c, sum);
     }
   }
   return result;
+}
+
+/// Compares two matrices [sourceA] and [sourceB] with each other.
+bool compare<T>(Matrix<T> sourceA, Matrix<T> sourceB,
+    {bool Function(T a, T b) equals}) {
+  if (equals == null && identical(sourceA, sourceB)) {
+    return true;
+  }
+  if (sourceA.rowCount != sourceB.rowCount ||
+      sourceA.colCount != sourceB.colCount) {
+    return false;
+  }
+  equals ??= sourceA.dataType.equality.isEqual;
+  for (var r = 0; r < sourceA.rowCount; r++) {
+    for (var c = 0; c < sourceA.colCount; c++) {
+      if (!equals(sourceA.getUnchecked(r, c), sourceB.getUnchecked(r, c))) {
+        return false;
+      }
+    }
+  }
+  return true;
 }

@@ -1079,22 +1079,22 @@ void matrixTest(String name, Builder builder) {
         test('custom', () {
           final negated = neg(sourceA);
           expect(compare(sourceA, negated), isFalse);
-          expect(compare<int, int>(sourceA, negated, equals: (a, b) => a == -b),
+          expect(compare<int>(sourceA, negated, equals: (a, b) => a == -b),
               isTrue);
         });
       });
       group('lerp', () {
-        final v0 = builder.withType(DataType.int8).fromRows([
+        final v0 = builder.withType(DataType.float32).fromRows([
           [1, 6],
           [9, 9],
         ]);
-        final v1 = builder.withType(DataType.int8).fromRows([
+        final v1 = builder.withType(DataType.float32).fromRows([
           [9, -2],
           [9, -9],
         ]);
         test('at start', () {
           final v = lerp(v0, v1, 0.0);
-          expect(v.dataType, DataType.float64);
+          expect(v.dataType, v0.dataType);
           expect(v.rowCount, v0.rowCount);
           expect(v.colCount, v0.colCount);
           expect(v.get(0, 0), 1.0);
@@ -1104,7 +1104,7 @@ void matrixTest(String name, Builder builder) {
         });
         test('at middle', () {
           final v = lerp(v0, v1, 0.5);
-          expect(v.dataType, DataType.float64);
+          expect(v.dataType, v0.dataType);
           expect(v.rowCount, v0.rowCount);
           expect(v.colCount, v0.colCount);
           expect(v.get(0, 0), 5.0);
@@ -1114,7 +1114,7 @@ void matrixTest(String name, Builder builder) {
         });
         test('at end', () {
           final v = lerp(v0, v1, 1.0);
-          expect(v.dataType, DataType.float64);
+          expect(v.dataType, v0.dataType);
           expect(v.rowCount, v0.rowCount);
           expect(v.colCount, v0.colCount);
           expect(v.get(0, 0), 9.0);
@@ -1124,7 +1124,7 @@ void matrixTest(String name, Builder builder) {
         });
         test('at outside', () {
           final v = lerp(v0, v1, 2.0);
-          expect(v.dataType, DataType.float64);
+          expect(v.dataType, v0.dataType);
           expect(v.rowCount, v0.rowCount);
           expect(v.colCount, v0.colCount);
           expect(v.get(0, 0), 17.0);
@@ -1188,7 +1188,7 @@ void matrixTest(String name, Builder builder) {
       // Comparator for floating point numbers:
       final epsilon = pow(2.0, -32.0);
       void expectMatrix(Matrix<num> expected, Matrix<num> actual) => expect(
-            compare<num, num>(actual, expected,
+            compare<num>(actual, expected,
                 equals: (a, b) => (a - b).abs() <= epsilon),
             isTrue,
             reason: 'Expected $expected, but got $actual.',

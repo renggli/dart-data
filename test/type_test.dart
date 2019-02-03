@@ -14,6 +14,7 @@ void listTest<T>(DataType<T> type, List<List<T>> lists) {
     DataType.string,
     DataType.object,
   ].contains(type)) {
+    // Inference based on single example or runtime type.
     final exampleInstance = lists.expand((list) => list).first;
     final exampleType = exampleInstance.runtimeType;
     test('fromInstance: $exampleInstance', () {
@@ -25,14 +26,35 @@ void listTest<T>(DataType<T> type, List<List<T>> lists) {
           reason: 'DataType.fromType($exampleType)');
     });
   }
-  if (!identical(type, DataType.float32)) {
+  if ([
+    DataType.float64,
+    DataType.int64,
+    DataType.int32,
+    DataType.int16,
+    DataType.int8,
+    DataType.uint64,
+    DataType.uint32,
+    DataType.uint16,
+    DataType.uint8,
+    DataType.boolean,
+    DataType.string,
+    DataType.object,
+  ].contains(type)) {
+    // Inference based on iterable of examples.
     for (var list in lists) {
       test('fromIterable: $list', () {
         expect(DataType.fromIterable(list), type,
             reason: 'DataType.fromIterable($list)');
       });
+    }
+  }
+  if (DataType.float32 != type) {
+    for (var list in lists) {
       test('convertList: $list', () {
-        expect(type.convertList(list), list,
+        final result = type.convertList(list);
+        expect(result.length, list.length);
+        expect(type.convertList(list),
+            pairwiseCompare(list, type.equality.isEqual, 'isEqual'),
             reason: '$type.convertList($list)');
       });
     }
@@ -40,36 +62,47 @@ void listTest<T>(DataType<T> type, List<List<T>> lists) {
   final example = lists.last;
   test('copyList', () {
     final copy = type.copyList(example);
-    expect(copy, example);
+    expect(copy, pairwiseCompare(example, type.equality.isEqual, 'isEqual'));
   });
   test('copyList (smaller)', () {
     final copy = type.copyList(example, length: example.length - 1);
     expect(copy.length, example.length - 1);
-    expect(copy, example.getRange(0, example.length - 1));
+    expect(
+        copy,
+        pairwiseCompare(example.getRange(0, example.length - 1),
+            type.equality.isEqual, 'isEqual'));
   });
   test('copyList (larger)', () {
     final copy = type.copyList(example, length: example.length + 5);
     expect(copy.length, example.length + 5);
-    expect(copy.getRange(0, example.length), example);
-    expect(copy.getRange(example.length, copy.length),
-        List.filled(5, type.nullValue));
+    expect(copy.getRange(0, example.length),
+        pairwiseCompare(example, type.equality.isEqual, 'isEqual'));
+    expect(
+        copy.getRange(example.length, copy.length),
+        pairwiseCompare(
+            List.filled(5, type.nullValue), type.equality.isEqual, 'isEqual'));
   });
   test('copyList (larger, with custom fill)', () {
     final copy = type.copyList(example,
         length: example.length + 5, fillValue: example[0]);
     expect(copy.length, example.length + 5);
-    expect(copy.getRange(0, example.length), example);
+    expect(copy.getRange(0, example.length),
+        pairwiseCompare(example, type.equality.isEqual, 'isEqual'));
     expect(
-        copy.getRange(example.length, copy.length), List.filled(5, example[0]));
+        copy.getRange(example.length, copy.length),
+        pairwiseCompare(
+            List.filled(5, example[0]), type.equality.isEqual, 'isEqual'));
   });
-  test('printer', () {
-    final printer = type.printer;
-    final examples = lists.expand((list) => list).toList();
-    for (var example in examples) {
-      final printed = printer(example);
-      expect(printed, contains(example.toString().substring(0, 1)));
-    }
-  });
+  if (![DataType.quaternion, DataType.complex].contains(type)) {
+    test('printer', () {
+      final printer = type.printer;
+      final examples = lists.expand((list) => list).toList();
+      for (var example in examples) {
+        final printed = printer(example);
+        expect(printed, contains(example.toString().substring(0, 1)));
+      }
+    });
+  }
 }
 
 void floatGroup(DataType type, int bits) {
@@ -137,8 +170,8 @@ void integerGroup(IntegerDataType type, bool isSigned, int bits) {
       expect(type.toString(), 'DataType.$name');
     });
     test('metadata', () {
-      expect(type.bits, bits);
       expect(type.isSigned, isSigned);
+      expect(type.bits, bits);
     });
     test('min/max', () {
       if (type.isSigned) {
@@ -212,6 +245,51 @@ void integerGroup(IntegerDataType type, bool isSigned, int bits) {
       [type.safeMin, 0, null, type.safeMax, null],
       [type.safeMin + 123, type.safeMax - 45, null, type.safeMax - 67],
     ]);
+  });
+}
+
+void compositeGroup<T, B>(
+    CompositeDataType<T, B> type, DataType<B> base, int size) {
+  group('${type.name}', () {
+    test('name', () {
+      if (![DataType.quaternion, DataType.complex].contains(type)) {
+        expect(type.name, '${base.name}x$size');
+      }
+      expect(type.toString(), 'DataType.${type.name}');
+    });
+    test('metadata', () {
+      expect(type.base, base);
+      expect(type.size, size);
+    });
+    test('nullable', () {
+      expect(type.isNullable, isFalse);
+      expect(type.toList(type.nullValue), everyElement(base.nullValue));
+    });
+    test('convert', () {
+      expect(() => type.convert(null), throwsArgumentError);
+      final expected = List.generate(size, (i) => i);
+      final converted = type.convert(expected);
+      final actual = type.toList(converted);
+      expect(expected, actual);
+    });
+    listTest(type, <List<T>>[
+      type.convertList([
+        [1, 2, 3, 4],
+        [5, 6, 7, 8],
+      ]),
+    ]);
+  });
+  group('${type.name}.nullable', () {
+    final nullableType = type.nullable;
+    test('name', () {
+      expect(nullableType.name, '${type.name}.nullable');
+      expect(nullableType.toString(), 'DataType.${type.name}.nullable');
+    });
+    test('nullable', () {
+      expect(nullableType.isNullable, isTrue);
+      expect(nullableType.nullValue, isNull);
+      expect(nullableType.nullable, nullableType);
+    });
   });
 }
 
@@ -353,4 +431,9 @@ void main() {
   }
   floatGroup(DataType.float32, 32);
   floatGroup(DataType.float64, 64);
+  compositeGroup(DataType.complex, DataType.float64, 2);
+  compositeGroup(DataType.quaternion, DataType.float32, 4);
+  compositeGroup(DataType.float64x2, DataType.float64, 2);
+  compositeGroup(DataType.float32x4, DataType.float32, 4);
+  compositeGroup(DataType.int32x4, DataType.int32, 4);
 }

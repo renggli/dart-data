@@ -1,4 +1,4 @@
-library data.type.boolean;
+library data.type.impl.boolean;
 
 import 'package:data/src/type/type.dart';
 import 'package:more/collection.dart' show BitList;

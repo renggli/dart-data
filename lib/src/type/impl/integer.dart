@@ -1,9 +1,10 @@
-library data.type.integer;
+library data.type.impl.integer;
 
 import 'dart:math' as math;
 import 'dart:typed_data';
 
 import 'package:data/src/shared/config.dart';
+import 'package:data/src/type/models/system.dart';
 import 'package:data/src/type/type.dart';
 import 'package:more/printer.dart' show Printer;
 
@@ -41,6 +42,9 @@ abstract class IntegerDataType extends DataType<int> {
 
   @override
   int get nullValue => 0;
+
+  @override
+  System<int> get system => const IntegerSystem();
 
   @override
   int convert(Object value) {
@@ -162,4 +166,41 @@ class Uint64DataType extends IntegerDataType {
 
   @override
   List<int> newList(int length) => Uint64List(length);
+}
+
+class IntegerSystem extends System<int> {
+  const IntegerSystem();
+
+  @override
+  int get additiveIdentity => 0;
+
+  @override
+  int neg(int a) => -a;
+
+  @override
+  int add(int a, int b) => a + b;
+
+  @override
+  int sub(int a, int b) => a - b;
+
+  @override
+  int get multiplicativeIdentity => 1;
+
+  @override
+  int inv(num a) => 1 ~/ a;
+
+  @override
+  int mul(int a, int b) => a * b;
+
+  @override
+  int scale(num a, int b) => (a * b).truncate();
+
+  @override
+  int div(int a, int b) => a ~/ b;
+
+  @override
+  int mod(int a, int b) => a % b;
+
+  @override
+  int pow(int a, int b) => math.pow(a, b).truncate();
 }

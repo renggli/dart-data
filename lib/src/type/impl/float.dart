@@ -1,7 +1,9 @@
-library data.type.float;
+library data.type.impl.float;
 
+import 'dart:math' as math;
 import 'dart:typed_data';
 
+import 'package:data/src/type/models/system.dart';
 import 'package:data/src/type/type.dart';
 import 'package:more/printer.dart' show Printer;
 
@@ -13,6 +15,9 @@ abstract class FloatDataType extends DataType<double> {
 
   @override
   double get nullValue => 0.0;
+
+  @override
+  System<double> get system => const FloatSystem();
 
   @override
   double convert(Object value) {
@@ -57,4 +62,41 @@ class Float64DataType extends FloatDataType {
         exponentSign: Printer.negativeAndPositiveSign(),
         precision: 6,
       );
+}
+
+class FloatSystem extends System<double> {
+  const FloatSystem();
+
+  @override
+  double get additiveIdentity => 0.0;
+
+  @override
+  double neg(double a) => -a;
+
+  @override
+  double add(double a, double b) => a + b;
+
+  @override
+  double sub(double a, double b) => a - b;
+
+  @override
+  double get multiplicativeIdentity => 1.0;
+
+  @override
+  double inv(double a) => 1.0 / a;
+
+  @override
+  double mul(double a, double b) => a * b;
+
+  @override
+  double scale(num a, double b) => a * b;
+
+  @override
+  double div(double a, double b) => a / b;
+
+  @override
+  double mod(double a, double b) => a % b;
+
+  @override
+  double pow(double a, double b) => math.pow(a, b);
 }
