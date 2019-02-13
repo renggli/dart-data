@@ -44,13 +44,13 @@ class EigenvalueDecomposition {
   EigenvalueDecomposition(Matrix<num> a)
       : _n = a.colCount,
         _isSymmetric = true,
-        _d = valueDataType.newList(a.colCount),
-        _e = valueDataType.newList(a.colCount),
-        _v = Matrix.builder.rowMajor.withType(valueDataType)(
+        _d = floatDataType.newList(a.colCount),
+        _e = floatDataType.newList(a.colCount),
+        _v = Matrix.builder.rowMajor.withType(floatDataType)(
             a.colCount, a.colCount),
-        _h = Matrix.builder.rowMajor.withType(valueDataType)(
+        _h = Matrix.builder.rowMajor.withType(floatDataType)(
             a.colCount, a.colCount),
-        _ort = valueDataType.newList(a.colCount) {
+        _ort = floatDataType.newList(a.colCount) {
     _isSymmetric = true;
     for (var j = 0; (j < _n) && _isSymmetric; j++) {
       for (var i = 0; (i < _n) && _isSymmetric; i++) {
@@ -891,7 +891,7 @@ class EigenvalueDecomposition {
 
   /// Return the block diagonal eigenvalue matrix
   Matrix<double> get D {
-    final result = Matrix.builder.diagonal.withType(valueDataType)(_n, _n);
+    final result = Matrix.builder.diagonal.withType(floatDataType)(_n, _n);
     for (var i = 0; i < _n; i++) {
       result.setUnchecked(i, i, _d[i]);
       if (_e[i] > 0) {

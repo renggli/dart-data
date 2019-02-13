@@ -31,7 +31,7 @@ class LUDecomposition {
 
   LUDecomposition(Matrix<num> source)
       : _lu = Matrix.builder.rowMajor
-            .withType(valueDataType)
+            .withType(floatDataType)
             .transform<num>(source, (r, c, v) => v.toDouble()),
         _m = source.rowCount,
         _n = source.colCount,
@@ -101,7 +101,7 @@ class LUDecomposition {
 
   /// Returns the lower triangular factor.
   Matrix<double> get lower {
-    final result = Matrix.builder.diagonal.withType(valueDataType)(_m, _n);
+    final result = Matrix.builder.diagonal.withType(floatDataType)(_m, _n);
     for (var i = 0; i < _m; i++) {
       for (var j = 0; j < _n; j++) {
         if (i > j) {
@@ -116,7 +116,7 @@ class LUDecomposition {
 
   /// Returns upper triangular factor.
   Matrix<double> get upper {
-    final result = Matrix.builder.diagonal.withType(valueDataType)(_n, _n);
+    final result = Matrix.builder.diagonal.withType(floatDataType)(_n, _n);
     for (var i = 0; i < _n; i++) {
       for (var j = 0; j < _n; j++) {
         if (i <= j) {
@@ -158,7 +158,7 @@ class LUDecomposition {
     // Copy right hand side with pivoting
     final nx = B.colCount;
     final X = Matrix.builder.rowMajor
-        .withType(valueDataType)
+        .withType(floatDataType)
         .fromMatrix(B.rowIndexUnchecked(_piv));
 
     // Solve L*Y = B(piv,:)

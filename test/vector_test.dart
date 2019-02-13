@@ -389,7 +389,7 @@ void vectorTest(String name, Builder builder) {
         }
       });
       test('scale', () {
-        final target = scale(2, sourceA);
+        final target = scale(sourceA, 2);
         expect(target.dataType, sourceA.dataType);
         expect(target.count, sourceA.count);
         for (var i = 0; i < target.count; i++) {
@@ -460,8 +460,7 @@ void vectorTest(String name, Builder builder) {
         test('custom', () {
           final negated = neg(sourceA);
           expect(compare(sourceA, negated), isFalse);
-          expect(compare(sourceA, negated, equals: (a, b) => a == -b),
-              isTrue);
+          expect(compare(sourceA, negated, equals: (a, b) => a == -b), isTrue);
         });
       });
       group('mul', () {

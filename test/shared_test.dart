@@ -21,7 +21,7 @@ void main() {
         expect(config.indexDataType, DataType.uint32);
       });
       test('value', () {
-        expect(config.valueDataType, DataType.float64);
+        expect(config.floatDataType, DataType.float64);
       });
     });
   });

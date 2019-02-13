@@ -1,76 +1,208 @@
 library data.type.impl.quaternion;
 
-import 'dart:typed_data';
+import 'dart:math' as math;
 
-import 'package:data/src/type/impl/composite.dart';
+import 'package:data/src/type/impl/complex.dart';
 import 'package:data/src/type/models/system.dart';
-import 'package:more/printer.dart';
+import 'package:data/src/type/type.dart';
 
-class QuaternionDataType extends Float32x4DataType {
-  const QuaternionDataType();
+/// Base class of a quaternion number.
+class Quaternion {
+  static final Quaternion zero = Quaternion(0, 0, 0, 0);
+  static final Quaternion one = Quaternion(1, 0, 0, 0);
+  static final Quaternion i = Quaternion(0, 1, 0, 0);
+  static final Quaternion j = Quaternion(0, 0, 1, 0);
+  static final Quaternion k = Quaternion(0, 0, 0, 1);
+
+  /// Constructs a quaternion number.
+  Quaternion(this.a, [this.b = 0, this.c = 0, this.d = 0]);
+
+  /// The 1st quaternion unit (scalar part).
+  final num a;
+
+  /// The 2nd quaternion unit (1st vector/imaginary part).
+  final num b;
+
+  /// The 3rd quaternion unit (2nd vector/imaginary part).
+  final num c;
+
+  /// The 4th quaternion unit (3rd vector/imaginary part).
+  final num d;
+
+  /// Compute the norm of the quaternion.
+  double norm() => math.sqrt(a * a + b * b + c * c + d * d);
+
+  /// Compute the negated form of this number.
+  Quaternion operator -() => Quaternion(-a, -b, -c, -d);
+
+  /// Compute the conjugate form of this number.
+  Quaternion conjugate() => Quaternion(a, -b, -c, -d);
+
+  /// Compute the sum of this number and another one.
+  Quaternion operator +(Object other) {
+    if (other is num) {
+      return Quaternion(a + other, b, c, d);
+    } else if (other is Complex) {
+      return Quaternion(a + other.re, b + other.im, c, d);
+    } else if (other is Quaternion) {
+      return Quaternion(
+        a + other.a,
+        b + other.b,
+        c + other.c,
+        d + other.d,
+      );
+    } else {
+      return _invalidArgument(other);
+    }
+  }
+
+  /// Compute the difference of this number and another one.
+  Quaternion operator -(Object other) {
+    if (other is num) {
+      return Quaternion(a - other, b, c, d);
+    } else if (other is Complex) {
+      return Quaternion(a - other.re, b - other.im, c, d);
+    } else if (other is Quaternion) {
+      return Quaternion(
+        a - other.a,
+        b - other.b,
+        c - other.c,
+        d - other.d,
+      );
+    } else {
+      return _invalidArgument(other);
+    }
+  }
+
+  /// Compute the product of this number and another one.
+  Quaternion operator *(Object other) {
+    if (other is num) {
+      return Quaternion(a * other, b * other, c * other, d * other);
+    } else if (other is Complex) {
+      return Quaternion(
+        a * other.re - b * other.im,
+        a * other.im + b * other.re,
+        c * other.re + d * other.im,
+        d * other.re - c * other.im,
+      );
+    } else if (other is Quaternion) {
+      return Quaternion(
+        a * other.a - b * other.b - c * other.c - d * other.d,
+        a * other.b + b * other.a + c * other.d - d * other.c,
+        a * other.c + c * other.a + d * other.b - b * other.d,
+        a * other.d + d * other.a + b * other.c - c * other.b,
+      );
+    } else {
+      return _invalidArgument(other);
+    }
+  }
+
+  /// Compute the multiplicative inverse of this quaternion.
+  Quaternion reciprocal() {
+    final det = 1.0 / (a * a + b * b + c * c + d * d);
+    return Quaternion(
+      a * det,
+      b * -det,
+      c * -det,
+      d * -det,
+    );
+  }
+
+  /// Compute the division of this number and another one.
+  Quaternion operator /(Object other) {
+    if (other is num) {
+      return Quaternion(
+        a / other,
+        b / other,
+        c / other,
+        d / other,
+      );
+    } else if (other is Complex) {
+      final det = 1.0 / (a * a + b * b + c * c + d * d);
+      return Quaternion(
+        (a * other.re - b * other.im) * det,
+        (a * other.im + b * other.re) * -det,
+        (c * other.re + d * other.im) * -det,
+        (d * other.re - c * other.im) * -det,
+      );
+    } else if (other is Quaternion) {
+      final det = 1.0 / (a * a + b * b + c * c + d * d);
+      return Quaternion(
+        (a * other.a - b * other.b - c * other.c - d * other.d) * det,
+        (a * other.b + b * other.a + c * other.d - d * other.c) * -det,
+        (a * other.c + c * other.a + d * other.b - b * other.d) * -det,
+        (a * other.d + d * other.a + b * other.c - c * other.b) * -det,
+      );
+    } else {
+      return _invalidArgument(other);
+    }
+  }
+
+  @override
+  bool operator ==(Object other) =>
+      other is Quaternion &&
+      a == other.a &&
+      b == other.b &&
+      c == other.c &&
+      d == other.d;
+
+  @override
+  int get hashCode => a.hashCode ^ b.hashCode ^ c.hashCode ^ d.hashCode;
+
+  @override
+  String toString() => '$a + $b*i + $c*j + $d*k';
+
+  Quaternion _invalidArgument(Object argument) =>
+      throw ArgumentError('$argument must be a num, Complex or Quaternion.');
+}
+
+class QuaternionDataType extends DataType<Quaternion> {
+  const QuaternionDataType() : super();
 
   @override
   String get name => 'quaternion';
 
   @override
-  System<Float32x4> get system => const QuaternionSystem();
+  bool get isNullable => true;
 
   @override
-  Printer get printer => Printer.of((value) => '${realPrinter(value.x)}'
-      '${imaginaryPrinter(value.y)}i'
-      '${imaginaryPrinter(value.z)}j'
-      '${imaginaryPrinter(value.w)}k');
+  Quaternion get nullValue => null;
 
-  static Printer realPrinter = Printer.scientific(
-    exponentPadding: 3,
-    exponentSign: Printer.negativeAndPositiveSign(),
-    precision: 3,
-  );
-
-  static Printer imaginaryPrinter = Printer.scientific(
-    exponentPadding: 3,
-    exponentSign: Printer.negativeAndPositiveSign(),
-    mantissaSign: Printer.negativeAndPositiveSign(),
-    precision: 3,
-  );
+  @override
+  System<Quaternion> get system => QuaternionSystem();
 }
 
-class QuaternionSystem extends Float32x4System {
-  const QuaternionSystem();
+class QuaternionSystem extends System<Quaternion> {
+  @override
+  Quaternion get additiveIdentity => Quaternion.zero;
 
   @override
-  Float32x4 get multiplicativeIdentity => Float32x4(1, 0, 0, 0);
+  Quaternion neg(Quaternion a) => -a;
 
   @override
-  Float32x4 inv(Float32x4 a) {
-    final det = 1.0 / (a.x * a.x + a.y * a.y + a.z * a.z + a.w * a.w);
-    return Float32x4(a.x * det, a.y * -det, a.z * -det, a.w * -det);
-  }
+  Quaternion add(Quaternion a, Quaternion b) => a + b;
 
   @override
-  Float32x4 mul(Float32x4 a, Float32x4 b) => Float32x4(
-        a.x * b.x - a.y * b.y - a.z * b.z - a.w * b.w,
-        a.x * b.y + a.y * b.x + a.z * b.w - a.w * b.z,
-        a.x * b.z + a.z * b.x + a.w * b.y - a.y * b.w,
-        a.x * b.w + a.w * b.x + a.y * b.z - a.z * b.y,
-      );
+  Quaternion sub(Quaternion a, Quaternion b) => a - b;
 
   @override
-  Float32x4 div(Float32x4 a, Float32x4 b) {
-    final det = 1.0 / (a.x * a.x + a.y * a.y + a.z * a.z + a.w * a.w);
-    return Float32x4(
-      (a.x * b.x - a.y * b.y - a.z * b.z - a.w * b.w) * det,
-      (a.x * b.y + a.y * b.x + a.z * b.w - a.w * b.z) * -det,
-      (a.x * b.z + a.z * b.x + a.w * b.y - a.y * b.w) * -det,
-      (a.x * b.w + a.w * b.x + a.y * b.z - a.z * b.y) * -det,
-    );
-  }
+  Quaternion get multiplicativeIdentity => Quaternion.one;
 
   @override
-  Float32x4 mod(Float32x4 a, Float32x4 b) =>
-      throw UnsupportedError('Unable to compute mod($a, $b).');
+  Quaternion inv(Quaternion a) => a.reciprocal();
 
   @override
-  Float32x4 pow(Float32x4 a, Float32x4 b) =>
-      throw UnsupportedError('Unable to compute pow($a, $b).');
+  Quaternion mul(Quaternion a, Quaternion b) => a * b;
+
+  @override
+  Quaternion scale(Quaternion a, num f) => a * f;
+
+  @override
+  Quaternion div(Quaternion a, Quaternion b) => a / b;
+
+  @override
+  Quaternion mod(Quaternion a, Quaternion b) => throw UnsupportedError('');
+
+  @override
+  Quaternion pow(Quaternion a, Quaternion b) => throw UnsupportedError('');
 }

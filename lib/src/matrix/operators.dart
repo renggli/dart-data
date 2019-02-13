@@ -97,12 +97,12 @@ Matrix<T> neg<T>(Matrix<T> source,
 }
 
 /// Scales a matrix [source] with a [factor].
-Matrix<T> scale<T>(num factor, Matrix<T> source,
+Matrix<T> scale<T>(Matrix<T> source, num factor,
     {Matrix<T> target, Builder<T> builder, DataType<T> dataType}) {
   final result = _resultMatrix(source.rowCount, source.colCount, target,
       builder, dataType ?? source.dataType);
   final scale = result.dataType.system.scale;
-  _unaryOperator(result, source, (a) => scale(factor, a));
+  _unaryOperator(result, source, (a) => scale(a, factor));
   return result;
 }
 
@@ -113,7 +113,7 @@ Matrix<T> lerp<T>(Matrix<T> sourceA, Matrix<T> sourceB, num t,
       builder, dataType ?? sourceA.dataType);
   final system = result.dataType.system;
   _binaryOperator(result, sourceA, sourceB,
-      (a, b) => system.add(system.scale(1.0 - t, a), system.scale(t, b)));
+      (a, b) => system.add(system.scale(a, 1.0 - t), system.scale(b, t)));
   return result;
 }
 

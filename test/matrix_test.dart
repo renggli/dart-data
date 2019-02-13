@@ -1041,7 +1041,7 @@ void matrixTest(String name, Builder builder) {
         }
       });
       test('scale', () {
-        final target = scale(2, sourceA);
+        final target = scale(sourceA, 2);
         expect(target.dataType, sourceA.dataType);
         expect(target.rowCount, sourceA.rowCount);
         expect(target.colCount, sourceA.colCount);

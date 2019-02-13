@@ -30,20 +30,20 @@ class SingularValueDecomposition {
 
   /// Construct the singular value decomposition Structure to access U, S and V.
   SingularValueDecomposition(Matrix<num> input)
-      : _u = Matrix.builder.withType(valueDataType)(
+      : _u = Matrix.builder.withType(floatDataType)(
             input.rowCount, math.min(input.rowCount, input.colCount)),
-        _v = Matrix.builder.withType(valueDataType)(
+        _v = Matrix.builder.withType(floatDataType)(
             input.colCount, input.colCount),
         _s =
-            valueDataType.newList(math.min(input.rowCount + 1, input.colCount)),
+            floatDataType.newList(math.min(input.rowCount + 1, input.colCount)),
         _m = input.rowCount,
         _n = input.colCount {
     // Initialize.
     final A = Matrix.builder
-        .withType(valueDataType)
+        .withType(floatDataType)
         .transform<num>(input, (r, c, v) => v.toDouble());
-    final e = valueDataType.newList(_n);
-    final work = valueDataType.newList(_m);
+    final e = floatDataType.newList(_n);
+    final work = floatDataType.newList(_m);
 
     // Reduce A to bidiagonal form, storing the diagonal elements
     // in s and the super-diagonal elements in e.
@@ -436,17 +436,17 @@ class SingularValueDecomposition {
   }
 
   /// Return the left singular vectors.
-  Matrix<double> get U => Matrix.builder.withType(valueDataType).fromMatrix(_u);
+  Matrix<double> get U => Matrix.builder.withType(floatDataType).fromMatrix(_u);
 
   /// Return the right singular vectors.
-  Matrix<double> get V => Matrix.builder.withType(valueDataType).fromMatrix(_v);
+  Matrix<double> get V => Matrix.builder.withType(floatDataType).fromMatrix(_v);
 
   /// Return the one-dimensional array of singular values.
-  List<double> get s => valueDataType.copyList(_s);
+  List<double> get s => floatDataType.copyList(_s);
 
   /// Return the diagonal matrix of singular values.
   Matrix<double> get S {
-    final result = Matrix.builder.diagonal.withType(valueDataType)(_n, _n);
+    final result = Matrix.builder.diagonal.withType(floatDataType)(_n, _n);
     for (var i = 0; i < _n; i++) {
       result.setUnchecked(i, i, _s[i]);
     }

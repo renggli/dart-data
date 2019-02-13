@@ -193,7 +193,7 @@ class IntegerSystem extends System<int> {
   int mul(int a, int b) => a * b;
 
   @override
-  int scale(num a, int b) => (a * b).truncate();
+  int scale(int a, num f) => (a * f).truncate();
 
   @override
   int div(int a, int b) => a ~/ b;

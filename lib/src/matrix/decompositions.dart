@@ -42,7 +42,7 @@ Matrix<double> solveTranspose(Matrix<num> a, Matrix<num> b) =>
 Matrix<double> inverse(Matrix<num> source) => solve(
     source,
     IdentityMatrix<double>(
-        valueDataType, source.rowCount, source.rowCount, 1.0));
+        floatDataType, source.rowCount, source.rowCount, 1.0));
 
 /// Returns the determinant.
 double det(Matrix<num> source) => lu(source).det;

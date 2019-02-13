@@ -119,7 +119,7 @@ class Float64x2System extends System<Float64x2> {
   Float64x2 mul(Float64x2 a, Float64x2 b) => a * b;
 
   @override
-  Float64x2 scale(num a, Float64x2 b) => Float64x2.splat(a) * b;
+  Float64x2 scale(Float64x2 a, num f) => a * Float64x2.splat(f);
 
   @override
   Float64x2 div(Float64x2 a, Float64x2 b) => a / b;
@@ -199,7 +199,7 @@ class Float32x4System extends System<Float32x4> {
   Float32x4 mul(Float32x4 a, Float32x4 b) => a * b;
 
   @override
-  Float32x4 scale(num a, Float32x4 b) => Float32x4.splat(a) * b;
+  Float32x4 scale(Float32x4 a, num f) => a * Float32x4.splat(f);
 
   @override
   Float32x4 div(Float32x4 a, Float32x4 b) => a / b;
@@ -281,8 +281,8 @@ class Int32x4System extends System<Int32x4> {
       Int32x4(a.x * b.x, a.y * b.y, a.z * b.z, a.w * b.w);
 
   @override
-  Int32x4 scale(num a, Int32x4 b) =>
-      Int32x4(a * b.x, a * b.y, a * b.z, a * b.w);
+  Int32x4 scale(Int32x4 a, num f) =>
+      Int32x4(a.x * f, a.y * f, a.z * f, a.w * f);
 
   @override
   Int32x4 div(Int32x4 a, Int32x4 b) =>

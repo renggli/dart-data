@@ -27,11 +27,11 @@ class QRDecomposition {
 
   QRDecomposition(Matrix<num> source)
       : _qr = Matrix.builder.rowMajor
-            .withType(valueDataType)
+            .withType(floatDataType)
             .transform<num>(source, (r, c, v) => v.toDouble()),
         _m = source.rowCount,
         _n = source.colCount,
-        _rdiag = valueDataType.newList(source.colCount) {
+        _rdiag = floatDataType.newList(source.colCount) {
     // Main loop.
     for (var k = 0; k < _n; k++) {
       // Compute 2-norm of k-th column without under/overflow.
@@ -80,7 +80,7 @@ class QRDecomposition {
   /// Returns the Householder vectors: Lower trapezoidal matrix whose columns
   /// define the reflections.
   Matrix<double> get householder {
-    final result = Matrix.builder.withType(valueDataType)(_m, _n);
+    final result = Matrix.builder.withType(floatDataType)(_m, _n);
     for (var i = 0; i < _m; i++) {
       for (var j = 0; j < _n; j++) {
         if (i >= j) {
@@ -93,7 +93,7 @@ class QRDecomposition {
 
   /// Returns the upper triangular factor.
   Matrix<double> get upper {
-    final result = Matrix.builder.withType(valueDataType)(_n, _n);
+    final result = Matrix.builder.withType(floatDataType)(_n, _n);
     for (var i = 0; i < _n; i++) {
       for (var j = i; j < _n; j++) {
         if (i < j) {
@@ -108,7 +108,7 @@ class QRDecomposition {
 
   /// Returns the (economy-sized) orthogonal factor.
   Matrix<double> get orthogonal {
-    final result = Matrix.builder.withType(valueDataType)(_m, _n);
+    final result = Matrix.builder.withType(floatDataType)(_m, _n);
     for (var k = _n - 1; k >= 0; k--) {
       for (var i = 0; i < _m; i++) {
         result.setUnchecked(i, k, 0.0);
@@ -145,7 +145,7 @@ class QRDecomposition {
 
     // Copy right hand side
     final nx = B.colCount;
-    final X = Matrix.builder.withType(valueDataType).fromMatrix(B);
+    final X = Matrix.builder.withType(floatDataType).fromMatrix(B);
 
     // Compute Y = transpose(Q)*B
     for (var k = 0; k < _n; k++) {

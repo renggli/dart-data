@@ -26,7 +26,7 @@ class CholeskyDecomposition {
   /// Cholesky algorithm for symmetric and positive definite matrix.
   /// Structure to access L and isspd flag.
   CholeskyDecomposition(Matrix a)
-      : _l = Matrix.builder.withType(valueDataType)(a.rowCount, a.rowCount),
+      : _l = Matrix.builder.withType(floatDataType)(a.rowCount, a.rowCount),
         _n = a.rowCount,
         _isSymmetric = a.rowCount == a.colCount {
     // Main loop.
@@ -74,7 +74,7 @@ class CholeskyDecomposition {
 
     // Copy right hand side.
     final nx = B.colCount;
-    final result = Matrix.builder.withType(valueDataType).fromMatrix(B);
+    final result = Matrix.builder.withType(floatDataType).fromMatrix(B);
 
     // Solve L*Y = B;
     for (var k = 0; k < _n; k++) {

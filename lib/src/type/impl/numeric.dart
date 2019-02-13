@@ -63,7 +63,7 @@ class NumericSystem extends System<num> {
   num mul(num a, num b) => a * b;
 
   @override
-  num scale(num a, num b) => a * b;
+  num scale(num a, num f) => a * f;
 
   @override
   num div(num a, num b) => a / b;

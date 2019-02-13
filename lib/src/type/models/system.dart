@@ -18,7 +18,7 @@ abstract class System<T> {
 
   T mul(T a, T b);
 
-  T scale(num a, T b);
+  T scale(T a, num f);
 
   T div(T a, T b);
 

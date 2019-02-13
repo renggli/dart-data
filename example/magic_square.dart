@@ -105,7 +105,7 @@ void main() {
     // Maximum eigenvalue of (A + A') / 2, should equal trace.
     {
       final e =
-          matrix.eigenvalue(matrix.scale(0.5, matrix.add(md, md.transposed)));
+          matrix.eigenvalue(matrix.scale(matrix.add(md, md.transposed), 0.5));
       buffer.add(doublePrinter(3)(e.realEigenvalues.last));
     }
 

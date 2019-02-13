@@ -89,7 +89,7 @@ class FloatSystem extends System<double> {
   double mul(double a, double b) => a * b;
 
   @override
-  double scale(num a, double b) => a * b;
+  double scale(double a, num f) => a * f;
 
   @override
   double div(double a, double b) => a / b;

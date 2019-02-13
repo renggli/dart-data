@@ -94,12 +94,12 @@ Vector<T> neg<T>(Vector<T> source,
 }
 
 /// Scales a numeric vector [source] with a [factor].
-Vector<T> scale<T>(num factor, Vector<T> source,
+Vector<T> scale<T>(Vector<T> source, num factor,
     {Vector<T> target, Builder<T> builder, DataType<T> dataType}) {
   final result =
       _resultVector(source.count, target, builder, dataType ?? source.dataType);
   final scale = result.dataType.system.scale;
-  _unaryOperator(result, source, (a) => scale(factor, a));
+  _unaryOperator(result, source, (a) => scale(a, factor));
   return result;
 }
 
@@ -110,7 +110,7 @@ Vector<T> lerp<T>(Vector<T> sourceA, Vector<T> sourceB, num t,
       sourceA.count, target, builder, dataType ?? sourceA.dataType);
   final system = result.dataType.system;
   _binaryOperator(result, sourceA, sourceB,
-      (a, b) => system.add(system.scale(1.0 - t, a), system.scale(t, b)));
+      (a, b) => system.add(system.scale(a, 1.0 - t), system.scale(b, t)));
   return result;
 }
 

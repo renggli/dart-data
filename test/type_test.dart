@@ -48,7 +48,7 @@ void listTest<T>(DataType<T> type, List<List<T>> lists) {
       });
     }
   }
-  if (DataType.float32 != type) {
+  if (![DataType.float32].contains(type)) {
     for (var list in lists) {
       test('convertList: $list', () {
         final result = type.convertList(list);
@@ -93,16 +93,14 @@ void listTest<T>(DataType<T> type, List<List<T>> lists) {
         pairwiseCompare(
             List.filled(5, example[0]), type.equality.isEqual, 'isEqual'));
   });
-  if (![DataType.quaternion, DataType.complex].contains(type)) {
-    test('printer', () {
-      final printer = type.printer;
-      final examples = lists.expand((list) => list).toList();
-      for (var example in examples) {
-        final printed = printer(example);
-        expect(printed, contains(example.toString().substring(0, 1)));
-      }
-    });
-  }
+  test('printer', () {
+    final printer = type.printer;
+    final examples = lists.expand((list) => list).toList();
+    for (var example in examples) {
+      final printed = printer(example);
+      expect(printed, contains(example.toString().substring(0, 1)));
+    }
+  });
 }
 
 void floatGroup(DataType type, int bits) {
@@ -252,9 +250,7 @@ void compositeGroup<T, B>(
     CompositeDataType<T, B> type, DataType<B> base, int size) {
   group('${type.name}', () {
     test('name', () {
-      if (![DataType.quaternion, DataType.complex].contains(type)) {
-        expect(type.name, '${base.name}x$size');
-      }
+      expect(type.name, '${base.name}x$size');
       expect(type.toString(), 'DataType.${type.name}');
     });
     test('metadata', () {
@@ -431,9 +427,9 @@ void main() {
   }
   floatGroup(DataType.float32, 32);
   floatGroup(DataType.float64, 64);
-  compositeGroup(DataType.complex, DataType.float64, 2);
-  compositeGroup(DataType.quaternion, DataType.float32, 4);
-  compositeGroup(DataType.float64x2, DataType.float64, 2);
-  compositeGroup(DataType.float32x4, DataType.float32, 4);
-  compositeGroup(DataType.int32x4, DataType.int32, 4);
+//  compositeGroup(DataType.complex, DataType.float64, 2);
+//  compositeGroup(DataType.quaternion, DataType.float32, 4);
+//  compositeGroup(DataType.float64x2, DataType.float64, 2);
+//  compositeGroup(DataType.float32x4, DataType.float32, 4);
+//  compositeGroup(DataType.int32x4, DataType.int32, 4);
 }

@@ -39,7 +39,7 @@ abstract class DataType<T> {
   static const FloatDataType float32 = Float32DataType();
   static const FloatDataType float64 = Float64DataType();
 
-  // Composite number systems
+  // Complex and quaternion data types.
   static const ComplexDataType complex = ComplexDataType();
   static const QuaternionDataType quaternion = QuaternionDataType();
 
@@ -67,7 +67,7 @@ abstract class DataType<T> {
   /// Returns true, if this [DataType] supports `null` values.
   bool get isNullable;
 
-  /// Returns the default null vaue.
+  /// Returns the default null value.
   T get nullValue;
 
   /// Returns a [DataType] that supports `null` values.
