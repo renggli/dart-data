@@ -3,8 +3,10 @@ library data.type.impl.float;
 import 'dart:math' as math;
 import 'dart:typed_data';
 
+import 'package:data/src/type/models/equality.dart';
 import 'package:data/src/type/models/system.dart';
 import 'package:data/src/type/type.dart';
+import 'package:more/number.dart' show Fraction;
 import 'package:more/printer.dart' show Printer;
 
 abstract class FloatDataType extends DataType<double> {
@@ -20,11 +22,16 @@ abstract class FloatDataType extends DataType<double> {
   System<double> get system => const FloatSystem();
 
   @override
+  Equality<double> get equality => const FloatEquality();
+
+  @override
   double convert(Object value) {
     if (value is num) {
       return value.toDouble();
     } else if (value is String) {
       return double.tryParse(value) ?? super.convert(value);
+    } else if (value is Fraction) {
+      return value.toDouble();
     }
     return super.convert(value);
   }
@@ -99,4 +106,11 @@ class FloatSystem extends System<double> {
 
   @override
   double pow(double a, double b) => math.pow(a, b);
+}
+
+class FloatEquality extends Equality<double> {
+  const FloatEquality();
+
+  @override
+  bool isClose(double a, double b, double epsilon) => (a - b).abs() < epsilon;
 }

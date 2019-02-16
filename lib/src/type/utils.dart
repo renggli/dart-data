@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:data/src/shared/config.dart' as config;
 import 'package:data/src/type/impl/integer.dart';
 import 'package:data/src/type/type.dart';
+import 'package:more/number.dart';
 
 /// Derives a fitting [DataType] from [Object] [instance].
 DataType fromInstance(Object instance) => fromType(instance.runtimeType);
@@ -18,6 +19,12 @@ DataType fromType(Type type) {
       return DataType.boolean;
     case String:
       return DataType.string;
+    case Fraction:
+      return DataType.fraction;
+    case Complex:
+      return DataType.complex;
+    case Quaternion:
+      return DataType.quaternion;
     default:
       return DataType.object;
   }

@@ -4,6 +4,7 @@ import 'dart:math' as math;
 import 'dart:typed_data';
 
 import 'package:data/src/shared/config.dart';
+import 'package:data/src/type/models/equality.dart';
 import 'package:data/src/type/models/system.dart';
 import 'package:data/src/type/type.dart';
 import 'package:more/printer.dart' show Printer;
@@ -45,6 +46,9 @@ abstract class IntegerDataType extends DataType<int> {
 
   @override
   System<int> get system => const IntegerSystem();
+
+  @override
+  Equality<int> get equality => const IntegerEquality();
 
   @override
   int convert(Object value) {
@@ -203,4 +207,11 @@ class IntegerSystem extends System<int> {
 
   @override
   int pow(int a, int b) => math.pow(a, b).truncate();
+}
+
+class IntegerEquality extends Equality<int> {
+  const IntegerEquality();
+
+  @override
+  bool isClose(int a, int b, double epsilon) => (a - b).abs() < epsilon;
 }

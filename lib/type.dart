@@ -11,3 +11,4 @@ export 'package:data/src/type/impl/object.dart';
 export 'package:data/src/type/impl/quaternion.dart';
 export 'package:data/src/type/impl/string.dart';
 export 'package:data/src/type/type.dart';
+export 'package:more/number.dart';

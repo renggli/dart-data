@@ -2,8 +2,10 @@ library data.type.impl.numeric;
 
 import 'dart:math' as math;
 
+import 'package:data/src/type/models/equality.dart';
 import 'package:data/src/type/models/system.dart';
 import 'package:data/src/type/type.dart';
+import 'package:more/number.dart' show Fraction;
 
 class NumericDataType extends DataType<num> {
   const NumericDataType();
@@ -21,18 +23,16 @@ class NumericDataType extends DataType<num> {
   System<num> get system => const NumericSystem();
 
   @override
+  Equality<num> get equality => const NumericEquality();
+
+  @override
   num convert(Object value) {
     if (value == null || value is num) {
       return value;
     } else if (value is String) {
-      final intValue = int.tryParse(value);
-      if (intValue != null) {
-        return intValue;
-      }
-      final doubleValue = double.tryParse(value);
-      if (doubleValue != null) {
-        return doubleValue;
-      }
+      return num.tryParse(value) ?? super.convert(value);
+    } else if (value is Fraction) {
+      return value.toDouble();
     }
     return super.convert(value);
   }
@@ -73,4 +73,11 @@ class NumericSystem extends System<num> {
 
   @override
   num pow(num a, num b) => math.pow(a, b);
+}
+
+class NumericEquality extends Equality<num> {
+  const NumericEquality();
+
+  @override
+  bool isClose(num a, num b, double epsilon) => (a - b).abs() < epsilon;
 }

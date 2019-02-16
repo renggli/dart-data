@@ -4,6 +4,7 @@ import 'package:data/src/type/impl/boolean.dart';
 import 'package:data/src/type/impl/complex.dart';
 import 'package:data/src/type/impl/composite.dart';
 import 'package:data/src/type/impl/float.dart';
+import 'package:data/src/type/impl/fraction.dart';
 import 'package:data/src/type/impl/integer.dart';
 import 'package:data/src/type/impl/nullable.dart';
 import 'package:data/src/type/impl/numeric.dart';
@@ -39,7 +40,8 @@ abstract class DataType<T> {
   static const FloatDataType float32 = Float32DataType();
   static const FloatDataType float64 = Float64DataType();
 
-  // Complex and quaternion data types.
+  // Fraction, complex and quaternion data types
+  static const FractionDataType fraction = FractionDataType();
   static const ComplexDataType complex = ComplexDataType();
   static const QuaternionDataType quaternion = QuaternionDataType();
 

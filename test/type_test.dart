@@ -126,6 +126,7 @@ void floatGroup(DataType type, int bits) {
       [math.pi, math.e],
       [-0.750, 1.5, 0.375],
     ]);
+    systemTest(type, <double>[-0.75, 1.5, 0.375]);
   });
   group('$name.nullable', () {
     final nullableType = type.nullable;
@@ -216,6 +217,7 @@ void integerGroup(IntegerDataType type, bool isSigned, int bits) {
       [type.safeMin, 0, type.safeMax],
       [type.safeMin + 123, type.safeMax - 45, type.safeMax - 67],
     ]);
+    systemTest(type, <int>[-2, 5]);
   });
   group('$name.nullable', () {
     final nullableType = type.nullable;
@@ -286,6 +288,110 @@ void compositeGroup<T, B>(
       expect(nullableType.nullValue, isNull);
       expect(nullableType.nullable, nullableType);
     });
+  });
+}
+
+void systemTest<T>(DataType<T> type, List<T> values) {
+  const epsilon = 0.01;
+
+  // system functions
+  final neg = type.system.neg;
+  final add = type.system.add;
+  final sub = type.system.sub;
+  final mul = type.system.mul;
+  final inv = type.system.inv;
+  final div = type.system.div;
+  final mod = type.system.mod;
+  final pow = type.system.pow;
+  final scale = type.system.scale;
+  final addId = type.system.additiveIdentity;
+  final mulId = type.system.multiplicativeIdentity;
+
+  // equality functions
+  final isEqual = type.equality.isEqual;
+  final isClose = type.equality.isClose;
+  final hash = type.equality.hash;
+
+  group('equality', () {
+    test('isEqual', () {
+      expect(isEqual(addId, mulId), isFalse);
+      for (var value in values) {
+        expect(isEqual(value, value), isTrue);
+        expect(isEqual(value, addId), isFalse);
+        expect(isEqual(value, mulId), isFalse);
+      }
+    });
+    test('isClose', () {
+      expect(isClose(addId, mulId, epsilon), isFalse);
+      for (var value in values) {
+        expect(isClose(value, value, epsilon), isTrue);
+        expect(isClose(value, addId, epsilon), isFalse);
+        expect(isClose(value, mulId, epsilon), isFalse);
+      }
+    });
+    test('hash', () {
+      expect(hash(addId), isNot(hash(mulId)));
+      for (var value in values) {
+        expect(hash(value), hash(value));
+        expect(hash(value), isNot(hash(addId)));
+        expect(hash(value), isNot(hash(mulId)));
+      }
+    });
+  });
+  group('system', () {
+    test('neg', () {
+      for (var value in values) {
+        expect(isEqual(neg(neg(value)), value), isTrue);
+        expect(isEqual(sub(addId, value), neg(value)), isTrue);
+      }
+    });
+    test('add', () {
+      for (var value in values) {
+        expect(isEqual(add(value, addId), value), isTrue);
+        expect(isEqual(add(addId, value), value), isTrue);
+        expect(isEqual(add(value, neg(value)), addId), isTrue);
+      }
+    });
+    test('sub', () {
+      for (var value in values) {
+        expect(isEqual(sub(value, addId), value), isTrue);
+        expect(isEqual(sub(addId, value), neg(value)), isTrue);
+        expect(isEqual(sub(addId, neg(value)), value), isTrue);
+      }
+    });
+    if ([
+      DataType.numeric,
+      DataType.float32,
+      DataType.float64,
+      DataType.complex,
+      DataType.quaternion
+    ].contains(type)) {
+      test('inv', () {
+        expect(isClose(inv(mulId), mulId, epsilon), isTrue);
+        for (var value in values) {
+          expect(isClose(inv(inv(value)), value, epsilon), isTrue);
+        }
+      });
+      test('mul', () {
+        for (var value in values) {
+          expect(isClose(mul(value, inv(value)), mulId, epsilon), isTrue);
+        }
+      });
+      test('div', () {
+        for (var value in values) {
+          expect(isClose(div(mulId, value), inv(value), epsilon), isTrue);
+        }
+      });
+    }
+    test('scale', () {
+      for (var value in values) {
+        expect(isClose(scale(value, 2), add(value, value), epsilon), isTrue);
+      }
+    });
+
+    test('mod', () {});
+
+    test('pow', () {});
   });
 }
 
@@ -360,6 +466,7 @@ void main() {
       [1, 2.3],
       [1, 2.3, null],
     ]);
+    systemTest(type, [-2, 2.3]);
   });
   group('boolean', () {
     const type = DataType.boolean;
@@ -427,6 +534,31 @@ void main() {
   }
   floatGroup(DataType.float32, 32);
   floatGroup(DataType.float64, 64);
+  group('complex', () {
+    const type = DataType.complex;
+    test('name', () {
+      expect(type.name, 'complex');
+      expect(type.toString(), 'DataType.complex');
+    });
+    test('nullable', () {
+      expect(type.isNullable, isTrue);
+      expect(type.nullValue, null);
+    });
+    systemTest(type, [Complex(1, 2), Complex(-3, 5)]);
+  });
+  group('quaternion', () {
+    const type = DataType.quaternion;
+    test('name', () {
+      expect(type.name, 'quaternion');
+      expect(type.toString(), 'DataType.quaternion');
+    });
+    test('nullable', () {
+      expect(type.isNullable, isTrue);
+      expect(type.nullValue, null);
+    });
+    systemTest(type, [Quaternion(1, 2, 3, 4), Quaternion(-3, 5, -7, 9)]);
+  });
+
 //  compositeGroup(DataType.complex, DataType.float64, 2);
 //  compositeGroup(DataType.quaternion, DataType.float32, 4);
 //  compositeGroup(DataType.float64x2, DataType.float64, 2);
