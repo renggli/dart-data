@@ -540,6 +540,15 @@ void main() {
       expect(type.isNullable, isTrue);
       expect(type.nullValue, null);
     });
+    test('convert', () {
+      expect(type.convert(null), isNull);
+      expect(type.convert(Fraction(1, 2)), Fraction(1, 2));
+      expect(type.convert(2), Fraction(2));
+      expect(type.convert(0.5), Fraction(1, 2));
+      expect(type.convert('1/2'), Fraction(1, 2));
+      expect(() => type.convert(''), throwsArgumentError);
+      expect(() => type.convert(const Symbol('bad')), throwsArgumentError);
+    });
     systemTest(type, [
       Fraction(1, 2),
       Fraction(-3, 4),
@@ -556,6 +565,16 @@ void main() {
       expect(type.isNullable, isTrue);
       expect(type.nullValue, null);
     });
+    test('convert', () {
+      expect(type.convert(null), isNull);
+      expect(type.convert(const Complex(1, 2)), const Complex(1, 2));
+      expect(type.convert(2), const Complex(2));
+      expect(type.convert(0.5), const Complex(0.5));
+      expect(type.convert(Fraction(1, 2)), const Complex(0.5));
+      expect(type.convert('1+2i'), const Complex(1, 2));
+      expect(() => type.convert(''), throwsArgumentError);
+      expect(() => type.convert(const Symbol('bad')), throwsArgumentError);
+    });
     systemTest(type, [
       const Complex(1, 2),
       const Complex(-3, 4),
@@ -571,6 +590,18 @@ void main() {
     test('nullable', () {
       expect(type.isNullable, isTrue);
       expect(type.nullValue, null);
+    });
+    test('convert', () {
+      expect(type.convert(null), isNull);
+      expect(type.convert(const Quaternion(1, 2, 3, 4)),
+          const Quaternion(1, 2, 3, 4));
+      expect(type.convert(2), const Quaternion(2));
+      expect(type.convert(0.5), const Quaternion(0.5));
+      expect(type.convert(Fraction(1, 2)), const Quaternion(0.5));
+      expect(type.convert(const Complex(1, 2)), const Quaternion(1, 2));
+      expect(type.convert('1+2i+3j+4k'), const Quaternion(1, 2, 3, 4));
+      expect(() => type.convert(''), throwsArgumentError);
+      expect(() => type.convert(const Symbol('bad')), throwsArgumentError);
     });
     systemTest(type, [
       const Quaternion(1, 2, 3, 4),
