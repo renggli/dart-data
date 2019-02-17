@@ -301,8 +301,6 @@ void systemTest<T>(DataType<T> type, List<T> values) {
   final mul = type.system.mul;
   final inv = type.system.inv;
   final div = type.system.div;
-  final mod = type.system.mod;
-  final pow = type.system.pow;
   final scale = type.system.scale;
   final addId = type.system.additiveIdentity;
   final mulId = type.system.multiplicativeIdentity;
@@ -364,7 +362,8 @@ void systemTest<T>(DataType<T> type, List<T> values) {
       DataType.float32,
       DataType.float64,
       DataType.complex,
-      DataType.quaternion
+      DataType.quaternion,
+      DataType.fraction,
     ].contains(type)) {
       test('inv', () {
         expect(isClose(inv(mulId), mulId, epsilon), isTrue);
@@ -379,7 +378,7 @@ void systemTest<T>(DataType<T> type, List<T> values) {
       });
       test('div', () {
         for (var value in values) {
-          expect(isClose(div(mulId, value), inv(value), epsilon), isTrue);
+          expect(isClose(div(value, value), mulId, epsilon), isTrue);
         }
       });
     }
@@ -388,10 +387,6 @@ void systemTest<T>(DataType<T> type, List<T> values) {
         expect(isClose(scale(value, 2), add(value, value), epsilon), isTrue);
       }
     });
-
-    test('mod', () {});
-
-    test('pow', () {});
   });
 }
 
@@ -534,6 +529,23 @@ void main() {
   }
   floatGroup(DataType.float32, 32);
   floatGroup(DataType.float64, 64);
+
+  group('fraction', () {
+    const type = DataType.fraction;
+    test('name', () {
+      expect(type.name, 'fraction');
+      expect(type.toString(), 'DataType.fraction');
+    });
+    test('nullable', () {
+      expect(type.isNullable, isTrue);
+      expect(type.nullValue, null);
+    });
+    systemTest(type, [
+      Fraction(1, 2),
+      Fraction(-3, 4),
+      Fraction(5, -6),
+    ]);
+  });
   group('complex', () {
     const type = DataType.complex;
     test('name', () {
@@ -544,7 +556,11 @@ void main() {
       expect(type.isNullable, isTrue);
       expect(type.nullValue, null);
     });
-    systemTest(type, [Complex(1, 2), Complex(-3, 5)]);
+    systemTest(type, [
+      const Complex(1, 2),
+      const Complex(-3, 4),
+      const Complex(5, -6),
+    ]);
   });
   group('quaternion', () {
     const type = DataType.quaternion;
@@ -556,7 +572,10 @@ void main() {
       expect(type.isNullable, isTrue);
       expect(type.nullValue, null);
     });
-    systemTest(type, [Quaternion(1, 2, 3, 4), Quaternion(-3, 5, -7, 9)]);
+    systemTest(type, [
+      const Quaternion(1, 2, 3, 4),
+      const Quaternion(-3, 5, -7, 9),
+    ]);
   });
 
 //  compositeGroup(DataType.complex, DataType.float64, 2);

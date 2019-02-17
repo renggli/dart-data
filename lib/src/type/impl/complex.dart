@@ -25,6 +25,8 @@ class ComplexDataType extends DataType<Complex> {
       return Complex(value);
     } else if (value is Fraction) {
       return Complex(value.toDouble());
+    } else if (value is String) {
+      return Complex.tryParse(value) ?? super.convert(value);
     }
     return super.convert(value);
   }

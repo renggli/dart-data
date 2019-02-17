@@ -27,12 +27,7 @@ class FractionDataType extends DataType<Fraction> {
     } else if (value is double) {
       return Fraction.fromDouble(value);
     } else if (value is String) {
-      final parts = value.split('/');
-      if (parts.length == 1) {
-        return convert(parts[0]);
-      } else if (parts.length == 2) {
-        return Fraction(int.tryParse(parts[0]), int.tryParse(parts[1]));
-      }
+      return Fraction.tryParse(value) ?? super.convert(value);
     }
     return super.convert(value);
   }

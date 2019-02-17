@@ -27,6 +27,8 @@ class QuaternionDataType extends DataType<Quaternion> {
       return Quaternion(value.toDouble());
     } else if (value is Complex) {
       return Quaternion(value.a, value.b);
+    } else if (value is String) {
+      return Quaternion.tryParse(value) ?? super.convert(value);
     }
     return super.convert(value);
   }
