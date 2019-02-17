@@ -7,6 +7,7 @@ import 'package:data/src/shared/config.dart';
 import 'package:data/src/type/models/equality.dart';
 import 'package:data/src/type/models/system.dart';
 import 'package:data/src/type/type.dart';
+import 'package:more/number.dart' show Fraction;
 import 'package:more/printer.dart' show Printer;
 
 abstract class IntegerDataType extends DataType<int> {
@@ -58,6 +59,8 @@ abstract class IntegerDataType extends DataType<int> {
       } else {
         return value.toInt().toUnsigned(bits);
       }
+    } else if (value is Fraction) {
+      return convert(value.toInt());
     } else if (value is String) {
       return int.tryParse(value) ?? super.convert(value);
     }

@@ -120,6 +120,7 @@ void floatGroup(DataType type, int bits) {
       expect(type.convert(1), 1.0);
       expect(type.convert(12.34), 12.34);
       expect(type.convert('123.45'), 123.45);
+      expect(type.convert(Fraction(1, 2)), 0.5);
       expect(() => type.convert('abc'), throwsArgumentError);
     });
     listTest(type, <List<double>>[
@@ -455,7 +456,9 @@ void main() {
       expect(type.convert(12.3), 12.3);
       expect(type.convert('123'), 123);
       expect(type.convert('123.4'), 123.4);
+      expect(type.convert(Fraction(1, 2)), 0.5);
       expect(() => type.convert('abc'), throwsArgumentError);
+      expect(() => type.convert(const Symbol('bad')), throwsArgumentError);
     });
     listTest(type, <List<num>>[
       [1, 2.3],
