@@ -208,6 +208,7 @@ void integerGroup(IntegerDataType type, bool isSigned, int bits) {
       expect(type.convert(1), 1);
       expect(type.convert(12.34), 12);
       expect(type.convert('123'), 123);
+      expect(type.convert(Fraction(2, 1)), 2);
       if (isSigned) {
         expect(type.convert(-12.34), -12);
         expect(type.convert('-123'), -123);

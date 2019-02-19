@@ -194,7 +194,7 @@ class IntegerSystem extends System<int> {
   int get multiplicativeIdentity => 1;
 
   @override
-  int inv(num a) => 1 ~/ a;
+  int inv(int a) => 1 ~/ a;
 
   @override
   int mul(int a, int b) => a * b;

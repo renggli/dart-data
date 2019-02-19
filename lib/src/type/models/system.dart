@@ -28,13 +28,13 @@ abstract class System<T> {
   /// Computes `a * f`.
   T scale(T a, num f);
 
-  /// Computes `a / f`.
+  /// Computes `a / b`.
   T div(T a, T b);
 
-  /// Computes `a % f`.
+  /// Computes `a % b`.
   T mod(T a, T b);
 
-  /// Computes `a ^^ f`.
+  /// Computes `a ^^ b`.
   T pow(T a, T b);
 
   /// Thrown when an operation is not supported.
