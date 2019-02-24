@@ -81,7 +81,7 @@ class FractionSystem extends System<Fraction> {
   Fraction mul(Fraction a, Fraction b) => a * b;
 
   @override
-  Fraction scale(Fraction a, num f) => a * Fraction(f);
+  Fraction scale(Fraction a, num f) => a * f;
 
   @override
   Fraction div(Fraction a, Fraction b) => a / b;
@@ -90,5 +90,5 @@ class FractionSystem extends System<Fraction> {
   Fraction mod(Fraction a, Fraction b) => unsupportedOperation('mod');
 
   @override
-  Fraction pow(Fraction a, Fraction b) => unsupportedOperation('pow');
+  Fraction pow(Fraction a, Fraction b) => a.pow(b.toInt());
 }

@@ -70,7 +70,7 @@ class ComplexSystem extends System<Complex> {
   Complex mul(Complex a, Complex b) => a * b;
 
   @override
-  Complex scale(Complex a, num f) => Complex(a.a * f, a.b * f);
+  Complex scale(Complex a, num f) => a * f;
 
   @override
   Complex div(Complex a, Complex b) => a / b;

@@ -73,8 +73,7 @@ class QuaternionSystem extends System<Quaternion> {
   Quaternion mul(Quaternion a, Quaternion b) => a * b;
 
   @override
-  Quaternion scale(Quaternion a, num f) =>
-      Quaternion(a.a * f, a.b * f, a.c * f, a.d * f);
+  Quaternion scale(Quaternion a, num f) => a * f;
 
   @override
   Quaternion div(Quaternion a, Quaternion b) => a / b;
