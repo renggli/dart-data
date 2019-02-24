@@ -1,8 +1,8 @@
-library data.type.models.number;
+library data.type.models.field;
 
-/// Encapsulates a mathematical number system.
-abstract class System<T> {
-  const System();
+/// Encapsulates a mathematical field.
+abstract class Field<T> {
+  const Field();
 
   /// The additive neutral element.
   T get additiveIdentity;

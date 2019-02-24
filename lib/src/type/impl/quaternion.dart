@@ -1,7 +1,7 @@
 library data.type.impl.quaternion;
 
 import 'package:data/src/type/models/equality.dart';
-import 'package:data/src/type/models/system.dart';
+import 'package:data/src/type/models/field.dart';
 import 'package:data/src/type/type.dart';
 import 'package:more/number.dart';
 
@@ -34,7 +34,7 @@ class QuaternionDataType extends DataType<Quaternion> {
   }
 
   @override
-  System<Quaternion> get system => const QuaternionSystem();
+  Field<Quaternion> get field => const QuaternionField();
 
   @override
   Equality<Quaternion> get equality => const QuaternionEquality();
@@ -48,8 +48,8 @@ class QuaternionEquality extends Equality<Quaternion> {
       (a - b).abs() < epsilon;
 }
 
-class QuaternionSystem extends System<Quaternion> {
-  const QuaternionSystem();
+class QuaternionField extends Field<Quaternion> {
+  const QuaternionField();
 
   @override
   Quaternion get additiveIdentity => Quaternion.zero;

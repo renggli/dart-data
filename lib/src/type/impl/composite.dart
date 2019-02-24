@@ -4,7 +4,7 @@ import 'dart:math' as math;
 import 'dart:typed_data';
 
 import 'package:data/src/type/models/equality.dart';
-import 'package:data/src/type/models/system.dart';
+import 'package:data/src/type/models/field.dart';
 import 'package:data/src/type/type.dart';
 import 'package:more/printer.dart';
 
@@ -72,7 +72,7 @@ class Float64x2DataType extends CompositeDataType<Float64x2, double> {
   Equality<Float64x2> get equality => const Float64x2Equality();
 
   @override
-  System<Float64x2> get system => const Float64x2System();
+  Field<Float64x2> get field => const Float64x2Field();
 
   @override
   List<Float64x2> newList(int length) => Float64x2List(length);
@@ -94,8 +94,8 @@ class Float64x2Equality extends Equality<Float64x2> {
   int hash(Float64x2 a) => a.x.hashCode ^ a.y.hashCode;
 }
 
-class Float64x2System extends System<Float64x2> {
-  const Float64x2System();
+class Float64x2Field extends Field<Float64x2> {
+  const Float64x2Field();
 
   @override
   Float64x2 get additiveIdentity => Float64x2.zero();
@@ -149,7 +149,7 @@ class Float32x4DataType extends CompositeDataType<Float32x4, double> {
   Equality<Float32x4> get equality => const Float32x4Equality();
 
   @override
-  System<Float32x4> get system => const Float32x4System();
+  Field<Float32x4> get field => const Float32x4Field();
 
   @override
   List<Float32x4> newList(int length) => Float32x4List(length);
@@ -174,8 +174,8 @@ class Float32x4Equality extends Equality<Float32x4> {
       a.x.hashCode ^ a.y.hashCode ^ a.z.hashCode ^ a.w.hashCode;
 }
 
-class Float32x4System extends System<Float32x4> {
-  const Float32x4System();
+class Float32x4Field extends Field<Float32x4> {
+  const Float32x4Field();
 
   @override
   Float32x4 get additiveIdentity => Float32x4.zero();
@@ -230,7 +230,7 @@ class Int32x4DataType extends CompositeDataType<Int32x4, int> {
   Equality<Int32x4> get equality => const Int32x4Equality();
 
   @override
-  System<Int32x4> get system => const Int32x4System();
+  Field<Int32x4> get field => const Int32x4Field();
 
   @override
   List<Int32x4> newList(int length) => Int32x4List(length);
@@ -255,8 +255,8 @@ class Int32x4Equality extends Equality<Int32x4> {
       a.x.hashCode ^ a.y.hashCode ^ a.z.hashCode ^ a.w.hashCode;
 }
 
-class Int32x4System extends System<Int32x4> {
-  const Int32x4System();
+class Int32x4Field extends Field<Int32x4> {
+  const Int32x4Field();
 
   @override
   Int32x4 get additiveIdentity => Int32x4(0, 0, 0, 0);

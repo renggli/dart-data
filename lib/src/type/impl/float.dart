@@ -4,7 +4,7 @@ import 'dart:math' as math;
 import 'dart:typed_data';
 
 import 'package:data/src/type/models/equality.dart';
-import 'package:data/src/type/models/system.dart';
+import 'package:data/src/type/models/field.dart';
 import 'package:data/src/type/type.dart';
 import 'package:more/number.dart' show Fraction;
 import 'package:more/printer.dart' show Printer;
@@ -19,7 +19,7 @@ abstract class FloatDataType extends DataType<double> {
   double get nullValue => 0.0;
 
   @override
-  System<double> get system => const FloatSystem();
+  Field<double> get field => const FloatField();
 
   @override
   Equality<double> get equality => const FloatEquality();
@@ -71,8 +71,8 @@ class Float64DataType extends FloatDataType {
       );
 }
 
-class FloatSystem extends System<double> {
-  const FloatSystem();
+class FloatField extends Field<double> {
+  const FloatField();
 
   @override
   double get additiveIdentity => 0.0;

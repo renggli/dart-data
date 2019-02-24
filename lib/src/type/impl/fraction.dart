@@ -1,8 +1,8 @@
 library data.type.impl.fraction;
 
 import 'package:data/src/type/models/equality.dart';
-import 'package:data/src/type/models/ordering.dart';
-import 'package:data/src/type/models/system.dart';
+import 'package:data/src/type/models/field.dart';
+import 'package:data/src/type/models/order.dart';
 import 'package:data/src/type/type.dart';
 import 'package:more/number.dart';
 
@@ -36,10 +36,10 @@ class FractionDataType extends DataType<Fraction> {
   Equality<Fraction> get equality => const FractionEquality();
 
   @override
-  Ordering<Fraction> get ordering => const FractionOrdering();
+  Order<Fraction> get order => const FractionOrder();
 
   @override
-  System<Fraction> get system => const FractionSystem();
+  Field<Fraction> get field => const FractionField();
 }
 
 class FractionEquality extends Equality<Fraction> {
@@ -49,15 +49,15 @@ class FractionEquality extends Equality<Fraction> {
   bool isClose(Fraction a, Fraction b, double epsilon) => a.closeTo(b, epsilon);
 }
 
-class FractionOrdering extends Ordering<Fraction> {
-  const FractionOrdering();
+class FractionOrder extends Order<Fraction> {
+  const FractionOrder();
 
   @override
   int compare(Fraction a, Fraction b) => a.compareTo(b);
 }
 
-class FractionSystem extends System<Fraction> {
-  const FractionSystem();
+class FractionField extends Field<Fraction> {
+  const FractionField();
 
   @override
   Fraction get additiveIdentity => Fraction.zero;

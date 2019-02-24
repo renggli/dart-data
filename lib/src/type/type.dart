@@ -12,8 +12,8 @@ import 'package:data/src/type/impl/object.dart';
 import 'package:data/src/type/impl/quaternion.dart';
 import 'package:data/src/type/impl/string.dart';
 import 'package:data/src/type/models/equality.dart';
-import 'package:data/src/type/models/ordering.dart';
-import 'package:data/src/type/models/system.dart';
+import 'package:data/src/type/models/field.dart';
+import 'package:data/src/type/models/order.dart';
 import 'package:data/src/type/utils.dart' as utils;
 import 'package:more/printer.dart';
 
@@ -78,13 +78,11 @@ abstract class DataType<T> {
   /// Returns an equality relation.
   Equality<T> get equality => Equality<T>();
 
-  /// Returns an ordering relation, if available.
-  Ordering<T> get ordering =>
-      throw UnsupportedError('No ordering available for $this.');
+  /// Returns an order relation, if available.
+  Order<T> get order => throw UnsupportedError('No order available for $this.');
 
-  /// Returns a (number) system, if available.
-  System<T> get system =>
-      throw UnsupportedError('No system available for $this.');
+  /// Returns a mathematical field, if available.
+  Field<T> get field => throw UnsupportedError('No field available for $this.');
 
   /// Converts the argument to this data type, otherwise throw an
   /// [ArgumentError].

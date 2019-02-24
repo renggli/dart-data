@@ -5,7 +5,7 @@ import 'dart:typed_data';
 
 import 'package:data/src/shared/config.dart';
 import 'package:data/src/type/models/equality.dart';
-import 'package:data/src/type/models/system.dart';
+import 'package:data/src/type/models/field.dart';
 import 'package:data/src/type/type.dart';
 import 'package:more/number.dart' show Fraction;
 import 'package:more/printer.dart' show Printer;
@@ -46,7 +46,7 @@ abstract class IntegerDataType extends DataType<int> {
   int get nullValue => 0;
 
   @override
-  System<int> get system => const IntegerSystem();
+  Field<int> get field => const IntegerField();
 
   @override
   Equality<int> get equality => const IntegerEquality();
@@ -175,8 +175,8 @@ class Uint64DataType extends IntegerDataType {
   List<int> newList(int length) => Uint64List(length);
 }
 
-class IntegerSystem extends System<int> {
-  const IntegerSystem();
+class IntegerField extends Field<int> {
+  const IntegerField();
 
   @override
   int get additiveIdentity => 0;

@@ -71,7 +71,7 @@ Vector<T> add<T>(Vector<T> sourceA, Vector<T> sourceB,
     {Vector<T> target, Builder<T> builder, DataType<T> dataType}) {
   final result = _resultVector(
       sourceA.count, target, builder, dataType ?? sourceA.dataType);
-  _binaryOperator(result, sourceA, sourceB, result.dataType.system.add);
+  _binaryOperator(result, sourceA, sourceB, result.dataType.field.add);
   return result;
 }
 
@@ -80,7 +80,7 @@ Vector<T> sub<T>(Vector<T> sourceA, Vector<T> sourceB,
     {Vector<T> target, Builder<T> builder, DataType<T> dataType}) {
   final result = _resultVector(
       sourceA.count, target, builder, dataType ?? sourceA.dataType);
-  _binaryOperator(result, sourceA, sourceB, result.dataType.system.sub);
+  _binaryOperator(result, sourceA, sourceB, result.dataType.field.sub);
   return result;
 }
 
@@ -89,7 +89,7 @@ Vector<T> neg<T>(Vector<T> source,
     {Vector<T> target, Builder<T> builder, DataType<T> dataType}) {
   final result =
       _resultVector(source.count, target, builder, dataType ?? source.dataType);
-  _unaryOperator(result, source, result.dataType.system.neg);
+  _unaryOperator(result, source, result.dataType.field.neg);
   return result;
 }
 
@@ -98,7 +98,7 @@ Vector<T> scale<T>(Vector<T> source, num factor,
     {Vector<T> target, Builder<T> builder, DataType<T> dataType}) {
   final result =
       _resultVector(source.count, target, builder, dataType ?? source.dataType);
-  final scale = result.dataType.system.scale;
+  final scale = result.dataType.field.scale;
   _unaryOperator(result, source, (a) => scale(a, factor));
   return result;
 }
@@ -108,9 +108,9 @@ Vector<T> lerp<T>(Vector<T> sourceA, Vector<T> sourceB, num t,
     {Vector<T> target, Builder<T> builder, DataType<T> dataType}) {
   final result = _resultVector(
       sourceA.count, target, builder, dataType ?? sourceA.dataType);
-  final system = result.dataType.system;
+  final field = result.dataType.field;
   _binaryOperator(result, sourceA, sourceB,
-      (a, b) => system.add(system.scale(a, 1.0 - t), system.scale(b, t)));
+      (a, b) => field.add(field.scale(a, 1.0 - t), field.scale(b, t)));
   return result;
 }
 
@@ -131,13 +131,13 @@ Vector<T> mul<T>(Matrix<T> matrix, Vector<T> vector,
       throw ArgumentError('Vector multiplication cannot be done in-place.');
     }
   }
-  final system = result.dataType.system;
+  final field = result.dataType.field;
   for (var r = 0; r < matrix.rowCount; r++) {
-    var sum = system.additiveIdentity;
+    var sum = field.additiveIdentity;
     for (var j = 0; j < matrix.colCount; j++) {
-      sum = system.add(
+      sum = field.add(
         sum,
-        system.mul(
+        field.mul(
           matrix.getUnchecked(r, j),
           vector.getUnchecked(j),
         ),
@@ -151,12 +151,12 @@ Vector<T> mul<T>(Matrix<T> matrix, Vector<T> vector,
 /// Computes the dot product of two vectors [sourceA] and [sourceB].
 T dot<T>(Vector<T> sourceA, Vector<T> sourceB) {
   _checkMatchingDimensions(sourceA, sourceB);
-  final system = sourceA.dataType.system;
-  var result = system.additiveIdentity;
+  final field = sourceA.dataType.field;
+  var result = field.additiveIdentity;
   for (var i = 0; i < sourceA.count; i++) {
-    result = system.add(
+    result = field.add(
       result,
-      system.mul(
+      field.mul(
         sourceA.getUnchecked(i),
         sourceB.getUnchecked(i),
       ),
@@ -167,10 +167,10 @@ T dot<T>(Vector<T> sourceA, Vector<T> sourceB) {
 
 /// Computes the sum of all elements in this vector.
 T sum<T>(Vector<T> source) {
-  final system = source.dataType.system;
-  var result = system.additiveIdentity;
+  final field = source.dataType.field;
+  var result = field.additiveIdentity;
   for (var i = 0; i < source.count; i++) {
-    result = system.add(result, source[i]);
+    result = field.add(result, source[i]);
   }
   return result;
 }
@@ -180,11 +180,11 @@ double length<T extends num>(Vector<T> source) => math.sqrt(length2(source));
 
 /// Computes the squared length of a vector.
 T length2<T extends num>(Vector<T> source) {
-  final system = source.dataType.system;
-  var result = system.additiveIdentity;
+  final field = source.dataType.field;
+  var result = field.additiveIdentity;
   for (var i = 0; i < source.count; i++) {
     final value = source.getUnchecked(i);
-    result = system.add(result, system.mul(value, value));
+    result = field.add(result, field.mul(value, value));
   }
   return result;
 }

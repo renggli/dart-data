@@ -1,7 +1,7 @@
 library data.type.impl.complex;
 
 import 'package:data/src/type/models/equality.dart';
-import 'package:data/src/type/models/system.dart';
+import 'package:data/src/type/models/field.dart';
 import 'package:data/src/type/type.dart';
 import 'package:more/number.dart';
 
@@ -35,7 +35,7 @@ class ComplexDataType extends DataType<Complex> {
   Equality<Complex> get equality => const ComplexEquality();
 
   @override
-  System<Complex> get system => const ComplexSystem();
+  Field<Complex> get field => const ComplexField();
 }
 
 class ComplexEquality extends Equality<Complex> {
@@ -45,8 +45,8 @@ class ComplexEquality extends Equality<Complex> {
   bool isClose(Complex a, Complex b, double epsilon) => a.closeTo(b, epsilon);
 }
 
-class ComplexSystem extends System<Complex> {
-  const ComplexSystem();
+class ComplexField extends Field<Complex> {
+  const ComplexField();
 
   @override
   Complex get additiveIdentity => Complex.zero;

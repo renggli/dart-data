@@ -3,7 +3,7 @@ library data.type.impl.numeric;
 import 'dart:math' as math;
 
 import 'package:data/src/type/models/equality.dart';
-import 'package:data/src/type/models/system.dart';
+import 'package:data/src/type/models/field.dart';
 import 'package:data/src/type/type.dart';
 import 'package:more/number.dart' show Fraction;
 
@@ -20,7 +20,7 @@ class NumericDataType extends DataType<num> {
   num get nullValue => null;
 
   @override
-  System<num> get system => const NumericSystem();
+  Field<num> get field => const NumericField();
 
   @override
   Equality<num> get equality => const NumericEquality();
@@ -38,8 +38,8 @@ class NumericDataType extends DataType<num> {
   }
 }
 
-class NumericSystem extends System<num> {
-  const NumericSystem();
+class NumericField extends Field<num> {
+  const NumericField();
 
   @override
   num get additiveIdentity => 0;

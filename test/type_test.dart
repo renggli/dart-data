@@ -127,7 +127,7 @@ void floatGroup(DataType type, int bits) {
       [math.pi, math.e],
       [-0.750, 1.5, 0.375],
     ]);
-    systemTest(type, <double>[-0.75, 1.5, 0.375]);
+    fieldTest(type, <double>[-0.75, 1.5, 0.375]);
   });
   group('$name.nullable', () {
     final nullableType = type.nullable;
@@ -219,7 +219,7 @@ void integerGroup(IntegerDataType type, bool isSigned, int bits) {
       [type.safeMin, 0, type.safeMax],
       [type.safeMin + 123, type.safeMax - 45, type.safeMax - 67],
     ]);
-    systemTest(type, <int>[-2, 5]);
+    fieldTest(type, <int>[-2, 5]);
   });
   group('$name.nullable', () {
     final nullableType = type.nullable;
@@ -293,19 +293,19 @@ void compositeGroup<T, B>(
   });
 }
 
-void systemTest<T>(DataType<T> type, List<T> values) {
+void fieldTest<T>(DataType<T> type, List<T> values) {
   const epsilon = 0.01;
 
-  // system functions
-  final neg = type.system.neg;
-  final add = type.system.add;
-  final sub = type.system.sub;
-  final mul = type.system.mul;
-  final inv = type.system.inv;
-  final div = type.system.div;
-  final scale = type.system.scale;
-  final addId = type.system.additiveIdentity;
-  final mulId = type.system.multiplicativeIdentity;
+  // field functions
+  final neg = type.field.neg;
+  final add = type.field.add;
+  final sub = type.field.sub;
+  final mul = type.field.mul;
+  final inv = type.field.inv;
+  final div = type.field.div;
+  final scale = type.field.scale;
+  final addId = type.field.additiveIdentity;
+  final mulId = type.field.multiplicativeIdentity;
 
   // equality functions
   final isEqual = type.equality.isEqual;
@@ -338,7 +338,7 @@ void systemTest<T>(DataType<T> type, List<T> values) {
       }
     });
   });
-  group('system', () {
+  group('field', () {
     test('neg', () {
       for (var value in values) {
         expect(isEqual(neg(neg(value)), value), isTrue);
@@ -465,7 +465,7 @@ void main() {
       [1, 2.3],
       [1, 2.3, null],
     ]);
-    systemTest(type, [-2, 2.3]);
+    fieldTest(type, [-2, 2.3]);
   });
   group('boolean', () {
     const type = DataType.boolean;
@@ -553,7 +553,7 @@ void main() {
       expect(() => type.convert(''), throwsArgumentError);
       expect(() => type.convert(const Symbol('bad')), throwsArgumentError);
     });
-    systemTest(type, [
+    fieldTest(type, [
       Fraction(1, 2),
       Fraction(-3, 4),
       Fraction(5, -6),
@@ -579,7 +579,7 @@ void main() {
       expect(() => type.convert(''), throwsArgumentError);
       expect(() => type.convert(const Symbol('bad')), throwsArgumentError);
     });
-    systemTest(type, [
+    fieldTest(type, [
       const Complex(1, 2),
       const Complex(-3, 4),
       const Complex(5, -6),
@@ -607,7 +607,7 @@ void main() {
       expect(() => type.convert(''), throwsArgumentError);
       expect(() => type.convert(const Symbol('bad')), throwsArgumentError);
     });
-    systemTest(type, [
+    fieldTest(type, [
       const Quaternion(1, 2, 3, 4),
       const Quaternion(-3, 5, -7, 9),
     ]);

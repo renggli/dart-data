@@ -74,7 +74,7 @@ Matrix<T> add<T>(Matrix<T> sourceA, Matrix<T> sourceB,
     {Matrix<T> target, Builder<T> builder, DataType<T> dataType}) {
   final result = _resultMatrix(sourceA.rowCount, sourceA.colCount, target,
       builder, dataType ?? sourceA.dataType);
-  _binaryOperator(result, sourceA, sourceB, result.dataType.system.add);
+  _binaryOperator(result, sourceA, sourceB, result.dataType.field.add);
   return result;
 }
 
@@ -83,7 +83,7 @@ Matrix<T> sub<T>(Matrix<T> sourceA, Matrix<T> sourceB,
     {Matrix<T> target, Builder<T> builder, DataType<T> dataType}) {
   final result = _resultMatrix(sourceA.rowCount, sourceA.colCount, target,
       builder, dataType ?? sourceA.dataType);
-  _binaryOperator(result, sourceA, sourceB, result.dataType.system.sub);
+  _binaryOperator(result, sourceA, sourceB, result.dataType.field.sub);
   return result;
 }
 
@@ -92,7 +92,7 @@ Matrix<T> neg<T>(Matrix<T> source,
     {Matrix<T> target, Builder<T> builder, DataType<T> dataType}) {
   final result = _resultMatrix(source.rowCount, source.colCount, target,
       builder, dataType ?? source.dataType);
-  _unaryOperator(result, source, result.dataType.system.neg);
+  _unaryOperator(result, source, result.dataType.field.neg);
   return result;
 }
 
@@ -101,7 +101,7 @@ Matrix<T> scale<T>(Matrix<T> source, num factor,
     {Matrix<T> target, Builder<T> builder, DataType<T> dataType}) {
   final result = _resultMatrix(source.rowCount, source.colCount, target,
       builder, dataType ?? source.dataType);
-  final scale = result.dataType.system.scale;
+  final scale = result.dataType.field.scale;
   _unaryOperator(result, source, (a) => scale(a, factor));
   return result;
 }
@@ -111,9 +111,9 @@ Matrix<T> lerp<T>(Matrix<T> sourceA, Matrix<T> sourceB, num t,
     {Matrix<T> target, Builder<T> builder, DataType<T> dataType}) {
   final result = _resultMatrix(sourceA.rowCount, sourceA.colCount, target,
       builder, dataType ?? sourceA.dataType);
-  final system = result.dataType.system;
+  final field = result.dataType.field;
   _binaryOperator(result, sourceA, sourceB,
-      (a, b) => system.add(system.scale(a, 1.0 - t), system.scale(b, t)));
+      (a, b) => field.add(field.scale(a, 1.0 - t), field.scale(b, t)));
   return result;
 }
 
@@ -133,14 +133,14 @@ Matrix<T> mul<T>(Matrix<T> sourceA, Matrix<T> sourceB,
       throw ArgumentError('Matrix multiplication cannot be done in-place.');
     }
   }
-  final system = result.dataType.system;
+  final field = result.dataType.field;
   for (var r = 0; r < result.rowCount; r++) {
     for (var c = 0; c < result.colCount; c++) {
-      var sum = system.additiveIdentity;
+      var sum = field.additiveIdentity;
       for (var i = 0; i < sourceA.colCount; i++) {
-        sum = system.add(
+        sum = field.add(
           sum,
-          system.mul(
+          field.mul(
             sourceA.getUnchecked(r, i),
             sourceB.getUnchecked(i, c),
           ),
