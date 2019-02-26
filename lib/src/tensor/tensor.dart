@@ -12,7 +12,7 @@ abstract class Tensor<T> {
   List<int> get shape;
 
   /// Returns the underlying storage containers of this tensor.
-  Set<Tensor> get storage => Set.of([this]);
+  Set<Tensor> get storage => {this};
 
   /// Returns a copy of this tensor.
   Tensor<T> copy();
