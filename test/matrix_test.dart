@@ -136,6 +136,8 @@ void matrixTest(String name, Builder builder) {
           }
         }
         expect(() => matrix.set(0, 0, '*'), throwsUnsupportedError);
+        final copy = matrix.copy();
+        expect(copy, same(matrix));
       });
       test('transform', () {
         final source = builder
@@ -207,6 +209,27 @@ void matrixTest(String name, Builder builder) {
           }
         }
       });
+      test('fromRow, lazy', () {
+        final source =
+            v.Vector.builder.withType(DataType.int8).fromList([2, 5, 6]);
+        final matrix =
+            builder.withType(DataType.int16).fromRow(source, lazy: true);
+        expect(matrix.dataType, DataType.int8);
+        expect(matrix.rowCount, 1);
+        expect(matrix.colCount, 3);
+        expect(matrix.shape, [matrix.rowCount, matrix.colCount]);
+        expect(matrix.storage, [source]);
+        for (var r = 0; r < matrix.rowCount; r++) {
+          for (var c = 0; c < matrix.colCount; c++) {
+            expect(matrix.get(r, c), source[c]);
+          }
+        }
+        matrix.set(0, 2, 7);
+        expect(matrix.get(0, 2), 7);
+        expect(source[2], 7);
+        final copy = matrix.copy();
+        expect(copy, isNot(same(matrix)));
+      });
       test('fromColumn', () {
         final source =
             v.Vector.builder.withType(DataType.int8).fromList([2, 5, 6]);
@@ -222,6 +245,27 @@ void matrixTest(String name, Builder builder) {
           }
         }
       });
+      test('fromColumn, lazy', () {
+        final source =
+            v.Vector.builder.withType(DataType.int8).fromList([2, 5, 6]);
+        final matrix =
+            builder.withType(DataType.int16).fromColumn(source, lazy: true);
+        expect(matrix.dataType, DataType.int8);
+        expect(matrix.rowCount, 3);
+        expect(matrix.colCount, 1);
+        expect(matrix.shape, [matrix.rowCount, matrix.colCount]);
+        expect(matrix.storage, [source]);
+        for (var r = 0; r < matrix.rowCount; r++) {
+          for (var c = 0; c < matrix.colCount; c++) {
+            expect(matrix.get(r, c), source[r]);
+          }
+        }
+        matrix.set(2, 0, 7);
+        expect(matrix.get(2, 0), 7);
+        expect(source[2], 7);
+        final copy = matrix.copy();
+        expect(copy, isNot(same(matrix)));
+      });
       test('fromDiagonal', () {
         final source =
             v.Vector.builder.withType(DataType.int8).fromList([2, 5, 6]);
@@ -236,6 +280,28 @@ void matrixTest(String name, Builder builder) {
             expect(matrix.get(r, c), r == c ? source[r] : 0);
           }
         }
+      });
+      test('fromDiagonal, lazy', () {
+        final source =
+            v.Vector.builder.withType(DataType.int8).fromList([2, 5, 6]);
+        final matrix =
+            builder.withType(DataType.int16).fromDiagonal(source, lazy: true);
+        expect(matrix.dataType, DataType.int8);
+        expect(matrix.rowCount, 3);
+        expect(matrix.colCount, 3);
+        expect(matrix.shape, [matrix.rowCount, matrix.colCount]);
+        expect(matrix.storage, [source]);
+        for (var r = 0; r < matrix.rowCount; r++) {
+          for (var c = 0; c < matrix.colCount; c++) {
+            expect(matrix.get(r, c), r == c ? source[r] : 0);
+          }
+        }
+        expect(() => matrix.set(1, 2, 7), throwsArgumentError);
+        matrix.set(2, 2, 7);
+        expect(matrix.get(2, 2), 7);
+        expect(source[2], 7);
+        final copy = matrix.copy();
+        expect(copy, isNot(same(matrix)));
       });
       test('fromRows', () {
         final matrix = builder.withType(DataType.int8).fromRows([
