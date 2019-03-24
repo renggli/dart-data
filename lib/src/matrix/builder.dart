@@ -9,9 +9,12 @@ import 'package:data/src/matrix/impl/diagonal_matrix.dart';
 import 'package:data/src/matrix/impl/keyed_matrix.dart';
 import 'package:data/src/matrix/impl/row_major_matrix.dart';
 import 'package:data/src/matrix/matrix.dart';
+import 'package:data/src/matrix/view/column_vector_matrix.dart';
 import 'package:data/src/matrix/view/constant_matrix.dart';
+import 'package:data/src/matrix/view/diagonal_vector_matrix.dart';
 import 'package:data/src/matrix/view/generated_matrix.dart';
 import 'package:data/src/matrix/view/identity_matrix.dart';
+import 'package:data/src/matrix/view/row_vector_matrix.dart';
 import 'package:data/type.dart';
 import 'package:data/vector.dart' show Vector;
 
@@ -125,30 +128,21 @@ class Builder<T> {
   }
 
   /// Builds a matrix from a row vector.
-  Matrix<T> fromRow(Vector<T> source) {
-    final result = this(1, source.count);
-    for (var i = 0; i < source.count; i++) {
-      result.setUnchecked(0, i, source.getUnchecked(i));
-    }
-    return result;
+  Matrix<T> fromRow(Vector<T> source, {bool lazy = false}) {
+    final result = RowMatrix(source);
+    return lazy ? result : fromMatrix(result);
   }
 
   /// Builds a matrix from a column vector.
-  Matrix<T> fromColumn(Vector<T> source) {
-    final result = this(source.count, 1);
-    for (var i = 0; i < source.count; i++) {
-      result.setUnchecked(i, 0, source.getUnchecked(i));
-    }
-    return result;
+  Matrix<T> fromColumn(Vector<T> source, {bool lazy = false}) {
+    final result = ColumnVectorMatrix(source);
+    return lazy ? result : fromMatrix(result);
   }
 
   /// Builds a matrix from a diagonal vector.
-  Matrix<T> fromDiagonal(Vector<T> source) {
-    final result = this(source.count, source.count);
-    for (var i = 0; i < source.count; i++) {
-      result.setUnchecked(i, i, source.getUnchecked(i));
-    }
-    return result;
+  Matrix<T> fromDiagonal(Vector<T> source, {bool lazy = false}) {
+    final result = DiagonalVectorMatrix(source);
+    return lazy ? result : fromMatrix(result);
   }
 
   /// Builds a matrix from a nested list of rows.

@@ -1,4 +1,4 @@
-library data.matrix.view.diagonal;
+library data.vector.view.diagonal_matrix;
 
 import 'dart:math' as math;
 
@@ -8,12 +8,12 @@ import 'package:data/type.dart';
 import 'package:data/vector.dart';
 
 /// Mutable diagonal vector of a matrix.
-class DiagonalVector<T> extends Vector<T> {
+class DiagonalMatrixVector<T> extends Vector<T> {
   final Matrix<T> _matrix;
   final int _offset;
   final int _count;
 
-  DiagonalVector(Matrix<T> matrix, int offset)
+  DiagonalMatrixVector(Matrix<T> matrix, int offset)
       : this.internal(
             matrix,
             offset,
@@ -22,7 +22,7 @@ class DiagonalVector<T> extends Vector<T> {
               matrix.colCount + offset,
             ));
 
-  DiagonalVector.internal(this._matrix, this._offset, this._count);
+  DiagonalMatrixVector.internal(this._matrix, this._offset, this._count);
 
   @override
   DataType<T> get dataType => _matrix.dataType;
@@ -34,7 +34,8 @@ class DiagonalVector<T> extends Vector<T> {
   Set<Tensor> get storage => _matrix.storage;
 
   @override
-  Vector<T> copy() => DiagonalVector.internal(_matrix.copy(), _offset, _count);
+  Vector<T> copy() =>
+      DiagonalMatrixVector.internal(_matrix.copy(), _offset, _count);
 
   @override
   T getUnchecked(int index) {

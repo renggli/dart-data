@@ -1,4 +1,4 @@
-library data.matrix.view.row;
+library data.vector.view.row_matrix;
 
 import 'package:data/src/matrix/matrix.dart';
 import 'package:data/tensor.dart';
@@ -6,11 +6,11 @@ import 'package:data/type.dart';
 import 'package:data/vector.dart';
 
 /// Mutable row vector of a matrix.
-class RowVector<T> extends Vector<T> {
+class RowMatrixVector<T> extends Vector<T> {
   final Matrix<T> _matrix;
   final int _row;
 
-  RowVector(this._matrix, this._row);
+  RowMatrixVector(this._matrix, this._row);
 
   @override
   DataType<T> get dataType => _matrix.dataType;
@@ -22,7 +22,7 @@ class RowVector<T> extends Vector<T> {
   Set<Tensor> get storage => _matrix.storage;
 
   @override
-  Vector<T> copy() => RowVector(_matrix.copy(), _row);
+  Vector<T> copy() => RowMatrixVector(_matrix.copy(), _row);
 
   @override
   T getUnchecked(int index) => _matrix.getUnchecked(_row, index);

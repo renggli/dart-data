@@ -2,14 +2,14 @@ library data.matrix.matrix;
 
 import 'package:data/src/matrix/builder.dart';
 import 'package:data/src/matrix/format.dart';
-import 'package:data/src/matrix/view/column_vector.dart';
-import 'package:data/src/matrix/view/diagonal_vector.dart';
 import 'package:data/src/matrix/view/index_matrix.dart';
 import 'package:data/src/matrix/view/range_matrix.dart';
-import 'package:data/src/matrix/view/row_vector.dart';
 import 'package:data/src/matrix/view/transformed_matrix.dart';
 import 'package:data/src/matrix/view/transposed_matrix.dart';
 import 'package:data/src/matrix/view/unmodifiable_matrix.dart';
+import 'package:data/src/vector/view/column_matrix_vector.dart';
+import 'package:data/src/vector/view/diagonal_matrix_vector.dart';
+import 'package:data/src/vector/view/row_matrix_vector.dart';
 import 'package:data/tensor.dart' show Tensor;
 import 'package:data/type.dart' show DataType;
 import 'package:data/vector.dart' show Vector;
@@ -77,7 +77,7 @@ abstract class Matrix<T> extends Tensor<T> {
 
   /// Returns a mutable row vector of this matrix. The behavior is undefined,
   /// if [row] is out of bounds.
-  Vector<T> rowUnchecked(int row) => RowVector<T>(this, row);
+  Vector<T> rowUnchecked(int row) => RowMatrixVector<T>(this, row);
 
   /// Returns an iterable over the rows of this matrix.
   Iterable<Vector<T>> get rows sync* {
@@ -100,7 +100,7 @@ abstract class Matrix<T> extends Tensor<T> {
   /// if [col] is out of bounds. An offset of `0` refers to the diagonal in the
   /// center of the matrix, a negative offset to the diagonals above, a positive
   /// offset to the diagonals below.
-  Vector<T> colUnchecked(int col) => ColumnVector<T>(this, col);
+  Vector<T> colUnchecked(int col) => ColumnMatrixVector<T>(this, col);
 
   /// Returns an iterable over the columns of this matrix.
   Iterable<Vector<T>> get cols sync* {
@@ -124,7 +124,7 @@ abstract class Matrix<T> extends Tensor<T> {
   /// diagonal in the center of the matrix, a negative offset to the diagonals
   /// above, and a positive offset to the diagonals below.
   Vector<T> diagonalUnchecked([int offset = 0]) =>
-      DiagonalVector<T>(this, offset);
+      DiagonalMatrixVector<T>(this, offset);
 
   /// Returns a mutable view onto the row range. Throws a [RangeError], if
   /// [rowStart] or [rowEnd] are out of bounds.
