@@ -20,6 +20,11 @@ void vectorTest(String name, Builder builder) {
           expect(vector[i], 0);
         }
       });
+      test('call, error', () {
+        expect(() => builder(-4), throwsRangeError);
+        expect(() => builder.withType(null)(4), throwsArgumentError);
+        expect(() => builder.withFormat(null)(4), throwsArgumentError);
+      });
       test('constant', () {
         final vector = builder.withType(DataType.int8).constant(5, 123);
         expect(vector.dataType, DataType.int8);

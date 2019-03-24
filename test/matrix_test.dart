@@ -23,6 +23,12 @@ void matrixTest(String name, Builder builder) {
           }
         }
       });
+      test('call, error', () {
+        expect(() => builder(-4, 5), throwsRangeError);
+        expect(() => builder(4, -5), throwsRangeError);
+        expect(() => builder.withType(null)(4, 5), throwsArgumentError);
+        expect(() => builder.withFormat(null)(4, 5), throwsArgumentError);
+      });
       test('call square', () {
         final matrix = builder.withType(DataType.int8)(4);
         expect(matrix.dataType, DataType.int8);

@@ -42,6 +42,7 @@ class Builder<T> {
   /// Builds a new vector of the configured format.
   Vector<T> call(int count) {
     RangeError.checkNotNegative(count, 'count');
+    ArgumentError.checkNotNull(type, 'type');
     switch (format) {
       case Format.standard:
         return StandardVector<T>(type, count);

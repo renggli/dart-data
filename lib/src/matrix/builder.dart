@@ -67,6 +67,7 @@ class Builder<T> {
     } else {
       colCount = rowCount;
     }
+    ArgumentError.checkNotNull(type, 'type');
     switch (format) {
       case Format.rowMajor:
         return RowMajorMatrix<T>(type, rowCount, colCount);
