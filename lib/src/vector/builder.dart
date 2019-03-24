@@ -5,6 +5,7 @@ import 'package:data/src/vector/impl/keyed_vector.dart';
 import 'package:data/src/vector/impl/list_vector.dart';
 import 'package:data/src/vector/impl/standard_vector.dart';
 import 'package:data/src/vector/vector.dart';
+import 'package:data/src/vector/view/concat_vector.dart';
 import 'package:data/src/vector/view/constant_vector.dart';
 import 'package:data/src/vector/view/generated_vector.dart';
 import 'package:data/type.dart';
@@ -70,6 +71,12 @@ class Builder<T> {
       Vector<S> source, T Function(int index, S value) callback,
       {bool lazy = false}) {
     final result = source.map(callback, type);
+    return lazy ? result : fromVector(result);
+  }
+
+  /// Builds a vectors by concatenating a list of [vectors].
+  Vector<T> concat(Iterable<Vector<T>> vectors, {bool lazy = false}) {
+    final result = ConcatVector<T>(type, vectors);
     return lazy ? result : fromVector(result);
   }
 

@@ -70,6 +70,8 @@ void vectorTest(String name, Builder builder) {
           expect(vector[i], '$i');
         }
         expect(() => vector[3] = '*', throwsUnsupportedError);
+        final copy = vector.copy();
+        expect(copy, same(vector));
       });
       test('transform', () {
         final source =
@@ -101,6 +103,48 @@ void vectorTest(String name, Builder builder) {
           expect(vector[i], '$i: ${2 * i}');
         }
         expect(() => vector[3] = '*', throwsUnsupportedError);
+      });
+      test('concat', () {
+        final source1 = builder.withType(DataType.string).fromList(['a']);
+        final source2 = builder.withType(DataType.string).fromList(['b', 'c']);
+        final source3 = builder.withType(DataType.string).fromList(['d', 'e']);
+        final vector = builder
+            .withType(DataType.string)
+            .concat([source1, source2, source3, source1]);
+        expect(vector.dataType, DataType.string);
+        expect(vector.count, 6);
+        expect(vector.shape, [vector.count]);
+        expect(vector.storage, [vector]);
+        for (var i = 0; i < vector.count; i++) {
+          expect(vector[i], 'abcdea'[i]);
+        }
+        vector[0] = '*';
+        vector[4] = '!';
+        for (var i = 0; i < vector.count; i++) {
+          expect(vector[i], '*bcd!a'[i]);
+        }
+      });
+      test('concat, lazy', () {
+        final source1 = builder.withType(DataType.string).fromList(['a']);
+        final source2 = builder.withType(DataType.string).fromList(['b', 'c']);
+        final source3 = builder.withType(DataType.string).fromList(['d', 'e']);
+        final vector = builder
+            .withType(DataType.string)
+            .concat([source1, source2, source3, source1], lazy: true);
+        expect(vector.dataType, DataType.string);
+        expect(vector.count, 6);
+        expect(vector.shape, [vector.count]);
+        expect(vector.storage, unorderedMatches([source1, source2, source3]));
+        for (var i = 0; i < vector.count; i++) {
+          expect(vector[i], 'abcdea'[i]);
+        }
+        vector[0] = '*';
+        vector[4] = '!';
+        for (var i = 0; i < vector.count; i++) {
+          expect(vector[i], '*bcd!*'[i]);
+        }
+        final copy = vector.copy();
+        expect(copy, isNot(same(vector)));
       });
       test('fromVector', () {
         final source =
