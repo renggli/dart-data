@@ -178,6 +178,142 @@ void matrixTest(String name, Builder builder) {
         }
         expect(() => matrix.set(0, 0, '*'), throwsUnsupportedError);
       });
+      test('horizontal', () {
+        final source1 = builder.withType(DataType.string).fromRows([
+          ['a'],
+          ['b'],
+        ]);
+        final source2 = builder.withType(DataType.string).fromRows([
+          ['c', 'e'],
+          ['d', 'f'],
+        ]);
+        final source3 = builder.withType(DataType.string).fromRows([
+          ['g', 'i', 'k'],
+          ['h', 'j', 'l'],
+        ]);
+        final matrix = builder
+            .withType(DataType.string)
+            .horizontal([source1, source2, source3, source1]);
+        expect(matrix.dataType, DataType.string);
+        expect(matrix.rowCount, 2);
+        expect(matrix.colCount, 7);
+        expect(matrix.shape, [matrix.rowCount, matrix.colCount]);
+        expect(matrix.storage, [matrix]);
+        for (var r = 0; r < matrix.rowCount; r++) {
+          for (var c = 0; c < matrix.colCount; c++) {
+            expect(matrix.get(r, c), ['acegika', 'bdfhjlb'][r][c]);
+          }
+        }
+        matrix.set(0, 0, '*');
+        matrix.set(1, 5, '!');
+        for (var r = 0; r < matrix.rowCount; r++) {
+          for (var c = 0; c < matrix.colCount; c++) {
+            expect(matrix.get(r, c), ['*cegika', 'bdfhj!b'][r][c]);
+          }
+        }
+      });
+      test('horizontal, lazy', () {
+        final source1 = builder.withType(DataType.string).fromRows([
+          ['a'],
+          ['b'],
+        ]);
+        final source2 = builder.withType(DataType.string).fromRows([
+          ['c', 'e'],
+          ['d', 'f'],
+        ]);
+        final source3 = builder.withType(DataType.string).fromRows([
+          ['g', 'i', 'k'],
+          ['h', 'j', 'l'],
+        ]);
+        final matrix = builder
+            .withType(DataType.string)
+            .horizontal([source1, source2, source3, source1], lazy: true);
+        expect(matrix.dataType, DataType.string);
+        expect(matrix.rowCount, 2);
+        expect(matrix.colCount, 7);
+        expect(matrix.shape, [matrix.rowCount, matrix.colCount]);
+        expect(matrix.storage, unorderedMatches([source1, source2, source3]));
+        for (var r = 0; r < matrix.rowCount; r++) {
+          for (var c = 0; c < matrix.colCount; c++) {
+            expect(matrix.get(r, c), ['acegika', 'bdfhjlb'][r][c]);
+          }
+        }
+        matrix.set(0, 0, '*');
+        matrix.set(1, 5, '!');
+        for (var r = 0; r < matrix.rowCount; r++) {
+          for (var c = 0; c < matrix.colCount; c++) {
+            expect(matrix.get(r, c), ['*cegik*', 'bdfhj!b'][r][c]);
+          }
+        }
+        final copy = matrix.copy();
+        expect(copy, isNot(same(matrix)));
+      });
+      test('vertical', () {
+        final source1 = builder.withType(DataType.string).fromRows([
+          ['a', 'b'],
+        ]);
+        final source2 = builder.withType(DataType.string).fromRows([
+          ['c', 'd'],
+          ['e', 'f'],
+        ]);
+        final source3 = builder.withType(DataType.string).fromRows([
+          ['g', 'h'],
+          ['i', 'j'],
+          ['k', 'l'],
+        ]);
+        final matrix = builder
+            .withType(DataType.string)
+            .vertical([source1, source2, source3, source1]);
+        expect(matrix.dataType, DataType.string);
+        expect(matrix.rowCount, 7);
+        expect(matrix.colCount, 2);
+        expect(matrix.shape, [matrix.rowCount, matrix.colCount]);
+        expect(matrix.storage, [matrix]);
+        for (var r = 0; r < matrix.rowCount; r++) {
+          for (var c = 0; c < matrix.colCount; c++) {
+            expect(matrix.get(r, c),
+                ['ab', 'cd', 'ef', 'gh', 'ij', 'kl', 'ab'][r][c]);
+          }
+        }
+      });
+      test('vertical, lazy', () {
+        final source1 = builder.withType(DataType.string).fromRows([
+          ['a', 'b'],
+        ]);
+        final source2 = builder.withType(DataType.string).fromRows([
+          ['c', 'd'],
+          ['e', 'f'],
+        ]);
+        final source3 = builder.withType(DataType.string).fromRows([
+          ['g', 'h'],
+          ['i', 'j'],
+          ['k', 'l'],
+        ]);
+        final matrix = builder
+            .withType(DataType.string)
+            .vertical([source1, source2, source3, source1], lazy: true);
+        expect(matrix.dataType, DataType.string);
+        expect(matrix.rowCount, 7);
+        expect(matrix.colCount, 2);
+        expect(matrix.shape, [matrix.rowCount, matrix.colCount]);
+        expect(matrix.storage, unorderedMatches([source1, source2, source3]));
+        for (var r = 0; r < matrix.rowCount; r++) {
+          for (var c = 0; c < matrix.colCount; c++) {
+            expect(matrix.get(r, c),
+                ['ab', 'cd', 'ef', 'gh', 'ij', 'kl', 'ab'][r][c]);
+          }
+        }
+        matrix.set(0, 0, '*');
+        matrix.set(5, 1, '!');
+        for (var r = 0; r < matrix.rowCount; r++) {
+          for (var c = 0; c < matrix.colCount; c++) {
+            expect(matrix.get(r, c),
+                ['*b', 'cd', 'ef', 'gh', 'ij', 'k!', '*b'][r][c]);
+          }
+        }
+        final copy = matrix.copy();
+        expect(copy, isNot(same(matrix)));
+      });
       test('fromMatrix', () {
         final source = builder
             .withType(DataType.string)
