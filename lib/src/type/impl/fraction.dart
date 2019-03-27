@@ -26,6 +26,8 @@ class FractionDataType extends DataType<Fraction> {
       return Fraction(value);
     } else if (value is double) {
       return Fraction.fromDouble(value);
+    } else if (value is BigInt) {
+      return Fraction(value.toInt());
     } else if (value is String) {
       return Fraction.tryParse(value) ?? super.convert(value);
     }

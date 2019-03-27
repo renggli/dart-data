@@ -59,6 +59,12 @@ abstract class IntegerDataType extends DataType<int> {
       } else {
         return value.toInt().toUnsigned(bits);
       }
+    } else if (value is BigInt) {
+      if (isSigned) {
+        return value.toSigned(bits).toInt();
+      } else {
+        return value.toUnsigned(bits).toInt();
+      }
     } else if (value is Fraction) {
       return convert(value.toInt());
     } else if (value is String) {
@@ -200,7 +206,7 @@ class IntegerField extends Field<int> {
   int mul(int a, int b) => a * b;
 
   @override
-  int scale(int a, num f) => (a * f).truncate();
+  int scale(int a, num f) => a * f.round();
 
   @override
   int div(int a, int b) => a ~/ b;

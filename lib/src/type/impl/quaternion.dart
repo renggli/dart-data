@@ -23,6 +23,8 @@ class QuaternionDataType extends DataType<Quaternion> {
       return value;
     } else if (value is num) {
       return Quaternion(value);
+    } else if (value is BigInt) {
+      return Quaternion(value.toDouble());
     } else if (value is Fraction) {
       return Quaternion(value.toDouble());
     } else if (value is Complex) {

@@ -120,6 +120,7 @@ void floatGroup(DataType type, int bits) {
       expect(type.convert(1), 1.0);
       expect(type.convert(12.34), 12.34);
       expect(type.convert('123.45'), 123.45);
+      expect(type.convert(BigInt.from(42)), 42.0);
       expect(type.convert(Fraction(1, 2)), 0.5);
       expect(() => type.convert('abc'), throwsArgumentError);
     });
@@ -151,6 +152,8 @@ void floatGroup(DataType type, int bits) {
       expect(nullableType.convert(1), 1.0);
       expect(nullableType.convert(12.34), 12.34);
       expect(nullableType.convert('123.45'), 123.45);
+      expect(nullableType.convert(BigInt.from(42)), 42.0);
+      expect(nullableType.convert(Fraction(1, 2)), 0.5);
       expect(() => nullableType.convert('abc'), throwsArgumentError);
     });
     if (DataType.float64 == type) {
@@ -208,10 +211,13 @@ void integerGroup(IntegerDataType type, bool isSigned, int bits) {
       expect(type.convert(1), 1);
       expect(type.convert(12.34), 12);
       expect(type.convert('123'), 123);
+      expect(type.convert(BigInt.from(123)), 123);
       expect(type.convert(Fraction(2, 1)), 2);
       if (isSigned) {
         expect(type.convert(-12.34), -12);
         expect(type.convert('-123'), -123);
+        expect(type.convert(BigInt.from(-123)), -123);
+        expect(type.convert(Fraction(-2, 1)), -2);
       }
       expect(() => type.convert('abc'), throwsArgumentError);
     });
@@ -237,9 +243,13 @@ void integerGroup(IntegerDataType type, bool isSigned, int bits) {
       expect(nullableType.convert(0), 0);
       expect(nullableType.convert(1), 1);
       expect(nullableType.convert(12.34), 12);
+      expect(type.convert(BigInt.from(123)), 123);
+      expect(type.convert(Fraction(2, 1)), 2);
       if (isSigned) {
         expect(type.convert(-12.34), -12);
         expect(type.convert('-123'), -123);
+        expect(type.convert(BigInt.from(-123)), -123);
+        expect(type.convert(Fraction(-2, 1)), -2);
       }
       expect(() => nullableType.convert('abc'), throwsArgumentError);
     });
@@ -431,6 +441,7 @@ void main() {
     test('convert', () {
       expect(type.convert(null), isNull);
       expect(type.convert(123), '123');
+      expect(type.convert(BigInt.from(123)), '123');
       expect(type.convert('foo'), 'foo');
       expect(type.convert(true), 'true');
     });
@@ -457,6 +468,7 @@ void main() {
       expect(type.convert(12.3), 12.3);
       expect(type.convert('123'), 123);
       expect(type.convert('123.4'), 123.4);
+      expect(type.convert(BigInt.from(123)), 123);
       expect(type.convert(Fraction(1, 2)), 0.5);
       expect(() => type.convert('abc'), throwsArgumentError);
       expect(() => type.convert(const Symbol('bad')), throwsArgumentError);
@@ -534,6 +546,30 @@ void main() {
   floatGroup(DataType.float32, 32);
   floatGroup(DataType.float64, 64);
 
+  group('bigInt', () {
+    const type = DataType.bigInt;
+    test('name', () {
+      expect(type.name, 'bigInt');
+      expect(type.toString(), 'DataType.bigInt');
+    });
+    test('nullable', () {
+      expect(type.isNullable, isTrue);
+      expect(type.nullValue, null);
+    });
+    test('convert', () {
+      expect(type.convert(null), isNull);
+      expect(type.convert(BigInt.from(11)), BigInt.from(11));
+      expect(type.convert(42), BigInt.from(42));
+      expect(type.convert(3.14), BigInt.from(3));
+      expect(type.convert('-123456789'), BigInt.from(-123456789));
+      expect(() => type.convert(''), throwsArgumentError);
+      expect(() => type.convert(const Symbol('bad')), throwsArgumentError);
+    });
+    fieldTest(type, [
+      BigInt.from(35),
+      BigInt.from(-42),
+    ]);
+  });
   group('fraction', () {
     const type = DataType.fraction;
     test('name', () {
@@ -547,6 +583,7 @@ void main() {
     test('convert', () {
       expect(type.convert(null), isNull);
       expect(type.convert(Fraction(1, 2)), Fraction(1, 2));
+      expect(type.convert(BigInt.from(123)), Fraction(123, 1));
       expect(type.convert(2), Fraction(2));
       expect(type.convert(0.5), Fraction(1, 2));
       expect(type.convert('1/2'), Fraction(1, 2));
@@ -574,6 +611,7 @@ void main() {
       expect(type.convert(const Complex(1, 2)), const Complex(1, 2));
       expect(type.convert(2), const Complex(2));
       expect(type.convert(0.5), const Complex(0.5));
+      expect(type.convert(BigInt.from(123)), const Complex(123));
       expect(type.convert(Fraction(1, 2)), const Complex(0.5));
       expect(type.convert('1+2i'), const Complex(1, 2));
       expect(() => type.convert(''), throwsArgumentError);
@@ -601,6 +639,7 @@ void main() {
           const Quaternion(1, 2, 3, 4));
       expect(type.convert(2), const Quaternion(2));
       expect(type.convert(0.5), const Quaternion(0.5));
+      expect(type.convert(BigInt.from(123)), const Quaternion(123));
       expect(type.convert(Fraction(1, 2)), const Quaternion(0.5));
       expect(type.convert(const Complex(1, 2)), const Quaternion(1, 2));
       expect(type.convert('1+2i+3j+4k'), const Quaternion(1, 2, 3, 4));

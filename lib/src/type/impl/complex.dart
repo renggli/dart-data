@@ -23,6 +23,8 @@ class ComplexDataType extends DataType<Complex> {
       return value;
     } else if (value is num) {
       return Complex(value);
+    } else if (value is BigInt) {
+      return Complex(value.toDouble());
     } else if (value is Fraction) {
       return Complex(value.toDouble());
     } else if (value is String) {

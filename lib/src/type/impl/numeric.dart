@@ -29,10 +29,12 @@ class NumericDataType extends DataType<num> {
   num convert(Object value) {
     if (value == null || value is num) {
       return value;
-    } else if (value is String) {
-      return num.tryParse(value) ?? super.convert(value);
+    } else if (value is BigInt) {
+      return value.toInt();
     } else if (value is Fraction) {
       return value.toDouble();
+    } else if (value is String) {
+      return num.tryParse(value) ?? super.convert(value);
     }
     return super.convert(value);
   }

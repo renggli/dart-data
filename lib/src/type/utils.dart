@@ -19,6 +19,8 @@ DataType fromType(Type type) {
       return DataType.boolean;
     case String:
       return DataType.string;
+    case BigInt:
+      return DataType.bigInt;
     case Fraction:
       return DataType.fraction;
     case Complex:

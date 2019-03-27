@@ -28,10 +28,12 @@ abstract class FloatDataType extends DataType<double> {
   double convert(Object value) {
     if (value is num) {
       return value.toDouble();
-    } else if (value is String) {
-      return double.tryParse(value) ?? super.convert(value);
+    } else if (value is BigInt) {
+      return value.toDouble();
     } else if (value is Fraction) {
       return value.toDouble();
+    } else if (value is String) {
+      return double.tryParse(value) ?? super.convert(value);
     }
     return super.convert(value);
   }
