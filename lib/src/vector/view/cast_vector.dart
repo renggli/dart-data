@@ -23,9 +23,6 @@ class CastVector<S, T> extends Vector<T> {
   Vector<T> copy() => CastVector(_vector.copy(), dataType);
 
   @override
-  Vector<S> cast<S>(DataType<S> dataType) => _vector.cast(dataType);
-
-  @override
   T getUnchecked(int index) => dataType.cast(_vector.getUnchecked(index));
 
   @override

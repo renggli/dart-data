@@ -1089,7 +1089,7 @@ void matrixTest(String name, Builder builder) {
       });
 
       group('cast', () {
-        final source = builder.generate(16, 8, (row, col) => row * col);
+        final source = builder.generate(3, 5, (row, col) => row * col);
         test('to string', () {
           final cast = source.cast(DataType.string);
           expect(cast.dataType, DataType.string);
@@ -1105,10 +1105,6 @@ void matrixTest(String name, Builder builder) {
         test('copy', () {
           final cast = source.cast(DataType.int32);
           expect(compare(cast.copy(), cast), isTrue);
-        });
-        test('cast', () {
-          final cast = source.cast(DataType.int8).cast(DataType.int32);
-          expect(compare(cast, source), isTrue);
         });
       });
       test('transposed', () {

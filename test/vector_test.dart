@@ -389,10 +389,6 @@ void vectorTest(String name, Builder builder) {
           final cast = source.cast(DataType.int32);
           expect(compare(cast.copy(), cast), isTrue);
         });
-        test('cast', () {
-          final cast = source.cast(DataType.int8).cast(DataType.int32);
-          expect(compare(cast, source), isTrue);
-        });
       });
       test('unmodifiable', () {
         final source = builder.withType(DataType.int8).fromList([1, 2]);
