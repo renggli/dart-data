@@ -2,6 +2,7 @@ library data.vector.vector;
 
 import 'package:data/src/vector/builder.dart';
 import 'package:data/src/vector/format.dart';
+import 'package:data/src/vector/view/cast_vector.dart';
 import 'package:data/src/vector/view/index_vector.dart';
 import 'package:data/src/vector/view/range_vector.dart';
 import 'package:data/src/vector/view/transformed_vector.dart';
@@ -86,6 +87,9 @@ abstract class Vector<T> extends Tensor<T> {
   Vector<S> map<S>(
           S Function(int index, T value) callback, DataType<S> dataType) =>
       TransformedVector<T, S>(this, callback, dataType);
+
+  /// Returns a lazy [Vector] with the elements cast to `dataType`.
+  Vector<S> cast<S>(DataType<S> dataType) => CastVector<T, S>(this, dataType);
 
   /// Returns a unmodifiable view of the vector.
   Vector<T> get unmodifiable => UnmodifiableVector<T>(this);

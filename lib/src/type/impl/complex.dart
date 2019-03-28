@@ -18,7 +18,7 @@ class ComplexDataType extends DataType<Complex> {
   Complex get nullValue => null;
 
   @override
-  Complex convert(Object value) {
+  Complex cast(Object value) {
     if (value == null || value is Complex) {
       return value;
     } else if (value is num) {
@@ -28,9 +28,9 @@ class ComplexDataType extends DataType<Complex> {
     } else if (value is Fraction) {
       return Complex(value.toDouble());
     } else if (value is String) {
-      return Complex.tryParse(value) ?? super.convert(value);
+      return Complex.tryParse(value) ?? super.cast(value);
     }
-    return super.convert(value);
+    return super.cast(value);
   }
 
   @override

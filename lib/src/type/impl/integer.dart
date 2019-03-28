@@ -52,7 +52,7 @@ abstract class IntegerDataType extends DataType<int> {
   Equality<int> get equality => const IntegerEquality();
 
   @override
-  int convert(Object value) {
+  int cast(Object value) {
     if (value is num) {
       if (isSigned) {
         return value.toInt().toSigned(bits);
@@ -66,11 +66,11 @@ abstract class IntegerDataType extends DataType<int> {
         return value.toUnsigned(bits).toInt();
       }
     } else if (value is Fraction) {
-      return convert(value.toInt());
+      return cast(value.toInt());
     } else if (value is String) {
-      return int.tryParse(value) ?? super.convert(value);
+      return int.tryParse(value) ?? super.cast(value);
     }
-    return super.convert(value);
+    return super.cast(value);
   }
 
   @override

@@ -18,7 +18,7 @@ class QuaternionDataType extends DataType<Quaternion> {
   Quaternion get nullValue => null;
 
   @override
-  Quaternion convert(Object value) {
+  Quaternion cast(Object value) {
     if (value == null || value is Quaternion) {
       return value;
     } else if (value is num) {
@@ -30,9 +30,9 @@ class QuaternionDataType extends DataType<Quaternion> {
     } else if (value is Complex) {
       return Quaternion(value.a, value.b);
     } else if (value is String) {
-      return Quaternion.tryParse(value) ?? super.convert(value);
+      return Quaternion.tryParse(value) ?? super.cast(value);
     }
-    return super.convert(value);
+    return super.cast(value);
   }
 
   @override

@@ -22,7 +22,7 @@ class BooleanDataType extends DataType<bool> {
   List<bool> newList(int length) => BitList(length);
 
   @override
-  bool convert(Object value) {
+  bool cast(Object value) {
     if (value is bool) {
       return value;
     } else if (value is num) {
@@ -35,6 +35,6 @@ class BooleanDataType extends DataType<bool> {
         return false;
       }
     }
-    return super.convert(value);
+    return super.cast(value);
   }
 }

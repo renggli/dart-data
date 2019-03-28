@@ -25,7 +25,7 @@ abstract class FloatDataType extends DataType<double> {
   Equality<double> get equality => const FloatEquality();
 
   @override
-  double convert(Object value) {
+  double cast(Object value) {
     if (value is num) {
       return value.toDouble();
     } else if (value is BigInt) {
@@ -33,9 +33,9 @@ abstract class FloatDataType extends DataType<double> {
     } else if (value is Fraction) {
       return value.toDouble();
     } else if (value is String) {
-      return double.tryParse(value) ?? super.convert(value);
+      return double.tryParse(value) ?? super.cast(value);
     }
-    return super.convert(value);
+    return super.cast(value);
   }
 }
 

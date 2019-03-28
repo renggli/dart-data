@@ -18,15 +18,15 @@ class BigIntDataType extends DataType<BigInt> {
   BigInt get nullValue => null;
 
   @override
-  BigInt convert(Object value) {
+  BigInt cast(Object value) {
     if (value == null || value is BigInt) {
       return value;
     } else if (value is num) {
       return BigInt.from(value);
     } else if (value is String) {
-      return BigInt.tryParse(value) ?? super.convert(value);
+      return BigInt.tryParse(value) ?? super.cast(value);
     }
-    return super.convert(value);
+    return super.cast(value);
   }
 
   @override

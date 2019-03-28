@@ -50,12 +50,12 @@ void listTest<T>(DataType<T> type, List<List<T>> lists) {
   }
   if (![DataType.float32].contains(type)) {
     for (var list in lists) {
-      test('convertList: $list', () {
-        final result = type.convertList(list);
+      test('castList: $list', () {
+        final result = type.castList(list);
         expect(result.length, list.length);
-        expect(type.convertList(list),
+        expect(type.castList(list),
             pairwiseCompare(list, type.equality.isEqual, 'isEqual'),
-            reason: '$type.convertList($list)');
+            reason: '$type.castList($list)');
       });
     }
   }
@@ -114,15 +114,15 @@ void floatGroup(DataType type, int bits) {
       expect(type.isNullable, isFalse);
       expect(type.nullValue, 0.0);
     });
-    test('convert', () {
-      expect(() => type.convert(null), throwsArgumentError);
-      expect(type.convert(0), 0.0);
-      expect(type.convert(1), 1.0);
-      expect(type.convert(12.34), 12.34);
-      expect(type.convert('123.45'), 123.45);
-      expect(type.convert(BigInt.from(42)), 42.0);
-      expect(type.convert(Fraction(1, 2)), 0.5);
-      expect(() => type.convert('abc'), throwsArgumentError);
+    test('cast', () {
+      expect(() => type.cast(null), throwsArgumentError);
+      expect(type.cast(0), 0.0);
+      expect(type.cast(1), 1.0);
+      expect(type.cast(12.34), 12.34);
+      expect(type.cast('123.45'), 123.45);
+      expect(type.cast(BigInt.from(42)), 42.0);
+      expect(type.cast(Fraction(1, 2)), 0.5);
+      expect(() => type.cast('abc'), throwsArgumentError);
     });
     listTest(type, <List<double>>[
       [math.pi, math.e],
@@ -146,15 +146,15 @@ void floatGroup(DataType type, int bits) {
       expect(nullableType.nullValue, isNull);
       expect(nullableType.nullable, nullableType);
     });
-    test('convert', () {
-      expect(nullableType.convert(null), isNull);
-      expect(nullableType.convert(0), 0.0);
-      expect(nullableType.convert(1), 1.0);
-      expect(nullableType.convert(12.34), 12.34);
-      expect(nullableType.convert('123.45'), 123.45);
-      expect(nullableType.convert(BigInt.from(42)), 42.0);
-      expect(nullableType.convert(Fraction(1, 2)), 0.5);
-      expect(() => nullableType.convert('abc'), throwsArgumentError);
+    test('cast', () {
+      expect(nullableType.cast(null), isNull);
+      expect(nullableType.cast(0), 0.0);
+      expect(nullableType.cast(1), 1.0);
+      expect(nullableType.cast(12.34), 12.34);
+      expect(nullableType.cast('123.45'), 123.45);
+      expect(nullableType.cast(BigInt.from(42)), 42.0);
+      expect(nullableType.cast(Fraction(1, 2)), 0.5);
+      expect(() => nullableType.cast('abc'), throwsArgumentError);
     });
     if (DataType.float64 == type) {
       listTest(nullableType, <List<double>>[
@@ -205,21 +205,21 @@ void integerGroup(IntegerDataType type, bool isSigned, int bits) {
       expect(type.isNullable, isFalse);
       expect(type.nullValue, 0);
     });
-    test('convert', () {
-      expect(() => type.convert(null), throwsArgumentError);
-      expect(type.convert(0), 0);
-      expect(type.convert(1), 1);
-      expect(type.convert(12.34), 12);
-      expect(type.convert('123'), 123);
-      expect(type.convert(BigInt.from(123)), 123);
-      expect(type.convert(Fraction(2, 1)), 2);
+    test('cast', () {
+      expect(() => type.cast(null), throwsArgumentError);
+      expect(type.cast(0), 0);
+      expect(type.cast(1), 1);
+      expect(type.cast(12.34), 12);
+      expect(type.cast('123'), 123);
+      expect(type.cast(BigInt.from(123)), 123);
+      expect(type.cast(Fraction(2, 1)), 2);
       if (isSigned) {
-        expect(type.convert(-12.34), -12);
-        expect(type.convert('-123'), -123);
-        expect(type.convert(BigInt.from(-123)), -123);
-        expect(type.convert(Fraction(-2, 1)), -2);
+        expect(type.cast(-12.34), -12);
+        expect(type.cast('-123'), -123);
+        expect(type.cast(BigInt.from(-123)), -123);
+        expect(type.cast(Fraction(-2, 1)), -2);
       }
-      expect(() => type.convert('abc'), throwsArgumentError);
+      expect(() => type.cast('abc'), throwsArgumentError);
     });
     listTest(type, <List<int>>[
       [type.safeMin, 0, type.safeMax],
@@ -238,20 +238,20 @@ void integerGroup(IntegerDataType type, bool isSigned, int bits) {
       expect(nullableType.nullValue, isNull);
       expect(nullableType.nullable, nullableType);
     });
-    test('convert', () {
-      expect(nullableType.convert(null), isNull);
-      expect(nullableType.convert(0), 0);
-      expect(nullableType.convert(1), 1);
-      expect(nullableType.convert(12.34), 12);
-      expect(type.convert(BigInt.from(123)), 123);
-      expect(type.convert(Fraction(2, 1)), 2);
+    test('cast', () {
+      expect(nullableType.cast(null), isNull);
+      expect(nullableType.cast(0), 0);
+      expect(nullableType.cast(1), 1);
+      expect(nullableType.cast(12.34), 12);
+      expect(type.cast(BigInt.from(123)), 123);
+      expect(type.cast(Fraction(2, 1)), 2);
       if (isSigned) {
-        expect(type.convert(-12.34), -12);
-        expect(type.convert('-123'), -123);
-        expect(type.convert(BigInt.from(-123)), -123);
-        expect(type.convert(Fraction(-2, 1)), -2);
+        expect(type.cast(-12.34), -12);
+        expect(type.cast('-123'), -123);
+        expect(type.cast(BigInt.from(-123)), -123);
+        expect(type.cast(Fraction(-2, 1)), -2);
       }
-      expect(() => nullableType.convert('abc'), throwsArgumentError);
+      expect(() => nullableType.cast('abc'), throwsArgumentError);
     });
     listTest(nullableType, <List<int>>[
       [type.safeMin, 0, null, type.safeMax, null],
@@ -275,15 +275,15 @@ void compositeGroup<T, B>(
       expect(type.isNullable, isFalse);
       expect(type.toList(type.nullValue), everyElement(base.nullValue));
     });
-    test('convert', () {
-      expect(() => type.convert(null), throwsArgumentError);
+    test('cast', () {
+      expect(() => type.cast(null), throwsArgumentError);
       final expected = List.generate(size, (i) => i);
-      final converted = type.convert(expected);
+      final converted = type.cast(expected);
       final actual = type.toList(converted);
       expect(expected, actual);
     });
     listTest(type, <List<T>>[
-      type.convertList([
+      type.castList([
         [1, 2, 3, 4],
         [5, 6, 7, 8],
       ]),
@@ -414,11 +414,11 @@ void main() {
       expect(type.nullValue, isNull);
       expect(type.nullable, type);
     });
-    test('convert', () {
-      expect(type.convert(null), isNull);
-      expect(type.convert(123), 123);
-      expect(type.convert('foo'), 'foo');
-      expect(type.convert(true), true);
+    test('cast', () {
+      expect(type.cast(null), isNull);
+      expect(type.cast(123), 123);
+      expect(type.cast('foo'), 'foo');
+      expect(type.cast(true), true);
     });
     listTest(type, <List<Object>>[
       [],
@@ -438,12 +438,12 @@ void main() {
       expect(type.nullValue, isNull);
       expect(type.nullable, type);
     });
-    test('convert', () {
-      expect(type.convert(null), isNull);
-      expect(type.convert(123), '123');
-      expect(type.convert(BigInt.from(123)), '123');
-      expect(type.convert('foo'), 'foo');
-      expect(type.convert(true), 'true');
+    test('cast', () {
+      expect(type.cast(null), isNull);
+      expect(type.cast(123), '123');
+      expect(type.cast(BigInt.from(123)), '123');
+      expect(type.cast('foo'), 'foo');
+      expect(type.cast(true), 'true');
     });
     listTest(type, <List<String>>[
       ['abc'],
@@ -462,16 +462,16 @@ void main() {
       expect(type.nullValue, isNull);
       expect(type.nullable, type);
     });
-    test('convert', () {
-      expect(type.convert(null), isNull);
-      expect(type.convert(123), 123);
-      expect(type.convert(12.3), 12.3);
-      expect(type.convert('123'), 123);
-      expect(type.convert('123.4'), 123.4);
-      expect(type.convert(BigInt.from(123)), 123);
-      expect(type.convert(Fraction(1, 2)), 0.5);
-      expect(() => type.convert('abc'), throwsArgumentError);
-      expect(() => type.convert(const Symbol('bad')), throwsArgumentError);
+    test('cast', () {
+      expect(type.cast(null), isNull);
+      expect(type.cast(123), 123);
+      expect(type.cast(12.3), 12.3);
+      expect(type.cast('123'), 123);
+      expect(type.cast('123.4'), 123.4);
+      expect(type.cast(BigInt.from(123)), 123);
+      expect(type.cast(Fraction(1, 2)), 0.5);
+      expect(() => type.cast('abc'), throwsArgumentError);
+      expect(() => type.cast(const Symbol('bad')), throwsArgumentError);
     });
     listTest(type, <List<num>>[
       [1, 2.3],
@@ -489,16 +489,16 @@ void main() {
       expect(type.isNullable, isFalse);
       expect(type.nullValue, false);
     });
-    test('convert', () {
-      expect(() => type.convert(null), throwsArgumentError);
-      expect(type.convert(true), isTrue);
-      expect(type.convert(false), isFalse);
-      expect(type.convert('true'), isTrue);
-      expect(type.convert('false'), isFalse);
-      expect(type.convert(1), isTrue);
-      expect(type.convert(2), isTrue);
-      expect(type.convert(0), isFalse);
-      expect(() => type.convert('abc'), throwsArgumentError);
+    test('cast', () {
+      expect(() => type.cast(null), throwsArgumentError);
+      expect(type.cast(true), isTrue);
+      expect(type.cast(false), isFalse);
+      expect(type.cast('true'), isTrue);
+      expect(type.cast('false'), isFalse);
+      expect(type.cast(1), isTrue);
+      expect(type.cast(2), isTrue);
+      expect(type.cast(0), isFalse);
+      expect(() => type.cast('abc'), throwsArgumentError);
     });
     listTest(type, <List<bool>>[
       [true],
@@ -516,16 +516,16 @@ void main() {
       expect(type.nullValue, isNull);
       expect(type.nullable, type);
     });
-    test('convert', () {
-      expect(type.convert(null), isNull);
-      expect(type.convert(true), isTrue);
-      expect(type.convert(false), isFalse);
-      expect(type.convert('true'), isTrue);
-      expect(type.convert('false'), isFalse);
-      expect(type.convert(1), isTrue);
-      expect(type.convert(2), isTrue);
-      expect(type.convert(0), isFalse);
-      expect(() => type.convert('abc'), throwsArgumentError);
+    test('cast', () {
+      expect(type.cast(null), isNull);
+      expect(type.cast(true), isTrue);
+      expect(type.cast(false), isFalse);
+      expect(type.cast('true'), isTrue);
+      expect(type.cast('false'), isFalse);
+      expect(type.cast(1), isTrue);
+      expect(type.cast(2), isTrue);
+      expect(type.cast(0), isFalse);
+      expect(() => type.cast('abc'), throwsArgumentError);
     });
     listTest(type, <List<bool>>[
       [true, null],
@@ -556,14 +556,14 @@ void main() {
       expect(type.isNullable, isTrue);
       expect(type.nullValue, null);
     });
-    test('convert', () {
-      expect(type.convert(null), isNull);
-      expect(type.convert(BigInt.from(11)), BigInt.from(11));
-      expect(type.convert(42), BigInt.from(42));
-      expect(type.convert(3.14), BigInt.from(3));
-      expect(type.convert('-123456789'), BigInt.from(-123456789));
-      expect(() => type.convert(''), throwsArgumentError);
-      expect(() => type.convert(const Symbol('bad')), throwsArgumentError);
+    test('cast', () {
+      expect(type.cast(null), isNull);
+      expect(type.cast(BigInt.from(11)), BigInt.from(11));
+      expect(type.cast(42), BigInt.from(42));
+      expect(type.cast(3.14), BigInt.from(3));
+      expect(type.cast('-123456789'), BigInt.from(-123456789));
+      expect(() => type.cast(''), throwsArgumentError);
+      expect(() => type.cast(const Symbol('bad')), throwsArgumentError);
     });
     fieldTest(type, [
       BigInt.from(35),
@@ -580,15 +580,15 @@ void main() {
       expect(type.isNullable, isTrue);
       expect(type.nullValue, null);
     });
-    test('convert', () {
-      expect(type.convert(null), isNull);
-      expect(type.convert(Fraction(1, 2)), Fraction(1, 2));
-      expect(type.convert(BigInt.from(123)), Fraction(123, 1));
-      expect(type.convert(2), Fraction(2));
-      expect(type.convert(0.5), Fraction(1, 2));
-      expect(type.convert('1/2'), Fraction(1, 2));
-      expect(() => type.convert(''), throwsArgumentError);
-      expect(() => type.convert(const Symbol('bad')), throwsArgumentError);
+    test('cast', () {
+      expect(type.cast(null), isNull);
+      expect(type.cast(Fraction(1, 2)), Fraction(1, 2));
+      expect(type.cast(BigInt.from(123)), Fraction(123, 1));
+      expect(type.cast(2), Fraction(2));
+      expect(type.cast(0.5), Fraction(1, 2));
+      expect(type.cast('1/2'), Fraction(1, 2));
+      expect(() => type.cast(''), throwsArgumentError);
+      expect(() => type.cast(const Symbol('bad')), throwsArgumentError);
     });
     fieldTest(type, [
       Fraction(1, 2),
@@ -606,16 +606,16 @@ void main() {
       expect(type.isNullable, isTrue);
       expect(type.nullValue, null);
     });
-    test('convert', () {
-      expect(type.convert(null), isNull);
-      expect(type.convert(const Complex(1, 2)), const Complex(1, 2));
-      expect(type.convert(2), const Complex(2));
-      expect(type.convert(0.5), const Complex(0.5));
-      expect(type.convert(BigInt.from(123)), const Complex(123));
-      expect(type.convert(Fraction(1, 2)), const Complex(0.5));
-      expect(type.convert('1+2i'), const Complex(1, 2));
-      expect(() => type.convert(''), throwsArgumentError);
-      expect(() => type.convert(const Symbol('bad')), throwsArgumentError);
+    test('cast', () {
+      expect(type.cast(null), isNull);
+      expect(type.cast(const Complex(1, 2)), const Complex(1, 2));
+      expect(type.cast(2), const Complex(2));
+      expect(type.cast(0.5), const Complex(0.5));
+      expect(type.cast(BigInt.from(123)), const Complex(123));
+      expect(type.cast(Fraction(1, 2)), const Complex(0.5));
+      expect(type.cast('1+2i'), const Complex(1, 2));
+      expect(() => type.cast(''), throwsArgumentError);
+      expect(() => type.cast(const Symbol('bad')), throwsArgumentError);
     });
     fieldTest(type, [
       const Complex(1, 2),
@@ -633,18 +633,18 @@ void main() {
       expect(type.isNullable, isTrue);
       expect(type.nullValue, null);
     });
-    test('convert', () {
-      expect(type.convert(null), isNull);
-      expect(type.convert(const Quaternion(1, 2, 3, 4)),
+    test('cast', () {
+      expect(type.cast(null), isNull);
+      expect(type.cast(const Quaternion(1, 2, 3, 4)),
           const Quaternion(1, 2, 3, 4));
-      expect(type.convert(2), const Quaternion(2));
-      expect(type.convert(0.5), const Quaternion(0.5));
-      expect(type.convert(BigInt.from(123)), const Quaternion(123));
-      expect(type.convert(Fraction(1, 2)), const Quaternion(0.5));
-      expect(type.convert(const Complex(1, 2)), const Quaternion(1, 2));
-      expect(type.convert('1+2i+3j+4k'), const Quaternion(1, 2, 3, 4));
-      expect(() => type.convert(''), throwsArgumentError);
-      expect(() => type.convert(const Symbol('bad')), throwsArgumentError);
+      expect(type.cast(2), const Quaternion(2));
+      expect(type.cast(0.5), const Quaternion(0.5));
+      expect(type.cast(BigInt.from(123)), const Quaternion(123));
+      expect(type.cast(Fraction(1, 2)), const Quaternion(0.5));
+      expect(type.cast(const Complex(1, 2)), const Quaternion(1, 2));
+      expect(type.cast('1+2i+3j+4k'), const Quaternion(1, 2, 3, 4));
+      expect(() => type.cast(''), throwsArgumentError);
+      expect(() => type.cast(const Symbol('bad')), throwsArgumentError);
     });
     fieldTest(type, [
       const Quaternion(1, 2, 3, 4),

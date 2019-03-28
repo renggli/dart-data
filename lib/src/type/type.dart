@@ -86,10 +86,10 @@ abstract class DataType<T> {
   /// Returns a mathematical field, if available.
   Field<T> get field => throw UnsupportedError('No field available for $this.');
 
-  /// Converts the argument to this data type, otherwise throw an
+  /// Casts the argument to this data type, otherwise throw an
   /// [ArgumentError].
-  T convert(Object value) => throw ArgumentError.value(
-      value, 'value', 'Unable to convert "$value" to $this.');
+  T cast(Object value) => throw ArgumentError.value(
+      value, 'value', 'Unable to cast "$value" to $this.');
 
   /// Creates a new list of this data type.
   List<T> newList(int length) => List(length);
@@ -110,12 +110,12 @@ abstract class DataType<T> {
     return result;
   }
 
-  /// Converts an existing list to this data type.
-  List<T> convertList(Iterable<Object> elements) {
+  /// Casts an existing list to this data type.
+  List<T> castList(Iterable<Object> elements) {
     final list = newList(elements.length);
     final it = elements.iterator;
     for (var i = 0; i < elements.length && it.moveNext(); i++) {
-      list[i] = convert(it.current);
+      list[i] = cast(it.current);
     }
     return list;
   }

@@ -30,22 +30,22 @@ abstract class CompositeDataType<T, B> extends DataType<T> {
   bool get isNullable => false;
 
   @override
-  T convert(Object value) {
+  T cast(Object value) {
     if (value is T) {
       return value;
     } else if (value is List<B>) {
       return fromList(value);
     } else if (value is List) {
-      return fromList(value.map(base.convert).toList());
+      return fromList(value.map(base.cast).toList());
     } else if (value is String) {
       return fromList(value
           .split(RegExp(r'[,;|[\] ]'))
           .map((each) => each.trim())
           .where((each) => each.isNotEmpty)
-          .map((each) => base.convert(each))
+          .map((each) => base.cast(each))
           .toList());
     }
-    return super.convert(value);
+    return super.cast(value);
   }
 
   @override

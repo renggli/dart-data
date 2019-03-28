@@ -26,7 +26,7 @@ class NumericDataType extends DataType<num> {
   Equality<num> get equality => const NumericEquality();
 
   @override
-  num convert(Object value) {
+  num cast(Object value) {
     if (value == null || value is num) {
       return value;
     } else if (value is BigInt) {
@@ -34,9 +34,9 @@ class NumericDataType extends DataType<num> {
     } else if (value is Fraction) {
       return value.toDouble();
     } else if (value is String) {
-      return num.tryParse(value) ?? super.convert(value);
+      return num.tryParse(value) ?? super.cast(value);
     }
-    return super.convert(value);
+    return super.cast(value);
   }
 }
 

@@ -19,7 +19,7 @@ class FractionDataType extends DataType<Fraction> {
   Fraction get nullValue => null;
 
   @override
-  Fraction convert(Object value) {
+  Fraction cast(Object value) {
     if (value == null || value is Fraction) {
       return value;
     } else if (value is int) {
@@ -29,9 +29,9 @@ class FractionDataType extends DataType<Fraction> {
     } else if (value is BigInt) {
       return Fraction(value.toInt());
     } else if (value is String) {
-      return Fraction.tryParse(value) ?? super.convert(value);
+      return Fraction.tryParse(value) ?? super.cast(value);
     }
-    return super.convert(value);
+    return super.cast(value);
   }
 
   @override

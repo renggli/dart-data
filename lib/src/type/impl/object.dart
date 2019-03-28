@@ -15,7 +15,7 @@ class ObjectDataType<T> extends DataType<T> {
   T get nullValue => null;
 
   @override
-  T convert(Object value) => value;
+  T cast(Object value) => value;
 
   @override
   List<T> newList(int length) => List(length);

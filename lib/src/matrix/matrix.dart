@@ -2,6 +2,7 @@ library data.matrix.matrix;
 
 import 'package:data/src/matrix/builder.dart';
 import 'package:data/src/matrix/format.dart';
+import 'package:data/src/matrix/view/cast_matrix.dart';
 import 'package:data/src/matrix/view/index_matrix.dart';
 import 'package:data/src/matrix/view/range_matrix.dart';
 import 'package:data/src/matrix/view/transformed_matrix.dart';
@@ -212,6 +213,9 @@ abstract class Matrix<T> extends Tensor<T> {
   Matrix<S> map<S>(S Function(int row, int col, T value) callback,
           DataType<S> dataType) =>
       TransformedMatrix<T, S>(this, callback, dataType);
+
+  /// Returns a lazy [Matrix] with the elements cast to `dataType`.
+  Matrix<S> cast<S>(DataType<S> dataType) => CastMatrix<T, S>(this, dataType);
 
   /// Returns a mutable view onto the transposed matrix.
   Matrix<T> get transposed => TransposedMatrix<T>(this);

@@ -9,5 +9,5 @@ class StringDataType extends ObjectDataType<String> {
   String get name => 'string';
 
   @override
-  String convert(Object value) => value?.toString();
+  String cast(Object value) => value?.toString();
 }

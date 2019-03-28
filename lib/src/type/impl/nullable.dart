@@ -24,7 +24,7 @@ class NullableDataType<T> extends DataType<T> {
   T get nullValue => null;
 
   @override
-  T convert(Object value) => value == null ? null : delegate.convert(value);
+  T cast(Object value) => value == null ? null : delegate.cast(value);
 
   @override
   List<T> newList(int length) => NullableList(delegate.newList(length));
