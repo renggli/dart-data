@@ -147,9 +147,9 @@ void matrixTest(String name, Builder builder) {
             .withType(DataType.string)
             .transform(source, (row, col, value) => '($row, $col): $value');
         expect(matrix.dataType, DataType.string);
-        expect(matrix.rowCount, 8);
-        expect(matrix.colCount, 7);
-        expect(matrix.shape, [matrix.rowCount, matrix.colCount]);
+        expect(matrix.rowCount, source.rowCount);
+        expect(matrix.colCount, source.colCount);
+        expect(matrix.shape, [source.rowCount, source.colCount]);
         expect(matrix.storage, [matrix]);
         for (var r = 0; r < matrix.rowCount; r++) {
           for (var c = 0; c < matrix.colCount; c++) {
@@ -167,8 +167,8 @@ void matrixTest(String name, Builder builder) {
             source, (row, col, value) => '($row, $col): $value',
             lazy: true);
         expect(matrix.dataType, DataType.string);
-        expect(matrix.rowCount, 8);
-        expect(matrix.colCount, 7);
+        expect(matrix.rowCount, source.rowCount);
+        expect(matrix.colCount, source.colCount);
         expect(matrix.shape, [matrix.rowCount, matrix.colCount]);
         expect(matrix.storage, [source]);
         for (var r = 0; r < matrix.rowCount; r++) {
@@ -177,6 +177,43 @@ void matrixTest(String name, Builder builder) {
           }
         }
         expect(() => matrix.set(0, 0, '*'), throwsUnsupportedError);
+      });
+      test('cast', () {
+        final source = builder
+            .withType(DataType.string)
+            .generate(4, 5, (row, col) => '${row * col}');
+        final matrix = builder.withType(DataType.int8).cast(source);
+        expect(matrix.dataType, DataType.int8);
+        expect(matrix.rowCount, source.rowCount);
+        expect(matrix.colCount, source.colCount);
+        expect(matrix.shape, [matrix.rowCount, matrix.colCount]);
+        expect(matrix.storage, [matrix]);
+        for (var r = 0; r < matrix.rowCount; r++) {
+          for (var c = 0; c < matrix.colCount; c++) {
+            expect(matrix.get(r, c), r * c);
+          }
+        }
+        matrix.set(0, 0, 42);
+        expect(matrix.get(0, 0), 42);
+      });
+      test('cast, lazy', () {
+        final source = builder
+            .withType(DataType.string)
+            .generate(4, 5, (row, col) => '${row * col}');
+        final matrix = builder.withType(DataType.int8).cast(source, lazy: true);
+        expect(matrix.dataType, DataType.int8);
+        expect(matrix.rowCount, source.rowCount);
+        expect(matrix.colCount, source.colCount);
+        expect(matrix.shape, [matrix.rowCount, matrix.colCount]);
+        expect(matrix.storage, [source]);
+        for (var r = 0; r < matrix.rowCount; r++) {
+          for (var c = 0; c < matrix.colCount; c++) {
+            expect(matrix.get(r, c), r * c);
+          }
+        }
+        matrix.set(0, 0, 42);
+        expect(matrix.get(0, 0), 42);
+        expect(source.get(0, 0), '42');
       });
       test('horizontal', () {
         final source1 = builder.withType(DataType.string).fromRows([
@@ -1048,6 +1085,30 @@ void matrixTest(String name, Builder builder) {
         test('readonly', () {
           final map = source.map<int>((row, col, value) => row, DataType.int32);
           expect(() => map.setUnchecked(1, 2, 3), throwsUnsupportedError);
+        });
+      });
+
+      group('cast', () {
+        final source = builder.generate(16, 8, (row, col) => row * col);
+        test('to string', () {
+          final cast = source.cast(DataType.string);
+          expect(cast.dataType, DataType.string);
+          expect(cast.rowCount, source.rowCount);
+          expect(cast.colCount, source.colCount);
+          expect(cast.storage, [source]);
+          for (var r = 0; r < cast.rowCount; r++) {
+            for (var c = 0; c < cast.colCount; c++) {
+              expect(cast.get(r, c), '${r * c}');
+            }
+          }
+        });
+        test('copy', () {
+          final cast = source.cast(DataType.int32);
+          expect(compare(cast.copy(), cast), isTrue);
+        });
+        test('cast', () {
+          final cast = source.cast(DataType.int8).cast(DataType.int32);
+          expect(compare(cast, source), isTrue);
         });
       });
       test('transposed', () {

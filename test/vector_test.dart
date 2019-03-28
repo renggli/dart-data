@@ -85,8 +85,8 @@ void vectorTest(String name, Builder builder) {
             .withType(DataType.string)
             .transform(source, (index, value) => '$index: $value');
         expect(vector.dataType, DataType.string);
-        expect(vector.count, 9);
-        expect(vector.shape, [vector.count]);
+        expect(vector.count, source.count);
+        expect(vector.shape, [source.count]);
         expect(vector.storage, [vector]);
         for (var i = 0; i < vector.count; i++) {
           expect(vector[i], '$i: ${2 * i}');
@@ -101,13 +101,44 @@ void vectorTest(String name, Builder builder) {
             .withType(DataType.string)
             .transform(source, (index, value) => '$index: $value', lazy: true);
         expect(vector.dataType, DataType.string);
-        expect(vector.count, 9);
-        expect(vector.shape, [vector.count]);
+        expect(vector.count, source.count);
+        expect(vector.shape, [source.count]);
         expect(vector.storage, [source]);
         for (var i = 0; i < vector.count; i++) {
           expect(vector[i], '$i: ${2 * i}');
         }
         expect(() => vector[3] = '*', throwsUnsupportedError);
+      });
+      test('cast', () {
+        final source =
+            builder.withType(DataType.int8).generate(10, (i) => i * i);
+        final vector = builder.withType(DataType.string).cast(source);
+        expect(vector.dataType, DataType.string);
+        expect(vector.count, source.count);
+        expect(vector.shape, [source.count]);
+        expect(vector.storage, [vector]);
+        for (var i = 0; i < vector.count; i++) {
+          expect(vector[i], '${i * i}');
+        }
+        vector[3] = '42';
+        expect(vector[3], '42');
+        expect(source[3], 9);
+      });
+      test('cast, lazy', () {
+        final source =
+            builder.withType(DataType.int8).generate(10, (i) => i * i);
+        final vector =
+            builder.withType(DataType.string).cast(source, lazy: true);
+        expect(vector.dataType, DataType.string);
+        expect(vector.count, source.count);
+        expect(vector.shape, [source.count]);
+        expect(vector.storage, [source]);
+        for (var i = 0; i < vector.count; i++) {
+          expect(vector[i], '${i * i}');
+        }
+        vector[3] = '42';
+        expect(vector[3], '42');
+        expect(source[3], 42);
       });
       test('concat', () {
         final source1 = builder.withType(DataType.string).fromList(['a']);
@@ -341,6 +372,26 @@ void vectorTest(String name, Builder builder) {
         test('readonly', () {
           final mapped = source.map((index, value) => index, DataType.int32);
           expect(() => mapped.setUnchecked(0, 1), throwsUnsupportedError);
+        });
+      });
+      group('cast', () {
+        final source = builder.generate(256, (index) => index);
+        test('to string', () {
+          final cast = source.cast(DataType.string);
+          expect(cast.dataType, DataType.string);
+          expect(cast.count, source.count);
+          expect(cast.storage, [source]);
+          for (var i = 0; i < cast.count; i++) {
+            expect(cast[i], '$i');
+          }
+        });
+        test('copy', () {
+          final cast = source.cast(DataType.int32);
+          expect(compare(cast.copy(), cast), isTrue);
+        });
+        test('cast', () {
+          final cast = source.cast(DataType.int8).cast(DataType.int32);
+          expect(compare(cast, source), isTrue);
         });
       });
       test('unmodifiable', () {

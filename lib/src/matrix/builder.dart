@@ -119,6 +119,12 @@ class Builder<T> {
     return lazy ? result : fromMatrix(result);
   }
 
+  /// Builds a matrix by casting to another type.
+  Matrix<T> cast<S>(Matrix<S> source, {bool lazy = false}) {
+    final result = source.cast(type);
+    return lazy ? result : fromMatrix(result);
+  }
+
   /// Builds a matrix by concatenating a list of [matrices] horizontally.
   Matrix<T> horizontal(Iterable<Matrix<T>> matrices, {bool lazy = false}) {
     final result = HorizontalConcatMatrix<T>(type, matrices);

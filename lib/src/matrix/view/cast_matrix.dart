@@ -23,6 +23,9 @@ class CastMatrix<S, T> extends Matrix<T> {
   Set<Tensor> get storage => _matrix.storage;
 
   @override
+  Matrix<S> cast<S>(DataType<S> dataType) => _matrix.cast(dataType);
+
+  @override
   Matrix<T> copy() => CastMatrix(_matrix.copy(), dataType);
 
   @override

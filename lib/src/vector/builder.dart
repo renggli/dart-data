@@ -75,6 +75,12 @@ class Builder<T> {
     return lazy ? result : fromVector(result);
   }
 
+  /// Builds a vector by casting to another type.
+  Vector<T> cast<S>(Vector<S> source, {bool lazy = false}) {
+    final result = source.cast(type);
+    return lazy ? result : fromVector(result);
+  }
+
   /// Builds a vectors by concatenating a list of [vectors].
   Vector<T> concat(Iterable<Vector<T>> vectors, {bool lazy = false}) {
     final result = ConcatVector<T>(type, vectors);
