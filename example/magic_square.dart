@@ -138,7 +138,7 @@ void main() {
       final qr = matrix.qr(md);
       final q = qr.orthogonal;
       final r = qr.upper;
-      final R = matrix.sub(matrix.mul(q, r), m);
+      final R = matrix.sub(matrix.mul(q, r), m.cast(DataType.float64));
       final res = matrix.norm1(R) / (n * eps);
       buffer.add(doublePrinter(3)(res));
     }
