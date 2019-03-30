@@ -5,6 +5,7 @@ import 'package:data/src/vector/format.dart';
 import 'package:data/src/vector/view/cast_vector.dart';
 import 'package:data/src/vector/view/index_vector.dart';
 import 'package:data/src/vector/view/range_vector.dart';
+import 'package:data/src/vector/view/reversed_vector.dart';
 import 'package:data/src/vector/view/transformed_vector.dart';
 import 'package:data/src/vector/view/unmodifiable_vector.dart';
 import 'package:data/tensor.dart' show Tensor;
@@ -90,6 +91,9 @@ abstract class Vector<T> extends Tensor<T> {
 
   /// Returns a lazy [Vector] with the elements cast to `dataType`.
   Vector<S> cast<S>(DataType<S> dataType) => CastVector<T, S>(this, dataType);
+
+  /// Returns a reversed view of the vector.
+  Vector<T> get reversed => ReversedVector(this);
 
   /// Returns a unmodifiable view of the vector.
   Vector<T> get unmodifiable => UnmodifiableVector<T>(this);

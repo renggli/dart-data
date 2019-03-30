@@ -3,6 +3,8 @@ library data.matrix.matrix;
 import 'package:data/src/matrix/builder.dart';
 import 'package:data/src/matrix/format.dart';
 import 'package:data/src/matrix/view/cast_matrix.dart';
+import 'package:data/src/matrix/view/flipped_horizontal_matrix.dart';
+import 'package:data/src/matrix/view/flipped_vertical_matrix.dart';
 import 'package:data/src/matrix/view/index_matrix.dart';
 import 'package:data/src/matrix/view/range_matrix.dart';
 import 'package:data/src/matrix/view/transformed_matrix.dart';
@@ -219,6 +221,12 @@ abstract class Matrix<T> extends Tensor<T> {
 
   /// Returns a mutable view onto the transposed matrix.
   Matrix<T> get transposed => TransposedMatrix<T>(this);
+
+  /// Returns a mutable view onto the horizontally flipped matrix.
+  Matrix<T> get flippedHorizontal => FlippedHorizontalMatrix<T>(this);
+
+  /// Returns a mutable view onto the vertically flipped matrix.
+  Matrix<T> get flippedVertical => FlippedVerticalMatrix<T>(this);
 
   /// Returns a unmodifiable view of the matrix.
   Matrix<T> get unmodifiable => UnmodifiableMatrix<T>(this);

@@ -1113,9 +1113,10 @@ void matrixTest(String name, Builder builder) {
             .generate(7, 6, (row, col) => '($row, $col)');
         final transposed = source.transposed;
         expect(transposed.dataType, source.dataType);
-        expect(transposed.rowCount, 6);
-        expect(transposed.colCount, 7);
+        expect(transposed.rowCount, source.colCount);
+        expect(transposed.colCount, source.rowCount);
         expect(transposed.storage, [source]);
+        expect(transposed.transposed, same(source));
         expect(compare(transposed.copy(), transposed), isTrue);
         for (var r = 0; r < transposed.rowCount; r++) {
           for (var c = 0; c < transposed.colCount; c++) {
@@ -1128,7 +1129,52 @@ void matrixTest(String name, Builder builder) {
             expect(source.get(r, c), '($r, $c)*');
           }
         }
-        expect(transposed.transposed, source);
+      });
+      test('flippedHorizontal', () {
+        final source = builder
+            .withType(DataType.string)
+            .generate(7, 6, (row, col) => '($row, $col)');
+        final flipped = source.flippedHorizontal;
+        expect(flipped.dataType, source.dataType);
+        expect(flipped.rowCount, source.rowCount);
+        expect(flipped.colCount, source.colCount);
+        expect(flipped.storage, [source]);
+        expect(flipped.flippedHorizontal, same(source));
+        expect(compare(flipped.copy(), flipped), isTrue);
+        for (var r = 0; r < flipped.rowCount; r++) {
+          for (var c = 0; c < flipped.colCount; c++) {
+            expect(flipped.get(r, c), '(${source.rowCount - r - 1}, $c)');
+            flipped.set(r, c, '${flipped.get(r, c)}*');
+          }
+        }
+        for (var r = 0; r < source.rowCount; r++) {
+          for (var c = 0; c < source.colCount; c++) {
+            expect(source.get(r, c), '($r, $c)*');
+          }
+        }
+      });
+      test('flippedVertical', () {
+        final source = builder
+            .withType(DataType.string)
+            .generate(7, 6, (row, col) => '($row, $col)');
+        final flipped = source.flippedVertical;
+        expect(flipped.dataType, source.dataType);
+        expect(flipped.rowCount, source.rowCount);
+        expect(flipped.colCount, source.colCount);
+        expect(flipped.storage, [source]);
+        expect(flipped.flippedVertical, same(source));
+        expect(compare(flipped.copy(), flipped), isTrue);
+        for (var r = 0; r < flipped.rowCount; r++) {
+          for (var c = 0; c < flipped.colCount; c++) {
+            expect(flipped.get(r, c), '($r, ${source.colCount - c - 1})');
+            flipped.set(r, c, '${flipped.get(r, c)}*');
+          }
+        }
+        for (var r = 0; r < source.rowCount; r++) {
+          for (var c = 0; c < source.colCount; c++) {
+            expect(source.get(r, c), '($r, $c)*');
+          }
+        }
       });
       test('unmodifiable', () {
         final source = builder

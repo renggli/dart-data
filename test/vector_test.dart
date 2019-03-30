@@ -390,6 +390,21 @@ void vectorTest(String name, Builder builder) {
           expect(compare(cast.copy(), cast), isTrue);
         });
       });
+      test('reversed', () {
+        final source = builder.withType(DataType.int8).fromList([1, 2, 3]);
+        final reversed = source.reversed;
+        expect(reversed.dataType, source.dataType);
+        expect(reversed.count, source.count);
+        expect(reversed.storage, [source]);
+        expect(reversed.reversed, same(source));
+        expect(compare(reversed.copy(), reversed), isTrue);
+        for (var i = 0; i < source.count; i++) {
+          expect(reversed[i], source[source.count - i - 1]);
+        }
+        reversed[1] = 42;
+        expect(reversed[1], 42);
+        expect(source[1], 42);
+      });
       test('unmodifiable', () {
         final source = builder.withType(DataType.int8).fromList([1, 2]);
         final readonly = source.unmodifiable;
