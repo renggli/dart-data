@@ -98,6 +98,9 @@ abstract class Vector<T> extends Tensor<T> {
   /// Returns a unmodifiable view of the vector.
   Vector<T> get unmodifiable => UnmodifiableVector<T>(this);
 
+  /// Tests if [index] is within the bounds of this vector.
+  bool isWithinBounds(int index) => 0 <= index && index < count;
+
   /// Returns a human readable representation of the vector.
   @override
   String format({

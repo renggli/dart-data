@@ -231,6 +231,10 @@ abstract class Matrix<T> extends Tensor<T> {
   /// Returns a unmodifiable view of the matrix.
   Matrix<T> get unmodifiable => UnmodifiableMatrix<T>(this);
 
+  /// Tests if [row] and [col] are within the bounds of this matrix.
+  bool isWithinBounds(int row, int col) =>
+      0 <= row && row < rowCount && 0 <= col && col < colCount;
+
   /// Tests if the matrix is square.
   bool get isSquare => rowCount == colCount;
 
