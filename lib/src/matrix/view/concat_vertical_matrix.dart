@@ -1,4 +1,4 @@
-library data.vector.view.concat_vertical;
+library data.matrix.view.concat_vertical;
 
 import 'package:data/src/matrix/matrix.dart';
 import 'package:data/src/shared/config.dart';

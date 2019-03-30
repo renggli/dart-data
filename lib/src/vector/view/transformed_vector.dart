@@ -1,4 +1,4 @@
-library data.matrix.view.transformed;
+library data.vector.view.transformed;
 
 import 'package:data/src/vector/mixins/unmodifiable_vector.dart';
 import 'package:data/src/vector/vector.dart';

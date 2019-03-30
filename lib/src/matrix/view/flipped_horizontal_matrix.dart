@@ -1,4 +1,4 @@
-library data.vector.view.flipped_horizontal;
+library data.matrix.view.flipped_horizontal;
 
 import 'package:data/src/matrix/matrix.dart';
 import 'package:data/tensor.dart';

@@ -1,4 +1,4 @@
-library data.matrix.view.cast;
+library data.vector.view.cast;
 
 import 'package:data/src/vector/vector.dart';
 import 'package:data/tensor.dart';
