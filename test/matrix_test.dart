@@ -215,7 +215,7 @@ void matrixTest(String name, Builder builder) {
         expect(matrix.get(0, 0), 42);
         expect(source.get(0, 0), '42');
       });
-      test('horizontal', () {
+      test('concatHorizontal', () {
         final source1 = builder.withType(DataType.string).fromRows([
           ['a'],
           ['b'],
@@ -230,7 +230,7 @@ void matrixTest(String name, Builder builder) {
         ]);
         final matrix = builder
             .withType(DataType.string)
-            .horizontal([source1, source2, source3, source1]);
+            .concatHorizontal([source1, source2, source3, source1]);
         expect(matrix.dataType, DataType.string);
         expect(matrix.rowCount, 2);
         expect(matrix.colCount, 7);
@@ -249,7 +249,7 @@ void matrixTest(String name, Builder builder) {
           }
         }
       });
-      test('horizontal, lazy', () {
+      test('concatHorizontal, lazy', () {
         final source1 = builder.withType(DataType.string).fromRows([
           ['a'],
           ['b'],
@@ -264,7 +264,7 @@ void matrixTest(String name, Builder builder) {
         ]);
         final matrix = builder
             .withType(DataType.string)
-            .horizontal([source1, source2, source3, source1], lazy: true);
+            .concatHorizontal([source1, source2, source3, source1], lazy: true);
         expect(matrix.dataType, DataType.string);
         expect(matrix.rowCount, 2);
         expect(matrix.colCount, 7);
@@ -285,7 +285,7 @@ void matrixTest(String name, Builder builder) {
         final copy = matrix.copy();
         expect(copy, isNot(same(matrix)));
       });
-      test('vertical', () {
+      test('concatVertical', () {
         final source1 = builder.withType(DataType.string).fromRows([
           ['a', 'b'],
         ]);
@@ -300,7 +300,7 @@ void matrixTest(String name, Builder builder) {
         ]);
         final matrix = builder
             .withType(DataType.string)
-            .vertical([source1, source2, source3, source1]);
+            .concatVertical([source1, source2, source3, source1]);
         expect(matrix.dataType, DataType.string);
         expect(matrix.rowCount, 7);
         expect(matrix.colCount, 2);
@@ -313,7 +313,7 @@ void matrixTest(String name, Builder builder) {
           }
         }
       });
-      test('vertical, lazy', () {
+      test('concatVertical, lazy', () {
         final source1 = builder.withType(DataType.string).fromRows([
           ['a', 'b'],
         ]);
@@ -328,7 +328,7 @@ void matrixTest(String name, Builder builder) {
         ]);
         final matrix = builder
             .withType(DataType.string)
-            .vertical([source1, source2, source3, source1], lazy: true);
+            .concatVertical([source1, source2, source3, source1], lazy: true);
         expect(matrix.dataType, DataType.string);
         expect(matrix.rowCount, 7);
         expect(matrix.colCount, 2);

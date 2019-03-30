@@ -10,13 +10,13 @@ import 'package:data/src/matrix/impl/keyed_matrix.dart';
 import 'package:data/src/matrix/impl/row_major_matrix.dart';
 import 'package:data/src/matrix/matrix.dart';
 import 'package:data/src/matrix/view/column_vector_matrix.dart';
+import 'package:data/src/matrix/view/concat_horizontal_matrix.dart';
+import 'package:data/src/matrix/view/concat_vertical_matrix.dart';
 import 'package:data/src/matrix/view/constant_matrix.dart';
 import 'package:data/src/matrix/view/diagonal_vector_matrix.dart';
 import 'package:data/src/matrix/view/generated_matrix.dart';
-import 'package:data/src/matrix/view/horizontal_concat_matrix.dart';
 import 'package:data/src/matrix/view/identity_matrix.dart';
 import 'package:data/src/matrix/view/row_vector_matrix.dart';
-import 'package:data/src/matrix/view/vertical_concat_matrix.dart';
 import 'package:data/type.dart';
 import 'package:data/vector.dart' show Vector;
 
@@ -126,14 +126,15 @@ class Builder<T> {
   }
 
   /// Builds a matrix by concatenating a list of [matrices] horizontally.
-  Matrix<T> horizontal(Iterable<Matrix<T>> matrices, {bool lazy = false}) {
-    final result = HorizontalConcatMatrix<T>(type, matrices);
+  Matrix<T> concatHorizontal(Iterable<Matrix<T>> matrices,
+      {bool lazy = false}) {
+    final result = ConcatHorizontalMatrix<T>(type, matrices);
     return lazy ? result : fromMatrix(result);
   }
 
   /// Builds a matrix by concatenating a list of [matrices] vertically.
-  Matrix<T> vertical(Iterable<Matrix<T>> matrices, {bool lazy = false}) {
-    final result = VerticalConcatMatrix<T>(type, matrices);
+  Matrix<T> concatVertical(Iterable<Matrix<T>> matrices, {bool lazy = false}) {
+    final result = ConcatVerticalMatrix<T>(type, matrices);
     return lazy ? result : fromMatrix(result);
   }
 

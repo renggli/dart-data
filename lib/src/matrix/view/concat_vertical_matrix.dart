@@ -1,4 +1,4 @@
-library data.vector.view.horizontal_concat;
+library data.vector.view.concat_vertical;
 
 import 'package:data/src/matrix/matrix.dart';
 import 'package:data/src/shared/config.dart';
@@ -6,64 +6,63 @@ import 'package:data/src/shared/lists.dart';
 import 'package:data/tensor.dart';
 import 'package:data/type.dart';
 
-/// Mutable horizontal concatenation of matrices.
-class HorizontalConcatMatrix<T> extends Matrix<T> {
+/// Mutable vertical concatenation of matrices.
+class ConcatVerticalMatrix<T> extends Matrix<T> {
   final List<Matrix<T>> _matrices;
   final List<int> _indexes;
 
-  HorizontalConcatMatrix(DataType<T> dataType, Iterable<Matrix<T>> matrices)
+  ConcatVerticalMatrix(DataType<T> dataType, Iterable<Matrix<T>> matrices)
       : this._withList(dataType, matrices.toList(growable: false));
 
-  HorizontalConcatMatrix._withList(
-      DataType<T> dataType, List<Matrix<T>> matrices)
+  ConcatVerticalMatrix._withList(DataType<T> dataType, List<Matrix<T>> matrices)
       : this._withListAndIndexes(dataType, matrices, computeIndexes(matrices));
 
-  HorizontalConcatMatrix._withListAndIndexes(
+  ConcatVerticalMatrix._withListAndIndexes(
       this.dataType, this._matrices, this._indexes);
 
   @override
   final DataType<T> dataType;
 
   @override
-  int get rowCount => _matrices.first.rowCount;
+  int get rowCount => _indexes.last;
 
   @override
-  int get colCount => _indexes.last;
+  int get colCount => _matrices.first.colCount;
 
   @override
   Set<Tensor> get storage => Set.of(_matrices);
 
   @override
-  Matrix<T> copy() => HorizontalConcatMatrix._withListAndIndexes(
+  Matrix<T> copy() => ConcatVerticalMatrix._withListAndIndexes(
       dataType,
       _matrices.map((vector) => vector.copy()).toList(growable: false),
       _indexes);
 
   @override
   T getUnchecked(int row, int col) {
-    var matrixIndex = binarySearch(_indexes, 0, _indexes.length, col);
+    var matrixIndex = binarySearch(_indexes, 0, _indexes.length, row);
     if (matrixIndex < 0) {
       matrixIndex = -matrixIndex - 2;
     }
     return _matrices[matrixIndex]
-        .getUnchecked(row, col - _indexes[matrixIndex]);
+        .getUnchecked(row - _indexes[matrixIndex], col);
   }
 
   @override
   void setUnchecked(int row, int col, T value) {
-    var matrixIndex = binarySearch(_indexes, 0, _indexes.length, col);
+    var matrixIndex = binarySearch(_indexes, 0, _indexes.length, row);
     if (matrixIndex < 0) {
       matrixIndex = -matrixIndex - 2;
     }
     _matrices[matrixIndex]
-        .setUnchecked(row, col - _indexes[matrixIndex], value);
+        .setUnchecked(row - _indexes[matrixIndex], col, value);
   }
 }
 
 List<int> computeIndexes(List<Matrix> matrices) {
   final indexes = indexDataType.newList(matrices.length + 1);
   for (var i = 0; i < matrices.length; i++) {
-    indexes[i + 1] = indexes[i] + matrices[i].colCount;
+    indexes[i + 1] = indexes[i] + matrices[i].rowCount;
   }
   return indexes;
 }
