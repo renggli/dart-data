@@ -334,6 +334,63 @@ void vectorTest(String name, Builder builder) {
         expect(() => source.index([-1, source.count - 1]), throwsRangeError);
         expect(() => source.index([0, source.count]), throwsRangeError);
       });
+      group('overlay', () {
+        final base = builder
+            .withType(DataType.string)
+            .generate(8, (index) => '($index)');
+        test('offset', () {
+          final top = builder
+              .withType(DataType.string)
+              .generate(2, (index) => '[$index]');
+          final composite = top.overlay(base, offset: 4);
+          expect(composite.dataType, top.dataType);
+          expect(composite.count, base.count);
+          expect(composite.storage, unorderedMatches([base, top]));
+          final copy = composite.copy();
+          expect(compare(copy, composite), isTrue);
+          for (var i = 0; i < composite.count; i++) {
+            expect(composite[i], 4 <= i && i <= 5 ? '[${i - 4}]' : '($i)');
+            copy[i] = '${copy[i]}*';
+          }
+        });
+        test('mask', () {
+          final top = builder
+              .withType(DataType.string)
+              .generate(base.count, (index) => '[$index]');
+          final mask = builder
+              .withType(DataType.boolean)
+              .generate(base.count, (index) => index.isEven, lazy: true);
+          final composite = top.overlay(base, mask: mask);
+          expect(composite.dataType, top.dataType);
+          expect(composite.count, base.count);
+          expect(composite.storage, unorderedMatches([base, top, mask]));
+          final copy = composite.copy();
+          expect(compare(copy, composite), isTrue);
+          for (var i = 0; i < composite.count; i++) {
+            expect(composite[i], i.isEven ? '[$i]' : '($i)');
+            copy[i] = '${copy[i]}*';
+          }
+        });
+        test('errors', () {
+          expect(() => base.overlay(base), throwsArgumentError);
+          expect(
+              () => base.overlay(
+                  builder
+                      .withType(DataType.string)
+                      .constant(base.count + 1, ''),
+                  mask: builder
+                      .withType(DataType.boolean)
+                      .constant(base.count, true)),
+              throwsArgumentError);
+          expect(
+              () => base.overlay(
+                  builder.withType(DataType.string).constant(base.count, ''),
+                  mask: builder
+                      .withType(DataType.boolean)
+                      .constant(base.count + 1, true)),
+              throwsArgumentError);
+        });
+      });
       group('map', () {
         final source = builder.generate(4, (index) => index);
         test('to string', () {

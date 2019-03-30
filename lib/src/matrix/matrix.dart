@@ -6,6 +6,8 @@ import 'package:data/src/matrix/view/cast_matrix.dart';
 import 'package:data/src/matrix/view/flipped_horizontal_matrix.dart';
 import 'package:data/src/matrix/view/flipped_vertical_matrix.dart';
 import 'package:data/src/matrix/view/index_matrix.dart';
+import 'package:data/src/matrix/view/overlay_mask_matrix.dart';
+import 'package:data/src/matrix/view/overlay_offset_matrix.dart';
 import 'package:data/src/matrix/view/range_matrix.dart';
 import 'package:data/src/matrix/view/transformed_matrix.dart';
 import 'package:data/src/matrix/view/transposed_matrix.dart';
@@ -209,6 +211,33 @@ abstract class Matrix<T> extends Tensor<T> {
   Matrix<T> indexUnchecked(
           Iterable<int> rowIndexes, Iterable<int> colIndexes) =>
       IndexMatrix<T>(this, rowIndexes, colIndexes);
+
+  /// Returns a mutable view where this matrix is overlaid on top of a provided
+  /// [base] matrix. This happens either by using the given [rowOffset] and
+  /// [colOffset], or using a boolean [mask].
+  Matrix<T> overlay(
+    Matrix<T> base, {
+    DataType<T> dataType,
+    Matrix<bool> mask,
+    int rowOffset,
+    int colOffset,
+  }) {
+    dataType ??= this.dataType;
+    if (mask == null && rowOffset != null && colOffset != null) {
+      return OverlayOffsetMatrix(dataType, this, rowOffset, colOffset, base);
+    } else if (mask != null && rowOffset == null && colOffset == null) {
+      if (rowCount != base.rowCount ||
+          rowCount != mask.rowCount ||
+          colCount != base.colCount ||
+          colCount != mask.colCount) {
+        throw ArgumentError('Dimensions of overlay ($rowCount * $colCount), '
+            'mask (${mask.rowCount} * ${mask.colCount}) and base '
+            '(${base.rowCount} * ${base.colCount}) matrices do not match.');
+      }
+      return OverlayMaskMatrix(dataType, this, mask, base);
+    }
+    throw ArgumentError('Either a mask or an offset required.');
+  }
 
   /// Returns a lazy [Matrix] with elements that are created by calling
   /// `callback` on each element of this `Matrix`.

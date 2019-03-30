@@ -1039,172 +1039,255 @@ void matrixTest(String name, Builder builder) {
               throwsRangeError);
         });
       });
-      group('map', () {
-        final source = builder.generate(3, 4, (row, col) => Point(row, col));
-        test('to string', () {
-          final mapped = source.map(
-              (row, col, value) => '${value.x + 10 * value.y}',
-              DataType.string);
-          expect(mapped.dataType, DataType.string);
-          expect(mapped.rowCount, source.rowCount);
-          expect(mapped.colCount, source.colCount);
-          expect(mapped.storage, [source]);
-          expect(compare(mapped.copy(), mapped), isTrue);
-          for (var r = 0; r < mapped.rowCount; r++) {
-            for (var c = 0; c < mapped.colCount; c++) {
-              expect(mapped.get(r, c), '${r + 10 * c}');
+      group('overlay', () {
+        final base = builder
+            .withType(DataType.string)
+            .generate(8, 10, (row, col) => '($row, $col)');
+        test('offset', () {
+          final top = builder
+              .withType(DataType.string)
+              .generate(2, 3, (row, col) => '[$row, $col]');
+          final composite = top.overlay(base, rowOffset: 4, colOffset: 5);
+          expect(composite.dataType, top.dataType);
+          expect(composite.rowCount, base.rowCount);
+          expect(composite.colCount, base.colCount);
+          expect(composite.storage, unorderedMatches([base, top]));
+          final copy = composite.copy();
+          expect(compare(copy, composite), isTrue);
+          for (var r = 0; r < composite.rowCount; r++) {
+            for (var c = 0; c < composite.colCount; c++) {
+              expect(
+                  composite.get(r, c),
+                  4 <= r && r <= 5 && 5 <= c && c <= 7
+                      ? '[${r - 4}, ${c - 5}]'
+                      : '($r, $c)');
+              copy.set(r, c, '${copy.get(r, c)}*');
             }
           }
         });
-        test('to int', () {
-          final mapped = source.map(
-              (row, col, value) => value.x + 10 * value.y, DataType.int32);
-          expect(mapped.dataType, DataType.int32);
-          expect(mapped.rowCount, source.rowCount);
-          expect(mapped.colCount, source.colCount);
-          expect(mapped.storage, [source]);
-          for (var r = 0; r < mapped.rowCount; r++) {
-            for (var c = 0; c < mapped.colCount; c++) {
-              expect(mapped.get(r, c), r + 10 * c);
+        test('mask', () {
+          final top = builder.withType(DataType.string).generate(
+              base.rowCount, base.colCount, (row, col) => '[$row, $col]');
+          final mask = builder.withType(DataType.boolean).generate(
+              base.rowCount,
+              base.colCount,
+              (row, col) => row.isEven && col.isOdd,
+              lazy: true);
+          final composite = top.overlay(base, mask: mask);
+          expect(composite.dataType, top.dataType);
+          expect(composite.rowCount, base.rowCount);
+          expect(composite.colCount, base.colCount);
+          expect(composite.storage, unorderedMatches([base, top, mask]));
+          final copy = composite.copy();
+          expect(compare(copy, composite), isTrue);
+          for (var r = 0; r < composite.rowCount; r++) {
+            for (var c = 0; c < composite.colCount; c++) {
+              expect(composite.get(r, c),
+                  r.isEven && c.isOdd ? '[$r, $c]' : '($r, $c)');
+              copy.set(r, c, '${copy.get(r, c)}*');
             }
           }
         });
-        test('to float', () {
-          final mapped = source.map(
-              (row, col, value) => value.x + 10.0 * value.y, DataType.float64);
-          expect(mapped.dataType, DataType.float64);
-          expect(mapped.rowCount, source.rowCount);
-          expect(mapped.colCount, source.colCount);
-          expect(mapped.storage, [source]);
-          for (var r = 0; r < mapped.rowCount; r++) {
-            for (var c = 0; c < mapped.colCount; c++) {
-              expect(mapped.get(r, c), r + 10.0 * c);
-            }
-          }
-        });
-        test('readonly', () {
-          final map = source.map<int>((row, col, value) => row, DataType.int32);
-          expect(() => map.setUnchecked(1, 2, 3), throwsUnsupportedError);
-        });
-      });
-
-      group('cast', () {
-        final source = builder.generate(3, 5, (row, col) => row * col);
-        test('to string', () {
-          final cast = source.cast(DataType.string);
-          expect(cast.dataType, DataType.string);
-          expect(cast.rowCount, source.rowCount);
-          expect(cast.colCount, source.colCount);
-          expect(cast.storage, [source]);
-          for (var r = 0; r < cast.rowCount; r++) {
-            for (var c = 0; c < cast.colCount; c++) {
-              expect(cast.get(r, c), '${r * c}');
-            }
-          }
-        });
-        test('copy', () {
-          final cast = source.cast(DataType.int32);
-          expect(compare(cast.copy(), cast), isTrue);
+        test('errors', () {
+          expect(() => base.overlay(base), throwsArgumentError);
+          expect(() => base.overlay(base, rowOffset: 1), throwsArgumentError);
+          expect(() => base.overlay(base, colOffset: 1), throwsArgumentError);
+          expect(
+              () => base.overlay(
+                  builder
+                      .withType(DataType.string)
+                      .constant(base.rowCount + 1, base.colCount, ''),
+                  mask: builder
+                      .withType(DataType.boolean)
+                      .constant(base.rowCount, base.colCount, true)),
+              throwsArgumentError);
+          expect(
+              () => base.overlay(
+                  builder
+                      .withType(DataType.string)
+                      .constant(base.rowCount, base.colCount + 1, ''),
+                  mask: builder
+                      .withType(DataType.boolean)
+                      .constant(base.rowCount, base.colCount, true)),
+              throwsArgumentError);
+          expect(
+              () => base.overlay(base,
+                  mask: builder
+                      .withType(DataType.boolean)
+                      .constant(base.rowCount + 1, base.colCount, true)),
+              throwsArgumentError);
+          expect(
+              () => base.overlay(base,
+                  mask: builder
+                      .withType(DataType.boolean)
+                      .constant(base.rowCount, base.colCount + 1, true)),
+              throwsArgumentError);
         });
       });
-      test('transposed', () {
-        final source = builder
-            .withType(DataType.string)
-            .generate(7, 6, (row, col) => '($row, $col)');
-        final transposed = source.transposed;
-        expect(transposed.dataType, source.dataType);
-        expect(transposed.rowCount, source.colCount);
-        expect(transposed.colCount, source.rowCount);
-        expect(transposed.storage, [source]);
-        expect(transposed.transposed, same(source));
-        expect(compare(transposed.copy(), transposed), isTrue);
-        for (var r = 0; r < transposed.rowCount; r++) {
-          for (var c = 0; c < transposed.colCount; c++) {
-            expect(transposed.get(r, c), '($c, $r)');
-            transposed.set(r, c, '${transposed.get(r, c)}*');
-          }
-        }
-        for (var r = 0; r < source.rowCount; r++) {
-          for (var c = 0; c < source.colCount; c++) {
-            expect(source.get(r, c), '($r, $c)*');
+    });
+    group('map', () {
+      final source = builder.generate(3, 4, (row, col) => Point(row, col));
+      test('to string', () {
+        final mapped = source.map(
+            (row, col, value) => '${value.x + 10 * value.y}', DataType.string);
+        expect(mapped.dataType, DataType.string);
+        expect(mapped.rowCount, source.rowCount);
+        expect(mapped.colCount, source.colCount);
+        expect(mapped.storage, [source]);
+        expect(compare(mapped.copy(), mapped), isTrue);
+        for (var r = 0; r < mapped.rowCount; r++) {
+          for (var c = 0; c < mapped.colCount; c++) {
+            expect(mapped.get(r, c), '${r + 10 * c}');
           }
         }
       });
-      test('flippedHorizontal', () {
-        final source = builder
-            .withType(DataType.string)
-            .generate(7, 6, (row, col) => '($row, $col)');
-        final flipped = source.flippedHorizontal;
-        expect(flipped.dataType, source.dataType);
-        expect(flipped.rowCount, source.rowCount);
-        expect(flipped.colCount, source.colCount);
-        expect(flipped.storage, [source]);
-        expect(flipped.flippedHorizontal, same(source));
-        expect(compare(flipped.copy(), flipped), isTrue);
-        for (var r = 0; r < flipped.rowCount; r++) {
-          for (var c = 0; c < flipped.colCount; c++) {
-            expect(flipped.get(r, c), '(${source.rowCount - r - 1}, $c)');
-            flipped.set(r, c, '${flipped.get(r, c)}*');
-          }
-        }
-        for (var r = 0; r < source.rowCount; r++) {
-          for (var c = 0; c < source.colCount; c++) {
-            expect(source.get(r, c), '($r, $c)*');
+      test('to int', () {
+        final mapped = source.map(
+            (row, col, value) => value.x + 10 * value.y, DataType.int32);
+        expect(mapped.dataType, DataType.int32);
+        expect(mapped.rowCount, source.rowCount);
+        expect(mapped.colCount, source.colCount);
+        expect(mapped.storage, [source]);
+        for (var r = 0; r < mapped.rowCount; r++) {
+          for (var c = 0; c < mapped.colCount; c++) {
+            expect(mapped.get(r, c), r + 10 * c);
           }
         }
       });
-      test('flippedVertical', () {
-        final source = builder
-            .withType(DataType.string)
-            .generate(7, 6, (row, col) => '($row, $col)');
-        final flipped = source.flippedVertical;
-        expect(flipped.dataType, source.dataType);
-        expect(flipped.rowCount, source.rowCount);
-        expect(flipped.colCount, source.colCount);
-        expect(flipped.storage, [source]);
-        expect(flipped.flippedVertical, same(source));
-        expect(compare(flipped.copy(), flipped), isTrue);
-        for (var r = 0; r < flipped.rowCount; r++) {
-          for (var c = 0; c < flipped.colCount; c++) {
-            expect(flipped.get(r, c), '($r, ${source.colCount - c - 1})');
-            flipped.set(r, c, '${flipped.get(r, c)}*');
-          }
-        }
-        for (var r = 0; r < source.rowCount; r++) {
-          for (var c = 0; c < source.colCount; c++) {
-            expect(source.get(r, c), '($r, $c)*');
+      test('to float', () {
+        final mapped = source.map(
+            (row, col, value) => value.x + 10.0 * value.y, DataType.float64);
+        expect(mapped.dataType, DataType.float64);
+        expect(mapped.rowCount, source.rowCount);
+        expect(mapped.colCount, source.colCount);
+        expect(mapped.storage, [source]);
+        for (var r = 0; r < mapped.rowCount; r++) {
+          for (var c = 0; c < mapped.colCount; c++) {
+            expect(mapped.get(r, c), r + 10.0 * c);
           }
         }
       });
-      test('unmodifiable', () {
-        final source = builder
-            .withType(DataType.string)
-            .generate(2, 3, (row, col) => '($row, $col)');
-        final readonly = source.unmodifiable;
-        expect(readonly.dataType, source.dataType);
-        expect(readonly.rowCount, 2);
-        expect(readonly.colCount, 3);
-        expect(readonly.storage, [source]);
-        expect(compare(readonly.copy(), readonly), isTrue);
-        for (var r = 0; r < readonly.rowCount; r++) {
-          for (var c = 0; c < readonly.colCount; c++) {
-            expect(readonly.get(r, c), '($r, $c)');
-            expect(() => readonly.set(r, c, '${readonly.get(r, c)}*'),
-                throwsUnsupportedError);
-          }
-        }
-        for (var r = 0; r < source.rowCount; r++) {
-          for (var c = 0; c < source.colCount; c++) {
-            source.set(r, c, '${source.get(r, c)}!');
-          }
-        }
-        for (var r = 0; r < readonly.rowCount; r++) {
-          for (var c = 0; c < readonly.colCount; c++) {
-            expect(readonly.get(r, c), '($r, $c)!');
-          }
-        }
-        expect(readonly.unmodifiable, readonly);
+      test('readonly', () {
+        final map = source.map<int>((row, col, value) => row, DataType.int32);
+        expect(() => map.setUnchecked(1, 2, 3), throwsUnsupportedError);
       });
+    });
+    group('cast', () {
+      final source = builder.generate(3, 5, (row, col) => row * col);
+      test('to string', () {
+        final cast = source.cast(DataType.string);
+        expect(cast.dataType, DataType.string);
+        expect(cast.rowCount, source.rowCount);
+        expect(cast.colCount, source.colCount);
+        expect(cast.storage, [source]);
+        for (var r = 0; r < cast.rowCount; r++) {
+          for (var c = 0; c < cast.colCount; c++) {
+            expect(cast.get(r, c), '${r * c}');
+          }
+        }
+      });
+      test('copy', () {
+        final cast = source.cast(DataType.int32);
+        expect(compare(cast.copy(), cast), isTrue);
+      });
+    });
+    test('transposed', () {
+      final source = builder
+          .withType(DataType.string)
+          .generate(7, 6, (row, col) => '($row, $col)');
+      final transposed = source.transposed;
+      expect(transposed.dataType, source.dataType);
+      expect(transposed.rowCount, source.colCount);
+      expect(transposed.colCount, source.rowCount);
+      expect(transposed.storage, [source]);
+      expect(transposed.transposed, same(source));
+      expect(compare(transposed.copy(), transposed), isTrue);
+      for (var r = 0; r < transposed.rowCount; r++) {
+        for (var c = 0; c < transposed.colCount; c++) {
+          expect(transposed.get(r, c), '($c, $r)');
+          transposed.set(r, c, '${transposed.get(r, c)}*');
+        }
+      }
+      for (var r = 0; r < source.rowCount; r++) {
+        for (var c = 0; c < source.colCount; c++) {
+          expect(source.get(r, c), '($r, $c)*');
+        }
+      }
+    });
+    test('flippedHorizontal', () {
+      final source = builder
+          .withType(DataType.string)
+          .generate(7, 6, (row, col) => '($row, $col)');
+      final flipped = source.flippedHorizontal;
+      expect(flipped.dataType, source.dataType);
+      expect(flipped.rowCount, source.rowCount);
+      expect(flipped.colCount, source.colCount);
+      expect(flipped.storage, [source]);
+      expect(flipped.flippedHorizontal, same(source));
+      expect(compare(flipped.copy(), flipped), isTrue);
+      for (var r = 0; r < flipped.rowCount; r++) {
+        for (var c = 0; c < flipped.colCount; c++) {
+          expect(flipped.get(r, c), '(${source.rowCount - r - 1}, $c)');
+          flipped.set(r, c, '${flipped.get(r, c)}*');
+        }
+      }
+      for (var r = 0; r < source.rowCount; r++) {
+        for (var c = 0; c < source.colCount; c++) {
+          expect(source.get(r, c), '($r, $c)*');
+        }
+      }
+    });
+    test('flippedVertical', () {
+      final source = builder
+          .withType(DataType.string)
+          .generate(7, 6, (row, col) => '($row, $col)');
+      final flipped = source.flippedVertical;
+      expect(flipped.dataType, source.dataType);
+      expect(flipped.rowCount, source.rowCount);
+      expect(flipped.colCount, source.colCount);
+      expect(flipped.storage, [source]);
+      expect(flipped.flippedVertical, same(source));
+      expect(compare(flipped.copy(), flipped), isTrue);
+      for (var r = 0; r < flipped.rowCount; r++) {
+        for (var c = 0; c < flipped.colCount; c++) {
+          expect(flipped.get(r, c), '($r, ${source.colCount - c - 1})');
+          flipped.set(r, c, '${flipped.get(r, c)}*');
+        }
+      }
+      for (var r = 0; r < source.rowCount; r++) {
+        for (var c = 0; c < source.colCount; c++) {
+          expect(source.get(r, c), '($r, $c)*');
+        }
+      }
+    });
+    test('unmodifiable', () {
+      final source = builder
+          .withType(DataType.string)
+          .generate(2, 3, (row, col) => '($row, $col)');
+      final readonly = source.unmodifiable;
+      expect(readonly.dataType, source.dataType);
+      expect(readonly.rowCount, 2);
+      expect(readonly.colCount, 3);
+      expect(readonly.storage, [source]);
+      expect(compare(readonly.copy(), readonly), isTrue);
+      for (var r = 0; r < readonly.rowCount; r++) {
+        for (var c = 0; c < readonly.colCount; c++) {
+          expect(readonly.get(r, c), '($r, $c)');
+          expect(() => readonly.set(r, c, '${readonly.get(r, c)}*'),
+              throwsUnsupportedError);
+        }
+      }
+      for (var r = 0; r < source.rowCount; r++) {
+        for (var c = 0; c < source.colCount; c++) {
+          source.set(r, c, '${source.get(r, c)}!');
+        }
+      }
+      for (var r = 0; r < readonly.rowCount; r++) {
+        for (var c = 0; c < readonly.colCount; c++) {
+          expect(readonly.get(r, c), '($r, $c)!');
+        }
+      }
+      expect(readonly.unmodifiable, readonly);
     });
     group('testing', () {
       final random = Random();

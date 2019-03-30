@@ -4,6 +4,8 @@ import 'package:data/src/vector/builder.dart';
 import 'package:data/src/vector/format.dart';
 import 'package:data/src/vector/view/cast_vector.dart';
 import 'package:data/src/vector/view/index_vector.dart';
+import 'package:data/src/vector/view/overlay_mask_vector.dart';
+import 'package:data/src/vector/view/overlay_offset_vector.dart';
 import 'package:data/src/vector/view/range_vector.dart';
 import 'package:data/src/vector/view/reversed_vector.dart';
 import 'package:data/src/vector/view/transformed_vector.dart';
@@ -82,6 +84,28 @@ abstract class Vector<T> extends Tensor<T> {
   /// any of the indexes are out of bounds.
   Vector<T> indexUnchecked(Iterable<int> indexes) =>
       IndexVector<T>(this, indexes);
+
+  /// Returns a mutable view where this vector is overlaid on top of a provided
+  /// [base] vector. This happens either by using the given [offset], or using
+  /// using a boolean [mask].
+  Vector<T> overlay(
+    Vector<T> base, {
+    DataType<T> dataType,
+    Vector<bool> mask,
+    int offset,
+  }) {
+    dataType ??= this.dataType;
+    if (mask == null && offset != null) {
+      return OverlayOffsetVector(dataType, this, offset, base);
+    } else if (mask != null && offset == null) {
+      if (count != base.count || count != mask.count) {
+        throw ArgumentError('Dimension of overlay ($count), mask '
+            '(${mask.count}) and base (${base.count}) do not match.');
+      }
+      return OverlayMaskVector(dataType, this, mask, base);
+    }
+    throw ArgumentError('Either a mask or an offset required.');
+  }
 
   /// Returns a lazy [Vector] with elements that are created by calling
   /// `callback` on each element of this `Vector`.
