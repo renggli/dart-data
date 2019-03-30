@@ -6,17 +6,17 @@ import 'package:data/type.dart';
 
 /// Mutable overlay of one matrix over another controlled by a mask.
 ///
-/// All matrices (mask, overlay, base) have to be of the same size. The mask
+/// All matrices (overlay, mask, and base) have to be of the same size. The mask
 /// determines whether the overlay is revealed or not.
 class OverlayMaskMatrix<T> extends Matrix<T> {
-  final Matrix<bool> _mask;
   final Matrix<T> _overlay;
+  final Matrix<bool> _mask;
   final Matrix<T> _base;
 
-  OverlayMaskMatrix(this._mask, this._overlay, this._base);
+  OverlayMaskMatrix(this.dataType, this._overlay, this._mask, this._base);
 
   @override
-  DataType<T> get dataType => _base.dataType;
+  final DataType<T> dataType;
 
   @override
   int get rowCount => _base.rowCount;
@@ -26,13 +26,13 @@ class OverlayMaskMatrix<T> extends Matrix<T> {
 
   @override
   Set<Tensor> get storage => {}
-    ..addAll(_mask.storage)
     ..addAll(_overlay.storage)
+    ..addAll(_mask.storage)
     ..addAll(_base.storage);
 
   @override
   Matrix<T> copy() =>
-      OverlayMaskMatrix(_mask.copy(), _overlay.copy(), _base.copy());
+      OverlayMaskMatrix(dataType, _overlay.copy(), _mask.copy(), _base.copy());
 
   @override
   T getUnchecked(int row, int col) {

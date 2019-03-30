@@ -7,18 +7,18 @@ import 'package:data/type.dart';
 /// Mutable overlay of one matrix over another.
 ///
 /// The resulting matrix has the same size as the base matrix, but the overlay
-/// can be of different size and offset relative to the base.
+/// can be of different size and be offset relative to the base.
 class OverlayOffsetMatrix<T> extends Matrix<T> {
   final int _rowOffset;
   final int _colOffset;
   final Matrix<T> _overlay;
   final Matrix<T> _base;
 
-  OverlayOffsetMatrix(
-      this._rowOffset, this._colOffset, this._overlay, this._base);
+  OverlayOffsetMatrix(this.dataType, this._overlay, this._rowOffset,
+      this._colOffset, this._base);
 
   @override
-  DataType<T> get dataType => _base.dataType;
+  final DataType<T> dataType;
 
   @override
   int get rowCount => _base.rowCount;
@@ -32,7 +32,7 @@ class OverlayOffsetMatrix<T> extends Matrix<T> {
 
   @override
   Matrix<T> copy() => OverlayOffsetMatrix(
-      _rowOffset, _colOffset, _overlay.copy(), _base.copy());
+      dataType, _overlay.copy(), _rowOffset, _colOffset, _base.copy());
 
   @override
   T getUnchecked(int row, int col) {
