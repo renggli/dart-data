@@ -1125,11 +1125,11 @@ void matrixTest(String name, Builder builder) {
         });
       });
     });
-    group('map', () {
+    group('transform', () {
       final source = builder.generate(3, 4, (row, col) => Point(row, col));
       test('to string', () {
         final mapped = source.map(
-            (row, col, value) => '${value.x + 10 * value.y}', DataType.string);
+            (row, col, value) => '${value.x + 10 * value.y}');
         expect(mapped.dataType, DataType.string);
         expect(mapped.rowCount, source.rowCount);
         expect(mapped.colCount, source.colCount);
@@ -1170,6 +1170,27 @@ void matrixTest(String name, Builder builder) {
       test('readonly', () {
         final map = source.map<int>((row, col, value) => row, DataType.int32);
         expect(() => map.setUnchecked(1, 2, 3), throwsUnsupportedError);
+      });
+      test('mutable', () {
+        final source = builder
+            .withType(DataType.uint8)
+            .generate(8, 8, (row, col) => 32 + 8 * row + col);
+        final transform = source.transform<String>(
+          (row, col, value) => String.fromCharCode(value),
+          write: (row, col, value) => value.codeUnitAt(0),
+        );
+        expect(transform.dataType, DataType.string);
+        expect(transform.rowCount, source.rowCount);
+        expect(transform.colCount, source.colCount);
+        expect(transform.storage, [source]);
+        for (var r = 0; r < transform.rowCount; r++) {
+          for (var c = 0; c < transform.colCount; c++) {
+            expect(transform.get(r, c), String.fromCharCode(32 + 8 * r + c));
+          }
+        }
+        transform.set(6, 7, '*');
+        expect(transform.get(6, 7), '*');
+        expect(source.get(6, 7), 42);
       });
     });
     group('cast', () {

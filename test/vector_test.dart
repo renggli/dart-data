@@ -391,11 +391,11 @@ void vectorTest(String name, Builder builder) {
               throwsArgumentError);
         });
       });
-      group('map', () {
+      group('transform', () {
         final source = builder.generate(4, (index) => index);
         test('to string', () {
           final mapped =
-              source.map((index, value) => '$index', DataType.string);
+              source.map((index, value) => '$index');
           expect(mapped.dataType, DataType.string);
           expect(mapped.count, source.count);
           expect(mapped.storage, [source]);
@@ -429,6 +429,24 @@ void vectorTest(String name, Builder builder) {
         test('readonly', () {
           final mapped = source.map((index, value) => index, DataType.int32);
           expect(() => mapped.setUnchecked(0, 1), throwsUnsupportedError);
+        });
+        test('mutable', () {
+          final source = builder
+              .withType(DataType.uint8)
+              .generate(6, (index) => index + 97);
+          final transform = source.transform<String>(
+            (index, value) => String.fromCharCode(value),
+            write: (index, value) => value.codeUnitAt(0),
+          );
+          expect(transform.dataType, DataType.string);
+          expect(transform.count, source.count);
+          expect(transform.storage, [source]);
+          for (var i = 0; i < transform.count; i++) {
+            expect(transform[i], 'abcdef'[i]);
+          }
+          transform[2] = '*';
+          expect(transform[2], '*');
+          expect(source[2], 42);
         });
       });
       group('cast', () {

@@ -239,22 +239,21 @@ abstract class Matrix<T> extends Tensor<T> {
     throw ArgumentError('Either a mask or an offset required.');
   }
 
-  /// Returns a lazy [Matrix] with elements that are created by calling
-  /// `callback` on each element of this `Matrix`.
+  /// Returns a read-only view on this [Matrix] with all its elements lazily
+  /// converted by calling the provided transformation [callback].
   Matrix<S> map<S>(S Function(int row, int col, T value) callback,
           [DataType<S> dataType]) =>
-      transformed<S>(read: callback, dataType: dataType);
+      transform<S>(callback, dataType: dataType);
 
-  /// Returns a lazy [Matrix] with elements read from and written to this
-  /// matrix. For each of the two operations the respective transformation
-  /// callback [read] or [write] is called.
-  Matrix<S> transformed<S>(
-          {S Function(int row, int col, T value) read,
-          T Function(int row, int col, S value) write,
+  /// Returns a view on this [Matrix] with all its elements lazily converted
+  /// by calling the provided [read] transformation. An optionally provided
+  /// [write] transformation enables writing to the returned matrix.
+  Matrix<S> transform<S>(S Function(int row, int col, T value) read,
+          {T Function(int row, int col, S value) write,
           DataType<S> dataType}) =>
       TransformedMatrix<T, S>(
         this,
-        read ?? (r, c, v) => throw UnsupportedError('Matrix is not readable.'),
+        read,
         write ?? (r, c, v) => throw UnsupportedError('Matrix is not mutable.'),
         dataType ?? DataType.fromType(S),
       );

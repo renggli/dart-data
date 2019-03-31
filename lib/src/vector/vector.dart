@@ -107,22 +107,20 @@ abstract class Vector<T> extends Tensor<T> {
     throw ArgumentError('Either a mask or an offset required.');
   }
 
-  /// Returns a lazy [Vector] with elements that are created by calling
-  /// `callback` on each element of this `Vector`.
+  /// Returns a read-only view on this [Vector] with all its elements lazily
+  /// converted by calling the provided transformation [callback].
   Vector<S> map<S>(S Function(int index, T value) callback,
           [DataType<S> dataType]) =>
-      transformed<S>(read: callback, dataType: dataType);
+      transform<S>(callback, dataType: dataType);
 
-  /// Returns a lazy [Vector] with elements read from and written to this
-  /// vector. For each of the two operations the respective transformation
-  /// callback [read] or [write] is called.
-  Vector<S> transformed<S>(
-          {S Function(int index, T value) read,
-          T Function(int index, S value) write,
-          DataType<S> dataType}) =>
+  /// Returns a view on this [Vector] with all its elements lazily converted
+  /// by calling the provided [read] transformation. An optionally provided
+  /// [write] transformation enables writing to the returned vector.
+  Vector<S> transform<S>(S Function(int index, T value) read,
+          {T Function(int index, S value) write, DataType<S> dataType}) =>
       TransformedVector<T, S>(
         this,
-        read ?? (i, v) => throw UnsupportedError('Vector is not readable.'),
+        read,
         write ?? (i, v) => throw UnsupportedError('Vector is not mutable.'),
         dataType ?? DataType.fromType(S),
       );
