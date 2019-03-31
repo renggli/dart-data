@@ -6,3 +6,11 @@ abstract class Order<T> {
 
   int compare(T a, T b);
 }
+
+/// Wraps around the natural order of objects.
+class NaturalOrder<T extends Comparable> extends Order<T> {
+  const NaturalOrder();
+
+  @override
+  int compare(T a, T b) => a.compareTo(b);
+}

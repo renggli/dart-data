@@ -33,7 +33,7 @@ class BigIntDataType extends DataType<BigInt> {
   Equality<BigInt> get equality => const BigIntEquality();
 
   @override
-  Order<BigInt> get order => const BigIntOrder();
+  Order<BigInt> get order => const NaturalOrder<BigInt>();
 
   @override
   Field<BigInt> get field => const BigIntField();
@@ -45,13 +45,6 @@ class BigIntEquality extends Equality<BigInt> {
   @override
   bool isClose(BigInt a, BigInt b, double epsilon) =>
       (a - b).abs() < BigInt.from(epsilon.ceil());
-}
-
-class BigIntOrder extends Order<BigInt> {
-  const BigIntOrder();
-
-  @override
-  int compare(BigInt a, BigInt b) => a.compareTo(b);
 }
 
 class BigIntField extends Field<BigInt> {

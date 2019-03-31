@@ -5,6 +5,7 @@ import 'dart:typed_data';
 
 import 'package:data/src/type/models/equality.dart';
 import 'package:data/src/type/models/field.dart';
+import 'package:data/src/type/models/order.dart';
 import 'package:data/src/type/type.dart';
 import 'package:more/number.dart' show Fraction;
 import 'package:more/printer.dart' show Printer;
@@ -20,6 +21,9 @@ abstract class FloatDataType extends DataType<double> {
 
   @override
   Field<double> get field => const FloatField();
+
+  @override
+  Order<double> get order => const NaturalOrder<double>();
 
   @override
   Equality<double> get equality => const FloatEquality();

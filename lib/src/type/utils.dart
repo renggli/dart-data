@@ -61,7 +61,8 @@ DataType fromIterable(Iterable values) {
       maxValue = math.max(maxValue, value);
       numberCount++;
       if (config.isJavaScript) {
-        if (value.round() == value) {
+        // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Number/isInteger#Polyfill
+        if (value.isFinite && value.floor() == value) {
           intCount++;
         } else {
           doubleCount++;

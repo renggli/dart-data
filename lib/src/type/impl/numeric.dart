@@ -4,6 +4,7 @@ import 'dart:math' as math;
 
 import 'package:data/src/type/models/equality.dart';
 import 'package:data/src/type/models/field.dart';
+import 'package:data/src/type/models/order.dart';
 import 'package:data/src/type/type.dart';
 import 'package:more/number.dart' show Fraction;
 
@@ -20,10 +21,13 @@ class NumericDataType extends DataType<num> {
   num get nullValue => null;
 
   @override
-  Field<num> get field => const NumericField();
+  Equality<num> get equality => const NumericEquality();
 
   @override
-  Equality<num> get equality => const NumericEquality();
+  Order<num> get order => const NaturalOrder<num>();
+
+  @override
+  Field<num> get field => const NumericField();
 
   @override
   num cast(Object value) {

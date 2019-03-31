@@ -38,7 +38,7 @@ class FractionDataType extends DataType<Fraction> {
   Equality<Fraction> get equality => const FractionEquality();
 
   @override
-  Order<Fraction> get order => const FractionOrder();
+  Order<Fraction> get order => const NaturalOrder<Fraction>();
 
   @override
   Field<Fraction> get field => const FractionField();
@@ -49,13 +49,6 @@ class FractionEquality extends Equality<Fraction> {
 
   @override
   bool isClose(Fraction a, Fraction b, double epsilon) => a.closeTo(b, epsilon);
-}
-
-class FractionOrder extends Order<Fraction> {
-  const FractionOrder();
-
-  @override
-  int compare(Fraction a, Fraction b) => a.compareTo(b);
 }
 
 class FractionField extends Field<Fraction> {

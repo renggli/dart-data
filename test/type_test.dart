@@ -132,7 +132,7 @@ void floatGroup(DataType type, int bits) {
       [math.pi, math.e],
       [-0.750, 1.5, 0.375],
     ]);
-    fieldTest(type, <double>[-0.75, 1.5, 0.375]);
+    fieldTest(type, <double>[-0.75, 0.375, 1.5]);
   });
   group('$name.nullable', () {
     final nullableType = type.nullable;
@@ -267,21 +267,25 @@ void integerGroup(IntegerDataType type, bool isSigned, int bits) {
 void fieldTest<T>(DataType<T> type, List<T> values) {
   const epsilon = 0.01;
 
-  // field functions
-  final neg = type.field.neg;
-  final add = type.field.add;
-  final sub = type.field.sub;
-  final mul = type.field.mul;
-  final inv = type.field.inv;
-  final div = type.field.div;
-  final scale = type.field.scale;
-  final addId = type.field.additiveIdentity;
-  final mulId = type.field.multiplicativeIdentity;
-
   // equality functions
-  final isEqual = type.equality.isEqual;
-  final isClose = type.equality.isClose;
-  final hash = type.equality.hash;
+  final equality = type.equality;
+  final isEqual = equality.isEqual;
+  final isClose = equality.isClose;
+  final hash = equality.hash;
+
+  // field functions
+  final field = type.field;
+  final addId = field.additiveIdentity;
+  final neg = field.neg;
+  final add = field.add;
+  final sub = field.sub;
+  final mulId = field.multiplicativeIdentity;
+  final mul = field.mul;
+  final inv = field.inv;
+  final scale = field.scale;
+  final div = field.div;
+  final mod = field.mod;
+  final pow = field.pow;
 
   group('equality', () {
     test('isEqual', () {
@@ -309,6 +313,33 @@ void fieldTest<T>(DataType<T> type, List<T> values) {
       }
     });
   });
+  if ([DataType.complex, DataType.quaternion, DataType.object].contains(type)) {
+    test('no order', () {
+      expect(() => type.order, throwsUnsupportedError);
+    });
+  } else {
+    group('order', () {
+      final order = type.order;
+      final compare = order.compare;
+      test('increasing', () {
+        for (var i = 0; i < values.length - 1; i++) {
+          expect(compare(values[i], values[i + 1]), lessThan(0),
+              reason: 'Expected ${values[i]} < ${values[i + 1]}.');
+        }
+      });
+      test('decreasing', () {
+        for (var i = 0; i < values.length - 1; i++) {
+          expect(compare(values[i + 1], values[i]), greaterThan(0),
+              reason: 'Expected ${values[i]} > ${values[i + 1]}.');
+        }
+      });
+      test('equal', () {
+        for (var i = 0; i < values.length; i++) {
+          expect(compare(values[i], values[i]), 0);
+        }
+      });
+    });
+  }
   group('field', () {
     test('neg', () {
       for (var value in values) {
@@ -345,6 +376,7 @@ void fieldTest<T>(DataType<T> type, List<T> values) {
         }
       });
       test('mul', () {
+        expect(isClose(mul(mulId, mulId), mulId, epsilon), isTrue);
         for (var value in values) {
           expect(isClose(mul(value, inv(value)), mulId, epsilon), isTrue);
         }
@@ -352,6 +384,37 @@ void fieldTest<T>(DataType<T> type, List<T> values) {
       test('div', () {
         for (var value in values) {
           expect(isClose(div(value, value), mulId, epsilon), isTrue);
+        }
+      });
+    }
+    if ([
+      DataType.int8,
+      DataType.int16,
+      DataType.int32,
+      DataType.int64,
+      DataType.uint8,
+      DataType.uint16,
+      DataType.uint32,
+      DataType.uint64,
+      DataType.bigInt,
+    ].contains(type)) {
+      test('inv', () {
+        expect(inv(mulId), mulId);
+        for (var value in values) {
+          expect(inv(value), addId);
+        }
+      });
+      test('mul', () {
+        expect(mul(mulId, mulId), mulId);
+        for (var value in values) {
+          expect(mul(value, mulId), value);
+          expect(mul(mulId, value), value);
+        }
+      });
+      test('div', () {
+        for (var value in values) {
+          expect(div(value, value), mulId);
+          expect(div(value, mulId), value);
         }
       });
     }
@@ -381,6 +444,20 @@ void main() {
       expect(type.cast('foo'), 'foo');
       expect(type.cast(true), true);
     });
+    test('equality', () {
+      final equality = type.equality;
+      expect(equality.isEqual('foo', 'foo'), isTrue);
+      expect(equality.isEqual('foo', 'bar'), isFalse);
+      expect(equality.hash('foo'), 'foo'.hashCode);
+      expect(equality.isClose('foo', 'foo', 0), isTrue);
+      expect(equality.isClose('foo', 'bar', 0), isFalse);
+    });
+    test('field', () {
+      expect(() => type.field, throwsUnsupportedError);
+    });
+    test('order', () {
+      expect(() => type.order, throwsUnsupportedError);
+    });
     listTest(type, <List<Object>>[
       [],
       [Uri.parse('https://lukas-renggli.ch/')],
@@ -405,6 +482,27 @@ void main() {
       expect(type.cast(BigInt.from(123)), '123');
       expect(type.cast('foo'), 'foo');
       expect(type.cast(true), 'true');
+    });
+    test('equality', () {
+      final equality = type.equality;
+      expect(equality.isEqual('bar', 'bar'), isTrue);
+      expect(equality.isEqual('bar', 'baz'), isFalse);
+      expect(equality.hash('bar'), 'bar'.hashCode);
+      expect(equality.isClose('bar', 'bar', 1), isTrue);
+      expect(equality.isClose('bar', 'ba', 2), isTrue);
+      expect(equality.isClose('ba', 'bar', 2), isTrue);
+      expect(equality.isClose('bar', 'barr', 2), isTrue);
+      expect(equality.isClose('barr', 'bar', 2), isTrue);
+      expect(equality.isClose('bar', 'baz', 2), isTrue);
+      expect(equality.isClose('foo', 'fuz', 2), isFalse);
+    });
+    test('field', () {
+      expect(() => type.field, throwsUnsupportedError);
+    });
+    test('order', () {
+      expect(type.order.compare('foo', 'bar'), greaterThan(0));
+      expect(type.order.compare('bar', 'foo'), lessThan(0));
+      expect(type.order.compare('foo', 'foo'), 0);
     });
     listTest(type, <List<String>>[
       ['abc'],
@@ -527,8 +625,8 @@ void main() {
       expect(() => type.cast(const Symbol('bad')), throwsArgumentError);
     });
     fieldTest(type, [
-      BigInt.from(35),
       BigInt.from(-42),
+      BigInt.from(35),
     ]);
   });
   group('fraction', () {
@@ -552,9 +650,9 @@ void main() {
       expect(() => type.cast(const Symbol('bad')), throwsArgumentError);
     });
     fieldTest(type, [
-      Fraction(1, 2),
-      Fraction(-3, 4),
       Fraction(5, -6),
+      Fraction(-3, 4),
+      Fraction(1, 2),
     ]);
   });
   group('complex', () {
