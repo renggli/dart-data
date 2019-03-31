@@ -3,7 +3,6 @@ library data.type;
 export 'package:data/src/type/impl/bigint.dart';
 export 'package:data/src/type/impl/boolean.dart';
 export 'package:data/src/type/impl/complex.dart';
-export 'package:data/src/type/impl/composite.dart';
 export 'package:data/src/type/impl/float.dart';
 export 'package:data/src/type/impl/fraction.dart';
 export 'package:data/src/type/impl/integer.dart';

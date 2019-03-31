@@ -3,7 +3,6 @@ library data.type;
 import 'package:data/src/type/impl/bigint.dart';
 import 'package:data/src/type/impl/boolean.dart';
 import 'package:data/src/type/impl/complex.dart';
-import 'package:data/src/type/impl/composite.dart';
 import 'package:data/src/type/impl/float.dart';
 import 'package:data/src/type/impl/fraction.dart';
 import 'package:data/src/type/impl/integer.dart';
@@ -46,11 +45,6 @@ abstract class DataType<T> {
   static const FractionDataType fraction = FractionDataType();
   static const ComplexDataType complex = ComplexDataType();
   static const QuaternionDataType quaternion = QuaternionDataType();
-
-  // Composite data types
-  static const CompositeDataType float64x2 = Float64x2DataType();
-  static const CompositeDataType float32x4 = Float32x4DataType();
-  static const CompositeDataType int32x4 = Int32x4DataType();
 
   /// Abstract const constructor.
   const DataType();

@@ -12,6 +12,10 @@ void listTest<T>(DataType<T> type, List<List<T>> lists) {
     config.intDataType,
     DataType.boolean,
     DataType.string,
+    DataType.bigInt,
+    DataType.fraction,
+    DataType.complex,
+    DataType.quaternion,
     DataType.object,
   ].contains(type)) {
     // Inference based on single example or runtime type.
@@ -257,49 +261,6 @@ void integerGroup(IntegerDataType type, bool isSigned, int bits) {
       [type.safeMin, 0, null, type.safeMax, null],
       [type.safeMin + 123, type.safeMax - 45, null, type.safeMax - 67],
     ]);
-  });
-}
-
-void compositeGroup<T, B>(
-    CompositeDataType<T, B> type, DataType<B> base, int size) {
-  group('${type.name}', () {
-    test('name', () {
-      expect(type.name, '${base.name}x$size');
-      expect(type.toString(), 'DataType.${type.name}');
-    });
-    test('metadata', () {
-      expect(type.base, base);
-      expect(type.size, size);
-    });
-    test('nullable', () {
-      expect(type.isNullable, isFalse);
-      expect(type.toList(type.nullValue), everyElement(base.nullValue));
-    });
-    test('cast', () {
-      expect(() => type.cast(null), throwsArgumentError);
-      final expected = List.generate(size, (i) => i);
-      final converted = type.cast(expected);
-      final actual = type.toList(converted);
-      expect(expected, actual);
-    });
-    listTest(type, <List<T>>[
-      type.castList([
-        [1, 2, 3, 4],
-        [5, 6, 7, 8],
-      ]),
-    ]);
-  });
-  group('${type.name}.nullable', () {
-    final nullableType = type.nullable;
-    test('name', () {
-      expect(nullableType.name, '${type.name}.nullable');
-      expect(nullableType.toString(), 'DataType.${type.name}.nullable');
-    });
-    test('nullable', () {
-      expect(nullableType.isNullable, isTrue);
-      expect(nullableType.nullValue, isNull);
-      expect(nullableType.nullable, nullableType);
-    });
   });
 }
 
@@ -651,10 +612,4 @@ void main() {
       const Quaternion(-3, 5, -7, 9),
     ]);
   });
-
-//  compositeGroup(DataType.complex, DataType.float64, 2);
-//  compositeGroup(DataType.quaternion, DataType.float32, 4);
-//  compositeGroup(DataType.float64x2, DataType.float64, 2);
-//  compositeGroup(DataType.float32x4, DataType.float32, 4);
-//  compositeGroup(DataType.int32x4, DataType.int32, 4);
 }
