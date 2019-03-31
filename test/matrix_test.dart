@@ -1128,8 +1128,8 @@ void matrixTest(String name, Builder builder) {
     group('transform', () {
       final source = builder.generate(3, 4, (row, col) => Point(row, col));
       test('to string', () {
-        final mapped = source.map(
-            (row, col, value) => '${value.x + 10 * value.y}');
+        final mapped =
+            source.map((row, col, value) => '${value.x + 10 * value.y}');
         expect(mapped.dataType, DataType.string);
         expect(mapped.rowCount, source.rowCount);
         expect(mapped.colCount, source.colCount);
@@ -1191,6 +1191,11 @@ void matrixTest(String name, Builder builder) {
         transform.set(6, 7, '*');
         expect(transform.get(6, 7), '*');
         expect(source.get(6, 7), 42);
+      });
+      test('copy', () {
+        final mapped =
+            source.map((row, col, value) => Point(row, col), DataType.object);
+        expect(compare(mapped.copy(), mapped), isTrue);
       });
     });
     group('cast', () {

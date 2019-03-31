@@ -422,10 +422,6 @@ void vectorTest(String name, Builder builder) {
             expect(mapped[i], i.toDouble());
           }
         });
-        test('copy', () {
-          final mapped = source.map((index, value) => index, DataType.int32);
-          expect(compare(mapped.copy(), mapped), isTrue);
-        });
         test('readonly', () {
           final mapped = source.map((index, value) => index, DataType.int32);
           expect(() => mapped.setUnchecked(0, 1), throwsUnsupportedError);
@@ -447,6 +443,10 @@ void vectorTest(String name, Builder builder) {
           transform[2] = '*';
           expect(transform[2], '*');
           expect(source[2], 42);
+        });
+        test('copy', () {
+          final mapped = source.map((index, value) => index, DataType.int32);
+          expect(compare(mapped.copy(), mapped), isTrue);
         });
       });
       group('cast', () {
