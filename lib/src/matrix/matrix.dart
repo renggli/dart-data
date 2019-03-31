@@ -242,8 +242,22 @@ abstract class Matrix<T> extends Tensor<T> {
   /// Returns a lazy [Matrix] with elements that are created by calling
   /// `callback` on each element of this `Matrix`.
   Matrix<S> map<S>(S Function(int row, int col, T value) callback,
-          DataType<S> dataType) =>
-      TransformedMatrix<T, S>(this, callback, dataType);
+          [DataType<S> dataType]) =>
+      transformed<S>(read: callback, dataType: dataType);
+
+  /// Returns a lazy [Matrix] with elements read from and written to this
+  /// matrix. For each of the two operations the respective transformation
+  /// callbacks [read] and [write] are called.
+  Matrix<S> transformed<S>(
+          {S Function(int row, int col, T value) read,
+          T Function(int row, int col, S value) write,
+          DataType<S> dataType}) =>
+      TransformedMatrix<T, S>(
+        this,
+        read ?? (r, c, v) => throw UnsupportedError('Matrix is not readable.'),
+        write ?? (r, c, v) => throw UnsupportedError('Matrix is not mutable.'),
+        dataType ?? DataType.fromType(S),
+      );
 
   /// Returns a lazy [Matrix] with the elements cast to `dataType`.
   Matrix<S> cast<S>(DataType<S> dataType) => CastMatrix<T, S>(this, dataType);

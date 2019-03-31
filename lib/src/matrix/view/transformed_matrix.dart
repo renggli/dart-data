@@ -1,17 +1,16 @@
 library data.matrix.view.transformed;
 
 import 'package:data/src/matrix/matrix.dart';
-import 'package:data/src/matrix/mixins/unmodifiable_matrix.dart';
 import 'package:data/tensor.dart';
 import 'package:data/type.dart';
 
-/// Read-only transformed matrix.
-class TransformedMatrix<S, T> extends Matrix<T>
-    with UnmodifiableMatrixMixin<T> {
+/// Mutable two-way transformed matrix.
+class TransformedMatrix<S, T> extends Matrix<T> {
   final Matrix<S> _matrix;
-  final T Function(int row, int col, S value) _callback;
+  final T Function(int row, int col, S value) _read;
+  final S Function(int row, int col, T value) _write;
 
-  TransformedMatrix(this._matrix, this._callback, this.dataType);
+  TransformedMatrix(this._matrix, this._read, this._write, this.dataType);
 
   @override
   final DataType<T> dataType;
@@ -26,9 +25,14 @@ class TransformedMatrix<S, T> extends Matrix<T>
   Set<Tensor> get storage => _matrix.storage;
 
   @override
-  Matrix<T> copy() => TransformedMatrix(_matrix.copy(), _callback, dataType);
+  Matrix<T> copy() =>
+      TransformedMatrix(_matrix.copy(), _read, _write, dataType);
 
   @override
   T getUnchecked(int row, int col) =>
-      _callback(row, col, _matrix.getUnchecked(row, col));
+      _read(row, col, _matrix.getUnchecked(row, col));
+
+  @override
+  void setUnchecked(int row, int col, T value) =>
+      _matrix.setUnchecked(row, col, _write(row, col, value));
 }

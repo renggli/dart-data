@@ -8,8 +8,8 @@ import 'package:test/test.dart';
 
 void listTest<T>(DataType<T> type, List<List<T>> lists) {
   if ([
-    DataType.float64,
-    DataType.int64,
+    config.floatDataType,
+    config.intDataType,
     DataType.boolean,
     DataType.string,
     DataType.object,

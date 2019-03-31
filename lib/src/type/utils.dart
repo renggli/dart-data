@@ -12,9 +12,11 @@ DataType fromInstance(Object instance) => fromType(instance.runtimeType);
 DataType fromType(Type type) {
   switch (type) {
     case double:
-      return DataType.float64;
+      return config.floatDataType;
     case int:
-      return DataType.int64;
+      return config.intDataType;
+    case num:
+      return DataType.numeric;
     case bool:
       return DataType.boolean;
     case String:
