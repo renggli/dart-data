@@ -247,7 +247,7 @@ abstract class Matrix<T> extends Tensor<T> {
 
   /// Returns a lazy [Matrix] with elements read from and written to this
   /// matrix. For each of the two operations the respective transformation
-  /// callbacks [read] and [write] are called.
+  /// callback [read] or [write] is called.
   Matrix<S> transformed<S>(
           {S Function(int row, int col, T value) read,
           T Function(int row, int col, S value) write,

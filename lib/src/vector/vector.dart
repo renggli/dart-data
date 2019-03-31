@@ -109,9 +109,23 @@ abstract class Vector<T> extends Tensor<T> {
 
   /// Returns a lazy [Vector] with elements that are created by calling
   /// `callback` on each element of this `Vector`.
-  Vector<S> map<S>(
-          S Function(int index, T value) callback, DataType<S> dataType) =>
-      TransformedVector<T, S>(this, callback, dataType);
+  Vector<S> map<S>(S Function(int index, T value) callback,
+          [DataType<S> dataType]) =>
+      transformed<S>(read: callback, dataType: dataType);
+
+  /// Returns a lazy [Vector] with elements read from and written to this
+  /// vector. For each of the two operations the respective transformation
+  /// callback [read] or [write] is called.
+  Vector<S> transformed<S>(
+          {S Function(int index, T value) read,
+          T Function(int index, S value) write,
+          DataType<S> dataType}) =>
+      TransformedVector<T, S>(
+        this,
+        read ?? (i, v) => throw UnsupportedError('Vector is not readable.'),
+        write ?? (i, v) => throw UnsupportedError('Vector is not mutable.'),
+        dataType ?? DataType.fromType(S),
+      );
 
   /// Returns a lazy [Vector] with the elements cast to `dataType`.
   Vector<S> cast<S>(DataType<S> dataType) => CastVector<T, S>(this, dataType);
