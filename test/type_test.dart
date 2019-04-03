@@ -451,11 +451,11 @@ void fieldTest<T>(DataType<T> type, List<T> values) {
       }
     });
     test('pow', () {
-      if (type != DataType.quaternion) {
-        for (var value in values) {
+      for (var value in values) {
+        if (![DataType.quaternion].contains(type)) {
           expect(isClose(pow(value, addId), mulId, epsilon), isTrue);
-          expect(isClose(pow(value, mulId), value, epsilon), isTrue);
         }
+        expect(isClose(pow(value, mulId), value, epsilon), isTrue);
       }
     });
   });
