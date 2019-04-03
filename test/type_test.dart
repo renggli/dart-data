@@ -387,6 +387,11 @@ void fieldTest<T>(DataType<T> type, List<T> values) {
         }
       });
     }
+    test('scale', () {
+      for (var value in values) {
+        expect(isClose(scale(value, 2), add(value, value), epsilon), isTrue);
+      }
+    });
     if ([
       DataType.int8,
       DataType.int16,
@@ -418,9 +423,39 @@ void fieldTest<T>(DataType<T> type, List<T> values) {
         }
       });
     }
-    test('scale', () {
+    test('mod', () {
       for (var value in values) {
-        expect(isClose(scale(value, 2), add(value, value), epsilon), isTrue);
+        if ([
+          DataType.int8,
+          DataType.int16,
+          DataType.int32,
+          DataType.int64,
+          DataType.uint8,
+          DataType.uint16,
+          DataType.uint32,
+          DataType.uint64,
+          DataType.bigInt,
+        ].contains(type)) {
+          expect(isClose(mod(value, mulId), addId, epsilon), isTrue);
+          expect(isClose(mod(value, value), addId, epsilon), isTrue);
+        } else if ([
+          DataType.numeric,
+          DataType.float32,
+          DataType.float64,
+        ].contains(type)) {
+          expect(isClose(mod(value, mulId), addId, 1.0), isTrue);
+          expect(isClose(mod(value, value), addId, 1.0), isTrue);
+        } else {
+          expect(() => mod(value, mulId), throwsUnsupportedError);
+        }
+      }
+    });
+    test('pow', () {
+      if (type != DataType.quaternion) {
+        for (var value in values) {
+          expect(isClose(pow(value, addId), mulId, epsilon), isTrue);
+          expect(isClose(pow(value, mulId), value, epsilon), isTrue);
+        }
       }
     });
   });
