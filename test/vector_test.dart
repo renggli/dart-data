@@ -214,7 +214,7 @@ void vectorTest(String name, Builder builder) {
         }
         // add values
         values.shuffle();
-        for (var value in values) {
+        for (final value in values) {
           vector[value] = value;
         }
         for (var i = 0; i < vector.count; i++) {
@@ -222,7 +222,7 @@ void vectorTest(String name, Builder builder) {
         }
         // update values
         values.shuffle();
-        for (var value in values) {
+        for (final value in values) {
           vector[value] = value + 1;
         }
         for (var i = 0; i < vector.count; i++) {
@@ -230,7 +230,7 @@ void vectorTest(String name, Builder builder) {
         }
         // remove values
         values.shuffle();
-        for (var value in values) {
+        for (final value in values) {
           vector[value] = vector.dataType.nullValue;
         }
         for (var i = 0; i < vector.count; i++) {

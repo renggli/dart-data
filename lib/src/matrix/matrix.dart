@@ -197,10 +197,10 @@ abstract class Matrix<T> extends Tensor<T> {
   /// Returns a mutable view onto row and column indexes. Throws a
   /// [RangeError], if any of the indexes are out of bounds.
   Matrix<T> index(Iterable<int> rowIndexes, Iterable<int> colIndexes) {
-    for (var index in rowIndexes) {
+    for (final index in rowIndexes) {
       RangeError.checkValueInInterval(index, 0, rowCount - 1, 'rowIndexes');
     }
-    for (var index in colIndexes) {
+    for (final index in colIndexes) {
       RangeError.checkValueInInterval(index, 0, colCount - 1, 'colIndexes');
     }
     return indexUnchecked(rowIndexes, colIndexes);

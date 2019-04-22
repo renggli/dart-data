@@ -49,7 +49,7 @@ DataType fromIterable(Iterable values) {
   num minValue = double.infinity;
   num maxValue = double.negativeInfinity;
 
-  for (var value in values) {
+  for (final value in values) {
     if (value == null) {
       nullCount++;
     } else if (value is bool) {
@@ -86,7 +86,7 @@ DataType fromIterable(Iterable values) {
       return DataType.string;
     } else if (boolCount == 0 && stringCount == 0 && numberCount > 0) {
       if (intCount > 0 && doubleCount == 0) {
-        for (var dataType in _intDataTypes) {
+        for (final dataType in _intDataTypes) {
           if (dataType.safeMin <= minValue &&
               minValue <= dataType.safeMax &&
               dataType.safeMin <= maxValue &&

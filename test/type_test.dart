@@ -45,7 +45,7 @@ void listTest<T>(DataType<T> type, List<List<T>> lists) {
     DataType.object,
   ].contains(type)) {
     // Inference based on iterable of examples.
-    for (var list in lists) {
+    for (final list in lists) {
       test('fromIterable: $list', () {
         expect(DataType.fromIterable(list), type,
             reason: 'DataType.fromIterable($list)');
@@ -53,7 +53,7 @@ void listTest<T>(DataType<T> type, List<List<T>> lists) {
     }
   }
   if (![DataType.float32].contains(type)) {
-    for (var list in lists) {
+    for (final list in lists) {
       test('castList: $list', () {
         final result = type.castList(list);
         expect(result.length, list.length);
@@ -100,7 +100,7 @@ void listTest<T>(DataType<T> type, List<List<T>> lists) {
   test('printer', () {
     final printer = type.printer;
     final examples = lists.expand((list) => list).toList();
-    for (var example in examples) {
+    for (final example in examples) {
       final printed = printer(example);
       expect(printed, contains(example.toString().substring(0, 1)));
     }
@@ -290,7 +290,7 @@ void fieldTest<T>(DataType<T> type, List<T> values) {
   group('equality', () {
     test('isEqual', () {
       expect(isEqual(addId, mulId), isFalse);
-      for (var value in values) {
+      for (final value in values) {
         expect(isEqual(value, value), isTrue);
         expect(isEqual(value, addId), isFalse);
         expect(isEqual(value, mulId), isFalse);
@@ -298,7 +298,7 @@ void fieldTest<T>(DataType<T> type, List<T> values) {
     });
     test('isClose', () {
       expect(isClose(addId, mulId, epsilon), isFalse);
-      for (var value in values) {
+      for (final value in values) {
         expect(isClose(value, value, epsilon), isTrue);
         expect(isClose(value, addId, epsilon), isFalse);
         expect(isClose(value, mulId, epsilon), isFalse);
@@ -306,7 +306,7 @@ void fieldTest<T>(DataType<T> type, List<T> values) {
     });
     test('hash', () {
       expect(hash(addId), isNot(hash(mulId)));
-      for (var value in values) {
+      for (final value in values) {
         expect(hash(value), hash(value));
         expect(hash(value), isNot(hash(addId)));
         expect(hash(value), isNot(hash(mulId)));
@@ -342,20 +342,20 @@ void fieldTest<T>(DataType<T> type, List<T> values) {
   }
   group('field', () {
     test('neg', () {
-      for (var value in values) {
+      for (final value in values) {
         expect(isEqual(neg(neg(value)), value), isTrue);
         expect(isEqual(sub(addId, value), neg(value)), isTrue);
       }
     });
     test('add', () {
-      for (var value in values) {
+      for (final value in values) {
         expect(isEqual(add(value, addId), value), isTrue);
         expect(isEqual(add(addId, value), value), isTrue);
         expect(isEqual(add(value, neg(value)), addId), isTrue);
       }
     });
     test('sub', () {
-      for (var value in values) {
+      for (final value in values) {
         expect(isEqual(sub(value, addId), value), isTrue);
         expect(isEqual(sub(addId, value), neg(value)), isTrue);
         expect(isEqual(sub(addId, neg(value)), value), isTrue);
@@ -371,24 +371,24 @@ void fieldTest<T>(DataType<T> type, List<T> values) {
     ].contains(type)) {
       test('inv', () {
         expect(isClose(inv(mulId), mulId, epsilon), isTrue);
-        for (var value in values) {
+        for (final value in values) {
           expect(isClose(inv(inv(value)), value, epsilon), isTrue);
         }
       });
       test('mul', () {
         expect(isClose(mul(mulId, mulId), mulId, epsilon), isTrue);
-        for (var value in values) {
+        for (final value in values) {
           expect(isClose(mul(value, inv(value)), mulId, epsilon), isTrue);
         }
       });
       test('div', () {
-        for (var value in values) {
+        for (final value in values) {
           expect(isClose(div(value, value), mulId, epsilon), isTrue);
         }
       });
     }
     test('scale', () {
-      for (var value in values) {
+      for (final value in values) {
         expect(isClose(scale(value, 2), add(value, value), epsilon), isTrue);
       }
     });
@@ -405,26 +405,26 @@ void fieldTest<T>(DataType<T> type, List<T> values) {
     ].contains(type)) {
       test('inv', () {
         expect(inv(mulId), mulId);
-        for (var value in values) {
+        for (final value in values) {
           expect(inv(value), addId);
         }
       });
       test('mul', () {
         expect(mul(mulId, mulId), mulId);
-        for (var value in values) {
+        for (final value in values) {
           expect(mul(value, mulId), value);
           expect(mul(mulId, value), value);
         }
       });
       test('div', () {
-        for (var value in values) {
+        for (final value in values) {
           expect(div(value, value), mulId);
           expect(div(value, mulId), value);
         }
       });
     }
     test('mod', () {
-      for (var value in values) {
+      for (final value in values) {
         if ([
           DataType.int8,
           DataType.int16,
@@ -451,7 +451,7 @@ void fieldTest<T>(DataType<T> type, List<T> values) {
       }
     });
     test('pow', () {
-      for (var value in values) {
+      for (final value in values) {
         if (![DataType.quaternion].contains(type)) {
           expect(isClose(pow(value, addId), mulId, epsilon), isTrue);
         }

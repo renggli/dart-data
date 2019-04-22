@@ -626,7 +626,7 @@ void matrixTest(String name, Builder builder) {
         }
         // add values
         points.shuffle();
-        for (var point in points) {
+        for (final point in points) {
           matrix.set(point.x, point.y, point);
         }
         for (var r = 0; r < matrix.rowCount; r++) {
@@ -636,7 +636,7 @@ void matrixTest(String name, Builder builder) {
         }
         // update values
         points.shuffle();
-        for (var point in points) {
+        for (final point in points) {
           matrix.set(point.x, point.y, Point(point.x + 1, point.y + 1));
         }
         for (var r = 0; r < matrix.rowCount; r++) {
@@ -646,7 +646,7 @@ void matrixTest(String name, Builder builder) {
         }
         // remove values
         points.shuffle();
-        for (var point in points) {
+        for (final point in points) {
           matrix.set(point.x, point.y, matrix.dataType.nullValue);
         }
         for (var r = 0; r < matrix.rowCount; r++) {
@@ -752,7 +752,7 @@ void matrixTest(String name, Builder builder) {
             .withType(DataType.object)
             .generate(7, 5, (r, c) => Point(r, c));
         var r = 0;
-        for (var row in source.rows) {
+        for (final row in source.rows) {
           expect(row.dataType, source.dataType);
           expect(row.count, source.colCount);
           expect(row.storage, [source]);
@@ -795,7 +795,7 @@ void matrixTest(String name, Builder builder) {
             .withType(DataType.object)
             .generate(5, 8, (r, c) => Point(r, c));
         var c = 0;
-        for (var column in source.cols) {
+        for (final column in source.cols) {
           expect(column.dataType, source.dataType);
           expect(column.count, source.rowCount);
           expect(column.storage, [source]);
@@ -817,7 +817,7 @@ void matrixTest(String name, Builder builder) {
             -1: ['(0, 1)', '(1, 2)'],
             -2: ['(0, 2)'],
           };
-          for (var offset in offsets.keys) {
+          for (final offset in offsets.keys) {
             final expected = offsets[offset];
             final diagonal = source.diagonal(offset);
             expect(diagonal.dataType, source.dataType);
@@ -847,7 +847,7 @@ void matrixTest(String name, Builder builder) {
             0: ['(0, 0)', '(1, 1)'],
             -1: ['(0, 1)'],
           };
-          for (var offset in offsets.keys) {
+          for (final offset in offsets.keys) {
             final expected = offsets[offset];
             final diagonal = source.diagonal(offset);
             expect(diagonal.dataType, source.dataType);

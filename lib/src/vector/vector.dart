@@ -74,7 +74,7 @@ abstract class Vector<T> extends Tensor<T> {
   /// Returns a mutable view onto indexes of a vector. Throws a [RangeError], if
   /// any of the indexes index is out of bounds.
   Vector<T> index(Iterable<int> indexes) {
-    for (var index in indexes) {
+    for (final index in indexes) {
       RangeError.checkValueInInterval(index, 0, count - 1, 'indexes');
     }
     return indexUnchecked(indexes);
