@@ -39,10 +39,8 @@ Matrix<double> solveTranspose(Matrix<num> a, Matrix<num> b) =>
     solve(a.transposed, b.transposed);
 
 /// Returns the inverse if [source] is square, pseudo-inverse otherwise.
-Matrix<double> inverse(Matrix<num> source) => solve(
-    source,
-    IdentityMatrix<double>(
-        floatDataType, source.rowCount, source.rowCount, 1));
+Matrix<double> inverse(Matrix<num> source) => solve(source,
+    IdentityMatrix<double>(floatDataType, source.rowCount, source.rowCount, 1));
 
 /// Returns the determinant.
 double det(Matrix<num> source) => lu(source).det;

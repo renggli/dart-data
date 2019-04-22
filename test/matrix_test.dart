@@ -1688,8 +1688,7 @@ void matrixTest(String name, Builder builder) {
           [3.0, 7.0, 11.0],
         ]);
         final actual = mul(matrix, inverse(matrix));
-        final expected =
-            factory.identity(matrix.rowCount, matrix.colCount, 1);
+        final expected = factory.identity(matrix.rowCount, matrix.colCount, 1);
         expectMatrix(expected, actual);
       });
       test('solve', () {
@@ -1702,8 +1701,7 @@ void matrixTest(String name, Builder builder) {
           [15.0],
         ]);
         final actual = solve(first, second);
-        final expected =
-            factory.constant(second.rowCount, second.colCount, 1);
+        final expected = factory.constant(second.rowCount, second.colCount, 1);
         expectMatrix(expected, actual);
       });
       group('choleski', () {
