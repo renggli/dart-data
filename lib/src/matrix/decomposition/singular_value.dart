@@ -153,9 +153,9 @@ class SingularValueDecomposition {
 
     for (var j = nct; j < _u.colCount; j++) {
       for (var i = 0; i < _m; i++) {
-        _u.setUnchecked(i, j, 0.0);
+        _u.setUnchecked(i, j, 0);
       }
-      _u.setUnchecked(j, j, 1.0);
+      _u.setUnchecked(j, j, 1);
     }
     for (var k = nct - 1; k >= 0; k--) {
       if (_s[k] != 0.0) {
@@ -175,13 +175,13 @@ class SingularValueDecomposition {
         }
         _u.setUnchecked(k, k, 1.0 + _u.getUnchecked(k, k));
         for (var i = 0; i < k - 1; i++) {
-          _u.setUnchecked(i, k, 0.0);
+          _u.setUnchecked(i, k, 0);
         }
       } else {
         for (var i = 0; i < _m; i++) {
-          _u.setUnchecked(i, k, 0.0);
+          _u.setUnchecked(i, k, 0);
         }
-        _u.setUnchecked(k, k, 1.0);
+        _u.setUnchecked(k, k, 1);
       }
     }
 
@@ -201,9 +201,9 @@ class SingularValueDecomposition {
         }
       }
       for (var i = 0; i < _n; i++) {
-        _v.setUnchecked(i, k, 0.0);
+        _v.setUnchecked(i, k, 0);
       }
-      _v.setUnchecked(k, k, 1.0);
+      _v.setUnchecked(k, k, 1);
     }
 
     // Main iteration loop for the singular values.

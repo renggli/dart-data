@@ -443,8 +443,8 @@ void fieldTest<T>(DataType<T> type, List<T> values) {
           DataType.float32,
           DataType.float64,
         ].contains(type)) {
-          expect(isClose(mod(value, mulId), addId, 1.0), isTrue);
-          expect(isClose(mod(value, value), addId, 1.0), isTrue);
+          expect(isClose(mod(value, mulId), addId, 1), isTrue);
+          expect(isClose(mod(value, value), addId, 1), isTrue);
         } else {
           expect(() => mod(value, mulId), throwsUnsupportedError);
         }

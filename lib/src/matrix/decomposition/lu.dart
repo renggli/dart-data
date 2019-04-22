@@ -107,7 +107,7 @@ class LUDecomposition {
         if (i > j) {
           result.setUnchecked(i, j, _lu.getUnchecked(i, j));
         } else if (i == j) {
-          result.setUnchecked(i, j, 1.0);
+          result.setUnchecked(i, j, 1);
         }
       }
     }

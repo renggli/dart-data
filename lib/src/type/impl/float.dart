@@ -17,7 +17,7 @@ abstract class FloatDataType extends DataType<double> {
   bool get isNullable => false;
 
   @override
-  double get nullValue => 0.0;
+  double get nullValue => 0;
 
   @override
   Field<double> get field => const FloatField();
@@ -81,7 +81,7 @@ class FloatField extends Field<double> {
   const FloatField();
 
   @override
-  double get additiveIdentity => 0.0;
+  double get additiveIdentity => 0;
 
   @override
   double neg(double a) => -a;
@@ -93,7 +93,7 @@ class FloatField extends Field<double> {
   double sub(double a, double b) => a - b;
 
   @override
-  double get multiplicativeIdentity => 1.0;
+  double get multiplicativeIdentity => 1;
 
   @override
   double inv(double a) => 1.0 / a;

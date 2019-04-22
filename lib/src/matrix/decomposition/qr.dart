@@ -111,9 +111,9 @@ class QRDecomposition {
     final result = Matrix.builder.withType(floatDataType)(_m, _n);
     for (var k = _n - 1; k >= 0; k--) {
       for (var i = 0; i < _m; i++) {
-        result.setUnchecked(i, k, 0.0);
+        result.setUnchecked(i, k, 0);
       }
-      result.setUnchecked(k, k, 1.0);
+      result.setUnchecked(k, k, 1);
       for (var j = k; j < _n; j++) {
         if (_qr.getUnchecked(k, k) != 0) {
           var s = 0.0;

@@ -12,6 +12,6 @@ double hypot(num a, num b) {
     final r = a / b;
     return b.abs() * math.sqrt(1 + r * r);
   } else {
-    return 0.0;
+    return 0;
   }
 }

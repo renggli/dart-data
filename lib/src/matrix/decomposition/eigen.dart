@@ -106,8 +106,8 @@ class EigenvalueDecomposition {
         _e[i] = _d[i - 1];
         for (var j = 0; j < i; j++) {
           _d[j] = _v.getUnchecked(i - 1, j);
-          _v.setUnchecked(i, j, 0.0);
-          _v.setUnchecked(j, i, 0.0);
+          _v.setUnchecked(i, j, 0);
+          _v.setUnchecked(j, i, 0);
         }
       } else {
         // Generate Householder vector.
@@ -157,7 +157,7 @@ class EigenvalueDecomposition {
                 k, j, _v.getUnchecked(k, j) - (f * _e[k] + g * _d[k]));
           }
           _d[j] = _v.getUnchecked(i - 1, j);
-          _v.setUnchecked(i, j, 0.0);
+          _v.setUnchecked(i, j, 0);
         }
       }
       _d[i] = h;
@@ -167,7 +167,7 @@ class EigenvalueDecomposition {
 
     for (var i = 0; i < _n - 1; i++) {
       _v.setUnchecked(_n - 1, i, _v.getUnchecked(i, i));
-      _v.setUnchecked(i, i, 1.0);
+      _v.setUnchecked(i, i, 1);
       final h = _d[i + 1];
       if (h != 0.0) {
         for (var k = 0; k <= i; k++) {
@@ -184,14 +184,14 @@ class EigenvalueDecomposition {
         }
       }
       for (var k = 0; k <= i; k++) {
-        _v.setUnchecked(k, i + 1, 0.0);
+        _v.setUnchecked(k, i + 1, 0);
       }
     }
     for (var j = 0; j < _n; j++) {
       _d[j] = _v.getUnchecked(_n - 1, j);
-      _v.setUnchecked(_n - 1, j, 0.0);
+      _v.setUnchecked(_n - 1, j, 0);
     }
-    _v.setUnchecked(_n - 1, _n - 1, 1.0);
+    _v.setUnchecked(_n - 1, _n - 1, 1);
     _e[0] = 0.0;
   }
 
@@ -632,9 +632,9 @@ class EigenvalueDecomposition {
         }
 
         for (var i = m + 2; i <= n; i++) {
-          _h.setUnchecked(i, i - 2, 0.0);
+          _h.setUnchecked(i, i - 2, 0);
           if (i > m + 2) {
-            _h.setUnchecked(i, i - 3, 0.0);
+            _h.setUnchecked(i, i - 3, 0);
           }
         }
 
@@ -726,7 +726,7 @@ class EigenvalueDecomposition {
 
       if (q == 0) {
         var l = n;
-        _h.setUnchecked(n, n, 1.0);
+        _h.setUnchecked(n, n, 1);
         for (var i = n - 1; i >= 0; i--) {
           w = _h.getUnchecked(i, i) - p;
           r = 0.0;
@@ -783,13 +783,13 @@ class EigenvalueDecomposition {
           _h.setUnchecked(n - 1, n,
               -(_h.getUnchecked(n, n) - p) / _h.getUnchecked(n, n - 1));
         } else {
-          _cdiv(0.0, -_h.getUnchecked(n - 1, n),
+          _cdiv(0, -_h.getUnchecked(n - 1, n),
               _h.getUnchecked(n - 1, n - 1) - p, q);
           _h.setUnchecked(n - 1, n - 1, cdivr);
           _h.setUnchecked(n - 1, n, cdivi);
         }
-        _h.setUnchecked(n, n - 1, 0.0);
-        _h.setUnchecked(n, n, 1.0);
+        _h.setUnchecked(n, n - 1, 0);
+        _h.setUnchecked(n, n, 1);
         for (var i = n - 2; i >= 0; i--) {
           var ra = 0.0, sa = 0.0, vr = 0.0, vi = 0.0;
           ra = 0.0;

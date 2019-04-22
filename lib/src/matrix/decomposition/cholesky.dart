@@ -48,7 +48,7 @@ class CholeskyDecomposition {
       _isSymmetric = _isSymmetric && (d > 0.0);
       _l.setUnchecked(j, j, math.sqrt(math.max(d, 0.0)));
       for (var k = j + 1; k < _n; k++) {
-        _l.setUnchecked(j, k, 0.0);
+        _l.setUnchecked(j, k, 0);
       }
     }
   }
