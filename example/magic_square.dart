@@ -100,6 +100,7 @@ void main() {
     {
       final t = vector.sum(m.diagonal());
       buffer.add(integerPrinter()(t));
+      assert(t == (n * n * n + n) / 2, 'invalid magic sum');
     }
 
     // Maximum eigenvalue of (A + A') / 2, should equal trace.
@@ -107,6 +108,8 @@ void main() {
       final e =
           matrix.eigenvalue(matrix.scale(matrix.add(md, md.transposed), 0.5));
       buffer.add(doublePrinter(3)(e.realEigenvalues.last));
+      assert((e.realEigenvalues.last - vector.sum(m.diagonal())).abs() < 0.0001,
+          'invalid eigenvalue');
     }
 
     // Linear algebraic rank, should equal n if n is odd, be less than n if n
@@ -114,6 +117,7 @@ void main() {
     {
       final r = matrix.rank(m);
       buffer.add(integerPrinter()(r));
+      assert(n.isOdd ? r == n : r < n, 'invalid rank');
     }
 
     // L_2 condition number, ratio of singular values.
