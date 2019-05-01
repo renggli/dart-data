@@ -1383,6 +1383,32 @@ void matrixTest(String name, Builder builder) {
       final sourceB = builder
           .withType(DataType.int32)
           .generate(5, 4, (row, col) => random.nextInt(100));
+      test('unary', () {
+        final result = unaryOperator(sourceA, (a) => a * a);
+        expect(result.dataType, sourceA.dataType);
+        expect(result.rowCount, sourceA.rowCount);
+        expect(result.colCount, sourceA.colCount);
+        for (var r = 0; r < result.rowCount; r++) {
+          for (var c = 0; c < result.colCount; c++) {
+            final a = sourceA.get(r, c);
+            expect(result.get(r, c), a * a);
+          }
+        }
+      });
+      test('binary', () {
+        final result =
+            binaryOperator(sourceA, sourceB, (a, b) => a * a + b * b);
+        expect(result.dataType, sourceA.dataType);
+        expect(result.rowCount, sourceA.rowCount);
+        expect(result.colCount, sourceA.colCount);
+        for (var r = 0; r < result.rowCount; r++) {
+          for (var c = 0; c < result.colCount; c++) {
+            final a = sourceA.get(r, c);
+            final b = sourceB.get(r, c);
+            expect(result.get(r, c), a * a + b * b);
+          }
+        }
+      });
       group('add', () {
         final sourceA = builder
             .withType(DataType.uint16)

@@ -517,6 +517,26 @@ void vectorTest(String name, Builder builder) {
       final sourceB = builder
           .withType(DataType.int32)
           .generate(100, (i) => random.nextInt(100));
+      test('unary', () {
+        final result = unaryOperator(sourceA, (a) => a * a);
+        expect(result.dataType, sourceA.dataType);
+        expect(result.count, sourceA.count);
+        for (var i = 0; i < result.count; i++) {
+          final a = sourceA[i];
+          expect(result[i], a * a);
+        }
+      });
+      test('binary', () {
+        final result =
+            binaryOperator(sourceA, sourceB, (a, b) => a * a + b * b);
+        expect(result.dataType, sourceA.dataType);
+        expect(result.count, sourceA.count);
+        for (var i = 0; i < result.count; i++) {
+          final a = sourceA[i];
+          final b = sourceB[i];
+          expect(result[i], a * a + b * b);
+        }
+      });
       group('add', () {
         test('default', () {
           final target = add(sourceA, sourceB);
