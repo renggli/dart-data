@@ -44,12 +44,12 @@ class ListVector<T> extends Vector<T> {
         _length++;
       }
     } else {
-      if (value != dataType.nullValue) {
-        _values[pos] = value;
-      } else {
+      if (value == dataType.nullValue) {
         _indexes = removeAt(indexDataType, _indexes, _length, pos);
         _values = removeAt(dataType, _values, _length, pos);
         _length--;
+      } else {
+        _values[pos] = value;
       }
     }
   }

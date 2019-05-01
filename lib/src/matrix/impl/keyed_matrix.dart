@@ -33,10 +33,10 @@ class KeyedMatrix<T> extends Matrix<T> {
   @override
   void setUnchecked(int row, int col, T value) {
     final index = row * colCount + col;
-    if (value != dataType.nullValue) {
-      _values[index] = value;
-    } else {
+    if (value == dataType.nullValue) {
       _values.remove(index);
+    } else {
+      _values[index] = value;
     }
   }
 }

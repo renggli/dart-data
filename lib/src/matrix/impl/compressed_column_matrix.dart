@@ -66,15 +66,15 @@ class CompressedColumnMatrix<T> extends Matrix<T> {
         _length++;
       }
     } else {
-      if (value != dataType.nullValue) {
-        _values[index] = value;
-      } else {
+      if (value == dataType.nullValue) {
         for (var c = col; c < colCount; c++) {
           _colExtends[c]--;
         }
         _rowIndexes = removeAt(indexDataType, _rowIndexes, _length, index);
         _values = removeAt(dataType, _values, _length, index);
         _length--;
+      } else {
+        _values[index] = value;
       }
     }
   }
