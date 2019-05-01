@@ -11,9 +11,9 @@ class IndexVector<T> extends Vector<T> {
   final List<int> _indexes;
 
   IndexVector(Vector<T> vector, Iterable<int> indexes)
-      : this.internal(vector, indexDataType.copyList(indexes));
+      : this._(vector, indexDataType.copyList(indexes));
 
-  IndexVector.internal(this._vector, this._indexes);
+  IndexVector._(this._vector, this._indexes);
 
   @override
   DataType<T> get dataType => _vector.dataType;
@@ -25,7 +25,7 @@ class IndexVector<T> extends Vector<T> {
   Set<Tensor> get storage => _vector.storage;
 
   @override
-  Vector<T> copy() => IndexVector.internal(_vector.copy(), _indexes);
+  Vector<T> copy() => IndexVector._(_vector.copy(), _indexes);
 
   @override
   T getUnchecked(int index) => _vector.getUnchecked(_indexes[index]);

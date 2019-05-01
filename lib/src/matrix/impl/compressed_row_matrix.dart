@@ -13,7 +13,7 @@ class CompressedRowMatrix<T> extends Matrix<T> {
   int _length;
 
   CompressedRowMatrix(DataType<T> dataType, int rowCount, int colCount)
-      : this.internal(
+      : this._(
             dataType,
             rowCount,
             colCount,
@@ -22,7 +22,7 @@ class CompressedRowMatrix<T> extends Matrix<T> {
             dataType.newList(initialListSize),
             0);
 
-  CompressedRowMatrix.internal(this.dataType, this.rowCount, this.colCount,
+  CompressedRowMatrix._(this.dataType, this.rowCount, this.colCount,
       this._rowExtends, this._colIndexes, this._values, this._length);
 
   @override
@@ -35,7 +35,7 @@ class CompressedRowMatrix<T> extends Matrix<T> {
   final int colCount;
 
   @override
-  Matrix<T> copy() => CompressedRowMatrix.internal(
+  Matrix<T> copy() => CompressedRowMatrix._(
       dataType,
       rowCount,
       colCount,

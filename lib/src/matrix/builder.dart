@@ -207,7 +207,7 @@ class Builder<T> {
     }
     if (Format.rowMajor == format) {
       // Optimized case for row major matrices.
-      return RowMajorMatrix.internal(
+      return RowMajorMatrix.fromList(
           type, rowCount, colCount, type.copyList(source));
     }
     final result = this(rowCount, colCount);
@@ -259,7 +259,7 @@ class Builder<T> {
     }
     if (Format.columnMajor == format) {
       // Optimized case for column major matrices.
-      return ColumnMajorMatrix.internal(
+      return ColumnMajorMatrix.fromList(
           type, rowCount, colCount, type.copyList(source));
     }
     final result = this(rowCount, colCount);

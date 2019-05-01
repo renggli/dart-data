@@ -8,9 +8,9 @@ class KeyedVector<T> extends Vector<T> {
   final Map<int, T> _values;
 
   KeyedVector(DataType<T> dataType, int count)
-      : this.internal(dataType, count, <int, T>{});
+      : this._(dataType, count, <int, T>{});
 
-  KeyedVector.internal(this.dataType, this.count, this._values);
+  KeyedVector._(this.dataType, this.count, this._values);
 
   @override
   final DataType<T> dataType;
@@ -19,7 +19,7 @@ class KeyedVector<T> extends Vector<T> {
   final int count;
 
   @override
-  Vector<T> copy() => KeyedVector.internal(dataType, count, Map.of(_values));
+  Vector<T> copy() => KeyedVector._(dataType, count, Map.of(_values));
 
   @override
   T getUnchecked(int index) => _values[index] ?? dataType.nullValue;

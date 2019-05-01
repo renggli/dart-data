@@ -13,10 +13,10 @@ class IndexMatrix<T> extends Matrix<T> {
 
   IndexMatrix(
       Matrix<T> _matrix, Iterable<int> rowIndexes, Iterable<int> colIndexes)
-      : this.internal(_matrix, indexDataType.copyList(rowIndexes),
+      : this._(_matrix, indexDataType.copyList(rowIndexes),
             indexDataType.copyList(colIndexes));
 
-  IndexMatrix.internal(this._matrix, this._rowIndexes, this._colIndexes);
+  IndexMatrix._(this._matrix, this._rowIndexes, this._colIndexes);
 
   @override
   DataType<T> get dataType => _matrix.dataType;
@@ -31,8 +31,7 @@ class IndexMatrix<T> extends Matrix<T> {
   Set<Tensor> get storage => _matrix.storage;
 
   @override
-  Matrix<T> copy() =>
-      IndexMatrix.internal(_matrix.copy(), _rowIndexes, _colIndexes);
+  Matrix<T> copy() => IndexMatrix._(_matrix.copy(), _rowIndexes, _colIndexes);
 
   @override
   T getUnchecked(int row, int col) =>

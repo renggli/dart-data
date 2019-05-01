@@ -12,10 +12,10 @@ class ListVector<T> extends Vector<T> {
   int _length;
 
   ListVector(DataType<T> dataType, int count)
-      : this.internal(dataType, count, indexDataType.newList(initialListSize),
+      : this._(dataType, count, indexDataType.newList(initialListSize),
             dataType.newList(initialListSize), 0);
 
-  ListVector.internal(
+  ListVector._(
       this.dataType, this.count, this._indexes, this._values, this._length);
 
   @override
@@ -25,7 +25,7 @@ class ListVector<T> extends Vector<T> {
   final int count;
 
   @override
-  Vector<T> copy() => ListVector.internal(dataType, count,
+  Vector<T> copy() => ListVector._(dataType, count,
       indexDataType.copyList(_indexes), dataType.copyList(_values), _length);
 
   @override

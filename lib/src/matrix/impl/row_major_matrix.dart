@@ -8,10 +8,10 @@ class RowMajorMatrix<T> extends Matrix<T> {
   final List<T> _values;
 
   RowMajorMatrix(DataType<T> dataType, int rowCount, int colCount)
-      : this.internal(dataType, rowCount, colCount,
+      : this.fromList(dataType, rowCount, colCount,
             dataType.newList(rowCount * colCount));
 
-  RowMajorMatrix.internal(
+  RowMajorMatrix.fromList(
       this.dataType, this.rowCount, this.colCount, this._values);
 
   @override
@@ -24,7 +24,7 @@ class RowMajorMatrix<T> extends Matrix<T> {
   final int colCount;
 
   @override
-  Matrix<T> copy() => RowMajorMatrix.internal(
+  Matrix<T> copy() => RowMajorMatrix.fromList(
       dataType, rowCount, colCount, dataType.copyList(_values));
 
   @override

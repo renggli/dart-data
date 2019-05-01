@@ -13,7 +13,7 @@ class CoordinateListMatrix<T> extends Matrix<T> {
   int _length;
 
   CoordinateListMatrix(DataType<T> dataType, int rowCount, int colCount)
-      : this.internal(
+      : this._(
             dataType,
             rowCount,
             colCount,
@@ -22,7 +22,7 @@ class CoordinateListMatrix<T> extends Matrix<T> {
             dataType.newList(initialListSize),
             0);
 
-  CoordinateListMatrix.internal(this.dataType, this.rowCount, this.colCount,
+  CoordinateListMatrix._(this.dataType, this.rowCount, this.colCount,
       this._rows, this._cols, this._values, this._length);
 
   @override
@@ -35,7 +35,7 @@ class CoordinateListMatrix<T> extends Matrix<T> {
   final int colCount;
 
   @override
-  Matrix<T> copy() => CoordinateListMatrix.internal(
+  Matrix<T> copy() => CoordinateListMatrix._(
       dataType,
       rowCount,
       colCount,

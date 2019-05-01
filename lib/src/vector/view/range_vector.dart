@@ -10,9 +10,9 @@ class RangeVector<T> extends Vector<T> {
   final int _start;
 
   RangeVector(Vector<T> vector, int start, int end)
-      : this.internal(vector, start, end - start);
+      : this._(vector, start, end - start);
 
-  RangeVector.internal(this._vector, this._start, this.count);
+  RangeVector._(this._vector, this._start, this.count);
 
   @override
   DataType<T> get dataType => _vector.dataType;
@@ -24,7 +24,7 @@ class RangeVector<T> extends Vector<T> {
   Set<Tensor> get storage => _vector.storage;
 
   @override
-  Vector<T> copy() => RangeVector.internal(_vector.copy(), _start, count);
+  Vector<T> copy() => RangeVector._(_vector.copy(), _start, count);
 
   @override
   T getUnchecked(int index) => _vector.getUnchecked(_start + index);

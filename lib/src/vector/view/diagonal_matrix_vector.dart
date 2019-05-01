@@ -14,7 +14,7 @@ class DiagonalMatrixVector<T> extends Vector<T> {
   final int _count;
 
   DiagonalMatrixVector(Matrix<T> matrix, int offset)
-      : this.internal(
+      : this._(
             matrix,
             offset,
             math.min(
@@ -22,7 +22,7 @@ class DiagonalMatrixVector<T> extends Vector<T> {
               matrix.colCount + offset,
             ));
 
-  DiagonalMatrixVector.internal(this._matrix, this._offset, this._count);
+  DiagonalMatrixVector._(this._matrix, this._offset, this._count);
 
   @override
   DataType<T> get dataType => _matrix.dataType;
@@ -34,8 +34,7 @@ class DiagonalMatrixVector<T> extends Vector<T> {
   Set<Tensor> get storage => _matrix.storage;
 
   @override
-  Vector<T> copy() =>
-      DiagonalMatrixVector.internal(_matrix.copy(), _offset, _count);
+  Vector<T> copy() => DiagonalMatrixVector._(_matrix.copy(), _offset, _count);
 
   @override
   T getUnchecked(int index) {

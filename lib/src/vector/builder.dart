@@ -100,7 +100,7 @@ class Builder<T> {
   Vector<T> fromList(List<T> source) {
     if (Format.standard == format) {
       // Optimized case for flat vectors.
-      return StandardVector.internal(type, type.copyList(source));
+      return StandardVector.fromList(type, type.copyList(source));
     }
     final result = this(source.length);
     for (var i = 0; i < source.length; i++) {

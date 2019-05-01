@@ -10,9 +10,9 @@ class DiagonalMatrix<T> extends Matrix<T> {
   final Map<int, List<T>> _diagonals;
 
   DiagonalMatrix(DataType<T> dataType, int rowCount, int colCount)
-      : this.internal(dataType, rowCount, colCount, <int, List<T>>{});
+      : this._(dataType, rowCount, colCount, <int, List<T>>{});
 
-  DiagonalMatrix.internal(
+  DiagonalMatrix._(
       this.dataType, this.rowCount, this.colCount, this._diagonals);
 
   @override
@@ -25,7 +25,7 @@ class DiagonalMatrix<T> extends Matrix<T> {
   final int colCount;
 
   @override
-  Matrix<T> copy() => DiagonalMatrix.internal(
+  Matrix<T> copy() => DiagonalMatrix._(
       dataType,
       rowCount,
       colCount,

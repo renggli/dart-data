@@ -8,10 +8,9 @@ class KeyedMatrix<T> extends Matrix<T> {
   final Map<int, T> _values;
 
   KeyedMatrix(DataType<T> dataType, int rowCount, int colCount)
-      : this.internal(dataType, rowCount, colCount, <int, T>{});
+      : this._(dataType, rowCount, colCount, <int, T>{});
 
-  KeyedMatrix.internal(
-      this.dataType, this.rowCount, this.colCount, this._values);
+  KeyedMatrix._(this.dataType, this.rowCount, this.colCount, this._values);
 
   @override
   final DataType<T> dataType;
@@ -24,7 +23,7 @@ class KeyedMatrix<T> extends Matrix<T> {
 
   @override
   Matrix<T> copy() =>
-      KeyedMatrix.internal(dataType, rowCount, colCount, Map.of(_values));
+      KeyedMatrix._(dataType, rowCount, colCount, Map.of(_values));
 
   @override
   T getUnchecked(int row, int col) =>

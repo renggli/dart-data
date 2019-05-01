@@ -8,9 +8,9 @@ class StandardVector<T> extends Vector<T> {
   final List<T> _values;
 
   StandardVector(DataType<T> dataType, int count)
-      : this.internal(dataType, dataType.newList(count));
+      : this.fromList(dataType, dataType.newList(count));
 
-  StandardVector.internal(this.dataType, this._values);
+  StandardVector.fromList(this.dataType, this._values);
 
   @override
   final DataType<T> dataType;
@@ -20,7 +20,7 @@ class StandardVector<T> extends Vector<T> {
 
   @override
   Vector<T> copy() =>
-      StandardVector.internal(dataType, dataType.copyList(_values));
+      StandardVector.fromList(dataType, dataType.copyList(_values));
 
   @override
   T getUnchecked(int index) => _values[index];

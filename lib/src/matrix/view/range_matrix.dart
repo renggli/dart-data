@@ -12,11 +12,11 @@ class RangeMatrix<T> extends Matrix<T> {
 
   RangeMatrix(
       Matrix<T> matrix, int rowStart, int rowEnd, int colStart, int colEnd)
-      : this.internal(
+      : this._(
             matrix, rowStart, rowEnd - rowStart, colStart, colEnd - colStart);
 
-  RangeMatrix.internal(this._matrix, this._rowStart, this.rowCount,
-      this._colStart, this.colCount);
+  RangeMatrix._(this._matrix, this._rowStart, this.rowCount, this._colStart,
+      this.colCount);
 
   @override
   DataType<T> get dataType => _matrix.dataType;
@@ -31,8 +31,8 @@ class RangeMatrix<T> extends Matrix<T> {
   Set<Tensor> get storage => _matrix.storage;
 
   @override
-  Matrix<T> copy() => RangeMatrix.internal(
-      _matrix.copy(), _rowStart, rowCount, _colStart, colCount);
+  Matrix<T> copy() =>
+      RangeMatrix._(_matrix.copy(), _rowStart, rowCount, _colStart, colCount);
 
   @override
   T getUnchecked(int row, int col) =>
