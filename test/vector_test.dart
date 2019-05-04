@@ -509,6 +509,14 @@ void vectorTest(String name, Builder builder) {
             '3 2 1');
       });
     });
+    group('iterables', () {
+      test('basic', () {
+        final source = builder
+            .withType(DataType.string)
+            .generate(5, (i) => '$i');
+        expect(source.iterable, ['0', '1', '2', '3', '4']);
+      });
+    });
     group('operators', () {
       final random = Random();
       final sourceA = builder

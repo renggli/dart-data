@@ -1144,31 +1144,19 @@ void matrixTest(String name, Builder builder) {
           ['2,0']
         ]);
       });
-      test('spiral', () {
-        final source =
-            builder.withType(DataType.string).generate(5, 4, (r, c) => '$r,$c');
-        expect(source.spiral, [
-          '0,0',
-          '0,1',
-          '0,2',
-          '0,3',
-          '1,3',
-          '2,3',
-          '3,3',
-          '4,3',
-          '4,2',
-          '4,1',
-          '4,0',
-          '3,0',
-          '2,0',
-          '1,0',
-          '1,1',
-          '1,2',
-          '2,2',
-          '3,2',
-          '3,1',
-          '2,1',
-        ]);
+      group('spiral', () {
+        test('3x2', () {
+          final source = builder
+              .withType(DataType.string)
+              .generate(3, 2, (r, c) => '$r,$c');
+          expect(source.spiral, ['0,0', '0,1', '1,1', '2,1', '2,0', '1,0']);
+        });
+        test('2x3', () {
+          final source = builder
+              .withType(DataType.string)
+              .generate(2, 3, (r, c) => '$r,$c');
+          expect(source.spiral, ['0,0', '0,1', '0,2', '1,2', '1,1', '1,0']);
+        });
       });
       test('rowMajor', () {
         final source =
