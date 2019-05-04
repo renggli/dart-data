@@ -511,9 +511,8 @@ void vectorTest(String name, Builder builder) {
     });
     group('iterables', () {
       test('basic', () {
-        final source = builder
-            .withType(DataType.string)
-            .generate(5, (i) => '$i');
+        final source =
+            builder.withType(DataType.string).generate(5, (i) => '$i');
         expect(source.iterable, ['0', '1', '2', '3', '4']);
       });
     });
