@@ -316,7 +316,6 @@ class SingularValueDecomposition {
           break;
 
         // Perform one qr step.
-
         case 3:
           {
             // Calculate the shift.

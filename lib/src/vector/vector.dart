@@ -134,6 +134,13 @@ abstract class Vector<T> extends Tensor<T> {
   /// Returns a unmodifiable view of the vector.
   Vector<T> get unmodifiable => UnmodifiableVector<T>(this);
 
+  /// Returns an iterable over the vector.
+  Iterable<T> get iterable sync* {
+    for (var i = 0; i < count; i++) {
+      yield getUnchecked(i);
+    }
+  }
+
   /// Tests if [index] is within the bounds of this vector.
   bool isWithinBounds(int index) => 0 <= index && index < count;
 

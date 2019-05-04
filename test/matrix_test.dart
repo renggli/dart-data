@@ -747,22 +747,6 @@ void matrixTest(String name, Builder builder) {
           }
         }
       });
-      test('rows', () {
-        final source = builder
-            .withType(DataType.object)
-            .generate(7, 5, (r, c) => Point(r, c));
-        var r = 0;
-        for (final row in source.rows) {
-          expect(row.dataType, source.dataType);
-          expect(row.count, source.colCount);
-          expect(row.storage, [source]);
-          for (var c = 0; c < source.colCount; c++) {
-            expect(row[c], source.get(r, c));
-          }
-          r++;
-        }
-        expect(r, source.rowCount);
-      });
       test('col', () {
         final source = builder
             .withType(DataType.string)
@@ -789,22 +773,6 @@ void matrixTest(String name, Builder builder) {
             expect(source.get(r, c), '($r, $c)*');
           }
         }
-      });
-      test('cols', () {
-        final source = builder
-            .withType(DataType.object)
-            .generate(5, 8, (r, c) => Point(r, c));
-        var c = 0;
-        for (final column in source.cols) {
-          expect(column.dataType, source.dataType);
-          expect(column.count, source.rowCount);
-          expect(column.storage, [source]);
-          for (var r = 0; r < source.rowCount; r++) {
-            expect(column[r], source.get(r, c));
-          }
-          c++;
-        }
-        expect(c, source.colCount);
       });
       group('diagonal', () {
         test('vertical', () {
@@ -1123,6 +1091,94 @@ void matrixTest(String name, Builder builder) {
                       .constant(base.rowCount, base.colCount + 1, true)),
               throwsArgumentError);
         });
+      });
+    });
+    group('iterables', () {
+      test('rows', () {
+        final source = builder
+            .withType(DataType.object)
+            .generate(7, 5, (r, c) => Point(r, c));
+        var r = 0;
+        for (final row in source.rows) {
+          expect(row.dataType, source.dataType);
+          expect(row.count, source.colCount);
+          expect(row.storage, [source]);
+          for (var c = 0; c < source.colCount; c++) {
+            expect(row[c], source.get(r, c));
+          }
+          r++;
+        }
+        expect(r, source.rowCount);
+      });
+      test('cols', () {
+        final source = builder
+            .withType(DataType.object)
+            .generate(5, 8, (r, c) => Point(r, c));
+        var c = 0;
+        for (final column in source.cols) {
+          expect(column.dataType, source.dataType);
+          expect(column.count, source.rowCount);
+          expect(column.storage, [source]);
+          for (var r = 0; r < source.rowCount; r++) {
+            expect(column[r], source.get(r, c));
+          }
+          c++;
+        }
+        expect(c, source.colCount);
+      });
+      test('diagonals', () {
+        final source =
+            builder.withType(DataType.string).generate(3, 4, (r, c) => '$r,$c');
+        final values = <List<String>>[];
+        for (final diagonal in source.diagonals) {
+          expect(diagonal.dataType, source.dataType);
+          expect(diagonal.storage, [source]);
+          values.add(diagonal.iterable.toList());
+        }
+        expect(values, [
+          ['0,3'],
+          ['0,2', '1,3'],
+          ['0,1', '1,2', '2,3'],
+          ['0,0', '1,1', '2,2'],
+          ['1,0', '2,1'],
+          ['2,0']
+        ]);
+      });
+      test('spiral', () {
+        final source =
+            builder.withType(DataType.string).generate(5, 4, (r, c) => '$r,$c');
+        expect(source.spiral, [
+          '0,0',
+          '0,1',
+          '0,2',
+          '0,3',
+          '1,3',
+          '2,3',
+          '3,3',
+          '4,3',
+          '4,2',
+          '4,1',
+          '4,0',
+          '3,0',
+          '2,0',
+          '1,0',
+          '1,1',
+          '1,2',
+          '2,2',
+          '3,2',
+          '3,1',
+          '2,1',
+        ]);
+      });
+      test('rowMajor', () {
+        final source =
+            builder.withType(DataType.string).generate(3, 2, (r, c) => '$r,$c');
+        expect(source.rowMajor, ['0,0', '0,1', '1,0', '1,1', '2,0', '2,1']);
+      });
+      test('colMajor', () {
+        final source =
+            builder.withType(DataType.string).generate(3, 2, (r, c) => '$r,$c');
+        expect(source.colMajor, ['0,0', '1,0', '2,0', '0,1', '1,1', '2,1']);
       });
     });
     group('transform', () {
@@ -1793,9 +1849,9 @@ void matrixTest(String name, Builder builder) {
 void main() {
   matrixTest('rowMajor', Matrix.builder.rowMajor);
   matrixTest('columnMajor', Matrix.builder.columnMajor);
-  matrixTest('coordinateList', Matrix.builder.coordinateList);
   matrixTest('compressedRow', Matrix.builder.compressedRow);
   matrixTest('compressedColumn', Matrix.builder.compressedColumn);
-  matrixTest('diagonal', Matrix.builder.diagonal);
+  matrixTest('coordinateList', Matrix.builder.coordinateList);
   matrixTest('keyed', Matrix.builder.keyed);
+  matrixTest('diagonal', Matrix.builder.diagonal);
 }
