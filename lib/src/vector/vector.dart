@@ -1,5 +1,7 @@
 library data.vector.vector;
 
+import 'dart:collection' show ListMixin;
+
 import 'package:data/src/vector/builder.dart';
 import 'package:data/src/vector/format.dart';
 import 'package:data/src/vector/view/cast_vector.dart';
@@ -134,12 +136,8 @@ abstract class Vector<T> extends Tensor<T> {
   /// Returns a unmodifiable view of the vector.
   Vector<T> get unmodifiable => UnmodifiableVector<T>(this);
 
-  /// Returns an iterable over the vector.
-  Iterable<T> get iterable sync* {
-    for (var i = 0; i < count; i++) {
-      yield getUnchecked(i);
-    }
-  }
+  /// Returns a list iterable over the vector.
+  List<T> get iterable => _VectorList<T>(this);
 
   /// Tests if [index] is within the bounds of this vector.
   bool isWithinBounds(int index) => 0 <= index && index < count;
@@ -176,4 +174,23 @@ abstract class Vector<T> extends Tensor<T> {
     }
     return buffer.toString();
   }
+}
+
+class _VectorList<T> extends ListMixin<T> {
+  final Vector<T> vector;
+
+  _VectorList(this.vector);
+
+  @override
+  int get length => vector.count;
+
+  @override
+  set length(int newLength) =>
+      throw UnsupportedError('Unable to change length of vector.');
+
+  @override
+  T operator [](int index) => vector[index];
+
+  @override
+  void operator []=(int index, T value) => vector[index] = value;
 }

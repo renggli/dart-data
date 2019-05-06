@@ -6,6 +6,7 @@ import 'package:data/matrix.dart' as matrix;
 import 'package:data/type.dart';
 import 'package:data/vector.dart';
 import 'package:test/test.dart';
+import 'package:test/test.dart' as prefix0;
 
 void vectorTest(String name, Builder builder) {
   group(name, () {
@@ -513,7 +514,14 @@ void vectorTest(String name, Builder builder) {
       test('basic', () {
         final source =
             builder.withType(DataType.string).generate(5, (i) => '$i');
-        expect(source.iterable, ['0', '1', '2', '3', '4']);
+        final list = source.iterable;
+        expect(list, ['0', '1', '2', '3', '4']);
+        expect(list.length, source.count);
+        expect(() => list.length = 0, prefix0.throwsUnsupportedError);
+        list[2] = '*';
+        expect(list, ['0', '1', '*', '3', '4']);
+        source[2] = '!';
+        expect(list, ['0', '1', '!', '3', '4']);
       });
     });
     group('operators', () {
