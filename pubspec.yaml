@@ -1,5 +1,5 @@
 name: data
-version: 0.1.0
+version: 0.2.0
 
 author: Lukas Renggli <renggli@gmail.com>
 homepage: https://github.com/renggli/dart-data
@@ -9,7 +9,7 @@ description: A time and space efficient collection of data structures and
 environment:
   sdk: '>=2.4.0 <3.0.0'
 dependencies:
-  more: ^1.16.0
+  more: ^1.17.0
   collection: ^1.14.0
 dev_dependencies:
   test: ^1.6.0

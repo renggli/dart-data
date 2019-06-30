@@ -31,7 +31,7 @@ class ConcatHorizontalMatrix<T> extends Matrix<T> {
   int get colCount => _indexes.last;
 
   @override
-  Set<Tensor> get storage => Set.of(_matrices);
+  Set<Tensor> get storage => {..._matrices};
 
   @override
   Matrix<T> copy() => ConcatHorizontalMatrix._withListAndIndexes(

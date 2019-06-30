@@ -25,10 +25,8 @@ class OverlayMaskMatrix<T> extends Matrix<T> {
   int get colCount => _base.colCount;
 
   @override
-  Set<Tensor> get storage => {}
-    ..addAll(_overlay.storage)
-    ..addAll(_mask.storage)
-    ..addAll(_base.storage);
+  Set<Tensor> get storage =>
+      {..._overlay.storage, ..._mask.storage, ..._base.storage};
 
   @override
   Matrix<T> copy() =>

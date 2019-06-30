@@ -27,7 +27,7 @@ class ConcatVector<T> extends Vector<T> {
   int get count => _indexes.last;
 
   @override
-  Set<Tensor> get storage => Set.of(_vectors);
+  Set<Tensor> get storage => {..._vectors};
 
   @override
   Vector<T> copy() => ConcatVector._withListAndIndexes(

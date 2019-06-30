@@ -27,8 +27,7 @@ class OverlayOffsetMatrix<T> extends Matrix<T> {
   int get colCount => _base.colCount;
 
   @override
-  Set<Tensor> get storage =>
-      {}..addAll(_overlay.storage)..addAll(_base.storage);
+  Set<Tensor> get storage => {..._overlay.storage, ..._base.storage};
 
   @override
   Matrix<T> copy() => OverlayOffsetMatrix(

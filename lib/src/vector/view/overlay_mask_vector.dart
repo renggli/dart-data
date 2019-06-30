@@ -22,10 +22,8 @@ class OverlayMaskVector<T> extends Vector<T> {
   int get count => _base.count;
 
   @override
-  Set<Tensor> get storage => {}
-    ..addAll(_overlay.storage)
-    ..addAll(_mask.storage)
-    ..addAll(_base.storage);
+  Set<Tensor> get storage =>
+      {..._overlay.storage, ..._mask.storage, ..._base.storage};
 
   @override
   Vector<T> copy() =>

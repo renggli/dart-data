@@ -30,7 +30,7 @@ class ConcatVerticalMatrix<T> extends Matrix<T> {
   int get colCount => _matrices.first.colCount;
 
   @override
-  Set<Tensor> get storage => Set.of(_matrices);
+  Set<Tensor> get storage => {..._matrices};
 
   @override
   Matrix<T> copy() => ConcatVerticalMatrix._withListAndIndexes(
