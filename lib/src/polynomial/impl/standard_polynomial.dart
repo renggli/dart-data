@@ -34,15 +34,16 @@ class StandardPolynomial<T> extends Polynomial<T> {
       dataType, dataType.copyList(_coefficients, length: degree));
 
   @override
-  T getUnchecked(int index) =>
-      index < _coefficients.length ? _coefficients[index] : dataType.nullValue;
+  T getUnchecked(int exponent) => exponent < _coefficients.length
+      ? _coefficients[exponent]
+      : dataType.nullValue;
 
   @override
-  void setUnchecked(int index, T value) {
-    if (index >= _coefficients.length) {
-      final newLength = max(index, 3 * _coefficients.length ~/ 2 + 1);
+  void setUnchecked(int exponent, T value) {
+    if (exponent >= _coefficients.length) {
+      final newLength = max(exponent, 3 * _coefficients.length ~/ 2 + 1);
       _coefficients = dataType.copyList(_coefficients, length: newLength);
     }
-    _coefficients[index] = value;
+    _coefficients[exponent] = value;
   }
 }

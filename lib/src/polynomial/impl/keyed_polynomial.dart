@@ -24,14 +24,14 @@ class KeyedPolynomial<T> extends Polynomial<T> {
       KeyedPolynomial._(dataType, SplayTreeMap.of(_coefficients));
 
   @override
-  T getUnchecked(int index) => _coefficients[index] ?? dataType.nullValue;
+  T getUnchecked(int exponent) => _coefficients[exponent] ?? dataType.nullValue;
 
   @override
-  void setUnchecked(int index, T value) {
+  void setUnchecked(int exponent, T value) {
     if (value == dataType.nullValue) {
-      _coefficients.remove(index);
+      _coefficients.remove(exponent);
     } else {
-      _coefficients[index] = value;
+      _coefficients[exponent] = value;
     }
   }
 }

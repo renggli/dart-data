@@ -5,7 +5,9 @@ import 'package:data/src/polynomial/impl/keyed_polynomial.dart';
 import 'package:data/src/polynomial/impl/list_polynomial.dart';
 import 'package:data/src/polynomial/impl/standard_polynomial.dart';
 import 'package:data/src/polynomial/polynomial.dart';
+import 'package:data/src/polynomial/view/generated_polynomial.dart';
 import 'package:data/type.dart';
+import 'package:data/vector.dart' show Vector;
 
 /// Builds a polynomial of a custom type.
 class Builder<T> {
@@ -36,8 +38,8 @@ class Builder<T> {
       // ignore: unrelated_type_equality_checks
       this.type == type ? this : Builder<S>(format, type);
 
-  /// Builds a new polynomial of the configured format.
-  Polynomial<T> call() {
+  /// Builds a new polynomial of the desired degree.
+  Polynomial<T> call([int degree = 0]) {
     ArgumentError.checkNotNull(type, 'type');
     switch (format) {
       case Format.standard:
@@ -48,5 +50,40 @@ class Builder<T> {
         return KeyedPolynomial<T>(type);
     }
     throw ArgumentError.value(format, 'format');
+  }
+
+  /// Builds a polynomial from calling a [callback] on every exponent.
+  Polynomial<T> generate(int count, T Function(int exponent) callback,
+      {bool lazy = false}) {
+    final result = GeneratedPolynomial<T>(type, count, callback);
+    return lazy ? result : fromPolynomial(result);
+  }
+
+  /// Builds a polynomial from another polynomial.
+  Polynomial<T> fromPolynomial(Polynomial<T> source) {
+    final degree = source.degree;
+    final result = this(degree);
+    for (var i = 0; i <= degree; i++) {
+      result.setUnchecked(i, source.getUnchecked(i));
+    }
+    return result;
+  }
+
+  /// Builds a polynomial from a vector.
+  Polynomial<T> fromVector(Vector<T> source) {
+    final result = this(source.count - 1);
+    for (var i = 0; i < source.count; i++) {
+      result.setUnchecked(i, source.getUnchecked(i));
+    }
+    return result;
+  }
+
+  /// Builds a polynomial from a list of values.
+  Polynomial<T> fromList(List<T> source) {
+    final result = this(source.length - 1);
+    for (var i = 0; i < source.length; i++) {
+      result.setUnchecked(i, source[i]);
+    }
+    return result;
   }
 }

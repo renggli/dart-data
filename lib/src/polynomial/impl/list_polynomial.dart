@@ -32,18 +32,18 @@ class ListPolynomial<T> extends Polynomial<T> {
       _length);
 
   @override
-  T getUnchecked(int index) {
-    final pos = binarySearch(_exponents, 0, _length, index);
+  T getUnchecked(int exponent) {
+    final pos = binarySearch(_exponents, 0, _length, exponent);
     return pos < 0 ? dataType.nullValue : _coefficients[pos];
   }
 
   @override
-  void setUnchecked(int index, T value) {
-    final pos = binarySearch(_exponents, 0, _length, index);
+  void setUnchecked(int exponent, T value) {
+    final pos = binarySearch(_exponents, 0, _length, exponent);
     if (pos < 0) {
       if (value != dataType.nullValue) {
         _exponents =
-            insertAt(indexDataType, _exponents, _length, -pos - 1, index);
+            insertAt(indexDataType, _exponents, _length, -pos - 1, exponent);
         _coefficients =
             insertAt(dataType, _coefficients, _length, -pos - 1, value);
         _length++;

@@ -4,6 +4,7 @@ import 'dart:collection' show ListMixin;
 
 import 'package:data/src/polynomial/builder.dart';
 import 'package:data/src/polynomial/format.dart';
+import 'package:data/src/polynomial/view/unmodifiable_polynomial.dart';
 import 'package:data/tensor.dart' show Tensor;
 import 'package:data/type.dart' show DataType;
 import 'package:more/printer.dart' show Printer;
@@ -28,26 +29,43 @@ abstract class Polynomial<T> extends Tensor<T> {
   /// The degree this polynomial.
   int get degree;
 
-  /// Returns the scalar at the provided [index].
+  /// Returns the scalar at the provided [exponent].
   @override
-  T operator [](int index) {
-    RangeError.checkNotNegative(index, 'index');
-    return getUnchecked(index);
+  T operator [](int exponent) {
+    RangeError.checkNotNegative(exponent, 'exponent');
+    return getUnchecked(exponent);
   }
 
-  /// Returns the scalar at the provided [index]. The behavior is undefined if
-  /// [index] is outside of bounds.
-  T getUnchecked(int index);
+  /// Returns the scalar at the provided [exponent]. The behavior is undefined
+  /// if [exponent] is outside of bounds.
+  T getUnchecked(int exponent);
 
-  /// Sets the scalar at the provided [index] to [value].
-  void operator []=(int index, T value) {
-    RangeError.checkNotNegative(index, 'index');
-    setUnchecked(index, value);
+  /// Sets the scalar at the provided [exponent] to [value].
+  void operator []=(int exponent, T value) {
+    RangeError.checkNotNegative(exponent, 'exponent');
+    setUnchecked(exponent, value);
   }
 
-  /// Sets the scalar at the provided [index] to [value]. The behavior is
-  /// undefined if [index] is outside of bounds.
-  void setUnchecked(int index, T value);
+  /// Sets the scalar at the provided [exponent] to [value]. The behavior is
+  /// undefined if [exponent] is outside of bounds.
+  void setUnchecked(int exponent, T value);
+
+  /// Evaluates the polynomial at [value].
+  T evaluate(T value) {
+    var exponent = degree;
+    if (exponent < 0) {
+      return dataType.nullValue;
+    }
+    final mul = dataType.field.mul, add = dataType.field.add;
+    var sum = getUnchecked(exponent);
+    while (--exponent >= 0) {
+      sum = add(mul(sum, value), getUnchecked(exponent));
+    }
+    return sum;
+  }
+
+  /// Returns a unmodifiable view of the polynomial.
+  Polynomial<T> get unmodifiable => UnmodifiablePolynomial<T>(this);
 
   /// Returns a list iterable over the polynomial.
   List<T> get iterable => _PolynomialList<T>(this);
@@ -60,7 +78,8 @@ abstract class Polynomial<T> extends Tensor<T> {
     int trailingItems = 3,
     Printer ellipsesPrinter,
     Printer paddingPrinter,
-    Printer valuePrinter, // additional options
+    Printer valuePrinter,
+    // additional options
     String ellipses = '\u2026',
     String separator = ' + ',
     bool reversed = true,
@@ -89,7 +108,7 @@ abstract class Polynomial<T> extends Tensor<T> {
       buffer.write(coefficient(0, dataType.nullValue));
     }
 
-    // TODO: Only print non-null values.
+    // TODO(renggli): Only print non-null values.
     if (reversed) {
       for (var i = count; i >= 0; i--) {
         if (i < count) {
