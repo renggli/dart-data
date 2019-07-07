@@ -428,7 +428,7 @@ abstract class Matrix<T> extends Tensor<T> {
           leadingItems: leadingItems,
           trailingItems: trailingItems,
           separator: horizontalSeparator,
-          ellipses: horizontalEllipses,
+          ellipses: diagonalEllipses,
         ));
         r = rowCount - trailingItems - 1;
       } else {
