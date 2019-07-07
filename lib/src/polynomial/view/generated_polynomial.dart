@@ -21,5 +21,6 @@ class GeneratedPolynomial<T> extends Polynomial<T>
   Polynomial<T> copy() => this;
 
   @override
-  T getUnchecked(int exponent) => _callback(exponent);
+  T getUnchecked(int exponent) =>
+      exponent <= degree ? _callback(exponent) : dataType.nullValue;
 }

@@ -18,6 +18,12 @@ abstract class Polynomial<T> extends Tensor<T> {
   /// Unnamed default constructor.
   Polynomial();
 
+  /// Returns the degree this polynomial, that is the highest coefficient.
+  int get degree;
+
+  /// Returns the count of values of this polynomial.
+  int get count => degree + 1;
+
   /// Returns the shape of this polynomial.
   @override
   List<int> get shape => [degree];
@@ -26,28 +32,25 @@ abstract class Polynomial<T> extends Tensor<T> {
   @override
   Polynomial<T> copy();
 
-  /// The degree this polynomial.
-  int get degree;
-
-  /// Returns the scalar at the provided [exponent].
+  /// Returns the coefficient at the provided [exponent].
   @override
   T operator [](int exponent) {
     RangeError.checkNotNegative(exponent, 'exponent');
     return getUnchecked(exponent);
   }
 
-  /// Returns the scalar at the provided [exponent]. The behavior is undefined
-  /// if [exponent] is outside of bounds.
+  /// Returns the coefficient at the provided [exponent]. The behavior is
+  /// undefined if [exponent] is outside of bounds.
   T getUnchecked(int exponent);
 
-  /// Sets the scalar at the provided [exponent] to [value].
+  /// Sets the coefficient at the provided [exponent] to [value].
   void operator []=(int exponent, T value) {
     RangeError.checkNotNegative(exponent, 'exponent');
     setUnchecked(exponent, value);
   }
 
-  /// Sets the scalar at the provided [exponent] to [value]. The behavior is
-  /// undefined if [exponent] is outside of bounds.
+  /// Sets the coefficient at the provided [exponent] to [value]. The behavior
+  /// is undefined if [exponent] is outside of bounds.
   void setUnchecked(int exponent, T value);
 
   /// Evaluates the polynomial at [value].
@@ -104,13 +107,13 @@ abstract class Polynomial<T> extends Tensor<T> {
       return buffer.toString();
     }
 
-    if (count < 0) {
+    if (degree < 0) {
       buffer.write(coefficient(0, dataType.nullValue));
     }
 
     // TODO(renggli): Only print non-null values.
     if (reversed) {
-      for (var i = count; i >= 0; i--) {
+      for (var i = degree; i >= 0; i--) {
         if (i < count) {
           buffer.write(separator);
         }
@@ -122,7 +125,7 @@ abstract class Polynomial<T> extends Tensor<T> {
         }
       }
     } else {
-      for (var i = 0; i < count; i++) {
+      for (var i = 0; i <= degree; i++) {
         if (i > 0) {
           buffer.write(separator);
         }
@@ -141,10 +144,10 @@ abstract class Polynomial<T> extends Tensor<T> {
 class _PolynomialList<T> extends ListMixin<T> {
   final Polynomial<T> polynomial;
 
-  _PolynomialList(this.polynomial) : length = polynomial.degree;
+  _PolynomialList(this.polynomial);
 
   @override
-  final int length;
+  int get length => polynomial.degree + 1;
 
   @override
   set length(int newLength) =>

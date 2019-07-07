@@ -38,12 +38,15 @@ class Builder<T> {
       // ignore: unrelated_type_equality_checks
       this.type == type ? this : Builder<S>(format, type);
 
-  /// Builds a new polynomial of the desired degree.
-  Polynomial<T> call([int degree = 0]) {
+  /// Builds a new polynomial of the desired degree of exponents.
+  Polynomial<T> call([int degree = -1]) {
+    if (degree < -1) {
+      throw RangeError.value(degree, 'degree');
+    }
     ArgumentError.checkNotNull(type, 'type');
     switch (format) {
       case Format.standard:
-        return StandardPolynomial<T>(type);
+        return StandardPolynomial<T>(type, degree);
       case Format.list:
         return ListPolynomial<T>(type);
       case Format.keyed:
@@ -53,9 +56,9 @@ class Builder<T> {
   }
 
   /// Builds a polynomial from calling a [callback] on every exponent.
-  Polynomial<T> generate(int count, T Function(int exponent) callback,
+  Polynomial<T> generate(int degree, T Function(int exponent) callback,
       {bool lazy = false}) {
-    final result = GeneratedPolynomial<T>(type, count, callback);
+    final result = GeneratedPolynomial<T>(type, degree, callback);
     return lazy ? result : fromPolynomial(result);
   }
 

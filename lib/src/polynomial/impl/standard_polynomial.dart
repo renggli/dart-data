@@ -11,13 +11,16 @@ class StandardPolynomial<T> extends Polynomial<T> {
   // Coefficients in ascending order, where the index matches the exponent.
   List<T> _coefficients;
 
-  StandardPolynomial(DataType<T> dataType)
-      : this._(dataType, dataType.newList(initialListSize));
+  StandardPolynomial(DataType<T> dataType, [int degree = -1])
+      : this._(dataType, dataType.newList(max(initialListSize, degree + 1)));
 
   StandardPolynomial._(this.dataType, this._coefficients);
 
   @override
   final DataType<T> dataType;
+
+  @override
+  int get count => _coefficients.length;
 
   @override
   int get degree {
@@ -31,7 +34,7 @@ class StandardPolynomial<T> extends Polynomial<T> {
 
   @override
   Polynomial<T> copy() => StandardPolynomial._(
-      dataType, dataType.copyList(_coefficients, length: degree));
+      dataType, dataType.copyList(_coefficients, length: degree + 1));
 
   @override
   T getUnchecked(int exponent) => exponent < _coefficients.length
@@ -41,7 +44,7 @@ class StandardPolynomial<T> extends Polynomial<T> {
   @override
   void setUnchecked(int exponent, T value) {
     if (exponent >= _coefficients.length) {
-      final newLength = max(exponent, 3 * _coefficients.length ~/ 2 + 1);
+      final newLength = max(exponent + 1, 3 * _coefficients.length ~/ 2 + 1);
       _coefficients = dataType.copyList(_coefficients, length: newLength);
     }
     _coefficients[exponent] = value;
