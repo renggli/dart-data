@@ -83,58 +83,55 @@ abstract class Polynomial<T> extends Tensor<T> {
     Printer paddingPrinter,
     Printer valuePrinter,
     // additional options
+    String addition = ' + ',
     String ellipses = '\u2026',
-    String separator = ' + ',
-    bool reversed = true,
+    String multiplication = ' ',
+    String power = '^',
     String variable = 'x',
+    bool skipNulls = true,
   }) {
-    final count = degree;
-    final buffer = StringBuffer();
-    valuePrinter ??= dataType.printer;
-    paddingPrinter ??= Printer.standard();
     ellipsesPrinter ??= Printer.standard();
+    paddingPrinter ??= Printer.standard();
+    valuePrinter ??= dataType.printer;
 
-    String coefficient(int exponent, T value) {
+    String coefficientPrinter(int exponent, T coefficient) {
+      if (skipNulls && coefficient == dataType.nullValue) {
+        return null;
+      }
       final buffer = StringBuffer();
-      buffer.write(valuePrinter(value));
-      if (variable != null && exponent > 0) {
+      buffer.write(valuePrinter(coefficient));
+      if (exponent > 0) {
+        buffer.write(multiplication);
         buffer.write(variable);
         if (exponent > 1) {
-          buffer.write('^');
+          buffer.write(power);
           buffer.write(exponent);
         }
       }
       return buffer.toString();
     }
 
-    if (degree < 0) {
-      buffer.write(coefficient(0, dataType.nullValue));
+    final count = degree;
+    if (count < 0) {
+      return paddingPrinter(valuePrinter(dataType.nullValue));
     }
-
-    // TODO(renggli): Only print non-null values.
-    if (reversed) {
-      for (var i = degree; i >= 0; i--) {
-        if (i < count) {
-          buffer.write(separator);
-        }
-        if (limit && leadingItems <= i && i < count - trailingItems) {
-          buffer.write(paddingPrinter(ellipsesPrinter(ellipses)));
-          i = count - trailingItems - 1;
-        } else {
-          buffer.write(coefficient(i, getUnchecked(i)));
-        }
+    final parts = <String>[];
+    for (var i = count; i >= 0; i--) {
+      final part = coefficientPrinter(i, getUnchecked(i));
+      if (part != null) {
+        parts.add(part);
       }
-    } else {
-      for (var i = 0; i <= degree; i++) {
-        if (i > 0) {
-          buffer.write(separator);
-        }
-        if (limit && leadingItems <= i && i < count - trailingItems) {
-          buffer.write(paddingPrinter(ellipsesPrinter(ellipses)));
-          i = count - trailingItems - 1;
-        } else {
-          buffer.write(coefficient(i, getUnchecked(i)));
-        }
+    }
+    final buffer = StringBuffer();
+    for (var i = 0; i < parts.length; i++) {
+      if (i > 0) {
+        buffer.write(addition);
+      }
+      if (limit && leadingItems <= i && i < count - trailingItems) {
+        buffer.write(paddingPrinter(ellipsesPrinter(ellipses)));
+        i = count - trailingItems - 1;
+      } else {
+        buffer.write(paddingPrinter(parts[i]));
       }
     }
     return buffer.toString();

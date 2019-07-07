@@ -108,7 +108,8 @@ void polynomialTest(String name, Builder builder) {
         }
       });
       test('fromVector', () {
-        final source = vector.Vector.builder.withType(DataType.int8).fromList([-1, 0, 2]);
+        final source =
+            vector.Vector.builder.withType(DataType.int8).fromList([-1, 0, 2]);
         final polynomial = builder.withType(DataType.int8).fromVector(source);
         expect(polynomial.dataType, DataType.int8);
         expect(polynomial.degree, 2);
@@ -194,6 +195,49 @@ void polynomialTest(String name, Builder builder) {
           expect(source[i], i.isEven ? 0 : -i);
           expect(copy[i], i.isEven ? -i : 0);
         }
+      });
+      group('format', () {
+        test('empty', () {
+          final polynomial = builder.withType(DataType.int8).fromCoefficients([]);
+          expect(polynomial.format(), '0');
+        });
+        test('constant', () {
+          final polynomial = builder.withType(DataType.int8).fromCoefficients([1]);
+          expect(polynomial.format(), '1');
+        });
+        test('2th-degree', () {
+          final polynomial = builder.withType(DataType.int8).fromCoefficients([1, 2]);
+          expect(polynomial.format(), 'x + 2');
+        });
+        test('3rd-degree', () {
+          final polynomial =
+              builder.withType(DataType.int8).fromCoefficients([1, 2, 3]);
+          expect(polynomial.format(), 'x^2 + 2 x + 3');
+        });
+        test('null values (skipped)', () {
+          final polynomial =
+              builder.withType(DataType.int8).fromCoefficients([2, 0, 0, 1]);
+          expect(polynomial.format(), '2 x^3 + 1');
+        });
+        test('null values (not skipped)', () {
+          final polynomial =
+              builder.withType(DataType.int8).fromCoefficients([2, 0, 1]);
+          expect(polynomial.format(skipNulls: false), '2 x^2 + 0 x + 1');
+        });
+        test('limit', () {
+          final polynomial =
+              builder.withType(DataType.int8).generate(19, (i) => i - 10);
+          expect(polynomial.format(),
+              '9 x^19 + 8 x^18 + 7 x^17 + … + -8 x^2 + -9 x + -10');
+        });
+      });
+      test('toString', () {
+        final polynomial = builder.withType(DataType.int8).fromList([3, 2, 1]);
+        expect(
+            polynomial.toString(),
+            '${polynomial.runtimeType}'
+            '[2, ${polynomial.dataType.name}]:\n'
+            '1 x^2 + 2 x + 3');
       });
     });
     group('iterables', () {
