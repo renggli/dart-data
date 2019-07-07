@@ -22,7 +22,7 @@ Polynomial<T> _resultPolynomial<T>(int degree, Polynomial<T> target,
 void _unaryOperator<T>(
     Polynomial<T> result, Polynomial<T> source, T Function(T value) operator) {
   final degree = source.degree;
-  for (var i = 0; i <=  degree; i++) {
+  for (var i = 0; i <= degree; i++) {
     result.setUnchecked(i, operator(source.getUnchecked(i)));
   }
 }
@@ -30,7 +30,7 @@ void _unaryOperator<T>(
 void _binaryOperator<T>(Polynomial<T> result, Polynomial<T> sourceA,
     Polynomial<T> sourceB, T Function(T a, T b) operator) {
   final degree = math.max(sourceA.degree, sourceB.degree);
-  for (var i = 0; i <=  degree; i++) {
+  for (var i = 0; i <= degree; i++) {
     result.setUnchecked(
         i, operator(sourceA.getUnchecked(i), sourceB.getUnchecked(i)));
   }
