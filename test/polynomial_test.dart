@@ -198,15 +198,18 @@ void polynomialTest(String name, Builder builder) {
       });
       group('format', () {
         test('empty', () {
-          final polynomial = builder.withType(DataType.int8).fromCoefficients([]);
+          final polynomial =
+              builder.withType(DataType.int8).fromCoefficients([]);
           expect(polynomial.format(), '0');
         });
         test('constant', () {
-          final polynomial = builder.withType(DataType.int8).fromCoefficients([1]);
+          final polynomial =
+              builder.withType(DataType.int8).fromCoefficients([1]);
           expect(polynomial.format(), '1');
         });
         test('2th-degree', () {
-          final polynomial = builder.withType(DataType.int8).fromCoefficients([1, 2]);
+          final polynomial =
+              builder.withType(DataType.int8).fromCoefficients([1, 2]);
           expect(polynomial.format(), 'x + 2');
         });
         test('3rd-degree', () {
@@ -232,12 +235,13 @@ void polynomialTest(String name, Builder builder) {
         });
       });
       test('toString', () {
-        final polynomial = builder.withType(DataType.int8).fromList([3, 2, 1]);
+        final polynomial =
+            builder.withType(DataType.int8).fromCoefficients([1, 2, 3]);
         expect(
             polynomial.toString(),
             '${polynomial.runtimeType}'
             '[2, ${polynomial.dataType.name}]:\n'
-            '1 x^2 + 2 x + 3');
+            'x^2 + 2 x + 3');
       });
     });
     group('iterables', () {

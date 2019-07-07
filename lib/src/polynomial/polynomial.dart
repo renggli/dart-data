@@ -89,19 +89,27 @@ abstract class Polynomial<T> extends Tensor<T> {
     String power = '^',
     String variable = 'x',
     bool skipNulls = true,
+    bool skipValues = true,
   }) {
     ellipsesPrinter ??= Printer.standard();
     paddingPrinter ??= Printer.standard();
     valuePrinter ??= dataType.printer;
 
     String coefficientPrinter(int exponent, T coefficient) {
-      if (skipNulls && coefficient == dataType.nullValue) {
+      if (skipNulls && coefficient == dataType.field.additiveIdentity) {
         return null;
       }
       final buffer = StringBuffer();
-      buffer.write(valuePrinter(coefficient));
+      final skipValue = skipValues &&
+          exponent != 0 &&
+          coefficient == dataType.field.multiplicativeIdentity;
+      if (!skipValue) {
+        buffer.write(valuePrinter(coefficient));
+      }
       if (exponent > 0) {
-        buffer.write(multiplication);
+        if (!skipValue) {
+          buffer.write(multiplication);
+        }
         buffer.write(variable);
         if (exponent > 1) {
           buffer.write(power);

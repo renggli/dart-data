@@ -82,7 +82,13 @@ class Builder<T> {
   }
 
   /// Builds a polynomial from a list of coefficients.
-  Polynomial<T> fromCoefficients(List<T> source) => fromList(source.reversed);
+  Polynomial<T> fromCoefficients(List<T> source) {
+    final result = this(source.length - 1);
+    for (var i = 0; i < source.length; i++) {
+      result.setUnchecked(i, source[source.length - i - 1]);
+    }
+    return result;
+  }
 
   /// Builds a polynomial from a list of values.
   Polynomial<T> fromList(List<T> source) {
