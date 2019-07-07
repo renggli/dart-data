@@ -397,12 +397,13 @@ abstract class Matrix<T> extends Tensor<T> {
   String format({
     Printer valuePrinter,
     Printer paddingPrinter,
+    Printer ellipsesPrinter,
     bool limit = true,
     int leadingItems = 3,
     int trailingItems = 3,
+    // additional options
     String horizontalSeparator = ' ',
     String verticalSeparator = '\n',
-    Printer ellipsesPrinter,
     String horizontalEllipses = '\u2026',
     String verticalEllipses = '\u22ee',
     String diagonalEllipses = '\u22f1',
@@ -422,30 +423,24 @@ abstract class Matrix<T> extends Tensor<T> {
         buffer.write(ellipsesVector.format(
           valuePrinter: ellipsesPrinter,
           paddingPrinter: paddingPrinter,
+          ellipsesPrinter: ellipsesPrinter,
           limit: limit,
           leadingItems: leadingItems,
           trailingItems: trailingItems,
-          horizontalSeparator: horizontalSeparator,
-          verticalSeparator: verticalSeparator,
-          ellipsesPrinter: ellipsesPrinter,
-          horizontalEllipses: diagonalEllipses,
-          verticalEllipses: verticalEllipses,
-          diagonalEllipses: diagonalEllipses,
+          separator: horizontalSeparator,
+          ellipses: horizontalEllipses,
         ));
         r = rowCount - trailingItems - 1;
       } else {
         buffer.write(rowUnchecked(r).format(
           valuePrinter: valuePrinter,
           paddingPrinter: paddingPrinter,
+          ellipsesPrinter: ellipsesPrinter,
           limit: limit,
           leadingItems: leadingItems,
           trailingItems: trailingItems,
-          horizontalSeparator: horizontalSeparator,
-          verticalSeparator: verticalSeparator,
-          ellipsesPrinter: ellipsesPrinter,
-          horizontalEllipses: horizontalEllipses,
-          verticalEllipses: verticalEllipses,
-          diagonalEllipses: diagonalEllipses,
+          separator: horizontalSeparator,
+          ellipses: horizontalEllipses,
         ));
       }
     }

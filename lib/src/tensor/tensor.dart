@@ -24,15 +24,10 @@ abstract class Tensor<T> {
   String format({
     Printer valuePrinter,
     Printer paddingPrinter,
+    Printer ellipsesPrinter,
     bool limit = true,
     int leadingItems = 3,
     int trailingItems = 3,
-    String horizontalSeparator = ' ',
-    String verticalSeparator = '\n',
-    Printer ellipsesPrinter,
-    String horizontalEllipses = '\u2026',
-    String verticalEllipses = '\u22ee',
-    String diagonalEllipses = '\u22f1',
   });
 
   /// Returns the string representation of this tensor.
