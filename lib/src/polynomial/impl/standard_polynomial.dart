@@ -37,6 +37,9 @@ class StandardPolynomial<T> extends Polynomial<T> {
       dataType, dataType.copyList(_coefficients, length: degree + 1));
 
   @override
+  void clear() => _coefficients = dataType.newList(initialListSize);
+
+  @override
   T getUnchecked(int exponent) => exponent < _coefficients.length
       ? _coefficients[exponent]
       : dataType.nullValue;
