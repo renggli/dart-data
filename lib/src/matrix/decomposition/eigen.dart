@@ -5,6 +5,8 @@ import 'dart:math' as math;
 import 'package:data/src/matrix/matrix.dart';
 import 'package:data/src/shared/config.dart';
 import 'package:data/src/shared/math.dart';
+import 'package:more/collection.dart';
+import 'package:more/number.dart';
 
 /// Eigenvalues and eigenvectors of a real matrix.
 ///
@@ -908,4 +910,8 @@ class EigenvalueDecomposition {
 
   /// Return the imaginary parts of the eigenvalues.
   List<double> get imagEigenvalues => _e;
+
+  /// Return the complex eigenvalues.
+  List<Complex> get eigenvalues =>
+      IntegerRange(_n).map((i) => Complex(_d[i], _e[i])).toList();
 }

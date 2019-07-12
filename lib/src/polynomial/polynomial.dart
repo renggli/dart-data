@@ -63,7 +63,7 @@ abstract class Polynomial<T> extends Tensor<T> {
   void setUnchecked(int exponent, T value);
 
   /// Evaluates the polynomial at [value].
-  T evaluate(T value) {
+  T call(T value) {
     var exponent = degree;
     if (exponent < 0) {
       return dataType.nullValue;

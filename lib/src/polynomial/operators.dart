@@ -2,6 +2,7 @@ library data.polynomial.operators;
 
 import 'dart:math' as math;
 
+import 'package:data/matrix.dart' as matrix;
 import 'package:data/src/polynomial/builder.dart';
 import 'package:data/src/polynomial/polynomial.dart';
 import 'package:data/type.dart';
@@ -213,6 +214,31 @@ Tuple2<Polynomial<T>, Polynomial<T>> div<T>(
   }
 
   return Tuple2(quotient, remainder);
+}
+
+/// Computes the roots of a polynomial.
+List<Complex> roots(Polynomial<num> source) {
+  final degree = source.degree;
+  if (degree <= 0) {
+    return [];
+  } else if (degree == 1) {
+    final a = source.getUnchecked(1), b = source.getUnchecked(0);
+    return [Complex(-b / a)];
+  } else {
+    final factor = source.getUnchecked(degree);
+    final eigenMatrix = matrix.Matrix.builder
+        .withType(DataType.float64)
+        .generate(degree, degree, (r, c) {
+      if (r == degree - 1) {
+        return -source.getUnchecked(c) / factor;
+      } else if (r + 1 == c) {
+        return 1;
+      } else {
+        return 0;
+      }
+    }, lazy: true);
+    return matrix.eigenvalue(eigenMatrix).eigenvalues;
+  }
 }
 
 /// Compares two polynomials [sourceA] and [sourceB] with each other.

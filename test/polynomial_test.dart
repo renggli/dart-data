@@ -179,6 +179,106 @@ void polynomialTest(String name, Builder builder) {
         polynomial[2] = 3;
       });
     });
+    group('evaluating', () {
+      test('empty', () {
+        final polynomial = builder.withType(DataType.int32)();
+        expect(polynomial(-1), 0);
+        expect(polynomial(0), 0);
+        expect(polynomial(1), 0);
+        expect(polynomial(2), 0);
+      });
+      test('constant', () {
+        final polynomial = builder.withType(DataType.int32).fromList([2]);
+        expect(polynomial(-1), 2);
+        expect(polynomial(0), 2);
+        expect(polynomial(1), 2);
+        expect(polynomial(2), 2);
+      });
+      test('linear', () {
+        final polynomial = builder.withType(DataType.int32).fromList([1, 2]);
+        expect(polynomial(-1), -1);
+        expect(polynomial(0), 1);
+        expect(polynomial(1), 3);
+        expect(polynomial(2), 5);
+      });
+      test('square', () {
+        final polynomial = builder.withType(DataType.int32).fromList([2, 0, 3]);
+        expect(polynomial(-1), 5);
+        expect(polynomial(0), 2);
+        expect(polynomial(1), 5);
+        expect(polynomial(2), 14);
+      });
+    });
+    group('roots', () {
+      final epsilon = pow(2.0, -32.0);
+      test('empty', () {
+        final polynomial = builder.withType(DataType.int32)();
+        final solutions = roots(polynomial);
+        expect(solutions, isEmpty);
+      });
+      test('constant', () {
+        final polynomial = builder.withType(DataType.int32).fromList([2]);
+        final solutions = roots(polynomial);
+        expect(solutions, isEmpty);
+      });
+      test('linear', () {
+        final polynomial = builder.withType(DataType.int32).fromList([1, 2]);
+        final solutions = roots(polynomial);
+        expect(solutions, hasLength(1));
+        expect(solutions[0].closeTo(const Complex(-0.5), epsilon), isTrue);
+      });
+      test('square', () {
+        final polynomial = builder.withType(DataType.int32).fromList([2, 0, 3]);
+        final solutions = roots(polynomial);
+        expect(solutions, hasLength(2));
+        expect(solutions[0].closeTo(Complex(0, sqrt(2 / 3)), epsilon), isTrue);
+        expect(solutions[1].closeTo(Complex(0, -sqrt(2 / 3)), epsilon), isTrue);
+      });
+      test('cubic', () {
+        final polynomial =
+            builder.withType(DataType.int32).fromList([6, -5, -2, 1]);
+        final solutions = roots(polynomial);
+        expect(solutions, hasLength(3));
+        expect(solutions[0].closeTo(const Complex(1), epsilon), isTrue);
+        expect(solutions[1].closeTo(const Complex(3), epsilon), isTrue);
+        expect(solutions[2].closeTo(const Complex(-2), epsilon), isTrue);
+      });
+      test('septic', () {
+        final polynomial = builder
+            .withType(DataType.int32)
+            .fromList([5, -8, 7, -3, 0, -3, 5, -4]);
+        final solutions = roots(polynomial);
+        expect(solutions, hasLength(7));
+        expect(
+            solutions[0]
+                .closeTo(const Complex(-0.8850843987, 0.6981874373), epsilon),
+            isTrue);
+        expect(
+            solutions[1]
+                .closeTo(const Complex(-0.8850843987, -0.6981874373), epsilon),
+            isTrue);
+        expect(
+            solutions[2]
+                .closeTo(const Complex(0.2543482521, 0.9163091163), epsilon),
+            isTrue);
+        expect(
+            solutions[3]
+                .closeTo(const Complex(0.2543482521, -0.9163091163), epsilon),
+            isTrue);
+        expect(
+            solutions[4]
+                .closeTo(const Complex(0.9247965171, 0.0000000000), epsilon),
+            isTrue);
+        expect(
+            solutions[5]
+                .closeTo(const Complex(0.7933378880, 0.7394177680), epsilon),
+            isTrue);
+        expect(
+            solutions[6]
+                .closeTo(const Complex(0.7933378880, -0.7394177680), epsilon),
+            isTrue);
+      });
+    });
     group('view', () {
       test('differentiate', () {
         final source =
