@@ -180,6 +180,32 @@ void polynomialTest(String name, Builder builder) {
       });
     });
     group('view', () {
+      test('differentiate', () {
+        final source =
+            builder.withType(DataType.int16).fromCoefficients([2, 5, 7, 11]);
+        final result = source.differentiate;
+        expect(result.dataType, source.dataType);
+        expect(result.storage, [source]);
+        expect(result.degree, source.degree - 1);
+        expect(result[0], 7);
+        expect(result[1], 10);
+        expect(result[2], 6);
+        expect(result[3], 0);
+      });
+      test('integrate', () {
+        final source =
+            builder.withType(DataType.int16).fromCoefficients([12, 6, 10, 7]);
+        final result = source.integrate;
+        expect(result.dataType, source.dataType);
+        expect(result.storage, [source]);
+        expect(result.degree, source.degree + 1);
+        expect(result[0], 0);
+        expect(result[1], 7);
+        expect(result[2], 5);
+        expect(result[3], 2);
+        expect(result[4], 3);
+        expect(result[5], 0);
+      });
       test('copy', () {
         final source = builder.generate(7, (i) => i - 4);
         final copy = source.copy();

@@ -5,9 +5,12 @@ import 'package:data/src/polynomial/impl/keyed_polynomial.dart';
 import 'package:data/src/polynomial/impl/list_polynomial.dart';
 import 'package:data/src/polynomial/impl/standard_polynomial.dart';
 import 'package:data/src/polynomial/polynomial.dart';
+import 'package:data/src/polynomial/view/differentiate_polynomial.dart';
 import 'package:data/src/polynomial/view/generated_polynomial.dart';
+import 'package:data/src/polynomial/view/integrate_polynomial.dart';
 import 'package:data/type.dart';
 import 'package:data/vector.dart' show Vector;
+import 'package:more/collection.dart';
 
 /// Builds a polynomial of a custom type.
 class Builder<T> {
@@ -59,6 +62,24 @@ class Builder<T> {
   Polynomial<T> generate(int degree, T Function(int exponent) callback,
       {bool lazy = false}) {
     final result = GeneratedPolynomial<T>(type, degree, callback);
+    return lazy ? result : fromPolynomial(result);
+  }
+
+  /// Builds a differentiate from another [polynomial].
+  Polynomial<T> differentiate(Polynomial<T> polynomial,
+      {int count = 1, bool lazy = false}) {
+    RangeError.checkNotNegative(count, 'count');
+    final result = IntegerRange(count).fold(
+        polynomial, (previous, index) => DifferentiatePolynomial<T>(previous));
+    return lazy ? result : fromPolynomial(result);
+  }
+
+  /// Builds a integrate from another [polynomial].
+  Polynomial<T> integrate(Polynomial<T> polynomial,
+      {T constant, int count = 1, bool lazy = false}) {
+    RangeError.checkNotNegative(count, 'count');
+    final result = IntegerRange(count).fold(polynomial,
+        (previous, index) => IntegratePolynomial<T>(previous, constant));
     return lazy ? result : fromPolynomial(result);
   }
 
