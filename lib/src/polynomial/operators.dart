@@ -247,9 +247,12 @@ bool compare<T>(Polynomial<T> sourceA, Polynomial<T> sourceB,
   if (equals == null && identical(sourceA, sourceB)) {
     return true;
   }
-  final degree = math.max(sourceA.degree, sourceB.degree);
+  final degreeA = sourceA.degree, degreeB = sourceB.degree;
+  if (degreeA != degreeB) {
+    return false;
+  }
   equals ??= sourceA.dataType.equality.isEqual;
-  for (var i = 0; i <= degree; i++) {
+  for (var i = degreeA; i >= 0; i--) {
     if (!equals(sourceA.getUnchecked(i), sourceB.getUnchecked(i))) {
       return false;
     }

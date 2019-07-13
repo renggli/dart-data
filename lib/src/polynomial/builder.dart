@@ -87,7 +87,7 @@ class Builder<T> {
   Polynomial<T> fromPolynomial(Polynomial<T> source) {
     final degree = source.degree;
     final result = this(degree);
-    for (var i = 0; i <= degree; i++) {
+    for (var i = degree; i >= 0; i--) {
       result.setUnchecked(i, source.getUnchecked(i));
     }
     return result;
