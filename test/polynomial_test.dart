@@ -280,31 +280,59 @@ void polynomialTest(String name, Builder builder) {
       });
     });
     group('view', () {
-      test('differentiate', () {
-        final source =
-            builder.withType(DataType.int16).fromCoefficients([2, 5, 7, 11]);
-        final result = source.differentiate;
-        expect(result.dataType, source.dataType);
-        expect(result.storage, [source]);
-        expect(result.degree, source.degree - 1);
-        expect(result[0], 7);
-        expect(result[1], 10);
-        expect(result[2], 6);
-        expect(result[3], 0);
+      group('differentiate', () {
+        final cs0 = [11, 7, 5, 2, 0], cs1 = [7, 10, 6, 0, 0];
+        test('read', () {
+          final source = builder.withType(DataType.int16).fromList(cs0);
+          final result = source.differentiate;
+          expect(result.dataType, source.dataType);
+          expect(result.storage, [source]);
+          expect(result.degree, source.degree - 1);
+          expect(compare(result.copy(), result), isTrue);
+          for (var i = 0; i < cs1.length; i++) {
+            expect(source[i], cs0[i]);
+            expect(result[i], cs1[i]);
+          }
+        });
+        test('write', () {
+          final source = builder.withType(DataType.int16)();
+          final result = source.differentiate;
+          expect(result.degree, -1);
+          for (var i = 0; i < cs1.length; i++) {
+            result[i] = cs1[i];
+          }
+          for (var i = 0; i < cs1.length; i++) {
+            expect(source[i], i == 0 ? 0 : cs0[i]);
+            expect(result[i], cs1[i]);
+          }
+        });
       });
-      test('integrate', () {
-        final source =
-            builder.withType(DataType.int16).fromCoefficients([12, 6, 10, 7]);
-        final result = source.integrate;
-        expect(result.dataType, source.dataType);
-        expect(result.storage, [source]);
-        expect(result.degree, source.degree + 1);
-        expect(result[0], 0);
-        expect(result[1], 7);
-        expect(result[2], 5);
-        expect(result[3], 2);
-        expect(result[4], 3);
-        expect(result[5], 0);
+      group('integrate', () {
+        final cs0 = [7, 10, 6, 12, 0, 0], cs1 = [0, 7, 5, 2, 3, 0];
+        test('read', () {
+          final source = builder.withType(DataType.int16).fromList(cs0);
+          final result = source.integrate;
+          expect(result.dataType, source.dataType);
+          expect(result.storage, [source]);
+          expect(result.degree, source.degree + 1);
+          expect(compare(result.copy(), result), isTrue);
+          for (var i = 0; i < cs1.length; i++) {
+            expect(source[i], cs0[i]);
+            expect(result[i], cs1[i]);
+          }
+        });
+        test('write', () {
+          final source = builder.withType(DataType.int16)();
+          final result = source.integrate;
+          expect(result.degree, -1);
+          for (var i = 0; i < cs1.length; i++) {
+            result[i] = cs1[i];
+          }
+          for (var i = 0; i < cs1.length; i++) {
+            expect(source[i], cs0[i]);
+            expect(result[i], cs1[i]);
+          }
+        });
       });
       test('copy', () {
         final source = builder.generate(7, (i) => i - 4);
@@ -313,13 +341,34 @@ void polynomialTest(String name, Builder builder) {
         expect(copy.degree, source.degree);
         expect(copy.count, source.count);
         expect(copy.storage, [copy]);
-        for (var i = 0; i <= source.degree; i++) {
+        for (var i = source.degree; i >= 0; i--) {
           source[i] = i.isEven ? 0 : -i;
           copy[i] = i.isEven ? -i : 0;
         }
-        for (var i = 0; i <= source.degree; i++) {
+        for (var i = source.degree; i >= 0; i--) {
           expect(source[i], i.isEven ? 0 : -i);
           expect(copy[i], i.isEven ? -i : 0);
+        }
+      });
+      test('unmodifiable', () {
+        final source =
+            builder.withType(DataType.int64).generate(7, (i) => i + 1);
+        final readonly = source.unmodifiable;
+        expect(readonly.dataType, source.dataType);
+        expect(readonly.degree, 7);
+        expect(readonly.storage, [source]);
+        expect(readonly.unmodifiable, readonly);
+        expect(compare(readonly.copy(), readonly), isTrue);
+        for (var i = readonly.degree; i >= 0; i--) {
+          expect(readonly[i], i + 1);
+          expect(() => readonly[i] = i, throwsUnsupportedError);
+        }
+        for (var i = source.degree; i >= 0; i--) {
+          expect(source[i], i + 1);
+          source[i] = -source[i];
+        }
+        for (var i = readonly.degree; i >= 0; i--) {
+          expect(readonly[i], -i - 1);
         }
       });
       group('format', () {

@@ -39,26 +39,3 @@ class DifferentiatePolynomial<T> extends Polynomial<T> {
     );
   }
 }
-
-//public Polynomial Differentiate()
-//{
-//  int n = Degree;
-//  if (n < 0)
-//  {
-//    return this;
-//  }
-//
-//  if (n == 0)
-//  {
-//    // Zero
-//    return Zero;
-//  }
-//
-//  var c = new double[n];
-//  for (int i = 0; i < c.Length; i++)
-//  {
-//    c[i] = Coefficients[i + 1] * (i + 1);
-//  }
-//
-//  return new Polynomial(c);
-//}
