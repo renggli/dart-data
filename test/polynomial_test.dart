@@ -150,6 +150,33 @@ void polynomialTest(String name, Builder builder) {
           expect(polynomial[i], i - 2);
         }
       });
+      group('fromRoots', () {
+        test('empty', () {
+          final actual = builder.withType(DataType.int32).fromRoots([]);
+          final expected = builder.withType(DataType.int32).fromList([]);
+          expect(actual.toString(), expected.toString());
+        });
+        test('linear', () {
+          final actual = builder.withType(DataType.int32).fromRoots([1]);
+          final expected = builder.withType(DataType.int32).fromList([-1, 1]);
+          expect(actual.toString(), expected.toString());
+        });
+        test('qubic', () {
+          final actual = builder.withType(DataType.int32).fromRoots([1, -2]);
+          final expected =
+              builder.withType(DataType.int32).fromList([-2, 1, 1]);
+          expect(actual.toString(), expected.toString());
+        });
+        test('septic', () {
+          final actual = builder
+              .withType(DataType.int32)
+              .fromRoots([8, -4, -7, 3, 1, 1, 0]);
+          final expected = builder
+              .withType(DataType.int32)
+              .fromList([0, 672, -1388, 691, 94, -68, -2, 1]);
+          expect(actual.toString(), expected.toString());
+        });
+      });
       test('fromVector', () {
         final source =
             vector.Vector.builder.withType(DataType.int8).fromList([-1, 0, 2]);

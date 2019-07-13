@@ -102,6 +102,30 @@ class Builder<T> {
     return result;
   }
 
+  /// Builds a polynomial from a list of roots.
+  Polynomial<T> fromRoots(List<T> roots) {
+    final result = this(roots.length);
+    if (roots.isEmpty) {
+      return result;
+    }
+    result.setUnchecked(0, type.field.neg(roots[0]));
+    result.setUnchecked(1, type.field.multiplicativeIdentity);
+    final sub = type.field.sub, mul = type.field.mul;
+    for (var i = 1; i < roots.length; i++) {
+      final root = roots[i];
+      for (var j = i + 1; j >= 0; j--) {
+        result.setUnchecked(
+            j,
+            sub(
+                j > 0
+                    ? result.getUnchecked(j - 1)
+                    : type.field.additiveIdentity,
+                mul(root, result.getUnchecked(j))));
+      }
+    }
+    return result;
+  }
+
   /// Builds a polynomial from a list of coefficients.
   Polynomial<T> fromCoefficients(List<T> source) {
     final result = this(source.length - 1);
