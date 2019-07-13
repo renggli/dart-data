@@ -34,13 +34,6 @@ abstract class Polynomial<T> extends Tensor<T> {
   @override
   Polynomial<T> copy();
 
-  /// Resets the polynomial to its null value.
-  void clear() {
-    for (var exponent = degree; exponent >= 0; exponent--) {
-      setUnchecked(exponent, dataType.nullValue);
-    }
-  }
-
   /// Returns the coefficient at the provided [exponent].
   @override
   T operator [](int exponent) {

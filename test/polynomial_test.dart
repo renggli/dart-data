@@ -549,26 +549,6 @@ void polynomialTest(String name, Builder builder) {
             expect(result[i], sourceA[i] + sourceB[i]);
           }
         });
-        test('target', () {
-          final target = builder.withType(DataType.int16)(sourceA.degree);
-          final result = add(sourceA, sourceB, target: target);
-          expect(target.dataType, DataType.int16);
-          expect(target.degree, sourceA.degree);
-          for (var i = 0; i <= target.degree; i++) {
-            expect(target[i], sourceA[i] + sourceB[i]);
-          }
-          expect(result, target);
-        });
-        test('target, different degree', () {
-          final target = builder.withType(DataType.int16)(2);
-          final result = add(sourceA, sourceB, target: target);
-          expect(target.dataType, DataType.int16);
-          expect(target.degree, sourceA.degree);
-          for (var i = 0; i <= target.degree; i++) {
-            expect(target[i], sourceA[i] + sourceB[i]);
-          }
-          expect(result, target);
-        });
         test('builder', () {
           final result =
               add(sourceA, sourceB, builder: builder.withType(DataType.int16));
@@ -646,6 +626,38 @@ void polynomialTest(String name, Builder builder) {
           expect(p[0], 5.0);
           expect(p[1], 2.0);
           expect(p[2], 4.0);
+        });
+      });
+      group('mul', () {
+        final sourceA = builder.withType(DataType.int32).fromList([2, 3, 4]);
+        final sourceB =
+            builder.withType(DataType.int32).fromList([-2, 4, 9, -3]);
+        test('default', () {
+          final expected = builder
+              .withType(DataType.int32)
+              .fromList([-4, 2, 22, 37, 27, -12]);
+          final first = mul(sourceA, sourceB);
+          expect(first.dataType, DataType.int32);
+          expect(first.degree, 5);
+          expect(compare(first, expected), isTrue);
+          final second = mul(sourceB, sourceA);
+          expect(second.dataType, DataType.int32);
+          expect(second.degree, 5);
+          expect(compare(second, expected), isTrue);
+        });
+        test('zero', () {
+          final zero = builder.withType(DataType.int32).fromList([]);
+          final first = mul(sourceA, zero);
+          expect(compare(first, zero), isTrue);
+          final second = mul(zero, sourceA);
+          expect(compare(second, zero), isTrue);
+        });
+        test('constant', () {
+          final constant = builder.withType(DataType.int32).fromList([3]);
+          final first = mul(sourceA, constant);
+          expect(compare(first, scale(sourceA, 3)), isTrue);
+          final second = mul(constant, sourceA);
+          expect(compare(second, scale(sourceA, 3)), isTrue);
         });
       });
       group('compare', () {
