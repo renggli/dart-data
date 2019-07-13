@@ -37,31 +37,6 @@ void polynomialTest(String name, Builder builder) {
         expect(() => builder.withType(null)(4), throwsArgumentError);
         expect(() => builder.withFormat(null)(4), throwsArgumentError);
       });
-//      test('constant', () {
-//        final polynomial = builder.withType(DataType.int8).constant(5, 123);
-//        expect(polynomial.dataType, DataType.int8);
-//        expect(polynomial.count, 5);
-//        expect(polynomial.shape, [polynomial.count]);
-//        expect(polynomial.storage, [polynomial]);
-//        expect(polynomial.copy(), polynomial);
-//        for (var i = 0; i < polynomial.count; i++) {
-//          expect(polynomial[i], 123);
-//        }
-//        expect(() => polynomial[3] = 1, throwsUnsupportedError);
-//      });
-//      test('constant, mutable', () {
-//        final polynomial =
-//            builder.withType(DataType.int8).constant(5, 123, mutable: true);
-//        expect(polynomial.dataType, DataType.int8);
-//        expect(polynomial.count, 5);
-//        expect(polynomial.shape, [polynomial.count]);
-//        expect(polynomial.storage, [polynomial]);
-//        for (var i = 0; i < polynomial.count; i++) {
-//          expect(polynomial[i], 123);
-//        }
-//        polynomial[3] = 1;
-//        expect(polynomial[3], 1);
-//      });
       test('generate', () {
         final polynomial =
             builder.withType(DataType.int16).generate(7, (i) => i - 4);
@@ -93,12 +68,80 @@ void polynomialTest(String name, Builder builder) {
         final copy = polynomial.copy();
         expect(copy, same(polynomial));
       });
+      group('differentiate', () {
+        final p0 = builder.withType(DataType.int8).fromList([11, 7, 5, 2, 0]);
+        final p1 = builder.withType(DataType.int8).fromList([7, 10, 6, 0, 0]);
+        final p2 = builder.withType(DataType.int8).fromList([10, 12, 0, 0, 0]);
+        test('default', () {
+          final result = builder.withType(DataType.int32).differentiate(p0);
+          expect(result.dataType, DataType.int32);
+          expect(result.storage, [result]);
+          expect(compare(result, p1), isTrue);
+        });
+        test('lazy', () {
+          final result = builder.differentiate(p0, lazy: true);
+          expect(result.dataType, p0.dataType);
+          expect(result.storage, [p0]);
+          expect(compare(result, p1), isTrue);
+        });
+        test('count', () {
+          final result =
+              builder.withType(DataType.int32).differentiate(p0, count: 2);
+          expect(result.dataType, DataType.int32);
+          expect(result.storage, [result]);
+          expect(compare(result, p2), isTrue);
+        });
+        test('count, error', () {
+          expect(() => builder.differentiate(p0, count: -1), throwsRangeError);
+        });
+      });
+      group('integrate', () {
+        final p0 = builder.withType(DataType.int8).fromList([7, 10, 6, 12]);
+        final p1 = builder.withType(DataType.int8).fromList([0, 7, 5, 2, 3]);
+        final p2 = builder.withType(DataType.int8).fromList([0, 0, 3, 1]);
+        test('default', () {
+          final result = builder.withType(DataType.int32).integrate(p0);
+          expect(result.dataType, DataType.int32);
+          expect(result.storage, [result]);
+          expect(compare(result, p1), isTrue);
+        });
+        test('constant', () {
+          final result =
+              builder.withType(DataType.int32).integrate(p0, constant: 42);
+          expect(result.dataType, DataType.int32);
+          expect(result.storage, [result]);
+          expect(
+              compare(result,
+                  builder.withType(DataType.int32).fromList([42, 7, 5, 2, 3])),
+              isTrue);
+        });
+        test('lazy', () {
+          final result = builder.integrate(p0, lazy: true);
+          expect(result.dataType, p0.dataType);
+          expect(result.storage, [p0]);
+          expect(compare(result, p1), isTrue);
+        });
+        test('count', () {
+          final result =
+              builder.withType(DataType.int32).integrate(p0, count: 2);
+          expect(result.dataType, DataType.int32);
+          expect(result.storage, [result]);
+          expect(compare(result, p2), isTrue);
+        });
+        test('count, zero', () {
+          final result = builder.integrate(p0, count: 0, lazy: true);
+          expect(result, p0);
+        });
+        test('count, error', () {
+          expect(() => builder.integrate(p0, count: -1), throwsRangeError);
+        });
+      });
       test('fromPolynomial', () {
         final source =
             builder.withType(DataType.int8).generate(5, (i) => i - 2);
         final polynomial =
-            builder.withType(DataType.int8).fromPolynomial(source);
-        expect(polynomial.dataType, DataType.int8);
+            builder.withType(DataType.int16).fromPolynomial(source);
+        expect(polynomial.dataType, DataType.int16);
         expect(polynomial.degree, 5);
         expect(polynomial.count, greaterThan(polynomial.degree));
         expect(polynomial.shape, [polynomial.degree]);
