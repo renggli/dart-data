@@ -414,9 +414,10 @@ void polynomialTest(String name, Builder<int> builder) {
             final source = builder.fromList(list);
             final actual = source.shift(offset);
             final expected = offset < 0
-              ? list.sublist(min(-offset, list.length))
-              : offset > 0 ? List<int>.generate(offset, (i) => 0) + list
-              : list;
+                ? list.sublist(min(-offset, list.length))
+                : offset > 0
+                    ? List<int>.generate(offset, (i) => 0) + list
+                    : list;
             expect(actual.dataType, source.dataType);
             expect(actual.degree, max(source.degree + offset, -1));
             expect(actual.storage, {source});
