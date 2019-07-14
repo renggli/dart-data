@@ -7,8 +7,8 @@ import 'package:data/type.dart';
 import 'package:data/vector.dart' as vector;
 import 'package:test/test.dart';
 
-final throwsIntegerDivisionByZero =
-    throwsA(TypeMatcher<IntegerDivisionByZeroException>());
+final Matcher throwsIntegerDivisionByZero =
+    throwsA(const TypeMatcher<IntegerDivisionByZeroException>());
 
 void polynomialTest(String name, Builder<int> builder) {
   group(name, () {
@@ -759,6 +759,6 @@ void polynomialTest(String name, Builder<int> builder) {
 void main() {
   final builder = Polynomial.builder.withType(DataType.int32);
   polynomialTest('standard', builder.standard);
-//  polynomialTest('keyed', builder.keyed);
-//  polynomialTest('list', builder.list);
+  polynomialTest('keyed', builder.keyed);
+  polynomialTest('list', builder.list);
 }

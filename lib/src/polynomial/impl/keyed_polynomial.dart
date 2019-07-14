@@ -24,9 +24,6 @@ class KeyedPolynomial<T> extends Polynomial<T> {
       KeyedPolynomial._(dataType, SplayTreeMap.of(_coefficients));
 
   @override
-  void clear() => _coefficients.clear();
-
-  @override
   T getUnchecked(int exponent) => _coefficients[exponent] ?? dataType.nullValue;
 
   @override

@@ -20,9 +20,6 @@ class StandardPolynomial<T> extends Polynomial<T> {
   final DataType<T> dataType;
 
   @override
-  int get count => _coefficients.length;
-
-  @override
   int get degree {
     for (var i = _coefficients.length - 1; i >= 0; i--) {
       if (_coefficients[i] != dataType.nullValue) {
@@ -35,9 +32,6 @@ class StandardPolynomial<T> extends Polynomial<T> {
   @override
   Polynomial<T> copy() => StandardPolynomial._(
       dataType, dataType.copyList(_coefficients, length: degree + 1));
-
-  @override
-  void clear() => _coefficients = dataType.newList(initialListSize);
 
   @override
   T getUnchecked(int exponent) => exponent < _coefficients.length
