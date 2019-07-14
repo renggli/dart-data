@@ -36,7 +36,7 @@ class ShiftPolynomial<T> extends Polynomial<T> {
 
   @override
   T getUnchecked(int exponent) {
-    final index = exponent + _offset;
+    final index = exponent - _offset;
     if (index >= 0) {
       return _polynomial.getUnchecked(index);
     }
@@ -45,7 +45,7 @@ class ShiftPolynomial<T> extends Polynomial<T> {
 
   @override
   void setUnchecked(int exponent, T value) {
-    final index = exponent + _offset;
+    final index = exponent - _offset;
     if (index >= 0) {
       _polynomial.setUnchecked(index, value);
     }

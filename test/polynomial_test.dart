@@ -407,28 +407,41 @@ void polynomialTest(String name, Builder<int> builder) {
           }
         });
       });
-//      group('shift', () {
-//        for (var offset = -5; offset <= 5; offset++) {
-//          test('offset = $offset', () {
-//            final list = [1, 2, 3, 4];
-//            final source = builder.fromList(list);
-//            final actual = source.shift(offset);
-//            expect(actual.dataType, source.dataType);
-//            expect(actual.degree, max(source.degree + offset, -1));
-//            if (offset < 0) {
-//              final expected =
-//                  builder.fromList(list.sublist(min(-offset, list.length)));
-//              expect(compare(actual, expected), isTrue);
-//            } else if (offset > 0) {
-//              final expected =
-//                  builder.fromList(List<int>.generate(offset, (i) => 0) + list);
-//              expect(compare(actual, expected), isTrue);
-//            } else {
-//              expect(actual, source);
-//            }
-//          });
-//        }
-//      });
+      group('shift', () {
+        for (var offset = -5; offset <= 5; offset++) {
+          test('offset = $offset', () {
+            final list = [1, 2, 3, 4];
+            final source = builder.fromList(list);
+            final actual = source.shift(offset);
+            final expected = offset < 0
+              ? list.sublist(min(-offset, list.length))
+              : offset > 0 ? List<int>.generate(offset, (i) => 0) + list
+              : list;
+            expect(actual.dataType, source.dataType);
+            expect(actual.degree, max(source.degree + offset, -1));
+            expect(actual.storage, {source});
+            expect(actual.iterable, expected);
+            expect(actual.copy().iterable, expected);
+            expect(actual.shift(-offset), source);
+            if (offset <= 0) {
+              actual[0] = -1;
+              expect(actual[0], -1);
+            }
+          });
+          test('offset = $offset, empty', () {
+            final list = <int>[];
+            final source = builder.fromList(list);
+            final actual = source.shift(offset);
+            final expected = [];
+            expect(actual.dataType, source.dataType);
+            expect(actual.degree, -1);
+            expect(actual.storage, {source});
+            expect(actual.iterable, expected);
+            expect(actual.copy().iterable, expected);
+            expect(actual.shift(-offset), source);
+          });
+        }
+      });
       test('copy', () {
         final source = builder.generate(7, (i) => i - 4);
         final copy = source.copy();
