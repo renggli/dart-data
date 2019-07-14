@@ -24,9 +24,6 @@ abstract class Polynomial<T> extends Tensor<T> {
   /// Returns the degree this polynomial, that is the highest coefficient.
   int get degree;
 
-  /// Returns the count of values of this polynomial.
-  int get count => degree + 1;
-
   /// Returns the shape of this polynomial.
   @override
   List<int> get shape => [degree];
@@ -34,6 +31,9 @@ abstract class Polynomial<T> extends Tensor<T> {
   /// Returns a copy of this polynomial.
   @override
   Polynomial<T> copy();
+
+  /// Returns the leading term of this polynomial.
+  T get lead => degree >= 0 ? getUnchecked(degree) : dataType.nullValue;
 
   /// Returns the coefficient at the provided [exponent].
   @override

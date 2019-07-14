@@ -14,8 +14,7 @@ Polynomial<T> _resultPolynomial<T>(
   } else if (dataType != null) {
     return Polynomial.builder.withType(dataType)(degree);
   }
-  throw ArgumentError(
-      'Expected either a "target", a "builder", or a "dataType".');
+  throw ArgumentError('Expected either a "builder", or a "dataType".');
 }
 
 void _unaryOperator<T>(
