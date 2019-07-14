@@ -188,7 +188,6 @@ Division<Polynomial<T>> div<T>(
   final dividendLead = dividend.lead;
   final output = dataType.copyList(dividend.iterable);
   for (var i = dividendDegree - divisorDegree; i >= 0; i--) {
-    print('${output[i + 1]} / $dividendLead');
     final coefficient = output[i + 1] = div(output[i + 1], dividendLead);
     if (coefficient != dataType.nullValue) {
       for (var j = divisorDegree - 1; j >= 0; j--) {

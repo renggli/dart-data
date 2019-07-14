@@ -26,7 +26,7 @@ abstract class Polynomial<T> extends Tensor<T> {
 
   /// Returns the shape of this polynomial.
   @override
-  List<int> get shape => [degree];
+  List<int> get shape => [degree + 1];
 
   /// Returns a copy of this polynomial.
   @override

@@ -17,7 +17,7 @@ void polynomialTest(String name, Builder<int> builder) {
         final polynomial = builder();
         expect(polynomial.dataType, DataType.int32);
         expect(polynomial.degree, -1);
-        expect(polynomial.shape, [polynomial.degree]);
+        expect(polynomial.shape, [0]);
         expect(polynomial.storage, [polynomial]);
         for (var i = 0; i < 10; i++) {
           expect(polynomial[i], 0);
@@ -27,7 +27,7 @@ void polynomialTest(String name, Builder<int> builder) {
         final polynomial = builder(4);
         expect(polynomial.dataType, DataType.int32);
         expect(polynomial.degree, -1);
-        expect(polynomial.shape, [polynomial.degree]);
+        expect(polynomial.shape, [0]);
         expect(polynomial.storage, [polynomial]);
         for (var i = 0; i < 10; i++) {
           expect(polynomial[i], 0);
@@ -42,7 +42,7 @@ void polynomialTest(String name, Builder<int> builder) {
         final polynomial = builder.generate(7, (i) => i - 4);
         expect(polynomial.dataType, DataType.int32);
         expect(polynomial.degree, 7);
-        expect(polynomial.shape, [polynomial.degree]);
+        expect(polynomial.shape, [8]);
         expect(polynomial.storage, [polynomial]);
         for (var i = 0; i <= polynomial.degree; i++) {
           expect(polynomial[i], i - 4);
@@ -55,7 +55,7 @@ void polynomialTest(String name, Builder<int> builder) {
         final polynomial = builder.generate(7, (i) => i - 4, lazy: true);
         expect(polynomial.dataType, DataType.int32);
         expect(polynomial.degree, 7);
-        expect(polynomial.shape, [polynomial.degree]);
+        expect(polynomial.shape, [8]);
         for (var i = 0; i <= polynomial.degree; i++) {
           expect(polynomial[i], i - 4);
         }
@@ -132,7 +132,7 @@ void polynomialTest(String name, Builder<int> builder) {
             builder.withType(DataType.int8).fromPolynomial(source);
         expect(polynomial.dataType, DataType.int8);
         expect(polynomial.degree, 5);
-        expect(polynomial.shape, [polynomial.degree]);
+        expect(polynomial.shape, source.shape);
         expect(polynomial.storage, [polynomial]);
         for (var i = 0; i <= polynomial.degree; i++) {
           expect(polynomial[i], i - 2);
@@ -167,7 +167,7 @@ void polynomialTest(String name, Builder<int> builder) {
         final polynomial = builder.fromVector(source);
         expect(polynomial.dataType, DataType.int32);
         expect(polynomial.degree, 2);
-        expect(polynomial.shape, [polynomial.degree]);
+        expect(polynomial.shape, source.shape);
         expect(polynomial.storage, [polynomial]);
         expect(polynomial[0], -1);
         expect(polynomial[1], 0);
@@ -179,7 +179,7 @@ void polynomialTest(String name, Builder<int> builder) {
         final polynomial = builder.fromList(source);
         expect(polynomial.dataType, DataType.int32);
         expect(polynomial.degree, 2);
-        expect(polynomial.shape, [polynomial.degree]);
+        expect(polynomial.shape, [source.length]);
         expect(polynomial.storage, [polynomial]);
         expect(polynomial[0], -1);
         expect(polynomial[1], 0);
@@ -188,6 +188,30 @@ void polynomialTest(String name, Builder<int> builder) {
       });
     });
     group('accesssing', () {
+      test('degree', () {
+        final polynomial = builder(10);
+        expect(polynomial.degree, -1);
+        polynomial[0] = 0;
+        expect(polynomial.degree, -1);
+        polynomial[5] = 1;
+        expect(polynomial.degree, 5);
+        polynomial[0] = 2;
+        expect(polynomial.degree, 5);
+        polynomial[5] = 0;
+        expect(polynomial.degree, 0);
+      });
+      test('lead', () {
+        final polynomial = builder(10);
+        expect(polynomial.lead, 0);
+        polynomial[0] = 0;
+        expect(polynomial.lead, 0);
+        polynomial[5] = 1;
+        expect(polynomial.lead, 1);
+        polynomial[0] = 2;
+        expect(polynomial.lead, 1);
+        polynomial[5] = 0;
+        expect(polynomial.lead, 2);
+      });
       test('random', () {
         const degree = 100;
         final polynomial = builder(degree);
@@ -476,7 +500,7 @@ void polynomialTest(String name, Builder<int> builder) {
         expect(
             polynomial.toString(),
             '${polynomial.runtimeType}'
-            '[2, ${polynomial.dataType.name}]:\n'
+            '[3, ${polynomial.dataType.name}]:\n'
             'x^2 + 2 x + 3');
       });
     });
