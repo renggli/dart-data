@@ -7,7 +7,10 @@ import 'package:data/type.dart';
 import 'package:data/vector.dart' as vector;
 import 'package:test/test.dart';
 
-void polynomialTest(String name, Builder builder) {
+final throwsIntegerDivisionByZero =
+    throwsA(TypeMatcher<IntegerDivisionByZeroException>());
+
+void polynomialTest(String name, Builder<int> builder) {
   group(name, () {
     group('builder', () {
       test('call', () {
@@ -658,6 +661,65 @@ void polynomialTest(String name, Builder builder) {
           expect(compare(first, scale(sourceA, 3)), isTrue);
           final second = mul(constant, sourceA);
           expect(compare(second, scale(sourceA, 3)), isTrue);
+        });
+      });
+      group('div', () {
+        Division<Polynomial<T>> divWithInvariant<T>(
+            Polynomial<T> dividend, Polynomial<T> divisor) {
+          final result = div(dividend, divisor);
+          final reverse = add(mul(result.quotient, divisor), result.remainder);
+          expect(dividend.format(limit: false), reverse.format(limit: false));
+          expect(result.quotient.dataType, dividend.dataType);
+          expect(result.remainder.dataType, dividend.dataType);
+          return result;
+        }
+
+        test('zero divisor', () {
+          final dividend = builder.fromList([-42, 0, -12, 1]);
+          final divisor = builder.fromList([]);
+          expect(() => div(dividend, divisor), throwsIntegerDivisionByZero);
+        });
+        test('zero divident', () {
+          final dividend = builder.fromList([]);
+          final divisor = builder.fromList([-42, 0, -12, 1]);
+          final result = divWithInvariant(dividend, divisor);
+          expect(result.quotient.iterable, []);
+          expect(result.remainder.iterable, []);
+        });
+        test('constant divisor', () {
+          final dividend = builder.fromList([-42, 0, -12, 2]);
+          final divisor = builder.fromList([-2]);
+          final result = divWithInvariant(dividend, divisor);
+          expect(result.quotient.iterable, [21, 0, 6, -1]);
+          expect(result.remainder.iterable, []);
+        });
+        test('large divisor', () {
+          final dividend = builder.fromList([-3, 5, 1]);
+          final divisor = builder.fromList([-42, 0, -12, 1]);
+          final result = divWithInvariant(dividend, divisor);
+          expect(result.quotient.iterable, []);
+          expect(result.remainder.iterable, [-3, 5, 1]);
+        });
+        test('example 1', () {
+          final dividend = builder.fromList([-42, 0, -12, 1]);
+          final divisor = builder.fromList([-3, 1]);
+          final result = divWithInvariant(dividend, divisor);
+          expect(result.quotient.iterable, [-27, -9, 1]);
+          expect(result.remainder.iterable, [-123]);
+        });
+        test('example 2', () {
+          final dividend = builder.fromList([-2, 0, 0, 0, 1]);
+          final divisor = builder.fromList([1, 1, 1, 1]);
+          final result = divWithInvariant(dividend, divisor);
+          expect(result.quotient.iterable, [-1, 1]);
+          expect(result.remainder.iterable, [-1]);
+        });
+        test('example 3', () {
+          final dividend = builder.fromList([-7, 0, 5, 6]);
+          final divisor = builder.fromList([-1, -2, 3]);
+          final result = divWithInvariant(dividend, divisor);
+          expect(result.quotient.iterable, [3, 2]);
+          expect(result.remainder.iterable, [-4, 8]);
         });
       });
       group('compare', () {

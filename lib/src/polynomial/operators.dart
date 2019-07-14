@@ -6,7 +6,6 @@ import 'package:data/matrix.dart' as matrix;
 import 'package:data/src/polynomial/builder.dart';
 import 'package:data/src/polynomial/polynomial.dart';
 import 'package:data/type.dart';
-import 'package:more/tuple.dart' show Tuple2;
 
 Polynomial<T> _resultPolynomial<T>(
     int degree, Builder<T> builder, DataType<T> dataType) {
@@ -142,77 +141,67 @@ Polynomial<T> mul<T>(Polynomial<T> sourceA, Polynomial<T> sourceB,
   return result;
 }
 
-/// Divides one polynomial [sourceA] by another one [sourceB], returns a tuple
-/// of the quotient and remainder such that `sourceA = quotient * sourceB +
+// Helper to return the result of an integer division.
+class Division<T> {
+  final T quotient;
+  final T remainder;
+  Division(this.quotient, this.remainder);
+}
+
+/// Divides one polynomial [dividend] by another one [divisor], returns the
+/// quotient and remainder such that `dividend = quotient * divisor +
 /// remainder`.
-Tuple2<Polynomial<T>, Polynomial<T>> div<T>(
-  Polynomial<T> sourceA,
-  Polynomial<T> sourceB, {
+Division<Polynomial<T>> div<T>(
+  Polynomial<T> dividend,
+  Polynomial<T> divisor, {
   Builder<T> builder,
   DataType<T> dataType,
 }) {
-  final degreeB = sourceB.degree;
-  if (degreeB < 0) {
-    // Division by zero: throw an exception.
+  builder ??= Polynomial.builder.withType(dataType ?? dividend.dataType);
+  dataType ??= builder.type;
+  final dividendDegree = dividend.degree;
+  final divisorDegree = divisor.degree;
+  final sub = dataType.field.sub;
+  final mul = dataType.field.mul;
+  final div = dataType.field.div;
+  if (divisorDegree < 0) {
+    // Divisor is zero.
     throw const IntegerDivisionByZeroException();
+  } else if (dividendDegree < 0) {
+    // Dividend is zero.
+    return Division(builder(0), builder(0));
+  } else if (divisorDegree == 0) {
+    // Divisor is constant.
+    final scalar = divisor.getUnchecked(0);
+    return Division(
+        builder.generate(
+            dividendDegree, (i) => div(dividend.getUnchecked(i), scalar)),
+        builder(0));
+  } else if (dividendDegree < divisorDegree) {
+    // Divisor degree higher than dividend.
+    return Division(
+      builder(0),
+      builder.fromPolynomial(dividend),
+    );
   }
-  final quotient = _resultPolynomial(0, builder, dataType);
-  final remainder = _resultPolynomial(0, builder, dataType);
-  if (identical(quotient, remainder)) {
-    throw ArgumentError('Polynomial remainder and quotient cannot be shared.');
-  }
-
-  final degreeA = sourceA.degree;
-  if (degreeA < 0) {
-    // Zero divided by something: return zero.
-    return Tuple2(quotient, remainder);
-  }
-  final field = quotient.dataType.field;
-  if (degreeB == 0) {
-    // Something divided by a scalar: divide the sourceA by scalar.
-    final divisor = sourceB.getUnchecked(0);
-    for (var i = degreeA; i >= 0; i--) {
-      quotient.setUnchecked(i, field.div(sourceA.getUnchecked(i), divisor));
+  // Perform synthetic division:
+  // https://en.wikipedia.org/wiki/Synthetic_division
+  final dividendLead = dividend.lead;
+  final output = dataType.copyList(dividend.iterable);
+  for (var i = dividendDegree - divisorDegree; i >= 0; i--) {
+    print('${output[i + 1]} / $dividendLead');
+    final coefficient = output[i + 1] = div(output[i + 1], dividendLead);
+    if (coefficient != dataType.nullValue) {
+      for (var j = divisorDegree - 1; j >= 0; j--) {
+        output[i + j] =
+            sub(output[i + j], mul(divisor.getUnchecked(j), coefficient));
+      }
     }
-    return Tuple2(quotient, remainder);
   }
-  if (degreeA < degreeB) {
-    // Something small divided by something larger: return the small thing.
-    for (var i = degreeA; i >= 0; i--) {
-      remainder.setUnchecked(i, sourceA.getUnchecked(i));
-    }
-    return Tuple2(quotient, remainder);
-  }
-
-  final c1 = sourceA.dataType.copyList(sourceA.iterable);
-  final scl = sourceB.getUnchecked(degreeB);
-  final c22 = sourceB.dataType.newList(degreeB);
-  for (var ii = 0; ii < c22.length; ii++) {
-    c22[ii] = field.div(sourceB.getUnchecked(ii), scl);
-  }
-
-  var i = degreeA - degreeB;
-  var j = degreeA;
-  while (i >= 0) {
-    final v = c1[j];
-    for (var k = i; k < j; k++) {
-      c1[k] = field.sub(c1[k], field.mul(c22[k - i], v));
-    }
-    i--;
-    j--;
-  }
-
-  final j1 = j + 1;
-  final l1 = degreeA - j;
-  for (var k = 0; k < l1; k++) {
-    quotient.setUnchecked(k, field.div(c1[k + j1], scl));
-  }
-
-  for (var k = 0; k < j1; k++) {
-    remainder.setUnchecked(k, c1[k]);
-  }
-
-  return Tuple2(quotient, remainder);
+  return Division(
+    builder.fromList(output.sublist(divisorDegree)),
+    builder.fromList(output.sublist(0, divisorDegree)),
+  );
 }
 
 /// Computes the roots of a polynomial.
