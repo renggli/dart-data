@@ -63,39 +63,62 @@ void listTest<T>(DataType<T> type, List<List<T>> lists) {
       });
     }
   }
-  final example = lists.last;
-  test('copyList', () {
-    final copy = type.copyList(example);
-    expect(copy, pairwiseCompare(example, type.equality.isEqual, 'isEqual'));
+  final exampleList = lists.last;
+  final exampleValue =
+      exampleList.firstWhere((value) => value != type.nullValue);
+  group('newList', () {
+    test('empty', () {
+      final list = type.newList(0);
+      expect(list, isEmpty);
+    });
+    test('length', () {
+      final list = type.newList(42);
+      expect(list.length, 42);
+    });
+    test('null', () {
+      final list = type.newList(1);
+      expect(list[0], type.nullValue);
+    });
+    test('filled', () {
+      final list = type.newListFilled(10, exampleValue);
+      expect(list, List.filled(10, exampleValue));
+    });
   });
-  test('copyList (smaller)', () {
-    final copy = type.copyList(example, length: example.length - 1);
-    expect(copy.length, example.length - 1);
-    expect(
-        copy,
-        pairwiseCompare(example.getRange(0, example.length - 1),
-            type.equality.isEqual, 'isEqual'));
-  });
-  test('copyList (larger)', () {
-    final copy = type.copyList(example, length: example.length + 5);
-    expect(copy.length, example.length + 5);
-    expect(copy.getRange(0, example.length),
-        pairwiseCompare(example, type.equality.isEqual, 'isEqual'));
-    expect(
-        copy.getRange(example.length, copy.length),
-        pairwiseCompare(
-            List.filled(5, type.nullValue), type.equality.isEqual, 'isEqual'));
-  });
-  test('copyList (larger, with custom fill)', () {
-    final copy = type.copyList(example,
-        length: example.length + 5, fillValue: example[0]);
-    expect(copy.length, example.length + 5);
-    expect(copy.getRange(0, example.length),
-        pairwiseCompare(example, type.equality.isEqual, 'isEqual'));
-    expect(
-        copy.getRange(example.length, copy.length),
-        pairwiseCompare(
-            List.filled(5, example[0]), type.equality.isEqual, 'isEqual'));
+  group('copy', () {
+    test('basic', () {
+      final copy = type.copyList(exampleList);
+      expect(
+          copy, pairwiseCompare(exampleList, type.equality.isEqual, 'isEqual'));
+    });
+    test('smaller', () {
+      final copy = type.copyList(exampleList, length: exampleList.length - 1);
+      expect(copy.length, exampleList.length - 1);
+      expect(
+          copy,
+          pairwiseCompare(exampleList.getRange(0, exampleList.length - 1),
+              type.equality.isEqual, 'isEqual'));
+    });
+    test('larger', () {
+      final copy = type.copyList(exampleList, length: exampleList.length + 5);
+      expect(copy.length, exampleList.length + 5);
+      expect(copy.getRange(0, exampleList.length),
+          pairwiseCompare(exampleList, type.equality.isEqual, 'isEqual'));
+      expect(
+          copy.getRange(exampleList.length, copy.length),
+          pairwiseCompare(List.filled(5, type.nullValue), type.equality.isEqual,
+              'isEqual'));
+    });
+    test('larger, with custom fill', () {
+      final copy = type.copyList(exampleList,
+          length: exampleList.length + 5, fillValue: exampleValue);
+      expect(copy.length, exampleList.length + 5);
+      expect(copy.getRange(0, exampleList.length),
+          pairwiseCompare(exampleList, type.equality.isEqual, 'isEqual'));
+      expect(
+          copy.getRange(exampleList.length, copy.length),
+          pairwiseCompare(
+              List.filled(5, exampleValue), type.equality.isEqual, 'isEqual'));
+    });
   });
   test('printer', () {
     final printer = type.printer;
