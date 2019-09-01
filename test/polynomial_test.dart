@@ -187,7 +187,7 @@ void polynomialTest(String name, Builder<int> builder) {
         expect(polynomial[3], 0);
       });
     });
-    for (final type in [DataType.int32, DataType.numeric]) {
+    for (final type in <DataType>[DataType.int32, DataType.numeric]) {
       final accessBuilder = builder.withType(type);
       group('accesssing ($type)', () {
         test('degree', () {
@@ -284,37 +284,37 @@ void polynomialTest(String name, Builder<int> builder) {
           expect(() => polynomial[-1] = 1, throwsRangeError);
         });
       });
+      group('evaluating', () {
+        test('empty', () {
+          final polynomial = accessBuilder();
+          expect(polynomial(-1), 0);
+          expect(polynomial(0), 0);
+          expect(polynomial(1), 0);
+          expect(polynomial(2), 0);
+        });
+        test('constant', () {
+          final polynomial = accessBuilder.fromList(type.castList([2]));
+          expect(polynomial(-1), 2);
+          expect(polynomial(0), 2);
+          expect(polynomial(1), 2);
+          expect(polynomial(2), 2);
+        });
+        test('linear', () {
+          final polynomial = accessBuilder.fromList(type.castList([1, 2]));
+          expect(polynomial(-1), -1);
+          expect(polynomial(0), 1);
+          expect(polynomial(1), 3);
+          expect(polynomial(2), 5);
+        });
+        test('square', () {
+          final polynomial = accessBuilder.fromList(type.castList([2, 0, 3]));
+          expect(polynomial(-1), 5);
+          expect(polynomial(0), 2);
+          expect(polynomial(1), 5);
+          expect(polynomial(2), 14);
+        });
+      });
     }
-    group('evaluating', () {
-      test('empty', () {
-        final polynomial = builder();
-        expect(polynomial(-1), 0);
-        expect(polynomial(0), 0);
-        expect(polynomial(1), 0);
-        expect(polynomial(2), 0);
-      });
-      test('constant', () {
-        final polynomial = builder.fromList([2]);
-        expect(polynomial(-1), 2);
-        expect(polynomial(0), 2);
-        expect(polynomial(1), 2);
-        expect(polynomial(2), 2);
-      });
-      test('linear', () {
-        final polynomial = builder.fromList([1, 2]);
-        expect(polynomial(-1), -1);
-        expect(polynomial(0), 1);
-        expect(polynomial(1), 3);
-        expect(polynomial(2), 5);
-      });
-      test('square', () {
-        final polynomial = builder.fromList([2, 0, 3]);
-        expect(polynomial(-1), 5);
-        expect(polynomial(0), 2);
-        expect(polynomial(1), 5);
-        expect(polynomial(2), 14);
-      });
-    });
     group('roots', () {
       final epsilon = pow(2.0, -32.0);
       test('empty', () {
