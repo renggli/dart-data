@@ -91,10 +91,10 @@ abstract class Polynomial<T> extends Tensor<T> {
   @protected
   T get zeroCoefficient => dataType.field.additiveIdentity;
 
-  /// Internal method that tests for the zero coefficient or null.
+  /// Internal method that tests for null, or the zero coefficient.
   @protected
   bool isZeroCoefficient(T value) =>
-      dataType.nullValue == value || zeroCoefficient == value;
+      value == null || value == dataType.nullValue || value == zeroCoefficient;
 
   /// Returns a human readable representation of the polynomial.
   @override

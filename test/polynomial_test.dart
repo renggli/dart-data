@@ -187,74 +187,104 @@ void polynomialTest(String name, Builder<int> builder) {
         expect(polynomial[3], 0);
       });
     });
-    group('accesssing', () {
-      test('degree', () {
-        final polynomial = builder(10);
-        expect(polynomial.degree, -1);
-        polynomial[0] = 0;
-        expect(polynomial.degree, -1);
-        polynomial[5] = 1;
-        expect(polynomial.degree, 5);
-        polynomial[0] = 2;
-        expect(polynomial.degree, 5);
-        polynomial[5] = 0;
-        expect(polynomial.degree, 0);
+    for (final type in [DataType.int32, DataType.numeric]) {
+      final accessBuilder = builder.withType(type);
+      group('accesssing ($type)', () {
+        test('degree', () {
+          final polynomial = accessBuilder(10);
+          expect(polynomial.degree, -1);
+          polynomial[0] = 0;
+          expect(polynomial.degree, -1);
+          polynomial[5] = 1;
+          expect(polynomial.degree, 5);
+          polynomial[0] = 2;
+          expect(polynomial.degree, 5);
+          polynomial[5] = 0;
+          expect(polynomial.degree, 0);
+        });
+        test('lead', () {
+          final polynomial = accessBuilder(10);
+          expect(polynomial.lead, 0);
+          polynomial[0] = 0;
+          expect(polynomial.lead, 0);
+          polynomial[5] = 1;
+          expect(polynomial.lead, 1);
+          polynomial[0] = 2;
+          expect(polynomial.lead, 1);
+          polynomial[5] = 0;
+          expect(polynomial.lead, 2);
+        });
+        test('random', () {
+          const degree = 100;
+          final polynomial = accessBuilder(degree);
+          final values = <int>[];
+          for (var i = 0; i <= degree; i++) {
+            values.add(i);
+          }
+          // add values
+          values.shuffle();
+          for (final value in values) {
+            polynomial[value] = value;
+          }
+          for (var i = 0; i < values.length; i++) {
+            expect(polynomial[i], i);
+          }
+          // update values
+          values.shuffle();
+          for (final value in values) {
+            polynomial[value] = value + 1;
+          }
+          for (var i = 0; i < values.length; i++) {
+            expect(polynomial[i], i + 1);
+          }
+          // remove values
+          values.shuffle();
+          for (final value in values) {
+            polynomial[value] = polynomial.dataType.nullValue;
+          }
+          for (var i = 0; i < values.length; i++) {
+            expect(polynomial[i], polynomial.dataType.field.additiveIdentity);
+          }
+        });
+        test('sparse value', () {
+          final polynomial = accessBuilder();
+          polynomial[1] = 42;
+          expect(polynomial.degree, 1);
+          expect(polynomial.lead, 42);
+          expect(polynomial[0], 0);
+          expect(polynomial[1], 42);
+          expect(polynomial[2], 0);
+        });
+        test('null value', () {
+          final polynomial = accessBuilder();
+          polynomial[1] = 42;
+          polynomial[1] = null;
+          expect(polynomial.degree, -1);
+          expect(polynomial.lead, 0);
+          expect(polynomial[0], 0);
+          expect(polynomial[1], 0);
+          expect(polynomial[2], 0);
+        });
+        test('zero value', () {
+          final polynomial = accessBuilder();
+          polynomial[1] = 42;
+          polynomial[1] = 0;
+          expect(polynomial.degree, -1);
+          expect(polynomial.lead, 0);
+          expect(polynomial[0], 0);
+          expect(polynomial[1], 0);
+          expect(polynomial[2], 0);
+        });
+        test('read range error', () {
+          final polynomial = accessBuilder();
+          expect(() => polynomial[-1], throwsRangeError);
+        });
+        test('write range error', () {
+          final polynomial = accessBuilder();
+          expect(() => polynomial[-1] = 1, throwsRangeError);
+        });
       });
-      test('lead', () {
-        final polynomial = builder(10);
-        expect(polynomial.lead, 0);
-        polynomial[0] = 0;
-        expect(polynomial.lead, 0);
-        polynomial[5] = 1;
-        expect(polynomial.lead, 1);
-        polynomial[0] = 2;
-        expect(polynomial.lead, 1);
-        polynomial[5] = 0;
-        expect(polynomial.lead, 2);
-      });
-      test('random', () {
-        const degree = 100;
-        final polynomial = builder(degree);
-        final values = <int>[];
-        for (var i = 0; i <= degree; i++) {
-          values.add(i);
-        }
-        // add values
-        values.shuffle();
-        for (final value in values) {
-          polynomial[value] = value;
-        }
-        for (var i = 0; i < values.length; i++) {
-          expect(polynomial[i], i);
-        }
-        // update values
-        values.shuffle();
-        for (final value in values) {
-          polynomial[value] = value + 1;
-        }
-        for (var i = 0; i < values.length; i++) {
-          expect(polynomial[i], i + 1);
-        }
-        // remove values
-        values.shuffle();
-        for (final value in values) {
-          polynomial[value] = polynomial.dataType.nullValue;
-        }
-        for (var i = 0; i < values.length; i++) {
-          expect(polynomial[i], polynomial.dataType.nullValue);
-        }
-      });
-      test('read (range error)', () {
-        final polynomial = builder.fromList([1, 2]);
-        expect(() => polynomial[-1], throwsRangeError);
-        expect(polynomial[2], 0);
-      });
-      test('write (range error)', () {
-        final polynomial = builder.fromList([1, 2]);
-        expect(() => polynomial[-1] = 1, throwsRangeError);
-        polynomial[2] = 3;
-      });
-    });
+    }
     group('evaluating', () {
       test('empty', () {
         final polynomial = builder();
