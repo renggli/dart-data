@@ -30,11 +30,8 @@ class StandardPolynomial<T> extends Polynomial<T> {
   int get degree => _degree;
 
   @override
-  Polynomial<T> copy() => StandardPolynomial._(
-      dataType,
-      dataType.copyList(_coefficients,
-          length: degree + 1, fillValue: zeroCoefficient),
-      _degree);
+  Polynomial<T> copy() =>
+      StandardPolynomial._(dataType, dataType.copyList(_coefficients), _degree);
 
   @override
   T getUnchecked(int exponent) => exponent < _coefficients.length
@@ -47,23 +44,39 @@ class StandardPolynomial<T> extends Polynomial<T> {
       if (exponent <= _degree) {
         _coefficients[exponent] = zeroCoefficient;
         if (exponent == _degree) {
-          for (var i = _degree - 1; i >= 0; i--) {
-            if (_coefficients[i] != zeroCoefficient) {
-              _degree = i;
-              return;
-            }
-          }
-          _degree = -1;
+          _updateDegree();
+          _shrinkCoefficients();
         }
       }
     } else {
-      if (exponent >= _coefficients.length) {
-        final newLength = max(exponent + 1, 3 * _coefficients.length ~/ 2 + 1);
-        _coefficients = dataType.copyList(_coefficients,
-            length: newLength, fillValue: zeroCoefficient);
-      }
+      _growCoefficients(exponent);
       _coefficients[exponent] = value;
       _degree = max(_degree, exponent);
+    }
+  }
+
+  void _updateDegree() {
+    for (var i = _degree - 1; i >= 0; i--) {
+      if (_coefficients[i] != zeroCoefficient) {
+        _degree = i;
+        return;
+      }
+    }
+    _degree = -1;
+  }
+
+  void _shrinkCoefficients() {
+    final newLength = max(initialListLength, _degree + 1);
+    if (2 * newLength < _coefficients.length) {
+      _coefficients = dataType.copyList(_coefficients, length: newLength);
+    }
+  }
+
+  void _growCoefficients(int exponent) {
+    if (exponent >= _coefficients.length) {
+      final newLength = max(exponent + 1, 3 * _coefficients.length ~/ 2 + 1);
+      _coefficients = dataType.copyList(_coefficients,
+          length: newLength, fillValue: zeroCoefficient);
     }
   }
 }
