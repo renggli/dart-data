@@ -11,32 +11,30 @@ class StandardPolynomial<T> extends Polynomial<T> {
   // Coefficients in ascending order, where the index matches the exponent.
   List<T> _coefficients;
 
-  StandardPolynomial(DataType<T> dataType, [int degree = -1])
+  // Cached degree, that is the highest non-zero coefficient.
+  int _degree;
+
+  StandardPolynomial(DataType<T> dataType, [int desiredDegree = -1])
       : this._(
             dataType,
-            dataType.newListFilled(max(initialListSize, degree + 1),
-                dataType.field.additiveIdentity));
+            dataType.newListFilled(max(initialListSize, desiredDegree + 1),
+                dataType.field.additiveIdentity),
+            -1);
 
-  StandardPolynomial._(this.dataType, this._coefficients);
+  StandardPolynomial._(this.dataType, this._coefficients, this._degree);
 
   @override
   final DataType<T> dataType;
 
   @override
-  int get degree {
-    for (var i = _coefficients.length - 1; i >= 0; i--) {
-      if (!isZeroCoefficient(_coefficients[i])) {
-        return i;
-      }
-    }
-    return -1;
-  }
+  int get degree => _degree;
 
   @override
   Polynomial<T> copy() => StandardPolynomial._(
       dataType,
       dataType.copyList(_coefficients,
-          length: degree + 1, fillValue: zeroCoefficient));
+          length: degree + 1, fillValue: zeroCoefficient),
+      _degree);
 
   @override
   T getUnchecked(int exponent) => exponent < _coefficients.length
@@ -46,8 +44,17 @@ class StandardPolynomial<T> extends Polynomial<T> {
   @override
   void setUnchecked(int exponent, T value) {
     if (isZeroCoefficient(value)) {
-      if (exponent < _coefficients.length) {
+      if (exponent <= _degree) {
         _coefficients[exponent] = zeroCoefficient;
+        if (exponent == _degree) {
+          for (var i = _degree - 1; i >= 0; i--) {
+            if (_coefficients[i] != zeroCoefficient) {
+              _degree = i;
+              return;
+            }
+          }
+          _degree = -1;
+        }
       }
     } else {
       if (exponent >= _coefficients.length) {
@@ -56,6 +63,7 @@ class StandardPolynomial<T> extends Polynomial<T> {
             length: newLength, fillValue: zeroCoefficient);
       }
       _coefficients[exponent] = value;
+      _degree = max(_degree, exponent);
     }
   }
 }
