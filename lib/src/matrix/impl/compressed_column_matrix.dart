@@ -18,8 +18,8 @@ class CompressedColumnMatrix<T> extends Matrix<T> {
             rowCount,
             colCount,
             indexDataType.newList(colCount),
-            indexDataType.newList(initialListSize),
-            dataType.newList(initialListSize),
+            indexDataType.newList(initialListLength),
+            dataType.newList(initialListLength),
             0);
 
   CompressedColumnMatrix._(this.dataType, this.rowCount, this.colCount,

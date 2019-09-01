@@ -17,9 +17,9 @@ class CoordinateListMatrix<T> extends Matrix<T> {
             dataType,
             rowCount,
             colCount,
-            indexDataType.newList(initialListSize),
-            indexDataType.newList(initialListSize),
-            dataType.newList(initialListSize),
+            indexDataType.newList(initialListLength),
+            indexDataType.newList(initialListLength),
+            dataType.newList(initialListLength),
             0);
 
   CoordinateListMatrix._(this.dataType, this.rowCount, this.colCount,

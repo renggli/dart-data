@@ -12,8 +12,8 @@ class ListVector<T> extends Vector<T> {
   int _length;
 
   ListVector(DataType<T> dataType, int count)
-      : this._(dataType, count, indexDataType.newList(initialListSize),
-            dataType.newList(initialListSize), 0);
+      : this._(dataType, count, indexDataType.newList(initialListLength),
+            dataType.newList(initialListLength), 0);
 
   ListVector._(
       this.dataType, this.count, this._indexes, this._values, this._length);

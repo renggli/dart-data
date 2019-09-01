@@ -5,8 +5,8 @@ import 'dart:math' as math;
 
 import 'package:data/type.dart';
 
-/// Initial size of fixed-length lists.
-const int initialListSize = 4;
+/// Initial length of fixed-length lists.
+const int initialListLength = 4;
 
 /// Inserts an entry into a fixed-length list, possibly reallocates.
 List<T> insertAt<T>(
@@ -27,7 +27,7 @@ List<T> insertAt<T>(
 /// Removes an entry from a fixed-length list, possibly reallocates.
 List<T> removeAt<T>(DataType<T> type, List<T> list, int length, int index) {
   if (2 * length < list.length) {
-    final newLength = math.max(initialListSize, length - 1);
+    final newLength = math.max(initialListLength, length - 1);
     if (newLength < list.length) {
       final newList = type.newList(newLength);
       newList.setRange(0, index, list);

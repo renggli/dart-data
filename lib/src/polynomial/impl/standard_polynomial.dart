@@ -17,7 +17,7 @@ class StandardPolynomial<T> extends Polynomial<T> {
   StandardPolynomial(DataType<T> dataType, [int desiredDegree = -1])
       : this._(
             dataType,
-            dataType.newListFilled(max(initialListSize, desiredDegree + 1),
+            dataType.newListFilled(max(initialListLength, desiredDegree + 1),
                 dataType.field.additiveIdentity),
             -1);
 

@@ -12,8 +12,8 @@ class ListPolynomial<T> extends Polynomial<T> {
   int _length;
 
   ListPolynomial(DataType<T> dataType)
-      : this._(dataType, indexDataType.newList(initialListSize),
-            dataType.newList(initialListSize), 0);
+      : this._(dataType, indexDataType.newList(initialListLength),
+            dataType.newList(initialListLength), 0);
 
   ListPolynomial._(
       this.dataType, this._exponents, this._coefficients, this._length);
