@@ -10,7 +10,7 @@ class IntegratePolynomial<T> extends Polynomial<T> {
   T _constant;
 
   IntegratePolynomial(this._polynomial, [T constant])
-      : _constant = constant ?? _polynomial.dataType.nullValue;
+      : _constant = constant ?? _polynomial.zeroCoefficient;
 
   @override
   DataType<T> get dataType => _polynomial.dataType;

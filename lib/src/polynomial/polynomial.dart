@@ -34,8 +34,7 @@ abstract class Polynomial<T> extends Tensor<T> {
   Polynomial<T> copy();
 
   /// Returns the leading term of this polynomial.
-  T get lead =>
-      degree >= 0 ? getUnchecked(degree) : dataType.field.additiveIdentity;
+  T get lead => degree >= 0 ? getUnchecked(degree) : zeroCoefficient;
 
   /// Returns the coefficient at the provided [exponent].
   @override
@@ -62,7 +61,7 @@ abstract class Polynomial<T> extends Tensor<T> {
   T call(T value) {
     var exponent = degree;
     if (exponent < 0) {
-      return dataType.field.additiveIdentity;
+      return zeroCoefficient;
     }
     final mul = dataType.field.mul, add = dataType.field.add;
     var sum = getUnchecked(exponent);
@@ -88,11 +87,14 @@ abstract class Polynomial<T> extends Tensor<T> {
   /// Returns a list iterable over the polynomial.
   List<T> get iterable => _PolynomialList<T>(this);
 
-  /// Internal method to test if a coefficient should be considered to be zero,
-  /// or non-existing.
+  /// Internal method that returns the zero coefficient.
   @protected
-  bool isNullCoefficient(T value) =>
-      dataType.nullValue == value || dataType.field.additiveIdentity == value;
+  T get zeroCoefficient => dataType.field.additiveIdentity;
+
+  /// Internal method that tests for the zero coefficient or null.
+  @protected
+  bool isZeroCoefficient(T value) =>
+      dataType.nullValue == value || zeroCoefficient == value;
 
   /// Returns a human readable representation of the polynomial.
   @override
@@ -116,7 +118,7 @@ abstract class Polynomial<T> extends Tensor<T> {
     valuePrinter ??= dataType.printer;
 
     String coefficientPrinter(int exponent, T coefficient) {
-      if (skipNulls && isNullCoefficient(coefficient)) {
+      if (skipNulls && isZeroCoefficient(coefficient)) {
         return null;
       }
       final buffer = StringBuffer();
@@ -141,7 +143,7 @@ abstract class Polynomial<T> extends Tensor<T> {
 
     final count = degree;
     if (count < 0) {
-      return paddingPrinter(valuePrinter(dataType.field.additiveIdentity));
+      return paddingPrinter(valuePrinter(zeroCoefficient));
     }
     final parts = <String>[];
     for (var i = count; i >= 0; i--) {

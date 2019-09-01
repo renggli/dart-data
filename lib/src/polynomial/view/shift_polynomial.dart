@@ -40,7 +40,7 @@ class ShiftPolynomial<T> extends Polynomial<T> {
     if (index >= 0) {
       return _polynomial.getUnchecked(index);
     }
-    return _polynomial.dataType.nullValue;
+    return zeroCoefficient;
   }
 
   @override

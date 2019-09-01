@@ -12,7 +12,10 @@ class StandardPolynomial<T> extends Polynomial<T> {
   List<T> _coefficients;
 
   StandardPolynomial(DataType<T> dataType, [int degree = -1])
-      : this._(dataType, dataType.newList(max(initialListSize, degree + 1)));
+      : this._(
+            dataType,
+            dataType.newListFilled(max(initialListSize, degree + 1),
+                dataType.field.additiveIdentity));
 
   StandardPolynomial._(this.dataType, this._coefficients);
 
@@ -22,7 +25,7 @@ class StandardPolynomial<T> extends Polynomial<T> {
   @override
   int get degree {
     for (var i = _coefficients.length - 1; i >= 0; i--) {
-      if (_coefficients[i] != dataType.nullValue) {
+      if (!isZeroCoefficient(_coefficients[i])) {
         return i;
       }
     }
@@ -31,19 +34,28 @@ class StandardPolynomial<T> extends Polynomial<T> {
 
   @override
   Polynomial<T> copy() => StandardPolynomial._(
-      dataType, dataType.copyList(_coefficients, length: degree + 1));
+      dataType,
+      dataType.copyList(_coefficients,
+          length: degree + 1, fillValue: zeroCoefficient));
 
   @override
   T getUnchecked(int exponent) => exponent < _coefficients.length
       ? _coefficients[exponent]
-      : dataType.nullValue;
+      : zeroCoefficient;
 
   @override
   void setUnchecked(int exponent, T value) {
-    if (exponent >= _coefficients.length) {
-      final newLength = max(exponent + 1, 3 * _coefficients.length ~/ 2 + 1);
-      _coefficients = dataType.copyList(_coefficients, length: newLength);
+    if (isZeroCoefficient(value)) {
+      if (exponent < _coefficients.length) {
+        _coefficients[exponent] = zeroCoefficient;
+      }
+    } else {
+      if (exponent >= _coefficients.length) {
+        final newLength = max(exponent + 1, 3 * _coefficients.length ~/ 2 + 1);
+        _coefficients = dataType.copyList(_coefficients,
+            length: newLength, fillValue: zeroCoefficient);
+      }
+      _coefficients[exponent] = value;
     }
-    _coefficients[exponent] = value;
   }
 }

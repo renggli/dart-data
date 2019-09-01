@@ -22,5 +22,5 @@ class GeneratedPolynomial<T> extends Polynomial<T>
 
   @override
   T getUnchecked(int exponent) =>
-      exponent <= degree ? _callback(exponent) : dataType.nullValue;
+      exponent <= degree ? _callback(exponent) : zeroCoefficient;
 }
