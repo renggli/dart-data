@@ -15,7 +15,7 @@ import 'package:data/src/shared/config.dart';
 /// be queried by the isSPD() method.
 class CholeskyDecomposition {
   /// internal storage of decomposition.
-  Matrix<double> _l;
+  final Matrix<double> _l;
 
   /// Row and column dimension (square matrix).
   final int _n;
