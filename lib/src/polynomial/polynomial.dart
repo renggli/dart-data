@@ -10,6 +10,7 @@ import 'package:data/src/polynomial/view/shift_polynomial.dart';
 import 'package:data/src/polynomial/view/unmodifiable_polynomial.dart';
 import 'package:data/tensor.dart' show Tensor;
 import 'package:data/type.dart' show DataType;
+import 'package:meta/meta.dart';
 import 'package:more/printer.dart' show Printer;
 
 /// Abstract polynomial type.
@@ -33,7 +34,8 @@ abstract class Polynomial<T> extends Tensor<T> {
   Polynomial<T> copy();
 
   /// Returns the leading term of this polynomial.
-  T get lead => degree >= 0 ? getUnchecked(degree) : dataType.nullValue;
+  T get lead =>
+      degree >= 0 ? getUnchecked(degree) : dataType.field.additiveIdentity;
 
   /// Returns the coefficient at the provided [exponent].
   @override
@@ -60,7 +62,7 @@ abstract class Polynomial<T> extends Tensor<T> {
   T call(T value) {
     var exponent = degree;
     if (exponent < 0) {
-      return dataType.nullValue;
+      return dataType.field.additiveIdentity;
     }
     final mul = dataType.field.mul, add = dataType.field.add;
     var sum = getUnchecked(exponent);
@@ -86,6 +88,12 @@ abstract class Polynomial<T> extends Tensor<T> {
   /// Returns a list iterable over the polynomial.
   List<T> get iterable => _PolynomialList<T>(this);
 
+  /// Internal method to test if a coefficient should be considered to be zero,
+  /// or non-existing.
+  @protected
+  bool isNullCoefficient(T value) =>
+      dataType.nullValue == value || dataType.field.additiveIdentity == value;
+
   /// Returns a human readable representation of the polynomial.
   @override
   String format({
@@ -108,7 +116,7 @@ abstract class Polynomial<T> extends Tensor<T> {
     valuePrinter ??= dataType.printer;
 
     String coefficientPrinter(int exponent, T coefficient) {
-      if (skipNulls && coefficient == dataType.field.additiveIdentity) {
+      if (skipNulls && isNullCoefficient(coefficient)) {
         return null;
       }
       final buffer = StringBuffer();
@@ -133,7 +141,7 @@ abstract class Polynomial<T> extends Tensor<T> {
 
     final count = degree;
     if (count < 0) {
-      return paddingPrinter(valuePrinter(dataType.nullValue));
+      return paddingPrinter(valuePrinter(dataType.field.additiveIdentity));
     }
     final parts = <String>[];
     for (var i = count; i >= 0; i--) {
