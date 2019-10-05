@@ -523,20 +523,20 @@ void polynomialTest(String name, Builder<int> builder) {
         });
         test('3rd-degree', () {
           final polynomial = builder.fromCoefficients([1, 2, 3]);
-          expect(polynomial.format(), 'x^2 + 2 x + 3');
+          expect(polynomial.format(), 'x^2 + 2x + 3');
         });
         test('null values (skipped)', () {
           final polynomial = builder.fromCoefficients([2, 0, 0, 1]);
-          expect(polynomial.format(), '2 x^3 + 1');
+          expect(polynomial.format(), '2x^3 + 1');
         });
         test('null values (not skipped)', () {
           final polynomial = builder.fromCoefficients([2, 0, 1]);
-          expect(polynomial.format(skipNulls: false), '2 x^2 + 0 x + 1');
+          expect(polynomial.format(skipNulls: false), '2x^2 + 0x + 1');
         });
         test('limit', () {
           final polynomial = builder.generate(19, (i) => i - 10);
           expect(polynomial.format(),
-              '9 x^19 + 8 x^18 + 7 x^17 + … + -8 x^2 + -9 x + -10');
+              '9x^19 + 8x^18 + 7x^17 + … + -8x^2 + -9x + -10');
         });
       });
       test('toString', () {
@@ -545,7 +545,7 @@ void polynomialTest(String name, Builder<int> builder) {
             polynomial.toString(),
             '${polynomial.runtimeType}'
             '[3, ${polynomial.dataType.name}]:\n'
-            'x^2 + 2 x + 3');
+            'x^2 + 2x + 3');
       });
     });
     group('iterables', () {

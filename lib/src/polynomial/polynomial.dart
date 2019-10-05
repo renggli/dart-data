@@ -107,7 +107,7 @@ abstract class Polynomial<T> extends Tensor<T> {
     Printer valuePrinter, // additional options
     String addition = ' + ',
     String ellipses = '\u2026',
-    String multiplication = ' ',
+    String multiplication = '',
     String power = '^',
     String variable = 'x',
     bool skipNulls = true,
