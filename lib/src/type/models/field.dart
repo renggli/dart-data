@@ -7,7 +7,7 @@ abstract class Field<T> {
   /// The additive neutral element.
   T get additiveIdentity;
 
-  /// Computes `-a`.
+  /// Computes `-a`, the additive inverse.
   T neg(T a);
 
   /// Computes `a + b`.
@@ -19,7 +19,7 @@ abstract class Field<T> {
   /// The multiplicative neutral element.
   T get multiplicativeIdentity;
 
-  /// Computes `1 / a`.
+  /// Computes `1 / a`, the multiplicative inverse.
   T inv(T a);
 
   /// Computes `a * b`.
