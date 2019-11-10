@@ -78,7 +78,23 @@ class NumericField extends Field<num> {
   num mod(num a, num b) => a % b;
 
   @override
-  num pow(num a, num b) => math.pow(a, b);
+  num division(num a, num b) => a ~/ b;
+
+  @override
+  num remainder(num a, num b) => a.remainder(b);
+
+  @override
+  num pow(num base, num exponent) => math.pow(base, exponent);
+
+  @override
+  num modPow(num base, num exponent, num modulus) =>
+      mod(pow(base, exponent), modulus);
+
+  @override
+  num modInverse(num base, num modulus) => unsupportedOperation('modInverse');
+
+  @override
+  num gcd(num a, num b) => unsupportedOperation('gcd');
 }
 
 class NumericEquality extends Equality<num> {

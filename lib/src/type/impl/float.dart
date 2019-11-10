@@ -111,7 +111,24 @@ class FloatField extends Field<double> {
   double mod(double a, double b) => a % b;
 
   @override
-  double pow(double a, double b) => math.pow(a, b);
+  double division(double a, double b) => (a ~/ b).roundToDouble();
+
+  @override
+  double remainder(double a, double b) => a.remainder(b);
+
+  @override
+  double pow(double base, double exponent) => math.pow(base, exponent);
+
+  @override
+  double modPow(double base, double exponent, double modulus) =>
+      mod(pow(base, exponent), modulus);
+
+  @override
+  double modInverse(double base, double modulus) =>
+      unsupportedOperation('modInverse');
+
+  @override
+  double gcd(double a, double b) => unsupportedOperation('gcd');
 }
 
 class FloatEquality extends Equality<double> {

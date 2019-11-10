@@ -85,5 +85,23 @@ class FractionField extends Field<Fraction> {
   Fraction mod(Fraction a, Fraction b) => unsupportedOperation('mod');
 
   @override
-  Fraction pow(Fraction a, Fraction b) => a.pow(b.toInt());
+  Fraction division(Fraction a, Fraction b) => unsupportedOperation('division');
+
+  @override
+  Fraction remainder(Fraction a, Fraction b) =>
+      unsupportedOperation('remainder');
+
+  @override
+  Fraction pow(Fraction base, Fraction exponent) => base.pow(exponent.toInt());
+
+  @override
+  Fraction modPow(Fraction base, Fraction exponent, Fraction modulus) =>
+      unsupportedOperation('modPow');
+
+  @override
+  Fraction modInverse(Fraction base, Fraction modulus) =>
+      unsupportedOperation('modInverse');
+
+  @override
+  Fraction gcd(Fraction a, Fraction b) => unsupportedOperation('gcd');
 }

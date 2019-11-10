@@ -84,5 +84,24 @@ class QuaternionField extends Field<Quaternion> {
   Quaternion mod(Quaternion a, Quaternion b) => unsupportedOperation('mod');
 
   @override
-  Quaternion pow(Quaternion a, Quaternion b) => a.pow(b);
+  Quaternion division(Quaternion a, Quaternion b) =>
+      unsupportedOperation('division');
+
+  @override
+  Quaternion remainder(Quaternion a, Quaternion b) =>
+      unsupportedOperation('remainder');
+
+  @override
+  Quaternion pow(Quaternion base, Quaternion exponent) => base.pow(exponent);
+
+  @override
+  Quaternion modPow(Quaternion base, Quaternion exponent, Quaternion modulus) =>
+      unsupportedOperation('modPow');
+
+  @override
+  Quaternion modInverse(Quaternion base, Quaternion modulus) =>
+      unsupportedOperation('modInverse');
+
+  @override
+  Quaternion gcd(Quaternion a, Quaternion b) => unsupportedOperation('gcd');
 }

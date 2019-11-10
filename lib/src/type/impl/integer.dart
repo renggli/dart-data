@@ -219,7 +219,23 @@ class IntegerField extends Field<int> {
   int mod(int a, int b) => a % b;
 
   @override
-  int pow(int a, int b) => math.pow(a, b).truncate();
+  int division(int a, int b) => a ~/ b;
+
+  @override
+  int remainder(int a, int b) => a % b;
+
+  @override
+  int pow(int base, int exponent) => math.pow(base, exponent).truncate();
+
+  @override
+  int modPow(int base, int exponent, int modulus) =>
+      base.modPow(exponent, modulus);
+
+  @override
+  int modInverse(int base, int modulus) => base.modInverse(modulus);
+
+  @override
+  int gcd(int a, int b) => a.gcd(b);
 }
 
 class IntegerEquality extends Equality<int> {

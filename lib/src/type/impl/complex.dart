@@ -81,5 +81,22 @@ class ComplexField extends Field<Complex> {
   Complex mod(Complex a, Complex b) => unsupportedOperation('mod');
 
   @override
-  Complex pow(Complex a, Complex b) => a.pow(b);
+  Complex division(Complex a, Complex b) => unsupportedOperation('division');
+
+  @override
+  Complex remainder(Complex a, Complex b) => unsupportedOperation('remainder');
+
+  @override
+  Complex pow(Complex base, Complex exponent) => base.pow(exponent);
+
+  @override
+  Complex modPow(Complex base, Complex exponent, Complex modulus) =>
+      unsupportedOperation('modPow');
+
+  @override
+  Complex modInverse(Complex base, Complex modulus) =>
+      unsupportedOperation('modInverse');
+
+  @override
+  Complex gcd(Complex a, Complex b) => unsupportedOperation('gcd');
 }

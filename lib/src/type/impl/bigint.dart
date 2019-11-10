@@ -81,5 +81,21 @@ class BigIntField extends Field<BigInt> {
   BigInt mod(BigInt a, BigInt b) => a % b;
 
   @override
-  BigInt pow(BigInt a, BigInt b) => a.pow(b.toInt());
+  BigInt division(BigInt a, BigInt b) => a ~/ b;
+
+  @override
+  BigInt remainder(BigInt a, BigInt b) => a.remainder(b);
+
+  @override
+  BigInt pow(BigInt base, BigInt exponent) => base.pow(exponent.toInt());
+
+  @override
+  BigInt modPow(BigInt base, BigInt exponent, BigInt modulus) =>
+      base.modPow(exponent, modulus);
+
+  @override
+  BigInt modInverse(BigInt base, BigInt modulus) => base.modInverse(modulus);
+
+  @override
+  BigInt gcd(BigInt a, BigInt b) => a.gcd(b);
 }
