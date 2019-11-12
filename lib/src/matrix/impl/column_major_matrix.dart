@@ -1,7 +1,7 @@
 library data.matrix.impl.column_major;
 
-import 'package:data/src/matrix/matrix.dart';
-import 'package:data/type.dart';
+import '../../../type.dart';
+import '../matrix.dart';
 
 /// Column major matrix.
 class ColumnMajorMatrix<T> extends Matrix<T> {

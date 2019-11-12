@@ -2,10 +2,10 @@ library data.polynomial.operators;
 
 import 'dart:math' as math;
 
-import 'package:data/matrix.dart' as matrix;
-import 'package:data/src/polynomial/builder.dart';
-import 'package:data/src/polynomial/polynomial.dart';
-import 'package:data/type.dart';
+import '../../matrix.dart' as matrix;
+import '../../type.dart';
+import 'builder.dart';
+import 'polynomial.dart';
 
 Polynomial<T> _resultPolynomial<T>(
     int degree, Builder<T> builder, DataType<T> dataType) {

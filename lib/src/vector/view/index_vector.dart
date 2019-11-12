@@ -1,9 +1,9 @@
 library data.vector.view.index;
 
-import 'package:data/src/shared/config.dart';
-import 'package:data/src/vector/vector.dart';
-import 'package:data/tensor.dart';
-import 'package:data/type.dart';
+import '../../../tensor.dart';
+import '../../../type.dart';
+import '../../shared/config.dart';
+import '../vector.dart';
 
 // A mutable indexed view of a vector.
 class IndexVector<T> extends Vector<T> {

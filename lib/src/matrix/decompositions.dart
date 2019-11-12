@@ -2,15 +2,15 @@ library data.matrix.decompositions;
 
 import 'dart:math' as math;
 
-import 'package:data/src/matrix/decomposition/cholesky.dart';
-import 'package:data/src/matrix/decomposition/eigen.dart';
-import 'package:data/src/matrix/decomposition/lu.dart';
-import 'package:data/src/matrix/decomposition/qr.dart';
-import 'package:data/src/matrix/decomposition/singular_value.dart';
-import 'package:data/src/matrix/matrix.dart';
-import 'package:data/src/matrix/view/identity_matrix.dart';
-import 'package:data/src/shared/config.dart';
-import 'package:data/src/shared/math.dart';
+import '../shared/config.dart';
+import '../shared/math.dart';
+import 'decomposition/cholesky.dart';
+import 'decomposition/eigen.dart';
+import 'decomposition/lu.dart';
+import 'decomposition/qr.dart';
+import 'decomposition/singular_value.dart';
+import 'matrix.dart';
+import 'view/identity_matrix.dart';
 
 /// Returns the LU Decomposition.
 LUDecomposition lu(Matrix<num> source) => LUDecomposition(source);

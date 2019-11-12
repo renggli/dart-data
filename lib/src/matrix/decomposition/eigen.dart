@@ -2,11 +2,12 @@ library matrix.decomposition.eigen;
 
 import 'dart:math' as math;
 
-import 'package:data/src/matrix/matrix.dart';
-import 'package:data/src/shared/config.dart';
-import 'package:data/src/shared/math.dart';
 import 'package:more/collection.dart';
 import 'package:more/number.dart';
+
+import '../../shared/config.dart';
+import '../../shared/math.dart';
+import '../matrix.dart';
 
 /// Eigenvalues and eigenvectors of a real matrix.
 ///

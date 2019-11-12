@@ -1,9 +1,9 @@
 library data.polynomial.impl.list;
 
-import 'package:data/src/polynomial/polynomial.dart';
-import 'package:data/src/shared/config.dart';
-import 'package:data/src/shared/lists.dart';
-import 'package:data/type.dart';
+import '../../../type.dart';
+import '../../shared/config.dart';
+import '../../shared/lists.dart';
+import '../polynomial.dart';
 
 /// Sparse compressed polynomial.
 class ListPolynomial<T> extends Polynomial<T> {

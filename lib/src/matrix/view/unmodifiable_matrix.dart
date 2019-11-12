@@ -1,11 +1,9 @@
 library data.matrix.view.unmodifiable;
 
-import 'package:data/src/matrix/matrix.dart';
-import 'package:data/src/matrix/mixins/unmodifiable_matrix.dart';
-import 'package:data/tensor.dart';
-import 'package:data/type.dart';
-
-List<int> foo;
+import '../../../tensor.dart';
+import '../../../type.dart';
+import '../matrix.dart';
+import '../mixins/unmodifiable_matrix.dart';
 
 /// Read-only view of a mutable matrix.
 class UnmodifiableMatrix<T> extends Matrix<T> with UnmodifiableMatrixMixin<T> {

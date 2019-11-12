@@ -2,9 +2,9 @@ library data.polynomial.view.shift;
 
 import 'dart:math' as math;
 
-import 'package:data/src/polynomial/polynomial.dart';
-import 'package:data/tensor.dart';
-import 'package:data/type.dart';
+import '../../../tensor.dart';
+import '../../../type.dart';
+import '../polynomial.dart';
 
 /// Shifts the polynomial by a given offset.
 class ShiftPolynomial<T> extends Polynomial<T> {

@@ -1,10 +1,10 @@
 library data.matrix.view.horizontal_concat;
 
-import 'package:data/src/matrix/matrix.dart';
-import 'package:data/src/shared/config.dart';
-import 'package:data/src/shared/lists.dart';
-import 'package:data/tensor.dart';
-import 'package:data/type.dart';
+import '../../../tensor.dart';
+import '../../../type.dart';
+import '../../shared/config.dart';
+import '../../shared/lists.dart';
+import '../matrix.dart';
 
 /// Mutable horizontal concatenation of matrices.
 class ConcatHorizontalMatrix<T> extends Matrix<T> {

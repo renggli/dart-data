@@ -2,19 +2,20 @@ library data.vector.vector;
 
 import 'dart:collection' show ListMixin;
 
-import 'package:data/src/vector/builder.dart';
-import 'package:data/src/vector/format.dart';
-import 'package:data/src/vector/view/cast_vector.dart';
-import 'package:data/src/vector/view/index_vector.dart';
-import 'package:data/src/vector/view/overlay_mask_vector.dart';
-import 'package:data/src/vector/view/overlay_offset_vector.dart';
-import 'package:data/src/vector/view/range_vector.dart';
-import 'package:data/src/vector/view/reversed_vector.dart';
-import 'package:data/src/vector/view/transformed_vector.dart';
-import 'package:data/src/vector/view/unmodifiable_vector.dart';
-import 'package:data/tensor.dart' show Tensor;
-import 'package:data/type.dart' show DataType;
 import 'package:more/printer.dart' show Printer;
+
+import '../../tensor.dart' show Tensor;
+import '../../type.dart' show DataType;
+import 'builder.dart';
+import 'format.dart';
+import 'view/cast_vector.dart';
+import 'view/index_vector.dart';
+import 'view/overlay_mask_vector.dart';
+import 'view/overlay_offset_vector.dart';
+import 'view/range_vector.dart';
+import 'view/reversed_vector.dart';
+import 'view/transformed_vector.dart';
+import 'view/unmodifiable_vector.dart';
 
 /// Abstract vector type.
 abstract class Vector<T> extends Tensor<T> {

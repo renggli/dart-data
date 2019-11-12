@@ -1,24 +1,24 @@
 library data.matrix.builder;
 
-import 'package:data/src/matrix/format.dart';
-import 'package:data/src/matrix/impl/column_major_matrix.dart';
-import 'package:data/src/matrix/impl/compressed_column_matrix.dart';
-import 'package:data/src/matrix/impl/compressed_row_matrix.dart';
-import 'package:data/src/matrix/impl/coordinate_list_matrix.dart';
-import 'package:data/src/matrix/impl/diagonal_matrix.dart';
-import 'package:data/src/matrix/impl/keyed_matrix.dart';
-import 'package:data/src/matrix/impl/row_major_matrix.dart';
-import 'package:data/src/matrix/matrix.dart';
-import 'package:data/src/matrix/view/column_vector_matrix.dart';
-import 'package:data/src/matrix/view/concat_horizontal_matrix.dart';
-import 'package:data/src/matrix/view/concat_vertical_matrix.dart';
-import 'package:data/src/matrix/view/constant_matrix.dart';
-import 'package:data/src/matrix/view/diagonal_vector_matrix.dart';
-import 'package:data/src/matrix/view/generated_matrix.dart';
-import 'package:data/src/matrix/view/identity_matrix.dart';
-import 'package:data/src/matrix/view/row_vector_matrix.dart';
-import 'package:data/type.dart';
-import 'package:data/vector.dart' show Vector;
+import '../../type.dart';
+import '../../vector.dart' show Vector;
+import 'format.dart';
+import 'impl/column_major_matrix.dart';
+import 'impl/compressed_column_matrix.dart';
+import 'impl/compressed_row_matrix.dart';
+import 'impl/coordinate_list_matrix.dart';
+import 'impl/diagonal_matrix.dart';
+import 'impl/keyed_matrix.dart';
+import 'impl/row_major_matrix.dart';
+import 'matrix.dart';
+import 'view/column_vector_matrix.dart';
+import 'view/concat_horizontal_matrix.dart';
+import 'view/concat_vertical_matrix.dart';
+import 'view/constant_matrix.dart';
+import 'view/diagonal_vector_matrix.dart';
+import 'view/generated_matrix.dart';
+import 'view/identity_matrix.dart';
+import 'view/row_vector_matrix.dart';
 
 /// Builds a matrix of a custom type.
 class Builder<T> {

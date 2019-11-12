@@ -2,10 +2,10 @@ library data.type.impl.string;
 
 import 'dart:math' as math;
 
-import 'package:data/src/shared/config.dart';
-import 'package:data/src/type/impl/object.dart';
-import 'package:data/src/type/models/equality.dart';
-import 'package:data/src/type/models/order.dart';
+import '../../shared/config.dart';
+import '../models/equality.dart';
+import '../models/order.dart';
+import 'object.dart';
 
 class StringDataType extends ObjectDataType<String> {
   const StringDataType();

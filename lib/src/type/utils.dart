@@ -1,9 +1,10 @@
 import 'dart:math' as math;
 
-import 'package:data/src/shared/config.dart' as config;
-import 'package:data/src/type/impl/integer.dart';
-import 'package:data/src/type/type.dart';
 import 'package:more/number.dart';
+
+import '../shared/config.dart' as config;
+import 'impl/integer.dart';
+import 'type.dart';
 
 /// Derives a fitting [DataType] from [Object] [instance].
 DataType fromInstance(Object instance) => fromType(instance.runtimeType);

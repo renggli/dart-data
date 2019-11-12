@@ -2,9 +2,9 @@ library data.polynomial.impl.standard;
 
 import 'dart:math' show max;
 
-import 'package:data/src/polynomial/polynomial.dart';
-import 'package:data/src/shared/lists.dart';
-import 'package:data/type.dart';
+import '../../../type.dart';
+import '../../shared/lists.dart';
+import '../polynomial.dart';
 
 /// Standard polynomial.
 class StandardPolynomial<T> extends Polynomial<T> {

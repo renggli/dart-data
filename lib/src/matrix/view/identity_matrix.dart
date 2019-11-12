@@ -1,8 +1,8 @@
 library data.matrix.view.identity;
 
-import 'package:data/src/matrix/matrix.dart';
-import 'package:data/src/matrix/mixins/unmodifiable_matrix.dart';
-import 'package:data/type.dart';
+import '../../../type.dart';
+import '../matrix.dart';
+import '../mixins/unmodifiable_matrix.dart';
 
 /// Read-only identity matrix.
 class IdentityMatrix<T> extends Matrix<T> with UnmodifiableMatrixMixin<T> {

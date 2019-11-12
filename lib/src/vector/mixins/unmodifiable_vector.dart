@@ -1,6 +1,6 @@
 library data.vector.mixins.unmodifiable;
 
-import 'package:data/src/vector/vector.dart';
+import '../vector.dart';
 
 /// Mixin for unmodifiable vectors.
 mixin UnmodifiableVectorMixin<T> implements Vector<T> {

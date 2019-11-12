@@ -1,9 +1,9 @@
 library data.polynomial.view.unmodifiable;
 
-import 'package:data/src/polynomial/mixins/unmodifiable_polynomial.dart';
-import 'package:data/src/polynomial/polynomial.dart';
-import 'package:data/tensor.dart';
-import 'package:data/type.dart';
+import '../../../tensor.dart';
+import '../../../type.dart';
+import '../mixins/unmodifiable_polynomial.dart';
+import '../polynomial.dart';
 
 /// Read-only view of a mutable polynomial.
 class UnmodifiablePolynomial<T> extends Polynomial<T>

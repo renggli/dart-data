@@ -1,8 +1,8 @@
 library data.polynomial.view.integrate;
 
-import 'package:data/src/polynomial/polynomial.dart';
-import 'package:data/tensor.dart';
-import 'package:data/type.dart';
+import '../../../tensor.dart';
+import '../../../type.dart';
+import '../polynomial.dart';
 
 /// Integrate modifiable view of a polynomial.
 class IntegratePolynomial<T> extends Polynomial<T> {

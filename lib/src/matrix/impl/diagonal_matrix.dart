@@ -2,8 +2,8 @@ library data.matrix.impl.diagonal;
 
 import 'dart:math' as math;
 
-import 'package:data/src/matrix/matrix.dart';
-import 'package:data/type.dart';
+import '../../../type.dart';
+import '../matrix.dart';
 
 /// Sparse matrix with diagonal storage.
 class DiagonalMatrix<T> extends Matrix<T> {

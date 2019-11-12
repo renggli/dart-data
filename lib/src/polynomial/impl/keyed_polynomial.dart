@@ -2,8 +2,8 @@ library data.polynomial.impl.keyed;
 
 import 'dart:collection' show SplayTreeMap;
 
-import 'package:data/src/polynomial/polynomial.dart';
-import 'package:data/type.dart';
+import '../../../type.dart';
+import '../polynomial.dart';
 
 /// Sparse keyed polynomial.
 class KeyedPolynomial<T> extends Polynomial<T> {

@@ -1,8 +1,8 @@
 library data.vector.view.generated;
 
-import 'package:data/src/vector/mixins/unmodifiable_vector.dart';
-import 'package:data/src/vector/vector.dart';
-import 'package:data/type.dart';
+import '../../../type.dart';
+import '../mixins/unmodifiable_vector.dart';
+import '../vector.dart';
 
 /// Read-only vector generated from a callback.
 class GeneratedVector<T> extends Vector<T> with UnmodifiableVectorMixin<T> {

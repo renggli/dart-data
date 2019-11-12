@@ -2,10 +2,10 @@ library data.vector.operators;
 
 import 'dart:math' as math;
 
-import 'package:data/matrix.dart' show Matrix;
-import 'package:data/src/vector/builder.dart';
-import 'package:data/src/vector/vector.dart';
-import 'package:data/type.dart';
+import '../../matrix.dart' show Matrix;
+import '../../type.dart';
+import 'builder.dart';
+import 'vector.dart';
 
 Vector<T> _resultVector<T>(
     int count, Vector<T> target, Builder<T> builder, DataType<T> dataType) {

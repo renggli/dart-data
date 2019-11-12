@@ -1,9 +1,10 @@
 library data.type.impl.complex;
 
-import 'package:data/src/type/models/equality.dart';
-import 'package:data/src/type/models/field.dart';
-import 'package:data/src/type/type.dart';
 import 'package:more/number.dart';
+
+import '../models/equality.dart';
+import '../models/field.dart';
+import '../type.dart';
 
 class ComplexDataType extends DataType<Complex> {
   const ComplexDataType();

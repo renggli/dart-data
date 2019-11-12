@@ -3,7 +3,7 @@ library data.shared.lists;
 
 import 'dart:math' as math;
 
-import 'package:data/type.dart';
+import '../../type.dart';
 
 /// Initial length of fixed-length lists.
 const int initialListLength = 4;

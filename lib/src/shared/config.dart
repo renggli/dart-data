@@ -1,7 +1,7 @@
 /// Shared configuration across packages.
 library data.shared.config;
 
-import 'package:data/type.dart';
+import '../../type.dart';
 
 /// True, if the code is running in JavaScript.
 const bool isJavaScript = identical(1, 1.0);

@@ -1,8 +1,8 @@
 library data.matrix.view.cast;
 
-import 'package:data/src/matrix/matrix.dart';
-import 'package:data/tensor.dart';
-import 'package:data/type.dart';
+import '../../../tensor.dart';
+import '../../../type.dart';
+import '../matrix.dart';
 
 /// Mutable matrix cast to a new type.
 class CastMatrix<S, T> extends Matrix<T> {

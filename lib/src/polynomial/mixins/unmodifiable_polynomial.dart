@@ -1,6 +1,6 @@
 library data.polynomial.mixins.unmodifiable;
 
-import 'package:data/src/polynomial/polynomial.dart';
+import '../polynomial.dart';
 
 /// Mixin for unmodifiable polynomials.
 mixin UnmodifiablePolynomialMixin<T> implements Polynomial<T> {

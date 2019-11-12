@@ -1,8 +1,8 @@
 library data.vector.view.cast;
 
-import 'package:data/src/vector/vector.dart';
-import 'package:data/tensor.dart';
-import 'package:data/type.dart';
+import '../../../tensor.dart';
+import '../../../type.dart';
+import '../vector.dart';
 
 /// Mutable cast vector.
 class CastVector<S, T> extends Vector<T> {

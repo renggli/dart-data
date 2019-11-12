@@ -1,7 +1,8 @@
 library data.tensor.tensor;
 
-import 'package:data/type.dart' show DataType;
 import 'package:more/printer.dart' show Printer;
+
+import '../../type.dart' show DataType;
 
 /// Abstract tensor type.
 abstract class Tensor<T> {

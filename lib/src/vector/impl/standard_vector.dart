@@ -1,7 +1,7 @@
 library data.vector.impl.standard;
 
-import 'package:data/src/vector/vector.dart';
-import 'package:data/type.dart';
+import '../../../type.dart';
+import '../vector.dart';
 
 /// Standard vector.
 class StandardVector<T> extends Vector<T> {

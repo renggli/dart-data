@@ -1,8 +1,8 @@
 library data.vector.view.reversed;
 
-import 'package:data/src/vector/vector.dart';
-import 'package:data/tensor.dart';
-import 'package:data/type.dart';
+import '../../../tensor.dart';
+import '../../../type.dart';
+import '../vector.dart';
 
 /// Mutable reverse view of a vector.
 class ReversedVector<T> extends Vector<T> {

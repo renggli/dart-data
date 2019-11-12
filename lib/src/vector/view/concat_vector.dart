@@ -1,11 +1,11 @@
 library data.vector.view.concat;
 
-import 'package:data/src/shared/config.dart';
-import 'package:data/src/shared/lists.dart';
-import 'package:data/src/vector/vector.dart';
-import 'package:data/tensor.dart';
-import 'package:data/type.dart';
-import 'package:data/vector.dart';
+import '../../../tensor.dart';
+import '../../../type.dart';
+import '../../../vector.dart';
+import '../../shared/config.dart';
+import '../../shared/lists.dart';
+import '../vector.dart';
 
 /// Mutable concatenation of vectors.
 class ConcatVector<T> extends Vector<T> {

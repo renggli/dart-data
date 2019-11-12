@@ -1,10 +1,11 @@
 library data.type.impl.modulo;
 
-import 'package:data/src/type/models/equality.dart';
-import 'package:data/src/type/models/field.dart';
-import 'package:data/src/type/models/order.dart';
-import 'package:data/src/type/type.dart';
 import 'package:more/printer.dart' show Printer;
+
+import '../models/equality.dart';
+import '../models/field.dart';
+import '../models/order.dart';
+import '../type.dart';
 
 class ModuloDataType<T> extends DataType<T> {
   final DataType<T> type;

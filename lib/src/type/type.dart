@@ -1,22 +1,23 @@
 library data.type;
 
-import 'package:data/src/type/impl/bigint.dart';
-import 'package:data/src/type/impl/boolean.dart';
-import 'package:data/src/type/impl/complex.dart';
-import 'package:data/src/type/impl/float.dart';
-import 'package:data/src/type/impl/fraction.dart';
-import 'package:data/src/type/impl/integer.dart';
-import 'package:data/src/type/impl/nullable.dart';
-import 'package:data/src/type/impl/numeric.dart';
-import 'package:data/src/type/impl/object.dart';
-import 'package:data/src/type/impl/quaternion.dart';
-import 'package:data/src/type/impl/string.dart';
-import 'package:data/src/type/models/equality.dart';
-import 'package:data/src/type/models/field.dart';
-import 'package:data/src/type/models/order.dart';
-import 'package:data/src/type/utils.dart' as utils;
 import 'package:meta/meta.dart';
 import 'package:more/printer.dart';
+
+import 'impl/bigint.dart';
+import 'impl/boolean.dart';
+import 'impl/complex.dart';
+import 'impl/float.dart';
+import 'impl/fraction.dart';
+import 'impl/integer.dart';
+import 'impl/nullable.dart';
+import 'impl/numeric.dart';
+import 'impl/object.dart';
+import 'impl/quaternion.dart';
+import 'impl/string.dart';
+import 'models/equality.dart';
+import 'models/field.dart';
+import 'models/order.dart';
+import 'utils.dart' as utils;
 
 @immutable
 abstract class DataType<T> {

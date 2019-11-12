@@ -1,10 +1,11 @@
 library data.type.impl.fraction;
 
-import 'package:data/src/type/models/equality.dart';
-import 'package:data/src/type/models/field.dart';
-import 'package:data/src/type/models/order.dart';
-import 'package:data/src/type/type.dart';
 import 'package:more/number.dart';
+
+import '../models/equality.dart';
+import '../models/field.dart';
+import '../models/order.dart';
+import '../type.dart';
 
 class FractionDataType extends DataType<Fraction> {
   const FractionDataType();

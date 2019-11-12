@@ -1,14 +1,14 @@
 library data.vector.builder;
 
-import 'package:data/src/vector/format.dart';
-import 'package:data/src/vector/impl/keyed_vector.dart';
-import 'package:data/src/vector/impl/list_vector.dart';
-import 'package:data/src/vector/impl/standard_vector.dart';
-import 'package:data/src/vector/vector.dart';
-import 'package:data/src/vector/view/concat_vector.dart';
-import 'package:data/src/vector/view/constant_vector.dart';
-import 'package:data/src/vector/view/generated_vector.dart';
-import 'package:data/type.dart';
+import '../../type.dart';
+import 'format.dart';
+import 'impl/keyed_vector.dart';
+import 'impl/list_vector.dart';
+import 'impl/standard_vector.dart';
+import 'vector.dart';
+import 'view/concat_vector.dart';
+import 'view/constant_vector.dart';
+import 'view/generated_vector.dart';
 
 /// Builds a vector of a custom type.
 class Builder<T> {

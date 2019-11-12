@@ -1,16 +1,17 @@
 library data.polynomial.builder;
 
-import 'package:data/src/polynomial/format.dart';
-import 'package:data/src/polynomial/impl/keyed_polynomial.dart';
-import 'package:data/src/polynomial/impl/list_polynomial.dart';
-import 'package:data/src/polynomial/impl/standard_polynomial.dart';
-import 'package:data/src/polynomial/polynomial.dart';
-import 'package:data/src/polynomial/view/differentiate_polynomial.dart';
-import 'package:data/src/polynomial/view/generated_polynomial.dart';
-import 'package:data/src/polynomial/view/integrate_polynomial.dart';
-import 'package:data/type.dart';
-import 'package:data/vector.dart' show Vector;
 import 'package:more/collection.dart';
+
+import '../../type.dart';
+import '../../vector.dart' show Vector;
+import 'format.dart';
+import 'impl/keyed_polynomial.dart';
+import 'impl/list_polynomial.dart';
+import 'impl/standard_polynomial.dart';
+import 'polynomial.dart';
+import 'view/differentiate_polynomial.dart';
+import 'view/generated_polynomial.dart';
+import 'view/integrate_polynomial.dart';
 
 /// Builds a polynomial of a custom type.
 class Builder<T> {

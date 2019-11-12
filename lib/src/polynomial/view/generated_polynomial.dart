@@ -1,8 +1,8 @@
 library data.polynomial.view.generated;
 
-import 'package:data/src/polynomial/mixins/unmodifiable_polynomial.dart';
-import 'package:data/src/polynomial/polynomial.dart';
-import 'package:data/type.dart';
+import '../../../type.dart';
+import '../mixins/unmodifiable_polynomial.dart';
+import '../polynomial.dart';
 
 /// Read-only polynomial generated from a callback.
 class GeneratedPolynomial<T> extends Polynomial<T>

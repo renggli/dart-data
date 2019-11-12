@@ -1,9 +1,9 @@
 library data.matrix.impl.compressed_row;
 
-import 'package:data/src/matrix/matrix.dart';
-import 'package:data/src/shared/config.dart';
-import 'package:data/src/shared/lists.dart';
-import 'package:data/type.dart';
+import '../../../type.dart';
+import '../../shared/config.dart';
+import '../../shared/lists.dart';
+import '../matrix.dart';
 
 /// Sparse compressed row matrix.
 class CompressedRowMatrix<T> extends Matrix<T> {

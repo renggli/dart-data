@@ -2,16 +2,17 @@ library data.polynomial.polynomial;
 
 import 'dart:collection' show ListMixin;
 
-import 'package:data/src/polynomial/builder.dart';
-import 'package:data/src/polynomial/format.dart';
-import 'package:data/src/polynomial/view/differentiate_polynomial.dart';
-import 'package:data/src/polynomial/view/integrate_polynomial.dart';
-import 'package:data/src/polynomial/view/shift_polynomial.dart';
-import 'package:data/src/polynomial/view/unmodifiable_polynomial.dart';
-import 'package:data/tensor.dart' show Tensor;
-import 'package:data/type.dart' show DataType;
 import 'package:meta/meta.dart';
 import 'package:more/printer.dart' show Printer;
+
+import '../../tensor.dart' show Tensor;
+import '../../type.dart' show DataType;
+import 'builder.dart';
+import 'format.dart';
+import 'view/differentiate_polynomial.dart';
+import 'view/integrate_polynomial.dart';
+import 'view/shift_polynomial.dart';
+import 'view/unmodifiable_polynomial.dart';
 
 /// Abstract polynomial type.
 abstract class Polynomial<T> extends Tensor<T> {

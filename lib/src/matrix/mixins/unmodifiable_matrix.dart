@@ -1,6 +1,6 @@
 library data.matrix.mixins.unmodifiable;
 
-import 'package:data/src/matrix/matrix.dart';
+import '../matrix.dart';
 
 /// Mixin for unmodifiable matrices.
 mixin UnmodifiableMatrixMixin<T> implements Matrix<T> {

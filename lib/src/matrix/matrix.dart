@@ -1,25 +1,26 @@
 library data.matrix.matrix;
 
-import 'package:data/src/matrix/builder.dart';
-import 'package:data/src/matrix/format.dart';
-import 'package:data/src/matrix/view/cast_matrix.dart';
-import 'package:data/src/matrix/view/flipped_horizontal_matrix.dart';
-import 'package:data/src/matrix/view/flipped_vertical_matrix.dart';
-import 'package:data/src/matrix/view/index_matrix.dart';
-import 'package:data/src/matrix/view/overlay_mask_matrix.dart';
-import 'package:data/src/matrix/view/overlay_offset_matrix.dart';
-import 'package:data/src/matrix/view/range_matrix.dart';
-import 'package:data/src/matrix/view/transformed_matrix.dart';
-import 'package:data/src/matrix/view/transposed_matrix.dart';
-import 'package:data/src/matrix/view/unmodifiable_matrix.dart';
-import 'package:data/src/vector/view/column_matrix_vector.dart';
-import 'package:data/src/vector/view/diagonal_matrix_vector.dart';
-import 'package:data/src/vector/view/row_matrix_vector.dart';
-import 'package:data/tensor.dart' show Tensor;
-import 'package:data/type.dart' show DataType;
-import 'package:data/vector.dart' show Vector;
 import 'package:more/collection.dart' show IntegerRange;
 import 'package:more/printer.dart' show Printer;
+
+import '../../tensor.dart' show Tensor;
+import '../../type.dart' show DataType;
+import '../../vector.dart' show Vector;
+import '../vector/view/column_matrix_vector.dart';
+import '../vector/view/diagonal_matrix_vector.dart';
+import '../vector/view/row_matrix_vector.dart';
+import 'builder.dart';
+import 'format.dart';
+import 'view/cast_matrix.dart';
+import 'view/flipped_horizontal_matrix.dart';
+import 'view/flipped_vertical_matrix.dart';
+import 'view/index_matrix.dart';
+import 'view/overlay_mask_matrix.dart';
+import 'view/overlay_offset_matrix.dart';
+import 'view/range_matrix.dart';
+import 'view/transformed_matrix.dart';
+import 'view/transposed_matrix.dart';
+import 'view/unmodifiable_matrix.dart';
 
 /// Abstract matrix type.
 abstract class Matrix<T> extends Tensor<T> {
