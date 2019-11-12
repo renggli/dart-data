@@ -10,7 +10,7 @@ import 'package:more/printer.dart' show Printer;
 /// Some [DataType] instances do not support `null` values in the way they
 /// represent their data. This wrapper turns those types into nullable ones.
 class NullableDataType<T> extends DataType<T> {
-  NullableDataType(this.delegate);
+  const NullableDataType(this.delegate);
 
   final DataType<T> delegate;
 

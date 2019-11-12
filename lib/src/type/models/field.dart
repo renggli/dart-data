@@ -1,6 +1,9 @@
 library data.type.models.field;
 
+import 'package:meta/meta.dart';
+
 /// Encapsulates a mathematical field.
+@immutable
 abstract class Field<T> {
   const Field();
 

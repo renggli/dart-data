@@ -41,7 +41,7 @@ class ModuloField<T> extends Field<T> {
   final DataType<T> type;
   final T modulus;
 
-  ModuloField(this.type, this.modulus);
+  const ModuloField(this.type, this.modulus);
 
   @override
   T get additiveIdentity => type.field.additiveIdentity;

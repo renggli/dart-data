@@ -15,8 +15,10 @@ import 'package:data/src/type/models/equality.dart';
 import 'package:data/src/type/models/field.dart';
 import 'package:data/src/type/models/order.dart';
 import 'package:data/src/type/utils.dart' as utils;
+import 'package:meta/meta.dart';
 import 'package:more/printer.dart';
 
+@immutable
 abstract class DataType<T> {
   // Object data types
   static const ObjectDataType object = ObjectDataType();
