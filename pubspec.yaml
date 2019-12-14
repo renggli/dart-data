@@ -1,5 +1,5 @@
 name: data
-version: 0.2.0
+version: 0.3.0
 
 author: Lukas Renggli <renggli@gmail.com>
 homepage: https://github.com/renggli/dart-data
@@ -11,6 +11,6 @@ environment:
 dependencies:
   collection: ^1.14.0
   meta: ^1.1.0
-  more: ^1.18.0
+  more: ^2.0.0
 dev_dependencies:
   test: ^1.9.0
