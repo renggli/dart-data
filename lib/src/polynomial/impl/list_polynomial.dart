@@ -12,8 +12,12 @@ class ListPolynomial<T> extends Polynomial<T> {
   int _length;
 
   ListPolynomial(DataType<T> dataType)
-      : this._(dataType, indexDataType.newList(initialListLength),
-            dataType.newList(initialListLength), 0);
+      : this._(
+            dataType,
+            indexDataType.newList(initialListLength),
+            dataType.newListFilled(
+                initialListLength, dataType.field.additiveIdentity),
+            0);
 
   ListPolynomial._(
       this.dataType, this._exponents, this._coefficients, this._length);
@@ -44,14 +48,16 @@ class ListPolynomial<T> extends Polynomial<T> {
       if (!isZeroCoefficient(value)) {
         _exponents =
             insertAt(indexDataType, _exponents, _length, -pos - 1, exponent);
-        _coefficients =
-            insertAt(dataType, _coefficients, _length, -pos - 1, value);
+        _coefficients = insertAt(
+            dataType, _coefficients, _length, -pos - 1, value,
+            fillValue: zeroCoefficient);
         _length++;
       }
     } else {
       if (isZeroCoefficient(value)) {
         _exponents = removeAt(indexDataType, _exponents, _length, pos);
-        _coefficients = removeAt(dataType, _coefficients, _length, pos);
+        _coefficients = removeAt(dataType, _coefficients, _length, pos,
+            fillValue: zeroCoefficient);
         _length--;
       } else {
         _coefficients[pos] = value;

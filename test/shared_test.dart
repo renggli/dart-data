@@ -38,6 +38,21 @@ void main() {
       final list5 = lists.insertAt(DataType.object, list4, 6, 6, 'y');
       expect(list5, ['x', 'a', 'g', 'b', 'i', 'c', 'y']);
     });
+    test('insertAt (fill)', () {
+      final list1 = ['a', 'b', 'c', '*'];
+      final list2 =
+          lists.insertAt(DataType.object, list1, 3, 2, 'i', fillValue: '*');
+      expect(list2, ['a', 'b', 'i', 'c']);
+      final list3 =
+          lists.insertAt(DataType.object, list2, 4, 1, 'g', fillValue: '*');
+      expect(list3, ['a', 'g', 'b', 'i', 'c', '*', '*']);
+      final list4 =
+          lists.insertAt(DataType.object, list3, 5, 0, 'x', fillValue: '*');
+      expect(list4, ['x', 'a', 'g', 'b', 'i', 'c', '*']);
+      final list5 =
+          lists.insertAt(DataType.object, list4, 6, 6, 'y', fillValue: '*');
+      expect(list5, ['x', 'a', 'g', 'b', 'i', 'c', 'y']);
+    });
     test('removeAt', () {
       final list1 = ['a', 'g', 'b', 'i', 'c', null, null];
       final list2 = lists.removeAt(DataType.object, list1, 5, 1);
@@ -48,6 +63,21 @@ void main() {
       expect(list4, ['b', 'c', null, null]);
       final list5 = lists.removeAt(DataType.object, list4, 2, 1);
       expect(list5, ['b', null, null, null]);
+    });
+    test('removeAt (fill)', () {
+      final list1 = ['a', 'g', 'b', 'i', 'c', '*', '*'];
+      final list2 =
+          lists.removeAt(DataType.object, list1, 5, 1, fillValue: '*');
+      expect(list2, ['a', 'b', 'i', 'c', '*', '*', '*']);
+      final list3 =
+          lists.removeAt(DataType.object, list2, 4, 2, fillValue: '*');
+      expect(list3, ['a', 'b', 'c', '*', '*', '*', '*']);
+      final list4 =
+          lists.removeAt(DataType.object, list3, 3, 0, fillValue: '*');
+      expect(list4, ['b', 'c', '*', '*']);
+      final list5 =
+          lists.removeAt(DataType.object, list4, 2, 1, fillValue: '*');
+      expect(list5, ['b', '*', '*', '*']);
     });
     test('binarySearch (empty)', () {
       expect(lists.binarySearch(list, 0, 0, 'a'), -1);
