@@ -563,8 +563,8 @@ void polynomialTest(String name, Builder<int> builder) {
     });
     group('operators', () {
       final random = Random();
-      final sourceA = builder.generate(100, (i) => random.nextInt(100));
-      final sourceB = builder.generate(100, (i) => random.nextInt(100));
+      final sourceA = builder.generate(100, (i) => 1 + random.nextInt(99));
+      final sourceB = builder.generate(100, (i) => 1 + random.nextInt(99));
       test('unary', () {
         final result = unaryOperator(sourceA, (a) => a * a);
         expect(result.dataType, sourceA.dataType);
