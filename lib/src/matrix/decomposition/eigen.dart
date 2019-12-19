@@ -46,7 +46,7 @@ class EigenvalueDecomposition {
   //  Structure to access D and V.
   EigenvalueDecomposition(Matrix<num> a)
       : _n = a.colCount,
-        _isSymmetric = true,
+        _isSymmetric = a.isSymmetric,
         _d = floatDataType.newList(a.colCount),
         _e = floatDataType.newList(a.colCount),
         _v = Matrix.builder.rowMajor.withType(floatDataType)(
@@ -54,17 +54,10 @@ class EigenvalueDecomposition {
         _h = Matrix.builder.rowMajor.withType(floatDataType)(
             a.colCount, a.colCount),
         _ort = floatDataType.newList(a.colCount) {
-    _isSymmetric = true;
-    for (var j = 0; (j < _n) && _isSymmetric; j++) {
-      for (var i = 0; (i < _n) && _isSymmetric; i++) {
-        _isSymmetric = a.getUnchecked(i, j) == a.getUnchecked(j, i);
-      }
-    }
-
     if (_isSymmetric) {
       for (var i = 0; i < _n; i++) {
         for (var j = 0; j < _n; j++) {
-          _v.setUnchecked(i, j, a.getUnchecked(i, j));
+          _v.setUnchecked(i, j, floatDataType.cast(a.getUnchecked(i, j)));
         }
       }
       // Tridiagonalize.
@@ -74,7 +67,7 @@ class EigenvalueDecomposition {
     } else {
       for (var j = 0; j < _n; j++) {
         for (var i = 0; i < _n; i++) {
-          _h.setUnchecked(i, j, a.getUnchecked(i, j));
+          _h.setUnchecked(i, j, floatDataType.cast(a.getUnchecked(i, j)));
         }
       }
       // Reduce to Hessenberg form.

@@ -344,9 +344,10 @@ abstract class Matrix<T> extends Tensor<T> {
     if (!isSquare) {
       return false;
     }
+    final isEqual = dataType.equality.isEqual;
     for (var r = 1; r < rowCount; r++) {
       for (var c = 0; c < r; c++) {
-        if (getUnchecked(r, c) != getUnchecked(c, r)) {
+        if (!isEqual(getUnchecked(r, c), getUnchecked(c, r))) {
           return false;
         }
       }
@@ -357,9 +358,10 @@ abstract class Matrix<T> extends Tensor<T> {
   /// Tests if the matrix is a diagonal matrix, with non-zero values only on
   /// the diagonal.
   bool get isDiagonal {
+    final isEqual = dataType.equality.isEqual;
     for (var r = 0; r < rowCount; r++) {
       for (var c = 0; c < colCount; c++) {
-        if (r != c && getUnchecked(r, c) != dataType.nullValue) {
+        if (r != c && !isEqual(getUnchecked(r, c), dataType.nullValue)) {
           return false;
         }
       }
@@ -370,9 +372,10 @@ abstract class Matrix<T> extends Tensor<T> {
   /// Tests if the matrix is a lower triangular matrix, with non-zero values
   /// only in the lower-triangle of the matrix.
   bool get isLowerTriangular {
+    final isEqual = dataType.equality.isEqual;
     for (var r = 0; r < rowCount; r++) {
       for (var c = r + 1; c < colCount; c++) {
-        if (getUnchecked(r, c) != dataType.nullValue) {
+        if (!isEqual(getUnchecked(r, c), dataType.nullValue)) {
           return false;
         }
       }

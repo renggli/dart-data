@@ -10,6 +10,9 @@ class Equality<T> {
   /// Returns `true`, if [a] and [b] are the same.
   bool isEqual(T a, T b) => a == b;
 
+  /// Returns `true`, if [a] and [b] are different.
+  bool isNotEqual(T a, T b) => !isEqual(a, b);
+
   /// Returns `true`, if [a] and [b] are within range of [epsilon].
   bool isClose(T a, T b, double epsilon) => isEqual(a, b);
 
