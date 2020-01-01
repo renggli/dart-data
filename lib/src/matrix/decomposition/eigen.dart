@@ -28,7 +28,7 @@ class EigenvalueDecomposition {
   final int _n;
 
   /// Symmetry flag.
-  bool _isSymmetric;
+  final bool _isSymmetric;
 
   /// Arrays for internal storage of eigenvalues.
   final List<double> _d, _e;
