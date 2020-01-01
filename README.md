@@ -19,6 +19,8 @@ The package is hosted on [dart packages](https://pub.dev/packages/data). Up-to-d
 Tutorial
 --------
 
+Below are step by step instructions of how to use this library. More elaborate examples are included with the [examples](https://github.com/renggli/dart-data/tree/master/example).
+
 ### Installation
 
 Follow the installation instructions on [dart packages](https://pub.dev/packages/data#-installing-tab-).
@@ -28,14 +30,44 @@ Import the packages into your Dart code using:
 ```dart
 import 'package:data/matrix.dart' as matrix;
 import 'package:data/vector.dart' as vector;
+import 'package:data/type.dart' as vector;
+```
+
+### How to solve a linear equation?
+
+Solve 'A * x = b', where 'A' is a matrix and 'b' a vector:
+
+```dart
+final a = Matrix.builder.withType(DataType.float64).fromRows([
+  [2, 1, 1],
+  [1,3, 2],
+  [1, 0, 0]
+]);
+final b = Vector.builder.withType(DataType.float64).fromList([4, 5, 6]);
+final x = solve(a, b.columnMatrix).col(0);
+print(x.format(valuePrinter: Printer.fixed()); // prints '6 15 -23'
+```
+
+### How to find the eigenvalues of a matrix?
+
+Find the eigenvalues of a matrix 'A':
+
+```dart
+final a = Matrix.builder.withType(DataType.float64).fromRows([
+  [1, 0, 0, -1],
+  [0, -1, 0, 0],
+  [0, 0, 1, -1],
+  [-1, 0, -1, 0]
+]);
+final decomposition = eigenvalue(a);
+final eigenvalues = Vector.builder
+    .withType(DataType.float64)
+    .fromList(decomposition.realEigenvalues);
+print(eigenvalues.format(valuePrinter: Printer.fixed(precision: 1))); // prints '-1.0 -1.0 1.0 2.0'
 ```
 
 Misc
 ----
-
-### Examples
-
-
 
 ### License
 
