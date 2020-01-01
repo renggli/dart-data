@@ -1,3 +1,3 @@
 library data.tensor;
 
-export 'package:data/src/tensor/tensor.dart';
+export 'src/tensor/tensor.dart';

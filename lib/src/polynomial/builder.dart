@@ -13,6 +13,8 @@ import 'view/differentiate_polynomial.dart';
 import 'view/generated_polynomial.dart';
 import 'view/integrate_polynomial.dart';
 
+export '../../type.dart';
+
 /// Builds a polynomial of a custom type.
 class Builder<T> {
   /// Constructors a builder with the provided storage [format] and data [type].

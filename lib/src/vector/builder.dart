@@ -10,6 +10,8 @@ import 'view/concat_vector.dart';
 import 'view/constant_vector.dart';
 import 'view/generated_vector.dart';
 
+export '../../type.dart';
+
 /// Builds a vector of a custom type.
 class Builder<T> {
   /// Constructors a builder with the provided storage [format] and data [type].

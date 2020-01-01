@@ -39,3 +39,8 @@ class DiagonalVectorMatrix<T> extends Matrix<T> {
     }
   }
 }
+
+extension DiagonalVectorExtension<T> on Vector<T> {
+  /// Returns a square [Matrix] with this [Vector] as its diagonal.
+  Matrix<T> get diagonalMatrix => DiagonalVectorMatrix(this);
+}

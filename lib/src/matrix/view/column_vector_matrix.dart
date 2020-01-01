@@ -33,3 +33,8 @@ class ColumnVectorMatrix<T> extends Matrix<T> {
   void setUnchecked(int row, int col, T value) =>
       _vector.setUnchecked(row, value);
 }
+
+extension ColumnVectorExtension<T> on Vector<T> {
+  /// Returns a [Matrix] with this [Vector] as its single column.
+  Matrix<T> get columnMatrix => ColumnVectorMatrix(this);
+}

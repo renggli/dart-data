@@ -20,6 +20,8 @@ import 'view/generated_matrix.dart';
 import 'view/identity_matrix.dart';
 import 'view/row_vector_matrix.dart';
 
+export '../../type.dart';
+
 /// Builds a matrix of a custom type.
 class Builder<T> {
   /// Constructors a builder with the provided storage [format] and data [type].
@@ -151,7 +153,7 @@ class Builder<T> {
 
   /// Builds a matrix from a row vector.
   Matrix<T> fromRow(Vector<T> source, {bool lazy = false}) {
-    final result = RowMatrix(source);
+    final result = RowVectorMatrix(source);
     return lazy ? result : fromMatrix(result);
   }
 
