@@ -1,7 +1,7 @@
 Dart Data
 =========
 
-[![Pub Package](https://img.shields.io/pub/v/data.svg)](https://pub.dartlang.org/packages/data)
+[![Pub Package](https://img.shields.io/pub/v/data.svg)](https://pub.dev/packages/data)
 [![Build Status](https://travis-ci.org/renggli/dart-data.svg)](https://travis-ci.org/renggli/dart-data)
 [![Coverage Status](https://coveralls.io/repos/renggli/dart-data/badge.svg)](https://coveralls.io/r/renggli/dart-data)
 [![GitHub Issues](https://img.shields.io/github/issues/renggli/dart-data.svg)](https://github.com/renggli/dart-data/issues)
@@ -13,11 +13,29 @@ Dart Data is a fast and space efficient library to deal with data in Dart, Flutt
 
 This library is open source, stable and well tested. Development happens on [GitHub](http://github.com/renggli/dart-data). Feel free to report issues or create a pull-request there. General questions are best asked on [StackOverflow](http://stackoverflow.com/questions/tagged/data+dart).
 
-The package is hosted on [dart packages](https://pub.dartlang.org/packages/data). Up-to-date [class documentation](https://pub.dartlang.org/documentation/data/latest/) is created with every release.
+The package is hosted on [dart packages](https://pub.dev/packages/data). Up-to-date [class documentation](https://pub.dev/documentation/data/latest/) is created with every release.
 
-### Tutorial
 
-TODO
+Tutorial
+--------
+
+### Installation
+
+Follow the installation instructions on [dart packages](https://pub.dev/packages/data#-installing-tab-).
+
+Import the packages into your Dart code using:
+
+```dart
+import 'package:data/matrix.dart' as matrix;
+import 'package:data/vector.dart' as vector;
+```
+
+Misc
+----
+
+### Examples
+
+
 
 ### License
 
