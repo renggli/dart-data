@@ -47,22 +47,35 @@ abstract class Matrix<T> implements Storage {
     }
   }
 
-  /// Constructs a read-only matrix with a constant [value].
-  factory Matrix.constant(
-          DataType<T> dataType, int rowCount, int columnCount, T value) =>
-      ConstantMatrix<T>(dataType, rowCount, columnCount, value);
+  /// Constructs a matrix with a constant [value]. If [format] is specified
+  /// the resulting matrix is mutable, otherwise this is a read-only view.
+  factory Matrix.constant(DataType<T> dataType, int rowCount, int columnCount,
+      {T value, MatrixFormat format}) {
+    final result = ConstantMatrix<T>(
+        dataType, rowCount, columnCount, value ?? dataType.nullValue);
+    return format == null ? result : result.toMatrix(format: format);
+  }
 
-  /// Constructs a read-only generator matrix from calling a [callback] on
-  /// every value.
+  /// Constructs a generated matrix from calling a [callback] on every value. If
+  /// [format] is specified the resulting matrix is mutable, otherwise this is
+  /// a read-only view.
   factory Matrix.generate(DataType<T> dataType, int rowCount, int columnCount,
-          MatrixGeneratorCallback<T> callback) =>
-      GeneratedMatrix<T>(dataType, rowCount, columnCount, callback);
+      MatrixGeneratorCallback<T> callback,
+      {MatrixFormat format}) {
+    final result =
+        GeneratedMatrix<T>(dataType, rowCount, columnCount, callback);
+    return format == null ? result : result.toMatrix(format: format);
+  }
 
-  /// Constructs an identity matrix with a constant [value].
+  /// Constructs an identity matrix with the constant [value]. If [format] is
+  /// specified the resulting matrix is mutable, otherwise this is a read-only
+  /// view.
   factory Matrix.identity(DataType<T> dataType, int rowCount, int columnCount,
-          [T value]) =>
-      IdentityMatrix<T>(dataType, rowCount, columnCount,
-          value ?? dataType.field.multiplicativeIdentity);
+      {T value, MatrixFormat format}) {
+    final result = IdentityMatrix<T>(dataType, rowCount, columnCount,
+        value ?? dataType.field.multiplicativeIdentity);
+    return format == null ? result : result.toMatrix(format: format);
+  }
 
   /// Constructs a matrix from a nested list of rows.
   factory Matrix.fromRows(DataType<T> dataType, List<List<T>> source,
@@ -185,6 +198,7 @@ abstract class Matrix<T> implements Storage {
   List<int> get shape => [rowCount, columnCount];
 
   /// Returns a copy of this matrix.
+  @override
   Matrix<T> copy();
 
   /// Creates a new [Matrix] containing the same elements as this matrix.

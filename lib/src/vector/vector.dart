@@ -2,10 +2,10 @@ library data.vector.vector;
 
 import 'dart:collection' show ListMixin;
 
-import 'package:data/src/shared/storage.dart';
 import 'package:more/printer.dart' show Printer;
 
 import '../../type.dart' show DataType;
+import '../shared/storage.dart';
 import 'builder.dart';
 import 'format.dart';
 
@@ -33,7 +33,6 @@ abstract class Vector<T> implements Storage {
   Vector<T> copy();
 
   /// Returns the scalar at the provided [index].
-  @override
   T operator [](int index) {
     RangeError.checkValidIndex(index, this, 'index', count);
     return getUnchecked(index);
@@ -60,7 +59,6 @@ abstract class Vector<T> implements Storage {
   bool isWithinBounds(int index) => 0 <= index && index < count;
 
   /// Returns a human readable representation of the vector.
-  @override
   String format({
     Printer valuePrinter,
     Printer paddingPrinter,

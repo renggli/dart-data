@@ -34,6 +34,7 @@ abstract class Polynomial<T> implements Storage {
   List<int> get shape => [degree + 1];
 
   /// Returns a copy of this polynomial.
+  @override
   Polynomial<T> copy();
 
   /// Returns the leading term of this polynomial.
@@ -99,14 +100,13 @@ abstract class Polynomial<T> implements Storage {
       value == null || value == dataType.nullValue || value == zeroCoefficient;
 
   /// Returns a human readable representation of the polynomial.
-  @override
   String format({
     bool limit = true,
     int leadingItems = 3,
     int trailingItems = 3,
     Printer ellipsesPrinter,
     Printer paddingPrinter,
-    Printer valuePrinter, // additional options
+    Printer valuePrinter,
     String addition = ' + ',
     String ellipses = '\u2026',
     String multiplication = '',

@@ -41,7 +41,7 @@ extension ColumnVectorExtension<T> on Matrix<T> {
   }
 
   /// Returns an iterable over the columns of this [Matrix].
-  Iterable<Vector<T>> get cols sync* {
+  Iterable<Vector<T>> get columns sync* {
     for (var c = 0; c < columnCount; c++) {
       yield columnUnchecked(c);
     }
