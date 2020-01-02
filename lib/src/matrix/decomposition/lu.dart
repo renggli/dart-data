@@ -162,7 +162,7 @@ class LUDecomposition {
     final nx = B.colCount;
     final X = Matrix.builder.rowMajor
         .withType(floatDataType)
-        .fromMatrix(B.rowIndexUnchecked(_piv));
+        .cast(B.rowIndexUnchecked(_piv));
 
     // Solve L*Y = B(piv,:)
     for (var k = 0; k < _n; k++) {
