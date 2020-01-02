@@ -293,8 +293,7 @@ void matrixTest(String name, MatrixFormat format) {
       test('toString', () {
         expect(
             matrix.toString(),
-            '${matrix.runtimeType}'
-            '[2, 3, ${matrix.dataType.name}]:\n'
+            '${matrix.runtimeType}(${matrix.dataType.name}, 2, 3):\n'
             '1 2 3\n'
             '4 5 6');
       });

@@ -254,6 +254,6 @@ abstract class Matrix<T> implements Storage {
   /// Returns the string representation of this tensor.
   @override
   String toString() =>
-      '$runtimeType[$rowCount, $columnCount, ${dataType.name}]:\n'
+      '$runtimeType(${dataType.name}, $rowCount, $columnCount):\n'
       '${format()}';
 }
