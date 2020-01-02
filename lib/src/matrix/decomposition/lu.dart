@@ -197,6 +197,6 @@ class LUDecomposition {
 }
 
 extension LUDecompositionExtension<T extends num> on Matrix<T> {
-  /// Returns the LU Decomposition.
+  /// Returns the LU Decomposition of this [Matrix].
   LUDecomposition get lu => LUDecomposition(this);
 }

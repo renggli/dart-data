@@ -7,7 +7,7 @@ import '../matrix.dart';
 import 'singular_value.dart';
 
 extension NormExtension<T extends num> on Matrix<T> {
-  /// Returns the trace.
+  /// Returns the trace of this [Matrix].
   T get trace {
     var result = dataType.field.additiveIdentity;
     for (var i = 0; i < math.min(rowCount, colCount); i++) {
@@ -16,7 +16,7 @@ extension NormExtension<T extends num> on Matrix<T> {
     return result;
   }
 
-  /// Returns the one norm, the maximum column sum.
+  /// Returns the one norm, the maximum column sum of this [Matrix].
   T get norm1 {
     var result = dataType.field.additiveIdentity;
     for (var c = 0; c < colCount; c++) {
@@ -29,10 +29,10 @@ extension NormExtension<T extends num> on Matrix<T> {
     return result;
   }
 
-  /// Returns the two norm, the maximum singular value.
+  /// Returns the two norm, the maximum singular value of this [Matrix].
   double get norm2 => singularValue.norm2;
 
-  /// Returns the infinity norm, the maximum row sum.
+  /// Returns the infinity norm, the maximum row sum of this [Matrix].
   T get normInfinity {
     var result = dataType.field.additiveIdentity;
     for (var r = 0; r < rowCount; r++) {
@@ -45,7 +45,8 @@ extension NormExtension<T extends num> on Matrix<T> {
     return result;
   }
 
-  /// Returns the frobenius norm, the sum of squares of all elements.
+  /// Returns the frobenius norm, the sum of squares of all elements of this
+  /// [Matrix].
   double get normFrobenius {
     var result = 0.0;
     for (var c = 0; c < colCount; c++) {

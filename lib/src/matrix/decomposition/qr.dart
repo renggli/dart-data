@@ -182,6 +182,6 @@ class QRDecomposition {
 }
 
 extension QRDecompositionExtension<T extends num> on Matrix<T> {
-  /// Returns the QR Decomposition.
+  /// Returns the QR Decomposition of this [Matrix].
   QRDecomposition get qr => QRDecomposition(this);
 }

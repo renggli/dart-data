@@ -911,6 +911,6 @@ class EigenvalueDecomposition {
 }
 
 extension EigenvalueDecompositionExtension<T extends num> on Matrix<T> {
-  /// Returns the Eigenvalue Decomposition.
+  /// Returns the Eigenvalue Decomposition of this [Matrix].
   EigenvalueDecomposition get eigenvalue => EigenvalueDecomposition(this);
 }

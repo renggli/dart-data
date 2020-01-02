@@ -8,11 +8,14 @@ import 'lu.dart';
 import 'qr.dart';
 
 extension SolverExtension<T extends num> on Matrix<T> {
-  /// Returns the solution of [a] * x = [b].
+  /// Returns the solution `x` of `A * x = B`, where `A` is this [Matrix] and
+  /// [b] is the argument to the function.
   Matrix<double> solve(Matrix<num> b) =>
       rowCount == colCount ? lu.solve(b) : qr.solve(b);
 
-  /// Returns the solution of x * [a] = [b], which is also [a]' * x' = [b]'.
+  /// Returns the solution `x` of `x * A = B`, where `A` is this [Matrix] and
+  /// [b] is the argument to the function. This is equivalent to solving
+  /// `A' * x' = B'`.
   Matrix<double> solveTranspose(Matrix<num> b) =>
       transposed.solve(b.transposed);
 

@@ -473,13 +473,14 @@ class SingularValueDecomposition {
 }
 
 extension SingularValueDecompositionExtension<T extends num> on Matrix<T> {
-  /// Returns the Singular Value Decomposition.
+  /// Returns the Singular Value Decomposition of this [Matrix].
   SingularValueDecomposition get singularValue =>
       SingularValueDecomposition(this);
 
-  /// Returns the rank, the effective numerical rank.
+  /// Returns the rank, the effective numerical rank of this [Matrix].
   int get rank => singularValue.rank;
 
-  /// Returns the condition, the ratio of largest to smallest singular value.
+  /// Returns the condition, the ratio of largest to smallest singular value of
+  /// this [Matrix].
   double get cond => singularValue.cond;
 }
