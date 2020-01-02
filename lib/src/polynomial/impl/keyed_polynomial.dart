@@ -3,6 +3,7 @@ library data.polynomial.impl.keyed;
 import 'dart:collection' show SplayTreeMap;
 
 import '../../../type.dart';
+import '../../shared/storage.dart';
 import '../polynomial.dart';
 
 /// Sparse keyed polynomial.
@@ -18,6 +19,9 @@ class KeyedPolynomial<T> extends Polynomial<T> {
 
   @override
   int get degree => _coefficients.isEmpty ? -1 : _coefficients.lastKey();
+
+  @override
+  Set<Storage> get storage => {this};
 
   @override
   Polynomial<T> copy() =>

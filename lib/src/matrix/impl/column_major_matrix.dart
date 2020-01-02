@@ -1,10 +1,11 @@
 library data.matrix.impl.column_major;
 
 import '../../../type.dart';
+import '../../shared/storage.dart';
 import '../matrix.dart';
 
 /// Column major matrix.
-class ColumnMajorMatrix<T> extends Matrix<T> {
+class ColumnMajorMatrix<T> with Matrix<T> {
   final List<T> _values;
 
   ColumnMajorMatrix(DataType<T> dataType, int rowCount, int colCount)
@@ -12,7 +13,7 @@ class ColumnMajorMatrix<T> extends Matrix<T> {
             dataType.newList(rowCount * colCount));
 
   ColumnMajorMatrix.fromList(
-      this.dataType, this.rowCount, this.colCount, this._values);
+      this.dataType, this.rowCount, this.columnCount, this._values);
 
   @override
   final DataType<T> dataType;
@@ -21,11 +22,14 @@ class ColumnMajorMatrix<T> extends Matrix<T> {
   final int rowCount;
 
   @override
-  final int colCount;
+  final int columnCount;
+
+  @override
+  Set<Storage> get storage => {this};
 
   @override
   Matrix<T> copy() => ColumnMajorMatrix.fromList(
-      dataType, rowCount, colCount, dataType.copyList(_values));
+      dataType, rowCount, columnCount, dataType.copyList(_values));
 
   @override
   T getUnchecked(int row, int col) => _values[row + col * rowCount];

@@ -1,8 +1,8 @@
 library data.matrix.view.row;
 
-import '../../../tensor.dart';
 import '../../../type.dart';
 import '../../../vector.dart';
+import '../../shared/storage.dart';
 import '../matrix.dart';
 
 /// Mutable row vector of a matrix.
@@ -16,10 +16,10 @@ class RowVector<T> extends Vector<T> {
   DataType<T> get dataType => matrix.dataType;
 
   @override
-  int get count => matrix.colCount;
+  int get count => matrix.columnCount;
 
   @override
-  Set<Tensor> get storage => matrix.storage;
+  Set<Storage> get storage => matrix.storage;
 
   @override
   Vector<T> copy() => RowVector(matrix.copy(), row);

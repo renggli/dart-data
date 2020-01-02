@@ -2,26 +2,25 @@ library data.magic_square;
 
 import 'dart:math' as math;
 
-import 'package:data/matrix.dart' as matrix;
+import 'package:data/matrix.dart';
 import 'package:data/type.dart';
 import 'package:data/vector.dart' as vector;
 import 'package:more/printer.dart' show Printer;
 
-/// Builder for magic matrices.
-final _builder = matrix.Matrix.builder.withType(DataType.int64);
-
 /// Generates a magic square test matrix.
-matrix.Matrix<int> magic(int n) {
+Matrix<int> magic(int n) {
   if (n.isOdd) {
     final a = (n + 1) ~/ 2;
     final b = n + 1;
-    return _builder.generate(
+    return Matrix.generate(
+      DataType.int64,
       n,
       n,
       (r, c) => n * ((r + c + a) % n) + ((r + 2 * c + b) % n) + 1,
     );
   } else if (n % 4 == 0) {
-    return _builder.generate(
+    return Matrix.generate(
+      DataType.int64,
       n,
       n,
       (r, c) => ((r + 1) ~/ 2) % 2 == ((c + 1) ~/ 2) % 2
@@ -29,7 +28,7 @@ matrix.Matrix<int> magic(int n) {
           : n * r + c + 1,
     );
   } else {
-    final R = _builder(n);
+    final R = Matrix(DataType.int64, n, n);
     final p = n ~/ 2;
     final k = (n - 2) ~/ 4;
     final A = magic(p);
@@ -107,7 +106,7 @@ void main() {
 
     // Maximum eigenvalue of (A + A') / 2, should equal trace.
     {
-      final e = matrix.scale(matrix.add(md, md.transposed), 0.5).eigenvalue;
+      final e = scale(add(md, md.transposed), 0.5).eigenvalue;
       buffer.add(doublePrinter(3)(e.realEigenvalues.last));
       assert((e.realEigenvalues.last - vector.sum(m.diagonal())).abs() < 0.0001,
           'invalid eigenvalue');
@@ -133,7 +132,7 @@ void main() {
       final l = lu.lower;
       final u = lu.upper;
       final p = lu.pivot;
-      final r = matrix.sub(matrix.mul(l, u), md.rowIndex(p));
+      final r = sub(mul(l, u), md.rowIndex(p));
       final res = r.norm1 / (n * eps);
       buffer.add(doublePrinter(3)(res));
     }
@@ -143,7 +142,7 @@ void main() {
       final qr = md.qr;
       final q = qr.orthogonal;
       final r = qr.upper;
-      final R = matrix.sub(matrix.mul(q, r), m.cast(DataType.float64));
+      final R = sub(mul(q, r), m.cast(DataType.float64));
       final res = R.norm1 / (n * eps);
       buffer.add(doublePrinter(3)(res));
     }

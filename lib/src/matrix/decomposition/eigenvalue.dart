@@ -46,15 +46,13 @@ class EigenvalueDecomposition {
   /// Check for symmetry, then construct the eigenvalue decomposition
   //  Structure to access D and V.
   EigenvalueDecomposition(Matrix<num> a)
-      : _n = a.colCount,
+      : _n = a.columnCount,
         _isSymmetric = a.isSymmetric,
-        _d = floatDataType.newList(a.colCount),
-        _e = floatDataType.newList(a.colCount),
-        _v = Matrix.builder.rowMajor.withType(floatDataType)(
-            a.colCount, a.colCount),
-        _h = Matrix.builder.rowMajor.withType(floatDataType)(
-            a.colCount, a.colCount),
-        _ort = floatDataType.newList(a.colCount) {
+        _d = floatDataType.newList(a.columnCount),
+        _e = floatDataType.newList(a.columnCount),
+        _v = Matrix(floatDataType, a.columnCount, a.columnCount),
+        _h = Matrix(floatDataType, a.columnCount, a.columnCount),
+        _ort = floatDataType.newList(a.columnCount) {
     if (_isSymmetric) {
       for (var i = 0; i < _n; i++) {
         for (var j = 0; j < _n; j++) {
@@ -888,7 +886,7 @@ class EigenvalueDecomposition {
 
   /// Return the block diagonal eigenvalue matrix
   Matrix<double> get D {
-    final result = Matrix.builder.diagonal.withType(floatDataType)(_n, _n);
+    final result = Matrix(floatDataType, _n, _n);
     for (var i = 0; i < _n; i++) {
       result.setUnchecked(i, i, _d[i]);
       if (_e[i] > 0) {

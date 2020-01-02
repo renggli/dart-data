@@ -2,8 +2,9 @@ library data.polynomial.operators;
 
 import 'dart:math' as math;
 
-import '../../matrix.dart' as matrix;
+import '../../matrix.dart';
 import '../../type.dart';
+import '../shared/config.dart';
 import 'builder.dart';
 import 'polynomial.dart';
 
@@ -213,9 +214,7 @@ List<Complex> roots(Polynomial<num> source) {
     return [Complex(-b / a)];
   } else {
     final factor = source.getUnchecked(degree);
-    final eigenMatrix = matrix.Matrix.builder
-        .withType(DataType.float64)
-        .generate(degree, degree, (r, c) {
+    final eigenMatrix = Matrix.generate(floatDataType, degree, degree, (r, c) {
       if (r == degree - 1) {
         return -source.getUnchecked(c) / factor;
       } else if (r + 1 == c) {
@@ -223,7 +222,7 @@ List<Complex> roots(Polynomial<num> source) {
       } else {
         return 0;
       }
-    }, lazy: true);
+    });
     return eigenMatrix.eigenvalue.eigenvalues;
   }
 }

@@ -1,7 +1,7 @@
 library data.polynomial.view.differentiate;
 
-import '../../../tensor.dart';
 import '../../../type.dart';
+import '../../shared/storage.dart';
 import '../polynomial.dart';
 
 /// Differentiate modifiable view of a polynomial.
@@ -17,7 +17,7 @@ class DifferentiatePolynomial<T> extends Polynomial<T> {
   int get degree => _polynomial.degree <= 0 ? -1 : _polynomial.degree - 1;
 
   @override
-  Set<Tensor> get storage => _polynomial.storage;
+  Set<Storage> get storage => _polynomial.storage;
 
   @override
   Polynomial<T> copy() => DifferentiatePolynomial(_polynomial.copy());

@@ -3,10 +3,11 @@ library data.matrix.impl.compressed_row;
 import '../../../type.dart';
 import '../../shared/config.dart';
 import '../../shared/lists.dart';
+import '../../shared/storage.dart';
 import '../matrix.dart';
 
 /// Sparse compressed row matrix.
-class CompressedRowMatrix<T> extends Matrix<T> {
+class CompressedRowMatrix<T> with Matrix<T> {
   List<int> _rowExtends;
   List<int> _colIndexes;
   List<T> _values;
@@ -22,7 +23,7 @@ class CompressedRowMatrix<T> extends Matrix<T> {
             dataType.newList(initialListLength),
             0);
 
-  CompressedRowMatrix._(this.dataType, this.rowCount, this.colCount,
+  CompressedRowMatrix._(this.dataType, this.rowCount, this.columnCount,
       this._rowExtends, this._colIndexes, this._values, this._length);
 
   @override
@@ -32,13 +33,16 @@ class CompressedRowMatrix<T> extends Matrix<T> {
   final int rowCount;
 
   @override
-  final int colCount;
+  final int columnCount;
+
+  @override
+  Set<Storage> get storage => {this};
 
   @override
   Matrix<T> copy() => CompressedRowMatrix._(
       dataType,
       rowCount,
-      colCount,
+      columnCount,
       indexDataType.copyList(_rowExtends),
       indexDataType.copyList(_colIndexes),
       dataType.copyList(_values),

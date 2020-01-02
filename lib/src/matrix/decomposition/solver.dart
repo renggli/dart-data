@@ -11,7 +11,7 @@ extension SolverExtension<T extends num> on Matrix<T> {
   /// Returns the solution `x` of `A * x = B`, where `A` is this [Matrix] and
   /// [b] is the argument to the function.
   Matrix<double> solve(Matrix<num> b) =>
-      rowCount == colCount ? lu.solve(b) : qr.solve(b);
+      rowCount == columnCount ? lu.solve(b) : qr.solve(b);
 
   /// Returns the solution `x` of `x * A = B`, where `A` is this [Matrix] and
   /// [b] is the argument to the function. This is equivalent to solving

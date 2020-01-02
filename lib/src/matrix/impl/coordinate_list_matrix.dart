@@ -3,10 +3,11 @@ library data.matrix.impl.coordinate_list;
 import '../../../type.dart';
 import '../../shared/config.dart';
 import '../../shared/lists.dart';
+import '../../shared/storage.dart';
 import '../matrix.dart';
 
 // Sparse matrix in coordinate format.
-class CoordinateListMatrix<T> extends Matrix<T> {
+class CoordinateListMatrix<T> with Matrix<T> {
   List<int> _rows;
   List<int> _cols;
   List<T> _values;
@@ -22,7 +23,7 @@ class CoordinateListMatrix<T> extends Matrix<T> {
             dataType.newList(initialListLength),
             0);
 
-  CoordinateListMatrix._(this.dataType, this.rowCount, this.colCount,
+  CoordinateListMatrix._(this.dataType, this.rowCount, this.columnCount,
       this._rows, this._cols, this._values, this._length);
 
   @override
@@ -32,13 +33,16 @@ class CoordinateListMatrix<T> extends Matrix<T> {
   final int rowCount;
 
   @override
-  final int colCount;
+  final int columnCount;
+
+  @override
+  Set<Storage> get storage => {this};
 
   @override
   Matrix<T> copy() => CoordinateListMatrix._(
       dataType,
       rowCount,
-      colCount,
+      columnCount,
       indexDataType.copyList(_rows),
       indexDataType.copyList(_cols),
       dataType.copyList(_values),

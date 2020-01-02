@@ -4,7 +4,7 @@ import '../matrix.dart';
 
 extension TestingExtension<T> on Matrix<T> {
   /// Tests if this [Matrix] is square.
-  bool get isSquare => rowCount == colCount;
+  bool get isSquare => rowCount == columnCount;
 
   /// Tests if this [Matrix] is symmetric (equal to its transposed form).
   bool get isSymmetric {
@@ -27,7 +27,7 @@ extension TestingExtension<T> on Matrix<T> {
   bool get isDiagonal {
     final isEqual = dataType.equality.isEqual;
     for (var r = 0; r < rowCount; r++) {
-      for (var c = 0; c < colCount; c++) {
+      for (var c = 0; c < columnCount; c++) {
         if (r != c && !isEqual(getUnchecked(r, c), dataType.nullValue)) {
           return false;
         }
@@ -41,7 +41,7 @@ extension TestingExtension<T> on Matrix<T> {
   bool get isLowerTriangular {
     final isEqual = dataType.equality.isEqual;
     for (var r = 0; r < rowCount; r++) {
-      for (var c = r + 1; c < colCount; c++) {
+      for (var c = r + 1; c < columnCount; c++) {
         if (!isEqual(getUnchecked(r, c), dataType.nullValue)) {
           return false;
         }
@@ -54,7 +54,7 @@ extension TestingExtension<T> on Matrix<T> {
   /// only in the upper-triangle of the matrix.
   bool get isUpperTriangular {
     for (var r = 1; r < rowCount; r++) {
-      for (var c = 0; c < colCount && c < r; c++) {
+      for (var c = 0; c < columnCount && c < r; c++) {
         if (getUnchecked(r, c) != dataType.nullValue) {
           return false;
         }

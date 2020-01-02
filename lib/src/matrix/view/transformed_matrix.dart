@@ -1,11 +1,11 @@
 library data.matrix.view.transformed;
 
-import '../../../tensor.dart';
 import '../../../type.dart';
+import '../../shared/storage.dart';
 import '../matrix.dart';
 
 /// Mutable two-way transformed matrix.
-class TransformedMatrix<S, T> extends Matrix<T> {
+class TransformedMatrix<S, T> with Matrix<T> {
   final Matrix<S> matrix;
   final T Function(int row, int col, S value) read;
   final S Function(int row, int col, T value) write;
@@ -19,10 +19,10 @@ class TransformedMatrix<S, T> extends Matrix<T> {
   int get rowCount => matrix.rowCount;
 
   @override
-  int get colCount => matrix.colCount;
+  int get columnCount => matrix.columnCount;
 
   @override
-  Set<Tensor> get storage => matrix.storage;
+  Set<Storage> get storage => matrix.storage;
 
   @override
   Matrix<T> copy() => TransformedMatrix(matrix.copy(), read, write, dataType);

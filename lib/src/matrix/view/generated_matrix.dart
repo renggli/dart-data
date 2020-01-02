@@ -1,14 +1,19 @@
 library data.matrix.view.generator;
 
 import '../../../type.dart';
+import '../../shared/storage.dart';
 import '../matrix.dart';
-import '../mixins/unmodifiable_matrix.dart';
+import '../mixins/unmodifiable_matrix_mixin.dart';
+
+/// Callback to generate a value in [GeneratedMatrix].
+typedef MatrixGeneratorCallback<T> = T Function(int row, int column);
 
 /// Read-only generator matrix.
-class GeneratedMatrix<T> extends Matrix<T> with UnmodifiableMatrixMixin<T> {
-  final T Function(int row, int col) callback;
+class GeneratedMatrix<T> with Matrix<T>, UnmodifiableMatrixMixin<T> {
+  final MatrixGeneratorCallback<T> callback;
 
-  GeneratedMatrix(this.dataType, this.rowCount, this.colCount, this.callback);
+  GeneratedMatrix(
+      this.dataType, this.rowCount, this.columnCount, this.callback);
 
   @override
   final DataType<T> dataType;
@@ -17,7 +22,10 @@ class GeneratedMatrix<T> extends Matrix<T> with UnmodifiableMatrixMixin<T> {
   final int rowCount;
 
   @override
-  final int colCount;
+  final int columnCount;
+
+  @override
+  Set<Storage> get storage => {this};
 
   @override
   Matrix<T> copy() => this;

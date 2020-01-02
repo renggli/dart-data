@@ -1,7 +1,7 @@
 library data.vector.view.transformed;
 
-import '../../../tensor.dart';
 import '../../../type.dart';
+import '../../shared/storage.dart';
 import '../vector.dart';
 
 /// Read-only transformed vector.
@@ -19,7 +19,7 @@ class TransformedVector<S, T> extends Vector<T> {
   int get count => vector.count;
 
   @override
-  Set<Tensor> get storage => vector.storage;
+  Set<Storage> get storage => vector.storage;
 
   @override
   Vector<T> copy() =>

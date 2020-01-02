@@ -3,6 +3,7 @@ library data.polynomial.impl.list;
 import '../../../type.dart';
 import '../../shared/config.dart';
 import '../../shared/lists.dart';
+import '../../shared/storage.dart';
 import '../polynomial.dart';
 
 /// Sparse compressed polynomial.
@@ -27,6 +28,9 @@ class ListPolynomial<T> extends Polynomial<T> {
 
   @override
   int get degree => _length > 0 ? _exponents[_length - 1] : -1;
+
+  @override
+  Set<Storage> get storage => {this};
 
   @override
   Polynomial<T> copy() => ListPolynomial._(

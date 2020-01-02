@@ -1,14 +1,14 @@
 library data.matrix.view.overlay_mask;
 
-import '../../../tensor.dart';
 import '../../../type.dart';
+import '../../shared/storage.dart';
 import '../matrix.dart';
 
 /// Mutable overlay of one matrix over another controlled by a mask.
 ///
 /// All matrices (overlay, mask, and base) have to be of the same size. The mask
 /// determines whether the overlay is revealed or not.
-class OverlayMaskMatrix<T> extends Matrix<T> {
+class OverlayMaskMatrix<T> with Matrix<T> {
   final Matrix<T> overlay;
   final Matrix<bool> mask;
   final Matrix<T> base;
@@ -22,10 +22,10 @@ class OverlayMaskMatrix<T> extends Matrix<T> {
   int get rowCount => base.rowCount;
 
   @override
-  int get colCount => base.colCount;
+  int get columnCount => base.columnCount;
 
   @override
-  Set<Tensor> get storage =>
+  Set<Storage> get storage =>
       {...overlay.storage, ...mask.storage, ...base.storage};
 
   @override

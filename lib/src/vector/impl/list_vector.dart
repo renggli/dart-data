@@ -3,6 +3,7 @@ library data.vector.impl.list;
 import '../../../type.dart';
 import '../../shared/config.dart';
 import '../../shared/lists.dart';
+import '../../shared/storage.dart';
 import '../vector.dart';
 
 /// Sparse compressed vector.
@@ -23,6 +24,9 @@ class ListVector<T> extends Vector<T> {
 
   @override
   final int count;
+
+  @override
+  Set<Storage> get storage => {this};
 
   @override
   Vector<T> copy() => ListVector._(dataType, count,

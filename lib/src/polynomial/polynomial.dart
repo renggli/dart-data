@@ -5,8 +5,8 @@ import 'dart:collection' show ListMixin;
 import 'package:meta/meta.dart';
 import 'package:more/printer.dart' show Printer;
 
-import '../../tensor.dart' show Tensor;
-import '../../type.dart' show DataType;
+import '../../type.dart';
+import '../shared/storage.dart';
 import 'builder.dart';
 import 'format.dart';
 import 'view/differentiate_polynomial.dart';
@@ -15,13 +15,16 @@ import 'view/shift_polynomial.dart';
 import 'view/unmodifiable_polynomial.dart';
 
 /// Abstract polynomial type.
-abstract class Polynomial<T> extends Tensor<T> {
+abstract class Polynomial<T> implements Storage {
   /// Default builder for new polynomials.
   static Builder<Object> get builder =>
       Builder<Object>(Format.standard, DataType.object);
 
   /// Unnamed default constructor.
   Polynomial();
+
+  /// Returns the data type of this polynomial.
+  DataType<T> get dataType;
 
   /// Returns the degree this polynomial, that is the highest coefficient.
   int get degree;
@@ -31,14 +34,12 @@ abstract class Polynomial<T> extends Tensor<T> {
   List<int> get shape => [degree + 1];
 
   /// Returns a copy of this polynomial.
-  @override
   Polynomial<T> copy();
 
   /// Returns the leading term of this polynomial.
   T get lead => degree >= 0 ? getUnchecked(degree) : zeroCoefficient;
 
   /// Returns the coefficient at the provided [exponent].
-  @override
   T operator [](int exponent) {
     RangeError.checkNotNegative(exponent, 'exponent');
     return getUnchecked(exponent);

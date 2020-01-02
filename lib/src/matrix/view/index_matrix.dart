@@ -2,13 +2,13 @@ library data.matrix.view.index;
 
 import 'package:more/collection.dart' show IntegerRange;
 
-import '../../../tensor.dart';
 import '../../../type.dart';
 import '../../shared/config.dart';
+import '../../shared/storage.dart';
 import '../matrix.dart';
 
 /// Mutable indexed view of the rows and columns of a matrix.
-class IndexMatrix<T> extends Matrix<T> {
+class IndexMatrix<T> with Matrix<T> {
   final Matrix<T> matrix;
   final List<int> rowIndexes;
   final List<int> colIndexes;
@@ -27,10 +27,10 @@ class IndexMatrix<T> extends Matrix<T> {
   int get rowCount => rowIndexes.length;
 
   @override
-  int get colCount => colIndexes.length;
+  int get columnCount => colIndexes.length;
 
   @override
-  Set<Tensor> get storage => matrix.storage;
+  Set<Storage> get storage => matrix.storage;
 
   @override
   Matrix<T> copy() => IndexMatrix<T>._(matrix.copy(), rowIndexes, colIndexes);
@@ -48,12 +48,12 @@ extension IndexMatrixExtension<T> on Matrix<T> {
   /// Returns a mutable view onto row indexes. Throws a [RangeError], if
   /// any of the [rowIndexes] are out of bounds.
   Matrix<T> rowIndex(Iterable<int> rowIndexes) =>
-      index(rowIndexes, IntegerRange(0, colCount));
+      index(rowIndexes, IntegerRange(0, columnCount));
 
   /// Returns a mutable view onto row indexes. The behavior is undefined, if
   /// any of the [rowIndexes] are out of bounds.
   Matrix<T> rowIndexUnchecked(Iterable<int> rowIndexes) =>
-      indexUnchecked(rowIndexes, IntegerRange(0, colCount));
+      indexUnchecked(rowIndexes, IntegerRange(0, columnCount));
 
   /// Returns a mutable view onto column indexes. Throws a [RangeError], if
   /// any of the [colIndexes] are out of bounds.
@@ -72,7 +72,7 @@ extension IndexMatrixExtension<T> on Matrix<T> {
       RangeError.checkValueInInterval(index, 0, rowCount - 1, 'rowIndexes');
     }
     for (final index in colIndexes) {
-      RangeError.checkValueInInterval(index, 0, colCount - 1, 'colIndexes');
+      RangeError.checkValueInInterval(index, 0, columnCount - 1, 'colIndexes');
     }
     return indexUnchecked(rowIndexes, colIndexes);
   }

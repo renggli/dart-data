@@ -1,14 +1,14 @@
 library data.matrix.view.overlay_offset;
 
-import '../../../tensor.dart';
 import '../../../type.dart';
+import '../../shared/storage.dart';
 import '../matrix.dart';
 
 /// Mutable overlay of one matrix over another.
 ///
 /// The resulting matrix has the same size as the base matrix, but the overlay
 /// can be of different size and be offset relative to the base.
-class OverlayOffsetMatrix<T> extends Matrix<T> {
+class OverlayOffsetMatrix<T> with Matrix<T> {
   final int rowOffset;
   final int colOffset;
   final Matrix<T> overlay;
@@ -24,10 +24,10 @@ class OverlayOffsetMatrix<T> extends Matrix<T> {
   int get rowCount => base.rowCount;
 
   @override
-  int get colCount => base.colCount;
+  int get columnCount => base.columnCount;
 
   @override
-  Set<Tensor> get storage => {...overlay.storage, ...base.storage};
+  Set<Storage> get storage => {...overlay.storage, ...base.storage};
 
   @override
   Matrix<T> copy() => OverlayOffsetMatrix(

@@ -1,13 +1,13 @@
 library data.matrix.view.concat_vertical;
 
-import '../../../tensor.dart';
 import '../../../type.dart';
 import '../../shared/config.dart';
 import '../../shared/lists.dart';
+import '../../shared/storage.dart';
 import '../matrix.dart';
 
 /// Mutable vertical concatenation of matrices.
-class ConcatVerticalMatrix<T> extends Matrix<T> {
+class ConcatVerticalMatrix<T> with Matrix<T> {
   final List<Matrix<T>> matrices;
   final List<int> indexes;
 
@@ -27,10 +27,11 @@ class ConcatVerticalMatrix<T> extends Matrix<T> {
   int get rowCount => indexes.last;
 
   @override
-  int get colCount => matrices.first.colCount;
+  int get columnCount => matrices.first.columnCount;
 
   @override
-  Set<Tensor> get storage => {...matrices};
+  Set<Storage> get storage =>
+      matrices.expand((matrix) => matrix.storage).toSet();
 
   @override
   Matrix<T> copy() => ConcatVerticalMatrix._withListAndIndexes(dataType,

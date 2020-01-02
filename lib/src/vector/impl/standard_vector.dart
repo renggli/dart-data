@@ -1,6 +1,7 @@
 library data.vector.impl.standard;
 
 import '../../../type.dart';
+import '../../shared/storage.dart';
 import '../vector.dart';
 
 /// Standard vector.
@@ -17,6 +18,9 @@ class StandardVector<T> extends Vector<T> {
 
   @override
   int get count => _values.length;
+
+  @override
+  Set<Storage> get storage => {this};
 
   @override
   Vector<T> copy() =>

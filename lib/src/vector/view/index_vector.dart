@@ -1,8 +1,8 @@
 library data.vector.view.index;
 
-import '../../../tensor.dart';
 import '../../../type.dart';
 import '../../shared/config.dart';
+import '../../shared/storage.dart';
 import '../vector.dart';
 
 // A mutable indexed view of a vector.
@@ -22,7 +22,7 @@ class IndexVector<T> extends Vector<T> {
   int get count => indexes.length;
 
   @override
-  Set<Tensor> get storage => vector.storage;
+  Set<Storage> get storage => vector.storage;
 
   @override
   Vector<T> copy() => IndexVector._(vector.copy(), indexes);

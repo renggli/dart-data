@@ -1,6 +1,7 @@
 library data.vector.view.constant;
 
 import '../../../type.dart';
+import '../../shared/storage.dart';
 import '../mixins/unmodifiable_vector.dart';
 import '../vector.dart';
 
@@ -15,6 +16,9 @@ class ConstantVector<T> extends Vector<T> with UnmodifiableVectorMixin<T> {
 
   @override
   final int count;
+
+  @override
+  Set<Storage> get storage => {this};
 
   @override
   Vector<T> copy() => this;

@@ -1,11 +1,11 @@
 library data.matrix.view.flipped_horizontal;
 
-import '../../../tensor.dart';
 import '../../../type.dart';
+import '../../shared/storage.dart';
 import '../matrix.dart';
 
 /// Mutable matrix flipped on its horizontal axis.
-class FlippedHorizontalMatrix<T> extends Matrix<T> {
+class FlippedHorizontalMatrix<T> with Matrix<T> {
   final Matrix<T> matrix;
 
   FlippedHorizontalMatrix(this.matrix);
@@ -17,10 +17,10 @@ class FlippedHorizontalMatrix<T> extends Matrix<T> {
   int get rowCount => matrix.rowCount;
 
   @override
-  int get colCount => matrix.colCount;
+  int get columnCount => matrix.columnCount;
 
   @override
-  Set<Tensor> get storage => matrix.storage;
+  Set<Storage> get storage => matrix.storage;
 
   @override
   Matrix<T> copy() => FlippedHorizontalMatrix(matrix.copy());

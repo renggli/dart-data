@@ -1,7 +1,7 @@
 library data.vector.view.range;
 
-import '../../../tensor.dart';
 import '../../../type.dart';
+import '../../shared/storage.dart';
 import '../vector.dart';
 
 /// Mutable range of a vector.
@@ -21,7 +21,7 @@ class RangeVector<T> extends Vector<T> {
   final int count;
 
   @override
-  Set<Tensor> get storage => vector.storage;
+  Set<Storage> get storage => vector.storage;
 
   @override
   Vector<T> copy() => RangeVector<T>._(vector.copy(), start, count);

@@ -1,11 +1,11 @@
 library data.matrix.view.range;
 
-import '../../../tensor.dart';
 import '../../../type.dart';
+import '../../shared/storage.dart';
 import '../matrix.dart';
 
 /// Mutable range of the rows and columns of a matrix.
-class RangeMatrix<T> extends Matrix<T> {
+class RangeMatrix<T> with Matrix<T> {
   final Matrix<T> matrix;
   final int rowStart;
   final int colStart;
@@ -15,8 +15,8 @@ class RangeMatrix<T> extends Matrix<T> {
       : this._(
             matrix, rowStart, rowEnd - rowStart, colStart, colEnd - colStart);
 
-  RangeMatrix._(
-      this.matrix, this.rowStart, this.rowCount, this.colStart, this.colCount);
+  RangeMatrix._(this.matrix, this.rowStart, this.rowCount, this.colStart,
+      this.columnCount);
 
   @override
   DataType<T> get dataType => matrix.dataType;
@@ -25,14 +25,14 @@ class RangeMatrix<T> extends Matrix<T> {
   final int rowCount;
 
   @override
-  final int colCount;
+  final int columnCount;
 
   @override
-  Set<Tensor> get storage => matrix.storage;
+  Set<Storage> get storage => matrix.storage;
 
   @override
   Matrix<T> copy() =>
-      RangeMatrix._(matrix.copy(), rowStart, rowCount, colStart, colCount);
+      RangeMatrix._(matrix.copy(), rowStart, rowCount, colStart, columnCount);
 
   @override
   T getUnchecked(int row, int col) =>
@@ -47,12 +47,12 @@ extension RangeMatrixExtension<T> on Matrix<T> {
   /// Returns a mutable view onto the row range. Throws a [RangeError], if
   /// [rowStart] or [rowEnd] are out of bounds.
   Matrix<T> rowRange(int rowStart, [int rowEnd]) =>
-      range(rowStart, rowEnd, 0, colCount);
+      range(rowStart, rowEnd, 0, columnCount);
 
   /// Returns a mutable view onto the row range. The behavior is undefined, if
   /// [rowStart] or [rowEnd] are out of bounds.
   Matrix<T> rowRangeUnchecked(int rowStart, int rowEnd) =>
-      rangeUnchecked(rowStart, rowEnd, 0, colCount);
+      rangeUnchecked(rowStart, rowEnd, 0, columnCount);
 
   /// Returns a mutable view onto the row range. Throws a [RangeError], if
   /// [colStart] or [colEnd] are out of bounds.
@@ -70,11 +70,11 @@ extension RangeMatrixExtension<T> on Matrix<T> {
     rowEnd = RangeError.checkValidRange(
         rowStart, rowEnd, rowCount, 'rowStart', 'rowEnd');
     colEnd = RangeError.checkValidRange(
-        colStart, colEnd, colCount, 'colStart', 'colEnd');
+        colStart, colEnd, columnCount, 'colStart', 'colEnd');
     if (rowStart == 0 &&
         rowEnd == rowCount &&
         colStart == 0 &&
-        colEnd == colCount) {
+        colEnd == columnCount) {
       return this;
     } else {
       return rangeUnchecked(rowStart, rowEnd, colStart, colEnd);

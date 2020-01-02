@@ -1,13 +1,13 @@
 library data.matrix.view.horizontal_concat;
 
-import '../../../tensor.dart';
 import '../../../type.dart';
 import '../../shared/config.dart';
 import '../../shared/lists.dart';
+import '../../shared/storage.dart';
 import '../matrix.dart';
 
 /// Mutable horizontal concatenation of matrices.
-class ConcatHorizontalMatrix<T> extends Matrix<T> {
+class ConcatHorizontalMatrix<T> with Matrix<T> {
   final List<Matrix<T>> matrices;
   final List<int> indexes;
 
@@ -28,10 +28,11 @@ class ConcatHorizontalMatrix<T> extends Matrix<T> {
   int get rowCount => matrices.first.rowCount;
 
   @override
-  int get colCount => indexes.last;
+  int get columnCount => indexes.last;
 
   @override
-  Set<Tensor> get storage => {...matrices};
+  Set<Storage> get storage =>
+      matrices.expand((matrix) => matrix.storage).toSet();
 
   @override
   Matrix<T> copy() => ConcatHorizontalMatrix._withListAndIndexes(dataType,
@@ -59,7 +60,7 @@ class ConcatHorizontalMatrix<T> extends Matrix<T> {
 List<int> computeIndexes(List<Matrix> matrices) {
   final indexes = indexDataType.newList(matrices.length + 1);
   for (var i = 0; i < matrices.length; i++) {
-    indexes[i + 1] = indexes[i] + matrices[i].colCount;
+    indexes[i + 1] = indexes[i] + matrices[i].columnCount;
   }
   return indexes;
 }

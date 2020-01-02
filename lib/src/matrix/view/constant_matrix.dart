@@ -1,14 +1,15 @@
 library data.matrix.view.constant;
 
 import '../../../type.dart';
+import '../../shared/storage.dart';
 import '../matrix.dart';
-import '../mixins/unmodifiable_matrix.dart';
+import '../mixins/unmodifiable_matrix_mixin.dart';
 
 /// Read-only matrix with a constant value.
-class ConstantMatrix<T> extends Matrix<T> with UnmodifiableMatrixMixin<T> {
+class ConstantMatrix<T> with Matrix<T>, UnmodifiableMatrixMixin<T> {
   final T value;
 
-  ConstantMatrix(this.dataType, this.rowCount, this.colCount, this.value);
+  ConstantMatrix(this.dataType, this.rowCount, this.columnCount, this.value);
 
   @override
   final DataType<T> dataType;
@@ -17,7 +18,10 @@ class ConstantMatrix<T> extends Matrix<T> with UnmodifiableMatrixMixin<T> {
   final int rowCount;
 
   @override
-  final int colCount;
+  final int columnCount;
+
+  @override
+  Set<Storage> get storage => {this};
 
   @override
   Matrix<T> copy() => this;

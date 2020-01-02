@@ -117,8 +117,8 @@ Vector<T> lerp<T>(Vector<T> sourceA, Vector<T> sourceB, num t,
 /// Multiplies a numeric [matrix] and a [vector].
 Vector<T> mul<T>(Matrix<T> matrix, Vector<T> vector,
     {Vector<T> target, Builder<T> builder, DataType<T> dataType}) {
-  if (matrix.colCount != vector.count) {
-    throw ArgumentError('Number of columns in matrix (${matrix.colCount}) '
+  if (matrix.columnCount != vector.count) {
+    throw ArgumentError('Number of columns in matrix (${matrix.columnCount}) '
         'do not match number of elements in vector (${vector.count}).');
   }
   final result = _resultVector(
@@ -134,7 +134,7 @@ Vector<T> mul<T>(Matrix<T> matrix, Vector<T> vector,
   final field = result.dataType.field;
   for (var r = 0; r < matrix.rowCount; r++) {
     var sum = field.additiveIdentity;
-    for (var j = 0; j < matrix.colCount; j++) {
+    for (var j = 0; j < matrix.columnCount; j++) {
       sum = field.add(
         sum,
         field.mul(

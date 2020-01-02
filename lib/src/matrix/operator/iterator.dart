@@ -6,7 +6,7 @@ extension IteratorExtension<T> on Matrix<T> {
   /// Returns an iterable over the values of this [Matrix] in row-by-row.
   Iterable<T> get rowMajor sync* {
     for (var r = 0; r < rowCount; r++) {
-      for (var c = 0; c < colCount; c++) {
+      for (var c = 0; c < columnCount; c++) {
         yield getUnchecked(r, c);
       }
     }
@@ -14,7 +14,7 @@ extension IteratorExtension<T> on Matrix<T> {
 
   /// Returns an iterable over the values of this [Matrix] in column-by-column.
   Iterable<T> get columnMajor sync* {
-    for (var c = 0; c < colCount; c++) {
+    for (var c = 0; c < columnCount; c++) {
       for (var r = 0; r < rowCount; r++) {
         yield getUnchecked(r, c);
       }
@@ -25,7 +25,7 @@ extension IteratorExtension<T> on Matrix<T> {
   /// upper left corner.
   Iterable<T> get spiral sync* {
     var k = 0, l = 0;
-    var m = rowCount, n = colCount;
+    var m = rowCount, n = columnCount;
     while (k < m && l < n) {
       // First row from the remaining rows:
       for (var i = l; i < n; i++) {

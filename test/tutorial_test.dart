@@ -8,7 +8,7 @@ import 'package:test/test.dart';
 
 void main() {
   test('solve a linear equation', () {
-    final a = Matrix.builder.withType(DataType.float64).fromRows([
+    final a = Matrix.fromRows(DataType.float64, [
       [2, 1, 1],
       [1, 3, 2],
       [1, 0, 0]
@@ -18,7 +18,7 @@ void main() {
     expect(x.format(valuePrinter: Printer.fixed()), '6 15 -23');
   });
   test('find eigenvalues', () {
-    final a = Matrix.builder.withType(DataType.float64).fromRows([
+    final a = Matrix.fromRows(DataType.float64, [
       [1, 0, 0, -1],
       [0, -1, 0, 0],
       [0, 0, 1, -1],

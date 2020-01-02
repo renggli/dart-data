@@ -4,6 +4,7 @@ import 'dart:math' as math;
 
 import '../../shared/config.dart';
 import '../matrix.dart';
+import '../view/cast_matrix.dart';
 import '../view/column_vector.dart';
 import '../view/index_matrix.dart';
 import '../view/row_vector.dart';
@@ -33,11 +34,9 @@ class LUDecomposition {
   final List<int> _piv;
 
   LUDecomposition(Matrix<num> source)
-      : _lu = Matrix.builder.rowMajor
-            .withType(floatDataType)
-            .transform<num>(source, (r, c, v) => v.toDouble()),
+      : _lu = source.cast(floatDataType).toMatrix(),
         _m = source.rowCount,
-        _n = source.colCount,
+        _n = source.columnCount,
         _piv = indexDataType.newList(source.rowCount) {
     // Use a 'left-looking', dot-product, Crout/Doolittle algorithm.
     for (var i = 0; i < _m; i++) {
@@ -104,7 +103,7 @@ class LUDecomposition {
 
   /// Returns the lower triangular factor.
   Matrix<double> get lower {
-    final result = Matrix.builder.diagonal.withType(floatDataType)(_m, _n);
+    final result = Matrix(floatDataType, _m, _n);
     for (var i = 0; i < _m; i++) {
       for (var j = 0; j < _n; j++) {
         if (i > j) {
@@ -119,7 +118,7 @@ class LUDecomposition {
 
   /// Returns upper triangular factor.
   Matrix<double> get upper {
-    final result = Matrix.builder.diagonal.withType(floatDataType)(_n, _n);
+    final result = Matrix(floatDataType, _n, _n);
     for (var i = 0; i < _n; i++) {
       for (var j = 0; j < _n; j++) {
         if (i <= j) {
@@ -159,10 +158,8 @@ class LUDecomposition {
     }
 
     // Copy right hand side with pivoting
-    final nx = B.colCount;
-    final X = Matrix.builder.rowMajor
-        .withType(floatDataType)
-        .cast(B.rowIndexUnchecked(_piv));
+    final nx = B.columnCount;
+    final X = B.rowIndexUnchecked(_piv).cast(floatDataType).toMatrix();
 
     // Solve L*Y = B(piv,:)
     for (var k = 0; k < _n; k++) {

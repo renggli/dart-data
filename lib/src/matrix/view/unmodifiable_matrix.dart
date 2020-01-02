@@ -1,12 +1,12 @@
 library data.matrix.view.unmodifiable;
 
-import '../../../tensor.dart';
 import '../../../type.dart';
+import '../../shared/storage.dart';
 import '../matrix.dart';
-import '../mixins/unmodifiable_matrix.dart';
+import '../mixins/unmodifiable_matrix_mixin.dart';
 
 /// Read-only view of a mutable matrix.
-class UnmodifiableMatrix<T> extends Matrix<T> with UnmodifiableMatrixMixin<T> {
+class UnmodifiableMatrix<T> with Matrix<T>, UnmodifiableMatrixMixin<T> {
   final Matrix<T> matrix;
 
   UnmodifiableMatrix(this.matrix);
@@ -18,10 +18,10 @@ class UnmodifiableMatrix<T> extends Matrix<T> with UnmodifiableMatrixMixin<T> {
   int get rowCount => matrix.rowCount;
 
   @override
-  int get colCount => matrix.colCount;
+  int get columnCount => matrix.columnCount;
 
   @override
-  Set<Tensor> get storage => matrix.storage;
+  Set<Storage> get storage => matrix.storage;
 
   @override
   Matrix<T> copy() => UnmodifiableMatrix(matrix.copy());
@@ -33,5 +33,5 @@ class UnmodifiableMatrix<T> extends Matrix<T> with UnmodifiableMatrixMixin<T> {
 extension UnmodifiableMatrixExtension<T> on Matrix<T> {
   /// Returns a unmodifiable view of the matrix.
   Matrix<T> get unmodifiable =>
-      this is UnmodifiableMatrixMixin<T> ? this : UnmodifiableMatrix<T>(this);
+      this is UnmodifiableMatrix<T> ? this : UnmodifiableMatrix<T>(this);
 }

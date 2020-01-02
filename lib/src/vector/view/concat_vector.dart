@@ -1,10 +1,10 @@
 library data.vector.view.concat;
 
-import '../../../tensor.dart';
 import '../../../type.dart';
 import '../../../vector.dart';
 import '../../shared/config.dart';
 import '../../shared/lists.dart';
+import '../../shared/storage.dart';
 import '../vector.dart';
 
 /// Mutable concatenation of vectors.
@@ -27,7 +27,7 @@ class ConcatVector<T> extends Vector<T> {
   int get count => indexes.last;
 
   @override
-  Set<Tensor> get storage => {...vectors};
+  Set<Storage> get storage => {...vectors};
 
   @override
   Vector<T> copy() => ConcatVector._withListAndIndexes(dataType,

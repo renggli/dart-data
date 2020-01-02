@@ -1,7 +1,7 @@
 library data.vector.view.reversed;
 
-import '../../../tensor.dart';
 import '../../../type.dart';
+import '../../shared/storage.dart';
 import '../vector.dart';
 
 /// Mutable reverse view of a vector.
@@ -17,7 +17,7 @@ class ReversedVector<T> extends Vector<T> {
   int get count => vector.count;
 
   @override
-  Set<Tensor> get storage => vector.storage;
+  Set<Storage> get storage => vector.storage;
 
   @override
   Vector<T> copy() => ReversedVector<T>(vector.copy());

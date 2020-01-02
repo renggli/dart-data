@@ -1,14 +1,15 @@
 library data.matrix.view.identity;
 
 import '../../../type.dart';
+import '../../shared/storage.dart';
 import '../matrix.dart';
-import '../mixins/unmodifiable_matrix.dart';
+import '../mixins/unmodifiable_matrix_mixin.dart';
 
 /// Read-only identity matrix.
-class IdentityMatrix<T> extends Matrix<T> with UnmodifiableMatrixMixin<T> {
+class IdentityMatrix<T> with Matrix<T>, UnmodifiableMatrixMixin<T> {
   final T value;
 
-  IdentityMatrix(this.dataType, this.rowCount, this.colCount, this.value);
+  IdentityMatrix(this.dataType, this.rowCount, this.columnCount, this.value);
 
   @override
   final DataType<T> dataType;
@@ -17,7 +18,10 @@ class IdentityMatrix<T> extends Matrix<T> with UnmodifiableMatrixMixin<T> {
   final int rowCount;
 
   @override
-  final int colCount;
+  final int columnCount;
+
+  @override
+  Set<Storage> get storage => {this};
 
   @override
   Matrix<T> copy() => this;

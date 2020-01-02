@@ -1,11 +1,11 @@
 library data.matrix.view.cast;
 
-import '../../../tensor.dart';
 import '../../../type.dart';
+import '../../shared/storage.dart';
 import '../matrix.dart';
 
 /// Mutable matrix cast to a new type.
-class CastMatrix<S, T> extends Matrix<T> {
+class CastMatrix<S, T> with Matrix<T> {
   final Matrix<S> matrix;
 
   CastMatrix(this.matrix, this.dataType);
@@ -17,10 +17,10 @@ class CastMatrix<S, T> extends Matrix<T> {
   int get rowCount => matrix.rowCount;
 
   @override
-  int get colCount => matrix.colCount;
+  int get columnCount => matrix.columnCount;
 
   @override
-  Set<Tensor> get storage => matrix.storage;
+  Set<Storage> get storage => matrix.storage;
 
   @override
   Matrix<T> copy() => CastMatrix(matrix.copy(), dataType);

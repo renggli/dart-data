@@ -22,11 +22,11 @@ extension OverlayMatrixExtension<T> on Matrix<T> {
     } else if (mask != null && rowOffset == null && colOffset == null) {
       if (rowCount != base.rowCount ||
           rowCount != mask.rowCount ||
-          colCount != base.colCount ||
-          colCount != mask.colCount) {
-        throw ArgumentError('Dimensions of overlay ($rowCount * $colCount), '
-            'mask (${mask.rowCount} * ${mask.colCount}) and base '
-            '(${base.rowCount} * ${base.colCount}) matrices do not match.');
+          columnCount != base.columnCount ||
+          columnCount != mask.columnCount) {
+        throw ArgumentError('Dimensions of overlay ($rowCount * $columnCount), '
+            'mask (${mask.rowCount} * ${mask.columnCount}) and base '
+            '(${base.rowCount} * ${base.columnCount}) matrices do not match.');
       }
       return OverlayMaskMatrix<T>(dataType, this, mask, base);
     }

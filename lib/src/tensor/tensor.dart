@@ -3,17 +3,12 @@ library data.tensor.tensor;
 import 'package:more/printer.dart' show Printer;
 
 import '../../type.dart' show DataType;
+import '../shared/storage.dart';
 
 /// Abstract tensor type.
-abstract class Tensor<T> {
+abstract class Tensor<T> implements Storage {
   /// Returns the data type of this tensor.
   DataType<T> get dataType;
-
-  /// Returns the dimensions of this tensor.
-  List<int> get shape;
-
-  /// Returns the underlying storage containers of this tensor.
-  Set<Tensor> get storage => {this};
 
   /// Returns a copy of this tensor.
   Tensor<T> copy();

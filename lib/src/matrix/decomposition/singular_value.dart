@@ -2,9 +2,12 @@ library matrix.decomposition.singular_value;
 
 import 'dart:math' as math;
 
+import 'package:data/src/matrix/matrix_format.dart';
+
 import '../../shared/config.dart';
 import '../../shared/math.dart';
 import '../matrix.dart';
+import '../view/cast_matrix.dart';
 
 /// Singular Value Decomposition.
 ///
@@ -30,18 +33,15 @@ class SingularValueDecomposition {
 
   /// Construct the singular value decomposition Structure to access U, S and V.
   SingularValueDecomposition(Matrix<num> input)
-      : _u = Matrix.builder.withType(floatDataType)(
-            input.rowCount, math.min(input.rowCount, input.colCount)),
-        _v = Matrix.builder.withType(floatDataType)(
-            input.colCount, input.colCount),
-        _s =
-            floatDataType.newList(math.min(input.rowCount + 1, input.colCount)),
+      : _u = Matrix(floatDataType, input.rowCount,
+            math.min(input.rowCount, input.columnCount)),
+        _v = Matrix(floatDataType, input.columnCount, input.columnCount),
+        _s = floatDataType
+            .newList(math.min(input.rowCount + 1, input.columnCount)),
         _m = input.rowCount,
-        _n = input.colCount {
+        _n = input.columnCount {
     // Initialize.
-    final A = Matrix.builder
-        .withType(floatDataType)
-        .transform<num>(input, (r, c, v) => v.toDouble());
+    final A = input.cast(floatDataType).toMatrix();
     final e = floatDataType.newList(_n);
     final work = floatDataType.newList(_m);
 
@@ -151,7 +151,7 @@ class SingularValueDecomposition {
 
     // If required, generate U.
 
-    for (var j = nct; j < _u.colCount; j++) {
+    for (var j = nct; j < _u.columnCount; j++) {
       for (var i = 0; i < _m; i++) {
         _u.setUnchecked(i, j, 0);
       }
@@ -159,7 +159,7 @@ class SingularValueDecomposition {
     }
     for (var k = nct - 1; k >= 0; k--) {
       if (_s[k] != 0.0) {
-        for (var j = k + 1; j < _u.colCount; j++) {
+        for (var j = k + 1; j < _u.columnCount; j++) {
           var t = 0.0;
           for (var i = k; i < _m; i++) {
             t += _u.getUnchecked(i, k) * _u.getUnchecked(i, j);
@@ -188,7 +188,7 @@ class SingularValueDecomposition {
     // If required, generate V.
     for (var k = _n - 1; k >= 0; k--) {
       if ((k < nrt) && (e[k] != 0.0)) {
-        for (var j = k + 1; j < _u.colCount; j++) {
+        for (var j = k + 1; j < _u.columnCount; j++) {
           var t = 0.0;
           for (var i = k + 1; i < _n; i++) {
             t += _v.getUnchecked(i, k) * _v.getUnchecked(i, j);
@@ -435,17 +435,17 @@ class SingularValueDecomposition {
   }
 
   /// Return the left singular vectors.
-  Matrix<double> get U => Matrix.builder.withType(floatDataType).fromMatrix(_u);
+  Matrix<double> get U => _u.toMatrix();
 
   /// Return the right singular vectors.
-  Matrix<double> get V => Matrix.builder.withType(floatDataType).fromMatrix(_v);
+  Matrix<double> get V => _v.toMatrix();
 
   /// Return the one-dimensional array of singular values.
   List<double> get s => floatDataType.copyList(_s);
 
   /// Return the diagonal matrix of singular values.
   Matrix<double> get S {
-    final result = Matrix.builder.diagonal.withType(floatDataType)(_n, _n);
+    final result = Matrix(floatDataType, _n, _n, format: MatrixFormat.diagonal);
     for (var i = 0; i < _n; i++) {
       result.setUnchecked(i, i, _s[i]);
     }

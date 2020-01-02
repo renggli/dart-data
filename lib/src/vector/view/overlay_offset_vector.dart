@@ -1,7 +1,7 @@
 library data.vector.view.overlay_offset;
 
-import '../../../tensor.dart';
 import '../../../type.dart';
+import '../../shared/storage.dart';
 import '../vector.dart';
 
 /// Mutable overlay of one vector over another.
@@ -22,7 +22,7 @@ class OverlayOffsetVector<T> extends Vector<T> {
   int get count => base.count;
 
   @override
-  Set<Tensor> get storage => {...overlay.storage, ...base.storage};
+  Set<Storage> get storage => {...overlay.storage, ...base.storage};
 
   @override
   Vector<T> copy() =>

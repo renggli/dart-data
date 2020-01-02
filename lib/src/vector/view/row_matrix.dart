@@ -1,12 +1,12 @@
 library data.vector.view.row;
 
-import '../../../tensor.dart';
 import '../../../type.dart';
 import '../../../vector.dart';
 import '../../matrix/matrix.dart';
+import '../../shared/storage.dart';
 
 /// Mutable row matrix of a vector.
-class RowMatrix<T> extends Matrix<T> {
+class RowMatrix<T> with Matrix<T> {
   final Vector<T> vector;
 
   RowMatrix(this.vector);
@@ -18,10 +18,10 @@ class RowMatrix<T> extends Matrix<T> {
   int get rowCount => 1;
 
   @override
-  int get colCount => vector.count;
+  int get columnCount => vector.count;
 
   @override
-  Set<Tensor> get storage => vector.storage;
+  Set<Storage> get storage => vector.storage;
 
   @override
   Matrix<T> copy() => RowMatrix<T>(vector.copy());

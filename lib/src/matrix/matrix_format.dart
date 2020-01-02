@@ -6,8 +6,8 @@ library data.matrix.format;
 // a creation method does not work because the generic type is not properly
 // passed to the new instance.
 
-/// Storage formats of vectors.
-enum Format {
+/// Formats of matrices.
+enum MatrixFormat {
   rowMajor,
   columnMajor,
   compressedRow,
@@ -16,3 +16,6 @@ enum Format {
   keyed,
   diagonal,
 }
+
+/// Default matrix format.
+MatrixFormat defaultMatrixFormat = MatrixFormat.rowMajor;

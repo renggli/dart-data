@@ -1,6 +1,7 @@
 library data.vector.impl.keyed;
 
 import '../../../type.dart';
+import '../../shared/storage.dart';
 import '../vector.dart';
 
 /// Sparse keyed vector.
@@ -17,6 +18,9 @@ class KeyedVector<T> extends Vector<T> {
 
   @override
   final int count;
+
+  @override
+  Set<Storage> get storage => {this};
 
   @override
   Vector<T> copy() => KeyedVector._(dataType, count, Map.of(_values));

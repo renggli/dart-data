@@ -2,9 +2,9 @@ library data.matrix.view.diagonal;
 
 import 'dart:math' as math;
 
-import '../../../tensor.dart';
 import '../../../type.dart';
 import '../../../vector.dart';
+import '../../shared/storage.dart';
 import '../matrix.dart';
 
 /// Mutable diagonal vector of a matrix.
@@ -18,7 +18,7 @@ class DiagonalVector<T> extends Vector<T> {
             offset,
             math.min(
               matrix.rowCount - offset,
-              matrix.colCount + offset,
+              matrix.columnCount + offset,
             ));
 
   DiagonalVector._(this.matrix, this.offset, this.count);
@@ -30,7 +30,7 @@ class DiagonalVector<T> extends Vector<T> {
   final int count;
 
   @override
-  Set<Tensor> get storage => matrix.storage;
+  Set<Storage> get storage => matrix.storage;
 
   @override
   Vector<T> copy() => DiagonalVector<T>._(matrix.copy(), offset, count);
@@ -61,13 +61,13 @@ extension DiagonalVectorExtension<T> on Matrix<T> {
   /// above, and a positive offset to the diagonals below.
   Vector<T> diagonal([int offset = 0]) {
     RangeError.checkValueInInterval(
-        offset, -colCount + 1, rowCount - 1, 'offset');
+        offset, -columnCount + 1, rowCount - 1, 'offset');
     return diagonalUnchecked(offset);
   }
 
   /// Returns an iterable over the diagonals of this [Matrix].
   Iterable<Vector<T>> get diagonals sync* {
-    for (var d = -colCount + 1; d < rowCount; d++) {
+    for (var d = -columnCount + 1; d < rowCount; d++) {
       yield diagonalUnchecked(d);
     }
   }

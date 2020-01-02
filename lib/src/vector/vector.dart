@@ -2,21 +2,27 @@ library data.vector.vector;
 
 import 'dart:collection' show ListMixin;
 
+import 'package:data/src/shared/storage.dart';
 import 'package:more/printer.dart' show Printer;
 
-import '../../tensor.dart' show Tensor;
 import '../../type.dart' show DataType;
 import 'builder.dart';
 import 'format.dart';
 
 /// Abstract vector type.
-abstract class Vector<T> extends Tensor<T> {
+abstract class Vector<T> implements Storage {
   /// Default builder for new vectors.
   static Builder<Object> get builder =>
       Builder<Object>(Format.standard, DataType.object);
 
   /// Unnamed default constructor.
   Vector();
+
+  /// Returns the data type of this vector.
+  DataType<T> get dataType;
+
+  /// The dimensionality of this vector.
+  int get count;
 
   /// Returns the shape of this vector.
   @override
@@ -25,9 +31,6 @@ abstract class Vector<T> extends Tensor<T> {
   /// Returns a copy of this vector.
   @override
   Vector<T> copy();
-
-  /// The dimensionality of this vector.
-  int get count;
 
   /// Returns the scalar at the provided [index].
   @override

@@ -10,7 +10,7 @@ extension NormExtension<T extends num> on Matrix<T> {
   /// Returns the trace of this [Matrix].
   T get trace {
     var result = dataType.field.additiveIdentity;
-    for (var i = 0; i < math.min(rowCount, colCount); i++) {
+    for (var i = 0; i < math.min(rowCount, columnCount); i++) {
       result += getUnchecked(i, i);
     }
     return result;
@@ -19,7 +19,7 @@ extension NormExtension<T extends num> on Matrix<T> {
   /// Returns the one norm, the maximum column sum of this [Matrix].
   T get norm1 {
     var result = dataType.field.additiveIdentity;
-    for (var c = 0; c < colCount; c++) {
+    for (var c = 0; c < columnCount; c++) {
       var sum = dataType.field.additiveIdentity;
       for (var r = 0; r < rowCount; r++) {
         sum += getUnchecked(r, c).abs();
@@ -37,7 +37,7 @@ extension NormExtension<T extends num> on Matrix<T> {
     var result = dataType.field.additiveIdentity;
     for (var r = 0; r < rowCount; r++) {
       var sum = dataType.field.additiveIdentity;
-      for (var c = 0; c < colCount; c++) {
+      for (var c = 0; c < columnCount; c++) {
         sum += getUnchecked(r, c).abs();
       }
       result = math.max(result, sum);
@@ -49,7 +49,7 @@ extension NormExtension<T extends num> on Matrix<T> {
   /// [Matrix].
   double get normFrobenius {
     var result = 0.0;
-    for (var c = 0; c < colCount; c++) {
+    for (var c = 0; c < columnCount; c++) {
       for (var r = 0; r < rowCount; r++) {
         result = hypot(result, getUnchecked(r, c));
       }

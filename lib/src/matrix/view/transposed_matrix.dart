@@ -1,11 +1,11 @@
 library data.matrix.view.transposed;
 
-import '../../../tensor.dart';
 import '../../../type.dart';
+import '../../shared/storage.dart';
 import '../matrix.dart';
 
 /// Mutable transposed view of a matrix.
-class TransposedMatrix<T> extends Matrix<T> {
+class TransposedMatrix<T> with Matrix<T> {
   final Matrix<T> matrix;
 
   TransposedMatrix(this.matrix);
@@ -14,13 +14,13 @@ class TransposedMatrix<T> extends Matrix<T> {
   DataType<T> get dataType => matrix.dataType;
 
   @override
-  int get rowCount => matrix.colCount;
+  int get rowCount => matrix.columnCount;
 
   @override
-  int get colCount => matrix.rowCount;
+  int get columnCount => matrix.rowCount;
 
   @override
-  Set<Tensor> get storage => matrix.storage;
+  Set<Storage> get storage => matrix.storage;
 
   @override
   Matrix<T> copy() => TransposedMatrix(matrix.copy());

@@ -1,8 +1,8 @@
 library data.matrix.view.column;
 
-import '../../../tensor.dart';
 import '../../../type.dart';
 import '../../../vector.dart';
+import '../../shared/storage.dart';
 import '../matrix.dart';
 
 /// Mutable column vector of a matrix.
@@ -19,7 +19,7 @@ class ColumnVector<T> extends Vector<T> {
   int get count => matrix.rowCount;
 
   @override
-  Set<Tensor> get storage => matrix.storage;
+  Set<Storage> get storage => matrix.storage;
 
   @override
   Vector<T> copy() => ColumnVector(matrix.copy(), columnIndex);
@@ -36,13 +36,13 @@ extension ColumnVectorExtension<T> on Matrix<T> {
   /// Returns a mutable column [Vector] of this [Matrix]. Throws a [RangeError],
   /// if [index] is out of bounds.
   Vector<T> column(int index) {
-    RangeError.checkValidIndex(index, this, 'col', colCount);
+    RangeError.checkValidIndex(index, this, 'col', columnCount);
     return columnUnchecked(index);
   }
 
   /// Returns an iterable over the columns of this [Matrix].
   Iterable<Vector<T>> get cols sync* {
-    for (var c = 0; c < colCount; c++) {
+    for (var c = 0; c < columnCount; c++) {
       yield columnUnchecked(c);
     }
   }

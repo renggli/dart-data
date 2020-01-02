@@ -1,7 +1,7 @@
 library data.polynomial.view.unmodifiable;
 
-import '../../../tensor.dart';
 import '../../../type.dart';
+import '../../shared/storage.dart';
 import '../mixins/unmodifiable_polynomial.dart';
 import '../polynomial.dart';
 
@@ -19,7 +19,7 @@ class UnmodifiablePolynomial<T> extends Polynomial<T>
   int get degree => _polynomial.degree;
 
   @override
-  Set<Tensor> get storage => _polynomial.storage;
+  Set<Storage> get storage => _polynomial.storage;
 
   @override
   Polynomial<T> copy() => UnmodifiablePolynomial(_polynomial.copy());

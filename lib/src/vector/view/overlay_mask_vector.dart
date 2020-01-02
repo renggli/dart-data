@@ -1,7 +1,7 @@
 library data.vector.view.overlay_mask;
 
-import '../../../tensor.dart';
 import '../../../type.dart';
+import '../../shared/storage.dart';
 import '../vector.dart';
 
 /// Mutable overlay of one vector over another controlled by a mask.
@@ -22,7 +22,7 @@ class OverlayMaskVector<T> extends Vector<T> {
   int get count => base.count;
 
   @override
-  Set<Tensor> get storage =>
+  Set<Storage> get storage =>
       {...overlay.storage, ...mask.storage, ...base.storage};
 
   @override

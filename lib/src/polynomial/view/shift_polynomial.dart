@@ -2,8 +2,8 @@ library data.polynomial.view.shift;
 
 import 'dart:math' as math;
 
-import '../../../tensor.dart';
 import '../../../type.dart';
+import '../../shared/storage.dart';
 import '../polynomial.dart';
 
 /// Shifts the polynomial by a given offset.
@@ -26,7 +26,7 @@ class ShiftPolynomial<T> extends Polynomial<T> {
   }
 
   @override
-  Set<Tensor> get storage => _polynomial.storage;
+  Set<Storage> get storage => _polynomial.storage;
 
   @override
   Polynomial<T> copy() => ShiftPolynomial(_polynomial.copy(), _offset);

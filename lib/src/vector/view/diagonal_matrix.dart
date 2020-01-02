@@ -1,12 +1,12 @@
 library data.vector.view.diagonal;
 
-import '../../../tensor.dart';
 import '../../../type.dart';
 import '../../../vector.dart';
 import '../../matrix/matrix.dart';
+import '../../shared/storage.dart';
 
 /// Mutable diagonal matrix of a vector.
-class DiagonalMatrix<T> extends Matrix<T> {
+class DiagonalMatrix<T> with Matrix<T> {
   final Vector<T> vector;
 
   DiagonalMatrix(this.vector);
@@ -18,10 +18,10 @@ class DiagonalMatrix<T> extends Matrix<T> {
   int get rowCount => vector.count;
 
   @override
-  int get colCount => vector.count;
+  int get columnCount => vector.count;
 
   @override
-  Set<Tensor> get storage => vector.storage;
+  Set<Storage> get storage => vector.storage;
 
   @override
   Matrix<T> copy() => DiagonalMatrix(vector.copy());

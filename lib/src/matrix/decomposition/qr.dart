@@ -3,6 +3,7 @@ library matrix.decomposition.qr;
 import '../../shared/config.dart';
 import '../../shared/math.dart';
 import '../matrix.dart';
+import '../view/cast_matrix.dart';
 
 /// QR Decomposition.
 ///
@@ -26,12 +27,10 @@ class QRDecomposition {
   final List<double> _rdiag;
 
   QRDecomposition(Matrix<num> source)
-      : _qr = Matrix.builder.rowMajor
-            .withType(floatDataType)
-            .transform<num>(source, (r, c, v) => v.toDouble()),
+      : _qr = source.cast(floatDataType).toMatrix(),
         _m = source.rowCount,
-        _n = source.colCount,
-        _rdiag = floatDataType.newList(source.colCount) {
+        _n = source.columnCount,
+        _rdiag = floatDataType.newList(source.columnCount) {
     // Main loop.
     for (var k = 0; k < _n; k++) {
       // Compute 2-norm of k-th column without under/overflow.
@@ -80,7 +79,7 @@ class QRDecomposition {
   /// Returns the Householder vectors: Lower trapezoidal matrix whose columns
   /// define the reflections.
   Matrix<double> get householder {
-    final result = Matrix.builder.withType(floatDataType)(_m, _n);
+    final result = Matrix(floatDataType, _m, _n);
     for (var i = 0; i < _m; i++) {
       for (var j = 0; j < _n; j++) {
         if (i >= j) {
@@ -93,7 +92,7 @@ class QRDecomposition {
 
   /// Returns the upper triangular factor.
   Matrix<double> get upper {
-    final result = Matrix.builder.withType(floatDataType)(_n, _n);
+    final result = Matrix(floatDataType, _n, _n);
     for (var i = 0; i < _n; i++) {
       for (var j = i; j < _n; j++) {
         if (i < j) {
@@ -108,7 +107,7 @@ class QRDecomposition {
 
   /// Returns the (economy-sized) orthogonal factor.
   Matrix<double> get orthogonal {
-    final result = Matrix.builder.withType(floatDataType)(_m, _n);
+    final result = Matrix(floatDataType, _m, _n);
     for (var k = _n - 1; k >= 0; k--) {
       for (var i = 0; i < _m; i++) {
         result.setUnchecked(i, k, 0);
@@ -144,8 +143,8 @@ class QRDecomposition {
     }
 
     // Copy right hand side
-    final nx = B.colCount;
-    final X = Matrix.builder.withType(floatDataType).fromMatrix(B);
+    final nx = B.columnCount;
+    final X = B.cast(floatDataType).toMatrix();
 
     // Compute Y = transpose(Q)*B
     for (var k = 0; k < _n; k++) {

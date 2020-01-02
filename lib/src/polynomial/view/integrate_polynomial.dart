@@ -1,7 +1,7 @@
 library data.polynomial.view.integrate;
 
-import '../../../tensor.dart';
 import '../../../type.dart';
+import '../../shared/storage.dart';
 import '../polynomial.dart';
 
 /// Integrate modifiable view of a polynomial.
@@ -19,7 +19,7 @@ class IntegratePolynomial<T> extends Polynomial<T> {
   int get degree => _polynomial.degree < 0 ? -1 : _polynomial.degree + 1;
 
   @override
-  Set<Tensor> get storage => _polynomial.storage;
+  Set<Storage> get storage => _polynomial.storage;
 
   @override
   Polynomial<T> copy() => IntegratePolynomial(_polynomial.copy(), _constant);

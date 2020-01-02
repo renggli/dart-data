@@ -3,10 +3,11 @@ library data.matrix.impl.compressed_column;
 import '../../../type.dart';
 import '../../shared/config.dart';
 import '../../shared/lists.dart';
+import '../../shared/storage.dart';
 import '../matrix.dart';
 
 /// Sparse compressed column matrix.
-class CompressedColumnMatrix<T> extends Matrix<T> {
+class CompressedColumnMatrix<T> with Matrix<T> {
   List<int> _colExtends;
   List<int> _rowIndexes;
   List<T> _values;
@@ -22,7 +23,7 @@ class CompressedColumnMatrix<T> extends Matrix<T> {
             dataType.newList(initialListLength),
             0);
 
-  CompressedColumnMatrix._(this.dataType, this.rowCount, this.colCount,
+  CompressedColumnMatrix._(this.dataType, this.rowCount, this.columnCount,
       this._colExtends, this._rowIndexes, this._values, this._length);
 
   @override
@@ -32,13 +33,16 @@ class CompressedColumnMatrix<T> extends Matrix<T> {
   final int rowCount;
 
   @override
-  final int colCount;
+  final int columnCount;
+
+  @override
+  Set<Storage> get storage => {this};
 
   @override
   Matrix<T> copy() => CompressedColumnMatrix._(
       dataType,
       rowCount,
-      colCount,
+      columnCount,
       indexDataType.copyList(_colExtends),
       indexDataType.copyList(_rowIndexes),
       dataType.copyList(_values),
@@ -57,7 +61,7 @@ class CompressedColumnMatrix<T> extends Matrix<T> {
     final index = binarySearch(_rowIndexes, start, stop, row);
     if (index < 0) {
       if (value != dataType.nullValue) {
-        for (var c = col; c < colCount; c++) {
+        for (var c = col; c < columnCount; c++) {
           _colExtends[c]++;
         }
         _rowIndexes =
@@ -67,7 +71,7 @@ class CompressedColumnMatrix<T> extends Matrix<T> {
       }
     } else {
       if (value == dataType.nullValue) {
-        for (var c = col; c < colCount; c++) {
+        for (var c = col; c < columnCount; c++) {
           _colExtends[c]--;
         }
         _rowIndexes = removeAt(indexDataType, _rowIndexes, _length, index);

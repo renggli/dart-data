@@ -2,33 +2,151 @@ library data.matrix.matrix;
 
 import 'package:more/printer.dart' show Printer;
 
-import '../../tensor.dart' show Tensor;
 import '../../type.dart' show DataType;
 import '../../vector.dart' show Vector;
-import 'builder.dart';
-import 'format.dart';
+import '../shared/storage.dart';
+import 'impl/column_major_matrix.dart';
+import 'impl/compressed_column_matrix.dart';
+import 'impl/compressed_row_matrix.dart';
+import 'impl/coordinate_list_matrix.dart';
+import 'impl/diagonal_matrix.dart';
+import 'impl/keyed_matrix.dart';
+import 'impl/row_major_matrix.dart';
+import 'matrix_format.dart';
+import 'view/constant_matrix.dart';
+import 'view/generated_matrix.dart';
+import 'view/identity_matrix.dart';
 import 'view/row_vector.dart';
 
 /// Abstract matrix type.
-abstract class Matrix<T> extends Tensor<T> {
-  /// Default builder for new matrices.
-  static Builder<Object> get builder =>
-      Builder<Object>(Format.rowMajor, DataType.object);
+abstract class Matrix<T> implements Storage {
+  /// Constructs a default matrix of the desired [dataType], the provided
+  /// [rowCount] and [columnCount], and possibly a custom [format].
+  factory Matrix(DataType<T> dataType, int rowCount, int columnCount,
+      {MatrixFormat format}) {
+    ArgumentError.checkNotNull(dataType, 'dataType');
+    RangeError.checkNotNegative(rowCount, 'rowCount');
+    RangeError.checkNotNegative(columnCount, 'columnCount');
+    switch (format ?? defaultMatrixFormat) {
+      case MatrixFormat.rowMajor:
+        return RowMajorMatrix<T>(dataType, rowCount, columnCount);
+      case MatrixFormat.columnMajor:
+        return ColumnMajorMatrix<T>(dataType, rowCount, columnCount);
+      case MatrixFormat.compressedRow:
+        return CompressedRowMatrix<T>(dataType, rowCount, columnCount);
+      case MatrixFormat.compressedColumn:
+        return CompressedColumnMatrix<T>(dataType, rowCount, columnCount);
+      case MatrixFormat.coordinateList:
+        return CoordinateListMatrix<T>(dataType, rowCount, columnCount);
+      case MatrixFormat.keyed:
+        return KeyedMatrix<T>(dataType, rowCount, columnCount);
+      case MatrixFormat.diagonal:
+        return DiagonalMatrix<T>(dataType, rowCount, columnCount);
+      default:
+        throw ArgumentError.value(format, 'format', 'Unknown matrix format.');
+    }
+  }
 
-  /// Unnamed default constructor.
-  Matrix();
+  /// Constructs a read-only matrix with a constant [value].
+  factory Matrix.constant(
+          DataType<T> dataType, int rowCount, int columnCount, T value) =>
+      ConstantMatrix<T>(dataType, rowCount, columnCount, value);
 
-  /// Returns the shape of this matrix.
-  @override
-  List<int> get shape => [rowCount, colCount];
+  /// Constructs a read-only generator matrix from calling a [callback] on
+  /// every value.
+  factory Matrix.generate(DataType<T> dataType, int rowCount, int columnCount,
+          MatrixGeneratorCallback<T> callback) =>
+      GeneratedMatrix<T>(dataType, rowCount, columnCount, callback);
 
-  /// Returns a copy of this matrix.
-  @override
-  Matrix<T> copy();
+  /// Constructs an identity matrix with a constant [value].
+  factory Matrix.identity(DataType<T> dataType, int rowCount, int columnCount,
+          [T value]) =>
+      IdentityMatrix<T>(dataType, rowCount, columnCount,
+          value ?? dataType.field.multiplicativeIdentity);
+
+  /// Constructs a matrix from a nested list of rows.
+  factory Matrix.fromRows(DataType<T> dataType, List<List<T>> source,
+      {MatrixFormat format}) {
+    final result = Matrix<T>(
+        dataType, source.length, source.isEmpty ? 0 : source[0].length,
+        format: format);
+    for (var r = 0; r < result.rowCount; r++) {
+      final sourceRow = source[r];
+      if (sourceRow.length != result.columnCount) {
+        throw ArgumentError.value(
+            source, 'source', 'All rows must be equally sized.');
+      }
+      for (var c = 0; c < result.columnCount; c++) {
+        result.setUnchecked(r, c, sourceRow[c]);
+      }
+    }
+    return result;
+  }
+
+  /// Constructs a matrix from a packed list of rows.
+  factory Matrix.fromPackedRows(
+      DataType<T> dataType, int rowCount, int columnCount, List<T> source,
+      {MatrixFormat format}) {
+    if (rowCount * columnCount != source.length) {
+      throw ArgumentError.value(
+          source, 'source', 'Row and column count do not match.');
+    }
+    final result = Matrix<T>(dataType, rowCount, columnCount, format: format);
+    for (var r = 0; r < rowCount; r++) {
+      for (var c = 0; c < result.columnCount; c++) {
+        result.set(r, c, source[r * columnCount + c]);
+      }
+    }
+    return result;
+  }
+
+  /// Constructs a matrix from a nested list of columns.
+  factory Matrix.fromColumns(DataType<T> dataType, List<List<T>> source,
+      {MatrixFormat format}) {
+    final result = Matrix<T>(
+        dataType, source.isEmpty ? 0 : source[0].length, source.length,
+        format: format);
+    for (var c = 0; c < result.columnCount; c++) {
+      final sourceCol = source[c];
+      if (sourceCol.length != result.rowCount) {
+        throw ArgumentError.value(
+            source, 'source', 'All columns must be equally sized.');
+      }
+      for (var r = 0; r < result.rowCount; r++) {
+        result.setUnchecked(r, c, sourceCol[r]);
+      }
+    }
+    return result;
+  }
+
+  /// Constructs a matrix from a packed list of columns.
+  factory Matrix.fromPackedColumns(
+      DataType<T> dataType, int rowCount, int colCount, List<T> source,
+      {MatrixFormat format}) {
+    if (rowCount * colCount != source.length) {
+      throw ArgumentError.value(
+          source, 'source', 'Row and column count do not match.');
+    }
+    final result = Matrix<T>(dataType, rowCount, colCount, format: format);
+    for (var r = 0; r < rowCount; r++) {
+      for (var c = 0; c < result.columnCount; c++) {
+        result.set(r, c, source[r + c * rowCount]);
+      }
+    }
+    return result;
+  }
+
+  /// Returns the data type of this matrix.
+  DataType<T> get dataType;
+
+  /// Returns the number of rows in the matrix.
+  int get rowCount;
+
+  /// Returns the number of columns in the matrix.
+  int get columnCount;
 
   /// Returns a mutable row vector of this matrix. Convenience method to read
   /// matrix values using row and column indexes: `matrix[row][col]`.
-  @override
   Vector<T> operator [](int row) {
     RangeError.checkValidIndex(row, this, 'row', rowCount);
     return rowUnchecked(row);
@@ -38,7 +156,7 @@ abstract class Matrix<T> extends Tensor<T> {
   /// [RangeError] if [row] or [col] are outside of bounds.
   T get(int row, int col) {
     RangeError.checkValidIndex(row, this, 'row', rowCount);
-    RangeError.checkValidIndex(col, this, 'col', colCount);
+    RangeError.checkValidIndex(col, this, 'col', columnCount);
     return getUnchecked(row, col);
   }
 
@@ -50,7 +168,7 @@ abstract class Matrix<T> extends Tensor<T> {
   /// [RangeError] if [row] or [col] are outside of bounds.
   void set(int row, int col, T value) {
     RangeError.checkValidIndex(row, this, 'row', rowCount);
-    RangeError.checkValidIndex(col, this, 'col', colCount);
+    RangeError.checkValidIndex(col, this, 'col', columnCount);
     setUnchecked(row, col, value);
   }
 
@@ -58,18 +176,29 @@ abstract class Matrix<T> extends Tensor<T> {
   /// behavior is undefined if [row] or [col] are outside of bounds.
   void setUnchecked(int row, int col, T value);
 
-  /// Returns the number of rows in the matrix.
-  int get rowCount;
-
-  /// Returns the number of columns in the matrix.
-  int get colCount;
-
   /// Tests if [row] and [col] are within the bounds of this matrix.
   bool isWithinBounds(int row, int col) =>
-      0 <= row && row < rowCount && 0 <= col && col < colCount;
+      0 <= row && row < rowCount && 0 <= col && col < columnCount;
+
+  /// Returns the shape of this matrix.
+  @override
+  List<int> get shape => [rowCount, columnCount];
+
+  /// Returns a copy of this matrix.
+  Matrix<T> copy();
+
+  /// Creates a new [Matrix] containing the same elements as this matrix.
+  Matrix<T> toMatrix({MatrixFormat format}) {
+    final result = Matrix(dataType, rowCount, columnCount, format: format);
+    for (var r = 0; r < rowCount; r++) {
+      for (var c = 0; c < columnCount; c++) {
+        result.setUnchecked(r, c, getUnchecked(r, c));
+      }
+    }
+    return result;
+  }
 
   /// Returns a human readable representation of the matrix.
-  @override
   String format({
     Printer valuePrinter,
     Printer paddingPrinter,
@@ -77,7 +206,6 @@ abstract class Matrix<T> extends Tensor<T> {
     bool limit = true,
     int leadingItems = 3,
     int trailingItems = 3,
-    // additional options
     String horizontalSeparator = ' ',
     String verticalSeparator = '\n',
     String horizontalEllipses = '\u2026',
@@ -95,7 +223,7 @@ abstract class Matrix<T> extends Tensor<T> {
       if (limit && leadingItems <= r && r < rowCount - trailingItems) {
         final ellipsesVector = Vector.builder
             .withType(DataType.string)
-            .constant(colCount, verticalEllipses);
+            .constant(columnCount, verticalEllipses);
         buffer.write(ellipsesVector.format(
           valuePrinter: ellipsesPrinter,
           paddingPrinter: paddingPrinter,
@@ -122,4 +250,10 @@ abstract class Matrix<T> extends Tensor<T> {
     }
     return buffer.toString();
   }
+
+  /// Returns the string representation of this tensor.
+  @override
+  String toString() =>
+      '$runtimeType[$rowCount, $columnCount, ${dataType.name}]:\n'
+      '${format()}';
 }

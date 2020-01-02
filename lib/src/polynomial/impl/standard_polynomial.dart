@@ -4,6 +4,7 @@ import 'dart:math' show max;
 
 import '../../../type.dart';
 import '../../shared/lists.dart';
+import '../../shared/storage.dart';
 import '../polynomial.dart';
 
 /// Standard polynomial.
@@ -28,6 +29,9 @@ class StandardPolynomial<T> extends Polynomial<T> {
 
   @override
   int get degree => _degree;
+
+  @override
+  Set<Storage> get storage => {this};
 
   @override
   Polynomial<T> copy() =>

@@ -1,6 +1,7 @@
 library data.polynomial.view.generated;
 
 import '../../../type.dart';
+import '../../shared/storage.dart';
 import '../mixins/unmodifiable_polynomial.dart';
 import '../polynomial.dart';
 
@@ -16,6 +17,9 @@ class GeneratedPolynomial<T> extends Polynomial<T>
 
   @override
   final int degree;
+
+  @override
+  Set<Storage> get storage => {this};
 
   @override
   Polynomial<T> copy() => this;

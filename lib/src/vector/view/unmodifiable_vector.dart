@@ -1,7 +1,7 @@
 library data.vector.view.unmodifiable;
 
-import '../../../tensor.dart';
 import '../../../type.dart';
+import '../../shared/storage.dart';
 import '../mixins/unmodifiable_vector.dart';
 import '../vector.dart';
 
@@ -18,7 +18,7 @@ class UnmodifiableVector<T> extends Vector<T> with UnmodifiableVectorMixin<T> {
   int get count => vector.count;
 
   @override
-  Set<Tensor> get storage => vector.storage;
+  Set<Storage> get storage => vector.storage;
 
   @override
   Vector<T> copy() => UnmodifiableVector(vector.copy());
