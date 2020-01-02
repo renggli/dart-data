@@ -9,7 +9,7 @@ import 'package:test/test.dart';
 
 void matrixTest(String name, MatrixFormat format) {
   group(name, () {
-    group('constructors', () {
+    group('constructor', () {
       test('default', () {
         final matrix = Matrix(DataType.int8, 4, 5, format: format);
         expect(matrix.dataType, DataType.int8);

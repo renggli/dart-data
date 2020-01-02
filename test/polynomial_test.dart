@@ -4,17 +4,16 @@ import 'dart:math';
 
 import 'package:data/polynomial.dart';
 import 'package:data/type.dart';
-import 'package:data/vector.dart' as vector;
 import 'package:test/test.dart';
 
 final Matcher throwsIntegerDivisionByZero =
     throwsA(const TypeMatcher<IntegerDivisionByZeroException>());
 
-void polynomialTest(String name, Builder<int> builder) {
+void polynomialTest(String name, PolynomialFormat format) {
   group(name, () {
-    group('builder', () {
-      test('call', () {
-        final polynomial = builder();
+    group('constructor', () {
+      test('default', () {
+        final polynomial = Polynomial(DataType.int32, format: format);
         expect(polynomial.dataType, DataType.int32);
         expect(polynomial.degree, -1);
         expect(polynomial.shape, [0]);
@@ -23,8 +22,9 @@ void polynomialTest(String name, Builder<int> builder) {
           expect(polynomial[i], 0);
         }
       });
-      test('call (with degree)', () {
-        final polynomial = builder(4);
+      test('default with degree', () {
+        final polynomial =
+            Polynomial(DataType.int32, desiredDegree: 4, format: format);
         expect(polynomial.dataType, DataType.int32);
         expect(polynomial.degree, -1);
         expect(polynomial.shape, [0]);
@@ -33,13 +33,26 @@ void polynomialTest(String name, Builder<int> builder) {
           expect(polynomial[i], 0);
         }
       });
-      test('call, error', () {
-        expect(() => builder(-2), throwsRangeError);
-        expect(() => builder.withType(null)(4), throwsArgumentError);
-        expect(() => builder.withFormat(null)(4), throwsArgumentError);
+      test('default with error', () {
+        expect(() => Polynomial(null, format: format), throwsArgumentError);
       });
       test('generate', () {
-        final polynomial = builder.generate(7, (i) => i - 4);
+        final polynomial = Polynomial.generate(DataType.int32, 7, (i) => i - 4);
+        expect(polynomial.dataType, DataType.int32);
+        expect(polynomial.degree, 7);
+        expect(polynomial.shape, [8]);
+        expect(polynomial.storage, [polynomial]);
+        for (var i = 0; i <= polynomial.degree; i++) {
+          expect(polynomial[i], i - 4);
+        }
+        expect(polynomial[8], 0);
+        expect(() => polynomial[3] = 42, throwsUnsupportedError);
+        final copy = polynomial.copy();
+        expect(copy, same(polynomial));
+      });
+      test('generate with format', () {
+        final polynomial = Polynomial.generate(DataType.int32, 7, (i) => i - 4,
+            format: format);
         expect(polynomial.dataType, DataType.int32);
         expect(polynomial.degree, 7);
         expect(polynomial.shape, [8]);
@@ -51,132 +64,42 @@ void polynomialTest(String name, Builder<int> builder) {
         polynomial[3] = 42;
         expect(polynomial[3], 42);
       });
-      test('generate, lazy', () {
-        final polynomial = builder.generate(7, (i) => i - 4, lazy: true);
-        expect(polynomial.dataType, DataType.int32);
-        expect(polynomial.degree, 7);
-        expect(polynomial.shape, [8]);
-        for (var i = 0; i <= polynomial.degree; i++) {
-          expect(polynomial[i], i - 4);
-        }
-        expect(polynomial[8], 0);
-        expect(() => polynomial[3] = 42, throwsUnsupportedError);
-        final copy = polynomial.copy();
-        expect(copy, same(polynomial));
-      });
-      group('differentiate', () {
-        final p0 = builder.fromList([11, 7, 5, 2, 0]);
-        final p1 = builder.fromList([7, 10, 6, 0, 0]);
-        final p2 = builder.fromList([10, 12, 0, 0, 0]);
-        test('default', () {
-          final result = builder.differentiate(p0);
-          expect(result.dataType, DataType.int32);
-          expect(result.storage, [result]);
-          expect(compare(result, p1), isTrue);
-        });
-        test('lazy', () {
-          final result = builder.differentiate(p0, lazy: true);
-          expect(result.dataType, p0.dataType);
-          expect(result.storage, [p0]);
-          expect(compare(result, p1), isTrue);
-        });
-        test('count', () {
-          final result = builder.differentiate(p0, count: 2);
-          expect(result.dataType, DataType.int32);
-          expect(result.storage, [result]);
-          expect(compare(result, p2), isTrue);
-        });
-        test('count, error', () {
-          expect(() => builder.differentiate(p0, count: -1), throwsRangeError);
-        });
-      });
-      group('integrate', () {
-        final p0 = builder.fromList([7, 10, 6, 12]);
-        final p1 = builder.fromList([0, 7, 5, 2, 3]);
-        final p2 = builder.fromList([0, 0, 3, 1]);
-        test('default', () {
-          final result = builder.integrate(p0);
-          expect(result.dataType, DataType.int32);
-          expect(result.storage, [result]);
-          expect(compare(result, p1), isTrue);
-        });
-        test('constant', () {
-          final result = builder.integrate(p0, constant: 42);
-          expect(result.dataType, DataType.int32);
-          expect(result.storage, [result]);
-          expect(compare(result, builder.fromList([42, 7, 5, 2, 3])), isTrue);
-        });
-        test('lazy', () {
-          final result = builder.integrate(p0, lazy: true);
-          expect(result.dataType, p0.dataType);
-          expect(result.storage, [p0]);
-          expect(compare(result, p1), isTrue);
-        });
-        test('count', () {
-          final result = builder.integrate(p0, count: 2);
-          expect(result.dataType, DataType.int32);
-          expect(result.storage, [result]);
-          expect(compare(result, p2), isTrue);
-        });
-        test('count, zero', () {
-          final result = builder.integrate(p0, count: 0, lazy: true);
-          expect(result, p0);
-        });
-        test('count, error', () {
-          expect(() => builder.integrate(p0, count: -1), throwsRangeError);
-        });
-      });
-      test('fromPolynomial', () {
-        final source = builder.generate(5, (i) => i - 2);
-        final polynomial =
-            builder.withType(DataType.int8).fromPolynomial(source);
-        expect(polynomial.dataType, DataType.int8);
-        expect(polynomial.degree, 5);
-        expect(polynomial.shape, source.shape);
-        expect(polynomial.storage, [polynomial]);
-        for (var i = 0; i <= polynomial.degree; i++) {
-          expect(polynomial[i], i - 2);
-        }
-      });
       group('fromRoots', () {
         test('empty', () {
-          final actual = builder.fromRoots([]);
-          final expected = builder.fromList([]);
+          final actual =
+              Polynomial.fromRoots(DataType.int32, [], format: format);
+          final expected =
+              Polynomial.fromList(DataType.int32, [], format: format);
           expect(actual.toString(), expected.toString());
         });
         test('linear', () {
-          final actual = builder.fromRoots([1]);
-          final expected = builder.fromList([-1, 1]);
+          final actual =
+              Polynomial.fromRoots(DataType.int32, [1], format: format);
+          final expected =
+              Polynomial.fromList(DataType.int32, [-1, 1], format: format);
           expect(actual.toString(), expected.toString());
         });
         test('qubic', () {
-          final actual = builder.fromRoots([1, -2]);
-          final expected = builder.fromList([-2, 1, 1]);
+          final actual =
+              Polynomial.fromRoots(DataType.int32, [1, -2], format: format);
+          final expected =
+              Polynomial.fromList(DataType.int32, [-2, 1, 1], format: format);
           expect(actual.toString(), expected.toString());
         });
         test('septic', () {
-          final actual = builder.fromRoots([8, -4, -7, 3, 1, 1, 0]);
-          final expected =
-              builder.fromList([0, 672, -1388, 691, 94, -68, -2, 1]);
+          final actual = Polynomial.fromRoots(
+              DataType.int32, [8, -4, -7, 3, 1, 1, 0],
+              format: format);
+          final expected = Polynomial.fromList(
+              DataType.int32, [0, 672, -1388, 691, 94, -68, -2, 1],
+              format: format);
           expect(actual.toString(), expected.toString());
         });
       });
-      test('fromVector', () {
-        final source =
-            vector.Vector.builder.withType(DataType.int8).fromList([-1, 0, 2]);
-        final polynomial = builder.fromVector(source);
-        expect(polynomial.dataType, DataType.int32);
-        expect(polynomial.degree, 2);
-        expect(polynomial.shape, source.shape);
-        expect(polynomial.storage, [polynomial]);
-        expect(polynomial[0], -1);
-        expect(polynomial[1], 0);
-        expect(polynomial[2], 2);
-        expect(polynomial[3], 0);
-      });
       test('fromList', () {
         final source = [-1, 0, 2];
-        final polynomial = builder.fromList(source);
+        final polynomial =
+            Polynomial.fromList(DataType.int32, source, format: format);
         expect(polynomial.dataType, DataType.int32);
         expect(polynomial.degree, 2);
         expect(polynomial.shape, [source.length]);
@@ -187,161 +110,224 @@ void polynomialTest(String name, Builder<int> builder) {
         expect(polynomial[3], 0);
       });
     });
-    for (final type in <DataType>[DataType.int32, DataType.numeric]) {
-      final accessBuilder = builder.withType(type);
-      group('accesssing ($type)', () {
-        test('degree', () {
-          final polynomial = accessBuilder(10);
-          expect(polynomial.degree, -1);
-          polynomial[0] = 0;
-          expect(polynomial.degree, -1);
-          polynomial[5] = 1;
-          expect(polynomial.degree, 5);
-          polynomial[0] = 2;
-          expect(polynomial.degree, 5);
-          polynomial[5] = 0;
-          expect(polynomial.degree, 0);
+    group('accesssing', () {
+      for (final type in <DataType>[DataType.int32, DataType.numeric]) {
+        group(type.name, () {
+          test('degree', () {
+            final polynomial = Polynomial(type, format: format);
+            expect(polynomial.degree, -1);
+            polynomial[0] = 0;
+            expect(polynomial.degree, -1);
+            polynomial[5] = 1;
+            expect(polynomial.degree, 5);
+            polynomial[0] = 2;
+            expect(polynomial.degree, 5);
+            polynomial[5] = 0;
+            expect(polynomial.degree, 0);
+          });
+          test('lead', () {
+            final polynomial = Polynomial(type, format: format);
+            expect(polynomial.lead, 0);
+            polynomial[0] = 0;
+            expect(polynomial.lead, 0);
+            polynomial[5] = 1;
+            expect(polynomial.lead, 1);
+            polynomial[0] = 2;
+            expect(polynomial.lead, 1);
+            polynomial[5] = 0;
+            expect(polynomial.lead, 2);
+          });
+          test('random', () {
+            const degree = 100;
+            final polynomial = Polynomial(type, format: format);
+            final values = <int>[];
+            for (var i = 0; i <= degree; i++) {
+              values.add(i);
+            }
+            // add values
+            values.shuffle();
+            for (final value in values) {
+              polynomial[value] = value;
+            }
+            for (var i = 0; i < values.length; i++) {
+              expect(polynomial[i], i);
+            }
+            // update values
+            values.shuffle();
+            for (final value in values) {
+              polynomial[value] = value + 1;
+            }
+            for (var i = 0; i < values.length; i++) {
+              expect(polynomial[i], i + 1);
+            }
+            // remove values
+            values.shuffle();
+            for (final value in values) {
+              polynomial[value] = polynomial.dataType.nullValue;
+            }
+            for (var i = 0; i < values.length; i++) {
+              expect(polynomial[i], polynomial.dataType.field.additiveIdentity);
+            }
+          });
+          test('sparse value', () {
+            final polynomial = Polynomial(type, format: format);
+            polynomial[1] = 42;
+            expect(polynomial.degree, 1);
+            expect(polynomial.lead, 42);
+            expect(polynomial[0], 0);
+            expect(polynomial[1], 42);
+            expect(polynomial[2], 0);
+          });
+          test('null value', () {
+            final polynomial = Polynomial(type, format: format);
+            polynomial[1] = 42;
+            polynomial[1] = null;
+            expect(polynomial.degree, -1);
+            expect(polynomial.lead, 0);
+            expect(polynomial[0], 0);
+            expect(polynomial[1], 0);
+            expect(polynomial[2], 0);
+          });
+          test('zero value', () {
+            final polynomial = Polynomial(type, format: format);
+            polynomial[1] = 42;
+            polynomial[1] = 0;
+            expect(polynomial.degree, -1);
+            expect(polynomial.lead, 0);
+            expect(polynomial[0], 0);
+            expect(polynomial[1], 0);
+            expect(polynomial[2], 0);
+          });
+          test('read range error', () {
+            final polynomial = Polynomial(type, format: format);
+            expect(() => polynomial[-1], throwsRangeError);
+          });
+          test('write range error', () {
+            final polynomial = Polynomial(type, format: format);
+            expect(() => polynomial[-1] = 1, throwsRangeError);
+          });
+          group('evaluating', () {
+            test('empty', () {
+              final polynomial = Polynomial(type, format: format);
+              expect(polynomial(-1), 0);
+              expect(polynomial(0), 0);
+              expect(polynomial(1), 0);
+              expect(polynomial(2), 0);
+            });
+            test('constant', () {
+              final polynomial =
+                  Polynomial.fromList(type, type.castList([2]), format: format);
+              expect(polynomial(-1), 2);
+              expect(polynomial(0), 2);
+              expect(polynomial(1), 2);
+              expect(polynomial(2), 2);
+            });
+            test('linear', () {
+              final polynomial = Polynomial.fromList(
+                  type, type.castList([1, 2]),
+                  format: format);
+              expect(polynomial(-1), -1);
+              expect(polynomial(0), 1);
+              expect(polynomial(1), 3);
+              expect(polynomial(2), 5);
+            });
+            test('square', () {
+              final polynomial = Polynomial.fromList(
+                  type, type.castList([2, 0, 3]),
+                  format: format);
+              expect(polynomial(-1), 5);
+              expect(polynomial(0), 2);
+              expect(polynomial(1), 5);
+              expect(polynomial(2), 14);
+            });
+          });
         });
-        test('lead', () {
-          final polynomial = accessBuilder(10);
-          expect(polynomial.lead, 0);
-          polynomial[0] = 0;
-          expect(polynomial.lead, 0);
-          polynomial[5] = 1;
-          expect(polynomial.lead, 1);
-          polynomial[0] = 2;
-          expect(polynomial.lead, 1);
-          polynomial[5] = 0;
-          expect(polynomial.lead, 2);
-        });
-        test('random', () {
-          const degree = 100;
-          final polynomial = accessBuilder(degree);
-          final values = <int>[];
-          for (var i = 0; i <= degree; i++) {
-            values.add(i);
-          }
-          // add values
-          values.shuffle();
-          for (final value in values) {
-            polynomial[value] = value;
-          }
-          for (var i = 0; i < values.length; i++) {
-            expect(polynomial[i], i);
-          }
-          // update values
-          values.shuffle();
-          for (final value in values) {
-            polynomial[value] = value + 1;
-          }
-          for (var i = 0; i < values.length; i++) {
-            expect(polynomial[i], i + 1);
-          }
-          // remove values
-          values.shuffle();
-          for (final value in values) {
-            polynomial[value] = polynomial.dataType.nullValue;
-          }
-          for (var i = 0; i < values.length; i++) {
-            expect(polynomial[i], polynomial.dataType.field.additiveIdentity);
-          }
-        });
-        test('sparse value', () {
-          final polynomial = accessBuilder();
-          polynomial[1] = 42;
-          expect(polynomial.degree, 1);
-          expect(polynomial.lead, 42);
-          expect(polynomial[0], 0);
-          expect(polynomial[1], 42);
-          expect(polynomial[2], 0);
-        });
-        test('null value', () {
-          final polynomial = accessBuilder();
-          polynomial[1] = 42;
-          polynomial[1] = null;
-          expect(polynomial.degree, -1);
-          expect(polynomial.lead, 0);
-          expect(polynomial[0], 0);
-          expect(polynomial[1], 0);
-          expect(polynomial[2], 0);
-        });
-        test('zero value', () {
-          final polynomial = accessBuilder();
-          polynomial[1] = 42;
-          polynomial[1] = 0;
-          expect(polynomial.degree, -1);
-          expect(polynomial.lead, 0);
-          expect(polynomial[0], 0);
-          expect(polynomial[1], 0);
-          expect(polynomial[2], 0);
-        });
-        test('read range error', () {
-          final polynomial = accessBuilder();
-          expect(() => polynomial[-1], throwsRangeError);
-        });
-        test('write range error', () {
-          final polynomial = accessBuilder();
-          expect(() => polynomial[-1] = 1, throwsRangeError);
-        });
-      });
-      group('evaluating', () {
+      }
+      group('format', () {
         test('empty', () {
-          final polynomial = accessBuilder();
-          expect(polynomial(-1), 0);
-          expect(polynomial(0), 0);
-          expect(polynomial(1), 0);
-          expect(polynomial(2), 0);
+          final polynomial =
+              Polynomial.fromCoefficients(DataType.int8, [], format: format);
+          expect(polynomial.format(), '0');
         });
         test('constant', () {
-          final polynomial = accessBuilder.fromList(type.castList([2]));
-          expect(polynomial(-1), 2);
-          expect(polynomial(0), 2);
-          expect(polynomial(1), 2);
-          expect(polynomial(2), 2);
+          final polynomial =
+              Polynomial.fromCoefficients(DataType.int8, [1], format: format);
+          expect(polynomial.format(), '1');
         });
-        test('linear', () {
-          final polynomial = accessBuilder.fromList(type.castList([1, 2]));
-          expect(polynomial(-1), -1);
-          expect(polynomial(0), 1);
-          expect(polynomial(1), 3);
-          expect(polynomial(2), 5);
+        test('2th-degree', () {
+          final polynomial = Polynomial.fromCoefficients(DataType.int8, [1, 2],
+              format: format);
+          expect(polynomial.format(), 'x + 2');
         });
-        test('square', () {
-          final polynomial = accessBuilder.fromList(type.castList([2, 0, 3]));
-          expect(polynomial(-1), 5);
-          expect(polynomial(0), 2);
-          expect(polynomial(1), 5);
-          expect(polynomial(2), 14);
+        test('3rd-degree', () {
+          final polynomial = Polynomial.fromCoefficients(
+              DataType.int8, [1, 2, 3],
+              format: format);
+          expect(polynomial.format(), 'x^2 + 2x + 3');
+        });
+        test('null values (skipped)', () {
+          final polynomial = Polynomial.fromCoefficients(
+              DataType.int8, [2, 0, 0, 1],
+              format: format);
+          expect(polynomial.format(), '2x^3 + 1');
+        });
+        test('null values (not skipped)', () {
+          final polynomial = Polynomial.fromCoefficients(
+              DataType.int8, [2, 0, 1],
+              format: format);
+          expect(polynomial.format(skipNulls: false), '2x^2 + 0x + 1');
+        });
+        test('limit', () {
+          final polynomial = Polynomial.generate(
+              DataType.int8, 19, (i) => i - 10,
+              format: format);
+          expect(polynomial.format(),
+              '9x^19 + 8x^18 + 7x^17 + … + -8x^2 + -9x + -10');
         });
       });
-    }
+      test('toString', () {
+        final polynomial = Polynomial.fromCoefficients(
+            DataType.int32, [1, 2, 3],
+            format: format);
+        expect(
+            polynomial.toString(),
+            '${polynomial.runtimeType}'
+            '(dataType: int32, degree: 2):\n'
+            'x^2 + 2x + 3');
+      });
+    });
     group('roots', () {
       final epsilon = pow(2.0, -32.0);
       test('empty', () {
-        final polynomial = builder();
+        final polynomial =
+            Polynomial.fromList(DataType.int32, <int>[], format: format);
         final solutions = roots(polynomial);
         expect(solutions, isEmpty);
       });
       test('constant', () {
-        final polynomial = builder.fromList([2]);
+        final polynomial =
+            Polynomial.fromList(DataType.int32, [2], format: format);
         final solutions = roots(polynomial);
         expect(solutions, isEmpty);
       });
       test('linear', () {
-        final polynomial = builder.fromList([1, 2]);
+        final polynomial =
+            Polynomial.fromList(DataType.int32, [1, 2], format: format);
         final solutions = roots(polynomial);
         expect(solutions, hasLength(1));
         expect(solutions[0].closeTo(const Complex(-0.5), epsilon), isTrue);
       });
       test('square', () {
-        final polynomial = builder.fromList([2, 0, 3]);
+        final polynomial =
+            Polynomial.fromList(DataType.int32, [2, 0, 3], format: format);
         final solutions = roots(polynomial);
         expect(solutions, hasLength(2));
         expect(solutions[0].closeTo(Complex(0, sqrt(2 / 3)), epsilon), isTrue);
         expect(solutions[1].closeTo(Complex(0, -sqrt(2 / 3)), epsilon), isTrue);
       });
       test('cubic', () {
-        final polynomial = builder.fromList([6, -5, -2, 1]);
+        final polynomial =
+            Polynomial.fromList(DataType.int32, [6, -5, -2, 1], format: format);
         final solutions = roots(polynomial);
         expect(solutions, hasLength(3));
         expect(solutions[0].closeTo(const Complex(1), epsilon), isTrue);
@@ -349,7 +335,9 @@ void polynomialTest(String name, Builder<int> builder) {
         expect(solutions[2].closeTo(const Complex(-2), epsilon), isTrue);
       });
       test('septic', () {
-        final polynomial = builder.fromList([5, -8, 7, -3, 0, -3, 5, -4]);
+        final polynomial = Polynomial.fromList(
+            DataType.int32, [5, -8, 7, -3, 0, -3, 5, -4],
+            format: format);
         final solutions = roots(polynomial);
         expect(solutions, hasLength(7));
         expect(
@@ -383,10 +371,27 @@ void polynomialTest(String name, Builder<int> builder) {
       });
     });
     group('view', () {
+      test('copy', () {
+        final source = Polynomial.generate(DataType.int32, 7, (i) => i - 4,
+            format: format);
+        final copy = source.copy();
+        expect(copy.dataType, source.dataType);
+        expect(copy.degree, source.degree);
+        expect(copy.storage, [copy]);
+        for (var i = source.degree; i >= 0; i--) {
+          source[i] = i.isEven ? 0 : -i;
+          copy[i] = i.isEven ? -i : 0;
+        }
+        for (var i = source.degree; i >= 0; i--) {
+          expect(source[i], i.isEven ? 0 : -i);
+          expect(copy[i], i.isEven ? -i : 0);
+        }
+      });
       group('differentiate', () {
         final cs0 = [11, 7, 5, 2, 0], cs1 = [7, 10, 6, 0, 0];
         test('read', () {
-          final source = builder.fromList(cs0);
+          final source =
+              Polynomial.fromList(DataType.int32, cs0, format: format);
           final result = source.differentiate;
           expect(result.dataType, source.dataType);
           expect(result.storage, [source]);
@@ -398,7 +403,7 @@ void polynomialTest(String name, Builder<int> builder) {
           }
         });
         test('write', () {
-          final source = builder();
+          final source = Polynomial(DataType.int32, format: format);
           final result = source.differentiate;
           expect(result.degree, -1);
           for (var i = 0; i < cs1.length; i++) {
@@ -413,7 +418,8 @@ void polynomialTest(String name, Builder<int> builder) {
       group('integrate', () {
         final cs0 = [7, 10, 6, 12, 0, 0], cs1 = [0, 7, 5, 2, 3, 0];
         test('read', () {
-          final source = builder.fromList(cs0);
+          final source =
+              Polynomial.fromList(DataType.int32, cs0, format: format);
           final result = source.integrate;
           expect(result.dataType, source.dataType);
           expect(result.storage, [source]);
@@ -425,7 +431,7 @@ void polynomialTest(String name, Builder<int> builder) {
           }
         });
         test('write', () {
-          final source = builder();
+          final source = Polynomial(DataType.int32, format: format);
           final result = source.integrate;
           expect(result.degree, -1);
           for (var i = 0; i < cs1.length; i++) {
@@ -441,7 +447,8 @@ void polynomialTest(String name, Builder<int> builder) {
         for (var offset = -5; offset <= 5; offset++) {
           test('offset = $offset', () {
             final list = [1, 2, 3, 4];
-            final source = builder.fromList(list);
+            final source =
+                Polynomial.fromList(DataType.int32, list, format: format);
             final actual = source.shift(offset);
             final expected = offset < 0
                 ? list.sublist(min(-offset, list.length))
@@ -461,7 +468,8 @@ void polynomialTest(String name, Builder<int> builder) {
           });
           test('offset = $offset, empty', () {
             final list = <int>[];
-            final source = builder.fromList(list);
+            final source =
+                Polynomial.fromList(DataType.int32, list, format: format);
             final actual = source.shift(offset);
             final expected = [];
             expect(actual.dataType, source.dataType);
@@ -473,23 +481,9 @@ void polynomialTest(String name, Builder<int> builder) {
           });
         }
       });
-      test('copy', () {
-        final source = builder.generate(7, (i) => i - 4);
-        final copy = source.copy();
-        expect(copy.dataType, source.dataType);
-        expect(copy.degree, source.degree);
-        expect(copy.storage, [copy]);
-        for (var i = source.degree; i >= 0; i--) {
-          source[i] = i.isEven ? 0 : -i;
-          copy[i] = i.isEven ? -i : 0;
-        }
-        for (var i = source.degree; i >= 0; i--) {
-          expect(source[i], i.isEven ? 0 : -i);
-          expect(copy[i], i.isEven ? -i : 0);
-        }
-      });
       test('unmodifiable', () {
-        final source = builder.generate(7, (i) => i + 1);
+        final source = Polynomial.generate(DataType.int32, 7, (i) => i + 1,
+            format: format);
         final readonly = source.unmodifiable;
         expect(readonly.dataType, source.dataType);
         expect(readonly.degree, 7);
@@ -508,49 +502,11 @@ void polynomialTest(String name, Builder<int> builder) {
           expect(readonly[i], -i - 1);
         }
       });
-      group('format', () {
-        test('empty', () {
-          final polynomial = builder.fromCoefficients([]);
-          expect(polynomial.format(), '0');
-        });
-        test('constant', () {
-          final polynomial = builder.fromCoefficients([1]);
-          expect(polynomial.format(), '1');
-        });
-        test('2th-degree', () {
-          final polynomial = builder.fromCoefficients([1, 2]);
-          expect(polynomial.format(), 'x + 2');
-        });
-        test('3rd-degree', () {
-          final polynomial = builder.fromCoefficients([1, 2, 3]);
-          expect(polynomial.format(), 'x^2 + 2x + 3');
-        });
-        test('null values (skipped)', () {
-          final polynomial = builder.fromCoefficients([2, 0, 0, 1]);
-          expect(polynomial.format(), '2x^3 + 1');
-        });
-        test('null values (not skipped)', () {
-          final polynomial = builder.fromCoefficients([2, 0, 1]);
-          expect(polynomial.format(skipNulls: false), '2x^2 + 0x + 1');
-        });
-        test('limit', () {
-          final polynomial = builder.generate(19, (i) => i - 10);
-          expect(polynomial.format(),
-              '9x^19 + 8x^18 + 7x^17 + … + -8x^2 + -9x + -10');
-        });
-      });
-      test('toString', () {
-        final polynomial = builder.fromCoefficients([1, 2, 3]);
-        expect(
-            polynomial.toString(),
-            '${polynomial.runtimeType}'
-            '(dataType: int32, degree: 2):\n'
-            'x^2 + 2x + 3');
-      });
     });
     group('iterables', () {
       test('basic', () {
-        final source = builder.generate(4, (i) => i - 2);
+        final source = Polynomial.generate(DataType.int32, 4, (i) => i - 2,
+            format: format);
         final list = source.iterable;
         expect(list, [-2, -1, 0, 1, 2]);
         expect(list.length, source.degree + 1);
@@ -563,8 +519,12 @@ void polynomialTest(String name, Builder<int> builder) {
     });
     group('operators', () {
       final random = Random();
-      final sourceA = builder.generate(100, (i) => 1 + random.nextInt(99));
-      final sourceB = builder.generate(100, (i) => 1 + random.nextInt(99));
+      final sourceA = Polynomial.generate(
+          DataType.int32, 100, (i) => 1 + random.nextInt(99),
+          format: format);
+      final sourceB = Polynomial.generate(
+          DataType.int32, 100, (i) => 1 + random.nextInt(99),
+          format: format);
       test('unary', () {
         final result = unaryOperator(sourceA, (a) => a * a);
         expect(result.dataType, sourceA.dataType);
@@ -595,7 +555,8 @@ void polynomialTest(String name, Builder<int> builder) {
           }
         });
         test('default, different degree', () {
-          final sourceB = builder.fromList([1, 2]);
+          final sourceB =
+              Polynomial.fromList(DataType.int32, [1, 2], format: format);
           final result = add(sourceA, sourceB);
           expect(result.dataType, sourceA.dataType);
           expect(result.degree, sourceA.degree);
@@ -605,7 +566,7 @@ void polynomialTest(String name, Builder<int> builder) {
         });
         test('builder', () {
           final result =
-              add(sourceA, sourceB, builder: builder.withType(DataType.uint8));
+              add(sourceA, sourceB, dataType: DataType.uint8, format: format);
           expect(result.dataType, DataType.uint8);
           expect(result.degree, sourceA.degree);
           for (var i = 0; i <= result.degree; i++) {
@@ -638,8 +599,10 @@ void polynomialTest(String name, Builder<int> builder) {
         }
       });
       group('lerp', () {
-        final v0 = builder.withType(DataType.float32).fromList([1, 6, 8]);
-        final v1 = builder.withType(DataType.float32).fromList([9, -2, 8]);
+        final v0 = Polynomial<double>.fromList(DataType.float32, [1, 6, 8],
+            format: format);
+        final v1 = Polynomial<double>.fromList(DataType.float32, [9, -2, 8],
+            format: format);
         test('at start', () {
           final p = lerp(v0, v1, 0.0);
           expect(p.dataType, v1.dataType);
@@ -673,7 +636,8 @@ void polynomialTest(String name, Builder<int> builder) {
           expect(p[2], 8.0);
         });
         test('different degree', () {
-          final v3 = builder.withType(DataType.float32).fromList([9, -2]);
+          final v3 = Polynomial<double>.fromList(DataType.float32, [9, -2],
+              format: format);
           final p = lerp(v0, v3, 0.5);
           expect(p.dataType, v0.dataType);
           expect(p.degree, v0.degree);
@@ -683,10 +647,14 @@ void polynomialTest(String name, Builder<int> builder) {
         });
       });
       group('mul', () {
-        final sourceA = builder.fromList([2, 3, 4]);
-        final sourceB = builder.fromList([-2, 4, 9, -3]);
+        final sourceA =
+            Polynomial.fromList(DataType.int32, [2, 3, 4], format: format);
+        final sourceB =
+            Polynomial.fromList(DataType.int32, [-2, 4, 9, -3], format: format);
         test('default', () {
-          final expected = builder.fromList([-4, 2, 22, 37, 27, -12]);
+          final expected = Polynomial.fromList(
+              DataType.int32, [-4, 2, 22, 37, 27, -12],
+              format: format);
           final first = mul(sourceA, sourceB);
           expect(first.dataType, DataType.int32);
           expect(first.degree, 5);
@@ -697,14 +665,15 @@ void polynomialTest(String name, Builder<int> builder) {
           expect(compare(second, expected), isTrue);
         });
         test('zero', () {
-          final zero = builder.fromList([]);
+          final zero = Polynomial.fromList(DataType.int32, [], format: format);
           final first = mul(sourceA, zero);
           expect(compare(first, zero), isTrue);
           final second = mul(zero, sourceA);
           expect(compare(second, zero), isTrue);
         });
         test('constant', () {
-          final constant = builder.fromList([3]);
+          final constant =
+              Polynomial.fromList(DataType.int32, [3], format: format);
           final first = mul(sourceA, constant);
           expect(compare(first, scale(sourceA, 3)), isTrue);
           final second = mul(constant, sourceA);
@@ -723,48 +692,62 @@ void polynomialTest(String name, Builder<int> builder) {
         }
 
         test('zero divisor', () {
-          final dividend = builder.fromList([-42, 0, -12, 1]);
-          final divisor = builder.fromList([]);
+          final dividend = Polynomial.fromList(DataType.int32, [-42, 0, -12, 1],
+              format: format);
+          final divisor =
+              Polynomial.fromList(DataType.int32, [], format: format);
           expect(() => div(dividend, divisor), throwsIntegerDivisionByZero);
         });
         test('zero divident', () {
-          final dividend = builder.fromList([]);
-          final divisor = builder.fromList([-42, 0, -12, 1]);
+          final dividend =
+              Polynomial.fromList(DataType.int32, [], format: format);
+          final divisor = Polynomial.fromList(DataType.int32, [-42, 0, -12, 1],
+              format: format);
           final result = divWithInvariant(dividend, divisor);
           expect(result.quotient.iterable, []);
           expect(result.remainder.iterable, []);
         });
         test('constant divisor', () {
-          final dividend = builder.fromList([-42, 0, -12, 2]);
-          final divisor = builder.fromList([-2]);
+          final dividend = Polynomial.fromList(DataType.int32, [-42, 0, -12, 2],
+              format: format);
+          final divisor =
+              Polynomial.fromList(DataType.int32, [-2], format: format);
           final result = divWithInvariant(dividend, divisor);
           expect(result.quotient.iterable, [21, 0, 6, -1]);
           expect(result.remainder.iterable, []);
         });
         test('large divisor', () {
-          final dividend = builder.fromList([-3, 5, 1]);
-          final divisor = builder.fromList([-42, 0, -12, 1]);
+          final dividend =
+              Polynomial.fromList(DataType.int32, [-3, 5, 1], format: format);
+          final divisor = Polynomial.fromList(DataType.int32, [-42, 0, -12, 1],
+              format: format);
           final result = divWithInvariant(dividend, divisor);
           expect(result.quotient.iterable, []);
           expect(result.remainder.iterable, [-3, 5, 1]);
         });
         test('example.dart 1', () {
-          final dividend = builder.fromList([-42, 0, -12, 1]);
-          final divisor = builder.fromList([-3, 1]);
+          final dividend = Polynomial.fromList(DataType.int32, [-42, 0, -12, 1],
+              format: format);
+          final divisor =
+              Polynomial.fromList(DataType.int32, [-3, 1], format: format);
           final result = divWithInvariant(dividend, divisor);
           expect(result.quotient.iterable, [-27, -9, 1]);
           expect(result.remainder.iterable, [-123]);
         });
         test('example.dart 2', () {
-          final dividend = builder.fromList([-2, 0, 0, 0, 1]);
-          final divisor = builder.fromList([1, 1, 1, 1]);
+          final dividend = Polynomial.fromList(DataType.int32, [-2, 0, 0, 0, 1],
+              format: format);
+          final divisor =
+              Polynomial.fromList(DataType.int32, [1, 1, 1, 1], format: format);
           final result = divWithInvariant(dividend, divisor);
           expect(result.quotient.iterable, [-1, 1]);
           expect(result.remainder.iterable, [-1]);
         }, skip: 'fractional polygon cannot be represented in <int>');
         test('example.dart 3', () {
-          final dividend = builder.fromList([-7, 0, 5, 6]);
-          final divisor = builder.fromList([-1, -2, 3]);
+          final dividend = Polynomial.fromList(DataType.int32, [-7, 0, 5, 6],
+              format: format);
+          final divisor =
+              Polynomial.fromList(DataType.int32, [-1, -2, 3], format: format);
           final result = divWithInvariant(dividend, divisor);
           expect(result.quotient.iterable, [3, 2]);
           expect(result.remainder.iterable, [-4, 8]);
@@ -788,8 +771,7 @@ void polynomialTest(String name, Builder<int> builder) {
 }
 
 void main() {
-  final builder = Polynomial.builder.withType(DataType.int32);
-  polynomialTest('standard', builder.standard);
-  polynomialTest('keyed', builder.keyed);
-  polynomialTest('list', builder.list);
+  polynomialTest('standard', PolynomialFormat.standard);
+  polynomialTest('keyed', PolynomialFormat.keyed);
+  polynomialTest('list', PolynomialFormat.list);
 }
