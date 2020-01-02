@@ -6,7 +6,7 @@ import '../../shared/storage.dart';
 import '../matrix.dart';
 
 /// Mutable column vector of a matrix.
-class ColumnVector<T> extends Vector<T> {
+class ColumnVector<T> with Vector<T> {
   final Matrix<T> matrix;
   final int columnIndex;
 

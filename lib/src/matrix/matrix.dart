@@ -47,7 +47,7 @@ abstract class Matrix<T> implements Storage {
     }
   }
 
-  /// Constructs a matrix with a constant [value]. If [format] is specified
+  /// Returns a matrix with a constant [value]. If [format] is specified
   /// the resulting matrix is mutable, otherwise this is a read-only view.
   factory Matrix.constant(DataType<T> dataType, int rowCount, int columnCount,
       {T value, MatrixFormat format}) {
@@ -56,9 +56,9 @@ abstract class Matrix<T> implements Storage {
     return format == null ? result : result.toMatrix(format: format);
   }
 
-  /// Constructs a generated matrix from calling a [callback] on every value. If
-  /// [format] is specified the resulting matrix is mutable, otherwise this is
-  /// a read-only view.
+  /// Generates a matrix from calling a [callback] on every value. If [format]
+  /// is specified the resulting matrix is mutable, otherwise this is a read-
+  /// only view.
   factory Matrix.generate(DataType<T> dataType, int rowCount, int columnCount,
       MatrixGeneratorCallback<T> callback,
       {MatrixFormat format}) {
@@ -67,7 +67,7 @@ abstract class Matrix<T> implements Storage {
     return format == null ? result : result.toMatrix(format: format);
   }
 
-  /// Constructs an identity matrix with the constant [value]. If [format] is
+  /// Returns an identity matrix with the constant [value]. If [format] is
   /// specified the resulting matrix is mutable, otherwise this is a read-only
   /// view.
   factory Matrix.identity(DataType<T> dataType, int rowCount, int columnCount,
@@ -201,7 +201,7 @@ abstract class Matrix<T> implements Storage {
   @override
   Matrix<T> copy();
 
-  /// Creates a new [Matrix] containing the same elements as this matrix.
+  /// Creates a new [Matrix] containing the same elements as this one.
   Matrix<T> toMatrix({MatrixFormat format}) {
     final result = Matrix(dataType, rowCount, columnCount, format: format);
     for (var r = 0; r < rowCount; r++) {
@@ -235,9 +235,8 @@ abstract class Matrix<T> implements Storage {
         buffer.write(verticalSeparator);
       }
       if (limit && leadingItems <= r && r < rowCount - trailingItems) {
-        final ellipsesVector = Vector.builder
-            .withType(DataType.string)
-            .constant(columnCount, verticalEllipses);
+        final ellipsesVector = Vector.constant(DataType.string, columnCount,
+            value: verticalEllipses);
         buffer.write(ellipsesVector.format(
           valuePrinter: ellipsesPrinter,
           paddingPrinter: paddingPrinter,

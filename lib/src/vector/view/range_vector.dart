@@ -5,7 +5,7 @@ import '../../shared/storage.dart';
 import '../vector.dart';
 
 /// Mutable range of a vector.
-class RangeVector<T> extends Vector<T> {
+class RangeVector<T> with Vector<T> {
   final Vector<T> vector;
   final int start;
 

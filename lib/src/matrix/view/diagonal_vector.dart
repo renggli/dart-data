@@ -8,7 +8,7 @@ import '../../shared/storage.dart';
 import '../matrix.dart';
 
 /// Mutable diagonal vector of a matrix.
-class DiagonalVector<T> extends Vector<T> {
+class DiagonalVector<T> with Vector<T> {
   final Matrix<T> matrix;
   final int offset;
 

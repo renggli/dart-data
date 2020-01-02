@@ -15,10 +15,8 @@ Matrix<T> _resultMatrix<T>(int rowCount, int colCount, Matrix<T> target,
           'but got ${target.rowCount} * ${target.columnCount}.');
     }
     return target;
-  } else if (dataType != null) {
-    return Matrix(dataType, rowCount, colCount, format: format);
   }
-  throw ArgumentError('Expected either a "target" or a "dataType".');
+  return Matrix(dataType, rowCount, colCount, format: format);
 }
 
 void _unaryOperator<T>(

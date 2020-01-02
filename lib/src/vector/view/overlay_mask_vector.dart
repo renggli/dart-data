@@ -8,7 +8,7 @@ import '../vector.dart';
 ///
 /// All vectors (overlay, mask, and base) have to be of the same size. The mask
 /// determines whether the overlay is revealed or not.
-class OverlayMaskVector<T> extends Vector<T> {
+class OverlayMaskVector<T> with Vector<T> {
   final Vector<T> overlay;
   final Vector<bool> mask;
   final Vector<T> base;

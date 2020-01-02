@@ -6,7 +6,7 @@ import '../mixins/unmodifiable_vector.dart';
 import '../vector.dart';
 
 /// Read-only view of a mutable vector.
-class UnmodifiableVector<T> extends Vector<T> with UnmodifiableVectorMixin<T> {
+class UnmodifiableVector<T> with Vector<T>, UnmodifiableVectorMixin<T> {
   final Vector<T> vector;
 
   UnmodifiableVector(this.vector);

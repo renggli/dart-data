@@ -5,7 +5,7 @@ import '../../shared/storage.dart';
 import '../vector.dart';
 
 /// Sparse keyed vector.
-class KeyedVector<T> extends Vector<T> {
+class KeyedVector<T> with Vector<T> {
   final Map<int, T> _values;
 
   KeyedVector(DataType<T> dataType, int count)

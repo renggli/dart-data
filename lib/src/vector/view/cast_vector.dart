@@ -5,7 +5,7 @@ import '../../shared/storage.dart';
 import '../vector.dart';
 
 /// Mutable cast vector.
-class CastVector<S, T> extends Vector<T> {
+class CastVector<S, T> with Vector<T> {
   final Vector<S> vector;
 
   CastVector(this.vector, this.dataType);

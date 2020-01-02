@@ -5,7 +5,7 @@ import '../../shared/storage.dart';
 import '../polynomial.dart';
 
 /// Integrate modifiable view of a polynomial.
-class IntegratePolynomial<T> extends Polynomial<T> {
+class IntegratePolynomial<T> with Polynomial<T> {
   final Polynomial<T> _polynomial;
   T _constant;
 

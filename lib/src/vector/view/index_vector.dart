@@ -6,7 +6,7 @@ import '../../shared/storage.dart';
 import '../vector.dart';
 
 // A mutable indexed view of a vector.
-class IndexVector<T> extends Vector<T> {
+class IndexVector<T> with Vector<T> {
   final Vector<T> vector;
   final List<int> indexes;
 

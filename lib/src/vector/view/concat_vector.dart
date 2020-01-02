@@ -8,7 +8,7 @@ import '../../shared/storage.dart';
 import '../vector.dart';
 
 /// Mutable concatenation of vectors.
-class ConcatVector<T> extends Vector<T> {
+class ConcatVector<T> with Vector<T> {
   final List<Vector<T>> vectors;
   final List<int> indexes;
 

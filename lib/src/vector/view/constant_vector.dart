@@ -6,7 +6,7 @@ import '../mixins/unmodifiable_vector.dart';
 import '../vector.dart';
 
 /// Read-only vector with a constant value.
-class ConstantVector<T> extends Vector<T> with UnmodifiableVectorMixin<T> {
+class ConstantVector<T> with Vector<T>, UnmodifiableVectorMixin<T> {
   final T value;
 
   ConstantVector(this.dataType, this.count, this.value);

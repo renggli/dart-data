@@ -7,7 +7,7 @@ import '../../shared/storage.dart';
 import '../polynomial.dart';
 
 /// Shifts the polynomial by a given offset.
-class ShiftPolynomial<T> extends Polynomial<T> {
+class ShiftPolynomial<T> with Polynomial<T> {
   final Polynomial<T> _polynomial;
   final int _offset;
 

@@ -5,7 +5,7 @@ import '../../shared/storage.dart';
 import '../vector.dart';
 
 /// Read-only transformed vector.
-class TransformedVector<S, T> extends Vector<T> {
+class TransformedVector<S, T> with Vector<T> {
   final Vector<S> vector;
   final T Function(int index, S value) read;
   final S Function(int index, T value) write;

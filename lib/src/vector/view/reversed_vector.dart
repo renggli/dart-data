@@ -5,7 +5,7 @@ import '../../shared/storage.dart';
 import '../vector.dart';
 
 /// Mutable reverse view of a vector.
-class ReversedVector<T> extends Vector<T> {
+class ReversedVector<T> with Vector<T> {
   final Vector<T> vector;
 
   ReversedVector(this.vector);

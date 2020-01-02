@@ -5,9 +5,12 @@ import '../../shared/storage.dart';
 import '../mixins/unmodifiable_vector.dart';
 import '../vector.dart';
 
+/// Callback to generate a value in [GeneratedVector].
+typedef VectorGeneratorCallback<T> = T Function(int index);
+
 /// Read-only vector generated from a callback.
-class GeneratedVector<T> extends Vector<T> with UnmodifiableVectorMixin<T> {
-  final T Function(int index) callback;
+class GeneratedVector<T> with Vector<T>, UnmodifiableVectorMixin<T> {
+  final VectorGeneratorCallback<T> callback;
 
   GeneratedVector(this.dataType, this.count, this.callback);
 

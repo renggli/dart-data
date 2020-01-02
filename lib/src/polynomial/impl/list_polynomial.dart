@@ -7,7 +7,7 @@ import '../../shared/storage.dart';
 import '../polynomial.dart';
 
 /// Sparse compressed polynomial.
-class ListPolynomial<T> extends Polynomial<T> {
+class ListPolynomial<T> with Polynomial<T> {
   List<int> _exponents;
   List<T> _coefficients;
   int _length;

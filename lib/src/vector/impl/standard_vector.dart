@@ -5,7 +5,7 @@ import '../../shared/storage.dart';
 import '../vector.dart';
 
 /// Standard vector.
-class StandardVector<T> extends Vector<T> {
+class StandardVector<T> with Vector<T> {
   final List<T> _values;
 
   StandardVector(DataType<T> dataType, int count)

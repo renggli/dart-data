@@ -6,7 +6,7 @@ import '../../shared/storage.dart';
 import '../matrix.dart';
 
 /// Mutable row vector of a matrix.
-class RowVector<T> extends Vector<T> {
+class RowVector<T> with Vector<T> {
   final Matrix<T> matrix;
   final int row;
 

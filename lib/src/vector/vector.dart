@@ -6,17 +6,60 @@ import 'package:more/printer.dart' show Printer;
 
 import '../../type.dart' show DataType;
 import '../shared/storage.dart';
-import 'builder.dart';
-import 'format.dart';
+import 'impl/keyed_vector.dart';
+import 'impl/list_vector.dart';
+import 'impl/standard_vector.dart';
+import 'vector_format.dart';
+import 'view/constant_vector.dart';
+import 'view/generated_vector.dart';
 
 /// Abstract vector type.
 abstract class Vector<T> implements Storage {
-  /// Default builder for new vectors.
-  static Builder<Object> get builder =>
-      Builder<Object>(Format.standard, DataType.object);
+  /// Constructs a default vector of the desired [dataType], the provided
+  /// element [count], and possibly a custom [format].
+  factory Vector(DataType<T> dataType, int count, {VectorFormat format}) {
+    ArgumentError.checkNotNull(dataType, 'dataType');
+    RangeError.checkNotNegative(count, 'count');
+    switch (format ?? defaultVectorFormat) {
+      case VectorFormat.standard:
+        return StandardVector<T>(dataType, count);
+      case VectorFormat.list:
+        return ListVector<T>(dataType, count);
+      case VectorFormat.keyed:
+        return KeyedVector<T>(dataType, count);
+      default:
+        throw ArgumentError.value(format, 'format', 'Unknown vector format.');
+    }
+  }
 
-  /// Unnamed default constructor.
-  Vector();
+  /// Constructs a vector with a constant [value]. If [format] is specified
+  /// the resulting vector is mutable, otherwise this is a read-only view.
+  factory Vector.constant(DataType<T> dataType, int count,
+      {T value, VectorFormat format}) {
+    final result =
+        ConstantVector<T>(dataType, count, value ?? dataType.nullValue);
+    return format == null ? result : result.toVector(format: format);
+  }
+
+  /// Generates a vector from calling a [callback] on every value. If [format]
+  /// is specified the resulting vector is mutable, otherwise this is a
+  /// read-only view.
+  factory Vector.generate(
+      DataType<T> dataType, int count, VectorGeneratorCallback<T> callback,
+      {VectorFormat format}) {
+    final result = GeneratedVector<T>(dataType, count, callback);
+    return format == null ? result : result.toVector(format: format);
+  }
+
+  /// Constructs a vector from an list
+  factory Vector.fromList(DataType<T> dataType, List<T> source,
+      {VectorFormat format}) {
+    final result = Vector<T>(dataType, source.length, format: format);
+    for (var i = 0; i < source.length; i++) {
+      result.setUnchecked(i, source[i]);
+    }
+    return result;
+  }
 
   /// Returns the data type of this vector.
   DataType<T> get dataType;
@@ -31,6 +74,15 @@ abstract class Vector<T> implements Storage {
   /// Returns a copy of this vector.
   @override
   Vector<T> copy();
+
+  /// Creates a new [Vector] containing the same elements as this one.
+  Vector<T> toVector({VectorFormat format}) {
+    final result = Vector(dataType, count, format: format);
+    for (var i = 0; i < count; i++) {
+      result.setUnchecked(i, getUnchecked(i));
+    }
+    return result;
+  }
 
   /// Returns the scalar at the provided [index].
   T operator [](int index) {

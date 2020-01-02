@@ -38,13 +38,13 @@ import 'package:data/type.dart';
 Solve 'A * x = b', where 'A' is a matrix and 'b' a vector:
 
 ```dart
-final a = Matrix.builder.withType(DataType.float64).fromRows([
+final a = Matrix<double>.fromRows(DataType.float64, [
   [2, 1, 1],
-  [1,3, 2],
-  [1, 0, 0]
+  [1, 3, 2],
+  [1, 0, 0],
 ]);
-final b = Vector.builder.withType(DataType.float64).fromList([4, 5, 6]);
-final x = solve(a, b.columnMatrix).col(0);
+final b = Vector<double>.fromList(DataType.float64, [4, 5, 6]);
+final x = a.solve(b.columnMatrix).column(0);
 print(x.format(valuePrinter: Printer.fixed()); // prints '6 15 -23'
 ```
 
@@ -53,16 +53,15 @@ print(x.format(valuePrinter: Printer.fixed()); // prints '6 15 -23'
 Find the eigenvalues of a matrix 'A':
 
 ```dart
-final a = Matrix.builder.withType(DataType.float64).fromRows([
+final a = Matrix<double>.fromRows(DataType.float64, [
   [1, 0, 0, -1],
   [0, -1, 0, 0],
   [0, 0, 1, -1],
-  [-1, 0, -1, 0]
+  [-1, 0, -1, 0],
 ]);
-final decomposition = eigenvalue(a);
-final eigenvalues = Vector.builder
-    .withType(DataType.float64)
-    .fromList(decomposition.realEigenvalues);
+final decomposition = a.eigenvalue;
+final eigenvalues = Vector<double>.fromList(
+    DataType.float64, decomposition.realEigenvalues);
 print(eigenvalues.format(valuePrinter: Printer.fixed(precision: 1))); // prints '-1.0 -1.0 1.0 2.0'
 ```
 

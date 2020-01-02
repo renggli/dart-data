@@ -1,4 +1,4 @@
-library data.polynomial.format;
+library data.polynomial.polynomial_format;
 
 // This enum is annoying, but I don't see an easy way to avoid them: (1) using
 // the `Type` class of the polynomial does not work reliably because the generic
@@ -6,9 +6,12 @@ library data.polynomial.format;
 // a creation method does not work because the generic type is not properly
 // passed to the new instance.
 
-/// Storage formats of matrices.
-enum Format {
+/// Formats of polynomials.
+enum PolynomialFormat {
   standard,
   list,
   keyed,
 }
+
+/// Default polynomial format.
+PolynomialFormat defaultPolynomialFormat = PolynomialFormat.standard;

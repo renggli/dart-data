@@ -7,21 +7,92 @@ import 'package:more/printer.dart' show Printer;
 
 import '../../type.dart';
 import '../shared/storage.dart';
-import 'builder.dart';
-import 'format.dart';
+import 'impl/keyed_polynomial.dart';
+import 'impl/list_polynomial.dart';
+import 'impl/standard_polynomial.dart';
+import 'polynomial_format.dart';
 import 'view/differentiate_polynomial.dart';
+import 'view/generated_polynomial.dart';
 import 'view/integrate_polynomial.dart';
 import 'view/shift_polynomial.dart';
 import 'view/unmodifiable_polynomial.dart';
 
 /// Abstract polynomial type.
 abstract class Polynomial<T> implements Storage {
-  /// Default builder for new polynomials.
-  static Builder<Object> get builder =>
-      Builder<Object>(Format.standard, DataType.object);
+  /// Constructs a default vector of the desired [dataType], and possibly a
+  /// custom [format].
+  factory Polynomial(DataType<T> dataType,
+      {int desiredDegree = -1, PolynomialFormat format}) {
+    ArgumentError.checkNotNull(dataType, 'dataType');
+    switch (format ?? defaultPolynomialFormat) {
+      case PolynomialFormat.standard:
+        return StandardPolynomial<T>(dataType, desiredDegree);
+      case PolynomialFormat.list:
+        return ListPolynomial<T>(dataType);
+      case PolynomialFormat.keyed:
+        return KeyedPolynomial<T>(dataType);
+      default:
+        throw ArgumentError.value(format, 'format', 'Unknown vector format.');
+    }
+  }
 
-  /// Unnamed default constructor.
-  Polynomial();
+  /// Generates a polynomial from calling a [callback] on every value. If
+  /// [format] is specified the resulting polynomial is mutable, otherwise this
+  /// is a read-only view.
+  factory Polynomial.generate(
+      DataType<T> dataType, int degree, PolynomialGeneratorCallback<T> callback,
+      {PolynomialFormat format}) {
+    final result = GeneratedPolynomial<T>(dataType, degree, callback);
+    return format == null ? result : result.toPolynomial(format: format);
+  }
+
+  /// Constructs a polynomial from a list of coefficients.
+  factory Polynomial.fromCoefficients(DataType<T> dataType, List<T> source,
+      {PolynomialFormat format}) {
+    final result =
+        Polynomial(dataType, desiredDegree: source.length - 1, format: format);
+    for (var i = 0; i < source.length; i++) {
+      result.setUnchecked(i, source[source.length - i - 1]);
+    }
+    return result;
+  }
+
+  /// Constructs a polynomial from a list of values.
+  factory Polynomial.fromList(DataType<T> dataType, List<T> source,
+      {PolynomialFormat format}) {
+    final result =
+        Polynomial(dataType, desiredDegree: source.length - 1, format: format);
+    for (var i = 0; i < source.length; i++) {
+      result.setUnchecked(i, source[i]);
+    }
+    return result;
+  }
+
+  /// Builds a polynomial from a list of roots.
+  factory Polynomial.fromRoots(DataType<T> dataType, List<T> roots,
+      {PolynomialFormat format}) {
+    final result =
+        Polynomial(dataType, desiredDegree: roots.length, format: format);
+    if (roots.isEmpty) {
+      return result;
+    }
+    result.setUnchecked(0, dataType.field.neg(roots[0]));
+    result.setUnchecked(1, dataType.field.multiplicativeIdentity);
+    final sub = dataType.field.sub, mul = dataType.field.mul;
+    for (var i = 1; i < roots.length; i++) {
+      final root = roots[i];
+      for (var j = i + 1; j >= 0; j--) {
+        result.setUnchecked(
+            j,
+            sub(
+                j > 0
+                    ? result.getUnchecked(j - 1)
+                    : dataType.field.additiveIdentity,
+                mul(root, result.getUnchecked(j))));
+      }
+    }
+    return result;
+  }
 
   /// Returns the data type of this polynomial.
   DataType<T> get dataType;
@@ -36,6 +107,15 @@ abstract class Polynomial<T> implements Storage {
   /// Returns a copy of this polynomial.
   @override
   Polynomial<T> copy();
+
+  /// Creates a new [Polynomial] containing the same elements as this one.
+  Polynomial<T> toPolynomial({PolynomialFormat format}) {
+    final result = Polynomial(dataType, desiredDegree: degree, format: format);
+    for (var i = degree; i >= 0; i--) {
+      result.setUnchecked(i, getUnchecked(i));
+    }
+    return result;
+  }
 
   /// Returns the leading term of this polynomial.
   T get lead => degree >= 0 ? getUnchecked(degree) : zeroCoefficient;

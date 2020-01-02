@@ -5,18 +5,12 @@ import 'dart:math' as math;
 import '../../matrix.dart';
 import '../../type.dart';
 import '../shared/config.dart';
-import 'builder.dart';
 import 'polynomial.dart';
+import 'polynomial_format.dart';
 
 Polynomial<T> _resultPolynomial<T>(
-    int degree, Builder<T> builder, DataType<T> dataType) {
-  if (builder != null) {
-    return builder(degree);
-  } else if (dataType != null) {
-    return Polynomial.builder.withType(dataType)(degree);
-  }
-  throw ArgumentError('Expected either a "builder", or a "dataType".');
-}
+        int degree, PolynomialFormat format, DataType<T> dataType) =>
+    Polynomial(dataType, desiredDegree: degree, format: format);
 
 void _unaryOperator<T>(
     Polynomial<T> result, Polynomial<T> source, T Function(T value) operator) {
@@ -37,9 +31,9 @@ void _binaryOperator<T>(Polynomial<T> result, Polynomial<T> sourceA,
 /// Generic unary operator on a polynomial.
 Polynomial<T> unaryOperator<T>(
     Polynomial<T> source, T Function(T value) operator,
-    {Builder<T> builder, DataType<T> dataType}) {
+    {PolynomialFormat format, DataType<T> dataType}) {
   final result =
-      _resultPolynomial(source.degree, builder, dataType ?? source.dataType);
+      _resultPolynomial(source.degree, format, dataType ?? source.dataType);
   _unaryOperator(result, source, operator);
   return result;
 }
@@ -47,45 +41,45 @@ Polynomial<T> unaryOperator<T>(
 /// Generic binary operator on two equal sized polynomials.
 Polynomial<T> binaryOperator<T>(
     Polynomial<T> sourceA, Polynomial<T> sourceB, T Function(T a, T b) operator,
-    {Builder<T> builder, DataType<T> dataType}) {
+    {PolynomialFormat format, DataType<T> dataType}) {
   final result = _resultPolynomial(math.max(sourceA.degree, sourceB.degree),
-      builder, dataType ?? sourceA.dataType);
+      format, dataType ?? sourceA.dataType);
   _binaryOperator(result, sourceA, sourceB, operator);
   return result;
 }
 
 /// Adds two polynomials [sourceA] and [sourceB].
 Polynomial<T> add<T>(Polynomial<T> sourceA, Polynomial<T> sourceB,
-    {Builder<T> builder, DataType<T> dataType}) {
+    {PolynomialFormat format, DataType<T> dataType}) {
   final result = _resultPolynomial(math.max(sourceA.degree, sourceB.degree),
-      builder, dataType ?? sourceA.dataType);
+      format, dataType ?? sourceA.dataType);
   _binaryOperator(result, sourceA, sourceB, result.dataType.field.add);
   return result;
 }
 
 /// Subtracts two numeric polynomials [sourceB] from [sourceA].
 Polynomial<T> sub<T>(Polynomial<T> sourceA, Polynomial<T> sourceB,
-    {Builder<T> builder, DataType<T> dataType}) {
+    {PolynomialFormat format, DataType<T> dataType}) {
   final result = _resultPolynomial(math.max(sourceA.degree, sourceB.degree),
-      builder, dataType ?? sourceA.dataType);
+      format, dataType ?? sourceA.dataType);
   _binaryOperator(result, sourceA, sourceB, result.dataType.field.sub);
   return result;
 }
 
 /// Negates a numeric polynomial [source].
 Polynomial<T> neg<T>(Polynomial<T> source,
-    {Builder<T> builder, DataType<T> dataType}) {
+    {PolynomialFormat format, DataType<T> dataType}) {
   final result =
-      _resultPolynomial(source.degree, builder, dataType ?? source.dataType);
+      _resultPolynomial(source.degree, format, dataType ?? source.dataType);
   _unaryOperator(result, source, result.dataType.field.neg);
   return result;
 }
 
 /// Scales a numeric polynomial [source] with a [factor].
 Polynomial<T> scale<T>(Polynomial<T> source, num factor,
-    {Builder<T> builder, DataType<T> dataType}) {
+    {PolynomialFormat format, DataType<T> dataType}) {
   final result =
-      _resultPolynomial(source.degree, builder, dataType ?? source.dataType);
+      _resultPolynomial(source.degree, format, dataType ?? source.dataType);
   final scale = result.dataType.field.scale;
   _unaryOperator(result, source, (a) => scale(a, factor));
   return result;
@@ -93,9 +87,9 @@ Polynomial<T> scale<T>(Polynomial<T> source, num factor,
 
 /// Interpolates linearly between [sourceA] and [sourceA] with a factor [t].
 Polynomial<T> lerp<T>(Polynomial<T> sourceA, Polynomial<T> sourceB, num t,
-    {Builder<T> builder, DataType<T> dataType}) {
+    {PolynomialFormat format, DataType<T> dataType}) {
   final result = _resultPolynomial(math.max(sourceA.degree, sourceB.degree),
-      builder, dataType ?? sourceA.dataType);
+      format, dataType ?? sourceA.dataType);
   final field = result.dataType.field;
   _binaryOperator(result, sourceA, sourceB,
       (a, b) => field.add(field.scale(a, 1.0 - t), field.scale(b, t)));
@@ -104,14 +98,14 @@ Polynomial<T> lerp<T>(Polynomial<T> sourceA, Polynomial<T> sourceB, num t,
 
 /// Multiplies two polynomials [sourceA] and [sourceB].
 Polynomial<T> mul<T>(Polynomial<T> sourceA, Polynomial<T> sourceB,
-    {Builder<T> builder, DataType<T> dataType}) {
+    {PolynomialFormat format, DataType<T> dataType}) {
   final degreeA = sourceA.degree, degreeB = sourceB.degree;
   if (degreeA < 0 || degreeB < 0) {
     // One of the polynomials has zero coefficients.
-    return _resultPolynomial(0, builder, dataType ?? sourceA.dataType);
+    return _resultPolynomial(0, format, dataType ?? sourceA.dataType);
   }
   final result = _resultPolynomial(
-      degreeA + degreeB, builder, dataType ?? sourceA.dataType);
+      degreeA + degreeB, format, dataType ?? sourceA.dataType);
   final add = result.dataType.field.add, mul = result.dataType.field.mul;
   if (degreeA == 0) {
     // First polynomial is constant.
@@ -155,11 +149,10 @@ class Division<T> {
 Division<Polynomial<T>> div<T>(
   Polynomial<T> dividend,
   Polynomial<T> divisor, {
-  Builder<T> builder,
+  PolynomialFormat format,
   DataType<T> dataType,
 }) {
-  builder ??= Polynomial.builder.withType(dataType ?? dividend.dataType);
-  dataType ??= builder.type;
+  dataType ??= dividend.dataType;
   final dividendDegree = dividend.degree;
   final divisorDegree = divisor.degree;
   final sub = dataType.field.sub;
@@ -170,20 +163,20 @@ Division<Polynomial<T>> div<T>(
     throw const IntegerDivisionByZeroException();
   } else if (dividendDegree < 0) {
     // Dividend is zero.
-    return Division(builder(0), builder(0));
+    return Division(Polynomial(dataType, format: format),
+        Polynomial(dataType, format: format));
   } else if (divisorDegree == 0) {
     // Divisor is constant.
     final scalar = divisor.getUnchecked(0);
     return Division(
-        builder.generate(
-            dividendDegree, (i) => div(dividend.getUnchecked(i), scalar)),
-        builder(0));
+        Polynomial.generate(dataType, dividendDegree,
+            (i) => div(dividend.getUnchecked(i), scalar),
+            format: format),
+        Polynomial(dataType, format: format));
   } else if (dividendDegree < divisorDegree) {
     // Divisor degree higher than dividend.
-    return Division(
-      builder(0),
-      builder.fromPolynomial(dividend),
-    );
+    return Division(Polynomial(dataType, format: format),
+        dividend.toPolynomial(format: format));
   }
   // Perform synthetic division:
   // https://en.wikipedia.org/wiki/Synthetic_division
@@ -199,8 +192,10 @@ Division<Polynomial<T>> div<T>(
     }
   }
   return Division(
-    builder.fromList(output.sublist(divisorDegree)),
-    builder.fromList(output.sublist(0, divisorDegree)),
+    Polynomial.fromList(dataType, output.sublist(divisorDegree),
+        format: format),
+    Polynomial.fromList(dataType, output.sublist(0, divisorDegree),
+        format: format),
   );
 }
 

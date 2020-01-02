@@ -8,7 +8,7 @@ import '../vector.dart';
 ///
 /// The resulting vector has the same size of the base vector, but the overlay
 /// can be of different size and be offset relative to the base.
-class OverlayOffsetVector<T> extends Vector<T> {
+class OverlayOffsetVector<T> with Vector<T> {
   final int offset;
   final Vector<T> overlay;
   final Vector<T> base;
