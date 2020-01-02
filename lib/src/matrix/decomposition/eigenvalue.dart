@@ -8,6 +8,7 @@ import 'package:more/number.dart';
 import '../../shared/config.dart';
 import '../../shared/math.dart';
 import '../matrix.dart';
+import '../operator/testing.dart';
 
 /// Eigenvalues and eigenvectors of a real matrix.
 ///

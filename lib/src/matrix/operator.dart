@@ -4,6 +4,8 @@ import '../../type.dart';
 import 'builder.dart';
 import 'matrix.dart';
 
+export 'operator/testing.dart' show TestingExtension;
+
 Matrix<T> _resultMatrix<T>(int rowCount, int colCount, Matrix<T> target,
     Builder<T> builder, DataType<T> dataType) {
   if (target != null) {
