@@ -8,14 +8,6 @@ import '../../tensor.dart' show Tensor;
 import '../../type.dart' show DataType;
 import 'builder.dart';
 import 'format.dart';
-import 'view/cast_vector.dart';
-import 'view/index_vector.dart';
-import 'view/overlay_mask_vector.dart';
-import 'view/overlay_offset_vector.dart';
-import 'view/range_vector.dart';
-import 'view/reversed_vector.dart';
-import 'view/transformed_vector.dart';
-import 'view/unmodifiable_vector.dart';
 
 /// Abstract vector type.
 abstract class Vector<T> extends Tensor<T> {
@@ -57,85 +49,6 @@ abstract class Vector<T> extends Tensor<T> {
   /// Sets the scalar at the provided [index] to [value]. The behavior is
   /// undefined if [index] is outside of bounds.
   void setUnchecked(int index, T value);
-
-  /// Returns a mutable view onto a vector range. Throws a [RangeError], if
-  /// the index is out of bounds.
-  Vector<T> range(int start, [int end]) {
-    end = RangeError.checkValidRange(start, end, count, 'start', 'end');
-    if (start == 0 && end == count) {
-      return this;
-    } else {
-      return rangeUnchecked(start, end);
-    }
-  }
-
-  /// Returns a mutable view onto a vector range. The behavior is undefined, if
-  /// the range is out of bounds.
-  Vector<T> rangeUnchecked(int start, int end) =>
-      RangeVector<T>(this, start, end);
-
-  /// Returns a mutable view onto indexes of a vector. Throws a [RangeError], if
-  /// any of the indexes index is out of bounds.
-  Vector<T> index(Iterable<int> indexes) {
-    for (final index in indexes) {
-      RangeError.checkValueInInterval(index, 0, count - 1, 'indexes');
-    }
-    return indexUnchecked(indexes);
-  }
-
-  /// Returns a mutable view onto a vector range. The behavior is undefined, if
-  /// any of the indexes are out of bounds.
-  Vector<T> indexUnchecked(Iterable<int> indexes) =>
-      IndexVector<T>(this, indexes);
-
-  /// Returns a mutable view where this vector is overlaid on top of a provided
-  /// [base] vector. This happens either by using the given [offset], or using
-  /// using a boolean [mask].
-  Vector<T> overlay(
-    Vector<T> base, {
-    DataType<T> dataType,
-    Vector<bool> mask,
-    int offset,
-  }) {
-    dataType ??= this.dataType;
-    if (mask == null && offset != null) {
-      return OverlayOffsetVector(dataType, this, offset, base);
-    } else if (mask != null && offset == null) {
-      if (count != base.count || count != mask.count) {
-        throw ArgumentError('Dimension of overlay ($count), mask '
-            '(${mask.count}) and base (${base.count}) do not match.');
-      }
-      return OverlayMaskVector(dataType, this, mask, base);
-    }
-    throw ArgumentError('Either a mask or an offset required.');
-  }
-
-  /// Returns a read-only view on this [Vector] with all its elements lazily
-  /// converted by calling the provided transformation [callback].
-  Vector<S> map<S>(S Function(int index, T value) callback,
-          [DataType<S> dataType]) =>
-      transform<S>(callback, dataType: dataType);
-
-  /// Returns a view on this [Vector] with all its elements lazily converted
-  /// by calling the provided [read] transformation. An optionally provided
-  /// [write] transformation enables writing to the returned vector.
-  Vector<S> transform<S>(S Function(int index, T value) read,
-          {T Function(int index, S value) write, DataType<S> dataType}) =>
-      TransformedVector<T, S>(
-        this,
-        read,
-        write ?? (i, v) => throw UnsupportedError('Vector is not mutable.'),
-        dataType ?? DataType.fromType(S),
-      );
-
-  /// Returns a lazy [Vector] with the elements cast to `dataType`.
-  Vector<S> cast<S>(DataType<S> dataType) => CastVector<T, S>(this, dataType);
-
-  /// Returns a reversed view of the vector.
-  Vector<T> get reversed => ReversedVector(this);
-
-  /// Returns a unmodifiable view of the vector.
-  Vector<T> get unmodifiable => UnmodifiableVector<T>(this);
 
   /// Returns a list iterable over the vector.
   List<T> get iterable => _VectorList<T>(this);

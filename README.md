@@ -28,9 +28,9 @@ Follow the installation instructions on [dart packages](https://pub.dev/packages
 Import the packages into your Dart code using:
 
 ```dart
-import 'package:data/matrix.dart' as matrix;
-import 'package:data/vector.dart' as vector;
-import 'package:data/type.dart' as vector;
+import 'package:data/matrix.dart';
+import 'package:data/vector.dart';
+import 'package:data/type.dart';
 ```
 
 ### How to solve a linear equation?

@@ -6,29 +6,35 @@ import '../vector.dart';
 
 /// Mutable reverse view of a vector.
 class ReversedVector<T> extends Vector<T> {
-  final Vector<T> _vector;
+  final Vector<T> vector;
 
-  ReversedVector(this._vector);
-
-  @override
-  DataType<T> get dataType => _vector.dataType;
+  ReversedVector(this.vector);
 
   @override
-  int get count => _vector.count;
+  DataType<T> get dataType => vector.dataType;
 
   @override
-  Set<Tensor> get storage => _vector.storage;
+  int get count => vector.count;
 
   @override
-  Vector<T> get reversed => _vector;
+  Set<Tensor> get storage => vector.storage;
 
   @override
-  Vector<T> copy() => ReversedVector(_vector.copy());
+  Vector<T> copy() => ReversedVector<T>(vector.copy());
 
   @override
-  T getUnchecked(int index) => _vector.getUnchecked(_vector.count - index - 1);
+  T getUnchecked(int index) => vector.getUnchecked(vector.count - index - 1);
 
   @override
   void setUnchecked(int index, T value) =>
-      _vector.setUnchecked(_vector.count - index - 1, value);
+      vector.setUnchecked(vector.count - index - 1, value);
+}
+
+extension ReversedVectorExtension<T> on Vector<T> {
+  /// Returns a reversed view of this [Vector].
+  Vector<T> get reversed => _reversed(this);
+
+  // TODO(renggli): workaround, https://github.com/dart-lang/sdk/issues/39959.
+  Vector<T> _reversed<T>(Vector<T> self) =>
+      self is ReversedVector<T> ? self.vector : ReversedVector<T>(self);
 }

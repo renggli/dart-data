@@ -1,5 +1,7 @@
 library data.matrix.view.index;
 
+import 'package:more/collection.dart' show IntegerRange;
+
 import '../../../tensor.dart';
 import '../../../type.dart';
 import '../../shared/config.dart';
@@ -7,43 +9,87 @@ import '../matrix.dart';
 
 /// Mutable indexed view of the rows and columns of a matrix.
 class IndexMatrix<T> extends Matrix<T> {
-  final Matrix<T> _matrix;
-  final List<int> _rowIndexes;
-  final List<int> _colIndexes;
+  final Matrix<T> matrix;
+  final List<int> rowIndexes;
+  final List<int> colIndexes;
 
   IndexMatrix(
       Matrix<T> _matrix, Iterable<int> rowIndexes, Iterable<int> colIndexes)
       : this._(_matrix, indexDataType.copyList(rowIndexes),
             indexDataType.copyList(colIndexes));
 
-  IndexMatrix._(this._matrix, this._rowIndexes, this._colIndexes);
+  IndexMatrix._(this.matrix, this.rowIndexes, this.colIndexes);
 
   @override
-  DataType<T> get dataType => _matrix.dataType;
+  DataType<T> get dataType => matrix.dataType;
 
   @override
-  int get rowCount => _rowIndexes.length;
+  int get rowCount => rowIndexes.length;
 
   @override
-  int get colCount => _colIndexes.length;
+  int get colCount => colIndexes.length;
 
   @override
-  Set<Tensor> get storage => _matrix.storage;
+  Set<Tensor> get storage => matrix.storage;
 
   @override
-  Matrix<T> copy() => IndexMatrix._(_matrix.copy(), _rowIndexes, _colIndexes);
+  Matrix<T> copy() => IndexMatrix<T>._(matrix.copy(), rowIndexes, colIndexes);
 
   @override
   T getUnchecked(int row, int col) =>
-      _matrix.getUnchecked(_rowIndexes[row], _colIndexes[col]);
+      matrix.getUnchecked(rowIndexes[row], colIndexes[col]);
 
   @override
   void setUnchecked(int row, int col, T value) =>
-      _matrix.setUnchecked(_rowIndexes[row], _colIndexes[col], value);
+      matrix.setUnchecked(rowIndexes[row], colIndexes[col], value);
+}
 
-  @override
+extension IndexMatrixExtension<T> on Matrix<T> {
+  /// Returns a mutable view onto row indexes. Throws a [RangeError], if
+  /// any of the [rowIndexes] are out of bounds.
+  Matrix<T> rowIndex(Iterable<int> rowIndexes) =>
+      index(rowIndexes, IntegerRange(0, colCount));
+
+  /// Returns a mutable view onto row indexes. The behavior is undefined, if
+  /// any of the [rowIndexes] are out of bounds.
+  Matrix<T> rowIndexUnchecked(Iterable<int> rowIndexes) =>
+      indexUnchecked(rowIndexes, IntegerRange(0, colCount));
+
+  /// Returns a mutable view onto column indexes. Throws a [RangeError], if
+  /// any of the [colIndexes] are out of bounds.
+  Matrix<T> colIndex(Iterable<int> colIndexes) =>
+      index(IntegerRange(0, rowCount), colIndexes);
+
+  /// Returns a mutable view onto column indexes. The behavior is undefined, if
+  /// any of the [colIndexes] are out of bounds.
+  Matrix<T> colIndexUnchecked(Iterable<int> colIndexes) =>
+      indexUnchecked(IntegerRange(0, rowCount), colIndexes);
+
+  /// Returns a mutable view onto row and column indexes. Throws a
+  /// [RangeError], if any of the indexes are out of bounds.
+  Matrix<T> index(Iterable<int> rowIndexes, Iterable<int> colIndexes) {
+    for (final index in rowIndexes) {
+      RangeError.checkValueInInterval(index, 0, rowCount - 1, 'rowIndexes');
+    }
+    for (final index in colIndexes) {
+      RangeError.checkValueInInterval(index, 0, colCount - 1, 'colIndexes');
+    }
+    return indexUnchecked(rowIndexes, colIndexes);
+  }
+
+  /// Returns a mutable view onto row and column indexes. The behavior is
+  /// undefined if any of the indexes are out of bounds.
   Matrix<T> indexUnchecked(
           Iterable<int> rowIndexes, Iterable<int> colIndexes) =>
-      IndexMatrix<T>(_matrix, rowIndexes.map((index) => _rowIndexes[index]),
-          colIndexes.map((index) => _colIndexes[index]));
+      _indexUnchecked(this, rowIndexes, colIndexes);
+
+  // TODO(renggli): workaround, https://github.com/dart-lang/sdk/issues/39959.
+  Matrix<T> _indexUnchecked(
+          Matrix<T> self, Iterable<int> rowIndexes, Iterable<int> colIndexes) =>
+      self is IndexMatrix<T>
+          ? IndexMatrix<T>(
+              self.matrix,
+              rowIndexes.map((index) => self.rowIndexes[index]),
+              colIndexes.map((index) => self.colIndexes[index]))
+          : IndexMatrix<T>(self, rowIndexes, colIndexes);
 }

@@ -18,7 +18,7 @@ void listTest<T>(DataType<T> type, List<List<T>> lists) {
     DataType.quaternion,
     DataType.object,
   ].contains(type)) {
-    // Inference based on single example or runtime type.
+    // Inference based on single example.dart or runtime type.
     final exampleInstance = lists.expand((list) => list).first;
     final exampleType = exampleInstance.runtimeType;
     test('fromInstance: $exampleInstance', () {

@@ -6,9 +6,9 @@ import '../vector.dart';
 
 /// Read-only vector with a constant value.
 class ConstantVector<T> extends Vector<T> with UnmodifiableVectorMixin<T> {
-  final T _value;
+  final T value;
 
-  ConstantVector(this.dataType, this.count, this._value);
+  ConstantVector(this.dataType, this.count, this.value);
 
   @override
   final DataType<T> dataType;
@@ -20,5 +20,5 @@ class ConstantVector<T> extends Vector<T> with UnmodifiableVectorMixin<T> {
   Vector<T> copy() => this;
 
   @override
-  T getUnchecked(int index) => _value;
+  T getUnchecked(int index) => value;
 }

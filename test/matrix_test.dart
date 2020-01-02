@@ -752,7 +752,7 @@ void matrixTest(String name, Builder builder) {
             .withType(DataType.string)
             .generate(5, 4, (r, c) => '($r, $c)');
         for (var c = 0; c < source.colCount; c++) {
-          final column = source.col(c);
+          final column = source.column(c);
           expect(column.dataType, source.dataType);
           expect(column.count, source.rowCount);
           expect(column.storage, [source]);
@@ -766,8 +766,8 @@ void matrixTest(String name, Builder builder) {
           expect(() => column[-1] += '*', throwsRangeError);
           expect(() => column[source.rowCount] += '*', throwsRangeError);
         }
-        expect(() => source.col(-1), throwsRangeError);
-        expect(() => source.col(4), throwsRangeError);
+        expect(() => source.column(-1), throwsRangeError);
+        expect(() => source.column(4), throwsRangeError);
         for (var r = 0; r < source.rowCount; r++) {
           for (var c = 0; c < source.colCount; c++) {
             expect(source.get(r, c), '($r, $c)*');
@@ -1645,7 +1645,7 @@ void matrixTest(String name, Builder builder) {
           expect(target.colCount, sourceB.colCount);
           for (var r = 0; r < target.rowCount; r++) {
             for (var c = 0; c < target.colCount; c++) {
-              final value = v.dot(sourceA.row(r), sourceB.col(c));
+              final value = v.dot(sourceA.row(r), sourceB.column(c));
               expect(target.get(r, c), value);
             }
           }

@@ -6,33 +6,41 @@ import '../matrix.dart';
 
 /// Mutable matrix flipped on its horizontal axis.
 class FlippedHorizontalMatrix<T> extends Matrix<T> {
-  final Matrix<T> _matrix;
+  final Matrix<T> matrix;
 
-  FlippedHorizontalMatrix(this._matrix);
-
-  @override
-  DataType<T> get dataType => _matrix.dataType;
+  FlippedHorizontalMatrix(this.matrix);
 
   @override
-  int get rowCount => _matrix.rowCount;
+  DataType<T> get dataType => matrix.dataType;
 
   @override
-  int get colCount => _matrix.colCount;
+  int get rowCount => matrix.rowCount;
 
   @override
-  Set<Tensor> get storage => _matrix.storage;
+  int get colCount => matrix.colCount;
 
   @override
-  Matrix<T> get flippedHorizontal => _matrix;
+  Set<Tensor> get storage => matrix.storage;
 
   @override
-  Matrix<T> copy() => FlippedHorizontalMatrix(_matrix.copy());
+  Matrix<T> copy() => FlippedHorizontalMatrix(matrix.copy());
 
   @override
   T getUnchecked(int row, int col) =>
-      _matrix.getUnchecked(_matrix.rowCount - row - 1, col);
+      matrix.getUnchecked(matrix.rowCount - row - 1, col);
 
   @override
   void setUnchecked(int row, int col, T value) =>
-      _matrix.setUnchecked(_matrix.rowCount - row - 1, col, value);
+      matrix.setUnchecked(matrix.rowCount - row - 1, col, value);
+}
+
+extension FlippedHorizontalMatrixExtension<T> on Matrix<T> {
+  /// Returns a mutable view onto the horizontally flipped matrix.
+  Matrix<T> get flippedHorizontal => _flippedHorizontal(this);
+
+  // TODO(renggli): workaround, https://github.com/dart-lang/sdk/issues/39959.
+  Matrix<T> _flippedHorizontal(Matrix<T> self) =>
+      self is FlippedHorizontalMatrix<T>
+          ? self.matrix
+          : FlippedHorizontalMatrix<T>(self);
 }

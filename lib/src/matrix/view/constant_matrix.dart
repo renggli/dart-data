@@ -6,9 +6,9 @@ import '../mixins/unmodifiable_matrix.dart';
 
 /// Read-only matrix with a constant value.
 class ConstantMatrix<T> extends Matrix<T> with UnmodifiableMatrixMixin<T> {
-  final T _value;
+  final T value;
 
-  ConstantMatrix(this.dataType, this.rowCount, this.colCount, this._value);
+  ConstantMatrix(this.dataType, this.rowCount, this.colCount, this.value);
 
   @override
   final DataType<T> dataType;
@@ -23,5 +23,5 @@ class ConstantMatrix<T> extends Matrix<T> with UnmodifiableMatrixMixin<T> {
   Matrix<T> copy() => this;
 
   @override
-  T getUnchecked(int row, int col) => _value;
+  T getUnchecked(int row, int col) => value;
 }

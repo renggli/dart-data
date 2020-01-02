@@ -8,8 +8,8 @@ import '../matrix.dart';
 
 /// Mutable vertical concatenation of matrices.
 class ConcatVerticalMatrix<T> extends Matrix<T> {
-  final List<Matrix<T>> _matrices;
-  final List<int> _indexes;
+  final List<Matrix<T>> matrices;
+  final List<int> indexes;
 
   ConcatVerticalMatrix(DataType<T> dataType, Iterable<Matrix<T>> matrices)
       : this._withList(dataType, matrices.toList(growable: false));
@@ -18,44 +18,40 @@ class ConcatVerticalMatrix<T> extends Matrix<T> {
       : this._withListAndIndexes(dataType, matrices, computeIndexes(matrices));
 
   ConcatVerticalMatrix._withListAndIndexes(
-      this.dataType, this._matrices, this._indexes);
+      this.dataType, this.matrices, this.indexes);
 
   @override
   final DataType<T> dataType;
 
   @override
-  int get rowCount => _indexes.last;
+  int get rowCount => indexes.last;
 
   @override
-  int get colCount => _matrices.first.colCount;
+  int get colCount => matrices.first.colCount;
 
   @override
-  Set<Tensor> get storage => {..._matrices};
+  Set<Tensor> get storage => {...matrices};
 
   @override
-  Matrix<T> copy() => ConcatVerticalMatrix._withListAndIndexes(
-      dataType,
-      _matrices.map((vector) => vector.copy()).toList(growable: false),
-      _indexes);
+  Matrix<T> copy() => ConcatVerticalMatrix._withListAndIndexes(dataType,
+      matrices.map((vector) => vector.copy()).toList(growable: false), indexes);
 
   @override
   T getUnchecked(int row, int col) {
-    var matrixIndex = binarySearch(_indexes, 0, _indexes.length, row);
+    var matrixIndex = binarySearch(indexes, 0, indexes.length, row);
     if (matrixIndex < 0) {
       matrixIndex = -matrixIndex - 2;
     }
-    return _matrices[matrixIndex]
-        .getUnchecked(row - _indexes[matrixIndex], col);
+    return matrices[matrixIndex].getUnchecked(row - indexes[matrixIndex], col);
   }
 
   @override
   void setUnchecked(int row, int col, T value) {
-    var matrixIndex = binarySearch(_indexes, 0, _indexes.length, row);
+    var matrixIndex = binarySearch(indexes, 0, indexes.length, row);
     if (matrixIndex < 0) {
       matrixIndex = -matrixIndex - 2;
     }
-    _matrices[matrixIndex]
-        .setUnchecked(row - _indexes[matrixIndex], col, value);
+    matrices[matrixIndex].setUnchecked(row - indexes[matrixIndex], col, value);
   }
 }
 

@@ -6,11 +6,11 @@ import 'impl/keyed_vector.dart';
 import 'impl/list_vector.dart';
 import 'impl/standard_vector.dart';
 import 'vector.dart';
+import 'view/cast_vector.dart';
 import 'view/concat_vector.dart';
 import 'view/constant_vector.dart';
 import 'view/generated_vector.dart';
-
-export '../../type.dart';
+import 'view/transformed_vector.dart';
 
 /// Builds a vector of a custom type.
 class Builder<T> {

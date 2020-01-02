@@ -1,7 +1,10 @@
 library data.matrix.builder;
 
 import '../../type.dart';
-import '../../vector.dart' show Vector;
+import '../vector/vector.dart';
+import '../vector/view/column_matrix.dart' show ColumnMatrixExtension;
+import '../vector/view/diagonal_matrix.dart' show DiagonalMatrixExtension;
+import '../vector/view/row_matrix.dart' show RowMatrixExtension;
 import 'format.dart';
 import 'impl/column_major_matrix.dart';
 import 'impl/compressed_column_matrix.dart';
@@ -11,16 +14,13 @@ import 'impl/diagonal_matrix.dart';
 import 'impl/keyed_matrix.dart';
 import 'impl/row_major_matrix.dart';
 import 'matrix.dart';
-import 'view/column_vector_matrix.dart';
+import 'view/cast_matrix.dart';
 import 'view/concat_horizontal_matrix.dart';
 import 'view/concat_vertical_matrix.dart';
 import 'view/constant_matrix.dart';
-import 'view/diagonal_vector_matrix.dart';
 import 'view/generated_matrix.dart';
 import 'view/identity_matrix.dart';
-import 'view/row_vector_matrix.dart';
-
-export '../../type.dart';
+import 'view/transformed_matrix.dart';
 
 /// Builds a matrix of a custom type.
 class Builder<T> {
@@ -152,22 +152,16 @@ class Builder<T> {
   }
 
   /// Builds a matrix from a row vector.
-  Matrix<T> fromRow(Vector<T> source, {bool lazy = false}) {
-    final result = RowVectorMatrix(source);
-    return lazy ? result : fromMatrix(result);
-  }
+  Matrix<T> fromRow(Vector<T> source, {bool lazy = false}) =>
+      lazy ? source.rowMatrix : fromMatrix(source.rowMatrix);
 
   /// Builds a matrix from a column vector.
-  Matrix<T> fromColumn(Vector<T> source, {bool lazy = false}) {
-    final result = ColumnVectorMatrix(source);
-    return lazy ? result : fromMatrix(result);
-  }
+  Matrix<T> fromColumn(Vector<T> source, {bool lazy = false}) =>
+      lazy ? source.columnMatrix : fromMatrix(source.columnMatrix);
 
   /// Builds a matrix from a diagonal vector.
-  Matrix<T> fromDiagonal(Vector<T> source, {bool lazy = false}) {
-    final result = DiagonalVectorMatrix(source);
-    return lazy ? result : fromMatrix(result);
-  }
+  Matrix<T> fromDiagonal(Vector<T> source, {bool lazy = false}) =>
+      lazy ? source.diagonalMatrix : fromMatrix(source.diagonalMatrix);
 
   /// Builds a matrix from a nested list of rows.
   Matrix<T> fromRows(List<List<T>> source) {

@@ -9,8 +9,8 @@ import '../vector.dart';
 
 /// Mutable concatenation of vectors.
 class ConcatVector<T> extends Vector<T> {
-  final List<Vector<T>> _vectors;
-  final List<int> _indexes;
+  final List<Vector<T>> vectors;
+  final List<int> indexes;
 
   ConcatVector(DataType<T> dataType, Iterable<Vector<T>> vectors)
       : this._withList(dataType, vectors.toList(growable: false));
@@ -18,39 +18,37 @@ class ConcatVector<T> extends Vector<T> {
   ConcatVector._withList(DataType<T> dataType, List<Vector<T>> vectors)
       : this._withListAndIndexes(dataType, vectors, computeIndexes(vectors));
 
-  ConcatVector._withListAndIndexes(this.dataType, this._vectors, this._indexes);
+  ConcatVector._withListAndIndexes(this.dataType, this.vectors, this.indexes);
 
   @override
   final DataType<T> dataType;
 
   @override
-  int get count => _indexes.last;
+  int get count => indexes.last;
 
   @override
-  Set<Tensor> get storage => {..._vectors};
+  Set<Tensor> get storage => {...vectors};
 
   @override
-  Vector<T> copy() => ConcatVector._withListAndIndexes(
-      dataType,
-      _vectors.map((vector) => vector.copy()).toList(growable: false),
-      _indexes);
+  Vector<T> copy() => ConcatVector._withListAndIndexes(dataType,
+      vectors.map((vector) => vector.copy()).toList(growable: false), indexes);
 
   @override
   T getUnchecked(int index) {
-    var vectorIndex = binarySearch(_indexes, 0, _indexes.length, index);
+    var vectorIndex = binarySearch(indexes, 0, indexes.length, index);
     if (vectorIndex < 0) {
       vectorIndex = -vectorIndex - 2;
     }
-    return _vectors[vectorIndex].getUnchecked(index - _indexes[vectorIndex]);
+    return vectors[vectorIndex].getUnchecked(index - indexes[vectorIndex]);
   }
 
   @override
   void setUnchecked(int index, T value) {
-    var vectorIndex = binarySearch(_indexes, 0, _indexes.length, index);
+    var vectorIndex = binarySearch(indexes, 0, indexes.length, index);
     if (vectorIndex < 0) {
       vectorIndex = -vectorIndex - 2;
     }
-    _vectors[vectorIndex].setUnchecked(index - _indexes[vectorIndex], value);
+    vectors[vectorIndex].setUnchecked(index - indexes[vectorIndex], value);
   }
 }
 

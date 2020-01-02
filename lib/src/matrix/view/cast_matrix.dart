@@ -6,30 +6,35 @@ import '../matrix.dart';
 
 /// Mutable matrix cast to a new type.
 class CastMatrix<S, T> extends Matrix<T> {
-  final Matrix<S> _matrix;
+  final Matrix<S> matrix;
 
-  CastMatrix(this._matrix, this.dataType);
+  CastMatrix(this.matrix, this.dataType);
 
   @override
   final DataType<T> dataType;
 
   @override
-  int get rowCount => _matrix.rowCount;
+  int get rowCount => matrix.rowCount;
 
   @override
-  int get colCount => _matrix.colCount;
+  int get colCount => matrix.colCount;
 
   @override
-  Set<Tensor> get storage => _matrix.storage;
+  Set<Tensor> get storage => matrix.storage;
 
   @override
-  Matrix<T> copy() => CastMatrix(_matrix.copy(), dataType);
+  Matrix<T> copy() => CastMatrix(matrix.copy(), dataType);
 
   @override
   T getUnchecked(int row, int col) =>
-      dataType.cast(_matrix.getUnchecked(row, col));
+      dataType.cast(matrix.getUnchecked(row, col));
 
   @override
   void setUnchecked(int row, int col, T value) =>
-      _matrix.setUnchecked(row, col, _matrix.dataType.cast(value));
+      matrix.setUnchecked(row, col, matrix.dataType.cast(value));
+}
+
+extension CastMatrixExtension<T> on Matrix<T> {
+  /// Returns a [Matrix] with the elements cast to [dataType].
+  Matrix<S> cast<S>(DataType<S> dataType) => CastMatrix<T, S>(this, dataType);
 }

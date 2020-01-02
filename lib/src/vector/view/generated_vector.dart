@@ -6,9 +6,9 @@ import '../vector.dart';
 
 /// Read-only vector generated from a callback.
 class GeneratedVector<T> extends Vector<T> with UnmodifiableVectorMixin<T> {
-  final T Function(int index) _callback;
+  final T Function(int index) callback;
 
-  GeneratedVector(this.dataType, this.count, this._callback);
+  GeneratedVector(this.dataType, this.count, this.callback);
 
   @override
   final DataType<T> dataType;
@@ -20,5 +20,5 @@ class GeneratedVector<T> extends Vector<T> with UnmodifiableVectorMixin<T> {
   Vector<T> copy() => this;
 
   @override
-  T getUnchecked(int index) => _callback(index);
+  T getUnchecked(int index) => callback(index);
 }

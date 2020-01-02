@@ -6,33 +6,40 @@ import '../matrix.dart';
 
 /// Mutable matrix flipped on its vertical axis.
 class FlippedVerticalMatrix<T> extends Matrix<T> {
-  final Matrix<T> _matrix;
+  final Matrix<T> matrix;
 
-  FlippedVerticalMatrix(this._matrix);
-
-  @override
-  DataType<T> get dataType => _matrix.dataType;
+  FlippedVerticalMatrix(this.matrix);
 
   @override
-  int get rowCount => _matrix.rowCount;
+  DataType<T> get dataType => matrix.dataType;
 
   @override
-  int get colCount => _matrix.colCount;
+  int get rowCount => matrix.rowCount;
 
   @override
-  Set<Tensor> get storage => _matrix.storage;
+  int get colCount => matrix.colCount;
 
   @override
-  Matrix<T> get flippedVertical => _matrix;
+  Set<Tensor> get storage => matrix.storage;
 
   @override
-  Matrix<T> copy() => FlippedVerticalMatrix(_matrix.copy());
+  Matrix<T> copy() => FlippedVerticalMatrix<T>(matrix.copy());
 
   @override
   T getUnchecked(int row, int col) =>
-      _matrix.getUnchecked(row, _matrix.colCount - col - 1);
+      matrix.getUnchecked(row, matrix.colCount - col - 1);
 
   @override
   void setUnchecked(int row, int col, T value) =>
-      _matrix.setUnchecked(row, _matrix.colCount - col - 1, value);
+      matrix.setUnchecked(row, matrix.colCount - col - 1, value);
+}
+
+extension FlippedVerticalMatrixExtension<T> on Matrix<T> {
+  /// Returns a mutable view onto the vertically flipped matrix.
+  Matrix<T> get flippedVertical => _flippedVertical(this);
+
+  // TODO(renggli): workaround, https://github.com/dart-lang/sdk/issues/39959.
+  Matrix<T> _flippedVertical(Matrix<T> self) => self is FlippedVerticalMatrix<T>
+      ? self.matrix
+      : FlippedVerticalMatrix<T>(self);
 }

@@ -748,21 +748,21 @@ void polynomialTest(String name, Builder<int> builder) {
           expect(result.quotient.iterable, []);
           expect(result.remainder.iterable, [-3, 5, 1]);
         });
-        test('example 1', () {
+        test('example.dart 1', () {
           final dividend = builder.fromList([-42, 0, -12, 1]);
           final divisor = builder.fromList([-3, 1]);
           final result = divWithInvariant(dividend, divisor);
           expect(result.quotient.iterable, [-27, -9, 1]);
           expect(result.remainder.iterable, [-123]);
         });
-        test('example 2', () {
+        test('example.dart 2', () {
           final dividend = builder.fromList([-2, 0, 0, 0, 1]);
           final divisor = builder.fromList([1, 1, 1, 1]);
           final result = divWithInvariant(dividend, divisor);
           expect(result.quotient.iterable, [-1, 1]);
           expect(result.remainder.iterable, [-1]);
         }, skip: 'fractional polygon cannot be represented in <int>');
-        test('example 3', () {
+        test('example.dart 3', () {
           final dividend = builder.fromList([-7, 0, 5, 6]);
           final divisor = builder.fromList([-1, -2, 3]);
           final result = divWithInvariant(dividend, divisor);

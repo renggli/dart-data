@@ -6,9 +6,9 @@ import '../mixins/unmodifiable_matrix.dart';
 
 /// Read-only identity matrix.
 class IdentityMatrix<T> extends Matrix<T> with UnmodifiableMatrixMixin<T> {
-  final T _value;
+  final T value;
 
-  IdentityMatrix(this.dataType, this.rowCount, this.colCount, this._value);
+  IdentityMatrix(this.dataType, this.rowCount, this.colCount, this.value);
 
   @override
   final DataType<T> dataType;
@@ -23,5 +23,5 @@ class IdentityMatrix<T> extends Matrix<T> with UnmodifiableMatrixMixin<T> {
   Matrix<T> copy() => this;
 
   @override
-  T getUnchecked(int row, int col) => row == col ? _value : dataType.nullValue;
+  T getUnchecked(int row, int col) => row == col ? value : dataType.nullValue;
 }

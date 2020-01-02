@@ -7,22 +7,28 @@ import '../vector.dart';
 
 /// Read-only view of a mutable vector.
 class UnmodifiableVector<T> extends Vector<T> with UnmodifiableVectorMixin<T> {
-  final Vector<T> _vector;
+  final Vector<T> vector;
 
-  UnmodifiableVector(this._vector);
-
-  @override
-  DataType<T> get dataType => _vector.dataType;
+  UnmodifiableVector(this.vector);
 
   @override
-  int get count => _vector.count;
+  DataType<T> get dataType => vector.dataType;
 
   @override
-  Set<Tensor> get storage => _vector.storage;
+  int get count => vector.count;
 
   @override
-  Vector<T> copy() => UnmodifiableVector(_vector.copy());
+  Set<Tensor> get storage => vector.storage;
 
   @override
-  T getUnchecked(int index) => _vector.getUnchecked(index);
+  Vector<T> copy() => UnmodifiableVector(vector.copy());
+
+  @override
+  T getUnchecked(int index) => vector.getUnchecked(index);
+}
+
+extension UnmodifiableVectorExtension<T> on Vector<T> {
+  /// Returns a unmodifiable view of this [Vector].
+  Vector<T> get unmodifiable =>
+      this is UnmodifiableVectorMixin<T> ? this : UnmodifiableVector<T>(this);
 }

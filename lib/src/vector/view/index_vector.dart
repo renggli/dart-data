@@ -7,34 +7,52 @@ import '../vector.dart';
 
 // A mutable indexed view of a vector.
 class IndexVector<T> extends Vector<T> {
-  final Vector<T> _vector;
-  final List<int> _indexes;
+  final Vector<T> vector;
+  final List<int> indexes;
 
   IndexVector(Vector<T> vector, Iterable<int> indexes)
       : this._(vector, indexDataType.copyList(indexes));
 
-  IndexVector._(this._vector, this._indexes);
+  IndexVector._(this.vector, this.indexes);
 
   @override
-  DataType<T> get dataType => _vector.dataType;
+  DataType<T> get dataType => vector.dataType;
 
   @override
-  int get count => _indexes.length;
+  int get count => indexes.length;
 
   @override
-  Set<Tensor> get storage => _vector.storage;
+  Set<Tensor> get storage => vector.storage;
 
   @override
-  Vector<T> copy() => IndexVector._(_vector.copy(), _indexes);
+  Vector<T> copy() => IndexVector._(vector.copy(), indexes);
 
   @override
-  T getUnchecked(int index) => _vector.getUnchecked(_indexes[index]);
+  T getUnchecked(int index) => vector.getUnchecked(indexes[index]);
 
   @override
   void setUnchecked(int index, T value) =>
-      _vector.setUnchecked(_indexes[index], value);
+      vector.setUnchecked(indexes[index], value);
+}
 
-  @override
+extension IndexVectorExtension<T> on Vector<T> {
+  /// Returns a mutable view onto indexes of a [Vector]. Throws a [RangeError],
+  /// if any of the indexes index is out of bounds.
+  Vector<T> index(Iterable<int> indexes) {
+    for (final index in indexes) {
+      RangeError.checkValueInInterval(index, 0, count - 1, 'indexes');
+    }
+    return indexUnchecked(indexes);
+  }
+
+  /// Returns a mutable view onto indexes of a [Vector]. The behavior is
+  /// undefined, if any of the indexes are out of bounds.
   Vector<T> indexUnchecked(Iterable<int> indexes) =>
-      IndexVector<T>(_vector, indexes.map((index) => _indexes[index]));
+      _indexUnchecked(this, indexes);
+
+  // TODO(renggli): workaround, https://github.com/dart-lang/sdk/issues/39959.
+  Vector<T> _indexUnchecked<T>(Vector<T> self, Iterable<int> indexes) => self
+          is IndexVector<T>
+      ? IndexVector<T>(self.vector, indexes.map((index) => self.indexes[index]))
+      : IndexVector<T>(self, indexes);
 }

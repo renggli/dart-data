@@ -9,41 +9,41 @@ import '../vector.dart';
 /// All vectors (overlay, mask, and base) have to be of the same size. The mask
 /// determines whether the overlay is revealed or not.
 class OverlayMaskVector<T> extends Vector<T> {
-  final Vector<T> _overlay;
-  final Vector<bool> _mask;
-  final Vector<T> _base;
+  final Vector<T> overlay;
+  final Vector<bool> mask;
+  final Vector<T> base;
 
-  OverlayMaskVector(this.dataType, this._overlay, this._mask, this._base);
+  OverlayMaskVector(this.dataType, this.overlay, this.mask, this.base);
 
   @override
   final DataType<T> dataType;
 
   @override
-  int get count => _base.count;
+  int get count => base.count;
 
   @override
   Set<Tensor> get storage =>
-      {..._overlay.storage, ..._mask.storage, ..._base.storage};
+      {...overlay.storage, ...mask.storage, ...base.storage};
 
   @override
   Vector<T> copy() =>
-      OverlayMaskVector(dataType, _overlay.copy(), _mask.copy(), _base.copy());
+      OverlayMaskVector(dataType, overlay.copy(), mask.copy(), base.copy());
 
   @override
   T getUnchecked(int index) {
-    if (_mask.getUnchecked(index)) {
-      return _overlay.getUnchecked(index);
+    if (mask.getUnchecked(index)) {
+      return overlay.getUnchecked(index);
     } else {
-      return _base.getUnchecked(index);
+      return base.getUnchecked(index);
     }
   }
 
   @override
   void setUnchecked(int index, T value) {
-    if (_mask.getUnchecked(index)) {
-      return _overlay.setUnchecked(index, value);
+    if (mask.getUnchecked(index)) {
+      return overlay.setUnchecked(index, value);
     } else {
-      return _base.setUnchecked(index, value);
+      return base.setUnchecked(index, value);
     }
   }
 }

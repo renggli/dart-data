@@ -6,33 +6,53 @@ import '../matrix.dart';
 
 /// Mutable two-way transformed matrix.
 class TransformedMatrix<S, T> extends Matrix<T> {
-  final Matrix<S> _matrix;
-  final T Function(int row, int col, S value) _read;
-  final S Function(int row, int col, T value) _write;
+  final Matrix<S> matrix;
+  final T Function(int row, int col, S value) read;
+  final S Function(int row, int col, T value) write;
 
-  TransformedMatrix(this._matrix, this._read, this._write, this.dataType);
+  TransformedMatrix(this.matrix, this.read, this.write, this.dataType);
 
   @override
   final DataType<T> dataType;
 
   @override
-  int get rowCount => _matrix.rowCount;
+  int get rowCount => matrix.rowCount;
 
   @override
-  int get colCount => _matrix.colCount;
+  int get colCount => matrix.colCount;
 
   @override
-  Set<Tensor> get storage => _matrix.storage;
+  Set<Tensor> get storage => matrix.storage;
 
   @override
-  Matrix<T> copy() =>
-      TransformedMatrix(_matrix.copy(), _read, _write, dataType);
+  Matrix<T> copy() => TransformedMatrix(matrix.copy(), read, write, dataType);
 
   @override
   T getUnchecked(int row, int col) =>
-      _read(row, col, _matrix.getUnchecked(row, col));
+      read(row, col, matrix.getUnchecked(row, col));
 
   @override
   void setUnchecked(int row, int col, T value) =>
-      _matrix.setUnchecked(row, col, _write(row, col, value));
+      matrix.setUnchecked(row, col, write(row, col, value));
+}
+
+extension TransformedMatrixExtension<T> on Matrix<T> {
+  /// Returns a read-only view on this [Matrix] with all its elements lazily
+  /// converted by calling the provided transformation [callback].
+  Matrix<S> map<S>(S Function(int row, int col, T value) callback,
+          [DataType<S> dataType]) =>
+      transform<S>(callback, dataType: dataType);
+
+  /// Returns a view on this [Matrix] with all its elements lazily converted
+  /// by calling the provided [read] transformation. An optionally provided
+  /// [write] transformation enables writing to the returned matrix.
+  Matrix<S> transform<S>(S Function(int row, int col, T value) read,
+          {T Function(int row, int col, S value) write,
+          DataType<S> dataType}) =>
+      TransformedMatrix<T, S>(
+        this,
+        read,
+        write ?? (r, c, v) => throw UnsupportedError('Matrix is not mutable.'),
+        dataType ?? DataType.fromType(S),
+      );
 }

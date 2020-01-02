@@ -6,9 +6,9 @@ import '../mixins/unmodifiable_matrix.dart';
 
 /// Read-only generator matrix.
 class GeneratedMatrix<T> extends Matrix<T> with UnmodifiableMatrixMixin<T> {
-  final T Function(int row, int col) _callback;
+  final T Function(int row, int col) callback;
 
-  GeneratedMatrix(this.dataType, this.rowCount, this.colCount, this._callback);
+  GeneratedMatrix(this.dataType, this.rowCount, this.colCount, this.callback);
 
   @override
   final DataType<T> dataType;
@@ -23,5 +23,5 @@ class GeneratedMatrix<T> extends Matrix<T> with UnmodifiableMatrixMixin<T> {
   Matrix<T> copy() => this;
 
   @override
-  T getUnchecked(int row, int col) => _callback(row, col);
+  T getUnchecked(int row, int col) => callback(row, col);
 }

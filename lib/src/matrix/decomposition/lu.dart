@@ -4,6 +4,9 @@ import 'dart:math' as math;
 
 import '../../shared/config.dart';
 import '../matrix.dart';
+import '../view/column_vector.dart';
+import '../view/index_matrix.dart';
+import '../view/row_vector.dart';
 
 /// LU Decomposition.
 ///
@@ -44,7 +47,7 @@ class LUDecomposition {
 
     // Outer loop.
     for (var j = 0; j < _n; j++) {
-      final lucolj = _lu.col(j);
+      final lucolj = _lu.column(j);
 
       // Apply previous transformations.
       for (var i = 0; i < _m; i++) {

@@ -705,7 +705,7 @@ void vectorTest(String name, Builder builder) {
               throwsArgumentError);
           expect(() => mul(derivedA, derivedB, target: derivedA.row(0)),
               throwsArgumentError);
-          expect(() => mul(derivedA, derivedB, target: derivedA.col(0)),
+          expect(() => mul(derivedA, derivedB, target: derivedA.column(0)),
               throwsArgumentError);
         });
         test('error dimensions', () {

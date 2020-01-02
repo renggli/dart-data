@@ -11,6 +11,7 @@ import 'decomposition/qr.dart';
 import 'decomposition/singular_value.dart';
 import 'matrix.dart';
 import 'view/identity_matrix.dart';
+import 'view/transposed_matrix.dart';
 
 /// Returns the LU Decomposition.
 LUDecomposition lu(Matrix<num> source) => LUDecomposition(source);

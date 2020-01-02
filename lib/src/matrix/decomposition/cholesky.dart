@@ -4,6 +4,7 @@ import 'dart:math' as math;
 
 import '../../shared/config.dart';
 import '../matrix.dart';
+import '../view/row_vector.dart';
 
 /// Cholesky Decomposition.
 ///

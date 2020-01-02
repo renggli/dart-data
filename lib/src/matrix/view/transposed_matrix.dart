@@ -6,32 +6,38 @@ import '../matrix.dart';
 
 /// Mutable transposed view of a matrix.
 class TransposedMatrix<T> extends Matrix<T> {
-  final Matrix<T> _matrix;
+  final Matrix<T> matrix;
 
-  TransposedMatrix(this._matrix);
-
-  @override
-  DataType<T> get dataType => _matrix.dataType;
+  TransposedMatrix(this.matrix);
 
   @override
-  int get rowCount => _matrix.colCount;
+  DataType<T> get dataType => matrix.dataType;
 
   @override
-  int get colCount => _matrix.rowCount;
+  int get rowCount => matrix.colCount;
 
   @override
-  Set<Tensor> get storage => _matrix.storage;
+  int get colCount => matrix.rowCount;
 
   @override
-  Matrix<T> copy() => TransposedMatrix(_matrix.copy());
+  Set<Tensor> get storage => matrix.storage;
 
   @override
-  T getUnchecked(int row, int col) => _matrix.getUnchecked(col, row);
+  Matrix<T> copy() => TransposedMatrix(matrix.copy());
+
+  @override
+  T getUnchecked(int row, int col) => matrix.getUnchecked(col, row);
 
   @override
   void setUnchecked(int row, int col, T value) =>
-      _matrix.setUnchecked(col, row, value);
+      matrix.setUnchecked(col, row, value);
+}
 
-  @override
-  Matrix<T> get transposed => _matrix;
+extension TransposedMatrixExtension<T> on Matrix<T> {
+  /// Returns a mutable view onto the transposed matrix.
+  Matrix<T> get transposed => _transposed(this);
+
+  // TODO(renggli): workaround, https://github.com/dart-lang/sdk/issues/39959.
+  Matrix<T> _transposed(Matrix<T> self) =>
+      self is TransposedMatrix<T> ? self.matrix : TransposedMatrix<T>(self);
 }
