@@ -168,6 +168,13 @@ abstract class Polynomial<T> implements Storage {
     }
     return buffer.toString();
   }
+
+  /// Returns the string representation of this polynomial.
+  @override
+  String toString() => '$runtimeType('
+      'dataType: ${dataType.name}, '
+      'degree: $degree):\n'
+      '${format()}';
 }
 
 class _PolynomialList<T> extends ListMixin<T> {

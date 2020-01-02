@@ -66,7 +66,6 @@ abstract class Vector<T> implements Storage {
     bool limit = true,
     int leadingItems = 3,
     int trailingItems = 3,
-    // additional options
     String separator = ' ',
     String ellipses = '\u2026',
   }) {
@@ -87,6 +86,13 @@ abstract class Vector<T> implements Storage {
     }
     return buffer.toString();
   }
+
+  /// Returns the string representation of this polynomial.
+  @override
+  String toString() => '$runtimeType('
+      'dataType: ${dataType.name}, '
+      'count: $count):\n'
+      '${format()}';
 }
 
 class _VectorList<T> extends ListMixin<T> {

@@ -505,7 +505,7 @@ void vectorTest(String name, Builder builder) {
         expect(
             vector.toString(),
             '${vector.runtimeType}'
-            '[3, ${vector.dataType.name}]:\n'
+            '(dataType: int8, count: 3):\n'
             '3 2 1');
       });
     });

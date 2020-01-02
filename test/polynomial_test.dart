@@ -544,7 +544,7 @@ void polynomialTest(String name, Builder<int> builder) {
         expect(
             polynomial.toString(),
             '${polynomial.runtimeType}'
-            '[3, ${polynomial.dataType.name}]:\n'
+            '(dataType: int32, degree: 2):\n'
             'x^2 + 2x + 3');
       });
     });

@@ -214,7 +214,8 @@ List<Complex> roots(Polynomial<num> source) {
     return [Complex(-b / a)];
   } else {
     final factor = source.getUnchecked(degree);
-    final eigenMatrix = Matrix.generate(floatDataType, degree, degree, (r, c) {
+    final matrix =
+        Matrix<double>.generate(floatDataType, degree, degree, (r, c) {
       if (r == degree - 1) {
         return -source.getUnchecked(c) / factor;
       } else if (r + 1 == c) {
@@ -223,7 +224,7 @@ List<Complex> roots(Polynomial<num> source) {
         return 0;
       }
     });
-    return eigenMatrix.eigenvalue.eigenvalues;
+    return matrix.eigenvalue.eigenvalues;
   }
 }
 
