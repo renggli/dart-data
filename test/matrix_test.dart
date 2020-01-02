@@ -1163,10 +1163,10 @@ void matrixTest(String name, Builder builder) {
             builder.withType(DataType.string).generate(3, 2, (r, c) => '$r,$c');
         expect(source.rowMajor, ['0,0', '0,1', '1,0', '1,1', '2,0', '2,1']);
       });
-      test('colMajor', () {
+      test('columnMajor', () {
         final source =
             builder.withType(DataType.string).generate(3, 2, (r, c) => '$r,$c');
-        expect(source.colMajor, ['0,0', '1,0', '2,0', '0,1', '1,1', '2,1']);
+        expect(source.columnMajor, ['0,0', '1,0', '2,0', '0,1', '1,1', '2,1']);
       });
     });
     group('transform', () {

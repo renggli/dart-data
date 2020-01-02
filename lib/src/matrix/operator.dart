@@ -4,6 +4,7 @@ import '../../type.dart';
 import 'builder.dart';
 import 'matrix.dart';
 
+export 'operator/iterator.dart' show IteratorExtension;
 export 'operator/testing.dart' show TestingExtension;
 
 Matrix<T> _resultMatrix<T>(int rowCount, int colCount, Matrix<T> target,
