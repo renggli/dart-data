@@ -1697,46 +1697,46 @@ void matrixTest(String name, Builder builder) {
         [4.0, 8.0, 12.0],
       ]);
       test('norm1', () {
-        final result = norm1(matrix3);
+        final result = matrix3.norm1;
         expect(result, closeTo(33.0, epsilon));
       });
       test('normInf', () {
-        final result = normInfinity(matrix3);
+        final result = matrix3.normInfinity;
         expect(result, closeTo(30.0, epsilon));
       });
       test('normFrobenius', () {
-        final result = normFrobenius(matrix3);
+        final result = matrix3.normFrobenius;
         expect(result, closeTo(sqrt(650), epsilon));
       });
       test('trace', () {
-        final result = trace(matrix3);
+        final result = matrix3.trace;
         expect(result, closeTo(15.0, epsilon));
       });
       test('det', () {
         final result =
-            det(matrix3.range(0, matrix3.rowCount, 0, matrix3.rowCount));
+            matrix3.range(0, matrix3.rowCount, 0, matrix3.rowCount).det;
         expect(result, closeTo(0.0, epsilon));
       });
       test('QR Decomposition', () {
-        final decomp = qr(matrix4);
+        final decomp = matrix4.qr;
         final result = mul(decomp.orthogonal, decomp.upper);
         expectMatrix(matrix4, result);
       });
       test('Singular Value Decomposition', () {
-        final decomp = singularValue(matrix4);
+        final decomp = matrix4.singularValue;
         final result = mul(decomp.U, mul(decomp.S, decomp.V.transposed));
         expectMatrix(matrix4, result);
       });
       test('LU Decomposition', () {
         final matrix =
             matrix4.range(0, matrix4.colCount - 1, 0, matrix4.colCount - 1);
-        final decomp = lu(matrix);
+        final decomp = matrix.lu;
         final result1 = matrix.rowIndex(decomp.pivot);
         final result2 = mul(decomp.lower, decomp.upper);
         expectMatrix(result1, result2);
       });
       test('rank', () {
-        final result = rank(matrix3);
+        final result = matrix3.rank;
         expect(result, min(matrix3.rowCount, matrix3.colCount) - 1);
       });
       test('cond', () {
@@ -1744,10 +1744,10 @@ void matrixTest(String name, Builder builder) {
           [1.0, 3.0],
           [7.0, 9.0],
         ]);
-        final decomp = singularValue(matrix);
+        final decomp = matrix.singularValue;
         final singularValues = decomp.s;
         expect(
-            cond(matrix),
+            matrix.cond,
             singularValues[0] /
                 singularValues[min(matrix.rowCount, matrix.colCount) - 1]);
       });
@@ -1757,7 +1757,7 @@ void matrixTest(String name, Builder builder) {
           [2.0, 6.0, 10.0],
           [3.0, 7.0, 11.0],
         ]);
-        final actual = mul(matrix, inverse(matrix));
+        final actual = mul(matrix, matrix.inverse);
         final expected = factory.identity(matrix.rowCount, matrix.colCount, 1);
         expectMatrix(expected, actual);
       });
@@ -1770,7 +1770,7 @@ void matrixTest(String name, Builder builder) {
           [13.0],
           [15.0],
         ]);
-        final actual = solve(first, second);
+        final actual = first.solve(second);
         final expected = factory.constant(second.rowCount, second.colCount, 1);
         expectMatrix(expected, actual);
       });
@@ -1780,7 +1780,7 @@ void matrixTest(String name, Builder builder) {
           [1.0, 2.0, 3.0],
           [1.0, 3.0, 6.0],
         ]);
-        final decomposition = cholesky(matrix);
+        final decomposition = matrix.cholesky;
         test('triangular factor', () {
           final triangularFactor = decomposition.L;
           expectMatrix(
@@ -1799,7 +1799,7 @@ void matrixTest(String name, Builder builder) {
             [1.0, 2.0, 3.0],
             [1.0, 3.0, 6.0],
           ]);
-          final decomposition = eigenvalue(a);
+          final decomposition = a.eigenvalue;
           final d = decomposition.D;
           final v = decomposition.V;
           expectMatrix(mul(a, v), mul(v, d));
@@ -1811,7 +1811,7 @@ void matrixTest(String name, Builder builder) {
             [0.0, -2.0e-7, 0.0, 1.0],
             [0.0, 0.0, 1.0, 0.0],
           ]);
-          final decomposition = eigenvalue(a);
+          final decomposition = a.eigenvalue;
           final d = decomposition.D;
           final v = decomposition.V;
           expectMatrix(mul(a, v), mul(v, d));
@@ -1824,7 +1824,7 @@ void matrixTest(String name, Builder builder) {
             [1.0, 1.0, 0.0, 0.0, 1.0],
             [1.0, 0.0, 1.0, 0.0, 1.0],
           ]);
-          final decomposition = eigenvalue(a);
+          final decomposition = a.eigenvalue;
           final d = decomposition.D;
           final v = decomposition.V;
           expectMatrix(mul(a, v), mul(v, d));

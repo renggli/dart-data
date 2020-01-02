@@ -66,7 +66,9 @@ matrix.Matrix<int> magic(int n) {
 
 /// Printers for console output.
 Printer integerPrinter() => Printer.fixed();
+
 Printer doublePrinter(int precision) => Printer.fixed(precision: precision);
+
 Printer alignPrinter(int width) => Printer.standard().padLeft(width);
 
 /// Configuration of output printing.
@@ -105,8 +107,7 @@ void main() {
 
     // Maximum eigenvalue of (A + A') / 2, should equal trace.
     {
-      final e =
-          matrix.eigenvalue(matrix.scale(matrix.add(md, md.transposed), 0.5));
+      final e = matrix.scale(matrix.add(md, md.transposed), 0.5).eigenvalue;
       buffer.add(doublePrinter(3)(e.realEigenvalues.last));
       assert((e.realEigenvalues.last - vector.sum(m.diagonal())).abs() < 0.0001,
           'invalid eigenvalue');
@@ -115,35 +116,35 @@ void main() {
     // Linear algebraic rank, should equal n if n is odd, be less than n if n
     // is even.
     {
-      final r = matrix.rank(m);
+      final r = m.rank;
       buffer.add(integerPrinter()(r));
       assert(n.isOdd ? r == n : r < n, 'invalid rank');
     }
 
     // L_2 condition number, ratio of singular values.
     {
-      final c = matrix.cond(m);
+      final c = m.cond;
       buffer.add(doublePrinter(3)(c < 1 / eps ? c : double.infinity));
     }
 
     // Test of LU factorization, norm1(L*U-A(p,:))/(n*eps).
     {
-      final lu = matrix.lu(m);
+      final lu = m.lu;
       final l = lu.lower;
       final u = lu.upper;
       final p = lu.pivot;
       final r = matrix.sub(matrix.mul(l, u), md.rowIndex(p));
-      final res = matrix.norm1(r) / (n * eps);
+      final res = r.norm1 / (n * eps);
       buffer.add(doublePrinter(3)(res));
     }
 
     // Test of QR factorization, norm1(Q*R-A)/(n*eps).
     {
-      final qr = matrix.qr(md);
+      final qr = md.qr;
       final q = qr.orthogonal;
       final r = qr.upper;
       final R = matrix.sub(matrix.mul(q, r), m.cast(DataType.float64));
-      final res = matrix.norm1(R) / (n * eps);
+      final res = R.norm1 / (n * eps);
       buffer.add(doublePrinter(3)(res));
     }
 

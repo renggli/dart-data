@@ -1,4 +1,4 @@
-library matrix.decomposition.eigen;
+library matrix.decomposition.eigenvalue;
 
 import 'dart:math' as math;
 
@@ -908,4 +908,9 @@ class EigenvalueDecomposition {
   /// Return the complex eigenvalues.
   List<Complex> get eigenvalues =>
       IntegerRange(_n).map((i) => Complex(_d[i], _e[i])).toList();
+}
+
+extension EigenvalueDecompositionExtension<T extends num> on Matrix<T> {
+  /// Returns the Eigenvalue Decomposition.
+  EigenvalueDecomposition get eigenvalue => EigenvalueDecomposition(this);
 }

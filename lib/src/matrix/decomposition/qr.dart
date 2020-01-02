@@ -180,3 +180,8 @@ class QRDecomposition {
     return X;
   }
 }
+
+extension QRDecompositionExtension<T extends num> on Matrix<T> {
+  /// Returns the QR Decomposition.
+  QRDecomposition get qr => QRDecomposition(this);
+}

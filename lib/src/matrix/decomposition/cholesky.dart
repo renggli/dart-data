@@ -109,3 +109,8 @@ class CholeskyDecomposition {
     return result;
   }
 }
+
+extension CholeskyDecompositionExtension<T extends num> on Matrix<T> {
+  /// Returns the Cholesky Decomposition.
+  CholeskyDecomposition get cholesky => CholeskyDecomposition(this);
+}

@@ -471,3 +471,15 @@ class SingularValueDecomposition {
     return r;
   }
 }
+
+extension SingularValueDecompositionExtension<T extends num> on Matrix<T> {
+  /// Returns the Singular Value Decomposition.
+  SingularValueDecomposition get singularValue =>
+      SingularValueDecomposition(this);
+
+  /// Returns the rank, the effective numerical rank.
+  int get rank => singularValue.rank;
+
+  /// Returns the condition, the ratio of largest to smallest singular value.
+  double get cond => singularValue.cond;
+}

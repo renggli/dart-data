@@ -144,6 +144,7 @@ Polynomial<T> mul<T>(Polynomial<T> sourceA, Polynomial<T> sourceB,
 class Division<T> {
   final T quotient;
   final T remainder;
+
   Division(this.quotient, this.remainder);
 }
 
@@ -223,7 +224,7 @@ List<Complex> roots(Polynomial<num> source) {
         return 0;
       }
     }, lazy: true);
-    return matrix.eigenvalue(eigenMatrix).eigenvalues;
+    return eigenMatrix.eigenvalue.eigenvalues;
   }
 }
 

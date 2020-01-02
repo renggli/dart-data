@@ -14,7 +14,7 @@ void main() {
       [1, 0, 0]
     ]);
     final b = Vector.builder.withType(DataType.float64).fromList([4, 5, 6]);
-    final x = solve(a, b.columnMatrix).column(0);
+    final x = a.solve(b.columnMatrix).column(0);
     expect(x.format(valuePrinter: Printer.fixed()), '6 15 -23');
   });
   test('find eigenvalues', () {
@@ -24,7 +24,7 @@ void main() {
       [0, 0, 1, -1],
       [-1, 0, -1, 0]
     ]);
-    final decomposition = eigenvalue(a);
+    final decomposition = a.eigenvalue;
     final eigenvalues = Vector.builder
         .withType(DataType.float64)
         .fromList(decomposition.realEigenvalues);
