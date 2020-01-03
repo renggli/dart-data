@@ -1,4 +1,4 @@
-library data.vector.extensions;
+library data.vector.view;
 
 export 'view/cast_vector.dart' show CastVectorExtension;
 export 'view/column_matrix.dart' show ColumnMatrixExtension;

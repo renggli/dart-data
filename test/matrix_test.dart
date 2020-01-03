@@ -4,7 +4,7 @@ import 'dart:math';
 
 import 'package:data/matrix.dart';
 import 'package:data/type.dart';
-import 'package:data/vector.dart' as v;
+import 'package:data/vector.dart';
 import 'package:test/test.dart';
 
 void matrixTest(String name, MatrixFormat format) {
@@ -382,7 +382,7 @@ void matrixTest(String name, MatrixFormat format) {
           expect(row.dataType, source.dataType);
           expect(row.count, source.columnCount);
           expect(row.storage, [source]);
-          expect(v.compare(row.copy(), row), isTrue);
+          expect(row.copy().compare(row), isTrue);
           for (var c = 0; c < source.columnCount; c++) {
             expect(row[c], '($r, $c)');
             row[c] += '*';
@@ -409,7 +409,7 @@ void matrixTest(String name, MatrixFormat format) {
           expect(column.dataType, source.dataType);
           expect(column.count, source.rowCount);
           expect(column.storage, [source]);
-          expect(v.compare(column.copy(), column), isTrue);
+          expect(column.copy().compare(column), isTrue);
           for (var r = 0; r < source.rowCount; r++) {
             expect(column[r], '($r, $c)');
             column[r] += '*';
@@ -444,7 +444,7 @@ void matrixTest(String name, MatrixFormat format) {
             expect(diagonal.dataType, source.dataType);
             expect(diagonal.count, expected.length);
             expect(diagonal.storage, [source]);
-            expect(v.compare(diagonal.copy(), diagonal), isTrue);
+            expect(diagonal.copy().compare(diagonal), isTrue);
             for (var i = 0; i < expected.length; i++) {
               expect(diagonal[i], expected[i]);
               diagonal[i] += '*';
@@ -474,7 +474,7 @@ void matrixTest(String name, MatrixFormat format) {
             expect(diagonal.dataType, source.dataType);
             expect(diagonal.count, expected.length);
             expect(diagonal.storage, [source]);
-            expect(v.compare(diagonal.copy(), diagonal), isTrue);
+            expect(diagonal.copy().compare(diagonal), isTrue);
             for (var i = 0; i < expected.length; i++) {
               expect(diagonal[i], expected[i]);
               diagonal[i] += '*';
@@ -1313,7 +1313,7 @@ void matrixTest(String name, MatrixFormat format) {
           expect(target.columnCount, sourceB.columnCount);
           for (var r = 0; r < target.rowCount; r++) {
             for (var c = 0; c < target.columnCount; c++) {
-              final value = v.dot(sourceA.row(r), sourceB.column(c));
+              final value = sourceA.row(r).dot(sourceB.column(c));
               expect(target.get(r, c), value);
             }
           }

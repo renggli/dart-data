@@ -56,7 +56,7 @@ abstract class Vector<T> implements Storage {
       {VectorFormat format}) {
     final result = Vector<T>(dataType, source.length, format: format);
     for (var i = 0; i < source.length; i++) {
-      result.setUnchecked(i, source[i]);
+      result.setUnchecked(i, dataType.cast(source[i]));
     }
     return result;
   }

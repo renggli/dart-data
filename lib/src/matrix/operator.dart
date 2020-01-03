@@ -170,3 +170,66 @@ bool compare<T>(Matrix<T> sourceA, Matrix<T> sourceB,
   }
   return true;
 }
+
+///// Multiplies a numeric [matrix] and a [vector].
+//Vector<T> mul<T>(Matrix<T> matrix, Vector<T> vector,
+//    {Vector<T> target, VectorFormat format, DataType<T> dataType}) {
+//  if (matrix.columnCount != vector.count) {
+//    throw ArgumentError('Number of columns in matrix (${matrix.columnCount}) '
+//        'do not match number of elements in vector (${vector.count}).');
+//  }
+//  final result = _resultVector(
+//      matrix.rowCount, target, format, dataType ?? matrix.dataType);
+//  if (identical(result, target)) {
+//    final sourcesStorage = Set.identity()
+//      ..addAll(matrix.storage)
+//      ..addAll(vector.storage);
+//    if (result.storage.any(sourcesStorage.contains)) {
+//      throw ArgumentError('Vector multiplication cannot be done in-place.');
+//    }
+//  }
+//  final field = result.dataType.field;
+//  for (var r = 0; r < matrix.rowCount; r++) {
+//    var sum = field.additiveIdentity;
+//    for (var j = 0; j < matrix.columnCount; j++) {
+//      sum = field.add(
+//        sum,
+//        field.mul(
+//          matrix.getUnchecked(r, j),
+//          vector.getUnchecked(j),
+//        ),
+//      );
+//    }
+//    result.setUnchecked(r, sum);
+//  }
+//  return result;
+//}
+//
+//group('mul', () {
+//final sourceA = matrix.Matrix.generate(
+//DataType.int32, 37, 42, (r, c) => random.nextInt(100),
+//format: matrix.defaultMatrixFormat);
+//final sourceB = Vector.generate(
+//DataType.int8, sourceA.columnCount, (i) => random.nextInt(100),
+//format: format);
+//test('default', () {
+//final v = mul(sourceA, sourceB);
+//for (var i = 0; i < v.count; i++) {
+//expect(v[i], dot(sourceA.row(i), sourceB));
+//}
+//});
+//test('error in-place', () {
+//final derivedA = sourceA.range(0, 8, 0, 8);
+//final derivedB = sourceB.range(0, 8);
+//expect(() => mul(derivedA, derivedB, target: derivedB),
+//throwsArgumentError);
+//expect(() => mul(derivedA, derivedB, target: derivedA.row(0)),
+//throwsArgumentError);
+//expect(() => mul(derivedA, derivedB, target: derivedA.column(0)),
+//throwsArgumentError);
+//});
+//test('error dimensions', () {
+//expect(() => mul(sourceA.colRange(1), sourceB), throwsArgumentError);
+//expect(() => mul(sourceA, sourceB.range(1)), throwsArgumentError);
+//});
+//});

@@ -2,7 +2,6 @@ library data.test.vector;
 
 import 'dart:math';
 
-import 'package:data/matrix.dart' as matrix;
 import 'package:data/type.dart';
 import 'package:data/vector.dart';
 import 'package:test/test.dart';
@@ -140,7 +139,7 @@ void vectorTest(String name, VectorFormat format) {
         for (var i = 0; i < vector.count; i++) {
           copy[i] = vector[i];
         }
-        expect(compare(copy, vector), isTrue);
+        expect(copy.compare(vector), isTrue);
       });
       test('read with range error', () {
         final vector = Vector.fromList(DataType.int8, [1, 2], format: format);
@@ -192,7 +191,7 @@ void vectorTest(String name, VectorFormat format) {
           expect(range.dataType, DataType.string);
           expect(range.count, 3);
           expect(range.storage, [source]);
-          expect(compare(range.copy(), range), isTrue);
+          expect(range.copy().compare(range), isTrue);
           expect(range[0], '1');
           expect(range[1], '2');
           expect(range[2], '3');
@@ -231,7 +230,7 @@ void vectorTest(String name, VectorFormat format) {
           expect(index.dataType, DataType.string);
           expect(index.count, 3);
           expect(index.storage, [source]);
-          expect(compare(index.copy(), index), isTrue);
+          expect(index.copy().compare(index), isTrue);
           expect(index[0], '3');
           expect(index[1], '2');
           expect(index[2], '2');
@@ -269,7 +268,7 @@ void vectorTest(String name, VectorFormat format) {
           expect(composite.count, base.count);
           expect(composite.storage, unorderedMatches([base, top]));
           final copy = composite.copy();
-          expect(compare(copy, composite), isTrue);
+          expect(copy.compare(composite), isTrue);
           for (var i = 0; i < composite.count; i++) {
             expect(composite[i], 4 <= i && i <= 5 ? '[${i - 4}]' : '($i)');
             copy[i] = '${copy[i]}*';
@@ -287,7 +286,7 @@ void vectorTest(String name, VectorFormat format) {
           expect(composite.count, base.count);
           expect(composite.storage, unorderedMatches([base, top, mask]));
           final copy = composite.copy();
-          expect(compare(copy, composite), isTrue);
+          expect(copy.compare(composite), isTrue);
           for (var i = 0; i < composite.count; i++) {
             expect(composite[i], i.isEven ? '[$i]' : '($i)');
             copy[i] = '${copy[i]}*';
@@ -368,7 +367,7 @@ void vectorTest(String name, VectorFormat format) {
         });
         test('copy', () {
           final mapped = source.map((index, value) => index, DataType.int32);
-          expect(compare(mapped.copy(), mapped), isTrue);
+          expect(mapped.copy().compare(mapped), isTrue);
         });
       });
       group('cast', () {
@@ -385,7 +384,7 @@ void vectorTest(String name, VectorFormat format) {
         });
         test('copy', () {
           final cast = source.cast(DataType.int32);
-          expect(compare(cast.copy(), cast), isTrue);
+          expect(cast.copy().compare(cast), isTrue);
         });
       });
       test('reversed', () {
@@ -396,7 +395,7 @@ void vectorTest(String name, VectorFormat format) {
         expect(reversed.count, source.count);
         expect(reversed.storage, [source]);
         expect(reversed.reversed, same(source));
-        expect(compare(reversed.copy(), reversed), isTrue);
+        expect(reversed.copy().compare(reversed), isTrue);
         for (var i = 0; i < source.count; i++) {
           expect(reversed[i], source[source.count - i - 1]);
         }
@@ -410,7 +409,7 @@ void vectorTest(String name, VectorFormat format) {
         expect(readonly.dataType, source.dataType);
         expect(readonly.count, source.count);
         expect(readonly.storage, [source]);
-        expect(compare(readonly.copy(), readonly), isTrue);
+        expect(readonly.copy().compare(readonly), isTrue);
         for (var i = 0; i < source.count; i++) {
           expect(source[i], readonly[i]);
           expect(() => readonly[i] = 0, throwsUnsupportedError);
@@ -442,43 +441,26 @@ void vectorTest(String name, VectorFormat format) {
       final sourceB = Vector.generate(
           DataType.int32, 100, (i) => random.nextInt(100),
           format: format);
-      test('unary', () {
-        final result = unaryOperator(sourceA, (a) => a * a);
-        expect(result.dataType, sourceA.dataType);
-        expect(result.count, sourceA.count);
-        for (var i = 0; i < result.count; i++) {
-          final a = sourceA[i];
-          expect(result[i], a * a);
-        }
-      });
-      test('binary', () {
-        final result =
-            binaryOperator(sourceA, sourceB, (a, b) => a * a + b * b);
-        expect(result.dataType, sourceA.dataType);
-        expect(result.count, sourceA.count);
-        for (var i = 0; i < result.count; i++) {
-          final a = sourceA[i];
-          final b = sourceB[i];
-          expect(result[i], a * a + b * b);
-        }
-      });
       group('add', () {
         test('default', () {
-          final target = add(sourceA, sourceB);
+          final target = sourceA.add(sourceB);
           expect(target.dataType, sourceA.dataType);
           expect(target.count, sourceA.count);
           for (var i = 0; i < target.count; i++) {
             expect(target[i], sourceA[i] + sourceB[i]);
           }
         });
-        test('default, bad count', () {
-          final sourceA =
-              Vector.fromList(DataType.int8, [1, 2], format: format);
-          expect(() => add(sourceA, sourceB), throwsArgumentError);
+        test('operator', () {
+          final target = sourceA + sourceB;
+          expect(target.dataType, sourceA.dataType);
+          expect(target.count, sourceA.count);
+          for (var i = 0; i < target.count; i++) {
+            expect(target[i], sourceA[i] + sourceB[i]);
+          }
         });
         test('target', () {
           final target = Vector(DataType.int16, sourceA.count, format: format);
-          final result = add(sourceA, sourceB, target: target);
+          final result = sourceA.add(sourceB, target: target);
           expect(target.dataType, DataType.int16);
           expect(target.count, sourceA.count);
           for (var i = 0; i < target.count; i++) {
@@ -486,45 +468,62 @@ void vectorTest(String name, VectorFormat format) {
           }
           expect(result, target);
         });
-        test('target, bad count', () {
+        test('format', () {
           final target =
-              Vector(DataType.int16, sourceA.count - 1, format: format);
-          expect(
-              () => add(sourceA, sourceB, target: target), throwsArgumentError);
-        });
-        test('builder', () {
-          final target =
-              add(sourceA, sourceB, dataType: DataType.int16, format: format);
+              sourceA.add(sourceB, dataType: DataType.int16, format: format);
           expect(target.dataType, DataType.int16);
           expect(target.count, sourceA.count);
           for (var i = 0; i < target.count; i++) {
             expect(target[i], sourceA[i] + sourceB[i]);
           }
         });
+        test('operand dimension mismatch', () {
+          final sourceA =
+              Vector.fromList(DataType.int8, [1, 2], format: format);
+          expect(() => sourceA.add(sourceB), throwsArgumentError);
+        });
+        test('target dimension mismatch', () {
+          final target =
+              Vector(DataType.int16, sourceA.count - 1, format: format);
+          expect(
+              () => sourceA.add(sourceB, target: target), throwsArgumentError);
+        });
       });
-      test('sub', () {
-        final target = sub(sourceA, sourceB);
-        expect(target.dataType, sourceA.dataType);
-        expect(target.count, sourceA.count);
-        for (var i = 0; i < target.count; i++) {
-          expect(target[i], sourceA[i] - sourceB[i]);
-        }
+      group('sub', () {
+        test('default', () {
+          final target = sourceA.sub(sourceB);
+          expect(target.dataType, sourceA.dataType);
+          expect(target.count, sourceA.count);
+          for (var i = 0; i < target.count; i++) {
+            expect(target[i], sourceA[i] - sourceB[i]);
+          }
+        });
+        test('operator', () {
+          final target = sourceA - sourceB;
+          expect(target.dataType, sourceA.dataType);
+          expect(target.count, sourceA.count);
+          for (var i = 0; i < target.count; i++) {
+            expect(target[i], sourceA[i] - sourceB[i]);
+          }
+        });
       });
-      test('neg', () {
-        final target = neg(sourceA);
-        expect(target.dataType, sourceA.dataType);
-        expect(target.count, sourceA.count);
-        for (var i = 0; i < target.count; i++) {
-          expect(target[i], -sourceA[i]);
-        }
-      });
-      test('scale', () {
-        final target = scale(sourceA, 2);
-        expect(target.dataType, sourceA.dataType);
-        expect(target.count, sourceA.count);
-        for (var i = 0; i < target.count; i++) {
-          expect(target[i], 2 * sourceA[i]);
-        }
+      group('neg', () {
+        test('default', () {
+          final target = sourceA.neg();
+          expect(target.dataType, sourceA.dataType);
+          expect(target.count, sourceA.count);
+          for (var i = 0; i < target.count; i++) {
+            expect(target[i], -sourceA[i]);
+          }
+        });
+        test('default', () {
+          final target = -sourceA;
+          expect(target.dataType, sourceA.dataType);
+          expect(target.count, sourceA.count);
+          for (var i = 0; i < target.count; i++) {
+            expect(target[i], -sourceA[i]);
+          }
+        });
       });
       group('lerp', () {
         final v0 = Vector<double>.fromList(DataType.float32, [1, 6, 9],
@@ -532,7 +531,7 @@ void vectorTest(String name, VectorFormat format) {
         final v1 = Vector<double>.fromList(DataType.float32, [9, -2, 9],
             format: format);
         test('at start', () {
-          final v = lerp(v0, v1, 0.0);
+          final v = v0.lerp(v1, 0.0);
           expect(v.dataType, v1.dataType);
           expect(v.count, v1.count);
           expect(v[0], v0[0]);
@@ -540,7 +539,7 @@ void vectorTest(String name, VectorFormat format) {
           expect(v[2], v0[2]);
         });
         test('at middle', () {
-          final v = lerp(v0, v1, 0.5);
+          final v = v0.lerp(v1, 0.5);
           expect(v.dataType, v1.dataType);
           expect(v.count, v1.count);
           expect(v[0], 5.0);
@@ -548,7 +547,7 @@ void vectorTest(String name, VectorFormat format) {
           expect(v[2], 9.0);
         });
         test('at end', () {
-          final v = lerp(v0, v1, 1.0);
+          final v = v0.lerp(v1, 1.0);
           expect(v.dataType, v1.dataType);
           expect(v.count, v1.count);
           expect(v[0], v1[0]);
@@ -556,7 +555,7 @@ void vectorTest(String name, VectorFormat format) {
           expect(v[2], v1[2]);
         });
         test('at outside', () {
-          final v = lerp(v0, v1, 2.0);
+          final v = v0.lerp(v1, 2.0);
           expect(v.dataType, v1.dataType);
           expect(v.count, v1.count);
           expect(v[0], 17.0);
@@ -566,83 +565,57 @@ void vectorTest(String name, VectorFormat format) {
         test('error', () {
           final other =
               Vector<double>.fromList(DataType.float32, [0, 1], format: format);
-          expect(() => lerp(v0, other, 2.0), throwsArgumentError);
+          expect(() => v0.lerp(other, 2.0), throwsArgumentError);
         });
       });
       group('compare', () {
         test('identity', () {
-          expect(compare(sourceA, sourceA), isTrue);
-          expect(compare(sourceB, sourceB), isTrue);
-          expect(compare(sourceA, sourceB), isFalse);
-          expect(compare(sourceB, sourceA), isFalse);
+          expect(sourceA.compare(sourceA), isTrue);
+          expect(sourceB.compare(sourceB), isTrue);
+          expect(sourceA.compare(sourceB), isFalse);
+          expect(sourceB.compare(sourceA), isFalse);
         });
         test('views', () {
-          expect(
-              compare(sourceA.range(0, 3), sourceA.index([0, 1, 2])), isTrue);
-          expect(
-              compare(sourceA.range(0, 3), sourceA.index([3, 1, 0])), isFalse,
+          expect(sourceA.range(0, 3).compare(sourceA.index([0, 1, 2])), isTrue);
+          expect(sourceA.range(0, 3).compare(sourceA.index([3, 1, 0])), isFalse,
               reason: 'order missmatch');
-          expect(compare(sourceA.range(0, 3), sourceA.index([0, 1])), isFalse,
+          expect(sourceA.range(0, 3).compare(sourceA.index([0, 1])), isFalse,
               reason: 'count missmatch');
         });
         test('custom', () {
-          final negated = neg(sourceA);
-          expect(compare(sourceA, negated), isFalse);
-          expect(compare(sourceA, negated, equals: (a, b) => a == -b), isTrue);
+          final negated = sourceA.neg();
+          expect(sourceA.compare(negated), isFalse);
+          expect(sourceA.compare(negated, equals: (a, b) => a == -b), isTrue);
         });
       });
-      group('mul', () {
-        final sourceA = matrix.Matrix.generate(
-            DataType.int32, 37, 42, (r, c) => random.nextInt(100),
-            format: matrix.defaultMatrixFormat);
-        final sourceB = Vector.generate(
-            DataType.int8, sourceA.columnCount, (i) => random.nextInt(100),
-            format: format);
+
+      group('dot', () {
         test('default', () {
-          final v = mul(sourceA, sourceB);
-          for (var i = 0; i < v.count; i++) {
-            expect(v[i], dot(sourceA.row(i), sourceB));
+          var expected = 0;
+          for (var i = 0; i < sourceA.count; i++) {
+            expected += sourceA[i] * sourceB[i];
           }
+          expect(sourceA.dot(sourceB), expected);
         });
-        test('error in-place', () {
-          final derivedA = sourceA.range(0, 8, 0, 8);
-          final derivedB = sourceB.range(0, 8);
-          expect(() => mul(derivedA, derivedB, target: derivedB),
-              throwsArgumentError);
-          expect(() => mul(derivedA, derivedB, target: derivedA.row(0)),
-              throwsArgumentError);
-          expect(() => mul(derivedA, derivedB, target: derivedA.column(0)),
-              throwsArgumentError);
+        test('dimension missmatch', () {
+          final sourceB =
+              Vector(DataType.uint8, sourceA.count - 1, format: format);
+          expect(() => sourceA.dot(sourceB), throwsArgumentError);
         });
-        test('error dimensions', () {
-          expect(() => mul(sourceA.colRange(1), sourceB), throwsArgumentError);
-          expect(() => mul(sourceA, sourceB.range(1)), throwsArgumentError);
-        });
-      });
-      test('dot', () {
-        var expected = 0;
-        for (var i = 0; i < sourceA.count; i++) {
-          expected += sourceA[i] * sourceB[i];
-        }
-        expect(dot(sourceA, sourceB), expected);
-      });
-      test('dot (dimension missmatch)', () {
-        final sourceB =
-            Vector(DataType.uint8, sourceA.count - 1, format: format);
-        expect(() => dot(sourceA, sourceB), throwsArgumentError);
       });
       test('sum', () {
         final source =
             Vector.fromList(DataType.uint8, [1, 2, 3, 4], format: format);
-        expect(sum(source), 10);
+        expect(source.sum, 10);
       });
       test('length', () {
-        final source = Vector.fromList(DataType.uint8, [3, 4], format: format);
-        expect(length(source), 5.0);
+        final source =
+            Vector.fromList(DataType.float32, [3, 4], format: format);
+        expect(source.length, 5.0);
       });
       test('length2', () {
-        final source = Vector.fromList(DataType.uint8, [4, 3], format: format);
-        expect(length2(source), 25);
+        final source = Vector.fromList(DataType.int32, [4, 3], format: format);
+        expect(source.length2, 25);
       });
     });
   });

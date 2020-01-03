@@ -4,7 +4,7 @@ import 'dart:math' as math;
 
 import 'package:data/matrix.dart';
 import 'package:data/type.dart';
-import 'package:data/vector.dart' as vector;
+import 'package:data/vector.dart';
 import 'package:more/printer.dart' show Printer;
 
 /// Generates a magic square test matrix.
@@ -99,7 +99,7 @@ void main() {
 
     // Diagonal sum, should be the magic sum, (n^3 + n)/2.
     {
-      final t = vector.sum(m.diagonal());
+      final t = m.diagonal().sum;
       buffer.add(integerPrinter()(t));
       assert(t == (n * n * n + n) / 2, 'invalid magic sum');
     }
@@ -108,7 +108,7 @@ void main() {
     {
       final e = scale(add(md, md.transposed), 0.5).eigenvalue;
       buffer.add(doublePrinter(3)(e.realEigenvalues.last));
-      assert((e.realEigenvalues.last - vector.sum(m.diagonal())).abs() < 0.0001,
+      assert((e.realEigenvalues.last - m.diagonal().sum).abs() < 0.0001,
           'invalid eigenvalue');
     }
 
