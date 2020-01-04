@@ -301,26 +301,26 @@ void polynomialTest(String name, PolynomialFormat format) {
       test('empty', () {
         final polynomial =
             Polynomial.fromList(DataType.int32, <int>[], format: format);
-        final solutions = roots(polynomial);
+        final solutions = polynomial.roots;
         expect(solutions, isEmpty);
       });
       test('constant', () {
         final polynomial =
             Polynomial.fromList(DataType.int32, [2], format: format);
-        final solutions = roots(polynomial);
+        final solutions = polynomial.roots;
         expect(solutions, isEmpty);
       });
       test('linear', () {
         final polynomial =
             Polynomial.fromList(DataType.int32, [1, 2], format: format);
-        final solutions = roots(polynomial);
+        final solutions = polynomial.roots;
         expect(solutions, hasLength(1));
         expect(solutions[0].closeTo(const Complex(-0.5), epsilon), isTrue);
       });
       test('square', () {
         final polynomial =
             Polynomial.fromList(DataType.int32, [2, 0, 3], format: format);
-        final solutions = roots(polynomial);
+        final solutions = polynomial.roots;
         expect(solutions, hasLength(2));
         expect(solutions[0].closeTo(Complex(0, sqrt(2 / 3)), epsilon), isTrue);
         expect(solutions[1].closeTo(Complex(0, -sqrt(2 / 3)), epsilon), isTrue);
@@ -328,7 +328,7 @@ void polynomialTest(String name, PolynomialFormat format) {
       test('cubic', () {
         final polynomial =
             Polynomial.fromList(DataType.int32, [6, -5, -2, 1], format: format);
-        final solutions = roots(polynomial);
+        final solutions = polynomial.roots;
         expect(solutions, hasLength(3));
         expect(solutions[0].closeTo(const Complex(1), epsilon), isTrue);
         expect(solutions[1].closeTo(const Complex(3), epsilon), isTrue);
@@ -338,7 +338,7 @@ void polynomialTest(String name, PolynomialFormat format) {
         final polynomial = Polynomial.fromList(
             DataType.int32, [5, -8, 7, -3, 0, -3, 5, -4],
             format: format);
-        final solutions = roots(polynomial);
+        final solutions = polynomial.roots;
         expect(solutions, hasLength(7));
         expect(
             solutions[0]
@@ -396,7 +396,7 @@ void polynomialTest(String name, PolynomialFormat format) {
           expect(result.dataType, source.dataType);
           expect(result.storage, [source]);
           expect(result.degree, source.degree - 1);
-          expect(compare(result.copy(), result), isTrue);
+          expect(result.copy().compare(result), isTrue);
           for (var i = 0; i < cs1.length; i++) {
             expect(source[i], cs0[i]);
             expect(result[i], cs1[i]);
@@ -424,7 +424,7 @@ void polynomialTest(String name, PolynomialFormat format) {
           expect(result.dataType, source.dataType);
           expect(result.storage, [source]);
           expect(result.degree, source.degree + 1);
-          expect(compare(result.copy(), result), isTrue);
+          expect(result.copy().compare(result), isTrue);
           for (var i = 0; i < cs1.length; i++) {
             expect(source[i], cs0[i]);
             expect(result[i], cs1[i]);
@@ -489,7 +489,7 @@ void polynomialTest(String name, PolynomialFormat format) {
         expect(readonly.degree, 7);
         expect(readonly.storage, [source]);
         expect(readonly.unmodifiable, readonly);
-        expect(compare(readonly.copy(), readonly), isTrue);
+        expect(readonly.copy().compare(readonly), isTrue);
         for (var i = readonly.degree; i >= 0; i--) {
           expect(readonly[i], i + 1);
           expect(() => readonly[i] = i, throwsUnsupportedError);
@@ -525,48 +525,36 @@ void polynomialTest(String name, PolynomialFormat format) {
       final sourceB = Polynomial.generate(
           DataType.int32, 100, (i) => 1 + random.nextInt(99),
           format: format);
-      test('unary', () {
-        final result = unaryOperator(sourceA, (a) => a * a);
-        expect(result.dataType, sourceA.dataType);
-        expect(result.degree, sourceA.degree);
-        for (var i = 0; i <= result.degree; i++) {
-          final a = sourceA[i];
-          expect(result[i], a * a);
-        }
-      });
-      test('binary', () {
-        final result =
-            binaryOperator(sourceA, sourceB, (a, b) => a * a + b * b);
-        expect(result.dataType, sourceA.dataType);
-        expect(result.degree, sourceA.degree);
-        for (var i = 0; i <= result.degree; i++) {
-          final a = sourceA[i];
-          final b = sourceB[i];
-          expect(result[i], a * a + b * b);
-        }
-      });
       group('add', () {
         test('default', () {
-          final result = add(sourceA, sourceB);
+          final result = sourceA.add(sourceB);
           expect(result.dataType, sourceA.dataType);
           expect(result.degree, sourceA.degree);
           for (var i = 0; i <= result.degree; i++) {
             expect(result[i], sourceA[i] + sourceB[i]);
           }
         });
-        test('default, different degree', () {
+        test('operator', () {
+          final result = sourceA + sourceB;
+          expect(result.dataType, sourceA.dataType);
+          expect(result.degree, sourceA.degree);
+          for (var i = 0; i <= result.degree; i++) {
+            expect(result[i], sourceA[i] + sourceB[i]);
+          }
+        });
+        test('different degree', () {
           final sourceB =
               Polynomial.fromList(DataType.int32, [1, 2], format: format);
-          final result = add(sourceA, sourceB);
+          final result = sourceA.add(sourceB);
           expect(result.dataType, sourceA.dataType);
           expect(result.degree, sourceA.degree);
           for (var i = 0; i <= result.degree; i++) {
             expect(result[i], sourceA[i] + sourceB[i]);
           }
         });
-        test('builder', () {
+        test('target', () {
           final result =
-              add(sourceA, sourceB, dataType: DataType.uint8, format: format);
+              sourceA.add(sourceB, dataType: DataType.uint8, format: format);
           expect(result.dataType, DataType.uint8);
           expect(result.degree, sourceA.degree);
           for (var i = 0; i <= result.degree; i++) {
@@ -574,29 +562,41 @@ void polynomialTest(String name, PolynomialFormat format) {
           }
         });
       });
-      test('sub', () {
-        final target = sub(sourceA, sourceB);
-        expect(target.dataType, sourceA.dataType);
-        expect(target.degree, sourceA.degree);
-        for (var i = 0; i <= target.degree; i++) {
-          expect(target[i], sourceA[i] - sourceB[i]);
-        }
+      group('sub', () {
+        test('default', () {
+          final target = sourceA.sub(sourceB);
+          expect(target.dataType, sourceA.dataType);
+          expect(target.degree, sourceA.degree);
+          for (var i = 0; i <= target.degree; i++) {
+            expect(target[i], sourceA[i] - sourceB[i]);
+          }
+        });
+        test('operator', () {
+          final target = sourceA - sourceB;
+          expect(target.dataType, sourceA.dataType);
+          expect(target.degree, sourceA.degree);
+          for (var i = 0; i <= target.degree; i++) {
+            expect(target[i], sourceA[i] - sourceB[i]);
+          }
+        });
       });
-      test('neg', () {
-        final target = neg(sourceA);
-        expect(target.dataType, sourceA.dataType);
-        expect(target.degree, sourceA.degree);
-        for (var i = 0; i <= target.degree; i++) {
-          expect(target[i], -sourceA[i]);
-        }
-      });
-      test('scale', () {
-        final target = scale(sourceA, 2);
-        expect(target.dataType, sourceA.dataType);
-        expect(target.degree, sourceA.degree);
-        for (var i = 0; i < target.degree; i++) {
-          expect(target[i], 2 * sourceA[i]);
-        }
+      group('neg', () {
+        test('default', () {
+          final target = sourceA.neg();
+          expect(target.dataType, sourceA.dataType);
+          expect(target.degree, sourceA.degree);
+          for (var i = 0; i <= target.degree; i++) {
+            expect(target[i], -sourceA[i]);
+          }
+        });
+        test('operator', () {
+          final target = -sourceA;
+          expect(target.dataType, sourceA.dataType);
+          expect(target.degree, sourceA.degree);
+          for (var i = 0; i <= target.degree; i++) {
+            expect(target[i], -sourceA[i]);
+          }
+        });
       });
       group('lerp', () {
         final v0 = Polynomial<double>.fromList(DataType.float32, [1, 6, 8],
@@ -604,7 +604,7 @@ void polynomialTest(String name, PolynomialFormat format) {
         final v1 = Polynomial<double>.fromList(DataType.float32, [9, -2, 8],
             format: format);
         test('at start', () {
-          final p = lerp(v0, v1, 0.0);
+          final p = v0.lerp(v1, 0.0);
           expect(p.dataType, v1.dataType);
           expect(p.degree, v1.degree);
           expect(p[0], v0[0]);
@@ -612,7 +612,7 @@ void polynomialTest(String name, PolynomialFormat format) {
           expect(p[2], v0[2]);
         });
         test('at middle', () {
-          final p = lerp(v0, v1, 0.5);
+          final p = v0.lerp(v1, 0.5);
           expect(p.dataType, v1.dataType);
           expect(p.degree, v1.degree);
           expect(p[0], 5.0);
@@ -620,7 +620,7 @@ void polynomialTest(String name, PolynomialFormat format) {
           expect(p[2], 8.0);
         });
         test('at end', () {
-          final p = lerp(v0, v1, 1.0);
+          final p = v0.lerp(v1, 1.0);
           expect(p.dataType, v1.dataType);
           expect(p.degree, v1.degree);
           expect(p[0], v1[0]);
@@ -628,7 +628,7 @@ void polynomialTest(String name, PolynomialFormat format) {
           expect(p[2], v1[2]);
         });
         test('at outside', () {
-          final p = lerp(v0, v1, 2.0);
+          final p = v0.lerp(v1, 2.0);
           expect(p.dataType, v1.dataType);
           expect(p.degree, v1.degree);
           expect(p[0], 17.0);
@@ -638,7 +638,7 @@ void polynomialTest(String name, PolynomialFormat format) {
         test('different degree', () {
           final v3 = Polynomial<double>.fromList(DataType.float32, [9, -2],
               format: format);
-          final p = lerp(v0, v3, 0.5);
+          final p = v0.lerp(v3, 0.5);
           expect(p.dataType, v0.dataType);
           expect(p.degree, v0.degree);
           expect(p[0], 5.0);
@@ -655,36 +655,57 @@ void polynomialTest(String name, PolynomialFormat format) {
           final expected = Polynomial.fromList(
               DataType.int32, [-4, 2, 22, 37, 27, -12],
               format: format);
-          final first = mul(sourceA, sourceB);
+          final first = sourceA.mul(sourceB);
           expect(first.dataType, DataType.int32);
           expect(first.degree, 5);
-          expect(compare(first, expected), isTrue);
-          final second = mul(sourceB, sourceA);
+          expect(first.compare(expected), isTrue);
+          final second = sourceB.mul(sourceA);
           expect(second.dataType, DataType.int32);
           expect(second.degree, 5);
-          expect(compare(second, expected), isTrue);
+          expect(second.compare(expected), isTrue);
+        });
+        test('operator', () {
+          final expected = Polynomial.fromList(
+              DataType.int32, [-4, 2, 22, 37, 27, -12],
+              format: format);
+          final first = sourceA * sourceB;
+          expect(first.dataType, DataType.int32);
+          expect(first.degree, 5);
+          expect(first.compare(expected), isTrue);
+          final second = sourceB * sourceA;
+          expect(second.dataType, DataType.int32);
+          expect(second.degree, 5);
+          expect(second.compare(expected), isTrue);
         });
         test('zero', () {
-          final zero = Polynomial.fromList(DataType.int32, [], format: format);
-          final first = mul(sourceA, zero);
-          expect(compare(first, zero), isTrue);
-          final second = mul(zero, sourceA);
-          expect(compare(second, zero), isTrue);
+          final zero = Polynomial(DataType.int32, format: format);
+          final first = sourceA.mul(zero);
+          expect(first.compare(zero), isTrue);
+          final second = zero.mul(sourceA);
+          expect(second.compare(zero), isTrue);
         });
         test('constant', () {
           final constant =
               Polynomial.fromList(DataType.int32, [3], format: format);
-          final first = mul(sourceA, constant);
-          expect(compare(first, scale(sourceA, 3)), isTrue);
-          final second = mul(constant, sourceA);
-          expect(compare(second, scale(sourceA, 3)), isTrue);
+          final first = sourceA.mul(constant);
+          expect(first.compare(sourceA.mul(3)), isTrue);
+          final second = constant.mul(sourceA);
+          expect(second.compare(sourceA.mul(3)), isTrue);
+        });
+        test('scale', () {
+          final target = sourceA.mul(2);
+          expect(target.dataType, sourceA.dataType);
+          expect(target.degree, sourceA.degree);
+          for (var i = 0; i < target.degree; i++) {
+            expect(target[i], 2 * sourceA[i]);
+          }
         });
       });
       group('div', () {
-        Division<Polynomial<T>> divWithInvariant<T>(
+        PolynomialDivision<T> divWithInvariant<T>(
             Polynomial<T> dividend, Polynomial<T> divisor) {
-          final result = div(dividend, divisor);
-          final reverse = add(mul(result.quotient, divisor), result.remainder);
+          final result = dividend.div(divisor);
+          final reverse = result.quotient * divisor + result.remainder;
           expect(dividend.format(limit: false), reverse.format(limit: false));
           expect(result.quotient.dataType, dividend.dataType);
           expect(result.remainder.dataType, dividend.dataType);
@@ -694,13 +715,11 @@ void polynomialTest(String name, PolynomialFormat format) {
         test('zero divisor', () {
           final dividend = Polynomial.fromList(DataType.int32, [-42, 0, -12, 1],
               format: format);
-          final divisor =
-              Polynomial.fromList(DataType.int32, [], format: format);
-          expect(() => div(dividend, divisor), throwsIntegerDivisionByZero);
+          final divisor = Polynomial(DataType.int32, format: format);
+          expect(() => dividend.div(divisor), throwsIntegerDivisionByZero);
         });
         test('zero divident', () {
-          final dividend =
-              Polynomial.fromList(DataType.int32, [], format: format);
+          final dividend = Polynomial(DataType.int32, format: format);
           final divisor = Polynomial.fromList(DataType.int32, [-42, 0, -12, 1],
               format: format);
           final result = divWithInvariant(dividend, divisor);
@@ -755,15 +774,15 @@ void polynomialTest(String name, PolynomialFormat format) {
       });
       group('compare', () {
         test('identity', () {
-          expect(compare(sourceA, sourceA), isTrue);
-          expect(compare(sourceB, sourceB), isTrue);
-          expect(compare(sourceA, sourceB), isFalse);
-          expect(compare(sourceB, sourceA), isFalse);
+          expect(sourceA.compare(sourceA), isTrue);
+          expect(sourceB.compare(sourceB), isTrue);
+          expect(sourceA.compare(sourceB), isFalse);
+          expect(sourceB.compare(sourceA), isFalse);
         });
         test('custom', () {
-          final negated = neg(sourceA);
-          expect(compare(sourceA, negated), isFalse);
-          expect(compare(sourceA, negated, equals: (a, b) => a == -b), isTrue);
+          final negated = sourceA.neg();
+          expect(sourceA.compare(negated), isFalse);
+          expect(sourceA.compare(negated, equals: (a, b) => a == -b), isTrue);
         });
       });
     });

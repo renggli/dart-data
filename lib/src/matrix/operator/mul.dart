@@ -21,7 +21,7 @@ extension MulExtension<T> on Matrix<T> {
       return mulScalar(other,
           target: target, dataType: dataType, format: format);
     } else {
-      throw ArgumentError.value(other, 'other', 'Invalid multiplicator type.');
+      throw ArgumentError.value(other, 'other', 'Invalid multiplicator.');
     }
   }
 
