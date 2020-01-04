@@ -106,7 +106,7 @@ void main() {
 
     // Maximum eigenvalue of (A + A') / 2, should equal trace.
     {
-      final e = scale(add(md, md.transposed), 0.5).eigenvalue;
+      final e = ((md + md.transposed) * 0.5).eigenvalue;
       buffer.add(doublePrinter(3)(e.realEigenvalues.last));
       assert((e.realEigenvalues.last - m.diagonal().sum).abs() < 0.0001,
           'invalid eigenvalue');
@@ -132,7 +132,7 @@ void main() {
       final l = lu.lower;
       final u = lu.upper;
       final p = lu.pivot;
-      final r = sub(mul(l, u), md.rowIndex(p));
+      final r = l * u - md.rowIndex(p);
       final res = r.norm1 / (n * eps);
       buffer.add(doublePrinter(3)(res));
     }
@@ -142,7 +142,7 @@ void main() {
       final qr = md.qr;
       final q = qr.orthogonal;
       final r = qr.upper;
-      final R = sub(mul(q, r), m.cast(DataType.float64));
+      final R = q * r - m.cast(DataType.float64);
       final res = R.norm1 / (n * eps);
       buffer.add(doublePrinter(3)(res));
     }

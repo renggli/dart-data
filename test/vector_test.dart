@@ -563,8 +563,7 @@ void vectorTest(String name, VectorFormat format) {
           expect(v[2], 9.0);
         });
         test('error', () {
-          final other =
-              Vector<double>.fromList(DataType.float32, [0, 1], format: format);
+          final other = Vector(DataType.float32, 2, format: format);
           expect(() => v0.lerp(other, 2.0), throwsArgumentError);
         });
       });
@@ -588,7 +587,6 @@ void vectorTest(String name, VectorFormat format) {
           expect(sourceA.compare(negated, equals: (a, b) => a == -b), isTrue);
         });
       });
-
       group('dot', () {
         test('default', () {
           var expected = 0;

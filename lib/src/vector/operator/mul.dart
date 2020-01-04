@@ -6,10 +6,7 @@ import '../vector_format.dart';
 import 'utils.dart';
 
 extension MulExtension<T> on Vector<T> {
-  /// Multiplies this [Vector] with [other].
-  ///
-  /// If [other] is a [Vector], then element-wise multiplication is performed.
-  /// If [other] is a scalar, then the vector is scaled.
+  /// Multiplies this [Vector] element-wise with [other].
   Vector<T> mul(/* Matrix<T>|Vector<T>|T */ Object other,
       {Vector<T> target, DataType<T> dataType, VectorFormat format}) {
     final result = createVector<T>(this, target, dataType, format);
