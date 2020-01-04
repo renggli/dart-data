@@ -2,7 +2,7 @@ library data.vector.view.generated;
 
 import '../../../type.dart';
 import '../../shared/storage.dart';
-import '../mixins/unmodifiable_vector.dart';
+import '../mixin/unmodifiable_vector.dart';
 import '../vector.dart';
 
 /// Callback to generate a value in [GeneratedVector].

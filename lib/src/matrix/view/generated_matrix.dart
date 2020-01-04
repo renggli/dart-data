@@ -3,7 +3,7 @@ library data.matrix.view.generator;
 import '../../../type.dart';
 import '../../shared/storage.dart';
 import '../matrix.dart';
-import '../mixins/unmodifiable_matrix_mixin.dart';
+import '../mixin/unmodifiable_matrix_mixin.dart';
 
 /// Callback to generate a value in [GeneratedMatrix].
 typedef MatrixGeneratorCallback<T> = T Function(int row, int column);

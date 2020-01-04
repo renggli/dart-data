@@ -87,8 +87,8 @@ extension RangeMatrixExtension<T> on Matrix<T> {
           int rowStart, int rowEnd, int colStart, int colEnd) =>
       _rangeUnchecked(this, rowStart, rowEnd, colStart, colEnd);
 
-  // TODO(renggli): workaround, https://github.com/dart-lang/sdk/issues/39959.
-  Matrix<T> _rangeUnchecked(
+  // TODO(renggli): https://github.com/dart-lang/sdk/issues/39959
+  static Matrix<T> _rangeUnchecked<T>(
           Matrix<T> self, int rowStart, int rowEnd, int colStart, int colEnd) =>
       self is RangeMatrix<T>
           ? RangeMatrix<T>(

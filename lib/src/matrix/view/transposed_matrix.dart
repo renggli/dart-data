@@ -37,7 +37,7 @@ extension TransposedMatrixExtension<T> on Matrix<T> {
   /// Returns a mutable view onto the transposed matrix.
   Matrix<T> get transposed => _transposed(this);
 
-  // TODO(renggli): workaround, https://github.com/dart-lang/sdk/issues/39959.
-  Matrix<T> _transposed(Matrix<T> self) =>
+  // TODO(renggli): https://github.com/dart-lang/sdk/issues/39959
+  static Matrix<T> _transposed<T>(Matrix<T> self) =>
       self is TransposedMatrix<T> ? self.matrix : TransposedMatrix<T>(self);
 }

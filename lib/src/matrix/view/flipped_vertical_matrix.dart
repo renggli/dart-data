@@ -38,8 +38,9 @@ extension FlippedVerticalMatrixExtension<T> on Matrix<T> {
   /// Returns a mutable view onto the vertically flipped matrix.
   Matrix<T> get flippedVertical => _flippedVertical(this);
 
-  // TODO(renggli): workaround, https://github.com/dart-lang/sdk/issues/39959.
-  Matrix<T> _flippedVertical(Matrix<T> self) => self is FlippedVerticalMatrix<T>
-      ? self.matrix
-      : FlippedVerticalMatrix<T>(self);
+  // TODO(renggli): https://github.com/dart-lang/sdk/issues/39959
+  static Matrix<T> _flippedVertical<T>(Matrix<T> self) =>
+      self is FlippedVerticalMatrix<T>
+          ? self.matrix
+          : FlippedVerticalMatrix<T>(self);
 }

@@ -83,8 +83,8 @@ extension IndexMatrixExtension<T> on Matrix<T> {
           Iterable<int> rowIndexes, Iterable<int> colIndexes) =>
       _indexUnchecked(this, rowIndexes, colIndexes);
 
-  // TODO(renggli): workaround, https://github.com/dart-lang/sdk/issues/39959.
-  Matrix<T> _indexUnchecked(
+  // TODO(renggli): https://github.com/dart-lang/sdk/issues/39959
+  static Matrix<T> _indexUnchecked<T>(
           Matrix<T> self, Iterable<int> rowIndexes, Iterable<int> colIndexes) =>
       self is IndexMatrix<T>
           ? IndexMatrix<T>(

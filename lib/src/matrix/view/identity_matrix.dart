@@ -3,7 +3,7 @@ library data.matrix.view.identity;
 import '../../../type.dart';
 import '../../shared/storage.dart';
 import '../matrix.dart';
-import '../mixins/unmodifiable_matrix_mixin.dart';
+import '../mixin/unmodifiable_matrix_mixin.dart';
 
 /// Read-only identity matrix.
 class IdentityMatrix<T> with Matrix<T>, UnmodifiableMatrixMixin<T> {

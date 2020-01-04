@@ -51,8 +51,8 @@ extension RangeVectorExtension<T> on Vector<T> {
   Vector<T> rangeUnchecked(int start, int end) =>
       _rangeUnchecked(this, start, end);
 
-  // TODO(renggli): workaround, https://github.com/dart-lang/sdk/issues/39959.
-  Vector<T> _rangeUnchecked<T>(Vector<T> self, int start, int end) =>
+  // TODO(renggli): https://github.com/dart-lang/sdk/issues/39959
+  static Vector<T> _rangeUnchecked<T>(Vector<T> self, int start, int end) =>
       self is RangeVector<T>
           ? RangeVector<T>(self.vector, self.start + start, self.start + end)
           : RangeVector<T>(self, start, end);

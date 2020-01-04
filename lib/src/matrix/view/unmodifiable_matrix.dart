@@ -3,7 +3,7 @@ library data.matrix.view.unmodifiable;
 import '../../../type.dart';
 import '../../shared/storage.dart';
 import '../matrix.dart';
-import '../mixins/unmodifiable_matrix_mixin.dart';
+import '../mixin/unmodifiable_matrix_mixin.dart';
 
 /// Read-only view of a mutable matrix.
 class UnmodifiableMatrix<T> with Matrix<T>, UnmodifiableMatrixMixin<T> {
@@ -33,5 +33,5 @@ class UnmodifiableMatrix<T> with Matrix<T>, UnmodifiableMatrixMixin<T> {
 extension UnmodifiableMatrixExtension<T> on Matrix<T> {
   /// Returns a unmodifiable view of the matrix.
   Matrix<T> get unmodifiable =>
-      this is UnmodifiableMatrix<T> ? this : UnmodifiableMatrix<T>(this);
+      this is UnmodifiableMatrixMixin<T> ? this : UnmodifiableMatrix<T>(this);
 }

@@ -1,4 +1,4 @@
-library data.matrix.mixins.unmodifiable;
+library data.matrix.mixin.unmodifiable;
 
 import '../matrix.dart';
 

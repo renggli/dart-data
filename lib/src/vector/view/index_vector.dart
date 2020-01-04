@@ -50,9 +50,10 @@ extension IndexVectorExtension<T> on Vector<T> {
   Vector<T> indexUnchecked(Iterable<int> indexes) =>
       _indexUnchecked(this, indexes);
 
-  // TODO(renggli): workaround, https://github.com/dart-lang/sdk/issues/39959.
-  Vector<T> _indexUnchecked<T>(Vector<T> self, Iterable<int> indexes) => self
-          is IndexVector<T>
-      ? IndexVector<T>(self.vector, indexes.map((index) => self.indexes[index]))
-      : IndexVector<T>(self, indexes);
+  // TODO(renggli): https://github.com/dart-lang/sdk/issues/39959
+  static Vector<T> _indexUnchecked<T>(Vector<T> self, Iterable<int> indexes) =>
+      self is IndexVector<T>
+          ? IndexVector<T>(
+              self.vector, indexes.map((index) => self.indexes[index]))
+          : IndexVector<T>(self, indexes);
 }

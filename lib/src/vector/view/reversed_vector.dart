@@ -34,7 +34,7 @@ extension ReversedVectorExtension<T> on Vector<T> {
   /// Returns a reversed view of this [Vector].
   Vector<T> get reversed => _reversed(this);
 
-  // TODO(renggli): workaround, https://github.com/dart-lang/sdk/issues/39959.
-  Vector<T> _reversed<T>(Vector<T> self) =>
+  // TODO(renggli): https://github.com/dart-lang/sdk/issues/39959
+  static Vector<T> _reversed<T>(Vector<T> self) =>
       self is ReversedVector<T> ? self.vector : ReversedVector<T>(self);
 }
