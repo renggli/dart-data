@@ -2,28 +2,35 @@ library data.polynomial.view.unmodifiable;
 
 import '../../../type.dart';
 import '../../shared/storage.dart';
-import '../mixins/unmodifiable_polynomial.dart';
+import '../mixin/unmodifiable_polynomial.dart';
 import '../polynomial.dart';
 
 /// Read-only view of a mutable polynomial.
 class UnmodifiablePolynomial<T>
     with Polynomial<T>, UnmodifiablePolynomialMixin<T> {
-  final Polynomial<T> _polynomial;
+  final Polynomial<T> polynomial;
 
-  UnmodifiablePolynomial(this._polynomial);
-
-  @override
-  DataType<T> get dataType => _polynomial.dataType;
+  UnmodifiablePolynomial(this.polynomial);
 
   @override
-  int get degree => _polynomial.degree;
+  DataType<T> get dataType => polynomial.dataType;
 
   @override
-  Set<Storage> get storage => _polynomial.storage;
+  int get degree => polynomial.degree;
 
   @override
-  Polynomial<T> copy() => UnmodifiablePolynomial(_polynomial.copy());
+  Set<Storage> get storage => polynomial.storage;
 
   @override
-  T getUnchecked(int exponent) => _polynomial.getUnchecked(exponent);
+  Polynomial<T> copy() => UnmodifiablePolynomial(polynomial.copy());
+
+  @override
+  T getUnchecked(int exponent) => polynomial.getUnchecked(exponent);
+}
+
+extension UnmodifiableExtension<T> on Polynomial<T> {
+  /// Returns a unmodifiable view of this polynomial.
+  Polynomial<T> get unmodifiable => this is UnmodifiablePolynomialMixin<T>
+      ? this
+      : UnmodifiablePolynomial<T>(this);
 }

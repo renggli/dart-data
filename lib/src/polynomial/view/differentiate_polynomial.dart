@@ -6,31 +6,31 @@ import '../polynomial.dart';
 
 /// Differentiate modifiable view of a polynomial.
 class DifferentiatePolynomial<T> with Polynomial<T> {
-  final Polynomial<T> _polynomial;
+  final Polynomial<T> polynomial;
 
-  DifferentiatePolynomial(this._polynomial);
-
-  @override
-  DataType<T> get dataType => _polynomial.dataType;
+  DifferentiatePolynomial(this.polynomial);
 
   @override
-  int get degree => _polynomial.degree <= 0 ? -1 : _polynomial.degree - 1;
+  DataType<T> get dataType => polynomial.dataType;
 
   @override
-  Set<Storage> get storage => _polynomial.storage;
+  int get degree => polynomial.degree <= 0 ? -1 : polynomial.degree - 1;
 
   @override
-  Polynomial<T> copy() => DifferentiatePolynomial(_polynomial.copy());
+  Set<Storage> get storage => polynomial.storage;
+
+  @override
+  Polynomial<T> copy() => DifferentiatePolynomial(polynomial.copy());
 
   @override
   T getUnchecked(int exponent) => dataType.field.mul(
-        _polynomial.getUnchecked(exponent + 1),
+        polynomial.getUnchecked(exponent + 1),
         dataType.cast(exponent + 1),
       );
 
   @override
   void setUnchecked(int exponent, T value) {
-    _polynomial.setUnchecked(
+    polynomial.setUnchecked(
       exponent + 1,
       dataType.field.div(
         value,
@@ -38,4 +38,9 @@ class DifferentiatePolynomial<T> with Polynomial<T> {
       ),
     );
   }
+}
+
+extension DifferentiateExtension<T> on Polynomial<T> {
+  /// Returns a mutable view of the differentiate of this polynomial.
+  Polynomial<T> get differentiate => DifferentiatePolynomial<T>(this);
 }

@@ -6,38 +6,38 @@ import '../polynomial.dart';
 
 /// Integrate modifiable view of a polynomial.
 class IntegratePolynomial<T> with Polynomial<T> {
-  final Polynomial<T> _polynomial;
-  T _constant;
+  final Polynomial<T> polynomial;
+  T constant;
 
-  IntegratePolynomial(this._polynomial, [T constant])
-      : _constant = constant ?? _polynomial.zeroCoefficient;
-
-  @override
-  DataType<T> get dataType => _polynomial.dataType;
+  IntegratePolynomial(this.polynomial, [T constant])
+      : constant = constant ?? polynomial.zeroCoefficient;
 
   @override
-  int get degree => _polynomial.degree < 0 ? -1 : _polynomial.degree + 1;
+  DataType<T> get dataType => polynomial.dataType;
 
   @override
-  Set<Storage> get storage => _polynomial.storage;
+  int get degree => polynomial.degree < 0 ? -1 : polynomial.degree + 1;
 
   @override
-  Polynomial<T> copy() => IntegratePolynomial(_polynomial.copy(), _constant);
+  Set<Storage> get storage => polynomial.storage;
+
+  @override
+  Polynomial<T> copy() => IntegratePolynomial(polynomial.copy(), constant);
 
   @override
   T getUnchecked(int exponent) => exponent == 0
-      ? _constant
+      ? constant
       : dataType.field.div(
-          _polynomial.getUnchecked(exponent - 1),
+          polynomial.getUnchecked(exponent - 1),
           dataType.cast(exponent),
         );
 
   @override
   void setUnchecked(int exponent, T value) {
     if (exponent == 0) {
-      _constant = value;
+      constant = value;
     } else {
-      _polynomial.setUnchecked(
+      polynomial.setUnchecked(
         exponent - 1,
         dataType.field.mul(
           value,
@@ -46,4 +46,9 @@ class IntegratePolynomial<T> with Polynomial<T> {
       );
     }
   }
+}
+
+extension IntegrateExtension<T> on Polynomial<T> {
+  /// Returns a mutable view of the integrate of this polynomial.
+  Polynomial<T> get integrate => IntegratePolynomial<T>(this);
 }

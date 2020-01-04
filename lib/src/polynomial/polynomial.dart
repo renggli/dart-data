@@ -11,11 +11,7 @@ import 'impl/keyed_polynomial.dart';
 import 'impl/list_polynomial.dart';
 import 'impl/standard_polynomial.dart';
 import 'polynomial_format.dart';
-import 'view/differentiate_polynomial.dart';
 import 'view/generated_polynomial.dart';
-import 'view/integrate_polynomial.dart';
-import 'view/shift_polynomial.dart';
-import 'view/unmodifiable_polynomial.dart';
 
 /// Abstract polynomial type.
 abstract class Polynomial<T> implements Storage {
@@ -153,19 +149,6 @@ abstract class Polynomial<T> implements Storage {
     }
     return sum;
   }
-
-  /// Returns a mutable view of this polynomial shift by [offset].
-  Polynomial<T> shift(int offset) =>
-      offset == 0 ? this : ShiftPolynomial(this, offset);
-
-  /// Returns a mutable view of the differentiate of this polynomial.
-  Polynomial<T> get differentiate => DifferentiatePolynomial<T>(this);
-
-  /// Returns a mutable view of the integrate of this polynomial.
-  Polynomial<T> get integrate => IntegratePolynomial<T>(this);
-
-  /// Returns a unmodifiable view of this polynomial.
-  Polynomial<T> get unmodifiable => UnmodifiablePolynomial<T>(this);
 
   /// Returns a list iterable over the polynomial.
   List<T> get iterable => _PolynomialList<T>(this);
