@@ -13,6 +13,8 @@ import 'impl/diagonal_matrix.dart';
 import 'impl/keyed_matrix.dart';
 import 'impl/row_major_matrix.dart';
 import 'matrix_format.dart';
+import 'view/concat_horizontal_matrix.dart';
+import 'view/concat_vertical_matrix.dart';
 import 'view/constant_matrix.dart';
 import 'view/generated_matrix.dart';
 import 'view/identity_matrix.dart';
@@ -45,6 +47,34 @@ abstract class Matrix<T> implements Storage {
       default:
         throw ArgumentError.value(format, 'format', 'Unknown matrix format.');
     }
+  }
+
+  /// Builds a matrix by concatenating a list of [matrices] horizontally.
+  factory Matrix.concatHorizontal(
+      DataType<T> dataType, Iterable<Matrix<T>> matrices,
+      {MatrixFormat format}) {
+    if (matrices.isEmpty) {
+      throw ArgumentError.value(
+          matrices, 'matrices', 'Expected at least 1 matrix.');
+    }
+    final result = matrices.length == 1
+        ? matrices.first
+        : ConcatHorizontalMatrix<T>(dataType, matrices);
+    return format == null ? result : result.toMatrix(format: format);
+  }
+
+  /// Builds a matrix by concatenating a list of [matrices] vertically.
+  factory Matrix.concatVertical(
+      DataType<T> dataType, Iterable<Matrix<T>> matrices,
+      {MatrixFormat format}) {
+    if (matrices.isEmpty) {
+      throw ArgumentError.value(
+          matrices, 'matrices', 'Expected at least 1 matrix.');
+    }
+    final result = matrices.length == 1
+        ? matrices.first
+        : ConcatVerticalMatrix<T>(dataType, matrices);
+    return format == null ? result : result.toMatrix(format: format);
   }
 
   /// Returns a matrix with a constant [value]. If [format] is specified

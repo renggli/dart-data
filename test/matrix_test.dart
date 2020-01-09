@@ -30,6 +30,87 @@ void matrixTest(String name, MatrixFormat format) {
         expect(() => Matrix(DataType.int8, 4, -5, format: format),
             throwsRangeError);
       });
+      group('concat horizontal', () {
+        final a = Matrix.fromRows(
+            DataType.int8,
+            [
+              [1, 2],
+              [4, 5]
+            ],
+            format: format);
+        final b = Matrix.fromRows(
+            DataType.int8,
+            [
+              [3],
+              [6]
+            ],
+            format: format);
+        final expected = Matrix.fromRows(
+            DataType.int8,
+            [
+              [1, 2, 3],
+              [4, 5, 6]
+            ],
+            format: format);
+        test('default', () {
+          expect(
+              Matrix.concatHorizontal(DataType.int8, [a, b]).compare(expected),
+              isTrue);
+        });
+        test('with format', () {
+          expect(
+              Matrix.concatHorizontal(DataType.int8, [a, b], format: format)
+                  .compare(expected),
+              isTrue);
+        });
+        test('single', () {
+          expect(Matrix.concatHorizontal(DataType.int8, [a]), a);
+        });
+        test('error', () {
+          expect(() => Matrix.concatHorizontal(DataType.int8, []),
+              throwsArgumentError);
+        });
+      });
+      group('concat vertical', () {
+        final a = Matrix.fromRows(
+            DataType.int8,
+            [
+              [1, 4],
+              [2, 5]
+            ],
+            format: format);
+        final b = Matrix.fromRows(
+            DataType.int8,
+            [
+              [3, 6]
+            ],
+            format: format);
+        final expected = Matrix.fromRows(
+            DataType.int8,
+            [
+              [1, 4],
+              [2, 5],
+              [3, 6]
+            ],
+            format: format);
+        test('default', () {
+          expect(Matrix.concatVertical(DataType.int8, [a, b]).compare(expected),
+              isTrue);
+        });
+        test('with format', () {
+          expect(
+              Matrix.concatVertical(DataType.int8, [a, b], format: format)
+                  .compare(expected),
+              isTrue);
+        });
+        test('single', () {
+          expect(Matrix.concatVertical(DataType.int8, [a]), a);
+        });
+        test('error', () {
+          expect(() => Matrix.concatVertical(DataType.int8, []),
+              throwsArgumentError);
+        });
+      });
       test('constant', () {
         final matrix = Matrix.constant(DataType.int8, 5, 6);
         expect(matrix.dataType, DataType.int8);
