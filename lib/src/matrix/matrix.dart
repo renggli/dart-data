@@ -49,7 +49,7 @@ abstract class Matrix<T> implements Storage {
     }
   }
 
-  /// Builds a matrix by concatenating a list of [matrices] horizontally.
+  /// Returns the horizontal concatenation of [matrices].
   factory Matrix.concatHorizontal(
       DataType<T> dataType, Iterable<Matrix<T>> matrices,
       {MatrixFormat format}) {
@@ -63,7 +63,7 @@ abstract class Matrix<T> implements Storage {
     return format == null ? result : result.toMatrix(format: format);
   }
 
-  /// Builds a matrix by concatenating a list of [matrices] vertically.
+  /// Returns the vertical concatenation of [matrices].
   factory Matrix.concatVertical(
       DataType<T> dataType, Iterable<Matrix<T>> matrices,
       {MatrixFormat format}) {

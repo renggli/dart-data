@@ -24,6 +24,27 @@ void vectorTest(String name, VectorFormat format) {
         expect(
             () => Vector(DataType.int8, -4, format: format), throwsRangeError);
       });
+      group('concat', () {
+        final a = Vector.fromList(DataType.int8, [0, 1, 2], format: format);
+        final b = Vector.fromList(DataType.int8, [3, 4], format: format);
+        final expected = Vector.generate(DataType.int8, 5, (i) => i);
+        test('default', () {
+          expect(
+              Vector.concat(DataType.int8, [a, b]).compare(expected), isTrue);
+        });
+        test('with format', () {
+          expect(
+              Vector.concat(DataType.int8, [a, b], format: format)
+                  .compare(expected),
+              isTrue);
+        });
+        test('single', () {
+          expect(Vector.concat(DataType.int8, [a]), a);
+        });
+        test('error', () {
+          expect(() => Vector.concat(DataType.int8, []), throwsArgumentError);
+        });
+      });
       test('constant', () {
         final vector = Vector.constant(DataType.int8, 5);
         expect(vector.dataType, DataType.int8);

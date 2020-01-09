@@ -10,6 +10,7 @@ import 'impl/keyed_vector.dart';
 import 'impl/list_vector.dart';
 import 'impl/standard_vector.dart';
 import 'vector_format.dart';
+import 'view/concat_vector.dart';
 import 'view/constant_vector.dart';
 import 'view/generated_vector.dart';
 
@@ -30,6 +31,19 @@ abstract class Vector<T> implements Storage {
       default:
         throw ArgumentError.value(format, 'format', 'Unknown vector format.');
     }
+  }
+
+  /// Returns the concatenation of [vectors].
+  factory Vector.concat(DataType<T> dataType, Iterable<Vector<T>> vectors,
+      {VectorFormat format}) {
+    if (vectors.isEmpty) {
+      throw ArgumentError.value(
+          vectors, 'vectors', 'Expected at least 1 vector.');
+    }
+    final result = vectors.length == 1
+        ? vectors.first
+        : ConcatVector<T>(dataType, vectors);
+    return format == null ? result : result.toVector(format: format);
   }
 
   /// Constructs a vector with a constant [value]. If [format] is specified
