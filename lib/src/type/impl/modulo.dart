@@ -8,34 +8,37 @@ import '../models/order.dart';
 import '../type.dart';
 
 class ModuloDataType<T> extends DataType<T> {
-  final DataType<T> type;
+  final DataType<T> delegate;
   final T modulus;
 
-  ModuloDataType(this.type, this.modulus) : field = ModuloField(type, modulus);
+  ModuloDataType(this.delegate, this.modulus)
+      : field = ModuloField<T>(delegate, modulus),
+        order = ModuloOrder<T>(delegate, modulus),
+        equality = ModuloEquality<T>(delegate, modulus);
 
   @override
-  String get name => '${type.name}/$modulus';
+  String get name => '${delegate.name}/$modulus';
 
   @override
-  bool get isNullable => type.isNullable;
+  bool get isNullable => delegate.isNullable;
 
   @override
-  T get nullValue => type.nullValue;
+  T get nullValue => delegate.nullValue;
 
   @override
   final Field<T> field;
 
   @override
-  Order<T> get order => type.order;
+  final Order<T> order;
 
   @override
-  Equality<T> get equality => type.equality;
+  final Equality<T> equality;
 
   @override
-  T cast(Object value) => type.field.mod(type.cast(value), modulus);
+  T cast(Object value) => delegate.field.mod(delegate.cast(value), modulus);
 
   @override
-  Printer get printer => type.printer;
+  Printer get printer => delegate.printer;
 }
 
 class ModuloField<T> extends Field<T> {
@@ -91,4 +94,40 @@ class ModuloField<T> extends Field<T> {
 
   @override
   T gcd(T a, T b) => unsupportedOperation('gcd');
+}
+
+class ModuloOrder<T> extends Order<T> {
+  final DataType<T> type;
+  final T modulus;
+
+  const ModuloOrder(this.type, this.modulus);
+
+  @override
+  int compare(T a, T b) => type.order.compare(
+        type.field.mod(a, modulus),
+        type.field.mod(b, modulus),
+      );
+}
+
+class ModuloEquality<T> extends Equality<T> {
+  final DataType<T> type;
+  final T modulus;
+
+  const ModuloEquality(this.type, this.modulus);
+
+  @override
+  bool isEqual(T a, T b) => type.equality.isEqual(
+        type.field.mod(a, modulus),
+        type.field.mod(b, modulus),
+      );
+
+  @override
+  bool isClose(T a, T b, double epsilon) => type.equality.isClose(
+        type.field.mod(a, modulus),
+        type.field.mod(b, modulus),
+        epsilon,
+      );
+
+  @override
+  int hash(T a) => type.equality.hash(type.field.mod(a, modulus));
 }

@@ -9,6 +9,7 @@ import 'impl/complex.dart';
 import 'impl/float.dart';
 import 'impl/fraction.dart';
 import 'impl/integer.dart';
+import 'impl/modulo.dart';
 import 'impl/nullable.dart';
 import 'impl/numeric.dart';
 import 'impl/object.dart';
@@ -38,6 +39,10 @@ abstract class DataType<T> {
   static const IntegerDataType uint32 = Uint32DataType();
   static const IntegerDataType int64 = Int64DataType();
   static const IntegerDataType uint64 = Uint64DataType();
+
+  /// Modulo data type
+  static ModuloDataType<T> modulo<T>(DataType<T> delegate, T modulus) =>
+      ModuloDataType<T>(delegate, modulus);
 
   // Float data types
   static const FloatDataType float32 = Float32DataType();

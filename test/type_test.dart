@@ -768,4 +768,101 @@ void main() {
       const Quaternion(-3, 5, -7, 9),
     ]);
   });
+  group('modulo', () {
+    final type = DataType.modulo(DataType.int32, 7);
+    test('name', () {
+      expect(type.name, 'int32/7');
+      expect(type.toString(), 'DataType.int32/7');
+    });
+    test('nullable', () {
+      expect(type.isNullable, isFalse);
+      expect(type.nullValue, 0);
+    });
+    test('modulus', () {
+      expect(type.delegate, DataType.int32);
+      expect(type.modulus, 7);
+    });
+    test('cast', () {
+      expect(() => type.cast(null), throwsArgumentError);
+      expect(type.cast(0), 0);
+      expect(type.cast(1), 1);
+      expect(type.cast('2'), 2);
+      expect(type.cast(7), 0);
+      expect(type.cast(-1), 6);
+    });
+    test('order', () {
+      final order = type.order;
+      expect(order.compare(2, 3), -1);
+      expect(order.compare(3, 2), 1);
+      expect(order.compare(3, 3), 0);
+      expect(order.compare(2, 10), -1);
+      expect(order.compare(3, 9), 1);
+      expect(order.compare(3, 10), 0);
+    });
+    group('equality', () {
+      final equality = type.equality;
+      test('isEqual', () {
+        expect(equality.isEqual(2, 3), isFalse);
+        expect(equality.isEqual(3, 2), isFalse);
+        expect(equality.isEqual(3, 3), isTrue);
+        expect(equality.isEqual(2, 10), isFalse);
+        expect(equality.isEqual(3, 9), isFalse);
+        expect(equality.isEqual(3, 10), isTrue);
+      });
+      test('isClose', () {
+        expect(equality.isClose(2, 3, 0.5), isFalse);
+        expect(equality.isClose(3, 2, 0.5), isFalse);
+        expect(equality.isClose(3, 3, 0.5), isTrue);
+        expect(equality.isClose(2, 10, 0.5), isFalse);
+        expect(equality.isClose(3, 9, 0.5), isFalse);
+        expect(equality.isClose(3, 10, 0.5), isTrue);
+      });
+      test('hash', () {
+        expect(equality.hash(2), isNot(equality.hash(3)));
+        expect(equality.hash(2), equality.hash(2));
+        expect(equality.hash(2), equality.hash(9));
+      });
+    });
+    group('field', () {
+      final field = type.field;
+      test('add', () {
+        expect(field.add(2, 3), 5);
+        expect(field.add(2, 6), 1);
+        expect(field.add(2, field.additiveIdentity), 2);
+      });
+      test('sub', () {
+        expect(field.sub(5, 3), 2);
+        expect(field.sub(1, 6), 2);
+      });
+      test('neg', () {
+        expect(field.neg(2), 5);
+        expect(field.neg(3), 4);
+      });
+      test('inv', () {
+        expect(field.inv(2), 4);
+        expect(field.inv(3), 5);
+      });
+      test('mul', () {
+        expect(field.mul(2, 3), 6);
+        expect(field.mul(2, 4), 1);
+        expect(field.mul(2, field.multiplicativeIdentity), 2);
+      });
+      test('scale', () {
+        expect(field.scale(2, 3), 6);
+        expect(field.scale(2, 4), 1);
+      });
+      test('div', () {
+        expect(field.div(2, 3), 3);
+        expect(field.div(2, 4), 4);
+      });
+      test('mod', () {
+        expect(field. mod(2, 3), 2);
+        expect(field.mod(2, 4), 2);
+      });
+      test('pow', () {
+        expect(field.pow(2, 3), 1);
+        expect(field.pow(2, 4), 2);
+      });
+    });
+  });
 }
