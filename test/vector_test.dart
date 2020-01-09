@@ -521,10 +521,10 @@ void vectorTest(String name, VectorFormat format) {
     group('operators', () {
       final random = Random();
       final sourceA = Vector.generate(
-          DataType.int32, 100, (i) => random.nextInt(100),
+          DataType.int32, 100, (i) => 1 + random.nextInt(100),
           format: format);
       final sourceB = Vector.generate(
-          DataType.int32, 100, (i) => random.nextInt(100),
+          DataType.int32, 100, (i) => 1 + random.nextInt(100),
           format: format);
       group('add', () {
         test('default', () {
@@ -601,12 +601,64 @@ void vectorTest(String name, VectorFormat format) {
             expect(target[i], -sourceA[i]);
           }
         });
-        test('default', () {
+        test('operator', () {
           final target = -sourceA;
           expect(target.dataType, sourceA.dataType);
           expect(target.count, sourceA.count);
           for (var i = 0; i < target.count; i++) {
             expect(target[i], -sourceA[i]);
+          }
+        });
+      });
+      group('mul', () {
+        test('default', () {
+          final target = sourceA.mul(sourceB);
+          expect(target.dataType, sourceA.dataType);
+          expect(target.count, sourceA.count);
+          for (var i = 0; i < target.count; i++) {
+            expect(target[i], sourceA[i] * sourceB[i]);
+          }
+        });
+        test('operator', () {
+          final target = sourceA * sourceB;
+          expect(target.dataType, sourceA.dataType);
+          expect(target.count, sourceA.count);
+          for (var i = 0; i < target.count; i++) {
+            expect(target[i], sourceA[i] * sourceB[i]);
+          }
+        });
+        test('scalar', () {
+          final target = sourceA.mul(2);
+          expect(target.dataType, sourceA.dataType);
+          expect(target.count, sourceA.count);
+          for (var i = 0; i < target.count; i++) {
+            expect(target[i], sourceA[i] * 2);
+          }
+        });
+      });
+      group('div', () {
+        test('default', () {
+          final target = sourceA.div(sourceB);
+          expect(target.dataType, sourceA.dataType);
+          expect(target.count, sourceA.count);
+          for (var i = 0; i < target.count; i++) {
+            expect(target[i], sourceA[i] ~/ sourceB[i]);
+          }
+        });
+        test('operator', () {
+          final target = sourceA / sourceB;
+          expect(target.dataType, sourceA.dataType);
+          expect(target.count, sourceA.count);
+          for (var i = 0; i < target.count; i++) {
+            expect(target[i], sourceA[i] ~/ sourceB[i]);
+          }
+        });
+        test('scalar', () {
+          final target = sourceA.div(2);
+          expect(target.dataType, sourceA.dataType);
+          expect(target.count, sourceA.count);
+          for (var i = 0; i < target.count; i++) {
+            expect(target[i], sourceA[i] ~/ 2);
           }
         });
       });
