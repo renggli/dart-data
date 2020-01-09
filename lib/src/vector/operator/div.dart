@@ -6,7 +6,7 @@ import '../vector_format.dart';
 import 'utils.dart';
 
 extension DivExtension<T> on Vector<T> {
-  /// Divides this [Vector] by [other].
+  /// Divides this [Vector] element-wise by [other].
   Vector<T> div(/* Vector<T>|T */ Object other,
       {Vector<T> target, DataType<T> dataType, VectorFormat format}) {
     final result = createVector<T>(this, target, dataType, format);

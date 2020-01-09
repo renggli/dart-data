@@ -856,7 +856,7 @@ void main() {
         expect(field.div(2, 4), 4);
       });
       test('mod', () {
-        expect(field. mod(2, 3), 2);
+        expect(field.mod(2, 3), 2);
         expect(field.mod(2, 4), 2);
       });
       test('pow', () {
