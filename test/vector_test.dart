@@ -2,6 +2,7 @@ library data.test.vector;
 
 import 'dart:math';
 
+import 'package:data/matrix.dart';
 import 'package:data/type.dart';
 import 'package:data/vector.dart';
 import 'package:test/test.dart';
@@ -29,14 +30,20 @@ void vectorTest(String name, VectorFormat format) {
         final b = Vector.fromList(DataType.int8, [3, 4], format: format);
         final expected = Vector.generate(DataType.int8, 5, (i) => i);
         test('default', () {
-          expect(
-              Vector.concat(DataType.int8, [a, b]).compare(expected), isTrue);
+          final result = Vector.concat(DataType.int8, [a, b]);
+          expect(result.dataType, DataType.int8);
+          expect(result.count, 5);
+          expect(result.storage, {a, b});
+          expect(result.copy().compare(result), isTrue);
+          expect(result.compare(expected), isTrue);
         });
         test('with format', () {
-          expect(
-              Vector.concat(DataType.int8, [a, b], format: format)
-                  .compare(expected),
-              isTrue);
+          final result = Vector.concat(DataType.int8, [a, b], format: format);
+          expect(result.dataType, DataType.int8);
+          expect(result.count, 5);
+          expect(result.storage, [result]);
+          expect(result.copy().compare(result), isTrue);
+          expect(result.compare(expected), isTrue);
         });
         test('single', () {
           expect(Vector.concat(DataType.int8, [a]), a);
@@ -87,6 +94,7 @@ void vectorTest(String name, VectorFormat format) {
         expect(vector.count, 7);
         expect(vector.shape, [vector.count]);
         expect(vector.storage, [vector]);
+        expect(vector.copy(), vector);
         for (var i = 0; i < vector.count; i++) {
           expect(vector[i], '$i');
         }
@@ -99,6 +107,7 @@ void vectorTest(String name, VectorFormat format) {
         expect(vector.count, 7);
         expect(vector.shape, [vector.count]);
         expect(vector.storage, [vector]);
+        expect(vector.copy().compare(vector), isTrue);
         for (var i = 0; i < vector.count; i++) {
           expect(vector[i], '$i');
         }
@@ -401,6 +410,8 @@ void vectorTest(String name, VectorFormat format) {
           expect(cast.storage, [source]);
           for (var i = 0; i < cast.count; i++) {
             expect(cast[i], '$i');
+            cast[i] = '-$i';
+            expect(source[i], -i);
           }
         });
         test('copy', () {
@@ -438,6 +449,59 @@ void vectorTest(String name, VectorFormat format) {
         source[1] = 3;
         expect(readonly[1], 3);
         expect(readonly.unmodifiable, readonly);
+      });
+      group('matrix ', () {
+        test('diagonal', () {
+          final vector =
+              Vector.generate(DataType.string, 10, (i) => '$i', format: format);
+          final matrix = vector.diagonalMatrix;
+          expect(matrix.dataType, vector.dataType);
+          expect(matrix.rowCount, vector.count);
+          expect(matrix.columnCount, vector.count);
+          expect(matrix.storage, [vector]);
+          expect(matrix.copy().compare(matrix), isTrue);
+          for (var r = 0; r < matrix.rowCount; r++) {
+            for (var c = 0; c < matrix.columnCount; c++) {
+              if (r == c) {
+                expect(matrix.get(r, c), '$r');
+                matrix.set(r, c, '$r*');
+              } else {
+                expect(matrix.get(r, c), isNull);
+                expect(() => matrix.set(r, c, '*'), throwsArgumentError);
+              }
+            }
+          }
+        });
+        test('row', () {
+          final vector =
+              Vector.generate(DataType.string, 10, (i) => '$i', format: format);
+          final matrix = vector.rowMatrix;
+          expect(matrix.dataType, vector.dataType);
+          expect(matrix.rowCount, 1);
+          expect(matrix.columnCount, vector.count);
+          expect(matrix.storage, [vector]);
+          expect(matrix.copy().compare(matrix), isTrue);
+          for (var c = 0; c < matrix.columnCount; c++) {
+            expect(matrix.get(0, c), '$c');
+            matrix.set(0, c, '$c*');
+            expect(vector[c], '$c*');
+          }
+        });
+        test('column', () {
+          final vector =
+              Vector.generate(DataType.string, 10, (i) => '$i', format: format);
+          final matrix = vector.columnMatrix;
+          expect(matrix.dataType, vector.dataType);
+          expect(matrix.rowCount, vector.count);
+          expect(matrix.columnCount, 1);
+          expect(matrix.storage, [vector]);
+          expect(matrix.copy().compare(matrix), isTrue);
+          for (var r = 0; r < matrix.rowCount; r++) {
+            expect(matrix.get(r, 0), '$r');
+            matrix.set(r, 0, '$r*');
+            expect(vector[r], '$r*');
+          }
+        });
       });
     });
     group('iterables', () {
