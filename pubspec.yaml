@@ -1,7 +1,6 @@
 name: data
 version: 0.4.0
 
-author: Lukas Renggli <renggli@gmail.com>
 homepage: https://github.com/renggli/dart-data
 description: A time and space efficient collection of data structures and
   algorithms to deal with data in Dart.
