@@ -22,5 +22,7 @@ void main() {
     read('example/data/countries.csv');
     read('example/data/iris.csv');
     read('example/data/tips.csv');
+  }, onPlatform: const {
+    'browser': [Skip('Unsupported in browsers.')]
   });
 }
