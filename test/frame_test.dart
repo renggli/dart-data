@@ -10,8 +10,8 @@ void read(String filename) {
   test(filename, () async {
     final file = File(filename);
     final stream = file.openRead().transform(utf8.decoder);
-    final tips = await CsvImporter.fromStream(stream);
-    print(tips);
+    final frame = await CsvImporter.fromStream(stream);
+    expect(frame.columns, isNot(isEmpty));
   });
 }
 

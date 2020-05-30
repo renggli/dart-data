@@ -121,7 +121,7 @@ class SingularValueDecomposition {
             }
           }
           for (var j = k + 1; j < _n; j++) {
-            final double t = -e[j] / e[k + 1];
+            final t = -e[j] / e[k + 1];
             for (var i = k + 1; i < _m; i++) {
               A.setUnchecked(i, j, A.getUnchecked(i, j) + t * work[i]);
             }
