@@ -6,7 +6,7 @@ import '../vector_format.dart';
 import 'utils.dart';
 
 extension AddExtension<T> on Vector<T> {
-  /// Adds [other] to this [Vector].
+  /// Adds this [Vector] element-wise to [other].
   Vector<T> add(Vector<T> other,
       {Vector<T> target, DataType<T> dataType, VectorFormat format}) {
     final result = createVector<T>(this, target, dataType, format);
