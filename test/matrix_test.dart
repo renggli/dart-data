@@ -1302,16 +1302,16 @@ void matrixTest(String name, MatrixFormat format) {
               isTrue);
           expect(sourceA.rowRange(0, 3).compare(sourceA.rowIndex([3, 1, 0])),
               isFalse,
-              reason: 'row order missmatch');
+              reason: 'row order mismatch');
           expect(sourceA.colRange(0, 3).compare(sourceA.colIndex([2, 1, 0])),
               isFalse,
-              reason: 'col order missmatch');
+              reason: 'col order mismatch');
           expect(
               sourceA.rowRange(0, 3).compare(sourceA.rowIndex([0, 1])), isFalse,
-              reason: 'row count missmatch');
+              reason: 'row count mismatch');
           expect(
               sourceA.colRange(0, 3).compare(sourceA.colIndex([0, 1])), isFalse,
-              reason: 'col count missmatch');
+              reason: 'col count mismatch');
         });
         test('custom', () {
           final negated = sourceA.neg();

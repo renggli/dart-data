@@ -126,7 +126,7 @@ void vectorTest(String name, VectorFormat format) {
         expect(vector[2], 3);
       });
     });
-    group('accesssing', () {
+    group('accessing', () {
       final vector = Vector.fromList(DataType.int8, [2, 4, 6], format: format);
       test('random', () {
         final vector = Vector(DataType.int8, 100, format: format);
@@ -714,9 +714,9 @@ void vectorTest(String name, VectorFormat format) {
         test('views', () {
           expect(sourceA.range(0, 3).compare(sourceA.index([0, 1, 2])), isTrue);
           expect(sourceA.range(0, 3).compare(sourceA.index([3, 1, 0])), isFalse,
-              reason: 'order missmatch');
+              reason: 'order mismatch');
           expect(sourceA.range(0, 3).compare(sourceA.index([0, 1])), isFalse,
-              reason: 'count missmatch');
+              reason: 'count mismatch');
         });
         test('custom', () {
           final negated = sourceA.neg();
@@ -732,7 +732,7 @@ void vectorTest(String name, VectorFormat format) {
           }
           expect(sourceA.dot(sourceB), expected);
         });
-        test('dimension missmatch', () {
+        test('dimension mismatch', () {
           final sourceB =
               Vector(DataType.uint8, sourceA.count - 1, format: format);
           expect(() => sourceA.dot(sourceB), throwsArgumentError);

@@ -13,7 +13,7 @@ import '../view/cast_matrix.dart';
 ///
 /// The QR decomposition always exists, even if the matrix does not have
 /// full rank, so the constructor will never fail.  The primary use of the
-/// QR decomposition is in the least squares solution of nonsquare systems
+/// QR decomposition is in the least squares solution of non-square systems
 /// of simultaneous linear equations.  This will fail if isFullRank()
 /// returns false.
 class QRDecomposition {

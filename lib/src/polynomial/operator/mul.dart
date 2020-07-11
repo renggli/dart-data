@@ -14,7 +14,7 @@ extension MulExtension<T> on Polynomial<T> {
     } else if (other is T) {
       return mulScalar(other, dataType: dataType, format: format);
     } else {
-      throw ArgumentError.value(other, 'other', 'Invalid multiplicator.');
+      throw ArgumentError.value(other, 'other', 'Invalid multiplication.');
     }
   }
 

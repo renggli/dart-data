@@ -79,7 +79,7 @@ void polynomialTest(String name, PolynomialFormat format) {
               Polynomial.fromList(DataType.int32, [-1, 1], format: format);
           expect(actual.toString(), expected.toString());
         });
-        test('qubic', () {
+        test('cubic', () {
           final actual =
               Polynomial.fromRoots(DataType.int32, [1, -2], format: format);
           final expected =
@@ -110,7 +110,7 @@ void polynomialTest(String name, PolynomialFormat format) {
         expect(polynomial[3], 0);
       });
     });
-    group('accesssing', () {
+    group('accessing', () {
       for (final type in <DataType>[DataType.int32, DataType.numeric]) {
         group(type.name, () {
           test('degree', () {
@@ -718,7 +718,7 @@ void polynomialTest(String name, PolynomialFormat format) {
           final divisor = Polynomial(DataType.int32, format: format);
           expect(() => dividend.div(divisor), throwsIntegerDivisionByZero);
         });
-        test('zero divident', () {
+        test('zero dividend', () {
           final dividend = Polynomial(DataType.int32, format: format);
           final divisor = Polynomial.fromList(DataType.int32, [-42, 0, -12, 1],
               format: format);

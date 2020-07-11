@@ -59,7 +59,7 @@ extension RangeMatrixExtension<T> on Matrix<T> {
   Matrix<T> colRange(int colStart, [int colEnd]) =>
       range(0, rowCount, colStart, colEnd);
 
-  /// Returns a mutable view onto the row range. The behavior is undefed, if
+  /// Returns a mutable view onto the row range. The behavior is undefined, if
   /// [colStart] or [colEnd] are out of bounds.
   Matrix<T> colRangeUnchecked(int colStart, int colEnd) =>
       rangeUnchecked(0, rowCount, colStart, colEnd);

@@ -37,10 +37,10 @@ class EigenvalueDecomposition {
   /// Array for internal storage of eigenvectors.
   final Matrix<double> _v;
 
-  /// Array for internal storage of nonsymmetric Hessenberg form.
+  /// Array for internal storage of non-symmetric Hessenberg form.
   final Matrix<double> _h;
 
-  /// Working storage for nonsymmetric algorithm.
+  /// Working storage for non-symmetric algorithm.
   final List<double> _ort;
 
   /// Check for symmetry, then construct the eigenvalue decomposition

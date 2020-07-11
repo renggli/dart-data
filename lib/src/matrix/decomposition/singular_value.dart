@@ -44,7 +44,7 @@ class SingularValueDecomposition {
     final e = floatDataType.newList(_n);
     final work = floatDataType.newList(_m);
 
-    // Reduce A to bidiagonal form, storing the diagonal elements
+    // Reduce A to bi-diagonal form, storing the diagonal elements
     // in s and the super-diagonal elements in e.
     final nct = math.min(_m - 1, _n);
     final nrt = math.max(0, math.min(_n - 2, _m));
@@ -135,7 +135,7 @@ class SingularValueDecomposition {
       }
     }
 
-    // Set up the final bidiagonal matrix or order p.
+    // Set up the final bi-diagonal matrix or order p.
     var p = math.min(_n, _m + 1);
     if (nct < _n) {
       _s[nct] = A.getUnchecked(nct, nct);
