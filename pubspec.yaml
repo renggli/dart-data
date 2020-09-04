@@ -10,7 +10,7 @@ environment:
 dependencies:
   collection: ^1.14.0
   meta: ^1.2.0
-  more: ^2.5.0
+  more: ^2.7.0
   csv: ^4.0.0
 dev_dependencies:
   test: ^1.15.0
