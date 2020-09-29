@@ -1,5 +1,5 @@
 # Changelog
 
-## 0.5.1
+## 0.6.0
 
 - Initial version
