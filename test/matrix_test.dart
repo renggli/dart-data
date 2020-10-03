@@ -675,7 +675,15 @@ void matrixTest(String name, MatrixFormat format) {
           expect(index.copy().compare(index), isTrue);
           for (var r = 0; r < index.rowCount; r++) {
             for (var c = 0; c < index.columnCount; c++) {
-              expect(index.get(r, c), Point(r == 0 ? 5 : r == 1 ? 0 : 4, c));
+              expect(
+                  index.get(r, c),
+                  Point(
+                      r == 0
+                          ? 5
+                          : r == 1
+                              ? 0
+                              : 4,
+                      c));
             }
           }
         });
