@@ -1,5 +1,3 @@
-library data.matrix.operator.lerp;
-
 import '../../../type.dart';
 import '../matrix.dart';
 import '../matrix_format.dart';
@@ -10,7 +8,7 @@ extension LerpExtension<T> on Matrix<T> {
   /// [t]. If [t] is equal to `0` the result is `this`, if [t] is equal to `1`
   /// the result is [other].
   Matrix<T> lerp(Matrix<T> other, num t,
-      {Matrix<T> target, DataType<T> dataType, MatrixFormat format}) {
+      {Matrix<T>? target, DataType<T>? dataType, MatrixFormat? format}) {
     final result = createMatrix<T>(this, target, dataType, format);
     final add = result.dataType.field.add, scale = result.dataType.field.scale;
     binaryOperator<T>(

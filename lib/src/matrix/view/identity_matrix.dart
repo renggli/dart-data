@@ -1,5 +1,3 @@
-library data.matrix.view.identity;
-
 import '../../../type.dart';
 import '../../shared/storage.dart';
 import '../matrix.dart';
@@ -27,5 +25,6 @@ class IdentityMatrix<T> with Matrix<T>, UnmodifiableMatrixMixin<T> {
   Matrix<T> copy() => this;
 
   @override
-  T getUnchecked(int row, int col) => row == col ? value : dataType.nullValue;
+  T getUnchecked(int row, int col) =>
+      row == col ? value : dataType.field.additiveIdentity;
 }

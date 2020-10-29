@@ -1,13 +1,31 @@
 language: dart
-dart: stable
+dart:
+  - stable
 
-dart_task:
-  - test: --platform vm
-  - test: --platform chrome
-  - dartanalyzer: --fatal-warnings --fatal-infos .
-  - dart_style
+jobs:
+  include:
+    - stage: valid
+      name: "Dart Analyzer"
+      os: linux
+      script: dart --enable-experiment=non-nullable analyze --fatal-warnings --fatal-infos .
+    - stage: valid
+      name: "Dart Formatter"
+      os: linux
+      script: dart --enable-experiment=non-nullable format --output=none .
+    - stage: test
+      name: "VM Tests"
+      os: linux
+      script: dart --enable-experiment=non-nullable test --platform vm test/all_test.dart
+    - stage: test
+      name: "Chrome Tests"
+      os: linux
+      script: dart --enable-experiment=non-nullable test --platform chrome test/all_test.dart
+
+stages:
+  - valid
+  - test
 
 after_success:
   - pub global activate dart_coveralls
-  - pub global run dart_coveralls report test/all_test.dart
+  - pub global run --enable-experiment=non-nullable dart_coveralls report test/all_test.dart
 

@@ -1,5 +1,3 @@
-library matrix.decomposition.qr;
-
 import '../../shared/config.dart';
 import '../../shared/math.dart';
 import '../matrix.dart';

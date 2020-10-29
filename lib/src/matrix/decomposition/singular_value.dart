@@ -1,5 +1,3 @@
-library matrix.decomposition.singular_value;
-
 import 'dart:math' as math;
 
 import '../../shared/config.dart';

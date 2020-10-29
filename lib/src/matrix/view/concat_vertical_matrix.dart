@@ -1,5 +1,3 @@
-library data.matrix.view.concat_vertical;
-
 import '../../../type.dart';
 import '../../shared/config.dart';
 import '../../shared/lists.dart';

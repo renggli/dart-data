@@ -1,5 +1,3 @@
-library data.matrix.view.constant;
-
 import '../../../type.dart';
 import '../../shared/storage.dart';
 import '../matrix.dart';

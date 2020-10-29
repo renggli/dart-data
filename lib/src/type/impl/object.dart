@@ -1,19 +1,30 @@
-library data.type.impl.object;
+import 'package:more/hash.dart';
 
 import '../type.dart';
 
 class ObjectDataType<T> extends DataType<T> {
-  const ObjectDataType();
+  const ObjectDataType(this.defaultValue);
 
   @override
-  String get name => 'object';
+  String get name => 'object<$T>';
 
   @override
-  bool get isNullable => true;
+  final T defaultValue;
 
   @override
-  T get nullValue => null;
+  bool get isNullable => null is T;
 
   @override
-  T cast(Object value) => value;
+  ObjectDataType<T?> get nullable => ObjectDataType<T?>(null);
+
+  @override
+  T cast(dynamic value) => value is T ? value : super.cast(value);
+
+  @override
+  int get hashCode => hash2(T, defaultValue);
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is ObjectDataType<T> && defaultValue == other.defaultValue);
 }

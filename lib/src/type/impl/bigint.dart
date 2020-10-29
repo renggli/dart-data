@@ -1,5 +1,3 @@
-library data.type.impl.bigint;
-
 import '../models/equality.dart';
 import '../models/field.dart';
 import '../models/order.dart';
@@ -12,14 +10,11 @@ class BigIntDataType extends DataType<BigInt> {
   String get name => 'bigInt';
 
   @override
-  bool get isNullable => true;
+  BigInt get defaultValue => BigInt.zero;
 
   @override
-  BigInt get nullValue => null;
-
-  @override
-  BigInt cast(Object value) {
-    if (value == null || value is BigInt) {
+  BigInt cast(dynamic value) {
+    if (value is BigInt) {
       return value;
     } else if (value is num) {
       return BigInt.from(value);

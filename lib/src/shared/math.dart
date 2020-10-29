@@ -1,6 +1,4 @@
 /// Shared mathematical helper functions.
-library data.shared.math;
-
 import 'dart:math' as math;
 
 /// sqrt(a^2 + b^2) without under/overflow. **/

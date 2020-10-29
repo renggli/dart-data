@@ -1,5 +1,3 @@
-library data.type.impl.numeric;
-
 import 'dart:math' as math;
 
 import 'package:more/number.dart' show Fraction;
@@ -16,10 +14,7 @@ class NumericDataType extends DataType<num> {
   String get name => 'numeric';
 
   @override
-  bool get isNullable => true;
-
-  @override
-  num get nullValue => null;
+  num get defaultValue => 0;
 
   @override
   Equality<num> get equality => const NumericEquality();
@@ -31,8 +26,8 @@ class NumericDataType extends DataType<num> {
   Field<num> get field => const NumericField();
 
   @override
-  num cast(Object value) {
-    if (value == null || value is num) {
+  num cast(dynamic value) {
+    if (value is num) {
       return value;
     } else if (value is BigInt) {
       return value.toInt();

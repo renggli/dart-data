@@ -1,5 +1,3 @@
-library data.matrix.operator.testing;
-
 import '../matrix.dart';
 
 extension TestingExtension<T> on Matrix<T> {
@@ -26,9 +24,10 @@ extension TestingExtension<T> on Matrix<T> {
   /// the diagonal.
   bool get isDiagonal {
     final isEqual = dataType.equality.isEqual;
+    final additiveIdentity = dataType.field.additiveIdentity;
     for (var r = 0; r < rowCount; r++) {
       for (var c = 0; c < columnCount; c++) {
-        if (r != c && !isEqual(getUnchecked(r, c), dataType.nullValue)) {
+        if (r != c && !isEqual(getUnchecked(r, c), additiveIdentity)) {
           return false;
         }
       }
@@ -40,9 +39,10 @@ extension TestingExtension<T> on Matrix<T> {
   /// only in the lower-triangle of the matrix.
   bool get isLowerTriangular {
     final isEqual = dataType.equality.isEqual;
+    final additiveIdentity = dataType.field.additiveIdentity;
     for (var r = 0; r < rowCount; r++) {
       for (var c = r + 1; c < columnCount; c++) {
-        if (!isEqual(getUnchecked(r, c), dataType.nullValue)) {
+        if (!isEqual(getUnchecked(r, c), additiveIdentity)) {
           return false;
         }
       }
@@ -53,9 +53,11 @@ extension TestingExtension<T> on Matrix<T> {
   /// Tests if this [Matrix] is a upper triangular matrix, with non-zero values
   /// only in the upper-triangle of the matrix.
   bool get isUpperTriangular {
+    final isEqual = dataType.equality.isEqual;
+    final additiveIdentity = dataType.field.additiveIdentity;
     for (var r = 1; r < rowCount; r++) {
       for (var c = 0; c < columnCount && c < r; c++) {
-        if (getUnchecked(r, c) != dataType.nullValue) {
+        if (!isEqual(getUnchecked(r, c), additiveIdentity)) {
           return false;
         }
       }

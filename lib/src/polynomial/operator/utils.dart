@@ -1,5 +1,3 @@
-library data.polynomial.operator.utils;
-
 import 'dart:math' as math;
 
 import '../../../type.dart';
@@ -7,7 +5,7 @@ import '../polynomial.dart';
 import '../polynomial_format.dart';
 
 Polynomial<T> createPolynomial<T>(Polynomial<T> source, int desiredDegree,
-        DataType<T> dataType, PolynomialFormat format) =>
+        DataType<T>? dataType, PolynomialFormat? format) =>
     Polynomial<T>(dataType ?? source.dataType,
         desiredDegree: desiredDegree, format: format);
 

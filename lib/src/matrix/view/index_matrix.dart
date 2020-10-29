@@ -1,5 +1,3 @@
-library data.matrix.view.index;
-
 import 'package:more/collection.dart' show IntegerRange;
 
 import '../../../type.dart';

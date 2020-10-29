@@ -1,5 +1,3 @@
-library data.matrix.impl.diagonal;
-
 import 'dart:math' as math;
 
 import '../../../type.dart';
@@ -41,7 +39,7 @@ class DiagonalMatrix<T> with Matrix<T> {
     final offset = row - col;
     final index = offset < 0 ? col + offset : col;
     final diagonal = _diagonals[offset];
-    return diagonal == null ? dataType.nullValue : diagonal[index];
+    return diagonal == null ? dataType.defaultValue : diagonal[index];
   }
 
   @override

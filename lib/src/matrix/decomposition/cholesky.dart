@@ -1,5 +1,3 @@
-library matrix.decomposition.cholesky;
-
 import 'dart:math' as math;
 
 import '../../shared/config.dart';

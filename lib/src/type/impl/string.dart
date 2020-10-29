@@ -1,17 +1,18 @@
-library data.type.impl.string;
-
 import 'dart:math' as math;
 
 import '../../shared/config.dart';
 import '../models/equality.dart';
 import '../models/order.dart';
-import 'object.dart';
+import '../type.dart';
 
-class StringDataType extends ObjectDataType<String> {
+class StringDataType extends DataType<String> {
   const StringDataType();
 
   @override
   String get name => 'string';
+
+  @override
+  String get defaultValue => '';
 
   @override
   Equality<String> get equality => const StringEquality();
@@ -20,7 +21,7 @@ class StringDataType extends ObjectDataType<String> {
   Order<String> get order => const NaturalOrder<String>();
 
   @override
-  String cast(Object value) => value?.toString();
+  String cast(dynamic value) => value.toString();
 }
 
 class StringEquality extends Equality<String> {
@@ -37,8 +38,8 @@ int editDistance(String a, String b) {
   if (a.length < b.length) {
     return editDistance(b, a);
   }
-  var v0 = indexDataType.newList(b.length + 1);
-  var v1 = indexDataType.newList(b.length + 1);
+  var v0 = indexDataType.newList(b.length + 1, 0);
+  var v1 = indexDataType.newList(b.length + 1, 0);
   for (var i = 0; i <= b.length; i++) {
     v0[i] = i;
   }

@@ -1,10 +1,5 @@
 /// Shared configuration across packages.
-library data.shared.config;
-
 import '../../type.dart';
-
-/// True, if the code is running in JavaScript.
-const bool isJavaScript = identical(1, 1.0);
 
 /// Data type used to index columns and rows.
 const DataType<int> indexDataType = DataType.uint32;

@@ -1,5 +1,3 @@
-library data.vector.view.concat;
-
 import '../../../type.dart';
 import '../../../vector.dart';
 import '../../shared/config.dart';

@@ -1,5 +1,3 @@
-library data.type.impl.float;
-
 import 'dart:math' as math;
 import 'dart:typed_data';
 
@@ -15,10 +13,19 @@ abstract class FloatDataType extends DataType<double> {
   const FloatDataType();
 
   @override
-  bool get isNullable => false;
+  double get defaultValue => 0.0;
 
   @override
-  double get nullValue => 0;
+  List<double> newList(int length, [double? fillValue]) {
+    final result = _newList(length);
+    if (fillValue != null && fillValue != defaultValue) {
+      result.fillRange(0, length, fillValue);
+    }
+    return result;
+  }
+
+  /// Internal helper returning a typed list.
+  List<double> _newList(int length);
 
   @override
   Field<double> get field => const FloatField();
@@ -30,7 +37,7 @@ abstract class FloatDataType extends DataType<double> {
   Equality<double> get equality => const FloatEquality();
 
   @override
-  double cast(Object value) {
+  double cast(dynamic value) {
     if (value is num) {
       return value.toDouble();
     } else if (value is BigInt) {
@@ -51,7 +58,7 @@ class Float32DataType extends FloatDataType {
   String get name => 'float32';
 
   @override
-  List<double> newList(int length) => Float32List(length);
+  List<double> _newList(int length) => Float32List(length);
 
   @override
   Printer get printer => Printer.scientific(
@@ -68,7 +75,7 @@ class Float64DataType extends FloatDataType {
   String get name => 'float64';
 
   @override
-  List<double> newList(int length) => Float64List(length);
+  List<double> _newList(int length) => Float64List(length);
 
   @override
   Printer get printer => Printer.scientific(
@@ -118,7 +125,8 @@ class FloatField extends Field<double> {
   double remainder(double a, double b) => a.remainder(b);
 
   @override
-  double pow(double base, double exponent) => math.pow(base, exponent);
+  double pow(double base, double exponent) =>
+      math.pow(base, exponent).toDouble();
 
   @override
   double modPow(double base, double exponent, double modulus) =>

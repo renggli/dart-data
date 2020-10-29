@@ -1,5 +1,3 @@
-library data.vector.operator;
-
 export 'operator/add.dart' show AddExtension;
 export 'operator/compare.dart' show CompareExtension;
 export 'operator/div.dart' show DivExtension;

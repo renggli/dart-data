@@ -1,5 +1,3 @@
-library data.matrix.impl.compressed_column;
-
 import '../../../type.dart';
 import '../../shared/config.dart';
 import '../../shared/lists.dart';
@@ -52,7 +50,7 @@ class CompressedColumnMatrix<T> with Matrix<T> {
   T getUnchecked(int row, int col) {
     final start = col > 0 ? _colExtends[col - 1] : 0, stop = _colExtends[col];
     final index = binarySearch(_rowIndexes, start, stop, row);
-    return index < 0 ? dataType.nullValue : _values[index];
+    return index < 0 ? dataType.defaultValue : _values[index];
   }
 
   @override
@@ -60,7 +58,7 @@ class CompressedColumnMatrix<T> with Matrix<T> {
     final start = col > 0 ? _colExtends[col - 1] : 0, stop = _colExtends[col];
     final index = binarySearch(_rowIndexes, start, stop, row);
     if (index < 0) {
-      if (value != dataType.nullValue) {
+      if (value != dataType.defaultValue) {
         for (var c = col; c < columnCount; c++) {
           _colExtends[c]++;
         }
@@ -70,7 +68,7 @@ class CompressedColumnMatrix<T> with Matrix<T> {
         _length++;
       }
     } else {
-      if (value == dataType.nullValue) {
+      if (value == dataType.defaultValue) {
         for (var c = col; c < columnCount; c++) {
           _colExtends[c]--;
         }

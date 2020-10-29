@@ -1,11 +1,11 @@
-library data.test.matrix;
-
 import 'dart:math';
 
 import 'package:data/matrix.dart';
 import 'package:data/type.dart';
 import 'package:data/vector.dart';
 import 'package:test/test.dart';
+
+const pointType = ObjectDataType<Point<int>>(Point(0, 0));
 
 void matrixTest(String name, MatrixFormat format) {
   group(name, () {
@@ -24,7 +24,6 @@ void matrixTest(String name, MatrixFormat format) {
         }
       });
       test('default with error', () {
-        expect(() => Matrix(null, 4, 5, format: format), throwsArgumentError);
         expect(() => Matrix(DataType.int8, -4, 5, format: format),
             throwsRangeError);
         expect(() => Matrix(DataType.int8, 4, -5, format: format),
@@ -266,9 +265,9 @@ void matrixTest(String name, MatrixFormat format) {
       });
       test('fromPackedRows', () {
         final matrix = Matrix.fromPackedRows(
-            DataType.object, 2, 3, [1, 2, 3, 4, 5, 6],
+            DataType.numeric, 2, 3, [1, 2, 3, 4, 5, 6],
             format: format);
-        expect(matrix.dataType, DataType.object);
+        expect(matrix.dataType, DataType.numeric);
         expect(matrix.rowCount, 2);
         expect(matrix.columnCount, 3);
         expect(matrix.shape, [matrix.rowCount, matrix.columnCount]);
@@ -282,7 +281,7 @@ void matrixTest(String name, MatrixFormat format) {
       });
       test('fromPackedRows with error', () {
         expect(
-            () => Matrix.fromPackedRows(DataType.object, 2, 3, [],
+            () => Matrix.fromPackedRows(DataType.numeric, 2, 3, [],
                 format: format),
             throwsArgumentError);
       });
@@ -319,9 +318,9 @@ void matrixTest(String name, MatrixFormat format) {
       });
       test('fromPackedColumns', () {
         final matrix = Matrix.fromPackedColumns(
-            DataType.object, 2, 3, [1, 2, 3, 4, 5, 6],
+            DataType.numeric, 2, 3, [1, 2, 3, 4, 5, 6],
             format: format);
-        expect(matrix.dataType, DataType.object);
+        expect(matrix.dataType, DataType.numeric);
         expect(matrix.rowCount, 2);
         expect(matrix.columnCount, 3);
         expect(matrix.shape, [matrix.rowCount, matrix.columnCount]);
@@ -335,7 +334,7 @@ void matrixTest(String name, MatrixFormat format) {
       });
       test('fromPackedColumns with error', () {
         expect(
-            () => Matrix.fromPackedColumns(DataType.object, 2, 3, [],
+            () => Matrix.fromPackedColumns(DataType.numeric, 2, 3, [],
                 format: format),
             throwsArgumentError);
       });
@@ -349,8 +348,8 @@ void matrixTest(String name, MatrixFormat format) {
           ],
           format: format);
       test('random', () {
-        final matrix = Matrix(DataType.object, 8, 12, format: format);
-        final points = <Point>[];
+        final matrix = Matrix(pointType, 8, 12, format: format);
+        final points = <Point<int>>[];
         for (var r = 0; r < matrix.rowCount; r++) {
           for (var c = 0; c < matrix.columnCount; c++) {
             points.add(Point(r, c));
@@ -379,11 +378,11 @@ void matrixTest(String name, MatrixFormat format) {
         // remove values
         points.shuffle();
         for (final point in points) {
-          matrix.set(point.x, point.y, matrix.dataType.nullValue);
+          matrix.set(point.x, point.y, matrix.dataType.defaultValue);
         }
         for (var r = 0; r < matrix.rowCount; r++) {
           for (var c = 0; c < matrix.columnCount; c++) {
-            expect(matrix.get(r, c), matrix.dataType.nullValue);
+            expect(matrix.get(r, c), matrix.dataType.defaultValue);
           }
         }
       });
@@ -443,7 +442,7 @@ void matrixTest(String name, MatrixFormat format) {
     group('view', () {
       test('copy', () {
         final source = Matrix.generate(
-            DataType.object, 8, 6, (row, col) => Point(row, col),
+            pointType, 8, 6, (row, col) => Point(row, col),
             format: format);
         final copy = source.copy();
         expect(copy.dataType, source.dataType);
@@ -451,7 +450,7 @@ void matrixTest(String name, MatrixFormat format) {
         expect(copy.columnCount, source.columnCount);
         expect(copy.storage, [copy]);
         expect(source.compare(copy), isTrue);
-        source.set(3, 5, null);
+        source.set(3, 5, const Point(32, 64));
         expect(copy.get(3, 5), const Point(3, 5));
       });
       test('row', () {
@@ -520,7 +519,7 @@ void matrixTest(String name, MatrixFormat format) {
             -2: ['(0, 2)'],
           };
           for (final offset in offsets.keys) {
-            final expected = offsets[offset];
+            final expected = offsets[offset]!;
             final diagonal = source.diagonal(offset);
             expect(diagonal.dataType, source.dataType);
             expect(diagonal.count, expected.length);
@@ -550,7 +549,7 @@ void matrixTest(String name, MatrixFormat format) {
             -1: ['(0, 1)'],
           };
           for (final offset in offsets.keys) {
-            final expected = offsets[offset];
+            final expected = offsets[offset]!;
             final diagonal = source.diagonal(offset);
             expect(diagonal.dataType, source.dataType);
             expect(diagonal.count, expected.length);
@@ -574,7 +573,7 @@ void matrixTest(String name, MatrixFormat format) {
       });
       group('range', () {
         final source = Matrix.generate(
-            DataType.object, 7, 8, (row, col) => Point(row, col),
+            pointType, 7, 8, (row, col) => Point(row, col),
             format: format);
         test('row', () {
           final range = source.rowRange(1, 3);
@@ -643,11 +642,12 @@ void matrixTest(String name, MatrixFormat format) {
           expect(range, source);
         });
         test('write', () {
+          const marker = Point(-1, -1);
           final original = source.copy();
           final range = original.range(2, 3, 3, 4);
-          range.set(0, 0, '*');
-          expect(range.get(0, 0), '*');
-          expect(original.get(2, 3), '*');
+          range.set(0, 0, marker);
+          expect(range.get(0, 0), marker);
+          expect(original.get(2, 3), marker);
         });
         test('range error', () {
           expect(() => source.range(-1, source.rowCount, 0, source.columnCount),
@@ -664,7 +664,7 @@ void matrixTest(String name, MatrixFormat format) {
       });
       group('index', () {
         final source = Matrix.generate(
-            DataType.object, 6, 4, (row, col) => Point(row, col),
+            pointType, 6, 4, (row, col) => Point(row, col),
             format: format);
         test('row', () {
           final index = source.rowIndex([5, 0, 4]);
@@ -730,11 +730,12 @@ void matrixTest(String name, MatrixFormat format) {
           expect(index.get(0, 0), const Point(0, 2));
         });
         test('write', () {
+          const marker = Point(-1, -1);
           final original = source.copy();
           final index = original.index([2], [3]);
-          index.set(0, 0, '*');
-          expect(index.get(0, 0), '*');
-          expect(original.get(2, 3), '*');
+          index.set(0, 0, marker);
+          expect(index.get(0, 0), marker);
+          expect(original.get(2, 3), marker);
         });
         test('range error', () {
           expect(
@@ -841,7 +842,7 @@ void matrixTest(String name, MatrixFormat format) {
       });
       group('transform', () {
         final source = Matrix.generate(
-            DataType.object, 3, 4, (row, col) => Point(row, col),
+            pointType, 3, 4, (row, col) => Point(row, col),
             format: format);
         test('to string', () {
           final mapped = source.map(
@@ -892,7 +893,7 @@ void matrixTest(String name, MatrixFormat format) {
           final source = Matrix.generate(
               DataType.uint8, 8, 8, (row, col) => 32 + 8 * row + col,
               format: format);
-          final transform = source.transform(
+          final transform = source.transform<String>(
             (row, col, value) => String.fromCharCode(value),
             write: (row, col, value) => value.codeUnitAt(0),
             dataType: DataType.string,
@@ -912,7 +913,7 @@ void matrixTest(String name, MatrixFormat format) {
         });
         test('copy', () {
           final mapped =
-              source.map((row, col, value) => Point(row, col), DataType.object);
+              source.map((row, col, value) => Point(row, col), pointType);
           expect(mapped.copy().compare(mapped), isTrue);
         });
       });
@@ -1038,8 +1039,7 @@ void matrixTest(String name, MatrixFormat format) {
     });
     group('iterables', () {
       test('rows', () {
-        final source = Matrix.generate(
-            DataType.object, 7, 5, (r, c) => Point(r, c),
+        final source = Matrix.generate(pointType, 7, 5, (r, c) => Point(r, c),
             format: format);
         var r = 0;
         for (final row in source.rows) {
@@ -1054,8 +1054,7 @@ void matrixTest(String name, MatrixFormat format) {
         expect(r, source.rowCount);
       });
       test('columns', () {
-        final source = Matrix.generate(
-            DataType.object, 5, 8, (r, c) => Point(r, c),
+        final source = Matrix.generate(pointType, 5, 8, (r, c) => Point(r, c),
             format: format);
         var c = 0;
         for (final column in source.columns) {

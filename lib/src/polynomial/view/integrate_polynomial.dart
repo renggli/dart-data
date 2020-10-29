@@ -1,5 +1,3 @@
-library data.polynomial.view.integrate;
-
 import '../../../type.dart';
 import '../../shared/storage.dart';
 import '../polynomial.dart';
@@ -9,8 +7,8 @@ class IntegratePolynomial<T> with Polynomial<T> {
   final Polynomial<T> polynomial;
   T constant;
 
-  IntegratePolynomial(this.polynomial, [T constant])
-      : constant = constant ?? polynomial.zeroCoefficient;
+  IntegratePolynomial(this.polynomial, [T? constant])
+      : constant = constant ?? polynomial.dataType.field.additiveIdentity;
 
   @override
   DataType<T> get dataType => polynomial.dataType;

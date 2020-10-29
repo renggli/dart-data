@@ -1,5 +1,3 @@
-library data.matrix.operators;
-
 export 'operator/add.dart' show AddExtension;
 export 'operator/compare.dart' show CompareExtension;
 export 'operator/iterator.dart' show IteratorExtension;

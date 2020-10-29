@@ -1,5 +1,3 @@
-library data.vector.view.row;
-
 import '../../../type.dart';
 import '../../../vector.dart';
 import '../../matrix/matrix.dart';

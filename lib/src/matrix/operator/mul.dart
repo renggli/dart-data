@@ -1,5 +1,3 @@
-library data.matrix.operator.mul;
-
 import '../../../type.dart';
 import '../../vector/vector.dart';
 import '../../vector/vector_format.dart';
@@ -11,14 +9,14 @@ import 'utils.dart';
 extension MulExtension<T> on Matrix<T> {
   /// Multiplies this [Matrix] with [other].
   Matrix<T> mul(/* Matrix<T>|Vector<T>|T */ Object other,
-      {Matrix<T> target, DataType<T> dataType, MatrixFormat format}) {
+      {Matrix<T>? target, DataType<T>? dataType, MatrixFormat? format}) {
     if (other is Matrix<T>) {
       return mulMatrix(other,
           target: target, dataType: dataType, format: format);
     } else if (other is Vector<T>) {
       return mulVector(other, dataType: dataType).columnMatrix;
     } else if (other is T) {
-      return mulScalar(other,
+      return mulScalar(other as T,
           target: target, dataType: dataType, format: format);
     } else {
       throw ArgumentError.value(other, 'other', 'Invalid multiplication.');
@@ -30,7 +28,7 @@ extension MulExtension<T> on Matrix<T> {
 
   /// Multiplies this [Matrix] with a [Matrix].
   Matrix<T> mulMatrix(Matrix<T> other,
-      {Matrix<T> target, DataType<T> dataType, MatrixFormat format}) {
+      {Matrix<T>? target, DataType<T>? dataType, MatrixFormat? format}) {
     // Check the inner dimensions of the matrix.
     if (columnCount != other.rowCount) {
       throw ArgumentError('Expected a matrix with $columnCount rows, '
@@ -78,7 +76,7 @@ extension MulExtension<T> on Matrix<T> {
 
   /// Multiplies this [Matrix] with a [Vector].
   Vector<T> mulVector(Vector<T> vector,
-      {Vector<T> target, DataType<T> dataType, VectorFormat format}) {
+      {Vector<T>? target, DataType<T>? dataType, VectorFormat? format}) {
     // Check the inner dimensions of the matrix.
     if (columnCount != vector.count) {
       throw ArgumentError('Expected a vector with $columnCount elements, '
@@ -121,7 +119,7 @@ extension MulExtension<T> on Matrix<T> {
 
   /// Multiplies this [Matrix] with a scalar.
   Matrix<T> mulScalar(T other,
-      {Matrix<T> target, DataType<T> dataType, MatrixFormat format}) {
+      {Matrix<T>? target, DataType<T>? dataType, MatrixFormat? format}) {
     final result = createMatrix<T>(this, target, dataType, format);
     final mul = result.dataType.field.mul;
     unaryOperator<T>(result, this, (a) => mul(a, other));

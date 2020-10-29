@@ -1,5 +1,3 @@
-library data.matrix.operator.utils;
-
 import '../../../type.dart';
 import '../matrix.dart';
 import '../matrix_format.dart';
@@ -13,8 +11,8 @@ void checkDimensions<T>(Matrix<T> first, Matrix<T> second) {
   }
 }
 
-Matrix<T> createMatrix<T>(Matrix<T> source, Matrix<T> result,
-    DataType<T> dataType, MatrixFormat format) {
+Matrix<T> createMatrix<T>(Matrix<T> source, Matrix<T>? result,
+    DataType<T>? dataType, MatrixFormat? format) {
   if (result == null) {
     return Matrix<T>(
         dataType ?? source.dataType, source.rowCount, source.columnCount,

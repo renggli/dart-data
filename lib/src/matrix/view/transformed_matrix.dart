@@ -1,5 +1,3 @@
-library data.matrix.view.transformed;
-
 import '../../../type.dart';
 import '../../shared/storage.dart';
 import '../matrix.dart';
@@ -40,19 +38,19 @@ extension TransformedMatrixExtension<T> on Matrix<T> {
   /// Returns a read-only view on this [Matrix] with all its elements lazily
   /// converted by calling the provided transformation [callback].
   Matrix<S> map<S>(S Function(int row, int col, T value) callback,
-          [DataType<S> dataType]) =>
+          [DataType<S>? dataType]) =>
       transform<S>(callback, dataType: dataType);
 
   /// Returns a view on this [Matrix] with all its elements lazily converted
   /// by calling the provided [read] transformation. An optionally provided
   /// [write] transformation enables writing to the returned matrix.
   Matrix<S> transform<S>(S Function(int row, int col, T value) read,
-          {T Function(int row, int col, S value) write,
-          DataType<S> dataType}) =>
+          {T Function(int row, int col, S value)? write,
+          DataType<S>? dataType}) =>
       TransformedMatrix<T, S>(
         this,
         read,
         write ?? (r, c, v) => throw UnsupportedError('Matrix is not mutable.'),
-        dataType ?? DataType.fromType(S),
+        dataType ?? DataType.fromType<S>(),
       );
 }

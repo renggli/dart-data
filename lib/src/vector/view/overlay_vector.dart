@@ -1,5 +1,3 @@
-library data.vector.view.overlay;
-
 import '../../../type.dart';
 import '../vector.dart';
 import 'overlay_mask_vector.dart';
@@ -11,9 +9,9 @@ extension OverlayVectorExtension<T> on Vector<T> {
   /// or using using a boolean [mask].
   Vector<T> overlay(
     Vector<T> base, {
-    DataType<T> dataType,
-    Vector<bool> mask,
-    int offset,
+    DataType<T>? dataType,
+    Vector<bool>? mask,
+    int? offset,
   }) {
     dataType ??= this.dataType;
     if (mask == null && offset != null) {

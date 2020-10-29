@@ -1,5 +1,3 @@
-library data.matrix.matrix;
-
 import 'package:more/printer.dart' show Printer;
 
 import '../../type.dart' show DataType;
@@ -25,7 +23,7 @@ abstract class Matrix<T> implements Storage {
   /// Constructs a default matrix of the desired [dataType], the provided
   /// [rowCount] and [columnCount], and possibly a custom [format].
   factory Matrix(DataType<T> dataType, int rowCount, int columnCount,
-      {MatrixFormat format}) {
+      {MatrixFormat? format}) {
     ArgumentError.checkNotNull(dataType, 'dataType');
     RangeError.checkNotNegative(rowCount, 'rowCount');
     RangeError.checkNotNegative(columnCount, 'columnCount');
@@ -52,7 +50,7 @@ abstract class Matrix<T> implements Storage {
   /// Returns the horizontal concatenation of [matrices].
   factory Matrix.concatHorizontal(
       DataType<T> dataType, Iterable<Matrix<T>> matrices,
-      {MatrixFormat format}) {
+      {MatrixFormat? format}) {
     if (matrices.isEmpty) {
       throw ArgumentError.value(
           matrices, 'matrices', 'Expected at least 1 matrix.');
@@ -66,7 +64,7 @@ abstract class Matrix<T> implements Storage {
   /// Returns the vertical concatenation of [matrices].
   factory Matrix.concatVertical(
       DataType<T> dataType, Iterable<Matrix<T>> matrices,
-      {MatrixFormat format}) {
+      {MatrixFormat? format}) {
     if (matrices.isEmpty) {
       throw ArgumentError.value(
           matrices, 'matrices', 'Expected at least 1 matrix.');
@@ -80,9 +78,9 @@ abstract class Matrix<T> implements Storage {
   /// Returns a matrix with a constant [value]. If [format] is specified
   /// the resulting matrix is mutable, otherwise this is a read-only view.
   factory Matrix.constant(DataType<T> dataType, int rowCount, int columnCount,
-      {T value, MatrixFormat format}) {
+      {T? value, MatrixFormat? format}) {
     final result = ConstantMatrix<T>(
-        dataType, rowCount, columnCount, value ?? dataType.nullValue);
+        dataType, rowCount, columnCount, value ?? dataType.defaultValue);
     return format == null ? result : result.toMatrix(format: format);
   }
 
@@ -91,7 +89,7 @@ abstract class Matrix<T> implements Storage {
   /// only view.
   factory Matrix.generate(DataType<T> dataType, int rowCount, int columnCount,
       MatrixGeneratorCallback<T> callback,
-      {MatrixFormat format}) {
+      {MatrixFormat? format}) {
     final result =
         GeneratedMatrix<T>(dataType, rowCount, columnCount, callback);
     return format == null ? result : result.toMatrix(format: format);
@@ -101,7 +99,7 @@ abstract class Matrix<T> implements Storage {
   /// specified the resulting matrix is mutable, otherwise this is a read-only
   /// view.
   factory Matrix.identity(DataType<T> dataType, int rowCount, int columnCount,
-      {T value, MatrixFormat format}) {
+      {T? value, MatrixFormat? format}) {
     final result = IdentityMatrix<T>(dataType, rowCount, columnCount,
         value ?? dataType.field.multiplicativeIdentity);
     return format == null ? result : result.toMatrix(format: format);
@@ -109,7 +107,7 @@ abstract class Matrix<T> implements Storage {
 
   /// Constructs a matrix from a nested list of rows.
   factory Matrix.fromRows(DataType<T> dataType, List<List<T>> source,
-      {MatrixFormat format}) {
+      {MatrixFormat? format}) {
     final result = Matrix<T>(
         dataType, source.length, source.isEmpty ? 0 : source[0].length,
         format: format);
@@ -129,7 +127,7 @@ abstract class Matrix<T> implements Storage {
   /// Constructs a matrix from a packed list of rows.
   factory Matrix.fromPackedRows(
       DataType<T> dataType, int rowCount, int columnCount, List<T> source,
-      {MatrixFormat format}) {
+      {MatrixFormat? format}) {
     if (rowCount * columnCount != source.length) {
       throw ArgumentError.value(
           source, 'source', 'Row and column count do not match.');
@@ -145,7 +143,7 @@ abstract class Matrix<T> implements Storage {
 
   /// Constructs a matrix from a nested list of columns.
   factory Matrix.fromColumns(DataType<T> dataType, List<List<T>> source,
-      {MatrixFormat format}) {
+      {MatrixFormat? format}) {
     final result = Matrix<T>(
         dataType, source.isEmpty ? 0 : source[0].length, source.length,
         format: format);
@@ -165,7 +163,7 @@ abstract class Matrix<T> implements Storage {
   /// Constructs a matrix from a packed list of columns.
   factory Matrix.fromPackedColumns(
       DataType<T> dataType, int rowCount, int colCount, List<T> source,
-      {MatrixFormat format}) {
+      {MatrixFormat? format}) {
     if (rowCount * colCount != source.length) {
       throw ArgumentError.value(
           source, 'source', 'Row and column count do not match.');
@@ -232,7 +230,7 @@ abstract class Matrix<T> implements Storage {
   Matrix<T> copy();
 
   /// Creates a new [Matrix] containing the same elements as this one.
-  Matrix<T> toMatrix({MatrixFormat format}) {
+  Matrix<T> toMatrix({MatrixFormat? format}) {
     final result = Matrix(dataType, rowCount, columnCount, format: format);
     for (var r = 0; r < rowCount; r++) {
       for (var c = 0; c < columnCount; c++) {
@@ -244,9 +242,9 @@ abstract class Matrix<T> implements Storage {
 
   /// Returns a human readable representation of the matrix.
   String format({
-    Printer valuePrinter,
-    Printer paddingPrinter,
-    Printer ellipsesPrinter,
+    Printer? valuePrinter,
+    Printer? paddingPrinter,
+    Printer? ellipsesPrinter,
     bool limit = true,
     int leadingItems = 3,
     int trailingItems = 3,

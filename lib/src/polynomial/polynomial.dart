@@ -1,8 +1,5 @@
-library data.polynomial.polynomial;
-
 import 'dart:collection' show ListMixin;
 
-import 'package:meta/meta.dart';
 import 'package:more/printer.dart' show Printer;
 
 import '../../type.dart';
@@ -18,7 +15,7 @@ abstract class Polynomial<T> implements Storage {
   /// Constructs a default vector of the desired [dataType], and possibly a
   /// custom [format].
   factory Polynomial(DataType<T> dataType,
-      {int desiredDegree = -1, PolynomialFormat format}) {
+      {int desiredDegree = -1, PolynomialFormat? format}) {
     ArgumentError.checkNotNull(dataType, 'dataType');
     switch (format ?? defaultPolynomialFormat) {
       case PolynomialFormat.standard:
@@ -37,14 +34,14 @@ abstract class Polynomial<T> implements Storage {
   /// is a read-only view.
   factory Polynomial.generate(
       DataType<T> dataType, int degree, PolynomialGeneratorCallback<T> callback,
-      {PolynomialFormat format}) {
+      {PolynomialFormat? format}) {
     final result = GeneratedPolynomial<T>(dataType, degree, callback);
     return format == null ? result : result.toPolynomial(format: format);
   }
 
   /// Constructs a polynomial from a list of coefficients.
   factory Polynomial.fromCoefficients(DataType<T> dataType, List<T> source,
-      {PolynomialFormat format}) {
+      {PolynomialFormat? format}) {
     final result =
         Polynomial(dataType, desiredDegree: source.length - 1, format: format);
     for (var i = 0; i < source.length; i++) {
@@ -55,7 +52,7 @@ abstract class Polynomial<T> implements Storage {
 
   /// Constructs a polynomial from a list of values.
   factory Polynomial.fromList(DataType<T> dataType, List<T> source,
-      {PolynomialFormat format}) {
+      {PolynomialFormat? format}) {
     final result =
         Polynomial(dataType, desiredDegree: source.length - 1, format: format);
     for (var i = 0; i < source.length; i++) {
@@ -66,7 +63,7 @@ abstract class Polynomial<T> implements Storage {
 
   /// Builds a polynomial from a list of roots.
   factory Polynomial.fromRoots(DataType<T> dataType, List<T> roots,
-      {PolynomialFormat format}) {
+      {PolynomialFormat? format}) {
     final result =
         Polynomial(dataType, desiredDegree: roots.length, format: format);
     if (roots.isEmpty) {
@@ -105,7 +102,7 @@ abstract class Polynomial<T> implements Storage {
   Polynomial<T> copy();
 
   /// Creates a new [Polynomial] containing the same elements as this one.
-  Polynomial<T> toPolynomial({PolynomialFormat format}) {
+  Polynomial<T> toPolynomial({PolynomialFormat? format}) {
     final result = Polynomial(dataType, desiredDegree: degree, format: format);
     for (var i = degree; i >= 0; i--) {
       result.setUnchecked(i, getUnchecked(i));
@@ -114,7 +111,8 @@ abstract class Polynomial<T> implements Storage {
   }
 
   /// Returns the leading term of this polynomial.
-  T get lead => degree >= 0 ? getUnchecked(degree) : zeroCoefficient;
+  T get lead =>
+      degree >= 0 ? getUnchecked(degree) : dataType.field.additiveIdentity;
 
   /// Returns the coefficient at the provided [exponent].
   T operator [](int exponent) {
@@ -140,7 +138,7 @@ abstract class Polynomial<T> implements Storage {
   T call(T value) {
     var exponent = degree;
     if (exponent < 0) {
-      return zeroCoefficient;
+      return dataType.field.additiveIdentity;
     }
     final mul = dataType.field.mul, add = dataType.field.add;
     var sum = getUnchecked(exponent);
@@ -153,23 +151,14 @@ abstract class Polynomial<T> implements Storage {
   /// Returns a list iterable over the polynomial.
   List<T> get iterable => _PolynomialList<T>(this);
 
-  /// Internal method that returns the zero coefficient.
-  @protected
-  T get zeroCoefficient => dataType.field.additiveIdentity;
-
-  /// Internal method that tests for null, or the zero coefficient.
-  @protected
-  bool isZeroCoefficient(T value) =>
-      value == null || value == dataType.nullValue || value == zeroCoefficient;
-
   /// Returns a human readable representation of the polynomial.
   String format({
     bool limit = true,
     int leadingItems = 3,
     int trailingItems = 3,
-    Printer ellipsesPrinter,
-    Printer paddingPrinter,
-    Printer valuePrinter,
+    Printer? ellipsesPrinter,
+    Printer? paddingPrinter,
+    Printer? valuePrinter,
     String addition = ' + ',
     String ellipses = '\u2026',
     String multiplication = '',
@@ -182,8 +171,8 @@ abstract class Polynomial<T> implements Storage {
     paddingPrinter ??= Printer.standard();
     valuePrinter ??= dataType.printer;
 
-    String coefficientPrinter(int exponent, T coefficient) {
-      if (skipNulls && isZeroCoefficient(coefficient)) {
+    String? coefficientPrinter(int exponent, T coefficient) {
+      if (skipNulls && dataType.field.additiveIdentity == coefficient) {
         return null;
       }
       final buffer = StringBuffer();
@@ -191,7 +180,7 @@ abstract class Polynomial<T> implements Storage {
           exponent != 0 &&
           coefficient == dataType.field.multiplicativeIdentity;
       if (!skipValue) {
-        buffer.write(valuePrinter(coefficient));
+        buffer.write(valuePrinter!(coefficient));
       }
       if (exponent > 0) {
         if (!skipValue) {
@@ -208,7 +197,7 @@ abstract class Polynomial<T> implements Storage {
 
     final count = degree;
     if (count < 0) {
-      return paddingPrinter(valuePrinter(zeroCoefficient));
+      return paddingPrinter(valuePrinter(dataType.field.additiveIdentity));
     }
     final parts = <String>[];
     for (var i = count; i >= 0; i--) {

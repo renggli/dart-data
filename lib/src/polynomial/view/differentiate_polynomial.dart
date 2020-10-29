@@ -1,5 +1,3 @@
-library data.polynomial.view.differentiate;
-
 import '../../../type.dart';
 import '../../shared/storage.dart';
 import '../polynomial.dart';

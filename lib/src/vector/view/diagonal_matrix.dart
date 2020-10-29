@@ -1,5 +1,3 @@
-library data.vector.view.diagonal;
-
 import '../../../type.dart';
 import '../../../vector.dart';
 import '../../matrix/matrix.dart';
@@ -28,7 +26,7 @@ class DiagonalMatrix<T> with Matrix<T> {
 
   @override
   T getUnchecked(int row, int col) =>
-      row == col ? vector.getUnchecked(row) : dataType.nullValue;
+      row == col ? vector.getUnchecked(row) : dataType.defaultValue;
 
   @override
   void setUnchecked(int row, int col, T value) {

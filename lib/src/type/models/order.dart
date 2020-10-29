@@ -1,5 +1,3 @@
-library data.type.models.order;
-
 import 'package:meta/meta.dart';
 
 /// Encapsulates a total order of objects.

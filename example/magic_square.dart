@@ -1,5 +1,3 @@
-library data.magic_square;
-
 import 'dart:math' as math;
 
 import 'package:data/matrix.dart';

@@ -1,5 +1,3 @@
-library data.matrix.view.diagonal;
-
 import 'dart:math' as math;
 
 import '../../../type.dart';

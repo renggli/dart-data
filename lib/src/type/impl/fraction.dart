@@ -1,5 +1,3 @@
-library data.type.impl.fraction;
-
 import 'package:more/number.dart';
 
 import '../models/equality.dart';
@@ -14,14 +12,11 @@ class FractionDataType extends DataType<Fraction> {
   String get name => 'fraction';
 
   @override
-  bool get isNullable => true;
+  Fraction get defaultValue => Fraction.zero;
 
   @override
-  Fraction get nullValue => null;
-
-  @override
-  Fraction cast(Object value) {
-    if (value == null || value is Fraction) {
+  Fraction cast(dynamic value) {
+    if (value is Fraction) {
       return value;
     } else if (value is int) {
       return Fraction(value);

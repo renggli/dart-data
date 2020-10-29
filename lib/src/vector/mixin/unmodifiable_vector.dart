@@ -1,5 +1,3 @@
-library data.vector.mixins.unmodifiable;
-
 import '../vector.dart';
 
 /// Mixin for unmodifiable vectors.

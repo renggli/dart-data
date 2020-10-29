@@ -1,5 +1,3 @@
-library data.vector.operator.sum;
-
 import '../vector.dart';
 
 extension SumExtension<T> on Vector<T> {

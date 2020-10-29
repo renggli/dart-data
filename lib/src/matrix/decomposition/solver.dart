@@ -1,5 +1,3 @@
-library matrix.decomposition.solver;
-
 import '../../shared/config.dart';
 import '../matrix.dart';
 import '../view/identity_matrix.dart';

@@ -1,5 +1,3 @@
-library data.vector.operator.lerp;
-
 import '../../../type.dart';
 import '../vector.dart';
 import '../vector_format.dart';
@@ -10,7 +8,7 @@ extension LerpExtension<T> on Vector<T> {
   /// [t]. If [t] is equal to `0` the result is `this`, if [t] is equal to `1`
   /// the result is [other].
   Vector<T> lerp(Vector<T> other, num t,
-      {Vector<T> target, DataType<T> dataType, VectorFormat format}) {
+      {Vector<T>? target, DataType<T>? dataType, VectorFormat? format}) {
     final result = createVector<T>(this, target, dataType, format);
     final add = result.dataType.field.add, scale = result.dataType.field.scale;
     binaryOperator<T>(

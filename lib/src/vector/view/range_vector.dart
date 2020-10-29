@@ -1,5 +1,3 @@
-library data.vector.view.range;
-
 import '../../../type.dart';
 import '../../shared/storage.dart';
 import '../vector.dart';
@@ -37,7 +35,7 @@ class RangeVector<T> with Vector<T> {
 extension RangeVectorExtension<T> on Vector<T> {
   /// Returns a mutable view onto a [Vector] range. Throws a [RangeError], if
   /// the index is out of bounds.
-  Vector<T> range(int start, [int end]) {
+  Vector<T> range(int start, [int? end]) {
     end = RangeError.checkValidRange(start, end, count, 'start', 'end');
     if (start == 0 && end == count) {
       return this;

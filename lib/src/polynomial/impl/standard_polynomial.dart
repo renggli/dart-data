@@ -1,5 +1,3 @@
-library data.polynomial.impl.standard;
-
 import 'dart:math' show max;
 
 import '../../../type.dart';
@@ -18,7 +16,7 @@ class StandardPolynomial<T> with Polynomial<T> {
   StandardPolynomial(DataType<T> dataType, int desiredDegree)
       : this._(
             dataType,
-            dataType.newListFilled(max(initialListLength, desiredDegree + 1),
+            dataType.newList(max(initialListLength, desiredDegree + 1),
                 dataType.field.additiveIdentity),
             -1);
 
@@ -40,13 +38,13 @@ class StandardPolynomial<T> with Polynomial<T> {
   @override
   T getUnchecked(int exponent) => exponent < _coefficients.length
       ? _coefficients[exponent]
-      : zeroCoefficient;
+      : dataType.defaultValue;
 
   @override
   void setUnchecked(int exponent, T value) {
-    if (isZeroCoefficient(value)) {
+    if (value == dataType.defaultValue) {
       if (exponent <= _degree) {
-        _coefficients[exponent] = zeroCoefficient;
+        _coefficients[exponent] = dataType.defaultValue;
         if (exponent == _degree) {
           _updateDegree();
           _shrinkCoefficients();
@@ -61,7 +59,7 @@ class StandardPolynomial<T> with Polynomial<T> {
 
   void _updateDegree() {
     for (var i = _degree - 1; i >= 0; i--) {
-      if (_coefficients[i] != zeroCoefficient) {
+      if (_coefficients[i] != dataType.defaultValue) {
         _degree = i;
         return;
       }
@@ -79,8 +77,7 @@ class StandardPolynomial<T> with Polynomial<T> {
   void _growCoefficients(int exponent) {
     if (exponent >= _coefficients.length) {
       final newLength = max(exponent + 1, 3 * _coefficients.length ~/ 2 + 1);
-      _coefficients = dataType.copyList(_coefficients,
-          length: newLength, fillValue: zeroCoefficient);
+      _coefficients = dataType.copyList(_coefficients, length: newLength);
     }
   }
 }

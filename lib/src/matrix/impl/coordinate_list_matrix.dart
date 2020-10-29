@@ -1,5 +1,3 @@
-library data.matrix.impl.coordinate_list;
-
 import '../../../type.dart';
 import '../../shared/config.dart';
 import '../../shared/lists.dart';
@@ -68,21 +66,21 @@ class CoordinateListMatrix<T> with Matrix<T> {
   @override
   T getUnchecked(int row, int col) {
     final index = _binarySearch(row, col);
-    return index < 0 ? dataType.nullValue : _values[index];
+    return index < 0 ? dataType.defaultValue : _values[index];
   }
 
   @override
   void setUnchecked(int row, int col, T value) {
     final index = _binarySearch(row, col);
     if (index < 0) {
-      if (value != dataType.nullValue) {
+      if (value != dataType.defaultValue) {
         _rows = insertAt(indexDataType, _rows, _length, -index - 1, row);
         _cols = insertAt(indexDataType, _cols, _length, -index - 1, col);
         _values = insertAt(dataType, _values, _length, -index - 1, value);
         _length++;
       }
     } else {
-      if (value == dataType.nullValue) {
+      if (value == dataType.defaultValue) {
         _rows = removeAt(indexDataType, _rows, _length, index);
         _cols = removeAt(indexDataType, _cols, _length, index);
         _values = removeAt(dataType, _values, _length, index);

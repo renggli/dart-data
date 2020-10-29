@@ -1,9 +1,10 @@
-library data.test.type;
-
-import 'dart:math' as math;
+import 'dart:math';
 
 import 'package:data/src/shared/config.dart' as config;
 import 'package:data/type.dart';
+import 'package:more/feature.dart';
+import 'package:more/number.dart';
+import 'package:more/ordering.dart';
 import 'package:test/test.dart';
 
 void listTest<T>(DataType<T> type, List<List<T>> lists) {
@@ -16,18 +17,15 @@ void listTest<T>(DataType<T> type, List<List<T>> lists) {
     DataType.fraction,
     DataType.complex,
     DataType.quaternion,
-    DataType.object,
   ].contains(type)) {
-    // Inference based on single example.dart or runtime type.
-    final exampleInstance = lists.expand((list) => list).first;
-    final exampleType = exampleInstance.runtimeType;
-    test('fromInstance: $exampleInstance', () {
-      expect(DataType.fromInstance(exampleInstance), type,
-          reason: 'DataType.fromInstance($exampleInstance)');
+    test('fromType', () {
+      expect(DataType.fromType<T>(), type);
     });
-    test('fromType: $exampleType', () {
-      expect(DataType.fromType(exampleType), type,
-          reason: 'DataType.fromType($exampleType)');
+    test('fromInstance', () {
+      for (final value in lists.expand((value) => value)) {
+        expect(DataType.fromInstance<T>(value), type,
+            reason: 'DataType.fromInstance<$T>($value)');
+      }
     });
   }
   if ([
@@ -42,30 +40,28 @@ void listTest<T>(DataType<T> type, List<List<T>> lists) {
     DataType.uint8,
     DataType.boolean,
     DataType.string,
-    DataType.object,
   ].contains(type)) {
-    // Inference based on iterable of examples.
     for (final list in lists) {
-      test('fromIterable: $list', () {
-        expect(DataType.fromIterable(list), type,
-            reason: 'DataType.fromIterable($list)');
+      test('fromIterable([${list.join(', ')}])', () {
+        expect(DataType.fromIterable<T>(list), type);
       });
     }
   }
   if (![DataType.float32].contains(type)) {
     for (final list in lists) {
-      test('castList: $list', () {
+      test('castList([${list.join(', ')}])', () {
         final result = type.castList(list);
         expect(result.length, list.length);
-        expect(type.castList(list),
-            pairwiseCompare(list, type.equality.isEqual, 'isEqual'),
-            reason: '$type.castList($list)');
+        expect(result, pairwiseCompare(list, type.equality.isEqual, 'isEqual'));
       });
     }
   }
-  final exampleList = lists.last;
-  final exampleValue =
-      exampleList.firstWhere((value) => value != type.nullValue);
+  final exampleList = Ordering.natural<num>()
+      .onResultOf<List<T>>((value) => value.length)
+      .maxOf(lists);
+  final exampleValue = lists
+      .expand((value) => value)
+      .firstWhere((value) => value != type.defaultValue);
   group('newList', () {
     test('empty', () {
       final list = type.newList(0);
@@ -75,18 +71,19 @@ void listTest<T>(DataType<T> type, List<List<T>> lists) {
       final list = type.newList(42);
       expect(list.length, 42);
     });
-    test('null', () {
+    test('defaultValue', () {
       final list = type.newList(1);
-      expect(list[0], type.nullValue);
+      expect(list[0], type.defaultValue);
     });
     test('filled', () {
-      final list = type.newListFilled(10, exampleValue);
+      final list = type.newList(10, exampleValue);
       expect(list, List.filled(10, exampleValue));
     });
   });
   group('copy', () {
     test('basic', () {
       final copy = type.copyList(exampleList);
+      expect(copy.length, exampleList.length);
       expect(
           copy, pairwiseCompare(exampleList, type.equality.isEqual, 'isEqual'));
     });
@@ -105,8 +102,8 @@ void listTest<T>(DataType<T> type, List<List<T>> lists) {
           pairwiseCompare(exampleList, type.equality.isEqual, 'isEqual'));
       expect(
           copy.getRange(exampleList.length, copy.length),
-          pairwiseCompare(List.filled(5, type.nullValue), type.equality.isEqual,
-              'isEqual'));
+          pairwiseCompare(List.filled(5, type.defaultValue),
+              type.equality.isEqual, 'isEqual'));
     });
     test('larger, with custom fill', () {
       final copy = type.copyList(exampleList,
@@ -130,29 +127,35 @@ void listTest<T>(DataType<T> type, List<List<T>> lists) {
   });
 }
 
-void floatGroup(DataType type, int bits) {
+void floatGroup(FloatDataType type, int bits) {
   final name = 'float$bits';
   group('$name', () {
     test('name', () {
       expect(type.name, name);
       expect(type.toString(), 'DataType.$name');
     });
+    test('defaultValue', () {
+      expect(type.defaultValue, 0.0);
+    });
     test('nullable', () {
       expect(type.isNullable, isFalse);
-      expect(type.nullValue, 0.0);
+      expect(type.nullable, isNot(type));
     });
     test('cast', () {
-      expect(() => type.cast(null), throwsArgumentError);
       expect(type.cast(0), 0.0);
       expect(type.cast(1), 1.0);
       expect(type.cast(12.34), 12.34);
       expect(type.cast('123.45'), 123.45);
       expect(type.cast(BigInt.from(42)), 42.0);
       expect(type.cast(Fraction(1, 2)), 0.5);
+    });
+    test('cast (errors)', () {
+      expect(() => type.cast(''), throwsArgumentError);
+      expect(() => type.cast(null), throwsArgumentError);
       expect(() => type.cast('abc'), throwsArgumentError);
     });
     listTest(type, <List<double>>[
-      [math.pi, math.e],
+      [1.5, 0.375],
       [-0.750, 1.5, 0.375],
     ]);
     fieldTest(type, <double>[-0.75, 0.375, 1.5]);
@@ -168,9 +171,11 @@ void floatGroup(DataType type, int bits) {
       expect(nullableType, sameNullableType);
       expect(nullableType.hashCode, sameNullableType.hashCode);
     });
+    test('defaultValue', () {
+      expect(nullableType.defaultValue, isNull);
+    });
     test('nullable', () {
       expect(nullableType.isNullable, isTrue);
-      expect(nullableType.nullValue, isNull);
       expect(nullableType.nullable, nullableType);
     });
     test('cast', () {
@@ -184,8 +189,8 @@ void floatGroup(DataType type, int bits) {
       expect(() => nullableType.cast('abc'), throwsArgumentError);
     });
     if (DataType.float64 == type) {
-      listTest(nullableType, <List<double>>[
-        [math.pi, null, math.e],
+      listTest(nullableType, <List<double?>>[
+        [1.5, null, 0.375],
         [-1.1, 0.1, 1.1, null],
       ]);
     }
@@ -205,35 +210,37 @@ void integerGroup(IntegerDataType type, bool isSigned, int bits) {
     });
     test('min/max', () {
       if (type.isSigned) {
-        expect(type.min, -math.pow(2, bits - 1));
-        expect(type.max, math.pow(2, bits - 1) - 1);
+        expect(type.min, -pow(2, bits - 1));
+        expect(type.max, pow(2, bits - 1) - 1);
       } else {
         expect(type.min, 0);
-        expect(type.max, math.pow(2, bits) - 1);
+        expect(type.max, pow(2, bits) - 1);
       }
     });
     test('safe', () {
-      if (type.bits <= 32) {
+      if (bits <= 32) {
         expect(type.safeBits, type.bits);
         expect(type.safeMin, type.min);
         expect(type.safeMax, type.max);
       } else {
         expect(type.safeBits <= type.bits, isTrue);
-        if (type.isSigned) {
-          expect(type.safeMin, -math.pow(2, type.safeBits - 1));
-          expect(type.safeMax, math.pow(2, type.safeBits - 1) - 1);
+        if (isSigned) {
+          expect(type.safeMin, -pow(2, type.safeBits - 1));
+          expect(type.safeMax, pow(2, type.safeBits - 1) - 1);
         } else {
           expect(type.safeMin, 0);
-          expect(type.safeMax, math.pow(2, type.safeBits) - 1);
+          expect(type.safeMax, pow(2, type.safeBits) - 1);
         }
       }
     });
+    test('defaultValue', () {
+      expect(type.defaultValue, 0);
+    });
     test('nullable', () {
       expect(type.isNullable, isFalse);
-      expect(type.nullValue, 0);
+      expect(type.nullable, isNot(type));
     });
     test('cast', () {
-      expect(() => type.cast(null), throwsArgumentError);
       expect(type.cast(0), 0);
       expect(type.cast(1), 1);
       expect(type.cast(12.34), 12);
@@ -246,6 +253,10 @@ void integerGroup(IntegerDataType type, bool isSigned, int bits) {
         expect(type.cast(BigInt.from(-123)), -123);
         expect(type.cast(Fraction(-2, 1)), -2);
       }
+    });
+    test('cast (errors)', () {
+      expect(() => type.cast(''), throwsArgumentError);
+      expect(() => type.cast(null), throwsArgumentError);
       expect(() => type.cast('abc'), throwsArgumentError);
     });
     listTest(type, <List<int>>[
@@ -260,9 +271,11 @@ void integerGroup(IntegerDataType type, bool isSigned, int bits) {
       expect(nullableType.name, '$name.nullable');
       expect(nullableType.toString(), 'DataType.$name.nullable');
     });
+    test('defaultValue', () {
+      expect(nullableType.defaultValue, isNull);
+    });
     test('nullable', () {
       expect(nullableType.isNullable, isTrue);
-      expect(nullableType.nullValue, isNull);
       expect(nullableType.nullable, nullableType);
     });
     test('cast', () {
@@ -278,9 +291,12 @@ void integerGroup(IntegerDataType type, bool isSigned, int bits) {
         expect(type.cast(BigInt.from(-123)), -123);
         expect(type.cast(Fraction(-2, 1)), -2);
       }
+    });
+    test('cast (error)', () {
+      expect(() => nullableType.cast(''), throwsArgumentError);
       expect(() => nullableType.cast('abc'), throwsArgumentError);
     });
-    listTest(nullableType, <List<int>>[
+    listTest(nullableType, <List<int?>>[
       [type.safeMin, 0, null, type.safeMax, null],
       [type.safeMin + 123, type.safeMax - 45, null, type.safeMax - 67],
     ]);
@@ -486,27 +502,114 @@ void fieldTest<T>(DataType<T> type, List<T> values) {
 
 void main() {
   group('object', () {
-    const type = DataType.object;
+    const defaultValue = Point<int>(0, 0);
+    const point12 = Point(1, 2), point21 = Point(2, 1);
+    final type = DataType.object<Point<int>>(defaultValue);
     test('name', () {
-      expect(type.name, 'object');
-      expect(type.toString(), 'DataType.object');
+      expect(type.name, 'object<Point<int>>');
+      expect(type.toString(), 'DataType.object<Point<int>>');
+    });
+    test('defaultValue', () {
+      expect(type.defaultValue, defaultValue);
+    });
+    test('nullable', () {
+      expect(type.isNullable, isFalse);
+      expect(type.nullable, DataType.nullableObject<Point<int>>());
+    });
+    test('cast', () {
+      expect(type.cast(point12), point12);
+      expect(type.cast(point21), point21);
+    });
+    test('cast (error)', () {
+      expect(() => type.cast(null), throwsArgumentError);
+      expect(() => type.cast('abc'), throwsArgumentError);
+      expect(() => type.cast(const Symbol('bad')), throwsArgumentError);
+    });
+    test('equality', () {
+      final equality = type.equality;
+      expect(equality.isEqual(point12, point12), isTrue);
+      expect(equality.isEqual(point12, point21), isFalse);
+      expect(equality.hash(point12), point12.hashCode);
+      expect(equality.hash(point12), isNot(point21.hashCode));
+      expect(equality.isClose(point12, point12, 0), isTrue);
+      expect(equality.isClose(point12, point21, 0), isFalse);
+    });
+    test('field', () {
+      expect(() => type.field, throwsUnsupportedError);
+    });
+    test('order', () {
+      expect(() => type.order, throwsUnsupportedError);
+    });
+    listTest(type, <List<Point<int>>>[
+      [],
+      [point12, point21],
+      [point12, point21, point12, point21],
+    ]);
+  });
+  group('object.nullable', () {
+    const point12 = Point(1, 2), point21 = Point(2, 1);
+    final type = DataType.nullableObject<Point<int>>();
+    test('name', () {
+      expect(type.name, 'object<Point<int>?>');
+      expect(type.toString(), 'DataType.object<Point<int>?>');
+    });
+    test('defaultValue', () {
+      expect(type.defaultValue, isNull);
     });
     test('nullable', () {
       expect(type.isNullable, isTrue);
-      expect(type.nullValue, isNull);
       expect(type.nullable, type);
     });
     test('cast', () {
       expect(type.cast(null), isNull);
-      expect(type.cast(123), 123);
+      expect(type.cast(point12), point12);
+      expect(type.cast(point21), point21);
+    });
+    test('equality', () {
+      final equality = type.equality;
+      expect(equality.isEqual(point12, point12), isTrue);
+      expect(equality.isEqual(point12, point21), isFalse);
+      expect(equality.hash(point12), point12.hashCode);
+      expect(equality.hash(point12), isNot(point21.hashCode));
+      expect(equality.isClose(point12, point12, 0), isTrue);
+      expect(equality.isClose(point12, point21, 0), isFalse);
+    });
+    test('field', () {
+      expect(() => type.field, throwsUnsupportedError);
+    });
+    test('order', () {
+      expect(() => type.order, throwsUnsupportedError);
+    });
+    listTest(type, <List<Point<int>?>>[
+      [],
+      [point12, null],
+      [point12, null, point12],
+    ]);
+  });
+  group('dynamic', () {
+    const type = DataType.dynamicType;
+    test('name', () {
+      expect(type.name, 'dynamic');
+      expect(type.toString(), 'DataType.dynamic');
+    });
+    test('defaultValue', () {
+      expect(type.defaultValue, isNull);
+    });
+    test('nullable', () {
+      expect(type.isNullable, isTrue);
+      expect(type.nullable, type);
+    });
+    test('cast', () {
+      expect(type.cast(null), isNull);
+      expect(type.cast(1), 1);
       expect(type.cast('foo'), 'foo');
-      expect(type.cast(true), true);
     });
     test('equality', () {
       final equality = type.equality;
       expect(equality.isEqual('foo', 'foo'), isTrue);
       expect(equality.isEqual('foo', 'bar'), isFalse);
       expect(equality.hash('foo'), 'foo'.hashCode);
+      expect(equality.hash('foo'), isNot('bar'.hashCode));
       expect(equality.isClose('foo', 'foo', 0), isTrue);
       expect(equality.isClose('foo', 'bar', 0), isFalse);
     });
@@ -516,11 +619,10 @@ void main() {
     test('order', () {
       expect(() => type.order, throwsUnsupportedError);
     });
-    listTest(type, <List<Object>>[
+    listTest(type, <List<dynamic>>[
       [],
-      [Uri.parse('https://lukas-renggli.ch/')],
-      [1, true],
-      ['abc', 123],
+      [1, null],
+      ['foo', null, const Point(1, 2)],
     ]);
   });
   group('string', () {
@@ -529,13 +631,15 @@ void main() {
       expect(type.name, 'string');
       expect(type.toString(), 'DataType.string');
     });
+    test('defaultValue', () {
+      expect(type.defaultValue, '');
+    });
     test('nullable', () {
-      expect(type.isNullable, isTrue);
-      expect(type.nullValue, isNull);
-      expect(type.nullable, type);
+      expect(type.isNullable, isFalse);
+      expect(type.nullable, isNot(type));
     });
     test('cast', () {
-      expect(type.cast(null), isNull);
+      expect(type.cast(null), 'null');
       expect(type.cast(123), '123');
       expect(type.cast(BigInt.from(123)), '123');
       expect(type.cast('foo'), 'foo');
@@ -564,8 +668,29 @@ void main() {
     });
     listTest(type, <List<String>>[
       ['abc'],
-      ['abc', null],
       ['abc', 'def'],
+    ]);
+  });
+  group('string.nullable', () {
+    final type = DataType.string.nullable;
+    test('name', () {
+      expect(type.name, 'string.nullable');
+      expect(type.toString(), 'DataType.string.nullable');
+    });
+    test('defaultValue', () {
+      expect(type.defaultValue, isNull);
+    });
+    test('nullable', () {
+      expect(type.isNullable, isTrue);
+      expect(type.nullable, type);
+    });
+    test('cast', () {
+      expect(type.cast(null), null);
+      expect(type.cast(123), '123');
+    });
+    listTest(type, <List<String?>>[
+      ['abc', null],
+      ['abc', null, 'def'],
     ]);
   });
   group('numeric', () {
@@ -574,27 +699,53 @@ void main() {
       expect(type.name, 'numeric');
       expect(type.toString(), 'DataType.numeric');
     });
+    test('defaultValue', () {
+      expect(type.defaultValue, 0);
+    });
     test('nullable', () {
-      expect(type.isNullable, isTrue);
-      expect(type.nullValue, isNull);
-      expect(type.nullable, type);
+      expect(type.isNullable, isFalse);
+      expect(type.nullable, isNot(type));
     });
     test('cast', () {
-      expect(type.cast(null), isNull);
       expect(type.cast(123), 123);
       expect(type.cast(12.3), 12.3);
       expect(type.cast('123'), 123);
       expect(type.cast('123.4'), 123.4);
       expect(type.cast(BigInt.from(123)), 123);
       expect(type.cast(Fraction(1, 2)), 0.5);
+    });
+    test('cast (error)', () {
+      expect(() => type.cast(null), throwsArgumentError);
       expect(() => type.cast('abc'), throwsArgumentError);
       expect(() => type.cast(const Symbol('bad')), throwsArgumentError);
     });
     listTest(type, <List<num>>[
-      [1, 2.3],
-      [1, 2.3, null],
+      [1],
+      [1, 2.7],
     ]);
     fieldTest(type, [-2, 2.3]);
+  });
+  group('numeric.nullable', () {
+    final type = DataType.numeric.nullable;
+    test('name', () {
+      expect(type.name, 'numeric.nullable');
+      expect(type.toString(), 'DataType.numeric.nullable');
+    });
+    test('defaultValue', () {
+      expect(type.defaultValue, isNull);
+    });
+    test('nullable', () {
+      expect(type.isNullable, isTrue);
+      expect(type.nullable, type);
+    });
+    test('cast', () {
+      expect(type.cast(null), isNull);
+      expect(type.cast(123), 123);
+    });
+    listTest(type, <List<num?>>[
+      [1, 2.7],
+      [2.7, 3.1, null],
+    ]);
   });
   group('boolean', () {
     const type = DataType.boolean;
@@ -602,12 +753,14 @@ void main() {
       expect(type.name, 'boolean');
       expect(type.toString(), 'DataType.boolean');
     });
+    test('defaultValue', () {
+      expect(type.defaultValue, false);
+    });
     test('nullable', () {
       expect(type.isNullable, isFalse);
-      expect(type.nullValue, false);
+      expect(type.nullable, isNot(type));
     });
     test('cast', () {
-      expect(() => type.cast(null), throwsArgumentError);
       expect(type.cast(true), isTrue);
       expect(type.cast(false), isFalse);
       expect(type.cast('true'), isTrue);
@@ -615,6 +768,9 @@ void main() {
       expect(type.cast(1), isTrue);
       expect(type.cast(2), isTrue);
       expect(type.cast(0), isFalse);
+    });
+    test('cast (error)', () {
+      expect(() => type.cast(null), throwsArgumentError);
       expect(() => type.cast('abc'), throwsArgumentError);
     });
     listTest(type, <List<bool>>[
@@ -628,9 +784,11 @@ void main() {
       expect(type.name, 'boolean.nullable');
       expect(type.toString(), 'DataType.boolean.nullable');
     });
+    test('defaultValue', () {
+      expect(type.defaultValue, isNull);
+    });
     test('nullable', () {
       expect(type.isNullable, isTrue);
-      expect(type.nullValue, isNull);
       expect(type.nullable, type);
     });
     test('cast', () {
@@ -642,20 +800,23 @@ void main() {
       expect(type.cast(1), isTrue);
       expect(type.cast(2), isTrue);
       expect(type.cast(0), isFalse);
+    });
+    test('cast (error)', () {
       expect(() => type.cast('abc'), throwsArgumentError);
     });
-    listTest(type, <List<bool>>[
+    listTest(type, <List<bool?>>[
       [true, null],
       [true, false, null],
     ]);
   });
+
   integerGroup(DataType.int8, true, 8);
   integerGroup(DataType.uint8, false, 8);
   integerGroup(DataType.int16, true, 16);
   integerGroup(DataType.uint16, false, 16);
   integerGroup(DataType.int32, true, 32);
   integerGroup(DataType.uint32, false, 32);
-  if (!config.isJavaScript) {
+  if (!isJavaScript) {
     /// int64 and uint64 are only supported in VM
     integerGroup(DataType.int64, true, 64);
     integerGroup(DataType.uint64, false, 64);
@@ -669,17 +830,22 @@ void main() {
       expect(type.name, 'bigInt');
       expect(type.toString(), 'DataType.bigInt');
     });
+    test('defaultValue', () {
+      expect(type.defaultValue, BigInt.zero);
+    });
     test('nullable', () {
-      expect(type.isNullable, isTrue);
-      expect(type.nullValue, null);
+      expect(type.isNullable, isFalse);
+      expect(type.nullable, isNot(type));
     });
     test('cast', () {
-      expect(type.cast(null), isNull);
       expect(type.cast(BigInt.from(11)), BigInt.from(11));
       expect(type.cast(42), BigInt.from(42));
       expect(type.cast(3.14), BigInt.from(3));
       expect(type.cast('-123456789'), BigInt.from(-123456789));
+    });
+    test('cast (error)', () {
       expect(() => type.cast(''), throwsArgumentError);
+      expect(() => type.cast(null), throwsArgumentError);
       expect(() => type.cast(const Symbol('bad')), throwsArgumentError);
     });
     fieldTest(type, [
@@ -693,18 +859,23 @@ void main() {
       expect(type.name, 'fraction');
       expect(type.toString(), 'DataType.fraction');
     });
+    test('defaultValue', () {
+      expect(type.defaultValue, Fraction.zero);
+    });
     test('nullable', () {
-      expect(type.isNullable, isTrue);
-      expect(type.nullValue, null);
+      expect(type.isNullable, isFalse);
+      expect(type.nullable, isNot(type));
     });
     test('cast', () {
-      expect(type.cast(null), isNull);
       expect(type.cast(Fraction(1, 2)), Fraction(1, 2));
       expect(type.cast(BigInt.from(123)), Fraction(123, 1));
       expect(type.cast(2), Fraction(2));
       expect(type.cast(0.5), Fraction(1, 2));
       expect(type.cast('1/2'), Fraction(1, 2));
+    });
+    test('cast (error)', () {
       expect(() => type.cast(''), throwsArgumentError);
+      expect(() => type.cast(null), throwsArgumentError);
       expect(() => type.cast(const Symbol('bad')), throwsArgumentError);
     });
     fieldTest(type, [
@@ -719,18 +890,23 @@ void main() {
       expect(type.name, 'complex');
       expect(type.toString(), 'DataType.complex');
     });
+    test('defaultValue', () {
+      expect(type.defaultValue, Complex.zero);
+    });
     test('nullable', () {
-      expect(type.isNullable, isTrue);
-      expect(type.nullValue, null);
+      expect(type.isNullable, isFalse);
+      expect(type.nullable, isNot(type));
     });
     test('cast', () {
-      expect(type.cast(null), isNull);
       expect(type.cast(const Complex(1, 2)), const Complex(1, 2));
       expect(type.cast(2), const Complex(2));
       expect(type.cast(0.5), const Complex(0.5));
       expect(type.cast(BigInt.from(123)), const Complex(123));
       expect(type.cast(Fraction(1, 2)), const Complex(0.5));
       expect(type.cast('1+2i'), const Complex(1, 2));
+    });
+    test('cast (errors)', () {
+      expect(() => type.cast(null), throwsArgumentError);
       expect(() => type.cast(''), throwsArgumentError);
       expect(() => type.cast(const Symbol('bad')), throwsArgumentError);
     });
@@ -746,12 +922,14 @@ void main() {
       expect(type.name, 'quaternion');
       expect(type.toString(), 'DataType.quaternion');
     });
+    test('defaultValue', () {
+      expect(type.defaultValue, Quaternion.zero);
+    });
     test('nullable', () {
-      expect(type.isNullable, isTrue);
-      expect(type.nullValue, null);
+      expect(type.isNullable, isFalse);
+      expect(type.nullable, isNot(type));
     });
     test('cast', () {
-      expect(type.cast(null), isNull);
       expect(type.cast(const Quaternion(1, 2, 3, 4)),
           const Quaternion(1, 2, 3, 4));
       expect(type.cast(2), const Quaternion(2));
@@ -760,7 +938,10 @@ void main() {
       expect(type.cast(Fraction(1, 2)), const Quaternion(0.5));
       expect(type.cast(const Complex(1, 2)), const Quaternion(1, 2));
       expect(type.cast('1+2i+3j+4k'), const Quaternion(1, 2, 3, 4));
+    });
+    test('cast (errors)', () {
       expect(() => type.cast(''), throwsArgumentError);
+      expect(() => type.cast(null), throwsArgumentError);
       expect(() => type.cast(const Symbol('bad')), throwsArgumentError);
     });
     fieldTest(type, [
@@ -774,21 +955,27 @@ void main() {
       expect(type.name, 'int32/7');
       expect(type.toString(), 'DataType.int32/7');
     });
+    test('defaultValue', () {
+      expect(type.defaultValue, 0);
+    });
     test('nullable', () {
       expect(type.isNullable, isFalse);
-      expect(type.nullValue, 0);
+      expect(type.nullable, isNot(type));
     });
     test('modulus', () {
       expect(type.delegate, DataType.int32);
       expect(type.modulus, 7);
     });
     test('cast', () {
-      expect(() => type.cast(null), throwsArgumentError);
       expect(type.cast(0), 0);
       expect(type.cast(1), 1);
       expect(type.cast('2'), 2);
       expect(type.cast(7), 0);
       expect(type.cast(-1), 6);
+    });
+    test('cast (errors)', () {
+      expect(() => type.cast(''), throwsArgumentError);
+      expect(() => type.cast(null), throwsArgumentError);
     });
     test('order', () {
       final order = type.order;

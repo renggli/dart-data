@@ -1,5 +1,3 @@
-library data.polynomial.operator.mul;
-
 import '../../../type.dart';
 import '../polynomial.dart';
 import '../polynomial_format.dart';
@@ -8,11 +6,11 @@ import 'utils.dart';
 extension MulExtension<T> on Polynomial<T> {
   /// Multiplies this [Polynomial] with [other].
   Polynomial<T> mul(/* Polynomial<T>|T */ Object other,
-      {DataType<T> dataType, PolynomialFormat format}) {
+      {DataType<T>? dataType, PolynomialFormat? format}) {
     if (other is Polynomial<T>) {
       return mulPolynomial(other, dataType: dataType, format: format);
     } else if (other is T) {
-      return mulScalar(other, dataType: dataType, format: format);
+      return mulScalar(other as T, dataType: dataType, format: format);
     } else {
       throw ArgumentError.value(other, 'other', 'Invalid multiplication.');
     }
@@ -23,7 +21,7 @@ extension MulExtension<T> on Polynomial<T> {
 
   /// Multiplies this [Polynomial] with a [Polynomial].
   Polynomial<T> mulPolynomial(Polynomial<T> other,
-      {DataType<T> dataType, PolynomialFormat format}) {
+      {DataType<T>? dataType, PolynomialFormat? format}) {
     if (degree < 0 || other.degree < 0) {
       // One of the polynomials has zero coefficients.
       return createPolynomial<T>(this, 0, dataType, format);
@@ -60,7 +58,7 @@ extension MulExtension<T> on Polynomial<T> {
 
   /// Multiplies this [Polynomial] with a scalar.
   Polynomial<T> mulScalar(T other,
-      {DataType<T> dataType, PolynomialFormat format}) {
+      {DataType<T>? dataType, PolynomialFormat? format}) {
     final result = createPolynomial<T>(this, degree, dataType, format);
     final mul = result.dataType.field.mul;
     unaryOperator<T>(result, this, (a) => mul(a, other));

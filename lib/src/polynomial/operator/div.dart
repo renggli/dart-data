@@ -1,5 +1,3 @@
-library data.polynomial.operator.div;
-
 import '../../../type.dart';
 import '../polynomial.dart';
 import '../polynomial_format.dart';
@@ -9,9 +7,11 @@ extension DivExtension<T> on Polynomial<T> {
   /// Divides this [Polynomial] by [other], returns the quotient and remainder
   /// such that `dividend = quotient * divisor + remainder`.
   PolynomialDivision<T> div(Polynomial<T> other,
-      {DataType<T> dataType, PolynomialFormat format}) {
-    final dividend = this, divisor = other;
-    final dividendDegree = dividend.degree, divisorDegree = divisor.degree;
+      {DataType<T>? dataType, PolynomialFormat? format}) {
+    final dividend = this;
+    final divisor = other;
+    final dividendDegree = dividend.degree;
+    final divisorDegree = divisor.degree;
     final effectiveDataType = dataType ?? this.dataType;
     final sub = effectiveDataType.field.sub;
     final mul = effectiveDataType.field.mul;
@@ -47,7 +47,7 @@ extension DivExtension<T> on Polynomial<T> {
     final output = effectiveDataType.copyList(dividend.iterable);
     for (var i = dividendDegree - divisorDegree; i >= 0; i--) {
       final coefficient = output[i + 1] = div(output[i + 1], dividendLead);
-      if (coefficient != effectiveDataType.nullValue) {
+      if (coefficient != effectiveDataType.defaultValue) {
         for (var j = divisorDegree - 1; j >= 0; j--) {
           output[i + j] =
               sub(output[i + j], mul(divisor.getUnchecked(j), coefficient));

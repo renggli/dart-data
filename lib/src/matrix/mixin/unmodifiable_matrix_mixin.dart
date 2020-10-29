@@ -1,5 +1,3 @@
-library data.matrix.mixin.unmodifiable;
-
 import '../matrix.dart';
 
 /// Mixin for unmodifiable matrices.

@@ -1,5 +1,3 @@
-library data.shared.storage;
-
 /// Interface common to all storage objects.
 abstract class Storage {
   /// Returns the dimensions of this storage.

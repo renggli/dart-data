@@ -1,5 +1,3 @@
-library data.vector.view.overlay_offset;
-
 import '../../../type.dart';
 import '../../shared/storage.dart';
 import '../vector.dart';

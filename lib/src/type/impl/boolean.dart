@@ -1,5 +1,3 @@
-library data.type.impl.boolean;
-
 import 'package:more/collection.dart' show BitList;
 
 import '../type.dart';
@@ -14,16 +12,14 @@ class BooleanDataType extends DataType<bool> {
   String get name => 'boolean';
 
   @override
-  bool get isNullable => false;
+  bool get defaultValue => false;
 
   @override
-  bool get nullValue => false;
+  List<bool> newList(int length, [bool? fillValue]) =>
+      BitList.filled(length, fillValue ?? defaultValue);
 
   @override
-  List<bool> newList(int length) => BitList(length);
-
-  @override
-  bool cast(Object value) {
+  bool cast(dynamic value) {
     if (value is bool) {
       return value;
     } else if (value is num) {

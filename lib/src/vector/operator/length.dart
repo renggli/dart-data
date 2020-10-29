@@ -1,5 +1,3 @@
-library data.vector.operator.length;
-
 import '../vector.dart';
 
 extension LengthExtension<T> on Vector<T> {

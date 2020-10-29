@@ -1,5 +1,3 @@
-library data.vector.vector;
-
 import 'dart:collection' show ListMixin;
 
 import 'package:more/printer.dart' show Printer;
@@ -18,7 +16,7 @@ import 'view/generated_vector.dart';
 abstract class Vector<T> implements Storage {
   /// Constructs a default vector of the desired [dataType], the provided
   /// element [count], and possibly a custom [format].
-  factory Vector(DataType<T> dataType, int count, {VectorFormat format}) {
+  factory Vector(DataType<T> dataType, int count, {VectorFormat? format}) {
     ArgumentError.checkNotNull(dataType, 'dataType');
     RangeError.checkNotNegative(count, 'count');
     switch (format ?? defaultVectorFormat) {
@@ -35,7 +33,7 @@ abstract class Vector<T> implements Storage {
 
   /// Returns the concatenation of [vectors].
   factory Vector.concat(DataType<T> dataType, Iterable<Vector<T>> vectors,
-      {VectorFormat format}) {
+      {VectorFormat? format}) {
     if (vectors.isEmpty) {
       throw ArgumentError.value(
           vectors, 'vectors', 'Expected at least 1 vector.');
@@ -49,9 +47,9 @@ abstract class Vector<T> implements Storage {
   /// Constructs a vector with a constant [value]. If [format] is specified
   /// the resulting vector is mutable, otherwise this is a read-only view.
   factory Vector.constant(DataType<T> dataType, int count,
-      {T value, VectorFormat format}) {
+      {T? value, VectorFormat? format}) {
     final result =
-        ConstantVector<T>(dataType, count, value ?? dataType.nullValue);
+        ConstantVector<T>(dataType, count, value ?? dataType.defaultValue);
     return format == null ? result : result.toVector(format: format);
   }
 
@@ -60,14 +58,14 @@ abstract class Vector<T> implements Storage {
   /// read-only view.
   factory Vector.generate(
       DataType<T> dataType, int count, VectorGeneratorCallback<T> callback,
-      {VectorFormat format}) {
+      {VectorFormat? format}) {
     final result = GeneratedVector<T>(dataType, count, callback);
     return format == null ? result : result.toVector(format: format);
   }
 
   /// Constructs a vector from an list
   factory Vector.fromList(DataType<T> dataType, List<T> source,
-      {VectorFormat format}) {
+      {VectorFormat? format}) {
     final result = Vector<T>(dataType, source.length, format: format);
     for (var i = 0; i < source.length; i++) {
       result.setUnchecked(i, dataType.cast(source[i]));
@@ -90,7 +88,7 @@ abstract class Vector<T> implements Storage {
   Vector<T> copy();
 
   /// Creates a new [Vector] containing the same elements as this one.
-  Vector<T> toVector({VectorFormat format}) {
+  Vector<T> toVector({VectorFormat? format}) {
     final result = Vector(dataType, count, format: format);
     for (var i = 0; i < count; i++) {
       result.setUnchecked(i, getUnchecked(i));
@@ -126,9 +124,9 @@ abstract class Vector<T> implements Storage {
 
   /// Returns a human readable representation of the vector.
   String format({
-    Printer valuePrinter,
-    Printer paddingPrinter,
-    Printer ellipsesPrinter,
+    Printer? valuePrinter,
+    Printer? paddingPrinter,
+    Printer? ellipsesPrinter,
     bool limit = true,
     int leadingItems = 3,
     int trailingItems = 3,

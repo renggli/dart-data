@@ -1,5 +1,3 @@
-library matrix.decomposition.eigenvalue;
-
 import 'dart:math' as math;
 
 import 'package:more/collection.dart';
@@ -398,7 +396,7 @@ class EigenvalueDecomposition {
   }
 
   // Complex scalar division.
-  double cdivr, cdivi;
+  double cdivr = 0, cdivi = 0;
 
   void _cdiv(double xr, double xi, double yr, double yi) {
     if (yr.abs() > yi.abs()) {

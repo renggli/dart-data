@@ -1,5 +1,3 @@
-library data.vector.view.index;
-
 import '../../../type.dart';
 import '../../shared/config.dart';
 import '../../shared/storage.dart';

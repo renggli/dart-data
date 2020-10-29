@@ -1,5 +1,3 @@
-library data.polynomial.view.shift;
-
 import 'dart:math' as math;
 
 import '../../../type.dart';
@@ -37,7 +35,7 @@ class ShiftPolynomial<T> with Polynomial<T> {
     if (index >= 0) {
       return polynomial.getUnchecked(index);
     }
-    return zeroCoefficient;
+    return dataType.field.additiveIdentity;
   }
 
   @override

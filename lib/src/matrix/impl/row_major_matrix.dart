@@ -1,5 +1,3 @@
-library data.matrix.impl.row_major;
-
 import '../../../type.dart';
 import '../../shared/storage.dart';
 import '../matrix.dart';

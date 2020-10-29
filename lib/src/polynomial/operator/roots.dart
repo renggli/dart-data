@@ -1,5 +1,3 @@
-library data.polynomial.operator.roots;
-
 import '../../../matrix.dart';
 import '../../../type.dart';
 import '../../shared/config.dart';

@@ -1,5 +1,3 @@
-library data.matrix.operator.iterator;
-
 import '../matrix.dart';
 
 extension IteratorExtension<T> on Matrix<T> {

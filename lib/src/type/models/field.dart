@@ -1,5 +1,3 @@
-library data.type.models.field;
-
 import 'package:meta/meta.dart';
 
 /// Encapsulates a mathematical field.

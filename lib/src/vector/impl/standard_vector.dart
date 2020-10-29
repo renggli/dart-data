@@ -1,5 +1,3 @@
-library data.vector.impl.standard;
-
 import '../../../type.dart';
 import '../../shared/storage.dart';
 import '../vector.dart';

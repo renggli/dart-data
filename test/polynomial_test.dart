@@ -1,5 +1,3 @@
-library data.test.polynomial;
-
 import 'dart:math';
 
 import 'package:data/polynomial.dart';
@@ -32,9 +30,6 @@ void polynomialTest(String name, PolynomialFormat format) {
         for (var i = 0; i < 10; i++) {
           expect(polynomial[i], 0);
         }
-      });
-      test('default with error', () {
-        expect(() => Polynomial(null, format: format), throwsArgumentError);
       });
       test('generate', () {
         final polynomial = Polynomial.generate(DataType.int32, 7, (i) => i - 4);
@@ -163,7 +158,7 @@ void polynomialTest(String name, PolynomialFormat format) {
             // remove values
             values.shuffle();
             for (final value in values) {
-              polynomial[value] = polynomial.dataType.nullValue;
+              polynomial[value] = polynomial.dataType.defaultValue;
             }
             for (var i = 0; i < values.length; i++) {
               expect(polynomial[i], polynomial.dataType.field.additiveIdentity);
@@ -176,16 +171,6 @@ void polynomialTest(String name, PolynomialFormat format) {
             expect(polynomial.lead, 42);
             expect(polynomial[0], 0);
             expect(polynomial[1], 42);
-            expect(polynomial[2], 0);
-          });
-          test('null value', () {
-            final polynomial = Polynomial(type, format: format);
-            polynomial[1] = 42;
-            polynomial[1] = null;
-            expect(polynomial.degree, -1);
-            expect(polynomial.lead, 0);
-            expect(polynomial[0], 0);
-            expect(polynomial[1], 0);
             expect(polynomial[2], 0);
           });
           test('zero value', () {
@@ -297,7 +282,7 @@ void polynomialTest(String name, PolynomialFormat format) {
       });
     });
     group('roots', () {
-      final epsilon = pow(2.0, -32.0);
+      final epsilon = pow(2.0, -32.0).toDouble();
       test('empty', () {
         final polynomial =
             Polynomial.fromList(DataType.int32, <int>[], format: format);

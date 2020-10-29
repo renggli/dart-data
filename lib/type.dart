@@ -1,5 +1,3 @@
-library data.type;
-
 export 'package:more/number.dart';
 
 export 'src/type/impl/bigint.dart';
@@ -8,6 +6,7 @@ export 'src/type/impl/complex.dart';
 export 'src/type/impl/float.dart';
 export 'src/type/impl/fraction.dart';
 export 'src/type/impl/integer.dart';
+export 'src/type/impl/modulo.dart';
 export 'src/type/impl/nullable.dart';
 export 'src/type/impl/numeric.dart';
 export 'src/type/impl/object.dart';

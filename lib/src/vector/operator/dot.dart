@@ -1,5 +1,3 @@
-library data.vector.operator.dot;
-
 import '../vector.dart';
 import 'utils.dart';
 

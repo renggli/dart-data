@@ -1,5 +1,3 @@
-library data.polynomial.operator.lerp;
-
 import 'dart:math' as math;
 
 import '../../../type.dart';
@@ -12,7 +10,7 @@ extension LerpExtension<T> on Polynomial<T> {
   /// of [t]. If [t] is equal to `0` the result is `this`, if [t] is equal to
   /// `1` the result is [other].
   Polynomial<T> lerp(Polynomial<T> other, num t,
-      {DataType<T> dataType, PolynomialFormat format}) {
+      {DataType<T>? dataType, PolynomialFormat? format}) {
     final result = createPolynomial<T>(
         this, math.max(degree, other.degree), dataType, format);
     final add = result.dataType.field.add, scale = result.dataType.field.scale;

@@ -1,5 +1,3 @@
-library data.vector.view.unmodifiable;
-
 import '../../../type.dart';
 import '../../shared/storage.dart';
 import '../mixin/unmodifiable_vector.dart';

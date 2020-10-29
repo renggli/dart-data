@@ -1,5 +1,3 @@
-library data.matrix.overlay_matrix;
-
 import '../../../type.dart';
 import '../matrix.dart';
 import 'overlay_mask_matrix.dart';
@@ -11,10 +9,10 @@ extension OverlayMatrixExtension<T> on Matrix<T> {
   /// [colOffset], or using a boolean [mask].
   Matrix<T> overlay(
     Matrix<T> base, {
-    DataType<T> dataType,
-    Matrix<bool> mask,
-    int rowOffset,
-    int colOffset,
+    DataType<T>? dataType,
+    Matrix<bool>? mask,
+    int? rowOffset,
+    int? colOffset,
   }) {
     dataType ??= this.dataType;
     if (mask == null && rowOffset != null && colOffset != null) {

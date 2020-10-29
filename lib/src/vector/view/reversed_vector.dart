@@ -1,5 +1,3 @@
-library data.vector.view.reversed;
-
 import '../../../type.dart';
 import '../../shared/storage.dart';
 import '../vector.dart';

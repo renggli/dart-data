@@ -1,5 +1,3 @@
-library data.vector.impl.keyed;
-
 import '../../../type.dart';
 import '../../shared/storage.dart';
 import '../vector.dart';
@@ -26,11 +24,11 @@ class KeyedVector<T> with Vector<T> {
   Vector<T> copy() => KeyedVector._(dataType, count, Map.of(_values));
 
   @override
-  T getUnchecked(int index) => _values[index] ?? dataType.nullValue;
+  T getUnchecked(int index) => _values[index] ?? dataType.defaultValue;
 
   @override
   void setUnchecked(int index, T value) {
-    if (value == dataType.nullValue) {
+    if (value == dataType.defaultValue) {
       _values.remove(index);
     } else {
       _values[index] = value;

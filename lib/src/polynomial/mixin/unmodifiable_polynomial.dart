@@ -1,5 +1,3 @@
-library data.polynomial.mixin.unmodifiable;
-
 import '../polynomial.dart';
 
 /// Mixin for unmodifiable polynomials.

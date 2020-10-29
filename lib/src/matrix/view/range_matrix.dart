@@ -1,5 +1,3 @@
-library data.matrix.view.range;
-
 import '../../../type.dart';
 import '../../shared/storage.dart';
 import '../matrix.dart';
@@ -46,8 +44,11 @@ class RangeMatrix<T> with Matrix<T> {
 extension RangeMatrixExtension<T> on Matrix<T> {
   /// Returns a mutable view onto the row range. Throws a [RangeError], if
   /// [rowStart] or [rowEnd] are out of bounds.
-  Matrix<T> rowRange(int rowStart, [int rowEnd]) =>
-      range(rowStart, rowEnd, 0, columnCount);
+  Matrix<T> rowRange(int rowStart, [int? rowEnd]) {
+    rowEnd = RangeError.checkValidRange(
+        rowStart, rowEnd, rowCount, 'rowStart', 'rowEnd');
+    return rowRangeUnchecked(rowStart, rowEnd);
+  }
 
   /// Returns a mutable view onto the row range. The behavior is undefined, if
   /// [rowStart] or [rowEnd] are out of bounds.
@@ -56,8 +57,11 @@ extension RangeMatrixExtension<T> on Matrix<T> {
 
   /// Returns a mutable view onto the row range. Throws a [RangeError], if
   /// [colStart] or [colEnd] are out of bounds.
-  Matrix<T> colRange(int colStart, [int colEnd]) =>
-      range(0, rowCount, colStart, colEnd);
+  Matrix<T> colRange(int colStart, [int? colEnd]) {
+    colEnd = RangeError.checkValidRange(
+        colStart, colEnd, columnCount, 'colStart', 'colEnd');
+    return colRangeUnchecked(colStart, colEnd);
+  }
 
   /// Returns a mutable view onto the row range. The behavior is undefined, if
   /// [colStart] or [colEnd] are out of bounds.

@@ -1,5 +1,3 @@
-library data.matrix.impl.keyed;
-
 import '../../../type.dart';
 import '../../shared/storage.dart';
 import '../matrix.dart';
@@ -31,12 +29,12 @@ class KeyedMatrix<T> with Matrix<T> {
 
   @override
   T getUnchecked(int row, int col) =>
-      _values[row * columnCount + col] ?? dataType.nullValue;
+      _values[row * columnCount + col] ?? dataType.defaultValue;
 
   @override
   void setUnchecked(int row, int col, T value) {
     final index = row * columnCount + col;
-    if (value == dataType.nullValue) {
+    if (value == dataType.defaultValue) {
       _values.remove(index);
     } else {
       _values[index] = value;

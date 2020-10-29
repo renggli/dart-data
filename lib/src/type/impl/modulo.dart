@@ -1,5 +1,3 @@
-library data.type.impl.modulo;
-
 import 'package:more/printer.dart' show Printer;
 
 import '../models/equality.dart';
@@ -20,10 +18,7 @@ class ModuloDataType<T> extends DataType<T> {
   String get name => '${delegate.name}/$modulus';
 
   @override
-  bool get isNullable => delegate.isNullable;
-
-  @override
-  T get nullValue => delegate.nullValue;
+  T get defaultValue => delegate.defaultValue;
 
   @override
   final Field<T> field;
@@ -35,7 +30,7 @@ class ModuloDataType<T> extends DataType<T> {
   final Equality<T> equality;
 
   @override
-  T cast(Object value) => delegate.field.mod(delegate.cast(value), modulus);
+  T cast(dynamic value) => delegate.field.mod(delegate.cast(value), modulus);
 
   @override
   Printer get printer => delegate.printer;

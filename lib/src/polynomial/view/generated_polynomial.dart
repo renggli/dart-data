@@ -1,5 +1,3 @@
-library data.polynomial.view.generated;
-
 import '../../../type.dart';
 import '../../shared/storage.dart';
 import '../mixin/unmodifiable_polynomial.dart';
@@ -29,5 +27,5 @@ class GeneratedPolynomial<T>
 
   @override
   T getUnchecked(int exponent) =>
-      exponent <= degree ? callback(exponent) : zeroCoefficient;
+      exponent <= degree ? callback(exponent) : dataType.field.additiveIdentity;
 }

@@ -1,5 +1,3 @@
-library data.type.impl.complex;
-
 import 'package:more/number.dart';
 
 import '../models/equality.dart';
@@ -13,14 +11,11 @@ class ComplexDataType extends DataType<Complex> {
   String get name => 'complex';
 
   @override
-  bool get isNullable => true;
+  Complex get defaultValue => Complex.zero;
 
   @override
-  Complex get nullValue => null;
-
-  @override
-  Complex cast(Object value) {
-    if (value == null || value is Complex) {
+  Complex cast(dynamic value) {
+    if (value is Complex) {
       return value;
     } else if (value is num) {
       return Complex(value);

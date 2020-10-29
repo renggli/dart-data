@@ -6,113 +6,61 @@ import '../shared/config.dart' as config;
 import 'impl/integer.dart';
 import 'type.dart';
 
-/// Derives a fitting [DataType] from [Object] [instance].
-DataType fromInstance(Object instance) => fromType(instance.runtimeType);
-
-/// Derives a fitting [DataType] from a runtime [Type] [type].
-DataType fromType(Type type) {
-  switch (type) {
+/// Derives a fitting [DataType] from [T].
+DataType<T> fromType<T>() {
+  switch (T) {
     case double:
-      return config.floatDataType;
+      return config.floatDataType as DataType<T>;
     case int:
-      return config.intDataType;
-    case num:
-      return DataType.numeric;
+      return config.intDataType as DataType<T>;
     case bool:
-      return DataType.boolean;
+      return DataType.boolean as DataType<T>;
     case String:
-      return DataType.string;
+      return DataType.string as DataType<T>;
     case BigInt:
-      return DataType.bigInt;
+      return DataType.bigInt as DataType<T>;
     case Fraction:
-      return DataType.fraction;
+      return DataType.fraction as DataType<T>;
     case Complex:
-      return DataType.complex;
+      return DataType.complex as DataType<T>;
     case Quaternion:
-      return DataType.quaternion;
+      return DataType.quaternion as DataType<T>;
     default:
-      return DataType.object;
+      return DataType.object as DataType<T>;
   }
 }
 
-/// Derives a fitting [DataType] from an [Iterable] of [values].
-DataType fromIterable(Iterable values) {
-  if (values.isEmpty) {
-    return DataType.object;
-  }
+/// Derives a fitting [DataType] from [instance].
+DataType<T> fromInstance<T>(T instance) => fromType<T>();
 
-  var nullCount = 0;
-  var boolCount = 0;
-  var stringCount = 0;
-  var intCount = 0;
-  var doubleCount = 0;
-  var numberCount = 0;
-  num minValue = double.infinity;
-  num maxValue = double.negativeInfinity;
-
-  for (final value in values) {
-    if (value == null) {
-      nullCount++;
-    } else if (value is bool) {
-      boolCount++;
-    } else if (value is String) {
-      stringCount++;
-    } else if (value is num) {
+/// Derives a fitting [DataType] from an [iterable].
+DataType<T> fromIterable<T>(Iterable<T> iterable) {
+  // Do a refinement of DataType<int>:
+  if (iterable.isNotEmpty && T == int) {
+    const integerDataTypes = <IntegerDataType>[
+      DataType.uint8,
+      DataType.int8,
+      DataType.uint16,
+      DataType.int16,
+      DataType.uint32,
+      DataType.int32,
+      DataType.uint64,
+      DataType.int64,
+    ];
+    var minValue = 0, maxValue = 0;
+    for (final value in iterable.cast<int>()) {
       minValue = math.min(minValue, value);
       maxValue = math.max(maxValue, value);
-      numberCount++;
-      if (config.isJavaScript) {
-        // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Number/isInteger#Polyfill
-        if (value.isFinite && value.floor() == value) {
-          intCount++;
-        } else {
-          doubleCount++;
-        }
-      } else {
-        if (value is int) {
-          intCount++;
-        } else if (value is double) {
-          doubleCount++;
-        }
+    }
+    for (final dataType in integerDataTypes) {
+      if (dataType.safeMin <= minValue &&
+          minValue <= dataType.safeMax &&
+          dataType.safeMin <= maxValue &&
+          maxValue <= dataType.safeMax) {
+        return dataType as DataType<T>;
       }
-    } else {
-      return DataType.object;
     }
   }
-
-  DataType resolve() {
-    if (boolCount > 0 && stringCount == 0 && numberCount == 0) {
-      return DataType.boolean;
-    } else if (boolCount == 0 && stringCount > 0 && numberCount == 0) {
-      return DataType.string;
-    } else if (boolCount == 0 && stringCount == 0 && numberCount > 0) {
-      if (intCount > 0 && doubleCount == 0) {
-        for (final dataType in _intDataTypes) {
-          if (dataType.safeMin <= minValue &&
-              minValue <= dataType.safeMax &&
-              dataType.safeMin <= maxValue &&
-              maxValue <= dataType.safeMax) {
-            return dataType;
-          }
-        }
-      } else if (intCount == 0 && doubleCount > 0) {
-        return DataType.float64;
-      }
-      return DataType.numeric;
-    }
-    return DataType.object;
-  }
-
-  return nullCount == 0 ? resolve() : resolve().nullable;
+  // Fall back to the default type.
+  return fromType<T>();
 }
-
-const List<IntegerDataType> _intDataTypes = [
-  DataType.uint8,
-  DataType.int8,
-  DataType.uint16,
-  DataType.int16,
-  DataType.uint32,
-  DataType.int32,
-  DataType.uint64,
-  DataType.int64,
-];

@@ -1,5 +1,3 @@
-library data.vector.operator.utils;
-
 import '../../../type.dart';
 import '../vector.dart';
 import '../vector_format.dart';
@@ -11,8 +9,8 @@ void checkDimensions<T>(Vector<T> first, Vector<T> second) {
   }
 }
 
-Vector<T> createVector<T>(Vector<T> source, Vector<T> result,
-    DataType<T> dataType, VectorFormat format) {
+Vector<T> createVector<T>(Vector<T> source, Vector<T>? result,
+    DataType<T>? dataType, VectorFormat? format) {
   if (result == null) {
     return Vector<T>(dataType ?? source.dataType, source.count, format: format);
   } else if (result.count == source.count) {

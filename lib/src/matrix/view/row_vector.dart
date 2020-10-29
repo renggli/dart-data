@@ -1,5 +1,3 @@
-library data.matrix.view.row;
-
 import '../../../type.dart';
 import '../../../vector.dart';
 import '../../shared/storage.dart';

@@ -1,5 +1,3 @@
-library data.polynomial.impl.keyed;
-
 import 'dart:collection' show SplayTreeMap;
 
 import '../../../type.dart';
@@ -18,7 +16,7 @@ class KeyedPolynomial<T> with Polynomial<T> {
   final DataType<T> dataType;
 
   @override
-  int get degree => _coefficients.isEmpty ? -1 : _coefficients.lastKey();
+  int get degree => _coefficients.isEmpty ? -1 : _coefficients.lastKey()!;
 
   @override
   Set<Storage> get storage => {this};
@@ -28,11 +26,12 @@ class KeyedPolynomial<T> with Polynomial<T> {
       KeyedPolynomial._(dataType, SplayTreeMap.of(_coefficients));
 
   @override
-  T getUnchecked(int exponent) => _coefficients[exponent] ?? zeroCoefficient;
+  T getUnchecked(int exponent) =>
+      _coefficients[exponent] ?? dataType.defaultValue;
 
   @override
   void setUnchecked(int exponent, T value) {
-    if (isZeroCoefficient(value)) {
+    if (value == dataType.defaultValue) {
       _coefficients.remove(exponent);
     } else {
       _coefficients[exponent] = value;

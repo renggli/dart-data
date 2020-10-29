@@ -1,5 +1,3 @@
-library data.test.vector;
-
 import 'dart:math';
 
 import 'package:data/matrix.dart';
@@ -21,7 +19,6 @@ void vectorTest(String name, VectorFormat format) {
         }
       });
       test('default with error', () {
-        expect(() => Vector(null, 5, format: format), throwsArgumentError);
         expect(
             () => Vector(DataType.int8, -4, format: format), throwsRangeError);
       });
@@ -153,10 +150,10 @@ void vectorTest(String name, VectorFormat format) {
         // remove values
         values.shuffle();
         for (final value in values) {
-          vector[value] = vector.dataType.nullValue;
+          vector[value] = vector.dataType.defaultValue;
         }
         for (var i = 0; i < vector.count; i++) {
-          expect(vector[i], vector.dataType.nullValue);
+          expect(vector[i], vector.dataType.defaultValue);
         }
       });
       test('read operator', () {
@@ -466,7 +463,7 @@ void vectorTest(String name, VectorFormat format) {
                 expect(matrix.get(r, c), '$r');
                 matrix.set(r, c, '$r*');
               } else {
-                expect(matrix.get(r, c), isNull);
+                expect(matrix.get(r, c), isEmpty);
                 expect(() => matrix.set(r, c, '*'), throwsArgumentError);
               }
             }

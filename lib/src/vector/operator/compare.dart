@@ -1,10 +1,8 @@
-library data.vector.operator.compare;
-
 import '../vector.dart';
 
 extension CompareExtension<T> on Vector<T> {
   /// Compares this [Vector] and with [other].
-  bool compare(Vector<T> other, {bool Function(T a, T b) equals}) {
+  bool compare(Vector<T> other, {bool Function(T a, T b)? equals}) {
     if (equals == null && identical(this, other)) {
       return true;
     }

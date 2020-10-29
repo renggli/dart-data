@@ -1,5 +1,3 @@
-library matrix.decomposition.lu;
-
 import 'dart:math' as math;
 
 import '../../shared/config.dart';
@@ -28,7 +26,7 @@ class LUDecomposition {
   final int _m, _n;
 
   /// Internal pivot sign.
-  int _pivSign;
+  int _pivSign = 0;
 
   /// Internal storage of pivot vector.
   final List<int> _piv;

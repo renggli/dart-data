@@ -1,5 +1,3 @@
-library data.type.models.equality;
-
 import 'package:meta/meta.dart';
 
 /// Encapsulates equality between and the hash code of objects.

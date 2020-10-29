@@ -1,5 +1,3 @@
-library data.type.impl.quaternion;
-
 import 'package:more/number.dart';
 
 import '../models/equality.dart';
@@ -13,14 +11,11 @@ class QuaternionDataType extends DataType<Quaternion> {
   String get name => 'quaternion';
 
   @override
-  bool get isNullable => true;
+  Quaternion get defaultValue => Quaternion.zero;
 
   @override
-  Quaternion get nullValue => null;
-
-  @override
-  Quaternion cast(Object value) {
-    if (value == null || value is Quaternion) {
+  Quaternion cast(dynamic value) {
+    if (value is Quaternion) {
       return value;
     } else if (value is num) {
       return Quaternion(value);

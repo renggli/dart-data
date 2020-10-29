@@ -1,5 +1,3 @@
-library data.matrix.view.flipped_vertical;
-
 import '../../../type.dart';
 import '../../shared/storage.dart';
 import '../matrix.dart';

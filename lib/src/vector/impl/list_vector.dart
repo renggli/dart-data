@@ -1,5 +1,3 @@
-library data.vector.impl.list;
-
 import '../../../type.dart';
 import '../../shared/config.dart';
 import '../../shared/lists.dart';
@@ -35,20 +33,20 @@ class ListVector<T> with Vector<T> {
   @override
   T getUnchecked(int index) {
     final pos = binarySearch(_indexes, 0, _length, index);
-    return pos < 0 ? dataType.nullValue : _values[pos];
+    return pos < 0 ? dataType.defaultValue : _values[pos];
   }
 
   @override
   void setUnchecked(int index, T value) {
     final pos = binarySearch(_indexes, 0, _length, index);
     if (pos < 0) {
-      if (value != dataType.nullValue) {
+      if (value != dataType.defaultValue) {
         _indexes = insertAt(indexDataType, _indexes, _length, -pos - 1, index);
         _values = insertAt(dataType, _values, _length, -pos - 1, value);
         _length++;
       }
     } else {
-      if (value == dataType.nullValue) {
+      if (value == dataType.defaultValue) {
         _indexes = removeAt(indexDataType, _indexes, _length, pos);
         _values = removeAt(dataType, _values, _length, pos);
         _length--;
