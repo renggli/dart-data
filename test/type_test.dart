@@ -848,6 +848,10 @@ void main() {
       expect(() => type.cast(null), throwsArgumentError);
       expect(() => type.cast(const Symbol('bad')), throwsArgumentError);
     });
+    listTest(type, <List<BigInt>>[
+      [BigInt.zero, BigInt.one, BigInt.two],
+      [BigInt.from(123), BigInt.from(-321), BigInt.two.pow(100)],
+    ]);
     fieldTest(type, [
       BigInt.from(-42),
       BigInt.from(35),
@@ -878,6 +882,10 @@ void main() {
       expect(() => type.cast(null), throwsArgumentError);
       expect(() => type.cast(const Symbol('bad')), throwsArgumentError);
     });
+    listTest(type, <List<Fraction>>[
+      [Fraction.zero, Fraction.one],
+      [Fraction(5, -6), Fraction(-3, 4), Fraction(1, 2)],
+    ]);
     fieldTest(type, [
       Fraction(5, -6),
       Fraction(-3, 4),
@@ -910,6 +918,10 @@ void main() {
       expect(() => type.cast(''), throwsArgumentError);
       expect(() => type.cast(const Symbol('bad')), throwsArgumentError);
     });
+    listTest(type, <List<Complex>>[
+      [Complex.zero, Complex.one, Complex.i],
+      [const Complex(1, 2), const Complex(-3, 4), const Complex(5, -6)],
+    ]);
     fieldTest(type, [
       const Complex(1, 2),
       const Complex(-3, 4),
@@ -944,6 +956,11 @@ void main() {
       expect(() => type.cast(null), throwsArgumentError);
       expect(() => type.cast(const Symbol('bad')), throwsArgumentError);
     });
+    listTest(type, <List<Quaternion>>[
+      [Quaternion.zero, Quaternion.one],
+      [Quaternion.i, Quaternion.j, Quaternion.k],
+      [const Quaternion(1, 2, 3, 4), const Quaternion(-3, 5, -7, 9)],
+    ]);
     fieldTest(type, [
       const Quaternion(1, 2, 3, 4),
       const Quaternion(-3, 5, -7, 9),

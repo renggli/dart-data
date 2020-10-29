@@ -4,7 +4,7 @@ import 'dart:math' as math;
 import '../../type.dart';
 
 /// Initial length of fixed-length lists.
-const int initialListLength = 4;
+const initialListLength = 4;
 
 /// Inserts an entry into a fixed-length list, possibly reallocates.
 List<T> insertAt<T>(
