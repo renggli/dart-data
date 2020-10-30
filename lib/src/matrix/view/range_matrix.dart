@@ -75,21 +75,19 @@ extension RangeMatrixExtension<T> on Matrix<T> {
         rowStart, rowEnd, rowCount, 'rowStart', 'rowEnd');
     colEnd = RangeError.checkValidRange(
         colStart, colEnd, columnCount, 'colStart', 'colEnd');
-    if (rowStart == 0 &&
-        rowEnd == rowCount &&
-        colStart == 0 &&
-        colEnd == columnCount) {
-      return this;
-    } else {
-      return rangeUnchecked(rowStart, rowEnd, colStart, colEnd);
-    }
+    return rangeUnchecked(rowStart, rowEnd, colStart, colEnd);
   }
 
   /// Returns a mutable view onto the row and column ranges. The behavior is
   /// undefined if any of the ranges are out of bounds.
   Matrix<T> rangeUnchecked(
           int rowStart, int rowEnd, int colStart, int colEnd) =>
-      _rangeUnchecked(this, rowStart, rowEnd, colStart, colEnd);
+      rowStart == 0 &&
+              rowEnd == rowCount &&
+              colStart == 0 &&
+              colEnd == columnCount
+          ? this
+          : _rangeUnchecked(this, rowStart, rowEnd, colStart, colEnd);
 
   // TODO(renggli): https://github.com/dart-lang/sdk/issues/39959
   static Matrix<T> _rangeUnchecked<T>(

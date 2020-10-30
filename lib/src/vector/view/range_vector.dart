@@ -37,17 +37,13 @@ extension RangeVectorExtension<T> on Vector<T> {
   /// the index is out of bounds.
   Vector<T> range(int start, [int? end]) {
     end = RangeError.checkValidRange(start, end, count, 'start', 'end');
-    if (start == 0 && end == count) {
-      return this;
-    } else {
-      return rangeUnchecked(start, end);
-    }
+    return rangeUnchecked(start, end);
   }
 
   /// Returns a mutable view onto a [Vector] range. The behavior is undefined,
   /// if the range is out of bounds.
   Vector<T> rangeUnchecked(int start, int end) =>
-      _rangeUnchecked(this, start, end);
+      start == 0 && end == count ? this : _rangeUnchecked(this, start, end);
 
   // TODO(renggli): https://github.com/dart-lang/sdk/issues/39959
   static Vector<T> _rangeUnchecked<T>(Vector<T> self, int start, int end) =>
