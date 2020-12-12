@@ -103,7 +103,7 @@ void main() {
   group('special', () {
     group('gamma function', () {
       // https://en.wikipedia.org/wiki/Particular_values_of_the_gamma_function
-      const gammaValues = [
+      const gammaTuples = [
         // Integers
         Tuple2(1.0, 1.0),
         Tuple2(2.0, 1.0),
@@ -160,7 +160,7 @@ void main() {
         Tuple2(1.8, 0.931383771),
         Tuple2(1.9, 0.9617658319),
       ];
-      const lgammaValues = [
+      const logGammaTuples = [
         Tuple2(2.0, 0.0000000000E+00),
         Tuple2(5.0, 3.1780538303E+00),
         Tuple2(10.0, 1.2801827480E+01),
@@ -171,7 +171,20 @@ void main() {
         Tuple2(5000.0, 3.7582626316E+04),
         Tuple2(10000.0, 8.2099717496E+04),
       ];
-      const factorialValues = [
+      const betaTuples = [
+        Tuple3(0.0, 0.0, double.nan),
+        Tuple3(1.0, 0.0, double.nan),
+        Tuple3(0.0, 1.0, double.nan),
+        Tuple3(9.9, 0.7, 0.2635858645),
+        Tuple3(7.1, 0.3, 1.686552489),
+        Tuple3(7.6, 4.9, 0.0003435970659),
+        Tuple3(2.2, 8.0, 0.009733731844),
+        Tuple3(5.7, 6.5, 0.0003203685430),
+        Tuple3(7.1, 6.6, 0.0001046727608),
+        Tuple3(0.8, 1.0, 1.250000000),
+        Tuple3(0.3, 0.2, 7.748481389),
+      ];
+      const factorialTuples = [
         Tuple2(1, 1),
         Tuple2(2, 2),
         Tuple2(3, 6),
@@ -183,7 +196,7 @@ void main() {
         Tuple2(9, 362880),
         Tuple2(10, 3628800),
       ];
-      const combinationValues = [
+      const combinationTuples = [
         Tuple3(1, 1, 1),
         Tuple3(2, 2, 1),
         Tuple3(3, 1, 3),
@@ -215,55 +228,67 @@ void main() {
         Tuple3(29, 20, 10015005),
       ];
       test('gamma', () {
-        for (final value in gammaValues) {
-          expect(gamma(value.first), isCloseTo(value.second),
-              reason: 'gamma(${value.first}) = ${value.second}');
+        for (final tuple in gammaTuples) {
+          expect(gamma(tuple.first), isCloseTo(tuple.second),
+              reason: 'gamma(${tuple.first}) = ${tuple.second}');
         }
       });
-      test('lgamma', () {
-        final logGammaValues = gammaValues
-            .map((value) => Tuple2(value.first, log(value.second)))
-            .followedBy(lgammaValues);
-        for (final value in logGammaValues) {
-          expect(lgamma(value.first),
-              value.first <= 0 ? isNaN : isCloseTo(value.second),
-              reason: 'lgamma(${value.first}) = ${value.second}');
+      test('logGamma', () {
+        for (final tuple in gammaTuples
+            .map((tuple) => tuple.withSecond(log(tuple.second)))
+            .followedBy(logGammaTuples)) {
+          expect(logGamma(tuple.first),
+              tuple.first <= 0 ? isNaN : isCloseTo(tuple.second),
+              reason: 'logGamma(${tuple.first}) = ${tuple.second}');
+        }
+      });
+      test('beta', () {
+        for (final tuple in betaTuples) {
+          expect(beta(tuple.first, tuple.second), isCloseTo(tuple.third),
+              reason: 'beta(${tuple.first}, ${tuple.second}) '
+                  '= ${tuple.third}');
+        }
+      });
+      test('logBeta', () {
+        for (final tuple
+            in betaTuples.map((tuple) => tuple.withThird(log(tuple.third)))) {
+          expect(logBeta(tuple.first, tuple.second), isCloseTo(tuple.third),
+              reason: 'logBeta(${tuple.first}, ${tuple.second}) '
+                  '= ${tuple.third}');
         }
       });
       test('factorial', () {
-        for (final value in factorialValues) {
-          expect(factorial(value.first), isCloseTo(value.second),
-              reason: 'factorial(${value.first}) = ${value.second}');
+        for (final tuple in factorialTuples) {
+          expect(factorial(tuple.first), isCloseTo(tuple.second),
+              reason: 'factorial(${tuple.first}) = ${tuple.second}');
         }
       });
-      test('lfactorial', () {
-        final logFactorialValues = factorialValues
-            .map((value) => Tuple2(value.first, log(value.second)));
-        for (final value in logFactorialValues) {
-          expect(lfactorial(value.first), isCloseTo(value.second),
-              reason: 'lfactorial(${value.first}) = ${value.second}');
+      test('logFactorial', () {
+        for (final tuple in factorialTuples
+            .map((tuple) => tuple.withLast(log(tuple.second)))) {
+          expect(logFactorial(tuple.first), isCloseTo(tuple.second),
+              reason: 'logFactorial(${tuple.first}) = ${tuple.second}');
         }
       });
       test('combination', () {
-        for (final value in combinationValues) {
-          expect(combination(value.first, value.second), isCloseTo(value.third),
-              reason: 'combination(${value.first}, ${value.second}) '
-                  '= ${value.third}');
+        for (final tuple in combinationTuples) {
+          expect(combination(tuple.first, tuple.second), isCloseTo(tuple.third),
+              reason: 'combination(${tuple.first}, ${tuple.second}) '
+                  '= ${tuple.third}');
         }
       });
-      test('lcombination', () {
-        final logCombinationValues = combinationValues.map(
-            (value) => Tuple3(value.first, value.second, log(value.third)));
-        for (final value in logCombinationValues) {
+      test('logCombination', () {
+        for (final tuple in combinationTuples
+            .map((tuple) => tuple.withThird(log(tuple.third)))) {
           expect(
-              lcombination(value.first, value.second), isCloseTo(value.third),
-              reason: 'lcombination(${value.first}, ${value.second}) '
-                  '= ${value.third}');
+              logCombination(tuple.first, tuple.second), isCloseTo(tuple.third),
+              reason: 'logCombination(${tuple.first}, ${tuple.second}) '
+                  '= ${tuple.third}');
         }
       });
     });
     group('error function', () {
-      const erfValues = [
+      const errorFunctionTuples = [
         Tuple2(double.negativeInfinity, -1.0),
         Tuple2(-10.0, -1.0),
         Tuple2(-3.0, -0.99997791),
@@ -280,7 +305,7 @@ void main() {
         Tuple2(10.0, 1.0),
         Tuple2(double.infinity, 1.0),
       ];
-      const erfcValues = [
+      const complementaryErrorFunctionTuples = [
         Tuple2(double.negativeInfinity, 2.0),
         Tuple2(-10.0, 2.0),
         Tuple2(-3.0, 1.99997791),
@@ -297,31 +322,32 @@ void main() {
         Tuple2(10.0, 0.0),
         Tuple2(double.infinity, 0.0),
       ];
-      test('erf', () {
-        for (final value in erfValues) {
-          expect(erf(value.first), isCloseTo(value.second),
-              reason: 'erf(${value.first}) = ${value.second}');
+      test('errorFunction', () {
+        for (final tuple in errorFunctionTuples) {
+          expect(errorFunction(tuple.first), isCloseTo(tuple.second),
+              reason: 'erf(${tuple.first}) = ${tuple.second}');
         }
       });
-      test('erfc', () {
-        for (final value in erfcValues) {
-          expect(erfc(value.first), isCloseTo(value.second),
-              reason: 'erfc(${value.first}) = ${value.second}');
+      test('complementaryErrorFunction', () {
+        for (final tuple in complementaryErrorFunctionTuples) {
+          expect(
+              complementaryErrorFunction(tuple.first), isCloseTo(tuple.second),
+              reason: 'erfc(${tuple.first}) = ${tuple.second}');
         }
       });
-      test('erfinv', () {
-        for (final tuple in erfValues) {
+      test('inverseErrorFunction', () {
+        for (final tuple in errorFunctionTuples) {
           if (tuple.first.abs() < 3 || tuple.first.isInfinite) {
-            expect(erfinv(tuple.second),
+            expect(inverseErrorFunction(tuple.second),
                 tuple.first.isInfinite ? tuple.first : isCloseTo(tuple.first),
                 reason: 'erfinv(${tuple.second}) = ${tuple.first}');
           }
         }
       });
-      test('erfcinv', () {
-        for (final tuple in erfcValues) {
+      test('inverseComplementaryErrorFunction', () {
+        for (final tuple in complementaryErrorFunctionTuples) {
           if (tuple.first.abs() < 3 || tuple.first.isInfinite) {
-            expect(erfcinv(tuple.second),
+            expect(inverseComplementaryErrorFunction(tuple.second),
                 tuple.first.isInfinite ? tuple.first : isCloseTo(tuple.first),
                 reason: 'erfcinv(${tuple.second}) = ${tuple.first}');
           }

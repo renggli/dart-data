@@ -42,7 +42,7 @@ class NormalDistribution extends ContinuousDistribution {
   @override
   double cdf(num x) {
     final z = (x - mu) / (sqrt2 * sigma);
-    return 0.5 * (1.0 + erf(z));
+    return 0.5 * (1.0 + errorFunction(z));
   }
 
   @override

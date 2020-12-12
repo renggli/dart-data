@@ -25,7 +25,7 @@ double gamma(num x) {
       return pi / (sin(pi * x) * gamma(1 - x));
     }
   } else if (x > 100.0) {
-    return exp(lgamma(x));
+    return exp(logGamma(x));
   } else {
     x -= 1.0;
     var y = p[0];
@@ -33,12 +33,12 @@ double gamma(num x) {
       y += p[i] / (x + i);
     }
     final t = x + g + 0.5;
-    return sqrt(2 * pi) * pow(t, x + 0.5) * exp(-t) * y;
+    return sqrt(2.0 * pi) * pow(t, x + 0.5) * exp(-t) * y;
   }
 }
 
-/// Returns the log of the gamma function.
-double lgamma(num x) {
+/// Returns the natural logarithm of the gamma function.
+double logGamma(num x) {
   const g = 607 / 128;
   const p = [
     0.99999999999999709182,
@@ -65,19 +65,27 @@ double lgamma(num x) {
     y += p[i] / (x + i);
   }
   final t = x + g + 0.5;
-  return 0.5 * log(2 * pi) + (x + 0.5) * log(t) - t + log(y) - log(x);
+  return 0.5 * log(2.0 * pi) + (x + 0.5) * log(t) - t + log(y) - log(x);
 }
 
-/// Approximate factorial based on the [gamma] function.
-double factorial(num n) => gamma(n + 1.0);
+/// Beta function based on the [gamma] function.
+double beta(num x, num y) =>
+    x <= 0 || y <= 0 ? double.nan : gamma(x) * gamma(y) / gamma(x + y);
 
-/// Approximate log factorial based on the [lgamma] function.
-double lfactorial(num n) => lgamma(n + 1.0);
+/// Logarithm of the beta function based on the [logGamma] function.
+double logBeta(num x, num y) =>
+    x <= 0 || y <= 0 ? double.nan : logGamma(x) + logGamma(y) - logGamma(x + y);
 
-/// Approximate combinations based on the [gamma] function.
+/// Factorial based on the [gamma] function.
+double factorial(num n) => n < 0 ? double.nan : gamma(n + 1.0);
+
+/// Logarithm of the factorial based on the [logGamma] function.
+double logFactorial(num n) => n < 0 ? double.nan : logGamma(n + 1.0);
+
+/// Combinations based on the [gamma] function.
 double combination(num n, num k) =>
     factorial(n) / factorial(k) / factorial(n - k);
 
-/// Approximate log combinations based on the [lgamma] function.
-double lcombination(num n, num k) =>
-    lfactorial(n) - lfactorial(k) - lfactorial(n - k);
+/// Logarithm of the combinations based on the [logGamma] function.
+double logCombination(num n, num k) =>
+    logFactorial(n) - logFactorial(k) - logFactorial(n - k);

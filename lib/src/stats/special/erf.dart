@@ -6,7 +6,7 @@ import 'package:more/math.dart';
 /// https://en.wikipedia.org/wiki/Error_function.
 ///
 /// This uses a Chebyshev fitting formula from Numerical Recipes, 6.2.
-double erf(num x) {
+double errorFunction(num x) {
   const p = [
     -1.26551223,
     1.00002368,
@@ -26,10 +26,10 @@ double erf(num x) {
 }
 
 /// Returns the complementary error function.
-double erfc(num x) => 1.0 - erf(x);
+double complementaryErrorFunction(num x) => 1.0 - errorFunction(x);
 
 /// Returns the inverse error function.
-double erfinv(num x) {
+double inverseErrorFunction(num x) {
   if (x <= -1.0) {
     return double.negativeInfinity;
   } else if (x >= 1.0) {
@@ -56,11 +56,12 @@ double erfinv(num x) {
           ((d[1] * z + d[0]) * z + 1.0);
     }
     for (var i = 0; i < 2; i++) {
-      r -= (erf(r) - x) / (2.0 / sqrt(pi) * exp(-r * r));
+      r -= (errorFunction(r) - x) / (2.0 / sqrt(pi) * exp(-r * r));
     }
     return r;
   }
 }
 
 /// Returns the inverse complementary error function.
-double erfcinv(num x) => -erfinv(x - 1.0);
+double inverseComplementaryErrorFunction(num x) =>
+    -inverseErrorFunction(x - 1.0);
