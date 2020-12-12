@@ -16,10 +16,7 @@ abstract class Distribution<T extends num> {
   double get mean;
 
   /// Returns the median value of the distribution.
-  T get median;
-
-  /// Returns the mode of the distribution.
-  double get mode;
+  double get median;
 
   /// Returns the expected variance.
   double get variance;

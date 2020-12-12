@@ -28,9 +28,6 @@ class NormalDistribution extends ContinuousDistribution {
   double get median => mu;
 
   @override
-  double get mode => mu;
-
-  @override
   double get variance => sigma * sigma;
 
   @override

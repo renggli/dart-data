@@ -32,18 +32,14 @@ class BinomialDistribution extends DiscreteDistribution {
   double get mean => n * p;
 
   @override
+  double get median => mean.floorToDouble(); // it is complicated
+
+  @override
   double get variance => n * p * q;
 
   @override
-  int get median => throw UnimplementedError();
-
-  @override
-  double get mode => throw UnimplementedError();
-
-  @override
-  double pdf(int k) => 0 <= k && k <= n
-      ? combination(n.toDouble(), k.toDouble()) * pow(p, k) * pow(q, n - k)
-      : 0.0;
+  double pdf(int k) =>
+      0 <= k && k <= n ? combination(n, k) * pow(p, k) * pow(q, n - k) : 0.0;
 
   @override
   int inv(double p) => throw UnimplementedError();

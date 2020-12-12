@@ -30,17 +30,14 @@ class PoissonDistribution extends DiscreteDistribution {
   double get variance => pois;
 
   @override
-  int get median => throw UnimplementedError();
-
-  @override
-  double get mode => throw UnimplementedError();
+  double get median => pois;
 
   @override
   double pdf(int k) => k < 0
       ? 0.0
       : k == 0
           ? exp(-pois)
-          : pow(pois, k) * exp(-pois) / factorial(k.toDouble());
+          : pow(pois, k) * exp(-pois) / factorial(k);
 
   @override
   int inv(double p) => throw UnimplementedError();

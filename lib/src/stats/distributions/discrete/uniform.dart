@@ -23,13 +23,10 @@ class UniformDiscreteDistribution extends DiscreteDistribution {
   double get mean => 0.5 * (min + max);
 
   @override
+  double get median => mean;
+
+  @override
   double get variance => (count * count - 1) / 12;
-
-  @override
-  int get median => throw UnimplementedError();
-
-  @override
-  double get mode => throw UnimplementedError();
 
   @override
   double pdf(int k) => min <= k && k <= max ? 1.0 / count : 0.0;

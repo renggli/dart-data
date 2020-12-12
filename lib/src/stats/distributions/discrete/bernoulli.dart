@@ -26,13 +26,14 @@ class BernoulliDistribution extends DiscreteDistribution {
   double get mean => p;
 
   @override
+  double get median => p < 0.5
+      ? 0.0
+      : p > 0.5
+          ? 1
+          : 0.5;
+
+  @override
   double get variance => p * q;
-
-  @override
-  int get median => throw UnimplementedError();
-
-  @override
-  double get mode => throw UnimplementedError();
 
   @override
   double pdf(int k) => k < 0

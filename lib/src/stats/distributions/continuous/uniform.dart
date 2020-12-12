@@ -25,9 +25,6 @@ class UniformDistribution extends ContinuousDistribution {
   double get median => throw UnimplementedError();
 
   @override
-  double get mode => throw UnimplementedError();
-
-  @override
   double pdf(num x) => min <= x && x <= max ? 1.0 / (max - min) : 0.0;
 
   @override
