@@ -2,6 +2,10 @@ import 'package:more/feature.dart';
 
 import '../distribution.dart';
 
+/// Abstract discrete distribution.
+///
+/// Subclasses must implement at least one of [probabilityDistribution] or
+/// [cumulativeDistribution].
 abstract class DiscreteDistribution extends Distribution<int> {
   const DiscreteDistribution();
 
@@ -13,17 +17,18 @@ abstract class DiscreteDistribution extends Distribution<int> {
 
   @override
   // ignore: avoid_renaming_method_parameters
-  double pdf(int k);
+  double probabilityDistribution(int k) =>
+      cumulativeDistribution(k) - cumulativeDistribution(k - 1);
 
   @override
   // ignore: avoid_renaming_method_parameters
-  double cdf(int k) {
+  double cumulativeDistribution(int k) {
     if (k < min) {
       return 0.0;
     } else if (k <= max) {
       var sum = 0.0;
       for (var i = min; i <= k && i <= max; i++) {
-        sum += pdf(i);
+        sum += probabilityDistribution(i);
       }
       return sum;
     } else {

@@ -13,37 +13,38 @@ class NormalDistribution extends ContinuousDistribution {
   factory NormalDistribution.fromSamples(Iterable<num> values) =>
       NormalDistribution(values.arithmeticMean(), values.standardDeviation());
 
-  const NormalDistribution(this.mu, this.sigma);
-
-  /// Arithmetic mean of a normal distribution.
-  final double mu;
-
-  /// Standard deviation of a normal distribution.
-  final double sigma;
+  const NormalDistribution(this.mean, this.standardDeviation);
 
   @override
-  double get mean => mu;
+  final double mean;
 
   @override
-  double get median => mu;
+  double get median => mean;
 
   @override
-  double get variance => sigma * sigma;
+  final double standardDeviation;
 
   @override
-  double pdf(num x) {
-    final z = (x - mu) / (sqrt2 * sigma);
-    return exp(-z * z) / (sqrt2 * pi * sigma);
+  double get variance => standardDeviation * standardDeviation;
+
+  @override
+  double probabilityDistribution(num x) {
+    final z = (x - mean) / (sqrt2 * standardDeviation);
+    return exp(-z * z) / (sqrt2 * pi * standardDeviation);
   }
 
   @override
-  double cdf(num x) {
-    final z = (x - mu) / (sqrt2 * sigma);
+  double cumulativeDistribution(num x) {
+    final z = (x - mean) / (sqrt2 * standardDeviation);
     return 0.5 * (1.0 + errorFunction(z));
   }
 
   @override
-  double inv(double p) => throw UnimplementedError();
+  double inverseCumulativeDistribution(double p) =>
+      -1.41421356237309505 *
+          standardDeviation *
+          inverseComplementaryErrorFunction(2 * p) +
+      mean;
 
   @override
   double sample({Random? random}) {
@@ -59,11 +60,14 @@ class NormalDistribution extends ContinuousDistribution {
 
   @override
   bool operator ==(Object other) =>
-      other is NormalDistribution && mu == other.mu && sigma == other.sigma;
+      other is NormalDistribution &&
+      mean == other.mean &&
+      standardDeviation == other.standardDeviation;
 
   @override
-  int get hashCode => hash2(mu, sigma);
+  int get hashCode => hash2(mean, standardDeviation);
 
   @override
-  String toString() => 'NormalDistribution{mu: $mu, sigma: $sigma}';
+  String toString() =>
+      'NormalDistribution{mean: $mean, standardDeviation: $standardDeviation}';
 }

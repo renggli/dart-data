@@ -33,14 +33,14 @@ class PoissonDistribution extends DiscreteDistribution {
   double get median => pois;
 
   @override
-  double pdf(int k) => k < 0
+  double probabilityDistribution(int k) => k < 0
       ? 0.0
       : k == 0
           ? exp(-pois)
           : pow(pois, k) * exp(-pois) / factorial(k);
 
   @override
-  int inv(double p) => throw UnimplementedError();
+  int inverseCumulativeDistribution(double p) => throw UnimplementedError();
 
   @override
   int sample({Random? random}) {

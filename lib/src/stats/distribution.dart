@@ -24,22 +24,28 @@ abstract class Distribution<T extends num> {
   /// Returns the expected standard deviation.
   double get standardDeviation => sqrt(variance);
 
-  /// The Probability Mass Function (PMF).
+  /// The Probability Density/Mass Function (PDF/PMF).
   ///
   /// Returns the probability of the distribution at [x].
-  num pdf(T x);
+  double probabilityDistribution(T x);
 
   /// The Cumulative Distribution Function (CDF).
   ///
   /// Returns the cumulative probability at [x], or the probability of a random
   /// variable to be less than or equal to [x].
-  num cdf(T x);
+  double cumulativeDistribution(T x); // integrate(pdf, from: min, to: x);
 
-  /// The Inverted Cumulative Distribution Function (INV).
+  /// The Inverted Cumulative Distribution Function (INV), or quantile function.
   ///
   /// Returns the value of `x` for which the cumulative probability density is
   /// [p].
-  T inv(double p);
+  T inverseCumulativeDistribution(double p);
+
+  /// Survival Function (SF), or Complementary cumulative distribution function.
+  double survival(T x) => 1.0 - cumulativeDistribution(x);
+
+  /// Inverse Survival Function (ISF).
+  T inverseSurvival(double p) => throw UnimplementedError();
 
   /// Returns a random value within the distribution.
   T sample({Random? random});

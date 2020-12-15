@@ -21,19 +21,19 @@ void main() {
       expect(dist.mean, isCloseTo(3.5));
       expect(dist.variance, isCloseTo(35 / 12));
 
-      expect(dist.pdf(0), isCloseTo(0));
-      expect(dist.pdf(1), isCloseTo(1 / 6));
-      expect(dist.pdf(6), isCloseTo(1 / 6));
-      expect(dist.pdf(7), isCloseTo(0));
+      expect(dist.probabilityDistribution(0), isCloseTo(0));
+      expect(dist.probabilityDistribution(1), isCloseTo(1 / 6));
+      expect(dist.probabilityDistribution(6), isCloseTo(1 / 6));
+      expect(dist.probabilityDistribution(7), isCloseTo(0));
 
-      expect(dist.cdf(0), isCloseTo(0));
-      expect(dist.cdf(1), isCloseTo(1 / 6));
-      expect(dist.cdf(2), isCloseTo(2 / 6));
-      expect(dist.cdf(3), isCloseTo(3 / 6));
-      expect(dist.cdf(4), isCloseTo(4 / 6));
-      expect(dist.cdf(5), isCloseTo(5 / 6));
-      expect(dist.cdf(6), isCloseTo(6 / 6));
-      expect(dist.cdf(7), isCloseTo(1));
+      expect(dist.cumulativeDistribution(0), isCloseTo(0));
+      expect(dist.cumulativeDistribution(1), isCloseTo(1 / 6));
+      expect(dist.cumulativeDistribution(2), isCloseTo(2 / 6));
+      expect(dist.cumulativeDistribution(3), isCloseTo(3 / 6));
+      expect(dist.cumulativeDistribution(4), isCloseTo(4 / 6));
+      expect(dist.cumulativeDistribution(5), isCloseTo(5 / 6));
+      expect(dist.cumulativeDistribution(6), isCloseTo(6 / 6));
+      expect(dist.cumulativeDistribution(7), isCloseTo(1));
     });
     test('binomial', () {
       const dist = BinomialDistribution(15, 0.25);
@@ -42,8 +42,8 @@ void main() {
       expect(dist.mean, isCloseTo(3.75));
       expect(dist.variance, isCloseTo(2.8125));
 
-      expect(dist.pdf(10), isCloseTo(0.00067961));
-      expect(dist.cdf(10), isCloseTo(0.9998847));
+      expect(dist.probabilityDistribution(10), isCloseTo(0.00067961));
+      expect(dist.cumulativeDistribution(10), isCloseTo(0.9998847));
     });
   });
   group('iterable', () {
