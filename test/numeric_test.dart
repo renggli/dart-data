@@ -235,4 +235,16 @@ void main() {
       });
     });
   });
+  group('solve', () {
+    test('raising bracket', () {
+      expect(solve(cos, 4, 6), closeTo(3 * pi / 2, epsilon));
+    });
+    test('descending bracket', () {
+      expect(solve(sin, 2, 4), closeTo(pi, epsilon));
+    });
+    test('polynomial', () {
+      double f(double x) => (x + 3) * (x - 1) * (x - 1);
+      expect(solve(f, -4, 0), closeTo(-3, epsilon));
+    });
+  });
 }

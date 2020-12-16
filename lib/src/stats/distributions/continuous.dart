@@ -21,4 +21,8 @@ abstract class ContinuousDistribution extends Distribution<double> {
   @override
   double cumulativeDistribution(double x) =>
       integrate(probabilityDistribution, min, x);
+
+  @override
+  double inverseCumulativeDistribution(double p) =>
+      solve((x) => cumulativeDistribution(x) - p, min, max);
 }

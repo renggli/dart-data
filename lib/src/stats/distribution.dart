@@ -33,7 +33,7 @@ abstract class Distribution<T extends num> {
   ///
   /// Returns the cumulative probability at [x], or the probability of a random
   /// variable to be less than or equal to [x].
-  double cumulativeDistribution(T x); // integrate(pdf, from: min, to: x);
+  double cumulativeDistribution(T x);
 
   /// The Inverted Cumulative Distribution Function (INV), or quantile function.
   ///
