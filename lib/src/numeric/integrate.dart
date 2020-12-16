@@ -1,34 +1,59 @@
 import 'package:collection/collection.dart';
 
-/// Integration warnings that can be triggered for badly behaving functions or
-/// ill defined parameters.
-enum IntegrateWarning {
-  doesNotConverge,
-  depthTooShallow,
-}
-
 /// Returns the numerical integration of the provided function [f] from [a] to
-/// [b].
+/// [b], that is the result of _int(f(x), dx=a..b)_.
 ///
-/// [epsilon] is the maximum error tolerance. [depth] is the maximum
-/// calculation depth. If set, [onWarning] is triggered with problematic
-/// parts (do not ignore those).
+/// [epsilon] is the maximum error tolerance to be accepted. [depth] is the
+/// maximum recursion depth, a warning is raised if it is too shallow.
+///
+/// [poles] is a list of points at which the function [f] should not be
+/// evaluated. The integration is automatically split over the generated
+/// intervals: _[a..p_1[, ]p_1..p_2[, ... ]p_n, b]_.
+///
+/// In case of an integration problem, [onWarning] is evaluated with the
+/// [IntegrateWarning] and the _x_ position. The default implementation throws
+/// an [IntegrateError] exception, but a custom handler can continue the
+/// evaluation.
+///
 double integrate(double Function(double) f, double a, double b,
     {int depth = 6,
     double epsilon = 1e-6,
-    void Function(IntegrateWarning)? onWarning}) {
-  onWarning ??= (type) {};
-  // https://en.wikipedia.org/wiki/Numerical_integration#Integrals_over_infinite_intervals
+    Iterable<double> poles = const [],
+    void Function(IntegrateWarning, double)? onWarning}) {
+  onWarning ??= (type, x) => throw IntegrateError._(type, x);
+  // Validate boundary condition.
   if (a.isNaN) {
     throw ArgumentError.value(a, 'a', 'Invalid lower bound');
   } else if (b.isNaN) {
     throw ArgumentError.value(b, 'b', 'Invalid upper bound');
   } else if (a > b) {
     return -integrate(f, b, a,
-        depth: depth, epsilon: epsilon, onWarning: onWarning);
+        depth: depth, epsilon: epsilon, poles: poles, onWarning: onWarning);
   } else if (a == b) {
     return 0.0;
-  } else if (a == double.negativeInfinity && b == double.infinity) {
+  }
+  // Break up the poles and merge with bounds, if necessary.
+  if (poles.isNotEmpty) {
+    final normalized =
+        poles.where((pole) => a <= pole && pole <= b).toSet().toList();
+    if (normalized.isNotEmpty) {
+      normalized.sort();
+      final expanded = normalized
+          .expand((pole) => [pole - epsilon, pole + epsilon])
+          .toList(growable: true);
+      a < expanded.first ? expanded.insert(0, a) : expanded.removeAt(0);
+      expanded.last < b ? expanded.add(b) : expanded.removeLast();
+      var result = 0.0;
+      for (var i = 0; i < expanded.length; i += 2) {
+        result += integrate(f, expanded[i], expanded[i + 1],
+            depth: depth, epsilon: epsilon, onWarning: onWarning);
+      }
+      return result;
+    }
+  }
+  // Deal with infinite bounds:
+  // https://en.wikipedia.org/wiki/Numerical_integration#Integrals_over_infinite_intervals
+  if (a == double.negativeInfinity && b == double.infinity) {
     return integrate(f, a, 0,
             depth: depth, epsilon: epsilon, onWarning: onWarning) +
         integrate(f, 0, b,
@@ -44,6 +69,7 @@ double integrate(double Function(double) f, double a, double b,
       return f(a + omt / t) / t2;
     }, epsilon, 1, depth: depth, epsilon: epsilon, onWarning: onWarning);
   }
+  // Solve the actual integral:
   // https://en.wikipedia.org/wiki/Adaptive_quadrature
   var result = 0.0;
   final queue = QueueList.from(
@@ -55,12 +81,12 @@ double integrate(double Function(double) f, double a, double b,
     final right = _Quadrature.simpson(
         f, left.depth, left.epsilon, full.m, full.fm, full.b, full.fb);
     if (left.epsilon == full.epsilon || left.a == left.m) {
-      onWarning(IntegrateWarning.doesNotConverge);
+      onWarning(IntegrateWarning.doesNotConverge, full.m);
       result += full.w;
       continue;
     }
     if (full.depth <= 0) {
-      onWarning(IntegrateWarning.depthTooShallow);
+      onWarning(IntegrateWarning.depthTooShallow, full.m);
     }
     final delta = left.w + right.w - full.w;
     if (full.depth <= 0 || delta.abs() <= 15 * full.epsilon) {
@@ -71,6 +97,24 @@ double integrate(double Function(double) f, double a, double b,
     }
   }
   return result;
+}
+
+/// Integration warnings that can be triggered for badly behaving functions or
+/// ill defined parameters.
+enum IntegrateWarning {
+  doesNotConverge,
+  depthTooShallow,
+}
+
+/// Integration error that is thrown when warnings are not handled explicitly.
+class IntegrateError extends Error {
+  /// The integration warning thrown.
+  final IntegrateWarning type;
+
+  /// The approximate position of the integration warning.
+  final double x;
+
+  IntegrateError._(this.type, this.x);
 }
 
 class _Quadrature {

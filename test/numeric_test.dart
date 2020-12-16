@@ -1,6 +1,7 @@
 import 'dart:math';
 
 import 'package:data/numeric.dart';
+import 'package:more/tuple.dart';
 import 'package:test/test.dart';
 
 const epsilon = 1.0e-5;
@@ -74,108 +75,102 @@ void main() {
     });
   });
   group('integrate', () {
-    void unexpectedWarning(IntegrateWarning warning) =>
-        fail('Unexpected warning: $warning');
     group('common', () {
       test('exp', () {
-        expect(integrate(exp, 0, 1, onWarning: unexpectedWarning),
-            closeTo(e - 1, epsilon));
-        expect(integrate(exp, -1, 0, onWarning: unexpectedWarning),
-            closeTo(1 - 1 / e, epsilon));
-        expect(integrate(exp, -1, 1, onWarning: unexpectedWarning),
-            closeTo(e - 1 / e, epsilon));
+        expect(integrate(exp, 0, 1), closeTo(e - 1, epsilon));
+        expect(integrate(exp, -1, 0), closeTo(1 - 1 / e, epsilon));
+        expect(integrate(exp, -1, 1), closeTo(e - 1 / e, epsilon));
       });
       test('sin', () {
-        expect(integrate(sin, 0, 2 * pi, onWarning: unexpectedWarning),
-            closeTo(0, epsilon));
-        expect(integrate(sin, -2 * pi, 0, onWarning: unexpectedWarning),
-            closeTo(0, epsilon));
-        expect(integrate(sin, -2 * pi, 2 * pi, onWarning: unexpectedWarning),
-            closeTo(0, epsilon));
+        expect(integrate(sin, 0, 2 * pi), closeTo(0, epsilon));
+        expect(integrate(sin, -2 * pi, 0), closeTo(0, epsilon));
+        expect(integrate(sin, -2 * pi, 2 * pi), closeTo(0, epsilon));
       });
       test('cos', () {
-        expect(integrate(cos, 0, 2 * pi, onWarning: unexpectedWarning),
-            closeTo(0, epsilon));
-        expect(integrate(cos, -2 * pi, 0, onWarning: unexpectedWarning),
-            closeTo(0, epsilon));
-        expect(integrate(cos, -2 * pi, 2 * pi, onWarning: unexpectedWarning),
-            closeTo(0, epsilon));
+        expect(integrate(cos, 0, 2 * pi), closeTo(0, epsilon));
+        expect(integrate(cos, -2 * pi, 0), closeTo(0, epsilon));
+        expect(integrate(cos, -2 * pi, 2 * pi), closeTo(0, epsilon));
       });
       test('sqr', () {
         double sqr(double x) => x * x;
-        expect(integrate(sqr, -1, 1, onWarning: unexpectedWarning),
-            closeTo(2 / 3, epsilon));
-        expect(integrate(sqr, 0, 2, onWarning: unexpectedWarning),
-            closeTo(8 / 3, epsilon));
-        expect(integrate(sqr, -1, 2, onWarning: unexpectedWarning),
-            closeTo(3, epsilon));
+        expect(integrate(sqr, -1, 1), closeTo(2 / 3, epsilon));
+        expect(integrate(sqr, 0, 2), closeTo(8 / 3, epsilon));
+        expect(integrate(sqr, -1, 2), closeTo(3, epsilon));
       });
       test('sqrt', () {
-        expect(integrate(sqrt, 0, 1, depth: 25, onWarning: unexpectedWarning),
+        expect(integrate(sqrt, 0, 1, depth: 25),
             closeTo(2 / 3 * pow(1, 3 / 2), epsilon));
-        expect(integrate(sqrt, 0, 2, depth: 25, onWarning: unexpectedWarning),
+        expect(integrate(sqrt, 0, 2, depth: 25),
             closeTo(2 / 3 * pow(2, 3 / 2), epsilon));
-        expect(integrate(sqrt, 0, 3, depth: 30, onWarning: unexpectedWarning),
+        expect(integrate(sqrt, 0, 3, depth: 30),
             closeTo(2 / 3 * pow(3, 3 / 2), epsilon));
-        expect(integrate(sqrt, 0, 4, depth: 30, onWarning: unexpectedWarning),
+        expect(integrate(sqrt, 0, 4, depth: 30),
             closeTo(2 / 3 * pow(4, 3 / 2), epsilon));
-        expect(integrate(sqrt, 0, 5, depth: 40, onWarning: unexpectedWarning),
+        expect(integrate(sqrt, 0, 5, depth: 40),
             closeTo(2 / 3 * pow(5, 3 / 2), epsilon));
       });
       test('other', () {
-        expect(
-            integrate((x) => sqrt(1 - x * x), 0, 1,
-                depth: 30, onWarning: unexpectedWarning),
+        expect(integrate((x) => sqrt(1 - x * x), 0, 1, depth: 30),
             closeTo(pi / 4, epsilon));
-        expect(
-            integrate((x) => exp(-x), 0, double.infinity,
-                depth: 30, onWarning: unexpectedWarning),
+        expect(integrate((x) => exp(-x), 0, double.infinity, depth: 30),
             closeTo(1, epsilon));
       });
     });
     group('bounds', () {
       double f(double x) => exp(-x * x);
       test('empty', () {
-        expect(
-            integrate((x) => fail('No evaluation'), pi, pi,
-                onWarning: unexpectedWarning),
+        expect(integrate((x) => fail('No evaluation'), pi, pi),
             closeTo(0, epsilon));
       });
       test('inverted', () {
-        expect(integrate(exp, 1, 0, onWarning: unexpectedWarning),
-            closeTo(1 - e, epsilon));
+        expect(integrate(exp, 1, 0), closeTo(1 - e, epsilon));
       });
       test('unbounded', () {
-        expect(
-            integrate(f, double.negativeInfinity, double.infinity,
-                onWarning: unexpectedWarning),
+        expect(integrate(f, double.negativeInfinity, double.infinity),
             closeTo(sqrt(pi), epsilon));
       });
       test('lower unbounded', () {
-        expect(
-            integrate(f, double.negativeInfinity, 0,
-                onWarning: unexpectedWarning),
+        expect(integrate(f, double.negativeInfinity, 0),
             closeTo(sqrt(pi) / 2.0, epsilon));
       });
       test('upper unbounded', () {
-        expect(integrate(f, 0, double.infinity, onWarning: unexpectedWarning),
-            closeTo(sqrt(pi) / 2.0, epsilon));
+        expect(
+            integrate(f, 0, double.infinity), closeTo(sqrt(pi) / 2.0, epsilon));
       });
       test('inverted unbounded', () {
-        expect(
-            integrate(f, double.infinity, double.negativeInfinity,
-                onWarning: unexpectedWarning),
+        expect(integrate(f, double.infinity, double.negativeInfinity),
             closeTo(-sqrt(pi), epsilon));
       });
       test('inverted lower unbounded', () {
-        expect(
-            integrate(f, 0, double.negativeInfinity,
-                onWarning: unexpectedWarning),
+        expect(integrate(f, 0, double.negativeInfinity),
             closeTo(-sqrt(pi) / 2.0, epsilon));
       });
       test('inverted upper unbounded', () {
-        expect(integrate(f, double.infinity, 0, onWarning: unexpectedWarning),
+        expect(integrate(f, double.infinity, 0),
             closeTo(-sqrt(pi) / 2.0, epsilon));
+      });
+    });
+    group('poles', () {
+      double f(double x) => x.roundToDouble() == x && x.round().isEven
+          ? throw ArgumentError('Pole was evaluated at $x.')
+          : 1.0;
+      test('at lower bound', () {
+        expect(integrate(f, -1, 0, poles: [0]), closeTo(1, epsilon));
+      });
+      test('at upper bound', () {
+        expect(integrate(f, 0, 1.5, poles: [0]), closeTo(1.5, epsilon));
+      });
+      test('at both bounds', () {
+        expect(integrate(f, 0, 2, poles: [0, 2]), closeTo(2, epsilon));
+      });
+      test('at the center', () {
+        expect(integrate(f, -1.5, 1.5, poles: [0]), closeTo(3, epsilon));
+      });
+      test('multiple poles', () {
+        expect(integrate(f, -3, 3, poles: [0, 2, -2]), closeTo(6, epsilon));
+      });
+      test('irrelevant poles', () {
+        expect(integrate(f, 0.5, 1.5, poles: [0, 2, -2]), closeTo(1, epsilon));
       });
     });
     test('evaluation points', () {
@@ -184,20 +179,41 @@ void main() {
         expect(evaluationPoints.add(x), isTrue,
             reason: 'No repeated evaluations.');
         return exp(x);
-      }, 0, 1, onWarning: unexpectedWarning);
+      }, 0, 1);
       expect(evaluationPoints, hasLength(lessThan(20)),
           reason: 'No more than 20 evaluation necessary.');
     });
     group('warnings', () {
       test('does not converge', () {
-        final warnings = <IntegrateWarning>{};
-        integrate(exp, 0, 1, epsilon: 0, onWarning: warnings.add);
-        expect(warnings, {IntegrateWarning.doesNotConverge});
+        expect(
+            () => integrate(exp, 0, 1, epsilon: 0),
+            throwsA(isA<IntegrateError>()
+                .having(
+                    (err) => err.type, 'type', IntegrateWarning.doesNotConverge)
+                .having((err) => err.x, 'x', closeTo(0.5, epsilon))));
+      });
+      test('does not converge (custom)', () {
+        final warnings = <Tuple2<IntegrateWarning, double>>[];
+        integrate(exp, 0, 1,
+            epsilon: 0, onWarning: (type, x) => warnings.add(Tuple2(type, x)));
+        expect(warnings, const [Tuple2(IntegrateWarning.doesNotConverge, 0.5)]);
       });
       test('depth too shallow', () {
-        final warnings = <IntegrateWarning>{};
-        integrate(exp, 0, 1, depth: 1, onWarning: warnings.add);
-        expect(warnings, {IntegrateWarning.depthTooShallow});
+        expect(
+            () => integrate(exp, 0, 1, depth: 1),
+            throwsA(isA<IntegrateError>()
+                .having(
+                    (err) => err.type, 'type', IntegrateWarning.depthTooShallow)
+                .having((err) => err.x, 'x', closeTo(0.25, epsilon))));
+      });
+      test('depth too shallow (custom)', () {
+        final warnings = <Tuple2<IntegrateWarning, double>>[];
+        integrate(exp, 0, 1,
+            depth: 1, onWarning: (type, x) => warnings.add(Tuple2(type, x)));
+        expect(warnings, const [
+          Tuple2(IntegrateWarning.depthTooShallow, 0.25),
+          Tuple2(IntegrateWarning.depthTooShallow, 0.75),
+        ]);
       });
     });
     group('errors', () {
