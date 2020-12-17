@@ -27,30 +27,30 @@ abstract class Distribution<T extends num> {
   /// The Probability Density/Mass Function (PDF/PMF).
   ///
   /// Returns the probability of the distribution at [x].
-  double probabilityDistribution(T x);
+  double probability(T x);
 
   /// The Cumulative Distribution Function (CDF).
   ///
   /// Returns the cumulative probability at [x], or the probability of a random
   /// variable to be less than or equal to [x].
-  double cumulativeDistribution(T x);
+  double cumulativeProbability(T x);
 
   /// The Inverse Cumulative Distribution Function (PPT), or quantile function.
   ///
   /// Returns the value of `x` for which the cumulative probability density is
   /// [p].
-  T inverseCumulativeDistribution(double p);
+  T inverseCumulativeProbability(double p);
 
   /// The Survival Function (SF), or Complementary cumulative distribution
   /// function.
   ///
   /// Returns the probability of a random variable to be larger than [x].
-  double survival(T x) => 1.0 - cumulativeDistribution(x);
+  double survival(T x) => 1.0 - cumulativeProbability(x);
 
   /// Inverse Survival Function (ISF).
   ///
   /// Returns the value of `x` for which the survival probably density is [p].
-  T inverseSurvival(double p) => inverseCumulativeDistribution(1.0 - p);
+  T inverseSurvival(double p) => inverseCumulativeProbability(1.0 - p);
 
   /// Returns a random value within the distribution.
   T sample({Random? random});

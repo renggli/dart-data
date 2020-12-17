@@ -36,7 +36,7 @@ class BernoulliDistribution extends DiscreteDistribution {
   double get variance => p * q;
 
   @override
-  double probabilityDistribution(int k) => k < 0
+  double probability(int k) => k < 0
       ? 0.0
       : k == 0
           ? p
@@ -45,14 +45,14 @@ class BernoulliDistribution extends DiscreteDistribution {
               : 1.0;
 
   @override
-  double cumulativeDistribution(int k) => k < 0
+  double cumulativeProbability(int k) => k < 0
       ? 0.0
       : k < 1
           ? q
           : 1.0;
 
   @override
-  int inverseCumulativeDistribution(double p) => throw UnimplementedError();
+  int inverseCumulativeProbability(double p) => throw UnimplementedError();
 
   @override
   int sample({Random? random}) {

@@ -38,11 +38,8 @@ class BinomialDistribution extends DiscreteDistribution {
   double get variance => n * p * q;
 
   @override
-  double probabilityDistribution(int k) =>
+  double probability(int k) =>
       0 <= k && k <= n ? combination(n, k) * pow(p, k) * pow(q, n - k) : 0.0;
-
-  @override
-  int inverseCumulativeDistribution(double p) => throw UnimplementedError();
 
   @override
   int sample({Random? random}) {

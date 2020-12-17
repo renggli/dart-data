@@ -28,6 +28,7 @@ double solve(double Function(double) f, double a, double b,
     y1 = ty;
   }
 
+  // ignore: prefer_final_locals
   var x2 = a, y2 = y0, x3 = x2;
   var bisection = true;
 

@@ -1,6 +1,7 @@
 import 'dart:math';
 
 import 'package:data/stats.dart';
+import 'package:more/collection.dart';
 import 'package:more/tuple.dart';
 import 'package:test/test.dart';
 
@@ -10,40 +11,219 @@ dynamic isCloseTo(num expected, {double epsilon = 1.0e-6}) =>
         : expected.isNaN
             ? isNaN
             : closeTo(expected, epsilon);
+final throwsInvalidProbability = throwsA(isA<InvalidProbability>());
+
+void testDistribution<T extends num>(Distribution<T> distribution,
+    {required T min,
+    required T max,
+    required double mean,
+    required double median,
+    required double variance,
+    required List<Tuple2<T, double>> probability,
+    required List<Tuple2<T, double>> cumulativeProbability,
+    required List<Tuple2<double, T>> inverseCumulativeProbability}) {
+  test('min', () {
+    expect(distribution.min, isCloseTo(min));
+  });
+  test('max', () {
+    expect(distribution.max, isCloseTo(max));
+  });
+  test('mean', () {
+    expect(distribution.mean, isCloseTo(mean));
+  });
+  test('median', () {
+    expect(distribution.median, isCloseTo(median));
+  });
+  test('variance', () {
+    expect(distribution.variance, isCloseTo(variance));
+  });
+  test('standard deviation', () {
+    expect(distribution.standardDeviation, isCloseTo(sqrt(variance)));
+  });
+  test('probability', () {
+    for (final tuple in probability) {
+      expect(distribution.probability(tuple.first), isCloseTo(tuple.second),
+          reason: 'p(${tuple.first}) = ${tuple.second}');
+    }
+  });
+  test('cumulative probability', () {
+    for (final tuple in cumulativeProbability) {
+      expect(distribution.cumulativeProbability(tuple.first),
+          isCloseTo(tuple.second),
+          reason: 'p(X <= ${tuple.first}) = ${tuple.second}');
+    }
+  });
+  test('inverse cumulative probability', () {
+    for (final tuple in inverseCumulativeProbability) {
+      expect(distribution.inverseCumulativeProbability(tuple.first),
+          isCloseTo(tuple.second),
+          reason: 'P(X <= ${tuple.second}) = ${tuple.first}');
+    }
+    expect(() => distribution.inverseCumulativeProbability(-0.1),
+        throwsInvalidProbability);
+    expect(() => distribution.inverseCumulativeProbability(1.1),
+        throwsInvalidProbability);
+  });
+  test('survival', () {
+    for (final tuple in cumulativeProbability) {
+      expect(distribution.survival(tuple.first), isCloseTo(1.0 - tuple.second),
+          reason: 'p(X > ${tuple.first}) = ${tuple.second}');
+    }
+  });
+  test('inverse survival', () {
+    for (final tuple in inverseCumulativeProbability) {
+      expect(distribution.inverseSurvival(1.0 - tuple.first),
+          isCloseTo(tuple.second),
+          reason: 'P(X > ${tuple.second}) = ${tuple.first}');
+    }
+  });
+  test('sample', () {
+    final random = Random(distribution.hashCode);
+    final histogram = Multiset<int>();
+    for (var i = 0; i < 1000; i++) {
+      histogram.add(distribution.sample(random: random).round());
+    }
+    for (var k = distribution.min.round(); k < distribution.max.round(); k++) {
+      expect(histogram[k] / histogram.length,
+          isCloseTo(distribution.probability(k as T), epsilon: 0.1));
+    }
+  });
+  const otherDistributions = [
+    UniformDiscreteDistribution(-1, 1),
+    NormalDistribution(-1, 1),
+  ];
+  test('equality', () {
+    expect(distribution == distribution, isTrue);
+    for (final other in otherDistributions) {
+      expect(distribution == other, isFalse);
+    }
+  });
+  test('hash code', () {
+    expect(distribution.hashCode, distribution.hashCode);
+    for (final other in otherDistributions) {
+      expect(distribution, isNot(other.hashCode));
+    }
+  });
+  test('string', () {
+    expect(distribution.toString(), distribution.toString());
+    for (final other in otherDistributions) {
+      expect(distribution.toString(), isNot(other.toString()));
+    }
+  });
+}
 
 void main() {
   group('distribution', () {
-    test('uniform', () {
-      const dist = UniformDiscreteDistribution(1, 6);
-      expect(dist.min, 1);
-      expect(dist.max, 6);
-      expect(dist.count, 6);
-      expect(dist.mean, isCloseTo(3.5));
-      expect(dist.variance, isCloseTo(35 / 12));
-
-      expect(dist.probabilityDistribution(0), isCloseTo(0));
-      expect(dist.probabilityDistribution(1), isCloseTo(1 / 6));
-      expect(dist.probabilityDistribution(6), isCloseTo(1 / 6));
-      expect(dist.probabilityDistribution(7), isCloseTo(0));
-
-      expect(dist.cumulativeDistribution(0), isCloseTo(0));
-      expect(dist.cumulativeDistribution(1), isCloseTo(1 / 6));
-      expect(dist.cumulativeDistribution(2), isCloseTo(2 / 6));
-      expect(dist.cumulativeDistribution(3), isCloseTo(3 / 6));
-      expect(dist.cumulativeDistribution(4), isCloseTo(4 / 6));
-      expect(dist.cumulativeDistribution(5), isCloseTo(5 / 6));
-      expect(dist.cumulativeDistribution(6), isCloseTo(6 / 6));
-      expect(dist.cumulativeDistribution(7), isCloseTo(1));
-    });
-    test('binomial', () {
-      const dist = BinomialDistribution(15, 0.25);
-      expect(dist.min, 0);
-      expect(dist.max, 15);
-      expect(dist.mean, isCloseTo(3.75));
-      expect(dist.variance, isCloseTo(2.8125));
-
-      expect(dist.probabilityDistribution(10), isCloseTo(0.00067961));
-      expect(dist.cumulativeDistribution(10), isCloseTo(0.9998847));
+    group('discrete', () {
+      group('uniform', () {
+        const distribution = UniformDiscreteDistribution(-3, 5);
+        testDistribution<int>(distribution,
+            min: -3,
+            max: 5,
+            mean: 1,
+            median: 1,
+            variance: 80 / 12,
+            probability: const [
+              Tuple2(-4, 0),
+              Tuple2(-3, 1 / 9),
+              Tuple2(-2, 1 / 9),
+              Tuple2(-1, 1 / 9),
+              Tuple2(0, 1 / 9),
+              Tuple2(1, 1 / 9),
+              Tuple2(2, 1 / 9),
+              Tuple2(3, 1 / 9),
+              Tuple2(4, 1 / 9),
+              Tuple2(5, 1 / 9),
+              Tuple2(6, 0),
+            ],
+            cumulativeProbability: const [
+              Tuple2(-4, 0),
+              Tuple2(-3, 1 / 9),
+              Tuple2(-2, 2 / 9),
+              Tuple2(-1, 3 / 9),
+              Tuple2(0, 4 / 9),
+              Tuple2(1, 5 / 9),
+              Tuple2(2, 6 / 9),
+              Tuple2(3, 7 / 9),
+              Tuple2(4, 8 / 9),
+              Tuple2(5, 1),
+              Tuple2(6, 1),
+            ],
+            inverseCumulativeProbability: const [
+              Tuple2(0, -3),
+              Tuple2(0.001, -3),
+              Tuple2(0.010, -3),
+              Tuple2(0.025, -3),
+              Tuple2(0.050, -3),
+              Tuple2(0.100, -3),
+              Tuple2(0.200, -2),
+              Tuple2(0.5, 1),
+              Tuple2(0.999, 5),
+              Tuple2(0.990, 5),
+              Tuple2(0.975, 5),
+              Tuple2(0.950, 5),
+              Tuple2(0.900, 5),
+              Tuple2(1, 5),
+            ]);
+      });
+      group('binomial', () {
+        const distribution = BinomialDistribution(10, 0.7);
+        test('parameters', () {
+          expect(distribution.n, isCloseTo(10));
+          expect(distribution.p, isCloseTo(0.7));
+          expect(distribution.q, isCloseTo(0.3));
+        });
+        testDistribution(distribution,
+            min: 0,
+            max: 10,
+            mean: 7,
+            median: 7,
+            variance: 2.1,
+            probability: const [
+              Tuple2(-1, 0),
+              Tuple2(0, 0.0000059049),
+              Tuple2(1, 0.000137781),
+              Tuple2(2, 0.0014467005),
+              Tuple2(3, 0.009001692),
+              Tuple2(4, 0.036756909),
+              Tuple2(5, 0.1029193452),
+              Tuple2(6, 0.200120949),
+              Tuple2(7, 0.266827932),
+              Tuple2(8, 0.2334744405),
+              Tuple2(9, 0.121060821),
+              Tuple2(10, 0.0282475249),
+              Tuple2(11, 0),
+            ],
+            cumulativeProbability: const [
+              Tuple2(-1, 0),
+              Tuple2(0, 5.9049e-06),
+              Tuple2(1, 0.0001436859),
+              Tuple2(2, 0.0015903864),
+              Tuple2(3, 0.0105920784),
+              Tuple2(4, 0.0473489874),
+              Tuple2(5, 0.1502683326),
+              Tuple2(6, 0.3503892816),
+              Tuple2(7, 0.6172172136),
+              Tuple2(8, 0.8506916541),
+              Tuple2(9, 0.9717524751),
+              Tuple2(10, 1),
+              Tuple2(11, 1),
+            ],
+            inverseCumulativeProbability: const [
+              Tuple2(0, 0),
+              Tuple2(0.001, 2),
+              Tuple2(0.010, 3),
+              Tuple2(0.025, 4),
+              Tuple2(0.050, 5),
+              Tuple2(0.100, 5),
+              Tuple2(0.999, 10),
+              Tuple2(0.990, 10),
+              Tuple2(0.975, 10),
+              Tuple2(0.950, 9),
+              Tuple2(0.900, 9),
+              Tuple2(1, 10),
+            ]);
+      });
     });
   });
   group('iterable', () {

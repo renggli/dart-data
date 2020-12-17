@@ -28,19 +28,19 @@ class NormalDistribution extends ContinuousDistribution {
   double get variance => standardDeviation * standardDeviation;
 
   @override
-  double probabilityDistribution(num x) {
+  double probability(num x) {
     final z = (x - mean) / (sqrt2 * standardDeviation);
     return exp(-z * z) / (sqrt2 * pi * standardDeviation);
   }
 
   @override
-  double cumulativeDistribution(num x) {
+  double cumulativeProbability(num x) {
     final z = (x - mean) / (sqrt2 * standardDeviation);
     return 0.5 * (1.0 + errorFunction(z));
   }
 
   @override
-  double inverseCumulativeDistribution(double p) =>
+  double inverseCumulativeProbability(double p) =>
       -1.41421356237309505 *
           standardDeviation *
           inverseComplementaryErrorFunction(2 * p) +

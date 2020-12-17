@@ -29,18 +29,14 @@ class UniformDiscreteDistribution extends DiscreteDistribution {
   double get variance => (count * count - 1) / 12;
 
   @override
-  double probabilityDistribution(int k) =>
-      min <= k && k <= max ? 1.0 / count : 0.0;
+  double probability(int k) => min <= k && k <= max ? 1.0 / count : 0.0;
 
   @override
-  double cumulativeDistribution(int k) => k < min
+  double cumulativeProbability(int k) => k < min
       ? 0.0
       : k <= max
           ? (k - min + 1) / count
           : 1.0;
-
-  @override
-  int inverseCumulativeDistribution(double p) => throw UnimplementedError();
 
   @override
   int sample({Random? random}) =>

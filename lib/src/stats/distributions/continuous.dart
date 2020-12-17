@@ -5,8 +5,8 @@ import '../distribution.dart';
 
 /// Abstract continuous distribution.
 ///
-/// Subclasses must implement at least one of [probabilityDistribution] or
-/// [cumulativeDistribution].
+/// Subclasses must implement at least one of [probability] or
+/// [cumulativeProbability].
 abstract class ContinuousDistribution extends Distribution<double> {
   const ContinuousDistribution();
 
@@ -17,16 +17,14 @@ abstract class ContinuousDistribution extends Distribution<double> {
   double get max => double.infinity;
 
   @override
-  double probabilityDistribution(double x) =>
-      derivative(cumulativeDistribution, x);
+  double probability(double x) => derivative(cumulativeProbability, x);
 
   @override
-  double cumulativeDistribution(double x) =>
-      integrate(probabilityDistribution, min, x);
+  double cumulativeProbability(double x) => integrate(probability, min, x);
 
   @override
-  double inverseCumulativeDistribution(double p) {
-    double f(double x) => cumulativeDistribution(x) - p;
+  double inverseCumulativeProbability(double p) {
+    double f(double x) => cumulativeProbability(x) - p;
     const factor = 10.0;
     var left = min, right = max;
     if (left.isInfinite) {
@@ -43,6 +41,6 @@ abstract class ContinuousDistribution extends Distribution<double> {
         right *= factor;
       }
     }
-    return solve((x) => cumulativeDistribution(x) - p, left, right);
+    return solve((x) => cumulativeProbability(x) - p, left, right);
   }
 }
