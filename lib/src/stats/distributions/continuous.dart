@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import '../../../numeric.dart';
 import '../distribution.dart';
 
@@ -23,6 +25,24 @@ abstract class ContinuousDistribution extends Distribution<double> {
       integrate(probabilityDistribution, min, x);
 
   @override
-  double inverseCumulativeDistribution(double p) =>
-      solve((x) => cumulativeDistribution(x) - p, min, max);
+  double inverseCumulativeDistribution(double p) {
+    double f(double x) => cumulativeDistribution(x) - p;
+    const factor = 10.0;
+    var left = min, right = max;
+    if (left.isInfinite) {
+      left = math.min(-factor, right);
+      while (f(left) > 0) {
+        right = left;
+        left *= factor;
+      }
+    }
+    if (right.isInfinite) {
+      right = math.max(factor, left);
+      while (f(right) < 0) {
+        left = right;
+        right *= factor;
+      }
+    }
+    return solve((x) => cumulativeDistribution(x) - p, left, right);
+  }
 }

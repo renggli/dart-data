@@ -35,17 +35,22 @@ abstract class Distribution<T extends num> {
   /// variable to be less than or equal to [x].
   double cumulativeDistribution(T x);
 
-  /// The Inverted Cumulative Distribution Function (INV), or quantile function.
+  /// The Inverse Cumulative Distribution Function (PPT), or quantile function.
   ///
   /// Returns the value of `x` for which the cumulative probability density is
   /// [p].
   T inverseCumulativeDistribution(double p);
 
-  /// Survival Function (SF), or Complementary cumulative distribution function.
+  /// The Survival Function (SF), or Complementary cumulative distribution
+  /// function.
+  ///
+  /// Returns the probability of a random variable to be larger than [x].
   double survival(T x) => 1.0 - cumulativeDistribution(x);
 
   /// Inverse Survival Function (ISF).
-  T inverseSurvival(double p) => throw UnimplementedError();
+  ///
+  /// Returns the value of `x` for which the survival probably density is [p].
+  T inverseSurvival(double p) => inverseCumulativeDistribution(1.0 - p);
 
   /// Returns a random value within the distribution.
   T sample({Random? random});

@@ -35,4 +35,9 @@ abstract class DiscreteDistribution extends Distribution<int> {
       return 1.0;
     }
   }
+
+  @override
+  int inverseCumulativeDistribution(double p) {
+    return 0;
+  }
 }
