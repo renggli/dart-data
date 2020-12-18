@@ -12,16 +12,13 @@ import '../discrete.dart';
 ///
 /// For details see https://en.wikipedia.org/wiki/Poisson_distribution.
 class PoissonDistribution extends DiscreteDistribution {
-  factory PoissonDistribution.fromSamples(Iterable<num> values) =>
-      PoissonDistribution(values.arithmeticMean());
-
   const PoissonDistribution(this.pois);
 
   /// Arithmetic mean of a poisson distribution.
   final double pois;
 
   @override
-  int get min => 0;
+  int get lowerBound => 0;
 
   @override
   double get mean => pois;

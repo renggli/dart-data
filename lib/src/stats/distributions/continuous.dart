@@ -1,7 +1,8 @@
-import 'dart:math' as math;
+import 'dart:math';
 
 import '../../../numeric.dart';
 import '../distribution.dart';
+import 'errors.dart';
 
 /// Abstract continuous distribution.
 ///
@@ -11,36 +12,45 @@ abstract class ContinuousDistribution extends Distribution<double> {
   const ContinuousDistribution();
 
   @override
-  double get min => double.negativeInfinity;
+  double get lowerBound => double.negativeInfinity;
 
   @override
-  double get max => double.infinity;
+  bool get isLowerBoundOpen => lowerBound == double.negativeInfinity;
+
+  @override
+  double get upperBound => double.infinity;
+
+  @override
+  bool get isUpperBoundOpen => upperBound == double.infinity;
 
   @override
   double probability(double x) => derivative(cumulativeProbability, x);
 
   @override
-  double cumulativeProbability(double x) => integrate(probability, min, x);
+  double cumulativeProbability(double x) =>
+      integrate(probability, lowerBound, x);
 
   @override
   double inverseCumulativeProbability(num p) {
+    InvalidProbability.check(p);
     double f(double x) => cumulativeProbability(x) - p;
     const factor = 10.0;
-    var left = min, right = max;
-    if (left.isInfinite) {
-      left = math.min(-factor, right);
-      while (f(left) > 0) {
-        right = left;
-        left *= factor;
+    var adjustedLower = lowerBound;
+    var adjustedUpper = upperBound;
+    if (isLowerBoundOpen) {
+      adjustedLower = min(-factor, adjustedUpper);
+      while (f(adjustedLower) > 0.0) {
+        adjustedUpper = adjustedLower;
+        adjustedLower *= factor;
       }
     }
-    if (right.isInfinite) {
-      right = math.max(factor, left);
-      while (f(right) < 0) {
-        left = right;
-        right *= factor;
+    if (isUpperBoundOpen) {
+      adjustedUpper = max(factor, adjustedLower);
+      while (f(adjustedUpper) < 0.0) {
+        adjustedLower = adjustedUpper;
+        adjustedUpper *= factor;
       }
     }
-    return solve((x) => cumulativeProbability(x) - p, left, right);
+    return solve(f, adjustedLower, adjustedUpper);
   }
 }

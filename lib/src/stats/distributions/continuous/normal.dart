@@ -2,17 +2,15 @@ import 'dart:math';
 
 import 'package:more/hash.dart';
 
-import '../../iterable.dart';
 import '../../special/erf.dart';
 import '../continuous.dart';
 import 'uniform.dart';
 
-/// Normal (or Gaussian) distribution, for details see
-/// https://en.wikipedia.org/wiki/Normal_distribution.
+/// Normal (or Gaussian) distribution described by the [mean] or expectation of
+/// the distribution and its [standardDeviation].
+///
+/// For details see https://en.wikipedia.org/wiki/Normal_distribution.
 class NormalDistribution extends ContinuousDistribution {
-  factory NormalDistribution.fromSamples(Iterable<num> values) =>
-      NormalDistribution(values.arithmeticMean(), values.standardDeviation());
-
   const NormalDistribution(this.mean, this.standardDeviation);
 
   @override
@@ -47,16 +45,23 @@ class NormalDistribution extends ContinuousDistribution {
       mean;
 
   @override
-  double sample({Random? random}) {
+  double sample({Random? random}) => samples(random: random).first;
+
+  @override
+  Iterable<double> samples({Random? random}) sync* {
     // https://en.wikipedia.org/wiki/Marsaglia_polar_method
     const uniform = UniformDistribution(-1, 1);
-    double p1, p2, p;
-    do {
-      p1 = uniform.sample(random: random);
-      p2 = uniform.sample(random: random);
-      p = p1 * p1 + p2 * p2;
-    } while (p >= 1.0);
-    return mean + standardDeviation * p1 * sqrt(-2.0 * log(p) / p);
+    for (;;) {
+      double p1, p2, p;
+      do {
+        p1 = uniform.sample(random: random);
+        p2 = uniform.sample(random: random);
+        p = p1 * p1 + p2 * p2;
+      } while (p >= 1.0);
+      p = standardDeviation * sqrt(-2.0 * log(p) / p);
+      yield mean + p1 * p;
+      yield mean + p2 * p;
+    }
   }
 
   @override

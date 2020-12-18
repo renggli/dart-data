@@ -23,16 +23,16 @@ class BinomialDistribution extends DiscreteDistribution {
   double get q => 1.0 - p;
 
   @override
-  int get min => 0;
+  int get lowerBound => 0;
 
   @override
-  int get max => n;
+  int get upperBound => n;
 
   @override
   double get mean => n * p;
 
   @override
-  double get median => mean.floorToDouble(); // it is complicated
+  double get median => mean.roundToDouble();
 
   @override
   double get variance => n * p * q;

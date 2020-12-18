@@ -17,10 +17,10 @@ class BernoulliDistribution extends DiscreteDistribution {
   double get q => 1.0 - p;
 
   @override
-  int get min => 0;
+  int get lowerBound => 0;
 
   @override
-  int get max => 1;
+  int get upperBound => 1;
 
   @override
   double get mean => p;
@@ -36,13 +36,11 @@ class BernoulliDistribution extends DiscreteDistribution {
   double get variance => p * q;
 
   @override
-  double probability(int k) => k < 0
-      ? 0.0
-      : k == 0
+  double probability(int k) => k == 0
+      ? q
+      : k == 1
           ? p
-          : k == 1
-              ? q
-              : 1.0;
+          : 0.0;
 
   @override
   double cumulativeProbability(int k) => k < 0

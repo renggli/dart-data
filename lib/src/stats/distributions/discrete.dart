@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:more/feature.dart';
 
 import '../distribution.dart';
@@ -11,10 +13,16 @@ abstract class DiscreteDistribution extends Distribution<int> {
   const DiscreteDistribution();
 
   @override
-  int get min => minSafeInteger;
+  int get lowerBound => minSafeInteger;
 
   @override
-  int get max => maxSafeInteger;
+  bool get isLowerBoundOpen => lowerBound == minSafeInteger;
+
+  @override
+  int get upperBound => maxSafeInteger;
+
+  @override
+  bool get isUpperBoundOpen => upperBound == maxSafeInteger;
 
   @override
   // ignore: avoid_renaming_method_parameters
@@ -24,11 +32,11 @@ abstract class DiscreteDistribution extends Distribution<int> {
   @override
   // ignore: avoid_renaming_method_parameters
   double cumulativeProbability(int k) {
-    if (k < min) {
+    if (k < lowerBound) {
       return 0.0;
-    } else if (k <= max) {
+    } else if (k <= upperBound) {
       var sum = 0.0;
-      for (var i = min; i <= k && i <= max; i++) {
+      for (var i = lowerBound; i <= k && i <= upperBound; i++) {
         sum += probability(i);
       }
       return sum;
@@ -41,12 +49,12 @@ abstract class DiscreteDistribution extends Distribution<int> {
   int inverseCumulativeProbability(num p) {
     InvalidProbability.check(p);
     var sum = 0.0;
-    for (var k = min; k < max; k++) {
+    for (var k = lowerBound; k < upperBound; k++) {
       sum += probability(k);
       if (p <= sum) {
         return k;
       }
     }
-    return max;
+    return upperBound;
   }
 }

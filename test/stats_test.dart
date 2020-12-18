@@ -2,6 +2,7 @@ import 'dart:math';
 
 import 'package:data/stats.dart';
 import 'package:more/collection.dart';
+import 'package:more/feature.dart';
 import 'package:more/tuple.dart';
 import 'package:test/test.dart';
 
@@ -14,28 +15,41 @@ dynamic isCloseTo(num expected, {double epsilon = 1.0e-6}) =>
 final throwsInvalidProbability = throwsA(isA<InvalidProbability>());
 
 void testDistribution<T extends num>(Distribution<T> distribution,
-    {required T min,
-    required T max,
+    {T? min,
+    T? max,
     double? mean,
     double? median,
     double? variance,
     List<Tuple2<T, double>>? probability,
     List<Tuple2<T, double>>? cumulativeProbability,
     List<Tuple2<double, T>>? inverseCumulativeProbability}) {
-  test('min', () {
-    expect(distribution.min, isCloseTo(min));
+  final isDiscrete = distribution is DiscreteDistribution;
+  test('lower bound', () {
+    expect(
+        distribution.lowerBound,
+        isCloseTo(
+            min ?? (isDiscrete ? minSafeInteger : double.negativeInfinity)));
+    expect(
+        distribution.isLowerBoundOpen,
+        distribution.lowerBound == minSafeInteger ||
+            distribution.lowerBound == double.negativeInfinity);
   });
-  test('max', () {
-    expect(distribution.max, isCloseTo(max));
+  test('upper bound', () {
+    expect(distribution.upperBound,
+        isCloseTo(max ?? (isDiscrete ? maxSafeInteger : double.infinity)));
+    expect(
+        distribution.isUpperBoundOpen,
+        distribution.upperBound == maxSafeInteger ||
+            distribution.upperBound == double.infinity);
   });
   if (mean != null) {
     test('mean', () {
       expect(distribution.mean, isCloseTo(mean));
     });
   }
-  if (median != null) {
+  if (median != null || mean != null) {
     test('median', () {
-      expect(distribution.median, isCloseTo(median));
+      expect(distribution.median, isCloseTo(median ?? mean ?? 0.0));
     });
   }
   if (variance != null) {
@@ -88,6 +102,9 @@ void testDistribution<T extends num>(Distribution<T> distribution,
             isCloseTo(tuple.second),
             reason: 'P(X > ${tuple.second}) = ${tuple.first}');
       }
+      expect(
+          () => distribution.inverseSurvival(-0.1), throwsInvalidProbability);
+      expect(() => distribution.inverseSurvival(1.1), throwsInvalidProbability);
     });
   }
   test('sample', () {
@@ -97,8 +114,8 @@ void testDistribution<T extends num>(Distribution<T> distribution,
       for (var i = 0; i < 10000; i++) {
         histogram.add(distribution.sample(random: random) as int);
       }
-      for (var k = distribution.min.round();
-          k < distribution.max.round();
+      for (var k = distribution.lowerBound.round();
+          k < distribution.upperBound.round();
           k++) {
         expect(histogram[k] / histogram.length,
             isCloseTo(distribution.probability(k as T), epsilon: 0.1));
@@ -158,8 +175,6 @@ void main() {
       group('normal', () {
         const distribution = NormalDistribution(2.1, 1.4);
         testDistribution(distribution,
-            min: double.negativeInfinity,
-            max: double.infinity,
             mean: 2.1,
             variance: 1.4 * 1.4,
             probability: const [
@@ -228,55 +243,29 @@ void main() {
       });
     });
     group('discrete', () {
-      group('uniform', () {
-        const distribution = UniformDiscreteDistribution(-3, 5);
-        testDistribution<int>(distribution,
-            min: -3,
-            max: 5,
-            mean: 1,
-            median: 1,
-            variance: 80 / 12,
+      group('bernoulli', () {
+        const distribution = BernoulliDistribution(0.7);
+        test('parameters', () {
+          expect(distribution.p, isCloseTo(0.7));
+          expect(distribution.q, isCloseTo(0.3));
+        });
+        testDistribution(distribution,
+            min: 0,
+            max: 1,
+            mean: 0.7,
+            median: 1.0,
+            variance: 0.21,
             probability: const [
-              Tuple2(-4, 0),
-              Tuple2(-3, 1 / 9),
-              Tuple2(-2, 1 / 9),
-              Tuple2(-1, 1 / 9),
-              Tuple2(0, 1 / 9),
-              Tuple2(1, 1 / 9),
-              Tuple2(2, 1 / 9),
-              Tuple2(3, 1 / 9),
-              Tuple2(4, 1 / 9),
-              Tuple2(5, 1 / 9),
-              Tuple2(6, 0),
+              Tuple2(-1, 0),
+              Tuple2(0, 0.3),
+              Tuple2(1, 0.7),
+              Tuple2(2, 0),
             ],
             cumulativeProbability: const [
-              Tuple2(-4, 0),
-              Tuple2(-3, 1 / 9),
-              Tuple2(-2, 2 / 9),
-              Tuple2(-1, 3 / 9),
-              Tuple2(0, 4 / 9),
-              Tuple2(1, 5 / 9),
-              Tuple2(2, 6 / 9),
-              Tuple2(3, 7 / 9),
-              Tuple2(4, 8 / 9),
-              Tuple2(5, 1),
-              Tuple2(6, 1),
-            ],
-            inverseCumulativeProbability: const [
-              Tuple2(0, -3),
-              Tuple2(0.001, -3),
-              Tuple2(0.010, -3),
-              Tuple2(0.025, -3),
-              Tuple2(0.050, -3),
-              Tuple2(0.100, -3),
-              Tuple2(0.200, -2),
-              Tuple2(0.5, 1),
-              Tuple2(0.999, 5),
-              Tuple2(0.990, 5),
-              Tuple2(0.975, 5),
-              Tuple2(0.950, 5),
-              Tuple2(0.900, 5),
-              Tuple2(1, 5),
+              Tuple2(-1, 0),
+              Tuple2(0, 0.3),
+              Tuple2(1, 1),
+              Tuple2(2, 1),
             ]);
       });
       group('binomial', () {
@@ -335,6 +324,89 @@ void main() {
               Tuple2(0.950, 9),
               Tuple2(0.900, 9),
               Tuple2(1, 10),
+            ]);
+      });
+      group('poisson', () {
+        const distribution = PoissonDistribution(4.0);
+        testDistribution(distribution,
+            min: 0,
+            mean: 4.0,
+            median: 4.0,
+            variance: 4.0,
+            probability: const [
+              Tuple2(-1, 0),
+              Tuple2(0, 0.018315638),
+              Tuple2(1, 0.073262555),
+              Tuple2(2, 0.146525111),
+              Tuple2(3, 0.195366814),
+              Tuple2(4, 0.195366814),
+              Tuple2(5, 0.156293451),
+              Tuple2(10, 0.005292476),
+              Tuple2(15, 1.503911676e-05),
+              Tuple2(16, 3.759779190e-06),
+              Tuple2(20, 8.277463646e-09),
+            ],
+            cumulativeProbability: const [
+              Tuple2(0, 0),
+              Tuple2(0.0183156388887, 0.018315638886),
+              Tuple2(0.0915781944437, 0.018315638890),
+              Tuple2(0.238103305554, 0.091578194441),
+              Tuple2(0.433470120367, 0.091578194445),
+              Tuple2(0.62883693518, 0.238103305552),
+              Tuple2(0.78513038703, 0.238103305556),
+              Tuple2(0.99716023388, -1),
+              Tuple2(0.999999998077, -1),
+              Tuple2(1.0, -1),
+            ]);
+      });
+      group('uniform', () {
+        const distribution = UniformDiscreteDistribution(-3, 5);
+        testDistribution<int>(distribution,
+            min: -3,
+            max: 5,
+            mean: 1,
+            variance: 80 / 12,
+            probability: const [
+              Tuple2(-4, 0),
+              Tuple2(-3, 1 / 9),
+              Tuple2(-2, 1 / 9),
+              Tuple2(-1, 1 / 9),
+              Tuple2(0, 1 / 9),
+              Tuple2(1, 1 / 9),
+              Tuple2(2, 1 / 9),
+              Tuple2(3, 1 / 9),
+              Tuple2(4, 1 / 9),
+              Tuple2(5, 1 / 9),
+              Tuple2(6, 0),
+            ],
+            cumulativeProbability: const [
+              Tuple2(-4, 0),
+              Tuple2(-3, 1 / 9),
+              Tuple2(-2, 2 / 9),
+              Tuple2(-1, 3 / 9),
+              Tuple2(0, 4 / 9),
+              Tuple2(1, 5 / 9),
+              Tuple2(2, 6 / 9),
+              Tuple2(3, 7 / 9),
+              Tuple2(4, 8 / 9),
+              Tuple2(5, 1),
+              Tuple2(6, 1),
+            ],
+            inverseCumulativeProbability: const [
+              Tuple2(0, -3),
+              Tuple2(0.001, -3),
+              Tuple2(0.010, -3),
+              Tuple2(0.025, -3),
+              Tuple2(0.050, -3),
+              Tuple2(0.100, -3),
+              Tuple2(0.200, -2),
+              Tuple2(0.5, 1),
+              Tuple2(0.999, 5),
+              Tuple2(0.990, 5),
+              Tuple2(0.975, 5),
+              Tuple2(0.950, 5),
+              Tuple2(0.900, 5),
+              Tuple2(1, 5),
             ]);
       });
     });

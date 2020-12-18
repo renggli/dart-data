@@ -5,22 +5,28 @@ import 'package:more/hash.dart';
 import '../continuous/uniform.dart';
 import '../discrete.dart';
 
-/// A discrete uniform distribution between [min] and [max], for details see
+/// A discrete uniform distribution between [a] and [b], for details see
 /// https://en.wikipedia.org/wiki/Discrete_uniform_distribution.
 class UniformDiscreteDistribution extends DiscreteDistribution {
-  const UniformDiscreteDistribution(this.min, this.max);
+  const UniformDiscreteDistribution(this.a, this.b);
 
-  @override
-  final int min;
+  /// Minimum value of the distribution.
+  final int a;
 
-  @override
-  final int max;
+  /// Maximum value of the distribution.
+  final int b;
 
   // Returns the number of elements in this distribution.
-  int get count => max - min + 1;
+  int get count => b - a + 1;
 
   @override
-  double get mean => 0.5 * (min + max);
+  int get lowerBound => a;
+
+  @override
+  int get upperBound => b;
+
+  @override
+  double get mean => 0.5 * (a + b);
 
   @override
   double get median => mean;
@@ -29,30 +35,28 @@ class UniformDiscreteDistribution extends DiscreteDistribution {
   double get variance => (count * count - 1) / 12;
 
   @override
-  double probability(int k) => min <= k && k <= max ? 1.0 / count : 0.0;
+  double probability(int k) => a <= k && k <= b ? 1.0 / count : 0.0;
 
   @override
-  double cumulativeProbability(int k) => k < min
+  double cumulativeProbability(int k) => k < a
       ? 0.0
-      : k <= max
-          ? (k - min + 1) / count
+      : k <= b
+          ? (k - a + 1) / count
           : 1.0;
 
   @override
   int sample({Random? random}) =>
-      min + (count * _uniform.sample(random: random)).floor();
+      a + (count * _uniform.sample(random: random)).floor();
 
   @override
   bool operator ==(Object other) =>
-      other is UniformDiscreteDistribution &&
-      min == other.min &&
-      max == other.max;
+      other is UniformDiscreteDistribution && a == other.a && b == other.b;
 
   @override
-  int get hashCode => hash2(min, max);
+  int get hashCode => hash2(a, b);
 
   @override
-  String toString() => 'UniformDiscreteDistribution[$min..$max]';
+  String toString() => 'UniformDiscreteDistribution[$a..$b]';
 }
 
 const _uniform = UniformDistribution(0, 1);
