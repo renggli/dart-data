@@ -28,19 +28,19 @@ class NormalDistribution extends ContinuousDistribution {
   double get variance => standardDeviation * standardDeviation;
 
   @override
-  double probability(num x) {
+  double probability(double x) {
     final z = (x - mean) / (sqrt2 * standardDeviation);
-    return exp(-z * z) / (sqrt2 * pi * standardDeviation);
+    return exp(-z * z) / (sqrt2 * sqrt(pi) * standardDeviation);
   }
 
   @override
-  double cumulativeProbability(num x) {
+  double cumulativeProbability(double x) {
     final z = (x - mean) / (sqrt2 * standardDeviation);
     return 0.5 * (1.0 + errorFunction(z));
   }
 
   @override
-  double inverseCumulativeProbability(double p) =>
+  double inverseCumulativeProbability(num p) =>
       -1.41421356237309505 *
           standardDeviation *
           inverseComplementaryErrorFunction(2 * p) +
@@ -48,6 +48,7 @@ class NormalDistribution extends ContinuousDistribution {
 
   @override
   double sample({Random? random}) {
+    // https://en.wikipedia.org/wiki/Marsaglia_polar_method
     const uniform = UniformDistribution(-1, 1);
     double p1, p2, p;
     do {
@@ -55,7 +56,7 @@ class NormalDistribution extends ContinuousDistribution {
       p2 = uniform.sample(random: random);
       p = p1 * p1 + p2 * p2;
     } while (p >= 1.0);
-    return mean + variance * p1 * sqrt(-2 * log(p) / p);
+    return mean + standardDeviation * p1 * sqrt(-2.0 * log(p) / p);
   }
 
   @override

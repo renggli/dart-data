@@ -23,7 +23,7 @@ abstract class ContinuousDistribution extends Distribution<double> {
   double cumulativeProbability(double x) => integrate(probability, min, x);
 
   @override
-  double inverseCumulativeProbability(double p) {
+  double inverseCumulativeProbability(num p) {
     double f(double x) => cumulativeProbability(x) - p;
     const factor = 10.0;
     var left = min, right = max;

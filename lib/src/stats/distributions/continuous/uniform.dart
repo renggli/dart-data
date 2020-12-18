@@ -19,23 +19,24 @@ class UniformDistribution extends ContinuousDistribution {
   double get mean => 0.5 * (min + max);
 
   @override
+  double get median => mean;
+
+  @override
   double get variance => pow(max - min, 2) / 12.0;
 
   @override
-  double get median => throw UnimplementedError();
+  double probability(double x) =>
+      min <= x && x <= max ? 1.0 / (max - min) : 0.0;
 
   @override
-  double probability(num x) => min <= x && x <= max ? 1.0 / (max - min) : 0.0;
-
-  @override
-  double cumulativeProbability(num x) => x <= min
+  double cumulativeProbability(double x) => x <= min
       ? 0.0
       : x <= max
           ? (x - min) / (max - min)
           : 1.0;
 
   @override
-  double inverseCumulativeProbability(double p) => min + p * (max - min);
+  double inverseCumulativeProbability(num p) => min + p * (max - min);
 
   @override
   double sample({Random? random}) =>

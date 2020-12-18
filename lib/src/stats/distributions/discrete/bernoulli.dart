@@ -52,9 +52,6 @@ class BernoulliDistribution extends DiscreteDistribution {
           : 1.0;
 
   @override
-  int inverseCumulativeProbability(double p) => throw UnimplementedError();
-
-  @override
   int sample({Random? random}) {
     const uniform = UniformDistribution(0, 1);
     return uniform.sample(random: random) < p ? 1 : 0;

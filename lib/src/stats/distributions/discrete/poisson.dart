@@ -40,9 +40,6 @@ class PoissonDistribution extends DiscreteDistribution {
           : pow(pois, k) * exp(-pois) / factorial(k);
 
   @override
-  int inverseCumulativeProbability(double p) => throw UnimplementedError();
-
-  @override
   int sample({Random? random}) {
     const uniform = UniformDistribution(0, 1);
     var i = 0, b = 1.0;

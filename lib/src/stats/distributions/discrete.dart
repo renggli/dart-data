@@ -38,7 +38,7 @@ abstract class DiscreteDistribution extends Distribution<int> {
   }
 
   @override
-  int inverseCumulativeProbability(double p) {
+  int inverseCumulativeProbability(num p) {
     InvalidProbability.check(p);
     var sum = 0.0;
     for (var k = min; k < max; k++) {

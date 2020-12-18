@@ -39,7 +39,7 @@ abstract class Distribution<T extends num> {
   ///
   /// Returns the value of `x` for which the cumulative probability density is
   /// [p].
-  T inverseCumulativeProbability(double p);
+  T inverseCumulativeProbability(num p);
 
   /// The Survival Function (SF), or Complementary cumulative distribution
   /// function.
@@ -50,7 +50,7 @@ abstract class Distribution<T extends num> {
   /// Inverse Survival Function (ISF).
   ///
   /// Returns the value of `x` for which the survival probably density is [p].
-  T inverseSurvival(double p) => inverseCumulativeProbability(1.0 - p);
+  T inverseSurvival(num p) => inverseCumulativeProbability(1.0 - p);
 
   /// Returns a random value within the distribution.
   T sample({Random? random});
