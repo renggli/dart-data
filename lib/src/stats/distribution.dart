@@ -1,9 +1,9 @@
 import 'dart:math';
 
-import 'package:data/src/stats/distributions/errors.dart';
 import 'package:meta/meta.dart';
 
 import 'distributions/continuous/uniform.dart';
+import 'distributions/errors.dart';
 
 @immutable
 abstract class Distribution<T extends num> {
