@@ -3,7 +3,7 @@ import 'package:more/printer.dart';
 import 'package:test/test.dart';
 
 void main() {
-  test('solve a linear equation', () {
+  test('linear equation', () {
     final a = Matrix<double>.fromRows(DataType.float64, [
       [2, 1, 1],
       [1, 3, 2],
@@ -25,5 +25,13 @@ void main() {
         DataType.float64, decomposition.realEigenvalues);
     expect(eigenvalues.format(valuePrinter: Printer.fixed(precision: 1)),
         '-1.0 -1.0 1.0 2.0');
+  });
+  test('polynomial roots', () {
+    final roots = [-5, -3, -2, 7, 11];
+    final polynomial = Polynomial.fromRoots(DataType.int32, roots);
+    expect(polynomial.roots.map((each) => each.real),
+        containsAll(roots.map((root) => closeTo(root, 1e-10))));
+    expect(polynomial.roots.map((each) => each.imaginary),
+        everyElement(closeTo(0.0, 1e-10)));
   });
 }

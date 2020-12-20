@@ -25,7 +25,7 @@ Below are step-by-step instructions of how to use this library. More elaborate e
 
 Follow the installation instructions on [dart packages](https://pub.dev/packages/data#-installing-tab-).
 
-Import the packages into your Dart code using:
+Import the core-package into your Dart code using:
 
 ```dart
 import 'package:data/data.dart';
@@ -61,6 +61,17 @@ final decomposition = a.eigenvalue;
 final eigenvalues = Vector<double>.fromList(
     DataType.float64, decomposition.realEigenvalues);
 print(eigenvalues.format(valuePrinter: Printer.fixed(precision: 1))); // prints '-1.0 -1.0 1.0 2.0'
+```
+
+### How to find all the roots of a polynomial?
+
+To find the roots of `x^5 + -8x^4 + -72x^3 + 242x^2 + 1847x + 2310`:
+
+```dart
+final polynomial = Polynomial.fromCoefficients(DataType.int32, [1, -8, -72, 242, 1847, 2310]);
+final roots = polynomial.roots;
+print(roots.map((root) => root.real)); // [-5, -3, -2, 7, 11]
+print(roots.map((root) => root.imaginary)); // [0, 0, 0, 0, 0]
 ```
 
 Misc
