@@ -1,6 +1,5 @@
 import 'dart:math';
 
-import '../../iterable.dart';
 import '../../special/gamma.dart';
 import '../continuous/uniform.dart';
 import '../discrete.dart';
