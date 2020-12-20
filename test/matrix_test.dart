@@ -1007,6 +1007,91 @@ void matrixTest(String name, MatrixFormat format) {
           }
         }
       });
+      group('rotated', () {
+        test('0', () {
+          final source = Matrix.generate(
+              DataType.string, 2, 3, (row, col) => '($row, $col)',
+              format: format);
+          final rotated = source.rotated(count: 0);
+          expect(rotated, same(source));
+        });
+        test('90', () {
+          final source = Matrix.generate(
+              DataType.string, 2, 3, (row, col) => '($row, $col)',
+              format: format);
+          final rotated = source.rotated();
+          expect(rotated.dataType, source.dataType);
+          expect(rotated.rowCount, source.columnCount);
+          expect(rotated.columnCount, source.rowCount);
+          expect(rotated.storage, [source]);
+          expect(rotated.copy().compare(rotated), isTrue);
+          for (var r = 0; r < rotated.rowCount; r++) {
+            for (var c = 0; c < rotated.columnCount; c++) {
+              expect(rotated.get(r, c), '(${source.rowCount - c - 1}, $r)');
+              rotated.set(r, c, '${rotated.get(r, c)}*');
+            }
+          }
+          for (var r = 0; r < source.rowCount; r++) {
+            for (var c = 0; c < source.columnCount; c++) {
+              expect(source.get(r, c), '($r, $c)*');
+            }
+          }
+        });
+        test('180', () {
+          final source = Matrix.generate(
+              DataType.string, 2, 3, (row, col) => '($row, $col)',
+              format: format);
+          final rotated = source.rotated(count: 2);
+          expect(rotated.dataType, source.dataType);
+          expect(rotated.rowCount, source.rowCount);
+          expect(rotated.columnCount, source.columnCount);
+          expect(rotated.storage, [source]);
+          expect(rotated.copy().compare(rotated), isTrue);
+          for (var r = 0; r < rotated.rowCount; r++) {
+            for (var c = 0; c < rotated.columnCount; c++) {
+              expect(
+                  rotated.get(r, c),
+                  '(${source.rowCount - r - 1}, '
+                  '${source.columnCount - c - 1})');
+              rotated.set(r, c, '${rotated.get(r, c)}*');
+            }
+          }
+          for (var r = 0; r < source.rowCount; r++) {
+            for (var c = 0; c < source.columnCount; c++) {
+              expect(source.get(r, c), '($r, $c)*');
+            }
+          }
+        });
+        test('270', () {
+          final source = Matrix.generate(
+              DataType.string, 2, 3, (row, col) => '($row, $col)',
+              format: format);
+          final rotated = source.rotated(count: 3);
+          expect(rotated.dataType, source.dataType);
+          expect(rotated.rowCount, source.columnCount);
+          expect(rotated.columnCount, source.rowCount);
+          expect(rotated.storage, [source]);
+          expect(rotated.copy().compare(rotated), isTrue);
+          for (var r = 0; r < rotated.rowCount; r++) {
+            for (var c = 0; c < rotated.columnCount; c++) {
+              expect(rotated.get(r, c), '($c, ${source.columnCount - r - 1})');
+              rotated.set(r, c, '${rotated.get(r, c)}*');
+            }
+          }
+          for (var r = 0; r < source.rowCount; r++) {
+            for (var c = 0; c < source.columnCount; c++) {
+              expect(source.get(r, c), '($r, $c)*');
+            }
+          }
+        });
+        test('360', () {
+          final source = Matrix.generate(
+              DataType.string, 2, 3, (row, col) => '($row, $col)',
+              format: format);
+          final rotated = source.rotated(count: 4);
+          expect(rotated, same(source));
+        });
+      });
       test('unmodifiable', () {
         final source = Matrix.generate(
             DataType.string, 2, 3, (row, col) => '($row, $col)',

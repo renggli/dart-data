@@ -7,6 +7,7 @@ export 'view/flipped_vertical_matrix.dart' show FlippedVerticalMatrixExtension;
 export 'view/index_matrix.dart' show IndexMatrixExtension;
 export 'view/overlay_matrix.dart' show OverlayMatrixExtension;
 export 'view/range_matrix.dart' show RangeMatrixExtension;
+export 'view/rotated_matrix.dart' show RotatedMatrixExtension;
 export 'view/row_vector.dart' show RowVectorExtension;
 export 'view/transformed_matrix.dart' show TransformedMatrixExtension;
 export 'view/transposed_matrix.dart' show TransposedMatrixExtension;
