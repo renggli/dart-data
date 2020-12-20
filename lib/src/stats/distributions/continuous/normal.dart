@@ -11,6 +11,8 @@ import 'uniform.dart';
 ///
 /// For details see https://en.wikipedia.org/wiki/Normal_distribution.
 class NormalDistribution extends ContinuousDistribution {
+  const NormalDistribution.standard() : this(0.0, 1.0);
+
   const NormalDistribution(this.mean, this.standardDeviation);
 
   @override
