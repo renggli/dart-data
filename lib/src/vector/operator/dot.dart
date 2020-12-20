@@ -1,7 +1,7 @@
 import '../vector.dart';
 import 'utils.dart';
 
-extension DotExtension<T> on Vector<T> {
+extension DotVectorExtension<T> on Vector<T> {
   /// Computes the dot product of this [Vector] and [other].
   T dot(Vector<T> other) {
     checkDimensions<T>(this, other);

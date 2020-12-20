@@ -3,7 +3,7 @@ import '../vector.dart';
 import '../vector_format.dart';
 import 'utils.dart';
 
-extension AddExtension<T> on Vector<T> {
+extension AddVectorExtension<T> on Vector<T> {
   /// Adds this [Vector] element-wise to [other].
   Vector<T> add(Vector<T> other,
       {Vector<T>? target, DataType<T>? dataType, VectorFormat? format}) {

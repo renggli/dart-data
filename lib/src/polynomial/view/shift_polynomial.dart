@@ -47,7 +47,7 @@ class ShiftPolynomial<T> with Polynomial<T> {
   }
 }
 
-extension ShiftExtension<T> on Polynomial<T> {
+extension ShiftPolynomialExtension<T> on Polynomial<T> {
   /// Returns a mutable view of this polynomial shift by [offset].
   Polynomial<T> shift(int offset) => offset == 0 ? this : _shift(this, offset);
 

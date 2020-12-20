@@ -3,7 +3,7 @@ import '../matrix.dart';
 import '../matrix_format.dart';
 import 'utils.dart';
 
-extension SubExtension<T> on Matrix<T> {
+extension SubMatrixExtension<T> on Matrix<T> {
   /// Subtracts [other] from this [Matrix].
   Matrix<T> sub(Matrix<T> other,
       {Matrix<T>? target, DataType<T>? dataType, MatrixFormat? format}) {

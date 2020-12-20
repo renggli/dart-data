@@ -1,4 +1,5 @@
-export 'view/differentiate_polynomial.dart' show DifferentiateExtension;
-export 'view/integrate_polynomial.dart' show IntegrateExtension;
-export 'view/shift_polynomial.dart' show ShiftExtension;
-export 'view/unmodifiable_polynomial.dart' show UnmodifiableExtension;
+export 'view/differentiate_polynomial.dart'
+    show DifferentiatePolynomialExtension;
+export 'view/integrate_polynomial.dart' show IntegratePolynomialExtension;
+export 'view/shift_polynomial.dart' show ShiftPolynomialExtension;
+export 'view/unmodifiable_polynomial.dart' show UnmodifiablePolynomialExtension;

@@ -1,6 +1,6 @@
 import 'dart:math';
 
-import 'package:data/numeric.dart';
+import 'package:data/data.dart';
 import 'package:more/tuple.dart';
 import 'package:test/test.dart';
 

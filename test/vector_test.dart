@@ -1,8 +1,6 @@
 import 'dart:math';
 
-import 'package:data/matrix.dart';
-import 'package:data/type.dart';
-import 'package:data/vector.dart';
+import 'package:data/data.dart';
 import 'package:test/test.dart';
 
 void vectorTest(String name, VectorFormat format) {

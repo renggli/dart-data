@@ -3,7 +3,7 @@ import '../matrix.dart';
 import '../matrix_format.dart';
 import 'utils.dart';
 
-extension NegExtension<T> on Matrix<T> {
+extension NegMatrixExtension<T> on Matrix<T> {
   /// Negates this [Matrix].
   Matrix<T> neg(
       {Matrix<T>? target, DataType<T>? dataType, MatrixFormat? format}) {

@@ -1,7 +1,7 @@
 import 'dart:math';
 
+import 'package:data/data.dart';
 import 'package:data/src/shared/config.dart' as config;
-import 'package:data/type.dart';
 import 'package:more/feature.dart';
 import 'package:more/number.dart';
 import 'package:more/ordering.dart';

@@ -5,7 +5,7 @@ import '../polynomial.dart';
 import '../polynomial_format.dart';
 import 'utils.dart';
 
-extension LerpExtension<T> on Polynomial<T> {
+extension LerpPolynomialExtension<T> on Polynomial<T> {
   /// Interpolates linearly between this [Polynomial] and [other] with a factor
   /// of [t]. If [t] is equal to `0` the result is `this`, if [t] is equal to
   /// `1` the result is [other].

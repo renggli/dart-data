@@ -3,7 +3,7 @@ import '../matrix.dart';
 import '../matrix_format.dart';
 import 'utils.dart';
 
-extension AddExtension<T> on Matrix<T> {
+extension AddMatrixExtension<T> on Matrix<T> {
   /// Adds [other] to this [Matrix].
   Matrix<T> add(Matrix<T> other,
       {Matrix<T>? target, DataType<T>? dataType, MatrixFormat? format}) {

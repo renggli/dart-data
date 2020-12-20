@@ -19,7 +19,7 @@ The package is hosted on [dart packages](https://pub.dev/packages/data). Up-to-d
 Tutorial
 --------
 
-Below are step by step instructions of how to use this library. More elaborate examples are included with the [examples](https://github.com/renggli/dart-data/tree/master/example).
+Below are step-by-step instructions of how to use this library. More elaborate examples are included with the [examples](https://github.com/renggli/dart-data/tree/master/example).
 
 ### Installation
 
@@ -28,9 +28,7 @@ Follow the installation instructions on [dart packages](https://pub.dev/packages
 Import the packages into your Dart code using:
 
 ```dart
-import 'package:data/matrix.dart';
-import 'package:data/vector.dart';
-import 'package:data/type.dart';
+import 'package:data/data.dart';
 ```
 
 ### How to solve a linear equation?

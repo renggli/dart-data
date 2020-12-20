@@ -5,7 +5,7 @@ import '../polynomial.dart';
 import '../polynomial_format.dart';
 import 'utils.dart';
 
-extension AddExtension<T> on Polynomial<T> {
+extension AddPolynomialExtension<T> on Polynomial<T> {
   /// Adds [other] to this [Polynomial].
   Polynomial<T> add(Polynomial<T> other,
       {DataType<T>? dataType, PolynomialFormat? format}) {

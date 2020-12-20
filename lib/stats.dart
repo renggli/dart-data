@@ -1,4 +1,4 @@
-/// Provides functionality to perform statistical computations.
+/// Statistical computations and algorithms.
 export 'src/stats/distribution.dart';
 export 'src/stats/distributions/continuous.dart';
 export 'src/stats/distributions/continuous/normal.dart' show NormalDistribution;

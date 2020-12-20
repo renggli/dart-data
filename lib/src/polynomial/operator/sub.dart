@@ -5,7 +5,7 @@ import '../polynomial.dart';
 import '../polynomial_format.dart';
 import 'utils.dart';
 
-extension SubExtension<T> on Polynomial<T> {
+extension SubPolynomialExtension<T> on Polynomial<T> {
   /// Subs [other] to this [Polynomial].
   Polynomial<T> sub(Polynomial<T> other,
       {DataType<T>? dataType, PolynomialFormat? format}) {

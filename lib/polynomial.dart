@@ -1,3 +1,4 @@
+/// Polynomial data type and algorithms.
 export 'src/polynomial/operator.dart';
 export 'src/polynomial/polynomial.dart';
 export 'src/polynomial/polynomial_format.dart';

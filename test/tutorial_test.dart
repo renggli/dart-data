@@ -1,6 +1,4 @@
-import 'package:data/matrix.dart';
-import 'package:data/type.dart';
-import 'package:data/vector.dart';
+import 'package:data/data.dart';
 import 'package:more/printer.dart';
 import 'package:test/test.dart';
 

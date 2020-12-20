@@ -1,6 +1,6 @@
 import '../polynomial.dart';
 
-extension CompareExtension<T> on Polynomial<T> {
+extension ComparePolynomialExtension<T> on Polynomial<T> {
   /// Compares this [Polynomial] and with [other].
   bool compare(Polynomial<T> other, {bool Function(T a, T b)? equals}) {
     if (equals == null && identical(this, other)) {

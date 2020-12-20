@@ -3,7 +3,7 @@ import '../polynomial.dart';
 import '../polynomial_format.dart';
 import 'utils.dart';
 
-extension MulExtension<T> on Polynomial<T> {
+extension MulPolynomialExtension<T> on Polynomial<T> {
   /// Multiplies this [Polynomial] with [other].
   Polynomial<T> mul(/* Polynomial<T>|T */ Object other,
       {DataType<T>? dataType, PolynomialFormat? format}) {

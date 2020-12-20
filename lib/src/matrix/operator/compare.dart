@@ -1,6 +1,6 @@
 import '../matrix.dart';
 
-extension CompareExtension<T> on Matrix<T> {
+extension CompareMatrixExtension<T> on Matrix<T> {
   /// Compares this [Matrix] and with [other].
   bool compare(Matrix<T> other, {bool Function(T a, T b)? equals}) {
     if (equals == null && identical(this, other)) {

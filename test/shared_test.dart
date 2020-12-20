@@ -1,7 +1,7 @@
+import 'package:data/data.dart';
 import 'package:data/src/shared/config.dart' as config;
 import 'package:data/src/shared/lists.dart' as lists;
 import 'package:data/src/shared/math.dart' as math;
-import 'package:data/type.dart';
 import 'package:test/test.dart';
 
 void main() {

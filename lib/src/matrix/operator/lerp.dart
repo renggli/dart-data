@@ -3,7 +3,7 @@ import '../matrix.dart';
 import '../matrix_format.dart';
 import 'utils.dart';
 
-extension LerpExtension<T> on Matrix<T> {
+extension LerpMatrixExtension<T> on Matrix<T> {
   /// Interpolates linearly between this [Matrix] and [other] with a factor of
   /// [t]. If [t] is equal to `0` the result is `this`, if [t] is equal to `1`
   /// the result is [other].

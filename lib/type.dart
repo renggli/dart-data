@@ -1,4 +1,5 @@
-export 'package:more/number.dart';
+/// Data types and their base functions.
+export 'package:more/number.dart' show Complex, Fraction, Quaternion;
 
 export 'src/type/impl/bigint.dart';
 export 'src/type/impl/boolean.dart';

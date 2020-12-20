@@ -3,7 +3,7 @@ import '../vector.dart';
 import '../vector_format.dart';
 import 'utils.dart';
 
-extension SubExtension<T> on Vector<T> {
+extension SubVectorExtension<T> on Vector<T> {
   /// Subtracts [other] from this [Vector].
   Vector<T> sub(Vector<T> other,
       {Vector<T>? target, DataType<T>? dataType, VectorFormat? format}) {

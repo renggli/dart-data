@@ -3,7 +3,7 @@ import '../polynomial.dart';
 import '../polynomial_format.dart';
 import 'utils.dart';
 
-extension DivExtension<T> on Polynomial<T> {
+extension DivPolynomialExtension<T> on Polynomial<T> {
   /// Divides this [Polynomial] by [other], returns the quotient and remainder
   /// such that `dividend = quotient * divisor + remainder`.
   PolynomialDivision<T> div(Polynomial<T> other,

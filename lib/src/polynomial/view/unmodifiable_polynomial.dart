@@ -26,7 +26,7 @@ class UnmodifiablePolynomial<T>
   T getUnchecked(int exponent) => polynomial.getUnchecked(exponent);
 }
 
-extension UnmodifiableExtension<T> on Polynomial<T> {
+extension UnmodifiablePolynomialExtension<T> on Polynomial<T> {
   /// Returns a unmodifiable view of this polynomial.
   Polynomial<T> get unmodifiable => this is UnmodifiablePolynomialMixin<T>
       ? this

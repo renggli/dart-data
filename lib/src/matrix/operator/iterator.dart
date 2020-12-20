@@ -1,6 +1,6 @@
 import '../matrix.dart';
 
-extension IteratorExtension<T> on Matrix<T> {
+extension IteratorMatrixExtension<T> on Matrix<T> {
   /// Returns an iterable over the values of this [Matrix] in row-by-row.
   Iterable<T> get rowMajor sync* {
     for (var r = 0; r < rowCount; r++) {

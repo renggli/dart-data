@@ -1,6 +1,6 @@
 import '../vector.dart';
 
-extension LengthExtension<T> on Vector<T> {
+extension LengthVectorExtension<T> on Vector<T> {
   /// Computes the squared length of this [Vector].
   T get length2 {
     final add = dataType.field.add, mul = dataType.field.mul;

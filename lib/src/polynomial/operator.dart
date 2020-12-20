@@ -1,8 +1,8 @@
-export 'operator/add.dart' show AddExtension;
-export 'operator/compare.dart' show CompareExtension;
-export 'operator/div.dart' show DivExtension, PolynomialDivision;
-export 'operator/lerp.dart' show LerpExtension;
-export 'operator/mul.dart' show MulExtension;
-export 'operator/neg.dart' show NegExtension;
-export 'operator/roots.dart' show RootsExtension;
-export 'operator/sub.dart' show SubExtension;
+export 'operator/add.dart' show AddPolynomialExtension;
+export 'operator/compare.dart' show ComparePolynomialExtension;
+export 'operator/div.dart' show DivPolynomialExtension, PolynomialDivision;
+export 'operator/lerp.dart' show LerpPolynomialExtension;
+export 'operator/mul.dart' show MulPolynomialExtension;
+export 'operator/neg.dart' show NegPolynomialExtension;
+export 'operator/roots.dart' show RootsPolynomialExtension;
+export 'operator/sub.dart' show SubPolynomialExtension;

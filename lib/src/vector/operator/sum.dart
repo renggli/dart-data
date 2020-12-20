@@ -1,6 +1,6 @@
 import '../vector.dart';
 
-extension SumExtension<T> on Vector<T> {
+extension SumVectorExtension<T> on Vector<T> {
   /// Computes the sum of all elements in this [Vector].
   T get sum {
     final add = dataType.field.add;

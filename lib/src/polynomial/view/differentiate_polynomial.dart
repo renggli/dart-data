@@ -38,7 +38,7 @@ class DifferentiatePolynomial<T> with Polynomial<T> {
   }
 }
 
-extension DifferentiateExtension<T> on Polynomial<T> {
+extension DifferentiatePolynomialExtension<T> on Polynomial<T> {
   /// Returns a mutable view of the differentiate of this polynomial.
   Polynomial<T> get differentiate => DifferentiatePolynomial<T>(this);
 }

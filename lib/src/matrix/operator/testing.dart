@@ -1,6 +1,6 @@
 import '../matrix.dart';
 
-extension TestingExtension<T> on Matrix<T> {
+extension TestingMatrixExtension<T> on Matrix<T> {
   /// Tests if this [Matrix] is square.
   bool get isSquare => rowCount == columnCount;
 

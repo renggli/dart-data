@@ -3,7 +3,7 @@ import '../../../type.dart';
 import '../../shared/config.dart';
 import '../polynomial.dart';
 
-extension RootsExtension<T extends num> on Polynomial<T> {
+extension RootsPolynomialExtension<T extends num> on Polynomial<T> {
   ///// Computes the complex roots of a polynomial.
   List<Complex> get roots {
     if (degree <= 0) {

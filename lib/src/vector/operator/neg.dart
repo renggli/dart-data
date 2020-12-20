@@ -3,7 +3,7 @@ import '../vector.dart';
 import '../vector_format.dart';
 import 'utils.dart';
 
-extension NegExtension<T> on Vector<T> {
+extension NegVectorExtension<T> on Vector<T> {
   /// Negates this [Vector].
   Vector<T> neg(
       {Vector<T>? target, DataType<T>? dataType, VectorFormat? format}) {

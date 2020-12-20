@@ -6,7 +6,7 @@ import '../matrix.dart';
 import '../matrix_format.dart';
 import 'utils.dart';
 
-extension MulExtension<T> on Matrix<T> {
+extension MulMatrixExtension<T> on Matrix<T> {
   /// Multiplies this [Matrix] with [other].
   Matrix<T> mul(/* Matrix<T>|Vector<T>|T */ Object other,
       {Matrix<T>? target, DataType<T>? dataType, MatrixFormat? format}) {

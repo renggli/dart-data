@@ -3,7 +3,7 @@ import '../vector.dart';
 import '../vector_format.dart';
 import 'utils.dart';
 
-extension MulExtension<T> on Vector<T> {
+extension MulVectorExtension<T> on Vector<T> {
   /// Multiplies this [Vector] element-wise with [other].
   Vector<T> mul(/* Matrix<T>|Vector<T>|T */ Object other,
       {Vector<T>? target, DataType<T>? dataType, VectorFormat? format}) {

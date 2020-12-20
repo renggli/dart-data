@@ -1,6 +1,6 @@
 import 'dart:math';
 
-import 'package:data/polynomial.dart';
+import 'package:data/data.dart';
 import 'package:data/type.dart';
 import 'package:test/test.dart';
 
