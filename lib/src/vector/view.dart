@@ -8,3 +8,4 @@ export 'view/reversed_vector.dart' show ReversedVectorExtension;
 export 'view/row_matrix.dart' show RowMatrixExtension;
 export 'view/transformed_vector.dart' show TransformedVectorExtension;
 export 'view/unmodifiable_vector.dart' show UnmodifiableVectorExtension;
+export 'view/vector_list.dart' show VectorListExtension;

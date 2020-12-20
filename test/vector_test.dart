@@ -500,6 +500,33 @@ void vectorTest(String name, VectorFormat format) {
           }
         });
       });
+      group('toList', () {
+        test('default', () {
+          final vector =
+              Vector.generate(DataType.string, 10, (i) => '$i', format: format);
+          final list = vector.toList();
+          expect(list.length, vector.count);
+          for (var i = 0; i < list.length; i++) {
+            expect(list[i], '$i');
+            list[i] = '$i*';
+            expect(vector[i], '$i*');
+          }
+          expect(() => list.add('*'), throwsUnsupportedError);
+        });
+        test('growable', () {
+          final vector =
+              Vector.generate(DataType.string, 3, (i) => '$i', format: format);
+          final list = vector.toList(growable: true);
+          expect(list.length, vector.count);
+          for (var i = 0; i < list.length; i++) {
+            expect(list[i], '$i');
+            list[i] = '$i*';
+            expect(vector[i], '$i');
+          }
+          list.add('*');
+          expect(list, ['0*', '1*', '2*', '*']);
+        });
+      });
     });
     group('iterables', () {
       test('basic', () {
