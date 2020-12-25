@@ -8,6 +8,14 @@ const pointType = ObjectDataType<Point<int>>(Point(0, 0));
 void matrixTest(String name, MatrixFormat format) {
   group(name, () {
     group('constructor', () {
+      test('empty', () {
+        final matrix = Matrix(DataType.int8, 0, 0, format: format);
+        expect(matrix.dataType, DataType.int8);
+        expect(matrix.rowCount, 0);
+        expect(matrix.columnCount, 0);
+        expect(matrix.storage, [matrix]);
+        expect(matrix.shape, [matrix.rowCount, matrix.columnCount]);
+      });
       test('default', () {
         final matrix = Matrix(DataType.int8, 4, 5, format: format);
         expect(matrix.dataType, DataType.int8);

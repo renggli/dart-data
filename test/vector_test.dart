@@ -6,6 +6,13 @@ import 'package:test/test.dart';
 void vectorTest(String name, VectorFormat format) {
   group(name, () {
     group('constructor', () {
+      test('empty', () {
+        final vector = Vector(DataType.int8, 0, format: format);
+        expect(vector.dataType, DataType.int8);
+        expect(vector.count, 0);
+        expect(vector.storage, [vector]);
+        expect(vector.shape, [vector.count]);
+      });
       test('default', () {
         final vector = Vector(DataType.int8, 4, format: format);
         expect(vector.dataType, DataType.int8);

@@ -12,8 +12,9 @@ class DiagonalMatrix<T> with Matrix<T> {
   final VectorFormat _format;
 
   DiagonalMatrix(DataType<T> dataType, int rowCount, int colCount,
-      {VectorFormat format = VectorFormat.list})
-      : this._(dataType, rowCount, colCount, <int, Vector<T>>{}, format);
+      {VectorFormat? format})
+      : this._(dataType, rowCount, colCount, <int, Vector<T>>{},
+            format ?? defaultVectorFormat);
 
   DiagonalMatrix._(this.dataType, this.rowCount, this.columnCount,
       this._diagonals, this._format);
