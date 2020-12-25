@@ -55,4 +55,11 @@ class ListVector<T> with Vector<T> {
       }
     }
   }
+
+  @override
+  void forEach(void Function(int index, T value) callback) {
+    for (var i = 0; i < _length; i++) {
+      callback(_indexes[i], _values[i]);
+    }
+  }
 }

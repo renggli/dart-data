@@ -34,4 +34,8 @@ class KeyedVector<T> with Vector<T> {
       _values[index] = value;
     }
   }
+
+  @override
+  void forEach(void Function(int index, T value) callback) =>
+      _values.forEach(callback);
 }

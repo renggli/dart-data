@@ -122,6 +122,17 @@ abstract class Vector<T> implements Storage {
   /// Tests if [index] is within the bounds of this vector.
   bool isWithinBounds(int index) => 0 <= index && index < count;
 
+  /// Iterates over each value in the vector. Skips over default values, which
+  /// can be done very efficiently on sparse vectors.
+  void forEach(void Function(int index, T value) callback) {
+    for (var index = 0; index < count; index++) {
+      final value = getUnchecked(index);
+      if (value != dataType.defaultValue) {
+        callback(index, value);
+      }
+    }
+  }
+
   /// Returns a human readable representation of the vector.
   String format({
     Printer? valuePrinter,

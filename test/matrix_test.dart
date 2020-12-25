@@ -1121,6 +1121,47 @@ void matrixTest(String name, MatrixFormat format) {
       });
     });
     group('iterables', () {
+      group('forEach', () {
+        test('empty', () {
+          final source = Matrix(DataType.string, 0, 0, format: format);
+          source.forEach((row, col, value) => fail('Should not be called'));
+        });
+        test('default', () {
+          final source = Matrix(DataType.string, 5, 7, format: format);
+          source.forEach((row, col, value) => fail('Should not be called'));
+        });
+        test('complete', () {
+          final defined = <String>{};
+          final source = Matrix.generate(DataType.string, 13, 17, (row, col) {
+            final value = '$row*$col';
+            defined.add(value);
+            return value;
+          }, format: format);
+          source.forEach((row, col, value) {
+            expect(value, '$row*$col');
+            expect(defined.remove(value), isNot(isNull));
+          });
+          expect(defined, isEmpty);
+        });
+        test('sparse', () {
+          final defined = <String>{};
+          final random = Random(73462);
+          final source = Matrix.generate(DataType.string, 13, 17, (row, col) {
+            if (random.nextDouble() < 0.2) {
+              final value = '$row*$col';
+              defined.add(value);
+              return value;
+            } else {
+              return DataType.string.defaultValue;
+            }
+          }, format: format);
+          source.forEach((row, col, value) {
+            expect(value, '$row*$col');
+            expect(defined.remove(value), isTrue);
+          });
+          expect(defined, isEmpty);
+        });
+      });
       test('rows', () {
         final source = Matrix.generate(pointType, 7, 5, (r, c) => Point(r, c),
             format: format);

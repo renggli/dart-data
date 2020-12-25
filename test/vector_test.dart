@@ -527,6 +527,47 @@ void vectorTest(String name, VectorFormat format) {
       });
     });
     group('iterables', () {
+      group('forEach', () {
+        test('empty', () {
+          final source = Vector(DataType.string, 0, format: format);
+          source.forEach((index, value) => fail('Should not be called'));
+        });
+        test('default', () {
+          final source = Vector(DataType.string, 5, format: format);
+          source.forEach((index, value) => fail('Should not be called'));
+        });
+        test('complete', () {
+          final defined = <String>{};
+          final source = Vector.generate(DataType.string, 13, (index) {
+            final value = index.toString();
+            defined.add(value);
+            return value;
+          }, format: format);
+          source.forEach((index, value) {
+            expect(value, index.toString());
+            expect(defined.remove(value), isNot(isNull));
+          });
+          expect(defined, isEmpty);
+        });
+        test('sparse', () {
+          final defined = <String>{};
+          final random = Random(73462);
+          final source = Vector.generate(DataType.string, 63, (index) {
+            if (random.nextDouble() < 0.2) {
+              final value = index.toString();
+              defined.add(value);
+              return value;
+            } else {
+              return DataType.string.defaultValue;
+            }
+          }, format: format);
+          source.forEach((index, value) {
+            expect(value, index.toString());
+            expect(defined.remove(value), isNot(isNull));
+          });
+          expect(defined, isEmpty);
+        });
+      });
       test('basic', () {
         final source =
             Vector.generate(DataType.string, 5, (i) => '$i', format: format);

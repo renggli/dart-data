@@ -2,17 +2,21 @@ import 'dart:math' as math;
 
 import '../../../type.dart';
 import '../../shared/storage.dart';
+import '../../vector/vector.dart';
+import '../../vector/vector_format.dart';
 import '../matrix.dart';
 
 /// Sparse matrix with diagonal storage.
 class DiagonalMatrix<T> with Matrix<T> {
-  final Map<int, List<T>> _diagonals;
+  final Map<int, Vector<T>> _diagonals;
+  final VectorFormat _format;
 
-  DiagonalMatrix(DataType<T> dataType, int rowCount, int colCount)
-      : this._(dataType, rowCount, colCount, <int, List<T>>{});
+  DiagonalMatrix(DataType<T> dataType, int rowCount, int colCount,
+      {VectorFormat format = VectorFormat.list})
+      : this._(dataType, rowCount, colCount, <int, Vector<T>>{}, format);
 
-  DiagonalMatrix._(
-      this.dataType, this.rowCount, this.columnCount, this._diagonals);
+  DiagonalMatrix._(this.dataType, this.rowCount, this.columnCount,
+      this._diagonals, this._format);
 
   @override
   final DataType<T> dataType;
@@ -31,14 +35,15 @@ class DiagonalMatrix<T> with Matrix<T> {
       dataType,
       rowCount,
       columnCount,
-      Map.of(_diagonals)
-        ..updateAll((offset, diagonal) => dataType.copyList(diagonal)));
+      Map.of(_diagonals)..updateAll((offset, diagonal) => diagonal.copy()),
+      _format);
 
   @override
   T getUnchecked(int row, int col) {
     final offset = row - col;
     final index = offset < 0 ? col + offset : col;
     final diagonal = _diagonals[offset];
+
     return diagonal == null ? dataType.defaultValue : diagonal[index];
   }
 
@@ -48,7 +53,19 @@ class DiagonalMatrix<T> with Matrix<T> {
     final index = offset < 0 ? col + offset : col;
     _diagonals.putIfAbsent(offset, () {
       final length = math.min(rowCount - offset, columnCount + offset);
-      return dataType.newList(length);
+      return Vector(dataType, length, format: _format);
     })[index] = value;
+  }
+
+  @override
+  void forEach(void Function(int row, int col, T value) callback) {
+    for (final entry in _diagonals.entries) {
+      final offset = entry.key;
+      entry.value.forEach((index, value) {
+        final col = offset < 0 ? index - offset : index;
+        final row = offset + col;
+        callback(row, col, value);
+      });
+    }
   }
 }

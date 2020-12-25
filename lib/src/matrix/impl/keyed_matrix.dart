@@ -40,4 +40,11 @@ class KeyedMatrix<T> with Matrix<T> {
       _values[index] = value;
     }
   }
+
+  @override
+  void forEach(void Function(int row, int col, T value) callback) {
+    for (final entry in _values.entries) {
+      callback(entry.key ~/ columnCount, entry.key % columnCount, entry.value);
+    }
+  }
 }

@@ -90,4 +90,11 @@ class CoordinateListMatrix<T> with Matrix<T> {
       }
     }
   }
+
+  @override
+  void forEach(void Function(int row, int col, T value) callback) {
+    for (var i = 0; i < _length; i++) {
+      callback(_rows[i], _cols[i], _values[i]);
+    }
+  }
 }

@@ -80,4 +80,14 @@ class CompressedRowMatrix<T> with Matrix<T> {
       }
     }
   }
+
+  @override
+  void forEach(void Function(int row, int col, T value) callback) {
+    for (var i = 0, rowIndex = 0; i < _length; i++) {
+      if (_rowExtends[rowIndex] <= i) {
+        rowIndex++;
+      }
+      callback(rowIndex, _colIndexes[i], _values[i]);
+    }
+  }
 }

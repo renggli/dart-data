@@ -229,6 +229,19 @@ abstract class Matrix<T> implements Storage {
   @override
   Matrix<T> copy();
 
+  /// Iterates over each value in the matrix. Skips over default values, which
+  /// can be done very efficiently on sparse matrices.
+  void forEach(void Function(int row, int col, T value) callback) {
+    for (var row = 0; row < rowCount; row++) {
+      for (var col = 0; col < columnCount; col++) {
+        final value = getUnchecked(row, col);
+        if (dataType.defaultValue != value) {
+          callback(row, col, getUnchecked(row, col));
+        }
+      }
+    }
+  }
+
   /// Creates a new [Matrix] containing the same elements as this one.
   Matrix<T> toMatrix({MatrixFormat? format}) {
     final result = Matrix(dataType, rowCount, columnCount, format: format);
