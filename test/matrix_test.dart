@@ -1147,7 +1147,7 @@ void matrixTest(String name, MatrixFormat format) {
           }, format: format);
           source.forEach((row, col, value) {
             expect(value, '$row*$col');
-            expect(defined.remove(value), isNot(isNull));
+            expect(defined.remove(value), isTrue);
           });
           expect(defined, isEmpty);
         });

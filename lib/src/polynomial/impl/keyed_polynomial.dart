@@ -37,4 +37,13 @@ class KeyedPolynomial<T> with Polynomial<T> {
       _coefficients[exponent] = value;
     }
   }
+
+  @override
+  void forEach(void Function(int exponent, T value) callback) {
+    var exponent = _coefficients.lastKey();
+    while (exponent != null) {
+      callback(exponent, _coefficients[exponent]!);
+      exponent = _coefficients.lastKeyBefore(exponent);
+    }
+  }
 }

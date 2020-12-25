@@ -501,6 +501,48 @@ void polynomialTest(String name, PolynomialFormat format) {
         source[2] = 43;
         expect(list, [-2, -1, 43, 1, 2]);
       });
+      group('forEach', () {
+        test('default', () {
+          final source = Polynomial(DataType.int32, format: format);
+          source.forEach((index, value) => fail('Should not be called'));
+        });
+        test('complete', () {
+          final exponents = <int>[];
+          final coefficients = <int, double>{};
+          final random = Random(7834354);
+          final source = Polynomial.generate(DataType.float64, 13, (index) {
+            final value = random.nextDouble();
+            coefficients[index] = value;
+            exponents.insert(0, index);
+            return value;
+          }, format: format);
+          source.forEach((index, value) {
+            expect(exponents.removeLast(), index);
+            expect(coefficients[index], value);
+          });
+          expect(exponents, isEmpty);
+        });
+        test('sparse', () {
+          final exponents = <int>[];
+          final coefficients = <int, double>{};
+          final random = Random(5123562);
+          final source = Polynomial.generate(DataType.float64, 63, (index) {
+            if (random.nextDouble() < 0.2) {
+              final value = random.nextDouble();
+              coefficients[index] = value;
+              exponents.insert(0, index);
+              return value;
+            } else {
+              return DataType.int32.field.additiveIdentity;
+            }
+          }, format: format);
+          source.forEach((index, value) {
+            expect(exponents.removeLast(), index);
+            expect(coefficients[index], value);
+          });
+          expect(exponents, isEmpty);
+        });
+      });
     });
     group('operators', () {
       final random = Random();

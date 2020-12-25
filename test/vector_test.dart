@@ -552,13 +552,13 @@ void vectorTest(String name, VectorFormat format) {
           }, format: format);
           source.forEach((index, value) {
             expect(value, index.toString());
-            expect(defined.remove(value), isNot(isNull));
+            expect(defined.remove(value), isTrue);
           });
           expect(defined, isEmpty);
         });
         test('sparse', () {
           final defined = <String>{};
-          final random = Random(73462);
+          final random = Random(634234);
           final source = Vector.generate(DataType.string, 63, (index) {
             if (random.nextDouble() < 0.2) {
               final value = index.toString();
@@ -570,7 +570,7 @@ void vectorTest(String name, VectorFormat format) {
           }, format: format);
           source.forEach((index, value) {
             expect(value, index.toString());
-            expect(defined.remove(value), isNot(isNull));
+            expect(defined.remove(value), isTrue);
           });
           expect(defined, isEmpty);
         });

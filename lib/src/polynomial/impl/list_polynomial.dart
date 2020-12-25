@@ -66,4 +66,11 @@ class ListPolynomial<T> with Polynomial<T> {
       }
     }
   }
+
+  @override
+  void forEach(void Function(int exponent, T value) callback) {
+    for (var i = _length - 1; i >= 0; i--) {
+      callback(_exponents[i], _coefficients[i]);
+    }
+  }
 }

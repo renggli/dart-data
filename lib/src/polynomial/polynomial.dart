@@ -138,7 +138,7 @@ abstract class Polynomial<T> implements Storage {
   T call(T value) {
     var exponent = degree;
     if (exponent < 0) {
-      return dataType.field.additiveIdentity;
+      return dataType.defaultValue;
     }
     final mul = dataType.field.mul, add = dataType.field.add;
     var sum = getUnchecked(exponent);
@@ -150,6 +150,19 @@ abstract class Polynomial<T> implements Storage {
 
   /// Returns a list iterable over the polynomial.
   List<T> get iterable => _PolynomialList<T>(this);
+
+  /// Iterates over each element of the polynomial from the largest exponent
+  /// down to the smallest exponent. This way of iteration is more efficient
+  /// on sparse data structure and skips over neutral elements.
+  void forEach(void Function(int exponent, T value) callback) {
+    final additiveIdentity = dataType.field.additiveIdentity;
+    for (var exponent = degree; exponent >= 0; exponent--) {
+      final value = getUnchecked(exponent);
+      if (value != additiveIdentity) {
+        callback(exponent, this[exponent]);
+      }
+    }
+  }
 
   /// Returns a human readable representation of the polynomial.
   String format({
