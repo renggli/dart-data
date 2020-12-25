@@ -1,5 +1,5 @@
 name: data
-version: 0.6.0-nullsafety.1
+version: 0.6.0-nullsafety.2
 
 homepage: https://github.com/renggli/dart-data
 description: A time and space efficient collection of data structures and
