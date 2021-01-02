@@ -1,6 +1,6 @@
 import 'dart:math';
 
-import '../../special/gamma.dart';
+import '../../../special/gamma.dart';
 import '../continuous/uniform.dart';
 import '../discrete.dart';
 

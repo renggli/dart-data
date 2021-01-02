@@ -2,7 +2,7 @@ import 'dart:math';
 
 import 'package:more/hash.dart';
 
-import '../../special/gamma.dart';
+import '../../../special/gamma.dart';
 import '../continuous/uniform.dart';
 import '../discrete.dart';
 

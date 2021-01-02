@@ -36,7 +36,8 @@ class DiagonalMatrix<T> with Matrix<T> {
       dataType,
       rowCount,
       columnCount,
-      Map.of(_diagonals)..updateAll((offset, diagonal) => diagonal.copy()),
+      Map.fromIterables(
+          _diagonals.keys, _diagonals.values.map((each) => each.copy())),
       _format);
 
   @override
@@ -44,7 +45,6 @@ class DiagonalMatrix<T> with Matrix<T> {
     final offset = row - col;
     final index = offset < 0 ? col + offset : col;
     final diagonal = _diagonals[offset];
-
     return diagonal == null ? dataType.defaultValue : diagonal[index];
   }
 

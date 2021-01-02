@@ -2,7 +2,7 @@ import 'dart:math';
 
 import 'package:more/hash.dart';
 
-import '../../special/erf.dart';
+import '../../../special/erf.dart';
 import '../continuous.dart';
 import 'uniform.dart';
 
