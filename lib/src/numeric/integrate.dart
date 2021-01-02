@@ -32,7 +32,7 @@ double integrate(double Function(double) f, double a, double b,
   } else if (a == b) {
     return 0.0;
   }
-  // Break up the poles and merge with bounds, if necessary.
+  // Break up at the poles and merge with bounds, if necessary.
   if (poles.isNotEmpty) {
     final normalized =
         poles.where((pole) => a <= pole && pole <= b).toSet().toList();

@@ -19,7 +19,6 @@ double solve(double Function(double) f, double a, double b,
   // https://en.wikipedia.org/wiki/Brent%27s_method
   var y0 = f(a), y1 = f(b);
   if (y0.abs() < y1.abs()) {
-    // Swap lower and upper bounds.
     final tx = a;
     a = b;
     b = tx;
@@ -27,17 +26,13 @@ double solve(double Function(double) f, double a, double b,
     y0 = y1;
     y1 = ty;
   }
-
   // ignore: prefer_final_locals
   var x2 = a, y2 = y0, x3 = x2;
   var bisection = true;
-
   for (var i = 0; i < maxIterations; i++) {
-    // x-tolerance.
     if ((b - a).abs() < bracketEpsilon) {
       return 0.5 * (a + b);
     }
-
     // Use inverse quadratic interpolation if f(x0)!=f(x1)!=f(x2)
     // and linear interpolation (secant method) otherwise.
     double x;
@@ -49,7 +44,6 @@ double solve(double Function(double) f, double a, double b,
     } else {
       x = b - y1 * (b - a) / (y1 - y0);
     }
-
     // Use bisection method if satisfies the conditions.
     final delta = (2 * 1e-52 * b).abs();
     final min1 = (x - b).abs();
@@ -65,13 +59,10 @@ double solve(double Function(double) f, double a, double b,
     } else {
       bisection = false;
     }
-
     final y = f(x);
-    // y-tolerance.
     if (y.abs() < solutionEpsilon) {
       return x;
     }
-
     x3 = x2;
     x2 = b;
     if (y0.sign != y.sign) {
@@ -82,7 +73,6 @@ double solve(double Function(double) f, double a, double b,
       y0 = y;
     }
     if (y0.abs() < y1.abs()) {
-      // Swap lower and upper bounds.
       final tx = a;
       a = b;
       b = tx;
@@ -91,6 +81,5 @@ double solve(double Function(double) f, double a, double b,
       y1 = ty;
     }
   }
-
   return double.nan;
 }
