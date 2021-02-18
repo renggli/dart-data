@@ -1,15 +1,15 @@
 name: data
-version: 0.6.0-nullsafety.2
+version: 0.7.0
 
 homepage: https://github.com/renggli/dart-data
 description: A time and space efficient collection of data structures and
   algorithms to deal with data in Dart.
 
 environment:
-  sdk: '>=2.12.0-0 <3.0.0'
+  sdk: '>=2.12.0-259.14.beta <3.0.0'
 dependencies:
-  collection: ^1.15.0-nullsafety
-  meta: ^1.3.0-nullsafety
-  more: ^3.0.0-nullsafety
+  collection: ^1.15.0
+  meta: ^1.3.0
+  more: ^3.0.0
 dev_dependencies:
-  test: ^1.16.0-nullsafety
+  test: ^1.16.2
