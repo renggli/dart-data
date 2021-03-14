@@ -42,7 +42,10 @@ class KeyedPolynomial<T> with Polynomial<T> {
   void forEach(void Function(int exponent, T value) callback) {
     var exponent = _coefficients.lastKey();
     while (exponent != null) {
-      callback(exponent, _coefficients[exponent]!);
+      final value = _coefficients[exponent];
+      if (value != null) {
+        callback(exponent, value);
+      }
       exponent = _coefficients.lastKeyBefore(exponent);
     }
   }

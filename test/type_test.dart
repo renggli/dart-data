@@ -129,7 +129,7 @@ void listTest<T>(DataType<T> type, List<List<T>> lists) {
 
 void floatGroup(FloatDataType type, int bits) {
   final name = 'float$bits';
-  group('$name', () {
+  group(name, () {
     test('name', () {
       expect(type.name, name);
       expect(type.toString(), 'DataType.$name');
@@ -199,7 +199,7 @@ void floatGroup(FloatDataType type, int bits) {
 
 void integerGroup(IntegerDataType type, bool isSigned, int bits) {
   final name = '${isSigned ? '' : 'u'}int$bits';
-  group('$name', () {
+  group(name, () {
     test('name', () {
       expect(type.name, name);
       expect(type.toString(), 'DataType.$name');
@@ -246,12 +246,12 @@ void integerGroup(IntegerDataType type, bool isSigned, int bits) {
       expect(type.cast(12.34), 12);
       expect(type.cast('123'), 123);
       expect(type.cast(BigInt.from(123)), 123);
-      expect(type.cast(Fraction(2, 1)), 2);
+      expect(type.cast(Fraction(2)), 2);
       if (isSigned) {
         expect(type.cast(-12.34), -12);
         expect(type.cast('-123'), -123);
         expect(type.cast(BigInt.from(-123)), -123);
-        expect(type.cast(Fraction(-2, 1)), -2);
+        expect(type.cast(Fraction(-2)), -2);
       }
     });
     test('cast (errors)', () {
@@ -284,12 +284,12 @@ void integerGroup(IntegerDataType type, bool isSigned, int bits) {
       expect(nullableType.cast(1), 1);
       expect(nullableType.cast(12.34), 12);
       expect(type.cast(BigInt.from(123)), 123);
-      expect(type.cast(Fraction(2, 1)), 2);
+      expect(type.cast(Fraction(2)), 2);
       if (isSigned) {
         expect(type.cast(-12.34), -12);
         expect(type.cast('-123'), -123);
         expect(type.cast(BigInt.from(-123)), -123);
-        expect(type.cast(Fraction(-2, 1)), -2);
+        expect(type.cast(Fraction(-2)), -2);
       }
     });
     test('cast (error)', () {
@@ -872,7 +872,7 @@ void main() {
     });
     test('cast', () {
       expect(type.cast(Fraction(1, 2)), Fraction(1, 2));
-      expect(type.cast(BigInt.from(123)), Fraction(123, 1));
+      expect(type.cast(BigInt.from(123)), Fraction(123));
       expect(type.cast(2), Fraction(2));
       expect(type.cast(0.5), Fraction(1, 2));
       expect(type.cast('1/2'), Fraction(1, 2));

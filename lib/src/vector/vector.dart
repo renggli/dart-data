@@ -26,8 +26,6 @@ abstract class Vector<T> implements Storage {
         return ListVector<T>(dataType, count);
       case VectorFormat.keyed:
         return KeyedVector<T>(dataType, count);
-      default:
-        throw ArgumentError.value(format, 'format', 'Unknown vector format.');
     }
   }
 

@@ -42,8 +42,6 @@ abstract class Matrix<T> implements Storage {
         return KeyedMatrix<T>(dataType, rowCount, columnCount);
       case MatrixFormat.diagonal:
         return DiagonalMatrix<T>(dataType, rowCount, columnCount);
-      default:
-        throw ArgumentError.value(format, 'format', 'Unknown matrix format.');
     }
   }
 

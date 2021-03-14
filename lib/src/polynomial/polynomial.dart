@@ -24,8 +24,6 @@ abstract class Polynomial<T> implements Storage {
         return ListPolynomial<T>(dataType);
       case PolynomialFormat.keyed:
         return KeyedPolynomial<T>(dataType);
-      default:
-        throw ArgumentError.value(format, 'format', 'Unknown vector format.');
     }
   }
 
