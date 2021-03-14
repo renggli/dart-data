@@ -25,7 +25,7 @@ class CholeskyDecomposition {
 
   /// Cholesky algorithm for symmetric and positive definite matrix.
   /// Structure to access L and isspd flag.
-  CholeskyDecomposition(Matrix a)
+  CholeskyDecomposition(Matrix<num> a)
       : _l = Matrix(floatDataType, a.rowCount, a.rowCount),
         _n = a.rowCount,
         _isSymmetric = a.rowCount == a.columnCount {

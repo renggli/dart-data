@@ -287,7 +287,7 @@ void matrixTest(String name, MatrixFormat format) {
       });
       test('fromPackedRows with error', () {
         expect(
-            () => Matrix.fromPackedRows(DataType.numeric, 2, 3, [],
+            () => Matrix.fromPackedRows(DataType.numeric, 2, 3, <num>[],
                 format: format),
             throwsArgumentError);
       });
@@ -340,7 +340,7 @@ void matrixTest(String name, MatrixFormat format) {
       });
       test('fromPackedColumns with error', () {
         expect(
-            () => Matrix.fromPackedColumns(DataType.numeric, 2, 3, [],
+            () => Matrix.fromPackedColumns(DataType.numeric, 2, 3, <num>[],
                 format: format),
             throwsArgumentError);
       });
@@ -774,7 +774,7 @@ void matrixTest(String name, MatrixFormat format) {
           expect(composite.dataType, top.dataType);
           expect(composite.rowCount, base.rowCount);
           expect(composite.columnCount, base.columnCount);
-          expect(composite.storage, unorderedMatches([base, top]));
+          expect(composite.storage, unorderedMatches(<Matrix>[base, top]));
           final copy = composite.copy();
           expect(copy.compare(composite), isTrue);
           for (var r = 0; r < composite.rowCount; r++) {
@@ -799,7 +799,8 @@ void matrixTest(String name, MatrixFormat format) {
           expect(composite.dataType, top.dataType);
           expect(composite.rowCount, base.rowCount);
           expect(composite.columnCount, base.columnCount);
-          expect(composite.storage, unorderedMatches([base, top, mask]));
+          expect(
+              composite.storage, unorderedMatches(<Matrix>[base, top, mask]));
           final copy = composite.copy();
           expect(copy.compare(composite), isTrue);
           for (var r = 0; r < composite.rowCount; r++) {

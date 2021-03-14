@@ -39,13 +39,13 @@ class ListPolynomial<T> with Polynomial<T> {
 
   @override
   T getUnchecked(int exponent) {
-    final pos = binarySearch(_exponents, 0, _length, exponent);
+    final pos = binarySearch<num>(_exponents, 0, _length, exponent);
     return pos < 0 ? dataType.defaultValue : _coefficients[pos];
   }
 
   @override
   void setUnchecked(int exponent, T value) {
-    final pos = binarySearch(_exponents, 0, _length, exponent);
+    final pos = binarySearch<num>(_exponents, 0, _length, exponent);
     if (pos < 0) {
       if (value != dataType.defaultValue) {
         _exponents =

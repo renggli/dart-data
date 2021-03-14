@@ -32,13 +32,13 @@ class ListVector<T> with Vector<T> {
 
   @override
   T getUnchecked(int index) {
-    final pos = binarySearch(_indexes, 0, _length, index);
+    final pos = binarySearch<num>(_indexes, 0, _length, index);
     return pos < 0 ? dataType.defaultValue : _values[pos];
   }
 
   @override
   void setUnchecked(int index, T value) {
-    final pos = binarySearch(_indexes, 0, _length, index);
+    final pos = binarySearch<num>(_indexes, 0, _length, index);
     if (pos < 0) {
       if (value != dataType.defaultValue) {
         _indexes = insertAt(indexDataType, _indexes, _length, -pos - 1, index);

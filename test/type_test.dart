@@ -619,10 +619,10 @@ void main() {
     test('order', () {
       expect(() => type.order, throwsUnsupportedError);
     });
-    listTest(type, <List<dynamic>>[
-      [],
-      [1, null],
-      ['foo', null, const Point(1, 2)],
+    listTest<dynamic>(type, [
+      <dynamic>[],
+      <dynamic>[1, null],
+      <dynamic>['foo', null, const Point(1, 2)],
     ]);
   });
   group('string', () {

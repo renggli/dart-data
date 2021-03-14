@@ -62,9 +62,9 @@ void polynomialTest(String name, PolynomialFormat format) {
       group('fromRoots', () {
         test('empty', () {
           final actual =
-              Polynomial.fromRoots(DataType.int32, [], format: format);
+              Polynomial.fromRoots(DataType.int32, <int>[], format: format);
           final expected =
-              Polynomial.fromList(DataType.int32, [], format: format);
+              Polynomial.fromList(DataType.int32, <int>[], format: format);
           expect(actual.toString(), expected.toString());
         });
         test('linear', () {
@@ -106,7 +106,7 @@ void polynomialTest(String name, PolynomialFormat format) {
       });
     });
     group('accessing', () {
-      for (final type in <DataType>[DataType.int32, DataType.numeric]) {
+      for (final type in <DataType<num>>[DataType.int32, DataType.numeric]) {
         group(type.name, () {
           test('degree', () {
             final polynomial = Polynomial(type, format: format);
@@ -200,8 +200,9 @@ void polynomialTest(String name, PolynomialFormat format) {
               expect(polynomial(2), 0);
             });
             test('constant', () {
-              final polynomial =
-                  Polynomial.fromList(type, type.castList([2]), format: format);
+              final polynomial = Polynomial.fromList(
+                  type, type.castList(<num>[2]),
+                  format: format);
               expect(polynomial(-1), 2);
               expect(polynomial(0), 2);
               expect(polynomial(1), 2);
@@ -209,7 +210,7 @@ void polynomialTest(String name, PolynomialFormat format) {
             });
             test('linear', () {
               final polynomial = Polynomial.fromList(
-                  type, type.castList([1, 2]),
+                  type, type.castList(<num>[1, 2]),
                   format: format);
               expect(polynomial(-1), -1);
               expect(polynomial(0), 1);
@@ -218,7 +219,7 @@ void polynomialTest(String name, PolynomialFormat format) {
             });
             test('square', () {
               final polynomial = Polynomial.fromList(
-                  type, type.castList([2, 0, 3]),
+                  type, type.castList(<num>[2, 0, 3]),
                   format: format);
               expect(polynomial(-1), 5);
               expect(polynomial(0), 2);
@@ -230,8 +231,8 @@ void polynomialTest(String name, PolynomialFormat format) {
       }
       group('format', () {
         test('empty', () {
-          final polynomial =
-              Polynomial.fromCoefficients(DataType.int8, [], format: format);
+          final polynomial = Polynomial.fromCoefficients(DataType.int8, <int>[],
+              format: format);
           expect(polynomial.format(), '0');
         });
         test('constant', () {
@@ -456,7 +457,7 @@ void polynomialTest(String name, PolynomialFormat format) {
             final source =
                 Polynomial.fromList(DataType.int32, list, format: format);
             final actual = source.shift(offset);
-            final expected = [];
+            final expected = <int>[];
             expect(actual.dataType, source.dataType);
             expect(actual.degree, -1);
             expect(actual.storage, {source});
@@ -750,8 +751,8 @@ void polynomialTest(String name, PolynomialFormat format) {
           final divisor = Polynomial.fromList(DataType.int32, [-42, 0, -12, 1],
               format: format);
           final result = divWithInvariant(dividend, divisor);
-          expect(result.quotient.iterable, []);
-          expect(result.remainder.iterable, []);
+          expect(result.quotient.iterable, <int>[]);
+          expect(result.remainder.iterable, <int>[]);
         });
         test('constant divisor', () {
           final dividend = Polynomial.fromList(DataType.int32, [-42, 0, -12, 2],
@@ -760,7 +761,7 @@ void polynomialTest(String name, PolynomialFormat format) {
               Polynomial.fromList(DataType.int32, [-2], format: format);
           final result = divWithInvariant(dividend, divisor);
           expect(result.quotient.iterable, [21, 0, 6, -1]);
-          expect(result.remainder.iterable, []);
+          expect(result.remainder.iterable, <int>[]);
         });
         test('large divisor', () {
           final dividend =
@@ -768,7 +769,7 @@ void polynomialTest(String name, PolynomialFormat format) {
           final divisor = Polynomial.fromList(DataType.int32, [-42, 0, -12, 1],
               format: format);
           final result = divWithInvariant(dividend, divisor);
-          expect(result.quotient.iterable, []);
+          expect(result.quotient.iterable, <int>[]);
           expect(result.remainder.iterable, [-3, 5, 1]);
         });
         test('example.dart 1', () {

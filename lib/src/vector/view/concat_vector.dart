@@ -33,7 +33,7 @@ class ConcatVector<T> with Vector<T> {
 
   @override
   T getUnchecked(int index) {
-    var vectorIndex = binarySearch(indexes, 0, indexes.length, index);
+    var vectorIndex = binarySearch<num>(indexes, 0, indexes.length, index);
     if (vectorIndex < 0) {
       vectorIndex = -vectorIndex - 2;
     }
@@ -42,7 +42,7 @@ class ConcatVector<T> with Vector<T> {
 
   @override
   void setUnchecked(int index, T value) {
-    var vectorIndex = binarySearch(indexes, 0, indexes.length, index);
+    var vectorIndex = binarySearch<num>(indexes, 0, indexes.length, index);
     if (vectorIndex < 0) {
       vectorIndex = -vectorIndex - 2;
     }

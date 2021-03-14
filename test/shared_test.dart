@@ -17,7 +17,7 @@ void main() {
     });
   });
   group('lists', () {
-    final type = DataType.object<dynamic>(null);
+    final type = DataType.string.nullable;
     final list = ['a', 'b', 'c', 'd', 'e'];
     test('insertAt', () {
       final list1 = ['a', 'b', 'c', null];

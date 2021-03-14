@@ -1,4 +1,5 @@
 import '../../../type.dart';
+import '../../shared/storage.dart';
 import '../../vector/vector.dart';
 import '../../vector/vector_format.dart';
 import '../../vector/view/column_matrix.dart';
@@ -47,7 +48,7 @@ extension MulMatrixExtension<T> on Matrix<T> {
     }
     // Verify that this is not an in-place operation.
     if (identical(result, target)) {
-      final sourcesStorage = Set.identity()
+      final sourcesStorage = Set<Storage>.identity()
         ..addAll(storage)
         ..addAll(other.storage);
       if (result.storage.any(sourcesStorage.contains)) {
@@ -92,7 +93,7 @@ extension MulMatrixExtension<T> on Matrix<T> {
     }
     // Verify that this is not an in-place operation.
     if (identical(result, target)) {
-      final sourcesStorage = Set.identity()
+      final sourcesStorage = Set<Storage>.identity()
         ..addAll(storage)
         ..addAll(vector.storage);
       if (result.storage.any(sourcesStorage.contains)) {

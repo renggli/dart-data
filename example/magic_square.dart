@@ -88,7 +88,7 @@ void main() {
     final m = magic(n);
     final md = m.map((row, col, value) => value.toDouble(), DataType.float64);
 
-    final buffer = [];
+    final buffer = <String>[];
 
     // Order of magic square.
     buffer.add(integerPrinter()(n));
