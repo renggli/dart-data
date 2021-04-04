@@ -2,8 +2,7 @@ Dart Data
 =========
 
 [![Pub Package](https://img.shields.io/pub/v/data.svg)](https://pub.dev/packages/data)
-[![Build Status](https://travis-ci.org/renggli/dart-data.svg)](https://travis-ci.org/renggli/dart-data)
-[![Coverage Status](https://coveralls.io/repos/renggli/dart-data/badge.svg)](https://coveralls.io/r/renggli/dart-data)
+[![Build Status](https://github.com/renggli/dart-data/actions/workflows/dart.yml/badge.svg?branch=main)](https://github.com/renggli/dart-data/actions/workflows/dart.yml)
 [![GitHub Issues](https://img.shields.io/github/issues/renggli/dart-data.svg)](https://github.com/renggli/dart-data/issues)
 [![GitHub Forks](https://img.shields.io/github/forks/renggli/dart-data.svg)](https://github.com/renggli/dart-data/network)
 [![GitHub Stars](https://img.shields.io/github/stars/renggli/dart-data.svg)](https://github.com/renggli/dart-data/stargazers)
