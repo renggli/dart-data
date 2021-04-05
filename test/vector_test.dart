@@ -590,7 +590,7 @@ void vectorTest(String name, VectorFormat format) {
       });
     });
     group('operators', () {
-      final random = Random();
+      final random = Random(648208272);
       final sourceA = Vector.generate(
           DataType.int32, 100, (i) => 1 + random.nextInt(100),
           format: format);

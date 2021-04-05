@@ -546,7 +546,7 @@ void polynomialTest(String name, PolynomialFormat format) {
       });
     });
     group('operators', () {
-      final random = Random();
+      final random = Random(997984835);
       final sourceA = Polynomial.generate(
           DataType.int32, 100, (i) => 1 + random.nextInt(99),
           format: format);

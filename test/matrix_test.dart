@@ -1245,7 +1245,7 @@ void matrixTest(String name, MatrixFormat format) {
       });
     });
     group('testing', () {
-      final random = Random();
+      final random = Random(164593560);
       final identity8x9 =
           Matrix.identity(DataType.int32, 8, 9, value: 1, format: format);
       final identity9x8 =
@@ -1309,7 +1309,7 @@ void matrixTest(String name, MatrixFormat format) {
       });
     });
     group('operators', () {
-      final random = Random();
+      final random = Random(559756105);
       final sourceA = Matrix.generate(
           DataType.int32, 5, 4, (row, col) => random.nextInt(100),
           format: format);
