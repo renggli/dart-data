@@ -316,7 +316,7 @@ void polynomialTest(String name, PolynomialFormat format) {
             Polynomial.fromList(DataType.int32, [6, -5, -2, 1], format: format);
         final solutions = polynomial.roots;
         expect(solutions, hasLength(3));
-        expect(solutions[0].closeTo(const Complex(1), epsilon), isTrue);
+        expect(solutions[0].closeTo(Complex.one, epsilon), isTrue);
         expect(solutions[1].closeTo(const Complex(3), epsilon), isTrue);
         expect(solutions[2].closeTo(const Complex(-2), epsilon), isTrue);
       });
