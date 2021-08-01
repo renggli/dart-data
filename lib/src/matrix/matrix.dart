@@ -1,3 +1,4 @@
+import 'package:meta/meta.dart';
 import 'package:more/printer.dart' show Printer;
 
 import '../../type.dart' show DataType;
@@ -186,6 +187,7 @@ abstract class Matrix<T> implements Storage {
 
   /// Returns a mutable row vector of this matrix. Convenience method to read
   /// matrix values using row and column indexes: `matrix[row][col]`.
+  @nonVirtual
   Vector<T> operator [](int row) {
     RangeError.checkValidIndex(row, this, 'row', rowCount);
     return rowUnchecked(row);
@@ -193,6 +195,7 @@ abstract class Matrix<T> implements Storage {
 
   /// Returns the scalar at the provided [row] and [col] index. Throws a
   /// [RangeError] if [row] or [col] are outside of bounds.
+  @nonVirtual
   T get(int row, int col) {
     RangeError.checkValidIndex(row, this, 'row', rowCount);
     RangeError.checkValidIndex(col, this, 'col', columnCount);
@@ -205,6 +208,7 @@ abstract class Matrix<T> implements Storage {
 
   /// Sets the scalar at the provided [row] and [col] index to [value]. Throws a
   /// [RangeError] if [row] or [col] are outside of bounds.
+  @nonVirtual
   void set(int row, int col, T value) {
     RangeError.checkValidIndex(row, this, 'row', rowCount);
     RangeError.checkValidIndex(col, this, 'col', columnCount);
@@ -216,6 +220,7 @@ abstract class Matrix<T> implements Storage {
   void setUnchecked(int row, int col, T value);
 
   /// Tests if [row] and [col] are within the bounds of this matrix.
+  @nonVirtual
   bool isWithinBounds(int row, int col) =>
       0 <= row && row < rowCount && 0 <= col && col < columnCount;
 

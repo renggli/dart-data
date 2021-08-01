@@ -1,5 +1,6 @@
 import 'dart:collection' show ListMixin;
 
+import 'package:meta/meta.dart';
 import 'package:more/printer.dart' show Printer;
 
 import '../../type.dart' show DataType;
@@ -95,6 +96,7 @@ abstract class Vector<T> implements Storage {
   }
 
   /// Returns the scalar at the provided [index].
+  @nonVirtual
   T operator [](int index) {
     RangeError.checkValidIndex(index, this, 'index', count);
     return getUnchecked(index);
@@ -105,6 +107,7 @@ abstract class Vector<T> implements Storage {
   T getUnchecked(int index);
 
   /// Sets the scalar at the provided [index] to [value].
+  @nonVirtual
   void operator []=(int index, T value) {
     RangeError.checkValidIndex(index, this, 'index', count);
     setUnchecked(index, value);
@@ -118,6 +121,7 @@ abstract class Vector<T> implements Storage {
   List<T> get iterable => _VectorList<T>(this);
 
   /// Tests if [index] is within the bounds of this vector.
+  @nonVirtual
   bool isWithinBounds(int index) => 0 <= index && index < count;
 
   /// Iterates over each value in the vector. Skips over default values, which

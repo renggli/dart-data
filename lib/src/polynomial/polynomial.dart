@@ -1,5 +1,6 @@
 import 'dart:collection' show ListMixin;
 
+import 'package:meta/meta.dart';
 import 'package:more/printer.dart' show Printer;
 
 import '../../type.dart';
@@ -113,6 +114,7 @@ abstract class Polynomial<T> implements Storage {
       degree >= 0 ? getUnchecked(degree) : dataType.field.additiveIdentity;
 
   /// Returns the coefficient at the provided [exponent].
+  @nonVirtual
   T operator [](int exponent) {
     RangeError.checkNotNegative(exponent, 'exponent');
     return getUnchecked(exponent);
@@ -123,6 +125,7 @@ abstract class Polynomial<T> implements Storage {
   T getUnchecked(int exponent);
 
   /// Sets the coefficient at the provided [exponent] to [value].
+  @nonVirtual
   void operator []=(int exponent, T value) {
     RangeError.checkNotNegative(exponent, 'exponent');
     setUnchecked(exponent, value);
