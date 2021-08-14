@@ -22,7 +22,7 @@ Below are step-by-step instructions of how to use this library. More elaborate e
 
 ### Installation
 
-Follow the installation instructions on [dart packages](https://pub.dev/packages/data#-installing-tab-).
+Follow the installation instructions on [dart packages](https://pub.dev/packages/data/install).
 
 Import the core-package into your Dart code using:
 
