@@ -2,7 +2,7 @@ import 'dart:math' as math;
 
 import 'package:meta/meta.dart';
 import 'package:more/number.dart';
-import 'package:more/printer.dart';
+import 'package:more/printer.dart' show Printer, StandardPrinter;
 
 import 'impl/bigint.dart';
 import 'impl/boolean.dart';
@@ -155,7 +155,7 @@ abstract class DataType<T> {
   }
 
   /// Returns a default printer for this data type.
-  Printer get printer => Printer.standard();
+  Printer<T> get printer => StandardPrinter<T>();
 
   @override
   String toString() => 'DataType.$name';

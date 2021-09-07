@@ -2,7 +2,7 @@ import 'dart:collection' show ListBase;
 
 import 'package:collection/collection.dart' show NonGrowableListMixin;
 import 'package:more/collection.dart' show BitList;
-import 'package:more/printer.dart' show Printer;
+import 'package:more/printer.dart' show Printer, NullPrinterExtension;
 
 import '../type.dart';
 
@@ -41,7 +41,7 @@ class NullableDataType<T> extends DataType<T?> {
   int get hashCode => ~delegate.hashCode;
 
   @override
-  Printer get printer => delegate.printer.undefined('n/a');
+  Printer<T?> get printer => delegate.printer.ifNull('n/a');
 }
 
 /// A list with null values, where the null values are tracked in a separate

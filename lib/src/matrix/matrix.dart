@@ -1,5 +1,5 @@
 import 'package:meta/meta.dart';
-import 'package:more/printer.dart' show Printer;
+import 'package:more/printer.dart' show Printer, StandardPrinter;
 
 import '../../type.dart' show DataType;
 import '../../vector.dart' show Vector;
@@ -258,9 +258,9 @@ abstract class Matrix<T> implements Storage {
 
   /// Returns a human readable representation of the matrix.
   String format({
-    Printer? valuePrinter,
-    Printer? paddingPrinter,
-    Printer? ellipsesPrinter,
+    Printer<T>? valuePrinter,
+    Printer<String>? paddingPrinter,
+    Printer<String>? ellipsesPrinter,
     bool limit = true,
     int leadingItems = 3,
     int trailingItems = 3,
@@ -272,8 +272,8 @@ abstract class Matrix<T> implements Storage {
   }) {
     final buffer = StringBuffer();
     valuePrinter ??= dataType.printer;
-    paddingPrinter ??= Printer.standard();
-    ellipsesPrinter ??= Printer.standard();
+    paddingPrinter ??= const StandardPrinter<String>();
+    ellipsesPrinter ??= const StandardPrinter<String>();
     for (var r = 0; r < rowCount; r++) {
       if (r > 0) {
         buffer.write(verticalSeparator);

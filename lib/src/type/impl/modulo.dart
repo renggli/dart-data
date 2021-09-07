@@ -33,7 +33,7 @@ class ModuloDataType<T> extends DataType<T> {
   T cast(dynamic value) => delegate.field.mod(delegate.cast(value), modulus);
 
   @override
-  Printer get printer => delegate.printer;
+  Printer<T> get printer => delegate.printer;
 }
 
 class ModuloField<T> extends Field<T> {

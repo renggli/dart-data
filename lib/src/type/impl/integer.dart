@@ -3,7 +3,7 @@ import 'dart:typed_data';
 
 import 'package:more/feature.dart' show isJavaScript;
 import 'package:more/number.dart' show Fraction;
-import 'package:more/printer.dart' show Printer;
+import 'package:more/printer.dart' show Printer, FixedNumberPrinter;
 
 import '../models/equality.dart';
 import '../models/field.dart';
@@ -87,7 +87,7 @@ abstract class IntegerDataType extends DataType<int> {
   }
 
   @override
-  Printer get printer => Printer.fixed();
+  Printer<int> get printer => FixedNumberPrinter<int>();
 }
 
 class Int8DataType extends IntegerDataType {

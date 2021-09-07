@@ -2,7 +2,8 @@ import 'dart:math' as math;
 import 'dart:typed_data';
 
 import 'package:more/number.dart' show Fraction;
-import 'package:more/printer.dart' show Printer;
+import 'package:more/printer.dart'
+    show Printer, ScientificNumberPrinter, SignNumberPrinter;
 
 import '../models/equality.dart';
 import '../models/field.dart';
@@ -61,10 +62,9 @@ class Float32DataType extends FloatDataType {
   List<double> _newList(int length) => Float32List(length);
 
   @override
-  Printer get printer => Printer.scientific(
+  Printer<double> get printer => ScientificNumberPrinter<double>(
         exponentPadding: 3,
-        exponentSign: Printer.negativeAndPositiveSign(),
-        precision: 3,
+        exponentSign: const SignNumberPrinter<int>.negativeAndPositiveSign(),
       );
 }
 
@@ -78,9 +78,9 @@ class Float64DataType extends FloatDataType {
   List<double> _newList(int length) => Float64List(length);
 
   @override
-  Printer get printer => Printer.scientific(
+  Printer<double> get printer => ScientificNumberPrinter<double>(
         exponentPadding: 3,
-        exponentSign: Printer.negativeAndPositiveSign(),
+        exponentSign: const SignNumberPrinter<int>.negativeAndPositiveSign(),
         precision: 6,
       );
 }

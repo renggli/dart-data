@@ -1,7 +1,7 @@
 import 'dart:collection' show ListMixin;
 
 import 'package:meta/meta.dart';
-import 'package:more/printer.dart' show Printer;
+import 'package:more/printer.dart' show Printer, StandardPrinter;
 
 import '../../type.dart' show DataType;
 import '../shared/storage.dart';
@@ -137,9 +137,9 @@ abstract class Vector<T> implements Storage {
 
   /// Returns a human readable representation of the vector.
   String format({
-    Printer? valuePrinter,
-    Printer? paddingPrinter,
-    Printer? ellipsesPrinter,
+    Printer<T>? valuePrinter,
+    Printer<String>? paddingPrinter,
+    Printer<String>? ellipsesPrinter,
     bool limit = true,
     int leadingItems = 3,
     int trailingItems = 3,
@@ -148,8 +148,8 @@ abstract class Vector<T> implements Storage {
   }) {
     final buffer = StringBuffer();
     valuePrinter ??= dataType.printer;
-    paddingPrinter ??= Printer.standard();
-    ellipsesPrinter ??= Printer.standard();
+    paddingPrinter ??= const StandardPrinter<String>();
+    ellipsesPrinter ??= const StandardPrinter<String>();
     for (var i = 0; i < count; i++) {
       if (i > 0) {
         buffer.write(separator);

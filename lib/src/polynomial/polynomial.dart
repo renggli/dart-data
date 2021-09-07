@@ -1,7 +1,7 @@
 import 'dart:collection' show ListMixin;
 
 import 'package:meta/meta.dart';
-import 'package:more/printer.dart' show Printer;
+import 'package:more/printer.dart' show Printer, StandardPrinter;
 
 import '../../type.dart';
 import '../shared/storage.dart';
@@ -170,9 +170,9 @@ abstract class Polynomial<T> implements Storage {
     bool limit = true,
     int leadingItems = 3,
     int trailingItems = 3,
-    Printer? ellipsesPrinter,
-    Printer? paddingPrinter,
-    Printer? valuePrinter,
+    Printer<String>? ellipsesPrinter,
+    Printer<String>? paddingPrinter,
+    Printer<T>? valuePrinter,
     String addition = ' + ',
     String ellipses = '\u2026',
     String multiplication = '',
@@ -181,8 +181,8 @@ abstract class Polynomial<T> implements Storage {
     bool skipNulls = true,
     bool skipValues = true,
   }) {
-    ellipsesPrinter ??= Printer.standard();
-    paddingPrinter ??= Printer.standard();
+    ellipsesPrinter ??= const StandardPrinter<String>();
+    paddingPrinter ??= const StandardPrinter<String>();
     valuePrinter ??= dataType.printer;
 
     String? coefficientPrinter(int exponent, T coefficient) {

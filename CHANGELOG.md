@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.8.0
+
+- Update latest dependencies.
+- Countless improvements.
+
 ## 0.7.0
 
 - Dart 2.12 requirement and null-safety.

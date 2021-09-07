@@ -1,7 +1,7 @@
 import 'dart:math' as math;
 
 import 'package:data/data.dart';
-import 'package:more/printer.dart' show Printer;
+import 'package:more/printer.dart';
 
 /// Generates a magic square test matrix.
 Matrix<int> magic(int n) {
@@ -60,11 +60,13 @@ Matrix<int> magic(int n) {
 }
 
 /// Printers for console output.
-Printer integerPrinter() => Printer.fixed();
+Printer<int> integerPrinter() => FixedNumberPrinter<int>();
 
-Printer doublePrinter(int precision) => Printer.fixed(precision: precision);
+Printer<double> doublePrinter(int precision) =>
+    FixedNumberPrinter<double>(precision: precision);
 
-Printer alignPrinter(int width) => Printer.standard().padLeft(width);
+Printer<String> alignPrinter(int width) =>
+    const StandardPrinter<String>().padLeft(width);
 
 /// Configuration of output printing.
 const int width = 14;
