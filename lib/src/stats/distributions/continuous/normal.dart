@@ -1,7 +1,5 @@
 import 'dart:math';
 
-import 'package:more/hash.dart';
-
 import '../../../special/erf.dart';
 import '../continuous.dart';
 import 'uniform.dart';
@@ -73,7 +71,7 @@ class NormalDistribution extends ContinuousDistribution {
       standardDeviation == other.standardDeviation;
 
   @override
-  int get hashCode => hash2(mean, standardDeviation);
+  int get hashCode => Object.hash(mean, standardDeviation);
 
   @override
   String toString() =>

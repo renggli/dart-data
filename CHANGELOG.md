@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.9.0 (unpublished)
+
+- Dart 2.14 requirement.
+
 ## 0.8.0
 
 - Update latest dependencies.

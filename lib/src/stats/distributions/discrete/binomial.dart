@@ -1,7 +1,5 @@
 import 'dart:math';
 
-import 'package:more/hash.dart';
-
 import '../../../special/gamma.dart';
 import '../continuous/uniform.dart';
 import '../discrete.dart';
@@ -58,7 +56,7 @@ class BinomialDistribution extends DiscreteDistribution {
       other is BinomialDistribution && n == other.n && p == other.p;
 
   @override
-  int get hashCode => hash2(n, p);
+  int get hashCode => Object.hash(n, p);
 
   @override
   String toString() => 'BinomialDistribution{n: $n, p: $p}';

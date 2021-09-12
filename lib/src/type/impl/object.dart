@@ -1,5 +1,3 @@
-import 'package:more/hash.dart';
-
 import '../type.dart';
 
 class ObjectDataType<T> extends DataType<T> {
@@ -21,7 +19,7 @@ class ObjectDataType<T> extends DataType<T> {
   T cast(dynamic value) => value is T ? value : super.cast(value);
 
   @override
-  int get hashCode => hash2(T, defaultValue);
+  int get hashCode => Object.hash(T, defaultValue);
 
   @override
   bool operator ==(Object other) =>

@@ -1,7 +1,5 @@
 import 'dart:math';
 
-import 'package:more/hash.dart';
-
 import '../continuous/uniform.dart';
 import '../discrete.dart';
 
@@ -53,7 +51,7 @@ class UniformDiscreteDistribution extends DiscreteDistribution {
       other is UniformDiscreteDistribution && a == other.a && b == other.b;
 
   @override
-  int get hashCode => hash2(a, b);
+  int get hashCode => Object.hash(a, b);
 
   @override
   String toString() => 'UniformDiscreteDistribution[$a..$b]';
