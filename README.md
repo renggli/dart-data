@@ -3,6 +3,7 @@ Dart Data
 
 [![Pub Package](https://img.shields.io/pub/v/data.svg)](https://pub.dev/packages/data)
 [![Build Status](https://github.com/renggli/dart-data/actions/workflows/dart.yml/badge.svg?branch=main)](https://github.com/renggli/dart-data/actions/workflows/dart.yml)
+[![Code Coverage](https://codecov.io/gh/renggli/dart-data/branch/main/graph/badge.svg?token=G8EBSJSR17)](https://codecov.io/gh/renggli/dart-data)
 [![GitHub Issues](https://img.shields.io/github/issues/renggli/dart-data.svg)](https://github.com/renggli/dart-data/issues)
 [![GitHub Forks](https://img.shields.io/github/forks/renggli/dart-data.svg)](https://github.com/renggli/dart-data/network)
 [![GitHub Stars](https://img.shields.io/github/stars/renggli/dart-data.svg)](https://github.com/renggli/dart-data/stargazers)
