@@ -1693,13 +1693,33 @@ void matrixTest(String name, MatrixFormat format) {
             [4.0, 8.0, 12.0],
           ],
           format: format);
+      final matrix3int = Matrix.fromRows(
+          DataType.int32,
+          [
+            [1, 4, 7, 10],
+            [2, 5, 8, 11],
+            [3, 6, 9, 12],
+          ],
+          format: format);
       test('norm1', () {
         final result = matrix3.norm1;
         expect(result, closeTo(33.0, epsilon));
       });
-      test('normInf', () {
+      test('norm1 (int)', () {
+        final result = matrix3int.norm1;
+        expect(result, 33);
+      });
+      test('norm2', () {
+        final result = matrix3.norm2;
+        expect(result, closeTo(25.46240743603639, epsilon));
+      });
+      test('normInfinity', () {
         final result = matrix3.normInfinity;
         expect(result, closeTo(30.0, epsilon));
+      });
+      test('normInfinity (int)', () {
+        final result = matrix3int.normInfinity;
+        expect(result, 30);
       });
       test('normFrobenius', () {
         final result = matrix3.normFrobenius;
@@ -1708,6 +1728,10 @@ void matrixTest(String name, MatrixFormat format) {
       test('trace', () {
         final result = matrix3.trace;
         expect(result, closeTo(15.0, epsilon));
+      });
+      test('trace (int)', () {
+        final result = matrix3int.trace;
+        expect(result, 15);
       });
       test('det', () {
         final result =
