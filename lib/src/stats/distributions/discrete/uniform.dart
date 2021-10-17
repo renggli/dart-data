@@ -43,8 +43,10 @@ class UniformDiscreteDistribution extends DiscreteDistribution {
           : 1.0;
 
   @override
-  int sample({Random? random}) =>
-      a + (count * _uniform.sample(random: random)).floor();
+  int sample({Random? random}) {
+    const uniform = UniformDistribution.standard();
+    return a + (count * uniform.sample(random: random)).floor();
+  }
 
   @override
   bool operator ==(Object other) =>
@@ -56,5 +58,3 @@ class UniformDiscreteDistribution extends DiscreteDistribution {
   @override
   String toString() => 'UniformDiscreteDistribution[$a..$b]';
 }
-
-const _uniform = UniformDistribution(0, 1);

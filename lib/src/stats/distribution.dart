@@ -67,7 +67,7 @@ abstract class Distribution<T extends num> {
 
   /// Returns a single sample of a random value within the distribution.
   T sample({Random? random}) {
-    const uniform = UniformDistribution(0, 1);
+    const uniform = UniformDistribution.standard();
     final probability = uniform.sample(random: random);
     return inverseCumulativeProbability(probability);
   }

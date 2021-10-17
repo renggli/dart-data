@@ -51,7 +51,7 @@ class BernoulliDistribution extends DiscreteDistribution {
 
   @override
   int sample({Random? random}) {
-    const uniform = UniformDistribution(0, 1);
+    const uniform = UniformDistribution.standard();
     return uniform.sample(random: random) < p ? 1 : 0;
   }
 

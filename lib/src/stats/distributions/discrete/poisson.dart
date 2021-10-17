@@ -37,7 +37,7 @@ class PoissonDistribution extends DiscreteDistribution {
 
   @override
   int sample({Random? random}) {
-    const uniform = UniformDistribution(0, 1);
+    const uniform = UniformDistribution.standard();
     var i = 0, b = 1.0;
     while (b >= exp(-pois)) {
       b *= uniform.sample(random: random);

@@ -8,7 +8,11 @@ import '../continuous.dart';
 ///
 /// For details see https://en.wikipedia.org/wiki/Continuous_uniform_distribution.
 class UniformDistribution extends ContinuousDistribution {
+  /// A uniform distribution between [a] and [b].
   const UniformDistribution(this.a, this.b);
+
+  /// A standard uniform distribution between 0 and 1.
+  const UniformDistribution.standard() : this(0.0, 1.0);
 
   /// Minimum value of the distribution.
   final double a;

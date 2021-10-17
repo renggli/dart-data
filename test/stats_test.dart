@@ -202,6 +202,10 @@ void main() {
               Tuple2(3.89417219176244, 0.900),
             ]);
       });
+      group('normal (standard)', () {
+        const distribution = NormalDistribution.standard();
+        testDistribution(distribution, mean: 0.0, variance: 1.0);
+      });
       group('uniform', () {
         const distribution = UniformDistribution(-0.5, 1.25);
         testDistribution(
@@ -239,6 +243,16 @@ void main() {
             Tuple2(1.25, 1.0),
             Tuple2(1.2501, 1.0),
           ],
+        );
+      });
+      group('uniform (standard)', () {
+        const distribution = UniformDistribution.standard();
+        testDistribution(
+          distribution,
+          min: 0.0,
+          max: 1.0,
+          mean: 0.5,
+          variance: 0.08333333333,
         );
       });
     });

@@ -41,7 +41,7 @@ class BinomialDistribution extends DiscreteDistribution {
 
   @override
   int sample({Random? random}) {
-    const uniform = UniformDistribution(0, 1);
+    const uniform = UniformDistribution.standard();
     var sum = 0;
     for (var i = 0; i < n; i++) {
       if (uniform.sample(random: random) < p) {

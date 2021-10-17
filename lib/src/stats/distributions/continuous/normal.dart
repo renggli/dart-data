@@ -9,9 +9,11 @@ import 'uniform.dart';
 ///
 /// For details see https://en.wikipedia.org/wiki/Normal_distribution.
 class NormalDistribution extends ContinuousDistribution {
-  const NormalDistribution.standard() : this(0.0, 1.0);
-
+  /// A standard normal distribution with [mean] and [standardDeviation].
   const NormalDistribution(this.mean, this.standardDeviation);
+
+  /// A standard normal distribution centered around 0.
+  const NormalDistribution.standard() : this(0.0, 1.0);
 
   @override
   final double mean;
