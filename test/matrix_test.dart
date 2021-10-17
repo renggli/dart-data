@@ -1886,6 +1886,26 @@ void matrixTest(String name, MatrixFormat format) {
             value: 1);
         expectMatrix(expected, actual);
       });
+      test('solveTranspose', () {
+        final first = Matrix<double>.fromRows(
+            DataType.float64,
+            [
+              [5, 6],
+              [8, 9],
+            ],
+            format: format);
+        final second = Matrix<double>.fromRows(
+            DataType.float64,
+            [
+              [13, 15],
+            ],
+            format: format);
+        final actual = first.solveTranspose(second);
+        final expected = Matrix<double>.constant(
+            DataType.float64, second.rowCount, second.columnCount,
+            value: 1);
+        expectMatrix(expected, actual);
+      });
       group('choleski', () {
         final matrix = Matrix<double>.fromRows(
             DataType.float64,

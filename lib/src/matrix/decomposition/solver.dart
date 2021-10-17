@@ -15,7 +15,7 @@ extension SolverExtension<T extends num> on Matrix<T> {
   /// [b] is the argument to the function. This is equivalent to solving
   /// `A' * x' = B'`.
   Matrix<double> solveTranspose(Matrix<num> b) =>
-      transposed.solve(b.transposed);
+      transposed.solve(b.transposed).transposed;
 
   /// Returns the determinant of this [Matrix].
   double get det => lu.det;
