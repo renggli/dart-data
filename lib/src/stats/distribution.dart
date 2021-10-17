@@ -2,7 +2,6 @@ import 'dart:math';
 
 import 'package:meta/meta.dart';
 
-import 'distributions/continuous/uniform.dart';
 import 'distributions/errors.dart';
 
 @immutable
@@ -66,11 +65,7 @@ abstract class Distribution<T extends num> {
   }
 
   /// Returns a single sample of a random value within the distribution.
-  T sample({Random? random}) {
-    const uniform = UniformDistribution.standard();
-    final probability = uniform.sample(random: random);
-    return inverseCumulativeProbability(probability);
-  }
+  T sample({Random? random});
 
   /// Returns an infinite source of random samples within the distribution.
   Iterable<T> samples({Random? random}) sync* {
