@@ -58,18 +58,34 @@ void matrixTest(String name, MatrixFormat format) {
             ],
             format: format);
         test('default', () {
-          expect(
-              Matrix.concatHorizontal(DataType.int8, [a, b]).compare(expected),
-              isTrue);
+          final matrix = Matrix.concatHorizontal(DataType.int8, [a, b]);
+          expect(matrix.compare(expected), isTrue);
+          expect(matrix.dataType, a.dataType);
+          expect(matrix.rowCount, 2);
+          expect(matrix.columnCount, 3);
+          expect(matrix.storage, [a, b]);
+          expect(matrix.copy().compare(matrix), isTrue);
+        });
+        test('writing', () {
+          final first = a.copy(), second = b.copy();
+          final matrix =
+              Matrix.concatHorizontal(DataType.int8, [first, second]);
+          for (var r = 0; r < matrix.rowCount; r++) {
+            for (var c = 0; c < matrix.columnCount; c++) {
+              matrix.set(r, c, -1);
+            }
+          }
+          expect(first.rowMajor, everyElement(-1));
+          expect(second.rowMajor, everyElement(-1));
         });
         test('with format', () {
-          expect(
-              Matrix.concatHorizontal(DataType.int8, [a, b], format: format)
-                  .compare(expected),
-              isTrue);
+          final matrix =
+              Matrix.concatHorizontal(DataType.int8, [a, b], format: format);
+          expect(matrix.compare(expected), isTrue);
         });
         test('single', () {
-          expect(Matrix.concatHorizontal(DataType.int8, [a]), a);
+          final matrix = Matrix.concatHorizontal(DataType.int8, [a]);
+          expect(matrix, a);
         });
         test('error', () {
           expect(() => Matrix.concatHorizontal(DataType.int8, []),
@@ -99,17 +115,33 @@ void matrixTest(String name, MatrixFormat format) {
             ],
             format: format);
         test('default', () {
-          expect(Matrix.concatVertical(DataType.int8, [a, b]).compare(expected),
-              isTrue);
+          final matrix = Matrix.concatVertical(DataType.int8, [a, b]);
+          expect(matrix.compare(expected), isTrue);
+          expect(matrix.dataType, a.dataType);
+          expect(matrix.rowCount, 3);
+          expect(matrix.columnCount, 2);
+          expect(matrix.storage, [a, b]);
+          expect(matrix.copy().compare(matrix), isTrue);
+        });
+        test('writing', () {
+          final first = a.copy(), second = b.copy();
+          final matrix = Matrix.concatVertical(DataType.int8, [first, second]);
+          for (var r = 0; r < matrix.rowCount; r++) {
+            for (var c = 0; c < matrix.columnCount; c++) {
+              matrix.set(r, c, -1);
+            }
+          }
+          expect(first.rowMajor, everyElement(-1));
+          expect(second.rowMajor, everyElement(-1));
         });
         test('with format', () {
-          expect(
-              Matrix.concatVertical(DataType.int8, [a, b], format: format)
-                  .compare(expected),
-              isTrue);
+          final matrix =
+              Matrix.concatVertical(DataType.int8, [a, b], format: format);
+          expect(matrix.compare(expected), isTrue);
         });
         test('single', () {
-          expect(Matrix.concatVertical(DataType.int8, [a]), a);
+          final matrix = Matrix.concatVertical(DataType.int8, [a]);
+          expect(matrix, a);
         });
         test('error', () {
           expect(() => Matrix.concatVertical(DataType.int8, []),
