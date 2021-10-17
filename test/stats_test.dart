@@ -254,6 +254,12 @@ void main() {
           mean: 0.5,
           variance: 0.08333333333,
         );
+        test('samples with default random generator', () {
+          expect(
+              distribution.samples().take(1000),
+              everyElement(
+                  allOf(greaterThanOrEqualTo(0.0), lessThanOrEqualTo(1.0))));
+        });
       });
     });
     group('discrete', () {
