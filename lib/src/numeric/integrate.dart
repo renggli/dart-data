@@ -134,8 +134,4 @@ class _Quadrature {
 
   _Quadrature(this.depth, this.epsilon, this.a, this.fa, this.m, this.fm,
       this.b, this.fb, this.w);
-
-  @override
-  String toString() => 'Quadrature{a: $a -> $fa, m: $m -> $fm, '
-      'b: $b -> $fb, w: $w, epsilon: $epsilon}';
 }
