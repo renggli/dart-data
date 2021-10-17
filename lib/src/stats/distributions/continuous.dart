@@ -1,8 +1,4 @@
-import 'dart:math';
-
-import '../../../numeric.dart';
 import '../distribution.dart';
-import 'errors.dart';
 
 /// Abstract continuous distribution.
 ///
