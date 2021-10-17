@@ -961,21 +961,29 @@ void matrixTest(String name, MatrixFormat format) {
         final source = Matrix.generate(
             DataType.int32, 3, 5, (row, col) => row * col,
             format: format);
-        test('to string', () {
-          final cast = source.cast(DataType.string);
-          expect(cast.dataType, DataType.string);
-          expect(cast.rowCount, source.rowCount);
-          expect(cast.columnCount, source.columnCount);
-          expect(cast.storage, [source]);
-          for (var r = 0; r < cast.rowCount; r++) {
-            for (var c = 0; c < cast.columnCount; c++) {
-              expect(cast.get(r, c), '${r * c}');
+        test('default', () {
+          final matrix = source.cast(DataType.string);
+          expect(matrix.dataType, DataType.string);
+          expect(matrix.rowCount, source.rowCount);
+          expect(matrix.columnCount, source.columnCount);
+          expect(matrix.storage, [source]);
+          for (var r = 0; r < matrix.rowCount; r++) {
+            for (var c = 0; c < matrix.columnCount; c++) {
+              expect(matrix.get(r, c), '${r * c}');
             }
           }
         });
+        test('write', () {
+          final copy = source.copy();
+          final matrix = copy.cast(DataType.string);
+          matrix.set(0, 0, '-1');
+          expect(copy.get(0, 0), -1);
+          copy.set(0, 0, -2);
+          expect(matrix.get(0, 0), '-2');
+        });
         test('copy', () {
-          final cast = source.cast(DataType.int32);
-          expect(cast.copy().compare(cast), isTrue);
+          final matrix = source.cast(DataType.int32);
+          expect(matrix.copy().compare(matrix), isTrue);
         });
       });
       test('transposed', () {
