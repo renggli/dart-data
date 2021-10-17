@@ -1738,10 +1738,45 @@ void matrixTest(String name, MatrixFormat format) {
             matrix3.range(0, matrix3.rowCount, 0, matrix3.rowCount).det;
         expect(result, closeTo(0.0, epsilon));
       });
-      test('QR Decomposition', () {
+      group('QR Decomposition', () {
         final decomp = matrix4.qr;
-        final result = decomp.orthogonal * decomp.upper;
-        expectMatrix(matrix4, result);
+        test('isFullRank', () {
+          final result = decomp.isFullRank;
+          expect(result, isTrue);
+        });
+        test('householder', () {
+          final result = decomp.householder;
+          expect(result.isLowerTriangular, isTrue);
+        });
+        test('orthogonal', () {
+          final result = decomp.orthogonal * decomp.upper;
+          expectMatrix(matrix4, result);
+        });
+        test('upper', () {
+          final result = decomp.upper;
+          expect(result.isUpperTriangular, isTrue);
+        });
+        test('solve', () {
+          final first = Matrix<double>.fromRows(
+              DataType.float64,
+              [
+                [5, 8],
+                [6, 9],
+              ],
+              format: format);
+          final second = Matrix<double>.fromRows(
+              DataType.float64,
+              [
+                [13],
+                [15],
+              ],
+              format: format);
+          final actual = first.qr.solve(second);
+          final expected = Matrix<double>.constant(
+              DataType.float64, second.rowCount, second.columnCount,
+              value: 1);
+          expectMatrix(expected, actual);
+        });
       });
       test('Singular Value Decomposition', () {
         final decomp = matrix4.singularValue;
