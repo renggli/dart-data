@@ -1888,6 +1888,10 @@ void matrixTest(String name, MatrixFormat format) {
             ],
             format: format);
         final decomposition = matrix.cholesky;
+        test('isSymmetricPositiveDefinite', () {
+          final isSPD = decomposition.isSymmetricPositiveDefinite;
+          expect(isSPD, isTrue);
+        });
         test('triangular factor', () {
           final triangularFactor = decomposition.L;
           expectMatrix(matrix, triangularFactor * triangularFactor.transposed);

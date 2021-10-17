@@ -54,7 +54,7 @@ class CholeskyDecomposition {
   }
 
   /// Is the matrix symmetric and positive definite?
-  bool get isSPD => _isSymmetric;
+  bool get isSymmetricPositiveDefinite => _isSymmetric;
 
   /// Return triangular factor.
   Matrix<double> get L => _l;
