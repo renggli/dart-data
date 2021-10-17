@@ -732,11 +732,15 @@ void polynomialTest(String name, PolynomialFormat format) {
       group('div', () {
         PolynomialDivision<T> divWithInvariant<T>(
             Polynomial<T> dividend, Polynomial<T> divisor) {
-          final result = dividend.div(divisor);
+          final result = dividend / divisor;
           final reverse = result.quotient * divisor + result.remainder;
-          expect(dividend.format(limit: false), reverse.format(limit: false));
+          expect(dividend.iterable, reverse.iterable);
           expect(result.quotient.dataType, dividend.dataType);
           expect(result.remainder.dataType, dividend.dataType);
+          final quotient = dividend ~/ divisor;
+          expect(quotient.iterable, result.quotient.iterable);
+          final remainder = dividend % divisor;
+          expect(remainder.iterable, result.remainder.iterable);
           return result;
         }
 
