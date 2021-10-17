@@ -1,6 +1,7 @@
 import 'dart:math';
 
 import 'package:data/data.dart';
+import 'package:data/src/matrix/view/rotated_matrix.dart';
 import 'package:test/test.dart';
 
 const pointType = ObjectDataType<Point<int>>(Point(0, 0));
@@ -1138,6 +1139,24 @@ void matrixTest(String name, MatrixFormat format) {
               format: format);
           final rotated = source.rotated(count: 4);
           expect(rotated, same(source));
+        });
+        test('repeat rotation', () {
+          final source = Matrix.generate(
+              DataType.string, 2, 3, (row, col) => '($row, $col)',
+              format: format);
+          final rotated = source.rotated().rotated();
+          expect(
+              rotated,
+              isA<RotatedMatrix>()
+                  .having((matrix) => matrix.count, 'count', 2));
+        });
+        test('error', () {
+          final source = Matrix.generate(
+              DataType.string, 2, 3, (row, col) => '($row, $col)',
+              format: format);
+          final rotated = RotatedMatrix(source, 4);
+          expect(() => rotated.get(0, 0), throwsArgumentError);
+          expect(() => rotated.set(0, 0, '*'), throwsArgumentError);
         });
       });
       test('unmodifiable', () {
