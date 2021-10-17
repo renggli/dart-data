@@ -246,6 +246,7 @@ void matrixTest(String name, MatrixFormat format) {
         expect(matrix.columnCount, 8);
         expect(matrix.shape, [matrix.rowCount, matrix.columnCount]);
         expect(matrix.storage, [matrix]);
+        expect(matrix.copy(), matrix);
         for (var r = 0; r < matrix.rowCount; r++) {
           for (var c = 0; c < matrix.columnCount; c++) {
             expect(matrix.get(r, c), '($r, $c)');
