@@ -39,6 +39,15 @@ void vectorTest(String name, VectorFormat format) {
           expect(result.copy().compare(result), isTrue);
           expect(result.compare(expected), isTrue);
         });
+        test('write', () {
+          final first = a.copy(), second = b.copy();
+          final result = Vector.concat(DataType.int8, [first, second]);
+          for (var i = 0; i < result.count; i++) {
+            result[i] = -1;
+          }
+          expect(first.iterable, everyElement(-1));
+          expect(second.iterable, everyElement(-1));
+        });
         test('with format', () {
           final result = Vector.concat(DataType.int8, [a, b], format: format);
           expect(result.dataType, DataType.int8);
