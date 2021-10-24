@@ -11,35 +11,35 @@ import '../discrete.dart';
 ///
 /// For details see https://en.wikipedia.org/wiki/Poisson_distribution.
 class PoissonDistribution extends DiscreteDistribution {
-  const PoissonDistribution(this.pois);
+  const PoissonDistribution(this.lambda);
 
   /// Arithmetic mean of a poisson distribution.
-  final double pois;
+  final double lambda;
 
   @override
   int get lowerBound => 0;
 
   @override
-  double get mean => pois;
+  double get mean => lambda;
 
   @override
-  double get variance => pois;
+  double get variance => lambda;
 
   @override
-  double get median => pois;
+  double get median => lambda;
 
   @override
   double probability(int k) => k < 0
       ? 0.0
       : k == 0
-          ? exp(-pois)
-          : pow(pois, k) * exp(-pois) / factorial(k);
+          ? exp(-lambda)
+          : pow(lambda, k) * exp(-lambda) / factorial(k);
 
   @override
   int sample({Random? random}) {
     const uniform = UniformDistribution.standard();
     var i = 0, b = 1.0;
-    while (b >= exp(-pois)) {
+    while (b >= exp(-lambda)) {
       b *= uniform.sample(random: random);
       i++;
     }
@@ -48,11 +48,11 @@ class PoissonDistribution extends DiscreteDistribution {
 
   @override
   bool operator ==(Object other) =>
-      other is PoissonDistribution && pois == other.pois;
+      other is PoissonDistribution && lambda == other.lambda;
 
   @override
-  int get hashCode => pois.hashCode;
+  int get hashCode => lambda.hashCode;
 
   @override
-  String toString() => 'PoissonDistribution{lambda: $pois}';
+  String toString() => 'PoissonDistribution{lambda: $lambda}';
 }
