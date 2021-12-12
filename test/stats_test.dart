@@ -111,7 +111,7 @@ void testDistribution<T extends num>(Distribution<T> distribution,
     final histogram = Multiset<int>();
     final random = math.Random(distribution.hashCode);
     if (distribution is DiscreteDistribution) {
-      for (var i = 0; i < 10000; i++) {
+      for (var i = 0; i < 20000; i++) {
         histogram.add(distribution.sample(random: random) as int);
       }
       for (var k = math.max(-50, distribution.lowerBound.round());
@@ -126,7 +126,7 @@ void testDistribution<T extends num>(Distribution<T> distribution,
           .map((each) => distribution.inverseCumulativeProbability(each))
           .toList();
       final bucketCount = buckets.length + 1;
-      for (var i = 0; i < 10000; i++) {
+      for (var i = 0; i < 20000; i++) {
         final value = distribution.sample(random: random) as double;
         for (var k = 0; k <= buckets.length; k++) {
           if (k == buckets.length || value < buckets[k]) {
