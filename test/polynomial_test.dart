@@ -1,11 +1,13 @@
 import 'dart:math';
 
 import 'package:data/data.dart';
-import 'package:data/type.dart';
 import 'package:test/test.dart';
 
-final Matcher throwsIntegerDivisionByZero =
-    throwsA(const TypeMatcher<IntegerDivisionByZeroException>());
+final Matcher throwsDivisionByZero = throwsA(
+    const TypeMatcher<UnsupportedError>().having(
+        (exception) => exception.message,
+        'message',
+        startsWith('Division by zero')));
 
 void polynomialTest(String name, PolynomialFormat format) {
   group(name, () {
@@ -748,7 +750,7 @@ void polynomialTest(String name, PolynomialFormat format) {
           final dividend = Polynomial.fromList(DataType.int32, [-42, 0, -12, 1],
               format: format);
           final divisor = Polynomial(DataType.int32, format: format);
-          expect(() => dividend.div(divisor), throwsIntegerDivisionByZero);
+          expect(() => dividend.div(divisor), throwsDivisionByZero);
         });
         test('zero dividend', () {
           final dividend = Polynomial(DataType.int32, format: format);

@@ -18,7 +18,7 @@ extension DivPolynomialExtension<T> on Polynomial<T> {
     final div = effectiveDataType.field.div;
     if (divisorDegree < 0) {
       // Divisor is zero.
-      throw const IntegerDivisionByZeroException();
+      throw UnsupportedError('Division by zero polynomial.');
     } else if (dividendDegree < 0) {
       // Dividend is zero.
       return PolynomialDivision(
