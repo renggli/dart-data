@@ -24,7 +24,7 @@ class StringDataType extends DataType<String> {
   String cast(dynamic value) => value.toString();
 }
 
-class StringEquality extends Equality<String> {
+class StringEquality extends NaturalEquality<String> {
   const StringEquality();
 
   @override

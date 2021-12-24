@@ -36,7 +36,7 @@ class ComplexDataType extends DataType<Complex> {
   Field<Complex> get field => const ComplexField();
 }
 
-class ComplexEquality extends Equality<Complex> {
+class ComplexEquality extends NaturalEquality<Complex> {
   const ComplexEquality();
 
   @override

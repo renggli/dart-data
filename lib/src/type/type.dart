@@ -118,7 +118,7 @@ abstract class DataType<T> {
       isNullable ? this as DataType<T?> : NullableDataType<T>(this);
 
   /// Returns an equality relation.
-  Equality<T> get equality => Equality<T>();
+  Equality<T> get equality => NaturalEquality<T>();
 
   /// Returns an order relation, if available.
   Order<T> get order => throw UnsupportedError('No order available for $this.');

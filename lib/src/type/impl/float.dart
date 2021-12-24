@@ -140,7 +140,7 @@ class FloatField extends Field<double> {
   double gcd(double a, double b) => unsupportedOperation('gcd');
 }
 
-class FloatEquality extends Equality<double> {
+class FloatEquality extends NaturalEquality<double> {
   const FloatEquality();
 
   @override

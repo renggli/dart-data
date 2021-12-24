@@ -34,7 +34,7 @@ class BigIntDataType extends DataType<BigInt> {
   Field<BigInt> get field => const BigIntField();
 }
 
-class BigIntEquality extends Equality<BigInt> {
+class BigIntEquality extends NaturalEquality<BigInt> {
   const BigIntEquality();
 
   @override

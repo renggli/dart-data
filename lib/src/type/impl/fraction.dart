@@ -40,7 +40,7 @@ class FractionDataType extends DataType<Fraction> {
   Field<Fraction> get field => const FractionField();
 }
 
-class FractionEquality extends Equality<Fraction> {
+class FractionEquality extends NaturalEquality<Fraction> {
   const FractionEquality();
 
   @override

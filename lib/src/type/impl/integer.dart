@@ -247,7 +247,7 @@ class IntegerField extends Field<int> {
   int gcd(int a, int b) => a.gcd(b);
 }
 
-class IntegerEquality extends Equality<int> {
+class IntegerEquality extends NaturalEquality<int> {
   const IntegerEquality();
 
   @override

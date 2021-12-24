@@ -93,7 +93,7 @@ class NumericField extends Field<num> {
   num gcd(num a, num b) => unsupportedOperation('gcd');
 }
 
-class NumericEquality extends Equality<num> {
+class NumericEquality extends NaturalEquality<num> {
   const NumericEquality();
 
   @override

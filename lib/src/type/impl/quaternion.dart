@@ -38,7 +38,7 @@ class QuaternionDataType extends DataType<Quaternion> {
   Equality<Quaternion> get equality => const QuaternionEquality();
 }
 
-class QuaternionEquality extends Equality<Quaternion> {
+class QuaternionEquality extends NaturalEquality<Quaternion> {
   const QuaternionEquality();
 
   @override
