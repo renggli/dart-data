@@ -435,10 +435,20 @@ void main() {
   });
   group('iterable', () {
     test('sum', () {
+      expect(<double>[].sum(), isCloseTo(0.0));
       expect([3, 2.25, 4.5, -0.5, 1.0].sum(), isCloseTo(10.25));
     });
     test('sum (int)', () {
+      expect(<int>[].sum(), 0);
       expect([-1, 2, 3, 5, 7].sum(), 16);
+    });
+    test('product', () {
+      expect(<double>[].product(), isCloseTo(1.0));
+      expect([3, 2.25, 4.5, -0.5, 1.0].product(), isCloseTo(-15.1875));
+    });
+    test('product (int)', () {
+      expect(<int>[].product(), 1);
+      expect([-1, 2, 3, 5, 7].product(), -210);
     });
     test('average', () {
       expect(<num>[].average(), isNaN);

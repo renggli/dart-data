@@ -13,6 +13,18 @@ extension IterableNumExtension on Iterable<num> {
     return sum;
   }
 
+  /// Returns the product of this [Iterable].
+  ///
+  /// Example: `[-2.0, 2.5].product()` returns `-5`.
+  ///
+  double product() {
+    var product = 1.0;
+    for (final value in this) {
+      product *= value;
+    }
+    return product;
+  }
+
   /// Returns the average of this [Iterable], see [arithmeticMean] for details.
   double average() => arithmeticMean();
 
@@ -22,7 +34,7 @@ extension IterableNumExtension on Iterable<num> {
   /// For details, see https://en.wikipedia.org/wiki/Arithmetic_mean.`
   ///
   /// Example: `[5, 2].arithmeticMean()` returns `3.5`.
-  ///`
+  ///
   double arithmeticMean() {
     var count = 0, sum = 0.0;
     for (final value in this) {
@@ -98,11 +110,26 @@ extension IterableNumExtension on Iterable<num> {
 
 extension IterableIntExtension on Iterable<int> {
   /// Returns the sum of this [Iterable].
+  ///
+  /// Example: `[-1, 3].sum()` returns `2`.
+  ///
   int sum() {
     var sum = 0;
     for (final value in this) {
       sum += value;
     }
     return sum;
+  }
+
+  /// Returns the product of this [Iterable].
+  ///
+  /// Example: `[-2, 3].product()` returns `-6`.
+  ///
+  int product() {
+    var product = 1;
+    for (final value in this) {
+      product *= value;
+    }
+    return product;
   }
 }
