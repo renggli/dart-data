@@ -1,3 +1,4 @@
+/// Error of an invalid probability outside the range of 0.0 to 1.0.
 class InvalidProbability extends ArgumentError {
   static void check(num probability) {
     if (probability < 0.0 || 1.0 < probability) {
@@ -5,8 +6,8 @@ class InvalidProbability extends ArgumentError {
     }
   }
 
-  final num probability;
+  InvalidProbability(this.probability, [String? name])
+      : super.value(probability, name, 'Invalid probability');
 
-  InvalidProbability(this.probability)
-      : super('Invalid probability: $probability');
+  final num probability;
 }
