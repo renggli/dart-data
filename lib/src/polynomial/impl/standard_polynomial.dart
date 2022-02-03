@@ -22,7 +22,6 @@ class StandardPolynomial<T> with Polynomial<T> {
   // Cached degree, that is the highest non-zero coefficient.
   int _degree;
 
-
   @override
   final DataType<T> dataType;
 
