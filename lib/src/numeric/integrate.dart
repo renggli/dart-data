@@ -108,23 +108,16 @@ enum IntegrateWarning {
 
 /// Integration error that is thrown when warnings are not handled explicitly.
 class IntegrateError extends Error {
+  IntegrateError._(this.type, this.x);
+
   /// The integration warning thrown.
   final IntegrateWarning type;
 
   /// The approximate position of the integration warning.
   final double x;
-
-  IntegrateError._(this.type, this.x);
 }
 
 class _Quadrature {
-  final int depth;
-  final double epsilon;
-  final double a, fa;
-  final double m, fm;
-  final double b, fb;
-  final double w;
-
   factory _Quadrature.simpson(double Function(double) f, int depth,
       double epsilon, double a, double fa, double b, double fb) {
     final m = 0.5 * (a + b), fm = f(m);
@@ -134,4 +127,11 @@ class _Quadrature {
 
   _Quadrature(this.depth, this.epsilon, this.a, this.fa, this.m, this.fm,
       this.b, this.fb, this.w);
+
+  final int depth;
+  final double epsilon;
+  final double a, fa;
+  final double m, fm;
+  final double b, fb;
+  final double w;
 }

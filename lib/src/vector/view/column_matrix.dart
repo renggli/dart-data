@@ -5,9 +5,9 @@ import '../../shared/storage.dart';
 
 /// Mutable column matrix of a vector.
 class ColumnMatrix<T> with Matrix<T> {
-  final Vector<T> vector;
-
   ColumnMatrix(this.vector);
+
+  final Vector<T> vector;
 
   @override
   DataType<T> get dataType => vector.dataType;

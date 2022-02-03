@@ -244,9 +244,9 @@ abstract class Polynomial<T> implements Storage {
 }
 
 class _PolynomialList<T> extends ListMixin<T> {
-  final Polynomial<T> polynomial;
-
   _PolynomialList(this.polynomial);
+
+  final Polynomial<T> polynomial;
 
   @override
   int get length => polynomial.degree + 1;

@@ -4,11 +4,11 @@ import '../matrix.dart';
 
 /// Mutable two-way transformed matrix.
 class TransformedMatrix<S, T> with Matrix<T> {
+  TransformedMatrix(this.matrix, this.read, this.write, this.dataType);
+
   final Matrix<S> matrix;
   final T Function(int row, int col, S value) read;
   final S Function(int row, int col, T value) write;
-
-  TransformedMatrix(this.matrix, this.read, this.write, this.dataType);
 
   @override
   final DataType<T> dataType;

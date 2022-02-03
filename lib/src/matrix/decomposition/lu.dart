@@ -19,18 +19,6 @@ import '../view/row_vector.dart';
 /// LU decomposition is in the solution of square systems of simultaneous
 /// linear equations.  This will fail if [isNonsingular] returns false.
 class LUDecomposition {
-  /// Internal storage of decomposition.
-  final Matrix<double> _lu;
-
-  /// Internal row and column dimensions.
-  final int _m, _n;
-
-  /// Internal pivot sign.
-  int _pivSign = 0;
-
-  /// Internal storage of pivot vector.
-  final List<int> _piv;
-
   LUDecomposition(Matrix<num> source)
       : _lu = source.cast(floatDataType).toMatrix(),
         _m = source.rowCount,
@@ -88,6 +76,18 @@ class LUDecomposition {
       }
     }
   }
+
+  /// Internal storage of decomposition.
+  final Matrix<double> _lu;
+
+  /// Internal row and column dimensions.
+  final int _m, _n;
+
+  /// Internal pivot sign.
+  int _pivSign = 0;
+
+  /// Internal storage of pivot vector.
+  final List<int> _piv;
 
   /// Is the matrix nonsingular?
   bool get isNonsingular {

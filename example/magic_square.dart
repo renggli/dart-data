@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'dart:math' as math;
 
 import 'package:data/data.dart';
@@ -83,8 +84,8 @@ const List<String> columns = [
 void main() {
   final eps = math.pow(2.0, -52.0);
 
-  print(columns.map(alignPrinter(width)).join());
-  print('');
+  stdout.writeln(columns.map(alignPrinter(width)).join());
+  stdout.writeln();
 
   for (var n = 3; n <= 64; n++) {
     final m = magic(n);
@@ -145,6 +146,6 @@ void main() {
       buffer.add(doublePrinter(3)(res));
     }
 
-    print(buffer.map(alignPrinter(width)).join());
+    stdout.writeln(buffer.map(alignPrinter(width)).join());
   }
 }

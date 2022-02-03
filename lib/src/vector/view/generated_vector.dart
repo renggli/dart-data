@@ -8,9 +8,9 @@ typedef VectorGeneratorCallback<T> = T Function(int index);
 
 /// Read-only vector generated from a callback.
 class GeneratedVector<T> with Vector<T>, UnmodifiableVectorMixin<T> {
-  final VectorGeneratorCallback<T> callback;
-
   GeneratedVector(this.dataType, this.count, this.callback);
+
+  final VectorGeneratorCallback<T> callback;
 
   @override
   final DataType<T> dataType;

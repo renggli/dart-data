@@ -24,6 +24,9 @@ import 'utils.dart' as utils;
 
 @immutable
 abstract class DataType<T> {
+  /// Abstract const constructor.
+  const DataType();
+
   /// Return an object type [T] with the given [defaultValue].
   static ObjectDataType<T> object<T>(T defaultValue) =>
       ObjectDataType<T>(defaultValue);
@@ -89,9 +92,6 @@ abstract class DataType<T> {
 
   /// [Quaternion] object data type.
   static const QuaternionDataType quaternion = QuaternionDataType();
-
-  /// Abstract const constructor.
-  const DataType();
 
   /// Derives a fitting [DataType] from [T].
   static DataType<T> fromType<T>() => utils.fromType<T>();

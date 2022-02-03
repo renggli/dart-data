@@ -5,9 +5,9 @@ import '../../shared/storage.dart';
 
 /// Mutable row matrix of a vector.
 class RowMatrix<T> with Matrix<T> {
-  final Vector<T> vector;
-
   RowMatrix(this.vector);
+
+  final Vector<T> vector;
 
   @override
   DataType<T> get dataType => vector.dataType;

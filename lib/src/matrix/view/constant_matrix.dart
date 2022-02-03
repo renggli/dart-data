@@ -5,9 +5,9 @@ import '../mixin/unmodifiable_matrix_mixin.dart';
 
 /// Read-only matrix with a constant value.
 class ConstantMatrix<T> with Matrix<T>, UnmodifiableMatrixMixin<T> {
-  final T value;
-
   ConstantMatrix(this.dataType, this.rowCount, this.columnCount, this.value);
+
+  final T value;
 
   @override
   final DataType<T> dataType;

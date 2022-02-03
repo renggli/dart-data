@@ -4,11 +4,10 @@ import '../matrix.dart';
 
 /// Mutable matrix rotated clockwise by multiples of 90 degrees.
 class RotatedMatrix<T> with Matrix<T> {
-  final Matrix<T> matrix;
-
-  final int count;
-
   RotatedMatrix(this.matrix, this.count);
+
+  final Matrix<T> matrix;
+  final int count;
 
   @override
   DataType<T> get dataType => matrix.dataType;

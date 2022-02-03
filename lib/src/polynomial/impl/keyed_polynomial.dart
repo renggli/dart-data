@@ -6,11 +6,11 @@ import '../polynomial.dart';
 
 /// Sparse keyed polynomial.
 class KeyedPolynomial<T> with Polynomial<T> {
-  final SplayTreeMap<int, T> _coefficients;
-
   KeyedPolynomial(DataType<T> dataType) : this._(dataType, SplayTreeMap());
 
   KeyedPolynomial._(this.dataType, this._coefficients);
+
+  final SplayTreeMap<int, T> _coefficients;
 
   @override
   final DataType<T> dataType;

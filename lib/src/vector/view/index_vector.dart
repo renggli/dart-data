@@ -5,13 +5,13 @@ import '../vector.dart';
 
 // A mutable indexed view of a vector.
 class IndexVector<T> with Vector<T> {
-  final Vector<T> vector;
-  final List<int> indexes;
-
   IndexVector(Vector<T> vector, Iterable<int> indexes)
       : this._(vector, indexDataType.copyList(indexes));
 
   IndexVector._(this.vector, this.indexes);
+
+  final Vector<T> vector;
+  final List<int> indexes;
 
   @override
   DataType<T> get dataType => vector.dataType;

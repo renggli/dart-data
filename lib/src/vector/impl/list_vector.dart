@@ -6,16 +6,16 @@ import '../vector.dart';
 
 /// Sparse compressed vector.
 class ListVector<T> with Vector<T> {
-  List<int> _indexes;
-  List<T> _values;
-  int _length;
-
   ListVector(DataType<T> dataType, int count)
       : this._(dataType, count, indexDataType.newList(initialListLength),
             dataType.newList(initialListLength), 0);
 
   ListVector._(
       this.dataType, this.count, this._indexes, this._values, this._length);
+
+  List<int> _indexes;
+  List<T> _values;
+  int _length;
 
   @override
   final DataType<T> dataType;

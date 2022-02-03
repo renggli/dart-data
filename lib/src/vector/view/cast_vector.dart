@@ -4,9 +4,9 @@ import '../vector.dart';
 
 /// Mutable cast vector.
 class CastVector<S, T> with Vector<T> {
-  final Vector<S> vector;
-
   CastVector(this.vector, this.dataType);
+
+  final Vector<S> vector;
 
   @override
   final DataType<T> dataType;

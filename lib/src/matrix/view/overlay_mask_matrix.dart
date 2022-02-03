@@ -7,11 +7,11 @@ import '../matrix.dart';
 /// All matrices (overlay, mask, and base) have to be of the same size. The mask
 /// determines whether the overlay is revealed or not.
 class OverlayMaskMatrix<T> with Matrix<T> {
+  OverlayMaskMatrix(this.dataType, this.overlay, this.mask, this.base);
+
   final Matrix<T> overlay;
   final Matrix<bool> mask;
   final Matrix<T> base;
-
-  OverlayMaskMatrix(this.dataType, this.overlay, this.mask, this.base);
 
   @override
   final DataType<T> dataType;

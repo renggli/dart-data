@@ -7,12 +7,6 @@ import '../polynomial.dart';
 
 /// Standard polynomial.
 class StandardPolynomial<T> with Polynomial<T> {
-  // Coefficients in ascending order, where the index matches the exponent.
-  List<T> _coefficients;
-
-  // Cached degree, that is the highest non-zero coefficient.
-  int _degree;
-
   StandardPolynomial(DataType<T> dataType, int desiredDegree)
       : this._(
             dataType,
@@ -21,6 +15,13 @@ class StandardPolynomial<T> with Polynomial<T> {
             -1);
 
   StandardPolynomial._(this.dataType, this._coefficients, this._degree);
+
+  // Coefficients in ascending order, where the index matches the exponent.
+  List<T> _coefficients;
+
+  // Cached degree, that is the highest non-zero coefficient.
+  int _degree;
+
 
   @override
   final DataType<T> dataType;

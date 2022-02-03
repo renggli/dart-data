@@ -4,12 +4,12 @@ import '../vector.dart';
 
 /// Standard vector.
 class StandardVector<T> with Vector<T> {
-  final List<T> _values;
-
   StandardVector(DataType<T> dataType, int count)
       : this.fromList(dataType, dataType.newList(count));
 
   StandardVector.fromList(this.dataType, this._values);
+
+  final List<T> _values;
 
   @override
   final DataType<T> dataType;

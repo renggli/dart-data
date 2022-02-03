@@ -5,9 +5,9 @@ import '../mixin/unmodifiable_matrix_mixin.dart';
 
 /// Read-only identity matrix.
 class IdentityMatrix<T> with Matrix<T>, UnmodifiableMatrixMixin<T> {
-  final T value;
-
   IdentityMatrix(this.dataType, this.rowCount, this.columnCount, this.value);
+
+  final T value;
 
   @override
   final DataType<T> dataType;

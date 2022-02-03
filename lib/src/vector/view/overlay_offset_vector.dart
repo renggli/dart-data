@@ -7,11 +7,11 @@ import '../vector.dart';
 /// The resulting vector has the same size of the base vector, but the overlay
 /// can be of different size and be offset relative to the base.
 class OverlayOffsetVector<T> with Vector<T> {
+  OverlayOffsetVector(this.dataType, this.overlay, this.offset, this.base);
+
   final int offset;
   final Vector<T> overlay;
   final Vector<T> base;
-
-  OverlayOffsetVector(this.dataType, this.overlay, this.offset, this.base);
 
   @override
   final DataType<T> dataType;

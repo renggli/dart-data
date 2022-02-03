@@ -4,11 +4,11 @@ import '../vector.dart';
 
 /// Read-only transformed vector.
 class TransformedVector<S, T> with Vector<T> {
+  TransformedVector(this.vector, this.read, this.write, this.dataType);
+
   final Vector<S> vector;
   final T Function(int index, S value) read;
   final S Function(int index, T value) write;
-
-  TransformedVector(this.vector, this.read, this.write, this.dataType);
 
   @override
   final DataType<T> dataType;

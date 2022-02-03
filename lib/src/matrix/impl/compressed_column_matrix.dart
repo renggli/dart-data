@@ -6,11 +6,6 @@ import '../matrix.dart';
 
 /// Sparse compressed column matrix.
 class CompressedColumnMatrix<T> with Matrix<T> {
-  List<int> _colExtends;
-  List<int> _rowIndexes;
-  List<T> _values;
-  int _length;
-
   CompressedColumnMatrix(DataType<T> dataType, int rowCount, int colCount)
       : this._(
             dataType,
@@ -23,6 +18,11 @@ class CompressedColumnMatrix<T> with Matrix<T> {
 
   CompressedColumnMatrix._(this.dataType, this.rowCount, this.columnCount,
       this._colExtends, this._rowIndexes, this._values, this._length);
+
+  List<int> _colExtends;
+  List<int> _rowIndexes;
+  List<T> _values;
+  int _length;
 
   @override
   final DataType<T> dataType;

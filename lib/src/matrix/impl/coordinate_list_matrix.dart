@@ -6,11 +6,6 @@ import '../matrix.dart';
 
 // Sparse matrix in coordinate format.
 class CoordinateListMatrix<T> with Matrix<T> {
-  List<int> _rows;
-  List<int> _cols;
-  List<T> _values;
-  int _length;
-
   CoordinateListMatrix(DataType<T> dataType, int rowCount, int colCount)
       : this._(
             dataType,
@@ -23,6 +18,11 @@ class CoordinateListMatrix<T> with Matrix<T> {
 
   CoordinateListMatrix._(this.dataType, this.rowCount, this.columnCount,
       this._rows, this._cols, this._values, this._length);
+
+  List<int> _rows;
+  List<int> _cols;
+  List<T> _values;
+  int _length;
 
   @override
   final DataType<T> dataType;

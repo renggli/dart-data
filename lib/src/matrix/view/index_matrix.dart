@@ -7,16 +7,16 @@ import '../matrix.dart';
 
 /// Mutable indexed view of the rows and columns of a matrix.
 class IndexMatrix<T> with Matrix<T> {
-  final Matrix<T> matrix;
-  final List<int> rowIndexes;
-  final List<int> colIndexes;
-
   IndexMatrix(
       Matrix<T> _matrix, Iterable<int> rowIndexes, Iterable<int> colIndexes)
       : this._(_matrix, indexDataType.copyList(rowIndexes),
             indexDataType.copyList(colIndexes));
 
   IndexMatrix._(this.matrix, this.rowIndexes, this.colIndexes);
+
+  final Matrix<T> matrix;
+  final List<int> rowIndexes;
+  final List<int> colIndexes;
 
   @override
   DataType<T> get dataType => matrix.dataType;

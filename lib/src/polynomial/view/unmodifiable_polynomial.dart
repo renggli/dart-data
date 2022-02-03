@@ -6,9 +6,9 @@ import '../polynomial.dart';
 /// Read-only view of a mutable polynomial.
 class UnmodifiablePolynomial<T>
     with Polynomial<T>, UnmodifiablePolynomialMixin<T> {
-  final Polynomial<T> polynomial;
-
   UnmodifiablePolynomial(this.polynomial);
+
+  final Polynomial<T> polynomial;
 
   @override
   DataType<T> get dataType => polynomial.dataType;

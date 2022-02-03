@@ -5,9 +5,9 @@ import '../mixin/unmodifiable_matrix_mixin.dart';
 
 /// Read-only view of a mutable matrix.
 class UnmodifiableMatrix<T> with Matrix<T>, UnmodifiableMatrixMixin<T> {
-  final Matrix<T> matrix;
-
   UnmodifiableMatrix(this.matrix);
+
+  final Matrix<T> matrix;
 
   @override
   DataType<T> get dataType => matrix.dataType;

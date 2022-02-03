@@ -4,10 +4,6 @@ import '../matrix.dart';
 
 /// Mutable range of the rows and columns of a matrix.
 class RangeMatrix<T> with Matrix<T> {
-  final Matrix<T> matrix;
-  final int rowStart;
-  final int colStart;
-
   RangeMatrix(
       Matrix<T> matrix, int rowStart, int rowEnd, int colStart, int colEnd)
       : this._(
@@ -15,6 +11,10 @@ class RangeMatrix<T> with Matrix<T> {
 
   RangeMatrix._(this.matrix, this.rowStart, this.rowCount, this.colStart,
       this.columnCount);
+
+  final Matrix<T> matrix;
+  final int rowStart;
+  final int colStart;
 
   @override
   DataType<T> get dataType => matrix.dataType;

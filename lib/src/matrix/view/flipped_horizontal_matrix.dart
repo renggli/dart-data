@@ -4,9 +4,9 @@ import '../matrix.dart';
 
 /// Mutable matrix flipped on its horizontal axis.
 class FlippedHorizontalMatrix<T> with Matrix<T> {
-  final Matrix<T> matrix;
-
   FlippedHorizontalMatrix(this.matrix);
+
+  final Matrix<T> matrix;
 
   @override
   DataType<T> get dataType => matrix.dataType;

@@ -4,9 +4,9 @@ import '../matrix.dart';
 
 /// Mutable matrix cast to a new type.
 class CastMatrix<S, T> with Matrix<T> {
-  final Matrix<S> matrix;
-
   CastMatrix(this.matrix, this.dataType);
+
+  final Matrix<S> matrix;
 
   @override
   final DataType<T> dataType;

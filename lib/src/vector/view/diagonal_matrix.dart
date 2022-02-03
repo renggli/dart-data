@@ -5,9 +5,9 @@ import '../../shared/storage.dart';
 
 /// Mutable diagonal matrix of a vector.
 class DiagonalMatrix<T> with Matrix<T> {
-  final Vector<T> vector;
-
   DiagonalMatrix(this.vector);
+
+  final Vector<T> vector;
 
   @override
   DataType<T> get dataType => vector.dataType;

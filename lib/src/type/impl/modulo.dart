@@ -6,13 +6,13 @@ import '../models/order.dart';
 import '../type.dart';
 
 class ModuloDataType<T> extends DataType<T> {
-  final DataType<T> delegate;
-  final T modulus;
-
   ModuloDataType(this.delegate, this.modulus)
       : field = ModuloField<T>(delegate, modulus),
         order = ModuloOrder<T>(delegate, modulus),
         equality = ModuloEquality<T>(delegate, modulus);
+
+  final DataType<T> delegate;
+  final T modulus;
 
   @override
   String get name => '${delegate.name}/$modulus';
@@ -37,10 +37,10 @@ class ModuloDataType<T> extends DataType<T> {
 }
 
 class ModuloField<T> extends Field<T> {
+  const ModuloField(this.type, this.modulus);
+
   final DataType<T> type;
   final T modulus;
-
-  const ModuloField(this.type, this.modulus);
 
   @override
   T get additiveIdentity => type.field.additiveIdentity;
@@ -92,10 +92,10 @@ class ModuloField<T> extends Field<T> {
 }
 
 class ModuloOrder<T> extends Order<T> {
+  const ModuloOrder(this.type, this.modulus);
+
   final DataType<T> type;
   final T modulus;
-
-  const ModuloOrder(this.type, this.modulus);
 
   @override
   int compare(T a, T b) => type.order.compare(
@@ -105,10 +105,10 @@ class ModuloOrder<T> extends Order<T> {
 }
 
 class ModuloEquality<T> extends Equality<T> {
+  const ModuloEquality(this.type, this.modulus);
+
   final DataType<T> type;
   final T modulus;
-
-  const ModuloEquality(this.type, this.modulus);
 
   @override
   bool isEqual(T a, T b) => type.equality.isEqual(

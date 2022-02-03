@@ -7,9 +7,6 @@ import '../matrix.dart';
 
 /// Mutable diagonal vector of a matrix.
 class DiagonalVector<T> with Vector<T> {
-  final Matrix<T> matrix;
-  final int offset;
-
   DiagonalVector(Matrix<T> matrix, int offset)
       : this._(
             matrix,
@@ -20,6 +17,9 @@ class DiagonalVector<T> with Vector<T> {
             ));
 
   DiagonalVector._(this.matrix, this.offset, this.count);
+
+  final Matrix<T> matrix;
+  final int offset;
 
   @override
   DataType<T> get dataType => matrix.dataType;

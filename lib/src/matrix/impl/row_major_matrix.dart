@@ -4,14 +4,14 @@ import '../matrix.dart';
 
 /// Row major matrix.
 class RowMajorMatrix<T> with Matrix<T> {
-  final List<T> _values;
-
   RowMajorMatrix(DataType<T> dataType, int rowCount, int colCount)
       : this.fromList(dataType, rowCount, colCount,
             dataType.newList(rowCount * colCount));
 
   RowMajorMatrix.fromList(
       this.dataType, this.rowCount, this.columnCount, this._values);
+
+  final List<T> _values;
 
   @override
   final DataType<T> dataType;

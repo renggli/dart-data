@@ -14,15 +14,6 @@ import '../view/row_vector.dart';
 /// returns a partial decomposition and sets an internal flag that may
 /// be queried by the isSPD() method.
 class CholeskyDecomposition {
-  /// internal storage of decomposition.
-  final Matrix<double> _l;
-
-  /// Row and column dimension (square matrix).
-  final int _n;
-
-  /// Symmetric and positive definite flag.
-  bool _isSymmetric;
-
   /// Cholesky algorithm for symmetric and positive definite matrix.
   /// Structure to access L and isspd flag.
   CholeskyDecomposition(Matrix<num> a)
@@ -52,6 +43,15 @@ class CholeskyDecomposition {
       }
     }
   }
+
+  /// Internal storage of decomposition.
+  final Matrix<double> _l;
+
+  /// Row and column dimension (square matrix).
+  final int _n;
+
+  /// Symmetric and positive definite flag.
+  bool _isSymmetric;
 
   /// Is the matrix symmetric and positive definite?
   bool get isSymmetricPositiveDefinite => _isSymmetric;

@@ -6,9 +6,9 @@ import '../vector.dart';
 
 /// Fixed-size [List] of a vector.
 class VectorList<T> extends ListBase<T> with NonGrowableListMixin<T> {
-  final Vector<T> vector;
-
   VectorList(this.vector);
+
+  final Vector<T> vector;
 
   @override
   int get length => vector.count;

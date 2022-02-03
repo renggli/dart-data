@@ -6,9 +6,6 @@ import '../matrix.dart';
 
 /// Mutable horizontal concatenation of matrices.
 class ConcatHorizontalMatrix<T> with Matrix<T> {
-  final List<Matrix<T>> matrices;
-  final List<int> indexes;
-
   ConcatHorizontalMatrix(DataType<T> dataType, Iterable<Matrix<T>> matrices)
       : this._withList(dataType, matrices.toList(growable: false));
 
@@ -18,6 +15,9 @@ class ConcatHorizontalMatrix<T> with Matrix<T> {
 
   ConcatHorizontalMatrix._withListAndIndexes(
       this.dataType, this.matrices, this.indexes);
+
+  final List<Matrix<T>> matrices;
+  final List<int> indexes;
 
   @override
   final DataType<T> dataType;

@@ -19,15 +19,6 @@ import '../view/cast_matrix.dart';
 /// never fail.  The matrix condition number and the effective numerical
 /// rank can be computed from this decomposition.
 class SingularValueDecomposition {
-  /// internal storage of U and V.
-  final Matrix<double> _u, _v;
-
-  /// Array for internal storage of singular values.
-  final List<double> _s;
-
-  /// Row and column dimensions.
-  final int _m, _n;
-
   /// Construct the singular value decomposition Structure to access U, S and V.
   SingularValueDecomposition(Matrix<num> input)
       : _u = Matrix(floatDataType, input.rowCount,
@@ -430,6 +421,15 @@ class SingularValueDecomposition {
       }
     }
   }
+
+  /// internal storage of U and V.
+  final Matrix<double> _u, _v;
+
+  /// Array for internal storage of singular values.
+  final List<double> _s;
+
+  /// Row and column dimensions.
+  final int _m, _n;
 
   /// Return the left singular vectors.
   Matrix<double> get U => _u.toMatrix();

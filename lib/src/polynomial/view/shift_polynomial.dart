@@ -6,10 +6,10 @@ import '../polynomial.dart';
 
 /// Shifts the polynomial by a given offset.
 class ShiftPolynomial<T> with Polynomial<T> {
+  ShiftPolynomial(this.polynomial, this.offset);
+
   final Polynomial<T> polynomial;
   final int offset;
-
-  ShiftPolynomial(this.polynomial, this.offset);
 
   @override
   DataType<T> get dataType => polynomial.dataType;

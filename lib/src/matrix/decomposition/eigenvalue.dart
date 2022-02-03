@@ -23,24 +23,6 @@ import '../operator/testing.dart';
 /// conditioned, or even singular, so the validity of the equation
 /// A = V*D*inverse(V) depends upon V.cond().
 class EigenvalueDecomposition {
-  /// Row and column dimension (square matrix).
-  final int _n;
-
-  /// Symmetry flag.
-  final bool _isSymmetric;
-
-  /// Arrays for internal storage of eigenvalues.
-  final List<double> _d, _e;
-
-  /// Array for internal storage of eigenvectors.
-  final Matrix<double> _v;
-
-  /// Array for internal storage of non-symmetric Hessenberg form.
-  final Matrix<double> _h;
-
-  /// Working storage for non-symmetric algorithm.
-  final List<double> _ort;
-
   /// Check for symmetry, then construct the eigenvalue decomposition
   //  Structure to access D and V.
   EigenvalueDecomposition(Matrix<num> a)
@@ -73,6 +55,24 @@ class EigenvalueDecomposition {
       _hqr2();
     }
   }
+
+  /// Row and column dimension (square matrix).
+  final int _n;
+
+  /// Symmetry flag.
+  final bool _isSymmetric;
+
+  /// Arrays for internal storage of eigenvalues.
+  final List<double> _d, _e;
+
+  /// Array for internal storage of eigenvectors.
+  final Matrix<double> _v;
+
+  /// Array for internal storage of non-symmetric Hessenberg form.
+  final Matrix<double> _h;
+
+  /// Working storage for non-symmetric algorithm.
+  final List<double> _ort;
 
   // Symmetric Householder reduction to tridiagonal form.
   void _tred2() {

@@ -5,10 +5,10 @@ import '../matrix.dart';
 
 /// Mutable row vector of a matrix.
 class RowVector<T> with Vector<T> {
+  RowVector(this.matrix, this.row);
+
   final Matrix<T> matrix;
   final int row;
-
-  RowVector(this.matrix, this.row);
 
   @override
   DataType<T> get dataType => matrix.dataType;

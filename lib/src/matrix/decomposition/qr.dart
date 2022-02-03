@@ -15,15 +15,6 @@ import '../view/cast_matrix.dart';
 /// of simultaneous linear equations.  This will fail if isFullRank()
 /// returns false.
 class QRDecomposition {
-  /// Internal storage of decomposition.
-  final Matrix<double> _qr;
-
-  /// Row and column dimensions.
-  final int _m, _n;
-
-  /// Internal storage of diagonal of R.
-  final List<double> _rdiag;
-
   QRDecomposition(Matrix<num> source)
       : _qr = source.cast(floatDataType).toMatrix(),
         _m = source.rowCount,
@@ -63,6 +54,15 @@ class QRDecomposition {
       _rdiag[k] = -nrm;
     }
   }
+
+  /// Internal storage of decomposition.
+  final Matrix<double> _qr;
+
+  /// Row and column dimensions.
+  final int _m, _n;
+
+  /// Internal storage of diagonal of R.
+  final List<double> _rdiag;
 
   /// Is the matrix full rank?
   bool get isFullRank {

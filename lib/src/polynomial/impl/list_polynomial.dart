@@ -6,10 +6,6 @@ import '../polynomial.dart';
 
 /// Sparse compressed polynomial.
 class ListPolynomial<T> with Polynomial<T> {
-  List<int> _exponents;
-  List<T> _coefficients;
-  int _length;
-
   ListPolynomial(DataType<T> dataType)
       : this._(
             dataType,
@@ -20,6 +16,10 @@ class ListPolynomial<T> with Polynomial<T> {
 
   ListPolynomial._(
       this.dataType, this._exponents, this._coefficients, this._length);
+
+  List<int> _exponents;
+  List<T> _coefficients;
+  int _length;
 
   @override
   final DataType<T> dataType;

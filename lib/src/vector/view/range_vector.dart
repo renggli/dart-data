@@ -4,13 +4,13 @@ import '../vector.dart';
 
 /// Mutable range of a vector.
 class RangeVector<T> with Vector<T> {
-  final Vector<T> vector;
-  final int start;
-
   RangeVector(Vector<T> vector, int start, int end)
       : this._(vector, start, end - start);
 
   RangeVector._(this.vector, this.start, this.count);
+
+  final Vector<T> vector;
+  final int start;
 
   @override
   DataType<T> get dataType => vector.dataType;

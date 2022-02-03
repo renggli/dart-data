@@ -5,9 +5,9 @@ import '../vector.dart';
 
 /// Read-only view of a mutable vector.
 class UnmodifiableVector<T> with Vector<T>, UnmodifiableVectorMixin<T> {
-  final Vector<T> vector;
-
   UnmodifiableVector(this.vector);
+
+  final Vector<T> vector;
 
   @override
   DataType<T> get dataType => vector.dataType;

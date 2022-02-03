@@ -173,9 +173,9 @@ abstract class Vector<T> implements Storage {
 }
 
 class _VectorList<T> extends ListMixin<T> {
-  final Vector<T> vector;
-
   _VectorList(this.vector);
+
+  final Vector<T> vector;
 
   @override
   int get length => vector.count;
