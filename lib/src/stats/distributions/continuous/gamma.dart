@@ -6,7 +6,7 @@ import '../errors.dart';
 import 'normal.dart';
 import 'uniform.dart';
 
-/// The gamma distribution described by [shape] and [scale] parameter.
+/// The gamma distribution.
 ///
 /// For details see https://en.wikipedia.org/wiki/Gamma-distribution
 class GammaDistribution extends ContinuousDistribution {
@@ -14,14 +14,14 @@ class GammaDistribution extends ContinuousDistribution {
       : assert(shape > 0.0, 'shape > 0.0'),
         assert(scale > 0.0, 'scale > 0.0');
 
+  factory GammaDistribution.shape(double shape) =>
+      GammaDistribution(shape, 1.0);
+
   /// The shape parameter.
   final double shape;
 
   /// The scale parameter.
   final double scale;
-
-  /// The rate parameter.
-  double get rate => 1.0 / scale;
 
   @override
   double get lowerBound => 0.0;
@@ -39,18 +39,12 @@ class GammaDistribution extends ContinuousDistribution {
   double get variance => shape * scale * scale;
 
   @override
-  double probability(double x) {
-    if (x < 0.0) {
-      return 0.0;
-    } else if (x == 0.0 && shape == 1.0) {
-      return 1.0 / scale;
-    } else {
-      return exp((shape - 1.0) * log(x) -
+  double probability(double x) => x < 0.0
+      ? 0.0
+      : exp((shape - 1.0) * log(x) -
           x / scale -
           gammaLn(shape) -
           shape * log(scale));
-    }
-  }
 
   @override
   double cumulativeProbability(double x) =>

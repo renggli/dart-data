@@ -2,7 +2,7 @@ import 'dart:math';
 
 import '../continuous.dart';
 
-/// A continuous uniform distribution between the bounds [a] and [b]. The
+/// The continuous uniform distribution between the bounds [a] and [b]. The
 /// distribution describes an experiment where there is an arbitrary outcome
 /// that lies between certain bounds.
 ///

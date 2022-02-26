@@ -7,7 +7,7 @@ import '../errors.dart';
 import 'gamma.dart';
 import 'normal.dart';
 
-/// Student's t-distribution.
+/// The Student's t-distribution.
 ///
 /// For details see https://en.wikipedia.org/wiki/Student%27s_t-distribution
 class StudentDistribution extends ContinuousDistribution {
@@ -55,7 +55,7 @@ class StudentDistribution extends ContinuousDistribution {
   @override
   double sample({Random? random}) {
     const normal = NormalDistribution.standard();
-    final gamma = GammaDistribution(dof / 2.0, 1.0);
+    final gamma = GammaDistribution.shape(0.5 * dof);
     return normal.sample(random: random) *
         sqrt(dof / (2 * gamma.sample(random: random)));
   }
