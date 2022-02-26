@@ -116,10 +116,11 @@ void testDistribution<T extends num>(
     });
   }
   test('sample', () {
+    final samples = 20000;
     final histogram = Multiset<int>();
     final random = math.Random(distribution.hashCode);
     if (distribution is DiscreteDistribution) {
-      for (var i = 0; i < 20000; i++) {
+      for (var i = 0; i < samples; i++) {
         histogram.add(distribution.sample(random: random) as int);
       }
       for (var k = math.max(-50, distribution.lowerBound.round());
@@ -134,7 +135,7 @@ void testDistribution<T extends num>(
           .map((each) => distribution.inverseCumulativeProbability(each))
           .toList();
       final bucketCount = buckets.length + 1;
-      for (var i = 0; i < 20000; i++) {
+      for (var i = 0; i < samples; i++) {
         final value = distribution.sample(random: random) as double;
         for (var k = 0; k <= buckets.length; k++) {
           if (k == buckets.length || value < buckets[k]) {
@@ -157,6 +158,8 @@ void testDistribution<T extends num>(
     UniformDiscreteDistribution(-1, 1),
     NormalDistribution(-1, 1),
     StudentDistribution(42),
+    GammaDistribution(1.2, 2.3),
+    InverseGammaDistribution(1.2, 2.3),
   ];
   test('equality', () {
     expect(distribution == distribution, isTrue);
@@ -480,6 +483,42 @@ void main() {
             Tuple2(0.8, 0.821187),
             Tuple2(0.9, 1.352772),
           ],
+        );
+      });
+      group('inverse gamma (shape = 1.0; scale = 1.0)', () {
+        const distribution = InverseGammaDistribution(1.0, 1.0);
+        testDistribution(
+          distribution,
+          min: 0.0,
+          mean: double.nan,
+          variance: double.nan,
+        );
+      });
+      group('inverse gamma (shape = 2.0; scale = 1.0)', () {
+        const distribution = InverseGammaDistribution(2.0, 1.0);
+        testDistribution(
+          distribution,
+          min: 0.0,
+          mean: 1.0,
+          variance: double.nan,
+        );
+      });
+      group('inverse gamma (shape = 3.0; scale = 1.0)', () {
+        const distribution = InverseGammaDistribution(3.0, 1.0);
+        testDistribution(
+          distribution,
+          min: 0.0,
+          mean: 0.5,
+          variance: 0.25,
+        );
+      });
+      group('inverse gamma (shape = 3.0; scale = 1.5)', () {
+        const distribution = InverseGammaDistribution(3.0, 1.5);
+        testDistribution(
+          distribution,
+          min: 0.0,
+          mean: 0.75,
+          variance: 0.5625,
         );
       });
       group('normal', () {
