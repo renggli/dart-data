@@ -28,38 +28,38 @@ class Jackknife<T> {
 
   /// The resamples of the data.
   late final List<List<T>> resamples = IntegerRange(samples.length)
-      .map((index) => JackknifeResampling<T>(samples, index))
+      .map((index) => _JackknifeResampling<T>(samples, index))
       .toList();
 
   /// The bias.
   late final double bias =
-      (samples.length - 1) * (meanResampleMeasure_ - sampleMeasure_);
+      (samples.length - 1) * (_meanResampleMeasure - _sampleMeasure);
 
   /// The bias corrected estimate.
-  late final double estimate = sampleMeasure_ - bias;
+  late final double estimate = _sampleMeasure - bias;
 
   /// The standard error.
   late final double standardError = sqrt((samples.length - 1) *
-      (resampleMeasures_
-          .map((value) => value - meanResampleMeasure_)
+      _resampleMeasures
+          .map((value) => value - _meanResampleMeasure)
           .map((value) => value * value)
-          .arithmeticMean()));
+          .arithmeticMean());
 
   /// The lower bound of the confidence interval.
-  late final lowerBound = estimate - zScore_ * standardError;
+  late final lowerBound = estimate - _zScore * standardError;
 
   /// The upper bound of the confidence interval.
-  late final upperBound = estimate + zScore_ * standardError;
+  late final upperBound = estimate + _zScore * standardError;
 
-  late final sampleMeasure_ = statistic(samples);
-  late final resampleMeasures_ = resamples.map(statistic).toList();
-  late final meanResampleMeasure_ = resampleMeasures_.arithmeticMean();
-  late final zScore_ = sqrt2 * inverseErrorFunction(confidenceLevel);
+  late final _sampleMeasure = statistic(samples);
+  late final _resampleMeasures = resamples.map(statistic).toList();
+  late final _meanResampleMeasure = _resampleMeasures.arithmeticMean();
+  late final _zScore = sqrt2 * erfinv(confidenceLevel);
 }
 
 /// A view of a Jackknife resampling of a [List].
-class JackknifeResampling<T> extends ListBase<T> with NonGrowableListMixin<T> {
-  JackknifeResampling(this.list, this.index)
+class _JackknifeResampling<T> extends ListBase<T> with NonGrowableListMixin<T> {
+  _JackknifeResampling(this.list, this.index)
       : assert(list.isNotEmpty, 'Non empty list expected'),
         assert(0 <= index && index < list.length, 'Index out of bounds');
 
