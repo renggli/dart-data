@@ -50,9 +50,9 @@ void testDistribution<T extends num>(
       expect(distribution.mean, isCloseTo(mean));
     });
   }
-  if (median != null || mean != null) {
+  if (median != null) {
     test('median', () {
-      expect(distribution.median, isCloseTo(median ?? mean ?? 0.0));
+      expect(distribution.median, isCloseTo(median));
     });
   }
   if (mode != null) {
@@ -181,6 +181,307 @@ void testDistribution<T extends num>(
 void main() {
   group('distribution', () {
     group('continuous', () {
+      group('gamma (shape = 1.0; scale = 2.0)', () {
+        const distribution = GammaDistribution(1.0, 2.0);
+        testDistribution(
+          distribution,
+          min: 0.0,
+          mean: 2.0,
+          variance: 4.0,
+          probability: [
+            Tuple2(1.0, 0.303265),
+            Tuple2(2.0, 0.183940),
+            Tuple2(3.0, 0.111565),
+            Tuple2(4.0, 0.067668),
+            Tuple2(5.0, 0.041042),
+            Tuple2(6.0, 0.024894),
+            Tuple2(7.0, 0.015099),
+            Tuple2(8.0, 0.009158),
+            Tuple2(9.0, 0.005554),
+          ],
+          cumulativeProbability: [
+            Tuple2(1.0, 0.393469),
+            Tuple2(2.0, 0.632121),
+            Tuple2(3.0, 0.776870),
+            Tuple2(4.0, 0.864665),
+            Tuple2(5.0, 0.917915),
+            Tuple2(6.0, 0.950213),
+            Tuple2(7.0, 0.969803),
+            Tuple2(8.0, 0.981684),
+            Tuple2(9.0, 0.988891),
+          ],
+          inverseCumulativeProbability: [
+            Tuple2(0.0, 0.000000),
+            Tuple2(0.1, 0.210721),
+            Tuple2(0.2, 0.446287),
+            Tuple2(0.3, 0.713350),
+            Tuple2(0.4, 1.021651),
+            Tuple2(0.5, 1.386294),
+            Tuple2(0.6, 1.832581),
+            Tuple2(0.7, 2.407946),
+            Tuple2(0.8, 3.218876),
+            Tuple2(0.9, 4.605170),
+          ],
+        );
+      });
+      group('gamma (shape = 2.0; scale = 2.0)', () {
+        const distribution = GammaDistribution(2.0, 2.0);
+        testDistribution(
+          distribution,
+          min: 0.0,
+          mean: 4.0,
+          variance: 8.0,
+          probability: [
+            Tuple2(1.0, 0.151633),
+            Tuple2(2.0, 0.183940),
+            Tuple2(3.0, 0.167348),
+            Tuple2(4.0, 0.135335),
+            Tuple2(5.0, 0.102606),
+            Tuple2(6.0, 0.074681),
+            Tuple2(7.0, 0.052845),
+            Tuple2(8.0, 0.036631),
+            Tuple2(9.0, 0.024995),
+          ],
+          cumulativeProbability: [
+            Tuple2(1.0, 0.090204),
+            Tuple2(2.0, 0.264241),
+            Tuple2(3.0, 0.442175),
+            Tuple2(4.0, 0.593994),
+            Tuple2(5.0, 0.712703),
+            Tuple2(6.0, 0.800852),
+            Tuple2(7.0, 0.864112),
+            Tuple2(8.0, 0.908422),
+            Tuple2(9.0, 0.938901),
+          ],
+          inverseCumulativeProbability: [
+            Tuple2(0.0, 0.000000),
+            Tuple2(0.1, 1.063623),
+            Tuple2(0.2, 1.648777),
+            Tuple2(0.3, 2.194698),
+            Tuple2(0.4, 2.752843),
+            Tuple2(0.5, 3.356694),
+            Tuple2(0.6, 4.044626),
+            Tuple2(0.7, 4.878433),
+            Tuple2(0.8, 5.988617),
+            Tuple2(0.9, 7.779440),
+          ],
+        );
+      });
+      group('gamma (shape = 3.0; scale = 2.0)', () {
+        const distribution = GammaDistribution(3.0, 2.0);
+        testDistribution(
+          distribution,
+          min: 0.0,
+          mean: 6.0,
+          variance: 12.0,
+          probability: [
+            Tuple2(1.0, 0.037908),
+            Tuple2(2.0, 0.091970),
+            Tuple2(3.0, 0.125511),
+            Tuple2(4.0, 0.135335),
+            Tuple2(5.0, 0.128258),
+            Tuple2(6.0, 0.112021),
+            Tuple2(7.0, 0.092479),
+            Tuple2(8.0, 0.073263),
+            Tuple2(9.0, 0.056239),
+          ],
+          cumulativeProbability: [
+            Tuple2(1.0, 0.014388),
+            Tuple2(2.0, 0.080301),
+            Tuple2(3.0, 0.191153),
+            Tuple2(4.0, 0.323324),
+            Tuple2(5.0, 0.456187),
+            Tuple2(6.0, 0.576810),
+            Tuple2(7.0, 0.679153),
+            Tuple2(8.0, 0.761897),
+            Tuple2(9.0, 0.826422),
+          ],
+          inverseCumulativeProbability: [
+            Tuple2(0.0, 0.000000),
+            Tuple2(0.1, 2.204131),
+            Tuple2(0.2, 3.070088),
+            Tuple2(0.3, 3.827552),
+            Tuple2(0.4, 4.570154),
+            Tuple2(0.5, 5.348121),
+            Tuple2(0.6, 6.210757),
+            Tuple2(0.7, 7.231135),
+            Tuple2(0.8, 8.558060),
+            Tuple2(0.9, 10.644641),
+          ],
+        );
+      });
+      group('gamma (shape = 5.0; scale = 1.0)', () {
+        const distribution = GammaDistribution(5.0, 1.0);
+        testDistribution(
+          distribution,
+          min: 0.0,
+          mean: 5.0,
+          variance: 5.0,
+          probability: [
+            Tuple2(1.0, 0.015328),
+            Tuple2(2.0, 0.090224),
+            Tuple2(3.0, 0.168031),
+            Tuple2(4.0, 0.195367),
+            Tuple2(5.0, 0.175467),
+            Tuple2(6.0, 0.133853),
+            Tuple2(7.0, 0.091226),
+            Tuple2(8.0, 0.057252),
+            Tuple2(9.0, 0.033737),
+          ],
+          cumulativeProbability: [
+            Tuple2(1.0, 0.003660),
+            Tuple2(2.0, 0.052653),
+            Tuple2(3.0, 0.184737),
+            Tuple2(4.0, 0.371163),
+            Tuple2(5.0, 0.559507),
+            Tuple2(6.0, 0.714943),
+            Tuple2(7.0, 0.827008),
+            Tuple2(8.0, 0.900368),
+            Tuple2(9.0, 0.945036),
+          ],
+          inverseCumulativeProbability: [
+            Tuple2(0.0, 0.000000),
+            Tuple2(0.1, 2.432591),
+            Tuple2(0.2, 3.089540),
+            Tuple2(0.3, 3.633609),
+            Tuple2(0.4, 4.147736),
+            Tuple2(0.5, 4.670909),
+            Tuple2(0.6, 5.236618),
+            Tuple2(0.7, 5.890361),
+            Tuple2(0.8, 6.720979),
+            Tuple2(0.9, 7.993590),
+          ],
+        );
+      });
+      group('gamma (shape = 9.0; scale = 0.5)', () {
+        const distribution = GammaDistribution(9.0, 0.5);
+        testDistribution(
+          distribution,
+          min: 0.0,
+          mean: 4.5,
+          variance: 2.25,
+          probability: [
+            Tuple2(1.0, 0.001719),
+            Tuple2(2.0, 0.059540),
+            Tuple2(3.0, 0.206515),
+            Tuple2(4.0, 0.279173),
+            Tuple2(5.0, 0.225198),
+            Tuple2(6.0, 0.131047),
+            Tuple2(7.0, 0.060871),
+            Tuple2(8.0, 0.023975),
+            Tuple2(9.0, 0.008325),
+          ],
+          cumulativeProbability: [
+            Tuple2(1.0, 0.000237),
+            Tuple2(2.0, 0.021363),
+            Tuple2(3.0, 0.152763),
+            Tuple2(4.0, 0.407453),
+            Tuple2(5.0, 0.667180),
+            Tuple2(6.0, 0.844972),
+            Tuple2(7.0, 0.937945),
+            Tuple2(8.0, 0.978013),
+            Tuple2(9.0, 0.992944),
+          ],
+          inverseCumulativeProbability: [
+            Tuple2(0.0, 0.000000),
+            Tuple2(0.1, 2.716234),
+            Tuple2(0.2, 3.214238),
+            Tuple2(0.3, 3.609966),
+            Tuple2(0.4, 3.973303),
+            Tuple2(0.5, 4.334476),
+            Tuple2(0.6, 4.716976),
+            Tuple2(0.7, 5.150339),
+            Tuple2(0.8, 5.689886),
+            Tuple2(0.9, 6.497356),
+          ],
+        );
+      });
+      group('gamma (shape = 7.5; scale = 1.0)', () {
+        const distribution = GammaDistribution(7.5, 1.0);
+        testDistribution(
+          distribution,
+          min: 0.0,
+          mean: 7.5,
+          variance: 7.5,
+          probability: [
+            Tuple2(1.0, 0.000197),
+            Tuple2(2.0, 0.006546),
+            Tuple2(3.0, 0.033595),
+            Tuple2(4.0, 0.080182),
+            Tuple2(5.0, 0.125806),
+            Tuple2(6.0, 0.151385),
+            Tuple2(7.0, 0.151685),
+            Tuple2(8.0, 0.132922),
+            Tuple2(9.0, 0.105146),
+          ],
+          cumulativeProbability: [
+            Tuple2(1.0, 0.000030),
+            Tuple2(2.0, 0.002263),
+            Tuple2(3.0, 0.020252),
+            Tuple2(4.0, 0.076217),
+            Tuple2(5.0, 0.180260),
+            Tuple2(6.0, 0.320971),
+            Tuple2(7.0, 0.474471),
+            Tuple2(8.0, 0.617948),
+            Tuple2(9.0, 0.737334),
+          ],
+          inverseCumulativeProbability: [
+            Tuple2(0.0, 0.000000),
+            Tuple2(0.1, 4.273378),
+            Tuple2(0.2, 5.153480),
+            Tuple2(0.3, 5.860584),
+            Tuple2(0.4, 6.514875),
+            Tuple2(0.5, 7.169430),
+            Tuple2(0.6, 7.866611),
+            Tuple2(0.7, 8.660847),
+            Tuple2(0.8, 9.655329),
+            Tuple2(0.9, 11.153565),
+          ],
+        );
+      });
+      group('gamma (shape = 0.5; scale = 1.0)', () {
+        const distribution = GammaDistribution(0.5, 1.0);
+        testDistribution(
+          distribution,
+          min: 0.0,
+          mean: 0.5,
+          variance: 0.5,
+          probability: [
+            Tuple2(1.0, 0.207554),
+            Tuple2(2.0, 0.053991),
+            Tuple2(3.0, 0.016217),
+            Tuple2(4.0, 0.005167),
+            Tuple2(5.0, 0.001700),
+            Tuple2(6.0, 0.000571),
+            Tuple2(7.0, 0.000194),
+            Tuple2(8.0, 0.000067),
+            Tuple2(9.0, 0.000023),
+          ],
+          cumulativeProbability: [
+            Tuple2(1.0, 0.842701),
+            Tuple2(2.0, 0.954500),
+            Tuple2(3.0, 0.985694),
+            Tuple2(4.0, 0.995322),
+            Tuple2(5.0, 0.998435),
+            Tuple2(6.0, 0.999468),
+            Tuple2(7.0, 0.999817),
+            Tuple2(8.0, 0.999937),
+            Tuple2(9.0, 0.999978),
+          ],
+          inverseCumulativeProbability: [
+            Tuple2(0.0, 0.000000),
+            Tuple2(0.1, 0.007895),
+            Tuple2(0.2, 0.032092),
+            Tuple2(0.3, 0.074236),
+            Tuple2(0.4, 0.137498),
+            Tuple2(0.5, 0.227468),
+            Tuple2(0.6, 0.354163),
+            Tuple2(0.7, 0.537097),
+            Tuple2(0.8, 0.821187),
+            Tuple2(0.9, 1.352772),
+          ],
+        );
+      });
       group('normal', () {
         const distribution = NormalDistribution(2.1, 1.4);
         testDistribution(distribution,

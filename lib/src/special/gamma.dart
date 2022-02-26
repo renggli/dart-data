@@ -68,6 +68,95 @@ double gammaLn(num x) {
   return 0.5 * log(2.0 * pi) + (x + 0.5) * log(t) - t + log(y) - log(x);
 }
 
+// The lower incomplete gamma function, which is usually typeset with a
+// lower-case greek gamma as the function symbol.
+double gammap(num a, num x) => lowRegGamma(a, x) * gamma(a);
+
+// Returns the inverse of the lower regularized inomplete gamma function
+double gammapInv(num p, num a) {
+  final a1 = a - 1.0;
+  final epsilon = 1.0e-8;
+  var gln = gammaLn(a);
+  var x = 0.0;
+  var afac = 0.0;
+  var lna1 = 0.0;
+
+  if (p >= 1.0) {
+    return max(100, a + 100 * sqrt(a));
+  } else if (p <= 0) {
+    return 0.0;
+  } else if (a > 1.0) {
+    lna1 = log(a1);
+    afac = exp(a1 * (lna1 - 1) - gln);
+    final pp = (p < 0.5) ? p : 1 - p;
+    final t = sqrt(-2 * log(pp));
+    x = (2.30753 + t * 0.27061) / (1 + t * (0.99229 + t * 0.04481)) - t;
+    if (p < 0.5) {
+      x = -x;
+    }
+    x = max(1e-3, a * pow(1 - 1 / (9 * a) - x / (3 * sqrt(a)), 3).toDouble());
+  } else {
+    final t = 1.0 - a * (0.253 + a * 0.12);
+    if (p < t) {
+      x = pow(p / t, 1 / a).toDouble();
+    } else {
+      x = 1 - log(1 - (p - t) / (1 - t));
+    }
+  }
+  for (var j = 0; j < 12; j++) {
+    if (x <= 0.0) {
+      return 0.0;
+    }
+    final err = lowRegGamma(a, x) - p;
+    var t = a > 1.0
+        ? afac * exp(-(x - a1) + a1 * (log(x) - lna1))
+        : exp(-x + a1 * log(x) - gln);
+    final u = err / t;
+    x -= (t = u / (1.0 - 0.5 * min(1, u * ((a - 1.0) / x - 1.0))));
+    if (x <= 0.0) {
+      x = 0.5 * (x + t);
+    }
+    if (t.abs() < epsilon * x) {
+      break;
+    }
+  }
+  return x;
+}
+
+// The lower regularized incomplete gamma function, usually written P(a,x)
+double lowRegGamma(num a, num x) {
+  var aln = gammaLn(a);
+  var ap = a;
+  var sum = 1.0 / a;
+  var del = sum;
+  var b = x + 1 - a;
+  var c = 1 / 1.0e-30;
+  var d = 1 / b;
+  var h = d;
+  // calculate maximum number of itterations required for a
+  final itmax = -~(log((a >= 1) ? a : 1 / a) * 8.5 + a * 0.4 + 17).floor();
+
+  if (x < 0 || a <= 0) {
+    return double.nan;
+  } else if (x < a + 1) {
+    for (var i = 1; i <= itmax; i++) {
+      sum += del *= x / ++ap;
+    }
+    return sum * exp(-x + a * log(x) - aln);
+  }
+
+  for (var i = 1; i <= itmax; i++) {
+    final an = -i * (i - a);
+    b += 2;
+    d = an * d + b;
+    c = b + an / c;
+    d = 1 / d;
+    h *= d * c;
+  }
+
+  return 1.0 - h * exp(-x + a * log(x) - (aln));
+}
+
 /// Factorial based on the [gamma] function.
 double factorial(num n) => n < 0.0 ? double.nan : gamma(1.0 + n);
 
