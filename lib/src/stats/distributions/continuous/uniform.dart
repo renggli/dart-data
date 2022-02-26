@@ -33,6 +33,9 @@ class UniformDistribution extends ContinuousDistribution {
   double get median => mean;
 
   @override
+  double get mode => double.nan; // any value in the range
+
+  @override
   double get variance => pow(b - a, 2) / 12.0;
 
   @override

@@ -23,10 +23,13 @@ class PoissonDistribution extends DiscreteDistribution {
   double get mean => lambda;
 
   @override
-  double get variance => lambda;
+  double get median => lambda;
 
   @override
-  double get median => lambda;
+  double get mode => lambda.floorToDouble();
+
+  @override
+  double get variance => lambda;
 
   @override
   double probability(int k) => k < 0

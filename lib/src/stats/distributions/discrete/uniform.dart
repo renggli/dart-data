@@ -30,6 +30,9 @@ class UniformDiscreteDistribution extends DiscreteDistribution {
   double get median => mean;
 
   @override
+  double get mode => double.nan;
+
+  @override
   double get variance => (count * count - 1) / 12;
 
   @override

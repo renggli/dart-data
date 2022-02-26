@@ -22,6 +22,9 @@ class NormalDistribution extends ContinuousDistribution {
   double get median => mean;
 
   @override
+  double get mode => mean;
+
+  @override
   final double standardDeviation;
 
   @override

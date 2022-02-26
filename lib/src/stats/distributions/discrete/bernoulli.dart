@@ -33,6 +33,9 @@ class BernoulliDistribution extends DiscreteDistribution {
           : 0.5;
 
   @override
+  double get mode => p <= 0.5 ? 0 : 1;
+
+  @override
   double get variance => p * q;
 
   @override

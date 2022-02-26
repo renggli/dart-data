@@ -14,15 +14,18 @@ dynamic isCloseTo(num expected, {double epsilon = 1.0e-6}) =>
             : closeTo(expected, epsilon);
 final throwsInvalidProbability = throwsA(isA<InvalidProbability>());
 
-void testDistribution<T extends num>(Distribution<T> distribution,
-    {T? min,
-    T? max,
-    double? mean,
-    double? median,
-    double? variance,
-    List<Tuple2<T, double>>? probability,
-    List<Tuple2<T, double>>? cumulativeProbability,
-    List<Tuple2<double, T>>? inverseCumulativeProbability}) {
+void testDistribution<T extends num>(
+  Distribution<T> distribution, {
+  T? min,
+  T? max,
+  double? mean,
+  double? median,
+  double? mode,
+  double? variance,
+  List<Tuple2<T, double>>? probability,
+  List<Tuple2<T, double>>? cumulativeProbability,
+  List<Tuple2<double, T>>? inverseCumulativeProbability,
+}) {
   final isDiscrete = distribution is DiscreteDistribution;
   test('lower bound', () {
     expect(
@@ -50,6 +53,11 @@ void testDistribution<T extends num>(Distribution<T> distribution,
   if (median != null || mean != null) {
     test('median', () {
       expect(distribution.median, isCloseTo(median ?? mean ?? 0.0));
+    });
+  }
+  if (mode != null) {
+    test('mode', () {
+      expect(distribution.mode, isCloseTo(mode));
     });
   }
   if (variance != null) {

@@ -33,6 +33,9 @@ class BinomialDistribution extends DiscreteDistribution {
   double get median => mean.roundToDouble();
 
   @override
+  double get mode => ((n + 1) * p).floorToDouble();
+
+  @override
   double get variance => n * p * q;
 
   @override
