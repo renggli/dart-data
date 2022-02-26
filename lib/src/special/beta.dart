@@ -6,21 +6,21 @@ import 'gamma.dart';
 double beta(num x, num y) =>
     x <= 0 || y <= 0 ? double.nan : gamma(x) * gamma(y) / gamma(x + y);
 
-/// Logarithm of the beta function based on the [logGamma] function.
-double logBeta(num x, num y) =>
-    x <= 0 || y <= 0 ? double.nan : logGamma(x) + logGamma(y) - logGamma(x + y);
+/// Logarithm of the beta function based on the [gammaLn] function.
+double betaLn(num x, num y) =>
+    x <= 0 || y <= 0 ? double.nan : gammaLn(x) + gammaLn(y) - gammaLn(x + y);
 
 /// Incomplete beta function.
-double incompleteBeta(num x, num a, num b) {
+double ibeta(num x, num a, num b) {
   if (x < 0 || 1 < x) {
     return double.nan;
   }
   // Factor in front of the continued fraction.
   final bt = x == 0 || x == 1
       ? 0.0
-      : exp(logGamma(a + b) -
-          logGamma(a) -
-          logGamma(b) +
+      : exp(gammaLn(a + b) -
+          gammaLn(a) -
+          gammaLn(b) +
           a * log(x) +
           b * log(1.0 - x));
   if (x < (a + 1.0) / (a + b + 2.0)) {
@@ -33,7 +33,7 @@ double incompleteBeta(num x, num a, num b) {
 }
 
 /// Inverse of the incomplete beta function.
-double incompleteBetaInv(num p, num a, num b) {
+double ibetaInv(num p, num a, num b) {
   var epsilon = 1.0e-8, a1 = a - 1.0, b1 = b - 1.0;
   if (p <= 0.0) {
     return 0.0;
@@ -66,10 +66,10 @@ double incompleteBetaInv(num p, num a, num b) {
       x = 1.0 - pow(b * w * (1 - p), 1 / b);
     }
   }
-  var afac = -logGamma(a) - logGamma(b) + logGamma(a + b);
+  var afac = -gammaLn(a) - gammaLn(b) + gammaLn(a + b);
   for (var j = 0; j < 10; j++) {
     if (x == 0 || x == 1) return x;
-    var err = incompleteBeta(x, a, b) - p;
+    var err = ibeta(x, a, b) - p;
     var t = exp(a1 * log(x) + b1 * log(1 - x) + afac);
     var u = err / t;
     x -= (t = u / (1 - 0.5 * min(1, u * (a1 / x - b1 / (1 - x)))));

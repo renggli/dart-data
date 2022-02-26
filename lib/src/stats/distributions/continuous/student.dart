@@ -33,17 +33,17 @@ class StudentDistribution extends ContinuousDistribution {
 
   @override
   double probability(double x) =>
-      exp(logGamma(0.5 * (v + 1.0)) - logGamma(0.5 * v)) /
+      exp(gammaLn(0.5 * (v + 1.0)) - gammaLn(0.5 * v)) /
       (sqrt(v * pi) * pow(1.0 + x * x / v, 0.5 * (v + 1.0)));
 
   @override
-  double cumulativeProbability(double x) => incompleteBeta(
-      (x + sqrt(x * x + v)) / (2.0 * sqrt(x * x + v)), 0.5 * v, 0.5 * v);
+  double cumulativeProbability(double x) =>
+      ibeta((x + sqrt(x * x + v)) / (2.0 * sqrt(x * x + v)), 0.5 * v, 0.5 * v);
 
   @override
   double inverseCumulativeProbability(num p) {
     InvalidProbability.check(p);
-    var x = incompleteBetaInv(2.0 * min(p, 1.0 - p), 0.5 * v, 0.5);
+    var x = ibetaInv(2.0 * min(p, 1.0 - p), 0.5 * v, 0.5);
     x = sqrt(v * (1.0 - x) / x);
     return p > 0.5 ? x : -x;
   }

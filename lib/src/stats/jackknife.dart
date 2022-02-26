@@ -54,7 +54,7 @@ class Jackknife<T> {
   late final _sampleMeasure = statistic(samples);
   late final _resampleMeasures = resamples.map(statistic).toList();
   late final _meanResampleMeasure = _resampleMeasures.arithmeticMean();
-  late final _zScore = sqrt2 * erfinv(confidenceLevel);
+  late final _zScore = sqrt2 * erfInv(confidenceLevel);
 }
 
 /// A view of a Jackknife resampling of a [List].

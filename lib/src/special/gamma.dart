@@ -25,7 +25,7 @@ double gamma(num x) {
       return pi / (sin(pi * x) * gamma(1 - x));
     }
   } else if (x > 100.0) {
-    return exp(logGamma(x));
+    return exp(gammaLn(x));
   } else {
     x -= 1.0;
     var y = p[0];
@@ -38,7 +38,7 @@ double gamma(num x) {
 }
 
 /// Returns the natural logarithm of the gamma function.
-double logGamma(num x) {
+double gammaLn(num x) {
   const g = 607 / 128;
   const p = [
     0.99999999999999709182,
@@ -57,7 +57,7 @@ double logGamma(num x) {
     -0.26190838401581408670e-4,
     0.36899182659531622704e-5,
   ];
-  if (x <= 0) {
+  if (x <= 0.0) {
     return double.nan;
   }
   var y = p[0];
@@ -69,15 +69,21 @@ double logGamma(num x) {
 }
 
 /// Factorial based on the [gamma] function.
-double factorial(num n) => n < 0 ? double.nan : gamma(n + 1.0);
+double factorial(num n) => n < 0.0 ? double.nan : gamma(1.0 + n);
 
-/// Logarithm of the factorial based on the [logGamma] function.
-double logFactorial(num n) => n < 0 ? double.nan : logGamma(n + 1.0);
+/// Logarithm of the factorial based on the [gammaLn] function.
+double factorialLn(num n) => n < 0.0 ? double.nan : gammaLn(1.0 + n);
 
 /// Combinations based on the [gamma] function.
 double combination(num n, num k) =>
     factorial(n) / factorial(k) / factorial(n - k);
 
-/// Logarithm of the combinations based on the [logGamma] function.
-double logCombination(num n, num k) =>
-    logFactorial(n) - logFactorial(k) - logFactorial(n - k);
+/// Logarithm of the combinations based on the [gammaLn] function.
+double combinationLn(num n, num k) =>
+    factorialLn(n) - factorialLn(k) - factorialLn(n - k);
+
+/// Permutations based on the [gamma] function.
+double permutation(num n, num m) => factorial(n) / factorial(n - m);
+
+/// Logarithm of the permutations based on the [gammaLn] function.
+double permutationLn(num n, num m) => factorialLn(n) - factorialLn(n - m);

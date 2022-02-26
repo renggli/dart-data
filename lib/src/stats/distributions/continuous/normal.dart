@@ -39,15 +39,12 @@ class NormalDistribution extends ContinuousDistribution {
   @override
   double cumulativeProbability(double x) {
     final z = (x - mean) / (sqrt2 * standardDeviation);
-    return 0.5 * (1.0 + errorFunction(z));
+    return 0.5 * (1.0 + erf(z));
   }
 
   @override
   double inverseCumulativeProbability(num p) =>
-      -1.41421356237309505 *
-          standardDeviation *
-          inverseComplementaryErrorFunction(2 * p) +
-      mean;
+      -1.41421356237309505 * standardDeviation * erfcInv(2 * p) + mean;
 
   @override
   double sample({Random? random}) => samples(random: random).first;
