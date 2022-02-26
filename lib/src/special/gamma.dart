@@ -68,11 +68,10 @@ double gammaLn(num x) {
   return 0.5 * log(2.0 * pi) + (x + 0.5) * log(t) - t + log(y) - log(x);
 }
 
-// The lower incomplete gamma function, which is usually typeset with a
-// lower-case greek gamma as the function symbol.
+// Returns the lower incomplete gamma function.
 double gammap(num a, num x) => lowRegGamma(a, x) * gamma(a);
 
-// Returns the inverse of the lower regularized inomplete gamma function
+// Returns the inverse of the lower regularized incomplete gamma function.
 double gammapInv(num p, num a) {
   final a1 = a - 1.0;
   final epsilon = 1.0e-8;
@@ -88,19 +87,20 @@ double gammapInv(num p, num a) {
   } else if (a > 1.0) {
     lna1 = log(a1);
     afac = exp(a1 * (lna1 - 1) - gln);
-    final pp = (p < 0.5) ? p : 1 - p;
+    final pp = p < 0.5 ? p : 1 - p;
     final t = sqrt(-2 * log(pp));
-    x = (2.30753 + t * 0.27061) / (1 + t * (0.99229 + t * 0.04481)) - t;
+    x = (2.30753 + t * 0.27061) / (1.0 + t * (0.99229 + t * 0.04481)) - t;
     if (p < 0.5) {
       x = -x;
     }
-    x = max(1e-3, a * pow(1 - 1 / (9 * a) - x / (3 * sqrt(a)), 3).toDouble());
+    x = max(1.0e-3,
+        a * pow(1.0 - 1.0 / (9.0 * a) - x / (3.0 * sqrt(a)), 3.0).toDouble());
   } else {
     final t = 1.0 - a * (0.253 + a * 0.12);
     if (p < t) {
-      x = pow(p / t, 1 / a).toDouble();
+      x = pow(p / t, 1.0 / a).toDouble();
     } else {
-      x = 1 - log(1 - (p - t) / (1 - t));
+      x = 1.0 - log(1 - (p - t) / (1 - t));
     }
   }
   for (var j = 0; j < 12; j++) {
@@ -112,7 +112,7 @@ double gammapInv(num p, num a) {
         ? afac * exp(-(x - a1) + a1 * (log(x) - lna1))
         : exp(-x + a1 * log(x) - gln);
     final u = err / t;
-    x -= (t = u / (1.0 - 0.5 * min(1, u * ((a - 1.0) / x - 1.0))));
+    x -= (t = u / (1.0 - 0.5 * min(1.0, u * ((a - 1.0) / x - 1.0))));
     if (x <= 0.0) {
       x = 0.5 * (x + t);
     }
@@ -123,7 +123,7 @@ double gammapInv(num p, num a) {
   return x;
 }
 
-// The lower regularized incomplete gamma function, usually written P(a,x)
+// Returns the lower regularized incomplete gamma function.
 double lowRegGamma(num a, num x) {
   var aln = gammaLn(a);
   var ap = a;
@@ -133,9 +133,7 @@ double lowRegGamma(num a, num x) {
   var c = 1 / 1.0e-30;
   var d = 1 / b;
   var h = d;
-  // calculate maximum number of itterations required for a
   final itmax = -~(log((a >= 1) ? a : 1 / a) * 8.5 + a * 0.4 + 17).floor();
-
   if (x < 0 || a <= 0) {
     return double.nan;
   } else if (x < a + 1) {
@@ -144,7 +142,6 @@ double lowRegGamma(num a, num x) {
     }
     return sum * exp(-x + a * log(x) - aln);
   }
-
   for (var i = 1; i <= itmax; i++) {
     final an = -i * (i - a);
     b += 2;
@@ -153,26 +150,25 @@ double lowRegGamma(num a, num x) {
     d = 1 / d;
     h *= d * c;
   }
-
   return 1.0 - h * exp(-x + a * log(x) - (aln));
 }
 
-/// Factorial based on the [gamma] function.
+/// Returns the factorial based on the [gamma] function.
 double factorial(num n) => n < 0.0 ? double.nan : gamma(1.0 + n);
 
-/// Logarithm of the factorial based on the [gammaLn] function.
+/// Returns the logarithm of the factorial based on the [gammaLn] function.
 double factorialLn(num n) => n < 0.0 ? double.nan : gammaLn(1.0 + n);
 
-/// Combinations based on the [gamma] function.
+/// Returns the combinations based on the [gamma] function.
 double combination(num n, num k) =>
     factorial(n) / factorial(k) / factorial(n - k);
 
-/// Logarithm of the combinations based on the [gammaLn] function.
+/// Returns the logarithm of the combinations based on the [gammaLn] function.
 double combinationLn(num n, num k) =>
     factorialLn(n) - factorialLn(k) - factorialLn(n - k);
 
-/// Permutations based on the [gamma] function.
+/// Returns the permutations based on the [gamma] function.
 double permutation(num n, num m) => factorial(n) / factorial(n - m);
 
-/// Logarithm of the permutations based on the [gammaLn] function.
+/// Returns the logarithm of the permutations based on the [gammaLn] function.
 double permutationLn(num n, num m) => factorialLn(n) - factorialLn(n - m);

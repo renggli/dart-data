@@ -41,7 +41,7 @@ class InverseGammaDistribution extends ContinuousDistribution {
       ? 0.0
       : exp(-(shape + 1.0) * log(x) -
           scale / x -
-          gammaLn(shape) -
+          gammaLn(shape) +
           shape * log(scale));
 
   @override
