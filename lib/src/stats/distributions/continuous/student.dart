@@ -1,17 +1,18 @@
 import 'dart:math';
 
-import '../../../../data.dart';
 import '../../../special/beta.dart';
 import '../../../special/gamma.dart';
 import '../continuous.dart';
 import '../errors.dart';
+import 'gamma.dart';
+import 'normal.dart';
 
 /// Student's t-distribution.
 ///
 /// For details see https://en.wikipedia.org/wiki/Student%27s_t-distribution
 class StudentDistribution extends ContinuousDistribution {
   /// A Student's t-distribution with degrees of freedom.
-  const StudentDistribution(this.dof) : assert(dof > 0);
+  const StudentDistribution(this.dof) : assert(dof > 0, 'dof > 0');
 
   /// The degrees of freedom.
   final double dof;
@@ -64,7 +65,7 @@ class StudentDistribution extends ContinuousDistribution {
       other is StudentDistribution && dof == other.dof;
 
   @override
-  int get hashCode => dof.hashCode;
+  int get hashCode => Object.hash(StudentDistribution, dof);
 
   @override
   String toString() => 'StudentDistribution{dof: $dof}';

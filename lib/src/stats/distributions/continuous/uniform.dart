@@ -9,7 +9,10 @@ import '../continuous.dart';
 /// For details see https://en.wikipedia.org/wiki/Continuous_uniform_distribution.
 class UniformDistribution extends ContinuousDistribution {
   /// A uniform distribution between [a] and [b].
-  const UniformDistribution(this.a, this.b);
+  const UniformDistribution(this.a, this.b)
+      : assert(double.negativeInfinity < a, '-∞ < a'),
+        assert(a < b, 'a < b'),
+        assert(b < double.infinity, 'b < ∞');
 
   /// A standard uniform distribution between 0 and 1.
   const UniformDistribution.standard() : this(0.0, 1.0);
@@ -60,7 +63,7 @@ class UniformDistribution extends ContinuousDistribution {
       other is UniformDistribution && a == other.a && b == other.b;
 
   @override
-  int get hashCode => Object.hash(a, b);
+  int get hashCode => Object.hash(UniformDistribution, a, b);
 
   @override
   String toString() => 'UniformDistribution[$a..$b]';

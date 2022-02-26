@@ -1,9 +1,9 @@
 import 'dart:math';
 
-import '../../../../data.dart';
 import '../../../special/gamma.dart';
 import '../continuous.dart';
 import '../errors.dart';
+import 'normal.dart';
 import 'uniform.dart';
 
 /// The gamma distribution described by [shape] and [scale] parameter.
@@ -95,7 +95,7 @@ class GammaDistribution extends ContinuousDistribution {
       scale == other.scale;
 
   @override
-  int get hashCode => Object.hash(shape, scale);
+  int get hashCode => Object.hash(GammaDistribution, shape, scale);
 
   @override
   String toString() => 'GammaDistribution{shape: $shape; scale: $scale}';

@@ -10,7 +10,8 @@ import 'uniform.dart';
 /// For details see https://en.wikipedia.org/wiki/Normal_distribution.
 class NormalDistribution extends ContinuousDistribution {
   /// A standard normal distribution with [mean] and [standardDeviation].
-  const NormalDistribution(this.mean, this.standardDeviation);
+  const NormalDistribution(this.mean, this.standardDeviation)
+      : assert(standardDeviation > 0, 'standardDeviation > 0');
 
   /// A standard normal distribution centered around 0.
   const NormalDistribution.standard() : this(0.0, 1.0);
@@ -73,7 +74,7 @@ class NormalDistribution extends ContinuousDistribution {
       standardDeviation == other.standardDeviation;
 
   @override
-  int get hashCode => Object.hash(mean, standardDeviation);
+  int get hashCode => Object.hash(NormalDistribution, mean, standardDeviation);
 
   @override
   String toString() =>

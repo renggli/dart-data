@@ -6,7 +6,7 @@ import '../discrete.dart';
 /// A discrete uniform distribution between [a] and [b], for details see
 /// https://en.wikipedia.org/wiki/Discrete_uniform_distribution.
 class UniformDiscreteDistribution extends DiscreteDistribution {
-  const UniformDiscreteDistribution(this.a, this.b);
+  const UniformDiscreteDistribution(this.a, this.b) : assert(a <= b, 'a <= b');
 
   /// Minimum value of the distribution.
   final int a;
@@ -56,7 +56,7 @@ class UniformDiscreteDistribution extends DiscreteDistribution {
       other is UniformDiscreteDistribution && a == other.a && b == other.b;
 
   @override
-  int get hashCode => Object.hash(a, b);
+  int get hashCode => Object.hash(UniformDiscreteDistribution, a, b);
 
   @override
   String toString() => 'UniformDiscreteDistribution[$a..$b]';

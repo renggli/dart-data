@@ -8,7 +8,9 @@ import '../discrete.dart';
 ///
 /// For details see https://en.wikipedia.org/wiki/Bernoulli_distribution.
 class BernoulliDistribution extends DiscreteDistribution {
-  const BernoulliDistribution(this.p);
+  const BernoulliDistribution(this.p)
+      : assert(0 <= p, '0 <= p'),
+        assert(p <= 1.0, 'p <= 1');
 
   /// Success probability for each trial (0..1).
   final double p;
@@ -63,7 +65,7 @@ class BernoulliDistribution extends DiscreteDistribution {
       other is BernoulliDistribution && p == other.p;
 
   @override
-  int get hashCode => p.hashCode;
+  int get hashCode => Object.hash(BernoulliDistribution, p);
 
   @override
   String toString() => 'BernoulliDistribution{p: $p, q: $q}';
