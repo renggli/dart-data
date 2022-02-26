@@ -81,4 +81,6 @@ Misc
 
 The MIT License, see [LICENSE](https://github.com/renggli/dart-data/raw/main/LICENSE).
 
-The matrix decomposition algorithms are a direct port of the [JAMA: A Java Matrix Package](https://math.nist.gov/javanumerics/jama/), that is released under public domain.
+The matrix decomposition algorithms are a direct port of the [JAMA: A Java Matrix Package](https://math.nist.gov/javanumerics/jama/) released under public domain.
+
+The distributions and some of special functions are a port of [JavaScript Statistical Library](https://github.com/jstat/jstat) released under MIT.

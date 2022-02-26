@@ -156,6 +156,7 @@ void testDistribution<T extends num>(
   const otherDistributions = [
     UniformDiscreteDistribution(-1, 1),
     NormalDistribution(-1, 1),
+    StudentDistribution(42),
   ];
   test('equality', () {
     expect(distribution == distribution, isTrue);
@@ -184,6 +185,7 @@ void main() {
         const distribution = NormalDistribution(2.1, 1.4);
         testDistribution(distribution,
             mean: 2.1,
+            mode: 2.1,
             variance: 1.4 * 1.4,
             probability: const [
               Tuple2(-2.226325228634938, 0.00240506434076),
@@ -212,7 +214,272 @@ void main() {
       });
       group('normal (standard)', () {
         const distribution = NormalDistribution.standard();
-        testDistribution(distribution, mean: 0.0, variance: 1.0);
+        testDistribution(
+          distribution,
+          mean: 0.0,
+          mode: 0.0,
+          variance: 1.0,
+        );
+      });
+      group('student (v = 1, cauchy distribution)', () {
+        const distribution = StudentDistribution(1);
+        testDistribution(
+          distribution,
+          mean: double.nan,
+          median: 0.0,
+          mode: 0.0,
+          variance: double.nan,
+          probability: const [
+            Tuple2(-4.0, 0.018724),
+            Tuple2(-3.0, 0.031831),
+            Tuple2(-2.0, 0.063662),
+            Tuple2(-1.0, 0.159155),
+            Tuple2(0.0, 0.318310),
+            Tuple2(1.0, 0.159155),
+            Tuple2(2.0, 0.063662),
+            Tuple2(3.0, 0.031831),
+            Tuple2(4.0, 0.018724),
+          ],
+          cumulativeProbability: [
+            Tuple2(-4.0, 0.077979),
+            Tuple2(-3.0, 0.102416),
+            Tuple2(-2.0, 0.147584),
+            Tuple2(-1.0, 0.250000),
+            Tuple2(0.0, 0.500000),
+            Tuple2(1.0, 0.750000),
+            Tuple2(2.0, 0.852416),
+            Tuple2(3.0, 0.897584),
+            Tuple2(4.0, 0.922021),
+          ],
+          inverseCumulativeProbability: [
+            Tuple2(0.0, -double.infinity),
+            Tuple2(0.1, -3.077684),
+            Tuple2(0.2, -1.376382),
+            Tuple2(0.3, -0.726543),
+            Tuple2(0.4, -0.324920),
+            Tuple2(0.5, 0.000000),
+            Tuple2(0.6, 0.324920),
+            Tuple2(0.7, 0.726543),
+            Tuple2(0.8, 1.376382),
+            Tuple2(0.9, 3.077684),
+            Tuple2(1.0, double.infinity),
+          ],
+        );
+      });
+      group('student (v = 2)', () {
+        const distribution = StudentDistribution(2);
+        testDistribution(
+          distribution,
+          mean: 0.0,
+          variance: double.infinity,
+          probability: const [
+            Tuple2(-4.0, 0.013095),
+            Tuple2(-3.0, 0.027410),
+            Tuple2(-2.0, 0.068041),
+            Tuple2(-1.0, 0.192450),
+            Tuple2(0.0, 0.353553),
+            Tuple2(1.0, 0.192450),
+            Tuple2(2.0, 0.068041),
+            Tuple2(3.0, 0.027410),
+            Tuple2(4.0, 0.013095),
+          ],
+          cumulativeProbability: [
+            Tuple2(-4.0, 0.028595),
+            Tuple2(-3.0, 0.047733),
+            Tuple2(-2.0, 0.091752),
+            Tuple2(-1.0, 0.211325),
+            Tuple2(0.0, 0.500000),
+            Tuple2(1.0, 0.788675),
+            Tuple2(2.0, 0.908248),
+            Tuple2(3.0, 0.952267),
+            Tuple2(4.0, 0.971405),
+          ],
+          inverseCumulativeProbability: [
+            Tuple2(0.0, -double.infinity),
+            Tuple2(0.1, -1.885618),
+            Tuple2(0.2, -1.060660),
+            Tuple2(0.3, -0.617213),
+            Tuple2(0.4, -0.288675),
+            Tuple2(0.5, 0.000000),
+            Tuple2(0.6, 0.288675),
+            Tuple2(0.7, 0.617213),
+            Tuple2(0.8, 1.060660),
+            Tuple2(0.9, 1.885618),
+            Tuple2(1.0, double.infinity),
+          ],
+        );
+      });
+      group('student (v = 3)', () {
+        const distribution = StudentDistribution(3);
+        testDistribution(
+          distribution,
+          mean: 0.0,
+          variance: 3.0,
+          probability: const [
+            Tuple2(-4.0, 0.009163),
+            Tuple2(-3.0, 0.022972),
+            Tuple2(-2.0, 0.067510),
+            Tuple2(-1.0, 0.206748),
+            Tuple2(0.0, 0.367553),
+            Tuple2(1.0, 0.206748),
+            Tuple2(2.0, 0.067510),
+            Tuple2(3.0, 0.022972),
+            Tuple2(4.0, 0.009163),
+          ],
+          cumulativeProbability: [
+            Tuple2(-4.0, 0.014004),
+            Tuple2(-3.0, 0.028834),
+            Tuple2(-2.0, 0.069663),
+            Tuple2(-1.0, 0.195501),
+            Tuple2(0.0, 0.500000),
+            Tuple2(1.0, 0.804499),
+            Tuple2(2.0, 0.930337),
+            Tuple2(3.0, 0.971166),
+            Tuple2(4.0, 0.985996),
+          ],
+          inverseCumulativeProbability: [
+            Tuple2(0.0, -double.infinity),
+            Tuple2(0.1, -1.637744),
+            Tuple2(0.2, -0.978472),
+            Tuple2(0.3, -0.584390),
+            Tuple2(0.4, -0.276671),
+            Tuple2(0.5, 0.000000),
+            Tuple2(0.6, 0.276671),
+            Tuple2(0.7, 0.584390),
+            Tuple2(0.8, 0.978472),
+            Tuple2(0.9, 1.637744),
+            Tuple2(1.0, double.infinity),
+          ],
+        );
+      });
+      group('student (v = 4)', () {
+        const distribution = StudentDistribution(4);
+        testDistribution(
+          distribution,
+          mean: 0.0,
+          variance: 2.0,
+          probability: const [
+            Tuple2(-4.0, 0.006708),
+            Tuple2(-3.0, 0.019693),
+            Tuple2(-2.0, 0.066291),
+            Tuple2(-1.0, 0.214663),
+            Tuple2(0.0, 0.375000),
+            Tuple2(1.0, 0.214663),
+            Tuple2(2.0, 0.066291),
+            Tuple2(3.0, 0.019693),
+            Tuple2(4.0, 0.006708),
+          ],
+          cumulativeProbability: [
+            Tuple2(-4.0, 0.008065),
+            Tuple2(-3.0, 0.019971),
+            Tuple2(-2.0, 0.058058),
+            Tuple2(-1.0, 0.186950),
+            Tuple2(0.0, 0.500000),
+            Tuple2(1.0, 0.813050),
+            Tuple2(2.0, 0.941942),
+            Tuple2(3.0, 0.980029),
+            Tuple2(4.0, 0.991935),
+          ],
+          inverseCumulativeProbability: [
+            Tuple2(0.0, -double.infinity),
+            Tuple2(0.1, -1.533206),
+            Tuple2(0.2, -0.940965),
+            Tuple2(0.3, -0.568649),
+            Tuple2(0.4, -0.270722),
+            Tuple2(0.5, 0.000000),
+            Tuple2(0.6, 0.270722),
+            Tuple2(0.7, 0.568649),
+            Tuple2(0.8, 0.940965),
+            Tuple2(0.9, 1.533206),
+            Tuple2(1.0, double.infinity),
+          ],
+        );
+      });
+      group('student (v = 5)', () {
+        const distribution = StudentDistribution(5);
+        testDistribution(
+          distribution,
+          mean: 0.0,
+          variance: 5 / 3,
+          probability: const [
+            Tuple2(-4.0, 0.005124),
+            Tuple2(-3.0, 0.017293),
+            Tuple2(-2.0, 0.065090),
+            Tuple2(-1.0, 0.219680),
+            Tuple2(0.0, 0.379607),
+            Tuple2(1.0, 0.219680),
+            Tuple2(2.0, 0.065090),
+            Tuple2(3.0, 0.017293),
+            Tuple2(4.0, 0.005124),
+          ],
+          cumulativeProbability: [
+            Tuple2(-4.0, 0.005162),
+            Tuple2(-3.0, 0.015050),
+            Tuple2(-2.0, 0.050970),
+            Tuple2(-1.0, 0.181609),
+            Tuple2(0.0, 0.500000),
+            Tuple2(1.0, 0.818391),
+            Tuple2(2.0, 0.949030),
+            Tuple2(3.0, 0.984950),
+            Tuple2(4.0, 0.994838),
+          ],
+          inverseCumulativeProbability: [
+            Tuple2(0.0, -double.infinity),
+            Tuple2(0.1, -1.475884),
+            Tuple2(0.2, -0.919544),
+            Tuple2(0.3, -0.559430),
+            Tuple2(0.4, -0.267181),
+            Tuple2(0.5, 0.000000),
+            Tuple2(0.6, 0.267181),
+            Tuple2(0.7, 0.559430),
+            Tuple2(0.8, 0.919544),
+            Tuple2(0.9, 1.475884),
+            Tuple2(1.0, double.infinity),
+          ],
+        );
+      });
+      group('student (v = 1234)', () {
+        const distribution = StudentDistribution(1234);
+        testDistribution(
+          distribution,
+          mean: 0.0,
+          variance: 1234 / 1232,
+          probability: const [
+            Tuple2(-4.0, 0.000140),
+            Tuple2(-3.0, 0.004488),
+            Tuple2(-2.0, 0.054067),
+            Tuple2(-1.0, 0.241873),
+            Tuple2(0.0, 0.398861),
+            Tuple2(1.0, 0.241873),
+            Tuple2(2.0, 0.054067),
+            Tuple2(3.0, 0.004488),
+            Tuple2(4.0, 0.000140),
+          ],
+          cumulativeProbability: [
+            Tuple2(-4.0, 0.000034),
+            Tuple2(-3.0, 0.001377),
+            Tuple2(-2.0, 0.022860),
+            Tuple2(-1.0, 0.158753),
+            Tuple2(0.0, 0.500000),
+            Tuple2(1.0, 0.841247),
+            Tuple2(2.0, 0.977140),
+            Tuple2(3.0, 0.998623),
+            Tuple2(4.0, 0.999966),
+          ],
+          inverseCumulativeProbability: [
+            Tuple2(0.0, -double.infinity),
+            Tuple2(0.1, -1.282238),
+            Tuple2(0.2, -0.841913),
+            Tuple2(0.3, -0.524536),
+            Tuple2(0.4, -0.253402),
+            Tuple2(0.5, 0.000000),
+            Tuple2(0.6, 0.253402),
+            Tuple2(0.7, 0.524536),
+            Tuple2(0.8, 0.841913),
+            Tuple2(0.9, 1.282238),
+            Tuple2(1.0, double.infinity),
+          ],
+        );
       });
       group('uniform', () {
         const distribution = UniformDistribution(-0.5, 1.25);
@@ -282,6 +549,7 @@ void main() {
             max: 1,
             mean: 0.7,
             median: 1.0,
+            mode: 1.0,
             variance: 0.21,
             probability: const [
               Tuple2(-1, 0),
@@ -308,6 +576,7 @@ void main() {
             max: 10,
             mean: 7,
             median: 7,
+            mode: 7,
             variance: 2.1,
             probability: const [
               Tuple2(-1, 0),
@@ -361,6 +630,7 @@ void main() {
           min: 0,
           mean: 4.0,
           median: 4.0,
+          mode: 4.0,
           variance: 4.0,
           probability: const [
             Tuple2(-1, 0),
@@ -395,6 +665,7 @@ void main() {
             min: -3,
             max: 5,
             mean: 1,
+            mode: double.nan,
             variance: 80 / 12,
             probability: const [
               Tuple2(-4, 0),

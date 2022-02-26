@@ -68,14 +68,6 @@ double logGamma(num x) {
   return 0.5 * log(2.0 * pi) + (x + 0.5) * log(t) - t + log(y) - log(x);
 }
 
-/// Beta function based on the [gamma] function.
-double beta(num x, num y) =>
-    x <= 0 || y <= 0 ? double.nan : gamma(x) * gamma(y) / gamma(x + y);
-
-/// Logarithm of the beta function based on the [logGamma] function.
-double logBeta(num x, num y) =>
-    x <= 0 || y <= 0 ? double.nan : logGamma(x) + logGamma(y) - logGamma(x + y);
-
 /// Factorial based on the [gamma] function.
 double factorial(num n) => n < 0 ? double.nan : gamma(n + 1.0);
 

@@ -1,9 +1,9 @@
 /// Statistical computations and algorithms.
 export 'src/stats/distribution.dart';
 export 'src/stats/distributions/continuous.dart';
-export 'src/stats/distributions/continuous/normal.dart' show NormalDistribution;
-export 'src/stats/distributions/continuous/uniform.dart'
-    show UniformDistribution;
+export 'src/stats/distributions/continuous/normal.dart';
+export 'src/stats/distributions/continuous/student.dart';
+export 'src/stats/distributions/continuous/uniform.dart';
 export 'src/stats/distributions/discrete.dart';
 export 'src/stats/distributions/discrete/bernoulli.dart';
 export 'src/stats/distributions/discrete/binomial.dart';
