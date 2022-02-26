@@ -1,9 +1,9 @@
 import 'dart:math';
 
-import '../../../../data.dart';
 import '../../../special/beta.dart';
 import '../../../special/gamma.dart';
 import '../continuous.dart';
+import '../errors.dart';
 
 /// Student's t-distribution.
 ///
