@@ -10,5 +10,5 @@ export 'src/stats/distributions/discrete/binomial.dart';
 export 'src/stats/distributions/discrete/poisson.dart';
 export 'src/stats/distributions/discrete/uniform.dart';
 export 'src/stats/distributions/errors.dart';
-export 'src/stats/iterable.dart'
-    show IterableNumExtension, IterableIntExtension;
+export 'src/stats/iterable.dart';
+export 'src/stats/jackknife.dart';

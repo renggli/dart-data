@@ -1,6 +1,6 @@
 import 'dart:math' as math;
 
-import 'package:data/data.dart';
+import 'package:data/stats.dart';
 import 'package:more/collection.dart';
 import 'package:more/feature.dart';
 import 'package:more/tuple.dart';
@@ -774,6 +774,50 @@ void main() {
       expect(
           [1.5, 2.5, 2.5, 2.75, 3.25, 4.75].standardDeviation(population: true),
           isCloseTo(0.98689327352725));
+    });
+  });
+  group('jackknife', () {
+    test('mean', () {
+      final samples = <int>[0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
+      final jackknife = Jackknife<int>(
+        samples,
+        (list) => list.arithmeticMean(),
+      );
+      expect(jackknife.samples, same(samples));
+      expect(jackknife.confidenceLevel, 0.95);
+      expect(jackknife.resamples, hasLength(10));
+      for (var i = 0; i < 10; i++) {
+        expect(jackknife.resamples[i], [
+          ...IntegerRange(0, i),
+          ...IntegerRange(i + 1, samples.length),
+        ]);
+      }
+      expect(jackknife.estimate, isCloseTo(4.5));
+      expect(jackknife.bias, isCloseTo(0.0));
+      expect(jackknife.standardError, isCloseTo(0.95742710));
+      expect(jackknife.lowerBound, isCloseTo(2.62347735));
+      expect(jackknife.upperBound, isCloseTo(6.37652265));
+    });
+    test('variance', () {
+      final samples = <int>[0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
+      final jackknife = Jackknife<int>(
+        samples,
+        (list) => list.variance(population: true),
+      );
+      expect(jackknife.samples, same(samples));
+      expect(jackknife.confidenceLevel, 0.95);
+      expect(jackknife.resamples, hasLength(10));
+      for (var i = 0; i < 10; i++) {
+        expect(jackknife.resamples[i], [
+          ...IntegerRange(0, i),
+          ...IntegerRange(i + 1, samples.length),
+        ]);
+      }
+      expect(jackknife.estimate, isCloseTo(9.16666667));
+      expect(jackknife.bias, isCloseTo(-0.91666667));
+      expect(jackknife.standardError, isCloseTo(2.69124476));
+      expect(jackknife.lowerBound, isCloseTo(3.89192387));
+      expect(jackknife.upperBound, isCloseTo(14.44140947));
     });
   });
 }
