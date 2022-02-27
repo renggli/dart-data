@@ -5,8 +5,13 @@ import 'dart:math';
 /// [derivative] must be a number between 1 and 6, higher derivatives are less
 /// stable. [accuracy] defines the number of coefficients used for the
 /// approximation. [epsilon] signifies the grid spacing (or step size).
-double derivative(double Function(double) f, double x,
-    {int derivative = 1, int accuracy = 2, double epsilon = 1e-5}) {
+double derivative(
+  double Function(double) f,
+  double x, {
+  int derivative = 1,
+  int accuracy = 2,
+  double epsilon = 1e-5,
+}) {
   final accuracyToWeights = _centralFiniteDifferences.containsKey(derivative)
       ? _centralFiniteDifferences[derivative]!
       : throw ArgumentError.value(derivative, 'derivative',

@@ -12,10 +12,14 @@
 /// - If the number of iterations performed is more than [maxIterations],
 ///   [double.nan] is returned to signify an error.
 ///
-double solve(double Function(double) f, double a, double b,
-    {double bracketEpsilon = 1e-10,
-    double solutionEpsilon = 1e-50,
-    int maxIterations = 50}) {
+double solve(
+  double Function(double) f,
+  double a,
+  double b, {
+  double bracketEpsilon = 1e-10,
+  double solutionEpsilon = 1e-50,
+  int maxIterations = 50,
+}) {
   // https://en.wikipedia.org/wiki/Brent%27s_method
   var y0 = f(a), y1 = f(b);
   if (y0.abs() < y1.abs()) {

@@ -15,11 +15,15 @@ import 'package:collection/collection.dart';
 /// an [IntegrateError] exception, but a custom handler can continue the
 /// evaluation.
 ///
-double integrate(double Function(double) f, double a, double b,
-    {int depth = 6,
-    double epsilon = 1e-6,
-    Iterable<double> poles = const [],
-    void Function(IntegrateWarning, double)? onWarning}) {
+double integrate(
+  double Function(double) f,
+  double a,
+  double b, {
+  int depth = 6,
+  double epsilon = 1e-6,
+  Iterable<double> poles = const [],
+  void Function(IntegrateWarning, double)? onWarning,
+}) {
   onWarning ??= (type, x) => throw IntegrateError._(type, x);
   // Validate boundary condition.
   if (a.isNaN) {
@@ -122,7 +126,7 @@ class _Quadrature {
       double epsilon, double a, double fa, double b, double fb) {
     final m = 0.5 * (a + b), fm = f(m);
     return _Quadrature(depth, epsilon, a, fa, m, fm, b, fb,
-        (b - a) / 6.0 * (fa + 4 * fm + fb));
+        (b - a) / 6.0 * (fa + 4.0 * fm + fb));
   }
 
   _Quadrature(this.depth, this.epsilon, this.a, this.fa, this.m, this.fm,
@@ -130,8 +134,11 @@ class _Quadrature {
 
   final int depth;
   final double epsilon;
-  final double a, fa;
-  final double m, fm;
-  final double b, fb;
+  final double a;
+  final double fa;
+  final double m;
+  final double fm;
+  final double b;
+  final double fb;
   final double w;
 }
