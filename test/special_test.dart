@@ -130,6 +130,16 @@ void main() {
       Tuple3(7, 3, 210),
       Tuple3(7, 5, 2520),
     ];
+    const gammapTuples = [
+      Tuple3(5, 5, 13.4281611),
+      Tuple3(5, 4, 8.90791355),
+      Tuple3(5, 7, 19.8482014),
+    ];
+    const lowRegGammaTuples = [
+      Tuple3(5, 5, 0.5595067),
+      Tuple3(4, 5, 0.7349741),
+      Tuple3(11, 10, 0.4169602),
+    ];
     test('gamma', () {
       for (final tuple in gammaTuples) {
         expect(gamma(tuple.first), isCloseTo(tuple.second),
@@ -144,6 +154,19 @@ void main() {
         expect(gammaLn(tuple.first),
             tuple.first <= 0 ? isNaN : isCloseTo(tuple.second),
             reason: 'gammaLn(${tuple.first}) = ${tuple.second}');
+      }
+    });
+    test('gammap', () {
+      for (final tuple in gammapTuples) {
+        expect(gammap(tuple.first, tuple.second), isCloseTo(tuple.third),
+            reason: 'gammap(${tuple.first}, ${tuple.second}) = ${tuple.third}');
+      }
+    });
+    test('lowRegGamma', () {
+      for (final tuple in lowRegGammaTuples) {
+        expect(lowRegGamma(tuple.first, tuple.second), isCloseTo(tuple.third),
+            reason:
+                'lowRegGamma(${tuple.first}, ${tuple.second}) = ${tuple.third}');
       }
     });
     test('factorial', () {
