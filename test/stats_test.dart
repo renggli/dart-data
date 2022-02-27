@@ -1312,6 +1312,7 @@ void main() {
           ...IntegerRange(0, i),
           ...IntegerRange(i + 1, samples.length),
         ]);
+        expect(() => jackknife.resamples[i][0] = 0, throwsUnsupportedError);
       }
       expect(jackknife.estimate, isCloseTo(4.5));
       expect(jackknife.bias, isCloseTo(0.0));
@@ -1333,6 +1334,7 @@ void main() {
           ...IntegerRange(0, i),
           ...IntegerRange(i + 1, samples.length),
         ]);
+        expect(() => jackknife.resamples[i][0] = 0, throwsUnsupportedError);
       }
       expect(jackknife.estimate, isCloseTo(9.16666667));
       expect(jackknife.bias, isCloseTo(-0.91666667));

@@ -125,19 +125,25 @@ void main() {
       Tuple3(28, 14, 40116600),
       Tuple3(29, 20, 10015005),
     ];
+    const permutationTuples = [
+      Tuple3(6, 4, 360),
+      Tuple3(7, 3, 210),
+      Tuple3(7, 5, 2520),
+    ];
     test('gamma', () {
       for (final tuple in gammaTuples) {
         expect(gamma(tuple.first), isCloseTo(tuple.second),
             reason: 'gamma(${tuple.first}) = ${tuple.second}');
       }
+      expect(gamma(101.0), closeTo(9.332621544394415e157, 1.0e150));
     });
-    test('gammaln', () {
+    test('gammaLn', () {
       for (final tuple in gammaTuples
           .map((tuple) => tuple.withSecond(math.log(tuple.second)))
           .followedBy(logGammaTuples)) {
         expect(gammaLn(tuple.first),
             tuple.first <= 0 ? isNaN : isCloseTo(tuple.second),
-            reason: 'gammaln(${tuple.first}) = ${tuple.second}');
+            reason: 'gammaLn(${tuple.first}) = ${tuple.second}');
       }
     });
     test('factorial', () {
@@ -146,11 +152,11 @@ void main() {
             reason: 'factorial(${tuple.first}) = ${tuple.second}');
       }
     });
-    test('logFactorial', () {
+    test('factorialLn', () {
       for (final tuple in factorialTuples
           .map((tuple) => tuple.withLast(math.log(tuple.second)))) {
         expect(factorialLn(tuple.first), isCloseTo(tuple.second),
-            reason: 'logFactorial(${tuple.first}) = ${tuple.second}');
+            reason: 'factorialLn(${tuple.first}) = ${tuple.second}');
       }
     });
     test('combination', () {
@@ -160,11 +166,26 @@ void main() {
                 '= ${tuple.third}');
       }
     });
-    test('logCombination', () {
+    test('combinationLn', () {
       for (final tuple in combinationTuples
           .map((tuple) => tuple.withThird(math.log(tuple.third)))) {
         expect(combinationLn(tuple.first, tuple.second), isCloseTo(tuple.third),
-            reason: 'logCombination(${tuple.first}, ${tuple.second}) '
+            reason: 'combinationLn(${tuple.first}, ${tuple.second}) '
+                '= ${tuple.third}');
+      }
+    });
+    test('permutation', () {
+      for (final tuple in permutationTuples) {
+        expect(permutation(tuple.first, tuple.second), isCloseTo(tuple.third),
+            reason: 'permutation(${tuple.first}, ${tuple.second}) '
+                '= ${tuple.third}');
+      }
+    });
+    test('permutationLn', () {
+      for (final tuple in permutationTuples
+          .map((tuple) => tuple.withThird(math.log(tuple.third)))) {
+        expect(permutationLn(tuple.first, tuple.second), isCloseTo(tuple.third),
+            reason: 'permutationLn(${tuple.first}, ${tuple.second}) '
                 '= ${tuple.third}');
       }
     });
