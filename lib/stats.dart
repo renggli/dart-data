@@ -1,6 +1,7 @@
 /// Statistical computations and algorithms.
 export 'src/stats/distribution.dart';
 export 'src/stats/distributions/continuous.dart';
+export 'src/stats/distributions/continuous/exponential.dart';
 export 'src/stats/distributions/continuous/gamma.dart';
 export 'src/stats/distributions/continuous/inverse_gamma.dart';
 export 'src/stats/distributions/continuous/normal.dart';

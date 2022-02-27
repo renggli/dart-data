@@ -168,11 +168,18 @@ void testDistribution<T extends num>(
     testSamples(distribution, samples);
   });
   const otherDistributions = [
-    UniformDiscreteDistribution(-1, 1),
-    NormalDistribution(-1, 1),
-    StudentDistribution(42),
+    // Continuous
+    ExponentialDistribution(2.0),
     GammaDistribution(1.2, 2.3),
     InverseGammaDistribution(1.2, 2.3),
+    NormalDistribution(-1, 1),
+    StudentDistribution(42),
+    UniformDistribution(-1, 1),
+    // Discrete
+    BernoulliDistribution(0.1),
+    BinomialDistribution(5, 0.1),
+    PoissonDistribution(2.0),
+    UniformDiscreteDistribution(-1, 1),
   ];
   test('equality', () {
     expect(distribution == distribution, isTrue);
@@ -197,6 +204,46 @@ void testDistribution<T extends num>(
 void main() {
   group('distribution', () {
     group('continuous', () {
+      group('exponential (lambda = 4.0)', () {
+        const distribution = ExponentialDistribution(4.0);
+        testDistribution(
+          distribution,
+          min: 0.0,
+          mean: 0.25,
+          median: 0.17328679514,
+          mode: 0.0,
+          variance: 0.0625,
+          probability: const [
+            Tuple2(0.0, 4.0000000),
+            Tuple2(1.0, 0.0732626),
+            Tuple2(2.0, 0.0013418),
+            Tuple2(3.0, 0.0000245),
+            Tuple2(4.0, 0.0000000),
+            Tuple2(5.0, 0.0000000),
+          ],
+          cumulativeProbability: const [
+            Tuple2(0.0, 0.000000),
+            Tuple2(1.0, 0.981684),
+            Tuple2(2.0, 0.999665),
+            Tuple2(3.0, 0.999994),
+            Tuple2(4.0, 1.000000),
+            Tuple2(5.0, 1.000000),
+          ],
+          inverseCumulativeProbability: [
+            Tuple2(0.0, 0),
+            Tuple2(0.1, 0.0263401),
+            Tuple2(0.2, 0.0557859),
+            Tuple2(0.3, 0.0891687),
+            Tuple2(0.4, 0.127706),
+            Tuple2(0.5, 0.173287),
+            Tuple2(0.6, 0.229073),
+            Tuple2(0.7, 0.300993),
+            Tuple2(0.8, 0.402359),
+            Tuple2(0.9, 0.575646),
+            Tuple2(1.0, double.infinity),
+          ],
+        );
+      });
       group('gamma (shape = 1.0; scale = 2.0)', () {
         const distribution = GammaDistribution(1.0, 2.0);
         testDistribution(
