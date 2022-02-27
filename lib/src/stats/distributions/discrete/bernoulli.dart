@@ -6,7 +6,7 @@ import '../discrete.dart';
 /// The Bernoulli distribution is a discrete probability distribution which
 /// takes the value 1 with a probability [p] and 0 otherwise.
 ///
-/// For details see https://en.wikipedia.org/wiki/Bernoulli_distribution.
+/// See https://en.wikipedia.org/wiki/Bernoulli_distribution.
 class BernoulliDistribution extends DiscreteDistribution {
   const BernoulliDistribution(this.p)
       : assert(0 <= p, '0 <= p'),

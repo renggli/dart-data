@@ -7,7 +7,7 @@ import '../discrete.dart';
 /// The Binomial distribution is a discrete probability distribution which
 /// takes the value 1 with a probability [p] and 0 otherwise.
 ///
-/// For details see https://en.wikipedia.org/wiki/Binomial_distribution.
+/// See https://en.wikipedia.org/wiki/Binomial_distribution.
 class BinomialDistribution extends DiscreteDistribution {
   const BinomialDistribution(this.n, this.p)
       : assert(0 <= p, '0 <= p'),

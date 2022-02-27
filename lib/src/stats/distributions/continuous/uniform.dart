@@ -6,7 +6,7 @@ import '../continuous.dart';
 /// distribution describes an experiment where there is an arbitrary outcome
 /// that lies between certain bounds.
 ///
-/// For details see https://en.wikipedia.org/wiki/Continuous_uniform_distribution.
+/// See https://en.wikipedia.org/wiki/Continuous_uniform_distribution.
 class UniformDistribution extends ContinuousDistribution {
   /// A uniform distribution between [a] and [b].
   const UniformDistribution(this.a, this.b)

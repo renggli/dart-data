@@ -8,7 +8,7 @@ import 'uniform.dart';
 
 /// The gamma distribution.
 ///
-/// For details see https://en.wikipedia.org/wiki/Gamma-distribution
+/// See https://en.wikipedia.org/wiki/Gamma-distribution
 class GammaDistribution extends ContinuousDistribution {
   const GammaDistribution(this.shape, this.scale)
       : assert(shape > 0.0, 'shape > 0.0'),

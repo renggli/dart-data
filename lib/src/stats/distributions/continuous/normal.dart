@@ -7,7 +7,7 @@ import 'uniform.dart';
 /// Normal (or Gaussian) distribution described by the [mean] or expectation of
 /// the distribution and its [standardDeviation].
 ///
-/// For details see https://en.wikipedia.org/wiki/Normal_distribution.
+/// See https://en.wikipedia.org/wiki/Normal_distribution.
 class NormalDistribution extends ContinuousDistribution {
   /// A standard normal distribution with [mean] and [standardDeviation].
   const NormalDistribution(this.mean, this.standardDeviation)

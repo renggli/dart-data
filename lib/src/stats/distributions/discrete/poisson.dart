@@ -9,7 +9,7 @@ import '../discrete.dart';
 /// interval of time or space if these events occur with a known constant mean
 /// rate and independently of the time since the last event.
 ///
-/// For details see https://en.wikipedia.org/wiki/Poisson_distribution.
+/// See https://en.wikipedia.org/wiki/Poisson_distribution.
 class PoissonDistribution extends DiscreteDistribution {
   const PoissonDistribution(this.lambda) : assert(0 <= lambda, '0 <= lambda');
 
