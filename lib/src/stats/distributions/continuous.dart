@@ -1,9 +1,6 @@
 import '../distribution.dart';
 
-/// Abstract continuous distribution.
-///
-/// Subclasses must implement at least one of [probability] or
-/// [cumulativeProbability].
+/// Abstract interface of all continuous distributions.
 abstract class ContinuousDistribution extends Distribution<double> {
   const ContinuousDistribution();
 

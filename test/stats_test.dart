@@ -1,4 +1,5 @@
 import 'dart:math' as math;
+import 'dart:math';
 
 import 'package:data/stats.dart';
 import 'package:more/collection.dart';
@@ -14,6 +15,42 @@ dynamic isCloseTo(num expected, {double epsilon = 1.0e-6}) =>
             : closeTo(expected, epsilon);
 final throwsInvalidProbability = throwsA(isA<InvalidProbability>());
 
+void testSamples<T extends num>(
+    Distribution<T> distribution, Iterable<T> samples) {
+  final histogram = Multiset<int>();
+  if (distribution is DiscreteDistribution) {
+    histogram.addAll(samples.map((each) => each.toInt()));
+    for (var k = math.max(-50, distribution.lowerBound.round());
+        k < math.min(50, distribution.upperBound.round());
+        k++) {
+      expect(histogram[k] / histogram.length,
+          isCloseTo(distribution.probability(k as T), epsilon: 0.1));
+    }
+  } else {
+    final buckets = 0.1
+        .to(1.0, step: 0.1)
+        .map((each) => distribution.inverseCumulativeProbability(each))
+        .toList();
+    final bucketCount = buckets.length + 1;
+    for (var sample in samples) {
+      for (var k = 0; k <= buckets.length; k++) {
+        if (k == buckets.length || sample < buckets[k]) {
+          histogram.add(k);
+          break;
+        }
+      }
+    }
+    // All the buckets are expected to have roughly the same size.
+    expect(histogram.distinct, hasLength(bucketCount));
+    for (var k = 0; k < bucketCount; k++) {
+      expect(
+          histogram[k] / histogram.length,
+          isCloseTo(1.0 / bucketCount,
+              epsilon: 1.0 / (bucketCount * bucketCount)));
+    }
+  }
+}
+
 void testDistribution<T extends num>(
   Distribution<T> distribution, {
   T? min,
@@ -25,6 +62,7 @@ void testDistribution<T extends num>(
   List<Tuple2<T, double>>? probability,
   List<Tuple2<T, double>>? cumulativeProbability,
   List<Tuple2<double, T>>? inverseCumulativeProbability,
+  int sampleCount = 20000,
 }) {
   final isDiscrete = distribution is DiscreteDistribution;
   test('lower bound', () {
@@ -116,43 +154,18 @@ void testDistribution<T extends num>(
     });
   }
   test('sample', () {
-    final samples = 20000;
-    final histogram = Multiset<int>();
-    final random = math.Random(distribution.hashCode);
-    if (distribution is DiscreteDistribution) {
-      for (var i = 0; i < samples; i++) {
-        histogram.add(distribution.sample(random: random) as int);
-      }
-      for (var k = math.max(-50, distribution.lowerBound.round());
-          k < math.min(50, distribution.upperBound.round());
-          k++) {
-        expect(histogram[k] / histogram.length,
-            isCloseTo(distribution.probability(k as T), epsilon: 0.1));
-      }
-    } else {
-      final buckets = 0.1
-          .to(1.0, step: 0.1)
-          .map((each) => distribution.inverseCumulativeProbability(each))
-          .toList();
-      final bucketCount = buckets.length + 1;
-      for (var i = 0; i < samples; i++) {
-        final value = distribution.sample(random: random) as double;
-        for (var k = 0; k <= buckets.length; k++) {
-          if (k == buckets.length || value < buckets[k]) {
-            histogram.add(k);
-            break;
-          }
-        }
-      }
-      // All the buckets are expected to have roughly the same size.
-      expect(histogram.distinct, hasLength(bucketCount));
-      for (var k = 0; k < bucketCount; k++) {
-        expect(
-            histogram[k] / histogram.length,
-            isCloseTo(1.0 / bucketCount,
-                epsilon: 1.0 / (bucketCount * bucketCount)));
-      }
-    }
+    final random = Random(Object.hash('sample', distribution));
+    final samples = 0
+        .to(sampleCount)
+        .map((each) => distribution.sample(random: random))
+        .toList();
+    testSamples(distribution, samples);
+  });
+  test('samples', () {
+    final random = Random(Object.hash('samples', distribution));
+    final samples =
+        distribution.samples(random: random).take(sampleCount).toList();
+    testSamples(distribution, samples);
   });
   const otherDistributions = [
     UniformDiscreteDistribution(-1, 1),
@@ -190,6 +203,7 @@ void main() {
           distribution,
           min: 0.0,
           mean: 2.0,
+          mode: double.nan,
           variance: 4.0,
           probability: [
             Tuple2(1.0, 0.303265),
@@ -226,6 +240,9 @@ void main() {
             Tuple2(0.9, 4.605170),
           ],
         );
+        test('median', () {
+          expect(() => distribution.median, throwsUnsupportedError);
+        });
       });
       group('gamma (shape = 2.0; scale = 2.0)', () {
         const distribution = GammaDistribution(2.0, 2.0);
@@ -233,6 +250,7 @@ void main() {
           distribution,
           min: 0.0,
           mean: 4.0,
+          mode: 2.0,
           variance: 8.0,
           probability: [
             Tuple2(1.0, 0.151633),
@@ -276,6 +294,7 @@ void main() {
           distribution,
           min: 0.0,
           mean: 6.0,
+          mode: 4.0,
           variance: 12.0,
           probability: [
             Tuple2(1.0, 0.037908),
@@ -319,6 +338,7 @@ void main() {
           distribution,
           min: 0.0,
           mean: 5.0,
+          mode: 4.0,
           variance: 5.0,
           probability: [
             Tuple2(1.0, 0.015328),
@@ -362,6 +382,7 @@ void main() {
           distribution,
           min: 0.0,
           mean: 4.5,
+          mode: 4.0,
           variance: 2.25,
           probability: [
             Tuple2(1.0, 0.001719),
@@ -405,6 +426,7 @@ void main() {
           distribution,
           min: 0.0,
           mean: 7.5,
+          mode: 6.5,
           variance: 7.5,
           probability: [
             Tuple2(1.0, 0.000197),
@@ -448,6 +470,7 @@ void main() {
           distribution,
           min: 0.0,
           mean: 0.5,
+          mode: double.nan,
           variance: 0.5,
           probability: [
             Tuple2(1.0, 0.207554),
@@ -491,6 +514,7 @@ void main() {
           distribution,
           min: 0.0,
           mean: double.nan,
+          mode: 0.5,
           variance: double.nan,
           probability: [
             Tuple2(1.0, 0.367879),
@@ -527,6 +551,9 @@ void main() {
           //   Tuple2(0.9, 9.49122),
           // ],
         );
+        test('median', () {
+          expect(() => distribution.median, throwsUnsupportedError);
+        });
       });
       group('inverse gamma (shape = 2.0; scale = 1.0)', () {
         const distribution = InverseGammaDistribution(2.0, 1.0);
@@ -534,6 +561,7 @@ void main() {
           distribution,
           min: 0.0,
           mean: 1.0,
+          mode: 0.333333333,
           variance: double.nan,
           probability: [
             Tuple2(1.0, 0.367879),
@@ -577,6 +605,7 @@ void main() {
           distribution,
           min: 0.0,
           mean: 0.5,
+          mode: 0.25,
           variance: 0.25,
           probability: [
             Tuple2(1.0, 0.18394),
@@ -620,6 +649,7 @@ void main() {
           distribution,
           min: 0.0,
           mean: 0.75,
+          mode: 0.375,
           variance: 0.5625,
           probability: [
             Tuple2(1.0, 0.376532),
@@ -661,6 +691,7 @@ void main() {
         const distribution = NormalDistribution(2.1, 1.4);
         testDistribution(distribution,
             mean: 2.1,
+            median: 2.1,
             mode: 2.1,
             variance: 1.4 * 1.4,
             probability: const [
@@ -693,6 +724,7 @@ void main() {
         testDistribution(
           distribution,
           mean: 0.0,
+          median: 0.0,
           mode: 0.0,
           variance: 1.0,
         );
@@ -747,6 +779,8 @@ void main() {
         testDistribution(
           distribution,
           mean: 0.0,
+          median: 0.0,
+          mode: 0.0,
           variance: double.infinity,
           probability: const [
             Tuple2(-4.0, 0.013095),
@@ -790,6 +824,8 @@ void main() {
         testDistribution(
           distribution,
           mean: 0.0,
+          median: 0.0,
+          mode: 0.0,
           variance: 3.0,
           probability: const [
             Tuple2(-4.0, 0.009163),
@@ -833,6 +869,8 @@ void main() {
         testDistribution(
           distribution,
           mean: 0.0,
+          median: 0.0,
+          mode: 0.0,
           variance: 2.0,
           probability: const [
             Tuple2(-4.0, 0.006708),
@@ -876,6 +914,8 @@ void main() {
         testDistribution(
           distribution,
           mean: 0.0,
+          median: 0.0,
+          mode: 0.0,
           variance: 5 / 3,
           probability: const [
             Tuple2(-4.0, 0.005124),
@@ -919,6 +959,8 @@ void main() {
         testDistribution(
           distribution,
           mean: 0.0,
+          median: 0.0,
+          mode: 0.0,
           variance: 1234 / 1232,
           probability: const [
             Tuple2(-4.0, 0.000140),
@@ -965,6 +1007,7 @@ void main() {
           max: 1.25,
           mean: 0.375,
           median: 0.375,
+          mode: double.nan,
           variance: 0.255208333,
           probability: const [
             Tuple2(-0.5001, 0.0),
@@ -1003,6 +1046,8 @@ void main() {
           min: 0.0,
           max: 1.0,
           mean: 0.5,
+          median: 0.5,
+          mode: double.nan,
           variance: 0.08333333333,
         );
         test('samples with default random generator', () {

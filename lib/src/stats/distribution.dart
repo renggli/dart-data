@@ -4,6 +4,7 @@ import 'package:meta/meta.dart';
 
 import 'distributions/errors.dart';
 
+/// Abstract interface of all distributions.
 @immutable
 abstract class Distribution<T extends num> {
   const Distribution();
@@ -21,18 +22,28 @@ abstract class Distribution<T extends num> {
   bool get isUpperBoundOpen;
 
   /// Returns the mean value of the distribution.
+  ///
+  /// See https://en.wikipedia.org/wiki/Expected_value.
   double get mean;
 
   /// Returns the median value of the distribution.
+  ///
+  /// See https://en.wikipedia.org/wiki/Median.
   double get median;
 
   /// Returns the mode, a value that appears most commonly in the set of values.
+  ///
+  /// See https://en.wikipedia.org/wiki/Mode_(statistics).
   double get mode;
 
   /// Returns the expected variance.
+  ///
+  /// See https://en.wikipedia.org/wiki/Variance.
   double get variance;
 
   /// Returns the expected standard deviation.
+  ///
+  /// See https://en.wikipedia.org/wiki/Standard_deviation.
   double get standardDeviation => sqrt(variance);
 
   /// The Probability Density/Mass Function (PDF/PMF).
