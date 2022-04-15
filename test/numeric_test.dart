@@ -118,6 +118,7 @@ void main() {
     });
     group('bounds', () {
       double f(double x) => exp(-x * x);
+      double g(double x) => 1.0 / (x * x);
       test('empty', () {
         expect(integrate((x) => fail('No evaluation'), pi, pi),
             closeTo(0, epsilon));
@@ -132,10 +133,13 @@ void main() {
       test('lower unbounded', () {
         expect(integrate(f, double.negativeInfinity, 0),
             closeTo(sqrt(pi) / 2.0, epsilon));
+        expect(
+            integrate(g, double.negativeInfinity, -1), closeTo(1.0, epsilon));
       });
       test('upper unbounded', () {
         expect(
             integrate(f, 0, double.infinity), closeTo(sqrt(pi) / 2.0, epsilon));
+        expect(integrate(g, 1, double.infinity), closeTo(1.0, epsilon));
       });
       test('inverted unbounded', () {
         expect(integrate(f, double.infinity, double.negativeInfinity),
@@ -144,10 +148,13 @@ void main() {
       test('inverted lower unbounded', () {
         expect(integrate(f, 0, double.negativeInfinity),
             closeTo(-sqrt(pi) / 2.0, epsilon));
+        expect(
+            integrate(g, -1, double.negativeInfinity), closeTo(-1.0, epsilon));
       });
       test('inverted upper unbounded', () {
         expect(integrate(f, double.infinity, 0),
             closeTo(-sqrt(pi) / 2.0, epsilon));
+        expect(integrate(g, double.infinity, 1), closeTo(-1.0, epsilon));
       });
     });
     group('poles', () {
@@ -232,6 +239,22 @@ void main() {
                 .having((error) => error.name, 'name', 'b')
                 .having((error) => error.message, 'message',
                     'Invalid upper bound')));
+      });
+    });
+    group('beauties', () {
+      test('sophomore\'s dream', () {
+        expect(integrate((x) => pow(x, -x).toDouble(), 0, 1, depth: 15),
+            closeTo(1.2912859970, epsilon));
+        expect(integrate((x) => pow(x, x).toDouble(), 0, 1, depth: 15),
+            closeTo(0.7834305107, epsilon));
+      });
+      test('pi', () {
+        expect(
+            integrate((x) => 1 / (1 + x * x), double.negativeInfinity,
+                double.infinity),
+            closeTo(pi, epsilon));
+        expect(22 / 7 - integrate((x) => pow(x - x * x, 4) / (1 + x * x), 0, 1),
+            closeTo(pi, epsilon));
       });
     });
   });

@@ -104,7 +104,7 @@ const _centralFiniteDifferences = <int, Map<int, List<double>>>{
       13 / 288
     ],
   },
-  // Derivative 5
+  // Derivative 6
   6: {
     2: [1, -6, 15, -20, 15, -6, 1],
     4: [-1 / 4, 3, -13, 29, -75 / 2, 29, -13, 3, -1 / 4],

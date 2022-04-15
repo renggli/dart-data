@@ -1,4 +1,5 @@
 import 'package:collection/collection.dart';
+import 'package:more/more.dart';
 
 /// Returns the numerical integration of the provided function [f] from [a] to
 /// [b], that is the result of _int(f(x), dx=a..b)_.
@@ -22,7 +23,7 @@ double integrate(
   int depth = 6,
   double epsilon = 1e-6,
   Iterable<double> poles = const [],
-  void Function(IntegrateWarning, double)? onWarning,
+  void Function(IntegrateWarning type, double x)? onWarning,
 }) {
   onWarning ??= (type, x) => throw IntegrateError._(type, x);
   // Validate boundary condition.
@@ -111,7 +112,7 @@ enum IntegrateWarning {
 }
 
 /// Integration error that is thrown when warnings are not handled explicitly.
-class IntegrateError extends Error {
+class IntegrateError extends Error with ToStringPrinter {
   IntegrateError._(this.type, this.x);
 
   /// The integration warning thrown.
@@ -119,6 +120,11 @@ class IntegrateError extends Error {
 
   /// The approximate position of the integration warning.
   final double x;
+
+  @override
+  ObjectPrinter get toStringPrinter => super.toStringPrinter
+    ..addValue(type, name: 'type')
+    ..addValue(x, name: 'x');
 }
 
 class _Quadrature {

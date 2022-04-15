@@ -37,7 +37,7 @@ double solve(
     if ((b - a).abs() < bracketEpsilon) {
       return 0.5 * (a + b);
     }
-    // Use inverse quadratic interpolation if f(x0)!=f(x1)!=f(x2)
+    // Use inverse quadratic interpolation if f(x0) != f(x1) != f(x2)
     // and linear interpolation (secant method) otherwise.
     double x;
     if ((y0 - y2).abs() > solutionEpsilon &&
