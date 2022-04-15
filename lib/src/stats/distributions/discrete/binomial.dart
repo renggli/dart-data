@@ -11,6 +11,7 @@ import '../discrete.dart';
 ///
 /// See https://en.wikipedia.org/wiki/Binomial_distribution.
 class BinomialDistribution extends DiscreteDistribution {
+  /// A binomial distribution with parameters [n] and [p].
   const BinomialDistribution(this.n, this.p)
       : assert(0 <= n, 'n <= 0'),
         assert(0 <= p && p <= 1, '0 <= p <= 1');

@@ -11,7 +11,7 @@ import 'uniform.dart';
 ///
 /// See https://en.wikipedia.org/wiki/Normal_distribution.
 class NormalDistribution extends ContinuousDistribution {
-  /// A standard normal distribution with [mean] μ and [standardDeviation] σ.
+  /// A normal distribution with parameters [mean] μ and [standardDeviation] σ.
   const NormalDistribution(this.mean, this.standardDeviation)
       : assert(standardDeviation > 0, 'σ > 0');
 
