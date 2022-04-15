@@ -1403,5 +1403,60 @@ void main() {
       expect(jackknife.lowerBound, isCloseTo(3.89192387));
       expect(jackknife.upperBound, isCloseTo(14.44140947));
     });
+    group('small samples', () {
+      test('minimal', () {
+        final samples = <int>[2];
+        final jackknife = Jackknife<int>(
+          samples,
+          (list) => list.arithmeticMean(),
+        );
+        expect(jackknife.samples, same(samples));
+        expect(jackknife.confidenceLevel, 0.95);
+        expect(jackknife.resamples, [[]]);
+        expect(jackknife.estimate, isNaN);
+        expect(jackknife.bias, isNaN);
+        expect(jackknife.standardError, isNaN);
+        expect(jackknife.lowerBound, isNaN);
+        expect(jackknife.upperBound, isNaN);
+      });
+      test('same numbers', () {
+        final samples = <int>[2, 2];
+        final jackknife = Jackknife<int>(
+          samples,
+          (list) => list.arithmeticMean(),
+          confidenceLevel: 0.90,
+        );
+        expect(jackknife.samples, same(samples));
+        expect(jackknife.confidenceLevel, 0.90);
+        expect(jackknife.resamples, [
+          [2],
+          [2],
+        ]);
+        expect(jackknife.estimate, isCloseTo(2.0));
+        expect(jackknife.bias, isCloseTo(0.0));
+        expect(jackknife.standardError, isCloseTo(0.0));
+        expect(jackknife.lowerBound, isCloseTo(2.0));
+        expect(jackknife.upperBound, isCloseTo(2.0));
+      });
+      test('different numbers', () {
+        final samples = <int>[2, 4];
+        final jackknife = Jackknife<int>(
+          samples,
+          (list) => list.arithmeticMean(),
+          confidenceLevel: 0.90,
+        );
+        expect(jackknife.samples, same(samples));
+        expect(jackknife.confidenceLevel, 0.90);
+        expect(jackknife.resamples, [
+          [4],
+          [2],
+        ]);
+        expect(jackknife.estimate, isCloseTo(3.0));
+        expect(jackknife.bias, isCloseTo(0.0));
+        expect(jackknife.standardError, isCloseTo(1.0));
+        expect(jackknife.lowerBound, isCloseTo(1.355146387243735));
+        expect(jackknife.upperBound, isCloseTo(4.644853612756265));
+      });
+    });
   });
 }

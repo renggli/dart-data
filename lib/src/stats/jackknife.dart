@@ -3,6 +3,7 @@ import 'dart:math';
 
 import 'package:collection/collection.dart' show NonGrowableListMixin;
 import 'package:more/collection.dart' show IntegerRange;
+import 'package:more/printer.dart' show ObjectPrinter, ToStringPrinter;
 
 import '../special/erf.dart';
 import 'iterable.dart';
@@ -11,7 +12,7 @@ import 'iterable.dart';
 /// confidence intervals.
 ///
 /// For details see https://en.wikipedia.org/wiki/Jackknife_resampling.
-class Jackknife<T> {
+class Jackknife<T> with ToStringPrinter {
   Jackknife(this.samples, this.statistic, {this.confidenceLevel = 0.95})
       : assert(samples.isNotEmpty, 'empty samples'),
         assert(0 < confidenceLevel && confidenceLevel < 1,
@@ -55,6 +56,15 @@ class Jackknife<T> {
   late final _resampleMeasures = resamples.map(statistic).toList();
   late final _meanResampleMeasure = _resampleMeasures.arithmeticMean();
   late final _zScore = sqrt2 * erfInv(confidenceLevel);
+
+  @override
+  ObjectPrinter get toStringPrinter => super.toStringPrinter
+    ..addValue(estimate, name: 'estimate')
+    ..addValue(bias, name: 'bias')
+    ..addValue(standardError, name: 'standardError')
+    ..addValue(lowerBound, name: 'lowerBound')
+    ..addValue(upperBound, name: 'upperBound')
+    ..addValue(confidenceLevel, name: 'confidenceLevel');
 }
 
 /// A view of a Jackknife resampling of a [List].
