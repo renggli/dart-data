@@ -77,7 +77,7 @@ abstract class Distribution<T extends num> {
   /// function.
   ///
   /// Returns the probability of a random variable to be larger than [x].
-  double survival(T x) => 1.0 - cumulativeProbability(x);
+  double survival(T x) => 1 - cumulativeProbability(x);
 
   /// Inverse Survival Function (ISF).
   ///
@@ -85,7 +85,7 @@ abstract class Distribution<T extends num> {
   /// [p]. Throws [InvalidProbability], if [p] is out of range.
   T inverseSurvival(num p) {
     InvalidProbability.check(p);
-    return inverseCumulativeProbability(1.0 - p);
+    return inverseCumulativeProbability(1 - p);
   }
 
   /// Returns a single sample of a random value within the distribution.

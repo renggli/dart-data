@@ -8,17 +8,16 @@ import 'uniform.dart';
 ///
 /// See https://en.wikipedia.org/wiki/Exponential_distribution.
 class ExponentialDistribution extends ContinuousDistribution {
-  const ExponentialDistribution(this.lambda)
-      : assert(lambda > 0.0, 'lambda > 0.0');
+  const ExponentialDistribution(this.lambda) : assert(lambda > 0, 'lambda > 0');
 
   /// The lambda parameter (rate, inverse scale).
   final double lambda;
 
   @override
-  double get lowerBound => 0.0;
+  double get lowerBound => 0;
 
   @override
-  double get mean => 1.0 / lambda;
+  double get mean => 1 / lambda;
 
   @override
   double get median => ln2 / lambda;
@@ -27,7 +26,7 @@ class ExponentialDistribution extends ContinuousDistribution {
   double get mode => 0;
 
   @override
-  double get variance => 1.0 / (lambda * lambda);
+  double get variance => 1 / (lambda * lambda);
 
   @override
   double get skewness => 2;
@@ -36,22 +35,21 @@ class ExponentialDistribution extends ContinuousDistribution {
   double get excessKurtosis => 6;
 
   @override
-  double probability(double x) => x < 0.0 ? 0.0 : lambda * exp(-lambda * x);
+  double probability(double x) => x < 0 ? 0 : lambda * exp(-lambda * x);
 
   @override
-  double cumulativeProbability(double x) =>
-      x < 0.0 ? 0.0 : 1.0 - exp(-lambda * x);
+  double cumulativeProbability(double x) => x < 0 ? 0 : 1 - exp(-lambda * x);
 
   @override
   double inverseCumulativeProbability(num p) {
     InvalidProbability.check(p);
-    return -log(1.0 - p) / lambda;
+    return -log(1 - p) / lambda;
   }
 
   @override
   double sample({Random? random}) {
     const uniform = UniformDistribution.standard();
-    return -1.0 / lambda * log(uniform.sample(random: random));
+    return -1 / lambda * log(uniform.sample(random: random));
   }
 
   @override

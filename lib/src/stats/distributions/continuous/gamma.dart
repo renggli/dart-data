@@ -11,11 +11,10 @@ import 'uniform.dart';
 /// See https://en.wikipedia.org/wiki/Gamma-distribution
 class GammaDistribution extends ContinuousDistribution {
   const GammaDistribution(this.shape, this.scale)
-      : assert(shape > 0.0, 'shape > 0.0'),
-        assert(scale > 0.0, 'scale > 0.0');
+      : assert(shape > 0, 'shape > 0'),
+        assert(scale > 0, 'scale > 0');
 
-  factory GammaDistribution.shape(double shape) =>
-      GammaDistribution(shape, 1.0);
+  factory GammaDistribution.shape(double shape) => GammaDistribution(shape, 1);
 
   /// The shape parameter.
   final double shape;
@@ -24,7 +23,7 @@ class GammaDistribution extends ContinuousDistribution {
   final double scale;
 
   @override
-  double get lowerBound => 0.0;
+  double get lowerBound => 0;
 
   @override
   double get mean => shape * scale;
@@ -33,7 +32,7 @@ class GammaDistribution extends ContinuousDistribution {
   double get median => throw UnsupportedError('No simple closed form');
 
   @override
-  double get mode => shape > 1.0 ? (shape - 1.0) * scale : double.nan;
+  double get mode => shape > 1 ? (shape - 1) * scale : double.nan;
 
   @override
   double get variance => shape * scale * scale;
@@ -45,16 +44,16 @@ class GammaDistribution extends ContinuousDistribution {
   double get excessKurtosis => 6 / shape;
 
   @override
-  double probability(double x) => x < 0.0
-      ? 0.0
-      : exp((shape - 1.0) * log(x) -
+  double probability(double x) => x < 0
+      ? 0
+      : exp((shape - 1) * log(x) -
           x / scale -
           gammaLn(shape) -
           shape * log(scale));
 
   @override
   double cumulativeProbability(double x) =>
-      x < 0.0 ? 0.0 : lowRegGamma(shape, x / scale);
+      x < 0 ? 0 : lowRegGamma(shape, x / scale);
 
   @override
   double inverseCumulativeProbability(num p) {
@@ -66,26 +65,26 @@ class GammaDistribution extends ContinuousDistribution {
   double sample({Random? random}) {
     const normal = NormalDistribution.standard();
     const uniform = UniformDistribution.standard();
-    final correctedShape = shape < 1.0 ? shape + 1.0 : shape;
+    final correctedShape = shape < 1 ? shape + 1 : shape;
     double u, v, x;
-    final a1 = correctedShape - 1.0 / 3.0;
-    final a2 = 1.0 / sqrt(9.0 * a1);
+    final a1 = correctedShape - 1 / 3;
+    final a2 = 1 / sqrt(9 * a1);
     do {
       do {
         x = normal.sample(random: random);
-        v = 1.0 + a2 * x;
-      } while (v <= 0.0);
+        v = 1 + a2 * x;
+      } while (v <= 0);
       v = v * v * v;
       u = uniform.sample(random: random);
-    } while (u > 1.0 - 0.331 * pow(x, 4.0) &&
-        log(u) > 0.5 * x * x + a1 * (1.0 - v + log(v)));
+    } while (u > 1 - 0.331 * pow(x, 4) &&
+        log(u) > 0.5 * x * x + a1 * (1 - v + log(v)));
     if (shape == correctedShape) {
       return a1 * v * scale;
     }
     do {
       u = uniform.sample(random: random);
-    } while (u == 0.0);
-    return pow(u, 1.0 / shape) * a1 * v * scale;
+    } while (u == 0);
+    return pow(u, 1 / shape) * a1 * v * scale;
   }
 
   @override

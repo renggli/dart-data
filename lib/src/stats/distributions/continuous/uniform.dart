@@ -15,7 +15,7 @@ class UniformDistribution extends ContinuousDistribution {
         assert(b < double.infinity, 'b < ∞');
 
   /// A standard uniform distribution between 0 and 1.
-  const UniformDistribution.standard() : this(0.0, 1.0);
+  const UniformDistribution.standard() : this(0, 1);
 
   /// Minimum value of the distribution.
   final double a;
@@ -30,7 +30,7 @@ class UniformDistribution extends ContinuousDistribution {
   double get upperBound => b;
 
   @override
-  double get mean => (a + b) / 2.0;
+  double get mean => (a + b) / 2;
 
   @override
   double get median => mean;
@@ -39,7 +39,7 @@ class UniformDistribution extends ContinuousDistribution {
   double get mode => double.nan; // any value in the range
 
   @override
-  double get variance => pow(b - a, 2) / 12.0;
+  double get variance => pow(b - a, 2) / 12;
 
   @override
   double get skewness => 0;
@@ -48,14 +48,14 @@ class UniformDistribution extends ContinuousDistribution {
   double get excessKurtosis => -6 / 5;
 
   @override
-  double probability(double x) => a <= x && x <= b ? 1.0 / (b - a) : 0.0;
+  double probability(double x) => a <= x && x <= b ? 1 / (b - a) : 0;
 
   @override
   double cumulativeProbability(double x) => x <= a
-      ? 0.0
+      ? 0
       : x <= b
           ? (x - a) / (b - a)
-          : 1.0;
+          : 1;
 
   @override
   double inverseCumulativeProbability(num p) => a + p * (b - a);

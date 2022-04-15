@@ -10,13 +10,13 @@ import '../discrete.dart';
 class BernoulliDistribution extends DiscreteDistribution {
   const BernoulliDistribution(this.p)
       : assert(0 <= p, '0 <= p'),
-        assert(p <= 1.0, 'p <= 1');
+        assert(p <= 1, 'p <= 1');
 
   /// Success probability for each trial (0..1).
   final double p;
 
   /// Failure probability for each trial (0..1).
-  double get q => 1.0 - p;
+  double get q => 1 - p;
 
   @override
   int get lowerBound => 0;
@@ -29,7 +29,7 @@ class BernoulliDistribution extends DiscreteDistribution {
 
   @override
   double get median => p < 0.5
-      ? 0.0
+      ? 0
       : p > 0.5
           ? 1
           : 0.5;
@@ -51,14 +51,14 @@ class BernoulliDistribution extends DiscreteDistribution {
       ? q
       : k == 1
           ? p
-          : 0.0;
+          : 0;
 
   @override
   double cumulativeProbability(int k) => k < 0
-      ? 0.0
+      ? 0
       : k < 1
           ? q
-          : 1.0;
+          : 1;
 
   @override
   int sample({Random? random}) {

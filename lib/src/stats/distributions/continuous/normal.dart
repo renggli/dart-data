@@ -14,7 +14,7 @@ class NormalDistribution extends ContinuousDistribution {
       : assert(standardDeviation > 0, 'standardDeviation > 0');
 
   /// A standard normal distribution centered around 0.
-  const NormalDistribution.standard() : this(0.0, 1.0);
+  const NormalDistribution.standard() : this(0, 1);
 
   @override
   final double mean;
@@ -46,7 +46,7 @@ class NormalDistribution extends ContinuousDistribution {
   @override
   double cumulativeProbability(double x) {
     final z = (x - mean) / (sqrt2 * standardDeviation);
-    return 0.5 * (1.0 + erf(z));
+    return 0.5 * (1 + erf(z));
   }
 
   @override
@@ -66,8 +66,8 @@ class NormalDistribution extends ContinuousDistribution {
         p1 = uniform.sample(random: random);
         p2 = uniform.sample(random: random);
         p = p1 * p1 + p2 * p2;
-      } while (p >= 1.0);
-      p = standardDeviation * sqrt(-2.0 * log(p) / p);
+      } while (p >= 1);
+      p = standardDeviation * sqrt(-2 * log(p) / p);
       yield mean + p1 * p;
       yield mean + p2 * p;
     }

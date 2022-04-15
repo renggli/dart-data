@@ -12,7 +12,7 @@ import '../discrete.dart';
 /// See https://en.wikipedia.org/wiki/Binomial_distribution.
 class BinomialDistribution extends DiscreteDistribution {
   const BinomialDistribution(this.n, this.p)
-      : assert(0 <= p && p <= 1.0, 'invalid probability p');
+      : assert(0 <= p && p <= 1, 'invalid probability p');
 
   /// Number of trials.
   final int n;
@@ -21,7 +21,7 @@ class BinomialDistribution extends DiscreteDistribution {
   final double p;
 
   /// Failure probability of each trial (0..1).
-  double get q => 1.0 - p;
+  double get q => 1 - p;
 
   @override
   int get lowerBound => 0;
@@ -49,7 +49,7 @@ class BinomialDistribution extends DiscreteDistribution {
 
   @override
   double probability(int k) =>
-      0 <= k && k <= n ? combination(n, k) * pow(p, k) * pow(q, n - k) : 0.0;
+      0 <= k && k <= n ? combination(n, k) * pow(p, k) * pow(q, n - k) : 0;
 
   @override
   int sample({Random? random}) {

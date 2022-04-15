@@ -18,7 +18,7 @@ class StudentDistribution extends ContinuousDistribution {
   final double dof;
 
   @override
-  double get mean => dof > 1.0 ? 0.0 : double.nan;
+  double get mean => dof > 1 ? 0 : double.nan;
 
   @override
   double get median => 0;
@@ -45,20 +45,18 @@ class StudentDistribution extends ContinuousDistribution {
 
   @override
   double probability(double x) =>
-      exp(gammaLn(0.5 * (dof + 1.0)) - gammaLn(0.5 * dof)) /
-      (sqrt(dof * pi) * pow(1.0 + x * x / dof, 0.5 * (dof + 1.0)));
+      exp(gammaLn(0.5 * (dof + 1)) - gammaLn(0.5 * dof)) /
+      (sqrt(dof * pi) * pow(1 + x * x / dof, 0.5 * (dof + 1)));
 
   @override
   double cumulativeProbability(double x) => ibeta(
-      (x + sqrt(x * x + dof)) / (2.0 * sqrt(x * x + dof)),
-      0.5 * dof,
-      0.5 * dof);
+      (x + sqrt(x * x + dof)) / (2 * sqrt(x * x + dof)), 0.5 * dof, 0.5 * dof);
 
   @override
   double inverseCumulativeProbability(num p) {
     InvalidProbability.check(p);
-    var x = ibetaInv(2.0 * min(p, 1.0 - p), 0.5 * dof, 0.5);
-    x = sqrt(dof * (1.0 - x) / x);
+    var x = ibetaInv(2 * min(p, 1 - p), 0.5 * dof, 0.5);
+    x = sqrt(dof * (1 - x) / x);
     return p > 0.5 ? x : -x;
   }
 

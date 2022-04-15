@@ -15,7 +15,7 @@ extension IterableNumExtension on Iterable<num> {
 
   /// Returns the product of this [Iterable].
   ///
-  /// Example: `[-2.0, 2.5].product()` returns `-5`.
+  /// Example: `[-2, 2.5].product()` returns `-5`.
   ///
   double product() {
     var product = 1.0;
@@ -49,7 +49,7 @@ extension IterableNumExtension on Iterable<num> {
   ///
   /// For details, see https://en.wikipedia.org/wiki/Geometric_mean.
   ///
-  /// Example: `[2, 8].geometricMean()` returns `4.0`.
+  /// Example: `[2, 8].geometricMean()` returns `4`.
   ///
   double geometricMean() {
     var count = 0, sum = 0.0;
@@ -73,7 +73,7 @@ extension IterableNumExtension on Iterable<num> {
       count++;
       sum += 1 / value;
     }
-    return sum == 0.0 ? double.nan : count / sum;
+    return sum == 0 ? double.nan : count / sum;
   }
 
   /// Returns the (population) variance of this [Iterable], or [double.nan] if

@@ -42,14 +42,14 @@ class UniformDiscreteDistribution extends DiscreteDistribution {
   double get excessKurtosis => -6 / 5 * (n * n + 1) / (n * n - 1);
 
   @override
-  double probability(int k) => a <= k && k <= b ? 1.0 / n : 0.0;
+  double probability(int k) => a <= k && k <= b ? 1 / n : 0;
 
   @override
   double cumulativeProbability(int k) => k < a
-      ? 0.0
+      ? 0
       : k <= b
           ? (k - a + 1) / n
-          : 1.0;
+          : 1;
 
   @override
   int sample({Random? random}) {

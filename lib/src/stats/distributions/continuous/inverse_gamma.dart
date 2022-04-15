@@ -10,8 +10,8 @@ import 'gamma.dart';
 /// See https://en.wikipedia.org/wiki/Inverse-gamma_distribution.
 class InverseGammaDistribution extends ContinuousDistribution {
   const InverseGammaDistribution(this.shape, this.scale)
-      : assert(shape > 0.0, 'shape > 0.0'),
-        assert(scale > 0.0, 'scale > 0.0');
+      : assert(shape > 0, 'shape > 0'),
+        assert(scale > 0, 'scale > 0');
 
   /// The shape parameter.
   final double shape;
@@ -20,20 +20,20 @@ class InverseGammaDistribution extends ContinuousDistribution {
   final double scale;
 
   @override
-  double get lowerBound => 0.0;
+  double get lowerBound => 0;
 
   @override
-  double get mean => shape > 1.0 ? scale / (shape - 1.0) : double.nan;
+  double get mean => shape > 1 ? scale / (shape - 1) : double.nan;
 
   @override
   double get median => throw UnsupportedError('No simple closed form');
 
   @override
-  double get mode => scale / (shape + 1.0);
+  double get mode => scale / (shape + 1);
 
   @override
-  double get variance => shape > 2.0
-      ? scale * scale / (shape - 1.0) / (shape - 1.0) / (shape - 2.0)
+  double get variance => shape > 2
+      ? scale * scale / (shape - 1) / (shape - 1) / (shape - 2)
       : double.nan;
 
   @override
@@ -45,21 +45,21 @@ class InverseGammaDistribution extends ContinuousDistribution {
       shape > 4 ? 6 * (5 * shape - 11) / (shape - 3) / (shape - 4) : double.nan;
 
   @override
-  double probability(double x) => x <= 0.0
-      ? 0.0
-      : exp(-(shape + 1.0) * log(x) -
+  double probability(double x) => x <= 0
+      ? 0
+      : exp(-(shape + 1) * log(x) -
           scale / x -
           gammaLn(shape) +
           shape * log(scale));
 
   @override
   double cumulativeProbability(double x) =>
-      x <= 0.0 ? 0.0 : 1.0 - lowRegGamma(shape, scale / x);
+      x <= 0 ? 0 : 1 - lowRegGamma(shape, scale / x);
 
   @override
   double inverseCumulativeProbability(num p) {
     InvalidProbability.check(p);
-    return scale / gammapInv(1.0 - p, shape);
+    return scale / gammapInv(1 - p, shape);
   }
 
   @override
