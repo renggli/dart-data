@@ -1,5 +1,7 @@
 import 'dart:math';
 
+import 'package:more/printer.dart';
+
 import '../continuous.dart';
 
 /// The continuous uniform distribution between the bounds [a] and [b]. The
@@ -72,7 +74,9 @@ class UniformDistribution extends ContinuousDistribution {
   int get hashCode => Object.hash(UniformDistribution, a, b);
 
   @override
-  String toString() => 'UniformDistribution[$a..$b]';
+  ObjectPrinter get toStringPrinter => super.toStringPrinter
+    ..addValue(a, name: 'a')
+    ..addValue(b, name: 'b');
 }
 
 final _random = Random();

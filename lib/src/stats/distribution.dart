@@ -1,12 +1,13 @@
 import 'dart:math';
 
 import 'package:meta/meta.dart';
+import 'package:more/more.dart';
 
 import 'distributions/errors.dart';
 
 /// Abstract interface of all distributions.
 @immutable
-abstract class Distribution<T extends num> {
+abstract class Distribution<T extends num> with ToStringPrinter {
   const Distribution();
 
   /// Returns the lower bound of the distribution.

@@ -1,5 +1,7 @@
 import 'dart:math';
 
+import 'package:more/printer.dart';
+
 import '../continuous.dart';
 import '../errors.dart';
 import 'uniform.dart';
@@ -60,5 +62,6 @@ class ExponentialDistribution extends ContinuousDistribution {
   int get hashCode => Object.hash(ExponentialDistribution, lambda);
 
   @override
-  String toString() => 'ExponentialDistribution{lambda: $lambda}';
+  ObjectPrinter get toStringPrinter =>
+      super.toStringPrinter..addValue(lambda, name: 'lambda');
 }

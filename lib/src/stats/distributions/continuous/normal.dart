@@ -1,5 +1,7 @@
 import 'dart:math';
 
+import 'package:more/printer.dart';
+
 import '../../../special/erf.dart';
 import '../continuous.dart';
 import 'uniform.dart';
@@ -83,6 +85,7 @@ class NormalDistribution extends ContinuousDistribution {
   int get hashCode => Object.hash(NormalDistribution, mean, standardDeviation);
 
   @override
-  String toString() =>
-      'NormalDistribution{mean: $mean, standardDeviation: $standardDeviation}';
+  ObjectPrinter get toStringPrinter => super.toStringPrinter
+    ..addValue(mean, name: 'mean')
+    ..addValue(standardDeviation, name: 'standardDeviation');
 }

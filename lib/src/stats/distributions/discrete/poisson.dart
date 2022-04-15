@@ -1,5 +1,7 @@
 import 'dart:math';
 
+import 'package:more/printer.dart';
+
 import '../../../special/gamma.dart';
 import '../continuous/uniform.dart';
 import '../discrete.dart';
@@ -63,5 +65,6 @@ class PoissonDistribution extends DiscreteDistribution {
   int get hashCode => Object.hash(PoissonDistribution, lambda);
 
   @override
-  String toString() => 'PoissonDistribution{lambda: $lambda}';
+  ObjectPrinter get toStringPrinter =>
+      super.toStringPrinter..addValue(lambda, name: 'lambda');
 }

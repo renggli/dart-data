@@ -1,5 +1,7 @@
 import 'dart:math';
 
+import 'package:more/printer.dart';
+
 import '../continuous/uniform.dart';
 import '../discrete.dart';
 
@@ -74,5 +76,6 @@ class BernoulliDistribution extends DiscreteDistribution {
   int get hashCode => Object.hash(BernoulliDistribution, p);
 
   @override
-  String toString() => 'BernoulliDistribution{p: $p, q: $q}';
+  ObjectPrinter get toStringPrinter =>
+      super.toStringPrinter..addValue(p, name: 'p');
 }

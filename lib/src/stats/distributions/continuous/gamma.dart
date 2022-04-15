@@ -1,5 +1,7 @@
 import 'dart:math';
 
+import 'package:more/printer.dart';
+
 import '../../../special/gamma.dart';
 import '../continuous.dart';
 import '../errors.dart';
@@ -97,5 +99,7 @@ class GammaDistribution extends ContinuousDistribution {
   int get hashCode => Object.hash(GammaDistribution, shape, scale);
 
   @override
-  String toString() => 'GammaDistribution{shape: $shape; scale: $scale}';
+  ObjectPrinter get toStringPrinter => super.toStringPrinter
+    ..addValue(shape, name: 'shape')
+    ..addValue(scale, name: 'scale');
 }

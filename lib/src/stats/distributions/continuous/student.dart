@@ -1,5 +1,7 @@
 import 'dart:math';
 
+import 'package:more/printer.dart';
+
 import '../../../special/beta.dart';
 import '../../../special/gamma.dart';
 import '../continuous.dart';
@@ -76,5 +78,6 @@ class StudentDistribution extends ContinuousDistribution {
   int get hashCode => Object.hash(StudentDistribution, dof);
 
   @override
-  String toString() => 'StudentDistribution{dof: $dof}';
+  ObjectPrinter get toStringPrinter =>
+      super.toStringPrinter..addValue(dof, name: 'dof');
 }
