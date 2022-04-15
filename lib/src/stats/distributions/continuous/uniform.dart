@@ -42,6 +42,12 @@ class UniformDistribution extends ContinuousDistribution {
   double get variance => pow(b - a, 2) / 12.0;
 
   @override
+  double get skewness => 0;
+
+  @override
+  double get excessKurtosis => -6 / 5;
+
+  @override
   double probability(double x) => a <= x && x <= b ? 1.0 / (b - a) : 0.0;
 
   @override

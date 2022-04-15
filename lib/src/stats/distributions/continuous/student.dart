@@ -34,6 +34,16 @@ class StudentDistribution extends ContinuousDistribution {
           : double.nan;
 
   @override
+  double get skewness => dof > 3 ? 0 : double.nan;
+
+  @override
+  double get excessKurtosis => dof > 4
+      ? 6 / (dof - 2)
+      : dof >= 2
+          ? double.infinity
+          : double.nan;
+
+  @override
   double probability(double x) =>
       exp(gammaLn(0.5 * (dof + 1.0)) - gammaLn(0.5 * dof)) /
       (sqrt(dof * pi) * pow(1.0 + x * x / dof, 0.5 * (dof + 1.0)));

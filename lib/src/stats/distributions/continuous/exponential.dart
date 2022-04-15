@@ -30,6 +30,12 @@ class ExponentialDistribution extends ContinuousDistribution {
   double get variance => 1.0 / (lambda * lambda);
 
   @override
+  double get skewness => 2;
+
+  @override
+  double get excessKurtosis => 6;
+
+  @override
   double probability(double x) => x < 0.0 ? 0.0 : lambda * exp(-lambda * x);
 
   @override

@@ -7,7 +7,7 @@ import 'gamma.dart';
 
 /// The inverse gamma distribution.
 ///
-/// See https://en.wikipedia.org/wiki/Gamma-distribution.
+/// See https://en.wikipedia.org/wiki/Inverse-gamma_distribution.
 class InverseGammaDistribution extends ContinuousDistribution {
   const InverseGammaDistribution(this.shape, this.scale)
       : assert(shape > 0.0, 'shape > 0.0'),
@@ -35,6 +35,14 @@ class InverseGammaDistribution extends ContinuousDistribution {
   double get variance => shape > 2.0
       ? scale * scale / (shape - 1.0) / (shape - 1.0) / (shape - 2.0)
       : double.nan;
+
+  @override
+  double get skewness =>
+      shape > 3 ? 4 * sqrt(shape - 2) / (shape - 3) : double.nan;
+
+  @override
+  double get excessKurtosis =>
+      shape > 4 ? 6 * (5 * shape - 11) / (shape - 3) / (shape - 4) : double.nan;
 
   @override
   double probability(double x) => x <= 0.0

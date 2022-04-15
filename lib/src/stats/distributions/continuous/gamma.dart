@@ -39,6 +39,12 @@ class GammaDistribution extends ContinuousDistribution {
   double get variance => shape * scale * scale;
 
   @override
+  double get skewness => 2 / sqrt(shape);
+
+  @override
+  double get excessKurtosis => 6 / shape;
+
+  @override
   double probability(double x) => x < 0.0
       ? 0.0
       : exp((shape - 1.0) * log(x) -

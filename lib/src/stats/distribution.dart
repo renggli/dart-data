@@ -46,6 +46,16 @@ abstract class Distribution<T extends num> {
   /// See https://en.wikipedia.org/wiki/Standard_deviation.
   double get standardDeviation => sqrt(variance);
 
+  /// Returns the skewness of the distribution.
+  ///
+  /// See https://en.wikipedia.org/wiki/Skewness.
+  double get skewness;
+
+  /// Returns the excess kurtosis.
+  ///
+  /// See https://en.wikipedia.org/wiki/Kurtosis#Excess_kurtosis.
+  double get excessKurtosis;
+
   /// The Probability Density/Mass Function (PDF/PMF).
   ///
   /// Returns the probability of the distribution at [x].

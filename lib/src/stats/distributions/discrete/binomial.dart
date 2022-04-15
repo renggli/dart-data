@@ -1,5 +1,7 @@
 import 'dart:math';
 
+import 'package:more/printer.dart';
+
 import '../../../special/gamma.dart';
 import '../continuous/uniform.dart';
 import '../discrete.dart';
@@ -10,8 +12,7 @@ import '../discrete.dart';
 /// See https://en.wikipedia.org/wiki/Binomial_distribution.
 class BinomialDistribution extends DiscreteDistribution {
   const BinomialDistribution(this.n, this.p)
-      : assert(0 <= p, '0 <= p'),
-        assert(p <= 1.0, 'p <= 1');
+      : assert(0 <= p && p <= 1.0, 'invalid probability p');
 
   /// Number of trials.
   final int n;
@@ -41,6 +42,12 @@ class BinomialDistribution extends DiscreteDistribution {
   double get variance => n * p * q;
 
   @override
+  double get skewness => (q - p) / sqrt(n * p * q);
+
+  @override
+  double get excessKurtosis => (1 - 6 * p * q) / (n * p * q);
+
+  @override
   double probability(int k) =>
       0 <= k && k <= n ? combination(n, k) * pow(p, k) * pow(q, n - k) : 0.0;
 
@@ -64,5 +71,7 @@ class BinomialDistribution extends DiscreteDistribution {
   int get hashCode => Object.hash(BinomialDistribution, n, p);
 
   @override
-  String toString() => 'BinomialDistribution{n: $n, p: $p}';
+  ObjectPrinter get toStringPrinter => super.toStringPrinter
+    ..addValue(n, name: 'n')
+    ..addValue(p, name: 'p');
 }

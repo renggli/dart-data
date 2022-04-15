@@ -32,6 +32,12 @@ class NormalDistribution extends ContinuousDistribution {
   double get variance => standardDeviation * standardDeviation;
 
   @override
+  double get skewness => 0;
+
+  @override
+  double get excessKurtosis => 0;
+
+  @override
   double probability(double x) {
     final z = (x - mean) / (sqrt2 * standardDeviation);
     return exp(-z * z) / (sqrt2 * sqrt(pi) * standardDeviation);

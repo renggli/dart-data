@@ -15,7 +15,7 @@ class UniformDiscreteDistribution extends DiscreteDistribution {
   final int b;
 
   // Returns the number of elements in this distribution.
-  int get count => b - a + 1;
+  int get n => b - a + 1;
 
   @override
   int get lowerBound => a;
@@ -33,22 +33,28 @@ class UniformDiscreteDistribution extends DiscreteDistribution {
   double get mode => double.nan;
 
   @override
-  double get variance => (count * count - 1) / 12;
+  double get variance => (n * n - 1) / 12;
 
   @override
-  double probability(int k) => a <= k && k <= b ? 1.0 / count : 0.0;
+  double get skewness => 0;
+
+  @override
+  double get excessKurtosis => -6 / 5 * (n * n + 1) / (n * n - 1);
+
+  @override
+  double probability(int k) => a <= k && k <= b ? 1.0 / n : 0.0;
 
   @override
   double cumulativeProbability(int k) => k < a
       ? 0.0
       : k <= b
-          ? (k - a + 1) / count
+          ? (k - a + 1) / n
           : 1.0;
 
   @override
   int sample({Random? random}) {
     const uniform = UniformDistribution.standard();
-    return a + (count * uniform.sample(random: random)).floor();
+    return a + (n * uniform.sample(random: random)).floor();
   }
 
   @override
