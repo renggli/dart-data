@@ -12,13 +12,13 @@ import 'gamma.dart';
 /// See https://en.wikipedia.org/wiki/Inverse-gamma_distribution.
 class InverseGammaDistribution extends ContinuousDistribution {
   const InverseGammaDistribution(this.shape, this.scale)
-      : assert(shape > 0, 'shape > 0'),
-        assert(scale > 0, 'scale > 0');
+      : assert(shape > 0, 'α > 0'),
+        assert(scale > 0, 'β > 0');
 
-  /// The shape parameter.
+  /// The shape parameter α.
   final double shape;
 
-  /// The scale parameter.
+  /// The scale parameter β.
   final double scale;
 
   @override
@@ -81,6 +81,6 @@ class InverseGammaDistribution extends ContinuousDistribution {
 
   @override
   ObjectPrinter get toStringPrinter => super.toStringPrinter
-    ..addValue(shape, name: 'shape')
-    ..addValue(scale, name: 'scale');
+    ..addValue(shape, name: 'α')
+    ..addValue(scale, name: 'β');
 }

@@ -12,9 +12,8 @@ import '../continuous.dart';
 class UniformDistribution extends ContinuousDistribution {
   /// A uniform distribution between [a] and [b].
   const UniformDistribution(this.a, this.b)
-      : assert(double.negativeInfinity < a, '-∞ < a'),
-        assert(a < b, 'a < b'),
-        assert(b < double.infinity, 'b < ∞');
+      : assert(double.negativeInfinity < a && a < b && b < double.infinity,
+            '-∞ < a < b < ∞');
 
   /// A standard uniform distribution between 0 and 1.
   const UniformDistribution.standard() : this(0, 1);

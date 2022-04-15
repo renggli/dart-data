@@ -14,9 +14,9 @@ import 'normal.dart';
 /// See https://en.wikipedia.org/wiki/Student%27s_t-distribution.
 class StudentDistribution extends ContinuousDistribution {
   /// A Student's t-distribution with degrees of freedom.
-  const StudentDistribution(this.dof) : assert(dof > 0, 'dof > 0');
+  const StudentDistribution(this.dof) : assert(dof > 0, 'ν > 0');
 
-  /// The degrees of freedom.
+  /// The degrees of freedom ν.
   final double dof;
 
   @override
@@ -79,5 +79,5 @@ class StudentDistribution extends ContinuousDistribution {
 
   @override
   ObjectPrinter get toStringPrinter =>
-      super.toStringPrinter..addValue(dof, name: 'dof');
+      super.toStringPrinter..addValue(dof, name: 'ν');
 }

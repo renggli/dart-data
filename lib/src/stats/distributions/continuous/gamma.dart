@@ -18,10 +18,10 @@ class GammaDistribution extends ContinuousDistribution {
 
   factory GammaDistribution.shape(double shape) => GammaDistribution(shape, 1);
 
-  /// The shape parameter.
+  /// The shape parameter α.
   final double shape;
 
-  /// The scale parameter.
+  /// The scale parameter β.
   final double scale;
 
   @override
@@ -100,6 +100,6 @@ class GammaDistribution extends ContinuousDistribution {
 
   @override
   ObjectPrinter get toStringPrinter => super.toStringPrinter
-    ..addValue(shape, name: 'shape')
-    ..addValue(scale, name: 'scale');
+    ..addValue(shape, name: 'α')
+    ..addValue(scale, name: 'β');
 }

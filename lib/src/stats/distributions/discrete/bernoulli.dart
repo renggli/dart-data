@@ -10,9 +10,7 @@ import '../discrete.dart';
 ///
 /// See https://en.wikipedia.org/wiki/Bernoulli_distribution.
 class BernoulliDistribution extends DiscreteDistribution {
-  const BernoulliDistribution(this.p)
-      : assert(0 <= p, '0 <= p'),
-        assert(p <= 1, 'p <= 1');
+  const BernoulliDistribution(this.p) : assert(0 <= p && p <= 1, '0 <= p <= 1');
 
   /// Success probability for each trial (0..1).
   final double p;
