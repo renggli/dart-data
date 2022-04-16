@@ -14,13 +14,13 @@ abstract class DiscreteDistribution extends Distribution<int> {
   int get lowerBound => minSafeInteger;
 
   @override
-  bool get isLowerBoundOpen => lowerBound == minSafeInteger;
+  bool get isLowerUnbounded => lowerBound == minSafeInteger;
 
   @override
   int get upperBound => maxSafeInteger;
 
   @override
-  bool get isUpperBoundOpen => upperBound == maxSafeInteger;
+  bool get isUpperUnbounded => upperBound == maxSafeInteger;
 
   @override
   // ignore: avoid_renaming_method_parameters

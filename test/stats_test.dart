@@ -73,7 +73,7 @@ void testDistribution<T extends num>(
         isCloseTo(
             min ?? (isDiscrete ? minSafeInteger : double.negativeInfinity)));
     expect(
-        distribution.isLowerBoundOpen,
+        distribution.isLowerUnbounded,
         distribution.lowerBound == minSafeInteger ||
             distribution.lowerBound == double.negativeInfinity);
   });
@@ -81,7 +81,7 @@ void testDistribution<T extends num>(
     expect(distribution.upperBound,
         isCloseTo(max ?? (isDiscrete ? maxSafeInteger : double.infinity)));
     expect(
-        distribution.isUpperBoundOpen,
+        distribution.isUpperUnbounded,
         distribution.upperBound == maxSafeInteger ||
             distribution.upperBound == double.infinity);
   });

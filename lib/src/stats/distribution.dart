@@ -14,13 +14,13 @@ abstract class Distribution<T extends num> with ToStringPrinter {
   T get lowerBound;
 
   /// Returns true, if the lower bound is open.
-  bool get isLowerBoundOpen;
+  bool get isLowerUnbounded;
 
   /// Returns the upper bound of the distribution.
   T get upperBound;
 
   /// Returns true, if the upper bound is open.
-  bool get isUpperBoundOpen;
+  bool get isUpperUnbounded;
 
   /// Returns the mean value of the distribution.
   ///

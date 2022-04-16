@@ -8,11 +8,11 @@ abstract class ContinuousDistribution extends Distribution<double> {
   double get lowerBound => double.negativeInfinity;
 
   @override
-  bool get isLowerBoundOpen => lowerBound == double.negativeInfinity;
+  bool get isLowerUnbounded => lowerBound == double.negativeInfinity;
 
   @override
   double get upperBound => double.infinity;
 
   @override
-  bool get isUpperBoundOpen => upperBound == double.infinity;
+  bool get isUpperUnbounded => upperBound == double.infinity;
 }
