@@ -44,7 +44,7 @@ class InverseGammaDistribution extends ContinuousDistribution {
       shape > 3 ? 4 * sqrt(shape - 2) / (shape - 3) : double.nan;
 
   @override
-  double get excessKurtosis =>
+  double get kurtosisExcess =>
       shape > 4 ? 6 * (5 * shape - 11) / (shape - 3) / (shape - 4) : double.nan;
 
   @override

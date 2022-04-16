@@ -37,7 +37,7 @@ class NormalDistribution extends ContinuousDistribution {
   double get skewness => 0;
 
   @override
-  double get excessKurtosis => 0;
+  double get kurtosisExcess => 0;
 
   @override
   double probability(double x) {

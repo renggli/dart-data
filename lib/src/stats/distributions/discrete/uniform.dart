@@ -42,7 +42,7 @@ class UniformDiscreteDistribution extends DiscreteDistribution {
   double get skewness => 0;
 
   @override
-  double get excessKurtosis => -6 / 5 * (n * n + 1) / (n * n - 1);
+  double get kurtosisExcess => -6 / 5 * (n * n + 1) / (n * n - 1);
 
   @override
   double probability(int k) => a <= k && k <= b ? 1 / n : 0;

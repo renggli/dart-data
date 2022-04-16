@@ -47,7 +47,7 @@ class BinomialDistribution extends DiscreteDistribution {
   double get skewness => (q - p) / sqrt(n * p * q);
 
   @override
-  double get excessKurtosis => (1 - 6 * p * q) / (n * p * q);
+  double get kurtosisExcess => (1 - 6 * p * q) / (n * p * q);
 
   @override
   double probability(int k) =>

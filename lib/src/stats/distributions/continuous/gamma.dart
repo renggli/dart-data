@@ -44,7 +44,7 @@ class GammaDistribution extends ContinuousDistribution {
   double get skewness => 2 / sqrt(shape);
 
   @override
-  double get excessKurtosis => 6 / shape;
+  double get kurtosisExcess => 6 / shape;
 
   @override
   double probability(double x) => x < 0

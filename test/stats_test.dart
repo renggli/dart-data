@@ -59,6 +59,8 @@ void testDistribution<T extends num>(
   double? median,
   double? mode,
   double? variance,
+  double? skewness,
+  double? kurtosisExcess,
   List<Tuple2<T, double>>? probability,
   List<Tuple2<T, double>>? cumulativeProbability,
   List<Tuple2<double, T>>? inverseCumulativeProbability,
@@ -104,6 +106,16 @@ void testDistribution<T extends num>(
     });
     test('standard deviation', () {
       expect(distribution.standardDeviation, isCloseTo(math.sqrt(variance)));
+    });
+  }
+  if (skewness != null) {
+    test('skewness', () {
+      expect(distribution.skewness, isCloseTo(skewness));
+    });
+  }
+  if (kurtosisExcess != null) {
+    test('kurtosisExcess', () {
+      expect(distribution.kurtosisExcess, isCloseTo(kurtosisExcess));
     });
   }
   if (probability != null) {

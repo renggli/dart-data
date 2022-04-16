@@ -55,7 +55,7 @@ abstract class Distribution<T extends num> with ToStringPrinter {
   /// Returns the excess kurtosis.
   ///
   /// See https://en.wikipedia.org/wiki/Kurtosis#Excess_kurtosis.
-  double get excessKurtosis;
+  double get kurtosisExcess;
 
   /// The Probability Density/Mass Function (PDF/PMF).
   ///

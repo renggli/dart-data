@@ -39,7 +39,7 @@ class StudentDistribution extends ContinuousDistribution {
   double get skewness => dof > 3 ? 0 : double.nan;
 
   @override
-  double get excessKurtosis => dof > 4
+  double get kurtosisExcess => dof > 4
       ? 6 / (dof - 2)
       : dof >= 2
           ? double.infinity
