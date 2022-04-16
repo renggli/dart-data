@@ -10,6 +10,7 @@ export 'src/stats/distributions/continuous/uniform.dart';
 export 'src/stats/distributions/discrete.dart';
 export 'src/stats/distributions/discrete/bernoulli.dart';
 export 'src/stats/distributions/discrete/binomial.dart';
+export 'src/stats/distributions/discrete/negative_binomial.dart';
 export 'src/stats/distributions/discrete/poisson.dart';
 export 'src/stats/distributions/discrete/uniform.dart';
 export 'src/stats/distributions/errors.dart';

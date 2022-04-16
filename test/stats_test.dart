@@ -190,6 +190,7 @@ void testDistribution<T extends num>(
     // Discrete
     BernoulliDistribution(0.1),
     BinomialDistribution(5, 0.1),
+    NegativeBinomialDistribution(5, 0.5),
     PoissonDistribution(2.0),
     UniformDiscreteDistribution(-1, 1),
   ];
@@ -1202,6 +1203,62 @@ void main() {
               Tuple2(0.900, 9),
               Tuple2(1, 10),
             ]);
+      });
+      group('negative bernoulli', () {
+        const distribution = NegativeBinomialDistribution(5, 0.4);
+        test('parameters', () {
+          expect(distribution.r, isCloseTo(5));
+          expect(distribution.p, isCloseTo(0.4));
+          expect(distribution.q, isCloseTo(0.6));
+        });
+        testDistribution(
+          distribution,
+          min: 0,
+          mean: 3.33333333333,
+          mode: 2.0,
+          variance: 5.55555555555,
+          skewness: 0.98994949366,
+          kurtosisExcess: 1.38,
+          probability: const [
+            Tuple2(-1, 0),
+            Tuple2(0, 0.07776),
+            Tuple2(1, 0.15552),
+            Tuple2(2, 0.186624),
+            Tuple2(3, 0.1741824),
+            Tuple2(4, 0.13934592),
+            Tuple2(5, 0.1003290624),
+            Tuple2(6, 0.0668860416),
+            Tuple2(7, 0.04204265472),
+            Tuple2(8, 0.025225592832),
+            Tuple2(9, 0.0145747869696),
+          ],
+          cumulativeProbability: const [
+            Tuple2(-1, 0),
+            Tuple2(0, 0.07776),
+            Tuple2(1, 0.23328),
+            Tuple2(2, 0.419904),
+            Tuple2(3, 0.5940864),
+            Tuple2(4, 0.73343232),
+            Tuple2(5, 0.8337613824),
+            Tuple2(6, 0.900647424),
+            Tuple2(7, 0.9426900787),
+            Tuple2(8, 0.9679156716),
+            Tuple2(9, 0.9824904585),
+          ],
+          // // inverseCumulativeProbability: [
+          //   Tuple2(0.0, 0),
+          //   Tuple2(0.1, 2),
+          //   Tuple2(0.2, 2),
+          //   Tuple2(0.3, 3),
+          //   Tuple2(0.4, 3),
+          //   Tuple2(0.5, 4),
+          //   Tuple2(0.6, 4),
+          //   Tuple2(0.7, 5),
+          //   Tuple2(0.8, 6),
+          //   Tuple2(0.9, 7),
+          //   Tuple2(1.0, maxSafeInteger),
+          // ],
+        );
       });
       group('poisson', () {
         const distribution = PoissonDistribution(4.0);
