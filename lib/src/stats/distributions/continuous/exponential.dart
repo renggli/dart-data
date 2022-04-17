@@ -11,7 +11,7 @@ import 'uniform.dart';
 /// See https://en.wikipedia.org/wiki/Exponential_distribution.
 class ExponentialDistribution extends ContinuousDistribution {
   /// An exponential distribution with parameter [lambda] λ.
-  const ExponentialDistribution(this.lambda) : assert(lambda > 0, 'λ > 0');
+  const ExponentialDistribution(this.lambda) : assert(lambda > 0, 'lambda > 0');
 
   /// The λ parameter (rate, inverse scale).
   final double lambda;
@@ -64,5 +64,5 @@ class ExponentialDistribution extends ContinuousDistribution {
 
   @override
   ObjectPrinter get toStringPrinter =>
-      super.toStringPrinter..addValue(lambda, name: 'λ');
+      super.toStringPrinter..addValue(lambda, name: 'lambda');
 }

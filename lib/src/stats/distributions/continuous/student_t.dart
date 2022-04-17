@@ -14,7 +14,7 @@ import 'normal.dart';
 /// See https://en.wikipedia.org/wiki/Student%27s_t-distribution.
 class StudentDistribution extends ContinuousDistribution {
   /// A Student's t-distribution with degrees of freedom ν.
-  const StudentDistribution(this.dof) : assert(dof > 0, 'ν > 0');
+  const StudentDistribution(this.dof) : assert(dof > 0, 'dof > 0');
 
   /// The degrees of freedom ν.
   final double dof;
@@ -40,8 +40,8 @@ class StudentDistribution extends ContinuousDistribution {
 
   @override
   double get kurtosisExcess => dof > 4
-      ? 6 / (dof - 2)
-      : dof >= 2
+      ? 6 / (dof - 4)
+      : dof > 2
           ? double.infinity
           : double.nan;
 
@@ -79,5 +79,5 @@ class StudentDistribution extends ContinuousDistribution {
 
   @override
   ObjectPrinter get toStringPrinter =>
-      super.toStringPrinter..addValue(dof, name: 'ν');
+      super.toStringPrinter..addValue(dof, name: 'dof');
 }

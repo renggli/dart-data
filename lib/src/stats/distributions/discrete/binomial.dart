@@ -75,5 +75,6 @@ class BinomialDistribution extends DiscreteDistribution {
   @override
   ObjectPrinter get toStringPrinter => super.toStringPrinter
     ..addValue(n, name: 'n')
-    ..addValue(p, name: 'p');
+    ..addValue(p, name: 'p')
+    ..addValue(q, name: 'q');
 }

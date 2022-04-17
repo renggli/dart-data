@@ -75,6 +75,7 @@ class BernoulliDistribution extends DiscreteDistribution {
   int get hashCode => Object.hash(BernoulliDistribution, p);
 
   @override
-  ObjectPrinter get toStringPrinter =>
-      super.toStringPrinter..addValue(p, name: 'p');
+  ObjectPrinter get toStringPrinter => super.toStringPrinter
+    ..addValue(p, name: 'p')
+    ..addValue(q, name: 'q');
 }

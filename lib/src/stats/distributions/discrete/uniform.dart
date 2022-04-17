@@ -70,5 +70,6 @@ class UniformDiscreteDistribution extends DiscreteDistribution {
   @override
   ObjectPrinter get toStringPrinter => super.toStringPrinter
     ..addValue(a, name: 'a')
-    ..addValue(b, name: 'b');
+    ..addValue(b, name: 'b')
+    ..addValue(n, name: 'n');
 }

@@ -14,9 +14,9 @@ import '../discrete.dart';
 /// See https://en.wikipedia.org/wiki/Poisson_distribution.
 class PoissonDistribution extends DiscreteDistribution {
   /// A poisson distribution with parameter [lambda] λ.
-  const PoissonDistribution(this.lambda) : assert(0 <= lambda, '0 <= λ');
+  const PoissonDistribution(this.lambda) : assert(0 <= lambda, '0 <= lambda');
 
-  /// The λ parameter (rate, inverse scale).
+  /// The parameter λ (rate, inverse scale).
   final double lambda;
 
   @override
@@ -67,5 +67,5 @@ class PoissonDistribution extends DiscreteDistribution {
 
   @override
   ObjectPrinter get toStringPrinter =>
-      super.toStringPrinter..addValue(lambda, name: 'λ');
+      super.toStringPrinter..addValue(lambda, name: 'lambda');
 }

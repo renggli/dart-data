@@ -76,5 +76,6 @@ class NegativeBinomialDistribution extends DiscreteDistribution {
   @override
   ObjectPrinter get toStringPrinter => super.toStringPrinter
     ..addValue(r, name: 'r')
-    ..addValue(p, name: 'p');
+    ..addValue(p, name: 'p')
+    ..addValue(q, name: 'q');
 }

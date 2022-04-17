@@ -13,8 +13,8 @@ import 'uniform.dart';
 class WeibullDistribution extends ContinuousDistribution {
   /// A weibull distribution with parameters [scale] λ and [shape] k.
   const WeibullDistribution(this.scale, this.shape)
-      : assert(scale > 0, 'λ > 0'),
-        assert(shape > 0, 'k > 0');
+      : assert(scale > 0, 'scale > 0'),
+        assert(shape > 0, 'shape > 0');
 
   /// The scale parameter λ.
   final double scale;
@@ -83,6 +83,6 @@ class WeibullDistribution extends ContinuousDistribution {
 
   @override
   ObjectPrinter get toStringPrinter => super.toStringPrinter
-    ..addValue(scale, name: 'λ')
-    ..addValue(shape, name: 'k');
+    ..addValue(scale, name: 'scale')
+    ..addValue(shape, name: 'shape');
 }

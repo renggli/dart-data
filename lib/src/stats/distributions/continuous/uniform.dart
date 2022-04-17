@@ -3,6 +3,7 @@ import 'dart:math';
 import 'package:more/printer.dart';
 
 import '../continuous.dart';
+import '../errors.dart';
 
 /// The continuous uniform distribution between the bounds [a] and [b]. The
 /// distribution describes an experiment where there is an arbitrary outcome
@@ -59,7 +60,10 @@ class UniformDistribution extends ContinuousDistribution {
           : 1;
 
   @override
-  double inverseCumulativeProbability(num p) => a + p * (b - a);
+  double inverseCumulativeProbability(num p) {
+    InvalidProbability.check(p);
+    return a + p * (b - a);
+  }
 
   @override
   double sample({Random? random}) =>

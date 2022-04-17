@@ -220,6 +220,9 @@ void main() {
     group('continuous', () {
       group('exponential (lambda = 4.0)', () {
         const distribution = ExponentialDistribution(4.0);
+        test('parameters', () {
+          expect(distribution.lambda, isCloseTo(4.0));
+        });
         testDistribution(
           distribution,
           min: 0.0,
@@ -227,6 +230,8 @@ void main() {
           median: 0.17328679514,
           mode: 0.0,
           variance: 0.0625,
+          skewness: 2.0,
+          kurtosisExcess: 6.0,
           probability: const [
             Tuple2(0.0, 4.0000000),
             Tuple2(1.0, 0.0732626),
@@ -260,12 +265,18 @@ void main() {
       });
       group('gamma (shape = 1.0; scale = 2.0)', () {
         const distribution = GammaDistribution(1.0, 2.0);
+        test('parameters', () {
+          expect(distribution.shape, isCloseTo(1.0));
+          expect(distribution.scale, isCloseTo(2.0));
+        });
         testDistribution(
           distribution,
           min: 0.0,
           mean: 2.0,
           mode: double.nan,
           variance: 4.0,
+          skewness: 2.0,
+          kurtosisExcess: 6.0,
           probability: [
             Tuple2(1.0, 0.303265),
             Tuple2(2.0, 0.183940),
@@ -307,12 +318,18 @@ void main() {
       });
       group('gamma (shape = 2.0; scale = 2.0)', () {
         const distribution = GammaDistribution(2.0, 2.0);
+        test('parameters', () {
+          expect(distribution.shape, isCloseTo(2.0));
+          expect(distribution.scale, isCloseTo(2.0));
+        });
         testDistribution(
           distribution,
           min: 0.0,
           mean: 4.0,
           mode: 2.0,
           variance: 8.0,
+          skewness: 1.41421356,
+          kurtosisExcess: 3.0,
           probability: [
             Tuple2(1.0, 0.151633),
             Tuple2(2.0, 0.183940),
@@ -351,12 +368,18 @@ void main() {
       });
       group('gamma (shape = 3.0; scale = 2.0)', () {
         const distribution = GammaDistribution(3.0, 2.0);
+        test('parameters', () {
+          expect(distribution.shape, isCloseTo(3.0));
+          expect(distribution.scale, isCloseTo(2.0));
+        });
         testDistribution(
           distribution,
           min: 0.0,
           mean: 6.0,
           mode: 4.0,
           variance: 12.0,
+          skewness: 1.15470053,
+          kurtosisExcess: 2.0,
           probability: [
             Tuple2(1.0, 0.037908),
             Tuple2(2.0, 0.091970),
@@ -395,12 +418,18 @@ void main() {
       });
       group('gamma (shape = 5.0; scale = 1.0)', () {
         const distribution = GammaDistribution(5.0, 1.0);
+        test('parameters', () {
+          expect(distribution.shape, isCloseTo(5.0));
+          expect(distribution.scale, isCloseTo(1.0));
+        });
         testDistribution(
           distribution,
           min: 0.0,
           mean: 5.0,
           mode: 4.0,
           variance: 5.0,
+          skewness: 0.89442719,
+          kurtosisExcess: 1.2,
           probability: [
             Tuple2(1.0, 0.015328),
             Tuple2(2.0, 0.090224),
@@ -439,12 +468,18 @@ void main() {
       });
       group('gamma (shape = 9.0; scale = 0.5)', () {
         const distribution = GammaDistribution(9.0, 0.5);
+        test('parameters', () {
+          expect(distribution.shape, isCloseTo(9.0));
+          expect(distribution.scale, isCloseTo(0.5));
+        });
         testDistribution(
           distribution,
           min: 0.0,
           mean: 4.5,
           mode: 4.0,
           variance: 2.25,
+          skewness: 0.66666667,
+          kurtosisExcess: 0.66666667,
           probability: [
             Tuple2(1.0, 0.001719),
             Tuple2(2.0, 0.059540),
@@ -483,12 +518,18 @@ void main() {
       });
       group('gamma (shape = 7.5; scale = 1.0)', () {
         const distribution = GammaDistribution(7.5, 1.0);
+        test('parameters', () {
+          expect(distribution.shape, isCloseTo(7.5));
+          expect(distribution.scale, isCloseTo(1.0));
+        });
         testDistribution(
           distribution,
           min: 0.0,
           mean: 7.5,
           mode: 6.5,
           variance: 7.5,
+          skewness: 0.73029674334,
+          kurtosisExcess: 0.8,
           probability: [
             Tuple2(1.0, 0.000197),
             Tuple2(2.0, 0.006546),
@@ -527,12 +568,18 @@ void main() {
       });
       group('gamma (shape = 0.5; scale = 1.0)', () {
         const distribution = GammaDistribution(0.5, 1.0);
+        test('parameters', () {
+          expect(distribution.shape, isCloseTo(0.5));
+          expect(distribution.scale, isCloseTo(1.0));
+        });
         testDistribution(
           distribution,
           min: 0.0,
           mean: 0.5,
           mode: double.nan,
           variance: 0.5,
+          skewness: 2.82842712475,
+          kurtosisExcess: 12.0,
           probability: [
             Tuple2(1.0, 0.207554),
             Tuple2(2.0, 0.053991),
@@ -571,12 +618,18 @@ void main() {
       });
       group('inverse gamma (shape = 1.0; scale = 1.0)', () {
         const distribution = InverseGammaDistribution(1.0, 1.0);
+        test('parameters', () {
+          expect(distribution.shape, isCloseTo(1.0));
+          expect(distribution.scale, isCloseTo(1.0));
+        });
         testDistribution(
           distribution,
           min: 0.0,
           mean: double.nan,
           mode: 0.5,
           variance: double.nan,
+          skewness: double.nan,
+          kurtosisExcess: double.nan,
           probability: [
             Tuple2(1.0, 0.367879),
             Tuple2(2.0, 0.151633),
@@ -599,7 +652,7 @@ void main() {
             Tuple2(8.0, 0.882497),
             Tuple2(9.0, 0.894839),
           ],
-          // inverseCumulativeProbability: [
+          // TODO: inverseCumulativeProbability: [
           //   Tuple2(0.0, 0.0),
           //   Tuple2(0.1, 0.434294),
           //   Tuple2(0.2, 0.621335),
@@ -618,12 +671,18 @@ void main() {
       });
       group('inverse gamma (shape = 2.0; scale = 1.0)', () {
         const distribution = InverseGammaDistribution(2.0, 1.0);
+        test('parameters', () {
+          expect(distribution.shape, isCloseTo(2.0));
+          expect(distribution.scale, isCloseTo(1.0));
+        });
         testDistribution(
           distribution,
           min: 0.0,
           mean: 1.0,
           mode: 0.333333333,
           variance: double.nan,
+          skewness: double.nan,
+          kurtosisExcess: double.nan,
           probability: [
             Tuple2(1.0, 0.367879),
             Tuple2(2.0, 0.0758163),
@@ -646,7 +705,7 @@ void main() {
             Tuple2(8.0, 0.992809),
             Tuple2(9.0, 0.994266),
           ],
-          // inverseCumulativeProbability: [
+          // TODO: inverseCumulativeProbability: [
           //   Tuple2(0.0, 0.0),
           //   Tuple2(0.1, 0.257088),
           //   Tuple2(0.2, 0.333967),
@@ -662,12 +721,18 @@ void main() {
       });
       group('inverse gamma (shape = 3.0; scale = 1.0)', () {
         const distribution = InverseGammaDistribution(3.0, 1.0);
+        test('parameters', () {
+          expect(distribution.shape, isCloseTo(3.0));
+          expect(distribution.scale, isCloseTo(1.0));
+        });
         testDistribution(
           distribution,
           min: 0.0,
           mean: 0.5,
           mode: 0.25,
           variance: 0.25,
+          skewness: double.nan,
+          kurtosisExcess: double.nan,
           probability: [
             Tuple2(1.0, 0.18394),
             Tuple2(2.0, 0.0189541),
@@ -690,7 +755,7 @@ void main() {
             Tuple2(8.0, 0.999704),
             Tuple2(9.0, 0.99979),
           ],
-          // inverseCumulativeProbability: [
+          // TODO: inverseCumulativeProbability: [
           //   Tuple2(0.0, 0.0),
           //   Tuple2(0.1, 0.187888),
           //   Tuple2(0.2, 0.233698),
@@ -706,12 +771,18 @@ void main() {
       });
       group('inverse gamma (shape = 3.0; scale = 1.5)', () {
         const distribution = InverseGammaDistribution(3.0, 1.5);
+        test('parameters', () {
+          expect(distribution.shape, isCloseTo(3.0));
+          expect(distribution.scale, isCloseTo(1.5));
+        });
         testDistribution(
           distribution,
           min: 0.0,
           mean: 0.75,
           mode: 0.375,
           variance: 0.5625,
+          skewness: double.nan,
+          kurtosisExcess: double.nan,
           probability: [
             Tuple2(1.0, 0.376532),
             Tuple2(2.0, 0.0498199),
@@ -734,7 +805,7 @@ void main() {
             Tuple2(8.0, 0.999045),
             Tuple2(9.0, 0.999319),
           ],
-          // inverseCumulativeProbability: [
+          // TODO: inverseCumulativeProbability: [
           //   Tuple2(0.0, 0.0),
           //   Tuple2(0.1, 0.281832),
           //   Tuple2(0.2, 0.350547),
@@ -756,6 +827,8 @@ void main() {
           median: 0.0,
           mode: 0.0,
           variance: 1.0,
+          skewness: 0.0,
+          kurtosisExcess: 0.0,
           probability: const [
             Tuple2(-2.0, 0.05399097),
             Tuple2(-1.9, 0.06561581),
@@ -865,6 +938,8 @@ void main() {
           median: 2.1,
           mode: 2.1,
           variance: 1.4 * 1.4,
+          skewness: 0.0,
+          kurtosisExcess: 0.0,
           probability: const [
             Tuple2(-2.226325228634938, 0.00240506434076),
             Tuple2(-1.156887023657177, 0.0190372444310),
@@ -906,12 +981,17 @@ void main() {
       });
       group('student (v = 1, cauchy distribution)', () {
         const distribution = StudentDistribution(1);
+        test('parameters', () {
+          expect(distribution.dof, isCloseTo(1.0));
+        });
         testDistribution(
           distribution,
           mean: double.nan,
           median: 0.0,
           mode: 0.0,
           variance: double.nan,
+          skewness: double.nan,
+          kurtosisExcess: double.nan,
           probability: const [
             Tuple2(-4.0, 0.018724),
             Tuple2(-3.0, 0.031831),
@@ -951,12 +1031,17 @@ void main() {
       });
       group('student (v = 2)', () {
         const distribution = StudentDistribution(2);
+        test('parameters', () {
+          expect(distribution.dof, isCloseTo(2.0));
+        });
         testDistribution(
           distribution,
           mean: 0.0,
           median: 0.0,
           mode: 0.0,
           variance: double.infinity,
+          skewness: double.nan,
+          kurtosisExcess: double.nan,
           probability: const [
             Tuple2(-4.0, 0.013095),
             Tuple2(-3.0, 0.027410),
@@ -996,12 +1081,17 @@ void main() {
       });
       group('student (v = 3)', () {
         const distribution = StudentDistribution(3);
+        test('parameters', () {
+          expect(distribution.dof, isCloseTo(3));
+        });
         testDistribution(
           distribution,
           mean: 0.0,
           median: 0.0,
           mode: 0.0,
           variance: 3.0,
+          skewness: double.nan,
+          kurtosisExcess: double.infinity,
           probability: const [
             Tuple2(-4.0, 0.009163),
             Tuple2(-3.0, 0.022972),
@@ -1041,12 +1131,17 @@ void main() {
       });
       group('student (v = 4)', () {
         const distribution = StudentDistribution(4);
+        test('parameters', () {
+          expect(distribution.dof, isCloseTo(4));
+        });
         testDistribution(
           distribution,
           mean: 0.0,
           median: 0.0,
           mode: 0.0,
           variance: 2.0,
+          skewness: 0.0,
+          kurtosisExcess: double.infinity,
           probability: const [
             Tuple2(-4.0, 0.006708),
             Tuple2(-3.0, 0.019693),
@@ -1086,12 +1181,17 @@ void main() {
       });
       group('student (v = 5)', () {
         const distribution = StudentDistribution(5);
+        test('parameters', () {
+          expect(distribution.dof, isCloseTo(5));
+        });
         testDistribution(
           distribution,
           mean: 0.0,
           median: 0.0,
           mode: 0.0,
           variance: 5 / 3,
+          skewness: 0.0,
+          kurtosisExcess: 6.0,
           probability: const [
             Tuple2(-4.0, 0.005124),
             Tuple2(-3.0, 0.017293),
@@ -1131,12 +1231,17 @@ void main() {
       });
       group('student (v = 1234)', () {
         const distribution = StudentDistribution(1234);
+        test('parameters', () {
+          expect(distribution.dof, isCloseTo(1234));
+        });
         testDistribution(
           distribution,
           mean: 0.0,
           median: 0.0,
           mode: 0.0,
           variance: 1234 / 1232,
+          skewness: 0.0,
+          kurtosisExcess: 6 / 1230,
           probability: const [
             Tuple2(-4.0, 0.000140),
             Tuple2(-3.0, 0.004488),
@@ -1174,8 +1279,75 @@ void main() {
           ],
         );
       });
-      group('uniform', () {
+      group('uniform (standard)', () {
+        const distribution = UniformDistribution.standard();
+        test('parameters', () {
+          expect(distribution.a, isCloseTo(0.0));
+          expect(distribution.b, isCloseTo(1.0));
+        });
+        testDistribution(
+          distribution,
+          min: 0.0,
+          max: 1.0,
+          mean: 0.5,
+          median: 0.5,
+          mode: double.nan,
+          variance: 0.08333333333,
+          skewness: 0.0,
+          kurtosisExcess: -6 / 5,
+          probability: const [
+            Tuple2(0.0, 1.0),
+            Tuple2(0.1, 1.0),
+            Tuple2(0.2, 1.0),
+            Tuple2(0.3, 1.0),
+            Tuple2(0.4, 1.0),
+            Tuple2(0.5, 1.0),
+            Tuple2(0.6, 1.0),
+            Tuple2(0.7, 1.0),
+            Tuple2(0.8, 1.0),
+            Tuple2(0.9, 1.0),
+            Tuple2(1.0, 1.0),
+          ],
+          cumulativeProbability: const [
+            Tuple2(0.0, 0.0),
+            Tuple2(0.1, 0.1),
+            Tuple2(0.2, 0.2),
+            Tuple2(0.3, 0.3),
+            Tuple2(0.4, 0.4),
+            Tuple2(0.5, 0.5),
+            Tuple2(0.6, 0.6),
+            Tuple2(0.7, 0.7),
+            Tuple2(0.8, 0.8),
+            Tuple2(0.9, 0.9),
+            Tuple2(1.0, 1.0),
+          ],
+          inverseCumulativeProbability: const [
+            Tuple2(0.0, 0.0),
+            Tuple2(0.1, 0.1),
+            Tuple2(0.2, 0.2),
+            Tuple2(0.3, 0.3),
+            Tuple2(0.4, 0.4),
+            Tuple2(0.5, 0.5),
+            Tuple2(0.6, 0.6),
+            Tuple2(0.7, 0.7),
+            Tuple2(0.8, 0.8),
+            Tuple2(0.9, 0.9),
+            Tuple2(1.0, 1.0),
+          ],
+        );
+        test('samples with default random generator', () {
+          expect(
+              distribution.samples().take(1000),
+              everyElement(
+                  allOf(greaterThanOrEqualTo(0.0), lessThanOrEqualTo(1.0))));
+        });
+      });
+      group('uniform (a = -0.5, b = 1.25)', () {
         const distribution = UniformDistribution(-0.5, 1.25);
+        test('parameters', () {
+          expect(distribution.a, isCloseTo(-0.5));
+          expect(distribution.b, isCloseTo(1.25));
+        });
         testDistribution(
           distribution,
           min: -0.5,
@@ -1184,6 +1356,8 @@ void main() {
           median: 0.375,
           mode: double.nan,
           variance: 0.255208333,
+          skewness: 0.0,
+          kurtosisExcess: -6 / 5,
           probability: const [
             Tuple2(-0.5001, 0.0),
             Tuple2(-0.5, 0.571428571),
@@ -1212,28 +1386,27 @@ void main() {
             Tuple2(1.25, 1.0),
             Tuple2(1.2501, 1.0),
           ],
+          inverseCumulativeProbability: const [
+            Tuple2(0.0, -0.5),
+            Tuple2(0.1, -0.325),
+            Tuple2(0.2, -0.15),
+            Tuple2(0.3, 0.025),
+            Tuple2(0.4, 0.2),
+            Tuple2(0.5, 0.375),
+            Tuple2(0.6, 0.55),
+            Tuple2(0.7, 0.725),
+            Tuple2(0.8, 0.9),
+            Tuple2(0.9, 1.075),
+            Tuple2(1.0, 1.25),
+          ],
         );
-      });
-      group('uniform (standard)', () {
-        const distribution = UniformDistribution.standard();
-        testDistribution(
-          distribution,
-          min: 0.0,
-          max: 1.0,
-          mean: 0.5,
-          median: 0.5,
-          mode: double.nan,
-          variance: 0.08333333333,
-        );
-        test('samples with default random generator', () {
-          expect(
-              distribution.samples().take(1000),
-              everyElement(
-                  allOf(greaterThanOrEqualTo(0.0), lessThanOrEqualTo(1.0))));
-        });
       });
       group('weibull (scale = 1, shape = 0.5)', () {
         const distribution = WeibullDistribution(1, 0.5);
+        test('parameters', () {
+          expect(distribution.scale, isCloseTo(1.0));
+          expect(distribution.shape, isCloseTo(0.5));
+        });
         testDistribution(
           distribution,
           min: 0.0,
@@ -1285,6 +1458,10 @@ void main() {
       });
       group('weibull (scale = 1, shape = 1)', () {
         const distribution = WeibullDistribution(1, 1);
+        test('parameters', () {
+          expect(distribution.scale, isCloseTo(1.0));
+          expect(distribution.shape, isCloseTo(1.0));
+        });
         testDistribution(
           distribution,
           min: 0.0,
@@ -1336,6 +1513,10 @@ void main() {
       });
       group('weibull (scale = 1, shape = 1.5)', () {
         const distribution = WeibullDistribution(1, 1.5);
+        test('parameters', () {
+          expect(distribution.scale, isCloseTo(1.0));
+          expect(distribution.shape, isCloseTo(1.5));
+        });
         testDistribution(
           distribution,
           min: 0.0,
@@ -1387,6 +1568,10 @@ void main() {
       });
       group('weibull (scale = 1, shape = 2)', () {
         const distribution = WeibullDistribution(1, 2);
+        test('parameters', () {
+          expect(distribution.scale, isCloseTo(1.0));
+          expect(distribution.shape, isCloseTo(2.0));
+        });
         testDistribution(
           distribution,
           min: 0.0,
@@ -1438,6 +1623,10 @@ void main() {
       });
       group('weibull (scale = 1.5, shape = 1)', () {
         const distribution = WeibullDistribution(1.5, 1);
+        test('parameters', () {
+          expect(distribution.scale, isCloseTo(1.5));
+          expect(distribution.shape, isCloseTo(1.0));
+        });
         testDistribution(
           distribution,
           min: 0.0,
@@ -1495,25 +1684,42 @@ void main() {
           expect(distribution.p, isCloseTo(0.7));
           expect(distribution.q, isCloseTo(0.3));
         });
-        testDistribution(distribution,
-            min: 0,
-            max: 1,
-            mean: 0.7,
-            median: 1.0,
-            mode: 1.0,
-            variance: 0.21,
-            probability: const [
-              Tuple2(-1, 0),
-              Tuple2(0, 0.3),
-              Tuple2(1, 0.7),
-              Tuple2(2, 0),
-            ],
-            cumulativeProbability: const [
-              Tuple2(-1, 0),
-              Tuple2(0, 0.3),
-              Tuple2(1, 1),
-              Tuple2(2, 1),
-            ]);
+        testDistribution(
+          distribution,
+          min: 0,
+          max: 1,
+          mean: 0.7,
+          median: 1.0,
+          mode: 1.0,
+          variance: 0.21,
+          skewness: -0.87287156,
+          kurtosisExcess: -1.23809524,
+          probability: const [
+            Tuple2(-1, 0),
+            Tuple2(0, 0.3),
+            Tuple2(1, 0.7),
+            Tuple2(2, 0),
+          ],
+          cumulativeProbability: const [
+            Tuple2(-1, 0),
+            Tuple2(0, 0.3),
+            Tuple2(1, 1),
+            Tuple2(2, 1),
+          ],
+          inverseCumulativeProbability: const [
+            Tuple2(0.0, 0.0),
+            Tuple2(0.1, 0.0),
+            Tuple2(0.2, 0.0),
+            Tuple2(0.3, 0.0),
+            Tuple2(0.4, 1.0),
+            Tuple2(0.5, 1.0),
+            Tuple2(0.6, 1.0),
+            Tuple2(0.7, 1.0),
+            Tuple2(0.8, 1.0),
+            Tuple2(0.9, 1.0),
+            Tuple2(1.0, 1.0),
+          ],
+        );
       });
       group('binomial', () {
         const distribution = BinomialDistribution(10, 0.7);
@@ -1529,6 +1735,8 @@ void main() {
             median: 7,
             mode: 7,
             variance: 2.1,
+            skewness: -0.27602622,
+            kurtosisExcess: -0.12380952,
             probability: const [
               Tuple2(-1, 0),
               Tuple2(0, 0.0000059049),
@@ -1577,7 +1785,7 @@ void main() {
       group('negative bernoulli', () {
         const distribution = NegativeBinomialDistribution(5, 0.4);
         test('parameters', () {
-          expect(distribution.r, isCloseTo(5));
+          expect(distribution.r, isCloseTo(5.0));
           expect(distribution.p, isCloseTo(0.4));
           expect(distribution.q, isCloseTo(0.6));
         });
@@ -1615,23 +1823,26 @@ void main() {
             Tuple2(8, 0.9679156716),
             Tuple2(9, 0.9824904585),
           ],
-          // // inverseCumulativeProbability: [
-          //   Tuple2(0.0, 0),
-          //   Tuple2(0.1, 2),
-          //   Tuple2(0.2, 2),
-          //   Tuple2(0.3, 3),
-          //   Tuple2(0.4, 3),
-          //   Tuple2(0.5, 4),
-          //   Tuple2(0.6, 4),
-          //   Tuple2(0.7, 5),
-          //   Tuple2(0.8, 6),
-          //   Tuple2(0.9, 7),
-          //   Tuple2(1.0, maxSafeInteger),
-          // ],
+          inverseCumulativeProbability: [
+            Tuple2(0.0, 0),
+            Tuple2(0.1, 1),
+            Tuple2(0.2, 1),
+            Tuple2(0.3, 2),
+            Tuple2(0.4, 2),
+            Tuple2(0.5, 3),
+            Tuple2(0.6, 4),
+            Tuple2(0.7, 4),
+            Tuple2(0.8, 5),
+            Tuple2(0.9, 6),
+            Tuple2(1.0, maxSafeInteger),
+          ],
         );
       });
       group('poisson', () {
         const distribution = PoissonDistribution(4.0);
+        test('parameters', () {
+          expect(distribution.lambda, isCloseTo(4.0));
+        });
         testDistribution(
           distribution,
           min: 0,
@@ -1639,6 +1850,8 @@ void main() {
           median: 4.0,
           mode: 4.0,
           variance: 4.0,
+          skewness: 0.5,
+          kurtosisExcess: 0.25,
           probability: const [
             Tuple2(-1, 0),
             Tuple2(0, 0.018315638),
@@ -1682,12 +1895,19 @@ void main() {
       });
       group('uniform', () {
         const distribution = UniformDiscreteDistribution(-3, 5);
+        test('parameters', () {
+          expect(distribution.a, isCloseTo(-3));
+          expect(distribution.b, isCloseTo(5));
+          expect(distribution.n, isCloseTo(9));
+        });
         testDistribution<int>(distribution,
             min: -3,
             max: 5,
             mean: 1,
             mode: double.nan,
             variance: 80 / 12,
+            skewness: 0,
+            kurtosisExcess: -1.23,
             probability: const [
               Tuple2(-4, 0),
               Tuple2(-3, 1 / 9),

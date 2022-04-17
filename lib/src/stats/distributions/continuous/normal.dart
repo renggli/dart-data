@@ -2,9 +2,9 @@ import 'dart:math';
 
 import 'package:more/printer.dart';
 
-import '../../../../data.dart';
 import '../../../special/erf.dart';
 import '../continuous.dart';
+import '../errors.dart';
 import 'uniform.dart';
 
 /// Normal (or Gaussian) distribution described by the [mean] or expectation of
@@ -14,7 +14,7 @@ import 'uniform.dart';
 class NormalDistribution extends ContinuousDistribution {
   /// A normal distribution with parameters [mean] μ and [standardDeviation] σ.
   const NormalDistribution(this.mean, this.standardDeviation)
-      : assert(standardDeviation > 0, 'σ > 0');
+      : assert(standardDeviation > 0, 'standardDeviation > 0');
 
   /// A standard normal distribution centered around 0.
   const NormalDistribution.standard() : this(0, 1);
@@ -89,6 +89,6 @@ class NormalDistribution extends ContinuousDistribution {
 
   @override
   ObjectPrinter get toStringPrinter => super.toStringPrinter
-    ..addValue(mean, name: 'μ')
-    ..addValue(standardDeviation, name: 'σ');
+    ..addValue(mean, name: 'mean')
+    ..addValue(standardDeviation, name: 'standardDeviation');
 }
