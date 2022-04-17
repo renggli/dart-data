@@ -4,6 +4,7 @@ import 'package:more/printer.dart';
 
 import '../../../special/gamma.dart';
 import '../continuous.dart';
+import '../errors.dart';
 import 'uniform.dart';
 
 /// The Weibull distribution.
@@ -60,8 +61,10 @@ class WeibullDistribution extends ContinuousDistribution {
       x < 0 ? 0 : 1 - exp(-pow(x / scale, shape));
 
   @override
-  double inverseCumulativeProbability(num p) =>
-      scale * pow(-log(1 - p), 1 / shape);
+  double inverseCumulativeProbability(num p) {
+    InvalidProbability.check(p);
+    return scale * pow(-log(1 - p), 1 / shape);
+  }
 
   @override
   double sample({Random? random}) {

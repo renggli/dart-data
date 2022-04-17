@@ -1154,6 +1154,19 @@ void main() {
             Tuple2(4.5, 0.88012675),
             Tuple2(5.0, 0.89312207),
           ],
+          inverseCumulativeProbability: [
+            Tuple2(0.0, 0.00000000),
+            Tuple2(0.1, 0.01110084),
+            Tuple2(0.2, 0.04979304),
+            Tuple2(0.3, 0.12721702),
+            Tuple2(0.4, 0.26094282),
+            Tuple2(0.5, 0.48045301),
+            Tuple2(0.6, 0.83958871),
+            Tuple2(0.7, 1.44955051),
+            Tuple2(0.8, 2.59029039),
+            Tuple2(0.9, 5.30189811),
+            Tuple2(1.0, double.infinity),
+          ],
         );
       });
       group('weibull (scale = 1, shape = 1)', () {
@@ -1191,6 +1204,19 @@ void main() {
             Tuple2(4.0, 0.98168436),
             Tuple2(4.5, 0.98889100),
             Tuple2(5.0, 0.99326205),
+          ],
+          inverseCumulativeProbability: [
+            Tuple2(0.0, 0.00000000),
+            Tuple2(0.1, 0.10536052),
+            Tuple2(0.2, 0.22314355),
+            Tuple2(0.3, 0.35667494),
+            Tuple2(0.4, 0.51082562),
+            Tuple2(0.5, 0.69314718),
+            Tuple2(0.6, 0.91629073),
+            Tuple2(0.7, 1.20397280),
+            Tuple2(0.8, 1.60943791),
+            Tuple2(0.9, 2.30258509),
+            Tuple2(1.0, double.infinity),
           ],
         );
       });
@@ -1230,6 +1256,19 @@ void main() {
             Tuple2(4.5, 0.99992851),
             Tuple2(5.0, 0.99998605),
           ],
+          inverseCumulativeProbability: [
+            Tuple2(0.0, 0.00000000),
+            Tuple2(0.1, 0.22307553),
+            Tuple2(0.2, 0.36789416),
+            Tuple2(0.3, 0.50293871),
+            Tuple2(0.4, 0.63902098),
+            Tuple2(0.5, 0.78321977),
+            Tuple2(0.6, 0.94338477),
+            Tuple2(0.7, 1.13173423),
+            Tuple2(0.8, 1.37335502),
+            Tuple2(0.9, 1.74372151),
+            Tuple2(1.0, double.infinity),
+          ],
         );
       });
       group('weibull (scale = 1, shape = 2)', () {
@@ -1268,6 +1307,19 @@ void main() {
             Tuple2(4.5, 1.00000000),
             Tuple2(5.0, 1.00000000),
           ],
+          inverseCumulativeProbability: [
+            Tuple2(0.0, 0.00000000),
+            Tuple2(0.1, 0.32459285),
+            Tuple2(0.2, 0.47238073),
+            Tuple2(0.3, 0.59722269),
+            Tuple2(0.4, 0.71472066),
+            Tuple2(0.5, 0.83255461),
+            Tuple2(0.6, 0.95723076),
+            Tuple2(0.7, 1.09725695),
+            Tuple2(0.8, 1.26863624),
+            Tuple2(0.9, 1.51742713),
+            Tuple2(1.0, double.infinity),
+          ],
         );
       });
       group('weibull (scale = 1.5, shape = 1)', () {
@@ -1305,6 +1357,19 @@ void main() {
             Tuple2(4.0, 0.93051655),
             Tuple2(4.5, 0.95021293),
             Tuple2(5.0, 0.96432601),
+          ],
+          inverseCumulativeProbability: [
+            Tuple2(0.0, 0.00000000),
+            Tuple2(0.1, 0.15804077),
+            Tuple2(0.2, 0.33471533),
+            Tuple2(0.3, 0.53501242),
+            Tuple2(0.4, 0.76623844),
+            Tuple2(0.5, 1.03972077),
+            Tuple2(0.6, 1.37443610),
+            Tuple2(0.7, 1.80595921),
+            Tuple2(0.8, 2.41415687),
+            Tuple2(0.9, 3.45387764),
+            Tuple2(1.0, double.infinity),
           ],
         );
       });
