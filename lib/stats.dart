@@ -4,6 +4,7 @@ export 'src/stats/distributions/continuous.dart';
 export 'src/stats/distributions/continuous/exponential.dart';
 export 'src/stats/distributions/continuous/gamma.dart';
 export 'src/stats/distributions/continuous/inverse_gamma.dart';
+export 'src/stats/distributions/continuous/log_normal.dart';
 export 'src/stats/distributions/continuous/normal.dart';
 export 'src/stats/distributions/continuous/student_t.dart';
 export 'src/stats/distributions/continuous/uniform.dart';

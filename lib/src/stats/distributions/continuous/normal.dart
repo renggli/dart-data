@@ -7,32 +7,39 @@ import '../continuous.dart';
 import '../errors.dart';
 import 'uniform.dart';
 
-/// Normal (or Gaussian) distribution described by the [mean] or expectation of
-/// the distribution and its [standardDeviation].
+/// Normal (or Gaussian) distribution described by the mean or expectation of
+/// the distribution and its standard deviation.
 ///
 /// See https://en.wikipedia.org/wiki/Normal_distribution.
 class NormalDistribution extends ContinuousDistribution {
-  /// A normal distribution with parameters [mean] μ and [standardDeviation] σ.
-  const NormalDistribution(this.mean, this.standardDeviation)
-      : assert(standardDeviation > 0, 'standardDeviation > 0');
+  /// A normal distribution with parameter [mu] μ (mean) and [sigma] σ (standard
+  /// deviation).
+  const NormalDistribution(this.mu, this.sigma)
+      : assert(sigma > 0, 'sigma > 0');
 
   /// A standard normal distribution centered around 0.
   const NormalDistribution.standard() : this(0, 1);
 
-  @override
-  final double mean;
+  /// The mean parameter μ.
+  final double mu;
+
+  // The standard deviation parameter σ.
+  final double sigma;
 
   @override
-  double get median => mean;
+  double get mean => mu;
 
   @override
-  double get mode => mean;
+  double get median => mu;
 
   @override
-  final double standardDeviation;
+  double get mode => mu;
 
   @override
-  double get variance => standardDeviation * standardDeviation;
+  double get standardDeviation => sigma;
+
+  @override
+  double get variance => sigma * sigma;
 
   @override
   double get skewness => 0;
@@ -42,20 +49,20 @@ class NormalDistribution extends ContinuousDistribution {
 
   @override
   double probability(double x) {
-    final z = (x - mean) / (sqrt2 * standardDeviation);
-    return exp(-z * z) / (sqrt2 * sqrt(pi) * standardDeviation);
+    final z = (x - mu) / (sqrt2 * sigma);
+    return exp(-z * z) / (sqrt2 * sqrt(pi) * sigma);
   }
 
   @override
   double cumulativeProbability(double x) {
-    final z = (x - mean) / (sqrt2 * standardDeviation);
+    final z = (x - mu) / (sqrt2 * sigma);
     return 0.5 * (1 + erf(z));
   }
 
   @override
   double inverseCumulativeProbability(num p) {
     InvalidProbability.check(p);
-    return -1.41421356237309505 * standardDeviation * erfcInv(2 * p) + mean;
+    return -sqrt2 * sigma * erfcInv(2 * p) + mu;
   }
 
   @override
@@ -72,23 +79,21 @@ class NormalDistribution extends ContinuousDistribution {
         p2 = uniform.sample(random: random);
         p = p1 * p1 + p2 * p2;
       } while (p >= 1);
-      p = standardDeviation * sqrt(-2 * log(p) / p);
-      yield mean + p1 * p;
-      yield mean + p2 * p;
+      p = sigma * sqrt(-2 * log(p) / p);
+      yield mu + p1 * p;
+      yield mu + p2 * p;
     }
   }
 
   @override
   bool operator ==(Object other) =>
-      other is NormalDistribution &&
-      mean == other.mean &&
-      standardDeviation == other.standardDeviation;
+      other is NormalDistribution && mu == other.mu && sigma == other.sigma;
 
   @override
-  int get hashCode => Object.hash(NormalDistribution, mean, standardDeviation);
+  int get hashCode => Object.hash(NormalDistribution, mu, sigma);
 
   @override
   ObjectPrinter get toStringPrinter => super.toStringPrinter
-    ..addValue(mean, name: 'mean')
-    ..addValue(standardDeviation, name: 'standardDeviation');
+    ..addValue(mu, name: 'mu')
+    ..addValue(sigma, name: 'sigma');
 }
