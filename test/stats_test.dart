@@ -187,6 +187,7 @@ void testDistribution<T extends num>(
     NormalDistribution(-1, 1),
     StudentDistribution(42),
     UniformDistribution(-1, 1),
+    WeibullDistribution(1.2, 1.9),
     // Discrete
     BernoulliDistribution(0.1),
     BinomialDistribution(5, 0.1),
@@ -1116,6 +1117,196 @@ void main() {
               everyElement(
                   allOf(greaterThanOrEqualTo(0.0), lessThanOrEqualTo(1.0))));
         });
+      });
+      group('weibull (scale = 1, shape = 0.5)', () {
+        const distribution = WeibullDistribution(1, 0.5);
+        testDistribution(
+          distribution,
+          min: 0.0,
+          mean: 2.00000000,
+          median: 0.48045301,
+          mode: 0.00000000,
+          variance: 20.00000000,
+          skewness: 6.61876121,
+          probability: [
+            Tuple2(0.0, double.infinity),
+            Tuple2(0.5, 0.34865222),
+            Tuple2(1.0, 0.18393972),
+            Tuple2(1.5, 0.11995668),
+            Tuple2(2.0, 0.08595475),
+            Tuple2(2.5, 0.06506091),
+            Tuple2(3.0, 0.05107275),
+            Tuple2(3.5, 0.04115716),
+            Tuple2(4.0, 0.03383382),
+            Tuple2(4.5, 0.02825440),
+            Tuple2(5.0, 0.02389863),
+          ],
+          cumulativeProbability: [
+            Tuple2(0.0, 0.00000000),
+            Tuple2(0.5, 0.50693131),
+            Tuple2(1.0, 0.63212056),
+            Tuple2(1.5, 0.70616734),
+            Tuple2(2.0, 0.75688327),
+            Tuple2(2.5, 0.79425934),
+            Tuple2(3.0, 0.82307879),
+            Tuple2(3.5, 0.84600401),
+            Tuple2(4.0, 0.86466472),
+            Tuple2(4.5, 0.88012675),
+            Tuple2(5.0, 0.89312207),
+          ],
+        );
+      });
+      group('weibull (scale = 1, shape = 1)', () {
+        const distribution = WeibullDistribution(1, 1);
+        testDistribution(
+          distribution,
+          min: 0.0,
+          mean: 1.00000000,
+          median: 0.69314718,
+          mode: 0.00000000,
+          variance: 1.00000000,
+          skewness: 2.00000000,
+          probability: [
+            Tuple2(0.0, 1.00000000),
+            Tuple2(0.5, 0.60653066),
+            Tuple2(1.0, 0.36787944),
+            Tuple2(1.5, 0.22313016),
+            Tuple2(2.0, 0.13533528),
+            Tuple2(2.5, 0.08208500),
+            Tuple2(3.0, 0.04978707),
+            Tuple2(3.5, 0.03019738),
+            Tuple2(4.0, 0.01831564),
+            Tuple2(4.5, 0.01110900),
+            Tuple2(5.0, 0.00673795),
+          ],
+          cumulativeProbability: [
+            Tuple2(0.0, 0.00000000),
+            Tuple2(0.5, 0.39346934),
+            Tuple2(1.0, 0.63212056),
+            Tuple2(1.5, 0.77686984),
+            Tuple2(2.0, 0.86466472),
+            Tuple2(2.5, 0.91791500),
+            Tuple2(3.0, 0.95021293),
+            Tuple2(3.5, 0.96980262),
+            Tuple2(4.0, 0.98168436),
+            Tuple2(4.5, 0.98889100),
+            Tuple2(5.0, 0.99326205),
+          ],
+        );
+      });
+      group('weibull (scale = 1, shape = 1.5)', () {
+        const distribution = WeibullDistribution(1, 1.5);
+        testDistribution(
+          distribution,
+          min: 0.0,
+          mean: 0.90274529,
+          median: 0.78321977,
+          mode: 0.48074986,
+          variance: 0.37569028,
+          skewness: 1.07198657,
+          probability: [
+            Tuple2(0.0, 0.00000000),
+            Tuple2(0.5, 0.74478338),
+            Tuple2(1.0, 0.55181916),
+            Tuple2(1.5, 0.29260853),
+            Tuple2(2.0, 0.12538222),
+            Tuple2(2.5, 0.04553670),
+            Tuple2(3.0, 0.01438771),
+            Tuple2(3.5, 0.00402169),
+            Tuple2(4.0, 0.00100639),
+            Tuple2(4.5, 0.00022748),
+            Tuple2(5.0, 0.00004678),
+          ],
+          cumulativeProbability: [
+            Tuple2(0.0, 0.00000000),
+            Tuple2(0.5, 0.29781150),
+            Tuple2(1.0, 0.63212056),
+            Tuple2(1.5, 0.84072409),
+            Tuple2(2.0, 0.94089425),
+            Tuple2(2.5, 0.98080004),
+            Tuple2(3.0, 0.99446217),
+            Tuple2(3.5, 0.99856688),
+            Tuple2(4.0, 0.99966454),
+            Tuple2(4.5, 0.99992851),
+            Tuple2(5.0, 0.99998605),
+          ],
+        );
+      });
+      group('weibull (scale = 1, shape = 2)', () {
+        const distribution = WeibullDistribution(1, 2);
+        testDistribution(
+          distribution,
+          min: 0.0,
+          mean: 0.88622693,
+          median: 0.83255461,
+          mode: 0.70710678,
+          variance: 0.21460184,
+          skewness: 0.63111066,
+          probability: [
+            Tuple2(0.0, 0.00000000),
+            Tuple2(0.5, 0.77880078),
+            Tuple2(1.0, 0.73575888),
+            Tuple2(1.5, 0.31619767),
+            Tuple2(2.0, 0.07326256),
+            Tuple2(2.5, 0.00965227),
+            Tuple2(3.0, 0.00074046),
+            Tuple2(3.5, 0.00003350),
+            Tuple2(4.0, 0.00000090),
+            Tuple2(4.5, 0.00000001),
+            Tuple2(5.0, 0.00000000),
+          ],
+          cumulativeProbability: [
+            Tuple2(0.0, 0.00000000),
+            Tuple2(0.5, 0.22119922),
+            Tuple2(1.0, 0.63212056),
+            Tuple2(1.5, 0.89460078),
+            Tuple2(2.0, 0.98168436),
+            Tuple2(2.5, 0.99806955),
+            Tuple2(3.0, 0.99987659),
+            Tuple2(3.5, 0.99999521),
+            Tuple2(4.0, 0.99999989),
+            Tuple2(4.5, 1.00000000),
+            Tuple2(5.0, 1.00000000),
+          ],
+        );
+      });
+      group('weibull (scale = 1.5, shape = 1)', () {
+        const distribution = WeibullDistribution(1.5, 1);
+        testDistribution(
+          distribution,
+          min: 0.0,
+          mean: 1.50000000,
+          median: 1.03972077,
+          mode: 0.00000000,
+          variance: 2.25000000,
+          skewness: 2.00000000,
+          probability: [
+            Tuple2(0.0, 0.66666667),
+            Tuple2(0.5, 0.47768754),
+            Tuple2(1.0, 0.34227808),
+            Tuple2(1.5, 0.24525296),
+            Tuple2(2.0, 0.17573143),
+            Tuple2(2.5, 0.12591707),
+            Tuple2(3.0, 0.09022352),
+            Tuple2(3.5, 0.06464798),
+            Tuple2(4.0, 0.04632230),
+            Tuple2(4.5, 0.03319138),
+            Tuple2(5.0, 0.02378266),
+          ],
+          cumulativeProbability: [
+            Tuple2(0.0, 0.00000000),
+            Tuple2(0.5, 0.28346869),
+            Tuple2(1.0, 0.48658288),
+            Tuple2(1.5, 0.63212056),
+            Tuple2(2.0, 0.73640286),
+            Tuple2(2.5, 0.81112440),
+            Tuple2(3.0, 0.86466472),
+            Tuple2(3.5, 0.90302803),
+            Tuple2(4.0, 0.93051655),
+            Tuple2(4.5, 0.95021293),
+            Tuple2(5.0, 0.96432601),
+          ],
+        );
       });
     });
     group('discrete', () {

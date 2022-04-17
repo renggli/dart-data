@@ -7,6 +7,7 @@ export 'src/stats/distributions/continuous/inverse_gamma.dart';
 export 'src/stats/distributions/continuous/normal.dart';
 export 'src/stats/distributions/continuous/student_t.dart';
 export 'src/stats/distributions/continuous/uniform.dart';
+export 'src/stats/distributions/continuous/weibull.dart';
 export 'src/stats/distributions/discrete.dart';
 export 'src/stats/distributions/discrete/bernoulli.dart';
 export 'src/stats/distributions/discrete/binomial.dart';
