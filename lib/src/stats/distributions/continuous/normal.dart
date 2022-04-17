@@ -2,6 +2,7 @@ import 'dart:math';
 
 import 'package:more/printer.dart';
 
+import '../../../../data.dart';
 import '../../../special/erf.dart';
 import '../continuous.dart';
 import 'uniform.dart';
@@ -52,8 +53,10 @@ class NormalDistribution extends ContinuousDistribution {
   }
 
   @override
-  double inverseCumulativeProbability(num p) =>
-      -1.41421356237309505 * standardDeviation * erfcInv(2 * p) + mean;
+  double inverseCumulativeProbability(num p) {
+    InvalidProbability.check(p);
+    return -1.41421356237309505 * standardDeviation * erfcInv(2 * p) + mean;
+  }
 
   @override
   double sample({Random? random}) => samples(random: random).first;
