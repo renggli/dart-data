@@ -2053,6 +2053,7 @@ void main() {
       expect(jackknife.standardError, isCloseTo(0.95742710));
       expect(jackknife.lowerBound, isCloseTo(2.62347735));
       expect(jackknife.upperBound, isCloseTo(6.37652265));
+      expect(jackknife.toString(), startsWith('Jackknife'));
     });
     test('variance', () {
       final samples = <int>[0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
@@ -2075,6 +2076,7 @@ void main() {
       expect(jackknife.standardError, isCloseTo(2.69124476));
       expect(jackknife.lowerBound, isCloseTo(3.89192387));
       expect(jackknife.upperBound, isCloseTo(14.44140947));
+      expect(jackknife.toString(), startsWith('Jackknife'));
     });
     group('small samples', () {
       test('minimal', () {
@@ -2091,6 +2093,7 @@ void main() {
         expect(jackknife.standardError, isNaN);
         expect(jackknife.lowerBound, isNaN);
         expect(jackknife.upperBound, isNaN);
+        expect(jackknife.toString(), startsWith('Jackknife'));
       });
       test('same numbers', () {
         final samples = <int>[2, 2];
@@ -2110,6 +2113,7 @@ void main() {
         expect(jackknife.standardError, isCloseTo(0.0));
         expect(jackknife.lowerBound, isCloseTo(2.0));
         expect(jackknife.upperBound, isCloseTo(2.0));
+        expect(jackknife.toString(), startsWith('Jackknife'));
       });
       test('different numbers', () {
         final samples = <int>[2, 4];
@@ -2129,6 +2133,7 @@ void main() {
         expect(jackknife.standardError, isCloseTo(1.0));
         expect(jackknife.lowerBound, isCloseTo(1.355146387243735));
         expect(jackknife.upperBound, isCloseTo(4.644853612756265));
+        expect(jackknife.toString(), startsWith('Jackknife'));
       });
     });
   });

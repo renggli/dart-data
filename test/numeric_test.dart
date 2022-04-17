@@ -197,7 +197,9 @@ void main() {
             throwsA(isA<IntegrateError>()
                 .having(
                     (err) => err.type, 'type', IntegrateWarning.doesNotConverge)
-                .having((err) => err.x, 'x', closeTo(0.5, epsilon))));
+                .having((err) => err.x, 'x', closeTo(0.5, epsilon))
+                .having((err) => err.toString(), 'toString',
+                    startsWith('IntegrateError'))));
       });
       test('does not converge (custom)', () {
         final warnings = <Tuple2<IntegrateWarning, double>>[];
@@ -211,7 +213,9 @@ void main() {
             throwsA(isA<IntegrateError>()
                 .having(
                     (err) => err.type, 'type', IntegrateWarning.depthTooShallow)
-                .having((err) => err.x, 'x', closeTo(0.25, epsilon))));
+                .having((err) => err.x, 'x', closeTo(0.25, epsilon))
+                .having((err) => err.toString(), 'toString',
+                    startsWith('IntegrateError'))));
       });
       test('depth too shallow (custom)', () {
         final warnings = <Tuple2<IntegrateWarning, double>>[];
