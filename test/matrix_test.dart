@@ -1440,6 +1440,45 @@ void matrixTest(String name, MatrixFormat format) {
               () => sourceA.add(sourceB, target: target), throwsArgumentError);
         });
       });
+      group('apply', () {
+        test('by row', () {
+          final vector = Vector.generate(
+              sourceA.dataType, sourceA.rowCount, (i) => random.nextInt(100),
+              format: defaultVectorFormat);
+          final target = sourceA.applyByRow(sourceA.dataType.field.add, vector);
+          expect(target.dataType, sourceA.dataType);
+          expect(target.rowCount, sourceA.rowCount);
+          expect(target.columnCount, sourceA.columnCount);
+          for (var r = 0; r < target.rowCount; r++) {
+            for (var c = 0; c < target.columnCount; c++) {
+              expect(target.get(r, c), sourceA.get(r, c) + vector[r]);
+            }
+          }
+          expect(
+              () => sourceA.transposed
+                  .applyByRow(sourceA.dataType.field.sub, vector),
+              throwsArgumentError);
+        });
+        test('by column', () {
+          final vector = Vector.generate(
+              sourceA.dataType, sourceA.columnCount, (i) => random.nextInt(100),
+              format: defaultVectorFormat);
+          final target =
+              sourceA.applyByColumn(sourceA.dataType.field.mul, vector);
+          expect(target.dataType, sourceA.dataType);
+          expect(target.rowCount, sourceA.rowCount);
+          expect(target.columnCount, sourceA.columnCount);
+          for (var r = 0; r < target.rowCount; r++) {
+            for (var c = 0; c < target.columnCount; c++) {
+              expect(target.get(r, c), sourceA.get(r, c) * vector[c]);
+            }
+          }
+          expect(
+              () => sourceA.transposed
+                  .applyByColumn(sourceA.dataType.field.div, vector),
+              throwsArgumentError);
+        });
+      });
       group('sub', () {
         test('default', () {
           final target = sourceA.sub(sourceB);
