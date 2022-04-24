@@ -1,13 +1,15 @@
 import 'package:collection/collection.dart';
 import 'package:more/more.dart';
 
-/// Returns the numerical integration of the provided function [f] from [a] to
+import 'types.dart';
+
+/// Returns the numerical integration of the provided [function] from [a] to
 /// [b], that is the result of _int(f(x), dx=a..b)_.
 ///
 /// [epsilon] is the maximum error tolerance to be accepted. [depth] is the
 /// maximum recursion depth, a warning is raised if it is too shallow.
 ///
-/// [poles] is a list of points at which the function [f] should not be
+/// [poles] is a list of points at which the  [function] should not be
 /// evaluated. The integration is automatically split over the generated
 /// intervals: _[a..p_1[, ]p_1..p_2[, ... ]p_n, b]_.
 ///
@@ -17,7 +19,7 @@ import 'package:more/more.dart';
 /// evaluation.
 ///
 double integrate(
-  double Function(double) f,
+  NumericFunction function,
   double a,
   double b, {
   int depth = 6,
@@ -32,7 +34,7 @@ double integrate(
   } else if (b.isNaN) {
     throw ArgumentError.value(b, 'b', 'Invalid upper bound');
   } else if (a > b) {
-    return -integrate(f, b, a,
+    return -integrate(function, b, a,
         depth: depth, epsilon: epsilon, poles: poles, onWarning: onWarning);
   } else if (a == b) {
     return 0.0;
@@ -50,7 +52,7 @@ double integrate(
       expanded.last < b ? expanded.add(b) : expanded.removeLast();
       var result = 0.0;
       for (var i = 0; i < expanded.length; i += 2) {
-        result += integrate(f, expanded[i], expanded[i + 1],
+        result += integrate(function, expanded[i], expanded[i + 1],
             depth: depth, epsilon: epsilon, onWarning: onWarning);
       }
       return result;
@@ -59,32 +61,34 @@ double integrate(
   // Deal with infinite bounds:
   // https://en.wikipedia.org/wiki/Numerical_integration#Integrals_over_infinite_intervals
   if (a == double.negativeInfinity && b == double.infinity) {
-    return integrate(f, a, 0,
+    return integrate(function, a, 0,
             depth: depth, epsilon: epsilon, onWarning: onWarning) +
-        integrate(f, 0, b,
+        integrate(function, 0, b,
             depth: depth, epsilon: epsilon, onWarning: onWarning);
   } else if (a == double.negativeInfinity) {
     return integrate((t) {
       final omt = 1.0 - t, t2 = t * t;
-      return f(b - omt / t) / t2;
+      return function(b - omt / t) / t2;
     }, epsilon, 1, depth: depth, epsilon: epsilon, onWarning: onWarning);
   } else if (b == double.infinity) {
     return integrate((t) {
       final omt = 1.0 - t, t2 = t * t;
-      return f(a + omt / t) / t2;
+      return function(a + omt / t) / t2;
     }, epsilon, 1, depth: depth, epsilon: epsilon, onWarning: onWarning);
   }
   // Solve the actual integral:
   // https://en.wikipedia.org/wiki/Adaptive_quadrature
   var result = 0.0;
-  final queue = QueueList.from(
-      [_Quadrature.simpson(f, depth, epsilon, a, f(a), b, f(b))]);
+  final queue = QueueList.from([
+    _Quadrature.simpson(
+        function, depth, epsilon, a, function(a), b, function(b))
+  ]);
   while (queue.isNotEmpty) {
     final full = queue.removeLast();
-    final left = _Quadrature.simpson(f, full.depth - 1, full.epsilon / 2.0,
-        full.a, full.fa, full.m, full.fm);
+    final left = _Quadrature.simpson(function, full.depth - 1,
+        full.epsilon / 2.0, full.a, full.fa, full.m, full.fm);
     final right = _Quadrature.simpson(
-        f, left.depth, left.epsilon, full.m, full.fm, full.b, full.fb);
+        function, left.depth, left.epsilon, full.m, full.fm, full.b, full.fb);
     if (left.epsilon == full.epsilon || left.a == left.m) {
       onWarning(IntegrateWarning.doesNotConverge, full.m);
       result += full.w;

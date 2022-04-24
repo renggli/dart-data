@@ -1,8 +1,7 @@
 import 'dart:math';
 
 import 'package:data/data.dart';
-import 'package:data/src/shared/config.dart';
-import 'package:data/type.dart';
+import 'package:data/src/shared/config.dart' as config;
 import 'package:test/test.dart';
 
 void vectorTest(String name, VectorFormat format) {
@@ -304,7 +303,7 @@ void vectorTest(String name, VectorFormat format) {
         test('view', () {
           final list = [1, 2, 3];
           final vector = list.toVector();
-          expect(vector.dataType, intDataType);
+          expect(vector.dataType, config.intDataType);
           expect(vector.count, 3);
           expect(vector[0], 1);
           expect(vector[1], 2);
@@ -322,7 +321,7 @@ void vectorTest(String name, VectorFormat format) {
         test('copy', () {
           final list = [1, 2, 3];
           final vector = list.toVector(format: format);
-          expect(vector.dataType, intDataType);
+          expect(vector.dataType, config.intDataType);
           expect(vector.count, 3);
           expect(vector[0], 1);
           expect(vector[1], 2);

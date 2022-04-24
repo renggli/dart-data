@@ -1,12 +1,14 @@
 import 'dart:math';
 
-/// Returns the numerical derivative of the provided function [f] at [x].
+import 'types.dart';
+
+/// Returns the numerical derivative of the provided function [function] at [x].
 ///
 /// [derivative] must be a number between 1 and 6, higher derivatives are less
 /// stable. [accuracy] defines the number of coefficients used for the
 /// approximation. [epsilon] signifies the grid spacing (or step size).
 double derivative(
-  double Function(double) f,
+  NumericFunction function,
   double x, {
   int derivative = 1,
   int accuracy = 2,
@@ -23,7 +25,7 @@ double derivative(
   final offset = accuracy ~/ 2;
   var result = 0.0;
   for (var i = 0; i < weights.length; i++) {
-    result += weights[i] * f(x + (i - offset) * epsilon);
+    result += weights[i] * function(x + (i - offset) * epsilon);
   }
   return result / pow(epsilon, derivative);
 }

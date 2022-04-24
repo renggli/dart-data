@@ -1,8 +1,11 @@
 import 'dart:math';
 
 import 'package:data/data.dart';
+import 'package:meta/meta.dart';
 import 'package:more/tuple.dart';
 import 'package:test/test.dart';
+
+import 'special_test.dart';
 
 const epsilon = 1.0e-5;
 
@@ -73,6 +76,223 @@ void main() {
                     'Must be one of 2, 4, 6, 8')));
       });
     });
+  });
+  group('fit', () {
+    @isTest
+    void verifyDataFitter(
+      String name,
+      CurveFit curveFit, {
+      int? n,
+      double? xStart,
+      double? xEnd,
+      List<double>? xs,
+      List<double>? ys,
+      List<double>? expectedParameterValues,
+      double parameterValuesEpsilon = 1e-3,
+      double? expectedParameterError = 0.0,
+      double parameterErrorEpsilon = 1e-2,
+      int? expectedIterations,
+    }) {
+      test(name, () {
+        final x = xs ??
+            List<double>.generate(
+                n!, (i) => xStart! + (i * (xEnd! - xStart)) / (n - 1));
+        final y = xs ??
+            List<double>.generate(x.length,
+                (i) => curveFit.function(expectedParameterValues!, x[i]));
+        final actual = curveFit.fit(x: x, y: y);
+
+        if (expectedParameterValues != null) {
+          for (var i = 0; i < expectedParameterValues.length; i++) {
+            expect(
+                actual.parameterValues[i],
+                isCloseTo(expectedParameterValues[i],
+                    epsilon: parameterValuesEpsilon),
+                reason: 'expectedParameterValues[$i]');
+          }
+        }
+        if (expectedParameterError != null) {
+          expect(
+              actual.parameterError,
+              isCloseTo(expectedParameterError,
+                  epsilon: parameterErrorEpsilon));
+        }
+        if (expectedIterations != null) {
+          expect(actual.iterationCount, expectedIterations);
+        }
+      });
+    }
+
+    double lorentzians(List<double> params, double x) {
+      var result = 0.0;
+      for (var i = 0; i < params.length; i += 3) {
+        final p2 = pow(params[i + 2] / 2, 2);
+        final factor = params[i + 1] * p2;
+        result += factor / (pow(x - params[i], 2) + p2);
+      }
+      return result;
+    }
+
+    double sinFunction(List<double> params, double x) =>
+        params[0] * sin(params[1] * x);
+
+    verifyDataFitter(
+      'bennet5(2, 3, 5)',
+      LevenbergMarquardt(
+        (params, x) => params[0] * pow(x + params[1], -1 / params[2]),
+        initialDamping: 0.00001,
+        maxIterations: 1000,
+        errorTolerance: 1e-7,
+        maxValues: [11, 11, 11],
+        minValues: [1, 2.7, 1],
+        initialValues: [3.5, 3.8, 4],
+      ),
+      n: 154,
+      xStart: -2.6581,
+      xEnd: 49.6526,
+      expectedParameterValues: [2, 3, 5],
+    );
+    verifyDataFitter(
+      '2*sin(2*x)',
+      LevenbergMarquardt(
+        sinFunction,
+        maxIterations: 100,
+        gradientDifference: 0.1,
+        initialDamping: 0.1,
+        dampingStepDown: 1,
+        dampingStepUp: 1,
+        initialValues: [3, 3],
+      ),
+      n: 20,
+      xStart: 0,
+      xEnd: 19,
+      expectedParameterValues: [2, 2],
+    );
+    verifyDataFitter(
+      'Sigmoid',
+      LevenbergMarquardt(
+        (params, x) => params[0] / (params[1] + exp(-x * params[2])),
+        initialDamping: 0.1,
+        initialValues: [3, 3, 3],
+        maxIterations: 200,
+      ),
+      n: 20,
+      xStart: 0,
+      xEnd: 19,
+      expectedParameterValues: [2, 2, 2],
+      parameterValuesEpsilon: 0.1,
+    );
+    verifyDataFitter(
+      'Sum of lorentzians',
+      LevenbergMarquardt(
+        lorentzians,
+        initialDamping: 0.01,
+        gradientDifferences: [0.01, 0.0001, 0.0001, 0.01, 0.0001, 0.0],
+        initialValues: [1.1, 0.15, 0.29, 4.05, 0.17, 0.3],
+        maxIterations: 500,
+      ),
+      n: 100,
+      xStart: 0,
+      xEnd: 99,
+      expectedParameterValues: [1.05, 0.1, 0.3, 4, 0.15, 0.3],
+      parameterValuesEpsilon: 0.1,
+    );
+    verifyDataFitter(
+      'Sum of lorentzians, central differences',
+      LevenbergMarquardt(
+        lorentzians,
+        initialDamping: 0.01,
+        gradientDifferences: [0.01, 0.0001, 0.0001, 0.01, 0.0001, 0.01],
+        centralDifference: true,
+        initialValues: [1.1, 0.15, 0.29, 4.05, 0.17, 0.28],
+        maxIterations: 500,
+        errorTolerance: 10e-8,
+      ),
+      n: 100,
+      xStart: 0,
+      xEnd: 99,
+      expectedParameterValues: [1.0, 0.1, 0.3, 4, 0.15, 0.3],
+      parameterValuesEpsilon: 0.1,
+    );
+    verifyDataFitter(
+      'should return solution with lowest error',
+      LevenbergMarquardt(
+        sinFunction,
+        initialDamping: 1.5,
+        initialValues: [
+          0.594398586701882,
+          0.3506424963635226,
+        ],
+        gradientDifference: 1e-2,
+        maxIterations: 100,
+        errorTolerance: 1e-2,
+      ),
+      xs: [
+        0,
+        0.6283185307179586,
+        1.2566370614359172,
+        1.8849555921538759,
+        2.5132741228718345,
+        3.141592653589793,
+        3.7699111843077517,
+        4.39822971502571,
+        5.026548245743669,
+        5.654866776461628,
+      ],
+      ys: [
+        0,
+        1.902113032590307,
+        1.1755705045849465,
+        -1.175570504584946,
+        -1.9021130325903073,
+        -4.898587196589413e-16,
+        1.902113032590307,
+        1.1755705045849467,
+        -1.1755705045849456,
+        -1.9021130325903075,
+      ],
+      expectedParameterValues: [-14.846618431652454, -0.06846434130254946],
+    );
+    // TODO: broken for some reason
+    // verifyDataFitter(
+    //   'fourParamEq',
+    //   LevenbergMarquardt(
+    //     (params, x) =>
+    //         params[0] +
+    //         (params[1] - params[0]) /
+    //             (1 + pow(params[2], params[3]) * pow(x, -params[3])),
+    //     initialDamping: 0.00001,
+    //     maxIterations: 200,
+    //     initialValues: [0, 100, 1, 0.1],
+    //   ),
+    //   xs: [
+    //     9.22e-12,
+    //     5.53e-11,
+    //     3.32e-10,
+    //     1.99e-9,
+    //     1.19e-8,
+    //     7.17e-8,
+    //     4.3e-7,
+    //     0.00000258,
+    //     0.0000155,
+    //     0.0000929,
+    //   ],
+    //   ys: [
+    //     7.807,
+    //     -3.74,
+    //     21.119,
+    //     2.382,
+    //     4.269,
+    //     41.57,
+    //     73.401,
+    //     98.535,
+    //     97.059,
+    //     92.147,
+    //   ],
+    //   expectedIterations: 200,
+    //   expectedParameterError: 16398.0009709,
+    //   expectedParameterValues: [-16.7697, 43.4549, 1018.8938, -4.3514],
+    // );
   });
   group('integrate', () {
     group('common', () {

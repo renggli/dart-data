@@ -1,4 +1,6 @@
-/// Returns the root of the provided function [f] bracketed between [a] and [b],
+import 'types.dart';
+
+/// Returns the root of the provided [function] bracketed between [a] and [b],
 /// that is _f(x) = 0_ is solved for _x_ in the range of _[a, b]_.
 ///
 /// [bracketEpsilon], [solutionEpsilon] and [maxIterations] define conditions
@@ -13,7 +15,7 @@
 ///   [double.nan] is returned to signify an error.
 ///
 double solve(
-  double Function(double) f,
+  NumericFunction function,
   double a,
   double b, {
   double bracketEpsilon = 1e-10,
@@ -21,7 +23,7 @@ double solve(
   int maxIterations = 50,
 }) {
   // https://en.wikipedia.org/wiki/Brent%27s_method
-  var y0 = f(a), y1 = f(b);
+  var y0 = function(a), y1 = function(b);
   if (y0.abs() < y1.abs()) {
     final tx = a;
     a = b;
@@ -63,7 +65,7 @@ double solve(
     } else {
       bisection = false;
     }
-    final y = f(x);
+    final y = function(x);
     if (y.abs() < solutionEpsilon) {
       return x;
     }
