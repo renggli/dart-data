@@ -1,6 +1,8 @@
 import 'dart:math';
 
 import 'package:data/data.dart';
+import 'package:data/src/shared/config.dart';
+import 'package:data/type.dart';
 import 'package:test/test.dart';
 
 void vectorTest(String name, VectorFormat format) {
@@ -296,6 +298,45 @@ void vectorTest(String name, VectorFormat format) {
           expect(() => source.index([0, 1]), isNot(throwsRangeError));
           expect(() => source.index([-1, source.count - 1]), throwsRangeError);
           expect(() => source.index([0, source.count]), throwsRangeError);
+        });
+      });
+      group('list', () {
+        test('view', () {
+          final list = [1, 2, 3];
+          final vector = list.toVector();
+          expect(vector.dataType, intDataType);
+          expect(vector.count, 3);
+          expect(vector[0], 1);
+          expect(vector[1], 2);
+          expect(vector[2], 3);
+          list
+            ..add(4)
+            ..removeAt(0)
+            ..removeAt(0);
+          expect(vector.count, 2);
+          expect(vector[0], 3);
+          expect(vector[1], 4);
+          vector[1] = -4;
+          expect(list, [3, -4]);
+        });
+        test('copy', () {
+          final list = [1, 2, 3];
+          final vector = list.toVector(format: format);
+          expect(vector.dataType, intDataType);
+          expect(vector.count, 3);
+          expect(vector[0], 1);
+          expect(vector[1], 2);
+          expect(vector[2], 3);
+          list
+            ..add(4)
+            ..removeAt(0)
+            ..removeAt(0);
+          expect(vector.count, 3);
+          expect(vector[0], 1);
+          expect(vector[1], 2);
+          expect(vector[2], 3);
+          vector[1] = -4;
+          expect(list, [3, 4]);
         });
       });
       group('overlay', () {

@@ -1,8 +1,8 @@
-import 'utils.dart';
+import '../../../type.dart';
 import '../../vector/vector.dart';
 import '../matrix.dart';
-import '../../../type.dart';
 import '../matrix_format.dart';
+import 'utils.dart';
 
 extension ApplyMatrixExtension<T> on Matrix<T> {
   /// Applies an [operator] and a [vector] over each row of this matrix.
