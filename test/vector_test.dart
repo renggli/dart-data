@@ -863,14 +863,14 @@ void vectorTest(String name, VectorFormat format) {
             Vector.fromList(DataType.uint8, [1, 2, 3, 4], format: format);
         expect(source.sum, 10);
       });
-      test('length', () {
+      test('magnitude', () {
         final source =
             Vector.fromList(DataType.float32, [3, 4], format: format);
-        expect(source.length, 5.0);
+        expect(source.magnitude, 5.0);
       });
-      test('length2', () {
+      test('magnitude2', () {
         final source = Vector.fromList(DataType.int32, [4, 3], format: format);
-        expect(source.length2, 25);
+        expect(source.magnitude2, 25);
       });
     });
   });
