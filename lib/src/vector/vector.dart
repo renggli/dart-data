@@ -62,7 +62,20 @@ abstract class Vector<T> implements Storage {
     return format == null ? result : result.toVector(format: format);
   }
 
-  /// Constructs a vector from an list
+  /// Constructs a vector from an [iterable]. To enable efficient access
+  /// the data is always copied.
+  factory Vector.fromIterable(DataType<T> dataType, Iterable<T> source,
+      {VectorFormat? format}) {
+    final length = source.length;
+    final iterator = source.iterator;
+    final result = Vector<T>(dataType, length, format: format);
+    for (var i = 0; i < length && iterator.moveNext(); i++) {
+      result.setUnchecked(i, dataType.cast(iterator.current));
+    }
+    return result;
+  }
+
+  /// Constructs a vector from a [list].
   factory Vector.fromList(DataType<T> dataType, List<T> source,
       {VectorFormat? format}) {
     final result = Vector<T>(dataType, source.length, format: format);

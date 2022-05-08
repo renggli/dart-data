@@ -2,6 +2,7 @@ export 'view/cast_vector.dart' show CastVectorExtension;
 export 'view/column_matrix.dart' show ColumnMatrixExtension;
 export 'view/diagonal_matrix.dart' show DiagonalMatrixExtension;
 export 'view/index_vector.dart' show IndexVectorExtension;
+export 'view/iterable_vector.dart' show IterableVectorExtension;
 export 'view/list_vector.dart' show ListVectorExtension;
 export 'view/overlay_vector.dart' show OverlayVectorExtension;
 export 'view/range_vector.dart' show RangeVectorExtension;

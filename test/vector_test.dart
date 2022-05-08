@@ -137,6 +137,17 @@ void vectorTest(String name, VectorFormat format) {
         expect(vector[1], 1);
         expect(vector[2], 3);
       });
+      test('fromIterable', () {
+        final vector =
+            Vector.fromIterable(DataType.int8, {2, 1, 3}, format: format);
+        expect(vector.dataType, DataType.int8);
+        expect(vector.count, 3);
+        expect(vector.shape, [vector.count]);
+        expect(vector.storage, [vector]);
+        expect(vector[0], 2);
+        expect(vector[1], 1);
+        expect(vector[2], 3);
+      });
     });
     group('accessing', () {
       final vector = Vector.fromList(DataType.int8, [2, 4, 6], format: format);
@@ -299,7 +310,7 @@ void vectorTest(String name, VectorFormat format) {
           expect(() => source.index([0, source.count]), throwsRangeError);
         });
       });
-      group('list', () {
+      group('iterable', () {
         test('view', () {
           final list = [1, 2, 3];
           final vector = list.toVector();
@@ -336,6 +347,46 @@ void vectorTest(String name, VectorFormat format) {
           expect(vector[2], 3);
           vector[1] = -4;
           expect(list, [3, 4]);
+        });
+      });
+      group('iterable', () {
+        test('copy', () {
+          final iterable = {1, 2, 3};
+          final vector = iterable.toVector();
+          expect(vector.dataType, config.intDataType);
+          expect(vector.count, 3);
+          expect(vector[0], 1);
+          expect(vector[1], 2);
+          expect(vector[2], 3);
+          iterable
+            ..add(4)
+            ..remove(1)
+            ..remove(2);
+          expect(vector.count, 3);
+          expect(vector[0], 1);
+          expect(vector[1], 2);
+          expect(vector[2], 3);
+          vector[1] = -4;
+          expect(iterable, {3, 4});
+        });
+        test('copy with format', () {
+          final iterable = {1, 2, 3};
+          final vector = iterable.toVector(format: format);
+          expect(vector.dataType, config.intDataType);
+          expect(vector.count, 3);
+          expect(vector[0], 1);
+          expect(vector[1], 2);
+          expect(vector[2], 3);
+          iterable
+            ..add(4)
+            ..remove(1)
+            ..remove(2);
+          expect(vector.count, 3);
+          expect(vector[0], 1);
+          expect(vector[1], 2);
+          expect(vector[2], 3);
+          vector[1] = -4;
+          expect(iterable, {3, 4});
         });
       });
       group('overlay', () {
