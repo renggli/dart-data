@@ -8,8 +8,8 @@ import '../matrix.dart';
 /// Mutable indexed view of the rows and columns of a matrix.
 class IndexMatrix<T> with Matrix<T> {
   IndexMatrix(
-      Matrix<T> _matrix, Iterable<int> rowIndexes, Iterable<int> colIndexes)
-      : this._(_matrix, indexDataType.copyList(rowIndexes),
+      Matrix<T> matrix, Iterable<int> rowIndexes, Iterable<int> colIndexes)
+      : this._(matrix, indexDataType.copyList(rowIndexes),
             indexDataType.copyList(colIndexes));
 
   IndexMatrix._(this.matrix, this.rowIndexes, this.colIndexes);

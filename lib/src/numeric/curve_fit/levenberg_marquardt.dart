@@ -6,12 +6,11 @@ import '../../../matrix.dart';
 import '../../../type.dart';
 import '../../../vector.dart';
 import '../curve_fit.dart';
-import '../types.dart';
 
 /// https://github.com/mljs/levenberg-marquardt
 class LevenbergMarquardt extends CurveFit {
   LevenbergMarquardt(
-    ParameterizedFunction function, {
+    super.function, {
     this.initialDamping = 1e-2,
     this.dampingStepDown = 9.0,
     this.dampingStepUp = 11.0,
@@ -30,9 +29,8 @@ class LevenbergMarquardt extends CurveFit {
             List.generate(
                 initialValues.length, (i) => DataType.int64.safeMin.toDouble()),
         maxValues = maxValues ??
-            List.generate(
-                initialValues.length, (i) => DataType.int64.safeMax.toDouble()),
-        super(function) {
+            List.generate(initialValues.length,
+                (i) => DataType.int64.safeMax.toDouble()) {
     if (initialDamping <= 0) {
       throw ArgumentError.value(
           initialDamping, 'damping', 'Expected positive damping factor.');
