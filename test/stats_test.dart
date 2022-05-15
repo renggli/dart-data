@@ -626,14 +626,14 @@ void main() {
             skewness: double.nan,
             kurtosisExcess: double.nan,
             probability: [
-              Tuple2(1.0, 0.367879),
-              Tuple2(2.0, 0.151633),
+              Tuple2(1.0, 0.3678790),
+              Tuple2(2.0, 0.1516330),
               Tuple2(3.0, 0.0796146),
-              Tuple2(4.0, 0.048675),
+              Tuple2(4.0, 0.0486750),
               Tuple2(5.0, 0.0327492),
               Tuple2(6.0, 0.0235134),
               Tuple2(7.0, 0.0176914),
-              Tuple2(8.0, 0.013789),
+              Tuple2(8.0, 0.0137890),
               Tuple2(9.0, 0.0110474),
             ],
             cumulativeProbability: [
@@ -647,18 +647,17 @@ void main() {
               Tuple2(8.0, 0.882497),
               Tuple2(9.0, 0.894839),
             ],
-            // TODO: inverseCumulativeProbability: [
-            //   Tuple2(0.0, 0.0),
-            //   Tuple2(0.1, 0.434294),
-            //   Tuple2(0.2, 0.621335),
-            //   Tuple2(0.3, 0.830584),
-            //   Tuple2(0.4, 1.09136),
-            //   Tuple2(0.5, 1.4427),
-            //   Tuple2(0.6, 1.95762),
-            //   Tuple2(0.7, 2.80367),
-            //   Tuple2(0.8, 4.48142),
-            //   Tuple2(0.9, 9.49122),
-            // ],
+            inverseCumulativeProbability: [
+              Tuple2(0.1, 0.434294),
+              Tuple2(0.2, 0.621335),
+              Tuple2(0.3, 0.830584),
+              Tuple2(0.4, 1.091357),
+              Tuple2(0.5, 1.442695),
+              Tuple2(0.6, 1.957615),
+              Tuple2(0.7, 2.803673),
+              Tuple2(0.8, 4.481420),
+              Tuple2(0.9, 9.491222),
+            ],
           );
           test('median', () {
             expect(() => distribution.median, throwsUnsupportedError);
@@ -700,18 +699,17 @@ void main() {
               Tuple2(8.0, 0.992809),
               Tuple2(9.0, 0.994266),
             ],
-            // TODO: inverseCumulativeProbability: [
-            //   Tuple2(0.0, 0.0),
-            //   Tuple2(0.1, 0.257088),
-            //   Tuple2(0.2, 0.333967),
-            //   Tuple2(0.3, 0.409968),
-            //   Tuple2(0.4, 0.494483),
-            //   Tuple2(0.5, 0.595824),
-            //   Tuple2(0.6, 0.726522),
-            //   Tuple2(0.7, 0.911287),
-            //   Tuple2(0.8, 1.21302),
-            //   Tuple2(0.9, 1.88037),
-            // ],
+            inverseCumulativeProbability: [
+              Tuple2(0.1, 0.257088),
+              Tuple2(0.2, 0.333967),
+              Tuple2(0.3, 0.409968),
+              Tuple2(0.4, 0.494483),
+              Tuple2(0.5, 0.595824),
+              Tuple2(0.6, 0.726522),
+              Tuple2(0.7, 0.911287),
+              Tuple2(0.8, 1.213020),
+              Tuple2(0.9, 1.880365),
+            ],
           );
         });
         group('shape = 3.0, scale = 1.0', () {
@@ -750,18 +748,17 @@ void main() {
               Tuple2(8.0, 0.999704),
               Tuple2(9.0, 0.99979),
             ],
-            // TODO: inverseCumulativeProbability: [
-            //   Tuple2(0.0, 0.0),
-            //   Tuple2(0.1, 0.187888),
-            //   Tuple2(0.2, 0.233698),
-            //   Tuple2(0.3, 0.276582),
-            //   Tuple2(0.4, 0.322022),
-            //   Tuple2(0.5, 0.373963),
-            //   Tuple2(0.6, 0.437622),
-            //   Tuple2(0.7, 0.522527),
-            //   Tuple2(0.8, 0.651447),
-            //   Tuple2(0.9, 0.907387),
-            // ],
+            inverseCumulativeProbability: [
+              Tuple2(0.1, 0.187888),
+              Tuple2(0.2, 0.233698),
+              Tuple2(0.3, 0.276582),
+              Tuple2(0.4, 0.322022),
+              Tuple2(0.5, 0.373963),
+              Tuple2(0.6, 0.437622),
+              Tuple2(0.7, 0.522527),
+              Tuple2(0.8, 0.651447),
+              Tuple2(0.9, 0.907387),
+            ],
           );
         });
         group('shape = 3.0, scale = 1.5', () {
@@ -800,18 +797,17 @@ void main() {
               Tuple2(8.0, 0.999045),
               Tuple2(9.0, 0.999319),
             ],
-            // TODO: inverseCumulativeProbability: [
-            //   Tuple2(0.0, 0.0),
-            //   Tuple2(0.1, 0.281832),
-            //   Tuple2(0.2, 0.350547),
-            //   Tuple2(0.3, 0.414873),
-            //   Tuple2(0.4, 0.483033),
-            //   Tuple2(0.5, 0.560945),
-            //   Tuple2(0.6, 0.656433),
-            //   Tuple2(0.7, 0.783791),
-            //   Tuple2(0.8, 0.977171),
-            //   Tuple2(0.9, 1.36108),
-            // ],
+            inverseCumulativeProbability: [
+              Tuple2(0.1, 0.281832),
+              Tuple2(0.2, 0.350547),
+              Tuple2(0.3, 0.414873),
+              Tuple2(0.4, 0.483033),
+              Tuple2(0.5, 0.560945),
+              Tuple2(0.6, 0.656433),
+              Tuple2(0.7, 0.783791),
+              Tuple2(0.8, 0.977171),
+              Tuple2(0.9, 1.361080),
+            ],
           );
         });
       });

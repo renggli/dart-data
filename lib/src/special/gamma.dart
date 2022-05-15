@@ -86,21 +86,21 @@ double gammapInv(num p, num a) {
     return 0.0;
   } else if (a > 1.0) {
     lna1 = log(a1);
-    afac = exp(a1 * (lna1 - 1) - gln);
-    final pp = p < 0.5 ? p : 1 - p;
+    afac = exp(a1 * (lna1 - 1.0) - gln);
+    final pp = p < 0.5 ? p : 1.0 - p;
     final t = sqrt(-2 * log(pp));
     x = (2.30753 + t * 0.27061) / (1.0 + t * (0.99229 + t * 0.04481)) - t;
     if (p < 0.5) {
       x = -x;
     }
     x = max(1.0e-3,
-        a * pow(1.0 - 1.0 / (9.0 * a) - x / (3.0 * sqrt(a)), 3.0).toDouble());
+        a * pow(1.0 - 1.0 / (9.0 * a) - x / (3.0 * sqrt(a)), 3).toDouble());
   } else {
     final t = 1.0 - a * (0.253 + a * 0.12);
     if (p < t) {
       x = pow(p / t, 1.0 / a).toDouble();
     } else {
-      x = 1.0 - log(1 - (p - t) / (1 - t));
+      x = 1.0 - log(1.0 - (p - t) / (1.0 - t));
     }
   }
   for (var j = 0; j < 12; j++) {
@@ -129,25 +129,25 @@ double lowRegGamma(num a, num x) {
   var ap = a;
   var sum = 1.0 / a;
   var del = sum;
-  var b = x + 1 - a;
-  var c = 1 / 1.0e-30;
-  var d = 1 / b;
+  var b = x + 1.0 - a;
+  var c = 1.0 / 1.0e-30;
+  var d = 1.0 / b;
   var h = d;
-  final itmax = (log(a >= 1 ? a : 1 / a) * 8.5 + a * 0.4 + 17).ceil();
+  final max = (log(a >= 1 ? a : 1.0 / a) * 8.5 + a * 0.4 + 17).ceil();
   if (x < 0 || a <= 0) {
     return double.nan;
   } else if (x < a + 1) {
-    for (var i = 1; i <= itmax; i++) {
+    for (var i = 1; i <= max; i++) {
       sum += del *= x / ++ap;
     }
     return sum * exp(-x + a * log(x) - aln);
   }
-  for (var i = 1; i <= itmax; i++) {
+  for (var i = 1; i <= max; i++) {
     final an = -i * (i - a);
-    b += 2;
+    b += 2.0;
     d = an * d + b;
     c = b + an / c;
-    d = 1 / d;
+    d = 1.0 / d;
     h *= d * c;
   }
   return 1.0 - h * exp(-x + a * log(x) - (aln));
