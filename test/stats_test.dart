@@ -19,7 +19,11 @@ final throwsInvalidProbability = throwsA(isA<InvalidProbability>());
 void testSamples<T extends num>(
     Distribution<T> distribution, Iterable<T> samples) {
   final histogram = Multiset<int>();
-  if (distribution is DiscreteDistribution) {
+  if (distribution is DegenerateDistribution) {
+    // The degenerate distribution is a deterministic distribution.
+    expect(samples, everyElement(distribution.mean));
+  } else if (distribution is DiscreteDistribution) {
+    // Discrete distributions.
     histogram.addAll(samples.map((each) => each.toInt()));
     for (var k = max(-50, distribution.lowerBound.round());
         k < min(50, distribution.upperBound.round());
@@ -28,6 +32,7 @@ void testSamples<T extends num>(
           isCloseTo(distribution.probability(k as T), epsilon: 0.1));
     }
   } else {
+    // Continuous distributions.
     final buckets = 0.1
         .to(1.0, step: 0.1)
         .map((each) => distribution.inverseCumulativeProbability(each))
@@ -41,7 +46,6 @@ void testSamples<T extends num>(
         }
       }
     }
-    // All the buckets are expected to have roughly the same size.
     expect(histogram.distinct, hasLength(bucketCount));
     for (var k = 0; k < bucketCount; k++) {
       expect(
@@ -224,6 +228,76 @@ void testDistribution<T extends num>(
 void main() {
   group('distribution', () {
     group('continuous', () {
+      group('degenerate', () {
+        group('k = 0 (default)', () {
+          const distribution = DegenerateDistribution();
+          test('parameters', () {
+            expect(distribution.k, isCloseTo(0.0));
+          });
+          testDistribution(
+            distribution,
+            mean: 0,
+            median: 0,
+            mode: 0,
+            variance: 0,
+            skewness: double.nan,
+            kurtosisExcess: double.nan,
+            probability: [
+              Tuple2(-1.0, 0.0),
+              Tuple2(0.0, 1.0),
+              Tuple2(1.0, 0.0),
+            ],
+            cumulativeProbability: [
+              Tuple2(-1.0, 0.0),
+              Tuple2(0.0, 1.0),
+              Tuple2(1.0, 1.0),
+            ],
+            inverseCumulativeProbability: [
+              Tuple2(0.0, 0.0),
+              Tuple2(0.5, 0.0),
+              Tuple2(1.0, 0.0),
+            ],
+          );
+        });
+        group('k = 1.5', () {
+          const distribution = DegenerateDistribution(1.5);
+          test('parameters', () {
+            expect(distribution.k, isCloseTo(1.5));
+          });
+          testDistribution(
+            distribution,
+            mean: 1.5,
+            median: 1.5,
+            mode: 1.5,
+            variance: 0,
+            skewness: double.nan,
+            kurtosisExcess: double.nan,
+            probability: [
+              Tuple2(0.0, 0.0),
+              Tuple2(0.5, 0.0),
+              Tuple2(1.0, 0.0),
+              Tuple2(1.5, 1.0),
+              Tuple2(2.0, 0.0),
+              Tuple2(2.5, 0.0),
+              Tuple2(3.0, 0.0),
+            ],
+            cumulativeProbability: [
+              Tuple2(0.0, 0.0),
+              Tuple2(0.5, 0.0),
+              Tuple2(1.0, 0.0),
+              Tuple2(1.5, 1.0),
+              Tuple2(2.0, 1.0),
+              Tuple2(2.5, 1.0),
+              Tuple2(3.0, 1.0),
+            ],
+            inverseCumulativeProbability: [
+              Tuple2(0.0, 1.5),
+              Tuple2(0.5, 1.5),
+              Tuple2(1.0, 1.5),
+            ],
+          );
+        });
+      });
       group('exponential', () {
         group('lambda = 4.0', () {
           const distribution = ExponentialDistribution(4.0);
