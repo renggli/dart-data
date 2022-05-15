@@ -253,46 +253,6 @@ void main() {
       ],
       expectedParameterValues: [-14.846618431652454, -0.06846434130254946],
     );
-    // TODO: broken for some reason
-    // verifyDataFitter(
-    //   'fourParamEq',
-    //   LevenbergMarquardt(
-    //     (params, x) =>
-    //         params[0] +
-    //         (params[1] - params[0]) /
-    //             (1 + pow(params[2], params[3]) * pow(x, -params[3])),
-    //     initialDamping: 0.00001,
-    //     maxIterations: 200,
-    //     initialValues: [0, 100, 1, 0.1],
-    //   ),
-    //   xs: [
-    //     9.22e-12,
-    //     5.53e-11,
-    //     3.32e-10,
-    //     1.99e-9,
-    //     1.19e-8,
-    //     7.17e-8,
-    //     4.3e-7,
-    //     0.00000258,
-    //     0.0000155,
-    //     0.0000929,
-    //   ],
-    //   ys: [
-    //     7.807,
-    //     -3.74,
-    //     21.119,
-    //     2.382,
-    //     4.269,
-    //     41.57,
-    //     73.401,
-    //     98.535,
-    //     97.059,
-    //     92.147,
-    //   ],
-    //   expectedIterations: 200,
-    //   expectedParameterError: 16398.0009709,
-    //   expectedParameterValues: [-16.7697, 43.4549, 1018.8938, -4.3514],
-    // );
   });
   group('integrate', () {
     group('common', () {
