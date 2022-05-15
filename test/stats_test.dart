@@ -1,7 +1,7 @@
-import 'dart:math' as math;
 import 'dart:math';
 
 import 'package:data/stats.dart';
+import 'package:meta/meta.dart';
 import 'package:more/collection.dart';
 import 'package:more/feature.dart';
 import 'package:more/tuple.dart';
@@ -15,13 +15,14 @@ dynamic isCloseTo(num expected, {double epsilon = 1.0e-6}) =>
             : closeTo(expected, epsilon);
 final throwsInvalidProbability = throwsA(isA<InvalidProbability>());
 
+@isTestGroup
 void testSamples<T extends num>(
     Distribution<T> distribution, Iterable<T> samples) {
   final histogram = Multiset<int>();
   if (distribution is DiscreteDistribution) {
     histogram.addAll(samples.map((each) => each.toInt()));
-    for (var k = math.max(-50, distribution.lowerBound.round());
-        k < math.min(50, distribution.upperBound.round());
+    for (var k = max(-50, distribution.lowerBound.round());
+        k < min(50, distribution.upperBound.round());
         k++) {
       expect(histogram[k] / histogram.length,
           isCloseTo(distribution.probability(k as T), epsilon: 0.1));
@@ -107,7 +108,7 @@ void testDistribution<T extends num>(
       expect(distribution.variance, isCloseTo(variance));
     });
     test('standard deviation', () {
-      expect(distribution.standardDeviation, isCloseTo(math.sqrt(variance)));
+      expect(distribution.standardDeviation, isCloseTo(sqrt(variance)));
     });
   }
   if (skewness != null) {
@@ -121,14 +122,22 @@ void testDistribution<T extends num>(
     });
   }
   if (probability != null) {
+    // To compare with wolframalpha.com use an expression like:
+    //   evaluate PDF[SomeDistribution[1, 2], x]
+    //   at x in {1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0}
     test('probability', () {
       for (final tuple in probability) {
         expect(distribution.probability(tuple.first), isCloseTo(tuple.second),
             reason: 'p(${tuple.first}) = ${tuple.second}');
       }
     });
+  } else {
+    test('probability', () => null, skip: true);
   }
   if (cumulativeProbability != null) {
+    // To compare with wolframalpha.com use an expression like:
+    //   evaluate CDF[SomeDistribution[1, 2], x]
+    //   at x in {1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0}
     test('cumulative probability', () {
       for (final tuple in cumulativeProbability) {
         expect(distribution.cumulativeProbability(tuple.first),
@@ -143,8 +152,13 @@ void testDistribution<T extends num>(
             reason: 'p(X > ${tuple.first}) = ${tuple.second}');
       }
     });
+  } else {
+    test('cumulative probability', () => null, skip: true);
   }
   if (inverseCumulativeProbability != null) {
+    // To compare with wolframalpha.com use an expression like:
+    //   evaluate InverseCDF[SomeDistribution[1, 2], p]
+    //   at p in {0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9}
     test('inverse cumulative probability', () {
       for (final tuple in inverseCumulativeProbability) {
         expect(distribution.inverseCumulativeProbability(tuple.first),
@@ -166,6 +180,8 @@ void testDistribution<T extends num>(
           () => distribution.inverseSurvival(-0.1), throwsInvalidProbability);
       expect(() => distribution.inverseSurvival(1.1), throwsInvalidProbability);
     });
+  } else {
+    test('inverse cumulative probability', () => null, skip: true);
   }
   test('sample', () {
     final random = Random(Object.hash('sample', distribution));
@@ -262,6 +278,9 @@ void main() {
             expect(distribution.shape, isCloseTo(1.0));
             expect(distribution.scale, isCloseTo(2.0));
           });
+          test('median', () {
+            expect(() => distribution.median, throwsUnsupportedError);
+          });
           testDistribution(
             distribution,
             min: 0.0,
@@ -305,9 +324,6 @@ void main() {
               Tuple2(0.9, 4.605170),
             ],
           );
-          test('median', () {
-            expect(() => distribution.median, throwsUnsupportedError);
-          });
         });
         group('shape = 2.0, scale = 2.0', () {
           const distribution = GammaDistribution(2.0, 2.0);
@@ -617,6 +633,9 @@ void main() {
             expect(distribution.shape, isCloseTo(1.0));
             expect(distribution.scale, isCloseTo(1.0));
           });
+          test('median', () {
+            expect(() => distribution.median, throwsUnsupportedError);
+          });
           testDistribution(
             distribution,
             min: 0.0,
@@ -659,9 +678,6 @@ void main() {
               Tuple2(0.9, 9.491222),
             ],
           );
-          test('median', () {
-            expect(() => distribution.median, throwsUnsupportedError);
-          });
         });
         group('shape = 2.0, scale = 1.0', () {
           const distribution = InverseGammaDistribution(2.0, 1.0);
@@ -1996,6 +2012,9 @@ void main() {
             expect(distribution.scale, isCloseTo(1.0));
             expect(distribution.shape, isCloseTo(0.5));
           });
+          test('median', () {
+            expect(() => distribution.kurtosisExcess, throwsUnsupportedError);
+          });
           testDistribution(
             distribution,
             min: 0.0,
@@ -2383,6 +2402,7 @@ void main() {
           distribution,
           min: 0,
           mean: 3.33333333333,
+          median: 3.0,
           mode: 2.0,
           variance: 5.55555555555,
           skewness: 0.98994949366,
@@ -2494,6 +2514,7 @@ void main() {
             min: -3,
             max: 5,
             mean: 1,
+            median: 1,
             mode: double.nan,
             variance: 80 / 12,
             skewness: 0,

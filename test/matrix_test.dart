@@ -1665,6 +1665,9 @@ void matrixTest(String name, MatrixFormat format) {
               }
             }
           });
+          test('error type', () {
+            expect(() => matrixA.mul('Oops'), throwsArgumentError);
+          });
           test('error dimensions', () {
             expect(() => matrixA.mulMatrix(matrixA), throwsArgumentError);
             expect(() => matrixB.mulMatrix(matrixB), throwsArgumentError);
