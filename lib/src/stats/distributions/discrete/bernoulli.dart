@@ -6,7 +6,7 @@ import '../continuous/uniform.dart';
 import '../discrete.dart';
 
 /// The Bernoulli distribution is a discrete probability distribution which
-/// takes the value 1 with a probability [p] and 0 otherwise.
+/// takes value 1 with probability `p` and value 0 with probability `q = 1 − p`.
 ///
 /// See https://en.wikipedia.org/wiki/Bernoulli_distribution.
 class BernoulliDistribution extends DiscreteDistribution {

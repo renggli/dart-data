@@ -2503,6 +2503,45 @@ void main() {
           ],
         );
       });
+      group('rademacher', () {
+        const distribution = RademacherDistribution();
+        testDistribution(distribution,
+            min: -1,
+            max: 1,
+            mean: 0,
+            median: 0,
+            mode: double.nan,
+            variance: 1,
+            skewness: 0,
+            kurtosisExcess: -2,
+            probability: [
+              Tuple2(-2, 0.0),
+              Tuple2(-1, 0.5),
+              Tuple2(0, 0.0),
+              Tuple2(1, 0.5),
+              Tuple2(2, 0.0),
+            ],
+            cumulativeProbability: [
+              Tuple2(-2, 0.0),
+              Tuple2(-1, 0.5),
+              Tuple2(0, 0.5),
+              Tuple2(1, 1.0),
+              Tuple2(2, 1.0),
+            ],
+            inverseCumulativeProbability: [
+              Tuple2(0.0, -1),
+              Tuple2(0.1, -1),
+              Tuple2(0.2, -1),
+              Tuple2(0.3, -1),
+              Tuple2(0.4, -1),
+              Tuple2(0.5, -1),
+              Tuple2(0.6, 1),
+              Tuple2(0.7, 1),
+              Tuple2(0.8, 1),
+              Tuple2(0.9, 1),
+              Tuple2(1.0, 1),
+            ]);
+      });
       group('uniform', () {
         const distribution = UniformDiscreteDistribution(-3, 5);
         test('parameters', () {
@@ -2510,7 +2549,7 @@ void main() {
           expect(distribution.b, isCloseTo(5));
           expect(distribution.n, isCloseTo(9));
         });
-        testDistribution<int>(distribution,
+        testDistribution(distribution,
             min: -3,
             max: 5,
             mean: 1,

@@ -7,7 +7,8 @@ import '../continuous/uniform.dart';
 import '../discrete.dart';
 
 /// The Binomial distribution is a discrete probability distribution which
-/// takes the value 1 with a probability [p] and 0 otherwise.
+/// describes the number of successes in a series of independent yes/no
+/// experiments all with the same probability of success.
 ///
 /// See https://en.wikipedia.org/wiki/Binomial_distribution.
 class BinomialDistribution extends DiscreteDistribution {
