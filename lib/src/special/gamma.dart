@@ -133,7 +133,7 @@ double lowRegGamma(num a, num x) {
   var c = 1 / 1.0e-30;
   var d = 1 / b;
   var h = d;
-  final itmax = -~(log((a >= 1) ? a : 1 / a) * 8.5 + a * 0.4 + 17).floor();
+  final itmax = (log(a >= 1 ? a : 1 / a) * 8.5 + a * 0.4 + 17).ceil();
   if (x < 0 || a <= 0) {
     return double.nan;
   } else if (x < a + 1) {
