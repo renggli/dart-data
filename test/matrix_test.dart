@@ -272,6 +272,38 @@ void matrixTest(String name, MatrixFormat format) {
         matrix.set(0, 0, '*');
         expect(matrix.get(0, 0), '*');
       });
+      test('vandermonde', () {
+        final data = Vector.fromIterable(DataType.int8, [2, 3, 5]);
+        final matrix = Matrix.vandermonde(DataType.int32, data, 4);
+        expect(matrix.dataType, DataType.int32);
+        expect(matrix.rowCount, data.count);
+        expect(matrix.columnCount, 4);
+        expect(matrix.shape, [data.count, 4]);
+        expect(matrix.storage, [matrix]);
+        for (var r = 0; r < matrix.rowCount; r++) {
+          for (var c = 0; c < matrix.columnCount; c++) {
+            expect(matrix.get(r, c), pow(data[r], c));
+          }
+        }
+        expect(() => matrix.set(0, 0, 42), throwsUnsupportedError);
+      });
+      test('vandermonde with format', () {
+        final data = Vector.fromIterable(DataType.int8, [-7, 3, 1, 0, 7]);
+        final matrix =
+            Matrix.vandermonde(DataType.int64, data, 7, format: format);
+        expect(matrix.dataType, DataType.int64);
+        expect(matrix.rowCount, data.count);
+        expect(matrix.columnCount, 7);
+        expect(matrix.shape, [data.count, 7]);
+        expect(matrix.storage, [matrix]);
+        for (var r = 0; r < matrix.rowCount; r++) {
+          for (var c = 0; c < matrix.columnCount; c++) {
+            expect(matrix.get(r, c), pow(data[r], c));
+          }
+        }
+        matrix.set(0, 0, 42);
+        expect(matrix.get(0, 0), 42);
+      });
       test('fromRows', () {
         final matrix = Matrix.fromRows(
             DataType.int8,

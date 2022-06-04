@@ -104,6 +104,20 @@ abstract class Matrix<T> implements Storage {
     return format == null ? result : result.toMatrix(format: format);
   }
 
+  /// Returns a Vandermonde matrix, a matrix with the terms of a geometric
+  /// progression in each row. If [format] is specified the resulting matrix is
+  /// mutable, otherwise this is a read-only view.
+  factory Matrix.vandermonde(
+      DataType<T> dataType, Vector<T> data, int columnCount,
+      {MatrixFormat? format}) {
+    final pow = dataType.field.pow;
+    final exponents =
+        Vector<T>.generate(dataType, columnCount, (i) => dataType.cast(i));
+    return Matrix.generate(
+        dataType, data.count, columnCount, (r, c) => pow(data[r], exponents[c]),
+        format: format);
+  }
+
   /// Constructs a matrix from a nested list of rows.
   factory Matrix.fromRows(DataType<T> dataType, List<List<T>> source,
       {MatrixFormat? format}) {
