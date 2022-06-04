@@ -5,12 +5,14 @@ import 'package:more/tuple.dart';
 import '../../../matrix.dart';
 import '../../../type.dart';
 import '../../../vector.dart';
+import '../../shared/config.dart';
 import '../curve_fit.dart';
+import '../types.dart';
 
 /// https://github.com/mljs/levenberg-marquardt
 class LevenbergMarquardt extends CurveFit {
   LevenbergMarquardt(
-    super.function, {
+    this.function, {
     this.initialDamping = 1e-2,
     this.dampingStepDown = 9.0,
     this.dampingStepUp = 11.0,
@@ -57,6 +59,9 @@ class LevenbergMarquardt extends CurveFit {
     }
   }
 
+  /// A function with a list of params and the current value.
+  final ParameterizedFunction function;
+
   /// Small values of the damping factor result in a Gauss-Newton update and
   /// large values in a gradient descent update.
   final double initialDamping;
@@ -96,29 +101,27 @@ class LevenbergMarquardt extends CurveFit {
 
   /// https://github.com/mljs/levenberg-marquardt
   @override
-  FitResult fit({
-    required List<double> x,
-    required List<double> y,
+  LevenbergMarquardtResult fit({
+    required Vector<double> x,
+    required Vector<double> y,
     double weight = 1.0,
-    List<double>? weights,
+    Vector<double>? weights,
   }) {
-    if (x.length < 2) {
+    if (x.count < 2) {
       throw ArgumentError.value(x, 'x', 'Expected at least two points.');
     }
 
-    if (y.length != x.length) {
-      throw ArgumentError.value(y, 'y', 'Expected ${x.length} values.');
+    if (y.count != x.count) {
+      throw ArgumentError.value(y, 'y', 'Expected ${x.count} values.');
     }
 
-    weights ??= List<double>.generate(y.length, (i) => weight);
-    if (weights.length != x.length) {
+    weights ??= Vector<double>.constant(floatDataType, y.count, value: weight);
+    if (weights.count != x.count) {
       throw ArgumentError.value(
-          weights, 'weights', 'Expected ${x.length} values.');
+          weights, 'weights', 'Expected ${x.count} values.');
     }
-    final squaredWeights = weights
-        .map((weight) => weight * weight)
-        .toList(growable: false)
-        .toVector();
+    final squaredWeights =
+        weights.map((i, v) => v * v, floatDataType).toVector();
 
     var parameters = initialValues.toList(growable: false);
     var error = _errorCalculation(
@@ -176,7 +179,8 @@ class LevenbergMarquardt extends CurveFit {
       converged = error <= errorTolerance;
     }
 
-    return FitResult(
+    return LevenbergMarquardtResult(
+      (x) => function(optimalParameters, x),
       parameterValues: optimalParameters,
       parameterError: optimalError,
       iterationCount: iteration,
@@ -186,13 +190,13 @@ class LevenbergMarquardt extends CurveFit {
   /// the sum of the weighted squares of the errors (or weighted residuals)
   /// between the y and the curve-fit function.
   double _errorCalculation({
-    required List<double> x,
-    required List<double> y,
+    required Vector<double> x,
+    required Vector<double> y,
     required List<double> parameters,
     required Vector<double> squaredWeights,
   }) {
     var error = 0.0;
-    for (var i = 0; i < x.length; i++) {
+    for (var i = 0; i < x.count; i++) {
       final delta = y[i] - function(parameters, x[i]);
       error += squaredWeights.getUnchecked(i) * delta * delta;
     }
@@ -201,8 +205,8 @@ class LevenbergMarquardt extends CurveFit {
 
   /// Iteration for Levenberg-Marquardt.
   Tuple2<Matrix<double>, Matrix<double>> _step({
-    required List<double> x,
-    required List<double> y,
+    required Vector<double> x,
+    required Vector<double> y,
     required List<double> params,
     required double damping,
     required Vector<double> squaredWeights,
@@ -211,7 +215,7 @@ class LevenbergMarquardt extends CurveFit {
         DataType.float64, params.length, params.length,
         value: damping);
     var evaluatedData = Vector.generate(
-        DataType.float64, x.length, (i) => function(params, x[i]));
+        DataType.float64, x.count, (i) => function(params, x[i]));
 
     var gradientFunc = _gradientFunction(
       x: x,
@@ -233,13 +237,13 @@ class LevenbergMarquardt extends CurveFit {
 
   /// Difference of the matrix function over the parameters.
   Matrix<double> _gradientFunction({
-    required List<double> x,
-    required List<double> y,
+    required Vector<double> x,
+    required Vector<double> y,
     required Vector<double> evaluatedData,
     required List<double> params,
   }) {
     final nbParams = params.length;
-    final nbPoints = x.length;
+    final nbPoints = x.count;
     final ans = Matrix(DataType.float64, nbParams, nbPoints);
 
     var rowIndex = 0;
@@ -277,14 +281,27 @@ class LevenbergMarquardt extends CurveFit {
 
   /// Matrix function over the samples.
   Matrix<double> _matrixFunction({
-    required List<double> x,
-    required List<double> y,
+    required Vector<double> x,
+    required Vector<double> y,
     required Vector<double> evaluatedData,
   }) {
-    final ans = Matrix(DataType.float64, x.length, 1);
-    for (var point = 0; point < x.length; point++) {
+    final ans = Matrix(DataType.float64, x.count, 1);
+    for (var point = 0; point < x.count; point++) {
       ans.set(point, 0, y[point] - evaluatedData[point]);
     }
     return ans;
   }
+}
+
+class LevenbergMarquardtResult extends CurveFitResult {
+  LevenbergMarquardtResult(
+    super.function, {
+    required this.parameterValues,
+    required this.parameterError,
+    required this.iterationCount,
+  });
+
+  final List<double> parameterValues;
+  final double parameterError;
+  final int iterationCount;
 }

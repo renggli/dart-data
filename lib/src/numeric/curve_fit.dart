@@ -1,3 +1,4 @@
+import '../vector/vector.dart';
 import 'types.dart';
 
 /// Curve fitting is the process of constructing a curve, or mathematical
@@ -5,29 +6,17 @@ import 'types.dart';
 /// to constraints.
 ///
 /// See https://en.wikipedia.org/wiki/Curve_fitting.
-abstract class CurveFit {
-  CurveFit(this.function);
-
-  /// A function with a list of params and the current value.
-  ParameterizedFunction function;
-
-  /// Fits a list of data points to the configured function.
-  FitResult fit({
-    required List<double> x,
-    required List<double> y,
-    double weight = 1.0,
-    List<double>? weights,
+abstract class CurveFit<T> {
+  /// Fits a list of data points to the configured model.
+  CurveFitResult fit({
+    required Vector<double> x,
+    required Vector<double> y,
   });
 }
 
-class FitResult {
-  FitResult({
-    required this.parameterValues,
-    required this.parameterError,
-    required this.iterationCount,
-  });
+/// Generic result of a curve fitting.
+class CurveFitResult {
+  CurveFitResult(this.function);
 
-  final List<double> parameterValues;
-  final double parameterError;
-  final int iterationCount;
+  final NumericFunction function;
 }
