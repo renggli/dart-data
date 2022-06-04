@@ -1,8 +1,10 @@
 import 'dart:math';
 
 import 'package:data/data.dart';
+import 'package:data/src/numeric/types.dart';
 import 'package:data/src/shared/config.dart';
 import 'package:meta/meta.dart';
+import 'package:more/math.dart';
 import 'package:more/tuple.dart';
 import 'package:test/test.dart';
 
@@ -51,6 +53,20 @@ void verifyLevenbergMarquardt(
       expect(actual.iterationCount, expectedIterations);
     }
   });
+}
+
+Tuple2<Vector<double>, Vector<double>> generateSamples(
+  NumericFunction function, {
+  double min = -1.0,
+  double max = 1.0,
+  int count = 10,
+}) {
+  final xs = Vector.generate(
+      floatDataType, count, (i) => min + (i * (max - min)) / (count - 1),
+      format: VectorFormat.standard);
+  final ys = Vector.generate(floatDataType, count, (i) => function(xs[i]),
+      format: VectorFormat.standard);
+  return Tuple2(xs, ys);
 }
 
 void main() {
@@ -310,6 +326,42 @@ void main() {
           expect(result.polynomial[0], isCloseTo(128.812804));
           expect(result.polynomial[1], isCloseTo(-143.162023));
           expect(result.polynomial[2], isCloseTo(61.960325));
+        });
+      });
+      group('taylor', () {
+        test('exp', () {
+          final fitter = PolynomialRegression(degree: 10);
+          final data = generateSamples(exp, count: 25);
+          final result = fitter.fit(x: data.first, y: data.second);
+          expect(result.polynomial.degree, fitter.degree);
+          for (var i = 0; i <= fitter.degree; i++) {
+            expect(result.polynomial[i], isCloseTo(1.0 / i.factorial()),
+                reason: '$i-th coefficient');
+          }
+        });
+        test('sin', () {
+          final fitter = PolynomialRegression(degree: 10);
+          final data = generateSamples(sin, count: 50);
+          final result = fitter.fit(x: data.first, y: data.second);
+          expect(result.polynomial.degree, fitter.degree);
+          for (var i = 0; i <= fitter.degree; i++) {
+            expect(
+                result.polynomial[i],
+                isCloseTo(
+                    i.isOdd ? pow(-1, (i - 1) ~/ 2) / i.factorial() : 0.0),
+                reason: '$i-th coefficient');
+          }
+        });
+        test('cos', () {
+          final fitter = PolynomialRegression(degree: 10);
+          final data = generateSamples(cos, count: 50);
+          final result = fitter.fit(x: data.first, y: data.second);
+          expect(result.polynomial.degree, fitter.degree);
+          for (var i = 0; i <= fitter.degree; i++) {
+            expect(result.polynomial[i],
+                isCloseTo(i.isEven ? pow(-1, i ~/ 2) / i.factorial() : 0.0),
+                reason: '$i-th coefficient');
+          }
         });
       });
     });
