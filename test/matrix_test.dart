@@ -290,8 +290,8 @@ void matrixTest(String name, MatrixFormat format) {
       test('vandermonde with format', () {
         final data = Vector.fromIterable(DataType.int8, [-7, 3, 1, 0, 7]);
         final matrix =
-            Matrix.vandermonde(DataType.int64, data, 7, format: format);
-        expect(matrix.dataType, DataType.int64);
+            Matrix.vandermonde(DataType.int32, data, 7, format: format);
+        expect(matrix.dataType, DataType.int32);
         expect(matrix.rowCount, data.count);
         expect(matrix.columnCount, 7);
         expect(matrix.shape, [data.count, 7]);
