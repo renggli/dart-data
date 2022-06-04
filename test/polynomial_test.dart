@@ -111,7 +111,8 @@ void polynomialTest(String name, PolynomialFormat format) {
       for (final type in <DataType<num>>[DataType.int32, DataType.numeric]) {
         group(type.name, () {
           test('degree', () {
-            final polynomial = Polynomial(type, format: format);
+            final polynomial =
+                Polynomial(type, format: format, desiredDegree: 5);
             expect(polynomial.degree, -1);
             polynomial[0] = 0;
             expect(polynomial.degree, -1);
@@ -123,7 +124,8 @@ void polynomialTest(String name, PolynomialFormat format) {
             expect(polynomial.degree, 0);
           });
           test('lead', () {
-            final polynomial = Polynomial(type, format: format);
+            final polynomial =
+                Polynomial(type, format: format, desiredDegree: 5);
             expect(polynomial.lead, 0);
             polynomial[0] = 0;
             expect(polynomial.lead, 0);
@@ -136,7 +138,8 @@ void polynomialTest(String name, PolynomialFormat format) {
           });
           test('random', () {
             const degree = 100;
-            final polynomial = Polynomial(type, format: format);
+            final polynomial =
+                Polynomial(type, format: format, desiredDegree: degree);
             final values = <int>[];
             for (var i = 0; i <= degree; i++) {
               values.add(i);
@@ -167,7 +170,8 @@ void polynomialTest(String name, PolynomialFormat format) {
             }
           });
           test('sparse value', () {
-            final polynomial = Polynomial(type, format: format);
+            final polynomial =
+                Polynomial(type, format: format, desiredDegree: 2);
             polynomial[1] = 42;
             expect(polynomial.degree, 1);
             expect(polynomial.lead, 42);
@@ -176,7 +180,8 @@ void polynomialTest(String name, PolynomialFormat format) {
             expect(polynomial[2], 0);
           });
           test('zero value', () {
-            final polynomial = Polynomial(type, format: format);
+            final polynomial =
+                Polynomial(type, format: format, desiredDegree: 2);
             polynomial[1] = 42;
             polynomial[1] = 0;
             expect(polynomial.degree, -1);
@@ -376,7 +381,8 @@ void polynomialTest(String name, PolynomialFormat format) {
         }
       });
       group('differentiate', () {
-        final cs0 = [11, 7, 5, 2, 0], cs1 = [7, 10, 6, 0, 0];
+        const cs0 = [11, 7, 5, 2, 0];
+        const cs1 = [7, 10, 6, 0, 0];
         test('read', () {
           final source =
               Polynomial.fromList(DataType.int32, cs0, format: format);
@@ -391,7 +397,8 @@ void polynomialTest(String name, PolynomialFormat format) {
           }
         });
         test('write', () {
-          final source = Polynomial(DataType.int32, format: format);
+          final source = Polynomial(DataType.int32,
+              format: format, desiredDegree: cs1.length);
           final result = source.differentiate;
           expect(result.degree, -1);
           for (var i = 0; i < cs1.length; i++) {
@@ -404,7 +411,8 @@ void polynomialTest(String name, PolynomialFormat format) {
         });
       });
       group('integrate', () {
-        final cs0 = [7, 10, 6, 12, 0, 0], cs1 = [0, 7, 5, 2, 3, 0];
+        const cs0 = [7, 10, 6, 12, 0, 0];
+        const cs1 = [0, 7, 5, 2, 3, 0];
         test('read', () {
           final source =
               Polynomial.fromList(DataType.int32, cs0, format: format);
@@ -419,7 +427,8 @@ void polynomialTest(String name, PolynomialFormat format) {
           }
         });
         test('write', () {
-          final source = Polynomial(DataType.int32, format: format);
+          final source = Polynomial(DataType.int32,
+              format: format, desiredDegree: cs1.length);
           final result = source.integrate;
           expect(result.degree, -1);
           for (var i = 0; i < cs1.length; i++) {
@@ -449,7 +458,7 @@ void polynomialTest(String name, PolynomialFormat format) {
             expect(actual.iterable, expected);
             expect(actual.copy().iterable, expected);
             expect(actual.shift(-offset), source);
-            if (offset <= 0) {
+            if (-3 <= offset && offset <= 0) {
               actual[0] = -1;
               expect(actual[0], -1);
             }
@@ -536,7 +545,7 @@ void polynomialTest(String name, PolynomialFormat format) {
               exponents.insert(0, index);
               return value;
             } else {
-              return DataType.int32.field.additiveIdentity;
+              return DataType.float64.field.additiveIdentity;
             }
           }, format: format);
           source.forEach((index, value) {
@@ -827,4 +836,5 @@ void main() {
   polynomialTest('standard', PolynomialFormat.standard);
   polynomialTest('compressed', PolynomialFormat.compressed);
   polynomialTest('keyed', PolynomialFormat.keyed);
+  polynomialTest('list', PolynomialFormat.list);
 }

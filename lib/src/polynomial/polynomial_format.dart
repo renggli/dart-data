@@ -9,6 +9,7 @@ enum PolynomialFormat {
   standard,
   compressed,
   keyed,
+  list,
 }
 
 /// Default polynomial format.

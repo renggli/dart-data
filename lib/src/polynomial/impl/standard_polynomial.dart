@@ -5,7 +5,7 @@ import '../../shared/lists.dart';
 import '../../shared/storage.dart';
 import '../polynomial.dart';
 
-/// Standard polynomial.
+/// Standard polynomial built around a managed list.
 class StandardPolynomial<T> with Polynomial<T> {
   StandardPolynomial(DataType<T> dataType, int desiredDegree)
       : this._(

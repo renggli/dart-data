@@ -7,6 +7,7 @@ import '../../type.dart';
 import '../shared/storage.dart';
 import 'impl/compressed_polynomial.dart';
 import 'impl/keyed_polynomial.dart';
+import 'impl/list_polynomial.dart';
 import 'impl/standard_polynomial.dart';
 import 'polynomial_format.dart';
 import 'view/generated_polynomial.dart';
@@ -25,6 +26,8 @@ abstract class Polynomial<T> implements Storage {
         return CompressedPolynomial<T>(dataType);
       case PolynomialFormat.keyed:
         return KeyedPolynomial<T>(dataType);
+      case PolynomialFormat.list:
+        return ListPolynomial<T>(dataType, desiredDegree);
     }
   }
 
