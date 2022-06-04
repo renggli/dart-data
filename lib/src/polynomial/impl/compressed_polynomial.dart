@@ -5,8 +5,8 @@ import '../../shared/storage.dart';
 import '../polynomial.dart';
 
 /// Sparse compressed polynomial.
-class ListPolynomial<T> with Polynomial<T> {
-  ListPolynomial(DataType<T> dataType)
+class CompressedPolynomial<T> with Polynomial<T> {
+  CompressedPolynomial(DataType<T> dataType)
       : this._(
             dataType,
             indexDataType.newList(initialListLength),
@@ -14,7 +14,7 @@ class ListPolynomial<T> with Polynomial<T> {
                 initialListLength, dataType.field.additiveIdentity),
             0);
 
-  ListPolynomial._(
+  CompressedPolynomial._(
       this.dataType, this._exponents, this._coefficients, this._length);
 
   List<int> _exponents;
@@ -31,7 +31,7 @@ class ListPolynomial<T> with Polynomial<T> {
   Set<Storage> get storage => {this};
 
   @override
-  Polynomial<T> copy() => ListPolynomial._(
+  Polynomial<T> copy() => CompressedPolynomial._(
       dataType,
       indexDataType.copyList(_exponents),
       dataType.copyList(_coefficients),

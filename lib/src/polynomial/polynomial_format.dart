@@ -7,7 +7,7 @@
 /// Formats of polynomials.
 enum PolynomialFormat {
   standard,
-  list,
+  compressed,
   keyed,
 }
 

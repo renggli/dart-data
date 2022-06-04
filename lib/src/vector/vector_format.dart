@@ -7,7 +7,7 @@
 /// Formats of vectors.
 enum VectorFormat {
   standard,
-  list,
+  compressed,
   keyed,
 }
 

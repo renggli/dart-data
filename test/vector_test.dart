@@ -929,6 +929,6 @@ void vectorTest(String name, VectorFormat format) {
 
 void main() {
   vectorTest('standard', VectorFormat.standard);
+  vectorTest('compressed', VectorFormat.compressed);
   vectorTest('keyed', VectorFormat.keyed);
-  vectorTest('list', VectorFormat.list);
 }

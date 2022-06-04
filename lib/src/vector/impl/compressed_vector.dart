@@ -5,12 +5,12 @@ import '../../shared/storage.dart';
 import '../vector.dart';
 
 /// Sparse compressed vector.
-class ListVector<T> with Vector<T> {
-  ListVector(DataType<T> dataType, int count)
+class CompressedVector<T> with Vector<T> {
+  CompressedVector(DataType<T> dataType, int count)
       : this._(dataType, count, indexDataType.newList(initialListLength),
             dataType.newList(initialListLength), 0);
 
-  ListVector._(
+  CompressedVector._(
       this.dataType, this.count, this._indexes, this._values, this._length);
 
   List<int> _indexes;
@@ -27,7 +27,7 @@ class ListVector<T> with Vector<T> {
   Set<Storage> get storage => {this};
 
   @override
-  Vector<T> copy() => ListVector._(dataType, count,
+  Vector<T> copy() => CompressedVector._(dataType, count,
       indexDataType.copyList(_indexes), dataType.copyList(_values), _length);
 
   @override

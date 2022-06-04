@@ -5,8 +5,8 @@ import 'package:more/printer.dart' show Printer, StandardPrinter;
 
 import '../../type.dart' show DataType;
 import '../shared/storage.dart';
+import 'impl/compressed_vector.dart';
 import 'impl/keyed_vector.dart';
-import 'impl/list_vector.dart';
 import 'impl/standard_vector.dart';
 import 'vector_format.dart';
 import 'view/concat_vector.dart';
@@ -23,8 +23,8 @@ abstract class Vector<T> implements Storage {
     switch (format ?? defaultVectorFormat) {
       case VectorFormat.standard:
         return StandardVector<T>(dataType, count);
-      case VectorFormat.list:
-        return ListVector<T>(dataType, count);
+      case VectorFormat.compressed:
+        return CompressedVector<T>(dataType, count);
       case VectorFormat.keyed:
         return KeyedVector<T>(dataType, count);
     }
@@ -75,7 +75,7 @@ abstract class Vector<T> implements Storage {
     return result;
   }
 
-  /// Constructs a vector from a [list].
+  /// Constructs a vector from a [compressed].
   factory Vector.fromList(DataType<T> dataType, List<T> source,
       {VectorFormat? format}) {
     final result = Vector<T>(dataType, source.length, format: format);
