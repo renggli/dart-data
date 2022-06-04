@@ -1,6 +1,7 @@
 import 'dart:math';
 
 import 'package:data/data.dart';
+import 'package:data/src/shared/config.dart' as config;
 import 'package:test/test.dart';
 
 final Matcher throwsDivisionByZero = throwsA(
@@ -498,6 +499,85 @@ void polynomialTest(String name, PolynomialFormat format) {
         for (var i = readonly.degree; i >= 0; i--) {
           expect(readonly[i], -i - 1);
         }
+      });
+      group('toPolynomial', () {
+        test('view', () {
+          final list = [0, 1, 2, 3, 0];
+          final polynomial = list.toPolynomial();
+          expect(polynomial.dataType, config.intDataType);
+          expect(polynomial.degree, 3);
+          expect(polynomial[0], 0);
+          expect(polynomial[1], 1);
+          expect(polynomial[2], 2);
+          expect(polynomial[3], 3);
+          expect(polynomial[4], 0);
+          expect(polynomial[5], 0);
+          list
+            ..add(4)
+            ..removeAt(0)
+            ..removeAt(0);
+          expect(polynomial.degree, 3);
+          expect(polynomial[0], 2);
+          expect(polynomial[1], 3);
+          expect(polynomial[2], 0);
+          expect(polynomial[3], 4);
+          polynomial[1] = -4;
+          expect(list, [2, -4, 0, 4]);
+        });
+        test('copy', () {
+          final list = [0, 1, 2, 3, 0];
+          final polynomial = list.toPolynomial(format: format);
+          expect(polynomial.dataType, config.intDataType);
+          expect(polynomial.degree, 3);
+          expect(polynomial[0], 0);
+          expect(polynomial[1], 1);
+          expect(polynomial[2], 2);
+          expect(polynomial[3], 3);
+          expect(polynomial[4], 0);
+          expect(polynomial[5], 0);
+          list
+            ..add(4)
+            ..removeAt(0)
+            ..removeAt(0);
+          expect(polynomial.degree, 3);
+          expect(polynomial[0], 0);
+          expect(polynomial[1], 1);
+          expect(polynomial[2], 2);
+          expect(polynomial[3], 3);
+          expect(polynomial[4], 0);
+          expect(polynomial[5], 0);
+          polynomial[1] = -4;
+          expect(list, [2, 3, 0, 4]);
+        });
+      });
+      group('toList', () {
+        test('default', () {
+          final polynomial = Polynomial.generate(
+              DataType.int32, 5, (i) => 5 - i,
+              format: format);
+          final list = polynomial.toList();
+          expect(list.length, polynomial.degree + 1);
+          for (var i = 0; i < list.length; i++) {
+            expect(list[i], 5 - i);
+            list[i] = i;
+            expect(polynomial[i], i);
+          }
+          expect(() => list.add(42), throwsUnsupportedError);
+        });
+        test('growable', () {
+          final polynomial = Polynomial.generate(
+              DataType.int32, 5, (i) => 5 - i,
+              format: format);
+          final list = polynomial.toList(growable: true);
+          expect(list.length, polynomial.degree + 1);
+          for (var i = 0; i < list.length; i++) {
+            expect(list[i], 5 - i);
+            list[i] = i;
+            expect(polynomial[i], 5 - i);
+          }
+          list.add(42);
+          expect(list, [0, 1, 2, 3, 4, 42]);
+        });
       });
     });
     group('iterables', () {

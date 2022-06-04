@@ -311,45 +311,6 @@ void vectorTest(String name, VectorFormat format) {
         });
       });
       group('iterable', () {
-        test('view', () {
-          final list = [1, 2, 3];
-          final vector = list.toVector();
-          expect(vector.dataType, config.intDataType);
-          expect(vector.count, 3);
-          expect(vector[0], 1);
-          expect(vector[1], 2);
-          expect(vector[2], 3);
-          list
-            ..add(4)
-            ..removeAt(0)
-            ..removeAt(0);
-          expect(vector.count, 2);
-          expect(vector[0], 3);
-          expect(vector[1], 4);
-          vector[1] = -4;
-          expect(list, [3, -4]);
-        });
-        test('copy', () {
-          final list = [1, 2, 3];
-          final vector = list.toVector(format: format);
-          expect(vector.dataType, config.intDataType);
-          expect(vector.count, 3);
-          expect(vector[0], 1);
-          expect(vector[1], 2);
-          expect(vector[2], 3);
-          list
-            ..add(4)
-            ..removeAt(0)
-            ..removeAt(0);
-          expect(vector.count, 3);
-          expect(vector[0], 1);
-          expect(vector[1], 2);
-          expect(vector[2], 3);
-          vector[1] = -4;
-          expect(list, [3, 4]);
-        });
-      });
-      group('iterable', () {
         test('copy', () {
           final iterable = {1, 2, 3};
           final vector = iterable.toVector();
@@ -604,6 +565,45 @@ void vectorTest(String name, VectorFormat format) {
             matrix.set(r, 0, '$r*');
             expect(vector[r], '$r*');
           }
+        });
+      });
+      group('toVector', () {
+        test('view', () {
+          final list = [1, 2, 3];
+          final vector = list.toVector();
+          expect(vector.dataType, config.intDataType);
+          expect(vector.count, 3);
+          expect(vector[0], 1);
+          expect(vector[1], 2);
+          expect(vector[2], 3);
+          list
+            ..add(4)
+            ..removeAt(0)
+            ..removeAt(0);
+          expect(vector.count, 2);
+          expect(vector[0], 3);
+          expect(vector[1], 4);
+          vector[1] = -4;
+          expect(list, [3, -4]);
+        });
+        test('copy', () {
+          final list = [1, 2, 3];
+          final vector = list.toVector(format: format);
+          expect(vector.dataType, config.intDataType);
+          expect(vector.count, 3);
+          expect(vector[0], 1);
+          expect(vector[1], 2);
+          expect(vector[2], 3);
+          list
+            ..add(4)
+            ..removeAt(0)
+            ..removeAt(0);
+          expect(vector.count, 3);
+          expect(vector[0], 1);
+          expect(vector[1], 2);
+          expect(vector[2], 3);
+          vector[1] = -4;
+          expect(list, [3, 4]);
         });
       });
       group('toList', () {
