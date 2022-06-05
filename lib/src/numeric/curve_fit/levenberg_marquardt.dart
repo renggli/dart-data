@@ -18,42 +18,43 @@ class LevenbergMarquardt extends CurveFit {
     this.dampingStepUp = 11.0,
     this.improvementThreshold = 1e-3,
     double gradientDifference = 1e-1,
-    List<double>? gradientDifferences,
+    Vector<double>? gradientDifferences,
     this.centralDifference = false,
-    List<double>? minValues,
-    List<double>? maxValues,
+    Vector<double>? minValues,
+    Vector<double>? maxValues,
     required this.initialValues,
     this.maxIterations = 100,
     this.errorTolerance = 1e-7,
   })  : gradientDifferences = gradientDifferences ??
-            List.generate(initialValues.length, (i) => gradientDifference),
+            Vector<double>.constant(floatDataType, initialValues.count,
+                value: gradientDifference),
         minValues = minValues ??
-            List.generate(
-                initialValues.length, (i) => DataType.int64.safeMin.toDouble()),
+            Vector<double>.constant(floatDataType, initialValues.count,
+                value: intDataType.safeMin.toDouble()),
         maxValues = maxValues ??
-            List.generate(initialValues.length,
-                (i) => DataType.int64.safeMax.toDouble()) {
+            Vector<double>.constant(floatDataType, initialValues.count,
+                value: intDataType.safeMax.toDouble()) {
     if (initialDamping <= 0) {
       throw ArgumentError.value(
           initialDamping, 'damping', 'Expected positive damping factor.');
     }
 
-    if (initialValues.isEmpty) {
-      throw ArgumentError.value(
-          initialValues, 'The function must have at least 1 parameter');
+    if (initialValues.count == 0) {
+      throw ArgumentError.value(initialValues, 'initialValues',
+          'The function must have at least 1 parameter');
     }
 
-    if (this.minValues.length != initialValues.length) {
+    if (this.minValues.count != initialValues.count) {
       throw ArgumentError.value(
           minValues, 'The minValues must have the same size');
     }
 
-    if (this.maxValues.length != initialValues.length) {
+    if (this.maxValues.count != initialValues.count) {
       throw ArgumentError.value(
           maxValues, 'The maxValues must have the same size');
     }
 
-    if (this.gradientDifferences.length != initialValues.length) {
+    if (this.gradientDifferences.count != initialValues.count) {
       throw ArgumentError.value(gradientDifferences,
           'The gradientDifferences must have the same size');
     }
@@ -78,20 +79,20 @@ class LevenbergMarquardt extends CurveFit {
   final double improvementThreshold;
 
   /// The step size to approximate each parameter in the jacobian matrix.
-  final List<double> gradientDifferences;
+  final Vector<double> gradientDifferences;
 
   /// If true the jacobian matrix is approximated by central differences
   /// otherwise by forward differences.
   final bool centralDifference;
 
   /// Minimum allowed values for parameters.
-  final List<double> minValues;
+  final Vector<double> minValues;
 
   /// Maximum allowed values for parameters.
-  final List<double> maxValues;
+  final Vector<double> maxValues;
 
   /// Array of initial parameter values.
-  final List<double> initialValues;
+  final Vector<double> initialValues;
 
   /// Maximum of allowed iterations
   final int maxIterations;

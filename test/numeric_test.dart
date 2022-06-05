@@ -159,9 +159,9 @@ void main() {
           initialDamping: 0.00001,
           maxIterations: 1000,
           errorTolerance: 1e-7,
-          maxValues: [11, 11, 11],
-          minValues: [1, 2.7, 1],
-          initialValues: [3.5, 3.8, 4],
+          maxValues: <double>[11, 11, 11].toVector(),
+          minValues: <double>[1, 2.7, 1].toVector(),
+          initialValues: <double>[3.5, 3.8, 4].toVector(),
         ),
         n: 154,
         xStart: -2.6581,
@@ -177,7 +177,7 @@ void main() {
           initialDamping: 0.1,
           dampingStepDown: 1,
           dampingStepUp: 1,
-          initialValues: [3, 3],
+          initialValues: <double>[3, 3].toVector(),
         ),
         n: 20,
         xStart: 0,
@@ -189,7 +189,7 @@ void main() {
         LevenbergMarquardt(
           (params, x) => params[0] / (params[1] + exp(-x * params[2])),
           initialDamping: 0.1,
-          initialValues: [3, 3, 3],
+          initialValues: <double>[3, 3, 3].toVector(),
           maxIterations: 200,
         ),
         n: 20,
@@ -203,8 +203,9 @@ void main() {
         LevenbergMarquardt(
           lorentzians,
           initialDamping: 0.01,
-          gradientDifferences: [0.01, 0.0001, 0.0001, 0.01, 0.0001, 0.0],
-          initialValues: [1.1, 0.15, 0.29, 4.05, 0.17, 0.3],
+          gradientDifferences:
+              <double>[0.01, 0.0001, 0.0001, 0.01, 0.0001, 0.0].toVector(),
+          initialValues: <double>[1.1, 0.15, 0.29, 4.05, 0.17, 0.3].toVector(),
           maxIterations: 500,
         ),
         n: 100,
@@ -218,9 +219,10 @@ void main() {
         LevenbergMarquardt(
           lorentzians,
           initialDamping: 0.01,
-          gradientDifferences: [0.01, 0.0001, 0.0001, 0.01, 0.0001, 0.01],
+          gradientDifferences:
+              <double>[0.01, 0.0001, 0.0001, 0.01, 0.0001, 0.01].toVector(),
           centralDifference: true,
-          initialValues: [1.1, 0.15, 0.29, 4.05, 0.17, 0.28],
+          initialValues: <double>[1.1, 0.15, 0.29, 4.05, 0.17, 0.28].toVector(),
           maxIterations: 500,
           errorTolerance: 10e-8,
         ),
@@ -235,10 +237,10 @@ void main() {
         LevenbergMarquardt(
           sinFunction,
           initialDamping: 1.5,
-          initialValues: [
+          initialValues: <double>[
             0.594398586701882,
             0.3506424963635226,
-          ],
+          ].toVector(),
           gradientDifference: 1e-2,
           maxIterations: 100,
           errorTolerance: 1e-2,
