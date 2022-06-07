@@ -4,12 +4,7 @@ import 'package:data/special.dart';
 import 'package:more/tuple.dart';
 import 'package:test/test.dart';
 
-dynamic isCloseTo(num expected, {double epsilon = 1.0e-6}) =>
-    expected.isInfinite
-        ? expected
-        : expected.isNaN
-            ? isNaN
-            : closeTo(expected, epsilon);
+import 'utils/matchers.dart';
 
 void main() {
   group('gamma function', () {

@@ -8,9 +8,7 @@ import 'package:more/math.dart';
 import 'package:more/tuple.dart';
 import 'package:test/test.dart';
 
-import 'special_test.dart';
-
-const epsilon = 1.0e-5;
+import 'utils/matchers.dart';
 
 @isTest
 void verifyLevenbergMarquardt(
@@ -74,48 +72,47 @@ void main() {
     test('first derivative at different accuracies', () {
       for (var a = 2; a <= 8; a += 2) {
         // sin-function
-        expect(derivative(sin, 0.0 * pi, accuracy: a), closeTo(1.0, epsilon));
-        expect(derivative(sin, 0.5 * pi, accuracy: a), closeTo(0.0, epsilon));
-        expect(derivative(sin, 1.0 * pi, accuracy: a), closeTo(-1.0, epsilon));
-        expect(derivative(sin, 1.5 * pi, accuracy: a), closeTo(0.0, epsilon));
+        expect(derivative(sin, 0.0 * pi, accuracy: a), isCloseTo(1.0));
+        expect(derivative(sin, 0.5 * pi, accuracy: a), isCloseTo(0.0));
+        expect(derivative(sin, 1.0 * pi, accuracy: a), isCloseTo(-1.0));
+        expect(derivative(sin, 1.5 * pi, accuracy: a), isCloseTo(0.0));
         // cos-function
-        expect(derivative(cos, 0.0 * pi, accuracy: a), closeTo(0.0, epsilon));
-        expect(derivative(cos, 0.5 * pi, accuracy: a), closeTo(-1.0, epsilon));
-        expect(derivative(cos, 1.0 * pi, accuracy: a), closeTo(0.0, epsilon));
-        expect(derivative(cos, 1.5 * pi, accuracy: a), closeTo(1.0, epsilon));
+        expect(derivative(cos, 0.0 * pi, accuracy: a), isCloseTo(0.0));
+        expect(derivative(cos, 0.5 * pi, accuracy: a), isCloseTo(-1.0));
+        expect(derivative(cos, 1.0 * pi, accuracy: a), isCloseTo(0.0));
+        expect(derivative(cos, 1.5 * pi, accuracy: a), isCloseTo(1.0));
         // exp-function
-        expect(derivative(exp, -1.0, accuracy: a), closeTo(1 / e, epsilon));
-        expect(derivative(exp, 0.0, accuracy: a), closeTo(1.0, epsilon));
-        expect(derivative(exp, 1.0, accuracy: a), closeTo(e, epsilon));
+        expect(derivative(exp, -1.0, accuracy: a), isCloseTo(1 / e));
+        expect(derivative(exp, 0.0, accuracy: a), isCloseTo(1.0));
+        expect(derivative(exp, 1.0, accuracy: a), isCloseTo(e));
       }
     });
     test('second derivative at different accuracies', () {
       for (var a = 2; a <= 8; a += 2) {
         // sin-function
         expect(derivative(sin, 0.0 * pi, derivative: 2, accuracy: a),
-            closeTo(0.0, epsilon));
+            isCloseTo(0.0));
         expect(derivative(sin, 0.5 * pi, derivative: 2, accuracy: a),
-            closeTo(-1.0, epsilon));
+            isCloseTo(-1.0));
         expect(derivative(sin, 1.0 * pi, derivative: 2, accuracy: a),
-            closeTo(0.0, epsilon));
+            isCloseTo(0.0));
         expect(derivative(sin, 1.5 * pi, derivative: 2, accuracy: a),
-            closeTo(1.0, epsilon));
+            isCloseTo(1.0));
         // cos-function
         expect(derivative(cos, 0.0 * pi, derivative: 2, accuracy: a),
-            closeTo(-1.0, epsilon));
+            isCloseTo(-1.0));
         expect(derivative(cos, 0.5 * pi, derivative: 2, accuracy: a),
-            closeTo(0.0, epsilon));
+            isCloseTo(0.0));
         expect(derivative(cos, 1.0 * pi, derivative: 2, accuracy: a),
-            closeTo(1.0, epsilon));
+            isCloseTo(1.0));
         expect(derivative(cos, 1.5 * pi, derivative: 2, accuracy: a),
-            closeTo(0.0, epsilon));
+            isCloseTo(0.0));
         // exp-function
         expect(derivative(exp, -1.0, derivative: 2, accuracy: a),
-            closeTo(1 / e, epsilon));
-        expect(derivative(exp, 0.0, derivative: 2, accuracy: a),
-            closeTo(1.0, epsilon));
-        expect(derivative(exp, 1.0, derivative: 2, accuracy: a),
-            closeTo(e, epsilon));
+            isCloseTo(1 / e));
+        expect(
+            derivative(exp, 0.0, derivative: 2, accuracy: a), isCloseTo(1.0));
+        expect(derivative(exp, 1.0, derivative: 2, accuracy: a), isCloseTo(e));
       }
     });
     group('error', () {
@@ -368,87 +365,174 @@ void main() {
       });
     });
   });
+  group('interpolate', () {
+    group('sequences', () {
+      group('linear', () {
+        test('default', () {
+          final vector = linearSpaced(2, 3, count: 5);
+          expect(vector.iterable, isCloseTo([2, 2.25, 2.5, 2.75, 3]));
+        });
+        test('without endpoint', () {
+          final vector = linearSpaced(2, 3, count: 5, includeEndpoint: false);
+          expect(vector.iterable, isCloseTo([2, 2.2, 2.4, 2.6, 2.8]));
+        });
+      });
+      group('logarithmic', () {
+        test('default', () {
+          final vector = logarithmicSpaced(2, 3, count: 4);
+          expect(vector.iterable,
+              isCloseTo([100, 215.443469, 464.15888336, 1000]));
+        });
+        test('without endpoint', () {
+          final vector =
+              logarithmicSpaced(2, 3, count: 4, includeEndpoint: false);
+          expect(vector.iterable,
+              isCloseTo([100, 177.827941, 316.22776602, 562.34132519]));
+        });
+        test('with base', () {
+          final vector = logarithmicSpaced(2.0, 3.0, count: 4, base: 2.0);
+          expect(vector.iterable, isCloseTo([4.0, 5.0396842, 6.34960421, 8.0]));
+        });
+      });
+      group('geometric', () {
+        test('increasing', () {
+          final vector = geometricSpaced(1, 1000, count: 4);
+          expect(vector.iterable, isCloseTo([1, 10, 100, 1000]));
+        });
+        test('decreasing', () {
+          final vector = geometricSpaced(1000.0, 1.0, count: 4);
+          expect(vector.iterable, isCloseTo([1000, 100, 10, 1]));
+        });
+        test('without endpoint', () {
+          final vector =
+              geometricSpaced(1, 1000, count: 4, includeEndpoint: false);
+          expect(vector.iterable,
+              isCloseTo([1, 5.62341325, 31.6227766, 177.827941]));
+        });
+      });
+    });
+    group('linear', () {
+      test('increasing', () {
+        final f = LinearInterpolation(
+          x: [1.0, 2.0].toVector(),
+          y: [3.0, 4.0].toVector(),
+        );
+        expect(f(0.5), isCloseTo(3.0));
+        expect(f(1.0), isCloseTo(3.0));
+        expect(f(1.5), isCloseTo(3.5));
+        expect(f(2.0), isCloseTo(4.0));
+        expect(f(2.5), isCloseTo(4.0));
+      });
+      test('decreasing', () {
+        final f = LinearInterpolation(
+          x: [1.0, 2.0].toVector(),
+          y: [4.0, 3.0].toVector(),
+        );
+        expect(f(0.5), isCloseTo(4.0));
+        expect(f(1.0), isCloseTo(4.0));
+        expect(f(1.5), isCloseTo(3.5));
+        expect(f(2.0), isCloseTo(3.0));
+        expect(f(2.5), isCloseTo(3.0));
+      });
+      test('custom bounds', () {
+        final f = LinearInterpolation(
+          x: [1.0, 2.0].toVector(),
+          y: [3.0, 4.0].toVector(),
+          left: double.negativeInfinity,
+          right: double.infinity,
+        );
+        expect(f(0.5), isCloseTo(double.negativeInfinity));
+        expect(f(1.0), isCloseTo(3.0));
+        expect(f(1.5), isCloseTo(3.5));
+        expect(f(2.0), isCloseTo(4.0));
+        expect(f(2.5), isCloseTo(double.infinity));
+      });
+      test('exponential function', () {
+        final x = linearSpaced(-1, 1);
+        final y = x.map((i, x) => exp(x));
+        final f = LinearInterpolation(x: x, y: y);
+        for (var i = -1.0; i <= 1.0; i += 0.25) {
+          expect(f(i), isCloseTo(exp(i), epsilon: 0.1));
+        }
+      });
+    });
+  });
   group('integrate', () {
     group('common', () {
       test('exp', () {
-        expect(integrate(exp, 0, 1), closeTo(e - 1, epsilon));
-        expect(integrate(exp, -1, 0), closeTo(1 - 1 / e, epsilon));
-        expect(integrate(exp, -1, 1), closeTo(e - 1 / e, epsilon));
+        expect(integrate(exp, 0, 1), isCloseTo(e - 1));
+        expect(integrate(exp, -1, 0), isCloseTo(1 - 1 / e));
+        expect(integrate(exp, -1, 1), isCloseTo(e - 1 / e));
       });
       test('sin', () {
-        expect(integrate(sin, 0, 2 * pi), closeTo(0, epsilon));
-        expect(integrate(sin, -2 * pi, 0), closeTo(0, epsilon));
-        expect(integrate(sin, -2 * pi, 2 * pi), closeTo(0, epsilon));
+        expect(integrate(sin, 0, 2 * pi), isCloseTo(0));
+        expect(integrate(sin, -2 * pi, 0), isCloseTo(0));
+        expect(integrate(sin, -2 * pi, 2 * pi), isCloseTo(0));
       });
       test('cos', () {
-        expect(integrate(cos, 0, 2 * pi), closeTo(0, epsilon));
-        expect(integrate(cos, -2 * pi, 0), closeTo(0, epsilon));
-        expect(integrate(cos, -2 * pi, 2 * pi), closeTo(0, epsilon));
+        expect(integrate(cos, 0, 2 * pi), isCloseTo(0));
+        expect(integrate(cos, -2 * pi, 0), isCloseTo(0));
+        expect(integrate(cos, -2 * pi, 2 * pi), isCloseTo(0));
       });
       test('sqr', () {
         double sqr(double x) => x * x;
-        expect(integrate(sqr, -1, 1), closeTo(2 / 3, epsilon));
-        expect(integrate(sqr, 0, 2), closeTo(8 / 3, epsilon));
-        expect(integrate(sqr, -1, 2), closeTo(3, epsilon));
+        expect(integrate(sqr, -1, 1), isCloseTo(2 / 3));
+        expect(integrate(sqr, 0, 2), isCloseTo(8 / 3));
+        expect(integrate(sqr, -1, 2), isCloseTo(3));
       });
       test('sqrt', () {
-        expect(integrate(sqrt, 0, 1, depth: 25),
-            closeTo(2 / 3 * pow(1, 3 / 2), epsilon));
-        expect(integrate(sqrt, 0, 2, depth: 25),
-            closeTo(2 / 3 * pow(2, 3 / 2), epsilon));
-        expect(integrate(sqrt, 0, 3, depth: 30),
-            closeTo(2 / 3 * pow(3, 3 / 2), epsilon));
-        expect(integrate(sqrt, 0, 4, depth: 30),
-            closeTo(2 / 3 * pow(4, 3 / 2), epsilon));
-        expect(integrate(sqrt, 0, 5, depth: 40),
-            closeTo(2 / 3 * pow(5, 3 / 2), epsilon));
+        expect(
+            integrate(sqrt, 0, 1, depth: 25), isCloseTo(2 / 3 * pow(1, 3 / 2)));
+        expect(
+            integrate(sqrt, 0, 2, depth: 25), isCloseTo(2 / 3 * pow(2, 3 / 2)));
+        expect(
+            integrate(sqrt, 0, 3, depth: 30), isCloseTo(2 / 3 * pow(3, 3 / 2)));
+        expect(
+            integrate(sqrt, 0, 4, depth: 30), isCloseTo(2 / 3 * pow(4, 3 / 2)));
+        expect(
+            integrate(sqrt, 0, 5, depth: 40), isCloseTo(2 / 3 * pow(5, 3 / 2)));
       });
       test('other', () {
         expect(integrate((x) => sqrt(1 - x * x), 0, 1, depth: 30),
-            closeTo(pi / 4, epsilon));
+            isCloseTo(pi / 4));
         expect(integrate((x) => exp(-x), 0, double.infinity, depth: 30),
-            closeTo(1, epsilon));
+            isCloseTo(1));
       });
     });
     group('bounds', () {
       double f(double x) => exp(-x * x);
       double g(double x) => 1.0 / (x * x);
       test('empty', () {
-        expect(integrate((x) => fail('No evaluation'), pi, pi),
-            closeTo(0, epsilon));
+        expect(integrate((x) => fail('No evaluation'), pi, pi), isCloseTo(0));
       });
       test('inverted', () {
-        expect(integrate(exp, 1, 0), closeTo(1 - e, epsilon));
+        expect(integrate(exp, 1, 0), isCloseTo(1 - e));
       });
       test('unbounded', () {
         expect(integrate(f, double.negativeInfinity, double.infinity),
-            closeTo(sqrt(pi), epsilon));
+            isCloseTo(sqrt(pi)));
       });
       test('lower unbounded', () {
         expect(integrate(f, double.negativeInfinity, 0),
-            closeTo(sqrt(pi) / 2.0, epsilon));
-        expect(
-            integrate(g, double.negativeInfinity, -1), closeTo(1.0, epsilon));
+            isCloseTo(sqrt(pi) / 2.0));
+        expect(integrate(g, double.negativeInfinity, -1), isCloseTo(1.0));
       });
       test('upper unbounded', () {
-        expect(
-            integrate(f, 0, double.infinity), closeTo(sqrt(pi) / 2.0, epsilon));
-        expect(integrate(g, 1, double.infinity), closeTo(1.0, epsilon));
+        expect(integrate(f, 0, double.infinity), isCloseTo(sqrt(pi) / 2.0));
+        expect(integrate(g, 1, double.infinity), isCloseTo(1.0));
       });
       test('inverted unbounded', () {
         expect(integrate(f, double.infinity, double.negativeInfinity),
-            closeTo(-sqrt(pi), epsilon));
+            isCloseTo(-sqrt(pi)));
       });
       test('inverted lower unbounded', () {
         expect(integrate(f, 0, double.negativeInfinity),
-            closeTo(-sqrt(pi) / 2.0, epsilon));
-        expect(
-            integrate(g, -1, double.negativeInfinity), closeTo(-1.0, epsilon));
+            isCloseTo(-sqrt(pi) / 2.0));
+        expect(integrate(g, -1, double.negativeInfinity), isCloseTo(-1.0));
       });
       test('inverted upper unbounded', () {
-        expect(integrate(f, double.infinity, 0),
-            closeTo(-sqrt(pi) / 2.0, epsilon));
-        expect(integrate(g, double.infinity, 1), closeTo(-1.0, epsilon));
+        expect(integrate(f, double.infinity, 0), isCloseTo(-sqrt(pi) / 2.0));
+        expect(integrate(g, double.infinity, 1), isCloseTo(-1.0));
       });
     });
     group('poles', () {
@@ -456,22 +540,22 @@ void main() {
           ? throw ArgumentError('Pole was evaluated at $x.')
           : 1.0;
       test('at lower bound', () {
-        expect(integrate(f, -1, 0, poles: [0]), closeTo(1, epsilon));
+        expect(integrate(f, -1, 0, poles: [0]), isCloseTo(1));
       });
       test('at upper bound', () {
-        expect(integrate(f, 0, 1.5, poles: [0]), closeTo(1.5, epsilon));
+        expect(integrate(f, 0, 1.5, poles: [0]), isCloseTo(1.5));
       });
       test('at both bounds', () {
-        expect(integrate(f, 0, 2, poles: [0, 2]), closeTo(2, epsilon));
+        expect(integrate(f, 0, 2, poles: [0, 2]), isCloseTo(2));
       });
       test('at the center', () {
-        expect(integrate(f, -1.5, 1.5, poles: [0]), closeTo(3, epsilon));
+        expect(integrate(f, -1.5, 1.5, poles: [0]), isCloseTo(3));
       });
       test('multiple poles', () {
-        expect(integrate(f, -3, 3, poles: [0, 2, -2]), closeTo(6, epsilon));
+        expect(integrate(f, -3, 3, poles: [0, 2, -2]), isCloseTo(6));
       });
       test('irrelevant poles', () {
-        expect(integrate(f, 0.5, 1.5, poles: [0, 2, -2]), closeTo(1, epsilon));
+        expect(integrate(f, 0.5, 1.5, poles: [0, 2, -2]), isCloseTo(1));
       });
     });
     test('evaluation points', () {
@@ -491,7 +575,7 @@ void main() {
             throwsA(isA<IntegrateError>()
                 .having(
                     (err) => err.type, 'type', IntegrateWarning.doesNotConverge)
-                .having((err) => err.x, 'x', closeTo(0.5, epsilon))
+                .having((err) => err.x, 'x', isCloseTo(0.5))
                 .having((err) => err.toString(), 'toString',
                     startsWith('IntegrateError'))));
       });
@@ -507,7 +591,7 @@ void main() {
             throwsA(isA<IntegrateError>()
                 .having(
                     (err) => err.type, 'type', IntegrateWarning.depthTooShallow)
-                .having((err) => err.x, 'x', closeTo(0.25, epsilon))
+                .having((err) => err.x, 'x', isCloseTo(0.25))
                 .having((err) => err.toString(), 'toString',
                     startsWith('IntegrateError'))));
       });
@@ -542,30 +626,30 @@ void main() {
     group('beauties', () {
       test('sophomore\'s dream', () {
         expect(integrate((x) => pow(x, -x).toDouble(), 0, 1, depth: 15),
-            closeTo(1.2912859970, epsilon));
+            isCloseTo(1.2912859970));
         expect(integrate((x) => pow(x, x).toDouble(), 0, 1, depth: 15),
-            closeTo(0.7834305107, epsilon));
+            isCloseTo(0.7834305107));
       });
       test('pi', () {
         expect(
             integrate((x) => 1 / (1 + x * x), double.negativeInfinity,
                 double.infinity),
-            closeTo(pi, epsilon));
+            isCloseTo(pi));
         expect(22 / 7 - integrate((x) => pow(x - x * x, 4) / (1 + x * x), 0, 1),
-            closeTo(pi, epsilon));
+            isCloseTo(pi));
       });
     });
   });
   group('solve', () {
     test('raising bracket', () {
-      expect(solve(cos, 4, 6), closeTo(3 * pi / 2, epsilon));
+      expect(solve(cos, 4, 6), isCloseTo(3 * pi / 2));
     });
     test('descending bracket', () {
-      expect(solve(sin, 2, 4), closeTo(pi, epsilon));
+      expect(solve(sin, 2, 4), isCloseTo(pi));
     });
     test('polynomial', () {
       double f(double x) => (x + 3) * (x - 1) * (x - 1);
-      expect(solve(f, -4, 0), closeTo(-3, epsilon));
+      expect(solve(f, -4, 0), isCloseTo(-3));
     });
   });
 }
