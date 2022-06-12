@@ -1,5 +1,3 @@
-import 'package:more/ordering.dart';
-
 import '../../../vector.dart';
 
 /// A function object providing linear interpolation of a discrete monotonically
@@ -61,5 +59,3 @@ class LinearInterpolation {
     return -min - 1;
   }
 }
-
-final o = Ordering.natural().binarySearch([], 1.0);
