@@ -15,13 +15,17 @@ class MapParametrizedUnaryFunction<T> extends ParametrizedUnaryFunction<T> {
   int get count => names.length;
 
   @override
-  Vector<T> toVector(Object? params, T defaultParam) {
+  Vector<T> toVector(Object? params, {T? defaultParam}) {
     if (params is Map<Symbol, T>) {
       return Vector<T>.generate(
-          dataType, names.length, (i) => params[names[i]] ?? defaultParam,
+          dataType,
+          names.length,
+          (i) =>
+              params[names[i]] ??
+              checkDefaultParam(params, defaultParam, names[i]),
           format: defaultVectorFormat);
     } else {
-      return super.toVector(params, defaultParam);
+      return super.toVector(params, defaultParam: defaultParam);
     }
   }
 

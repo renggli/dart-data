@@ -440,7 +440,8 @@ void main() {
       );
       expect(function.dataType, DataType.string);
       expect(function.count, 3);
-      expect(function.toVector(['a', 'b'], 'c').iterable, ['a', 'b', 'c']);
+      expect(function.toVector(['a', 'b'], defaultParam: 'c').iterable,
+          ['a', 'b', 'c']);
       final arguments = ['a', 'b', 'c'].toVector();
       final bindings = function.toBindings(arguments);
       final bound = function.bind(arguments);
@@ -456,8 +457,8 @@ void main() {
       );
       expect(function.dataType, DataType.string);
       expect(function.count, 3);
-      expect(
-          function.toVector({#b: 'b', #a: 'a'}, 'c').iterable, ['a', 'b', 'c']);
+      expect(function.toVector({#b: 'b', #a: 'a'}, defaultParam: 'c').iterable,
+          ['a', 'b', 'c']);
       final arguments = ['a', 'b', 'c'].toVector();
       final bindings = function.toBindings(arguments);
       final bound = function.bind(arguments);
@@ -474,8 +475,8 @@ void main() {
       );
       expect(function.dataType, DataType.string);
       expect(function.count, 3);
-      expect(
-          function.toVector({#b: 'b', #a: 'a'}, 'c').iterable, ['a', 'b', 'c']);
+      expect(function.toVector({#b: 'b', #a: 'a'}, defaultParam: 'c').iterable,
+          ['a', 'b', 'c']);
       final arguments = ['a', 'b', 'c'].toVector();
       final bindings = function.toBindings(arguments);
       final bound = function.bind(arguments);
@@ -491,7 +492,8 @@ void main() {
       );
       expect(function.dataType, DataType.string);
       expect(function.count, 3);
-      expect(function.toVector(['a', 'b'], 'c').iterable, ['a', 'b', 'c']);
+      expect(function.toVector(['a', 'b'], defaultParam: 'c').iterable,
+          ['a', 'b', 'c']);
       final arguments = ['a', 'b', 'c'].toVector();
       final bindings = function.toBindings(arguments);
       final bound = function.bind(arguments);
@@ -507,7 +509,8 @@ void main() {
       );
       expect(function.dataType, DataType.string);
       expect(function.count, 3);
-      expect(function.toVector(['a', 'b'].toVector(), 'c').iterable,
+      expect(
+          function.toVector(['a', 'b'].toVector(), defaultParam: 'c').iterable,
           ['a', 'b', 'c']);
       final arguments = ['a', 'b', 'c'].toVector();
       final bindings = function.toBindings(arguments);
@@ -515,6 +518,24 @@ void main() {
       arguments[0] = 'x';
       expect((bindings as Vector<String>).toList(), ['a', 'b', 'c']);
       expect(bound('1'), 'f_a,b,c(1)');
+    });
+    test('default params', () {
+      final function = ParametrizedUnaryFunction<int>.list(
+        DataType.int32,
+        2,
+        (params) => (x) => fail('not tested'),
+      );
+      expect(function.toVector(null, defaultParam: 7),
+          isCloseTo([7, 7].toVector()));
+      expect(
+          function.toVector(<int>[], defaultParam: 7), isCloseTo([7, 7].toVector()));
+      expect(function.toVector([3], defaultParam: 7),
+          isCloseTo([3, 7].toVector()));
+      expect(function.toVector([3, 4], defaultParam: 7),
+          isCloseTo([3, 4].toVector()));
+      expect(() => function.toVector(null), throwsArgumentError);
+      expect(() => function.toVector([]), throwsArgumentError);
+      expect(() => function.toVector([42]), throwsArgumentError);
     });
   });
   group('interpolate', () {
