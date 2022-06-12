@@ -31,28 +31,47 @@ void main() {
       void verifyLevenbergMarquardt(
         String name,
         LevenbergMarquardt fitter, {
-        int? n,
+        // Parameters for sampled test data.
+        Object? parameters,
         double? start,
         double? stop,
+        int? count,
+        // Parameters for provided test data.
         Vector<double>? xs,
         Vector<double>? ys,
-        required dynamic expectedParameters,
-        double parametersEpsilon = 1e-3,
+        // Assertion parameters.
+        Object? expectedParameters,
+        double expectedParametersEpsilon = 1e-3,
         double? expectedError = 0.0,
-        double errorEpsilon = 1e-2,
+        double expectedErrorEpsilon = 1e-2,
         int? expectedIterations,
       }) {
         test(name, () {
-          final function = fitter.parametrizedFunction
-              .bind(fitter.parametrizedFunction.toVector(expectedParameters));
-          final x = xs ?? linearSpaced(start!, stop!, count: n!).toVector();
-          final y = ys ?? x.map((i, xi) => function(xi)).toVector();
-          final result = fitter.fit(x: x, y: y);
-          expect(result.parameters,
-              isCloseTo(expectedParameters, epsilon: parametersEpsilon));
-          if (expectedError != null) {
+          final result = () {
+            if (parameters != null &&
+                start != null &&
+                stop != null &&
+                count != null) {
+              final function = fitter.parametrizedFunction.bind(
+                  fitter.parametrizedFunction.toVector(expectedParameters));
+              final x = linearSpaced(start, stop, count: count).toVector();
+              final y = x.map((i, xi) => function(xi)).toVector();
+              return fitter.fit(x: x, y: y);
+            } else if (xs != null && ys != null) {
+              return fitter.fit(x: xs, y: ys);
+            } else {
+              throw ArgumentError('Invalid test configuration');
+            }
+          }();
+          if (expectedParameters != null) {
             expect(
-                result.error, isCloseTo(expectedError, epsilon: errorEpsilon));
+                result.parameters,
+                isCloseTo(expectedParameters,
+                    epsilon: expectedParametersEpsilon));
+          }
+          if (expectedError != null) {
+            expect(result.error,
+                isCloseTo(expectedError, epsilon: expectedErrorEpsilon));
           }
           if (expectedIterations != null) {
             expect(result.iterations, expectedIterations);
@@ -102,9 +121,11 @@ void main() {
           maxIterations: 100,
           errorTolerance: 1e-7,
         ),
-        n: 154,
+        parameters: [2.0, 3.0, 5.0],
         start: -2.6581,
         stop: 49.6526,
+        count: 154,
+        // Assertions
         expectedParameters: [2.0, 3.0, 5.0],
       );
       verifyLevenbergMarquardt(
@@ -118,9 +139,11 @@ void main() {
           dampingStepDown: 1.0,
           dampingStepUp: 1.0,
         ),
-        n: 20,
+        parameters: {#a: 2.0, #b: 2.0},
+        count: 20,
         start: 0,
         stop: 19,
+        // Assertions
         expectedParameters: {#a: 2.0, #b: 2.0},
       );
       verifyLevenbergMarquardt(
@@ -157,10 +180,7 @@ void main() {
           -1.1755705045849456,
           -1.9021130325903075,
         ].toVector(),
-        expectedParameters: {
-          #a: -0.32391769703140655,
-          #b: -1.7955940620800515,
-        },
+        // Assertions
         expectedError: 15.527598503066368,
         expectedIterations: 100,
       );
@@ -172,11 +192,13 @@ void main() {
           damping: 0.1,
           maxIterations: 200,
         ),
-        n: 20,
+        parameters: [2.0, 2.0, 2.0],
+        count: 20,
         start: 0,
         stop: 19,
+        // Assertions
         expectedParameters: [2.0, 2.0, 2.0],
-        parametersEpsilon: 0.1,
+        expectedParametersEpsilon: 0.1,
       );
       verifyLevenbergMarquardt(
         'lorentzians',
@@ -188,11 +210,13 @@ void main() {
           damping: 0.01,
           maxIterations: 500,
         ),
-        n: 100,
+        parameters: [1.05, 0.1, 0.3, 4.0, 0.15, 0.3].toVector(),
+        count: 100,
         start: 0,
         stop: 99,
+        // Assertions
         expectedParameters: [1.05, 0.1, 0.3, 4.0, 0.15, 0.3].toVector(),
-        parametersEpsilon: 0.1,
+        expectedParametersEpsilon: 0.1,
       );
       verifyLevenbergMarquardt(
         'lorentzians with central differences',
@@ -205,11 +229,13 @@ void main() {
           maxIterations: 500,
           errorTolerance: 10e-8,
         ),
-        n: 100,
+        parameters: [1.0, 0.1, 0.3, 4.0, 0.15, 0.3].toVector(),
+        count: 100,
         start: 0,
         stop: 99,
+        // Assertions
         expectedParameters: [1.0, 0.1, 0.3, 4.0, 0.15, 0.3].toVector(),
-        parametersEpsilon: 0.1,
+        expectedParametersEpsilon: 0.1,
       );
       verifyLevenbergMarquardt(
         'noisy real-world data',
@@ -247,6 +273,7 @@ void main() {
           97.059,
           92.147,
         ].toVector(),
+        // Assertions
         expectedIterations: 200,
         expectedParameters: [-16.7697, 43.4549, 1018.8938, -4.3514],
         expectedError: 16398.0009709,
