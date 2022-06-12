@@ -1,61 +1,30 @@
 import '../../../vector.dart';
+import '../functions.dart';
+import 'utils.dart';
 
-/// A function object providing linear interpolation of a discrete monotonically
-/// increasing set of sample points [x] and [y].
+/// A function providing linear interpolation of a discrete monotonically
+/// increasing set of sample points [x] and [y]. Returns [left] or [right],
+/// if the point is outside the data range.
 ///
 /// See https://en.wikipedia.org/wiki/Linear_interpolation.
-class LinearInterpolation {
-  LinearInterpolation({
-    required this.x,
-    required this.y,
-    this.left,
-    this.right,
-  });
-
-  /// The x-coordinates of the data points in monotonically increasing order.
-  final Vector<double> x;
-
-  /// The y-coordinates of the data points.
-  final Vector<double> y;
-
-  /// Value to return for values smaller than `x[0]`, if undefined `y[0]` is
-  /// returned.
-  final double? left;
-
-  /// Value to return for values larger than `x[x.length - 1]`, if undefined
-  /// `y[y.length - 1]` is returned.
-  final double? right;
-
-  /// Evaluates the interpolation at [value].
-  double call(double value) {
-    if (value < x[0]) {
-      return left ?? y[0];
-    } else if (x[x.count - 1] < value) {
-      return right ?? y[y.count - 1];
+UnaryFunction<double> linearInterpolation({
+  required Vector<double> x,
+  required Vector<double> y,
+  double left = double.nan,
+  double right = double.nan,
+}) {
+  assert(x.count > 0 && y.count > 0, 'Expected $x and $y to be non-empty.');
+  assert(x.count == y.count, 'Expected $x and $y to have consistent size.');
+  return (double value) {
+    if (value < x.getUnchecked(0)) {
+      return left;
+    } else if (x.getUnchecked(x.count - 1) < value) {
+      return right;
     }
-    final index = _binarySearch(value);
-    if (index < 0) {
-      final i = -index - 2;
-      return y[i] + (y[i + 1] - y[i]) / (x[i + 1] - x[i]) * (value - x[i]);
-    } else {
-      return y[index];
-    }
-  }
-
-  int _binarySearch(double value) {
-    var min = 0;
-    var max = x.count;
-    while (min < max) {
-      final mid = min + ((max - min) >> 1);
-      final comp = x.getUnchecked(mid).compareTo(value);
-      if (comp == 0) {
-        return mid;
-      } else if (comp < 0) {
-        min = mid + 1;
-      } else {
-        max = mid;
-      }
-    }
-    return -min - 1;
-  }
+    final index = binarySearchLeft(x, value).clamp(1, x.count - 1);
+    return y.getUnchecked(index - 1) +
+        (y.getUnchecked(index) - y.getUnchecked(index - 1)) /
+            (x.getUnchecked(index) - x.getUnchecked(index - 1)) *
+            (value - x.getUnchecked(index - 1));
+  };
 }
