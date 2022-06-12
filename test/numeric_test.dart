@@ -1,7 +1,6 @@
 import 'dart:math';
 
 import 'package:data/data.dart';
-import 'package:data/src/numeric/types.dart';
 import 'package:data/src/shared/config.dart';
 import 'package:meta/meta.dart';
 import 'package:more/math.dart';
@@ -10,240 +9,132 @@ import 'package:test/test.dart';
 
 import 'utils/matchers.dart';
 
-@isTest
-void verifyLevenbergMarquardt(
-  String name,
-  LevenbergMarquardt fitter, {
-  int? n,
-  double? xStart,
-  double? xEnd,
-  List<double>? xs,
-  List<double>? ys,
-  List<double>? expectedParameterValues,
-  double parameterValuesEpsilon = 1e-3,
-  double? expectedParameterError = 0.0,
-  double parameterErrorEpsilon = 1e-2,
-  int? expectedIterations,
-}) {
-  test(name, () {
-    final x = xs?.toVector() ??
-        Vector.generate(floatDataType, n!,
-            (i) => xStart! + (i * (xEnd! - xStart)) / (n - 1));
-    final y = xs?.toVector() ??
-        Vector.generate(floatDataType, n!,
-            (i) => fitter.function(expectedParameterValues!, x[i]));
-    final actual = fitter.fit(x: x, y: y);
-
-    if (expectedParameterValues != null) {
-      for (var i = 0; i < expectedParameterValues.length; i++) {
-        expect(
-            actual.parameterValues[i],
-            isCloseTo(expectedParameterValues[i],
-                epsilon: parameterValuesEpsilon),
-            reason: 'expectedParameterValues[$i]');
-      }
-    }
-    if (expectedParameterError != null) {
-      expect(actual.parameterError,
-          isCloseTo(expectedParameterError, epsilon: parameterErrorEpsilon));
-    }
-    if (expectedIterations != null) {
-      expect(actual.iterationCount, expectedIterations);
-    }
-  });
-}
-
 Tuple2<Vector<double>, Vector<double>> generateSamples(
-  NumericFunction function, {
+  UnaryFunction<double> function, {
   double min = -1.0,
   double max = 1.0,
   int count = 10,
 }) {
-  final xs = Vector.generate(
-      floatDataType, count, (i) => min + (i * (max - min)) / (count - 1),
+  final xs = Vector<double>.generate(
+      floatDataType, count, (i) => min + i * (max - min) / (count - 1),
       format: VectorFormat.standard);
-  final ys = Vector.generate(floatDataType, count, (i) => function(xs[i]),
+  final ys = Vector<double>.generate(
+      floatDataType, count, (i) => function(xs[i]),
       format: VectorFormat.standard);
   return Tuple2(xs, ys);
 }
 
 void main() {
-  group('derivative', () {
-    test('first derivative at different accuracies', () {
-      for (var a = 2; a <= 8; a += 2) {
-        // sin-function
-        expect(derivative(sin, 0.0 * pi, accuracy: a), isCloseTo(1.0));
-        expect(derivative(sin, 0.5 * pi, accuracy: a), isCloseTo(0.0));
-        expect(derivative(sin, 1.0 * pi, accuracy: a), isCloseTo(-1.0));
-        expect(derivative(sin, 1.5 * pi, accuracy: a), isCloseTo(0.0));
-        // cos-function
-        expect(derivative(cos, 0.0 * pi, accuracy: a), isCloseTo(0.0));
-        expect(derivative(cos, 0.5 * pi, accuracy: a), isCloseTo(-1.0));
-        expect(derivative(cos, 1.0 * pi, accuracy: a), isCloseTo(0.0));
-        expect(derivative(cos, 1.5 * pi, accuracy: a), isCloseTo(1.0));
-        // exp-function
-        expect(derivative(exp, -1.0, accuracy: a), isCloseTo(1 / e));
-        expect(derivative(exp, 0.0, accuracy: a), isCloseTo(1.0));
-        expect(derivative(exp, 1.0, accuracy: a), isCloseTo(e));
-      }
-    });
-    test('second derivative at different accuracies', () {
-      for (var a = 2; a <= 8; a += 2) {
-        // sin-function
-        expect(derivative(sin, 0.0 * pi, derivative: 2, accuracy: a),
-            isCloseTo(0.0));
-        expect(derivative(sin, 0.5 * pi, derivative: 2, accuracy: a),
-            isCloseTo(-1.0));
-        expect(derivative(sin, 1.0 * pi, derivative: 2, accuracy: a),
-            isCloseTo(0.0));
-        expect(derivative(sin, 1.5 * pi, derivative: 2, accuracy: a),
-            isCloseTo(1.0));
-        // cos-function
-        expect(derivative(cos, 0.0 * pi, derivative: 2, accuracy: a),
-            isCloseTo(-1.0));
-        expect(derivative(cos, 0.5 * pi, derivative: 2, accuracy: a),
-            isCloseTo(0.0));
-        expect(derivative(cos, 1.0 * pi, derivative: 2, accuracy: a),
-            isCloseTo(1.0));
-        expect(derivative(cos, 1.5 * pi, derivative: 2, accuracy: a),
-            isCloseTo(0.0));
-        // exp-function
-        expect(derivative(exp, -1.0, derivative: 2, accuracy: a),
-            isCloseTo(1 / e));
-        expect(
-            derivative(exp, 0.0, derivative: 2, accuracy: a), isCloseTo(1.0));
-        expect(derivative(exp, 1.0, derivative: 2, accuracy: a), isCloseTo(e));
-      }
-    });
-    group('error', () {
-      test('derivative', () {
-        expect(
-            () => derivative(sin, 0, derivative: 0),
-            throwsA(isA<ArgumentError>()
-                .having((error) => error.name, 'name', 'derivative')
-                .having((error) => error.message, 'message',
-                    'Must be one of 1, 2, 3, 4, 5, 6')));
-      });
-      test('accuracy', () {
-        expect(
-            () => derivative(sin, 0, accuracy: 0),
-            throwsA(isA<ArgumentError>()
-                .having((error) => error.name, 'name', 'accuracy')
-                .having((error) => error.message, 'message',
-                    'Must be one of 2, 4, 6, 8')));
-      });
-    });
-  });
-  group('fit', () {
+  group('curve fit', () {
     group('levenberg marquardt', () {
-      double lorentzians(List<double> params, double x) {
-        var result = 0.0;
-        for (var i = 0; i < params.length; i += 3) {
-          final p2 = pow(params[i + 2] / 2, 2);
-          final factor = params[i + 1] * p2;
-          result += factor / (pow(x - params[i], 2) + p2);
-        }
-        return result;
+      @isTest
+      void verifyLevenbergMarquardt(
+        String name,
+        LevenbergMarquardt fitter, {
+        int? n,
+        double? start,
+        double? stop,
+        Vector<double>? xs,
+        Vector<double>? ys,
+        required dynamic expectedParameters,
+        double parametersEpsilon = 1e-3,
+        double? expectedError = 0.0,
+        double errorEpsilon = 1e-2,
+        int? expectedIterations,
+      }) {
+        test(name, () {
+          final function = fitter.parametrizedFunction
+              .bind(fitter.parametrizedFunction.toVector(expectedParameters));
+          final x = xs ?? linearSpaced(start!, stop!, count: n!).toVector();
+          final y = ys ?? x.map((i, xi) => function(xi)).toVector();
+          final result = fitter.fit(x: x, y: y);
+          expect(result.parameters,
+              isCloseTo(expectedParameters, epsilon: parametersEpsilon));
+          if (expectedError != null) {
+            expect(
+                result.error, isCloseTo(expectedError, epsilon: errorEpsilon));
+          }
+          if (expectedIterations != null) {
+            expect(result.iterations, expectedIterations);
+          }
+        });
       }
 
-      double sinFunction(List<double> params, double x) =>
-          params[0] * sin(params[1] * x);
+      final bennet5 = ParametrizedUnaryFunction<double>.positional(
+          floatDataType,
+          3,
+          (double a, double b, double c) =>
+              (double x) => a * pow(x + b, -1 / c));
+
+      final sinFunction = ParametrizedUnaryFunction<double>.named(
+          floatDataType,
+          [#a, #b],
+          ({required double a, required double b}) =>
+              (double x) => a * sin(b * x));
+
+      final sigmodid = ParametrizedUnaryFunction<double>.positional(
+          floatDataType,
+          3,
+          (double a, double b, double c) =>
+              (double x) => a / (b + exp(-x * c)));
+
+      final lorentzians = ParametrizedUnaryFunction<double>.vector(
+          floatDataType,
+          6,
+          (params) => (double x) {
+                var result = 0.0;
+                for (var i = 0; i < params.count; i += 3) {
+                  final p2 = pow(params[i + 2] / 2, 2);
+                  final factor = params[i + 1] * p2;
+                  result += factor / (pow(x - params[i], 2) + p2);
+                }
+                return result;
+              });
 
       verifyLevenbergMarquardt(
         'bennet5(2, 3, 5)',
         LevenbergMarquardt(
-          (params, x) => params[0] * pow(x + params[1], -1 / params[2]),
-          initialDamping: 0.00001,
-          maxIterations: 1000,
+          bennet5,
+          initialValues: <double>[3.5, 3.8, 4.0],
+          minValues: <double>[1, 2.7, 1],
+          maxValues: <double>[11, 11, 11],
+          damping: 0.00001,
+          maxIterations: 100,
           errorTolerance: 1e-7,
-          maxValues: <double>[11, 11, 11].toVector(),
-          minValues: <double>[1, 2.7, 1].toVector(),
-          initialValues: <double>[3.5, 3.8, 4].toVector(),
         ),
         n: 154,
-        xStart: -2.6581,
-        xEnd: 49.6526,
-        expectedParameterValues: [2, 3, 5],
+        start: -2.6581,
+        stop: 49.6526,
+        expectedParameters: [2.0, 3.0, 5.0],
       );
       verifyLevenbergMarquardt(
         '2*sin(2*x)',
         LevenbergMarquardt(
           sinFunction,
+          initialValues: {#a: 3.0, #b: 3.0},
           maxIterations: 100,
           gradientDifference: 0.1,
-          initialDamping: 0.1,
-          dampingStepDown: 1,
-          dampingStepUp: 1,
-          initialValues: <double>[3, 3].toVector(),
+          damping: 0.1,
+          dampingStepDown: 1.0,
+          dampingStepUp: 1.0,
         ),
         n: 20,
-        xStart: 0,
-        xEnd: 19,
-        expectedParameterValues: [2, 2],
+        start: 0,
+        stop: 19,
+        expectedParameters: {#a: 2.0, #b: 2.0},
       );
       verifyLevenbergMarquardt(
-        'Sigmoid',
-        LevenbergMarquardt(
-          (params, x) => params[0] / (params[1] + exp(-x * params[2])),
-          initialDamping: 0.1,
-          initialValues: <double>[3, 3, 3].toVector(),
-          maxIterations: 200,
-        ),
-        n: 20,
-        xStart: 0,
-        xEnd: 19,
-        expectedParameterValues: [2, 2, 2],
-        parameterValuesEpsilon: 0.1,
-      );
-      verifyLevenbergMarquardt(
-        'Sum of lorentzians',
-        LevenbergMarquardt(
-          lorentzians,
-          initialDamping: 0.01,
-          gradientDifferences:
-              <double>[0.01, 0.0001, 0.0001, 0.01, 0.0001, 0.0].toVector(),
-          initialValues: <double>[1.1, 0.15, 0.29, 4.05, 0.17, 0.3].toVector(),
-          maxIterations: 500,
-        ),
-        n: 100,
-        xStart: 0,
-        xEnd: 99,
-        expectedParameterValues: [1.05, 0.1, 0.3, 4, 0.15, 0.3],
-        parameterValuesEpsilon: 0.1,
-      );
-      verifyLevenbergMarquardt(
-        'Sum of lorentzians, central differences',
-        LevenbergMarquardt(
-          lorentzians,
-          initialDamping: 0.01,
-          gradientDifferences:
-              <double>[0.01, 0.0001, 0.0001, 0.01, 0.0001, 0.01].toVector(),
-          centralDifference: true,
-          initialValues: <double>[1.1, 0.15, 0.29, 4.05, 0.17, 0.28].toVector(),
-          maxIterations: 500,
-          errorTolerance: 10e-8,
-        ),
-        n: 100,
-        xStart: 0,
-        xEnd: 99,
-        expectedParameterValues: [1.0, 0.1, 0.3, 4, 0.15, 0.3],
-        parameterValuesEpsilon: 0.1,
-      );
-      verifyLevenbergMarquardt(
-        'should return solution with lowest error',
+        'sin function with lowest error',
         LevenbergMarquardt(
           sinFunction,
-          initialDamping: 1.5,
-          initialValues: <double>[
-            0.594398586701882,
-            0.3506424963635226,
-          ].toVector(),
+          initialValues: {#a: 0.594398586701882, #b: 0.3506424963635226},
+          damping: 1.5,
           gradientDifference: 1e-2,
           maxIterations: 100,
           errorTolerance: 1e-2,
         ),
         xs: [
-          0,
+          0.0,
           0.6283185307179586,
           1.2566370614359172,
           1.8849555921538759,
@@ -253,9 +144,9 @@ void main() {
           4.39822971502571,
           5.026548245743669,
           5.654866776461628,
-        ],
+        ].toVector(),
         ys: [
-          0,
+          0.0,
           1.902113032590307,
           1.1755705045849465,
           -1.175570504584946,
@@ -265,8 +156,60 @@ void main() {
           1.1755705045849467,
           -1.1755705045849456,
           -1.9021130325903075,
-        ],
-        expectedParameterValues: [-14.846618431652454, -0.06846434130254946],
+        ].toVector(),
+        expectedParameters: {
+          #a: -0.32391769703140655,
+          #b: -1.7955940620800515,
+        },
+        expectedError: 15.527598503066368,
+        expectedIterations: 100,
+      );
+      verifyLevenbergMarquardt(
+        'sigmoid',
+        LevenbergMarquardt(
+          sigmodid,
+          initialValues: [3.0, 3.0, 3.0],
+          damping: 0.1,
+          maxIterations: 200,
+        ),
+        n: 20,
+        start: 0,
+        stop: 19,
+        expectedParameters: [2.0, 2.0, 2.0],
+        parametersEpsilon: 0.1,
+      );
+      verifyLevenbergMarquardt(
+        'lorentzians',
+        LevenbergMarquardt(
+          lorentzians,
+          initialValues: [1.1, 0.15, 0.29, 4.05, 0.17, 0.3].toVector(),
+          gradientDifferences:
+              [0.01, 0.0001, 0.0001, 0.01, 0.0001, 0.0].toVector(),
+          damping: 0.01,
+          maxIterations: 500,
+        ),
+        n: 100,
+        start: 0,
+        stop: 99,
+        expectedParameters: [1.05, 0.1, 0.3, 4.0, 0.15, 0.3].toVector(),
+        parametersEpsilon: 0.1,
+      );
+      verifyLevenbergMarquardt(
+        'lorentzians with central differences',
+        LevenbergMarquardt(
+          lorentzians,
+          initialValues: [1.1, 0.15, 0.29, 4.05, 0.17, 0.28].toVector(),
+          gradientDifferences: [0.01, 0.0001, 0.0001, 0.01, 0.0001].toVector(),
+          damping: 0.01,
+          centralDifference: true,
+          maxIterations: 500,
+          errorTolerance: 10e-8,
+        ),
+        n: 100,
+        start: 0,
+        stop: 99,
+        expectedParameters: [1.0, 0.1, 0.3, 4.0, 0.15, 0.3].toVector(),
+        parametersEpsilon: 0.1,
       );
     });
     group('polynomial regression', () {
@@ -527,8 +470,8 @@ void main() {
       );
       expect(function.toVector(null, defaultParam: 7),
           isCloseTo([7, 7].toVector()));
-      expect(
-          function.toVector(<int>[], defaultParam: 7), isCloseTo([7, 7].toVector()));
+      expect(function.toVector(<int>[], defaultParam: 7),
+          isCloseTo([7, 7].toVector()));
       expect(function.toVector([3], defaultParam: 7),
           isCloseTo([3, 7].toVector()));
       expect(function.toVector([3, 4], defaultParam: 7),

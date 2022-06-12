@@ -7,65 +7,66 @@ import '../../../type.dart';
 import '../../../vector.dart';
 import '../../shared/config.dart';
 import '../curve_fit.dart';
-import '../types.dart';
+import '../functions.dart';
 
-/// https://github.com/mljs/levenberg-marquardt
+/// The Levenberg–Marquardt algorithm, also known as the damped least-squares
+/// method, is used to solve non-linear least squares problems.
+///
+/// See https://en.wikipedia.org/wiki/Levenberg%E2%80%93Marquardt_algorithm.
 class LevenbergMarquardt extends CurveFit {
   LevenbergMarquardt(
-    this.function, {
-    this.initialDamping = 1e-2,
+    this.parametrizedFunction, {
+    double? initialValue,
+    dynamic initialValues,
+    double? minValue,
+    dynamic minValues,
+    double? maxValue,
+    dynamic maxValues,
+    double gradientDifference = 1e-1,
+    dynamic gradientDifferences,
+    this.damping = 1e-2,
     this.dampingStepDown = 9.0,
     this.dampingStepUp = 11.0,
-    this.improvementThreshold = 1e-3,
-    double gradientDifference = 1e-1,
-    Vector<double>? gradientDifferences,
     this.centralDifference = false,
-    Vector<double>? minValues,
-    Vector<double>? maxValues,
-    required this.initialValues,
-    this.maxIterations = 100,
+    this.improvementThreshold = 1e-3,
     this.errorTolerance = 1e-7,
-  })  : gradientDifferences = gradientDifferences ??
-            Vector<double>.constant(floatDataType, initialValues.count,
-                value: gradientDifference),
-        minValues = minValues ??
-            Vector<double>.constant(floatDataType, initialValues.count,
-                value: intDataType.safeMin.toDouble()),
-        maxValues = maxValues ??
-            Vector<double>.constant(floatDataType, initialValues.count,
-                value: intDataType.safeMax.toDouble()) {
-    if (initialDamping <= 0) {
+    this.maxIterations = 100,
+  })  : initialValues = parametrizedFunction.toVector(initialValues,
+            defaultParam: initialValue),
+        minValues = parametrizedFunction.toVector(minValues,
+            defaultParam: minValue ?? intDataType.safeMin.toDouble()),
+        maxValues = parametrizedFunction.toVector(maxValues,
+            defaultParam: maxValue ?? intDataType.safeMax.toDouble()),
+        gradientDifferences = parametrizedFunction.toVector(gradientDifferences,
+            defaultParam: gradientDifference) {
+    if (parametrizedFunction.count == 0) {
+      throw ArgumentError.value(parametrizedFunction, 'parametrizedFunction',
+          'Expected at least 1 parameter.');
+    }
+    if (damping <= 0.0) {
       throw ArgumentError.value(
-          initialDamping, 'damping', 'Expected positive damping factor.');
-    }
-
-    if (initialValues.count == 0) {
-      throw ArgumentError.value(initialValues, 'initialValues',
-          'The function must have at least 1 parameter');
-    }
-
-    if (this.minValues.count != initialValues.count) {
-      throw ArgumentError.value(
-          minValues, 'The minValues must have the same size');
-    }
-
-    if (this.maxValues.count != initialValues.count) {
-      throw ArgumentError.value(
-          maxValues, 'The maxValues must have the same size');
-    }
-
-    if (this.gradientDifferences.count != initialValues.count) {
-      throw ArgumentError.value(gradientDifferences,
-          'The gradientDifferences must have the same size');
+          damping, 'damping', 'Expected positive damping factor.');
     }
   }
 
-  /// A function with a list of params and the current value.
-  final ParameterizedFunction function;
+  /// A parametrized function
+  final ParametrizedUnaryFunction<double> parametrizedFunction;
+
+  /// A vector of initial parameter values.
+  final Vector<double> initialValues;
+
+  /// Minimum allowed values for parameters.
+  final Vector<double> minValues;
+
+  /// Maximum allowed values for parameters.
+  final Vector<double> maxValues;
+
+  /// The step size to approximate each parameter in the Jacobian matrix.
+  final Vector<double> gradientDifferences;
 
   /// Small values of the damping factor result in a Gauss-Newton update and
   /// large values in a gradient descent update.
-  final double initialDamping;
+  final double damping;
 
   /// Factor to reduce the damping when there is not an improvement when
   /// updating parameters.
@@ -75,32 +76,19 @@ class LevenbergMarquardt extends CurveFit {
   /// parameters.
   final double dampingStepUp;
 
-  /// The threshold to define an improvement through an update of parameters.
-  final double improvementThreshold;
-
-  /// The step size to approximate each parameter in the jacobian matrix.
-  final Vector<double> gradientDifferences;
-
-  /// If true the jacobian matrix is approximated by central differences
+  /// If true the Jacobian matrix is approximated by central differences
   /// otherwise by forward differences.
   final bool centralDifference;
 
-  /// Minimum allowed values for parameters.
-  final Vector<double> minValues;
-
-  /// Maximum allowed values for parameters.
-  final Vector<double> maxValues;
-
-  /// Array of initial parameter values.
-  final Vector<double> initialValues;
-
-  /// Maximum of allowed iterations
-  final int maxIterations;
+  /// The threshold to define an improvement through an update of parameters.
+  final double improvementThreshold;
 
   /// Minimum uncertainty allowed for each point.
   final double errorTolerance;
 
-  /// https://github.com/mljs/levenberg-marquardt
+  /// Maximum of allowed iterations
+  final int maxIterations;
+
   @override
   LevenbergMarquardtResult fit({
     required Vector<double> x,
@@ -124,13 +112,13 @@ class LevenbergMarquardt extends CurveFit {
     final squaredWeights =
         weights.map((i, v) => v * v, floatDataType).toVector();
 
-    var parameters = initialValues.toList(growable: false);
-    var error = _errorCalculation(
-        x: x, y: y, parameters: parameters, squaredWeights: squaredWeights);
+    var parameters = initialValues.toVector();
+    var error = _errorCalculation(parametrizedFunction.bind(parameters),
+        x: x, y: y, squaredWeights: squaredWeights);
     var optimalError = error;
-    var optimalParameters = parameters.toList(growable: false);
+    var optimalParameters = parameters.toVector();
     var converged = error <= errorTolerance;
-    var damping = initialDamping;
+    var currentDamping = damping;
 
     var iteration = 0;
     for (; iteration < maxIterations && !converged; iteration++) {
@@ -140,65 +128,65 @@ class LevenbergMarquardt extends CurveFit {
         x: x,
         y: y,
         params: parameters,
-        damping: damping,
+        currentDamping: currentDamping,
         squaredWeights: squaredWeights,
       );
       final perturbations = stepResult.first;
       final jacobianWeightResidualError = stepResult.second;
 
-      for (var k = 0; k < parameters.length; k++) {
+      for (var k = 0; k < parameters.count; k++) {
         parameters[k] = (parameters[k] - perturbations.get(k, 0))
             .clamp(minValues[k], maxValues[k]);
       }
 
       error = _errorCalculation(
+        parametrizedFunction.bind(parameters),
         x: x,
         y: y,
-        parameters: parameters,
         squaredWeights: squaredWeights,
       );
       if (error.isNaN) break;
 
       if (error < optimalError - errorTolerance) {
         optimalError = error;
-        optimalParameters = parameters.toList(growable: false);
+        optimalParameters = parameters.toVector();
       }
 
       var improvementMetric = (previousError - error) /
           perturbations.transposed
               .mulMatrix(perturbations
-                  .mulScalar(damping)
+                  .mulScalar(currentDamping)
                   .add(jacobianWeightResidualError))
               .get(0, 0);
 
       if (improvementMetric > improvementThreshold) {
-        damping = max(damping / dampingStepDown, 1e-7);
+        currentDamping = max(currentDamping / dampingStepDown, 1e-7);
       } else {
-        damping = min(damping * dampingStepUp, 1e7);
+        currentDamping = min(currentDamping * dampingStepUp, 1e7);
       }
 
       converged = error <= errorTolerance;
     }
 
     return LevenbergMarquardtResult(
-      (x) => function(optimalParameters, x),
-      parameterValues: optimalParameters,
-      parameterError: optimalError,
-      iterationCount: iteration,
+      parametrizedFunction.bind(optimalParameters),
+      parameters: parametrizedFunction.toBindings(optimalParameters),
+      error: optimalError,
+      iterations: iteration,
     );
   }
 
   /// the sum of the weighted squares of the errors (or weighted residuals)
   /// between the y and the curve-fit function.
-  double _errorCalculation({
+  double _errorCalculation(
+    UnaryFunction<double> function, {
     required Vector<double> x,
     required Vector<double> y,
-    required List<double> parameters,
     required Vector<double> squaredWeights,
   }) {
     var error = 0.0;
     for (var i = 0; i < x.count; i++) {
-      final delta = y[i] - function(parameters, x[i]);
+      final delta = y[i] - function(x[i]);
       error += squaredWeights.getUnchecked(i) * delta * delta;
     }
     return error;
@@ -208,15 +196,15 @@ class LevenbergMarquardt extends CurveFit {
   Tuple2<Matrix<double>, Matrix<double>> _step({
     required Vector<double> x,
     required Vector<double> y,
-    required List<double> params,
-    required double damping,
+    required Vector<double> params,
+    required double currentDamping,
     required Vector<double> squaredWeights,
   }) {
-    var identity = Matrix.identity(
-        DataType.float64, params.length, params.length,
-        value: damping);
-    var evaluatedData = Vector.generate(
-        DataType.float64, x.count, (i) => function(params, x[i]));
+    final function = parametrizedFunction.bind(params);
+    var identity = Matrix.identity(DataType.float64, params.count, params.count,
+        value: currentDamping);
+    var evaluatedData =
+        Vector.generate(DataType.float64, x.count, (i) => function(x[i]));
 
     var gradientFunc = _gradientFunction(
       x: x,
@@ -241,9 +229,9 @@ class LevenbergMarquardt extends CurveFit {
     required Vector<double> x,
     required Vector<double> y,
     required Vector<double> evaluatedData,
-    required List<double> params,
+    required Vector<double> params,
   }) {
-    final nbParams = params.length;
+    final nbParams = params.count;
     final nbPoints = x.count;
     final ans = Matrix(DataType.float64, nbParams, nbPoints);
 
@@ -251,18 +239,19 @@ class LevenbergMarquardt extends CurveFit {
     for (var param = 0; param < nbParams; param++) {
       if (gradientDifferences[param] == 0) continue;
       var delta = gradientDifferences[param];
-      var auxParams = params.toList(growable: false);
+      final auxParams = params.toVector();
       auxParams[param] += delta;
+      final funcParam = parametrizedFunction.bind(auxParams);
       if (centralDifference) {
-        var auxParams2 = params.toList(growable: false);
+        var auxParams2 = params.toVector();
         auxParams2[param] -= delta;
         delta *= 2;
+        final funcParam2 = parametrizedFunction.bind(auxParams2);
         for (var point = 0; point < nbPoints; point++) {
           ans.set(
             rowIndex,
             point,
-            (function(auxParams2, x[point]) - function(auxParams, x[point])) /
-                delta,
+            (funcParam2(x[point]) - funcParam(x[point])) / delta,
           );
         }
       } else {
@@ -270,7 +259,7 @@ class LevenbergMarquardt extends CurveFit {
           ans.set(
             rowIndex,
             point,
-            (evaluatedData[point] - function(auxParams, x[point])) / delta,
+            (evaluatedData[point] - funcParam(x[point])) / delta,
           );
         }
       }
@@ -297,12 +286,12 @@ class LevenbergMarquardt extends CurveFit {
 class LevenbergMarquardtResult extends CurveFitResult {
   LevenbergMarquardtResult(
     super.function, {
-    required this.parameterValues,
-    required this.parameterError,
-    required this.iterationCount,
+    required this.parameters,
+    required this.error,
+    required this.iterations,
   });
 
-  final List<double> parameterValues;
-  final double parameterError;
-  final int iterationCount;
+  final dynamic parameters;
+  final double error;
+  final int iterations;
 }

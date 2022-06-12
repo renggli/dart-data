@@ -1,5 +1,5 @@
-import '../vector/vector.dart';
-import 'types.dart';
+import '../../vector.dart';
+import 'functions.dart';
 
 /// Curve fitting is the process of constructing a curve, or mathematical
 /// function, that has the best fit to a series of data points, possibly subject
@@ -18,5 +18,5 @@ abstract class CurveFit<T> {
 class CurveFitResult {
   CurveFitResult(this.function);
 
-  final NumericFunction function;
+  final UnaryFunction<double> function;
 }
