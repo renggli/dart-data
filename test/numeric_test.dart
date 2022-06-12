@@ -211,6 +211,46 @@ void main() {
         expectedParameters: [1.0, 0.1, 0.3, 4.0, 0.15, 0.3].toVector(),
         parametersEpsilon: 0.1,
       );
+      verifyLevenbergMarquardt(
+        'noisy real-world data',
+        LevenbergMarquardt(
+          ParametrizedUnaryFunction<double>.positional(
+              floatDataType,
+              4,
+              (double a, double b, double c, double d) =>
+                  (double x) => a + (b - a) / (1 + pow(c, d) * pow(x, -d))),
+          initialValues: [0.0, 100.0, 1.0, 0.1].toVector(),
+          damping: 0.00001,
+          maxIterations: 200,
+        ),
+        xs: [
+          9.22e-12,
+          5.53e-11,
+          3.32e-10,
+          1.99e-9,
+          1.19e-8,
+          7.17e-8,
+          4.3e-7,
+          0.00000258,
+          0.0000155,
+          0.0000929,
+        ].toVector(),
+        ys: [
+          7.807,
+          -3.74,
+          21.119,
+          2.382,
+          4.269,
+          41.57,
+          73.401,
+          98.535,
+          97.059,
+          92.147,
+        ].toVector(),
+        expectedIterations: 200,
+        expectedParameters: [-16.7697, 43.4549, 1018.8938, -4.3514],
+        expectedError: 16398.0009709,
+      );
     });
     group('polynomial regression', () {
       group('american women', () {
