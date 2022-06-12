@@ -24,10 +24,9 @@ extension PolynomialListExtension<T> on Polynomial<T> {
   /// Returns a [List] of the coefficients of the underlying polynomial.
   ///
   /// By default this is a fixed-size view: modifications to either the source
-  /// polynomial or the resulting list are reflected in both. If [growable] is
-  /// set to `true`, a copy is made and the resulting list can be modified
-  /// independently.
-  List<T> toList({bool growable = false}) => growable
-      ? PolynomialList<T>(this).toList(growable: true)
+  /// polynomial or the resulting list are reflected in both. If [growable] is set,
+  /// a copy of the underlying data is made.
+  List<T> toList({bool? growable}) => growable != null
+      ? PolynomialList<T>(this).toList(growable: growable)
       : PolynomialList<T>(this);
 }

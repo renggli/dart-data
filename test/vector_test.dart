@@ -619,7 +619,7 @@ void vectorTest(String name, VectorFormat format) {
           }
           expect(() => list.add('*'), throwsUnsupportedError);
         });
-        test('growable', () {
+        test('growable: true', () {
           final vector =
               Vector.generate(DataType.string, 3, (i) => '$i', format: format);
           final list = vector.toList(growable: true);
@@ -631,6 +631,19 @@ void vectorTest(String name, VectorFormat format) {
           }
           list.add('*');
           expect(list, ['0*', '1*', '2*', '*']);
+        });
+        test('growable: false', () {
+          final vector =
+              Vector.generate(DataType.string, 3, (i) => '$i', format: format);
+          final list = vector.toList(growable: false);
+          expect(list.length, vector.count);
+          for (var i = 0; i < list.length; i++) {
+            expect(list[i], '$i');
+            list[i] = '$i*';
+            expect(vector[i], '$i');
+          }
+          expect(() => list.add('*'), throwsUnsupportedError);
+          expect(list, ['0*', '1*', '2*']);
         });
       });
     });

@@ -564,7 +564,7 @@ void polynomialTest(String name, PolynomialFormat format) {
           }
           expect(() => list.add(42), throwsUnsupportedError);
         });
-        test('growable', () {
+        test('growable: true', () {
           final polynomial = Polynomial.generate(
               DataType.int32, 5, (i) => 5 - i,
               format: format);
@@ -577,6 +577,20 @@ void polynomialTest(String name, PolynomialFormat format) {
           }
           list.add(42);
           expect(list, [0, 1, 2, 3, 4, 42]);
+        });
+        test('growable: false', () {
+          final polynomial = Polynomial.generate(
+              DataType.int32, 5, (i) => 5 - i,
+              format: format);
+          final list = polynomial.toList(growable: false);
+          expect(list.length, polynomial.degree + 1);
+          for (var i = 0; i < list.length; i++) {
+            expect(list[i], 5 - i);
+            list[i] = i;
+            expect(polynomial[i], 5 - i);
+          }
+          expect(() => list.add(42), throwsUnsupportedError);
+          expect(list, [0, 1, 2, 3, 4]);
         });
       });
     });
