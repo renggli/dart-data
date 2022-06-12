@@ -1,6 +1,6 @@
 import 'dart:math';
 
-import 'types.dart';
+import 'functions.dart';
 
 /// Returns the numerical derivative of the provided function [function] at [x].
 ///
@@ -8,7 +8,7 @@ import 'types.dart';
 /// stable. [accuracy] defines the number of coefficients used for the
 /// approximation. [epsilon] signifies the grid spacing (or step size).
 double derivative(
-  NumericFunction function,
+  UnaryFunction<double> function,
   double x, {
   int derivative = 1,
   int accuracy = 2,

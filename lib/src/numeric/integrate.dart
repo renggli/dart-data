@@ -1,7 +1,7 @@
 import 'package:collection/collection.dart';
 import 'package:more/more.dart';
 
-import 'types.dart';
+import 'functions.dart';
 
 /// Returns the numerical integration of the provided [function] from [a] to
 /// [b], that is the result of _int(f(x), dx=a..b)_.
@@ -19,7 +19,7 @@ import 'types.dart';
 /// evaluation.
 ///
 double integrate(
-  NumericFunction function,
+  UnaryFunction<double> function,
   double a,
   double b, {
   int depth = 6,

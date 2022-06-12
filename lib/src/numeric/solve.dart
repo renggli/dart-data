@@ -1,4 +1,4 @@
-import 'types.dart';
+import 'functions.dart';
 
 /// Returns the root of the provided [function] bracketed between [a] and [b],
 /// that is _f(x) = 0_ is solved for _x_ in the range of _[a, b]_.
@@ -15,7 +15,7 @@ import 'types.dart';
 ///   [double.nan] is returned to signify an error.
 ///
 double solve(
-  NumericFunction function,
+  UnaryFunction<double> function,
   double a,
   double b, {
   double bracketEpsilon = 1e-10,

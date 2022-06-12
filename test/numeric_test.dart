@@ -365,6 +365,158 @@ void main() {
       });
     });
   });
+  group('derivative', () {
+    test('first derivative at different accuracies', () {
+      for (var a = 2; a <= 8; a += 2) {
+        // sin-function
+        expect(derivative(sin, 0.0 * pi, accuracy: a), isCloseTo(1.0));
+        expect(derivative(sin, 0.5 * pi, accuracy: a), isCloseTo(0.0));
+        expect(derivative(sin, 1.0 * pi, accuracy: a), isCloseTo(-1.0));
+        expect(derivative(sin, 1.5 * pi, accuracy: a), isCloseTo(0.0));
+        // cos-function
+        expect(derivative(cos, 0.0 * pi, accuracy: a), isCloseTo(0.0));
+        expect(derivative(cos, 0.5 * pi, accuracy: a), isCloseTo(-1.0));
+        expect(derivative(cos, 1.0 * pi, accuracy: a), isCloseTo(0.0));
+        expect(derivative(cos, 1.5 * pi, accuracy: a), isCloseTo(1.0));
+        // exp-function
+        expect(derivative(exp, -1.0, accuracy: a), isCloseTo(1 / e));
+        expect(derivative(exp, 0.0, accuracy: a), isCloseTo(1.0));
+        expect(derivative(exp, 1.0, accuracy: a), isCloseTo(e));
+      }
+    });
+    test('second derivative at different accuracies', () {
+      for (var a = 2; a <= 8; a += 2) {
+        // sin-function
+        expect(derivative(sin, 0.0 * pi, derivative: 2, accuracy: a),
+            isCloseTo(0.0));
+        expect(derivative(sin, 0.5 * pi, derivative: 2, accuracy: a),
+            isCloseTo(-1.0));
+        expect(derivative(sin, 1.0 * pi, derivative: 2, accuracy: a),
+            isCloseTo(0.0));
+        expect(derivative(sin, 1.5 * pi, derivative: 2, accuracy: a),
+            isCloseTo(1.0));
+        // cos-function
+        expect(derivative(cos, 0.0 * pi, derivative: 2, accuracy: a),
+            isCloseTo(-1.0));
+        expect(derivative(cos, 0.5 * pi, derivative: 2, accuracy: a),
+            isCloseTo(0.0));
+        expect(derivative(cos, 1.0 * pi, derivative: 2, accuracy: a),
+            isCloseTo(1.0));
+        expect(derivative(cos, 1.5 * pi, derivative: 2, accuracy: a),
+            isCloseTo(0.0));
+        // exp-function
+        expect(derivative(exp, -1.0, derivative: 2, accuracy: a),
+            isCloseTo(1 / e));
+        expect(
+            derivative(exp, 0.0, derivative: 2, accuracy: a), isCloseTo(1.0));
+        expect(derivative(exp, 1.0, derivative: 2, accuracy: a), isCloseTo(e));
+      }
+    });
+    group('error', () {
+      test('derivative', () {
+        expect(
+            () => derivative(sin, 0, derivative: 0),
+            throwsA(isA<ArgumentError>()
+                .having((error) => error.name, 'name', 'derivative')
+                .having((error) => error.message, 'message',
+                    'Must be one of 1, 2, 3, 4, 5, 6')));
+      });
+      test('accuracy', () {
+        expect(
+            () => derivative(sin, 0, accuracy: 0),
+            throwsA(isA<ArgumentError>()
+                .having((error) => error.name, 'name', 'accuracy')
+                .having((error) => error.message, 'message',
+                    'Must be one of 2, 4, 6, 8')));
+      });
+    });
+  });
+  group('functions', () {
+    test('list', () {
+      final function = ParametrizedUnaryFunction<String>.list(
+        DataType.string,
+        3,
+        (params) => (x) => 'f_${params[0]},${params[1]},${params[2]}($x)',
+      );
+      expect(function.dataType, DataType.string);
+      expect(function.count, 3);
+      expect(function.toVector(['a', 'b'], 'c').iterable, ['a', 'b', 'c']);
+      final arguments = ['a', 'b', 'c'].toVector();
+      final bindings = function.toBindings(arguments);
+      final bound = function.bind(arguments);
+      arguments[0] = 'x';
+      expect(bindings, ['a', 'b', 'c']);
+      expect(bound('1'), 'f_a,b,c(1)');
+    });
+    test('map', () {
+      final function = ParametrizedUnaryFunction<String>.map(
+        DataType.string,
+        [#a, #b, #c],
+        (params) => (x) => 'f_${params[#a]},${params[#b]},${params[#c]}($x)',
+      );
+      expect(function.dataType, DataType.string);
+      expect(function.count, 3);
+      expect(
+          function.toVector({#b: 'b', #a: 'a'}, 'c').iterable, ['a', 'b', 'c']);
+      final arguments = ['a', 'b', 'c'].toVector();
+      final bindings = function.toBindings(arguments);
+      final bound = function.bind(arguments);
+      arguments[0] = 'x';
+      expect(bindings, {#a: 'a', #b: 'b', #c: 'c'});
+      expect(bound('1'), 'f_a,b,c(1)');
+    });
+    test('named', () {
+      final function = ParametrizedUnaryFunction<String>.named(
+        DataType.string,
+        [#a, #b, #c],
+        ({required String a, required String b, required String c}) =>
+            (x) => 'f_$a,$b,$c($x)',
+      );
+      expect(function.dataType, DataType.string);
+      expect(function.count, 3);
+      expect(
+          function.toVector({#b: 'b', #a: 'a'}, 'c').iterable, ['a', 'b', 'c']);
+      final arguments = ['a', 'b', 'c'].toVector();
+      final bindings = function.toBindings(arguments);
+      final bound = function.bind(arguments);
+      arguments[0] = 'x';
+      expect(bindings, {#a: 'a', #b: 'b', #c: 'c'});
+      expect(bound('1'), 'f_a,b,c(1)');
+    });
+    test('positional', () {
+      final function = ParametrizedUnaryFunction<String>.positional(
+        DataType.string,
+        3,
+        (String a, String b, String c) => (x) => 'f_$a,$b,$c($x)',
+      );
+      expect(function.dataType, DataType.string);
+      expect(function.count, 3);
+      expect(function.toVector(['a', 'b'], 'c').iterable, ['a', 'b', 'c']);
+      final arguments = ['a', 'b', 'c'].toVector();
+      final bindings = function.toBindings(arguments);
+      final bound = function.bind(arguments);
+      arguments[0] = 'x';
+      expect(bindings, ['a', 'b', 'c']);
+      expect(bound('1'), 'f_a,b,c(1)');
+    });
+    test('vector', () {
+      final function = ParametrizedUnaryFunction<String>.vector(
+        DataType.string,
+        3,
+        (params) => (x) => 'f_${params[0]},${params[1]},${params[2]}($x)',
+      );
+      expect(function.dataType, DataType.string);
+      expect(function.count, 3);
+      expect(function.toVector(['a', 'b'].toVector(), 'c').iterable,
+          ['a', 'b', 'c']);
+      final arguments = ['a', 'b', 'c'].toVector();
+      final bindings = function.toBindings(arguments);
+      final bound = function.bind(arguments);
+      arguments[0] = 'x';
+      expect((bindings as Vector<String>).toList(), ['a', 'b', 'c']);
+      expect(bound('1'), 'f_a,b,c(1)');
+    });
+  });
   group('interpolate', () {
     group('sequences', () {
       group('linear', () {
