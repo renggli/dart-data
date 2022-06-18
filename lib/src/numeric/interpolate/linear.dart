@@ -2,7 +2,7 @@ import '../../../type.dart';
 import '../../../vector.dart';
 import '../../shared/validation.dart';
 import '../functions.dart';
-import 'utils.dart';
+import 'binary_search.dart';
 
 /// A function providing linear interpolation of a discrete monotonically
 /// increasing set of sample points [xs] and [ys]. Returns [left] or [right],
@@ -15,7 +15,7 @@ UnaryFunction<double> linearInterpolation({
   double left = double.nan,
   double right = double.nan,
 }) {
-  validateCoordinates(DataType.float,
+  validatePoints(DataType.float,
       xs: xs, ys: ys, min: 1, ordered: true, unique: true);
   final slopes = Vector.generate(
       DataType.float,

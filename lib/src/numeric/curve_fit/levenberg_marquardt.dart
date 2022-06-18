@@ -90,30 +90,31 @@ class LevenbergMarquardt extends CurveFit {
 
   @override
   LevenbergMarquardtResult fit({
-    required Vector<double> x,
-    required Vector<double> y,
+    required Vector<double> xs,
+    required Vector<double> ys,
     double weight = 1.0,
     Vector<double>? weights,
   }) {
-    if (x.count < 2) {
-      throw ArgumentError.value(x, 'x', 'Expected at least two points.');
+    if (xs.count < 2) {
+      throw ArgumentError.value(xs, 'x', 'Expected at least two points.');
     }
 
-    if (y.count != x.count) {
-      throw ArgumentError.value(y, 'y', 'Expected ${x.count} values.');
+    if (ys.count != xs.count) {
+      throw ArgumentError.value(ys, 'y', 'Expected ${xs.count} values.');
     }
 
-    weights ??= Vector<double>.constant(DataType.float, y.count, value: weight);
-    if (weights.count != x.count) {
+    weights ??=
+        Vector<double>.constant(DataType.float, ys.count, value: weight);
+    if (weights.count != xs.count) {
       throw ArgumentError.value(
-          weights, 'weights', 'Expected ${x.count} values.');
+          weights, 'weights', 'Expected ${xs.count} values.');
     }
     final squaredWeights =
         weights.map((i, v) => v * v, DataType.float).toVector();
 
     var parameters = initialValues.toVector();
     var error = _errorCalculation(parametrizedFunction.bind(parameters),
-        x: x, y: y, squaredWeights: squaredWeights);
+        x: xs, y: ys, squaredWeights: squaredWeights);
     var optimalError = error;
     var optimalParameters = parameters.toVector();
     var converged = error <= errorTolerance;
@@ -124,8 +125,8 @@ class LevenbergMarquardt extends CurveFit {
       var previousError = error;
 
       final stepResult = _step(
-        x: x,
-        y: y,
+        x: xs,
+        y: ys,
         params: parameters,
         currentDamping: currentDamping,
         squaredWeights: squaredWeights,
@@ -140,8 +141,8 @@ class LevenbergMarquardt extends CurveFit {
 
       error = _errorCalculation(
         parametrizedFunction.bind(parameters),
-        x: x,
-        y: y,
+        x: xs,
+        y: ys,
         squaredWeights: squaredWeights,
       );
       if (error.isNaN) break;

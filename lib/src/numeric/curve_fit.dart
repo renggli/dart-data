@@ -9,8 +9,8 @@ import 'functions.dart';
 abstract class CurveFit<T> {
   /// Fits a list of data points to the configured model.
   CurveFitResult fit({
-    required Vector<double> x,
-    required Vector<double> y,
+    required Vector<double> xs,
+    required Vector<double> ys,
   });
 }
 

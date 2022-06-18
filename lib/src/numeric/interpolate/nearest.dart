@@ -2,7 +2,7 @@ import '../../../type.dart';
 import '../../../vector.dart';
 import '../../shared/validation.dart';
 import '../functions.dart';
-import 'utils.dart';
+import 'binary_search.dart';
 
 /// A function providing the nearest value of a discrete monotonically
 /// increasing set of sample points [xs] and [ys].
@@ -11,7 +11,7 @@ UnaryFunction<double> nearestInterpolation({
   required Vector<double> ys,
   bool preferLower = true,
 }) {
-  validateCoordinates(DataType.float,
+  validatePoints(DataType.float,
       xs: xs, ys: ys, min: 1, ordered: true, unique: true);
   return (double x) {
     if (x <= xs.getUnchecked(0)) {

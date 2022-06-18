@@ -102,7 +102,7 @@ abstract class Polynomial<T> implements Storage {
     required Vector<T> ys,
     PolynomialFormat? format,
   }) {
-    validateCoordinates<T>(dataType, xs: xs, ys: ys, min: 1, unique: true);
+    validatePoints<T>(dataType, xs: xs, ys: ys, min: 1, unique: true);
     final add = dataType.field.add, sub = dataType.field.sub;
     final mul = dataType.field.mul, div = dataType.field.div;
     final mulId = dataType.field.multiplicativeIdentity;

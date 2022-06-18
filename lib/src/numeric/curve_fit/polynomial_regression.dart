@@ -2,10 +2,11 @@ import '../../../matrix.dart';
 import '../../../polynomial.dart';
 import '../../../type.dart';
 import '../../../vector.dart';
+import '../../shared/validation.dart';
 import '../curve_fit.dart';
 
 /// Polynomial least-squares regression, in which the relationship between the
-/// independent variable `x` and the dependent variable `y` is modelled as a
+/// independent elements `xs` and the dependent elements `ys` is modelled as a
 /// polynomial of a given [degree].
 ///
 /// See https://en.wikipedia.org/wiki/Polynomial_regression.
@@ -20,19 +21,17 @@ class PolynomialRegression extends CurveFit<Polynomial<double>> {
 
   @override
   PolynomialRegressionResult fit({
-    required Vector<double> x,
-    required Vector<double> y,
+    required Vector<double> xs,
+    required Vector<double> ys,
   }) {
-    if (x.count != y.count) {
-      throw ArgumentError.value(y, 'y', 'Expected ${x.count} values.');
-    }
-    final vandermonde = Matrix.vandermonde(DataType.float, x, degree + 1);
+    validatePoints(DataType.float, xs: xs, ys: ys);
+    final vandermonde = Matrix.vandermonde(DataType.float, xs, degree + 1);
     final vandermondeTransposed = vandermonde.transposed;
     final result = vandermondeTransposed
         .mulMatrix(vandermonde)
         .inverse
         .mulMatrix(vandermondeTransposed)
-        .mulVector(y);
+        .mulVector(ys);
     return PolynomialRegressionResult(result.toList().toPolynomial());
   }
 }

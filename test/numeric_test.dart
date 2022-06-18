@@ -58,9 +58,9 @@ void main() {
                   fitter.parametrizedFunction.toVector(expectedParameters));
               final x = linearSpaced(start, stop, count: count).toVector();
               final y = x.map((i, xi) => function(xi)).toVector();
-              return fitter.fit(x: x, y: y);
+              return fitter.fit(xs: x, ys: y);
             } else if (xs != null && ys != null) {
-              return fitter.fit(x: xs, y: ys);
+              return fitter.fit(xs: xs, ys: ys);
             } else {
               throw ArgumentError('Invalid test configuration');
             }
@@ -321,20 +321,20 @@ void main() {
         ].toVector();
         test('constant', () {
           final fitter = PolynomialRegression(degree: 0);
-          final result = fitter.fit(x: height, y: mass);
+          final result = fitter.fit(xs: height, ys: mass);
           expect(result.polynomial.degree, 0);
           expect(result.polynomial[0], isCloseTo(62.078000));
         });
         test('linear', () {
           final fitter = PolynomialRegression(degree: 1);
-          final result = fitter.fit(x: height, y: mass);
+          final result = fitter.fit(xs: height, ys: mass);
           expect(result.polynomial.degree, 1);
           expect(result.polynomial[0], isCloseTo(-39.061956));
           expect(result.polynomial[1], isCloseTo(61.272187));
         });
         test('quadratic', () {
           final fitter = PolynomialRegression(degree: 2);
-          final result = fitter.fit(x: height, y: mass);
+          final result = fitter.fit(xs: height, ys: mass);
           expect(result.polynomial.degree, 2);
           expect(result.polynomial[0], isCloseTo(128.812804));
           expect(result.polynomial[1], isCloseTo(-143.162023));
@@ -345,7 +345,7 @@ void main() {
         test('exp', () {
           final fitter = PolynomialRegression(degree: 10);
           final data = generateSamples(exp, count: 25);
-          final result = fitter.fit(x: data.first, y: data.second);
+          final result = fitter.fit(xs: data.first, ys: data.second);
           expect(result.polynomial.degree, fitter.degree);
           for (var i = 0; i <= fitter.degree; i++) {
             expect(result.polynomial[i], isCloseTo(1.0 / i.factorial()),
@@ -355,7 +355,7 @@ void main() {
         test('sin', () {
           final fitter = PolynomialRegression(degree: 10);
           final data = generateSamples(sin, count: 50);
-          final result = fitter.fit(x: data.first, y: data.second);
+          final result = fitter.fit(xs: data.first, ys: data.second);
           expect(result.polynomial.degree, fitter.degree);
           for (var i = 0; i <= fitter.degree; i++) {
             expect(
@@ -368,7 +368,7 @@ void main() {
         test('cos', () {
           final fitter = PolynomialRegression(degree: 10);
           final data = generateSamples(cos, count: 50);
-          final result = fitter.fit(x: data.first, y: data.second);
+          final result = fitter.fit(xs: data.first, ys: data.second);
           expect(result.polynomial.degree, fitter.degree);
           for (var i = 0; i <= fitter.degree; i++) {
             expect(result.polynomial[i],

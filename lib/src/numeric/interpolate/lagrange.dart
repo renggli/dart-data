@@ -12,7 +12,7 @@ UnaryFunction<T> lagrangeInterpolation<T>(
   required Vector<T> xs,
   required Vector<T> ys,
 }) {
-  validateCoordinates<T>(dataType, xs: xs, ys: ys, min: 1, unique: true);
+  validatePoints<T>(dataType, xs: xs, ys: ys, min: 1, unique: true);
   final addId = dataType.field.additiveIdentity;
   final add = dataType.field.add, sub = dataType.field.sub;
   final mulId = dataType.field.multiplicativeIdentity;
