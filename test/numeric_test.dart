@@ -596,11 +596,69 @@ void main() {
         });
       });
     });
+    group('lagrange', () {
+      test('0 samples', () {
+        final xs = <double>[];
+        final ys = <double>[];
+        expect(
+            () => lagrangeInterpolation(
+                  floatDataType,
+                  xs: xs.toVector(),
+                  ys: ys.toVector(),
+                ),
+            throwsArgumentError);
+      });
+      test('1 sample: f(x) = 2', () {
+        final xs = <double>[1];
+        final ys = <double>[2];
+        final f = lagrangeInterpolation(
+          floatDataType,
+          xs: xs.toVector(),
+          ys: ys.toVector(),
+        );
+        for (var i = 0, x = xs[i], y = ys[i]; i < xs.length; i++) {
+          expect(f(x), isCloseTo(y), reason: 'f($x)');
+        }
+        for (var x = -2.0; x <= 2.0; x += 0.1) {
+          expect(f(x), isCloseTo(2.0), reason: 'f($x)');
+        }
+      });
+      test('2 samples: f(x) = 4 * x - 7', () {
+        final xs = <double>[2, 3];
+        final ys = <double>[1, 5];
+        final f = lagrangeInterpolation(
+          floatDataType,
+          xs: xs.toVector(),
+          ys: ys.toVector(),
+        );
+        for (var i = 0, x = xs[i], y = ys[i]; i < xs.length; i++) {
+          expect(f(x), isCloseTo(y), reason: 'f($x)');
+        }
+        for (var x = -5.0; x <= 5.0; x += 0.1) {
+          expect(f(x), isCloseTo(4 * x - 7), reason: 'f($x)');
+        }
+      });
+      test('3 samples: f(x) = 5/4 * x^2 - x + 1', () {
+        final xs = <double>[0, 2, 4];
+        final ys = <double>[1, 4, 17];
+        final f = lagrangeInterpolation(
+          floatDataType,
+          xs: xs.toVector(),
+          ys: ys.toVector(),
+        );
+        for (var i = 0, x = xs[i], y = ys[i]; i < xs.length; i++) {
+          expect(f(x), isCloseTo(y), reason: 'f($x)');
+        }
+        for (var x = -5.0; x <= 5.0; x += 0.1) {
+          expect(f(x), isCloseTo(5 / 4 * x * x - x + 1), reason: 'f($x)');
+        }
+      });
+    });
     group('linear', () {
       test('increasing', () {
         final f = linearInterpolation(
-          x: [1.0, 2.0].toVector(),
-          y: [3.0, 4.0].toVector(),
+          xs: [1.0, 2.0].toVector(),
+          ys: [3.0, 4.0].toVector(),
         );
         expect(f(0.5), isCloseTo(double.nan));
         expect(f(1.0), isCloseTo(3.0));
@@ -610,8 +668,8 @@ void main() {
       });
       test('decreasing', () {
         final f = linearInterpolation(
-          x: [1.0, 2.0].toVector(),
-          y: [4.0, 3.0].toVector(),
+          xs: [1.0, 2.0].toVector(),
+          ys: [4.0, 3.0].toVector(),
         );
         expect(f(0.5), isCloseTo(double.nan));
         expect(f(1.0), isCloseTo(4.0));
@@ -621,8 +679,8 @@ void main() {
       });
       test('custom bounds', () {
         final f = linearInterpolation(
-          x: [1.0, 2.0].toVector(),
-          y: [3.0, 4.0].toVector(),
+          xs: [1.0, 2.0].toVector(),
+          ys: [3.0, 4.0].toVector(),
           left: double.negativeInfinity,
           right: double.infinity,
         );
@@ -635,7 +693,7 @@ void main() {
       test('exponential function', () {
         final x = linearSpaced(-1, 1);
         final y = x.map((i, x) => exp(x));
-        final f = linearInterpolation(x: x, y: y);
+        final f = linearInterpolation(xs: x, ys: y);
         for (var i = -1.0; i <= 1.0; i += 0.25) {
           expect(f(i), isCloseTo(exp(i), epsilon: 0.1));
         }
@@ -644,8 +702,8 @@ void main() {
     group('nearest', () {
       test('prefer lower', () {
         final f = nearestInterpolation(
-          x: [1.0, 2.0].toVector(),
-          y: [3.0, 4.0].toVector(),
+          xs: [1.0, 2.0].toVector(),
+          ys: [3.0, 4.0].toVector(),
         );
         expect(f(0.5), isCloseTo(3.0));
         expect(f(1.0), isCloseTo(3.0));
@@ -657,8 +715,8 @@ void main() {
       });
       test('prefer upper', () {
         final f = nearestInterpolation(
-          x: [1.0, 2.0].toVector(),
-          y: [3.0, 4.0].toVector(),
+          xs: [1.0, 2.0].toVector(),
+          ys: [3.0, 4.0].toVector(),
           preferLower: false,
         );
         expect(f(0.5), isCloseTo(3.0));
@@ -672,8 +730,8 @@ void main() {
     });
     test('previous', () {
       final f = previousInterpolation(
-        x: [1.0, 2.0].toVector(),
-        y: [3.0, 4.0].toVector(),
+        xs: [1.0, 2.0].toVector(),
+        ys: [3.0, 4.0].toVector(),
       );
       expect(f(0.5), isCloseTo(double.nan));
       expect(f(1.0), isCloseTo(3.0));
@@ -685,8 +743,8 @@ void main() {
     });
     test('next', () {
       final f = nextInterpolation(
-        x: [1.0, 2.0].toVector(),
-        y: [3.0, 4.0].toVector(),
+        xs: [1.0, 2.0].toVector(),
+        ys: [3.0, 4.0].toVector(),
       );
       expect(f(0.5), isCloseTo(3.0));
       expect(f(1.0), isCloseTo(3.0));

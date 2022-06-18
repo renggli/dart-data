@@ -2,6 +2,7 @@ import 'dart:math' as math;
 
 import 'package:meta/meta.dart';
 import 'package:more/number.dart';
+import 'package:more/ordering.dart';
 import 'package:more/printer.dart' show Printer, StandardPrinter;
 
 import 'impl/bigint.dart';
@@ -122,6 +123,9 @@ abstract class DataType<T> {
 
   /// Returns an order relation, if available.
   Order<T> get order => throw UnsupportedError('No order available for $this.');
+
+  /// Returns an ordering relation, if available.
+  Ordering<T> get ordering => Ordering<T>.of(order.compare);
 
   /// Returns a mathematical field, if available.
   Field<T> get field => throw UnsupportedError('No field available for $this.');

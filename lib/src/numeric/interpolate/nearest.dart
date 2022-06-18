@@ -1,29 +1,30 @@
 import '../../../vector.dart';
+import '../../shared/config.dart';
 import '../functions.dart';
 import 'utils.dart';
 
 /// A function providing the nearest value of a discrete monotonically
-/// increasing set of sample points [x] and [y].
+/// increasing set of sample points [xs] and [ys].
 UnaryFunction<double> nearestInterpolation({
-  required Vector<double> x,
-  required Vector<double> y,
+  required Vector<double> xs,
+  required Vector<double> ys,
   bool preferLower = true,
 }) {
-  assert(x.count > 0 && y.count > 0, 'Expected $x and $y to be non-empty.');
-  assert(x.count == y.count, 'Expected $x and $y to have consistent size.');
-  return (double value) {
-    if (value <= x.getUnchecked(0)) {
-      return y.getUnchecked(0);
-    } else if (x.getUnchecked(x.count - 1) <= value) {
-      return y.getUnchecked(y.count - 1);
+  validateCoordinates(floatDataType,
+      xs: xs, ys: ys, min: 1, ordered: true, unique: true);
+  return (double x) {
+    if (x <= xs.getUnchecked(0)) {
+      return ys.getUnchecked(0);
+    } else if (xs.getUnchecked(xs.count - 1) <= x) {
+      return ys.getUnchecked(ys.count - 1);
     }
-    final index = binarySearchLeft(x, value).clamp(1, x.count - 1);
-    final distanceLo = value - x.getUnchecked(index - 1);
-    final distanceHi = x.getUnchecked(index) - value;
+    final index = binarySearchLeft(xs, x).clamp(1, xs.count - 1);
+    final distanceLo = x - xs.getUnchecked(index - 1);
+    final distanceHi = xs.getUnchecked(index) - x;
     if (distanceLo < distanceHi || (distanceLo == distanceHi && preferLower)) {
-      return y.getUnchecked(index - 1);
+      return ys.getUnchecked(index - 1);
     } else {
-      return y.getUnchecked(index);
+      return ys.getUnchecked(index);
     }
   };
 }
