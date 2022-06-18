@@ -17,6 +17,13 @@ UnaryFunction<double> linearInterpolation({
 }) {
   validateCoordinates(DataType.float,
       xs: xs, ys: ys, min: 1, ordered: true, unique: true);
+  final slopes = Vector.generate(
+      DataType.float,
+      xs.count - 1,
+      (i) =>
+          (ys.getUnchecked(i + 1) - ys.getUnchecked(i)) /
+          (xs.getUnchecked(i + 1) - xs.getUnchecked(i)),
+      format: defaultVectorFormat);
   return (double x) {
     if (x < xs.getUnchecked(0)) {
       return left;
@@ -25,8 +32,6 @@ UnaryFunction<double> linearInterpolation({
     }
     final index = binarySearchLeft(xs, x).clamp(1, xs.count - 1);
     return ys.getUnchecked(index - 1) +
-        (ys.getUnchecked(index) - ys.getUnchecked(index - 1)) /
-            (xs.getUnchecked(index) - xs.getUnchecked(index - 1)) *
-            (x - xs.getUnchecked(index - 1));
+        slopes.getUnchecked(index - 1) * (x - xs.getUnchecked(index - 1));
   };
 }
