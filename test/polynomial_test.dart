@@ -1,7 +1,12 @@
 import 'dart:math';
 
 import 'package:data/data.dart';
+import 'package:more/collection.dart';
 import 'package:test/test.dart';
+
+import 'utils/assertions.dart';
+import 'utils/config.dart';
+import 'utils/matchers.dart';
 
 final Matcher throwsDivisionByZero = throwsA(
     const TypeMatcher<UnsupportedError>().having(
@@ -91,6 +96,52 @@ void polynomialTest(String name, PolynomialFormat format) {
               DataType.int32, [0, 672, -1388, 691, 94, -68, -2, 1],
               format: format);
           expect(actual.toString(), expected.toString());
+        });
+      });
+      group('lagrange', () {
+        test('0 samples', () {
+          final xs = <double>[];
+          final ys = <double>[];
+          expect(
+              () => Polynomial.lagrange(
+                    DataType.float,
+                    xs: xs.toVector(),
+                    ys: ys.toVector(),
+                  ),
+              throwsArgumentError);
+        }, skip: !hasAssertions());
+        test('1 sample: f(x) = 2', () {
+          final xs = <double>[1].toVector();
+          final ys = <double>[2].toVector();
+          final actual = Polynomial.lagrange(DataType.float, xs: xs, ys: ys);
+          expect(actual.toList(), isCloseTo([2]));
+          verifySamples<double>(DataType.float, actual: actual, xs: xs, ys: ys);
+          verifyFunction<double>(DataType.float,
+              actual: actual,
+              expected: (x) => 2,
+              range: DoubleRange(0.0, 3.0, 0.1));
+        });
+        test('2 samples: f(x) = 4 * x - 7', () {
+          final xs = <double>[2, 3].toVector();
+          final ys = <double>[1, 5].toVector();
+          final actual = Polynomial.lagrange(DataType.float, xs: xs, ys: ys);
+          expect(actual.toList(), isCloseTo([-7, 4]));
+          verifySamples<double>(DataType.float, actual: actual, xs: xs, ys: ys);
+          verifyFunction<double>(DataType.float,
+              actual: actual,
+              expected: (x) => 4 * x - 7,
+              range: DoubleRange(0.0, 4.0, 0.1));
+        });
+        test('3 samples: f(x) = 5/4 * x^2 - x + 1', () {
+          final xs = <double>[0, 2, 4].toVector();
+          final ys = <double>[1, 4, 17].toVector();
+          final actual = Polynomial.lagrange(DataType.float, xs: xs, ys: ys);
+          expect(actual.toList(), isCloseTo([1, -1, 5 / 4]));
+          verifySamples<double>(DataType.float, actual: actual, xs: xs, ys: ys);
+          verifyFunction<double>(DataType.float,
+              actual: actual,
+              expected: (x) => 5 / 4 * x * x - x + 1,
+              range: DoubleRange(-1.0, 5.0, 0.1));
         });
       });
       test('fromList', () {

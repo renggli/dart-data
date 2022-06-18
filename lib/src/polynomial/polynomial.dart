@@ -4,11 +4,14 @@ import 'package:meta/meta.dart';
 import 'package:more/printer.dart' show Printer, StandardPrinter;
 
 import '../../type.dart';
+import '../../vector.dart';
 import '../shared/storage.dart';
+import '../shared/validation.dart';
 import 'impl/compressed_polynomial.dart';
 import 'impl/keyed_polynomial.dart';
 import 'impl/list_polynomial.dart';
 import 'impl/standard_polynomial.dart';
+import 'operator/utils.dart';
 import 'polynomial_format.dart';
 import 'view/generated_polynomial.dart';
 
@@ -85,6 +88,40 @@ abstract class Polynomial<T> implements Storage {
                     : dataType.field.additiveIdentity,
                 mul(root, result.getUnchecked(j))));
       }
+    }
+    return result;
+  }
+
+  /// Builds a Lagrange [Polynomial] through the unique sample points [xs] and
+  /// [ys]. Related to [lagrangeInterpolation].
+  ///
+  /// See https://en.wikipedia.org/wiki/Lagrange_polynomial.
+  factory Polynomial.lagrange(
+    DataType<T> dataType, {
+    required Vector<T> xs,
+    required Vector<T> ys,
+    PolynomialFormat? format,
+  }) {
+    validateCoordinates<T>(dataType, xs: xs, ys: ys, min: 1, unique: true);
+    final add = dataType.field.add, sub = dataType.field.sub;
+    final mul = dataType.field.mul, div = dataType.field.div;
+    final mulId = dataType.field.multiplicativeIdentity;
+    var result = Polynomial<T>(dataType);
+    for (var i = 0; i < xs.count; i++) {
+      var p = xs.getUnchecked(i);
+      var c = ys.getUnchecked(i);
+      final roots = <T>[];
+      for (var j = 0; j < xs.count; j++) {
+        if (j != i) {
+          c = div(c, sub(p, xs.getUnchecked(j)));
+          roots.add(xs.getUnchecked(j));
+        }
+      }
+      final polynomial = roots.isEmpty
+          ? Polynomial<T>.fromList(dataType, [mulId])
+          : Polynomial<T>.fromRoots(dataType, roots);
+      unaryOperator<T>(polynomial, polynomial, (x) => mul(c, x));
+      binaryOperator<T>(result, result, polynomial, add);
     }
     return result;
   }

@@ -1,6 +1,6 @@
 import '../../../type.dart';
-
 import '../../../vector.dart';
+import '../../shared/validation.dart';
 import '../functions.dart';
 import 'utils.dart';
 

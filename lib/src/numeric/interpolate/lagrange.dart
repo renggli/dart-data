@@ -1,11 +1,10 @@
-import '../../../polynomial.dart';
 import '../../../type.dart';
 import '../../../vector.dart';
+import '../../shared/validation.dart';
 import '../functions.dart';
-import 'utils.dart';
 
-/// A function providing a lagrange polynomial interpolation through unique
-/// sample points [xs] and [ys].
+/// A function providing a Lagrange polynomial interpolation through the unique
+/// sample points [xs] and [ys]. Related to [Polynomial.lagrange].
 ///
 /// See https://en.wikipedia.org/wiki/Lagrange_polynomial.
 UnaryFunction<T> lagrangeInterpolation<T>(
@@ -42,41 +41,4 @@ UnaryFunction<T> lagrangeInterpolation<T>(
     }
     return div(a, b);
   };
-}
-
-///
-///
-/// See https://en.wikipedia.org/wiki/Lagrange_polynomial.
-Polynomial<T> lagrangePolynomialInterpolation<T>(DataType<T> dataType,
-    {required Vector<T> x, required Vector<T> y}) {
-  assert(x.count == y.count, 'Expected $x and $y to have consistent size.');
-
-  var result = Polynomial<T>(dataType);
-
-  for (var i = 0; i < x.count; i++) {
-    var p = x.getUnchecked(i);
-    var c = y.getUnchecked(i);
-    final roots = <T>[];
-    for (var j = 0; j < x.count; j++) {
-      if (j != i) {
-        c = dataType.field.div(c, dataType.field.sub(p, x.getUnchecked(j)));
-        roots.add(x.getUnchecked(j));
-      }
-    }
-    final coefficients = Polynomial.fromRoots(dataType, roots);
-    // [
-    //   dataType.field.multiplicativeIdentity,
-    //   ...Polynomial.fromRoots(dataType, roots).toList(),
-    // ];
-    for (var j = 0; j <= coefficients.degree; j++) {
-      result.setUnchecked(
-          j,
-          dataType.field.add(
-              result.getUnchecked(j),
-              dataType.field.scale(
-                  dataType.field.mul(c, coefficients.getUnchecked(j)),
-                  j.isOdd ? -1 : 1)));
-    }
-  }
-  return result;
 }

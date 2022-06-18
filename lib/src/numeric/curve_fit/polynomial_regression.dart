@@ -1,7 +1,6 @@
-import '../../../type.dart';
-
 import '../../../matrix.dart';
 import '../../../polynomial.dart';
+import '../../../type.dart';
 import '../../../vector.dart';
 import '../curve_fit.dart';
 

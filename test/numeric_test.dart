@@ -2,10 +2,13 @@ import 'dart:math';
 
 import 'package:data/data.dart';
 import 'package:meta/meta.dart';
+import 'package:more/collection.dart';
 import 'package:more/math.dart';
 import 'package:more/tuple.dart';
 import 'package:test/test.dart';
 
+import 'utils/assertions.dart';
+import 'utils/config.dart';
 import 'utils/matchers.dart';
 
 Tuple2<Vector<double>, Vector<double>> generateSamples(
@@ -606,51 +609,36 @@ void main() {
                   ys: ys.toVector(),
                 ),
             throwsArgumentError);
-      });
+      }, skip: !hasAssertions());
       test('1 sample: f(x) = 2', () {
-        final xs = <double>[1];
-        final ys = <double>[2];
-        final f = lagrangeInterpolation(
-          DataType.float,
-          xs: xs.toVector(),
-          ys: ys.toVector(),
-        );
-        for (var i = 0, x = xs[i], y = ys[i]; i < xs.length; i++) {
-          expect(f(x), isCloseTo(y), reason: 'f($x)');
-        }
-        for (var x = -2.0; x <= 2.0; x += 0.1) {
-          expect(f(x), isCloseTo(2.0), reason: 'f($x)');
-        }
+        final xs = <double>[1].toVector();
+        final ys = <double>[2].toVector();
+        final actual = lagrangeInterpolation(DataType.float, xs: xs, ys: ys);
+        verifySamples<double>(DataType.float, actual: actual, xs: xs, ys: ys);
+        verifyFunction<double>(DataType.float,
+            actual: actual,
+            expected: (x) => 2,
+            range: DoubleRange(0.0, 3.0, 0.1));
       });
       test('2 samples: f(x) = 4 * x - 7', () {
-        final xs = <double>[2, 3];
-        final ys = <double>[1, 5];
-        final f = lagrangeInterpolation(
-          DataType.float,
-          xs: xs.toVector(),
-          ys: ys.toVector(),
-        );
-        for (var i = 0, x = xs[i], y = ys[i]; i < xs.length; i++) {
-          expect(f(x), isCloseTo(y), reason: 'f($x)');
-        }
-        for (var x = -5.0; x <= 5.0; x += 0.1) {
-          expect(f(x), isCloseTo(4 * x - 7), reason: 'f($x)');
-        }
+        final xs = <double>[2, 3].toVector();
+        final ys = <double>[1, 5].toVector();
+        final actual = lagrangeInterpolation(DataType.float, xs: xs, ys: ys);
+        verifySamples<double>(DataType.float, actual: actual, xs: xs, ys: ys);
+        verifyFunction<double>(DataType.float,
+            actual: actual,
+            expected: (x) => 4 * x - 7,
+            range: DoubleRange(0.0, 4.0, 0.1));
       });
       test('3 samples: f(x) = 5/4 * x^2 - x + 1', () {
-        final xs = <double>[0, 2, 4];
-        final ys = <double>[1, 4, 17];
-        final f = lagrangeInterpolation(
-          DataType.float,
-          xs: xs.toVector(),
-          ys: ys.toVector(),
-        );
-        for (var i = 0, x = xs[i], y = ys[i]; i < xs.length; i++) {
-          expect(f(x), isCloseTo(y), reason: 'f($x)');
-        }
-        for (var x = -5.0; x <= 5.0; x += 0.1) {
-          expect(f(x), isCloseTo(5 / 4 * x * x - x + 1), reason: 'f($x)');
-        }
+        final xs = <double>[0, 2, 4].toVector();
+        final ys = <double>[1, 4, 17].toVector();
+        final actual = lagrangeInterpolation(DataType.float, xs: xs, ys: ys);
+        verifySamples<double>(DataType.float, actual: actual, xs: xs, ys: ys);
+        verifyFunction<double>(DataType.float,
+            actual: actual,
+            expected: (x) => 5 / 4 * x * x - x + 1,
+            range: DoubleRange(-1.0, 5.0, 0.1));
       });
     });
     group('linear', () {
