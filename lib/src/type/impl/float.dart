@@ -2,12 +2,12 @@ import 'dart:math' as math;
 import 'dart:typed_data';
 
 import 'package:more/number.dart' show Fraction;
+import 'package:more/ordering.dart' show Ordering;
 import 'package:more/printer.dart'
     show Printer, ScientificNumberPrinter, SignNumberPrinter;
 
 import '../models/equality.dart';
 import '../models/field.dart';
-import '../models/order.dart';
 import '../type.dart';
 
 abstract class FloatDataType extends DataType<double> {
@@ -32,7 +32,7 @@ abstract class FloatDataType extends DataType<double> {
   Field<double> get field => const FloatField();
 
   @override
-  Order<double> get order => const NaturalOrder<double>();
+  Ordering<double> get ordering => Ordering.natural<double>();
 
   @override
   Equality<double> get equality => const FloatEquality();

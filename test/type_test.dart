@@ -2,7 +2,6 @@ import 'dart:math';
 
 import 'package:data/data.dart';
 import 'package:more/feature.dart';
-import 'package:more/ordering.dart';
 import 'package:test/test.dart';
 
 void listTest<T>(DataType<T> type, List<List<T>> lists) {
@@ -354,29 +353,44 @@ void fieldTest<T>(DataType<T> type, List<T> values) {
     DataType.complex,
     DataType.quaternion,
   ].contains(type)) {
-    test('no order', () {
-      expect(() => type.order, throwsUnsupportedError);
+    test('no ordering', () {
+      expect(() => type.ordering, throwsUnsupportedError);
     });
   } else {
-    group('order', () {
-      final order = type.order;
-      final compare = order.compare;
+    group('ordering', () {
+      final ordering = type.ordering;
+      final shuffled = [...values.sublist(1), values.first];
       test('increasing', () {
         for (var i = 0; i < values.length - 1; i++) {
-          expect(compare(values[i], values[i + 1]), lessThan(0),
+          expect(ordering.compare(values[i], values[i + 1]), lessThan(0),
               reason: 'Expected ${values[i]} < ${values[i + 1]}.');
         }
       });
       test('decreasing', () {
         for (var i = 0; i < values.length - 1; i++) {
-          expect(compare(values[i + 1], values[i]), greaterThan(0),
+          expect(ordering.compare(values[i + 1], values[i]), greaterThan(0),
               reason: 'Expected ${values[i]} > ${values[i + 1]}.');
         }
       });
       test('equal', () {
         for (var i = 0; i < values.length; i++) {
-          expect(compare(values[i], values[i]), 0);
+          expect(ordering.compare(values[i], values[i]), 0);
         }
+      });
+      test('min/max', () {
+        expect(ordering.minOf(shuffled), values.first);
+        expect(ordering.maxOf(shuffled), values.last);
+      });
+      test('isOrdered', () {
+        expect(ordering.isOrdered(values), isTrue);
+        expect(ordering.isOrdered(shuffled), isFalse);
+      });
+      test('isStrictlyOrdered', () {
+        expect(ordering.isStrictlyOrdered(values), isTrue);
+        expect(ordering.isStrictlyOrdered(shuffled), isFalse);
+      });
+      test('sorting', () {
+        expect(ordering.sorted(shuffled), values);
       });
     });
   }
@@ -538,8 +552,8 @@ void main() {
     test('field', () {
       expect(() => type.field, throwsUnsupportedError);
     });
-    test('order', () {
-      expect(() => type.order, throwsUnsupportedError);
+    test('ordering', () {
+      expect(() => type.ordering, throwsUnsupportedError);
     });
     listTest(type, <List<Point<int>>>[
       [],
@@ -578,8 +592,8 @@ void main() {
     test('field', () {
       expect(() => type.field, throwsUnsupportedError);
     });
-    test('order', () {
-      expect(() => type.order, throwsUnsupportedError);
+    test('ordering', () {
+      expect(() => type.ordering, throwsUnsupportedError);
     });
     listTest(type, <List<Point<int>?>>[
       [],
@@ -617,8 +631,8 @@ void main() {
     test('field', () {
       expect(() => type.field, throwsUnsupportedError);
     });
-    test('order', () {
-      expect(() => type.order, throwsUnsupportedError);
+    test('ordering', () {
+      expect(() => type.ordering, throwsUnsupportedError);
     });
     listTest<dynamic>(type, [
       <dynamic>[],
@@ -662,10 +676,10 @@ void main() {
     test('field', () {
       expect(() => type.field, throwsUnsupportedError);
     });
-    test('order', () {
-      expect(type.order.compare('foo', 'bar'), greaterThan(0));
-      expect(type.order.compare('bar', 'foo'), lessThan(0));
-      expect(type.order.compare('foo', 'foo'), 0);
+    test('ordering', () {
+      expect(type.ordering.compare('foo', 'bar'), greaterThan(0));
+      expect(type.ordering.compare('bar', 'foo'), lessThan(0));
+      expect(type.ordering.compare('foo', 'foo'), 0);
     });
     listTest(type, <List<String>>[
       ['abc'],
@@ -995,14 +1009,14 @@ void main() {
       expect(() => type.cast(''), throwsArgumentError);
       expect(() => type.cast(null), throwsArgumentError);
     });
-    test('order', () {
-      final order = type.order;
-      expect(order.compare(2, 3), -1);
-      expect(order.compare(3, 2), 1);
-      expect(order.compare(3, 3), 0);
-      expect(order.compare(2, 10), -1);
-      expect(order.compare(3, 9), 1);
-      expect(order.compare(3, 10), 0);
+    test('ordering', () {
+      final ordering = type.ordering;
+      expect(ordering.compare(2, 3), -1);
+      expect(ordering.compare(3, 2), 1);
+      expect(ordering.compare(3, 3), 0);
+      expect(ordering.compare(2, 10), -1);
+      expect(ordering.compare(3, 9), 1);
+      expect(ordering.compare(3, 10), 0);
     });
     group('equality', () {
       final equality = type.equality;

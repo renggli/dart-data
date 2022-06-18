@@ -20,9 +20,10 @@ import 'impl/quaternion.dart';
 import 'impl/string.dart';
 import 'models/equality.dart';
 import 'models/field.dart';
-import 'models/order.dart';
 import 'utils.dart' as utils;
 
+/// Descriptor of a data type [T], how it is efficiently represented and stored
+/// in memory, and strategy of how common operations work.
 @immutable
 abstract class DataType<T> {
   /// Abstract const constructor.
@@ -130,11 +131,9 @@ abstract class DataType<T> {
   /// Returns an equality relation.
   Equality<T> get equality => NaturalEquality<T>();
 
-  /// Returns an order relation, if available.
-  Order<T> get order => throw UnsupportedError('No order available for $this.');
-
   /// Returns an ordering relation, if available.
-  Ordering<T> get ordering => Ordering<T>.of(order.compare);
+  Ordering<T> get ordering =>
+      throw UnsupportedError('No ordering available for $this.');
 
   /// Returns a mathematical field, if available.
   Field<T> get field => throw UnsupportedError('No field available for $this.');

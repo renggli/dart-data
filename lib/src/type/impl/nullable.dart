@@ -2,6 +2,7 @@ import 'dart:collection' show ListBase;
 
 import 'package:collection/collection.dart' show NonGrowableListMixin;
 import 'package:more/collection.dart' show BitList;
+import 'package:more/ordering.dart' show Ordering;
 import 'package:more/printer.dart' show Printer, NullPrinterExtension;
 
 import '../type.dart';
@@ -9,10 +10,11 @@ import '../type.dart';
 /// Some [DataType] instances do not support `null` values in the way they
 /// represent their data. This wrapper turns those types into nullable ones.
 class NullableDataType<T> extends DataType<T?> {
-  NullableDataType(this.delegate)
+  NullableDataType(this.delegate, {this.nullsFirst = false})
       : assert(!delegate.isNullable, '$delegate is already nullable');
 
   final DataType<T> delegate;
+  final bool nullsFirst;
 
   @override
   String get name => '${delegate.name}.nullable';
@@ -22,6 +24,10 @@ class NullableDataType<T> extends DataType<T?> {
 
   @override
   T? get defaultValue => null;
+
+  @override
+  Ordering<T?> get ordering =>
+      nullsFirst ? delegate.ordering.nullsFirst : delegate.ordering.nullsLast;
 
   @override
   T? cast(dynamic value) => value == null ? null : delegate.cast(value);

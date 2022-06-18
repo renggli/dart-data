@@ -1,6 +1,7 @@
+import 'package:more/ordering.dart' show Ordering;
+
 import '../models/equality.dart';
 import '../models/field.dart';
-import '../models/order.dart';
 import '../type.dart';
 
 class BigIntDataType extends DataType<BigInt> {
@@ -28,7 +29,7 @@ class BigIntDataType extends DataType<BigInt> {
   Equality<BigInt> get equality => const BigIntEquality();
 
   @override
-  Order<BigInt> get order => const NaturalOrder<BigInt>();
+  Ordering<BigInt> get ordering => Ordering.natural<BigInt>();
 
   @override
   Field<BigInt> get field => const BigIntField();

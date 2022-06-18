@@ -3,11 +3,11 @@ import 'dart:typed_data';
 
 import 'package:more/feature.dart' show isJavaScript;
 import 'package:more/number.dart' show Fraction;
+import 'package:more/ordering.dart' show Ordering;
 import 'package:more/printer.dart' show Printer, FixedNumberPrinter;
 
 import '../models/equality.dart';
 import '../models/field.dart';
-import '../models/order.dart';
 import '../type.dart';
 
 abstract class IntegerDataType extends DataType<int> {
@@ -59,7 +59,7 @@ abstract class IntegerDataType extends DataType<int> {
   Field<int> get field => const IntegerField();
 
   @override
-  Order<int> get order => const NaturalOrder<int>();
+  Ordering<int> get ordering => Ordering.natural<int>();
 
   @override
   Equality<int> get equality => const IntegerEquality();

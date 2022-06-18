@@ -1,5 +1,6 @@
 /// Data types and their base functions.
 export 'package:more/number.dart' show Complex, Fraction, Quaternion;
+export 'package:more/ordering.dart' show Ordering;
 
 export 'src/type/impl/bigint.dart';
 export 'src/type/impl/boolean.dart';
@@ -15,5 +16,4 @@ export 'src/type/impl/quaternion.dart';
 export 'src/type/impl/string.dart';
 export 'src/type/models/equality.dart';
 export 'src/type/models/field.dart';
-export 'src/type/models/order.dart';
 export 'src/type/type.dart';

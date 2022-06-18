@@ -1,14 +1,14 @@
+import 'package:more/ordering.dart' show Ordering;
 import 'package:more/printer.dart' show Printer;
 
 import '../models/equality.dart';
 import '../models/field.dart';
-import '../models/order.dart';
 import '../type.dart';
 
 class ModuloDataType<T> extends DataType<T> {
   ModuloDataType(this.delegate, this.modulus)
       : field = ModuloField<T>(delegate, modulus),
-        order = ModuloOrder<T>(delegate, modulus),
+        ordering = ModuloOrdering<T>(delegate, modulus),
         equality = ModuloEquality<T>(delegate, modulus);
 
   final DataType<T> delegate;
@@ -24,7 +24,7 @@ class ModuloDataType<T> extends DataType<T> {
   final Field<T> field;
 
   @override
-  final Order<T> order;
+  final Ordering<T> ordering;
 
   @override
   final Equality<T> equality;
@@ -91,14 +91,14 @@ class ModuloField<T> extends Field<T> {
   T gcd(T a, T b) => unsupportedOperation('gcd');
 }
 
-class ModuloOrder<T> extends Order<T> {
-  const ModuloOrder(this.type, this.modulus);
+class ModuloOrdering<T> extends Ordering<T> {
+  const ModuloOrdering(this.type, this.modulus);
 
   final DataType<T> type;
   final T modulus;
 
   @override
-  int compare(T a, T b) => type.order.compare(
+  int compare(T a, T b) => type.ordering.compare(
         type.field.mod(a, modulus),
         type.field.mod(b, modulus),
       );

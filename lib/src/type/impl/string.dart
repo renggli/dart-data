@@ -1,7 +1,8 @@
 import 'dart:math' as math;
 
+import 'package:more/ordering.dart' show Ordering;
+
 import '../models/equality.dart';
-import '../models/order.dart';
 import '../type.dart';
 
 class StringDataType extends DataType<String> {
@@ -17,7 +18,7 @@ class StringDataType extends DataType<String> {
   Equality<String> get equality => const StringEquality();
 
   @override
-  Order<String> get order => const NaturalOrder<String>();
+  Ordering<String> get ordering => Ordering.natural<String>();
 
   @override
   String cast(dynamic value) => value.toString();
