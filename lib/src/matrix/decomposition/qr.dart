@@ -1,5 +1,4 @@
 import '../../../type.dart';
-
 import '../../shared/math.dart';
 import '../matrix.dart';
 import '../view/cast_matrix.dart';

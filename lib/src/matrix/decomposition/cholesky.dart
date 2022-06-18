@@ -1,7 +1,6 @@
 import 'dart:math' as math;
 
 import '../../../type.dart';
-
 import '../matrix.dart';
 import '../view/cast_matrix.dart';
 import '../view/row_vector.dart';

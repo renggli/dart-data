@@ -1,7 +1,6 @@
 import 'dart:math' as math;
 
 import '../../../type.dart';
-
 import '../../shared/math.dart';
 import '../matrix.dart';
 import '../matrix_format.dart';

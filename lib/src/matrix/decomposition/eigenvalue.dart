@@ -1,8 +1,8 @@
 import 'dart:math' as math;
 
-import '../../../type.dart';
 import 'package:more/collection.dart';
 
+import '../../../type.dart';
 import '../../shared/math.dart';
 import '../matrix.dart';
 import '../operator/testing.dart';
