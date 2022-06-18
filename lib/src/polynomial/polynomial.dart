@@ -5,8 +5,8 @@ import 'package:more/printer.dart' show Printer, StandardPrinter;
 
 import '../../type.dart';
 import '../../vector.dart';
+import '../shared/checks.dart';
 import '../shared/storage.dart';
-import '../shared/validation.dart';
 import 'impl/compressed_polynomial.dart';
 import 'impl/keyed_polynomial.dart';
 import 'impl/list_polynomial.dart';
@@ -102,7 +102,7 @@ abstract class Polynomial<T> implements Storage {
     required Vector<T> ys,
     PolynomialFormat? format,
   }) {
-    validatePoints<T>(dataType, xs: xs, ys: ys, min: 1, unique: true);
+    checkPoints<T>(dataType, xs: xs, ys: ys, min: 1, unique: true);
     final add = dataType.field.add, sub = dataType.field.sub;
     final mul = dataType.field.mul, div = dataType.field.div;
     final mulId = dataType.field.multiplicativeIdentity;

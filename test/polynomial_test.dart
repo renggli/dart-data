@@ -5,7 +5,6 @@ import 'package:more/collection.dart';
 import 'package:test/test.dart';
 
 import 'utils/assertions.dart';
-import 'utils/config.dart';
 import 'utils/matchers.dart';
 
 final Matcher throwsDivisionByZero = throwsA(
@@ -109,7 +108,7 @@ void polynomialTest(String name, PolynomialFormat format) {
                     ys: ys.toVector(),
                   ),
               throwsArgumentError);
-        }, skip: !hasAssertions());
+        });
         test('1 sample: f(x) = 2', () {
           final xs = <double>[1].toVector();
           final ys = <double>[2].toVector();

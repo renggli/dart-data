@@ -1,6 +1,6 @@
 import '../../../type.dart';
 import '../../../vector.dart';
-import '../../shared/validation.dart';
+import '../../shared/checks.dart';
 import '../functions.dart';
 import 'binary_search.dart';
 
@@ -15,7 +15,7 @@ UnaryFunction<double> linearInterpolation({
   double left = double.nan,
   double right = double.nan,
 }) {
-  validatePoints(DataType.float,
+  checkPoints(DataType.float,
       xs: xs, ys: ys, min: 1, ordered: true, unique: true);
   final slopes = Vector.generate(
       DataType.float,

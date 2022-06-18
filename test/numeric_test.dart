@@ -8,7 +8,6 @@ import 'package:more/tuple.dart';
 import 'package:test/test.dart';
 
 import 'utils/assertions.dart';
-import 'utils/config.dart';
 import 'utils/matchers.dart';
 
 Tuple2<Vector<double>, Vector<double>> generateSamples(
@@ -609,7 +608,7 @@ void main() {
                   ys: ys.toVector(),
                 ),
             throwsArgumentError);
-      }, skip: !hasAssertions());
+      });
       test('1 sample: f(x) = 2', () {
         final xs = <double>[1].toVector();
         final ys = <double>[2].toVector();

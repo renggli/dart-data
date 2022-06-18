@@ -1,6 +1,6 @@
 import '../../../type.dart';
 import '../../../vector.dart';
-import '../../shared/validation.dart';
+import '../../shared/checks.dart';
 import '../functions.dart';
 import 'binary_search.dart';
 
@@ -11,7 +11,7 @@ UnaryFunction<double> nearestInterpolation({
   required Vector<double> ys,
   bool preferLower = true,
 }) {
-  validatePoints(DataType.float,
+  checkPoints(DataType.float,
       xs: xs, ys: ys, min: 1, ordered: true, unique: true);
   return (double x) {
     if (x <= xs.getUnchecked(0)) {

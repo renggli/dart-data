@@ -2,7 +2,7 @@ import '../../../matrix.dart';
 import '../../../polynomial.dart';
 import '../../../type.dart';
 import '../../../vector.dart';
-import '../../shared/validation.dart';
+import '../../shared/checks.dart';
 import '../curve_fit.dart';
 
 /// Polynomial least-squares regression, in which the relationship between the
@@ -24,7 +24,7 @@ class PolynomialRegression extends CurveFit<Polynomial<double>> {
     required Vector<double> xs,
     required Vector<double> ys,
   }) {
-    validatePoints(DataType.float, xs: xs, ys: ys);
+    checkPoints(DataType.float, xs: xs, ys: ys);
     final vandermonde = Matrix.vandermonde(DataType.float, xs, degree + 1);
     final vandermondeTransposed = vandermonde.transposed;
     final result = vandermondeTransposed

@@ -1,6 +1,6 @@
 import '../../../type.dart';
 import '../../../vector.dart';
-import '../../shared/validation.dart';
+import '../../shared/checks.dart';
 import '../functions.dart';
 
 /// A function providing a Lagrange polynomial interpolation through the unique
@@ -12,7 +12,7 @@ UnaryFunction<T> lagrangeInterpolation<T>(
   required Vector<T> xs,
   required Vector<T> ys,
 }) {
-  validatePoints<T>(dataType, xs: xs, ys: ys, min: 1, unique: true);
+  checkPoints<T>(dataType, xs: xs, ys: ys, min: 1, unique: true);
   final addId = dataType.field.additiveIdentity;
   final add = dataType.field.add, sub = dataType.field.sub;
   final mulId = dataType.field.multiplicativeIdentity;

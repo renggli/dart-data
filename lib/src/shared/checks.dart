@@ -8,7 +8,7 @@ import '../../vector.dart';
 /// - Check that the x-coordinates are [ordered] and/or [unique].
 ///
 /// The code is only run when assertions are enabled.
-void validatePoints<T>(
+void checkPoints<T>(
   DataType<T> dataType, {
   required Vector<T> xs,
   required Vector<T> ys,

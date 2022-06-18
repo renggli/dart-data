@@ -5,6 +5,7 @@ import 'package:more/tuple.dart';
 import '../../../matrix.dart';
 import '../../../type.dart';
 import '../../../vector.dart';
+import '../../shared/checks.dart';
 import '../curve_fit.dart';
 import '../functions.dart';
 
@@ -95,13 +96,7 @@ class LevenbergMarquardt extends CurveFit {
     double weight = 1.0,
     Vector<double>? weights,
   }) {
-    if (xs.count < 2) {
-      throw ArgumentError.value(xs, 'x', 'Expected at least two points.');
-    }
-
-    if (ys.count != xs.count) {
-      throw ArgumentError.value(ys, 'y', 'Expected ${xs.count} values.');
-    }
+    checkPoints(DataType.float, xs: xs, ys: ys, min: 2);
 
     weights ??=
         Vector<double>.constant(DataType.float, ys.count, value: weight);
