@@ -1,5 +1,4 @@
 import '../../../type.dart';
-import '../../shared/config.dart';
 import '../../shared/lists.dart';
 import '../../shared/storage.dart';
 import '../matrix.dart';
@@ -11,8 +10,8 @@ class CompressedColumnMatrix<T> with Matrix<T> {
             dataType,
             rowCount,
             colCount,
-            indexDataType.newList(colCount),
-            indexDataType.newList(initialListLength),
+            DataType.indexDataType.newList(colCount),
+            DataType.indexDataType.newList(initialListLength),
             dataType.newList(initialListLength),
             0);
 
@@ -41,8 +40,8 @@ class CompressedColumnMatrix<T> with Matrix<T> {
       dataType,
       rowCount,
       columnCount,
-      indexDataType.copyList(_colExtends),
-      indexDataType.copyList(_rowIndexes),
+      DataType.indexDataType.copyList(_colExtends),
+      DataType.indexDataType.copyList(_rowIndexes),
       dataType.copyList(_values),
       _length);
 
@@ -62,8 +61,8 @@ class CompressedColumnMatrix<T> with Matrix<T> {
         for (var c = col; c < columnCount; c++) {
           _colExtends[c]++;
         }
-        _rowIndexes =
-            insertAt(indexDataType, _rowIndexes, _length, -index - 1, row);
+        _rowIndexes = insertAt(
+            DataType.indexDataType, _rowIndexes, _length, -index - 1, row);
         _values = insertAt(dataType, _values, _length, -index - 1, value);
         _length++;
       }
@@ -72,7 +71,8 @@ class CompressedColumnMatrix<T> with Matrix<T> {
         for (var c = col; c < columnCount; c++) {
           _colExtends[c]--;
         }
-        _rowIndexes = removeAt(indexDataType, _rowIndexes, _length, index);
+        _rowIndexes =
+            removeAt(DataType.indexDataType, _rowIndexes, _length, index);
         _values = removeAt(dataType, _values, _length, index);
         _length--;
       } else {

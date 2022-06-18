@@ -1,7 +1,8 @@
+import '../../../type.dart';
+
 import '../../../matrix.dart';
 import '../../../polynomial.dart';
 import '../../../vector.dart';
-import '../../shared/config.dart';
 import '../curve_fit.dart';
 
 /// Polynomial least-squares regression, in which the relationship between the
@@ -26,7 +27,7 @@ class PolynomialRegression extends CurveFit<Polynomial<double>> {
     if (x.count != y.count) {
       throw ArgumentError.value(y, 'y', 'Expected ${x.count} values.');
     }
-    final vandermonde = Matrix.vandermonde(floatDataType, x, degree + 1);
+    final vandermonde = Matrix.vandermonde(DataType.float, x, degree + 1);
     final vandermondeTransposed = vandermonde.transposed;
     final result = vandermondeTransposed
         .mulMatrix(vandermonde)

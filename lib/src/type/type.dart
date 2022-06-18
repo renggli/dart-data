@@ -48,6 +48,12 @@ abstract class DataType<T> {
   /// [bool] object data type.
   static const BooleanDataType boolean = BooleanDataType();
 
+  /// Default data type used to index collections, rows, columns, etc.
+  static IntegerDataType indexDataType = uint32;
+
+  /// Default data type for integer arithmetic.
+  static IntegerDataType intDataType = int32;
+
   /// Signed 8-bit [int] data type.
   static const IntegerDataType int8 = Int8DataType();
 
@@ -75,6 +81,9 @@ abstract class DataType<T> {
   /// Return an modulo data type.
   static ModuloDataType<T> modulo<T>(DataType<T> delegate, T modulus) =>
       ModuloDataType<T>(delegate, modulus);
+
+  /// Default [double] data type for floating point arithmetic.
+  static FloatDataType float = float64;
 
   /// 32-bit [double] data type.
   static const FloatDataType float32 = Float32DataType();

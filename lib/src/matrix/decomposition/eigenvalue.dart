@@ -1,9 +1,8 @@
 import 'dart:math' as math;
 
+import '../../../type.dart';
 import 'package:more/collection.dart';
-import 'package:more/number.dart';
 
-import '../../shared/config.dart';
 import '../../shared/math.dart';
 import '../matrix.dart';
 import '../operator/testing.dart';
@@ -28,15 +27,15 @@ class EigenvalueDecomposition {
   EigenvalueDecomposition(Matrix<num> a)
       : _n = a.columnCount,
         _isSymmetric = a.isSymmetric,
-        _d = floatDataType.newList(a.columnCount),
-        _e = floatDataType.newList(a.columnCount),
-        _v = Matrix(floatDataType, a.columnCount, a.columnCount),
-        _h = Matrix(floatDataType, a.columnCount, a.columnCount),
-        _ort = floatDataType.newList(a.columnCount) {
+        _d = DataType.float.newList(a.columnCount),
+        _e = DataType.float.newList(a.columnCount),
+        _v = Matrix(DataType.float, a.columnCount, a.columnCount),
+        _h = Matrix(DataType.float, a.columnCount, a.columnCount),
+        _ort = DataType.float.newList(a.columnCount) {
     if (_isSymmetric) {
       for (var i = 0; i < _n; i++) {
         for (var j = 0; j < _n; j++) {
-          _v.setUnchecked(i, j, floatDataType.cast(a.getUnchecked(i, j)));
+          _v.setUnchecked(i, j, DataType.float.cast(a.getUnchecked(i, j)));
         }
       }
       // Tridiagonalize.
@@ -46,7 +45,7 @@ class EigenvalueDecomposition {
     } else {
       for (var j = 0; j < _n; j++) {
         for (var i = 0; i < _n; i++) {
-          _h.setUnchecked(i, j, floatDataType.cast(a.getUnchecked(i, j)));
+          _h.setUnchecked(i, j, DataType.float.cast(a.getUnchecked(i, j)));
         }
       }
       // Reduce to Hessenberg form.
@@ -884,7 +883,7 @@ class EigenvalueDecomposition {
 
   /// Return the block diagonal eigenvalue matrix
   Matrix<double> get D {
-    final result = Matrix(floatDataType, _n, _n);
+    final result = Matrix(DataType.float, _n, _n);
     for (var i = 0; i < _n; i++) {
       result.setUnchecked(i, i, _d[i]);
       if (_e[i] > 0) {

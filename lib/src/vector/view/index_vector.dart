@@ -1,12 +1,11 @@
 import '../../../type.dart';
-import '../../shared/config.dart';
 import '../../shared/storage.dart';
 import '../vector.dart';
 
 // A mutable indexed view of a vector.
 class IndexVector<T> with Vector<T> {
   IndexVector(Vector<T> vector, Iterable<int> indexes)
-      : this._(vector, indexDataType.copyList(indexes));
+      : this._(vector, DataType.indexDataType.copyList(indexes));
 
   IndexVector._(this.vector, this.indexes);
 

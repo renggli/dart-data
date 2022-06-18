@@ -1,7 +1,6 @@
 import 'dart:math';
 
 import 'package:data/data.dart';
-import 'package:data/src/shared/config.dart' as config;
 import 'package:test/test.dart';
 
 final Matcher throwsDivisionByZero = throwsA(
@@ -504,7 +503,7 @@ void polynomialTest(String name, PolynomialFormat format) {
         test('view', () {
           final list = [0, 1, 2, 3, 0];
           final polynomial = list.toPolynomial();
-          expect(polynomial.dataType, config.intDataType);
+          expect(polynomial.dataType, DataType.intDataType);
           expect(polynomial.degree, 3);
           expect(polynomial[0], 0);
           expect(polynomial[1], 1);
@@ -527,7 +526,7 @@ void polynomialTest(String name, PolynomialFormat format) {
         test('copy', () {
           final list = [0, 1, 2, 3, 0];
           final polynomial = list.toPolynomial(format: format);
-          expect(polynomial.dataType, config.intDataType);
+          expect(polynomial.dataType, DataType.intDataType);
           expect(polynomial.degree, 3);
           expect(polynomial[0], 0);
           expect(polynomial[1], 1);

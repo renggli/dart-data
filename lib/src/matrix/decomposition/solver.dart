@@ -1,4 +1,4 @@
-import '../../shared/config.dart';
+import '../../../type.dart';
 import '../matrix.dart';
 import '../view/identity_matrix.dart';
 import '../view/transposed_matrix.dart';
@@ -22,6 +22,6 @@ extension SolverExtension<T extends num> on Matrix<T> {
 
   /// Returns the inverse if this [Matrix] is square, return the pseudo-inverse
   /// otherwise.
-  Matrix<double> get inverse => solve(IdentityMatrix<double>(floatDataType,
-      rowCount, rowCount, floatDataType.field.multiplicativeIdentity));
+  Matrix<double> get inverse => solve(IdentityMatrix<double>(DataType.float,
+      rowCount, rowCount, DataType.float.field.multiplicativeIdentity));
 }

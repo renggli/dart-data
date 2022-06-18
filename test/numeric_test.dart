@@ -1,7 +1,6 @@
 import 'dart:math';
 
 import 'package:data/data.dart';
-import 'package:data/src/shared/config.dart';
 import 'package:meta/meta.dart';
 import 'package:more/math.dart';
 import 'package:more/tuple.dart';
@@ -16,10 +15,10 @@ Tuple2<Vector<double>, Vector<double>> generateSamples(
   int count = 10,
 }) {
   final xs = Vector<double>.generate(
-      floatDataType, count, (i) => min + i * (max - min) / (count - 1),
+      DataType.float, count, (i) => min + i * (max - min) / (count - 1),
       format: VectorFormat.standard);
   final ys = Vector<double>.generate(
-      floatDataType, count, (i) => function(xs[i]),
+      DataType.float, count, (i) => function(xs[i]),
       format: VectorFormat.standard);
   return Tuple2(xs, ys);
 }
@@ -80,25 +79,25 @@ void main() {
       }
 
       final bennet5 = ParametrizedUnaryFunction<double>.positional(
-          floatDataType,
+          DataType.float,
           3,
           (double a, double b, double c) =>
               (double x) => a * pow(x + b, -1 / c));
 
       final sinFunction = ParametrizedUnaryFunction<double>.named(
-          floatDataType,
+          DataType.float,
           [#a, #b],
           ({required double a, required double b}) =>
               (double x) => a * sin(b * x));
 
       final sigmodid = ParametrizedUnaryFunction<double>.positional(
-          floatDataType,
+          DataType.float,
           3,
           (double a, double b, double c) =>
               (double x) => a / (b + exp(-x * c)));
 
       final lorentzians = ParametrizedUnaryFunction<double>.vector(
-          floatDataType,
+          DataType.float,
           6,
           (params) => (double x) {
                 var result = 0.0;
@@ -243,7 +242,7 @@ void main() {
         'noisy real-world data',
         LevenbergMarquardt(
           ParametrizedUnaryFunction<double>.positional(
-              floatDataType,
+              DataType.float,
               4,
               (double a, double b, double c, double d) =>
                   (double x) => a + (b - a) / (1 + pow(c, d) * pow(x, -d))),
@@ -602,7 +601,7 @@ void main() {
         final ys = <double>[];
         expect(
             () => lagrangeInterpolation(
-                  floatDataType,
+                  DataType.float,
                   xs: xs.toVector(),
                   ys: ys.toVector(),
                 ),
@@ -612,7 +611,7 @@ void main() {
         final xs = <double>[1];
         final ys = <double>[2];
         final f = lagrangeInterpolation(
-          floatDataType,
+          DataType.float,
           xs: xs.toVector(),
           ys: ys.toVector(),
         );
@@ -627,7 +626,7 @@ void main() {
         final xs = <double>[2, 3];
         final ys = <double>[1, 5];
         final f = lagrangeInterpolation(
-          floatDataType,
+          DataType.float,
           xs: xs.toVector(),
           ys: ys.toVector(),
         );
@@ -642,7 +641,7 @@ void main() {
         final xs = <double>[0, 2, 4];
         final ys = <double>[1, 4, 17];
         final f = lagrangeInterpolation(
-          floatDataType,
+          DataType.float,
           xs: xs.toVector(),
           ys: ys.toVector(),
         );

@@ -2,7 +2,6 @@ import 'dart:math';
 
 import '../../../type.dart';
 import '../../../vector.dart';
-import '../../shared/config.dart';
 
 /// Generates a vector with a sequence of [count] evenly spaced values over an
 /// interval between [start] and [stop].
@@ -12,7 +11,7 @@ Vector<double> linearSpaced(double start, double stop,
     DataType<double>? dataType,
     VectorFormat? format}) {
   final factor = 1.0 / (includeEndpoint ? count - 1 : count);
-  return Vector.generate(dataType ?? floatDataType, count,
+  return Vector.generate(dataType ?? DataType.float, count,
       (i) => start * (1.0 - factor * i) + stop * (factor * i),
       format: format);
 }

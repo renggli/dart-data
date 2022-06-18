@@ -1,4 +1,5 @@
-import '../../shared/config.dart';
+import '../../../type.dart';
+
 import '../../shared/math.dart';
 import '../matrix.dart';
 import '../view/cast_matrix.dart';
@@ -16,10 +17,10 @@ import '../view/cast_matrix.dart';
 /// returns false.
 class QRDecomposition {
   QRDecomposition(Matrix<num> source)
-      : _qr = source.cast(floatDataType).toMatrix(),
+      : _qr = source.cast(DataType.float).toMatrix(),
         _m = source.rowCount,
         _n = source.columnCount,
-        _rdiag = floatDataType.newList(source.columnCount) {
+        _rdiag = DataType.float.newList(source.columnCount) {
     // Main loop.
     for (var k = 0; k < _n; k++) {
       // Compute 2-norm of k-th column without under/overflow.
@@ -77,7 +78,7 @@ class QRDecomposition {
   /// Returns the Householder vectors: Lower trapezoidal matrix whose columns
   /// define the reflections.
   Matrix<double> get householder {
-    final result = Matrix(floatDataType, _m, _n);
+    final result = Matrix(DataType.float, _m, _n);
     for (var i = 0; i < _m; i++) {
       for (var j = 0; j < _n; j++) {
         if (i >= j) {
@@ -90,7 +91,7 @@ class QRDecomposition {
 
   /// Returns the upper triangular factor.
   Matrix<double> get upper {
-    final result = Matrix(floatDataType, _n, _n);
+    final result = Matrix(DataType.float, _n, _n);
     for (var i = 0; i < _n; i++) {
       for (var j = i; j < _n; j++) {
         if (i < j) {
@@ -105,7 +106,7 @@ class QRDecomposition {
 
   /// Returns the (economy-sized) orthogonal factor.
   Matrix<double> get orthogonal {
-    final result = Matrix(floatDataType, _m, _n);
+    final result = Matrix(DataType.float, _m, _n);
     for (var k = _n - 1; k >= 0; k--) {
       for (var i = 0; i < _m; i++) {
         result.setUnchecked(i, k, 0);
@@ -142,7 +143,7 @@ class QRDecomposition {
 
     // Copy right hand side
     final nx = B.columnCount;
-    final X = B.cast(floatDataType).toMatrix();
+    final X = B.cast(DataType.float).toMatrix();
 
     // Compute Y = transpose(Q)*B
     for (var k = 0; k < _n; k++) {

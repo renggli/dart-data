@@ -1,5 +1,4 @@
 import 'package:data/data.dart';
-import 'package:data/src/shared/config.dart' as config;
 import 'package:data/src/shared/lists.dart' as lists;
 import 'package:data/src/shared/math.dart' as math;
 import 'package:test/test.dart';
@@ -8,11 +7,11 @@ void main() {
   group('config', () {
     group('data types', () {
       test('index', () {
-        expect(config.indexDataType, DataType.uint32);
+        expect(DataType.indexDataType, DataType.uint32);
       });
 
       test('float', () {
-        expect(config.floatDataType, DataType.float64);
+        expect(DataType.float, DataType.float64);
       });
     });
   });

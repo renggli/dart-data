@@ -1,7 +1,6 @@
 import 'package:more/collection.dart' show IntegerRange;
 
 import '../../../type.dart';
-import '../../shared/config.dart';
 import '../../shared/storage.dart';
 import '../matrix.dart';
 
@@ -9,8 +8,8 @@ import '../matrix.dart';
 class IndexMatrix<T> with Matrix<T> {
   IndexMatrix(
       Matrix<T> matrix, Iterable<int> rowIndexes, Iterable<int> colIndexes)
-      : this._(matrix, indexDataType.copyList(rowIndexes),
-            indexDataType.copyList(colIndexes));
+      : this._(matrix, DataType.indexDataType.copyList(rowIndexes),
+            DataType.indexDataType.copyList(colIndexes));
 
   IndexMatrix._(this.matrix, this.rowIndexes, this.colIndexes);
 

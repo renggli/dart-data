@@ -1,5 +1,4 @@
 import '../../../type.dart';
-import '../../shared/config.dart';
 import '../../shared/lists.dart';
 import '../../shared/storage.dart';
 import '../matrix.dart';
@@ -55,7 +54,7 @@ class ConcatVerticalMatrix<T> with Matrix<T> {
 }
 
 List<int> computeIndexes(List<Matrix> matrices) {
-  final indexes = indexDataType.newList(matrices.length + 1);
+  final indexes = DataType.indexDataType.newList(matrices.length + 1);
   for (var i = 0; i < matrices.length; i++) {
     indexes[i + 1] = indexes[i] + matrices[i].rowCount;
   }

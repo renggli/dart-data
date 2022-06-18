@@ -1,6 +1,5 @@
 import '../../../matrix.dart';
 import '../../../type.dart';
-import '../../shared/config.dart';
 import '../polynomial.dart';
 
 extension RootsPolynomialExtension<T extends num> on Polynomial<T> {
@@ -14,7 +13,7 @@ extension RootsPolynomialExtension<T extends num> on Polynomial<T> {
     } else {
       final factor = -1.0 / getUnchecked(degree);
       final matrix =
-          Matrix<double>.generate(floatDataType, degree, degree, (r, c) {
+          Matrix<double>.generate(DataType.float, degree, degree, (r, c) {
         if (r == degree - 1) {
           return factor * getUnchecked(c);
         } else if (r + 1 == c) {

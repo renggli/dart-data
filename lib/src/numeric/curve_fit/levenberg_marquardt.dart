@@ -5,7 +5,6 @@ import 'package:more/tuple.dart';
 import '../../../matrix.dart';
 import '../../../type.dart';
 import '../../../vector.dart';
-import '../../shared/config.dart';
 import '../curve_fit.dart';
 import '../functions.dart';
 
@@ -34,9 +33,9 @@ class LevenbergMarquardt extends CurveFit {
   })  : initialValues = parametrizedFunction.toVector(initialValues,
             defaultParam: initialValue),
         minValues = parametrizedFunction.toVector(minValues,
-            defaultParam: minValue ?? intDataType.safeMin.toDouble()),
+            defaultParam: minValue ?? DataType.intDataType.safeMin.toDouble()),
         maxValues = parametrizedFunction.toVector(maxValues,
-            defaultParam: maxValue ?? intDataType.safeMax.toDouble()),
+            defaultParam: maxValue ?? DataType.intDataType.safeMax.toDouble()),
         gradientDifferences = parametrizedFunction.toVector(gradientDifferences,
             defaultParam: gradientDifference) {
     if (parametrizedFunction.count == 0) {
@@ -104,13 +103,13 @@ class LevenbergMarquardt extends CurveFit {
       throw ArgumentError.value(y, 'y', 'Expected ${x.count} values.');
     }
 
-    weights ??= Vector<double>.constant(floatDataType, y.count, value: weight);
+    weights ??= Vector<double>.constant(DataType.float, y.count, value: weight);
     if (weights.count != x.count) {
       throw ArgumentError.value(
           weights, 'weights', 'Expected ${x.count} values.');
     }
     final squaredWeights =
-        weights.map((i, v) => v * v, floatDataType).toVector();
+        weights.map((i, v) => v * v, DataType.float).toVector();
 
     var parameters = initialValues.toVector();
     var error = _errorCalculation(parametrizedFunction.bind(parameters),

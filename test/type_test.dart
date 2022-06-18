@@ -1,15 +1,14 @@
 import 'dart:math';
 
 import 'package:data/data.dart';
-import 'package:data/src/shared/config.dart' as config;
 import 'package:more/feature.dart';
 import 'package:more/ordering.dart';
 import 'package:test/test.dart';
 
 void listTest<T>(DataType<T> type, List<List<T>> lists) {
   if (<DataType>[
-    config.floatDataType,
-    config.intDataType,
+    DataType.float,
+    DataType.intDataType,
     DataType.boolean,
     DataType.string,
     DataType.bigInt,

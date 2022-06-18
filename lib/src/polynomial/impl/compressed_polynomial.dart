@@ -1,5 +1,4 @@
 import '../../../type.dart';
-import '../../shared/config.dart';
 import '../../shared/lists.dart';
 import '../../shared/storage.dart';
 import '../polynomial.dart';
@@ -9,7 +8,7 @@ class CompressedPolynomial<T> with Polynomial<T> {
   CompressedPolynomial(DataType<T> dataType)
       : this._(
             dataType,
-            indexDataType.newList(initialListLength),
+            DataType.indexDataType.newList(initialListLength),
             dataType.newList(
                 initialListLength, dataType.field.additiveIdentity),
             0);
@@ -33,7 +32,7 @@ class CompressedPolynomial<T> with Polynomial<T> {
   @override
   Polynomial<T> copy() => CompressedPolynomial._(
       dataType,
-      indexDataType.copyList(_exponents),
+      DataType.indexDataType.copyList(_exponents),
       dataType.copyList(_coefficients),
       _length);
 
@@ -48,8 +47,8 @@ class CompressedPolynomial<T> with Polynomial<T> {
     final pos = binarySearch<num>(_exponents, 0, _length, exponent);
     if (pos < 0) {
       if (value != dataType.defaultValue) {
-        _exponents =
-            insertAt(indexDataType, _exponents, _length, -pos - 1, exponent);
+        _exponents = insertAt(
+            DataType.indexDataType, _exponents, _length, -pos - 1, exponent);
         _coefficients = insertAt(
             dataType, _coefficients, _length, -pos - 1, value,
             fillValue: dataType.defaultValue);
@@ -57,7 +56,7 @@ class CompressedPolynomial<T> with Polynomial<T> {
       }
     } else {
       if (value == dataType.defaultValue) {
-        _exponents = removeAt(indexDataType, _exponents, _length, pos);
+        _exponents = removeAt(DataType.indexDataType, _exponents, _length, pos);
         _coefficients = removeAt(dataType, _coefficients, _length, pos,
             fillValue: dataType.defaultValue);
         _length--;

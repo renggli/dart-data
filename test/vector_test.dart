@@ -1,7 +1,6 @@
 import 'dart:math';
 
 import 'package:data/data.dart';
-import 'package:data/src/shared/config.dart' as config;
 import 'package:test/test.dart';
 
 void vectorTest(String name, VectorFormat format) {
@@ -314,7 +313,7 @@ void vectorTest(String name, VectorFormat format) {
         test('copy', () {
           final iterable = {1, 2, 3};
           final vector = iterable.toVector();
-          expect(vector.dataType, config.intDataType);
+          expect(vector.dataType, DataType.intDataType);
           expect(vector.count, 3);
           expect(vector[0], 1);
           expect(vector[1], 2);
@@ -333,7 +332,7 @@ void vectorTest(String name, VectorFormat format) {
         test('copy with format', () {
           final iterable = {1, 2, 3};
           final vector = iterable.toVector(format: format);
-          expect(vector.dataType, config.intDataType);
+          expect(vector.dataType, DataType.intDataType);
           expect(vector.count, 3);
           expect(vector[0], 1);
           expect(vector[1], 2);
@@ -571,7 +570,7 @@ void vectorTest(String name, VectorFormat format) {
         test('view', () {
           final list = [1, 2, 3];
           final vector = list.toVector();
-          expect(vector.dataType, config.intDataType);
+          expect(vector.dataType, DataType.intDataType);
           expect(vector.count, 3);
           expect(vector[0], 1);
           expect(vector[1], 2);
@@ -589,7 +588,7 @@ void vectorTest(String name, VectorFormat format) {
         test('copy', () {
           final list = [1, 2, 3];
           final vector = list.toVector(format: format);
-          expect(vector.dataType, config.intDataType);
+          expect(vector.dataType, DataType.intDataType);
           expect(vector.count, 3);
           expect(vector[0], 1);
           expect(vector[1], 2);

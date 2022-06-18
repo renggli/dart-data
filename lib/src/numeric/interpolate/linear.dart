@@ -1,5 +1,6 @@
+import '../../../type.dart';
+
 import '../../../vector.dart';
-import '../../shared/config.dart';
 import '../functions.dart';
 import 'utils.dart';
 
@@ -14,7 +15,7 @@ UnaryFunction<double> linearInterpolation({
   double left = double.nan,
   double right = double.nan,
 }) {
-  validateCoordinates(floatDataType,
+  validateCoordinates(DataType.float,
       xs: xs, ys: ys, min: 1, ordered: true, unique: true);
   return (double x) {
     if (x < xs.getUnchecked(0)) {

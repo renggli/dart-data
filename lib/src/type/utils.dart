@@ -2,7 +2,6 @@ import 'dart:math' as math;
 
 import 'package:more/number.dart';
 
-import '../shared/config.dart' as config;
 import 'impl/integer.dart';
 import 'type.dart';
 
@@ -10,9 +9,9 @@ import 'type.dart';
 DataType<T> fromType<T>() {
   switch (T) {
     case double:
-      return config.floatDataType as DataType<T>;
+      return DataType.float as DataType<T>;
     case int:
-      return config.intDataType as DataType<T>;
+      return DataType.intDataType as DataType<T>;
     case bool:
       return DataType.boolean as DataType<T>;
     case String:

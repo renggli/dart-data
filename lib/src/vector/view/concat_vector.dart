@@ -1,6 +1,5 @@
 import '../../../type.dart';
 import '../../../vector.dart';
-import '../../shared/config.dart';
 import '../../shared/lists.dart';
 import '../../shared/storage.dart';
 import '../vector.dart';
@@ -51,7 +50,7 @@ class ConcatVector<T> with Vector<T> {
 }
 
 List<int> computeIndexes(List<Vector> vectors) {
-  final indexes = indexDataType.newList(vectors.length + 1);
+  final indexes = DataType.indexDataType.newList(vectors.length + 1);
   for (var i = 0; i < vectors.length; i++) {
     indexes[i + 1] = indexes[i] + vectors[i].count;
   }

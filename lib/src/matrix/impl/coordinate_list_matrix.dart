@@ -1,5 +1,4 @@
 import '../../../type.dart';
-import '../../shared/config.dart';
 import '../../shared/lists.dart';
 import '../../shared/storage.dart';
 import '../matrix.dart';
@@ -11,8 +10,8 @@ class CoordinateListMatrix<T> with Matrix<T> {
             dataType,
             rowCount,
             colCount,
-            indexDataType.newList(initialListLength),
-            indexDataType.newList(initialListLength),
+            DataType.indexDataType.newList(initialListLength),
+            DataType.indexDataType.newList(initialListLength),
             dataType.newList(initialListLength),
             0);
 
@@ -41,8 +40,8 @@ class CoordinateListMatrix<T> with Matrix<T> {
       dataType,
       rowCount,
       columnCount,
-      indexDataType.copyList(_rows),
-      indexDataType.copyList(_cols),
+      DataType.indexDataType.copyList(_rows),
+      DataType.indexDataType.copyList(_cols),
       dataType.copyList(_values),
       _length);
 
@@ -74,15 +73,17 @@ class CoordinateListMatrix<T> with Matrix<T> {
     final index = _binarySearch(row, col);
     if (index < 0) {
       if (value != dataType.defaultValue) {
-        _rows = insertAt(indexDataType, _rows, _length, -index - 1, row);
-        _cols = insertAt(indexDataType, _cols, _length, -index - 1, col);
+        _rows =
+            insertAt(DataType.indexDataType, _rows, _length, -index - 1, row);
+        _cols =
+            insertAt(DataType.indexDataType, _cols, _length, -index - 1, col);
         _values = insertAt(dataType, _values, _length, -index - 1, value);
         _length++;
       }
     } else {
       if (value == dataType.defaultValue) {
-        _rows = removeAt(indexDataType, _rows, _length, index);
-        _cols = removeAt(indexDataType, _cols, _length, index);
+        _rows = removeAt(DataType.indexDataType, _rows, _length, index);
+        _cols = removeAt(DataType.indexDataType, _cols, _length, index);
         _values = removeAt(dataType, _values, _length, index);
         _length--;
       } else {

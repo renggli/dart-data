@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 
-import '../../shared/config.dart';
+import '../../../type.dart';
+
 import '../matrix.dart';
 import '../view/cast_matrix.dart';
 import '../view/row_vector.dart';
@@ -17,7 +18,7 @@ class CholeskyDecomposition {
   /// Cholesky algorithm for symmetric and positive definite matrix.
   /// Structure to access L and isspd flag.
   CholeskyDecomposition(Matrix<num> a)
-      : _l = Matrix(floatDataType, a.rowCount, a.rowCount),
+      : _l = Matrix(DataType.float, a.rowCount, a.rowCount),
         _n = a.rowCount,
         _isSymmetric = a.rowCount == a.columnCount {
     // Main loop.
@@ -74,7 +75,7 @@ class CholeskyDecomposition {
 
     // Copy right hand side.
     final nx = B.columnCount;
-    final result = B.cast(floatDataType).toMatrix();
+    final result = B.cast(DataType.float).toMatrix();
 
     // Solve L*Y = B;
     for (var k = 0; k < _n; k++) {

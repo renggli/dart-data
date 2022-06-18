@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 
-import '../../shared/config.dart';
+import '../../../type.dart';
+
 import '../../shared/math.dart';
 import '../matrix.dart';
 import '../matrix_format.dart';
@@ -21,17 +22,17 @@ import '../view/cast_matrix.dart';
 class SingularValueDecomposition {
   /// Construct the singular value decomposition Structure to access U, S and V.
   SingularValueDecomposition(Matrix<num> input)
-      : _u = Matrix(floatDataType, input.rowCount,
+      : _u = Matrix(DataType.float, input.rowCount,
             math.min(input.rowCount, input.columnCount)),
-        _v = Matrix(floatDataType, input.columnCount, input.columnCount),
-        _s = floatDataType
+        _v = Matrix(DataType.float, input.columnCount, input.columnCount),
+        _s = DataType.float
             .newList(math.min(input.rowCount + 1, input.columnCount)),
         _m = input.rowCount,
         _n = input.columnCount {
     // Initialize.
-    final A = input.cast(floatDataType).toMatrix();
-    final e = floatDataType.newList(_n);
-    final work = floatDataType.newList(_m);
+    final A = input.cast(DataType.float).toMatrix();
+    final e = DataType.float.newList(_n);
+    final work = DataType.float.newList(_m);
 
     // Reduce A to bi-diagonal form, storing the diagonal elements
     // in s and the super-diagonal elements in e.
@@ -438,11 +439,12 @@ class SingularValueDecomposition {
   Matrix<double> get V => _v.toMatrix();
 
   /// Return the one-dimensional array of singular values.
-  List<double> get s => floatDataType.copyList(_s);
+  List<double> get s => DataType.float.copyList(_s);
 
   /// Return the diagonal matrix of singular values.
   Matrix<double> get S {
-    final result = Matrix(floatDataType, _n, _n, format: MatrixFormat.diagonal);
+    final result =
+        Matrix(DataType.float, _n, _n, format: MatrixFormat.diagonal);
     for (var i = 0; i < _n; i++) {
       result.setUnchecked(i, i, _s[i]);
     }

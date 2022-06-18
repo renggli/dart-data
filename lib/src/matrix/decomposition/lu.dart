@@ -1,6 +1,6 @@
 import 'dart:math' as math;
 
-import '../../shared/config.dart';
+import '../../../type.dart';
 import '../matrix.dart';
 import '../view/cast_matrix.dart';
 import '../view/column_vector.dart';
@@ -20,10 +20,10 @@ import '../view/row_vector.dart';
 /// linear equations.  This will fail if [isNonsingular] returns false.
 class LUDecomposition {
   LUDecomposition(Matrix<num> source)
-      : _lu = source.cast(floatDataType).toMatrix(),
+      : _lu = source.cast(DataType.float).toMatrix(),
         _m = source.rowCount,
         _n = source.columnCount,
-        _piv = indexDataType.newList(source.rowCount) {
+        _piv = DataType.indexDataType.newList(source.rowCount) {
     // Use a 'left-looking', dot-product, Crout/Doolittle algorithm.
     for (var i = 0; i < _m; i++) {
       _piv[i] = i;
@@ -101,7 +101,7 @@ class LUDecomposition {
 
   /// Returns the lower triangular factor.
   Matrix<double> get lower {
-    final result = Matrix(floatDataType, _m, _n);
+    final result = Matrix(DataType.float, _m, _n);
     for (var i = 0; i < _m; i++) {
       for (var j = 0; j < _n; j++) {
         if (i > j) {
@@ -116,7 +116,7 @@ class LUDecomposition {
 
   /// Returns upper triangular factor.
   Matrix<double> get upper {
-    final result = Matrix(floatDataType, _n, _n);
+    final result = Matrix(DataType.float, _n, _n);
     for (var i = 0; i < _n; i++) {
       for (var j = 0; j < _n; j++) {
         if (i <= j) {
@@ -128,7 +128,7 @@ class LUDecomposition {
   }
 
   /// Returns pivot permutation vector.
-  List<int> get pivot => indexDataType.copyList(_piv);
+  List<int> get pivot => DataType.indexDataType.copyList(_piv);
 
   /// Returns the determinant.
   double get det {
@@ -157,7 +157,7 @@ class LUDecomposition {
 
     // Copy right hand side with pivoting
     final nx = B.columnCount;
-    final X = B.rowIndexUnchecked(_piv).cast(floatDataType).toMatrix();
+    final X = B.rowIndexUnchecked(_piv).cast(DataType.float).toMatrix();
 
     // Solve L*Y = B(piv,:)
     for (var k = 0; k < _n; k++) {
