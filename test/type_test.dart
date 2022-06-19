@@ -421,6 +421,37 @@ void fieldTest<T>(DataType<T> type, List<T> values) {
       DataType.float64,
       DataType.complex,
       DataType.quaternion,
+    ].contains(type)) {
+      test('nan', () {
+        final nan = field.nan;
+        expect(isClose(nan, nan, epsilon), isFalse);
+        for (final value in values) {
+          expect(isClose(nan, value, epsilon), isFalse);
+        }
+      });
+      if (!<DataType>[
+        DataType.complex,
+        DataType.quaternion,
+      ].contains(type)) {
+        test('infinity', () {
+          final infinity = field.infinity;
+          expect(isClose(infinity, infinity, epsilon), isFalse);
+          expect(values, everyElement(type.ordering.lessThan(infinity)));
+        });
+        test('negativeInfinity', () {
+          final negativeInfinity = field.negativeInfinity;
+          expect(isClose(negativeInfinity, negativeInfinity, epsilon), isFalse);
+          expect(values,
+              everyElement(type.ordering.greaterThan(negativeInfinity)));
+        });
+      }
+    }
+    if (<DataType>[
+      DataType.numeric,
+      DataType.float32,
+      DataType.float64,
+      DataType.complex,
+      DataType.quaternion,
       DataType.fraction,
     ].contains(type)) {
       test('inv', () {

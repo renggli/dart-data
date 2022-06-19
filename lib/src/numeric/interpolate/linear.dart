@@ -6,32 +6,39 @@ import 'binary_search.dart';
 
 /// A function providing linear interpolation of a discrete monotonically
 /// increasing set of sample points [xs] and [ys]. Returns [left] or [right],
-/// if the point is outside the data range.
+/// if the point is outside the data range, by default extrapolate linearly.
 ///
 /// See https://en.wikipedia.org/wiki/Linear_interpolation.
-UnaryFunction<double> linearInterpolation({
-  required Vector<double> xs,
-  required Vector<double> ys,
-  double left = double.nan,
-  double right = double.nan,
+UnaryFunction<T> linearInterpolation<T>(
+  DataType<T> dataType, {
+  required Vector<T> xs,
+  required Vector<T> ys,
+  T? left,
+  T? right,
 }) {
-  checkPoints(DataType.float,
-      xs: xs, ys: ys, min: 1, ordered: true, unique: true);
-  final slopes = Vector.generate(
-      DataType.float,
+  checkPoints(dataType, xs: xs, ys: ys, min: 1, ordered: true, unique: true);
+  final add = dataType.field.add, sub = dataType.field.sub;
+  final mul = dataType.field.mul, div = dataType.field.div;
+  final ordering = dataType.ordering;
+  final below = ordering.lessThan(xs.getUnchecked(0));
+  final above = ordering.greaterThan(xs.getUnchecked(xs.count - 1));
+  final slopes = Vector<T>.generate(
+      dataType,
       xs.count - 1,
-      (i) =>
-          (ys.getUnchecked(i + 1) - ys.getUnchecked(i)) /
-          (xs.getUnchecked(i + 1) - xs.getUnchecked(i)),
+      (i) => div(sub(ys.getUnchecked(i + 1), ys.getUnchecked(i)),
+          sub(xs.getUnchecked(i + 1), xs.getUnchecked(i))),
       format: defaultVectorFormat);
-  return (double x) {
-    if (x < xs.getUnchecked(0)) {
+  return (T x) {
+    if (below(x) && left != null) {
       return left;
-    } else if (xs.getUnchecked(xs.count - 1) < x) {
+    } else if (above(x) && right != null) {
       return right;
+    } else {
+      final index = ordering.binarySearchLeft(xs, x).clamp(1, xs.count - 1);
+      return add(
+          ys.getUnchecked(index - 1),
+          mul(slopes.getUnchecked(index - 1),
+              sub(x, xs.getUnchecked(index - 1))));
     }
-    final index = binarySearchLeft(xs, x).clamp(1, xs.count - 1);
-    return ys.getUnchecked(index - 1) +
-        slopes.getUnchecked(index - 1) * (x - xs.getUnchecked(index - 1));
   };
 }

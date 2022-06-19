@@ -643,28 +643,31 @@ void main() {
     group('linear', () {
       test('increasing', () {
         final f = linearInterpolation(
+          DataType.float,
           xs: [1.0, 2.0].toVector(),
           ys: [3.0, 4.0].toVector(),
         );
-        expect(f(0.5), isCloseTo(double.nan));
+        expect(f(0.5), isCloseTo(2.5));
         expect(f(1.0), isCloseTo(3.0));
         expect(f(1.5), isCloseTo(3.5));
         expect(f(2.0), isCloseTo(4.0));
-        expect(f(2.5), isCloseTo(double.nan));
+        expect(f(2.5), isCloseTo(4.5));
       });
       test('decreasing', () {
         final f = linearInterpolation(
+          DataType.float,
           xs: [1.0, 2.0].toVector(),
           ys: [4.0, 3.0].toVector(),
         );
-        expect(f(0.5), isCloseTo(double.nan));
+        expect(f(0.5), isCloseTo(4.5));
         expect(f(1.0), isCloseTo(4.0));
         expect(f(1.5), isCloseTo(3.5));
         expect(f(2.0), isCloseTo(3.0));
-        expect(f(2.5), isCloseTo(double.nan));
+        expect(f(2.5), isCloseTo(2.5));
       });
       test('custom bounds', () {
         final f = linearInterpolation(
+          DataType.float,
           xs: [1.0, 2.0].toVector(),
           ys: [3.0, 4.0].toVector(),
           left: double.negativeInfinity,
@@ -679,7 +682,7 @@ void main() {
       test('exponential function', () {
         final x = linearSpaced(-1, 1);
         final y = x.map((i, x) => exp(x));
-        final f = linearInterpolation(xs: x, ys: y);
+        final f = linearInterpolation(DataType.float, xs: x, ys: y);
         for (var i = -1.0; i <= 1.0; i += 0.25) {
           expect(f(i), isCloseTo(exp(i), epsilon: 0.1));
         }

@@ -20,7 +20,9 @@ UnaryFunction<double> nextInterpolation({
     } else if (xs.getUnchecked(xs.count - 1) < x) {
       return right;
     } else {
-      return ys.getUnchecked(binarySearchLeft(xs, x).clamp(0, xs.count - 1));
+      return ys.getUnchecked(DataType.float.ordering
+          .binarySearchLeft(xs, x)
+          .clamp(0, xs.count - 1));
     }
   };
 }
