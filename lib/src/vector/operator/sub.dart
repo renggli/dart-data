@@ -4,7 +4,7 @@ import '../vector_format.dart';
 import 'utils.dart';
 
 extension SubVectorExtension<T> on Vector<T> {
-  /// Subtracts [other] from this [Vector].
+  /// Returns a [Vector] with the element-wise subtraction of [other] from this.
   Vector<T> sub(Vector<T> other,
       {Vector<T>? target, DataType<T>? dataType, VectorFormat? format}) {
     final result = createVector<T>(this, target, dataType, format);
@@ -12,6 +12,9 @@ extension SubVectorExtension<T> on Vector<T> {
     return result;
   }
 
-  /// Subtracts [other] from this [Vector].
+  /// In-place subtracts [other] from this one.
+  Vector<T> subEq(Vector<T> other) => sub(other, target: this);
+
+  /// Subtracts [other] from this one.
   Vector<T> operator -(Vector<T> other) => sub(other);
 }

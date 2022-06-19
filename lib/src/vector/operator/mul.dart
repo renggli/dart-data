@@ -18,6 +18,9 @@ extension MulVectorExtension<T> on Vector<T> {
     return result;
   }
 
-  /// Multiplies this [Vector] with [other].
+  /// In-place multiplies this by [other].
+  Vector<T> mulEq(/* Vector<T>|T */ Object other) => mul(other, target: this);
+
+  /// Multiplies this with [other].
   Vector<T> operator *(/* Vector<T>|T */ Object other) => mul(other);
 }

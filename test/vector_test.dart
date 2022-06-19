@@ -718,6 +718,13 @@ void vectorTest(String name, VectorFormat format) {
             expect(target[i], sourceA[i] + sourceB[i]);
           }
         });
+        test('in-place', () {
+          final target = sourceA.toVector(format: format);
+          expect(target.addEq(sourceB), target);
+          for (var i = 0; i < target.count; i++) {
+            expect(target[i], sourceA[i] + sourceB[i]);
+          }
+        });
         test('operator', () {
           final target = sourceA + sourceB;
           expect(target.dataType, sourceA.dataType);
@@ -766,6 +773,13 @@ void vectorTest(String name, VectorFormat format) {
             expect(target[i], sourceA[i] - sourceB[i]);
           }
         });
+        test('in-place', () {
+          final target = sourceA.toVector(format: format);
+          expect(target.subEq(sourceB), target);
+          for (var i = 0; i < target.count; i++) {
+            expect(target[i], sourceA[i] - sourceB[i]);
+          }
+        });
         test('operator', () {
           final target = sourceA - sourceB;
           expect(target.dataType, sourceA.dataType);
@@ -780,6 +794,13 @@ void vectorTest(String name, VectorFormat format) {
           final target = sourceA.neg();
           expect(target.dataType, sourceA.dataType);
           expect(target.count, sourceA.count);
+          for (var i = 0; i < target.count; i++) {
+            expect(target[i], -sourceA[i]);
+          }
+        });
+        test('in-place', () {
+          final target = sourceA.toVector(format: format);
+          expect(target.negEq(), target);
           for (var i = 0; i < target.count; i++) {
             expect(target[i], -sourceA[i]);
           }
@@ -800,6 +821,13 @@ void vectorTest(String name, VectorFormat format) {
           expect(target.count, sourceA.count);
           for (var i = 0; i < target.count; i++) {
             expect(target[i], sourceA[i] * sourceB[i]);
+          }
+        });
+        test('in-place', () {
+          final target = sourceA.toVector(format: format);
+          expect(target.mulEq(2), target);
+          for (var i = 0; i < target.count; i++) {
+            expect(target[i], 2 * sourceA[i]);
           }
         });
         test('operator', () {
@@ -826,6 +854,13 @@ void vectorTest(String name, VectorFormat format) {
           expect(target.count, sourceA.count);
           for (var i = 0; i < target.count; i++) {
             expect(target[i], sourceA[i] ~/ sourceB[i]);
+          }
+        });
+        test('in-place', () {
+          final target = sourceA.toVector(format: format);
+          expect(target.divEq(2), target);
+          for (var i = 0; i < target.count; i++) {
+            expect(target[i], sourceA[i] ~/ 2);
           }
         });
         test('operator', () {
@@ -881,6 +916,13 @@ void vectorTest(String name, VectorFormat format) {
           expect(v[0], 17.0);
           expect(v[1], -10.0);
           expect(v[2], 9.0);
+        });
+        test('in-place', () {
+          final target = v0.toVector(format: format);
+          expect(target.lerpEq(v1, 0.5), target);
+          expect(target[0], 5.0);
+          expect(target[1], 2.0);
+          expect(target[2], 9.0);
         });
         test('error', () {
           final other = Vector(DataType.float32, 2, format: format);

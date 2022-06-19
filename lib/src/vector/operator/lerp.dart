@@ -15,4 +15,7 @@ extension LerpVectorExtension<T> on Vector<T> {
         result, this, other, (a, b) => add(scale(a, 1.0 - t), scale(b, t)));
     return result;
   }
+
+  /// In-place linear interpolation between this [Vector] and [other].
+  Vector<T> lerpEq(Vector<T> other, num t) => lerp(other, t, target: this);
 }

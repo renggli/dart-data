@@ -12,6 +12,9 @@ extension NegVectorExtension<T> on Vector<T> {
     return result;
   }
 
-  /// Convenience method to negate this [Vector].
+  /// In-place negates this [Vector].
+  Vector<T> negEq() => neg(target: this);
+
+  /// Negate this [Vector].
   Vector<T> operator -() => neg();
 }

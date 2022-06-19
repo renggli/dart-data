@@ -18,6 +18,9 @@ extension DivVectorExtension<T> on Vector<T> {
     return result;
   }
 
-  /// Divides this [Vector] by [other].
+  /// In-place divides this by [other].
+  Vector<T> divEq(/* Vector<T>|T */ Object other) => div(other, target: this);
+
+  /// Divides this by [other].
   Vector<T> operator /(/* Vector<T>|T */ Object other) => div(other);
 }
