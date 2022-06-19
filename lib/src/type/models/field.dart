@@ -9,7 +9,7 @@ abstract class Field<T> {
   T get additiveIdentity;
 
   /// Computes the additive inverse: `-a`.
-  T neg(T a);
+  T neg(T a) => sub(additiveIdentity, a);
 
   /// Computes the addition: `a + b`.
   T add(T a, T b);
@@ -21,7 +21,7 @@ abstract class Field<T> {
   T get multiplicativeIdentity;
 
   /// Computes the multiplicative inverse: `1 / a`.
-  T inv(T a);
+  T inv(T a) => div(multiplicativeIdentity, a);
 
   /// Computes the multiplication: `a * b`.
   T mul(T a, T b);
@@ -52,6 +52,15 @@ abstract class Field<T> {
 
   /// Computes the greatest common divisor: `gcd(a, b)`.
   T gcd(T a, T b);
+
+  /// Not a number.
+  T get nan => div(additiveIdentity, additiveIdentity);
+
+  /// Positive infinity.
+  T get infinity => div(multiplicativeIdentity, additiveIdentity);
+
+  /// Negative infinity.
+  T get negativeInfinity => neg(infinity);
 
   /// Thrown when an operation is not supported.
   T unsupportedOperation(String operation) =>
