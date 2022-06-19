@@ -7,7 +7,7 @@ import '../../type.dart' show DataType;
 import '../shared/storage.dart';
 import 'impl/compressed_vector.dart';
 import 'impl/keyed_vector.dart';
-import 'impl/standard_vector.dart';
+import 'impl/list_vector.dart';
 import 'vector_format.dart';
 import 'view/concat_vector.dart';
 import 'view/constant_vector.dart';
@@ -21,8 +21,8 @@ abstract class Vector<T> implements Storage {
     ArgumentError.checkNotNull(dataType, 'dataType');
     RangeError.checkNotNegative(count, 'count');
     switch (format ?? defaultVectorFormat) {
-      case VectorFormat.standard:
-        return StandardVector<T>(dataType, count);
+      case VectorFormat.list:
+        return ListVector<T>(dataType, count);
       case VectorFormat.compressed:
         return CompressedVector<T>(dataType, count);
       case VectorFormat.keyed:

@@ -1,5 +1,5 @@
 import '../../../type.dart';
-import '../impl/list_polynomial.dart';
+import '../impl/external_polynomial.dart';
 import '../polynomial.dart';
 import '../polynomial_format.dart';
 
@@ -13,7 +13,7 @@ extension ListPolynomialExtension<T> on List<T> {
       {DataType<T>? dataType, PolynomialFormat? format}) {
     dataType ??= DataType.fromType<T>();
     return format == null
-        ? ListPolynomial<T>.fromList(dataType, this)
+        ? ExternalPolynomial<T>.fromList(dataType, this)
         : Polynomial.fromList(dataType, this, format: format);
   }
 }

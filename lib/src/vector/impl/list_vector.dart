@@ -3,11 +3,11 @@ import '../../shared/storage.dart';
 import '../vector.dart';
 
 /// Standard vector.
-class StandardVector<T> with Vector<T> {
-  StandardVector(DataType<T> dataType, int count)
+class ListVector<T> with Vector<T> {
+  ListVector(DataType<T> dataType, int count)
       : this.fromList(dataType, dataType.newList(count));
 
-  StandardVector.fromList(this.dataType, this._values);
+  ListVector.fromList(this.dataType, this._values);
 
   final List<T> _values;
 
@@ -21,8 +21,7 @@ class StandardVector<T> with Vector<T> {
   Set<Storage> get storage => {this};
 
   @override
-  Vector<T> copy() =>
-      StandardVector.fromList(dataType, dataType.copyList(_values));
+  Vector<T> copy() => ListVector.fromList(dataType, dataType.copyList(_values));
 
   @override
   T getUnchecked(int index) => _values[index];

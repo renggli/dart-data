@@ -976,8 +976,8 @@ void polynomialTest(String name, PolynomialFormat format) {
 }
 
 void main() {
-  polynomialTest('standard', PolynomialFormat.standard);
+  polynomialTest('list', PolynomialFormat.list);
   polynomialTest('compressed', PolynomialFormat.compressed);
   polynomialTest('keyed', PolynomialFormat.keyed);
-  polynomialTest('list', PolynomialFormat.list);
+  polynomialTest('external', PolynomialFormat.external);
 }

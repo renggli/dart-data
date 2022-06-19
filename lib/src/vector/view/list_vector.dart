@@ -1,5 +1,5 @@
 import '../../../type.dart';
-import '../impl/standard_vector.dart';
+import '../impl/list_vector.dart';
 import '../vector.dart';
 import '../vector_format.dart';
 
@@ -12,7 +12,7 @@ extension ListVectorExtension<T> on List<T> {
   Vector<T> toVector({DataType<T>? dataType, VectorFormat? format}) {
     dataType ??= DataType.fromType<T>();
     return format == null
-        ? StandardVector<T>.fromList(dataType, this)
+        ? ListVector<T>.fromList(dataType, this)
         : Vector.fromList(dataType, this, format: format);
   }
 }

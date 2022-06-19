@@ -1,37 +1,39 @@
+import 'dart:math' show max;
+
 import '../../../type.dart';
+import '../../shared/lists.dart';
 import '../../shared/storage.dart';
 import '../polynomial.dart';
 
-/// Polynomial built around an (externally managed) list of coefficients.
+/// Standard polynomial built around a managed list.
 class ListPolynomial<T> with Polynomial<T> {
   ListPolynomial(DataType<T> dataType, int desiredDegree)
-      : this.fromList(dataType, dataType.newList(desiredDegree + 1));
+      : this._(
+            dataType,
+            dataType.newList(max(initialListLength, desiredDegree + 1),
+                dataType.field.additiveIdentity),
+            -1);
 
-  ListPolynomial.fromList(this.dataType, this._coefficients);
+  ListPolynomial._(this.dataType, this._coefficients, this._degree);
+
+  // Coefficients in ascending order, where the index matches the exponent.
+  List<T> _coefficients;
+
+  // Cached degree, that is the highest non-zero coefficient.
+  int _degree;
 
   @override
   final DataType<T> dataType;
 
-  // Coefficients in ascending order, where the index matches the exponent.
-  final List<T> _coefficients;
-
   @override
-  int get degree {
-    // List might change externally, need to recompute the degree.
-    for (var i = _coefficients.length - 1; i >= 0; i--) {
-      if (_coefficients[i] != dataType.defaultValue) {
-        return i;
-      }
-    }
-    return -1;
-  }
+  int get degree => _degree;
 
   @override
   Set<Storage> get storage => {this};
 
   @override
   Polynomial<T> copy() =>
-      ListPolynomial.fromList(dataType, List<T>.from(_coefficients));
+      ListPolynomial._(dataType, dataType.copyList(_coefficients), _degree);
 
   @override
   T getUnchecked(int exponent) => exponent < _coefficients.length
@@ -40,9 +42,42 @@ class ListPolynomial<T> with Polynomial<T> {
 
   @override
   void setUnchecked(int exponent, T value) {
-    while (exponent >= _coefficients.length) {
-      _coefficients.add(dataType.defaultValue);
+    if (value == dataType.defaultValue) {
+      if (exponent <= _degree) {
+        _coefficients[exponent] = dataType.defaultValue;
+        if (exponent == _degree) {
+          _updateDegree();
+          _shrinkCoefficients();
+        }
+      }
+    } else {
+      _growCoefficients(exponent);
+      _coefficients[exponent] = value;
+      _degree = max(_degree, exponent);
     }
-    _coefficients[exponent] = value;
+  }
+
+  void _updateDegree() {
+    for (var i = _degree - 1; i >= 0; i--) {
+      if (_coefficients[i] != dataType.defaultValue) {
+        _degree = i;
+        return;
+      }
+    }
+    _degree = -1;
+  }
+
+  void _shrinkCoefficients() {
+    final newLength = max(initialListLength, _degree + 1);
+    if (2 * newLength < _coefficients.length) {
+      _coefficients = dataType.copyList(_coefficients, length: newLength);
+    }
+  }
+
+  void _growCoefficients(int exponent) {
+    if (exponent >= _coefficients.length) {
+      final newLength = max(exponent + 1, 3 * _coefficients.length ~/ 2 + 1);
+      _coefficients = dataType.copyList(_coefficients, length: newLength);
+    }
   }
 }

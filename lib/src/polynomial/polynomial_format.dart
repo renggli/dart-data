@@ -6,11 +6,11 @@
 
 /// Formats of polynomials.
 enum PolynomialFormat {
-  standard,
+  list,
   compressed,
   keyed,
-  list,
+  external,
 }
 
 /// Default polynomial format.
-PolynomialFormat defaultPolynomialFormat = PolynomialFormat.standard;
+PolynomialFormat defaultPolynomialFormat = PolynomialFormat.list;

@@ -6,10 +6,10 @@
 
 /// Formats of vectors.
 enum VectorFormat {
-  standard,
+  list,
   compressed,
   keyed,
 }
 
 /// Default vector format.
-VectorFormat defaultVectorFormat = VectorFormat.standard;
+VectorFormat defaultVectorFormat = VectorFormat.list;

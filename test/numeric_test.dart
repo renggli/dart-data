@@ -18,10 +18,10 @@ Tuple2<Vector<double>, Vector<double>> generateSamples(
 }) {
   final xs = Vector<double>.generate(
       DataType.float, count, (i) => min + i * (max - min) / (count - 1),
-      format: VectorFormat.standard);
+      format: VectorFormat.list);
   final ys = Vector<double>.generate(
       DataType.float, count, (i) => function(xs[i]),
-      format: VectorFormat.standard);
+      format: VectorFormat.list);
   return Tuple2(xs, ys);
 }
 
