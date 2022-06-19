@@ -12,6 +12,9 @@ extension NegMatrixExtension<T> on Matrix<T> {
     return result;
   }
 
+  /// In-place negates this [Matrix]
+  Matrix<T> negEq() => neg(target: this);
+
   /// Convenience method to negate this [Matrix].
   Matrix<T> operator -() => neg();
 }

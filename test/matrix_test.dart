@@ -1420,6 +1420,15 @@ void matrixTest(String name, MatrixFormat format) {
             }
           }
         });
+        test('in-place', () {
+          final result = sourceA.toMatrix(format: format);
+          expect(result.addEq(sourceB), result);
+          for (var r = 0; r < result.rowCount; r++) {
+            for (var c = 0; c < result.columnCount; c++) {
+              expect(result.get(r, c), sourceA.get(r, c) + sourceB.get(r, c));
+            }
+          }
+        });
         test('operator', () {
           final result = sourceA + sourceB;
           expect(result.dataType, sourceA.dataType);
@@ -1523,6 +1532,15 @@ void matrixTest(String name, MatrixFormat format) {
             }
           }
         });
+        test('in-place', () {
+          final result = sourceA.toMatrix(format: format);
+          expect(result.subEq(sourceB), result);
+          for (var r = 0; r < result.rowCount; r++) {
+            for (var c = 0; c < result.columnCount; c++) {
+              expect(result.get(r, c), sourceA.get(r, c) - sourceB.get(r, c));
+            }
+          }
+        });
         test('operator', () {
           final target = sourceA - sourceB;
           expect(target.dataType, sourceA.dataType);
@@ -1544,6 +1562,15 @@ void matrixTest(String name, MatrixFormat format) {
           for (var r = 0; r < target.rowCount; r++) {
             for (var c = 0; c < target.columnCount; c++) {
               expect(target.get(r, c), -sourceA.get(r, c));
+            }
+          }
+        });
+        test('in-place', () {
+          final result = sourceA.toMatrix(format: format);
+          expect(result.negEq(), result);
+          for (var r = 0; r < result.rowCount; r++) {
+            for (var c = 0; c < result.columnCount; c++) {
+              expect(result.get(r, c), -sourceA.get(r, c));
             }
           }
         });
@@ -1644,6 +1671,14 @@ void matrixTest(String name, MatrixFormat format) {
           expect(v.get(0, 1), -10.0);
           expect(v.get(1, 0), 9.0);
           expect(v.get(1, 1), -27.0);
+        });
+        test('in-place', () {
+          final result = v0.toMatrix(format: format);
+          expect(result.lerpEq(v1, 0.5), result);
+          expect(result.get(0, 0), 5.0);
+          expect(result.get(0, 1), 2.0);
+          expect(result.get(1, 0), 9.0);
+          expect(result.get(1, 1), 0.0);
         });
         test('error', () {
           final other = Matrix(DataType.float32, 2, 3, format: format);
@@ -1772,6 +1807,15 @@ void matrixTest(String name, MatrixFormat format) {
             for (var r = 0; r < target.rowCount; r++) {
               for (var c = 0; c < target.columnCount; c++) {
                 expect(target.get(r, c), 2 * matrixA.get(r, c));
+              }
+            }
+          });
+          test('in-place', () {
+            final result = matrixA.toMatrix(format: format);
+            expect(result.mulScalarEq(3), result);
+            for (var r = 0; r < result.rowCount; r++) {
+              for (var c = 0; c < result.columnCount; c++) {
+                expect(result.get(r, c), 3 * matrixA.get(r, c));
               }
             }
           });

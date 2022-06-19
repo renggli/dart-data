@@ -12,6 +12,9 @@ extension SubMatrixExtension<T> on Matrix<T> {
     return result;
   }
 
+  /// In-place subtracts [other] from this [Matrix].
+  Matrix<T> subEq(Matrix<T> other) => sub(other, target: this);
+
   /// Subtracts [other] from this [Matrix].
   Matrix<T> operator -(Matrix<T> other) => sub(other);
 }

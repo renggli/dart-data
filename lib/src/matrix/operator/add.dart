@@ -12,6 +12,9 @@ extension AddMatrixExtension<T> on Matrix<T> {
     return result;
   }
 
+  /// In-place adds [other] to this [Matrix].
+  Matrix<T> addEq(Matrix<T> other) => add(other, target: this);
+
   /// Adds [other] to this [Matrix].
   Matrix<T> operator +(Matrix<T> other) => add(other);
 }

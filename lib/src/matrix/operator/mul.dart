@@ -126,4 +126,7 @@ extension MulMatrixExtension<T> on Matrix<T> {
     unaryOperator<T>(result, this, (a) => mul(a, other));
     return result;
   }
+
+  /// In-place multiplies this [Matrix] with a scalar.
+  Matrix<T> mulScalarEq(T other) => mulScalar(other, target: this);
 }

@@ -15,4 +15,7 @@ extension LerpMatrixExtension<T> on Matrix<T> {
         result, this, other, (a, b) => add(scale(a, 1.0 - t), scale(b, t)));
     return result;
   }
+
+  /// In-place interpolates linearly between this [Matrix] and [other].
+  Matrix<T> lerpEq(Matrix<T> other, num t) => lerp(other, t, target: this);
 }
