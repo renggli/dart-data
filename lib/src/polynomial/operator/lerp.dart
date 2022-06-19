@@ -18,4 +18,12 @@ extension LerpPolynomialExtension<T> on Polynomial<T> {
         result, this, other, (a, b) => add(scale(a, 1.0 - t), scale(b, t)));
     return result;
   }
+
+  /// In-place interpolates linearly between this [Polynomial] and [other].
+  Polynomial<T> lerpEq(Polynomial<T> other, num t) {
+    final add = dataType.field.add, scale = dataType.field.scale;
+    binaryOperator<T>(
+        this, this, other, (a, b) => add(scale(a, 1.0 - t), scale(b, t)));
+    return this;
+  }
 }

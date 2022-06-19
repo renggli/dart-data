@@ -6,7 +6,7 @@ import '../polynomial_format.dart';
 import 'utils.dart';
 
 extension SubPolynomialExtension<T> on Polynomial<T> {
-  /// Subs [other] to this [Polynomial].
+  /// Subtracts [other] to this [Polynomial].
   Polynomial<T> sub(Polynomial<T> other,
       {DataType<T>? dataType, PolynomialFormat? format}) {
     final result = createPolynomial<T>(
@@ -15,6 +15,12 @@ extension SubPolynomialExtension<T> on Polynomial<T> {
     return result;
   }
 
-  /// Subs [other] to this [Polynomial].
+  /// In-place subtracts [other] to this [Polynomial].
+  Polynomial<T> subEq(Polynomial<T> other) {
+    binaryOperator<T>(this, this, other, dataType.field.sub);
+    return this;
+  }
+
+  /// Subtracts [other] to this [Polynomial].
   Polynomial<T> operator -(Polynomial<T> other) => sub(other);
 }

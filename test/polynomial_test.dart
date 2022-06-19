@@ -716,6 +716,13 @@ void polynomialTest(String name, PolynomialFormat format) {
             expect(result[i], sourceA[i] + sourceB[i]);
           }
         });
+        test('in-place', () {
+          final target = sourceA.toPolynomial(format: format);
+          expect(target.addEq(sourceB), target);
+          for (var i = 0; i <= target.degree; i++) {
+            expect(target[i], sourceA[i] + sourceB[i]);
+          }
+        });
         test('operator', () {
           final result = sourceA + sourceB;
           expect(result.dataType, sourceA.dataType);
@@ -753,6 +760,13 @@ void polynomialTest(String name, PolynomialFormat format) {
             expect(target[i], sourceA[i] - sourceB[i]);
           }
         });
+        test('in-place', () {
+          final target = sourceA.toPolynomial(format: format);
+          expect(target.subEq(sourceB), target);
+          for (var i = 0; i <= target.degree; i++) {
+            expect(target[i], sourceA[i] - sourceB[i]);
+          }
+        });
         test('operator', () {
           final target = sourceA - sourceB;
           expect(target.dataType, sourceA.dataType);
@@ -767,6 +781,13 @@ void polynomialTest(String name, PolynomialFormat format) {
           final target = sourceA.neg();
           expect(target.dataType, sourceA.dataType);
           expect(target.degree, sourceA.degree);
+          for (var i = 0; i <= target.degree; i++) {
+            expect(target[i], -sourceA[i]);
+          }
+        });
+        test('in-place', () {
+          final target = sourceA.toPolynomial(format: format);
+          expect(target.negEq(), target);
           for (var i = 0; i <= target.degree; i++) {
             expect(target[i], -sourceA[i]);
           }
@@ -816,6 +837,13 @@ void polynomialTest(String name, PolynomialFormat format) {
           expect(p[0], 17.0);
           expect(p[1], -10.0);
           expect(p[2], 8.0);
+        });
+        test('in-place', () {
+          final target = v0.toPolynomial(format: format);
+          expect(target.lerpEq(v1, 0.5), target);
+          expect(target[0], 5.0);
+          expect(target[1], 2.0);
+          expect(target[2], 8.0);
         });
         test('different degree', () {
           final v3 = Polynomial<double>.fromList(DataType.float32, [9, -2],
@@ -880,6 +908,13 @@ void polynomialTest(String name, PolynomialFormat format) {
           expect(target.degree, sourceA.degree);
           for (var i = 0; i < target.degree; i++) {
             expect(target[i], 2 * sourceA[i]);
+          }
+        });
+        test('in-place scale', () {
+          final target = sourceA.toPolynomial(format: format);
+          expect(target.mulScalarEq(3), target);
+          for (var i = 0; i <= target.degree; i++) {
+            expect(target[i], 3 * sourceA[i]);
           }
         });
       });

@@ -11,6 +11,12 @@ extension NegPolynomialExtension<T> on Polynomial<T> {
     return result;
   }
 
+  /// In-place negates this [Polynomial].
+  Polynomial<T> negEq() {
+    unaryOperator<T>(this, this, dataType.field.neg);
+    return this;
+  }
+
   /// Negates this [Polynomial].
   Polynomial<T> operator -() => neg();
 }

@@ -15,6 +15,12 @@ extension AddPolynomialExtension<T> on Polynomial<T> {
     return result;
   }
 
+  /// In-place adds [other] to this [Polynomial].
+  Polynomial<T> addEq(Polynomial<T> other) {
+    binaryOperator<T>(this, this, other, dataType.field.add);
+    return this;
+  }
+
   /// Adds [other] to this [Polynomial].
   Polynomial<T> operator +(Polynomial<T> other) => add(other);
 }

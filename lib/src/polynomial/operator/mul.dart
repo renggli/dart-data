@@ -64,4 +64,11 @@ extension MulPolynomialExtension<T> on Polynomial<T> {
     unaryOperator<T>(result, this, (a) => mul(a, other));
     return result;
   }
+
+  /// In-place multiplies this [Polynomial] with a scalar.
+  Polynomial<T> mulScalarEq(T other) {
+    final mul = dataType.field.mul;
+    unaryOperator<T>(this, this, (a) => mul(a, other));
+    return this;
+  }
 }
