@@ -1,7 +1,7 @@
 import 'dart:math' as math;
 import 'dart:typed_data';
 
-import 'package:more/number.dart' show Fraction;
+import 'package:more/number.dart' show Fraction, CloseToNumExtension;
 import 'package:more/ordering.dart' show Ordering;
 import 'package:more/printer.dart'
     show Printer, ScientificNumberPrinter, SignNumberPrinter;
@@ -144,5 +144,5 @@ class FloatEquality extends NaturalEquality<double> {
   const FloatEquality();
 
   @override
-  bool isClose(double a, double b, double epsilon) => (a - b).abs() < epsilon;
+  bool isClose(double a, double b, double epsilon) => a.closeTo(b, epsilon);
 }

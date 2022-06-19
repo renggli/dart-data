@@ -1,6 +1,6 @@
 import 'dart:math' as math;
 
-import 'package:more/number.dart' show Fraction;
+import 'package:more/number.dart' show Fraction, CloseToNumExtension;
 import 'package:more/ordering.dart' show Ordering;
 
 import '../models/equality.dart';
@@ -97,5 +97,5 @@ class NumericEquality extends NaturalEquality<num> {
   const NumericEquality();
 
   @override
-  bool isClose(num a, num b, double epsilon) => (a - b).abs() < epsilon;
+  bool isClose(num a, num b, double epsilon) => a.closeTo(b, epsilon);
 }

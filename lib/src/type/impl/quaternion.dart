@@ -43,7 +43,7 @@ class QuaternionEquality extends NaturalEquality<Quaternion> {
 
   @override
   bool isClose(Quaternion a, Quaternion b, double epsilon) =>
-      (a - b).abs() < epsilon;
+      a.closeTo(b, epsilon);
 }
 
 class QuaternionField extends Field<Quaternion> {
