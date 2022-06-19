@@ -76,7 +76,7 @@ abstract class ParametrizedUnaryFunction<T> {
           (i) => i < params.length
               ? params[i]
               : checkDefaultParam(params, defaultParam, i),
-          format: defaultVectorFormat);
+          format: VectorFormat.standard);
     } else if (params is Vector<T>) {
       return Vector<T>.generate(
           dataType,
@@ -84,7 +84,7 @@ abstract class ParametrizedUnaryFunction<T> {
           (i) => i < params.count
               ? params.getUnchecked(i)
               : checkDefaultParam(params, defaultParam, i),
-          format: defaultVectorFormat);
+          format: VectorFormat.standard);
     } else {
       throw ArgumentError.value(params, 'params', 'Invalid parameter type');
     }

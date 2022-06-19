@@ -18,7 +18,7 @@ UnaryFunction<T> lagrangeInterpolation<T>(
   final mulId = dataType.field.multiplicativeIdentity;
   final mul = dataType.field.mul, div = dataType.field.div;
   final l = Vector<T>.constant(dataType, xs.count,
-      value: mulId, format: defaultVectorFormat);
+      value: mulId, format: VectorFormat.standard);
   for (var i = 0; i < xs.count; i++) {
     final xi = xs.getUnchecked(i);
     for (var k = 0; k < xs.count; k++) {

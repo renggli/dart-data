@@ -9,8 +9,8 @@ enum PolynomialFormat {
   list,
   compressed,
   keyed,
-  external,
-}
+  external;
 
-/// Default polynomial format.
-PolynomialFormat defaultPolynomialFormat = PolynomialFormat.list;
+  /// Configurable default polynomial format.
+  static PolynomialFormat standard = PolynomialFormat.list;
+}

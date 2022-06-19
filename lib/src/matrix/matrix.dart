@@ -28,7 +28,9 @@ abstract class Matrix<T> implements Storage {
     ArgumentError.checkNotNull(dataType, 'dataType');
     RangeError.checkNotNegative(rowCount, 'rowCount');
     RangeError.checkNotNegative(columnCount, 'columnCount');
-    switch (format ?? defaultMatrixFormat) {
+    // https://github.com/dart-lang/sdk/issues/49188:
+    // ignore: missing_enum_constant_in_switch
+    switch (format ?? MatrixFormat.standard) {
       case MatrixFormat.rowMajor:
         return RowMajorMatrix<T>(dataType, rowCount, columnCount);
       case MatrixFormat.columnMajor:

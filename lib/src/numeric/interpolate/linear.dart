@@ -27,7 +27,7 @@ UnaryFunction<T> linearInterpolation<T>(
       xs.count - 1,
       (i) => div(sub(ys.getUnchecked(i + 1), ys.getUnchecked(i)),
           sub(xs.getUnchecked(i + 1), xs.getUnchecked(i))),
-      format: defaultVectorFormat);
+      format: VectorFormat.standard);
   return (T x) {
     if (below(x) && left != null) {
       return left;

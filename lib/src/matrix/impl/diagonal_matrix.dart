@@ -10,14 +10,13 @@ import '../matrix.dart';
 class DiagonalMatrix<T> with Matrix<T> {
   DiagonalMatrix(DataType<T> dataType, int rowCount, int colCount,
       {VectorFormat? format})
-      : this._(dataType, rowCount, colCount, <int, Vector<T>>{},
-            format ?? defaultVectorFormat);
+      : this._(dataType, rowCount, colCount, <int, Vector<T>>{}, format);
 
   DiagonalMatrix._(this.dataType, this.rowCount, this.columnCount,
       this._diagonals, this._format);
 
   final Map<int, Vector<T>> _diagonals;
-  final VectorFormat _format;
+  final VectorFormat? _format;
 
   @override
   final DataType<T> dataType;

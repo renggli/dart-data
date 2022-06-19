@@ -25,7 +25,7 @@ class NamedParametrizedUnaryFunction<T> extends ParametrizedUnaryFunction<T> {
           (i) =>
               params[names[i]] ??
               checkDefaultParam(params, defaultParam, names[i]),
-          format: defaultVectorFormat);
+          format: VectorFormat.standard);
     } else {
       return super.toVector(params, defaultParam: defaultParam);
     }

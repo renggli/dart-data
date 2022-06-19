@@ -1476,7 +1476,7 @@ void matrixTest(String name, MatrixFormat format) {
         test('by row', () {
           final vector = Vector.generate(
               sourceA.dataType, sourceA.rowCount, (i) => random.nextInt(100),
-              format: defaultVectorFormat);
+              format: VectorFormat.standard);
           final target = sourceA.applyByRow(sourceA.dataType.field.add, vector);
           expect(target.dataType, sourceA.dataType);
           expect(target.rowCount, sourceA.rowCount);
@@ -1494,7 +1494,7 @@ void matrixTest(String name, MatrixFormat format) {
         test('by column', () {
           final vector = Vector.generate(
               sourceA.dataType, sourceA.columnCount, (i) => random.nextInt(100),
-              format: defaultVectorFormat);
+              format: VectorFormat.standard);
           final target =
               sourceA.applyByColumn(sourceA.dataType.field.mul, vector);
           expect(target.dataType, sourceA.dataType);
@@ -1659,7 +1659,7 @@ void matrixTest(String name, MatrixFormat format) {
             format: format);
         final vectorB = Vector.generate(
             DataType.int32, matrixA.columnCount, (i) => random.nextInt(100),
-            format: defaultVectorFormat);
+            format: VectorFormat.standard);
         group('matrix', () {
           test('default', () {
             final target = matrixA.mul(matrixB);
