@@ -151,7 +151,7 @@ class LevenbergMarquardt extends CurveFit {
           perturbations.transposed
               .mulMatrix(perturbations
                   .mulScalar(currentDamping)
-                  .add(jacobianWeightResidualError))
+                  .addEq(jacobianWeightResidualError))
               .get(0, 0);
 
       if (improvementMetric > improvementThreshold) {

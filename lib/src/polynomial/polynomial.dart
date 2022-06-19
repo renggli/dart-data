@@ -3,6 +3,7 @@ import 'dart:collection' show ListMixin;
 import 'package:meta/meta.dart';
 import 'package:more/printer.dart' show Printer, StandardPrinter;
 
+import '../../data.dart';
 import '../../type.dart';
 import '../../vector.dart';
 import '../shared/checks.dart';
@@ -105,8 +106,7 @@ abstract class Polynomial<T> implements Storage {
     PolynomialFormat? format,
   }) {
     checkPoints<T>(dataType, xs: xs, ys: ys, min: 1, unique: true);
-    final add = dataType.field.add, sub = dataType.field.sub;
-    final mul = dataType.field.mul, div = dataType.field.div;
+    final sub = dataType.field.sub, div = dataType.field.div;
     final mulId = dataType.field.multiplicativeIdentity;
     var result = Polynomial<T>(dataType);
     for (var i = 0; i < xs.count; i++) {
@@ -122,8 +122,7 @@ abstract class Polynomial<T> implements Storage {
       final polynomial = roots.isEmpty
           ? Polynomial<T>.fromList(dataType, [mulId])
           : Polynomial<T>.fromRoots(dataType, roots);
-      unaryOperator<T>(polynomial, polynomial, (x) => mul(c, x));
-      binaryOperator<T>(result, result, polynomial, add);
+      result.addEq(polynomial.mulScalarEq(c));
     }
     return result;
   }
