@@ -74,6 +74,33 @@ print(roots.map((root) => root.real)); // [-5, -3, -2, 7, 11]
 print(roots.map((root) => root.imaginary)); // [0, 0, 0, 0, 0]
 ```
 
+### How to do a polynomial regression?
+
+To find the best fitting third degree polynomial through a list of points:
+
+```dart
+final height = [1.47, 1.50, 1.52, 1.55, 1.57, 1.60, 1.63, 1.65, 1.68, 1.70, 1.73, 1.75, 1.78, 1.80, 1.83].toVector();
+final mass = [52.21, 53.12, 54.48, 55.84, 57.20, 58.57, 59.93, 61.29, 63.11, 64.47, 66.28, 68.10, 69.92, 72.19, 74.46].toVector();
+final fitter = PolynomialRegression(degree: 2);
+final result = fitter.fit(xs: height, ys: mass);
+print(result.polynomial.format(valuePrinter: FixedNumberPrinter(precision: 3))); // 61.960x^2 + -143.162x + 128.813
+```
+
+### How to numerically integrate a function?
+
+In both examples we specify a custom depth, since these integrals are tricky at the upper bound (very steep for the first one, very flat for the second one).
+
+```dart
+// Compute the area of a circle by iterating over a quarter circle:
+final pi = 4 * integrate((x) => sqrt(1 - x * x), 0, 1, depth: 30);
+print(pi); // 3.1415925673846368 ~ pi
+
+// Compute an improper integral:
+final one = integrate((x) => exp(-x), 0, double.infinity, depth: 30);
+print(one); // 1.0000000904304227 ~ 1
+```
+
+
 Misc
 ----
 
