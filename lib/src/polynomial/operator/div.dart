@@ -22,23 +22,23 @@ extension DivPolynomialExtension<T> on Polynomial<T> {
     } else if (dividendDegree < 0) {
       // Dividend is zero.
       return PolynomialDivision(
-        createPolynomial<T>(this, 0, effectiveDataType, format),
-        createPolynomial<T>(this, 0, effectiveDataType, format),
+        quotient: createPolynomial<T>(this, 0, effectiveDataType, format),
+        remainder: createPolynomial<T>(this, 0, effectiveDataType, format),
       );
     } else if (divisorDegree == 0) {
       // Divisor is constant.
       final scalar = divisor.getUnchecked(0);
       return PolynomialDivision<T>(
-        Polynomial<T>.generate(effectiveDataType, dividendDegree,
+        quotient: Polynomial<T>.generate(effectiveDataType, dividendDegree,
             (i) => div(dividend.getUnchecked(i), scalar),
             format: format),
-        Polynomial<T>(effectiveDataType, format: format),
+        remainder: Polynomial<T>(effectiveDataType, format: format),
       );
     } else if (dividendDegree < divisorDegree) {
       // Divisor degree higher than dividend.
       return PolynomialDivision<T>(
-        Polynomial<T>(effectiveDataType, format: format),
-        dividend.toPolynomial(format: format),
+        quotient: Polynomial<T>(effectiveDataType, format: format),
+        remainder: dividend.toPolynomial(format: format),
       );
     }
     // Perform synthetic division:
@@ -55,9 +55,10 @@ extension DivPolynomialExtension<T> on Polynomial<T> {
       }
     }
     return PolynomialDivision<T>(
-      Polynomial<T>.fromList(effectiveDataType, output.sublist(divisorDegree),
+      quotient: Polynomial<T>.fromList(
+          effectiveDataType, output.sublist(divisorDegree),
           format: format),
-      Polynomial<T>.fromList(
+      remainder: Polynomial<T>.fromList(
           effectiveDataType, output.sublist(0, divisorDegree),
           format: format),
     );
@@ -76,7 +77,7 @@ extension DivPolynomialExtension<T> on Polynomial<T> {
 
 /// Data holder for the result of a polynomial division.
 class PolynomialDivision<T> {
-  PolynomialDivision(this.quotient, this.remainder);
+  PolynomialDivision({required this.quotient, required this.remainder});
 
   final Polynomial<T> quotient;
   final Polynomial<T> remainder;
