@@ -3,7 +3,6 @@ import 'dart:collection' show ListMixin;
 import 'package:meta/meta.dart';
 import 'package:more/printer.dart' show Printer, StandardPrinter;
 
-import '../../data.dart';
 import '../../type.dart';
 import '../../vector.dart';
 import '../shared/checks.dart';
@@ -12,7 +11,8 @@ import 'impl/compressed_polynomial.dart';
 import 'impl/external_polynomial.dart';
 import 'impl/keyed_polynomial.dart';
 import 'impl/list_polynomial.dart';
-import 'operator/utils.dart';
+import 'operator/add.dart';
+import 'operator/mul.dart';
 import 'polynomial_format.dart';
 import 'view/generated_polynomial.dart';
 
@@ -75,6 +75,7 @@ abstract class Polynomial<T> implements Storage {
     final result =
         Polynomial(dataType, desiredDegree: roots.length, format: format);
     if (roots.isEmpty) {
+      result.setUnchecked(0, dataType.field.multiplicativeIdentity);
       return result;
     }
     result.setUnchecked(0, dataType.field.neg(roots[0]));
@@ -107,22 +108,18 @@ abstract class Polynomial<T> implements Storage {
   }) {
     checkPoints<T>(dataType, xs: xs, ys: ys, min: 1, unique: true);
     final sub = dataType.field.sub, div = dataType.field.div;
-    final mulId = dataType.field.multiplicativeIdentity;
-    var result = Polynomial<T>(dataType);
+    final result = Polynomial<T>(dataType);
     for (var i = 0; i < xs.count; i++) {
-      var p = xs.getUnchecked(i);
-      var c = ys.getUnchecked(i);
       final roots = <T>[];
+      var scalar = ys.getUnchecked(i);
       for (var j = 0; j < xs.count; j++) {
         if (j != i) {
-          c = div(c, sub(p, xs.getUnchecked(j)));
+          scalar = div(scalar, sub(xs.getUnchecked(i), xs.getUnchecked(j)));
           roots.add(xs.getUnchecked(j));
         }
       }
-      final polynomial = roots.isEmpty
-          ? Polynomial<T>.fromList(dataType, [mulId])
-          : Polynomial<T>.fromRoots(dataType, roots);
-      result.addEq(polynomial.mulScalarEq(c));
+      result
+          .addEq(Polynomial<T>.fromRoots(dataType, roots).mulScalarEq(scalar));
     }
     return result;
   }

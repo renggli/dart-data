@@ -70,7 +70,7 @@ void polynomialTest(String name, PolynomialFormat format) {
           final actual =
               Polynomial.fromRoots(DataType.int32, <int>[], format: format);
           final expected =
-              Polynomial.fromList(DataType.int32, <int>[], format: format);
+              Polynomial.fromList(DataType.int32, <int>[1], format: format);
           expect(actual.toString(), expected.toString());
         });
         test('linear', () {
