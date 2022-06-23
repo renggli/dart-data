@@ -7,19 +7,19 @@ class ExternalPolynomial<T> with Polynomial<T> {
   ExternalPolynomial(DataType<T> dataType, int desiredDegree)
       : this.fromList(dataType, dataType.newList(desiredDegree + 1));
 
-  ExternalPolynomial.fromList(this.dataType, this._coefficients);
+  ExternalPolynomial.fromList(this.dataType, this.coefficients);
 
   @override
   final DataType<T> dataType;
 
-  // Coefficients in ascending order, where the index matches the exponent.
-  final List<T> _coefficients;
+  /// Coefficients in ascending order, where the index matches the exponent.
+  final List<T> coefficients;
 
   @override
   int get degree {
     // List might change externally, need to recompute the degree.
-    for (var i = _coefficients.length - 1; i >= 0; i--) {
-      if (_coefficients[i] != dataType.defaultValue) {
+    for (var i = coefficients.length - 1; i >= 0; i--) {
+      if (coefficients[i] != dataType.defaultValue) {
         return i;
       }
     }
@@ -31,18 +31,18 @@ class ExternalPolynomial<T> with Polynomial<T> {
 
   @override
   Polynomial<T> copy() =>
-      ExternalPolynomial.fromList(dataType, List<T>.from(_coefficients));
+      ExternalPolynomial.fromList(dataType, List<T>.from(coefficients));
 
   @override
-  T getUnchecked(int exponent) => exponent < _coefficients.length
-      ? _coefficients[exponent]
+  T getUnchecked(int exponent) => exponent < coefficients.length
+      ? coefficients[exponent]
       : dataType.defaultValue;
 
   @override
   void setUnchecked(int exponent, T value) {
-    while (exponent >= _coefficients.length) {
-      _coefficients.add(dataType.defaultValue);
+    while (exponent >= coefficients.length) {
+      coefficients.add(dataType.defaultValue);
     }
-    _coefficients[exponent] = value;
+    coefficients[exponent] = value;
   }
 }
