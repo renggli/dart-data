@@ -8,6 +8,8 @@
 enum MatrixFormat {
   rowMajor,
   columnMajor,
+  nestedRow,
+  nestedColumn,
   compressedRow,
   compressedColumn,
   coordinateList,

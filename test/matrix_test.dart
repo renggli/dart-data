@@ -2122,6 +2122,8 @@ void matrixTest(String name, MatrixFormat format) {
 void main() {
   matrixTest('rowMajor', MatrixFormat.rowMajor);
   matrixTest('columnMajor', MatrixFormat.columnMajor);
+  matrixTest('nestedRow', MatrixFormat.nestedRow);
+  matrixTest('nestedColumn', MatrixFormat.nestedColumn);
   matrixTest('compressedRow', MatrixFormat.compressedRow);
   matrixTest('compressedColumn', MatrixFormat.compressedColumn);
   matrixTest('coordinateList', MatrixFormat.coordinateList);

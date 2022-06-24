@@ -10,6 +10,8 @@ import 'impl/compressed_row_matrix.dart';
 import 'impl/coordinate_list_matrix.dart';
 import 'impl/diagonal_matrix.dart';
 import 'impl/keyed_matrix.dart';
+import 'impl/nested_column_matrix.dart';
+import 'impl/nested_row_matrix.dart';
 import 'impl/row_major_matrix.dart';
 import 'matrix_format.dart';
 import 'view/concat_horizontal_matrix.dart';
@@ -33,6 +35,10 @@ abstract class Matrix<T> implements Storage {
         return RowMajorMatrix<T>(dataType, rowCount, columnCount);
       case MatrixFormat.columnMajor:
         return ColumnMajorMatrix<T>(dataType, rowCount, columnCount);
+      case MatrixFormat.nestedRow:
+        return NestedRowMatrix<T>(dataType, rowCount, columnCount);
+      case MatrixFormat.nestedColumn:
+        return NestedColumnMatrix<T>(dataType, rowCount, columnCount);
       case MatrixFormat.compressedRow:
         return CompressedRowMatrix<T>(dataType, rowCount, columnCount);
       case MatrixFormat.compressedColumn:
