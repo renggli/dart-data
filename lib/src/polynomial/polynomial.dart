@@ -23,8 +23,6 @@ abstract class Polynomial<T> implements Storage {
   factory Polynomial(DataType<T> dataType,
       {int desiredDegree = -1, PolynomialFormat? format}) {
     ArgumentError.checkNotNull(dataType, 'dataType');
-    // https://github.com/dart-lang/sdk/issues/49188:
-    // ignore: missing_enum_constant_in_switch
     switch (format ?? PolynomialFormat.standard) {
       case PolynomialFormat.list:
         return ListPolynomial<T>(dataType, desiredDegree);

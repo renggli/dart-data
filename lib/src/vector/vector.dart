@@ -20,8 +20,6 @@ abstract class Vector<T> implements Storage {
   factory Vector(DataType<T> dataType, int count, {VectorFormat? format}) {
     ArgumentError.checkNotNull(dataType, 'dataType');
     RangeError.checkNotNegative(count, 'count');
-    // https://github.com/dart-lang/sdk/issues/49188:
-    // ignore: missing_enum_constant_in_switch
     switch (format ?? VectorFormat.standard) {
       case VectorFormat.list:
         return ListVector<T>(dataType, count);
