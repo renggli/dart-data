@@ -12,14 +12,14 @@ import '../view/row_vector.dart';
 ///
 /// If the matrix is not symmetric or positive definite, the constructor
 /// returns a partial decomposition and sets an internal flag that may
-/// be queried by the isSPD() method.
+/// be queried by the [isSymmetricPositiveDefinite] method.
 class CholeskyDecomposition {
   /// Cholesky algorithm for symmetric and positive definite matrix.
-  /// Structure to access L and isspd flag.
+  /// Structure to access L and [isSymmetricPositiveDefinite] flag.
   CholeskyDecomposition(Matrix<num> a)
       : _l = Matrix(DataType.float, a.rowCount, a.rowCount),
         _n = a.rowCount,
-        _isSymmetric = a.rowCount == a.columnCount {
+        _isSymmetricPositiveDefinite = a.rowCount == a.columnCount {
     // Main loop.
     for (var j = 0; j < _n; j++) {
       final lrowj = _l.row(j);
@@ -32,11 +32,11 @@ class CholeskyDecomposition {
         }
         lrowj[k] = s = (a.getUnchecked(j, k) - s) / _l.getUnchecked(k, k);
         d = d + s * s;
-        _isSymmetric =
-            _isSymmetric && (a.getUnchecked(k, j) == a.getUnchecked(j, k));
+        _isSymmetricPositiveDefinite = _isSymmetricPositiveDefinite &&
+            (a.getUnchecked(k, j) == a.getUnchecked(j, k));
       }
       d = a.getUnchecked(j, j) - d;
-      _isSymmetric = _isSymmetric && (d > 0.0);
+      _isSymmetricPositiveDefinite = _isSymmetricPositiveDefinite && (d > 0.0);
       _l.setUnchecked(j, j, math.sqrt(math.max(d, 0.0)));
       for (var k = j + 1; k < _n; k++) {
         _l.setUnchecked(j, k, 0);
@@ -51,10 +51,10 @@ class CholeskyDecomposition {
   final int _n;
 
   /// Symmetric and positive definite flag.
-  bool _isSymmetric;
+  bool _isSymmetricPositiveDefinite;
 
   /// Is the matrix symmetric and positive definite?
-  bool get isSymmetricPositiveDefinite => _isSymmetric;
+  bool get isSymmetricPositiveDefinite => _isSymmetricPositiveDefinite;
 
   /// Return triangular factor.
   Matrix<double> get L => _l;
@@ -68,7 +68,7 @@ class CholeskyDecomposition {
     if (B.rowCount != _n) {
       throw ArgumentError('Matrix row dimensions must agree.');
     }
-    if (!_isSymmetric) {
+    if (!_isSymmetricPositiveDefinite) {
       throw ArgumentError('Matrix is not symmetric positive definite.');
     }
 

@@ -17,7 +17,7 @@ import '../view/row_vector.dart';
 /// The LU decomposition with pivoting always exists, even if the matrix is
 /// singular, so the constructor will never fail.  The primary use of the
 /// LU decomposition is in the solution of square systems of simultaneous
-/// linear equations.  This will fail if [isNonsingular] returns false.
+/// linear equations. This will fail if [isNonsingular] returns false.
 class LUDecomposition {
   LUDecomposition(Matrix<num> source)
       : _lu = source.cast(DataType.float).toMatrix(),
