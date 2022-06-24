@@ -51,4 +51,28 @@ extension IteratorMatrixExtension<T> on Matrix<T> {
       }
     }
   }
+
+  /// Returns an iterable that walks zig-sag over the [Matrix] starting in the
+  /// upper left corner.
+  Iterable<T> get zigZag sync* {
+    for (var i = 0; i < columnCount + rowCount - 1; i++) {
+      if (i.isOdd) {
+        // Walk down and left.
+        for (var r = i < columnCount ? 0 : i - columnCount + 1,
+                c = i < columnCount ? i : columnCount - 1;
+            r < rowCount && c >= 0;
+            r++, c--) {
+          yield getUnchecked(r, c);
+        }
+      } else {
+        // Walk up and right.
+        for (var r = i < rowCount ? i : rowCount - 1,
+                c = i < rowCount ? 0 : i - rowCount + 1;
+            r >= 0 && c < columnCount;
+            r--, c++) {
+          yield getUnchecked(r, c);
+        }
+      }
+    }
+  }
 }

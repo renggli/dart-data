@@ -1324,6 +1324,34 @@ void matrixTest(String name, MatrixFormat format) {
               format: format);
           expect(source.spiral, ['0,0', '0,1', '0,2', '1,2', '1,1', '1,0']);
         });
+        test('3x3', () {
+          final source = Matrix.generate(
+              DataType.string, 3, 3, (r, c) => '$r,$c',
+              format: format);
+          expect(source.spiral,
+              ['0,0', '0,1', '0,2', '1,2', '2,2', '2,1', '2,0', '1,0', '1,1']);
+        });
+      });
+      group('zig-zag', () {
+        test('3x2', () {
+          final source = Matrix.generate(
+              DataType.string, 3, 2, (r, c) => '$r,$c',
+              format: format);
+          expect(source.zigZag, ['0,0', '0,1', '1,0', '2,0', '1,1', '2,1']);
+        });
+        test('2x3', () {
+          final source = Matrix.generate(
+              DataType.string, 2, 3, (r, c) => '$r,$c',
+              format: format);
+          expect(source.zigZag, ['0,0', '0,1', '1,0', '1,1', '0,2', '1,2']);
+        });
+        test('3x3', () {
+          final source = Matrix.generate(
+              DataType.string, 3, 3, (r, c) => '$r,$c',
+              format: format);
+          expect(source.zigZag,
+              ['0,0', '0,1', '1,0', '2,0', '1,1', '0,2', '1,2', '2,1', '2,2']);
+        });
       });
       test('rowMajor', () {
         final source = Matrix.generate(DataType.string, 3, 2, (r, c) => '$r,$c',
