@@ -24,20 +24,24 @@ void checkPoints<T>(
     throw ArgumentError('The x- and y-coordinates must have at least $min '
         'elements, but only got ${xs.count}.');
   }
-  if (ordered && !unique) {
-    if (!dataType.comparator.isOrdered(xs.iterable)) {
-      throw ArgumentError('The x-coordinates are expected to be ordered, but '
-          'got $xs.');
+  if (ordered) {
+    if (unique) {
+      if (!dataType.comparator.isStrictlyOrdered(xs.iterable)) {
+        throw ArgumentError('The x-coordinates are expected to be strictly '
+            'ordered, but found duplicates in $xs.');
+      }
+    } else {
+      if (!dataType.comparator.isOrdered(xs.iterable)) {
+        throw ArgumentError('The x-coordinates are expected to be ordered, but '
+            'got $xs.');
+      }
     }
-  } else if (ordered && unique) {
-    if (!dataType.comparator.isStrictlyOrdered(xs.iterable)) {
-      throw ArgumentError('The x-coordinates are expected to be strictly '
-          'ordered, but found duplicates in $xs.');
-    }
-  } else if (!ordered && unique) {
-    if (xs.count != Set.of(xs.iterable).length) {
-      throw ArgumentError('The x-coordinates are expected to be unique, but '
-          'found duplicates in $xs.');
+  } else {
+    if (unique) {
+      if (xs.count != Set.of(xs.iterable).length) {
+        throw ArgumentError('The x-coordinates are expected to be unique, but '
+            'found duplicates in $xs.');
+      }
     }
   }
 }

@@ -1,4 +1,5 @@
 import 'package:data/data.dart';
+import 'package:data/src/shared/checks.dart';
 import 'package:data/src/shared/lists.dart' as lists;
 import 'package:data/src/shared/math.dart' as math;
 import 'package:test/test.dart';
@@ -94,6 +95,97 @@ void main() {
       expect(math.hypot(0, 3), 3);
       expect(math.hypot(3, 0), 3);
       expect(math.hypot(0, 0), 0);
+    });
+  });
+  group('checkPoints', () {
+    test('same number of coordinates', () {
+      checkPoints(
+        DataType.numeric,
+        xs: [1, 2, 3].toVector(),
+        ys: [4, 5, 5].toVector(),
+      );
+      expect(
+          () => checkPoints(
+                DataType.numeric,
+                xs: [1, 2, 3].toVector(),
+                ys: [4, 5].toVector(),
+              ),
+          throwsArgumentError);
+    });
+    test('minimum number of coordinates', () {
+      checkPoints(
+        DataType.numeric,
+        xs: [1, 2].toVector(),
+        ys: [3, 4].toVector(),
+        min: 2,
+      );
+      expect(
+          () => checkPoints(
+                DataType.numeric,
+                xs: [1].toVector(),
+                ys: [2].toVector(),
+                min: 2,
+              ),
+          throwsArgumentError);
+    });
+    test('ordered x-coordinates', () {
+      checkPoints(
+        DataType.numeric,
+        xs: [1, 2, 3].toVector(),
+        ys: [4, 5, 6].toVector(),
+        ordered: true,
+      );
+      expect(
+          () => checkPoints(
+                DataType.numeric,
+                xs: [1, 3, 2].toVector(),
+                ys: [4, 5, 6].toVector(),
+                ordered: true,
+              ),
+          throwsArgumentError);
+    });
+    test('unique x-coordinates', () {
+      checkPoints(
+        DataType.numeric,
+        xs: [1, 3, 2].toVector(),
+        ys: [4, 5, 6].toVector(),
+        unique: true,
+      );
+      expect(
+          () => checkPoints(
+                DataType.numeric,
+                xs: [1, 2, 1].toVector(),
+                ys: [4, 5, 6].toVector(),
+                unique: true,
+              ),
+          throwsArgumentError);
+    });
+    test('ordered and unique x-coordinates', () {
+      checkPoints(
+        DataType.numeric,
+        xs: [1, 2, 3].toVector(),
+        ys: [4, 5, 6].toVector(),
+        ordered: true,
+        unique: true,
+      );
+      expect(
+          () => checkPoints(
+                DataType.numeric,
+                xs: [1, 2, 2].toVector(),
+                ys: [4, 5, 6].toVector(),
+                ordered: true,
+                unique: true,
+              ),
+          throwsArgumentError);
+      expect(
+          () => checkPoints(
+                DataType.numeric,
+                xs: [1, 3, 2].toVector(),
+                ys: [4, 5, 6].toVector(),
+                ordered: true,
+                unique: true,
+              ),
+          throwsArgumentError);
     });
   });
 }
