@@ -22,7 +22,6 @@ abstract class Polynomial<T> implements Storage {
   /// custom [format].
   factory Polynomial(DataType<T> dataType,
       {int desiredDegree = -1, PolynomialFormat? format}) {
-    ArgumentError.checkNotNull(dataType, 'dataType');
     switch (format ?? PolynomialFormat.standard) {
       case PolynomialFormat.list:
         return ListPolynomial<T>(dataType, desiredDegree);

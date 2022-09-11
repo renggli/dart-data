@@ -27,7 +27,6 @@ abstract class Matrix<T> implements Storage {
   /// [rowCount] and [columnCount], and possibly a custom [format].
   factory Matrix(DataType<T> dataType, int rowCount, int columnCount,
       {MatrixFormat? format}) {
-    ArgumentError.checkNotNull(dataType, 'dataType');
     RangeError.checkNotNegative(rowCount, 'rowCount');
     RangeError.checkNotNegative(columnCount, 'columnCount');
     switch (format ?? MatrixFormat.standard) {

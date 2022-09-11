@@ -18,7 +18,6 @@ abstract class Vector<T> implements Storage {
   /// Constructs a default vector of the desired [dataType], the provided
   /// element [count], and possibly a custom [format].
   factory Vector(DataType<T> dataType, int count, {VectorFormat? format}) {
-    ArgumentError.checkNotNull(dataType, 'dataType');
     RangeError.checkNotNegative(count, 'count');
     switch (format ?? VectorFormat.standard) {
       case VectorFormat.list:
