@@ -7,20 +7,17 @@ import 'distributions/errors.dart';
 
 /// Abstract interface of all distributions.
 @immutable
-abstract class Distribution<T extends num> with ToStringPrinter {
+abstract class Distribution<T> with ToStringPrinter {
   const Distribution();
 
-  /// Returns the lower bound of the distribution.
+  /// Returns the domain of the distribution.
+  Interval<T> get support => Interval<T>.all();
+
+  /// Returns the lower boundary of the distribution.
   T get lowerBound;
 
-  /// Returns true, if the lower bound is open.
-  bool get isLowerUnbounded;
-
-  /// Returns the upper bound of the distribution.
+  /// Returns the upper boundary of the distribution.
   T get upperBound;
-
-  /// Returns true, if the upper bound is open.
-  bool get isUpperUnbounded;
 
   /// Returns the mean value of the distribution.
   ///

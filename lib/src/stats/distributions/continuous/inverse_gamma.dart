@@ -1,5 +1,6 @@
 import 'dart:math';
 
+import 'package:more/interval.dart';
 import 'package:more/printer.dart';
 
 import '../../../special/gamma.dart';
@@ -23,7 +24,7 @@ class InverseGammaDistribution extends ContinuousDistribution {
   final double scale;
 
   @override
-  double get lowerBound => 0;
+  Interval<double> get support => Interval<double>.greaterThan(0.0);
 
   @override
   double get mean => shape > 1 ? scale / (shape - 1) : double.nan;

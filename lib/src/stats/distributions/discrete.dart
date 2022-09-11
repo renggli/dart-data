@@ -1,3 +1,4 @@
+import 'package:meta/meta.dart';
 import 'package:more/feature.dart';
 
 import '../distribution.dart';
@@ -11,16 +12,14 @@ abstract class DiscreteDistribution extends Distribution<int> {
   const DiscreteDistribution();
 
   @override
-  int get lowerBound => minSafeInteger;
+  @nonVirtual
+  int get lowerBound =>
+      support.lower.isBounded ? support.lower.endpoint : minSafeInteger;
 
   @override
-  bool get isLowerUnbounded => lowerBound == minSafeInteger;
-
-  @override
-  int get upperBound => maxSafeInteger;
-
-  @override
-  bool get isUpperUnbounded => upperBound == maxSafeInteger;
+  @nonVirtual
+  int get upperBound =>
+      support.upper.isBounded ? support.upper.endpoint : maxSafeInteger;
 
   @override
   // ignore: avoid_renaming_method_parameters

@@ -1,5 +1,6 @@
 import 'dart:math';
 
+import 'package:more/interval.dart';
 import 'package:more/printer.dart';
 
 import '../continuous/uniform.dart';
@@ -20,10 +21,7 @@ class BernoulliDistribution extends DiscreteDistribution {
   double get q => 1 - p;
 
   @override
-  int get lowerBound => 0;
-
-  @override
-  int get upperBound => 1;
+  Interval<int> get support => Interval<int>.closed(0, 1);
 
   @override
   double get mean => p;

@@ -1,5 +1,6 @@
 import 'dart:math';
 
+import 'package:more/interval.dart';
 import 'package:more/printer.dart';
 
 import '../continuous.dart';
@@ -26,10 +27,7 @@ class UniformDistribution extends ContinuousDistribution {
   final double b;
 
   @override
-  double get lowerBound => a;
-
-  @override
-  double get upperBound => b;
+  Interval<double> get support => Interval<double>.closed(a, b);
 
   @override
   double get mean => (a + b) / 2;

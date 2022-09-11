@@ -1,5 +1,6 @@
 import 'dart:math';
 
+import 'package:more/interval.dart';
 import 'package:more/printer.dart';
 
 import '../continuous/uniform.dart';
@@ -21,10 +22,7 @@ class UniformDiscreteDistribution extends DiscreteDistribution {
   int get n => b - a + 1;
 
   @override
-  int get lowerBound => a;
-
-  @override
-  int get upperBound => b;
+  Interval<int> get support => Interval<int>.closed(a, b);
 
   @override
   double get mean => 0.5 * (a + b);

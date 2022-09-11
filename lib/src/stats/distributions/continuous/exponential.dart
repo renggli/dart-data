@@ -1,5 +1,6 @@
 import 'dart:math';
 
+import 'package:more/interval.dart';
 import 'package:more/printer.dart';
 
 import '../continuous.dart';
@@ -17,7 +18,7 @@ class ExponentialDistribution extends ContinuousDistribution {
   final double lambda;
 
   @override
-  double get lowerBound => 0;
+  Interval<double> get support => Interval<double>.atLeast(0.0);
 
   @override
   double get mean => 1 / lambda;
