@@ -20,7 +20,7 @@ UnaryFunction<double> nextInterpolation({
     } else if (xs.getUnchecked(xs.count - 1) < x) {
       return right;
     } else {
-      return ys.getUnchecked(DataType.float.ordering
+      return ys.getUnchecked(DataType.float.comparator
           .binarySearchLeft(xs, x)
           .clamp(0, xs.count - 1));
     }

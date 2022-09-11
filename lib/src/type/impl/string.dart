@@ -1,7 +1,5 @@
 import 'dart:math' as math;
 
-import 'package:more/ordering.dart' show Ordering;
-
 import '../models/equality.dart';
 import '../type.dart';
 
@@ -15,10 +13,10 @@ class StringDataType extends DataType<String> {
   String get defaultValue => '';
 
   @override
-  Equality<String> get equality => const StringEquality();
+  int comparator(String a, String b) => a.compareTo(b);
 
   @override
-  Ordering<String> get ordering => Ordering.natural<String>();
+  Equality<String> get equality => const StringEquality();
 
   @override
   String cast(dynamic value) => value.toString();

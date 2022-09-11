@@ -1,7 +1,6 @@
 import 'dart:math' as math;
 
 import 'package:more/number.dart' show Fraction, CloseToNumExtension;
-import 'package:more/ordering.dart' show Ordering;
 
 import '../models/equality.dart';
 import '../models/field.dart';
@@ -20,10 +19,10 @@ class NumericDataType extends DataType<num> {
   Equality<num> get equality => const NumericEquality();
 
   @override
-  Ordering<num> get ordering => Ordering.natural<num>();
+  Field<num> get field => const NumericField();
 
   @override
-  Field<num> get field => const NumericField();
+  int comparator(num a, num b) => a.compareTo(b);
 
   @override
   num cast(dynamic value) {

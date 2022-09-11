@@ -53,7 +53,7 @@ void listTest<T>(DataType<T> type, List<List<T>> lists) {
       });
     }
   }
-  final exampleList = Ordering.natural<num>()
+  final exampleList = naturalComparator<num>()
       .onResultOf<List<T>>((value) => value.length)
       .maxOf(lists);
   final exampleValue = lists
@@ -353,44 +353,45 @@ void fieldTest<T>(DataType<T> type, List<T> values) {
     DataType.complex,
     DataType.quaternion,
   ].contains(type)) {
-    test('no ordering', () {
-      expect(() => type.ordering, throwsUnsupportedError);
+    test('comparator', () {
+      expect(() => type.comparator(values.first, values.last),
+          throwsUnsupportedError);
     });
   } else {
-    group('ordering', () {
-      final ordering = type.ordering;
+    group('comparator', () {
+      final comparator = type.comparator;
       final shuffled = [...values.sublist(1), values.first];
       test('increasing', () {
         for (var i = 0; i < values.length - 1; i++) {
-          expect(ordering.compare(values[i], values[i + 1]), lessThan(0),
+          expect(comparator(values[i], values[i + 1]), lessThan(0),
               reason: 'Expected ${values[i]} < ${values[i + 1]}.');
         }
       });
       test('decreasing', () {
         for (var i = 0; i < values.length - 1; i++) {
-          expect(ordering.compare(values[i + 1], values[i]), greaterThan(0),
+          expect(comparator(values[i + 1], values[i]), greaterThan(0),
               reason: 'Expected ${values[i]} > ${values[i + 1]}.');
         }
       });
       test('equal', () {
         for (var i = 0; i < values.length; i++) {
-          expect(ordering.compare(values[i], values[i]), 0);
+          expect(comparator(values[i], values[i]), 0);
         }
       });
       test('min/max', () {
-        expect(ordering.minOf(shuffled), values.first);
-        expect(ordering.maxOf(shuffled), values.last);
+        expect(comparator.minOf(shuffled), values.first);
+        expect(comparator.maxOf(shuffled), values.last);
       });
       test('isOrdered', () {
-        expect(ordering.isOrdered(values), isTrue);
-        expect(ordering.isOrdered(shuffled), isFalse);
+        expect(comparator.isOrdered(values), isTrue);
+        expect(comparator.isOrdered(shuffled), isFalse);
       });
       test('isStrictlyOrdered', () {
-        expect(ordering.isStrictlyOrdered(values), isTrue);
-        expect(ordering.isStrictlyOrdered(shuffled), isFalse);
+        expect(comparator.isStrictlyOrdered(values), isTrue);
+        expect(comparator.isStrictlyOrdered(shuffled), isFalse);
       });
       test('sorting', () {
-        expect(ordering.sorted(shuffled), values);
+        expect(comparator.sorted(shuffled), values);
       });
     });
   }
@@ -436,13 +437,13 @@ void fieldTest<T>(DataType<T> type, List<T> values) {
         test('infinity', () {
           final infinity = field.infinity;
           expect(isClose(infinity, infinity, epsilon), isFalse);
-          expect(values, everyElement(type.ordering.lessThan(infinity)));
+          expect(values, everyElement(type.comparator.lessThan(infinity)));
         });
         test('negativeInfinity', () {
           final negativeInfinity = field.negativeInfinity;
           expect(isClose(negativeInfinity, negativeInfinity, epsilon), isFalse);
           expect(values,
-              everyElement(type.ordering.greaterThan(negativeInfinity)));
+              everyElement(type.comparator.greaterThan(negativeInfinity)));
         });
       }
     }
@@ -583,8 +584,8 @@ void main() {
     test('field', () {
       expect(() => type.field, throwsUnsupportedError);
     });
-    test('ordering', () {
-      expect(() => type.ordering, throwsUnsupportedError);
+    test('comparator', () {
+      expect(() => type.comparator(point12, point21), throwsUnsupportedError);
     });
     listTest(type, <List<Point<int>>>[
       [],
@@ -623,8 +624,8 @@ void main() {
     test('field', () {
       expect(() => type.field, throwsUnsupportedError);
     });
-    test('ordering', () {
-      expect(() => type.ordering, throwsUnsupportedError);
+    test('comparator', () {
+      expect(() => type.comparator(point12, point21), throwsUnsupportedError);
     });
     listTest(type, <List<Point<int>?>>[
       [],
@@ -662,8 +663,10 @@ void main() {
     test('field', () {
       expect(() => type.field, throwsUnsupportedError);
     });
-    test('ordering', () {
-      expect(() => type.ordering, throwsUnsupportedError);
+    test('comparator', () {
+      expect(type.comparator(1, 2), -1);
+      expect(type.comparator('b', 'a'), 1);
+      expect(() => type.comparator(1, 'a'), throwsA(isA<TypeError>()));
     });
     listTest<dynamic>(type, [
       <dynamic>[],
@@ -707,10 +710,10 @@ void main() {
     test('field', () {
       expect(() => type.field, throwsUnsupportedError);
     });
-    test('ordering', () {
-      expect(type.ordering.compare('foo', 'bar'), greaterThan(0));
-      expect(type.ordering.compare('bar', 'foo'), lessThan(0));
-      expect(type.ordering.compare('foo', 'foo'), 0);
+    test('comparator', () {
+      expect(type.comparator('foo', 'bar'), greaterThan(0));
+      expect(type.comparator('bar', 'foo'), lessThan(0));
+      expect(type.comparator('foo', 'foo'), 0);
     });
     listTest(type, <List<String>>[
       ['abc'],
@@ -1040,14 +1043,14 @@ void main() {
       expect(() => type.cast(''), throwsArgumentError);
       expect(() => type.cast(null), throwsArgumentError);
     });
-    test('ordering', () {
-      final ordering = type.ordering;
-      expect(ordering.compare(2, 3), -1);
-      expect(ordering.compare(3, 2), 1);
-      expect(ordering.compare(3, 3), 0);
-      expect(ordering.compare(2, 10), -1);
-      expect(ordering.compare(3, 9), 1);
-      expect(ordering.compare(3, 10), 0);
+    test('comparator', () {
+      final comparator = type.comparator;
+      expect(comparator(2, 3), -1);
+      expect(comparator(3, 2), 1);
+      expect(comparator(3, 3), 0);
+      expect(comparator(2, 10), -1);
+      expect(comparator(3, 9), 1);
+      expect(comparator(3, 10), 0);
     });
     group('equality', () {
       final equality = type.equality;

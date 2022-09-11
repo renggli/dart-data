@@ -1,8 +1,6 @@
-import 'package:more/ordering.dart';
-
 import '../../vector/vector.dart';
 
-extension BinarySearchExtension<T> on Ordering<T> {
+extension BinarySearchExtension<T> on Comparator<T> {
   /// Performs a binary search on the sorted [vector] with the value [value].
   ///
   /// Returns the first suitable insertion index such that
@@ -12,7 +10,7 @@ extension BinarySearchExtension<T> on Ordering<T> {
     var max = vector.count;
     while (min < max) {
       final mid = min + ((max - min) >> 1);
-      if (compare(vector.getUnchecked(mid), value) < 0) {
+      if (this(vector.getUnchecked(mid), value) < 0) {
         min = mid + 1;
       } else {
         max = mid;
@@ -30,7 +28,7 @@ extension BinarySearchExtension<T> on Ordering<T> {
     var max = vector.count;
     while (min < max) {
       final mid = min + ((max - min) >> 1);
-      if (compare(vector.getUnchecked(mid), value) <= 0) {
+      if (this(vector.getUnchecked(mid), value) <= 0) {
         min = mid + 1;
       } else {
         max = mid;

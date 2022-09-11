@@ -2,7 +2,7 @@ import 'dart:collection' show ListBase;
 
 import 'package:collection/collection.dart' show NonGrowableListMixin;
 import 'package:more/collection.dart' show BitList;
-import 'package:more/ordering.dart' show Ordering;
+import 'package:more/comparator.dart';
 import 'package:more/printer.dart' show Printer, NullPrinterExtension;
 
 import '../type.dart';
@@ -15,6 +15,9 @@ class NullableDataType<T> extends DataType<T?> {
 
   final DataType<T> delegate;
   final bool nullsFirst;
+  late final Comparator<T?> _comparator = nullsFirst
+      ? delegate.comparator.nullsFirst
+      : delegate.comparator.nullsLast;
 
   @override
   String get name => '${delegate.name}.nullable';
@@ -26,8 +29,7 @@ class NullableDataType<T> extends DataType<T?> {
   T? get defaultValue => null;
 
   @override
-  Ordering<T?> get ordering =>
-      nullsFirst ? delegate.ordering.nullsFirst : delegate.ordering.nullsLast;
+  int comparator(T? a, T? b) => _comparator(a, b);
 
   @override
   T? cast(dynamic value) => value == null ? null : delegate.cast(value);

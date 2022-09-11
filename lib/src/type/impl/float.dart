@@ -2,7 +2,6 @@ import 'dart:math' as math;
 import 'dart:typed_data';
 
 import 'package:more/number.dart' show Fraction, CloseToNumExtension;
-import 'package:more/ordering.dart' show Ordering;
 import 'package:more/printer.dart'
     show Printer, ScientificNumberPrinter, SignNumberPrinter;
 
@@ -15,6 +14,9 @@ abstract class FloatDataType extends DataType<double> {
 
   @override
   double get defaultValue => 0.0;
+
+  @override
+  int comparator(double a, double b) => a.compareTo(b);
 
   @override
   List<double> newList(int length, [double? fillValue]) {
@@ -30,9 +32,6 @@ abstract class FloatDataType extends DataType<double> {
 
   @override
   Field<double> get field => const FloatField();
-
-  @override
-  Ordering<double> get ordering => Ordering.natural<double>();
 
   @override
   Equality<double> get equality => const FloatEquality();

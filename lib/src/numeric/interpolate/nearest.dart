@@ -19,8 +19,9 @@ UnaryFunction<double> nearestInterpolation({
     } else if (xs.getUnchecked(xs.count - 1) <= x) {
       return ys.getUnchecked(ys.count - 1);
     }
-    final index =
-        DataType.float.ordering.binarySearchLeft(xs, x).clamp(1, xs.count - 1);
+    final index = DataType.float.comparator
+        .binarySearchLeft(xs, x)
+        .clamp(1, xs.count - 1);
     final distanceLo = x - xs.getUnchecked(index - 1);
     final distanceHi = xs.getUnchecked(index) - x;
     if (distanceLo < distanceHi || (distanceLo == distanceHi && preferLower)) {

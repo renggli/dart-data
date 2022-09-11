@@ -2,7 +2,6 @@ import 'dart:math' as math;
 
 import 'package:meta/meta.dart';
 import 'package:more/number.dart';
-import 'package:more/ordering.dart';
 import 'package:more/printer.dart' show Printer, StandardPrinter;
 
 import 'impl/bigint.dart';
@@ -131,12 +130,12 @@ abstract class DataType<T> {
   /// Returns an equality relation.
   Equality<T> get equality => NaturalEquality<T>();
 
-  /// Returns an ordering relation, if available.
-  Ordering<T> get ordering =>
-      throw UnsupportedError('No ordering available for $this.');
-
   /// Returns a mathematical field, if available.
   Field<T> get field => throw UnsupportedError('No field available for $this.');
+
+  /// Returns a [Comparator] that compares one element to another.
+  int comparator(T a, T b) =>
+      throw UnsupportedError('No comparator available for $this.');
 
   /// Casts the argument to this data type, otherwise throw an
   /// [ArgumentError].

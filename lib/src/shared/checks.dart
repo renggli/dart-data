@@ -25,12 +25,12 @@ void checkPoints<T>(
         'elements, but only got ${xs.count}.');
   }
   if (ordered && !unique) {
-    if (!dataType.ordering.isOrdered(xs.iterable)) {
+    if (!dataType.comparator.isOrdered(xs.iterable)) {
       throw ArgumentError('The x-coordinates are expected to be ordered, but '
           'got $xs.');
     }
   } else if (ordered && unique) {
-    if (!dataType.ordering.isStrictlyOrdered(xs.iterable)) {
+    if (!dataType.comparator.isStrictlyOrdered(xs.iterable)) {
       throw ArgumentError('The x-coordinates are expected to be strictly '
           'ordered, but found duplicates in $xs.');
     }

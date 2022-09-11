@@ -1,5 +1,4 @@
 import 'package:more/number.dart';
-import 'package:more/ordering.dart' show Ordering;
 
 import '../models/equality.dart';
 import '../models/field.dart';
@@ -13,6 +12,9 @@ class FractionDataType extends DataType<Fraction> {
 
   @override
   Fraction get defaultValue => Fraction.zero;
+
+  @override
+  int comparator(Fraction a, Fraction b) => a.compareTo(b);
 
   @override
   Fraction cast(dynamic value) {
@@ -32,9 +34,6 @@ class FractionDataType extends DataType<Fraction> {
 
   @override
   Equality<Fraction> get equality => const FractionEquality();
-
-  @override
-  Ordering<Fraction> get ordering => Ordering.natural<Fraction>();
 
   @override
   Field<Fraction> get field => const FractionField();

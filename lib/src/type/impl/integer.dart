@@ -3,7 +3,6 @@ import 'dart:typed_data';
 
 import 'package:more/feature.dart' show isJavaScript;
 import 'package:more/number.dart' show Fraction;
-import 'package:more/ordering.dart' show Ordering;
 import 'package:more/printer.dart' show Printer, FixedNumberPrinter;
 
 import '../models/equality.dart';
@@ -44,6 +43,9 @@ abstract class IntegerDataType extends DataType<int> {
   int get defaultValue => 0;
 
   @override
+  int comparator(int a, int b) => a.compareTo(b);
+
+  @override
   List<int> newList(int length, [int? fillValue]) {
     final result = _newList(length);
     if (fillValue != null && fillValue != defaultValue) {
@@ -57,9 +59,6 @@ abstract class IntegerDataType extends DataType<int> {
 
   @override
   Field<int> get field => const IntegerField();
-
-  @override
-  Ordering<int> get ordering => Ordering.natural<int>();
 
   @override
   Equality<int> get equality => const IntegerEquality();

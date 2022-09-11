@@ -13,5 +13,8 @@ class DynamicDataType extends DataType<dynamic> {
   bool get isNullable => true;
 
   @override
+  int comparator(dynamic a, dynamic b) => Comparable.compare(a, b);
+
+  @override
   dynamic cast(dynamic value) => value;
 }
