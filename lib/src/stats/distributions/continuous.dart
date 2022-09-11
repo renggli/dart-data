@@ -8,8 +8,9 @@ abstract class ContinuousDistribution extends Distribution<double> {
 
   @override
   @nonVirtual
-  double get lowerBound =>
-      support.lower.isBounded ? support.lower.endpoint : double.negativeInfinity;
+  double get lowerBound => support.lower.isBounded
+      ? support.lower.endpoint
+      : double.negativeInfinity;
 
   @override
   @nonVirtual
