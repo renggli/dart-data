@@ -88,7 +88,7 @@ class QRDecomposition {
     return result;
   }
 
-  /// Returns the upper triangular factor.
+  /// Returns the upper triangular factor (R-value).
   Matrix<double> get upper {
     final result = Matrix(DataType.float, _n, _n);
     for (var i = 0; i < _n; i++) {
@@ -103,7 +103,7 @@ class QRDecomposition {
     return result;
   }
 
-  /// Returns the (economy-sized) orthogonal factor.
+  /// Returns the (economy-sized) orthogonal factor (Q-value).
   Matrix<double> get orthogonal {
     final result = Matrix(DataType.float, _m, _n);
     for (var k = _n - 1; k >= 0; k--) {

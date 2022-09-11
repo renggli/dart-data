@@ -5,11 +5,11 @@ import '../matrix.dart';
 import 'singular_value.dart';
 
 extension NormNumberExtension on Matrix<num> {
-  /// Returns the two norm, the maximum singular value of this [Matrix].
+  /// Returns the two norm: The maximum singular value of this [Matrix].
   double get norm2 => singularValue.norm2;
 
-  /// Returns the frobenius norm, the sum of squares of all elements of this
-  /// [Matrix].
+  /// Returns the Frobenius norm: The square root of the sum of squares of all
+  /// elements of this [Matrix].
   double get normFrobenius {
     var result = 0.0;
     for (var c = 0; c < columnCount; c++) {
@@ -32,7 +32,7 @@ extension NormDoubleExtension on Matrix<double> {
     return result;
   }
 
-  /// Returns the one norm, the maximum column sum of this [Matrix].
+  /// Returns the one norm: The maximum column sum of this [Matrix].
   double get norm1 {
     var result = 0.0;
     for (var c = 0; c < columnCount; c++) {
@@ -45,7 +45,7 @@ extension NormDoubleExtension on Matrix<double> {
     return result;
   }
 
-  /// Returns the infinity norm, the maximum row sum of this [Matrix].
+  /// Returns the infinity norm: The maximum row sum of this [Matrix].
   double get normInfinity {
     var result = 0.0;
     for (var r = 0; r < rowCount; r++) {
@@ -70,7 +70,7 @@ extension NormIntegerExtension on Matrix<int> {
     return result;
   }
 
-  /// Returns the one norm, the maximum column sum of this [Matrix].
+  /// Returns the one norm: The maximum column sum of this [Matrix].
   int get norm1 {
     var result = 0;
     for (var c = 0; c < columnCount; c++) {
@@ -83,7 +83,7 @@ extension NormIntegerExtension on Matrix<int> {
     return result;
   }
 
-  /// Returns the infinity norm, the maximum row sum of this [Matrix].
+  /// Returns the infinity norm: The maximum row sum of this [Matrix].
   int get normInfinity {
     var result = 0;
     for (var r = 0; r < rowCount; r++) {

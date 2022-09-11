@@ -87,7 +87,7 @@ void main() {
   stdout.writeln(columns.map(alignPrinter(width)).join());
   stdout.writeln();
 
-  for (var n = 3; n <= 64; n++) {
+  for (var n = 3; n <= 128; n++) {
     final m = magic(n);
     final md = m.map((row, col, value) => value.toDouble(), DataType.float64);
 
@@ -134,6 +134,7 @@ void main() {
       final r = l * u - md.rowIndex(p);
       final res = r.norm1 / (n * eps);
       buffer.add(doublePrinter(3)(res));
+      assert(r.normFrobenius < 1e-8, 'inaccurate LU factorization');
     }
 
     // Test of QR factorization, norm1(Q*R-A)/(n*eps).
@@ -144,6 +145,7 @@ void main() {
       final R = q * r - m.cast(DataType.float64);
       final res = R.norm1 / (n * eps);
       buffer.add(doublePrinter(3)(res));
+      assert(R.normFrobenius < 1e-8, 'inaccurate QR factorization');
     }
 
     stdout.writeln(buffer.map(alignPrinter(width)).join());

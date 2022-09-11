@@ -99,7 +99,7 @@ class LUDecomposition {
     return true;
   }
 
-  /// Returns the lower triangular factor.
+  /// Returns the lower triangular factor (L-value).
   Matrix<double> get lower {
     final result = Matrix(DataType.float, _m, _n);
     for (var i = 0; i < _m; i++) {
@@ -114,7 +114,7 @@ class LUDecomposition {
     return result;
   }
 
-  /// Returns upper triangular factor.
+  /// Returns upper triangular factor (U-value).
   Matrix<double> get upper {
     final result = Matrix(DataType.float, _n, _n);
     for (var i = 0; i < _n; i++) {
@@ -127,7 +127,7 @@ class LUDecomposition {
     return result;
   }
 
-  /// Returns pivot permutation vector.
+  /// Returns pivot permutation vector (P-value).
   List<int> get pivot => DataType.indexDataType.copyList(_piv);
 
   /// Returns the determinant.
