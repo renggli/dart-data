@@ -7,12 +7,8 @@ import 'package:more/feature.dart';
 import 'package:more/tuple.dart';
 import 'package:test/test.dart';
 
-dynamic isCloseTo(num expected, {double epsilon = 1.0e-6}) =>
-    expected.isInfinite
-        ? expected
-        : expected.isNaN
-            ? isNaN
-            : closeTo(expected, epsilon);
+import 'utils/matchers.dart';
+
 final throwsInvalidProbability = throwsA(isA<InvalidProbability>());
 
 @isTestGroup
