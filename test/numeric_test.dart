@@ -444,6 +444,124 @@ void main() {
       });
     });
   });
+  group('fft', () {
+    test('empty', () {
+      final source = <Complex>[];
+      final forward = fft([...source]);
+      expect(forward, isEmpty);
+      final backward = fft([...forward], inverse: true);
+      expect(backward, isEmpty);
+    });
+    test('single', () {
+      final values = [
+        Complex.zero,
+        Complex.one,
+        Complex.i,
+        -Complex.one,
+        -Complex.i,
+      ];
+      for (var value in values) {
+        final source = [value];
+        final forward = fft([...source]);
+        expect(forward, isCloseTo(source));
+        final backward = fft([...forward], inverse: true);
+        expect(backward, isCloseTo(source));
+      }
+    });
+    test('zeros', () {
+      for (var i = 2; i <= 256; i *= 2) {
+        final source = List.filled(i, Complex.zero);
+        final forward = fft([...source]);
+        final backward = fft([...forward], inverse: true);
+        expect(backward, isCloseTo(source));
+      }
+    });
+    test('constant', () {
+      final random = Random(22562);
+      for (var i = 2; i <= 256; i *= 2) {
+        final constant = Complex(
+          2.0 * random.nextDouble() - 1.0,
+          2.0 * random.nextDouble() - 1.0,
+        );
+        final source = List.filled(i, constant);
+        final forward = fft([...source]);
+        final backward = fft([...forward], inverse: true);
+        expect(backward, isCloseTo(source));
+      }
+    });
+    test('alternate (real)', () {
+      final values = [Complex.one, -Complex.one];
+      for (var i = 2; i <= 256; i *= 2) {
+        final source = List.generate(i, (j) => values[j % values.length]);
+        final forward = fft([...source]);
+        final backward = fft([...forward], inverse: true);
+        expect(backward, isCloseTo(source));
+      }
+    });
+    test('alternate (imaginary)', () {
+      final values = [Complex.i, -Complex.i];
+      for (var i = 2; i <= 256; i *= 2) {
+        final source = List.generate(i, (j) => values[j % values.length]);
+        final forward = fft([...source]);
+        final backward = fft([...forward], inverse: true);
+        expect(backward, isCloseTo(source));
+      }
+    });
+    test('alternate (real + imaginary)', () {
+      final values = [Complex.one, Complex.i, -Complex.one, -Complex.i];
+      for (var i = 2; i <= 256; i *= 2) {
+        final source = List.generate(i, (j) => values[j % values.length]);
+        final forward = fft([...source]);
+        final backward = fft([...forward], inverse: true);
+        expect(backward, isCloseTo(source));
+      }
+    });
+    test('rotation', () {
+      final random = Random(12881922);
+      for (var i = 128; i <= 8192; i *= 2) {
+        final radius = 0.75 * random.nextDouble() + 0.25;
+        final period = 2.0 * pi * random.nextDouble();
+        final shift = 2.0 * pi * random.nextDouble();
+        final source = List.generate(
+          i,
+          (j) => Complex.fromPolar(radius, j / period + shift),
+        );
+        final forward = fft([...source]);
+        final backward = fft([...forward], inverse: true);
+        expect(backward, isCloseTo(source));
+      }
+    });
+    test('spike', () {
+      final random = Random(12881922);
+      for (var i = 128; i <= 8192; i *= 2) {
+        final source = List.generate(i, (i) => Complex.zero);
+        source[random.nextInt(source.length - 1)] = Complex(
+          2.0 * random.nextDouble() - 1.0,
+          2.0 * random.nextDouble() - 1.0,
+        );
+        final forward = fft([...source]);
+        final backward = fft([...forward], inverse: true);
+        expect(backward, isCloseTo(source));
+      }
+    });
+    test('random', () {
+      final random = Random(98712);
+      for (var i = 2; i <= 128; i++) {
+        final source = List.generate(
+            i,
+            (i) => Complex(
+                  2.0 * random.nextDouble() - 1.0,
+                  2.0 * random.nextDouble() - 1.0,
+                ));
+        final forward = fft([...source]);
+        final backward = fft([...forward], inverse: true);
+        while (source.length < backward.length) {
+          source.add(Complex.zero);
+        }
+        expect(backward, isCloseTo(source));
+      }
+    });
+  });
   group('functions', () {
     test('list', () {
       final function = ParametrizedUnaryFunction<String>.list(
