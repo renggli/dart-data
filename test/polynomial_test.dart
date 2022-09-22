@@ -2,6 +2,7 @@ import 'dart:math';
 
 import 'package:data/data.dart';
 import 'package:more/collection.dart';
+import 'package:more/number.dart';
 import 'package:test/test.dart';
 
 import 'utils/assertions.dart';
@@ -866,26 +867,41 @@ void polynomialTest(String name, PolynomialFormat format) {
               DataType.int32, [-4, 2, 22, 37, 27, -12],
               format: format);
           final first = sourceA.mul(sourceB);
-          expect(first.dataType, DataType.int32);
-          expect(first.degree, 5);
-          expect(first.compare(expected), isTrue);
+          expect(first, isCloseTo(expected));
           final second = sourceB.mul(sourceA);
-          expect(second.dataType, DataType.int32);
-          expect(second.degree, 5);
-          expect(second.compare(expected), isTrue);
+          expect(second, isCloseTo(expected));
+        });
+        test('fft (int)', () {
+          final expected = Polynomial.fromList(
+              DataType.intDataType, [-4, 2, 22, 37, 27, -12],
+              format: format);
+          final first = sourceA.mul(sourceB, fftMultiply: true);
+          expect(first, isCloseTo(expected));
+          final second = sourceB.mul(sourceA, fftMultiply: true);
+          expect(second, isCloseTo(expected));
+        });
+        test('fft (double)', () {
+          final sourceA = Polynomial.fromList(DataType.float, [2.0, 3.0, 4.0],
+              format: format);
+          final sourceB = Polynomial.fromList(
+              DataType.float, [-2.0, 4.0, 9.0, -3.0],
+              format: format);
+          final expected = Polynomial.fromList(
+              DataType.float, [-4.0, 2.0, 22.0, 37.0, 27.0, -12.0],
+              format: format);
+          final first = sourceA.mul(sourceB, fftMultiply: true);
+          expect(first, isCloseTo(expected));
+          final second = sourceB.mul(sourceA, fftMultiply: true);
+          expect(second, isCloseTo(expected));
         });
         test('operator', () {
           final expected = Polynomial.fromList(
               DataType.int32, [-4, 2, 22, 37, 27, -12],
               format: format);
           final first = sourceA * sourceB;
-          expect(first.dataType, DataType.int32);
-          expect(first.degree, 5);
-          expect(first.compare(expected), isTrue);
+          expect(first, isCloseTo(expected));
           final second = sourceB * sourceA;
-          expect(second.dataType, DataType.int32);
-          expect(second.degree, 5);
-          expect(second.compare(expected), isTrue);
+          expect(second, isCloseTo(expected));
         });
         test('zero', () {
           final zero = Polynomial(DataType.int32, format: format);
@@ -915,6 +931,22 @@ void polynomialTest(String name, PolynomialFormat format) {
           expect(target.mulScalarEq(3), target);
           for (var i = 0; i <= target.degree; i++) {
             expect(target[i], 3 * sourceA[i]);
+          }
+        });
+        test('stress', () {
+          final random = Random(32265);
+          for (var i = 0; i < 32; i++) {
+            final a = Polynomial<int>.generate(DataType.int32,
+                random.nextInt(265), (i) => random.nextInt(265) - 128,
+                format: format);
+            final b = Polynomial<int>.generate(DataType.int32,
+                random.nextInt(265), (i) => random.nextInt(265) - 128,
+                format: format);
+            final normalMultiply =
+                a.mulPolynomial(b, format: format, fftMultiply: false);
+            final fftMultiply =
+                a.mulPolynomial(b, format: format, fftMultiply: true);
+            expect(fftMultiply, isCloseTo(normalMultiply));
           }
         });
       });
