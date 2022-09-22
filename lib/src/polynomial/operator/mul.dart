@@ -52,9 +52,10 @@ extension MulPolynomialExtension<T> on Polynomial<T> {
         result.setUnchecked(i, mul(getUnchecked(i), factor));
       }
     } else if (fftMultiply == true ||
-        (fftMultiply != false && degree * other.degree > 32)) {
+        (fftMultiply != false && degree * other.degree > 1600)) {
       // Perform fourier multiplication when this is a large polynomial, or
-      // when the user desires to use it.
+      // when the user desires to use it. Experimentally FFT multiplication
+      // starts to become more performant if the multiplied degrees exceed 1600.
       _fftMulPolynomial(result, this, other);
     } else {
       // Churn through full multiplication.
