@@ -807,53 +807,49 @@ void polynomialTest(String name, PolynomialFormat format) {
         final v1 = Polynomial<double>.fromList(DataType.float32, [9, -2, 8],
             format: format);
         test('at start', () {
-          final p = v0.lerp(v1, 0.0);
-          expect(p.dataType, v1.dataType);
-          expect(p.degree, v1.degree);
-          expect(p[0], v0[0]);
-          expect(p[1], v0[1]);
-          expect(p[2], v0[2]);
+          final actual = v0.lerp(v1, 0.0);
+          final expected = Polynomial<double>.fromList(
+              DataType.float32, [1, 6, 8],
+              format: format);
+          expect(actual, isCloseTo(expected));
         });
         test('at middle', () {
-          final p = v0.lerp(v1, 0.5);
-          expect(p.dataType, v1.dataType);
-          expect(p.degree, v1.degree);
-          expect(p[0], 5.0);
-          expect(p[1], 2.0);
-          expect(p[2], 8.0);
+          final actual = v0.lerp(v1, 0.5);
+          final expected = Polynomial<double>.fromList(
+              DataType.float32, [5, 2, 8],
+              format: format);
+          expect(actual, isCloseTo(expected));
         });
         test('at end', () {
-          final p = v0.lerp(v1, 1.0);
-          expect(p.dataType, v1.dataType);
-          expect(p.degree, v1.degree);
-          expect(p[0], v1[0]);
-          expect(p[1], v1[1]);
-          expect(p[2], v1[2]);
+          final actual = v0.lerp(v1, 1.0);
+          final expected = Polynomial<double>.fromList(
+              DataType.float32, [9, -2, 8],
+              format: format);
+          expect(actual, isCloseTo(expected));
         });
         test('at outside', () {
-          final p = v0.lerp(v1, 2.0);
-          expect(p.dataType, v1.dataType);
-          expect(p.degree, v1.degree);
-          expect(p[0], 17.0);
-          expect(p[1], -10.0);
-          expect(p[2], 8.0);
+          final actual = v0.lerp(v1, 2.0);
+          final expected = Polynomial<double>.fromList(
+              DataType.float32, [17, -10, 8],
+              format: format);
+          expect(actual, isCloseTo(expected));
         });
         test('in-place', () {
-          final target = v0.toPolynomial(format: format);
-          expect(target.lerpEq(v1, 0.5), target);
-          expect(target[0], 5.0);
-          expect(target[1], 2.0);
-          expect(target[2], 8.0);
+          final actual = v0.toPolynomial(format: format);
+          expect(actual.lerpEq(v1, 0.5), actual);
+          final expected = Polynomial<double>.fromList(
+              DataType.float32, [5, 2, 8],
+              format: format);
+          expect(actual, isCloseTo(expected));
         });
         test('different degree', () {
           final v3 = Polynomial<double>.fromList(DataType.float32, [9, -2],
               format: format);
-          final p = v0.lerp(v3, 0.5);
-          expect(p.dataType, v0.dataType);
-          expect(p.degree, v0.degree);
-          expect(p[0], 5.0);
-          expect(p[1], 2.0);
-          expect(p[2], 4.0);
+          final actual = v0.lerp(v3, 0.5);
+          final expected = Polynomial<double>.fromList(
+              DataType.float32, [5, 2, 4],
+              format: format);
+          expect(actual, isCloseTo(expected));
         });
       });
       group('mul', () {
@@ -887,6 +883,21 @@ void polynomialTest(String name, PolynomialFormat format) {
               format: format);
           final expected = Polynomial.fromList(
               DataType.float, [-4.0, 2.0, 22.0, 37.0, 27.0, -12.0],
+              format: format);
+          final first = sourceA.mul(sourceB, fftMultiply: true);
+          expect(first, isCloseTo(expected));
+          final second = sourceB.mul(sourceA, fftMultiply: true);
+          expect(second, isCloseTo(expected));
+        });
+        test('fft (Complex)', () {
+          final sourceA = Polynomial.fromList(
+              DataType.complex, [Complex(1, 2), Complex(2, 3)],
+              format: format);
+          final sourceB = Polynomial.fromList(
+              DataType.complex, [Complex(4, 5), Complex(5, 6)],
+              format: format);
+          final expected = Polynomial.fromList(DataType.complex,
+              [Complex(-6, 13), Complex(-14, 38), Complex(-8, 27)],
               format: format);
           final first = sourceA.mul(sourceB, fftMultiply: true);
           expect(first, isCloseTo(expected));
