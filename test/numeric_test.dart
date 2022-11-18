@@ -554,7 +554,9 @@ void main() {
                   2.0 * random.nextDouble() - 1.0,
                 ));
         final forward = fft([...source]);
+        expect(forward.length.hasSingleBit, isTrue);
         final backward = fft([...forward], inverse: true);
+        expect(backward.length.hasSingleBit, isTrue);
         while (source.length < backward.length) {
           source.add(Complex.zero);
         }

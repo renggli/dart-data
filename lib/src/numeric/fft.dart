@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 
 import 'package:collection/collection.dart';
+import 'package:more/math.dart';
 import 'package:more/number.dart' show Complex;
 
 /// Performs an in-place Discrete Fast Fourier transformation on the provided
@@ -13,11 +14,7 @@ List<Complex> fft(List<Complex> values, {bool inverse = false}) {
   if (values.length <= 1) {
     return values;
   }
-  // Adjust list size.
-  var n = 1;
-  while (n < values.length) {
-    n <<= 1;
-  }
+  final n = values.length.bitCeil;
   while (values.length < n) {
     values.add(Complex.zero);
   }
