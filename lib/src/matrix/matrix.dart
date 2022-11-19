@@ -251,6 +251,30 @@ abstract class Matrix<T> implements Storage {
   @override
   Matrix<T> copy();
 
+  /// Returns the target matrix with all elements of this matrix copied into it.
+  Matrix<T> copyInto(Matrix<T> target) {
+    assert(
+        rowCount == target.rowCount,
+        'Row count of this matrix ($rowCount) and the target matrix '
+        '(${target.rowCount}) must match.');
+    assert(
+        columnCount == target.columnCount,
+        'Column count of this matrix ($columnCount) and the target matrix '
+        '(${target.columnCount}) must match.');
+    if (this != target) {
+      for (var r = 0; r < rowCount; r++) {
+        for (var c = 0; c < columnCount; c++) {
+          target.setUnchecked(r, c, getUnchecked(r, c));
+        }
+      }
+    }
+    return target;
+  }
+
+  /// Creates a new [Matrix] containing the same elements as this one.
+  Matrix<T> toMatrix({MatrixFormat? format}) =>
+      copyInto(Matrix(dataType, rowCount, columnCount, format: format));
+
   /// Iterates over each value in the matrix. Skips over default values, which
   /// can be done very efficiently on sparse matrices.
   void forEach(void Function(int row, int col, T value) callback) {
@@ -262,17 +286,6 @@ abstract class Matrix<T> implements Storage {
         }
       }
     }
-  }
-
-  /// Creates a new [Matrix] containing the same elements as this one.
-  Matrix<T> toMatrix({MatrixFormat? format}) {
-    final result = Matrix(dataType, rowCount, columnCount, format: format);
-    for (var r = 0; r < rowCount; r++) {
-      for (var c = 0; c < columnCount; c++) {
-        result.setUnchecked(r, c, getUnchecked(r, c));
-      }
-    }
-    return result;
   }
 
   /// Returns a human readable representation of the matrix.

@@ -74,7 +74,7 @@ abstract class Vector<T> implements Storage {
     return result;
   }
 
-  /// Constructs a vector from a [compressed].
+  /// Constructs a vector from a source list.
   factory Vector.fromList(DataType<T> dataType, List<T> source,
       {VectorFormat? format}) {
     final result = Vector<T>(dataType, source.length, format: format);
@@ -98,14 +98,23 @@ abstract class Vector<T> implements Storage {
   @override
   Vector<T> copy();
 
-  /// Creates a new [Vector] containing the same elements as this one.
-  Vector<T> toVector({VectorFormat? format}) {
-    final result = Vector(dataType, count, format: format);
-    for (var i = 0; i < count; i++) {
-      result.setUnchecked(i, getUnchecked(i));
+  /// Returns the target vector with all elements of this vector copied into it.
+  Vector<T> copyInto(Vector<T> target) {
+    assert(
+        count == target.count,
+        'Count of this vector ($count) and the target vector '
+        '(${target.count}) must match.');
+    if (this != target) {
+      for (var i = 0; i < count; i++) {
+        target.setUnchecked(i, getUnchecked(i));
+      }
     }
-    return result;
+    return target;
   }
+
+  /// Creates a new [Vector] containing the same elements as this one.
+  Vector<T> toVector({VectorFormat? format}) =>
+      copyInto(Vector(dataType, count, format: format));
 
   /// Returns the scalar at the provided [index].
   @nonVirtual

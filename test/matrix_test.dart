@@ -525,6 +525,17 @@ void matrixTest(String name, MatrixFormat format) {
         source.set(3, 5, const Point(32, 64));
         expect(copy.get(3, 5), const Point(3, 5));
       });
+      test('copyInto', () {
+        final source =
+            Matrix.generate(DataType.int32, 8, 6, (row, col) => 8 * row + col);
+        final copy =
+            source.copyInto(Matrix(DataType.uint32, 8, 6, format: format));
+        expect(copy.dataType, DataType.uint32);
+        expect(copy.rowCount, source.rowCount);
+        expect(copy.columnCount, source.columnCount);
+        expect(copy.storage, [copy]);
+        expect(copy.compare(source), isTrue);
+      });
       test('row', () {
         final source = Matrix.generate(
             DataType.string, 4, 5, (r, c) => '($r, $c)',

@@ -235,6 +235,15 @@ void vectorTest(String name, VectorFormat format) {
           expect(copy[i], i.isEven ? -i : 0);
         }
       });
+      test('copyInto', () {
+        final source = Vector.generate(DataType.int32, 42, (i) => i);
+        final copy =
+            source.copyInto(Vector(DataType.uint32, 42, format: format));
+        expect(copy.dataType, DataType.uint32);
+        expect(copy.count, source.count);
+        expect(copy.storage, [copy]);
+        expect(copy.compare(source), isTrue);
+      });
       group('range', () {
         test('default', () {
           final source =
