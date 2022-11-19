@@ -2,7 +2,7 @@ import '../../../type.dart';
 import '../../shared/storage.dart';
 import '../vector.dart';
 
-/// Read-only transformed vector.
+/// Transformed vector.
 class TransformedVector<S, T> with Vector<T> {
   TransformedVector(this.vector, this.read, this.write, this.dataType);
 
