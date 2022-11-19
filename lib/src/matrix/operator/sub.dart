@@ -1,20 +1,8 @@
-import '../../../type.dart';
 import '../matrix.dart';
-import '../matrix_format.dart';
-import 'utils.dart';
+import '../view/binary_operation_matrix.dart';
 
 extension SubMatrixExtension<T> on Matrix<T> {
-  /// Subtracts [other] from this [Matrix].
-  Matrix<T> sub(Matrix<T> other,
-      {Matrix<T>? target, DataType<T>? dataType, MatrixFormat? format}) {
-    final result = createMatrix<T>(this, target, dataType, format);
-    binaryOperator<T>(result, this, other, result.dataType.field.sub);
-    return result;
-  }
-
-  /// In-place subtracts [other] from this [Matrix].
-  Matrix<T> subEq(Matrix<T> other) => sub(other, target: this);
-
-  /// Subtracts [other] from this [Matrix].
-  Matrix<T> operator -(Matrix<T> other) => sub(other);
+  /// Returns a view of this [Matrix] subtracted by [other].
+  Matrix<T> operator -(Matrix<T> other) =>
+      binaryOperation(other, dataType.field.sub);
 }

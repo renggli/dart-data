@@ -148,10 +148,9 @@ class LevenbergMarquardt extends CurveFit {
       }
 
       var improvementMetric = (previousError - error) /
-          perturbations.transposed
-              .mulMatrix(perturbations
-                  .mulScalar(currentDamping)
-                  .addEq(jacobianWeightResidualError))
+          (perturbations.transposed *
+                  (perturbations * currentDamping +
+                      jacobianWeightResidualError))
               .get(0, 0);
 
       if (improvementMetric > improvementThreshold) {
@@ -209,9 +208,9 @@ class LevenbergMarquardt extends CurveFit {
     );
     var residualError =
         _matrixFunction(x: x, y: y, evaluatedData: evaluatedData);
-    final inverseMatrix = identity
-        .add(gradientFunc.mulMatrix(gradientFunc.transposed
-            .applyByRow(identity.dataType.field.mul, squaredWeights)))
+    final inverseMatrix = (identity +
+            gradientFunc.mulMatrix(gradientFunc.transposed
+                .applyByRow(identity.dataType.field.mul, squaredWeights)))
         .inverse;
     var jacobianWeightResidualError = gradientFunc.mulMatrix(
         residualError.applyByRow(identity.dataType.field.mul, squaredWeights));

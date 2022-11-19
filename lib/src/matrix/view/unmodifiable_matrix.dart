@@ -1,7 +1,7 @@
 import '../../../type.dart';
 import '../../shared/storage.dart';
 import '../matrix.dart';
-import '../mixin/unmodifiable_matrix_mixin.dart';
+import '../mixin/unmodifiable_matrix.dart';
 
 /// Read-only view of a mutable matrix.
 class UnmodifiableMatrix<T> with Matrix<T>, UnmodifiableMatrixMixin<T> {

@@ -1,20 +1,7 @@
-import '../../../type.dart';
 import '../matrix.dart';
-import '../matrix_format.dart';
-import 'utils.dart';
+import '../view/unary_operation_matrix.dart';
 
 extension NegMatrixExtension<T> on Matrix<T> {
-  /// Negates this [Matrix].
-  Matrix<T> neg(
-      {Matrix<T>? target, DataType<T>? dataType, MatrixFormat? format}) {
-    final result = createMatrix<T>(this, target, dataType, format);
-    unaryOperator<T>(result, this, result.dataType.field.neg);
-    return result;
-  }
-
-  /// In-place negates this [Matrix]
-  Matrix<T> negEq() => neg(target: this);
-
-  /// Convenience method to negate this [Matrix].
-  Matrix<T> operator -() => neg();
+  /// Returns a view of this [Matrix] negated.
+  Matrix<T> operator -() => unaryOperation(dataType.field.neg);
 }

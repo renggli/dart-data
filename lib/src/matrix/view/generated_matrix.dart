@@ -1,7 +1,7 @@
 import '../../../type.dart';
 import '../../shared/storage.dart';
 import '../matrix.dart';
-import '../mixin/unmodifiable_matrix_mixin.dart';
+import '../mixin/unmodifiable_matrix.dart';
 
 /// Callback to generate a value in [GeneratedMatrix].
 typedef MatrixGeneratorCallback<T> = T Function(int row, int column);

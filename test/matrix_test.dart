@@ -1447,78 +1447,16 @@ void matrixTest(String name, MatrixFormat format) {
       final sourceB = Matrix.generate(
           DataType.int32, 5, 4, (row, col) => random.nextInt(100),
           format: format);
-      group('add', () {
-        test('default', () {
-          final result = sourceA.add(sourceB);
-          expect(result.dataType, sourceA.dataType);
-          expect(result.rowCount, sourceA.rowCount);
-          expect(result.columnCount, sourceA.columnCount);
-          for (var r = 0; r < result.rowCount; r++) {
-            for (var c = 0; c < result.columnCount; c++) {
-              expect(result.get(r, c), sourceA.get(r, c) + sourceB.get(r, c));
-            }
+      test('add', () {
+        final result = sourceA + sourceB;
+        expect(result.dataType, sourceA.dataType);
+        expect(result.rowCount, sourceA.rowCount);
+        expect(result.columnCount, sourceA.columnCount);
+        for (var r = 0; r < result.rowCount; r++) {
+          for (var c = 0; c < result.columnCount; c++) {
+            expect(result.get(r, c), sourceA.get(r, c) + sourceB.get(r, c));
           }
-        });
-        test('in-place', () {
-          final result = sourceA.toMatrix(format: format);
-          expect(result.addEq(sourceB), result);
-          for (var r = 0; r < result.rowCount; r++) {
-            for (var c = 0; c < result.columnCount; c++) {
-              expect(result.get(r, c), sourceA.get(r, c) + sourceB.get(r, c));
-            }
-          }
-        });
-        test('operator', () {
-          final result = sourceA + sourceB;
-          expect(result.dataType, sourceA.dataType);
-          expect(result.rowCount, sourceA.rowCount);
-          expect(result.columnCount, sourceA.columnCount);
-          for (var r = 0; r < result.rowCount; r++) {
-            for (var c = 0; c < result.columnCount; c++) {
-              expect(result.get(r, c), sourceA.get(r, c) + sourceB.get(r, c));
-            }
-          }
-        });
-        test('target', () {
-          final target = Matrix(
-              DataType.uint32, sourceA.rowCount, sourceA.columnCount,
-              format: format);
-          final result = sourceA.add(sourceB, target: target);
-          expect(result.dataType, DataType.uint32);
-          expect(result.rowCount, sourceA.rowCount);
-          expect(result.columnCount, sourceA.columnCount);
-          for (var r = 0; r < result.rowCount; r++) {
-            for (var c = 0; c < result.columnCount; c++) {
-              expect(result.get(r, c), sourceA.get(r, c) + sourceB.get(r, c));
-            }
-          }
-          expect(result, target);
-        });
-        test('format', () {
-          final result =
-              sourceA.add(sourceB, dataType: DataType.uint32, format: format);
-          expect(result.dataType, DataType.uint32);
-          expect(result.rowCount, sourceA.rowCount);
-          expect(result.columnCount, sourceA.columnCount);
-          for (var r = 0; r < result.rowCount; r++) {
-            for (var c = 0; c < result.columnCount; c++) {
-              expect(result.get(r, c), sourceA.get(r, c) + sourceB.get(r, c));
-            }
-          }
-        });
-        test('operand dimension mismatch', () {
-          final sourceB = Matrix(
-              DataType.uint32, sourceA.columnCount, sourceA.rowCount,
-              format: format);
-          expect(() => sourceA.add(sourceB), throwsArgumentError);
-        });
-        test('target dimension mismatch', () {
-          final target = Matrix(
-              DataType.uint32, sourceA.columnCount, sourceA.rowCount,
-              format: format);
-          expect(
-              () => sourceA.add(sourceB, target: target), throwsArgumentError);
-        });
+        }
       });
       group('apply', () {
         test('by row', () {
@@ -1559,71 +1497,27 @@ void matrixTest(String name, MatrixFormat format) {
               throwsArgumentError);
         });
       });
-      group('sub', () {
-        test('default', () {
-          final target = sourceA.sub(sourceB);
-          expect(target.dataType, sourceA.dataType);
-          expect(target.rowCount, sourceA.rowCount);
-          expect(target.columnCount, sourceA.columnCount);
-          for (var r = 0; r < target.rowCount; r++) {
-            for (var c = 0; c < target.columnCount; c++) {
-              expect(target.get(r, c), sourceA.get(r, c) - sourceB.get(r, c));
-            }
+      test('sub', () {
+        final target = sourceA - sourceB;
+        expect(target.dataType, sourceA.dataType);
+        expect(target.rowCount, sourceA.rowCount);
+        expect(target.columnCount, sourceA.columnCount);
+        for (var r = 0; r < target.rowCount; r++) {
+          for (var c = 0; c < target.columnCount; c++) {
+            expect(target.get(r, c), sourceA.get(r, c) - sourceB.get(r, c));
           }
-        });
-        test('in-place', () {
-          final result = sourceA.toMatrix(format: format);
-          expect(result.subEq(sourceB), result);
-          for (var r = 0; r < result.rowCount; r++) {
-            for (var c = 0; c < result.columnCount; c++) {
-              expect(result.get(r, c), sourceA.get(r, c) - sourceB.get(r, c));
-            }
-          }
-        });
-        test('operator', () {
-          final target = sourceA - sourceB;
-          expect(target.dataType, sourceA.dataType);
-          expect(target.rowCount, sourceA.rowCount);
-          expect(target.columnCount, sourceA.columnCount);
-          for (var r = 0; r < target.rowCount; r++) {
-            for (var c = 0; c < target.columnCount; c++) {
-              expect(target.get(r, c), sourceA.get(r, c) - sourceB.get(r, c));
-            }
-          }
-        });
+        }
       });
-      group('neg', () {
-        test('default', () {
-          final target = sourceA.neg();
-          expect(target.dataType, sourceA.dataType);
-          expect(target.rowCount, sourceA.rowCount);
-          expect(target.columnCount, sourceA.columnCount);
-          for (var r = 0; r < target.rowCount; r++) {
-            for (var c = 0; c < target.columnCount; c++) {
-              expect(target.get(r, c), -sourceA.get(r, c));
-            }
+      test('neg', () {
+        final target = -sourceA;
+        expect(target.dataType, sourceA.dataType);
+        expect(target.rowCount, sourceA.rowCount);
+        expect(target.columnCount, sourceA.columnCount);
+        for (var r = 0; r < target.rowCount; r++) {
+          for (var c = 0; c < target.columnCount; c++) {
+            expect(target.get(r, c), -sourceA.get(r, c));
           }
-        });
-        test('in-place', () {
-          final result = sourceA.toMatrix(format: format);
-          expect(result.negEq(), result);
-          for (var r = 0; r < result.rowCount; r++) {
-            for (var c = 0; c < result.columnCount; c++) {
-              expect(result.get(r, c), -sourceA.get(r, c));
-            }
-          }
-        });
-        test('operator', () {
-          final target = -sourceA;
-          expect(target.dataType, sourceA.dataType);
-          expect(target.rowCount, sourceA.rowCount);
-          expect(target.columnCount, sourceA.columnCount);
-          for (var r = 0; r < target.rowCount; r++) {
-            for (var c = 0; c < target.columnCount; c++) {
-              expect(target.get(r, c), -sourceA.get(r, c));
-            }
-          }
-        });
+        }
       });
       group('compare', () {
         test('identity', () {
@@ -1651,7 +1545,7 @@ void matrixTest(String name, MatrixFormat format) {
               reason: 'col count mismatch');
         });
         test('custom', () {
-          final negated = sourceA.neg();
+          final negated = -sourceA;
           expect(sourceA.compare(negated), isFalse);
           expect(sourceA.compare(negated, equals: (a, b) => a == -b), isTrue);
         });
@@ -1711,18 +1605,6 @@ void matrixTest(String name, MatrixFormat format) {
           expect(v.get(1, 0), 9.0);
           expect(v.get(1, 1), -27.0);
         });
-        test('in-place', () {
-          final result = v0.toMatrix(format: format);
-          expect(result.lerpEq(v1, 0.5), result);
-          expect(result.get(0, 0), 5.0);
-          expect(result.get(0, 1), 2.0);
-          expect(result.get(1, 0), 9.0);
-          expect(result.get(1, 1), 0.0);
-        });
-        test('error', () {
-          final other = Matrix(DataType.float32, 2, 3, format: format);
-          expect(() => v0.lerp(other, 2.0), throwsArgumentError);
-        });
       });
       group('mul', () {
         final matrixA = Matrix.generate(
@@ -1735,18 +1617,6 @@ void matrixTest(String name, MatrixFormat format) {
             DataType.int32, matrixA.columnCount, (i) => random.nextInt(100),
             format: VectorFormat.standard);
         group('matrix', () {
-          test('default', () {
-            final target = matrixA.mul(matrixB);
-            expect(target.dataType, DataType.int32);
-            expect(target.rowCount, matrixA.rowCount);
-            expect(target.columnCount, matrixB.columnCount);
-            for (var r = 0; r < target.rowCount; r++) {
-              for (var c = 0; c < target.columnCount; c++) {
-                final value = matrixA.row(r).dot(matrixB.column(c));
-                expect(target.get(r, c), value);
-              }
-            }
-          });
           test('operator', () {
             final target = matrixA * matrixB;
             expect(target.dataType, DataType.int32);
@@ -1771,42 +1641,8 @@ void matrixTest(String name, MatrixFormat format) {
               }
             }
           });
-          test('error type', () {
-            expect(() => matrixA.mul('Oops'), throwsArgumentError);
-          });
-          test('error dimensions', () {
-            expect(() => matrixA.mulMatrix(matrixA), throwsArgumentError);
-            expect(() => matrixB.mulMatrix(matrixB), throwsArgumentError);
-            expect(() => matrixB.mulMatrix(matrixA), throwsArgumentError);
-          });
-          test('error in-place', () {
-            final derivedA = matrixA.range(0, 8, 0, 8);
-            final derivedB = matrixB.range(0, 8, 0, 8);
-            expect(() => derivedA.mulMatrix(derivedB, target: derivedA),
-                throwsArgumentError);
-            expect(() => derivedA.mulMatrix(derivedB, target: derivedB),
-                throwsArgumentError);
-            expect(
-                () => derivedA.transposed.mulMatrix(derivedB, target: derivedA),
-                throwsArgumentError);
-            expect(
-                () => derivedA.mulMatrix(derivedB.transposed, target: derivedB),
-                throwsArgumentError);
-            expect(
-                () => derivedA.mulMatrix(derivedB, target: derivedA.transposed),
-                throwsArgumentError);
-            expect(
-                () => derivedA.mulMatrix(derivedB, target: derivedB.transposed),
-                throwsArgumentError);
-          });
         });
         group('vector', () {
-          test('default', () {
-            final result = matrixA.mul(vectorB);
-            for (var i = 0; i < result.rowCount; i++) {
-              expect(result.get(i, 0), matrixA.row(i).dot(vectorB));
-            }
-          });
           test('operator', () {
             final result = matrixA * vectorB;
             for (var i = 0; i < result.rowCount; i++) {
@@ -1819,45 +1655,8 @@ void matrixTest(String name, MatrixFormat format) {
               expect(result[i], matrixA.row(i).dot(vectorB));
             }
           });
-          test('error dimensions', () {
-            expect(() => matrixA.colRange(1).mulVector(vectorB),
-                throwsArgumentError);
-            expect(
-                () => matrixA.mulVector(vectorB.range(1)), throwsArgumentError);
-          });
-          test('error in-place', () {
-            final derivedA = matrixA.range(0, 8, 0, 8);
-            final derivedB = vectorB.range(0, 8);
-            expect(() => derivedA.mulVector(derivedB, target: derivedB),
-                throwsArgumentError);
-            expect(() => derivedA.mulVector(derivedB, target: derivedA.row(0)),
-                throwsArgumentError);
-            expect(
-                () => derivedA.mulVector(derivedB, target: derivedA.column(0)),
-                throwsArgumentError);
-          });
         });
         group('scalar', () {
-          test('default', () {
-            final target = matrixA.mul(2);
-            expect(target.dataType, matrixA.dataType);
-            expect(target.rowCount, matrixA.rowCount);
-            expect(target.columnCount, matrixA.columnCount);
-            for (var r = 0; r < target.rowCount; r++) {
-              for (var c = 0; c < target.columnCount; c++) {
-                expect(target.get(r, c), 2 * matrixA.get(r, c));
-              }
-            }
-          });
-          test('in-place', () {
-            final result = matrixA.toMatrix(format: format);
-            expect(result.mulScalarEq(3), result);
-            for (var r = 0; r < result.rowCount; r++) {
-              for (var c = 0; c < result.columnCount; c++) {
-                expect(result.get(r, c), 3 * matrixA.get(r, c));
-              }
-            }
-          });
           test('operator', () {
             final target = matrixA * 2;
             expect(target.dataType, matrixA.dataType);

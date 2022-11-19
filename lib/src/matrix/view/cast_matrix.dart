@@ -21,7 +21,7 @@ class CastMatrix<S, T> with Matrix<T> {
   Set<Storage> get storage => matrix.storage;
 
   @override
-  Matrix<T> copy() => CastMatrix(matrix.copy(), dataType);
+  Matrix<T> copy() => CastMatrix<S, T>(matrix.copy(), dataType);
 
   @override
   T getUnchecked(int row, int col) =>

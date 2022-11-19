@@ -1,7 +1,7 @@
 import '../../../type.dart';
 import '../../shared/storage.dart';
 import '../matrix.dart';
-import '../mixin/unmodifiable_matrix_mixin.dart';
+import '../mixin/unmodifiable_matrix.dart';
 
 /// Read-only identity matrix.
 class IdentityMatrix<T> with Matrix<T>, UnmodifiableMatrixMixin<T> {
