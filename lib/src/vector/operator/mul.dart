@@ -1,26 +1,26 @@
-import '../../../type.dart';
 import '../vector.dart';
-import '../vector_format.dart';
-import 'utils.dart';
+import '../view/binary_operation_vector.dart';
+import '../view/unary_operation_vector.dart';
 
 extension MulVectorExtension<T> on Vector<T> {
-  /// Multiplies this [Vector] element-wise with [other].
-  Vector<T> mul(/* Matrix<T>|Vector<T>|T */ Object other,
-      {Vector<T>? target, DataType<T>? dataType, VectorFormat? format}) {
-    final result = createVector<T>(this, target, dataType, format);
+  /// Returns a view of the element-wise multiplication of this [Vector] and [other].
+  Vector<T> operator *(/* Vector<T>|T */ Object other) {
     if (other is Vector<T>) {
-      binaryOperator<T>(result, this, other, result.dataType.field.mul);
+      return mulVector(other);
+    } else if (other is T) {
+      return mulScalar(other as T);
     } else {
-      final mul = result.dataType.field.mul;
-      final factor = result.dataType.cast(other);
-      unaryOperator<T>(result, this, (value) => mul(value, factor));
+      throw ArgumentError.value(other, 'other', 'Invalid scalar.');
     }
-    return result;
   }
 
-  /// In-place multiplies this by [other].
-  Vector<T> mulEq(/* Vector<T>|T */ Object other) => mul(other, target: this);
+  /// Returns a view of the element-wise multiplication of this [Vector] and [other].
+  Vector<T> mulVector(Vector<T> other) =>
+      binaryOperation(other, dataType.field.mul);
 
-  /// Multiplies this with [other].
-  Vector<T> operator *(/* Vector<T>|T */ Object other) => mul(other);
+  /// Returns a view of the multiplication of this [Vector] and a scalar.
+  Vector<T> mulScalar(T other) {
+    final mul = dataType.field.mul;
+    return unaryOperation((value) => mul(value, other));
+  }
 }

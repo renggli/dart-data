@@ -1,10 +1,10 @@
 import '../vector.dart';
-import 'utils.dart';
 
 extension DotVectorExtension<T> on Vector<T> {
   /// Computes the dot product of this [Vector] and [other].
   T dot(Vector<T> other) {
-    checkDimensions<T>(this, other);
+    assert(count == other.count,
+        'Element count of this ($count) and other (${other.count}) must match.');
     final add = dataType.field.add, mul = dataType.field.mul;
     var result = dataType.field.additiveIdentity;
     for (var i = 0; i < count; i++) {

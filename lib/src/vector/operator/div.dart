@@ -1,26 +1,26 @@
-import '../../../type.dart';
 import '../vector.dart';
-import '../vector_format.dart';
-import 'utils.dart';
+import '../view/binary_operation_vector.dart';
+import '../view/unary_operation_vector.dart';
 
 extension DivVectorExtension<T> on Vector<T> {
-  /// Divides this [Vector] element-wise by [other].
-  Vector<T> div(/* Vector<T>|T */ Object other,
-      {Vector<T>? target, DataType<T>? dataType, VectorFormat? format}) {
-    final result = createVector<T>(this, target, dataType, format);
+  /// Returns a view of the element-wise division of this [Vector] by [other].
+  Vector<T> operator /(/* Vector<T>|T */ Object other) {
     if (other is Vector<T>) {
-      binaryOperator<T>(result, this, other, result.dataType.field.div);
+      return divVector(other);
+    } else if (other is T) {
+      return divScalar(other as T);
     } else {
-      final div = result.dataType.field.div;
-      final factor = result.dataType.cast(other);
-      unaryOperator<T>(result, this, (value) => div(value, factor));
+      throw ArgumentError.value(other, 'other', 'Invalid scalar.');
     }
-    return result;
   }
 
-  /// In-place divides this by [other].
-  Vector<T> divEq(/* Vector<T>|T */ Object other) => div(other, target: this);
+  /// Returns a view of the element-wise multiplication of this [Vector] and [other].
+  Vector<T> divVector(Vector<T> other) =>
+      binaryOperation(other, dataType.field.div);
 
-  /// Divides this by [other].
-  Vector<T> operator /(/* Vector<T>|T */ Object other) => div(other);
+  /// Returns a view of the multiplication of this [Vector] and a scalar.
+  Vector<T> divScalar(T other) {
+    final div = dataType.field.div;
+    return unaryOperation((value) => div(value, other));
+  }
 }

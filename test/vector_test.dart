@@ -718,128 +718,32 @@ void vectorTest(String name, VectorFormat format) {
       final sourceB = Vector.generate(
           DataType.int32, 100, (i) => 1 + random.nextInt(100),
           format: format);
-      group('add', () {
-        test('default', () {
-          final target = sourceA.add(sourceB);
-          expect(target.dataType, sourceA.dataType);
-          expect(target.count, sourceA.count);
-          for (var i = 0; i < target.count; i++) {
-            expect(target[i], sourceA[i] + sourceB[i]);
-          }
-        });
-        test('in-place', () {
-          final target = sourceA.toVector(format: format);
-          expect(target.addEq(sourceB), target);
-          for (var i = 0; i < target.count; i++) {
-            expect(target[i], sourceA[i] + sourceB[i]);
-          }
-        });
-        test('operator', () {
-          final target = sourceA + sourceB;
-          expect(target.dataType, sourceA.dataType);
-          expect(target.count, sourceA.count);
-          for (var i = 0; i < target.count; i++) {
-            expect(target[i], sourceA[i] + sourceB[i]);
-          }
-        });
-        test('target', () {
-          final target = Vector(DataType.int16, sourceA.count, format: format);
-          final result = sourceA.add(sourceB, target: target);
-          expect(target.dataType, DataType.int16);
-          expect(target.count, sourceA.count);
-          for (var i = 0; i < target.count; i++) {
-            expect(target[i], sourceA[i] + sourceB[i]);
-          }
-          expect(result, target);
-        });
-        test('format', () {
-          final target =
-              sourceA.add(sourceB, dataType: DataType.int16, format: format);
-          expect(target.dataType, DataType.int16);
-          expect(target.count, sourceA.count);
-          for (var i = 0; i < target.count; i++) {
-            expect(target[i], sourceA[i] + sourceB[i]);
-          }
-        });
-        test('operand dimension mismatch', () {
-          final sourceA =
-              Vector.fromList(DataType.int8, [1, 2], format: format);
-          expect(() => sourceA.add(sourceB), throwsArgumentError);
-        });
-        test('target dimension mismatch', () {
-          final target =
-              Vector(DataType.int16, sourceA.count - 1, format: format);
-          expect(
-              () => sourceA.add(sourceB, target: target), throwsArgumentError);
-        });
+      test('add', () {
+        final target = sourceA + sourceB;
+        expect(target.dataType, sourceA.dataType);
+        expect(target.count, sourceA.count);
+        for (var i = 0; i < target.count; i++) {
+          expect(target[i], sourceA[i] + sourceB[i]);
+        }
       });
-      group('sub', () {
-        test('default', () {
-          final target = sourceA.sub(sourceB);
-          expect(target.dataType, sourceA.dataType);
-          expect(target.count, sourceA.count);
-          for (var i = 0; i < target.count; i++) {
-            expect(target[i], sourceA[i] - sourceB[i]);
-          }
-        });
-        test('in-place', () {
-          final target = sourceA.toVector(format: format);
-          expect(target.subEq(sourceB), target);
-          for (var i = 0; i < target.count; i++) {
-            expect(target[i], sourceA[i] - sourceB[i]);
-          }
-        });
-        test('operator', () {
-          final target = sourceA - sourceB;
-          expect(target.dataType, sourceA.dataType);
-          expect(target.count, sourceA.count);
-          for (var i = 0; i < target.count; i++) {
-            expect(target[i], sourceA[i] - sourceB[i]);
-          }
-        });
+      test('sub', () {
+        final target = sourceA - sourceB;
+        expect(target.dataType, sourceA.dataType);
+        expect(target.count, sourceA.count);
+        for (var i = 0; i < target.count; i++) {
+          expect(target[i], sourceA[i] - sourceB[i]);
+        }
       });
-      group('neg', () {
-        test('default', () {
-          final target = sourceA.neg();
-          expect(target.dataType, sourceA.dataType);
-          expect(target.count, sourceA.count);
-          for (var i = 0; i < target.count; i++) {
-            expect(target[i], -sourceA[i]);
-          }
-        });
-        test('in-place', () {
-          final target = sourceA.toVector(format: format);
-          expect(target.negEq(), target);
-          for (var i = 0; i < target.count; i++) {
-            expect(target[i], -sourceA[i]);
-          }
-        });
-        test('operator', () {
-          final target = -sourceA;
-          expect(target.dataType, sourceA.dataType);
-          expect(target.count, sourceA.count);
-          for (var i = 0; i < target.count; i++) {
-            expect(target[i], -sourceA[i]);
-          }
-        });
+      test('neg', () {
+        final target = -sourceA;
+        expect(target.dataType, sourceA.dataType);
+        expect(target.count, sourceA.count);
+        for (var i = 0; i < target.count; i++) {
+          expect(target[i], -sourceA[i]);
+        }
       });
       group('mul', () {
         test('default', () {
-          final target = sourceA.mul(sourceB);
-          expect(target.dataType, sourceA.dataType);
-          expect(target.count, sourceA.count);
-          for (var i = 0; i < target.count; i++) {
-            expect(target[i], sourceA[i] * sourceB[i]);
-          }
-        });
-        test('in-place', () {
-          final target = sourceA.toVector(format: format);
-          expect(target.mulEq(2), target);
-          for (var i = 0; i < target.count; i++) {
-            expect(target[i], 2 * sourceA[i]);
-          }
-        });
-        test('operator', () {
           final target = sourceA * sourceB;
           expect(target.dataType, sourceA.dataType);
           expect(target.count, sourceA.count);
@@ -848,7 +752,7 @@ void vectorTest(String name, VectorFormat format) {
           }
         });
         test('scalar', () {
-          final target = sourceA.mul(2);
+          final target = sourceA * 2;
           expect(target.dataType, sourceA.dataType);
           expect(target.count, sourceA.count);
           for (var i = 0; i < target.count; i++) {
@@ -857,21 +761,6 @@ void vectorTest(String name, VectorFormat format) {
         });
       });
       group('div', () {
-        test('default', () {
-          final target = sourceA.div(sourceB);
-          expect(target.dataType, sourceA.dataType);
-          expect(target.count, sourceA.count);
-          for (var i = 0; i < target.count; i++) {
-            expect(target[i], sourceA[i] ~/ sourceB[i]);
-          }
-        });
-        test('in-place', () {
-          final target = sourceA.toVector(format: format);
-          expect(target.divEq(2), target);
-          for (var i = 0; i < target.count; i++) {
-            expect(target[i], sourceA[i] ~/ 2);
-          }
-        });
         test('operator', () {
           final target = sourceA / sourceB;
           expect(target.dataType, sourceA.dataType);
@@ -881,7 +770,7 @@ void vectorTest(String name, VectorFormat format) {
           }
         });
         test('scalar', () {
-          final target = sourceA.div(2);
+          final target = sourceA / 2;
           expect(target.dataType, sourceA.dataType);
           expect(target.count, sourceA.count);
           for (var i = 0; i < target.count; i++) {
@@ -926,17 +815,6 @@ void vectorTest(String name, VectorFormat format) {
           expect(v[1], -10.0);
           expect(v[2], 9.0);
         });
-        test('in-place', () {
-          final target = v0.toVector(format: format);
-          expect(target.lerpEq(v1, 0.5), target);
-          expect(target[0], 5.0);
-          expect(target[1], 2.0);
-          expect(target[2], 9.0);
-        });
-        test('error', () {
-          final other = Vector(DataType.float32, 2, format: format);
-          expect(() => v0.lerp(other, 2.0), throwsArgumentError);
-        });
       });
       group('compare', () {
         test('identity', () {
@@ -953,24 +831,17 @@ void vectorTest(String name, VectorFormat format) {
               reason: 'count mismatch');
         });
         test('custom', () {
-          final negated = sourceA.neg();
+          final negated = -sourceA;
           expect(sourceA.compare(negated), isFalse);
           expect(sourceA.compare(negated, equals: (a, b) => a == -b), isTrue);
         });
       });
-      group('dot', () {
-        test('default', () {
-          var expected = 0;
-          for (var i = 0; i < sourceA.count; i++) {
-            expected += sourceA[i] * sourceB[i];
-          }
-          expect(sourceA.dot(sourceB), expected);
-        });
-        test('dimension mismatch', () {
-          final sourceB =
-              Vector(DataType.uint8, sourceA.count - 1, format: format);
-          expect(() => sourceA.dot(sourceB), throwsArgumentError);
-        });
+      test('dot', () {
+        var expected = 0;
+        for (var i = 0; i < sourceA.count; i++) {
+          expected += sourceA[i] * sourceB[i];
+        }
+        expect(sourceA.dot(sourceB), expected);
       });
       test('sum', () {
         final source =

@@ -3,6 +3,7 @@
 ## 0.11.0 (unpublished)
 
 - Dart 2.17 requirement.
+- Operators are lazy now and create views. Use `toVector()` or `copyInto(target)` to evaluate the data.
 
 ## 0.10.0
 
