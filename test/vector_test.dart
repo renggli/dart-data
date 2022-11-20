@@ -1,6 +1,7 @@
 import 'dart:math';
 
 import 'package:data/data.dart';
+import 'package:data/src/vector/view/convolution_vector.dart';
 import 'package:test/test.dart';
 
 void vectorTest(String name, VectorFormat format) {
@@ -410,6 +411,32 @@ void vectorTest(String name, VectorFormat format) {
                   mask: Vector.constant(DataType.boolean, base.count + 1,
                       value: true, format: format)),
               throwsArgumentError);
+        });
+      });
+      group('convolution', () {
+        final vector1 = Vector.fromList(DataType.int32, [5, 6, 7, 8, 9]);
+        final kernel1 = Vector.fromList(DataType.int32, [1, 0, -1]);
+        final vector2 = Vector.fromList(DataType.float, [1, 2, 3]);
+        final kernel2 = Vector.fromList(DataType.float, [0, 1, 0.5]);
+        test('full', () {
+          final result1 = vector1.convolve(kernel1);
+          expect(result1.iterable, [5, 6, 2, 2, 2, -8, -9]);
+          final result2 = vector2.convolve(kernel2, mode: ConvolutionMode.full);
+          expect(result2.iterable, [0.0, 1.0, 2.5, 4.0, 1.5]);
+        });
+        test('valid', () {
+          final result1 =
+              vector1.convolve(kernel1, mode: ConvolutionMode.valid);
+          expect(result1.iterable, [2, 2, 2]);
+          final result2 =
+              vector2.convolve(kernel2, mode: ConvolutionMode.valid);
+          expect(result2.iterable, [2.5]);
+        });
+        test('same', () {
+          final result1 = vector1.convolve(kernel1, mode: ConvolutionMode.same);
+          expect(result1.iterable, [6, 2, 2, 2, -8]);
+          final result2 = vector2.convolve(kernel2, mode: ConvolutionMode.same);
+          expect(result2.iterable, [1.0, 2.5, 4.0]);
         });
       });
       group('transform', () {
