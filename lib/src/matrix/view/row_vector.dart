@@ -14,7 +14,7 @@ class RowVector<T> with Vector<T> {
   DataType<T> get dataType => matrix.dataType;
 
   @override
-  int get count => matrix.columnCount;
+  int get count => matrix.colCount;
 
   @override
   Set<Storage> get storage => matrix.storage;

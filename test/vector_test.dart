@@ -538,10 +538,10 @@ void vectorTest(String name, VectorFormat format) {
           final matrix = vector.diagonalMatrix;
           expect(matrix.dataType, vector.dataType);
           expect(matrix.rowCount, vector.count);
-          expect(matrix.columnCount, vector.count);
+          expect(matrix.colCount, vector.count);
           expect(matrix.storage, [vector]);
           for (var r = 0; r < matrix.rowCount; r++) {
-            for (var c = 0; c < matrix.columnCount; c++) {
+            for (var c = 0; c < matrix.colCount; c++) {
               if (r == c) {
                 expect(matrix.get(r, c), '$r');
                 matrix.set(r, c, '$r*');
@@ -558,9 +558,9 @@ void vectorTest(String name, VectorFormat format) {
           final matrix = vector.rowMatrix;
           expect(matrix.dataType, vector.dataType);
           expect(matrix.rowCount, 1);
-          expect(matrix.columnCount, vector.count);
+          expect(matrix.colCount, vector.count);
           expect(matrix.storage, [vector]);
-          for (var c = 0; c < matrix.columnCount; c++) {
+          for (var c = 0; c < matrix.colCount; c++) {
             expect(matrix.get(0, c), '$c');
             matrix.set(0, c, '$c*');
             expect(vector[c], '$c*');
@@ -572,7 +572,7 @@ void vectorTest(String name, VectorFormat format) {
           final matrix = vector.columnMatrix;
           expect(matrix.dataType, vector.dataType);
           expect(matrix.rowCount, vector.count);
-          expect(matrix.columnCount, 1);
+          expect(matrix.colCount, 1);
           expect(matrix.storage, [vector]);
           for (var r = 0; r < matrix.rowCount; r++) {
             expect(matrix.get(r, 0), '$r');

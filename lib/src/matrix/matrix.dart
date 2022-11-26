@@ -131,11 +131,11 @@ abstract class Matrix<T> implements Storage {
         format: format);
     for (var r = 0; r < result.rowCount; r++) {
       final sourceRow = source[r];
-      if (sourceRow.length != result.columnCount) {
+      if (sourceRow.length != result.colCount) {
         throw ArgumentError.value(
             source, 'source', 'All rows must be equally sized.');
       }
-      for (var c = 0; c < result.columnCount; c++) {
+      for (var c = 0; c < result.colCount; c++) {
         result.setUnchecked(r, c, sourceRow[c]);
       }
     }
@@ -152,7 +152,7 @@ abstract class Matrix<T> implements Storage {
     }
     final result = Matrix<T>(dataType, rowCount, columnCount, format: format);
     for (var r = 0; r < rowCount; r++) {
-      for (var c = 0; c < result.columnCount; c++) {
+      for (var c = 0; c < result.colCount; c++) {
         result.set(r, c, source[r * columnCount + c]);
       }
     }
@@ -165,7 +165,7 @@ abstract class Matrix<T> implements Storage {
     final result = Matrix<T>(
         dataType, source.isEmpty ? 0 : source[0].length, source.length,
         format: format);
-    for (var c = 0; c < result.columnCount; c++) {
+    for (var c = 0; c < result.colCount; c++) {
       final sourceCol = source[c];
       if (sourceCol.length != result.rowCount) {
         throw ArgumentError.value(
@@ -188,7 +188,7 @@ abstract class Matrix<T> implements Storage {
     }
     final result = Matrix<T>(dataType, rowCount, colCount, format: format);
     for (var r = 0; r < rowCount; r++) {
-      for (var c = 0; c < result.columnCount; c++) {
+      for (var c = 0; c < result.colCount; c++) {
         result.set(r, c, source[r + c * rowCount]);
       }
     }
@@ -202,7 +202,7 @@ abstract class Matrix<T> implements Storage {
   int get rowCount;
 
   /// Returns the number of columns in the matrix.
-  int get columnCount;
+  int get colCount;
 
   /// Returns a mutable row vector of this matrix. Convenience method to read
   /// matrix values using row and column indexes: `matrix[row][col]`.
@@ -217,7 +217,7 @@ abstract class Matrix<T> implements Storage {
   @nonVirtual
   T get(int row, int col) {
     RangeError.checkValidIndex(row, this, 'row', rowCount);
-    RangeError.checkValidIndex(col, this, 'col', columnCount);
+    RangeError.checkValidIndex(col, this, 'col', colCount);
     return getUnchecked(row, col);
   }
 
@@ -230,7 +230,7 @@ abstract class Matrix<T> implements Storage {
   @nonVirtual
   void set(int row, int col, T value) {
     RangeError.checkValidIndex(row, this, 'row', rowCount);
-    RangeError.checkValidIndex(col, this, 'col', columnCount);
+    RangeError.checkValidIndex(col, this, 'col', colCount);
     setUnchecked(row, col, value);
   }
 
@@ -241,11 +241,11 @@ abstract class Matrix<T> implements Storage {
   /// Tests if [row] and [col] are within the bounds of this matrix.
   @nonVirtual
   bool isWithinBounds(int row, int col) =>
-      0 <= row && row < rowCount && 0 <= col && col < columnCount;
+      0 <= row && row < rowCount && 0 <= col && col < colCount;
 
   /// Returns the shape of this matrix.
   @override
-  List<int> get shape => [rowCount, columnCount];
+  List<int> get shape => [rowCount, colCount];
 
   /// Returns the target matrix with all elements of this matrix copied into it.
   Matrix<T> copyInto(Matrix<T> target) {
@@ -254,12 +254,12 @@ abstract class Matrix<T> implements Storage {
         'Row count of this matrix ($rowCount) and the target matrix '
         '(${target.rowCount}) must match.');
     assert(
-        columnCount == target.columnCount,
-        'Column count of this matrix ($columnCount) and the target matrix '
-        '(${target.columnCount}) must match.');
+        colCount == target.colCount,
+        'Column count of this matrix ($colCount) and the target matrix '
+        '(${target.colCount}) must match.');
     if (this != target) {
       for (var r = 0; r < rowCount; r++) {
-        for (var c = 0; c < columnCount; c++) {
+        for (var c = 0; c < colCount; c++) {
           target.setUnchecked(r, c, getUnchecked(r, c));
         }
       }
@@ -269,13 +269,13 @@ abstract class Matrix<T> implements Storage {
 
   /// Creates a new [Matrix] containing the same elements as this one.
   Matrix<T> toMatrix({MatrixFormat? format}) =>
-      copyInto(Matrix(dataType, rowCount, columnCount, format: format));
+      copyInto(Matrix(dataType, rowCount, colCount, format: format));
 
   /// Iterates over each value in the matrix. Skips over default values, which
   /// can be done very efficiently on sparse matrices.
   void forEach(void Function(int row, int col, T value) callback) {
     for (var row = 0; row < rowCount; row++) {
-      for (var col = 0; col < columnCount; col++) {
+      for (var col = 0; col < colCount; col++) {
         final value = getUnchecked(row, col);
         if (dataType.defaultValue != value) {
           callback(row, col, getUnchecked(row, col));
@@ -307,8 +307,8 @@ abstract class Matrix<T> implements Storage {
         buffer.write(verticalSeparator);
       }
       if (limit && leadingItems <= r && r < rowCount - trailingItems) {
-        final ellipsesVector = Vector.constant(DataType.string, columnCount,
-            value: verticalEllipses);
+        final ellipsesVector =
+            Vector.constant(DataType.string, colCount, value: verticalEllipses);
         buffer.write(ellipsesVector.format(
           valuePrinter: ellipsesPrinter,
           paddingPrinter: paddingPrinter,
@@ -341,6 +341,6 @@ abstract class Matrix<T> implements Storage {
   String toString() => '$runtimeType('
       'dataType: ${dataType.name}, '
       'rowCount: $rowCount, '
-      'columnCount: $columnCount):\n'
+      'columnCount: $colCount):\n'
       '${format()}';
 }

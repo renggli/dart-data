@@ -13,10 +13,10 @@ class RotatedMatrix<T> with Matrix<T> {
   DataType<T> get dataType => matrix.dataType;
 
   @override
-  int get rowCount => count.isEven ? matrix.rowCount : matrix.columnCount;
+  int get rowCount => count.isEven ? matrix.rowCount : matrix.colCount;
 
   @override
-  int get columnCount => count.isEven ? matrix.columnCount : matrix.rowCount;
+  int get colCount => count.isEven ? matrix.colCount : matrix.rowCount;
 
   @override
   T getUnchecked(int row, int col) {
@@ -25,9 +25,9 @@ class RotatedMatrix<T> with Matrix<T> {
         return matrix.getUnchecked(matrix.rowCount - col - 1, row);
       case 2:
         return matrix.getUnchecked(
-            matrix.rowCount - row - 1, matrix.columnCount - col - 1);
+            matrix.rowCount - row - 1, matrix.colCount - col - 1);
       case 3:
-        return matrix.getUnchecked(col, matrix.columnCount - row - 1);
+        return matrix.getUnchecked(col, matrix.colCount - row - 1);
     }
     throw ArgumentError('Invalid rotation: ${90 * count}');
   }
@@ -39,9 +39,9 @@ class RotatedMatrix<T> with Matrix<T> {
         return matrix.setUnchecked(matrix.rowCount - col - 1, row, value);
       case 2:
         return matrix.setUnchecked(
-            matrix.rowCount - row - 1, matrix.columnCount - col - 1, value);
+            matrix.rowCount - row - 1, matrix.colCount - col - 1, value);
       case 3:
-        return matrix.setUnchecked(col, matrix.columnCount - row - 1, value);
+        return matrix.setUnchecked(col, matrix.colCount - row - 1, value);
     }
     throw ArgumentError('Invalid rotation: ${90 * count}');
   }

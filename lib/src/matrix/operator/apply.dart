@@ -14,7 +14,7 @@ extension ApplyMatrixExtension<T> on Matrix<T> {
           'Vector must have $rowCount elements, but it has ${vector.count}.');
     }
     for (var r = 0; r < rowCount; r++) {
-      for (var c = 0; c < columnCount; c++) {
+      for (var c = 0; c < colCount; c++) {
         result.setUnchecked(
             r, c, operator(getUnchecked(r, c), vector.getUnchecked(r)));
       }
@@ -26,12 +26,12 @@ extension ApplyMatrixExtension<T> on Matrix<T> {
   Matrix<T> applyByColumn(T Function(T a, T b) operator, Vector<T> vector,
       {Matrix<T>? target, DataType<T>? dataType, MatrixFormat? format}) {
     final result = createMatrix<T>(this, target, dataType, format);
-    if (columnCount != vector.count) {
+    if (colCount != vector.count) {
       throw ArgumentError.value(vector, 'vector',
-          'Vector must have $columnCount elements, but it has ${vector.count}.');
+          'Vector must have $colCount elements, but it has ${vector.count}.');
     }
     for (var r = 0; r < rowCount; r++) {
-      for (var c = 0; c < columnCount; c++) {
+      for (var c = 0; c < colCount; c++) {
         result.setUnchecked(
             r, c, operator(getUnchecked(r, c), vector.getUnchecked(c)));
       }

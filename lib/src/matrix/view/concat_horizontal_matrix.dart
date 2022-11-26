@@ -18,7 +18,7 @@ class ConcatHorizontalMatrix<T> with Matrix<T> {
   int get rowCount => matrices.first.rowCount;
 
   @override
-  int get columnCount => indexes.last;
+  int get colCount => indexes.last;
 
   @override
   Set<Storage> get storage =>
@@ -46,7 +46,7 @@ class ConcatHorizontalMatrix<T> with Matrix<T> {
 List<int> computeIndexes(List<Matrix> matrices) {
   final indexes = DataType.indexDataType.newList(matrices.length + 1);
   for (var i = 0; i < matrices.length; i++) {
-    indexes[i + 1] = indexes[i] + matrices[i].columnCount;
+    indexes[i + 1] = indexes[i] + matrices[i].colCount;
   }
   return indexes;
 }

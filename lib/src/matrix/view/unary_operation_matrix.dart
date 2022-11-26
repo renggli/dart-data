@@ -19,7 +19,7 @@ class UnaryOperationMatrix<T> with Matrix<T>, UnmodifiableMatrixMixin<T> {
   int get rowCount => matrix.rowCount;
 
   @override
-  int get columnCount => matrix.columnCount;
+  int get colCount => matrix.colCount;
 
   @override
   Set<Storage> get storage => matrix.storage;

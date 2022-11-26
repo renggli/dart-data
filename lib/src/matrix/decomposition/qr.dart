@@ -18,8 +18,8 @@ class QRDecomposition {
   QRDecomposition(Matrix<num> source)
       : _qr = source.cast(DataType.float).toMatrix(),
         _m = source.rowCount,
-        _n = source.columnCount,
-        _rdiag = DataType.float.newList(source.columnCount) {
+        _n = source.colCount,
+        _rdiag = DataType.float.newList(source.colCount) {
     // Main loop.
     for (var k = 0; k < _n; k++) {
       // Compute 2-norm of k-th column without under/overflow.
@@ -141,7 +141,7 @@ class QRDecomposition {
     }
 
     // Copy right hand side
-    final nx = B.columnCount;
+    final nx = B.colCount;
     final X = B.cast(DataType.float).toMatrix();
 
     // Compute Y = transpose(Q)*B

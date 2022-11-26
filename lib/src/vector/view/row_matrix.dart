@@ -16,7 +16,7 @@ class RowMatrix<T> with Matrix<T> {
   int get rowCount => 1;
 
   @override
-  int get columnCount => vector.count;
+  int get colCount => vector.count;
 
   @override
   Set<Storage> get storage => vector.storage;

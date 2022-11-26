@@ -4,7 +4,7 @@ import '../matrix.dart';
 
 /// Sparse keyed matrix.
 class KeyedMatrix<T> with Matrix<T> {
-  KeyedMatrix(this.dataType, this.rowCount, this.columnCount);
+  KeyedMatrix(this.dataType, this.rowCount, this.colCount);
 
   final Map<int, T> _values = <int, T>{};
 
@@ -15,18 +15,18 @@ class KeyedMatrix<T> with Matrix<T> {
   final int rowCount;
 
   @override
-  final int columnCount;
+  final int colCount;
 
   @override
   Set<Storage> get storage => {this};
 
   @override
   T getUnchecked(int row, int col) =>
-      _values[row * columnCount + col] ?? dataType.defaultValue;
+      _values[row * colCount + col] ?? dataType.defaultValue;
 
   @override
   void setUnchecked(int row, int col, T value) {
-    final index = row * columnCount + col;
+    final index = row * colCount + col;
     if (value == dataType.defaultValue) {
       _values.remove(index);
     } else {
@@ -37,7 +37,7 @@ class KeyedMatrix<T> with Matrix<T> {
   @override
   void forEach(void Function(int row, int col, T value) callback) {
     for (final entry in _values.entries) {
-      callback(entry.key ~/ columnCount, entry.key % columnCount, entry.value);
+      callback(entry.key ~/ colCount, entry.key % colCount, entry.value);
     }
   }
 }

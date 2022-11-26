@@ -7,8 +7,8 @@ class MatrixMatrixMultiplicationMatrix<T>
     with Matrix<T>, UnmodifiableMatrixMixin<T> {
   MatrixMatrixMultiplicationMatrix(this.dataType, this.first, this.second)
       : assert(
-            first.columnCount == second.rowCount,
-            'Expected a matrix with ${first.columnCount} rows, '
+            first.colCount == second.rowCount,
+            'Expected a matrix with ${first.colCount} rows, '
             'but got one with ${second.rowCount}.');
 
   final Matrix<T> first;
@@ -21,7 +21,7 @@ class MatrixMatrixMultiplicationMatrix<T>
   int get rowCount => first.rowCount;
 
   @override
-  int get columnCount => second.columnCount;
+  int get colCount => second.colCount;
 
   @override
   Set<Storage> get storage => {...first.storage, ...second.storage};
@@ -30,7 +30,7 @@ class MatrixMatrixMultiplicationMatrix<T>
   T getUnchecked(int row, int col) {
     final add = dataType.field.add, mul = dataType.field.mul;
     var result = dataType.field.additiveIdentity;
-    for (var i = 0; i < first.columnCount; i++) {
+    for (var i = 0; i < first.colCount; i++) {
       result = add(
         result,
         mul(

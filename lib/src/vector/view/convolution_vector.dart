@@ -23,16 +23,11 @@ abstract class ConvolutionVector<T> with Vector<T>, UnmodifiableVectorMixin<T> {
   Set<Storage> get storage => {...vector.storage, ...kernel.storage};
 
   @internal
-  T convolution(int v, int k) {
+  T convolution(int vs, int ke) {
     final add = dataType.field.add, mul = dataType.field.mul;
     var result = dataType.field.additiveIdentity;
-    while (v < vector.count && k >= 0) {
-      result = add(
-          result,
-          mul(
-            vector.getUnchecked(v++),
-            kernel.getUnchecked(k--),
-          ));
+    for (var v = vs, k = ke; v < vector.count && k >= 0; v++, k--) {
+      result = add(result, mul(vector.getUnchecked(v), kernel.getUnchecked(k)));
     }
     return result;
   }

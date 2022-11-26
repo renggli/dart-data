@@ -5,7 +5,7 @@ import '../mixin/unmodifiable_matrix.dart';
 
 /// Read-only identity matrix.
 class IdentityMatrix<T> with Matrix<T>, UnmodifiableMatrixMixin<T> {
-  IdentityMatrix(this.dataType, this.rowCount, this.columnCount, this.value);
+  IdentityMatrix(this.dataType, this.rowCount, this.colCount, this.value);
 
   final T value;
 
@@ -16,7 +16,7 @@ class IdentityMatrix<T> with Matrix<T>, UnmodifiableMatrixMixin<T> {
   final int rowCount;
 
   @override
-  final int columnCount;
+  final int colCount;
 
   @override
   Set<Storage> get storage => {this};

@@ -22,7 +22,7 @@ class LUDecomposition {
   LUDecomposition(Matrix<num> source)
       : _lu = source.cast(DataType.float).toMatrix(),
         _m = source.rowCount,
-        _n = source.columnCount,
+        _n = source.colCount,
         _piv = DataType.indexDataType.newList(source.rowCount) {
     // Use a 'left-looking', dot-product, Crout/Doolittle algorithm.
     for (var i = 0; i < _m; i++) {
@@ -156,7 +156,7 @@ class LUDecomposition {
     }
 
     // Copy right hand side with pivoting
-    final nx = B.columnCount;
+    final nx = B.colCount;
     final X = B.rowIndexUnchecked(_piv).cast(DataType.float).toMatrix();
 
     // Solve L*Y = B(piv,:)

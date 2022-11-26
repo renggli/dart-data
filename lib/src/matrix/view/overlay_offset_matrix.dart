@@ -22,7 +22,7 @@ class OverlayOffsetMatrix<T> with Matrix<T> {
   int get rowCount => base.rowCount;
 
   @override
-  int get columnCount => base.columnCount;
+  int get colCount => base.colCount;
 
   @override
   Set<Storage> get storage => {...overlay.storage, ...base.storage};

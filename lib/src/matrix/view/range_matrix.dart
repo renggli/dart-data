@@ -7,7 +7,7 @@ class RangeMatrix<T> with Matrix<T> {
   RangeMatrix(
       this.matrix, this.rowStart, this.rowEnd, this.columnStart, this.columnEnd)
       : rowCount = rowEnd - rowStart,
-        columnCount = columnEnd - columnStart;
+        colCount = columnEnd - columnStart;
 
   final Matrix<T> matrix;
   final int rowStart, rowEnd;
@@ -20,7 +20,7 @@ class RangeMatrix<T> with Matrix<T> {
   final int rowCount;
 
   @override
-  final int columnCount;
+  final int colCount;
 
   @override
   Set<Storage> get storage => matrix.storage;
@@ -46,13 +46,13 @@ extension RangeMatrixExtension<T> on Matrix<T> {
   /// Returns a mutable view onto the row range. The behavior is undefined, if
   /// [rowStart] or [rowEnd] are out of bounds.
   Matrix<T> rowRangeUnchecked(int rowStart, int rowEnd) =>
-      rangeUnchecked(rowStart, rowEnd, 0, columnCount);
+      rangeUnchecked(rowStart, rowEnd, 0, colCount);
 
   /// Returns a mutable view onto the row range. Throws a [RangeError], if
   /// [columnStart] or [columnEnd] are out of bounds.
   Matrix<T> colRange(int columnStart, [int? columnEnd]) {
     columnEnd = RangeError.checkValidRange(
-        columnStart, columnEnd, columnCount, 'columnStart', 'columnEnd');
+        columnStart, columnEnd, colCount, 'columnStart', 'columnEnd');
     return colRangeUnchecked(columnStart, columnEnd);
   }
 
@@ -67,7 +67,7 @@ extension RangeMatrixExtension<T> on Matrix<T> {
     rowEnd = RangeError.checkValidRange(
         rowStart, rowEnd, rowCount, 'rowStart', 'rowEnd');
     columnEnd = RangeError.checkValidRange(
-        columnStart, columnEnd, columnCount, 'columnStart', 'columnEnd');
+        columnStart, columnEnd, colCount, 'columnStart', 'columnEnd');
     return rangeUnchecked(rowStart, rowEnd, columnStart, columnEnd);
   }
 
@@ -78,7 +78,7 @@ extension RangeMatrixExtension<T> on Matrix<T> {
       rowStart == 0 &&
               rowEnd == rowCount &&
               columnStart == 0 &&
-              columnEnd == columnCount
+              columnEnd == colCount
           ? this
           : _rangeUnchecked(this, rowStart, rowEnd, columnStart, columnEnd);
 

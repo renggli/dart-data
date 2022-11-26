@@ -8,8 +8,8 @@ class MatrixVectorMultiplicationVector<T>
     with Vector<T>, UnmodifiableVectorMixin<T> {
   MatrixVectorMultiplicationVector(this.dataType, this.matrix, this.vector)
       : assert(
-            matrix.columnCount == vector.count,
-            'Expected a vector with ${matrix.columnCount} elements, '
+            matrix.colCount == vector.count,
+            'Expected a vector with ${matrix.colCount} elements, '
             'but got one with ${vector.count}.');
 
   final Matrix<T> matrix;
@@ -28,7 +28,7 @@ class MatrixVectorMultiplicationVector<T>
   T getUnchecked(int index) {
     final add = dataType.field.add, mul = dataType.field.mul;
     var result = dataType.field.additiveIdentity;
-    for (var c = 0; c < matrix.columnCount; c++) {
+    for (var c = 0; c < matrix.colCount; c++) {
       result = add(
         result,
         mul(

@@ -4,9 +4,9 @@ import '../matrix.dart';
 
 /// A matrix built from nested row arrays.
 class NestedRowMatrix<T> with Matrix<T> {
-  NestedRowMatrix(this.dataType, this.rowCount, this.columnCount)
+  NestedRowMatrix(this.dataType, this.rowCount, this.colCount)
       : _rows = List<List<T>>.generate(
-            rowCount, (index) => dataType.newList(columnCount),
+            rowCount, (index) => dataType.newList(colCount),
             growable: false);
 
   final List<List<T>> _rows;
@@ -18,7 +18,7 @@ class NestedRowMatrix<T> with Matrix<T> {
   final int rowCount;
 
   @override
-  final int columnCount;
+  final int colCount;
 
   @override
   Set<Storage> get storage => {this};

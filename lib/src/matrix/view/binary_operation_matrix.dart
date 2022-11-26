@@ -13,9 +13,9 @@ class BinaryOperationMatrix<T> with Matrix<T>, UnmodifiableMatrixMixin<T> {
             'Row count of first (${first.rowCount}) and second '
             '(${second.rowCount}) operand must match.'),
         assert(
-            first.columnCount == second.columnCount,
-            'Column count of first (${first.columnCount}) and second '
-            '(${second.columnCount}) operand must match.');
+            first.colCount == second.colCount,
+            'Column count of first (${first.colCount}) and second '
+            '(${second.colCount}) operand must match.');
 
   final Matrix<T> first;
   final Matrix<T> second;
@@ -28,7 +28,7 @@ class BinaryOperationMatrix<T> with Matrix<T>, UnmodifiableMatrixMixin<T> {
   int get rowCount => first.rowCount;
 
   @override
-  int get columnCount => first.columnCount;
+  int get colCount => first.colCount;
 
   @override
   Set<Storage> get storage => {...first.storage, ...second.storage};

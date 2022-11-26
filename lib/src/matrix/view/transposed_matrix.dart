@@ -12,10 +12,10 @@ class TransposedMatrix<T> with Matrix<T> {
   DataType<T> get dataType => matrix.dataType;
 
   @override
-  int get rowCount => matrix.columnCount;
+  int get rowCount => matrix.colCount;
 
   @override
-  int get columnCount => matrix.rowCount;
+  int get colCount => matrix.rowCount;
 
   @override
   Set<Storage> get storage => matrix.storage;

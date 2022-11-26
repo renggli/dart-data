@@ -15,18 +15,18 @@ class FlippedVerticalMatrix<T> with Matrix<T> {
   int get rowCount => matrix.rowCount;
 
   @override
-  int get columnCount => matrix.columnCount;
+  int get colCount => matrix.colCount;
 
   @override
   Set<Storage> get storage => matrix.storage;
 
   @override
   T getUnchecked(int row, int col) =>
-      matrix.getUnchecked(row, matrix.columnCount - col - 1);
+      matrix.getUnchecked(row, matrix.colCount - col - 1);
 
   @override
   void setUnchecked(int row, int col, T value) =>
-      matrix.setUnchecked(row, matrix.columnCount - col - 1, value);
+      matrix.setUnchecked(row, matrix.colCount - col - 1, value);
 }
 
 extension FlippedVerticalMatrixExtension<T> on Matrix<T> {

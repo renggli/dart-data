@@ -12,7 +12,7 @@ extension NormNumberExtension on Matrix<num> {
   /// elements of this [Matrix].
   double get normFrobenius {
     var result = 0.0;
-    for (var c = 0; c < columnCount; c++) {
+    for (var c = 0; c < colCount; c++) {
       for (var r = 0; r < rowCount; r++) {
         result = hypot(result, getUnchecked(r, c));
       }
@@ -25,7 +25,7 @@ extension NormDoubleExtension on Matrix<double> {
   /// Returns the trace of this [Matrix].
   double get trace {
     var result = 0.0;
-    final count = math.min(rowCount, columnCount);
+    final count = math.min(rowCount, colCount);
     for (var i = 0; i < count; i++) {
       result += getUnchecked(i, i);
     }
@@ -35,7 +35,7 @@ extension NormDoubleExtension on Matrix<double> {
   /// Returns the one norm: The maximum column sum of this [Matrix].
   double get norm1 {
     var result = 0.0;
-    for (var c = 0; c < columnCount; c++) {
+    for (var c = 0; c < colCount; c++) {
       var sum = 0.0;
       for (var r = 0; r < rowCount; r++) {
         sum += getUnchecked(r, c).abs();
@@ -50,7 +50,7 @@ extension NormDoubleExtension on Matrix<double> {
     var result = 0.0;
     for (var r = 0; r < rowCount; r++) {
       var sum = 0.0;
-      for (var c = 0; c < columnCount; c++) {
+      for (var c = 0; c < colCount; c++) {
         sum += getUnchecked(r, c).abs();
       }
       result = math.max(result, sum);
@@ -63,7 +63,7 @@ extension NormIntegerExtension on Matrix<int> {
   /// Returns the trace of this [Matrix].
   int get trace {
     var result = 0;
-    final count = math.min(rowCount, columnCount);
+    final count = math.min(rowCount, colCount);
     for (var i = 0; i < count; i++) {
       result += getUnchecked(i, i);
     }
@@ -73,7 +73,7 @@ extension NormIntegerExtension on Matrix<int> {
   /// Returns the one norm: The maximum column sum of this [Matrix].
   int get norm1 {
     var result = 0;
-    for (var c = 0; c < columnCount; c++) {
+    for (var c = 0; c < colCount; c++) {
       var sum = 0;
       for (var r = 0; r < rowCount; r++) {
         sum += getUnchecked(r, c).abs();
@@ -88,7 +88,7 @@ extension NormIntegerExtension on Matrix<int> {
     var result = 0;
     for (var r = 0; r < rowCount; r++) {
       var sum = 0;
-      for (var c = 0; c < columnCount; c++) {
+      for (var c = 0; c < colCount; c++) {
         sum += getUnchecked(r, c).abs();
       }
       result = math.max(result, sum);

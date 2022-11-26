@@ -5,7 +5,7 @@ import '../mixin/unmodifiable_matrix.dart';
 
 /// Read-only matrix with a constant value.
 class ConstantMatrix<T> with Matrix<T>, UnmodifiableMatrixMixin<T> {
-  ConstantMatrix(this.dataType, this.rowCount, this.columnCount, this.value);
+  ConstantMatrix(this.dataType, this.rowCount, this.colCount, this.value);
 
   final T value;
 
@@ -16,7 +16,7 @@ class ConstantMatrix<T> with Matrix<T>, UnmodifiableMatrixMixin<T> {
   final int rowCount;
 
   @override
-  final int columnCount;
+  final int colCount;
 
   @override
   Set<Storage> get storage => {this};

@@ -31,13 +31,13 @@ extension ColumnVectorExtension<T> on Matrix<T> {
   /// Returns a mutable column [Vector] of this [Matrix]. Throws a [RangeError],
   /// if [index] is out of bounds.
   Vector<T> column(int index) {
-    RangeError.checkValidIndex(index, this, 'col', columnCount);
+    RangeError.checkValidIndex(index, this, 'col', colCount);
     return columnUnchecked(index);
   }
 
   /// Returns an iterable over the columns of this [Matrix].
   Iterable<Vector<T>> get columns sync* {
-    for (var c = 0; c < columnCount; c++) {
+    for (var c = 0; c < colCount; c++) {
       yield columnUnchecked(c);
     }
   }

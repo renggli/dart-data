@@ -8,8 +8,7 @@ typedef MatrixGeneratorCallback<T> = T Function(int row, int column);
 
 /// Read-only generator matrix.
 class GeneratedMatrix<T> with Matrix<T>, UnmodifiableMatrixMixin<T> {
-  GeneratedMatrix(
-      this.dataType, this.rowCount, this.columnCount, this.callback);
+  GeneratedMatrix(this.dataType, this.rowCount, this.colCount, this.callback);
 
   final MatrixGeneratorCallback<T> callback;
 
@@ -20,7 +19,7 @@ class GeneratedMatrix<T> with Matrix<T>, UnmodifiableMatrixMixin<T> {
   final int rowCount;
 
   @override
-  final int columnCount;
+  final int colCount;
 
   @override
   Set<Storage> get storage => {this};

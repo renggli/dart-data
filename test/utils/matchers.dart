@@ -37,8 +37,7 @@ dynamic isCloseTo(dynamic expected, {double epsilon = 1.0e-5}) {
     return isA<Matrix>()
         .having((actual) => actual.dataType, 'dataType', expected.dataType)
         .having((actual) => actual.rowCount, 'rowCount', expected.rowCount)
-        .having(
-            (actual) => actual.rowCount, 'columnCount', expected.columnCount)
+        .having((actual) => actual.rowCount, 'columnCount', expected.colCount)
         .having((actual) => actual.rowMajor, 'rowMajor',
             isCloseTo(expected.rowMajor, epsilon: epsilon));
   } else if (expected is Polynomial) {

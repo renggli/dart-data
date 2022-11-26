@@ -22,7 +22,7 @@ class IndexMatrix<T> with Matrix<T> {
   int get rowCount => rowIndexes.length;
 
   @override
-  int get columnCount => columnIndexes.length;
+  int get colCount => columnIndexes.length;
 
   @override
   Set<Storage> get storage => matrix.storage;
@@ -40,12 +40,12 @@ extension IndexMatrixExtension<T> on Matrix<T> {
   /// Returns a mutable view onto row indexes. Throws a [RangeError], if
   /// any of the [rowIndexes] are out of bounds.
   Matrix<T> rowIndex(Iterable<int> rowIndexes) =>
-      index(rowIndexes, IntegerRange(0, columnCount));
+      index(rowIndexes, IntegerRange(0, colCount));
 
   /// Returns a mutable view onto row indexes. The behavior is undefined, if
   /// any of the [rowIndexes] are out of bounds.
   Matrix<T> rowIndexUnchecked(Iterable<int> rowIndexes) =>
-      indexUnchecked(rowIndexes, IntegerRange(0, columnCount));
+      indexUnchecked(rowIndexes, IntegerRange(0, colCount));
 
   /// Returns a mutable view onto column indexes. Throws a [RangeError], if
   /// any of the [colIndexes] are out of bounds.
@@ -64,7 +64,7 @@ extension IndexMatrixExtension<T> on Matrix<T> {
       RangeError.checkValueInInterval(index, 0, rowCount - 1, 'rowIndexes');
     }
     for (final index in colIndexes) {
-      RangeError.checkValueInInterval(index, 0, columnCount - 1, 'colIndexes');
+      RangeError.checkValueInInterval(index, 0, colCount - 1, 'colIndexes');
     }
     return indexUnchecked(rowIndexes, colIndexes);
   }

@@ -19,7 +19,7 @@ class CholeskyDecomposition {
   CholeskyDecomposition(Matrix<num> a)
       : _l = Matrix(DataType.float, a.rowCount, a.rowCount),
         _n = a.rowCount,
-        _isSymmetricPositiveDefinite = a.rowCount == a.columnCount {
+        _isSymmetricPositiveDefinite = a.rowCount == a.colCount {
     // Main loop.
     for (var j = 0; j < _n; j++) {
       final lrowj = _l.row(j);
@@ -73,7 +73,7 @@ class CholeskyDecomposition {
     }
 
     // Copy right hand side.
-    final nx = B.columnCount;
+    final nx = B.colCount;
     final result = B.cast(DataType.float).toMatrix();
 
     // Solve L*Y = B;

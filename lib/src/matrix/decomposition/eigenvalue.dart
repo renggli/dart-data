@@ -25,13 +25,13 @@ class EigenvalueDecomposition {
   /// Check for symmetry, then construct the eigenvalue decomposition
   //  Structure to access D and V.
   EigenvalueDecomposition(Matrix<num> a)
-      : _n = a.columnCount,
+      : _n = a.colCount,
         _isSymmetric = a.isSymmetric,
-        _d = DataType.float.newList(a.columnCount),
-        _e = DataType.float.newList(a.columnCount),
-        _v = Matrix(DataType.float, a.columnCount, a.columnCount),
-        _h = Matrix(DataType.float, a.columnCount, a.columnCount),
-        _ort = DataType.float.newList(a.columnCount) {
+        _d = DataType.float.newList(a.colCount),
+        _e = DataType.float.newList(a.colCount),
+        _v = Matrix(DataType.float, a.colCount, a.colCount),
+        _h = Matrix(DataType.float, a.colCount, a.colCount),
+        _ort = DataType.float.newList(a.colCount) {
     if (_isSymmetric) {
       for (var i = 0; i < _n; i++) {
         for (var j = 0; j < _n; j++) {

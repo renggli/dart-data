@@ -2,7 +2,7 @@ import '../matrix.dart';
 
 extension TestingMatrixExtension<T> on Matrix<T> {
   /// Tests if this [Matrix] is square.
-  bool get isSquare => rowCount == columnCount;
+  bool get isSquare => rowCount == colCount;
 
   /// Tests if this [Matrix] is symmetric (equal to its transposed form).
   bool get isSymmetric {
@@ -26,7 +26,7 @@ extension TestingMatrixExtension<T> on Matrix<T> {
     final isEqual = dataType.equality.isEqual;
     final additiveIdentity = dataType.field.additiveIdentity;
     for (var r = 0; r < rowCount; r++) {
-      for (var c = 0; c < columnCount; c++) {
+      for (var c = 0; c < colCount; c++) {
         if (r != c && !isEqual(getUnchecked(r, c), additiveIdentity)) {
           return false;
         }
@@ -41,7 +41,7 @@ extension TestingMatrixExtension<T> on Matrix<T> {
     final isEqual = dataType.equality.isEqual;
     final additiveIdentity = dataType.field.additiveIdentity;
     for (var r = 0; r < rowCount; r++) {
-      for (var c = r + 1; c < columnCount; c++) {
+      for (var c = r + 1; c < colCount; c++) {
         if (!isEqual(getUnchecked(r, c), additiveIdentity)) {
           return false;
         }
@@ -56,7 +56,7 @@ extension TestingMatrixExtension<T> on Matrix<T> {
     final isEqual = dataType.equality.isEqual;
     final additiveIdentity = dataType.field.additiveIdentity;
     for (var r = 1; r < rowCount; r++) {
-      for (var c = 0; c < columnCount && c < r; c++) {
+      for (var c = 0; c < colCount && c < r; c++) {
         if (!isEqual(getUnchecked(r, c), additiveIdentity)) {
           return false;
         }

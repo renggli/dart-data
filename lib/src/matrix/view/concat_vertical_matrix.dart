@@ -18,7 +18,7 @@ class ConcatVerticalMatrix<T> with Matrix<T> {
   int get rowCount => indexes.last;
 
   @override
-  int get columnCount => matrices.first.columnCount;
+  int get colCount => matrices.first.colCount;
 
   @override
   Set<Storage> get storage =>

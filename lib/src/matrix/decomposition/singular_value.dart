@@ -22,12 +22,12 @@ class SingularValueDecomposition {
   /// Construct the singular value decomposition Structure to access U, S and V.
   SingularValueDecomposition(Matrix<num> input)
       : _u = Matrix(DataType.float, input.rowCount,
-            math.min(input.rowCount, input.columnCount)),
-        _v = Matrix(DataType.float, input.columnCount, input.columnCount),
+            math.min(input.rowCount, input.colCount)),
+        _v = Matrix(DataType.float, input.colCount, input.colCount),
         _s = DataType.float
-            .newList(math.min(input.rowCount + 1, input.columnCount)),
+            .newList(math.min(input.rowCount + 1, input.colCount)),
         _m = input.rowCount,
-        _n = input.columnCount {
+        _n = input.colCount {
     // Initialize.
     final A = input.cast(DataType.float).toMatrix();
     final e = DataType.float.newList(_n);
@@ -139,7 +139,7 @@ class SingularValueDecomposition {
 
     // If required, generate U.
 
-    for (var j = nct; j < _u.columnCount; j++) {
+    for (var j = nct; j < _u.colCount; j++) {
       for (var i = 0; i < _m; i++) {
         _u.setUnchecked(i, j, 0);
       }
@@ -147,7 +147,7 @@ class SingularValueDecomposition {
     }
     for (var k = nct - 1; k >= 0; k--) {
       if (_s[k] != 0.0) {
-        for (var j = k + 1; j < _u.columnCount; j++) {
+        for (var j = k + 1; j < _u.colCount; j++) {
           var t = 0.0;
           for (var i = k; i < _m; i++) {
             t += _u.getUnchecked(i, k) * _u.getUnchecked(i, j);
@@ -176,7 +176,7 @@ class SingularValueDecomposition {
     // If required, generate V.
     for (var k = _n - 1; k >= 0; k--) {
       if ((k < nrt) && (e[k] != 0.0)) {
-        for (var j = k + 1; j < _u.columnCount; j++) {
+        for (var j = k + 1; j < _u.colCount; j++) {
           var t = 0.0;
           for (var i = k + 1; i < _n; i++) {
             t += _v.getUnchecked(i, k) * _v.getUnchecked(i, j);

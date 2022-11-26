@@ -6,12 +6,12 @@ extension CompareMatrixExtension<T> on Matrix<T> {
     if (equals == null && identical(this, other)) {
       return true;
     }
-    if (rowCount != other.rowCount || columnCount != other.columnCount) {
+    if (rowCount != other.rowCount || colCount != other.colCount) {
       return false;
     }
     equals ??= dataType.equality.isEqual;
     for (var r = 0; r < rowCount; r++) {
-      for (var c = 0; c < columnCount; c++) {
+      for (var c = 0; c < colCount; c++) {
         if (!equals(getUnchecked(r, c), other.getUnchecked(r, c))) {
           return false;
         }
