@@ -1,7 +1,6 @@
 import 'dart:math';
 
 import 'package:data/data.dart';
-import 'package:data/src/vector/view/convolution_vector.dart';
 import 'package:test/test.dart';
 
 void vectorTest(String name, VectorFormat format) {
