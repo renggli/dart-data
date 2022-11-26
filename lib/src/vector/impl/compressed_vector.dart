@@ -5,16 +5,10 @@ import '../vector.dart';
 
 /// Sparse compressed vector.
 class CompressedVector<T> with Vector<T> {
-  CompressedVector(DataType<T> dataType, int count)
-      : this._(
-            dataType,
-            count,
-            DataType.indexDataType.newList(initialListLength),
-            dataType.newList(initialListLength),
-            0);
-
-  CompressedVector._(
-      this.dataType, this.count, this._indexes, this._values, this._length);
+  CompressedVector(this.dataType, this.count)
+      : _indexes = DataType.indexDataType.newList(initialListLength),
+        _values = dataType.newList(initialListLength),
+        _length = 0;
 
   List<int> _indexes;
   List<T> _values;

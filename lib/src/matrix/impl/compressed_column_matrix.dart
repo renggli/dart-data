@@ -5,20 +5,13 @@ import '../matrix.dart';
 
 /// Sparse compressed column matrix.
 class CompressedColumnMatrix<T> with Matrix<T> {
-  CompressedColumnMatrix(DataType<T> dataType, int rowCount, int colCount)
-      : this._(
-            dataType,
-            rowCount,
-            colCount,
-            DataType.indexDataType.newList(colCount),
-            DataType.indexDataType.newList(initialListLength),
-            dataType.newList(initialListLength),
-            0);
+  CompressedColumnMatrix(this.dataType, this.rowCount, this.columnCount)
+      : _columnExtends = DataType.indexDataType.newList(columnCount),
+        _rowIndexes = DataType.indexDataType.newList(initialListLength),
+        _values = dataType.newList(initialListLength),
+        _length = 0;
 
-  CompressedColumnMatrix._(this.dataType, this.rowCount, this.columnCount,
-      this._colExtends, this._rowIndexes, this._values, this._length);
-
-  List<int> _colExtends;
+  final List<int> _columnExtends;
   List<int> _rowIndexes;
   List<T> _values;
   int _length;
@@ -37,19 +30,21 @@ class CompressedColumnMatrix<T> with Matrix<T> {
 
   @override
   T getUnchecked(int row, int col) {
-    final start = col > 0 ? _colExtends[col - 1] : 0, stop = _colExtends[col];
+    final start = col > 0 ? _columnExtends[col - 1] : 0,
+        stop = _columnExtends[col];
     final index = binarySearch<num>(_rowIndexes, start, stop, row);
     return index < 0 ? dataType.defaultValue : _values[index];
   }
 
   @override
   void setUnchecked(int row, int col, T value) {
-    final start = col > 0 ? _colExtends[col - 1] : 0, stop = _colExtends[col];
+    final start = col > 0 ? _columnExtends[col - 1] : 0,
+        stop = _columnExtends[col];
     final index = binarySearch<num>(_rowIndexes, start, stop, row);
     if (index < 0) {
       if (value != dataType.defaultValue) {
         for (var c = col; c < columnCount; c++) {
-          _colExtends[c]++;
+          _columnExtends[c]++;
         }
         _rowIndexes = insertAt(
             DataType.indexDataType, _rowIndexes, _length, -index - 1, row);
@@ -59,7 +54,7 @@ class CompressedColumnMatrix<T> with Matrix<T> {
     } else {
       if (value == dataType.defaultValue) {
         for (var c = col; c < columnCount; c++) {
-          _colExtends[c]--;
+          _columnExtends[c]--;
         }
         _rowIndexes =
             removeAt(DataType.indexDataType, _rowIndexes, _length, index);
@@ -74,7 +69,7 @@ class CompressedColumnMatrix<T> with Matrix<T> {
   @override
   void forEach(void Function(int row, int col, T value) callback) {
     for (var i = 0, colIndex = 0; i < _length; i++) {
-      if (_colExtends[colIndex] <= i) {
+      if (_columnExtends[colIndex] <= i) {
         colIndex++;
       }
       callback(_rowIndexes[i], colIndex, _values[i]);

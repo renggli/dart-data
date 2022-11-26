@@ -4,12 +4,8 @@ import '../matrix.dart';
 
 /// Column major matrix.
 class ColumnMajorMatrix<T> with Matrix<T> {
-  ColumnMajorMatrix(DataType<T> dataType, int rowCount, int colCount)
-      : this.fromList(dataType, rowCount, colCount,
-            dataType.newList(rowCount * colCount));
-
-  ColumnMajorMatrix.fromList(
-      this.dataType, this.rowCount, this.columnCount, this._values);
+  ColumnMajorMatrix(this.dataType, this.rowCount, this.columnCount)
+      : _values = dataType.newList(rowCount * columnCount);
 
   final List<T> _values;
 

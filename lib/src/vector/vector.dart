@@ -38,7 +38,7 @@ abstract class Vector<T> implements Storage {
     }
     final result = vectors.length == 1
         ? vectors.first
-        : ConcatVector<T>(dataType, vectors);
+        : ConcatVector<T>(dataType, vectors.toList(growable: false));
     return format == null ? result : result.toVector(format: format);
   }
 

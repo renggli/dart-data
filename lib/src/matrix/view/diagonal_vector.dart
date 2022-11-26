@@ -7,16 +7,11 @@ import '../matrix.dart';
 
 /// Mutable diagonal vector of a matrix.
 class DiagonalVector<T> with Vector<T> {
-  DiagonalVector(Matrix<T> matrix, int offset)
-      : this._(
-            matrix,
-            offset,
-            math.min(
-              matrix.rowCount - offset,
-              matrix.columnCount + offset,
-            ));
-
-  DiagonalVector._(this.matrix, this.offset, this.count);
+  DiagonalVector(this.matrix, this.offset)
+      : count = math.min(
+          matrix.rowCount - offset,
+          matrix.columnCount + offset,
+        );
 
   final Matrix<T> matrix;
   final int offset;

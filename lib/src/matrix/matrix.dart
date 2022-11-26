@@ -61,7 +61,7 @@ abstract class Matrix<T> implements Storage {
     }
     final result = matrices.length == 1
         ? matrices.first
-        : ConcatHorizontalMatrix<T>(dataType, matrices);
+        : ConcatHorizontalMatrix<T>(dataType, matrices.toList(growable: false));
     return format == null ? result : result.toMatrix(format: format);
   }
 
@@ -75,7 +75,7 @@ abstract class Matrix<T> implements Storage {
     }
     final result = matrices.length == 1
         ? matrices.first
-        : ConcatVerticalMatrix<T>(dataType, matrices);
+        : ConcatVerticalMatrix<T>(dataType, matrices.toList(growable: false));
     return format == null ? result : result.toMatrix(format: format);
   }
 

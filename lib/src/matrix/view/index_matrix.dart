@@ -7,15 +7,13 @@ import '../matrix.dart';
 /// Mutable indexed view of the rows and columns of a matrix.
 class IndexMatrix<T> with Matrix<T> {
   IndexMatrix(
-      Matrix<T> matrix, Iterable<int> rowIndexes, Iterable<int> colIndexes)
-      : this._(matrix, DataType.indexDataType.copyList(rowIndexes),
-            DataType.indexDataType.copyList(colIndexes));
-
-  IndexMatrix._(this.matrix, this.rowIndexes, this.colIndexes);
+      this.matrix, Iterable<int> rowIndexes, Iterable<int> columnIndexes)
+      : rowIndexes = DataType.indexDataType.copyList(rowIndexes),
+        columnIndexes = DataType.indexDataType.copyList(columnIndexes);
 
   final Matrix<T> matrix;
   final List<int> rowIndexes;
-  final List<int> colIndexes;
+  final List<int> columnIndexes;
 
   @override
   DataType<T> get dataType => matrix.dataType;
@@ -24,18 +22,18 @@ class IndexMatrix<T> with Matrix<T> {
   int get rowCount => rowIndexes.length;
 
   @override
-  int get columnCount => colIndexes.length;
+  int get columnCount => columnIndexes.length;
 
   @override
   Set<Storage> get storage => matrix.storage;
 
   @override
   T getUnchecked(int row, int col) =>
-      matrix.getUnchecked(rowIndexes[row], colIndexes[col]);
+      matrix.getUnchecked(rowIndexes[row], columnIndexes[col]);
 
   @override
   void setUnchecked(int row, int col, T value) =>
-      matrix.setUnchecked(rowIndexes[row], colIndexes[col], value);
+      matrix.setUnchecked(rowIndexes[row], columnIndexes[col], value);
 }
 
 extension IndexMatrixExtension<T> on Matrix<T> {
@@ -84,6 +82,6 @@ extension IndexMatrixExtension<T> on Matrix<T> {
           ? IndexMatrix<T>(
               self.matrix,
               rowIndexes.map((index) => self.rowIndexes[index]),
-              colIndexes.map((index) => self.colIndexes[index]))
+              colIndexes.map((index) => self.columnIndexes[index]))
           : IndexMatrix<T>(self, rowIndexes, colIndexes);
 }

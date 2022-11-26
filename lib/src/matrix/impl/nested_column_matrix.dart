@@ -4,19 +4,12 @@ import '../matrix.dart';
 
 /// A matrix built from nested column arrays.
 class NestedColumnMatrix<T> with Matrix<T> {
-  NestedColumnMatrix(DataType<T> dataType, int rowCount, int colCount)
-      : this._(
-            dataType,
-            rowCount,
-            colCount,
-            List<List<T>>.generate(
-                colCount, (index) => dataType.newList(rowCount),
-                growable: false));
+  NestedColumnMatrix(this.dataType, this.rowCount, this.columnCount)
+      : _columns = List<List<T>>.generate(
+            columnCount, (index) => dataType.newList(rowCount),
+            growable: false);
 
-  NestedColumnMatrix._(
-      this.dataType, this.rowCount, this.columnCount, this._cols);
-
-  List<List<T>> _cols;
+  final List<List<T>> _columns;
 
   @override
   final DataType<T> dataType;
@@ -31,8 +24,8 @@ class NestedColumnMatrix<T> with Matrix<T> {
   Set<Storage> get storage => {this};
 
   @override
-  T getUnchecked(int row, int col) => _cols[col][row];
+  T getUnchecked(int row, int col) => _columns[col][row];
 
   @override
-  void setUnchecked(int row, int col, T value) => _cols[col][row] = value;
+  void setUnchecked(int row, int col, T value) => _columns[col][row] = value;
 }

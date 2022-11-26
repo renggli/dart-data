@@ -5,14 +5,8 @@ import '../matrix.dart';
 
 /// Mutable vertical concatenation of matrices.
 class ConcatVerticalMatrix<T> with Matrix<T> {
-  ConcatVerticalMatrix(DataType<T> dataType, Iterable<Matrix<T>> matrices)
-      : this._withList(dataType, matrices.toList(growable: false));
-
-  ConcatVerticalMatrix._withList(DataType<T> dataType, List<Matrix<T>> matrices)
-      : this._withListAndIndexes(dataType, matrices, computeIndexes(matrices));
-
-  ConcatVerticalMatrix._withListAndIndexes(
-      this.dataType, this.matrices, this.indexes);
+  ConcatVerticalMatrix(this.dataType, this.matrices)
+      : indexes = computeIndexes(matrices);
 
   final List<Matrix<T>> matrices;
   final List<int> indexes;

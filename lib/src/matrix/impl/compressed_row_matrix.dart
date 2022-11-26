@@ -5,21 +5,14 @@ import '../matrix.dart';
 
 /// Sparse compressed row matrix.
 class CompressedRowMatrix<T> with Matrix<T> {
-  CompressedRowMatrix(DataType<T> dataType, int rowCount, int colCount)
-      : this._(
-            dataType,
-            rowCount,
-            colCount,
-            DataType.indexDataType.newList(rowCount),
-            DataType.indexDataType.newList(initialListLength),
-            dataType.newList(initialListLength),
-            0);
+  CompressedRowMatrix(this.dataType, this.rowCount, this.columnCount)
+      : _rowExtends = DataType.indexDataType.newList(rowCount),
+        _columnIndexes = DataType.indexDataType.newList(initialListLength),
+        _values = dataType.newList(initialListLength),
+        _length = 0;
 
-  CompressedRowMatrix._(this.dataType, this.rowCount, this.columnCount,
-      this._rowExtends, this._colIndexes, this._values, this._length);
-
-  List<int> _rowExtends;
-  List<int> _colIndexes;
+  final List<int> _rowExtends;
+  List<int> _columnIndexes;
   List<T> _values;
   int _length;
 
@@ -38,21 +31,21 @@ class CompressedRowMatrix<T> with Matrix<T> {
   @override
   T getUnchecked(int row, int col) {
     final start = row > 0 ? _rowExtends[row - 1] : 0, stop = _rowExtends[row];
-    final index = binarySearch<num>(_colIndexes, start, stop, col);
+    final index = binarySearch<num>(_columnIndexes, start, stop, col);
     return index < 0 ? dataType.defaultValue : _values[index];
   }
 
   @override
   void setUnchecked(int row, int col, T value) {
     final start = row > 0 ? _rowExtends[row - 1] : 0, stop = _rowExtends[row];
-    final index = binarySearch<num>(_colIndexes, start, stop, col);
+    final index = binarySearch<num>(_columnIndexes, start, stop, col);
     if (index < 0) {
       if (value != dataType.defaultValue) {
         for (var r = row; r < rowCount; r++) {
           _rowExtends[r]++;
         }
-        _colIndexes = insertAt(
-            DataType.indexDataType, _colIndexes, _length, -index - 1, col);
+        _columnIndexes = insertAt(
+            DataType.indexDataType, _columnIndexes, _length, -index - 1, col);
         _values = insertAt(dataType, _values, _length, -index - 1, value);
         _length++;
       }
@@ -61,8 +54,8 @@ class CompressedRowMatrix<T> with Matrix<T> {
         for (var r = row; r < rowCount; r++) {
           _rowExtends[r]--;
         }
-        _colIndexes =
-            removeAt(DataType.indexDataType, _colIndexes, _length, index);
+        _columnIndexes =
+            removeAt(DataType.indexDataType, _columnIndexes, _length, index);
         _values = removeAt(dataType, _values, _length, index);
         _length--;
       } else {
@@ -77,7 +70,7 @@ class CompressedRowMatrix<T> with Matrix<T> {
       if (_rowExtends[rowIndex] <= i) {
         rowIndex++;
       }
-      callback(rowIndex, _colIndexes[i], _values[i]);
+      callback(rowIndex, _columnIndexes[i], _values[i]);
     }
   }
 }

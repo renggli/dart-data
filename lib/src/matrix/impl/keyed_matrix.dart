@@ -4,12 +4,9 @@ import '../matrix.dart';
 
 /// Sparse keyed matrix.
 class KeyedMatrix<T> with Matrix<T> {
-  KeyedMatrix(DataType<T> dataType, int rowCount, int colCount)
-      : this._(dataType, rowCount, colCount, <int, T>{});
+  KeyedMatrix(this.dataType, this.rowCount, this.columnCount);
 
-  KeyedMatrix._(this.dataType, this.rowCount, this.columnCount, this._values);
-
-  final Map<int, T> _values;
+  final Map<int, T> _values = <int, T>{};
 
   @override
   final DataType<T> dataType;
