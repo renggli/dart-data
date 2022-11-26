@@ -4,6 +4,8 @@ import 'package:data/data.dart';
 import 'package:data/src/matrix/view/rotated_matrix.dart';
 import 'package:test/test.dart';
 
+import 'utils/matchers.dart';
+
 const pointType = ObjectDataType<Point<int>>(Point(0, 0));
 
 void matrixTest(String name, MatrixFormat format) {
@@ -1194,6 +1196,92 @@ void matrixTest(String name, MatrixFormat format) {
           }
         }
         expect(readonly.unmodifiable, readonly);
+      });
+      group('convolution', () {
+        final matrix1 = Matrix.fromRows(DataType.int32, [
+          [0, 2, 5, 9, 4],
+          [1, 4, 8, 3, 8],
+          [3, 7, 2, 7, 1],
+          [6, 1, 6, 0, 3],
+          [0, 5, 9, 2, 4],
+        ]);
+        final kernel1 = Matrix.fromRows(DataType.int32, [
+          [1, 0, 0],
+          [0, 0, 0],
+          [0, 0, -1],
+        ]);
+        final matrix2 = Matrix.fromRows(DataType.float, [
+          [1.0, 2.0, 3.0],
+          [4.0, 5.0, 6.0],
+          [7.0, 8.0, 9.0],
+        ]);
+        final kernel2 = Matrix.fromRows(DataType.float, [
+          [-0.1, 0.2, -0.3],
+          [0.4, -0.5, 0.6],
+          [-0.7, 0.8, -0.9],
+        ]);
+        test('full', () {
+          final result1 = matrix1.convolve(kernel1);
+          expect(
+              result1,
+              isCloseTo(Matrix.fromRows(DataType.int32, [
+                [0, 2, 5, 9, 4, 0, 0],
+                [1, 4, 8, 3, 8, 0, 0],
+                [3, 7, 2, 5, -4, -9, -4],
+                [6, 1, 5, -4, -5, -3, -8],
+                [0, 5, 6, -5, 2, -7, -1],
+                [0, 0, -6, -1, -6, 0, -3],
+                [0, 0, 0, -5, -9, -2, -4],
+              ])));
+          final result2 = matrix2.convolve(kernel2, mode: ConvolutionMode.full);
+          expect(
+              result2,
+              isCloseTo(Matrix.fromRows(DataType.float, [
+                [-0.1, 0.0, -0.2, 0.0, -0.9],
+                [0.0, 0.6, 0.0, -0.6, 0.0],
+                [0.2, 0.0, -0.5, 0.0, -1.8],
+                [0.0, -0.6, 0.0, 0.6, 0.0],
+                [-4.9, 0.0, -6.2, 0.0, -8.1],
+              ])));
+        });
+        test('valid', () {
+          final result1 =
+              matrix1.convolve(kernel1, mode: ConvolutionMode.valid);
+          expect(
+              result1,
+              isCloseTo(Matrix.fromRows(DataType.int32, [
+                [2, 5, -4],
+                [5, -4, -5],
+                [6, -5, 2],
+              ])));
+          final result2 =
+              matrix2.convolve(kernel2, mode: ConvolutionMode.valid);
+          expect(
+              result2,
+              isCloseTo(Matrix.fromRows(DataType.float, [
+                [-0.5],
+              ])));
+        });
+        test('same', () {
+          final result1 = matrix1.convolve(kernel1, mode: ConvolutionMode.same);
+          expect(
+              result1,
+              isCloseTo(Matrix.fromRows(DataType.int32, [
+                [4, 8, 3, 8, 0],
+                [7, 2, 5, -4, -9],
+                [1, 5, -4, -5, -3],
+                [5, 6, -5, 2, -7],
+                [0, -6, -1, -6, 0],
+              ])));
+          final result2 = matrix2.convolve(kernel2, mode: ConvolutionMode.same);
+          expect(
+              result2,
+              isCloseTo(Matrix.fromRows(DataType.float, [
+                [0.6, 0.0, -0.6],
+                [0.0, -0.5, 0.0],
+                [-0.6, 0.0, 0.6],
+              ])));
+        });
       });
     });
     group('iterables', () {

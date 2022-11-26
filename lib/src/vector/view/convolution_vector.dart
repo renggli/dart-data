@@ -3,6 +3,7 @@ import 'dart:math';
 import 'package:meta/meta.dart';
 
 import '../../../type.dart';
+import '../../shared/convolution.dart';
 import '../../shared/storage.dart';
 import '../mixin/unmodifiable_vector.dart';
 import '../vector.dart';
@@ -70,13 +71,6 @@ class SameConvolutionVector<T> extends ConvolutionVector<T> {
     final k2 = kernel.count ~/ 2, v = max(index - k2, 0);
     return convolution(v, index + k2 - v);
   }
-}
-
-/// Convolution mode, i.e. how the borders are handled.
-enum ConvolutionMode {
-  full,
-  valid,
-  same,
 }
 
 extension ConvolutionVectorExtension<T> on Vector<T> {

@@ -16,7 +16,7 @@ dynamic isCloseTo(dynamic expected, {double epsilon = 1.0e-5}) {
       (actual) => expected.closeTo(actual, epsilon),
       '$expected differs by $epsilon',
     );
-  } else if (expected is List) {
+  } else if (expected is Iterable) {
     return expected.isEmpty
         ? isEmpty
         : orderedEquals(
