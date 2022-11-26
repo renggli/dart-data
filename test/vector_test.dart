@@ -3,6 +3,8 @@ import 'dart:math';
 import 'package:data/data.dart';
 import 'package:test/test.dart';
 
+import 'utils/matchers.dart';
+
 void vectorTest(String name, VectorFormat format) {
   group(name, () {
     group('constructor', () {
@@ -232,12 +234,9 @@ void vectorTest(String name, VectorFormat format) {
       });
       test('copyInto', () {
         final source = Vector.generate(DataType.int32, 42, (i) => i);
-        final copy =
-            source.copyInto(Vector(DataType.uint32, 42, format: format));
-        expect(copy.dataType, DataType.uint32);
-        expect(copy.count, source.count);
-        expect(copy.storage, [copy]);
-        expect(copy.compare(source), isTrue);
+        final target = Vector(DataType.int32, 42, format: format);
+        expect(source.copyInto(target), target);
+        expect(target, isCloseTo(source));
       });
       group('range', () {
         test('default', () {

@@ -1,4 +1,5 @@
 import 'dart:collection' show ListMixin;
+import 'dart:math' as math;
 
 import 'package:meta/meta.dart';
 import 'package:more/printer.dart' show Printer, StandardPrinter;
@@ -131,14 +132,20 @@ abstract class Polynomial<T> implements Storage {
   @override
   List<int> get shape => [degree + 1];
 
-  /// Creates a new [Polynomial] containing the same elements as this one.
-  Polynomial<T> toPolynomial({PolynomialFormat? format}) {
-    final result = Polynomial(dataType, desiredDegree: degree, format: format);
-    for (var i = degree; i >= 0; i--) {
-      result.setUnchecked(i, getUnchecked(i));
+  /// Returns the target polynomial with all elements of this polynomial copied
+  /// into it.
+  Polynomial<T> copyInto(Polynomial<T> target) {
+    if (this != target) {
+      for (var i = math.max(degree, target.degree); i >= 0; i--) {
+        target.setUnchecked(i, getUnchecked(i));
+      }
     }
-    return result;
+    return target;
   }
+
+  /// Creates a new [Polynomial] containing the same elements as this one.
+  Polynomial<T> toPolynomial({PolynomialFormat? format}) =>
+      copyInto(Polynomial<T>(dataType, format: format, desiredDegree: degree));
 
   /// Returns the leading term of this polynomial.
   T get lead =>

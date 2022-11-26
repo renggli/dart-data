@@ -524,13 +524,9 @@ void matrixTest(String name, MatrixFormat format) {
       test('copyInto', () {
         final source =
             Matrix.generate(DataType.int32, 8, 6, (row, col) => 8 * row + col);
-        final copy =
-            source.copyInto(Matrix(DataType.uint32, 8, 6, format: format));
-        expect(copy.dataType, DataType.uint32);
-        expect(copy.rowCount, source.rowCount);
-        expect(copy.colCount, source.colCount);
-        expect(copy.storage, [copy]);
-        expect(copy.compare(source), isTrue);
+        final target = Matrix(DataType.int32, 8, 6, format: format);
+        expect(source.copyInto(target), target);
+        expect(target, isCloseTo(source));
       });
       test('row', () {
         final source = Matrix.generate(

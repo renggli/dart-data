@@ -428,6 +428,20 @@ void polynomialTest(String name, PolynomialFormat format) {
           expect(copy[i], i.isEven ? -i : 0);
         }
       });
+      group('copyInto', () {
+        test('small into large', () {
+          final source = Polynomial.fromList(DataType.int8, [1, 2, 3]);
+          final target = Polynomial.fromList(DataType.int8, [1, 2, 3, 4, 5]);
+          expect(source.copyInto(target), target);
+          expect(target, isCloseTo(source));
+        });
+        test('large into small', () {
+          final source = Polynomial.fromList(DataType.int8, [1, 2, 3, 4, 5]);
+          final target = Polynomial.fromList(DataType.int8, [1, 2, 3]);
+          expect(source.copyInto(target), target);
+          expect(target, isCloseTo(source));
+        });
+      });
       group('differentiate', () {
         const cs0 = [11, 7, 5, 2, 0];
         const cs1 = [7, 10, 6, 0, 0];
