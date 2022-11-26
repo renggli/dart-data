@@ -1,7 +1,8 @@
 export 'view/binary_operation_vector.dart' show BinaryOperationVectorExtension;
 export 'view/cast_vector.dart' show CastVectorExtension;
 export 'view/column_matrix.dart' show ColumnMatrixExtension;
-export 'view/convolution_vector.dart' show ConvolutionVectorExtension;
+export 'view/convolution_vector.dart'
+    show ConvolutionMode, ConvolutionVectorExtension;
 export 'view/diagonal_matrix.dart' show DiagonalMatrixExtension;
 export 'view/index_vector.dart' show IndexVectorExtension;
 export 'view/iterable_vector.dart' show IterableVectorExtension;
