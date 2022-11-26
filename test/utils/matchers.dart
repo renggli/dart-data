@@ -4,7 +4,7 @@ import 'package:data/vector.dart';
 import 'package:more/number.dart';
 import 'package:test/test.dart';
 
-dynamic isCloseTo(dynamic expected, {double epsilon = 1.0e-5}) {
+dynamic isCloseTo(dynamic expected, {num epsilon = 1.0e-5}) {
   if (expected is num) {
     return expected.isNaN
         ? isNaN
@@ -20,7 +20,7 @@ dynamic isCloseTo(dynamic expected, {double epsilon = 1.0e-5}) {
     return expected.isEmpty
         ? isEmpty
         : orderedEquals(
-            expected.map((each) => isCloseTo(each, epsilon: epsilon)));
+            expected.map((each) => isCloseTo(each, epsilon: epsilon)).toList());
   } else if (expected is Map) {
     return allOf([
       hasLength(expected.length),
@@ -37,9 +37,9 @@ dynamic isCloseTo(dynamic expected, {double epsilon = 1.0e-5}) {
     return isA<Matrix>()
         .having((actual) => actual.dataType, 'dataType', expected.dataType)
         .having((actual) => actual.rowCount, 'rowCount', expected.rowCount)
-        .having((actual) => actual.rowCount, 'columnCount', expected.colCount)
-        .having((actual) => actual.rowMajor, 'rowMajor',
-            isCloseTo(expected.rowMajor, epsilon: epsilon));
+        .having((actual) => actual.colCount, 'columnCount', expected.colCount)
+        .having((actual) => actual.rows, 'rows',
+            isCloseTo(expected.rows, epsilon: epsilon));
   } else if (expected is Polynomial) {
     return isA<Polynomial>()
         .having((actual) => actual.dataType, 'dataType', expected.dataType)

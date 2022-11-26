@@ -12,7 +12,8 @@ dependencies:
   collection: ^1.17.0
   meta: ^1.8.0
   more:
-    git: https://github.com/renggli/dart-more.git
+    path: ../MoreDart
+    # git: https://github.com/renggli/dart-more.git
 dev_dependencies:
   lints: ^2.0.0
   test: ^1.21.0

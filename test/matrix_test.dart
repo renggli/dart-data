@@ -1735,14 +1735,7 @@ void matrixTest(String name, MatrixFormat format) {
       });
     });
     group('decomposition', () {
-      // Comparator for floating point numbers:
       final epsilon = pow(2.0, -32.0);
-      void expectMatrix(Matrix<num> expected, Matrix<num> actual) => expect(
-            actual.compare(expected,
-                equals: (a, b) => (a - b).abs() <= epsilon),
-            isTrue,
-            reason: 'Expected $expected, but got $actual.',
-          );
       // Example matrices:
       final matrix3 = Matrix.fromRows(
           DataType.float64,
@@ -1771,7 +1764,7 @@ void matrixTest(String name, MatrixFormat format) {
           format: format);
       test('norm1', () {
         final result = matrix3.norm1;
-        expect(result, closeTo(33.0, epsilon));
+        expect(result, isCloseTo(33.0, epsilon: epsilon));
       });
       test('norm1 (int)', () {
         final result = matrix3int.norm1;
@@ -1779,11 +1772,11 @@ void matrixTest(String name, MatrixFormat format) {
       });
       test('norm2', () {
         final result = matrix3.norm2;
-        expect(result, closeTo(25.46240743603639, epsilon));
+        expect(result, isCloseTo(25.46240743603639, epsilon: epsilon));
       });
       test('normInfinity', () {
         final result = matrix3.normInfinity;
-        expect(result, closeTo(30.0, epsilon));
+        expect(result, isCloseTo(30.0, epsilon: epsilon));
       });
       test('normInfinity (int)', () {
         final result = matrix3int.normInfinity;
@@ -1791,11 +1784,11 @@ void matrixTest(String name, MatrixFormat format) {
       });
       test('normFrobenius', () {
         final result = matrix3.normFrobenius;
-        expect(result, closeTo(sqrt(650), epsilon));
+        expect(result, isCloseTo(sqrt(650), epsilon: epsilon));
       });
       test('trace', () {
         final result = matrix3.trace;
-        expect(result, closeTo(15.0, epsilon));
+        expect(result, isCloseTo(15.0, epsilon: epsilon));
       });
       test('trace (int)', () {
         final result = matrix3int.trace;
@@ -1804,7 +1797,7 @@ void matrixTest(String name, MatrixFormat format) {
       test('det', () {
         final result =
             matrix3.range(0, matrix3.rowCount, 0, matrix3.rowCount).det;
-        expect(result, closeTo(0.0, epsilon));
+        expect(result, isCloseTo(0.0, epsilon: epsilon));
       });
       group('QR Decomposition', () {
         final decomp = matrix4.qr;
@@ -1818,7 +1811,7 @@ void matrixTest(String name, MatrixFormat format) {
         });
         test('orthogonal', () {
           final result = decomp.orthogonal * decomp.upper;
-          expectMatrix(matrix4, result);
+          expect(result, isCloseTo(matrix4, epsilon: epsilon));
         });
         test('upper', () {
           final result = decomp.upper;
@@ -1843,13 +1836,13 @@ void matrixTest(String name, MatrixFormat format) {
           final expected = Matrix<double>.constant(
               DataType.float64, second.rowCount, second.colCount,
               value: 1);
-          expectMatrix(expected, actual);
+          expect(actual, isCloseTo(expected, epsilon: epsilon));
         });
       });
       test('Singular Value Decomposition', () {
         final decomp = matrix4.singularValue;
         final result = decomp.U * (decomp.S * decomp.V.transposed);
-        expectMatrix(matrix4, result);
+        expect(result, isCloseTo(matrix4, epsilon: epsilon));
       });
       test('LU Decomposition', () {
         final matrix =
@@ -1857,7 +1850,7 @@ void matrixTest(String name, MatrixFormat format) {
         final decomp = matrix.lu;
         final result1 = matrix.rowIndex(decomp.pivot);
         final result2 = decomp.lower * decomp.upper;
-        expectMatrix(result1, result2);
+        expect(result2, isCloseTo(result1, epsilon: epsilon));
       });
       test('rank', () {
         final result = matrix3.rank;
@@ -1890,7 +1883,7 @@ void matrixTest(String name, MatrixFormat format) {
         final actual = matrix * matrix.inverse;
         final expected =
             Matrix.identity(DataType.float64, matrix.rowCount, matrix.colCount);
-        expectMatrix(expected, actual);
+        expect(actual, isCloseTo(expected, epsilon: epsilon));
       });
       test('solve', () {
         final first = Matrix<double>.fromRows(
@@ -1911,7 +1904,7 @@ void matrixTest(String name, MatrixFormat format) {
         final expected = Matrix<double>.constant(
             DataType.float64, second.rowCount, second.colCount,
             value: 1);
-        expectMatrix(expected, actual);
+        expect(actual, isCloseTo(expected, epsilon: epsilon));
       });
       test('solveTranspose', () {
         final first = Matrix<double>.fromRows(
@@ -1931,7 +1924,7 @@ void matrixTest(String name, MatrixFormat format) {
         final expected = Matrix<double>.constant(
             DataType.float64, second.rowCount, second.colCount,
             value: 1);
-        expectMatrix(expected, actual);
+        expect(actual, isCloseTo(expected, epsilon: epsilon));
       });
       group('choleski', () {
         final matrix = Matrix<double>.fromRows(
@@ -1949,13 +1942,14 @@ void matrixTest(String name, MatrixFormat format) {
         });
         test('triangular factor', () {
           final triangularFactor = decomposition.L;
-          expectMatrix(matrix, triangularFactor * triangularFactor.transposed);
+          expect(triangularFactor * triangularFactor.transposed,
+              isCloseTo(matrix, epsilon: epsilon));
         });
         test('solve', () {
           final identity = Matrix<double>.identity(DataType.float64, 3, 3,
               value: 1, format: format);
           final solution = decomposition.solve(identity);
-          expectMatrix(identity, matrix * solution);
+          expect(matrix * solution, isCloseTo(identity, epsilon: epsilon));
         });
       });
       group('eigen', () {
@@ -1971,7 +1965,7 @@ void matrixTest(String name, MatrixFormat format) {
           final decomposition = a.eigenvalue;
           final d = decomposition.D;
           final v = decomposition.V;
-          expectMatrix(a * v, v * d);
+          expect(v * d, isCloseTo(a * v, epsilon: epsilon));
         });
         test('non-symmetric', () {
           final a = Matrix.fromRows(
@@ -1986,7 +1980,7 @@ void matrixTest(String name, MatrixFormat format) {
           final decomposition = a.eigenvalue;
           final d = decomposition.D;
           final v = decomposition.V;
-          expectMatrix(a * v, v * d);
+          expect(v * d, isCloseTo(a * v, epsilon: epsilon));
         });
         test('bad', () {
           final a = Matrix.fromRows(
@@ -2002,7 +1996,7 @@ void matrixTest(String name, MatrixFormat format) {
           final decomposition = a.eigenvalue;
           final d = decomposition.D;
           final v = decomposition.V;
-          expectMatrix(a * v, v * d);
+          expect(v * d, isCloseTo(a * v, epsilon: epsilon));
         });
       });
     });
