@@ -25,9 +25,6 @@ class UnaryOperationMatrix<T> with Matrix<T>, UnmodifiableMatrixMixin<T> {
   Set<Storage> get storage => matrix.storage;
 
   @override
-  Matrix<T> copy() => UnaryOperationMatrix(dataType, matrix.copy(), operation);
-
-  @override
   T getUnchecked(int row, int col) => operation(matrix.getUnchecked(row, col));
 }
 

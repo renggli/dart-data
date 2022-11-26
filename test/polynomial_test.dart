@@ -48,8 +48,6 @@ void polynomialTest(String name, PolynomialFormat format) {
         }
         expect(polynomial[8], 0);
         expect(() => polynomial[3] = 42, throwsUnsupportedError);
-        final copy = polynomial.copy();
-        expect(copy, same(polynomial));
       });
       test('generate with format', () {
         final polynomial = Polynomial.generate(DataType.int32, 7, (i) => i - 4,
@@ -417,7 +415,7 @@ void polynomialTest(String name, PolynomialFormat format) {
       test('copy', () {
         final source = Polynomial.generate(DataType.int32, 7, (i) => i - 4,
             format: format);
-        final copy = source.copy();
+        final copy = source.toPolynomial(format: format);
         expect(copy.dataType, source.dataType);
         expect(copy.degree, source.degree);
         expect(copy.storage, [copy]);
@@ -440,7 +438,6 @@ void polynomialTest(String name, PolynomialFormat format) {
           expect(result.dataType, source.dataType);
           expect(result.storage, [source]);
           expect(result.degree, source.degree - 1);
-          expect(result.copy().compare(result), isTrue);
           for (var i = 0; i < cs1.length; i++) {
             expect(source[i], cs0[i]);
             expect(result[i], cs1[i]);
@@ -470,7 +467,6 @@ void polynomialTest(String name, PolynomialFormat format) {
           expect(result.dataType, source.dataType);
           expect(result.storage, [source]);
           expect(result.degree, source.degree + 1);
-          expect(result.copy().compare(result), isTrue);
           for (var i = 0; i < cs1.length; i++) {
             expect(source[i], cs0[i]);
             expect(result[i], cs1[i]);
@@ -506,7 +502,6 @@ void polynomialTest(String name, PolynomialFormat format) {
             expect(actual.degree, max(source.degree + offset, -1));
             expect(actual.storage, {source});
             expect(actual.iterable, expected);
-            expect(actual.copy().iterable, expected);
             expect(actual.shift(-offset), source);
             if (-3 <= offset && offset <= 0) {
               actual[0] = -1;
@@ -523,7 +518,6 @@ void polynomialTest(String name, PolynomialFormat format) {
             expect(actual.degree, -1);
             expect(actual.storage, {source});
             expect(actual.iterable, expected);
-            expect(actual.copy().iterable, expected);
             expect(actual.shift(-offset), source);
           });
         }
@@ -536,7 +530,6 @@ void polynomialTest(String name, PolynomialFormat format) {
         expect(readonly.degree, 7);
         expect(readonly.storage, [source]);
         expect(readonly.unmodifiable, readonly);
-        expect(readonly.copy().compare(readonly), isTrue);
         for (var i = readonly.degree; i >= 0; i--) {
           expect(readonly[i], i + 1);
           expect(() => readonly[i] = i, throwsUnsupportedError);

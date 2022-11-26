@@ -23,9 +23,6 @@ class TransformedMatrix<S, T> with Matrix<T> {
   Set<Storage> get storage => matrix.storage;
 
   @override
-  Matrix<T> copy() => TransformedMatrix(matrix.copy(), read, write, dataType);
-
-  @override
   T getUnchecked(int row, int col) =>
       read(row, col, matrix.getUnchecked(row, col));
 

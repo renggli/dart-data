@@ -18,9 +18,6 @@ class ReversedVector<T> with Vector<T> {
   Set<Storage> get storage => vector.storage;
 
   @override
-  Vector<T> copy() => ReversedVector<T>(vector.copy());
-
-  @override
   T getUnchecked(int index) => vector.getUnchecked(vector.count - index - 1);
 
   @override

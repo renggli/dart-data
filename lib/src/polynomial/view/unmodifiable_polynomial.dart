@@ -20,9 +20,6 @@ class UnmodifiablePolynomial<T>
   Set<Storage> get storage => polynomial.storage;
 
   @override
-  Polynomial<T> copy() => UnmodifiablePolynomial(polynomial.copy());
-
-  @override
   T getUnchecked(int exponent) => polynomial.getUnchecked(exponent);
 }
 

@@ -18,9 +18,6 @@ class DifferentiatePolynomial<T> with Polynomial<T> {
   Set<Storage> get storage => polynomial.storage;
 
   @override
-  Polynomial<T> copy() => DifferentiatePolynomial(polynomial.copy());
-
-  @override
   T getUnchecked(int exponent) => dataType.field.mul(
         polynomial.getUnchecked(exponent + 1),
         dataType.cast(exponent + 1),

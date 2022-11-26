@@ -25,10 +25,6 @@ class MatrixVectorMultiplicationVector<T>
   Set<Storage> get storage => {...matrix.storage, ...vector.storage};
 
   @override
-  Vector<T> copy() => MatrixVectorMultiplicationVector<T>(
-      dataType, matrix.copy(), vector.copy());
-
-  @override
   T getUnchecked(int index) {
     final add = dataType.field.add, mul = dataType.field.mul;
     var result = dataType.field.additiveIdentity;

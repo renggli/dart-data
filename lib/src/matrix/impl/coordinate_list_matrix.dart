@@ -35,16 +35,6 @@ class CoordinateListMatrix<T> with Matrix<T> {
   @override
   Set<Storage> get storage => {this};
 
-  @override
-  Matrix<T> copy() => CoordinateListMatrix._(
-      dataType,
-      rowCount,
-      columnCount,
-      DataType.indexDataType.copyList(_rows),
-      DataType.indexDataType.copyList(_cols),
-      dataType.copyList(_values),
-      _length);
-
   int _binarySearch(int row, int col) {
     var min = 0;
     var max = _length;

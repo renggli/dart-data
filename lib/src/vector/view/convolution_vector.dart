@@ -46,10 +46,6 @@ class FullConvolutionVector<T> extends ConvolutionVector<T> {
   final int count;
 
   @override
-  Vector<T> copy() =>
-      FullConvolutionVector<T>(dataType, vector.copy(), kernel.copy());
-
-  @override
   T getUnchecked(int index) {
     final v = max(index - kernel.count + 1, 0);
     return convolution(v, index - v);
@@ -64,10 +60,6 @@ class ValidConvolutionVector<T> extends ConvolutionVector<T> {
   final int count;
 
   @override
-  Vector<T> copy() =>
-      ValidConvolutionVector<T>(dataType, vector.copy(), kernel.copy());
-
-  @override
   T getUnchecked(int index) => convolution(index, kernel.count - 1);
 }
 
@@ -77,10 +69,6 @@ class SameConvolutionVector<T> extends ConvolutionVector<T> {
 
   @override
   final int count;
-
-  @override
-  Vector<T> copy() =>
-      SameConvolutionVector<T>(dataType, vector.copy(), kernel.copy());
 
   @override
   T getUnchecked(int index) {

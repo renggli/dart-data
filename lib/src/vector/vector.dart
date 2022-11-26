@@ -94,10 +94,6 @@ abstract class Vector<T> implements Storage {
   @override
   List<int> get shape => [count];
 
-  /// Returns a copy of this vector.
-  @override
-  Vector<T> copy();
-
   /// Returns the target vector with all elements of this vector copied into it.
   Vector<T> copyInto(Vector<T> target) {
     assert(

@@ -32,10 +32,6 @@ class ConcatHorizontalMatrix<T> with Matrix<T> {
       matrices.expand((matrix) => matrix.storage).toSet();
 
   @override
-  Matrix<T> copy() => ConcatHorizontalMatrix._withListAndIndexes(dataType,
-      matrices.map((vector) => vector.copy()).toList(growable: false), indexes);
-
-  @override
   T getUnchecked(int row, int col) {
     var matrixIndex = binarySearch<num>(indexes, 0, indexes.length, col);
     if (matrixIndex < 0) {

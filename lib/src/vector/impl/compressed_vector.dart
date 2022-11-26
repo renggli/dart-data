@@ -30,14 +30,6 @@ class CompressedVector<T> with Vector<T> {
   Set<Storage> get storage => {this};
 
   @override
-  Vector<T> copy() => CompressedVector._(
-      dataType,
-      count,
-      DataType.indexDataType.copyList(_indexes),
-      dataType.copyList(_values),
-      _length);
-
-  @override
   T getUnchecked(int index) {
     final pos = binarySearch<num>(_indexes, 0, _length, index);
     return pos < 0 ? dataType.defaultValue : _values[pos];

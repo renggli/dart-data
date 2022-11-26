@@ -247,10 +247,6 @@ abstract class Matrix<T> implements Storage {
   @override
   List<int> get shape => [rowCount, columnCount];
 
-  /// Returns a copy of this matrix.
-  @override
-  Matrix<T> copy();
-
   /// Returns the target matrix with all elements of this matrix copied into it.
   Matrix<T> copyInto(Matrix<T> target) {
     assert(

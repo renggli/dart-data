@@ -22,9 +22,6 @@ class RangeVector<T> with Vector<T> {
   Set<Storage> get storage => vector.storage;
 
   @override
-  Vector<T> copy() => RangeVector<T>._(vector.copy(), start, count);
-
-  @override
   T getUnchecked(int index) => vector.getUnchecked(start + index);
 
   @override

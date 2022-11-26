@@ -29,10 +29,6 @@ class RangeMatrix<T> with Matrix<T> {
   Set<Storage> get storage => matrix.storage;
 
   @override
-  Matrix<T> copy() =>
-      RangeMatrix._(matrix.copy(), rowStart, rowCount, colStart, columnCount);
-
-  @override
   T getUnchecked(int row, int col) =>
       matrix.getUnchecked(rowStart + row, colStart + col);
 

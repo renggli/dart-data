@@ -27,10 +27,6 @@ class OverlayMaskMatrix<T> with Matrix<T> {
       {...overlay.storage, ...mask.storage, ...base.storage};
 
   @override
-  Matrix<T> copy() =>
-      OverlayMaskMatrix(dataType, overlay.copy(), mask.copy(), base.copy());
-
-  @override
   T getUnchecked(int row, int col) {
     if (mask.getUnchecked(row, col)) {
       return overlay.getUnchecked(row, col);

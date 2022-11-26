@@ -20,10 +20,6 @@ class TransformedVector<S, T> with Vector<T> {
   Set<Storage> get storage => vector.storage;
 
   @override
-  Vector<T> copy() =>
-      TransformedVector<S, T>(vector.copy(), read, write, dataType);
-
-  @override
   T getUnchecked(int index) => read(index, vector.getUnchecked(index));
 
   @override

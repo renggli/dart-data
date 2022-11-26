@@ -30,9 +30,6 @@ class IndexMatrix<T> with Matrix<T> {
   Set<Storage> get storage => matrix.storage;
 
   @override
-  Matrix<T> copy() => IndexMatrix<T>._(matrix.copy(), rowIndexes, colIndexes);
-
-  @override
   T getUnchecked(int row, int col) =>
       matrix.getUnchecked(rowIndexes[row], colIndexes[col]);
 

@@ -36,11 +36,11 @@ void vectorTest(String name, VectorFormat format) {
           expect(result.dataType, DataType.int8);
           expect(result.count, 5);
           expect(result.storage, {a, b});
-          expect(result.copy().compare(result), isTrue);
           expect(result.compare(expected), isTrue);
         });
         test('write', () {
-          final first = a.copy(), second = b.copy();
+          final first = a.toVector(format: format);
+          final second = b.toVector(format: format);
           final result = Vector.concat(DataType.int8, [first, second]);
           for (var i = 0; i < result.count; i++) {
             result[i] = -1;
@@ -53,7 +53,6 @@ void vectorTest(String name, VectorFormat format) {
           expect(result.dataType, DataType.int8);
           expect(result.count, 5);
           expect(result.storage, [result]);
-          expect(result.copy().compare(result), isTrue);
           expect(result.compare(expected), isTrue);
         });
         test('single', () {
@@ -69,7 +68,6 @@ void vectorTest(String name, VectorFormat format) {
         expect(vector.count, 5);
         expect(vector.shape, [vector.count]);
         expect(vector.storage, [vector]);
-        expect(vector.copy(), vector);
         for (var i = 0; i < vector.count; i++) {
           expect(vector[i], 0);
         }
@@ -81,7 +79,6 @@ void vectorTest(String name, VectorFormat format) {
         expect(vector.count, 5);
         expect(vector.shape, [vector.count]);
         expect(vector.storage, [vector]);
-        expect(vector.copy(), vector);
         for (var i = 0; i < vector.count; i++) {
           expect(vector[i], 1);
         }
@@ -105,7 +102,6 @@ void vectorTest(String name, VectorFormat format) {
         expect(vector.count, 7);
         expect(vector.shape, [vector.count]);
         expect(vector.storage, [vector]);
-        expect(vector.copy(), vector);
         for (var i = 0; i < vector.count; i++) {
           expect(vector[i], '$i');
         }
@@ -118,7 +114,6 @@ void vectorTest(String name, VectorFormat format) {
         expect(vector.count, 7);
         expect(vector.shape, [vector.count]);
         expect(vector.storage, [vector]);
-        expect(vector.copy().compare(vector), isTrue);
         for (var i = 0; i < vector.count; i++) {
           expect(vector[i], '$i');
         }
@@ -222,7 +217,7 @@ void vectorTest(String name, VectorFormat format) {
       test('copy', () {
         final source =
             Vector.generate(DataType.int32, 30, (i) => i, format: format);
-        final copy = source.copy();
+        final copy = source.toVector(format: format);
         expect(copy.dataType, source.dataType);
         expect(copy.count, source.count);
         expect(copy.storage, [copy]);
@@ -252,7 +247,6 @@ void vectorTest(String name, VectorFormat format) {
           expect(range.dataType, DataType.string);
           expect(range.count, 3);
           expect(range.storage, [source]);
-          expect(range.copy().compare(range), isTrue);
           expect(range[0], '1');
           expect(range[1], '2');
           expect(range[2], '3');
@@ -291,7 +285,6 @@ void vectorTest(String name, VectorFormat format) {
           expect(index.dataType, DataType.string);
           expect(index.count, 3);
           expect(index.storage, [source]);
-          expect(index.copy().compare(index), isTrue);
           expect(index[0], '3');
           expect(index[1], '2');
           expect(index[2], '2');
@@ -368,7 +361,7 @@ void vectorTest(String name, VectorFormat format) {
           expect(composite.dataType, top.dataType);
           expect(composite.count, base.count);
           expect(composite.storage, unorderedMatches(<Vector>[base, top]));
-          final copy = composite.copy();
+          final copy = composite.toVector(format: format);
           expect(copy.compare(composite), isTrue);
           for (var i = 0; i < composite.count; i++) {
             expect(composite[i], 4 <= i && i <= 5 ? '[${i - 4}]' : '($i)');
@@ -387,7 +380,7 @@ void vectorTest(String name, VectorFormat format) {
           expect(composite.count, base.count);
           expect(
               composite.storage, unorderedMatches(<Vector>[base, top, mask]));
-          final copy = composite.copy();
+          final copy = composite.toVector(format: format);
           expect(copy.compare(composite), isTrue);
           for (var i = 0; i < composite.count; i++) {
             expect(composite[i], i.isEven ? '[$i]' : '($i)');
@@ -493,10 +486,6 @@ void vectorTest(String name, VectorFormat format) {
           expect(transform[2], '*');
           expect(source[2], 42);
         });
-        test('copy', () {
-          final mapped = source.map((index, value) => index, DataType.int32);
-          expect(mapped.copy().compare(mapped), isTrue);
-        });
       });
       group('cast', () {
         final source = Vector.generate(DataType.int32, 256, (index) => index,
@@ -512,10 +501,6 @@ void vectorTest(String name, VectorFormat format) {
             expect(source[i], -i);
           }
         });
-        test('copy', () {
-          final cast = source.cast(DataType.int32);
-          expect(cast.copy().compare(cast), isTrue);
-        });
       });
       test('reversed', () {
         final source =
@@ -525,7 +510,6 @@ void vectorTest(String name, VectorFormat format) {
         expect(reversed.count, source.count);
         expect(reversed.storage, [source]);
         expect(reversed.reversed, same(source));
-        expect(reversed.copy().compare(reversed), isTrue);
         for (var i = 0; i < source.count; i++) {
           expect(reversed[i], source[source.count - i - 1]);
         }
@@ -539,7 +523,6 @@ void vectorTest(String name, VectorFormat format) {
         expect(readonly.dataType, source.dataType);
         expect(readonly.count, source.count);
         expect(readonly.storage, [source]);
-        expect(readonly.copy().compare(readonly), isTrue);
         for (var i = 0; i < source.count; i++) {
           expect(source[i], readonly[i]);
           expect(() => readonly[i] = 0, throwsUnsupportedError);
@@ -557,7 +540,6 @@ void vectorTest(String name, VectorFormat format) {
           expect(matrix.rowCount, vector.count);
           expect(matrix.columnCount, vector.count);
           expect(matrix.storage, [vector]);
-          expect(matrix.copy().compare(matrix), isTrue);
           for (var r = 0; r < matrix.rowCount; r++) {
             for (var c = 0; c < matrix.columnCount; c++) {
               if (r == c) {
@@ -578,7 +560,6 @@ void vectorTest(String name, VectorFormat format) {
           expect(matrix.rowCount, 1);
           expect(matrix.columnCount, vector.count);
           expect(matrix.storage, [vector]);
-          expect(matrix.copy().compare(matrix), isTrue);
           for (var c = 0; c < matrix.columnCount; c++) {
             expect(matrix.get(0, c), '$c');
             matrix.set(0, c, '$c*');
@@ -593,7 +574,6 @@ void vectorTest(String name, VectorFormat format) {
           expect(matrix.rowCount, vector.count);
           expect(matrix.columnCount, 1);
           expect(matrix.storage, [vector]);
-          expect(matrix.copy().compare(matrix), isTrue);
           for (var r = 0; r < matrix.rowCount; r++) {
             expect(matrix.get(r, 0), '$r');
             matrix.set(r, 0, '$r*');

@@ -22,9 +22,6 @@ class IndexVector<T> with Vector<T> {
   Set<Storage> get storage => vector.storage;
 
   @override
-  Vector<T> copy() => IndexVector._(vector.copy(), indexes);
-
-  @override
   T getUnchecked(int index) => vector.getUnchecked(indexes[index]);
 
   @override

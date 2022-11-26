@@ -22,9 +22,6 @@ class RowMatrix<T> with Matrix<T> {
   Set<Storage> get storage => vector.storage;
 
   @override
-  Matrix<T> copy() => RowMatrix<T>(vector.copy());
-
-  @override
   T getUnchecked(int row, int col) => vector.getUnchecked(col);
 
   @override

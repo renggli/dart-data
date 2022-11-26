@@ -36,16 +36,6 @@ class CompressedColumnMatrix<T> with Matrix<T> {
   Set<Storage> get storage => {this};
 
   @override
-  Matrix<T> copy() => CompressedColumnMatrix._(
-      dataType,
-      rowCount,
-      columnCount,
-      DataType.indexDataType.copyList(_colExtends),
-      DataType.indexDataType.copyList(_rowIndexes),
-      dataType.copyList(_values),
-      _length);
-
-  @override
   T getUnchecked(int row, int col) {
     final start = col > 0 ? _colExtends[col - 1] : 0, stop = _colExtends[col];
     final index = binarySearch<num>(_rowIndexes, start, stop, row);

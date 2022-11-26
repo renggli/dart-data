@@ -21,9 +21,6 @@ class FlippedHorizontalMatrix<T> with Matrix<T> {
   Set<Storage> get storage => matrix.storage;
 
   @override
-  Matrix<T> copy() => FlippedHorizontalMatrix(matrix.copy());
-
-  @override
   T getUnchecked(int row, int col) =>
       matrix.getUnchecked(matrix.rowCount - row - 1, col);
 

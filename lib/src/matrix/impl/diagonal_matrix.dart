@@ -31,15 +31,6 @@ class DiagonalMatrix<T> with Matrix<T> {
   Set<Storage> get storage => {this};
 
   @override
-  Matrix<T> copy() => DiagonalMatrix._(
-      dataType,
-      rowCount,
-      columnCount,
-      Map.fromIterables(
-          _diagonals.keys, _diagonals.values.map((each) => each.copy())),
-      _format);
-
-  @override
   T getUnchecked(int row, int col) {
     final offset = row - col;
     final index = offset < 0 ? col + offset : col;

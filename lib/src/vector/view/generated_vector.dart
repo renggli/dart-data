@@ -22,8 +22,5 @@ class GeneratedVector<T> with Vector<T>, UnmodifiableVectorMixin<T> {
   Set<Storage> get storage => {this};
 
   @override
-  Vector<T> copy() => this;
-
-  @override
   T getUnchecked(int index) => callback(index);
 }

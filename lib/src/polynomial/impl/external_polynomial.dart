@@ -30,10 +30,6 @@ class ExternalPolynomial<T> with Polynomial<T> {
   Set<Storage> get storage => {this};
 
   @override
-  Polynomial<T> copy() =>
-      ExternalPolynomial.fromList(dataType, List<T>.from(coefficients));
-
-  @override
   T getUnchecked(int exponent) => exponent < coefficients.length
       ? coefficients[exponent]
       : dataType.defaultValue;

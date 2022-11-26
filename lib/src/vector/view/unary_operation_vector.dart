@@ -22,9 +22,6 @@ class UnaryOperationVector<T> with Vector<T>, UnmodifiableVectorMixin<T> {
   Set<Storage> get storage => vector.storage;
 
   @override
-  Vector<T> copy() => UnaryOperationVector(dataType, vector.copy(), operation);
-
-  @override
   T getUnchecked(int index) => operation(vector.getUnchecked(index));
 }
 

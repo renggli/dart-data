@@ -26,10 +26,6 @@ class RowMajorMatrix<T> with Matrix<T> {
   Set<Storage> get storage => {this};
 
   @override
-  Matrix<T> copy() => RowMajorMatrix.fromList(
-      dataType, rowCount, columnCount, dataType.copyList(_values));
-
-  @override
   T getUnchecked(int row, int col) => _values[row * columnCount + col];
 
   @override

@@ -19,9 +19,6 @@ class UnmodifiableVector<T> with Vector<T>, UnmodifiableVectorMixin<T> {
   Set<Storage> get storage => vector.storage;
 
   @override
-  Vector<T> copy() => UnmodifiableVector(vector.copy());
-
-  @override
   T getUnchecked(int index) => vector.getUnchecked(index);
 }
 

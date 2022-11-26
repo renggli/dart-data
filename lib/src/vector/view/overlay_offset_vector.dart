@@ -23,10 +23,6 @@ class OverlayOffsetVector<T> with Vector<T> {
   Set<Storage> get storage => {...overlay.storage, ...base.storage};
 
   @override
-  Vector<T> copy() =>
-      OverlayOffsetVector(dataType, overlay.copy(), offset, base.copy());
-
-  @override
   T getUnchecked(int index) {
     final overlayIndex = index - offset;
     if (overlay.isWithinBounds(overlayIndex)) {

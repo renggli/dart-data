@@ -24,10 +24,6 @@ class OverlayMaskVector<T> with Vector<T> {
       {...overlay.storage, ...mask.storage, ...base.storage};
 
   @override
-  Vector<T> copy() =>
-      OverlayMaskVector(dataType, overlay.copy(), mask.copy(), base.copy());
-
-  @override
   T getUnchecked(int index) {
     if (mask.getUnchecked(index)) {
       return overlay.getUnchecked(index);

@@ -48,9 +48,6 @@ class RotatedMatrix<T> with Matrix<T> {
 
   @override
   Set<Storage> get storage => matrix.storage;
-
-  @override
-  Matrix<T> copy() => RotatedMatrix(matrix.copy(), count);
 }
 
 extension RotatedMatrixExtension<T> on Matrix<T> {

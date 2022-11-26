@@ -28,10 +28,6 @@ class OverlayOffsetMatrix<T> with Matrix<T> {
   Set<Storage> get storage => {...overlay.storage, ...base.storage};
 
   @override
-  Matrix<T> copy() => OverlayOffsetMatrix(
-      dataType, overlay.copy(), rowOffset, colOffset, base.copy());
-
-  @override
   T getUnchecked(int row, int col) {
     final overlayRow = row - rowOffset, overlayCol = col - colOffset;
     if (overlay.isWithinBounds(overlayRow, overlayCol)) {

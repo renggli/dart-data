@@ -18,9 +18,6 @@ class CastVector<S, T> with Vector<T> {
   Set<Storage> get storage => vector.storage;
 
   @override
-  Vector<T> copy() => CastVector<S, T>(vector.copy(), dataType);
-
-  @override
   T getUnchecked(int index) => dataType.cast(vector.getUnchecked(index));
 
   @override

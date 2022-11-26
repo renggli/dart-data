@@ -22,9 +22,6 @@ class ColumnMatrix<T> with Matrix<T> {
   Set<Storage> get storage => vector.storage;
 
   @override
-  Matrix<T> copy() => ColumnMatrix<T>(vector.copy());
-
-  @override
   T getUnchecked(int row, int col) => vector.getUnchecked(row);
 
   @override

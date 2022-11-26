@@ -22,10 +22,6 @@ class KeyedPolynomial<T> with Polynomial<T> {
   Set<Storage> get storage => {this};
 
   @override
-  Polynomial<T> copy() =>
-      KeyedPolynomial._(dataType, SplayTreeMap.of(_coefficients));
-
-  @override
   T getUnchecked(int exponent) =>
       _coefficients[exponent] ?? dataType.defaultValue;
 

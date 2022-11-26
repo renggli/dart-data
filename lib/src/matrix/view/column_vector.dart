@@ -20,9 +20,6 @@ class ColumnVector<T> with Vector<T> {
   Set<Storage> get storage => matrix.storage;
 
   @override
-  Vector<T> copy() => ColumnVector(matrix.copy(), columnIndex);
-
-  @override
   T getUnchecked(int index) => matrix.getUnchecked(index, columnIndex);
 
   @override

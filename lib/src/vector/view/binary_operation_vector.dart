@@ -27,10 +27,6 @@ class BinaryOperationVector<T> with Vector<T>, UnmodifiableVectorMixin<T> {
   Set<Storage> get storage => {...first.storage, ...second.storage};
 
   @override
-  Vector<T> copy() =>
-      BinaryOperationVector(dataType, first.copy(), second.copy(), operation);
-
-  @override
   T getUnchecked(int index) =>
       operation(first.getUnchecked(index), second.getUnchecked(index));
 }

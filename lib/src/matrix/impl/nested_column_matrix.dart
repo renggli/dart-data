@@ -31,15 +31,6 @@ class NestedColumnMatrix<T> with Matrix<T> {
   Set<Storage> get storage => {this};
 
   @override
-  Matrix<T> copy() => NestedColumnMatrix._(
-      dataType,
-      rowCount,
-      columnCount,
-      List<List<T>>.generate(
-          columnCount, (index) => dataType.copyList(_cols[index]),
-          growable: false));
-
-  @override
   T getUnchecked(int row, int col) => _cols[col][row];
 
   @override

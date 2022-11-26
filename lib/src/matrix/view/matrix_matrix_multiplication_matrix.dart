@@ -27,10 +27,6 @@ class MatrixMatrixMultiplicationMatrix<T>
   Set<Storage> get storage => {...first.storage, ...second.storage};
 
   @override
-  Matrix<T> copy() => MatrixMatrixMultiplicationMatrix<T>(
-      dataType, first.copy(), second.copy());
-
-  @override
   T getUnchecked(int row, int col) {
     final add = dataType.field.add, mul = dataType.field.mul;
     var result = dataType.field.additiveIdentity;

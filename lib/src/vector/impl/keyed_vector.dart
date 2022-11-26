@@ -21,9 +21,6 @@ class KeyedVector<T> with Vector<T> {
   Set<Storage> get storage => {this};
 
   @override
-  Vector<T> copy() => KeyedVector._(dataType, count, Map.of(_values));
-
-  @override
   T getUnchecked(int index) => _values[index] ?? dataType.defaultValue;
 
   @override

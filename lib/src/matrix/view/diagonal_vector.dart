@@ -31,9 +31,6 @@ class DiagonalVector<T> with Vector<T> {
   Set<Storage> get storage => matrix.storage;
 
   @override
-  Vector<T> copy() => DiagonalVector<T>._(matrix.copy(), offset, count);
-
-  @override
   T getUnchecked(int index) {
     if (offset < 0) {
       return matrix.getUnchecked(index, index - offset);

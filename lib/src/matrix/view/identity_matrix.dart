@@ -22,9 +22,6 @@ class IdentityMatrix<T> with Matrix<T>, UnmodifiableMatrixMixin<T> {
   Set<Storage> get storage => {this};
 
   @override
-  Matrix<T> copy() => this;
-
-  @override
   T getUnchecked(int row, int col) =>
       row == col ? value : dataType.field.additiveIdentity;
 }

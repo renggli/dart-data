@@ -22,9 +22,6 @@ class UnmodifiableMatrix<T> with Matrix<T>, UnmodifiableMatrixMixin<T> {
   Set<Storage> get storage => matrix.storage;
 
   @override
-  Matrix<T> copy() => UnmodifiableMatrix(matrix.copy());
-
-  @override
   T getUnchecked(int row, int col) => matrix.getUnchecked(row, col);
 }
 

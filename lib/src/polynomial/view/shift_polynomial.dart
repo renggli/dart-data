@@ -27,9 +27,6 @@ class ShiftPolynomial<T> with Polynomial<T> {
   Set<Storage> get storage => polynomial.storage;
 
   @override
-  Polynomial<T> copy() => ShiftPolynomial(polynomial.copy(), offset);
-
-  @override
   T getUnchecked(int exponent) {
     final index = exponent - offset;
     if (index >= 0) {

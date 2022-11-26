@@ -32,10 +32,6 @@ class ListPolynomial<T> with Polynomial<T> {
   Set<Storage> get storage => {this};
 
   @override
-  Polynomial<T> copy() =>
-      ListPolynomial._(dataType, dataType.copyList(_coefficients), _degree);
-
-  @override
   T getUnchecked(int exponent) => exponent < _coefficients.length
       ? _coefficients[exponent]
       : dataType.defaultValue;

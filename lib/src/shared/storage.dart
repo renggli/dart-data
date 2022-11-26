@@ -5,7 +5,4 @@ abstract class Storage {
 
   /// Returns the underlying storage containers of this object.
   Set<Storage> get storage;
-
-  /// Creates a deep copy of this structure.
-  Storage copy();
 }

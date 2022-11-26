@@ -30,13 +30,6 @@ class CompressedPolynomial<T> with Polynomial<T> {
   Set<Storage> get storage => {this};
 
   @override
-  Polynomial<T> copy() => CompressedPolynomial._(
-      dataType,
-      DataType.indexDataType.copyList(_exponents),
-      dataType.copyList(_coefficients),
-      _length);
-
-  @override
   T getUnchecked(int exponent) {
     final pos = binarySearch<num>(_exponents, 0, _length, exponent);
     return pos < 0 ? dataType.defaultValue : _coefficients[pos];

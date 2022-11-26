@@ -21,9 +21,6 @@ class ListVector<T> with Vector<T> {
   Set<Storage> get storage => {this};
 
   @override
-  Vector<T> copy() => ListVector.fromList(dataType, dataType.copyList(_values));
-
-  @override
   T getUnchecked(int index) => _values[index];
 
   @override

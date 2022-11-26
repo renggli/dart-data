@@ -23,9 +23,6 @@ class GeneratedPolynomial<T>
   Set<Storage> get storage => {this};
 
   @override
-  Polynomial<T> copy() => this;
-
-  @override
   T getUnchecked(int exponent) =>
       exponent <= degree ? callback(exponent) : dataType.field.additiveIdentity;
 }

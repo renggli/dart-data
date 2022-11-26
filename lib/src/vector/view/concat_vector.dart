@@ -27,10 +27,6 @@ class ConcatVector<T> with Vector<T> {
   Set<Storage> get storage => {...vectors};
 
   @override
-  Vector<T> copy() => ConcatVector._withListAndIndexes(dataType,
-      vectors.map((vector) => vector.copy()).toList(growable: false), indexes);
-
-  @override
   T getUnchecked(int index) {
     var vectorIndex = binarySearch<num>(indexes, 0, indexes.length, index);
     if (vectorIndex < 0) {

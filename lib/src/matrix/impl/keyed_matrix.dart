@@ -24,10 +24,6 @@ class KeyedMatrix<T> with Matrix<T> {
   Set<Storage> get storage => {this};
 
   @override
-  Matrix<T> copy() =>
-      KeyedMatrix._(dataType, rowCount, columnCount, Map.of(_values));
-
-  @override
   T getUnchecked(int row, int col) =>
       _values[row * columnCount + col] ?? dataType.defaultValue;
 

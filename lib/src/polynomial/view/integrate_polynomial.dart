@@ -20,9 +20,6 @@ class IntegratePolynomial<T> with Polynomial<T> {
   Set<Storage> get storage => polynomial.storage;
 
   @override
-  Polynomial<T> copy() => IntegratePolynomial(polynomial.copy(), constant);
-
-  @override
   T getUnchecked(int exponent) => exponent == 0
       ? constant
       : dataType.field.div(

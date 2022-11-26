@@ -22,9 +22,6 @@ class DiagonalMatrix<T> with Matrix<T> {
   Set<Storage> get storage => vector.storage;
 
   @override
-  Matrix<T> copy() => DiagonalMatrix(vector.copy());
-
-  @override
   T getUnchecked(int row, int col) =>
       row == col ? vector.getUnchecked(row) : dataType.defaultValue;
 

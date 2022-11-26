@@ -131,10 +131,6 @@ abstract class Polynomial<T> implements Storage {
   @override
   List<int> get shape => [degree + 1];
 
-  /// Returns a copy of this polynomial.
-  @override
-  Polynomial<T> copy();
-
   /// Creates a new [Polynomial] containing the same elements as this one.
   Polynomial<T> toPolynomial({PolynomialFormat? format}) {
     final result = Polynomial(dataType, desiredDegree: degree, format: format);

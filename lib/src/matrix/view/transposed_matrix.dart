@@ -21,9 +21,6 @@ class TransposedMatrix<T> with Matrix<T> {
   Set<Storage> get storage => matrix.storage;
 
   @override
-  Matrix<T> copy() => TransposedMatrix(matrix.copy());
-
-  @override
   T getUnchecked(int row, int col) => matrix.getUnchecked(col, row);
 
   @override

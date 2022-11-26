@@ -34,10 +34,6 @@ class BinaryOperationMatrix<T> with Matrix<T>, UnmodifiableMatrixMixin<T> {
   Set<Storage> get storage => {...first.storage, ...second.storage};
 
   @override
-  Matrix<T> copy() => BinaryOperationMatrix<T>(
-      dataType, first.copy(), second.copy(), operation);
-
-  @override
   T getUnchecked(int row, int col) =>
       operation(first.getUnchecked(row, col), second.getUnchecked(row, col));
 }

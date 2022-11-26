@@ -20,9 +20,6 @@ class RowVector<T> with Vector<T> {
   Set<Storage> get storage => matrix.storage;
 
   @override
-  Vector<T> copy() => RowVector(matrix.copy(), row);
-
-  @override
   T getUnchecked(int index) => matrix.getUnchecked(row, index);
 
   @override
