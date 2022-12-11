@@ -89,7 +89,8 @@ extension MulPolynomialExtension<T> on Polynomial<T> {
 }
 
 /// Helper to perform polynomial multiplication using fast fourier transform.
-_fftMulPolynomial<T>(Polynomial<T> result, Polynomial<T> a, Polynomial<T> b) {
+void _fftMulPolynomial<T>(
+    Polynomial<T> result, Polynomial<T> a, Polynomial<T> b) {
   final va = a.iterable.map(DataType.complex.cast).toList();
   final vb = b.iterable.map(DataType.complex.cast).toList();
   var n = 1;

@@ -10,7 +10,7 @@ import '../curve_fit.dart';
 /// polynomial of a given [degree].
 ///
 /// See https://en.wikipedia.org/wiki/Polynomial_regression.
-class PolynomialRegression extends CurveFit<Polynomial<double>> {
+class PolynomialRegression extends CurveFit {
   /// Constructs a polynomial least-squares regression model.
   PolynomialRegression({required this.degree}) {
     RangeError.checkNotNegative(degree, 'degree');

@@ -359,7 +359,7 @@ void vectorTest(String name, VectorFormat format) {
           final composite = top.overlay(base, offset: 4);
           expect(composite.dataType, top.dataType);
           expect(composite.count, base.count);
-          expect(composite.storage, unorderedMatches(<Vector>[base, top]));
+          expect(composite.storage, unorderedMatches([base, top]));
           final copy = composite.toVector(format: format);
           expect(copy.compare(composite), isTrue);
           for (var i = 0; i < composite.count; i++) {
@@ -377,8 +377,7 @@ void vectorTest(String name, VectorFormat format) {
           final composite = top.overlay(base, mask: mask);
           expect(composite.dataType, top.dataType);
           expect(composite.count, base.count);
-          expect(
-              composite.storage, unorderedMatches(<Vector>[base, top, mask]));
+          expect(composite.storage, unorderedMatches([base, top, mask]));
           final copy = composite.toVector(format: format);
           expect(copy.compare(composite), isTrue);
           for (var i = 0; i < composite.count; i++) {

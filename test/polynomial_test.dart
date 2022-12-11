@@ -898,13 +898,13 @@ void polynomialTest(String name, PolynomialFormat format) {
         });
         test('fft (Complex)', () {
           final sourceA = Polynomial.fromList(
-              DataType.complex, [Complex(1, 2), Complex(2, 3)],
+              DataType.complex, const [Complex(1, 2), Complex(2, 3)],
               format: format);
           final sourceB = Polynomial.fromList(
-              DataType.complex, [Complex(4, 5), Complex(5, 6)],
+              DataType.complex, const [Complex(4, 5), Complex(5, 6)],
               format: format);
           final expected = Polynomial.fromList(DataType.complex,
-              [Complex(-6, 13), Complex(-14, 38), Complex(-8, 27)],
+              const [Complex(-6, 13), Complex(-14, 38), Complex(-8, 27)],
               format: format);
           final first = sourceA.mul(sourceB, fftMultiply: true);
           expect(first, isCloseTo(expected));

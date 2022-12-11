@@ -43,7 +43,7 @@ class ConcatVerticalMatrix<T> with Matrix<T> {
   }
 }
 
-List<int> computeIndexes(List<Matrix> matrices) {
+List<int> computeIndexes<T>(List<Matrix<T>> matrices) {
   final indexes = DataType.indexDataType.newList(matrices.length + 1);
   for (var i = 0; i < matrices.length; i++) {
     indexes[i + 1] = indexes[i] + matrices[i].rowCount;

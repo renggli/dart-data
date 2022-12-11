@@ -12,7 +12,7 @@ dynamic isCloseTo(dynamic expected, {num epsilon = 1.0e-5}) {
             ? expected
             : closeTo(expected, epsilon);
   } else if (expected is CloseTo) {
-    return predicate<CloseTo>(
+    return predicate<CloseTo<Object?>>(
       (actual) => expected.closeTo(actual, epsilon),
       '$expected differs by $epsilon',
     );
@@ -28,20 +28,20 @@ dynamic isCloseTo(dynamic expected, {num epsilon = 1.0e-5}) {
           containsPair(each.key, isCloseTo(each.value, epsilon: epsilon)))
     ]);
   } else if (expected is Vector) {
-    return isA<Vector>()
+    return isA<Vector<Object?>>()
         .having((actual) => actual.dataType, 'dataType', expected.dataType)
         .having((actual) => actual.count, 'count', expected.count)
         .having((actual) => actual.iterable, 'iterable',
             isCloseTo(expected.iterable, epsilon: epsilon));
   } else if (expected is Matrix) {
-    return isA<Matrix>()
+    return isA<Matrix<Object?>>()
         .having((actual) => actual.dataType, 'dataType', expected.dataType)
         .having((actual) => actual.rowCount, 'rowCount', expected.rowCount)
         .having((actual) => actual.colCount, 'columnCount', expected.colCount)
         .having((actual) => actual.rows, 'rows',
             isCloseTo(expected.rows, epsilon: epsilon));
   } else if (expected is Polynomial) {
-    return isA<Polynomial>()
+    return isA<Polynomial<Object?>>()
         .having((actual) => actual.dataType, 'dataType', expected.dataType)
         .having((actual) => actual.degree, 'degree', expected.degree)
         .having((actual) => actual.iterable, 'iterable',

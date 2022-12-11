@@ -23,5 +23,5 @@ class PositionalParametrizedUnaryFunction<T>
 
   @override
   UnaryFunction<T> bind(Vector<T> params) =>
-      Function.apply(function, toBindings(params));
+      Function.apply(function, toBindings(params)) as UnaryFunction<T>;
 }

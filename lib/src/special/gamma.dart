@@ -73,8 +73,8 @@ double gammap(num a, num x) => lowRegGamma(a, x) * gamma(a);
 
 // Returns the inverse of the lower regularized incomplete gamma function.
 double gammapInv(num p, num a) {
+  const epsilon = 1.0e-8;
   final a1 = a - 1.0;
-  final epsilon = 1.0e-8;
   var gln = gammaLn(a);
   var x = 0.0;
   var afac = 0.0;

@@ -5,7 +5,7 @@ import 'package:more/feature.dart';
 import 'package:test/test.dart';
 
 void listTest<T>(DataType<T> type, List<List<T>> lists) {
-  if (<DataType>[
+  if ([
     DataType.float,
     DataType.intDataType,
     DataType.boolean,
@@ -25,7 +25,7 @@ void listTest<T>(DataType<T> type, List<List<T>> lists) {
       }
     });
   }
-  if (<DataType>[
+  if ([
     DataType.float64,
     DataType.int64,
     DataType.int32,
@@ -44,7 +44,7 @@ void listTest<T>(DataType<T> type, List<List<T>> lists) {
       });
     }
   }
-  if (!<DataType>[DataType.float32].contains(type)) {
+  if (!<DataType<Object?>>[DataType.float32].contains(type)) {
     for (final list in lists) {
       test('castList([${list.join(', ')}])', () {
         final result = type.castList(list);
@@ -349,7 +349,7 @@ void fieldTest<T>(DataType<T> type, List<T> values) {
       }
     });
   });
-  if (<DataType>[
+  if ([
     DataType.complex,
     DataType.quaternion,
   ].contains(type)) {
@@ -416,7 +416,7 @@ void fieldTest<T>(DataType<T> type, List<T> values) {
         expect(isEqual(sub(addId, neg(value)), value), isTrue);
       }
     });
-    if (<DataType>[
+    if ([
       DataType.numeric,
       DataType.float32,
       DataType.float64,
@@ -430,7 +430,7 @@ void fieldTest<T>(DataType<T> type, List<T> values) {
           expect(isClose(nan, value, epsilon), isFalse);
         }
       });
-      if (!<DataType>[
+      if (![
         DataType.complex,
         DataType.quaternion,
       ].contains(type)) {
@@ -447,7 +447,7 @@ void fieldTest<T>(DataType<T> type, List<T> values) {
         });
       }
     }
-    if (<DataType>[
+    if ([
       DataType.numeric,
       DataType.float32,
       DataType.float64,
@@ -478,7 +478,7 @@ void fieldTest<T>(DataType<T> type, List<T> values) {
         expect(isClose(scale(value, 2), add(value, value), epsilon), isTrue);
       }
     });
-    if (<DataType>[
+    if ([
       DataType.int8,
       DataType.int16,
       DataType.int32,
@@ -511,7 +511,7 @@ void fieldTest<T>(DataType<T> type, List<T> values) {
     }
     test('mod', () {
       for (final value in values) {
-        if (<DataType>[
+        if ([
           DataType.int8,
           DataType.int16,
           DataType.int32,
@@ -524,7 +524,7 @@ void fieldTest<T>(DataType<T> type, List<T> values) {
         ].contains(type)) {
           expect(isClose(mod(value, mulId), addId, epsilon), isTrue);
           expect(isClose(mod(value, value), addId, epsilon), isTrue);
-        } else if (<DataType>[
+        } else if ([
           DataType.numeric,
           DataType.float32,
           DataType.float64,
@@ -538,7 +538,7 @@ void fieldTest<T>(DataType<T> type, List<T> values) {
     });
     test('pow', () {
       for (final value in values) {
-        if (!<DataType>[DataType.quaternion].contains(type)) {
+        if (!<DataType<Object?>>[DataType.quaternion].contains(type)) {
           expect(isClose(pow(value, addId), mulId, epsilon), isTrue);
         }
         expect(isClose(pow(value, mulId), value, epsilon), isTrue);

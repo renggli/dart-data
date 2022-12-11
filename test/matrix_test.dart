@@ -830,7 +830,7 @@ void matrixTest(String name, MatrixFormat format) {
           expect(composite.dataType, top.dataType);
           expect(composite.rowCount, base.rowCount);
           expect(composite.colCount, base.colCount);
-          expect(composite.storage, unorderedMatches(<Matrix>[base, top]));
+          expect(composite.storage, unorderedMatches([base, top]));
           final copy = composite.toMatrix(format: format);
           expect(copy.compare(composite), isTrue);
           for (var r = 0; r < composite.rowCount; r++) {
@@ -855,8 +855,7 @@ void matrixTest(String name, MatrixFormat format) {
           expect(composite.dataType, top.dataType);
           expect(composite.rowCount, base.rowCount);
           expect(composite.colCount, base.colCount);
-          expect(
-              composite.storage, unorderedMatches(<Matrix>[base, top, mask]));
+          expect(composite.storage, unorderedMatches([base, top, mask]));
           final copy = composite.toMatrix(format: format);
           expect(copy.compare(composite), isTrue);
           for (var r = 0; r < composite.rowCount; r++) {
@@ -1153,7 +1152,7 @@ void matrixTest(String name, MatrixFormat format) {
           final rotated = source.rotated().rotated();
           expect(
               rotated,
-              isA<RotatedMatrix>()
+              isA<RotatedMatrix<String>>()
                   .having((matrix) => matrix.count, 'count', 2));
         });
         test('error', () {

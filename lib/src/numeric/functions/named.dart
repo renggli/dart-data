@@ -40,5 +40,6 @@ class NamedParametrizedUnaryFunction<T> extends ParametrizedUnaryFunction<T> {
 
   @override
   UnaryFunction<T> bind(Vector<T> params) =>
-      Function.apply(function, const [], toBindings(params));
+      Function.apply(function, const [], toBindings(params))
+          as UnaryFunction<T>;
 }

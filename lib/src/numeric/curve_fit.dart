@@ -6,7 +6,7 @@ import 'functions.dart';
 /// to constraints.
 ///
 /// See https://en.wikipedia.org/wiki/Curve_fitting.
-abstract class CurveFit<T> {
+abstract class CurveFit {
   /// Fits a list of data points to the configured model.
   CurveFitResult fit({
     required Vector<double> xs,

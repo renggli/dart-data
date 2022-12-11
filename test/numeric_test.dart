@@ -604,7 +604,7 @@ void main() {
         DataType.string,
         [#a, #b, #c],
         ({required String a, required String b, required String c}) =>
-            (x) => 'f_$a,$b,$c($x)',
+            (String x) => 'f_$a,$b,$c($x)',
       );
       expect(function.dataType, DataType.string);
       expect(function.count, 3);
@@ -621,7 +621,7 @@ void main() {
       final function = ParametrizedUnaryFunction<String>.positional(
         DataType.string,
         3,
-        (String a, String b, String c) => (x) => 'f_$a,$b,$c($x)',
+        (String a, String b, String c) => (String x) => 'f_$a,$b,$c($x)',
       );
       expect(function.dataType, DataType.string);
       expect(function.count, 3);

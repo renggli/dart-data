@@ -39,7 +39,7 @@ class ConcatVector<T> with Vector<T> {
   }
 }
 
-List<int> computeIndexes(List<Vector> vectors) {
+List<int> computeIndexes<T>(List<Vector<T>> vectors) {
   final indexes = DataType.indexDataType.newList(vectors.length + 1);
   for (var i = 0; i < vectors.length; i++) {
     indexes[i + 1] = indexes[i] + vectors[i].count;

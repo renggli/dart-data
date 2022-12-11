@@ -87,7 +87,7 @@ double ibetaInv(num p, num a, num b) {
 /// Evaluates the continued fraction for incomplete beta function by modified
 /// Lentz's method.
 double betacf_(num x, num a, num b) {
-  final fpmin = 1.0e-30;
+  const fpmin = 1.0e-30;
   // These q's will be used in factors that occur in the coefficients
   final qab = a + b + 0.0;
   final qap = a + 1.0;

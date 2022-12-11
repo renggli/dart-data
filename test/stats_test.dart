@@ -52,7 +52,7 @@ void testSamples<T extends num>(
   }
 }
 
-final distributionsTested = <Distribution>[];
+final distributionsTested = <Distribution<Object?>>[];
 
 void testDistribution<T extends num>(
   Distribution<T> distribution, {
@@ -238,17 +238,17 @@ void main() {
             variance: 0,
             skewness: double.nan,
             kurtosisExcess: double.nan,
-            probability: [
+            probability: const [
               Tuple2(-1.0, 0.0),
               Tuple2(0.0, 1.0),
               Tuple2(1.0, 0.0),
             ],
-            cumulativeProbability: [
+            cumulativeProbability: const [
               Tuple2(-1.0, 0.0),
               Tuple2(0.0, 1.0),
               Tuple2(1.0, 1.0),
             ],
-            inverseCumulativeProbability: [
+            inverseCumulativeProbability: const [
               Tuple2(0.0, 0.0),
               Tuple2(0.5, 0.0),
               Tuple2(1.0, 0.0),
@@ -268,7 +268,7 @@ void main() {
             variance: 0,
             skewness: double.nan,
             kurtosisExcess: double.nan,
-            probability: [
+            probability: const [
               Tuple2(0.0, 0.0),
               Tuple2(0.5, 0.0),
               Tuple2(1.0, 0.0),
@@ -277,7 +277,7 @@ void main() {
               Tuple2(2.5, 0.0),
               Tuple2(3.0, 0.0),
             ],
-            cumulativeProbability: [
+            cumulativeProbability: const [
               Tuple2(0.0, 0.0),
               Tuple2(0.5, 0.0),
               Tuple2(1.0, 0.0),
@@ -286,7 +286,7 @@ void main() {
               Tuple2(2.5, 1.0),
               Tuple2(3.0, 1.0),
             ],
-            inverseCumulativeProbability: [
+            inverseCumulativeProbability: const [
               Tuple2(0.0, 1.5),
               Tuple2(0.5, 1.5),
               Tuple2(1.0, 1.5),
@@ -325,7 +325,7 @@ void main() {
               Tuple2(4.0, 1.000000),
               Tuple2(5.0, 1.000000),
             ],
-            inverseCumulativeProbability: [
+            inverseCumulativeProbability: const [
               Tuple2(0.0, 0),
               Tuple2(0.1, 0.0263401),
               Tuple2(0.2, 0.0557859),
@@ -359,7 +359,7 @@ void main() {
             variance: 4.0,
             skewness: 2.0,
             kurtosisExcess: 6.0,
-            probability: [
+            probability: const [
               Tuple2(1.0, 0.303265),
               Tuple2(2.0, 0.183940),
               Tuple2(3.0, 0.111565),
@@ -370,7 +370,7 @@ void main() {
               Tuple2(8.0, 0.009158),
               Tuple2(9.0, 0.005554),
             ],
-            cumulativeProbability: [
+            cumulativeProbability: const [
               Tuple2(1.0, 0.393469),
               Tuple2(2.0, 0.632121),
               Tuple2(3.0, 0.776870),
@@ -381,7 +381,7 @@ void main() {
               Tuple2(8.0, 0.981684),
               Tuple2(9.0, 0.988891),
             ],
-            inverseCumulativeProbability: [
+            inverseCumulativeProbability: const [
               Tuple2(0.0, 0.000000),
               Tuple2(0.1, 0.210721),
               Tuple2(0.2, 0.446287),
@@ -409,7 +409,7 @@ void main() {
             variance: 8.0,
             skewness: 1.41421356,
             kurtosisExcess: 3.0,
-            probability: [
+            probability: const [
               Tuple2(1.0, 0.151633),
               Tuple2(2.0, 0.183940),
               Tuple2(3.0, 0.167348),
@@ -420,7 +420,7 @@ void main() {
               Tuple2(8.0, 0.036631),
               Tuple2(9.0, 0.024995),
             ],
-            cumulativeProbability: [
+            cumulativeProbability: const [
               Tuple2(1.0, 0.090204),
               Tuple2(2.0, 0.264241),
               Tuple2(3.0, 0.442175),
@@ -431,7 +431,7 @@ void main() {
               Tuple2(8.0, 0.908422),
               Tuple2(9.0, 0.938901),
             ],
-            inverseCumulativeProbability: [
+            inverseCumulativeProbability: const [
               Tuple2(0.0, 0.000000),
               Tuple2(0.1, 1.063623),
               Tuple2(0.2, 1.648777),
@@ -459,7 +459,7 @@ void main() {
             variance: 12.0,
             skewness: 1.15470053,
             kurtosisExcess: 2.0,
-            probability: [
+            probability: const [
               Tuple2(1.0, 0.037908),
               Tuple2(2.0, 0.091970),
               Tuple2(3.0, 0.125511),
@@ -470,7 +470,7 @@ void main() {
               Tuple2(8.0, 0.073263),
               Tuple2(9.0, 0.056239),
             ],
-            cumulativeProbability: [
+            cumulativeProbability: const [
               Tuple2(1.0, 0.014388),
               Tuple2(2.0, 0.080301),
               Tuple2(3.0, 0.191153),
@@ -481,7 +481,7 @@ void main() {
               Tuple2(8.0, 0.761897),
               Tuple2(9.0, 0.826422),
             ],
-            inverseCumulativeProbability: [
+            inverseCumulativeProbability: const [
               Tuple2(0.0, 0.000000),
               Tuple2(0.1, 2.204131),
               Tuple2(0.2, 3.070088),
@@ -509,7 +509,7 @@ void main() {
             variance: 5.0,
             skewness: 0.89442719,
             kurtosisExcess: 1.2,
-            probability: [
+            probability: const [
               Tuple2(1.0, 0.015328),
               Tuple2(2.0, 0.090224),
               Tuple2(3.0, 0.168031),
@@ -520,7 +520,7 @@ void main() {
               Tuple2(8.0, 0.057252),
               Tuple2(9.0, 0.033737),
             ],
-            cumulativeProbability: [
+            cumulativeProbability: const [
               Tuple2(1.0, 0.003660),
               Tuple2(2.0, 0.052653),
               Tuple2(3.0, 0.184737),
@@ -531,7 +531,7 @@ void main() {
               Tuple2(8.0, 0.900368),
               Tuple2(9.0, 0.945036),
             ],
-            inverseCumulativeProbability: [
+            inverseCumulativeProbability: const [
               Tuple2(0.0, 0.000000),
               Tuple2(0.1, 2.432591),
               Tuple2(0.2, 3.089540),
@@ -559,7 +559,7 @@ void main() {
             variance: 2.25,
             skewness: 0.66666667,
             kurtosisExcess: 0.66666667,
-            probability: [
+            probability: const [
               Tuple2(1.0, 0.001719),
               Tuple2(2.0, 0.059540),
               Tuple2(3.0, 0.206515),
@@ -570,7 +570,7 @@ void main() {
               Tuple2(8.0, 0.023975),
               Tuple2(9.0, 0.008325),
             ],
-            cumulativeProbability: [
+            cumulativeProbability: const [
               Tuple2(1.0, 0.000237),
               Tuple2(2.0, 0.021363),
               Tuple2(3.0, 0.152763),
@@ -581,7 +581,7 @@ void main() {
               Tuple2(8.0, 0.978013),
               Tuple2(9.0, 0.992944),
             ],
-            inverseCumulativeProbability: [
+            inverseCumulativeProbability: const [
               Tuple2(0.0, 0.000000),
               Tuple2(0.1, 2.716234),
               Tuple2(0.2, 3.214238),
@@ -609,7 +609,7 @@ void main() {
             variance: 7.5,
             skewness: 0.73029674334,
             kurtosisExcess: 0.8,
-            probability: [
+            probability: const [
               Tuple2(1.0, 0.000197),
               Tuple2(2.0, 0.006546),
               Tuple2(3.0, 0.033595),
@@ -620,7 +620,7 @@ void main() {
               Tuple2(8.0, 0.132922),
               Tuple2(9.0, 0.105146),
             ],
-            cumulativeProbability: [
+            cumulativeProbability: const [
               Tuple2(1.0, 0.000030),
               Tuple2(2.0, 0.002263),
               Tuple2(3.0, 0.020252),
@@ -631,7 +631,7 @@ void main() {
               Tuple2(8.0, 0.617948),
               Tuple2(9.0, 0.737334),
             ],
-            inverseCumulativeProbability: [
+            inverseCumulativeProbability: const [
               Tuple2(0.0, 0.000000),
               Tuple2(0.1, 4.273378),
               Tuple2(0.2, 5.153480),
@@ -659,7 +659,7 @@ void main() {
             variance: 0.5,
             skewness: 2.82842712475,
             kurtosisExcess: 12.0,
-            probability: [
+            probability: const [
               Tuple2(1.0, 0.207554),
               Tuple2(2.0, 0.053991),
               Tuple2(3.0, 0.016217),
@@ -670,7 +670,7 @@ void main() {
               Tuple2(8.0, 0.000067),
               Tuple2(9.0, 0.000023),
             ],
-            cumulativeProbability: [
+            cumulativeProbability: const [
               Tuple2(1.0, 0.842701),
               Tuple2(2.0, 0.954500),
               Tuple2(3.0, 0.985694),
@@ -681,7 +681,7 @@ void main() {
               Tuple2(8.0, 0.999937),
               Tuple2(9.0, 0.999978),
             ],
-            inverseCumulativeProbability: [
+            inverseCumulativeProbability: const [
               Tuple2(0.0, 0.000000),
               Tuple2(0.1, 0.007895),
               Tuple2(0.2, 0.032092),
@@ -714,7 +714,7 @@ void main() {
             variance: double.nan,
             skewness: double.nan,
             kurtosisExcess: double.nan,
-            probability: [
+            probability: const [
               Tuple2(1.0, 0.3678790),
               Tuple2(2.0, 0.1516330),
               Tuple2(3.0, 0.0796146),
@@ -725,7 +725,7 @@ void main() {
               Tuple2(8.0, 0.0137890),
               Tuple2(9.0, 0.0110474),
             ],
-            cumulativeProbability: [
+            cumulativeProbability: const [
               Tuple2(1.0, 0.367879),
               Tuple2(2.0, 0.606531),
               Tuple2(3.0, 0.716531),
@@ -736,7 +736,7 @@ void main() {
               Tuple2(8.0, 0.882497),
               Tuple2(9.0, 0.894839),
             ],
-            inverseCumulativeProbability: [
+            inverseCumulativeProbability: const [
               Tuple2(0.1, 0.434294),
               Tuple2(0.2, 0.621335),
               Tuple2(0.3, 0.830584),
@@ -763,7 +763,7 @@ void main() {
             variance: double.nan,
             skewness: double.nan,
             kurtosisExcess: double.nan,
-            probability: [
+            probability: const [
               Tuple2(1.0, 0.367879),
               Tuple2(2.0, 0.0758163),
               Tuple2(3.0, 0.0265382),
@@ -774,7 +774,7 @@ void main() {
               Tuple2(8.0, 0.00172363),
               Tuple2(9.0, 0.00122749),
             ],
-            cumulativeProbability: [
+            cumulativeProbability: const [
               Tuple2(1.0, 0.735759),
               Tuple2(2.0, 0.909796),
               Tuple2(3.0, 0.955375),
@@ -785,7 +785,7 @@ void main() {
               Tuple2(8.0, 0.992809),
               Tuple2(9.0, 0.994266),
             ],
-            inverseCumulativeProbability: [
+            inverseCumulativeProbability: const [
               Tuple2(0.1, 0.257088),
               Tuple2(0.2, 0.333967),
               Tuple2(0.3, 0.409968),
@@ -812,7 +812,7 @@ void main() {
             variance: 0.25,
             skewness: double.nan,
             kurtosisExcess: double.nan,
-            probability: [
+            probability: const [
               Tuple2(1.0, 0.18394),
               Tuple2(2.0, 0.0189541),
               Tuple2(3.0, 0.00442303),
@@ -823,7 +823,7 @@ void main() {
               Tuple2(8.0, 0.000107727),
               Tuple2(9.0, 0.0000681938),
             ],
-            cumulativeProbability: [
+            cumulativeProbability: const [
               Tuple2(1.0, 0.919699),
               Tuple2(2.0, 0.985612),
               Tuple2(3.0, 0.995182),
@@ -834,7 +834,7 @@ void main() {
               Tuple2(8.0, 0.999704),
               Tuple2(9.0, 0.99979),
             ],
-            inverseCumulativeProbability: [
+            inverseCumulativeProbability: const [
               Tuple2(0.1, 0.187888),
               Tuple2(0.2, 0.233698),
               Tuple2(0.3, 0.276582),
@@ -861,7 +861,7 @@ void main() {
             variance: 0.5625,
             skewness: double.nan,
             kurtosisExcess: double.nan,
-            probability: [
+            probability: const [
               Tuple2(1.0, 0.376532),
               Tuple2(2.0, 0.0498199),
               Tuple2(3.0, 0.0126361),
@@ -872,7 +872,7 @@ void main() {
               Tuple2(8.0, 0.000341549),
               Tuple2(9.0, 0.000217716),
             ],
-            cumulativeProbability: [
+            cumulativeProbability: const [
               Tuple2(1.0, 0.808847),
               Tuple2(2.0, 0.959495),
               Tuple2(3.0, 0.985612),
@@ -883,7 +883,7 @@ void main() {
               Tuple2(8.0, 0.999045),
               Tuple2(9.0, 0.999319),
             ],
-            inverseCumulativeProbability: [
+            inverseCumulativeProbability: const [
               Tuple2(0.1, 0.281832),
               Tuple2(0.2, 0.350547),
               Tuple2(0.3, 0.414873),
@@ -1674,7 +1674,7 @@ void main() {
               Tuple2(3.0, 0.031831),
               Tuple2(4.0, 0.018724),
             ],
-            cumulativeProbability: [
+            cumulativeProbability: const [
               Tuple2(-4.0, 0.077979),
               Tuple2(-3.0, 0.102416),
               Tuple2(-2.0, 0.147584),
@@ -1685,7 +1685,7 @@ void main() {
               Tuple2(3.0, 0.897584),
               Tuple2(4.0, 0.922021),
             ],
-            inverseCumulativeProbability: [
+            inverseCumulativeProbability: const [
               Tuple2(0.0, -double.infinity),
               Tuple2(0.1, -3.077684),
               Tuple2(0.2, -1.376382),
@@ -1724,7 +1724,7 @@ void main() {
               Tuple2(3.0, 0.027410),
               Tuple2(4.0, 0.013095),
             ],
-            cumulativeProbability: [
+            cumulativeProbability: const [
               Tuple2(-4.0, 0.028595),
               Tuple2(-3.0, 0.047733),
               Tuple2(-2.0, 0.091752),
@@ -1735,7 +1735,7 @@ void main() {
               Tuple2(3.0, 0.952267),
               Tuple2(4.0, 0.971405),
             ],
-            inverseCumulativeProbability: [
+            inverseCumulativeProbability: const [
               Tuple2(0.0, -double.infinity),
               Tuple2(0.1, -1.885618),
               Tuple2(0.2, -1.060660),
@@ -1774,7 +1774,7 @@ void main() {
               Tuple2(3.0, 0.022972),
               Tuple2(4.0, 0.009163),
             ],
-            cumulativeProbability: [
+            cumulativeProbability: const [
               Tuple2(-4.0, 0.014004),
               Tuple2(-3.0, 0.028834),
               Tuple2(-2.0, 0.069663),
@@ -1785,7 +1785,7 @@ void main() {
               Tuple2(3.0, 0.971166),
               Tuple2(4.0, 0.985996),
             ],
-            inverseCumulativeProbability: [
+            inverseCumulativeProbability: const [
               Tuple2(0.0, -double.infinity),
               Tuple2(0.1, -1.637744),
               Tuple2(0.2, -0.978472),
@@ -1824,7 +1824,7 @@ void main() {
               Tuple2(3.0, 0.019693),
               Tuple2(4.0, 0.006708),
             ],
-            cumulativeProbability: [
+            cumulativeProbability: const [
               Tuple2(-4.0, 0.008065),
               Tuple2(-3.0, 0.019971),
               Tuple2(-2.0, 0.058058),
@@ -1835,7 +1835,7 @@ void main() {
               Tuple2(3.0, 0.980029),
               Tuple2(4.0, 0.991935),
             ],
-            inverseCumulativeProbability: [
+            inverseCumulativeProbability: const [
               Tuple2(0.0, -double.infinity),
               Tuple2(0.1, -1.533206),
               Tuple2(0.2, -0.940965),
@@ -1874,7 +1874,7 @@ void main() {
               Tuple2(3.0, 0.017293),
               Tuple2(4.0, 0.005124),
             ],
-            cumulativeProbability: [
+            cumulativeProbability: const [
               Tuple2(-4.0, 0.005162),
               Tuple2(-3.0, 0.015050),
               Tuple2(-2.0, 0.050970),
@@ -1885,7 +1885,7 @@ void main() {
               Tuple2(3.0, 0.984950),
               Tuple2(4.0, 0.994838),
             ],
-            inverseCumulativeProbability: [
+            inverseCumulativeProbability: const [
               Tuple2(0.0, -double.infinity),
               Tuple2(0.1, -1.475884),
               Tuple2(0.2, -0.919544),
@@ -1924,7 +1924,7 @@ void main() {
               Tuple2(3.0, 0.004488),
               Tuple2(4.0, 0.000140),
             ],
-            cumulativeProbability: [
+            cumulativeProbability: const [
               Tuple2(-4.0, 0.000034),
               Tuple2(-3.0, 0.001377),
               Tuple2(-2.0, 0.022860),
@@ -1935,7 +1935,7 @@ void main() {
               Tuple2(3.0, 0.998623),
               Tuple2(4.0, 0.999966),
             ],
-            inverseCumulativeProbability: [
+            inverseCumulativeProbability: const [
               Tuple2(0.0, -double.infinity),
               Tuple2(0.1, -1.282238),
               Tuple2(0.2, -0.841913),
@@ -2093,7 +2093,7 @@ void main() {
             mode: 0.00000000,
             variance: 20.00000000,
             skewness: 6.61876121,
-            probability: [
+            probability: const [
               Tuple2(0.0, double.infinity),
               Tuple2(0.5, 0.34865222),
               Tuple2(1.0, 0.18393972),
@@ -2106,7 +2106,7 @@ void main() {
               Tuple2(4.5, 0.02825440),
               Tuple2(5.0, 0.02389863),
             ],
-            cumulativeProbability: [
+            cumulativeProbability: const [
               Tuple2(0.0, 0.00000000),
               Tuple2(0.5, 0.50693131),
               Tuple2(1.0, 0.63212056),
@@ -2119,7 +2119,7 @@ void main() {
               Tuple2(4.5, 0.88012675),
               Tuple2(5.0, 0.89312207),
             ],
-            inverseCumulativeProbability: [
+            inverseCumulativeProbability: const [
               Tuple2(0.0, 0.00000000),
               Tuple2(0.1, 0.01110084),
               Tuple2(0.2, 0.04979304),
@@ -2148,7 +2148,7 @@ void main() {
             mode: 0.00000000,
             variance: 1.00000000,
             skewness: 2.00000000,
-            probability: [
+            probability: const [
               Tuple2(0.0, 1.00000000),
               Tuple2(0.5, 0.60653066),
               Tuple2(1.0, 0.36787944),
@@ -2161,7 +2161,7 @@ void main() {
               Tuple2(4.5, 0.01110900),
               Tuple2(5.0, 0.00673795),
             ],
-            cumulativeProbability: [
+            cumulativeProbability: const [
               Tuple2(0.0, 0.00000000),
               Tuple2(0.5, 0.39346934),
               Tuple2(1.0, 0.63212056),
@@ -2174,7 +2174,7 @@ void main() {
               Tuple2(4.5, 0.98889100),
               Tuple2(5.0, 0.99326205),
             ],
-            inverseCumulativeProbability: [
+            inverseCumulativeProbability: const [
               Tuple2(0.0, 0.00000000),
               Tuple2(0.1, 0.10536052),
               Tuple2(0.2, 0.22314355),
@@ -2203,7 +2203,7 @@ void main() {
             mode: 0.48074986,
             variance: 0.37569028,
             skewness: 1.07198657,
-            probability: [
+            probability: const [
               Tuple2(0.0, 0.00000000),
               Tuple2(0.5, 0.74478338),
               Tuple2(1.0, 0.55181916),
@@ -2216,7 +2216,7 @@ void main() {
               Tuple2(4.5, 0.00022748),
               Tuple2(5.0, 0.00004678),
             ],
-            cumulativeProbability: [
+            cumulativeProbability: const [
               Tuple2(0.0, 0.00000000),
               Tuple2(0.5, 0.29781150),
               Tuple2(1.0, 0.63212056),
@@ -2229,7 +2229,7 @@ void main() {
               Tuple2(4.5, 0.99992851),
               Tuple2(5.0, 0.99998605),
             ],
-            inverseCumulativeProbability: [
+            inverseCumulativeProbability: const [
               Tuple2(0.0, 0.00000000),
               Tuple2(0.1, 0.22307553),
               Tuple2(0.2, 0.36789416),
@@ -2258,7 +2258,7 @@ void main() {
             mode: 0.70710678,
             variance: 0.21460184,
             skewness: 0.63111066,
-            probability: [
+            probability: const [
               Tuple2(0.0, 0.00000000),
               Tuple2(0.5, 0.77880078),
               Tuple2(1.0, 0.73575888),
@@ -2271,7 +2271,7 @@ void main() {
               Tuple2(4.5, 0.00000001),
               Tuple2(5.0, 0.00000000),
             ],
-            cumulativeProbability: [
+            cumulativeProbability: const [
               Tuple2(0.0, 0.00000000),
               Tuple2(0.5, 0.22119922),
               Tuple2(1.0, 0.63212056),
@@ -2284,7 +2284,7 @@ void main() {
               Tuple2(4.5, 1.00000000),
               Tuple2(5.0, 1.00000000),
             ],
-            inverseCumulativeProbability: [
+            inverseCumulativeProbability: const [
               Tuple2(0.0, 0.00000000),
               Tuple2(0.1, 0.32459285),
               Tuple2(0.2, 0.47238073),
@@ -2313,7 +2313,7 @@ void main() {
             mode: 0.00000000,
             variance: 2.25000000,
             skewness: 2.00000000,
-            probability: [
+            probability: const [
               Tuple2(0.0, 0.66666667),
               Tuple2(0.5, 0.47768754),
               Tuple2(1.0, 0.34227808),
@@ -2326,7 +2326,7 @@ void main() {
               Tuple2(4.5, 0.03319138),
               Tuple2(5.0, 0.02378266),
             ],
-            cumulativeProbability: [
+            cumulativeProbability: const [
               Tuple2(0.0, 0.00000000),
               Tuple2(0.5, 0.28346869),
               Tuple2(1.0, 0.48658288),
@@ -2339,7 +2339,7 @@ void main() {
               Tuple2(4.5, 0.95021293),
               Tuple2(5.0, 0.96432601),
             ],
-            inverseCumulativeProbability: [
+            inverseCumulativeProbability: const [
               Tuple2(0.0, 0.00000000),
               Tuple2(0.1, 0.15804077),
               Tuple2(0.2, 0.33471533),
@@ -2504,16 +2504,16 @@ void main() {
             Tuple2(9, 0.9824904585),
           ],
           inverseCumulativeProbability: [
-            Tuple2(0.0, 0),
-            Tuple2(0.1, 1),
-            Tuple2(0.2, 1),
-            Tuple2(0.3, 2),
-            Tuple2(0.4, 2),
-            Tuple2(0.5, 3),
-            Tuple2(0.6, 4),
-            Tuple2(0.7, 4),
-            Tuple2(0.8, 5),
-            Tuple2(0.9, 6),
+            const Tuple2(0.0, 0),
+            const Tuple2(0.1, 1),
+            const Tuple2(0.2, 1),
+            const Tuple2(0.3, 2),
+            const Tuple2(0.4, 2),
+            const Tuple2(0.5, 3),
+            const Tuple2(0.6, 4),
+            const Tuple2(0.7, 4),
+            const Tuple2(0.8, 5),
+            const Tuple2(0.9, 6),
             Tuple2(1.0, maxSafeInteger),
           ],
         );
@@ -2559,16 +2559,16 @@ void main() {
             Tuple2(20, 1),
           ],
           inverseCumulativeProbability: [
-            Tuple2(0.0, 0),
-            Tuple2(0.1, 2),
-            Tuple2(0.2, 2),
-            Tuple2(0.3, 3),
-            Tuple2(0.4, 3),
-            Tuple2(0.5, 4),
-            Tuple2(0.6, 4),
-            Tuple2(0.7, 5),
-            Tuple2(0.8, 6),
-            Tuple2(0.9, 7),
+            const Tuple2(0.0, 0),
+            const Tuple2(0.1, 2),
+            const Tuple2(0.2, 2),
+            const Tuple2(0.3, 3),
+            const Tuple2(0.4, 3),
+            const Tuple2(0.5, 4),
+            const Tuple2(0.6, 4),
+            const Tuple2(0.7, 5),
+            const Tuple2(0.8, 6),
+            const Tuple2(0.9, 7),
             Tuple2(1.0, maxSafeInteger),
           ],
         );
@@ -2584,21 +2584,21 @@ void main() {
             variance: 1,
             skewness: 0,
             kurtosisExcess: -2,
-            probability: [
+            probability: const [
               Tuple2(-2, 0.0),
               Tuple2(-1, 0.5),
               Tuple2(0, 0.0),
               Tuple2(1, 0.5),
               Tuple2(2, 0.0),
             ],
-            cumulativeProbability: [
+            cumulativeProbability: const [
               Tuple2(-2, 0.0),
               Tuple2(-1, 0.5),
               Tuple2(0, 0.5),
               Tuple2(1, 1.0),
               Tuple2(2, 1.0),
             ],
-            inverseCumulativeProbability: [
+            inverseCumulativeProbability: const [
               Tuple2(0.0, -1),
               Tuple2(0.1, -1),
               Tuple2(0.2, -1),
@@ -2793,7 +2793,7 @@ void main() {
         );
         expect(jackknife.samples, same(samples));
         expect(jackknife.confidenceLevel, 0.95);
-        expect(jackknife.resamples, [[]]);
+        expect(jackknife.resamples, <List<int>>[[]]);
         expect(jackknife.estimate, isNaN);
         expect(jackknife.bias, isNaN);
         expect(jackknife.standardError, isNaN);
