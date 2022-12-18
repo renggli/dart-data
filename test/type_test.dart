@@ -53,7 +53,7 @@ void listTest<T>(DataType<T> type, List<List<T>> lists) {
       });
     }
   }
-  final exampleList = naturalComparator<num>()
+  final exampleList = naturalComparable<num>
       .onResultOf<List<T>>((value) => value.length)
       .maxOf(lists);
   final exampleValue = lists
