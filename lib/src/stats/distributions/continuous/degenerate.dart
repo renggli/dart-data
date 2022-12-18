@@ -1,6 +1,6 @@
 import 'dart:math';
 
-import 'package:more/iterable.dart';
+import 'package:more/collection.dart';
 import 'package:more/printer.dart';
 
 import '../continuous.dart';
