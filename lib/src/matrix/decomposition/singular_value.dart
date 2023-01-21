@@ -1,10 +1,9 @@
 import 'dart:math' as math;
+import 'dart:math';
 
+import '../../../matrix.dart';
 import '../../../type.dart';
 import '../../shared/math.dart';
-import '../matrix.dart';
-import '../matrix_format.dart';
-import '../view/cast_matrix.dart';
 
 /// Singular Value Decomposition.
 ///
@@ -468,6 +467,59 @@ class SingularValueDecomposition {
     }
     return r;
   }
+
+  /// Return the determinant of the matrix.
+  double get determinant {
+    var det = 1.0;
+    for (var i = 0; i < rank; i++) {
+      var v = S.getUnchecked(i, i);
+      det *= v;
+      if (v.abs() < 1.11022302462516E-15) {
+        det = 0;
+        break;
+      }
+    }
+    return det;
+  }
+
+  /// Solves a system of linear equations, AX = B, with A SVD factorized.
+  Matrix<double> solve(Matrix<num> B) {
+    if (B.rowCount != _m) {
+      throw ArgumentError('Matrix row dimensions must agree.');
+    }
+
+    // ignore: non_constant_identifier_names
+    final VT = V.transposed;
+    var mn = min(rank, VT.colCount);
+    var bn = B.colCount;
+
+    var tmp = List.filled(VT.colCount, 0.0);
+    final X = Matrix<double>(DataType.float32, VT.colCount, B.colCount);
+    for (var k = 0; k < bn; k++) {
+      for (var j = 0; j < VT.colCount; j++) {
+        var value = 0.0;
+        if (j < mn) {
+          for (var i = 0; i < U.rowCount; i++) {
+            value += U.getUnchecked(i, j) * B.getUnchecked(i, k);
+          }
+          value /= S.getUnchecked(j, j);
+        }
+
+        tmp[j] = value;
+      }
+
+      for (var j = 0; j < VT.colCount; j++) {
+        var value = 0.0;
+        for (var i = 0; i < VT.colCount; i++) {
+          value += VT.getUnchecked(i, j) * tmp[i];
+        }
+
+        X.setUnchecked(j, k, value);
+      }
+    }
+
+    return X;
+  }
 }
 
 extension SingularValueDecompositionExtension<T extends num> on Matrix<T> {
@@ -481,4 +533,7 @@ extension SingularValueDecompositionExtension<T extends num> on Matrix<T> {
   /// Returns the condition, the ratio of largest to smallest singular value of
   /// this [Matrix].
   double get cond => singularValue.cond;
+
+  /// Return the determinant of this [Matrix].
+  double get determinant => singularValue.determinant;
 }

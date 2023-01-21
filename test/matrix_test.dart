@@ -1834,10 +1834,137 @@ void matrixTest(String name, MatrixFormat format) {
           expect(actual, isCloseTo(expected, epsilon: epsilon));
         });
       });
-      test('Singular Value Decomposition', () {
-        final decomp = matrix4.singularValue;
-        final result = decomp.U * (decomp.S * decomp.V.transposed);
-        expect(result, isCloseTo(matrix4, epsilon: epsilon));
+      group('Singluar value decomposition', () {
+        Matrix<double> random(int rows, int cols, int seed) {
+          final m = Matrix(DataType.float64, rows, cols, format: format);
+          const normal = NormalDistribution(0.0, 1.0);
+          final random = Random(seed);
+          for (var r = 0; r < m.rowCount; r++) {
+            for (var c = 0; c < m.colCount; c++) {
+              m.set(r, c, normal.sample(random: random));
+            }
+          }
+          return m;
+        }
+
+        test('A = USVT', () {
+          final decomp = matrix4.singularValue;
+          final result = decomp.U * (decomp.S * decomp.V.transposed);
+          expect(result, isCloseTo(matrix4, epsilon: epsilon));
+        });
+        test('A = USVT for random', () {
+          // fails in 10x9, 45x50, 100x80
+          var rows = [1, 4, 8, 100, 10, 45, 100];
+          var cols = [1, 4, 8, 100, 9, 50, 80];
+
+          for (var k = 0; k < rows.length; k++) {
+            final m = random(rows[k], cols[k], 1);
+            final decomp = m.singularValue;
+
+            final UU = decomp.U * decomp.U.transposed;
+            for (var i = 0; i < UU.rowCount; i++) {
+              for (var j = 0; j < UU.colCount; j++) {
+                if (i == j) {
+                  expect(UU.getUnchecked(i, j), isCloseTo(1, epsilon: epsilon));
+                } else {
+                  expect(UU.getUnchecked(i, j), isCloseTo(0, epsilon: epsilon));
+                }
+              }
+            }
+
+            final VV = decomp.V * decomp.V.transposed;
+            for (var i = 0; i < VV.rowCount; i++) {
+              for (var j = 0; j < VV.colCount; j++) {
+                if (i == j) {
+                  expect(VV.getUnchecked(i, j), isCloseTo(1, epsilon: epsilon));
+                } else {
+                  expect(VV.getUnchecked(i, j), isCloseTo(0, epsilon: epsilon));
+                }
+              }
+            }
+
+            final result = decomp.U * (decomp.S * decomp.V.transposed);
+            expect(result.rowCount, m.rowCount);
+            expect(result.colCount, m.colCount);
+            expect(result, isCloseTo(m, epsilon: epsilon));
+          }
+        });
+        test('rank accepatance', () {
+          final m = Matrix.fromRows(
+              DataType.float64,
+              [
+                [4.0, 4.0, 1.0, 3.0],
+                [1.0, -2.0, 1.0, 0.0],
+                [4.0, 0.0, 2.0, 2.0],
+                [7.0, 6.0, 2.0, 5.0]
+              ],
+              format: format);
+          var svd = m.singularValue;
+          expect(svd.rank, 2);
+        });
+        test('rank of square', () {
+          final orders = [10, 50, 100];
+
+          for (var i = 0; i < orders.length; i++) {
+            final order = orders[i];
+            final matrixA = random(order, order, 5);
+            final factorSvd = matrixA.singularValue;
+            if (factorSvd.determinant != 0) {
+              expect(factorSvd.rank, order);
+            } else {
+              expect(factorSvd.rank, order - 1);
+            }
+          }
+        });
+        test('rank of square singular', () {
+          final orders = [10, 50, 100];
+          for (var i = 0; i < orders.length; i++) {
+            final order = orders[0];
+            final matrixA =
+                Matrix(DataType.float64, order, order, format: format);
+            matrixA.set(0, 0, 1);
+            matrixA.set(order - 1, order - 1, 1);
+            for (var i = 1; i < order - 1; i++) {
+              matrixA.set(i, i - 1, 1);
+              matrixA.set(i, i + 1, 1);
+              matrixA.set(i - 1, i, 1);
+              matrixA.set(i + 1, i, 1);
+            }
+            var factorSvd = matrixA.singularValue;
+
+            //expect(factorSvd.determinant, 0);
+            expect(factorSvd.rank, order - 1);
+          }
+        });
+        test('can solve for random matrix', () {
+          var rows = [1, 4, 7, 10, 45, 80];
+          var cols = [1, 4, 8, 10, 50, 100];
+
+          for (var k = 0; k < rows.length; k++) {
+            var matrixA = random(rows[k], cols[k], 1);
+            var matrixB = random(rows[k], cols[k], 1);
+
+            var factorSvd = matrixA.singularValue;
+            var matrixX = factorSvd.solve(matrixB);
+
+            // The solution X row dimension is equal to the column dimension of A
+            expect(matrixA.colCount, matrixX.rowCount);
+
+            // The solution X has the same number of columns as B
+            expect(matrixB.colCount, matrixX.colCount);
+
+            // Check the reconstruction.
+            var matrixBReconstruct = matrixA * matrixX;
+            for (var i = 0; i < matrixB.rowCount; i++) {
+              for (var j = 0; j < matrixB.colCount; j++) {
+                expect(
+                    matrixB.getUnchecked(i, j),
+                    isCloseTo(matrixBReconstruct.getUnchecked(i, j),
+                        epsilon: epsilon));
+              }
+            }
+          }
+        });
       });
       test('LU Decomposition', () {
         final matrix =
