@@ -8,3 +8,4 @@ export 'operator/mul.dart' show MulVectorExtension;
 export 'operator/neg.dart' show NegVectorExtension;
 export 'operator/sub.dart' show SubVectorExtension;
 export 'operator/sum.dart' show SumVectorExtension;
+export 'operator/statistics.dart' show StatisticsExtension;

@@ -8,6 +8,18 @@ abstract class Equality<T> {
   /// Returns `true`, if [a] and [b] are the same.
   bool isEqual(T a, T b);
 
+  /// Returns `true`, if [a] is less than [b].
+  bool isLessThan(T a, T b);
+
+  /// Returns `true`, if [a] is less than or equal to [b].
+  bool isLessThanOrEqual(T a, T b);
+
+  /// Returns `true`, if [a] is greater than [b].
+  bool isGreaterThan(T a, T b);
+
+  /// Returns `true`, if [a] is greater than or equal to [b].
+  bool isGreaterThanOrEqual(T a, T b);
+
   /// Returns `true`, if [a] and [b] are within range of [epsilon].
   bool isClose(T a, T b, double epsilon);
 
@@ -27,4 +39,24 @@ class NaturalEquality<T> extends Equality<T> {
 
   @override
   int hash(T a) => a.hashCode;
+
+  @override
+  bool isGreaterThan(T a, T b) {
+    throw UnimplementedError();
+  }
+
+  @override
+  bool isGreaterThanOrEqual(T a, T b) {
+    throw UnimplementedError();
+  }
+
+  @override
+  bool isLessThan(T a, T b) {
+    throw UnimplementedError();
+  }
+
+  @override
+  bool isLessThanOrEqual(T a, T b) {
+    throw UnimplementedError();
+  }
 }

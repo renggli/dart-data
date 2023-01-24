@@ -43,6 +43,18 @@ class FractionEquality extends NaturalEquality<Fraction> {
   const FractionEquality();
 
   @override
+  bool isGreaterThan(Fraction a, Fraction b) => a > b;
+
+  @override
+  bool isGreaterThanOrEqual(Fraction a, Fraction b) => a >= b;
+
+  @override
+  bool isLessThan(Fraction a, Fraction b) => a < b;
+
+  @override
+  bool isLessThanOrEqual(Fraction a, Fraction b) => a <= b;
+
+  @override
   bool isClose(Fraction a, Fraction b, double epsilon) => a.closeTo(b, epsilon);
 }
 

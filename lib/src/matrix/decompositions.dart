@@ -6,4 +6,5 @@ export 'decomposition/norm.dart'
 export 'decomposition/qr.dart' show QRDecompositionExtension;
 export 'decomposition/singular_value.dart'
     show SingularValueDecompositionExtension;
+export 'decomposition/svd.dart' show SvdExtension;
 export 'decomposition/solver.dart' show SolverExtension;

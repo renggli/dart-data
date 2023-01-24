@@ -105,6 +105,30 @@ class ModuloEquality<T> extends Equality<T> {
       );
 
   @override
+  bool isGreaterThan(T a, T b) => type.equality.isGreaterThan(
+        type.field.mod(a, modulus),
+        type.field.mod(b, modulus),
+      );
+
+  @override
+  bool isGreaterThanOrEqual(T a, T b) => type.equality.isGreaterThanOrEqual(
+        type.field.mod(a, modulus),
+        type.field.mod(b, modulus),
+      );
+
+  @override
+  bool isLessThan(T a, T b) => type.equality.isLessThan(
+        type.field.mod(a, modulus),
+        type.field.mod(b, modulus),
+      );
+
+  @override
+  bool isLessThanOrEqual(T a, T b) => type.equality.isLessThanOrEqual(
+        type.field.mod(a, modulus),
+        type.field.mod(b, modulus),
+      );
+
+  @override
   bool isClose(T a, T b, double epsilon) => type.equality.isClose(
         type.field.mod(a, modulus),
         type.field.mod(b, modulus),

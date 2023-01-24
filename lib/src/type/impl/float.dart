@@ -143,5 +143,17 @@ class FloatEquality extends NaturalEquality<double> {
   const FloatEquality();
 
   @override
+  bool isGreaterThan(double a, double b) => a > b;
+
+  @override
+  bool isGreaterThanOrEqual(double a, double b) => a >= b;
+
+  @override
+  bool isLessThan(double a, double b) => a < b;
+
+  @override
+  bool isLessThanOrEqual(double a, double b) => a <= b;
+
+  @override
   bool isClose(double a, double b, double epsilon) => a.closeTo(b, epsilon);
 }
