@@ -1846,6 +1846,7 @@ void matrixTest(String name, MatrixFormat format) {
           }
           return m;
         }
+
         test('can factorize identity', () {
           final orders = [1, 10, 100];
 
@@ -1907,10 +1908,10 @@ void matrixTest(String name, MatrixFormat format) {
           final m = Matrix.fromRows(
               DataType.float64,
               [
-                [4.0,  4.0, 1.0, 3.0],
+                [4.0, 4.0, 1.0, 3.0],
                 [1.0, -2.0, 1.0, 0.0],
-                [4.0,  0.0, 2.0, 2.0],
-                [7.0,  6.0, 2.0, 5.0]
+                [4.0, 0.0, 2.0, 2.0],
+                [7.0, 6.0, 2.0, 5.0]
               ],
               format: format);
           var svd = m.svd();

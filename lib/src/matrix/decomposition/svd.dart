@@ -17,7 +17,7 @@ import '../../numeric/precision.dart';
 /// by M (though the matrices U and V are not). The diagonal entries of Σ are known as the singular values of M.
 class Svd {
   /// Initializes a new instance of the [Svd].
-  Svd._(this.s, this.U, this.VT, this.vectorsComputed) {
+  Svd._(this._s, this._u, this._vt, this.vectorsComputed) {
     _lazyW = computeW();
   }
 
@@ -32,7 +32,7 @@ class Svd {
     final vtValues =
         DataType.float64.newList(matrix.colCount * matrix.colCount);
 
-    _singularValueDecomposition(computeVectors, _columnMajorValues(matrix),
+    _singularValueDecomposition(computeVectors, _columnMajorValuesOf(matrix),
         matrix.rowCount, matrix.colCount, sValues, uValues, vtValues);
 
     final u = Matrix<double>.fromPackedColumns(
@@ -46,16 +46,19 @@ class Svd {
     return Svd._(s, u, vt, computeVectors);
   }
 
+  late Vector<double> _s;
+  late Matrix<double> _u;
+  late Matrix<double> _vt;
   late Matrix<double> _lazyW;
 
   Matrix<double> computeW() {
-    final rows = U.rowCount;
-    final columns = VT.colCount;
+    final rows = _u.rowCount;
+    final columns = _vt.colCount;
     final result = Matrix<double>(DataType.float64, rows, columns);
     for (var i = 0; i < rows; i++) {
       for (var j = 0; j < columns; j++) {
         if (i == j) {
-          result.setUnchecked(i, i, s[i]);
+          result.setUnchecked(i, i, _s[i]);
         }
       }
     }
@@ -66,24 +69,24 @@ class Svd {
   bool vectorsComputed;
 
   /// Gets the singular values (Σ) of matrix in ascending value.
-  Vector<double> s;
+  Vector<double> get s => _s;
 
-  /// Return the diagonal matrix of singular values.
+  /// Return the diagonal matrix of singular values (Σ) of matrix in ascending value.
   Matrix<double> get S {
-    final result = Matrix(DataType.float64, U.colCount, VT.colCount,
+    final result = Matrix(DataType.float64, _u.colCount, _vt.colCount,
         format: MatrixFormat.diagonal);
-    for (var i = 0; i < min(U.colCount, VT.colCount); i++) {
-      result.setUnchecked(i, i, s[i]);
+    for (var i = 0; i < min(_u.colCount, _vt.colCount); i++) {
+      result.setUnchecked(i, i, _s[i]);
     }
     return result;
   }
 
   /// Gets the left singular vectors (U - m-by-m unitary matrix)
-  Matrix<double> U;
+  Matrix<double> get U => _u;
 
   /// Gets the transpose right singular vectors (transpose of V, an n-by-n unitary matrix)
   // ignore: non_constant_identifier_names
-  Matrix<double> VT;
+  Matrix<double> get VT => _vt;
 
   /// Returns the singular values as a diagonal Matrix.
   Matrix<double> get W => _lazyW;
@@ -91,28 +94,28 @@ class Svd {
   /// Gets the effective numerical matrix rank.
   int get rank {
     final tolerance =
-        Precision.epsilonOf(s.maximum()) * max(U.rowCount, VT.rowCount);
-    return s.iterable.where((t) => t.abs() > tolerance).length;
+        Precision.epsilonOf(_s.maximum()) * max(_u.rowCount, _vt.rowCount);
+    return _s.iterable.where((t) => t.abs() > tolerance).length;
   }
 
   /// Gets the two norm of the Matrix
   // ignore: non_constant_identifier_names
-  double get L2Norm => s[0].abs();
+  double get L2Norm => _s[0].abs();
 
   /// Gets the condition number max(S) / min(S)
   double get conditionNumber {
-    var tmp = min(U.rowCount, VT.colCount) - 1;
-    return s[0].abs() / s[tmp].abs();
+    var tmp = min(_u.rowCount, _vt.colCount) - 1;
+    return _s[0].abs() / _s[tmp].abs();
   }
 
   /// Gets the determinant of the square matrix for which the SVD was computed.
   double get determinant {
-    if (U.rowCount != VT.colCount) {
+    if (_u.rowCount != _vt.colCount) {
       throw ArgumentError('Matrix must be square.');
     }
 
     var det = 1.0;
-    for (var value in s.iterable) {
+    for (var value in _s.iterable) {
       det *= value;
       if (Precision.almostEqual(value.abs(), 0.0)) {
         return 0;
@@ -122,7 +125,7 @@ class Svd {
     return det.abs();
   }
 
-  static List<double> _columnMajorValues(Matrix<double> matrix) {
+  static List<double> _columnMajorValuesOf(Matrix<double> matrix) {
     final list = List.filled(matrix.rowCount * matrix.colCount, 0.0);
     var index = 0;
     for (var col = 0; col < matrix.colCount; col++) {
@@ -529,7 +532,7 @@ class Svd {
           f = e[l - 1];
           e[l - 1] = 0.0;
           for (k = l; k < m; k++) {
-            double t1 = stemp[k];
+            var t1 = stemp[k];
             var rotg = _rotg(t1, f);
             t1 = rotg[0];
             f = rotg[1];
@@ -757,36 +760,36 @@ class Svd {
 
     if (input is Matrix<double>) {
       // The dimension compatibility conditions for X = A\B require the two matrices A and B to have the same number of rows
-      if (U.rowCount != input.rowCount) {
+      if (_u.rowCount != input.rowCount) {
         throw ArgumentError('Matrix row dimensions must agree.');
       }
 
       final result =
-          Matrix<double>(DataType.float64, VT.colCount, input.colCount);
+          Matrix<double>(DataType.float64, _vt.colCount, input.colCount);
 
-      var mn = min(U.rowCount, VT.colCount);
+      var mn = min(_u.rowCount, _vt.colCount);
       var bn = input.colCount;
 
-      var tmp = List.filled(VT.colCount, 0.0);
+      var tmp = List.filled(_vt.colCount, 0.0);
 
       for (var k = 0; k < bn; k++) {
-        for (var j = 0; j < VT.colCount; j++) {
+        for (var j = 0; j < _vt.colCount; j++) {
           var value = 0.0;
           if (j < mn) {
-            for (var i = 0; i < U.rowCount; i++) {
-              value += U.getUnchecked(i, j) * input.getUnchecked(i, k);
+            for (var i = 0; i < _u.rowCount; i++) {
+              value += _u.getUnchecked(i, j) * input.getUnchecked(i, k);
             }
 
-            value /= s[j];
+            value /= _s[j];
           }
 
           tmp[j] = value;
         }
 
-        for (var j = 0; j < VT.colCount; j++) {
+        for (var j = 0; j < _vt.colCount; j++) {
           var value = 0.0;
-          for (var i = 0; i < VT.colCount; i++) {
-            value += VT.getUnchecked(i, j) * tmp[i];
+          for (var i = 0; i < _vt.colCount; i++) {
+            value += _vt.getUnchecked(i, j) * tmp[i];
           }
 
           result.setUnchecked(j, k, value);
@@ -798,32 +801,32 @@ class Svd {
     if (input is Vector<double>) {
       // Ax=b where A is an m x n matrix
       // Check that b is a column vector with m entries
-      if (U.rowCount != input.count) {
+      if (_u.rowCount != input.count) {
         throw ArgumentError('All vectors must have the same dimensionality.');
       }
 
-      final result = Vector<double>(DataType.float64, VT.colCount);
+      final result = Vector<double>(DataType.float64, _vt.colCount);
 
-      var mn = min(U.rowCount, VT.colCount);
-      var tmp = List.filled(VT.colCount, 0.0);
+      var mn = min(_u.rowCount, _vt.colCount);
+      var tmp = List.filled(_vt.colCount, 0.0);
       double value;
-      for (var j = 0; j < VT.colCount; j++) {
+      for (var j = 0; j < _vt.colCount; j++) {
         value = 0;
         if (j < mn) {
-          for (var i = 0; i < U.rowCount; i++) {
-            value += U.getUnchecked(i, j) * input[i];
+          for (var i = 0; i < _u.rowCount; i++) {
+            value += _u.getUnchecked(i, j) * input[i];
           }
 
-          value /= s[j];
+          value /= _s[j];
         }
 
         tmp[j] = value;
       }
 
-      for (var j = 0; j < VT.colCount; j++) {
+      for (var j = 0; j < _vt.colCount; j++) {
         value = 0;
-        for (var i = 0; i < VT.colCount; i++) {
-          value += VT.getUnchecked(i, j) * tmp[i];
+        for (var i = 0; i < _vt.colCount; i++) {
+          value += _vt.getUnchecked(i, j) * tmp[i];
         }
 
         result[j] = value;
