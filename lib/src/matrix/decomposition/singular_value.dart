@@ -71,17 +71,7 @@ class SingularValueDecomposition {
   bool vectorsComputed;
 
   /// Gets the singular values (Σ) of matrix in ascending value.
-  Vector<double> get s => _s;
-
-  /// Return the diagonal matrix of singular values (Σ) of matrix in ascending value.
-  Matrix<double> get S {
-    final result = Matrix(DataType.float64, _u.colCount, _vt.colCount,
-        format: MatrixFormat.diagonal);
-    for (var i = 0; i < min(_u.colCount, _vt.colCount); i++) {
-      result.setUnchecked(i, i, _s[i]);
-    }
-    return result;
-  }
+  Vector<double> get S => _s;
 
   /// Gets the left singular vectors (U - m-by-m unitary matrix)
   Matrix<double> get U => _u;
@@ -90,7 +80,7 @@ class SingularValueDecomposition {
   // ignore: non_constant_identifier_names
   Matrix<double> get VT => _vt;
 
-  /// Returns the singular values as a diagonal Matrix.
+  /// Returns the singular values as a diagonal [Matrix].
   Matrix<double> get W => _lazyW;
 
   /// Gets the effective numerical matrix rank.

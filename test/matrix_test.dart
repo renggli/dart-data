@@ -1877,7 +1877,7 @@ void matrixTest(String name, MatrixFormat format) {
         });
         test('A = USV*', () {
           final decomp = matrix4.singularValueDecomposition();
-          final result = decomp.U * (decomp.S * decomp.VT);
+          final result = decomp.U * (decomp.W * decomp.VT);
           expect(result, isCloseTo(matrix4, epsilon: epsilon));
         });
         test('A = USV* for random', () {
@@ -1898,7 +1898,7 @@ void matrixTest(String name, MatrixFormat format) {
                 DataType.float64, vv.rowCount, vv.colCount);
             expect(vv, isCloseTo(I, epsilon: epsilon));
 
-            final result = decomp.U * (decomp.S * decomp.VT);
+            final result = decomp.U * (decomp.W * decomp.VT);
             expect(result.rowCount, m.rowCount);
             expect(result.colCount, m.colCount);
             expect(result, isCloseTo(m, epsilon: epsilon));
@@ -1994,7 +1994,7 @@ void matrixTest(String name, MatrixFormat format) {
             ],
             format: format);
         final decomp = matrix.singularValueDecomposition();
-        final singularValues = decomp.s;
+        final singularValues = decomp.S;
         expect(
             matrix.conditionNumber,
             singularValues[0] /
