@@ -6,7 +6,7 @@ import 'singular_value.dart';
 
 extension NormNumberExtension on Matrix<num> {
   /// Returns the two norm: The maximum singular value of this [Matrix].
-  double get norm2 => singularValueDecomposition(false).norm2;
+  double get norm2 => singularValue.norm2;
 
   /// Returns the Frobenius norm: The square root of the sum of squares of all
   /// elements of this [Matrix].

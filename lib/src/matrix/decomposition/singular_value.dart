@@ -80,7 +80,7 @@ class SingularValueDecomposition {
   // ignore: non_constant_identifier_names
   Matrix<double> get VT => _vt;
 
-  /// Returns the singular values as a diagonal [Matrix].
+  /// Returns the singular values as a diagonal Matrix.
   Matrix<double> get W => _lazyW;
 
   /// Gets the effective numerical matrix rank.
@@ -97,7 +97,7 @@ class SingularValueDecomposition {
   double get norm2 => _s[0].abs();
 
   /// Gets the condition number max(S) / min(S)
-  double get conditionNumber {
+  double get cond {
     var tmp = min(_u.rowCount, _vt.colCount) - 1;
     return _s[0].abs() / _s[tmp].abs();
   }
@@ -832,22 +832,17 @@ class SingularValueDecomposition {
 }
 
 extension SingularValueDecompositionExtension<T extends num> on Matrix<T> {
-  /// Returns the Singular Value Decomposition of this [Matrix].
-  SingularValueDecomposition singularValueDecomposition(
-          [bool computeVectors = true]) =>
-      SingularValueDecomposition(this, computeVectors);
+  /// Gets the singular value decomposition of this [Matrix].
+  SingularValueDecomposition get singularValue =>
+      SingularValueDecomposition(this, true);
 
-  /// Returns the rank, the effective numerical rank of this [Matrix].
-  int get rank => SingularValueDecomposition(this, false).rank;
-
-  /// Gets the two norm of the Matrix
-  double get norm2 => SingularValueDecomposition(this, false).norm2;
+  /// Gets the rank, the effective numerical rank of this [Matrix].
+  int get rank => singularValue.rank;
 
   /// Calculates the nullity of the matrix.
   int get nullity => colCount - rank;
 
   /// Returns the condition, the ratio of largest to smallest singular value of
   /// this [Matrix].
-  double get conditionNumber =>
-      SingularValueDecomposition(this, false).conditionNumber;
+  double get cond => singularValue.cond;
 }

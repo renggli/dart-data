@@ -121,7 +121,7 @@ void main() {
 
     // L_2 condition number, ratio of singular values.
     {
-      final c = m.conditionNumber;
+      final c = m.cond;
       buffer.add(doublePrinter(3)(c < 1 / eps ? c : double.infinity));
     }
 
