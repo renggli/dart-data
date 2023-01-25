@@ -93,8 +93,8 @@ class Svd {
 
   /// Gets the effective numerical matrix rank.
   int get rank {
-    final tolerance =
-        Precision.epsilonOf(_s.maximum()) * max(_u.rowCount, _vt.rowCount);
+    final tolerance = Precision.epsilonOf(_s.iterable.reduce(max)) *
+        max(_u.rowCount, _vt.rowCount);
     return _s.iterable.where((t) => t.abs() > tolerance).length;
   }
 
