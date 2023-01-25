@@ -1,6 +1,5 @@
 import 'dart:core';
 import 'dart:math';
-import 'dart:typed_data';
 
 /// Utilities for working with floating point numbers.
 class Precision {
@@ -86,26 +85,27 @@ class Precision {
   }
 
   /// Evaluates the minimum distance to the next distinguishable number near the argument value.
-  static double epsilonOf(double value) {
-    if (value.isInfinite || value.isNaN) {
-      return double.nan;
-    }
+  /// Note: Bytedata.setInt64 and getInt64 are not supported in Chrome platform.
+  // static double epsilonOf(double value) {
+  //   if (value.isInfinite || value.isNaN) {
+  //     return double.nan;
+  //   }
 
-    var byteData = ByteData(8);
-    byteData.setFloat64(0, value);
-    var signed64 = byteData.getInt64(0);
-    if (signed64 == 0) {
-      signed64++;
-      byteData.setInt64(0, signed64);
-      return byteData.getFloat64(0) - value;
-    }
-    if (signed64-- < 0) {
-      byteData.setInt64(0, signed64);
-      return byteData.getFloat64(0) - value;
-    }
-    byteData.setInt64(0, signed64);
-    return value - byteData.getFloat64(0);
-  }
+  //   var byteData = ByteData(8);
+  //   byteData.setFloat64(0, value);
+  //   var signed64 = byteData.getInt64(0);
+  //   if (signed64 == 0) {
+  //     signed64++;
+  //     byteData.setInt64(0, signed64);
+  //     return byteData.getFloat64(0) - value;
+  //   }
+  //   if (signed64-- < 0) {
+  //     byteData.setInt64(0, signed64);
+  //     return byteData.getFloat64(0) - value;
+  //   }
+  //   byteData.setInt64(0, signed64);
+  //   return value - byteData.getFloat64(0);
+  // }
 
   /// Compares two doubles and determines if they are equal
   /// within the specified maximum absolute error.

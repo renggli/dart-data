@@ -1854,7 +1854,7 @@ void matrixTest(String name, MatrixFormat format) {
             var order = orders[i];
             var matrixI =
                 Matrix.identity(DataType.float64, order, order, format: format);
-            var factorSvd = matrixI.svd();
+            var factorSvd = matrixI.singularValueDecomposition();
             var u = factorSvd.U;
             var vt = factorSvd.VT;
             var w = factorSvd.W;
@@ -1876,7 +1876,7 @@ void matrixTest(String name, MatrixFormat format) {
           }
         });
         test('A = USV*', () {
-          final decomp = matrix4.svd();
+          final decomp = matrix4.singularValueDecomposition();
           final result = decomp.U * (decomp.S * decomp.VT);
           expect(result, isCloseTo(matrix4, epsilon: epsilon));
         });
@@ -1886,7 +1886,7 @@ void matrixTest(String name, MatrixFormat format) {
 
           for (var k = 0; k < rows.length; k++) {
             final m = random(rows[k], cols[k], 5);
-            final decomp = m.svd();
+            final decomp = m.singularValueDecomposition();
 
             final uu = decomp.U * decomp.U.transposed;
             var I = Matrix<double>.identity(
@@ -1914,7 +1914,7 @@ void matrixTest(String name, MatrixFormat format) {
                 [7.0, 6.0, 2.0, 5.0]
               ],
               format: format);
-          var svd = m.svd();
+          var svd = m.singularValueDecomposition();
           expect(svd.rank, 2);
         });
         test('rank of square', () {
@@ -1923,7 +1923,7 @@ void matrixTest(String name, MatrixFormat format) {
           for (var i = 0; i < orders.length; i++) {
             final order = orders[i];
             final matrixA = random(order, order, 5);
-            final factorSvd = matrixA.svd();
+            final factorSvd = matrixA.singularValueDecomposition();
             if (factorSvd.determinant != 0) {
               expect(factorSvd.rank, order);
             } else {
@@ -1945,7 +1945,7 @@ void matrixTest(String name, MatrixFormat format) {
               matrixA.set(i - 1, i, 1);
               matrixA.set(i + 1, i, 1);
             }
-            final factorSvd = matrixA.svd();
+            final factorSvd = matrixA.singularValueDecomposition();
             expect(factorSvd.determinant, 0);
             expect(factorSvd.rank, order - 1);
           }
@@ -1958,7 +1958,7 @@ void matrixTest(String name, MatrixFormat format) {
             final matrixA = random(rows[k], cols[k], 5);
             final matrixB = random(rows[k], cols[k], 5);
 
-            final factorSvd = matrixA.svd();
+            final factorSvd = matrixA.singularValueDecomposition();
             final matrixX = factorSvd.solve(matrixB) as Matrix<double>;
 
             // The solution X row dimension is equal to the column dimension of A
@@ -1982,7 +1982,7 @@ void matrixTest(String name, MatrixFormat format) {
         expect(result2, isCloseTo(result1, epsilon: epsilon));
       });
       test('rank', () {
-        final result = matrix3.rank();
+        final result = matrix3.rank;
         expect(result, min(matrix3.rowCount, matrix3.colCount) - 1);
       });
       test('cond', () {
@@ -1993,10 +1993,10 @@ void matrixTest(String name, MatrixFormat format) {
               [7.0, 9.0],
             ],
             format: format);
-        final decomp = matrix.svd();
+        final decomp = matrix.singularValueDecomposition();
         final singularValues = decomp.s;
         expect(
-            matrix.conditionNumber(),
+            matrix.conditionNumber,
             singularValues[0] /
                 singularValues[min(matrix.rowCount, matrix.colCount) - 1]);
       });
