@@ -37,18 +37,6 @@ class BigIntEquality extends NaturalEquality<BigInt> {
   const BigIntEquality();
 
   @override
-  bool isGreaterThan(BigInt a, BigInt b) => a > b;
-
-  @override
-  bool isGreaterThanOrEqual(BigInt a, BigInt b) => a >= b;
-
-  @override
-  bool isLessThan(BigInt a, BigInt b) => a < b;
-
-  @override
-  bool isLessThanOrEqual(BigInt a, BigInt b) => a <= b;
-
-  @override
   bool isClose(BigInt a, BigInt b, double epsilon) =>
       (a - b).abs() < BigInt.from(epsilon.ceil());
 }

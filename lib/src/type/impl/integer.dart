@@ -250,17 +250,5 @@ class IntegerEquality extends NaturalEquality<int> {
   const IntegerEquality();
 
   @override
-  bool isGreaterThan(int a, int b) => a > b;
-
-  @override
-  bool isGreaterThanOrEqual(int a, int b) => a >= b;
-
-  @override
-  bool isLessThan(int a, int b) => a < b;
-
-  @override
-  bool isLessThanOrEqual(int a, int b) => a <= b;
-
-  @override
   bool isClose(int a, int b, double epsilon) => (a - b).abs() < epsilon;
 }

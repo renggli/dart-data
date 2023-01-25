@@ -3,11 +3,10 @@ import '../vector.dart';
 extension StatisticsExtension<T> on Vector<T> {
   /// Returns the index of the minimum element.
   int minimumIndex() {
-    final isGreaterThan = dataType.equality.isGreaterThan;
     var index = 0;
     var min = getUnchecked(0);
     for (var i = 1; i < count; i++) {
-      if (isGreaterThan(min, getUnchecked(i))) {
+      if (dataType.comparator(min, getUnchecked(i)) > 0) {
         index = i;
         min = getUnchecked(i);
       }
@@ -20,11 +19,10 @@ extension StatisticsExtension<T> on Vector<T> {
 
   /// Returns the index of the maximum element.
   int maximumIndex() {
-    final isLessThan = dataType.equality.isLessThan;
     var index = 0;
     var max = getUnchecked(0);
     for (var i = 1; i < count; i++) {
-      if (isLessThan(max, getUnchecked(i))) {
+      if (dataType.comparator(max, getUnchecked(i)) < 0) {
         index = i;
         max = getUnchecked(i);
       }

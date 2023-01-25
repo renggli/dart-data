@@ -96,17 +96,5 @@ class NumericEquality extends NaturalEquality<num> {
   const NumericEquality();
 
   @override
-  bool isGreaterThan(num a, num b) => a > b;
-
-  @override
-  bool isGreaterThanOrEqual(num a, num b) => a >= b;
-
-  @override
-  bool isLessThan(num a, num b) => a < b;
-
-  @override
-  bool isLessThanOrEqual(num a, num b) => a <= b;
-
-  @override
   bool isClose(num a, num b, double epsilon) => a.closeTo(b, epsilon);
 }
