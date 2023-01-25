@@ -142,12 +142,12 @@ class Constants {
       0.23025850929940456840179914546843642076011014886288;
 
   /// The Catalan constant
-  /// <remarks>Sum(k=0 -> inf){ (-1)^k/(2*k + 1)2 }</remarks>
+  /// Sum(k=0 -> inf){ (-1)^k/(2*k + 1)2 }
   static const double catalan =
       0.9159655941772190150546035149323841107741493742816721342664981196217630197762547694794;
 
   /// The Euler-Mascheroni constant
-  /// <remarks>lim(n -> inf){ Sum(k=1 -> n) { 1/k - log(n) } }</remarks>
+  /// lim(n -> inf){ Sum(k=1 -> n) { 1/k - log(n) } }
   static const double eulerMascheroni =
       0.5772156649015328606065120900824024310421593359399235988057672348849;
 
@@ -156,12 +156,12 @@ class Constants {
       1.6180339887498948482045868343656381177203091798057628621354486227052604628189024497072;
 
   /// The Glaisher constant
-  /// <remarks>e^(1/12 - Zeta(-1))</remarks>
+  /// e^(1/12 - Zeta(-1))
   static const double glaisher =
       1.2824271291006226368753425688697917277676889273250011920637400217404063088588264611297;
 
   /// The Khinchin constant
-  /// <remarks>prod(k=1 -> inf){1+1/(k*(k+2))^log(k,2)}</remarks>
+  /// prod(k=1 -> inf){1+1/(k*(k+2))^log(k,2)}
   static const double khinchin =
       2.6854520010653064453097148354817956938203822939944629530511523455572188595371520028011;
 }

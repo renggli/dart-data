@@ -4,70 +4,48 @@ import 'dart:typed_data';
 
 /// Utilities for working with floating point numbers.
 class Precision {
-  /// <summary>
   /// The number of binary digits used to represent the binary number for a double precision floating
   /// point value. i.e. there are this many digits used to represent the
   /// actual number, where in a number as: 0.134556 * 10^5 the digits are 0.134556 and the exponent is 5.
-  /// </summary>
   static const doubleWidth = 53;
 
-  /// <summary>
   /// The number of binary digits used to represent the binary number for a single precision floating
   /// point value. i.e. there are this many digits used to represent the
   /// actual number, where in a number as: 0.134556 * 10^5 the digits are 0.134556 and the exponent is 5.
-  /// </summary>
   static const singleWidth = 24;
 
-  /// <summary>
   /// Standard epsilon, the maximum relative precision of IEEE 754 double-precision floating numbers (64 bit).
   /// According to the definition of Prof. Demmel and used in LAPACK and Scilab.
-  /// </summary>
   static double get doublePrecision => pow(2, -doubleWidth).toDouble();
 
-  /// <summary>
   /// Standard epsilon, the maximum relative precision of IEEE 754 double-precision floating numbers (64 bit).
   /// According to the definition of Prof. Higham and used in the ISO C standard and MATLAB.
-  /// </summary>
   static double get positiveDoublePrecision => 2 * doublePrecision;
 
-  /// <summary>
   /// Standard epsilon, the maximum relative precision of IEEE 754 single-precision floating numbers (32 bit).
   /// According to the definition of Prof. Demmel and used in LAPACK and Scilab.
-  /// </summary>
   static double get singlePrecision => pow(2, -singleWidth).toDouble();
 
-  /// <summary>
   /// Standard epsilon, the maximum relative precision of IEEE 754 single-precision floating numbers (32 bit).
   /// According to the definition of Prof. Higham and used in the ISO C standard and MATLAB.
-  /// </summary>
   static double get positiveSinglePrecision => 2 * singlePrecision;
 
-  /// <summary>
   /// Actual double precision machine epsilon, the smallest number that can be subtracted from 1, yielding a results different than 1.
   /// This is also known as unit roundoff error. According to the definition of Prof. Demmel.
   /// On a standard machine this is equivalent to `DoublePrecision`.
-  /// </summary>
   static double get machineEpsilon => measureMachineEpsilon();
 
-  /// <summary>
   /// Actual double precision machine epsilon, the smallest number that can be added to 1, yielding a results different than 1.
   /// This is also known as unit roundoff error. According to the definition of Prof. Higham.
   /// On a standard machine this is equivalent to `PositiveDoublePrecision`.
-  /// </summary>
   static double get positiveMachineEpsilon => measurePositiveMachineEpsilon();
 
-  /// <summary>
   /// The number of significant decimal places of double-precision floating numbers (64 bit).
-  /// </summary>
-  static int get doubleDecimalPlaces => _log10(doublePrecision).abs().floor();
+  static int get doubleDecimalPlaces =>
+      (log(doublePrecision) / ln10).abs().floor();
 
-  /// <summary>
   /// Value representing 10 * 2^(-53) = 1.11022302462516E-15
-  /// </summary>
   static double get defaultDoubleAccuracy => doublePrecision * 10;
-
-  /// Converts [x] to a [double] and returns the logarithm with base 10 of the value.
-  static double _log10(num x) => log(x) / ln10;
 
   /// Returns the magnitude of the number.
   static int magnitude(double value) {
@@ -78,7 +56,7 @@ class Precision {
 
     // Note that we need the absolute value of the input because Log10 doesn't
     // work for negative numbers (obviously).
-    final magnitude = _log10(value.abs());
+    final magnitude = log(value.abs()) / ln10;
     final truncated = magnitude.truncate();
 
     // To get the right number we need to know if the value is negative or positive
