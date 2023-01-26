@@ -4,6 +4,7 @@ import '../../../matrix.dart';
 import '../../../type.dart';
 import '../../../vector.dart';
 import '../../numeric/precision.dart';
+import '../impl/diagonal_matrix.dart';
 
 /// A class which encapsulates the functionality of the singular value decomposition (SVD) for [Matrix<double>].
 ///
@@ -18,15 +19,13 @@ import '../../numeric/precision.dart';
 class SingularValueDecomposition {
   /// Initializes a new instance of the [SingularValueDecomposition].
   SingularValueDecomposition._(
-      this._s, this._u, this._vt, this.vectorsComputed) {
-    _lazyW = computeW();
-  }
+      this._s, this._u, this._vt, this._w, this.vectorsComputed);
 
   /// Initializes a new instance of the [SingularValueDecomposition].
   /// This object will compute the singular value decomposition
   /// when the constructor is called and cache it's decomposition.
   factory SingularValueDecomposition(Matrix<num> matrix,
-      [bool computeVectors = true]) {
+      {bool computeVectors = true}) {
     final nm = min(matrix.rowCount, matrix.colCount);
 
     final uValues = DataType.float64.newList(matrix.rowCount * matrix.rowCount);
@@ -45,27 +44,21 @@ class SingularValueDecomposition {
         DataType.float64, matrix.colCount, matrix.colCount, vtValues,
         format: MatrixFormat.columnMajor);
 
-    return SingularValueDecomposition._(s, u, vt, computeVectors);
-  }
-
-  late Vector<double> _s;
-  late Matrix<double> _u;
-  late Matrix<double> _vt;
-  late Matrix<double> _lazyW;
-
-  Matrix<double> computeW() {
-    final rows = _u.rowCount;
-    final columns = _vt.colCount;
-    final result = Matrix<double>(DataType.float64, rows, columns);
-    for (var i = 0; i < rows; i++) {
-      for (var j = 0; j < columns; j++) {
-        if (i == j) {
-          result.setUnchecked(i, i, _s[i]);
-        }
-      }
+    // compute W
+    final rows = u.rowCount;
+    final columns = vt.colCount;
+    final w = DiagonalMatrix<double>(DataType.float64, rows, columns);
+    for (var i = 0; i < s.count; i++) {
+      w.setUnchecked(i, i, s[i]);
     }
-    return result;
+
+    return SingularValueDecomposition._(s, u, vt, w, computeVectors);
   }
+
+  final Vector<double> _s;
+  final Matrix<double> _u;
+  final Matrix<double> _vt;
+  final Matrix<double> _w;
 
   /// Indicating whether U and VT matrices have been computed during SVD factorization.
   bool vectorsComputed;
@@ -73,22 +66,21 @@ class SingularValueDecomposition {
   /// Gets the singular values (Σ) of matrix in ascending value.
   Vector<double> get S => _s;
 
-  /// Gets the left singular vectors (U - m-by-m unitary matrix)
+  /// Gets the left singular vectors (U - m-by-m real orthogonal matrix)
   Matrix<double> get U => _u;
 
-  /// Gets the transpose right singular vectors (transpose of V, an n-by-n unitary matrix)
+  /// Gets the transpose right singular vectors (transpose of V, an n-by-n real orthogonal matrix)
   // ignore: non_constant_identifier_names
   Matrix<double> get VT => _vt;
 
   /// Returns the singular values as a diagonal Matrix.
-  Matrix<double> get W => _lazyW;
+  Matrix<double> get W => _w;
 
   /// Gets the effective numerical matrix rank.
   int get rank {
     final eps = pow(2.0, -52.0);
     final tolerance =
         max(_u.rowCount, _vt.rowCount) * _s.iterable.reduce(max) * eps;
-
     return _s.iterable.where((t) => t.abs() > tolerance).length;
   }
 
@@ -834,7 +826,7 @@ class SingularValueDecomposition {
 extension SingularValueDecompositionExtension<T extends num> on Matrix<T> {
   /// Gets the singular value decomposition of this [Matrix].
   SingularValueDecomposition get singularValue =>
-      SingularValueDecomposition(this, true);
+      SingularValueDecomposition(this, computeVectors: true);
 
   /// Gets the rank, the effective numerical rank of this [Matrix].
   int get rank => singularValue.rank;
