@@ -1836,14 +1836,12 @@ void matrixTest(String name, MatrixFormat format) {
       });
       group('Singluar value decomposition', () {
         Matrix<double> random(int rows, int cols, int seed) {
-          final m = Matrix(DataType.float64, rows, cols, format: format);
           const normal = NormalDistribution(0.0, 1.0);
           final random = Random(seed);
-          for (var r = 0; r < m.rowCount; r++) {
-            for (var c = 0; c < m.colCount; c++) {
-              m.set(r, c, normal.sample(random: random));
-            }
-          }
+          final values =
+              normal.samples(random: random).take(rows * cols).toList();
+          final m = Matrix<double>.fromPackedColumns(
+              DataType.float64, rows, cols, values);
           return m;
         }
 
@@ -1851,13 +1849,13 @@ void matrixTest(String name, MatrixFormat format) {
           final orders = [1, 10, 100];
 
           for (var i = 0; i < orders.length; i++) {
-            var order = orders[i];
-            var matrixI =
+            final order = orders[i];
+            final matrixI =
                 Matrix.identity(DataType.float64, order, order, format: format);
-            var factorSvd = matrixI.singularValue;
-            var u = factorSvd.U;
-            var vt = factorSvd.VT;
-            var w = factorSvd.W;
+            final factorSvd = matrixI.singularValue;
+            final u = factorSvd.U;
+            final vt = factorSvd.VT;
+            final w = factorSvd.W;
 
             expect(matrixI.rowCount, u.rowCount);
             expect(matrixI.rowCount, u.colCount);
@@ -1868,11 +1866,7 @@ void matrixTest(String name, MatrixFormat format) {
             expect(matrixI.rowCount, w.rowCount);
             expect(matrixI.colCount, w.colCount);
 
-            for (var i = 0; i < w.rowCount; i++) {
-              for (var j = 0; j < w.colCount; j++) {
-                expect(i == j ? 1.0 : 0.0, w.getUnchecked(i, j));
-              }
-            }
+            expect(w, isCloseTo(matrixI, epsilon: 0));
           }
         });
         test('A = USV*', () {
@@ -1881,8 +1875,8 @@ void matrixTest(String name, MatrixFormat format) {
           expect(result, isCloseTo(matrix4, epsilon: epsilon));
         });
         test('A = USV* for random', () {
-          var rows = [1, 4, 8, 9, 10, 45];
-          var cols = [1, 4, 8, 10, 9, 50];
+          final rows = [1, 4, 8, 9, 10, 45];
+          final cols = [1, 4, 8, 10, 9, 50];
 
           for (var k = 0; k < rows.length; k++) {
             final m = random(rows[k], cols[k], 5);
@@ -1914,7 +1908,7 @@ void matrixTest(String name, MatrixFormat format) {
                 [7.0, 6.0, 2.0, 5.0]
               ],
               format: format);
-          var svd = m.singularValue;
+          final svd = m.singularValue;
           expect(svd.rank, 2);
         });
         test('rank of square', () {
@@ -1955,8 +1949,8 @@ void matrixTest(String name, MatrixFormat format) {
           final cols = [1, 4, 8, 10, 50, 100, 90];
 
           for (var k = 0; k < rows.length; k++) {
-            final matrixA = random(rows[k], cols[k], 5);
-            final matrixB = random(rows[k], cols[k], 5);
+            final matrixA = random(rows[k], cols[k], 1);
+            final matrixB = random(rows[k], cols[k], 1);
 
             final factorSvd = matrixA.singularValue;
             final matrixX = factorSvd.solve(matrixB) as Matrix<double>;

@@ -4,7 +4,6 @@ import '../../../matrix.dart';
 import '../../../type.dart';
 import '../../../vector.dart';
 import '../../numeric/precision.dart';
-import '../impl/diagonal_matrix.dart';
 
 /// A class which encapsulates the functionality of the singular value decomposition (SVD) for [Matrix<double>].
 ///
@@ -45,12 +44,8 @@ class SingularValueDecomposition {
         format: MatrixFormat.columnMajor);
 
     // compute W
-    final rows = u.rowCount;
-    final columns = vt.colCount;
-    final w = DiagonalMatrix<double>(DataType.float64, rows, columns);
-    for (var i = 0; i < s.count; i++) {
-      w.setUnchecked(i, i, s[i]);
-    }
+    final w = Matrix<double>.generate(
+        DataType.float64, u.rowCount, vt.colCount, (r, c) => r == c ? s[r] : 0);
 
     return SingularValueDecomposition._(s, u, vt, w, computeVectors);
   }
