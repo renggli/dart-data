@@ -1,9 +1,11 @@
 import 'dart:math';
+import 'dart:typed_data';
+
+import 'package:more/feature.dart' show isJavaScript;
 
 import '../../../matrix.dart';
 import '../../../type.dart';
 import '../../../vector.dart';
-import '../../numeric/precision.dart';
 
 /// A class which encapsulates the functionality of the singular value decomposition (SVD) for [Matrix<double>].
 ///
@@ -73,9 +75,8 @@ class SingularValueDecomposition {
 
   /// Gets the effective numerical matrix rank.
   int get rank {
-    final eps = pow(2.0, -52.0);
     final tolerance =
-        max(_u.rowCount, _vt.rowCount) * _s.iterable.reduce(max) * eps;
+        _epsilonOf(max(_u.rowCount, _vt.rowCount) * _s.iterable.reduce(max));
     return _s.iterable.where((t) => t.abs() > tolerance).length;
   }
 
@@ -98,23 +99,12 @@ class SingularValueDecomposition {
     var det = 1.0;
     for (var value in _s.iterable) {
       det *= value;
-      if (Precision.almostEqual(value.abs(), 0.0)) {
+      if (_almostEqual(value.abs(), 0.0)) {
         return 0;
       }
     }
 
     return det.abs();
-  }
-
-  static List<double> _columnMajorValuesOf(Matrix<num> matrix) {
-    final list = List.filled(matrix.rowCount * matrix.colCount, 0.0);
-    var index = 0;
-    for (var col = 0; col < matrix.colCount; col++) {
-      for (var row = 0; row < matrix.rowCount; row++) {
-        list[index++] = matrix.getUnchecked(row, col).toDouble();
-      }
-    }
-    return list;
   }
 
   /// Computes the singular value decomposition of A.
@@ -426,7 +416,7 @@ class SingularValueDecomposition {
       for (l = m - 2; l >= 0; l--) {
         test = stemp[l].abs() + stemp[l + 1].abs();
         ztest = test + e[l].abs();
-        if (Precision.almostEqualRelative(ztest, test, 15)) {
+        if (_almostEqualRelative(ztest, test, 15)) {
           e[l] = 0.0;
           break;
         }
@@ -448,7 +438,7 @@ class SingularValueDecomposition {
           }
 
           ztest = test + stemp[ls].abs();
-          if (Precision.almostEqualRelative(ztest, test, 15)) {
+          if (_almostEqualRelative(ztest, test, 15)) {
             stemp[ls] = 0.0;
             break;
           }
@@ -689,50 +679,6 @@ class SingularValueDecomposition {
     }
   }
 
-  /// Given the Cartesian coordinates (da, db) of a point p, these function return the parameters da, db, c, and s
-  /// associated with the Givens rotation that zeros the y-coordinate of the point.
-  ///
-  /// Note that Dart is a pass-by-value language, so modifiy the code little bit.
-  static List<double> _rotg(double da, double db) {
-    double c, s; // out
-
-    final absda = da.abs();
-    final absdb = db.abs();
-    final roe = (absda > absdb) ? da : db;
-    final scale = absda + absdb;
-
-    double r, z;
-    if (scale == 0.0) {
-      c = 1.0;
-      s = 0.0;
-      r = 0.0;
-      z = 0.0;
-    } else {
-      final sda = da / scale;
-      final sdb = db / scale;
-      r = scale * sqrt((sda * sda) + (sdb * sdb));
-      if (roe < 0.0) {
-        r = -r;
-      }
-
-      c = da / r;
-      s = db / r;
-      z = 1.0;
-      if (absda > absdb) {
-        z = s;
-      }
-
-      if (absdb >= absda && c != 0.0) {
-        z = 1.0 / c;
-      }
-    }
-
-    da = r;
-    db = z;
-
-    return [da, db, c, s];
-  }
-
   /// Solves a system of linear equations, AX = B, with A SVD factorized.
   dynamic solve(dynamic input) {
     if (!vectorsComputed) {
@@ -815,6 +761,177 @@ class SingularValueDecomposition {
 
       return result;
     }
+  }
+
+  static List<double> _columnMajorValuesOf(Matrix<num> matrix) {
+    final list = List.filled(matrix.rowCount * matrix.colCount, 0.0);
+    var index = 0;
+    for (var col = 0; col < matrix.colCount; col++) {
+      for (var row = 0; row < matrix.rowCount; row++) {
+        list[index++] = matrix.getUnchecked(row, col).toDouble();
+      }
+    }
+    return list;
+  }
+
+  /// Given the Cartesian coordinates (da, db) of a point p, these function return the parameters da, db, c, and s
+  /// associated with the Givens rotation that zeros the y-coordinate of the point.
+  ///
+  /// Note that Dart is a pass-by-value language, so modifiy the code little bit.
+  static List<double> _rotg(double da, double db) {
+    double c, s; // out
+
+    final absda = da.abs();
+    final absdb = db.abs();
+    final roe = (absda > absdb) ? da : db;
+    final scale = absda + absdb;
+
+    double r, z;
+    if (scale == 0.0) {
+      c = 1.0;
+      s = 0.0;
+      r = 0.0;
+      z = 0.0;
+    } else {
+      final sda = da / scale;
+      final sdb = db / scale;
+      r = scale * sqrt((sda * sda) + (sdb * sdb));
+      if (roe < 0.0) {
+        r = -r;
+      }
+
+      c = da / r;
+      s = db / r;
+      z = 1.0;
+      if (absda > absdb) {
+        z = s;
+      }
+
+      if (absdb >= absda && c != 0.0) {
+        z = 1.0 / c;
+      }
+    }
+
+    da = r;
+    db = z;
+
+    return [da, db, c, s];
+  }
+
+  /// Standard epsilon, the maximum relative precision of IEEE 754 double-precision floating numbers (64 bit).
+  /// According to the definition of Prof. Demmel and used in LAPACK and Scilab.
+  static final _doublePrecision = pow(2, -53).toDouble();
+
+  /// Value representing 10 * 2^(-53) = 1.11022302462516E-15
+  static final _defaultDoubleAccuracy = _doublePrecision * 10;
+
+  /// Evaluates the minimum distance to the next distinguishable number near the argument value.
+  /// Note: Bytedata.setInt64 and getInt64 are not supported in Chrome platform.
+  static double _epsilonOf(double value) {
+    if (value.isInfinite || value.isNaN) {
+      return double.nan;
+    }
+
+    // javascript is not supporting Int64.
+    if (isJavaScript) {
+      return value * _defaultDoubleAccuracy;
+    }
+
+    var byteData = ByteData(8);
+    byteData.setFloat64(0, value);
+    var signed64 = byteData.getInt64(0);
+    if (signed64 == 0) {
+      signed64++;
+      byteData.setInt64(0, signed64);
+      return byteData.getFloat64(0) - value;
+    }
+    if (signed64-- < 0) {
+      byteData.setInt64(0, signed64);
+      return byteData.getFloat64(0) - value;
+    }
+    byteData.setInt64(0, signed64);
+    return value - byteData.getFloat64(0);
+  }
+
+  /// Checks whether two real numbers are almost equal.
+  /// Returns true if the two values differ by no more than 10 * 2^(-52); false otherwise.
+  static bool _almostEqual(double a, double b) => DataType.float64.equality
+      .isClose((a - b).abs(), 0.0, _defaultDoubleAccuracy);
+
+  /// Returns the magnitude of the number.
+  ///
+  /// magnitude(1E10) returns 10.
+  /// magnitude(1E-10) returns -10.
+  /// magnitude(1.1E5) returns 5.
+  /// magnitude(-1.1E5) returns 5.
+  static int _magnitude(double value) {
+    // Can't do this with zero because the 10-log of zero doesn't exist.
+    if (value == 0.0) {
+      return 0;
+    }
+
+    // Note that we need the absolute value of the input because Log10 doesn't
+    // work for negative numbers (obviously).
+    final magnitude = log(value.abs()) / ln10;
+    final truncated = magnitude.truncate();
+
+    // To get the right number we need to know if the value is negative or positive
+    // truncating a positive number will always give use the correct magnitude
+    // truncating a negative number will give us a magnitude that is off by 1 (unless integer)
+    return magnitude < 0 && truncated != magnitude ? truncated - 1 : truncated;
+  }
+
+  /// Compares two doubles and determines if they are equal to within
+  /// the specified number of decimal places or not. If the numbers are very
+  /// close to zero an absolute difference is compared, otherwise
+  /// the relative difference is compared.
+  static bool _almostEqualRelative(double a, double b, int decimalPlaces) {
+    if (decimalPlaces < 0) {
+      // Can't have a negative number of decimal places
+      throw ArgumentError(decimalPlaces);
+    }
+
+    // If A or B are a NAN, return false. NANs are equal to nothing,
+    // not even themselves.
+    if (a.isNaN || b.isNaN) {
+      return false;
+    }
+
+    // If A or B are infinity (positive or negative) then
+    // only return true if they are exactly equal to each other -
+    // that is, if they are both infinities of the same sign.
+    if (a.isInfinite || b.isInfinite) {
+      return a == b;
+    }
+
+    // If both numbers are equal, get out now. This should remove the possibility of both numbers being zero
+    // and any problems associated with that.
+    if (a == b) {
+      return true;
+    }
+
+    // If one is almost zero, fall back to absolute equality
+    if (a.abs() < _doublePrecision || b.abs() < _doublePrecision) {
+      // The values are equal if the difference between the two numbers is smaller than
+      // 10^(-numberOfDecimalPlaces). We divide by two so that we have half the range
+      // on each side of the numbers, e.g. if decimalPlaces == 2,
+      // then 0.01 will equal between 0.005 and 0.015, but not 0.02 and not 0.00
+      return (a - b).abs() < pow(10, -decimalPlaces) * 0.5;
+    }
+
+    // If the magnitudes of the two numbers are equal to within one magnitude the numbers could potentially be equal
+    final magnitudeOfFirst = _magnitude(a);
+    final magnitudeOfSecond = _magnitude(b);
+    final magnitudeOfMax = max(magnitudeOfFirst, magnitudeOfSecond);
+    if (magnitudeOfMax > (min(magnitudeOfFirst, magnitudeOfSecond) + 1)) {
+      return false;
+    }
+
+    // The values are equal if the difference between the two numbers is smaller than
+    // 10^(-numberOfDecimalPlaces). We divide by two so that we have half the range
+    // on each side of the numbers, e.g. if decimalPlaces == 2,
+    // then 0.01 will equal between 0.00995 and 0.01005, but not 0.0015 and not 0.0095
+    return (a - b).abs() < pow(10, magnitudeOfMax - decimalPlaces) * 0.5;
   }
 }
 
