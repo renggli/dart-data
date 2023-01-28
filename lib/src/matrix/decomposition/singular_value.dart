@@ -7,16 +7,22 @@ import '../../../matrix.dart';
 import '../../../type.dart';
 import '../../../vector.dart';
 
-/// A class which encapsulates the functionality of the singular value decomposition (SVD) for [Matrix<double>].
+/// A class which encapsulates the functionality of the singular value
+/// decomposition (SVD) for [Matrix].
 ///
-/// Suppose M is an m-by-n matrix whose entries are real numbers.
-/// Then there exists a factorization of the form M = UΣVT where:
+/// Suppose M is an m-by-n matrix whose entries are real numbers. Then there
+/// exists a factorization of the form M = U Σ V T where:
+///
 /// - U is an m-by-m unitary matrix;
-/// - Σ is m-by-n diagonal matrix with nonnegative real numbers on the diagonal;
-/// - VT denotes transpose of V, an n-by-n unitary matrix;
-/// Such a factorization is called a singular-value decomposition of M. A common convention is to order the diagonal
-/// entries Σ(i,i) in descending order. In this case, the diagonal matrix Σ is uniquely determined
-/// by M (though the matrices U and V are not). The diagonal entries of Σ are known as the singular values of M.
+/// - Σ is m-by-n diagonal matrix with non-negative real numbers on the
+///   diagonal;
+/// - VT denotes transpose of V, an n-by-n unitary matrix.
+///
+/// Such a factorization is called a singular-value decomposition of M. A common
+/// convention is to order the diagonal entries Σ(i,i) in descending order. In
+/// this case, the diagonal matrix Σ is uniquely determined by M (though the
+/// matrices U and V are not). The diagonal entries of Σ are known as the
+/// singular values of M.
 class SingularValueDecomposition {
   /// Initializes a new instance of the [SingularValueDecomposition].
   SingularValueDecomposition._(
@@ -44,8 +50,6 @@ class SingularValueDecomposition {
     final vt = Matrix<double>.fromPackedColumns(
         DataType.float64, matrix.colCount, matrix.colCount, vtValues,
         format: MatrixFormat.columnMajor);
-
-    // compute W
     final w = Matrix<double>.generate(
         DataType.float64, u.rowCount, vt.colCount, (r, c) => r == c ? s[r] : 0);
 
@@ -57,16 +61,18 @@ class SingularValueDecomposition {
   final Matrix<double> _vt;
   final Matrix<double> _w;
 
-  /// Indicating whether U and VT matrices have been computed during SVD factorization.
-  bool vectorsComputed;
+  /// Indicating whether U and VT matrices have been computed during SVD
+  /// factorization.
+  final bool vectorsComputed;
 
   /// Gets the singular values (Σ) of matrix in ascending value.
   Vector<double> get S => _s;
 
-  /// Gets the left singular vectors (U - m-by-m real orthogonal matrix)
+  /// Gets the left singular vectors (U - m-by-m real orthogonal matrix).
   Matrix<double> get U => _u;
 
-  /// Gets the transpose right singular vectors (transpose of V, an n-by-n real orthogonal matrix)
+  /// Gets the transpose right singular vectors (transpose of V, an n-by-n real
+  /// orthogonal matrix).
   // ignore: non_constant_identifier_names
   Matrix<double> get VT => _vt;
 
@@ -80,11 +86,10 @@ class SingularValueDecomposition {
     return _s.iterable.where((t) => t.abs() > tolerance).length;
   }
 
-  /// Gets the two norm of the Matrix
-  // ignore: non_constant_identifier_names
+  /// Gets the two norm of the Matrix.
   double get norm2 => _s[0].abs();
 
-  /// Gets the condition number max(S) / min(S)
+  /// Gets the condition number max(S) / min(S).
   double get cond {
     var tmp = min(_u.rowCount, _vt.colCount) - 1;
     return _s[0].abs() / _s[tmp].abs();
@@ -142,8 +147,8 @@ class SingularValueDecomposition {
 
     var ncu = rowsA;
 
-    // Reduce matrix to bidiagonal form, storing the diagonal elements
-    // in "s" and the super-diagonal elements in "e".
+    // Reduce matrix to bi-diagonal form, storing the diagonal elements in "s"
+    // and the super-diagonal elements in "e".
     var nct = min(rowsA - 1, columnsA);
     var nrt = max(0, min(columnsA - 2, rowsA));
     var lu = max(nct, nrt);
@@ -151,8 +156,8 @@ class SingularValueDecomposition {
     for (l = 0; l < lu; l++) {
       lp1 = l + 1;
       if (l < nct) {
-        // Compute the transformation for the l-th column and
-        // place the l-th diagonal in vector s[l].
+        // Compute the transformation for the l-th column and place the l-th
+        // diagonal in vector s[l].
         var sum = 0.0;
         for (var i1 = l; i1 < rowsA; i1++) {
           sum += a[(l * rowsA) + i1] * a[(l * rowsA) + i1];
@@ -166,7 +171,8 @@ class SingularValueDecomposition {
                 (a[(l * rowsA) + l] / a[(l * rowsA) + l].abs());
           }
 
-          // A part of column "l" of Matrix A from row "l" to end multiply by 1.0 / s[l]
+          // A part of column "l" of Matrix A from row "l" to end multiply by
+          // 1.0 / s[l].
           for (i = l; i < rowsA; i++) {
             a[(l * rowsA) + i] = a[(l * rowsA) + i] * (1.0 / stemp[l]);
           }
@@ -194,8 +200,8 @@ class SingularValueDecomposition {
           }
         }
 
-        // Place the l-th row of matrix into "e" for the
-        // subsequent calculation of the row transformation.
+        // Place the l-th row of matrix into "e" for the subsequent calculation
+        // of the row transformation.
         e[j] = a[(j * rowsA) + l];
       }
 
@@ -210,7 +216,8 @@ class SingularValueDecomposition {
         continue;
       }
 
-      // Compute the l-th row transformation and place the l-th super-diagonal in e(l).
+      // Compute the l-th row transformation and place the l-th super-diagonal
+      // in e(l).
       var enorm = 0.0;
       for (i = lp1; i < e.length; i++) {
         enorm += e[i] * e[i];
@@ -222,7 +229,7 @@ class SingularValueDecomposition {
           e[l] = e[l].abs() * (e[lp1] / e[lp1].abs());
         }
 
-        // Scale vector "e" from "lp1" by 1.0 / e[l]
+        // Scale vector "e" from "lp1" by 1.0 / e[l].
         for (i = lp1; i < e.length; i++) {
           e[i] = e[i] * (1.0 / e[l]);
         }
@@ -262,7 +269,7 @@ class SingularValueDecomposition {
       }
     }
 
-    // Set up the final bidiagonal matrix or order m.
+    // Set up the final bi-diagonal matrix or order m.
     var m = min(columnsA, rowsA + 1);
     final nctp1 = nct + 1;
     final nrtp1 = nrt + 1;
@@ -305,7 +312,8 @@ class SingularValueDecomposition {
             }
           }
 
-          // A part of column "l" of matrix A from row "l" to end multiply by -1.0
+          // A part of column "l" of matrix A from row "l" to end multiply
+          // by -1.0.
           for (i = l; i < rowsA; i++) {
             u[(l * rowsA) + i] = u[(l * rowsA) + i] * -1.0;
           }
@@ -352,7 +360,7 @@ class SingularValueDecomposition {
       }
     }
 
-    // Transform "s" and "e" so that they are double
+    // Transform "s" and "e" so that they are double.
     for (i = 0; i < m; i++) {
       double r;
       if (stemp[i] != 0.0) {
@@ -364,7 +372,7 @@ class SingularValueDecomposition {
         }
 
         if (computeVectors) {
-          // A part of column "i" of matrix U from row 0 to end multiply by r
+          // A part of column "i" of matrix U from row 0 to end multiply by r.
           for (j = 0; j < rowsA; j++) {
             u[(i * rowsA) + j] = u[(i * rowsA) + j] * r;
           }
@@ -388,7 +396,7 @@ class SingularValueDecomposition {
         continue;
       }
 
-      // A part of column "i+1" of matrix VT from row 0 to end multiply by r
+      // A part of column "i+1" of matrix VT from row 0 to end multiply by r.
       for (j = 0; j < columnsA; j++) {
         v[((i + 1) * columnsA) + j] = v[((i + 1) * columnsA) + j] * r;
       }
@@ -405,11 +413,14 @@ class SingularValueDecomposition {
         throw ArgumentError('Non convergence exception');
       }
 
-      // This section of the program inspects for negligible elements in the s and e arrays,
-      // on completion the variables case and l are set as follows:
+      // This section of the program inspects for negligible elements in the s
+      // and e arrays, on completion the variables case and l are set as
+      // follows:
+      //
       // case = 1: if mS[m] and e[l-1] are negligible and l < m
       // case = 2: if mS[l] is negligible and l < m
-      // case = 3: if e[l-1] is negligible, l < m, and mS[l, ..., mS[m] are not negligible (qr step).
+      // case = 3: if e[l-1] is negligible, l < m, and mS[l, ..., mS[m] are not
+      //           negligible (qr step).
       // case = 4: if e[m-1] is negligible (convergence).
       double ztest;
       double test;
@@ -557,7 +568,7 @@ class SingularValueDecomposition {
           f = ((sl + sm) * (sl - sm)) + shift;
           var g = sl * el;
 
-          // Chase zeros
+          // Chase zeros.
           for (k = l; k < m - 1; k++) {
             var rotg = _rotg(f, g);
             f = rotg[0];
@@ -610,14 +621,15 @@ class SingularValueDecomposition {
           iter = iter + 1;
           break;
 
-        // Convergence
+        // Convergence.
         case 4:
 
-          // Make the singular value  positive
+          // Make the singular value  positive.
           if (stemp[l] < 0.0) {
             stemp[l] = -stemp[l];
             if (computeVectors) {
-              // A part of column "l" of matrix VT from row 0 to end multiply by -1
+              // A part of column "l" of matrix VT from row 0 to end multiply
+              // by -1.
               for (i = 0; i < columnsA; i++) {
                 v[(l * columnsA) + i] = v[(l * columnsA) + i] * -1.0;
               }
@@ -663,7 +675,7 @@ class SingularValueDecomposition {
     }
 
     if (computeVectors) {
-      // Finally transpose "v" to get "vt" matrix
+      // Finally transpose "v" to get "vt" matrix.
       for (i = 0; i < columnsA; i++) {
         for (j = 0; j < columnsA; j++) {
           vt[(j * columnsA) + i] = v[(i * columnsA) + j];
@@ -671,8 +683,9 @@ class SingularValueDecomposition {
       }
     }
 
-    // Copy stemp to s with size adjustment. We are using ported copy of linpack's svd code and it uses
-    // a singular vector of length rows+1 when rows < columns. The last element is not used and needs to be removed.
+    // Copy stemp to s with size adjustment. We are using ported copy of
+    // linpack's svd code and it uses a singular vector of length rows+1 when
+    // rows < columns. The last element is not used and needs to be removed.
     // We should port lapack's svd routine to remove this problem.
     for (var i = 0; i < min(rowsA, columnsA); i++) {
       s[i] = stemp[i];
@@ -680,67 +693,40 @@ class SingularValueDecomposition {
   }
 
   /// Solves a system of linear equations, AX = B, with a SVD factorized.
-  Matrix<double> solve(Object input) {
+  Matrix<double> solve(/*Vector<double>|Matrix<double>*/ Object B) {
+    if (B is Matrix<num>) {
+      return solveMatrix(B);
+    } else if (B is Vector<num>) {
+      return solveVector(B);
+    } else {
+      throw ArgumentError.value(B, 'B', 'Not supported input.');
+    }
+  }
+
+  Matrix<double> solveMatrix(Matrix<num> input) {
     if (!vectorsComputed) {
       throw Exception('The singular vectors were not computed.');
     }
+    // The dimension compatibility conditions for X = A\B require the two
+    // matrices A and B to have the same number of rows.
+    if (_u.rowCount != input.rowCount) {
+      throw ArgumentError('Matrix row dimensions must agree.');
+    }
 
-    if (input is Matrix<num>) {
-      // The dimension compatibility conditions for X = A\B require the two matrices A and B to have the same number of rows
-      if (_u.rowCount != input.rowCount) {
-        throw ArgumentError('Matrix row dimensions must agree.');
-      }
+    final result =
+        Matrix<double>(DataType.float64, _vt.colCount, input.colCount);
 
-      final result =
-          Matrix<double>(DataType.float64, _vt.colCount, input.colCount);
+    var mn = min(_u.rowCount, _vt.colCount);
+    var bn = input.colCount;
 
-      var mn = min(_u.rowCount, _vt.colCount);
-      var bn = input.colCount;
+    var tmp = List.filled(_vt.colCount, 0.0);
 
-      var tmp = List.filled(_vt.colCount, 0.0);
-
-      for (var k = 0; k < bn; k++) {
-        for (var j = 0; j < _vt.colCount; j++) {
-          var value = 0.0;
-          if (j < mn) {
-            for (var i = 0; i < _u.rowCount; i++) {
-              value += _u.getUnchecked(i, j) * input.getUnchecked(i, k);
-            }
-
-            value /= _s[j];
-          }
-
-          tmp[j] = value;
-        }
-
-        for (var j = 0; j < _vt.colCount; j++) {
-          var value = 0.0;
-          for (var i = 0; i < _vt.colCount; i++) {
-            value += _vt.getUnchecked(i, j) * tmp[i];
-          }
-
-          result.setUnchecked(j, k, value);
-        }
-      }
-
-      return result;
-    } else if (input is Vector<num>) {
-      // Ax=b where A is an m x n matrix
-      // Check that b is a column vector with m entries
-      if (_u.rowCount != input.count) {
-        throw ArgumentError('All vectors must have the same dimensionality.');
-      }
-
-      final result = Vector<double>(DataType.float64, _vt.colCount);
-
-      var mn = min(_u.rowCount, _vt.colCount);
-      var tmp = List.filled(_vt.colCount, 0.0);
-      double value;
+    for (var k = 0; k < bn; k++) {
       for (var j = 0; j < _vt.colCount; j++) {
-        value = 0;
+        var value = 0.0;
         if (j < mn) {
           for (var i = 0; i < _u.rowCount; i++) {
-            value += _u.getUnchecked(i, j) * input[i];
+            value += _u.getUnchecked(i, j) * input.getUnchecked(i, k);
           }
 
           value /= _s[j];
@@ -750,21 +736,59 @@ class SingularValueDecomposition {
       }
 
       for (var j = 0; j < _vt.colCount; j++) {
-        value = 0;
+        var value = 0.0;
         for (var i = 0; i < _vt.colCount; i++) {
           value += _vt.getUnchecked(i, j) * tmp[i];
         }
 
-        result[j] = value;
+        result.setUnchecked(j, k, value);
       }
-
-      return result.columnMatrix;
-    } else {
-      throw ArgumentError('Not supported input.');
     }
+
+    return result;
   }
 
-  /// Returns values of a given matrix in column major order
+  Matrix<double> solveVector(Vector<num> input) {
+    if (!vectorsComputed) {
+      throw Exception('The singular vectors were not computed.');
+    }
+    // Ax=b where A is an m x n matrix.
+    // Check that b is a column vector with m entries.
+    if (_u.rowCount != input.count) {
+      throw ArgumentError('All vectors must have the same dimensionality.');
+    }
+
+    final result = Vector<double>(DataType.float64, _vt.colCount);
+
+    var mn = min(_u.rowCount, _vt.colCount);
+    var tmp = List.filled(_vt.colCount, 0.0);
+    double value;
+    for (var j = 0; j < _vt.colCount; j++) {
+      value = 0;
+      if (j < mn) {
+        for (var i = 0; i < _u.rowCount; i++) {
+          value += _u.getUnchecked(i, j) * input[i];
+        }
+
+        value /= _s[j];
+      }
+
+      tmp[j] = value;
+    }
+
+    for (var j = 0; j < _vt.colCount; j++) {
+      value = 0;
+      for (var i = 0; i < _vt.colCount; i++) {
+        value += _vt.getUnchecked(i, j) * tmp[i];
+      }
+
+      result[j] = value;
+    }
+
+    return result.columnMatrix;
+  }
+
+  /// Returns values of a given matrix in column major order.
   static List<double> _columnMajorValuesOf(Matrix<num> matrix) {
     final list = List.filled(matrix.rowCount * matrix.colCount, 0.0);
     var index = 0;
@@ -776,8 +800,9 @@ class SingularValueDecomposition {
     return list;
   }
 
-  /// Given the Cartesian coordinates (da, db) of a point p, these function return the parameters da, db, c, and s
-  /// associated with the Givens rotation that zeros the y-coordinate of the point.
+  /// Given the Cartesian coordinates (da, db) of a point p, these function
+  /// return the parameters da, db, c, and s associated with the Givens rotation
+  /// that zeros the y-coordinate of the point.
   ///
   /// TODO: use the Records Feature.
   static List<double> _rotg(double da, double db) {
@@ -820,15 +845,17 @@ class SingularValueDecomposition {
     return [da, db, c, s];
   }
 
-  /// Standard epsilon, the maximum relative precision of IEEE 754 double-precision floating numbers (64 bit).
-  /// According to the definition of Prof. Demmel and used in LAPACK and Scilab.
+  /// Standard epsilon, the maximum relative precision of IEEE 754 double-
+  /// precision floating numbers (64 bit). According to the definition of Prof.
+  /// Demmel and used in LAPACK and Scilab.
   static final _doublePrecision = pow(2, -53).toDouble();
 
   /// Value representing 10 * 2^(-53) = 1.11022302462516E-15
   static final _defaultDoubleAccuracy = _doublePrecision * 10;
 
-  /// Evaluates the minimum distance to the next distinguishable number near the argument value.
-  /// Note: Bytedata.setInt64 and getInt64 are not supported in Chrome platform.
+  /// Evaluates the minimum distance to the next distinguishable number near the
+  /// argument value. Note: Bytedata.setInt64 and getInt64 are not supported in
+  /// JavaScript.
   static double _epsilonOf(double value) {
     if (value.isInfinite || value.isNaN) {
       return double.nan;
@@ -855,8 +882,8 @@ class SingularValueDecomposition {
     return value - byteData.getFloat64(0);
   }
 
-  /// Checks whether two real numbers are almost equal.
-  /// Returns true if the two values differ by no more than 10 * 2^(-52); false otherwise.
+  /// Checks whether two real numbers are almost equal. Returns true if the two
+  /// values differ by no more than 10 * 2^(-52); false otherwise.
   static bool _almostEqual(double a, double b) => DataType.float64.equality
       .isClose((a - b).abs(), 0.0, _defaultDoubleAccuracy);
 
@@ -877,51 +904,55 @@ class SingularValueDecomposition {
     final magnitude = log(value.abs()) / ln10;
     final truncated = magnitude.truncate();
 
-    // To get the right number we need to know if the value is negative or positive
-    // truncating a positive number will always give use the correct magnitude
-    // truncating a negative number will give us a magnitude that is off by 1 (unless integer)
+    // To get the right number we need to know if the value is negative or
+    // positive truncating a positive number will always give use the correct
+    // magnitude truncating a negative number will give us a magnitude that is
+    // off by 1 (unless integer)
     return magnitude < 0 && truncated != magnitude ? truncated - 1 : truncated;
   }
 
-  /// Compares two doubles and determines if they are equal to within
-  /// the specified number of decimal places or not. If the numbers are very
-  /// close to zero an absolute difference is compared, otherwise
-  /// the relative difference is compared.
+  /// Compares two doubles and determines if they are equal to within the
+  /// specified number of decimal places or not. If the numbers are very close
+  /// to zero an absolute difference is compared, otherwise the relative
+  /// difference is compared.
   static bool _almostEqualRelative(double a, double b, int decimalPlaces) {
     if (decimalPlaces < 0) {
       // Can't have a negative number of decimal places
       throw ArgumentError(decimalPlaces);
     }
 
-    // If A or B are a NAN, return false. NANs are equal to nothing,
-    // not even themselves.
+    // If A or B are a NAN, return false. NANs are equal to nothing, not even
+    // themselves.
     if (a.isNaN || b.isNaN) {
       return false;
     }
 
-    // If A or B are infinity (positive or negative) then
-    // only return true if they are exactly equal to each other -
-    // that is, if they are both infinities of the same sign.
+    // If A or B are infinity (positive or negative) then only return true if
+    // they are exactly equal to each other - that is, if they are both
+    // infinities of the same sign.
     if (a.isInfinite || b.isInfinite) {
       return a == b;
     }
 
-    // If both numbers are equal, get out now. This should remove the possibility of both numbers being zero
-    // and any problems associated with that.
+    // If both numbers are equal, get out now. This should remove the
+    // possibility of both numbers being zero and any problems associated with
+    // that.
     if (a == b) {
       return true;
     }
 
     // If one is almost zero, fall back to absolute equality
     if (a.abs() < _doublePrecision || b.abs() < _doublePrecision) {
-      // The values are equal if the difference between the two numbers is smaller than
-      // 10^(-numberOfDecimalPlaces). We divide by two so that we have half the range
-      // on each side of the numbers, e.g. if decimalPlaces == 2,
-      // then 0.01 will equal between 0.005 and 0.015, but not 0.02 and not 0.00
+      // The values are equal if the difference between the two numbers is
+      // smaller than 10^(-numberOfDecimalPlaces). We divide by two so that we
+      // have half the range on each side of the numbers, e.g. if decimalPlaces
+      // == 2, then 0.01 will equal between 0.005 and 0.015, but not 0.02 and
+      // not 0.00.
       return (a - b).abs() < pow(10, -decimalPlaces) * 0.5;
     }
 
-    // If the magnitudes of the two numbers are equal to within one magnitude the numbers could potentially be equal
+    // If the magnitudes of the two numbers are equal to within one magnitude
+    // the numbers could potentially be equal.
     final magnitudeOfFirst = _magnitude(a);
     final magnitudeOfSecond = _magnitude(b);
     final magnitudeOfMax = max(magnitudeOfFirst, magnitudeOfSecond);
@@ -929,26 +960,33 @@ class SingularValueDecomposition {
       return false;
     }
 
-    // The values are equal if the difference between the two numbers is smaller than
-    // 10^(-numberOfDecimalPlaces). We divide by two so that we have half the range
-    // on each side of the numbers, e.g. if decimalPlaces == 2,
-    // then 0.01 will equal between 0.00995 and 0.01005, but not 0.0015 and not 0.0095
+    // The values are equal if the difference between the two numbers is smaller
+    // than 10^(-numberOfDecimalPlaces). We divide by two so that we have half
+    // the range on each side of the numbers, e.g. if decimalPlaces == 2, then
+    // 0.01 will equal between 0.00995 and 0.01005, but not 0.0015 and not
+    // 0.0095.
     return (a - b).abs() < pow(10, magnitudeOfMax - decimalPlaces) * 0.5;
   }
 }
 
 extension SingularValueDecompositionExtension<T extends num> on Matrix<T> {
   /// Gets the singular value decomposition of this [Matrix].
+  @Deprecated("Use `singularValueDecomposition` instead.")
   SingularValueDecomposition get singularValue =>
-      SingularValueDecomposition(this, computeVectors: true);
+      singularValueDecomposition(computeVectors: true);
+
+  /// Gets the singular value decomposition of this [Matrix].
+  SingularValueDecomposition singularValueDecomposition(
+          {bool computeVectors = true}) =>
+      SingularValueDecomposition(this, computeVectors: computeVectors);
 
   /// Gets the rank, the effective numerical rank of this [Matrix].
-  int get rank => singularValue.rank;
+  int get rank => singularValueDecomposition(computeVectors: false).rank;
 
   /// Calculates the nullity of the matrix.
   int get nullity => colCount - rank;
 
   /// Returns the condition, the ratio of largest to smallest singular value of
   /// this [Matrix].
-  double get cond => singularValue.cond;
+  double get cond => singularValueDecomposition(computeVectors: false).cond;
 }
