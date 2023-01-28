@@ -119,40 +119,33 @@ class SingularValueDecomposition {
       List<double> s,
       List<double> u,
       List<double> vt) {
-    if (u.length != rowsA * rowsA) {
-      throw ArgumentError('The array arguments must have the same length.');
-    }
+    assert(u.length == rowsA * rowsA,
+        'The array arguments must have the same length.');
+    assert(vt.length == columnsA * columnsA,
+        'The array arguments must have the same length.');
+    assert(s.length == min(rowsA, columnsA),
+        'The array arguments must have the same length.');
 
-    if (vt.length != columnsA * columnsA) {
-      throw ArgumentError('The array arguments must have the same length.');
-    }
+    final work = DataType.float64.newList(rowsA);
 
-    if (s.length != min(rowsA, columnsA)) {
-      throw ArgumentError('The array arguments must have the same length.');
-    }
+    const maxIterations = 1000;
 
-    var work = DataType.float64.newList(rowsA);
-
-    const maxiter = 1000;
-
-    var e = DataType.float64.newList(columnsA);
-    var v = DataType.float64.newList(vt.length);
-    var stemp = DataType.float64.newList(min(rowsA + 1, columnsA));
-
-    int i, j, l, lp1;
+    final e = DataType.float64.newList(columnsA);
+    final v = DataType.float64.newList(vt.length);
+    final stemp = DataType.float64.newList(min(rowsA + 1, columnsA));
 
     double t;
 
-    var ncu = rowsA;
+    final ncu = rowsA;
 
     // Reduce matrix to bi-diagonal form, storing the diagonal elements in "s"
     // and the super-diagonal elements in "e".
-    var nct = min(rowsA - 1, columnsA);
-    var nrt = max(0, min(columnsA - 2, rowsA));
-    var lu = max(nct, nrt);
+    final nct = min(rowsA - 1, columnsA);
+    final nrt = max(0, min(columnsA - 2, rowsA));
+    final lu = max(nct, nrt);
 
-    for (l = 0; l < lu; l++) {
-      lp1 = l + 1;
+    for (var l = 0; l < lu; l++) {
+      var lp1 = l + 1;
       if (l < nct) {
         // Compute the transformation for the l-th column and place the l-th
         // diagonal in vector s[l].
@@ -171,7 +164,7 @@ class SingularValueDecomposition {
 
           // A part of column "l" of Matrix A from row "l" to end multiply by
           // 1.0 / s[l].
-          for (i = l; i < rowsA; i++) {
+          for (var i = l; i < rowsA; i++) {
             a[(l * rowsA) + i] = a[(l * rowsA) + i] * (1.0 / stemp[l]);
           }
 
@@ -181,12 +174,12 @@ class SingularValueDecomposition {
         stemp[l] = -stemp[l];
       }
 
-      for (j = lp1; j < columnsA; j++) {
+      for (var j = lp1; j < columnsA; j++) {
         if (l < nct) {
           if (stemp[l] != 0.0) {
             // Apply the transformation.
             t = 0.0;
-            for (i = l; i < rowsA; i++) {
+            for (var i = l; i < rowsA; i++) {
               t += a[(j * rowsA) + i] * a[(l * rowsA) + i];
             }
 
@@ -205,7 +198,7 @@ class SingularValueDecomposition {
 
       if (computeVectors && l < nct) {
         // Place the transformation in "u" for subsequent back multiplication.
-        for (i = l; i < rowsA; i++) {
+        for (var i = l; i < rowsA; i++) {
           u[(l * rowsA) + i] = a[(l * rowsA) + i];
         }
       }
@@ -217,7 +210,7 @@ class SingularValueDecomposition {
       // Compute the l-th row transformation and place the l-th super-diagonal
       // in e(l).
       var enorm = 0.0;
-      for (i = lp1; i < e.length; i++) {
+      for (var i = lp1; i < e.length; i++) {
         enorm += e[i] * e[i];
       }
 
@@ -228,7 +221,7 @@ class SingularValueDecomposition {
         }
 
         // Scale vector "e" from "lp1" by 1.0 / e[l].
-        for (i = lp1; i < e.length; i++) {
+        for (var i = lp1; i < e.length; i++) {
           e[i] = e[i] * (1.0 / e[l]);
         }
 
@@ -239,17 +232,17 @@ class SingularValueDecomposition {
 
       if (lp1 < rowsA && e[l] != 0.0) {
         // Apply the transformation.
-        for (i = lp1; i < rowsA; i++) {
+        for (var i = lp1; i < rowsA; i++) {
           work[i] = 0.0;
         }
 
-        for (j = lp1; j < columnsA; j++) {
+        for (var j = lp1; j < columnsA; j++) {
           for (var ii = lp1; ii < rowsA; ii++) {
             work[ii] += e[j] * a[(j * rowsA) + ii];
           }
         }
 
-        for (j = lp1; j < columnsA; j++) {
+        for (var j = lp1; j < columnsA; j++) {
           var ww = -e[j] / e[lp1];
           for (var ii = lp1; ii < rowsA; ii++) {
             a[(j * rowsA) + ii] += ww * work[ii];
@@ -262,7 +255,7 @@ class SingularValueDecomposition {
       }
 
       // Place the transformation in v for subsequent back multiplication.
-      for (i = lp1; i < columnsA; i++) {
+      for (var i = lp1; i < columnsA; i++) {
         v[(l * columnsA) + i] = e[i];
       }
     }
@@ -287,19 +280,19 @@ class SingularValueDecomposition {
 
     // If required, generate "u".
     if (computeVectors) {
-      for (j = nctp1 - 1; j < ncu; j++) {
-        for (i = 0; i < rowsA; i++) {
+      for (var j = nctp1 - 1; j < ncu; j++) {
+        for (var i = 0; i < rowsA; i++) {
           u[(j * rowsA) + i] = 0.0;
         }
 
         u[(j * rowsA) + j] = 1.0;
       }
 
-      for (l = nct - 1; l >= 0; l--) {
+      for (var l = nct - 1; l >= 0; l--) {
         if (stemp[l] != 0.0) {
-          for (j = l + 1; j < ncu; j++) {
+          for (var j = l + 1; j < ncu; j++) {
             t = 0.0;
-            for (i = l; i < rowsA; i++) {
+            for (var i = l; i < rowsA; i++) {
               t += u[(j * rowsA) + i] * u[(l * rowsA) + i];
             }
 
@@ -312,16 +305,16 @@ class SingularValueDecomposition {
 
           // A part of column "l" of matrix A from row "l" to end multiply
           // by -1.0.
-          for (i = l; i < rowsA; i++) {
+          for (var i = l; i < rowsA; i++) {
             u[(l * rowsA) + i] = u[(l * rowsA) + i] * -1.0;
           }
 
           u[(l * rowsA) + l] = 1.0 + u[(l * rowsA) + l];
-          for (i = 0; i < l; i++) {
+          for (var i = 0; i < l; i++) {
             u[(l * rowsA) + i] = 0.0;
           }
         } else {
-          for (i = 0; i < rowsA; i++) {
+          for (var i = 0; i < rowsA; i++) {
             u[(l * rowsA) + i] = 0.0;
           }
 
@@ -332,13 +325,13 @@ class SingularValueDecomposition {
 
     // If it is required, generate v.
     if (computeVectors) {
-      for (l = columnsA - 1; l >= 0; l--) {
-        lp1 = l + 1;
+      for (var l = columnsA - 1; l >= 0; l--) {
+        var lp1 = l + 1;
         if (l < nrt) {
           if (e[l] != 0.0) {
-            for (j = lp1; j < columnsA; j++) {
+            for (var j = lp1; j < columnsA; j++) {
               t = 0.0;
-              for (i = lp1; i < columnsA; i++) {
+              for (var i = lp1; i < columnsA; i++) {
                 t += v[(j * columnsA) + i] * v[(l * columnsA) + i];
               }
 
@@ -350,7 +343,7 @@ class SingularValueDecomposition {
           }
         }
 
-        for (i = 0; i < columnsA; i++) {
+        for (var i = 0; i < columnsA; i++) {
           v[(l * columnsA) + i] = 0.0;
         }
 
@@ -359,7 +352,7 @@ class SingularValueDecomposition {
     }
 
     // Transform "s" and "e" so that they are double.
-    for (i = 0; i < m; i++) {
+    for (var i = 0; i < m; i++) {
       double r;
       if (stemp[i] != 0.0) {
         t = stemp[i];
@@ -371,7 +364,7 @@ class SingularValueDecomposition {
 
         if (computeVectors) {
           // A part of column "i" of matrix U from row 0 to end multiply by r.
-          for (j = 0; j < rowsA; j++) {
+          for (var j = 0; j < rowsA; j++) {
             u[(i * rowsA) + j] = u[(i * rowsA) + j] * r;
           }
         }
@@ -395,7 +388,7 @@ class SingularValueDecomposition {
       }
 
       // A part of column "i+1" of matrix VT from row 0 to end multiply by r.
-      for (j = 0; j < columnsA; j++) {
+      for (var j = 0; j < columnsA; j++) {
         v[((i + 1) * columnsA) + j] = v[((i + 1) * columnsA) + j] * r;
       }
     }
@@ -407,7 +400,7 @@ class SingularValueDecomposition {
     while (m > 0) {
       // Quit if all the singular values have been found.
       // If too many iterations have been performed throw exception.
-      if (iter >= maxiter) {
+      if (iter >= maxIterations) {
         throw ArgumentError('Non convergence exception');
       }
 
@@ -422,6 +415,7 @@ class SingularValueDecomposition {
       // case = 4: if e[m-1] is negligible (convergence).
       double ztest;
       double test;
+      int l;
       for (l = m - 2; l >= 0; l--) {
         test = stemp[l].abs() + stemp[l + 1].abs();
         ztest = test + e[l].abs();
@@ -494,7 +488,7 @@ class SingularValueDecomposition {
 
             if (computeVectors) {
               // Rotate
-              for (i = 0; i < columnsA; i++) {
+              for (var i = 0; i < columnsA; i++) {
                 var z = (cs * v[(k * columnsA) + i]) +
                     (sn * v[((m - 1) * columnsA) + i]);
                 v[((m - 1) * columnsA) + i] =
@@ -511,7 +505,7 @@ class SingularValueDecomposition {
         case 2:
           f = e[l - 1];
           e[l - 1] = 0.0;
-          for (k = l; k < m; k++) {
+          for (var k = l; k < m; k++) {
             var t1 = stemp[k];
             var rotg = _rotg(t1, f);
             t1 = rotg[0];
@@ -524,7 +518,7 @@ class SingularValueDecomposition {
             e[k] = cs * e[k];
             if (computeVectors) {
               // Rotate
-              for (i = 0; i < rowsA; i++) {
+              for (var i = 0; i < rowsA; i++) {
                 var z =
                     (cs * u[(k * rowsA) + i]) + (sn * u[((l - 1) * rowsA) + i]);
                 u[((l - 1) * rowsA) + i] =
@@ -567,7 +561,7 @@ class SingularValueDecomposition {
           var g = sl * el;
 
           // Chase zeros.
-          for (k = l; k < m - 1; k++) {
+          for (var k = l; k < m - 1; k++) {
             var rotg = _rotg(f, g);
             f = rotg[0];
             g = rotg[1];
@@ -583,7 +577,7 @@ class SingularValueDecomposition {
             g = sn * stemp[k + 1];
             stemp[k + 1] = cs * stemp[k + 1];
             if (computeVectors) {
-              for (i = 0; i < columnsA; i++) {
+              for (var i = 0; i < columnsA; i++) {
                 var z = (cs * v[(k * columnsA) + i]) +
                     (sn * v[((k + 1) * columnsA) + i]);
                 v[((k + 1) * columnsA) + i] =
@@ -605,7 +599,7 @@ class SingularValueDecomposition {
             g = sn * e[k + 1];
             e[k + 1] = cs * e[k + 1];
             if (computeVectors && k < rowsA) {
-              for (i = 0; i < rowsA; i++) {
+              for (var i = 0; i < rowsA; i++) {
                 var z =
                     (cs * u[(k * rowsA) + i]) + (sn * u[((k + 1) * rowsA) + i]);
                 u[((k + 1) * rowsA) + i] =
@@ -628,7 +622,7 @@ class SingularValueDecomposition {
             if (computeVectors) {
               // A part of column "l" of matrix VT from row 0 to end multiply
               // by -1.
-              for (i = 0; i < columnsA; i++) {
+              for (var i = 0; i < columnsA; i++) {
                 v[(l * columnsA) + i] = v[(l * columnsA) + i] * -1.0;
               }
             }
@@ -645,7 +639,7 @@ class SingularValueDecomposition {
             stemp[l + 1] = t;
             if (computeVectors && l < columnsA) {
               // Swap columns l, l + 1
-              for (i = 0; i < columnsA; i++) {
+              for (var i = 0; i < columnsA; i++) {
                 var a = v[((l + 1) * columnsA) + i];
                 var b = v[(l * columnsA) + i];
                 v[(l * columnsA) + i] = a;
@@ -655,7 +649,7 @@ class SingularValueDecomposition {
 
             if (computeVectors && l < rowsA) {
               // Swap columns l, l + 1
-              for (i = 0; i < rowsA; i++) {
+              for (var i = 0; i < rowsA; i++) {
                 var a = u[((l + 1) * rowsA) + i];
                 var b = u[(l * rowsA) + i];
                 u[(l * rowsA) + i] = a;
@@ -674,8 +668,8 @@ class SingularValueDecomposition {
 
     if (computeVectors) {
       // Finally transpose "v" to get "vt" matrix.
-      for (i = 0; i < columnsA; i++) {
-        for (j = 0; j < columnsA; j++) {
+      for (var i = 0; i < columnsA; i++) {
+        for (var j = 0; j < columnsA; j++) {
           vt[(j * columnsA) + i] = v[(i * columnsA) + j];
         }
       }
