@@ -109,6 +109,7 @@ Misc
 The MIT License, see [LICENSE](https://github.com/renggli/dart-data/raw/main/LICENSE).
 
 Some of the matrix decomposition algorithms are a port of the [JAMA: A Java Matrix Package](https://math.nist.gov/javanumerics/jama/) released under public domain.
+- In particular, the singular value decomposition algorithm comes from the [Math.Net Numerics](https://github.com/mathnet/mathnet-numerics) released under MIT.
 
 Some of the distributions and special functions are a port of the [JavaScript Statistical Library](https://github.com/jstat/jstat) released under MIT.
 
