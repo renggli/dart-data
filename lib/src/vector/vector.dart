@@ -42,8 +42,10 @@ abstract class Vector<T> implements Storage {
     return format == null ? result : result.toVector(format: format);
   }
 
-  /// Constructs a vector with a constant [value]. If [format] is specified
-  /// the resulting vector is mutable, otherwise this is a read-only view.
+  /// Constructs a vector with a constant [value].
+  ///
+  /// If [format] is specified the resulting vector is mutable, otherwise this
+  /// is a read-only view.
   factory Vector.constant(DataType<T> dataType, int count,
       {T? value, VectorFormat? format}) {
     final result =
@@ -51,9 +53,10 @@ abstract class Vector<T> implements Storage {
     return format == null ? result : result.toVector(format: format);
   }
 
-  /// Generates a vector from calling a [callback] on every value. If [format]
-  /// is specified the resulting vector is mutable, otherwise this is a
-  /// read-only view.
+  /// Generates a vector from calling a [callback] on every value.
+  ///
+  /// If [format] is specified the resulting vector is mutable, otherwise this
+  /// is a read-only view.
   factory Vector.generate(
       DataType<T> dataType, int count, VectorGeneratorCallback<T> callback,
       {VectorFormat? format}) {
@@ -75,13 +78,14 @@ abstract class Vector<T> implements Storage {
   }
 
   /// Constructs a vector from a source list.
+  ///
+  /// If [format] is specified, [source] is copied into a mutable vector of the
+  /// selected format; otherwise a view onto the possibly mutable [source] is
+  /// provided.
   factory Vector.fromList(DataType<T> dataType, List<T> source,
       {VectorFormat? format}) {
-    final result = Vector<T>(dataType, source.length, format: format);
-    for (var i = 0; i < source.length; i++) {
-      result.setUnchecked(i, dataType.cast(source[i]));
-    }
-    return result;
+    final result = ListVector.fromList(dataType, source);
+    return format == null ? result : result.toVector(format: format);
   }
 
   /// Returns the data type of this vector.

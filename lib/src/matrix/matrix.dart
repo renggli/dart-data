@@ -79,8 +79,10 @@ abstract class Matrix<T> implements Storage {
     return format == null ? result : result.toMatrix(format: format);
   }
 
-  /// Returns a matrix with a constant [value]. If [format] is specified
-  /// the resulting matrix is mutable, otherwise this is a read-only view.
+  /// Returns a matrix with a constant [value].
+  ///
+  /// If [format] is specified the resulting matrix is mutable, otherwise this
+  /// is a read-only view.
   factory Matrix.constant(DataType<T> dataType, int rowCount, int columnCount,
       {T? value, MatrixFormat? format}) {
     final result = ConstantMatrix<T>(
@@ -88,9 +90,10 @@ abstract class Matrix<T> implements Storage {
     return format == null ? result : result.toMatrix(format: format);
   }
 
-  /// Generates a matrix from calling a [callback] on every value. If [format]
-  /// is specified the resulting matrix is mutable, otherwise this is a read-
-  /// only view.
+  /// Generates a matrix from calling a [callback] on every value.
+  ///
+  /// If [format] is specified the resulting matrix is mutable, otherwise this
+  /// is a read-only view.
   factory Matrix.generate(DataType<T> dataType, int rowCount, int columnCount,
       MatrixGeneratorCallback<T> callback,
       {MatrixFormat? format}) {
@@ -99,9 +102,10 @@ abstract class Matrix<T> implements Storage {
     return format == null ? result : result.toMatrix(format: format);
   }
 
-  /// Returns an identity matrix with the constant [value]. If [format] is
-  /// specified the resulting matrix is mutable, otherwise this is a read-only
-  /// view.
+  /// Returns an identity matrix with the constant [value].
+  ///
+  /// If [format] is specified the resulting matrix is mutable, otherwise this
+  /// is a read-only view.
   factory Matrix.identity(DataType<T> dataType, int rowCount, int columnCount,
       {T? value, MatrixFormat? format}) {
     final result = IdentityMatrix<T>(dataType, rowCount, columnCount,
@@ -110,8 +114,10 @@ abstract class Matrix<T> implements Storage {
   }
 
   /// Returns a Vandermonde matrix, a matrix with the terms of a geometric
-  /// progression in each row. If [format] is specified the resulting matrix is
-  /// mutable, otherwise this is a read-only view.
+  /// progression in each row.
+  ///
+  /// If [format] is specified the resulting matrix is mutable, otherwise this
+  /// is a read-only view.
   factory Matrix.vandermonde(
       DataType<T> dataType, Vector<T> data, int columnCount,
       {MatrixFormat? format}) {
@@ -124,25 +130,28 @@ abstract class Matrix<T> implements Storage {
   }
 
   /// Constructs a matrix from a nested list of rows.
+  ///
+  /// If [format] is specified, [source] is copied into a mutable matrix of the
+  /// selected format; otherwise a view onto the possibly mutable [source] is
+  /// provided.
   factory Matrix.fromRows(DataType<T> dataType, List<List<T>> source,
       {MatrixFormat? format}) {
-    final result = Matrix<T>(
-        dataType, source.length, source.isEmpty ? 0 : source[0].length,
-        format: format);
-    for (var r = 0; r < result.rowCount; r++) {
-      final sourceRow = source[r];
-      if (sourceRow.length != result.colCount) {
-        throw ArgumentError.value(
-            source, 'source', 'All rows must be equally sized.');
-      }
-      for (var c = 0; c < result.colCount; c++) {
-        result.setUnchecked(r, c, sourceRow[c]);
-      }
+    final rowCount = source.length;
+    final columnCount = source.isEmpty ? 0 : source[0].length;
+    if (!source.every((row) => row.length == columnCount)) {
+      throw ArgumentError.value(
+          source, 'source', 'All rows must be equally sized.');
     }
-    return result;
+    final result =
+        NestedRowMatrix.fromList(dataType, rowCount, columnCount, source);
+    return format == null ? result : result.toMatrix(format: format);
   }
 
   /// Constructs a matrix from a packed list of rows.
+  ///
+  /// If [format] is specified, [source] is copied into a mutable matrix of the
+  /// selected format; otherwise a view onto the possibly mutable [source] is
+  /// provided.
   factory Matrix.fromPackedRows(
       DataType<T> dataType, int rowCount, int columnCount, List<T> source,
       {MatrixFormat? format}) {
@@ -150,49 +159,44 @@ abstract class Matrix<T> implements Storage {
       throw ArgumentError.value(
           source, 'source', 'Row and column count do not match.');
     }
-    final result = Matrix<T>(dataType, rowCount, columnCount, format: format);
-    for (var r = 0; r < rowCount; r++) {
-      for (var c = 0; c < result.colCount; c++) {
-        result.set(r, c, source[r * columnCount + c]);
-      }
-    }
-    return result;
+    final result =
+        RowMajorMatrix.fromList(dataType, rowCount, columnCount, source);
+    return format == null ? result : result.toMatrix(format: format);
   }
 
   /// Constructs a matrix from a nested list of columns.
+  ///
+  /// If [format] is specified, [source] is copied into a mutable matrix of the
+  /// selected format; otherwise a view onto the possibly mutable [source] is
+  /// provided.
   factory Matrix.fromColumns(DataType<T> dataType, List<List<T>> source,
       {MatrixFormat? format}) {
-    final result = Matrix<T>(
-        dataType, source.isEmpty ? 0 : source[0].length, source.length,
-        format: format);
-    for (var c = 0; c < result.colCount; c++) {
-      final sourceCol = source[c];
-      if (sourceCol.length != result.rowCount) {
-        throw ArgumentError.value(
-            source, 'source', 'All columns must be equally sized.');
-      }
-      for (var r = 0; r < result.rowCount; r++) {
-        result.setUnchecked(r, c, sourceCol[r]);
-      }
+    final rowCount = source.isEmpty ? 0 : source[0].length;
+    final columnCount = source.length;
+    if (!source.every((column) => column.length == rowCount)) {
+      throw ArgumentError.value(
+          source, 'source', 'All columns must be equally sized.');
     }
-    return result;
+    final result =
+        NestedColumnMatrix.fromList(dataType, rowCount, columnCount, source);
+    return format == null ? result : result.toMatrix(format: format);
   }
 
   /// Constructs a matrix from a packed list of columns.
+  ///
+  /// If [format] is specified, [source] is copied into a mutable matrix of the
+  /// selected format; otherwise a view onto the possibly mutable [source] is
+  /// provided.
   factory Matrix.fromPackedColumns(
-      DataType<T> dataType, int rowCount, int colCount, List<T> source,
+      DataType<T> dataType, int rowCount, int columnCount, List<T> source,
       {MatrixFormat? format}) {
-    if (rowCount * colCount != source.length) {
+    if (rowCount * columnCount != source.length) {
       throw ArgumentError.value(
           source, 'source', 'Row and column count do not match.');
     }
-    final result = Matrix<T>(dataType, rowCount, colCount, format: format);
-    for (var r = 0; r < rowCount; r++) {
-      for (var c = 0; c < result.colCount; c++) {
-        result.set(r, c, source[r + c * rowCount]);
-      }
-    }
-    return result;
+    final result =
+        ColumnMajorMatrix.fromList(dataType, rowCount, columnCount, source);
+    return format == null ? result : result.toMatrix(format: format);
   }
 
   /// Returns the data type of this matrix.

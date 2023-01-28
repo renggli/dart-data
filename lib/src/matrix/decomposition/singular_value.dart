@@ -44,12 +44,10 @@ class SingularValueDecomposition {
         matrix.rowCount, matrix.colCount, sValues, uValues, vtValues);
 
     final u = Matrix<double>.fromPackedColumns(
-        DataType.float64, matrix.rowCount, matrix.rowCount, uValues,
-        format: MatrixFormat.columnMajor);
+        DataType.float64, matrix.rowCount, matrix.rowCount, uValues);
     final s = Vector<double>.fromList(DataType.float64, sValues);
     final vt = Matrix<double>.fromPackedColumns(
-        DataType.float64, matrix.colCount, matrix.colCount, vtValues,
-        format: MatrixFormat.columnMajor);
+        DataType.float64, matrix.colCount, matrix.colCount, vtValues);
     final w = Matrix<double>.generate(
         DataType.float64, u.rowCount, vt.colCount, (r, c) => r == c ? s[r] : 0);
 
@@ -971,7 +969,6 @@ class SingularValueDecomposition {
 
 extension SingularValueDecompositionExtension<T extends num> on Matrix<T> {
   /// Gets the singular value decomposition of this [Matrix].
-  @Deprecated("Use `singularValueDecomposition` instead.")
   SingularValueDecomposition get singularValue =>
       singularValueDecomposition(computeVectors: true);
 

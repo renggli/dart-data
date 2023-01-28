@@ -9,6 +9,12 @@ class NestedRowMatrix<T> with Matrix<T> {
             rowCount, (index) => dataType.newList(colCount),
             growable: false);
 
+  NestedRowMatrix.fromList(
+      this.dataType, this.rowCount, this.colCount, this._rows)
+      : assert(_rows.length == rowCount, 'Invalid row count'),
+        assert(_rows.every((row) => row.length == colCount),
+            'Invalid colum count');
+
   final List<List<T>> _rows;
 
   @override

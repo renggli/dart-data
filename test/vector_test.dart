@@ -406,8 +406,8 @@ void vectorTest(String name, VectorFormat format) {
       group('convolution', () {
         final vector1 = Vector.fromList(DataType.int32, [5, 6, 7, 8, 9]);
         final kernel1 = Vector.fromList(DataType.int32, [1, 0, -1]);
-        final vector2 = Vector.fromList(DataType.float, [1, 2, 3]);
-        final kernel2 = Vector.fromList(DataType.float, [0, 1, 0.5]);
+        final vector2 = Vector.fromList(DataType.float, <double>[1, 2, 3]);
+        final kernel2 = Vector.fromList(DataType.float, <double>[0, 1, 0.5]);
         test('full', () {
           final result1 = vector1.convolve(kernel1);
           expect(result1.iterable, [5, 6, 2, 2, 2, -8, -9]);
@@ -854,7 +854,7 @@ void vectorTest(String name, VectorFormat format) {
       });
       test('magnitude', () {
         final source =
-            Vector.fromList(DataType.float32, [3, 4], format: format);
+            Vector.fromList(DataType.float32, [3.0, 4.0], format: format);
         expect(source.magnitude, 5.0);
       });
       test('magnitude2', () {
