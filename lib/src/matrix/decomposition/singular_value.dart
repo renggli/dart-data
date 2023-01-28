@@ -680,12 +680,12 @@ class SingularValueDecomposition {
   }
 
   /// Solves a system of linear equations, AX = B, with A SVD factorized.
-  dynamic solve(dynamic input) {
+  Matrix<double> solve(Object input) {
     if (!vectorsComputed) {
       throw Exception('The singular vectors were not computed.');
     }
 
-    if (input is Matrix<double>) {
+    if (input is Matrix<num>) {
       // The dimension compatibility conditions for X = A\B require the two matrices A and B to have the same number of rows
       if (_u.rowCount != input.rowCount) {
         throw ArgumentError('Matrix row dimensions must agree.');
@@ -724,8 +724,7 @@ class SingularValueDecomposition {
       }
 
       return result;
-    }
-    if (input is Vector<double>) {
+    } else if (input is Vector<num>) {
       // Ax=b where A is an m x n matrix
       // Check that b is a column vector with m entries
       if (_u.rowCount != input.count) {
@@ -759,10 +758,13 @@ class SingularValueDecomposition {
         result[j] = value;
       }
 
-      return result;
+      return result.columnMatrix;
+    } else {
+      throw ArgumentError('Not supported input.');
     }
   }
 
+  /// Returns values of a given matrix in column major order
   static List<double> _columnMajorValuesOf(Matrix<num> matrix) {
     final list = List.filled(matrix.rowCount * matrix.colCount, 0.0);
     var index = 0;
@@ -777,7 +779,7 @@ class SingularValueDecomposition {
   /// Given the Cartesian coordinates (da, db) of a point p, these function return the parameters da, db, c, and s
   /// associated with the Givens rotation that zeros the y-coordinate of the point.
   ///
-  /// Note that Dart is a pass-by-value language, so modifiy the code little bit.
+  /// TODO: use the Records Feature.
   static List<double> _rotg(double da, double db) {
     double c, s; // out
 

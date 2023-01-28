@@ -1953,7 +1953,7 @@ void matrixTest(String name, MatrixFormat format) {
             final matrixB = random(rows[k], cols[k], 1);
 
             final factorSvd = matrixA.singularValue;
-            final matrixX = factorSvd.solve(matrixB) as Matrix<double>;
+            final matrixX = factorSvd.solve(matrixB);
 
             // The solution X row dimension is equal to the column dimension of A
             expect(matrixA.colCount, matrixX.rowCount);
