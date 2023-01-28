@@ -679,7 +679,7 @@ class SingularValueDecomposition {
     }
   }
 
-  /// Solves a system of linear equations, AX = B, with A SVD factorized.
+  /// Solves a system of linear equations, AX = B, with a SVD factorized.
   Matrix<double> solve(Object input) {
     if (!vectorsComputed) {
       throw Exception('The singular vectors were not computed.');
