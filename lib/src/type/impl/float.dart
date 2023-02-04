@@ -80,7 +80,7 @@ class Float32DataType extends FloatDataType {
   double get min => -3.4028234663852886e+38;
 
   @override
-  double get minPositive => 1.1754942106924411e-38;
+  double get minPositive => 1.401298464324817e-45;
 
   @override
   double get max => 3.4028234663852886e+38;

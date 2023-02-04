@@ -140,18 +140,22 @@ void floatGroup(FloatDataType type, int bits) {
       expect(type.min, lessThan(type.defaultValue));
       expect(type.min - 1, type.min);
       expect(store(type, type.min), type.min);
+      expect(store(type, 1.1 * type.min), double.negativeInfinity);
     });
     test('minPositive', () {
       expect(store(type, type.minPositive), type.minPositive);
+      expect(store(type, 0.5 * type.minPositive), type.defaultValue);
     });
     test('max', () {
       expect(type.max, lessThan(double.infinity));
       expect(type.max, greaterThan(type.defaultValue));
-      expect(type.max - 1, type.max);
+      expect(type.max + 1, type.max);
       expect(store(type, type.max), type.max);
+      expect(store(type, 1.1 * type.max), double.infinity);
     });
     test('epsilon', () {
       expect(store(type, type.epsilon), type.epsilon);
+      expect(store(type, 1.0 + type.epsilon), isNot(1.0));
     });
     test('defaultValue', () {
       expect(type.defaultValue, 0.0);
