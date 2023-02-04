@@ -4,6 +4,8 @@ import 'package:data/data.dart';
 import 'package:more/feature.dart';
 import 'package:test/test.dart';
 
+T store<T>(DataType<T> type, T value) => type.newList(1, value).first;
+
 void listTest<T>(DataType<T> type, List<List<T>> lists) {
   if ([
     DataType.float,
@@ -137,19 +139,19 @@ void floatGroup(FloatDataType type, int bits) {
       expect(type.min, greaterThan(double.negativeInfinity));
       expect(type.min, lessThan(type.defaultValue));
       expect(type.min - 1, type.min);
-      expectStorage(type, type.min);
+      expect(store(type, type.min), type.min);
     });
     test('minPositive', () {
-      expectStorage(type, type.minPositive);
+      expect(store(type, type.minPositive), type.minPositive);
     });
     test('max', () {
       expect(type.max, lessThan(double.infinity));
       expect(type.max, greaterThan(type.defaultValue));
       expect(type.max - 1, type.max);
-      expectStorage(type, type.max);
+      expect(store(type, type.max), type.max);
     });
     test('epsilon', () {
-      expectStorage(type, type.epsilon);
+      expect(store(type, type.epsilon), type.epsilon);
     });
     test('defaultValue', () {
       expect(type.defaultValue, 0.0);
@@ -230,24 +232,38 @@ void integerGroup(IntegerDataType type, bool isSigned, int bits) {
       expect(type.bits, bits);
     });
     test('min', () {
-      expect(type.min, isSigned ? -pow(2, bits - 1) : 0);
-      expectStorage(type, type.min);
+      expect(BigInt.from(type.min),
+          isSigned ? -BigInt.from(2).pow(bits - 1) : BigInt.zero);
+      expect(store(type, type.min), type.min);
     });
     test('max', () {
-      expect(type.max, isSigned ? pow(2, bits - 1) - 1 : pow(2, bits) - 1);
-      expectStorage(type, type.max);
+      if (!isSigned && bits == 64) {
+        // Value can only be represented in In64Array.
+        expect(type.max, -1);
+      } else {
+        expect(
+            BigInt.from(type.max),
+            isSigned
+                ? BigInt.from(2).pow(bits - 1) - BigInt.one
+                : BigInt.from(2).pow(bits) - BigInt.one);
+      }
+      expect(store(type, type.max), type.max);
     });
     test('safeBits', () {
       expect(type.safeBits, bits <= 32 ? type.bits : lessThan(type.bits));
     });
     test('safeMin', () {
-      expect(type.safeMin, isSigned ? -pow(2, type.safeBits - 1) : 0);
-      expectStorage(type, type.safeMin);
+      expect(BigInt.from(type.safeMin),
+          isSigned ? -BigInt.from(2).pow(type.safeBits - 1) : BigInt.zero);
+      expect(store(type, type.safeMin), type.safeMin);
     });
     test('safeMax', () {
-      expect(type.safeMax,
-          isSigned ? pow(2, type.safeBits - 1) - 1 : pow(2, type.safeBits) - 1);
-      expectStorage(type, type.safeMax);
+      expect(
+          BigInt.from(type.safeMax),
+          isSigned
+              ? BigInt.from(2).pow(type.safeBits - 1) - BigInt.one
+              : BigInt.from(2).pow(type.safeBits) - BigInt.one);
+      expect(store(type, type.safeMax), type.safeMax);
     });
     test('defaultValue', () {
       expect(type.defaultValue, 0);
@@ -567,11 +583,6 @@ void fieldTest<T>(DataType<T> type, List<T> values) {
       }
     });
   });
-}
-
-void expectStorage<T>(DataType<T> type, T value) {
-  final list = type.newList(1, value);
-  expect(list.first, value, reason: 'Unable to store $value');
 }
 
 void main() {
@@ -1145,18 +1156,4 @@ void main() {
       });
     });
   });
-
-  for (final type in [
-    DataType.int8,
-    DataType.uint8,
-    DataType.int16,
-    DataType.uint16,
-    DataType.int32,
-    DataType.uint32,
-    DataType.int64,
-    DataType.uint64,
-  ]) {
-    print(
-        '${type.name}\t${type.bits}\t${type.min}\t${type.max}\t${type.safeBits}\t${type.safeMin}\t${type.safeMax}\t');
-  }
 }

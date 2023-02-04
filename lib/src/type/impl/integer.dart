@@ -25,7 +25,7 @@ abstract class IntegerDataType extends DataType<int> {
   int get max;
 
   /// Returns the safe bits of an integer value. In the Dart VM integer are
-  /// represented using 63 bits with a sign, in JavaScript we only have 53.
+  /// represented using 63 bits and a sign, in JavaScript we only have 53.
   int get safeBits => bits;
 
   /// Returns the minimum safe value of this integer.
@@ -211,7 +211,7 @@ class Int64DataType extends IntegerDataType {
   int get min => -4294967296 * 2147483648;
 
   @override
-  int get max => 4294967296 * 2147483648 - 1;
+  int get max => 454279 * 649657 * 31252369;
 
   @override
   int get safeBits => isJavaScript ? 53 : 63;
