@@ -19,22 +19,20 @@ abstract class IntegerDataType extends DataType<int> {
   bool get isSigned;
 
   /// Returns the minimum value of this integer.
-  num get min => isSigned ? -math.pow(2, bits - 1) : 0;
+  int get min;
 
   /// Returns the maximum value of this integer.
-  num get max => isSigned ? math.pow(2, bits - 1) - 1 : math.pow(2, bits) - 1;
+  int get max;
 
   /// Returns the safe bits of an integer value. In the Dart VM integer are
-  /// represented using 63 bits, in JavaScript we only have 53.
-  int get safeBits => math.min(bits, isJavaScript ? 53 : 63);
+  /// represented using 63 bits with a sign, in JavaScript we only have 53.
+  int get safeBits => bits;
 
   /// Returns the minimum safe value of this integer.
-  int get safeMin => isSigned ? -BigInt.two.pow(safeBits - 1).toInt() : 0;
+  int get safeMin => min;
 
   /// Returns the maximum safe value of this integer.
-  int get safeMax => isSigned
-      ? (BigInt.two.pow(safeBits - 1) - BigInt.one).toInt()
-      : (BigInt.two.pow(safeBits) - BigInt.one).toInt();
+  int get safeMax => max;
 
   @override
   String get name => '${isSigned ? '' : 'u'}int$bits';
@@ -96,6 +94,12 @@ class Int8DataType extends IntegerDataType {
   int get bits => 8;
 
   @override
+  int get min => -128;
+
+  @override
+  int get max => 127;
+
+  @override
   bool get isSigned => true;
 
   @override
@@ -107,6 +111,12 @@ class Uint8DataType extends IntegerDataType {
 
   @override
   int get bits => 8;
+
+  @override
+  int get min => 0;
+
+  @override
+  int get max => 255;
 
   @override
   bool get isSigned => false;
@@ -122,6 +132,12 @@ class Int16DataType extends IntegerDataType {
   int get bits => 16;
 
   @override
+  int get min => -32768;
+
+  @override
+  int get max => 32767;
+
+  @override
   bool get isSigned => true;
 
   @override
@@ -133,6 +149,12 @@ class Uint16DataType extends IntegerDataType {
 
   @override
   int get bits => 16;
+
+  @override
+  int get min => 0;
+
+  @override
+  int get max => 65535;
 
   @override
   bool get isSigned => false;
@@ -148,6 +170,12 @@ class Int32DataType extends IntegerDataType {
   int get bits => 32;
 
   @override
+  int get min => -2147483648;
+
+  @override
+  int get max => 2147483647;
+
+  @override
   bool get isSigned => true;
 
   @override
@@ -159,6 +187,12 @@ class Uint32DataType extends IntegerDataType {
 
   @override
   int get bits => 32;
+
+  @override
+  int get min => 0;
+
+  @override
+  int get max => 4294967295;
 
   @override
   bool get isSigned => false;
@@ -174,6 +208,23 @@ class Int64DataType extends IntegerDataType {
   int get bits => 64;
 
   @override
+  int get min => -4294967296 * 2147483648;
+
+  @override
+  int get max => 4294967296 * 2147483648 - 1;
+
+  @override
+  int get safeBits => isJavaScript ? 53 : 63;
+
+  @override
+  int get safeMin =>
+      isJavaScript ? -4503599627370496 : -4294967296 * 1073741824;
+
+  @override
+  int get safeMax =>
+      isJavaScript ? 4503599627370495 : 4294967296 * 1073741824 - 1;
+
+  @override
   bool get isSigned => true;
 
   @override
@@ -185,6 +236,22 @@ class Uint64DataType extends IntegerDataType {
 
   @override
   int get bits => 64;
+
+  @override
+  int get min => 0;
+
+  @override
+  int get max => 4294967296 * 4294967296 - 1;
+
+  @override
+  int get safeBits => isJavaScript ? 53 : 63;
+
+  @override
+  int get safeMin => 0;
+
+  @override
+  int get safeMax =>
+      isJavaScript ? 9007199254740991 : 4294967296 * 2147483648 - 1;
 
   @override
   bool get isSigned => false;

@@ -199,36 +199,32 @@ void integerGroup(IntegerDataType type, bool isSigned, int bits) {
   group(name, () {
     test('name', () {
       expect(type.name, name);
-      expect(type.toString(), 'DataType.$name');
     });
-    test('metadata', () {
+    test('isSigned', () {
       expect(type.isSigned, isSigned);
+    });
+    test('bits', () {
       expect(type.bits, bits);
     });
-    test('min/max', () {
-      if (type.isSigned) {
-        expect(type.min, -pow(2, bits - 1));
-        expect(type.max, pow(2, bits - 1) - 1);
-      } else {
-        expect(type.min, 0);
-        expect(type.max, pow(2, bits) - 1);
-      }
+    test('min', () {
+      expect(type.min, isSigned ? -pow(2, bits - 1) : 0);
+      expectStorage(type, type.min);
     });
-    test('safe', () {
-      if (bits <= 32) {
-        expect(type.safeBits, type.bits);
-        expect(type.safeMin, type.min);
-        expect(type.safeMax, type.max);
-      } else {
-        expect(type.safeBits <= type.bits, isTrue);
-        if (isSigned) {
-          expect(type.safeMin, -pow(2, type.safeBits - 1));
-          expect(type.safeMax, pow(2, type.safeBits - 1) - 1);
-        } else {
-          expect(type.safeMin, 0);
-          expect(type.safeMax, pow(2, type.safeBits) - 1);
-        }
-      }
+    test('max', () {
+      expect(type.max, isSigned ? pow(2, bits - 1) - 1 : pow(2, bits) - 1);
+      expectStorage(type, type.max);
+    });
+    test('safeBits', () {
+      expect(type.safeBits, bits <= 32 ? type.bits : lessThan(type.bits));
+    });
+    test('safeMin', () {
+      expect(type.safeMin, isSigned ? -pow(2, type.safeBits - 1) : 0);
+      expectStorage(type, type.safeMin);
+    });
+    test('safeMax', () {
+      expect(type.safeMax,
+          isSigned ? pow(2, type.safeBits - 1) - 1 : pow(2, type.safeBits) - 1);
+      expectStorage(type, type.safeMax);
     });
     test('defaultValue', () {
       expect(type.defaultValue, 0);
@@ -255,6 +251,9 @@ void integerGroup(IntegerDataType type, bool isSigned, int bits) {
       expect(() => type.cast(''), throwsArgumentError);
       expect(() => type.cast(null), throwsArgumentError);
       expect(() => type.cast('abc'), throwsArgumentError);
+    });
+    test('toString', () {
+      expect(type.toString(), 'DataType.$name');
     });
     listTest(type, <List<int>>[
       [type.safeMin, 0, type.safeMax],
@@ -545,6 +544,11 @@ void fieldTest<T>(DataType<T> type, List<T> values) {
       }
     });
   });
+}
+
+void expectStorage<T>(DataType<T> type, T value) {
+  final list = type.newList(1, value);
+  expect(list.first, value, reason: 'Unable to store $value');
 }
 
 void main() {
