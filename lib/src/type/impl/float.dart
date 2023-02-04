@@ -12,8 +12,27 @@ import '../type.dart';
 abstract class FloatDataType extends DataType<double> {
   const FloatDataType();
 
+  /// Returns the size in bits of this float.
+  int get bits;
+
+  /// Returns the minimum finite value of this float.
+  double get min;
+
+  /// Returns the smallest positive value larger than zero.
+  double get minPositive;
+
+  /// Returns the maximum finite value of this float.
+  double get max;
+
+  /// Returns the machine epsilon, that is the difference between 1 and the
+  /// next larger floating point number.
+  double get epsilon;
+
   @override
   double get defaultValue => 0.0;
+
+  @override
+  String get name => 'float$bits';
 
   @override
   int comparator(double a, double b) => a.compareTo(b);
@@ -55,7 +74,19 @@ class Float32DataType extends FloatDataType {
   const Float32DataType();
 
   @override
-  String get name => 'float32';
+  int get bits => 32;
+
+  @override
+  double get min => -3.4028234663852886e+38;
+
+  @override
+  double get minPositive => 1.1754942106924411e-38;
+
+  @override
+  double get max => 3.4028234663852886e+38;
+
+  @override
+  double get epsilon => 1.1920928955078125e-7;
 
   @override
   List<double> _newList(int length) => Float32List(length);
@@ -71,7 +102,19 @@ class Float64DataType extends FloatDataType {
   const Float64DataType();
 
   @override
-  String get name => 'float64';
+  int get bits => 64;
+
+  @override
+  double get min => -1.79769313486231570815e+308;
+
+  @override
+  double get minPositive => 4.94065645841246544177e-324;
+
+  @override
+  double get max => 1.79769313486231570815e+308;
+
+  @override
+  double get epsilon => 2.22044604925031308085e-16;
 
   @override
   List<double> _newList(int length) => Float64List(length);

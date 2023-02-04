@@ -129,7 +129,27 @@ void floatGroup(FloatDataType type, int bits) {
   group(name, () {
     test('name', () {
       expect(type.name, name);
-      expect(type.toString(), 'DataType.$name');
+    });
+    test('bits', () {
+      expect(type.bits, bits);
+    });
+    test('min', () {
+      expect(type.min, greaterThan(double.negativeInfinity));
+      expect(type.min, lessThan(type.defaultValue));
+      expect(type.min - 1, type.min);
+      expectStorage(type, type.min);
+    });
+    test('minPositive', () {
+      expectStorage(type, type.minPositive);
+    });
+    test('max', () {
+      expect(type.max, lessThan(double.infinity));
+      expect(type.max, greaterThan(type.defaultValue));
+      expect(type.max - 1, type.max);
+      expectStorage(type, type.max);
+    });
+    test('epsilon', () {
+      expectStorage(type, type.epsilon);
     });
     test('defaultValue', () {
       expect(type.defaultValue, 0.0);
@@ -150,6 +170,9 @@ void floatGroup(FloatDataType type, int bits) {
       expect(() => type.cast(''), throwsArgumentError);
       expect(() => type.cast(null), throwsArgumentError);
       expect(() => type.cast('abc'), throwsArgumentError);
+    });
+    test('toString', () {
+      expect(type.toString(), 'DataType.$name');
     });
     listTest(type, <List<double>>[
       [1.5, 0.375],
@@ -1122,4 +1145,18 @@ void main() {
       });
     });
   });
+
+  for (final type in [
+    DataType.int8,
+    DataType.uint8,
+    DataType.int16,
+    DataType.uint16,
+    DataType.int32,
+    DataType.uint32,
+    DataType.int64,
+    DataType.uint64,
+  ]) {
+    print(
+        '${type.name}\t${type.bits}\t${type.min}\t${type.max}\t${type.safeBits}\t${type.safeMin}\t${type.safeMax}\t');
+  }
 }
