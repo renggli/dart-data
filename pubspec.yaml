@@ -5,7 +5,6 @@ homepage: https://github.com/renggli/dart-data
 description: A time and space efficient collection of data structures and
   algorithms to deal with data in Dart.
 
-publish_to: none
 environment:
   sdk: '>=2.18.0 <3.0.0'
 dependencies:
