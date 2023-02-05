@@ -1,9 +1,14 @@
 # Changelog
 
-## 0.11.0 (unpublished)
+## 0.11.0
 
-- Dart 2.17 requirement.
-- Operators are lazy now and create views. Use `toVector()` or `copyInto(target)` to evaluate the data.
+- Dart 2.18 requirement.
+- Add fast FFT polynomial multiplication operator.
+- Add more distributions (rademacher, inverse weibull, negative binomial) and more properties (kurtosis, bounds). 
+- Add support for curve fitting (Levenberg Marquardt, Polynomial Regression).
+- More and better accessors for numeric limits, including also floating point numbers.
+- Operators are lazy now and create views. Use `toVector()` or `copyInto(target)` to evaluate the data. This uniformly applies to `Matrix`, `Vector` and `Polynomial` now.
+- Various improvements to singular value decomposition, thanks to Jong Hyun Kim.
 
 ## 0.10.0
 
