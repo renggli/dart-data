@@ -1,3 +1,5 @@
+// Verify some of the library functions on a normal magic square:
+// http://www.ijmttjournal.org/Volume-3/issue-3/IJMTT-V3I3P501.pdf
 import 'dart:io';
 import 'dart:math' as math;
 
@@ -78,7 +80,7 @@ const List<String> columns = [
   'rank',
   'cond',
   'lu_res',
-  'qr_res'
+  'qr_res',
 ];
 
 void main() {
@@ -96,7 +98,7 @@ void main() {
     // Order of magic square.
     buffer.add(integerPrinter()(n));
 
-    // Diagonal sum, should be the magic sum, (n^3 + n)/2.
+    // Diagonal sum, should be the magic sum, (n^3 + n) / 2.
     {
       final t = m.diagonal().sum;
       buffer.add(integerPrinter()(t));
@@ -116,18 +118,30 @@ void main() {
     {
       final r = m.rank;
       buffer.add(integerPrinter()(r));
-      assert(n.isOdd ? r == n : r < n, 'invalid rank');
+      assert(
+          n % 4 == 0
+              ? r == 3
+              : n.isOdd
+                  ? r == n
+                  : r == (n ~/ 2) + 2,
+          'invalid rank');
     }
 
     // L_2 condition number, ratio of singular values.
     {
       final c = m.cond;
-      buffer.add(doublePrinter(3)(c < 1 / eps ? c : double.infinity));
+      final cn = c < 1 / eps ? c : double.infinity;
+      buffer.add(doublePrinter(3)(cn));
+      assert(n == 3
+          ? cn.round() == 4
+          : n.isOdd
+              ? cn.round() == n
+              : cn == double.infinity);
     }
 
     // Test of LU factorization, norm1(L*U-A(p,:))/(n*eps).
     {
-      final lu = m.lu;
+      final lu = md.lu;
       final l = lu.lower;
       final u = lu.upper;
       final p = lu.pivot;
@@ -146,6 +160,12 @@ void main() {
       final res = R.norm1 / (n * eps);
       buffer.add(doublePrinter(3)(res));
       assert(R.normFrobenius < 1e-8, 'inaccurate QR factorization');
+    }
+
+    // Trace of inverse, should be the inverse of the magic sum.
+    if (n.isOdd) {
+      final t = 1 / md.inverse.trace;
+      assert(t.round() == (n * n * n + n) / 2, 'invalid inverse magic sum');
     }
 
     stdout.writeln(buffer.map(alignPrinter(width)).join());
