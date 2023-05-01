@@ -2841,6 +2841,24 @@ void main() {
         expect(jackknife.upperBound, isCloseTo(4.644853612756265));
         expect(jackknife.toString(), startsWith('Jackknife'));
       });
+      test('normal distribution', () {
+        const mu = 100.0, sd = 25.0;
+        const normal = NormalDistribution(mu, sd);
+        final random = Random(75483);
+        final samples = normal.samples(random: random).take(1000).toList();
+        final jackknifeMean = Jackknife<double>(
+            samples, (list) => list.arithmeticMean(),
+            confidenceLevel: 0.95);
+        expect(
+            jackknifeMean.estimate, closeTo(mu, jackknifeMean.standardError));
+        expect(jackknifeMean.standardError, lessThan(1.0));
+        final jackknifeStdDev = Jackknife<double>(
+            samples, (list) => list.standardDeviation(),
+            confidenceLevel: 0.95);
+        expect(jackknifeStdDev.estimate,
+            closeTo(sd, jackknifeStdDev.standardError));
+        expect(jackknifeStdDev.standardError, lessThan(1.0));
+      });
     });
   });
 }
