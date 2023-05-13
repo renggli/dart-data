@@ -37,12 +37,12 @@ extension RangeVectorExtension<T> on Vector<T> {
 
   /// Returns a mutable view onto a [Vector] range. The behavior is undefined,
   /// if the range is out of bounds.
-  Vector<T> rangeUnchecked(int start, int end) =>
-      start == 0 && end == count ? this : _rangeUnchecked(this, start, end);
-
-  // TODO(renggli): https://github.com/dart-lang/sdk/issues/39959
-  static Vector<T> _rangeUnchecked<T>(Vector<T> self, int start, int end) =>
-      self is RangeVector<T>
-          ? RangeVector<T>(self.vector, self.start + start, self.start + end)
-          : RangeVector<T>(self, start, end);
+  Vector<T> rangeUnchecked(int start, int end) {
+    if (start == 0 && end == count) return this;
+    return switch (this) {
+      RangeVector<T>(vector: final thisVector, start: final thisStart) =>
+        RangeVector<T>(thisVector, thisStart + start, thisStart + end),
+      _ => RangeVector<T>(this, start, end),
+    };
+  }
 }

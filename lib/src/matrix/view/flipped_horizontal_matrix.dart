@@ -31,11 +31,8 @@ class FlippedHorizontalMatrix<T> with Matrix<T> {
 
 extension FlippedHorizontalMatrixExtension<T> on Matrix<T> {
   /// Returns a mutable view onto the horizontally flipped matrix.
-  Matrix<T> get flippedHorizontal => _flippedHorizontal(this);
-
-  // TODO(renggli): https://github.com/dart-lang/sdk/issues/39959
-  static Matrix<T> _flippedHorizontal<T>(Matrix<T> self) =>
-      self is FlippedHorizontalMatrix<T>
-          ? self.matrix
-          : FlippedHorizontalMatrix<T>(self);
+  Matrix<T> get flippedHorizontal => switch (this) {
+        FlippedHorizontalMatrix<T>(matrix: final matrix) => matrix,
+        _ => FlippedHorizontalMatrix<T>(this),
+      };
 }

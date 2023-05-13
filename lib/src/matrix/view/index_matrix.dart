@@ -6,14 +6,13 @@ import '../matrix.dart';
 
 /// Mutable indexed view of the rows and columns of a matrix.
 class IndexMatrix<T> with Matrix<T> {
-  IndexMatrix(
-      this.matrix, Iterable<int> rowIndexes, Iterable<int> columnIndexes)
+  IndexMatrix(this.matrix, Iterable<int> rowIndexes, Iterable<int> colIndexes)
       : rowIndexes = DataType.indexDataType.copyList(rowIndexes),
-        columnIndexes = DataType.indexDataType.copyList(columnIndexes);
+        colIndexes = DataType.indexDataType.copyList(colIndexes);
 
   final Matrix<T> matrix;
   final List<int> rowIndexes;
-  final List<int> columnIndexes;
+  final List<int> colIndexes;
 
   @override
   DataType<T> get dataType => matrix.dataType;
@@ -22,18 +21,18 @@ class IndexMatrix<T> with Matrix<T> {
   int get rowCount => rowIndexes.length;
 
   @override
-  int get colCount => columnIndexes.length;
+  int get colCount => colIndexes.length;
 
   @override
   Set<Storage> get storage => matrix.storage;
 
   @override
   T getUnchecked(int row, int col) =>
-      matrix.getUnchecked(rowIndexes[row], columnIndexes[col]);
+      matrix.getUnchecked(rowIndexes[row], colIndexes[col]);
 
   @override
   void setUnchecked(int row, int col, T value) =>
-      matrix.setUnchecked(rowIndexes[row], columnIndexes[col], value);
+      matrix.setUnchecked(rowIndexes[row], colIndexes[col], value);
 }
 
 extension IndexMatrixExtension<T> on Matrix<T> {
@@ -73,15 +72,16 @@ extension IndexMatrixExtension<T> on Matrix<T> {
   /// undefined if any of the indexes are out of bounds.
   Matrix<T> indexUnchecked(
           Iterable<int> rowIndexes, Iterable<int> colIndexes) =>
-      _indexUnchecked(this, rowIndexes, colIndexes);
-
-  // TODO(renggli): https://github.com/dart-lang/sdk/issues/39959
-  static Matrix<T> _indexUnchecked<T>(
-          Matrix<T> self, Iterable<int> rowIndexes, Iterable<int> colIndexes) =>
-      self is IndexMatrix<T>
-          ? IndexMatrix<T>(
-              self.matrix,
-              rowIndexes.map((index) => self.rowIndexes[index]),
-              colIndexes.map((index) => self.columnIndexes[index]))
-          : IndexMatrix<T>(self, rowIndexes, colIndexes);
+      switch (this) {
+        IndexMatrix<T>(
+          matrix: final matrix,
+          rowIndexes: final thisRowIndexes,
+          colIndexes: final thisColIndexes
+        ) =>
+          IndexMatrix<T>(
+              matrix,
+              rowIndexes.map((index) => thisRowIndexes[index]),
+              colIndexes.map((index) => thisColIndexes[index])),
+        _ => IndexMatrix<T>(this, rowIndexes, colIndexes),
+      };
 }

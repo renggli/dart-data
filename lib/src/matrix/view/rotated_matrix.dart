@@ -53,10 +53,8 @@ class RotatedMatrix<T> with Matrix<T> {
 extension RotatedMatrixExtension<T> on Matrix<T> {
   /// Returns a mutable view onto the matrix rotated clockwise by multiples
   /// of 90 degrees.
-  Matrix<T> rotated({int count = 1}) => _rotated(this, count);
-
-  // TODO(renggli): https://github.com/dart-lang/sdk/issues/39959
-  static Matrix<T> _rotated<T>(Matrix<T> self, int count) {
+  Matrix<T> rotated({int count = 1}) {
+    var self = this;
     if (self is RotatedMatrix<T>) {
       count += self.count;
       self = self.matrix;

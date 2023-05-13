@@ -74,23 +74,24 @@ extension RangeMatrixExtension<T> on Matrix<T> {
   /// Returns a mutable view onto the row and column ranges. The behavior is
   /// undefined if any of the ranges are out of bounds.
   Matrix<T> rangeUnchecked(
-          int rowStart, int rowEnd, int columnStart, int columnEnd) =>
-      rowStart == 0 &&
-              rowEnd == rowCount &&
-              columnStart == 0 &&
-              columnEnd == colCount
-          ? this
-          : _rangeUnchecked(this, rowStart, rowEnd, columnStart, columnEnd);
-
-  // TODO(renggli): https://github.com/dart-lang/sdk/issues/39959
-  static Matrix<T> _rangeUnchecked<T>(Matrix<T> self, int rowStart, int rowEnd,
-          int columnStart, int columnEnd) =>
-      self is RangeMatrix<T>
-          ? RangeMatrix<T>(
-              self.matrix,
-              self.rowStart + rowStart,
-              self.rowStart + rowEnd,
-              self.columnStart + columnStart,
-              self.columnStart + columnEnd)
-          : RangeMatrix<T>(self, rowStart, rowEnd, columnStart, columnEnd);
+      int rowStart, int rowEnd, int columnStart, int columnEnd) {
+    if (rowStart == 0 &&
+        rowEnd == rowCount &&
+        columnStart == 0 &&
+        columnEnd == colCount) return this;
+    return switch (this) {
+      RangeMatrix<T>(
+        matrix: final thisMatrix,
+        rowStart: final thisRowStart,
+        columnStart: final thisColumnStart
+      ) =>
+        RangeMatrix<T>(
+            thisMatrix,
+            thisRowStart + rowStart,
+            thisRowStart + rowEnd,
+            thisColumnStart + columnStart,
+            thisColumnStart + columnEnd),
+      _ => RangeMatrix<T>(this, rowStart, rowEnd, columnStart, columnEnd),
+    };
+  }
 }

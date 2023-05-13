@@ -46,15 +46,12 @@ class ShiftPolynomial<T> with Polynomial<T> {
 
 extension ShiftPolynomialExtension<T> on Polynomial<T> {
   /// Returns a mutable view of this polynomial shift by [offset].
-  Polynomial<T> shift(int offset) => offset == 0 ? this : _shift(this, offset);
-
-  // TODO(renggli): https://github.com/dart-lang/sdk/issues/39959
-  static Polynomial<T> _shift<T>(Polynomial<T> self, int offset) {
-    final polynomial = self is ShiftPolynomial<T> ? self.polynomial : self;
-    final effective =
-        self is ShiftPolynomial<T> ? self.offset + offset : offset;
-    return effective == 0
-        ? polynomial
-        : ShiftPolynomial<T>(polynomial, effective);
+  Polynomial<T> shift(int offset) {
+    var self = this;
+    if (self is ShiftPolynomial<T>) {
+      offset += self.offset;
+      self = self.polynomial;
+    }
+    return offset == 0 ? self : ShiftPolynomial<T>(self, offset);
   }
 }

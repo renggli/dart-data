@@ -474,11 +474,11 @@ class SingularValueDecomposition {
             k = m - 2 - kk + l;
             t1 = stemp[k];
 
-            var rotg = _rotg(t1, f);
-            t1 = rotg[0];
-            f = rotg[1];
-            cs = rotg[2];
-            sn = rotg[3];
+            final rotg = _rotg(t1, f);
+            t1 = rotg.da;
+            f = rotg.db;
+            cs = rotg.c;
+            sn = rotg.s;
 
             stemp[k] = t1;
             if (k != l) {
@@ -507,11 +507,11 @@ class SingularValueDecomposition {
           e[l - 1] = 0.0;
           for (var k = l; k < m; k++) {
             var t1 = stemp[k];
-            var rotg = _rotg(t1, f);
-            t1 = rotg[0];
-            f = rotg[1];
-            cs = rotg[2];
-            sn = rotg[3];
+            final rotg = _rotg(t1, f);
+            t1 = rotg.da;
+            f = rotg.db;
+            cs = rotg.c;
+            sn = rotg.s;
 
             stemp[k] = t1;
             f = -sn * e[k];
@@ -563,10 +563,10 @@ class SingularValueDecomposition {
           // Chase zeros.
           for (var k = l; k < m - 1; k++) {
             var rotg = _rotg(f, g);
-            f = rotg[0];
-            g = rotg[1];
-            cs = rotg[2];
-            sn = rotg[3];
+            f = rotg.da;
+            g = rotg.db;
+            cs = rotg.c;
+            sn = rotg.s;
 
             if (k != l) {
               e[k - 1] = f;
@@ -588,10 +588,10 @@ class SingularValueDecomposition {
             }
 
             rotg = _rotg(f, g);
-            f = rotg[0];
-            g = rotg[1];
-            cs = rotg[2];
-            sn = rotg[3];
+            f = rotg.da;
+            g = rotg.db;
+            cs = rotg.c;
+            sn = rotg.s;
 
             stemp[k] = f;
             f = (cs * e[k]) + (sn * stemp[k + 1]);
@@ -795,9 +795,8 @@ class SingularValueDecomposition {
   /// Given the Cartesian coordinates (da, db) of a point p, these function
   /// return the parameters da, db, c, and s associated with the Givens rotation
   /// that zeros the y-coordinate of the point.
-  ///
-  /// TODO: use the Records Feature.
-  static List<double> _rotg(double da, double db) {
+  static ({double da, double db, double c, double s}) _rotg(
+      double da, double db) {
     double c, s; // out
 
     final absda = da.abs();
@@ -831,10 +830,7 @@ class SingularValueDecomposition {
       }
     }
 
-    da = r;
-    db = z;
-
-    return [da, db, c, s];
+    return (da: r, db: z, c: c, s: s);
   }
 
   /// Standard epsilon, the maximum relative precision of IEEE 754 double-
