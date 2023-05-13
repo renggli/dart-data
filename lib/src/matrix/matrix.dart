@@ -22,7 +22,7 @@ import 'view/identity_matrix.dart';
 import 'view/row_vector.dart';
 
 /// Abstract matrix type.
-abstract class Matrix<T> implements Storage {
+abstract mixin class Matrix<T> implements Storage {
   /// Constructs a default matrix of the desired [dataType], the provided
   /// [rowCount] and [columnCount], and possibly a custom [format].
   factory Matrix(DataType<T> dataType, int rowCount, int columnCount,

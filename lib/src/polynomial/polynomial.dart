@@ -18,7 +18,7 @@ import 'polynomial_format.dart';
 import 'view/generated_polynomial.dart';
 
 /// Abstract polynomial type.
-abstract class Polynomial<T> implements Storage {
+abstract mixin class Polynomial<T> implements Storage {
   /// Constructs a default vector of the desired [dataType], and possibly a
   /// custom [format].
   factory Polynomial(DataType<T> dataType,

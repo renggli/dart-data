@@ -14,7 +14,7 @@ import 'view/constant_vector.dart';
 import 'view/generated_vector.dart';
 
 /// Abstract vector type.
-abstract class Vector<T> implements Storage {
+abstract mixin class Vector<T> implements Storage {
   /// Constructs a default vector of the desired [dataType], the provided
   /// element [count], and possibly a custom [format].
   factory Vector(DataType<T> dataType, int count, {VectorFormat? format}) {

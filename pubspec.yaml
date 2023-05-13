@@ -1,12 +1,12 @@
 name: data
-version: 0.11.0
+version: 0.12.0
 
 homepage: https://github.com/renggli/dart-data
 description: A time and space efficient collection of data structures and
   algorithms to deal with data in Dart.
 
 environment:
-  sdk: '>=2.19.0 <3.0.0'
+  sdk: ^3.0.0
 dependencies:
   collection: ^1.17.0
   meta: ^1.9.0

@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.12.0 (Unpublished)
+
+- Dart 3.0 requirement.
+
 ## 0.11.0
 
 - Dart 2.18 requirement.
