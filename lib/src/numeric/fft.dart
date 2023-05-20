@@ -6,8 +6,7 @@ import 'package:more/number.dart' show Complex;
 
 /// Performs an in-place Discrete Fast Fourier transformation on the provided
 /// [values]. If necessary, extends the size the provided list to a power of
-/// two. collection to a power of two. Returns the modified collection of
-/// transformed values.
+/// two. Returns the modified collection of transformed values.
 ///
 /// If [inverse] is `true`, the inverse transformation is computed.
 List<Complex> fft(List<Complex> values, {bool inverse = false}) {
@@ -32,7 +31,7 @@ List<Complex> fft(List<Complex> values, {bool inverse = false}) {
   // Transform the elements.
   for (var len = 2; len <= n; len <<= 1) {
     final halfLen = len >> 1;
-    final a = 2.0 * math.pi / len * (inverse ? -1 : 1);
+    final a = (inverse ? -2 : 2) * math.pi / len;
     final r = Complex(math.cos(a), math.sin(a));
     for (var i = 0; i < n; i += len) {
       var w = Complex.one;
