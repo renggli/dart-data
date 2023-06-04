@@ -44,7 +44,7 @@ abstract class IntegerDataType extends DataType<int> {
   int comparator(int a, int b) => a.compareTo(b);
 
   @override
-  List<int> newList(int length, [int? fillValue]) {
+  List<int> newList(int length, {int? fillValue}) {
     final result = _newList(length);
     if (fillValue != null && fillValue != defaultValue) {
       result.fillRange(0, length, fillValue);

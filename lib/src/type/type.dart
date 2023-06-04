@@ -143,14 +143,15 @@ abstract class DataType<T> {
       value, 'value', 'Unable to cast "$value" to $this.');
 
   /// Creates a fixed-length list of this data type.
-  List<T> newList(int length, [T? fillValue]) =>
+  List<T> newList(int length, {T? fillValue}) =>
       List<T>.filled(length, fillValue ?? defaultValue);
 
   /// Creates a fixed-length list copy of this data type, possibly with a
   /// modified [length] and if necessary populated with [fillValue].
   List<T> copyList(Iterable<T> list, {int? length, T? fillValue}) {
     final listLength = list.length;
-    final result = newList(length ?? listLength, fillValue ?? defaultValue);
+    final result =
+        newList(length ?? listLength, fillValue: fillValue ?? defaultValue);
     result.setRange(0, math.min(result.length, listLength), list);
     return result;
   }

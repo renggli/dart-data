@@ -36,8 +36,8 @@ int editDistance(String a, String b) {
   if (a.length < b.length) {
     return editDistance(b, a);
   }
-  var v0 = DataType.indexDataType.newList(b.length + 1, 0);
-  var v1 = DataType.indexDataType.newList(b.length + 1, 0);
+  var v0 = DataType.indexDataType.newList(b.length + 1);
+  var v1 = DataType.indexDataType.newList(b.length + 1);
   for (var i = 0; i <= b.length; i++) {
     v0[i] = i;
   }

@@ -35,8 +35,8 @@ class NullableDataType<T> extends DataType<T?> {
   T? cast(dynamic value) => value == null ? null : delegate.cast(value);
 
   @override
-  List<T?> newList(int length, [T? fillValue]) => NullableList(
-      delegate.newList(length, fillValue ?? delegate.defaultValue),
+  List<T?> newList(int length, {T? fillValue}) => NullableList(
+      delegate.newList(length, fillValue: fillValue ?? delegate.defaultValue),
       delegate.defaultValue,
       fillValue != null);
 

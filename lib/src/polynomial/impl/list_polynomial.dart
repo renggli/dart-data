@@ -10,7 +10,7 @@ class ListPolynomial<T> with Polynomial<T> {
   ListPolynomial(this.dataType, int desiredDegree)
       : _coefficients = dataType.newList(
             max(initialListLength, desiredDegree + 1),
-            dataType.field.additiveIdentity),
+            fillValue: dataType.field.additiveIdentity),
         _degree = -1;
 
   // Coefficients in ascending order, where the index matches the exponent.

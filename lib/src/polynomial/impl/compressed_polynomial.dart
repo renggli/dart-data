@@ -7,8 +7,8 @@ import '../polynomial.dart';
 class CompressedPolynomial<T> with Polynomial<T> {
   CompressedPolynomial(this.dataType)
       : _exponents = DataType.indexDataType.newList(initialListLength),
-        _coefficients = dataType.newList(
-            initialListLength, dataType.field.additiveIdentity),
+        _coefficients = dataType.newList(initialListLength,
+            fillValue: dataType.field.additiveIdentity),
         _length = 0;
 
   List<int> _exponents;

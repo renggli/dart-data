@@ -15,7 +15,7 @@ class BooleanDataType extends DataType<bool> {
   bool get defaultValue => false;
 
   @override
-  List<bool> newList(int length, [bool? fillValue]) =>
+  List<bool> newList(int length, {bool? fillValue}) =>
       BitList.filled(length, fillValue ?? defaultValue);
 
   @override

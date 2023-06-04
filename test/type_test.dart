@@ -4,7 +4,8 @@ import 'package:data/data.dart';
 import 'package:more/feature.dart';
 import 'package:test/test.dart';
 
-T store<T>(DataType<T> type, T value) => type.newList(1, value).first;
+T store<T>(DataType<T> type, T value) =>
+    type.newList(1, fillValue: value).first;
 
 void listTest<T>(DataType<T> type, List<List<T>> lists) {
   if ([
@@ -75,7 +76,7 @@ void listTest<T>(DataType<T> type, List<List<T>> lists) {
       expect(list[0], type.defaultValue);
     });
     test('filled', () {
-      final list = type.newList(10, exampleValue);
+      final list = type.newList(10, fillValue: exampleValue);
       expect(list, List.filled(10, exampleValue));
     });
   });

@@ -38,7 +38,7 @@ abstract class FloatDataType extends DataType<double> {
   int comparator(double a, double b) => a.compareTo(b);
 
   @override
-  List<double> newList(int length, [double? fillValue]) {
+  List<double> newList(int length, {double? fillValue}) {
     final result = _newList(length);
     if (fillValue != null && fillValue != defaultValue) {
       result.fillRange(0, length, fillValue);
