@@ -8,7 +8,7 @@ void main() {
   group('config', () {
     group('data types', () {
       test('index', () {
-        expect(DataType.indexDataType, DataType.uint32);
+        expect(DataType.index, DataType.uint32);
       });
 
       test('float', () {

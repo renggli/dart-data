@@ -6,8 +6,8 @@ import '../matrix.dart';
 /// Sparse compressed row matrix.
 class CompressedRowMatrix<T> with Matrix<T> {
   CompressedRowMatrix(this.dataType, this.rowCount, this.colCount)
-      : _rowExtends = DataType.indexDataType.newList(rowCount),
-        _columnIndexes = DataType.indexDataType.newList(initialListLength),
+      : _rowExtends = DataType.index.newList(rowCount),
+        _columnIndexes = DataType.index.newList(initialListLength),
         _values = dataType.newList(initialListLength),
         _length = 0;
 
@@ -44,8 +44,8 @@ class CompressedRowMatrix<T> with Matrix<T> {
         for (var r = row; r < rowCount; r++) {
           _rowExtends[r]++;
         }
-        _columnIndexes = insertAt(
-            DataType.indexDataType, _columnIndexes, _length, -index - 1, col);
+        _columnIndexes =
+            insertAt(DataType.index, _columnIndexes, _length, -index - 1, col);
         _values = insertAt(dataType, _values, _length, -index - 1, value);
         _length++;
       }
@@ -55,7 +55,7 @@ class CompressedRowMatrix<T> with Matrix<T> {
           _rowExtends[r]--;
         }
         _columnIndexes =
-            removeAt(DataType.indexDataType, _columnIndexes, _length, index);
+            removeAt(DataType.index, _columnIndexes, _length, index);
         _values = removeAt(dataType, _values, _length, index);
         _length--;
       } else {

@@ -11,7 +11,7 @@ DataType<T> fromType<T>() {
     case double:
       return DataType.float as DataType<T>;
     case int:
-      return DataType.intDataType as DataType<T>;
+      return DataType.integer as DataType<T>;
     case bool:
       return DataType.boolean as DataType<T>;
     case String:

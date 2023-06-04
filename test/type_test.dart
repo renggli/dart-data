@@ -10,7 +10,7 @@ T store<T>(DataType<T> type, T value) =>
 void listTest<T>(DataType<T> type, List<List<T>> lists) {
   if ([
     DataType.float,
-    DataType.intDataType,
+    DataType.integer,
     DataType.boolean,
     DataType.string,
     DataType.bigInt,

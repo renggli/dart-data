@@ -34,9 +34,9 @@ class LevenbergMarquardt extends CurveFit {
   })  : initialValues = parametrizedFunction.toVector(initialValues,
             defaultParam: initialValue),
         minValues = parametrizedFunction.toVector(minValues,
-            defaultParam: minValue ?? DataType.intDataType.safeMin.toDouble()),
+            defaultParam: minValue ?? DataType.integer.safeMin.toDouble()),
         maxValues = parametrizedFunction.toVector(maxValues,
-            defaultParam: maxValue ?? DataType.intDataType.safeMax.toDouble()),
+            defaultParam: maxValue ?? DataType.integer.safeMax.toDouble()),
         gradientDifferences = parametrizedFunction.toVector(gradientDifferences,
             defaultParam: gradientDifference) {
     if (parametrizedFunction.count == 0) {

@@ -560,7 +560,7 @@ void polynomialTest(String name, PolynomialFormat format) {
         test('view', () {
           final list = [0, 1, 2, 3, 0];
           final polynomial = list.toPolynomial();
-          expect(polynomial.dataType, DataType.intDataType);
+          expect(polynomial.dataType, DataType.integer);
           expect(polynomial.degree, 3);
           expect(polynomial[0], 0);
           expect(polynomial[1], 1);
@@ -583,7 +583,7 @@ void polynomialTest(String name, PolynomialFormat format) {
         test('copy', () {
           final list = [0, 1, 2, 3, 0];
           final polynomial = list.toPolynomial(format: format);
-          expect(polynomial.dataType, DataType.intDataType);
+          expect(polynomial.dataType, DataType.integer);
           expect(polynomial.degree, 3);
           expect(polynomial[0], 0);
           expect(polynomial[1], 1);
@@ -875,7 +875,7 @@ void polynomialTest(String name, PolynomialFormat format) {
         });
         test('fft (int)', () {
           final expected = Polynomial.fromList(
-              DataType.intDataType, [-4, 2, 22, 37, 27, -12],
+              DataType.integer, [-4, 2, 22, 37, 27, -12],
               format: format);
           final first = sourceA.mul(sourceB, fftMultiply: true);
           expect(first, isCloseTo(expected));

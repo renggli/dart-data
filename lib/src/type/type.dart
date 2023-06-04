@@ -49,10 +49,10 @@ abstract class DataType<T> {
   static const BooleanDataType boolean = BooleanDataType();
 
   /// Configurable default data type to index collections, rows, columns, etc.
-  static IntegerDataType indexDataType = uint32;
+  static IntegerDataType index = uint32;
 
   /// Configurable default data type for integer arithmetic.
-  static IntegerDataType intDataType = int32;
+  static IntegerDataType integer = int32;
 
   /// Signed 8-bit [int] data type.
   static const IntegerDataType int8 = Int8DataType();

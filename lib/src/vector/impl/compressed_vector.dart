@@ -6,7 +6,7 @@ import '../vector.dart';
 /// Sparse compressed vector.
 class CompressedVector<T> with Vector<T> {
   CompressedVector(this.dataType, this.count)
-      : _indexes = DataType.indexDataType.newList(initialListLength),
+      : _indexes = DataType.index.newList(initialListLength),
         _values = dataType.newList(initialListLength),
         _length = 0;
 
@@ -34,14 +34,13 @@ class CompressedVector<T> with Vector<T> {
     final pos = binarySearch<num>(_indexes, 0, _length, index);
     if (pos < 0) {
       if (value != dataType.defaultValue) {
-        _indexes = insertAt(
-            DataType.indexDataType, _indexes, _length, -pos - 1, index);
+        _indexes = insertAt(DataType.index, _indexes, _length, -pos - 1, index);
         _values = insertAt(dataType, _values, _length, -pos - 1, value);
         _length++;
       }
     } else {
       if (value == dataType.defaultValue) {
-        _indexes = removeAt(DataType.indexDataType, _indexes, _length, pos);
+        _indexes = removeAt(DataType.index, _indexes, _length, pos);
         _values = removeAt(dataType, _values, _length, pos);
         _length--;
       } else {

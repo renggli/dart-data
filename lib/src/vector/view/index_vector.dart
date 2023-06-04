@@ -5,7 +5,7 @@ import '../vector.dart';
 // A mutable indexed view of a vector.
 class IndexVector<T> with Vector<T> {
   IndexVector(this.vector, Iterable<int> indexes)
-      : indexes = DataType.indexDataType.copyList(indexes);
+      : indexes = DataType.index.copyList(indexes);
 
   final Vector<T> vector;
   final List<int> indexes;

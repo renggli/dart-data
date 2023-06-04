@@ -6,8 +6,8 @@ import '../matrix.dart';
 // Sparse matrix in coordinate format.
 class CoordinateListMatrix<T> with Matrix<T> {
   CoordinateListMatrix(this.dataType, this.rowCount, this.colCount)
-      : _rows = DataType.indexDataType.newList(initialListLength),
-        _columns = DataType.indexDataType.newList(initialListLength),
+      : _rows = DataType.index.newList(initialListLength),
+        _columns = DataType.index.newList(initialListLength),
         _values = dataType.newList(initialListLength),
         _length = 0;
 
@@ -56,17 +56,15 @@ class CoordinateListMatrix<T> with Matrix<T> {
     final index = _binarySearch(row, col);
     if (index < 0) {
       if (value != dataType.defaultValue) {
-        _rows =
-            insertAt(DataType.indexDataType, _rows, _length, -index - 1, row);
-        _columns = insertAt(
-            DataType.indexDataType, _columns, _length, -index - 1, col);
+        _rows = insertAt(DataType.index, _rows, _length, -index - 1, row);
+        _columns = insertAt(DataType.index, _columns, _length, -index - 1, col);
         _values = insertAt(dataType, _values, _length, -index - 1, value);
         _length++;
       }
     } else {
       if (value == dataType.defaultValue) {
-        _rows = removeAt(DataType.indexDataType, _rows, _length, index);
-        _columns = removeAt(DataType.indexDataType, _columns, _length, index);
+        _rows = removeAt(DataType.index, _rows, _length, index);
+        _columns = removeAt(DataType.index, _columns, _length, index);
         _values = removeAt(dataType, _values, _length, index);
         _length--;
       } else {

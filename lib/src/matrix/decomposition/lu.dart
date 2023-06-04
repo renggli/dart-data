@@ -23,7 +23,7 @@ class LUDecomposition {
       : _lu = source.cast(DataType.float).toMatrix(),
         _m = source.rowCount,
         _n = source.colCount,
-        _piv = DataType.indexDataType.newList(source.rowCount) {
+        _piv = DataType.index.newList(source.rowCount) {
     // Use a 'left-looking', dot-product, Crout/Doolittle algorithm.
     for (var i = 0; i < _m; i++) {
       _piv[i] = i;
@@ -128,7 +128,7 @@ class LUDecomposition {
   }
 
   /// Returns pivot permutation vector (P-value).
-  List<int> get pivot => DataType.indexDataType.copyList(_piv);
+  List<int> get pivot => DataType.index.copyList(_piv);
 
   /// Returns the determinant.
   double get det {

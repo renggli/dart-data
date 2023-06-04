@@ -6,7 +6,7 @@ import '../polynomial.dart';
 /// Sparse compressed polynomial.
 class CompressedPolynomial<T> with Polynomial<T> {
   CompressedPolynomial(this.dataType)
-      : _exponents = DataType.indexDataType.newList(initialListLength),
+      : _exponents = DataType.index.newList(initialListLength),
         _coefficients = dataType.newList(initialListLength,
             fillValue: dataType.field.additiveIdentity),
         _length = 0;
@@ -35,8 +35,8 @@ class CompressedPolynomial<T> with Polynomial<T> {
     final pos = binarySearch<num>(_exponents, 0, _length, exponent);
     if (pos < 0) {
       if (value != dataType.defaultValue) {
-        _exponents = insertAt(
-            DataType.indexDataType, _exponents, _length, -pos - 1, exponent);
+        _exponents =
+            insertAt(DataType.index, _exponents, _length, -pos - 1, exponent);
         _coefficients = insertAt(
             dataType, _coefficients, _length, -pos - 1, value,
             fillValue: dataType.defaultValue);
@@ -44,7 +44,7 @@ class CompressedPolynomial<T> with Polynomial<T> {
       }
     } else {
       if (value == dataType.defaultValue) {
-        _exponents = removeAt(DataType.indexDataType, _exponents, _length, pos);
+        _exponents = removeAt(DataType.index, _exponents, _length, pos);
         _coefficients = removeAt(dataType, _coefficients, _length, pos,
             fillValue: dataType.defaultValue);
         _length--;
