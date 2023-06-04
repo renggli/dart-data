@@ -7,22 +7,14 @@ import 'package:more/printer.dart' show Printer, FixedNumberPrinter;
 
 import '../models/equality.dart';
 import '../models/field.dart';
-import '../type.dart';
+import 'typed.dart';
 
-abstract class IntegerDataType extends DataType<int> {
+abstract class IntegerDataType<L extends List<int>>
+    extends TypedDataType<int, L> {
   const IntegerDataType();
-
-  /// Returns the size in bits of this integer.
-  int get bits;
 
   /// Returns the true, if this integer is signed.
   bool get isSigned;
-
-  /// Returns the minimum value of this integer.
-  int get min;
-
-  /// Returns the maximum value of this integer.
-  int get max;
 
   /// Returns the safe bits of an integer value. In the Dart VM integer are
   /// represented using 63 bits and a sign, in JavaScript we only have 53.
@@ -42,18 +34,6 @@ abstract class IntegerDataType extends DataType<int> {
 
   @override
   int comparator(int a, int b) => a.compareTo(b);
-
-  @override
-  List<int> newList(int length, {int? fillValue}) {
-    final result = _newList(length);
-    if (fillValue != null && fillValue != defaultValue) {
-      result.fillRange(0, length, fillValue);
-    }
-    return result;
-  }
-
-  /// Internal helper returning a typed list.
-  List<int> _newList(int length);
 
   @override
   Field<int> get field => const IntegerField();
@@ -87,7 +67,7 @@ abstract class IntegerDataType extends DataType<int> {
   Printer<int> get printer => FixedNumberPrinter<int>();
 }
 
-class Int8DataType extends IntegerDataType {
+class Int8DataType extends IntegerDataType<Int8List> {
   const Int8DataType();
 
   @override
@@ -103,10 +83,13 @@ class Int8DataType extends IntegerDataType {
   bool get isSigned => true;
 
   @override
-  List<int> _newList(int length) => Int8List(length);
+  Int8List emptyList(int length) => Int8List(length);
+
+  @override
+  Int8List readonlyList(Int8List list) => UnmodifiableInt8ListView(list);
 }
 
-class Uint8DataType extends IntegerDataType {
+class Uint8DataType extends IntegerDataType<Uint8List> {
   const Uint8DataType();
 
   @override
@@ -122,10 +105,13 @@ class Uint8DataType extends IntegerDataType {
   bool get isSigned => false;
 
   @override
-  List<int> _newList(int length) => Uint8List(length);
+  Uint8List emptyList(int length) => Uint8List(length);
+
+  @override
+  Uint8List readonlyList(Uint8List list) => UnmodifiableUint8ListView(list);
 }
 
-class Int16DataType extends IntegerDataType {
+class Int16DataType extends IntegerDataType<Int16List> {
   const Int16DataType();
 
   @override
@@ -141,10 +127,13 @@ class Int16DataType extends IntegerDataType {
   bool get isSigned => true;
 
   @override
-  List<int> _newList(int length) => Int16List(length);
+  Int16List emptyList(int length) => Int16List(length);
+
+  @override
+  Int16List readonlyList(Int16List list) => UnmodifiableInt16ListView(list);
 }
 
-class Uint16DataType extends IntegerDataType {
+class Uint16DataType extends IntegerDataType<Uint16List> {
   const Uint16DataType();
 
   @override
@@ -160,10 +149,13 @@ class Uint16DataType extends IntegerDataType {
   bool get isSigned => false;
 
   @override
-  List<int> _newList(int length) => Uint16List(length);
+  Uint16List emptyList(int length) => Uint16List(length);
+
+  @override
+  Uint16List readonlyList(Uint16List list) => UnmodifiableUint16ListView(list);
 }
 
-class Int32DataType extends IntegerDataType {
+class Int32DataType extends IntegerDataType<Int32List> {
   const Int32DataType();
 
   @override
@@ -179,10 +171,13 @@ class Int32DataType extends IntegerDataType {
   bool get isSigned => true;
 
   @override
-  List<int> _newList(int length) => Int32List(length);
+  Int32List emptyList(int length) => Int32List(length);
+
+  @override
+  Int32List readonlyList(Int32List list) => UnmodifiableInt32ListView(list);
 }
 
-class Uint32DataType extends IntegerDataType {
+class Uint32DataType extends IntegerDataType<Uint32List> {
   const Uint32DataType();
 
   @override
@@ -198,10 +193,13 @@ class Uint32DataType extends IntegerDataType {
   bool get isSigned => false;
 
   @override
-  List<int> _newList(int length) => Uint32List(length);
+  Uint32List emptyList(int length) => Uint32List(length);
+
+  @override
+  Uint32List readonlyList(Uint32List list) => UnmodifiableUint32ListView(list);
 }
 
-class Int64DataType extends IntegerDataType {
+class Int64DataType extends IntegerDataType<Int64List> {
   const Int64DataType();
 
   @override
@@ -228,10 +226,13 @@ class Int64DataType extends IntegerDataType {
   bool get isSigned => true;
 
   @override
-  List<int> _newList(int length) => Int64List(length);
+  Int64List emptyList(int length) => Int64List(length);
+
+  @override
+  Int64List readonlyList(Int64List list) => UnmodifiableInt64ListView(list);
 }
 
-class Uint64DataType extends IntegerDataType {
+class Uint64DataType extends IntegerDataType<Uint64List> {
   const Uint64DataType();
 
   @override
@@ -257,7 +258,10 @@ class Uint64DataType extends IntegerDataType {
   bool get isSigned => false;
 
   @override
-  List<int> _newList(int length) => Uint64List(length);
+  Uint64List emptyList(int length) => Uint64List(length);
+
+  @override
+  Uint64List readonlyList(Uint64List list) => UnmodifiableUint64ListView(list);
 }
 
 class IntegerField extends Field<int> {

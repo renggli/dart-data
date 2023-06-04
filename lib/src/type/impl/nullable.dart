@@ -1,4 +1,4 @@
-import 'dart:collection' show ListBase;
+import 'dart:collection' show ListBase, UnmodifiableListView;
 
 import 'package:collection/collection.dart' show NonGrowableListMixin;
 import 'package:more/collection.dart' show BitList;
@@ -35,10 +35,13 @@ class NullableDataType<T> extends DataType<T?> {
   T? cast(dynamic value) => value == null ? null : delegate.cast(value);
 
   @override
-  List<T?> newList(int length, {T? fillValue}) => NullableList(
-      delegate.newList(length, fillValue: fillValue ?? delegate.defaultValue),
-      delegate.defaultValue,
-      fillValue != null);
+  List<T?> newList(int length, {T? fillValue, bool readonly = false}) {
+    final result = NullableList<T>(
+        delegate.newList(length, fillValue: fillValue ?? delegate.defaultValue),
+        delegate.defaultValue,
+        fillValue != null);
+    return readonly ? UnmodifiableListView<T?>(result) : result;
+  }
 
   @override
   bool operator ==(Object other) =>

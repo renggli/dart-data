@@ -7,22 +7,14 @@ import 'package:more/printer.dart'
 
 import '../models/equality.dart';
 import '../models/field.dart';
-import '../type.dart';
+import 'typed.dart';
 
-abstract class FloatDataType extends DataType<double> {
+abstract class FloatDataType<L extends List<double>>
+    extends TypedDataType<double, L> {
   const FloatDataType();
-
-  /// Returns the size in bits of this float.
-  int get bits;
-
-  /// Returns the minimum finite value of this float.
-  double get min;
 
   /// Returns the smallest positive value larger than zero.
   double get minPositive;
-
-  /// Returns the maximum finite value of this float.
-  double get max;
 
   /// Returns the machine epsilon, that is the difference between 1 and the
   /// next larger floating point number.
@@ -36,18 +28,6 @@ abstract class FloatDataType extends DataType<double> {
 
   @override
   int comparator(double a, double b) => a.compareTo(b);
-
-  @override
-  List<double> newList(int length, {double? fillValue}) {
-    final result = _newList(length);
-    if (fillValue != null && fillValue != defaultValue) {
-      result.fillRange(0, length, fillValue);
-    }
-    return result;
-  }
-
-  /// Internal helper returning a typed list.
-  List<double> _newList(int length);
 
   @override
   Field<double> get field => const FloatField();
@@ -70,7 +50,7 @@ abstract class FloatDataType extends DataType<double> {
   }
 }
 
-class Float32DataType extends FloatDataType {
+class Float32DataType extends FloatDataType<Float32List> {
   const Float32DataType();
 
   @override
@@ -89,7 +69,11 @@ class Float32DataType extends FloatDataType {
   double get epsilon => 1.1920928955078125e-7;
 
   @override
-  List<double> _newList(int length) => Float32List(length);
+  Float32List emptyList(int length) => Float32List(length);
+
+  @override
+  Float32List readonlyList(Float32List list) =>
+      UnmodifiableFloat32ListView(list);
 
   @override
   Printer<double> get printer => ScientificNumberPrinter<double>(
@@ -98,7 +82,7 @@ class Float32DataType extends FloatDataType {
       );
 }
 
-class Float64DataType extends FloatDataType {
+class Float64DataType extends FloatDataType<Float64List> {
   const Float64DataType();
 
   @override
@@ -117,7 +101,11 @@ class Float64DataType extends FloatDataType {
   double get epsilon => 2.22044604925031308085e-16;
 
   @override
-  List<double> _newList(int length) => Float64List(length);
+  Float64List emptyList(int length) => Float64List(length);
+
+  @override
+  Float64List readonlyList(Float64List list) =>
+      UnmodifiableFloat64ListView(list);
 
   @override
   Printer<double> get printer => ScientificNumberPrinter<double>(

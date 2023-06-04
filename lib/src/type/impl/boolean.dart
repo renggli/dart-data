@@ -1,3 +1,5 @@
+import 'dart:collection';
+
 import 'package:more/collection.dart' show BitList;
 
 import '../type.dart';
@@ -15,8 +17,11 @@ class BooleanDataType extends DataType<bool> {
   bool get defaultValue => false;
 
   @override
-  List<bool> newList(int length, {bool? fillValue}) =>
-      BitList.filled(length, fillValue ?? defaultValue);
+  List<bool> newList(int length, {bool? fillValue, bool readonly = false}) {
+    final result =
+        BitList.filled(length, fillValue ?? defaultValue, growable: false);
+    return readonly ? UnmodifiableListView(result) : result;
+  }
 
   @override
   bool cast(dynamic value) {

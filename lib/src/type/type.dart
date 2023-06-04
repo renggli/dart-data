@@ -1,3 +1,4 @@
+import 'dart:collection';
 import 'dart:math' as math;
 
 import 'package:meta/meta.dart';
@@ -143,17 +144,20 @@ abstract class DataType<T> {
       value, 'value', 'Unable to cast "$value" to $this.');
 
   /// Creates a fixed-length list of this data type.
-  List<T> newList(int length, {T? fillValue}) =>
-      List<T>.filled(length, fillValue ?? defaultValue);
+  List<T> newList(int length, {T? fillValue, bool readonly = false}) {
+    final result = List<T>.filled(length, fillValue ?? defaultValue);
+    return readonly ? UnmodifiableListView(result) : result;
+  }
 
   /// Creates a fixed-length list copy of this data type, possibly with a
   /// modified [length] and if necessary populated with [fillValue].
-  List<T> copyList(Iterable<T> list, {int? length, T? fillValue}) {
+  List<T> copyList(Iterable<T> list,
+      {int? length, T? fillValue, bool readonly = false}) {
     final listLength = list.length;
     final result =
         newList(length ?? listLength, fillValue: fillValue ?? defaultValue);
     result.setRange(0, math.min(result.length, listLength), list);
-    return result;
+    return readonly ? UnmodifiableListView<T>(result) : result;
   }
 
   /// Casts an existing list to this data type.
