@@ -10,7 +10,7 @@ import 'package:test/test.dart';
 import 'utils/assertions.dart';
 import 'utils/matchers.dart';
 
-Tuple2<Vector<double>, Vector<double>> generateSamples(
+(Vector<double>, Vector<double>) generateSamples(
   UnaryFunction<double> function, {
   double min = -1.0,
   double max = 1.0,
@@ -22,7 +22,7 @@ Tuple2<Vector<double>, Vector<double>> generateSamples(
   final ys = Vector<double>.generate(
       DataType.float, count, (i) => function(xs[i]),
       format: VectorFormat.list);
-  return Tuple2(xs, ys);
+  return (xs, ys);
 }
 
 void main() {
@@ -987,10 +987,10 @@ void main() {
                     startsWith('IntegrateError'))));
       });
       test('does not converge (custom)', () {
-        final warnings = <Tuple2<IntegrateWarning, double>>[];
+        final warnings = <(IntegrateWarning, double)>[];
         integrate(exp, 0, 1,
-            epsilon: 0, onWarning: (type, x) => warnings.add(Tuple2(type, x)));
-        expect(warnings, const [Tuple2(IntegrateWarning.doesNotConverge, 0.5)]);
+            epsilon: 0, onWarning: (type, x) => warnings.add((type, x)));
+        expect(warnings, const [(IntegrateWarning.doesNotConverge, 0.5)]);
       });
       test('depth too shallow', () {
         expect(
@@ -1003,12 +1003,12 @@ void main() {
                     startsWith('IntegrateError'))));
       });
       test('depth too shallow (custom)', () {
-        final warnings = <Tuple2<IntegrateWarning, double>>[];
+        final warnings = <(IntegrateWarning, double)>[];
         integrate(exp, 0, 1,
-            depth: 1, onWarning: (type, x) => warnings.add(Tuple2(type, x)));
+            depth: 1, onWarning: (type, x) => warnings.add((type, x)));
         expect(warnings, const [
-          Tuple2(IntegrateWarning.depthTooShallow, 0.25),
-          Tuple2(IntegrateWarning.depthTooShallow, 0.75),
+          (IntegrateWarning.depthTooShallow, 0.25),
+          (IntegrateWarning.depthTooShallow, 0.75),
         ]);
       });
     });

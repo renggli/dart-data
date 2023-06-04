@@ -187,7 +187,7 @@ class LevenbergMarquardt extends CurveFit {
   }
 
   /// Iteration for Levenberg-Marquardt.
-  Tuple2<Matrix<double>, Matrix<double>> _step({
+  (Matrix<double>, Matrix<double>) _step({
     required Vector<double> x,
     required Vector<double> y,
     required Vector<double> params,
@@ -215,7 +215,7 @@ class LevenbergMarquardt extends CurveFit {
     var jacobianWeightResidualError = gradientFunc.mulMatrix(
         residualError.applyByRow(identity.dataType.field.mul, squaredWeights));
     var perturbations = inverseMatrix.mulMatrix(jacobianWeightResidualError);
-    return Tuple2(perturbations, jacobianWeightResidualError);
+    return (perturbations, jacobianWeightResidualError);
   }
 
   /// Difference of the matrix function over the parameters.
