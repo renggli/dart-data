@@ -21,7 +21,7 @@ class Array<T> with ToStringPrinter {
       {required Shape shape, Strides? strides, DataType<T>? type}) {
     final newType = type ?? DataType.fromInstance(value);
     final newStrides = strides ?? Strides.fromShape(shape);
-    final newData = newType.newList(shape.length, fillValue: value);
+    final newData = newType.newList(shape.size, fillValue: value);
     return Array(
       type: newType,
       data: newData,
@@ -112,6 +112,31 @@ class Array<T> with ToStringPrinter {
   T getValue(List<int> indices) => data[getIndex(indices)];
 
   void setValue(List<int> indices, T value) => data[getIndex(indices)] = value;
+
+  /// Returns a view onto the data with the same
+  Array<T> reshape(Shape shape) {
+    assert(this.shape.size != shape.size,
+        'Cannot change the shape from ${this.shape} to $shape');
+    return Array<T>(
+        type: type,
+        data: data,
+        offset: offset,
+        shape: shape,
+        strides: Strides.fromShape(shape));
+  }
+
+  /// Returns a transposed view.
+  Array<T> transpose({List<int>? axes}) {
+    axes ??= List.generate(dimensions, (int index) => dimensions - index - 1,
+        growable: false);
+    return Array<T>(
+      type: type,
+      data: data,
+      offset: offset,
+      shape: Shape.fromIterable(axes.map((each) => shape[each])),
+      strides: Strides.fromIterable(axes.map((each) => strides[each])),
+    );
+  }
 
   @override
   ObjectPrinter get toStringPrinter => super.toStringPrinter

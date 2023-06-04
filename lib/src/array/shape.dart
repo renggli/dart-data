@@ -4,26 +4,15 @@ import 'package:more/printer.dart';
 
 import '../../data.dart';
 
-/// The shape of an N-dimensional array.
+/// The shape of an n-dimensional array.
 @immutable
 class Shape with ToStringPrinter {
   /// Creates a shape for a vector with a single row of `count` elements.
-  factory Shape.forVector(int count) =>
-      Shape._(DataType.index.newList(1, fillValue: count));
+  factory Shape.forVector(int count) => Shape.fromIterable([count]);
 
   /// Creates a shape for a matrix with a `rowCount` and `colCount` elements.
   factory Shape.forMatrix(int rowCount, int colCount) =>
-      Shape._(DataType.index.newList(2)
-        ..[0] = rowCount
-        ..[1] = colCount);
-
-  /// Creates a shape for an n-dimensional array.
-  factory Shape.fromIterable(Iterable<int> shape) {
-    final length = shape.length;
-    final values = DataType.index.newList(length);
-    values.setRange(0, length, shape);
-    return Shape._(values);
-  }
+      Shape.fromIterable([rowCount, colCount]);
 
   /// Creates a shape from an object of iterables.
   factory Shape.fromObject(Iterable<dynamic> object) {
@@ -36,16 +25,25 @@ class Shape with ToStringPrinter {
     return Shape.fromIterable(values);
   }
 
-  /// Internal constructor.
-  const Shape._(this._shape);
+  /// Creates a shape for an n-dimensional array.
+  factory Shape.fromIterable(Iterable<int> shape) =>
+      Shape._(DataType.index.copyList(shape, readonly: true));
 
+  /// Internal constructor.
+  Shape._(this._shape)
+      : dimensions = _shape.length,
+        size = _shape.product();
+
+  /// Internal shape data.
   final List<int> _shape;
 
+  /// Returns the number of dimensions.
+  final int dimensions;
+
+  /// Returns the number of elements across all dimensions.
+  final int size;
+
   int operator [](int index) => _shape[index];
-
-  int get dimensions => _shape.length;
-
-  int get length => _shape.product();
 
   @override
   bool operator ==(Object other) =>
@@ -58,5 +56,5 @@ class Shape with ToStringPrinter {
   ObjectPrinter get toStringPrinter => super.toStringPrinter
     ..addValue(_shape)
     ..addValue(dimensions, name: 'dimensions')
-    ..addValue(length, name: 'length');
+    ..addValue(size, name: 'size');
 }

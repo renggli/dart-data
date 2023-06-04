@@ -4,34 +4,30 @@ import 'package:more/printer.dart';
 
 import '../../data.dart';
 
-/// The strides of an N-dimensional array.
+/// The strides of an n-dimensional array.
 @immutable
 class Strides with ToStringPrinter {
-  /// Constructs the strides from an [Iterable].
-  factory Strides.fromIterable(Iterable<int> strides) {
-    final length = strides.length;
-    final values = DataType.index.newList(length);
-    values.replaceRange(0, length, strides);
-    return Strides._(values);
-  }
-
   /// Constructs the default strides of the given [Shape].
   factory Strides.fromShape(Shape shape) {
-    final values = DataType.index.newList(shape.dimensions);
-    values[values.length - 1] = 1;
+    final values = List<int>.filled(shape.dimensions, 1);
     for (var i = values.length - 1; i > 0; i--) {
       values[i - 1] = values[i] * shape[i];
     }
-    return Strides._(values);
+    return Strides.fromIterable(values);
   }
 
-  const Strides._(this._strides);
+  /// Constructs the strides from an [Iterable].
+  factory Strides.fromIterable(Iterable<int> strides) =>
+      Strides._(DataType.index.copyList(strides, readonly: true));
+
+  const Strides._(this._strides) : dimensions = _strides.length;
 
   final List<int> _strides;
 
-  int operator [](int index) => _strides[index];
+  /// Returns the number of dimensions.
+  final int dimensions;
 
-  int get dimensions => _strides.length;
+  int operator [](int index) => _strides[index];
 
   @override
   bool operator ==(Object other) =>
