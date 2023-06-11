@@ -1,7 +1,10 @@
 import 'package:more/collection.dart';
 import 'package:more/printer.dart';
 
+import '../../stats.dart';
 import '../../type.dart';
+import 'index.dart';
+import 'printer.dart';
 import 'shape.dart';
 import 'strides.dart';
 
@@ -63,13 +66,14 @@ class Array<T> with ToStringPrinter {
   /// The flat underlying data array.
   final List<T> data;
 
-  /// The absolute offset into the underlying array.
+  /// The absolute offset into the underlying data array.
   final int offset;
 
-  /// The length of each dimension in the array.
+  /// The length of each dimension in the underlying data array.
   final Shape shape;
 
-  /// The number of indices to jump to reach the next value in the dimension.
+  /// The number of indices to jump to the next value in each dimension of the
+  /// underlying data array.
   final Strides strides;
 
   /// The number of dimensions.
@@ -82,20 +86,20 @@ class Array<T> with ToStringPrinter {
         'Indices out of range: '
         'expected $dimensions indices, but got ${indices.length}');
     var result = offset;
-    for (var i = 0; i < indices.length; i++) {
-      final index = indices[i];
+    for (var axis = 0; axis < indices.length; axis++) {
+      final index = indices[axis];
       if (0 <= index) {
         assert(
-            index < shape[i],
-            'Index $i out of range: '
-            'index must be less than ${shape[i]}, but got $index');
-        result += strides[i] * index;
+            index < shape[axis],
+            'Index $axis out of range: '
+            'index must be less than ${shape[axis]}, but got $index');
+        result += strides[axis] * index;
       } else {
         assert(
-            -shape[i] <= index,
-            'Index $i out of range: '
-            'index must be larger or equal than ${-shape[i]}, but got $index');
-        result += strides[i] * (shape[i] + index);
+            -shape[axis] <= index,
+            'Index $axis out of range: '
+            'index must be larger or equal than ${-shape[axis]}, but got $index');
+        result += strides[axis] * (shape[axis] + index);
       }
     }
     assert(
@@ -109,14 +113,65 @@ class Array<T> with ToStringPrinter {
     return result;
   }
 
+  Array<T> slice(Iterable<Index> indices) {
+    var newOffset = offset;
+    var axis = 0;
+    final newShape = <int>[];
+    final newStrides = <int>[];
+    for (final index in indices) {
+      assert(
+          axis < dimensions,
+          'Too many axes specified: '
+          '$index on axis $axis, but expected at most $dimensions');
+      switch (index) {
+        case SkipIndex():
+          newShape.add(1);
+          newStrides.add(strides.values.getRange(axis, dimensions).product());
+        case SingleIndex(index: final start):
+          if (0 <= start) {
+            assert(
+                start < shape[axis],
+                '$index on axis $axis out of range: '
+                'index must be less than ${shape[axis]}, but got $start');
+            newOffset += strides[axis] * start;
+          } else {
+            assert(
+                -shape[axis] <= start,
+                '$index on axis $axis out of range: '
+                'index must be larger or equal than ${-shape[axis]}, but got $start');
+            newOffset += strides[axis] * (shape[axis] + start);
+          }
+          axis++;
+        case RangeIndex(start: final start, end: final end, step: final step):
+          newShape.add((end - start) ~/ step);
+          newStrides.add(step * strides[axis]);
+          newOffset += start * strides[axis];
+          axis++;
+      }
+    }
+    if (axis < dimensions) {
+      newShape.addAll(shape.values.getRange(axis, dimensions));
+      newStrides.addAll(strides.values.getRange(axis, dimensions));
+    }
+    return Array(
+      type: type,
+      data: data,
+      offset: newOffset,
+      shape: Shape.fromIterable(newShape),
+      strides: Strides.fromIterable(newStrides),
+    );
+  }
+
   T getValue(List<int> indices) => data[getIndex(indices)];
 
   void setValue(List<int> indices, T value) => data[getIndex(indices)] = value;
 
   /// Returns a view onto the data with the same
   Array<T> reshape(Shape shape) {
-    assert(this.shape.size != shape.size,
-        'Cannot change the shape from ${this.shape} to $shape');
+    if (this.shape.size != shape.size) {
+      throw ArgumentError.value(
+          shape, 'shape', 'Incompatible shape: ${this.shape}');
+    }
     return Array<T>(
         type: type,
         data: data,
@@ -141,8 +196,6 @@ class Array<T> with ToStringPrinter {
   @override
   ObjectPrinter get toStringPrinter => super.toStringPrinter
     ..addValue(type, name: 'type')
-    ..addValue(data, name: 'data')
-    ..addValue(offset, name: 'offset')
-    ..addValue(shape, name: 'shape')
-    ..addValue(strides, name: 'strides');
+    ..addValue(shape.values, name: 'shape')
+    ..addValue(this, printer: ArrayPrinter<T>());
 }

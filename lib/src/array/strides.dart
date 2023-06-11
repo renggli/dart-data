@@ -20,25 +20,27 @@ class Strides with ToStringPrinter {
   factory Strides.fromIterable(Iterable<int> strides) =>
       Strides._(DataType.index.copyList(strides, readonly: true));
 
-  const Strides._(this._strides) : dimensions = _strides.length;
+  /// Internal constructor.
+  const Strides._(this.values) : dimensions = values.length;
 
-  final List<int> _strides;
+  /// Returns the strides counts.
+  final List<int> values;
 
   /// Returns the number of dimensions.
   final int dimensions;
 
-  int operator [](int index) => _strides[index];
+  int operator [](int index) => values[index];
 
   @override
   bool operator ==(Object other) =>
       other is Strides &&
-      const ListEquality<int>().equals(_strides, other._strides);
+      const ListEquality<int>().equals(values, other.values);
 
   @override
-  int get hashCode => const ListEquality<int>().hash(_strides);
+  int get hashCode => const ListEquality<int>().hash(values);
 
   @override
   ObjectPrinter get toStringPrinter => super.toStringPrinter
-    ..addValue(_strides)
-    ..addValue(dimensions, name: 'dimensions');
+    ..addValue(dimensions, name: 'dimensions')
+    ..addValue(values);
 }

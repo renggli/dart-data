@@ -30,12 +30,12 @@ class Shape with ToStringPrinter {
       Shape._(DataType.index.copyList(shape, readonly: true));
 
   /// Internal constructor.
-  Shape._(this._shape)
-      : dimensions = _shape.length,
-        size = _shape.product();
+  Shape._(this.values)
+      : dimensions = values.length,
+        size = values.product();
 
-  /// Internal shape data.
-  final List<int> _shape;
+  /// Returns the shape counts.
+  final List<int> values;
 
   /// Returns the number of dimensions.
   final int dimensions;
@@ -43,18 +43,43 @@ class Shape with ToStringPrinter {
   /// Returns the number of elements across all dimensions.
   final int size;
 
-  int operator [](int index) => _shape[index];
+  /// Returns an iterator over the indices of this shape.
+  Iterator<List<int>> get iterator => ShapeIterator(this);
+
+  int operator [](int index) => values[index];
 
   @override
   bool operator ==(Object other) =>
-      other is Shape && const ListEquality<int>().equals(_shape, other._shape);
+      other is Shape && const ListEquality<int>().equals(values, other.values);
 
   @override
-  int get hashCode => const ListEquality<int>().hash(_shape);
+  int get hashCode => const ListEquality<int>().hash(values);
 
   @override
   ObjectPrinter get toStringPrinter => super.toStringPrinter
-    ..addValue(_shape)
     ..addValue(dimensions, name: 'dimensions')
-    ..addValue(size, name: 'size');
+    ..addValue(size, name: 'size')
+    ..addValue(values);
+}
+
+class ShapeIterator implements Iterator<List<int>> {
+  ShapeIterator(this.shape)
+      : current = DataType.index.newList(shape.dimensions)..last = -1;
+
+  final Shape shape;
+
+  @override
+  final List<int> current;
+
+  @override
+  bool moveNext() {
+    for (var i = current.length - 1; i >= 0; i--) {
+      current[i]++;
+      if (current[i] < shape[i]) {
+        return true;
+      }
+      current[i] = 0;
+    }
+    return false;
+  }
 }
