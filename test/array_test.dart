@@ -4,6 +4,12 @@ import 'package:test/test.dart';
 
 import 'utils/matchers.dart';
 
+final array2 = Array.fromIterable(IntegerRange(2));
+final array2x3 = Array.fromIterable(IntegerRange(2 * 3),
+    shape: Shape.fromIterable(const [2, 3]));
+final array2x3x4 = Array.fromIterable(IntegerRange(2 * 3 * 4),
+    shape: Shape.fromIterable(const [2, 3, 4]));
+
 void main() {
   group('filled', () {
     test('basic', () {
@@ -16,7 +22,7 @@ void main() {
       expect(result.strides.values, [1]);
       for (var i = 0; i < 6; i++) {
         final indices = [i];
-        expect(result.getIndex(indices), i);
+        expect(result.getOffset(indices), i);
         expect(result.getValue(indices), 42);
       }
     });
@@ -32,7 +38,7 @@ void main() {
       expect(result.strides.values, [1]);
       for (var i = 0; i < 6; i++) {
         final indices = [i];
-        expect(result.getIndex(indices), i);
+        expect(result.getOffset(indices), i);
         expect(result.getValue(indices), i + 1);
       }
     });
@@ -52,82 +58,104 @@ void main() {
       for (var i = 0; i < 2; i++) {
         for (var j = 0; j < 3; j++) {
           final indices = [i, j];
-          expect(result.getIndex(indices), i * 3 + j);
+          expect(result.getOffset(indices), i * 3 + j);
           expect(result.getValue(indices), i * 3 + j + 1);
         }
       }
     });
   });
   group('reshape', () {
-    final input = Array<int>.fromObject([
-      [1, 2, 3],
-      [4, 5, 6],
-    ]);
     test('1 x 6', () {
-      final result = input.reshape(Shape.fromIterable(const [1, 6]));
-      expect(result.type, input.type);
-      expect(result.data, same(input.data));
+      final result = array2x3.reshape(Shape.fromIterable(const [1, 6]));
+      expect(result.type, array2x3.type);
+      expect(result.data, same(array2x3.data));
       expect(result.dimensions, 2);
       expect(result.shape.values, [1, 6]);
       expect(result.strides.values, [6, 1]);
+      expect(result.toObject(), [
+        [0, 1, 2, 3, 4, 5]
+      ]);
     });
     test('2 x 3', () {
-      final result = input.reshape(Shape.fromIterable(const [2, 3]));
-      expect(result.type, input.type);
-      expect(result.data, same(input.data));
+      final result = array2x3.reshape(Shape.fromIterable(const [2, 3]));
+      expect(result.type, array2x3.type);
+      expect(result.data, same(array2x3.data));
       expect(result.dimensions, 2);
       expect(result.shape.values, [2, 3]);
       expect(result.strides.values, [3, 1]);
+      expect(result.toObject(), [
+        [0, 1, 2],
+        [3, 4, 5]
+      ]);
     });
     test('3 x 2', () {
-      final result = input.reshape(Shape.fromIterable(const [3, 2]));
-      expect(result.type, input.type);
-      expect(result.data, same(input.data));
+      final result = array2x3.reshape(Shape.fromIterable(const [3, 2]));
+      expect(result.type, array2x3.type);
+      expect(result.data, same(array2x3.data));
       expect(result.dimensions, 2);
       expect(result.shape.values, [3, 2]);
       expect(result.strides.values, [2, 1]);
+      expect(result.toObject(), [
+        [0, 1],
+        [2, 3],
+        [4, 5]
+      ]);
     });
     test('6 x 1', () {
-      final result = input.reshape(Shape.fromIterable(const [6, 1]));
-      expect(result.type, input.type);
-      expect(result.data, same(input.data));
+      final result = array2x3.reshape(Shape.fromIterable(const [6, 1]));
+      expect(result.type, array2x3.type);
+      expect(result.data, same(array2x3.data));
       expect(result.dimensions, 2);
       expect(result.shape.values, [6, 1]);
       expect(result.strides.values, [1, 1]);
+      expect(result.toObject(), [
+        [0],
+        [1],
+        [2],
+        [3],
+        [4],
+        [5]
+      ]);
     });
     test('6', () {
-      final result = input.reshape(Shape.fromIterable(const [6]));
-      expect(result.type, input.type);
-      expect(result.data, same(input.data));
+      final result = array2x3.reshape(Shape.fromIterable(const [6]));
+      expect(result.type, array2x3.type);
+      expect(result.data, same(array2x3.data));
       expect(result.dimensions, 1);
       expect(result.shape.values, [6]);
       expect(result.strides.values, [1]);
+      expect(result.toObject(), [0, 1, 2, 3, 4, 5]);
     });
     test('invalid size', () {
-      expect(() => input.reshape(Shape.fromIterable(const [4, 3])),
+      expect(() => array2x3.reshape(Shape.fromIterable(const [4, 3])),
           throwsArgumentError);
     });
   });
   group('transpose', () {
-    final input = Array<int>.fromObject([
-      [1, 2, 3],
-      [4, 5, 6],
-    ]);
     test('once', () {
-      final result = input.transpose();
-      expect(result.type, input.type);
-      expect(result.data, same(input.data));
-      expect(result.dimensions, input.dimensions);
+      final result = array2x3.transpose();
+      expect(result.type, array2x3.type);
+      expect(result.data, same(array2x3.data));
+      expect(result.dimensions, array2x3.dimensions);
       expect(result.shape.values, [3, 2]);
       expect(result.strides.values, [1, 3]);
+      expect(result.toObject(), [
+        [0, 3],
+        [1, 4],
+        [2, 5]
+      ]);
     });
     test('twice', () {
-      final result = input.transpose().transpose();
-      expect(result.type, input.type);
-      expect(result.data, same(input.data));
-      expect(result.dimensions, input.dimensions);
-      expect(result.shape, input.shape);
-      expect(result.strides, input.strides);
+      final result = array2x3.transpose().transpose();
+      expect(result.type, array2x3.type);
+      expect(result.data, same(array2x3.data));
+      expect(result.dimensions, array2x3.dimensions);
+      expect(result.shape, array2x3.shape);
+      expect(result.strides, array2x3.strides);
+      expect(result.toObject(), [
+        [0, 1, 2],
+        [3, 4, 5]
+      ]);
     });
   });
   group('format', () {
@@ -253,66 +281,127 @@ void main() {
           '   [78, …, 80]]]]');
     });
   });
+  group('value', () {
+    test('positive indices', () {
+      expect(array2.getValue([1]), 1);
+      expect(array2x3.getValue([0, 1]), 1);
+      expect(array2x3x4.getValue([0, 1, 2]), 6);
+    });
+    test('negative indices', () {
+      expect(array2.getValue([-1]), 1);
+      expect(array2x3.getValue([-2, -1]), 2);
+      expect(array2x3x4.getValue([-1, -2, -1]), 19);
+    });
+    test('index out of bounds', () {
+      expect(() => array2.getValue([2]), throwsAssertionError);
+      expect(() => array2.getValue([-3]), throwsAssertionError);
+    }, skip: !hasAssertionsEnabled());
+    test('wrong number of indices', () {
+      expect(() => array2x3.getValue([0]), throwsAssertionError);
+      expect(() => array2x3.getValue([0, 0, 0]), throwsAssertionError);
+    }, skip: !hasAssertionsEnabled());
+  });
   group('slice', () {
-    final array2 = Array.fromIterable(IntegerRange(2));
-    final array2x3 = Array.fromIterable(IntegerRange(2 * 3),
-        shape: Shape.fromIterable(const [2, 3]));
-    final array2x3x4 = Array.fromIterable(IntegerRange(2 * 3 * 4),
-        shape: Shape.fromIterable(const [2, 3, 4]));
     test('empty slices', () {
       const indices = <Index>[];
-      expect(array2.slice(indices),
-          isArray<int>(shape: <int>[2], format: '[0, 1]'));
+      expect(
+          array2.slice(indices),
+          isArray<int>(
+              shape: array2.shape.values,
+              strides: array2.strides.values,
+              object: array2.toObject()));
       expect(
           array2x3.slice(indices),
           isArray<int>(
-              shape: <int>[2, 3],
-              format: '[[0, 1, 2],\n'
-                  ' [3, 4, 5]]'));
+              shape: array2x3.shape.values,
+              strides: array2x3.strides.values,
+              object: array2x3.toObject()));
       expect(
           array2x3x4.slice(indices),
           isArray<int>(
-              shape: <int>[2, 3, 4],
-              format: '[[[0, 1, 2, 3],\n'
-                  '  [4, 5, 6, 7],\n'
-                  '  [8, 9, 10, 11]],\n'
-                  ' [[12, 13, 14, 15],\n'
-                  '  [16, 17, 18, 19],\n'
-                  '  [20, 21, 22, 23]]]'));
+              shape: array2x3x4.shape.values,
+              strides: array2x3x4.strides.values,
+              object: array2x3x4.toObject()));
     });
     test('first slice', () {
       const indices = [SingleIndex(0)];
-      expect(array2.slice(indices), isArray<int>(shape: <int>[], format: '0'));
+      expect(array2.slice(indices), isArray<int>(shape: <int>[], object: 0));
       expect(array2x3.slice(indices),
-          isArray<int>(shape: <int>[3], format: '[0, 1, 2]'));
+          isArray<int>(shape: <int>[3], object: [0, 1, 2]));
       expect(
           array2x3x4.slice(indices),
-          isArray<int>(
-              shape: <int>[3, 4],
-              format: '[[0, 1, 2, 3],\n'
-                  ' [4, 5, 6, 7],\n'
-                  ' [8, 9, 10, 11]]'));
+          isArray<int>(shape: <int>[
+            3,
+            4
+          ], object: [
+            [0, 1, 2, 3],
+            [4, 5, 6, 7],
+            [8, 9, 10, 11]
+          ]));
     });
     test('last slice', () {
       const indices = [SingleIndex(-1)];
-      expect(array2.slice(indices), isArray<int>(shape: <int>[], format: '1'));
+      expect(array2.slice(indices), isArray<int>(shape: <int>[], object: 1));
       expect(array2x3.slice(indices),
-          isArray<int>(shape: <int>[3], format: '[3, 4, 5]'));
+          isArray<int>(shape: <int>[3], object: [3, 4, 5]));
       expect(
           array2x3x4.slice(indices),
-          isArray<int>(
-              shape: <int>[3, 4],
-              format: '[[12, 13, 14, 15],\n'
-                  ' [16, 17, 18, 19],\n'
-                  ' [20, 21, 22, 23]]'));
+          isArray<int>(shape: <int>[
+            3,
+            4
+          ], object: [
+            [12, 13, 14, 15],
+            [16, 17, 18, 19],
+            [20, 21, 22, 23]
+          ]));
     });
     test('two slices', () {
       const indices = [SingleIndex(1), SingleIndex(2)];
       expect(() => array2.slice(indices), throwsAssertionError);
-      expect(
-          array2x3.slice(indices), isArray<int>(shape: <int>[], format: '5'));
+      expect(array2x3.slice(indices), isArray<int>(shape: <int>[], object: 5));
       expect(array2x3x4.slice(indices),
-          isArray<int>(shape: <int>[4], format: '[20, 21, 22, 23]'));
+          isArray<int>(shape: <int>[4], object: [20, 21, 22, 23]));
+    }, skip: !hasAssertionsEnabled());
+  });
+  group('toObject', () {
+    test('default', () {
+      expect(array2.toObject(), [0, 1]);
+      expect(array2x3.toObject(), [
+        [0, 1, 2],
+        [3, 4, 5],
+      ]);
+      expect(array2x3x4.toObject(), [
+        [
+          [0, 1, 2, 3],
+          [4, 5, 6, 7],
+          [8, 9, 10, 11],
+        ],
+        [
+          [12, 13, 14, 15],
+          [16, 17, 18, 19],
+          [20, 21, 22, 23],
+        ]
+      ]);
+    });
+    test('type', () {
+      final object = DataType.object(0);
+      expect(array2.toObject(type: object), [0, 1]);
+      expect(array2x3.toObject(type: object), [
+        [0, 1, 2],
+        [3, 4, 5],
+      ]);
+      expect(array2x3x4.toObject(type: object), [
+        [
+          [0, 1, 2, 3],
+          [4, 5, 6, 7],
+          [8, 9, 10, 11],
+        ],
+        [
+          [12, 13, 14, 15],
+          [16, 17, 18, 19],
+          [20, 21, 22, 23],
+        ]
+      ]);
     });
   });
 }

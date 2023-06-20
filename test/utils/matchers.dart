@@ -76,6 +76,7 @@ dynamic isArray<T>({
   dynamic offset = anything,
   dynamic shape = anything,
   dynamic strides = anything,
+  dynamic object = anything,
   dynamic format = anything,
 }) =>
     isA<Array<T>>()
@@ -83,4 +84,5 @@ dynamic isArray<T>({
         .having((array) => array.offset, 'offset', offset)
         .having((array) => array.shape.values, 'shape', shape)
         .having((array) => array.strides.values, 'strides', strides)
+        .having((array) => array.toObject(), 'toObject', object)
         .having((array) => ArrayPrinter<T>()(array), 'format', format);

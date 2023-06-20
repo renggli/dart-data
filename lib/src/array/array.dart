@@ -79,43 +79,36 @@ class Array<T> with ToStringPrinter {
   /// The number of dimensions.
   int get dimensions => shape.dimensions;
 
-  /// Computes the index for a list of indices into the underlying data.
-  int getIndex(List<int> indices) {
-    assert(
-        dimensions == indices.length,
-        'Indices out of range: '
-        'expected $dimensions indices, but got ${indices.length}');
+  /// Returns the value at the given indices.
+  T getValue(Iterable<int> indices) => data[getOffset(indices)];
+
+  /// Sets the value at the given indices.
+  void setValue(Iterable<int> indices, T value) =>
+      data[getOffset(indices)] = value;
+
+  /// Compute the offset of the given indices in the underlying array.
+  int getOffset(Iterable<int> indices) {
+    assert(indices.length == dimensions,
+        'Expected $dimensions indices, but got ${indices.length}');
+    var axis = 0;
     var result = offset;
-    for (var axis = 0; axis < indices.length; axis++) {
-      final index = indices[axis];
-      if (0 <= index) {
-        assert(
-            index < shape[axis],
-            'Index $axis out of range: '
-            'index must be less than ${shape[axis]}, but got $index');
-        result += strides[axis] * index;
-      } else {
-        assert(
-            -shape[axis] <= index,
-            'Index $axis out of range: '
-            'index must be larger or equal than ${-shape[axis]}, but got $index');
-        result += strides[axis] * (shape[axis] + index);
-      }
+    for (final index in indices) {
+      final adjustedIndex = index < 0 ? shape[axis] + index : index;
+      assert(0 <= adjustedIndex && adjustedIndex < shape[axis],
+          'Index $index on axis $axis is out of range');
+      result += strides[axis] * adjustedIndex;
+      axis++;
     }
-    assert(
-        0 <= result,
-        'Internal error: '
-        'result must not be negative, but got $result');
-    assert(
-        result < data.length,
-        'Internal error: '
-        'result must be less than ${data.length}, but got $result');
     return result;
   }
 
+  /// Returns a view with the first axis resolved to `index`.
+  Array<T> operator [](Index index) => slice([index]);
+
+  /// Returns a view with the `indices` resolved.
   Array<T> slice(Iterable<Index> indices) {
-    var newOffset = offset;
     var axis = 0;
+    var newOffset = offset;
     final newShape = <int>[];
     final newStrides = <int>[];
     for (final index in indices) {
@@ -124,35 +117,37 @@ class Array<T> with ToStringPrinter {
           'Too many axes specified: '
           '$index on axis $axis, but expected at most $dimensions');
       switch (index) {
-        case SkipIndex():
-          newShape.add(1);
-          newStrides.add(strides.values.getRange(axis, dimensions).product());
         case SingleIndex(index: final start):
-          if (0 <= start) {
-            assert(
-                start < shape[axis],
-                '$index on axis $axis out of range: '
-                'index must be less than ${shape[axis]}, but got $start');
-            newOffset += strides[axis] * start;
-          } else {
-            assert(
-                -shape[axis] <= start,
-                '$index on axis $axis out of range: '
-                'index must be larger or equal than ${-shape[axis]}, but got $start');
-            newOffset += strides[axis] * (shape[axis] + start);
-          }
+          // Access a specific value on the current axis.
+          final adjustedStart = start < 0 ? shape[axis] + start : start;
+          assert(0 <= adjustedStart && adjustedStart < shape[axis],
+              'Index $start of $index on axis $axis is out of range');
+          newOffset += strides[axis] * adjustedStart;
           axis++;
         case RangeIndex(start: final start, end: final end, step: final step):
-          newShape.add((end - start) ~/ step);
+          // Access a range of values on the current axis.
+          final adjustedStart = start < 0 ? shape[axis] + start : start;
+          assert(0 <= adjustedStart && adjustedStart < shape[axis],
+              'Index $start of $index on axis $axis is out of range');
+          final adjustedEnd = end < 0 ? shape[axis] + end : end;
+          assert(0 <= adjustedEnd && adjustedEnd < shape[axis],
+              'Index $end of $index on axis $axis is out of range');
+          newShape.add((adjustedEnd - adjustedStart) ~/ step);
           newStrides.add(step * strides[axis]);
-          newOffset += start * strides[axis];
+          newOffset += adjustedStart * strides[axis];
           axis++;
+        case NewAxisIndex():
+          // Adds a new one unit-length dimension.
+          newShape.add(1);
+          newStrides.add(strides.values.getRange(axis, dimensions).product());
       }
     }
+    // Keep existing axis as-is.
     if (axis < dimensions) {
       newShape.addAll(shape.values.getRange(axis, dimensions));
       newStrides.addAll(strides.values.getRange(axis, dimensions));
     }
+    // Return an update view onto the array.
     return Array(
       type: type,
       data: data,
@@ -162,10 +157,6 @@ class Array<T> with ToStringPrinter {
     );
   }
 
-  T getValue(List<int> indices) => data[getIndex(indices)];
-
-  void setValue(List<int> indices, T value) => data[getIndex(indices)] = value;
-
   /// Returns a view onto the data with the same
   Array<T> reshape(Shape shape) {
     if (this.shape.size != shape.size) {
@@ -173,11 +164,12 @@ class Array<T> with ToStringPrinter {
           shape, 'shape', 'Incompatible shape: ${this.shape}');
     }
     return Array<T>(
-        type: type,
-        data: data,
-        offset: offset,
-        shape: shape,
-        strides: Strides.fromShape(shape));
+      type: type,
+      data: data,
+      offset: offset,
+      shape: shape,
+      strides: Strides.fromShape(shape),
+    );
   }
 
   /// Returns a transposed view.

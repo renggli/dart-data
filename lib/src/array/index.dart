@@ -2,17 +2,13 @@ import 'package:more/collection.dart';
 import 'package:more/printer.dart';
 
 sealed class Index with ToStringPrinter {
-  const factory Index.skip() = SkipIndex;
-
   const factory Index.at(int index) = SingleIndex;
 
   const factory Index.range(int start, int stop) = RangeIndex;
 
-  const Index();
-}
+  const factory Index.newAxis() = NewAxisIndex;
 
-class SkipIndex extends Index {
-  const SkipIndex();
+  const Index();
 }
 
 extension IndexIntExtension on int {
@@ -47,4 +43,8 @@ class RangeIndex extends Index {
     ..addValue(start, name: 'start')
     ..addValue(end, name: 'end')
     ..addValue(step, name: 'step');
+}
+
+class NewAxisIndex extends Index {
+  const NewAxisIndex();
 }
