@@ -5,21 +5,31 @@ import 'package:test/test.dart';
 import 'utils/matchers.dart';
 
 final array2 = Array.fromIterable(IntegerRange(2));
-final array2x3 = Array.fromIterable(IntegerRange(2 * 3),
-    shape: Shape.fromIterable(const [2, 3]));
-final array2x3x4 = Array.fromIterable(IntegerRange(2 * 3 * 4),
-    shape: Shape.fromIterable(const [2, 3, 4]));
+final array2x3 = Array.fromIterable(IntegerRange(2 * 3), shape: [2, 3]);
+final array2x3x4 =
+    Array.fromIterable(IntegerRange(2 * 3 * 4), shape: [2, 3, 4]);
 
 void main() {
   group('filled', () {
+    test('single', () {
+      final result = Array<int>.filled(42);
+      expect(result.type, DataType.int32);
+      expect(result.data, [42]);
+      expect(result.offset, 0);
+      expect(result.dimensions, 0);
+      expect(result.shape, <int>[]);
+      expect(result.strides, <int>[]);
+      expect(result.getOffset([]), 0);
+      expect(result.getValue([]), 42);
+    });
     test('basic', () {
-      final result = Array<int>.filled(42, shape: Shape.forVector(6));
+      final result = Array<int>.filled(42, shape: [6]);
       expect(result.type, DataType.int32);
       expect(result.data, [42, 42, 42, 42, 42, 42]);
       expect(result.offset, 0);
       expect(result.dimensions, 1);
-      expect(result.shape.values, [6]);
-      expect(result.strides.values, [1]);
+      expect(result.shape, [6]);
+      expect(result.strides, [1]);
       for (var i = 0; i < 6; i++) {
         final indices = [i];
         expect(result.getOffset(indices), i);
@@ -34,8 +44,8 @@ void main() {
       expect(result.data, [1, 2, 3, 4, 5, 6]);
       expect(result.offset, 0);
       expect(result.dimensions, 1);
-      expect(result.shape.values, [6]);
-      expect(result.strides.values, [1]);
+      expect(result.shape, [6]);
+      expect(result.strides, [1]);
       for (var i = 0; i < 6; i++) {
         final indices = [i];
         expect(result.getOffset(indices), i);
@@ -53,8 +63,8 @@ void main() {
       expect(result.data, [1, 2, 3, 4, 5, 6]);
       expect(result.offset, 0);
       expect(result.dimensions, 2);
-      expect(result.shape.values, [2, 3]);
-      expect(result.strides.values, [3, 1]);
+      expect(result.shape, [2, 3]);
+      expect(result.strides, [3, 1]);
       for (var i = 0; i < 2; i++) {
         for (var j = 0; j < 3; j++) {
           final indices = [i, j];
@@ -66,35 +76,35 @@ void main() {
   });
   group('reshape', () {
     test('1 x 6', () {
-      final result = array2x3.reshape(Shape.fromIterable(const [1, 6]));
+      final result = array2x3.reshape([1, 6]);
       expect(result.type, array2x3.type);
       expect(result.data, same(array2x3.data));
       expect(result.dimensions, 2);
-      expect(result.shape.values, [1, 6]);
-      expect(result.strides.values, [6, 1]);
+      expect(result.shape, [1, 6]);
+      expect(result.strides, [6, 1]);
       expect(result.toObject(), [
         [0, 1, 2, 3, 4, 5]
       ]);
     });
     test('2 x 3', () {
-      final result = array2x3.reshape(Shape.fromIterable(const [2, 3]));
+      final result = array2x3.reshape([2, 3]);
       expect(result.type, array2x3.type);
       expect(result.data, same(array2x3.data));
       expect(result.dimensions, 2);
-      expect(result.shape.values, [2, 3]);
-      expect(result.strides.values, [3, 1]);
+      expect(result.shape, [2, 3]);
+      expect(result.strides, [3, 1]);
       expect(result.toObject(), [
         [0, 1, 2],
         [3, 4, 5]
       ]);
     });
     test('3 x 2', () {
-      final result = array2x3.reshape(Shape.fromIterable(const [3, 2]));
+      final result = array2x3.reshape([3, 2]);
       expect(result.type, array2x3.type);
       expect(result.data, same(array2x3.data));
       expect(result.dimensions, 2);
-      expect(result.shape.values, [3, 2]);
-      expect(result.strides.values, [2, 1]);
+      expect(result.shape, [3, 2]);
+      expect(result.strides, [2, 1]);
       expect(result.toObject(), [
         [0, 1],
         [2, 3],
@@ -102,12 +112,12 @@ void main() {
       ]);
     });
     test('6 x 1', () {
-      final result = array2x3.reshape(Shape.fromIterable(const [6, 1]));
+      final result = array2x3.reshape([6, 1]);
       expect(result.type, array2x3.type);
       expect(result.data, same(array2x3.data));
       expect(result.dimensions, 2);
-      expect(result.shape.values, [6, 1]);
-      expect(result.strides.values, [1, 1]);
+      expect(result.shape, [6, 1]);
+      expect(result.strides, [1, 1]);
       expect(result.toObject(), [
         [0],
         [1],
@@ -118,18 +128,17 @@ void main() {
       ]);
     });
     test('6', () {
-      final result = array2x3.reshape(Shape.fromIterable(const [6]));
+      final result = array2x3.reshape([6]);
       expect(result.type, array2x3.type);
       expect(result.data, same(array2x3.data));
       expect(result.dimensions, 1);
-      expect(result.shape.values, [6]);
-      expect(result.strides.values, [1]);
+      expect(result.shape, [6]);
+      expect(result.strides, [1]);
       expect(result.toObject(), [0, 1, 2, 3, 4, 5]);
     });
     test('invalid size', () {
-      expect(() => array2x3.reshape(Shape.fromIterable(const [4, 3])),
-          throwsArgumentError);
-    });
+      expect(() => array2x3.reshape([4, 3]), throwsAssertionError);
+    }, skip: !hasAssertionsEnabled());
   });
   group('transpose', () {
     test('once', () {
@@ -137,8 +146,8 @@ void main() {
       expect(result.type, array2x3.type);
       expect(result.data, same(array2x3.data));
       expect(result.dimensions, array2x3.dimensions);
-      expect(result.shape.values, [3, 2]);
-      expect(result.strides.values, [1, 3]);
+      expect(result.shape, [3, 2]);
+      expect(result.strides, [1, 3]);
       expect(result.toObject(), [
         [0, 3],
         [1, 4],
@@ -181,8 +190,7 @@ void main() {
     });
     test('2 * 3 matrix', () {
       const printer = ArrayPrinter<int>();
-      final input = Array.fromIterable(IntegerRange(2 * 3),
-          shape: Shape.fromIterable(const [2, 3]));
+      final input = Array.fromIterable(IntegerRange(2 * 3), shape: [2, 3]);
       expect(
           printer(input),
           '[[0, 1, 2],\n'
@@ -190,8 +198,7 @@ void main() {
     });
     test('3 * 2 matrix', () {
       const printer = ArrayPrinter<int>();
-      final input = Array.fromIterable(IntegerRange(3 * 2),
-          shape: Shape.fromIterable(const [3, 2]));
+      final input = Array.fromIterable(IntegerRange(3 * 2), shape: [3, 2]);
       expect(
           printer(input),
           '[[0, 1],\n'
@@ -200,14 +207,12 @@ void main() {
     });
     test('1 * 6 matrix', () {
       const printer = ArrayPrinter<int>();
-      final input = Array.fromIterable(IntegerRange(1 * 6),
-          shape: Shape.fromIterable(const [1, 6]));
+      final input = Array.fromIterable(IntegerRange(1 * 6), shape: [1, 6]);
       expect(printer(input), '[[0, 1, 2, 3, 4, 5]]');
     });
     test('6 * 1 matrix', () {
       const printer = ArrayPrinter<int>();
-      final input = Array.fromIterable(IntegerRange(6 * 1),
-          shape: Shape.fromIterable(const [6, 1]));
+      final input = Array.fromIterable(IntegerRange(6 * 1), shape: [6, 1]);
       expect(
           printer(input),
           '[[0],\n'
@@ -219,8 +224,7 @@ void main() {
     });
     test('12 * 1 matrix', () {
       const printer = ArrayPrinter<int>();
-      final input = Array.fromIterable(IntegerRange(12 * 1),
-          shape: Shape.fromIterable(const [12, 1]));
+      final input = Array.fromIterable(IntegerRange(12 * 1), shape: [12, 1]);
       expect(
           printer(input),
           '[[0],\n'
@@ -233,8 +237,8 @@ void main() {
     });
     test('2 * 3 * 4', () {
       const printer = ArrayPrinter<int>();
-      final input = Array.fromIterable(IntegerRange(2 * 3 * 4),
-          shape: Shape.fromIterable(const [2, 3, 4]));
+      final input =
+          Array.fromIterable(IntegerRange(2 * 3 * 4), shape: [2, 3, 4]);
       expect(
           printer(input),
           '[[[0, 1, 2, 3],\n'
@@ -246,8 +250,7 @@ void main() {
     });
     test('10 * 10', () {
       const printer = ArrayPrinter<int>();
-      final input = Array.fromIterable(IntegerRange(10 * 10),
-          shape: Shape.fromIterable(const [10, 10]));
+      final input = Array.fromIterable(IntegerRange(10 * 10), shape: [10, 10]);
       expect(
           printer(input),
           '[[0, 1, 2, …, 7, 8, 9],\n'
@@ -260,8 +263,8 @@ void main() {
     });
     test('3 * 3 * 3 * 3', () {
       const printer = ArrayPrinter<int>(leadingItems: 1, trailingItems: 1);
-      final input = Array.fromIterable(IntegerRange(3 * 3 * 3 * 3),
-          shape: Shape.fromIterable(const [3, 3, 3, 3]));
+      final input =
+          Array.fromIterable(IntegerRange(3 * 3 * 3 * 3), shape: [3, 3, 3, 3]);
       expect(
           printer(input),
           '[[[[0, …, 2],\n'
@@ -307,20 +310,20 @@ void main() {
       expect(
           array2.slice(indices),
           isArray<int>(
-              shape: array2.shape.values,
-              strides: array2.strides.values,
+              shape: array2.shape,
+              strides: array2.strides,
               object: array2.toObject()));
       expect(
           array2x3.slice(indices),
           isArray<int>(
-              shape: array2x3.shape.values,
-              strides: array2x3.strides.values,
+              shape: array2x3.shape,
+              strides: array2x3.strides,
               object: array2x3.toObject()));
       expect(
           array2x3x4.slice(indices),
           isArray<int>(
-              shape: array2x3x4.shape.values,
-              strides: array2x3x4.strides.values,
+              shape: array2x3x4.shape,
+              strides: array2x3x4.strides,
               object: array2x3x4.toObject()));
     });
     test('first slice', () {
