@@ -13,7 +13,10 @@ import 'utils/stride.dart' as stride_utils;
 
 /// A multidimensional fixed-size container of items of the same type.
 class Array<T> with ToStringPrinter {
-  /// Constructs an [Array] filled with the provided [value].
+  /// Constructs an [Array] of [value].
+  ///
+  /// By default a 0-dimensional array with the single value is returned. If a
+  /// `shape` is provided all array entries are filled with that value.
   factory Array.filled(T value,
       {List<int>? shape, List<int>? strides, DataType<T>? type}) {
     final newType = type ?? DataType.fromInstance(value);
@@ -28,8 +31,14 @@ class Array<T> with ToStringPrinter {
     );
   }
 
+  /// Constructs an [Array] from [Iterable] `data`.
+  ///
+  /// By default a 1-dimensional array with the values from the iterable `data`
+  /// is returned. If a `shape` is provided the data populates the array in
+  /// row-major format.
   factory Array.fromIterable(Iterable<T> data,
       {List<int>? shape, List<int>? strides, DataType<T>? type}) {
+    assert(data.isNotEmpty, '`data` should not be empty');
     final newType = type ?? DataType.fromIterable(data);
     final newData = newType.copyList(data);
     final newShape = shape_utils.fromIterable(shape ?? [newData.length]);
@@ -42,6 +51,7 @@ class Array<T> with ToStringPrinter {
     );
   }
 
+  /// Constructs an [Array] from a nested `object`.
   factory Array.fromObject(Iterable<dynamic> object, {DataType<T>? type}) {
     final newType = type ?? DataType.fromIterable(object.deepFlatten());
     final newData = newType.copyList(object.deepFlatten());
@@ -64,8 +74,9 @@ class Array<T> with ToStringPrinter {
     required this.shape,
     required this.stride,
   })  : assert(shape is TypedData, '`shape` should be TypedData'),
+        assert(shape.every((s) => s > 0), '`shape` should be positive'),
         assert(stride is TypedData, '`stride` should be TypedData'),
-        assert(shape.every((s) => s > 0), '`shape` values should be positive'),
+        assert(stride.every((s) => s != 0), '`stride` should be non-null'),
         assert(shape.length == stride.length, '`shape` and `stride` length'),
         assert(offset + shape.product() <= data.length, '`data` is too short');
 

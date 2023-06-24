@@ -11,21 +11,21 @@ final array2x3x4 =
 
 void main() {
   group('filled', () {
-    test('single', () {
-      final result = Array<int>.filled(42);
+    test('value', () {
+      final result = Array.filled(40);
       expect(result.type, DataType.int32);
-      expect(result.data, [42]);
+      expect(result.data, [40]);
       expect(result.offset, 0);
       expect(result.dimensions, 0);
       expect(result.shape, <int>[]);
       expect(result.stride, <int>[]);
       expect(result.getOffset([]), 0);
-      expect(result.getValue([]), 42);
+      expect(result.getValue([]), 40);
     });
-    test('basic', () {
-      final result = Array<int>.filled(42, shape: [6]);
+    test('vector', () {
+      final result = Array.filled(41, shape: [6]);
       expect(result.type, DataType.int32);
-      expect(result.data, [42, 42, 42, 42, 42, 42]);
+      expect(result.data, [41, 41, 41, 41, 41, 41]);
       expect(result.offset, 0);
       expect(result.dimensions, 1);
       expect(result.shape, [6]);
@@ -33,13 +33,32 @@ void main() {
       for (var i = 0; i < 6; i++) {
         final indices = [i];
         expect(result.getOffset(indices), i);
-        expect(result.getValue(indices), 42);
+        expect(result.getValue(indices), 41);
+      }
+    });
+    test('matrix', () {
+      final result = Array.filled(42, shape: [2, 3], type: DataType.uint32);
+      expect(result.type, DataType.uint32);
+      expect(result.data, [42, 42, 42, 42, 42, 42]);
+      expect(result.offset, 0);
+      expect(result.dimensions, 2);
+      expect(result.shape, [2, 3]);
+      expect(result.stride, [3, 1]);
+      for (var i = 0; i < 2; i++) {
+        for (var j = 0; j < 3; j++) {
+          final indices = [i, j];
+          expect(result.getOffset(indices), 3 * i + j);
+          expect(result.getValue(indices), 42);
+        }
       }
     });
   });
   group('fromIterable', () {
-    test('basic', () {
-      final result = Array<int>.fromIterable(IntegerRange(1, 7));
+    test('empty', () {
+      expect(() => Array.fromIterable(<int>[]), throwsAssertionError);
+    }, skip: !hasAssertionsEnabled());
+    test('vector', () {
+      final result = Array.fromIterable(IntegerRange(1, 7));
       expect(result.type, DataType.uint8);
       expect(result.data, [1, 2, 3, 4, 5, 6]);
       expect(result.offset, 0);
@@ -52,9 +71,40 @@ void main() {
         expect(result.getValue(indices), i + 1);
       }
     });
+    test('matrix', () {
+      final result = Array.fromIterable(IntegerRange(1, 7),
+          shape: [2, 3], type: DataType.uint32);
+      expect(result.type, DataType.uint32);
+      expect(result.data, [1, 2, 3, 4, 5, 6]);
+      expect(result.offset, 0);
+      expect(result.dimensions, 2);
+      expect(result.shape, [2, 3]);
+      expect(result.stride, [3, 1]);
+      for (var i = 0; i < 2; i++) {
+        for (var j = 0; j < 3; j++) {
+          final indices = [i, j];
+          expect(result.getOffset(indices), 3 * i + j);
+          expect(result.getValue(indices), 3 * i + j + 1);
+        }
+      }
+    });
   });
   group('fromObject', () {
-    test('basic', () {
+    test('vector', () {
+      final result = Array<int>.fromObject([-1, 0, 1]);
+      expect(result.type, DataType.int8);
+      expect(result.data, [-1, 0, 1]);
+      expect(result.offset, 0);
+      expect(result.dimensions, 1);
+      expect(result.shape, [3]);
+      expect(result.stride, [1]);
+      for (var i = 0; i < 2; i++) {
+        final indices = [i];
+        expect(result.getOffset(indices), i);
+        expect(result.getValue(indices), i - 1);
+      }
+    });
+    test('matrix', () {
       final result = Array<int>.fromObject([
         [1, 2, 3],
         [4, 5, 6],
