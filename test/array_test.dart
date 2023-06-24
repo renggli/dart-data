@@ -1,5 +1,8 @@
+import 'dart:math';
+
 import 'package:data/data.dart';
 import 'package:more/collection.dart';
+import 'package:more/more.dart';
 import 'package:test/test.dart';
 
 import 'utils/matchers.dart';
@@ -218,22 +221,34 @@ void main() {
     });
   });
   group('format', () {
-    test('6 element array', () {
+    test('single value', () {
+      const printer = ArrayPrinter<double>();
+      final input = Array.filled(pi);
+      expect(printer(input), '3.141593e+000');
+    });
+    test('custom format', () {
+      final printer = ArrayPrinter<double>(
+          valuePrinter: FixedNumberPrinter(precision: 2),
+          paddingPrinter: const StandardPrinter<String>().padLeft(6));
+      final input = Array.filled(pi);
+      expect(printer(input), '  3.14');
+    });
+    test('6 element vector', () {
       const printer = ArrayPrinter<int>();
       final input = Array.fromIterable(IntegerRange(6));
       expect(printer(input), '[0, 1, 2, 3, 4, 5]');
     });
-    test('10 element array', () {
+    test('10 element vector', () {
       const printer = ArrayPrinter<int>();
       final input = Array.fromIterable(IntegerRange(10));
       expect(printer(input), '[0, 1, 2, …, 7, 8, 9]');
     });
-    test('10 element array without limits', () {
+    test('10 element vector without limits', () {
       const printer = ArrayPrinter<int>(limit: false);
       final input = Array.fromIterable(IntegerRange(10));
       expect(printer(input), '[0, 1, 2, 3, 4, 5, 6, 7, 8, 9]');
     });
-    test('10 element array with custom limits', () {
+    test('10 element vector with custom limits', () {
       const printer = ArrayPrinter<int>(leadingItems: 4, trailingItems: 2);
       final input = Array.fromIterable(IntegerRange(10));
       expect(printer(input), '[0, 1, 2, 3, …, 8, 9]');
