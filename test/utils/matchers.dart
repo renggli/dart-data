@@ -83,6 +83,6 @@ dynamic isArray<T>({
         .having((array) => array.type, 'type', type)
         .having((array) => array.offset, 'offset', offset)
         .having((array) => array.shape, 'shape', shape)
-        .having((array) => array.strides, 'strides', strides)
+        .having((array) => array.stride, 'strides', strides)
         .having((array) => array.toObject(), 'toObject', object)
         .having((array) => ArrayPrinter<T>()(array), 'format', format);

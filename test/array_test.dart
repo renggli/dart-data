@@ -18,7 +18,7 @@ void main() {
       expect(result.offset, 0);
       expect(result.dimensions, 0);
       expect(result.shape, <int>[]);
-      expect(result.strides, <int>[]);
+      expect(result.stride, <int>[]);
       expect(result.getOffset([]), 0);
       expect(result.getValue([]), 42);
     });
@@ -29,7 +29,7 @@ void main() {
       expect(result.offset, 0);
       expect(result.dimensions, 1);
       expect(result.shape, [6]);
-      expect(result.strides, [1]);
+      expect(result.stride, [1]);
       for (var i = 0; i < 6; i++) {
         final indices = [i];
         expect(result.getOffset(indices), i);
@@ -45,7 +45,7 @@ void main() {
       expect(result.offset, 0);
       expect(result.dimensions, 1);
       expect(result.shape, [6]);
-      expect(result.strides, [1]);
+      expect(result.stride, [1]);
       for (var i = 0; i < 6; i++) {
         final indices = [i];
         expect(result.getOffset(indices), i);
@@ -64,7 +64,7 @@ void main() {
       expect(result.offset, 0);
       expect(result.dimensions, 2);
       expect(result.shape, [2, 3]);
-      expect(result.strides, [3, 1]);
+      expect(result.stride, [3, 1]);
       for (var i = 0; i < 2; i++) {
         for (var j = 0; j < 3; j++) {
           final indices = [i, j];
@@ -81,7 +81,7 @@ void main() {
       expect(result.data, same(array2x3.data));
       expect(result.dimensions, 2);
       expect(result.shape, [1, 6]);
-      expect(result.strides, [6, 1]);
+      expect(result.stride, [6, 1]);
       expect(result.toObject(), [
         [0, 1, 2, 3, 4, 5]
       ]);
@@ -92,7 +92,7 @@ void main() {
       expect(result.data, same(array2x3.data));
       expect(result.dimensions, 2);
       expect(result.shape, [2, 3]);
-      expect(result.strides, [3, 1]);
+      expect(result.stride, [3, 1]);
       expect(result.toObject(), [
         [0, 1, 2],
         [3, 4, 5]
@@ -104,7 +104,7 @@ void main() {
       expect(result.data, same(array2x3.data));
       expect(result.dimensions, 2);
       expect(result.shape, [3, 2]);
-      expect(result.strides, [2, 1]);
+      expect(result.stride, [2, 1]);
       expect(result.toObject(), [
         [0, 1],
         [2, 3],
@@ -117,7 +117,7 @@ void main() {
       expect(result.data, same(array2x3.data));
       expect(result.dimensions, 2);
       expect(result.shape, [6, 1]);
-      expect(result.strides, [1, 1]);
+      expect(result.stride, [1, 1]);
       expect(result.toObject(), [
         [0],
         [1],
@@ -133,7 +133,7 @@ void main() {
       expect(result.data, same(array2x3.data));
       expect(result.dimensions, 1);
       expect(result.shape, [6]);
-      expect(result.strides, [1]);
+      expect(result.stride, [1]);
       expect(result.toObject(), [0, 1, 2, 3, 4, 5]);
     });
     test('invalid size', () {
@@ -147,7 +147,7 @@ void main() {
       expect(result.data, same(array2x3.data));
       expect(result.dimensions, array2x3.dimensions);
       expect(result.shape, [3, 2]);
-      expect(result.strides, [1, 3]);
+      expect(result.stride, [1, 3]);
       expect(result.toObject(), [
         [0, 3],
         [1, 4],
@@ -160,7 +160,7 @@ void main() {
       expect(result.data, same(array2x3.data));
       expect(result.dimensions, array2x3.dimensions);
       expect(result.shape, array2x3.shape);
-      expect(result.strides, array2x3.strides);
+      expect(result.stride, array2x3.stride);
       expect(result.toObject(), [
         [0, 1, 2],
         [3, 4, 5]
@@ -311,19 +311,19 @@ void main() {
           array2.slice(indices),
           isArray<int>(
               shape: array2.shape,
-              strides: array2.strides,
+              strides: array2.stride,
               object: array2.toObject()));
       expect(
           array2x3.slice(indices),
           isArray<int>(
               shape: array2x3.shape,
-              strides: array2x3.strides,
+              strides: array2x3.stride,
               object: array2x3.toObject()));
       expect(
           array2x3x4.slice(indices),
           isArray<int>(
               shape: array2x3x4.shape,
-              strides: array2x3x4.strides,
+              strides: array2x3x4.stride,
               object: array2x3x4.toObject()));
     });
     test('first slice', () {

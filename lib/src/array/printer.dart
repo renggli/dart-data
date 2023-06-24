@@ -66,7 +66,7 @@ class ArrayPrinter<T> extends Printer<Array<T>> {
         i = array.shape[axis] - trailingItems - 1;
       } else {
         _printOn(array, buffer,
-            axis: axis + 1, offset: offset + i * array.strides[axis]);
+            axis: axis + 1, offset: offset + i * array.stride[axis]);
       }
     }
     buffer.write(closeArray);

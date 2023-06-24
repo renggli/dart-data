@@ -16,7 +16,7 @@ dynamic _toObject<T>(Array<T> array,
     return array.data[offset]; // return a single value
   }
   final shape = array.shape[axis];
-  final stride = array.strides[axis];
+  final stride = array.stride[axis];
   if (axis == array.dimensions - 1) {
     final list = type.newList(shape); // creates an optimal list
     for (var i = 0, j = offset; i < shape; i++, j += stride) {

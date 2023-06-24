@@ -1,3 +1,6 @@
+import 'dart:typed_data';
+
+import 'package:meta/meta.dart';
 import 'package:more/collection.dart';
 import 'package:more/printer.dart';
 
@@ -10,15 +13,6 @@ import 'utils/stride.dart' as stride_utils;
 
 /// A multidimensional fixed-size container of items of the same type.
 class Array<T> with ToStringPrinter {
-  /// Constructs an array object.
-  Array({
-    required this.type,
-    required this.data,
-    this.offset = 0,
-    required this.shape,
-    required this.strides,
-  }) : assert(shape.length == strides.length, 'shape and strides do not match');
-
   /// Constructs an [Array] filled with the provided [value].
   factory Array.filled(T value,
       {List<int>? shape, List<int>? strides, DataType<T>? type}) {
@@ -26,11 +20,11 @@ class Array<T> with ToStringPrinter {
     final newShape = shape_utils.fromIterable(shape ?? const <int>[]);
     final newStrides = strides ?? stride_utils.fromShape(newShape);
     final newData = newType.newList(newShape.product(), fillValue: value);
-    return Array(
+    return Array.internal(
       type: newType,
       data: newData,
       shape: newShape,
-      strides: newStrides,
+      stride: newStrides,
     );
   }
 
@@ -38,13 +32,13 @@ class Array<T> with ToStringPrinter {
       {List<int>? shape, List<int>? strides, DataType<T>? type}) {
     final newType = type ?? DataType.fromIterable(data);
     final newData = newType.copyList(data);
-    final newShape = shape ?? shape_utils.fromIterable([newData.length]);
+    final newShape = shape_utils.fromIterable(shape ?? [newData.length]);
     final newStrides = strides ?? stride_utils.fromShape(newShape);
-    return Array(
+    return Array.internal(
       type: newType,
       data: newData,
       shape: newShape,
-      strides: newStrides,
+      stride: newStrides,
     );
   }
 
@@ -53,13 +47,27 @@ class Array<T> with ToStringPrinter {
     final newData = newType.copyList(object.deepFlatten());
     final newShape = shape_utils.fromObject(object);
     final newStrides = stride_utils.fromShape(newShape);
-    return Array(
+    return Array.internal(
       type: newType,
       data: newData,
       shape: newShape,
-      strides: newStrides,
+      stride: newStrides,
     );
   }
+
+  /// Internal constructors of [Array] object.
+  @internal
+  Array.internal({
+    required this.type,
+    required this.data,
+    this.offset = 0,
+    required this.shape,
+    required this.stride,
+  })  : assert(shape is TypedData, '`shape` should be TypedData'),
+        assert(stride is TypedData, '`stride` should be TypedData'),
+        assert(shape.every((s) => s > 0), '`shape` values should be positive'),
+        assert(shape.length == stride.length, '`shape` and `stride` length'),
+        assert(offset + shape.product() <= data.length, '`data` is too short');
 
   /// The type of this array.
   final DataType<T> type;
@@ -75,19 +83,19 @@ class Array<T> with ToStringPrinter {
 
   /// The number of indices to jump to the next value in each dimension of the
   /// underlying data array.
-  final List<int> strides;
+  final List<int> stride;
 
   /// The number of dimensions.
   int get dimensions => shape.length;
 
-  /// Returns the value at the given indices.
+  /// Returns the value at the given `indices`.
   T getValue(Iterable<int> indices) => data[getOffset(indices)];
 
-  /// Sets the value at the given indices.
+  /// Sets the value at the given `indices`.
   void setValue(Iterable<int> indices, T value) =>
       data[getOffset(indices)] = value;
 
-  /// Compute the offset of the given indices in the underlying array.
+  /// Compute the offset of the given `indices` in the underlying array.
   int getOffset(Iterable<int> indices) {
     assert(indices.length == dimensions,
         'Expected $dimensions indices, but got ${indices.length}');
@@ -97,7 +105,7 @@ class Array<T> with ToStringPrinter {
       final adjustedIndex = index < 0 ? shape[axis] + index : index;
       assert(0 <= adjustedIndex && adjustedIndex < shape[axis],
           'Index $index on axis $axis is out of range');
-      result += strides[axis] * adjustedIndex;
+      result += stride[axis] * adjustedIndex;
       axis++;
     }
     return result;
@@ -123,7 +131,7 @@ class Array<T> with ToStringPrinter {
           final adjustedStart = start < 0 ? shape[axis] + start : start;
           assert(0 <= adjustedStart && adjustedStart < shape[axis],
               'Index $start of $index on axis $axis is out of range');
-          newOffset += strides[axis] * adjustedStart;
+          newOffset += stride[axis] * adjustedStart;
           axis++;
         case RangeIndex(start: final start, end: final end, step: final step):
           // Access a range of values on the current axis.
@@ -134,27 +142,27 @@ class Array<T> with ToStringPrinter {
           assert(0 <= adjustedEnd && adjustedEnd < shape[axis],
               'Index $end of $index on axis $axis is out of range');
           newShape.add((adjustedEnd - adjustedStart) ~/ step);
-          newStrides.add(step * strides[axis]);
-          newOffset += adjustedStart * strides[axis];
+          newStrides.add(step * stride[axis]);
+          newOffset += adjustedStart * stride[axis];
           axis++;
         case NewAxisIndex():
           // Adds a new one unit-length dimension.
           newShape.add(1);
-          newStrides.add(strides.getRange(axis, dimensions).product());
+          newStrides.add(stride.getRange(axis, dimensions).product());
       }
     }
     // Keep existing axis as-is.
     if (axis < dimensions) {
       newShape.addAll(shape.getRange(axis, dimensions));
-      newStrides.addAll(strides.getRange(axis, dimensions));
+      newStrides.addAll(stride.getRange(axis, dimensions));
     }
     // Return an update view onto the array.
-    return Array(
+    return Array.internal(
       type: type,
       data: data,
       offset: newOffset,
       shape: shape_utils.fromIterable(newShape),
-      strides: stride_utils.fromIterable(newStrides),
+      stride: stride_utils.fromIterable(newStrides),
     );
   }
 
@@ -162,12 +170,12 @@ class Array<T> with ToStringPrinter {
   Array<T> reshape(List<int> shape) {
     assert(this.shape.product() == shape.product(),
         'New shape $shape is not compatible with ${this.shape}');
-    return Array<T>(
+    return Array<T>.internal(
       type: type,
       data: data,
       offset: offset,
       shape: stride_utils.fromIterable(shape),
-      strides: stride_utils.fromShape(shape),
+      stride: stride_utils.fromShape(shape),
     );
   }
 
@@ -175,12 +183,12 @@ class Array<T> with ToStringPrinter {
   Array<T> transpose({List<int>? axes}) {
     axes ??= List.generate(dimensions, (int index) => dimensions - index - 1,
         growable: false);
-    return Array<T>(
+    return Array<T>.internal(
       type: type,
       data: data,
       offset: offset,
       shape: shape_utils.fromIterable(axes.map((each) => shape[each])),
-      strides: stride_utils.fromIterable(axes.map((each) => strides[each])),
+      stride: stride_utils.fromIterable(axes.map((each) => stride[each])),
     );
   }
 
@@ -188,7 +196,7 @@ class Array<T> with ToStringPrinter {
   ObjectPrinter get toStringPrinter => super.toStringPrinter
     ..addValue(type, name: 'type')
     ..addValue(shape, name: 'shape')
-    ..addValue(strides, name: 'strides')
+    ..addValue(stride, name: 'strides')
     ..addValue(offset, name: 'offset')
     ..addValue(this, printer: ArrayPrinter<T>());
 }
