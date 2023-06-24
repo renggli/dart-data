@@ -192,8 +192,7 @@ class Array<T> with ToStringPrinter {
 
   /// Returns a transposed view.
   Array<T> transpose({List<int>? axes}) {
-    axes ??= List.generate(dimensions, (int index) => dimensions - index - 1,
-        growable: false);
+    axes ??= IntegerRange(dimensions).reversed;
     return Array<T>.internal(
       type: type,
       data: data,
