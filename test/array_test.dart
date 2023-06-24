@@ -2,7 +2,7 @@ import 'dart:math';
 
 import 'package:data/data.dart';
 import 'package:more/collection.dart';
-import 'package:more/more.dart';
+import 'package:more/printer.dart';
 import 'package:test/test.dart';
 
 import 'utils/matchers.dart';
