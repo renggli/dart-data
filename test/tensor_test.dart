@@ -16,12 +16,20 @@ void main() {
   group('filled', () {
     test('value', () {
       final result = Tensor.filled(40);
+      expect(
+          result,
+          isTensor<int>(
+            type: DataType.int32,
+            data: [40],
+          ));
+
       expect(result.type, DataType.int32);
       expect(result.data, [40]);
       expect(result.offset, 0);
       expect(result.dimensions, 0);
       expect(result.shape, <int>[]);
       expect(result.stride, <int>[]);
+      expect(result.isContiguous, isTrue);
       expect(result.getOffset([]), 0);
       expect(result.getValue([]), 40);
     });
@@ -33,6 +41,7 @@ void main() {
       expect(result.dimensions, 1);
       expect(result.shape, [6]);
       expect(result.stride, [1]);
+      expect(result.isContiguous, isTrue);
       for (var i = 0; i < 6; i++) {
         final indices = [i];
         expect(result.getOffset(indices), i);
@@ -47,6 +56,7 @@ void main() {
       expect(result.dimensions, 2);
       expect(result.shape, [2, 3]);
       expect(result.stride, [3, 1]);
+      expect(result.isContiguous, isTrue);
       for (var i = 0; i < 2; i++) {
         for (var j = 0; j < 3; j++) {
           final indices = [i, j];
@@ -68,6 +78,7 @@ void main() {
       expect(result.dimensions, 1);
       expect(result.shape, [6]);
       expect(result.stride, [1]);
+      expect(result.isContiguous, isTrue);
       for (var i = 0; i < 6; i++) {
         final indices = [i];
         expect(result.getOffset(indices), i);
@@ -83,6 +94,7 @@ void main() {
       expect(result.dimensions, 2);
       expect(result.shape, [2, 3]);
       expect(result.stride, [3, 1]);
+      expect(result.isContiguous, isTrue);
       for (var i = 0; i < 2; i++) {
         for (var j = 0; j < 3; j++) {
           final indices = [i, j];
@@ -101,6 +113,7 @@ void main() {
       expect(result.dimensions, 1);
       expect(result.shape, [3]);
       expect(result.stride, [1]);
+      expect(result.isContiguous, isTrue);
       for (var i = 0; i < 2; i++) {
         final indices = [i];
         expect(result.getOffset(indices), i);
@@ -118,6 +131,7 @@ void main() {
       expect(result.dimensions, 2);
       expect(result.shape, [2, 3]);
       expect(result.stride, [3, 1]);
+      expect(result.isContiguous, isTrue);
       for (var i = 0; i < 2; i++) {
         for (var j = 0; j < 3; j++) {
           final indices = [i, j];
@@ -135,6 +149,7 @@ void main() {
       expect(result.dimensions, 2);
       expect(result.shape, [1, 6]);
       expect(result.stride, [6, 1]);
+      expect(result.isContiguous, isTrue);
       expect(result.toObject(), [
         [0, 1, 2, 3, 4, 5]
       ]);
@@ -146,6 +161,7 @@ void main() {
       expect(result.dimensions, 2);
       expect(result.shape, [2, 3]);
       expect(result.stride, [3, 1]);
+      expect(result.isContiguous, isTrue);
       expect(result.toObject(), [
         [0, 1, 2],
         [3, 4, 5]
@@ -158,6 +174,7 @@ void main() {
       expect(result.dimensions, 2);
       expect(result.shape, [3, 2]);
       expect(result.stride, [2, 1]);
+      expect(result.isContiguous, isTrue);
       expect(result.toObject(), [
         [0, 1],
         [2, 3],
@@ -171,6 +188,7 @@ void main() {
       expect(result.dimensions, 2);
       expect(result.shape, [6, 1]);
       expect(result.stride, [1, 1]);
+      expect(result.isContiguous, isTrue);
       expect(result.toObject(), [
         [0],
         [1],
@@ -187,6 +205,7 @@ void main() {
       expect(result.dimensions, 1);
       expect(result.shape, [6]);
       expect(result.stride, [1]);
+      expect(result.isContiguous, isTrue);
       expect(result.toObject(), [0, 1, 2, 3, 4, 5]);
     });
     test('invalid size', () {
@@ -201,6 +220,7 @@ void main() {
       expect(result.dimensions, tensor2x3.dimensions);
       expect(result.shape, [3, 2]);
       expect(result.stride, [1, 3]);
+      expect(result.isContiguous, isFalse);
       expect(result.toObject(), [
         [0, 3],
         [1, 4],
@@ -214,6 +234,7 @@ void main() {
       expect(result.dimensions, tensor2x3.dimensions);
       expect(result.shape, tensor2x3.shape);
       expect(result.stride, tensor2x3.stride);
+      expect(result.isContiguous, isTrue);
       expect(result.toObject(), [
         [0, 1, 2],
         [3, 4, 5]

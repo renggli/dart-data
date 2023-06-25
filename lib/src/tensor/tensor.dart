@@ -11,9 +11,9 @@ import 'printer.dart';
 import 'utils/shape.dart' as shape_utils;
 import 'utils/stride.dart' as stride_utils;
 
-/// A multidimensional fixed-size container of items of the same type.
+/// A multi-dimensional fixed-size container of items of a specific type.
 class Tensor<T> with ToStringPrinter {
-  /// Constructs an [Tensor] of [value].
+  /// Constructs a [Tensor] of [value].
   ///
   /// By default a 0-dimensional tensor with the single value is returned. If a
   /// `shape` is provided all tensor entries are filled with that value.
@@ -31,16 +31,16 @@ class Tensor<T> with ToStringPrinter {
     );
   }
 
-  /// Constructs an [Tensor] from [Iterable] `data`.
+  /// Constructs an [Tensor] from an `iterable`.
   ///
-  /// By default a 1-dimensional tensor with the values from the iterable `data`
-  /// is returned. If a `shape` is provided the data populates the tensor in
-  /// row-major format.
-  factory Tensor.fromIterable(Iterable<T> data,
+  /// By default a 1-dimensional tensor with the values from the iterable
+  /// `iterable` is returned. If a `shape` is provided the data populates the
+  /// tensor in the specified format in row-major.
+  factory Tensor.fromIterable(Iterable<T> iterable,
       {List<int>? shape, List<int>? strides, DataType<T>? type}) {
-    assert(data.isNotEmpty, '`data` should not be empty');
-    final newType = type ?? DataType.fromIterable(data);
-    final newData = newType.copyList(data);
+    assert(iterable.isNotEmpty, '`iterable` should not be empty');
+    final newType = type ?? DataType.fromIterable(iterable);
+    final newData = newType.copyList(iterable);
     final newShape = shape_utils.fromIterable(shape ?? [newData.length]);
     final newStrides = strides ?? stride_utils.fromShape(newShape);
     return Tensor.internal(
@@ -83,23 +83,27 @@ class Tensor<T> with ToStringPrinter {
   /// The type of this tensor.
   final DataType<T> type;
 
-  /// The flat underlying data tensor.
+  /// The underlying data storage.
   final List<T> data;
 
-  /// The absolute offset into the underlying data tensor.
+  /// The absolute offset into the underlying data.
   final int offset;
 
-  /// The length of each dimension in the underlying data tensor.
+  /// The length of each dimension in the underlying data.
   final List<int> shape;
 
   /// The number of indices to jump to the next value in each dimension of the
-  /// underlying data tensor.
+  /// underlying data.
   final List<int> stride;
 
   /// The number of dimensions.
   int get dimensions => shape.length;
 
-  /// Returns the value at the given `indices`.
+  /// Tests if the data is stored contiguous.
+  bool get isContiguous =>
+      stride_utils.isContiguous(shape: shape, stride: stride);
+
+  /// The value at the given `indices`.
   T getValue(Iterable<int> indices) => data[getOffset(indices)];
 
   /// Sets the value at the given `indices`.

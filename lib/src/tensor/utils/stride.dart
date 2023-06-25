@@ -12,3 +12,17 @@ List<int> fromShape(List<int> shape) {
   }
   return fromIterable(result);
 }
+
+/// Tests if the given shape and stride combination is contiguous.
+bool isContiguous({required List<int> shape, required List<int> stride}) {
+  for (var i = shape.length - 1, p = 1; i >= 0; i--) {
+    if (shape[i] != 1) {
+      if (stride[i] == p) {
+        p *= shape[i];
+      } else {
+        return false;
+      }
+    }
+  }
+  return true;
+}
