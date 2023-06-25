@@ -74,10 +74,11 @@ dynamic isCloseTo(dynamic expected, {num epsilon = 1.0e-5}) {
 dynamic isTensor<T>({
   dynamic type = anything,
   dynamic data = anything,
-  dynamic offset = anything,
+  dynamic offset = 0,
+  dynamic dimensions = anything,
   dynamic shape = anything,
-  dynamic strides = anything,
-  dynamic isContiguous = anything,
+  dynamic stride = anything,
+  dynamic isContiguous = true,
   dynamic object = anything,
   dynamic format = anything,
 }) =>
@@ -85,8 +86,9 @@ dynamic isTensor<T>({
         .having((array) => array.type, 'type', type)
         .having((array) => array.data, 'data', data)
         .having((array) => array.offset, 'offset', offset)
+        .having((array) => array.dimensions, 'dimensions', dimensions)
         .having((array) => array.shape, 'shape', shape)
-        .having((array) => array.stride, 'strides', strides)
+        .having((array) => array.stride, 'stride', stride)
         .having((array) => array.isContiguous, 'isContiguous', isContiguous)
         .having((array) => array.toObject(), 'toObject', object)
         .having((array) => TensorPrinter<T>()(array), 'format', format);
