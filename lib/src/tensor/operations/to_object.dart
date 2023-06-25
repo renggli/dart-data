@@ -1,8 +1,8 @@
 import '../../type/type.dart';
-import '../array.dart';
+import '../tensor.dart';
 
-extension ToObjectArray<T> on Array<T> {
-  /// Returns an object representing this array.
+extension ToObjectTensor<T> on Tensor<T> {
+  /// Returns an object representing this tensor.
   ///
   /// Depending on its dimensionality this is a single value, a list of values,
   /// or a list of nested lists.
@@ -10,22 +10,22 @@ extension ToObjectArray<T> on Array<T> {
       _toObject(this, type: type ?? this.type, axis: 0, offset: offset);
 }
 
-dynamic _toObject<T>(Array<T> array,
+dynamic _toObject<T>(Tensor<T> tensor,
     {required DataType<T> type, required int axis, required int offset}) {
-  if (axis == array.dimensions) {
-    return array.data[offset]; // return a single value
+  if (axis == tensor.dimensions) {
+    return tensor.data[offset]; // return a single value
   }
-  final shape = array.shape[axis];
-  final stride = array.stride[axis];
-  if (axis == array.dimensions - 1) {
+  final shape = tensor.shape[axis];
+  final stride = tensor.stride[axis];
+  if (axis == tensor.dimensions - 1) {
     final list = type.newList(shape); // creates an optimal list
     for (var i = 0, j = offset; i < shape; i++, j += stride) {
-      list[i] = array.data[j];
+      list[i] = tensor.data[j];
     }
     return list;
   }
   return List.generate(
-      array.shape[axis],
-      (i) => _toObject(array,
+      tensor.shape[axis],
+      (i) => _toObject(tensor,
           type: type, axis: axis + 1, offset: offset + i * stride));
 }

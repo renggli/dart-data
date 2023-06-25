@@ -12,18 +12,18 @@ import 'utils/shape.dart' as shape_utils;
 import 'utils/stride.dart' as stride_utils;
 
 /// A multidimensional fixed-size container of items of the same type.
-class Array<T> with ToStringPrinter {
-  /// Constructs an [Array] of [value].
+class Tensor<T> with ToStringPrinter {
+  /// Constructs an [Tensor] of [value].
   ///
-  /// By default a 0-dimensional array with the single value is returned. If a
-  /// `shape` is provided all array entries are filled with that value.
-  factory Array.filled(T value,
+  /// By default a 0-dimensional tensor with the single value is returned. If a
+  /// `shape` is provided all tensor entries are filled with that value.
+  factory Tensor.filled(T value,
       {List<int>? shape, List<int>? strides, DataType<T>? type}) {
     final newType = type ?? DataType.fromInstance(value);
     final newShape = shape_utils.fromIterable(shape ?? const <int>[]);
     final newStrides = strides ?? stride_utils.fromShape(newShape);
     final newData = newType.newList(newShape.product(), fillValue: value);
-    return Array.internal(
+    return Tensor.internal(
       type: newType,
       data: newData,
       shape: newShape,
@@ -31,19 +31,19 @@ class Array<T> with ToStringPrinter {
     );
   }
 
-  /// Constructs an [Array] from [Iterable] `data`.
+  /// Constructs an [Tensor] from [Iterable] `data`.
   ///
-  /// By default a 1-dimensional array with the values from the iterable `data`
-  /// is returned. If a `shape` is provided the data populates the array in
+  /// By default a 1-dimensional tensor with the values from the iterable `data`
+  /// is returned. If a `shape` is provided the data populates the tensor in
   /// row-major format.
-  factory Array.fromIterable(Iterable<T> data,
+  factory Tensor.fromIterable(Iterable<T> data,
       {List<int>? shape, List<int>? strides, DataType<T>? type}) {
     assert(data.isNotEmpty, '`data` should not be empty');
     final newType = type ?? DataType.fromIterable(data);
     final newData = newType.copyList(data);
     final newShape = shape_utils.fromIterable(shape ?? [newData.length]);
     final newStrides = strides ?? stride_utils.fromShape(newShape);
-    return Array.internal(
+    return Tensor.internal(
       type: newType,
       data: newData,
       shape: newShape,
@@ -51,13 +51,13 @@ class Array<T> with ToStringPrinter {
     );
   }
 
-  /// Constructs an [Array] from a nested `object`.
-  factory Array.fromObject(Iterable<dynamic> object, {DataType<T>? type}) {
+  /// Constructs an [Tensor] from a nested `object`.
+  factory Tensor.fromObject(Iterable<dynamic> object, {DataType<T>? type}) {
     final newType = type ?? DataType.fromIterable(object.deepFlatten());
     final newData = newType.copyList(object.deepFlatten());
     final newShape = shape_utils.fromObject(object);
     final newStrides = stride_utils.fromShape(newShape);
-    return Array.internal(
+    return Tensor.internal(
       type: newType,
       data: newData,
       shape: newShape,
@@ -65,9 +65,9 @@ class Array<T> with ToStringPrinter {
     );
   }
 
-  /// Internal constructors of [Array] object.
+  /// Internal constructors of [Tensor] object.
   @internal
-  Array.internal({
+  Tensor.internal({
     required this.type,
     required this.data,
     this.offset = 0,
@@ -80,20 +80,20 @@ class Array<T> with ToStringPrinter {
         assert(shape.length == stride.length, '`shape` and `stride` length'),
         assert(offset + shape.product() <= data.length, '`data` is too short');
 
-  /// The type of this array.
+  /// The type of this tensor.
   final DataType<T> type;
 
-  /// The flat underlying data array.
+  /// The flat underlying data tensor.
   final List<T> data;
 
-  /// The absolute offset into the underlying data array.
+  /// The absolute offset into the underlying data tensor.
   final int offset;
 
-  /// The length of each dimension in the underlying data array.
+  /// The length of each dimension in the underlying data tensor.
   final List<int> shape;
 
   /// The number of indices to jump to the next value in each dimension of the
-  /// underlying data array.
+  /// underlying data tensor.
   final List<int> stride;
 
   /// The number of dimensions.
@@ -106,7 +106,7 @@ class Array<T> with ToStringPrinter {
   void setValue(Iterable<int> indices, T value) =>
       data[getOffset(indices)] = value;
 
-  /// Compute the offset of the given `indices` in the underlying array.
+  /// Compute the offset of the given `indices` in the underlying tensor.
   int getOffset(Iterable<int> indices) {
     assert(indices.length == dimensions,
         'Expected $dimensions indices, but got ${indices.length}');
@@ -123,10 +123,10 @@ class Array<T> with ToStringPrinter {
   }
 
   /// Returns a view with the first axis resolved to `index`.
-  Array<T> operator [](Index index) => slice([index]);
+  Tensor<T> operator [](Index index) => slice([index]);
 
   /// Returns a view with the `indices` resolved.
-  Array<T> slice(Iterable<Index> indices) {
+  Tensor<T> slice(Iterable<Index> indices) {
     var axis = 0;
     var newOffset = offset;
     final newShape = <int>[];
@@ -167,8 +167,8 @@ class Array<T> with ToStringPrinter {
       newShape.addAll(shape.getRange(axis, dimensions));
       newStrides.addAll(stride.getRange(axis, dimensions));
     }
-    // Return an update view onto the array.
-    return Array.internal(
+    // Return an update view onto the tensor.
+    return Tensor.internal(
       type: type,
       data: data,
       offset: newOffset,
@@ -178,10 +178,10 @@ class Array<T> with ToStringPrinter {
   }
 
   /// Returns a view onto the data with the same
-  Array<T> reshape(List<int> shape) {
+  Tensor<T> reshape(List<int> shape) {
     assert(this.shape.product() == shape.product(),
         'New shape $shape is not compatible with ${this.shape}');
-    return Array<T>.internal(
+    return Tensor<T>.internal(
       type: type,
       data: data,
       offset: offset,
@@ -191,9 +191,9 @@ class Array<T> with ToStringPrinter {
   }
 
   /// Returns a transposed view.
-  Array<T> transpose({List<int>? axes}) {
+  Tensor<T> transpose({List<int>? axes}) {
     axes ??= IntegerRange(dimensions).reversed;
-    return Array<T>.internal(
+    return Tensor<T>.internal(
       type: type,
       data: data,
       offset: offset,
@@ -208,5 +208,5 @@ class Array<T> with ToStringPrinter {
     ..addValue(shape, name: 'shape')
     ..addValue(stride, name: 'strides')
     ..addValue(offset, name: 'offset')
-    ..addValue(this, printer: ArrayPrinter<T>());
+    ..addValue(this, printer: TensorPrinter<T>());
 }

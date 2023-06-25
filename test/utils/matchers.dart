@@ -1,6 +1,6 @@
-import 'package:data/array.dart';
 import 'package:data/matrix.dart';
 import 'package:data/polynomial.dart';
+import 'package:data/tensor.dart';
 import 'package:data/vector.dart';
 import 'package:more/number.dart';
 import 'package:test/test.dart';
@@ -71,7 +71,7 @@ dynamic isCloseTo(dynamic expected, {num epsilon = 1.0e-5}) {
   }
 }
 
-dynamic isArray<T>({
+dynamic isTensor<T>({
   dynamic type = anything,
   dynamic offset = anything,
   dynamic shape = anything,
@@ -79,10 +79,10 @@ dynamic isArray<T>({
   dynamic object = anything,
   dynamic format = anything,
 }) =>
-    isA<Array<T>>()
+    isA<Tensor<T>>()
         .having((array) => array.type, 'type', type)
         .having((array) => array.offset, 'offset', offset)
         .having((array) => array.shape, 'shape', shape)
         .having((array) => array.stride, 'strides', strides)
         .having((array) => array.toObject(), 'toObject', object)
-        .having((array) => ArrayPrinter<T>()(array), 'format', format);
+        .having((array) => TensorPrinter<T>()(array), 'format', format);

@@ -1,17 +1,17 @@
 import 'package:more/printer.dart';
 
-import 'array.dart';
+import 'tensor.dart';
 
-class ArrayPrinter<T> extends Printer<Array<T>> {
-  const ArrayPrinter({
+class TensorPrinter<T> extends Printer<Tensor<T>> {
+  const TensorPrinter({
     this.valuePrinter,
     this.paddingPrinter = const StandardPrinter<String>(),
     this.ellipsesPrinter = const StandardPrinter<String>(),
     this.limit = true,
     this.leadingItems = 3,
     this.trailingItems = 3,
-    this.openArray = '[',
-    this.closeArray = ']',
+    this.openTensor = '[',
+    this.closeTensor = ']',
     this.horizontalSeparator = ', ',
     this.verticalSeparator = ',\n',
     this.horizontalEllipses = '\u2026',
@@ -24,55 +24,57 @@ class ArrayPrinter<T> extends Printer<Array<T>> {
   final bool limit;
   final int leadingItems;
   final int trailingItems;
-  final String openArray;
-  final String closeArray;
+  final String openTensor;
+  final String closeTensor;
   final String horizontalSeparator;
   final String verticalSeparator;
   final String horizontalEllipses;
   final String verticalEllipses;
 
   @override
-  void printOn(Array<T> object, StringBuffer buffer) =>
+  void printOn(Tensor<T> object, StringBuffer buffer) =>
       _printOn(object, buffer, axis: 0, offset: object.offset);
 
-  void _printOn(Array<T> array, StringBuffer buffer,
+  void _printOn(Tensor<T> tensor, StringBuffer buffer,
       {required int axis, required int offset}) {
-    if (axis == array.dimensions) {
-      _printValueOn(array, buffer, axis: axis, offset: offset);
+    if (axis == tensor.dimensions) {
+      _printValueOn(tensor, buffer, axis: axis, offset: offset);
     } else {
-      _printAxisOn(array, buffer, axis: axis, offset: offset);
+      _printAxisOn(tensor, buffer, axis: axis, offset: offset);
     }
   }
 
-  void _printAxisOn(Array<T> array, StringBuffer buffer,
+  void _printAxisOn(Tensor<T> tensor, StringBuffer buffer,
       {required int axis, required int offset}) {
-    final isLast = axis == array.dimensions - 1;
-    buffer.write(openArray);
-    for (var i = 0; i < array.shape[axis]; i++) {
+    final isLast = axis == tensor.dimensions - 1;
+    buffer.write(openTensor);
+    for (var i = 0; i < tensor.shape[axis]; i++) {
       if (i > 0) {
         if (isLast) {
           buffer.write(horizontalSeparator);
         } else {
           buffer.write(verticalSeparator);
-          buffer.write(' ' * openArray.length * (axis + 1));
+          buffer.write(' ' * openTensor.length * (axis + 1));
         }
       }
-      if (limit && leadingItems <= i && i < array.shape[axis] - trailingItems) {
+      if (limit &&
+          leadingItems <= i &&
+          i < tensor.shape[axis] - trailingItems) {
         if (isLast) {
           buffer.write(paddingPrinter(ellipsesPrinter(horizontalEllipses)));
         } else {
           buffer.write(verticalEllipses);
         }
-        i = array.shape[axis] - trailingItems - 1;
+        i = tensor.shape[axis] - trailingItems - 1;
       } else {
-        _printOn(array, buffer,
-            axis: axis + 1, offset: offset + i * array.stride[axis]);
+        _printOn(tensor, buffer,
+            axis: axis + 1, offset: offset + i * tensor.stride[axis]);
       }
     }
-    buffer.write(closeArray);
+    buffer.write(closeTensor);
   }
 
-  void _printValueOn(Array<T> object, StringBuffer buffer,
+  void _printValueOn(Tensor<T> object, StringBuffer buffer,
       {required int axis, required int offset}) {
     final printer = valuePrinter ?? object.type.printer;
     paddingPrinter.printOn(printer(object.data[offset]), buffer);

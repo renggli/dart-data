@@ -7,15 +7,15 @@ import 'package:test/test.dart';
 
 import 'utils/matchers.dart';
 
-final array2 = Array.fromIterable(IntegerRange(2));
-final array2x3 = Array.fromIterable(IntegerRange(2 * 3), shape: [2, 3]);
-final array2x3x4 =
-    Array.fromIterable(IntegerRange(2 * 3 * 4), shape: [2, 3, 4]);
+final tensor2 = Tensor.fromIterable(IntegerRange(2));
+final tensor2x3 = Tensor.fromIterable(IntegerRange(2 * 3), shape: [2, 3]);
+final tensor2x3x4 =
+    Tensor.fromIterable(IntegerRange(2 * 3 * 4), shape: [2, 3, 4]);
 
 void main() {
   group('filled', () {
     test('value', () {
-      final result = Array.filled(40);
+      final result = Tensor.filled(40);
       expect(result.type, DataType.int32);
       expect(result.data, [40]);
       expect(result.offset, 0);
@@ -26,7 +26,7 @@ void main() {
       expect(result.getValue([]), 40);
     });
     test('vector', () {
-      final result = Array.filled(41, shape: [6]);
+      final result = Tensor.filled(41, shape: [6]);
       expect(result.type, DataType.int32);
       expect(result.data, [41, 41, 41, 41, 41, 41]);
       expect(result.offset, 0);
@@ -40,7 +40,7 @@ void main() {
       }
     });
     test('matrix', () {
-      final result = Array.filled(42, shape: [2, 3], type: DataType.uint32);
+      final result = Tensor.filled(42, shape: [2, 3], type: DataType.uint32);
       expect(result.type, DataType.uint32);
       expect(result.data, [42, 42, 42, 42, 42, 42]);
       expect(result.offset, 0);
@@ -58,10 +58,10 @@ void main() {
   });
   group('fromIterable', () {
     test('empty', () {
-      expect(() => Array.fromIterable(<int>[]), throwsAssertionError);
+      expect(() => Tensor.fromIterable(<int>[]), throwsAssertionError);
     }, skip: !hasAssertionsEnabled());
     test('vector', () {
-      final result = Array.fromIterable(IntegerRange(1, 7));
+      final result = Tensor.fromIterable(IntegerRange(1, 7));
       expect(result.type, DataType.uint8);
       expect(result.data, [1, 2, 3, 4, 5, 6]);
       expect(result.offset, 0);
@@ -75,7 +75,7 @@ void main() {
       }
     });
     test('matrix', () {
-      final result = Array.fromIterable(IntegerRange(1, 7),
+      final result = Tensor.fromIterable(IntegerRange(1, 7),
           shape: [2, 3], type: DataType.uint32);
       expect(result.type, DataType.uint32);
       expect(result.data, [1, 2, 3, 4, 5, 6]);
@@ -94,7 +94,7 @@ void main() {
   });
   group('fromObject', () {
     test('vector', () {
-      final result = Array<int>.fromObject([-1, 0, 1]);
+      final result = Tensor<int>.fromObject([-1, 0, 1]);
       expect(result.type, DataType.int8);
       expect(result.data, [-1, 0, 1]);
       expect(result.offset, 0);
@@ -108,7 +108,7 @@ void main() {
       }
     });
     test('matrix', () {
-      final result = Array<int>.fromObject([
+      final result = Tensor<int>.fromObject([
         [1, 2, 3],
         [4, 5, 6],
       ]);
@@ -129,9 +129,9 @@ void main() {
   });
   group('reshape', () {
     test('1 x 6', () {
-      final result = array2x3.reshape([1, 6]);
-      expect(result.type, array2x3.type);
-      expect(result.data, same(array2x3.data));
+      final result = tensor2x3.reshape([1, 6]);
+      expect(result.type, tensor2x3.type);
+      expect(result.data, same(tensor2x3.data));
       expect(result.dimensions, 2);
       expect(result.shape, [1, 6]);
       expect(result.stride, [6, 1]);
@@ -140,9 +140,9 @@ void main() {
       ]);
     });
     test('2 x 3', () {
-      final result = array2x3.reshape([2, 3]);
-      expect(result.type, array2x3.type);
-      expect(result.data, same(array2x3.data));
+      final result = tensor2x3.reshape([2, 3]);
+      expect(result.type, tensor2x3.type);
+      expect(result.data, same(tensor2x3.data));
       expect(result.dimensions, 2);
       expect(result.shape, [2, 3]);
       expect(result.stride, [3, 1]);
@@ -152,9 +152,9 @@ void main() {
       ]);
     });
     test('3 x 2', () {
-      final result = array2x3.reshape([3, 2]);
-      expect(result.type, array2x3.type);
-      expect(result.data, same(array2x3.data));
+      final result = tensor2x3.reshape([3, 2]);
+      expect(result.type, tensor2x3.type);
+      expect(result.data, same(tensor2x3.data));
       expect(result.dimensions, 2);
       expect(result.shape, [3, 2]);
       expect(result.stride, [2, 1]);
@@ -165,9 +165,9 @@ void main() {
       ]);
     });
     test('6 x 1', () {
-      final result = array2x3.reshape([6, 1]);
-      expect(result.type, array2x3.type);
-      expect(result.data, same(array2x3.data));
+      final result = tensor2x3.reshape([6, 1]);
+      expect(result.type, tensor2x3.type);
+      expect(result.data, same(tensor2x3.data));
       expect(result.dimensions, 2);
       expect(result.shape, [6, 1]);
       expect(result.stride, [1, 1]);
@@ -181,24 +181,24 @@ void main() {
       ]);
     });
     test('6', () {
-      final result = array2x3.reshape([6]);
-      expect(result.type, array2x3.type);
-      expect(result.data, same(array2x3.data));
+      final result = tensor2x3.reshape([6]);
+      expect(result.type, tensor2x3.type);
+      expect(result.data, same(tensor2x3.data));
       expect(result.dimensions, 1);
       expect(result.shape, [6]);
       expect(result.stride, [1]);
       expect(result.toObject(), [0, 1, 2, 3, 4, 5]);
     });
     test('invalid size', () {
-      expect(() => array2x3.reshape([4, 3]), throwsAssertionError);
+      expect(() => tensor2x3.reshape([4, 3]), throwsAssertionError);
     }, skip: !hasAssertionsEnabled());
   });
   group('transpose', () {
     test('once', () {
-      final result = array2x3.transpose();
-      expect(result.type, array2x3.type);
-      expect(result.data, same(array2x3.data));
-      expect(result.dimensions, array2x3.dimensions);
+      final result = tensor2x3.transpose();
+      expect(result.type, tensor2x3.type);
+      expect(result.data, same(tensor2x3.data));
+      expect(result.dimensions, tensor2x3.dimensions);
       expect(result.shape, [3, 2]);
       expect(result.stride, [1, 3]);
       expect(result.toObject(), [
@@ -208,12 +208,12 @@ void main() {
       ]);
     });
     test('twice', () {
-      final result = array2x3.transpose().transpose();
-      expect(result.type, array2x3.type);
-      expect(result.data, same(array2x3.data));
-      expect(result.dimensions, array2x3.dimensions);
-      expect(result.shape, array2x3.shape);
-      expect(result.stride, array2x3.stride);
+      final result = tensor2x3.transpose().transpose();
+      expect(result.type, tensor2x3.type);
+      expect(result.data, same(tensor2x3.data));
+      expect(result.dimensions, tensor2x3.dimensions);
+      expect(result.shape, tensor2x3.shape);
+      expect(result.stride, tensor2x3.stride);
       expect(result.toObject(), [
         [0, 1, 2],
         [3, 4, 5]
@@ -222,48 +222,48 @@ void main() {
   });
   group('format', () {
     test('single value', () {
-      const printer = ArrayPrinter<double>();
-      final input = Array.filled(pi);
+      const printer = TensorPrinter<double>();
+      final input = Tensor.filled(pi);
       expect(printer(input), '3.141593e+000');
     });
     test('custom format', () {
-      final printer = ArrayPrinter<double>(
+      final printer = TensorPrinter<double>(
           valuePrinter: FixedNumberPrinter(precision: 2),
           paddingPrinter: const StandardPrinter<String>().padLeft(6));
-      final input = Array.filled(pi);
+      final input = Tensor.filled(pi);
       expect(printer(input), '  3.14');
     });
     test('6 element vector', () {
-      const printer = ArrayPrinter<int>();
-      final input = Array.fromIterable(IntegerRange(6));
+      const printer = TensorPrinter<int>();
+      final input = Tensor.fromIterable(IntegerRange(6));
       expect(printer(input), '[0, 1, 2, 3, 4, 5]');
     });
     test('10 element vector', () {
-      const printer = ArrayPrinter<int>();
-      final input = Array.fromIterable(IntegerRange(10));
+      const printer = TensorPrinter<int>();
+      final input = Tensor.fromIterable(IntegerRange(10));
       expect(printer(input), '[0, 1, 2, …, 7, 8, 9]');
     });
     test('10 element vector without limits', () {
-      const printer = ArrayPrinter<int>(limit: false);
-      final input = Array.fromIterable(IntegerRange(10));
+      const printer = TensorPrinter<int>(limit: false);
+      final input = Tensor.fromIterable(IntegerRange(10));
       expect(printer(input), '[0, 1, 2, 3, 4, 5, 6, 7, 8, 9]');
     });
     test('10 element vector with custom limits', () {
-      const printer = ArrayPrinter<int>(leadingItems: 4, trailingItems: 2);
-      final input = Array.fromIterable(IntegerRange(10));
+      const printer = TensorPrinter<int>(leadingItems: 4, trailingItems: 2);
+      final input = Tensor.fromIterable(IntegerRange(10));
       expect(printer(input), '[0, 1, 2, 3, …, 8, 9]');
     });
     test('2 * 3 matrix', () {
-      const printer = ArrayPrinter<int>();
-      final input = Array.fromIterable(IntegerRange(2 * 3), shape: [2, 3]);
+      const printer = TensorPrinter<int>();
+      final input = Tensor.fromIterable(IntegerRange(2 * 3), shape: [2, 3]);
       expect(
           printer(input),
           '[[0, 1, 2],\n'
           ' [3, 4, 5]]');
     });
     test('3 * 2 matrix', () {
-      const printer = ArrayPrinter<int>();
-      final input = Array.fromIterable(IntegerRange(3 * 2), shape: [3, 2]);
+      const printer = TensorPrinter<int>();
+      final input = Tensor.fromIterable(IntegerRange(3 * 2), shape: [3, 2]);
       expect(
           printer(input),
           '[[0, 1],\n'
@@ -271,13 +271,13 @@ void main() {
           ' [4, 5]]');
     });
     test('1 * 6 matrix', () {
-      const printer = ArrayPrinter<int>();
-      final input = Array.fromIterable(IntegerRange(1 * 6), shape: [1, 6]);
+      const printer = TensorPrinter<int>();
+      final input = Tensor.fromIterable(IntegerRange(1 * 6), shape: [1, 6]);
       expect(printer(input), '[[0, 1, 2, 3, 4, 5]]');
     });
     test('6 * 1 matrix', () {
-      const printer = ArrayPrinter<int>();
-      final input = Array.fromIterable(IntegerRange(6 * 1), shape: [6, 1]);
+      const printer = TensorPrinter<int>();
+      final input = Tensor.fromIterable(IntegerRange(6 * 1), shape: [6, 1]);
       expect(
           printer(input),
           '[[0],\n'
@@ -288,8 +288,8 @@ void main() {
           ' [5]]');
     });
     test('12 * 1 matrix', () {
-      const printer = ArrayPrinter<int>();
-      final input = Array.fromIterable(IntegerRange(12 * 1), shape: [12, 1]);
+      const printer = TensorPrinter<int>();
+      final input = Tensor.fromIterable(IntegerRange(12 * 1), shape: [12, 1]);
       expect(
           printer(input),
           '[[0],\n'
@@ -301,9 +301,9 @@ void main() {
           ' [11]]');
     });
     test('2 * 3 * 4', () {
-      const printer = ArrayPrinter<int>();
+      const printer = TensorPrinter<int>();
       final input =
-          Array.fromIterable(IntegerRange(2 * 3 * 4), shape: [2, 3, 4]);
+          Tensor.fromIterable(IntegerRange(2 * 3 * 4), shape: [2, 3, 4]);
       expect(
           printer(input),
           '[[[0, 1, 2, 3],\n'
@@ -314,8 +314,8 @@ void main() {
           '  [20, 21, 22, 23]]]');
     });
     test('10 * 10', () {
-      const printer = ArrayPrinter<int>();
-      final input = Array.fromIterable(IntegerRange(10 * 10), shape: [10, 10]);
+      const printer = TensorPrinter<int>();
+      final input = Tensor.fromIterable(IntegerRange(10 * 10), shape: [10, 10]);
       expect(
           printer(input),
           '[[0, 1, 2, …, 7, 8, 9],\n'
@@ -327,9 +327,9 @@ void main() {
           ' [90, 91, 92, …, 97, 98, 99]]');
     });
     test('3 * 3 * 3 * 3', () {
-      const printer = ArrayPrinter<int>(leadingItems: 1, trailingItems: 1);
+      const printer = TensorPrinter<int>(leadingItems: 1, trailingItems: 1);
       final input =
-          Array.fromIterable(IntegerRange(3 * 3 * 3 * 3), shape: [3, 3, 3, 3]);
+          Tensor.fromIterable(IntegerRange(3 * 3 * 3 * 3), shape: [3, 3, 3, 3]);
       expect(
           printer(input),
           '[[[[0, …, 2],\n'
@@ -351,54 +351,54 @@ void main() {
   });
   group('value', () {
     test('positive indices', () {
-      expect(array2.getValue([1]), 1);
-      expect(array2x3.getValue([0, 1]), 1);
-      expect(array2x3x4.getValue([0, 1, 2]), 6);
+      expect(tensor2.getValue([1]), 1);
+      expect(tensor2x3.getValue([0, 1]), 1);
+      expect(tensor2x3x4.getValue([0, 1, 2]), 6);
     });
     test('negative indices', () {
-      expect(array2.getValue([-1]), 1);
-      expect(array2x3.getValue([-2, -1]), 2);
-      expect(array2x3x4.getValue([-1, -2, -1]), 19);
+      expect(tensor2.getValue([-1]), 1);
+      expect(tensor2x3.getValue([-2, -1]), 2);
+      expect(tensor2x3x4.getValue([-1, -2, -1]), 19);
     });
     test('index out of bounds', () {
-      expect(() => array2.getValue([2]), throwsAssertionError);
-      expect(() => array2.getValue([-3]), throwsAssertionError);
+      expect(() => tensor2.getValue([2]), throwsAssertionError);
+      expect(() => tensor2.getValue([-3]), throwsAssertionError);
     }, skip: !hasAssertionsEnabled());
     test('wrong number of indices', () {
-      expect(() => array2x3.getValue([0]), throwsAssertionError);
-      expect(() => array2x3.getValue([0, 0, 0]), throwsAssertionError);
+      expect(() => tensor2x3.getValue([0]), throwsAssertionError);
+      expect(() => tensor2x3.getValue([0, 0, 0]), throwsAssertionError);
     }, skip: !hasAssertionsEnabled());
   });
   group('slice', () {
     test('empty slices', () {
       const indices = <Index>[];
       expect(
-          array2.slice(indices),
-          isArray<int>(
-              shape: array2.shape,
-              strides: array2.stride,
-              object: array2.toObject()));
+          tensor2.slice(indices),
+          isTensor<int>(
+              shape: tensor2.shape,
+              strides: tensor2.stride,
+              object: tensor2.toObject()));
       expect(
-          array2x3.slice(indices),
-          isArray<int>(
-              shape: array2x3.shape,
-              strides: array2x3.stride,
-              object: array2x3.toObject()));
+          tensor2x3.slice(indices),
+          isTensor<int>(
+              shape: tensor2x3.shape,
+              strides: tensor2x3.stride,
+              object: tensor2x3.toObject()));
       expect(
-          array2x3x4.slice(indices),
-          isArray<int>(
-              shape: array2x3x4.shape,
-              strides: array2x3x4.stride,
-              object: array2x3x4.toObject()));
+          tensor2x3x4.slice(indices),
+          isTensor<int>(
+              shape: tensor2x3x4.shape,
+              strides: tensor2x3x4.stride,
+              object: tensor2x3x4.toObject()));
     });
     test('first slice', () {
       const indices = [SingleIndex(0)];
-      expect(array2.slice(indices), isArray<int>(shape: <int>[], object: 0));
-      expect(array2x3.slice(indices),
-          isArray<int>(shape: <int>[3], object: [0, 1, 2]));
+      expect(tensor2.slice(indices), isTensor<int>(shape: <int>[], object: 0));
+      expect(tensor2x3.slice(indices),
+          isTensor<int>(shape: <int>[3], object: [0, 1, 2]));
       expect(
-          array2x3x4.slice(indices),
-          isArray<int>(shape: <int>[
+          tensor2x3x4.slice(indices),
+          isTensor<int>(shape: <int>[
             3,
             4
           ], object: [
@@ -409,12 +409,12 @@ void main() {
     });
     test('last slice', () {
       const indices = [SingleIndex(-1)];
-      expect(array2.slice(indices), isArray<int>(shape: <int>[], object: 1));
-      expect(array2x3.slice(indices),
-          isArray<int>(shape: <int>[3], object: [3, 4, 5]));
+      expect(tensor2.slice(indices), isTensor<int>(shape: <int>[], object: 1));
+      expect(tensor2x3.slice(indices),
+          isTensor<int>(shape: <int>[3], object: [3, 4, 5]));
       expect(
-          array2x3x4.slice(indices),
-          isArray<int>(shape: <int>[
+          tensor2x3x4.slice(indices),
+          isTensor<int>(shape: <int>[
             3,
             4
           ], object: [
@@ -425,20 +425,21 @@ void main() {
     });
     test('two slices', () {
       const indices = [SingleIndex(1), SingleIndex(2)];
-      expect(() => array2.slice(indices), throwsAssertionError);
-      expect(array2x3.slice(indices), isArray<int>(shape: <int>[], object: 5));
-      expect(array2x3x4.slice(indices),
-          isArray<int>(shape: <int>[4], object: [20, 21, 22, 23]));
+      expect(() => tensor2.slice(indices), throwsAssertionError);
+      expect(
+          tensor2x3.slice(indices), isTensor<int>(shape: <int>[], object: 5));
+      expect(tensor2x3x4.slice(indices),
+          isTensor<int>(shape: <int>[4], object: [20, 21, 22, 23]));
     }, skip: !hasAssertionsEnabled());
   });
   group('toObject', () {
     test('default', () {
-      expect(array2.toObject(), [0, 1]);
-      expect(array2x3.toObject(), [
+      expect(tensor2.toObject(), [0, 1]);
+      expect(tensor2x3.toObject(), [
         [0, 1, 2],
         [3, 4, 5],
       ]);
-      expect(array2x3x4.toObject(), [
+      expect(tensor2x3x4.toObject(), [
         [
           [0, 1, 2, 3],
           [4, 5, 6, 7],
@@ -453,12 +454,12 @@ void main() {
     });
     test('type', () {
       final object = DataType.object(0);
-      expect(array2.toObject(type: object), [0, 1]);
-      expect(array2x3.toObject(type: object), [
+      expect(tensor2.toObject(type: object), [0, 1]);
+      expect(tensor2x3.toObject(type: object), [
         [0, 1, 2],
         [3, 4, 5],
       ]);
-      expect(array2x3x4.toObject(type: object), [
+      expect(tensor2x3x4.toObject(type: object), [
         [
           [0, 1, 2, 3],
           [4, 5, 6, 7],
