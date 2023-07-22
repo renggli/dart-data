@@ -12,12 +12,12 @@ extension ToObjectTensor<T> on Tensor<T> {
 
 dynamic _toObject<T>(Tensor<T> tensor,
     {required DataType<T> type, required int axis, required int offset}) {
-  if (axis == tensor.dimensions) {
+  if (axis == tensor.rank) {
     return tensor.data[offset]; // return a single value
   }
   final shape = tensor.shape[axis];
   final stride = tensor.stride[axis];
-  if (axis == tensor.dimensions - 1) {
+  if (axis == tensor.rank - 1) {
     final list = type.newList(shape); // creates an optimal list
     for (var i = 0, j = offset; i < shape; i++, j += stride) {
       list[i] = tensor.data[j];

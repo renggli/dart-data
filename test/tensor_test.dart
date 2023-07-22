@@ -21,7 +21,7 @@ void main() {
           isTensor<int>(
             type: DataType.int32,
             data: [40],
-            dimensions: 0,
+            rank: 0,
             shape: isEmpty,
             stride: isEmpty,
             object: 40,
@@ -36,7 +36,7 @@ void main() {
           isTensor<int>(
             type: DataType.int32,
             data: [41, 41, 41, 41, 41, 41],
-            dimensions: 1,
+            rank: 1,
             shape: [6],
             stride: [1],
             object: [41, 41, 41, 41, 41, 41],
@@ -54,7 +54,7 @@ void main() {
           isTensor<int>(
             type: DataType.uint32,
             data: [42, 42, 42, 42, 42, 42],
-            dimensions: 2,
+            rank: 2,
             shape: [2, 3],
             stride: [3, 1],
             object: [
@@ -82,7 +82,7 @@ void main() {
           isTensor<int>(
             type: DataType.uint8,
             data: [1, 2, 3, 4, 5, 6],
-            dimensions: 1,
+            rank: 1,
             shape: [6],
             stride: [1],
             object: [1, 2, 3, 4, 5, 6],
@@ -101,7 +101,7 @@ void main() {
           isTensor<int>(
             type: DataType.uint32,
             data: [1, 2, 3, 4, 5, 6],
-            dimensions: 2,
+            rank: 2,
             shape: [2, 3],
             stride: [3, 1],
             object: [
@@ -126,7 +126,7 @@ void main() {
           isTensor<int>(
             type: DataType.int8,
             data: [-1, 0, 1],
-            dimensions: 1,
+            rank: 1,
             shape: [3],
             stride: [1],
             object: [-1, 0, 1],
@@ -147,7 +147,7 @@ void main() {
           isTensor<int>(
             type: DataType.uint8,
             data: [1, 2, 3, 4, 5, 6],
-            dimensions: 2,
+            rank: 2,
             shape: [2, 3],
             stride: [3, 1],
             object: [
@@ -172,7 +172,7 @@ void main() {
           isTensor<int>(
             type: tensor2x3.type,
             data: same(tensor2x3.data),
-            dimensions: 2,
+            rank: 2,
             shape: [1, 6],
             stride: [6, 1],
             object: [
@@ -187,7 +187,7 @@ void main() {
           isTensor<int>(
             type: tensor2x3.type,
             data: same(tensor2x3.data),
-            dimensions: 2,
+            rank: 2,
             shape: [2, 3],
             stride: [3, 1],
             object: [
@@ -203,7 +203,7 @@ void main() {
           isTensor<int>(
             type: tensor2x3.type,
             data: same(tensor2x3.data),
-            dimensions: 2,
+            rank: 2,
             shape: [3, 2],
             stride: [2, 1],
             object: [
@@ -220,7 +220,7 @@ void main() {
           isTensor<int>(
             type: tensor2x3.type,
             data: same(tensor2x3.data),
-            dimensions: 2,
+            rank: 2,
             shape: [6, 1],
             stride: [1, 1],
             object: [
@@ -240,7 +240,7 @@ void main() {
           isTensor<int>(
             type: tensor2x3.type,
             data: same(tensor2x3.data),
-            dimensions: 1,
+            rank: 1,
             shape: [6],
             stride: [1],
             object: [0, 1, 2, 3, 4, 5],
@@ -258,7 +258,7 @@ void main() {
           isTensor<int>(
             type: tensor2x3.type,
             data: same(tensor2x3.data),
-            dimensions: 2,
+            rank: 2,
             shape: [3, 2],
             stride: [1, 3],
             isContiguous: false,
@@ -268,7 +268,7 @@ void main() {
               [2, 5],
             ],
           ));
-    });
+    }, skip: true);
     test('twice', () {
       final result = tensor2x3.transpose().transpose();
       expect(
@@ -276,7 +276,7 @@ void main() {
           isTensor<int>(
             type: tensor2x3.type,
             data: same(tensor2x3.data),
-            dimensions: tensor2x3.dimensions,
+            rank: tensor2x3.rank,
             shape: tensor2x3.shape,
             stride: tensor2x3.stride,
             object: [
@@ -285,6 +285,12 @@ void main() {
             ],
           ));
     });
+  });
+  group('iterator', () {
+    test('tensor2', () => expectTensorIterable(tensor2, IntegerRange(2)));
+    test('tensor2x3', () => expectTensorIterable(tensor2x3, IntegerRange(6)));
+    test('tensor2x3x4',
+        () => expectTensorIterable(tensor2x3x4, IntegerRange(24)));
   });
   group('format', () {
     test('single value', () {

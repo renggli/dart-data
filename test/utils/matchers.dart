@@ -2,6 +2,7 @@ import 'package:data/matrix.dart';
 import 'package:data/polynomial.dart';
 import 'package:data/tensor.dart';
 import 'package:data/vector.dart';
+import 'package:more/collection.dart';
 import 'package:more/number.dart';
 import 'package:test/test.dart';
 
@@ -75,7 +76,7 @@ dynamic isTensor<T>({
   dynamic type = anything,
   dynamic data = anything,
   dynamic offset = 0,
-  dynamic dimensions = anything,
+  dynamic rank = anything,
   dynamic shape = anything,
   dynamic stride = anything,
   dynamic isContiguous = true,
@@ -83,12 +84,40 @@ dynamic isTensor<T>({
   dynamic format = anything,
 }) =>
     isA<Tensor<T>>()
-        .having((array) => array.type, 'type', type)
-        .having((array) => array.data, 'data', data)
-        .having((array) => array.offset, 'offset', offset)
-        .having((array) => array.dimensions, 'dimensions', dimensions)
-        .having((array) => array.shape, 'shape', shape)
-        .having((array) => array.stride, 'stride', stride)
-        .having((array) => array.isContiguous, 'isContiguous', isContiguous)
-        .having((array) => array.toObject(), 'toObject', object)
-        .having((array) => TensorPrinter<T>()(array), 'format', format);
+        .having((tensor) => tensor.type, 'type', type)
+        .having((tensor) => tensor.data, 'data', data)
+        .having((tensor) => tensor.offset, 'offset', offset)
+        .having((tensor) => tensor.rank, 'rank', rank)
+        .having((tensor) => tensor.shape, 'shape', shape)
+        .having((tensor) => tensor.stride, 'stride', stride)
+        .having((tensor) => tensor.isContiguous, 'isContiguous', isContiguous)
+        .having((tensor) => tensor.toObject(), 'toObject', object)
+        .having((tensor) => tensor, 'iterator', (Tensor<T> tensor) {
+      if (object is Iterable) {
+        expectTensorIterable(tensor, object.deepFlatten<T>());
+      }
+      return true;
+    }).having((tensor) => TensorPrinter<T>()(tensor), 'format', format);
+
+dynamic expectTensorIterable<T>(Tensor<T> actual, Iterable<T> expected) {
+  final actualIterator = actual.iterator;
+  final expectedIterator = expected.iterator;
+  while (true) {
+    final actualHasNext = actualIterator.moveNext();
+    final expectedHasNext = expectedIterator.moveNext();
+    expect(actualHasNext, expectedHasNext, reason: 'moveNext');
+    if (!actualHasNext || !expectedHasNext) break;
+    final value = expectedIterator.current;
+    expect(actualIterator.current, value, reason: 'current');
+    expect(actualIterator.currentIndices,
+        actual.getIndices(actualIterator.currentOffset),
+        reason: 'currentIndices');
+    expect(actualIterator.currentOffset,
+        actual.getOffset(actualIterator.currentIndices),
+        reason: 'currentOffset');
+    expect(actual.getValue(actualIterator.currentIndices), value,
+        reason: 'get value using `currentIndices`');
+    expect(actual.data[actualIterator.currentOffset], value,
+        reason: 'get value using `currentOffset`');
+  }
+}

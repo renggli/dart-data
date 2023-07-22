@@ -7,11 +7,13 @@ import 'package:more/printer.dart';
 import '../../stats.dart';
 import '../../type.dart';
 import 'index.dart';
+import 'iterator.dart';
 import 'printer.dart';
 import 'utils/shape.dart' as shape_utils;
 import 'utils/stride.dart' as stride_utils;
 
 /// A multi-dimensional fixed-size container of items of a specific type.
+@experimental
 class Tensor<T> with ToStringPrinter {
   /// Constructs a [Tensor] of [value].
   ///
@@ -97,7 +99,14 @@ class Tensor<T> with ToStringPrinter {
   final List<int> stride;
 
   /// The number of dimensions.
-  int get dimensions => shape.length;
+  int get rank => shape.length;
+
+  /// An iterator over the values of the tensor.
+  TensorIterator<T> get iterator => rank == 0
+      ? EmptyTensorIterator<T>(this)
+      : isContiguous
+          ? ContiguousTensorIterator<T>(this)
+          : GenericTensorIterator<T>(this);
 
   /// Tests if the data is stored contiguous.
   bool get isContiguous =>
@@ -112,8 +121,8 @@ class Tensor<T> with ToStringPrinter {
 
   /// Compute the offset of the given `indices` in the underlying tensor.
   int getOffset(Iterable<int> indices) {
-    assert(indices.length == dimensions,
-        'Expected $dimensions indices, but got ${indices.length}');
+    assert(indices.length == rank,
+        'Expected $rank indices, but got ${indices.length}');
     var axis = 0;
     var result = offset;
     for (final index in indices) {
@@ -122,6 +131,17 @@ class Tensor<T> with ToStringPrinter {
           'Index $index on axis $axis is out of range');
       result += stride[axis] * adjustedIndex;
       axis++;
+    }
+    return result;
+  }
+
+  /// Compute the indices given the underlying `offset`.
+  List<int> getIndices(int offset) {
+    final result = DataType.index.newList(rank);
+    offset -= this.offset;
+    for (var i = 0; i < rank; i++) {
+      result[i] = offset ~/ stride[i];
+      offset -= result[i] * stride[i];
     }
     return result;
   }
@@ -137,9 +157,9 @@ class Tensor<T> with ToStringPrinter {
     final newStrides = <int>[];
     for (final index in indices) {
       assert(
-          axis < dimensions,
+          axis < rank,
           'Too many axes specified: '
-          '$index on axis $axis, but expected at most $dimensions');
+          '$index on axis $axis, but expected at most $rank');
       switch (index) {
         case SingleIndex(index: final start):
           // Access a specific value on the current axis.
@@ -163,13 +183,13 @@ class Tensor<T> with ToStringPrinter {
         case NewAxisIndex():
           // Adds a new one unit-length dimension.
           newShape.add(1);
-          newStrides.add(stride.getRange(axis, dimensions).product());
+          newStrides.add(stride.getRange(axis, rank).product());
       }
     }
     // Keep existing axis as-is.
-    if (axis < dimensions) {
-      newShape.addAll(shape.getRange(axis, dimensions));
-      newStrides.addAll(stride.getRange(axis, dimensions));
+    if (axis < rank) {
+      newShape.addAll(shape.getRange(axis, rank));
+      newStrides.addAll(stride.getRange(axis, rank));
     }
     // Return an update view onto the tensor.
     return Tensor.internal(
@@ -196,7 +216,7 @@ class Tensor<T> with ToStringPrinter {
 
   /// Returns a transposed view.
   Tensor<T> transpose({List<int>? axes}) {
-    axes ??= IntegerRange(dimensions).reversed;
+    axes ??= IntegerRange(rank).reversed;
     return Tensor<T>.internal(
       type: type,
       data: data,

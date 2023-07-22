@@ -37,7 +37,7 @@ class TensorPrinter<T> extends Printer<Tensor<T>> {
 
   void _printOn(Tensor<T> tensor, StringBuffer buffer,
       {required int axis, required int offset}) {
-    if (axis == tensor.dimensions) {
+    if (axis == tensor.rank) {
       _printValueOn(tensor, buffer, axis: axis, offset: offset);
     } else {
       _printAxisOn(tensor, buffer, axis: axis, offset: offset);
@@ -46,7 +46,7 @@ class TensorPrinter<T> extends Printer<Tensor<T>> {
 
   void _printAxisOn(Tensor<T> tensor, StringBuffer buffer,
       {required int axis, required int offset}) {
-    final isLast = axis == tensor.dimensions - 1;
+    final isLast = axis == tensor.rank - 1;
     buffer.write(openTensor);
     for (var i = 0; i < tensor.shape[axis]; i++) {
       if (i > 0) {
