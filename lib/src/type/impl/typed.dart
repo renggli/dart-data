@@ -26,11 +26,11 @@ abstract class TypedDataType<T, L extends List<T>> extends DataType<T> {
   }
 
   @override
-  List<T> copyList(Iterable<T> list,
+  List<T> copyList(Iterable<T> iterable,
       {int? length, T? fillValue, bool readonly = false}) {
-    final listLength = list.length;
+    final listLength = iterable.length;
     final result = emptyList(length ?? listLength);
-    result.setRange(0, math.min(result.length, listLength), list);
+    result.setRange(0, math.min(result.length, listLength), iterable);
     if (listLength < result.length &&
         fillValue != null &&
         fillValue != defaultValue) {

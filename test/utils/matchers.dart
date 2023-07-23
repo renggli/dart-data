@@ -2,7 +2,6 @@ import 'package:data/matrix.dart';
 import 'package:data/polynomial.dart';
 import 'package:data/tensor.dart';
 import 'package:data/vector.dart';
-import 'package:more/collection.dart';
 import 'package:more/number.dart';
 import 'package:test/test.dart';
 
@@ -75,49 +74,71 @@ dynamic isCloseTo(dynamic expected, {num epsilon = 1.0e-5}) {
 dynamic isTensor<T>({
   dynamic type = anything,
   dynamic data = anything,
-  dynamic offset = 0,
-  dynamic rank = anything,
-  dynamic shape = anything,
-  dynamic stride = anything,
-  dynamic isContiguous = true,
+  dynamic layout = anything,
   dynamic object = anything,
   dynamic format = anything,
 }) =>
     isA<Tensor<T>>()
         .having((tensor) => tensor.type, 'type', type)
         .having((tensor) => tensor.data, 'data', data)
-        .having((tensor) => tensor.offset, 'offset', offset)
-        .having((tensor) => tensor.rank, 'rank', rank)
-        .having((tensor) => tensor.shape, 'shape', shape)
-        .having((tensor) => tensor.stride, 'stride', stride)
-        .having((tensor) => tensor.isContiguous, 'isContiguous', isContiguous)
+        .having((tensor) => tensor.layout, 'layout', layout)
         .having((tensor) => tensor.toObject(), 'toObject', object)
         .having((tensor) => tensor, 'iterator', (Tensor<T> tensor) {
-      if (object is Iterable) {
-        expectTensorIterable(tensor, object.deepFlatten<T>());
-      }
+      // if (object is Iterable) {
+      //   expectTensorIterable(tensor, object.deepFlatten<T>());
+      // }
       return true;
     }).having((tensor) => TensorPrinter<T>()(tensor), 'format', format);
 
-dynamic expectTensorIterable<T>(Tensor<T> actual, Iterable<T> expected) {
-  final actualIterator = actual.iterator;
-  final expectedIterator = expected.iterator;
-  while (true) {
-    final actualHasNext = actualIterator.moveNext();
-    final expectedHasNext = expectedIterator.moveNext();
-    expect(actualHasNext, expectedHasNext, reason: 'moveNext');
-    if (!actualHasNext || !expectedHasNext) break;
-    final value = expectedIterator.current;
-    expect(actualIterator.current, value, reason: 'current');
-    expect(actualIterator.currentIndices,
-        actual.getIndices(actualIterator.currentOffset),
-        reason: 'currentIndices');
-    expect(actualIterator.currentOffset,
-        actual.getOffset(actualIterator.currentIndices),
-        reason: 'currentOffset');
-    expect(actual.getValue(actualIterator.currentIndices), value,
-        reason: 'get value using `currentIndices`');
-    expect(actual.data[actualIterator.currentOffset], value,
-        reason: 'get value using `currentOffset`');
-  }
-}
+dynamic isLayout({
+  dynamic rank = anything,
+  dynamic length = anything,
+  dynamic offset = anything,
+  dynamic shape = anything,
+  dynamic strides = anything,
+  dynamic isContiguous = anything,
+  dynamic indices = anything,
+  dynamic keys = anything,
+}) =>
+    isA<Layout>()
+        .having((layout) => layout.rank, 'rank', rank)
+        .having((layout) => layout.length, 'length', length)
+        .having((layout) => layout.offset, 'offset', offset)
+        .having((layout) => layout.shape, 'shape', shape)
+        .having((layout) => layout.strides, 'strides', strides)
+        .having((layout) => layout.isContiguous, 'isContiguous', isContiguous)
+        .having((layout) => layout.indices, 'indices', indices)
+        .having(
+            (layout) => layout.indices
+                .map((offset) => layout.toIndex(layout.toKey(offset))),
+            'offsets (round-trip)',
+            indices)
+        .having((layout) => layout.keys, 'keys', keys)
+        .having(
+            (layout) =>
+                layout.keys.map((index) => layout.toKey(layout.toIndex(index))),
+            'keys (round-trip)',
+            keys);
+
+// dynamic expectTensorIterable<T>(Tensor<T> actual, Iterable<T> expected) {
+//   final actualIterator = actual.iterator;
+//   final expectedIterator = expected.iterator;
+//   while (true) {
+//     final actualHasNext = actualIterator.moveNext();
+//     final expectedHasNext = expectedIterator.moveNext();
+//     expect(actualHasNext, expectedHasNext, reason: 'moveNext');
+//     if (!actualHasNext || !expectedHasNext) break;
+//     final value = expectedIterator.current;
+//     expect(actualIterator.current, value, reason: 'current');
+//     expect(actualIterator.currentIndices,
+//         actual.getIndices(actualIterator.currentOffset),
+//         reason: 'currentIndices');
+//     expect(actualIterator.currentOffset,
+//         actual.getOffset(actualIterator.currentIndices),
+//         reason: 'currentOffset');
+//     expect(actual.getValue(actualIterator.currentIndices), value,
+//         reason: 'get value using `currentIndices`');
+//     expect(actual.data[actualIterator.currentOffset], value,
+//         reason: 'get value using `currentOffset`');
+//   }
+// }

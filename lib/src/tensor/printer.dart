@@ -33,7 +33,7 @@ class TensorPrinter<T> extends Printer<Tensor<T>> {
 
   @override
   void printOn(Tensor<T> object, StringBuffer buffer) =>
-      _printOn(object, buffer, axis: 0, offset: object.offset);
+      _printOn(object, buffer, axis: 0, offset: object.layout.offset);
 
   void _printOn(Tensor<T> tensor, StringBuffer buffer,
       {required int axis, required int offset}) {
@@ -48,7 +48,7 @@ class TensorPrinter<T> extends Printer<Tensor<T>> {
       {required int axis, required int offset}) {
     final isLast = axis == tensor.rank - 1;
     buffer.write(openTensor);
-    for (var i = 0; i < tensor.shape[axis]; i++) {
+    for (var i = 0; i < tensor.layout.shape[axis]; i++) {
       if (i > 0) {
         if (isLast) {
           buffer.write(horizontalSeparator);
@@ -59,16 +59,16 @@ class TensorPrinter<T> extends Printer<Tensor<T>> {
       }
       if (limit &&
           leadingItems <= i &&
-          i < tensor.shape[axis] - trailingItems) {
+          i < tensor.layout.shape[axis] - trailingItems) {
         if (isLast) {
           buffer.write(paddingPrinter(ellipsesPrinter(horizontalEllipses)));
         } else {
           buffer.write(verticalEllipses);
         }
-        i = tensor.shape[axis] - trailingItems - 1;
+        i = tensor.layout.shape[axis] - trailingItems - 1;
       } else {
         _printOn(tensor, buffer,
-            axis: axis + 1, offset: offset + i * tensor.stride[axis]);
+            axis: axis + 1, offset: offset + i * tensor.layout.strides[axis]);
       }
     }
     buffer.write(closeTensor);

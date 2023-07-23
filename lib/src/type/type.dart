@@ -149,18 +149,18 @@ abstract class DataType<T> {
     return readonly ? UnmodifiableListView(result) : result;
   }
 
-  /// Creates a fixed-length list copy of this data type, possibly with a
+  /// Creates a fixed-length list copy of the [iterable], possibly with a
   /// modified [length] and if necessary populated with [fillValue].
-  List<T> copyList(Iterable<T> list,
+  List<T> copyList(Iterable<T> iterable,
       {int? length, T? fillValue, bool readonly = false}) {
-    final listLength = list.length;
+    final listLength = iterable.length;
     final result =
         newList(length ?? listLength, fillValue: fillValue ?? defaultValue);
-    result.setRange(0, math.min(result.length, listLength), list);
+    result.setRange(0, math.min(result.length, listLength), iterable);
     return readonly ? UnmodifiableListView<T>(result) : result;
   }
 
-  /// Casts an existing list to this data type.
+  /// Casts an existing [iterable] to this data type.
   List<T> castList(Iterable<Object?> elements) {
     final list = newList(elements.length);
     final it = elements.iterator;

@@ -1,16 +1,10 @@
-import 'dart:typed_data';
-
 import 'package:meta/meta.dart';
 import 'package:more/collection.dart';
 import 'package:more/printer.dart';
 
-import '../../stats.dart';
 import '../../type.dart';
-import 'index.dart';
-import 'iterator.dart';
+import 'layout.dart';
 import 'printer.dart';
-import 'utils/shape.dart' as shape_utils;
-import 'utils/stride.dart' as stride_utils;
 
 /// A multi-dimensional fixed-size container of items of a specific type.
 @experimental
@@ -21,16 +15,10 @@ class Tensor<T> with ToStringPrinter {
   /// `shape` is provided all tensor entries are filled with that value.
   factory Tensor.filled(T value,
       {List<int>? shape, List<int>? strides, DataType<T>? type}) {
-    final newType = type ?? DataType.fromInstance(value);
-    final newShape = shape_utils.fromIterable(shape ?? const <int>[]);
-    final newStrides = strides ?? stride_utils.fromShape(newShape);
-    final newData = newType.newList(newShape.product(), fillValue: value);
-    return Tensor.internal(
-      type: newType,
-      data: newData,
-      shape: newShape,
-      stride: newStrides,
-    );
+    final type_ = type ?? DataType.fromInstance(value);
+    final layout_ = Layout(shape: shape, strides: strides);
+    final data_ = type_.newList(layout_.length, fillValue: value);
+    return Tensor.internal(type: type_, data: data_, layout: layout_);
   }
 
   /// Constructs an [Tensor] from an `iterable`.
@@ -41,30 +29,18 @@ class Tensor<T> with ToStringPrinter {
   factory Tensor.fromIterable(Iterable<T> iterable,
       {List<int>? shape, List<int>? strides, DataType<T>? type}) {
     assert(iterable.isNotEmpty, '`iterable` should not be empty');
-    final newType = type ?? DataType.fromIterable(iterable);
-    final newData = newType.copyList(iterable);
-    final newShape = shape_utils.fromIterable(shape ?? [newData.length]);
-    final newStrides = strides ?? stride_utils.fromShape(newShape);
-    return Tensor.internal(
-      type: newType,
-      data: newData,
-      shape: newShape,
-      stride: newStrides,
-    );
+    final type_ = type ?? DataType.fromIterable(iterable);
+    final data_ = type_.copyList(iterable);
+    final layout_ = Layout(shape: shape ?? [data_.length], strides: strides);
+    return Tensor.internal(type: type_, data: data_, layout: layout_);
   }
 
   /// Constructs an [Tensor] from a nested `object`.
   factory Tensor.fromObject(Iterable<dynamic> object, {DataType<T>? type}) {
-    final newType = type ?? DataType.fromIterable(object.deepFlatten());
-    final newData = newType.copyList(object.deepFlatten());
-    final newShape = shape_utils.fromObject(object);
-    final newStrides = stride_utils.fromShape(newShape);
-    return Tensor.internal(
-      type: newType,
-      data: newData,
-      shape: newShape,
-      stride: newStrides,
-    );
+    final type_ = type ?? DataType.fromIterable(object.deepFlatten());
+    final data_ = type_.copyList(object.deepFlatten<T>());
+    final layout_ = Layout.fromObject(object);
+    return Tensor.internal(type: type_, data: data_, layout: layout_);
   }
 
   /// Internal constructors of [Tensor] object.
@@ -72,15 +48,8 @@ class Tensor<T> with ToStringPrinter {
   Tensor.internal({
     required this.type,
     required this.data,
-    this.offset = 0,
-    required this.shape,
-    required this.stride,
-  })  : assert(shape is TypedData, '`shape` should be TypedData'),
-        assert(shape.every((s) => s > 0), '`shape` should be positive'),
-        assert(stride is TypedData, '`stride` should be TypedData'),
-        assert(stride.every((s) => s != 0), '`stride` should be non-null'),
-        assert(shape.length == stride.length, '`shape` and `stride` length'),
-        assert(offset + shape.product() <= data.length, '`data` is too short');
+    required this.layout,
+  });
 
   /// The type of this tensor.
   final DataType<T> type;
@@ -88,149 +57,45 @@ class Tensor<T> with ToStringPrinter {
   /// The underlying data storage.
   final List<T> data;
 
-  /// The absolute offset into the underlying data.
-  final int offset;
-
-  /// The length of each dimension in the underlying data.
-  final List<int> shape;
-
-  /// The number of indices to jump to the next value in each dimension of the
-  /// underlying data.
-  final List<int> stride;
+  /// The layout of the data in the underlying storage.
+  final Layout layout;
 
   /// The number of dimensions.
-  int get rank => shape.length;
+  int get rank => layout.rank;
+
+  /// The number of values.
+  int get length => layout.length;
 
   /// An iterator over the values of the tensor.
-  TensorIterator<T> get iterator => rank == 0
-      ? EmptyTensorIterator<T>(this)
-      : isContiguous
-          ? ContiguousTensorIterator<T>(this)
-          : GenericTensorIterator<T>(this);
+  Iterable<T> get values => layout.indices.map((index) => data[index]);
 
-  /// Tests if the data is stored contiguous.
-  bool get isContiguous =>
-      stride_utils.isContiguous(shape: shape, stride: stride);
+  /// Returns the value at the given key (index-list).
+  T getValue(List<int> key) => data[layout.toIndex(key)];
 
-  /// The value at the given `indices`.
-  T getValue(Iterable<int> indices) => data[getOffset(indices)];
-
-  /// Sets the value at the given `indices`.
-  void setValue(Iterable<int> indices, T value) =>
-      data[getOffset(indices)] = value;
-
-  /// Compute the offset of the given `indices` in the underlying tensor.
-  int getOffset(Iterable<int> indices) {
-    assert(indices.length == rank,
-        'Expected $rank indices, but got ${indices.length}');
-    var axis = 0;
-    var result = offset;
-    for (final index in indices) {
-      final adjustedIndex = index < 0 ? shape[axis] + index : index;
-      assert(0 <= adjustedIndex && adjustedIndex < shape[axis],
-          'Index $index on axis $axis is out of range');
-      result += stride[axis] * adjustedIndex;
-      axis++;
-    }
-    return result;
-  }
-
-  /// Compute the indices given the underlying `offset`.
-  List<int> getIndices(int offset) {
-    final result = DataType.index.newList(rank);
-    offset -= this.offset;
-    for (var i = 0; i < rank; i++) {
-      result[i] = offset ~/ stride[i];
-      offset -= result[i] * stride[i];
-    }
-    return result;
-  }
+  /// Sets the value at the given key (index-list).
+  void setValue(List<int> key, T value) => data[layout.toIndex(key)] = value;
 
   /// Returns a view with the first axis resolved to `index`.
-  Tensor<T> operator [](Index index) => slice([index]);
+  Tensor<T> operator [](int index) =>
+      Tensor<T>.internal(type: type, data: data, layout: layout[index]);
 
-  /// Returns a view with the `indices` resolved.
-  Tensor<T> slice(Iterable<Index> indices) {
-    var axis = 0;
-    var newOffset = offset;
-    final newShape = <int>[];
-    final newStrides = <int>[];
-    for (final index in indices) {
-      assert(
-          axis < rank,
-          'Too many axes specified: '
-          '$index on axis $axis, but expected at most $rank');
-      switch (index) {
-        case SingleIndex(index: final start):
-          // Access a specific value on the current axis.
-          final adjustedStart = start < 0 ? shape[axis] + start : start;
-          assert(0 <= adjustedStart && adjustedStart < shape[axis],
-              'Index $start of $index on axis $axis is out of range');
-          newOffset += stride[axis] * adjustedStart;
-          axis++;
-        case RangeIndex(start: final start, end: final end, step: final step):
-          // Access a range of values on the current axis.
-          final adjustedStart = start < 0 ? shape[axis] + start : start;
-          assert(0 <= adjustedStart && adjustedStart < shape[axis],
-              'Index $start of $index on axis $axis is out of range');
-          final adjustedEnd = end < 0 ? shape[axis] + end : end;
-          assert(0 <= adjustedEnd && adjustedEnd < shape[axis],
-              'Index $end of $index on axis $axis is out of range');
-          newShape.add((adjustedEnd - adjustedStart) ~/ step);
-          newStrides.add(step * stride[axis]);
-          newOffset += adjustedStart * stride[axis];
-          axis++;
-        case NewAxisIndex():
-          // Adds a new one unit-length dimension.
-          newShape.add(1);
-          newStrides.add(stride.getRange(axis, rank).product());
-      }
-    }
-    // Keep existing axis as-is.
-    if (axis < rank) {
-      newShape.addAll(shape.getRange(axis, rank));
-      newStrides.addAll(stride.getRange(axis, rank));
-    }
-    // Return an update view onto the tensor.
-    return Tensor.internal(
-      type: type,
-      data: data,
-      offset: newOffset,
-      shape: shape_utils.fromIterable(newShape),
-      stride: stride_utils.fromIterable(newStrides),
-    );
-  }
-
-  /// Returns a view onto the data with the same
+  /// Returns a reshaped view.
   Tensor<T> reshape(List<int> shape) {
-    assert(this.shape.product() == shape.product(),
-        'New shape $shape is not compatible with ${this.shape}');
-    return Tensor<T>.internal(
-      type: type,
-      data: data,
-      offset: offset,
-      shape: stride_utils.fromIterable(shape),
-      stride: stride_utils.fromShape(shape),
-    );
+    final (layout_, data_) = layout.isContiguous
+        ? (Layout(shape: shape, offset: layout.offset), data)
+        : (Layout(shape: shape), type.copyList(values));
+    assert(layout.length == layout_.length,
+        'New shape $shape ins incompatible with $layout');
+    return Tensor<T>.internal(type: type, data: data_, layout: layout_);
   }
 
   /// Returns a transposed view.
-  Tensor<T> transpose({List<int>? axes}) {
-    axes ??= IntegerRange(rank).reversed;
-    return Tensor<T>.internal(
-      type: type,
-      data: data,
-      offset: offset,
-      shape: shape_utils.fromIterable(axes.map((each) => shape[each])),
-      stride: stride_utils.fromIterable(axes.map((each) => stride[each])),
-    );
-  }
+  Tensor<T> transpose({List<int>? axes}) => Tensor<T>.internal(
+      type: type, data: data, layout: layout.transpose(axes: axes));
 
   @override
   ObjectPrinter get toStringPrinter => super.toStringPrinter
     ..addValue(type, name: 'type')
-    ..addValue(shape, name: 'shape')
-    ..addValue(stride, name: 'strides')
-    ..addValue(offset, name: 'offset')
+    ..addValue(layout, name: 'layout')
     ..addValue(this, printer: TensorPrinter<T>());
 }

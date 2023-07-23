@@ -13,6 +13,138 @@ final tensor2x3x4 =
     Tensor.fromIterable(IntegerRange(2 * 3 * 4), shape: [2, 3, 4]);
 
 void main() {
+  group('layout', () {
+    test('value', () {
+      final layout = Layout();
+      expect(
+          layout,
+          isLayout(
+              rank: 0,
+              length: 1,
+              offset: 0,
+              shape: isEmpty,
+              strides: isEmpty,
+              isContiguous: true,
+              indices: [0],
+              keys: [<int>[]]));
+    });
+    test('1', () {
+      final layout = Layout(shape: [1]);
+      expect(
+          layout,
+          isLayout(
+              rank: 1,
+              length: 1,
+              offset: 0,
+              shape: [1],
+              strides: [1],
+              isContiguous: true,
+              indices: [0],
+              keys: [
+                [0]
+              ]));
+    });
+    test('3', () {
+      final layout = Layout(shape: [3]);
+      expect(
+          layout,
+          isLayout(
+              rank: 1,
+              length: 3,
+              offset: 0,
+              shape: [3],
+              strides: [1],
+              isContiguous: true,
+              indices: [0, 1, 2],
+              keys: [
+                [0],
+                [1],
+                [2],
+              ]));
+    });
+    test('2x2', () {
+      final layout = Layout(shape: [2, 2]);
+      expect(
+          layout,
+          isLayout(
+              rank: 2,
+              length: 4,
+              offset: 0,
+              shape: [2, 2],
+              strides: [2, 1],
+              isContiguous: true,
+              indices: [0, 1, 2, 3],
+              keys: [
+                [0, 0],
+                [0, 1],
+                [1, 0],
+                [1, 1],
+              ]));
+    });
+    test('2x3', () {
+      final layout = Layout(shape: [2, 3]);
+      expect(
+          layout,
+          isLayout(
+              rank: 2,
+              length: 6,
+              offset: 0,
+              shape: [2, 3],
+              strides: [3, 1],
+              isContiguous: true,
+              indices: [0, 1, 2, 3, 4, 5],
+              keys: [
+                [0, 0],
+                [0, 1],
+                [0, 2],
+                [1, 0],
+                [1, 1],
+                [1, 2],
+              ]));
+    });
+    test('3x2', () {
+      final layout = Layout(shape: [3, 2]);
+      expect(
+          layout,
+          isLayout(
+              rank: 2,
+              length: 6,
+              offset: 0,
+              shape: [3, 2],
+              strides: [2, 1],
+              isContiguous: true,
+              indices: [0, 1, 2, 3, 4, 5],
+              keys: [
+                [0, 0],
+                [0, 1],
+                [1, 0],
+                [1, 1],
+                [2, 0],
+                [2, 1],
+              ]));
+    });
+    test('3x2 with offset', () {
+      final layout = Layout(shape: [3, 2], offset: 7);
+      expect(
+          layout,
+          isLayout(
+              rank: 2,
+              length: 6,
+              offset: 7,
+              shape: [3, 2],
+              strides: [2, 1],
+              isContiguous: true,
+              indices: [7, 8, 9, 10, 11, 12],
+              keys: [
+                [0, 0],
+                [0, 1],
+                [1, 0],
+                [1, 1],
+                [2, 0],
+                [2, 1],
+              ]));
+    });
+  });
   group('filled', () {
     test('value', () {
       final result = Tensor.filled(40);
@@ -21,31 +153,31 @@ void main() {
           isTensor<int>(
             type: DataType.int32,
             data: [40],
-            rank: 0,
-            shape: isEmpty,
-            stride: isEmpty,
+            layout: isLayout(
+              rank: 0,
+              length: 1,
+              shape: isEmpty,
+              strides: isEmpty,
+            ),
             object: 40,
           ));
-      expect(result.getOffset([]), 0);
       expect(result.getValue([]), 40);
     });
     test('vector', () {
-      final result = Tensor.filled(41, shape: [6]);
+      final result = Tensor.filled(41, shape: [3]);
       expect(
           result,
           isTensor<int>(
             type: DataType.int32,
-            data: [41, 41, 41, 41, 41, 41],
-            rank: 1,
-            shape: [6],
-            stride: [1],
-            object: [41, 41, 41, 41, 41, 41],
+            data: [41, 41, 41],
+            layout: isLayout(
+              rank: 1,
+              length: 3,
+              shape: [3],
+              strides: [1],
+            ),
+            object: [41, 41, 41],
           ));
-      for (var i = 0; i < 6; i++) {
-        final indices = [i];
-        expect(result.getOffset(indices), i);
-        expect(result.getValue(indices), 41);
-      }
     });
     test('matrix', () {
       final result = Tensor.filled(42, shape: [2, 3], type: DataType.uint32);
@@ -54,21 +186,16 @@ void main() {
           isTensor<int>(
             type: DataType.uint32,
             data: [42, 42, 42, 42, 42, 42],
-            rank: 2,
-            shape: [2, 3],
-            stride: [3, 1],
+            layout: isLayout(
+              rank: 2,
+              shape: [2, 3],
+              strides: [3, 1],
+            ),
             object: [
               [42, 42, 42],
               [42, 42, 42],
             ],
           ));
-      for (var i = 0; i < 2; i++) {
-        for (var j = 0; j < 3; j++) {
-          final indices = [i, j];
-          expect(result.getOffset(indices), 3 * i + j);
-          expect(result.getValue(indices), 42);
-        }
-      }
     });
   });
   group('fromIterable', () {
@@ -82,16 +209,13 @@ void main() {
           isTensor<int>(
             type: DataType.uint8,
             data: [1, 2, 3, 4, 5, 6],
-            rank: 1,
-            shape: [6],
-            stride: [1],
+            layout: isLayout(
+              rank: 1,
+              shape: [6],
+              strides: [1],
+            ),
             object: [1, 2, 3, 4, 5, 6],
           ));
-      for (var i = 0; i < 6; i++) {
-        final indices = [i];
-        expect(result.getOffset(indices), i);
-        expect(result.getValue(indices), i + 1);
-      }
     });
     test('matrix', () {
       final result = Tensor.fromIterable(IntegerRange(1, 7),
@@ -101,21 +225,16 @@ void main() {
           isTensor<int>(
             type: DataType.uint32,
             data: [1, 2, 3, 4, 5, 6],
-            rank: 2,
-            shape: [2, 3],
-            stride: [3, 1],
+            layout: isLayout(
+              rank: 2,
+              shape: [2, 3],
+              strides: [3, 1],
+            ),
             object: [
               [1, 2, 3],
               [4, 5, 6],
             ],
           ));
-      for (var i = 0; i < 2; i++) {
-        for (var j = 0; j < 3; j++) {
-          final indices = [i, j];
-          expect(result.getOffset(indices), 3 * i + j);
-          expect(result.getValue(indices), 3 * i + j + 1);
-        }
-      }
     });
   });
   group('fromObject', () {
@@ -126,16 +245,8 @@ void main() {
           isTensor<int>(
             type: DataType.int8,
             data: [-1, 0, 1],
-            rank: 1,
-            shape: [3],
-            stride: [1],
             object: [-1, 0, 1],
           ));
-      for (var i = 0; i < 2; i++) {
-        final indices = [i];
-        expect(result.getOffset(indices), i);
-        expect(result.getValue(indices), i - 1);
-      }
     });
     test('matrix', () {
       final result = Tensor<int>.fromObject([
@@ -147,21 +258,11 @@ void main() {
           isTensor<int>(
             type: DataType.uint8,
             data: [1, 2, 3, 4, 5, 6],
-            rank: 2,
-            shape: [2, 3],
-            stride: [3, 1],
             object: [
               [1, 2, 3],
               [4, 5, 6],
             ],
           ));
-      for (var i = 0; i < 2; i++) {
-        for (var j = 0; j < 3; j++) {
-          final indices = [i, j];
-          expect(result.getOffset(indices), i * 3 + j);
-          expect(result.getValue(indices), i * 3 + j + 1);
-        }
-      }
     });
   });
   group('reshape', () {
@@ -172,9 +273,11 @@ void main() {
           isTensor<int>(
             type: tensor2x3.type,
             data: same(tensor2x3.data),
-            rank: 2,
-            shape: [1, 6],
-            stride: [6, 1],
+            layout: isLayout(
+              rank: 2,
+              shape: [1, 6],
+              strides: [6, 1],
+            ),
             object: [
               [0, 1, 2, 3, 4, 5]
             ],
@@ -187,9 +290,11 @@ void main() {
           isTensor<int>(
             type: tensor2x3.type,
             data: same(tensor2x3.data),
-            rank: 2,
-            shape: [2, 3],
-            stride: [3, 1],
+            layout: isLayout(
+              rank: 2,
+              shape: [2, 3],
+              strides: [3, 1],
+            ),
             object: [
               [0, 1, 2],
               [3, 4, 5],
@@ -203,9 +308,11 @@ void main() {
           isTensor<int>(
             type: tensor2x3.type,
             data: same(tensor2x3.data),
-            rank: 2,
-            shape: [3, 2],
-            stride: [2, 1],
+            layout: isLayout(
+              rank: 2,
+              shape: [3, 2],
+              strides: [2, 1],
+            ),
             object: [
               [0, 1],
               [2, 3],
@@ -220,9 +327,11 @@ void main() {
           isTensor<int>(
             type: tensor2x3.type,
             data: same(tensor2x3.data),
-            rank: 2,
-            shape: [6, 1],
-            stride: [1, 1],
+            layout: isLayout(
+              rank: 2,
+              shape: [6, 1],
+              strides: [1, 1],
+            ),
             object: [
               [0],
               [1],
@@ -240,9 +349,11 @@ void main() {
           isTensor<int>(
             type: tensor2x3.type,
             data: same(tensor2x3.data),
-            rank: 1,
-            shape: [6],
-            stride: [1],
+            layout: isLayout(
+              rank: 1,
+              shape: [6],
+              strides: [1],
+            ),
             object: [0, 1, 2, 3, 4, 5],
           ));
     });
@@ -258,17 +369,19 @@ void main() {
           isTensor<int>(
             type: tensor2x3.type,
             data: same(tensor2x3.data),
-            rank: 2,
-            shape: [3, 2],
-            stride: [1, 3],
-            isContiguous: false,
+            layout: isLayout(
+              rank: 2,
+              shape: [3, 2],
+              strides: [1, 3],
+              isContiguous: false,
+            ),
             object: [
               [0, 3],
               [1, 4],
               [2, 5],
             ],
           ));
-    }, skip: true);
+    });
     test('twice', () {
       final result = tensor2x3.transpose().transpose();
       expect(
@@ -276,21 +389,17 @@ void main() {
           isTensor<int>(
             type: tensor2x3.type,
             data: same(tensor2x3.data),
-            rank: tensor2x3.rank,
-            shape: tensor2x3.shape,
-            stride: tensor2x3.stride,
+            layout: isLayout(
+              rank: tensor2x3.rank,
+              shape: tensor2x3.layout.shape,
+              strides: tensor2x3.layout.strides,
+            ),
             object: [
               [0, 1, 2],
               [3, 4, 5],
             ],
           ));
     });
-  });
-  group('iterator', () {
-    test('tensor2', () => expectTensorIterable(tensor2, IntegerRange(2)));
-    test('tensor2x3', () => expectTensorIterable(tensor2x3, IntegerRange(6)));
-    test('tensor2x3x4',
-        () => expectTensorIterable(tensor2x3x4, IntegerRange(24)));
   });
   group('format', () {
     test('single value', () {
@@ -441,70 +550,73 @@ void main() {
       expect(() => tensor2x3.getValue([0, 0, 0]), throwsAssertionError);
     }, skip: !hasAssertionsEnabled());
   });
-  group('slice', () {
-    test('empty slices', () {
-      const indices = <Index>[];
-      expect(
-          tensor2.slice(indices),
-          isTensor<int>(
-              shape: tensor2.shape,
-              stride: tensor2.stride,
-              object: tensor2.toObject()));
-      expect(
-          tensor2x3.slice(indices),
-          isTensor<int>(
-              shape: tensor2x3.shape,
-              stride: tensor2x3.stride,
-              object: tensor2x3.toObject()));
-      expect(
-          tensor2x3x4.slice(indices),
-          isTensor<int>(
-              shape: tensor2x3x4.shape,
-              stride: tensor2x3x4.stride,
-              object: tensor2x3x4.toObject()));
-    });
+  group('access', () {
     test('first slice', () {
-      const indices = [SingleIndex(0)];
-      expect(tensor2.slice(indices), isTensor<int>(shape: <int>[], object: 0));
-      expect(tensor2x3.slice(indices),
-          isTensor<int>(shape: <int>[3], object: [0, 1, 2]));
       expect(
-          tensor2x3x4.slice(indices),
-          isTensor<int>(shape: <int>[
-            3,
-            4
-          ], object: [
-            [0, 1, 2, 3],
-            [4, 5, 6, 7],
-            [8, 9, 10, 11]
-          ]));
-    });
-    test('last slice', () {
-      const indices = [SingleIndex(-1)];
-      expect(tensor2.slice(indices),
-          isTensor<int>(shape: isEmpty, offset: 1, object: 1));
-      expect(tensor2x3.slice(indices),
-          isTensor<int>(shape: [3], offset: 3, object: [3, 4, 5]));
-      expect(
-          tensor2x3x4.slice(indices),
+          tensor2[0],
           isTensor<int>(
-            offset: 12,
-            shape: [3, 4],
+            layout: isLayout(
+              offset: 0,
+              shape: isEmpty,
+            ),
+            object: 0,
+          ));
+      expect(
+          tensor2x3[0],
+          isTensor<int>(
+            layout: isLayout(
+              offset: 0,
+              shape: [3],
+            ),
+            object: [0, 1, 2],
+          ));
+      expect(
+          tensor2x3x4[0],
+          isTensor<int>(
+            layout: isLayout(
+              offset: 0,
+              shape: [3, 4],
+            ),
             object: [
-              [12, 13, 14, 15],
-              [16, 17, 18, 19],
-              [20, 21, 22, 23]
+              [0, 1, 2, 3],
+              [4, 5, 6, 7],
+              [8, 9, 10, 11]
             ],
           ));
     });
-    test('two slices', () {
-      const indices = [SingleIndex(1), SingleIndex(2)];
-      expect(() => tensor2.slice(indices), throwsAssertionError);
-      expect(tensor2x3.slice(indices),
-          isTensor<int>(offset: 5, shape: isEmpty, object: 5));
-      expect(tensor2x3x4.slice(indices),
-          isTensor<int>(offset: 20, shape: [4], object: [20, 21, 22, 23]));
-    }, skip: !hasAssertionsEnabled());
+    test('last slice', () {
+      expect(
+          tensor2[-1],
+          isTensor<int>(
+            layout: isLayout(
+              offset: 1,
+              shape: isEmpty,
+            ),
+            object: 1,
+          ));
+      expect(
+          tensor2x3[-1],
+          isTensor<int>(
+            layout: isLayout(
+              offset: 3,
+              shape: [3],
+            ),
+            object: [3, 4, 5],
+          ));
+      expect(
+          tensor2x3x4[-1],
+          isTensor<int>(
+            layout: isLayout(
+              offset: 12,
+              shape: [3, 4],
+            ),
+            object: [
+              [12, 13, 14, 15],
+              [16, 17, 18, 19],
+              [20, 21, 22, 23],
+            ],
+          ));
+    });
   });
   group('toObject', () {
     test('default', () {
