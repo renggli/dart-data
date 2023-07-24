@@ -23,6 +23,12 @@ final isAssertionError = hasAssertionsEnabled()
 /// Returns an [Matcher] that asserts on an [AssertionError] being thrown.
 final throwsAssertionError = throwsA(isAssertionError);
 
+/// Returns a [Matcher] that asserts on an [AssertionError] being with the
+/// provided message.
+Matcher throwsAssertionErrorWithMessage(dynamic message) =>
+    throwsA(isAssertionError.having(
+        (exception) => exception.message, 'message', message));
+
 /// Returns a [Matcher] that asserts various data structures on numeric similarity.
 dynamic isCloseTo(dynamic expected, {num epsilon = 1.0e-5}) {
   if (expected is num) {

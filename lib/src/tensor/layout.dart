@@ -88,8 +88,8 @@ class Layout with ToStringPrinter {
     for (var i = 0; i < rank; i++) {
       var adjusted = key[i];
       if (adjusted < 0) adjusted += shape[i];
-      assert(
-          0 <= adjusted && adjusted < shape[i], '$key at $i is out of range');
+      assert(0 <= adjusted && adjusted < shape[i],
+          'Index ${key[i]} is out of range');
       index += adjusted * strides[i];
     }
     return index;
@@ -107,7 +107,7 @@ class Layout with ToStringPrinter {
     return key;
   }
 
-  /// Returns a transposed layout along the provided axes.
+  /// Returns an updated layout with the transposed axis.
   Layout transpose({List<int>? axes}) {
     axes ??= IntegerRange(rank).reversed;
     final shape_ = _toIndices(axes.map((each) => shape[each]));
@@ -122,7 +122,7 @@ class Layout with ToStringPrinter {
     );
   }
 
-  /// Resolving the first axes to the given `index`.
+  /// Returns an updated layout with the first axis resolved to `index`.
   Layout operator [](int index) {
     assert(rank > 0, 'Expected non-zero rank');
     final adjustedIndex = index < 0 ? index + shape[0] : index;

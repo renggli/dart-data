@@ -200,7 +200,8 @@ void main() {
   });
   group('fromIterable', () {
     test('empty', () {
-      expect(() => Tensor.fromIterable(<int>[]), throwsAssertionError);
+      expect(() => Tensor.fromIterable(<int>[]),
+          throwsAssertionErrorWithMessage('`iterable` should not be empty'));
     }, skip: !hasAssertionsEnabled());
     test('vector', () {
       final result = Tensor.fromIterable(IntegerRange(1, 7));
@@ -358,7 +359,10 @@ void main() {
           ));
     });
     test('invalid size', () {
-      expect(() => tensor2x3.reshape([4, 3]), throwsAssertionError);
+      expect(
+          () => tensor2x3.reshape([4, 3]),
+          throwsAssertionErrorWithMessage(
+              startsWith('New shape [4, 3] ins incompatible with')));
     }, skip: !hasAssertionsEnabled());
   });
   group('transpose', () {
@@ -542,12 +546,20 @@ void main() {
       expect(tensor2x3x4.getValue([-1, -2, -1]), 19);
     });
     test('index out of bounds', () {
-      expect(() => tensor2.getValue([2]), throwsAssertionError);
-      expect(() => tensor2.getValue([-3]), throwsAssertionError);
+      expect(() => tensor2.getValue([2]),
+          throwsAssertionErrorWithMessage('Index 2 is out of range'));
+      expect(() => tensor2.getValue([-3]),
+          throwsAssertionErrorWithMessage('Index -3 is out of range'));
     }, skip: !hasAssertionsEnabled());
     test('wrong number of indices', () {
-      expect(() => tensor2x3.getValue([0]), throwsAssertionError);
-      expect(() => tensor2x3.getValue([0, 0, 0]), throwsAssertionError);
+      expect(
+          () => tensor2x3.getValue([0]),
+          throwsAssertionErrorWithMessage(
+              'Expected key of length 2, but got [0]'));
+      expect(
+          () => tensor2x3.getValue([0, 0, 0]),
+          throwsAssertionErrorWithMessage(
+              'Expected key of length 2, but got [0, 0, 0]'));
     }, skip: !hasAssertionsEnabled());
   });
   group('access', () {
@@ -617,6 +629,49 @@ void main() {
             ],
           ));
     });
+    test('repeated', () {
+      expect(
+          tensor2x3[0][1],
+          isTensor<int>(
+            layout: isLayout(
+              offset: 1,
+              shape: isEmpty,
+            ),
+            object: 1,
+          ));
+      expect(
+          tensor2x3x4[0][1],
+          isTensor<int>(
+            layout: isLayout(
+              offset: 4,
+              shape: [4],
+            ),
+            object: [4, 5, 6, 7],
+          ));
+      expect(
+          tensor2x3x4[0][1][2],
+          isTensor<int>(
+            layout: isLayout(
+              offset: 6,
+              shape: isEmpty,
+            ),
+            object: 6,
+          ));
+    });
+    test('rank error', () {
+      expect(() => tensor2[0][0],
+          throwsAssertionErrorWithMessage('Expected non-zero rank'));
+      expect(() => tensor2x3[0][0][0],
+          throwsAssertionErrorWithMessage('Expected non-zero rank'));
+      expect(() => tensor2x3x4[0][0][0][0],
+          throwsAssertionErrorWithMessage('Expected non-zero rank'));
+    }, skip: !hasAssertionsEnabled());
+    test('bounds error', () {
+      expect(() => tensor2[2],
+          throwsAssertionErrorWithMessage('Index 2 is out of range'));
+      expect(() => tensor2[-3],
+          throwsAssertionErrorWithMessage('Index -3 is out of range'));
+    }, skip: !hasAssertionsEnabled());
   });
   group('toObject', () {
     test('default', () {
