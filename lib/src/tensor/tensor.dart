@@ -75,9 +75,21 @@ class Tensor<T> with ToStringPrinter {
   /// Sets the value at the given key (index-list).
   void setValue(List<int> key, T value) => data[layout.toIndex(key)] = value;
 
-  /// Returns a view with the first axis resolved to `index`.
+  /// Returns a view with the first axis resolved to [index].
   Tensor<T> operator [](int index) =>
       Tensor<T>.internal(type: type, data: data, layout: layout[index]);
+
+  /// Returns a view with the given [axis] resolved to [index].
+  Tensor<T> elementAt(int index, {int axis = 0}) => Tensor<T>.internal(
+      type: type, data: data, layout: layout.elementAt(index, axis: axis));
+
+  /// Returns a view with the given [axis] sliced to the range between [start]
+  /// and [end] (exclusive).
+  Tensor<T> getRange(int start, int end, {int step = 1, int axis = 0}) =>
+      Tensor<T>.internal(
+          type: type,
+          data: data,
+          layout: layout.getRange(start, end, step: step, axis: axis));
 
   /// Returns a reshaped view.
   Tensor<T> reshape(List<int> shape) {

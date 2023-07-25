@@ -7,6 +7,7 @@ import 'package:test/test.dart';
 
 import 'utils/matchers.dart';
 
+final value = Tensor.filled(42);
 final tensor2 = Tensor.fromIterable(IntegerRange(2));
 final tensor2x3 = Tensor.fromIterable(IntegerRange(2 * 3), shape: [2, 3]);
 final tensor2x3x4 =
@@ -562,7 +563,7 @@ void main() {
               'Expected key of length 2, but got [0, 0, 0]'));
     }, skip: !hasAssertionsEnabled());
   });
-  group('access', () {
+  group('operator[]', () {
     test('first slice', () {
       expect(
           tensor2[0],
@@ -659,19 +660,151 @@ void main() {
           ));
     });
     test('rank error', () {
-      expect(() => tensor2[0][0],
-          throwsAssertionErrorWithMessage('Expected non-zero rank'));
-      expect(() => tensor2x3[0][0][0],
-          throwsAssertionErrorWithMessage('Expected non-zero rank'));
-      expect(() => tensor2x3x4[0][0][0][0],
+      expect(() => value[0],
           throwsAssertionErrorWithMessage('Expected non-zero rank'));
     }, skip: !hasAssertionsEnabled());
     test('bounds error', () {
-      expect(() => tensor2[2],
-          throwsAssertionErrorWithMessage('Index 2 is out of range'));
-      expect(() => tensor2[-3],
-          throwsAssertionErrorWithMessage('Index -3 is out of range'));
+      expect(
+          () => tensor2[2],
+          throwsAssertionErrorWithMessage(
+              '`index` is out of range, expected 2 in 0..1'));
+      expect(
+          () => tensor2[-3],
+          throwsAssertionErrorWithMessage(
+              '`index` is out of range, expected -3 in 0..1'));
     }, skip: !hasAssertionsEnabled());
+  });
+  group('elementAt', () {
+    test('first slice', () {
+      expect(
+          tensor2x3x4.elementAt(0, axis: 0),
+          isTensor<int>(
+            layout: isLayout(
+              rank: 2,
+              length: 12,
+              offset: 0,
+              shape: [3, 4],
+              strides: [4, 1],
+            ),
+            object: [
+              [0, 1, 2, 3],
+              [4, 5, 6, 7],
+              [8, 9, 10, 11]
+            ],
+          ));
+      expect(
+          tensor2x3x4.elementAt(0, axis: 1),
+          isTensor<int>(
+            layout: isLayout(
+              rank: 2,
+              length: 8,
+              offset: 0,
+              shape: [2, 4],
+              strides: [12, 1],
+            ),
+            object: [
+              [0, 1, 2, 3],
+              [12, 13, 14, 15],
+            ],
+          ));
+      expect(
+          tensor2x3x4.elementAt(0, axis: 2),
+          isTensor<int>(
+            layout: isLayout(
+              rank: 2,
+              length: 6,
+              offset: 0,
+              shape: [2, 3],
+              strides: [12, 4],
+            ),
+            object: [
+              [0, 4, 8],
+              [12, 16, 20],
+            ],
+          ));
+    });
+    test('last slice', () {
+      expect(
+          tensor2x3x4.elementAt(-1, axis: 0),
+          isTensor<int>(
+            layout: isLayout(
+              rank: 2,
+              length: 12,
+              offset: 12,
+              shape: [3, 4],
+              strides: [4, 1],
+            ),
+            object: [
+              [12, 13, 14, 15],
+              [16, 17, 18, 19],
+              [20, 21, 22, 23],
+            ],
+          ));
+      expect(
+          tensor2x3x4.elementAt(-1, axis: 1),
+          isTensor<int>(
+            layout: isLayout(
+              rank: 2,
+              length: 8,
+              offset: 8,
+              shape: [2, 4],
+              strides: [12, 1],
+            ),
+            object: [
+              [8, 9, 10, 11],
+              [20, 21, 22, 23],
+            ],
+          ));
+      expect(
+          tensor2x3x4.elementAt(-1, axis: 2),
+          isTensor<int>(
+            layout: isLayout(
+              rank: 2,
+              length: 6,
+              offset: 3,
+              shape: [2, 3],
+              strides: [12, 4],
+            ),
+            object: [
+              [3, 7, 11],
+              [15, 19, 23],
+            ],
+          ));
+    });
+    test('rank error', () {
+      expect(() => value.elementAt(0),
+          throwsAssertionErrorWithMessage('Expected non-zero rank'));
+    }, skip: !hasAssertionsEnabled());
+    test('axis error', () {
+      expect(
+          () => tensor2x3x4.elementAt(0, axis: 3),
+          throwsAssertionErrorWithMessage(
+              '`axis` is out of range, expected 3 in 0..2'));
+    }, skip: !hasAssertionsEnabled());
+    test('bounds error', () {
+      expect(
+          () => tensor2.elementAt(2),
+          throwsAssertionErrorWithMessage(
+              '`index` is out of range, expected 2 in 0..1'));
+      expect(
+          () => tensor2.elementAt(-3),
+          throwsAssertionErrorWithMessage(
+              '`index` is out of range, expected -3 in 0..1'));
+    }, skip: !hasAssertionsEnabled());
+  });
+  group('getRange', () {
+    test('full', () {
+      expect(
+          tensor2.getRange(0, 2),
+          isTensor<int>(
+            layout: isLayout(
+              offset: 0,
+              shape: [2],
+              strides: [1],
+            ),
+            object: [0, 1],
+          ));
+    });
   });
   group('toObject', () {
     test('default', () {

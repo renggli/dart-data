@@ -117,7 +117,7 @@ dynamic isLayout({
         .having(
             (layout) => layout.indices
                 .map((offset) => layout.toIndex(layout.toKey(offset))),
-            'offsets (round-trip)',
+            'indices (round-trip)',
             indices)
         .having((layout) => layout.keys, 'keys', keys)
         .having(

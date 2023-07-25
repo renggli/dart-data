@@ -45,10 +45,10 @@ class Layout with ToStringPrinter {
     required this.strides,
     required this.isContiguous,
   })  : assert(shape is TypedData, '`shape` should be TypedData'),
-        assert(shape.length == rank, '`shape` should of length $rank'),
+        assert(shape.length == rank, '`shape` should be of length $rank'),
         assert(shape.every((s) => s > 0), '`shape` should be positive'),
         assert(strides is TypedData, '`strides` should be TypedData'),
-        assert(strides.length == rank, '`strides` should of length $rank'),
+        assert(strides.length == rank, '`strides` should be of length $rank'),
         assert(strides.every((s) => s != 0), '`stride` should be non-zero'),
         assert(length == shape.product(), '`length` should match `shape`'),
         assert(isContiguous == _isContiguous(shape: shape, strides: strides));
@@ -122,41 +122,66 @@ class Layout with ToStringPrinter {
     );
   }
 
-  /// Returns an updated layout with the first axis resolved to `index`.
-  Layout operator [](int index) {
-    assert(rank > 0, 'Expected non-zero rank');
-    final adjustedIndex = index < 0 ? index + shape[0] : index;
-    assert(0 <= adjustedIndex && adjustedIndex < shape[0],
-        'Index $index is out of range');
+  /// Returns an updated layout with the first axis resolved to [index].
+  Layout operator [](int index) => elementAt(index);
+
+  /// Returns an updated layout with the given [axis] resolved to [index].
+  Layout elementAt(int index, {int axis = 0}) {
+    assert(0 < rank, 'Expected non-zero rank');
+    assert(0 <= axis && axis < rank,
+        '`axis` is out of range, expected $axis in 0..${rank - 1}');
+    final adjustedIndex = index < 0 ? index + shape[axis] : index;
+    assert(0 <= adjustedIndex && adjustedIndex < shape[axis],
+        '`index` is out of range, expected $index in 0..${shape[axis] - 1}');
     return Layout.internal(
       rank: rank - 1,
-      length: length ~/ shape[0],
-      offset: offset + adjustedIndex * strides[0],
-      shape: _toIndices(shape.skip(1)),
-      strides: _toIndices(strides.skip(1)),
-      isContiguous: isContiguous,
+      length: length ~/ shape[axis],
+      offset: offset + adjustedIndex * strides[axis],
+      shape: _toIndices([
+        ...shape.take(axis),
+        ...shape.skip(axis + 1),
+      ]),
+      strides: _toIndices([
+        ...strides.take(axis),
+        ...strides.skip(axis + 1),
+      ]),
+      isContiguous: isContiguous && axis == 0,
     );
   }
 
-  //
-  // /// Slices the layout by
-  // Layout slice(int start, int end, {int step = 1}) {
-  //   final adjustedStart = start < 0 ? shape[0] + start : start;
-  //   assert(0 <= adjustedStart && adjustedStart < shape[0],
-  //       'Start index $start is out of range');
-  //   final adjustedEnd = end < 0 ? shape[0] + end : end;
-  //   assert(0 <= adjustedEnd && adjustedEnd < shape[0],
-  //       'End index $end is out of range');
-  //   return Layout(
-  //     shape:
-  //         _toIndices([(adjustedEnd - adjustedStart) ~/ step, ...shape.skip(1)]),
-  //     strides: _toIndices([step * strides[0], ...strides.skip(1)]),
-  //     offset: adjustedStart * strides[0],
-  //   );
-  // }
-  //
-  // //
-  // // Layout range(int start, int end) {}
+  /// Returns an updated layout with the given [axis] sliced to the range
+  /// between [start] and [end] (exclusive).
+  Layout getRange(int start, int end, {int step = 1, int axis = 0}) {
+    assert(0 < rank, 'Expected non-zero rank');
+    assert(0 <= axis && axis < rank,
+        '`axis` is out of range, expected $axis in 0..${rank - 1}');
+    final adjustedStart = start < 0 ? start + shape[axis] : start;
+    assert(0 <= adjustedStart && adjustedStart <= shape[axis],
+        '`start` is out of range, expected $start in 0..${shape[axis]}');
+    final adjustedEnd = end < 0 ? end + shape[axis] : end;
+    assert(adjustedStart <= adjustedEnd && adjustedEnd <= shape[axis],
+        '`end` is out of range, expected $end in $adjustedStart..${shape[axis]}');
+    final rangeLength = (adjustedEnd - adjustedStart) ~/ step;
+    return Layout.internal(
+      rank: rank,
+      length: length ~/ shape[axis] * rangeLength,
+      offset: offset + adjustedStart * strides[axis],
+      shape: _toIndices([
+        ...shape.take(axis),
+        rangeLength,
+        ...shape.skip(axis + 1),
+      ]),
+      strides: _toIndices([
+        ...strides.take(axis),
+        step * strides[axis],
+        ...strides.skip(axis + 1),
+      ]),
+      isContiguous: isContiguous &&
+          adjustedStart == 0 &&
+          adjustedEnd == shape[0] &&
+          step == 1,
+    );
+  }
 
   @override
   ObjectPrinter get toStringPrinter => super.toStringPrinter
