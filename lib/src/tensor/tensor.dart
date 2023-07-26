@@ -63,7 +63,7 @@ class Tensor<T> with ToStringPrinter {
   /// The number of dimensions.
   int get rank => layout.rank;
 
-  /// The number of values.
+  /// The number of elements.
   int get length => layout.length;
 
   /// An iterator over the values of the tensor.
@@ -91,13 +91,16 @@ class Tensor<T> with ToStringPrinter {
           data: data,
           layout: layout.getRange(start, end, step: step, axis: axis));
 
-  /// Returns a reshaped view.
+  /// Returns a contiguous flat array.
+  Tensor<T> ravel() => reshape([layout.length]);
+
+  /// Returns a reshaped view, in some cases the data is copied.
   Tensor<T> reshape(List<int> shape) {
     final (layout_, data_) = layout.isContiguous
         ? (Layout(shape: shape, offset: layout.offset), data)
         : (Layout(shape: shape), type.copyList(values));
     assert(layout.length == layout_.length,
-        'New shape $shape ins incompatible with $layout');
+        'New shape $shape in incompatible with $layout');
     return Tensor<T>.internal(type: type, data: data_, layout: layout_);
   }
 

@@ -1,5 +1,6 @@
 import 'dart:typed_data';
 
+import 'package:collection/collection.dart';
 import 'package:meta/meta.dart';
 import 'package:more/collection.dart';
 import 'package:more/printer.dart';
@@ -7,8 +8,11 @@ import 'package:more/printer.dart';
 import '../stats/iterable.dart';
 import '../type/type.dart';
 import 'layout/iterable.dart';
+import 'utils/index.dart';
 
-/// Describes the data layout in a list of values.
+/// Immutable object describing a multi-dimensional data layout in a flat list
+/// of values.
+@immutable
 class Layout with ToStringPrinter {
   factory Layout({Iterable<int>? shape, Iterable<int>? strides, int? offset}) {
     final shape_ = _toIndices(shape ?? const <int>[]);
@@ -83,14 +87,12 @@ class Layout with ToStringPrinter {
 
   /// Converts a key (index-list) to an index.
   int toIndex(List<int> key) {
-    assert(key.length == rank, 'Expected key of length $rank, but got $key');
+    RangeError.checkValueInInterval(key.length, rank, rank, 'key.length');
     var index = offset;
     for (var i = 0; i < rank; i++) {
-      var adjusted = key[i];
-      if (adjusted < 0) adjusted += shape[i];
-      assert(0 <= adjusted && adjusted < shape[i],
-          'Index ${key[i]} is out of range');
-      index += adjusted * strides[i];
+      final adjustedIndex = adjustIndex(key[i], shape[i]);
+      RangeError.checkValueInInterval(adjustedIndex, 0, shape[i], 'key');
+      index += adjustedIndex * strides[i];
     }
     return index;
   }
@@ -127,12 +129,9 @@ class Layout with ToStringPrinter {
 
   /// Returns an updated layout with the given [axis] resolved to [index].
   Layout elementAt(int index, {int axis = 0}) {
-    assert(0 < rank, 'Expected non-zero rank');
-    assert(0 <= axis && axis < rank,
-        '`axis` is out of range, expected $axis in 0..${rank - 1}');
-    final adjustedIndex = index < 0 ? index + shape[axis] : index;
-    assert(0 <= adjustedIndex && adjustedIndex < shape[axis],
-        '`index` is out of range, expected $index in 0..${shape[axis] - 1}');
+    RangeError.checkValueInInterval(axis, 0, rank - 1, 'axis');
+    final adjustedIndex = adjustIndex(index, shape[axis]);
+    RangeError.checkValueInInterval(adjustedIndex, 0, shape[axis], 'index');
     return Layout.internal(
       rank: rank - 1,
       length: length ~/ shape[axis],
@@ -152,15 +151,11 @@ class Layout with ToStringPrinter {
   /// Returns an updated layout with the given [axis] sliced to the range
   /// between [start] and [end] (exclusive).
   Layout getRange(int start, int end, {int step = 1, int axis = 0}) {
-    assert(0 < rank, 'Expected non-zero rank');
-    assert(0 <= axis && axis < rank,
-        '`axis` is out of range, expected $axis in 0..${rank - 1}');
-    final adjustedStart = start < 0 ? start + shape[axis] : start;
-    assert(0 <= adjustedStart && adjustedStart <= shape[axis],
-        '`start` is out of range, expected $start in 0..${shape[axis]}');
-    final adjustedEnd = end < 0 ? end + shape[axis] : end;
-    assert(adjustedStart <= adjustedEnd && adjustedEnd <= shape[axis],
-        '`end` is out of range, expected $end in $adjustedStart..${shape[axis]}');
+    RangeError.checkValueInInterval(axis, 0, rank - 1, 'axis');
+    final adjustedStart = adjustIndex(start, shape[axis]);
+    final adjustedEnd = adjustIndex(end, shape[axis]);
+    RangeError.checkValidRange(
+        adjustedStart, adjustedEnd, shape[axis], 'start', 'end');
     final rangeLength = (adjustedEnd - adjustedStart) ~/ step;
     return Layout.internal(
       rank: rank,
@@ -178,10 +173,22 @@ class Layout with ToStringPrinter {
       ]),
       isContiguous: isContiguous &&
           adjustedStart == 0 &&
-          adjustedEnd == shape[0] &&
+          adjustedEnd == shape[axis] &&
           step == 1,
     );
   }
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is Layout &&
+          offset == other.offset &&
+          _listEquality.equals(shape, other.shape) &&
+          _listEquality.equals(strides, other.strides);
+
+  @override
+  int get hashCode => Object.hash(
+      offset, _listEquality.hash(shape), _listEquality.hash(strides));
 
   @override
   ObjectPrinter get toStringPrinter => super.toStringPrinter
@@ -191,6 +198,8 @@ class Layout with ToStringPrinter {
     ..addValue(shape, name: 'shape')
     ..addValue(strides, name: 'strides');
 }
+
+const _listEquality = ListEquality<int>();
 
 List<int> _toIndices(Iterable<int> iterable) =>
     DataType.integer.copyList(iterable, readonly: true);

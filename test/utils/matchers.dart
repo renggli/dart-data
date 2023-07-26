@@ -15,19 +15,18 @@ bool hasAssertionsEnabled() {
   }
 }
 
-/// Returns a [Matcher] that asserts on a [AssertionError].
-final isAssertionError = hasAssertionsEnabled()
-    ? const TypeMatcher<AssertionError>()
-    : throw UnsupportedError('Assertions are disabled');
-
-/// Returns an [Matcher] that asserts on an [AssertionError] being thrown.
-final throwsAssertionError = throwsA(isAssertionError);
-
-/// Returns a [Matcher] that asserts on an [AssertionError] being with the
-/// provided message.
-Matcher throwsAssertionErrorWithMessage(dynamic message) =>
-    throwsA(isAssertionError.having(
-        (exception) => exception.message, 'message', message));
+/// Returns an [Matcher] that asserts on an [RangeError] being thrown.
+Matcher throwsRangeErrorWith({
+  dynamic name = anything,
+  dynamic start = anything,
+  dynamic end = anything,
+  dynamic message = anything,
+}) =>
+    throwsA(isRangeError
+        .having((e) => e.name, 'name', name)
+        .having((e) => e.start, 'start', start)
+        .having((e) => e.end, 'end', end)
+        .having((e) => e.message, 'message', message));
 
 /// Returns a [Matcher] that asserts various data structures on numeric similarity.
 dynamic isCloseTo(dynamic expected, {num epsilon = 1.0e-5}) {
