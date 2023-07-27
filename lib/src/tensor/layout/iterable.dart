@@ -1,6 +1,7 @@
 import 'dart:collection';
 
-import '../../../data.dart';
+import '../../type/type.dart';
+import '../layout.dart';
 
 class OffsetIterable extends IterableBase<int> {
   OffsetIterable(this.layout);
@@ -16,7 +17,7 @@ class OffsetIterator implements Iterator<int> {
       : rank = layout.rank,
         shape = layout.shape,
         strides = layout.strides,
-        indices = DataType.index.newList(layout.rank, fillValue: 0),
+        indices = DataType.integer.newList(layout.rank, fillValue: 0),
         current = layout.offset - layout.strides.last {
     indices.last = -1;
   }

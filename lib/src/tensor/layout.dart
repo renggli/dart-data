@@ -102,7 +102,7 @@ class Layout with ToStringPrinter {
   /// Converts an `offset` to a key, that is a list of indices.
   List<int> toKey(int index) {
     var value = index - offset;
-    final key = DataType.index.newList(rank);
+    final key = DataType.integer.newList(rank);
     for (var i = 0; i < rank; i++) {
       final div = value ~/ strides[i], rem = div % shape[i];
       value -= (key[i] = rem) * strides[i];
