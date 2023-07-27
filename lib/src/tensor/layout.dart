@@ -24,8 +24,9 @@ class Layout with ToStringPrinter {
       shape: shape_,
       strides: strides_,
       offset: offset ?? 0,
-      isContiguous:
-          strides == null || _isContiguous(shape: shape_, strides: strides_),
+      isContiguous: shape_.isEmpty ||
+          strides == null ||
+          _isContiguous(shape: shape_, strides: strides_),
     );
   }
 
@@ -132,19 +133,10 @@ class Layout with ToStringPrinter {
     RangeError.checkValueInInterval(axis, 0, rank - 1, 'axis');
     final adjustedIndex = adjustIndex(index, shape[axis]);
     RangeError.checkValueInInterval(adjustedIndex, 0, shape[axis], 'index');
-    return Layout.internal(
-      rank: rank - 1,
-      length: length ~/ shape[axis],
+    return Layout(
+      shape: _toIndices([...shape.take(axis), ...shape.skip(axis + 1)]),
+      strides: _toIndices([...strides.take(axis), ...strides.skip(axis + 1)]),
       offset: offset + adjustedIndex * strides[axis],
-      shape: _toIndices([
-        ...shape.take(axis),
-        ...shape.skip(axis + 1),
-      ]),
-      strides: _toIndices([
-        ...strides.take(axis),
-        ...strides.skip(axis + 1),
-      ]),
-      isContiguous: isContiguous && axis == 0,
     );
   }
 
@@ -196,7 +188,8 @@ class Layout with ToStringPrinter {
     ..addValue(length, name: 'length')
     ..addValue(offset, name: 'offset')
     ..addValue(shape, name: 'shape')
-    ..addValue(strides, name: 'strides');
+    ..addValue(strides, name: 'strides')
+    ..addValue(isContiguous, name: 'isContiguous');
 }
 
 const _listEquality = ListEquality<int>();

@@ -12,6 +12,8 @@ final tensor2 = Tensor.fromIterable(IntegerRange(2));
 final tensor2x3 = Tensor.fromIterable(IntegerRange(2 * 3), shape: [2, 3]);
 final tensor2x3x4 =
     Tensor.fromIterable(IntegerRange(2 * 3 * 4), shape: [2, 3, 4]);
+final tensor2x3x4x5 =
+    Tensor.fromIterable(IntegerRange(2 * 3 * 4 * 5), shape: [2, 3, 4, 5]);
 
 void main() {
   group('layout', () {
@@ -763,6 +765,24 @@ void main() {
               [15, 19, 23],
             ],
           ));
+    });
+    test('repeated', () {
+      for (final axis in IntegerRange(tensor2x3x4x5.rank).permutations()) {
+        var tensor = tensor2x3x4x5;
+        for (var i = 0; i < axis.length; i++) {
+          tensor = tensor.elementAt(axis[i],
+              axis: axis[i] - axis.take(i).count((a) => a < axis[i]));
+        }
+        expect(
+            tensor,
+            isTensor<int>(
+              layout: isLayout(
+                offset: 33,
+                shape: isEmpty,
+              ),
+              object: 33,
+            ));
+      }
     });
     test('axis error', () {
       expect(() => tensor2x3x4.elementAt(0, axis: 3),
