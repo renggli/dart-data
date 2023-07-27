@@ -1149,7 +1149,7 @@ void main() {
       ]);
     });
     test('type', () {
-      final object = DataType.object(0);
+      final object = DataType.nullableObject<int>();
       expect(tensor2.toObject(type: object), [0, 1]);
       expect(tensor2x3.toObject(type: object), [
         [0, 1, 2],

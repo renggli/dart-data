@@ -33,22 +33,21 @@ class TensorPrinter<T> extends Printer<Tensor<T>> {
 
   @override
   void printOn(Tensor<T> object, StringBuffer buffer) =>
-      _printOn(object, buffer, axis: 0, offset: object.layout.offset);
+      _printOn(object, buffer, offset: object.layout.offset, axis: 0);
 
   void _printOn(Tensor<T> tensor, StringBuffer buffer,
-      {required int axis, required int offset}) {
-    if (axis == tensor.rank) {
-      _printValueOn(tensor, buffer, axis: axis, offset: offset);
-    } else {
-      _printAxisOn(tensor, buffer, axis: axis, offset: offset);
-    }
-  }
+          {required int axis, required int offset}) =>
+      axis == tensor.rank
+          ? _printValueOn(tensor, buffer, offset: offset)
+          : _printAxisOn(tensor, buffer, offset: offset, axis: axis);
 
   void _printAxisOn(Tensor<T> tensor, StringBuffer buffer,
-      {required int axis, required int offset}) {
+      {required int offset, required int axis}) {
     final isLast = axis == tensor.rank - 1;
+    final shape = tensor.layout.shape[axis];
+    final stride = tensor.layout.strides[axis];
     buffer.write(openTensor);
-    for (var i = 0; i < tensor.layout.shape[axis]; i++) {
+    for (var i = 0; i < shape; i++) {
       if (i > 0) {
         if (isLast) {
           buffer.write(horizontalSeparator);
@@ -57,25 +56,22 @@ class TensorPrinter<T> extends Printer<Tensor<T>> {
           buffer.write(' ' * openTensor.length * (axis + 1));
         }
       }
-      if (limit &&
-          leadingItems <= i &&
-          i < tensor.layout.shape[axis] - trailingItems) {
+      if (limit && leadingItems <= i && i < shape - trailingItems) {
         if (isLast) {
           buffer.write(paddingPrinter(ellipsesPrinter(horizontalEllipses)));
         } else {
           buffer.write(verticalEllipses);
         }
-        i = tensor.layout.shape[axis] - trailingItems - 1;
+        i = shape - trailingItems - 1;
       } else {
-        _printOn(tensor, buffer,
-            axis: axis + 1, offset: offset + i * tensor.layout.strides[axis]);
+        _printOn(tensor, buffer, axis: axis + 1, offset: offset + i * stride);
       }
     }
     buffer.write(closeTensor);
   }
 
   void _printValueOn(Tensor<T> object, StringBuffer buffer,
-      {required int axis, required int offset}) {
+      {required int offset}) {
     final printer = valuePrinter ?? object.type.printer;
     paddingPrinter.printOn(printer(object.data[offset]), buffer);
   }

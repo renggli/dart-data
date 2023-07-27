@@ -4,14 +4,14 @@ import '../tensor.dart';
 extension ToObjectTensor<T> on Tensor<T> {
   /// Returns an object representing this tensor.
   ///
-  /// Depending on its dimensionality this is a single value, a list of values,
-  /// or a list of nested lists.
-  dynamic toObject({DataType<T>? type}) =>
+  /// Depending on its dimensionality this is a single value (rank = 0), a list
+  /// of values (rank = 1), or a list of nested lists (rank > 1).
+  dynamic toObject({DataType<T?>? type}) =>
       _toObject(this, type: type ?? this.type, axis: 0, offset: layout.offset);
 }
 
 dynamic _toObject<T>(Tensor<T> tensor,
-    {required DataType<T> type, required int axis, required int offset}) {
+    {required DataType<T?> type, required int axis, required int offset}) {
   if (axis == tensor.rank) {
     return tensor.data[offset]; // return a single value
   }
@@ -25,7 +25,7 @@ dynamic _toObject<T>(Tensor<T> tensor,
     return list;
   }
   return List.generate(
-      tensor.layout.shape[axis],
+      shape,
       (i) => _toObject(tensor,
           type: type, axis: axis + 1, offset: offset + i * stride));
 }
