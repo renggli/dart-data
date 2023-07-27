@@ -8,6 +8,7 @@ import 'package:more/printer.dart';
 import '../stats/iterable.dart';
 import '../type/type.dart';
 import 'layout/iterable.dart';
+import 'utils/errors.dart';
 import 'utils/index.dart';
 
 /// Immutable object describing a multi-dimensional data layout in a flat list
@@ -134,39 +135,30 @@ class Layout with ToStringPrinter {
     final adjustedIndex = adjustIndex(index, shape[axis]);
     RangeError.checkValueInInterval(adjustedIndex, 0, shape[axis], 'index');
     return Layout(
-      shape: _toIndices([...shape.take(axis), ...shape.skip(axis + 1)]),
-      strides: _toIndices([...strides.take(axis), ...strides.skip(axis + 1)]),
+      shape: [...shape.take(axis), ...shape.skip(axis + 1)],
+      strides: [...strides.take(axis), ...strides.skip(axis + 1)],
       offset: offset + adjustedIndex * strides[axis],
     );
   }
 
   /// Returns an updated layout with the given [axis] sliced to the range
   /// between [start] and [end] (exclusive).
-  Layout getRange(int start, int end, {int step = 1, int axis = 0}) {
+  Layout getRange(int start, int? end, {int step = 1, int axis = 0}) {
     RangeError.checkValueInInterval(axis, 0, rank - 1, 'axis');
     final adjustedStart = adjustIndex(start, shape[axis]);
-    final adjustedEnd = adjustIndex(end, shape[axis]);
+    final adjustedEnd = adjustIndex(end ?? shape[axis], shape[axis]);
     RangeError.checkValidRange(
         adjustedStart, adjustedEnd, shape[axis], 'start', 'end');
+    checkPositive(step, 'step');
     final rangeLength = (adjustedEnd - adjustedStart) ~/ step;
-    return Layout.internal(
-      rank: rank,
-      length: length ~/ shape[axis] * rangeLength,
-      offset: offset + adjustedStart * strides[axis],
-      shape: _toIndices([
-        ...shape.take(axis),
-        rangeLength,
-        ...shape.skip(axis + 1),
-      ]),
-      strides: _toIndices([
+    return Layout(
+      shape: [...shape.take(axis), rangeLength, ...shape.skip(axis + 1)],
+      strides: [
         ...strides.take(axis),
         step * strides[axis],
         ...strides.skip(axis + 1),
-      ]),
-      isContiguous: isContiguous &&
-          adjustedStart == 0 &&
-          adjustedEnd == shape[axis] &&
-          step == 1,
+      ],
+      offset: offset + adjustedStart * strides[axis],
     );
   }
 

@@ -85,7 +85,7 @@ class Tensor<T> with ToStringPrinter {
 
   /// Returns a view with the given [axis] sliced to the range between [start]
   /// and [end] (exclusive).
-  Tensor<T> getRange(int start, int end, {int step = 1, int axis = 0}) =>
+  Tensor<T> getRange(int start, int? end, {int step = 1, int axis = 0}) =>
       Tensor<T>.internal(
           type: type,
           data: data,

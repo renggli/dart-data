@@ -566,13 +566,16 @@ void main() {
     // }, skip: !hasAssertionsEnabled());
   });
   group('operator[]', () {
-    test('first slice', () {
+    test('first', () {
       expect(
           tensor2[0],
           isTensor<int>(
             layout: isLayout(
+              rank: 0,
+              length: 1,
               offset: 0,
               shape: isEmpty,
+              strides: isEmpty,
             ),
             object: 0,
           ));
@@ -580,8 +583,11 @@ void main() {
           tensor2x3[0],
           isTensor<int>(
             layout: isLayout(
+              rank: 1,
+              length: 3,
               offset: 0,
               shape: [3],
+              strides: [1],
             ),
             object: [0, 1, 2],
           ));
@@ -589,8 +595,11 @@ void main() {
           tensor2x3x4[0],
           isTensor<int>(
             layout: isLayout(
+              rank: 2,
+              length: 12,
               offset: 0,
               shape: [3, 4],
+              strides: [4, 1],
             ),
             object: [
               [0, 1, 2, 3],
@@ -599,13 +608,16 @@ void main() {
             ],
           ));
     });
-    test('last slice', () {
+    test('last', () {
       expect(
           tensor2[-1],
           isTensor<int>(
             layout: isLayout(
+              rank: 0,
+              length: 1,
               offset: 1,
               shape: isEmpty,
+              strides: isEmpty,
             ),
             object: 1,
           ));
@@ -613,8 +625,11 @@ void main() {
           tensor2x3[-1],
           isTensor<int>(
             layout: isLayout(
+              rank: 1,
+              length: 3,
               offset: 3,
               shape: [3],
+              strides: [1],
             ),
             object: [3, 4, 5],
           ));
@@ -622,8 +637,11 @@ void main() {
           tensor2x3x4[-1],
           isTensor<int>(
             layout: isLayout(
+              rank: 2,
+              length: 12,
               offset: 12,
               shape: [3, 4],
+              strides: [4, 1],
             ),
             object: [
               [12, 13, 14, 15],
@@ -637,8 +655,11 @@ void main() {
           tensor2x3[0][1],
           isTensor<int>(
             layout: isLayout(
+              rank: 0,
+              length: 1,
               offset: 1,
               shape: isEmpty,
+              strides: isEmpty,
             ),
             object: 1,
           ));
@@ -646,8 +667,11 @@ void main() {
           tensor2x3x4[0][1],
           isTensor<int>(
             layout: isLayout(
+              rank: 1,
+              length: 4,
               offset: 4,
               shape: [4],
+              strides: [1],
             ),
             object: [4, 5, 6, 7],
           ));
@@ -655,8 +679,11 @@ void main() {
           tensor2x3x4[0][1][2],
           isTensor<int>(
             layout: isLayout(
+              rank: 0,
+              length: 1,
               offset: 6,
               shape: isEmpty,
+              strides: isEmpty,
             ),
             object: 6,
           ));
@@ -670,7 +697,7 @@ void main() {
     });
   });
   group('elementAt', () {
-    test('first slice', () {
+    test('first', () {
       expect(
           tensor2x3x4.elementAt(0, axis: 0),
           isTensor<int>(
@@ -684,7 +711,7 @@ void main() {
             object: [
               [0, 1, 2, 3],
               [4, 5, 6, 7],
-              [8, 9, 10, 11]
+              [8, 9, 10, 11],
             ],
           ));
       expect(
@@ -718,7 +745,55 @@ void main() {
             ],
           ));
     });
-    test('last slice', () {
+    test('middle', () {
+      expect(
+          tensor2x3x4.elementAt(1, axis: 0),
+          isTensor<int>(
+            layout: isLayout(
+              rank: 2,
+              length: 12,
+              offset: 12,
+              shape: [3, 4],
+              strides: [4, 1],
+            ),
+            object: [
+              [12, 13, 14, 15],
+              [16, 17, 18, 19],
+              [20, 21, 22, 23],
+            ],
+          ));
+      expect(
+          tensor2x3x4.elementAt(1, axis: 1),
+          isTensor<int>(
+            layout: isLayout(
+              rank: 2,
+              length: 8,
+              offset: 4,
+              shape: [2, 4],
+              strides: [12, 1],
+            ),
+            object: [
+              [4, 5, 6, 7],
+              [16, 17, 18, 19],
+            ],
+          ));
+      expect(
+          tensor2x3x4.elementAt(2, axis: 2),
+          isTensor<int>(
+            layout: isLayout(
+              rank: 2,
+              length: 6,
+              offset: 2,
+              shape: [2, 3],
+              strides: [12, 4],
+            ),
+            object: [
+              [2, 6, 10],
+              [14, 18, 22],
+            ],
+          ));
+    });
+    test('last', () {
       expect(
           tensor2x3x4.elementAt(-1, axis: 0),
           isTensor<int>(
@@ -777,8 +852,11 @@ void main() {
             tensor,
             isTensor<int>(
               layout: isLayout(
+                rank: 0,
+                length: 1,
                 offset: 33,
                 shape: isEmpty,
+                strides: isEmpty,
               ),
               object: 33,
             ));
@@ -794,7 +872,7 @@ void main() {
     });
   });
   group('getRange', () {
-    test('full', () {
+    test('same', () {
       expect(
           tensor2x3x4.getRange(0, 2),
           isTensor<int>(
@@ -814,6 +892,222 @@ void main() {
             object: tensor2x3x4.toObject(),
           ));
     });
+    test('first', () {
+      expect(
+          tensor2x3x4.getRange(0, 1),
+          isTensor<int>(
+            layout: isLayout(
+              rank: 3,
+              length: 12,
+              offset: 0,
+              shape: [1, 3, 4],
+              strides: [12, 4, 1],
+            ),
+            object: [
+              [
+                [0, 1, 2, 3],
+                [4, 5, 6, 7],
+                [8, 9, 10, 11],
+              ]
+            ],
+          ));
+      expect(
+          tensor2x3x4.getRange(0, 1, axis: 1),
+          isTensor<int>(
+            layout: isLayout(
+              rank: 3,
+              length: 8,
+              offset: 0,
+              shape: [2, 1, 4],
+              strides: [12, 4, 1],
+            ),
+            object: [
+              [
+                [0, 1, 2, 3],
+              ],
+              [
+                [12, 13, 14, 15],
+              ],
+            ],
+          ));
+      expect(
+          tensor2x3x4.getRange(0, 1, axis: 2),
+          isTensor<int>(
+            layout: isLayout(
+              rank: 3,
+              length: 6,
+              offset: 0,
+              shape: [2, 3, 1],
+              strides: [12, 4, 1],
+            ),
+            object: [
+              [
+                [0],
+                [4],
+                [8],
+              ],
+              [
+                [12],
+                [16],
+                [20],
+              ],
+            ],
+          ));
+    });
+    test('middle', () {
+      expect(
+          tensor2x3x4.getRange(1, -1, axis: 1),
+          isTensor<int>(
+            layout: isLayout(
+              rank: 3,
+              length: 8,
+              offset: 4,
+              shape: [2, 1, 4],
+              strides: [12, 4, 1],
+            ),
+            object: [
+              [
+                [4, 5, 6, 7],
+              ],
+              [
+                [16, 17, 18, 19],
+              ],
+            ],
+          ));
+      expect(
+          tensor2x3x4.getRange(1, -1, axis: 2),
+          isTensor<int>(
+            layout: isLayout(
+              rank: 3,
+              length: 12,
+              offset: 1,
+              shape: [2, 3, 2],
+              strides: [12, 4, 1],
+            ),
+            object: [
+              [
+                [1, 2],
+                [5, 6],
+                [9, 10],
+              ],
+              [
+                [13, 14],
+                [17, 18],
+                [21, 22],
+              ],
+            ],
+          ));
+    });
+    test('last', () {
+      expect(
+          tensor2x3x4.getRange(-1, null),
+          isTensor<int>(
+            layout: isLayout(
+              rank: 3,
+              length: 12,
+              offset: 12,
+              shape: [1, 3, 4],
+              strides: [12, 4, 1],
+            ),
+            object: [
+              [
+                [12, 13, 14, 15],
+                [16, 17, 18, 19],
+                [20, 21, 22, 23],
+              ],
+            ],
+          ));
+      expect(
+          tensor2x3x4.getRange(-1, null, axis: 1),
+          isTensor<int>(
+            layout: isLayout(
+              rank: 3,
+              length: 8,
+              offset: 8,
+              shape: [2, 1, 4],
+              strides: [12, 4, 1],
+            ),
+            object: [
+              [
+                [8, 9, 10, 11],
+              ],
+              [
+                [20, 21, 22, 23],
+              ],
+            ],
+          ));
+      expect(
+          tensor2x3x4.getRange(-1, null, axis: 2),
+          isTensor<int>(
+            layout: isLayout(
+              rank: 3,
+              length: 6,
+              offset: 3,
+              shape: [2, 3, 1],
+              strides: [12, 4, 1],
+            ),
+            object: [
+              [
+                [3],
+                [7],
+                [11],
+              ],
+              [
+                [15],
+                [19],
+                [23],
+              ],
+            ],
+          ));
+    });
+    test('step', () {
+      expect(
+          tensor2x3x4.getRange(0, 4, axis: 2, step: 2),
+          isTensor<int>(
+            layout: isLayout(
+              rank: 3,
+              length: 12,
+              offset: 0,
+              shape: [2, 3, 2],
+              strides: [12, 4, 2],
+            ),
+            object: [
+              [
+                [0, 2],
+                [4, 6],
+                [8, 10],
+              ],
+              [
+                [12, 14],
+                [16, 18],
+                [20, 22],
+              ],
+            ],
+          ));
+      expect(
+          tensor2x3x4.getRange(0, 4, axis: 2, step: 3),
+          isTensor<int>(
+            layout: isLayout(
+              rank: 3,
+              length: 6,
+              offset: 0,
+              shape: [2, 3, 1],
+              strides: [12, 4, 3],
+            ),
+            object: [
+              [
+                [0],
+                [4],
+                [8],
+              ],
+              [
+                [12],
+                [16],
+                [20],
+              ],
+            ],
+          ));
+    });
     test('axis error', () {
       expect(() => tensor2x3x4.getRange(0, 0, axis: 3),
           throwsRangeErrorWith(name: 'axis'));
@@ -826,6 +1120,12 @@ void main() {
     test('end error', () {
       expect(() => tensor2.getRange(0, 3), throwsRangeErrorWith(name: 'end'));
       expect(() => tensor2.getRange(2, 0), throwsRangeErrorWith(name: 'end'));
+    });
+    test('step error', () {
+      expect(() => tensor2.getRange(0, 2, step: -1),
+          throwsRangeErrorWith(name: 'step'));
+      expect(() => tensor2.getRange(0, 2, step: 0),
+          throwsRangeErrorWith(name: 'step'));
     });
   });
   group('toObject', () {
