@@ -36,9 +36,10 @@ class Tensor<T> with ToStringPrinter {
   }
 
   /// Constructs an [Tensor] from a nested `object`.
-  factory Tensor.fromObject(Iterable<dynamic> object, {DataType<T>? type}) {
-    final type_ = type ?? DataType.fromIterable(object.deepFlatten());
-    final data_ = type_.copyList(object.deepFlatten<T>());
+  factory Tensor.fromObject(dynamic object, {DataType<T>? type}) {
+    final array_ = object is Iterable ? object.deepFlatten<T>() : [object as T];
+    final type_ = type ?? DataType.fromIterable(array_);
+    final data_ = type_.copyList(array_);
     final layout_ = Layout.fromObject(object);
     return Tensor.internal(type: type_, data: data_, layout: layout_);
   }

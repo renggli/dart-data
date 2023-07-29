@@ -31,9 +31,9 @@ class Layout with ToStringPrinter {
     );
   }
 
-  factory Layout.fromObject(Iterable<dynamic> object) {
+  factory Layout.fromObject(dynamic object) {
     final shape = <int>[];
-    for (Object? current = object;
+    for (dynamic current = object;
         current is Iterable;
         current = current.first) {
       shape.add(current.length);

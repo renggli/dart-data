@@ -201,13 +201,13 @@ void main() {
           ));
     });
   });
-  group('fromIterable', () {
+  group('iterable', () {
     // test('empty', () {
     //   expect(() => Tensor.fromIterable(<int>[]),
     //       throwsAssertionErrorWithMessage('`iterable` should not be empty'));
     // }, skip: !hasAssertionsEnabled());
     test('vector', () {
-      final result = Tensor.fromIterable(IntegerRange(1, 7));
+      final result = IntegerRange(1, 7).toTensor();
       expect(
           result,
           isTensor<int>(
@@ -222,8 +222,8 @@ void main() {
           ));
     });
     test('matrix', () {
-      final result = Tensor.fromIterable(IntegerRange(1, 7),
-          shape: [2, 3], type: DataType.uint32);
+      final result =
+          IntegerRange(1, 7).toTensor(shape: [2, 3], type: DataType.uint32);
       expect(
           result,
           isTensor<int>(
@@ -240,14 +240,56 @@ void main() {
             ],
           ));
     });
+    test('steps', () {
+      final result =
+          IntegerRange(1, 13).toTensor(shape: [2, 3], strides: [6, 2]);
+      expect(
+          result,
+          isTensor<int>(
+            data: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
+            layout: isLayout(
+              rank: 2,
+              shape: [2, 3],
+              strides: [6, 2],
+            ),
+            object: [
+              [1, 3, 5],
+              [7, 9, 11],
+            ],
+          ));
+    });
   });
-  group('fromObject', () {
+  group('object', () {
+    test('value', () {
+      final result = Tensor<int>.fromObject(42);
+      expect(
+          result,
+          isTensor<int>(
+            type: DataType.uint8,
+            layout: isLayout(
+              rank: 0,
+              offset: 0,
+              length: 1,
+              shape: isEmpty,
+              strides: isEmpty,
+            ),
+            data: [42],
+            object: 42,
+          ));
+    });
     test('vector', () {
       final result = Tensor<int>.fromObject([-1, 0, 1]);
       expect(
           result,
           isTensor<int>(
             type: DataType.int8,
+            layout: isLayout(
+              rank: 1,
+              length: 3,
+              offset: 0,
+              shape: [3],
+              strides: [1],
+            ),
             data: [-1, 0, 1],
             object: [-1, 0, 1],
           ));
@@ -256,11 +298,18 @@ void main() {
       final result = Tensor<int>.fromObject([
         [1, 2, 3],
         [4, 5, 6],
-      ]);
+      ], type: DataType.int32);
       expect(
           result,
           isTensor<int>(
-            type: DataType.uint8,
+            type: DataType.int32,
+            layout: isLayout(
+              rank: 2,
+              length: 6,
+              offset: 0,
+              shape: [2, 3],
+              strides: [3, 1],
+            ),
             data: [1, 2, 3, 4, 5, 6],
             object: [
               [1, 2, 3],
