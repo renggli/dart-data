@@ -78,22 +78,17 @@ dynamic isCloseTo(dynamic expected, {num epsilon = 1.0e-5}) {
 
 dynamic isTensor<T>({
   dynamic type = anything,
-  dynamic data = anything,
   dynamic layout = anything,
+  dynamic data = anything,
   dynamic object = anything,
   dynamic format = anything,
 }) =>
     isA<Tensor<T>>()
         .having((tensor) => tensor.type, 'type', type)
-        .having((tensor) => tensor.data, 'data', data)
         .having((tensor) => tensor.layout, 'layout', layout)
+        .having((tensor) => tensor.data, 'data', data)
         .having((tensor) => tensor.toObject(), 'toObject', object)
-        .having((tensor) => tensor, 'iterator', (Tensor<T> tensor) {
-      // if (object is Iterable) {
-      //   expectTensorIterable(tensor, object.deepFlatten<T>());
-      // }
-      return true;
-    }).having((tensor) => TensorPrinter<T>()(tensor), 'format', format);
+        .having((tensor) => TensorPrinter<T>()(tensor), 'format', format);
 
 dynamic isLayout({
   dynamic rank = anything,
@@ -124,26 +119,3 @@ dynamic isLayout({
                 layout.keys.map((index) => layout.toKey(layout.toIndex(index))),
             'keys (round-trip)',
             keys);
-
-// dynamic expectTensorIterable<T>(Tensor<T> actual, Iterable<T> expected) {
-//   final actualIterator = actual.iterator;
-//   final expectedIterator = expected.iterator;
-//   while (true) {
-//     final actualHasNext = actualIterator.moveNext();
-//     final expectedHasNext = expectedIterator.moveNext();
-//     expect(actualHasNext, expectedHasNext, reason: 'moveNext');
-//     if (!actualHasNext || !expectedHasNext) break;
-//     final value = expectedIterator.current;
-//     expect(actualIterator.current, value, reason: 'current');
-//     expect(actualIterator.currentIndices,
-//         actual.getIndices(actualIterator.currentOffset),
-//         reason: 'currentIndices');
-//     expect(actualIterator.currentOffset,
-//         actual.getOffset(actualIterator.currentIndices),
-//         reason: 'currentOffset');
-//     expect(actual.getValue(actualIterator.currentIndices), value,
-//         reason: 'get value using `currentIndices`');
-//     expect(actual.data[actualIterator.currentOffset], value,
-//         reason: 'get value using `currentOffset`');
-//   }
-// }

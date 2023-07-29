@@ -18,7 +18,7 @@ class Tensor<T> with ToStringPrinter {
     final type_ = type ?? DataType.fromInstance(value);
     final layout_ = Layout(shape: shape, strides: strides);
     final data_ = type_.newList(layout_.length, fillValue: value);
-    return Tensor.internal(type: type_, data: data_, layout: layout_);
+    return Tensor.internal(type: type_, layout: layout_, data: data_);
   }
 
   /// Constructs an [Tensor] from an `iterable`.
@@ -33,7 +33,7 @@ class Tensor<T> with ToStringPrinter {
     final layout_ = data_.isEmpty
         ? Layout.empty
         : Layout(shape: shape ?? [data_.length], strides: strides);
-    return Tensor.internal(type: type_, data: data_, layout: layout_);
+    return Tensor.internal(type: type_, layout: layout_, data: data_);
   }
 
   /// Constructs an [Tensor] from a nested `object`.
@@ -46,27 +46,27 @@ class Tensor<T> with ToStringPrinter {
                 ? <T>[]
                 : throw ArgumentError.value(object, 'object');
     final type_ = type ?? DataType.fromIterable(array_);
-    final data_ = type_.copyList(array_);
     final layout_ = Layout.fromObject(object);
-    return Tensor.internal(type: type_, data: data_, layout: layout_);
+    final data_ = type_.copyList(array_);
+    return Tensor.internal(type: type_, layout: layout_, data: data_);
   }
 
   /// Internal constructors of [Tensor] object.
   @internal
   Tensor.internal({
     required this.type,
-    required this.data,
     required this.layout,
+    required this.data,
   });
 
   /// The type of this tensor.
   final DataType<T> type;
 
-  /// The underlying data storage.
-  final List<T> data;
-
   /// The layout of the data in the underlying storage.
   final Layout layout;
+
+  /// The underlying data storage.
+  final List<T> data;
 
   /// The number of dimensions.
   int get rank => layout.rank;
@@ -85,19 +85,19 @@ class Tensor<T> with ToStringPrinter {
 
   /// Returns a view with the first axis resolved to [index].
   Tensor<T> operator [](int index) =>
-      Tensor<T>.internal(type: type, data: data, layout: layout[index]);
+      Tensor<T>.internal(type: type, layout: layout[index], data: data);
 
   /// Returns a view with the given [axis] resolved to [index].
   Tensor<T> elementAt(int index, {int axis = 0}) => Tensor<T>.internal(
-      type: type, data: data, layout: layout.elementAt(index, axis: axis));
+      type: type, layout: layout.elementAt(index, axis: axis), data: data);
 
   /// Returns a view with the given [axis] sliced to the range between [start]
   /// and [end] (exclusive).
   Tensor<T> getRange(int start, int? end, {int step = 1, int axis = 0}) =>
       Tensor<T>.internal(
           type: type,
-          data: data,
-          layout: layout.getRange(start, end, step: step, axis: axis));
+          layout: layout.getRange(start, end, step: step, axis: axis),
+          data: data);
 
   /// Returns a contiguous flat array.
   Tensor<T> ravel() => reshape([layout.length]);
@@ -110,7 +110,7 @@ class Tensor<T> with ToStringPrinter {
     if (layout.length != layout_.length) {
       throw ArgumentError.value(shape, 'shape', 'Incompatible with $layout');
     }
-    return Tensor<T>.internal(type: type, data: data_, layout: layout_);
+    return Tensor<T>.internal(type: type, layout: layout_, data: data_);
   }
 
   /// Return the tensor collapsed into one dimension.
@@ -118,7 +118,7 @@ class Tensor<T> with ToStringPrinter {
 
   /// Returns a transposed view.
   Tensor<T> transpose({List<int>? axes}) => Tensor<T>.internal(
-      type: type, data: data, layout: layout.transpose(axes: axes));
+      type: type, layout: layout.transpose(axes: axes), data: data);
 
   @override
   ObjectPrinter get toStringPrinter => super.toStringPrinter

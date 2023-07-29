@@ -3,17 +3,21 @@ import 'dart:collection';
 import '../../type/type.dart';
 import 'layout.dart';
 
-class OffsetIterable extends IterableBase<int> {
-  OffsetIterable(this.layout);
+/// Iterable over the
+class TensorIterable extends IterableBase<int> {
+  TensorIterable(this.layout);
 
   final Layout layout;
 
   @override
-  Iterator<int> get iterator => OffsetIterator(layout);
+  int get length => layout.length;
+
+  @override
+  Iterator<int> get iterator => TensorIterator(layout);
 }
 
-class OffsetIterator implements Iterator<int> {
-  OffsetIterator(Layout layout)
+class TensorIterator implements Iterator<int> {
+  TensorIterator(Layout layout)
       : rank = layout.rank,
         shape = layout.shape,
         strides = layout.strides,

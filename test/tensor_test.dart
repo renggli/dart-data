@@ -1320,4 +1320,61 @@ void main() {
       ]);
     });
   });
+  group('copy', () {
+    test('default', () {
+      final source = tensor2x3x4x5.elementAt(2, axis: 2);
+      final target = source.copy();
+      expect(
+          target,
+          isTensor<int>(
+            type: source.type,
+            data: allOf(isNot(same(source.data)), source.data),
+            layout: source.layout,
+          ));
+    });
+    test('contiguous', () {
+      final source = tensor2x3x4x5.elementAt(2, axis: 2);
+      final target = source.copy(contiguous: true);
+      expect(
+          target,
+          isTensor<int>(
+            type: source.type,
+            data: isNot(source.data),
+            layout: isLayout(
+              rank: source.rank,
+              length: source.length,
+              offset: 0,
+              shape: [2, 3, 5],
+              strides: [15, 5, 1],
+              isContiguous: true,
+            ),
+          ));
+    });
+  });
+  group('contiguous', () {
+    test('already contiguous', () {
+      final source = tensor2x3x4;
+      final target = source.contiguous();
+      expect(target, same(source));
+    });
+    test('not contiguous', () {
+      final source = tensor2x3x4x5.elementAt(2, axis: 2);
+      final target = source.copy(contiguous: true);
+      expect(
+          target,
+          isTensor<int>(
+            type: source.type,
+            data: isNot(source.data),
+            layout: isLayout(
+              rank: source.rank,
+              length: source.length,
+              offset: 0,
+              shape: [2, 3, 5],
+              strides: [15, 5, 1],
+              isContiguous: true,
+            ),
+            object: source.toObject(),
+          ));
+    });
+  });
 }

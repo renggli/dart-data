@@ -96,7 +96,7 @@ class Layout with ToStringPrinter {
           : [offset]
       : isContiguous
           ? IntegerRange(offset, offset + length)
-          : OffsetIterable(this);
+          : TensorIterable(this);
 
   /// An iterable over the keys of this layout.
   Iterable<List<int>> get keys => indices.map((index) => toKey(index));
