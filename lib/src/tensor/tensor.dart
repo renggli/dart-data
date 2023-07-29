@@ -99,10 +99,14 @@ class Tensor<T> with ToStringPrinter {
     final (layout_, data_) = layout.isContiguous
         ? (Layout(shape: shape, offset: layout.offset), data)
         : (Layout(shape: shape), type.copyList(values));
-    assert(layout.length == layout_.length,
-        'New shape $shape in incompatible with $layout');
+    if (layout.length != layout_.length) {
+      throw ArgumentError.value(shape, 'shape', 'Incompatible with $layout');
+    }
     return Tensor<T>.internal(type: type, data: data_, layout: layout_);
   }
+
+  /// Return the tensor collapsed into one dimension.
+  Tensor<T> flatten() => reshape([length]);
 
   /// Returns a transposed view.
   Tensor<T> transpose({List<int>? axes}) => Tensor<T>.internal(

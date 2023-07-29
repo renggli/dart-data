@@ -361,12 +361,68 @@ void main() {
             object: [0, 1, 2, 3, 4, 5],
           ));
     });
-    test('error shape', () {
-      // expect(
-      //     () => tensor2x3.reshape([4, 3]),
-      //     throwsAssertionErrorWithMessage(
-      //         startsWith('New shape [4, 3] in incompatible with')));
-    }, skip: !hasAssertionsEnabled());
+    test('shape', () {
+      expect(() => tensor2x3.reshape([4, 3]), throwsArgumentError);
+    });
+  });
+  group('flatten', () {
+    test('value', () {
+      final result = value.flatten();
+      expect(
+          result,
+          isTensor<int>(
+            type: value.type,
+            data: same(value.data),
+            layout: isLayout(
+              rank: 1,
+              shape: [1],
+              strides: [1],
+            ),
+            object: value.values,
+          ));
+    });
+    test('rank = 1', () {
+      final result = tensor2.flatten();
+      expect(
+          result,
+          isTensor<int>(
+            type: tensor2.type,
+            data: same(tensor2.data),
+            layout: tensor2.layout,
+            object: tensor2.values,
+          ));
+    });
+    test('rank = 2', () {
+      final result = tensor2x3.flatten();
+      expect(
+          result,
+          isTensor<int>(
+            type: tensor2x3.type,
+            data: same(tensor2x3.data),
+            layout: isLayout(
+              rank: 1,
+              shape: [6],
+              strides: [1],
+            ),
+            object: tensor2x3.values,
+          ));
+    });
+    test('not contiguous', () {
+      final source = tensor2x3.transpose();
+      final result = source.flatten();
+      expect(
+          result,
+          isTensor<int>(
+            type: tensor2x3.type,
+            data: isNot(same(tensor2x3.data)),
+            layout: isLayout(
+              rank: 1,
+              shape: [6],
+              strides: [1],
+            ),
+            object: source.values,
+          ));
+    });
   });
   group('transpose', () {
     test('once', () {
