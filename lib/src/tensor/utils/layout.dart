@@ -5,11 +5,11 @@ import 'package:meta/meta.dart';
 import 'package:more/collection.dart';
 import 'package:more/printer.dart';
 
-import '../stats/iterable.dart';
-import '../type/type.dart';
-import 'layout/iterable.dart';
-import 'utils/errors.dart';
-import 'utils/index.dart';
+import '../../stats/iterable.dart';
+import '../../type/type.dart';
+import 'errors.dart';
+import 'index.dart';
+import 'iterable.dart';
 
 /// Immutable object describing a multi-dimensional data layout in a flat list
 /// of values.

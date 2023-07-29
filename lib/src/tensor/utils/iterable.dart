@@ -1,7 +1,7 @@
 import 'dart:collection';
 
 import '../../type/type.dart';
-import '../layout.dart';
+import 'layout.dart';
 
 class OffsetIterable extends IterableBase<int> {
   OffsetIterable(this.layout);

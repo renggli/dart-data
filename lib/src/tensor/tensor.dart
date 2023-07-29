@@ -3,8 +3,8 @@ import 'package:more/collection.dart';
 import 'package:more/printer.dart';
 
 import '../../type.dart';
-import 'layout.dart';
 import 'printer.dart';
+import 'utils/layout.dart';
 
 /// A multi-dimensional fixed-size container of items of a specific type.
 @experimental

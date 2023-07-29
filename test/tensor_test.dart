@@ -17,6 +17,20 @@ final tensor2x3x4x5 =
 
 void main() {
   group('layout', () {
+    test('empty', () {
+      final layout = Layout.empty;
+      expect(
+          layout,
+          isLayout(
+              rank: 0,
+              length: 0,
+              offset: 0,
+              shape: isEmpty,
+              strides: isEmpty,
+              isContiguous: true,
+              indices: isEmpty,
+              keys: isEmpty));
+    });
     test('value', () {
       final layout = Layout();
       expect(
