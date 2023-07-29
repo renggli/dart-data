@@ -10,6 +10,7 @@ class TensorPrinter<T> extends Printer<Tensor<T>> {
     this.limit = true,
     this.leadingItems = 3,
     this.trailingItems = 3,
+    this.empty = '\u2205',
     this.openTensor = '[',
     this.closeTensor = ']',
     this.horizontalSeparator = ', ',
@@ -24,6 +25,7 @@ class TensorPrinter<T> extends Printer<Tensor<T>> {
   final bool limit;
   final int leadingItems;
   final int trailingItems;
+  final String empty;
   final String openTensor;
   final String closeTensor;
   final String horizontalSeparator;
@@ -32,8 +34,9 @@ class TensorPrinter<T> extends Printer<Tensor<T>> {
   final String verticalEllipses;
 
   @override
-  void printOn(Tensor<T> object, StringBuffer buffer) =>
-      _printOn(object, buffer, offset: object.layout.offset, axis: 0);
+  void printOn(Tensor<T> object, StringBuffer buffer) => object.length == 0
+      ? buffer.write(empty)
+      : _printOn(object, buffer, offset: object.layout.offset, axis: 0);
 
   void _printOn(Tensor<T> tensor, StringBuffer buffer,
           {required int axis, required int offset}) =>

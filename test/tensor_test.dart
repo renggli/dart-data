@@ -202,10 +202,25 @@ void main() {
     });
   });
   group('iterable', () {
-    // test('empty', () {
-    //   expect(() => Tensor.fromIterable(<int>[]),
-    //       throwsAssertionErrorWithMessage('`iterable` should not be empty'));
-    // }, skip: !hasAssertionsEnabled());
+    test('empty', () {
+      final result = Tensor.fromIterable(<int>[]);
+      expect(
+          result,
+          isTensor<int>(
+            type: DataType.integer,
+            layout: isLayout(
+              rank: 0,
+              length: 0,
+              offset: 0,
+              shape: isEmpty,
+              strides: isEmpty,
+              isContiguous: true,
+            ),
+            data: isEmpty,
+            object: isNull,
+            format: '∅',
+          ));
+    });
     test('vector', () {
       final result = IntegerRange(1, 7).toTensor();
       expect(
@@ -260,6 +275,23 @@ void main() {
     });
   });
   group('object', () {
+    test('empty', () {
+      final result = Tensor<int>.fromObject(null);
+      expect(
+          result,
+          isTensor<int>(
+            type: DataType.integer,
+            layout: isLayout(
+              rank: 0,
+              offset: 0,
+              length: 0,
+              shape: isEmpty,
+              strides: isEmpty,
+            ),
+            data: isEmpty,
+            object: null,
+          ));
+    });
     test('value', () {
       final result = Tensor<int>.fromObject(42);
       expect(

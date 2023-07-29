@@ -28,16 +28,23 @@ class Tensor<T> with ToStringPrinter {
   /// tensor in the specified format in row-major.
   factory Tensor.fromIterable(Iterable<T> iterable,
       {List<int>? shape, List<int>? strides, DataType<T>? type}) {
-    assert(iterable.isNotEmpty, '`iterable` should not be empty');
     final type_ = type ?? DataType.fromIterable(iterable);
     final data_ = type_.copyList(iterable);
-    final layout_ = Layout(shape: shape ?? [data_.length], strides: strides);
+    final layout_ = data_.isEmpty
+        ? Layout.empty
+        : Layout(shape: shape ?? [data_.length], strides: strides);
     return Tensor.internal(type: type_, data: data_, layout: layout_);
   }
 
   /// Constructs an [Tensor] from a nested `object`.
   factory Tensor.fromObject(dynamic object, {DataType<T>? type}) {
-    final array_ = object is Iterable ? object.deepFlatten<T>() : [object as T];
+    final array_ = object is Iterable
+        ? object.deepFlatten<T>()
+        : object is T
+            ? <T>[object]
+            : object == null
+                ? <T>[]
+                : throw ArgumentError.value(object, 'object');
     final type_ = type ?? DataType.fromIterable(array_);
     final data_ = type_.copyList(array_);
     final layout_ = Layout.fromObject(object);

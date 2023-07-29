@@ -32,6 +32,9 @@ class Layout with ToStringPrinter {
   }
 
   factory Layout.fromObject(dynamic object) {
+    if (object == null) {
+      return empty;
+    }
     final shape = <int>[];
     for (dynamic current = object;
         current is Iterable;
@@ -40,6 +43,14 @@ class Layout with ToStringPrinter {
     }
     return Layout(shape: shape);
   }
+
+  static final empty = Layout.internal(
+      rank: 0,
+      length: 0,
+      offset: 0,
+      shape: _toIndices([]),
+      strides: _toIndices([]),
+      isContiguous: true);
 
   /// Internal constructor of [Layout] object.
   @internal
@@ -56,7 +67,8 @@ class Layout with ToStringPrinter {
         assert(strides is TypedData, '`strides` should be TypedData'),
         assert(strides.length == rank, '`strides` should be of length $rank'),
         assert(strides.every((s) => s != 0), '`stride` should be non-zero'),
-        assert(length == shape.product(), '`length` should match `shape`'),
+        assert(length == shape.product() || (length == 0 && rank == 0),
+            '`length` should match `shape`'),
         assert(isContiguous == _isContiguous(shape: shape, strides: strides));
 
   /// The number of dimensions.
@@ -79,7 +91,9 @@ class Layout with ToStringPrinter {
 
   /// An iterable over the indices of this layout.
   Iterable<int> get indices => rank == 0
-      ? [offset]
+      ? length == 0
+          ? []
+          : [offset]
       : isContiguous
           ? IntegerRange(offset, offset + length)
           : OffsetIterable(this);
