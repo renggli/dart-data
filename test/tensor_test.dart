@@ -1377,4 +1377,109 @@ void main() {
           ));
     });
   });
+  group('broadcast', () {
+    test('same shape', () {
+      final as = Layout(shape: const [5, 7, 3]);
+      final bs = Layout(shape: const [5, 7, 3]);
+      final (at, bt) = broadcast(as, bs);
+      expect(at, same(as));
+      expect(bt, same(bs));
+    });
+    test('missing dimensions', () {
+      final as = Layout(shape: const [], offset: 3);
+      final bs = Layout(shape: const [2, 2], offset: 7);
+      final (at, bt) = broadcast(as, bs);
+      expect(
+          at,
+          isLayout(
+            offset: 3,
+            length: 4,
+            shape: [2, 2],
+            strides: [0, 0],
+          ));
+      expect(
+          bt,
+          isLayout(
+            offset: 7,
+            length: 4,
+            shape: [2, 2],
+            strides: [2, 1],
+          ));
+    });
+    test('trailing dimensions', () {
+      final as = Layout(shape: const [5, 3, 4, 1]);
+      final bs = Layout(shape: const [3, 1, 1]);
+      final (at, bt) = broadcast(as, bs);
+      expect(
+          at,
+          isLayout(
+            offset: 0,
+            length: 60,
+            shape: [5, 3, 4, 1],
+            strides: [12, 4, 1, 1],
+          ));
+      expect(
+          bt,
+          isLayout(
+            offset: 0,
+            length: 60,
+            shape: [5, 3, 4, 1],
+            strides: [0, 1, 0, 1],
+          ));
+    });
+    test('singular dimension', () {
+      final as = Layout(shape: const [256, 256, 3]);
+      final bs = Layout(shape: const [3]);
+      final (at, bt) = broadcast(as, bs);
+      expect(
+          at,
+          isLayout(
+            offset: as.offset,
+            length: 196608,
+            shape: [256, 256, 3],
+            strides: as.strides,
+          ));
+      expect(
+          bt,
+          isLayout(
+            offset: as.offset,
+            length: 196608,
+            shape: [256, 256, 3],
+            strides: [0, 0, 1],
+          ));
+    });
+    test('mixed dimensions', () {
+      final as = Layout(shape: const [8, 1, 6, 1]);
+      final bs = Layout(shape: const [7, 1, 5]);
+      final (at, bt) = broadcast(as, bs);
+      expect(
+          at,
+          isLayout(
+            offset: as.offset,
+            length: 1680,
+            shape: [8, 7, 6, 5],
+            strides: [6, 0, 1, 0],
+          ));
+      expect(
+          bt,
+          isLayout(
+            offset: as.offset,
+            length: 1680,
+            shape: [8, 7, 6, 5],
+            strides: [0, 5, 0, 1],
+          ));
+    });
+    test('incompatible examples', () {});
+    test('error empty', () {
+      final layout = Layout(shape: const [1, 2, 3]);
+      expect(() => broadcast(Layout.empty, layout), throwsArgumentError);
+      expect(() => broadcast(layout, Layout.empty), throwsArgumentError);
+    });
+    test('error incompatible', () {
+      final first = Layout(shape: const [5, 2, 4, 1]);
+      final second = Layout(shape: const [3, 1, 1]);
+      expect(() => broadcast(first, second), throwsArgumentError);
+      expect(() => broadcast(second, first), throwsArgumentError);
+    });
+  });
 }
