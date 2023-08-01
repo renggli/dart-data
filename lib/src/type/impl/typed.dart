@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 
 import 'package:meta/meta.dart';
+import 'package:more/functional.dart';
 
 import '../type.dart';
 
@@ -17,9 +18,14 @@ abstract class TypedDataType<T, L extends List<T>> extends DataType<T> {
   T get max;
 
   @override
-  List<T> newList(int length, {T? fillValue, bool readonly = false}) {
+  List<T> newList(int length,
+      {Map1<int, T>? generate, T? fillValue, bool readonly = false}) {
     final result = emptyList(length);
-    if (fillValue != null && fillValue != defaultValue) {
+    if (generate != null) {
+      for (var i = 0; i < length; i++) {
+        result[i] = generate(i);
+      }
+    } else if (fillValue != null && fillValue != defaultValue) {
       result.fillRange(0, length, fillValue);
     }
     return readonly ? readonlyList(result) : result;

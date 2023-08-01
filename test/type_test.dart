@@ -75,9 +75,31 @@ void listTest<T>(DataType<T> type, List<List<T>> lists) {
       final list = type.newList(1);
       expect(list[0], type.defaultValue);
     });
+    test('readonly', () {
+      final list = type.newList(10, readonly: true);
+      expect(() => list[0] = exampleValue, throwsUnsupportedError);
+      expect(list, List.filled(10, type.defaultValue));
+    });
     test('filled', () {
       final list = type.newList(10, fillValue: exampleValue);
       expect(list, List.filled(10, exampleValue));
+    });
+    test('filled, readonly', () {
+      final list = type.newList(10, fillValue: exampleValue, readonly: true);
+      expect(() => list[0] = type.defaultValue, throwsUnsupportedError);
+      expect(list, List.filled(10, exampleValue));
+    });
+    test('generated', () {
+      final values = lists.expand((value) => value).toList();
+      final list = type.newList(values.length, generate: (i) => values[i]);
+      expect(list, values);
+    });
+    test('generated, readonly', () {
+      final values = lists.expand((value) => value).toList();
+      final list = type.newList(values.length,
+          generate: (i) => values[i], readonly: true);
+      expect(() => list[0] = values.last, throwsUnsupportedError);
+      expect(list, values);
     });
   });
   group('copy', () {

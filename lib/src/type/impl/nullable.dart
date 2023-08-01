@@ -3,6 +3,7 @@ import 'dart:collection' show ListBase, UnmodifiableListView;
 import 'package:collection/collection.dart' show NonGrowableListMixin;
 import 'package:more/collection.dart' show BitList;
 import 'package:more/comparator.dart';
+import 'package:more/functional.dart';
 import 'package:more/printer.dart' show Printer, NullPrinterExtension;
 
 import '../type.dart';
@@ -35,11 +36,17 @@ class NullableDataType<T> extends DataType<T?> {
   T? cast(dynamic value) => value == null ? null : delegate.cast(value);
 
   @override
-  List<T?> newList(int length, {T? fillValue, bool readonly = false}) {
+  List<T?> newList(int length,
+      {Map1<int, T?>? generate, T? fillValue, bool readonly = false}) {
     final result = NullableList<T>(
         delegate.newList(length, fillValue: fillValue ?? delegate.defaultValue),
         delegate.defaultValue,
         fillValue != null);
+    if (generate != null) {
+      for (var i = 0; i < length; i++) {
+        result[i] = generate(i);
+      }
+    }
     return readonly ? UnmodifiableListView<T?>(result) : result;
   }
 

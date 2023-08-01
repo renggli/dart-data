@@ -2,6 +2,7 @@ import 'dart:collection';
 import 'dart:math' as math;
 
 import 'package:meta/meta.dart';
+import 'package:more/functional.dart';
 import 'package:more/number.dart';
 import 'package:more/printer.dart' show Printer, StandardPrinter;
 
@@ -144,8 +145,11 @@ abstract class DataType<T> {
       value, 'value', 'Unable to cast "$value" to $this.');
 
   /// Creates a fixed-length list of this data type.
-  List<T> newList(int length, {T? fillValue, bool readonly = false}) {
-    final result = List<T>.filled(length, fillValue ?? defaultValue);
+  List<T> newList(int length,
+      {Map1<int, T>? generate, T? fillValue, bool readonly = false}) {
+    final result = generate != null
+        ? List<T>.generate(length, generate, growable: false)
+        : List<T>.filled(length, fillValue ?? defaultValue, growable: false);
     return readonly ? UnmodifiableListView(result) : result;
   }
 
