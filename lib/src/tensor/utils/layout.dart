@@ -182,34 +182,35 @@ class Layout with ToStringPrinter {
 
   /// Returns an updated layout with the given [axis] resolved to [index].
   Layout elementAt(int index, {int axis = 0}) {
-    RangeError.checkValueInInterval(axis, 0, rank - 1, 'axis');
-    final adjustedIndex = adjustIndex(index, shape[axis]);
-    RangeError.checkValueInInterval(adjustedIndex, 0, shape[axis], 'index');
+    final axis_ = adjustIndex(axis, rank);
+    RangeError.checkValueInInterval(axis_, 0, rank - 1, 'axis');
+    final index_ = adjustIndex(index, shape[axis_]);
+    RangeError.checkValueInInterval(index_, 0, shape[axis_], 'index');
     return Layout(
-      shape: [...shape.take(axis), ...shape.skip(axis + 1)],
-      strides: [...strides.take(axis), ...strides.skip(axis + 1)],
-      offset: offset + adjustedIndex * strides[axis],
+      shape: [...shape.take(axis_), ...shape.skip(axis_ + 1)],
+      strides: [...strides.take(axis_), ...strides.skip(axis_ + 1)],
+      offset: offset + index_ * strides[axis_],
     );
   }
 
   /// Returns an updated layout with the given [axis] sliced to the range
   /// between [start] and [end] (exclusive).
   Layout getRange(int start, int? end, {int step = 1, int axis = 0}) {
-    RangeError.checkValueInInterval(axis, 0, rank - 1, 'axis');
-    final adjustedStart = adjustIndex(start, shape[axis]);
-    final adjustedEnd = adjustIndex(end ?? shape[axis], shape[axis]);
-    RangeError.checkValidRange(
-        adjustedStart, adjustedEnd, shape[axis], 'start', 'end');
+    final axis_ = adjustIndex(axis, rank);
+    RangeError.checkValueInInterval(axis_, 0, rank - 1, 'axis');
+    final start_ = adjustIndex(start, shape[axis_]);
+    final end_ = adjustIndex(end ?? shape[axis_], shape[axis_]);
+    RangeError.checkValidRange(start_, end_, shape[axis_], 'start', 'end');
     checkPositive(step, 'step');
-    final rangeLength = (adjustedEnd - adjustedStart) ~/ step;
+    final rangeLength = (end_ - start_) ~/ step;
     return Layout(
-      shape: [...shape.take(axis), rangeLength, ...shape.skip(axis + 1)],
+      shape: [...shape.take(axis_), rangeLength, ...shape.skip(axis_ + 1)],
       strides: [
-        ...strides.take(axis),
-        step * strides[axis],
-        ...strides.skip(axis + 1),
+        ...strides.take(axis_),
+        step * strides[axis_],
+        ...strides.skip(axis_ + 1),
       ],
-      offset: offset + adjustedStart * strides[axis],
+      offset: offset + start_ * strides[axis_],
     );
   }
 
