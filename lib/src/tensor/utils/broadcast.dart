@@ -28,8 +28,8 @@ const _listEquality = ListEquality<int>();
       throw ShapeError.incompatible(a, ai, b, bi);
     }
     final rs = max(as, bs);
-    aStrides.add(as == rs ? a.strides[ai] : 0);
-    bStrides.add(bs == rs ? b.strides[bi] : 0);
+    aStrides.add(as == rs && ai >= 0 ? a.strides[ai] : 0);
+    bStrides.add(bs == rs && bi >= 0 ? b.strides[bi] : 0);
     shape.add(rs);
   }
   return (

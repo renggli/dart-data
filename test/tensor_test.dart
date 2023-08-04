@@ -463,49 +463,6 @@ void main() {
   });
   group('expand', () {
     test('default', () {
-      final result = tensor2x3.expand().collapse();
-      expect(
-          result,
-          isTensor<int>(
-            type: tensor2x3.type,
-            data: same(tensor2x3.data),
-            layout: tensor2x3.layout,
-            object: tensor2x3.toObject(),
-          ));
-    });
-    test('middle', () {
-      final result = tensor2x3.expand(axis: 1).collapse(axis: 1);
-      expect(
-          result,
-          isTensor<int>(
-            type: tensor2x3.type,
-            data: same(tensor2x3.data),
-            layout: tensor2x3.layout,
-            object: tensor2x3.toObject(),
-          ));
-    });
-    test('end', () {
-      final result = tensor2x3.expand(axis: 2).collapse(axis: 2);
-      expect(
-          result,
-          isTensor<int>(
-            type: tensor2x3.type,
-            data: same(tensor2x3.data),
-            layout: tensor2x3.layout,
-            object: tensor2x3.toObject(),
-          ));
-    });
-    test('error range', () {
-      expect(() => tensor2x3.collapse(axis: -1), throwsRangeError);
-      expect(() => tensor2x3.collapse(axis: 2), throwsRangeError);
-    });
-    test('error axis', () {
-      expect(() => tensor2x3.collapse(axis: 0), throwsArgumentError);
-      expect(() => tensor2x3.collapse(axis: 1), throwsArgumentError);
-    });
-  });
-  group('collapse', () {
-    test('default', () {
       final result = tensor2x3.expand();
       expect(
           result,
@@ -579,6 +536,49 @@ void main() {
     test('error range', () {
       expect(() => tensor2x3.expand(axis: -1), throwsRangeError);
       expect(() => tensor2x3.expand(axis: 3), throwsRangeError);
+    });
+  });
+  group('collapse', () {
+    test('default', () {
+      final result = tensor2x3.expand().collapse();
+      expect(
+          result,
+          isTensor<int>(
+            type: tensor2x3.type,
+            data: same(tensor2x3.data),
+            layout: tensor2x3.layout,
+            object: tensor2x3.toObject(),
+          ));
+    });
+    test('middle', () {
+      final result = tensor2x3.expand(axis: 1).collapse(axis: 1);
+      expect(
+          result,
+          isTensor<int>(
+            type: tensor2x3.type,
+            data: same(tensor2x3.data),
+            layout: tensor2x3.layout,
+            object: tensor2x3.toObject(),
+          ));
+    });
+    test('end', () {
+      final result = tensor2x3.expand(axis: 2).collapse(axis: 2);
+      expect(
+          result,
+          isTensor<int>(
+            type: tensor2x3.type,
+            data: same(tensor2x3.data),
+            layout: tensor2x3.layout,
+            object: tensor2x3.toObject(),
+          ));
+    });
+    test('error range', () {
+      expect(() => tensor2x3.collapse(axis: -1), throwsRangeError);
+      expect(() => tensor2x3.collapse(axis: 2), throwsRangeError);
+    });
+    test('error axis', () {
+      expect(() => tensor2x3.collapse(axis: 0), throwsArgumentError);
+      expect(() => tensor2x3.collapse(axis: 1), throwsArgumentError);
     });
   });
   group('flatten', () {
@@ -1499,27 +1499,35 @@ void main() {
     });
   });
   group('broadcast', () {
+    void validateBroadcast(
+        Layout aSource, Layout bSource, dynamic aTarget, dynamic bTarget) {
+      final (a1, b1) = broadcast(aSource, bSource);
+      final (b2, a2) = broadcast(bSource, aSource);
+      expect(a1, aTarget);
+      expect(b1, bTarget);
+      expect(a2, aTarget);
+      expect(b2, bTarget);
+      expect(a1, a2);
+      expect(b1, b2);
+    }
+
     test('same shape', () {
       final as = Layout(shape: const [5, 7, 3]);
       final bs = Layout(shape: const [5, 7, 3]);
-      final (at, bt) = broadcast(as, bs);
-      expect(at, same(as));
-      expect(bt, same(bs));
+      validateBroadcast(as, bs, same(as), same(bs));
     });
     test('missing dimensions', () {
       final as = Layout(shape: const [], offset: 3);
       final bs = Layout(shape: const [2, 2], offset: 7);
-      final (at, bt) = broadcast(as, bs);
-      expect(
-          at,
+      validateBroadcast(
+          as,
+          bs,
           isLayout(
             offset: 3,
             length: 4,
             shape: [2, 2],
             strides: [0, 0],
-          ));
-      expect(
-          bt,
+          ),
           isLayout(
             offset: 7,
             length: 4,
@@ -1530,17 +1538,15 @@ void main() {
     test('trailing dimensions', () {
       final as = Layout(shape: const [5, 3, 4, 1]);
       final bs = Layout(shape: const [3, 1, 1]);
-      final (at, bt) = broadcast(as, bs);
-      expect(
-          at,
+      validateBroadcast(
+          as,
+          bs,
           isLayout(
             offset: 0,
             length: 60,
             shape: [5, 3, 4, 1],
             strides: [12, 4, 1, 1],
-          ));
-      expect(
-          bt,
+          ),
           isLayout(
             offset: 0,
             length: 60,
@@ -1551,17 +1557,15 @@ void main() {
     test('singular dimension', () {
       final as = Layout(shape: const [256, 256, 3]);
       final bs = Layout(shape: const [3]);
-      final (at, bt) = broadcast(as, bs);
-      expect(
-          at,
+      validateBroadcast(
+          as,
+          bs,
           isLayout(
             offset: as.offset,
             length: 196608,
             shape: [256, 256, 3],
             strides: as.strides,
-          ));
-      expect(
-          bt,
+          ),
           isLayout(
             offset: as.offset,
             length: 196608,
@@ -1572,17 +1576,15 @@ void main() {
     test('mixed dimensions', () {
       final as = Layout(shape: const [8, 1, 6, 1]);
       final bs = Layout(shape: const [7, 1, 5]);
-      final (at, bt) = broadcast(as, bs);
-      expect(
-          at,
+      validateBroadcast(
+          as,
+          bs,
           isLayout(
             offset: as.offset,
             length: 1680,
             shape: [8, 7, 6, 5],
             strides: [6, 0, 1, 0],
-          ));
-      expect(
-          bt,
+          ),
           isLayout(
             offset: as.offset,
             length: 1680,
@@ -1590,7 +1592,6 @@ void main() {
             strides: [0, 5, 0, 1],
           ));
     });
-    test('incompatible examples', () {});
     test('error empty', () {
       final layout = Layout(shape: const [1, 2, 3]);
       expect(() => broadcast(Layout.empty, layout), throwsArgumentError);
@@ -1629,6 +1630,19 @@ void main() {
             [36, 52, 70],
             [72, 91, 112],
             [108, 130, 154],
+          ]));
+    });
+    test('outer vectors', () {
+      final a = Tensor<int>.fromIterable([1, 2, 3]).expand(axis: 1);
+      final b = Tensor<int>.fromIterable([10, 20, 30]);
+      expect(
+          a + b,
+          isTensor<int>(object: [
+            [
+              [11, 21, 31],
+              [12, 22, 32],
+              [13, 23, 33],
+            ]
           ]));
     });
   });
