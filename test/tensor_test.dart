@@ -457,8 +457,33 @@ void main() {
             object: [0, 1, 2, 3, 4, 5],
           ));
     });
+    test('inferred', () {
+      final result = tensor2x3x4.reshape([8, -1]);
+      expect(
+          result,
+          isTensor<int>(
+            type: tensor2x3x4.type,
+            data: same(tensor2x3x4.data),
+            layout: isLayout(
+              rank: 2,
+              shape: [8, 3],
+              strides: [3, 1],
+            ),
+            object: [
+              [0, 1, 2],
+              [3, 4, 5],
+              [6, 7, 8],
+              [9, 10, 11],
+              [12, 13, 14],
+              [15, 16, 17],
+              [18, 19, 20],
+              [21, 22, 23],
+            ],
+          ));
+    });
     test('error', () {
       expect(() => tensor2x3.reshape([4, 3]), throwsArgumentError);
+      expect(() => tensor2x3.reshape([-1, 5]), throwsArgumentError);
     });
   });
   group('expand', () {
@@ -1638,11 +1663,9 @@ void main() {
       expect(
           a + b,
           isTensor<int>(object: [
-            [
-              [11, 21, 31],
-              [12, 22, 32],
-              [13, 23, 33],
-            ]
+            [11, 21, 31],
+            [12, 22, 32],
+            [13, 23, 33],
           ]));
     });
   });

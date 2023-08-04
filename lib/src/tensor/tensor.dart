@@ -3,6 +3,7 @@ import 'package:more/collection.dart';
 import 'package:more/printer.dart';
 
 import '../../type.dart';
+import '../stats/iterable.dart';
 import 'printer.dart';
 import 'utils/layout.dart';
 
@@ -102,11 +103,20 @@ class Tensor<T> with ToStringPrinter {
   /// Returns a contiguous flat array.
   Tensor<T> ravel() => reshape([layout.length]);
 
-  /// Returns a reshaped view, in some cases the data is copied.
+  /// Returns a reshaped view, in some cases the data is copied. If a dimension
+  /// is set to `-1` it is inferred automatically to keep the length constant.
   Tensor<T> reshape(List<int> shape) {
+    // Test if there is an undefined value.
+    final inferredIndex = shape.indexOf(-1);
+    if (inferredIndex >= 0) {
+      shape = shape.toList(growable: false);
+      shape[inferredIndex] = length ~/ -shape.product();
+    }
+    // Create new layout and copy data if necessary.
     final (layout_, data_) = layout.isContiguous
         ? (Layout(shape: shape, offset: layout.offset), data)
         : (Layout(shape: shape), type.copyList(values));
+    // Check if the new layout is compatible at all.
     if (layout.length != layout_.length) {
       throw ArgumentError.value(shape, 'shape', 'Incompatible with $layout');
     }
