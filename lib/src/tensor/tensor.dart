@@ -113,6 +113,14 @@ class Tensor<T> with ToStringPrinter {
     return Tensor<T>.internal(type: type, layout: layout_, data: data_);
   }
 
+  /// Returns a view with a single-element axis at `axis` added.
+  Tensor<T> expand({int axis = 0}) => Tensor<T>.internal(
+      type: type, layout: layout.expand(axis: axis), data: data);
+
+  /// Returns a view with a single-element axis at `axis` removed.
+  Tensor<T> collapse({int axis = 0}) => Tensor<T>.internal(
+      type: type, layout: layout.collapse(axis: axis), data: data);
+
   /// Return the tensor collapsed into one dimension.
   Tensor<T> flatten() => reshape([length]);
 

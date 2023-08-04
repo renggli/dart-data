@@ -139,6 +139,44 @@ class Layout with ToStringPrinter {
     );
   }
 
+  /// Returns a layout with a single-element axis at `axis` added.
+  Layout expand({int axis = 0}) {
+    RangeError.checkValueInInterval(axis, 0, rank, 'axis');
+    final shape_ = [...shape.take(axis), 1, ...shape.skip(axis)];
+    final strides_ = [
+      ...strides.take(axis),
+      axis < rank ? strides[axis] : 1,
+      ...strides.skip(axis),
+    ];
+    return Layout.internal(
+      rank: rank + 1,
+      length: length,
+      offset: offset,
+      shape: _toIndices(shape_),
+      strides: _toIndices(strides_),
+      isContiguous: isContiguous,
+    );
+  }
+
+  /// Returns a layout with a single-element axis at `axis` removed.
+  Layout collapse({int axis = 0}) {
+    RangeError.checkValueInInterval(axis, 0, rank - 1, 'axis');
+    if (shape[axis] != 1) {
+      throw ArgumentError.value(
+          axis, 'axis', '$shape at $axis is greater than 1');
+    }
+    final shape_ = [...shape.take(axis), ...shape.skip(axis + 1)];
+    final strides_ = [...strides.take(axis), ...strides.skip(axis + 1)];
+    return Layout.internal(
+      rank: rank - 1,
+      length: length,
+      offset: offset,
+      shape: _toIndices(shape_),
+      strides: _toIndices(strides_),
+      isContiguous: isContiguous,
+    );
+  }
+
   /// Returns an updated layout with the first axis resolved to [index].
   Layout operator [](int index) => elementAt(index);
 

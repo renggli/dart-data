@@ -457,8 +457,128 @@ void main() {
             object: [0, 1, 2, 3, 4, 5],
           ));
     });
-    test('shape', () {
+    test('error', () {
       expect(() => tensor2x3.reshape([4, 3]), throwsArgumentError);
+    });
+  });
+  group('expand', () {
+    test('default', () {
+      final result = tensor2x3.expand().collapse();
+      expect(
+          result,
+          isTensor<int>(
+            type: tensor2x3.type,
+            data: same(tensor2x3.data),
+            layout: tensor2x3.layout,
+            object: tensor2x3.toObject(),
+          ));
+    });
+    test('middle', () {
+      final result = tensor2x3.expand(axis: 1).collapse(axis: 1);
+      expect(
+          result,
+          isTensor<int>(
+            type: tensor2x3.type,
+            data: same(tensor2x3.data),
+            layout: tensor2x3.layout,
+            object: tensor2x3.toObject(),
+          ));
+    });
+    test('end', () {
+      final result = tensor2x3.expand(axis: 2).collapse(axis: 2);
+      expect(
+          result,
+          isTensor<int>(
+            type: tensor2x3.type,
+            data: same(tensor2x3.data),
+            layout: tensor2x3.layout,
+            object: tensor2x3.toObject(),
+          ));
+    });
+    test('error range', () {
+      expect(() => tensor2x3.collapse(axis: -1), throwsRangeError);
+      expect(() => tensor2x3.collapse(axis: 2), throwsRangeError);
+    });
+    test('error axis', () {
+      expect(() => tensor2x3.collapse(axis: 0), throwsArgumentError);
+      expect(() => tensor2x3.collapse(axis: 1), throwsArgumentError);
+    });
+  });
+  group('collapse', () {
+    test('default', () {
+      final result = tensor2x3.expand();
+      expect(
+          result,
+          isTensor<int>(
+            type: tensor2x3.type,
+            data: same(tensor2x3.data),
+            layout: isLayout(
+              rank: 3,
+              length: 6,
+              shape: [1, 2, 3],
+              strides: [3, 3, 1],
+            ),
+            object: [
+              [
+                [0, 1, 2],
+                [3, 4, 5],
+              ],
+            ],
+          ));
+    });
+    test('middle', () {
+      final result = tensor2x3.expand(axis: 1);
+      expect(
+          result,
+          isTensor<int>(
+            type: tensor2x3.type,
+            data: same(tensor2x3.data),
+            layout: isLayout(
+              rank: 3,
+              length: 6,
+              shape: [2, 1, 3],
+              strides: [3, 1, 1],
+            ),
+            object: [
+              [
+                [0, 1, 2],
+              ],
+              [
+                [3, 4, 5],
+              ],
+            ],
+          ));
+    });
+    test('end', () {
+      final result = tensor2x3.expand(axis: 2);
+      expect(
+          result,
+          isTensor<int>(
+            type: tensor2x3.type,
+            data: same(tensor2x3.data),
+            layout: isLayout(
+              rank: 3,
+              length: 6,
+              shape: [2, 3, 1],
+              strides: [3, 1, 1],
+            ),
+            object: [
+              [
+                [0],
+                [1],
+                [2],
+              ],
+              [
+                [3],
+                [4],
+                [5],
+              ],
+            ],
+          ));
+    });
+    test('error range', () {
+      expect(() => tensor2x3.expand(axis: -1), throwsRangeError);
+      expect(() => tensor2x3.expand(axis: 3), throwsRangeError);
     });
   });
   group('flatten', () {
@@ -1484,14 +1604,14 @@ void main() {
     });
   });
   group('operations', () {
-    test('basic', () {
-      final a = Tensor.fromIterable([1, 2, 3]);
-      final b = Tensor.fromIterable([4, 5, 6]);
+    test('same shape', () {
+      final a = Tensor<int>.fromObject([1, 2, 3]);
+      final b = Tensor<int>.fromObject([4, 5, 6]);
       expect(a + b, isTensor<int>(object: [5, 7, 9]));
     });
     test('stretch scalar', () {
-      final a = Tensor.fromIterable([1, 2, 3]);
-      final b = Tensor.fromIterable([1]);
+      final a = Tensor<int>.fromObject([1, 2, 3]);
+      final b = Tensor<int>.fromObject([1]);
       expect(a - b, isTensor<int>(object: [0, 1, 2]));
     });
     test('stretch vector', () {
