@@ -1,4 +1,3 @@
-import 'dart:math';
 import 'dart:typed_data';
 
 import 'package:collection/collection.dart';
@@ -222,34 +221,4 @@ bool _isContiguous({required List<int> shape, required List<int> strides}) {
     }
   }
   return true;
-}
-
-(Layout, Layout) broadcast(Layout a, Layout b) {
-  // If one of the shapes is empty, that is a no go.
-  if (a.length == 0) throw ArgumentError.value(a, 'a', 'empty layout');
-  if (b.length == 0) throw ArgumentError.value(b, 'b', 'empty layout');
-  // If the shape of `a` and `b` are the same, we are good to go.
-  if (_listEquality.equals(a.shape, b.shape)) return (a, b);
-  // Updates shape and strides for `a` and `b` (in reverse order).
-  final shape = <int>[];
-  final aStrides = <int>[];
-  final bStrides = <int>[];
-  // Iterate over the shape from the back.
-  for (var ai = a.rank - 1, bi = b.rank - 1; ai >= 0 || bi >= 0; ai--, bi--) {
-    // Get the current shape `as` and `bs`.
-    final as = ai >= 0 ? a.shape[ai] : 1;
-    final bs = bi >= 0 ? b.shape[bi] : 1;
-    // Verify the compatibility of the shape.
-    if (as != bs && as != 1 && bs != 1) {
-      throw ArgumentError('Shape ${a.shape} and ${b.shape} are not compatible');
-    }
-    final rs = max(as, bs);
-    aStrides.add(as == rs ? a.strides[ai] : 0);
-    bStrides.add(bs == rs ? b.strides[bi] : 0);
-    shape.add(rs);
-  }
-  return (
-    Layout(shape: shape.reversed, strides: aStrides.reversed, offset: a.offset),
-    Layout(shape: shape.reversed, strides: bStrides.reversed, offset: b.offset),
-  );
 }

@@ -1,6 +1,7 @@
 import 'dart:math';
 
 import 'package:data/data.dart';
+import 'package:data/src/tensor/utils/broadcast.dart';
 import 'package:more/collection.dart';
 import 'package:more/printer.dart';
 import 'package:test/test.dart';
@@ -1480,6 +1481,35 @@ void main() {
       final second = Layout(shape: const [3, 1, 1]);
       expect(() => broadcast(first, second), throwsArgumentError);
       expect(() => broadcast(second, first), throwsArgumentError);
+    });
+  });
+  group('operations', () {
+    test('basic', () {
+      final a = Tensor.fromIterable([1, 2, 3]);
+      final b = Tensor.fromIterable([4, 5, 6]);
+      expect(a + b, isTensor<int>(object: [5, 7, 9]));
+    });
+    test('stretch scalar', () {
+      final a = Tensor.fromIterable([1, 2, 3]);
+      final b = Tensor.fromIterable([1]);
+      expect(a - b, isTensor<int>(object: [0, 1, 2]));
+    });
+    test('stretch vector', () {
+      final a = Tensor<int>.fromObject([
+        [0, 1, 2],
+        [3, 4, 5],
+        [6, 7, 8],
+        [9, 10, 11]
+      ]);
+      final b = Tensor<int>.fromObject([12, 13, 14]);
+      expect(
+          a * b,
+          isTensor<int>(object: [
+            [0, 13, 28],
+            [36, 52, 70],
+            [72, 91, 112],
+            [108, 130, 154],
+          ]));
     });
   });
 }
