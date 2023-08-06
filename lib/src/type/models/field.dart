@@ -63,6 +63,7 @@ abstract class Field<T> {
   T get negativeInfinity => neg(infinity);
 
   /// Thrown when an operation is not supported.
+  @protected
   T unsupportedOperation(String operation) =>
       throw UnsupportedError('$operation is not supported.');
 }
