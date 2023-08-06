@@ -1668,43 +1668,121 @@ void main() {
     });
   });
   group('operations', () {
-    test('same shape', () {
-      final a = Tensor<int>.fromObject([1, 2, 3]);
-      final b = Tensor<int>.fromObject([4, 5, 6]);
-      expect(a + b, isTensor<int>(object: [5, 7, 9]));
+    group('broadcasting', () {
+      test('same shape', () {
+        final a = Tensor<int>.fromObject([1, 2, 3]);
+        final b = Tensor<int>.fromObject([10, 20, 30]);
+        expect(a + b, isTensor<int>(object: [11, 22, 33]));
+      });
+      test('stretch scalar', () {
+        final a = Tensor<int>.fromObject([1, 2, 3]);
+        final b = Tensor<int>.fromObject([10]);
+        expect(a + b, isTensor<int>(object: [11, 12, 13]));
+      });
+      test('stretch vector', () {
+        final a = Tensor<int>.fromObject([
+          [1, 2, 3],
+          [4, 5, 6],
+        ]);
+        final b = Tensor<int>.fromObject([10, 20, 30]);
+        expect(
+            a + b,
+            isTensor<int>(object: [
+              [11, 22, 33],
+              [14, 25, 36],
+            ]));
+      });
+      test('outer vectors', () {
+        final a = Tensor<int>.fromIterable([1, 2, 3]).expand(axis: 1);
+        final b = Tensor<int>.fromIterable([10, 20, 30]);
+        expect(
+            a + b,
+            isTensor<int>(object: [
+              [11, 21, 31],
+              [12, 22, 32],
+              [13, 23, 33],
+            ]));
+      });
     });
-    test('stretch scalar', () {
-      final a = Tensor<int>.fromObject([1, 2, 3]);
-      final b = Tensor<int>.fromObject([1]);
-      expect(a - b, isTensor<int>(object: [0, 1, 2]));
-    });
-    test('stretch vector', () {
-      final a = Tensor<int>.fromObject([
-        [0, 1, 2],
-        [3, 4, 5],
-        [6, 7, 8],
-        [9, 10, 11]
-      ]);
-      final b = Tensor<int>.fromObject([12, 13, 14]);
-      expect(
-          a * b,
-          isTensor<int>(object: [
-            [0, 13, 28],
-            [36, 52, 70],
-            [72, 91, 112],
-            [108, 130, 154],
-          ]));
-    });
-    test('outer vectors', () {
-      final a = Tensor<int>.fromIterable([1, 2, 3]).expand(axis: 1);
-      final b = Tensor<int>.fromIterable([10, 20, 30]);
-      expect(
-          a + b,
-          isTensor<int>(object: [
-            [11, 21, 31],
-            [12, 22, 32],
-            [13, 23, 33],
-          ]));
+    group('operators', () {
+      test('neg', () {
+        final a = Tensor<int>.fromIterable([1, 2, 3]);
+        expect(-a, isTensor<int>(object: [-1, -2, -3]));
+      });
+      test('add', () {
+        final a = Tensor<int>.fromIterable([1, 2, 3]);
+        final b = Tensor<int>.fromIterable([4, 5, 6]);
+        expect(a + b, isTensor<int>(object: [5, 7, 9]));
+      });
+      test('sub', () {
+        final a = Tensor<int>.fromIterable([1, 2, 3]);
+        final b = Tensor<int>.fromIterable([4, 5, 6]);
+        expect(a - b, isTensor<int>(object: [-3, -3, -3]));
+      });
+      test('mul', () {
+        final a = Tensor<int>.fromIterable([1, 2, 3]);
+        final b = Tensor<int>.fromIterable([4, 5, 6]);
+        expect(a * b, isTensor<int>(object: [4, 10, 18]));
+      });
+      test('div', () {
+        final a = Tensor<int>.fromIterable([12, 24, 48]);
+        final b = Tensor<int>.fromIterable([2, 8, 6]);
+        expect(a / b, isTensor<int>(object: [6, 3, 8]));
+      });
+      test('div', () {
+        final a = Tensor<int>.fromIterable([12, 24, 48]);
+        final b = Tensor<int>.fromIterable([2, 8, 6]);
+        expect(a ~/ b, isTensor<int>(object: [6, 3, 8]));
+      });
+      test('mod', () {
+        final a = Tensor<int>.fromIterable([6, 5, 4]);
+        final b = Tensor<int>.fromIterable([3, 2, 1]);
+        expect(a % b, isTensor<int>(object: [0, 1, 0]));
+      });
+      test('less than', () {
+        final a = Tensor<int>.fromIterable([4, 2, 4]);
+        final b = Tensor<int>.fromIterable([4, 4, 2]);
+        expect(a < b, isTensor<bool>(object: [false, true, false]));
+      });
+      test('less than or equal to', () {
+        final a = Tensor<int>.fromIterable([4, 2, 4]);
+        final b = Tensor<int>.fromIterable([4, 4, 2]);
+        expect(a <= b, isTensor<bool>(object: [true, true, false]));
+      });
+      test('greater than', () {
+        final a = Tensor<int>.fromIterable([4, 2, 4]);
+        final b = Tensor<int>.fromIterable([4, 4, 2]);
+        expect(a > b, isTensor<bool>(object: [false, false, true]));
+      });
+      test('greater than or equal to', () {
+        final a = Tensor<int>.fromIterable([4, 2, 4]);
+        final b = Tensor<int>.fromIterable([4, 4, 2]);
+        expect(a >= b, isTensor<bool>(object: [true, false, true]));
+      });
+      test('equal to', () {
+        final a = Tensor<int>.fromIterable([4, 2, 4]);
+        final b = Tensor<int>.fromIterable([4, 4, 2]);
+        expect(a.equalTo(b), isTensor<bool>(object: [true, false, false]));
+      });
+      test('not equal to', () {
+        final a = Tensor<int>.fromIterable([4, 2, 4]);
+        final b = Tensor<int>.fromIterable([4, 4, 2]);
+        expect(a.notEqualTo(b), isTensor<bool>(object: [false, true, true]));
+      });
+      test('not', () {
+        final a = Tensor<bool>.fromIterable([true, false]);
+        expect(~a, isTensor<bool>(object: [false, true]));
+      });
+      test('and', () {
+        final a = Tensor<bool>.fromIterable([true, true, false, false]);
+        final b = Tensor<bool>.fromIterable([true, false, true, false]);
+        expect(a & b, isTensor<bool>(object: [true, false, false, false]));
+      });
+      test('or', () {
+        final a = Tensor<bool>.fromIterable([true, true, false, false]);
+        final b = Tensor<bool>.fromIterable([true, false, true, false]);
+        expect(a | b, isTensor<bool>(object: [true, true, true, false]));
+      });
     });
   });
 }

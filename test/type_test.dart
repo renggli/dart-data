@@ -2,6 +2,7 @@ import 'dart:math';
 
 import 'package:data/data.dart';
 import 'package:more/feature.dart';
+import 'package:more/functional.dart';
 import 'package:test/test.dart';
 
 T store<T>(DataType<T> type, T value) =>
@@ -507,13 +508,14 @@ void fieldTest<T>(DataType<T> type, List<T> values) {
         test('infinity', () {
           final infinity = field.infinity;
           expect(isClose(infinity, infinity, epsilon), isFalse);
-          expect(values, everyElement(type.comparator.lessThan(infinity)));
+          expect(values,
+              everyElement(type.comparator.greaterThan.curry(infinity)));
         });
         test('negativeInfinity', () {
           final negativeInfinity = field.negativeInfinity;
           expect(isClose(negativeInfinity, negativeInfinity, epsilon), isFalse);
           expect(values,
-              everyElement(type.comparator.greaterThan(negativeInfinity)));
+              everyElement(type.comparator.lessThan.curry(negativeInfinity)));
         });
       }
     }

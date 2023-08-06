@@ -19,9 +19,8 @@ UnaryFunction<T> linearInterpolation<T>(
   checkPoints(dataType, xs: xs, ys: ys, min: 1, ordered: true, unique: true);
   final add = dataType.field.add, sub = dataType.field.sub;
   final mul = dataType.field.mul, div = dataType.field.div;
+  final min = xs.getUnchecked(0), max = xs.getUnchecked(xs.count - 1);
   final comparator = dataType.comparator;
-  final below = comparator.lessThan(xs.getUnchecked(0));
-  final above = comparator.greaterThan(xs.getUnchecked(xs.count - 1));
   final slopes = Vector<T>.generate(
       dataType,
       xs.count - 1,
@@ -29,9 +28,9 @@ UnaryFunction<T> linearInterpolation<T>(
           sub(xs.getUnchecked(i + 1), xs.getUnchecked(i))),
       format: VectorFormat.standard);
   return (T x) {
-    if (below(x) && left != null) {
+    if (left != null && comparator.lessThan(x, min)) {
       return left;
-    } else if (above(x) && right != null) {
+    } else if (right != null && comparator.greaterThan(x, max)) {
       return right;
     } else {
       final index = comparator.binarySearchLeft(xs, x).clamp(1, xs.count - 1);
