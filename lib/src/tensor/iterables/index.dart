@@ -1,11 +1,11 @@
 import 'dart:collection';
 
 import '../../type/type.dart';
-import 'layout.dart';
+import '../utils/layout.dart';
 
-/// Iterable over the
-class TensorIterable extends IterableBase<int> {
-  TensorIterable(this.layout);
+/// Iterable over the indices of a [Layout].
+class IndexIterable extends IterableBase<int> {
+  IndexIterable(this.layout);
 
   final Layout layout;
 
@@ -13,11 +13,12 @@ class TensorIterable extends IterableBase<int> {
   int get length => layout.length;
 
   @override
-  Iterator<int> get iterator => TensorIterator(layout);
+  Iterator<int> get iterator => IndexIterator(layout);
 }
 
-class TensorIterator implements Iterator<int> {
-  TensorIterator(Layout layout)
+/// Iterator over the indices of a [Layout].
+class IndexIterator implements Iterator<int> {
+  IndexIterator(Layout layout)
       : rank = layout.rank,
         shape = layout.shape,
         strides = layout.strides,

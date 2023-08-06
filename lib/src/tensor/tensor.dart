@@ -10,7 +10,7 @@ import 'utils/layout.dart';
 /// A multi-dimensional fixed-size container of items of a specific type.
 @experimental
 class Tensor<T> with ToStringPrinter {
-  /// Constructs a [Tensor] of [value].
+  /// Constructs a [Tensor] filled with `value`.
   ///
   /// By default a 0-dimensional tensor with the single value is returned. If a
   /// `shape` is provided all tensor entries are filled with that value.
@@ -21,6 +21,12 @@ class Tensor<T> with ToStringPrinter {
     final data_ = type_.newList(layout_.length, fillValue: value);
     return Tensor.internal(type: type_, layout: layout_, data: data_);
   }
+
+  /// Constructs a [Tensor] filled with the results of `callback`.
+  factory Tensor.generate(T Function(List<int> key) callback,
+          {required List<int> shape, List<int>? strides, DataType<T>? type}) =>
+      Tensor.fromIterable(Layout(shape: shape).keys.map(callback),
+          shape: shape, strides: strides, type: type ?? DataType.fromType<T>());
 
   /// Constructs an [Tensor] from an `iterable`.
   ///

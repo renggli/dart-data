@@ -7,9 +7,10 @@ import 'package:more/printer.dart';
 
 import '../../stats/iterable.dart';
 import '../../type/type.dart';
+import '../iterables/index.dart';
+import '../iterables/key.dart';
 import 'errors.dart';
 import 'index.dart';
-import 'iterable.dart';
 
 /// Immutable object describing a multi-dimensional data layout in a flat list
 /// of values.
@@ -91,14 +92,18 @@ class Layout with ToStringPrinter {
   /// An iterable over the indices of this layout.
   Iterable<int> get indices => rank == 0
       ? length == 0
-          ? []
+          ? const []
           : [offset]
       : isContiguous
           ? IntegerRange(offset, offset + length)
-          : TensorIterable(this);
+          : IndexIterable(this);
 
   /// An iterable over the keys of this layout.
-  Iterable<List<int>> get keys => indices.map((index) => toKey(index));
+  Iterable<List<int>> get keys => rank == 0
+      ? length == 0
+          ? const <List<int>>[]
+          : const <List<int>>[[]]
+      : KeyIterable(this);
 
   /// Converts a key (index-list) to an index.
   int toIndex(List<int> key) {

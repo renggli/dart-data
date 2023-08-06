@@ -216,6 +216,44 @@ void main() {
           ));
     });
   });
+  group('generate', () {
+    test('vector', () {
+      final result = Tensor.generate((key) => 10 + 2 * key[0], shape: [4]);
+      expect(
+          result,
+          isTensor<int>(
+            type: DataType.int32,
+            data: [10, 12, 14, 16],
+            layout: isLayout(
+              rank: 1,
+              length: 4,
+              shape: [4],
+              strides: [1],
+            ),
+            object: [10, 12, 14, 16],
+          ));
+    });
+    test('matrix', () {
+      final result = Tensor.generate((key) => key[0] * key[1],
+          shape: [3, 4], type: DataType.uint32);
+      expect(
+          result,
+          isTensor<int>(
+            type: DataType.uint32,
+            data: [0, 0, 0, 0, 0, 1, 2, 3, 0, 2, 4, 6],
+            layout: isLayout(
+              rank: 2,
+              shape: [3, 4],
+              strides: [4, 1],
+            ),
+            object: [
+              [0, 0, 0, 0],
+              [0, 1, 2, 3],
+              [0, 2, 4, 6],
+            ],
+          ));
+    });
+  });
   group('iterable', () {
     test('empty', () {
       final result = Tensor.fromIterable(<int>[]);
