@@ -8,7 +8,8 @@
 enum VectorFormat {
   list,
   compressed,
-  keyed;
+  keyed,
+  tensor;
 
   /// Configurable default vector format.
   static VectorFormat standard = VectorFormat.list;

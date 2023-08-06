@@ -14,7 +14,8 @@ enum MatrixFormat {
   compressedColumn,
   coordinateList,
   keyed,
-  diagonal;
+  diagonal,
+  tensor;
 
   /// Configurable default matrix format.
   static MatrixFormat standard = MatrixFormat.rowMajor;

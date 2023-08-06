@@ -13,6 +13,7 @@ import 'impl/keyed_matrix.dart';
 import 'impl/nested_column_matrix.dart';
 import 'impl/nested_row_matrix.dart';
 import 'impl/row_major_matrix.dart';
+import 'impl/tensor_matrix.dart';
 import 'matrix_format.dart';
 import 'view/concat_horizontal_matrix.dart';
 import 'view/concat_vertical_matrix.dart';
@@ -48,6 +49,8 @@ abstract mixin class Matrix<T> implements Storage {
         return KeyedMatrix<T>(dataType, rowCount, columnCount);
       case MatrixFormat.diagonal:
         return DiagonalMatrix<T>(dataType, rowCount, columnCount);
+      case MatrixFormat.tensor:
+        return TensorMatrix<T>(dataType, rowCount, columnCount);
     }
   }
 
