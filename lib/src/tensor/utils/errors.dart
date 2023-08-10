@@ -21,18 +21,13 @@ class LayoutError extends ArgumentError {
     }
   }
 
-  LayoutError.empty(Layout a, [String? name])
-      : super('Layout $a is empty', name);
+  LayoutError.empty(Layout a, [String? name]) : super('$a is empty', name);
 
   LayoutError.rank(Layout a, Layout b, [String? name])
-      : super('Layout $a and $b have incompatible rank', name);
+      : super('$a and $b have incompatible rank', name);
 
   LayoutError.shape(Layout a, int ai, Layout b, int bi, [String? name])
-      : super('Layout $a and $b have incompatible shape at $ai and $bi', name);
-
-  LayoutError.assignment(Layout a, Layout b)
-      : super(
-            'Shape ${a.shape} cannot be assigned to ${b.shape} is not assignable to ${a.shape}');
+      : super('$a and $b have incompatible shape at $ai and $bi', name);
 
   LayoutError(super.message, [super.name]);
 }

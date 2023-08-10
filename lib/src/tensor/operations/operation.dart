@@ -83,7 +83,7 @@ extension OperationTensorExtension<T> on Tensor<T> {
   }
 }
 
-extension FieldOperationTensorExtension<T> on Tensor<T> {
+extension MathTensorExtension<T> on Tensor<T> {
   Tensor<T> operator -() => unaryOperation<T>(type.field.neg);
 
   Tensor<T> operator +(Tensor<T> other) =>
@@ -105,7 +105,7 @@ extension FieldOperationTensorExtension<T> on Tensor<T> {
       binaryOperation<T, T>(other, type.field.division);
 }
 
-extension ComparatorOperationTensorExtension<T> on Tensor<T> {
+extension ComparisonTensorExtension<T> on Tensor<T> {
   Tensor<bool> operator <(Tensor<T> other) =>
       binaryOperation<T, bool>(other, type.comparator.lessThan);
 
@@ -125,7 +125,7 @@ extension ComparatorOperationTensorExtension<T> on Tensor<T> {
       binaryOperation<T, bool>(other, type.comparator.notEqualTo);
 }
 
-extension BooleanOperationTensorExtension on Tensor<bool> {
+extension LogicalTensorExtension on Tensor<bool> {
   Tensor<bool> operator ~() => unaryOperation<bool>((a) => !a);
 
   Tensor<bool> operator &(Tensor<bool> other) =>

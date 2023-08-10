@@ -15,7 +15,7 @@ bool hasAssertionsEnabled() {
   }
 }
 
-/// Returns an [Matcher] that asserts on an [RangeError] being thrown.
+/// Returns a [Matcher] that asserts on an [RangeError] being thrown.
 Matcher throwsRangeErrorWith({
   dynamic name = anything,
   dynamic start = anything,
@@ -27,6 +27,10 @@ Matcher throwsRangeErrorWith({
         .having((e) => e.start, 'start', start)
         .having((e) => e.end, 'end', end)
         .having((e) => e.message, 'message', message));
+
+/// Returns a [Matcher] that asserts on an [LayoutError] being thrown.
+Matcher throwsLayoutErrorWith({dynamic message = anything}) =>
+    throwsA(isA<LayoutError>().having((e) => e.message, 'message', message));
 
 /// Returns a [Matcher] that asserts various data structures on numeric similarity.
 dynamic isCloseTo(dynamic expected, {num epsilon = 1.0e-5}) {
