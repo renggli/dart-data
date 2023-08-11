@@ -1657,14 +1657,22 @@ void main() {
     });
     test('error empty', () {
       final layout = Layout(shape: const [1, 2, 3]);
-      expect(() => broadcast(Layout.empty, layout), throwsArgumentError);
-      expect(() => broadcast(layout, Layout.empty), throwsArgumentError);
+      expect(() => broadcast(Layout.empty, layout),
+          throwsLayoutErrorWith(message: matches('is empty')));
+      expect(() => broadcast(layout, Layout.empty),
+          throwsLayoutErrorWith(message: matches('is empty')));
     });
     test('error incompatible', () {
       final first = Layout(shape: const [5, 2, 4, 1]);
       final second = Layout(shape: const [3, 1, 1]);
-      expect(() => broadcast(first, second), throwsArgumentError);
-      expect(() => broadcast(second, first), throwsArgumentError);
+      expect(
+          () => broadcast(first, second),
+          throwsLayoutErrorWith(
+              message: matches('incompatible shape at 1 and 0')));
+      expect(
+          () => broadcast(second, first),
+          throwsLayoutErrorWith(
+              message: matches('incompatible shape at 0 and 1')));
     });
   });
   group('operations', () {
