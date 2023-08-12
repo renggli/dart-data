@@ -1,7 +1,7 @@
+import '../layout.dart';
 import '../tensor.dart';
-import '../utils/layout.dart';
 
-extension ContiguousTensor<T> on Tensor<T> {
+extension ContiguousTensorExtension<T> on Tensor<T> {
   /// Returns a contiguous copy of this tensor, if the tensor is already
   /// contiguous return itself.
   Tensor<T> contiguous() => layout.isContiguous

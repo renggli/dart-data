@@ -1,7 +1,7 @@
 import 'dart:collection';
 
 import '../../type/type.dart';
-import '../utils/layout.dart';
+import '../layout.dart';
 
 /// Iterable over the keys of a [Layout].
 class KeyIterable extends IterableBase<List<int>> {

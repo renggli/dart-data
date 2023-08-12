@@ -1,7 +1,7 @@
+import '../layout.dart';
 import '../tensor.dart';
-import '../utils/layout.dart';
 
-extension CopyTensor<T> on Tensor<T> {
+extension CopyTensorExtension<T> on Tensor<T> {
   /// Copies the data of this tensor.
   ///
   /// Only if `contiguous` is set to `true`, the data is realigned so that the

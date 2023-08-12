@@ -1,17 +1,20 @@
-import 'dart:math' show max;
+import 'dart:math';
 
-import 'package:collection/collection.dart';
+import '../errors.dart';
+import '../layout.dart';
+import '../utils/layout.dart';
 
-import 'errors.dart';
-import 'layout.dart';
+extension BroadcastLayoutExtension on Layout {
+  /// Returns a tuple with updated layouts for broadcasting. Throws an
+  /// [LayoutError] if the shapes are not compatible.
+  (Layout, Layout) broadcast(Layout other) => _broadcast(this, other);
+}
 
-const _listEquality = ListEquality<int>();
-
-/// Returns a tuple of the updated broadcast layouts of `a` and `b`. Throws an
-/// [ArgumentError] if the shapes are not compatible.
-(Layout, Layout) broadcast(Layout a, Layout b) {
+(Layout, Layout) _broadcast(Layout a, Layout b) {
   // If the shape of `a` and `b` are the same, we are good to go.
-  if (_listEquality.equals(a.shape, b.shape)) return (a, b);
+  if (indicesEquality.equals(a.shape, b.shape)) {
+    return (a, b);
+  }
   // If one of the shapes is empty, that is a no go.
   LayoutError.checkNotEmpty(a);
   LayoutError.checkNotEmpty(b);

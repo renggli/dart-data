@@ -1,10 +1,10 @@
 import 'package:more/functional.dart';
 
 import '../../../type.dart';
+import '../errors.dart';
+import '../layout.dart';
 import '../tensor.dart';
-import '../utils/broadcast.dart';
-import '../utils/errors.dart';
-import '../utils/layout.dart';
+import 'broadcast.dart';
 
 extension OperationTensorExtension<T> on Tensor<T> {
   /// Performs an unary element-wise operation `function` on this tensor and
@@ -42,7 +42,7 @@ extension OperationTensorExtension<T> on Tensor<T> {
   /// created one.
   Tensor<R> binaryOperation<O, R>(Tensor<O> other, Map2<T, O, R> function,
       {DataType<R>? type, Tensor<R>? target}) {
-    final (thisLayout, otherLayout) = broadcast(layout, other.layout);
+    final (thisLayout, otherLayout) = layout.broadcast(other.layout);
     final thisIterator = thisLayout.indices.iterator;
     final otherIterator = otherLayout.indices.iterator;
     final thisData = data, otherData = other.data;

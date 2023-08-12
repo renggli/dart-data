@@ -3,9 +3,8 @@ import 'package:more/collection.dart';
 import 'package:more/printer.dart';
 
 import '../../type.dart';
-import '../stats/iterable.dart';
+import 'layout.dart';
 import 'printer.dart';
-import 'utils/layout.dart';
 
 /// A multi-dimensional fixed-size container of items of a specific type.
 @experimental
@@ -93,56 +92,6 @@ class Tensor<T> with ToStringPrinter {
   /// Returns a view with the first axis resolved to [index].
   Tensor<T> operator [](int index) =>
       Tensor<T>.internal(type: type, layout: layout[index], data: data);
-
-  /// Returns a view with the given [axis] resolved to [index].
-  Tensor<T> elementAt(int index, {int axis = 0}) => Tensor<T>.internal(
-      type: type, layout: layout.elementAt(index, axis: axis), data: data);
-
-  /// Returns a view with the given [axis] sliced to the range between [start]
-  /// and [end] (exclusive).
-  Tensor<T> getRange(int start, int? end, {int step = 1, int axis = 0}) =>
-      Tensor<T>.internal(
-          type: type,
-          layout: layout.getRange(start, end, step: step, axis: axis),
-          data: data);
-
-  /// Returns a contiguous flat array.
-  Tensor<T> ravel() => reshape([layout.length]);
-
-  /// Returns a reshaped view, in some cases the data is copied. If a dimension
-  /// is set to `-1` it is inferred automatically to keep the length constant.
-  Tensor<T> reshape(List<int> shape) {
-    // Test if there is an undefined value.
-    final inferredIndex = shape.indexOf(-1);
-    if (inferredIndex >= 0) {
-      shape = shape.toList(growable: false);
-      shape[inferredIndex] = length ~/ -shape.product();
-    }
-    // Create new layout and copy data if necessary.
-    final (layout_, data_) = layout.isContiguous
-        ? (Layout(shape: shape, offset: layout.offset), data)
-        : (Layout(shape: shape), type.copyList(values));
-    // Check if the new layout is compatible at all.
-    if (layout.length != layout_.length) {
-      throw ArgumentError.value(shape, 'shape', 'Incompatible with $layout');
-    }
-    return Tensor<T>.internal(type: type, layout: layout_, data: data_);
-  }
-
-  /// Returns a view with a single-element axis at `axis` added.
-  Tensor<T> expand({int axis = 0}) => Tensor<T>.internal(
-      type: type, layout: layout.expand(axis: axis), data: data);
-
-  /// Returns a view with a single-element axis at `axis` removed.
-  Tensor<T> collapse({int axis = 0}) => Tensor<T>.internal(
-      type: type, layout: layout.collapse(axis: axis), data: data);
-
-  /// Return the tensor collapsed into one dimension.
-  Tensor<T> flatten() => reshape([length]);
-
-  /// Returns a transposed view.
-  Tensor<T> transpose({List<int>? axes}) => Tensor<T>.internal(
-      type: type, layout: layout.transpose(axes: axes), data: data);
 
   @override
   ObjectPrinter get toStringPrinter => super.toStringPrinter

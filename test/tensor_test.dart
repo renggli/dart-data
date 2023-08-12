@@ -1,7 +1,7 @@
 import 'dart:math';
 
-import 'package:data/data.dart';
-import 'package:data/src/tensor/utils/broadcast.dart';
+import 'package:data/tensor.dart';
+import 'package:data/type.dart';
 import 'package:more/collection.dart';
 import 'package:more/printer.dart';
 import 'package:test/test.dart';
@@ -1454,7 +1454,7 @@ void main() {
     });
     test('end error', () {
       expect(() => tensor2.getRange(0, 3), throwsRangeErrorWith(name: 'end'));
-      expect(() => tensor2.getRange(2, 0), throwsRangeErrorWith(name: 'end'));
+      expect(() => tensor2.getRange(1, 0), throwsRangeErrorWith(name: 'end'));
     });
     test('step error', () {
       expect(() => tensor2.getRange(0, 2, step: -1),
@@ -1564,8 +1564,8 @@ void main() {
   group('broadcast', () {
     void validateBroadcast(
         Layout aSource, Layout bSource, dynamic aTarget, dynamic bTarget) {
-      final (a1, b1) = broadcast(aSource, bSource);
-      final (b2, a2) = broadcast(bSource, aSource);
+      final (a1, b1) = aSource.broadcast(bSource);
+      final (b2, a2) = bSource.broadcast(aSource);
       expect(a1, aTarget);
       expect(b1, bTarget);
       expect(a2, aTarget);
@@ -1657,20 +1657,20 @@ void main() {
     });
     test('error empty', () {
       final layout = Layout(shape: const [1, 2, 3]);
-      expect(() => broadcast(Layout.empty, layout),
+      expect(() => Layout.empty.broadcast(layout),
           throwsLayoutErrorWith(message: matches('is empty')));
-      expect(() => broadcast(layout, Layout.empty),
+      expect(() => layout.broadcast(Layout.empty),
           throwsLayoutErrorWith(message: matches('is empty')));
     });
     test('error incompatible', () {
       final first = Layout(shape: const [5, 2, 4, 1]);
       final second = Layout(shape: const [3, 1, 1]);
       expect(
-          () => broadcast(first, second),
+          () => first.broadcast(second),
           throwsLayoutErrorWith(
               message: matches('incompatible shape at 1 and 0')));
       expect(
-          () => broadcast(second, first),
+          () => second.broadcast(first),
           throwsLayoutErrorWith(
               message: matches('incompatible shape at 0 and 1')));
     });

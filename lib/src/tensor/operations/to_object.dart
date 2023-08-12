@@ -1,7 +1,7 @@
 import '../../type/type.dart';
 import '../tensor.dart';
 
-extension ToObjectTensor<T> on Tensor<T> {
+extension ToObjectTensorExtension<T> on Tensor<T> {
   /// Returns an object representing this tensor.
   ///
   /// Depending on its dimensionality this is a single value (rank = 0), a list

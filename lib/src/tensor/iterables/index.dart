@@ -1,7 +1,7 @@
 import 'dart:collection';
 
 import '../../type/type.dart';
-import '../utils/layout.dart';
+import '../layout.dart';
 
 /// Iterable over the indices of a [Layout].
 class IndexIterable extends IterableBase<int> {
