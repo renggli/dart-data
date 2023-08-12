@@ -19,13 +19,13 @@ extension RangeLayoutExtension on Layout {
     final axis_ = checkIndex(axis, rank, 'axis');
     final start_ = checkStart(start, shape[axis_], 'start');
     final end_ = checkEnd(start_, end, shape[axis_], 'end');
-    checkPositive(step, 'step');
-    final rangeLength = (end_ - start_) ~/ step;
+    final step_ = checkStep(step, 'step');
+    final rangeLength = (end_ - start_) ~/ step_;
     return Layout(
       shape: [...shape.take(axis_), rangeLength, ...shape.skip(axis_ + 1)],
       strides: [
         ...strides.take(axis_),
-        step * strides[axis_],
+        step_ * strides[axis_],
         ...strides.skip(axis_ + 1),
       ],
       offset: offset + start_ * strides[axis_],

@@ -1,18 +1,11 @@
-/// Throws a [RangeError] if is negative.
-int checkPositive(int value, [String? name, String? message]) {
-  if (value > 0) return value;
-  throw RangeError.range(value, 0, null, name, message);
-}
-
 /// Adjusts a negative index to be retrieved from the end.
-int adjustIndex(int index, int length) =>
-    index.isNegative ? index + length : index;
+int adjustIndex(int index, int length) => index < 0 ? index + length : index;
 
 /// Adjusts and checks an `index` to be smaller than `length`, or otherwise
 /// throw an [IndexError].
 int checkIndex(int index, int length, [String? name, String? message]) {
   final adjustedIndex = adjustIndex(index, length);
-  if (adjustedIndex < length) return adjustedIndex;
+  if (0 <= adjustedIndex && adjustedIndex < length) return adjustedIndex;
   throw IndexError.withLength(adjustedIndex, length,
       name: name, message: message);
 }
@@ -31,4 +24,10 @@ int checkEnd(int start, int? end, int length, [String? name, String? message]) {
   final adjustedEnd = adjustIndex(end ?? length, length);
   if (start <= adjustedEnd && adjustedEnd <= length) return adjustedEnd;
   throw RangeError.range(adjustedEnd, start, length, name, message);
+}
+
+/// Checks if `value` is positive or zero, otherwise throw a [RangeError].
+int checkStep(int value, [String? name, String? message]) {
+  if (value > 0) return value;
+  throw RangeError.range(value, 0, null, name, message);
 }

@@ -12,10 +12,13 @@ extension FlipTensorExtension<T> on Tensor<T> {
 extension FlipLayoutExtension on Layout {
   /// Returns a layout with the elements along the given axis reversed.
   Layout flip({int axis = 0}) {
-    final axis_ = checkStart(axis, rank, 'axis');
+    final axis_ = checkIndex(axis, rank, 'axis');
     final offset_ = offset + strides[axis_] * (shape[axis_] - 1);
-    final strides_ = [...strides];
-    strides_[axis_] *= -1;
+    final strides_ = [
+      ...strides.take(axis_),
+      -strides[axis_],
+      ...strides.skip(axis_ + 1),
+    ];
     return Layout.internal(
       rank: rank,
       length: length,

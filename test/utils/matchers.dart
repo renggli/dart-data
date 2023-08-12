@@ -29,8 +29,11 @@ Matcher throwsRangeErrorWith({
         .having((e) => e.message, 'message', message));
 
 /// Returns a [Matcher] that asserts on an [LayoutError] being thrown.
-Matcher throwsLayoutErrorWith({dynamic message = anything}) =>
-    throwsA(isA<LayoutError>().having((e) => e.message, 'message', message));
+Matcher throwsLayoutErrorWith(
+        {dynamic name = anything, dynamic message = anything}) =>
+    throwsA(isA<LayoutError>()
+        .having((e) => e.name, 'name', name)
+        .having((e) => e.message, 'message', message));
 
 /// Returns a [Matcher] that asserts various data structures on numeric similarity.
 dynamic isCloseTo(dynamic expected, {num epsilon = 1.0e-5}) {

@@ -15,6 +15,8 @@ final tensor2x3x4 =
     Tensor.fromIterable(IntegerRange(2 * 3 * 4), shape: [2, 3, 4]);
 final tensor2x3x4x5 =
     Tensor.fromIterable(IntegerRange(2 * 3 * 4 * 5), shape: [2, 3, 4, 5]);
+final tensor2x2x2 =
+    Tensor<int>.fromIterable(IntegerRange(2 * 2 * 2), shape: [2, 2, 2]);
 
 void main() {
   group('layout', () {
@@ -520,8 +522,14 @@ void main() {
           ));
     });
     test('error', () {
-      expect(() => tensor2x3.reshape([4, 3]), throwsArgumentError);
-      expect(() => tensor2x3.reshape([-1, 5]), throwsArgumentError);
+      expect(
+        () => tensor2x3.reshape([4, 3]),
+        throwsLayoutErrorWith(name: 'shape'),
+      );
+      expect(
+        () => tensor2x3.reshape([-1, 5]),
+        throwsLayoutErrorWith(name: 'shape'),
+      );
     });
   });
   group('expand', () {
@@ -597,8 +605,14 @@ void main() {
           ));
     });
     test('error range', () {
-      expect(() => tensor2x3.expand(axis: 3), throwsRangeError);
-      expect(() => tensor2x3.expand(axis: -4), throwsRangeError);
+      expect(
+        () => tensor2x3.expand(axis: 3),
+        throwsRangeErrorWith(name: 'axis'),
+      );
+      expect(
+        () => tensor2x3.expand(axis: -4),
+        throwsRangeErrorWith(name: 'axis'),
+      );
     });
   });
   group('collapse', () {
@@ -636,12 +650,24 @@ void main() {
           ));
     });
     test('error range', () {
-      expect(() => tensor2x3.collapse(axis: 2), throwsRangeError);
-      expect(() => tensor2x3.collapse(axis: -3), throwsRangeError);
+      expect(
+        () => tensor2x3.collapse(axis: 2),
+        throwsRangeErrorWith(name: 'axis'),
+      );
+      expect(
+        () => tensor2x3.collapse(axis: -3),
+        throwsRangeErrorWith(name: 'axis'),
+      );
     });
     test('error axis', () {
-      expect(() => tensor2x3.collapse(axis: 0), throwsArgumentError);
-      expect(() => tensor2x3.collapse(axis: 1), throwsArgumentError);
+      expect(
+        () => tensor2x3.collapse(axis: 0),
+        throwsLayoutErrorWith(name: 'axis'),
+      );
+      expect(
+        () => tensor2x3.collapse(axis: 1),
+        throwsLayoutErrorWith(name: 'axis'),
+      );
     });
   });
   group('flatten', () {
@@ -883,22 +909,26 @@ void main() {
       expect(tensor2x3.getValue([-2, -1]), 2);
       expect(tensor2x3x4.getValue([-1, -2, -1]), 19);
     });
-    // test('index out of bounds', () {
-    //   expect(() => tensor2.getValue([2]),
-    //       throwsRangeErrorWith(name: 'key'));
-    //   expect(() => tensor2.getValue([-3]),
-    //       throwsAssertionErrorWithMessage('Index -3 is out of range'));
-    // }, skip: !hasAssertionsEnabled());
-    // test('wrong number of indices', () {
-    //   expect(
-    //       () => tensor2x3.getValue([0]),
-    //       throwsAssertionErrorWithMessage(
-    //           'Expected key of length 2, but got [0]'));
-    //   expect(
-    //       () => tensor2x3.getValue([0, 0, 0]),
-    //       throwsAssertionErrorWithMessage(
-    //           'Expected key of length 2, but got [0, 0, 0]'));
-    // }, skip: !hasAssertionsEnabled());
+    test('index out of bounds', () {
+      expect(
+        () => tensor2.getValue([2]),
+        throwsRangeErrorWith(name: 'key'),
+      );
+      expect(
+        () => tensor2.getValue([-3]),
+        throwsRangeErrorWith(name: 'key'),
+      );
+    }, skip: !hasAssertionsEnabled());
+    test('wrong number of indices', () {
+      expect(
+        () => tensor2x3.getValue([0]),
+        throwsRangeErrorWith(name: 'key.length'),
+      );
+      expect(
+        () => tensor2x3.getValue([0, 0, 0]),
+        throwsRangeErrorWith(name: 'key.length'),
+      );
+    });
   });
   group('operator[]', () {
     test('first', () {
@@ -1024,11 +1054,20 @@ void main() {
           ));
     });
     test('axis error', () {
-      expect(() => value[0], throwsRangeErrorWith(name: 'axis'));
+      expect(
+        () => value[0],
+        throwsRangeErrorWith(name: 'axis'),
+      );
     });
     test('index error', () {
-      expect(() => tensor2[2], throwsRangeErrorWith(name: 'index'));
-      expect(() => tensor2[-3], throwsRangeErrorWith(name: 'index'));
+      expect(
+        () => tensor2[2],
+        throwsRangeErrorWith(name: 'index'),
+      );
+      expect(
+        () => tensor2[-3],
+        throwsRangeErrorWith(name: 'index'),
+      );
     });
   });
   group('elementAt', () {
@@ -1198,12 +1237,24 @@ void main() {
       }
     });
     test('axis error', () {
-      expect(() => tensor2x3x4.elementAt(0, axis: 3),
-          throwsRangeErrorWith(name: 'axis'));
+      expect(
+        () => tensor2x3x4.elementAt(0, axis: 3),
+        throwsRangeErrorWith(name: 'axis'),
+      );
+      expect(
+        () => tensor2x3x4.elementAt(0, axis: -4),
+        throwsRangeErrorWith(name: 'axis'),
+      );
     });
     test('index error', () {
-      expect(() => tensor2.elementAt(2), throwsRangeErrorWith(name: 'index'));
-      expect(() => tensor2.elementAt(-3), throwsRangeErrorWith(name: 'index'));
+      expect(
+        () => tensor2.elementAt(2),
+        throwsRangeErrorWith(name: 'index'),
+      );
+      expect(
+        () => tensor2.elementAt(-3),
+        throwsRangeErrorWith(name: 'index'),
+      );
     });
   });
   group('getRange', () {
@@ -1444,23 +1495,40 @@ void main() {
           ));
     });
     test('axis error', () {
-      expect(() => tensor2x3x4.getRange(0, 0, axis: 3),
-          throwsRangeErrorWith(name: 'axis'));
+      expect(
+        () => tensor2x3x4.getRange(0, 0, axis: 3),
+        throwsRangeErrorWith(name: 'axis'),
+      );
     });
     test('start error', () {
-      expect(() => tensor2.getRange(3, 0), throwsRangeErrorWith(name: 'start'));
       expect(
-          () => tensor2.getRange(-3, 0), throwsRangeErrorWith(name: 'start'));
+        () => tensor2.getRange(3, 0),
+        throwsRangeErrorWith(name: 'start'),
+      );
+      expect(
+        () => tensor2.getRange(-3, 0),
+        throwsRangeErrorWith(name: 'start'),
+      );
     });
     test('end error', () {
-      expect(() => tensor2.getRange(0, 3), throwsRangeErrorWith(name: 'end'));
-      expect(() => tensor2.getRange(1, 0), throwsRangeErrorWith(name: 'end'));
+      expect(
+        () => tensor2.getRange(0, 3),
+        throwsRangeErrorWith(name: 'end'),
+      );
+      expect(
+        () => tensor2.getRange(1, 0),
+        throwsRangeErrorWith(name: 'end'),
+      );
     });
     test('step error', () {
-      expect(() => tensor2.getRange(0, 2, step: -1),
-          throwsRangeErrorWith(name: 'step'));
-      expect(() => tensor2.getRange(0, 2, step: 0),
-          throwsRangeErrorWith(name: 'step'));
+      expect(
+        () => tensor2.getRange(0, 2, step: -1),
+        throwsRangeErrorWith(name: 'step'),
+      );
+      expect(
+        () => tensor2.getRange(0, 2, step: 0),
+        throwsRangeErrorWith(name: 'step'),
+      );
     });
   });
   group('toObject', () {
@@ -1657,22 +1725,28 @@ void main() {
     });
     test('error empty', () {
       final layout = Layout(shape: const [1, 2, 3]);
-      expect(() => Layout.empty.broadcast(layout),
-          throwsLayoutErrorWith(message: matches('is empty')));
-      expect(() => layout.broadcast(Layout.empty),
-          throwsLayoutErrorWith(message: matches('is empty')));
+      expect(
+        () => Layout.empty.broadcast(layout),
+        throwsLayoutErrorWith(message: matches('is empty')),
+      );
+      expect(
+        () => layout.broadcast(Layout.empty),
+        throwsLayoutErrorWith(message: matches('is empty')),
+      );
     });
     test('error incompatible', () {
       final first = Layout(shape: const [5, 2, 4, 1]);
       final second = Layout(shape: const [3, 1, 1]);
       expect(
-          () => first.broadcast(second),
-          throwsLayoutErrorWith(
-              message: matches('incompatible shape at 1 and 0')));
+        () => first.broadcast(second),
+        throwsLayoutErrorWith(
+            message: matches('incompatible shape at 1 and 0')),
+      );
       expect(
-          () => second.broadcast(first),
-          throwsLayoutErrorWith(
-              message: matches('incompatible shape at 0 and 1')));
+        () => second.broadcast(first),
+        throwsLayoutErrorWith(
+            message: matches('incompatible shape at 0 and 1')),
+      );
     });
   });
   group('operations', () {
@@ -1738,10 +1812,14 @@ void main() {
           final a = Tensor<int>.fromIterable([1, 2, 3]);
           final r1 = Tensor<int>.filled(0, shape: [3, 2]);
           final r2 = Tensor<int>.filled(0, shape: [2]);
-          expect(() => a.unaryOperation(neg, target: r1),
-              throwsLayoutErrorWith(message: matches('incompatible rank')));
-          expect(() => a.unaryOperation(neg, target: r2),
-              throwsLayoutErrorWith(message: matches('incompatible shape')));
+          expect(
+            () => a.unaryOperation(neg, target: r1),
+            throwsLayoutErrorWith(message: matches('incompatible rank')),
+          );
+          expect(
+            () => a.unaryOperation(neg, target: r2),
+            throwsLayoutErrorWith(message: matches('incompatible shape')),
+          );
         });
       });
       group('binary', () {
@@ -1778,10 +1856,14 @@ void main() {
         test('error', () {
           final a = Tensor<int>.fromIterable([1, 2, 3]);
           final b = Tensor<int>.fromIterable([10, 20]);
-          expect(() => a.binaryOperation(b, add),
-              throwsLayoutErrorWith(message: matches('incompatible shape')));
-          expect(() => a.binaryOperation(a, add, target: b),
-              throwsLayoutErrorWith(message: matches('incompatible shape')));
+          expect(
+            () => a.binaryOperation(b, add),
+            throwsLayoutErrorWith(message: matches('incompatible shape')),
+          );
+          expect(
+            () => a.binaryOperation(a, add, target: b),
+            throwsLayoutErrorWith(message: matches('incompatible shape')),
+          );
         });
       });
       group('math', () {
@@ -1868,6 +1950,145 @@ void main() {
           expect(a | b, isTensor<bool>(object: [true, true, true, false]));
         });
       });
+    });
+  });
+  group('flip', () {
+    test('default', () {
+      expect(
+          tensor2x2x2.flip(),
+          isTensor<int>(
+            layout: isLayout(
+              rank: 3,
+              length: 8,
+              offset: 4,
+              shape: [2, 2, 2],
+              strides: [-4, 2, 1],
+            ),
+            data: same(tensor2x2x2.data),
+            object: [
+              [
+                [4, 5],
+                [6, 7],
+              ],
+              [
+                [0, 1],
+                [2, 3],
+              ],
+            ],
+          ));
+    });
+    test('axis = 0', () {
+      expect(
+          tensor2x2x2.flip(axis: 0),
+          isTensor<int>(
+            layout: isLayout(
+              rank: 3,
+              length: 8,
+              offset: 4,
+              shape: [2, 2, 2],
+              strides: [-4, 2, 1],
+            ),
+            data: same(tensor2x2x2.data),
+            object: [
+              [
+                [4, 5],
+                [6, 7],
+              ],
+              [
+                [0, 1],
+                [2, 3],
+              ],
+            ],
+          ));
+    });
+    test('axis = 1', () {
+      expect(
+          tensor2x2x2.flip(axis: 1),
+          isTensor<int>(
+              layout: isLayout(
+                rank: 3,
+                length: 8,
+                offset: 2,
+                shape: [2, 2, 2],
+                strides: [4, -2, 1],
+              ),
+              data: same(tensor2x2x2.data),
+              object: [
+                [
+                  [2, 3],
+                  [0, 1],
+                ],
+                [
+                  [6, 7],
+                  [4, 5],
+                ],
+              ]));
+    });
+    test('axis = -1', () {
+      expect(
+          tensor2x2x2.flip(axis: -1),
+          isTensor<int>(
+              layout: isLayout(
+                rank: 3,
+                length: 8,
+                offset: 1,
+                shape: [2, 2, 2],
+                strides: [4, 2, -1],
+              ),
+              data: same(tensor2x2x2.data),
+              object: [
+                [
+                  [1, 0],
+                  [3, 2],
+                ],
+                [
+                  [5, 4],
+                  [7, 6],
+                ],
+              ]));
+    });
+    test('composed', () {
+      expect(
+          tensor2x2x2.flip(axis: 0).flip(axis: 2),
+          isTensor<int>(
+              layout: isLayout(
+                rank: 3,
+                length: 8,
+                offset: 5,
+                shape: [2, 2, 2],
+                strides: [-4, 2, -1],
+              ),
+              data: same(tensor2x2x2.data),
+              object: [
+                [
+                  [5, 4],
+                  [7, 6],
+                ],
+                [
+                  [1, 0],
+                  [3, 2],
+                ],
+              ]));
+    });
+    test('reversible', () {
+      for (var i = 0; i < tensor2x3x4x5.rank; i++) {
+        expect(
+            tensor2x3x4x5.flip(axis: i).flip(axis: i),
+            isTensor<int>(
+              layout: tensor2x3x4x5.layout,
+              data: same(tensor2x3x4x5.data),
+            ));
+      }
+    });
+    test('error', () {
+      expect(
+        () => tensor2x2x2.flip(axis: 3),
+        throwsRangeErrorWith(name: 'axis'),
+      );
+      expect(
+        () => tensor2x2x2.flip(axis: -4),
+        throwsRangeErrorWith(name: 'axis'),
+      );
     });
   });
 }

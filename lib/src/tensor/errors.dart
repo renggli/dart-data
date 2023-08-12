@@ -3,9 +3,16 @@ import 'layout.dart';
 /// Error indicating an unexpected [Layout] state.
 class LayoutError extends ArgumentError {
   /// Asserts that the `layout` is not empty.
-  static void checkNotEmpty(Layout layout, [String? name, String? message]) {
+  static void checkNotEmpty(Layout layout, [String? name]) {
     if (layout.length == 0) {
       throw LayoutError.empty(layout, name);
+    }
+  }
+
+  /// Asserts that the `layout` has a singular dimension on the `axis`.
+  static void checkSingular(Layout layout, int axis, [String? name]) {
+    if (layout.shape[axis] != 1) {
+      throw LayoutError.singular(layout, axis, name);
     }
   }
 
@@ -30,6 +37,10 @@ class LayoutError extends ArgumentError {
 
   /// Constructs an error indicating an empty [Layout].
   LayoutError.empty(Layout a, [String? name]) : super('$a is empty', name);
+
+  /// Constructs an error indicating an expected singular dimension.
+  LayoutError.singular(Layout a, int axes, [String? name])
+      : super('$a at $axes is not a singular dimension', name);
 
   /// Constructs an error indicating incompatible lengths.
   LayoutError.length(Layout a, Layout b, [String? name])
