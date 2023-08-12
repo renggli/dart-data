@@ -597,8 +597,8 @@ void main() {
           ));
     });
     test('error range', () {
-      expect(() => tensor2x3.expand(axis: -1), throwsRangeError);
       expect(() => tensor2x3.expand(axis: 3), throwsRangeError);
+      expect(() => tensor2x3.expand(axis: -4), throwsRangeError);
     });
   });
   group('collapse', () {
@@ -636,8 +636,8 @@ void main() {
           ));
     });
     test('error range', () {
-      expect(() => tensor2x3.collapse(axis: -1), throwsRangeError);
       expect(() => tensor2x3.collapse(axis: 2), throwsRangeError);
+      expect(() => tensor2x3.collapse(axis: -3), throwsRangeError);
     });
     test('error axis', () {
       expect(() => tensor2x3.collapse(axis: 0), throwsArgumentError);
@@ -1450,7 +1450,7 @@ void main() {
     test('start error', () {
       expect(() => tensor2.getRange(3, 0), throwsRangeErrorWith(name: 'start'));
       expect(
-          () => tensor2.getRange(-4, 0), throwsRangeErrorWith(name: 'start'));
+          () => tensor2.getRange(-3, 0), throwsRangeErrorWith(name: 'start'));
     });
     test('end error', () {
       expect(() => tensor2.getRange(0, 3), throwsRangeErrorWith(name: 'end'));

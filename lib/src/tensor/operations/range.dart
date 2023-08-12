@@ -1,6 +1,6 @@
 import '../layout.dart';
 import '../tensor.dart';
-import '../utils/errors.dart';
+import '../utils/checks.dart';
 
 extension RangeTensorExtension<T> on Tensor<T> {
   /// Returns a view with the given [axis] sliced to the range between [start]
@@ -17,13 +17,8 @@ extension RangeLayoutExtension on Layout {
   /// between [start] and [end] (exclusive).
   Layout getRange(int start, int? end, {int step = 1, int axis = 0}) {
     final axis_ = checkIndex(axis, rank, 'axis');
-    final start_ = checkIndex(start, shape[axis_], 'start');
-    final end_ = RangeError.checkValidRange(
-        start_,
-        adjustIndex(end ?? shape[axis_], shape[axis_]),
-        shape[axis_],
-        'start',
-        'end');
+    final start_ = checkStart(start, shape[axis_], 'start');
+    final end_ = checkEnd(start_, end, shape[axis_], 'end');
     checkPositive(step, 'step');
     final rangeLength = (end_ - start_) ~/ step;
     return Layout(

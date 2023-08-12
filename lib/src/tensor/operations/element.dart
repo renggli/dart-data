@@ -1,6 +1,6 @@
 import '../layout.dart';
 import '../tensor.dart';
-import '../utils/errors.dart';
+import '../utils/checks.dart';
 
 extension ElementTensorExtension<T> on Tensor<T> {
   /// Returns a view with the given [axis] resolved to [index].

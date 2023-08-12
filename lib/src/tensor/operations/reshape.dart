@@ -1,4 +1,5 @@
 import '../../stats/iterable.dart';
+import '../errors.dart';
 import '../layout.dart';
 import '../tensor.dart';
 
@@ -17,9 +18,7 @@ extension ReshapeTensorExtension<T> on Tensor<T> {
         ? (Layout(shape: shape, offset: layout.offset), data)
         : (Layout(shape: shape), type.copyList(values));
     // Check if the new layout is compatible at all.
-    if (layout.length != layout_.length) {
-      throw ArgumentError.value(shape, 'shape', 'Incompatible with $layout');
-    }
+    LayoutError.checkEqualLength(layout, layout_, 'shape');
     return Tensor<T>.internal(type: type, layout: layout_, data: data_);
   }
 

@@ -1,5 +1,6 @@
 import '../layout.dart';
 import '../tensor.dart';
+import '../utils/checks.dart';
 import '../utils/layout.dart' as utils;
 
 extension CollapseTensorExtension<T> on Tensor<T> {
@@ -9,15 +10,15 @@ extension CollapseTensorExtension<T> on Tensor<T> {
 }
 
 extension CollapseLayoutExtension on Layout {
-  /// Returns a layout with a single-element axis at `axis` removed.
+  /// Returns a layout with a single-element `axis` removed.
   Layout collapse({int axis = 0}) {
-    RangeError.checkValueInInterval(axis, 0, rank - 1, 'axis');
-    if (shape[axis] != 1) {
+    final axis_ = checkIndex(axis, rank, 'axis');
+    if (shape[axis_] != 1) {
       throw ArgumentError.value(
-          axis, 'axis', '$shape at $axis is greater than 1');
+          axis, 'axis', 'Shape at $axis is ${shape[axis_]}, but expected 1');
     }
-    final shape_ = [...shape.take(axis), ...shape.skip(axis + 1)];
-    final strides_ = [...strides.take(axis), ...strides.skip(axis + 1)];
+    final shape_ = [...shape.take(axis_), ...shape.skip(axis_ + 1)];
+    final strides_ = [...strides.take(axis_), ...strides.skip(axis_ + 1)];
     return Layout.internal(
       rank: rank - 1,
       length: length,

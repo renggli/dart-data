@@ -9,7 +9,7 @@ import '../type/type.dart';
 import 'iterables/index.dart';
 import 'iterables/key.dart';
 import 'operations/element.dart';
-import 'utils/errors.dart';
+import 'utils/checks.dart';
 import 'utils/layout.dart' as utils;
 
 /// Immutable object describing a multi-dimensional data layout in a flat list

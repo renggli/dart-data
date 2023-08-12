@@ -3,7 +3,7 @@ import 'dart:collection';
 import '../../type/type.dart';
 import '../layout.dart';
 
-/// Iterable over the keys of a [Layout].
+/// [Iterable] over the keys of a [Layout].
 class KeyIterable extends IterableBase<List<int>> {
   KeyIterable(this.layout);
 
@@ -16,7 +16,7 @@ class KeyIterable extends IterableBase<List<int>> {
   Iterator<List<int>> get iterator => KeyIterator(layout);
 }
 
-/// Iterator over the keys of a [Layout].
+/// [Iterator] over the keys of a [Layout].
 class KeyIterator implements Iterator<List<int>> {
   KeyIterator(Layout layout)
       : rank = layout.rank,

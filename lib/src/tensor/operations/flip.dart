@@ -1,5 +1,6 @@
 import '../layout.dart';
 import '../tensor.dart';
+import '../utils/checks.dart';
 import '../utils/layout.dart' as utils;
 
 extension FlipTensorExtension<T> on Tensor<T> {
@@ -9,11 +10,12 @@ extension FlipTensorExtension<T> on Tensor<T> {
 }
 
 extension FlipLayoutExtension on Layout {
+  /// Returns a layout with the elements along the given axis reversed.
   Layout flip({int axis = 0}) {
-    RangeError.checkValueInInterval(axis, 0, rank, 'axis');
-    final offset_ = offset + strides[axis] * (shape[axis] - 1);
+    final axis_ = checkStart(axis, rank, 'axis');
+    final offset_ = offset + strides[axis_] * (shape[axis_] - 1);
     final strides_ = [...strides];
-    strides_[axis] *= -1;
+    strides_[axis_] *= -1;
     return Layout.internal(
       rank: rank,
       length: length,
