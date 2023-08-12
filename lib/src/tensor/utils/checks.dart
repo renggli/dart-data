@@ -5,7 +5,9 @@ int adjustIndex(int index, int length) => index < 0 ? index + length : index;
 /// throw an [IndexError].
 int checkIndex(int index, int length, [String? name, String? message]) {
   final adjustedIndex = adjustIndex(index, length);
-  if (0 <= adjustedIndex && adjustedIndex < length) return adjustedIndex;
+  if (0 <= adjustedIndex && adjustedIndex < length) {
+    return adjustedIndex;
+  }
   throw IndexError.withLength(adjustedIndex, length,
       name: name, message: message);
 }
@@ -14,7 +16,9 @@ int checkIndex(int index, int length, [String? name, String? message]) {
 /// otherwise throws a [RangeError].
 int checkStart(int start, int length, [String? name, String? message]) {
   final adjustedStart = adjustIndex(start, length);
-  if (0 <= adjustedStart && adjustedStart <= length) return adjustedStart;
+  if (0 <= adjustedStart && adjustedStart <= length) {
+    return adjustedStart;
+  }
   throw RangeError.range(adjustedStart, 0, length, name, message);
 }
 
@@ -22,12 +26,16 @@ int checkStart(int start, int length, [String? name, String? message]) {
 /// than `length`, otherwise throw a [RangeError].
 int checkEnd(int start, int? end, int length, [String? name, String? message]) {
   final adjustedEnd = adjustIndex(end ?? length, length);
-  if (start <= adjustedEnd && adjustedEnd <= length) return adjustedEnd;
+  if (start <= adjustedEnd && adjustedEnd <= length) {
+    return adjustedEnd;
+  }
   throw RangeError.range(adjustedEnd, start, length, name, message);
 }
 
 /// Checks if `value` is positive or zero, otherwise throw a [RangeError].
 int checkStep(int value, [String? name, String? message]) {
-  if (value > 0) return value;
+  if (value > 0) {
+    return value;
+  }
   throw RangeError.range(value, 0, null, name, message);
 }

@@ -731,9 +731,8 @@ void main() {
   });
   group('transpose', () {
     test('once', () {
-      final result = tensor2x3.transpose();
       expect(
-          result,
+          tensor2x3.transpose(),
           isTensor<int>(
             type: tensor2x3.type,
             data: same(tensor2x3.data),
@@ -751,9 +750,8 @@ void main() {
           ));
     });
     test('twice', () {
-      final result = tensor2x3.transpose().transpose();
       expect(
-          result,
+          tensor2x3.transpose().transpose(),
           isTensor<int>(
             type: tensor2x3.type,
             data: same(tensor2x3.data),
@@ -761,10 +759,124 @@ void main() {
               rank: tensor2x3.rank,
               shape: tensor2x3.layout.shape,
               strides: tensor2x3.layout.strides,
+              isContiguous: true,
             ),
             object: [
               [0, 1, 2],
               [3, 4, 5],
+            ],
+          ));
+    });
+  });
+  group('swapAxes', () {
+    test('0, 1', () {
+      expect(
+          tensor2x3.swapAxes(0, 1),
+          isTensor<int>(
+            data: same(tensor2x3.data),
+            layout: isLayout(
+              rank: 2,
+              length: 6,
+              offset: 0,
+              shape: [3, 2],
+              strides: [1, 3],
+            ),
+            object: [
+              [0, 3],
+              [1, 4],
+              [2, 5],
+            ],
+          ));
+    });
+    test('0, -1', () {
+      expect(
+          tensor2x2x2.swapAxes(0, -1),
+          isTensor<int>(
+            data: same(tensor2x2x2.data),
+            layout: isLayout(
+              rank: 3,
+              length: 8,
+              offset: 0,
+              shape: [2, 2, 2],
+              strides: [1, 2, 4],
+            ),
+            object: [
+              [
+                [0, 4],
+                [2, 6],
+              ],
+              [
+                [1, 5],
+                [3, 7],
+              ],
+            ],
+          ));
+    });
+  });
+  group('moveAxis', () {
+    test('0, -1', () {
+      expect(
+          tensor2x3x4.moveAxes(0, -1),
+          isTensor<int>(
+            data: same(tensor2x3x4.data),
+            layout: isLayout(
+              rank: 3,
+              length: 24,
+              offset: 0,
+              shape: [3, 4, 2],
+              strides: [4, 1, 12],
+            ),
+            object: [
+              [
+                [0, 12],
+                [1, 13],
+                [2, 14],
+                [3, 15],
+              ],
+              [
+                [4, 16],
+                [5, 17],
+                [6, 18],
+                [7, 19],
+              ],
+              [
+                [8, 20],
+                [9, 21],
+                [10, 22],
+                [11, 23],
+              ],
+            ],
+          ));
+    });
+    test('-1, 0', () {
+      expect(
+          tensor2x3x4.moveAxes(-1, 0),
+          isTensor<int>(
+            data: same(tensor2x3x4.data),
+            layout: isLayout(
+              rank: 3,
+              length: 24,
+              offset: 0,
+              shape: [4, 2, 3],
+              strides: [1, 12, 4],
+            ),
+            object: [
+              [
+                [0, 4, 8],
+                [12, 16, 20],
+              ],
+              [
+                [1, 5, 9],
+                [13, 17, 21],
+              ],
+              [
+                [2, 6, 10],
+                [14, 18, 22],
+              ],
+              [
+                [3, 7, 11],
+                [15, 19, 23],
+              ],
             ],
           ));
     });
