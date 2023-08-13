@@ -164,6 +164,27 @@ void main() {
                 [2, 1],
               ]));
     });
+    test('equality', () {
+      final layouts = [
+        value,
+        tensor2,
+        tensor2x3,
+        tensor2x2x2,
+        tensor2x3x4,
+        tensor2x3x4x5,
+      ].map((tensor) => tensor.layout).toList();
+      for (final layout1 in layouts) {
+        for (final layout2 in layouts) {
+          if (identical(layout1, layout2)) {
+            expect(layout1, layout2);
+            expect(layout1.hashCode, layout2.hashCode);
+          } else {
+            expect(layout1, isNot(layout2));
+            expect(layout1.hashCode, isNot(layout2.hashCode));
+          }
+        }
+      }
+    });
   });
   group('filled', () {
     test('value', () {
@@ -403,6 +424,9 @@ void main() {
               [4, 5, 6],
             ],
           ));
+    });
+    test('error', () {
+      expect(() => Tensor<int>.fromObject('Hello'), throwsArgumentError);
     });
   });
   group('reshape', () {
@@ -1010,7 +1034,7 @@ void main() {
           '   [78, …, 80]]]]');
     });
   });
-  group('value', () {
+  group('getValue', () {
     test('positive indices', () {
       expect(tensor2.getValue([1]), 1);
       expect(tensor2x3.getValue([0, 1]), 1);
@@ -1030,7 +1054,7 @@ void main() {
         () => tensor2.getValue([-3]),
         throwsRangeErrorWith(name: 'key'),
       );
-    }, skip: !hasAssertionsEnabled());
+    });
     test('wrong number of indices', () {
       expect(
         () => tensor2x3.getValue([0]),
@@ -1040,6 +1064,39 @@ void main() {
         () => tensor2x3.getValue([0, 0, 0]),
         throwsRangeErrorWith(name: 'key.length'),
       );
+    });
+  });
+  group('setValue', () {
+    final tensor = Tensor.filled(0, shape: [2, 3, 4]);
+    test('positive indices', () {
+      tensor.setValue([0, 1, 2], 1);
+      expect(tensor.getValue([0, 1, 2]), 1);
+    });
+    test('negative indices', () {
+      tensor.setValue([-1, -2, -3], 2);
+      expect(tensor.getValue([-1, -2, -3]), 2);
+    });
+    test('index out of bounds', () {
+      expect(
+        () => tensor.setValue([0, 1, 4], -1),
+        throwsRangeErrorWith(name: 'key'),
+      );
+      expect(
+        () => tensor.setValue([0, 1, -5], -1),
+        throwsRangeErrorWith(name: 'key'),
+      );
+      expect(tensor.values, everyElement(isNot(-1)));
+    });
+    test('wrong number of indices', () {
+      expect(
+        () => tensor.setValue([0, 0], -1),
+        throwsRangeErrorWith(name: 'key.length'),
+      );
+      expect(
+        () => tensor.setValue([0, 0, 0, 0], -1),
+        throwsRangeErrorWith(name: 'key.length'),
+      );
+      expect(tensor.values, everyElement(isNot(-1)));
     });
   });
   group('operator[]', () {
@@ -1718,12 +1775,15 @@ void main() {
   group('contiguous', () {
     test('already contiguous', () {
       final source = tensor2x3x4;
+      expect(source.isContiguous, isTrue);
       final target = source.contiguous();
       expect(target, same(source));
+      expect(target.isContiguous, isTrue);
     });
     test('not contiguous', () {
       final source = tensor2x3x4x5.elementAt(2, axis: 2);
-      final target = source.copy(contiguous: true);
+      expect(source.isContiguous, isFalse);
+      final target = source.contiguous();
       expect(
           target,
           isTensor<int>(
@@ -1739,6 +1799,7 @@ void main() {
             ),
             object: source.toObject(),
           ));
+      expect(target.isContiguous, isTrue);
     });
   });
   group('broadcast', () {

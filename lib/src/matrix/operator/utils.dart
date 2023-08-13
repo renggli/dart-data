@@ -2,14 +2,6 @@ import '../../../type.dart';
 import '../matrix.dart';
 import '../matrix_format.dart';
 
-void checkDimensions<T>(Matrix<T> first, Matrix<T> second) {
-  if (first.rowCount != second.rowCount || first.colCount != second.colCount) {
-    throw ArgumentError('Matrix operand dimensions do not match: '
-        '${first.rowCount}*${first.colCount} and '
-        '${second.rowCount}*${second.colCount}.');
-  }
-}
-
 Matrix<T> createMatrix<T>(Matrix<T> source, Matrix<T>? result,
     DataType<T>? dataType, MatrixFormat? format) {
   if (result == null) {

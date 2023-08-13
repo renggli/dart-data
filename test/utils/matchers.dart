@@ -88,6 +88,7 @@ dynamic isTensor<T>({
   dynamic layout = anything,
   dynamic data = anything,
   dynamic object = anything,
+  dynamic string = anything,
   dynamic format = anything,
 }) =>
     isA<Tensor<T>>()
@@ -95,6 +96,7 @@ dynamic isTensor<T>({
         .having((tensor) => tensor.layout, 'layout', layout)
         .having((tensor) => tensor.data, 'data', data)
         .having((tensor) => tensor.toObject(), 'toObject', object)
+        .having((tensor) => tensor.toString(), 'toString', string)
         .having((tensor) => TensorPrinter<T>()(tensor), 'format', format);
 
 dynamic isLayout({
@@ -104,6 +106,7 @@ dynamic isLayout({
   dynamic shape = anything,
   dynamic strides = anything,
   dynamic isContiguous = anything,
+  dynamic string = anything,
   dynamic indices = anything,
   dynamic keys = anything,
 }) =>
@@ -114,6 +117,7 @@ dynamic isLayout({
         .having((layout) => layout.shape, 'shape', shape)
         .having((layout) => layout.strides, 'strides', strides)
         .having((layout) => layout.isContiguous, 'isContiguous', isContiguous)
+        .having((layout) => layout.toString(), 'toString', string)
         .having((layout) => layout.indices, 'indices', indices)
         .having(
             (layout) => layout.indices
