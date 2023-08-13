@@ -5,6 +5,7 @@ import 'package:more/printer.dart' show Printer, StandardPrinter;
 
 import '../../type.dart' show DataType;
 import '../shared/storage.dart';
+import '../tensor/tensor.dart';
 import 'impl/compressed_vector.dart';
 import 'impl/keyed_vector.dart';
 import 'impl/list_vector.dart';
@@ -88,6 +89,16 @@ abstract mixin class Vector<T> implements Storage {
   factory Vector.fromList(DataType<T> dataType, List<T> source,
       {VectorFormat? format}) {
     final result = ListVector.fromList(dataType, source);
+    return format == null ? result : result.toVector(format: format);
+  }
+
+  /// Constructs a vector from a [Tensor].
+  ///
+  /// If [format] is specified, [source] is copied into a mutable vector of the
+  /// selected format; otherwise a view onto the possibly mutable [source] is
+  /// provided.
+  factory Vector.fromTensor(Tensor<T> source, {VectorFormat? format}) {
+    final result = TensorVector<T>.fromTensor(source);
     return format == null ? result : result.toVector(format: format);
   }
 

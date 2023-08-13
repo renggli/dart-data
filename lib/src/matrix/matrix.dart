@@ -4,6 +4,7 @@ import 'package:more/printer.dart' show Printer, StandardPrinter;
 import '../../type.dart' show DataType;
 import '../../vector.dart' show Vector;
 import '../shared/storage.dart';
+import '../tensor/tensor.dart';
 import 'impl/column_major_matrix.dart';
 import 'impl/compressed_column_matrix.dart';
 import 'impl/compressed_row_matrix.dart';
@@ -199,6 +200,16 @@ abstract mixin class Matrix<T> implements Storage {
     }
     final result =
         ColumnMajorMatrix.fromList(dataType, rowCount, columnCount, source);
+    return format == null ? result : result.toMatrix(format: format);
+  }
+
+  /// Constructs a matrix from a [Tensor].
+  ///
+  /// If [format] is specified, [source] is copied into a mutable matrix of the
+  /// selected format; otherwise a view onto the possibly mutable [source] is
+  /// provided.
+  factory Matrix.fromTensor(Tensor<T> source, {MatrixFormat? format}) {
+    final result = TensorMatrix<T>.fromTensor(source);
     return format == null ? result : result.toMatrix(format: format);
   }
 

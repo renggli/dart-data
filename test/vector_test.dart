@@ -144,6 +144,18 @@ void vectorTest(String name, VectorFormat format) {
         expect(vector[1], 1);
         expect(vector[2], 3);
       });
+      test('fromTensor', () {
+        final vector = Vector.fromTensor(
+            Tensor.fromIterable([2, 1, 3], type: DataType.int8),
+            format: format);
+        expect(vector.dataType, DataType.int8);
+        expect(vector.count, 3);
+        expect(vector.shape, [vector.count]);
+        expect(vector.storage, [vector]);
+        expect(vector[0], 2);
+        expect(vector[1], 1);
+        expect(vector[2], 3);
+      });
     });
     group('accessing', () {
       final vector = Vector.fromList(DataType.int8, [2, 4, 6], format: format);

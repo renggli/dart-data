@@ -407,6 +407,23 @@ void matrixTest(String name, MatrixFormat format) {
                 format: format),
             throwsArgumentError);
       });
+      test('fromTensor', () {
+        final matrix = Matrix.fromTensor(
+            Tensor.fromIterable([1, 2, 3, 4, 5, 6],
+                shape: [2, 3], type: DataType.numeric),
+            format: format);
+        expect(matrix.dataType, DataType.numeric);
+        expect(matrix.rowCount, 2);
+        expect(matrix.colCount, 3);
+        expect(matrix.shape, [matrix.rowCount, matrix.colCount]);
+        expect(matrix.storage, [matrix]);
+        expect(matrix.get(0, 0), 1);
+        expect(matrix.get(0, 1), 2);
+        expect(matrix.get(0, 2), 3);
+        expect(matrix.get(1, 0), 4);
+        expect(matrix.get(1, 1), 5);
+        expect(matrix.get(1, 2), 6);
+      });
     });
     group('accessing', () {
       final matrix = Matrix.fromRows(
