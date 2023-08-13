@@ -1,8 +1,9 @@
 # Changelog
 
-## 0.12.0 (Unpublished)
+## 0.12.0
 
-- Dart 3.0 requirement.
+- Dart 3.0 support and requirement.
+- Experimental `Tensor` library.
 
 ## 0.11.0
 
