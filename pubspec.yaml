@@ -4,6 +4,11 @@ version: 0.12.0
 homepage: https://github.com/renggli/dart-data
 description: A time and space efficient collection of data structures and
   algorithms to deal with data in Dart.
+topics:
+  - math
+  - numeric
+  - stats
+  - tensor
 
 environment:
   sdk: ^3.0.0
