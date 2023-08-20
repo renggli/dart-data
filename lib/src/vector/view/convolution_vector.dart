@@ -3,7 +3,6 @@ import 'dart:math';
 import 'package:meta/meta.dart';
 
 import '../../../type.dart';
-import '../../shared/convolution.dart';
 import '../../shared/storage.dart';
 import '../mixin/unmodifiable_vector.dart';
 import '../vector.dart';
@@ -73,6 +72,13 @@ class SameConvolutionVector<T> extends ConvolutionVector<T> {
   }
 }
 
+/// Convolution mode on a [Vector], i.e. how the borders are handled.
+enum VectorConvolution {
+  full,
+  valid,
+  same,
+}
+
 extension ConvolutionVectorExtension<T> on Vector<T> {
   /// Returns a view of the convolution between this vector and the given
   /// `kernel`. The solution is obtained lazily by straightforward computation,
@@ -82,16 +88,16 @@ extension ConvolutionVectorExtension<T> on Vector<T> {
   Vector<T> convolve(
     Vector<T> kernel, {
     DataType<T>? dataType,
-    ConvolutionMode mode = ConvolutionMode.full,
+    VectorConvolution mode = VectorConvolution.full,
   }) {
     switch (mode) {
-      case ConvolutionMode.full:
+      case VectorConvolution.full:
         return FullConvolutionVector<T>(
             dataType ?? this.dataType, this, kernel);
-      case ConvolutionMode.valid:
+      case VectorConvolution.valid:
         return ValidConvolutionVector<T>(
             dataType ?? this.dataType, this, kernel);
-      case ConvolutionMode.same:
+      case VectorConvolution.same:
         return SameConvolutionVector<T>(
             dataType ?? this.dataType, this, kernel);
     }

@@ -63,7 +63,7 @@ abstract class ParametrizedUnaryFunction<T> {
   /// Converts the parameter values [params] to a Vector.
   ///
   /// If params is `null` or parameters are missing they are initialized with
-  /// [defaultParam], or an [ArgumentError] is thrown is [defaultParams] is not
+  /// [defaultParam], or an [ArgumentError] is thrown is [defaultParam] is not
   /// specified.
   Vector<T> toVector(Object? params, {T? defaultParam}) {
     if (params == null) {

@@ -1,7 +1,7 @@
 import 'functions.dart';
 
 /// Returns the root of the provided [function] bracketed between [a] and [b],
-/// that is _f(x) = 0_ is solved for _x_ in the range of _[a, b]_.
+/// that is _f(x) = 0_ is solved for _x_ in the range of _\[a, b\]_.
 ///
 /// [bracketEpsilon], [solutionEpsilon] and [maxIterations] define conditions
 /// to terminate the search for a root:

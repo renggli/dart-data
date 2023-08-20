@@ -1245,7 +1245,8 @@ void matrixTest(String name, MatrixFormat format) {
                 [0, 0, -6, -1, -6, 0, -3],
                 [0, 0, 0, -5, -9, -2, -4],
               ])));
-          final result2 = matrix2.convolve(kernel2, mode: ConvolutionMode.full);
+          final result2 =
+              matrix2.convolve(kernel2, mode: MatrixConvolution.full);
           expect(
               result2,
               isCloseTo(Matrix.fromRows(DataType.float, [
@@ -1258,7 +1259,7 @@ void matrixTest(String name, MatrixFormat format) {
         });
         test('valid', () {
           final result1 =
-              matrix1.convolve(kernel1, mode: ConvolutionMode.valid);
+              matrix1.convolve(kernel1, mode: MatrixConvolution.valid);
           expect(
               result1,
               isCloseTo(Matrix.fromRows(DataType.int32, [
@@ -1267,7 +1268,7 @@ void matrixTest(String name, MatrixFormat format) {
                 [6, -5, 2],
               ])));
           final result2 =
-              matrix2.convolve(kernel2, mode: ConvolutionMode.valid);
+              matrix2.convolve(kernel2, mode: MatrixConvolution.valid);
           expect(
               result2,
               isCloseTo(Matrix.fromRows(DataType.float, [
@@ -1275,7 +1276,8 @@ void matrixTest(String name, MatrixFormat format) {
               ])));
         });
         test('same', () {
-          final result1 = matrix1.convolve(kernel1, mode: ConvolutionMode.same);
+          final result1 =
+              matrix1.convolve(kernel1, mode: MatrixConvolution.same);
           expect(
               result1,
               isCloseTo(Matrix.fromRows(DataType.int32, [
@@ -1285,7 +1287,8 @@ void matrixTest(String name, MatrixFormat format) {
                 [5, 6, -5, 2, -7],
                 [0, -6, -1, -6, 0],
               ])));
-          final result2 = matrix2.convolve(kernel2, mode: ConvolutionMode.same);
+          final result2 =
+              matrix2.convolve(kernel2, mode: MatrixConvolution.same);
           expect(
               result2,
               isCloseTo(Matrix.fromRows(DataType.float, [

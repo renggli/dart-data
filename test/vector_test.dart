@@ -423,21 +423,24 @@ void vectorTest(String name, VectorFormat format) {
         test('full', () {
           final result1 = vector1.convolve(kernel1);
           expect(result1.iterable, [5, 6, 2, 2, 2, -8, -9]);
-          final result2 = vector2.convolve(kernel2, mode: ConvolutionMode.full);
+          final result2 =
+              vector2.convolve(kernel2, mode: VectorConvolution.full);
           expect(result2.iterable, [0.0, 1.0, 2.5, 4.0, 1.5]);
         });
         test('valid', () {
           final result1 =
-              vector1.convolve(kernel1, mode: ConvolutionMode.valid);
+              vector1.convolve(kernel1, mode: VectorConvolution.valid);
           expect(result1.iterable, [2, 2, 2]);
           final result2 =
-              vector2.convolve(kernel2, mode: ConvolutionMode.valid);
+              vector2.convolve(kernel2, mode: VectorConvolution.valid);
           expect(result2.iterable, [2.5]);
         });
         test('same', () {
-          final result1 = vector1.convolve(kernel1, mode: ConvolutionMode.same);
+          final result1 =
+              vector1.convolve(kernel1, mode: VectorConvolution.same);
           expect(result1.iterable, [6, 2, 2, 2, -8]);
-          final result2 = vector2.convolve(kernel2, mode: ConvolutionMode.same);
+          final result2 =
+              vector2.convolve(kernel2, mode: VectorConvolution.same);
           expect(result2.iterable, [1.0, 2.5, 4.0]);
         });
       });

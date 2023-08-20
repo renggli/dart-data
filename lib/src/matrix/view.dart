@@ -1,7 +1,8 @@
 export 'view/binary_operation_matrix.dart' show BinaryOperationMatrixExtension;
 export 'view/cast_matrix.dart' show CastMatrixExtension;
 export 'view/column_vector.dart' show ColumnVectorExtension;
-export 'view/convolution_matrix.dart' show ConvolutionMatrixExtension;
+export 'view/convolution_matrix.dart'
+    show MatrixConvolution, ConvolutionMatrixExtension;
 export 'view/diagonal_vector.dart' show DiagonalVectorExtension;
 export 'view/flipped_horizontal_matrix.dart'
     show FlippedHorizontalMatrixExtension;

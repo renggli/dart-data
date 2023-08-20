@@ -3,7 +3,6 @@ import 'dart:math';
 import 'package:meta/meta.dart';
 
 import '../../../type.dart';
-import '../../shared/convolution.dart';
 import '../../shared/storage.dart';
 import '../matrix.dart';
 import '../mixin/unmodifiable_matrix.dart';
@@ -97,6 +96,13 @@ class SameConvolutionMatrix<T> extends ConvolutionMatrix<T> {
   }
 }
 
+/// Convolution mode on a [Matrix], i.e. how the borders are handled.
+enum MatrixConvolution {
+  full,
+  valid,
+  same,
+}
+
 extension ConvolutionMatrixExtension<T> on Matrix<T> {
   /// Returns a view of the convolution between this matrix and the given
   /// `kernel`. The solution is obtained lazily by straightforward computation,
@@ -106,16 +112,16 @@ extension ConvolutionMatrixExtension<T> on Matrix<T> {
   Matrix<T> convolve(
     Matrix<T> kernel, {
     DataType<T>? dataType,
-    ConvolutionMode mode = ConvolutionMode.full,
+    MatrixConvolution mode = MatrixConvolution.full,
   }) {
     switch (mode) {
-      case ConvolutionMode.full:
+      case MatrixConvolution.full:
         return FullConvolutionMatrix<T>(
             dataType ?? this.dataType, this, kernel);
-      case ConvolutionMode.valid:
+      case MatrixConvolution.valid:
         return ValidConvolutionMatrix<T>(
             dataType ?? this.dataType, this, kernel);
-      case ConvolutionMode.same:
+      case MatrixConvolution.same:
         return SameConvolutionMatrix<T>(
             dataType ?? this.dataType, this, kernel);
     }

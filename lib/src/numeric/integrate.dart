@@ -11,7 +11,7 @@ import 'functions.dart';
 ///
 /// [poles] is a list of points at which the  [function] should not be
 /// evaluated. The integration is automatically split over the generated
-/// intervals: _[a..p_1[, ]p_1..p_2[, ... ]p_n, b]_.
+/// intervals: _\[a..p_1\[, \]p_1..p_2\[, ... \]p_n, b\]_.
 ///
 /// In case of an integration problem, [onWarning] is evaluated with the
 /// [IntegrateWarning] and the _x_ position. The default implementation throws
