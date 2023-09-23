@@ -499,8 +499,6 @@ class SingularValueDecomposition {
             }
           }
 
-          break;
-
         // Split at negligible s[l].
         case 2:
           f = e[l - 1];
@@ -527,8 +525,6 @@ class SingularValueDecomposition {
               }
             }
           }
-
-          break;
 
         // Perform one qr step.
         case 3:
@@ -611,7 +607,6 @@ class SingularValueDecomposition {
 
           e[m - 2] = f;
           iter = iter + 1;
-          break;
 
         // Convergence.
         case 4:
@@ -656,13 +651,10 @@ class SingularValueDecomposition {
                 u[((l + 1) * rowsA) + i] = b;
               }
             }
-
             l = l + 1;
           }
-
           iter = 0;
           m = m - 1;
-          break;
       }
     }
 
@@ -707,10 +699,8 @@ class SingularValueDecomposition {
 
     final result =
         Matrix<double>(DataType.float64, _vt.colCount, input.colCount);
-
     var mn = min(_u.rowCount, _vt.colCount);
     var bn = input.colCount;
-
     var tmp = List.filled(_vt.colCount, 0.0);
 
     for (var k = 0; k < bn; k++) {
@@ -720,23 +710,18 @@ class SingularValueDecomposition {
           for (var i = 0; i < _u.rowCount; i++) {
             value += _u.getUnchecked(i, j) * input.getUnchecked(i, k);
           }
-
           value /= _s[j];
         }
-
         tmp[j] = value;
       }
-
       for (var j = 0; j < _vt.colCount; j++) {
         var value = 0.0;
         for (var i = 0; i < _vt.colCount; i++) {
           value += _vt.getUnchecked(i, j) * tmp[i];
         }
-
         result.setUnchecked(j, k, value);
       }
     }
-
     return result;
   }
 
@@ -761,10 +746,8 @@ class SingularValueDecomposition {
         for (var i = 0; i < _u.rowCount; i++) {
           value += _u.getUnchecked(i, j) * input[i];
         }
-
         value /= _s[j];
       }
-
       tmp[j] = value;
     }
 
@@ -773,7 +756,6 @@ class SingularValueDecomposition {
       for (var i = 0; i < _vt.colCount; i++) {
         value += _vt.getUnchecked(i, j) * tmp[i];
       }
-
       result[j] = value;
     }
 

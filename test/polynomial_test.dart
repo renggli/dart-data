@@ -112,9 +112,10 @@ void polynomialTest(String name, PolynomialFormat format) {
           final ys = <double>[2].toVector();
           final actual = Polynomial.lagrange(DataType.float, xs: xs, ys: ys);
           expect(actual.toList(), isCloseTo([2]));
-          verifySamples<double>(DataType.float, actual: actual, xs: xs, ys: ys);
+          verifySamples<double>(DataType.float,
+              actual: actual.evaluate, xs: xs, ys: ys);
           verifyFunction<double>(DataType.float,
-              actual: actual,
+              actual: actual.evaluate,
               expected: (x) => 2,
               range: DoubleRange(0.0, 3.0, 0.1));
         });
@@ -123,9 +124,10 @@ void polynomialTest(String name, PolynomialFormat format) {
           final ys = <double>[1, 5].toVector();
           final actual = Polynomial.lagrange(DataType.float, xs: xs, ys: ys);
           expect(actual.toList(), isCloseTo([-7, 4]));
-          verifySamples<double>(DataType.float, actual: actual, xs: xs, ys: ys);
+          verifySamples<double>(DataType.float,
+              actual: actual.evaluate, xs: xs, ys: ys);
           verifyFunction<double>(DataType.float,
-              actual: actual,
+              actual: actual.evaluate,
               expected: (x) => 4 * x - 7,
               range: DoubleRange(0.0, 4.0, 0.1));
         });
@@ -134,9 +136,10 @@ void polynomialTest(String name, PolynomialFormat format) {
           final ys = <double>[1, 4, 17].toVector();
           final actual = Polynomial.lagrange(DataType.float, xs: xs, ys: ys);
           expect(actual.toList(), isCloseTo([1, -1, 5 / 4]));
-          verifySamples<double>(DataType.float, actual: actual, xs: xs, ys: ys);
+          verifySamples<double>(DataType.float,
+              actual: actual.evaluate, xs: xs, ys: ys);
           verifyFunction<double>(DataType.float,
-              actual: actual,
+              actual: actual.evaluate,
               expected: (x) => 5 / 4 * x * x - x + 1,
               range: DoubleRange(-1.0, 5.0, 0.1));
         });

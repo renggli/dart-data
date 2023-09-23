@@ -31,28 +31,26 @@ abstract mixin class Matrix<T> implements Storage {
       {MatrixFormat? format}) {
     RangeError.checkNotNegative(rowCount, 'rowCount');
     RangeError.checkNotNegative(columnCount, 'columnCount');
-    switch (format ?? MatrixFormat.standard) {
-      case MatrixFormat.rowMajor:
-        return RowMajorMatrix<T>(dataType, rowCount, columnCount);
-      case MatrixFormat.columnMajor:
-        return ColumnMajorMatrix<T>(dataType, rowCount, columnCount);
-      case MatrixFormat.nestedRow:
-        return NestedRowMatrix<T>(dataType, rowCount, columnCount);
-      case MatrixFormat.nestedColumn:
-        return NestedColumnMatrix<T>(dataType, rowCount, columnCount);
-      case MatrixFormat.compressedRow:
-        return CompressedRowMatrix<T>(dataType, rowCount, columnCount);
-      case MatrixFormat.compressedColumn:
-        return CompressedColumnMatrix<T>(dataType, rowCount, columnCount);
-      case MatrixFormat.coordinateList:
-        return CoordinateListMatrix<T>(dataType, rowCount, columnCount);
-      case MatrixFormat.keyed:
-        return KeyedMatrix<T>(dataType, rowCount, columnCount);
-      case MatrixFormat.diagonal:
-        return DiagonalMatrix<T>(dataType, rowCount, columnCount);
-      case MatrixFormat.tensor:
-        return TensorMatrix<T>(dataType, rowCount, columnCount);
-    }
+    return switch (format ?? MatrixFormat.standard) {
+      MatrixFormat.rowMajor =>
+        RowMajorMatrix<T>(dataType, rowCount, columnCount),
+      MatrixFormat.columnMajor =>
+        ColumnMajorMatrix<T>(dataType, rowCount, columnCount),
+      MatrixFormat.nestedRow =>
+        NestedRowMatrix<T>(dataType, rowCount, columnCount),
+      MatrixFormat.nestedColumn =>
+        NestedColumnMatrix<T>(dataType, rowCount, columnCount),
+      MatrixFormat.compressedRow =>
+        CompressedRowMatrix<T>(dataType, rowCount, columnCount),
+      MatrixFormat.compressedColumn =>
+        CompressedColumnMatrix<T>(dataType, rowCount, columnCount),
+      MatrixFormat.coordinateList =>
+        CoordinateListMatrix<T>(dataType, rowCount, columnCount),
+      MatrixFormat.keyed => KeyedMatrix<T>(dataType, rowCount, columnCount),
+      MatrixFormat.diagonal =>
+        DiagonalMatrix<T>(dataType, rowCount, columnCount),
+      MatrixFormat.tensor => TensorMatrix<T>(dataType, rowCount, columnCount),
+    };
   }
 
   /// Returns the horizontal concatenation of [matrices].

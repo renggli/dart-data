@@ -21,16 +21,12 @@ abstract mixin class Vector<T> implements Storage {
   /// element [count], and possibly a custom [format].
   factory Vector(DataType<T> dataType, int count, {VectorFormat? format}) {
     RangeError.checkNotNegative(count, 'count');
-    switch (format ?? VectorFormat.standard) {
-      case VectorFormat.list:
-        return ListVector<T>(dataType, count);
-      case VectorFormat.compressed:
-        return CompressedVector<T>(dataType, count);
-      case VectorFormat.keyed:
-        return KeyedVector<T>(dataType, count);
-      case VectorFormat.tensor:
-        return TensorVector<T>(dataType, count);
-    }
+    return switch (format ?? VectorFormat.standard) {
+      VectorFormat.list => ListVector<T>(dataType, count),
+      VectorFormat.compressed => CompressedVector<T>(dataType, count),
+      VectorFormat.keyed => KeyedVector<T>(dataType, count),
+      VectorFormat.tensor => TensorVector<T>(dataType, count),
+    };
   }
 
   /// Returns the concatenation of [vectors].

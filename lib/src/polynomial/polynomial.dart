@@ -23,16 +23,13 @@ abstract mixin class Polynomial<T> implements Storage {
   /// custom [format].
   factory Polynomial(DataType<T> dataType,
       {int desiredDegree = -1, PolynomialFormat? format}) {
-    switch (format ?? PolynomialFormat.standard) {
-      case PolynomialFormat.list:
-        return ListPolynomial<T>(dataType, desiredDegree);
-      case PolynomialFormat.compressed:
-        return CompressedPolynomial<T>(dataType);
-      case PolynomialFormat.keyed:
-        return KeyedPolynomial<T>(dataType);
-      case PolynomialFormat.external:
-        return ExternalPolynomial<T>(dataType, desiredDegree);
-    }
+    return switch (format ?? PolynomialFormat.standard) {
+      PolynomialFormat.list => ListPolynomial<T>(dataType, desiredDegree),
+      PolynomialFormat.compressed => CompressedPolynomial<T>(dataType),
+      PolynomialFormat.keyed => KeyedPolynomial<T>(dataType),
+      PolynomialFormat.external =>
+        ExternalPolynomial<T>(dataType, desiredDegree),
+    };
   }
 
   /// Generates a polynomial from calling a [callback] on every value. If
@@ -174,7 +171,10 @@ abstract mixin class Polynomial<T> implements Storage {
   void setUnchecked(int exponent, T value);
 
   /// Evaluates the polynomial at [value].
-  T call(T value) {
+  T call(T value) => evaluate(value);
+
+  /// Evaluates the polynomial at [value].
+  T evaluate(T value) {
     var exponent = degree;
     if (exponent < 0) {
       return dataType.defaultValue;

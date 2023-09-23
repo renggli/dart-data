@@ -113,17 +113,13 @@ extension ConvolutionMatrixExtension<T> on Matrix<T> {
     Matrix<T> kernel, {
     DataType<T>? dataType,
     MatrixConvolution mode = MatrixConvolution.full,
-  }) {
-    switch (mode) {
-      case MatrixConvolution.full:
-        return FullConvolutionMatrix<T>(
-            dataType ?? this.dataType, this, kernel);
-      case MatrixConvolution.valid:
-        return ValidConvolutionMatrix<T>(
-            dataType ?? this.dataType, this, kernel);
-      case MatrixConvolution.same:
-        return SameConvolutionMatrix<T>(
-            dataType ?? this.dataType, this, kernel);
-    }
-  }
+  }) =>
+      switch (mode) {
+        MatrixConvolution.full =>
+          FullConvolutionMatrix<T>(dataType ?? this.dataType, this, kernel),
+        MatrixConvolution.valid =>
+          ValidConvolutionMatrix<T>(dataType ?? this.dataType, this, kernel),
+        MatrixConvolution.same =>
+          SameConvolutionMatrix<T>(dataType ?? this.dataType, this, kernel)
+      };
 }

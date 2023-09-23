@@ -37,7 +37,7 @@ class PolynomialRegression extends CurveFit {
 }
 
 class PolynomialRegressionResult extends CurveFitResult {
-  PolynomialRegressionResult(this.polynomial) : super(polynomial);
+  PolynomialRegressionResult(this.polynomial) : super(polynomial.evaluate);
 
   final Polynomial<double> polynomial;
 }

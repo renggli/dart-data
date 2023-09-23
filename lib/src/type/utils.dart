@@ -6,28 +6,17 @@ import 'impl/integer.dart';
 import 'type.dart';
 
 /// Derives a fitting [DataType] from [T].
-DataType<T> fromType<T>() {
-  switch (T) {
-    case double:
-      return DataType.float as DataType<T>;
-    case int:
-      return DataType.integer as DataType<T>;
-    case bool:
-      return DataType.boolean as DataType<T>;
-    case String:
-      return DataType.string as DataType<T>;
-    case BigInt:
-      return DataType.bigInt as DataType<T>;
-    case Fraction:
-      return DataType.fraction as DataType<T>;
-    case Complex:
-      return DataType.complex as DataType<T>;
-    case Quaternion:
-      return DataType.quaternion as DataType<T>;
-    default:
-      return DataType.object as DataType<T>;
-  }
-}
+DataType<T> fromType<T>() => switch (T) {
+      == bool => DataType.boolean as DataType<T>,
+      == double => DataType.float as DataType<T>,
+      == int => DataType.integer as DataType<T>,
+      == BigInt => DataType.bigInt as DataType<T>,
+      == Complex => DataType.complex as DataType<T>,
+      == Fraction => DataType.fraction as DataType<T>,
+      == Quaternion => DataType.quaternion as DataType<T>,
+      == String => DataType.string as DataType<T>,
+      _ => DataType.dynamicType as DataType<T>,
+    };
 
 /// Derives a fitting [DataType] from [instance].
 DataType<T> fromInstance<T>(T instance) => fromType<T>();

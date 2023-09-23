@@ -89,17 +89,13 @@ extension ConvolutionVectorExtension<T> on Vector<T> {
     Vector<T> kernel, {
     DataType<T>? dataType,
     VectorConvolution mode = VectorConvolution.full,
-  }) {
-    switch (mode) {
-      case VectorConvolution.full:
-        return FullConvolutionVector<T>(
-            dataType ?? this.dataType, this, kernel);
-      case VectorConvolution.valid:
-        return ValidConvolutionVector<T>(
-            dataType ?? this.dataType, this, kernel);
-      case VectorConvolution.same:
-        return SameConvolutionVector<T>(
-            dataType ?? this.dataType, this, kernel);
-    }
-  }
+  }) =>
+      switch (mode) {
+        VectorConvolution.full =>
+          FullConvolutionVector<T>(dataType ?? this.dataType, this, kernel),
+        VectorConvolution.valid =>
+          ValidConvolutionVector<T>(dataType ?? this.dataType, this, kernel),
+        VectorConvolution.same =>
+          SameConvolutionVector<T>(dataType ?? this.dataType, this, kernel)
+      };
 }

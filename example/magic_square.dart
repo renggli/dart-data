@@ -86,7 +86,7 @@ const List<String> columns = [
 void main() {
   final eps = math.pow(2.0, -52.0);
 
-  stdout.writeln(columns.map(alignPrinter(width)).join());
+  stdout.writeln(columns.map(alignPrinter(width).print).join());
   stdout.writeln();
 
   for (var n = 3; n <= 128; n++) {
@@ -168,6 +168,6 @@ void main() {
       assert(t.round() == (n * n * n + n) / 2, 'invalid inverse magic sum');
     }
 
-    stdout.writeln(buffer.map(alignPrinter(width)).join());
+    stdout.writeln(buffer.map(alignPrinter(width).print).join());
   }
 }
