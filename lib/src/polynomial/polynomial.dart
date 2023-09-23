@@ -22,15 +22,14 @@ abstract mixin class Polynomial<T> implements Storage {
   /// Constructs a default vector of the desired [dataType], and possibly a
   /// custom [format].
   factory Polynomial(DataType<T> dataType,
-      {int desiredDegree = -1, PolynomialFormat? format}) {
-    return switch (format ?? PolynomialFormat.standard) {
-      PolynomialFormat.list => ListPolynomial<T>(dataType, desiredDegree),
-      PolynomialFormat.compressed => CompressedPolynomial<T>(dataType),
-      PolynomialFormat.keyed => KeyedPolynomial<T>(dataType),
-      PolynomialFormat.external =>
-        ExternalPolynomial<T>(dataType, desiredDegree),
-    };
-  }
+          {int desiredDegree = -1, PolynomialFormat? format}) =>
+      switch (format ?? PolynomialFormat.standard) {
+        PolynomialFormat.list => ListPolynomial<T>(dataType, desiredDegree),
+        PolynomialFormat.compressed => CompressedPolynomial<T>(dataType),
+        PolynomialFormat.keyed => KeyedPolynomial<T>(dataType),
+        PolynomialFormat.external =>
+          ExternalPolynomial<T>(dataType, desiredDegree),
+      };
 
   /// Generates a polynomial from calling a [callback] on every value. If
   /// [format] is specified the resulting polynomial is mutable, otherwise this
@@ -92,14 +91,13 @@ abstract mixin class Polynomial<T> implements Storage {
   }
 
   /// Builds a Lagrange [Polynomial] through the unique sample points [xs] and
-  /// [ys]. Related to [lagrangeInterpolation].
+  /// [ys].
   ///
   /// See https://en.wikipedia.org/wiki/Lagrange_polynomial.
   factory Polynomial.lagrange(
     DataType<T> dataType, {
     required Vector<T> xs,
     required Vector<T> ys,
-    PolynomialFormat? format,
   }) {
     checkPoints<T>(dataType, xs: xs, ys: ys, min: 1, unique: true);
     final sub = dataType.field.sub, div = dataType.field.div;

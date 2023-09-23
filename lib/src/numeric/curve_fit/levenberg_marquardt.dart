@@ -107,7 +107,7 @@ class LevenbergMarquardt extends CurveFit {
     final squaredWeights =
         weights.map((i, v) => v * v, DataType.float).toVector();
 
-    var parameters = initialValues.toVector();
+    final parameters = initialValues.toVector();
     var error = _errorCalculation(parametrizedFunction.bind(parameters),
         x: xs, y: ys, squaredWeights: squaredWeights);
     var optimalError = error;
@@ -117,7 +117,7 @@ class LevenbergMarquardt extends CurveFit {
 
     var iteration = 0;
     for (; iteration < maxIterations && !converged; iteration++) {
-      var previousError = error;
+      final previousError = error;
 
       final stepResult = _step(
         x: xs,
@@ -147,7 +147,7 @@ class LevenbergMarquardt extends CurveFit {
         optimalParameters = parameters.toVector();
       }
 
-      var improvementMetric = (previousError - error) /
+      final improvementMetric = (previousError - error) /
           (perturbations.transposed *
                   (perturbations * currentDamping +
                       jacobianWeightResidualError))
@@ -195,26 +195,27 @@ class LevenbergMarquardt extends CurveFit {
     required Vector<double> squaredWeights,
   }) {
     final function = parametrizedFunction.bind(params);
-    var identity = Matrix.identity(DataType.float64, params.count, params.count,
+    final identity = Matrix.identity(
+        DataType.float64, params.count, params.count,
         value: currentDamping);
-    var evaluatedData =
+    final evaluatedData =
         Vector.generate(DataType.float64, x.count, (i) => function(x[i]));
 
-    var gradientFunc = _gradientFunction(
+    final gradientFunc = _gradientFunction(
       x: x,
       y: y,
       evaluatedData: evaluatedData,
       params: params,
     );
-    var residualError =
+    final residualError =
         _matrixFunction(x: x, y: y, evaluatedData: evaluatedData);
     final inverseMatrix = (identity +
             gradientFunc.mulMatrix(gradientFunc.transposed
                 .applyByRow(identity.dataType.field.mul, squaredWeights)))
         .inverse;
-    var jacobianWeightResidualError = gradientFunc.mulMatrix(
+    final jacobianWeightResidualError = gradientFunc.mulMatrix(
         residualError.applyByRow(identity.dataType.field.mul, squaredWeights));
-    var perturbations = inverseMatrix.mulMatrix(jacobianWeightResidualError);
+    final perturbations = inverseMatrix.mulMatrix(jacobianWeightResidualError);
     return (perturbations, jacobianWeightResidualError);
   }
 
@@ -237,7 +238,7 @@ class LevenbergMarquardt extends CurveFit {
       auxParams[param] += delta;
       final funcParam = parametrizedFunction.bind(auxParams);
       if (centralDifference) {
-        var auxParams2 = params.toVector();
+        final auxParams2 = params.toVector();
         auxParams2[param] -= delta;
         delta *= 2;
         final funcParam2 = parametrizedFunction.bind(auxParams2);

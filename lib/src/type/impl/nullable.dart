@@ -4,7 +4,7 @@ import 'package:collection/collection.dart' show NonGrowableListMixin;
 import 'package:more/collection.dart' show BitList;
 import 'package:more/comparator.dart';
 import 'package:more/functional.dart';
-import 'package:more/printer.dart' show Printer, NullPrinterExtension;
+import 'package:more/printer.dart' show NullPrinterExtension, Printer;
 
 import '../type.dart';
 

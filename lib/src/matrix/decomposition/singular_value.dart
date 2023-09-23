@@ -89,7 +89,7 @@ class SingularValueDecomposition {
 
   /// Gets the condition number max(S) / min(S).
   double get cond {
-    var tmp = min(_u.rowCount, _vt.colCount) - 1;
+    final tmp = min(_u.rowCount, _vt.colCount) - 1;
     return _s[0].abs() / _s[tmp].abs();
   }
 
@@ -100,7 +100,7 @@ class SingularValueDecomposition {
     }
 
     var det = 1.0;
-    for (var value in _s.iterable) {
+    for (final value in _s.iterable) {
       det *= value;
       if (_almostEqual(value.abs(), 0.0)) {
         return 0;
@@ -145,7 +145,7 @@ class SingularValueDecomposition {
     final lu = max(nct, nrt);
 
     for (var l = 0; l < lu; l++) {
-      var lp1 = l + 1;
+      final lp1 = l + 1;
       if (l < nct) {
         // Compute the transformation for the l-th column and place the l-th
         // diagonal in vector s[l].
@@ -243,7 +243,7 @@ class SingularValueDecomposition {
         }
 
         for (var j = lp1; j < columnsA; j++) {
-          var ww = -e[j] / e[lp1];
+          final ww = -e[j] / e[lp1];
           for (var ii = lp1; ii < rowsA; ii++) {
             a[(j * rowsA) + ii] += ww * work[ii];
           }
@@ -326,7 +326,7 @@ class SingularValueDecomposition {
     // If it is required, generate v.
     if (computeVectors) {
       for (var l = columnsA - 1; l >= 0; l--) {
-        var lp1 = l + 1;
+        final lp1 = l + 1;
         if (l < nrt) {
           if (e[l] != 0.0) {
             for (var j = lp1; j < columnsA; j++) {
@@ -394,7 +394,7 @@ class SingularValueDecomposition {
     }
 
     // Main iteration loop for the singular values.
-    var mn = m;
+    final mn = m;
     var iter = 0;
 
     while (m > 0) {
@@ -489,7 +489,7 @@ class SingularValueDecomposition {
             if (computeVectors) {
               // Rotate
               for (var i = 0; i < columnsA; i++) {
-                var z = (cs * v[(k * columnsA) + i]) +
+                final z = (cs * v[(k * columnsA) + i]) +
                     (sn * v[((m - 1) * columnsA) + i]);
                 v[((m - 1) * columnsA) + i] =
                     (cs * v[((m - 1) * columnsA) + i]) -
@@ -517,7 +517,7 @@ class SingularValueDecomposition {
             if (computeVectors) {
               // Rotate
               for (var i = 0; i < rowsA; i++) {
-                var z =
+                final z =
                     (cs * u[(k * rowsA) + i]) + (sn * u[((l - 1) * rowsA) + i]);
                 u[((l - 1) * rowsA) + i] =
                     (cs * u[((l - 1) * rowsA) + i]) - (sn * u[(k * rowsA) + i]);
@@ -536,13 +536,13 @@ class SingularValueDecomposition {
           scale = max(scale, e[m - 2].abs());
           scale = max(scale, stemp[l].abs());
           scale = max(scale, e[l].abs());
-          var sm = stemp[m - 1] / scale;
-          var smm1 = stemp[m - 2] / scale;
-          var emm1 = e[m - 2] / scale;
-          var sl = stemp[l] / scale;
-          var el = e[l] / scale;
-          var b = (((smm1 + sm) * (smm1 - sm)) + (emm1 * emm1)) / 2.0;
-          var c = (sm * emm1) * (sm * emm1);
+          final sm = stemp[m - 1] / scale;
+          final smm1 = stemp[m - 2] / scale;
+          final emm1 = e[m - 2] / scale;
+          final sl = stemp[l] / scale;
+          final el = e[l] / scale;
+          final b = (((smm1 + sm) * (smm1 - sm)) + (emm1 * emm1)) / 2.0;
+          final c = (sm * emm1) * (sm * emm1);
           var shift = 0.0;
           if (b != 0.0 || c != 0.0) {
             shift = sqrt((b * b) + c);
@@ -574,7 +574,7 @@ class SingularValueDecomposition {
             stemp[k + 1] = cs * stemp[k + 1];
             if (computeVectors) {
               for (var i = 0; i < columnsA; i++) {
-                var z = (cs * v[(k * columnsA) + i]) +
+                final z = (cs * v[(k * columnsA) + i]) +
                     (sn * v[((k + 1) * columnsA) + i]);
                 v[((k + 1) * columnsA) + i] =
                     (cs * v[((k + 1) * columnsA) + i]) -
@@ -596,7 +596,7 @@ class SingularValueDecomposition {
             e[k + 1] = cs * e[k + 1];
             if (computeVectors && k < rowsA) {
               for (var i = 0; i < rowsA; i++) {
-                var z =
+                final z =
                     (cs * u[(k * rowsA) + i]) + (sn * u[((k + 1) * rowsA) + i]);
                 u[((k + 1) * rowsA) + i] =
                     (cs * u[((k + 1) * rowsA) + i]) - (sn * u[(k * rowsA) + i]);
@@ -635,8 +635,8 @@ class SingularValueDecomposition {
             if (computeVectors && l < columnsA) {
               // Swap columns l, l + 1
               for (var i = 0; i < columnsA; i++) {
-                var a = v[((l + 1) * columnsA) + i];
-                var b = v[(l * columnsA) + i];
+                final a = v[((l + 1) * columnsA) + i];
+                final b = v[(l * columnsA) + i];
                 v[(l * columnsA) + i] = a;
                 v[((l + 1) * columnsA) + i] = b;
               }
@@ -645,8 +645,8 @@ class SingularValueDecomposition {
             if (computeVectors && l < rowsA) {
               // Swap columns l, l + 1
               for (var i = 0; i < rowsA; i++) {
-                var a = u[((l + 1) * rowsA) + i];
-                var b = u[(l * rowsA) + i];
+                final a = u[((l + 1) * rowsA) + i];
+                final b = u[(l * rowsA) + i];
                 u[(l * rowsA) + i] = a;
                 u[((l + 1) * rowsA) + i] = b;
               }
@@ -699,9 +699,9 @@ class SingularValueDecomposition {
 
     final result =
         Matrix<double>(DataType.float64, _vt.colCount, input.colCount);
-    var mn = min(_u.rowCount, _vt.colCount);
-    var bn = input.colCount;
-    var tmp = List.filled(_vt.colCount, 0.0);
+    final mn = min(_u.rowCount, _vt.colCount);
+    final bn = input.colCount;
+    final tmp = List.filled(_vt.colCount, 0.0);
 
     for (var k = 0; k < bn; k++) {
       for (var j = 0; j < _vt.colCount; j++) {
@@ -737,8 +737,8 @@ class SingularValueDecomposition {
 
     final result = Vector<double>(DataType.float64, _vt.colCount);
 
-    var mn = min(_u.rowCount, _vt.colCount);
-    var tmp = List.filled(_vt.colCount, 0.0);
+    final mn = min(_u.rowCount, _vt.colCount);
+    final tmp = List.filled(_vt.colCount, 0.0);
     double value;
     for (var j = 0; j < _vt.colCount; j++) {
       value = 0;
@@ -836,7 +836,7 @@ class SingularValueDecomposition {
       return value * _defaultDoubleAccuracy;
     }
 
-    var byteData = ByteData(8);
+    final byteData = ByteData(8);
     byteData.setFloat64(0, value);
     var signed64 = byteData.getInt64(0);
     if (signed64 == 0) {

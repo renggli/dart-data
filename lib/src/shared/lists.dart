@@ -1,4 +1,3 @@
-/// Shared operations on lists.
 import 'dart:math' as math;
 
 import '../../type.dart';

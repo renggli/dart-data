@@ -460,7 +460,7 @@ void main() {
         -Complex.one,
         -Complex.i,
       ];
-      for (var value in values) {
+      for (final value in values) {
         final source = [value];
         final forward = fft([...source]);
         expect(forward, isCloseTo(source));

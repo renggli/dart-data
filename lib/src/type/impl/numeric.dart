@@ -1,6 +1,6 @@
 import 'dart:math' as math;
 
-import 'package:more/number.dart' show Fraction, CloseToNumExtension;
+import 'package:more/number.dart' show CloseToNumExtension, Fraction;
 
 import '../models/equality.dart';
 import '../models/field.dart';

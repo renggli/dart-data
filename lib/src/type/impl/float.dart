@@ -1,7 +1,7 @@
 import 'dart:math' as math;
 import 'dart:typed_data';
 
-import 'package:more/number.dart' show Fraction, CloseToNumExtension;
+import 'package:more/number.dart' show CloseToNumExtension, Fraction;
 import 'package:more/printer.dart'
     show Printer, ScientificNumberPrinter, SignNumberPrinter;
 

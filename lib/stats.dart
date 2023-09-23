@@ -1,4 +1,6 @@
 /// Statistical computations and algorithms.
+library stats;
+
 export 'src/stats/distribution.dart';
 export 'src/stats/distributions/continuous.dart';
 export 'src/stats/distributions/continuous/degenerate.dart';

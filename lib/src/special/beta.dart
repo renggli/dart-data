@@ -34,7 +34,9 @@ double ibeta(num x, num a, num b) {
 
 /// Inverse of the incomplete beta function.
 double ibetaInv(num p, num a, num b) {
-  var epsilon = 1.0e-8, a1 = a - 1.0, b1 = b - 1.0;
+  const epsilon = 1.0e-8;
+  final a1 = a - 1.0;
+  final b1 = b - 1.0;
   if (p <= 0.0) {
     return 0.0;
   }
@@ -43,35 +45,35 @@ double ibetaInv(num p, num a, num b) {
   }
   var x = 0.0;
   if (a >= 1.0 && b >= 1.0) {
-    var pp = (p < 0.5) ? p : 1 - p;
-    var t = sqrt(-2 * log(pp));
+    final pp = (p < 0.5) ? p : 1 - p;
+    final t = sqrt(-2 * log(pp));
     x = (2.30753 + t * 0.27061) / (1 + t * (0.99229 + t * 0.04481)) - t;
     if (p < 0.5) {
       x = -x;
     }
-    var al = (x * x - 3) / 6;
-    var h = 2 / (1 / (2 * a - 1) + 1 / (2 * b - 1));
-    var w = (x * sqrt(al + h) / h) -
+    final al = (x * x - 3) / 6;
+    final h = 2 / (1 / (2 * a - 1) + 1 / (2 * b - 1));
+    final w = (x * sqrt(al + h) / h) -
         (1 / (2 * b - 1) - 1 / (2 * a - 1)) * (al + 5 / 6 - 2 / (3 * h));
     x = a / (a + b * exp(2 * w));
   } else {
-    var lna = log(a / (a + b));
-    var lnb = log(b / (a + b));
-    var t = exp(a * lna) / a;
-    var u = exp(b * lnb) / b;
-    var w = t + u;
+    final lna = log(a / (a + b));
+    final lnb = log(b / (a + b));
+    final t = exp(a * lna) / a;
+    final u = exp(b * lnb) / b;
+    final w = t + u;
     if (p < t / w) {
       x = pow(a * w * p, 1 / a).toDouble();
     } else {
       x = 1.0 - pow(b * w * (1 - p), 1 / b);
     }
   }
-  var afac = -gammaLn(a) - gammaLn(b) + gammaLn(a + b);
+  final afac = -gammaLn(a) - gammaLn(b) + gammaLn(a + b);
   for (var j = 0; j < 10; j++) {
     if (x == 0 || x == 1) return x;
-    var err = ibeta(x, a, b) - p;
+    final err = ibeta(x, a, b) - p;
     var t = exp(a1 * log(x) + b1 * log(1 - x) + afac);
-    var u = err / t;
+    final u = err / t;
     x -= (t = u / (1 - 0.5 * min(1, u * (a1 / x - b1 / (1 - x)))));
     if (x <= 0) {
       x = 0.5 * (x + t);

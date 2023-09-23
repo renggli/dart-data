@@ -1,4 +1,6 @@
 /// All data packages in a single import.
+library data;
+
 export 'matrix.dart';
 export 'numeric.dart';
 export 'polynomial.dart';

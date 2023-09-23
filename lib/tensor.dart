@@ -1,3 +1,6 @@
+/// Tensor data structure.
+library tensor;
+
 export 'src/tensor/errors.dart';
 export 'src/tensor/layout.dart';
 export 'src/tensor/operations/broadcast.dart';

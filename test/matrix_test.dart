@@ -526,9 +526,8 @@ void matrixTest(String name, MatrixFormat format) {
     });
     group('view', () {
       test('copy', () {
-        final source = Matrix.generate(
-            pointType, 8, 6, (row, col) => Point(row, col),
-            format: format);
+        final source =
+            Matrix.generate(pointType, 8, 6, Point.new, format: format);
         final copy = source.toMatrix(format: format);
         expect(copy.dataType, source.dataType);
         expect(copy.rowCount, source.rowCount);
@@ -660,9 +659,8 @@ void matrixTest(String name, MatrixFormat format) {
         });
       });
       group('range', () {
-        final source = Matrix.generate(
-            pointType, 7, 8, (row, col) => Point(row, col),
-            format: format);
+        final source =
+            Matrix.generate(pointType, 7, 8, Point.new, format: format);
         test('row', () {
           final range = source.rowRange(1, 3);
           expect(range.dataType, source.dataType);
@@ -745,9 +743,8 @@ void matrixTest(String name, MatrixFormat format) {
         });
       });
       group('index', () {
-        final source = Matrix.generate(
-            pointType, 6, 4, (row, col) => Point(row, col),
-            format: format);
+        final source =
+            Matrix.generate(pointType, 6, 4, Point.new, format: format);
         test('row', () {
           final index = source.rowIndex([5, 0, 4]);
           expect(index.dataType, source.dataType);
@@ -920,9 +917,8 @@ void matrixTest(String name, MatrixFormat format) {
         });
       });
       group('transform', () {
-        final source = Matrix.generate(
-            pointType, 3, 4, (row, col) => Point(row, col),
-            format: format);
+        final source =
+            Matrix.generate(pointType, 3, 4, Point.new, format: format);
         test('to string', () {
           final mapped = source.map(
               (row, col, value) => '${value.x + 10 * value.y}',
@@ -1342,8 +1338,8 @@ void matrixTest(String name, MatrixFormat format) {
         });
       });
       test('rows', () {
-        final source = Matrix.generate(pointType, 7, 5, (r, c) => Point(r, c),
-            format: format);
+        final source =
+            Matrix.generate(pointType, 7, 5, Point.new, format: format);
         var r = 0;
         for (final row in source.rows) {
           expect(row.dataType, source.dataType);
@@ -1357,8 +1353,8 @@ void matrixTest(String name, MatrixFormat format) {
         expect(r, source.rowCount);
       });
       test('columns', () {
-        final source = Matrix.generate(pointType, 5, 8, (r, c) => Point(r, c),
-            format: format);
+        final source =
+            Matrix.generate(pointType, 5, 8, Point.new, format: format);
         var c = 0;
         for (final column in source.columns) {
           expect(column.dataType, source.dataType);

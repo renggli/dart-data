@@ -3,7 +3,7 @@ import 'dart:typed_data';
 
 import 'package:more/feature.dart' show isJavaScript;
 import 'package:more/number.dart' show Fraction;
-import 'package:more/printer.dart' show Printer, FixedNumberPrinter;
+import 'package:more/printer.dart' show FixedNumberPrinter, Printer;
 
 import '../models/equality.dart';
 import '../models/field.dart';

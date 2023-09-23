@@ -16,7 +16,7 @@ extension ExpandLayoutExtension on Layout {
     final shape_ = [...shape.take(axis_), 1, ...shape.skip(axis_)];
     final strides_ = [
       ...strides.take(axis_),
-      axis_ < rank ? strides[axis_] : 1,
+      if (axis_ < rank) strides[axis_] else 1,
       ...strides.skip(axis_),
     ];
     return Layout.internal(

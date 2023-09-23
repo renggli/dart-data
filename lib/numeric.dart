@@ -1,4 +1,6 @@
 /// Numeric algorithms and solutions.
+library numeric;
+
 export 'src/numeric/curve_fit.dart';
 export 'src/numeric/curve_fit/levenberg_marquardt.dart';
 export 'src/numeric/curve_fit/polynomial_regression.dart';

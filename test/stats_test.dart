@@ -34,7 +34,7 @@ void testSamples<T extends num>(
         .map((each) => distribution.inverseCumulativeProbability(each))
         .toList();
     final bucketCount = buckets.length + 1;
-    for (var sample in samples) {
+    for (final sample in samples) {
       for (var k = 0; k <= buckets.length; k++) {
         if (k == buckets.length || sample < buckets[k]) {
           histogram.add(k);

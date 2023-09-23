@@ -1,3 +1,5 @@
+// ignore_for_file: prefer_final_locals
+
 import 'dart:math';
 
 /// Returns an approximation of the gamma function, for details see
@@ -75,7 +77,7 @@ double gammap(num a, num x) => lowRegGamma(a, x) * gamma(a);
 double gammapInv(num p, num a) {
   const epsilon = 1.0e-8;
   final a1 = a - 1.0;
-  var gln = gammaLn(a);
+  final gln = gammaLn(a);
   var x = 0.0;
   var afac = 0.0;
   var lna1 = 0.0;
@@ -150,7 +152,7 @@ double lowRegGamma(num a, num x) {
     d = 1.0 / d;
     h *= d * c;
   }
-  return 1.0 - h * exp(-x + a * log(x) - (aln));
+  return 1.0 - h * exp(-x + a * log(x) - aln);
 }
 
 /// Returns the factorial based on the [gamma] function.

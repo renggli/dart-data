@@ -4,7 +4,7 @@ import '../../shared/checks.dart';
 import '../functions.dart';
 
 /// A function providing a Lagrange polynomial interpolation through the unique
-/// sample points [xs] and [ys]. Related to [Polynomial.lagrange].
+/// sample points [xs] and [ys].
 ///
 /// See https://en.wikipedia.org/wiki/Lagrange_polynomial.
 UnaryFunction<T> lagrangeInterpolation<T>(

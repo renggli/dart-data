@@ -5,7 +5,7 @@ import 'package:data/vector.dart';
 import 'package:more/number.dart';
 import 'package:test/test.dart';
 
-/// Returns [true], if assertions are enabled.
+/// Returns `true`, if assertions are enabled.
 bool hasAssertionsEnabled() {
   try {
     assert(false);

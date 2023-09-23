@@ -164,7 +164,7 @@ abstract class DataType<T> {
     return readonly ? UnmodifiableListView<T>(result) : result;
   }
 
-  /// Casts an existing [iterable] to this data type.
+  /// Casts an existing [elements] to this data type.
   List<T> castList(Iterable<Object?> elements) {
     final list = newList(elements.length);
     final it = elements.iterator;
