@@ -862,6 +862,16 @@ void vectorTest(String name, VectorFormat format) {
         }
         expect(sourceA.dot(sourceB), expected);
       });
+      test('cross', () {
+        final a = Vector.fromList(DataType.integer, [1, 2, 0]);
+        final b = Vector.fromList(DataType.integer, [4, 5, 6]);
+        final r = a.cross(b);
+        expect(r.dataType, a.dataType);
+        expect(r.count, a.count);
+        expect(r[0], 12);
+        expect(r[1], -6);
+        expect(r[2], -3);
+      });
       test('sum', () {
         final source =
             Vector.fromList(DataType.uint8, [1, 2, 3, 4], format: format);
