@@ -1,6 +1,5 @@
 import 'dart:math';
 
-import 'package:more/interval.dart';
 import 'package:more/printer.dart';
 
 import '../../../special/gamma.dart';
@@ -24,7 +23,7 @@ class WeibullDistribution extends ContinuousDistribution {
   final double shape;
 
   @override
-  Interval<double> get support => Interval<double>.atLeast(0.0);
+  double get lowerBound => 0.0;
 
   @override
   double get mean => scale * gamma(1 + 1 / shape);

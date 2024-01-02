@@ -1,6 +1,5 @@
 import 'dart:math';
 
-import 'package:more/interval.dart';
 import 'package:more/printer.dart';
 
 import '../../../special/gamma.dart';
@@ -28,7 +27,10 @@ class BinomialDistribution extends DiscreteDistribution {
   double get q => 1 - p;
 
   @override
-  Interval<int> get support => Interval<int>.closed(0, n);
+  int get lowerBound => 0;
+
+  @override
+  int get upperBound => n;
 
   @override
   double get mean => n * p;

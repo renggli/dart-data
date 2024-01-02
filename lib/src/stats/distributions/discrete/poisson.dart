@@ -1,6 +1,5 @@
 import 'dart:math';
 
-import 'package:more/interval.dart';
 import 'package:more/printer.dart';
 
 import '../../../special/gamma.dart';
@@ -21,7 +20,7 @@ class PoissonDistribution extends DiscreteDistribution {
   final double lambda;
 
   @override
-  Interval<int> get support => Interval<int>.atLeast(0);
+  int get lowerBound => 0;
 
   @override
   double get mean => lambda;

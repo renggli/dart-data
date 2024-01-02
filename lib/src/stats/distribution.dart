@@ -10,9 +10,6 @@ import 'distributions/errors.dart';
 abstract class Distribution<T> with ToStringPrinter {
   const Distribution();
 
-  /// Returns the domain of the distribution.
-  Interval<T> get support => Interval<T>.all();
-
   /// Returns the lower boundary of the distribution.
   T get lowerBound;
 

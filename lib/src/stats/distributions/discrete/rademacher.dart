@@ -1,7 +1,5 @@
 import 'dart:math';
 
-import 'package:more/interval.dart';
-
 import '../continuous/uniform.dart';
 import '../discrete.dart';
 
@@ -14,7 +12,10 @@ class RademacherDistribution extends DiscreteDistribution {
   const RademacherDistribution();
 
   @override
-  Interval<int> get support => Interval<int>.closed(-1, 1);
+  int get lowerBound => -1;
+
+  @override
+  int get upperBound => 1;
 
   @override
   double get mean => 0;

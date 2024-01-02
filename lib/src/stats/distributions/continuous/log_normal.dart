@@ -1,6 +1,5 @@
 import 'dart:math';
 
-import 'package:more/interval.dart';
 import 'package:more/printer.dart';
 
 import '../../../special/erf.dart';
@@ -24,7 +23,7 @@ class LogNormalDistribution extends ContinuousDistribution {
   final double sigma;
 
   @override
-  Interval<double> get support => Interval<double>.greaterThan(0.0);
+  double get lowerBound => double.minPositive;
 
   @override
   double get mean => exp(mu + sigma * sigma / 2);
