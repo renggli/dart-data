@@ -2,7 +2,7 @@ import 'dart:collection' show ListBase;
 import 'dart:math';
 
 import 'package:collection/collection.dart' show NonGrowableListMixin;
-import 'package:more/collection.dart' show IntegerRange;
+import 'package:more/collection.dart' show IndicesIterableExtension;
 import 'package:more/printer.dart' show ObjectPrinter, ToStringPrinter;
 
 import '../special/erf.dart';
@@ -28,7 +28,8 @@ class Jackknife<T> with ToStringPrinter {
   final double confidenceLevel;
 
   /// The resamples of the data.
-  late final List<List<T>> resamples = IntegerRange(samples.length)
+  late final List<List<T>> resamples = samples
+      .indices()
       .map((index) => _JackknifeResampling<T>(samples, index))
       .toList();
 

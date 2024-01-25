@@ -24,7 +24,7 @@ extension TransposeLayoutExtension on Layout {
   Layout transpose({Iterable<int>? axes}) {
     final axes_ = axes != null
         ? axes.map((index) => checkIndex(index, rank, 'axes')).toList()
-        : IntegerRange(rank).reversed;
+        : IntegerRange.length(rank).reversed;
     final shape_ = utils.toIndices(axes_.map((each) => shape[each]));
     final strides_ = utils.toIndices(axes_.map((each) => strides[each]));
     return Layout.internal(
@@ -41,7 +41,7 @@ extension TransposeLayoutExtension on Layout {
   Layout swapAxes(int first, int second) {
     final first_ = checkIndex(first, rank, 'first');
     final second_ = checkIndex(second, rank, 'second');
-    final axes = IntegerRange(rank).toList();
+    final axes = IntegerRange.length(rank).toList();
     axes[first_] = second_;
     axes[second_] = first_;
     return transpose(axes: axes);
@@ -51,7 +51,7 @@ extension TransposeLayoutExtension on Layout {
   Layout moveAxes(int source, int target) {
     final source_ = checkIndex(source, rank, 'source');
     final target_ = checkIndex(target, rank, 'target');
-    final axes = IntegerRange(rank).toList();
+    final axes = IntegerRange.length(rank).toList();
     axes.removeAt(source_);
     axes.insert(target_, source_);
     return transpose(axes: axes);

@@ -97,7 +97,7 @@ class Layout with ToStringPrinter {
           ? const []
           : [offset]
       : isContiguous
-          ? IntegerRange(offset, offset + length)
+          ? IntegerRange.length(length, start: offset)
           : IndexIterable(this);
 
   /// An iterable over the keys of this layout.

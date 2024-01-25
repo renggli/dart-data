@@ -39,22 +39,22 @@ extension IndexMatrixExtension<T> on Matrix<T> {
   /// Returns a mutable view onto row indexes. Throws a [RangeError], if
   /// any of the [rowIndexes] are out of bounds.
   Matrix<T> rowIndex(Iterable<int> rowIndexes) =>
-      index(rowIndexes, IntegerRange(0, colCount));
+      index(rowIndexes, IntegerRange.length(colCount));
 
   /// Returns a mutable view onto row indexes. The behavior is undefined, if
   /// any of the [rowIndexes] are out of bounds.
   Matrix<T> rowIndexUnchecked(Iterable<int> rowIndexes) =>
-      indexUnchecked(rowIndexes, IntegerRange(0, colCount));
+      indexUnchecked(rowIndexes, IntegerRange.length(colCount));
 
   /// Returns a mutable view onto column indexes. Throws a [RangeError], if
   /// any of the [colIndexes] are out of bounds.
   Matrix<T> colIndex(Iterable<int> colIndexes) =>
-      index(IntegerRange(0, rowCount), colIndexes);
+      index(IntegerRange.length(rowCount), colIndexes);
 
   /// Returns a mutable view onto column indexes. The behavior is undefined, if
   /// any of the [colIndexes] are out of bounds.
   Matrix<T> colIndexUnchecked(Iterable<int> colIndexes) =>
-      indexUnchecked(IntegerRange(0, rowCount), colIndexes);
+      indexUnchecked(IntegerRange.length(rowCount), colIndexes);
 
   /// Returns a mutable view onto row and column indexes. Throws a
   /// [RangeError], if any of the indexes are out of bounds.

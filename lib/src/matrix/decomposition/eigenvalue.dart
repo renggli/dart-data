@@ -842,7 +842,7 @@ class EigenvalueDecomposition {
 
   /// Return the complex eigenvalues.
   List<Complex> get eigenvalues =>
-      IntegerRange(_n).map((i) => Complex(_d[i], _e[i])).toList();
+      IntegerRange.length(_n).map((i) => Complex(_d[i], _e[i])).toList();
 }
 
 extension EigenvalueDecompositionExtension<T extends num> on Matrix<T> {
