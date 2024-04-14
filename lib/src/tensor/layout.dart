@@ -12,10 +12,10 @@ import 'operations/element.dart';
 import 'utils/checks.dart';
 import 'utils/layout.dart' as utils;
 
-/// Immutable object describing a multi-dimensional data layout in a flat list
-/// of values.
+/// Immutable object describing a multi-dimensional data layout in a flat list.
 @immutable
 class Layout with ToStringPrinter {
+  /// Constructs a layout with optional [shape] and/or [strides].
   factory Layout({Iterable<int>? shape, Iterable<int>? strides, int? offset}) {
     final shape_ = utils.toIndices(shape ?? const <int>[]);
     final strides_ = strides == null
@@ -33,10 +33,9 @@ class Layout with ToStringPrinter {
     );
   }
 
+  /// Constructs a layout with an inferred shape from [object].
   factory Layout.fromObject(dynamic object) {
-    if (object == null) {
-      return empty;
-    }
+    if (object == null) return empty;
     final shape = <int>[];
     for (dynamic current = object;
         current is Iterable;
@@ -46,6 +45,7 @@ class Layout with ToStringPrinter {
     return Layout(shape: shape);
   }
 
+  /// Shared empty layout (for memory optimization).
   static final empty = Layout.internal(
       rank: 0,
       length: 0,

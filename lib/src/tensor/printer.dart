@@ -2,6 +2,7 @@ import 'package:more/printer.dart';
 
 import 'tensor.dart';
 
+/// Configurable object to print tensors.
 class TensorPrinter<T> extends Printer<Tensor<T>> {
   const TensorPrinter({
     this.valuePrinter,
