@@ -86,7 +86,7 @@ class Int8DataType extends IntegerDataType<Int8List> {
   Int8List emptyList(int length) => Int8List(length);
 
   @override
-  Int8List readonlyList(Int8List list) => UnmodifiableInt8ListView(list);
+  Int8List readonlyList(Int8List list) => list.asUnmodifiableView();
 }
 
 class Uint8DataType extends IntegerDataType<Uint8List> {
@@ -108,7 +108,7 @@ class Uint8DataType extends IntegerDataType<Uint8List> {
   Uint8List emptyList(int length) => Uint8List(length);
 
   @override
-  Uint8List readonlyList(Uint8List list) => UnmodifiableUint8ListView(list);
+  Uint8List readonlyList(Uint8List list) => list.asUnmodifiableView();
 }
 
 class Int16DataType extends IntegerDataType<Int16List> {
@@ -130,7 +130,7 @@ class Int16DataType extends IntegerDataType<Int16List> {
   Int16List emptyList(int length) => Int16List(length);
 
   @override
-  Int16List readonlyList(Int16List list) => UnmodifiableInt16ListView(list);
+  Int16List readonlyList(Int16List list) => list.asUnmodifiableView();
 }
 
 class Uint16DataType extends IntegerDataType<Uint16List> {
@@ -152,7 +152,7 @@ class Uint16DataType extends IntegerDataType<Uint16List> {
   Uint16List emptyList(int length) => Uint16List(length);
 
   @override
-  Uint16List readonlyList(Uint16List list) => UnmodifiableUint16ListView(list);
+  Uint16List readonlyList(Uint16List list) => list.asUnmodifiableView();
 }
 
 class Int32DataType extends IntegerDataType<Int32List> {
@@ -174,7 +174,7 @@ class Int32DataType extends IntegerDataType<Int32List> {
   Int32List emptyList(int length) => Int32List(length);
 
   @override
-  Int32List readonlyList(Int32List list) => UnmodifiableInt32ListView(list);
+  Int32List readonlyList(Int32List list) => list.asUnmodifiableView();
 }
 
 class Uint32DataType extends IntegerDataType<Uint32List> {
@@ -196,7 +196,7 @@ class Uint32DataType extends IntegerDataType<Uint32List> {
   Uint32List emptyList(int length) => Uint32List(length);
 
   @override
-  Uint32List readonlyList(Uint32List list) => UnmodifiableUint32ListView(list);
+  Uint32List readonlyList(Uint32List list) => list.asUnmodifiableView();
 }
 
 class Int64DataType extends IntegerDataType<Int64List> {
@@ -229,7 +229,7 @@ class Int64DataType extends IntegerDataType<Int64List> {
   Int64List emptyList(int length) => Int64List(length);
 
   @override
-  Int64List readonlyList(Int64List list) => UnmodifiableInt64ListView(list);
+  Int64List readonlyList(Int64List list) => list.asUnmodifiableView();
 }
 
 class Uint64DataType extends IntegerDataType<Uint64List> {
@@ -261,7 +261,7 @@ class Uint64DataType extends IntegerDataType<Uint64List> {
   Uint64List emptyList(int length) => Uint64List(length);
 
   @override
-  Uint64List readonlyList(Uint64List list) => UnmodifiableUint64ListView(list);
+  Uint64List readonlyList(Uint64List list) => list.asUnmodifiableView();
 }
 
 class IntegerField extends Field<int> {

@@ -72,8 +72,7 @@ class Float32DataType extends FloatDataType<Float32List> {
   Float32List emptyList(int length) => Float32List(length);
 
   @override
-  Float32List readonlyList(Float32List list) =>
-      UnmodifiableFloat32ListView(list);
+  Float32List readonlyList(Float32List list) => list.asUnmodifiableView();
 
   @override
   Printer<double> get printer => ScientificNumberPrinter<double>(
@@ -104,8 +103,7 @@ class Float64DataType extends FloatDataType<Float64List> {
   Float64List emptyList(int length) => Float64List(length);
 
   @override
-  Float64List readonlyList(Float64List list) =>
-      UnmodifiableFloat64ListView(list);
+  Float64List readonlyList(Float64List list) => list.asUnmodifiableView();
 
   @override
   Printer<double> get printer => ScientificNumberPrinter<double>(
