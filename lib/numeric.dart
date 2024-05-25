@@ -1,5 +1,5 @@
 /// Numeric algorithms and solutions.
-library numeric;
+library;
 
 export 'src/numeric/curve_fit.dart';
 export 'src/numeric/curve_fit/levenberg_marquardt.dart';

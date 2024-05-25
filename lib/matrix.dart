@@ -1,5 +1,5 @@
 /// Matrix data type and algorithms.
-library matrix;
+library;
 
 export 'src/matrix/decompositions.dart';
 export 'src/matrix/matrix.dart';

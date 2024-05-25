@@ -1,5 +1,5 @@
 /// Particular mathematical functions.
-library special;
+library;
 
 export 'src/special/beta.dart';
 export 'src/special/erf.dart';

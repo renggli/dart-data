@@ -1,5 +1,5 @@
 /// Tensor data structure.
-library tensor;
+library;
 
 export 'src/tensor/errors.dart';
 export 'src/tensor/layout.dart';

@@ -1,5 +1,5 @@
 /// Vector data type and algorithms.
-library vector;
+library;
 
 export 'src/vector/operator.dart';
 export 'src/vector/vector.dart';

@@ -1,5 +1,5 @@
 /// All data packages in a single import.
-library data;
+library;
 
 export 'matrix.dart';
 export 'numeric.dart';

@@ -1,5 +1,5 @@
 /// Polynomial data type and algorithms.
-library polynomial;
+library;
 
 export 'src/polynomial/operator.dart';
 export 'src/polynomial/polynomial.dart';

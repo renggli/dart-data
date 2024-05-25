@@ -1,5 +1,5 @@
 /// Data types and their base functions.
-library type;
+library;
 
 export 'package:more/comparator.dart';
 export 'package:more/number.dart' show Complex, Fraction, Quaternion;

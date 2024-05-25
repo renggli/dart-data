@@ -1,5 +1,5 @@
 /// Statistical computations and algorithms.
-library stats;
+library;
 
 export 'src/stats/distribution.dart';
 export 'src/stats/distributions/continuous.dart';
