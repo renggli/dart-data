@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.13.0
+
+- Cleanup API of distributions.
+- Add cross product support to vectors.
+- Add `Vector.fromTensor` and `Matrix.fromTensor`.
+
 ## 0.12.0
 
 - Dart 3.0 support and requirement.
