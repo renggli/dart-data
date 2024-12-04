@@ -424,6 +424,39 @@ void matrixTest(String name, MatrixFormat format) {
         expect(matrix.get(1, 1), 5);
         expect(matrix.get(1, 2), 6);
       });
+      test('fromString', () {
+        final matrix =
+            Matrix.fromString(DataType.int8, '1 2 3\n4 5 6\n', format: format);
+        expect(matrix.dataType, DataType.int8);
+        expect(matrix.rowCount, 2);
+        expect(matrix.colCount, 3);
+        expect(matrix.shape, [matrix.rowCount, matrix.colCount]);
+        expect(matrix.storage, [matrix]);
+        expect(matrix.get(0, 0), 1);
+        expect(matrix.get(0, 1), 2);
+        expect(matrix.get(0, 2), 3);
+        expect(matrix.get(1, 0), 4);
+        expect(matrix.get(1, 1), 5);
+        expect(matrix.get(1, 2), 6);
+      });
+      test('fromString with custom behavior', () {
+        final matrix = Matrix.fromString(DataType.string, 'a-b-c*d-e-f',
+            converter: (value) => value.toUpperCase(),
+            rowSplitter: '*',
+            columnSplitter: '-',
+            format: format);
+        expect(matrix.dataType, DataType.string);
+        expect(matrix.rowCount, 2);
+        expect(matrix.colCount, 3);
+        expect(matrix.shape, [matrix.rowCount, matrix.colCount]);
+        expect(matrix.storage, [matrix]);
+        expect(matrix.get(0, 0), 'A');
+        expect(matrix.get(0, 1), 'B');
+        expect(matrix.get(0, 2), 'C');
+        expect(matrix.get(1, 0), 'D');
+        expect(matrix.get(1, 1), 'E');
+        expect(matrix.get(1, 2), 'F');
+      });
     });
     group('accessing', () {
       final matrix = Matrix.fromRows(

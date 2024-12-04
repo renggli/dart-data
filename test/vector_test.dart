@@ -156,6 +156,30 @@ void vectorTest(String name, VectorFormat format) {
         expect(vector[1], 1);
         expect(vector[2], 3);
       });
+      test('fromString', () {
+        final vector =
+            Vector.fromString(DataType.int8, '1 2 3', format: format);
+        expect(vector.dataType, DataType.int8);
+        expect(vector.count, 3);
+        expect(vector.shape, [vector.count]);
+        expect(vector.storage, [vector]);
+        expect(vector[0], 1);
+        expect(vector[1], 2);
+        expect(vector[2], 3);
+      });
+      test('fromString', () {
+        final vector = Vector.fromString(DataType.string, 'a-b-c',
+            converter: (value) => value.toUpperCase(),
+            splitter: '-',
+            format: format);
+        expect(vector.dataType, DataType.string);
+        expect(vector.count, 3);
+        expect(vector.shape, [vector.count]);
+        expect(vector.storage, [vector]);
+        expect(vector[0], 'A');
+        expect(vector[1], 'B');
+        expect(vector[2], 'C');
+      });
     });
     group('accessing', () {
       final vector = Vector.fromList(DataType.int8, [2, 4, 6], format: format);

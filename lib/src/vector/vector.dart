@@ -98,6 +98,25 @@ abstract mixin class Vector<T> implements Storage {
     return format == null ? result : result.toVector(format: format);
   }
 
+  /// Constructors a vector from a [String].
+  ///
+  /// An optional [converter] maps the extracted [String] values to the
+  /// [dataType] of the matrix; by default the standard converter of the
+  /// [DataType] is used.
+  ///
+  /// [splitter] is used to split the input string into values. By default
+  /// values are separated by one or more whitespaces.
+  factory Vector.fromString(DataType<T> dataType, String source,
+      {T Function(String)? converter,
+      Pattern? splitter,
+      VectorFormat? format}) {
+    final converter_ = converter ?? dataType.cast;
+    final splitter_ = splitter ?? RegExp(r'\s+');
+    return Vector<T>.fromList(dataType,
+        source.split(splitter_).map(converter_).toList(growable: false),
+        format: format);
+  }
+
   /// Returns the data type of this vector.
   DataType<T> get dataType;
 

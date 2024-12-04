@@ -1,4 +1,5 @@
 import 'package:meta/meta.dart';
+import 'package:more/functional.dart';
 import 'package:more/printer.dart' show Printer, StandardPrinter;
 
 import '../../type.dart' show DataType;
@@ -209,6 +210,42 @@ abstract mixin class Matrix<T> implements Storage {
   factory Matrix.fromTensor(Tensor<T> source, {MatrixFormat? format}) {
     final result = TensorMatrix<T>.fromTensor(source);
     return format == null ? result : result.toMatrix(format: format);
+  }
+
+  /// Constructs a matrix from a [String].
+  ///
+  /// An optional [converter] maps the extracted [String] values to the
+  /// [dataType] of the matrix; by default the standard converter of the
+  /// [DataType] is used.
+  ///
+  /// [rowSplitter] and [columnSplitter] are used to split the input string
+  /// into rows and columns respectively. By default rows are separated by
+  /// newlines, and columns by one or more whitespaces. The last row trimmed
+  /// if the input is concluded with the row separator.
+  factory Matrix.fromString(DataType<T> dataType, String source,
+      {T Function(String)? converter,
+      Pattern? rowSplitter,
+      Pattern? columnSplitter,
+      MatrixFormat? format}) {
+    final converter_ = converter ?? dataType.cast;
+    final rowSplitter_ = rowSplitter ?? '\n';
+    final columnSplitter_ = columnSplitter ?? RegExp(r'\s+');
+    return Matrix<T>.fromRows(
+        dataType,
+        source
+            .split(rowSplitter_)
+            .also((rows) {
+              if (rows.isNotEmpty && rows.last.isEmpty) {
+                rows.removeLast();
+              }
+              return rows;
+            })
+            .map((row) => row
+                .split(columnSplitter_)
+                .map(converter_)
+                .toList(growable: false))
+            .toList(growable: false),
+        format: format);
   }
 
   /// Returns the data type of this matrix.
