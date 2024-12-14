@@ -11,7 +11,7 @@ class PositionalParametrizedUnaryFunction<T>
   final int count;
 
   /// Factory to bind the parametrized function:
-  /// `MathematicalFunction<T> `NumericFunction<T> Function(T a, T b, ...)`
+  /// `MathematicalFunction<T> NumericFunction<T> Function(T a, T b, ...)`
   final Function function;
 
   @override

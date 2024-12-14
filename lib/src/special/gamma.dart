@@ -114,7 +114,7 @@ double gammapInv(num p, num a) {
         ? afac * exp(-(x - a1) + a1 * (log(x) - lna1))
         : exp(-x + a1 * log(x) - gln);
     final u = err / t;
-    x -= (t = u / (1.0 - 0.5 * min(1.0, u * ((a - 1.0) / x - 1.0))));
+    x -= t = u / (1.0 - 0.5 * min(1.0, u * ((a - 1.0) / x - 1.0)));
     if (x <= 0.0) {
       x = 0.5 * (x + t);
     }

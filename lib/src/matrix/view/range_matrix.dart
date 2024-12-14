@@ -78,7 +78,9 @@ extension RangeMatrixExtension<T> on Matrix<T> {
     if (rowStart == 0 &&
         rowEnd == rowCount &&
         columnStart == 0 &&
-        columnEnd == colCount) return this;
+        columnEnd == colCount) {
+      return this;
+    }
     return switch (this) {
       RangeMatrix<T>(
         matrix: final thisMatrix,

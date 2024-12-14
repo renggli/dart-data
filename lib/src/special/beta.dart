@@ -74,7 +74,7 @@ double ibetaInv(num p, num a, num b) {
     final err = ibeta(x, a, b) - p;
     var t = exp(a1 * log(x) + b1 * log(1 - x) + afac);
     final u = err / t;
-    x -= (t = u / (1 - 0.5 * min(1, u * (a1 / x - b1 / (1 - x)))));
+    x -= t = u / (1 - 0.5 * min(1, u * (a1 / x - b1 / (1 - x))));
     if (x <= 0) {
       x = 0.5 * (x + t);
     }
