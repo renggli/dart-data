@@ -2,11 +2,21 @@ import 'dart:math';
 
 import 'package:data/data.dart';
 import 'package:data/src/matrix/view/rotated_matrix.dart';
+import 'package:more/more.dart';
 import 'package:test/test.dart';
 
 import 'utils/matchers.dart';
 
 const pointType = ObjectDataType<Point<int>>(Point(0, 0));
+
+void verifyMatrixIterable<T>(Matrix<T> matrix,
+    Iterable<RowColumnValue<T>> iterable, Iterable<T> values) {
+  expect(iterable, hasLength(values.length));
+  for (final (actual, expected) in (iterable, values).zip()) {
+    expect(actual.value, expected);
+    expect(matrix.get(actual.row, actual.col), expected);
+  }
+}
 
 void matrixTest(String name, MatrixFormat format) {
   group(name, () {
@@ -78,8 +88,8 @@ void matrixTest(String name, MatrixFormat format) {
               matrix.set(r, c, -1);
             }
           }
-          expect(first.rowMajor, everyElement(-1));
-          expect(second.rowMajor, everyElement(-1));
+          expect(first.rowMajor.map((cell) => cell.value), everyElement(-1));
+          expect(second.rowMajor.map((cell) => cell.value), everyElement(-1));
         });
         test('with format', () {
           final matrix =
@@ -134,8 +144,8 @@ void matrixTest(String name, MatrixFormat format) {
               matrix.set(r, c, -1);
             }
           }
-          expect(first.rowMajor, everyElement(-1));
-          expect(second.rowMajor, everyElement(-1));
+          expect(first.rowMajor.map((cell) => cell.value), everyElement(-1));
+          expect(second.rowMajor.map((cell) => cell.value), everyElement(-1));
         });
         test('with format', () {
           final matrix =
@@ -1423,19 +1433,21 @@ void matrixTest(String name, MatrixFormat format) {
           final source = Matrix.generate(
               DataType.string, 3, 2, (r, c) => '$r,$c',
               format: format);
-          expect(source.spiral, ['0,0', '0,1', '1,1', '2,1', '2,0', '1,0']);
+          verifyMatrixIterable(source, source.spiral,
+              ['0,0', '0,1', '1,1', '2,1', '2,0', '1,0']);
         });
         test('2x3', () {
           final source = Matrix.generate(
               DataType.string, 2, 3, (r, c) => '$r,$c',
               format: format);
-          expect(source.spiral, ['0,0', '0,1', '0,2', '1,2', '1,1', '1,0']);
+          verifyMatrixIterable(source, source.spiral,
+              ['0,0', '0,1', '0,2', '1,2', '1,1', '1,0']);
         });
         test('3x3', () {
           final source = Matrix.generate(
               DataType.string, 3, 3, (r, c) => '$r,$c',
               format: format);
-          expect(source.spiral,
+          verifyMatrixIterable(source, source.spiral,
               ['0,0', '0,1', '0,2', '1,2', '2,2', '2,1', '2,0', '1,0', '1,1']);
         });
       });
@@ -1444,31 +1456,35 @@ void matrixTest(String name, MatrixFormat format) {
           final source = Matrix.generate(
               DataType.string, 3, 2, (r, c) => '$r,$c',
               format: format);
-          expect(source.zigZag, ['0,0', '0,1', '1,0', '2,0', '1,1', '2,1']);
+          verifyMatrixIterable(source, source.zigZag,
+              ['0,0', '0,1', '1,0', '2,0', '1,1', '2,1']);
         });
         test('2x3', () {
           final source = Matrix.generate(
               DataType.string, 2, 3, (r, c) => '$r,$c',
               format: format);
-          expect(source.zigZag, ['0,0', '0,1', '1,0', '1,1', '0,2', '1,2']);
+          verifyMatrixIterable(source, source.zigZag,
+              ['0,0', '0,1', '1,0', '1,1', '0,2', '1,2']);
         });
         test('3x3', () {
           final source = Matrix.generate(
               DataType.string, 3, 3, (r, c) => '$r,$c',
               format: format);
-          expect(source.zigZag,
+          verifyMatrixIterable(source, source.zigZag,
               ['0,0', '0,1', '1,0', '2,0', '1,1', '0,2', '1,2', '2,1', '2,2']);
         });
       });
       test('rowMajor', () {
         final source = Matrix.generate(DataType.string, 3, 2, (r, c) => '$r,$c',
             format: format);
-        expect(source.rowMajor, ['0,0', '0,1', '1,0', '1,1', '2,0', '2,1']);
+        verifyMatrixIterable(source, source.rowMajor,
+            ['0,0', '0,1', '1,0', '1,1', '2,0', '2,1']);
       });
       test('columnMajor', () {
         final source = Matrix.generate(DataType.string, 3, 2, (r, c) => '$r,$c',
             format: format);
-        expect(source.columnMajor, ['0,0', '1,0', '2,0', '0,1', '1,1', '2,1']);
+        verifyMatrixIterable(source, source.columnMajor,
+            ['0,0', '1,0', '2,0', '0,1', '1,1', '2,1']);
       });
     });
     group('testing', () {
