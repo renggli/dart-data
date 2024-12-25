@@ -42,7 +42,7 @@ void testSamples<T extends num>(
         }
       }
     }
-    expect(histogram.distinct, hasLength(bucketCount));
+    expect(histogram.elementSet, hasLength(bucketCount));
     for (var k = 0; k < bucketCount; k++) {
       expect(
           histogram[k] / histogram.length,
