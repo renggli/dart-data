@@ -81,7 +81,7 @@ enum VectorConvolution {
 
 extension ConvolutionVectorExtension<T> on Vector<T> {
   /// Returns a view of the convolution between this vector and the given
-  /// `kernel`. The solution is obtained lazily by straightforward computation,
+  /// [kernel]. The solution is obtained lazily by straightforward computation,
   /// not by using a FFT.
   ///
   /// See http://en.wikipedia.org/wiki/Convolution.

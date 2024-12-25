@@ -10,11 +10,11 @@ extension TransposeTensorExtension<T> on Tensor<T> {
   Tensor<T> transpose({List<int>? axes}) => Tensor<T>.internal(
       type: type, layout: layout.transpose(axes: axes), data: data);
 
-  /// Returns a view with axis `first` and `second` swapped.
+  /// Returns a view with axis [first] and [second] swapped.
   Tensor<T> swapAxes(int first, int second) => Tensor<T>.internal(
       type: type, layout: layout.swapAxes(first, second), data: data);
 
-  /// Returns a view with axis `source` moved to `destination`.
+  /// Returns a view with axis [source] moved to [destination].
   Tensor<T> moveAxes(int source, int destination) => Tensor<T>.internal(
       type: type, layout: layout.moveAxes(source, destination), data: data);
 }
@@ -37,7 +37,7 @@ extension TransposeLayoutExtension on Layout {
     );
   }
 
-  /// Returns a layout with axis `first` and `second` swapped.
+  /// Returns a layout with axis [first] and [second] swapped.
   Layout swapAxes(int first, int second) {
     final first_ = checkIndex(first, rank, 'first');
     final second_ = checkIndex(second, rank, 'second');
@@ -47,7 +47,7 @@ extension TransposeLayoutExtension on Layout {
     return transpose(axes: axes);
   }
 
-  /// Returns a layout with axis `source` moved to `target`.
+  /// Returns a layout with axis [source] moved to [target].
   Layout moveAxes(int source, int target) {
     final source_ = checkIndex(source, rank, 'source');
     final target_ = checkIndex(target, rank, 'target');

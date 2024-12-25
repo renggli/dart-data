@@ -9,10 +9,10 @@ import 'printer.dart';
 /// A multi-dimensional fixed-size container of items of a specific type.
 @experimental
 class Tensor<T> with ToStringPrinter {
-  /// Constructs a [Tensor] filled with `value`.
+  /// Constructs a [Tensor] filled with [value].
   ///
   /// By default a 0-dimensional tensor with the single value is returned. If a
-  /// `shape` is provided all tensor entries are filled with that value.
+  /// [shape] is provided all tensor entries are filled with that value.
   factory Tensor.filled(T value,
       {List<int>? shape, List<int>? strides, DataType<T>? type}) {
     final type_ = type ?? DataType.fromInstance(value);
@@ -21,16 +21,16 @@ class Tensor<T> with ToStringPrinter {
     return Tensor.internal(type: type_, layout: layout_, data: data_);
   }
 
-  /// Constructs a [Tensor] filled with the results of `callback`.
+  /// Constructs a [Tensor] filled with the results of [callback].
   factory Tensor.generate(T Function(List<int> key) callback,
           {required List<int> shape, List<int>? strides, DataType<T>? type}) =>
       Tensor.fromIterable(Layout(shape: shape).keys.map(callback),
           shape: shape, strides: strides, type: type ?? DataType.fromType<T>());
 
-  /// Constructs an [Tensor] from an `iterable`.
+  /// Constructs an [Tensor] from an [iterable].
   ///
   /// By default a 1-dimensional tensor with the values from the iterable
-  /// `iterable` is returned. If a `shape` is provided the data populates the
+  /// [iterable] is returned. If a [shape] is provided the data populates the
   /// tensor in the specified format in row-major.
   factory Tensor.fromIterable(Iterable<T> iterable,
       {List<int>? shape, List<int>? strides, DataType<T>? type}) {
@@ -42,7 +42,7 @@ class Tensor<T> with ToStringPrinter {
     return Tensor.internal(type: type_, layout: layout_, data: data_);
   }
 
-  /// Constructs an [Tensor] from a nested `object`.
+  /// Constructs an [Tensor] from a nested [object].
   factory Tensor.fromObject(dynamic object, {DataType<T>? type}) {
     final array_ = object is Iterable
         ? object.deepFlatten<T>()

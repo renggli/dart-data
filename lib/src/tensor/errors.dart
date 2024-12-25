@@ -2,28 +2,28 @@ import 'layout.dart';
 
 /// Error indicating an unexpected [Layout] state.
 class LayoutError extends ArgumentError {
-  /// Asserts that the `layout` is not empty.
+  /// Asserts that the [layout] is not empty.
   static void checkNotEmpty(Layout layout, [String? name]) {
     if (layout.length == 0) {
       throw LayoutError.empty(layout, name);
     }
   }
 
-  /// Asserts that the `layout` has a singular dimension on the `axis`.
+  /// Asserts that the [layout] has a singular dimension on the [axis].
   static void checkSingular(Layout layout, int axis, [String? name]) {
     if (layout.shape[axis] != 1) {
       throw LayoutError.singular(layout, axis, name);
     }
   }
 
-  /// Asserts that the layouts `a` and `b` have the same length.
+  /// Asserts that the layouts [a] and [b] have the same length.
   static void checkEqualLength(Layout a, Layout b, [String? name]) {
     if (a.length != b.length) {
       throw LayoutError.length(a, b, name);
     }
   }
 
-  /// Asserts that the layouts `a` and `b` share the same shape.
+  /// Asserts that the layouts [a] and [b] share the same shape.
   static void checkEqualShape(Layout a, Layout b, [String? name]) {
     if (a.rank != b.rank) {
       throw LayoutError.rank(a, b, name);

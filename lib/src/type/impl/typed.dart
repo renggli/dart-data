@@ -45,7 +45,7 @@ abstract class TypedDataType<T, L extends List<T>> extends DataType<T> {
     return readonly ? readonlyList(result) : result;
   }
 
-  /// Internal method to create an empty typed-list of the requested `length`.
+  /// Internal method to create an empty typed-list of the requested [length].
   @protected
   L emptyList(int length);
 

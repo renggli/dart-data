@@ -7,8 +7,8 @@ import '../tensor.dart';
 import 'broadcast.dart';
 
 extension OperationTensorExtension<T> on Tensor<T> {
-  /// Performs an unary element-wise operation `function` on this tensor and
-  /// stores the result into `target` or (if missing) into a newly created one.
+  /// Performs an unary element-wise operation [function] on this tensor and
+  /// stores the result into [target] or (if missing) into a newly created one.
   Tensor<R> unaryOperation<R>(Map1<T, R> function,
       {DataType<R>? type, Tensor<R>? target}) {
     if (target == null) {
@@ -37,8 +37,8 @@ extension OperationTensorExtension<T> on Tensor<T> {
     }
   }
 
-  /// Performs a binary element-wise operation `function` on this tensor and
-  /// `other` and stores the result into `target` or (if missing) into a newly
+  /// Performs a binary element-wise operation [function] on this tensor and
+  /// [other] and stores the result into [target] or (if missing) into a newly
   /// created one.
   Tensor<R> binaryOperation<O, R>(Tensor<O> other, Map2<T, O, R> function,
       {DataType<R>? type, Tensor<R>? target}) {

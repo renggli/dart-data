@@ -118,7 +118,7 @@ class Layout with ToStringPrinter {
     return index;
   }
 
-  /// Converts an `offset` to a key, that is a list of indices.
+  /// Converts an [index] to a key, that is a list of indices.
   List<int> toKey(int index) {
     var value = index - offset;
     final key = DataType.integer.newList(rank);

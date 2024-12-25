@@ -26,6 +26,6 @@ class CastVector<S, T> with Vector<T> {
 }
 
 extension CastVectorExtension<T> on Vector<T> {
-  /// Returns a [Vector] with the elements cast to `dataType`.
+  /// Returns a [Vector] with the elements cast to [dataType].
   Vector<S> cast<S>(DataType<S> dataType) => CastVector<T, S>(this, dataType);
 }
