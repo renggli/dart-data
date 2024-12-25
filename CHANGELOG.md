@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.14.0
+
+- Add `Vector.fromString` and `Matrix.fromString`.
+- Make matrix iterators return row, column, and value tuples.
+
 ## 0.13.0
 
 - Cleanup API of distributions.

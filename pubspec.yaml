@@ -1,5 +1,5 @@
 name: data
-version: 0.13.0
+version: 0.14.0
 
 homepage: https://github.com/renggli/dart-data
 description: A time and space efficient collection of data structures and
@@ -11,11 +11,11 @@ topics:
   - tensor
 
 environment:
-  sdk: ^3.5.0
+  sdk: ^3.6.0
 dependencies:
   collection: ^1.19.0
   meta: ^1.16.0
-  more: ^4.3.0
+  more: ^4.5.0
 dev_dependencies:
-  lints: ^5.0.0
+  lints: ^5.1.0
   test: ^1.25.0
