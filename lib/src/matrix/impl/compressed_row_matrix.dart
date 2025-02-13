@@ -6,10 +6,10 @@ import '../matrix.dart';
 /// Sparse compressed row matrix.
 class CompressedRowMatrix<T> with Matrix<T> {
   CompressedRowMatrix(this.dataType, this.rowCount, this.colCount)
-      : _rowExtends = DataType.index.newList(rowCount),
-        _columnIndexes = DataType.index.newList(initialListLength),
-        _values = dataType.newList(initialListLength),
-        _length = 0;
+    : _rowExtends = DataType.index.newList(rowCount),
+      _columnIndexes = DataType.index.newList(initialListLength),
+      _values = dataType.newList(initialListLength),
+      _length = 0;
 
   final List<int> _rowExtends;
   List<int> _columnIndexes;
@@ -44,8 +44,13 @@ class CompressedRowMatrix<T> with Matrix<T> {
         for (var r = row; r < rowCount; r++) {
           _rowExtends[r]++;
         }
-        _columnIndexes =
-            insertAt(DataType.index, _columnIndexes, _length, -index - 1, col);
+        _columnIndexes = insertAt(
+          DataType.index,
+          _columnIndexes,
+          _length,
+          -index - 1,
+          col,
+        );
         _values = insertAt(dataType, _values, _length, -index - 1, value);
         _length++;
       }
@@ -54,8 +59,12 @@ class CompressedRowMatrix<T> with Matrix<T> {
         for (var r = row; r < rowCount; r++) {
           _rowExtends[r]--;
         }
-        _columnIndexes =
-            removeAt(DataType.index, _columnIndexes, _length, index);
+        _columnIndexes = removeAt(
+          DataType.index,
+          _columnIndexes,
+          _length,
+          index,
+        );
         _values = removeAt(dataType, _values, _length, index);
         _length--;
       } else {

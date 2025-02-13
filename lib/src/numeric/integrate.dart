@@ -34,8 +34,15 @@ double integrate(
   } else if (b.isNaN) {
     throw ArgumentError.value(b, 'b', 'Invalid upper bound');
   } else if (a > b) {
-    return -integrate(function, b, a,
-        depth: depth, epsilon: epsilon, poles: poles, onWarning: onWarning);
+    return -integrate(
+      function,
+      b,
+      a,
+      depth: depth,
+      epsilon: epsilon,
+      poles: poles,
+      onWarning: onWarning,
+    );
   } else if (a == b) {
     return 0.0;
   }
@@ -52,8 +59,14 @@ double integrate(
       expanded.last < b ? expanded.add(b) : expanded.removeLast();
       var result = 0.0;
       for (var i = 0; i < expanded.length; i += 2) {
-        result += integrate(function, expanded[i], expanded[i + 1],
-            depth: depth, epsilon: epsilon, onWarning: onWarning);
+        result += integrate(
+          function,
+          expanded[i],
+          expanded[i + 1],
+          depth: depth,
+          epsilon: epsilon,
+          onWarning: onWarning,
+        );
       }
       return result;
     }
@@ -61,34 +74,81 @@ double integrate(
   // Deal with infinite bounds:
   // https://en.wikipedia.org/wiki/Numerical_integration#Integrals_over_infinite_intervals
   if (a == double.negativeInfinity && b == double.infinity) {
-    return integrate(function, a, 0,
-            depth: depth, epsilon: epsilon, onWarning: onWarning) +
-        integrate(function, 0, b,
-            depth: depth, epsilon: epsilon, onWarning: onWarning);
+    return integrate(
+          function,
+          a,
+          0,
+          depth: depth,
+          epsilon: epsilon,
+          onWarning: onWarning,
+        ) +
+        integrate(
+          function,
+          0,
+          b,
+          depth: depth,
+          epsilon: epsilon,
+          onWarning: onWarning,
+        );
   } else if (a == double.negativeInfinity) {
-    return integrate((t) {
-      final omt = 1.0 - t, t2 = t * t;
-      return function(b - omt / t) / t2;
-    }, epsilon, 1, depth: depth, epsilon: epsilon, onWarning: onWarning);
+    return integrate(
+      (t) {
+        final omt = 1.0 - t, t2 = t * t;
+        return function(b - omt / t) / t2;
+      },
+      epsilon,
+      1,
+      depth: depth,
+      epsilon: epsilon,
+      onWarning: onWarning,
+    );
   } else if (b == double.infinity) {
-    return integrate((t) {
-      final omt = 1.0 - t, t2 = t * t;
-      return function(a + omt / t) / t2;
-    }, epsilon, 1, depth: depth, epsilon: epsilon, onWarning: onWarning);
+    return integrate(
+      (t) {
+        final omt = 1.0 - t, t2 = t * t;
+        return function(a + omt / t) / t2;
+      },
+      epsilon,
+      1,
+      depth: depth,
+      epsilon: epsilon,
+      onWarning: onWarning,
+    );
   }
   // Solve the actual integral:
   // https://en.wikipedia.org/wiki/Adaptive_quadrature
   var result = 0.0;
   final queue = QueueList.from([
     _Quadrature.simpson(
-        function, depth, epsilon, a, function(a), b, function(b))
+      function,
+      depth,
+      epsilon,
+      a,
+      function(a),
+      b,
+      function(b),
+    ),
   ]);
   while (queue.isNotEmpty) {
     final full = queue.removeLast();
-    final left = _Quadrature.simpson(function, full.depth - 1,
-        full.epsilon / 2.0, full.a, full.fa, full.m, full.fm);
+    final left = _Quadrature.simpson(
+      function,
+      full.depth - 1,
+      full.epsilon / 2.0,
+      full.a,
+      full.fa,
+      full.m,
+      full.fm,
+    );
     final right = _Quadrature.simpson(
-        function, left.depth, left.epsilon, full.m, full.fm, full.b, full.fb);
+      function,
+      left.depth,
+      left.epsilon,
+      full.m,
+      full.fm,
+      full.b,
+      full.fb,
+    );
     if (left.epsilon == full.epsilon || left.a == left.m) {
       onWarning(IntegrateWarning.doesNotConverge, full.m);
       result += full.w;
@@ -110,10 +170,7 @@ double integrate(
 
 /// Integration warnings that can be triggered for badly behaving functions or
 /// ill defined parameters.
-enum IntegrateWarning {
-  doesNotConverge,
-  depthTooShallow,
-}
+enum IntegrateWarning { doesNotConverge, depthTooShallow }
 
 /// Integration error that is thrown when warnings are not handled explicitly.
 class IntegrateError extends Error with ToStringPrinter {
@@ -126,21 +183,47 @@ class IntegrateError extends Error with ToStringPrinter {
   final double x;
 
   @override
-  ObjectPrinter get toStringPrinter => super.toStringPrinter
-    ..addValue(type, name: 'type')
-    ..addValue(x, name: 'x');
+  ObjectPrinter get toStringPrinter =>
+      super.toStringPrinter
+        ..addValue(type, name: 'type')
+        ..addValue(x, name: 'x');
 }
 
 class _Quadrature {
-  factory _Quadrature.simpson(double Function(double) f, int depth,
-      double epsilon, double a, double fa, double b, double fb) {
+  factory _Quadrature.simpson(
+    double Function(double) f,
+    int depth,
+    double epsilon,
+    double a,
+    double fa,
+    double b,
+    double fb,
+  ) {
     final m = 0.5 * (a + b), fm = f(m);
-    return _Quadrature(depth, epsilon, a, fa, m, fm, b, fb,
-        (b - a) / 6.0 * (fa + 4.0 * fm + fb));
+    return _Quadrature(
+      depth,
+      epsilon,
+      a,
+      fa,
+      m,
+      fm,
+      b,
+      fb,
+      (b - a) / 6.0 * (fa + 4.0 * fm + fb),
+    );
   }
 
-  _Quadrature(this.depth, this.epsilon, this.a, this.fa, this.m, this.fm,
-      this.b, this.fb, this.w);
+  _Quadrature(
+    this.depth,
+    this.epsilon,
+    this.a,
+    this.fa,
+    this.m,
+    this.fm,
+    this.b,
+    this.fb,
+    this.w,
+  );
 
   final int depth;
   final double epsilon;

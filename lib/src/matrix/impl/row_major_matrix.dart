@@ -5,11 +5,14 @@ import '../matrix.dart';
 /// Row major matrix.
 class RowMajorMatrix<T> with Matrix<T> {
   RowMajorMatrix(this.dataType, this.rowCount, this.colCount)
-      : _values = dataType.newList(rowCount * colCount);
+    : _values = dataType.newList(rowCount * colCount);
 
   RowMajorMatrix.fromList(
-      this.dataType, this.rowCount, this.colCount, this._values)
-      : assert(_values.length == rowCount * colCount);
+    this.dataType,
+    this.rowCount,
+    this.colCount,
+    this._values,
+  ) : assert(_values.length == rowCount * colCount);
 
   final List<T> _values;
 

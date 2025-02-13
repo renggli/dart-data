@@ -24,8 +24,11 @@ void listTest<T>(DataType<T> type, List<List<T>> lists) {
     });
     test('fromInstance', () {
       for (final value in lists.expand((value) => value)) {
-        expect(DataType.fromInstance<T>(value), type,
-            reason: 'DataType.fromInstance<$T>($value)');
+        expect(
+          DataType.fromInstance<T>(value),
+          type,
+          reason: 'DataType.fromInstance<$T>($value)',
+        );
       }
     });
   }
@@ -97,8 +100,11 @@ void listTest<T>(DataType<T> type, List<List<T>> lists) {
     });
     test('generated, readonly', () {
       final values = lists.expand((value) => value).toList();
-      final list = type.newList(values.length,
-          generate: (i) => values[i], readonly: true);
+      final list = type.newList(
+        values.length,
+        generate: (i) => values[i],
+        readonly: true,
+      );
       expect(() => list[0] = values.last, throwsUnsupportedError);
       expect(list, values);
     });
@@ -108,36 +114,57 @@ void listTest<T>(DataType<T> type, List<List<T>> lists) {
       final copy = type.copyList(exampleList);
       expect(copy.length, exampleList.length);
       expect(
-          copy, pairwiseCompare(exampleList, type.equality.isEqual, 'isEqual'));
+        copy,
+        pairwiseCompare(exampleList, type.equality.isEqual, 'isEqual'),
+      );
     });
     test('smaller', () {
       final copy = type.copyList(exampleList, length: exampleList.length - 1);
       expect(copy.length, exampleList.length - 1);
       expect(
-          copy,
-          pairwiseCompare(exampleList.getRange(0, exampleList.length - 1),
-              type.equality.isEqual, 'isEqual'));
+        copy,
+        pairwiseCompare(
+          exampleList.getRange(0, exampleList.length - 1),
+          type.equality.isEqual,
+          'isEqual',
+        ),
+      );
     });
     test('larger', () {
       final copy = type.copyList(exampleList, length: exampleList.length + 5);
       expect(copy.length, exampleList.length + 5);
-      expect(copy.getRange(0, exampleList.length),
-          pairwiseCompare(exampleList, type.equality.isEqual, 'isEqual'));
       expect(
-          copy.getRange(exampleList.length, copy.length),
-          pairwiseCompare(List.filled(5, type.defaultValue),
-              type.equality.isEqual, 'isEqual'));
+        copy.getRange(0, exampleList.length),
+        pairwiseCompare(exampleList, type.equality.isEqual, 'isEqual'),
+      );
+      expect(
+        copy.getRange(exampleList.length, copy.length),
+        pairwiseCompare(
+          List.filled(5, type.defaultValue),
+          type.equality.isEqual,
+          'isEqual',
+        ),
+      );
     });
     test('larger, with custom fill', () {
-      final copy = type.copyList(exampleList,
-          length: exampleList.length + 5, fillValue: exampleValue);
+      final copy = type.copyList(
+        exampleList,
+        length: exampleList.length + 5,
+        fillValue: exampleValue,
+      );
       expect(copy.length, exampleList.length + 5);
-      expect(copy.getRange(0, exampleList.length),
-          pairwiseCompare(exampleList, type.equality.isEqual, 'isEqual'));
       expect(
-          copy.getRange(exampleList.length, copy.length),
-          pairwiseCompare(
-              List.filled(5, exampleValue), type.equality.isEqual, 'isEqual'));
+        copy.getRange(0, exampleList.length),
+        pairwiseCompare(exampleList, type.equality.isEqual, 'isEqual'),
+      );
+      expect(
+        copy.getRange(exampleList.length, copy.length),
+        pairwiseCompare(
+          List.filled(5, exampleValue),
+          type.equality.isEqual,
+          'isEqual',
+        ),
+      );
     });
   });
   test('printer', () {
@@ -265,8 +292,10 @@ void integerGroup(IntegerDataType type, bool isSigned, int bits) {
       expect(type.bits, bits);
     });
     test('min', () {
-      expect(BigInt.from(type.min),
-          isSigned ? -BigInt.from(2).pow(bits - 1) : BigInt.zero);
+      expect(
+        BigInt.from(type.min),
+        isSigned ? -BigInt.from(2).pow(bits - 1) : BigInt.zero,
+      );
       expect(store(type, type.min), type.min);
     });
     test('max', () {
@@ -275,10 +304,11 @@ void integerGroup(IntegerDataType type, bool isSigned, int bits) {
         expect(type.max, -1);
       } else {
         expect(
-            BigInt.from(type.max),
-            isSigned
-                ? BigInt.from(2).pow(bits - 1) - BigInt.one
-                : BigInt.from(2).pow(bits) - BigInt.one);
+          BigInt.from(type.max),
+          isSigned
+              ? BigInt.from(2).pow(bits - 1) - BigInt.one
+              : BigInt.from(2).pow(bits) - BigInt.one,
+        );
       }
       expect(store(type, type.max), type.max);
     });
@@ -286,16 +316,19 @@ void integerGroup(IntegerDataType type, bool isSigned, int bits) {
       expect(type.safeBits, bits <= 32 ? type.bits : lessThan(type.bits));
     });
     test('safeMin', () {
-      expect(BigInt.from(type.safeMin),
-          isSigned ? -BigInt.from(2).pow(type.safeBits - 1) : BigInt.zero);
+      expect(
+        BigInt.from(type.safeMin),
+        isSigned ? -BigInt.from(2).pow(type.safeBits - 1) : BigInt.zero,
+      );
       expect(store(type, type.safeMin), type.safeMin);
     });
     test('safeMax', () {
       expect(
-          BigInt.from(type.safeMax),
-          isSigned
-              ? BigInt.from(2).pow(type.safeBits - 1) - BigInt.one
-              : BigInt.from(2).pow(type.safeBits) - BigInt.one);
+        BigInt.from(type.safeMax),
+        isSigned
+            ? BigInt.from(2).pow(type.safeBits - 1) - BigInt.one
+            : BigInt.from(2).pow(type.safeBits) - BigInt.one,
+      );
       expect(store(type, type.safeMax), type.safeMax);
     });
     test('defaultValue', () {
@@ -420,13 +453,12 @@ void fieldTest<T>(DataType<T> type, List<T> values) {
       }
     });
   });
-  if ([
-    DataType.complex,
-    DataType.quaternion,
-  ].contains(type)) {
+  if ([DataType.complex, DataType.quaternion].contains(type)) {
     test('comparator', () {
-      expect(() => type.comparator(values.first, values.last),
-          throwsUnsupportedError);
+      expect(
+        () => type.comparator(values.first, values.last),
+        throwsUnsupportedError,
+      );
     });
   } else {
     group('comparator', () {
@@ -434,14 +466,20 @@ void fieldTest<T>(DataType<T> type, List<T> values) {
       final shuffled = [...values.sublist(1), values.first];
       test('increasing', () {
         for (var i = 0; i < values.length - 1; i++) {
-          expect(comparator(values[i], values[i + 1]), lessThan(0),
-              reason: 'Expected ${values[i]} < ${values[i + 1]}.');
+          expect(
+            comparator(values[i], values[i + 1]),
+            lessThan(0),
+            reason: 'Expected ${values[i]} < ${values[i + 1]}.',
+          );
         }
       });
       test('decreasing', () {
         for (var i = 0; i < values.length - 1; i++) {
-          expect(comparator(values[i + 1], values[i]), greaterThan(0),
-              reason: 'Expected ${values[i]} > ${values[i + 1]}.');
+          expect(
+            comparator(values[i + 1], values[i]),
+            greaterThan(0),
+            reason: 'Expected ${values[i]} > ${values[i + 1]}.',
+          );
         }
       });
       test('equal', () {
@@ -501,21 +539,22 @@ void fieldTest<T>(DataType<T> type, List<T> values) {
           expect(isClose(nan, value, epsilon), isFalse);
         }
       });
-      if (![
-        DataType.complex,
-        DataType.quaternion,
-      ].contains(type)) {
+      if (![DataType.complex, DataType.quaternion].contains(type)) {
         test('infinity', () {
           final infinity = field.infinity;
           expect(isClose(infinity, infinity, epsilon), isFalse);
-          expect(values,
-              everyElement(type.comparator.greaterThan.curry(infinity)));
+          expect(
+            values,
+            everyElement(type.comparator.greaterThan.curry(infinity)),
+          );
         });
         test('negativeInfinity', () {
           final negativeInfinity = field.negativeInfinity;
           expect(isClose(negativeInfinity, negativeInfinity, epsilon), isFalse);
-          expect(values,
-              everyElement(type.comparator.lessThan.curry(negativeInfinity)));
+          expect(
+            values,
+            everyElement(type.comparator.lessThan.curry(negativeInfinity)),
+          );
         });
       }
     }
@@ -973,10 +1012,7 @@ void main() {
       [BigInt.zero, BigInt.one, BigInt.two],
       [BigInt.from(123), BigInt.from(-321), BigInt.two.pow(100)],
     ]);
-    fieldTest(type, [
-      BigInt.from(-42),
-      BigInt.from(35),
-    ]);
+    fieldTest(type, [BigInt.from(-42), BigInt.from(35)]);
   });
   group('fraction', () {
     const type = DataType.fraction;
@@ -1007,11 +1043,7 @@ void main() {
       [Fraction.zero, Fraction.one],
       [Fraction(5, -6), Fraction(-3, 4), Fraction(1, 2)],
     ]);
-    fieldTest(type, [
-      Fraction(5, -6),
-      Fraction(-3, 4),
-      Fraction(1, 2),
-    ]);
+    fieldTest(type, [Fraction(5, -6), Fraction(-3, 4), Fraction(1, 2)]);
   });
   group('complex', () {
     const type = DataType.complex;
@@ -1063,8 +1095,10 @@ void main() {
       expect(type.nullable, isNot(type));
     });
     test('cast', () {
-      expect(type.cast(const Quaternion(1, 2, 3, 4)),
-          const Quaternion(1, 2, 3, 4));
+      expect(
+        type.cast(const Quaternion(1, 2, 3, 4)),
+        const Quaternion(1, 2, 3, 4),
+      );
       expect(type.cast(2), const Quaternion(2));
       expect(type.cast(0.5), const Quaternion(0.5));
       expect(type.cast(BigInt.from(123)), const Quaternion(123));

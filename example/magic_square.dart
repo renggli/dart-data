@@ -22,9 +22,10 @@ Matrix<int> magic(int n) {
       DataType.int64,
       n,
       n,
-      (r, c) => ((r + 1) ~/ 2) % 2 == ((c + 1) ~/ 2) % 2
-          ? n * n - n * r - c
-          : n * r + c + 1,
+      (r, c) =>
+          ((r + 1) ~/ 2) % 2 == ((c + 1) ~/ 2) % 2
+              ? n * n - n * r - c
+              : n * r + c + 1,
     );
   } else {
     final R = Matrix(DataType.int64, n, n);
@@ -109,8 +110,10 @@ void main() {
     {
       final e = ((md + md.transposed) * 0.5).eigenvalue;
       buffer.add(doublePrinter(3)(e.realEigenvalues.last));
-      assert((e.realEigenvalues.last - m.diagonal().sum).abs() < 0.0001,
-          'invalid eigenvalue');
+      assert(
+        (e.realEigenvalues.last - m.diagonal().sum).abs() < 0.0001,
+        'invalid eigenvalue',
+      );
     }
 
     // Linear algebraic rank, should equal n if n is odd, be less than n if n
@@ -119,12 +122,13 @@ void main() {
       final r = m.rank;
       buffer.add(integerPrinter()(r));
       assert(
-          n % 4 == 0
-              ? r == 3
-              : n.isOdd
-                  ? r == n
-                  : r == (n ~/ 2) + 2,
-          'invalid rank');
+        n % 4 == 0
+            ? r == 3
+            : n.isOdd
+            ? r == n
+            : r == (n ~/ 2) + 2,
+        'invalid rank',
+      );
     }
 
     // L_2 condition number, ratio of singular values.
@@ -132,11 +136,13 @@ void main() {
       final c = m.cond;
       final cn = c < 1 / eps ? c : double.infinity;
       buffer.add(doublePrinter(3)(cn));
-      assert(n == 3
-          ? cn.round() == 4
-          : n.isOdd
-              ? cn.round() == n
-              : cn == double.infinity);
+      assert(
+        n == 3
+            ? cn.round() == 4
+            : n.isOdd
+            ? cn.round() == n
+            : cn == double.infinity,
+      );
     }
 
     // Test of LU factorization, norm1(L*U-A(p,:))/(n*eps).

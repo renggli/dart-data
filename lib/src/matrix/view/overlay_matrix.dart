@@ -22,9 +22,11 @@ extension OverlayMatrixExtension<T> on Matrix<T> {
           rowCount != mask.rowCount ||
           colCount != base.colCount ||
           colCount != mask.colCount) {
-        throw ArgumentError('Dimensions of overlay ($rowCount * $colCount), '
-            'mask (${mask.rowCount} * ${mask.colCount}) and base '
-            '(${base.rowCount} * ${base.colCount}) matrices do not match.');
+        throw ArgumentError(
+          'Dimensions of overlay ($rowCount * $colCount), '
+          'mask (${mask.rowCount} * ${mask.colCount}) and base '
+          '(${base.rowCount} * ${base.colCount}) matrices do not match.',
+        );
       }
       return OverlayMaskMatrix<T>(dataType, this, mask, base);
     }

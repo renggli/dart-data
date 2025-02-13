@@ -7,9 +7,10 @@ extension RangeTensorExtension<T> on Tensor<T> {
   /// and [end] (exclusive).
   Tensor<T> getRange(int start, int? end, {int step = 1, int axis = 0}) =>
       Tensor<T>.internal(
-          type: type,
-          layout: layout.getRange(start, end, step: step, axis: axis),
-          data: data);
+        type: type,
+        layout: layout.getRange(start, end, step: step, axis: axis),
+        data: data,
+      );
 }
 
 extension RangeLayoutExtension on Layout {

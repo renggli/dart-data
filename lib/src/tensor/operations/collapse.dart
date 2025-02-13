@@ -7,7 +7,10 @@ import '../utils/layout.dart' as utils;
 extension CollapseTensorExtension<T> on Tensor<T> {
   /// Returns a view with a single-element axis at [axis] removed.
   Tensor<T> collapse({int axis = 0}) => Tensor<T>.internal(
-      type: type, layout: layout.collapse(axis: axis), data: data);
+    type: type,
+    layout: layout.collapse(axis: axis),
+    data: data,
+  );
 }
 
 extension CollapseLayoutExtension on Layout {

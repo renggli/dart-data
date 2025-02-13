@@ -12,8 +12,10 @@ extension RootsPolynomialExtension<T extends num> on Polynomial<T> {
       return [Complex(-b / a)];
     } else {
       final factor = -1.0 / getUnchecked(degree);
-      final matrix =
-          Matrix<double>.generate(DataType.float, degree, degree, (r, c) {
+      final matrix = Matrix<double>.generate(DataType.float, degree, degree, (
+        r,
+        c,
+      ) {
         if (r == degree - 1) {
           return factor * getUnchecked(c);
         } else if (r + 1 == c) {

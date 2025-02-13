@@ -19,18 +19,15 @@ class DifferentiatePolynomial<T> with Polynomial<T> {
 
   @override
   T getUnchecked(int exponent) => dataType.field.mul(
-        polynomial.getUnchecked(exponent + 1),
-        dataType.cast(exponent + 1),
-      );
+    polynomial.getUnchecked(exponent + 1),
+    dataType.cast(exponent + 1),
+  );
 
   @override
   void setUnchecked(int exponent, T value) {
     polynomial.setUnchecked(
       exponent + 1,
-      dataType.field.div(
-        value,
-        dataType.cast(exponent + 1),
-      ),
+      dataType.field.div(value, dataType.cast(exponent + 1)),
     );
   }
 }

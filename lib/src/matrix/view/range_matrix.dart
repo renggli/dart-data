@@ -5,9 +5,13 @@ import '../matrix.dart';
 /// Mutable range of the rows and columns of a matrix.
 class RangeMatrix<T> with Matrix<T> {
   RangeMatrix(
-      this.matrix, this.rowStart, this.rowEnd, this.columnStart, this.columnEnd)
-      : rowCount = rowEnd - rowStart,
-        colCount = columnEnd - columnStart;
+    this.matrix,
+    this.rowStart,
+    this.rowEnd,
+    this.columnStart,
+    this.columnEnd,
+  ) : rowCount = rowEnd - rowStart,
+      colCount = columnEnd - columnStart;
 
   final Matrix<T> matrix;
   final int rowStart, rowEnd;
@@ -39,7 +43,12 @@ extension RangeMatrixExtension<T> on Matrix<T> {
   /// [rowStart] or [rowEnd] are out of bounds.
   Matrix<T> rowRange(int rowStart, [int? rowEnd]) {
     rowEnd = RangeError.checkValidRange(
-        rowStart, rowEnd, rowCount, 'rowStart', 'rowEnd');
+      rowStart,
+      rowEnd,
+      rowCount,
+      'rowStart',
+      'rowEnd',
+    );
     return rowRangeUnchecked(rowStart, rowEnd);
   }
 
@@ -52,7 +61,12 @@ extension RangeMatrixExtension<T> on Matrix<T> {
   /// [columnStart] or [columnEnd] are out of bounds.
   Matrix<T> colRange(int columnStart, [int? columnEnd]) {
     columnEnd = RangeError.checkValidRange(
-        columnStart, columnEnd, colCount, 'columnStart', 'columnEnd');
+      columnStart,
+      columnEnd,
+      colCount,
+      'columnStart',
+      'columnEnd',
+    );
     return colRangeUnchecked(columnStart, columnEnd);
   }
 
@@ -65,16 +79,30 @@ extension RangeMatrixExtension<T> on Matrix<T> {
   /// [RangeError], if any of the ranges are out of bounds.
   Matrix<T> range(int rowStart, int rowEnd, int columnStart, int columnEnd) {
     rowEnd = RangeError.checkValidRange(
-        rowStart, rowEnd, rowCount, 'rowStart', 'rowEnd');
+      rowStart,
+      rowEnd,
+      rowCount,
+      'rowStart',
+      'rowEnd',
+    );
     columnEnd = RangeError.checkValidRange(
-        columnStart, columnEnd, colCount, 'columnStart', 'columnEnd');
+      columnStart,
+      columnEnd,
+      colCount,
+      'columnStart',
+      'columnEnd',
+    );
     return rangeUnchecked(rowStart, rowEnd, columnStart, columnEnd);
   }
 
   /// Returns a mutable view onto the row and column ranges. The behavior is
   /// undefined if any of the ranges are out of bounds.
   Matrix<T> rangeUnchecked(
-      int rowStart, int rowEnd, int columnStart, int columnEnd) {
+    int rowStart,
+    int rowEnd,
+    int columnStart,
+    int columnEnd,
+  ) {
     if (rowStart == 0 &&
         rowEnd == rowCount &&
         columnStart == 0 &&
@@ -85,14 +113,15 @@ extension RangeMatrixExtension<T> on Matrix<T> {
       RangeMatrix<T>(
         matrix: final thisMatrix,
         rowStart: final thisRowStart,
-        columnStart: final thisColumnStart
+        columnStart: final thisColumnStart,
       ) =>
         RangeMatrix<T>(
-            thisMatrix,
-            thisRowStart + rowStart,
-            thisRowStart + rowEnd,
-            thisColumnStart + columnStart,
-            thisColumnStart + columnEnd),
+          thisMatrix,
+          thisRowStart + rowStart,
+          thisRowStart + rowEnd,
+          thisColumnStart + columnStart,
+          thisColumnStart + columnEnd,
+        ),
       _ => RangeMatrix<T>(this, rowStart, rowEnd, columnStart, columnEnd),
     };
   }

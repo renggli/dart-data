@@ -18,8 +18,10 @@ extension OverlayVectorExtension<T> on Vector<T> {
       return OverlayOffsetVector<T>(dataType, this, offset, base);
     } else if (mask != null && offset == null) {
       if (count != base.count || count != mask.count) {
-        throw ArgumentError('Dimension of overlay ($count), mask '
-            '(${mask.count}) and base (${base.count}) do not match.');
+        throw ArgumentError(
+          'Dimension of overlay ($count), mask '
+          '(${mask.count}) and base (${base.count}) do not match.',
+        );
       }
       return OverlayMaskVector<T>(dataType, this, mask, base);
     }

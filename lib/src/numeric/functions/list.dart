@@ -4,7 +4,10 @@ import '../functions.dart';
 /// Provides params as a single positional list argument.
 class ListParametrizedUnaryFunction<T> extends ParametrizedUnaryFunction<T> {
   const ListParametrizedUnaryFunction(
-      super.dataType, this.count, this.function);
+    super.dataType,
+    this.count,
+    this.function,
+  );
 
   @override
   final int count;
@@ -14,8 +17,10 @@ class ListParametrizedUnaryFunction<T> extends ParametrizedUnaryFunction<T> {
 
   @override
   List<T> toBindings(Vector<T> params) {
-    assert(count == params.count,
-        'Expected $count params, but got ${params.count}.');
+    assert(
+      count == params.count,
+      'Expected $count params, but got ${params.count}.',
+    );
     return params.toList(growable: false);
   }
 

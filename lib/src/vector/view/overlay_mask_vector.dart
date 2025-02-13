@@ -20,8 +20,11 @@ class OverlayMaskVector<T> with Vector<T> {
   int get count => base.count;
 
   @override
-  Set<Storage> get storage =>
-      {...overlay.storage, ...mask.storage, ...base.storage};
+  Set<Storage> get storage => {
+    ...overlay.storage,
+    ...mask.storage,
+    ...base.storage,
+  };
 
   @override
   T getUnchecked(int index) {

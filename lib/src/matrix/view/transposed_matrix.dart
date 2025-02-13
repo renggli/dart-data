@@ -31,7 +31,7 @@ class TransposedMatrix<T> with Matrix<T> {
 extension TransposedMatrixExtension<T> on Matrix<T> {
   /// Returns a mutable view onto the transposed matrix.
   Matrix<T> get transposed => switch (this) {
-        TransposedMatrix<T>(matrix: final matrix) => matrix,
-        _ => TransposedMatrix<T>(this),
-      };
+    TransposedMatrix<T>(matrix: final matrix) => matrix,
+    _ => TransposedMatrix<T>(this),
+  };
 }

@@ -30,15 +30,22 @@ abstract mixin class Vector<T> implements Storage {
   }
 
   /// Returns the concatenation of [vectors].
-  factory Vector.concat(DataType<T> dataType, Iterable<Vector<T>> vectors,
-      {VectorFormat? format}) {
+  factory Vector.concat(
+    DataType<T> dataType,
+    Iterable<Vector<T>> vectors, {
+    VectorFormat? format,
+  }) {
     if (vectors.isEmpty) {
       throw ArgumentError.value(
-          vectors, 'vectors', 'Expected at least 1 vector.');
+        vectors,
+        'vectors',
+        'Expected at least 1 vector.',
+      );
     }
-    final result = vectors.length == 1
-        ? vectors.first
-        : ConcatVector<T>(dataType, vectors.toList(growable: false));
+    final result =
+        vectors.length == 1
+            ? vectors.first
+            : ConcatVector<T>(dataType, vectors.toList(growable: false));
     return format == null ? result : result.toVector(format: format);
   }
 
@@ -46,10 +53,17 @@ abstract mixin class Vector<T> implements Storage {
   ///
   /// If [format] is specified the resulting vector is mutable, otherwise this
   /// is a read-only view.
-  factory Vector.constant(DataType<T> dataType, int count,
-      {T? value, VectorFormat? format}) {
-    final result =
-        ConstantVector<T>(dataType, count, value ?? dataType.defaultValue);
+  factory Vector.constant(
+    DataType<T> dataType,
+    int count, {
+    T? value,
+    VectorFormat? format,
+  }) {
+    final result = ConstantVector<T>(
+      dataType,
+      count,
+      value ?? dataType.defaultValue,
+    );
     return format == null ? result : result.toVector(format: format);
   }
 
@@ -58,16 +72,22 @@ abstract mixin class Vector<T> implements Storage {
   /// If [format] is specified the resulting vector is mutable, otherwise this
   /// is a read-only view.
   factory Vector.generate(
-      DataType<T> dataType, int count, VectorGeneratorCallback<T> callback,
-      {VectorFormat? format}) {
+    DataType<T> dataType,
+    int count,
+    VectorGeneratorCallback<T> callback, {
+    VectorFormat? format,
+  }) {
     final result = GeneratedVector<T>(dataType, count, callback);
     return format == null ? result : result.toVector(format: format);
   }
 
   /// Constructs a vector from an [iterable]. To enable efficient access
   /// the data is always copied.
-  factory Vector.fromIterable(DataType<T> dataType, Iterable<T> source,
-      {VectorFormat? format}) {
+  factory Vector.fromIterable(
+    DataType<T> dataType,
+    Iterable<T> source, {
+    VectorFormat? format,
+  }) {
     final length = source.length;
     final iterator = source.iterator;
     final result = Vector<T>(dataType, length, format: format);
@@ -82,8 +102,11 @@ abstract mixin class Vector<T> implements Storage {
   /// If [format] is specified, [source] is copied into a mutable vector of the
   /// selected format; otherwise a view onto the possibly mutable [source] is
   /// provided.
-  factory Vector.fromList(DataType<T> dataType, List<T> source,
-      {VectorFormat? format}) {
+  factory Vector.fromList(
+    DataType<T> dataType,
+    List<T> source, {
+    VectorFormat? format,
+  }) {
     final result = ListVector.fromList(dataType, source);
     return format == null ? result : result.toVector(format: format);
   }
@@ -106,15 +129,20 @@ abstract mixin class Vector<T> implements Storage {
   ///
   /// [splitter] is used to split the input string into values. By default
   /// values are separated by one or more whitespaces.
-  factory Vector.fromString(DataType<T> dataType, String source,
-      {T Function(String)? converter,
-      Pattern? splitter,
-      VectorFormat? format}) {
+  factory Vector.fromString(
+    DataType<T> dataType,
+    String source, {
+    T Function(String)? converter,
+    Pattern? splitter,
+    VectorFormat? format,
+  }) {
     final converter_ = converter ?? dataType.cast;
     final splitter_ = splitter ?? RegExp(r'\s+');
-    return Vector<T>.fromList(dataType,
-        source.split(splitter_).map(converter_).toList(growable: false),
-        format: format);
+    return Vector<T>.fromList(
+      dataType,
+      source.split(splitter_).map(converter_).toList(growable: false),
+      format: format,
+    );
   }
 
   /// Returns the data type of this vector.
@@ -130,9 +158,10 @@ abstract mixin class Vector<T> implements Storage {
   /// Returns the target vector with all elements of this vector copied into it.
   Vector<T> copyInto(Vector<T> target) {
     assert(
-        count == target.count,
-        'Count of this vector ($count) and the target vector '
-        '(${target.count}) must match.');
+      count == target.count,
+      'Count of this vector ($count) and the target vector '
+      '(${target.count}) must match.',
+    );
     if (this != target) {
       for (var i = 0; i < count; i++) {
         target.setUnchecked(i, getUnchecked(i));
@@ -216,7 +245,8 @@ abstract mixin class Vector<T> implements Storage {
 
   /// Returns the string representation of this polynomial.
   @override
-  String toString() => '$runtimeType('
+  String toString() =>
+      '$runtimeType('
       'dataType: ${dataType.name}, '
       'count: $count):\n'
       '${format()}';

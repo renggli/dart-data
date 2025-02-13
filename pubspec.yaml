@@ -11,7 +11,7 @@ topics:
   - tensor
 
 environment:
-  sdk: ^3.6.0
+  sdk: ^3.7.0
 dependencies:
   collection: ^1.19.0
   meta: ^1.16.0

@@ -6,7 +6,7 @@ import '../matrix.dart';
 /// Mutable horizontal concatenation of matrices.
 class ConcatHorizontalMatrix<T> with Matrix<T> {
   ConcatHorizontalMatrix(this.dataType, this.matrices)
-      : indexes = computeIndexes(matrices);
+    : indexes = computeIndexes(matrices);
 
   final List<Matrix<T>> matrices;
   final List<int> indexes;

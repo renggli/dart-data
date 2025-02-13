@@ -27,7 +27,9 @@ void vectorTest(String name, VectorFormat format) {
       });
       test('default with error', () {
         expect(
-            () => Vector(DataType.int8, -4, format: format), throwsRangeError);
+          () => Vector(DataType.int8, -4, format: format),
+          throwsRangeError,
+        );
       });
       group('concat', () {
         final a = Vector.fromList(DataType.int8, [0, 1, 2], format: format);
@@ -110,8 +112,12 @@ void vectorTest(String name, VectorFormat format) {
         expect(() => vector[3] = '*', throwsUnsupportedError);
       });
       test('generate with format', () {
-        final vector =
-            Vector.generate(DataType.string, 7, (i) => '$i', format: format);
+        final vector = Vector.generate(
+          DataType.string,
+          7,
+          (i) => '$i',
+          format: format,
+        );
         expect(vector.dataType, DataType.string);
         expect(vector.count, 7);
         expect(vector.shape, [vector.count]);
@@ -123,8 +129,11 @@ void vectorTest(String name, VectorFormat format) {
         expect(vector[3], '*');
       });
       test('fromList', () {
-        final vector =
-            Vector.fromList(DataType.int8, [2, 1, 3], format: format);
+        final vector = Vector.fromList(DataType.int8, [
+          2,
+          1,
+          3,
+        ], format: format);
         expect(vector.dataType, DataType.int8);
         expect(vector.count, 3);
         expect(vector.shape, [vector.count]);
@@ -134,8 +143,11 @@ void vectorTest(String name, VectorFormat format) {
         expect(vector[2], 3);
       });
       test('fromIterable', () {
-        final vector =
-            Vector.fromIterable(DataType.int8, {2, 1, 3}, format: format);
+        final vector = Vector.fromIterable(DataType.int8, {
+          2,
+          1,
+          3,
+        }, format: format);
         expect(vector.dataType, DataType.int8);
         expect(vector.count, 3);
         expect(vector.shape, [vector.count]);
@@ -146,8 +158,9 @@ void vectorTest(String name, VectorFormat format) {
       });
       test('fromTensor', () {
         final vector = Vector.fromTensor(
-            Tensor.fromIterable([2, 1, 3], type: DataType.int8),
-            format: format);
+          Tensor.fromIterable([2, 1, 3], type: DataType.int8),
+          format: format,
+        );
         expect(vector.dataType, DataType.int8);
         expect(vector.count, 3);
         expect(vector.shape, [vector.count]);
@@ -157,8 +170,11 @@ void vectorTest(String name, VectorFormat format) {
         expect(vector[2], 3);
       });
       test('fromString', () {
-        final vector =
-            Vector.fromString(DataType.int8, '1 2 3', format: format);
+        final vector = Vector.fromString(
+          DataType.int8,
+          '1 2 3',
+          format: format,
+        );
         expect(vector.dataType, DataType.int8);
         expect(vector.count, 3);
         expect(vector.shape, [vector.count]);
@@ -168,10 +184,13 @@ void vectorTest(String name, VectorFormat format) {
         expect(vector[2], 3);
       });
       test('fromString', () {
-        final vector = Vector.fromString(DataType.string, 'a-b-c',
-            converter: (value) => value.toUpperCase(),
-            splitter: '-',
-            format: format);
+        final vector = Vector.fromString(
+          DataType.string,
+          'a-b-c',
+          converter: (value) => value.toUpperCase(),
+          splitter: '-',
+          format: format,
+        );
         expect(vector.dataType, DataType.string);
         expect(vector.count, 3);
         expect(vector.shape, [vector.count]);
@@ -237,24 +256,36 @@ void vectorTest(String name, VectorFormat format) {
         expect(() => vector[vector.count] = 1, throwsRangeError);
       });
       test('format', () {
-        final vector =
-            Vector.generate(DataType.int8, 100, (i) => i, format: format);
+        final vector = Vector.generate(
+          DataType.int8,
+          100,
+          (i) => i,
+          format: format,
+        );
         expect(vector.format(), '0 1 2 … 97 98 99');
       });
       test('toString', () {
-        final vector =
-            Vector.fromList(DataType.int8, [3, 2, 1], format: format);
+        final vector = Vector.fromList(DataType.int8, [
+          3,
+          2,
+          1,
+        ], format: format);
         expect(
-            vector.toString(),
-            '${vector.runtimeType}'
-            '(dataType: int8, count: 3):\n'
-            '3 2 1');
+          vector.toString(),
+          '${vector.runtimeType}'
+          '(dataType: int8, count: 3):\n'
+          '3 2 1',
+        );
       });
     });
     group('view', () {
       test('copy', () {
-        final source =
-            Vector.generate(DataType.int32, 30, (i) => i, format: format);
+        final source = Vector.generate(
+          DataType.int32,
+          30,
+          (i) => i,
+          format: format,
+        );
         final copy = source.toVector(format: format);
         expect(copy.dataType, source.dataType);
         expect(copy.count, source.count);
@@ -276,8 +307,12 @@ void vectorTest(String name, VectorFormat format) {
       });
       group('range', () {
         test('default', () {
-          final source =
-              Vector.generate(DataType.string, 6, (i) => '$i', format: format);
+          final source = Vector.generate(
+            DataType.string,
+            6,
+            (i) => '$i',
+            format: format,
+          );
           final range = source.range(1, 4);
           expect(range.dataType, DataType.string);
           expect(range.count, 3);
@@ -294,8 +329,12 @@ void vectorTest(String name, VectorFormat format) {
           expect(source.range(0, source.count), source);
         });
         test('sub range', () {
-          final source =
-              Vector.generate(DataType.string, 6, (i) => '$i', format: format);
+          final source = Vector.generate(
+            DataType.string,
+            6,
+            (i) => '$i',
+            format: format,
+          );
           final range = source.range(1, 4).range(1, 2);
           expect(range.dataType, DataType.string);
           expect(range.count, 1);
@@ -314,8 +353,12 @@ void vectorTest(String name, VectorFormat format) {
       });
       group('index', () {
         test('default', () {
-          final source =
-              Vector.generate(DataType.string, 6, (i) => '$i', format: format);
+          final source = Vector.generate(
+            DataType.string,
+            6,
+            (i) => '$i',
+            format: format,
+          );
           final index = source.index([3, 2, 2]);
           expect(index.dataType, DataType.string);
           expect(index.count, 3);
@@ -328,8 +371,12 @@ void vectorTest(String name, VectorFormat format) {
           expect(source[2], '2*');
         });
         test('sub index', () {
-          final source =
-              Vector.generate(DataType.string, 6, (i) => '$i', format: format);
+          final source = Vector.generate(
+            DataType.string,
+            6,
+            (i) => '$i',
+            format: format,
+          );
           final index = source.index([3, 2, 2]).index([1]);
           expect(index.dataType, DataType.string);
           expect(index.count, 1);
@@ -387,11 +434,19 @@ void vectorTest(String name, VectorFormat format) {
         });
       });
       group('overlay', () {
-        final base = Vector.generate(DataType.string, 8, (index) => '($index)',
-            format: format);
+        final base = Vector.generate(
+          DataType.string,
+          8,
+          (index) => '($index)',
+          format: format,
+        );
         test('offset', () {
-          final top = Vector.generate(DataType.string, 2, (index) => '[$index]',
-              format: format);
+          final top = Vector.generate(
+            DataType.string,
+            2,
+            (index) => '[$index]',
+            format: format,
+          );
           final composite = top.overlay(base, offset: 4);
           expect(composite.dataType, top.dataType);
           expect(composite.count, base.count);
@@ -405,11 +460,17 @@ void vectorTest(String name, VectorFormat format) {
         });
         test('mask', () {
           final top = Vector.generate(
-              DataType.string, base.count, (index) => '[$index]',
-              format: format);
+            DataType.string,
+            base.count,
+            (index) => '[$index]',
+            format: format,
+          );
           final mask = Vector.generate(
-              DataType.boolean, base.count, (index) => index.isEven,
-              format: format);
+            DataType.boolean,
+            base.count,
+            (index) => index.isEven,
+            format: format,
+          );
           final composite = top.overlay(base, mask: mask);
           expect(composite.dataType, top.dataType);
           expect(composite.count, base.count);
@@ -424,19 +485,39 @@ void vectorTest(String name, VectorFormat format) {
         test('errors', () {
           expect(() => base.overlay(base), throwsArgumentError);
           expect(
-              () => base.overlay(
-                  Vector.constant(DataType.string, base.count + 1,
-                      value: '', format: format),
-                  mask: Vector.constant(DataType.boolean, base.count,
-                      value: true, format: format)),
-              throwsArgumentError);
+            () => base.overlay(
+              Vector.constant(
+                DataType.string,
+                base.count + 1,
+                value: '',
+                format: format,
+              ),
+              mask: Vector.constant(
+                DataType.boolean,
+                base.count,
+                value: true,
+                format: format,
+              ),
+            ),
+            throwsArgumentError,
+          );
           expect(
-              () => base.overlay(
-                  Vector.constant(DataType.string, base.count,
-                      value: '', format: format),
-                  mask: Vector.constant(DataType.boolean, base.count + 1,
-                      value: true, format: format)),
-              throwsArgumentError);
+            () => base.overlay(
+              Vector.constant(
+                DataType.string,
+                base.count,
+                value: '',
+                format: format,
+              ),
+              mask: Vector.constant(
+                DataType.boolean,
+                base.count + 1,
+                value: true,
+                format: format,
+              ),
+            ),
+            throwsArgumentError,
+          );
         });
       });
       group('convolution', () {
@@ -447,33 +528,49 @@ void vectorTest(String name, VectorFormat format) {
         test('full', () {
           final result1 = vector1.convolve(kernel1);
           expect(result1.iterable, [5, 6, 2, 2, 2, -8, -9]);
-          final result2 =
-              vector2.convolve(kernel2, mode: VectorConvolution.full);
+          final result2 = vector2.convolve(
+            kernel2,
+            mode: VectorConvolution.full,
+          );
           expect(result2.iterable, [0.0, 1.0, 2.5, 4.0, 1.5]);
         });
         test('valid', () {
-          final result1 =
-              vector1.convolve(kernel1, mode: VectorConvolution.valid);
+          final result1 = vector1.convolve(
+            kernel1,
+            mode: VectorConvolution.valid,
+          );
           expect(result1.iterable, [2, 2, 2]);
-          final result2 =
-              vector2.convolve(kernel2, mode: VectorConvolution.valid);
+          final result2 = vector2.convolve(
+            kernel2,
+            mode: VectorConvolution.valid,
+          );
           expect(result2.iterable, [2.5]);
         });
         test('same', () {
-          final result1 =
-              vector1.convolve(kernel1, mode: VectorConvolution.same);
+          final result1 = vector1.convolve(
+            kernel1,
+            mode: VectorConvolution.same,
+          );
           expect(result1.iterable, [6, 2, 2, 2, -8]);
-          final result2 =
-              vector2.convolve(kernel2, mode: VectorConvolution.same);
+          final result2 = vector2.convolve(
+            kernel2,
+            mode: VectorConvolution.same,
+          );
           expect(result2.iterable, [1.0, 2.5, 4.0]);
         });
       });
       group('transform', () {
-        final source =
-            Vector.generate(DataType.int8, 4, (index) => index, format: format);
+        final source = Vector.generate(
+          DataType.int8,
+          4,
+          (index) => index,
+          format: format,
+        );
         test('to string', () {
-          final mapped =
-              source.map((index, value) => '$index', DataType.string);
+          final mapped = source.map(
+            (index, value) => '$index',
+            DataType.string,
+          );
           expect(mapped.dataType, DataType.string);
           expect(mapped.count, source.count);
           expect(mapped.storage, [source]);
@@ -491,8 +588,10 @@ void vectorTest(String name, VectorFormat format) {
           }
         });
         test('to float', () {
-          final mapped =
-              source.map((index, value) => index.toDouble(), DataType.float64);
+          final mapped = source.map(
+            (index, value) => index.toDouble(),
+            DataType.float64,
+          );
           expect(mapped.dataType, DataType.float64);
           expect(mapped.count, source.count);
           expect(mapped.storage, [source]);
@@ -506,8 +605,11 @@ void vectorTest(String name, VectorFormat format) {
         });
         test('mutable', () {
           final source = Vector.generate(
-              DataType.uint8, 6, (index) => index + 97,
-              format: format);
+            DataType.uint8,
+            6,
+            (index) => index + 97,
+            format: format,
+          );
           final transform = source.transform<String>(
             (index, value) => String.fromCharCode(value),
             write: (index, value) => value.codeUnitAt(0),
@@ -525,8 +627,12 @@ void vectorTest(String name, VectorFormat format) {
         });
       });
       group('cast', () {
-        final source = Vector.generate(DataType.int32, 256, (index) => index,
-            format: format);
+        final source = Vector.generate(
+          DataType.int32,
+          256,
+          (index) => index,
+          format: format,
+        );
         test('to string', () {
           final cast = source.cast(DataType.string);
           expect(cast.dataType, DataType.string);
@@ -540,8 +646,11 @@ void vectorTest(String name, VectorFormat format) {
         });
       });
       test('reversed', () {
-        final source =
-            Vector.fromList(DataType.int8, [1, 2, 3], format: format);
+        final source = Vector.fromList(DataType.int8, [
+          1,
+          2,
+          3,
+        ], format: format);
         final reversed = source.reversed;
         expect(reversed.dataType, source.dataType);
         expect(reversed.count, source.count);
@@ -570,8 +679,12 @@ void vectorTest(String name, VectorFormat format) {
       });
       group('matrix ', () {
         test('diagonal', () {
-          final vector =
-              Vector.generate(DataType.string, 10, (i) => '$i', format: format);
+          final vector = Vector.generate(
+            DataType.string,
+            10,
+            (i) => '$i',
+            format: format,
+          );
           final matrix = vector.diagonalMatrix;
           expect(matrix.dataType, vector.dataType);
           expect(matrix.rowCount, vector.count);
@@ -590,8 +703,12 @@ void vectorTest(String name, VectorFormat format) {
           }
         });
         test('row', () {
-          final vector =
-              Vector.generate(DataType.string, 10, (i) => '$i', format: format);
+          final vector = Vector.generate(
+            DataType.string,
+            10,
+            (i) => '$i',
+            format: format,
+          );
           final matrix = vector.rowMatrix;
           expect(matrix.dataType, vector.dataType);
           expect(matrix.rowCount, 1);
@@ -604,8 +721,12 @@ void vectorTest(String name, VectorFormat format) {
           }
         });
         test('column', () {
-          final vector =
-              Vector.generate(DataType.string, 10, (i) => '$i', format: format);
+          final vector = Vector.generate(
+            DataType.string,
+            10,
+            (i) => '$i',
+            format: format,
+          );
           final matrix = vector.columnMatrix;
           expect(matrix.dataType, vector.dataType);
           expect(matrix.rowCount, vector.count);
@@ -659,8 +780,12 @@ void vectorTest(String name, VectorFormat format) {
       });
       group('toList', () {
         test('default', () {
-          final vector =
-              Vector.generate(DataType.string, 10, (i) => '$i', format: format);
+          final vector = Vector.generate(
+            DataType.string,
+            10,
+            (i) => '$i',
+            format: format,
+          );
           final list = vector.toList();
           expect(list.length, vector.count);
           for (var i = 0; i < list.length; i++) {
@@ -671,8 +796,12 @@ void vectorTest(String name, VectorFormat format) {
           expect(() => list.add('*'), throwsUnsupportedError);
         });
         test('growable: true', () {
-          final vector =
-              Vector.generate(DataType.string, 3, (i) => '$i', format: format);
+          final vector = Vector.generate(
+            DataType.string,
+            3,
+            (i) => '$i',
+            format: format,
+          );
           final list = vector.toList(growable: true);
           expect(list.length, vector.count);
           for (var i = 0; i < list.length; i++) {
@@ -684,8 +813,12 @@ void vectorTest(String name, VectorFormat format) {
           expect(list, ['0*', '1*', '2*', '*']);
         });
         test('growable: false', () {
-          final vector =
-              Vector.generate(DataType.string, 3, (i) => '$i', format: format);
+          final vector = Vector.generate(
+            DataType.string,
+            3,
+            (i) => '$i',
+            format: format,
+          );
           final list = vector.toList(growable: false);
           expect(list.length, vector.count);
           for (var i = 0; i < list.length; i++) {
@@ -741,8 +874,12 @@ void vectorTest(String name, VectorFormat format) {
         });
       });
       test('basic', () {
-        final source =
-            Vector.generate(DataType.string, 5, (i) => '$i', format: format);
+        final source = Vector.generate(
+          DataType.string,
+          5,
+          (i) => '$i',
+          format: format,
+        );
         final list = source.iterable;
         expect(list, ['0', '1', '2', '3', '4']);
         expect(list.length, source.count);
@@ -756,11 +893,17 @@ void vectorTest(String name, VectorFormat format) {
     group('operators', () {
       final random = Random(648208272);
       final sourceA = Vector.generate(
-          DataType.int32, 100, (i) => 1 + random.nextInt(100),
-          format: format);
+        DataType.int32,
+        100,
+        (i) => 1 + random.nextInt(100),
+        format: format,
+      );
       final sourceB = Vector.generate(
-          DataType.int32, 100, (i) => 1 + random.nextInt(100),
-          format: format);
+        DataType.int32,
+        100,
+        (i) => 1 + random.nextInt(100),
+        format: format,
+      );
       test('add', () {
         final target = sourceA + sourceB;
         expect(target.dataType, sourceA.dataType);
@@ -822,10 +965,16 @@ void vectorTest(String name, VectorFormat format) {
         });
       });
       group('lerp', () {
-        final v0 = Vector<double>.fromList(DataType.float32, [1, 6, 9],
-            format: format);
-        final v1 = Vector<double>.fromList(DataType.float32, [9, -2, 9],
-            format: format);
+        final v0 = Vector<double>.fromList(DataType.float32, [
+          1,
+          6,
+          9,
+        ], format: format);
+        final v1 = Vector<double>.fromList(DataType.float32, [
+          9,
+          -2,
+          9,
+        ], format: format);
         test('at start', () {
           final v = v0.lerp(v1, 0.0);
           expect(v.dataType, v1.dataType);
@@ -868,10 +1017,16 @@ void vectorTest(String name, VectorFormat format) {
         });
         test('views', () {
           expect(sourceA.range(0, 3).compare(sourceA.index([0, 1, 2])), isTrue);
-          expect(sourceA.range(0, 3).compare(sourceA.index([3, 1, 0])), isFalse,
-              reason: 'order mismatch');
-          expect(sourceA.range(0, 3).compare(sourceA.index([0, 1])), isFalse,
-              reason: 'count mismatch');
+          expect(
+            sourceA.range(0, 3).compare(sourceA.index([3, 1, 0])),
+            isFalse,
+            reason: 'order mismatch',
+          );
+          expect(
+            sourceA.range(0, 3).compare(sourceA.index([0, 1])),
+            isFalse,
+            reason: 'count mismatch',
+          );
         });
         test('custom', () {
           final negated = -sourceA;
@@ -897,13 +1052,19 @@ void vectorTest(String name, VectorFormat format) {
         expect(r[2], -3);
       });
       test('sum', () {
-        final source =
-            Vector.fromList(DataType.uint8, [1, 2, 3, 4], format: format);
+        final source = Vector.fromList(DataType.uint8, [
+          1,
+          2,
+          3,
+          4,
+        ], format: format);
         expect(source.sum, 10);
       });
       test('magnitude', () {
-        final source =
-            Vector.fromList(DataType.float32, [3.0, 4.0], format: format);
+        final source = Vector.fromList(DataType.float32, [
+          3.0,
+          4.0,
+        ], format: format);
         expect(source.magnitude, 5.0);
       });
       test('magnitude2', () {

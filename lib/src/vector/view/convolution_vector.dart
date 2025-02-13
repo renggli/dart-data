@@ -10,8 +10,8 @@ import '../vector.dart';
 /// Read-only convolution between two vectors.
 abstract class ConvolutionVector<T> with Vector<T>, UnmodifiableVectorMixin<T> {
   ConvolutionVector(this.dataType, this.vector, this.kernel)
-      : assert(vector.count > 0, 'Empty vector'),
-        assert(kernel.count > 0, 'Empty kernel');
+    : assert(vector.count > 0, 'Empty vector'),
+      assert(kernel.count > 0, 'Empty kernel');
 
   final Vector<T> vector;
   final Vector<T> kernel;
@@ -35,7 +35,7 @@ abstract class ConvolutionVector<T> with Vector<T>, UnmodifiableVectorMixin<T> {
 
 class FullConvolutionVector<T> extends ConvolutionVector<T> {
   FullConvolutionVector(super.dataType, super.vector, super.kernel)
-      : count = vector.count + kernel.count - 1;
+    : count = vector.count + kernel.count - 1;
 
   @override
   final int count;
@@ -49,7 +49,7 @@ class FullConvolutionVector<T> extends ConvolutionVector<T> {
 
 class ValidConvolutionVector<T> extends ConvolutionVector<T> {
   ValidConvolutionVector(super.dataType, super.vector, super.kernel)
-      : count = vector.count - kernel.count + 1;
+    : count = vector.count - kernel.count + 1;
 
   @override
   final int count;
@@ -60,7 +60,7 @@ class ValidConvolutionVector<T> extends ConvolutionVector<T> {
 
 class SameConvolutionVector<T> extends ConvolutionVector<T> {
   SameConvolutionVector(super.dataType, super.vector, super.kernel)
-      : count = vector.count;
+    : count = vector.count;
 
   @override
   final int count;
@@ -73,11 +73,7 @@ class SameConvolutionVector<T> extends ConvolutionVector<T> {
 }
 
 /// Convolution mode on a [Vector], i.e. how the borders are handled.
-enum VectorConvolution {
-  full,
-  valid,
-  same,
-}
+enum VectorConvolution { full, valid, same }
 
 extension ConvolutionVectorExtension<T> on Vector<T> {
   /// Returns a view of the convolution between this vector and the given
@@ -89,13 +85,21 @@ extension ConvolutionVectorExtension<T> on Vector<T> {
     Vector<T> kernel, {
     DataType<T>? dataType,
     VectorConvolution mode = VectorConvolution.full,
-  }) =>
-      switch (mode) {
-        VectorConvolution.full =>
-          FullConvolutionVector<T>(dataType ?? this.dataType, this, kernel),
-        VectorConvolution.valid =>
-          ValidConvolutionVector<T>(dataType ?? this.dataType, this, kernel),
-        VectorConvolution.same =>
-          SameConvolutionVector<T>(dataType ?? this.dataType, this, kernel)
-      };
+  }) => switch (mode) {
+    VectorConvolution.full => FullConvolutionVector<T>(
+      dataType ?? this.dataType,
+      this,
+      kernel,
+    ),
+    VectorConvolution.valid => ValidConvolutionVector<T>(
+      dataType ?? this.dataType,
+      this,
+      kernel,
+    ),
+    VectorConvolution.same => SameConvolutionVector<T>(
+      dataType ?? this.dataType,
+      this,
+      kernel,
+    ),
+  };
 }

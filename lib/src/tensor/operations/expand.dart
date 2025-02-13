@@ -6,7 +6,10 @@ import '../utils/layout.dart' as utils;
 extension ExpandTensorExtension<T> on Tensor<T> {
   /// Returns a view with a single-element axis at [axis] added.
   Tensor<T> expand({int axis = 0}) => Tensor<T>.internal(
-      type: type, layout: layout.expand(axis: axis), data: data);
+    type: type,
+    layout: layout.expand(axis: axis),
+    data: data,
+  );
 }
 
 extension ExpandLayoutExtension on Layout {

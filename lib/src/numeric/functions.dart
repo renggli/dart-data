@@ -67,24 +67,31 @@ abstract class ParametrizedUnaryFunction<T> {
   /// specified.
   Vector<T> toVector(Object? params, {T? defaultParam}) {
     if (params == null) {
-      return Vector<T>.constant(dataType, count,
-          value: checkDefaultParam(params, defaultParam));
+      return Vector<T>.constant(
+        dataType,
+        count,
+        value: checkDefaultParam(params, defaultParam),
+      );
     } else if (params is List<T>) {
       return Vector<T>.generate(
-          dataType,
-          count,
-          (i) => i < params.length
-              ? params[i]
-              : checkDefaultParam(params, defaultParam, i),
-          format: VectorFormat.standard);
+        dataType,
+        count,
+        (i) =>
+            i < params.length
+                ? params[i]
+                : checkDefaultParam(params, defaultParam, i),
+        format: VectorFormat.standard,
+      );
     } else if (params is Vector<T>) {
       return Vector<T>.generate(
-          dataType,
-          count,
-          (i) => i < params.count
-              ? params.getUnchecked(i)
-              : checkDefaultParam(params, defaultParam, i),
-          format: VectorFormat.standard);
+        dataType,
+        count,
+        (i) =>
+            i < params.count
+                ? params.getUnchecked(i)
+                : checkDefaultParam(params, defaultParam, i),
+        format: VectorFormat.standard,
+      );
     } else {
       throw ArgumentError.value(params, 'params', 'Invalid parameter type');
     }
@@ -95,8 +102,11 @@ abstract class ParametrizedUnaryFunction<T> {
     if (defaultParam is T) {
       return defaultParam;
     }
-    throw ArgumentError.value(params, 'params',
-        key == null ? 'Missing a parameter.' : 'Missing a parameter at $key.');
+    throw ArgumentError.value(
+      params,
+      'params',
+      key == null ? 'Missing a parameter.' : 'Missing a parameter at $key.',
+    );
   }
 
   /// Converts the parameter values [params] to the underlying binding type.

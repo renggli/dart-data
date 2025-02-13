@@ -9,8 +9,11 @@ import 'utils/matchers.dart';
 
 const pointType = ObjectDataType<Point<int>>(Point(0, 0));
 
-void verifyMatrixIterable<T>(Matrix<T> matrix,
-    Iterable<RowColumnValue<T>> iterable, Iterable<T> values) {
+void verifyMatrixIterable<T>(
+  Matrix<T> matrix,
+  Iterable<RowColumnValue<T>> iterable,
+  Iterable<T> values,
+) {
   expect(iterable, hasLength(values.length));
   for (final (actual, expected) in (iterable, values).zip()) {
     expect(actual.value, expected);
@@ -43,33 +46,28 @@ void matrixTest(String name, MatrixFormat format) {
         }
       });
       test('default with error', () {
-        expect(() => Matrix(DataType.int8, -4, 5, format: format),
-            throwsRangeError);
-        expect(() => Matrix(DataType.int8, 4, -5, format: format),
-            throwsRangeError);
+        expect(
+          () => Matrix(DataType.int8, -4, 5, format: format),
+          throwsRangeError,
+        );
+        expect(
+          () => Matrix(DataType.int8, 4, -5, format: format),
+          throwsRangeError,
+        );
       });
       group('concat horizontal', () {
-        final a = Matrix.fromRows(
-            DataType.int8,
-            [
-              [1, 2],
-              [4, 5]
-            ],
-            format: format);
-        final b = Matrix.fromRows(
-            DataType.int8,
-            [
-              [3],
-              [6]
-            ],
-            format: format);
-        final expected = Matrix.fromRows(
-            DataType.int8,
-            [
-              [1, 2, 3],
-              [4, 5, 6]
-            ],
-            format: format);
+        final a = Matrix.fromRows(DataType.int8, [
+          [1, 2],
+          [4, 5],
+        ], format: format);
+        final b = Matrix.fromRows(DataType.int8, [
+          [3],
+          [6],
+        ], format: format);
+        final expected = Matrix.fromRows(DataType.int8, [
+          [1, 2, 3],
+          [4, 5, 6],
+        ], format: format);
         test('default', () {
           final matrix = Matrix.concatHorizontal(DataType.int8, [a, b]);
           expect(matrix.compare(expected), isTrue);
@@ -81,8 +79,10 @@ void matrixTest(String name, MatrixFormat format) {
         test('writing', () {
           final first = a.toMatrix(format: format);
           final second = b.toMatrix(format: format);
-          final matrix =
-              Matrix.concatHorizontal(DataType.int8, [first, second]);
+          final matrix = Matrix.concatHorizontal(DataType.int8, [
+            first,
+            second,
+          ]);
           for (var r = 0; r < matrix.rowCount; r++) {
             for (var c = 0; c < matrix.colCount; c++) {
               matrix.set(r, c, -1);
@@ -92,8 +92,10 @@ void matrixTest(String name, MatrixFormat format) {
           expect(second.rowMajor.map((cell) => cell.value), everyElement(-1));
         });
         test('with format', () {
-          final matrix =
-              Matrix.concatHorizontal(DataType.int8, [a, b], format: format);
+          final matrix = Matrix.concatHorizontal(DataType.int8, [
+            a,
+            b,
+          ], format: format);
           expect(matrix.compare(expected), isTrue);
         });
         test('single', () {
@@ -101,32 +103,25 @@ void matrixTest(String name, MatrixFormat format) {
           expect(matrix, a);
         });
         test('error', () {
-          expect(() => Matrix.concatHorizontal(DataType.int8, []),
-              throwsArgumentError);
+          expect(
+            () => Matrix.concatHorizontal(DataType.int8, []),
+            throwsArgumentError,
+          );
         });
       });
       group('concat vertical', () {
-        final a = Matrix.fromRows(
-            DataType.int8,
-            [
-              [1, 4],
-              [2, 5]
-            ],
-            format: format);
-        final b = Matrix.fromRows(
-            DataType.int8,
-            [
-              [3, 6]
-            ],
-            format: format);
-        final expected = Matrix.fromRows(
-            DataType.int8,
-            [
-              [1, 4],
-              [2, 5],
-              [3, 6]
-            ],
-            format: format);
+        final a = Matrix.fromRows(DataType.int8, [
+          [1, 4],
+          [2, 5],
+        ], format: format);
+        final b = Matrix.fromRows(DataType.int8, [
+          [3, 6],
+        ], format: format);
+        final expected = Matrix.fromRows(DataType.int8, [
+          [1, 4],
+          [2, 5],
+          [3, 6],
+        ], format: format);
         test('default', () {
           final matrix = Matrix.concatVertical(DataType.int8, [a, b]);
           expect(matrix.compare(expected), isTrue);
@@ -148,8 +143,10 @@ void matrixTest(String name, MatrixFormat format) {
           expect(second.rowMajor.map((cell) => cell.value), everyElement(-1));
         });
         test('with format', () {
-          final matrix =
-              Matrix.concatVertical(DataType.int8, [a, b], format: format);
+          final matrix = Matrix.concatVertical(DataType.int8, [
+            a,
+            b,
+          ], format: format);
           expect(matrix.compare(expected), isTrue);
         });
         test('single', () {
@@ -157,8 +154,10 @@ void matrixTest(String name, MatrixFormat format) {
           expect(matrix, a);
         });
         test('error', () {
-          expect(() => Matrix.concatVertical(DataType.int8, []),
-              throwsArgumentError);
+          expect(
+            () => Matrix.concatVertical(DataType.int8, []),
+            throwsArgumentError,
+          );
         });
       });
       test('constant', () {
@@ -249,7 +248,11 @@ void matrixTest(String name, MatrixFormat format) {
       });
       test('generate', () {
         final matrix = Matrix.generate(
-            DataType.string, 7, 8, (row, col) => '($row, $col)');
+          DataType.string,
+          7,
+          8,
+          (row, col) => '($row, $col)',
+        );
         expect(matrix.dataType, DataType.string);
         expect(matrix.rowCount, 7);
         expect(matrix.colCount, 8);
@@ -264,8 +267,12 @@ void matrixTest(String name, MatrixFormat format) {
       });
       test('generate with format', () {
         final matrix = Matrix.generate(
-            DataType.string, 7, 8, (row, col) => '($row, $col)',
-            format: format);
+          DataType.string,
+          7,
+          8,
+          (row, col) => '($row, $col)',
+          format: format,
+        );
         expect(matrix.dataType, DataType.string);
         expect(matrix.rowCount, 7);
         expect(matrix.colCount, 8);
@@ -296,8 +303,12 @@ void matrixTest(String name, MatrixFormat format) {
       });
       test('vandermonde with format', () {
         final data = Vector.fromIterable(DataType.int8, [-7, 3, 1, 0, 7]);
-        final matrix =
-            Matrix.vandermonde(DataType.int32, data, 7, format: format);
+        final matrix = Matrix.vandermonde(
+          DataType.int32,
+          data,
+          7,
+          format: format,
+        );
         expect(matrix.dataType, DataType.int32);
         expect(matrix.rowCount, data.count);
         expect(matrix.colCount, 7);
@@ -312,13 +323,10 @@ void matrixTest(String name, MatrixFormat format) {
         expect(matrix.get(0, 0), 42);
       });
       test('fromRows', () {
-        final matrix = Matrix.fromRows(
-            DataType.int8,
-            [
-              [1, 2, 3],
-              [4, 5, 6],
-            ],
-            format: format);
+        final matrix = Matrix.fromRows(DataType.int8, [
+          [1, 2, 3],
+          [4, 5, 6],
+        ], format: format);
         expect(matrix.dataType, DataType.int8);
         expect(matrix.rowCount, 2);
         expect(matrix.colCount, 3);
@@ -333,19 +341,22 @@ void matrixTest(String name, MatrixFormat format) {
       });
       test('fromRows with error', () {
         expect(
-            () => Matrix.fromRows(
-                DataType.int8,
-                [
-                  [1],
-                  [1, 2]
-                ],
-                format: format),
-            throwsArgumentError);
+          () => Matrix.fromRows(DataType.int8, [
+            [1],
+            [1, 2],
+          ], format: format),
+          throwsArgumentError,
+        );
       });
       test('fromPackedRows', () {
-        final matrix = Matrix.fromPackedRows(
-            DataType.numeric, 2, 3, [1, 2, 3, 4, 5, 6],
-            format: format);
+        final matrix = Matrix.fromPackedRows(DataType.numeric, 2, 3, [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+        ], format: format);
         expect(matrix.dataType, DataType.numeric);
         expect(matrix.rowCount, 2);
         expect(matrix.colCount, 3);
@@ -360,18 +371,21 @@ void matrixTest(String name, MatrixFormat format) {
       });
       test('fromPackedRows with error', () {
         expect(
-            () => Matrix.fromPackedRows(DataType.numeric, 2, 3, <num>[],
-                format: format),
-            throwsArgumentError);
+          () => Matrix.fromPackedRows(
+            DataType.numeric,
+            2,
+            3,
+            <num>[],
+            format: format,
+          ),
+          throwsArgumentError,
+        );
       });
       test('fromColumns', () {
-        final matrix = Matrix.fromColumns(
-            DataType.int8,
-            [
-              [1, 2, 3],
-              [4, 5, 6],
-            ],
-            format: format);
+        final matrix = Matrix.fromColumns(DataType.int8, [
+          [1, 2, 3],
+          [4, 5, 6],
+        ], format: format);
         expect(matrix.dataType, DataType.int8);
         expect(matrix.rowCount, 3);
         expect(matrix.colCount, 2);
@@ -386,19 +400,22 @@ void matrixTest(String name, MatrixFormat format) {
       });
       test('fromColumns with error', () {
         expect(
-            () => Matrix.fromColumns(
-                DataType.int8,
-                [
-                  [1],
-                  [1, 2]
-                ],
-                format: format),
-            throwsArgumentError);
+          () => Matrix.fromColumns(DataType.int8, [
+            [1],
+            [1, 2],
+          ], format: format),
+          throwsArgumentError,
+        );
       });
       test('fromPackedColumns', () {
-        final matrix = Matrix.fromPackedColumns(
-            DataType.numeric, 2, 3, [1, 2, 3, 4, 5, 6],
-            format: format);
+        final matrix = Matrix.fromPackedColumns(DataType.numeric, 2, 3, [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+        ], format: format);
         expect(matrix.dataType, DataType.numeric);
         expect(matrix.rowCount, 2);
         expect(matrix.colCount, 3);
@@ -413,15 +430,25 @@ void matrixTest(String name, MatrixFormat format) {
       });
       test('fromPackedColumns with error', () {
         expect(
-            () => Matrix.fromPackedColumns(DataType.numeric, 2, 3, <num>[],
-                format: format),
-            throwsArgumentError);
+          () => Matrix.fromPackedColumns(
+            DataType.numeric,
+            2,
+            3,
+            <num>[],
+            format: format,
+          ),
+          throwsArgumentError,
+        );
       });
       test('fromTensor', () {
         final matrix = Matrix.fromTensor(
-            Tensor.fromIterable([1, 2, 3, 4, 5, 6],
-                shape: [2, 3], type: DataType.numeric),
-            format: format);
+          Tensor.fromIterable(
+            [1, 2, 3, 4, 5, 6],
+            shape: [2, 3],
+            type: DataType.numeric,
+          ),
+          format: format,
+        );
         expect(matrix.dataType, DataType.numeric);
         expect(matrix.rowCount, 2);
         expect(matrix.colCount, 3);
@@ -435,8 +462,11 @@ void matrixTest(String name, MatrixFormat format) {
         expect(matrix.get(1, 2), 6);
       });
       test('fromString', () {
-        final matrix =
-            Matrix.fromString(DataType.int8, '1 2 3\n4 5 6\n', format: format);
+        final matrix = Matrix.fromString(
+          DataType.int8,
+          '1 2 3\n4 5 6\n',
+          format: format,
+        );
         expect(matrix.dataType, DataType.int8);
         expect(matrix.rowCount, 2);
         expect(matrix.colCount, 3);
@@ -450,11 +480,14 @@ void matrixTest(String name, MatrixFormat format) {
         expect(matrix.get(1, 2), 6);
       });
       test('fromString with custom behavior', () {
-        final matrix = Matrix.fromString(DataType.string, 'a-b-c*d-e-f',
-            converter: (value) => value.toUpperCase(),
-            rowSplitter: '*',
-            columnSplitter: '-',
-            format: format);
+        final matrix = Matrix.fromString(
+          DataType.string,
+          'a-b-c*d-e-f',
+          converter: (value) => value.toUpperCase(),
+          rowSplitter: '*',
+          columnSplitter: '-',
+          format: format,
+        );
         expect(matrix.dataType, DataType.string);
         expect(matrix.rowCount, 2);
         expect(matrix.colCount, 3);
@@ -469,13 +502,10 @@ void matrixTest(String name, MatrixFormat format) {
       });
     });
     group('accessing', () {
-      final matrix = Matrix.fromRows(
-          DataType.int8,
-          [
-            [1, 2, 3],
-            [4, 5, 6]
-          ],
-          format: format);
+      final matrix = Matrix.fromRows(DataType.int8, [
+        [1, 2, 3],
+        [4, 5, 6],
+      ], format: format);
       test('random', () {
         final matrix = Matrix(pointType, 8, 12, format: format);
         final points = <Point<int>>[];
@@ -524,8 +554,12 @@ void matrixTest(String name, MatrixFormat format) {
         expect(matrix[1][2], 6);
       });
       test('write operator', () {
-        final copy = Matrix(matrix.dataType, matrix.rowCount, matrix.colCount,
-            format: format);
+        final copy = Matrix(
+          matrix.dataType,
+          matrix.rowCount,
+          matrix.colCount,
+          format: format,
+        );
         for (var r = 0; r < matrix.rowCount; r++) {
           for (var c = 0; c < matrix.colCount; c++) {
             copy[r][c] = matrix.get(r, c);
@@ -546,31 +580,43 @@ void matrixTest(String name, MatrixFormat format) {
         expect(() => matrix.set(0, matrix.colCount, 0), throwsRangeError);
       });
       test('format', () {
-        final matrix = Matrix.generate(DataType.uint16, 30, 30, (r, c) => r * c,
-            format: format);
+        final matrix = Matrix.generate(
+          DataType.uint16,
+          30,
+          30,
+          (r, c) => r * c,
+          format: format,
+        );
         expect(
-            matrix.format(),
-            '0 0 0 … 0 0 0\n'
-            '0 1 2 … 27 28 29\n'
-            '0 2 4 … 54 56 58\n'
-            '⋮ ⋮ ⋮ ⋱ ⋮ ⋮ ⋮\n'
-            '0 27 54 … 729 756 783\n'
-            '0 28 56 … 756 784 812\n'
-            '0 29 58 … 783 812 841');
+          matrix.format(),
+          '0 0 0 … 0 0 0\n'
+          '0 1 2 … 27 28 29\n'
+          '0 2 4 … 54 56 58\n'
+          '⋮ ⋮ ⋮ ⋱ ⋮ ⋮ ⋮\n'
+          '0 27 54 … 729 756 783\n'
+          '0 28 56 … 756 784 812\n'
+          '0 29 58 … 783 812 841',
+        );
       });
       test('toString', () {
         expect(
-            matrix.toString(),
-            '${matrix.runtimeType}'
-            '(dataType: int8, rowCount: 2, columnCount: 3):\n'
-            '1 2 3\n'
-            '4 5 6');
+          matrix.toString(),
+          '${matrix.runtimeType}'
+          '(dataType: int8, rowCount: 2, columnCount: 3):\n'
+          '1 2 3\n'
+          '4 5 6',
+        );
       });
     });
     group('view', () {
       test('copy', () {
-        final source =
-            Matrix.generate(pointType, 8, 6, Point.new, format: format);
+        final source = Matrix.generate(
+          pointType,
+          8,
+          6,
+          Point.new,
+          format: format,
+        );
         final copy = source.toMatrix(format: format);
         expect(copy.dataType, source.dataType);
         expect(copy.rowCount, source.rowCount);
@@ -581,16 +627,24 @@ void matrixTest(String name, MatrixFormat format) {
         expect(copy.get(3, 5), const Point(3, 5));
       });
       test('copyInto', () {
-        final source =
-            Matrix.generate(DataType.int32, 8, 6, (row, col) => 8 * row + col);
+        final source = Matrix.generate(
+          DataType.int32,
+          8,
+          6,
+          (row, col) => 8 * row + col,
+        );
         final target = Matrix(DataType.int32, 8, 6, format: format);
         expect(source.copyInto(target), target);
         expect(target, isCloseTo(source));
       });
       test('row', () {
         final source = Matrix.generate(
-            DataType.string, 4, 5, (r, c) => '($r, $c)',
-            format: format);
+          DataType.string,
+          4,
+          5,
+          (r, c) => '($r, $c)',
+          format: format,
+        );
         for (var r = 0; r < source.rowCount; r++) {
           final row = source.row(r);
           expect(row.dataType, source.dataType);
@@ -615,8 +669,12 @@ void matrixTest(String name, MatrixFormat format) {
       });
       test('column', () {
         final source = Matrix.generate(
-            DataType.string, 5, 4, (r, c) => '($r, $c)',
-            format: format);
+          DataType.string,
+          5,
+          4,
+          (r, c) => '($r, $c)',
+          format: format,
+        );
         for (var c = 0; c < source.colCount; c++) {
           final column = source.column(c);
           expect(column.dataType, source.dataType);
@@ -642,8 +700,12 @@ void matrixTest(String name, MatrixFormat format) {
       group('diagonal', () {
         test('vertical', () {
           final source = Matrix.generate(
-              DataType.string, 2, 3, (row, col) => '($row, $col)',
-              format: format);
+            DataType.string,
+            2,
+            3,
+            (row, col) => '($row, $col)',
+            format: format,
+          );
           final offsets = {
             1: ['(1, 0)'],
             0: ['(0, 0)', '(1, 1)'],
@@ -671,8 +733,12 @@ void matrixTest(String name, MatrixFormat format) {
         });
         test('horizontal', () {
           final source = Matrix.generate(
-              DataType.string, 3, 2, (row, col) => '($row, $col)',
-              format: format);
+            DataType.string,
+            3,
+            2,
+            (row, col) => '($row, $col)',
+            format: format,
+          );
           final offsets = {
             2: ['(2, 0)'],
             1: ['(1, 0)', '(2, 1)'],
@@ -702,8 +768,13 @@ void matrixTest(String name, MatrixFormat format) {
         });
       });
       group('range', () {
-        final source =
-            Matrix.generate(pointType, 7, 8, Point.new, format: format);
+        final source = Matrix.generate(
+          pointType,
+          7,
+          8,
+          Point.new,
+          format: format,
+        );
         test('row', () {
           final range = source.rowRange(1, 3);
           expect(range.dataType, source.dataType);
@@ -775,19 +846,32 @@ void matrixTest(String name, MatrixFormat format) {
           expect(original.get(2, 3), marker);
         });
         test('range error', () {
-          expect(() => source.range(-1, source.rowCount, 0, source.colCount),
-              throwsRangeError);
-          expect(() => source.range(0, source.rowCount + 1, 0, source.colCount),
-              throwsRangeError);
-          expect(() => source.range(0, source.rowCount, -1, source.colCount),
-              throwsRangeError);
-          expect(() => source.range(0, source.rowCount, 0, source.colCount + 1),
-              throwsRangeError);
+          expect(
+            () => source.range(-1, source.rowCount, 0, source.colCount),
+            throwsRangeError,
+          );
+          expect(
+            () => source.range(0, source.rowCount + 1, 0, source.colCount),
+            throwsRangeError,
+          );
+          expect(
+            () => source.range(0, source.rowCount, -1, source.colCount),
+            throwsRangeError,
+          );
+          expect(
+            () => source.range(0, source.rowCount, 0, source.colCount + 1),
+            throwsRangeError,
+          );
         });
       });
       group('index', () {
-        final source =
-            Matrix.generate(pointType, 6, 4, Point.new, format: format);
+        final source = Matrix.generate(
+          pointType,
+          6,
+          4,
+          Point.new,
+          format: format,
+        );
         test('row', () {
           final index = source.rowIndex([5, 0, 4]);
           expect(index.dataType, source.dataType);
@@ -797,14 +881,16 @@ void matrixTest(String name, MatrixFormat format) {
           for (var r = 0; r < index.rowCount; r++) {
             for (var c = 0; c < index.colCount; c++) {
               expect(
-                  index.get(r, c),
-                  Point(
-                      r == 0
-                          ? 5
-                          : r == 1
-                              ? 0
-                              : 4,
-                      c));
+                index.get(r, c),
+                Point(
+                  r == 0
+                      ? 5
+                      : r == 1
+                      ? 0
+                      : 4,
+                  c,
+                ),
+              );
             }
           }
         });
@@ -858,31 +944,45 @@ void matrixTest(String name, MatrixFormat format) {
         });
         test('range error', () {
           expect(
-              () => source
-                  .index([-1, source.rowCount - 1], [0, source.colCount - 1]),
-              throwsRangeError);
+            () => source.index(
+              [-1, source.rowCount - 1],
+              [0, source.colCount - 1],
+            ),
+            throwsRangeError,
+          );
           expect(
-              () =>
-                  source.index([0, source.rowCount], [0, source.colCount - 1]),
-              throwsRangeError);
+            () => source.index([0, source.rowCount], [0, source.colCount - 1]),
+            throwsRangeError,
+          );
           expect(
-              () => source
-                  .index([0, source.rowCount - 1], [-1, source.colCount - 1]),
-              throwsRangeError);
+            () => source.index(
+              [0, source.rowCount - 1],
+              [-1, source.colCount - 1],
+            ),
+            throwsRangeError,
+          );
           expect(
-              () =>
-                  source.index([0, source.rowCount - 1], [0, source.colCount]),
-              throwsRangeError);
+            () => source.index([0, source.rowCount - 1], [0, source.colCount]),
+            throwsRangeError,
+          );
         });
       });
       group('overlay', () {
         final base = Matrix.generate(
-            DataType.string, 8, 10, (row, col) => '($row, $col)',
-            format: format);
+          DataType.string,
+          8,
+          10,
+          (row, col) => '($row, $col)',
+          format: format,
+        );
         test('offset', () {
           final top = Matrix.generate(
-              DataType.string, 2, 3, (row, col) => '[$row, $col]',
-              format: format);
+            DataType.string,
+            2,
+            3,
+            (row, col) => '[$row, $col]',
+            format: format,
+          );
           final composite = top.overlay(base, rowOffset: 4, colOffset: 5);
           expect(composite.dataType, top.dataType);
           expect(composite.rowCount, base.rowCount);
@@ -893,21 +993,30 @@ void matrixTest(String name, MatrixFormat format) {
           for (var r = 0; r < composite.rowCount; r++) {
             for (var c = 0; c < composite.colCount; c++) {
               expect(
-                  composite.get(r, c),
-                  4 <= r && r <= 5 && 5 <= c && c <= 7
-                      ? '[${r - 4}, ${c - 5}]'
-                      : '($r, $c)');
+                composite.get(r, c),
+                4 <= r && r <= 5 && 5 <= c && c <= 7
+                    ? '[${r - 4}, ${c - 5}]'
+                    : '($r, $c)',
+              );
               copy.set(r, c, '${copy.get(r, c)}*');
             }
           }
         });
         test('mask', () {
-          final top = Matrix.generate(DataType.string, base.rowCount,
-              base.colCount, (row, col) => '[$row, $col]',
-              format: format);
-          final mask = Matrix.generate(DataType.boolean, base.rowCount,
-              base.colCount, (row, col) => row.isEven && col.isOdd,
-              format: format);
+          final top = Matrix.generate(
+            DataType.string,
+            base.rowCount,
+            base.colCount,
+            (row, col) => '[$row, $col]',
+            format: format,
+          );
+          final mask = Matrix.generate(
+            DataType.boolean,
+            base.rowCount,
+            base.colCount,
+            (row, col) => row.isEven && col.isOdd,
+            format: format,
+          );
           final composite = top.overlay(base, mask: mask);
           expect(composite.dataType, top.dataType);
           expect(composite.rowCount, base.rowCount);
@@ -917,8 +1026,10 @@ void matrixTest(String name, MatrixFormat format) {
           expect(copy.compare(composite), isTrue);
           for (var r = 0; r < composite.rowCount; r++) {
             for (var c = 0; c < composite.colCount; c++) {
-              expect(composite.get(r, c),
-                  r.isEven && c.isOdd ? '[$r, $c]' : '($r, $c)');
+              expect(
+                composite.get(r, c),
+                r.isEven && c.isOdd ? '[$r, $c]' : '($r, $c)',
+              );
               copy.set(r, c, '${copy.get(r, c)}*');
             }
           }
@@ -928,44 +1039,84 @@ void matrixTest(String name, MatrixFormat format) {
           expect(() => base.overlay(base, rowOffset: 1), throwsArgumentError);
           expect(() => base.overlay(base, colOffset: 1), throwsArgumentError);
           expect(
-              () => base.overlay(
-                  Matrix.constant(
-                      DataType.string, base.rowCount + 1, base.colCount,
-                      value: '', format: format),
-                  mask: Matrix.constant(
-                      DataType.boolean, base.rowCount, base.colCount,
-                      value: true, format: format)),
-              throwsArgumentError);
+            () => base.overlay(
+              Matrix.constant(
+                DataType.string,
+                base.rowCount + 1,
+                base.colCount,
+                value: '',
+                format: format,
+              ),
+              mask: Matrix.constant(
+                DataType.boolean,
+                base.rowCount,
+                base.colCount,
+                value: true,
+                format: format,
+              ),
+            ),
+            throwsArgumentError,
+          );
           expect(
-              () => base.overlay(
-                  Matrix.constant(
-                      DataType.string, base.rowCount, base.colCount + 1,
-                      value: '', format: format),
-                  mask: Matrix.constant(
-                      DataType.boolean, base.rowCount, base.colCount,
-                      value: true, format: format)),
-              throwsArgumentError);
+            () => base.overlay(
+              Matrix.constant(
+                DataType.string,
+                base.rowCount,
+                base.colCount + 1,
+                value: '',
+                format: format,
+              ),
+              mask: Matrix.constant(
+                DataType.boolean,
+                base.rowCount,
+                base.colCount,
+                value: true,
+                format: format,
+              ),
+            ),
+            throwsArgumentError,
+          );
           expect(
-              () => base.overlay(base,
-                  mask: Matrix.constant(
-                      DataType.boolean, base.rowCount + 1, base.colCount,
-                      value: true, format: format)),
-              throwsArgumentError);
+            () => base.overlay(
+              base,
+              mask: Matrix.constant(
+                DataType.boolean,
+                base.rowCount + 1,
+                base.colCount,
+                value: true,
+                format: format,
+              ),
+            ),
+            throwsArgumentError,
+          );
           expect(
-              () => base.overlay(base,
-                  mask: Matrix.constant(
-                      DataType.boolean, base.rowCount, base.colCount + 1,
-                      value: true, format: format)),
-              throwsArgumentError);
+            () => base.overlay(
+              base,
+              mask: Matrix.constant(
+                DataType.boolean,
+                base.rowCount,
+                base.colCount + 1,
+                value: true,
+                format: format,
+              ),
+            ),
+            throwsArgumentError,
+          );
         });
       });
       group('transform', () {
-        final source =
-            Matrix.generate(pointType, 3, 4, Point.new, format: format);
+        final source = Matrix.generate(
+          pointType,
+          3,
+          4,
+          Point.new,
+          format: format,
+        );
         test('to string', () {
           final mapped = source.map(
-              (row, col, value) => '${value.x + 10 * value.y}',
-              DataType.string);
+            (row, col, value) => '${value.x + 10 * value.y}',
+            DataType.string,
+          );
           expect(mapped.dataType, DataType.string);
           expect(mapped.rowCount, source.rowCount);
           expect(mapped.colCount, source.colCount);
@@ -978,7 +1129,9 @@ void matrixTest(String name, MatrixFormat format) {
         });
         test('to int', () {
           final mapped = source.map(
-              (row, col, value) => value.x + 10 * value.y, DataType.int32);
+            (row, col, value) => value.x + 10 * value.y,
+            DataType.int32,
+          );
           expect(mapped.dataType, DataType.int32);
           expect(mapped.rowCount, source.rowCount);
           expect(mapped.colCount, source.colCount);
@@ -991,7 +1144,9 @@ void matrixTest(String name, MatrixFormat format) {
         });
         test('to float', () {
           final mapped = source.map(
-              (row, col, value) => value.x + 10.0 * value.y, DataType.float64);
+            (row, col, value) => value.x + 10.0 * value.y,
+            DataType.float64,
+          );
           expect(mapped.dataType, DataType.float64);
           expect(mapped.rowCount, source.rowCount);
           expect(mapped.colCount, source.colCount);
@@ -1008,8 +1163,12 @@ void matrixTest(String name, MatrixFormat format) {
         });
         test('mutable', () {
           final source = Matrix.generate(
-              DataType.uint8, 8, 8, (row, col) => 32 + 8 * row + col,
-              format: format);
+            DataType.uint8,
+            8,
+            8,
+            (row, col) => 32 + 8 * row + col,
+            format: format,
+          );
           final transform = source.transform<String>(
             (row, col, value) => String.fromCharCode(value),
             write: (row, col, value) => value.codeUnitAt(0),
@@ -1031,8 +1190,12 @@ void matrixTest(String name, MatrixFormat format) {
       });
       group('cast', () {
         final source = Matrix.generate(
-            DataType.int32, 3, 5, (row, col) => row * col,
-            format: format);
+          DataType.int32,
+          3,
+          5,
+          (row, col) => row * col,
+          format: format,
+        );
         test('default', () {
           final matrix = source.cast(DataType.string);
           expect(matrix.dataType, DataType.string);
@@ -1056,8 +1219,12 @@ void matrixTest(String name, MatrixFormat format) {
       });
       test('transposed', () {
         final source = Matrix.generate(
-            DataType.string, 7, 6, (row, col) => '($row, $col)',
-            format: format);
+          DataType.string,
+          7,
+          6,
+          (row, col) => '($row, $col)',
+          format: format,
+        );
         final transposed = source.transposed;
         expect(transposed.dataType, source.dataType);
         expect(transposed.rowCount, source.colCount);
@@ -1078,8 +1245,12 @@ void matrixTest(String name, MatrixFormat format) {
       });
       test('flippedHorizontal', () {
         final source = Matrix.generate(
-            DataType.string, 7, 6, (row, col) => '($row, $col)',
-            format: format);
+          DataType.string,
+          7,
+          6,
+          (row, col) => '($row, $col)',
+          format: format,
+        );
         final flipped = source.flippedHorizontal;
         expect(flipped.dataType, source.dataType);
         expect(flipped.rowCount, source.rowCount);
@@ -1100,8 +1271,12 @@ void matrixTest(String name, MatrixFormat format) {
       });
       test('flippedVertical', () {
         final source = Matrix.generate(
-            DataType.string, 7, 6, (row, col) => '($row, $col)',
-            format: format);
+          DataType.string,
+          7,
+          6,
+          (row, col) => '($row, $col)',
+          format: format,
+        );
         final flipped = source.flippedVertical;
         expect(flipped.dataType, source.dataType);
         expect(flipped.rowCount, source.rowCount);
@@ -1123,15 +1298,23 @@ void matrixTest(String name, MatrixFormat format) {
       group('rotated', () {
         test('0', () {
           final source = Matrix.generate(
-              DataType.string, 2, 3, (row, col) => '($row, $col)',
-              format: format);
+            DataType.string,
+            2,
+            3,
+            (row, col) => '($row, $col)',
+            format: format,
+          );
           final rotated = source.rotated(count: 0);
           expect(rotated, same(source));
         });
         test('90', () {
           final source = Matrix.generate(
-              DataType.string, 2, 3, (row, col) => '($row, $col)',
-              format: format);
+            DataType.string,
+            2,
+            3,
+            (row, col) => '($row, $col)',
+            format: format,
+          );
           final rotated = source.rotated();
           expect(rotated.dataType, source.dataType);
           expect(rotated.rowCount, source.colCount);
@@ -1151,8 +1334,12 @@ void matrixTest(String name, MatrixFormat format) {
         });
         test('180', () {
           final source = Matrix.generate(
-              DataType.string, 2, 3, (row, col) => '($row, $col)',
-              format: format);
+            DataType.string,
+            2,
+            3,
+            (row, col) => '($row, $col)',
+            format: format,
+          );
           final rotated = source.rotated(count: 2);
           expect(rotated.dataType, source.dataType);
           expect(rotated.rowCount, source.rowCount);
@@ -1161,9 +1348,10 @@ void matrixTest(String name, MatrixFormat format) {
           for (var r = 0; r < rotated.rowCount; r++) {
             for (var c = 0; c < rotated.colCount; c++) {
               expect(
-                  rotated.get(r, c),
-                  '(${source.rowCount - r - 1}, '
-                  '${source.colCount - c - 1})');
+                rotated.get(r, c),
+                '(${source.rowCount - r - 1}, '
+                '${source.colCount - c - 1})',
+              );
               rotated.set(r, c, '${rotated.get(r, c)}*');
             }
           }
@@ -1175,8 +1363,12 @@ void matrixTest(String name, MatrixFormat format) {
         });
         test('270', () {
           final source = Matrix.generate(
-              DataType.string, 2, 3, (row, col) => '($row, $col)',
-              format: format);
+            DataType.string,
+            2,
+            3,
+            (row, col) => '($row, $col)',
+            format: format,
+          );
           final rotated = source.rotated(count: 3);
           expect(rotated.dataType, source.dataType);
           expect(rotated.rowCount, source.colCount);
@@ -1196,25 +1388,41 @@ void matrixTest(String name, MatrixFormat format) {
         });
         test('360', () {
           final source = Matrix.generate(
-              DataType.string, 2, 3, (row, col) => '($row, $col)',
-              format: format);
+            DataType.string,
+            2,
+            3,
+            (row, col) => '($row, $col)',
+            format: format,
+          );
           final rotated = source.rotated(count: 4);
           expect(rotated, same(source));
         });
         test('repeat rotation', () {
           final source = Matrix.generate(
-              DataType.string, 2, 3, (row, col) => '($row, $col)',
-              format: format);
+            DataType.string,
+            2,
+            3,
+            (row, col) => '($row, $col)',
+            format: format,
+          );
           final rotated = source.rotated().rotated();
           expect(
-              rotated,
-              isA<RotatedMatrix<String>>()
-                  .having((matrix) => matrix.count, 'count', 2));
+            rotated,
+            isA<RotatedMatrix<String>>().having(
+              (matrix) => matrix.count,
+              'count',
+              2,
+            ),
+          );
         });
         test('error', () {
           final source = Matrix.generate(
-              DataType.string, 2, 3, (row, col) => '($row, $col)',
-              format: format);
+            DataType.string,
+            2,
+            3,
+            (row, col) => '($row, $col)',
+            format: format,
+          );
           final rotated = RotatedMatrix(source, 4);
           expect(() => rotated.get(0, 0), throwsArgumentError);
           expect(() => rotated.set(0, 0, '*'), throwsArgumentError);
@@ -1222,8 +1430,12 @@ void matrixTest(String name, MatrixFormat format) {
       });
       test('unmodifiable', () {
         final source = Matrix.generate(
-            DataType.string, 2, 3, (row, col) => '($row, $col)',
-            format: format);
+          DataType.string,
+          2,
+          3,
+          (row, col) => '($row, $col)',
+          format: format,
+        );
         final readonly = source.unmodifiable;
         expect(readonly.dataType, source.dataType);
         expect(readonly.rowCount, 2);
@@ -1232,8 +1444,10 @@ void matrixTest(String name, MatrixFormat format) {
         for (var r = 0; r < readonly.rowCount; r++) {
           for (var c = 0; c < readonly.colCount; c++) {
             expect(readonly.get(r, c), '($r, $c)');
-            expect(() => readonly.set(r, c, '${readonly.get(r, c)}*'),
-                throwsUnsupportedError);
+            expect(
+              () => readonly.set(r, c, '${readonly.get(r, c)}*'),
+              throwsUnsupportedError,
+            );
           }
         }
         for (var r = 0; r < source.rowCount; r++) {
@@ -1274,8 +1488,9 @@ void matrixTest(String name, MatrixFormat format) {
         test('full', () {
           final result1 = matrix1.convolve(kernel1);
           expect(
-              result1,
-              isCloseTo(Matrix.fromRows(DataType.int32, [
+            result1,
+            isCloseTo(
+              Matrix.fromRows(DataType.int32, [
                 [0, 2, 5, 9, 4, 0, 0],
                 [1, 4, 8, 3, 8, 0, 0],
                 [3, 7, 2, 5, -4, -9, -4],
@@ -1283,58 +1498,85 @@ void matrixTest(String name, MatrixFormat format) {
                 [0, 5, 6, -5, 2, -7, -1],
                 [0, 0, -6, -1, -6, 0, -3],
                 [0, 0, 0, -5, -9, -2, -4],
-              ])));
-          final result2 =
-              matrix2.convolve(kernel2, mode: MatrixConvolution.full);
+              ]),
+            ),
+          );
+          final result2 = matrix2.convolve(
+            kernel2,
+            mode: MatrixConvolution.full,
+          );
           expect(
-              result2,
-              isCloseTo(Matrix.fromRows(DataType.float, [
+            result2,
+            isCloseTo(
+              Matrix.fromRows(DataType.float, [
                 [-0.1, 0.0, -0.2, 0.0, -0.9],
                 [0.0, 0.6, 0.0, -0.6, 0.0],
                 [0.2, 0.0, -0.5, 0.0, -1.8],
                 [0.0, -0.6, 0.0, 0.6, 0.0],
                 [-4.9, 0.0, -6.2, 0.0, -8.1],
-              ])));
+              ]),
+            ),
+          );
         });
         test('valid', () {
-          final result1 =
-              matrix1.convolve(kernel1, mode: MatrixConvolution.valid);
+          final result1 = matrix1.convolve(
+            kernel1,
+            mode: MatrixConvolution.valid,
+          );
           expect(
-              result1,
-              isCloseTo(Matrix.fromRows(DataType.int32, [
+            result1,
+            isCloseTo(
+              Matrix.fromRows(DataType.int32, [
                 [2, 5, -4],
                 [5, -4, -5],
                 [6, -5, 2],
-              ])));
-          final result2 =
-              matrix2.convolve(kernel2, mode: MatrixConvolution.valid);
+              ]),
+            ),
+          );
+          final result2 = matrix2.convolve(
+            kernel2,
+            mode: MatrixConvolution.valid,
+          );
           expect(
-              result2,
-              isCloseTo(Matrix.fromRows(DataType.float, [
+            result2,
+            isCloseTo(
+              Matrix.fromRows(DataType.float, [
                 [-0.5],
-              ])));
+              ]),
+            ),
+          );
         });
         test('same', () {
-          final result1 =
-              matrix1.convolve(kernel1, mode: MatrixConvolution.same);
+          final result1 = matrix1.convolve(
+            kernel1,
+            mode: MatrixConvolution.same,
+          );
           expect(
-              result1,
-              isCloseTo(Matrix.fromRows(DataType.int32, [
+            result1,
+            isCloseTo(
+              Matrix.fromRows(DataType.int32, [
                 [4, 8, 3, 8, 0],
                 [7, 2, 5, -4, -9],
                 [1, 5, -4, -5, -3],
                 [5, 6, -5, 2, -7],
                 [0, -6, -1, -6, 0],
-              ])));
-          final result2 =
-              matrix2.convolve(kernel2, mode: MatrixConvolution.same);
+              ]),
+            ),
+          );
+          final result2 = matrix2.convolve(
+            kernel2,
+            mode: MatrixConvolution.same,
+          );
           expect(
-              result2,
-              isCloseTo(Matrix.fromRows(DataType.float, [
+            result2,
+            isCloseTo(
+              Matrix.fromRows(DataType.float, [
                 [0.6, 0.0, -0.6],
                 [0.0, -0.5, 0.0],
                 [-0.6, 0.0, 0.6],
-              ])));
+              ]),
+            ),
+          );
         });
       });
     });
@@ -1381,8 +1623,13 @@ void matrixTest(String name, MatrixFormat format) {
         });
       });
       test('rows', () {
-        final source =
-            Matrix.generate(pointType, 7, 5, Point.new, format: format);
+        final source = Matrix.generate(
+          pointType,
+          7,
+          5,
+          Point.new,
+          format: format,
+        );
         var r = 0;
         for (final row in source.rows) {
           expect(row.dataType, source.dataType);
@@ -1396,8 +1643,13 @@ void matrixTest(String name, MatrixFormat format) {
         expect(r, source.rowCount);
       });
       test('columns', () {
-        final source =
-            Matrix.generate(pointType, 5, 8, Point.new, format: format);
+        final source = Matrix.generate(
+          pointType,
+          5,
+          8,
+          Point.new,
+          format: format,
+        );
         var c = 0;
         for (final column in source.columns) {
           expect(column.dataType, source.dataType);
@@ -1411,8 +1663,13 @@ void matrixTest(String name, MatrixFormat format) {
         expect(c, source.colCount);
       });
       test('diagonals', () {
-        final source = Matrix.generate(DataType.string, 3, 4, (r, c) => '$r,$c',
-            format: format);
+        final source = Matrix.generate(
+          DataType.string,
+          3,
+          4,
+          (r, c) => '$r,$c',
+          format: format,
+        );
         final values = <List<String>>[];
         for (final diagonal in source.diagonals) {
           expect(diagonal.dataType, source.dataType);
@@ -1425,86 +1682,201 @@ void matrixTest(String name, MatrixFormat format) {
           ['0,1', '1,2', '2,3'],
           ['0,0', '1,1', '2,2'],
           ['1,0', '2,1'],
-          ['2,0']
+          ['2,0'],
         ]);
       });
       group('spiral', () {
         test('3x2', () {
           final source = Matrix.generate(
-              DataType.string, 3, 2, (r, c) => '$r,$c',
-              format: format);
-          verifyMatrixIterable(source, source.spiral,
-              ['0,0', '0,1', '1,1', '2,1', '2,0', '1,0']);
+            DataType.string,
+            3,
+            2,
+            (r, c) => '$r,$c',
+            format: format,
+          );
+          verifyMatrixIterable(source, source.spiral, [
+            '0,0',
+            '0,1',
+            '1,1',
+            '2,1',
+            '2,0',
+            '1,0',
+          ]);
         });
         test('2x3', () {
           final source = Matrix.generate(
-              DataType.string, 2, 3, (r, c) => '$r,$c',
-              format: format);
-          verifyMatrixIterable(source, source.spiral,
-              ['0,0', '0,1', '0,2', '1,2', '1,1', '1,0']);
+            DataType.string,
+            2,
+            3,
+            (r, c) => '$r,$c',
+            format: format,
+          );
+          verifyMatrixIterable(source, source.spiral, [
+            '0,0',
+            '0,1',
+            '0,2',
+            '1,2',
+            '1,1',
+            '1,0',
+          ]);
         });
         test('3x3', () {
           final source = Matrix.generate(
-              DataType.string, 3, 3, (r, c) => '$r,$c',
-              format: format);
-          verifyMatrixIterable(source, source.spiral,
-              ['0,0', '0,1', '0,2', '1,2', '2,2', '2,1', '2,0', '1,0', '1,1']);
+            DataType.string,
+            3,
+            3,
+            (r, c) => '$r,$c',
+            format: format,
+          );
+          verifyMatrixIterable(source, source.spiral, [
+            '0,0',
+            '0,1',
+            '0,2',
+            '1,2',
+            '2,2',
+            '2,1',
+            '2,0',
+            '1,0',
+            '1,1',
+          ]);
         });
       });
       group('zig-zag', () {
         test('3x2', () {
           final source = Matrix.generate(
-              DataType.string, 3, 2, (r, c) => '$r,$c',
-              format: format);
-          verifyMatrixIterable(source, source.zigZag,
-              ['0,0', '0,1', '1,0', '2,0', '1,1', '2,1']);
+            DataType.string,
+            3,
+            2,
+            (r, c) => '$r,$c',
+            format: format,
+          );
+          verifyMatrixIterable(source, source.zigZag, [
+            '0,0',
+            '0,1',
+            '1,0',
+            '2,0',
+            '1,1',
+            '2,1',
+          ]);
         });
         test('2x3', () {
           final source = Matrix.generate(
-              DataType.string, 2, 3, (r, c) => '$r,$c',
-              format: format);
-          verifyMatrixIterable(source, source.zigZag,
-              ['0,0', '0,1', '1,0', '1,1', '0,2', '1,2']);
+            DataType.string,
+            2,
+            3,
+            (r, c) => '$r,$c',
+            format: format,
+          );
+          verifyMatrixIterable(source, source.zigZag, [
+            '0,0',
+            '0,1',
+            '1,0',
+            '1,1',
+            '0,2',
+            '1,2',
+          ]);
         });
         test('3x3', () {
           final source = Matrix.generate(
-              DataType.string, 3, 3, (r, c) => '$r,$c',
-              format: format);
-          verifyMatrixIterable(source, source.zigZag,
-              ['0,0', '0,1', '1,0', '2,0', '1,1', '0,2', '1,2', '2,1', '2,2']);
+            DataType.string,
+            3,
+            3,
+            (r, c) => '$r,$c',
+            format: format,
+          );
+          verifyMatrixIterable(source, source.zigZag, [
+            '0,0',
+            '0,1',
+            '1,0',
+            '2,0',
+            '1,1',
+            '0,2',
+            '1,2',
+            '2,1',
+            '2,2',
+          ]);
         });
       });
       test('rowMajor', () {
-        final source = Matrix.generate(DataType.string, 3, 2, (r, c) => '$r,$c',
-            format: format);
-        verifyMatrixIterable(source, source.rowMajor,
-            ['0,0', '0,1', '1,0', '1,1', '2,0', '2,1']);
+        final source = Matrix.generate(
+          DataType.string,
+          3,
+          2,
+          (r, c) => '$r,$c',
+          format: format,
+        );
+        verifyMatrixIterable(source, source.rowMajor, [
+          '0,0',
+          '0,1',
+          '1,0',
+          '1,1',
+          '2,0',
+          '2,1',
+        ]);
       });
       test('columnMajor', () {
-        final source = Matrix.generate(DataType.string, 3, 2, (r, c) => '$r,$c',
-            format: format);
-        verifyMatrixIterable(source, source.columnMajor,
-            ['0,0', '1,0', '2,0', '0,1', '1,1', '2,1']);
+        final source = Matrix.generate(
+          DataType.string,
+          3,
+          2,
+          (r, c) => '$r,$c',
+          format: format,
+        );
+        verifyMatrixIterable(source, source.columnMajor, [
+          '0,0',
+          '1,0',
+          '2,0',
+          '0,1',
+          '1,1',
+          '2,1',
+        ]);
       });
     });
     group('testing', () {
       final random = Random(164593560);
-      final identity8x9 =
-          Matrix.identity(DataType.int32, 8, 9, value: 1, format: format);
-      final identity9x8 =
-          Matrix.identity(DataType.int32, 9, 8, value: 1, format: format);
-      final identity8x8 =
-          Matrix.identity(DataType.int32, 8, 8, value: 1, format: format);
+      final identity8x9 = Matrix.identity(
+        DataType.int32,
+        8,
+        9,
+        value: 1,
+        format: format,
+      );
+      final identity9x8 = Matrix.identity(
+        DataType.int32,
+        9,
+        8,
+        value: 1,
+        format: format,
+      );
+      final identity8x8 = Matrix.identity(
+        DataType.int32,
+        8,
+        8,
+        value: 1,
+        format: format,
+      );
       final fullAsymmetric = Matrix.generate(
-          DataType.int32, 8, 8, (r, c) => random.nextInt(1000),
-          format: format);
+        DataType.int32,
+        8,
+        8,
+        (r, c) => random.nextInt(1000),
+        format: format,
+      );
       final fullSymmetric = fullAsymmetric + fullAsymmetric.transposed;
       final lowerTriangle = Matrix.generate(
-          DataType.int32, 8, 8, (r, c) => r >= c ? random.nextInt(1000) : 0,
-          format: format);
+        DataType.int32,
+        8,
+        8,
+        (r, c) => r >= c ? random.nextInt(1000) : 0,
+        format: format,
+      );
       final upperTriangle = Matrix.generate(
-          DataType.int32, 8, 8, (r, c) => r <= c ? random.nextInt(1000) : 0,
-          format: format);
+        DataType.int32,
+        8,
+        8,
+        (r, c) => r <= c ? random.nextInt(1000) : 0,
+        format: format,
+      );
       test('isSquare', () {
         expect(identity8x9.isSquare, isFalse);
         expect(identity9x8.isSquare, isFalse);
@@ -1554,11 +1926,19 @@ void matrixTest(String name, MatrixFormat format) {
     group('operators', () {
       final random = Random(559756105);
       final sourceA = Matrix.generate(
-          DataType.int32, 5, 4, (row, col) => random.nextInt(100),
-          format: format);
+        DataType.int32,
+        5,
+        4,
+        (row, col) => random.nextInt(100),
+        format: format,
+      );
       final sourceB = Matrix.generate(
-          DataType.int32, 5, 4, (row, col) => random.nextInt(100),
-          format: format);
+        DataType.int32,
+        5,
+        4,
+        (row, col) => random.nextInt(100),
+        format: format,
+      );
       test('add', () {
         final result = sourceA + sourceB;
         expect(result.dataType, sourceA.dataType);
@@ -1573,8 +1953,11 @@ void matrixTest(String name, MatrixFormat format) {
       group('apply', () {
         test('by row', () {
           final vector = Vector.generate(
-              sourceA.dataType, sourceA.rowCount, (i) => random.nextInt(100),
-              format: VectorFormat.standard);
+            sourceA.dataType,
+            sourceA.rowCount,
+            (i) => random.nextInt(100),
+            format: VectorFormat.standard,
+          );
           final target = sourceA.applyByRow(sourceA.dataType.field.add, vector);
           expect(target.dataType, sourceA.dataType);
           expect(target.rowCount, sourceA.rowCount);
@@ -1585,16 +1968,24 @@ void matrixTest(String name, MatrixFormat format) {
             }
           }
           expect(
-              () => sourceA.transposed
-                  .applyByRow(sourceA.dataType.field.sub, vector),
-              throwsArgumentError);
+            () => sourceA.transposed.applyByRow(
+              sourceA.dataType.field.sub,
+              vector,
+            ),
+            throwsArgumentError,
+          );
         });
         test('by column', () {
           final vector = Vector.generate(
-              sourceA.dataType, sourceA.colCount, (i) => random.nextInt(100),
-              format: VectorFormat.standard);
-          final target =
-              sourceA.applyByColumn(sourceA.dataType.field.mul, vector);
+            sourceA.dataType,
+            sourceA.colCount,
+            (i) => random.nextInt(100),
+            format: VectorFormat.standard,
+          );
+          final target = sourceA.applyByColumn(
+            sourceA.dataType.field.mul,
+            vector,
+          );
           expect(target.dataType, sourceA.dataType);
           expect(target.rowCount, sourceA.rowCount);
           expect(target.colCount, sourceA.colCount);
@@ -1604,9 +1995,12 @@ void matrixTest(String name, MatrixFormat format) {
             }
           }
           expect(
-              () => sourceA.transposed
-                  .applyByColumn(sourceA.dataType.field.div, vector),
-              throwsArgumentError);
+            () => sourceA.transposed.applyByColumn(
+              sourceA.dataType.field.div,
+              vector,
+            ),
+            throwsArgumentError,
+          );
         });
       });
       test('sub', () {
@@ -1639,22 +2033,34 @@ void matrixTest(String name, MatrixFormat format) {
           expect(sourceB.compare(sourceA), isFalse);
         });
         test('views', () {
-          expect(sourceA.rowRange(0, 3).compare(sourceA.rowIndex([0, 1, 2])),
-              isTrue);
-          expect(sourceA.colRange(0, 3).compare(sourceA.colIndex([0, 1, 2])),
-              isTrue);
-          expect(sourceA.rowRange(0, 3).compare(sourceA.rowIndex([3, 1, 0])),
-              isFalse,
-              reason: 'row order mismatch');
-          expect(sourceA.colRange(0, 3).compare(sourceA.colIndex([2, 1, 0])),
-              isFalse,
-              reason: 'col order mismatch');
           expect(
-              sourceA.rowRange(0, 3).compare(sourceA.rowIndex([0, 1])), isFalse,
-              reason: 'row count mismatch');
+            sourceA.rowRange(0, 3).compare(sourceA.rowIndex([0, 1, 2])),
+            isTrue,
+          );
           expect(
-              sourceA.colRange(0, 3).compare(sourceA.colIndex([0, 1])), isFalse,
-              reason: 'col count mismatch');
+            sourceA.colRange(0, 3).compare(sourceA.colIndex([0, 1, 2])),
+            isTrue,
+          );
+          expect(
+            sourceA.rowRange(0, 3).compare(sourceA.rowIndex([3, 1, 0])),
+            isFalse,
+            reason: 'row order mismatch',
+          );
+          expect(
+            sourceA.colRange(0, 3).compare(sourceA.colIndex([2, 1, 0])),
+            isFalse,
+            reason: 'col order mismatch',
+          );
+          expect(
+            sourceA.rowRange(0, 3).compare(sourceA.rowIndex([0, 1])),
+            isFalse,
+            reason: 'row count mismatch',
+          );
+          expect(
+            sourceA.colRange(0, 3).compare(sourceA.colIndex([0, 1])),
+            isFalse,
+            reason: 'col count mismatch',
+          );
         });
         test('custom', () {
           final negated = -sourceA;
@@ -1663,20 +2069,14 @@ void matrixTest(String name, MatrixFormat format) {
         });
       });
       group('lerp', () {
-        final v0 = Matrix.fromRows(
-            DataType.float32,
-            [
-              [1.0, 6.0],
-              [9.0, 9.0],
-            ],
-            format: format);
-        final v1 = Matrix.fromRows(
-            DataType.float32,
-            [
-              [9.0, -2.0],
-              [9.0, -9.0],
-            ],
-            format: format);
+        final v0 = Matrix.fromRows(DataType.float32, [
+          [1.0, 6.0],
+          [9.0, 9.0],
+        ], format: format);
+        final v1 = Matrix.fromRows(DataType.float32, [
+          [9.0, -2.0],
+          [9.0, -9.0],
+        ], format: format);
         test('at start', () {
           final v = v0.lerp(v1, 0.0);
           expect(v.dataType, v0.dataType);
@@ -1720,14 +2120,25 @@ void matrixTest(String name, MatrixFormat format) {
       });
       group('mul', () {
         final matrixA = Matrix.generate(
-            DataType.int32, 13, 42, (row, col) => random.nextInt(100),
-            format: format);
+          DataType.int32,
+          13,
+          42,
+          (row, col) => random.nextInt(100),
+          format: format,
+        );
         final matrixB = Matrix.generate(
-            DataType.int32, 42, 27, (row, col) => random.nextInt(100),
-            format: format);
+          DataType.int32,
+          42,
+          27,
+          (row, col) => random.nextInt(100),
+          format: format,
+        );
         final vectorB = Vector.generate(
-            DataType.int32, matrixA.colCount, (i) => random.nextInt(100),
-            format: VectorFormat.standard);
+          DataType.int32,
+          matrixA.colCount,
+          (i) => random.nextInt(100),
+          format: VectorFormat.standard,
+        );
         group('matrix', () {
           test('operator', () {
             final target = matrixA * matrixB;
@@ -1797,31 +2208,22 @@ void matrixTest(String name, MatrixFormat format) {
     group('decomposition', () {
       final epsilon = pow(2.0, -32.0);
       // Example matrices:
-      final matrix3 = Matrix.fromRows(
-          DataType.float64,
-          [
-            [1.0, 4.0, 7.0, 10.0],
-            [2.0, 5.0, 8.0, 11.0],
-            [3.0, 6.0, 9.0, 12.0],
-          ],
-          format: format);
-      final matrix4 = Matrix.fromRows(
-          DataType.float64,
-          [
-            [1.0, 5.0, 9.0],
-            [2.0, 6.0, 10.0],
-            [3.0, 7.0, 11.0],
-            [4.0, 8.0, 12.0],
-          ],
-          format: format);
-      final matrix3int = Matrix.fromRows(
-          DataType.int32,
-          [
-            [1, 4, 7, 10],
-            [2, 5, 8, 11],
-            [3, 6, 9, 12],
-          ],
-          format: format);
+      final matrix3 = Matrix.fromRows(DataType.float64, [
+        [1.0, 4.0, 7.0, 10.0],
+        [2.0, 5.0, 8.0, 11.0],
+        [3.0, 6.0, 9.0, 12.0],
+      ], format: format);
+      final matrix4 = Matrix.fromRows(DataType.float64, [
+        [1.0, 5.0, 9.0],
+        [2.0, 6.0, 10.0],
+        [3.0, 7.0, 11.0],
+        [4.0, 8.0, 12.0],
+      ], format: format);
+      final matrix3int = Matrix.fromRows(DataType.int32, [
+        [1, 4, 7, 10],
+        [2, 5, 8, 11],
+        [3, 6, 9, 12],
+      ], format: format);
       test('norm1', () {
         final result = matrix3.norm1;
         expect(result, isCloseTo(33.0, epsilon: epsilon));
@@ -1878,24 +2280,21 @@ void matrixTest(String name, MatrixFormat format) {
           expect(result.isUpperTriangular, isTrue);
         });
         test('solve', () {
-          final first = Matrix<double>.fromRows(
-              DataType.float64,
-              [
-                [5, 8],
-                [6, 9],
-              ],
-              format: format);
-          final second = Matrix<double>.fromRows(
-              DataType.float64,
-              [
-                [13],
-                [15],
-              ],
-              format: format);
+          final first = Matrix<double>.fromRows(DataType.float64, [
+            [5, 8],
+            [6, 9],
+          ], format: format);
+          final second = Matrix<double>.fromRows(DataType.float64, [
+            [13],
+            [15],
+          ], format: format);
           final actual = first.qr.solve(second);
           final expected = Matrix<double>.constant(
-              DataType.float64, second.rowCount, second.colCount,
-              value: 1);
+            DataType.float64,
+            second.rowCount,
+            second.colCount,
+            value: 1,
+          );
           expect(actual, isCloseTo(expected, epsilon: epsilon));
         });
       });
@@ -1906,7 +2305,11 @@ void matrixTest(String name, MatrixFormat format) {
           final values =
               normal.samples(random: random).take(rows * cols).toList();
           final m = Matrix<double>.fromPackedColumns(
-              DataType.float64, rows, cols, values);
+            DataType.float64,
+            rows,
+            cols,
+            values,
+          );
           return m;
         }
 
@@ -1915,8 +2318,12 @@ void matrixTest(String name, MatrixFormat format) {
 
           for (var i = 0; i < orders.length; i++) {
             final order = orders[i];
-            final matrixI =
-                Matrix.identity(DataType.float64, order, order, format: format);
+            final matrixI = Matrix.identity(
+              DataType.float64,
+              order,
+              order,
+              format: format,
+            );
             final factorSvd = matrixI.singularValue;
             final u = factorSvd.U;
             final vt = factorSvd.VT;
@@ -1949,12 +2356,18 @@ void matrixTest(String name, MatrixFormat format) {
 
             final uu = decomp.U * decomp.U.transposed;
             var I = Matrix<double>.identity(
-                DataType.float64, uu.rowCount, uu.colCount);
+              DataType.float64,
+              uu.rowCount,
+              uu.colCount,
+            );
             expect(uu, isCloseTo(I, epsilon: epsilon));
 
             final vv = decomp.VT.transposed * decomp.VT;
             I = Matrix<double>.identity(
-                DataType.float64, vv.rowCount, vv.colCount);
+              DataType.float64,
+              vv.rowCount,
+              vv.colCount,
+            );
             expect(vv, isCloseTo(I, epsilon: epsilon));
 
             final result = decomp.U * (decomp.W * decomp.VT);
@@ -1964,15 +2377,12 @@ void matrixTest(String name, MatrixFormat format) {
           }
         });
         test('rank accepatance', () {
-          final m = Matrix.fromRows(
-              DataType.float64,
-              [
-                [4.0, 4.0, 1.0, 3.0],
-                [1.0, -2.0, 1.0, 0.0],
-                [4.0, 0.0, 2.0, 2.0],
-                [7.0, 6.0, 2.0, 5.0]
-              ],
-              format: format);
+          final m = Matrix.fromRows(DataType.float64, [
+            [4.0, 4.0, 1.0, 3.0],
+            [1.0, -2.0, 1.0, 0.0],
+            [4.0, 0.0, 2.0, 2.0],
+            [7.0, 6.0, 2.0, 5.0],
+          ], format: format);
           final svd = m.singularValue;
           expect(svd.rank, 2);
         });
@@ -1994,8 +2404,12 @@ void matrixTest(String name, MatrixFormat format) {
           final orders = [10, 50, 100];
           for (var i = 0; i < orders.length; i++) {
             final order = orders[0];
-            final matrixA =
-                Matrix(DataType.float64, order, order, format: format);
+            final matrixA = Matrix(
+              DataType.float64,
+              order,
+              order,
+              format: format,
+            );
             matrixA.set(0, 0, 1);
             matrixA.set(order - 1, order - 1, 1);
             for (var i = 1; i < order - 1; i++) {
@@ -2033,8 +2447,12 @@ void matrixTest(String name, MatrixFormat format) {
         });
       });
       test('LU Decomposition', () {
-        final matrix =
-            matrix4.range(0, matrix4.colCount - 1, 0, matrix4.colCount - 1);
+        final matrix = matrix4.range(
+          0,
+          matrix4.colCount - 1,
+          0,
+          matrix4.colCount - 1,
+        );
         final decomp = matrix.lu;
         final result1 = matrix.rowIndex(decomp.pivot);
         final result2 = decomp.lower * decomp.upper;
@@ -2045,84 +2463,73 @@ void matrixTest(String name, MatrixFormat format) {
         expect(result, min(matrix3.rowCount, matrix3.colCount) - 1);
       });
       test('cond', () {
-        final matrix = Matrix.fromRows(
-            DataType.float64,
-            [
-              [1.0, 3.0],
-              [7.0, 9.0],
-            ],
-            format: format);
+        final matrix = Matrix.fromRows(DataType.float64, [
+          [1.0, 3.0],
+          [7.0, 9.0],
+        ], format: format);
         final decomp = matrix.singularValue;
         final singularValues = decomp.S;
         expect(
-            matrix.cond,
-            singularValues[0] /
-                singularValues[min(matrix.rowCount, matrix.colCount) - 1]);
+          matrix.cond,
+          singularValues[0] /
+              singularValues[min(matrix.rowCount, matrix.colCount) - 1],
+        );
       });
       test('inverse', () {
-        final matrix = Matrix.fromRows(
-            DataType.float64,
-            [
-              [0.0, 5.0, 9.0],
-              [2.0, 6.0, 10.0],
-              [3.0, 7.0, 11.0],
-            ],
-            format: format);
+        final matrix = Matrix.fromRows(DataType.float64, [
+          [0.0, 5.0, 9.0],
+          [2.0, 6.0, 10.0],
+          [3.0, 7.0, 11.0],
+        ], format: format);
         final actual = matrix * matrix.inverse;
-        final expected =
-            Matrix.identity(DataType.float64, matrix.rowCount, matrix.colCount);
+        final expected = Matrix.identity(
+          DataType.float64,
+          matrix.rowCount,
+          matrix.colCount,
+        );
         expect(actual, isCloseTo(expected, epsilon: epsilon));
       });
       test('solve', () {
-        final first = Matrix<double>.fromRows(
-            DataType.float64,
-            [
-              [5, 8],
-              [6, 9],
-            ],
-            format: format);
-        final second = Matrix<double>.fromRows(
-            DataType.float64,
-            [
-              [13],
-              [15],
-            ],
-            format: format);
+        final first = Matrix<double>.fromRows(DataType.float64, [
+          [5, 8],
+          [6, 9],
+        ], format: format);
+        final second = Matrix<double>.fromRows(DataType.float64, [
+          [13],
+          [15],
+        ], format: format);
         final actual = first.solve(second);
         final expected = Matrix<double>.constant(
-            DataType.float64, second.rowCount, second.colCount,
-            value: 1);
+          DataType.float64,
+          second.rowCount,
+          second.colCount,
+          value: 1,
+        );
         expect(actual, isCloseTo(expected, epsilon: epsilon));
       });
       test('solveTranspose', () {
-        final first = Matrix<double>.fromRows(
-            DataType.float64,
-            [
-              [5, 6],
-              [8, 9],
-            ],
-            format: format);
-        final second = Matrix<double>.fromRows(
-            DataType.float64,
-            [
-              [13, 15],
-            ],
-            format: format);
+        final first = Matrix<double>.fromRows(DataType.float64, [
+          [5, 6],
+          [8, 9],
+        ], format: format);
+        final second = Matrix<double>.fromRows(DataType.float64, [
+          [13, 15],
+        ], format: format);
         final actual = first.solveTranspose(second);
         final expected = Matrix<double>.constant(
-            DataType.float64, second.rowCount, second.colCount,
-            value: 1);
+          DataType.float64,
+          second.rowCount,
+          second.colCount,
+          value: 1,
+        );
         expect(actual, isCloseTo(expected, epsilon: epsilon));
       });
       group('choleski', () {
-        final matrix = Matrix<double>.fromRows(
-            DataType.float64,
-            [
-              [4, 1, 1],
-              [1, 2, 3],
-              [1, 3, 6],
-            ],
-            format: format);
+        final matrix = Matrix<double>.fromRows(DataType.float64, [
+          [4, 1, 1],
+          [1, 2, 3],
+          [1, 3, 6],
+        ], format: format);
         final decomposition = matrix.cholesky;
         test('isSymmetricPositiveDefinite', () {
           final isSPD = decomposition.isSymmetricPositiveDefinite;
@@ -2130,57 +2537,55 @@ void matrixTest(String name, MatrixFormat format) {
         });
         test('triangular factor', () {
           final triangularFactor = decomposition.L;
-          expect(triangularFactor * triangularFactor.transposed,
-              isCloseTo(matrix, epsilon: epsilon));
+          expect(
+            triangularFactor * triangularFactor.transposed,
+            isCloseTo(matrix, epsilon: epsilon),
+          );
         });
         test('solve', () {
-          final identity = Matrix<double>.identity(DataType.float64, 3, 3,
-              value: 1, format: format);
+          final identity = Matrix<double>.identity(
+            DataType.float64,
+            3,
+            3,
+            value: 1,
+            format: format,
+          );
           final solution = decomposition.solve(identity);
           expect(matrix * solution, isCloseTo(identity, epsilon: epsilon));
         });
       });
       group('eigen', () {
         test('symmetric', () {
-          final a = Matrix.fromRows(
-              DataType.float64,
-              [
-                [4.0, 1.0, 1.0],
-                [1.0, 2.0, 3.0],
-                [1.0, 3.0, 6.0],
-              ],
-              format: format);
+          final a = Matrix.fromRows(DataType.float64, [
+            [4.0, 1.0, 1.0],
+            [1.0, 2.0, 3.0],
+            [1.0, 3.0, 6.0],
+          ], format: format);
           final decomposition = a.eigenvalue;
           final d = decomposition.D;
           final v = decomposition.V;
           expect(v * d, isCloseTo(a * v, epsilon: epsilon));
         });
         test('non-symmetric', () {
-          final a = Matrix.fromRows(
-              DataType.float64,
-              [
-                [0.0, 1.0, 0.0, 0.0],
-                [1.0, 0.0, 2.0e-7, 0.0],
-                [0.0, -2.0e-7, 0.0, 1.0],
-                [0.0, 0.0, 1.0, 0.0],
-              ],
-              format: format);
+          final a = Matrix.fromRows(DataType.float64, [
+            [0.0, 1.0, 0.0, 0.0],
+            [1.0, 0.0, 2.0e-7, 0.0],
+            [0.0, -2.0e-7, 0.0, 1.0],
+            [0.0, 0.0, 1.0, 0.0],
+          ], format: format);
           final decomposition = a.eigenvalue;
           final d = decomposition.D;
           final v = decomposition.V;
           expect(v * d, isCloseTo(a * v, epsilon: epsilon));
         });
         test('bad', () {
-          final a = Matrix.fromRows(
-              DataType.float64,
-              [
-                [0.0, 0.0, 0.0, 0.0, 0.0],
-                [0.0, 0.0, 0.0, 0.0, 1.0],
-                [0.0, 0.0, 0.0, 1.0, 0.0],
-                [1.0, 1.0, 0.0, 0.0, 1.0],
-                [1.0, 0.0, 1.0, 0.0, 1.0],
-              ],
-              format: format);
+          final a = Matrix.fromRows(DataType.float64, [
+            [0.0, 0.0, 0.0, 0.0, 0.0],
+            [0.0, 0.0, 0.0, 0.0, 1.0],
+            [0.0, 0.0, 0.0, 1.0, 0.0],
+            [1.0, 1.0, 0.0, 0.0, 1.0],
+            [1.0, 0.0, 1.0, 0.0, 1.0],
+          ], format: format);
           final decomposition = a.eigenvalue;
           final d = decomposition.D;
           final v = decomposition.V;

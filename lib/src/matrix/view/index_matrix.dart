@@ -7,8 +7,8 @@ import '../matrix.dart';
 /// Mutable indexed view of the rows and columns of a matrix.
 class IndexMatrix<T> with Matrix<T> {
   IndexMatrix(this.matrix, Iterable<int> rowIndexes, Iterable<int> colIndexes)
-      : rowIndexes = DataType.index.copyList(rowIndexes),
-        colIndexes = DataType.index.copyList(colIndexes);
+    : rowIndexes = DataType.index.copyList(rowIndexes),
+      colIndexes = DataType.index.copyList(colIndexes);
 
   final Matrix<T> matrix;
   final List<int> rowIndexes;
@@ -71,17 +71,19 @@ extension IndexMatrixExtension<T> on Matrix<T> {
   /// Returns a mutable view onto row and column indexes. The behavior is
   /// undefined if any of the indexes are out of bounds.
   Matrix<T> indexUnchecked(
-          Iterable<int> rowIndexes, Iterable<int> colIndexes) =>
-      switch (this) {
-        IndexMatrix<T>(
-          matrix: final matrix,
-          rowIndexes: final thisRowIndexes,
-          colIndexes: final thisColIndexes
-        ) =>
-          IndexMatrix<T>(
-              matrix,
-              rowIndexes.map((index) => thisRowIndexes[index]),
-              colIndexes.map((index) => thisColIndexes[index])),
-        _ => IndexMatrix<T>(this, rowIndexes, colIndexes),
-      };
+    Iterable<int> rowIndexes,
+    Iterable<int> colIndexes,
+  ) => switch (this) {
+    IndexMatrix<T>(
+      matrix: final matrix,
+      rowIndexes: final thisRowIndexes,
+      colIndexes: final thisColIndexes,
+    ) =>
+      IndexMatrix<T>(
+        matrix,
+        rowIndexes.map((index) => thisRowIndexes[index]),
+        colIndexes.map((index) => thisColIndexes[index]),
+      ),
+    _ => IndexMatrix<T>(this, rowIndexes, colIndexes),
+  };
 }

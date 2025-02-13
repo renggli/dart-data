@@ -21,31 +21,41 @@ import 'view/generated_polynomial.dart';
 abstract mixin class Polynomial<T> implements Storage {
   /// Constructs a default vector of the desired [dataType], and possibly a
   /// custom [format].
-  factory Polynomial(DataType<T> dataType,
-          {int desiredDegree = -1, PolynomialFormat? format}) =>
-      switch (format ?? PolynomialFormat.standard) {
-        PolynomialFormat.list => ListPolynomial<T>(dataType, desiredDegree),
-        PolynomialFormat.compressed => CompressedPolynomial<T>(dataType),
-        PolynomialFormat.keyed => KeyedPolynomial<T>(dataType),
-        PolynomialFormat.external =>
-          ExternalPolynomial<T>(dataType, desiredDegree),
-      };
+  factory Polynomial(
+    DataType<T> dataType, {
+    int desiredDegree = -1,
+    PolynomialFormat? format,
+  }) => switch (format ?? PolynomialFormat.standard) {
+    PolynomialFormat.list => ListPolynomial<T>(dataType, desiredDegree),
+    PolynomialFormat.compressed => CompressedPolynomial<T>(dataType),
+    PolynomialFormat.keyed => KeyedPolynomial<T>(dataType),
+    PolynomialFormat.external => ExternalPolynomial<T>(dataType, desiredDegree),
+  };
 
   /// Generates a polynomial from calling a [callback] on every value. If
   /// [format] is specified the resulting polynomial is mutable, otherwise this
   /// is a read-only view.
   factory Polynomial.generate(
-      DataType<T> dataType, int degree, PolynomialGeneratorCallback<T> callback,
-      {PolynomialFormat? format}) {
+    DataType<T> dataType,
+    int degree,
+    PolynomialGeneratorCallback<T> callback, {
+    PolynomialFormat? format,
+  }) {
     final result = GeneratedPolynomial<T>(dataType, degree, callback);
     return format == null ? result : result.toPolynomial(format: format);
   }
 
   /// Constructs a polynomial from a list of coefficients.
-  factory Polynomial.fromCoefficients(DataType<T> dataType, List<T> source,
-      {PolynomialFormat? format}) {
-    final result =
-        Polynomial(dataType, desiredDegree: source.length - 1, format: format);
+  factory Polynomial.fromCoefficients(
+    DataType<T> dataType,
+    List<T> source, {
+    PolynomialFormat? format,
+  }) {
+    final result = Polynomial(
+      dataType,
+      desiredDegree: source.length - 1,
+      format: format,
+    );
     for (var i = 0; i < source.length; i++) {
       result.setUnchecked(i, source[source.length - i - 1]);
     }
@@ -53,10 +63,16 @@ abstract mixin class Polynomial<T> implements Storage {
   }
 
   /// Constructs a polynomial from a list of values.
-  factory Polynomial.fromList(DataType<T> dataType, List<T> source,
-      {PolynomialFormat? format}) {
-    final result =
-        Polynomial(dataType, desiredDegree: source.length - 1, format: format);
+  factory Polynomial.fromList(
+    DataType<T> dataType,
+    List<T> source, {
+    PolynomialFormat? format,
+  }) {
+    final result = Polynomial(
+      dataType,
+      desiredDegree: source.length - 1,
+      format: format,
+    );
     for (var i = 0; i < source.length; i++) {
       result.setUnchecked(i, source[i]);
     }
@@ -64,10 +80,16 @@ abstract mixin class Polynomial<T> implements Storage {
   }
 
   /// Builds a polynomial from a list of roots.
-  factory Polynomial.fromRoots(DataType<T> dataType, List<T> roots,
-      {PolynomialFormat? format}) {
-    final result =
-        Polynomial(dataType, desiredDegree: roots.length, format: format);
+  factory Polynomial.fromRoots(
+    DataType<T> dataType,
+    List<T> roots, {
+    PolynomialFormat? format,
+  }) {
+    final result = Polynomial(
+      dataType,
+      desiredDegree: roots.length,
+      format: format,
+    );
     if (roots.isEmpty) {
       result.setUnchecked(0, dataType.field.multiplicativeIdentity);
       return result;
@@ -79,12 +101,14 @@ abstract mixin class Polynomial<T> implements Storage {
       final root = roots[i];
       for (var j = i + 1; j >= 0; j--) {
         result.setUnchecked(
-            j,
-            sub(
-                j > 0
-                    ? result.getUnchecked(j - 1)
-                    : dataType.field.additiveIdentity,
-                mul(root, result.getUnchecked(j))));
+          j,
+          sub(
+            j > 0
+                ? result.getUnchecked(j - 1)
+                : dataType.field.additiveIdentity,
+            mul(root, result.getUnchecked(j)),
+          ),
+        );
       }
     }
     return result;
@@ -111,8 +135,9 @@ abstract mixin class Polynomial<T> implements Storage {
           roots.add(xs.getUnchecked(j));
         }
       }
-      result
-          .addEq(Polynomial<T>.fromRoots(dataType, roots).mulScalarEq(scalar));
+      result.addEq(
+        Polynomial<T>.fromRoots(dataType, roots).mulScalarEq(scalar),
+      );
     }
     return result;
   }
@@ -226,7 +251,8 @@ abstract mixin class Polynomial<T> implements Storage {
         return null;
       }
       final buffer = StringBuffer();
-      final skipValue = skipValues &&
+      final skipValue =
+          skipValues &&
           exponent != 0 &&
           coefficient == dataType.field.multiplicativeIdentity;
       if (!skipValue) {
@@ -273,7 +299,8 @@ abstract mixin class Polynomial<T> implements Storage {
 
   /// Returns the string representation of this polynomial.
   @override
-  String toString() => '$runtimeType('
+  String toString() =>
+      '$runtimeType('
       'dataType: ${dataType.name}, '
       'degree: $degree):\n'
       '${format()}';

@@ -15,7 +15,7 @@ class NormalDistribution extends ContinuousDistribution {
   /// A normal distribution with parameter [mu] μ (mean) and [sigma] σ (standard
   /// deviation).
   const NormalDistribution(this.mu, this.sigma)
-      : assert(sigma > 0, 'sigma > 0');
+    : assert(sigma > 0, 'sigma > 0');
 
   /// A standard normal distribution centered around 0.
   const NormalDistribution.standard() : this(0, 1);
@@ -93,7 +93,8 @@ class NormalDistribution extends ContinuousDistribution {
   int get hashCode => Object.hash(NormalDistribution, mu, sigma);
 
   @override
-  ObjectPrinter get toStringPrinter => super.toStringPrinter
-    ..addValue(mu, name: 'mu')
-    ..addValue(sigma, name: 'sigma');
+  ObjectPrinter get toStringPrinter =>
+      super.toStringPrinter
+        ..addValue(mu, name: 'mu')
+        ..addValue(sigma, name: 'sigma');
 }

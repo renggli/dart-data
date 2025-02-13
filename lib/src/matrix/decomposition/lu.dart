@@ -20,10 +20,10 @@ import '../view/row_vector.dart';
 /// linear equations. This will fail if [isNonsingular] returns false.
 class LUDecomposition {
   LUDecomposition(Matrix<num> source)
-      : _lu = source.cast(DataType.float).toMatrix(),
-        _m = source.rowCount,
-        _n = source.colCount,
-        _piv = DataType.index.newList(source.rowCount) {
+    : _lu = source.cast(DataType.float).toMatrix(),
+      _m = source.rowCount,
+      _n = source.colCount,
+      _piv = DataType.index.newList(source.rowCount) {
     // Use a 'left-looking', dot-product, Crout/Doolittle algorithm.
     for (var i = 0; i < _m; i++) {
       _piv[i] = i;
@@ -71,7 +71,10 @@ class LUDecomposition {
       if (j < _m && _lu.getUnchecked(j, j) != 0.0) {
         for (var i = j + 1; i < _m; i++) {
           _lu.setUnchecked(
-              i, j, _lu.getUnchecked(i, j) / _lu.getUnchecked(j, j));
+            i,
+            j,
+            _lu.getUnchecked(i, j) / _lu.getUnchecked(j, j),
+          );
         }
       }
     }
@@ -164,10 +167,11 @@ class LUDecomposition {
       for (var i = k + 1; i < _n; i++) {
         for (var j = 0; j < nx; j++) {
           X.setUnchecked(
-              i,
-              j,
-              X.getUnchecked(i, j) -
-                  X.getUnchecked(k, j) * _lu.getUnchecked(i, k));
+            i,
+            j,
+            X.getUnchecked(i, j) -
+                X.getUnchecked(k, j) * _lu.getUnchecked(i, k),
+          );
         }
       }
     }
@@ -180,10 +184,11 @@ class LUDecomposition {
       for (var i = 0; i < k; i++) {
         for (var j = 0; j < nx; j++) {
           X.setUnchecked(
-              i,
-              j,
-              X.getUnchecked(i, j) -
-                  X.getUnchecked(k, j) * _lu.getUnchecked(i, k));
+            i,
+            j,
+            X.getUnchecked(i, j) -
+                X.getUnchecked(k, j) * _lu.getUnchecked(i, k),
+          );
         }
       }
     }

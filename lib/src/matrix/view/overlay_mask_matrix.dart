@@ -23,8 +23,11 @@ class OverlayMaskMatrix<T> with Matrix<T> {
   int get colCount => base.colCount;
 
   @override
-  Set<Storage> get storage =>
-      {...overlay.storage, ...mask.storage, ...base.storage};
+  Set<Storage> get storage => {
+    ...overlay.storage,
+    ...mask.storage,
+    ...base.storage,
+  };
 
   @override
   T getUnchecked(int row, int col) {

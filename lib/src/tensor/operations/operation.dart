@@ -9,12 +9,18 @@ import 'broadcast.dart';
 extension OperationTensorExtension<T> on Tensor<T> {
   /// Performs an unary element-wise operation [function] on this tensor and
   /// stores the result into [target] or (if missing) into a newly created one.
-  Tensor<R> unaryOperation<R>(Map1<T, R> function,
-      {DataType<R>? type, Tensor<R>? target}) {
+  Tensor<R> unaryOperation<R>(
+    Map1<T, R> function, {
+    DataType<R>? type,
+    Tensor<R>? target,
+  }) {
     if (target == null) {
       // Create a new tensor.
-      return Tensor<R>.fromIterable(values.map(function),
-          shape: layout.shape, type: type ?? DataType.fromType<R>());
+      return Tensor<R>.fromIterable(
+        values.map(function),
+        shape: layout.shape,
+        type: type ?? DataType.fromType<R>(),
+      );
     } else if (target == this) {
       // Perform the operation in-place.
       final targetData = target.data;
@@ -30,8 +36,9 @@ extension OperationTensorExtension<T> on Tensor<T> {
       final targetData = target.data,
           targetIterator = targetLayout.indices.iterator;
       while (targetIterator.moveNext() && sourceIterator.moveNext()) {
-        targetData[targetIterator.current] =
-            function(sourceData[sourceIterator.current]);
+        targetData[targetIterator.current] = function(
+          sourceData[sourceIterator.current],
+        );
       }
       return target;
     }
@@ -40,8 +47,12 @@ extension OperationTensorExtension<T> on Tensor<T> {
   /// Performs a binary element-wise operation [function] on this tensor and
   /// [other] and stores the result into [target] or (if missing) into a newly
   /// created one.
-  Tensor<R> binaryOperation<O, R>(Tensor<O> other, Map2<T, O, R> function,
-      {DataType<R>? type, Tensor<R>? target}) {
+  Tensor<R> binaryOperation<O, R>(
+    Tensor<O> other,
+    Map2<T, O, R> function, {
+    DataType<R>? type,
+    Tensor<R>? target,
+  }) {
     final (thisLayout, otherLayout) = layout.broadcast(other.layout);
     final thisIterator = thisLayout.indices.iterator;
     final otherIterator = otherLayout.indices.iterator;
@@ -50,11 +61,13 @@ extension OperationTensorExtension<T> on Tensor<T> {
       // Create a new tensor.
       final resultType = type ?? DataType.fromType<R>();
       final resultData = resultType.newList(thisLayout.length);
-      for (var i = 0;
-          i < thisLayout.length &&
-              thisIterator.moveNext() &&
-              otherIterator.moveNext();
-          i++) {
+      for (
+        var i = 0;
+        i < thisLayout.length &&
+            thisIterator.moveNext() &&
+            otherIterator.moveNext();
+        i++
+      ) {
         resultData[i] = function(
           thisData[thisIterator.current],
           otherData[otherIterator.current],

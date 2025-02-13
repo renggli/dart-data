@@ -8,10 +8,7 @@ import 'functions.dart';
 /// See https://en.wikipedia.org/wiki/Curve_fitting.
 abstract class CurveFit {
   /// Fits a list of data points to the configured model.
-  CurveFitResult fit({
-    required Vector<double> xs,
-    required Vector<double> ys,
-  });
+  CurveFitResult fit({required Vector<double> xs, required Vector<double> ys});
 }
 
 /// Generic result of a curve fitting.

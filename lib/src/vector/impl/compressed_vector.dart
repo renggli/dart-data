@@ -6,9 +6,9 @@ import '../vector.dart';
 /// Sparse compressed vector.
 class CompressedVector<T> with Vector<T> {
   CompressedVector(this.dataType, this.count)
-      : _indexes = DataType.index.newList(initialListLength),
-        _values = dataType.newList(initialListLength),
-        _length = 0;
+    : _indexes = DataType.index.newList(initialListLength),
+      _values = dataType.newList(initialListLength),
+      _length = 0;
 
   List<int> _indexes;
   List<T> _values;

@@ -17,11 +17,17 @@ import 'utils/matchers.dart';
   int count = 10,
 }) {
   final xs = Vector<double>.generate(
-      DataType.float, count, (i) => min + i * (max - min) / (count - 1),
-      format: VectorFormat.list);
+    DataType.float,
+    count,
+    (i) => min + i * (max - min) / (count - 1),
+    format: VectorFormat.list,
+  );
   final ys = Vector<double>.generate(
-      DataType.float, count, (i) => function(xs[i]),
-      format: VectorFormat.list);
+    DataType.float,
+    count,
+    (i) => function(xs[i]),
+    format: VectorFormat.list,
+  );
   return (xs, ys);
 }
 
@@ -54,7 +60,8 @@ void main() {
                 stop != null &&
                 count != null) {
               final function = fitter.parametrizedFunction.bind(
-                  fitter.parametrizedFunction.toVector(expectedParameters));
+                fitter.parametrizedFunction.toVector(expectedParameters),
+              );
               final x = linearSpaced(start, stop, count: count).toVector();
               final y = x.map((i, xi) => function(xi)).toVector();
               return fitter.fit(xs: x, ys: y);
@@ -66,13 +73,15 @@ void main() {
           }();
           if (expectedParameters != null) {
             expect(
-                result.parameters,
-                isCloseTo(expectedParameters,
-                    epsilon: expectedParametersEpsilon));
+              result.parameters,
+              isCloseTo(expectedParameters, epsilon: expectedParametersEpsilon),
+            );
           }
           if (expectedError != null) {
-            expect(result.error,
-                isCloseTo(expectedError, epsilon: expectedErrorEpsilon));
+            expect(
+              result.error,
+              isCloseTo(expectedError, epsilon: expectedErrorEpsilon),
+            );
           }
           if (expectedIterations != null) {
             expect(result.iterations, expectedIterations);
@@ -81,35 +90,37 @@ void main() {
       }
 
       final bennet5 = ParametrizedUnaryFunction<double>.positional(
-          DataType.float,
-          3,
-          (double a, double b, double c) =>
-              (double x) => a * pow(x + b, -1 / c));
+        DataType.float,
+        3,
+        (double a, double b, double c) => (double x) => a * pow(x + b, -1 / c),
+      );
 
       final sinFunction = ParametrizedUnaryFunction<double>.named(
-          DataType.float,
-          [#a, #b],
-          ({required double a, required double b}) =>
-              (double x) => a * sin(b * x));
+        DataType.float,
+        [#a, #b],
+        ({required double a, required double b}) =>
+            (double x) => a * sin(b * x),
+      );
 
       final sigmodid = ParametrizedUnaryFunction<double>.positional(
-          DataType.float,
-          3,
-          (double a, double b, double c) =>
-              (double x) => a / (b + exp(-x * c)));
+        DataType.float,
+        3,
+        (double a, double b, double c) => (double x) => a / (b + exp(-x * c)),
+      );
 
       final lorentzians = ParametrizedUnaryFunction<double>.vector(
-          DataType.float,
-          6,
-          (params) => (double x) {
-                var result = 0.0;
-                for (var i = 0; i < params.count; i += 3) {
-                  final p2 = pow(params[i + 2] / 2, 2);
-                  final factor = params[i + 1] * p2;
-                  result += factor / (pow(x - params[i], 2) + p2);
-                }
-                return result;
-              });
+        DataType.float,
+        6,
+        (params) => (double x) {
+          var result = 0.0;
+          for (var i = 0; i < params.count; i += 3) {
+            final p2 = pow(params[i + 2] / 2, 2);
+            final factor = params[i + 1] * p2;
+            result += factor / (pow(x - params[i], 2) + p2);
+          }
+          return result;
+        },
+      );
 
       verifyLevenbergMarquardt(
         'bennet5(2, 3, 5)',
@@ -244,38 +255,41 @@ void main() {
         'noisy real-world data',
         LevenbergMarquardt(
           ParametrizedUnaryFunction<double>.positional(
-              DataType.float,
-              4,
-              (double a, double b, double c, double d) =>
-                  (double x) => a + (b - a) / (1 + pow(c, d) * pow(x, -d))),
+            DataType.float,
+            4,
+            (double a, double b, double c, double d) =>
+                (double x) => a + (b - a) / (1 + pow(c, d) * pow(x, -d)),
+          ),
           initialValues: [0.0, 100.0, 1.0, 0.1].toVector(),
           damping: 0.00001,
           maxIterations: 200,
         ),
-        xs: [
-          9.22e-12,
-          5.53e-11,
-          3.32e-10,
-          1.99e-9,
-          1.19e-8,
-          7.17e-8,
-          4.3e-7,
-          0.00000258,
-          0.0000155,
-          0.0000929,
-        ].toVector(),
-        ys: [
-          7.807,
-          -3.74,
-          21.119,
-          2.382,
-          4.269,
-          41.57,
-          73.401,
-          98.535,
-          97.059,
-          92.147,
-        ].toVector(),
+        xs:
+            [
+              9.22e-12,
+              5.53e-11,
+              3.32e-10,
+              1.99e-9,
+              1.19e-8,
+              7.17e-8,
+              4.3e-7,
+              0.00000258,
+              0.0000155,
+              0.0000929,
+            ].toVector(),
+        ys:
+            [
+              7.807,
+              -3.74,
+              21.119,
+              2.382,
+              4.269,
+              41.57,
+              73.401,
+              98.535,
+              97.059,
+              92.147,
+            ].toVector(),
         // Assertions
         expectedIterations: 200,
         expectedParameters: [-16.7697, 43.4549, 1018.8938, -4.3514],
@@ -284,40 +298,42 @@ void main() {
     });
     group('polynomial regression', () {
       group('american women', () {
-        final height = [
-          1.47,
-          1.50,
-          1.52,
-          1.55,
-          1.57,
-          1.60,
-          1.63,
-          1.65,
-          1.68,
-          1.70,
-          1.73,
-          1.75,
-          1.78,
-          1.80,
-          1.83,
-        ].toVector();
-        final mass = [
-          52.21,
-          53.12,
-          54.48,
-          55.84,
-          57.20,
-          58.57,
-          59.93,
-          61.29,
-          63.11,
-          64.47,
-          66.28,
-          68.10,
-          69.92,
-          72.19,
-          74.46,
-        ].toVector();
+        final height =
+            [
+              1.47,
+              1.50,
+              1.52,
+              1.55,
+              1.57,
+              1.60,
+              1.63,
+              1.65,
+              1.68,
+              1.70,
+              1.73,
+              1.75,
+              1.78,
+              1.80,
+              1.83,
+            ].toVector();
+        final mass =
+            [
+              52.21,
+              53.12,
+              54.48,
+              55.84,
+              57.20,
+              58.57,
+              59.93,
+              61.29,
+              63.11,
+              64.47,
+              66.28,
+              68.10,
+              69.92,
+              72.19,
+              74.46,
+            ].toVector();
         test('constant', () {
           final fitter = PolynomialRegression(degree: 0);
           final result = fitter.fit(xs: height, ys: mass);
@@ -347,8 +363,11 @@ void main() {
           final result = fitter.fit(xs: data.first, ys: data.second);
           expect(result.polynomial.degree, fitter.degree);
           for (var i = 0; i <= fitter.degree; i++) {
-            expect(result.polynomial[i], isCloseTo(1.0 / i.factorial()),
-                reason: '$i-th coefficient');
+            expect(
+              result.polynomial[i],
+              isCloseTo(1.0 / i.factorial()),
+              reason: '$i-th coefficient',
+            );
           }
         });
         test('sin', () {
@@ -358,10 +377,10 @@ void main() {
           expect(result.polynomial.degree, fitter.degree);
           for (var i = 0; i <= fitter.degree; i++) {
             expect(
-                result.polynomial[i],
-                isCloseTo(
-                    i.isOdd ? pow(-1, (i - 1) ~/ 2) / i.factorial() : 0.0),
-                reason: '$i-th coefficient');
+              result.polynomial[i],
+              isCloseTo(i.isOdd ? pow(-1, (i - 1) ~/ 2) / i.factorial() : 0.0),
+              reason: '$i-th coefficient',
+            );
           }
         });
         test('cos', () {
@@ -370,9 +389,11 @@ void main() {
           final result = fitter.fit(xs: data.first, ys: data.second);
           expect(result.polynomial.degree, fitter.degree);
           for (var i = 0; i <= fitter.degree; i++) {
-            expect(result.polynomial[i],
-                isCloseTo(i.isEven ? pow(-1, i ~/ 2) / i.factorial() : 0.0),
-                reason: '$i-th coefficient');
+            expect(
+              result.polynomial[i],
+              isCloseTo(i.isEven ? pow(-1, i ~/ 2) / i.factorial() : 0.0),
+              reason: '$i-th coefficient',
+            );
           }
         });
       });
@@ -400,47 +421,79 @@ void main() {
     test('second derivative at different accuracies', () {
       for (var a = 2; a <= 8; a += 2) {
         // sin-function
-        expect(derivative(sin, 0.0 * pi, derivative: 2, accuracy: a),
-            isCloseTo(0.0));
-        expect(derivative(sin, 0.5 * pi, derivative: 2, accuracy: a),
-            isCloseTo(-1.0));
-        expect(derivative(sin, 1.0 * pi, derivative: 2, accuracy: a),
-            isCloseTo(0.0));
-        expect(derivative(sin, 1.5 * pi, derivative: 2, accuracy: a),
-            isCloseTo(1.0));
-        // cos-function
-        expect(derivative(cos, 0.0 * pi, derivative: 2, accuracy: a),
-            isCloseTo(-1.0));
-        expect(derivative(cos, 0.5 * pi, derivative: 2, accuracy: a),
-            isCloseTo(0.0));
-        expect(derivative(cos, 1.0 * pi, derivative: 2, accuracy: a),
-            isCloseTo(1.0));
-        expect(derivative(cos, 1.5 * pi, derivative: 2, accuracy: a),
-            isCloseTo(0.0));
-        // exp-function
-        expect(derivative(exp, -1.0, derivative: 2, accuracy: a),
-            isCloseTo(1 / e));
         expect(
-            derivative(exp, 0.0, derivative: 2, accuracy: a), isCloseTo(1.0));
+          derivative(sin, 0.0 * pi, derivative: 2, accuracy: a),
+          isCloseTo(0.0),
+        );
+        expect(
+          derivative(sin, 0.5 * pi, derivative: 2, accuracy: a),
+          isCloseTo(-1.0),
+        );
+        expect(
+          derivative(sin, 1.0 * pi, derivative: 2, accuracy: a),
+          isCloseTo(0.0),
+        );
+        expect(
+          derivative(sin, 1.5 * pi, derivative: 2, accuracy: a),
+          isCloseTo(1.0),
+        );
+        // cos-function
+        expect(
+          derivative(cos, 0.0 * pi, derivative: 2, accuracy: a),
+          isCloseTo(-1.0),
+        );
+        expect(
+          derivative(cos, 0.5 * pi, derivative: 2, accuracy: a),
+          isCloseTo(0.0),
+        );
+        expect(
+          derivative(cos, 1.0 * pi, derivative: 2, accuracy: a),
+          isCloseTo(1.0),
+        );
+        expect(
+          derivative(cos, 1.5 * pi, derivative: 2, accuracy: a),
+          isCloseTo(0.0),
+        );
+        // exp-function
+        expect(
+          derivative(exp, -1.0, derivative: 2, accuracy: a),
+          isCloseTo(1 / e),
+        );
+        expect(
+          derivative(exp, 0.0, derivative: 2, accuracy: a),
+          isCloseTo(1.0),
+        );
         expect(derivative(exp, 1.0, derivative: 2, accuracy: a), isCloseTo(e));
       }
     });
     group('error', () {
       test('derivative', () {
         expect(
-            () => derivative(sin, 0, derivative: 0),
-            throwsA(isA<ArgumentError>()
+          () => derivative(sin, 0, derivative: 0),
+          throwsA(
+            isA<ArgumentError>()
                 .having((error) => error.name, 'name', 'derivative')
-                .having((error) => error.message, 'message',
-                    'Must be one of 1, 2, 3, 4, 5, 6')));
+                .having(
+                  (error) => error.message,
+                  'message',
+                  'Must be one of 1, 2, 3, 4, 5, 6',
+                ),
+          ),
+        );
       });
       test('accuracy', () {
         expect(
-            () => derivative(sin, 0, accuracy: 0),
-            throwsA(isA<ArgumentError>()
+          () => derivative(sin, 0, accuracy: 0),
+          throwsA(
+            isA<ArgumentError>()
                 .having((error) => error.name, 'name', 'accuracy')
-                .having((error) => error.message, 'message',
-                    'Must be one of 2, 4, 6, 8')));
+                .having(
+                  (error) => error.message,
+                  'message',
+                  'Must be one of 2, 4, 6, 8',
+                ),
+          ),
+        );
       });
     });
   });
@@ -548,11 +601,12 @@ void main() {
       final random = Random(98712);
       for (var i = 2; i <= 128; i++) {
         final source = List.generate(
-            i,
-            (i) => Complex(
-                  2.0 * random.nextDouble() - 1.0,
-                  2.0 * random.nextDouble() - 1.0,
-                ));
+          i,
+          (i) => Complex(
+            2.0 * random.nextDouble() - 1.0,
+            2.0 * random.nextDouble() - 1.0,
+          ),
+        );
         final forward = fft([...source]);
         expect(forward.length.hasSingleBit, isTrue);
         final backward = fft([...forward], inverse: true);
@@ -573,8 +627,11 @@ void main() {
       );
       expect(function.dataType, DataType.string);
       expect(function.count, 3);
-      expect(function.toVector(['a', 'b'], defaultParam: 'c').iterable,
-          ['a', 'b', 'c']);
+      expect(function.toVector(['a', 'b'], defaultParam: 'c').iterable, [
+        'a',
+        'b',
+        'c',
+      ]);
       final arguments = ['a', 'b', 'c'].toVector();
       final bindings = function.toBindings(arguments);
       final bound = function.bind(arguments);
@@ -590,8 +647,10 @@ void main() {
       );
       expect(function.dataType, DataType.string);
       expect(function.count, 3);
-      expect(function.toVector({#b: 'b', #a: 'a'}, defaultParam: 'c').iterable,
-          ['a', 'b', 'c']);
+      expect(
+        function.toVector({#b: 'b', #a: 'a'}, defaultParam: 'c').iterable,
+        ['a', 'b', 'c'],
+      );
       final arguments = ['a', 'b', 'c'].toVector();
       final bindings = function.toBindings(arguments);
       final bound = function.bind(arguments);
@@ -608,8 +667,10 @@ void main() {
       );
       expect(function.dataType, DataType.string);
       expect(function.count, 3);
-      expect(function.toVector({#b: 'b', #a: 'a'}, defaultParam: 'c').iterable,
-          ['a', 'b', 'c']);
+      expect(
+        function.toVector({#b: 'b', #a: 'a'}, defaultParam: 'c').iterable,
+        ['a', 'b', 'c'],
+      );
       final arguments = ['a', 'b', 'c'].toVector();
       final bindings = function.toBindings(arguments);
       final bound = function.bind(arguments);
@@ -625,8 +686,11 @@ void main() {
       );
       expect(function.dataType, DataType.string);
       expect(function.count, 3);
-      expect(function.toVector(['a', 'b'], defaultParam: 'c').iterable,
-          ['a', 'b', 'c']);
+      expect(function.toVector(['a', 'b'], defaultParam: 'c').iterable, [
+        'a',
+        'b',
+        'c',
+      ]);
       final arguments = ['a', 'b', 'c'].toVector();
       final bindings = function.toBindings(arguments);
       final bound = function.bind(arguments);
@@ -643,8 +707,9 @@ void main() {
       expect(function.dataType, DataType.string);
       expect(function.count, 3);
       expect(
-          function.toVector(['a', 'b'].toVector(), defaultParam: 'c').iterable,
-          ['a', 'b', 'c']);
+        function.toVector(['a', 'b'].toVector(), defaultParam: 'c').iterable,
+        ['a', 'b', 'c'],
+      );
       final arguments = ['a', 'b', 'c'].toVector();
       final bindings = function.toBindings(arguments);
       final bound = function.bind(arguments);
@@ -658,14 +723,22 @@ void main() {
         2,
         (params) => (x) => fail('not tested'),
       );
-      expect(function.toVector(null, defaultParam: 7),
-          isCloseTo([7, 7].toVector()));
-      expect(function.toVector(<int>[], defaultParam: 7),
-          isCloseTo([7, 7].toVector()));
-      expect(function.toVector([3], defaultParam: 7),
-          isCloseTo([3, 7].toVector()));
-      expect(function.toVector([3, 4], defaultParam: 7),
-          isCloseTo([3, 4].toVector()));
+      expect(
+        function.toVector(null, defaultParam: 7),
+        isCloseTo([7, 7].toVector()),
+      );
+      expect(
+        function.toVector(<int>[], defaultParam: 7),
+        isCloseTo([7, 7].toVector()),
+      );
+      expect(
+        function.toVector([3], defaultParam: 7),
+        isCloseTo([3, 7].toVector()),
+      );
+      expect(
+        function.toVector([3, 4], defaultParam: 7),
+        isCloseTo([3, 4].toVector()),
+      );
       expect(() => function.toVector(null), throwsArgumentError);
       expect(() => function.toVector([]), throwsArgumentError);
       expect(() => function.toVector([42]), throwsArgumentError);
@@ -686,14 +759,22 @@ void main() {
       group('logarithmic', () {
         test('default', () {
           final vector = logarithmicSpaced(2, 3, count: 4);
-          expect(vector.iterable,
-              isCloseTo([100, 215.443469, 464.15888336, 1000]));
+          expect(
+            vector.iterable,
+            isCloseTo([100, 215.443469, 464.15888336, 1000]),
+          );
         });
         test('without endpoint', () {
-          final vector =
-              logarithmicSpaced(2, 3, count: 4, includeEndpoint: false);
-          expect(vector.iterable,
-              isCloseTo([100, 177.827941, 316.22776602, 562.34132519]));
+          final vector = logarithmicSpaced(
+            2,
+            3,
+            count: 4,
+            includeEndpoint: false,
+          );
+          expect(
+            vector.iterable,
+            isCloseTo([100, 177.827941, 316.22776602, 562.34132519]),
+          );
         });
         test('with base', () {
           final vector = logarithmicSpaced(2.0, 3.0, count: 4, base: 2.0);
@@ -710,10 +791,16 @@ void main() {
           expect(vector.iterable, isCloseTo([1000, 100, 10, 1]));
         });
         test('without endpoint', () {
-          final vector =
-              geometricSpaced(1, 1000, count: 4, includeEndpoint: false);
-          expect(vector.iterable,
-              isCloseTo([1, 5.62341325, 31.6227766, 177.827941]));
+          final vector = geometricSpaced(
+            1,
+            1000,
+            count: 4,
+            includeEndpoint: false,
+          );
+          expect(
+            vector.iterable,
+            isCloseTo([1, 5.62341325, 31.6227766, 177.827941]),
+          );
         });
       });
     });
@@ -722,42 +809,49 @@ void main() {
         final xs = <double>[];
         final ys = <double>[];
         expect(
-            () => lagrangeInterpolation(
-                  DataType.float,
-                  xs: xs.toVector(),
-                  ys: ys.toVector(),
-                ),
-            throwsArgumentError);
+          () => lagrangeInterpolation(
+            DataType.float,
+            xs: xs.toVector(),
+            ys: ys.toVector(),
+          ),
+          throwsArgumentError,
+        );
       });
       test('1 sample: f(x) = 2', () {
         final xs = <double>[1].toVector();
         final ys = <double>[2].toVector();
         final actual = lagrangeInterpolation(DataType.float, xs: xs, ys: ys);
         verifySamples<double>(DataType.float, actual: actual, xs: xs, ys: ys);
-        verifyFunction<double>(DataType.float,
-            actual: actual,
-            expected: (x) => 2,
-            range: DoubleRange(0.0, 3.0, 0.1));
+        verifyFunction<double>(
+          DataType.float,
+          actual: actual,
+          expected: (x) => 2,
+          range: DoubleRange(0.0, 3.0, 0.1),
+        );
       });
       test('2 samples: f(x) = 4 * x - 7', () {
         final xs = <double>[2, 3].toVector();
         final ys = <double>[1, 5].toVector();
         final actual = lagrangeInterpolation(DataType.float, xs: xs, ys: ys);
         verifySamples<double>(DataType.float, actual: actual, xs: xs, ys: ys);
-        verifyFunction<double>(DataType.float,
-            actual: actual,
-            expected: (x) => 4 * x - 7,
-            range: DoubleRange(0.0, 4.0, 0.1));
+        verifyFunction<double>(
+          DataType.float,
+          actual: actual,
+          expected: (x) => 4 * x - 7,
+          range: DoubleRange(0.0, 4.0, 0.1),
+        );
       });
       test('3 samples: f(x) = 5/4 * x^2 - x + 1', () {
         final xs = <double>[0, 2, 4].toVector();
         final ys = <double>[1, 4, 17].toVector();
         final actual = lagrangeInterpolation(DataType.float, xs: xs, ys: ys);
         verifySamples<double>(DataType.float, actual: actual, xs: xs, ys: ys);
-        verifyFunction<double>(DataType.float,
-            actual: actual,
-            expected: (x) => 5 / 4 * x * x - x + 1,
-            range: DoubleRange(-1.0, 5.0, 0.1));
+        verifyFunction<double>(
+          DataType.float,
+          actual: actual,
+          expected: (x) => 5 / 4 * x * x - x + 1,
+          range: DoubleRange(-1.0, 5.0, 0.1),
+        );
       });
     });
     group('linear', () {
@@ -889,21 +983,35 @@ void main() {
       });
       test('sqrt', () {
         expect(
-            integrate(sqrt, 0, 1, depth: 25), isCloseTo(2 / 3 * pow(1, 3 / 2)));
+          integrate(sqrt, 0, 1, depth: 25),
+          isCloseTo(2 / 3 * pow(1, 3 / 2)),
+        );
         expect(
-            integrate(sqrt, 0, 2, depth: 25), isCloseTo(2 / 3 * pow(2, 3 / 2)));
+          integrate(sqrt, 0, 2, depth: 25),
+          isCloseTo(2 / 3 * pow(2, 3 / 2)),
+        );
         expect(
-            integrate(sqrt, 0, 3, depth: 30), isCloseTo(2 / 3 * pow(3, 3 / 2)));
+          integrate(sqrt, 0, 3, depth: 30),
+          isCloseTo(2 / 3 * pow(3, 3 / 2)),
+        );
         expect(
-            integrate(sqrt, 0, 4, depth: 30), isCloseTo(2 / 3 * pow(4, 3 / 2)));
+          integrate(sqrt, 0, 4, depth: 30),
+          isCloseTo(2 / 3 * pow(4, 3 / 2)),
+        );
         expect(
-            integrate(sqrt, 0, 5, depth: 40), isCloseTo(2 / 3 * pow(5, 3 / 2)));
+          integrate(sqrt, 0, 5, depth: 40),
+          isCloseTo(2 / 3 * pow(5, 3 / 2)),
+        );
       });
       test('other', () {
-        expect(integrate((x) => sqrt(1 - x * x), 0, 1, depth: 30),
-            isCloseTo(pi / 4));
-        expect(integrate((x) => exp(-x), 0, double.infinity, depth: 30),
-            isCloseTo(1));
+        expect(
+          integrate((x) => sqrt(1 - x * x), 0, 1, depth: 30),
+          isCloseTo(pi / 4),
+        );
+        expect(
+          integrate((x) => exp(-x), 0, double.infinity, depth: 30),
+          isCloseTo(1),
+        );
       });
     });
     group('bounds', () {
@@ -916,12 +1024,16 @@ void main() {
         expect(integrate(exp, 1, 0), isCloseTo(1 - e));
       });
       test('unbounded', () {
-        expect(integrate(f, double.negativeInfinity, double.infinity),
-            isCloseTo(sqrt(pi)));
+        expect(
+          integrate(f, double.negativeInfinity, double.infinity),
+          isCloseTo(sqrt(pi)),
+        );
       });
       test('lower unbounded', () {
-        expect(integrate(f, double.negativeInfinity, 0),
-            isCloseTo(sqrt(pi) / 2.0));
+        expect(
+          integrate(f, double.negativeInfinity, 0),
+          isCloseTo(sqrt(pi) / 2.0),
+        );
         expect(integrate(g, double.negativeInfinity, -1), isCloseTo(1.0));
       });
       test('upper unbounded', () {
@@ -929,12 +1041,16 @@ void main() {
         expect(integrate(g, 1, double.infinity), isCloseTo(1.0));
       });
       test('inverted unbounded', () {
-        expect(integrate(f, double.infinity, double.negativeInfinity),
-            isCloseTo(-sqrt(pi)));
+        expect(
+          integrate(f, double.infinity, double.negativeInfinity),
+          isCloseTo(-sqrt(pi)),
+        );
       });
       test('inverted lower unbounded', () {
-        expect(integrate(f, 0, double.negativeInfinity),
-            isCloseTo(-sqrt(pi) / 2.0));
+        expect(
+          integrate(f, 0, double.negativeInfinity),
+          isCloseTo(-sqrt(pi) / 2.0),
+        );
         expect(integrate(g, -1, double.negativeInfinity), isCloseTo(-1.0));
       });
       test('inverted upper unbounded', () {
@@ -943,9 +1059,10 @@ void main() {
       });
     });
     group('poles', () {
-      double f(double x) => x.roundToDouble() == x && x.round().isEven
-          ? throw ArgumentError('Pole was evaluated at $x.')
-          : 1.0;
+      double f(double x) =>
+          x.roundToDouble() == x && x.round().isEven
+              ? throw ArgumentError('Pole was evaluated at $x.')
+              : 1.0;
       test('at lower bound', () {
         expect(integrate(f, -1, 0, poles: [0]), isCloseTo(1));
       });
@@ -967,45 +1084,83 @@ void main() {
     });
     test('evaluation points', () {
       final evaluationPoints = <double>{};
-      integrate((x) {
-        expect(evaluationPoints.add(x), isTrue,
-            reason: 'No repeated evaluations.');
-        return exp(x);
-      }, 0, 1);
-      expect(evaluationPoints, hasLength(lessThan(20)),
-          reason: 'No more than 20 evaluation necessary.');
+      integrate(
+        (x) {
+          expect(
+            evaluationPoints.add(x),
+            isTrue,
+            reason: 'No repeated evaluations.',
+          );
+          return exp(x);
+        },
+        0,
+        1,
+      );
+      expect(
+        evaluationPoints,
+        hasLength(lessThan(20)),
+        reason: 'No more than 20 evaluation necessary.',
+      );
     });
     group('warnings', () {
       test('does not converge', () {
         expect(
-            () => integrate(exp, 0, 1, epsilon: 0),
-            throwsA(isA<IntegrateError>()
+          () => integrate(exp, 0, 1, epsilon: 0),
+          throwsA(
+            isA<IntegrateError>()
                 .having(
-                    (err) => err.type, 'type', IntegrateWarning.doesNotConverge)
+                  (err) => err.type,
+                  'type',
+                  IntegrateWarning.doesNotConverge,
+                )
                 .having((err) => err.x, 'x', isCloseTo(0.5))
-                .having((err) => err.toString(), 'toString',
-                    startsWith('IntegrateError'))));
+                .having(
+                  (err) => err.toString(),
+                  'toString',
+                  startsWith('IntegrateError'),
+                ),
+          ),
+        );
       });
       test('does not converge (custom)', () {
         final warnings = <(IntegrateWarning, double)>[];
-        integrate(exp, 0, 1,
-            epsilon: 0, onWarning: (type, x) => warnings.add((type, x)));
+        integrate(
+          exp,
+          0,
+          1,
+          epsilon: 0,
+          onWarning: (type, x) => warnings.add((type, x)),
+        );
         expect(warnings, const [(IntegrateWarning.doesNotConverge, 0.5)]);
       });
       test('depth too shallow', () {
         expect(
-            () => integrate(exp, 0, 1, depth: 1),
-            throwsA(isA<IntegrateError>()
+          () => integrate(exp, 0, 1, depth: 1),
+          throwsA(
+            isA<IntegrateError>()
                 .having(
-                    (err) => err.type, 'type', IntegrateWarning.depthTooShallow)
+                  (err) => err.type,
+                  'type',
+                  IntegrateWarning.depthTooShallow,
+                )
                 .having((err) => err.x, 'x', isCloseTo(0.25))
-                .having((err) => err.toString(), 'toString',
-                    startsWith('IntegrateError'))));
+                .having(
+                  (err) => err.toString(),
+                  'toString',
+                  startsWith('IntegrateError'),
+                ),
+          ),
+        );
       });
       test('depth too shallow (custom)', () {
         final warnings = <(IntegrateWarning, double)>[];
-        integrate(exp, 0, 1,
-            depth: 1, onWarning: (type, x) => warnings.add((type, x)));
+        integrate(
+          exp,
+          0,
+          1,
+          depth: 1,
+          onWarning: (type, x) => warnings.add((type, x)),
+        );
         expect(warnings, const [
           (IntegrateWarning.depthTooShallow, 0.25),
           (IntegrateWarning.depthTooShallow, 0.75),
@@ -1015,35 +1170,57 @@ void main() {
     group('errors', () {
       test('invalid lower bound', () {
         expect(
-            () => integrate(exp, double.nan, 0),
-            throwsA(isA<ArgumentError>()
+          () => integrate(exp, double.nan, 0),
+          throwsA(
+            isA<ArgumentError>()
                 .having((error) => error.name, 'name', 'a')
-                .having((error) => error.message, 'message',
-                    'Invalid lower bound')));
+                .having(
+                  (error) => error.message,
+                  'message',
+                  'Invalid lower bound',
+                ),
+          ),
+        );
       });
       test('invalid upper bound', () {
         expect(
-            () => integrate(exp, 0, double.nan),
-            throwsA(isA<ArgumentError>()
+          () => integrate(exp, 0, double.nan),
+          throwsA(
+            isA<ArgumentError>()
                 .having((error) => error.name, 'name', 'b')
-                .having((error) => error.message, 'message',
-                    'Invalid upper bound')));
+                .having(
+                  (error) => error.message,
+                  'message',
+                  'Invalid upper bound',
+                ),
+          ),
+        );
       });
     });
     group('beauties', () {
       test('sophomore\'s dream', () {
-        expect(integrate((x) => pow(x, -x).toDouble(), 0, 1, depth: 15),
-            isCloseTo(1.2912859970));
-        expect(integrate((x) => pow(x, x).toDouble(), 0, 1, depth: 15),
-            isCloseTo(0.7834305107));
+        expect(
+          integrate((x) => pow(x, -x).toDouble(), 0, 1, depth: 15),
+          isCloseTo(1.2912859970),
+        );
+        expect(
+          integrate((x) => pow(x, x).toDouble(), 0, 1, depth: 15),
+          isCloseTo(0.7834305107),
+        );
       });
       test('pi', () {
         expect(
-            integrate((x) => 1 / (1 + x * x), double.negativeInfinity,
-                double.infinity),
-            isCloseTo(pi));
-        expect(22 / 7 - integrate((x) => pow(x - x * x, 4) / (1 + x * x), 0, 1),
-            isCloseTo(pi));
+          integrate(
+            (x) => 1 / (1 + x * x),
+            double.negativeInfinity,
+            double.infinity,
+          ),
+          isCloseTo(pi),
+        );
+        expect(
+          22 / 7 - integrate((x) => pow(x - x * x, 4) / (1 + x * x), 0, 1),
+          isCloseTo(pi),
+        );
       });
     });
   });

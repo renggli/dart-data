@@ -5,7 +5,7 @@ import '../vector.dart';
 // A mutable indexed view of a vector.
 class IndexVector<T> with Vector<T> {
   IndexVector(this.vector, Iterable<int> indexes)
-      : indexes = DataType.index.copyList(indexes);
+    : indexes = DataType.index.copyList(indexes);
 
   final Vector<T> vector;
   final List<int> indexes;
@@ -40,8 +40,8 @@ extension IndexVectorExtension<T> on Vector<T> {
   /// Returns a mutable view onto indexes of a [Vector]. The behavior is
   /// undefined, if any of the indexes are out of bounds.
   Vector<T> indexUnchecked(Iterable<int> indexes) => switch (this) {
-        IndexVector<T>(vector: final vector, indexes: final thisIndexes) =>
-          IndexVector<T>(vector, indexes.map((index) => thisIndexes[index])),
-        _ => IndexVector<T>(this, indexes),
-      };
+    IndexVector<T>(vector: final vector, indexes: final thisIndexes) =>
+      IndexVector<T>(vector, indexes.map((index) => thisIndexes[index])),
+    _ => IndexVector<T>(this, indexes),
+  };
 }

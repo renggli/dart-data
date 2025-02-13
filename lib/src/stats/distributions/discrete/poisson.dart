@@ -41,9 +41,10 @@ class PoissonDistribution extends DiscreteDistribution {
   double get kurtosisExcess => 1 / lambda;
 
   @override
-  double probability(int k) => k < 0
-      ? 0
-      : k == 0
+  double probability(int k) =>
+      k < 0
+          ? 0
+          : k == 0
           ? exp(-lambda)
           : pow(lambda, k) * exp(-lambda) / factorial(k);
 

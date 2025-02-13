@@ -44,7 +44,8 @@ double solve(
     double x;
     if ((y0 - y2).abs() > solutionEpsilon &&
         (y1 - y2).abs() > solutionEpsilon) {
-      x = a * y1 * y2 / ((y0 - y1) * (y0 - y2)) +
+      x =
+          a * y1 * y2 / ((y0 - y1) * (y0 - y2)) +
           b * y0 * y2 / ((y1 - y0) * (y1 - y2)) +
           x2 * y0 * y1 / ((y2 - y0) * (y2 - y1));
     } else {

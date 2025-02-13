@@ -12,13 +12,14 @@ import '../type.dart';
 /// represent their data. This wrapper turns those types into nullable ones.
 class NullableDataType<T> extends DataType<T?> {
   NullableDataType(this.delegate, {this.nullsFirst = false})
-      : assert(!delegate.isNullable, '$delegate is already nullable');
+    : assert(!delegate.isNullable, '$delegate is already nullable');
 
   final DataType<T> delegate;
   final bool nullsFirst;
-  late final Comparator<T?> _comparator = nullsFirst
-      ? delegate.comparator.nullsFirst
-      : delegate.comparator.nullsLast;
+  late final Comparator<T?> _comparator =
+      nullsFirst
+          ? delegate.comparator.nullsFirst
+          : delegate.comparator.nullsLast;
 
   @override
   String get name => '${delegate.name}.nullable';
@@ -36,12 +37,17 @@ class NullableDataType<T> extends DataType<T?> {
   T? cast(dynamic value) => value == null ? null : delegate.cast(value);
 
   @override
-  List<T?> newList(int length,
-      {Map1<int, T?>? generate, T? fillValue, bool readonly = false}) {
+  List<T?> newList(
+    int length, {
+    Map1<int, T?>? generate,
+    T? fillValue,
+    bool readonly = false,
+  }) {
     final result = NullableList<T>(
-        delegate.newList(length, fillValue: fillValue ?? delegate.defaultValue),
-        delegate.defaultValue,
-        fillValue != null);
+      delegate.newList(length, fillValue: fillValue ?? delegate.defaultValue),
+      delegate.defaultValue,
+      fillValue != null,
+    );
     if (generate != null) {
       for (var i = 0; i < length; i++) {
         result[i] = generate(i);
@@ -67,7 +73,7 @@ class NullableDataType<T> extends DataType<T?> {
 /// `null` values.
 class NullableList<T> extends ListBase<T?> with NonGrowableListMixin<T?> {
   NullableList(this.delegate, this.defaultValue, bool isDefined)
-      : defined = BitList.filled(delegate.length, isDefined);
+    : defined = BitList.filled(delegate.length, isDefined);
 
   final List<T> delegate;
 

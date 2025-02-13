@@ -76,9 +76,9 @@ class Float32DataType extends FloatDataType<Float32List> {
 
   @override
   Printer<double> get printer => ScientificNumberPrinter<double>(
-        exponentPadding: 3,
-        exponentSign: const SignNumberPrinter<int>.negativeAndPositiveSign(),
-      );
+    exponentPadding: 3,
+    exponentSign: const SignNumberPrinter<int>.negativeAndPositiveSign(),
+  );
 }
 
 class Float64DataType extends FloatDataType<Float64List> {
@@ -107,10 +107,10 @@ class Float64DataType extends FloatDataType<Float64List> {
 
   @override
   Printer<double> get printer => ScientificNumberPrinter<double>(
-        exponentPadding: 3,
-        exponentSign: const SignNumberPrinter<int>.negativeAndPositiveSign(),
-        precision: 6,
-      );
+    exponentPadding: 3,
+    exponentSign: const SignNumberPrinter<int>.negativeAndPositiveSign(),
+    precision: 6,
+  );
 }
 
 class FloatField extends Field<double> {

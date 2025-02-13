@@ -6,10 +6,11 @@ import '../mixin/unmodifiable_matrix.dart';
 class MatrixMatrixMultiplicationMatrix<T>
     with Matrix<T>, UnmodifiableMatrixMixin<T> {
   MatrixMatrixMultiplicationMatrix(this.dataType, this.first, this.second)
-      : assert(
-            first.colCount == second.rowCount,
-            'Expected a matrix with ${first.colCount} rows, '
-            'but got one with ${second.rowCount}.');
+    : assert(
+        first.colCount == second.rowCount,
+        'Expected a matrix with ${first.colCount} rows, '
+        'but got one with ${second.rowCount}.',
+      );
 
   final Matrix<T> first;
   final Matrix<T> second;
@@ -33,10 +34,7 @@ class MatrixMatrixMultiplicationMatrix<T>
     for (var i = 0; i < first.colCount; i++) {
       result = add(
         result,
-        mul(
-          first.getUnchecked(row, i),
-          second.getUnchecked(i, col),
-        ),
+        mul(first.getUnchecked(row, i), second.getUnchecked(i, col)),
       );
     }
     return result;
@@ -47,5 +45,8 @@ extension MatrixMatrixMultiplicationMatrixExtension<T> on Matrix<T> {
   /// Returns a view of this [Matrix] multiplied with [other].
   Matrix<T> mulMatrix(Matrix<T> other, {DataType<T>? dataType}) =>
       MatrixMatrixMultiplicationMatrix<T>(
-          dataType ?? this.dataType, this, other);
+        dataType ?? this.dataType,
+        this,
+        other,
+      );
 }

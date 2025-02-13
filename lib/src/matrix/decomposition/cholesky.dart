@@ -17,9 +17,9 @@ class CholeskyDecomposition {
   /// Cholesky algorithm for symmetric and positive definite matrix.
   /// Structure to access L and [isSymmetricPositiveDefinite] flag.
   CholeskyDecomposition(Matrix<num> a)
-      : _l = Matrix(DataType.float, a.rowCount, a.rowCount),
-        _n = a.rowCount,
-        _isSymmetricPositiveDefinite = a.rowCount == a.colCount {
+    : _l = Matrix(DataType.float, a.rowCount, a.rowCount),
+      _n = a.rowCount,
+      _isSymmetricPositiveDefinite = a.rowCount == a.colCount {
     // Main loop.
     for (var j = 0; j < _n; j++) {
       final lrowj = _l.row(j);
@@ -32,7 +32,8 @@ class CholeskyDecomposition {
         }
         lrowj[k] = s = (a.getUnchecked(j, k) - s) / _l.getUnchecked(k, k);
         d = d + s * s;
-        _isSymmetricPositiveDefinite = _isSymmetricPositiveDefinite &&
+        _isSymmetricPositiveDefinite =
+            _isSymmetricPositiveDefinite &&
             (a.getUnchecked(k, j) == a.getUnchecked(j, k));
       }
       d = a.getUnchecked(j, j) - d;
@@ -81,13 +82,17 @@ class CholeskyDecomposition {
       for (var j = 0; j < nx; j++) {
         for (var i = 0; i < k; i++) {
           result.setUnchecked(
-              k,
-              j,
-              result.getUnchecked(k, j) -
-                  result.getUnchecked(i, j) * _l.getUnchecked(k, i));
+            k,
+            j,
+            result.getUnchecked(k, j) -
+                result.getUnchecked(i, j) * _l.getUnchecked(k, i),
+          );
         }
         result.setUnchecked(
-            k, j, result.getUnchecked(k, j) / _l.getUnchecked(k, k));
+          k,
+          j,
+          result.getUnchecked(k, j) / _l.getUnchecked(k, k),
+        );
       }
     }
 
@@ -96,13 +101,17 @@ class CholeskyDecomposition {
       for (var j = 0; j < nx; j++) {
         for (var i = k + 1; i < _n; i++) {
           result.setUnchecked(
-              k,
-              j,
-              result.getUnchecked(k, j) -
-                  result.getUnchecked(i, j) * _l.getUnchecked(i, k));
+            k,
+            j,
+            result.getUnchecked(k, j) -
+                result.getUnchecked(i, j) * _l.getUnchecked(i, k),
+          );
         }
         result.setUnchecked(
-            k, j, result.getUnchecked(k, j) / _l.getUnchecked(k, k));
+          k,
+          j,
+          result.getUnchecked(k, j) / _l.getUnchecked(k, k),
+        );
       }
     }
     return result;

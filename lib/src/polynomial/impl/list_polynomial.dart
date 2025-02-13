@@ -8,10 +8,11 @@ import '../polynomial.dart';
 /// Standard polynomial built around a managed list.
 class ListPolynomial<T> with Polynomial<T> {
   ListPolynomial(this.dataType, int desiredDegree)
-      : _coefficients = dataType.newList(
-            max(initialListLength, desiredDegree + 1),
-            fillValue: dataType.field.additiveIdentity),
-        _degree = -1;
+    : _coefficients = dataType.newList(
+        max(initialListLength, desiredDegree + 1),
+        fillValue: dataType.field.additiveIdentity,
+      ),
+      _degree = -1;
 
   // Coefficients in ascending order, where the index matches the exponent.
   List<T> _coefficients;
@@ -29,9 +30,10 @@ class ListPolynomial<T> with Polynomial<T> {
   Set<Storage> get storage => {this};
 
   @override
-  T getUnchecked(int exponent) => exponent < _coefficients.length
-      ? _coefficients[exponent]
-      : dataType.defaultValue;
+  T getUnchecked(int exponent) =>
+      exponent < _coefficients.length
+          ? _coefficients[exponent]
+          : dataType.defaultValue;
 
   @override
   void setUnchecked(int exponent, T value) {

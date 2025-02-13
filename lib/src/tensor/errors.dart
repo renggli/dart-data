@@ -40,19 +40,20 @@ class LayoutError extends ArgumentError {
 
   /// Constructs an error indicating an expected singular dimension.
   LayoutError.singular(Layout a, int axes, [String? name])
-      : super('$a at $axes is not a singular dimension', name);
+    : super('$a at $axes is not a singular dimension', name);
 
   /// Constructs an error indicating incompatible lengths.
   LayoutError.length(Layout a, Layout b, [String? name])
-      : super('$a and $b have incompatible length: ${a.length} and ${b.length}',
-            name);
+    : super(
+        '$a and $b have incompatible length: ${a.length} and ${b.length}',
+        name,
+      );
 
   /// Constructs an error indicating incompatible ranks.
   LayoutError.rank(Layout a, Layout b, [String? name])
-      : super(
-            '$a and $b have incompatible rank: ${a.rank} and ${b.rank}', name);
+    : super('$a and $b have incompatible rank: ${a.rank} and ${b.rank}', name);
 
   /// Constructs an error indicating incompatible shapes.
   LayoutError.shape(Layout a, int ai, Layout b, int bi, [String? name])
-      : super('$a and $b have incompatible shape at $ai and $bi', name);
+    : super('$a and $b have incompatible shape at $ai and $bi', name);
 }

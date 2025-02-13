@@ -14,8 +14,8 @@ import 'uniform.dart';
 class GammaDistribution extends ContinuousDistribution {
   /// A gamma distribution with parameters [shape] k and [scale] θ.
   const GammaDistribution(this.shape, this.scale)
-      : assert(shape > 0, 'shape > 0'),
-        assert(scale > 0, 'scale > 0');
+    : assert(shape > 0, 'shape > 0'),
+      assert(scale > 0, 'scale > 0');
 
   factory GammaDistribution.shape(double shape) => GammaDistribution(shape, 1);
 
@@ -47,12 +47,15 @@ class GammaDistribution extends ContinuousDistribution {
   double get kurtosisExcess => 6 / shape;
 
   @override
-  double probability(double x) => x < 0
-      ? 0
-      : exp((shape - 1) * log(x) -
-          x / scale -
-          gammaLn(shape) -
-          shape * log(scale));
+  double probability(double x) =>
+      x < 0
+          ? 0
+          : exp(
+            (shape - 1) * log(x) -
+                x / scale -
+                gammaLn(shape) -
+                shape * log(scale),
+          );
 
   @override
   double cumulativeProbability(double x) =>
@@ -100,7 +103,8 @@ class GammaDistribution extends ContinuousDistribution {
   int get hashCode => Object.hash(GammaDistribution, shape, scale);
 
   @override
-  ObjectPrinter get toStringPrinter => super.toStringPrinter
-    ..addValue(shape, name: 'shape')
-    ..addValue(scale, name: 'scale');
+  ObjectPrinter get toStringPrinter =>
+      super.toStringPrinter
+        ..addValue(shape, name: 'shape')
+        ..addValue(scale, name: 'scale');
 }

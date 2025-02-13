@@ -8,7 +8,12 @@ import '../matrix.dart';
 /// can be of different size and be offset relative to the base.
 class OverlayOffsetMatrix<T> with Matrix<T> {
   OverlayOffsetMatrix(
-      this.dataType, this.overlay, this.rowOffset, this.colOffset, this.base);
+    this.dataType,
+    this.overlay,
+    this.rowOffset,
+    this.colOffset,
+    this.base,
+  );
 
   final int rowOffset;
   final int colOffset;

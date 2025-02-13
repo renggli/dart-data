@@ -8,23 +8,33 @@ import '../utils/layout.dart' as utils;
 extension TransposeTensorExtension<T> on Tensor<T> {
   /// Returns a transposed view.
   Tensor<T> transpose({List<int>? axes}) => Tensor<T>.internal(
-      type: type, layout: layout.transpose(axes: axes), data: data);
+    type: type,
+    layout: layout.transpose(axes: axes),
+    data: data,
+  );
 
   /// Returns a view with axis [first] and [second] swapped.
   Tensor<T> swapAxes(int first, int second) => Tensor<T>.internal(
-      type: type, layout: layout.swapAxes(first, second), data: data);
+    type: type,
+    layout: layout.swapAxes(first, second),
+    data: data,
+  );
 
   /// Returns a view with axis [source] moved to [destination].
   Tensor<T> moveAxes(int source, int destination) => Tensor<T>.internal(
-      type: type, layout: layout.moveAxes(source, destination), data: data);
+    type: type,
+    layout: layout.moveAxes(source, destination),
+    data: data,
+  );
 }
 
 extension TransposeLayoutExtension on Layout {
   /// Returns a layout with the transposed axis.
   Layout transpose({Iterable<int>? axes}) {
-    final axes_ = axes != null
-        ? axes.map((index) => checkIndex(index, rank, 'axes')).toList()
-        : IntegerRange.length(rank).reversed;
+    final axes_ =
+        axes != null
+            ? axes.map((index) => checkIndex(index, rank, 'axes')).toList()
+            : IntegerRange.length(rank).reversed;
     final shape_ = utils.toIndices(axes_.map((each) => shape[each]));
     final strides_ = utils.toIndices(axes_.map((each) => strides[each]));
     return Layout.internal(

@@ -22,6 +22,12 @@ extension SolverExtension<T extends num> on Matrix<T> {
 
   /// Returns the inverse if this [Matrix] is square, return the pseudo-inverse
   /// otherwise.
-  Matrix<double> get inverse => solve(IdentityMatrix<double>(DataType.float,
-      rowCount, rowCount, DataType.float.field.multiplicativeIdentity));
+  Matrix<double> get inverse => solve(
+    IdentityMatrix<double>(
+      DataType.float,
+      rowCount,
+      rowCount,
+      DataType.float.field.multiplicativeIdentity,
+    ),
+  );
 }

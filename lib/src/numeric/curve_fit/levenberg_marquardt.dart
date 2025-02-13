@@ -31,21 +31,35 @@ class LevenbergMarquardt extends CurveFit {
     this.improvementThreshold = 1e-3,
     this.errorTolerance = 1e-7,
     this.maxIterations = 100,
-  })  : initialValues = parametrizedFunction.toVector(initialValues,
-            defaultParam: initialValue),
-        minValues = parametrizedFunction.toVector(minValues,
-            defaultParam: minValue ?? DataType.integer.safeMin.toDouble()),
-        maxValues = parametrizedFunction.toVector(maxValues,
-            defaultParam: maxValue ?? DataType.integer.safeMax.toDouble()),
-        gradientDifferences = parametrizedFunction.toVector(gradientDifferences,
-            defaultParam: gradientDifference) {
+  }) : initialValues = parametrizedFunction.toVector(
+         initialValues,
+         defaultParam: initialValue,
+       ),
+       minValues = parametrizedFunction.toVector(
+         minValues,
+         defaultParam: minValue ?? DataType.integer.safeMin.toDouble(),
+       ),
+       maxValues = parametrizedFunction.toVector(
+         maxValues,
+         defaultParam: maxValue ?? DataType.integer.safeMax.toDouble(),
+       ),
+       gradientDifferences = parametrizedFunction.toVector(
+         gradientDifferences,
+         defaultParam: gradientDifference,
+       ) {
     if (parametrizedFunction.count == 0) {
-      throw ArgumentError.value(parametrizedFunction, 'parametrizedFunction',
-          'Expected at least 1 parameter.');
+      throw ArgumentError.value(
+        parametrizedFunction,
+        'parametrizedFunction',
+        'Expected at least 1 parameter.',
+      );
     }
     if (damping <= 0.0) {
       throw ArgumentError.value(
-          damping, 'damping', 'Expected positive damping factor.');
+        damping,
+        'damping',
+        'Expected positive damping factor.',
+      );
     }
   }
 
@@ -98,18 +112,28 @@ class LevenbergMarquardt extends CurveFit {
   }) {
     checkPoints(DataType.float, xs: xs, ys: ys, min: 2);
 
-    weights ??=
-        Vector<double>.constant(DataType.float, ys.count, value: weight);
+    weights ??= Vector<double>.constant(
+      DataType.float,
+      ys.count,
+      value: weight,
+    );
     if (weights.count != xs.count) {
       throw ArgumentError.value(
-          weights, 'weights', 'Expected ${xs.count} values.');
+        weights,
+        'weights',
+        'Expected ${xs.count} values.',
+      );
     }
     final squaredWeights =
         weights.map((i, v) => v * v, DataType.float).toVector();
 
     final parameters = initialValues.toVector();
-    var error = _errorCalculation(parametrizedFunction.bind(parameters),
-        x: xs, y: ys, squaredWeights: squaredWeights);
+    var error = _errorCalculation(
+      parametrizedFunction.bind(parameters),
+      x: xs,
+      y: ys,
+      squaredWeights: squaredWeights,
+    );
     var optimalError = error;
     var optimalParameters = parameters.toVector();
     var converged = error <= errorTolerance;
@@ -130,8 +154,10 @@ class LevenbergMarquardt extends CurveFit {
       final jacobianWeightResidualError = stepResult.second;
 
       for (var k = 0; k < parameters.count; k++) {
-        parameters[k] = (parameters[k] - perturbations.get(k, 0))
-            .clamp(minValues[k], maxValues[k]);
+        parameters[k] = (parameters[k] - perturbations.get(k, 0)).clamp(
+          minValues[k],
+          maxValues[k],
+        );
       }
 
       error = _errorCalculation(
@@ -147,7 +173,8 @@ class LevenbergMarquardt extends CurveFit {
         optimalParameters = parameters.toVector();
       }
 
-      final improvementMetric = (previousError - error) /
+      final improvementMetric =
+          (previousError - error) /
           (perturbations.transposed *
                   (perturbations * currentDamping +
                       jacobianWeightResidualError))
@@ -196,10 +223,16 @@ class LevenbergMarquardt extends CurveFit {
   }) {
     final function = parametrizedFunction.bind(params);
     final identity = Matrix.identity(
-        DataType.float64, params.count, params.count,
-        value: currentDamping);
-    final evaluatedData =
-        Vector.generate(DataType.float64, x.count, (i) => function(x[i]));
+      DataType.float64,
+      params.count,
+      params.count,
+      value: currentDamping,
+    );
+    final evaluatedData = Vector.generate(
+      DataType.float64,
+      x.count,
+      (i) => function(x[i]),
+    );
 
     final gradientFunc = _gradientFunction(
       x: x,
@@ -207,14 +240,23 @@ class LevenbergMarquardt extends CurveFit {
       evaluatedData: evaluatedData,
       params: params,
     );
-    final residualError =
-        _matrixFunction(x: x, y: y, evaluatedData: evaluatedData);
-    final inverseMatrix = (identity +
-            gradientFunc.mulMatrix(gradientFunc.transposed
-                .applyByRow(identity.dataType.field.mul, squaredWeights)))
-        .inverse;
+    final residualError = _matrixFunction(
+      x: x,
+      y: y,
+      evaluatedData: evaluatedData,
+    );
+    final inverseMatrix =
+        (identity +
+                gradientFunc.mulMatrix(
+                  gradientFunc.transposed.applyByRow(
+                    identity.dataType.field.mul,
+                    squaredWeights,
+                  ),
+                ))
+            .inverse;
     final jacobianWeightResidualError = gradientFunc.mulMatrix(
-        residualError.applyByRow(identity.dataType.field.mul, squaredWeights));
+      residualError.applyByRow(identity.dataType.field.mul, squaredWeights),
+    );
     final perturbations = inverseMatrix.mulMatrix(jacobianWeightResidualError);
     return (perturbations, jacobianWeightResidualError);
   }

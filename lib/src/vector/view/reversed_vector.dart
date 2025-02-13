@@ -28,7 +28,7 @@ class ReversedVector<T> with Vector<T> {
 extension ReversedVectorExtension<T> on Vector<T> {
   /// Returns a reversed view of this [Vector].
   Vector<T> get reversed => switch (this) {
-        ReversedVector<T>(vector: final vector) => vector,
-        _ => ReversedVector<T>(this),
-      };
+    ReversedVector<T>(vector: final vector) => vector,
+    _ => ReversedVector<T>(this),
+  };
 }

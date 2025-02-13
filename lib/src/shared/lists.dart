@@ -7,8 +7,13 @@ const initialListLength = 4;
 
 /// Inserts an entry into a fixed-length list, possibly reallocates.
 List<T> insertAt<T>(
-    DataType<T> type, List<T> list, int length, int index, T value,
-    {T? fillValue}) {
+  DataType<T> type,
+  List<T> list,
+  int length,
+  int index,
+  T value, {
+  T? fillValue,
+}) {
   if (list.length == length) {
     final newLength = 3 * length ~/ 2 + 1;
     final newList = type.newList(newLength);
@@ -27,8 +32,13 @@ List<T> insertAt<T>(
 }
 
 /// Removes an entry from a fixed-length list, possibly reallocates.
-List<T> removeAt<T>(DataType<T> type, List<T> list, int length, int index,
-    {T? fillValue}) {
+List<T> removeAt<T>(
+  DataType<T> type,
+  List<T> list,
+  int length,
+  int index, {
+  T? fillValue,
+}) {
   if (2 * length < list.length) {
     final newLength = math.max(initialListLength, length - 1);
     if (newLength < list.length) {
@@ -49,7 +59,11 @@ List<T> removeAt<T>(DataType<T> type, List<T> list, int length, int index,
 
 /// Performs a binary search on the range of a sorted list.
 int binarySearch<T extends Comparable<T>>(
-    List<T> list, int min, int max, T value) {
+  List<T> list,
+  int min,
+  int max,
+  T value,
+) {
   while (min < max) {
     final mid = min + ((max - min) >> 1);
     final comp = list[mid].compareTo(value);

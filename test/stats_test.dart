@@ -13,7 +13,9 @@ final throwsInvalidProbability = throwsA(isA<InvalidProbability>());
 
 @isTestGroup
 void testSamples<T extends num>(
-    Distribution<T> distribution, Iterable<T> samples) {
+  Distribution<T> distribution,
+  Iterable<T> samples,
+) {
   final histogram = Multiset<int>();
   if (distribution is DegenerateDistribution) {
     // The degenerate distribution is a deterministic distribution.
@@ -21,18 +23,23 @@ void testSamples<T extends num>(
   } else if (distribution is DiscreteDistribution) {
     // Discrete distributions.
     histogram.addAll(samples.map((each) => each.toInt()));
-    for (var k = max(-50, distribution.lowerBound.round());
-        k < min(50, distribution.upperBound.round());
-        k++) {
-      expect(histogram[k] / histogram.length,
-          isCloseTo(distribution.probability(k as T), epsilon: 0.1));
+    for (
+      var k = max(-50, distribution.lowerBound.round());
+      k < min(50, distribution.upperBound.round());
+      k++
+    ) {
+      expect(
+        histogram[k] / histogram.length,
+        isCloseTo(distribution.probability(k as T), epsilon: 0.1),
+      );
     }
   } else {
     // Continuous distributions.
-    final buckets = 0.1
-        .to(1.0, step: 0.1)
-        .map((each) => distribution.inverseCumulativeProbability(each))
-        .toList();
+    final buckets =
+        0.1
+            .to(1.0, step: 0.1)
+            .map((each) => distribution.inverseCumulativeProbability(each))
+            .toList();
     final bucketCount = buckets.length + 1;
     for (final sample in samples) {
       for (var k = 0; k <= buckets.length; k++) {
@@ -45,9 +52,12 @@ void testSamples<T extends num>(
     expect(histogram.elementSet, hasLength(bucketCount));
     for (var k = 0; k < bucketCount; k++) {
       expect(
-          histogram[k] / histogram.length,
-          isCloseTo(1.0 / bucketCount,
-              epsilon: 1.0 / (bucketCount * bucketCount)));
+        histogram[k] / histogram.length,
+        isCloseTo(
+          1.0 / bucketCount,
+          epsilon: 1.0 / (bucketCount * bucketCount),
+        ),
+      );
     }
   }
 }
@@ -72,13 +82,15 @@ void testDistribution<T extends num>(
   final isDiscrete = distribution is DiscreteDistribution;
   test('lower bound', () {
     expect(
-        distribution.lowerBound,
-        isCloseTo(
-            min ?? (isDiscrete ? minSafeInteger : double.negativeInfinity)));
+      distribution.lowerBound,
+      isCloseTo(min ?? (isDiscrete ? minSafeInteger : double.negativeInfinity)),
+    );
   });
   test('upper bound', () {
-    expect(distribution.upperBound,
-        isCloseTo(max ?? (isDiscrete ? maxSafeInteger : double.infinity)));
+    expect(
+      distribution.upperBound,
+      isCloseTo(max ?? (isDiscrete ? maxSafeInteger : double.infinity)),
+    );
   });
   if (mean != null) {
     test('mean', () {
@@ -119,8 +131,11 @@ void testDistribution<T extends num>(
     //   at x in {1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0}
     test('probability', () {
       for (final tuple in probability) {
-        expect(distribution.probability(tuple.first), isCloseTo(tuple.second),
-            reason: 'p(${tuple.first}) = ${tuple.second}');
+        expect(
+          distribution.probability(tuple.first),
+          isCloseTo(tuple.second),
+          reason: 'p(${tuple.first}) = ${tuple.second}',
+        );
       }
     });
   } else {
@@ -132,16 +147,20 @@ void testDistribution<T extends num>(
     //   at x in {1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0}
     test('cumulative probability', () {
       for (final tuple in cumulativeProbability) {
-        expect(distribution.cumulativeProbability(tuple.first),
-            isCloseTo(tuple.second),
-            reason: 'p(X <= ${tuple.first}) = ${tuple.second}');
+        expect(
+          distribution.cumulativeProbability(tuple.first),
+          isCloseTo(tuple.second),
+          reason: 'p(X <= ${tuple.first}) = ${tuple.second}',
+        );
       }
     });
     test('survival', () {
       for (final tuple in cumulativeProbability) {
         expect(
-            distribution.survival(tuple.first), isCloseTo(1.0 - tuple.second),
-            reason: 'p(X > ${tuple.first}) = ${tuple.second}');
+          distribution.survival(tuple.first),
+          isCloseTo(1.0 - tuple.second),
+          reason: 'p(X > ${tuple.first}) = ${tuple.second}',
+        );
       }
     });
   } else {
@@ -153,23 +172,33 @@ void testDistribution<T extends num>(
     //   at p in {0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9}
     test('inverse cumulative probability', () {
       for (final tuple in inverseCumulativeProbability) {
-        expect(distribution.inverseCumulativeProbability(tuple.first),
-            isCloseTo(tuple.second),
-            reason: 'P(X <= ${tuple.second}) = ${tuple.first}');
+        expect(
+          distribution.inverseCumulativeProbability(tuple.first),
+          isCloseTo(tuple.second),
+          reason: 'P(X <= ${tuple.second}) = ${tuple.first}',
+        );
       }
-      expect(() => distribution.inverseCumulativeProbability(-0.1),
-          throwsInvalidProbability);
-      expect(() => distribution.inverseCumulativeProbability(1.1),
-          throwsInvalidProbability);
+      expect(
+        () => distribution.inverseCumulativeProbability(-0.1),
+        throwsInvalidProbability,
+      );
+      expect(
+        () => distribution.inverseCumulativeProbability(1.1),
+        throwsInvalidProbability,
+      );
     });
     test('inverse survival', () {
       for (final tuple in inverseCumulativeProbability) {
-        expect(distribution.inverseSurvival(1.0 - tuple.first),
-            isCloseTo(tuple.second),
-            reason: 'P(X > ${tuple.second}) = ${tuple.first}');
+        expect(
+          distribution.inverseSurvival(1.0 - tuple.first),
+          isCloseTo(tuple.second),
+          reason: 'P(X > ${tuple.second}) = ${tuple.first}',
+        );
       }
       expect(
-          () => distribution.inverseSurvival(-0.1), throwsInvalidProbability);
+        () => distribution.inverseSurvival(-0.1),
+        throwsInvalidProbability,
+      );
       expect(() => distribution.inverseSurvival(1.1), throwsInvalidProbability);
     });
   } else {
@@ -177,10 +206,11 @@ void testDistribution<T extends num>(
   }
   test('sample', () {
     final random = Random(Object.hash('sample', distribution));
-    final samples = 0
-        .to(sampleCount)
-        .map((each) => distribution.sample(random: random))
-        .toList();
+    final samples =
+        0
+            .to(sampleCount)
+            .map((each) => distribution.sample(random: random))
+            .toList();
     testSamples(distribution, samples);
   });
   test('samples', () {
@@ -230,16 +260,8 @@ void main() {
             variance: 0,
             skewness: double.nan,
             kurtosisExcess: double.nan,
-            probability: const [
-              (-1.0, 0.0),
-              (0.0, 1.0),
-              (1.0, 0.0),
-            ],
-            cumulativeProbability: const [
-              (-1.0, 0.0),
-              (0.0, 1.0),
-              (1.0, 1.0),
-            ],
+            probability: const [(-1.0, 0.0), (0.0, 1.0), (1.0, 0.0)],
+            cumulativeProbability: const [(-1.0, 0.0), (0.0, 1.0), (1.0, 1.0)],
             inverseCumulativeProbability: const [
               (0.0, 0.0),
               (0.5, 0.0),
@@ -2002,9 +2024,11 @@ void main() {
           );
           test('samples with default random generator', () {
             expect(
-                distribution.samples().take(1000),
-                everyElement(
-                    allOf(greaterThanOrEqualTo(0.0), lessThanOrEqualTo(1.0))));
+              distribution.samples().take(1000),
+              everyElement(
+                allOf(greaterThanOrEqualTo(0.0), lessThanOrEqualTo(1.0)),
+              ),
+            );
           });
         });
         group('a = -0.5, b = 1.25', () {
@@ -2365,18 +2389,8 @@ void main() {
           variance: 0.21,
           skewness: -0.87287156,
           kurtosisExcess: -1.23809524,
-          probability: const [
-            (-1, 0),
-            (0, 0.3),
-            (1, 0.7),
-            (2, 0),
-          ],
-          cumulativeProbability: const [
-            (-1, 0),
-            (0, 0.3),
-            (1, 1),
-            (2, 1),
-          ],
+          probability: const [(-1, 0), (0, 0.3), (1, 0.7), (2, 0)],
+          cumulativeProbability: const [(-1, 0), (0, 0.3), (1, 1), (2, 1)],
           inverseCumulativeProbability: const [
             (0.0, 0.0),
             (0.1, 0.0),
@@ -2399,59 +2413,61 @@ void main() {
           expect(distribution.p, isCloseTo(0.7));
           expect(distribution.q, isCloseTo(0.3));
         });
-        testDistribution(distribution,
-            min: 0,
-            max: 10,
-            mean: 7,
-            median: 7,
-            mode: 7,
-            variance: 2.1,
-            skewness: -0.27602622,
-            kurtosisExcess: -0.12380952,
-            probability: const [
-              (-1, 0),
-              (0, 0.0000059049),
-              (1, 0.000137781),
-              (2, 0.0014467005),
-              (3, 0.009001692),
-              (4, 0.036756909),
-              (5, 0.1029193452),
-              (6, 0.200120949),
-              (7, 0.266827932),
-              (8, 0.2334744405),
-              (9, 0.121060821),
-              (10, 0.0282475249),
-              (11, 0),
-            ],
-            cumulativeProbability: const [
-              (-1, 0),
-              (0, 5.9049e-06),
-              (1, 0.0001436859),
-              (2, 0.0015903864),
-              (3, 0.0105920784),
-              (4, 0.0473489874),
-              (5, 0.1502683326),
-              (6, 0.3503892816),
-              (7, 0.6172172136),
-              (8, 0.8506916541),
-              (9, 0.9717524751),
-              (10, 1),
-              (11, 1),
-            ],
-            inverseCumulativeProbability: const [
-              (0, 0),
-              (0.001, 2),
-              (0.010, 3),
-              (0.025, 4),
-              (0.050, 5),
-              (0.100, 5),
-              (0.999, 10),
-              (0.990, 10),
-              (0.975, 10),
-              (0.950, 9),
-              (0.900, 9),
-              (1, 10),
-            ]);
+        testDistribution(
+          distribution,
+          min: 0,
+          max: 10,
+          mean: 7,
+          median: 7,
+          mode: 7,
+          variance: 2.1,
+          skewness: -0.27602622,
+          kurtosisExcess: -0.12380952,
+          probability: const [
+            (-1, 0),
+            (0, 0.0000059049),
+            (1, 0.000137781),
+            (2, 0.0014467005),
+            (3, 0.009001692),
+            (4, 0.036756909),
+            (5, 0.1029193452),
+            (6, 0.200120949),
+            (7, 0.266827932),
+            (8, 0.2334744405),
+            (9, 0.121060821),
+            (10, 0.0282475249),
+            (11, 0),
+          ],
+          cumulativeProbability: const [
+            (-1, 0),
+            (0, 5.9049e-06),
+            (1, 0.0001436859),
+            (2, 0.0015903864),
+            (3, 0.0105920784),
+            (4, 0.0473489874),
+            (5, 0.1502683326),
+            (6, 0.3503892816),
+            (7, 0.6172172136),
+            (8, 0.8506916541),
+            (9, 0.9717524751),
+            (10, 1),
+            (11, 1),
+          ],
+          inverseCumulativeProbability: const [
+            (0, 0),
+            (0.001, 2),
+            (0.010, 3),
+            (0.025, 4),
+            (0.050, 5),
+            (0.100, 5),
+            (0.999, 10),
+            (0.990, 10),
+            (0.975, 10),
+            (0.950, 9),
+            (0.900, 9),
+            (1, 10),
+          ],
+        );
       });
       group('negative bernoulli', () {
         const distribution = NegativeBinomialDistribution(5, 0.4);
@@ -2567,42 +2583,44 @@ void main() {
       });
       group('rademacher', () {
         const distribution = RademacherDistribution();
-        testDistribution(distribution,
-            min: -1,
-            max: 1,
-            mean: 0,
-            median: 0,
-            mode: double.nan,
-            variance: 1,
-            skewness: 0,
-            kurtosisExcess: -2,
-            probability: const [
-              (-2, 0.0),
-              (-1, 0.5),
-              (0, 0.0),
-              (1, 0.5),
-              (2, 0.0),
-            ],
-            cumulativeProbability: const [
-              (-2, 0.0),
-              (-1, 0.5),
-              (0, 0.5),
-              (1, 1.0),
-              (2, 1.0),
-            ],
-            inverseCumulativeProbability: const [
-              (0.0, -1),
-              (0.1, -1),
-              (0.2, -1),
-              (0.3, -1),
-              (0.4, -1),
-              (0.5, -1),
-              (0.6, 1),
-              (0.7, 1),
-              (0.8, 1),
-              (0.9, 1),
-              (1.0, 1),
-            ]);
+        testDistribution(
+          distribution,
+          min: -1,
+          max: 1,
+          mean: 0,
+          median: 0,
+          mode: double.nan,
+          variance: 1,
+          skewness: 0,
+          kurtosisExcess: -2,
+          probability: const [
+            (-2, 0.0),
+            (-1, 0.5),
+            (0, 0.0),
+            (1, 0.5),
+            (2, 0.0),
+          ],
+          cumulativeProbability: const [
+            (-2, 0.0),
+            (-1, 0.5),
+            (0, 0.5),
+            (1, 1.0),
+            (2, 1.0),
+          ],
+          inverseCumulativeProbability: const [
+            (0.0, -1),
+            (0.1, -1),
+            (0.2, -1),
+            (0.3, -1),
+            (0.4, -1),
+            (0.5, -1),
+            (0.6, 1),
+            (0.7, 1),
+            (0.8, 1),
+            (0.9, 1),
+            (1.0, 1),
+          ],
+        );
       });
       group('uniform', () {
         const distribution = UniformDiscreteDistribution(-3, 5);
@@ -2611,57 +2629,59 @@ void main() {
           expect(distribution.b, isCloseTo(5));
           expect(distribution.n, isCloseTo(9));
         });
-        testDistribution(distribution,
-            min: -3,
-            max: 5,
-            mean: 1,
-            median: 1,
-            mode: double.nan,
-            variance: 80 / 12,
-            skewness: 0,
-            kurtosisExcess: -1.23,
-            probability: const [
-              (-4, 0),
-              (-3, 1 / 9),
-              (-2, 1 / 9),
-              (-1, 1 / 9),
-              (0, 1 / 9),
-              (1, 1 / 9),
-              (2, 1 / 9),
-              (3, 1 / 9),
-              (4, 1 / 9),
-              (5, 1 / 9),
-              (6, 0),
-            ],
-            cumulativeProbability: const [
-              (-4, 0),
-              (-3, 1 / 9),
-              (-2, 2 / 9),
-              (-1, 3 / 9),
-              (0, 4 / 9),
-              (1, 5 / 9),
-              (2, 6 / 9),
-              (3, 7 / 9),
-              (4, 8 / 9),
-              (5, 1),
-              (6, 1),
-            ],
-            inverseCumulativeProbability: const [
-              (0, -3),
-              (0.001, -3),
-              (0.010, -3),
-              (0.025, -3),
-              (0.050, -3),
-              (0.100, -3),
-              (0.200, -2),
-              (0.5, 1),
-              (0.999, 5),
-              (0.990, 5),
-              (0.975, 5),
-              (0.950, 5),
-              (0.900, 5),
-              (1, 5),
-            ]);
+        testDistribution(
+          distribution,
+          min: -3,
+          max: 5,
+          mean: 1,
+          median: 1,
+          mode: double.nan,
+          variance: 80 / 12,
+          skewness: 0,
+          kurtosisExcess: -1.23,
+          probability: const [
+            (-4, 0),
+            (-3, 1 / 9),
+            (-2, 1 / 9),
+            (-1, 1 / 9),
+            (0, 1 / 9),
+            (1, 1 / 9),
+            (2, 1 / 9),
+            (3, 1 / 9),
+            (4, 1 / 9),
+            (5, 1 / 9),
+            (6, 0),
+          ],
+          cumulativeProbability: const [
+            (-4, 0),
+            (-3, 1 / 9),
+            (-2, 2 / 9),
+            (-1, 3 / 9),
+            (0, 4 / 9),
+            (1, 5 / 9),
+            (2, 6 / 9),
+            (3, 7 / 9),
+            (4, 8 / 9),
+            (5, 1),
+            (6, 1),
+          ],
+          inverseCumulativeProbability: const [
+            (0, -3),
+            (0.001, -3),
+            (0.010, -3),
+            (0.025, -3),
+            (0.050, -3),
+            (0.100, -3),
+            (0.200, -2),
+            (0.5, 1),
+            (0.999, 5),
+            (0.990, 5),
+            (0.975, 5),
+            (0.950, 5),
+            (0.900, 5),
+            (1, 5),
+          ],
+        );
       });
     });
   });
@@ -2703,30 +2723,44 @@ void main() {
       expect(<num>[].variance(), isNaN);
       expect([2.75].variance(), isNaN);
       expect([2.75, 1.75].variance(), isCloseTo(0.5));
-      expect([2.75, 1.75, 1.25, 0.25, 0.5, 1.25, 3.5].variance(),
-          isCloseTo(1.372023809523809));
+      expect(
+        [2.75, 1.75, 1.25, 0.25, 0.5, 1.25, 3.5].variance(),
+        isCloseTo(1.372023809523809),
+      );
     });
     test('variance (population)', () {
       expect(<num>[].variance(population: true), isNaN);
       expect([0.0].variance(population: true), isCloseTo(0.0));
       expect(
-          [0.0, 0.25, 0.25, 1.25, 1.5, 1.75, 2.75, 3.25]
-              .variance(population: true),
-          isCloseTo(1.25));
+        [
+          0.0,
+          0.25,
+          0.25,
+          1.25,
+          1.5,
+          1.75,
+          2.75,
+          3.25,
+        ].variance(population: true),
+        isCloseTo(1.25),
+      );
     });
     test('standardDeviation', () {
       expect(<num>[].standardDeviation(), isNaN);
       expect([1.5].standardDeviation(), isNaN);
       expect([1.5, 2.5].standardDeviation(), isCloseTo(0.707106781186547));
-      expect([1.5, 2.5, 2.5, 2.75, 3.25, 4.75].standardDeviation(),
-          isCloseTo(1.081087415521982));
+      expect(
+        [1.5, 2.5, 2.5, 2.75, 3.25, 4.75].standardDeviation(),
+        isCloseTo(1.081087415521982),
+      );
     });
     test('standardDeviation (population)', () {
       expect(<num>[].standardDeviation(population: true), isNaN);
       expect([1.5].standardDeviation(population: true), isCloseTo(0.0));
       expect(
-          [1.5, 2.5, 2.5, 2.75, 3.25, 4.75].standardDeviation(population: true),
-          isCloseTo(0.98689327352725));
+        [1.5, 2.5, 2.5, 2.75, 3.25, 4.75].standardDeviation(population: true),
+        isCloseTo(0.98689327352725),
+      );
     });
   });
   group('jackknife', () {
@@ -2839,16 +2873,24 @@ void main() {
         final random = Random(75483);
         final samples = normal.samples(random: random).take(1000).toList();
         final jackknifeMean = Jackknife<double>(
-            samples, (list) => list.arithmeticMean(),
-            confidenceLevel: 0.95);
+          samples,
+          (list) => list.arithmeticMean(),
+          confidenceLevel: 0.95,
+        );
         expect(
-            jackknifeMean.estimate, closeTo(mu, jackknifeMean.standardError));
+          jackknifeMean.estimate,
+          closeTo(mu, jackknifeMean.standardError),
+        );
         expect(jackknifeMean.standardError, lessThan(1.0));
         final jackknifeStdDev = Jackknife<double>(
-            samples, (list) => list.standardDeviation(),
-            confidenceLevel: 0.95);
-        expect(jackknifeStdDev.estimate,
-            closeTo(sd, jackknifeStdDev.standardError));
+          samples,
+          (list) => list.standardDeviation(),
+          confidenceLevel: 0.95,
+        );
+        expect(
+          jackknifeStdDev.estimate,
+          closeTo(sd, jackknifeStdDev.standardError),
+        );
         expect(jackknifeStdDev.standardError, lessThan(1.0));
       });
     });

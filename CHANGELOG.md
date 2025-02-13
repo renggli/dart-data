@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.15.0
+
+- Dart 3.7 requirement.
+
 ## 0.14.0
 
 - Add `Vector.fromString` and `Matrix.fromString`.

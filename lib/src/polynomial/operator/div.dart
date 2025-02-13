@@ -6,8 +6,11 @@ import 'utils.dart';
 extension DivPolynomialExtension<T> on Polynomial<T> {
   /// Divides this [Polynomial] by [other], returns the quotient and remainder
   /// such that `dividend = quotient * divisor + remainder`.
-  PolynomialDivision<T> div(Polynomial<T> other,
-      {DataType<T>? dataType, PolynomialFormat? format}) {
+  PolynomialDivision<T> div(
+    Polynomial<T> other, {
+    DataType<T>? dataType,
+    PolynomialFormat? format,
+  }) {
     final dividend = this;
     final divisor = other;
     final dividendDegree = dividend.degree;
@@ -29,9 +32,12 @@ extension DivPolynomialExtension<T> on Polynomial<T> {
       // Divisor is constant.
       final scalar = divisor.getUnchecked(0);
       return PolynomialDivision<T>(
-        quotient: Polynomial<T>.generate(effectiveDataType, dividendDegree,
-            (i) => div(dividend.getUnchecked(i), scalar),
-            format: format),
+        quotient: Polynomial<T>.generate(
+          effectiveDataType,
+          dividendDegree,
+          (i) => div(dividend.getUnchecked(i), scalar),
+          format: format,
+        ),
         remainder: Polynomial<T>(effectiveDataType, format: format),
       );
     } else if (dividendDegree < divisorDegree) {
@@ -49,18 +55,24 @@ extension DivPolynomialExtension<T> on Polynomial<T> {
       final coefficient = output[i + 1] = div(output[i + 1], dividendLead);
       if (coefficient != effectiveDataType.defaultValue) {
         for (var j = divisorDegree - 1; j >= 0; j--) {
-          output[i + j] =
-              sub(output[i + j], mul(divisor.getUnchecked(j), coefficient));
+          output[i + j] = sub(
+            output[i + j],
+            mul(divisor.getUnchecked(j), coefficient),
+          );
         }
       }
     }
     return PolynomialDivision<T>(
       quotient: Polynomial<T>.fromList(
-          effectiveDataType, output.sublist(divisorDegree),
-          format: format),
+        effectiveDataType,
+        output.sublist(divisorDegree),
+        format: format,
+      ),
       remainder: Polynomial<T>.fromList(
-          effectiveDataType, output.sublist(0, divisorDegree),
-          format: format),
+        effectiveDataType,
+        output.sublist(0, divisorDegree),
+        format: format,
+      ),
     );
   }
 

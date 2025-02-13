@@ -5,7 +5,7 @@ import '../vector.dart';
 /// Standard vector.
 class ListVector<T> with Vector<T> {
   ListVector(DataType<T> dataType, int count)
-      : this.fromList(dataType, dataType.newList(count));
+    : this.fromList(dataType, dataType.newList(count));
 
   ListVector.fromList(this.dataType, this._values);
 

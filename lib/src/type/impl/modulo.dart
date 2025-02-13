@@ -6,8 +6,8 @@ import '../type.dart';
 
 class ModuloDataType<T> extends DataType<T> {
   ModuloDataType(this.delegate, this.modulus)
-      : field = ModuloField<T>(delegate, modulus),
-        equality = ModuloEquality<T>(delegate, modulus);
+    : field = ModuloField<T>(delegate, modulus),
+      equality = ModuloEquality<T>(delegate, modulus);
 
   final DataType<T> delegate;
   final T modulus;
@@ -26,9 +26,9 @@ class ModuloDataType<T> extends DataType<T> {
 
   @override
   int comparator(T a, T b) => delegate.comparator(
-        delegate.field.mod(a, modulus),
-        delegate.field.mod(b, modulus),
-      );
+    delegate.field.mod(a, modulus),
+    delegate.field.mod(b, modulus),
+  );
 
   @override
   T cast(dynamic value) => delegate.field.mod(delegate.cast(value), modulus);
@@ -100,16 +100,16 @@ class ModuloEquality<T> extends Equality<T> {
 
   @override
   bool isEqual(T a, T b) => type.equality.isEqual(
-        type.field.mod(a, modulus),
-        type.field.mod(b, modulus),
-      );
+    type.field.mod(a, modulus),
+    type.field.mod(b, modulus),
+  );
 
   @override
   bool isClose(T a, T b, double epsilon) => type.equality.isClose(
-        type.field.mod(a, modulus),
-        type.field.mod(b, modulus),
-        epsilon,
-      );
+    type.field.mod(a, modulus),
+    type.field.mod(b, modulus),
+    epsilon,
+  );
 
   @override
   int hash(T a) => type.equality.hash(type.field.mod(a, modulus));

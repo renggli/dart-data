@@ -5,7 +5,10 @@ import '../utils/checks.dart';
 extension ElementTensorExtension<T> on Tensor<T> {
   /// Returns a view with the given [axis] resolved to [index].
   Tensor<T> elementAt(int index, {int axis = 0}) => Tensor<T>.internal(
-      type: type, layout: layout.elementAt(index, axis: axis), data: data);
+    type: type,
+    layout: layout.elementAt(index, axis: axis),
+    data: data,
+  );
 }
 
 extension ElementLayoutExtension on Layout {

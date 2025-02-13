@@ -9,8 +9,10 @@ extension ListPolynomialExtension<T> on List<T> {
   /// If [format] is provided the list data will be copied into a native format,
   /// otherwise a view onto the (possibly mutable) underlying list will be
   /// returned.
-  Polynomial<T> toPolynomial(
-      {DataType<T>? dataType, PolynomialFormat? format}) {
+  Polynomial<T> toPolynomial({
+    DataType<T>? dataType,
+    PolynomialFormat? format,
+  }) {
     dataType ??= DataType.fromType<T>();
     return format == null
         ? ExternalPolynomial<T>.fromList(dataType, this)

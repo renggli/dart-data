@@ -26,30 +26,57 @@ import '../../../vector.dart';
 class SingularValueDecomposition {
   /// Initializes a new instance of the [SingularValueDecomposition].
   SingularValueDecomposition._(
-      this._s, this._u, this._vt, this._w, this.vectorsComputed);
+    this._s,
+    this._u,
+    this._vt,
+    this._w,
+    this.vectorsComputed,
+  );
 
   /// Initializes a new instance of the [SingularValueDecomposition].
   /// This object will compute the singular value decomposition
   /// when the constructor is called and cache it's decomposition.
-  factory SingularValueDecomposition(Matrix<num> matrix,
-      {bool computeVectors = true}) {
+  factory SingularValueDecomposition(
+    Matrix<num> matrix, {
+    bool computeVectors = true,
+  }) {
     final nm = min(matrix.rowCount, matrix.colCount);
 
     final uValues = DataType.float64.newList(matrix.rowCount * matrix.rowCount);
     final sValues = DataType.float64.newList(nm);
-    final vtValues =
-        DataType.float64.newList(matrix.colCount * matrix.colCount);
+    final vtValues = DataType.float64.newList(
+      matrix.colCount * matrix.colCount,
+    );
 
-    _singularValueDecomposition(computeVectors, _columnMajorValuesOf(matrix),
-        matrix.rowCount, matrix.colCount, sValues, uValues, vtValues);
+    _singularValueDecomposition(
+      computeVectors,
+      _columnMajorValuesOf(matrix),
+      matrix.rowCount,
+      matrix.colCount,
+      sValues,
+      uValues,
+      vtValues,
+    );
 
     final u = Matrix<double>.fromPackedColumns(
-        DataType.float64, matrix.rowCount, matrix.rowCount, uValues);
+      DataType.float64,
+      matrix.rowCount,
+      matrix.rowCount,
+      uValues,
+    );
     final s = Vector<double>.fromList(DataType.float64, sValues);
     final vt = Matrix<double>.fromPackedColumns(
-        DataType.float64, matrix.colCount, matrix.colCount, vtValues);
+      DataType.float64,
+      matrix.colCount,
+      matrix.colCount,
+      vtValues,
+    );
     final w = Matrix<double>.generate(
-        DataType.float64, u.rowCount, vt.colCount, (r, c) => r == c ? s[r] : 0);
+      DataType.float64,
+      u.rowCount,
+      vt.colCount,
+      (r, c) => r == c ? s[r] : 0,
+    );
 
     return SingularValueDecomposition._(s, u, vt, w, computeVectors);
   }
@@ -79,8 +106,9 @@ class SingularValueDecomposition {
 
   /// Gets the effective numerical matrix rank.
   int get rank {
-    final tolerance =
-        _epsilonOf(max(_u.rowCount, _vt.rowCount) * _s.iterable.reduce(max));
+    final tolerance = _epsilonOf(
+      max(_u.rowCount, _vt.rowCount) * _s.iterable.reduce(max),
+    );
     return _s.iterable.where((t) => t.abs() > tolerance).length;
   }
 
@@ -112,19 +140,26 @@ class SingularValueDecomposition {
 
   /// Computes the singular value decomposition of A.
   static void _singularValueDecomposition(
-      bool computeVectors,
-      List<double> a,
-      int rowsA,
-      int columnsA,
-      List<double> s,
-      List<double> u,
-      List<double> vt) {
-    assert(u.length == rowsA * rowsA,
-        'The array arguments must have the same length.');
-    assert(vt.length == columnsA * columnsA,
-        'The array arguments must have the same length.');
-    assert(s.length == min(rowsA, columnsA),
-        'The array arguments must have the same length.');
+    bool computeVectors,
+    List<double> a,
+    int rowsA,
+    int columnsA,
+    List<double> s,
+    List<double> u,
+    List<double> vt,
+  ) {
+    assert(
+      u.length == rowsA * rowsA,
+      'The array arguments must have the same length.',
+    );
+    assert(
+      vt.length == columnsA * columnsA,
+      'The array arguments must have the same length.',
+    );
+    assert(
+      s.length == min(rowsA, columnsA),
+      'The array arguments must have the same length.',
+    );
 
     final work = DataType.float64.newList(rowsA);
 
@@ -158,7 +193,8 @@ class SingularValueDecomposition {
 
         if (stemp[l] != 0.0) {
           if (a[(l * rowsA) + l] != 0.0) {
-            stemp[l] = stemp[l].abs() *
+            stemp[l] =
+                stemp[l].abs() *
                 (a[(l * rowsA) + l] / a[(l * rowsA) + l].abs());
           }
 
@@ -489,11 +525,12 @@ class SingularValueDecomposition {
             if (computeVectors) {
               // Rotate
               for (var i = 0; i < columnsA; i++) {
-                final z = (cs * v[(k * columnsA) + i]) +
+                final z =
+                    (cs * v[(k * columnsA) + i]) +
                     (sn * v[((m - 1) * columnsA) + i]);
                 v[((m - 1) * columnsA) + i] =
                     (cs * v[((m - 1) * columnsA) + i]) -
-                        (sn * v[(k * columnsA) + i]);
+                    (sn * v[(k * columnsA) + i]);
                 v[(k * columnsA) + i] = z;
               }
             }
@@ -574,11 +611,12 @@ class SingularValueDecomposition {
             stemp[k + 1] = cs * stemp[k + 1];
             if (computeVectors) {
               for (var i = 0; i < columnsA; i++) {
-                final z = (cs * v[(k * columnsA) + i]) +
+                final z =
+                    (cs * v[(k * columnsA) + i]) +
                     (sn * v[((k + 1) * columnsA) + i]);
                 v[((k + 1) * columnsA) + i] =
                     (cs * v[((k + 1) * columnsA) + i]) -
-                        (sn * v[(k * columnsA) + i]);
+                    (sn * v[(k * columnsA) + i]);
                 v[(k * columnsA) + i] = z;
               }
             }
@@ -697,8 +735,11 @@ class SingularValueDecomposition {
       throw ArgumentError('Matrix row dimensions must agree.');
     }
 
-    final result =
-        Matrix<double>(DataType.float64, _vt.colCount, input.colCount);
+    final result = Matrix<double>(
+      DataType.float64,
+      _vt.colCount,
+      input.colCount,
+    );
     final mn = min(_u.rowCount, _vt.colCount);
     final bn = input.colCount;
     final tmp = List.filled(_vt.colCount, 0.0);
@@ -778,7 +819,9 @@ class SingularValueDecomposition {
   /// return the parameters da, db, c, and s associated with the Givens rotation
   /// that zeros the y-coordinate of the point.
   static ({double da, double db, double c, double s}) _rotg(
-      double da, double db) {
+    double da,
+    double db,
+  ) {
     double c, s; // out
 
     final absda = da.abs();
@@ -945,9 +988,9 @@ extension SingularValueDecompositionExtension<T extends num> on Matrix<T> {
       singularValueDecomposition(computeVectors: true);
 
   /// Gets the singular value decomposition of this [Matrix].
-  SingularValueDecomposition singularValueDecomposition(
-          {bool computeVectors = true}) =>
-      SingularValueDecomposition(this, computeVectors: computeVectors);
+  SingularValueDecomposition singularValueDecomposition({
+    bool computeVectors = true,
+  }) => SingularValueDecomposition(this, computeVectors: computeVectors);
 
   /// Gets the rank, the effective numerical rank of this [Matrix].
   int get rank => singularValueDecomposition(computeVectors: false).rank;

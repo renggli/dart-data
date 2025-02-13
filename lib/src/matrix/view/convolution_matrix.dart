@@ -10,8 +10,8 @@ import '../mixin/unmodifiable_matrix.dart';
 /// Read-only convolution between two matrices.
 abstract class ConvolutionMatrix<T> with Matrix<T>, UnmodifiableMatrixMixin<T> {
   ConvolutionMatrix(this.dataType, this.matrix, this.kernel)
-      : assert(matrix.rowCount > 0 && matrix.colCount > 0, 'Empty matrix'),
-        assert(kernel.rowCount > 0 && kernel.colCount > 0, 'Empty kernel');
+    : assert(matrix.rowCount > 0 && matrix.colCount > 0, 'Empty matrix'),
+      assert(kernel.rowCount > 0 && kernel.colCount > 0, 'Empty kernel');
 
   final Matrix<T> matrix;
   final Matrix<T> kernel;
@@ -27,15 +27,15 @@ abstract class ConvolutionMatrix<T> with Matrix<T>, UnmodifiableMatrixMixin<T> {
     final add = dataType.field.add, mul = dataType.field.mul;
     var result = dataType.field.additiveIdentity;
     for (var vr = mrs, kr = kre; vr < matrix.rowCount && kr >= 0; vr++, kr--) {
-      for (var vc = mcs, kc = kce;
-          vc < matrix.colCount && kc >= 0;
-          vc++, kc--) {
+      for (
+        var vc = mcs, kc = kce;
+        vc < matrix.colCount && kc >= 0;
+        vc++, kc--
+      ) {
         result = add(
-            result,
-            mul(
-              matrix.getUnchecked(vr, vc),
-              kernel.getUnchecked(kr, kc),
-            ));
+          result,
+          mul(matrix.getUnchecked(vr, vc), kernel.getUnchecked(kr, kc)),
+        );
       }
     }
     return result;
@@ -44,8 +44,8 @@ abstract class ConvolutionMatrix<T> with Matrix<T>, UnmodifiableMatrixMixin<T> {
 
 class FullConvolutionMatrix<T> extends ConvolutionMatrix<T> {
   FullConvolutionMatrix(super.dataType, super.matrix, super.kernel)
-      : rowCount = matrix.rowCount + kernel.rowCount - 1,
-        colCount = matrix.colCount + kernel.colCount - 1;
+    : rowCount = matrix.rowCount + kernel.rowCount - 1,
+      colCount = matrix.colCount + kernel.colCount - 1;
 
   @override
   final int rowCount;
@@ -63,8 +63,8 @@ class FullConvolutionMatrix<T> extends ConvolutionMatrix<T> {
 
 class ValidConvolutionMatrix<T> extends ConvolutionMatrix<T> {
   ValidConvolutionMatrix(super.dataType, super.matrix, super.kernel)
-      : rowCount = matrix.rowCount - kernel.rowCount + 1,
-        colCount = matrix.colCount - kernel.colCount + 1;
+    : rowCount = matrix.rowCount - kernel.rowCount + 1,
+      colCount = matrix.colCount - kernel.colCount + 1;
 
   @override
   final int rowCount;
@@ -79,8 +79,8 @@ class ValidConvolutionMatrix<T> extends ConvolutionMatrix<T> {
 
 class SameConvolutionMatrix<T> extends ConvolutionMatrix<T> {
   SameConvolutionMatrix(super.dataType, super.matrix, super.kernel)
-      : rowCount = matrix.rowCount,
-        colCount = matrix.colCount;
+    : rowCount = matrix.rowCount,
+      colCount = matrix.colCount;
 
   @override
   final int rowCount;
@@ -97,11 +97,7 @@ class SameConvolutionMatrix<T> extends ConvolutionMatrix<T> {
 }
 
 /// Convolution mode on a [Matrix], i.e. how the borders are handled.
-enum MatrixConvolution {
-  full,
-  valid,
-  same,
-}
+enum MatrixConvolution { full, valid, same }
 
 extension ConvolutionMatrixExtension<T> on Matrix<T> {
   /// Returns a view of the convolution between this matrix and the given
@@ -113,13 +109,21 @@ extension ConvolutionMatrixExtension<T> on Matrix<T> {
     Matrix<T> kernel, {
     DataType<T>? dataType,
     MatrixConvolution mode = MatrixConvolution.full,
-  }) =>
-      switch (mode) {
-        MatrixConvolution.full =>
-          FullConvolutionMatrix<T>(dataType ?? this.dataType, this, kernel),
-        MatrixConvolution.valid =>
-          ValidConvolutionMatrix<T>(dataType ?? this.dataType, this, kernel),
-        MatrixConvolution.same =>
-          SameConvolutionMatrix<T>(dataType ?? this.dataType, this, kernel)
-      };
+  }) => switch (mode) {
+    MatrixConvolution.full => FullConvolutionMatrix<T>(
+      dataType ?? this.dataType,
+      this,
+      kernel,
+    ),
+    MatrixConvolution.valid => ValidConvolutionMatrix<T>(
+      dataType ?? this.dataType,
+      this,
+      kernel,
+    ),
+    MatrixConvolution.same => SameConvolutionMatrix<T>(
+      dataType ?? this.dataType,
+      this,
+      kernel,
+    ),
+  };
 }

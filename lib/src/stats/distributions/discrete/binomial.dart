@@ -14,8 +14,8 @@ import '../discrete.dart';
 class BinomialDistribution extends DiscreteDistribution {
   /// A binomial distribution with parameters [n] and [p].
   const BinomialDistribution(this.n, this.p)
-      : assert(0 <= n, 'n <= 0'),
-        assert(0 <= p && p <= 1, '0 <= p <= 1');
+    : assert(0 <= n, 'n <= 0'),
+      assert(0 <= p && p <= 1, '0 <= p <= 1');
 
   /// Number of trials.
   final int n;
@@ -74,8 +74,9 @@ class BinomialDistribution extends DiscreteDistribution {
   int get hashCode => Object.hash(BinomialDistribution, n, p);
 
   @override
-  ObjectPrinter get toStringPrinter => super.toStringPrinter
-    ..addValue(n, name: 'n')
-    ..addValue(p, name: 'p')
-    ..addValue(q, name: 'q');
+  ObjectPrinter get toStringPrinter =>
+      super.toStringPrinter
+        ..addValue(n, name: 'n')
+        ..addValue(p, name: 'p')
+        ..addValue(q, name: 'q');
 }

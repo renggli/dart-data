@@ -59,18 +59,22 @@ extension IteratorMatrixExtension<T> on Matrix<T> {
     for (var i = 0; i < colCount + rowCount - 1; i++) {
       if (i.isOdd) {
         // Walk down and left.
-        for (var r = i < colCount ? 0 : i - colCount + 1,
-                c = i < colCount ? i : colCount - 1;
-            r < rowCount && c >= 0;
-            r++, c--) {
+        for (
+          var r = i < colCount ? 0 : i - colCount + 1,
+              c = i < colCount ? i : colCount - 1;
+          r < rowCount && c >= 0;
+          r++, c--
+        ) {
           yield (row: r, col: c, value: getUnchecked(r, c));
         }
       } else {
         // Walk up and right.
-        for (var r = i < rowCount ? i : rowCount - 1,
-                c = i < rowCount ? 0 : i - rowCount + 1;
-            r >= 0 && c < colCount;
-            r--, c++) {
+        for (
+          var r = i < rowCount ? i : rowCount - 1,
+              c = i < rowCount ? 0 : i - rowCount + 1;
+          r >= 0 && c < colCount;
+          r--, c++
+        ) {
           yield (row: r, col: c, value: getUnchecked(r, c));
         }
       }

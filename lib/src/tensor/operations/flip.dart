@@ -6,7 +6,10 @@ import '../utils/layout.dart' as utils;
 extension FlipTensorExtension<T> on Tensor<T> {
   /// Returns a view with the elements along the given axis reversed.
   Tensor<T> flip({int axis = 0}) => Tensor<T>.internal(
-      type: type, layout: layout.flip(axis: axis), data: data);
+    type: type,
+    layout: layout.flip(axis: axis),
+    data: data,
+  );
 }
 
 extension FlipLayoutExtension on Layout {

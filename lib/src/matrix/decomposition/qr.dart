@@ -16,10 +16,10 @@ import '../view/cast_matrix.dart';
 /// returns false.
 class QRDecomposition {
   QRDecomposition(Matrix<num> source)
-      : _qr = source.cast(DataType.float).toMatrix(),
-        _m = source.rowCount,
-        _n = source.colCount,
-        _rdiag = DataType.float.newList(source.colCount) {
+    : _qr = source.cast(DataType.float).toMatrix(),
+      _m = source.rowCount,
+      _n = source.colCount,
+      _rdiag = DataType.float.newList(source.colCount) {
     // Main loop.
     for (var k = 0; k < _n; k++) {
       // Compute 2-norm of k-th column without under/overflow.
@@ -47,7 +47,10 @@ class QRDecomposition {
           s = -s / _qr.getUnchecked(k, k);
           for (var i = k; i < _m; i++) {
             _qr.setUnchecked(
-                i, j, _qr.getUnchecked(i, j) + s * _qr.getUnchecked(i, k));
+              i,
+              j,
+              _qr.getUnchecked(i, j) + s * _qr.getUnchecked(i, k),
+            );
           }
         }
       }
@@ -120,7 +123,10 @@ class QRDecomposition {
           s = -s / _qr.getUnchecked(k, k);
           for (var i = k; i < _m; i++) {
             result.setUnchecked(
-                i, j, result.getUnchecked(i, j) + s * _qr.getUnchecked(i, k));
+              i,
+              j,
+              result.getUnchecked(i, j) + s * _qr.getUnchecked(i, k),
+            );
           }
         }
       }
@@ -154,7 +160,10 @@ class QRDecomposition {
         s = -s / _qr.getUnchecked(k, k);
         for (var i = k; i < _m; i++) {
           X.setUnchecked(
-              i, j, X.getUnchecked(i, j) + s * _qr.getUnchecked(i, k));
+            i,
+            j,
+            X.getUnchecked(i, j) + s * _qr.getUnchecked(i, k),
+          );
         }
       }
     }
@@ -167,10 +176,11 @@ class QRDecomposition {
       for (var i = 0; i < k; i++) {
         for (var j = 0; j < nx; j++) {
           X.setUnchecked(
-              i,
-              j,
-              X.getUnchecked(i, j) -
-                  X.getUnchecked(k, j) * _qr.getUnchecked(i, k));
+            i,
+            j,
+            X.getUnchecked(i, j) -
+                X.getUnchecked(k, j) * _qr.getUnchecked(i, k),
+          );
         }
       }
     }

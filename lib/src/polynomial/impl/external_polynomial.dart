@@ -5,7 +5,7 @@ import '../polynomial.dart';
 /// Polynomial built around an (externally managed) list of coefficients.
 class ExternalPolynomial<T> with Polynomial<T> {
   ExternalPolynomial(DataType<T> dataType, int desiredDegree)
-      : this.fromList(dataType, dataType.newList(desiredDegree + 1));
+    : this.fromList(dataType, dataType.newList(desiredDegree + 1));
 
   ExternalPolynomial.fromList(this.dataType, this.coefficients);
 
@@ -30,9 +30,10 @@ class ExternalPolynomial<T> with Polynomial<T> {
   Set<Storage> get storage => {this};
 
   @override
-  T getUnchecked(int exponent) => exponent < coefficients.length
-      ? coefficients[exponent]
-      : dataType.defaultValue;
+  T getUnchecked(int exponent) =>
+      exponent < coefficients.length
+          ? coefficients[exponent]
+          : dataType.defaultValue;
 
   @override
   void setUnchecked(int exponent, T value) {

@@ -13,8 +13,12 @@ extension MulPolynomialExtension<T> on Polynomial<T> {
     bool? fftMultiply,
   }) {
     if (other is Polynomial<T>) {
-      return mulPolynomial(other,
-          dataType: dataType, format: format, fftMultiply: fftMultiply);
+      return mulPolynomial(
+        other,
+        dataType: dataType,
+        format: format,
+        fftMultiply: fftMultiply,
+      );
     } else if (other is T) {
       return mulScalar(other as T, dataType: dataType, format: format);
     } else {
@@ -36,8 +40,12 @@ extension MulPolynomialExtension<T> on Polynomial<T> {
       // One of the polynomials has zero coefficients.
       return createPolynomial<T>(this, 0, dataType, format);
     }
-    final result =
-        createPolynomial<T>(this, degree + other.degree, dataType, format);
+    final result = createPolynomial<T>(
+      this,
+      degree + other.degree,
+      dataType,
+      format,
+    );
     final add = result.dataType.field.add, mul = result.dataType.field.mul;
     if (degree == 0) {
       // First polynomial is constant.
@@ -62,9 +70,12 @@ extension MulPolynomialExtension<T> on Polynomial<T> {
       for (var a = degree; a >= 0; a--) {
         for (var b = other.degree; b >= 0; b--) {
           result.setUnchecked(
-              a + b,
-              add(result.getUnchecked(a + b),
-                  mul(getUnchecked(a), other.getUnchecked(b))));
+            a + b,
+            add(
+              result.getUnchecked(a + b),
+              mul(getUnchecked(a), other.getUnchecked(b)),
+            ),
+          );
         }
       }
     }
@@ -72,8 +83,11 @@ extension MulPolynomialExtension<T> on Polynomial<T> {
   }
 
   /// Multiplies this [Polynomial] with a scalar.
-  Polynomial<T> mulScalar(T other,
-      {DataType<T>? dataType, PolynomialFormat? format}) {
+  Polynomial<T> mulScalar(
+    T other, {
+    DataType<T>? dataType,
+    PolynomialFormat? format,
+  }) {
     final result = createPolynomial<T>(this, degree, dataType, format);
     final mul = result.dataType.field.mul;
     unaryOperator<T>(result, this, (a) => mul(a, other));
@@ -90,7 +104,10 @@ extension MulPolynomialExtension<T> on Polynomial<T> {
 
 /// Helper to perform polynomial multiplication using fast fourier transform.
 void _fftMulPolynomial<T>(
-    Polynomial<T> result, Polynomial<T> a, Polynomial<T> b) {
+  Polynomial<T> result,
+  Polynomial<T> a,
+  Polynomial<T> b,
+) {
   final va = a.iterable.map(DataType.complex.cast).toList();
   final vb = b.iterable.map(DataType.complex.cast).toList();
   var n = 1;
@@ -109,9 +126,10 @@ void _fftMulPolynomial<T>(
     va[i] *= vb[i];
   }
   fft(va, inverse: true);
-  final cast = result.dataType is DataType<int>
-      ? (Complex c) => c.real.round() as T
-      : result.dataType is DataType<num>
+  final cast =
+      result.dataType is DataType<int>
+          ? (Complex c) => c.real.round() as T
+          : result.dataType is DataType<num>
           ? (Complex c) => c.real as T
           : result.dataType.cast;
   for (var i = a.degree + b.degree; i >= 0; i--) {

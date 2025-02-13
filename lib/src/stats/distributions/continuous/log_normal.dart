@@ -14,7 +14,7 @@ import 'normal.dart';
 class LogNormalDistribution extends ContinuousDistribution {
   /// A log-normal distribution with parameters [mu] μ and [sigma] σ.
   const LogNormalDistribution(this.mu, this.sigma)
-      : assert(sigma > 0, 'sigma > 0');
+    : assert(sigma > 0, 'sigma > 0');
 
   /// The parameter μ (mean of logarithm).
   final double mu;
@@ -49,12 +49,15 @@ class LogNormalDistribution extends ContinuousDistribution {
       6;
 
   @override
-  double probability(double x) => x <= 0
-      ? 0
-      : exp(-log(x) -
-          0.5 * log(2 * pi) -
-          log(sigma) -
-          pow(log(x) - mu, 2) / (2 * sigma * sigma));
+  double probability(double x) =>
+      x <= 0
+          ? 0
+          : exp(
+            -log(x) -
+                0.5 * log(2 * pi) -
+                log(sigma) -
+                pow(log(x) - mu, 2) / (2 * sigma * sigma),
+          );
 
   @override
   double cumulativeProbability(double x) =>
@@ -85,7 +88,8 @@ class LogNormalDistribution extends ContinuousDistribution {
   int get hashCode => Object.hash(LogNormalDistribution, mu, sigma);
 
   @override
-  ObjectPrinter get toStringPrinter => super.toStringPrinter
-    ..addValue(mu, name: 'mu')
-    ..addValue(sigma, name: 'sigma');
+  ObjectPrinter get toStringPrinter =>
+      super.toStringPrinter
+        ..addValue(mu, name: 'mu')
+        ..addValue(sigma, name: 'sigma');
 }

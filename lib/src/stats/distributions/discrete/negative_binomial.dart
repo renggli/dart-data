@@ -15,8 +15,8 @@ import '../discrete.dart';
 class NegativeBinomialDistribution extends DiscreteDistribution {
   /// A negative binomial distribution with parameters [r] and [p].
   const NegativeBinomialDistribution(this.r, this.p)
-      : assert(r > 0, 'r > 0'),
-        assert(0 <= p && p <= 1, '0 <= p <= 1');
+    : assert(r > 0, 'r > 0'),
+      assert(0 <= p && p <= 1, '0 <= p <= 1');
 
   /// Number of failures until the experiment is stopped.
   final double r;
@@ -74,8 +74,9 @@ class NegativeBinomialDistribution extends DiscreteDistribution {
   int get hashCode => Object.hash(NegativeBinomialDistribution, r, p);
 
   @override
-  ObjectPrinter get toStringPrinter => super.toStringPrinter
-    ..addValue(r, name: 'r')
-    ..addValue(p, name: 'p')
-    ..addValue(q, name: 'q');
+  ObjectPrinter get toStringPrinter =>
+      super.toStringPrinter
+        ..addValue(r, name: 'r')
+        ..addValue(p, name: 'p')
+        ..addValue(q, name: 'q');
 }

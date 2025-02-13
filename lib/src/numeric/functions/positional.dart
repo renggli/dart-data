@@ -5,7 +5,10 @@ import '../functions.dart';
 class PositionalParametrizedUnaryFunction<T>
     extends ParametrizedUnaryFunction<T> {
   const PositionalParametrizedUnaryFunction(
-      super.dataType, this.count, this.function);
+    super.dataType,
+    this.count,
+    this.function,
+  );
 
   @override
   final int count;
@@ -16,8 +19,10 @@ class PositionalParametrizedUnaryFunction<T>
 
   @override
   List<T> toBindings(Vector<T> params) {
-    assert(count == params.count,
-        'Expected $count params, but got ${params.count}.');
+    assert(
+      count == params.count,
+      'Expected $count params, but got ${params.count}.',
+    );
     return params.toList(growable: false);
   }
 

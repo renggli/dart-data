@@ -8,9 +8,12 @@ import '../matrix.dart';
 
 /// Sparse matrix with diagonal storage.
 class DiagonalMatrix<T> with Matrix<T> {
-  DiagonalMatrix(this.dataType, this.rowCount, this.colCount,
-      {VectorFormat? format})
-      : _format = format;
+  DiagonalMatrix(
+    this.dataType,
+    this.rowCount,
+    this.colCount, {
+    VectorFormat? format,
+  }) : _format = format;
 
   final Map<int, Vector<T>> _diagonals = <int, Vector<T>>{};
   final VectorFormat? _format;
@@ -40,9 +43,10 @@ class DiagonalMatrix<T> with Matrix<T> {
     final offset = row - col;
     final index = offset < 0 ? col + offset : col;
     _diagonals.putIfAbsent(offset, () {
-      final length = math.min(rowCount - offset, colCount + offset);
-      return Vector(dataType, length, format: _format);
-    })[index] = value;
+          final length = math.min(rowCount - offset, colCount + offset);
+          return Vector(dataType, length, format: _format);
+        })[index] =
+        value;
   }
 
   @override

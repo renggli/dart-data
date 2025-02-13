@@ -8,10 +8,7 @@ import '../matrix.dart';
 /// Mutable diagonal vector of a matrix.
 class DiagonalVector<T> with Vector<T> {
   DiagonalVector(this.matrix, this.offset)
-      : count = math.min(
-          matrix.rowCount - offset,
-          matrix.colCount + offset,
-        );
+    : count = math.min(matrix.rowCount - offset, matrix.colCount + offset);
 
   final Matrix<T> matrix;
   final int offset;
@@ -51,7 +48,11 @@ extension DiagonalVectorExtension<T> on Matrix<T> {
   /// above, and a positive offset to the diagonals below.
   Vector<T> diagonal([int offset = 0]) {
     RangeError.checkValueInInterval(
-        offset, -colCount + 1, rowCount - 1, 'offset');
+      offset,
+      -colCount + 1,
+      rowCount - 1,
+      'offset',
+    );
     return diagonalUnchecked(offset);
   }
 

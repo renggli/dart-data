@@ -14,14 +14,22 @@ double derivative(
   int accuracy = 2,
   double epsilon = 1e-5,
 }) {
-  final accuracyToWeights = _centralFiniteDifferences.containsKey(derivative)
-      ? _centralFiniteDifferences[derivative]!
-      : throw ArgumentError.value(derivative, 'derivative',
-          'Must be one of ${_centralFiniteDifferences.keys.join(', ')}');
-  final weights = accuracyToWeights.containsKey(accuracy)
-      ? accuracyToWeights[accuracy]!
-      : throw ArgumentError.value(accuracy, 'accuracy',
-          'Must be one of ${accuracyToWeights.keys.join(', ')}');
+  final accuracyToWeights =
+      _centralFiniteDifferences.containsKey(derivative)
+          ? _centralFiniteDifferences[derivative]!
+          : throw ArgumentError.value(
+            derivative,
+            'derivative',
+            'Must be one of ${_centralFiniteDifferences.keys.join(', ')}',
+          );
+  final weights =
+      accuracyToWeights.containsKey(accuracy)
+          ? accuracyToWeights[accuracy]!
+          : throw ArgumentError.value(
+            accuracy,
+            'accuracy',
+            'Must be one of ${accuracyToWeights.keys.join(', ')}',
+          );
   final offset = accuracy ~/ 2;
   var result = 0.0;
   for (var i = 0; i < weights.length; i++) {
@@ -53,7 +61,7 @@ const _centralFiniteDifferences = <int, Map<int, List<double>>>{
       8 / 5,
       -1 / 5,
       8 / 315,
-      -1 / 560
+      -1 / 560,
     ],
   },
   // Derivative 3
@@ -69,7 +77,7 @@ const _centralFiniteDifferences = <int, Map<int, List<double>>>{
       -61 / 30,
       169 / 120,
       -3 / 10,
-      7 / 240
+      7 / 240,
     ],
   },
   // Derivative 4
@@ -85,7 +93,7 @@ const _centralFiniteDifferences = <int, Map<int, List<double>>>{
       -122 / 15,
       169 / 60,
       -2 / 5,
-      7 / 240
+      7 / 240,
     ],
   },
   // Derivative 5
@@ -103,7 +111,7 @@ const _centralFiniteDifferences = <int, Map<int, List<double>>>{
       -13 / 2,
       87 / 32,
       -19 / 36,
-      13 / 288
+      13 / 288,
     ],
   },
   // Derivative 6
@@ -121,7 +129,7 @@ const _centralFiniteDifferences = <int, Map<int, List<double>>>{
       -39 / 2,
       87 / 16,
       -19 / 24,
-      13 / 240
+      13 / 240,
     ],
   },
 };

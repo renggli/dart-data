@@ -6,14 +6,23 @@ extension ToObjectTensorExtension<T> on Tensor<T> {
   ///
   /// Depending on its dimensionality this is a single value (rank = 0), a list
   /// of values (rank = 1), or a list of nested lists (rank > 1).
-  dynamic toObject({DataType<T?>? type}) => layout.length == 0
-      ? null
-      : _toObject(this,
-          type: type ?? this.type, axis: 0, offset: layout.offset);
+  dynamic toObject({DataType<T?>? type}) =>
+      layout.length == 0
+          ? null
+          : _toObject(
+            this,
+            type: type ?? this.type,
+            axis: 0,
+            offset: layout.offset,
+          );
 }
 
-dynamic _toObject<T>(Tensor<T> tensor,
-    {required DataType<T?> type, required int axis, required int offset}) {
+dynamic _toObject<T>(
+  Tensor<T> tensor, {
+  required DataType<T?> type,
+  required int axis,
+  required int offset,
+}) {
   if (axis == tensor.rank) {
     return tensor.data[offset]; // return a single value
   }
@@ -27,7 +36,12 @@ dynamic _toObject<T>(Tensor<T> tensor,
     return list;
   }
   return List.generate(
-      shape,
-      (i) => _toObject(tensor,
-          type: type, axis: axis + 1, offset: offset + i * stride));
+    shape,
+    (i) => _toObject(
+      tensor,
+      type: type,
+      axis: axis + 1,
+      offset: offset + i * stride,
+    ),
+  );
 }

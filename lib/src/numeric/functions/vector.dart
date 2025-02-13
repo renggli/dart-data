@@ -4,7 +4,10 @@ import '../functions.dart';
 /// Provides parameters as a single positional vector argument.
 class VectorParametrizedUnaryFunction<T> extends ParametrizedUnaryFunction<T> {
   const VectorParametrizedUnaryFunction(
-      super.dataType, this.count, this.function);
+    super.dataType,
+    this.count,
+    this.function,
+  );
 
   @override
   final int count;
@@ -14,8 +17,10 @@ class VectorParametrizedUnaryFunction<T> extends ParametrizedUnaryFunction<T> {
 
   @override
   Vector<T> toBindings(Vector<T> params) {
-    assert(count == params.count,
-        'Expected $count params, but got ${params.count}.');
+    assert(
+      count == params.count,
+      'Expected $count params, but got ${params.count}.',
+    );
     return params.toVector();
   }
 

@@ -34,20 +34,22 @@ class TransformedMatrix<S, T> with Matrix<T> {
 extension TransformedMatrixExtension<T> on Matrix<T> {
   /// Returns a read-only view on this [Matrix] with all its elements lazily
   /// converted by calling the provided transformation [callback].
-  Matrix<S> map<S>(S Function(int row, int col, T value) callback,
-          [DataType<S>? dataType]) =>
-      transform<S>(callback, dataType: dataType);
+  Matrix<S> map<S>(
+    S Function(int row, int col, T value) callback, [
+    DataType<S>? dataType,
+  ]) => transform<S>(callback, dataType: dataType);
 
   /// Returns a view on this [Matrix] with all its elements lazily converted
   /// by calling the provided [read] transformation. An optionally provided
   /// [write] transformation enables writing to the returned matrix.
-  Matrix<S> transform<S>(S Function(int row, int col, T value) read,
-          {T Function(int row, int col, S value)? write,
-          DataType<S>? dataType}) =>
-      TransformedMatrix<T, S>(
-        this,
-        read,
-        write ?? (r, c, v) => throw UnsupportedError('Matrix is not mutable.'),
-        dataType ?? DataType.fromType<S>(),
-      );
+  Matrix<S> transform<S>(
+    S Function(int row, int col, T value) read, {
+    T Function(int row, int col, S value)? write,
+    DataType<S>? dataType,
+  }) => TransformedMatrix<T, S>(
+    this,
+    read,
+    write ?? (r, c, v) => throw UnsupportedError('Matrix is not mutable.'),
+    dataType ?? DataType.fromType<S>(),
+  );
 }

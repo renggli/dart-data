@@ -18,16 +18,18 @@ class Layout with ToStringPrinter {
   /// Constructs a layout with optional [shape] and/or [strides].
   factory Layout({Iterable<int>? shape, Iterable<int>? strides, int? offset}) {
     final shape_ = utils.toIndices(shape ?? const <int>[]);
-    final strides_ = strides == null
-        ? utils.toStrides(shape: shape_)
-        : utils.toIndices(strides);
+    final strides_ =
+        strides == null
+            ? utils.toStrides(shape: shape_)
+            : utils.toIndices(strides);
     return Layout.internal(
       rank: shape_.length,
       length: shape_.product(),
       shape: shape_,
       strides: strides_,
       offset: offset ?? 0,
-      isContiguous: shape_.isEmpty ||
+      isContiguous:
+          shape_.isEmpty ||
           strides == null ||
           utils.isContiguous(shape: shape_, strides: strides_),
     );
@@ -37,9 +39,11 @@ class Layout with ToStringPrinter {
   factory Layout.fromObject(dynamic object) {
     if (object == null) return empty;
     final shape = <int>[];
-    for (dynamic current = object;
-        current is Iterable;
-        current = current.first) {
+    for (
+      dynamic current = object;
+      current is Iterable;
+      current = current.first
+    ) {
       shape.add(current.length);
     }
     return Layout(shape: shape);
@@ -47,12 +51,13 @@ class Layout with ToStringPrinter {
 
   /// Shared empty layout (for memory optimization).
   static final empty = Layout.internal(
-      rank: 0,
-      length: 0,
-      offset: 0,
-      shape: utils.toIndices([]),
-      strides: utils.toIndices([]),
-      isContiguous: true);
+    rank: 0,
+    length: 0,
+    offset: 0,
+    shape: utils.toIndices([]),
+    strides: utils.toIndices([]),
+    isContiguous: true,
+  );
 
   /// Internal constructor of [Layout] object.
   @internal
@@ -63,15 +68,18 @@ class Layout with ToStringPrinter {
     required this.shape,
     required this.strides,
     required this.isContiguous,
-  })  : assert(shape is TypedData, '`shape` should be TypedData'),
-        assert(shape.length == rank, '`shape` should be of length $rank'),
-        assert(shape.every((s) => s > 0), '`shape` should be positive'),
-        assert(strides is TypedData, '`strides` should be TypedData'),
-        assert(strides.length == rank, '`strides` should be of length $rank'),
-        assert(length == shape.product() || (length == 0 && rank == 0),
-            '`length` should match `shape`'),
-        assert(
-            isContiguous == utils.isContiguous(shape: shape, strides: strides));
+  }) : assert(shape is TypedData, '`shape` should be TypedData'),
+       assert(shape.length == rank, '`shape` should be of length $rank'),
+       assert(shape.every((s) => s > 0), '`shape` should be positive'),
+       assert(strides is TypedData, '`strides` should be TypedData'),
+       assert(strides.length == rank, '`strides` should be of length $rank'),
+       assert(
+         length == shape.product() || (length == 0 && rank == 0),
+         '`length` should match `shape`',
+       ),
+       assert(
+         isContiguous == utils.isContiguous(shape: shape, strides: strides),
+       );
 
   /// The number of dimensions.
   final int rank;
@@ -92,20 +100,22 @@ class Layout with ToStringPrinter {
   final bool isContiguous;
 
   /// An iterable over the indices of this layout.
-  Iterable<int> get indices => rank == 0
-      ? length == 0
-          ? const []
-          : [offset]
-      : isContiguous
+  Iterable<int> get indices =>
+      rank == 0
+          ? length == 0
+              ? const []
+              : [offset]
+          : isContiguous
           ? IntegerRange.length(length, start: offset)
           : IndexIterable(this);
 
   /// An iterable over the keys of this layout.
-  Iterable<List<int>> get keys => rank == 0
-      ? length == 0
-          ? const <List<int>>[]
-          : const <List<int>>[[]]
-      : KeyIterable(this);
+  Iterable<List<int>> get keys =>
+      rank == 0
+          ? length == 0
+              ? const <List<int>>[]
+              : const <List<int>>[[]]
+          : KeyIterable(this);
 
   /// Converts a key (index-list) to an index.
   int toIndex(List<int> key) {
@@ -142,15 +152,19 @@ class Layout with ToStringPrinter {
           utils.indicesEquality.equals(strides, other.strides);
 
   @override
-  int get hashCode => Object.hash(offset, utils.indicesEquality.hash(shape),
-      utils.indicesEquality.hash(strides));
+  int get hashCode => Object.hash(
+    offset,
+    utils.indicesEquality.hash(shape),
+    utils.indicesEquality.hash(strides),
+  );
 
   @override
-  ObjectPrinter get toStringPrinter => super.toStringPrinter
-    ..addValue(rank, name: 'rank')
-    ..addValue(length, name: 'length')
-    ..addValue(offset, name: 'offset')
-    ..addValue(shape, name: 'shape')
-    ..addValue(strides, name: 'strides')
-    ..addValue(isContiguous, name: 'isContiguous');
+  ObjectPrinter get toStringPrinter =>
+      super.toStringPrinter
+        ..addValue(rank, name: 'rank')
+        ..addValue(length, name: 'length')
+        ..addValue(offset, name: 'offset')
+        ..addValue(shape, name: 'shape')
+        ..addValue(strides, name: 'strides')
+        ..addValue(isContiguous, name: 'isContiguous');
 }

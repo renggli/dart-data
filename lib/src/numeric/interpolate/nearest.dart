@@ -11,8 +11,14 @@ UnaryFunction<double> nearestInterpolation({
   required Vector<double> ys,
   bool preferLower = true,
 }) {
-  checkPoints(DataType.float,
-      xs: xs, ys: ys, min: 1, ordered: true, unique: true);
+  checkPoints(
+    DataType.float,
+    xs: xs,
+    ys: ys,
+    min: 1,
+    ordered: true,
+    unique: true,
+  );
   return (double x) {
     if (x <= xs.getUnchecked(0)) {
       return ys.getUnchecked(0);

@@ -14,9 +14,10 @@ extension ReshapeTensorExtension<T> on Tensor<T> {
       shape[inferredIndex] = length ~/ -shape.product();
     }
     // Create new layout and copy data if necessary.
-    final (layout_, data_) = layout.isContiguous
-        ? (Layout(shape: shape, offset: layout.offset), data)
-        : (Layout(shape: shape), type.copyList(values));
+    final (layout_, data_) =
+        layout.isContiguous
+            ? (Layout(shape: shape, offset: layout.offset), data)
+            : (Layout(shape: shape), type.copyList(values));
     // Check if the new layout is compatible at all.
     LayoutError.checkEqualLength(layout, layout_, 'shape');
     return Tensor<T>.internal(type: type, layout: layout_, data: data_);

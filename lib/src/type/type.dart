@@ -141,25 +141,44 @@ abstract class DataType<T> {
 
   /// Casts the argument to this data type, otherwise throw an
   /// [ArgumentError].
-  T cast(dynamic value) => throw ArgumentError.value(
-      value, 'value', 'Unable to cast "$value" to $this.');
+  T cast(dynamic value) =>
+      throw ArgumentError.value(
+        value,
+        'value',
+        'Unable to cast "$value" to $this.',
+      );
 
   /// Creates a fixed-length list of this data type.
-  List<T> newList(int length,
-      {Map1<int, T>? generate, T? fillValue, bool readonly = false}) {
-    final result = generate != null
-        ? List<T>.generate(length, generate, growable: false)
-        : List<T>.filled(length, fillValue ?? defaultValue, growable: false);
+  List<T> newList(
+    int length, {
+    Map1<int, T>? generate,
+    T? fillValue,
+    bool readonly = false,
+  }) {
+    final result =
+        generate != null
+            ? List<T>.generate(length, generate, growable: false)
+            : List<T>.filled(
+              length,
+              fillValue ?? defaultValue,
+              growable: false,
+            );
     return readonly ? UnmodifiableListView(result) : result;
   }
 
   /// Creates a fixed-length list copy of the [iterable], possibly with a
   /// modified [length] and if necessary populated with [fillValue].
-  List<T> copyList(Iterable<T> iterable,
-      {int? length, T? fillValue, bool readonly = false}) {
+  List<T> copyList(
+    Iterable<T> iterable, {
+    int? length,
+    T? fillValue,
+    bool readonly = false,
+  }) {
     final listLength = iterable.length;
-    final result =
-        newList(length ?? listLength, fillValue: fillValue ?? defaultValue);
+    final result = newList(
+      length ?? listLength,
+      fillValue: fillValue ?? defaultValue,
+    );
     result.setRange(0, math.min(result.length, listLength), iterable);
     return readonly ? UnmodifiableListView<T>(result) : result;
   }

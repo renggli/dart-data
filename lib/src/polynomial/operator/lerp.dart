@@ -9,13 +9,25 @@ extension LerpPolynomialExtension<T> on Polynomial<T> {
   /// Interpolates linearly between this [Polynomial] and [other] with a factor
   /// of [t]. If [t] is equal to `0` the result is `this`, if [t] is equal to
   /// `1` the result is [other].
-  Polynomial<T> lerp(Polynomial<T> other, num t,
-      {DataType<T>? dataType, PolynomialFormat? format}) {
+  Polynomial<T> lerp(
+    Polynomial<T> other,
+    num t, {
+    DataType<T>? dataType,
+    PolynomialFormat? format,
+  }) {
     final result = createPolynomial<T>(
-        this, math.max(degree, other.degree), dataType, format);
+      this,
+      math.max(degree, other.degree),
+      dataType,
+      format,
+    );
     final add = result.dataType.field.add, scale = result.dataType.field.scale;
     binaryOperator<T>(
-        result, this, other, (a, b) => add(scale(a, 1.0 - t), scale(b, t)));
+      result,
+      this,
+      other,
+      (a, b) => add(scale(a, 1.0 - t), scale(b, t)),
+    );
     return result;
   }
 
@@ -23,7 +35,11 @@ extension LerpPolynomialExtension<T> on Polynomial<T> {
   Polynomial<T> lerpEq(Polynomial<T> other, num t) {
     final add = dataType.field.add, scale = dataType.field.scale;
     binaryOperator<T>(
-        this, this, other, (a, b) => add(scale(a, 1.0 - t), scale(b, t)));
+      this,
+      this,
+      other,
+      (a, b) => add(scale(a, 1.0 - t), scale(b, t)),
+    );
     return this;
   }
 }

@@ -8,8 +8,12 @@ int checkIndex(int index, int length, [String? name, String? message]) {
   if (0 <= adjustedIndex && adjustedIndex < length) {
     return adjustedIndex;
   }
-  throw IndexError.withLength(adjustedIndex, length,
-      name: name, message: message);
+  throw IndexError.withLength(
+    adjustedIndex,
+    length,
+    name: name,
+    message: message,
+  );
 }
 
 /// Adjusts and checks a [start] index to be smaller or equal than [length],

@@ -18,11 +18,20 @@ class BooleanDataType extends DataType<bool> {
   bool get defaultValue => false;
 
   @override
-  List<bool> newList(int length,
-      {Map1<int, bool>? generate, bool? fillValue, bool readonly = false}) {
-    final result = generate != null
-        ? BitList.generate(length, generate, growable: false)
-        : BitList.filled(length, fillValue ?? defaultValue, growable: false);
+  List<bool> newList(
+    int length, {
+    Map1<int, bool>? generate,
+    bool? fillValue,
+    bool readonly = false,
+  }) {
+    final result =
+        generate != null
+            ? BitList.generate(length, generate, growable: false)
+            : BitList.filled(
+              length,
+              fillValue ?? defaultValue,
+              growable: false,
+            );
     return readonly ? UnmodifiableListView(result) : result;
   }
 

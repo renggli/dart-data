@@ -5,7 +5,7 @@ import '../polynomial.dart';
 /// Integrate modifiable view of a polynomial.
 class IntegratePolynomial<T> with Polynomial<T> {
   IntegratePolynomial(this.polynomial, [T? constant])
-      : constant = constant ?? polynomial.dataType.field.additiveIdentity;
+    : constant = constant ?? polynomial.dataType.field.additiveIdentity;
 
   final Polynomial<T> polynomial;
   T constant;
@@ -20,12 +20,13 @@ class IntegratePolynomial<T> with Polynomial<T> {
   Set<Storage> get storage => polynomial.storage;
 
   @override
-  T getUnchecked(int exponent) => exponent == 0
-      ? constant
-      : dataType.field.div(
-          polynomial.getUnchecked(exponent - 1),
-          dataType.cast(exponent),
-        );
+  T getUnchecked(int exponent) =>
+      exponent == 0
+          ? constant
+          : dataType.field.div(
+            polynomial.getUnchecked(exponent - 1),
+            dataType.cast(exponent),
+          );
 
   @override
   void setUnchecked(int exponent, T value) {
@@ -34,10 +35,7 @@ class IntegratePolynomial<T> with Polynomial<T> {
     } else {
       polynomial.setUnchecked(
         exponent - 1,
-        dataType.field.mul(
-          value,
-          dataType.cast(exponent),
-        ),
+        dataType.field.mul(value, dataType.cast(exponent)),
       );
     }
   }

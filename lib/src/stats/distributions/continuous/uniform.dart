@@ -13,8 +13,10 @@ import '../errors.dart';
 class UniformDistribution extends ContinuousDistribution {
   /// A uniform distribution between [a] and [b].
   const UniformDistribution(this.a, this.b)
-      : assert(double.negativeInfinity < a && a < b && b < double.infinity,
-            '-∞ < a < b < ∞');
+    : assert(
+        double.negativeInfinity < a && a < b && b < double.infinity,
+        '-∞ < a < b < ∞',
+      );
 
   /// A standard uniform distribution between 0 and 1.
   const UniformDistribution.standard() : this(0, 1);
@@ -53,9 +55,10 @@ class UniformDistribution extends ContinuousDistribution {
   double probability(double x) => a <= x && x <= b ? 1 / (b - a) : 0;
 
   @override
-  double cumulativeProbability(double x) => x <= a
-      ? 0
-      : x <= b
+  double cumulativeProbability(double x) =>
+      x <= a
+          ? 0
+          : x <= b
           ? (x - a) / (b - a)
           : 1;
 
@@ -77,9 +80,10 @@ class UniformDistribution extends ContinuousDistribution {
   int get hashCode => Object.hash(UniformDistribution, a, b);
 
   @override
-  ObjectPrinter get toStringPrinter => super.toStringPrinter
-    ..addValue(a, name: 'a')
-    ..addValue(b, name: 'b');
+  ObjectPrinter get toStringPrinter =>
+      super.toStringPrinter
+        ..addValue(a, name: 'a')
+        ..addValue(b, name: 'b');
 }
 
 final _random = Random();

@@ -6,11 +6,12 @@ import '../vector.dart';
 /// Tensor vector.
 class TensorVector<T> with Vector<T> {
   TensorVector(DataType<T> dataType, int count)
-      : this.fromTensor(Tensor<T>.filled(dataType.defaultValue,
-            type: dataType, shape: [count]));
+    : this.fromTensor(
+        Tensor<T>.filled(dataType.defaultValue, type: dataType, shape: [count]),
+      );
 
   TensorVector.fromTensor(this.tensor)
-      : assert(tensor.layout.rank == 1, 'Expected a tensor of rank 1');
+    : assert(tensor.layout.rank == 1, 'Expected a tensor of rank 1');
 
   final Tensor<T> tensor;
 

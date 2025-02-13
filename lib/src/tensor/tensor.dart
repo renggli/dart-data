@@ -13,8 +13,12 @@ class Tensor<T> with ToStringPrinter {
   ///
   /// By default a 0-dimensional tensor with the single value is returned. If a
   /// [shape] is provided all tensor entries are filled with that value.
-  factory Tensor.filled(T value,
-      {List<int>? shape, List<int>? strides, DataType<T>? type}) {
+  factory Tensor.filled(
+    T value, {
+    List<int>? shape,
+    List<int>? strides,
+    DataType<T>? type,
+  }) {
     final type_ = type ?? DataType.fromInstance(value);
     final layout_ = Layout(shape: shape, strides: strides);
     final data_ = type_.newList(layout_.length, fillValue: value);
@@ -22,35 +26,48 @@ class Tensor<T> with ToStringPrinter {
   }
 
   /// Constructs a [Tensor] filled with the results of [callback].
-  factory Tensor.generate(T Function(List<int> key) callback,
-          {required List<int> shape, List<int>? strides, DataType<T>? type}) =>
-      Tensor.fromIterable(Layout(shape: shape).keys.map(callback),
-          shape: shape, strides: strides, type: type ?? DataType.fromType<T>());
+  factory Tensor.generate(
+    T Function(List<int> key) callback, {
+    required List<int> shape,
+    List<int>? strides,
+    DataType<T>? type,
+  }) => Tensor.fromIterable(
+    Layout(shape: shape).keys.map(callback),
+    shape: shape,
+    strides: strides,
+    type: type ?? DataType.fromType<T>(),
+  );
 
   /// Constructs an [Tensor] from an [iterable].
   ///
   /// By default a 1-dimensional tensor with the values from the iterable
   /// [iterable] is returned. If a [shape] is provided the data populates the
   /// tensor in the specified format in row-major.
-  factory Tensor.fromIterable(Iterable<T> iterable,
-      {List<int>? shape, List<int>? strides, DataType<T>? type}) {
+  factory Tensor.fromIterable(
+    Iterable<T> iterable, {
+    List<int>? shape,
+    List<int>? strides,
+    DataType<T>? type,
+  }) {
     final type_ = type ?? DataType.fromIterable(iterable);
     final data_ = type_.copyList(iterable);
-    final layout_ = data_.isEmpty
-        ? Layout.empty
-        : Layout(shape: shape ?? [data_.length], strides: strides);
+    final layout_ =
+        data_.isEmpty
+            ? Layout.empty
+            : Layout(shape: shape ?? [data_.length], strides: strides);
     return Tensor.internal(type: type_, layout: layout_, data: data_);
   }
 
   /// Constructs an [Tensor] from a nested [object].
   factory Tensor.fromObject(dynamic object, {DataType<T>? type}) {
-    final array_ = object is Iterable
-        ? object.deepFlatten<T>()
-        : object is T
+    final array_ =
+        object is Iterable
+            ? object.deepFlatten<T>()
+            : object is T
             ? <T>[object]
             : object == null
-                ? <T>[]
-                : throw ArgumentError.value(object, 'object');
+            ? <T>[]
+            : throw ArgumentError.value(object, 'object');
     final type_ = type ?? DataType.fromIterable(array_);
     final layout_ = Layout.fromObject(object);
     final data_ = type_.copyList(array_);
@@ -94,8 +111,9 @@ class Tensor<T> with ToStringPrinter {
       Tensor<T>.internal(type: type, layout: layout[index], data: data);
 
   @override
-  ObjectPrinter get toStringPrinter => super.toStringPrinter
-    ..addValue(type, name: 'type')
-    ..addValue(layout, name: 'layout')
-    ..addValue(this, printer: TensorPrinter<T>());
+  ObjectPrinter get toStringPrinter =>
+      super.toStringPrinter
+        ..addValue(type, name: 'type')
+        ..addValue(layout, name: 'layout')
+        ..addValue(this, printer: TensorPrinter<T>());
 }

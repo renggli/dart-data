@@ -18,8 +18,12 @@ abstract class TypedDataType<T, L extends List<T>> extends DataType<T> {
   T get max;
 
   @override
-  List<T> newList(int length,
-      {Map1<int, T>? generate, T? fillValue, bool readonly = false}) {
+  List<T> newList(
+    int length, {
+    Map1<int, T>? generate,
+    T? fillValue,
+    bool readonly = false,
+  }) {
     final result = emptyList(length);
     if (generate != null) {
       for (var i = 0; i < length; i++) {
@@ -32,8 +36,12 @@ abstract class TypedDataType<T, L extends List<T>> extends DataType<T> {
   }
 
   @override
-  List<T> copyList(Iterable<T> iterable,
-      {int? length, T? fillValue, bool readonly = false}) {
+  List<T> copyList(
+    Iterable<T> iterable, {
+    int? length,
+    T? fillValue,
+    bool readonly = false,
+  }) {
     final listLength = iterable.length;
     final result = emptyList(length ?? listLength);
     result.setRange(0, math.min(result.length, listLength), iterable);

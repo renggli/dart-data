@@ -28,57 +28,103 @@ import 'view/row_vector.dart';
 abstract mixin class Matrix<T> implements Storage {
   /// Constructs a default matrix of the desired [dataType], the provided
   /// [rowCount] and [columnCount], and possibly a custom [format].
-  factory Matrix(DataType<T> dataType, int rowCount, int columnCount,
-      {MatrixFormat? format}) {
+  factory Matrix(
+    DataType<T> dataType,
+    int rowCount,
+    int columnCount, {
+    MatrixFormat? format,
+  }) {
     RangeError.checkNotNegative(rowCount, 'rowCount');
     RangeError.checkNotNegative(columnCount, 'columnCount');
     return switch (format ?? MatrixFormat.standard) {
-      MatrixFormat.rowMajor =>
-        RowMajorMatrix<T>(dataType, rowCount, columnCount),
-      MatrixFormat.columnMajor =>
-        ColumnMajorMatrix<T>(dataType, rowCount, columnCount),
-      MatrixFormat.nestedRow =>
-        NestedRowMatrix<T>(dataType, rowCount, columnCount),
-      MatrixFormat.nestedColumn =>
-        NestedColumnMatrix<T>(dataType, rowCount, columnCount),
-      MatrixFormat.compressedRow =>
-        CompressedRowMatrix<T>(dataType, rowCount, columnCount),
-      MatrixFormat.compressedColumn =>
-        CompressedColumnMatrix<T>(dataType, rowCount, columnCount),
-      MatrixFormat.coordinateList =>
-        CoordinateListMatrix<T>(dataType, rowCount, columnCount),
+      MatrixFormat.rowMajor => RowMajorMatrix<T>(
+        dataType,
+        rowCount,
+        columnCount,
+      ),
+      MatrixFormat.columnMajor => ColumnMajorMatrix<T>(
+        dataType,
+        rowCount,
+        columnCount,
+      ),
+      MatrixFormat.nestedRow => NestedRowMatrix<T>(
+        dataType,
+        rowCount,
+        columnCount,
+      ),
+      MatrixFormat.nestedColumn => NestedColumnMatrix<T>(
+        dataType,
+        rowCount,
+        columnCount,
+      ),
+      MatrixFormat.compressedRow => CompressedRowMatrix<T>(
+        dataType,
+        rowCount,
+        columnCount,
+      ),
+      MatrixFormat.compressedColumn => CompressedColumnMatrix<T>(
+        dataType,
+        rowCount,
+        columnCount,
+      ),
+      MatrixFormat.coordinateList => CoordinateListMatrix<T>(
+        dataType,
+        rowCount,
+        columnCount,
+      ),
       MatrixFormat.keyed => KeyedMatrix<T>(dataType, rowCount, columnCount),
-      MatrixFormat.diagonal =>
-        DiagonalMatrix<T>(dataType, rowCount, columnCount),
+      MatrixFormat.diagonal => DiagonalMatrix<T>(
+        dataType,
+        rowCount,
+        columnCount,
+      ),
       MatrixFormat.tensor => TensorMatrix<T>(dataType, rowCount, columnCount),
     };
   }
 
   /// Returns the horizontal concatenation of [matrices].
   factory Matrix.concatHorizontal(
-      DataType<T> dataType, Iterable<Matrix<T>> matrices,
-      {MatrixFormat? format}) {
+    DataType<T> dataType,
+    Iterable<Matrix<T>> matrices, {
+    MatrixFormat? format,
+  }) {
     if (matrices.isEmpty) {
       throw ArgumentError.value(
-          matrices, 'matrices', 'Expected at least 1 matrix.');
+        matrices,
+        'matrices',
+        'Expected at least 1 matrix.',
+      );
     }
-    final result = matrices.length == 1
-        ? matrices.first
-        : ConcatHorizontalMatrix<T>(dataType, matrices.toList(growable: false));
+    final result =
+        matrices.length == 1
+            ? matrices.first
+            : ConcatHorizontalMatrix<T>(
+              dataType,
+              matrices.toList(growable: false),
+            );
     return format == null ? result : result.toMatrix(format: format);
   }
 
   /// Returns the vertical concatenation of [matrices].
   factory Matrix.concatVertical(
-      DataType<T> dataType, Iterable<Matrix<T>> matrices,
-      {MatrixFormat? format}) {
+    DataType<T> dataType,
+    Iterable<Matrix<T>> matrices, {
+    MatrixFormat? format,
+  }) {
     if (matrices.isEmpty) {
       throw ArgumentError.value(
-          matrices, 'matrices', 'Expected at least 1 matrix.');
+        matrices,
+        'matrices',
+        'Expected at least 1 matrix.',
+      );
     }
-    final result = matrices.length == 1
-        ? matrices.first
-        : ConcatVerticalMatrix<T>(dataType, matrices.toList(growable: false));
+    final result =
+        matrices.length == 1
+            ? matrices.first
+            : ConcatVerticalMatrix<T>(
+              dataType,
+              matrices.toList(growable: false),
+            );
     return format == null ? result : result.toMatrix(format: format);
   }
 
@@ -86,10 +132,19 @@ abstract mixin class Matrix<T> implements Storage {
   ///
   /// If [format] is specified the resulting matrix is mutable, otherwise this
   /// is a read-only view.
-  factory Matrix.constant(DataType<T> dataType, int rowCount, int columnCount,
-      {T? value, MatrixFormat? format}) {
+  factory Matrix.constant(
+    DataType<T> dataType,
+    int rowCount,
+    int columnCount, {
+    T? value,
+    MatrixFormat? format,
+  }) {
     final result = ConstantMatrix<T>(
-        dataType, rowCount, columnCount, value ?? dataType.defaultValue);
+      dataType,
+      rowCount,
+      columnCount,
+      value ?? dataType.defaultValue,
+    );
     return format == null ? result : result.toMatrix(format: format);
   }
 
@@ -97,11 +152,19 @@ abstract mixin class Matrix<T> implements Storage {
   ///
   /// If [format] is specified the resulting matrix is mutable, otherwise this
   /// is a read-only view.
-  factory Matrix.generate(DataType<T> dataType, int rowCount, int columnCount,
-      MatrixGeneratorCallback<T> callback,
-      {MatrixFormat? format}) {
-    final result =
-        GeneratedMatrix<T>(dataType, rowCount, columnCount, callback);
+  factory Matrix.generate(
+    DataType<T> dataType,
+    int rowCount,
+    int columnCount,
+    MatrixGeneratorCallback<T> callback, {
+    MatrixFormat? format,
+  }) {
+    final result = GeneratedMatrix<T>(
+      dataType,
+      rowCount,
+      columnCount,
+      callback,
+    );
     return format == null ? result : result.toMatrix(format: format);
   }
 
@@ -109,10 +172,19 @@ abstract mixin class Matrix<T> implements Storage {
   ///
   /// If [format] is specified the resulting matrix is mutable, otherwise this
   /// is a read-only view.
-  factory Matrix.identity(DataType<T> dataType, int rowCount, int columnCount,
-      {T? value, MatrixFormat? format}) {
-    final result = IdentityMatrix<T>(dataType, rowCount, columnCount,
-        value ?? dataType.field.multiplicativeIdentity);
+  factory Matrix.identity(
+    DataType<T> dataType,
+    int rowCount,
+    int columnCount, {
+    T? value,
+    MatrixFormat? format,
+  }) {
+    final result = IdentityMatrix<T>(
+      dataType,
+      rowCount,
+      columnCount,
+      value ?? dataType.field.multiplicativeIdentity,
+    );
     return format == null ? result : result.toMatrix(format: format);
   }
 
@@ -122,14 +194,24 @@ abstract mixin class Matrix<T> implements Storage {
   /// If [format] is specified the resulting matrix is mutable, otherwise this
   /// is a read-only view.
   factory Matrix.vandermonde(
-      DataType<T> dataType, Vector<T> data, int columnCount,
-      {MatrixFormat? format}) {
+    DataType<T> dataType,
+    Vector<T> data,
+    int columnCount, {
+    MatrixFormat? format,
+  }) {
     final pow = dataType.field.pow;
-    final exponents =
-        Vector<T>.generate(dataType, columnCount, (i) => dataType.cast(i));
+    final exponents = Vector<T>.generate(
+      dataType,
+      columnCount,
+      (i) => dataType.cast(i),
+    );
     return Matrix.generate(
-        dataType, data.count, columnCount, (r, c) => pow(data[r], exponents[c]),
-        format: format);
+      dataType,
+      data.count,
+      columnCount,
+      (r, c) => pow(data[r], exponents[c]),
+      format: format,
+    );
   }
 
   /// Constructs a matrix from a nested list of rows.
@@ -137,16 +219,26 @@ abstract mixin class Matrix<T> implements Storage {
   /// If [format] is specified, [source] is copied into a mutable matrix of the
   /// selected format; otherwise a view onto the possibly mutable [source] is
   /// provided.
-  factory Matrix.fromRows(DataType<T> dataType, List<List<T>> source,
-      {MatrixFormat? format}) {
+  factory Matrix.fromRows(
+    DataType<T> dataType,
+    List<List<T>> source, {
+    MatrixFormat? format,
+  }) {
     final rowCount = source.length;
     final columnCount = source.isEmpty ? 0 : source[0].length;
     if (!source.every((row) => row.length == columnCount)) {
       throw ArgumentError.value(
-          source, 'source', 'All rows must be equally sized.');
+        source,
+        'source',
+        'All rows must be equally sized.',
+      );
     }
-    final result =
-        NestedRowMatrix.fromList(dataType, rowCount, columnCount, source);
+    final result = NestedRowMatrix.fromList(
+      dataType,
+      rowCount,
+      columnCount,
+      source,
+    );
     return format == null ? result : result.toMatrix(format: format);
   }
 
@@ -156,14 +248,25 @@ abstract mixin class Matrix<T> implements Storage {
   /// selected format; otherwise a view onto the possibly mutable [source] is
   /// provided.
   factory Matrix.fromPackedRows(
-      DataType<T> dataType, int rowCount, int columnCount, List<T> source,
-      {MatrixFormat? format}) {
+    DataType<T> dataType,
+    int rowCount,
+    int columnCount,
+    List<T> source, {
+    MatrixFormat? format,
+  }) {
     if (rowCount * columnCount != source.length) {
       throw ArgumentError.value(
-          source, 'source', 'Row and column count do not match.');
+        source,
+        'source',
+        'Row and column count do not match.',
+      );
     }
-    final result =
-        RowMajorMatrix.fromList(dataType, rowCount, columnCount, source);
+    final result = RowMajorMatrix.fromList(
+      dataType,
+      rowCount,
+      columnCount,
+      source,
+    );
     return format == null ? result : result.toMatrix(format: format);
   }
 
@@ -172,16 +275,26 @@ abstract mixin class Matrix<T> implements Storage {
   /// If [format] is specified, [source] is copied into a mutable matrix of the
   /// selected format; otherwise a view onto the possibly mutable [source] is
   /// provided.
-  factory Matrix.fromColumns(DataType<T> dataType, List<List<T>> source,
-      {MatrixFormat? format}) {
+  factory Matrix.fromColumns(
+    DataType<T> dataType,
+    List<List<T>> source, {
+    MatrixFormat? format,
+  }) {
     final rowCount = source.isEmpty ? 0 : source[0].length;
     final columnCount = source.length;
     if (!source.every((column) => column.length == rowCount)) {
       throw ArgumentError.value(
-          source, 'source', 'All columns must be equally sized.');
+        source,
+        'source',
+        'All columns must be equally sized.',
+      );
     }
-    final result =
-        NestedColumnMatrix.fromList(dataType, rowCount, columnCount, source);
+    final result = NestedColumnMatrix.fromList(
+      dataType,
+      rowCount,
+      columnCount,
+      source,
+    );
     return format == null ? result : result.toMatrix(format: format);
   }
 
@@ -191,14 +304,25 @@ abstract mixin class Matrix<T> implements Storage {
   /// selected format; otherwise a view onto the possibly mutable [source] is
   /// provided.
   factory Matrix.fromPackedColumns(
-      DataType<T> dataType, int rowCount, int columnCount, List<T> source,
-      {MatrixFormat? format}) {
+    DataType<T> dataType,
+    int rowCount,
+    int columnCount,
+    List<T> source, {
+    MatrixFormat? format,
+  }) {
     if (rowCount * columnCount != source.length) {
       throw ArgumentError.value(
-          source, 'source', 'Row and column count do not match.');
+        source,
+        'source',
+        'Row and column count do not match.',
+      );
     }
-    final result =
-        ColumnMajorMatrix.fromList(dataType, rowCount, columnCount, source);
+    final result = ColumnMajorMatrix.fromList(
+      dataType,
+      rowCount,
+      columnCount,
+      source,
+    );
     return format == null ? result : result.toMatrix(format: format);
   }
 
@@ -222,30 +346,36 @@ abstract mixin class Matrix<T> implements Storage {
   /// into rows and columns respectively. By default rows are separated by
   /// newlines, and columns by one or more whitespaces. The last row trimmed
   /// if the input is concluded with the row separator.
-  factory Matrix.fromString(DataType<T> dataType, String source,
-      {T Function(String)? converter,
-      Pattern? rowSplitter,
-      Pattern? columnSplitter,
-      MatrixFormat? format}) {
+  factory Matrix.fromString(
+    DataType<T> dataType,
+    String source, {
+    T Function(String)? converter,
+    Pattern? rowSplitter,
+    Pattern? columnSplitter,
+    MatrixFormat? format,
+  }) {
     final converter_ = converter ?? dataType.cast;
     final rowSplitter_ = rowSplitter ?? '\n';
     final columnSplitter_ = columnSplitter ?? RegExp(r'\s+');
     return Matrix<T>.fromRows(
-        dataType,
-        source
-            .split(rowSplitter_)
-            .also((rows) {
-              if (rows.isNotEmpty && rows.last.isEmpty) {
-                rows.removeLast();
-              }
-              return rows;
-            })
-            .map((row) => row
+      dataType,
+      source
+          .split(rowSplitter_)
+          .also((rows) {
+            if (rows.isNotEmpty && rows.last.isEmpty) {
+              rows.removeLast();
+            }
+            return rows;
+          })
+          .map(
+            (row) => row
                 .split(columnSplitter_)
                 .map(converter_)
-                .toList(growable: false))
-            .toList(growable: false),
-        format: format);
+                .toList(growable: false),
+          )
+          .toList(growable: false),
+      format: format,
+    );
   }
 
   /// Returns the data type of this matrix.
@@ -303,13 +433,15 @@ abstract mixin class Matrix<T> implements Storage {
   /// Returns the target matrix with all elements of this matrix copied into it.
   Matrix<T> copyInto(Matrix<T> target) {
     assert(
-        rowCount == target.rowCount,
-        'Row count of this matrix ($rowCount) and the target matrix '
-        '(${target.rowCount}) must match.');
+      rowCount == target.rowCount,
+      'Row count of this matrix ($rowCount) and the target matrix '
+      '(${target.rowCount}) must match.',
+    );
     assert(
-        colCount == target.colCount,
-        'Column count of this matrix ($colCount) and the target matrix '
-        '(${target.colCount}) must match.');
+      colCount == target.colCount,
+      'Column count of this matrix ($colCount) and the target matrix '
+      '(${target.colCount}) must match.',
+    );
     if (this != target) {
       for (var r = 0; r < rowCount; r++) {
         for (var c = 0; c < colCount; c++) {
@@ -360,30 +492,37 @@ abstract mixin class Matrix<T> implements Storage {
         buffer.write(verticalSeparator);
       }
       if (limit && leadingItems <= r && r < rowCount - trailingItems) {
-        final ellipsesVector =
-            Vector.constant(DataType.string, colCount, value: verticalEllipses);
-        buffer.write(ellipsesVector.format(
-          valuePrinter: ellipsesPrinter,
-          paddingPrinter: paddingPrinter,
-          ellipsesPrinter: ellipsesPrinter,
-          limit: limit,
-          leadingItems: leadingItems,
-          trailingItems: trailingItems,
-          separator: horizontalSeparator,
-          ellipses: diagonalEllipses,
-        ));
+        final ellipsesVector = Vector.constant(
+          DataType.string,
+          colCount,
+          value: verticalEllipses,
+        );
+        buffer.write(
+          ellipsesVector.format(
+            valuePrinter: ellipsesPrinter,
+            paddingPrinter: paddingPrinter,
+            ellipsesPrinter: ellipsesPrinter,
+            limit: limit,
+            leadingItems: leadingItems,
+            trailingItems: trailingItems,
+            separator: horizontalSeparator,
+            ellipses: diagonalEllipses,
+          ),
+        );
         r = rowCount - trailingItems - 1;
       } else {
-        buffer.write(rowUnchecked(r).format(
-          valuePrinter: valuePrinter,
-          paddingPrinter: paddingPrinter,
-          ellipsesPrinter: ellipsesPrinter,
-          limit: limit,
-          leadingItems: leadingItems,
-          trailingItems: trailingItems,
-          separator: horizontalSeparator,
-          ellipses: horizontalEllipses,
-        ));
+        buffer.write(
+          rowUnchecked(r).format(
+            valuePrinter: valuePrinter,
+            paddingPrinter: paddingPrinter,
+            ellipsesPrinter: ellipsesPrinter,
+            limit: limit,
+            leadingItems: leadingItems,
+            trailingItems: trailingItems,
+            separator: horizontalSeparator,
+            ellipses: horizontalEllipses,
+          ),
+        );
       }
     }
     return buffer.toString();
@@ -391,7 +530,8 @@ abstract mixin class Matrix<T> implements Storage {
 
   /// Returns the string representation of this matrix.
   @override
-  String toString() => '$runtimeType('
+  String toString() =>
+      '$runtimeType('
       'dataType: ${dataType.name}, '
       'rowCount: $rowCount, '
       'columnCount: $colCount):\n'

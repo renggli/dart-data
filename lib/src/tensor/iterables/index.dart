@@ -19,11 +19,11 @@ class IndexIterable extends IterableBase<int> {
 /// [Iterator] over the indices of a [Layout].
 class IndexIterator implements Iterator<int> {
   IndexIterator(Layout layout)
-      : rank = layout.rank,
-        shape = layout.shape,
-        strides = layout.strides,
-        indices = DataType.integer.newList(layout.rank, fillValue: 0),
-        current = layout.offset - layout.strides.last {
+    : rank = layout.rank,
+      shape = layout.shape,
+      strides = layout.strides,
+      indices = DataType.integer.newList(layout.rank, fillValue: 0),
+      current = layout.offset - layout.strides.last {
     indices.last = -1;
   }
 

@@ -8,6 +8,8 @@ extension LerpMatrixExtension<T> on Matrix<T> {
   Matrix<T> lerp(Matrix<T> other, num t) {
     final add = dataType.field.add, scale = dataType.field.scale;
     return binaryOperation(
-        other, (a, b) => add(scale(a, 1.0 - t), scale(b, t)));
+      other,
+      (a, b) => add(scale(a, 1.0 - t), scale(b, t)),
+    );
   }
 }

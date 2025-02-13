@@ -32,7 +32,7 @@ class FlippedVerticalMatrix<T> with Matrix<T> {
 extension FlippedVerticalMatrixExtension<T> on Matrix<T> {
   /// Returns a mutable view onto the vertically flipped matrix.
   Matrix<T> get flippedVertical => switch (this) {
-        FlippedVerticalMatrix<T>(matrix: final matrix) => matrix,
-        _ => FlippedVerticalMatrix<T>(this),
-      };
+    FlippedVerticalMatrix<T>(matrix: final matrix) => matrix,
+    _ => FlippedVerticalMatrix<T>(this),
+  };
 }

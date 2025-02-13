@@ -7,10 +7,11 @@ import '../matrix.dart';
 class MatrixVectorMultiplicationVector<T>
     with Vector<T>, UnmodifiableVectorMixin<T> {
   MatrixVectorMultiplicationVector(this.dataType, this.matrix, this.vector)
-      : assert(
-            matrix.colCount == vector.count,
-            'Expected a vector with ${matrix.colCount} elements, '
-            'but got one with ${vector.count}.');
+    : assert(
+        matrix.colCount == vector.count,
+        'Expected a vector with ${matrix.colCount} elements, '
+        'but got one with ${vector.count}.',
+      );
 
   final Matrix<T> matrix;
   final Vector<T> vector;
@@ -31,10 +32,7 @@ class MatrixVectorMultiplicationVector<T>
     for (var c = 0; c < matrix.colCount; c++) {
       result = add(
         result,
-        mul(
-          matrix.getUnchecked(index, c),
-          vector.getUnchecked(c),
-        ),
+        mul(matrix.getUnchecked(index, c), vector.getUnchecked(c)),
       );
     }
     return result;
@@ -45,5 +43,8 @@ extension MatrixVectorMultiplicationVectorExtension<T> on Matrix<T> {
   /// Returns a view of this [Matrix] multiplied with [other].
   Vector<T> mulVector(Vector<T> other, {DataType<T>? dataType}) =>
       MatrixVectorMultiplicationVector<T>(
-          dataType ?? this.dataType, this, other);
+        dataType ?? this.dataType,
+        this,
+        other,
+      );
 }

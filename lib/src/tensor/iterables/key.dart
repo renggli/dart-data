@@ -19,9 +19,9 @@ class KeyIterable extends IterableBase<List<int>> {
 /// [Iterator] over the keys of a [Layout].
 class KeyIterator implements Iterator<List<int>> {
   KeyIterator(Layout layout)
-      : rank = layout.rank,
-        shape = layout.shape,
-        current = DataType.integer.newList(layout.rank, fillValue: 0) {
+    : rank = layout.rank,
+      shape = layout.shape,
+      current = DataType.integer.newList(layout.rank, fillValue: 0) {
     current.last = -1;
   }
 

@@ -8,14 +8,16 @@ import '../mixin/unmodifiable_matrix.dart';
 /// Read-only element-wise binary operation between two matrices.
 class BinaryOperationMatrix<T> with Matrix<T>, UnmodifiableMatrixMixin<T> {
   BinaryOperationMatrix(this.dataType, this.first, this.second, this.operation)
-      : assert(
-            first.rowCount == second.rowCount,
-            'Row count of first (${first.rowCount}) and second '
-            '(${second.rowCount}) operand must match.'),
-        assert(
-            first.colCount == second.colCount,
-            'Column count of first (${first.colCount}) and second '
-            '(${second.colCount}) operand must match.');
+    : assert(
+        first.rowCount == second.rowCount,
+        'Row count of first (${first.rowCount}) and second '
+        '(${second.rowCount}) operand must match.',
+      ),
+      assert(
+        first.colCount == second.colCount,
+        'Column count of first (${first.colCount}) and second '
+        '(${second.colCount}) operand must match.',
+      );
 
   final Matrix<T> first;
   final Matrix<T> second;
@@ -40,8 +42,14 @@ class BinaryOperationMatrix<T> with Matrix<T>, UnmodifiableMatrixMixin<T> {
 
 extension BinaryOperationMatrixExtension<T> on Matrix<T> {
   /// Returns a view of an unary operation.
-  Matrix<T> binaryOperation(Matrix<T> other, Map2<T, T, T> operation,
-          {DataType<T>? dataType}) =>
-      BinaryOperationMatrix<T>(
-          dataType ?? this.dataType, this, other, operation);
+  Matrix<T> binaryOperation(
+    Matrix<T> other,
+    Map2<T, T, T> operation, {
+    DataType<T>? dataType,
+  }) => BinaryOperationMatrix<T>(
+    dataType ?? this.dataType,
+    this,
+    other,
+    operation,
+  );
 }
