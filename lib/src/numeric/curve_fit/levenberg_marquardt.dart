@@ -124,8 +124,9 @@ class LevenbergMarquardt extends CurveFit {
         'Expected ${xs.count} values.',
       );
     }
-    final squaredWeights =
-        weights.map((i, v) => v * v, DataType.float).toVector();
+    final squaredWeights = weights
+        .map((i, v) => v * v, DataType.float)
+        .toVector();
 
     final parameters = initialValues.toVector();
     var error = _errorCalculation(

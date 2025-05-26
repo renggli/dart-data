@@ -24,14 +24,9 @@ class BooleanDataType extends DataType<bool> {
     bool? fillValue,
     bool readonly = false,
   }) {
-    final result =
-        generate != null
-            ? BitList.generate(length, generate, growable: false)
-            : BitList.filled(
-              length,
-              fillValue ?? defaultValue,
-              growable: false,
-            );
+    final result = generate != null
+        ? BitList.generate(length, generate, growable: false)
+        : BitList.filled(length, fillValue ?? defaultValue, growable: false);
     return readonly ? UnmodifiableListView(result) : result;
   }
 

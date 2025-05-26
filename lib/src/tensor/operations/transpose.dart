@@ -31,10 +31,9 @@ extension TransposeTensorExtension<T> on Tensor<T> {
 extension TransposeLayoutExtension on Layout {
   /// Returns a layout with the transposed axis.
   Layout transpose({Iterable<int>? axes}) {
-    final axes_ =
-        axes != null
-            ? axes.map((index) => checkIndex(index, rank, 'axes')).toList()
-            : IntegerRange.length(rank).reversed;
+    final axes_ = axes != null
+        ? axes.map((index) => checkIndex(index, rank, 'axes')).toList()
+        : IntegerRange.length(rank).reversed;
     final shape_ = utils.toIndices(axes_.map((each) => shape[each]));
     final strides_ = utils.toIndices(axes_.map((each) => strides[each]));
     return Layout.internal(

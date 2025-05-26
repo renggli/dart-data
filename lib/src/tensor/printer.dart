@@ -35,20 +35,18 @@ class TensorPrinter<T> extends Printer<Tensor<T>> {
   final String verticalEllipses;
 
   @override
-  void printOn(Tensor<T> object, StringBuffer buffer) =>
-      object.length == 0
-          ? buffer.write(empty)
-          : _printOn(object, buffer, offset: object.layout.offset, axis: 0);
+  void printOn(Tensor<T> object, StringBuffer buffer) => object.length == 0
+      ? buffer.write(empty)
+      : _printOn(object, buffer, offset: object.layout.offset, axis: 0);
 
   void _printOn(
     Tensor<T> tensor,
     StringBuffer buffer, {
     required int axis,
     required int offset,
-  }) =>
-      axis == tensor.rank
-          ? _printValueOn(tensor, buffer, offset: offset)
-          : _printAxisOn(tensor, buffer, offset: offset, axis: axis);
+  }) => axis == tensor.rank
+      ? _printValueOn(tensor, buffer, offset: offset)
+      : _printAxisOn(tensor, buffer, offset: offset, axis: axis);
 
   void _printAxisOn(
     Tensor<T> tensor,

@@ -56,8 +56,8 @@ dynamic isCloseTo(dynamic expected, {num epsilon = 1.0e-5}) {
     return expected.isEmpty
         ? isEmpty
         : orderedEquals(
-          expected.map((each) => isCloseTo(each, epsilon: epsilon)).toList(),
-        );
+            expected.map((each) => isCloseTo(each, epsilon: epsilon)).toList(),
+          );
   } else if (expected is Map) {
     return allOf([
       hasLength(expected.length),

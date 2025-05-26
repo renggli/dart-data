@@ -35,11 +35,10 @@ void testSamples<T extends num>(
     }
   } else {
     // Continuous distributions.
-    final buckets =
-        0.1
-            .to(1.0, step: 0.1)
-            .map((each) => distribution.inverseCumulativeProbability(each))
-            .toList();
+    final buckets = 0.1
+        .to(1.0, step: 0.1)
+        .map((each) => distribution.inverseCumulativeProbability(each))
+        .toList();
     final bucketCount = buckets.length + 1;
     for (final sample in samples) {
       for (var k = 0; k <= buckets.length; k++) {
@@ -206,17 +205,18 @@ void testDistribution<T extends num>(
   }
   test('sample', () {
     final random = Random(Object.hash('sample', distribution));
-    final samples =
-        0
-            .to(sampleCount)
-            .map((each) => distribution.sample(random: random))
-            .toList();
+    final samples = 0
+        .to(sampleCount)
+        .map((each) => distribution.sample(random: random))
+        .toList();
     testSamples(distribution, samples);
   });
   test('samples', () {
     final random = Random(Object.hash('samples', distribution));
-    final samples =
-        distribution.samples(random: random).take(sampleCount).toList();
+    final samples = distribution
+        .samples(random: random)
+        .take(sampleCount)
+        .toList();
     testSamples(distribution, samples);
   });
   test('equality', () {

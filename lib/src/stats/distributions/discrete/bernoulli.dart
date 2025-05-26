@@ -29,12 +29,11 @@ class BernoulliDistribution extends DiscreteDistribution {
   double get mean => p;
 
   @override
-  double get median =>
-      p < 0.5
-          ? 0
-          : p > 0.5
-          ? 1
-          : 0.5;
+  double get median => p < 0.5
+      ? 0
+      : p > 0.5
+      ? 1
+      : 0.5;
 
   @override
   double get mode => p <= 0.5 ? 0 : 1;
@@ -49,20 +48,18 @@ class BernoulliDistribution extends DiscreteDistribution {
   double get kurtosisExcess => (1 - 6 * p * q) / (p * q);
 
   @override
-  double probability(int k) =>
-      k == 0
-          ? q
-          : k == 1
-          ? p
-          : 0;
+  double probability(int k) => k == 0
+      ? q
+      : k == 1
+      ? p
+      : 0;
 
   @override
-  double cumulativeProbability(int k) =>
-      k < 0
-          ? 0
-          : k < 1
-          ? q
-          : 1;
+  double cumulativeProbability(int k) => k < 0
+      ? 0
+      : k < 1
+      ? q
+      : 1;
 
   @override
   int sample({Random? random}) {
@@ -78,8 +75,7 @@ class BernoulliDistribution extends DiscreteDistribution {
   int get hashCode => Object.hash(BernoulliDistribution, p);
 
   @override
-  ObjectPrinter get toStringPrinter =>
-      super.toStringPrinter
-        ..addValue(p, name: 'p')
-        ..addValue(q, name: 'q');
+  ObjectPrinter get toStringPrinter => super.toStringPrinter
+    ..addValue(p, name: 'p')
+    ..addValue(q, name: 'q');
 }

@@ -2257,8 +2257,9 @@ void matrixTest(String name, MatrixFormat format) {
         expect(result, 15);
       });
       test('det', () {
-        final result =
-            matrix3.range(0, matrix3.rowCount, 0, matrix3.rowCount).det;
+        final result = matrix3
+            .range(0, matrix3.rowCount, 0, matrix3.rowCount)
+            .det;
         expect(result, isCloseTo(0.0, epsilon: epsilon));
       });
       group('QR Decomposition', () {
@@ -2302,8 +2303,10 @@ void matrixTest(String name, MatrixFormat format) {
         Matrix<double> random(int rows, int cols, int seed) {
           const normal = NormalDistribution(0.0, 1.0);
           final random = Random(seed);
-          final values =
-              normal.samples(random: random).take(rows * cols).toList();
+          final values = normal
+              .samples(random: random)
+              .take(rows * cols)
+              .toList();
           final m = Matrix<double>.fromPackedColumns(
             DataType.float64,
             rows,

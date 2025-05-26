@@ -47,15 +47,14 @@ class GammaDistribution extends ContinuousDistribution {
   double get kurtosisExcess => 6 / shape;
 
   @override
-  double probability(double x) =>
-      x < 0
-          ? 0
-          : exp(
-            (shape - 1) * log(x) -
-                x / scale -
-                gammaLn(shape) -
-                shape * log(scale),
-          );
+  double probability(double x) => x < 0
+      ? 0
+      : exp(
+          (shape - 1) * log(x) -
+              x / scale -
+              gammaLn(shape) -
+              shape * log(scale),
+        );
 
   @override
   double cumulativeProbability(double x) =>
@@ -103,8 +102,7 @@ class GammaDistribution extends ContinuousDistribution {
   int get hashCode => Object.hash(GammaDistribution, shape, scale);
 
   @override
-  ObjectPrinter get toStringPrinter =>
-      super.toStringPrinter
-        ..addValue(shape, name: 'shape')
-        ..addValue(scale, name: 'scale');
+  ObjectPrinter get toStringPrinter => super.toStringPrinter
+    ..addValue(shape, name: 'shape')
+    ..addValue(scale, name: 'scale');
 }

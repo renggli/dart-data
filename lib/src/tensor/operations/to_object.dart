@@ -6,15 +6,14 @@ extension ToObjectTensorExtension<T> on Tensor<T> {
   ///
   /// Depending on its dimensionality this is a single value (rank = 0), a list
   /// of values (rank = 1), or a list of nested lists (rank > 1).
-  dynamic toObject({DataType<T?>? type}) =>
-      layout.length == 0
-          ? null
-          : _toObject(
-            this,
-            type: type ?? this.type,
-            axis: 0,
-            offset: layout.offset,
-          );
+  dynamic toObject({DataType<T?>? type}) => layout.length == 0
+      ? null
+      : _toObject(
+          this,
+          type: type ?? this.type,
+          axis: 0,
+          offset: layout.offset,
+        );
 }
 
 dynamic _toObject<T>(

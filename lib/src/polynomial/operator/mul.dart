@@ -126,12 +126,11 @@ void _fftMulPolynomial<T>(
     va[i] *= vb[i];
   }
   fft(va, inverse: true);
-  final cast =
-      result.dataType is DataType<int>
-          ? (Complex c) => c.real.round() as T
-          : result.dataType is DataType<num>
-          ? (Complex c) => c.real as T
-          : result.dataType.cast;
+  final cast = result.dataType is DataType<int>
+      ? (Complex c) => c.real.round() as T
+      : result.dataType is DataType<num>
+      ? (Complex c) => c.real as T
+      : result.dataType.cast;
   for (var i = a.degree + b.degree; i >= 0; i--) {
     result.setUnchecked(i, cast(va[i]));
   }

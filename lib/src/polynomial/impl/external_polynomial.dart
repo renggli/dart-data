@@ -30,10 +30,9 @@ class ExternalPolynomial<T> with Polynomial<T> {
   Set<Storage> get storage => {this};
 
   @override
-  T getUnchecked(int exponent) =>
-      exponent < coefficients.length
-          ? coefficients[exponent]
-          : dataType.defaultValue;
+  T getUnchecked(int exponent) => exponent < coefficients.length
+      ? coefficients[exponent]
+      : dataType.defaultValue;
 
   @override
   void setUnchecked(int exponent, T value) {

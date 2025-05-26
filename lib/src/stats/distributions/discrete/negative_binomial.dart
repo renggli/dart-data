@@ -74,9 +74,8 @@ class NegativeBinomialDistribution extends DiscreteDistribution {
   int get hashCode => Object.hash(NegativeBinomialDistribution, r, p);
 
   @override
-  ObjectPrinter get toStringPrinter =>
-      super.toStringPrinter
-        ..addValue(r, name: 'r')
-        ..addValue(p, name: 'p')
-        ..addValue(q, name: 'q');
+  ObjectPrinter get toStringPrinter => super.toStringPrinter
+    ..addValue(r, name: 'r')
+    ..addValue(p, name: 'p')
+    ..addValue(q, name: 'q');
 }

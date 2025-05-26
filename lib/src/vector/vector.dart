@@ -42,10 +42,9 @@ abstract mixin class Vector<T> implements Storage {
         'Expected at least 1 vector.',
       );
     }
-    final result =
-        vectors.length == 1
-            ? vectors.first
-            : ConcatVector<T>(dataType, vectors.toList(growable: false));
+    final result = vectors.length == 1
+        ? vectors.first
+        : ConcatVector<T>(dataType, vectors.toList(growable: false));
     return format == null ? result : result.toVector(format: format);
   }
 

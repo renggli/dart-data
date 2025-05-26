@@ -25,8 +25,7 @@ class UnmodifiablePolynomial<T>
 
 extension UnmodifiablePolynomialExtension<T> on Polynomial<T> {
   /// Returns a unmodifiable view of this polynomial.
-  Polynomial<T> get unmodifiable =>
-      this is UnmodifiablePolynomialMixin<T>
-          ? this
-          : UnmodifiablePolynomial<T>(this);
+  Polynomial<T> get unmodifiable => this is UnmodifiablePolynomialMixin<T>
+      ? this
+      : UnmodifiablePolynomial<T>(this);
 }

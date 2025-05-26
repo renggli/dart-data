@@ -16,16 +16,15 @@ double ibeta(num x, num a, num b) {
     return double.nan;
   }
   // Factor in front of the continued fraction.
-  final bt =
-      x == 0 || x == 1
-          ? 0.0
-          : exp(
-            gammaLn(a + b) -
-                gammaLn(a) -
-                gammaLn(b) +
-                a * log(x) +
-                b * log(1.0 - x),
-          );
+  final bt = x == 0 || x == 1
+      ? 0.0
+      : exp(
+          gammaLn(a + b) -
+              gammaLn(a) -
+              gammaLn(b) +
+              a * log(x) +
+              b * log(1.0 - x),
+        );
   if (x < (a + 1.0) / (a + b + 2.0)) {
     // Use continued fraction directly.
     return bt * betacf_(x, a, b) / a;

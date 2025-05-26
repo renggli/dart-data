@@ -30,11 +30,10 @@ class Jackknife<T> with ToStringPrinter {
   final double confidenceLevel;
 
   /// The resamples of the data.
-  late final List<List<T>> resamples =
-      samples
-          .indices()
-          .map((index) => _JackknifeResampling<T>(samples, index))
-          .toList();
+  late final List<List<T>> resamples = samples
+      .indices()
+      .map((index) => _JackknifeResampling<T>(samples, index))
+      .toList();
 
   /// The bias.
   late final double bias =
@@ -64,14 +63,13 @@ class Jackknife<T> with ToStringPrinter {
   late final _zScore = sqrt2 * erfInv(confidenceLevel);
 
   @override
-  ObjectPrinter get toStringPrinter =>
-      super.toStringPrinter
-        ..addValue(estimate, name: 'estimate')
-        ..addValue(bias, name: 'bias')
-        ..addValue(standardError, name: 'standardError')
-        ..addValue(lowerBound, name: 'lowerBound')
-        ..addValue(upperBound, name: 'upperBound')
-        ..addValue(confidenceLevel, name: 'confidenceLevel');
+  ObjectPrinter get toStringPrinter => super.toStringPrinter
+    ..addValue(estimate, name: 'estimate')
+    ..addValue(bias, name: 'bias')
+    ..addValue(standardError, name: 'standardError')
+    ..addValue(lowerBound, name: 'lowerBound')
+    ..addValue(upperBound, name: 'upperBound')
+    ..addValue(confidenceLevel, name: 'confidenceLevel');
 }
 
 /// A view of a Jackknife resampling of a [List].

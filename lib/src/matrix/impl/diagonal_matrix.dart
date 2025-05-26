@@ -43,10 +43,9 @@ class DiagonalMatrix<T> with Matrix<T> {
     final offset = row - col;
     final index = offset < 0 ? col + offset : col;
     _diagonals.putIfAbsent(offset, () {
-          final length = math.min(rowCount - offset, colCount + offset);
-          return Vector(dataType, length, format: _format);
-        })[index] =
-        value;
+      final length = math.min(rowCount - offset, colCount + offset);
+      return Vector(dataType, length, format: _format);
+    })[index] = value;
   }
 
   @override

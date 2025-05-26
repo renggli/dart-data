@@ -95,13 +95,9 @@ abstract mixin class Matrix<T> implements Storage {
         'Expected at least 1 matrix.',
       );
     }
-    final result =
-        matrices.length == 1
-            ? matrices.first
-            : ConcatHorizontalMatrix<T>(
-              dataType,
-              matrices.toList(growable: false),
-            );
+    final result = matrices.length == 1
+        ? matrices.first
+        : ConcatHorizontalMatrix<T>(dataType, matrices.toList(growable: false));
     return format == null ? result : result.toMatrix(format: format);
   }
 
@@ -118,13 +114,9 @@ abstract mixin class Matrix<T> implements Storage {
         'Expected at least 1 matrix.',
       );
     }
-    final result =
-        matrices.length == 1
-            ? matrices.first
-            : ConcatVerticalMatrix<T>(
-              dataType,
-              matrices.toList(growable: false),
-            );
+    final result = matrices.length == 1
+        ? matrices.first
+        : ConcatVerticalMatrix<T>(dataType, matrices.toList(growable: false));
     return format == null ? result : result.toMatrix(format: format);
   }
 

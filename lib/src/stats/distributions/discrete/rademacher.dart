@@ -39,12 +39,11 @@ class RademacherDistribution extends DiscreteDistribution {
   double probability(int k) => k == -1 || k == 1 ? 0.5 : 0;
 
   @override
-  double cumulativeProbability(int k) =>
-      k < -1
-          ? 0
-          : k < 1
-          ? 0.5
-          : 1;
+  double cumulativeProbability(int k) => k < -1
+      ? 0
+      : k < 1
+      ? 0.5
+      : 1;
 
   @override
   int sample({Random? random}) {

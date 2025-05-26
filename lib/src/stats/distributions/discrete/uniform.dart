@@ -48,12 +48,11 @@ class UniformDiscreteDistribution extends DiscreteDistribution {
   double probability(int k) => a <= k && k <= b ? 1 / n : 0;
 
   @override
-  double cumulativeProbability(int k) =>
-      k < a
-          ? 0
-          : k <= b
-          ? (k - a + 1) / n
-          : 1;
+  double cumulativeProbability(int k) => k < a
+      ? 0
+      : k <= b
+      ? (k - a + 1) / n
+      : 1;
 
   @override
   int sample({Random? random}) {
@@ -69,9 +68,8 @@ class UniformDiscreteDistribution extends DiscreteDistribution {
   int get hashCode => Object.hash(UniformDiscreteDistribution, a, b);
 
   @override
-  ObjectPrinter get toStringPrinter =>
-      super.toStringPrinter
-        ..addValue(a, name: 'a')
-        ..addValue(b, name: 'b')
-        ..addValue(n, name: 'n');
+  ObjectPrinter get toStringPrinter => super.toStringPrinter
+    ..addValue(a, name: 'a')
+    ..addValue(b, name: 'b')
+    ..addValue(n, name: 'n');
 }

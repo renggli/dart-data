@@ -22,10 +22,9 @@ Matrix<int> magic(int n) {
       DataType.int64,
       n,
       n,
-      (r, c) =>
-          ((r + 1) ~/ 2) % 2 == ((c + 1) ~/ 2) % 2
-              ? n * n - n * r - c
-              : n * r + c + 1,
+      (r, c) => ((r + 1) ~/ 2) % 2 == ((c + 1) ~/ 2) % 2
+          ? n * n - n * r - c
+          : n * r + c + 1,
     );
   } else {
     final R = Matrix(DataType.int64, n, n);

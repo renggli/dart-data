@@ -26,8 +26,7 @@ extension VectorListExtension<T> on Vector<T> {
   /// By default this is a fixed-size view: modifications to either the source
   /// vector or the resulting list are reflected in both. If [growable] is set,
   /// a copy of the underlying data is made.
-  List<T> toList({bool? growable}) =>
-      growable != null
-          ? VectorList<T>(this).toList(growable: growable)
-          : VectorList<T>(this);
+  List<T> toList({bool? growable}) => growable != null
+      ? VectorList<T>(this).toList(growable: growable)
+      : VectorList<T>(this);
 }

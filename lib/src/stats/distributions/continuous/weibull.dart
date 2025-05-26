@@ -52,13 +52,9 @@ class WeibullDistribution extends ContinuousDistribution {
   double get kurtosisExcess => throw UnimplementedError();
 
   @override
-  double probability(double x) =>
-      x < 0
-          ? 0
-          : shape /
-              scale *
-              pow(x / scale, shape - 1) *
-              exp(-pow(x / scale, shape));
+  double probability(double x) => x < 0
+      ? 0
+      : shape / scale * pow(x / scale, shape - 1) * exp(-pow(x / scale, shape));
 
   @override
   double cumulativeProbability(double x) =>
@@ -86,8 +82,7 @@ class WeibullDistribution extends ContinuousDistribution {
   int get hashCode => Object.hash(WeibullDistribution, scale, shape);
 
   @override
-  ObjectPrinter get toStringPrinter =>
-      super.toStringPrinter
-        ..addValue(scale, name: 'scale')
-        ..addValue(shape, name: 'shape');
+  ObjectPrinter get toStringPrinter => super.toStringPrinter
+    ..addValue(scale, name: 'scale')
+    ..addValue(shape, name: 'shape');
 }

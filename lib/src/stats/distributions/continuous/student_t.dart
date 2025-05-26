@@ -29,23 +29,21 @@ class StudentDistribution extends ContinuousDistribution {
   double get mode => 0;
 
   @override
-  double get variance =>
-      dof > 2
-          ? dof / (dof - 2)
-          : dof > 1
-          ? double.infinity
-          : double.nan;
+  double get variance => dof > 2
+      ? dof / (dof - 2)
+      : dof > 1
+      ? double.infinity
+      : double.nan;
 
   @override
   double get skewness => dof > 3 ? 0 : double.nan;
 
   @override
-  double get kurtosisExcess =>
-      dof > 4
-          ? 6 / (dof - 4)
-          : dof > 2
-          ? double.infinity
-          : double.nan;
+  double get kurtosisExcess => dof > 4
+      ? 6 / (dof - 4)
+      : dof > 2
+      ? double.infinity
+      : double.nan;
 
   @override
   double probability(double x) =>

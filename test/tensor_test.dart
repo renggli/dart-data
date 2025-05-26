@@ -187,15 +187,14 @@ void main() {
       );
     });
     test('equality', () {
-      final layouts =
-          [
-            value,
-            tensor2,
-            tensor2x3,
-            tensor2x2x2,
-            tensor2x3x4,
-            tensor2x3x4x5,
-          ].map((tensor) => tensor.layout).toList();
+      final layouts = [
+        value,
+        tensor2,
+        tensor2x3,
+        tensor2x2x2,
+        tensor2x3x4,
+        tensor2x3x4x5,
+      ].map((tensor) => tensor.layout).toList();
       for (final layout1 in layouts) {
         for (final layout2 in layouts) {
           if (identical(layout1, layout2)) {

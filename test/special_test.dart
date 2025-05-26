@@ -146,9 +146,10 @@ void main() {
       expect(gamma(101.0), closeTo(9.332621544394415e157, 1.0e150));
     });
     test('gammaLn', () {
-      for (final tuple in gammaTuples
-          .map((tuple) => tuple.withSecond(math.log(tuple.second)))
-          .followedBy(logGammaTuples)) {
+      for (final tuple
+          in gammaTuples
+              .map((tuple) => tuple.withSecond(math.log(tuple.second)))
+              .followedBy(logGammaTuples)) {
         expect(
           gammaLn(tuple.first),
           tuple.first <= 0 ? isNaN : isCloseTo(tuple.second),

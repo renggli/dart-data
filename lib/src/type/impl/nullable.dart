@@ -16,10 +16,9 @@ class NullableDataType<T> extends DataType<T?> {
 
   final DataType<T> delegate;
   final bool nullsFirst;
-  late final Comparator<T?> _comparator =
-      nullsFirst
-          ? delegate.comparator.nullsFirst
-          : delegate.comparator.nullsLast;
+  late final Comparator<T?> _comparator = nullsFirst
+      ? delegate.comparator.nullsFirst
+      : delegate.comparator.nullsLast;
 
   @override
   String get name => '${delegate.name}.nullable';

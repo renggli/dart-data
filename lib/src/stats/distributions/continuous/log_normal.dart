@@ -49,15 +49,14 @@ class LogNormalDistribution extends ContinuousDistribution {
       6;
 
   @override
-  double probability(double x) =>
-      x <= 0
-          ? 0
-          : exp(
-            -log(x) -
-                0.5 * log(2 * pi) -
-                log(sigma) -
-                pow(log(x) - mu, 2) / (2 * sigma * sigma),
-          );
+  double probability(double x) => x <= 0
+      ? 0
+      : exp(
+          -log(x) -
+              0.5 * log(2 * pi) -
+              log(sigma) -
+              pow(log(x) - mu, 2) / (2 * sigma * sigma),
+        );
 
   @override
   double cumulativeProbability(double x) =>
@@ -88,8 +87,7 @@ class LogNormalDistribution extends ContinuousDistribution {
   int get hashCode => Object.hash(LogNormalDistribution, mu, sigma);
 
   @override
-  ObjectPrinter get toStringPrinter =>
-      super.toStringPrinter
-        ..addValue(mu, name: 'mu')
-        ..addValue(sigma, name: 'sigma');
+  ObjectPrinter get toStringPrinter => super.toStringPrinter
+    ..addValue(mu, name: 'mu')
+    ..addValue(sigma, name: 'sigma');
 }

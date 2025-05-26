@@ -26,8 +26,7 @@ extension PolynomialListExtension<T> on Polynomial<T> {
   /// By default this is a fixed-size view: modifications to either the source
   /// polynomial or the resulting list are reflected in both. If [growable] is set,
   /// a copy of the underlying data is made.
-  List<T> toList({bool? growable}) =>
-      growable != null
-          ? PolynomialList<T>(this).toList(growable: growable)
-          : PolynomialList<T>(this);
+  List<T> toList({bool? growable}) => growable != null
+      ? PolynomialList<T>(this).toList(growable: growable)
+      : PolynomialList<T>(this);
 }

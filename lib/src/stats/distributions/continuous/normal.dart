@@ -93,8 +93,7 @@ class NormalDistribution extends ContinuousDistribution {
   int get hashCode => Object.hash(NormalDistribution, mu, sigma);
 
   @override
-  ObjectPrinter get toStringPrinter =>
-      super.toStringPrinter
-        ..addValue(mu, name: 'mu')
-        ..addValue(sigma, name: 'sigma');
+  ObjectPrinter get toStringPrinter => super.toStringPrinter
+    ..addValue(mu, name: 'mu')
+    ..addValue(sigma, name: 'sigma');
 }

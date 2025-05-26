@@ -74,9 +74,8 @@ class BinomialDistribution extends DiscreteDistribution {
   int get hashCode => Object.hash(BinomialDistribution, n, p);
 
   @override
-  ObjectPrinter get toStringPrinter =>
-      super.toStringPrinter
-        ..addValue(n, name: 'n')
-        ..addValue(p, name: 'p')
-        ..addValue(q, name: 'q');
+  ObjectPrinter get toStringPrinter => super.toStringPrinter
+    ..addValue(n, name: 'n')
+    ..addValue(p, name: 'p')
+    ..addValue(q, name: 'q');
 }

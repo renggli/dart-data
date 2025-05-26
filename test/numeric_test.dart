@@ -92,7 +92,8 @@ void main() {
       final bennet5 = ParametrizedUnaryFunction<double>.positional(
         DataType.float,
         3,
-        (double a, double b, double c) => (double x) => a * pow(x + b, -1 / c),
+        (double a, double b, double c) =>
+            (double x) => a * pow(x + b, -1 / c),
       );
 
       final sinFunction = ParametrizedUnaryFunction<double>.named(
@@ -105,7 +106,8 @@ void main() {
       final sigmodid = ParametrizedUnaryFunction<double>.positional(
         DataType.float,
         3,
-        (double a, double b, double c) => (double x) => a / (b + exp(-x * c)),
+        (double a, double b, double c) =>
+            (double x) => a / (b + exp(-x * c)),
       );
 
       final lorentzians = ParametrizedUnaryFunction<double>.vector(
@@ -219,8 +221,14 @@ void main() {
         LevenbergMarquardt(
           lorentzians,
           initialValues: [1.1, 0.15, 0.29, 4.05, 0.17, 0.3].toVector(),
-          gradientDifferences:
-              [0.01, 0.0001, 0.0001, 0.01, 0.0001, 0.0].toVector(),
+          gradientDifferences: [
+            0.01,
+            0.0001,
+            0.0001,
+            0.01,
+            0.0001,
+            0.0,
+          ].toVector(),
           damping: 0.01,
           maxIterations: 500,
         ),
@@ -264,32 +272,30 @@ void main() {
           damping: 0.00001,
           maxIterations: 200,
         ),
-        xs:
-            [
-              9.22e-12,
-              5.53e-11,
-              3.32e-10,
-              1.99e-9,
-              1.19e-8,
-              7.17e-8,
-              4.3e-7,
-              0.00000258,
-              0.0000155,
-              0.0000929,
-            ].toVector(),
-        ys:
-            [
-              7.807,
-              -3.74,
-              21.119,
-              2.382,
-              4.269,
-              41.57,
-              73.401,
-              98.535,
-              97.059,
-              92.147,
-            ].toVector(),
+        xs: [
+          9.22e-12,
+          5.53e-11,
+          3.32e-10,
+          1.99e-9,
+          1.19e-8,
+          7.17e-8,
+          4.3e-7,
+          0.00000258,
+          0.0000155,
+          0.0000929,
+        ].toVector(),
+        ys: [
+          7.807,
+          -3.74,
+          21.119,
+          2.382,
+          4.269,
+          41.57,
+          73.401,
+          98.535,
+          97.059,
+          92.147,
+        ].toVector(),
         // Assertions
         expectedIterations: 200,
         expectedParameters: [-16.7697, 43.4549, 1018.8938, -4.3514],
@@ -298,42 +304,40 @@ void main() {
     });
     group('polynomial regression', () {
       group('american women', () {
-        final height =
-            [
-              1.47,
-              1.50,
-              1.52,
-              1.55,
-              1.57,
-              1.60,
-              1.63,
-              1.65,
-              1.68,
-              1.70,
-              1.73,
-              1.75,
-              1.78,
-              1.80,
-              1.83,
-            ].toVector();
-        final mass =
-            [
-              52.21,
-              53.12,
-              54.48,
-              55.84,
-              57.20,
-              58.57,
-              59.93,
-              61.29,
-              63.11,
-              64.47,
-              66.28,
-              68.10,
-              69.92,
-              72.19,
-              74.46,
-            ].toVector();
+        final height = [
+          1.47,
+          1.50,
+          1.52,
+          1.55,
+          1.57,
+          1.60,
+          1.63,
+          1.65,
+          1.68,
+          1.70,
+          1.73,
+          1.75,
+          1.78,
+          1.80,
+          1.83,
+        ].toVector();
+        final mass = [
+          52.21,
+          53.12,
+          54.48,
+          55.84,
+          57.20,
+          58.57,
+          59.93,
+          61.29,
+          63.11,
+          64.47,
+          66.28,
+          68.10,
+          69.92,
+          72.19,
+          74.46,
+        ].toVector();
         test('constant', () {
           final fitter = PolynomialRegression(degree: 0);
           final result = fitter.fit(xs: height, ys: mass);
@@ -623,7 +627,8 @@ void main() {
       final function = ParametrizedUnaryFunction<String>.list(
         DataType.string,
         3,
-        (params) => (x) => 'f_${params[0]},${params[1]},${params[2]}($x)',
+        (params) =>
+            (x) => 'f_${params[0]},${params[1]},${params[2]}($x)',
       );
       expect(function.dataType, DataType.string);
       expect(function.count, 3);
@@ -643,7 +648,8 @@ void main() {
       final function = ParametrizedUnaryFunction<String>.map(
         DataType.string,
         [#a, #b, #c],
-        (params) => (x) => 'f_${params[#a]},${params[#b]},${params[#c]}($x)',
+        (params) =>
+            (x) => 'f_${params[#a]},${params[#b]},${params[#c]}($x)',
       );
       expect(function.dataType, DataType.string);
       expect(function.count, 3);
@@ -682,7 +688,8 @@ void main() {
       final function = ParametrizedUnaryFunction<String>.positional(
         DataType.string,
         3,
-        (String a, String b, String c) => (String x) => 'f_$a,$b,$c($x)',
+        (String a, String b, String c) =>
+            (String x) => 'f_$a,$b,$c($x)',
       );
       expect(function.dataType, DataType.string);
       expect(function.count, 3);
@@ -702,7 +709,8 @@ void main() {
       final function = ParametrizedUnaryFunction<String>.vector(
         DataType.string,
         3,
-        (params) => (x) => 'f_${params[0]},${params[1]},${params[2]}($x)',
+        (params) =>
+            (x) => 'f_${params[0]},${params[1]},${params[2]}($x)',
       );
       expect(function.dataType, DataType.string);
       expect(function.count, 3);
@@ -721,7 +729,8 @@ void main() {
       final function = ParametrizedUnaryFunction<int>.list(
         DataType.int32,
         2,
-        (params) => (x) => fail('not tested'),
+        (params) =>
+            (x) => fail('not tested'),
       );
       expect(
         function.toVector(null, defaultParam: 7),
@@ -1059,10 +1068,9 @@ void main() {
       });
     });
     group('poles', () {
-      double f(double x) =>
-          x.roundToDouble() == x && x.round().isEven
-              ? throw ArgumentError('Pole was evaluated at $x.')
-              : 1.0;
+      double f(double x) => x.roundToDouble() == x && x.round().isEven
+          ? throw ArgumentError('Pole was evaluated at $x.')
+          : 1.0;
       test('at lower bound', () {
         expect(integrate(f, -1, 0, poles: [0]), isCloseTo(1));
       });

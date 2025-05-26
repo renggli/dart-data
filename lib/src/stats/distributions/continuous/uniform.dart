@@ -55,12 +55,11 @@ class UniformDistribution extends ContinuousDistribution {
   double probability(double x) => a <= x && x <= b ? 1 / (b - a) : 0;
 
   @override
-  double cumulativeProbability(double x) =>
-      x <= a
-          ? 0
-          : x <= b
-          ? (x - a) / (b - a)
-          : 1;
+  double cumulativeProbability(double x) => x <= a
+      ? 0
+      : x <= b
+      ? (x - a) / (b - a)
+      : 1;
 
   @override
   double inverseCumulativeProbability(num p) {
@@ -80,10 +79,9 @@ class UniformDistribution extends ContinuousDistribution {
   int get hashCode => Object.hash(UniformDistribution, a, b);
 
   @override
-  ObjectPrinter get toStringPrinter =>
-      super.toStringPrinter
-        ..addValue(a, name: 'a')
-        ..addValue(b, name: 'b');
+  ObjectPrinter get toStringPrinter => super.toStringPrinter
+    ..addValue(a, name: 'a')
+    ..addValue(b, name: 'b');
 }
 
 final _random = Random();

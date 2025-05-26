@@ -35,10 +35,9 @@ class InverseGammaDistribution extends ContinuousDistribution {
   double get mode => scale / (shape + 1);
 
   @override
-  double get variance =>
-      shape > 2
-          ? scale * scale / (shape - 1) / (shape - 1) / (shape - 2)
-          : double.nan;
+  double get variance => shape > 2
+      ? scale * scale / (shape - 1) / (shape - 1) / (shape - 2)
+      : double.nan;
 
   @override
   double get skewness =>
@@ -49,15 +48,14 @@ class InverseGammaDistribution extends ContinuousDistribution {
       shape > 4 ? 6 * (5 * shape - 11) / (shape - 3) / (shape - 4) : double.nan;
 
   @override
-  double probability(double x) =>
-      x <= 0
-          ? 0
-          : exp(
-            -(shape + 1) * log(x) -
-                scale / x -
-                gammaLn(shape) +
-                shape * log(scale),
-          );
+  double probability(double x) => x <= 0
+      ? 0
+      : exp(
+          -(shape + 1) * log(x) -
+              scale / x -
+              gammaLn(shape) +
+              shape * log(scale),
+        );
 
   @override
   double cumulativeProbability(double x) =>
@@ -85,8 +83,7 @@ class InverseGammaDistribution extends ContinuousDistribution {
   int get hashCode => Object.hash(InverseGammaDistribution, shape, scale);
 
   @override
-  ObjectPrinter get toStringPrinter =>
-      super.toStringPrinter
-        ..addValue(shape, name: 'shape')
-        ..addValue(scale, name: 'scale');
+  ObjectPrinter get toStringPrinter => super.toStringPrinter
+    ..addValue(shape, name: 'shape')
+    ..addValue(scale, name: 'scale');
 }

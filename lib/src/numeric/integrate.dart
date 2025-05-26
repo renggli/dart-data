@@ -48,8 +48,10 @@ double integrate(
   }
   // Break up at the poles and merge with bounds, if necessary.
   if (poles.isNotEmpty) {
-    final normalized =
-        poles.where((pole) => a <= pole && pole <= b).toSet().toList();
+    final normalized = poles
+        .where((pole) => a <= pole && pole <= b)
+        .toSet()
+        .toList();
     if (normalized.isNotEmpty) {
       normalized.sort();
       final expanded = normalized
@@ -183,10 +185,9 @@ class IntegrateError extends Error with ToStringPrinter {
   final double x;
 
   @override
-  ObjectPrinter get toStringPrinter =>
-      super.toStringPrinter
-        ..addValue(type, name: 'type')
-        ..addValue(x, name: 'x');
+  ObjectPrinter get toStringPrinter => super.toStringPrinter
+    ..addValue(type, name: 'type')
+    ..addValue(x, name: 'x');
 }
 
 class _Quadrature {

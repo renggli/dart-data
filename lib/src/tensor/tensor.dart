@@ -51,23 +51,21 @@ class Tensor<T> with ToStringPrinter {
   }) {
     final type_ = type ?? DataType.fromIterable(iterable);
     final data_ = type_.copyList(iterable);
-    final layout_ =
-        data_.isEmpty
-            ? Layout.empty
-            : Layout(shape: shape ?? [data_.length], strides: strides);
+    final layout_ = data_.isEmpty
+        ? Layout.empty
+        : Layout(shape: shape ?? [data_.length], strides: strides);
     return Tensor.internal(type: type_, layout: layout_, data: data_);
   }
 
   /// Constructs an [Tensor] from a nested [object].
   factory Tensor.fromObject(dynamic object, {DataType<T>? type}) {
-    final array_ =
-        object is Iterable
-            ? object.deepFlatten<T>()
-            : object is T
-            ? <T>[object]
-            : object == null
-            ? <T>[]
-            : throw ArgumentError.value(object, 'object');
+    final array_ = object is Iterable
+        ? object.deepFlatten<T>()
+        : object is T
+        ? <T>[object]
+        : object == null
+        ? <T>[]
+        : throw ArgumentError.value(object, 'object');
     final type_ = type ?? DataType.fromIterable(array_);
     final layout_ = Layout.fromObject(object);
     final data_ = type_.copyList(array_);
@@ -111,9 +109,8 @@ class Tensor<T> with ToStringPrinter {
       Tensor<T>.internal(type: type, layout: layout[index], data: data);
 
   @override
-  ObjectPrinter get toStringPrinter =>
-      super.toStringPrinter
-        ..addValue(type, name: 'type')
-        ..addValue(layout, name: 'layout')
-        ..addValue(this, printer: TensorPrinter<T>());
+  ObjectPrinter get toStringPrinter => super.toStringPrinter
+    ..addValue(type, name: 'type')
+    ..addValue(layout, name: 'layout')
+    ..addValue(this, printer: TensorPrinter<T>());
 }

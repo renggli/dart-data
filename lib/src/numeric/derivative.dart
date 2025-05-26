@@ -14,22 +14,20 @@ double derivative(
   int accuracy = 2,
   double epsilon = 1e-5,
 }) {
-  final accuracyToWeights =
-      _centralFiniteDifferences.containsKey(derivative)
-          ? _centralFiniteDifferences[derivative]!
-          : throw ArgumentError.value(
-            derivative,
-            'derivative',
-            'Must be one of ${_centralFiniteDifferences.keys.join(', ')}',
-          );
-  final weights =
-      accuracyToWeights.containsKey(accuracy)
-          ? accuracyToWeights[accuracy]!
-          : throw ArgumentError.value(
-            accuracy,
-            'accuracy',
-            'Must be one of ${accuracyToWeights.keys.join(', ')}',
-          );
+  final accuracyToWeights = _centralFiniteDifferences.containsKey(derivative)
+      ? _centralFiniteDifferences[derivative]!
+      : throw ArgumentError.value(
+          derivative,
+          'derivative',
+          'Must be one of ${_centralFiniteDifferences.keys.join(', ')}',
+        );
+  final weights = accuracyToWeights.containsKey(accuracy)
+      ? accuracyToWeights[accuracy]!
+      : throw ArgumentError.value(
+          accuracy,
+          'accuracy',
+          'Must be one of ${accuracyToWeights.keys.join(', ')}',
+        );
   final offset = accuracy ~/ 2;
   var result = 0.0;
   for (var i = 0; i < weights.length; i++) {

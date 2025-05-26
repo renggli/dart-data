@@ -18,10 +18,9 @@ class Layout with ToStringPrinter {
   /// Constructs a layout with optional [shape] and/or [strides].
   factory Layout({Iterable<int>? shape, Iterable<int>? strides, int? offset}) {
     final shape_ = utils.toIndices(shape ?? const <int>[]);
-    final strides_ =
-        strides == null
-            ? utils.toStrides(shape: shape_)
-            : utils.toIndices(strides);
+    final strides_ = strides == null
+        ? utils.toStrides(shape: shape_)
+        : utils.toIndices(strides);
     return Layout.internal(
       rank: shape_.length,
       length: shape_.product(),
@@ -100,22 +99,20 @@ class Layout with ToStringPrinter {
   final bool isContiguous;
 
   /// An iterable over the indices of this layout.
-  Iterable<int> get indices =>
-      rank == 0
-          ? length == 0
-              ? const []
-              : [offset]
-          : isContiguous
-          ? IntegerRange.length(length, start: offset)
-          : IndexIterable(this);
+  Iterable<int> get indices => rank == 0
+      ? length == 0
+            ? const []
+            : [offset]
+      : isContiguous
+      ? IntegerRange.length(length, start: offset)
+      : IndexIterable(this);
 
   /// An iterable over the keys of this layout.
-  Iterable<List<int>> get keys =>
-      rank == 0
-          ? length == 0
-              ? const <List<int>>[]
-              : const <List<int>>[[]]
-          : KeyIterable(this);
+  Iterable<List<int>> get keys => rank == 0
+      ? length == 0
+            ? const <List<int>>[]
+            : const <List<int>>[[]]
+      : KeyIterable(this);
 
   /// Converts a key (index-list) to an index.
   int toIndex(List<int> key) {
@@ -159,12 +156,11 @@ class Layout with ToStringPrinter {
   );
 
   @override
-  ObjectPrinter get toStringPrinter =>
-      super.toStringPrinter
-        ..addValue(rank, name: 'rank')
-        ..addValue(length, name: 'length')
-        ..addValue(offset, name: 'offset')
-        ..addValue(shape, name: 'shape')
-        ..addValue(strides, name: 'strides')
-        ..addValue(isContiguous, name: 'isContiguous');
+  ObjectPrinter get toStringPrinter => super.toStringPrinter
+    ..addValue(rank, name: 'rank')
+    ..addValue(length, name: 'length')
+    ..addValue(offset, name: 'offset')
+    ..addValue(shape, name: 'shape')
+    ..addValue(strides, name: 'strides')
+    ..addValue(isContiguous, name: 'isContiguous');
 }

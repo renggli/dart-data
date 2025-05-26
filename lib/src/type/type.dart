@@ -141,12 +141,11 @@ abstract class DataType<T> {
 
   /// Casts the argument to this data type, otherwise throw an
   /// [ArgumentError].
-  T cast(dynamic value) =>
-      throw ArgumentError.value(
-        value,
-        'value',
-        'Unable to cast "$value" to $this.',
-      );
+  T cast(dynamic value) => throw ArgumentError.value(
+    value,
+    'value',
+    'Unable to cast "$value" to $this.',
+  );
 
   /// Creates a fixed-length list of this data type.
   List<T> newList(
@@ -155,14 +154,9 @@ abstract class DataType<T> {
     T? fillValue,
     bool readonly = false,
   }) {
-    final result =
-        generate != null
-            ? List<T>.generate(length, generate, growable: false)
-            : List<T>.filled(
-              length,
-              fillValue ?? defaultValue,
-              growable: false,
-            );
+    final result = generate != null
+        ? List<T>.generate(length, generate, growable: false)
+        : List<T>.filled(length, fillValue ?? defaultValue, growable: false);
     return readonly ? UnmodifiableListView(result) : result;
   }
 

@@ -76,20 +76,18 @@ abstract class ParametrizedUnaryFunction<T> {
       return Vector<T>.generate(
         dataType,
         count,
-        (i) =>
-            i < params.length
-                ? params[i]
-                : checkDefaultParam(params, defaultParam, i),
+        (i) => i < params.length
+            ? params[i]
+            : checkDefaultParam(params, defaultParam, i),
         format: VectorFormat.standard,
       );
     } else if (params is Vector<T>) {
       return Vector<T>.generate(
         dataType,
         count,
-        (i) =>
-            i < params.count
-                ? params.getUnchecked(i)
-                : checkDefaultParam(params, defaultParam, i),
+        (i) => i < params.count
+            ? params.getUnchecked(i)
+            : checkDefaultParam(params, defaultParam, i),
         format: VectorFormat.standard,
       );
     } else {
