@@ -1,5 +1,4 @@
-Dart Data
-=========
+# Dart Data
 
 [![Pub Package](https://img.shields.io/pub/v/data.svg)](https://pub.dev/packages/data)
 [![Build Status](https://github.com/renggli/dart-data/actions/workflows/dart.yml/badge.svg?branch=main)](https://github.com/renggli/dart-data/actions/workflows/dart.yml)
@@ -15,9 +14,7 @@ This library is open source, stable and well tested. Development happens on [Git
 
 The package is hosted on [dart packages](https://pub.dev/packages/data). Up-to-date [class documentation](https://pub.dev/documentation/data/latest/) is created with every release.
 
-
-Tutorial
---------
+## Tutorial
 
 Below are step-by-step instructions of how to use this library. More elaborate examples are included with the [examples](https://github.com/renggli/dart-data/tree/main/example).
 
@@ -33,7 +30,7 @@ import 'package:data/data.dart';
 
 ### How to solve a linear equation?
 
-Solve 'A * x = b', where 'A' is a matrix and 'b' a vector:
+Solve 'A \* x = b', where 'A' is a matrix and 'b' a vector:
 
 ```dart
 final a = Matrix<double>.fromRows(DataType.float64, [
@@ -100,15 +97,14 @@ final one = integrate((x) => exp(-x), 0, double.infinity, depth: 30);
 print(one); // 1.0000000904304227 ~ 1
 ```
 
-
-Misc
-----
+## Misc
 
 ### License
 
 The MIT License, see [LICENSE](https://github.com/renggli/dart-data/raw/main/LICENSE).
 
 Some of the matrix decomposition algorithms are a port of the [JAMA: A Java Matrix Package](https://math.nist.gov/javanumerics/jama/) released under public domain.
+
 - In particular, the singular value decomposition algorithm comes from the [Math.Net Numerics](https://github.com/mathnet/mathnet-numerics) released under MIT.
 
 Some of the distributions and special functions are a port of the [JavaScript Statistical Library](https://github.com/jstat/jstat) released under MIT.
