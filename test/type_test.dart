@@ -61,7 +61,7 @@ void listTest<T>(DataType<T> type, List<List<T>> lists) {
     }
   }
   final exampleList = naturalComparable<num>
-      .onResultOf<List<T>>((value) => value.length)
+      .keyOf<List<T>>((value) => value.length)
       .maxOf(lists);
   final exampleValue = lists
       .expand((value) => value)
