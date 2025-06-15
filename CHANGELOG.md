@@ -2,7 +2,8 @@
 
 ## 0.15.0
 
-- Dart 3.7 requirement.
+- Dart 3.8 requirement.
+- Bugfixes and resolved compatibility issues.
 
 ## 0.14.0
 
@@ -24,7 +25,7 @@
 
 - Dart 2.18 requirement.
 - Add fast FFT polynomial multiplication operator.
-- Add more distributions (rademacher, inverse weibull, negative binomial) and more properties (kurtosis, bounds). 
+- Add more distributions (rademacher, inverse weibull, negative binomial) and more properties (kurtosis, bounds).
 - Add support for curve fitting (Levenberg Marquardt, Polynomial Regression).
 - More and better accessors for numeric limits, including also floating point numbers.
 - Operators are lazy now and create views. Use `toVector()` or `copyInto(target)` to evaluate the data. This uniformly applies to `Matrix`, `Vector` and `Polynomial` now.
