@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.15.1
+
+- Dart and Flutter 3.9 compatibility.
+
 ## 0.15.0
 
 - Dart 3.8 requirement.
