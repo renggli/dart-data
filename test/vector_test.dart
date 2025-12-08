@@ -1067,9 +1067,32 @@ void vectorTest(String name, VectorFormat format) {
         ], format: format);
         expect(source.magnitude, 5.0);
       });
+      test('magnitudeSquared', () {
+        final source = Vector.fromList(DataType.int32, [4, 3], format: format);
+        expect(source.magnitudeSquared, 25);
+      });
       test('magnitude2', () {
         final source = Vector.fromList(DataType.int32, [4, 3], format: format);
+        // ignore: deprecated_member_use_from_same_package
         expect(source.magnitude2, 25);
+      });
+      test('distance', () {
+        final first = Vector.fromList(DataType.float64, [
+          5.0,
+          6.0,
+        ], format: format);
+        final second = Vector.fromList(DataType.float64, [
+          1.0,
+          3.0,
+        ], format: format);
+        expect(first.distance(second), 5);
+        expect(second.distance(first), 5);
+      });
+      test('distanceSquared', () {
+        final first = Vector.fromList(DataType.int32, [5, 6], format: format);
+        final second = Vector.fromList(DataType.int32, [1, 3], format: format);
+        expect(first.distanceSquared(second), 25);
+        expect(second.distanceSquared(first), 25);
       });
     });
   });

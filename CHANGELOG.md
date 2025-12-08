@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.16.0
+
+- Add `distance` and `distanceSquared` operators to vectors.
+
 ## 0.15.1
 
 - Dart and Flutter 3.9 compatibility.

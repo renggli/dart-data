@@ -1,6 +1,7 @@
 export 'operator/add.dart' show AddVectorExtension;
 export 'operator/compare.dart' show CompareVectorExtension;
 export 'operator/cross.dart' show CrossVectorExtension;
+export 'operator/distance.dart' show DistanceVectorExtension;
 export 'operator/div.dart' show DivVectorExtension;
 export 'operator/dot.dart' show DotVectorExtension;
 export 'operator/lerp.dart' show LerpVectorExtension;

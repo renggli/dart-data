@@ -1,8 +1,11 @@
 import '../vector.dart';
 
 extension MagnitudeVectorExtension<T> on Vector<T> {
+  /// Computes the magnitude (Euclidean norm, length) of this [Vector].
+  T get magnitude => dataType.field.pow(magnitudeSquared, dataType.cast(0.5));
+
   /// Computes the squared magnitude (Euclidean norm, length) of this [Vector].
-  T get magnitude2 {
+  T get magnitudeSquared {
     final add = dataType.field.add, mul = dataType.field.mul;
     var result = dataType.field.additiveIdentity;
     for (var i = 0; i < count; i++) {
@@ -12,6 +15,6 @@ extension MagnitudeVectorExtension<T> on Vector<T> {
     return result;
   }
 
-  /// Computes the magnitude (Euclidean norm, length) of this [Vector].
-  T get magnitude => dataType.field.pow(magnitude2, dataType.cast(0.5));
+  @Deprecated('Use `magnitudeSquared` instead.')
+  T get magnitude2 => magnitudeSquared;
 }
