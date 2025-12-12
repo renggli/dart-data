@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.16.0
+## 0.15.2
 
 - Add `distance` and `distanceSquared` operators to vectors.
 
