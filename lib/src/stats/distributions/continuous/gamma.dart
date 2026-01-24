@@ -10,7 +10,12 @@ import 'uniform.dart';
 
 /// The gamma distribution.
 ///
-/// See https://en.wikipedia.org/wiki/Gamma-distribution
+/// See https://en.wikipedia.org/wiki/Gamma_distribution.
+///
+/// ```dart
+/// final distribution = GammaDistribution(2, 2);
+/// print(distribution.mean); // 4.0
+/// ```
 class GammaDistribution extends ContinuousDistribution {
   /// A gamma distribution with parameters [shape] k and [scale] θ.
   const GammaDistribution(this.shape, this.scale)

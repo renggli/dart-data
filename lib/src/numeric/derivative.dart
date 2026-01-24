@@ -7,6 +7,11 @@ import 'functions.dart';
 /// [derivative] must be a number between 1 and 6, higher derivatives are less
 /// stable. [accuracy] defines the number of coefficients used for the
 /// approximation. [epsilon] signifies the grid spacing (or step size).
+///
+/// ```dart
+/// final d = derivative(sin, pi / 2);
+/// print(d); // 0.0
+/// ```
 double derivative(
   UnaryFunction<double> function,
   double x, {

@@ -14,6 +14,11 @@ import 'functions.dart';
 /// - If the number of iterations performed is more than [maxIterations],
 ///   [double.nan] is returned to signify an error.
 ///
+/// ```dart
+/// final root = solve((x) => x * x - 2, 0, 2);
+/// print(root);  // 1.414213562373095
+/// ```
+///
 double solve(
   UnaryFunction<double> function,
   double a,

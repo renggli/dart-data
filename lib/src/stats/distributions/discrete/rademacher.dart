@@ -7,6 +7,11 @@ import '../discrete.dart';
 /// value 1 with probability 1/2 and value −1 with probability 1/2.
 ///
 /// See https://en.wikipedia.org/wiki/Rademacher_distribution.
+///
+/// ```dart
+/// final distribution = RademacherDistribution();
+/// print(distribution.probability(1));  // 0.5
+/// ```
 class RademacherDistribution extends DiscreteDistribution {
   /// A Rademacher distribution.
   const RademacherDistribution();

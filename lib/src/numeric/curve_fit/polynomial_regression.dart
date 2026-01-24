@@ -10,6 +10,14 @@ import '../curve_fit.dart';
 /// polynomial of a given [degree].
 ///
 /// See https://en.wikipedia.org/wiki/Polynomial_regression.
+///
+/// ```dart
+/// final xs = Vector.fromList(DataType.float, [0.0, 1.0, 2.0, 3.0]);
+/// final ys = Vector.fromList(DataType.float, [1.0, 3.0, 5.0, 7.0]);
+/// final regression = PolynomialRegression(degree: 1);
+/// final result = regression.fit(xs: xs, ys: ys);
+/// print(result.polynomial);  // 1.0 + 2.0 * x
+/// ```
 class PolynomialRegression extends CurveFit {
   /// Constructs a polynomial least-squares regression model.
   PolynomialRegression({required this.degree}) {

@@ -9,6 +9,13 @@ import 'binary_search.dart';
 /// if the point is outside the data range, by default extrapolate linearly.
 ///
 /// See https://en.wikipedia.org/wiki/Linear_interpolation.
+///
+/// ```dart
+/// final xs = Vector.fromList(DataType.float, [0.0, 1.0, 2.0]);
+/// final ys = Vector.fromList(DataType.float, [1.0, 3.0, 5.0]);
+/// final interpolate = linearInterpolation(DataType.float, xs: xs, ys: ys);
+/// print(interpolate(1.5));  // 4.0
+/// ```
 UnaryFunction<T> linearInterpolation<T>(
   DataType<T> dataType, {
   required Vector<T> xs,

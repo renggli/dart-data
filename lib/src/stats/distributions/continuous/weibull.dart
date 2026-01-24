@@ -9,7 +9,12 @@ import 'uniform.dart';
 
 /// The Weibull distribution.
 ///
-/// See https://en.wikipedia.org/wiki/Weibull_distribution
+/// See https://en.wikipedia.org/wiki/Weibull_distribution.
+///
+/// ```dart
+/// final distribution = WeibullDistribution(1, 1);
+/// print(distribution.mean);  // 1.0
+/// ```
 class WeibullDistribution extends ContinuousDistribution {
   /// A weibull distribution with parameters [scale] λ and [shape] k.
   const WeibullDistribution(this.scale, this.shape)

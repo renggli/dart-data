@@ -31,7 +31,7 @@ extension IterableNumExtension on Iterable<num> {
   /// Returns the arithmetic mean (or average) of this [Iterable], or
   /// [double.nan] if the iterable is empty.
   ///
-  /// For details, see https://en.wikipedia.org/wiki/Arithmetic_mean.`
+  /// For details, see https://en.wikipedia.org/wiki/Arithmetic_mean.
   ///
   /// Example: `[5, 2].arithmeticMean()` returns `3.5`.
   ///
@@ -63,7 +63,7 @@ extension IterableNumExtension on Iterable<num> {
   /// Returns the harmonic mean of this [Iterable], or [double.nan] if the
   /// sum of the iterable is 0.
   ///
-  /// For details, see https://en.wikipedia.org/wiki/Harmonic_mean.average
+  /// For details, see https://en.wikipedia.org/wiki/Harmonic_mean.
   ///
   /// Example: `[2, 3].harmonicMean()` returns `2.4`.
   ///

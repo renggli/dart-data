@@ -11,6 +11,11 @@ import 'uniform.dart';
 /// the distribution and its standard deviation.
 ///
 /// See https://en.wikipedia.org/wiki/Normal_distribution.
+///
+/// ```dart
+/// final distribution = NormalDistribution(0, 1);
+/// print(distribution.probability(0));  // 0.3989422804014327
+/// ```
 class NormalDistribution extends ContinuousDistribution {
   /// A normal distribution with parameter [mu] μ (mean) and [sigma] σ (standard
   /// deviation).

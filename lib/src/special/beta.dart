@@ -3,6 +3,10 @@ import 'dart:math';
 import 'gamma.dart';
 
 /// Beta function based on the [gamma] function.
+///
+/// ```dart
+/// print(beta(2, 3));  // 0.08333333333333333
+/// ```
 double beta(num x, num y) =>
     x <= 0 || y <= 0 ? double.nan : gamma(x) * gamma(y) / gamma(x + y);
 

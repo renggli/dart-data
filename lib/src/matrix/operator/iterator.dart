@@ -2,7 +2,7 @@ import '../matrix.dart';
 import '../types.dart';
 
 extension IteratorMatrixExtension<T> on Matrix<T> {
-  /// Returns an iterable over the values of this [Matrix] in row-by-row.
+  /// Returns an iterable over the values of this [Matrix] row by row.
   Iterable<RowColumnValue<T>> get rowMajor sync* {
     for (var r = 0; r < rowCount; r++) {
       for (var c = 0; c < colCount; c++) {
@@ -11,7 +11,7 @@ extension IteratorMatrixExtension<T> on Matrix<T> {
     }
   }
 
-  /// Returns an iterable over the values of this [Matrix] in column-by-column.
+  /// Returns an iterable over the values of this [Matrix] column by column.
   Iterable<RowColumnValue<T>> get columnMajor sync* {
     for (var c = 0; c < colCount; c++) {
       for (var r = 0; r < rowCount; r++) {

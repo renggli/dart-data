@@ -11,6 +11,11 @@ import 'normal.dart';
 /// distributed.
 ///
 /// See https://en.wikipedia.org/wiki/Log-normal_distribution.
+///
+/// ```dart
+/// final distribution = LogNormalDistribution(0, 1);
+/// print(distribution.mean);  // 1.6487212707001282
+/// ```
 class LogNormalDistribution extends ContinuousDistribution {
   /// A log-normal distribution with parameters [mu] μ and [sigma] σ.
   const LogNormalDistribution(this.mu, this.sigma)

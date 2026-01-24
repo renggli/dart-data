@@ -9,7 +9,7 @@ import 'functions.dart';
 /// [epsilon] is the maximum error tolerance to be accepted. [depth] is the
 /// maximum recursion depth, a warning is raised if it is too shallow.
 ///
-/// [poles] is a list of points at which the  [function] should not be
+/// [poles] is a list of points at which the [function] should not be
 /// evaluated. The integration is automatically split over the generated
 /// intervals: _\[a..p_1\[, \]p_1..p_2\[, ... \]p_n, b\]_.
 ///
@@ -17,6 +17,11 @@ import 'functions.dart';
 /// [IntegrateWarning] and the _x_ position. The default implementation throws
 /// an [IntegrateError] exception, but a custom handler can continue the
 /// evaluation.
+///
+/// ```dart
+/// final area = integrate((x) => x * x, 0, 1);
+/// print(area);  // 0.3333333333333333
+/// ```
 ///
 double integrate(
   UnaryFunction<double> function,

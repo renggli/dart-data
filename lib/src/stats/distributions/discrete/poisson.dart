@@ -12,6 +12,11 @@ import '../discrete.dart';
 /// rate and independently of the time since the last event.
 ///
 /// See https://en.wikipedia.org/wiki/Poisson_distribution.
+///
+/// ```dart
+/// final distribution = PoissonDistribution(2.5);
+/// print(distribution.probability(2));  // 0.2565156207038153
+/// ```
 class PoissonDistribution extends DiscreteDistribution {
   /// A poisson distribution with parameter [lambda] λ.
   const PoissonDistribution(this.lambda) : assert(0 <= lambda, '0 <= lambda');

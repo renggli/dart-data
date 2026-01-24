@@ -13,6 +13,11 @@ class Tensor<T> with ToStringPrinter {
   ///
   /// By default a 0-dimensional tensor with the single value is returned. If a
   /// [shape] is provided all tensor entries are filled with that value.
+  ///
+  /// ```dart
+  /// final tensor = Tensor.filled(0, shape: [2, 2]);
+  /// print(tensor.getValue([0, 0]));  // 0
+  /// ```
   factory Tensor.filled(
     T value, {
     List<int>? shape,
@@ -26,6 +31,11 @@ class Tensor<T> with ToStringPrinter {
   }
 
   /// Constructs a [Tensor] filled with the results of [callback].
+  ///
+  /// ```dart
+  /// final tensor = Tensor.generate((key) => key.reduce((a, b) => a + b), shape: [2, 2]);
+  /// print(tensor.getValue([1, 1]));  // 2
+  /// ```
   factory Tensor.generate(
     T Function(List<int> key) callback, {
     required List<int> shape,
@@ -43,6 +53,11 @@ class Tensor<T> with ToStringPrinter {
   /// By default a 1-dimensional tensor with the values from the iterable
   /// [iterable] is returned. If a [shape] is provided the data populates the
   /// tensor in the specified format in row-major.
+  ///
+  /// ```dart
+  /// final tensor = Tensor.fromIterable([1, 2, 3, 4], shape: [2, 2]);
+  /// print(tensor.getValue([1, 0]));  // 3
+  /// ```
   factory Tensor.fromIterable(
     Iterable<T> iterable, {
     List<int>? shape,
@@ -58,6 +73,11 @@ class Tensor<T> with ToStringPrinter {
   }
 
   /// Constructs an [Tensor] from a nested [object].
+  ///
+  /// ```dart
+  /// final tensor = Tensor.fromObject([[1, 2], [3, 4]]);
+  /// print(tensor.getValue([0, 1]));  // 2
+  /// ```
   factory Tensor.fromObject(dynamic object, {DataType<T>? type}) {
     final array_ = object is Iterable
         ? object.deepFlatten<T>()

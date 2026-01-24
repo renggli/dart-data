@@ -9,6 +9,18 @@ import 'package:more/number.dart' show Complex;
 /// two. Returns the modified collection of transformed values.
 ///
 /// If [inverse] is `true`, the inverse transformation is computed.
+///
+/// ```dart
+/// final values = [
+///   Complex(1, 0),
+///   Complex(1, 0),
+///   Complex(1, 0),
+///   Complex(1, 0),
+/// ];
+/// final result = fft(values);
+/// print(result);  // [Complex(4.0, 0.0), Complex(0.0, 0.0),
+///                 //  Complex(0.0, 0.0), Complex(0.0, 0.0)]
+/// ```
 List<Complex> fft(List<Complex> values, {bool inverse = false}) {
   if (values.length <= 1) {
     return values;

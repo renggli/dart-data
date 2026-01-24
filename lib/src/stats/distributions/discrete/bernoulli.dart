@@ -9,6 +9,11 @@ import '../discrete.dart';
 /// takes value 1 with probability `p` and value 0 with probability `q = 1 − p`.
 ///
 /// See https://en.wikipedia.org/wiki/Bernoulli_distribution.
+///
+/// ```dart
+/// final distribution = BernoulliDistribution(0.5);
+/// print(distribution.probability(1));  // 0.5
+/// ```
 class BernoulliDistribution extends DiscreteDistribution {
   /// A bernoulli distribution with parameter [p].
   const BernoulliDistribution(this.p) : assert(0 <= p && p <= 1, '0 <= p <= 1');

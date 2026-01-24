@@ -9,6 +9,11 @@ import 'uniform.dart';
 /// The exponential distribution.
 ///
 /// See https://en.wikipedia.org/wiki/Exponential_distribution.
+///
+/// ```dart
+/// final distribution = ExponentialDistribution(0.5);
+/// print(distribution.sample());
+/// ```
 class ExponentialDistribution extends ContinuousDistribution {
   /// An exponential distribution with parameter [lambda] λ.
   const ExponentialDistribution(this.lambda) : assert(lambda > 0, 'lambda > 0');

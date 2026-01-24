@@ -19,6 +19,11 @@ import 'view/generated_vector.dart';
 abstract mixin class Vector<T> implements Storage {
   /// Constructs a default vector of the desired [dataType], the provided
   /// element [count], and possibly a custom [format].
+  ///
+  /// ```dart
+  /// final vector = Vector(DataType.int32, 3);
+  /// print(vector.count);  // 3
+  /// ```
   factory Vector(DataType<T> dataType, int count, {VectorFormat? format}) {
     RangeError.checkNotNegative(count, 'count');
     return switch (format ?? VectorFormat.standard) {
@@ -30,6 +35,13 @@ abstract mixin class Vector<T> implements Storage {
   }
 
   /// Returns the concatenation of [vectors].
+  ///
+  /// ```dart
+  /// final a = Vector.fromList(DataType.int32, [1, 2]);
+  /// final b = Vector.fromList(DataType.int32, [3, 4]);
+  /// final result = Vector.concat(DataType.int32, [a, b]);
+  /// print(result);  // 1 2 3 4
+  /// ```
   factory Vector.concat(
     DataType<T> dataType,
     Iterable<Vector<T>> vectors, {
@@ -52,6 +64,11 @@ abstract mixin class Vector<T> implements Storage {
   ///
   /// If [format] is specified the resulting vector is mutable, otherwise this
   /// is a read-only view.
+  ///
+  /// ```dart
+  /// final vector = Vector.constant(DataType.int32, 3, value: 5);
+  /// print(vector);  // 5 5 5
+  /// ```
   factory Vector.constant(
     DataType<T> dataType,
     int count, {
@@ -70,6 +87,11 @@ abstract mixin class Vector<T> implements Storage {
   ///
   /// If [format] is specified the resulting vector is mutable, otherwise this
   /// is a read-only view.
+  ///
+  /// ```dart
+  /// final vector = Vector.generate(DataType.int32, 3, (i) => i * 2);
+  /// print(vector);  // 0 2 4
+  /// ```
   factory Vector.generate(
     DataType<T> dataType,
     int count,
@@ -82,6 +104,11 @@ abstract mixin class Vector<T> implements Storage {
 
   /// Constructs a vector from an [iterable]. To enable efficient access
   /// the data is always copied.
+  ///
+  /// ```dart
+  /// final vector = Vector.fromIterable(DataType.int32, [1, 2, 3]);
+  /// print(vector);  // 1 2 3
+  /// ```
   factory Vector.fromIterable(
     DataType<T> dataType,
     Iterable<T> source, {
@@ -101,6 +128,11 @@ abstract mixin class Vector<T> implements Storage {
   /// If [format] is specified, [source] is copied into a mutable vector of the
   /// selected format; otherwise a view onto the possibly mutable [source] is
   /// provided.
+  ///
+  /// ```dart
+  /// final vector = Vector.fromList(DataType.int32, [1, 2, 3]);
+  /// print(vector);  // 1 2 3
+  /// ```
   factory Vector.fromList(
     DataType<T> dataType,
     List<T> source, {
@@ -120,7 +152,7 @@ abstract mixin class Vector<T> implements Storage {
     return format == null ? result : result.toVector(format: format);
   }
 
-  /// Constructors a vector from a [String].
+  /// Constructs a vector from a [String].
   ///
   /// An optional [converter] maps the extracted [String] values to the
   /// [dataType] of the matrix; by default the standard converter of the
@@ -128,6 +160,11 @@ abstract mixin class Vector<T> implements Storage {
   ///
   /// [splitter] is used to split the input string into values. By default
   /// values are separated by one or more whitespaces.
+  ///
+  /// ```dart
+  /// final vector = Vector.fromString(DataType.int32, '1 2 3');
+  /// print(vector);  // 1 2 3
+  /// ```
   factory Vector.fromString(
     DataType<T> dataType,
     String source, {

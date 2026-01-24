@@ -12,6 +12,11 @@ import '../discrete.dart';
 /// failures (denoted r) occurs.
 ///
 /// See https://en.wikipedia.org/wiki/Negative_binomial_distribution.
+///
+/// ```dart
+/// final distribution = NegativeBinomialDistribution(1, 0.5);
+/// print(distribution.probability(0));  // 0.5
+/// ```
 class NegativeBinomialDistribution extends DiscreteDistribution {
   /// A negative binomial distribution with parameters [r] and [p].
   const NegativeBinomialDistribution(this.r, this.p)

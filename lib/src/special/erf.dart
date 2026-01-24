@@ -6,6 +6,10 @@ import 'package:more/math.dart';
 /// https://en.wikipedia.org/wiki/Error_function.
 ///
 /// This uses a Chebyshev fitting formula from Numerical Recipes, 6.2.
+///
+/// ```dart
+/// print(erf(1));  // 0.8427007929497149
+/// ```
 double erf(num x) {
   const p = [
     -1.26551223,

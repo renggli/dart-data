@@ -11,6 +11,11 @@ import '../discrete.dart';
 /// experiments all with the same probability of success.
 ///
 /// See https://en.wikipedia.org/wiki/Binomial_distribution.
+///
+/// ```dart
+/// final distribution = BinomialDistribution(2, 0.5);
+/// print(distribution.probability(1));  // 0.5
+/// ```
 class BinomialDistribution extends DiscreteDistribution {
   /// A binomial distribution with parameters [n] and [p].
   const BinomialDistribution(this.n, this.p)

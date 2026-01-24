@@ -21,6 +21,11 @@ import 'view/generated_polynomial.dart';
 abstract mixin class Polynomial<T> implements Storage {
   /// Constructs a default vector of the desired [dataType], and possibly a
   /// custom [format].
+  ///
+  /// ```dart
+  /// final polynomial = Polynomial(DataType.int32, desiredDegree: 2);
+  /// print(polynomial.degree);  // 2
+  /// ```
   factory Polynomial(
     DataType<T> dataType, {
     int desiredDegree = -1,
@@ -35,6 +40,11 @@ abstract mixin class Polynomial<T> implements Storage {
   /// Generates a polynomial from calling a [callback] on every value. If
   /// [format] is specified the resulting polynomial is mutable, otherwise this
   /// is a read-only view.
+  ///
+  /// ```dart
+  /// final polynomial = Polynomial.generate(DataType.int32, 2, (i) => i + 1);
+  /// print(polynomial);  // 1 + 2x + 3x^2
+  /// ```
   factory Polynomial.generate(
     DataType<T> dataType,
     int degree,
@@ -46,6 +56,11 @@ abstract mixin class Polynomial<T> implements Storage {
   }
 
   /// Constructs a polynomial from a list of coefficients.
+  ///
+  /// ```dart
+  /// final polynomial = Polynomial.fromCoefficients(DataType.int32, [1, 2, 3]);
+  /// print(polynomial);  // 3 + 2x + 1x^2
+  /// ```
   factory Polynomial.fromCoefficients(
     DataType<T> dataType,
     List<T> source, {
@@ -63,6 +78,11 @@ abstract mixin class Polynomial<T> implements Storage {
   }
 
   /// Constructs a polynomial from a list of values.
+  ///
+  /// ```dart
+  /// final polynomial = Polynomial.fromList(DataType.int32, [1, 2, 3]);
+  /// print(polynomial);  // 1 + 2x + 3x^2
+  /// ```
   factory Polynomial.fromList(
     DataType<T> dataType,
     List<T> source, {
@@ -80,6 +100,11 @@ abstract mixin class Polynomial<T> implements Storage {
   }
 
   /// Builds a polynomial from a list of roots.
+  ///
+  /// ```dart
+  /// final polynomial = Polynomial.fromRoots(DataType.int32, [1, 2]);
+  /// print(polynomial);  // 2 - 3x + 1x^2
+  /// ```
   factory Polynomial.fromRoots(
     DataType<T> dataType,
     List<T> roots, {
@@ -118,6 +143,13 @@ abstract mixin class Polynomial<T> implements Storage {
   /// [ys].
   ///
   /// See https://en.wikipedia.org/wiki/Lagrange_polynomial.
+  ///
+  /// ```dart
+  /// final xs = Vector.fromList(DataType.int32, [0, 1, 2]);
+  /// final ys = Vector.fromList(DataType.int32, [1, 2, 3]);
+  /// final polynomial = Polynomial.lagrange(DataType.int32, xs: xs, ys: ys);
+  /// print(polynomial);  // 1 + 1x
+  /// ```
   factory Polynomial.lagrange(
     DataType<T> dataType, {
     required Vector<T> xs,
@@ -145,7 +177,7 @@ abstract mixin class Polynomial<T> implements Storage {
   /// Returns the data type of this polynomial.
   DataType<T> get dataType;
 
-  /// Returns the degree this polynomial, that is the highest coefficient.
+  /// Returns the degree of this polynomial, that is the highest coefficient.
   int get degree;
 
   /// Returns the shape of this polynomial.

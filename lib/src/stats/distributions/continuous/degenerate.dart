@@ -10,6 +10,12 @@ import '../errors.dart';
 /// certain to take the value [k].
 ///
 /// See https://en.wikipedia.org/wiki/Degenerate_distribution.
+///
+/// ```dart
+/// final distribution = DegenerateDistribution(10);
+/// print(distribution.probability(10));  // 1.0
+/// print(distribution.probability(5));  // 0.0
+/// ```
 class DegenerateDistribution extends ContinuousDistribution {
   /// A degenerate distribution with parameter [k].
   const DegenerateDistribution([this.k = 0]);

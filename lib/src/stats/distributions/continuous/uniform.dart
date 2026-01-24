@@ -9,7 +9,12 @@ import '../errors.dart';
 /// distribution describes an experiment where there is an arbitrary outcome
 /// that lies between certain bounds.
 ///
-/// See https://en.wikipedia.org/wiki/Continuous_uniform_distribution.
+/// See https://en.wikipedia.org/wiki/Uniform_distribution_(continuous).
+///
+/// ```dart
+/// final distribution = UniformDistribution(0, 10);
+/// print(distribution.mean);  // 5.0
+/// ```
 class UniformDistribution extends ContinuousDistribution {
   /// A uniform distribution between [a] and [b].
   const UniformDistribution(this.a, this.b)

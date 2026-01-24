@@ -10,6 +10,11 @@ import 'gamma.dart';
 /// The inverse gamma distribution.
 ///
 /// See https://en.wikipedia.org/wiki/Inverse-gamma_distribution.
+///
+/// ```dart
+/// final distribution = InverseGammaDistribution(2, 2);
+/// print(distribution.mean);  // 2.0
+/// ```
 class InverseGammaDistribution extends ContinuousDistribution {
   /// An inverse gamma distribution with parameters [shape] α and [scale] β.
   const InverseGammaDistribution(this.shape, this.scale)

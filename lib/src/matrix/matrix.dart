@@ -28,6 +28,12 @@ import 'view/row_vector.dart';
 abstract mixin class Matrix<T> implements Storage {
   /// Constructs a default matrix of the desired [dataType], the provided
   /// [rowCount] and [columnCount], and possibly a custom [format].
+  ///
+  /// ```dart
+  /// final matrix = Matrix(DataType.int32, 2, 3);
+  /// print(matrix.rowCount); // 2
+  /// print(matrix.colCount); // 3
+  /// ```
   factory Matrix(
     DataType<T> dataType,
     int rowCount,
@@ -83,6 +89,14 @@ abstract mixin class Matrix<T> implements Storage {
   }
 
   /// Returns the horizontal concatenation of [matrices].
+  ///
+  /// ```dart
+  /// final a = Matrix.fromRows(DataType.int32, [[1, 2], [3, 4]]);
+  /// final b = Matrix.fromRows(DataType.int32, [[5], [6]]);
+  /// final result = Matrix.concatHorizontal(DataType.int32, [a, b]);
+  /// print(result);  // 1 2 5
+  ///                 // 3 4 6
+  /// ```
   factory Matrix.concatHorizontal(
     DataType<T> dataType,
     Iterable<Matrix<T>> matrices, {
@@ -102,6 +116,14 @@ abstract mixin class Matrix<T> implements Storage {
   }
 
   /// Returns the vertical concatenation of [matrices].
+  ///
+  /// ```dart
+  /// final a = Matrix.fromRows(DataType.int32, [[1, 2]]);
+  /// final b = Matrix.fromRows(DataType.int32, [[3, 4]]);
+  /// final result = Matrix.concatVertical(DataType.int32, [a, b]);
+  /// print(result);  // 1 2
+  ///                 // 3 4
+  /// ```
   factory Matrix.concatVertical(
     DataType<T> dataType,
     Iterable<Matrix<T>> matrices, {
@@ -124,6 +146,12 @@ abstract mixin class Matrix<T> implements Storage {
   ///
   /// If [format] is specified the resulting matrix is mutable, otherwise this
   /// is a read-only view.
+  ///
+  /// ```dart
+  /// final matrix = Matrix.constant(DataType.int32, 2, 2, value: 5);
+  /// print(matrix);  // 5 5
+  ///                 // 5 5
+  /// ```
   factory Matrix.constant(
     DataType<T> dataType,
     int rowCount,
@@ -144,6 +172,12 @@ abstract mixin class Matrix<T> implements Storage {
   ///
   /// If [format] is specified the resulting matrix is mutable, otherwise this
   /// is a read-only view.
+  ///
+  /// ```dart
+  /// final matrix = Matrix.generate(DataType.int32, 2, 3, (r, c) => r + c);
+  /// print(matrix);  // 0 1 2
+  ///                 // 1 2 3
+  /// ```
   factory Matrix.generate(
     DataType<T> dataType,
     int rowCount,
@@ -164,6 +198,13 @@ abstract mixin class Matrix<T> implements Storage {
   ///
   /// If [format] is specified the resulting matrix is mutable, otherwise this
   /// is a read-only view.
+  ///
+  /// ```dart
+  /// final matrix = Matrix.identity(DataType.int32, 3, 3);
+  /// print(matrix);  // 1 0 0
+  ///                 // 0 1 0
+  ///                 // 0 0 1
+  /// ```
   factory Matrix.identity(
     DataType<T> dataType,
     int rowCount,
@@ -185,6 +226,14 @@ abstract mixin class Matrix<T> implements Storage {
   ///
   /// If [format] is specified the resulting matrix is mutable, otherwise this
   /// is a read-only view.
+  ///
+  /// ```dart
+  /// final data = Vector.fromList(DataType.int32, [1, 2, 3]);
+  /// final matrix = Matrix.vandermonde(DataType.int32, data, 3);
+  /// print(matrix);  // 1 1 1
+  ///                 // 1 2 4
+  ///                 // 1 3 9
+  /// ```
   factory Matrix.vandermonde(
     DataType<T> dataType,
     Vector<T> data,
@@ -211,6 +260,15 @@ abstract mixin class Matrix<T> implements Storage {
   /// If [format] is specified, [source] is copied into a mutable matrix of the
   /// selected format; otherwise a view onto the possibly mutable [source] is
   /// provided.
+  ///
+  /// ```dart
+  /// final matrix = Matrix.fromRows(DataType.int32, [
+  ///   [1, 2],
+  ///   [3, 4],
+  /// ]);
+  /// print(matrix);  // 1 2
+  ///                 // 3 4
+  /// ```
   factory Matrix.fromRows(
     DataType<T> dataType,
     List<List<T>> source, {
@@ -239,6 +297,12 @@ abstract mixin class Matrix<T> implements Storage {
   /// If [format] is specified, [source] is copied into a mutable matrix of the
   /// selected format; otherwise a view onto the possibly mutable [source] is
   /// provided.
+  ///
+  /// ```dart
+  /// final matrix = Matrix.fromPackedRows(DataType.int32, 2, 2, [1, 2, 3, 4]);
+  /// print(matrix);  // 1 2
+  ///                 // 3 4
+  /// ```
   factory Matrix.fromPackedRows(
     DataType<T> dataType,
     int rowCount,
@@ -267,6 +331,15 @@ abstract mixin class Matrix<T> implements Storage {
   /// If [format] is specified, [source] is copied into a mutable matrix of the
   /// selected format; otherwise a view onto the possibly mutable [source] is
   /// provided.
+  ///
+  /// ```dart
+  /// final matrix = Matrix.fromColumns(DataType.int32, [
+  ///   [1, 3],
+  ///   [2, 4],
+  /// ]);
+  /// print(matrix);  // 1 2
+  ///                 // 3 4
+  /// ```
   factory Matrix.fromColumns(
     DataType<T> dataType,
     List<List<T>> source, {
@@ -295,6 +368,12 @@ abstract mixin class Matrix<T> implements Storage {
   /// If [format] is specified, [source] is copied into a mutable matrix of the
   /// selected format; otherwise a view onto the possibly mutable [source] is
   /// provided.
+  ///
+  /// ```dart
+  /// final matrix = Matrix.fromPackedColumns(DataType.int32, 2, 2, [1, 3, 2, 4]);
+  /// print(matrix);  // 1 2
+  ///                 // 3 4
+  /// ```
   factory Matrix.fromPackedColumns(
     DataType<T> dataType,
     int rowCount,
@@ -338,6 +417,12 @@ abstract mixin class Matrix<T> implements Storage {
   /// into rows and columns respectively. By default rows are separated by
   /// newlines, and columns by one or more whitespaces. The last row trimmed
   /// if the input is concluded with the row separator.
+  ///
+  /// ```dart
+  /// final matrix = Matrix.fromString(DataType.int32, '1 2\n3 4');
+  /// print(matrix);  // 1 2
+  ///                 // 3 4
+  /// ```
   factory Matrix.fromString(
     DataType<T> dataType,
     String source, {

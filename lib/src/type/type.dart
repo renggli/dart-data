@@ -31,10 +31,18 @@ abstract class DataType<T> {
   const DataType();
 
   /// Return an object type [T] with the given [defaultValue].
+  ///
+  /// ```dart
+  /// final personType = DataType.object<Person>(Person.myself());
+  /// ```
   static ObjectDataType<T> object<T>(T defaultValue) =>
       ObjectDataType<T>(defaultValue);
 
   /// Return a nullable object type [T] with the optional [defaultValue].
+  ///
+  /// ```dart
+  /// final personType = DataType.nullableObject<Person?>();
+  /// ```
   static ObjectDataType<T?> nullableObject<T>([T? defaultValue]) =>
       ObjectDataType<T?>(defaultValue);
 
@@ -81,6 +89,10 @@ abstract class DataType<T> {
   static const IntegerDataType uint64 = Uint64DataType();
 
   /// Return an modulo data type.
+  ///
+  /// ```dart
+  /// final intMod5 = DataType.modulo(DataType.int32, 5);
+  /// ```
   static ModuloDataType<T> modulo<T>(DataType<T> delegate, T modulus) =>
       ModuloDataType<T>(delegate, modulus);
 

@@ -6,7 +6,12 @@ import '../continuous/uniform.dart';
 import '../discrete.dart';
 
 /// A discrete uniform distribution between [a] and [b], for details see
-/// https://en.wikipedia.org/wiki/Discrete_uniform_distribution.
+/// See https://en.wikipedia.org/wiki/Discrete_uniform_distribution.
+///
+/// ```dart
+/// final distribution = UniformDiscreteDistribution(0, 10);
+/// print(distribution.probability(5));  // 0.09090909090909091
+/// ```
 class UniformDiscreteDistribution extends DiscreteDistribution {
   /// A discrete uniform distribution between [a] and [b].
   const UniformDiscreteDistribution(this.a, this.b) : assert(a <= b, 'a <= b');

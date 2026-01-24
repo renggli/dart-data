@@ -12,6 +12,11 @@ import 'normal.dart';
 /// The Student's t-distribution.
 ///
 /// See https://en.wikipedia.org/wiki/Student%27s_t-distribution.
+///
+/// ```dart
+/// final distribution = StudentTDistribution(5);
+/// print(distribution.mean);  // 0.0
+/// ```
 class StudentDistribution extends ContinuousDistribution {
   /// A Student's t-distribution with degrees of freedom ν.
   const StudentDistribution(this.dof) : assert(dof > 0, 'dof > 0');

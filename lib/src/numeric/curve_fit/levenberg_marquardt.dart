@@ -13,6 +13,22 @@ import '../functions.dart';
 /// method, is used to solve non-linear least squares problems.
 ///
 /// See https://en.wikipedia.org/wiki/Levenberg%E2%80%93Marquardt_algorithm.
+///
+/// ```dart
+/// // Fit a function f(x) = a * x + b
+/// final fit = LevenbergMarquardt(
+///   ParametrizedUnaryFunction.list(
+///     DataType.float,
+///     2,
+///     (params) => (x) => params[0] * x + params[1],
+///   ),
+/// );
+/// final result = fit.fit(
+///    xs: Vector.fromList(DataType.float, [0.0, 1.0, 2.0]),
+///    ys: Vector.fromList(DataType.float, [1.0, 3.0, 5.0]),
+/// );
+/// print(result.parameters);  // [2.0, 1.0]
+/// ```
 class LevenbergMarquardt extends CurveFit {
   LevenbergMarquardt(
     this.parametrizedFunction, {

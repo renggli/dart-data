@@ -7,6 +7,10 @@ import 'dart:math';
 ///
 /// This uses a Lanczos approximation from
 /// https://en.wikipedia.org/wiki/Lanczos_approximation.
+///
+/// ```dart
+/// print(gamma(5));  // 24.0
+/// ```
 double gamma(num x) {
   const g = 7;
   const p = [
@@ -158,12 +162,20 @@ double lowRegGamma(num a, num x) {
 }
 
 /// Returns the factorial based on the [gamma] function.
+///
+/// ```dart
+/// print(factorial(5));  // 120.0
+/// ```
 double factorial(num n) => n < 0.0 ? double.nan : gamma(1.0 + n);
 
 /// Returns the logarithm of the factorial based on the [gammaLn] function.
 double factorialLn(num n) => n < 0.0 ? double.nan : gammaLn(1.0 + n);
 
 /// Returns the combinations based on the [gamma] function.
+///
+/// ```dart
+/// print(combination(5, 2));  // 10.0
+/// ```
 double combination(num n, num k) =>
     factorial(n) / factorial(k) / factorial(n - k);
 
@@ -172,6 +184,10 @@ double combinationLn(num n, num k) =>
     factorialLn(n) - factorialLn(k) - factorialLn(n - k);
 
 /// Returns the permutations based on the [gamma] function.
+///
+/// ```dart
+/// print(permutation(5, 2));  // 20.0
+/// ```
 double permutation(num n, num m) => factorial(n) / factorial(n - m);
 
 /// Returns the logarithm of the permutations based on the [gammaLn] function.

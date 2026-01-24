@@ -45,7 +45,7 @@ class ShiftPolynomial<T> with Polynomial<T> {
 }
 
 extension ShiftPolynomialExtension<T> on Polynomial<T> {
-  /// Returns a mutable view of this polynomial shift by [offset].
+  /// Returns a mutable view of this polynomial shifted by [offset].
   Polynomial<T> shift(int offset) {
     var self = this;
     if (self is ShiftPolynomial<T>) {

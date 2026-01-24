@@ -41,6 +41,6 @@ class IntegratePolynomial<T> with Polynomial<T> {
 }
 
 extension IntegratePolynomialExtension<T> on Polynomial<T> {
-  /// Returns a mutable view of the integrate of this polynomial.
+  /// Returns a mutable view of the integral of this polynomial.
   Polynomial<T> get integrate => IntegratePolynomial<T>(this);
 }

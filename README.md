@@ -25,7 +25,10 @@ Follow the installation instructions on [dart packages](https://pub.dev/packages
 Import the core-package into your Dart code using:
 
 ```dart
+import 'dart:math';
+
 import 'package:data/data.dart';
+import 'package:more/printer.dart';
 ```
 
 ### How to solve a linear equation?
@@ -40,7 +43,7 @@ final a = Matrix<double>.fromRows(DataType.float64, [
 ]);
 final b = Vector<double>.fromList(DataType.float64, [4, 5, 6]);
 final x = a.solve(b.columnMatrix).column(0);
-print(x.format(valuePrinter: Printer.fixed()); // prints '6 15 -23'
+print(x.format(valuePrinter: FixedNumberPrinter())); // prints '6 15 -23'
 ```
 
 ### How to find the eigenvalues of a matrix?
@@ -57,7 +60,7 @@ final a = Matrix<double>.fromRows(DataType.float64, [
 final decomposition = a.eigenvalue;
 final eigenvalues = Vector<double>.fromList(
     DataType.float64, decomposition.realEigenvalues);
-print(eigenvalues.format(valuePrinter: Printer.fixed(precision: 1))); // prints '-1.0 -1.0 1.0 2.0'
+print(eigenvalues.format(valuePrinter: FixedNumberPrinter(precision: 1))); // prints '-1.0 -1.0 1.0 2.0'
 ```
 
 ### How to find all the roots of a polynomial?
