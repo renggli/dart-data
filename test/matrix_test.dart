@@ -1630,11 +1630,7 @@ void matrixTest(String name, MatrixFormat format) {
           source.forEach((row, col, value) {
             visited['$row,$col'] = value;
           });
-          expect(visited, {
-            '0,0': 1,
-            '0,1': 2,
-            '2,0': 3,
-          });
+          expect(visited, {'0,0': 1, '0,1': 2, '2,0': 3});
         });
       });
       test('rows', () {

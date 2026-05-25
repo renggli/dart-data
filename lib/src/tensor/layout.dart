@@ -129,9 +129,18 @@ class Layout with ToStringPrinter {
   List<int> toKey(int index) {
     var value = index - offset;
     final key = DataType.integer.newList(rank);
-    for (var i = 0; i < rank; i++) {
-      final div = value ~/ strides[i], rem = div % shape[i];
-      value -= (key[i] = rem) * strides[i];
+    final dims = isContiguous
+        ? IntegerRange(rank)
+        : (List<int>.generate(rank, (i) => i)
+            ..sort((a, b) => strides[b].compareTo(strides[a])));
+    for (final i in dims) {
+      final stride = strides[i];
+      if (stride == 0) {
+        key[i] = 0;
+      } else {
+        final div = value ~/ stride, rem = div % shape[i];
+        value -= (key[i] = rem) * stride;
+      }
     }
     assert(value == 0, 'Invalid index $index');
     return key;

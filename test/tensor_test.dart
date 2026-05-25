@@ -207,6 +207,22 @@ void main() {
         }
       }
     });
+    test('toKey with zero strides (broadcasting)', () {
+      final a = Layout(shape: const [1, 3]);
+      final b = Layout(shape: const [2, 3]);
+      final (broadcastedA, _) = a.broadcast(b);
+      expect(broadcastedA.strides, [0, 1]);
+      expect(broadcastedA.toKey(0), [0, 0]);
+      expect(broadcastedA.toKey(1), [0, 1]);
+      expect(broadcastedA.toKey(2), [0, 2]);
+    });
+    test('toKey transposed', () {
+      final transposed = Layout(shape: const [2, 3], strides: const [1, 3]);
+      expect(transposed.toKey(0), [0, 0]);
+      expect(transposed.toKey(3), [0, 1]);
+      expect(transposed.toKey(1), [1, 0]);
+      expect(transposed.toKey(4), [1, 1]);
+    });
   });
   group('filled', () {
     test('value', () {
