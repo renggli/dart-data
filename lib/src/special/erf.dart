@@ -52,7 +52,7 @@ double erfInv(num x) {
       r =
           x *
           (((a[3] * z + a[2]) * z + a[1]) * z + a[0]) /
-          ((((b[3] * z + b[3]) * z + b[1]) * z + b[0]) * z + 1.0);
+          ((((b[3] * z + b[2]) * z + b[1]) * z + b[0]) * z + 1.0);
     } else {
       final z = sqrt(-log((1.0 - x) / 2.0));
       r =

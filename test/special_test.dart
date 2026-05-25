@@ -348,6 +348,13 @@ void main() {
         }
       }
     });
+    test('inverseErrorFunction high precision', () {
+      for (final x in [-0.6, -0.5, -0.3, -0.1, 0.1, 0.3, 0.5, 0.6]) {
+        final y = erfInv(x);
+        final back = erf(y);
+        expect(back, closeTo(x, 1e-14), reason: 'erf(erfInv($x)) = $back');
+      }
+    });
     test('inverseComplementaryErrorFunction', () {
       for (final tuple in complementaryErrorFunctionTuples) {
         if (tuple.first.abs() < 3 || tuple.first.isInfinite) {
