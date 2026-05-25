@@ -3,9 +3,7 @@ import 'dart:math' as math;
 import '../../../type.dart';
 import '../matrix.dart';
 import '../view/cast_matrix.dart';
-import '../view/column_vector.dart';
 import '../view/index_matrix.dart';
-import '../view/row_vector.dart';
 
 /// LU Decomposition.
 ///
@@ -32,26 +30,22 @@ class LUDecomposition {
 
     // Outer loop.
     for (var j = 0; j < _n; j++) {
-      final lucolj = _lu.column(j);
-
       // Apply previous transformations.
       for (var i = 0; i < _m; i++) {
-        final lurowi = _lu.row(i);
-
         // Most of the time is spent in the following dot product.
         final kmax = math.min(i, j);
         var s = 0.0;
         for (var k = 0; k < kmax; k++) {
-          s += lurowi[k] * lucolj[k];
+          s += _lu.getUnchecked(i, k) * _lu.getUnchecked(k, j);
         }
 
-        lurowi[j] = lucolj[i] -= s;
+        _lu.setUnchecked(i, j, _lu.getUnchecked(i, j) - s);
       }
 
       // Find pivot and exchange if necessary.
       var p = j;
       for (var i = j + 1; i < _m; i++) {
-        if (lucolj[i].abs() > lucolj[p].abs()) {
+        if (_lu.getUnchecked(i, j).abs() > _lu.getUnchecked(p, j).abs()) {
           p = i;
         }
       }

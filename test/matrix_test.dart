@@ -2472,6 +2472,22 @@ void matrixTest(String name, MatrixFormat format) {
         final result2 = decomp.lower * decomp.upper;
         expect(result2, isCloseTo(result1, epsilon: epsilon));
       });
+      test('LU Decomposition (diverse sizes and random)', () {
+        final random = Random(42);
+        for (final size in [5, 10, 25, 50]) {
+          final matrix = Matrix<double>.generate(
+            DataType.float64,
+            size,
+            size,
+            (r, c) => random.nextDouble() * 20.0 - 10.0,
+          ).toMatrix(format: format);
+          final decomp = matrix.lu;
+          expect(decomp.isNonsingular, isTrue);
+          final permuted = matrix.rowIndex(decomp.pivot);
+          final product = decomp.lower * decomp.upper;
+          expect(product, isCloseTo(permuted, epsilon: 1e-9));
+        }
+      });
       test('rank', () {
         final result = matrix3.rank;
         expect(result, min(matrix3.rowCount, matrix3.colCount) - 1);
