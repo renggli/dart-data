@@ -61,7 +61,9 @@ double solve(
     final min1 = (x - b).abs();
     final min2 = (b - x2).abs();
     final min3 = (x2 - x3).abs();
-    if ((x < (3 * a + b) / 4 && x > b) ||
+    final isBetween =
+        (x > (3 * a + b) / 4 && x < b) || (x < (3 * a + b) / 4 && x > b);
+    if (!isBetween ||
         (bisection && min1 >= min2 / 2) ||
         (!bisection && min1 >= min3 / 2) ||
         (bisection && min2 < delta) ||

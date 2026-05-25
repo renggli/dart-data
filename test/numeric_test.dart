@@ -1301,5 +1301,9 @@ void main() {
       double f(double x) => (x + 3) * (x - 1) * (x - 1);
       expect(solve(f, -4, 0), isCloseTo(-3));
     });
+    test('asymmetric root', () {
+      double f(double x) => pow(x, 10) - 1e-10;
+      expect(solve(f, 0, 1), isCloseTo(0.1));
+    });
   });
 }
