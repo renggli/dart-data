@@ -26,7 +26,7 @@ class ConcatHorizontalMatrix<T> with Matrix<T> {
 
   @override
   T getUnchecked(int row, int col) {
-    var matrixIndex = binarySearch<num>(indexes, 0, indexes.length, col);
+    var matrixIndex = binarySearch(indexes, 0, indexes.length, col);
     if (matrixIndex < 0) {
       matrixIndex = -matrixIndex - 2;
     }
@@ -35,7 +35,7 @@ class ConcatHorizontalMatrix<T> with Matrix<T> {
 
   @override
   void setUnchecked(int row, int col, T value) {
-    var matrixIndex = binarySearch<num>(indexes, 0, indexes.length, col);
+    var matrixIndex = binarySearch(indexes, 0, indexes.length, col);
     if (matrixIndex < 0) {
       matrixIndex = -matrixIndex - 2;
     }

@@ -32,7 +32,7 @@ class CompressedColumnMatrix<T> with Matrix<T> {
   T getUnchecked(int row, int col) {
     final start = col > 0 ? _columnExtends[col - 1] : 0,
         stop = _columnExtends[col];
-    final index = binarySearch<num>(_rowIndexes, start, stop, row);
+    final index = binarySearch(_rowIndexes, start, stop, row);
     return index < 0 ? dataType.defaultValue : _values[index];
   }
 
@@ -40,7 +40,7 @@ class CompressedColumnMatrix<T> with Matrix<T> {
   void setUnchecked(int row, int col, T value) {
     final start = col > 0 ? _columnExtends[col - 1] : 0,
         stop = _columnExtends[col];
-    final index = binarySearch<num>(_rowIndexes, start, stop, row);
+    final index = binarySearch(_rowIndexes, start, stop, row);
     if (index < 0) {
       if (value != dataType.defaultValue) {
         for (var c = col; c < colCount; c++) {

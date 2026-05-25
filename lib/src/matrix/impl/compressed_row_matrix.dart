@@ -31,14 +31,14 @@ class CompressedRowMatrix<T> with Matrix<T> {
   @override
   T getUnchecked(int row, int col) {
     final start = row > 0 ? _rowExtends[row - 1] : 0, stop = _rowExtends[row];
-    final index = binarySearch<num>(_columnIndexes, start, stop, col);
+    final index = binarySearch(_columnIndexes, start, stop, col);
     return index < 0 ? dataType.defaultValue : _values[index];
   }
 
   @override
   void setUnchecked(int row, int col, T value) {
     final start = row > 0 ? _rowExtends[row - 1] : 0, stop = _rowExtends[row];
-    final index = binarySearch<num>(_columnIndexes, start, stop, col);
+    final index = binarySearch(_columnIndexes, start, stop, col);
     if (index < 0) {
       if (value != dataType.defaultValue) {
         for (var r = row; r < rowCount; r++) {

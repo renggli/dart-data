@@ -57,19 +57,14 @@ List<T> removeAt<T>(
   return list;
 }
 
-/// Performs a binary search on the range of a sorted list.
-int binarySearch<T extends Comparable<T>>(
-  List<T> list,
-  int min,
-  int max,
-  T value,
-) {
+/// Performs a binary search on the range of a sorted integer list.
+int binarySearch(List<int> list, int min, int max, int value) {
   while (min < max) {
     final mid = min + ((max - min) >> 1);
-    final comp = list[mid].compareTo(value);
-    if (comp == 0) {
+    final item = list[mid];
+    if (item == value) {
       return mid;
-    } else if (comp < 0) {
+    } else if (item < value) {
       min = mid + 1;
     } else {
       max = mid;

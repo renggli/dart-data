@@ -18,7 +18,6 @@ void main() {
   });
   group('lists', () {
     final type = DataType.string.nullable;
-    final list = ['a', 'b', 'c', 'd', 'e'];
     test('insertAt', () {
       final list1 = ['a', 'b', 'c', null];
       final list2 = lists.insertAt(type, list1, 3, 2, 'i');
@@ -64,26 +63,30 @@ void main() {
       expect(list5, ['b', '*', '*', '*']);
     });
     test('binarySearch (empty)', () {
-      expect(lists.binarySearch(list, 0, 0, 'a'), -1);
-      expect(lists.binarySearch(list, 4, 4, 'a'), -5);
-      expect(lists.binarySearch(list, 5, 5, 'a'), -6);
+      final intList = [10, 20, 30, 40, 50];
+      expect(lists.binarySearch(intList, 0, 0, 10), -1);
+      expect(lists.binarySearch(intList, 4, 4, 10), -5);
+      expect(lists.binarySearch(intList, 5, 5, 10), -6);
     });
     test('binarySearch (single)', () {
-      expect(lists.binarySearch(list, 0, 1, 'a'), 0);
-      expect(lists.binarySearch(list, 1, 2, 'a'), -2);
-      expect(lists.binarySearch(list, 1, 2, 'b'), 1);
+      final intList = [10, 20, 30, 40, 50];
+      expect(lists.binarySearch(intList, 0, 1, 10), 0);
+      expect(lists.binarySearch(intList, 1, 2, 10), -2);
+      expect(lists.binarySearch(intList, 1, 2, 20), 1);
     });
     test('binarySearch (present)', () {
-      expect(lists.binarySearch(list, 0, list.length, 'a'), 0);
-      expect(lists.binarySearch(list, 0, list.length, 'b'), 1);
-      expect(lists.binarySearch(list, 0, list.length, 'c'), 2);
-      expect(lists.binarySearch(list, 0, list.length, 'd'), 3);
-      expect(lists.binarySearch(list, 0, list.length, 'e'), 4);
+      final intList = [10, 20, 30, 40, 50];
+      expect(lists.binarySearch(intList, 0, intList.length, 10), 0);
+      expect(lists.binarySearch(intList, 0, intList.length, 20), 1);
+      expect(lists.binarySearch(intList, 0, intList.length, 30), 2);
+      expect(lists.binarySearch(intList, 0, intList.length, 40), 3);
+      expect(lists.binarySearch(intList, 0, intList.length, 50), 4);
     });
     test('binarySearch (absent)', () {
-      expect(lists.binarySearch(list, 0, list.length, '0'), -1);
-      expect(lists.binarySearch(list, 0, list.length, 'cc'), -4);
-      expect(lists.binarySearch(list, 0, list.length, 'f'), -6);
+      final intList = [10, 20, 30, 40, 50];
+      expect(lists.binarySearch(intList, 0, intList.length, 5), -1);
+      expect(lists.binarySearch(intList, 0, intList.length, 25), -3);
+      expect(lists.binarySearch(intList, 0, intList.length, 55), -6);
     });
   });
   group('math', () {
