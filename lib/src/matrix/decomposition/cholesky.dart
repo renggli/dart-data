@@ -3,7 +3,6 @@ import 'dart:math' as math;
 import '../../../type.dart';
 import '../matrix.dart';
 import '../view/cast_matrix.dart';
-import '../view/row_vector.dart';
 
 /// Cholesky Decomposition.
 ///
@@ -22,15 +21,14 @@ class CholeskyDecomposition {
       _isSymmetricPositiveDefinite = a.rowCount == a.colCount {
     // Main loop.
     for (var j = 0; j < _n; j++) {
-      final lrowj = _l.row(j);
       var d = 0.0;
       for (var k = 0; k < j; k++) {
-        final lrowk = _l.row(k);
         var s = 0.0;
         for (var i = 0; i < k; i++) {
-          s += lrowk[i] * lrowj[i];
+          s += _l.getUnchecked(k, i) * _l.getUnchecked(j, i);
         }
-        lrowj[k] = s = (a.getUnchecked(j, k) - s) / _l.getUnchecked(k, k);
+        s = (a.getUnchecked(j, k) - s) / _l.getUnchecked(k, k);
+        _l.setUnchecked(j, k, s);
         d = d + s * s;
         _isSymmetricPositiveDefinite =
             _isSymmetricPositiveDefinite &&

@@ -2583,6 +2583,25 @@ void matrixTest(String name, MatrixFormat format) {
           final solution = decomposition.solve(identity);
           expect(matrix * solution, isCloseTo(identity, epsilon: epsilon));
         });
+        test('diverse sizes and random SPD', () {
+          final random = Random(42);
+          for (final size in [5, 10, 25, 50]) {
+            final B = Matrix<double>.generate(
+              DataType.float64,
+              size,
+              size,
+              (r, c) => random.nextDouble() * 2.0 - 1.0,
+            ).toMatrix(format: format);
+            final A = (B * B.transposed).toMatrix(format: format);
+            for (var i = 0; i < size; i++) {
+              A.setUnchecked(i, i, A.getUnchecked(i, i) + size);
+            }
+            final decomp = A.cholesky;
+            expect(decomp.isSymmetricPositiveDefinite, isTrue);
+            final product = decomp.L * decomp.L.transposed;
+            expect(product, isCloseTo(A, epsilon: 1e-9));
+          }
+        });
       });
       group('eigen', () {
         test('symmetric', () {
