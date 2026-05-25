@@ -1621,6 +1621,21 @@ void matrixTest(String name, MatrixFormat format) {
           });
           expect(defined, isEmpty);
         });
+        test('empty rows and columns', () {
+          final source = Matrix<int>(DataType.int32, 3, 3, format: format);
+          source.set(0, 0, 1);
+          source.set(0, 1, 2);
+          source.set(2, 0, 3);
+          final visited = <String, int>{};
+          source.forEach((row, col, value) {
+            visited['$row,$col'] = value;
+          });
+          expect(visited, {
+            '0,0': 1,
+            '0,1': 2,
+            '2,0': 3,
+          });
+        });
       });
       test('rows', () {
         final source = Matrix.generate(
