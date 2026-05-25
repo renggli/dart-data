@@ -2580,6 +2580,17 @@ void main() {
             (1.0, maxSafeInteger),
           ],
         );
+        test('large lambda PMF stability (no overflow)', () {
+          const dist150 = PoissonDistribution(150.0);
+          expect(dist150.probability(150), isCloseTo(0.0325554, epsilon: 1e-5));
+          const dist800 = PoissonDistribution(800.0);
+          expect(dist800.probability(800), isCloseTo(0.0141032, epsilon: 1e-5));
+        });
+        test('large lambda sampler stability (no infinite loop)', () {
+          const dist800 = PoissonDistribution(800.0);
+          final sample = dist800.sample();
+          expect(sample, isNonNegative);
+        });
       });
       group('rademacher', () {
         const distribution = RademacherDistribution();

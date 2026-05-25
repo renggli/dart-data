@@ -3,7 +3,6 @@ import 'dart:math';
 import 'package:more/printer.dart';
 
 import '../../../special/gamma.dart';
-import '../continuous/uniform.dart';
 import '../discrete.dart';
 
 /// The Poisson distribution is a discrete probability distribution that
@@ -46,21 +45,52 @@ class PoissonDistribution extends DiscreteDistribution {
   double get kurtosisExcess => 1 / lambda;
 
   @override
-  double probability(int k) => k < 0
-      ? 0
-      : k == 0
-      ? exp(-lambda)
-      : pow(lambda, k) * exp(-lambda) / factorial(k);
+  double probability(int k) {
+    if (k < 0) return 0;
+    if (k == 0) return exp(-lambda);
+    return exp(k * log(lambda) - lambda - factorialLn(k));
+  }
 
   @override
   int sample({Random? random}) {
-    const uniform = UniformDistribution.standard();
-    var i = 0, b = 1.0;
-    while (b >= exp(-lambda)) {
-      b *= uniform.sample(random: random);
-      i++;
+    final rand = random ?? _random;
+    return lambda < 30
+        ? _sampleKnuth(rand)
+        : _sampleTransformedRejectionSqueeze(rand);
+  }
+
+  int _sampleKnuth(Random rand) {
+    final L = exp(-lambda);
+    var k = 0;
+    var p = 1.0;
+    do {
+      k++;
+      p *= rand.nextDouble();
+    } while (p > L);
+    return k - 1;
+  }
+
+  int _sampleTransformedRejectionSqueeze(Random rand) {
+    final slam = sqrt(lambda);
+    final loglam = log(lambda);
+    final b = 0.931 + 2.53 * slam;
+    final a = -0.059 + 0.02483 * b;
+    final invalpha = 1.1239 + 1.1328 / (b - 3.4);
+    final vr = 0.9277 - 3.6224 / (b - 2.0);
+    for (;;) {
+      final u = rand.nextDouble() - 0.5;
+      final v = rand.nextDouble();
+      final us = 0.5 - u.abs();
+      final k = ((2.0 * a / us + b) * u + lambda + 0.43).floor();
+      if (k < 0) continue;
+      final g = v * invalpha;
+      if (us >= 0.07 && g <= vr) {
+        return k;
+      }
+      if (log(g) <= k * loglam - lambda - factorialLn(k)) {
+        return k;
+      }
     }
-    return i - 1;
   }
 
   @override
@@ -74,3 +104,5 @@ class PoissonDistribution extends DiscreteDistribution {
   ObjectPrinter get toStringPrinter =>
       super.toStringPrinter..addValue(lambda, name: 'lambda');
 }
+
+final _random = Random();
