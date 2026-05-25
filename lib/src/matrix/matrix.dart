@@ -540,7 +540,7 @@ abstract mixin class Matrix<T> implements Storage {
       for (var col = 0; col < colCount; col++) {
         final value = getUnchecked(row, col);
         if (dataType.defaultValue != value) {
-          callback(row, col, getUnchecked(row, col));
+          callback(row, col, value);
         }
       }
     }
