@@ -244,6 +244,18 @@ void main() {
         );
       }
     });
+    test('gammapInv edges', () {
+      expect(gammapInv(1.0, 5), math.max(100.0, 5 + 100 * math.sqrt(5)));
+      expect(gammapInv(1.5, 5), math.max(100.0, 5 + 100 * math.sqrt(5)));
+      expect(gammapInv(0.0, 5), 0.0);
+      expect(gammapInv(-0.5, 5), 0.0);
+      for (var a = 0.1; a < 10.0; a += 0.5) {
+        for (var p = 1e-15; p < 1.0; p *= 10) {
+          final x = gammapInv(p, a);
+          expect(x, isNotNull);
+        }
+      }
+    });
   });
   group('beta functions', () {
     const betaTuples = <(double, double, double)>[
@@ -281,6 +293,18 @@ void main() {
               'logBeta(${tuple.first}, ${tuple.second}) '
               '= ${tuple.third}',
         );
+      }
+    });
+    test('ibetaInv edges', () {
+      expect(ibetaInv(0.0, 2.5, 0.5), 0.0);
+      expect(ibetaInv(1.0, 2.5, 0.5), 1.0);
+      for (var a = 0.5; a < 6.0; a += 1.0) {
+        for (var b = 0.5; b < 6.0; b += 1.0) {
+          for (var p = 1e-15; p < 1.0; p *= 10) {
+            final x = ibetaInv(p, a, b);
+            expect(x, isNotNull);
+          }
+        }
       }
     });
   });

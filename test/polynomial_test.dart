@@ -574,6 +574,18 @@ void polynomialTest(String name, PolynomialFormat format) {
           expect(copy[i], i.isEven ? -i : 0);
         }
       });
+      if (format == PolynomialFormat.external) {
+        test('growing growable coefficients list', () {
+          final list = <int>[1, 2, 3];
+          final polynomial = list.toPolynomial(dataType: DataType.int32);
+          expect(polynomial.degree, 2);
+          polynomial[5] = 42;
+          expect(polynomial.degree, 5);
+          expect(polynomial[5], 42);
+          expect(polynomial[4], 0);
+          expect(list.length, 6);
+        });
+      }
       group('copyInto', () {
         test('small into large', () {
           final source = Polynomial.fromList(DataType.int8, [1, 2, 3]);
@@ -1227,6 +1239,10 @@ void polynomialTest(String name, PolynomialFormat format) {
             );
             expect(fftMultiply, isCloseTo(normalMultiply));
           }
+        });
+        test('invalid operand', () {
+          expect(() => sourceA.mul('invalid'), throwsArgumentError);
+          expect(() => sourceA * 'invalid', throwsArgumentError);
         });
       });
       group('div', () {

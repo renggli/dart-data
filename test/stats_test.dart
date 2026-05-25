@@ -2768,6 +2768,10 @@ void main() {
           const dist800 = PoissonDistribution(800.0);
           final sample = dist800.sample();
           expect(sample, isNonNegative);
+          final random = Random(42);
+          for (var i = 0; i < 50000; i++) {
+            dist800.sample(random: random);
+          }
         });
       });
       group('rademacher', () {

@@ -636,6 +636,10 @@ void matrixTest(String name, MatrixFormat format) {
         final target = Matrix(DataType.int32, 8, 6, format: format);
         expect(source.copyInto(target), target);
         expect(target, isCloseTo(source));
+        final badRow = Matrix(DataType.int32, 9, 6, format: format);
+        expect(() => source.copyInto(badRow), throwsA(isA<AssertionError>()));
+        final badCol = Matrix(DataType.int32, 8, 7, format: format);
+        expect(() => source.copyInto(badCol), throwsA(isA<AssertionError>()));
       });
       test('row', () {
         final source = Matrix.generate(

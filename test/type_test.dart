@@ -166,6 +166,15 @@ void listTest<T>(DataType<T> type, List<List<T>> lists) {
         ),
       );
     });
+    test('readonly', () {
+      final copyReadonly = type.copyList(exampleList, readonly: true);
+      expect(() => copyReadonly[0] = exampleValue, throwsUnsupportedError);
+      final copyWritable = type.copyList(exampleList, readonly: false);
+      if (exampleList.isNotEmpty) {
+        copyWritable[0] = exampleValue;
+        expect(copyWritable[0], exampleValue);
+      }
+    });
   });
   test('printer', () {
     final printer = type.printer;
@@ -365,6 +374,12 @@ void integerGroup(IntegerDataType type, bool isSigned, int bits) {
       [type.safeMin + 123, type.safeMax - 45, type.safeMax - 67],
     ]);
     fieldTest(type, <int>[-2, 5]);
+    test('field additional methods', () {
+      final field = type.field;
+      expect(field.remainder(5, 3), 2);
+      expect(field.modInverse(3, 11), 4);
+      expect(field.gcd(12, 18), 6);
+    });
   });
   group('$name.nullable', () {
     final nullableType = type.nullable;
@@ -401,6 +416,20 @@ void integerGroup(IntegerDataType type, bool isSigned, int bits) {
       [type.safeMin, 0, null, type.safeMax, null],
       [type.safeMin + 123, type.safeMax - 45, null, type.safeMax - 67],
     ]);
+    test('comparator', () {
+      final comp = nullableType.comparator;
+      expect(comp(null, type.safeMax), greaterThan(0));
+      expect(comp(type.safeMax, null), lessThan(0));
+      expect(comp(null, null), 0);
+      expect(comp(type.safeMin, type.safeMax), lessThan(0));
+      expect(comp(type.safeMax, type.safeMin), greaterThan(0));
+    });
+    test('comparator with nullsFirst', () {
+      final comp = NullableDataType(type, nullsFirst: true).comparator;
+      expect(comp(null, type.safeMax), lessThan(0));
+      expect(comp(type.safeMax, null), greaterThan(0));
+      expect(comp(null, null), 0);
+    });
   });
 }
 
@@ -691,6 +720,14 @@ void main() {
       expect(equality.hash(point12), isNot(point21.hashCode));
       expect(equality.isClose(point12, point12, 0), isTrue);
       expect(equality.isClose(point12, point21, 0), isFalse);
+    });
+    test('type equality and hashCode', () {
+      final o1 = DataType.object<String>('a');
+      final o2 = DataType.object<String>('a');
+      final o3 = DataType.object<String>('b');
+      expect(o1 == o2, isTrue);
+      expect(o1 == o3, isFalse);
+      expect(o1.hashCode, o2.hashCode);
     });
     test('field', () {
       expect(() => type.field, throwsUnsupportedError);
@@ -1221,6 +1258,14 @@ void main() {
       test('pow', () {
         expect(field.pow(2, 3), 1);
         expect(field.pow(2, 4), 2);
+      });
+      test('unsupported and extra methods', () {
+        expect(() => field.division(2, 3), throwsUnsupportedError);
+        expect(() => field.remainder(2, 3), throwsUnsupportedError);
+        expect(() => field.modPow(2, 3, 7), throwsUnsupportedError);
+        expect(() => field.modInverse(2, 7), throwsUnsupportedError);
+        expect(() => field.gcd(2, 3), throwsUnsupportedError);
+        expect(type.printer(5), '5');
       });
     });
   });

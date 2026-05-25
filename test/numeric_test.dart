@@ -301,6 +301,37 @@ void main() {
         expectedParameters: [-16.7697, 43.4549, 1018.8938, -4.3514],
         expectedError: 16398.0009709,
       );
+      test('errors', () {
+        final zeroParamFunction = ParametrizedUnaryFunction<double>.positional(
+          DataType.float,
+          0,
+          () =>
+              (double x) => x,
+        );
+        expect(
+          () => LevenbergMarquardt(zeroParamFunction),
+          throwsArgumentError,
+        );
+        expect(
+          () => LevenbergMarquardt(bennet5, damping: 0.0),
+          throwsArgumentError,
+        );
+        expect(
+          () => LevenbergMarquardt(bennet5, damping: -1.0),
+          throwsArgumentError,
+        );
+        final fitter = LevenbergMarquardt(
+          bennet5,
+          initialValues: <double>[3.5, 3.8, 4.0],
+        );
+        final xs = [1.0, 2.0].toVector();
+        final ys = [2.0, 3.0].toVector();
+        final badWeights = [1.0].toVector();
+        expect(
+          () => fitter.fit(xs: xs, ys: ys, weights: badWeights),
+          throwsArgumentError,
+        );
+      });
     });
     group('polynomial regression', () {
       group('american women', () {
@@ -810,6 +841,61 @@ void main() {
       expect(() => function.toVector([]), throwsArgumentError);
       expect(() => function.toVector([42]), throwsArgumentError);
     });
+    test('invalid counts and fallbacks', () {
+      final listFn = ParametrizedUnaryFunction<String>.list(
+        DataType.string,
+        3,
+        (params) =>
+            (x) => 'f',
+      );
+      final mapFn = ParametrizedUnaryFunction<String>.map(
+        DataType.string,
+        [#a, #b],
+        (params) =>
+            (x) => 'f',
+      );
+      final namedFn = ParametrizedUnaryFunction<String>.named(
+        DataType.string,
+        [#a, #b],
+        ({required String a, required String b}) =>
+            (x) => 'f',
+      );
+      final positionalFn = ParametrizedUnaryFunction<String>.positional(
+        DataType.string,
+        3,
+        (a, b, c) =>
+            (x) => 'f',
+      );
+      final vectorFn = ParametrizedUnaryFunction<String>.vector(
+        DataType.string,
+        3,
+        (params) =>
+            (x) => 'f',
+      );
+      final badArgsLen2 = ['a', 'b'].toVector();
+      final badArgsLen3 = ['a', 'b', 'c'].toVector();
+      expect(
+        () => listFn.toBindings(badArgsLen2),
+        throwsA(isA<AssertionError>()),
+      );
+      expect(
+        () => mapFn.toBindings(badArgsLen3),
+        throwsA(isA<AssertionError>()),
+      );
+      expect(
+        () => namedFn.toBindings(badArgsLen3),
+        throwsA(isA<AssertionError>()),
+      );
+      expect(
+        () => positionalFn.toBindings(badArgsLen2),
+        throwsA(isA<AssertionError>()),
+      );
+      expect(
+        () => vectorFn.toBindings(badArgsLen2),
+        throwsA(isA<AssertionError>()),
+      );
+      expect(mapFn.toVector(['a', 'b']).iterable, ['a', 'b']);
+    });
   });
   group('interpolate', () {
     group('sequences', () {
@@ -852,6 +938,14 @@ void main() {
         test('increasing', () {
           final vector = geometricSpaced(1, 1000, count: 4);
           expect(vector.iterable, isCloseTo([1, 10, 100, 1000]));
+          final vectorList = geometricSpaced(
+            1,
+            1000,
+            count: 4,
+            format: VectorFormat.list,
+          );
+          expect(vectorList.iterable, isCloseTo([1, 10, 100, 1000]));
+          expect(vectorList.runtimeType.toString(), contains('ListVector'));
         });
         test('decreasing', () {
           final vector = geometricSpaced(1000.0, 1.0, count: 4);

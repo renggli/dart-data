@@ -255,6 +255,18 @@ void vectorTest(String name, VectorFormat format) {
         expect(() => vector[-1] = 1, throwsRangeError);
         expect(() => vector[vector.count] = 1, throwsRangeError);
       });
+      test('size mismatch assertions', () {
+        final a = Vector.fromList(DataType.int8, [1, 2, 3], format: format);
+        final b = Vector.fromList(DataType.int8, [1, 2], format: format);
+        expect(() => a.copyInto(b), throwsA(isA<AssertionError>()));
+        expect(() => a.distanceSquared(b), throwsA(isA<AssertionError>()));
+        expect(() => a.dot(b), throwsA(isA<AssertionError>()));
+      });
+      test('invalid scalar operands', () {
+        final a = Vector.fromList(DataType.int8, [1, 2, 3], format: format);
+        expect(() => a / 'invalid', throwsArgumentError);
+        expect(() => a * 'invalid', throwsArgumentError);
+      });
       test('format', () {
         final vector = Vector.generate(
           DataType.int8,
@@ -304,6 +316,20 @@ void vectorTest(String name, VectorFormat format) {
         final target = Vector(DataType.int32, 42, format: format);
         expect(source.copyInto(target), target);
         expect(target, isCloseTo(source));
+      });
+      test('binaryOperation view and storage', () {
+        final a = Vector.fromList(DataType.int8, [1, 2, 3], format: format);
+        final b = Vector.fromList(DataType.int8, [1, 2], format: format);
+        int op(int x, int y) => x + y;
+        expect(() => a.binaryOperation(b, op), throwsA(isA<AssertionError>()));
+        final c = Vector.fromList(DataType.int8, [4, 5, 6], format: format);
+        final view = a.binaryOperation(c, op);
+        expect(view.storage, containsAll([a, c]));
+      });
+      test('unaryOperation storage', () {
+        final a = Vector.fromList(DataType.int8, [1, 2, 3], format: format);
+        final view = a.unaryOperation((x) => x);
+        expect(view.storage, contains(a));
       });
       group('range', () {
         test('default', () {
@@ -457,6 +483,10 @@ void vectorTest(String name, VectorFormat format) {
             expect(composite[i], 4 <= i && i <= 5 ? '[${i - 4}]' : '($i)');
             copy[i] = '${copy[i]}*';
           }
+          composite[0] = '(0)*';
+          expect(base[0], '(0)*');
+          composite[4] = '[0]*';
+          expect(top[0], '[0]*');
         });
         test('mask', () {
           final top = Vector.generate(
@@ -481,6 +511,10 @@ void vectorTest(String name, VectorFormat format) {
             expect(composite[i], i.isEven ? '[$i]' : '($i)');
             copy[i] = '${copy[i]}*';
           }
+          composite[0] = '[0]*';
+          expect(top[0], '[0]*');
+          composite[1] = '(1)*';
+          expect(base[1], '(1)*');
         });
         test('errors', () {
           expect(() => base.overlay(base), throwsArgumentError);
@@ -527,6 +561,7 @@ void vectorTest(String name, VectorFormat format) {
         final kernel2 = Vector.fromList(DataType.float, <double>[0, 1, 0.5]);
         test('full', () {
           final result1 = vector1.convolve(kernel1);
+          expect(result1.storage, containsAll([vector1, kernel1]));
           expect(result1.iterable, [5, 6, 2, 2, 2, -8, -9]);
           final result2 = vector2.convolve(
             kernel2,
@@ -1050,6 +1085,8 @@ void vectorTest(String name, VectorFormat format) {
         expect(r[0], 12);
         expect(r[1], -6);
         expect(r[2], -3);
+        expect(r.storage, containsAll([a, b]));
+        expect(() => r.getUnchecked(3), throwsA(isA<UnimplementedError>()));
       });
       test('sum', () {
         final source = Vector.fromList(DataType.uint8, [
