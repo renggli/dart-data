@@ -2,7 +2,6 @@ import 'dart:math';
 
 import 'package:more/printer.dart';
 
-import '../continuous/uniform.dart';
 import '../discrete.dart';
 
 /// A discrete uniform distribution between [a] and [b], for details see
@@ -60,10 +59,7 @@ class UniformDiscreteDistribution extends DiscreteDistribution {
       : 1;
 
   @override
-  int sample({Random? random}) {
-    const uniform = UniformDistribution.standard();
-    return a + (n * uniform.sample(random: random)).floor();
-  }
+  int sample({Random? random}) => a + (random ?? _random).nextInt(n);
 
   @override
   bool operator ==(Object other) =>
@@ -78,3 +74,5 @@ class UniformDiscreteDistribution extends DiscreteDistribution {
     ..addValue(b, name: 'b')
     ..addValue(n, name: 'n');
 }
+
+final _random = Random();

@@ -2,7 +2,6 @@ import 'dart:math';
 
 import 'package:more/printer.dart';
 
-import '../continuous/uniform.dart';
 import '../discrete.dart';
 
 /// The Bernoulli distribution is a discrete probability distribution which
@@ -67,10 +66,7 @@ class BernoulliDistribution extends DiscreteDistribution {
       : 1;
 
   @override
-  int sample({Random? random}) {
-    const uniform = UniformDistribution.standard();
-    return uniform.sample(random: random) < p ? 1 : 0;
-  }
+  int sample({Random? random}) => (random ?? _random).nextDouble() < p ? 1 : 0;
 
   @override
   bool operator ==(Object other) =>
@@ -84,3 +80,5 @@ class BernoulliDistribution extends DiscreteDistribution {
     ..addValue(p, name: 'p')
     ..addValue(q, name: 'q');
 }
+
+final _random = Random();

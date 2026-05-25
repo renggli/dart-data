@@ -1,6 +1,5 @@
 import 'dart:math';
 
-import '../continuous/uniform.dart';
 import '../discrete.dart';
 
 /// The Rademacher distribution is a discrete probability function which takes
@@ -51,10 +50,8 @@ class RademacherDistribution extends DiscreteDistribution {
       : 1;
 
   @override
-  int sample({Random? random}) {
-    const uniform = UniformDistribution.standard();
-    return uniform.sample(random: random) < 0.5 ? -1 : 1;
-  }
+  int sample({Random? random}) =>
+      (random ?? _random).nextDouble() < 0.5 ? -1 : 1;
 
   @override
   bool operator ==(Object other) => other is RademacherDistribution;
@@ -62,3 +59,5 @@ class RademacherDistribution extends DiscreteDistribution {
   @override
   int get hashCode => 70196453;
 }
+
+final _random = Random();
