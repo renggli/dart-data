@@ -3,7 +3,7 @@ import 'package:more/feature.dart';
 import '../distribution.dart';
 import 'errors.dart';
 
-/// Abstract interface of all continuous distributions.
+/// Abstract interface of all discrete distributions.
 ///
 /// Subclasses must implement at least one of [probability] or
 /// [cumulativeProbability].

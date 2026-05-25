@@ -362,13 +362,11 @@ void main() {
             expect(distribution.shape, isCloseTo(1.0));
             expect(distribution.scale, isCloseTo(2.0));
           });
-          test('median', () {
-            expect(() => distribution.median, throwsUnsupportedError);
-          });
           testDistribution(
             distribution,
             min: 0.0,
             mean: 2.0,
+            median: 1.3862943611198906,
             mode: double.nan,
             variance: 4.0,
             skewness: 2.0,
@@ -419,6 +417,7 @@ void main() {
             distribution,
             min: 0.0,
             mean: 4.0,
+            median: 3.356694,
             mode: 2.0,
             variance: 8.0,
             skewness: 1.41421356,
@@ -469,6 +468,7 @@ void main() {
             distribution,
             min: 0.0,
             mean: 6.0,
+            median: 5.348121,
             mode: 4.0,
             variance: 12.0,
             skewness: 1.15470053,
@@ -519,6 +519,7 @@ void main() {
             distribution,
             min: 0.0,
             mean: 5.0,
+            median: 4.670909,
             mode: 4.0,
             variance: 5.0,
             skewness: 0.89442719,
@@ -569,6 +570,7 @@ void main() {
             distribution,
             min: 0.0,
             mean: 4.5,
+            median: 4.334476,
             mode: 4.0,
             variance: 2.25,
             skewness: 0.66666667,
@@ -619,6 +621,7 @@ void main() {
             distribution,
             min: 0.0,
             mean: 7.5,
+            median: 7.169430,
             mode: 6.5,
             variance: 7.5,
             skewness: 0.73029674334,
@@ -669,6 +672,7 @@ void main() {
             distribution,
             min: 0.0,
             mean: 0.5,
+            median: 0.227468,
             mode: double.nan,
             variance: 0.5,
             skewness: 2.82842712475,
@@ -717,13 +721,11 @@ void main() {
             expect(distribution.shape, isCloseTo(1.0));
             expect(distribution.scale, isCloseTo(1.0));
           });
-          test('median', () {
-            expect(() => distribution.median, throwsUnsupportedError);
-          });
           testDistribution(
             distribution,
             min: 0.0,
             mean: double.nan,
+            median: 1.4426950408889634,
             mode: 0.5,
             variance: double.nan,
             skewness: double.nan,
@@ -773,6 +775,7 @@ void main() {
             distribution,
             min: 0.0,
             mean: 1.0,
+            median: 0.595824,
             mode: 0.333333333,
             variance: double.nan,
             skewness: double.nan,
@@ -822,6 +825,7 @@ void main() {
             distribution,
             min: 0.0,
             mean: 0.5,
+            median: 0.373963,
             mode: 0.25,
             variance: 0.25,
             skewness: double.nan,
@@ -871,6 +875,7 @@ void main() {
             distribution,
             min: 0.0,
             mean: 0.75,
+            median: 0.560945,
             mode: 0.375,
             variance: 0.5625,
             skewness: double.nan,

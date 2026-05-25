@@ -34,7 +34,7 @@ class InverseGammaDistribution extends ContinuousDistribution {
   double get mean => shape > 1 ? scale / (shape - 1) : double.nan;
 
   @override
-  double get median => throw UnsupportedError('No simple closed form');
+  double get median => inverseCumulativeProbability(0.5);
 
   @override
   double get mode => scale / (shape + 1);
