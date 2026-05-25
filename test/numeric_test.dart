@@ -470,6 +470,64 @@ void main() {
         expect(derivative(exp, 1.0, derivative: 2, accuracy: a), isCloseTo(e));
       }
     });
+    test('third derivative at different accuracies', () {
+      for (var a = 2; a <= 6; a += 2) {
+        // sin-function (3rd derivative is -cos)
+        expect(
+          derivative(sin, 0.0 * pi, derivative: 3, accuracy: a, epsilon: 1e-2),
+          isCloseTo(-1.0, epsilon: 1e-3),
+        );
+        expect(
+          derivative(sin, 0.5 * pi, derivative: 3, accuracy: a, epsilon: 1e-2),
+          isCloseTo(0.0, epsilon: 1e-3),
+        );
+        expect(
+          derivative(sin, 1.0 * pi, derivative: 3, accuracy: a, epsilon: 1e-2),
+          isCloseTo(1.0, epsilon: 1e-3),
+        );
+        // cos-function (3rd derivative is sin)
+        expect(
+          derivative(cos, 0.0 * pi, derivative: 3, accuracy: a, epsilon: 1e-2),
+          isCloseTo(0.0, epsilon: 1e-3),
+        );
+        expect(
+          derivative(cos, 0.5 * pi, derivative: 3, accuracy: a, epsilon: 1e-2),
+          isCloseTo(1.0, epsilon: 1e-3),
+        );
+        // exp-function (3rd derivative is exp)
+        expect(
+          derivative(exp, 0.0, derivative: 3, accuracy: a, epsilon: 1e-2),
+          isCloseTo(1.0, epsilon: 1e-3),
+        );
+      }
+    });
+    test('fifth derivative at different accuracies', () {
+      for (var a = 2; a <= 6; a += 2) {
+        // sin-function (5th derivative is cos)
+        expect(
+          derivative(sin, 0.0 * pi, derivative: 5, accuracy: a, epsilon: 0.1),
+          isCloseTo(1.0, epsilon: 1e-2),
+        );
+        expect(
+          derivative(sin, 0.5 * pi, derivative: 5, accuracy: a, epsilon: 0.1),
+          isCloseTo(0.0, epsilon: 1e-2),
+        );
+        // cos-function (5th derivative is -sin)
+        expect(
+          derivative(cos, 0.0 * pi, derivative: 5, accuracy: a, epsilon: 0.1),
+          isCloseTo(0.0, epsilon: 1e-2),
+        );
+        expect(
+          derivative(cos, 0.5 * pi, derivative: 5, accuracy: a, epsilon: 0.1),
+          isCloseTo(-1.0, epsilon: 1e-2),
+        );
+        // exp-function (5th derivative is exp)
+        expect(
+          derivative(exp, 0.0, derivative: 5, accuracy: a, epsilon: 0.1),
+          isCloseTo(1.0, epsilon: 1e-2),
+        );
+      }
+    });
     group('error', () {
       test('derivative', () {
         expect(
