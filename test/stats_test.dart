@@ -2374,6 +2374,173 @@ void main() {
           );
         });
       });
+      group('beta', () {
+        group('alpha = 2.0, beta = 5.0', () {
+          const distribution = BetaDistribution(2.0, 5.0);
+          test('parameters', () {
+            expect(distribution.alpha, isCloseTo(2.0));
+            expect(distribution.beta, isCloseTo(5.0));
+          });
+          testDistribution(
+            distribution,
+            min: 0.0,
+            max: 1.0,
+            mean: 0.2857142857,
+            median: 0.26444983057,
+            mode: 0.2,
+            variance: 0.02551020408,
+            skewness: 0.59628479399,
+            kurtosisExcess: -0.12,
+            probability: const [
+              (0.0, 0.0),
+              (0.2, 2.4576),
+              (0.5, 0.9375),
+              (1.0, 0.0),
+            ],
+            cumulativeProbability: const [
+              (0.0, 0.0),
+              (0.2, 0.34464),
+              (0.5, 0.890625),
+              (1.0, 1.0),
+            ],
+            inverseCumulativeProbability: const [
+              (0.0, 0.0),
+              (0.34464, 0.2),
+              (0.890625, 0.5),
+              (1.0, 1.0),
+            ],
+          );
+        });
+      });
+      group('cauchy', () {
+        group('xo = 0.0, gamma = 1.0', () {
+          const distribution = CauchyDistribution(0.0, 1.0);
+          test('parameters', () {
+            expect(distribution.xo, isCloseTo(0.0));
+            expect(distribution.gamma, isCloseTo(1.0));
+          });
+          testDistribution(
+            distribution,
+            mean: double.nan,
+            median: 0.0,
+            mode: 0.0,
+            variance: double.nan,
+            skewness: double.nan,
+            kurtosisExcess: double.nan,
+            probability: const [(0.0, 0.318309886), (1.0, 0.159154943)],
+            cumulativeProbability: const [(0.0, 0.5), (1.0, 0.75)],
+            inverseCumulativeProbability: const [(0.5, 0.0), (0.75, 1.0)],
+          );
+        });
+      });
+      group('chi_squared', () {
+        group('dof = 4.0', () {
+          const distribution = ChiSquaredDistribution(4.0);
+          test('parameters', () {
+            expect(distribution.dof, isCloseTo(4.0));
+          });
+          testDistribution(
+            distribution,
+            min: 0.0,
+            mean: 4.0,
+            median: 3.356694,
+            mode: 2.0,
+            variance: 8.0,
+            skewness: 1.41421356,
+            kurtosisExcess: 3.0,
+            probability: const [(2.0, 0.183940)],
+            cumulativeProbability: const [(2.0, 0.264241)],
+          );
+        });
+      });
+      group('f', () {
+        group('dof1 = 4.0, dof2 = 6.0', () {
+          const distribution = FDistribution(4.0, 6.0);
+          test('parameters', () {
+            expect(distribution.dof1, isCloseTo(4.0));
+            expect(distribution.dof2, isCloseTo(6.0));
+          });
+          testDistribution(
+            distribution,
+            min: 0.0,
+            mean: 1.5,
+            median: 0.941913,
+            mode: 0.375,
+            variance: 4.5,
+            skewness: double.nan,
+            kurtosisExcess: double.nan,
+            probability: const [(1.0, 0.41472)],
+            cumulativeProbability: const [(1.0, 0.5248)],
+          );
+        });
+      });
+      group('laplace', () {
+        group('mu = 2.0, b = 1.5', () {
+          const distribution = LaplaceDistribution(2.0, 1.5);
+          test('parameters', () {
+            expect(distribution.mu, isCloseTo(2.0));
+            expect(distribution.b, isCloseTo(1.5));
+          });
+          testDistribution(
+            distribution,
+            mean: 2.0,
+            median: 2.0,
+            mode: 2.0,
+            variance: 4.5,
+            skewness: 0.0,
+            kurtosisExcess: 3.0,
+            probability: const [(2.0, 0.33333333), (3.5, 0.12262648)],
+            cumulativeProbability: const [(2.0, 0.5), (3.5, 0.81606028)],
+            inverseCumulativeProbability: const [(0.5, 2.0), (0.81606028, 3.5)],
+          );
+        });
+      });
+      group('logistic', () {
+        group('mu = 0.0, s = 1.0', () {
+          const distribution = LogisticDistribution(0.0, 1.0);
+          test('parameters', () {
+            expect(distribution.mu, isCloseTo(0.0));
+            expect(distribution.s, isCloseTo(1.0));
+          });
+          testDistribution(
+            distribution,
+            mean: 0.0,
+            median: 0.0,
+            mode: 0.0,
+            variance: 3.289868133,
+            skewness: 0.0,
+            kurtosisExcess: 1.2,
+            probability: const [(0.0, 0.25)],
+            cumulativeProbability: const [(0.0, 0.5), (1.0, 0.7310585786)],
+            inverseCumulativeProbability: const [
+              (0.5, 0.0),
+              (0.7310585786, 1.0),
+            ],
+          );
+        });
+      });
+      group('pareto', () {
+        group('xo = 2.0, alpha = 3.0', () {
+          const distribution = ParetoDistribution(2.0, 3.0);
+          test('parameters', () {
+            expect(distribution.xo, isCloseTo(2.0));
+            expect(distribution.alpha, isCloseTo(3.0));
+          });
+          testDistribution(
+            distribution,
+            min: 2.0,
+            mean: 3.0,
+            median: 2.5198421,
+            mode: 2.0,
+            variance: 3.0,
+            skewness: double.nan,
+            kurtosisExcess: double.nan,
+            probability: const [(2.0, 1.5), (4.0, 0.09375)],
+            cumulativeProbability: const [(2.0, 0.0), (4.0, 0.875)],
+            inverseCumulativeProbability: const [(0.0, 2.0), (0.875, 4.0)],
+          );
+        });
+      });
     });
     group('discrete', () {
       group('bernoulli', () {
