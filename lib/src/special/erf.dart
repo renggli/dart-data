@@ -11,6 +11,7 @@ import 'package:more/math.dart';
 /// print(erf(1));  // 0.8427007929497149
 /// ```
 double erf(num x) {
+  if (x == 0) return x.toDouble();
   const p = [
     -1.26551223,
     1.00002368,
@@ -31,7 +32,9 @@ double erf(num x) {
 
 /// Returns the inverse error function.
 double erfInv(num x) {
-  if (x <= -1.0) {
+  if (x == 0) {
+    return x.toDouble();
+  } else if (x <= -1.0) {
     return double.negativeInfinity;
   } else if (x >= 1.0) {
     return double.infinity;

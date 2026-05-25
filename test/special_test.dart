@@ -337,6 +337,14 @@ void main() {
         );
       }
     });
+    test('erf and erfInv zero exactness', () {
+      expect(erf(0), same(0.0));
+      expect(erf(0.0), same(0.0));
+      expect(erf(-0.0), same(-0.0));
+      expect(erfInv(0), same(0.0));
+      expect(erfInv(0.0), same(0.0));
+      expect(erfInv(-0.0), same(-0.0));
+    });
     test('inverseErrorFunction', () {
       for (final tuple in errorFunctionTuples) {
         if (tuple.first.abs() < 3 || tuple.first.isInfinite) {
