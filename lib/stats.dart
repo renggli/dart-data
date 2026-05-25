@@ -22,6 +22,8 @@ export 'src/stats/distributions/continuous/weibull.dart';
 export 'src/stats/distributions/discrete.dart';
 export 'src/stats/distributions/discrete/bernoulli.dart';
 export 'src/stats/distributions/discrete/binomial.dart';
+export 'src/stats/distributions/discrete/geometric.dart';
+export 'src/stats/distributions/discrete/hypergeometric.dart';
 export 'src/stats/distributions/discrete/negative_binomial.dart';
 export 'src/stats/distributions/discrete/poisson.dart';
 export 'src/stats/distributions/discrete/rademacher.dart';

@@ -2872,6 +2872,90 @@ void main() {
           ],
         );
       });
+      group('geometric', () {
+        group('p = 0.5', () {
+          const distribution = GeometricDistribution(0.5);
+          test('parameters', () {
+            expect(distribution.p, isCloseTo(0.5));
+          });
+          testDistribution(
+            distribution,
+            min: 0,
+            mean: 1.0,
+            median: 0.0,
+            mode: 0.0,
+            variance: 2.0,
+            skewness: 2.121320343,
+            kurtosisExcess: 6.5,
+            probability: const [
+              (-1, 0.0),
+              (0, 0.5),
+              (1, 0.25),
+              (2, 0.125),
+              (3, 0.0625),
+            ],
+            cumulativeProbability: const [
+              (-1, 0.0),
+              (0, 0.5),
+              (1, 0.75),
+              (2, 0.875),
+            ],
+            inverseCumulativeProbability: const [
+              (0.0, 0),
+              (0.5, 0),
+              (0.75, 1),
+              (0.875, 2),
+            ],
+          );
+        });
+        group('p = 1.0', () {
+          const distribution = GeometricDistribution(1.0);
+          test('parameters', () {
+            expect(distribution.p, isCloseTo(1.0));
+          });
+          testDistribution(
+            distribution,
+            min: 0,
+            mean: 0.0,
+            median: 0.0,
+            mode: 0.0,
+            variance: 0.0,
+            skewness: double.nan,
+            kurtosisExcess: double.nan,
+            probability: const [(-1, 0.0), (0, 1.0), (1, 0.0)],
+            cumulativeProbability: const [(-1, 0.0), (0, 1.0), (1, 1.0)],
+            inverseCumulativeProbability: const [(0.0, 0), (0.5, 0), (1.0, 0)],
+          );
+        });
+      });
+      group('hypergeometric', () {
+        group('N = 20, K = 7, n = 10', () {
+          const distribution = HypergeometricDistribution(20, 7, 10);
+          test('parameters', () {
+            expect(distribution.N, equals(20));
+            expect(distribution.K, equals(7));
+            expect(distribution.n, equals(10));
+          });
+          testDistribution(
+            distribution,
+            min: 0,
+            max: 7,
+            mean: 3.5,
+            median: 4.0,
+            mode: 4.0,
+            variance: 1.19736842105,
+            skewness: 0.0,
+            kurtosisExcess: 2812.9793148,
+            probability: const [
+              (-1, 0.0),
+              (3, 0.3250774),
+              (4, 0.3250774),
+              (8, 0.0),
+            ],
+            cumulativeProbability: const [(-1, 0.0), (3, 0.5), (8, 1.0)],
+          );
+        });
+      });
     });
   });
   group('iterable', () {
