@@ -4,7 +4,6 @@ import 'package:more/printer.dart';
 
 import '../continuous.dart';
 import '../errors.dart';
-import 'uniform.dart';
 
 /// The exponential distribution.
 ///
@@ -56,8 +55,8 @@ class ExponentialDistribution extends ContinuousDistribution {
 
   @override
   double sample({Random? random}) {
-    const uniform = UniformDistribution.standard();
-    return -1 / lambda * log(uniform.sample(random: random));
+    final u = (random ?? _random).nextDouble();
+    return -log(1 - u) / lambda;
   }
 
   @override
@@ -71,3 +70,5 @@ class ExponentialDistribution extends ContinuousDistribution {
   ObjectPrinter get toStringPrinter =>
       super.toStringPrinter..addValue(lambda, name: 'lambda');
 }
+
+final _random = Random();

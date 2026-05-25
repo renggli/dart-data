@@ -2098,9 +2098,6 @@ void main() {
             expect(distribution.scale, isCloseTo(1.0));
             expect(distribution.shape, isCloseTo(0.5));
           });
-          test('median', () {
-            expect(() => distribution.kurtosisExcess, throwsUnsupportedError);
-          });
           testDistribution(
             distribution,
             min: 0.0,
@@ -2109,6 +2106,7 @@ void main() {
             mode: 0.00000000,
             variance: 20.00000000,
             skewness: 6.61876121,
+            kurtosisExcess: 84.72,
             probability: const [
               (0.0, double.infinity),
               (0.5, 0.34865222),
@@ -2525,6 +2523,14 @@ void main() {
             (1.0, maxSafeInteger),
           ],
         );
+        test('large parameters PMF stability (no overflow)', () {
+          const dist500 = NegativeBinomialDistribution(500.0, 0.5);
+          expect(dist500.probability(500), isCloseTo(0.01264, epsilon: 1e-4));
+        });
+        test('real parameter r sampling', () {
+          const distReal = NegativeBinomialDistribution(2.5, 0.5);
+          expect(distReal.sample(), isNonNegative);
+        });
       });
       group('poisson', () {
         const distribution = PoissonDistribution(4.0);

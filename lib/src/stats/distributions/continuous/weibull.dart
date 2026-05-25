@@ -54,7 +54,20 @@ class WeibullDistribution extends ContinuousDistribution {
   }
 
   @override
-  double get kurtosisExcess => throw UnimplementedError();
+  double get kurtosisExcess {
+    final g1 = gamma(1 + 1 / shape);
+    final g2 = gamma(1 + 2 / shape);
+    final g3 = gamma(1 + 3 / shape);
+    final g4 = gamma(1 + 4 / shape);
+    final mu = scale * g1;
+    final sigma2 = scale * scale * (g2 - g1 * g1);
+    return (g4 * pow(scale, 4) -
+                4 * g3 * pow(scale, 3) * mu +
+                6 * g2 * scale * scale * mu * mu -
+                3 * pow(mu, 4)) /
+            (sigma2 * sigma2) -
+        3;
+  }
 
   @override
   double probability(double x) => x < 0

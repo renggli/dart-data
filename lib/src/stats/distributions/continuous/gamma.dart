@@ -86,7 +86,7 @@ class GammaDistribution extends ContinuousDistribution {
       } while (v <= 0);
       v = v * v * v;
       u = uniform.sample(random: random);
-    } while (u > 1 - 0.331 * pow(x, 4) &&
+    } while (u > 1 - 0.0331 * pow(x, 4) &&
         log(u) > 0.5 * x * x + a1 * (1 - v + log(v)));
     if (shape == correctedShape) {
       return a1 * v * scale;
