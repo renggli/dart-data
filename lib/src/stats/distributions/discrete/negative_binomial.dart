@@ -3,13 +3,14 @@ import 'dart:math';
 import 'package:more/printer.dart';
 
 import '../../../special/gamma.dart';
-import '../continuous/uniform.dart';
+import '../continuous/gamma.dart';
 import '../discrete.dart';
+import 'poisson.dart';
 
-/// The Binomial distribution is a discrete probability distribution which
-/// models the number of successes in a sequence of independent and identically
-/// distributed Bernoulli trials before a specified (non-random) number of
-/// failures (denoted r) occurs.
+/// The Negative Binomial distribution is a discrete probability distribution
+/// which models the number of successes in a sequence of independent and
+/// identically distributed Bernoulli trials before a specified (non-random)
+/// number of failures (denoted r) occurs.
 ///
 /// See https://en.wikipedia.org/wiki/Negative_binomial_distribution.
 ///
@@ -55,20 +56,14 @@ class NegativeBinomialDistribution extends DiscreteDistribution {
 
   @override
   double probability(int k) =>
-      k < 0 ? 0 : combination(k + r - 1, k) * pow(p, k) * pow(q, r);
+      k < 0 ? 0 : exp(combinationLn(k + r - 1, k) + k * log(p) + r * log(q));
 
   @override
   int sample({Random? random}) {
-    const uniform = UniformDistribution.standard();
-    var failure = 0, success = 0;
-    while (failure < r) {
-      if (uniform.sample(random: random) < p) {
-        success++;
-      } else {
-        failure++;
-      }
-    }
-    return success;
+    final gammaDistribution = GammaDistribution(r, p / q);
+    final lambda = gammaDistribution.sample(random: random);
+    if (lambda == 0) return 0;
+    return PoissonDistribution(lambda).sample(random: random);
   }
 
   @override
