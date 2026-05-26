@@ -102,6 +102,19 @@ print(one); // 1.0000000904304227 ~ 1
 
 ## Misc
 
+### Demos
+
+This package includes a sandbox web dashboard in `web/distributions` to visualize, configure, and dynamically sample the supported continuous and discrete probability distributions in real-time.
+
+To compile, serve, and explore the interactive distributions demo run:
+
+```bash
+dart pub global activate webdev
+webdev serve --release
+```
+
+Then open <http://localhost:8080/distributions/index.html> in your web browser.
+
 ### License
 
 The MIT License, see [LICENSE](https://github.com/renggli/dart-data/raw/main/LICENSE).

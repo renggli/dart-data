@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Probability Distributions Lab</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- Navigation Sidebar -->
+  <aside class="sidebar">
+    <div class="sidebar-header">
+      <h1>𝝫 Distributions Lab</h1>
+      <p>Interactive Probability Sandbox</p>
+    </div>
+    <div class="search-container">
+      <input type="text" id="search-box" class="search-box" placeholder="Filter distributions..." aria-label="Filter distributions">
+    </div>
+    <nav class="dist-list" id="dist-list">
+      <div class="group-heading">Continuous Distributions</div>
+      <div id="continuous-group"></div>
+      
+      <div class="group-heading">Discrete Distributions</div>
+      <div id="discrete-group"></div>
+    </nav>
+  </aside>
+
+  <!-- Main Content Dashboard -->
+  <main class="main-content">
+    <header class="main-header">
+      <div class="dist-title-container">
+        <h2 class="dist-title" id="dist-title">Normal Distribution</h2>
+        <span class="badge badge-continuous" id="dist-type-badge">Continuous</span>
+      </div>
+    </header>
+    <p class="dist-desc" id="dist-description">
+      Normal (or Gaussian) distribution described by the mean or expectation of the distribution and its standard deviation.
+    </p>
+
+    <!-- Top Controls & Analytics Grid -->
+    <section class="top-analytics-grid">
+      <!-- Column 1: Configuration -->
+      <div class="card">
+        <h3 class="card-title">⚙️ Parameters</h3>
+        <div id="config-inputs-container">
+          <!-- Dynamic parameters will be injected here -->
+        </div>
+      </div>
+
+      <!-- Column 2: Telemetry Stats -->
+      <div class="card">
+        <h3 class="card-title">📊 Mathematical Properties</h3>
+        <div class="attributes-list">
+          <div class="attr-item">
+            <span class="attr-label">mean</span>
+            <div class="attr-value-container">
+              <span class="attr-value" id="val-mean">0.00</span>
+              <button class="copy-btn" title="Copy value">
+                <svg class="copy-icon" viewBox="0 0 24 24" width="12" height="12" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                  <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                </svg>
+              </button>
+            </div>
+          </div>
+          <div class="attr-item">
+            <span class="attr-label">median</span>
+            <div class="attr-value-container">
+              <span class="attr-value" id="val-median">0.00</span>
+              <button class="copy-btn" title="Copy value">
+                <svg class="copy-icon" viewBox="0 0 24 24" width="12" height="12" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                  <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                </svg>
+              </button>
+            </div>
+          </div>
+          <div class="attr-item">
+            <span class="attr-label">mode</span>
+            <div class="attr-value-container">
+              <span class="attr-value" id="val-mode">0.00</span>
+              <button class="copy-btn" title="Copy value">
+                <svg class="copy-icon" viewBox="0 0 24 24" width="12" height="12" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                  <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                </svg>
+              </button>
+            </div>
+          </div>
+          <div class="attr-item">
+            <span class="attr-label">variance</span>
+            <div class="attr-value-container">
+              <span class="attr-value" id="val-variance">1.00</span>
+              <button class="copy-btn" title="Copy value">
+                <svg class="copy-icon" viewBox="0 0 24 24" width="12" height="12" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                  <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                </svg>
+              </button>
+            </div>
+          </div>
+          <div class="attr-item">
+            <span class="attr-label">std deviation</span>
+            <div class="attr-value-container">
+              <span class="attr-value" id="val-stddev">1.00</span>
+              <button class="copy-btn" title="Copy value">
+                <svg class="copy-icon" viewBox="0 0 24 24" width="12" height="12" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                  <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                </svg>
+              </button>
+            </div>
+          </div>
+          <div class="attr-item">
+            <span class="attr-label">skewness</span>
+            <div class="attr-value-container">
+              <span class="attr-value" id="val-skewness">0.00</span>
+              <button class="copy-btn" title="Copy value">
+                <svg class="copy-icon" viewBox="0 0 24 24" width="12" height="12" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                  <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                </svg>
+              </button>
+            </div>
+          </div>
+          <div class="attr-item">
+            <span class="attr-label">kurtosis (exc)</span>
+            <div class="attr-value-container">
+              <span class="attr-value" id="val-kurtosis">0.00</span>
+              <button class="copy-btn" title="Copy value">
+                <svg class="copy-icon" viewBox="0 0 24 24" width="12" height="12" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                  <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                </svg>
+              </button>
+            </div>
+          </div>
+          <div class="attr-item">
+            <span class="attr-label">bounds</span>
+            <div class="attr-value-container">
+              <span class="attr-value" id="val-bounds">[-∞, ∞]</span>
+              <button class="copy-btn" title="Copy value">
+                <svg class="copy-icon" viewBox="0 0 24 24" width="12" height="12" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                  <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                </svg>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Column 3: Sampler Lab -->
+      <div class="card">
+        <h3 class="card-title">🎲 Random Sampling Lab</h3>
+        <div class="sampler-controls">
+          <button class="sampler-btn" id="btn-sample-1">Draw 1 Sample</button>
+          <button class="sampler-btn" id="btn-sample-10">Draw 10</button>
+          <button class="sampler-btn" id="btn-sample-100">Draw 100</button>
+          <button class="sampler-btn" id="btn-sample-1000">Draw 1000</button>
+          <button class="sampler-btn sampler-btn-secondary" id="btn-sample-clear">Clear Data</button>
+          <span style="margin-left: auto; color: var(--text-muted); font-size: 13px; font-weight: 500; display: flex; align-items: center; gap: 8px;">
+            Total Samples: <span id="sample-count-badge" style="color: var(--accent-purple); font-weight: 600; font-family: monospace;">0</span>
+            <button class="copy-btn" id="btn-sample-copy-all" title="Copy all samples" style="display: none;">
+              <svg class="copy-icon" viewBox="0 0 24 24" width="13" height="13" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+              </svg>
+            </button>
+          </span>
+        </div>
+
+        <div class="sampler-results-grid">
+          <div>
+            <table class="sample-stats-table">
+              <thead>
+                <tr>
+                  <th>Stat</th>
+                  <th>Theoretical</th>
+                  <th>Empirical</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>Mean</td>
+                  <td id="t-mean">-</td>
+                  <td id="e-mean">-</td>
+                </tr>
+                <tr>
+                  <td>Variance</td>
+                  <td id="t-variance">-</td>
+                  <td id="e-variance">-</td>
+                </tr>
+                <tr>
+                  <td>Std Dev</td>
+                  <td id="t-stddev">-</td>
+                  <td id="e-stddev">-</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          
+          <div class="samples-view-container">
+            <div class="samples-chip-container" id="samples-chips">
+              <span style="color: var(--text-muted); font-size: 12px; font-style: italic;">No samples generated yet. Click above to start drawing!</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Bottom Central Visualization Deck (Large and Front-and-Center!) -->
+    <section class="charts-layout">
+      <!-- Probability Density/Mass Function -->
+      <div class="card chart-card">
+        <h3 class="card-title">📈 Probability Density / Mass (PDF/PMF)</h3>
+        <div class="canvas-container">
+          <canvas id="pdf-canvas" class="chart-canvas"></canvas>
+        </div>
+      </div>
+
+      <!-- Cumulative Distribution Function -->
+      <div class="card chart-card">
+        <h3 class="card-title">📉 Cumulative Probability (CDF)</h3>
+        <div class="canvas-container">
+          <canvas id="cdf-canvas" class="chart-canvas"></canvas>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script defer src="index.dart.js"></script>
+</body>
+</html>
