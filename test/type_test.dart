@@ -455,6 +455,11 @@ void fieldTest<T>(DataType<T> type, List<T> values) {
   final div = field.div;
   final mod = field.mod;
   final pow = field.pow;
+  final division = field.division;
+  final remainder = field.remainder;
+  final modPow = field.modPow;
+  final modInverse = field.modInverse;
+  final gcd = field.gcd;
 
   group('equality', () {
     test('isEqual', () {
@@ -682,6 +687,127 @@ void fieldTest<T>(DataType<T> type, List<T> values) {
           expect(isClose(pow(value, addId), mulId, epsilon), isTrue);
         }
         expect(isClose(pow(value, mulId), value, epsilon), isTrue);
+      }
+    });
+    test('division', () {
+      for (final value in values) {
+        if ([
+          DataType.int8,
+          DataType.int16,
+          DataType.int32,
+          DataType.int64,
+          DataType.uint8,
+          DataType.uint16,
+          DataType.uint32,
+          DataType.uint64,
+          DataType.bigInt,
+          DataType.numeric,
+          DataType.float32,
+          DataType.float64,
+        ].contains(type)) {
+          dynamic expected = value;
+          if (type as dynamic == DataType.float32 ||
+              type as dynamic == DataType.float64) {
+            expected = ((value as double) ~/ (mulId as double)).roundToDouble();
+          } else if (type as dynamic == DataType.numeric) {
+            expected = (value as num) ~/ (mulId as num);
+          }
+          expect(
+            isClose(division(value, mulId), expected as T, epsilon),
+            isTrue,
+          );
+        } else {
+          expect(() => division(value, mulId), throwsUnsupportedError);
+        }
+      }
+    });
+    test('remainder', () {
+      for (final value in values) {
+        if ([
+          DataType.int8,
+          DataType.int16,
+          DataType.int32,
+          DataType.int64,
+          DataType.uint8,
+          DataType.uint16,
+          DataType.uint32,
+          DataType.uint64,
+          DataType.bigInt,
+          DataType.numeric,
+          DataType.float32,
+          DataType.float64,
+        ].contains(type)) {
+          expect(isClose(remainder(value, value), addId, epsilon), isTrue);
+        } else {
+          expect(() => remainder(value, mulId), throwsUnsupportedError);
+        }
+      }
+    });
+    test('modPow', () {
+      final modVal = add(add(mulId, mulId), mulId);
+      for (final value in values) {
+        if ([
+          DataType.int8,
+          DataType.int16,
+          DataType.int32,
+          DataType.int64,
+          DataType.uint8,
+          DataType.uint16,
+          DataType.uint32,
+          DataType.uint64,
+          DataType.bigInt,
+          DataType.numeric,
+          DataType.float32,
+          DataType.float64,
+        ].contains(type)) {
+          expect(
+            isClose(modPow(value, mulId, modVal), mod(value, modVal), epsilon),
+            isTrue,
+          );
+        } else {
+          expect(() => modPow(value, mulId, value), throwsUnsupportedError);
+        }
+      }
+    });
+    test('modInverse', () {
+      for (final value in values) {
+        if ([
+          DataType.int8,
+          DataType.int16,
+          DataType.int32,
+          DataType.int64,
+          DataType.uint8,
+          DataType.uint16,
+          DataType.uint32,
+          DataType.uint64,
+          DataType.bigInt,
+        ].contains(type)) {
+          expect(
+            isClose(modInverse(mulId, add(mulId, mulId)), mulId, epsilon),
+            isTrue,
+          );
+        } else {
+          expect(() => modInverse(value, mulId), throwsUnsupportedError);
+        }
+      }
+    });
+    test('gcd', () {
+      for (final value in values) {
+        if ([
+          DataType.int8,
+          DataType.int16,
+          DataType.int32,
+          DataType.int64,
+          DataType.uint8,
+          DataType.uint16,
+          DataType.uint32,
+          DataType.uint64,
+          DataType.bigInt,
+        ].contains(type)) {
+          expect(isClose(gcd(value, mulId), mulId, epsilon), isTrue);
+        } else {
+          expect(() => gcd(value, mulId), throwsUnsupportedError);
+        }
       }
     });
   });

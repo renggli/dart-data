@@ -2473,6 +2473,22 @@ void main() {
             cumulativeProbability: const [(1.0, 0.5248)],
           );
         });
+        group('dof1 = 10.0, dof2 = 12.0', () {
+          const distribution = FDistribution(10.0, 12.0);
+          test('parameters', () {
+            expect(distribution.dof1, isCloseTo(10.0));
+            expect(distribution.dof2, isCloseTo(12.0));
+          });
+          testDistribution(
+            distribution,
+            min: 0.0,
+            mean: 1.2,
+            mode: 0.6857142857,
+            variance: 0.72,
+            skewness: 2.8284271247,
+            kurtosisExcess: 21.0,
+          );
+        });
       });
       group('laplace', () {
         group('mu = 2.0, b = 1.5', () {
@@ -2540,6 +2556,36 @@ void main() {
             inverseCumulativeProbability: const [(0.0, 2.0), (0.875, 4.0)],
           );
         });
+        group('xo = 1.0, alpha = 5.0', () {
+          const distribution = ParetoDistribution(1.0, 5.0);
+          test('parameters', () {
+            expect(distribution.xo, isCloseTo(1.0));
+            expect(distribution.alpha, isCloseTo(5.0));
+          });
+          testDistribution(
+            distribution,
+            min: 1.0,
+            mean: 1.25,
+            mode: 1.0,
+            variance: 0.104166666666,
+            skewness: 4.64758001545,
+            kurtosisExcess: 70.8,
+          );
+        });
+        group('xo = 1.0, alpha = 1.5', () {
+          const distribution = ParetoDistribution(1.0, 1.5);
+          test('parameters', () {
+            expect(distribution.xo, isCloseTo(1.0));
+            expect(distribution.alpha, isCloseTo(1.5));
+          });
+          testDistribution(
+            distribution,
+            min: 1.0,
+            mean: 3.0,
+            mode: 1.0,
+            variance: double.infinity,
+          );
+        });
       });
     });
     group('discrete', () {
@@ -2577,67 +2623,88 @@ void main() {
         );
       });
       group('binomial', () {
-        const distribution = BinomialDistribution(10, 0.7);
-        test('parameters', () {
-          expect(distribution.n, isCloseTo(10));
-          expect(distribution.p, isCloseTo(0.7));
-          expect(distribution.q, isCloseTo(0.3));
+        group('n = 10, p = 0.7', () {
+          const distribution = BinomialDistribution(10, 0.7);
+          test('parameters', () {
+            expect(distribution.n, isCloseTo(10));
+            expect(distribution.p, isCloseTo(0.7));
+            expect(distribution.q, isCloseTo(0.3));
+          });
+          testDistribution(
+            distribution,
+            min: 0,
+            max: 10,
+            mean: 7,
+            median: 7,
+            mode: 7,
+            variance: 2.1,
+            skewness: -0.27602622,
+            kurtosisExcess: -0.12380952,
+            probability: const [
+              (-1, 0),
+              (0, 0.0000059049),
+              (1, 0.000137781),
+              (2, 0.0014467005),
+              (3, 0.009001692),
+              (4, 0.036756909),
+              (5, 0.1029193452),
+              (6, 0.200120949),
+              (7, 0.266827932),
+              (8, 0.2334744405),
+              (9, 0.121060821),
+              (10, 0.0282475249),
+              (11, 0),
+            ],
+            cumulativeProbability: const [
+              (-1, 0),
+              (0, 5.9049e-06),
+              (1, 0.0001436859),
+              (2, 0.0015903864),
+              (3, 0.0105920784),
+              (4, 0.0473489874),
+              (5, 0.1502683326),
+              (6, 0.3503892816),
+              (7, 0.6172172136),
+              (8, 0.8506916541),
+              (9, 0.9717524751),
+              (10, 1),
+              (11, 1),
+            ],
+            inverseCumulativeProbability: const [
+              (0, 0),
+              (0.001, 2),
+              (0.010, 3),
+              (0.025, 4),
+              (0.050, 5),
+              (0.100, 5),
+              (0.999, 10),
+              (0.990, 10),
+              (0.975, 10),
+              (0.950, 9),
+              (0.900, 9),
+              (1, 10),
+            ],
+          );
         });
-        testDistribution(
-          distribution,
-          min: 0,
-          max: 10,
-          mean: 7,
-          median: 7,
-          mode: 7,
-          variance: 2.1,
-          skewness: -0.27602622,
-          kurtosisExcess: -0.12380952,
-          probability: const [
-            (-1, 0),
-            (0, 0.0000059049),
-            (1, 0.000137781),
-            (2, 0.0014467005),
-            (3, 0.009001692),
-            (4, 0.036756909),
-            (5, 0.1029193452),
-            (6, 0.200120949),
-            (7, 0.266827932),
-            (8, 0.2334744405),
-            (9, 0.121060821),
-            (10, 0.0282475249),
-            (11, 0),
-          ],
-          cumulativeProbability: const [
-            (-1, 0),
-            (0, 5.9049e-06),
-            (1, 0.0001436859),
-            (2, 0.0015903864),
-            (3, 0.0105920784),
-            (4, 0.0473489874),
-            (5, 0.1502683326),
-            (6, 0.3503892816),
-            (7, 0.6172172136),
-            (8, 0.8506916541),
-            (9, 0.9717524751),
-            (10, 1),
-            (11, 1),
-          ],
-          inverseCumulativeProbability: const [
-            (0, 0),
-            (0.001, 2),
-            (0.010, 3),
-            (0.025, 4),
-            (0.050, 5),
-            (0.100, 5),
-            (0.999, 10),
-            (0.990, 10),
-            (0.975, 10),
-            (0.950, 9),
-            (0.900, 9),
-            (1, 10),
-          ],
-        );
+        group('n = 100, p = 0.5', () {
+          const distribution = BinomialDistribution(100, 0.5);
+          test('parameters', () {
+            expect(distribution.n, isCloseTo(100));
+            expect(distribution.p, isCloseTo(0.5));
+            expect(distribution.q, isCloseTo(0.5));
+          });
+          testDistribution(
+            distribution,
+            min: 0,
+            max: 100,
+            mean: 50,
+            median: 50,
+            mode: 50,
+            variance: 25.0,
+            skewness: 0.0,
+            kurtosisExcess: -0.02,
+          );
+        });
       });
       group('negative bernoulli', () {
         const distribution = NegativeBinomialDistribution(5, 0.4);
@@ -2957,6 +3024,23 @@ void main() {
               (8, 0.0),
             ],
             cumulativeProbability: const [(-1, 0.0), (3, 0.5), (8, 1.0)],
+          );
+        });
+        group('N = 5, K = 5, n = 5', () {
+          const distribution = HypergeometricDistribution(5, 5, 5);
+          test('parameters', () {
+            expect(distribution.N, equals(5));
+            expect(distribution.K, equals(5));
+            expect(distribution.n, equals(5));
+          });
+          testDistribution(
+            distribution,
+            min: 5,
+            max: 5,
+            mean: 5.0,
+            median: 5.0,
+            mode: 5.0,
+            variance: 0.0,
           );
         });
       });

@@ -1038,6 +1038,50 @@ void matrixTest(String name, MatrixFormat format) {
             }
           }
         });
+        test('mutable writes', () {
+          final baseMutable = Matrix.generate(
+            DataType.string,
+            2,
+            2,
+            (r, c) => '',
+            format: MatrixFormat.rowMajor,
+          );
+          final topMutable = Matrix.generate(
+            DataType.string,
+            2,
+            2,
+            (r, c) => '',
+            format: MatrixFormat.rowMajor,
+          );
+          final compositeOffset = topMutable.overlay(
+            baseMutable,
+            rowOffset: 1,
+            colOffset: 1,
+          );
+          compositeOffset.set(1, 1, 'X');
+          expect(compositeOffset.get(1, 1), 'X');
+          expect(topMutable.get(0, 0), 'X');
+          compositeOffset.set(0, 0, 'Y');
+          expect(compositeOffset.get(0, 0), 'Y');
+          expect(baseMutable.get(0, 0), 'Y');
+          final maskMutable = Matrix.generate(
+            DataType.boolean,
+            2,
+            2,
+            (row, col) => row == col,
+            format: MatrixFormat.rowMajor,
+          );
+          final compositeMask = topMutable.overlay(
+            baseMutable,
+            mask: maskMutable,
+          );
+          compositeMask.set(1, 1, 'A');
+          expect(compositeMask.get(1, 1), 'A');
+          expect(topMutable.get(1, 1), 'A');
+          compositeMask.set(0, 1, 'B');
+          expect(compositeMask.get(0, 1), 'B');
+          expect(baseMutable.get(0, 1), 'B');
+        });
         test('errors', () {
           expect(() => base.overlay(base), throwsArgumentError);
           expect(() => base.overlay(base, rowOffset: 1), throwsArgumentError);
@@ -1176,7 +1220,6 @@ void matrixTest(String name, MatrixFormat format) {
           final transform = source.transform<String>(
             (row, col, value) => String.fromCharCode(value),
             write: (row, col, value) => value.codeUnitAt(0),
-            dataType: DataType.string,
           );
           expect(transform.dataType, DataType.string);
           expect(transform.rowCount, source.rowCount);
@@ -1492,6 +1535,10 @@ void matrixTest(String name, MatrixFormat format) {
         test('full', () {
           final result1 = matrix1.convolve(kernel1);
           expect(
+            result1.storage,
+            unorderedMatches([...matrix1.storage, ...kernel1.storage]),
+          );
+          expect(
             result1,
             isCloseTo(
               Matrix.fromRows(DataType.int32, [
@@ -1508,6 +1555,10 @@ void matrixTest(String name, MatrixFormat format) {
           final result2 = matrix2.convolve(
             kernel2,
             mode: MatrixConvolution.full,
+          );
+          expect(
+            result2.storage,
+            unorderedMatches([...matrix2.storage, ...kernel2.storage]),
           );
           expect(
             result2,
@@ -1959,6 +2010,10 @@ void matrixTest(String name, MatrixFormat format) {
         expect(result.dataType, sourceA.dataType);
         expect(result.rowCount, sourceA.rowCount);
         expect(result.colCount, sourceA.colCount);
+        expect(
+          result.storage,
+          unorderedMatches([...sourceA.storage, ...sourceB.storage]),
+        );
         for (var r = 0; r < result.rowCount; r++) {
           for (var c = 0; c < result.colCount; c++) {
             expect(result.get(r, c), sourceA.get(r, c) + sourceB.get(r, c));
@@ -2023,6 +2078,10 @@ void matrixTest(String name, MatrixFormat format) {
         expect(target.dataType, sourceA.dataType);
         expect(target.rowCount, sourceA.rowCount);
         expect(target.colCount, sourceA.colCount);
+        expect(
+          target.storage,
+          unorderedMatches([...sourceA.storage, ...sourceB.storage]),
+        );
         for (var r = 0; r < target.rowCount; r++) {
           for (var c = 0; c < target.colCount; c++) {
             expect(target.get(r, c), sourceA.get(r, c) - sourceB.get(r, c));
@@ -2034,6 +2093,7 @@ void matrixTest(String name, MatrixFormat format) {
         expect(target.dataType, sourceA.dataType);
         expect(target.rowCount, sourceA.rowCount);
         expect(target.colCount, sourceA.colCount);
+        expect(target.storage, unorderedMatches(sourceA.storage));
         for (var r = 0; r < target.rowCount; r++) {
           for (var c = 0; c < target.colCount; c++) {
             expect(target.get(r, c), -sourceA.get(r, c));
@@ -2160,6 +2220,10 @@ void matrixTest(String name, MatrixFormat format) {
             expect(target.dataType, DataType.int32);
             expect(target.rowCount, matrixA.rowCount);
             expect(target.colCount, matrixB.colCount);
+            expect(
+              target.storage,
+              unorderedMatches([...matrixA.storage, ...matrixB.storage]),
+            );
             for (var r = 0; r < target.rowCount; r++) {
               for (var c = 0; c < target.colCount; c++) {
                 final value = matrixA.row(r).dot(matrixB.column(c));
@@ -2172,6 +2236,10 @@ void matrixTest(String name, MatrixFormat format) {
             expect(target.dataType, DataType.int32);
             expect(target.rowCount, matrixA.rowCount);
             expect(target.colCount, matrixB.colCount);
+            expect(
+              target.storage,
+              unorderedMatches([...matrixA.storage, ...matrixB.storage]),
+            );
             for (var r = 0; r < target.rowCount; r++) {
               for (var c = 0; c < target.colCount; c++) {
                 final value = matrixA.row(r).dot(matrixB.column(c));
@@ -2183,12 +2251,20 @@ void matrixTest(String name, MatrixFormat format) {
         group('vector', () {
           test('operator', () {
             final result = matrixA * vectorB;
+            expect(
+              result.storage,
+              unorderedMatches([...matrixA.storage, ...vectorB.storage]),
+            );
             for (var i = 0; i < result.rowCount; i++) {
               expect(result.get(i, 0), matrixA.row(i).dot(vectorB));
             }
           });
           test('primitive', () {
             final result = matrixA.mulVector(vectorB);
+            expect(
+              result.storage,
+              unorderedMatches([...matrixA.storage, ...vectorB.storage]),
+            );
             for (var i = 0; i < result.count; i++) {
               expect(result[i], matrixA.row(i).dot(vectorB));
             }

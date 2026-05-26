@@ -313,11 +313,19 @@ void main() {
           throwsArgumentError,
         );
         expect(
-          () => LevenbergMarquardt(bennet5, damping: 0.0),
+          () => LevenbergMarquardt(
+            bennet5,
+            initialValues: [3.5, 3.8, 4.0],
+            damping: 0.0,
+          ),
           throwsArgumentError,
         );
         expect(
-          () => LevenbergMarquardt(bennet5, damping: -1.0),
+          () => LevenbergMarquardt(
+            bennet5,
+            initialValues: [3.5, 3.8, 4.0],
+            damping: -1.0,
+          ),
           throwsArgumentError,
         );
         final fitter = LevenbergMarquardt(
