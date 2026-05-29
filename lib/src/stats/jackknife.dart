@@ -93,4 +93,27 @@ class _JackknifeResampling<T> extends ListBase<T> with NonGrowableListMixin<T> {
 
   @override
   void operator []=(int index, T value) => throw UnimplementedError();
+
+  @override
+  Iterator<T> get iterator => _JackknifeResamplingIterator<T>(list, index);
+}
+
+class _JackknifeResamplingIterator<T> implements Iterator<T> {
+  _JackknifeResamplingIterator(this.list, this.skipIndex);
+
+  final List<T> list;
+  final int skipIndex;
+  int _index = -1;
+
+  @override
+  T get current => list[_index];
+
+  @override
+  bool moveNext() {
+    _index++;
+    if (_index == skipIndex) {
+      _index++;
+    }
+    return _index < list.length;
+  }
 }
