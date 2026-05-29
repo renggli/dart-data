@@ -330,6 +330,23 @@ void main() {
         }
       }
     });
+    test('edge cases and stability', () {
+      expect(beta(171, 171), isNot(isNaN));
+      expect(beta(171, 171), greaterThan(0.0));
+      expect(beta(171, 171), lessThan(1e-100));
+
+      expect(ibeta(0.5, -1, 2), isNaN);
+      expect(ibeta(0.5, 2, -1), isNaN);
+      expect(ibeta(0.5, 0, 2), isNaN);
+      expect(ibeta(0.5, 2, 0), isNaN);
+      expect(ibeta(0, -1, 2), isNaN);
+      expect(ibeta(1, -1, 2), isNaN);
+
+      expect(ibetaInv(0.5, -1, 2), isNaN);
+      expect(ibetaInv(0.5, 2, -1), isNaN);
+      expect(ibetaInv(0.5, 0, 2), isNaN);
+      expect(ibetaInv(0.5, 2, 0), isNaN);
+    });
   });
   group('error function', () {
     const errorFunctionTuples = <(double, double)>[
@@ -420,6 +437,21 @@ void main() {
           );
         }
       }
+    });
+    test('erfInv and erfcInv out-of-domain edge cases', () {
+      expect(erfInv(-1.01), isNaN);
+      expect(erfInv(1.01), isNaN);
+      expect(erfInv(-2.0), isNaN);
+      expect(erfInv(2.0), isNaN);
+      expect(erfInv(double.infinity), isNaN);
+      expect(erfInv(double.negativeInfinity), isNaN);
+
+      expect(erfcInv(-0.01), isNaN);
+      expect(erfcInv(2.01), isNaN);
+      expect(erfcInv(-1.0), isNaN);
+      expect(erfcInv(3.0), isNaN);
+      expect(erfcInv(double.infinity), isNaN);
+      expect(erfcInv(double.negativeInfinity), isNaN);
     });
   });
 }

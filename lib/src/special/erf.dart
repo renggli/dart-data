@@ -32,12 +32,14 @@ double erf(num x) {
 
 /// Returns the inverse error function.
 double erfInv(num x) {
-  if (x == 0) {
-    return x.toDouble();
-  } else if (x <= -1.0) {
+  if (x < -1.0 || x > 1.0) {
+    return double.nan;
+  } else if (x == -1.0) {
     return double.negativeInfinity;
-  } else if (x >= 1.0) {
+  } else if (x == 1.0) {
     return double.infinity;
+  } else if (x == 0) {
+    return x.toDouble();
   } else {
     const x0 = 0.7;
     const a = [0.886226899, -1.645349621, 0.914624893, -0.140543331];

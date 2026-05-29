@@ -154,9 +154,15 @@ double lowRegGamma(num a, num x) {
     final an = -i * (i - a);
     b += 2.0;
     d = an * d + b;
+    if (d.abs() < 1.0e-30) d = 1.0e-30;
     c = b + an / c;
+    if (c.abs() < 1.0e-30) c = 1.0e-30;
     d = 1.0 / d;
-    h *= d * c;
+    final del = d * c;
+    h *= del;
+    if ((del - 1.0).abs() < 1.0e-15) {
+      break;
+    }
   }
   return 1.0 - h * exp(-x + a * log(x) - aln);
 }

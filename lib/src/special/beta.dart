@@ -7,8 +7,15 @@ import 'gamma.dart';
 /// ```dart
 /// print(beta(2, 3));  // 0.08333333333333333
 /// ```
-double beta(num x, num y) =>
-    x <= 0 || y <= 0 ? double.nan : gamma(x) * gamma(y) / gamma(x + y);
+double beta(num x, num y) {
+  if (x <= 0 || y <= 0) {
+    return double.nan;
+  }
+  if (x > 100 || y > 100) {
+    return exp(betaLn(x, y));
+  }
+  return gamma(x) * gamma(y) / gamma(x + y);
+}
 
 /// Logarithm of the beta function based on the [gammaLn] function.
 double betaLn(num x, num y) =>
@@ -16,7 +23,7 @@ double betaLn(num x, num y) =>
 
 /// Incomplete beta function.
 double ibeta(num x, num a, num b) {
-  if (x < 0 || 1 < x) {
+  if (x < 0 || 1 < x || a <= 0 || b <= 0) {
     return double.nan;
   }
   // Factor in front of the continued fraction.
@@ -40,6 +47,9 @@ double ibeta(num x, num a, num b) {
 
 /// Inverse of the incomplete beta function.
 double ibetaInv(num p, num a, num b) {
+  if (a <= 0 || b <= 0) {
+    return double.nan;
+  }
   const epsilon = 1.0e-8;
   final a1 = a - 1.0;
   final b1 = b - 1.0;
