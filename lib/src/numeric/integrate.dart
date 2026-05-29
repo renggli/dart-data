@@ -1,3 +1,4 @@
+import 'dart:math' show max;
 import 'package:collection/collection.dart';
 import 'package:more/more.dart';
 
@@ -59,9 +60,26 @@ double integrate(
         .toList();
     if (normalized.isNotEmpty) {
       normalized.sort();
-      final expanded = normalized
-          .expand((pole) => [pole - epsilon, pole + epsilon])
-          .toList(growable: true);
+      final intervals = normalized
+          .map((pole) => (pole - epsilon, pole + epsilon))
+          .toList();
+      final mergedIntervals = <(double, double)>[];
+      var current = intervals[0];
+      for (var i = 1; i < intervals.length; i++) {
+        final next = intervals[i];
+        if (next.$1 <= current.$2) {
+          current = (current.$1, max(current.$2, next.$2));
+        } else {
+          mergedIntervals.add(current);
+          current = next;
+        }
+      }
+      mergedIntervals.add(current);
+      final expanded = <double>[];
+      for (final interval in mergedIntervals) {
+        expanded.add(interval.$1);
+        expanded.add(interval.$2);
+      }
       a < expanded.first ? expanded.insert(0, a) : expanded.removeAt(0);
       expanded.last < b ? expanded.add(b) : expanded.removeLast();
       var result = 0.0;

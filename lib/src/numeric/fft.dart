@@ -45,15 +45,15 @@ List<Complex> fft(List<Complex> values, {bool inverse = false}) {
     final halfLen = len >> 1;
     final a = (inverse ? -2 : 2) * math.pi / len;
     final r = Complex(math.cos(a), math.sin(a));
-    for (var i = 0; i < n; i += len) {
-      var w = Complex.one;
-      for (var j = 0; j < halfLen; j++) {
-        final ui = i + j, vi = ui + halfLen;
+    var w = Complex.one;
+    for (var j = 0; j < halfLen; j++) {
+      for (var i = j; i < n; i += len) {
+        final ui = i, vi = ui + halfLen;
         final u = values[ui], v = values[vi] * w;
         values[ui] = u + v;
         values[vi] = u - v;
-        w *= r;
       }
+      w *= r;
     }
   }
   // Invert the transformation.

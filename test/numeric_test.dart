@@ -1070,6 +1070,16 @@ void main() {
           expect(f(i), isCloseTo(exp(i), epsilon: 0.1));
         }
       });
+      test('1 sample throws ArgumentError', () {
+        expect(
+          () => linearInterpolation(
+            DataType.float,
+            xs: [1.0].toVector(),
+            ys: [2.0].toVector(),
+          ),
+          throwsArgumentError,
+        );
+      });
     });
     group('nearest', () {
       test('prefer lower', () {
@@ -1249,6 +1259,18 @@ void main() {
       test('irrelevant poles', () {
         expect(integrate(f, 0.5, 1.5, poles: [0, 2, -2]), isCloseTo(1));
       });
+      test('overlapping poles', () {
+        expect(
+          integrate(
+            (x) => 1.0,
+            0.1,
+            2.0,
+            poles: [0.5, 0.55],
+            epsilon: 0.1,
+          ),
+          isCloseTo(1.65),
+        );
+      });
     });
     test('evaluation points', () {
       final evaluationPoints = <double>{};
@@ -1406,6 +1428,10 @@ void main() {
     test('asymmetric root', () {
       double f(double x) => pow(x, 10) - 1e-10;
       expect(solve(f, 0, 1), isCloseTo(0.1));
+    });
+    test('inverse quadratic interpolation', () {
+      double f(double x) => pow(x - 1, 3) - 1;
+      expect(solve(f, 0.5, 2.5), isCloseTo(2));
     });
   });
 }

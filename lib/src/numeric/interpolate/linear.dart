@@ -23,7 +23,7 @@ UnaryFunction<T> linearInterpolation<T>(
   T? left,
   T? right,
 }) {
-  checkPoints(dataType, xs: xs, ys: ys, min: 1, ordered: true, unique: true);
+  checkPoints(dataType, xs: xs, ys: ys, min: 2, ordered: true, unique: true);
   final add = dataType.field.add, sub = dataType.field.sub;
   final mul = dataType.field.mul, div = dataType.field.div;
   final min = xs.getUnchecked(0), max = xs.getUnchecked(xs.count - 1);

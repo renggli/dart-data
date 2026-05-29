@@ -37,7 +37,7 @@ double solve(
     y0 = y1;
     y1 = ty;
   }
-  final y2 = y0;
+  var y2 = y0;
   var x2 = a, x3 = x2;
   var bisection = true;
   for (var i = 0; i < maxIterations; i++) {
@@ -79,6 +79,7 @@ double solve(
     }
     x3 = x2;
     x2 = b;
+    y2 = y1;
     if (y0.sign != y.sign) {
       b = x;
       y1 = y;
