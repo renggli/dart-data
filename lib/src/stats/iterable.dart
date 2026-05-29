@@ -60,9 +60,9 @@ extension IterableNumExtension on Iterable<num> {
     return count == 0 ? double.nan : exp(sum / count);
   }
 
-  /// Returns the harmonic mean of this [Iterable], [0.0] if any element
-  /// is 0, or [double.nan] if the sum of the reciprocals of the iterable
-  /// is 0 or the iterable is empty.
+  /// Returns the harmonic mean of this [Iterable], 0 if any element is 0, or
+  /// [double.nan] if the sum of the reciprocals of the iterable is 0 or the
+  /// iterable is empty.
   ///
   /// For details, see https://en.wikipedia.org/wiki/Harmonic_mean.
   ///

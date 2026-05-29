@@ -1,9 +1,7 @@
 import 'dart:math' as math;
-
 import 'package:data/special.dart';
 import 'package:more/tuple.dart';
 import 'package:test/test.dart';
-
 import 'utils/matchers.dart';
 
 void main() {
@@ -334,14 +332,12 @@ void main() {
       expect(beta(171, 171), isNot(isNaN));
       expect(beta(171, 171), greaterThan(0.0));
       expect(beta(171, 171), lessThan(1e-100));
-
       expect(ibeta(0.5, -1, 2), isNaN);
       expect(ibeta(0.5, 2, -1), isNaN);
       expect(ibeta(0.5, 0, 2), isNaN);
       expect(ibeta(0.5, 2, 0), isNaN);
       expect(ibeta(0, -1, 2), isNaN);
       expect(ibeta(1, -1, 2), isNaN);
-
       expect(ibetaInv(0.5, -1, 2), isNaN);
       expect(ibetaInv(0.5, 2, -1), isNaN);
       expect(ibetaInv(0.5, 0, 2), isNaN);
@@ -445,13 +441,180 @@ void main() {
       expect(erfInv(2.0), isNaN);
       expect(erfInv(double.infinity), isNaN);
       expect(erfInv(double.negativeInfinity), isNaN);
-
       expect(erfcInv(-0.01), isNaN);
       expect(erfcInv(2.01), isNaN);
       expect(erfcInv(-1.0), isNaN);
       expect(erfcInv(3.0), isNaN);
       expect(erfcInv(double.infinity), isNaN);
       expect(erfcInv(double.negativeInfinity), isNaN);
+    });
+  });
+  group('digamma and trigamma functions', () {
+    const eulerMascheroni = 0.57721566490153286;
+    test('digamma exact and standard values', () {
+      expect(digamma(1), isCloseTo(-eulerMascheroni));
+      expect(digamma(2), isCloseTo(1.0 - eulerMascheroni));
+      expect(digamma(3), isCloseTo(1.5 - eulerMascheroni));
+      expect(digamma(0.5), isCloseTo(-eulerMascheroni - 2.0 * math.log(2.0)));
+    });
+    test('digamma negative and reflection', () {
+      expect(digamma(-1.5), isCloseTo(0.7031566406451032));
+      expect(digamma(-2.5), isCloseTo(1.1031566406451032));
+    });
+    test('digamma undefined and boundary values', () {
+      expect(digamma(0), isNaN);
+      expect(digamma(-1), isNaN);
+      expect(digamma(-2), isNaN);
+      expect(digamma(double.negativeInfinity), isNaN);
+      expect(digamma(double.infinity), double.infinity);
+      expect(digamma(double.nan), isNaN);
+    });
+    test('trigamma exact and standard values', () {
+      expect(trigamma(1), isCloseTo(math.pi * math.pi / 6.0));
+      expect(trigamma(2), isCloseTo(math.pi * math.pi / 6.0 - 1.0));
+      expect(trigamma(3), isCloseTo(math.pi * math.pi / 6.0 - 1.25));
+    });
+    test('trigamma negative and reflection', () {
+      expect(trigamma(-0.5), isCloseTo(8.93480220054468));
+    });
+    test('trigamma undefined and boundary values', () {
+      expect(trigamma(0), isNaN);
+      expect(trigamma(-1), isNaN);
+      expect(trigamma(-2), isNaN);
+      expect(trigamma(double.infinity), 0.0);
+      expect(trigamma(double.negativeInfinity), 0.0);
+      expect(trigamma(double.nan), isNaN);
+    });
+  });
+  group('Bessel functions', () {
+    test('Bessel J0 and J1 exact and reference values', () {
+      expect(besselJ0(0), 1.0);
+      expect(besselJ1(0), 0.0);
+      expect(besselJ0(1.0), isCloseTo(0.7651976865579666));
+      expect(besselJ0(5.0), isCloseTo(-0.1775967713143383));
+      expect(besselJ0(10.0), isCloseTo(-0.2459357644513483));
+      expect(besselJ1(1.0), isCloseTo(0.4400505857449335));
+      expect(besselJ1(5.0), isCloseTo(-0.327579137591465));
+      expect(besselJ1(10.0), isCloseTo(0.0434727461688614));
+      expect(besselJ0(-1.0), besselJ0(1.0));
+      expect(besselJ1(-1.0), -besselJ1(1.0));
+    });
+    test('Bessel Y0 and Y1 boundary and reference values', () {
+      expect(besselY0(0), isNaN);
+      expect(besselY0(-1), isNaN);
+      expect(besselY1(0), isNaN);
+      expect(besselY0(1.0), isCloseTo(0.0882569642156765));
+      expect(besselY0(5.0), isCloseTo(-0.308517623137123));
+      expect(besselY1(1.0), isCloseTo(-0.7812128213002889));
+      expect(besselY1(5.0), isCloseTo(0.147863143391227));
+    });
+    test('Modified Bessel I0 and I1 reference values', () {
+      expect(besselI0(0), 1.0);
+      expect(besselI1(0), 0.0);
+      expect(besselI0(1.0), isCloseTo(1.2660658777520083));
+      expect(besselI0(5.0), isCloseTo(27.23987182441066));
+      expect(besselI1(1.0), isCloseTo(0.5651591039924850));
+      expect(besselI1(5.0), isCloseTo(24.33564214245648));
+      // Symmetry
+      expect(besselI0(-2.0), besselI0(2.0));
+      expect(besselI1(-2.0), -besselI1(2.0));
+    });
+    test('Modified Bessel K0 and K1 reference values', () {
+      expect(besselK0(0), isNaN);
+      expect(besselK0(-1), isNaN);
+      expect(besselK0(1.0), isCloseTo(0.4210244382407083));
+      expect(besselK0(5.0), isCloseTo(0.00369110762356937));
+      expect(besselK1(1.0), isCloseTo(0.6019072301972346));
+      expect(besselK1(5.0), isCloseTo(0.00404457497148563));
+    });
+  });
+  group('Hypergeometric functions', () {
+    test('confluent hypergeometric 1F1 standard cases', () {
+      expect(hypergeometric1F1(2, 2, 0.5), isCloseTo(math.exp(0.5)));
+      expect(hypergeometric1F1(5, 5, 1.2), isCloseTo(math.exp(1.2)));
+      expect(hypergeometric1F1(0, 3.5, 2.5), 1.0);
+      expect(hypergeometric1F1(1, 0, 0.5), isNaN);
+      expect(hypergeometric1F1(1, -2, 0.5), isNaN);
+    });
+    test('Gauss hypergeometric 2F1 standard cases', () {
+      // 2F1(a, b; b; z) = (1-z)^(-a)
+      expect(hypergeometric2F1(1, 2, 2, 0.5), isCloseTo(2.0));
+      expect(hypergeometric2F1(2, 3, 3, 0.5), isCloseTo(4.0));
+      expect(
+        hypergeometric2F1(3, 1.5, 1.5, 0.2),
+        isCloseTo(1.0 / (0.8 * 0.8 * 0.8)),
+      );
+      // 2F1(0, b; c; z) = 1
+      expect(hypergeometric2F1(0, 2.5, 4.5, 0.7), 1.0);
+    });
+    test('Gauss hypergeometric 2F1 transformations and boundaries', () {
+      expect(hypergeometric2F1(1, 2, 3, -2.0), isCloseTo(0.45069385566594444));
+      expect(
+        hypergeometric2F1(0.5, 0.5, 1.5, 0.95),
+        isCloseTo(1.3802311542699408),
+      );
+      expect(hypergeometric2F1(1.0, 1.0, 3.0, 1.0), isCloseTo(2.0));
+      expect(hypergeometric2F1(1, 2, 3, 1.5), isNaN);
+      expect(hypergeometric2F1(1, 2, 0, 0.5), isNaN);
+      expect(hypergeometric2F1(1, 2, -1, 0.5), isNaN);
+    });
+  });
+  group('Lambert W function', () {
+    test('Lambert W0 standard values and identity', () {
+      expect(lambertW0(0), 0.0);
+      expect(lambertW0(-0.0), -0.0);
+      expect(lambertW0(math.e), isCloseTo(1.0));
+      for (final z in [0.1, 0.5, 2.0, 10.0, 100.0]) {
+        final w = lambertW0(z);
+        expect(w * math.exp(w), isCloseTo(z));
+      }
+    });
+    test('Lambert W0 boundaries and edges', () {
+      expect(lambertW0(-1.0 / math.e), isCloseTo(-1.0));
+      expect(lambertW0(-0.36787944117), isCloseTo(-1.0, epsilon: 1e-5));
+      expect(lambertW0(-0.4), isNaN);
+      expect(lambertW0(double.infinity), double.infinity);
+    });
+    test('Lambert W1 standard values and identity', () {
+      expect(lambertW1(-1.0 / math.e), isCloseTo(-1.0));
+      for (final z in [-0.36, -0.3, -0.2, -0.1, -0.01]) {
+        final w = lambertW1(z);
+        expect(w * math.exp(w), isCloseTo(z));
+        expect(w, lessThanOrEqualTo(-1.0));
+      }
+    });
+    test('Lambert W1 boundaries and edges', () {
+      expect(lambertW1(0.0), isNaN);
+      expect(lambertW1(0.1), isNaN);
+      expect(lambertW1(-0.4), isNaN);
+    });
+  });
+  group('elliptic integrals', () {
+    test('complete elliptic K standard values', () {
+      expect(ellipticK(0), math.pi / 2.0);
+      expect(ellipticK(1), double.infinity);
+      expect(ellipticK(-1), double.infinity);
+      expect(ellipticK(0.5), isCloseTo(1.685750354812635));
+      expect(ellipticK(-0.5), isCloseTo(1.685750354812635));
+      expect(ellipticK(0.9), isCloseTo(2.280549138422770));
+    });
+    test('complete elliptic K edge cases', () {
+      expect(ellipticK(1.01), isNaN);
+      expect(ellipticK(-1.01), isNaN);
+      expect(ellipticK(double.nan), isNaN);
+    });
+    test('complete elliptic E standard values', () {
+      expect(ellipticE(0), math.pi / 2.0);
+      expect(ellipticE(1), 1.0);
+      expect(ellipticE(-1), 1.0);
+      expect(ellipticE(0.5), isCloseTo(1.4674622093394272));
+      expect(ellipticE(-0.5), isCloseTo(1.4674622093394272));
+      expect(ellipticE(0.9), isCloseTo(1.171696839736412));
+    });
+    test('complete elliptic E edge cases', () {
+      expect(ellipticE(1.01), isNaN);
+      expect(ellipticE(-1.01), isNaN);
+      expect(ellipticE(double.nan), isNaN);
     });
   });
 }
