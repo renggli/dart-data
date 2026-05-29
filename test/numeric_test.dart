@@ -1261,13 +1261,7 @@ void main() {
       });
       test('overlapping poles', () {
         expect(
-          integrate(
-            (x) => 1.0,
-            0.1,
-            2.0,
-            poles: [0.5, 0.55],
-            epsilon: 0.1,
-          ),
+          integrate((x) => 1.0, 0.1, 2.0, poles: [0.5, 0.55], epsilon: 0.1),
           isCloseTo(1.65),
         );
       });

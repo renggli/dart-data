@@ -52,52 +52,19 @@ double integrate(
   } else if (a == b) {
     return 0.0;
   }
-  // Break up at the poles and merge with bounds, if necessary.
+  // Handle poles.
   if (poles.isNotEmpty) {
-    final normalized = poles
-        .where((pole) => a <= pole && pole <= b)
-        .toSet()
-        .toList();
-    if (normalized.isNotEmpty) {
-      normalized.sort();
-      final intervals = normalized
-          .map((pole) => (pole - epsilon, pole + epsilon))
-          .toList();
-      final mergedIntervals = <(double, double)>[];
-      var current = intervals[0];
-      for (var i = 1; i < intervals.length; i++) {
-        final next = intervals[i];
-        if (next.$1 <= current.$2) {
-          current = (current.$1, max(current.$2, next.$2));
-        } else {
-          mergedIntervals.add(current);
-          current = next;
-        }
-      }
-      mergedIntervals.add(current);
-      final expanded = <double>[];
-      for (final interval in mergedIntervals) {
-        expanded.add(interval.$1);
-        expanded.add(interval.$2);
-      }
-      a < expanded.first ? expanded.insert(0, a) : expanded.removeAt(0);
-      expanded.last < b ? expanded.add(b) : expanded.removeLast();
-      var result = 0.0;
-      for (var i = 0; i < expanded.length; i += 2) {
-        result += integrate(
-          function,
-          expanded[i],
-          expanded[i + 1],
-          depth: depth,
-          epsilon: epsilon,
-          onWarning: onWarning,
-        );
-      }
-      return result;
-    }
+    return _integratePoles(
+      function,
+      a,
+      b,
+      depth: depth,
+      epsilon: epsilon,
+      poles: poles,
+      onWarning: onWarning,
+    );
   }
-  // Deal with infinite bounds:
-  // https://en.wikipedia.org/wiki/Numerical_integration#Integrals_over_infinite_intervals
+  // Handle infinite bounds.
   if (a == double.negativeInfinity && b == double.infinity) {
     return integrate(
           function,
@@ -117,10 +84,7 @@ double integrate(
         );
   } else if (a == double.negativeInfinity) {
     return integrate(
-      (t) {
-        final omt = 1.0 - t, t2 = t * t;
-        return function(b - omt / t) / t2;
-      },
+      (t) => function(b - (1.0 - t) / t) / (t * t),
       epsilon,
       1,
       depth: depth,
@@ -129,10 +93,7 @@ double integrate(
     );
   } else if (b == double.infinity) {
     return integrate(
-      (t) {
-        final omt = 1.0 - t, t2 = t * t;
-        return function(a + omt / t) / t2;
-      },
+      (t) => function(a + (1.0 - t) / t) / (t * t),
       epsilon,
       1,
       depth: depth,
@@ -140,8 +101,93 @@ double integrate(
       onWarning: onWarning,
     );
   }
-  // Solve the actual integral:
-  // https://en.wikipedia.org/wiki/Adaptive_quadrature
+
+  // Adaptive quadrature for finite bounds without poles.
+  return _integrateAdaptive(
+    function,
+    a,
+    b,
+    depth: depth,
+    epsilon: epsilon,
+    onWarning: onWarning,
+  );
+}
+
+double _integratePoles(
+  UnaryFunction<double> function,
+  double a,
+  double b, {
+  required int depth,
+  required double epsilon,
+  required Iterable<double> poles,
+  required void Function(IntegrateWarning type, double x) onWarning,
+}) {
+  final normalized = poles
+      .where((pole) => a <= pole && pole <= b)
+      .toSet()
+      .toList();
+  if (normalized.isEmpty) {
+    return integrate(
+      function,
+      a,
+      b,
+      depth: depth,
+      epsilon: epsilon,
+      onWarning: onWarning,
+    );
+  }
+  normalized.sort();
+  final intervals = normalized
+      .map((pole) => (lo: pole - epsilon, hi: pole + epsilon))
+      .toList();
+  final mergedIntervals = <({double lo, double hi})>[];
+  var current = intervals[0];
+  for (var i = 1; i < intervals.length; i++) {
+    final next = intervals[i];
+    if (next.lo <= current.hi) {
+      current = (lo: current.lo, hi: max(current.hi, next.hi));
+    } else {
+      mergedIntervals.add(current);
+      current = next;
+    }
+  }
+  mergedIntervals.add(current);
+  var last = a;
+  var result = 0.0;
+  for (final interval in mergedIntervals) {
+    if (last < interval.lo) {
+      result += integrate(
+        function,
+        last,
+        interval.lo,
+        depth: depth,
+        epsilon: epsilon,
+        onWarning: onWarning,
+      );
+    }
+    last = interval.hi;
+  }
+  if (last < b) {
+    result += integrate(
+      function,
+      last,
+      b,
+      depth: depth,
+      epsilon: epsilon,
+      onWarning: onWarning,
+    );
+  }
+  return result;
+}
+
+double _integrateAdaptive(
+  UnaryFunction<double> function,
+  double a,
+  double b, {
+  required int depth,
+  required double epsilon,
+  required void Function(IntegrateWarning type, double x) onWarning,
+}) {
   var result = 0.0;
   final queue = QueueList.from([
     _Quadrature.simpson(
@@ -156,10 +202,12 @@ double integrate(
   ]);
   while (queue.isNotEmpty) {
     final full = queue.removeLast();
+    final nextDepth = full.depth - 1;
+    final nextEpsilon = full.epsilon / 2.0;
     final left = _Quadrature.simpson(
       function,
-      full.depth - 1,
-      full.epsilon / 2.0,
+      nextDepth,
+      nextEpsilon,
       full.a,
       full.fa,
       full.m,
@@ -167,8 +215,8 @@ double integrate(
     );
     final right = _Quadrature.simpson(
       function,
-      left.depth,
-      left.epsilon,
+      nextDepth,
+      nextEpsilon,
       full.m,
       full.fm,
       full.b,
