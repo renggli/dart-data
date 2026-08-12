@@ -5,7 +5,7 @@ import '../vector.dart';
 
 /// Read-only vector with a constant value.
 class ConstantVector<T> with Vector<T>, UnmodifiableVectorMixin<T> {
-  ConstantVector(this.dataType, this.count, this.value);
+  new(this.dataType, this.count, this.value);
 
   final T value;
 

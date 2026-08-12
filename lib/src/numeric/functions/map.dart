@@ -3,7 +3,7 @@ import '../functions.dart';
 
 /// Provides parameters as a single positional map.
 class MapParametrizedUnaryFunction<T> extends ParametrizedUnaryFunction<T> {
-  const MapParametrizedUnaryFunction(super.dataType, this.names, this.function);
+  const new(super.dataType, this.names, this.function);
 
   ///  The list of named parameter names.
   final List<Symbol> names;

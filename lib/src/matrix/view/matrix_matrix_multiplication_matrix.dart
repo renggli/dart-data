@@ -5,7 +5,7 @@ import '../mixin/unmodifiable_matrix.dart';
 
 class MatrixMatrixMultiplicationMatrix<T>
     with Matrix<T>, UnmodifiableMatrixMixin<T> {
-  MatrixMatrixMultiplicationMatrix(this.dataType, this.first, this.second)
+  new(this.dataType, this.first, this.second)
     : assert(
         first.colCount == second.rowCount,
         'Expected a matrix with ${first.colCount} rows, '

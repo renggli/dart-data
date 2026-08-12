@@ -8,12 +8,7 @@ import '../matrix.dart';
 
 /// Sparse matrix with diagonal storage.
 class DiagonalMatrix<T> with Matrix<T> {
-  DiagonalMatrix(
-    this.dataType,
-    this.rowCount,
-    this.colCount, {
-    VectorFormat? format,
-  }) : _format = format;
+  new(this.dataType, this.rowCount, this.colCount, {this._format});
 
   final Map<int, Vector<T>> _diagonals = <int, Vector<T>>{};
   final VectorFormat? _format;

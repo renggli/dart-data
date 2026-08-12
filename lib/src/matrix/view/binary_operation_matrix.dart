@@ -7,7 +7,7 @@ import '../mixin/unmodifiable_matrix.dart';
 
 /// Read-only element-wise binary operation between two matrices.
 class BinaryOperationMatrix<T> with Matrix<T>, UnmodifiableMatrixMixin<T> {
-  BinaryOperationMatrix(this.dataType, this.first, this.second, this.operation)
+  new(this.dataType, this.first, this.second, this.operation)
     : assert(
         first.rowCount == second.rowCount,
         'Row count of first (${first.rowCount}) and second '

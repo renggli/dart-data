@@ -6,7 +6,7 @@ import '../vector.dart';
 
 /// Mutable concatenation of vectors.
 class ConcatVector<T> with Vector<T> {
-  ConcatVector(this.dataType, this.vectors) : indexes = computeIndexes(vectors);
+  new(this.dataType, this.vectors) : indexes = computeIndexes(vectors);
 
   final List<Vector<T>> vectors;
   final List<int> indexes;

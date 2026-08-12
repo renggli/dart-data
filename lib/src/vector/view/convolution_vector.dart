@@ -9,7 +9,7 @@ import '../vector.dart';
 
 /// Read-only convolution between two vectors.
 abstract class ConvolutionVector<T> with Vector<T>, UnmodifiableVectorMixin<T> {
-  ConvolutionVector(this.dataType, this.vector, this.kernel)
+  new(this.dataType, this.vector, this.kernel)
     : assert(vector.count > 0, 'Empty vector'),
       assert(kernel.count > 0, 'Empty kernel');
 
@@ -34,7 +34,7 @@ abstract class ConvolutionVector<T> with Vector<T>, UnmodifiableVectorMixin<T> {
 }
 
 class FullConvolutionVector<T> extends ConvolutionVector<T> {
-  FullConvolutionVector(super.dataType, super.vector, super.kernel)
+  new(super.dataType, super.vector, super.kernel)
     : count = vector.count + kernel.count - 1;
 
   @override
@@ -48,7 +48,7 @@ class FullConvolutionVector<T> extends ConvolutionVector<T> {
 }
 
 class ValidConvolutionVector<T> extends ConvolutionVector<T> {
-  ValidConvolutionVector(super.dataType, super.vector, super.kernel)
+  new(super.dataType, super.vector, super.kernel)
     : count = vector.count - kernel.count + 1;
 
   @override
@@ -59,8 +59,7 @@ class ValidConvolutionVector<T> extends ConvolutionVector<T> {
 }
 
 class SameConvolutionVector<T> extends ConvolutionVector<T> {
-  SameConvolutionVector(super.dataType, super.vector, super.kernel)
-    : count = vector.count;
+  new(super.dataType, super.vector, super.kernel) : count = vector.count;
 
   @override
   final int count;

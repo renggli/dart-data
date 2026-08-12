@@ -1,4 +1,5 @@
 import 'dart:math' show max;
+
 import 'package:collection/collection.dart';
 import 'package:more/more.dart';
 
@@ -247,7 +248,7 @@ enum IntegrateWarning { doesNotConverge, depthTooShallow }
 
 /// Integration error that is thrown when warnings are not handled explicitly.
 class IntegrateError extends Error with ToStringPrinter {
-  IntegrateError._(this.type, this.x);
+  new _(this.type, this.x);
 
   /// The integration warning thrown.
   final IntegrateWarning type;
@@ -262,7 +263,7 @@ class IntegrateError extends Error with ToStringPrinter {
 }
 
 class _Quadrature {
-  factory _Quadrature.simpson(
+  factory simpson(
     double Function(double) f,
     int depth,
     double epsilon,
@@ -285,7 +286,7 @@ class _Quadrature {
     );
   }
 
-  _Quadrature(
+  new(
     this.depth,
     this.epsilon,
     this.a,

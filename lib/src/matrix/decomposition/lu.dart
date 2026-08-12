@@ -17,7 +17,7 @@ import '../view/index_matrix.dart';
 /// LU decomposition is in the solution of square systems of simultaneous
 /// linear equations. This will fail if [isNonsingular] returns false.
 class LUDecomposition {
-  LUDecomposition(Matrix<num> source)
+  new(Matrix<num> source)
     : _lu = source.cast(DataType.float).toMatrix(),
       _m = source.rowCount,
       _n = source.colCount,

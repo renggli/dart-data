@@ -5,7 +5,7 @@ import '../matrix.dart';
 
 /// Tensor matrix.
 class TensorMatrix<T> with Matrix<T> {
-  TensorMatrix(DataType<T> dataType, int rowCount, int colCount)
+  new(DataType<T> dataType, int rowCount, int colCount)
     : this.fromTensor(
         Tensor<T>.filled(
           dataType.defaultValue,
@@ -14,7 +14,7 @@ class TensorMatrix<T> with Matrix<T> {
         ),
       );
 
-  TensorMatrix.fromTensor(this.tensor)
+  new fromTensor(this.tensor)
     : assert(tensor.layout.rank == 2, 'Expected a tensor of rank 2');
 
   final Tensor<T> tensor;

@@ -17,8 +17,7 @@ import '../errors.dart';
 /// ```
 class LogisticDistribution extends ContinuousDistribution {
   /// A Logistic distribution with parameter [mu] and [s].
-  const LogisticDistribution([this.mu = 0, this.s = 1])
-    : assert(s > 0, 's > 0');
+  const new([this.mu = 0, this.s = 1]) : assert(s > 0, 's > 0');
 
   /// The location parameter mu.
   final double mu;

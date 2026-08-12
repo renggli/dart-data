@@ -4,7 +4,7 @@ import '../matrix.dart';
 
 /// Mutable two-way transformed matrix.
 class TransformedMatrix<S, T> with Matrix<T> {
-  TransformedMatrix(this.matrix, this.read, this.write, this.dataType);
+  new(this.matrix, this.read, this.write, this.dataType);
 
   final Matrix<S> matrix;
   final T Function(int row, int col, S value) read;

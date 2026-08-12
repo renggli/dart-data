@@ -28,7 +28,7 @@ import 'utils.dart' as utils;
 @immutable
 abstract class DataType<T> {
   /// Abstract const constructor.
-  const DataType();
+  const new();
 
   /// Return an object type [T] with the given [defaultValue].
   ///

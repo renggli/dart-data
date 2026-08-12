@@ -15,7 +15,7 @@ import '../view/cast_matrix.dart';
 /// of simultaneous linear equations. This will fail if [isFullRank]
 /// returns false.
 class QRDecomposition {
-  QRDecomposition(Matrix<num> source)
+  new(Matrix<num> source)
     : _qr = source.cast(DataType.float).toMatrix(),
       _m = source.rowCount,
       _n = source.colCount,

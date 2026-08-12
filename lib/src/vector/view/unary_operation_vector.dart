@@ -7,7 +7,7 @@ import '../vector.dart';
 
 /// Read-only element-wise unary operation.
 class UnaryOperationVector<T> with Vector<T>, UnmodifiableVectorMixin<T> {
-  UnaryOperationVector(this.dataType, this.vector, this.operation);
+  new(this.dataType, this.vector, this.operation);
 
   final Vector<T> vector;
   final Map1<T, T> operation;

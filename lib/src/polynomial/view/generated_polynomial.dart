@@ -9,7 +9,7 @@ typedef PolynomialGeneratorCallback<T> = T Function(int exponent);
 /// Read-only polynomial generated from a callback.
 class GeneratedPolynomial<T>
     with Polynomial<T>, UnmodifiablePolynomialMixin<T> {
-  GeneratedPolynomial(this.dataType, this.degree, this.callback);
+  new(this.dataType, this.degree, this.callback);
 
   final PolynomialGeneratorCallback<T> callback;
 

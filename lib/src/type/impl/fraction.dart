@@ -5,7 +5,7 @@ import '../models/field.dart';
 import '../type.dart';
 
 class FractionDataType extends DataType<Fraction> {
-  const FractionDataType();
+  const new();
 
   @override
   String get name => 'fraction';
@@ -40,14 +40,14 @@ class FractionDataType extends DataType<Fraction> {
 }
 
 class FractionEquality extends NaturalEquality<Fraction> {
-  const FractionEquality();
+  const new();
 
   @override
   bool isClose(Fraction a, Fraction b, double epsilon) => a.closeTo(b, epsilon);
 }
 
 class FractionField extends Field<Fraction> {
-  const FractionField();
+  const new();
 
   @override
   Fraction get additiveIdentity => Fraction.zero;

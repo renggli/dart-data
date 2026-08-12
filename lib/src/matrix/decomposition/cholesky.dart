@@ -15,7 +15,7 @@ import '../view/cast_matrix.dart';
 class CholeskyDecomposition {
   /// Cholesky algorithm for symmetric and positive definite matrix.
   /// Structure to access L and [isSymmetricPositiveDefinite] flag.
-  CholeskyDecomposition(Matrix<num> a)
+  new(Matrix<num> a)
     : _l = Matrix(DataType.float, a.rowCount, a.rowCount),
       _n = a.rowCount,
       _isSymmetricPositiveDefinite = a.rowCount == a.colCount {

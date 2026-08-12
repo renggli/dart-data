@@ -4,7 +4,7 @@ import '../matrix.dart';
 
 /// Mutable transposed view of a matrix.
 class TransposedMatrix<T> with Matrix<T> {
-  TransposedMatrix(this.matrix);
+  new(this.matrix);
 
   final Matrix<T> matrix;
 

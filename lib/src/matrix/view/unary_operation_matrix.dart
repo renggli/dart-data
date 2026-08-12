@@ -7,7 +7,7 @@ import '../mixin/unmodifiable_matrix.dart';
 
 /// Read-only element-wise unary operation.
 class UnaryOperationMatrix<T> with Matrix<T>, UnmodifiableMatrixMixin<T> {
-  UnaryOperationMatrix(this.dataType, this.matrix, this.operation);
+  new(this.dataType, this.matrix, this.operation);
 
   final Matrix<T> matrix;
   final Map1<T, T> operation;

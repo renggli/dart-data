@@ -1,4 +1,5 @@
 import 'dart:math' as math;
+
 import 'package:data/stats.dart';
 
 /// Configuration of a single parameter.
@@ -11,7 +12,7 @@ class ParameterConfig {
   final double step;
   final bool isInt;
 
-  ParameterConfig({
+  new({
     required this.name,
     required this.label,
     required this.min,
@@ -31,7 +32,7 @@ class DistributionConfig {
   final List<ParameterConfig> parameters;
   final Distribution<num> Function(List<double> params) creator;
 
-  DistributionConfig({
+  new({
     required this.id,
     required this.name,
     required this.description,

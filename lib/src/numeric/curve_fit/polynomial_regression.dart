@@ -20,7 +20,7 @@ import '../curve_fit.dart';
 /// ```
 class PolynomialRegression extends CurveFit {
   /// Constructs a polynomial least-squares regression model.
-  PolynomialRegression({required this.degree}) {
+  new({required this.degree}) {
     RangeError.checkNotNegative(degree, 'degree');
   }
 
@@ -45,7 +45,7 @@ class PolynomialRegression extends CurveFit {
 }
 
 class PolynomialRegressionResult extends CurveFitResult {
-  PolynomialRegressionResult(this.polynomial) : super(polynomial.evaluate);
+  new(this.polynomial) : super(polynomial.evaluate);
 
   final Polynomial<double> polynomial;
 }

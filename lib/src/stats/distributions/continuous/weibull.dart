@@ -17,7 +17,7 @@ import 'uniform.dart';
 /// ```
 class WeibullDistribution extends ContinuousDistribution {
   /// A weibull distribution with parameters [scale] λ and [shape] k.
-  const WeibullDistribution(this.scale, this.shape)
+  const new(this.scale, this.shape)
     : assert(scale > 0, 'scale > 0'),
       assert(shape > 0, 'shape > 0');
 

@@ -5,7 +5,7 @@ import '../models/field.dart';
 import '../type.dart';
 
 class ComplexDataType extends DataType<Complex> {
-  const ComplexDataType();
+  const new();
 
   @override
   String get name => 'complex';
@@ -37,14 +37,14 @@ class ComplexDataType extends DataType<Complex> {
 }
 
 class ComplexEquality extends NaturalEquality<Complex> {
-  const ComplexEquality();
+  const new();
 
   @override
   bool isClose(Complex a, Complex b, double epsilon) => a.closeTo(b, epsilon);
 }
 
 class ComplexField extends Field<Complex> {
-  const ComplexField();
+  const new();
 
   @override
   Complex get additiveIdentity => Complex.zero;

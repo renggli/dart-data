@@ -13,7 +13,7 @@ abstract class CurveFit {
 
 /// Generic result of a curve fitting.
 class CurveFitResult {
-  CurveFitResult(this.function);
+  new(this.function);
 
   final UnaryFunction<double> function;
 }

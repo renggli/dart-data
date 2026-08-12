@@ -5,7 +5,7 @@ import '../matrix.dart';
 
 /// Mutable column vector of a matrix.
 class ColumnVector<T> with Vector<T> {
-  ColumnVector(this.matrix, this.columnIndex);
+  new(this.matrix, this.columnIndex);
 
   final Matrix<T> matrix;
   final int columnIndex;

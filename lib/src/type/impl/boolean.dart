@@ -9,7 +9,7 @@ const _trueStrings = ['true', 't', 'yes', 'y', '1'];
 const _falseStrings = ['false', 'f', 'no', 'n', '0'];
 
 class BooleanDataType extends DataType<bool> {
-  const BooleanDataType();
+  const new();
 
   @override
   String get name => 'boolean';

@@ -5,7 +5,7 @@ import '../../shared/storage.dart';
 
 /// Mutable column matrix of a vector.
 class ColumnMatrix<T> with Matrix<T> {
-  ColumnMatrix(this.vector);
+  new(this.vector);
 
   final Vector<T> vector;
 

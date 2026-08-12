@@ -20,7 +20,7 @@ import 'chi_squared.dart';
 class FDistribution extends ContinuousDistribution {
   /// An F-distribution with numerator degrees of freedom [dof1] and denominator
   /// degrees of freedom [dof2].
-  const FDistribution(this.dof1, this.dof2)
+  const new(this.dof1, this.dof2)
     : assert(dof1 > 0, 'dof1 > 0'),
       assert(dof2 > 0, 'dof2 > 0');
 

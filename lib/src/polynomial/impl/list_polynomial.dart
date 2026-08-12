@@ -7,7 +7,7 @@ import '../polynomial.dart';
 
 /// Standard polynomial built around a managed list.
 class ListPolynomial<T> with Polynomial<T> {
-  ListPolynomial(this.dataType, int desiredDegree)
+  new(this.dataType, int desiredDegree)
     : _coefficients = dataType.newList(
         max(initialListLength, desiredDegree + 1),
         fillValue: dataType.field.additiveIdentity,

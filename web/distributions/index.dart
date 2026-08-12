@@ -3,6 +3,7 @@ import 'dart:math' as math;
 
 import 'package:data/stats.dart';
 import 'package:web/web.dart' as web;
+
 import 'config.dart';
 
 // Current states
@@ -112,9 +113,9 @@ void main() {
       web.document.querySelector('#btn-sample-1000') as web.HTMLButtonElement;
   btnSampleClear =
       web.document.querySelector('#btn-sample-clear') as web.HTMLButtonElement;
-  btnSampleCopyAll =
-      web.document.querySelector('#btn-sample-copy-all')
-          as web.HTMLButtonElement;
+  btnSampleCopyAll = web.document.querySelector(
+    '#btn-sample-copy-all',
+  ) as web.HTMLButtonElement;
   sampleCountBadge =
       web.document.querySelector('#sample-count-badge') as web.HTMLElement;
   samplesChipsContainer =

@@ -4,7 +4,7 @@ import '../vector.dart';
 
 /// Mutable reverse view of a vector.
 class ReversedVector<T> with Vector<T> {
-  ReversedVector(this.vector);
+  new(this.vector);
 
   final Vector<T> vector;
 

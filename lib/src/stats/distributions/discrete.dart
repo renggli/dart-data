@@ -8,7 +8,7 @@ import 'errors.dart';
 /// Subclasses must implement at least one of [probability] or
 /// [cumulativeProbability].
 abstract class DiscreteDistribution extends Distribution<int> {
-  const DiscreteDistribution();
+  const new();
 
   @override
   int get lowerBound => minSafeInteger;

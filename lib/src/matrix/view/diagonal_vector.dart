@@ -7,7 +7,7 @@ import '../matrix.dart';
 
 /// Mutable diagonal vector of a matrix.
 class DiagonalVector<T> with Vector<T> {
-  DiagonalVector(this.matrix, this.offset)
+  new(this.matrix, this.offset)
     : count = math.min(matrix.rowCount - offset, matrix.colCount + offset);
 
   final Matrix<T> matrix;

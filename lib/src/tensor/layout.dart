@@ -16,7 +16,7 @@ import 'utils/layout.dart' as utils;
 @immutable
 class Layout with ToStringPrinter {
   /// Constructs a layout with optional [shape] and/or [strides].
-  factory Layout({Iterable<int>? shape, Iterable<int>? strides, int? offset}) {
+  factory({Iterable<int>? shape, Iterable<int>? strides, int? offset}) {
     final shape_ = utils.toIndices(shape ?? const <int>[]);
     final strides_ = strides == null
         ? utils.toStrides(shape: shape_)
@@ -35,7 +35,7 @@ class Layout with ToStringPrinter {
   }
 
   /// Constructs a layout with an inferred shape from [object].
-  factory Layout.fromObject(dynamic object) {
+  factory fromObject(dynamic object) {
     if (object == null) return empty;
     final shape = <int>[];
     for (
@@ -60,7 +60,7 @@ class Layout with ToStringPrinter {
 
   /// Internal constructor of [Layout] object.
   @internal
-  Layout.internal({
+  new internal({
     required this.rank,
     required this.length,
     required this.offset,

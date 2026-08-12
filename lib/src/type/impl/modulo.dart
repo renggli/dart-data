@@ -5,7 +5,7 @@ import '../models/field.dart';
 import '../type.dart';
 
 class ModuloDataType<T> extends DataType<T> {
-  ModuloDataType(this.delegate, this.modulus)
+  new(this.delegate, this.modulus)
     : field = ModuloField<T>(delegate, modulus),
       equality = ModuloEquality<T>(delegate, modulus);
 
@@ -38,7 +38,7 @@ class ModuloDataType<T> extends DataType<T> {
 }
 
 class ModuloField<T> extends Field<T> {
-  const ModuloField(this.type, this.modulus);
+  const new(this.type, this.modulus);
 
   final DataType<T> type;
   final T modulus;
@@ -93,7 +93,7 @@ class ModuloField<T> extends Field<T> {
 }
 
 class ModuloEquality<T> extends Equality<T> {
-  const ModuloEquality(this.type, this.modulus);
+  const new(this.type, this.modulus);
 
   final DataType<T> type;
   final T modulus;

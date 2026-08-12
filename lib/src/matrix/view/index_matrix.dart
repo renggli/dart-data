@@ -6,7 +6,7 @@ import '../matrix.dart';
 
 /// Mutable indexed view of the rows and columns of a matrix.
 class IndexMatrix<T> with Matrix<T> {
-  IndexMatrix(this.matrix, Iterable<int> rowIndexes, Iterable<int> colIndexes)
+  new(this.matrix, Iterable<int> rowIndexes, Iterable<int> colIndexes)
     : rowIndexes = DataType.index.copyList(rowIndexes),
       colIndexes = DataType.index.copyList(colIndexes);
 

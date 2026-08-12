@@ -17,38 +17,35 @@ typedef UnaryFunction<T> = T Function(T x);
 /// Abstract factory of parametrized unary functions of type `UnaryFunction<T>`.
 abstract class ParametrizedUnaryFunction<T> {
   /// Abstract constructor of a parametrized function.
-  const ParametrizedUnaryFunction(this.dataType);
+  const new(this.dataType);
 
   /// Provides parameters as a single positional list argument.
-  const factory ParametrizedUnaryFunction.list(
+  const factory list(
     DataType<T> dataType,
     int count,
     UnaryFunction<T> Function(List<T> params) function,
   ) = ListParametrizedUnaryFunction;
 
   /// Provides parameters as a single positional map.
-  const factory ParametrizedUnaryFunction.map(
+  const factory map(
     DataType<T> dataType,
     List<Symbol> names,
     UnaryFunction<T> Function(Map<Symbol, T> params) function,
   ) = MapParametrizedUnaryFunction;
 
   /// Provides parameters are named arguments.
-  const factory ParametrizedUnaryFunction.named(
+  const factory named(
     DataType<T> dataType,
     List<Symbol> names,
     Function function,
   ) = NamedParametrizedUnaryFunction;
 
   /// Provides parameters as positional arguments.
-  const factory ParametrizedUnaryFunction.positional(
-    DataType<T> dataType,
-    int count,
-    Function function,
-  ) = PositionalParametrizedUnaryFunction;
+  const factory positional(DataType<T> dataType, int count, Function function) =
+      PositionalParametrizedUnaryFunction;
 
   /// Provides parameters as a single positional vector argument.
-  const factory ParametrizedUnaryFunction.vector(
+  const factory vector(
     DataType<T> dataType,
     int count,
     UnaryFunction<T> Function(Vector<T> params) function,

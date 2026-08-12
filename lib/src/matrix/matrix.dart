@@ -34,7 +34,7 @@ abstract mixin class Matrix<T> implements Storage {
   /// print(matrix.rowCount); // 2
   /// print(matrix.colCount); // 3
   /// ```
-  factory Matrix(
+  factory(
     DataType<T> dataType,
     int rowCount,
     int columnCount, {
@@ -97,7 +97,7 @@ abstract mixin class Matrix<T> implements Storage {
   /// print(result);  // 1 2 5
   ///                 // 3 4 6
   /// ```
-  factory Matrix.concatHorizontal(
+  factory concatHorizontal(
     DataType<T> dataType,
     Iterable<Matrix<T>> matrices, {
     MatrixFormat? format,
@@ -124,7 +124,7 @@ abstract mixin class Matrix<T> implements Storage {
   /// print(result);  // 1 2
   ///                 // 3 4
   /// ```
-  factory Matrix.concatVertical(
+  factory concatVertical(
     DataType<T> dataType,
     Iterable<Matrix<T>> matrices, {
     MatrixFormat? format,
@@ -152,7 +152,7 @@ abstract mixin class Matrix<T> implements Storage {
   /// print(matrix);  // 5 5
   ///                 // 5 5
   /// ```
-  factory Matrix.constant(
+  factory constant(
     DataType<T> dataType,
     int rowCount,
     int columnCount, {
@@ -178,7 +178,7 @@ abstract mixin class Matrix<T> implements Storage {
   /// print(matrix);  // 0 1 2
   ///                 // 1 2 3
   /// ```
-  factory Matrix.generate(
+  factory generate(
     DataType<T> dataType,
     int rowCount,
     int columnCount,
@@ -205,7 +205,7 @@ abstract mixin class Matrix<T> implements Storage {
   ///                 // 0 1 0
   ///                 // 0 0 1
   /// ```
-  factory Matrix.identity(
+  factory identity(
     DataType<T> dataType,
     int rowCount,
     int columnCount, {
@@ -234,7 +234,7 @@ abstract mixin class Matrix<T> implements Storage {
   ///                 // 1 2 4
   ///                 // 1 3 9
   /// ```
-  factory Matrix.vandermonde(
+  factory vandermonde(
     DataType<T> dataType,
     Vector<T> data,
     int columnCount, {
@@ -269,7 +269,7 @@ abstract mixin class Matrix<T> implements Storage {
   /// print(matrix);  // 1 2
   ///                 // 3 4
   /// ```
-  factory Matrix.fromRows(
+  factory fromRows(
     DataType<T> dataType,
     List<List<T>> source, {
     MatrixFormat? format,
@@ -303,7 +303,7 @@ abstract mixin class Matrix<T> implements Storage {
   /// print(matrix);  // 1 2
   ///                 // 3 4
   /// ```
-  factory Matrix.fromPackedRows(
+  factory fromPackedRows(
     DataType<T> dataType,
     int rowCount,
     int columnCount,
@@ -340,7 +340,7 @@ abstract mixin class Matrix<T> implements Storage {
   /// print(matrix);  // 1 2
   ///                 // 3 4
   /// ```
-  factory Matrix.fromColumns(
+  factory fromColumns(
     DataType<T> dataType,
     List<List<T>> source, {
     MatrixFormat? format,
@@ -374,7 +374,7 @@ abstract mixin class Matrix<T> implements Storage {
   /// print(matrix);  // 1 2
   ///                 // 3 4
   /// ```
-  factory Matrix.fromPackedColumns(
+  factory fromPackedColumns(
     DataType<T> dataType,
     int rowCount,
     int columnCount,
@@ -402,7 +402,7 @@ abstract mixin class Matrix<T> implements Storage {
   /// If [format] is specified, [source] is copied into a mutable matrix of the
   /// selected format; otherwise a view onto the possibly mutable [source] is
   /// provided.
-  factory Matrix.fromTensor(Tensor<T> source, {MatrixFormat? format}) {
+  factory fromTensor(Tensor<T> source, {MatrixFormat? format}) {
     final result = TensorMatrix<T>.fromTensor(source);
     return format == null ? result : result.toMatrix(format: format);
   }
@@ -423,7 +423,7 @@ abstract mixin class Matrix<T> implements Storage {
   /// print(matrix);  // 1 2
   ///                 // 3 4
   /// ```
-  factory Matrix.fromString(
+  factory fromString(
     DataType<T> dataType,
     String source, {
     T Function(String)? converter,

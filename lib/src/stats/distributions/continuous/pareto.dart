@@ -17,7 +17,7 @@ import '../errors.dart';
 /// ```
 class ParetoDistribution extends ContinuousDistribution {
   /// A Pareto distribution with parameters [xo] and [alpha].
-  const ParetoDistribution(this.xo, this.alpha)
+  const new(this.xo, this.alpha)
     : assert(xo > 0, 'xo > 0'),
       assert(alpha > 0, 'alpha > 0');
 

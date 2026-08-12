@@ -4,7 +4,7 @@ import '../matrix.dart';
 
 /// Mutable matrix cast to a new type.
 class CastMatrix<S, T> with Matrix<T> {
-  CastMatrix(this.matrix, this.dataType);
+  new(this.matrix, this.dataType);
 
   final Matrix<S> matrix;
 

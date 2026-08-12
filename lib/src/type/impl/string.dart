@@ -4,7 +4,7 @@ import '../models/equality.dart';
 import '../type.dart';
 
 class StringDataType extends DataType<String> {
-  const StringDataType();
+  const new();
 
   @override
   String get name => 'string';
@@ -23,7 +23,7 @@ class StringDataType extends DataType<String> {
 }
 
 class StringEquality extends NaturalEquality<String> {
-  const StringEquality();
+  const new();
 
   @override
   bool isClose(String a, String b, double epsilon) =>

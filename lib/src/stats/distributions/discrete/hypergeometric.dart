@@ -19,7 +19,7 @@ import '../discrete.dart';
 class HypergeometricDistribution extends DiscreteDistribution {
   /// A hypergeometric distribution with population size [N], success count in
   /// population [K], and draw count [n].
-  const HypergeometricDistribution(this.N, this.K, this.n)
+  const new(this.N, this.K, this.n)
     : assert(N >= 0, 'N >= 0'),
       assert(0 <= K && K <= N, '0 <= K <= N'),
       assert(0 <= n && n <= N, '0 <= n <= N');

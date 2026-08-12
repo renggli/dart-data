@@ -19,7 +19,7 @@ import 'normal.dart';
 /// ```
 class StudentDistribution extends ContinuousDistribution {
   /// A Student's t-distribution with degrees of freedom ν.
-  const StudentDistribution(this.dof) : assert(dof > 0, 'dof > 0');
+  const new(this.dof) : assert(dof > 0, 'dof > 0');
 
   /// The degrees of freedom ν.
   final double dof;

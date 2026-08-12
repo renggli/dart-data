@@ -26,7 +26,7 @@ abstract mixin class Polynomial<T> implements Storage {
   /// final polynomial = Polynomial(DataType.int32, desiredDegree: 2);
   /// print(polynomial.degree);  // 2
   /// ```
-  factory Polynomial(
+  factory(
     DataType<T> dataType, {
     int desiredDegree = -1,
     PolynomialFormat? format,
@@ -45,7 +45,7 @@ abstract mixin class Polynomial<T> implements Storage {
   /// final polynomial = Polynomial.generate(DataType.int32, 2, (i) => i + 1);
   /// print(polynomial);  // 1 + 2x + 3x^2
   /// ```
-  factory Polynomial.generate(
+  factory generate(
     DataType<T> dataType,
     int degree,
     PolynomialGeneratorCallback<T> callback, {
@@ -61,7 +61,7 @@ abstract mixin class Polynomial<T> implements Storage {
   /// final polynomial = Polynomial.fromCoefficients(DataType.int32, [1, 2, 3]);
   /// print(polynomial);  // 3 + 2x + 1x^2
   /// ```
-  factory Polynomial.fromCoefficients(
+  factory fromCoefficients(
     DataType<T> dataType,
     List<T> source, {
     PolynomialFormat? format,
@@ -83,7 +83,7 @@ abstract mixin class Polynomial<T> implements Storage {
   /// final polynomial = Polynomial.fromList(DataType.int32, [1, 2, 3]);
   /// print(polynomial);  // 1 + 2x + 3x^2
   /// ```
-  factory Polynomial.fromList(
+  factory fromList(
     DataType<T> dataType,
     List<T> source, {
     PolynomialFormat? format,
@@ -105,7 +105,7 @@ abstract mixin class Polynomial<T> implements Storage {
   /// final polynomial = Polynomial.fromRoots(DataType.int32, [1, 2]);
   /// print(polynomial);  // 2 - 3x + 1x^2
   /// ```
-  factory Polynomial.fromRoots(
+  factory fromRoots(
     DataType<T> dataType,
     List<T> roots, {
     PolynomialFormat? format,
@@ -150,7 +150,7 @@ abstract mixin class Polynomial<T> implements Storage {
   /// final polynomial = Polynomial.lagrange(DataType.int32, xs: xs, ys: ys);
   /// print(polynomial);  // 1 + 1x
   /// ```
-  factory Polynomial.lagrange(
+  factory lagrange(
     DataType<T> dataType, {
     required Vector<T> xs,
     required Vector<T> ys,
@@ -339,7 +339,7 @@ abstract mixin class Polynomial<T> implements Storage {
 }
 
 class _PolynomialList<T> extends ListMixin<T> {
-  _PolynomialList(this.polynomial);
+  new(this.polynomial);
 
   final Polynomial<T> polynomial;
 

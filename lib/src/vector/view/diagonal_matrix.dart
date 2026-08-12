@@ -5,7 +5,7 @@ import '../../shared/storage.dart';
 
 /// Mutable diagonal matrix of a vector.
 class DiagonalMatrix<T> with Matrix<T> {
-  DiagonalMatrix(this.vector);
+  new(this.vector);
 
   final Vector<T> vector;
 

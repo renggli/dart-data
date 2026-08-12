@@ -9,7 +9,7 @@ import '../mixin/unmodifiable_matrix.dart';
 
 /// Read-only convolution between two matrices.
 abstract class ConvolutionMatrix<T> with Matrix<T>, UnmodifiableMatrixMixin<T> {
-  ConvolutionMatrix(this.dataType, this.matrix, this.kernel)
+  new(this.dataType, this.matrix, this.kernel)
     : assert(matrix.rowCount > 0 && matrix.colCount > 0, 'Empty matrix'),
       assert(kernel.rowCount > 0 && kernel.colCount > 0, 'Empty kernel');
 
@@ -43,7 +43,7 @@ abstract class ConvolutionMatrix<T> with Matrix<T>, UnmodifiableMatrixMixin<T> {
 }
 
 class FullConvolutionMatrix<T> extends ConvolutionMatrix<T> {
-  FullConvolutionMatrix(super.dataType, super.matrix, super.kernel)
+  new(super.dataType, super.matrix, super.kernel)
     : rowCount = matrix.rowCount + kernel.rowCount - 1,
       colCount = matrix.colCount + kernel.colCount - 1;
 
@@ -62,7 +62,7 @@ class FullConvolutionMatrix<T> extends ConvolutionMatrix<T> {
 }
 
 class ValidConvolutionMatrix<T> extends ConvolutionMatrix<T> {
-  ValidConvolutionMatrix(super.dataType, super.matrix, super.kernel)
+  new(super.dataType, super.matrix, super.kernel)
     : rowCount = matrix.rowCount - kernel.rowCount + 1,
       colCount = matrix.colCount - kernel.colCount + 1;
 
@@ -78,7 +78,7 @@ class ValidConvolutionMatrix<T> extends ConvolutionMatrix<T> {
 }
 
 class SameConvolutionMatrix<T> extends ConvolutionMatrix<T> {
-  SameConvolutionMatrix(super.dataType, super.matrix, super.kernel)
+  new(super.dataType, super.matrix, super.kernel)
     : rowCount = matrix.rowCount,
       colCount = matrix.colCount;
 

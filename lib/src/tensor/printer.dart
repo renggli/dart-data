@@ -4,7 +4,7 @@ import 'tensor.dart';
 
 /// Configurable object to print tensors.
 class TensorPrinter<T> extends Printer<Tensor<T>> {
-  const TensorPrinter({
+  const new({
     this.valuePrinter,
     this.paddingPrinter = const StandardPrinter<String>(),
     this.ellipsesPrinter = const StandardPrinter<String>(),

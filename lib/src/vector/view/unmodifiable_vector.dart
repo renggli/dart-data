@@ -5,7 +5,7 @@ import '../vector.dart';
 
 /// Read-only view of a mutable vector.
 class UnmodifiableVector<T> with Vector<T>, UnmodifiableVectorMixin<T> {
-  UnmodifiableVector(this.vector);
+  new(this.vector);
 
   final Vector<T> vector;
 

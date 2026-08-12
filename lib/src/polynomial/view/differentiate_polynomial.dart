@@ -4,7 +4,7 @@ import '../polynomial.dart';
 
 /// Differentiate modifiable view of a polynomial.
 class DifferentiatePolynomial<T> with Polynomial<T> {
-  DifferentiatePolynomial(this.polynomial);
+  new(this.polynomial);
 
   final Polynomial<T> polynomial;
 

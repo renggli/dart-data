@@ -17,8 +17,7 @@ import '../errors.dart';
 /// ```
 class CauchyDistribution extends ContinuousDistribution {
   /// A Cauchy distribution with parameter [xo] and [gamma].
-  const CauchyDistribution([this.xo = 0, this.gamma = 1])
-    : assert(gamma > 0, 'gamma > 0');
+  const new([this.xo = 0, this.gamma = 1]) : assert(gamma > 0, 'gamma > 0');
 
   /// The location parameter xo.
   final double xo;

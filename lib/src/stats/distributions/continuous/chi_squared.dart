@@ -16,7 +16,7 @@ import 'gamma.dart';
 /// ```
 class ChiSquaredDistribution extends ContinuousDistribution {
   /// A Chi-squared distribution with parameter [dof].
-  const ChiSquaredDistribution(this.dof) : assert(dof > 0, 'dof > 0');
+  const new(this.dof) : assert(dof > 0, 'dof > 0');
 
   /// The degrees of freedom parameter.
   final double dof;

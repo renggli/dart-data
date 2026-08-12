@@ -15,7 +15,7 @@ import '../errors.dart';
 /// ```
 class ExponentialDistribution extends ContinuousDistribution {
   /// An exponential distribution with parameter [lambda] λ.
-  const ExponentialDistribution(this.lambda) : assert(lambda > 0, 'lambda > 0');
+  const new(this.lambda) : assert(lambda > 0, 'lambda > 0');
 
   /// The λ parameter (rate, inverse scale).
   final double lambda;

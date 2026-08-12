@@ -24,7 +24,7 @@ abstract mixin class Vector<T> implements Storage {
   /// final vector = Vector(DataType.int32, 3);
   /// print(vector.count);  // 3
   /// ```
-  factory Vector(DataType<T> dataType, int count, {VectorFormat? format}) {
+  factory(DataType<T> dataType, int count, {VectorFormat? format}) {
     RangeError.checkNotNegative(count, 'count');
     return switch (format ?? VectorFormat.standard) {
       VectorFormat.list => ListVector<T>(dataType, count),
@@ -42,7 +42,7 @@ abstract mixin class Vector<T> implements Storage {
   /// final result = Vector.concat(DataType.int32, [a, b]);
   /// print(result);  // 1 2 3 4
   /// ```
-  factory Vector.concat(
+  factory concat(
     DataType<T> dataType,
     Iterable<Vector<T>> vectors, {
     VectorFormat? format,
@@ -69,7 +69,7 @@ abstract mixin class Vector<T> implements Storage {
   /// final vector = Vector.constant(DataType.int32, 3, value: 5);
   /// print(vector);  // 5 5 5
   /// ```
-  factory Vector.constant(
+  factory constant(
     DataType<T> dataType,
     int count, {
     T? value,
@@ -92,7 +92,7 @@ abstract mixin class Vector<T> implements Storage {
   /// final vector = Vector.generate(DataType.int32, 3, (i) => i * 2);
   /// print(vector);  // 0 2 4
   /// ```
-  factory Vector.generate(
+  factory generate(
     DataType<T> dataType,
     int count,
     VectorGeneratorCallback<T> callback, {
@@ -109,7 +109,7 @@ abstract mixin class Vector<T> implements Storage {
   /// final vector = Vector.fromIterable(DataType.int32, [1, 2, 3]);
   /// print(vector);  // 1 2 3
   /// ```
-  factory Vector.fromIterable(
+  factory fromIterable(
     DataType<T> dataType,
     Iterable<T> source, {
     VectorFormat? format,
@@ -133,7 +133,7 @@ abstract mixin class Vector<T> implements Storage {
   /// final vector = Vector.fromList(DataType.int32, [1, 2, 3]);
   /// print(vector);  // 1 2 3
   /// ```
-  factory Vector.fromList(
+  factory fromList(
     DataType<T> dataType,
     List<T> source, {
     VectorFormat? format,
@@ -147,7 +147,7 @@ abstract mixin class Vector<T> implements Storage {
   /// If [format] is specified, [source] is copied into a mutable vector of the
   /// selected format; otherwise a view onto the possibly mutable [source] is
   /// provided.
-  factory Vector.fromTensor(Tensor<T> source, {VectorFormat? format}) {
+  factory fromTensor(Tensor<T> source, {VectorFormat? format}) {
     final result = TensorVector<T>.fromTensor(source);
     return format == null ? result : result.toVector(format: format);
   }
@@ -165,7 +165,7 @@ abstract mixin class Vector<T> implements Storage {
   /// final vector = Vector.fromString(DataType.int32, '1 2 3');
   /// print(vector);  // 1 2 3
   /// ```
-  factory Vector.fromString(
+  factory fromString(
     DataType<T> dataType,
     String source, {
     T Function(String)? converter,
@@ -289,7 +289,7 @@ abstract mixin class Vector<T> implements Storage {
 }
 
 class _VectorList<T> extends ListMixin<T> {
-  _VectorList(this.vector);
+  new(this.vector);
 
   final Vector<T> vector;
 

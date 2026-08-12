@@ -13,7 +13,7 @@ import 'iterable.dart';
 ///
 /// For details see https://en.wikipedia.org/wiki/Jackknife_resampling.
 class Jackknife<T> with ToStringPrinter {
-  Jackknife(this.samples, this.statistic, {this.confidenceLevel = 0.95})
+  new(this.samples, this.statistic, {this.confidenceLevel = 0.95})
     : assert(samples.isNotEmpty, 'empty samples'),
       assert(
         0 < confidenceLevel && confidenceLevel < 1,
@@ -74,7 +74,7 @@ class Jackknife<T> with ToStringPrinter {
 
 /// A view of a Jackknife resampling of a [List].
 class _JackknifeResampling<T> extends ListBase<T> with NonGrowableListMixin<T> {
-  _JackknifeResampling(this.list, this.index)
+  new(this.list, this.index)
     : assert(list.isNotEmpty, 'Non empty list expected'),
       assert(0 <= index && index < list.length, 'Index out of bounds');
 
@@ -99,7 +99,7 @@ class _JackknifeResampling<T> extends ListBase<T> with NonGrowableListMixin<T> {
 }
 
 class _JackknifeResamplingIterator<T> implements Iterator<T> {
-  _JackknifeResamplingIterator(this.list, this.skipIndex);
+  new(this.list, this.skipIndex);
 
   final List<T> list;
   final int skipIndex;

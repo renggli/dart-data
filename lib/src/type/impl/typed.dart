@@ -6,7 +6,7 @@ import 'package:more/functional.dart';
 import '../type.dart';
 
 abstract class TypedDataType<T, L extends List<T>> extends DataType<T> {
-  const TypedDataType();
+  const new();
 
   /// Returns the size of one value in bits.
   int get bits;

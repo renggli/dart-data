@@ -5,7 +5,7 @@ import '../polynomial.dart';
 
 /// Sparse compressed polynomial.
 class CompressedPolynomial<T> with Polynomial<T> {
-  CompressedPolynomial(this.dataType)
+  new(this.dataType)
     : _exponents = DataType.index.newList(initialListLength),
       _coefficients = dataType.newList(
         initialListLength,

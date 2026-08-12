@@ -4,19 +4,15 @@ import '../matrix.dart';
 
 /// A matrix built from nested column arrays.
 class NestedColumnMatrix<T> with Matrix<T> {
-  NestedColumnMatrix(this.dataType, this.rowCount, this.colCount)
+  new(this.dataType, this.rowCount, this.colCount)
     : _columns = List<List<T>>.generate(
         colCount,
         (index) => dataType.newList(rowCount),
         growable: false,
       );
 
-  NestedColumnMatrix.fromList(
-    this.dataType,
-    this.rowCount,
-    this.colCount,
-    this._columns,
-  ) : assert(_columns.length == colCount, 'Invalid column count'),
+  new fromList(this.dataType, this.rowCount, this.colCount, this._columns)
+    : assert(_columns.length == colCount, 'Invalid column count'),
       assert(
         _columns.every((col) => col.length == rowCount),
         'Invalid row count',

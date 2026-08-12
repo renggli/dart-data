@@ -18,7 +18,7 @@ import '../errors.dart';
 /// ```
 class DegenerateDistribution extends ContinuousDistribution {
   /// A degenerate distribution with parameter [k].
-  const DegenerateDistribution([this.k = 0]);
+  const new([this.k = 0]);
 
   /// The parameter k.
   final double k;

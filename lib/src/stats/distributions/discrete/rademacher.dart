@@ -13,7 +13,7 @@ import '../discrete.dart';
 /// ```
 class RademacherDistribution extends DiscreteDistribution {
   /// A Rademacher distribution.
-  const RademacherDistribution();
+  const new();
 
   @override
   int get lowerBound => -1;

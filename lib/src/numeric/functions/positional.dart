@@ -4,11 +4,7 @@ import '../functions.dart';
 /// Provides parameters as positional arguments.
 class PositionalParametrizedUnaryFunction<T>
     extends ParametrizedUnaryFunction<T> {
-  const PositionalParametrizedUnaryFunction(
-    super.dataType,
-    this.count,
-    this.function,
-  );
+  const new(super.dataType, this.count, this.function);
 
   @override
   final int count;

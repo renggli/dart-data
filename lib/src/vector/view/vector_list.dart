@@ -6,7 +6,7 @@ import '../vector.dart';
 
 /// Fixed-size [List] of a vector.
 class VectorList<T> extends ListBase<T> with NonGrowableListMixin<T> {
-  VectorList(this.vector);
+  new(this.vector);
 
   final Vector<T> vector;
 

@@ -30,7 +30,7 @@ import '../functions.dart';
 /// print(result.parameters);  // [2.0, 1.0]
 /// ```
 class LevenbergMarquardt extends CurveFit {
-  LevenbergMarquardt(
+  new(
     this.parametrizedFunction, {
     double? initialValue,
     dynamic initialValues,
@@ -338,7 +338,7 @@ class LevenbergMarquardt extends CurveFit {
 }
 
 class LevenbergMarquardtResult extends CurveFitResult {
-  LevenbergMarquardtResult(
+  new(
     super.function, {
     required this.parameters,
     required this.error,

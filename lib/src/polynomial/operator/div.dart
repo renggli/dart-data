@@ -89,7 +89,7 @@ extension DivPolynomialExtension<T> on Polynomial<T> {
 
 /// Data holder for the result of a polynomial division.
 class PolynomialDivision<T> {
-  PolynomialDivision({required this.quotient, required this.remainder});
+  new({required this.quotient, required this.remainder});
 
   final Polynomial<T> quotient;
   final Polynomial<T> remainder;

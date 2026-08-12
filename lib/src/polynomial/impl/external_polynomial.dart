@@ -4,10 +4,10 @@ import '../polynomial.dart';
 
 /// Polynomial built around an (externally managed) list of coefficients.
 class ExternalPolynomial<T> with Polynomial<T> {
-  ExternalPolynomial(DataType<T> dataType, int desiredDegree)
+  new(DataType<T> dataType, int desiredDegree)
     : this.fromList(dataType, dataType.newList(desiredDegree + 1));
 
-  ExternalPolynomial.fromList(this.dataType, this.coefficients);
+  new fromList(this.dataType, this.coefficients);
 
   @override
   final DataType<T> dataType;

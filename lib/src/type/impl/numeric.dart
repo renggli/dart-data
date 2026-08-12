@@ -7,7 +7,7 @@ import '../models/field.dart';
 import '../type.dart';
 
 class NumericDataType extends DataType<num> {
-  const NumericDataType();
+  const new();
 
   @override
   String get name => 'numeric';
@@ -40,7 +40,7 @@ class NumericDataType extends DataType<num> {
 }
 
 class NumericField extends Field<num> {
-  const NumericField();
+  const new();
 
   @override
   num get additiveIdentity => 0;
@@ -93,7 +93,7 @@ class NumericField extends Field<num> {
 }
 
 class NumericEquality extends NaturalEquality<num> {
-  const NumericEquality();
+  const new();
 
   @override
   bool isClose(num a, num b, double epsilon) => a.closeTo(b, epsilon);

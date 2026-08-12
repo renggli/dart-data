@@ -3,11 +3,7 @@ import '../functions.dart';
 
 /// Provides params as a single positional list argument.
 class ListParametrizedUnaryFunction<T> extends ParametrizedUnaryFunction<T> {
-  const ListParametrizedUnaryFunction(
-    super.dataType,
-    this.count,
-    this.function,
-  );
+  const new(super.dataType, this.count, this.function);
 
   @override
   final int count;

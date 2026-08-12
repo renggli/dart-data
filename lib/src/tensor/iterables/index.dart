@@ -5,7 +5,7 @@ import '../layout.dart';
 
 /// [Iterable] over the indices of a [Layout].
 class IndexIterable extends IterableBase<int> {
-  IndexIterable(this.layout);
+  new(this.layout);
 
   final Layout layout;
 
@@ -18,7 +18,7 @@ class IndexIterable extends IterableBase<int> {
 
 /// [Iterator] over the indices of a [Layout].
 class IndexIterator implements Iterator<int> {
-  IndexIterator(Layout layout)
+  new(Layout layout)
     : rank = layout.rank,
       shape = layout.shape,
       strides = layout.strides,

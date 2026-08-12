@@ -19,11 +19,10 @@ import 'uniform.dart';
 class NormalDistribution extends ContinuousDistribution {
   /// A normal distribution with parameter [mu] μ (mean) and [sigma] σ (standard
   /// deviation).
-  const NormalDistribution(this.mu, this.sigma)
-    : assert(sigma > 0, 'sigma > 0');
+  const new(this.mu, this.sigma) : assert(sigma > 0, 'sigma > 0');
 
   /// A standard normal distribution centered around 0.
-  const NormalDistribution.standard() : this(0, 1);
+  const new standard() : this(0, 1);
 
   /// The mean parameter μ.
   final double mu;

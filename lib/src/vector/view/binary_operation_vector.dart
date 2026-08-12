@@ -7,7 +7,7 @@ import '../vector.dart';
 
 /// Read-only element-wise binary operation between two vectors.
 class BinaryOperationVector<T> with Vector<T>, UnmodifiableVectorMixin<T> {
-  BinaryOperationVector(this.dataType, this.first, this.second, this.operation)
+  new(this.dataType, this.first, this.second, this.operation)
     : assert(
         first.count == second.count,
         'Element count of first (${first.count}) and second '

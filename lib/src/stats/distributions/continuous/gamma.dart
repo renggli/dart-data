@@ -18,11 +18,11 @@ import 'uniform.dart';
 /// ```
 class GammaDistribution extends ContinuousDistribution {
   /// A gamma distribution with parameters [shape] k and [scale] θ.
-  const GammaDistribution(this.shape, this.scale)
+  const new(this.shape, this.scale)
     : assert(shape > 0, 'shape > 0'),
       assert(scale > 0, 'scale > 0');
 
-  factory GammaDistribution.shape(double shape) => GammaDistribution(shape, 1);
+  factory shape(double shape) => GammaDistribution(shape, 1);
 
   /// The shape parameter k.
   final double shape;

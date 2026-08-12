@@ -4,7 +4,7 @@ import '../matrix.dart';
 
 /// Mutable matrix rotated clockwise by multiples of 90 degrees.
 class RotatedMatrix<T> with Matrix<T> {
-  RotatedMatrix(this.matrix, this.count);
+  new(this.matrix, this.count);
 
   final Matrix<T> matrix;
   final int count;

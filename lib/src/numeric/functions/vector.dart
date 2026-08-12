@@ -3,11 +3,7 @@ import '../functions.dart';
 
 /// Provides parameters as a single positional vector argument.
 class VectorParametrizedUnaryFunction<T> extends ParametrizedUnaryFunction<T> {
-  const VectorParametrizedUnaryFunction(
-    super.dataType,
-    this.count,
-    this.function,
-  );
+  const new(super.dataType, this.count, this.function);
 
   @override
   final int count;

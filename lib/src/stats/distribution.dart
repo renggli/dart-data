@@ -8,7 +8,7 @@ import 'distributions/errors.dart';
 /// Abstract interface of all distributions.
 @immutable
 abstract class Distribution<T> with ToStringPrinter {
-  const Distribution();
+  const new();
 
   /// Returns the lower boundary of the distribution.
   T get lowerBound;

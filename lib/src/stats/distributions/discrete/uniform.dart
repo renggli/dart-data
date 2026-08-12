@@ -13,7 +13,7 @@ import '../discrete.dart';
 /// ```
 class UniformDiscreteDistribution extends DiscreteDistribution {
   /// A discrete uniform distribution between [a] and [b].
-  const UniformDiscreteDistribution(this.a, this.b) : assert(a <= b, 'a <= b');
+  const new(this.a, this.b) : assert(a <= b, 'a <= b');
 
   /// Minimum value of the distribution.
   final int a;

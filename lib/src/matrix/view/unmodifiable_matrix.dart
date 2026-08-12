@@ -5,7 +5,7 @@ import '../mixin/unmodifiable_matrix.dart';
 
 /// Read-only view of a mutable matrix.
 class UnmodifiableMatrix<T> with Matrix<T>, UnmodifiableMatrixMixin<T> {
-  UnmodifiableMatrix(this.matrix);
+  new(this.matrix);
 
   final Matrix<T> matrix;
 

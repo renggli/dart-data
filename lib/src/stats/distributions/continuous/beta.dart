@@ -19,7 +19,7 @@ import 'gamma.dart';
 /// ```
 class BetaDistribution extends ContinuousDistribution {
   /// A beta distribution with parameters [alpha] α and [beta] β.
-  const BetaDistribution(this.alpha, this.beta)
+  const new(this.alpha, this.beta)
     : assert(alpha > 0, 'alpha > 0'),
       assert(beta > 0, 'beta > 0');
 

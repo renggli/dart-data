@@ -1,7 +1,7 @@
 import '../type.dart';
 
 class ObjectDataType<T> extends DataType<T> {
-  const ObjectDataType(this.defaultValue);
+  const new(this.defaultValue);
 
   @override
   String get name => 'object<$T>';

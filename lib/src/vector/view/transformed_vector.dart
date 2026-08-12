@@ -4,7 +4,7 @@ import '../vector.dart';
 
 /// Transformed vector.
 class TransformedVector<S, T> with Vector<T> {
-  TransformedVector(this.vector, this.read, this.write, this.dataType);
+  new(this.vector, this.read, this.write, this.dataType);
 
   final Vector<S> vector;
   final T Function(int index, S value) read;

@@ -5,7 +5,7 @@ import '../../shared/storage.dart';
 
 /// Mutable row matrix of a vector.
 class RowMatrix<T> with Matrix<T> {
-  RowMatrix(this.vector);
+  new(this.vector);
 
   final Vector<T> vector;
 

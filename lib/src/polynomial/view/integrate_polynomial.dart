@@ -4,7 +4,7 @@ import '../polynomial.dart';
 
 /// Integrate modifiable view of a polynomial.
 class IntegratePolynomial<T> with Polynomial<T> {
-  IntegratePolynomial(this.polynomial, [T? constant])
+  new(this.polynomial, [T? constant])
     : constant = constant ?? polynomial.dataType.field.additiveIdentity;
 
   final Polynomial<T> polynomial;

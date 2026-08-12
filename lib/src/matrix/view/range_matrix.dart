@@ -4,13 +4,8 @@ import '../matrix.dart';
 
 /// Mutable range of the rows and columns of a matrix.
 class RangeMatrix<T> with Matrix<T> {
-  RangeMatrix(
-    this.matrix,
-    this.rowStart,
-    this.rowEnd,
-    this.columnStart,
-    this.columnEnd,
-  ) : rowCount = rowEnd - rowStart,
+  new(this.matrix, this.rowStart, this.rowEnd, this.columnStart, this.columnEnd)
+    : rowCount = rowEnd - rowStart,
       colCount = columnEnd - columnStart;
 
   final Matrix<T> matrix;

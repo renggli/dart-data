@@ -6,7 +6,7 @@ import '../polynomial.dart';
 
 /// View of the coefficients of the polynomial as a list.
 class PolynomialList<T> extends ListBase<T> with NonGrowableListMixin<T> {
-  PolynomialList(this.polynomial);
+  new(this.polynomial);
 
   final Polynomial<T> polynomial;
 

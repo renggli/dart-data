@@ -17,7 +17,7 @@ import '../errors.dart';
 /// ```
 class LaplaceDistribution extends ContinuousDistribution {
   /// A Laplace distribution with parameter [mu] and [b].
-  const LaplaceDistribution([this.mu = 0, this.b = 1]) : assert(b > 0, 'b > 0');
+  const new([this.mu = 0, this.b = 1]) : assert(b > 0, 'b > 0');
 
   /// The location parameter mu.
   final double mu;

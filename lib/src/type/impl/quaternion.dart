@@ -5,7 +5,7 @@ import '../models/field.dart';
 import '../type.dart';
 
 class QuaternionDataType extends DataType<Quaternion> {
-  const QuaternionDataType();
+  const new();
 
   @override
   String get name => 'quaternion';
@@ -39,7 +39,7 @@ class QuaternionDataType extends DataType<Quaternion> {
 }
 
 class QuaternionEquality extends NaturalEquality<Quaternion> {
-  const QuaternionEquality();
+  const new();
 
   @override
   bool isClose(Quaternion a, Quaternion b, double epsilon) =>
@@ -47,7 +47,7 @@ class QuaternionEquality extends NaturalEquality<Quaternion> {
 }
 
 class QuaternionField extends Field<Quaternion> {
-  const QuaternionField();
+  const new();
 
   @override
   Quaternion get additiveIdentity => Quaternion.zero;

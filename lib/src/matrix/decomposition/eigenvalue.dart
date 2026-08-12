@@ -24,7 +24,7 @@ import '../operator/testing.dart';
 class EigenvalueDecomposition {
   /// Check for symmetry, then construct the eigenvalue decomposition
   /// Structure to access D and V.
-  EigenvalueDecomposition(Matrix<num> a)
+  new(Matrix<num> a)
     : _n = a.colCount,
       _isSymmetric = a.isSymmetric,
       _d = DataType.float.newList(a.colCount),

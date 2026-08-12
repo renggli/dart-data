@@ -5,7 +5,7 @@ import '../layout.dart';
 
 /// [Iterable] over the keys of a [Layout].
 class KeyIterable extends IterableBase<List<int>> {
-  KeyIterable(this.layout);
+  new(this.layout);
 
   final Layout layout;
 
@@ -18,7 +18,7 @@ class KeyIterable extends IterableBase<List<int>> {
 
 /// [Iterator] over the keys of a [Layout].
 class KeyIterator implements Iterator<List<int>> {
-  KeyIterator(Layout layout)
+  new(Layout layout)
     : rank = layout.rank,
       shape = layout.shape,
       current = DataType.integer.newList(layout.rank, fillValue: 0) {

@@ -11,7 +11,7 @@ import 'typed.dart';
 
 abstract class IntegerDataType<L extends List<int>>
     extends TypedDataType<int, L> {
-  const IntegerDataType();
+  const new();
 
   /// Returns the true, if this integer is signed.
   bool get isSigned;
@@ -68,7 +68,7 @@ abstract class IntegerDataType<L extends List<int>>
 }
 
 class Int8DataType extends IntegerDataType<Int8List> {
-  const Int8DataType();
+  const new();
 
   @override
   int get bits => 8;
@@ -90,7 +90,7 @@ class Int8DataType extends IntegerDataType<Int8List> {
 }
 
 class Uint8DataType extends IntegerDataType<Uint8List> {
-  const Uint8DataType();
+  const new();
 
   @override
   int get bits => 8;
@@ -112,7 +112,7 @@ class Uint8DataType extends IntegerDataType<Uint8List> {
 }
 
 class Int16DataType extends IntegerDataType<Int16List> {
-  const Int16DataType();
+  const new();
 
   @override
   int get bits => 16;
@@ -134,7 +134,7 @@ class Int16DataType extends IntegerDataType<Int16List> {
 }
 
 class Uint16DataType extends IntegerDataType<Uint16List> {
-  const Uint16DataType();
+  const new();
 
   @override
   int get bits => 16;
@@ -156,7 +156,7 @@ class Uint16DataType extends IntegerDataType<Uint16List> {
 }
 
 class Int32DataType extends IntegerDataType<Int32List> {
-  const Int32DataType();
+  const new();
 
   @override
   int get bits => 32;
@@ -178,7 +178,7 @@ class Int32DataType extends IntegerDataType<Int32List> {
 }
 
 class Uint32DataType extends IntegerDataType<Uint32List> {
-  const Uint32DataType();
+  const new();
 
   @override
   int get bits => 32;
@@ -200,7 +200,7 @@ class Uint32DataType extends IntegerDataType<Uint32List> {
 }
 
 class Int64DataType extends IntegerDataType<Int64List> {
-  const Int64DataType();
+  const new();
 
   @override
   int get bits => 64;
@@ -233,7 +233,7 @@ class Int64DataType extends IntegerDataType<Int64List> {
 }
 
 class Uint64DataType extends IntegerDataType<Uint64List> {
-  const Uint64DataType();
+  const new();
 
   @override
   int get bits => 64;
@@ -265,7 +265,7 @@ class Uint64DataType extends IntegerDataType<Uint64List> {
 }
 
 class IntegerField extends Field<int> {
-  const IntegerField();
+  const new();
 
   @override
   int get additiveIdentity => 0;
@@ -318,7 +318,7 @@ class IntegerField extends Field<int> {
 }
 
 class IntegerEquality extends NaturalEquality<int> {
-  const IntegerEquality();
+  const new();
 
   @override
   bool isClose(int a, int b, double epsilon) => (a - b).abs() < epsilon;

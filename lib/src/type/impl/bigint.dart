@@ -3,7 +3,7 @@ import '../models/field.dart';
 import '../type.dart';
 
 class BigIntDataType extends DataType<BigInt> {
-  const BigIntDataType();
+  const new();
 
   @override
   String get name => 'bigInt';
@@ -34,7 +34,7 @@ class BigIntDataType extends DataType<BigInt> {
 }
 
 class BigIntEquality extends NaturalEquality<BigInt> {
-  const BigIntEquality();
+  const new();
 
   @override
   bool isClose(BigInt a, BigInt b, double epsilon) =>
@@ -42,7 +42,7 @@ class BigIntEquality extends NaturalEquality<BigInt> {
 }
 
 class BigIntField extends Field<BigInt> {
-  const BigIntField();
+  const new();
 
   @override
   BigInt get additiveIdentity => BigInt.zero;

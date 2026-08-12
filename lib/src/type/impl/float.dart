@@ -11,7 +11,7 @@ import 'typed.dart';
 
 abstract class FloatDataType<L extends List<double>>
     extends TypedDataType<double, L> {
-  const FloatDataType();
+  const new();
 
   /// Returns the smallest positive value larger than zero.
   double get minPositive;
@@ -51,7 +51,7 @@ abstract class FloatDataType<L extends List<double>>
 }
 
 class Float32DataType extends FloatDataType<Float32List> {
-  const Float32DataType();
+  const new();
 
   @override
   int get bits => 32;
@@ -82,7 +82,7 @@ class Float32DataType extends FloatDataType<Float32List> {
 }
 
 class Float64DataType extends FloatDataType<Float64List> {
-  const Float64DataType();
+  const new();
 
   @override
   int get bits => 64;
@@ -114,7 +114,7 @@ class Float64DataType extends FloatDataType<Float64List> {
 }
 
 class FloatField extends Field<double> {
-  const FloatField();
+  const new();
 
   @override
   double get additiveIdentity => 0;
@@ -169,7 +169,7 @@ class FloatField extends Field<double> {
 }
 
 class FloatEquality extends NaturalEquality<double> {
-  const FloatEquality();
+  const new();
 
   @override
   bool isClose(double a, double b, double epsilon) => a.closeTo(b, epsilon);

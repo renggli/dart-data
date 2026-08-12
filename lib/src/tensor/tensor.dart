@@ -18,7 +18,7 @@ class Tensor<T> with ToStringPrinter {
   /// final tensor = Tensor.filled(0, shape: [2, 2]);
   /// print(tensor.getValue([0, 0]));  // 0
   /// ```
-  factory Tensor.filled(
+  factory filled(
     T value, {
     List<int>? shape,
     List<int>? strides,
@@ -36,7 +36,7 @@ class Tensor<T> with ToStringPrinter {
   /// final tensor = Tensor.generate((key) => key.reduce((a, b) => a + b), shape: [2, 2]);
   /// print(tensor.getValue([1, 1]));  // 2
   /// ```
-  factory Tensor.generate(
+  factory generate(
     T Function(List<int> key) callback, {
     required List<int> shape,
     List<int>? strides,
@@ -58,7 +58,7 @@ class Tensor<T> with ToStringPrinter {
   /// final tensor = Tensor.fromIterable([1, 2, 3, 4], shape: [2, 2]);
   /// print(tensor.getValue([1, 0]));  // 3
   /// ```
-  factory Tensor.fromIterable(
+  factory fromIterable(
     Iterable<T> iterable, {
     List<int>? shape,
     List<int>? strides,
@@ -78,7 +78,7 @@ class Tensor<T> with ToStringPrinter {
   /// final tensor = Tensor.fromObject([[1, 2], [3, 4]]);
   /// print(tensor.getValue([0, 1]));  // 2
   /// ```
-  factory Tensor.fromObject(dynamic object, {DataType<T>? type}) {
+  factory fromObject(dynamic object, {DataType<T>? type}) {
     final array_ = object is Iterable
         ? object.deepFlatten<T>()
         : object is T
@@ -94,11 +94,7 @@ class Tensor<T> with ToStringPrinter {
 
   /// Internal constructors of [Tensor] object.
   @internal
-  Tensor.internal({
-    required this.type,
-    required this.layout,
-    required this.data,
-  });
+  new internal({required this.type, required this.layout, required this.data});
 
   /// The type of this tensor.
   final DataType<T> type;

@@ -3,11 +3,7 @@ import '../functions.dart';
 
 /// Provides parameters are named arguments.
 class NamedParametrizedUnaryFunction<T> extends ParametrizedUnaryFunction<T> {
-  const NamedParametrizedUnaryFunction(
-    super.dataType,
-    this.names,
-    this.function,
-  );
+  const new(super.dataType, this.names, this.function);
 
   ///  The list of named parameter names.
   final List<Symbol> names;

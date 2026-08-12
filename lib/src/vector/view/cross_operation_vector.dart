@@ -5,7 +5,7 @@ import '../vector.dart';
 
 /// Read-only cross product between two vectors.
 class CrossOperationVector<T> with Vector<T>, UnmodifiableVectorMixin<T> {
-  CrossOperationVector(this.dataType, this.a, this.b)
+  new(this.dataType, this.a, this.b)
     : assert(a.count == 3, 'Vector must have 3 elements, but got ${a.count}'),
       assert(b.count == 3, 'Vector must have 3 elements, but got ${b.count}'),
       sub = dataType.field.sub,

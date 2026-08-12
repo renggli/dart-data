@@ -5,7 +5,7 @@ import '../matrix.dart';
 
 /// Sparse compressed column matrix.
 class CompressedColumnMatrix<T> with Matrix<T> {
-  CompressedColumnMatrix(this.dataType, this.rowCount, this.colCount)
+  new(this.dataType, this.rowCount, this.colCount)
     : _columnExtends = DataType.index.newList(colCount),
       _rowIndexes = DataType.index.newList(initialListLength),
       _values = dataType.newList(initialListLength),

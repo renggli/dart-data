@@ -18,7 +18,7 @@ import '../errors.dart';
 /// ```
 class GeometricDistribution extends DiscreteDistribution {
   /// A geometric distribution with parameter [p].
-  const GeometricDistribution(this.p) : assert(0 < p && p <= 1, '0 < p <= 1');
+  const new(this.p) : assert(0 < p && p <= 1, '0 < p <= 1');
 
   /// Success probability of each trial (0..1].
   final double p;

@@ -6,7 +6,7 @@ import '../matrix.dart';
 
 class MatrixVectorMultiplicationVector<T>
     with Vector<T>, UnmodifiableVectorMixin<T> {
-  MatrixVectorMultiplicationVector(this.dataType, this.matrix, this.vector)
+  new(this.dataType, this.matrix, this.vector)
     : assert(
         matrix.colCount == vector.count,
         'Expected a vector with ${matrix.colCount} elements, '

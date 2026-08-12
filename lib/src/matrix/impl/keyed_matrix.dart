@@ -4,7 +4,7 @@ import '../matrix.dart';
 
 /// Sparse keyed matrix.
 class KeyedMatrix<T> with Matrix<T> {
-  KeyedMatrix(this.dataType, this.rowCount, this.colCount);
+  new(this.dataType, this.rowCount, this.colCount);
 
   final Map<int, T> _values = <int, T>{};
 

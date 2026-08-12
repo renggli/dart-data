@@ -4,7 +4,7 @@ import '../matrix.dart';
 
 /// Mutable matrix flipped on its horizontal axis.
 class FlippedHorizontalMatrix<T> with Matrix<T> {
-  FlippedHorizontalMatrix(this.matrix);
+  new(this.matrix);
 
   final Matrix<T> matrix;
 

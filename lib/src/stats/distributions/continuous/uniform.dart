@@ -17,14 +17,14 @@ import '../errors.dart';
 /// ```
 class UniformDistribution extends ContinuousDistribution {
   /// A uniform distribution between [a] and [b].
-  const UniformDistribution(this.a, this.b)
+  const new(this.a, this.b)
     : assert(
         double.negativeInfinity < a && a < b && b < double.infinity,
         '-∞ < a < b < ∞',
       );
 
   /// A standard uniform distribution between 0 and 1.
-  const UniformDistribution.standard() : this(0, 1);
+  const new standard() : this(0, 1);
 
   /// Minimum value of the distribution.
   final double a;

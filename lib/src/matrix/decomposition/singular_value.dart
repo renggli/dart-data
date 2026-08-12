@@ -25,21 +25,12 @@ import '../../../vector.dart';
 /// singular values of M.
 class SingularValueDecomposition {
   /// Initializes a new instance of the [SingularValueDecomposition].
-  SingularValueDecomposition._(
-    this._s,
-    this._u,
-    this._vt,
-    this._w,
-    this.vectorsComputed,
-  );
+  new _(this._s, this._u, this._vt, this._w, this.vectorsComputed);
 
   /// Initializes a new instance of the [SingularValueDecomposition].
   /// This object will compute the singular value decomposition
   /// when the constructor is called and cache it's decomposition.
-  factory SingularValueDecomposition(
-    Matrix<num> matrix, {
-    bool computeVectors = true,
-  }) {
+  factory(Matrix<num> matrix, {bool computeVectors = true}) {
     final nm = min(matrix.rowCount, matrix.colCount);
 
     final uValues = DataType.float64.newList(matrix.rowCount * matrix.rowCount);

@@ -4,7 +4,7 @@ import '../vector.dart';
 
 /// Sparse keyed vector.
 class KeyedVector<T> with Vector<T> {
-  KeyedVector(this.dataType, this.count);
+  new(this.dataType, this.count);
 
   final Map<int, T> _values = <int, T>{};
 
