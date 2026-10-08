@@ -41,8 +41,8 @@ class IndexIterator implements Iterator<int> {
 
   @override
   bool moveNext() {
+    if (!_hasMore) return false;
     if (rank == 0) {
-      if (!_hasMore) return false;
       _hasMore = false;
       return true;
     }
@@ -53,6 +53,7 @@ class IndexIterator implements Iterator<int> {
       indices[i] = 0;
       current -= shape[i] * strides[i];
     }
+    _hasMore = false;
     return false;
   }
 }

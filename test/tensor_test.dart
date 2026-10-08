@@ -48,6 +48,44 @@ void main() {
       final keyIter = KeyIterator(layout);
       expect(keyIter.moveNext(), isFalse);
     });
+    test('empty 2D [2, 0]', () {
+      final layout = Layout(shape: const [2, 0]);
+      expect(layout.keys, isEmpty);
+      expect(layout.indices, isEmpty);
+      final indexIter = IndexIterator(layout);
+      expect(indexIter.moveNext(), isFalse);
+      expect(indexIter.moveNext(), isFalse);
+      final keyIter = KeyIterator(layout);
+      expect(keyIter.moveNext(), isFalse);
+      expect(keyIter.moveNext(), isFalse);
+    });
+    test('empty 2D [0, 2]', () {
+      final layout = Layout(shape: const [0, 2]);
+      expect(layout.keys, isEmpty);
+      expect(layout.indices, isEmpty);
+      final indexIter = IndexIterator(layout);
+      expect(indexIter.moveNext(), isFalse);
+      final keyIter = KeyIterator(layout);
+      expect(keyIter.moveNext(), isFalse);
+    });
+    test('empty 3D [2, 0, 3]', () {
+      final layout = Layout(shape: const [2, 0, 3]);
+      expect(layout.keys, isEmpty);
+      expect(layout.indices, isEmpty);
+      final indexIter = IndexIterator(layout);
+      expect(indexIter.moveNext(), isFalse);
+      final keyIter = KeyIterator(layout);
+      expect(keyIter.moveNext(), isFalse);
+    });
+    test('empty non-contiguous', () {
+      final layout = Layout(shape: const [2, 0], strides: const [0, 1]);
+      expect(layout.keys, isEmpty);
+      expect(layout.indices, isEmpty);
+      final indexIter = IndexIterator(layout);
+      expect(indexIter.moveNext(), isFalse);
+      final keyIter = KeyIterator(layout);
+      expect(keyIter.moveNext(), isFalse);
+    });
     test('value', () {
       final layout = Layout();
       expect(

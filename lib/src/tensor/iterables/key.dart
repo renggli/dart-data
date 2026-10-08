@@ -35,8 +35,8 @@ class KeyIterator implements Iterator<List<int>> {
 
   @override
   bool moveNext() {
+    if (!_hasMore) return false;
     if (rank == 0) {
-      if (!_hasMore) return false;
       _hasMore = false;
       return true;
     }
@@ -45,6 +45,7 @@ class KeyIterator implements Iterator<List<int>> {
       if (current[i] < shape[i]) return true;
       current[i] = 0;
     }
+    _hasMore = false;
     return false;
   }
 }

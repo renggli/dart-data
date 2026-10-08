@@ -102,6 +102,8 @@ class Layout with ToStringPrinter {
       ? length == 0
             ? const []
             : [offset]
+      : length == 0
+      ? const []
       : isContiguous
       ? IntegerRange.length(length, start: offset)
       : IndexIterable(this);
@@ -111,6 +113,8 @@ class Layout with ToStringPrinter {
       ? length == 0
             ? const <List<int>>[]
             : const <List<int>>[[]]
+      : length == 0
+      ? const <List<int>>[]
       : KeyIterable(this);
 
   /// Converts a key (index-list) to an index.
