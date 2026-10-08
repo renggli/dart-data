@@ -64,7 +64,16 @@ class FullConvolutionMatrix<T> extends ConvolutionMatrix<T> {
 class ValidConvolutionMatrix<T> extends ConvolutionMatrix<T> {
   new(super.dataType, super.matrix, super.kernel)
     : rowCount = matrix.rowCount - kernel.rowCount + 1,
-      colCount = matrix.colCount - kernel.colCount + 1;
+      colCount = matrix.colCount - kernel.colCount + 1 {
+    if (kernel.rowCount > matrix.rowCount ||
+        kernel.colCount > matrix.colCount) {
+      throw ArgumentError.value(
+        kernel,
+        'kernel',
+        'Kernel size cannot exceed input size in valid convolution mode.',
+      );
+    }
+  }
 
   @override
   final int rowCount;

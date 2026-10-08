@@ -49,7 +49,15 @@ class FullConvolutionVector<T> extends ConvolutionVector<T> {
 
 class ValidConvolutionVector<T> extends ConvolutionVector<T> {
   new(super.dataType, super.vector, super.kernel)
-    : count = vector.count - kernel.count + 1;
+    : count = vector.count - kernel.count + 1 {
+    if (kernel.count > vector.count) {
+      throw ArgumentError.value(
+        kernel.count,
+        'kernel',
+        'Kernel size cannot exceed input size in valid convolution mode.',
+      );
+    }
+  }
 
   @override
   final int count;

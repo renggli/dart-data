@@ -1601,6 +1601,24 @@ void matrixTest(String name, MatrixFormat format) {
             ),
           );
         });
+        test('valid error', () {
+          final smallMatrix = Matrix.fromRows(DataType.int32, [
+            [1, 2],
+            [3, 4],
+          ], format: format);
+          final largeKernel = Matrix.fromRows(DataType.int32, [
+            [1, 2, 3],
+            [4, 5, 6],
+            [7, 8, 9],
+          ], format: format);
+          expect(
+            () => smallMatrix.convolve(
+              largeKernel,
+              mode: MatrixConvolution.valid,
+            ),
+            throwsArgumentError,
+          );
+        });
         test('same', () {
           final result1 = matrix1.convolve(
             kernel1,

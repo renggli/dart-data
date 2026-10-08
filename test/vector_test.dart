@@ -581,6 +581,17 @@ void vectorTest(String name, VectorFormat format) {
           );
           expect(result2.iterable, [2.5]);
         });
+        test('valid error', () {
+          final smallVector = Vector.fromList(DataType.int32, [1, 2]);
+          final largeKernel = Vector.fromList(DataType.int32, [1, 2, 3, 4]);
+          expect(
+            () => smallVector.convolve(
+              largeKernel,
+              mode: VectorConvolution.valid,
+            ),
+            throwsArgumentError,
+          );
+        });
         test('same', () {
           final result1 = vector1.convolve(
             kernel1,
