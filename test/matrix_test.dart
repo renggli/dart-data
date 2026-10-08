@@ -31,7 +31,7 @@ void matrixTest(String name, MatrixFormat format) {
         expect(matrix.colCount, 0);
         expect(matrix.storage, [matrix]);
         expect(matrix.shape, [matrix.rowCount, matrix.colCount]);
-      }, skip: format == MatrixFormat.tensor);
+      });
       test('default', () {
         final matrix = Matrix(DataType.int8, 4, 5, format: format);
         expect(matrix.dataType, DataType.int8);
@@ -1640,7 +1640,7 @@ void matrixTest(String name, MatrixFormat format) {
         test('empty', () {
           final source = Matrix(DataType.string, 0, 0, format: format);
           source.forEach((row, col, value) => fail('Should not be called'));
-        }, skip: format == MatrixFormat.tensor);
+        });
         test('default', () {
           final source = Matrix(DataType.string, 5, 7, format: format);
           source.forEach((row, col, value) => fail('Should not be called'));

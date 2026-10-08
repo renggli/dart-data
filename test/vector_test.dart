@@ -14,7 +14,7 @@ void vectorTest(String name, VectorFormat format) {
         expect(vector.count, 0);
         expect(vector.storage, [vector]);
         expect(vector.shape, [vector.count]);
-      }, skip: format == VectorFormat.tensor);
+      });
       test('default', () {
         final vector = Vector(DataType.int8, 4, format: format);
         expect(vector.dataType, DataType.int8);
@@ -871,7 +871,7 @@ void vectorTest(String name, VectorFormat format) {
         test('empty', () {
           final source = Vector(DataType.string, 0, format: format);
           source.forEach((index, value) => fail('Should not be called'));
-        }, skip: format == VectorFormat.tensor);
+        });
         test('default', () {
           final source = Vector(DataType.string, 5, format: format);
           source.forEach((index, value) => fail('Should not be called'));
