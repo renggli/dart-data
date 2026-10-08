@@ -80,7 +80,7 @@ extension OperationTensorExtension<T> on Tensor<T> {
       );
     } else {
       // Perform the operation into another one (possibly in-place).
-      LayoutError.checkEqualShape(layout, target.layout, 'target');
+      LayoutError.checkEqualShape(thisLayout, target.layout, 'target');
       final targetData = target.data;
       final targetIterator = target.layout.indices.iterator;
       while (targetIterator.moveNext() &&

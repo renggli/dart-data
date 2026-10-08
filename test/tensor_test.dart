@@ -889,6 +889,12 @@ void main() {
         ),
       );
     });
+    test('error axes length', () {
+      expect(() => tensor2x3.transpose(axes: [0]), throwsArgumentError);
+    });
+    test('error duplicate axes', () {
+      expect(() => tensor2x3.transpose(axes: [0, 0]), throwsArgumentError);
+    });
   });
   group('swapAxes', () {
     test('0, 1', () {
@@ -2152,6 +2158,25 @@ void main() {
           final r = a.binaryOperation(b, add, target: c);
           expect(r, allOf(isNot(same(a)), isNot(same(b)), same(c)));
           expect(r, isTensor<int>(object: [11, 22, 33]));
+        });
+        test('broadcasting with pre-allocated target', () {
+          final a = Tensor<int>.fromIterable([1, 2, 3], shape: [1, 3]);
+          final b = Tensor<int>.fromIterable(
+            [10, 20, 30, 40, 50, 60],
+            shape: [2, 3],
+          );
+          final target = Tensor<int>.filled(0, shape: [2, 3]);
+          final r = a.binaryOperation(b, add, target: target);
+          expect(r, same(target));
+          expect(
+            r,
+            isTensor<int>(
+              object: [
+                [11, 22, 33],
+                [41, 52, 63],
+              ],
+            ),
+          );
         });
         test('error', () {
           final a = Tensor<int>.fromIterable([1, 2, 3]);

@@ -34,6 +34,14 @@ extension TransposeLayoutExtension on Layout {
     final axes_ = axes != null
         ? axes.map((index) => checkIndex(index, rank, 'axes')).toList()
         : IntegerRange.length(rank).reversed;
+    if (axes != null &&
+        (axes_.length != rank || axes_.toSet().length != rank)) {
+      throw ArgumentError.value(
+        axes,
+        'axes',
+        'Expected a permutation of axes 0..${rank - 1}.',
+      );
+    }
     final shape_ = utils.toIndices(axes_.map((each) => shape[each]));
     final strides_ = utils.toIndices(axes_.map((each) => strides[each]));
     return Layout.internal(
