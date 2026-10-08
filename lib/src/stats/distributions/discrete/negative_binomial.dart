@@ -55,8 +55,12 @@ class NegativeBinomialDistribution extends DiscreteDistribution {
   double get kurtosisExcess => 6 / r + pow(1 - p, 2) / (p * r);
 
   @override
-  double probability(int k) =>
-      k < 0 ? 0 : exp(combinationLn(k + r - 1, k) + k * log(p) + r * log(q));
+  double probability(int k) {
+    if (k < 0) return 0;
+    if (p == 0) return k == 0 ? 1 : 0;
+    if (p == 1) return 0;
+    return exp(combinationLn(k + r - 1, k) + k * log(p) + r * log(q));
+  }
 
   @override
   int sample({Random? random}) {

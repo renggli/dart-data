@@ -2705,8 +2705,34 @@ void main() {
             kurtosisExcess: -0.02,
           );
         });
+        group('boundary p in {0, 1}', () {
+          test('p = 0', () {
+            const dist = BinomialDistribution(10, 0.0);
+            expect(dist.probability(0), 1.0);
+            expect(dist.probability(1), 0.0);
+            expect(dist.probability(10), 0.0);
+          });
+          test('p = 1', () {
+            const dist = BinomialDistribution(10, 1.0);
+            expect(dist.probability(0), 0.0);
+            expect(dist.probability(9), 0.0);
+            expect(dist.probability(10), 1.0);
+          });
+        });
       });
       group('negative bernoulli', () {
+        group('boundary p in {0, 1}', () {
+          test('p = 0', () {
+            const dist = NegativeBinomialDistribution(5, 0.0);
+            expect(dist.probability(0), 1.0);
+            expect(dist.probability(1), 0.0);
+          });
+          test('p = 1', () {
+            const dist = NegativeBinomialDistribution(5, 1.0);
+            expect(dist.probability(0), 0.0);
+            expect(dist.probability(1), 0.0);
+          });
+        });
         const distribution = NegativeBinomialDistribution(5, 0.4);
         test('parameters', () {
           expect(distribution.r, isCloseTo(5.0));

@@ -55,9 +55,12 @@ class BinomialDistribution extends DiscreteDistribution {
   double get kurtosisExcess => (1 - 6 * p * q) / (n * p * q);
 
   @override
-  double probability(int k) => 0 <= k && k <= n
-      ? exp(combinationLn(n, k) + k * log(p) + (n - k) * log(q))
-      : 0;
+  double probability(int k) {
+    if (k < 0 || k > n) return 0;
+    if (p == 0) return k == 0 ? 1 : 0;
+    if (p == 1) return k == n ? 1 : 0;
+    return exp(combinationLn(n, k) + k * log(p) + (n - k) * log(q));
+  }
 
   @override
   int sample({Random? random}) {
