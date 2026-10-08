@@ -407,6 +407,42 @@ void main() {
         ),
       );
     });
+    test('empty list', () {
+      final result = Tensor<int>.fromObject(<int>[]);
+      expect(
+        result,
+        isTensor<int>(
+          type: DataType.integer,
+          layout: isLayout(
+            rank: 1,
+            offset: 0,
+            length: 0,
+            shape: [0],
+            strides: [1],
+          ),
+          data: isEmpty,
+          object: null,
+        ),
+      );
+    });
+    test('empty nested list', () {
+      final result = Tensor<int>.fromObject(<List<int>>[[]]);
+      expect(
+        result,
+        isTensor<int>(
+          type: DataType.integer,
+          layout: isLayout(
+            rank: 2,
+            offset: 0,
+            length: 0,
+            shape: [1, 0],
+            strides: [0, 1],
+          ),
+          data: isEmpty,
+          object: null,
+        ),
+      );
+    });
     test('value', () {
       final result = Tensor<int>.fromObject(42);
       expect(

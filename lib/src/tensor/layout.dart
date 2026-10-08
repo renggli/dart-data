@@ -37,13 +37,12 @@ class Layout with ToStringPrinter {
   /// Constructs a layout with an inferred shape from [object].
   factory fromObject(dynamic object) {
     if (object == null) return empty;
+    if (object is! Iterable) return Layout(shape: const []);
     final shape = <int>[];
-    for (
-      dynamic current = object;
-      current is Iterable;
-      current = current.first
-    ) {
+    for (dynamic current = object; current is Iterable;) {
       shape.add(current.length);
+      if (current.isEmpty) break;
+      current = current.first;
     }
     return Layout(shape: shape);
   }
@@ -69,7 +68,7 @@ class Layout with ToStringPrinter {
     required this.isContiguous,
   }) : assert(shape is TypedData, '`shape` should be TypedData'),
        assert(shape.length == rank, '`shape` should be of length $rank'),
-       assert(shape.every((s) => s > 0), '`shape` should be positive'),
+       assert(shape.every((s) => s >= 0), '`shape` should be non-negative'),
        assert(strides is TypedData, '`strides` should be TypedData'),
        assert(strides.length == rank, '`strides` should be of length $rank'),
        assert(
