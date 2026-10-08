@@ -10,22 +10,23 @@ import 'package:more/math.dart';
 /// ```dart
 /// print(erf(1));  // 0.8427007929497149
 /// ```
+const _erfChebyshev = [
+  -1.26551223,
+  1.00002368,
+  0.37409196,
+  0.09678418,
+  -0.18628806,
+  0.27886807,
+  -1.13520398,
+  1.48851587,
+  -0.82215223,
+  0.17087277,
+];
+
 double erf(num x) {
   if (x == 0) return x.toDouble();
-  const p = [
-    -1.26551223,
-    1.00002368,
-    0.37409196,
-    0.09678418,
-    -0.18628806,
-    0.27886807,
-    -1.13520398,
-    1.48851587,
-    -0.82215223,
-    0.17087277,
-  ];
   final t = 1.0 / (1.0 + 0.5 * x.abs());
-  final e = -x * x + p.polynomial(t);
+  final e = -x * x + _erfChebyshev.polynomial(t);
   final r = t * exp(e);
   return x.isNegative ? r - 1.0 : 1.0 - r;
 }
@@ -72,7 +73,14 @@ double erfInv(num x) {
 }
 
 /// Returns the complementary error function.
-double erfc(num x) => 1.0 - erf(x);
+double erfc(num x) {
+  if (x.isNaN) return double.nan;
+  if (x == 0) return 1.0;
+  final t = 1.0 / (1.0 + 0.5 * x.abs());
+  final e = -x * x + _erfChebyshev.polynomial(t);
+  final r = t * exp(e);
+  return x.isNegative ? 2.0 - r : r;
+}
 
 /// Returns the inverse complementary error function.
 double erfcInv(num x) => -erfInv(x - 1.0);

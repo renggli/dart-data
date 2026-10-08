@@ -399,6 +399,12 @@ void main() {
         );
       }
     });
+    test('erfc large values without catastrophic cancellation', () {
+      expect(erfc(5.0), greaterThan(0.0));
+      expect(erfc(5.0), closeTo(1.53745979e-12, 1e-14));
+      expect(erfc(6.0), greaterThan(0.0));
+      expect(erfc(6.0), closeTo(2.15197367e-17, 1e-19));
+    });
     test('erf and erfInv zero exactness', () {
       expect(erf(0), same(0.0));
       expect(erf(0.0), same(0.0));

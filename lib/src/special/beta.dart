@@ -145,7 +145,7 @@ double betacf_(num x, num a, num b) {
     d = 1.0 / d;
     final del = d * c;
     h *= del;
-    if ((del - 1.0).abs() < 3.0e-7) {
+    if ((del - 1.0).abs() < 1.0e-15) {
       break;
     }
   }
