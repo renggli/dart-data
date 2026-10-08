@@ -1346,7 +1346,7 @@ void polynomialTest(String name, PolynomialFormat format) {
           final result = divWithInvariant(dividend, divisor);
           expect(result.quotient.iterable, [-1, 1]);
           expect(result.remainder.iterable, [-1]);
-        }, skip: 'fractional polygon cannot be represented in <int>');
+        });
         test('example.dart 3', () {
           final dividend = Polynomial.fromList(DataType.int32, [
             -7,
@@ -1362,7 +1362,7 @@ void polynomialTest(String name, PolynomialFormat format) {
           final result = divWithInvariant(dividend, divisor);
           expect(result.quotient.iterable, [3, 2]);
           expect(result.remainder.iterable, [-4, 8]);
-        }, skip: 'fractional polygon cannot be represented in <int>');
+        });
       });
       group('compare', () {
         test('identity', () {

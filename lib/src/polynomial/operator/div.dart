@@ -49,10 +49,13 @@ extension DivPolynomialExtension<T> on Polynomial<T> {
     }
     // Perform synthetic division:
     // https://en.wikipedia.org/wiki/Synthetic_division
-    final dividendLead = dividend.lead;
+    final divisorLead = divisor.lead;
     final output = effectiveDataType.copyList(dividend.iterable);
     for (var i = dividendDegree - divisorDegree; i >= 0; i--) {
-      final coefficient = output[i + 1] = div(output[i + 1], dividendLead);
+      final coefficient = output[i + divisorDegree] = div(
+        output[i + divisorDegree],
+        divisorLead,
+      );
       if (coefficient != effectiveDataType.defaultValue) {
         for (var j = divisorDegree - 1; j >= 0; j--) {
           output[i + j] = sub(
