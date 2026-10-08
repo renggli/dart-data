@@ -1,5 +1,7 @@
 import 'dart:math';
 
+import 'package:data/src/tensor/iterables/index.dart';
+import 'package:data/src/tensor/iterables/key.dart';
 import 'package:data/tensor.dart';
 import 'package:data/type.dart';
 import 'package:more/collection.dart';
@@ -41,6 +43,10 @@ void main() {
           keys: isEmpty,
         ),
       );
+      final indexIter = IndexIterator(layout);
+      expect(indexIter.moveNext(), isFalse);
+      final keyIter = KeyIterator(layout);
+      expect(keyIter.moveNext(), isFalse);
     });
     test('value', () {
       final layout = Layout();
@@ -57,6 +63,14 @@ void main() {
           keys: [<int>[]],
         ),
       );
+      final indexIter = IndexIterator(layout);
+      expect(indexIter.moveNext(), isTrue);
+      expect(indexIter.current, 0);
+      expect(indexIter.moveNext(), isFalse);
+      final keyIter = KeyIterator(layout);
+      expect(keyIter.moveNext(), isTrue);
+      expect(keyIter.current, isEmpty);
+      expect(keyIter.moveNext(), isFalse);
     });
     test('1', () {
       final layout = Layout(shape: const [1]);

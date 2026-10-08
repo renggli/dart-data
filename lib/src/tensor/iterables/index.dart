@@ -23,20 +23,29 @@ class IndexIterator implements Iterator<int> {
       shape = layout.shape,
       strides = layout.strides,
       indices = DataType.integer.newList(layout.rank, fillValue: 0),
-      current = layout.offset - layout.strides.last {
-    indices.last = -1;
+      _hasMore = layout.length > 0,
+      current = layout.rank > 0
+          ? layout.offset - layout.strides.last
+          : layout.offset {
+    if (indices.isNotEmpty) indices.last = -1;
   }
 
   final int rank;
   final List<int> shape;
   final List<int> strides;
   final List<int> indices;
+  bool _hasMore;
 
   @override
   int current;
 
   @override
   bool moveNext() {
+    if (rank == 0) {
+      if (!_hasMore) return false;
+      _hasMore = false;
+      return true;
+    }
     for (var i = rank - 1; i >= 0; i--) {
       indices[i]++;
       current += strides[i];
