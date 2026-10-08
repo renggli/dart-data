@@ -19,7 +19,7 @@ import 'view/generated_polynomial.dart';
 
 /// Abstract polynomial type.
 abstract mixin class Polynomial<T> implements Storage {
-  /// Constructs a default vector of the desired [dataType], and possibly a
+  /// Constructs a default polynomial of the desired [dataType], and possibly a
   /// custom [format].
   ///
   /// ```dart

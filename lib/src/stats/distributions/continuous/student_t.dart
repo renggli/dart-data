@@ -14,7 +14,7 @@ import 'normal.dart';
 /// See https://en.wikipedia.org/wiki/Student%27s_t-distribution.
 ///
 /// ```dart
-/// final distribution = StudentTDistribution(5);
+/// final distribution = StudentDistribution(5);
 /// print(distribution.mean);  // 0.0
 /// ```
 class StudentDistribution extends ContinuousDistribution {
