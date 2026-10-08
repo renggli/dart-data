@@ -34,13 +34,16 @@ class PolynomialRegression extends CurveFit {
   }) {
     checkPoints(DataType.float, xs: xs, ys: ys);
     final vandermonde = Matrix.vandermonde(DataType.float, xs, degree + 1);
-    final vandermondeTransposed = vandermonde.transposed;
-    final result = vandermondeTransposed
-        .mulMatrix(vandermonde)
-        .inverse
-        .mulMatrix(vandermondeTransposed)
-        .mulVector(ys);
-    return PolynomialRegressionResult(result.toList().toPolynomial());
+    final yMatrix = Matrix.generate(
+      DataType.float,
+      ys.count,
+      1,
+      (r, c) => ys[r],
+    );
+    final solution = vandermonde.qr.solve(yMatrix);
+    return PolynomialRegressionResult(
+      solution.column(0).toList().toPolynomial(),
+    );
   }
 }
 
