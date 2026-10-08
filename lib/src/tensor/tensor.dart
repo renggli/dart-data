@@ -66,9 +66,11 @@ class Tensor<T> with ToStringPrinter {
   }) {
     final type_ = type ?? DataType.fromIterable(iterable);
     final data_ = type_.copyList(iterable);
-    final layout_ = data_.isEmpty
+    final layout_ = shape != null
+        ? Layout(shape: shape, strides: strides)
+        : data_.isEmpty
         ? Layout.empty
-        : Layout(shape: shape ?? [data_.length], strides: strides);
+        : Layout(shape: [data_.length], strides: strides);
     return Tensor.internal(type: type_, layout: layout_, data: data_);
   }
 

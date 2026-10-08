@@ -340,6 +340,44 @@ void main() {
         ),
       );
     });
+    test('empty with shape (1D)', () {
+      final result = Tensor.fromIterable(<int>[], shape: [0]);
+      expect(
+        result,
+        isTensor<int>(
+          type: DataType.integer,
+          layout: isLayout(
+            rank: 1,
+            length: 0,
+            offset: 0,
+            shape: [0],
+            strides: [1],
+            isContiguous: true,
+          ),
+          data: isEmpty,
+          object: isNull,
+        ),
+      );
+    });
+    test('empty with shape (2D)', () {
+      final result = Tensor.fromIterable(<int>[], shape: [0, 0]);
+      expect(
+        result,
+        isTensor<int>(
+          type: DataType.integer,
+          layout: isLayout(
+            rank: 2,
+            length: 0,
+            offset: 0,
+            shape: [0, 0],
+            strides: [0, 1],
+            isContiguous: true,
+          ),
+          data: isEmpty,
+          object: isNull,
+        ),
+      );
+    });
     test('vector', () {
       final result = IntegerRange(1, 7).toTensor();
       expect(
