@@ -10,19 +10,6 @@ import 'package:more/math.dart';
 /// ```dart
 /// print(erf(1));  // 0.8427007929497149
 /// ```
-const _erfChebyshev = [
-  -1.26551223,
-  1.00002368,
-  0.37409196,
-  0.09678418,
-  -0.18628806,
-  0.27886807,
-  -1.13520398,
-  1.48851587,
-  -0.82215223,
-  0.17087277,
-];
-
 double erf(num x) {
   if (x == 0) return x.toDouble();
   final t = 1.0 / (1.0 + 0.5 * x.abs());
@@ -84,3 +71,16 @@ double erfc(num x) {
 
 /// Returns the inverse complementary error function.
 double erfcInv(num x) => -erfInv(x - 1.0);
+
+const _erfChebyshev = [
+  -1.26551223,
+  1.00002368,
+  0.37409196,
+  0.09678418,
+  -0.18628806,
+  0.27886807,
+  -1.13520398,
+  1.48851587,
+  -0.82215223,
+  0.17087277,
+];
