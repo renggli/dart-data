@@ -20,14 +20,19 @@ extension SolverExtension<T extends num> on Matrix<T> {
   /// Returns the determinant of this [Matrix].
   double get det => lu.det;
 
-  /// Returns the inverse if this [Matrix] is square, return the pseudo-inverse
-  /// otherwise.
-  Matrix<double> get inverse => solve(
-    IdentityMatrix<double>(
-      DataType.float,
-      rowCount,
-      rowCount,
-      DataType.float.field.multiplicativeIdentity,
-    ),
-  );
+  /// Returns the inverse of this square, non-singular [Matrix]. Throws an
+  /// [ArgumentError] if the matrix is non-square or singular.
+  Matrix<double> get inverse {
+    if (rowCount != colCount) {
+      throw ArgumentError('Matrix must be square to be inverted.');
+    }
+    return solve(
+      IdentityMatrix<double>(
+        DataType.float,
+        rowCount,
+        rowCount,
+        DataType.float.field.multiplicativeIdentity,
+      ),
+    );
+  }
 }

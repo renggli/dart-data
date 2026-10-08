@@ -2637,6 +2637,20 @@ void matrixTest(String name, MatrixFormat format) {
         );
         expect(actual, isCloseTo(expected, epsilon: epsilon));
       });
+      test('inverse non-square throws', () {
+        final nonSquare = Matrix.fromRows(DataType.float64, [
+          [1.0, 2.0, 3.0],
+          [4.0, 5.0, 6.0],
+        ], format: format);
+        expect(() => nonSquare.inverse, throwsArgumentError);
+      });
+      test('inverse singular throws', () {
+        final singular = Matrix.fromRows(DataType.float64, [
+          [1.0, 2.0],
+          [2.0, 4.0],
+        ], format: format);
+        expect(() => singular.inverse, throwsArgumentError);
+      });
       test('solve', () {
         final first = Matrix<double>.fromRows(DataType.float64, [
           [5, 8],
