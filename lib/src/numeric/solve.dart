@@ -57,7 +57,7 @@ double solve(
       x = b - y1 * (b - a) / (y1 - y0);
     }
     // Use bisection method if satisfies the conditions.
-    final delta = (2 * 1e-52 * b).abs();
+    final delta = (4.440892098500626e-16 * b).abs();
     final min1 = (x - b).abs();
     final min2 = (b - x2).abs();
     final min3 = (x2 - x3).abs();
