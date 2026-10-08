@@ -21,7 +21,7 @@ extension RangeLayoutExtension on Layout {
     final start_ = checkStart(start, shape[axis_], 'start');
     final end_ = checkEnd(start_, end, shape[axis_], 'end');
     final step_ = checkStep(step, 'step');
-    final rangeLength = (end_ - start_) ~/ step_;
+    final rangeLength = (end_ - start_ + step_ - 1) ~/ step_;
     return Layout(
       shape: [...shape.take(axis_), rangeLength, ...shape.skip(axis_ + 1)],
       strides: [

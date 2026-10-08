@@ -1770,21 +1770,21 @@ void main() {
         isTensor<int>(
           layout: isLayout(
             rank: 3,
-            length: 6,
+            length: 12,
             offset: 0,
-            shape: [2, 3, 1],
+            shape: [2, 3, 2],
             strides: [12, 4, 3],
           ),
           object: [
             [
-              [0],
-              [4],
-              [8],
+              [0, 3],
+              [4, 7],
+              [8, 11],
             ],
             [
-              [12],
-              [16],
-              [20],
+              [12, 15],
+              [16, 19],
+              [20, 23],
             ],
           ],
         ),
