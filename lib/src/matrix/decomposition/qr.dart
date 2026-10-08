@@ -2,6 +2,7 @@ import '../../../type.dart';
 import '../../shared/math.dart';
 import '../matrix.dart';
 import '../view/cast_matrix.dart';
+import '../view/range_matrix.dart';
 
 /// QR Decomposition.
 ///
@@ -184,7 +185,7 @@ class QRDecomposition {
         }
       }
     }
-    return X;
+    return _m == _n ? X : X.rowRange(0, _n).toMatrix();
   }
 }
 

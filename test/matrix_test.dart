@@ -2389,6 +2389,26 @@ void matrixTest(String name, MatrixFormat format) {
           );
           expect(actual, isCloseTo(expected, epsilon: epsilon));
         });
+        test('solve (overdetermined)', () {
+          final first = Matrix<double>.fromRows(DataType.float64, [
+            [1, 1],
+            [1, 2],
+            [1, 3],
+          ], format: format);
+          final second = Matrix<double>.fromRows(DataType.float64, [
+            [6],
+            [0],
+            [0],
+          ], format: format);
+          final actual = first.qr.solve(second);
+          expect(actual.rowCount, 2);
+          expect(actual.colCount, 1);
+          final expected = Matrix<double>.fromRows(DataType.float64, [
+            [8],
+            [-3],
+          ]);
+          expect(actual, isCloseTo(expected, epsilon: epsilon));
+        });
       });
       group('Singluar value decomposition', () {
         Matrix<double> random(int rows, int cols, int seed) {
