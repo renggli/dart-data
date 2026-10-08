@@ -9,9 +9,14 @@ import '../mixin/unmodifiable_matrix.dart';
 
 /// Read-only convolution between two matrices.
 abstract class ConvolutionMatrix<T> with Matrix<T>, UnmodifiableMatrixMixin<T> {
-  new(this.dataType, this.matrix, this.kernel)
-    : assert(matrix.rowCount > 0 && matrix.colCount > 0, 'Empty matrix'),
-      assert(kernel.rowCount > 0 && kernel.colCount > 0, 'Empty kernel');
+  new(this.dataType, this.matrix, this.kernel) {
+    if (matrix.rowCount <= 0 || matrix.colCount <= 0) {
+      throw ArgumentError.value(matrix, 'matrix', 'Empty matrix');
+    }
+    if (kernel.rowCount <= 0 || kernel.colCount <= 0) {
+      throw ArgumentError.value(kernel, 'kernel', 'Empty kernel');
+    }
+  }
 
   final Matrix<T> matrix;
   final Matrix<T> kernel;

@@ -1619,6 +1619,15 @@ void matrixTest(String name, MatrixFormat format) {
             throwsArgumentError,
           );
         });
+        test('empty error', () {
+          final empty = Matrix(DataType.int32, 0, 0);
+          final valid = Matrix.fromRows(DataType.int32, [
+            [1, 2],
+            [3, 4],
+          ], format: format);
+          expect(() => empty.convolve(valid), throwsArgumentError);
+          expect(() => valid.convolve(empty), throwsArgumentError);
+        });
         test('same', () {
           final result1 = matrix1.convolve(
             kernel1,
@@ -2265,6 +2274,12 @@ void matrixTest(String name, MatrixFormat format) {
               }
             }
           });
+          test('dimension mismatch', () {
+            final incompatible = Matrix.fromRows(DataType.int32, [
+              [1, 2],
+            ]);
+            expect(() => matrixA.mulMatrix(incompatible), throwsArgumentError);
+          });
         });
         group('vector', () {
           test('operator', () {
@@ -2287,6 +2302,19 @@ void matrixTest(String name, MatrixFormat format) {
               expect(result[i], matrixA.row(i).dot(vectorB));
             }
           });
+          test('dimension mismatch', () {
+            final incompatible = Vector.fromList(DataType.int32, [1, 2]);
+            expect(() => matrixA.mulVector(incompatible), throwsArgumentError);
+          });
+        });
+        test('binaryOperation dimension mismatch', () {
+          final incompatible = Matrix.fromRows(DataType.int32, [
+            [1, 2],
+          ]);
+          expect(
+            () => matrixA.binaryOperation(incompatible, (a, b) => a + b),
+            throwsArgumentError,
+          );
         });
         group('scalar', () {
           test('operator', () {

@@ -321,7 +321,7 @@ void vectorTest(String name, VectorFormat format) {
         final a = Vector.fromList(DataType.int8, [1, 2, 3], format: format);
         final b = Vector.fromList(DataType.int8, [1, 2], format: format);
         int op(int x, int y) => x + y;
-        expect(() => a.binaryOperation(b, op), throwsA(isA<AssertionError>()));
+        expect(() => a.binaryOperation(b, op), throwsArgumentError);
         final c = Vector.fromList(DataType.int8, [4, 5, 6], format: format);
         final view = a.binaryOperation(c, op);
         expect(view.storage, containsAll([a, c]));
@@ -591,6 +591,12 @@ void vectorTest(String name, VectorFormat format) {
             ),
             throwsArgumentError,
           );
+        });
+        test('empty error', () {
+          final empty = Vector(DataType.int32, 0);
+          final valid = Vector.fromList(DataType.int32, [1, 2]);
+          expect(() => empty.convolve(valid), throwsArgumentError);
+          expect(() => valid.convolve(empty), throwsArgumentError);
         });
         test('same', () {
           final result1 = vector1.convolve(
@@ -1098,6 +1104,12 @@ void vectorTest(String name, VectorFormat format) {
         expect(r[2], -3);
         expect(r.storage, containsAll([a, b]));
         expect(() => r.getUnchecked(3), throwsA(isA<UnimplementedError>()));
+      });
+      test('cross (error)', () {
+        final a = Vector.fromList(DataType.integer, [1, 2]);
+        final b = Vector.fromList(DataType.integer, [4, 5, 6]);
+        expect(() => a.cross(b), throwsArgumentError);
+        expect(() => b.cross(a), throwsArgumentError);
       });
       test('sum', () {
         final source = Vector.fromList(DataType.uint8, [

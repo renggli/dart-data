@@ -9,9 +9,14 @@ import '../vector.dart';
 
 /// Read-only convolution between two vectors.
 abstract class ConvolutionVector<T> with Vector<T>, UnmodifiableVectorMixin<T> {
-  new(this.dataType, this.vector, this.kernel)
-    : assert(vector.count > 0, 'Empty vector'),
-      assert(kernel.count > 0, 'Empty kernel');
+  new(this.dataType, this.vector, this.kernel) {
+    if (vector.count <= 0) {
+      throw ArgumentError.value(vector, 'vector', 'Empty vector');
+    }
+    if (kernel.count <= 0) {
+      throw ArgumentError.value(kernel, 'kernel', 'Empty kernel');
+    }
+  }
 
   final Vector<T> vector;
   final Vector<T> kernel;
