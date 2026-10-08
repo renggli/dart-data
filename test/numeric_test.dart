@@ -160,6 +160,21 @@ void main() {
         // Assertions
         expectedParameters: {#a: 2.0, #b: 2.0},
       );
+      verifyLevenbergMarquardt(
+        'sin with fixed parameter',
+        LevenbergMarquardt(
+          sinFunction,
+          initialValues: {#a: 2.0, #b: 1.5},
+          gradientDifferences: {#a: 0.0, #b: 0.1},
+          damping: 0.1,
+          maxIterations: 100,
+        ),
+        parameters: {#a: 2.0, #b: 2.0},
+        count: 20,
+        start: 0,
+        stop: 19,
+        expectedParameters: {#a: 2.0, #b: 2.0},
+      );
       // Strangely this test fails on GitHub Actions:
       //
       // verifyLevenbergMarquardt(

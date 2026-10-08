@@ -289,7 +289,6 @@ class LevenbergMarquardt extends CurveFit {
     final nbPoints = x.count;
     final ans = Matrix(DataType.float64, nbParams, nbPoints);
 
-    var rowIndex = 0;
     for (var param = 0; param < nbParams; param++) {
       if (gradientDifferences[param] == 0) continue;
       var delta = gradientDifferences[param];
@@ -303,7 +302,7 @@ class LevenbergMarquardt extends CurveFit {
         final funcParam2 = parametrizedFunction.bind(auxParams2);
         for (var point = 0; point < nbPoints; point++) {
           ans.set(
-            rowIndex,
+            param,
             point,
             (funcParam2(x[point]) - funcParam(x[point])) / delta,
           );
@@ -311,13 +310,12 @@ class LevenbergMarquardt extends CurveFit {
       } else {
         for (var point = 0; point < nbPoints; point++) {
           ans.set(
-            rowIndex,
+            param,
             point,
             (evaluatedData[point] - funcParam(x[point])) / delta,
           );
         }
       }
-      rowIndex++;
     }
 
     return ans;
