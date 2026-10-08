@@ -733,6 +733,20 @@ void main() {
         expect(backward, isCloseTo(source));
       }
     });
+    test('fixed-length list', () {
+      final fixedSource = List.filled(3, Complex.one, growable: false);
+      final result = fft(fixedSource);
+      expect(result.length, 4);
+      expect(result[0], const Complex(3, 0));
+    });
+    test('sign convention', () {
+      final impulse = [Complex.zero, Complex.one, Complex.zero, Complex.zero];
+      final transformed = fft(impulse);
+      expect(
+        transformed,
+        isCloseTo([Complex.one, -Complex.i, -Complex.one, Complex.i]),
+      );
+    });
   });
   group('functions', () {
     test('list', () {

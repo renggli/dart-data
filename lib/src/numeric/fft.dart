@@ -25,9 +25,16 @@ List<Complex> fft(List<Complex> values, {bool inverse = false}) {
   if (values.length <= 1) {
     return values;
   }
+  var result = values;
   final n = values.length.bitCeil;
-  while (values.length < n) {
-    values.add(Complex.zero);
+  if (result.length < n) {
+    try {
+      while (result.length < n) {
+        result.add(Complex.zero);
+      }
+    } on UnsupportedError {
+      result = [...result, ...List.filled(n - result.length, Complex.zero)];
+    }
   }
   // Permute the elements.
   for (var i = 1, j = 0; i < n; i++) {
@@ -37,21 +44,21 @@ List<Complex> fft(List<Complex> values, {bool inverse = false}) {
     }
     j ^= bit;
     if (i < j) {
-      values.swap(i, j);
+      result.swap(i, j);
     }
   }
   // Transform the elements.
   for (var len = 2; len <= n; len <<= 1) {
     final halfLen = len >> 1;
-    final a = (inverse ? -2 : 2) * math.pi / len;
+    final a = (inverse ? 2 : -2) * math.pi / len;
     final r = Complex(math.cos(a), math.sin(a));
     var w = Complex.one;
     for (var j = 0; j < halfLen; j++) {
       for (var i = j; i < n; i += len) {
         final ui = i, vi = ui + halfLen;
-        final u = values[ui], v = values[vi] * w;
-        values[ui] = u + v;
-        values[vi] = u - v;
+        final u = result[ui], v = result[vi] * w;
+        result[ui] = u + v;
+        result[vi] = u - v;
       }
       w *= r;
     }
@@ -59,8 +66,8 @@ List<Complex> fft(List<Complex> values, {bool inverse = false}) {
   // Invert the transformation.
   if (inverse) {
     for (var i = 0; i < n; i++) {
-      values[i] /= n;
+      result[i] /= n;
     }
   }
-  return values;
+  return result;
 }
