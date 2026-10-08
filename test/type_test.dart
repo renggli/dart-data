@@ -377,6 +377,11 @@ void integerGroup(IntegerDataType type, bool isSigned, int bits) {
     test('field additional methods', () {
       final field = type.field;
       expect(field.remainder(5, 3), 2);
+      if (isSigned) {
+        expect(field.remainder(-5, 3), -2);
+      }
+      expect(field.scale(10, 0.5), 5);
+      expect(field.scale(7, 1.5), 11);
       expect(field.modInverse(3, 11), 4);
       expect(field.gcd(12, 18), 6);
     });

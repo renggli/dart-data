@@ -289,7 +289,7 @@ class IntegerField extends Field<int> {
   int mul(int a, int b) => a * b;
 
   @override
-  int scale(int a, num f) => a * f.round();
+  int scale(int a, num f) => (a * f).round();
 
   @override
   int div(int a, int b) => a ~/ b;
@@ -301,7 +301,7 @@ class IntegerField extends Field<int> {
   int division(int a, int b) => a ~/ b;
 
   @override
-  int remainder(int a, int b) => a % b;
+  int remainder(int a, int b) => a.remainder(b);
 
   @override
   int pow(int base, int exponent) => math.pow(base, exponent).truncate();
