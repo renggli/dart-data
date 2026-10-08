@@ -32,7 +32,7 @@ class PolynomialRegression extends CurveFit {
     required Vector<double> xs,
     required Vector<double> ys,
   }) {
-    checkPoints(DataType.float, xs: xs, ys: ys);
+    checkPoints(DataType.float, xs: xs, ys: ys, min: degree + 1);
     final vandermonde = Matrix.vandermonde(DataType.float, xs, degree + 1);
     final yMatrix = Matrix.generate(
       DataType.float,

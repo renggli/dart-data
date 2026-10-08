@@ -454,6 +454,16 @@ void main() {
             );
           }
         });
+        test('too few points throws ArgumentError', () {
+          final fitter = PolynomialRegression(degree: 3);
+          expect(
+            () => fitter.fit(
+              xs: Vector.fromList(DataType.float, [1.0, 2.0]),
+              ys: Vector.fromList(DataType.float, [3.0, 4.0]),
+            ),
+            throwsArgumentError,
+          );
+        });
       });
     });
   });
