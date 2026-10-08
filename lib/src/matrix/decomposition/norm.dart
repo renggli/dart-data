@@ -1,6 +1,5 @@
 import 'dart:math' as math;
 
-import '../../shared/math.dart';
 import '../matrix.dart';
 import 'singular_value.dart';
 
@@ -11,13 +10,22 @@ extension NormNumberExtension on Matrix<num> {
   /// Returns the Frobenius norm: The square root of the sum of squares of all
   /// elements of this [Matrix].
   double get normFrobenius {
-    var result = 0.0;
+    var scale = 0.0, sumsq = 1.0;
     for (var c = 0; c < colCount; c++) {
       for (var r = 0; r < rowCount; r++) {
-        result = hypot(result, getUnchecked(r, c));
+        final val = getUnchecked(r, c).toDouble();
+        if (val != 0.0) {
+          final absVal = val.abs();
+          if (scale < absVal) {
+            sumsq = 1.0 + sumsq * (scale / absVal) * (scale / absVal);
+            scale = absVal;
+          } else {
+            sumsq += (absVal / scale) * (absVal / scale);
+          }
+        }
       }
     }
-    return result;
+    return scale * math.sqrt(sumsq);
   }
 }
 

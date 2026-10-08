@@ -1,5 +1,6 @@
+import 'dart:math' as math;
+
 import '../../../type.dart';
-import '../../shared/math.dart';
 import '../matrix.dart';
 import '../view/cast_matrix.dart';
 import '../view/range_matrix.dart';
@@ -24,10 +25,20 @@ class QRDecomposition {
     // Main loop.
     for (var k = 0; k < _n; k++) {
       // Compute 2-norm of k-th column without under/overflow.
-      var nrm = 0.0;
+      var scale = 0.0, sumsq = 1.0;
       for (var i = k; i < _m; i++) {
-        nrm = hypot(nrm, _qr.getUnchecked(i, k));
+        final val = _qr.getUnchecked(i, k);
+        if (val != 0.0) {
+          final absVal = val.abs();
+          if (scale < absVal) {
+            sumsq = 1.0 + sumsq * (scale / absVal) * (scale / absVal);
+            scale = absVal;
+          } else {
+            sumsq += (absVal / scale) * (absVal / scale);
+          }
+        }
       }
+      var nrm = scale * math.sqrt(sumsq);
 
       if (nrm != 0.0) {
         // Form k-th Householder vector.

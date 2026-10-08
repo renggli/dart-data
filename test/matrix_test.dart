@@ -2385,6 +2385,18 @@ void matrixTest(String name, MatrixFormat format) {
         final result = matrix3.normFrobenius;
         expect(result, isCloseTo(sqrt(650), epsilon: epsilon));
       });
+      test('normFrobenius extreme values', () {
+        final huge = Matrix.fromRows(DataType.float, [
+          [1e200, 1e200],
+          [1e200, 1e200],
+        ]);
+        expect(huge.normFrobenius, isCloseTo(2e200, epsilon: 1e190));
+        final tiny = Matrix.fromRows(DataType.float, [
+          [1e-200, 1e-200],
+          [1e-200, 1e-200],
+        ]);
+        expect(tiny.normFrobenius, isCloseTo(2e-200, epsilon: 1e-210));
+      });
       test('trace', () {
         final result = matrix3.trace;
         expect(result, isCloseTo(15.0, epsilon: epsilon));
