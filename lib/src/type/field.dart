@@ -91,7 +91,8 @@ class FloatField extends Field<double> {
   double div(double a, double b) => a / b;
 
   @override
-  double pow(double base, double exponent) => math.pow(base, exponent).toDouble();
+  double pow(double base, double exponent) =>
+      math.pow(base, exponent).toDouble();
 
   @override
   double abs(double a) => a.abs();

@@ -27,7 +27,9 @@ abstract class DataType<T> {
   static const ComplexDataType complex = ComplexDataType();
   static const FractionDataType fraction = FractionDataType();
   static const BigIntDataType bigInt = BigIntDataType();
-  static const ObjectDataType<Object?> objectType = ObjectDataType<Object?>(null);
+  static const ObjectDataType<Object?> objectType = ObjectDataType<Object?>(
+    null,
+  );
 
   // Defaults
   static const IntegerDataType index = uint32;
@@ -143,7 +145,8 @@ class Float64DataType extends FloatDataType {
   @override
   Float64List newList(int length, {double? fillValue, bool readonly = false}) {
     final list = Float64List(length);
-    if (fillValue != null && fillValue != 0.0) list.fillRange(0, length, fillValue);
+    if (fillValue != null && fillValue != 0.0)
+      list.fillRange(0, length, fillValue);
     return list;
   }
 }
@@ -159,7 +162,8 @@ class Float32DataType extends FloatDataType {
   @override
   Float32List newList(int length, {double? fillValue, bool readonly = false}) {
     final list = Float32List(length);
-    if (fillValue != null && fillValue != 0.0) list.fillRange(0, length, fillValue);
+    if (fillValue != null && fillValue != 0.0)
+      list.fillRange(0, length, fillValue);
     return list;
   }
 }
@@ -191,7 +195,8 @@ class Int32DataType extends IntegerDataType {
   @override
   Int32List newList(int length, {int? fillValue, bool readonly = false}) {
     final list = Int32List(length);
-    if (fillValue != null && fillValue != 0) list.fillRange(0, length, fillValue);
+    if (fillValue != null && fillValue != 0)
+      list.fillRange(0, length, fillValue);
     return list;
   }
 }
@@ -209,7 +214,8 @@ class Int64DataType extends IntegerDataType {
   @override
   Int64List newList(int length, {int? fillValue, bool readonly = false}) {
     final list = Int64List(length);
-    if (fillValue != null && fillValue != 0) list.fillRange(0, length, fillValue);
+    if (fillValue != null && fillValue != 0)
+      list.fillRange(0, length, fillValue);
     return list;
   }
 }
@@ -227,7 +233,8 @@ class Int16DataType extends IntegerDataType {
   @override
   Int16List newList(int length, {int? fillValue, bool readonly = false}) {
     final list = Int16List(length);
-    if (fillValue != null && fillValue != 0) list.fillRange(0, length, fillValue);
+    if (fillValue != null && fillValue != 0)
+      list.fillRange(0, length, fillValue);
     return list;
   }
 }
@@ -245,7 +252,8 @@ class Int8DataType extends IntegerDataType {
   @override
   Int8List newList(int length, {int? fillValue, bool readonly = false}) {
     final list = Int8List(length);
-    if (fillValue != null && fillValue != 0) list.fillRange(0, length, fillValue);
+    if (fillValue != null && fillValue != 0)
+      list.fillRange(0, length, fillValue);
     return list;
   }
 }
@@ -263,7 +271,8 @@ class Uint8DataType extends IntegerDataType {
   @override
   Uint8List newList(int length, {int? fillValue, bool readonly = false}) {
     final list = Uint8List(length);
-    if (fillValue != null && fillValue != 0) list.fillRange(0, length, fillValue);
+    if (fillValue != null && fillValue != 0)
+      list.fillRange(0, length, fillValue);
     return list;
   }
 }
@@ -281,7 +290,8 @@ class Uint16DataType extends IntegerDataType {
   @override
   Uint16List newList(int length, {int? fillValue, bool readonly = false}) {
     final list = Uint16List(length);
-    if (fillValue != null && fillValue != 0) list.fillRange(0, length, fillValue);
+    if (fillValue != null && fillValue != 0)
+      list.fillRange(0, length, fillValue);
     return list;
   }
 }
@@ -299,7 +309,8 @@ class Uint32DataType extends IntegerDataType {
   @override
   Uint32List newList(int length, {int? fillValue, bool readonly = false}) {
     final list = Uint32List(length);
-    if (fillValue != null && fillValue != 0) list.fillRange(0, length, fillValue);
+    if (fillValue != null && fillValue != 0)
+      list.fillRange(0, length, fillValue);
     return list;
   }
 }
@@ -317,7 +328,8 @@ class Uint64DataType extends IntegerDataType {
   @override
   Uint64List newList(int length, {int? fillValue, bool readonly = false}) {
     final list = Uint64List(length);
-    if (fillValue != null && fillValue != 0) list.fillRange(0, length, fillValue);
+    if (fillValue != null && fillValue != 0)
+      list.fillRange(0, length, fillValue);
     return list;
   }
 }
@@ -346,8 +358,11 @@ class StringDataType extends DataType<String> {
   @override
   DType get dType => DType.string;
   @override
-  List<String> newList(int length, {String? fillValue, bool readonly = false}) =>
-      List<String>.filled(length, fillValue ?? '', growable: false);
+  List<String> newList(
+    int length, {
+    String? fillValue,
+    bool readonly = false,
+  }) => List<String>.filled(length, fillValue ?? '', growable: false);
   @override
   String cast(dynamic value) => value.toString();
 }
@@ -363,10 +378,15 @@ class ComplexDataType extends DataType<Complex> {
   @override
   Field<Complex> get field => const ComplexField();
   @override
-  List<Complex> newList(int length, {Complex? fillValue, bool readonly = false}) =>
+  List<Complex> newList(
+    int length, {
+    Complex? fillValue,
+    bool readonly = false,
+  }) =>
       List<Complex>.filled(length, fillValue ?? Complex.zero, growable: false);
   @override
-  Complex cast(dynamic value) => value is Complex ? value : Complex((value as num).toDouble());
+  Complex cast(dynamic value) =>
+      value is Complex ? value : Complex((value as num).toDouble());
 }
 
 class FractionDataType extends DataType<Fraction> {
@@ -380,10 +400,18 @@ class FractionDataType extends DataType<Fraction> {
   @override
   Field<Fraction> get field => const FractionField();
   @override
-  List<Fraction> newList(int length, {Fraction? fillValue, bool readonly = false}) =>
-      List<Fraction>.filled(length, fillValue ?? Fraction.zero, growable: false);
+  List<Fraction> newList(
+    int length, {
+    Fraction? fillValue,
+    bool readonly = false,
+  }) => List<Fraction>.filled(
+    length,
+    fillValue ?? Fraction.zero,
+    growable: false,
+  );
   @override
-  Fraction cast(dynamic value) => value is Fraction ? value : Fraction((value as num).toInt());
+  Fraction cast(dynamic value) =>
+      value is Fraction ? value : Fraction((value as num).toInt());
 }
 
 class BigIntDataType extends DataType<BigInt> {
@@ -397,10 +425,14 @@ class BigIntDataType extends DataType<BigInt> {
   @override
   Field<BigInt> get field => const BigIntField();
   @override
-  List<BigInt> newList(int length, {BigInt? fillValue, bool readonly = false}) =>
-      List<BigInt>.filled(length, fillValue ?? BigInt.zero, growable: false);
+  List<BigInt> newList(
+    int length, {
+    BigInt? fillValue,
+    bool readonly = false,
+  }) => List<BigInt>.filled(length, fillValue ?? BigInt.zero, growable: false);
   @override
-  BigInt cast(dynamic value) => value is BigInt ? value : BigInt.from(value as num);
+  BigInt cast(dynamic value) =>
+      value is BigInt ? value : BigInt.from(value as num);
 }
 
 class ObjectDataType<T> extends DataType<T> {

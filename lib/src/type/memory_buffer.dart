@@ -43,6 +43,9 @@ class MemoryBuffer<T> {
     return false;
   }
 
+  /// Checks whether this buffer shares memory with [other].
+  bool sharesMemoryWith(MemoryBuffer<Object?> other) => id == other.id;
+
   /// Checks if this buffer overlaps with [other] over the specified element ranges.
   bool overlaps(
     MemoryBuffer<Object?> other,
