@@ -43,7 +43,7 @@ class ComplexEquality extends NaturalEquality<Complex> {
   bool isClose(Complex a, Complex b, double epsilon) => a.closeTo(b, epsilon);
 }
 
-class ComplexField extends Field<Complex> {
+class ComplexField extends ExtendedField<Complex> {
   const new();
 
   @override
@@ -95,4 +95,22 @@ class ComplexField extends Field<Complex> {
 
   @override
   Complex gcd(Complex a, Complex b) => unsupportedOperation('gcd');
+
+  @override
+  Complex abs(Complex a) => Complex(a.abs());
+
+  @override
+  double norm(Complex a) => a.abs();
+
+  @override
+  Complex sqrt(Complex a) => a.sqrt();
+
+  @override
+  Complex exp(Complex a) => a.exp();
+
+  @override
+  Complex log(Complex a) => a.log();
+
+  @override
+  Complex conjugate(Complex a) => a.conjugate();
 }

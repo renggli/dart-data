@@ -19,6 +19,7 @@ import 'impl/numeric.dart';
 import 'impl/object.dart';
 import 'impl/quaternion.dart';
 import 'impl/string.dart';
+import 'models/dtype.dart';
 import 'models/equality.dart';
 import 'models/field.dart';
 import 'utils.dart' as utils;
@@ -58,11 +59,11 @@ abstract class DataType<T> {
   /// [bool] object data type.
   static const BooleanDataType boolean = BooleanDataType();
 
-  /// Configurable default data type to index collections, rows, columns, etc.
-  static IntegerDataType index = uint32;
+  /// Default data type to index collections, rows, columns, etc.
+  static const IntegerDataType index = uint32;
 
-  /// Configurable default data type for integer arithmetic.
-  static IntegerDataType integer = int32;
+  /// Default data type for integer arithmetic.
+  static const IntegerDataType integer = int32;
 
   /// Signed 8-bit [int] data type.
   static const IntegerDataType int8 = Int8DataType();
@@ -96,8 +97,8 @@ abstract class DataType<T> {
   static ModuloDataType<T> modulo<T>(DataType<T> delegate, T modulus) =>
       ModuloDataType<T>(delegate, modulus);
 
-  /// Configurable default data type for floating point arithmetic.
-  static FloatDataType float = float64;
+  /// Default data type for floating point arithmetic.
+  static const FloatDataType float = float64;
 
   /// 32-bit [double] data type.
   static const FloatDataType float32 = Float32DataType();
@@ -202,6 +203,67 @@ abstract class DataType<T> {
   /// Returns a default printer for this data type.
   Printer<T> get printer => StandardPrinter<T>();
 
+  /// Returns the corresponding [DType] token for this data type.
+  DType get dType => switch (name) {
+    'float32' => DType.float32,
+    'float64' => DType.float64,
+    'int8' => DType.int8,
+    'uint8' => DType.uint8,
+    'int16' => DType.int16,
+    'uint16' => DType.uint16,
+    'int32' => DType.int32,
+    'uint32' => DType.uint32,
+    'int64' => DType.int64,
+    'uint64' => DType.uint64,
+    'boolean' => DType.boolean,
+    'string' => DType.string,
+    'complex' => DType.complex128,
+    _ => DType.object,
+  };
+
+  /// Promotes this data type with [other] to find a common super-type.
+  DataType<Object?> promoteWith(DataType<Object?> other) {
+    final self = this as DataType<Object?>;
+    if (self == other) return this;
+    if (self == DataType.complex || other == DataType.complex) {
+      return DataType.complex;
+    }
+    if (self == DataType.float64 || other == DataType.float64) {
+      return DataType.float64;
+    }
+    if (self == DataType.float32) {
+      if (other is IntegerDataType) return DataType.float64;
+      return DataType.float32;
+    }
+    if (other == DataType.float32) {
+      if (self is IntegerDataType) return DataType.float64;
+      return DataType.float32;
+    }
+    if (self is IntegerDataType && other is IntegerDataType) {
+      final maxBits = math.max(self.bits, other.bits);
+      final signed = self.isSigned || other.isSigned;
+      return switch (maxBits) {
+        <= 8 => signed ? DataType.int8 : DataType.uint8,
+        <= 16 => signed ? DataType.int16 : DataType.uint16,
+        <= 32 => signed ? DataType.int32 : DataType.uint32,
+        _ => signed ? DataType.int64 : DataType.uint64,
+      };
+    }
+    return DataType.dynamicType;
+  }
+
   @override
   String toString() => 'DataType.$name';
+}
+
+/// Standard immutable defaults for data types.
+abstract final class DataTypeDefaults {
+  /// Default index data type.
+  static const IntegerDataType index = DataType.uint32;
+
+  /// Default integer data type.
+  static const IntegerDataType integer = DataType.int32;
+
+  /// Default floating point data type.
+  static const FloatDataType float = DataType.float64;
 }

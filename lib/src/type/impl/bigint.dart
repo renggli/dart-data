@@ -1,3 +1,7 @@
+import 'dart:math' as math;
+
+import 'package:more/number.dart' show Fraction;
+
 import '../models/equality.dart';
 import '../models/field.dart';
 import '../type.dart';
@@ -41,7 +45,7 @@ class BigIntEquality extends NaturalEquality<BigInt> {
       (a - b).abs() < BigInt.from(epsilon.ceil());
 }
 
-class BigIntField extends Field<BigInt> {
+class BigIntField extends ExtendedField<BigInt> {
   const new();
 
   @override
@@ -66,7 +70,11 @@ class BigIntField extends Field<BigInt> {
   BigInt mul(BigInt a, BigInt b) => a * b;
 
   @override
-  BigInt scale(BigInt a, num f) => a * BigInt.from(f.round());
+  BigInt scale(BigInt a, num f) {
+    if (f is int) return a * BigInt.from(f);
+    final frac = Fraction.fromDouble(f.toDouble());
+    return (a * BigInt.from(frac.numerator)) ~/ BigInt.from(frac.denominator);
+  }
 
   @override
   BigInt div(BigInt a, BigInt b) => a ~/ b;
@@ -92,4 +100,35 @@ class BigIntField extends Field<BigInt> {
 
   @override
   BigInt gcd(BigInt a, BigInt b) => a.gcd(b);
+
+  @override
+  BigInt abs(BigInt a) => a.abs();
+
+  @override
+  double norm(BigInt a) => a.abs().toDouble();
+
+  @override
+  BigInt sqrt(BigInt a) {
+    if (a < BigInt.zero) throw ArgumentError.value(a, 'a', 'Negative value');
+    if (a == BigInt.zero) return BigInt.zero;
+    var x0 = a >> 1;
+    if (x0 > BigInt.zero) {
+      var x1 = (x0 + a ~/ x0) >> 1;
+      while (x1 < x0) {
+        x0 = x1;
+        x1 = (x0 + a ~/ x0) >> 1;
+      }
+      return x0;
+    }
+    return BigInt.one;
+  }
+
+  @override
+  BigInt exp(BigInt a) => BigInt.from(math.exp(a.toDouble()).round());
+
+  @override
+  BigInt log(BigInt a) => BigInt.from(math.log(a.toDouble()).round());
+
+  @override
+  BigInt conjugate(BigInt a) => a;
 }

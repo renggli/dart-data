@@ -16,6 +16,8 @@ export 'src/type/impl/numeric.dart';
 export 'src/type/impl/object.dart';
 export 'src/type/impl/quaternion.dart';
 export 'src/type/impl/string.dart';
+export 'src/type/models/dtype.dart';
 export 'src/type/models/equality.dart';
 export 'src/type/models/field.dart';
+export 'src/type/models/memory_buffer.dart';
 export 'src/type/type.dart';

@@ -264,7 +264,7 @@ class Uint64DataType extends IntegerDataType<Uint64List> {
   Uint64List readonlyList(Uint64List list) => list.asUnmodifiableView();
 }
 
-class IntegerField extends Field<int> {
+class IntegerField extends ExtendedField<int> {
   const new();
 
   @override
@@ -315,6 +315,24 @@ class IntegerField extends Field<int> {
 
   @override
   int gcd(int a, int b) => a.gcd(b);
+
+  @override
+  int abs(int a) => a.abs();
+
+  @override
+  double norm(int a) => a.abs().toDouble();
+
+  @override
+  int sqrt(int a) => math.sqrt(a).truncate();
+
+  @override
+  int exp(int a) => math.exp(a).truncate();
+
+  @override
+  int log(int a) => math.log(a).truncate();
+
+  @override
+  int conjugate(int a) => a;
 }
 
 class IntegerEquality extends NaturalEquality<int> {

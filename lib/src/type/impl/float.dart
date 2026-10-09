@@ -113,7 +113,7 @@ class Float64DataType extends FloatDataType<Float64List> {
   );
 }
 
-class FloatField extends Field<double> {
+class FloatField extends ExtendedField<double> {
   const new();
 
   @override
@@ -166,6 +166,24 @@ class FloatField extends Field<double> {
 
   @override
   double gcd(double a, double b) => unsupportedOperation('gcd');
+
+  @override
+  double abs(double a) => a.abs();
+
+  @override
+  double norm(double a) => a.abs();
+
+  @override
+  double sqrt(double a) => math.sqrt(a);
+
+  @override
+  double exp(double a) => math.exp(a);
+
+  @override
+  double log(double a) => math.log(a);
+
+  @override
+  double conjugate(double a) => a;
 }
 
 class FloatEquality extends NaturalEquality<double> {

@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:more/number.dart';
 
 import '../models/equality.dart';
@@ -46,7 +48,7 @@ class FractionEquality extends NaturalEquality<Fraction> {
   bool isClose(Fraction a, Fraction b, double epsilon) => a.closeTo(b, epsilon);
 }
 
-class FractionField extends Field<Fraction> {
+class FractionField extends ExtendedField<Fraction> {
   const new();
 
   @override
@@ -99,4 +101,22 @@ class FractionField extends Field<Fraction> {
 
   @override
   Fraction gcd(Fraction a, Fraction b) => unsupportedOperation('gcd');
+
+  @override
+  Fraction abs(Fraction a) => a.abs();
+
+  @override
+  double norm(Fraction a) => a.abs().toDouble();
+
+  @override
+  Fraction sqrt(Fraction a) => Fraction.fromDouble(math.sqrt(a.toDouble()));
+
+  @override
+  Fraction exp(Fraction a) => Fraction.fromDouble(math.exp(a.toDouble()));
+
+  @override
+  Fraction log(Fraction a) => Fraction.fromDouble(math.log(a.toDouble()));
+
+  @override
+  Fraction conjugate(Fraction a) => a;
 }

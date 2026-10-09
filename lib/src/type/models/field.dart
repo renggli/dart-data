@@ -53,6 +53,24 @@ abstract class Field<T> {
   /// Computes the greatest common divisor: `gcd(a, b)`.
   T gcd(T a, T b);
 
+  /// Computes the absolute value: `|a|`.
+  T abs(T a) => unsupportedOperation('abs');
+
+  /// Computes the Euclidean norm: `||a||`.
+  double norm(T a) => throw UnsupportedError('norm is not supported.');
+
+  /// Computes the square root: `sqrt(a)`.
+  T sqrt(T a) => unsupportedOperation('sqrt');
+
+  /// Computes the exponential function: `exp(a)`.
+  T exp(T a) => unsupportedOperation('exp');
+
+  /// Computes the natural logarithm: `ln(a)`.
+  T log(T a) => unsupportedOperation('log');
+
+  /// Computes the complex conjugate: `a*` (identity for real types).
+  T conjugate(T a) => a;
+
   /// Not a number.
   T get nan => div(additiveIdentity, additiveIdentity);
 
@@ -66,4 +84,27 @@ abstract class Field<T> {
   @protected
   T unsupportedOperation(String operation) =>
       throw UnsupportedError('$operation is not supported.');
+}
+
+/// An algebraic field extended with norm, square root, power, and transcendental functions.
+abstract class ExtendedField<T> extends Field<T> {
+  const new();
+
+  @override
+  T abs(T a);
+
+  @override
+  double norm(T a);
+
+  @override
+  T sqrt(T a);
+
+  @override
+  T exp(T a);
+
+  @override
+  T log(T a);
+
+  @override
+  T conjugate(T a);
 }
