@@ -5,6 +5,15 @@ import 'memory_buffer.dart';
 class NativeBuffer<T> extends MemoryBuffer<T> {
   new _(super.data, this.type) : _isDisposed = false;
 
+  /// Whether native buffers are supported on this platform.
+  static const bool isSupported = false;
+
+  /// Whether native buffer allocation is globally enabled.
+  static bool isEnabled = false;
+
+  /// Whether native buffers are currently active.
+  static bool get isActive => false;
+
   /// Allocates a standard heap buffer when FFI is unavailable.
   factory(int length, {DataType<T>? type}) {
     final effectiveType = type ?? DataType.fromType<T>();
@@ -12,8 +21,11 @@ class NativeBuffer<T> extends MemoryBuffer<T> {
     return NativeBuffer<T>._(data, effectiveType);
   }
 
-  /// Finds the [NativeBuffer] associated with [list], if any. Always null on non-FFI platforms.
-  static NativeBuffer<dynamic>? find(dynamic list) => null;
+  /// Registers an additional list/view [alias] to point to [buffer].
+  static void register(dynamic alias, NativeBuffer<dynamic> buffer) {}
+
+  /// Finds the [NativeBuffer] associated with [target], if any. Always null on non-FFI platforms.
+  static NativeBuffer<dynamic>? find(dynamic target) => null;
 
   /// The data type of elements stored in the buffer.
   final DataType<T> type;
@@ -33,6 +45,15 @@ class NativeBuffer<T> extends MemoryBuffer<T> {
 
   /// Returns null on non-FFI platforms.
   dynamic get asFloatPointer => null;
+
+  /// Returns null on non-FFI platforms.
+  dynamic get asInt32Pointer => null;
+
+  /// Returns null on non-FFI platforms.
+  dynamic get asInt64Pointer => null;
+
+  /// Returns null on non-FFI platforms.
+  dynamic get asUint8Pointer => null;
 
   /// Returns null on non-FFI platforms.
   dynamic get pointer => null;

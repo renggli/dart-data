@@ -26,10 +26,10 @@ Vector<double> leastSquares(Matrix<num> a, Vector<num> b) {
     if (a.type == DataType.float64 &&
         a.tensor.isContiguous &&
         a.tensor.data is Float64List) {
-      aData = Float64List(m * n);
+      aData = DataType.float64.newList(m * n);
       aData.setRange(0, m * n, a.tensor.data as Float64List, a.tensor.offset);
     } else {
-      aData = Float64List(m * n);
+      aData = DataType.float64.newList(m * n);
       final aFlat = a.values.toList(growable: false);
       for (var i = 0; i < aFlat.length; i++) {
         aData[i] = aFlat[i].toDouble();
@@ -39,10 +39,10 @@ Vector<double> leastSquares(Matrix<num> a, Vector<num> b) {
     if (b.type == DataType.float64 &&
         b.tensor.isContiguous &&
         b.tensor.data is Float64List) {
-      bData = Float64List(m);
+      bData = DataType.float64.newList(m);
       bData.setRange(0, m, b.tensor.data as Float64List, b.tensor.offset);
     } else {
-      bData = Float64List(m);
+      bData = DataType.float64.newList(m);
       for (var i = 0; i < m; i++) {
         bData[i] = b[i].toDouble();
       }

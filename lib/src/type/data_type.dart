@@ -6,6 +6,7 @@ import 'package:more/number.dart' show Complex, Fraction;
 import 'dtype.dart';
 import 'equality.dart';
 import 'field.dart';
+import 'native_buffer.dart';
 
 /// Represents a strongly-typed data type with typed memory allocation and operations.
 abstract class DataType<T> {
@@ -144,13 +145,14 @@ class Float64DataType extends FloatDataType {
   @override
   DType get dType => DType.float64;
   @override
-  Float64List newList(int length, {double? fillValue, bool readonly = false}) {
-    final list = Float64List(length);
-    if (fillValue != null && fillValue != 0.0) {
-      list.fillRange(0, length, fillValue);
-    }
-    return list;
-  }
+  Float64List newList(int length, {double? fillValue, bool readonly = false}) =>
+      _createList<Float64List, double>(
+        length,
+        this,
+        Float64List.new,
+        fillValue: fillValue,
+        readonly: readonly,
+      );
 }
 
 class Float32DataType extends FloatDataType {
@@ -162,13 +164,14 @@ class Float32DataType extends FloatDataType {
   @override
   DType get dType => DType.float32;
   @override
-  Float32List newList(int length, {double? fillValue, bool readonly = false}) {
-    final list = Float32List(length);
-    if (fillValue != null && fillValue != 0.0) {
-      list.fillRange(0, length, fillValue);
-    }
-    return list;
-  }
+  Float32List newList(int length, {double? fillValue, bool readonly = false}) =>
+      _createList<Float32List, double>(
+        length,
+        this,
+        Float32List.new,
+        fillValue: fillValue,
+        readonly: readonly,
+      );
 }
 
 abstract class IntegerDataType extends DataType<int> {
@@ -196,13 +199,14 @@ class Int32DataType extends IntegerDataType {
   @override
   DType get dType => DType.int32;
   @override
-  Int32List newList(int length, {int? fillValue, bool readonly = false}) {
-    final list = Int32List(length);
-    if (fillValue != null && fillValue != 0) {
-      list.fillRange(0, length, fillValue);
-    }
-    return list;
-  }
+  Int32List newList(int length, {int? fillValue, bool readonly = false}) =>
+      _createList<Int32List, int>(
+        length,
+        this,
+        Int32List.new,
+        fillValue: fillValue,
+        readonly: readonly,
+      );
 }
 
 class Int64DataType extends IntegerDataType {
@@ -216,13 +220,14 @@ class Int64DataType extends IntegerDataType {
   @override
   DType get dType => DType.int64;
   @override
-  Int64List newList(int length, {int? fillValue, bool readonly = false}) {
-    final list = Int64List(length);
-    if (fillValue != null && fillValue != 0) {
-      list.fillRange(0, length, fillValue);
-    }
-    return list;
-  }
+  Int64List newList(int length, {int? fillValue, bool readonly = false}) =>
+      _createList<Int64List, int>(
+        length,
+        this,
+        Int64List.new,
+        fillValue: fillValue,
+        readonly: readonly,
+      );
 }
 
 class Int16DataType extends IntegerDataType {
@@ -236,13 +241,14 @@ class Int16DataType extends IntegerDataType {
   @override
   DType get dType => DType.int16;
   @override
-  Int16List newList(int length, {int? fillValue, bool readonly = false}) {
-    final list = Int16List(length);
-    if (fillValue != null && fillValue != 0) {
-      list.fillRange(0, length, fillValue);
-    }
-    return list;
-  }
+  Int16List newList(int length, {int? fillValue, bool readonly = false}) =>
+      _createList<Int16List, int>(
+        length,
+        this,
+        Int16List.new,
+        fillValue: fillValue,
+        readonly: readonly,
+      );
 }
 
 class Int8DataType extends IntegerDataType {
@@ -256,13 +262,14 @@ class Int8DataType extends IntegerDataType {
   @override
   DType get dType => DType.int8;
   @override
-  Int8List newList(int length, {int? fillValue, bool readonly = false}) {
-    final list = Int8List(length);
-    if (fillValue != null && fillValue != 0) {
-      list.fillRange(0, length, fillValue);
-    }
-    return list;
-  }
+  Int8List newList(int length, {int? fillValue, bool readonly = false}) =>
+      _createList<Int8List, int>(
+        length,
+        this,
+        Int8List.new,
+        fillValue: fillValue,
+        readonly: readonly,
+      );
 }
 
 class Uint8DataType extends IntegerDataType {
@@ -276,13 +283,14 @@ class Uint8DataType extends IntegerDataType {
   @override
   DType get dType => DType.uint8;
   @override
-  Uint8List newList(int length, {int? fillValue, bool readonly = false}) {
-    final list = Uint8List(length);
-    if (fillValue != null && fillValue != 0) {
-      list.fillRange(0, length, fillValue);
-    }
-    return list;
-  }
+  Uint8List newList(int length, {int? fillValue, bool readonly = false}) =>
+      _createList<Uint8List, int>(
+        length,
+        this,
+        Uint8List.new,
+        fillValue: fillValue,
+        readonly: readonly,
+      );
 }
 
 class Uint16DataType extends IntegerDataType {
@@ -296,13 +304,14 @@ class Uint16DataType extends IntegerDataType {
   @override
   DType get dType => DType.uint16;
   @override
-  Uint16List newList(int length, {int? fillValue, bool readonly = false}) {
-    final list = Uint16List(length);
-    if (fillValue != null && fillValue != 0) {
-      list.fillRange(0, length, fillValue);
-    }
-    return list;
-  }
+  Uint16List newList(int length, {int? fillValue, bool readonly = false}) =>
+      _createList<Uint16List, int>(
+        length,
+        this,
+        Uint16List.new,
+        fillValue: fillValue,
+        readonly: readonly,
+      );
 }
 
 class Uint32DataType extends IntegerDataType {
@@ -316,13 +325,14 @@ class Uint32DataType extends IntegerDataType {
   @override
   DType get dType => DType.uint32;
   @override
-  Uint32List newList(int length, {int? fillValue, bool readonly = false}) {
-    final list = Uint32List(length);
-    if (fillValue != null && fillValue != 0) {
-      list.fillRange(0, length, fillValue);
-    }
-    return list;
-  }
+  Uint32List newList(int length, {int? fillValue, bool readonly = false}) =>
+      _createList<Uint32List, int>(
+        length,
+        this,
+        Uint32List.new,
+        fillValue: fillValue,
+        readonly: readonly,
+      );
 }
 
 class Uint64DataType extends IntegerDataType {
@@ -336,13 +346,40 @@ class Uint64DataType extends IntegerDataType {
   @override
   DType get dType => DType.uint64;
   @override
-  Uint64List newList(int length, {int? fillValue, bool readonly = false}) {
-    final list = Uint64List(length);
-    if (fillValue != null && fillValue != 0) {
+  Uint64List newList(int length, {int? fillValue, bool readonly = false}) =>
+      _createList<Uint64List, int>(
+        length,
+        this,
+        Uint64List.new,
+        fillValue: fillValue,
+        readonly: readonly,
+      );
+}
+
+L _createList<L extends List<dynamic>, T>(
+  int length,
+  DataType<T> type,
+  L Function(int length) fallback, {
+  T? fillValue,
+  bool readonly = false,
+}) {
+  final list = NativeBuffer.isActive
+      ? (NativeBuffer<T>(length, type: type).data as L)
+      : fallback(length);
+  if (fillValue != null) {
+    if (list is List<double> && fillValue is double && fillValue != 0.0) {
+      list.fillRange(0, length, fillValue);
+    } else if (list is List<int> && fillValue is int && fillValue != 0) {
       list.fillRange(0, length, fillValue);
     }
-    return list;
   }
+  if (readonly) {
+    final dynamic unmod = (list as dynamic).asUnmodifiableView();
+    final nb = NativeBuffer.find(list);
+    if (nb != null) NativeBuffer.register(unmod, nb);
+    return unmod as L;
+  }
+  return list;
 }
 
 class BooleanDataType extends DataType<bool> {

@@ -771,7 +771,8 @@ class BlasLibrary {
     if (nb != null && !nb.isDisposed) {
       final ptr = nb.asDoublePointer;
       if (ptr != null) {
-        return ptr + offset;
+        final elemOffset = list.offsetInBytes ~/ 8;
+        return ptr + elemOffset + offset;
       }
     }
     return null;
@@ -785,7 +786,8 @@ class BlasLibrary {
     if (nb != null && !nb.isDisposed) {
       final ptr = nb.asFloatPointer;
       if (ptr != null) {
-        return ptr + offset;
+        final elemOffset = list.offsetInBytes ~/ 4;
+        return ptr + elemOffset + offset;
       }
     }
     return null;
@@ -1862,11 +1864,18 @@ class BlasLibrary {
         final aLen = m * lda;
         final bLen = (m > n ? m : n) * ldb;
 
-        final aPtr = arena<ffi.Double>(aLen);
-        aPtr.asTypedList(aLen).setRange(0, aLen, a, aOffset);
+        final nativeA = _pointerForDouble(a, aOffset);
+        final nativeB = _pointerForDouble(b, bOffset);
 
-        final bPtr = arena<ffi.Double>(bLen);
-        bPtr.asTypedList(bLen).setRange(0, m, b, bOffset);
+        final aPtr = nativeA ?? arena<ffi.Double>(aLen);
+        if (nativeA == null) {
+          aPtr.asTypedList(aLen).setRange(0, aLen, a, aOffset);
+        }
+
+        final bPtr = nativeB ?? arena<ffi.Double>(bLen);
+        if (nativeB == null) {
+          bPtr.asTypedList(bLen).setRange(0, m, b, bOffset);
+        }
 
         final info = _lapackeDgels!(
           cblasRowMajor,
@@ -1880,7 +1889,9 @@ class BlasLibrary {
           ldb,
         );
         if (info == 0) {
-          b.setRange(bOffset, bOffset + n * ldb, bPtr.asTypedList(bLen));
+          if (nativeB == null) {
+            b.setRange(bOffset, bOffset + n * ldb, bPtr.asTypedList(bLen));
+          }
           return true;
         }
         return false;
@@ -1893,11 +1904,18 @@ class BlasLibrary {
         final maxMN = m > n ? m : n;
         final bLen = maxMN * nrhs;
 
-        final aPtr = arena<ffi.Double>(aLen);
-        aPtr.asTypedList(aLen).setRange(0, aLen, a, aOffset);
+        final nativeA = _pointerForDouble(a, aOffset);
+        final nativeB = _pointerForDouble(b, bOffset);
 
-        final bPtr = arena<ffi.Double>(bLen);
-        bPtr.asTypedList(bLen).setRange(0, m, b, bOffset);
+        final aPtr = nativeA ?? arena<ffi.Double>(aLen);
+        if (nativeA == null) {
+          aPtr.asTypedList(aLen).setRange(0, aLen, a, aOffset);
+        }
+
+        final bPtr = nativeB ?? arena<ffi.Double>(bLen);
+        if (nativeB == null) {
+          bPtr.asTypedList(bLen).setRange(0, m, b, bOffset);
+        }
 
         final trans = arena<ffi.Uint8>()..value = 84; // 'T'
         final fRows = arena<ffi.Int32>()..value = n;
@@ -1942,7 +1960,9 @@ class BlasLibrary {
           info,
         );
         if (info.value == 0) {
-          b.setRange(bOffset, bOffset + n, bPtr.asTypedList(bLen));
+          if (nativeB == null) {
+            b.setRange(bOffset, bOffset + n, bPtr.asTypedList(bLen));
+          }
           return true;
         }
         return false;

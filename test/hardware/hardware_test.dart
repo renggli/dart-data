@@ -131,6 +131,177 @@ void main() {
       check(vNative.length).equals(3);
       check(vNative[1]).equals(20.0);
     });
+
+    test('automatic native buffer transparent instantiation on supported platforms', () {
+      check(NativeBuffer.isSupported).isTrue();
+      check(NativeBuffer.isActive).isTrue();
+
+      // Standard Vector.filled and fromList use native buffer automatically
+      final vFilled = Vector<double>.filled(5, 0.0);
+      check(NativeBuffer.find(vFilled.tensor.data)).isNotNull();
+      check(vFilled.tensor.buffer).isA<NativeBuffer<double>>();
+
+      final vFromList = Vector<double>.fromList([1.0, 2.0, 3.0]);
+      check(NativeBuffer.find(vFromList.tensor.data)).isNotNull();
+      check(vFromList.tensor.buffer).isA<NativeBuffer<double>>();
+
+      // Standard Matrix.filled and fromRows use native buffer automatically
+      final mFilled = Matrix<double>.filled(2, 2, 0.0);
+      check(NativeBuffer.find(mFilled.tensor.data)).isNotNull();
+      check(mFilled.tensor.buffer).isA<NativeBuffer<double>>();
+
+      final mFromRows = Matrix<double>.fromRows([
+        [1.0, 2.0],
+        [3.0, 4.0],
+      ]);
+      check(NativeBuffer.find(mFromRows.tensor.data)).isNotNull();
+      check(mFromRows.tensor.buffer).isA<NativeBuffer<double>>();
+
+      // Matrix multiplication result automatically backed by native buffer
+      final mResult = mFromRows * mFromRows;
+      check(NativeBuffer.find(mResult.tensor.data)).isNotNull();
+      check(mResult.tensor.buffer).isA<NativeBuffer<double>>();
+      check(mResult.get(0, 0)).equals(7.0);
+      check(mResult.get(0, 1)).equals(10.0);
+      check(mResult.get(1, 0)).equals(15.0);
+      check(mResult.get(1, 1)).equals(22.0);
+
+      // Dot product on standard vectors operates zero-copy
+      final dotVal = vFromList.dot(vFromList);
+      check(dotVal).equals(14.0);
+    });
+
+    test('NativeBuffer.isEnabled toggle falls back cleanly to heap', () {
+      NativeBuffer.isEnabled = false;
+      check(NativeBuffer.isActive).isFalse();
+
+      final vHeap = Vector<double>.filled(4, 1.0);
+      check(NativeBuffer.find(vHeap.tensor.data)).isNull();
+      check(vHeap.tensor.buffer is NativeBuffer).isFalse();
+
+      NativeBuffer.isEnabled = true;
+      check(NativeBuffer.isActive).isTrue();
+
+      final vNative = Vector<double>.filled(4, 1.0);
+      check(NativeBuffer.find(vNative.tensor.data)).isNotNull();
+    });
+
+    test('NativeBuffer safe zero-length allocation', () {
+      final buf0 = NativeBuffer<double>(0, type: DataType.float64);
+      check(buf0.length).equals(0);
+      check(buf0.data).isEmpty();
+      buf0.dispose();
+      check(buf0.isDisposed).isTrue();
+    });
+
+    test('All integer types support NativeBuffer allocation', () {
+      for (final type in [
+        DataType.int8,
+        DataType.int16,
+        DataType.int32,
+        DataType.int64,
+        DataType.uint8,
+        DataType.uint16,
+        DataType.uint32,
+        DataType.uint64,
+      ]) {
+        final list = type.newList(4);
+        check(NativeBuffer.find(list)).isNotNull();
+      }
+    });
+
+    test('NativeBuffer.find polymorphic resolution across types', () {
+      final buf = NativeBuffer<double>(5, type: DataType.float64);
+      // Finding on NativeBuffer itself
+      check(NativeBuffer.find(buf)).equals(buf);
+
+      // Finding on MemoryBuffer
+      final memBuf = MemoryBuffer(buf.data);
+      check(NativeBuffer.find(memBuf)).equals(buf);
+
+      // Finding on Tensor
+      final tensor = Tensor<double>.internal(
+        type: DataType.float64,
+        layout: Layout(shape: [5]),
+        data: buf.data,
+        buffer: buf,
+      );
+      check(NativeBuffer.find(tensor)).equals(buf);
+
+      // Finding on Vector and Matrix
+      final vec = Vector<double>.filled(3, 1.0);
+      check(NativeBuffer.find(vec)).isNotNull();
+
+      final mat = Matrix<double>.filled(2, 2, 1.0);
+      check(NativeBuffer.find(mat)).isNotNull();
+
+      // Finding on null or non-buffer
+      check(NativeBuffer.find(null)).isNull();
+      check(NativeBuffer.find(123)).isNull();
+      check(NativeBuffer.find('abc')).isNull();
+    });
+
+    test('NativeBuffer typed integer pointer getters', () {
+      final i32Buf = NativeBuffer<int>(4, type: DataType.int32);
+      check(i32Buf.asInt32Pointer).isNotNull();
+
+      final i64Buf = NativeBuffer<int>(4, type: DataType.int64);
+      check(i64Buf.asInt64Pointer).isNotNull();
+
+      final u8Buf = NativeBuffer<int>(4, type: DataType.uint8);
+      check(u8Buf.asUint8Pointer).isNotNull();
+
+      i32Buf.dispose();
+      check(i32Buf.asInt32Pointer).isNull();
+    });
+
+    test(
+      'NativeBuffer rejects negative lengths and unsupported data types',
+      () {
+        check(() => NativeBuffer<double>(-1, type: DataType.float64))
+            .throws<RangeError>();
+
+        check(() => NativeBuffer<String>(5, type: DataType.string))
+            .throws<ArgumentError>();
+      },
+    );
+
+    test('Offset subview pointer calculations and dgels zero-copy', () {
+      final matA = Matrix<double>.fromRows([
+        [1.0, 1.0],
+        [1.0, 2.0],
+        [1.0, 3.0],
+      ]);
+      final vecB = Vector<double>.fromList([2.0, 3.0, 4.0]);
+
+      // Both inputs automatically backed by NativeBuffer
+      check(NativeBuffer.find(matA)).isNotNull();
+      check(NativeBuffer.find(vecB)).isNotNull();
+
+      final solution = leastSquares(matA, vecB);
+      check(solution.length).equals(2);
+      check(solution[0]).isCloseTo(1.0, 1e-6);
+      check(solution[1]).isCloseTo(1.0, 1e-6);
+
+      // Verify subview with non-zero offsetInBytes computes correctly via BLAS
+      final buf = NativeBuffer<double>(10, type: DataType.float64);
+      for (var i = 0; i < 10; i++) {
+        buf.data[i] = i * 1.0;
+      }
+      final rawList = buf.data as Float64List;
+      final subList = rawList.buffer.asFloat64List(24, 5); // starts at index 3
+      NativeBuffer.register(subList, buf);
+
+      final ones = Float64List.fromList([1.0, 1.0, 1.0, 1.0, 1.0]);
+      final dotVal = HardwareManager.ddot(
+        n: 5,
+        x: subList,
+        incX: 1,
+        y: ones,
+        incY: 1,
+      );
+      check(dotVal).equals(25.0);
+    });
   });
 
   group('Native BLAS operations', () {
