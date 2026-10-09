@@ -74,43 +74,68 @@ void main() {
       const x = 0.65;
 
       // Chebyshev T
-      final tDirect = coeffs[0] * Polynomial.chebyshevT(0).evaluateDouble(x) +
+      final tDirect =
+          coeffs[0] * Polynomial.chebyshevT(0).evaluateDouble(x) +
           coeffs[1] * Polynomial.chebyshevT(1).evaluateDouble(x) +
           coeffs[2] * Polynomial.chebyshevT(2).evaluateDouble(x) +
           coeffs[3] * Polynomial.chebyshevT(3).evaluateDouble(x);
-      final tClenshaw = clenshawEvaluate(coeffs, x, family: OrthogonalFamily.chebyshevT);
+      final tClenshaw = clenshawEvaluate(
+        coeffs,
+        x,
+        family: OrthogonalFamily.chebyshevT,
+      );
       expect(tClenshaw, closeTo(tDirect, 1e-9));
 
       // Chebyshev U
-      final uDirect = coeffs[0] * Polynomial.chebyshevU(0).evaluateDouble(x) +
+      final uDirect =
+          coeffs[0] * Polynomial.chebyshevU(0).evaluateDouble(x) +
           coeffs[1] * Polynomial.chebyshevU(1).evaluateDouble(x) +
           coeffs[2] * Polynomial.chebyshevU(2).evaluateDouble(x) +
           coeffs[3] * Polynomial.chebyshevU(3).evaluateDouble(x);
-      final uClenshaw = clenshawEvaluate(coeffs, x, family: OrthogonalFamily.chebyshevU);
+      final uClenshaw = clenshawEvaluate(
+        coeffs,
+        x,
+        family: OrthogonalFamily.chebyshevU,
+      );
       expect(uClenshaw, closeTo(uDirect, 1e-9));
 
       // Legendre P
-      final pDirect = coeffs[0] * Polynomial.legendreP(0).evaluateDouble(x) +
+      final pDirect =
+          coeffs[0] * Polynomial.legendreP(0).evaluateDouble(x) +
           coeffs[1] * Polynomial.legendreP(1).evaluateDouble(x) +
           coeffs[2] * Polynomial.legendreP(2).evaluateDouble(x) +
           coeffs[3] * Polynomial.legendreP(3).evaluateDouble(x);
-      final pClenshaw = clenshawEvaluate(coeffs, x, family: OrthogonalFamily.legendreP);
+      final pClenshaw = clenshawEvaluate(
+        coeffs,
+        x,
+        family: OrthogonalFamily.legendreP,
+      );
       expect(pClenshaw, closeTo(pDirect, 1e-9));
 
       // Hermite H
-      final hDirect = coeffs[0] * Polynomial.hermiteH(0).evaluateDouble(x) +
+      final hDirect =
+          coeffs[0] * Polynomial.hermiteH(0).evaluateDouble(x) +
           coeffs[1] * Polynomial.hermiteH(1).evaluateDouble(x) +
           coeffs[2] * Polynomial.hermiteH(2).evaluateDouble(x) +
           coeffs[3] * Polynomial.hermiteH(3).evaluateDouble(x);
-      final hClenshaw = clenshawEvaluate(coeffs, x, family: OrthogonalFamily.hermiteH);
+      final hClenshaw = clenshawEvaluate(
+        coeffs,
+        x,
+        family: OrthogonalFamily.hermiteH,
+      );
       expect(hClenshaw, closeTo(hDirect, 1e-9));
 
       // Hermite He
-      final heDirect = coeffs[0] * Polynomial.hermiteHe(0).evaluateDouble(x) +
+      final heDirect =
+          coeffs[0] * Polynomial.hermiteHe(0).evaluateDouble(x) +
           coeffs[1] * Polynomial.hermiteHe(1).evaluateDouble(x) +
           coeffs[2] * Polynomial.hermiteHe(2).evaluateDouble(x) +
           coeffs[3] * Polynomial.hermiteHe(3).evaluateDouble(x);
-      final heClenshaw = clenshawEvaluate(coeffs, x, family: OrthogonalFamily.hermiteHe);
+      final heClenshaw = clenshawEvaluate(
+        coeffs,
+        x,
+        family: OrthogonalFamily.hermiteHe,
+      );
       expect(heClenshaw, closeTo(heDirect, 1e-9));
     });
   });

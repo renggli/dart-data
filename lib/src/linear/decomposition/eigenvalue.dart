@@ -355,7 +355,15 @@ class EigenvalueDecomposition {
     final high = nn - 1;
     const eps = 2.220446049250313e-16;
     var exshift = 0.0;
-    var p = 0.0, q = 0.0, r = 0.0, s = 0.0, z = 0.0, t = 0.0, w = 0.0, x = 0.0, y = 0.0;
+    var p = 0.0,
+        q = 0.0,
+        r = 0.0,
+        s = 0.0,
+        z = 0.0,
+        t = 0.0,
+        w = 0.0,
+        x = 0.0,
+        y = 0.0;
 
     var norm = 0.0;
     for (var i = 0; i < nn; i++) {
@@ -624,14 +632,25 @@ class EigenvalueDecomposition {
               var vr = (_d[i] - p) * (_d[i] - p) + _e[i] * _e[i] - q * q;
               final vi = (_d[i] - p) * 2.0 * q;
               if (vr == 0.0 && vi == 0.0) {
-                vr = eps * norm * (w.abs() + q.abs() + x.abs() + y.abs() + z.abs());
+                vr =
+                    eps *
+                    norm *
+                    (w.abs() + q.abs() + x.abs() + y.abs() + z.abs());
               }
               _cdiv(x * r - z * ra + q * sa, x * s - z * sa - q * ra, vr, vi);
               _h.set(i, n - 1, _cdivr);
               _h.set(i, n, _cdivi);
               if (x.abs() > (z.abs() + q.abs())) {
-                _h.set(i + 1, n - 1, (-ra - w * _h.get(i, n - 1) + q * _h.get(i, n)) / x);
-                _h.set(i + 1, n, (-sa - w * _h.get(i, n) - q * _h.get(i, n - 1)) / x);
+                _h.set(
+                  i + 1,
+                  n - 1,
+                  (-ra - w * _h.get(i, n - 1) + q * _h.get(i, n)) / x,
+                );
+                _h.set(
+                  i + 1,
+                  n,
+                  (-sa - w * _h.get(i, n) - q * _h.get(i, n - 1)) / x,
+                );
               } else {
                 _cdiv(-r - y * _h.get(i, n - 1), -s - y * _h.get(i, n), z, q);
                 _h.set(i + 1, n - 1, _cdivr);

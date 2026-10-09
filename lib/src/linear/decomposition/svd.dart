@@ -12,22 +12,16 @@ import '../vector.dart';
 /// - $V$ is an [n x n] orthogonal matrix ($V^T$ is its transpose)
 class SingularValueDecomposition {
   /// Computes the SVD of [matrix].
-  factory(
-    Matrix<num> matrix, {
-    bool computeVectors = true,
-  }) {
+  factory(Matrix<num> matrix, {bool computeVectors = true}) {
     final rowsA = matrix.rowCount;
     final colsA = matrix.colCount;
     final nm = math.min(rowsA, colsA);
 
-    final aVals = List<double>.generate(
-      rowsA * colsA,
-      (idx) {
-        final col = idx ~/ rowsA;
-        final row = idx % rowsA;
-        return matrix.get(row, col).toDouble();
-      },
-    );
+    final aVals = List<double>.generate(rowsA * colsA, (idx) {
+      final col = idx ~/ rowsA;
+      final row = idx % rowsA;
+      return matrix.get(row, col).toDouble();
+    });
 
     final uVals = List<double>.filled(rowsA * rowsA, 0.0);
     final sVals = List<double>.filled(nm, 0.0);
@@ -52,12 +46,7 @@ class SingularValueDecomposition {
     return SingularValueDecomposition._(s, u, vt, computeVectors);
   }
 
-  const new _(
-    this.s,
-    this.u,
-    this.vt,
-    this.vectorsComputed,
-  );
+  const new _(this.s, this.u, this.vt, this.vectorsComputed);
 
   /// The singular values in descending order.
   final Vector<double> s;

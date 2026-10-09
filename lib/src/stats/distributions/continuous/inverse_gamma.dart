@@ -13,8 +13,8 @@ import 'gamma.dart';
 class InverseGammaDistribution extends ContinuousDistribution {
   /// An inverse gamma distribution with parameters [shape] α and [scale] β.
   const new(this.shape, this.scale)
-      : assert(shape > 0, 'α > 0'),
-        assert(scale > 0, 'β > 0');
+    : assert(shape > 0, 'α > 0'),
+      assert(scale > 0, 'β > 0');
 
   /// The shape parameter α.
   final double shape;
@@ -29,7 +29,8 @@ class InverseGammaDistribution extends ContinuousDistribution {
   double get mean => shape > 1.0 ? scale / (shape - 1.0) : double.nan;
 
   @override
-  double get median => throw UnsupportedError('No simple closed form for median');
+  double get median =>
+      throw UnsupportedError('No simple closed form for median');
 
   @override
   double get mode => scale / (shape + 1.0);
@@ -44,18 +45,19 @@ class InverseGammaDistribution extends ContinuousDistribution {
       shape > 3.0 ? 4.0 * sqrt(shape - 2.0) / (shape - 3.0) : double.nan;
 
   @override
-  double get excessKurtosis =>
-      shape > 4.0
-          ? 6.0 * (5.0 * shape - 11.0) / ((shape - 3.0) * (shape - 4.0))
-          : double.nan;
+  double get excessKurtosis => shape > 4.0
+      ? 6.0 * (5.0 * shape - 11.0) / ((shape - 3.0) * (shape - 4.0))
+      : double.nan;
 
   @override
   double probability(double x) => x <= 0.0
       ? 0.0
-      : exp(-(shape + 1.0) * log(x) -
-          scale / x -
-          gammaLn(shape) +
-          shape * log(scale));
+      : exp(
+          -(shape + 1.0) * log(x) -
+              scale / x -
+              gammaLn(shape) +
+              shape * log(scale),
+        );
 
   @override
   double cumulativeProbability(double x) =>

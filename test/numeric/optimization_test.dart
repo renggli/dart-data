@@ -36,7 +36,10 @@ void main() {
         return d1 * d1 + 100.0 * d2 * d2;
       }
 
-      final start = Vector<double>.fromList([-1.2, 1.0], type: DataType.float64);
+      final start = Vector<double>.fromList([
+        -1.2,
+        1.0,
+      ], type: DataType.float64);
       final result = nelderMead(
         rosenbrock,
         start,
@@ -67,7 +70,8 @@ void main() {
       const x = Variable('x');
       const y = Variable('y');
       // f(x, y) = x^2 + y^2 - 4*x - 6*y + 13 = (x-2)^2 + (y-3)^2
-      final f = x.pow(2) +
+      final f =
+          x.pow(2) +
           y.pow(2) -
           const Constant(4.0) * x -
           const Constant(6.0) * y +
@@ -88,7 +92,11 @@ void main() {
           2.0 * (v[1] - 2.0) * (v[1] - 2.0) +
           3.0 * (v[2] - 3.0) * (v[2] - 3.0);
 
-      final start = Vector<double>.fromList([0.0, 0.0, 0.0], type: DataType.float64);
+      final start = Vector<double>.fromList([
+        0.0,
+        0.0,
+        0.0,
+      ], type: DataType.float64);
       final result = lbfgs(f, start, memorySize: 5);
 
       expect(result.point[0], closeTo(1.0, 1e-5));

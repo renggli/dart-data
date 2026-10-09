@@ -60,9 +60,7 @@ Vector<double> numericalGradient(
         'Variable count (${vars.length}) must match point dimension ($n).',
       );
     }
-    final ctx = <String, double>{
-      for (var i = 0; i < n; i++) vars[i]: point[i],
-    };
+    final ctx = <String, double>{for (var i = 0; i < n; i++) vars[i]: point[i]};
     final gradExprs = Calculus.gradient(f, vars);
     return Vector<double>.generate(
       n,
@@ -70,17 +68,13 @@ Vector<double> numericalGradient(
       type: DataType.float64,
     );
   } else if (f is double Function(Vector<double>)) {
-    return Vector<double>.generate(
-      n,
-      (i) {
-        final xPlus = point.copy();
-        final xMinus = point.copy();
-        xPlus[i] += h;
-        xMinus[i] -= h;
-        return (f(xPlus) - f(xMinus)) / (2.0 * h);
-      },
-      type: DataType.float64,
-    );
+    return Vector<double>.generate(n, (i) {
+      final xPlus = point.copy();
+      final xMinus = point.copy();
+      xPlus[i] += h;
+      xMinus[i] -= h;
+      return (f(xPlus) - f(xMinus)) / (2.0 * h);
+    }, type: DataType.float64);
   }
   throw ArgumentError('Unsupported function type: ${f.runtimeType}');
 }
@@ -94,16 +88,15 @@ Matrix<double> numericalJacobian(
 }) {
   final n = point.length;
   if (f is List<Expr>) {
-    final vars = variables ??
+    final vars =
+        variables ??
         ({for (final expr in f) ...expr.freeVariables}.toList()..sort());
     if (vars.length != n) {
       throw ArgumentError(
         'Variable count (${vars.length}) must match point dimension ($n).',
       );
     }
-    final ctx = <String, double>{
-      for (var i = 0; i < n; i++) vars[i]: point[i],
-    };
+    final ctx = <String, double>{for (var i = 0; i < n; i++) vars[i]: point[i]};
     final jacExprs = Calculus.jacobian(f, vars);
     return Matrix<double>.generate(
       f.length,
@@ -114,20 +107,15 @@ Matrix<double> numericalJacobian(
   } else if (f is Vector<double> Function(Vector<double>)) {
     final f0 = f(point);
     final m = f0.length;
-    return Matrix<double>.generate(
-      m,
-      n,
-      (r, c) {
-        final xPlus = point.copy();
-        final xMinus = point.copy();
-        xPlus[c] += h;
-        xMinus[c] -= h;
-        final fPlus = f(xPlus);
-        final fMinus = f(xMinus);
-        return (fPlus[r] - fMinus[r]) / (2.0 * h);
-      },
-      type: DataType.float64,
-    );
+    return Matrix<double>.generate(m, n, (r, c) {
+      final xPlus = point.copy();
+      final xMinus = point.copy();
+      xPlus[c] += h;
+      xMinus[c] -= h;
+      final fPlus = f(xPlus);
+      final fMinus = f(xMinus);
+      return (fPlus[r] - fMinus[r]) / (2.0 * h);
+    }, type: DataType.float64);
   }
   throw ArgumentError('Unsupported function type: ${f.runtimeType}');
 }
@@ -147,9 +135,7 @@ Matrix<double> numericalHessian(
         'Variable count (${vars.length}) must match point dimension ($n).',
       );
     }
-    final ctx = <String, double>{
-      for (var i = 0; i < n; i++) vars[i]: point[i],
-    };
+    final ctx = <String, double>{for (var i = 0; i < n; i++) vars[i]: point[i]};
     final hessExprs = Calculus.hessian(f, vars);
     return Matrix<double>.generate(
       n,
@@ -159,34 +145,29 @@ Matrix<double> numericalHessian(
     );
   } else if (f is double Function(Vector<double>)) {
     final f0 = f(point);
-    return Matrix<double>.generate(
-      n,
-      n,
-      (i, j) {
-        if (i == j) {
-          final xPlus = point.copy();
-          final xMinus = point.copy();
-          xPlus[i] += h;
-          xMinus[i] -= h;
-          return (f(xPlus) - 2.0 * f0 + f(xMinus)) / (h * h);
-        } else {
-          final xPP = point.copy();
-          final xPM = point.copy();
-          final xMP = point.copy();
-          final xMM = point.copy();
-          xPP[i] += h;
-          xPP[j] += h;
-          xPM[i] += h;
-          xPM[j] -= h;
-          xMP[i] -= h;
-          xMP[j] += h;
-          xMM[i] -= h;
-          xMM[j] -= h;
-          return (f(xPP) - f(xPM) - f(xMP) + f(xMM)) / (4.0 * h * h);
-        }
-      },
-      type: DataType.float64,
-    );
+    return Matrix<double>.generate(n, n, (i, j) {
+      if (i == j) {
+        final xPlus = point.copy();
+        final xMinus = point.copy();
+        xPlus[i] += h;
+        xMinus[i] -= h;
+        return (f(xPlus) - 2.0 * f0 + f(xMinus)) / (h * h);
+      } else {
+        final xPP = point.copy();
+        final xPM = point.copy();
+        final xMP = point.copy();
+        final xMM = point.copy();
+        xPP[i] += h;
+        xPP[j] += h;
+        xPM[i] += h;
+        xPM[j] -= h;
+        xMP[i] -= h;
+        xMP[j] += h;
+        xMM[i] -= h;
+        xMM[j] -= h;
+        return (f(xPP) - f(xPM) - f(xMP) + f(xMM)) / (4.0 * h * h);
+      }
+    }, type: DataType.float64);
   }
   throw ArgumentError('Unsupported function type: ${f.runtimeType}');
 }

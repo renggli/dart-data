@@ -90,10 +90,7 @@ OdeSolution rk45({
     }
 
     // Dormand-Prince stage calculations
-    final k2 = f(
-      t + h * (1.0 / 5.0),
-      y + k1.scale(h * (1.0 / 5.0)),
-    );
+    final k2 = f(t + h * (1.0 / 5.0), y + k1.scale(h * (1.0 / 5.0)));
     final k3 = f(
       t + h * (3.0 / 10.0),
       y + k1.scale(h * (3.0 / 40.0)) + k2.scale(h * (9.0 / 40.0)),
@@ -124,7 +121,8 @@ OdeSolution rk45({
     );
 
     // 5th order solution
-    final y5 = y +
+    final y5 =
+        y +
         (k1.scale(35.0 / 384.0) +
                 k3.scale(500.0 / 1113.0) +
                 k4.scale(125.0 / 192.0) -
@@ -135,18 +133,20 @@ OdeSolution rk45({
     final k7 = f(t + h, y5); // FSAL property
 
     // 4th order solution difference for error estimation
-    final errorVec = (k1.scale(71.0 / 57600.0) -
-            k3.scale(71.0 / 16695.0) +
-            k4.scale(71.0 / 1920.0) -
-            k5.scale(17253.0 / 339200.0) +
-            k6.scale(22.0 / 525.0) -
-            k7.scale(1.0 / 40.0))
-        .scale(h);
+    final errorVec =
+        (k1.scale(71.0 / 57600.0) -
+                k3.scale(71.0 / 16695.0) +
+                k4.scale(71.0 / 1920.0) -
+                k5.scale(17253.0 / 339200.0) +
+                k6.scale(22.0 / 525.0) -
+                k7.scale(1.0 / 40.0))
+            .scale(h);
 
     // Compute error norm relative to tolerance
     var maxErrorRatio = 0.0;
     for (var i = 0; i < y.length; i++) {
-      final sc = absoluteTolerance +
+      final sc =
+          absoluteTolerance +
           relativeTolerance * math.max(y[i].abs(), y5[i].abs());
       final ratio = errorVec[i].abs() / sc;
       if (ratio > maxErrorRatio) maxErrorRatio = ratio;
@@ -162,7 +162,8 @@ OdeSolution rk45({
     }
 
     // Adapt step size
-    var factor = 0.9 * math.pow(maxErrorRatio > 0.0 ? 1.0 / maxErrorRatio : 10.0, 0.2);
+    var factor =
+        0.9 * math.pow(maxErrorRatio > 0.0 ? 1.0 / maxErrorRatio : 10.0, 0.2);
     factor = math.max(0.2, math.min(5.0, factor));
     h = direction * math.min(maxStep, math.max(minStep, (h * factor).abs()));
   }

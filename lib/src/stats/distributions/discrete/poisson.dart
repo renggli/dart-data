@@ -20,7 +20,11 @@ class PoissonDistribution extends DiscreteDistribution {
     var sum = 0.0;
     for (final x in samples) {
       if (x < 0 || x.round() != x) {
-        throw ArgumentError.value(x, 'samples', 'Samples must be non-negative integers');
+        throw ArgumentError.value(
+          x,
+          'samples',
+          'Samples must be non-negative integers',
+        );
       }
       count++;
       sum += x;
@@ -57,9 +61,8 @@ class PoissonDistribution extends DiscreteDistribution {
   double get excessKurtosis => 1.0 / rate;
 
   @override
-  double probability(int k) => k < 0
-      ? 0.0
-      : exp(k * log(rate) - rate - factorialLn(k));
+  double probability(int k) =>
+      k < 0 ? 0.0 : exp(k * log(rate) - rate - factorialLn(k));
 
   @override
   double cumulativeProbability(int k) =>
@@ -92,6 +95,6 @@ class PoissonDistribution extends DiscreteDistribution {
   int get hashCode => Object.hash(PoissonDistribution, rate);
 
   @override
-  ObjectPrinter get toStringPrinter => super.toStringPrinter
-    ..addValue(rate, name: 'λ');
+  ObjectPrinter get toStringPrinter =>
+      super.toStringPrinter..addValue(rate, name: 'λ');
 }

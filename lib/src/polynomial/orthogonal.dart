@@ -53,7 +53,8 @@ double clenshawEvaluate(
       for (var k = n; k >= 1; k--) {
         final alphaK = (2.0 * k + 1.0) / (k + 1.0);
         final gammaKPlus1 = (k + 1.0) / (k + 2.0);
-        final b0 = coefficients[k].toDouble() + alphaK * xd * b1 - gammaKPlus1 * b2;
+        final b0 =
+            coefficients[k].toDouble() + alphaK * xd * b1 - gammaKPlus1 * b2;
         b2 = b1;
         b1 = b0;
       }
@@ -62,7 +63,8 @@ double clenshawEvaluate(
     case OrthogonalFamily.hermiteH:
       for (var k = n; k >= 1; k--) {
         final gammaKPlus1 = 2.0 * (k + 1.0);
-        final b0 = coefficients[k].toDouble() + 2.0 * xd * b1 - gammaKPlus1 * b2;
+        final b0 =
+            coefficients[k].toDouble() + 2.0 * xd * b1 - gammaKPlus1 * b2;
         b2 = b1;
         b1 = b0;
       }

@@ -13,8 +13,8 @@ import 'gamma.dart';
 class BetaDistribution extends ContinuousDistribution {
   /// A Beta distribution with shape parameters [alpha] $\alpha$ and [beta] $\beta$.
   const new(this.alpha, this.beta)
-      : assert(alpha > 0, 'α > 0'),
-        assert(beta > 0, 'β > 0');
+    : assert(alpha > 0, 'α > 0'),
+      assert(beta > 0, 'β > 0');
 
   /// Fits a beta distribution to [samples] in $(0, 1)$ using method of moments.
   factory fit(Iterable<num> samples) {
@@ -28,7 +28,11 @@ class BetaDistribution extends ContinuousDistribution {
       sum += x;
     }
     if (count < 2) {
-      throw ArgumentError.value(samples, 'samples', 'At least 2 samples required');
+      throw ArgumentError.value(
+        samples,
+        'samples',
+        'At least 2 samples required',
+      );
     }
     final mean = sum / count;
     var sumSqDiff = 0.0;
@@ -65,7 +69,8 @@ class BetaDistribution extends ContinuousDistribution {
   double get mean => alpha / (alpha + beta);
 
   @override
-  double get median => throw UnsupportedError('No simple closed form for median');
+  double get median =>
+      throw UnsupportedError('No simple closed form for median');
 
   @override
   double get mode => (alpha > 1.0 && beta > 1.0)
@@ -74,8 +79,7 @@ class BetaDistribution extends ContinuousDistribution {
 
   @override
   double get variance =>
-      (alpha * beta) /
-      ((alpha + beta) * (alpha + beta) * (alpha + beta + 1.0));
+      (alpha * beta) / ((alpha + beta) * (alpha + beta) * (alpha + beta + 1.0));
 
   @override
   double get skewness =>
@@ -86,7 +90,8 @@ class BetaDistribution extends ContinuousDistribution {
   double get excessKurtosis {
     final ab = alpha * beta;
     final apb = alpha + beta;
-    final num = 6.0 *
+    final num =
+        6.0 *
         ((alpha - beta) * (alpha - beta) * (apb + 1.0) - ab * (apb + 2.0));
     final den = ab * (apb + 2.0) * (apb + 3.0);
     return num / den;
@@ -95,11 +100,17 @@ class BetaDistribution extends ContinuousDistribution {
   @override
   double probability(double x) {
     if (x < 0.0 || x > 1.0) return 0.0;
-    if (x == 0.0) return alpha == 1.0 ? beta : (alpha < 1.0 ? double.infinity : 0.0);
-    if (x == 1.0) return beta == 1.0 ? alpha : (beta < 1.0 ? double.infinity : 0.0);
-    return exp((alpha - 1.0) * log(x) +
-        (beta - 1.0) * log(1.0 - x) -
-        betaLn(alpha, beta));
+    if (x == 0.0) {
+      return alpha == 1.0 ? beta : (alpha < 1.0 ? double.infinity : 0.0);
+    }
+    if (x == 1.0) {
+      return beta == 1.0 ? alpha : (beta < 1.0 ? double.infinity : 0.0);
+    }
+    return exp(
+      (alpha - 1.0) * log(x) +
+          (beta - 1.0) * log(1.0 - x) -
+          betaLn(alpha, beta),
+    );
   }
 
   @override

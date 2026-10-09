@@ -17,7 +17,13 @@ void main() {
 
     test('natural cubic spline interpolation', () {
       // Points from sin(x)
-      final xs = [0.0, math.pi / 2.0, math.pi, 3.0 * math.pi / 2.0, 2.0 * math.pi];
+      final xs = [
+        0.0,
+        math.pi / 2.0,
+        math.pi,
+        3.0 * math.pi / 2.0,
+        2.0 * math.pi,
+      ];
       final ys = [0.0, 1.0, 0.0, -1.0, 0.0];
 
       final spline = CubicSpline(xs, ys, boundary: CubicSplineBoundary.natural);
@@ -51,25 +57,28 @@ void main() {
       expect(spline.derivative(2.0), closeTo(12.0, 1e-9));
     });
 
-    test('monotonic PCHIP interpolation preserves monotonicity without overshoot', () {
-      // Step-like monotonic data
-      final xs = [0.0, 1.0, 2.0, 3.0, 4.0, 5.0];
-      final ys = [0.0, 0.0, 0.0, 1.0, 1.0, 1.0];
+    test(
+      'monotonic PCHIP interpolation preserves monotonicity without overshoot',
+      () {
+        // Step-like monotonic data
+        final xs = [0.0, 1.0, 2.0, 3.0, 4.0, 5.0];
+        final ys = [0.0, 0.0, 0.0, 1.0, 1.0, 1.0];
 
-      final pchip = PchipInterpolation(xs, ys);
+        final pchip = PchipInterpolation(xs, ys);
 
-      // Interpolation on flat section [0, 2] must stay exactly 0.0
-      expect(pchip(0.5), closeTo(0.0, 1e-9));
-      expect(pchip(1.5), closeTo(0.0, 1e-9));
+        // Interpolation on flat section [0, 2] must stay exactly 0.0
+        expect(pchip(0.5), closeTo(0.0, 1e-9));
+        expect(pchip(1.5), closeTo(0.0, 1e-9));
 
-      // Interpolation on transition [2, 3] must be strictly between 0 and 1
-      final mid = pchip(2.5);
-      expect(mid, greaterThan(0.0));
-      expect(mid, lessThan(1.0));
+        // Interpolation on transition [2, 3] must be strictly between 0 and 1
+        final mid = pchip(2.5);
+        expect(mid, greaterThan(0.0));
+        expect(mid, lessThan(1.0));
 
-      // Flat section [3, 5] must stay 1.0 (no overshoot!)
-      expect(pchip(3.5), closeTo(1.0, 1e-9));
-      expect(pchip(4.5), closeTo(1.0, 1e-9));
-    });
+        // Flat section [3, 5] must stay 1.0 (no overshoot!)
+        expect(pchip(3.5), closeTo(1.0, 1e-9));
+        expect(pchip(4.5), closeTo(1.0, 1e-9));
+      },
+    );
   });
 }

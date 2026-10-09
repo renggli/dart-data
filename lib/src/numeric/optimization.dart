@@ -66,7 +66,9 @@ import 'calculus.dart';
       q = q.abs();
       final rTemp = e;
       e = d;
-      if (p.abs() < (0.5 * q * rTemp).abs() && p > q * (xA - x) && p < q * (xB - x)) {
+      if (p.abs() < (0.5 * q * rTemp).abs() &&
+          p > q * (xA - x) &&
+          p < q * (xB - x)) {
         d = p / q;
         final u = x + d;
         if (u - xA < tol2 || xB - u < tol2) {
@@ -129,9 +131,8 @@ import 'calculus.dart';
   final double Function(Vector<double>) fn;
   if (f is Expr) {
     final vars = variables ?? (f.freeVariables.toList()..sort());
-    fn = (vec) => f.evaluate({
-          for (var i = 0; i < vec.length; i++) vars[i]: vec[i],
-        });
+    fn = (vec) =>
+        f.evaluate({for (var i = 0; i < vec.length; i++) vars[i]: vec[i]});
   } else if (f is double Function(Vector<double>)) {
     fn = f;
   } else {
@@ -177,7 +178,11 @@ import 'calculus.dart';
       variance += diff * diff;
     }
     if (math.sqrt(variance / (n + 1)) < tolerance) {
-      return (point: simplex[bestIdx], value: values[bestIdx], iterations: iter);
+      return (
+        point: simplex[bestIdx],
+        value: values[bestIdx],
+        iterations: iter,
+      );
     }
 
     // Compute centroid of all vertices except worst
@@ -246,8 +251,10 @@ import 'calculus.dart';
     }
   }
 
-  final bestIdx = List<int>.generate(n + 1, (i) => i)
-      .reduce((a, b) => values[a] < values[b] ? a : b);
+  final bestIdx = List<int>.generate(
+    n + 1,
+    (i) => i,
+  ).reduce((a, b) => values[a] < values[b] ? a : b);
   return (point: simplex[bestIdx], value: values[bestIdx], iterations: iter);
 }
 
@@ -255,7 +262,8 @@ import 'calculus.dart';
 ///
 /// Seamlessly accepts either a numerical closure `double Function(Vector<double>)`
 /// or an [Expr] (where analytical gradients are automatically derived).
-({Vector<double> point, double value, double gradientNorm, int iterations}) bfgs(
+({Vector<double> point, double value, double gradientNorm, int iterations})
+bfgs(
   Object f,
   Vector<double> initialPoint, {
   Object? gradient,
@@ -268,9 +276,8 @@ import 'calculus.dart';
 
   if (f is Expr) {
     final vars = variables ?? (f.freeVariables.toList()..sort());
-    fn = (vec) => f.evaluate({
-          for (var i = 0; i < vec.length; i++) vars[i]: vec[i],
-        });
+    fn = (vec) =>
+        f.evaluate({for (var i = 0; i < vec.length; i++) vars[i]: vec[i]});
     gradFn = (vec) => numericalGradient(f, vec, variables: vars);
   } else if (f is double Function(Vector<double>)) {
     fn = f;
@@ -316,7 +323,8 @@ import 'calculus.dart';
       }
       alpha = a;
     } else {
-      while (fn(x + p.scale(alpha)) > fx + c1 * alpha * slope && alpha > 1e-12) {
+      while (fn(x + p.scale(alpha)) > fx + c1 * alpha * slope &&
+          alpha > 1e-12) {
         alpha *= 0.5;
       }
     }
@@ -348,7 +356,8 @@ import 'calculus.dart';
 }
 
 /// Limited-memory BFGS (L-BFGS) unconstrained optimization.
-({Vector<double> point, double value, double gradientNorm, int iterations}) lbfgs(
+({Vector<double> point, double value, double gradientNorm, int iterations})
+lbfgs(
   Object f,
   Vector<double> initialPoint, {
   Object? gradient,
@@ -362,9 +371,8 @@ import 'calculus.dart';
 
   if (f is Expr) {
     final vars = variables ?? (f.freeVariables.toList()..sort());
-    fn = (vec) => f.evaluate({
-          for (var i = 0; i < vec.length; i++) vars[i]: vec[i],
-        });
+    fn = (vec) =>
+        f.evaluate({for (var i = 0; i < vec.length; i++) vars[i]: vec[i]});
     gradFn = (vec) => numericalGradient(f, vec, variables: vars);
   } else if (f is double Function(Vector<double>)) {
     fn = f;

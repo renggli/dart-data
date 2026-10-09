@@ -25,7 +25,16 @@ double adaptiveSimpson(
   }
 
   if (a == b) return 0.0;
-  if (a > b) return -adaptiveSimpson(f, b, a, variable: variable, tolerance: tolerance, maxDepth: maxDepth);
+  if (a > b) {
+    return -adaptiveSimpson(
+      f,
+      b,
+      a,
+      variable: variable,
+      tolerance: tolerance,
+      maxDepth: maxDepth,
+    );
+  }
 
   final c = 0.5 * (a + b);
   final fa = fn(a);
@@ -62,7 +71,17 @@ double _adaptiveSimpsonStep(
     return sum + delta / 15.0;
   }
 
-  return _adaptiveSimpsonStep(fn, a, c, fa, fc, fd, left, tol * 0.5, depth - 1) +
+  return _adaptiveSimpsonStep(
+        fn,
+        a,
+        c,
+        fa,
+        fc,
+        fd,
+        left,
+        tol * 0.5,
+        depth - 1,
+      ) +
       _adaptiveSimpsonStep(fn, c, b, fc, fb, fe, right, tol * 0.5, depth - 1);
 }
 
@@ -87,7 +106,16 @@ double gaussKronrod(
   }
 
   if (a == b) return 0.0;
-  if (a > b) return -gaussKronrod(f, b, a, variable: variable, tolerance: tolerance, maxDepth: maxDepth);
+  if (a > b) {
+    return -gaussKronrod(
+      f,
+      b,
+      a,
+      variable: variable,
+      tolerance: tolerance,
+      maxDepth: maxDepth,
+    );
+  }
 
   return _gaussKronrodStep(fn, a, b, tolerance, maxDepth);
 }

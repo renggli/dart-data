@@ -40,16 +40,15 @@ class Polynomial<T> {
   factory fromRoots(Iterable<num> roots, {DataType<T>? type}) {
     final effectiveType = (type ?? DataType.float64) as DataType<T>;
     final f = effectiveType.field;
-    var result = Polynomial<T>.fromCoefficients(
-      [f.multiplicativeIdentity],
-      type: effectiveType,
-    );
+    var result = Polynomial<T>.fromCoefficients([
+      f.multiplicativeIdentity,
+    ], type: effectiveType);
     for (final r in roots) {
       final rootVal = effectiveType.cast(r);
-      final factor = Polynomial<T>.fromCoefficients(
-        [f.neg(rootVal), f.multiplicativeIdentity],
-        type: effectiveType,
-      );
+      final factor = Polynomial<T>.fromCoefficients([
+        f.neg(rootVal),
+        f.multiplicativeIdentity,
+      ], type: effectiveType);
       result = result * factor;
     }
     return result;
@@ -207,10 +206,7 @@ class Polynomial<T> {
     }
     final degA = degree;
     if (degA < degB) {
-      return (
-        quotient: Polynomial<T>.zero(type: type),
-        remainder: this,
-      );
+      return (quotient: Polynomial<T>.zero(type: type), remainder: this);
     }
 
     final f = type.field;
@@ -257,10 +253,9 @@ class Polynomial<T> {
       b = r;
     }
     if (a.degree <= 0) {
-      return Polynomial<T>.fromCoefficients(
-        [type.field.multiplicativeIdentity],
-        type: type,
-      );
+      return Polynomial<T>.fromCoefficients([
+        type.field.multiplicativeIdentity,
+      ], type: type);
     }
     // Make monic
     final lead = a.leadingCoefficient;
@@ -329,29 +324,21 @@ class Polynomial<T> {
       } else {
         final realPart = -c1 / (2.0 * c2);
         final imagPart = math.sqrt(-disc) / (2.0 * c2);
-        return [
-          Complex(realPart, imagPart),
-          Complex(realPart, -imagPart),
-        ];
+        return [Complex(realPart, imagPart), Complex(realPart, -imagPart)];
       }
     }
 
     // High degree: companion matrix eigenvalue decomposition
     final lead = (this[deg] as num).toDouble();
-    final companion = Matrix<double>.generate(
-      deg,
-      deg,
-      (r, c) {
-        if (r == deg - 1) {
-          return -(this[c] as num).toDouble() / lead;
-        } else if (r + 1 == c) {
-          return 1.0;
-        } else {
-          return 0.0;
-        }
-      },
-      type: DataType.float64,
-    );
+    final companion = Matrix<double>.generate(deg, deg, (r, c) {
+      if (r == deg - 1) {
+        return -(this[c] as num).toDouble() / lead;
+      } else if (r + 1 == c) {
+        return 1.0;
+      } else {
+        return 0.0;
+      }
+    }, type: DataType.float64);
 
     return companion.eigenvalue.eigenvalues;
   }
@@ -363,14 +350,20 @@ class Polynomial<T> {
       return Polynomial<double>.fromCoefficients([1.0], type: DataType.float64);
     }
     if (n == 1) {
-      return Polynomial<double>.fromCoefficients([0.0, 1.0],
-          type: DataType.float64);
+      return Polynomial<double>.fromCoefficients([
+        0.0,
+        1.0,
+      ], type: DataType.float64);
     }
     var p0 = Polynomial<double>.fromCoefficients([1.0], type: DataType.float64);
-    var p1 = Polynomial<double>.fromCoefficients([0.0, 1.0],
-        type: DataType.float64);
-    final twoX = Polynomial<double>.fromCoefficients([0.0, 2.0],
-        type: DataType.float64);
+    var p1 = Polynomial<double>.fromCoefficients([
+      0.0,
+      1.0,
+    ], type: DataType.float64);
+    final twoX = Polynomial<double>.fromCoefficients([
+      0.0,
+      2.0,
+    ], type: DataType.float64);
 
     for (var k = 2; k <= n; k++) {
       final pNext = twoX * p1 - p0;
@@ -387,14 +380,20 @@ class Polynomial<T> {
       return Polynomial<double>.fromCoefficients([1.0], type: DataType.float64);
     }
     if (n == 1) {
-      return Polynomial<double>.fromCoefficients([0.0, 2.0],
-          type: DataType.float64);
+      return Polynomial<double>.fromCoefficients([
+        0.0,
+        2.0,
+      ], type: DataType.float64);
     }
     var p0 = Polynomial<double>.fromCoefficients([1.0], type: DataType.float64);
-    var p1 = Polynomial<double>.fromCoefficients([0.0, 2.0],
-        type: DataType.float64);
-    final twoX = Polynomial<double>.fromCoefficients([0.0, 2.0],
-        type: DataType.float64);
+    var p1 = Polynomial<double>.fromCoefficients([
+      0.0,
+      2.0,
+    ], type: DataType.float64);
+    final twoX = Polynomial<double>.fromCoefficients([
+      0.0,
+      2.0,
+    ], type: DataType.float64);
 
     for (var k = 2; k <= n; k++) {
       final pNext = twoX * p1 - p0;
@@ -411,18 +410,24 @@ class Polynomial<T> {
       return Polynomial<double>.fromCoefficients([1.0], type: DataType.float64);
     }
     if (n == 1) {
-      return Polynomial<double>.fromCoefficients([0.0, 1.0],
-          type: DataType.float64);
+      return Polynomial<double>.fromCoefficients([
+        0.0,
+        1.0,
+      ], type: DataType.float64);
     }
     var p0 = Polynomial<double>.fromCoefficients([1.0], type: DataType.float64);
-    var p1 = Polynomial<double>.fromCoefficients([0.0, 1.0],
-        type: DataType.float64);
+    var p1 = Polynomial<double>.fromCoefficients([
+      0.0,
+      1.0,
+    ], type: DataType.float64);
 
     for (var k = 1; k < n; k++) {
       final alpha = (2.0 * k + 1.0) / (k + 1.0);
       final gamma = k.toDouble() / (k + 1.0);
-      final alphaX = Polynomial<double>.fromCoefficients([0.0, alpha],
-          type: DataType.float64);
+      final alphaX = Polynomial<double>.fromCoefficients([
+        0.0,
+        alpha,
+      ], type: DataType.float64);
       final pNext = alphaX * p1 - p0.scale(gamma);
       p0 = p1;
       p1 = pNext;
@@ -437,14 +442,20 @@ class Polynomial<T> {
       return Polynomial<double>.fromCoefficients([1.0], type: DataType.float64);
     }
     if (n == 1) {
-      return Polynomial<double>.fromCoefficients([0.0, 2.0],
-          type: DataType.float64);
+      return Polynomial<double>.fromCoefficients([
+        0.0,
+        2.0,
+      ], type: DataType.float64);
     }
     var p0 = Polynomial<double>.fromCoefficients([1.0], type: DataType.float64);
-    var p1 = Polynomial<double>.fromCoefficients([0.0, 2.0],
-        type: DataType.float64);
-    final twoX = Polynomial<double>.fromCoefficients([0.0, 2.0],
-        type: DataType.float64);
+    var p1 = Polynomial<double>.fromCoefficients([
+      0.0,
+      2.0,
+    ], type: DataType.float64);
+    final twoX = Polynomial<double>.fromCoefficients([
+      0.0,
+      2.0,
+    ], type: DataType.float64);
 
     for (var k = 1; k < n; k++) {
       final pNext = twoX * p1 - p0.scale(2.0 * k);
@@ -461,14 +472,20 @@ class Polynomial<T> {
       return Polynomial<double>.fromCoefficients([1.0], type: DataType.float64);
     }
     if (n == 1) {
-      return Polynomial<double>.fromCoefficients([0.0, 1.0],
-          type: DataType.float64);
+      return Polynomial<double>.fromCoefficients([
+        0.0,
+        1.0,
+      ], type: DataType.float64);
     }
     var p0 = Polynomial<double>.fromCoefficients([1.0], type: DataType.float64);
-    var p1 = Polynomial<double>.fromCoefficients([0.0, 1.0],
-        type: DataType.float64);
-    final x = Polynomial<double>.fromCoefficients([0.0, 1.0],
-        type: DataType.float64);
+    var p1 = Polynomial<double>.fromCoefficients([
+      0.0,
+      1.0,
+    ], type: DataType.float64);
+    final x = Polynomial<double>.fromCoefficients([
+      0.0,
+      1.0,
+    ], type: DataType.float64);
 
     for (var k = 1; k < n; k++) {
       final pNext = x * p1 - p0.scale(k.toDouble());

@@ -153,8 +153,11 @@ BootstrapResult bootstrap<T>(
 /// See https://en.wikipedia.org/wiki/Jackknife_resampling.
 class Jackknife<T> with ToStringPrinter {
   new(this.samples, this.statistic, {this.confidenceLevel = 0.95})
-      : assert(samples.isNotEmpty, 'empty samples'),
-        assert(0 < confidenceLevel && confidenceLevel < 1, 'confidence level out of range');
+    : assert(samples.isNotEmpty, 'empty samples'),
+      assert(
+        0 < confidenceLevel && confidenceLevel < 1,
+        'confidence level out of range',
+      );
 
   /// The sample data.
   final List<T> samples;
@@ -178,11 +181,13 @@ class Jackknife<T> with ToStringPrinter {
   late final double estimate = _sampleMeasure - bias;
 
   /// The standard error.
-  late final double standardError = math.sqrt((samples.length - 1) *
-      _resampleMeasures
-          .map((value) => value - _meanResampleMeasure)
-          .map((value) => value * value)
-          .arithmeticMean());
+  late final double standardError = math.sqrt(
+    (samples.length - 1) *
+        _resampleMeasures
+            .map((value) => value - _meanResampleMeasure)
+            .map((value) => value * value)
+            .arithmeticMean(),
+  );
 
   /// The lower bound of the confidence interval.
   late final double lowerBound = estimate - _zScore * standardError;
@@ -208,8 +213,8 @@ class Jackknife<T> with ToStringPrinter {
 /// A view of a Jackknife resampling of a [List].
 class _JackknifeResampling<T> extends ListBase<T> with NonGrowableListMixin<T> {
   new(this.list, this.index)
-      : assert(list.isNotEmpty, 'Non empty list expected'),
-        assert(0 <= index && index < list.length, 'Index out of bounds');
+    : assert(list.isNotEmpty, 'Non empty list expected'),
+      assert(0 <= index && index < list.length, 'Index out of bounds');
 
   final List<T> list;
   final int index;
@@ -222,5 +227,6 @@ class _JackknifeResampling<T> extends ListBase<T> with NonGrowableListMixin<T> {
       index < this.index ? list[index] : list[index + 1];
 
   @override
-  void operator []=(int index, T value) => throw UnsupportedError('Cannot modify');
+  void operator []=(int index, T value) =>
+      throw UnsupportedError('Cannot modify');
 }

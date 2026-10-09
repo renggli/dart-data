@@ -10,8 +10,7 @@ import '../errors.dart';
 /// See https://en.wikipedia.org/wiki/Discrete_uniform_distribution.
 class UniformDiscreteDistribution extends DiscreteDistribution {
   /// A discrete uniform distribution with integer bounds [min] and [max].
-  const new(this.min, this.max)
-      : assert(min <= max, 'min <= max');
+  const new(this.min, this.max) : assert(min <= max, 'min <= max');
 
   /// Fits a discrete uniform distribution to [samples] using min and max values.
   factory fit(Iterable<num> samples) {
@@ -95,7 +94,9 @@ class UniformDiscreteDistribution extends DiscreteDistribution {
 
   @override
   bool operator ==(Object other) =>
-      other is UniformDiscreteDistribution && min == other.min && max == other.max;
+      other is UniformDiscreteDistribution &&
+      min == other.min &&
+      max == other.max;
 
   @override
   int get hashCode => Object.hash(UniformDiscreteDistribution, min, max);

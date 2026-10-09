@@ -32,13 +32,16 @@ Vector<double> leastSquares(Matrix<num> a, Vector<num> b) {
   double intercept,
   double rSquared,
   double Function(num x) predict,
-}) linearRegression(Vector<num> xs, Vector<num> ys) {
+})
+linearRegression(Vector<num> xs, Vector<num> ys) {
   if (xs.length != ys.length) {
     throw ArgumentError('xs and ys must have the same length.');
   }
   final n = xs.length;
   if (n < 2) {
-    throw ArgumentError('At least 2 points are required for linear regression.');
+    throw ArgumentError(
+      'At least 2 points are required for linear regression.',
+    );
   }
 
   // Construct Vandermonde design matrix A of size [N x 2]: [1, x_i]
@@ -117,7 +120,8 @@ Polynomial<double> polynomialRegression(
   double intercept,
   double rSquared,
   double Function(Vector<num> x) predict,
-}) multipleLinearRegression(
+})
+multipleLinearRegression(
   Matrix<num> x,
   Vector<num> y, {
   bool fitIntercept = true,
@@ -144,9 +148,7 @@ Polynomial<double> polynomialRegression(
 
   final beta = leastSquares(designMatrix, y);
   final intercept = fitIntercept ? beta[0] : 0.0;
-  final coefs = fitIntercept
-      ? beta.subVector(1, p + 1)
-      : beta;
+  final coefs = fitIntercept ? beta.subVector(1, p + 1) : beta;
 
   var meanY = 0.0;
   for (var i = 0; i < n; i++) {
@@ -175,7 +177,9 @@ Polynomial<double> polynomialRegression(
     rSquared: rSquared,
     predict: (Vector<num> xVec) {
       if (xVec.length != p) {
-        throw ArgumentError('Input vector length must match number of features ($p).');
+        throw ArgumentError(
+          'Input vector length must match number of features ($p).',
+        );
       }
       var out = intercept;
       for (var j = 0; j < p; j++) {

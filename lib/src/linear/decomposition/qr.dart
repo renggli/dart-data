@@ -89,12 +89,7 @@ class QRDecomposition {
 
   /// Returns the upper triangular factor $R$.
   Matrix<double> get r {
-    final result = Matrix<double>.filled(
-      _n,
-      _n,
-      0.0,
-      type: DataType.float64,
-    );
+    final result = Matrix<double>.filled(_n, _n, 0.0, type: DataType.float64);
     for (var i = 0; i < _n; i++) {
       for (var j = i; j < _n; j++) {
         if (i < j) {
@@ -109,12 +104,7 @@ class QRDecomposition {
 
   /// Returns the economy-sized orthogonal factor $Q$ of size [m x n].
   Matrix<double> get q {
-    final result = Matrix<double>.filled(
-      _m,
-      _n,
-      0.0,
-      type: DataType.float64,
-    );
+    final result = Matrix<double>.filled(_m, _n, 0.0, type: DataType.float64);
     for (var k = _n - 1; k >= 0; k--) {
       for (var i = 0; i < _m; i++) {
         result.set(i, k, 0.0);
@@ -168,10 +158,7 @@ class QRDecomposition {
       }
     }
 
-    return Vector<double>.fromList(
-      x.sublist(0, _n),
-      type: DataType.float64,
-    );
+    return Vector<double>.fromList(x.sublist(0, _n), type: DataType.float64);
   }
 
   /// Solves the least squares problem $A X \approx B$ for matrix [b].

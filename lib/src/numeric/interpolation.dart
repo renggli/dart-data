@@ -78,8 +78,8 @@ class CubicSpline implements Interpolator {
     this.boundary = CubicSplineBoundary.natural,
     double leftSlope = 0.0,
     double rightSlope = 0.0,
-  })  : _xs = [for (final x in xs) x.toDouble()],
-        _ys = [for (final y in ys) y.toDouble()] {
+  }) : _xs = [for (final x in xs) x.toDouble()],
+       _ys = [for (final y in ys) y.toDouble()] {
     final n = _xs.length;
     if (n != _ys.length) {
       throw ArgumentError('xs and ys must have identical length.');
@@ -99,7 +99,10 @@ class CubicSpline implements Interpolator {
     _d = List<double>.filled(n - 1, 0.0);
 
     final h = List<double>.generate(n - 1, (i) => _xs[i + 1] - _xs[i]);
-    final delta = List<double>.generate(n - 1, (i) => (_ys[i + 1] - _ys[i]) / h[i]);
+    final delta = List<double>.generate(
+      n - 1,
+      (i) => (_ys[i + 1] - _ys[i]) / h[i],
+    );
 
     // Tridiagonal matrix solver for c coefficients
     final alpha = List<double>.filled(n, 0.0);
@@ -185,7 +188,9 @@ class PchipInterpolation implements Interpolator {
       throw ArgumentError('xs and ys must have identical length.');
     }
     if (n < 2) {
-      throw ArgumentError('At least 2 points required for PCHIP interpolation.');
+      throw ArgumentError(
+        'At least 2 points required for PCHIP interpolation.',
+      );
     }
     for (var i = 0; i < n - 1; i++) {
       if (_xs[i] >= _xs[i + 1]) {
@@ -217,15 +222,19 @@ class PchipInterpolation implements Interpolator {
     }
 
     // Endpoints
-    _d[0] = ((2.0 * _h[0] + _h[1]) * _delta[0] - _h[0] * _delta[1]) / (_h[0] + _h[1]);
+    _d[0] =
+        ((2.0 * _h[0] + _h[1]) * _delta[0] - _h[0] * _delta[1]) /
+        (_h[0] + _h[1]);
     if (_d[0] * _delta[0] <= 0.0) {
       _d[0] = 0.0;
-    } else if (_delta[0] * _delta[1] <= 0.0 && _d[0].abs() > 3.0 * _delta[0].abs()) {
+    } else if (_delta[0] * _delta[1] <= 0.0 &&
+        _d[0].abs() > 3.0 * _delta[0].abs()) {
       _d[0] = 3.0 * _delta[0];
     }
 
     final last = n - 1;
-    _d[last] = ((2.0 * _h[last - 1] + _h[last - 2]) * _delta[last - 1] -
+    _d[last] =
+        ((2.0 * _h[last - 1] + _h[last - 2]) * _delta[last - 1] -
             _h[last - 1] * _delta[last - 2]) /
         (_h[last - 1] + _h[last - 2]);
     if (_d[last] * _delta[last - 1] <= 0.0) {

@@ -15,10 +15,7 @@ void main() {
       expect(standardDeviation(data), closeTo(math.sqrt(32.0 / 7.0), 1e-10));
       // Population variance: 4.0, population std: 2.0
       expect(variance(data, population: true), closeTo(4.0, 1e-10));
-      expect(
-        standardDeviation(data, population: true),
-        closeTo(2.0, 1e-10),
-      );
+      expect(standardDeviation(data, population: true), closeTo(2.0, 1e-10));
     });
 
     test('median, quantiles, and IQR', () {
@@ -50,8 +47,13 @@ void main() {
     });
 
     test('vector extensions', () {
-      final vec = Vector<double>.fromList([1.0, 2.0, 3.0, 4.0, 5.0],
-          type: DataType.float64);
+      final vec = Vector<double>.fromList([
+        1.0,
+        2.0,
+        3.0,
+        4.0,
+        5.0,
+      ], type: DataType.float64);
       expect(vec.mean(), closeTo(3.0, 1e-10));
       expect(vec.variance(), closeTo(2.5, 1e-10));
       expect(vec.standardDeviation(), closeTo(math.sqrt(2.5), 1e-10));
@@ -78,14 +80,11 @@ void main() {
     test('covariance matrix and correlation matrices', () {
       // 3 observations, 2 features
       // f1: [1, 2, 3], f2: [2, 4, 6]
-      final m = Matrix<double>.fromRows(
-        [
-          [1.0, 2.0],
-          [2.0, 4.0],
-          [3.0, 6.0],
-        ],
-        type: DataType.float64,
-      );
+      final m = Matrix<double>.fromRows([
+        [1.0, 2.0],
+        [2.0, 4.0],
+        [3.0, 6.0],
+      ], type: DataType.float64);
 
       final cov = covarianceMatrix(m);
       expect(cov.rowCount, 2);

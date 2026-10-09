@@ -74,13 +74,10 @@ void main() {
       //           Success  Failure
       // Group A:    20       30
       // Group B:    40       10
-      final table = Matrix<int>.fromRows(
-        [
-          [20, 30],
-          [40, 10],
-        ],
-        type: DataType.int32,
-      );
+      final table = Matrix<int>.fromRows([
+        [20, 30],
+        [40, 10],
+      ], type: DataType.int32);
 
       final res = chiSquaredContingency(table);
       expect(res.isSignificant, isTrue);

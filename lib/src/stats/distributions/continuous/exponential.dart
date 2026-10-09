@@ -82,6 +82,6 @@ class ExponentialDistribution extends ContinuousDistribution {
   int get hashCode => Object.hash(ExponentialDistribution, rate);
 
   @override
-  ObjectPrinter get toStringPrinter => super.toStringPrinter
-    ..addValue(rate, name: 'λ');
+  ObjectPrinter get toStringPrinter =>
+      super.toStringPrinter..addValue(rate, name: 'λ');
 }

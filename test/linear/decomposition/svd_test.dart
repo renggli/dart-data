@@ -40,7 +40,11 @@ void main() {
         [1.0, 2.0],
         [1.0, 3.0],
       ], type: DataType.float64);
-      final b = Vector<double>.fromList([2.0, 4.0, 6.0], type: DataType.float64);
+      final b = Vector<double>.fromList([
+        2.0,
+        4.0,
+        6.0,
+      ], type: DataType.float64);
 
       final x = a.svd.solveVector(b);
       expect(x.length, 2);

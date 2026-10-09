@@ -77,9 +77,7 @@ List<Complex> ifft(Iterable<Complex> input) => fft(input, inverse: true);
 ///
 /// Returns the non-redundant positive frequency components of length $N/2 + 1$.
 List<Complex> rfft(Iterable<num> input) {
-  final complexInput = [
-    for (final x in input) Complex(x.toDouble(), 0.0),
-  ];
+  final complexInput = [for (final x in input) Complex(x.toDouble(), 0.0)];
   final full = fft(complexInput);
   final n = full.length;
   final half = (n >> 1) + 1;
@@ -106,9 +104,7 @@ List<double> irfft(List<Complex> input, [int? n]) {
   }
 
   final reconstructed = ifft(fullSpectrum);
-  return [
-    for (var i = 0; i < targetLength; i++) reconstructed[i].a.toDouble(),
-  ];
+  return [for (var i = 0; i < targetLength; i++) reconstructed[i].a.toDouble()];
 }
 
 /// Computes the 2-dimensional Discrete Fourier Transform of [matrix].
@@ -134,7 +130,9 @@ List<List<Complex>> fft2(List<List<Complex>> matrix, {bool inverse = false}) {
   );
 
   for (var c = 0; c < newColCount; c++) {
-    final colVals = [for (var r = 0; r < newRowCount; r++) rowTransformed[r][c]];
+    final colVals = [
+      for (var r = 0; r < newRowCount; r++) rowTransformed[r][c],
+    ];
     final colTransformed = fft(colVals, inverse: inverse);
     for (var r = 0; r < colTransformed.length; r++) {
       if (r < newRowCount) {

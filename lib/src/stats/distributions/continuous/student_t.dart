@@ -32,8 +32,8 @@ class StudentDistribution extends ContinuousDistribution {
   double get variance => dof > 2.0
       ? dof / (dof - 2.0)
       : dof > 1.0
-          ? double.infinity
-          : double.nan;
+      ? double.infinity
+      : double.nan;
 
   @override
   double get skewness => dof > 3.0 ? 0.0 : double.nan;
@@ -42,8 +42,8 @@ class StudentDistribution extends ContinuousDistribution {
   double get excessKurtosis => dof > 4.0
       ? 6.0 / (dof - 2.0)
       : dof >= 2.0
-          ? double.infinity
-          : double.nan;
+      ? double.infinity
+      : double.nan;
 
   @override
   double probability(double x) =>
@@ -52,7 +52,10 @@ class StudentDistribution extends ContinuousDistribution {
 
   @override
   double cumulativeProbability(double x) => ibeta(
-      (x + sqrt(x * x + dof)) / (2.0 * sqrt(x * x + dof)), 0.5 * dof, 0.5 * dof);
+    (x + sqrt(x * x + dof)) / (2.0 * sqrt(x * x + dof)),
+    0.5 * dof,
+    0.5 * dof,
+  );
 
   @override
   double inverseCumulativeProbability(num p) {

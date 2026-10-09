@@ -72,8 +72,26 @@ void main() {
       test('bootstrap mean and confidence intervals', () {
         // Sample of 20 observations drawn around mean 50
         final sample = [
-          48.2, 51.5, 49.8, 52.3, 47.9, 50.1, 51.2, 49.0, 50.8, 52.0,
-          48.7, 50.5, 51.9, 49.3, 50.0, 48.5, 52.7, 49.6, 50.4, 51.1,
+          48.2,
+          51.5,
+          49.8,
+          52.3,
+          47.9,
+          50.1,
+          51.2,
+          49.0,
+          50.8,
+          52.0,
+          48.7,
+          50.5,
+          51.9,
+          49.3,
+          50.0,
+          48.5,
+          52.7,
+          49.6,
+          50.4,
+          51.1,
         ];
 
         final result = bootstrap<double>(

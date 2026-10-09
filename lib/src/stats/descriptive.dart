@@ -104,10 +104,17 @@ double _skewness(Iterable<num> values, {bool bias = false}) {
 }
 
 /// Returns the kurtosis of [values]. If [excess] is true (default), returns excess kurtosis (Fisher).
-double kurtosis(Iterable<num> values, {bool excess = true, bool bias = false}) =>
-    _kurtosis(values, excess: excess, bias: bias);
+double kurtosis(
+  Iterable<num> values, {
+  bool excess = true,
+  bool bias = false,
+}) => _kurtosis(values, excess: excess, bias: bias);
 
-double _kurtosis(Iterable<num> values, {bool excess = true, bool bias = false}) {
+double _kurtosis(
+  Iterable<num> values, {
+  bool excess = true,
+  bool bias = false,
+}) {
   final list = values.map((e) => e.toDouble()).toList();
   final n = list.length;
   if (n < 4 && !bias) return double.nan;
@@ -182,7 +189,8 @@ double pearsonCorrelation(Iterable<num> x, Iterable<num> y) {
 List<double> rankData(Iterable<num> values) {
   final list = values.map((e) => e.toDouble()).toList();
   final n = list.length;
-  final indices = List.generate(n, (i) => i)..sort((a, b) => list[a].compareTo(list[b]));
+  final indices = List.generate(n, (i) => i)
+    ..sort((a, b) => list[a].compareTo(list[b]));
   final ranks = List<double>.filled(n, 0.0);
   var i = 0;
   while (i < n) {
@@ -213,7 +221,11 @@ Matrix<double> covarianceMatrix(dynamic data, {bool rowVar = false}) {
   final m = switch (data) {
     Matrix<num>() => data,
     Tensor<num>() => Matrix(data),
-    _ => throw ArgumentError.value(data, 'data', 'Expected Matrix<num> or Tensor<num>'),
+    _ => throw ArgumentError.value(
+      data,
+      'data',
+      'Expected Matrix<num> or Tensor<num>',
+    ),
   };
 
   final numRows = m.rowCount;
@@ -222,7 +234,9 @@ Matrix<double> covarianceMatrix(dynamic data, {bool rowVar = false}) {
   final nFeatures = rowVar ? numRows : numCols;
 
   if (nSamples < 2) {
-    throw ArgumentError('At least 2 observations required for covariance matrix');
+    throw ArgumentError(
+      'At least 2 observations required for covariance matrix',
+    );
   }
 
   // Build centered data matrix Xc of size (nSamples x nFeatures)
@@ -285,7 +299,11 @@ Matrix<double> spearmanCorrelationMatrix(dynamic data, {bool rowVar = false}) {
   final m = switch (data) {
     Matrix<num>() => data,
     Tensor<num>() => Matrix(data),
-    _ => throw ArgumentError.value(data, 'data', 'Expected Matrix<num> or Tensor<num>'),
+    _ => throw ArgumentError.value(
+      data,
+      'data',
+      'Expected Matrix<num> or Tensor<num>',
+    ),
   };
 
   final numRows = m.rowCount;
@@ -348,7 +366,9 @@ class PcaResult {
     final n = x.rowCount;
     final p = x.colCount;
     if (p != mean.length) {
-      throw ArgumentError('Feature dimension $p does not match fitted features ${mean.length}');
+      throw ArgumentError(
+        'Feature dimension $p does not match fitted features ${mean.length}',
+      );
     }
     final centered = Matrix<double>.filled(n, p, 0.0, type: DataType.float64);
     for (var i = 0; i < n; i++) {
@@ -368,7 +388,9 @@ class PcaResult {
     final n = x.rowCount;
     final k = x.colCount;
     if (k != components.rowCount) {
-      throw ArgumentError('Component dimension $k does not match ${components.rowCount}');
+      throw ArgumentError(
+        'Component dimension $k does not match ${components.rowCount}',
+      );
     }
     final p = components.colCount;
     final xDouble = Matrix<double>.filled(n, k, 0.0, type: DataType.float64);
@@ -443,7 +465,12 @@ PcaResult pca(Matrix<num> data, {int? nComponents, bool standardize = false}) {
     if (val > 0.0) totalVar += val;
   }
 
-  final compMatrix = Matrix<double>.filled(k, nFeatures, 0.0, type: DataType.float64);
+  final compMatrix = Matrix<double>.filled(
+    k,
+    nFeatures,
+    0.0,
+    type: DataType.float64,
+  );
   final expVar = Vector<double>.filled(k, 0.0, type: DataType.float64);
   final expVarRatio = Vector<double>.filled(k, 0.0, type: DataType.float64);
 
@@ -493,6 +520,9 @@ extension DescriptiveIterableNumExtension on Iterable<num> {
 
   /// Returns the arithmetic mean of values.
   double arithmeticMean() => _mean(this);
+
+  /// Returns the arithmetic mean of values.
+  double mean() => _mean(this);
 
   /// Returns the geometric mean of values.
   double geometricMean() {

@@ -22,7 +22,10 @@ void main() {
       // f'(x) = sin(x) + x * cos(x)
       const pt = 1.0;
       final expected = math.sin(pt) + pt * math.cos(pt);
-      expect(numericalDerivative(f, pt, variable: 'x'), closeTo(expected, 1e-6));
+      expect(
+        numericalDerivative(f, pt, variable: 'x'),
+        closeTo(expected, 1e-6),
+      );
     });
 
     test('numerical gradient of 2D function', () {
@@ -62,9 +65,10 @@ void main() {
       // f(x, y) = [x^2 + y, 5*x - y^2]
       // J = [[2x, 1], [5, -2y]]
       // At (2, 3): J = [[4, 1], [5, -6]]
-      Vector<double> f(Vector<double> v) => Vector<double>.fromList(
-          [v[0] * v[0] + v[1], 5.0 * v[0] - v[1] * v[1]],
-          type: DataType.float64);
+      Vector<double> f(Vector<double> v) => Vector<double>.fromList([
+        v[0] * v[0] + v[1],
+        5.0 * v[0] - v[1] * v[1],
+      ], type: DataType.float64);
 
       final pt = Vector<double>.fromList([2.0, 3.0], type: DataType.float64);
       final j = numericalJacobian(f, pt);

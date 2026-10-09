@@ -14,8 +14,8 @@ import 'uniform.dart';
 class GammaDistribution extends ContinuousDistribution {
   /// A gamma distribution with parameters [shape] α and [scale] β.
   const new(this.shape, this.scale)
-      : assert(shape > 0, 'α > 0'),
-        assert(scale > 0, 'β > 0');
+    : assert(shape > 0, 'α > 0'),
+      assert(scale > 0, 'β > 0');
 
   /// Creates a standard gamma distribution with given [shape] and unit scale 1.
   const new shape(double shape) : this(shape, 1.0);
@@ -32,7 +32,11 @@ class GammaDistribution extends ContinuousDistribution {
       sum += x;
     }
     if (count < 2) {
-      throw ArgumentError.value(samples, 'samples', 'At least 2 samples required');
+      throw ArgumentError.value(
+        samples,
+        'samples',
+        'At least 2 samples required',
+      );
     }
     final mean = sum / count;
     var sumSqDiff = 0.0;
@@ -43,7 +47,10 @@ class GammaDistribution extends ContinuousDistribution {
     final variance = sumSqDiff / (count - 1);
     final scale = variance / mean;
     final shape = mean / scale;
-    return GammaDistribution(shape > 0 ? shape : 1e-6, scale > 0 ? scale : 1e-6);
+    return GammaDistribution(
+      shape > 0 ? shape : 1e-6,
+      scale > 0 ? scale : 1e-6,
+    );
   }
 
   /// The shape parameter α.
@@ -59,7 +66,8 @@ class GammaDistribution extends ContinuousDistribution {
   double get mean => shape * scale;
 
   @override
-  double get median => throw UnsupportedError('No simple closed form for median');
+  double get median =>
+      throw UnsupportedError('No simple closed form for median');
 
   @override
   double get mode => shape > 1 ? (shape - 1) * scale : 0.0;
@@ -76,10 +84,12 @@ class GammaDistribution extends ContinuousDistribution {
   @override
   double probability(double x) => x <= 0.0
       ? 0.0
-      : exp((shape - 1.0) * log(x) -
-          x / scale -
-          gammaLn(shape) -
-          shape * log(scale));
+      : exp(
+          (shape - 1.0) * log(x) -
+              x / scale -
+              gammaLn(shape) -
+              shape * log(scale),
+        );
 
   @override
   double cumulativeProbability(double x) =>

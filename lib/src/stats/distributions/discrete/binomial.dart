@@ -12,8 +12,8 @@ import '../discrete.dart';
 class BinomialDistribution extends DiscreteDistribution {
   /// A binomial distribution with [n] trials and success probability [p].
   const new(this.n, this.p)
-      : assert(0 <= n, 'n >= 0'),
-        assert(0.0 <= p && p <= 1.0, '0 <= p <= 1');
+    : assert(0 <= n, 'n >= 0'),
+      assert(0.0 <= p && p <= 1.0, '0 <= p <= 1');
 
   /// Fits a binomial distribution to [samples] with given number of trials [n].
   ///
@@ -24,7 +24,11 @@ class BinomialDistribution extends DiscreteDistribution {
     var maxVal = 0;
     for (final x in samples) {
       if (x < 0 || x.round() != x) {
-        throw ArgumentError.value(x, 'samples', 'Samples must be non-negative integers');
+        throw ArgumentError.value(
+          x,
+          'samples',
+          'Samples must be non-negative integers',
+        );
       }
       final k = x.round();
       if (k > maxVal) maxVal = k;

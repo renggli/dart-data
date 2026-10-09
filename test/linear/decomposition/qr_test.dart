@@ -51,8 +51,12 @@ void main() {
       ], type: DataType.float64);
 
       // y = 2 + 3*x
-      final b = Vector<double>.fromList([5.0, 8.0, 11.0, 14.0],
-          type: DataType.float64);
+      final b = Vector<double>.fromList([
+        5.0,
+        8.0,
+        11.0,
+        14.0,
+      ], type: DataType.float64);
 
       final qr = a.qr;
       final x = qr.solveVector(b);

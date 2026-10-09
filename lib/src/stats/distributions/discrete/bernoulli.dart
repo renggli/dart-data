@@ -19,7 +19,11 @@ class BernoulliDistribution extends DiscreteDistribution {
     var sum = 0.0;
     for (final x in samples) {
       if (x != 0 && x != 1) {
-        throw ArgumentError.value(x, 'samples', 'Bernoulli samples must be 0 or 1');
+        throw ArgumentError.value(
+          x,
+          'samples',
+          'Bernoulli samples must be 0 or 1',
+        );
       }
       count++;
       sum += x;
@@ -90,6 +94,6 @@ class BernoulliDistribution extends DiscreteDistribution {
   int get hashCode => Object.hash(BernoulliDistribution, p);
 
   @override
-  ObjectPrinter get toStringPrinter => super.toStringPrinter
-    ..addValue(p, name: 'p');
+  ObjectPrinter get toStringPrinter =>
+      super.toStringPrinter..addValue(p, name: 'p');
 }

@@ -70,7 +70,8 @@ class UniformDistribution extends ContinuousDistribution {
   double get excessKurtosis => -1.2;
 
   @override
-  double probability(double x) => (min <= x && x <= max) ? 1.0 / (max - min) : 0.0;
+  double probability(double x) =>
+      (min <= x && x <= max) ? 1.0 / (max - min) : 0.0;
 
   @override
   double cumulativeProbability(double x) {

@@ -16,7 +16,10 @@ void main() {
       // \int_0^pi sin(x) dx = [-cos(x)]_0^pi = -(-1) - (-1) = 2
       const x = Variable('x');
       const f = Sin(x);
-      expect(adaptiveSimpson(f, 0.0, math.pi, variable: 'x'), closeTo(2.0, 1e-8));
+      expect(
+        adaptiveSimpson(f, 0.0, math.pi, variable: 'x'),
+        closeTo(2.0, 1e-8),
+      );
     });
 
     test('Gauss-Kronrod (GK15) on Gaussian integral', () {

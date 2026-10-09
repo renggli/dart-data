@@ -168,7 +168,9 @@ HypothesisTestResult tTestTwoSample(
   final ci = (diff - tCrit * se, diff + tCrit * se);
 
   return HypothesisTestResult(
-    testName: equalVariance ? "Student's Two-Sample t-test" : "Welch's Two-Sample t-test",
+    testName: equalVariance
+        ? "Student's Two-Sample t-test"
+        : "Welch's Two-Sample t-test",
     statistic: t,
     pValue: pValue,
     degreesOfFreedom: dof,
@@ -191,7 +193,12 @@ HypothesisTestResult tTestPaired(
     throw ArgumentError('Paired samples must have equal length');
   }
   final diffs = List<double>.generate(list1.length, (i) => list1[i] - list2[i]);
-  final res = tTestOneSample(diffs, mu0: 0.0, alternative: alternative, alpha: alpha);
+  final res = tTestOneSample(
+    diffs,
+    mu0: 0.0,
+    alternative: alternative,
+    alpha: alpha,
+  );
   return HypothesisTestResult(
     testName: 'Paired t-test',
     statistic: res.statistic,
@@ -213,7 +220,9 @@ HypothesisTestResult oneWayAnova(
     throw ArgumentError('At least 2 groups required for ANOVA');
   }
 
-  final doubleLists = groups.map((g) => g.map((e) => e.toDouble()).toList()).toList();
+  final doubleLists = groups
+      .map((g) => g.map((e) => e.toDouble()).toList())
+      .toList();
   var totalN = 0;
   var grandSum = 0.0;
   for (final g in doubleLists) {
