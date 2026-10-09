@@ -8,94 +8,168 @@
 [![GitHub Stars](https://img.shields.io/github/stars/renggli/dart-data.svg)](https://github.com/renggli/dart-data/stargazers)
 [![GitHub License](https://img.shields.io/badge/license-MIT-blue.svg)](https://raw.githubusercontent.com/renggli/dart-data/main/LICENSE)
 
-Dart Data is a fast and space efficient library to deal with data in Dart, Flutter and the web. As of today this mostly includes data structures and algorithms for vectors and matrices, but at some point might also include graphs and other mathematical structures.
+**Dart Data** is a modern, high-performance scientific computing, linear algebra, and data science toolkit for Dart and Flutter. Engineered for speed and memory efficiency, it features N-dimensional tensors with NumPy-style striding, dynamic BLAS/LAPACK hardware acceleration, Arrow-aligned columnar DataFrames, exact symbolic calculus, full matrix decompositions, and comprehensive probability distributions.
 
-This library is open source, stable and well tested. Development happens on [GitHub](https://github.com/renggli/dart-data). Feel free to report issues or create a pull-request there. General questions are best asked on [StackOverflow](https://stackoverflow.com/questions/tagged/data+dart).
+## Key Features
 
-The package is hosted on [dart packages](https://pub.dev/packages/data). Up-to-date [class documentation](https://pub.dev/documentation/data/latest/) is created with every release.
+- **Tensors & Multi-dimensional Arrays**: Zero-copy strided layouts, multidimensional slicing, broadcasting, einsum, contraction, and tensor transformations.
+- **Hardware Acceleration**: Dynamic native FFI discovery for BLAS (GEMM, GEMV, SYRK) and LAPACK (GESV, GELSF, POTRF), with transparent Dart SIMD (`Float32x4`) and pure Dart fallbacks.
+- **Linear Algebra**: Vectors and Matrices, full matrix decompositions (Cholesky, LU, QR, SVD, Eigenvalue), matrix norms and condition numbers, plus iterative Krylov subspace solvers (GMRES, BiCGSTAB, Conjugate Gradient).
+- **Columnar DataFrames**: Arrow-aligned columnar tables with zero-copy chunking, schema inference, streaming CSV parser, relational joins, grouping, aggregations, and expressive filtering.
+- **Exact Symbolic Mathematics**: Symbolic expression ASTs, automatic analytical differentiation, algebraic simplification, LaTeX generation, and fast JIT compilation to Dart closures.
+- **Probability & Statistics**: 25+ continuous and discrete probability distributions with exact PDF/CDF/quantile calculations, random sampling, descriptive statistics, Pearson/Spearman correlation, and kernel density estimation.
+- **Numeric Algorithms & Special Functions**: ODE solvers (Runge-Kutta, Dormand-Prince), optimization (Nelder-Mead, BFGS), numerical integration, 1D/2D interpolation, curve fitting (Levenberg-Marquardt, Polynomial, Multiple Linear Regression), FFT, and special functions ($\Gamma$, $\mathrm{B}$, Bessel $J_\nu / Y_\nu$, complete elliptic integrals $K / E$, and hypergeometric functions $_1F_1, {}_2F_1$).
 
-## Tutorial
+## Tutorial & Examples
 
-Below are step-by-step instructions of how to use this library. More elaborate examples are included with the [examples](https://github.com/renggli/dart-data/tree/main/example).
+### 1. Multi-Dimensional Tensors
 
-### Installation
-
-Follow the installation instructions on [dart packages](https://pub.dev/packages/data/install).
-
-Import the core-package into your Dart code using:
-
-```dart
-import 'dart:math';
-
-import 'package:data/data.dart';
-import 'package:more/printer.dart';
-```
-
-### How to solve a linear equation?
-
-Solve $A \cdot x = b$, where $A$ is a matrix and $b$ a vector:
+Work with multi-dimensional arrays, zero-copy views, broadcasting, and matrix multiplication:
 
 ```dart
-final a = Matrix<double>.fromRows([
-  [2.0, 1.0],
-  [1.0, 3.0],
+// Create a 2x3 tensor from nested collections
+final a = Tensor<double>.fromObject([
+  [1.0, 2.0, 3.0],
+  [4.0, 5.0, 6.0],
 ]);
-final b = Vector<double>.fromList([4.0, 7.0]);
-final x = a.solve(b);
-print(x); // Vector([1.0, 2.0])
+
+// Transpose (swaps strides without copying data)
+final aT = a.transpose(); // shape [3, 2]
+
+// Matrix multiplication: [2, 3] x [3, 2] -> [2, 2]
+final product = a.matmul(aT);
+print(product.toNestedList());
+// [[14.0, 32.0], [32.0, 77.0]]
+
+// Slicing and broadcasting
+final slice = a.slice([Range.to(1), Range.all()]); // row 0
+print(slice.shape); // [1, 3]
 ```
 
-### How to work with multi-dimensional tensors?
+### 2. Linear Algebra & Decompositions
 
-Dense multi-dimensional arrays backed by strided layouts and eager operations:
+Solve linear systems and factorize matrices with numerical stability:
 
 ```dart
-final t = Tensor<double>.fromObject([
-  [1.0, 2.0],
-  [3.0, 4.0],
+final matrix = Matrix<double>.fromRows([
+  [4.0, 2.0],
+  [2.0, 5.0],
 ]);
-final product = t.matmul(t);
-print(product.toNestedList()); // [[7.0, 10.0], [15.0, 22.0]]
+final b = Vector<double>.fromList([10.0, 11.0]);
+
+// Solve Ax = b
+final x = matrix.solve(b);
+print(x); // Vector([2.0, 1.0])
+
+// Cholesky decomposition (for symmetric positive-definite matrices)
+final cholesky = matrix.cholesky;
+print(cholesky.l); // Lower triangular factor L
+
+// LU, QR, and SVD factorizations
+final lu = matrix.lu;
+final qr = matrix.qr;
+final svd = matrix.svd;
+print('Determinant: ${matrix.determinant}');
+print('Condition number: ${matrix.cond()}');
 ```
 
-### How to process columnar tabular data (DataFrame)?
+### 3. Columnar DataFrames
 
-Arrow-aligned `DataFrame` with streaming CSV parsing and relational joins:
+Process, transform, and aggregate structured data:
 
 ```dart
+// Parse CSV into columnar memory
 final df = DataFrame.fromCsv('''
-name,age,salary
-Alice,30,75000.5
-Bob,25,50000.0
-Charlie,35,90000.0
+name,age,salary,department
+Alice,30,75000.0,Engineering
+Bob,24,52000.0,Design
+Charlie,38,98000.0,Engineering
+Diana,29,61000.0,Design
 ''');
 
-final filtered = df.filterBy((row) => (row['age'] as int) >= 30);
-print(filtered);
+// Filtering and querying
+final engineers = df.filterBy((row) => row['department'] == 'Engineering');
+
+// Column operations & aggregations
+final salaries = df('salary') as Series<double>;
+print('Average salary: ${salaries.mean()}');
+print('Max salary: ${salaries.max()}');
 ```
 
-### How to perform exact symbolic differentiation & JIT compilation?
+### 4. Symbolic Calculus & Compilation
 
-Symbolic expression graphs, exact analytical differentiation, and zero-allocation JIT loops:
+Differentiate and simplify mathematical expressions symbolically, or compile them directly into high-speed evaluation functions:
 
 ```dart
 final x = Variable('x');
-final expr = x * x + Sin(x);
-final deriv = expr.diff('x').simplify();
-print(deriv.toLatex()); // (2 * x) + \cos(x)
+// Build f(x) = x^3 + sin(x)
+final f = x.pow(3) + Sin(x);
 
-final fastFn = expr.compile1D('x');
-print(fastFn(0.0)); // 0.0
+// Analytical derivative: f'(x) = 3 * x^2 + cos(x)
+final df = f.diff('x').simplify();
+print(df.toLatex()); // 3 * x^{2} + \cos(x)
+
+// JIT-compile into a fast Dart closure
+final fastDf = df.compile1D('x');
+print(fastDf(0.0)); // 1.0 (since 3*(0)^2 + cos(0) = 1)
 ```
 
-### License
+### 5. Probability Distributions
 
-The MIT License, see [LICENSE](https://github.com/renggli/dart-data/raw/main/LICENSE).
+Over 25 discrete and continuous probability distributions with statistics, probability density, cumulative probability, and quantiles:
 
-Some of the matrix decomposition algorithms are a port of the [JAMA: A Java Matrix Package](https://math.nist.gov/javanumerics/jama/) released under public domain.
+```dart
+// Standard Normal distribution N(0, 1)
+final normal = NormalDistribution(0.0, 1.0);
+print('PDF at 0: ${normal.pdf(0.0)}'); // ~0.3989
+print('CDF at 1.96: ${normal.cdf(1.96)}'); // ~0.975
+print('95% quantile: ${normal.quantile(0.95)}'); // ~1.6448
 
-- In particular, the singular value decomposition algorithm comes from the [Math.Net Numerics](https://github.com/mathnet/mathnet-numerics) released under MIT.
+// Poisson distribution
+final poisson = PoissonDistribution(4.0);
+print('P(X = 3): ${poisson.pmf(3)}');
+print('Samples: ${poisson.samples().take(5).toList()}');
+```
 
-Some of the distributions and special functions are a port of the [JavaScript Statistical Library](https://github.com/jstat/jstat) released under MIT.
+### 6. Curve Fitting & Numeric Solvers
 
-The Levenberg-Marquardt least squares curve fitting is a port of [levenberg-marquardt](https://github.com/mljs/levenberg-marquardt) released under MIT.
+Fit non-linear curves using Levenberg-Marquardt or solve ordinary differential equations:
+
+```dart
+// Non-linear Levenberg-Marquardt fit: y = a * exp(b * x)
+final xs = [0.0, 1.0, 2.0, 3.0];
+final ys = [2.5, 4.12, 6.80, 11.20];
+
+final initialGuess = Vector<double>.fromList([1.0, 1.0]);
+final fittedParams = levenbergMarquardt(
+  residualFunction: (p) => Vector<double>.fromList(
+    List.generate(xs.length, (i) => p[0] * exp(p[1] * xs[i]) - ys[i]),
+  ),
+  initialParams: initialGuess,
+);
+print('Fitted a: ${fittedParams[0]}, b: ${fittedParams[1]}');
+
+// Numerical ODE integration: dy/dt = -2 * y
+final solution = odeRk4(
+  f: (t, y) => -2.0 * y,
+  t0: 0.0,
+  y0: 1.0,
+  t1: 2.0,
+  steps: 100,
+);
+print('y(2.0) = ${solution.last}');
+```
+
+## Interactive Web Demo
+
+Experience the interactive probability distributions playground directly in your browser:
+
+```bash
+dart run build_runner serve web
+```
+
+Then navigate to `http://localhost:8080/distributions/` to explore PDF/CDF curves, parameter adjustments, and real-time sampling histograms.
+
+## License
+
+The MIT License, see [LICENSE](https://raw.githubusercontent.com/renggli/dart-data/main/LICENSE).

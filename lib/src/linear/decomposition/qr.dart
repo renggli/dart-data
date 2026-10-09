@@ -66,6 +66,11 @@ class QRDecomposition {
     }
   }
 
+  final int _m;
+  final int _n;
+  final Matrix<double> _qr;
+  final List<double> _rdiag;
+
   /// Number of rows.
   int get m => _m;
 
@@ -202,9 +207,4 @@ class QRDecomposition {
 
     return x.subMatrix(rowStart: 0, rowEnd: _n, colStart: 0, colEnd: nx);
   }
-
-  final int _m;
-  final int _n;
-  final Matrix<double> _qr;
-  final List<double> _rdiag;
 }

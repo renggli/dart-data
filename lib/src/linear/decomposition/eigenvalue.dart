@@ -54,6 +54,16 @@ class EigenvalueDecomposition {
     }
   }
 
+  final int _n;
+  final bool _isSymmetric;
+  final List<double> _d;
+  final List<double> _e;
+  final Matrix<double> _v;
+  final Matrix<double> _h;
+  final List<double> _ort;
+  double _cdivr = 0.0;
+  double _cdivi = 0.0;
+
   /// The eigenvector matrix $V$.
   Matrix<double> get v => _v;
 
@@ -81,24 +91,6 @@ class EigenvalueDecomposition {
   List<Complex> get eigenvalues => [
     for (var i = 0; i < _n; i++) Complex(_d[i], _e[i]),
   ];
-
-  static bool _checkSymmetry(Matrix<num> a) {
-    final n = a.rowCount;
-    for (var i = 0; i < n; i++) {
-      for (var j = i + 1; j < n; j++) {
-        if (a.get(i, j) != a.get(j, i)) return false;
-      }
-    }
-    return true;
-  }
-
-  final int _n;
-  final bool _isSymmetric;
-  final List<double> _d;
-  final List<double> _e;
-  final Matrix<double> _v;
-  final Matrix<double> _h;
-  final List<double> _ort;
 
   static double _hypot(double a, double b) {
     if (a.abs() > b.abs()) {
@@ -358,9 +350,6 @@ class EigenvalueDecomposition {
       }
     }
   }
-
-  double _cdivr = 0.0;
-  double _cdivi = 0.0;
 
   void _cdiv(double xr, double xi, double yr, double yi) {
     if (yr.abs() > yi.abs()) {
@@ -714,5 +703,15 @@ class EigenvalueDecomposition {
         _v.set(i, j, z);
       }
     }
+  }
+
+  static bool _checkSymmetry(Matrix<num> a) {
+    final n = a.rowCount;
+    for (var i = 0; i < n; i++) {
+      for (var j = i + 1; j < n; j++) {
+        if (a.get(i, j) != a.get(j, i)) return false;
+      }
+    }
+    return true;
   }
 }

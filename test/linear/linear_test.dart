@@ -344,5 +344,113 @@ void main() {
       expect(csc.nnz, 3);
       expect(csc.get(1, 1), 3.0);
     });
+    test(
+      'Matrix predicates: isSquare, isSymmetric, isDiagonal, triangular',
+      () {
+        final square = Matrix<int>.fromRows([
+          [1, 2],
+          [2, 3],
+        ]);
+        expect(square.isSquare, isTrue);
+        expect(square.isSymmetric, isTrue);
+        expect(square.isDiagonal, isFalse);
+
+        final rect = Matrix<int>.fromRows([
+          [1, 2, 3],
+          [4, 5, 6],
+        ]);
+        expect(rect.isSquare, isFalse);
+        expect(rect.isSymmetric, isFalse);
+
+        final diag = Matrix<int>.fromRows([
+          [5, 0],
+          [0, 8],
+        ]);
+        expect(diag.isDiagonal, isTrue);
+        expect(diag.isLowerTriangular, isTrue);
+        expect(diag.isUpperTriangular, isTrue);
+
+        final lower = Matrix<int>.fromRows([
+          [1, 0],
+          [2, 3],
+        ]);
+        expect(lower.isLowerTriangular, isTrue);
+        expect(lower.isUpperTriangular, isFalse);
+
+        final upper = Matrix<int>.fromRows([
+          [1, 2],
+          [0, 3],
+        ]);
+        expect(upper.isUpperTriangular, isTrue);
+        expect(upper.isLowerTriangular, isFalse);
+      },
+    );
+
+    test('Matrix transformations: flipped, rotated, concatenated', () {
+      final m = Matrix<int>.fromRows([
+        [1, 2],
+        [3, 4],
+      ]);
+
+      final flipH = m.flippedHorizontal();
+      expect(flipH.toNestedList(), [
+        [2, 1],
+        [4, 3],
+      ]);
+
+      final flipV = m.flippedVertical();
+      expect(flipV.toNestedList(), [
+        [3, 4],
+        [1, 2],
+      ]);
+
+      final rot1 = m.rotated(1);
+      expect(rot1.toNestedList(), [
+        [3, 1],
+        [4, 2],
+      ]);
+
+      final rot2 = m.rotated(2);
+      expect(rot2.toNestedList(), [
+        [4, 3],
+        [2, 1],
+      ]);
+
+      final m2 = Matrix<int>.fromRows([
+        [5, 6],
+        [7, 8],
+      ]);
+      final catH = m.concatHorizontal(m2);
+      expect(catH.toNestedList(), [
+        [1, 2, 5, 6],
+        [3, 4, 7, 8],
+      ]);
+
+      final catV = m.concatVertical(m2);
+      expect(catV.toNestedList(), [
+        [1, 2],
+        [3, 4],
+        [5, 6],
+        [7, 8],
+      ]);
+    });
+
+    test('Matrix norms, condition, and rank', () {
+      final a = Matrix<double>.fromRows([
+        [1.0, 2.0],
+        [3.0, 4.0],
+      ]);
+      // Frobenius: sqrt(1 + 4 + 9 + 16) = sqrt(30) ≈ 5.477225575
+      expect(a.normFrobenius, closeTo(5.477225575, 1e-6));
+      // 1-norm: max col sum = max(1+3, 2+4) = 6.0
+      expect(a.norm1, 6.0);
+      // Infinity norm: max row sum = max(1+2, 3+4) = 7.0
+      expect(a.normInfinity, 7.0);
+      // 2-norm: largest singular value ≈ 5.4649857
+      expect(a.norm2, closeTo(5.4649857, 1e-4));
+      // Rank: 2
+      expect(a.rank, 2);
+      expect(a.cond, greaterThan(1.0));
+    });
   });
 }

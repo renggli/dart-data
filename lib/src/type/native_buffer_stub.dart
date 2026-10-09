@@ -25,6 +25,11 @@ class NativeBuffer<T> extends MemoryBuffer<T> {
 
   new _(super.data, this.type) : _isDisposed = false;
 
+  /// The data type of elements stored in the buffer.
+  final DataType<T> type;
+
+  bool _isDisposed;
+
   /// Whether native buffers are supported on this platform.
   static const bool isSupported = false;
 
@@ -39,9 +44,6 @@ class NativeBuffer<T> extends MemoryBuffer<T> {
 
   /// Finds the [NativeBuffer] associated with [target], if any. Always null on non-FFI platforms.
   static NativeBuffer<dynamic>? find(dynamic target) => null;
-
-  /// The data type of elements stored in the buffer.
-  final DataType<T> type;
 
   /// Whether this native buffer has been disposed.
   bool get isDisposed => _isDisposed;
@@ -68,6 +70,4 @@ class NativeBuffer<T> extends MemoryBuffer<T> {
 
   /// Returns null on non-FFI platforms.
   dynamic get pointer => null;
-
-  bool _isDisposed;
 }

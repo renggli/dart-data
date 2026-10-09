@@ -156,5 +156,69 @@ void main() {
       final q = dist.quantile(p);
       check(dist.cdf(q)).isCloseTo(p, 1e-5);
     });
+
+    test('Cauchy distribution', () {
+      const dist = CauchyDistribution(0.0, 1.0);
+      check(dist.median).equals(0.0);
+      check(dist.mode).equals(0.0);
+      check(dist.pdf(0.0)).isCloseTo(1.0 / math.pi, 1e-6);
+      check(dist.cdf(0.0)).isCloseTo(0.5, 1e-6);
+      check(dist.quantile(0.5)).isCloseTo(0.0, 1e-6);
+    });
+
+    test('Degenerate distribution', () {
+      const dist = DegenerateDistribution(5.0);
+      check(dist.mean).equals(5.0);
+      check(dist.variance).equals(0.0);
+      check(dist.pdf(5.0)).equals(1.0);
+      check(dist.pdf(3.0)).equals(0.0);
+      check(dist.cdf(4.0)).equals(0.0);
+      check(dist.cdf(5.0)).equals(1.0);
+      check(dist.sample()).equals(5.0);
+    });
+
+    test('Laplace distribution', () {
+      const dist = LaplaceDistribution(0.0, 1.0);
+      check(dist.mean).equals(0.0);
+      check(dist.variance).equals(2.0);
+      check(dist.excessKurtosis).equals(3.0);
+      check(dist.pdf(0.0)).equals(0.5);
+      check(dist.cdf(0.0)).equals(0.5);
+      check(dist.quantile(0.5)).equals(0.0);
+    });
+
+    test('Log-normal distribution', () {
+      const dist = LogNormalDistribution(0.0, 1.0);
+      check(dist.median).equals(1.0);
+      check(dist.mean).isCloseTo(math.exp(0.5), 1e-6);
+      check(dist.cdf(1.0)).isCloseTo(0.5, 1e-6);
+      check(dist.quantile(0.5)).isCloseTo(1.0, 1e-6);
+    });
+
+    test('Logistic distribution', () {
+      const dist = LogisticDistribution(0.0, 1.0);
+      check(dist.mean).equals(0.0);
+      check(dist.variance).isCloseTo(math.pi * math.pi / 3.0, 1e-6);
+      check(dist.pdf(0.0)).equals(0.25);
+      check(dist.cdf(0.0)).equals(0.5);
+      check(dist.quantile(0.5)).equals(0.0);
+    });
+
+    test('Pareto distribution', () {
+      const dist = ParetoDistribution(1.0, 3.0);
+      check(dist.mean).isCloseTo(1.5, 1e-6);
+      check(dist.pdf(1.0)).equals(3.0);
+      check(dist.cdf(1.0)).equals(0.0);
+      check(dist.cdf(2.0)).isCloseTo(1.0 - 1.0 / 8.0, 1e-6);
+      check(dist.quantile(0.5)).isCloseTo(math.pow(2.0, 1.0 / 3.0), 1e-6);
+    });
+
+    test('Weibull distribution', () {
+      const dist = WeibullDistribution(1.0, 1.0);
+      check(dist.mean).isCloseTo(1.0, 1e-6);
+      check(dist.variance).isCloseTo(1.0, 1e-6);
+      check(dist.cdf(0.0)).equals(0.0);
+      check(dist.cdf(1.0)).isCloseTo(1.0 - math.exp(-1.0), 1e-6);
+    });
   });
 }

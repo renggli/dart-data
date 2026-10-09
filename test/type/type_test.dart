@@ -106,5 +106,15 @@ void main() {
       expect(buf1.id, buf2.id);
       expect(buf1.overlaps(buf2, 0, 0, 5), isTrue);
     });
+
+    test('Field operations Quaternion', () {
+      final f = DataType.quaternion.field;
+      const q1 = Quaternion(1.0, 2.0, 3.0, 4.0);
+      const q2 = Quaternion(2.0, 0.0, 1.0, -1.0);
+      expect(f.add(q1, q2), const Quaternion(3.0, 2.0, 4.0, 3.0));
+      expect(f.sub(q1, q2), const Quaternion(-1.0, 2.0, 2.0, 5.0));
+      expect(f.conjugate(q1), const Quaternion(1.0, -2.0, -3.0, -4.0));
+      expect(DataType.quaternion.cast(5.0), const Quaternion(5.0));
+    });
   });
 }

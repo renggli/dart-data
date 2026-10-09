@@ -43,6 +43,9 @@ abstract class Distribution<T extends num> with ToStringPrinter {
   /// Returns the excess kurtosis of the distribution.
   double get excessKurtosis;
 
+  /// Alias for [excessKurtosis].
+  double get kurtosisExcess => excessKurtosis;
+
   /// Returns the probability density (PDF) or probability mass (PMF) at [x].
   double probability(T x);
 

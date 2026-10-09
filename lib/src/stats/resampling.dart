@@ -204,6 +204,11 @@ class Jackknife<T> with ToStringPrinter {
   /// The upper bound of the confidence interval.
   late final double upperBound = estimate + _zScore * standardError;
 
+  late final _sampleMeasure = statistic(samples);
+  late final _resampleMeasures = resamples.map(statistic).toList();
+  late final _meanResampleMeasure = _resampleMeasures.arithmeticMean();
+  late final _zScore = math.sqrt2 * erfInv(confidenceLevel);
+
   @override
   ObjectPrinter get toStringPrinter => super.toStringPrinter
     ..addValue(estimate, name: 'estimate')
@@ -212,11 +217,6 @@ class Jackknife<T> with ToStringPrinter {
     ..addValue(lowerBound, name: 'lowerBound')
     ..addValue(upperBound, name: 'upperBound')
     ..addValue(confidenceLevel, name: 'confidenceLevel');
-
-  late final _sampleMeasure = statistic(samples);
-  late final _resampleMeasures = resamples.map(statistic).toList();
-  late final _meanResampleMeasure = _resampleMeasures.arithmeticMean();
-  late final _zScore = math.sqrt2 * erfInv(confidenceLevel);
 }
 
 BootstrapResult _computeBootstrapResult<T>({

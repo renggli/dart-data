@@ -1,7 +1,7 @@
 /// Modernized Type and Memory Buffer Subsystem.
 library;
 
-export 'package:more/number.dart' show Complex, Fraction;
+export 'package:more/number.dart' show Complex, Fraction, Quaternion;
 
 export 'src/type/data_type.dart';
 export 'src/type/dtype.dart';

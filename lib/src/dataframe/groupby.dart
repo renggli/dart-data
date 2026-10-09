@@ -18,6 +18,11 @@ class GroupBy {
   final DataFrame dataFrame;
   final List<String> byColumns;
 
+  // Group key string -> list of row indices
+  final Map<String, List<int>> _groups = {};
+  // Group key string -> original key values
+  final Map<String, List<dynamic>> _groupKeys = {};
+
   /// Evaluates aggregations across each group and produces a new DataFrame.
   DataFrame aggregate(Map<String, List<Agg>> aggregations) {
     final resultCols = <String, List<dynamic>>{};
@@ -98,11 +103,6 @@ class GroupBy {
       col: [Agg.count],
     });
   }
-
-  // Group key string -> list of row indices
-  final Map<String, List<int>> _groups = {};
-  // Group key string -> original key values
-  final Map<String, List<dynamic>> _groupKeys = {};
 
   void _buildGroups() {
     final keyCols = byColumns.map(dataFrame.column).toList();

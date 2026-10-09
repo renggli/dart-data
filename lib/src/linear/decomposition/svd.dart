@@ -57,11 +57,11 @@ class SingularValueDecomposition {
   /// The transpose of right singular vectors ([n x n] orthogonal matrix).
   final Matrix<double> vt;
 
-  /// The right singular vectors ([n x n] orthogonal matrix).
-  Matrix<double> get v => vt.transposed;
-
   /// Whether singular vectors were computed.
   final bool vectorsComputed;
+
+  /// The right singular vectors ([n x n] orthogonal matrix).
+  Matrix<double> get v => vt.transposed;
 
   /// Returns the diagonal matrix of singular values of size [m x n].
   Matrix<double> get sigma => Matrix<double>.generate(

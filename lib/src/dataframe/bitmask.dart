@@ -20,6 +20,7 @@ class ValidityMask {
     : _bytes = Uint8List.fromList(bytes);
 
   final int length;
+  final Uint8List _bytes;
 
   /// The underlying raw byte buffer.
   Uint8List get bytes => _bytes;
@@ -62,6 +63,4 @@ class ValidityMask {
 
   /// Creates a deep copy of this validity mask.
   ValidityMask copy() => ValidityMask.fromBytes(length, _bytes);
-
-  final Uint8List _bytes;
 }

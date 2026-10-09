@@ -69,8 +69,7 @@ class BetaDistribution extends ContinuousDistribution {
   double get mean => alpha / (alpha + beta);
 
   @override
-  double get median =>
-      throw UnsupportedError('No simple closed form for median');
+  double get median => alpha == beta ? 0.5 : double.nan;
 
   @override
   double get mode => (alpha > 1.0 && beta > 1.0)

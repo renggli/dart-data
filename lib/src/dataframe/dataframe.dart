@@ -54,6 +54,8 @@ class DataFrame {
 
   /// Number of rows.
   final int rowCount;
+  final List<Series<dynamic>> _columns;
+  final Map<String, int> _columnIndex;
 
   /// Number of columns.
   int get columnCount => _columns.length;
@@ -235,7 +237,4 @@ class DataFrame {
     if (rowCount > 5) buffer.writeln('... and ${rowCount - 5} more rows');
     return buffer.toString();
   }
-
-  final List<Series<dynamic>> _columns;
-  final Map<String, int> _columnIndex;
 }

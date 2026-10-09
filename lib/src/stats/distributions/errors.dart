@@ -3,11 +3,11 @@ class InvalidProbability extends ArgumentError {
   new(this.probability, [String? name])
     : super.value(probability, name, 'Invalid probability');
 
+  final num probability;
+
   static void check(num probability) {
     if (probability < 0 || 1 < probability) {
       throw InvalidProbability(probability);
     }
   }
-
-  final num probability;
 }

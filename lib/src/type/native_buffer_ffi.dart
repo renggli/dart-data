@@ -68,6 +68,20 @@ class NativeBuffer<T> extends MemoryBuffer<T> implements ffi.Finalizable {
     _expando[data] = this;
   }
 
+  /// The raw native pointer.
+  final ffi.Pointer<ffi.NativeType> pointer;
+
+  /// The data type of elements stored in the buffer.
+  final DataType<T> type;
+
+  bool _isDisposed;
+
+  static final ffi.NativeFinalizer _finalizer = ffi.NativeFinalizer(
+    calloc.nativeFree,
+  );
+  static final Expando<NativeBuffer<dynamic>> _expando =
+      Expando<NativeBuffer<dynamic>>();
+
   /// Whether native buffers are supported on this platform.
   static const bool isSupported = true;
 
@@ -108,12 +122,6 @@ class NativeBuffer<T> extends MemoryBuffer<T> implements ffi.Finalizable {
     return null;
   }
 
-  /// The raw native pointer.
-  final ffi.Pointer<ffi.NativeType> pointer;
-
-  /// The data type of elements stored in the buffer.
-  final DataType<T> type;
-
   /// Whether this native buffer has been manually freed.
   bool get isDisposed => _isDisposed;
 
@@ -146,12 +154,4 @@ class NativeBuffer<T> extends MemoryBuffer<T> implements ffi.Finalizable {
   /// Returns the pointer cast to [ffi.Pointer<ffi.Uint8>], or null if disposed.
   ffi.Pointer<ffi.Uint8>? get asUint8Pointer =>
       _isDisposed ? null : pointer.cast<ffi.Uint8>();
-
-  bool _isDisposed;
-
-  static final ffi.NativeFinalizer _finalizer = ffi.NativeFinalizer(
-    calloc.nativeFree,
-  );
-  static final Expando<NativeBuffer<dynamic>> _expando =
-      Expando<NativeBuffer<dynamic>>();
 }

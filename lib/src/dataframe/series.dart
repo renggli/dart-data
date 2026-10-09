@@ -303,10 +303,10 @@ class StringSeries extends Series<String> {
   final ValidityMask? mask;
 
   @override
-  DataType<String> get dataType => DataType.string;
+  final int length;
 
   @override
-  final int length;
+  DataType<String> get dataType => DataType.string;
 
   @override
   int get nullCount => mask?.nullCount ?? 0;
@@ -416,10 +416,10 @@ class BoolSeries extends Series<bool> {
   final ValidityMask? mask;
 
   @override
-  DataType<bool> get dataType => DataType.boolean;
+  final int length;
 
   @override
-  final int length;
+  DataType<bool> get dataType => DataType.boolean;
 
   @override
   int get nullCount => mask?.nullCount ?? 0;

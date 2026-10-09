@@ -81,5 +81,66 @@ void main() {
         check(pchip(4.5)).isCloseTo(1.0, 1e-9);
       },
     );
+
+    test('nearest neighbor interpolation', () {
+      final xs = [0.0, 1.0, 3.0];
+      final ys = [0.0, 10.0, 30.0];
+
+      final interp = NearestInterpolation(xs, ys);
+      check(interp(0.4)).isCloseTo(0.0, 1e-9);
+      check(interp(0.5)).isCloseTo(0.0, 1e-9); // preferLower default
+      check(interp(0.6)).isCloseTo(10.0, 1e-9);
+      check(interp(1.9)).isCloseTo(10.0, 1e-9);
+      check(interp(2.1)).isCloseTo(30.0, 1e-9);
+
+      final preferHigher = NearestInterpolation(xs, ys, preferLower: false);
+      check(preferHigher(0.5)).isCloseTo(10.0, 1e-9);
+    });
+
+    test('previous step interpolation', () {
+      final xs = [1.0, 2.0, 4.0];
+      final ys = [10.0, 20.0, 40.0];
+
+      final interp = PreviousInterpolation(xs, ys, left: -1.0);
+      check(interp(0.5)).isCloseTo(-1.0, 1e-9);
+      check(interp(1.0)).isCloseTo(10.0, 1e-9);
+      check(interp(1.9)).isCloseTo(10.0, 1e-9);
+      check(interp(2.0)).isCloseTo(20.0, 1e-9);
+      check(interp(3.5)).isCloseTo(20.0, 1e-9);
+      check(interp(4.0)).isCloseTo(40.0, 1e-9);
+      check(interp(5.0)).isCloseTo(40.0, 1e-9);
+    });
+
+    test('next step interpolation', () {
+      final xs = [1.0, 2.0, 4.0];
+      final ys = [10.0, 20.0, 40.0];
+
+      final interp = NextInterpolation(xs, ys, right: 99.0);
+      check(interp(0.5)).isCloseTo(10.0, 1e-9);
+      check(interp(1.0)).isCloseTo(10.0, 1e-9);
+      check(interp(1.1)).isCloseTo(20.0, 1e-9);
+      check(interp(2.0)).isCloseTo(20.0, 1e-9);
+      check(interp(3.0)).isCloseTo(40.0, 1e-9);
+      check(interp(4.0)).isCloseTo(40.0, 1e-9);
+      check(interp(4.1)).isCloseTo(99.0, 1e-9);
+    });
+
+    test('lagrange polynomial interpolation', () {
+      // y = 2*x^2 - 3*x + 1
+      final xs = [-1.0, 0.0, 1.0, 2.0];
+      final ys = [6.0, 1.0, 0.0, 3.0];
+
+      final interp = LagrangeInterpolation(xs, ys);
+      for (var i = 0; i < xs.length; i++) {
+        check(interp(xs[i])).isCloseTo(ys[i], 1e-9);
+      }
+      // Test at intermediate points
+      // At x = 0.5: 2*(0.25) - 1.5 + 1 = 0.5 - 1.5 + 1 = 0.0
+      check(interp(0.5)).isCloseTo(0.0, 1e-9);
+      // At x = 1.5: 2*(2.25) - 4.5 + 1 = 4.5 - 4.5 + 1 = 1.0
+      check(interp(1.5)).isCloseTo(1.0, 1e-9);
+      // At x = 3.0: 2*(9) - 9 + 1 = 10.0
+      check(interp(3.0)).isCloseTo(10.0, 1e-9);
+    });
   });
 }

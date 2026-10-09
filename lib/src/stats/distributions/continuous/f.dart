@@ -68,8 +68,7 @@ class FDistribution extends ContinuousDistribution {
   double get mean => d2 > 2.0 ? d2 / (d2 - 2.0) : double.nan;
 
   @override
-  double get median =>
-      throw UnsupportedError('No simple closed form for median');
+  double get median => double.nan;
 
   @override
   double get mode => d1 > 2.0 ? ((d1 - 2.0) / d1) * (d2 / (d2 + 2.0)) : 0.0;

@@ -1,7 +1,7 @@
 import 'dart:math' as math;
 import 'dart:typed_data';
 
-import 'package:more/number.dart' show Complex, Fraction;
+import 'package:more/number.dart' show Complex, Fraction, Quaternion;
 
 import 'dtype.dart';
 import 'equality.dart';
@@ -26,6 +26,7 @@ abstract class DataType<T> {
   static const BooleanDataType boolean = BooleanDataType();
   static const StringDataType string = StringDataType();
   static const ComplexDataType complex = ComplexDataType();
+  static const QuaternionDataType quaternion = QuaternionDataType();
   static const FractionDataType fraction = FractionDataType();
   static const BigIntDataType bigInt = BigIntDataType();
   static const ObjectDataType<Object?> objectType = ObjectDataType<Object?>(
@@ -411,6 +412,38 @@ class ComplexDataType extends DataType<Complex> {
   @override
   Complex cast(dynamic value) =>
       value is Complex ? value : Complex((value as num).toDouble());
+}
+
+class QuaternionDataType extends DataType<Quaternion> {
+  const new();
+  @override
+  String get name => 'quaternion';
+  @override
+  Quaternion get defaultValue => Quaternion.zero;
+  @override
+  DType get dType => DType.object;
+  @override
+  Field<Quaternion> get field => const QuaternionField();
+  @override
+  List<Quaternion> newList(
+    int length, {
+    Quaternion? fillValue,
+    bool readonly = false,
+  }) => List<Quaternion>.filled(
+    length,
+    fillValue ?? Quaternion.zero,
+    growable: false,
+  );
+  @override
+  Quaternion cast(dynamic value) {
+    if (value is Quaternion) return value;
+    if (value is num) return Quaternion(value.toDouble());
+    if (value is Complex) return Quaternion(value.a, value.b);
+    if (value is String) {
+      return Quaternion.tryParse(value) ?? (throw ArgumentError.value(value));
+    }
+    throw ArgumentError.value(value);
+  }
 }
 
 class FractionDataType extends DataType<Fraction> {

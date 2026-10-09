@@ -48,13 +48,13 @@ class NormalDistribution extends ContinuousDistribution {
   final double mean;
 
   @override
+  final double standardDeviation;
+
+  @override
   double get median => mean;
 
   @override
   double get mode => mean;
-
-  @override
-  final double standardDeviation;
 
   @override
   double get variance => standardDeviation * standardDeviation;

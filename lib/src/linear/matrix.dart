@@ -7,7 +7,9 @@ import '../tensor/operations/matmul.dart';
 import '../tensor/operations/operation.dart';
 import '../tensor/tensor.dart';
 import '../type/data_type.dart';
+import 'decomposition/cholesky.dart';
 import 'decomposition/eigenvalue.dart';
+import 'decomposition/lu.dart';
 import 'decomposition/qr.dart';
 import 'decomposition/svd.dart';
 import 'operator.dart';
@@ -184,6 +186,13 @@ class Matrix<T> implements LinearOperator<T> {
     return diagonal().sum;
   }
 
+  /// Computes the Cholesky decomposition of this symmetric positive-definite matrix.
+  CholeskyDecomposition get cholesky =>
+      CholeskyDecomposition(this as Matrix<num>);
+
+  /// Computes the LU decomposition of this matrix.
+  LUDecomposition get lu => LUDecomposition(this as Matrix<num>);
+
   /// Computes the QR decomposition of this matrix.
   QRDecomposition get qr => QRDecomposition(this as Matrix<num>);
 
@@ -194,6 +203,116 @@ class Matrix<T> implements LinearOperator<T> {
   /// Computes the Eigenvalue decomposition of this square matrix.
   EigenvalueDecomposition get eigenvalue =>
       EigenvalueDecomposition(this as Matrix<num>);
+
+  /// Tests if this matrix is square ($M = N$).
+  bool get isSquare => rowCount == colCount;
+
+  /// Tests if this matrix is symmetric ($A = A^T$).
+  bool get isSymmetric {
+    if (!isSquare) return false;
+    final eq = type.equality;
+    for (var r = 1; r < rowCount; r++) {
+      for (var c = 0; c < r; c++) {
+        if (!eq.isEqual(get(r, c), get(c, r))) {
+          return false;
+        }
+      }
+    }
+    return true;
+  }
+
+  /// Tests if this matrix is a diagonal matrix ($a_{ij} = 0$ for $i \ne j$).
+  bool get isDiagonal {
+    final eq = type.equality;
+    final zero = type.defaultValue;
+    for (var r = 0; r < rowCount; r++) {
+      for (var c = 0; c < colCount; c++) {
+        if (r != c && !eq.isEqual(get(r, c), zero)) {
+          return false;
+        }
+      }
+    }
+    return true;
+  }
+
+  /// Tests if this matrix is lower triangular ($a_{ij} = 0$ for $j > i$).
+  bool get isLowerTriangular {
+    final eq = type.equality;
+    final zero = type.defaultValue;
+    for (var r = 0; r < rowCount; r++) {
+      for (var c = r + 1; c < colCount; c++) {
+        if (!eq.isEqual(get(r, c), zero)) {
+          return false;
+        }
+      }
+    }
+    return true;
+  }
+
+  /// Tests if this matrix is upper triangular ($a_{ij} = 0$ for $i > j$).
+  bool get isUpperTriangular {
+    final eq = type.equality;
+    final zero = type.defaultValue;
+    for (var r = 1; r < rowCount; r++) {
+      for (var c = 0; c < colCount && c < r; c++) {
+        if (!eq.isEqual(get(r, c), zero)) {
+          return false;
+        }
+      }
+    }
+    return true;
+  }
+
+  /// Returns column [col] as a 1D [Vector] (alias for [col]).
+  Vector<T> column(int col) => this.col(col);
+
+  /// Horizontally flipped view of this matrix.
+  Matrix<T> flippedHorizontal() => Matrix(tensor.flip(axis: 1));
+
+  /// Vertically flipped view of this matrix.
+  Matrix<T> flippedVertical() => Matrix(tensor.flip(axis: 0));
+
+  /// Rotates this matrix clockwise by 90 degrees times [count].
+  Matrix<T> rotated([int count = 1]) {
+    final normalized = count % 4;
+    return switch (normalized) {
+      0 => this,
+      1 => transpose().flippedHorizontal(),
+      2 => flippedHorizontal().flippedVertical(),
+      3 => transpose().flippedVertical(),
+      _ => this,
+    };
+  }
+
+  /// Concatenates [other] horizontally to the right of this matrix.
+  Matrix<T> concatHorizontal(Matrix<T> other) {
+    if (rowCount != other.rowCount) {
+      throw ArgumentError(
+        'Row counts must match to concatenate horizontally: $rowCount vs ${other.rowCount}.',
+      );
+    }
+    return Matrix.generate(
+      rowCount,
+      colCount + other.colCount,
+      (r, c) => c < colCount ? get(r, c) : other.get(r, c - colCount),
+      type: type,
+    );
+  }
+
+  /// Concatenates [other] vertically to the bottom of this matrix.
+  Matrix<T> concatVertical(Matrix<T> other) {
+    if (colCount != other.colCount) {
+      throw ArgumentError(
+        'Column counts must match to concatenate vertically: $colCount vs ${other.colCount}.',
+      );
+    }
+    return Matrix.generate(
+      rowCount + other.rowCount,
+      colCount,
+      (r, c) => r < rowCount ? get(r, c) : other.get(r - rowCount, c),
+      type: type,
+    );
+  }
 
   /// Solves the linear system A * x = b.
   Vector<T> solve(Vector<T> b) {

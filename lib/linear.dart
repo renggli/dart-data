@@ -1,7 +1,10 @@
 /// Unified LinearOperator, dense/sparse matrices, vectors, and iterative solvers.
 library;
 
+export 'src/linear/decomposition/cholesky.dart';
 export 'src/linear/decomposition/eigenvalue.dart';
+export 'src/linear/decomposition/lu.dart';
+export 'src/linear/decomposition/norm.dart';
 export 'src/linear/decomposition/qr.dart';
 export 'src/linear/decomposition/svd.dart';
 export 'src/linear/matrix.dart';

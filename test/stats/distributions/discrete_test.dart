@@ -70,5 +70,43 @@ void main() {
       check(fitted.min).equals(1);
       check(fitted.max).equals(6);
     });
+
+    test('Geometric distribution', () {
+      const dist = GeometricDistribution(0.5);
+      check(dist.mean).equals(1.0);
+      check(dist.variance).equals(2.0);
+      check(dist.pmf(0)).equals(0.5);
+      check(dist.pmf(1)).equals(0.25);
+      check(dist.cdf(0)).equals(0.5);
+      check(dist.cdf(1)).equals(0.75);
+    });
+
+    test('Hypergeometric distribution', () {
+      const dist = HypergeometricDistribution(50, 10, 5);
+      check(dist.mean).equals(1.0);
+      check(dist.pmf(0)).isGreaterThan(0.3);
+      check(dist.pmf(0)).isLessThan(0.4);
+      check(dist.lowerBound).equals(0);
+      check(dist.upperBound).equals(5);
+    });
+
+    test('Negative Binomial distribution', () {
+      const dist = NegativeBinomialDistribution(1.0, 0.5);
+      check(dist.mean).equals(1.0);
+      check(dist.variance).equals(2.0);
+      check(dist.pmf(0)).isCloseTo(0.5, 1e-12);
+      check(dist.pmf(1)).isCloseTo(0.25, 1e-12);
+    });
+
+    test('Rademacher distribution', () {
+      const dist = RademacherDistribution();
+      check(dist.mean).equals(0.0);
+      check(dist.variance).equals(1.0);
+      check(dist.pmf(1)).equals(0.5);
+      check(dist.pmf(-1)).equals(0.5);
+      check(dist.pmf(0)).equals(0.0);
+      check(dist.cdf(-1)).equals(0.5);
+      check(dist.cdf(1)).equals(1.0);
+    });
   });
 }

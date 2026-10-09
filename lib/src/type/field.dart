@@ -1,6 +1,6 @@
 import 'dart:math' as math;
 
-import 'package:more/number.dart' show Complex, Fraction;
+import 'package:more/number.dart' show Complex, Fraction, Quaternion;
 
 /// Encapsulates a mathematical field with algebraic operations.
 abstract class Field<T> {
@@ -340,4 +340,47 @@ class BigIntField extends Field<BigInt> {
 
   @override
   BigInt conjugate(BigInt a) => a;
+}
+
+class QuaternionField extends Field<Quaternion> {
+  const new();
+
+  @override
+  Quaternion get additiveIdentity => Quaternion.zero;
+
+  @override
+  Quaternion neg(Quaternion a) => -a;
+
+  @override
+  Quaternion add(Quaternion a, Quaternion b) => a + b;
+
+  @override
+  Quaternion sub(Quaternion a, Quaternion b) => a - b;
+
+  @override
+  Quaternion get multiplicativeIdentity => Quaternion.one;
+
+  @override
+  Quaternion inv(Quaternion a) => a.reciprocal();
+
+  @override
+  Quaternion mul(Quaternion a, Quaternion b) => a * b;
+
+  @override
+  Quaternion scale(Quaternion a, num factor) => a * factor;
+
+  @override
+  Quaternion div(Quaternion a, Quaternion b) => a / b;
+
+  @override
+  Quaternion pow(Quaternion base, Quaternion exponent) => base.pow(exponent);
+
+  @override
+  Quaternion abs(Quaternion a) => Quaternion(a.abs());
+
+  @override
+  double norm(Quaternion a) => a.abs();
+
+  @override
+  Quaternion conjugate(Quaternion a) => a.conjugate();
 }

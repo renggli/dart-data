@@ -12,6 +12,8 @@ class HardwareManager {
   /// Whether hardware acceleration is globally enabled. Can be disabled for benchmarking or testing fallbacks.
   static bool isEnabled = true;
 
+  static final BlasLibrary _blas = loadBlas();
+
   /// Whether native BLAS is loaded and available on the current platform.
   static bool get isNativeAvailable => _blas.isAvailable;
 
@@ -874,6 +876,4 @@ class HardwareManager {
     b.setRange(bOffset, bOffset + n * ldb, bCopy);
     return true;
   }
-
-  static final BlasLibrary _blas = loadBlas();
 }
