@@ -30,6 +30,7 @@ abstract class DataType<T> {
   static const ObjectDataType<Object?> objectType = ObjectDataType<Object?>(
     null,
   );
+  static const ObjectDataType<Object?> object = objectType;
 
   // Defaults
   static const IntegerDataType index = uint32;
@@ -145,8 +146,9 @@ class Float64DataType extends FloatDataType {
   @override
   Float64List newList(int length, {double? fillValue, bool readonly = false}) {
     final list = Float64List(length);
-    if (fillValue != null && fillValue != 0.0)
+    if (fillValue != null && fillValue != 0.0) {
       list.fillRange(0, length, fillValue);
+    }
     return list;
   }
 }
@@ -162,8 +164,9 @@ class Float32DataType extends FloatDataType {
   @override
   Float32List newList(int length, {double? fillValue, bool readonly = false}) {
     final list = Float32List(length);
-    if (fillValue != null && fillValue != 0.0)
+    if (fillValue != null && fillValue != 0.0) {
       list.fillRange(0, length, fillValue);
+    }
     return list;
   }
 }
@@ -195,8 +198,9 @@ class Int32DataType extends IntegerDataType {
   @override
   Int32List newList(int length, {int? fillValue, bool readonly = false}) {
     final list = Int32List(length);
-    if (fillValue != null && fillValue != 0)
+    if (fillValue != null && fillValue != 0) {
       list.fillRange(0, length, fillValue);
+    }
     return list;
   }
 }
@@ -214,8 +218,9 @@ class Int64DataType extends IntegerDataType {
   @override
   Int64List newList(int length, {int? fillValue, bool readonly = false}) {
     final list = Int64List(length);
-    if (fillValue != null && fillValue != 0)
+    if (fillValue != null && fillValue != 0) {
       list.fillRange(0, length, fillValue);
+    }
     return list;
   }
 }
@@ -233,8 +238,9 @@ class Int16DataType extends IntegerDataType {
   @override
   Int16List newList(int length, {int? fillValue, bool readonly = false}) {
     final list = Int16List(length);
-    if (fillValue != null && fillValue != 0)
+    if (fillValue != null && fillValue != 0) {
       list.fillRange(0, length, fillValue);
+    }
     return list;
   }
 }
@@ -252,8 +258,9 @@ class Int8DataType extends IntegerDataType {
   @override
   Int8List newList(int length, {int? fillValue, bool readonly = false}) {
     final list = Int8List(length);
-    if (fillValue != null && fillValue != 0)
+    if (fillValue != null && fillValue != 0) {
       list.fillRange(0, length, fillValue);
+    }
     return list;
   }
 }
@@ -271,8 +278,9 @@ class Uint8DataType extends IntegerDataType {
   @override
   Uint8List newList(int length, {int? fillValue, bool readonly = false}) {
     final list = Uint8List(length);
-    if (fillValue != null && fillValue != 0)
+    if (fillValue != null && fillValue != 0) {
       list.fillRange(0, length, fillValue);
+    }
     return list;
   }
 }
@@ -290,8 +298,9 @@ class Uint16DataType extends IntegerDataType {
   @override
   Uint16List newList(int length, {int? fillValue, bool readonly = false}) {
     final list = Uint16List(length);
-    if (fillValue != null && fillValue != 0)
+    if (fillValue != null && fillValue != 0) {
       list.fillRange(0, length, fillValue);
+    }
     return list;
   }
 }
@@ -309,8 +318,9 @@ class Uint32DataType extends IntegerDataType {
   @override
   Uint32List newList(int length, {int? fillValue, bool readonly = false}) {
     final list = Uint32List(length);
-    if (fillValue != null && fillValue != 0)
+    if (fillValue != null && fillValue != 0) {
       list.fillRange(0, length, fillValue);
+    }
     return list;
   }
 }
@@ -328,8 +338,9 @@ class Uint64DataType extends IntegerDataType {
   @override
   Uint64List newList(int length, {int? fillValue, bool readonly = false}) {
     final list = Uint64List(length);
-    if (fillValue != null && fillValue != 0)
+    if (fillValue != null && fillValue != 0) {
       list.fillRange(0, length, fillValue);
+    }
     return list;
   }
 }
