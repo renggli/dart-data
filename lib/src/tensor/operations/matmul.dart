@@ -1,3 +1,6 @@
+import 'dart:typed_data';
+
+import '../../hardware/hardware.dart';
 import '../../type/field.dart';
 import '../layout.dart';
 import '../tensor.dart';
@@ -62,7 +65,42 @@ extension MatmulTensorExtension<T> on Tensor<T> {
     int n,
     Field<T> f,
   ) {
-    // Cache-friendly i -> p -> j loop for row-major layouts
+    // Transparent hardware acceleration when contiguous and unshifted
+    if (a.isContiguous && b.isContiguous && c.isContiguous && a.offset == 0 && b.offset == 0 && c.offset == 0) {
+      if (a.data is Float64List && b.data is Float64List && c.data is Float64List) {
+        final success = HardwareManager.dgemm(
+          m: m,
+          n: n,
+          k: k,
+          alpha: 1.0,
+          a: a.data as Float64List,
+          lda: k,
+          b: b.data as Float64List,
+          ldb: n,
+          beta: 0.0,
+          c: c.data as Float64List,
+          ldc: n,
+        );
+        if (success) return;
+      } else if (a.data is Float32List && b.data is Float32List && c.data is Float32List) {
+        final success = HardwareManager.sgemm(
+          m: m,
+          n: n,
+          k: k,
+          alpha: 1.0,
+          a: a.data as Float32List,
+          lda: k,
+          b: b.data as Float32List,
+          ldb: n,
+          beta: 0.0,
+          c: c.data as Float32List,
+          ldc: n,
+        );
+        if (success) return;
+      }
+    }
+
+    // Cache-friendly i -> p -> j loop for row-major layouts (pure Dart fallback)
     for (var i = 0; i < m; i++) {
       for (var p = 0; p < k; p++) {
         final aVal = a.getValue([i, p]);
