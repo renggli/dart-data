@@ -44,7 +44,7 @@ However, several architectural shortcomings and algorithmic gaps limit its effec
 
 ## 2. Target Design & Architecture
 
-```
+```text
 +-------------------------------------------------------------------------+
 |                          Polynomial Subsystem                           |
 +-------------------------------------------------------------------------+

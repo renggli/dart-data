@@ -43,7 +43,7 @@ However, modern statistical analysis requires empirical descriptive metrics, inf
 
 ## 2. Target Design & Architecture
 
-```
+```text
 +-------------------------------------------------------------------------+
 |                            Stats Subsystem                              |
 +-------------------------------------------------------------------------+

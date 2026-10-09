@@ -54,7 +54,7 @@ However, an audit of the current implementation reveals critical gaps, numerical
 
 ## 2. Target Design & Architecture
 
-```
+```text
 +-------------------------------------------------------------------------+
 |                           Numeric Subsystem                             |
 +-------------------------------------------------------------------------+

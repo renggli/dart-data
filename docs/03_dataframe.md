@@ -16,7 +16,7 @@ This document outlines the architecture for a unified, fast, and easy-to-use `Da
 
 ## 2. Core Architectural Design
 
-```
+```text
 +-------------------------------------------------------------------------+
 |                               DataFrame                                 |
 |  - Index (Row labels or RangeIndex)                                     |

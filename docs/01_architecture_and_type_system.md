@@ -52,7 +52,7 @@
 
 ## 2. Architectural Blueprint & Target Design
 
-```
+```text
 +------------------------------------------------------------------------+
 |                            User API Layer                              |
 |   Extension Types: Float64Tensor, Int32Matrix, Float32Vector, Series   |

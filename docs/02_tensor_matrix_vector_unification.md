@@ -8,7 +8,7 @@
 - **`Matrix<T>`** ([lib/src/matrix/matrix.dart](../lib/src/matrix/matrix.dart)): 2D data structure featuring 10 storage classes and over 20 specialized lazy view classes ([lib/src/matrix/view/](../lib/src/matrix/view/)). Arithmetic operations are **lazy views**.
 - **`Vector<T>`** ([lib/src/vector/vector.dart](../lib/src/vector/vector.dart)): 1D data structure mirroring Matrix's lazy view architecture.
 
-```
+```text
 CURRENT FRAGMENTED STATE:
 
    Tensor<T>                    Matrix<T>                      Vector<T>
@@ -48,7 +48,7 @@ CURRENT FRAGMENTED STATE:
 
 We unify dense representations on the strided `Layout` engine, while preserving specialized sparse formats behind clean, common interfaces.
 
-```
+```text
 TARGET UNIFIED ARCHITECTURE:
 
                           +----------------------+

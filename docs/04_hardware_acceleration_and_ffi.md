@@ -14,7 +14,7 @@ The primary objective of this subsystem is to provide **transparent hardware acc
 
 ## 2. Architectural Design
 
-```
+```text
 +-------------------------------------------------------------------------+
 |                  High-Level Tensor & Matrix API                         |
 |      (Matrix.mulMatrix, Tensor.matmul, SVD, QR, Eigenvalue, Solver)     |
