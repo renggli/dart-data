@@ -16,6 +16,45 @@ class FDistribution extends ContinuousDistribution {
     : assert(d1 > 0, 'd1 > 0'),
       assert(d2 > 0, 'd2 > 0');
 
+  /// Fits an F-distribution to [samples] using method of moments estimation.
+  factory fit(Iterable<num> samples) {
+    var count = 0;
+    var sum = 0.0;
+    for (final x in samples) {
+      if (x <= 0) {
+        throw ArgumentError.value(
+          x,
+          'samples',
+          'F-distribution samples must be positive',
+        );
+      }
+      count++;
+      sum += x;
+    }
+    if (count < 4) {
+      throw ArgumentError.value(
+        samples,
+        'samples',
+        'At least 4 samples required to fit F-distribution',
+      );
+    }
+    final m = sum / count;
+    var sumSqDiff = 0.0;
+    for (final x in samples) {
+      final diff = x - m;
+      sumSqDiff += diff * diff;
+    }
+    final v = sumSqDiff / (count - 1);
+
+    var d2 = m > 1.0 ? (2.0 * m) / (m - 1.0) : 6.0;
+    d2 = d2.clamp(2.1, 100.0);
+    final denom = v * (d2 - 4.0) - 2.0 * m * m;
+    var d1 = denom > 0.0 ? (2.0 * m * m * (d2 - 2.0)) / denom : 5.0;
+    if (d1.isNaN || d1 <= 0.0) d1 = 5.0;
+    d1 = d1.clamp(0.5, 100.0);
+    return FDistribution(d1, d2);
+  }
+
   /// Numerator degrees of freedom $d_1$.
   final double d1;
 

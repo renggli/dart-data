@@ -1,7 +1,8 @@
 import 'dart:math' as math;
 
+import 'package:checks/checks.dart';
 import 'package:data/special.dart';
-import 'package:test/test.dart';
+import 'package:test/scaffolding.dart';
 
 void main() {
   group('gamma function', () {
@@ -55,52 +56,50 @@ void main() {
     test('gamma', () {
       for (final tuple in gammaTuples) {
         if (tuple.$2.isNaN) {
-          expect(gamma(tuple.$1).isNaN, isTrue, reason: 'gamma(${tuple.$1})');
+          check(because: 'gamma(${tuple.$1})', gamma(tuple.$1)).isNaN();
         } else {
-          expect(
+          check(
+            because: 'gamma(${tuple.$1})',
             gamma(tuple.$1),
-            closeTo(tuple.$2, 1e-4),
-            reason: 'gamma(${tuple.$1})',
-          );
+          ).isCloseTo(tuple.$2, 1e-4);
         }
       }
     });
 
     test('gammaLn', () {
       for (final tuple in gammaTuples.where((t) => t.$1 > 0)) {
-        expect(
+        check(
+          because: 'gammaLn(${tuple.$1})',
           gammaLn(tuple.$1),
-          closeTo(math.log(tuple.$2), 1e-6),
-          reason: 'gammaLn(${tuple.$1})',
-        );
+        ).isCloseTo(math.log(tuple.$2), 1e-6);
       }
-      expect(gammaLn(0).isNaN, isTrue);
-      expect(gammaLn(-1).isNaN, isTrue);
+      check(gammaLn(0)).isNaN();
+      check(gammaLn(-1)).isNaN();
     });
 
     test('gammap and lowRegGamma', () {
-      expect(lowRegGamma(1, 1), closeTo(1.0 - math.exp(-1), 1e-6));
-      expect(gammap(1, 1), closeTo(1.0 - math.exp(-1), 1e-6));
-      expect(lowRegGamma(-1, 1).isNaN, isTrue);
-      expect(lowRegGamma(1, -1).isNaN, isTrue);
+      check(lowRegGamma(1, 1)).isCloseTo(1.0 - math.exp(-1), 1e-6);
+      check(gammap(1, 1)).isCloseTo(1.0 - math.exp(-1), 1e-6);
+      check(lowRegGamma(-1, 1)).isNaN();
+      check(lowRegGamma(1, -1)).isNaN();
     });
 
     test('gammapInv', () {
-      expect(gammapInv(0.0, 2.0), 0.0);
-      expect(gammapInv(1.0, 2.0), greaterThan(10.0));
+      check(gammapInv(0.0, 2.0)).equals(0.0);
+      check(gammapInv(1.0, 2.0)).isGreaterThan(10.0);
       final p = lowRegGamma(2.5, 3.0);
-      expect(gammapInv(p, 2.5), closeTo(3.0, 1e-4));
+      check(gammapInv(p, 2.5)).isCloseTo(3.0, 1e-4);
     });
 
     test('factorial and combinations', () {
-      expect(factorial(0), closeTo(1.0, 1e-8));
-      expect(factorial(5), closeTo(120.0, 1e-8));
-      expect(factorial(-1).isNaN, isTrue);
-      expect(factorialLn(5), closeTo(math.log(120.0), 1e-6));
-      expect(combination(5, 2), closeTo(10.0, 1e-6));
-      expect(combinationLn(5, 2), closeTo(math.log(10.0), 1e-6));
-      expect(permutation(5, 2), closeTo(20.0, 1e-6));
-      expect(permutationLn(5, 2), closeTo(math.log(20.0), 1e-6));
+      check(factorial(0)).isCloseTo(1.0, 1e-8);
+      check(factorial(5)).isCloseTo(120.0, 1e-8);
+      check(factorial(-1)).isNaN();
+      check(factorialLn(5)).isCloseTo(math.log(120.0), 1e-6);
+      check(combination(5, 2)).isCloseTo(10.0, 1e-6);
+      check(combinationLn(5, 2)).isCloseTo(math.log(10.0), 1e-6);
+      check(permutation(5, 2)).isCloseTo(20.0, 1e-6);
+      check(permutationLn(5, 2)).isCloseTo(math.log(20.0), 1e-6);
     });
   });
 }

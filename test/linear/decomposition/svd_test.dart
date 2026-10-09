@@ -1,6 +1,7 @@
+import 'package:checks/checks.dart';
 import 'package:data/linear.dart';
 import 'package:data/type.dart';
-import 'package:test/test.dart';
+import 'package:test/scaffolding.dart';
 
 void main() {
   group('Singular Value Decomposition (SVD)', () {
@@ -13,12 +14,12 @@ void main() {
       ], type: DataType.float64);
 
       final svd = a.svd;
-      expect(svd.s.length, 4);
-      expect(svd.rank, 3);
+      check(svd.s.length).equals(4);
+      check(svd.rank).equals(3);
 
       // Singular values should be ordered descending
       for (var i = 0; i < svd.s.length - 1; i++) {
-        expect(svd.s[i], greaterThanOrEqualTo(svd.s[i + 1]));
+        check(svd.s[i]).isGreaterOrEqual(svd.s[i + 1]);
       }
 
       // Reconstruct A = U * Sigma * V^T
@@ -29,7 +30,7 @@ void main() {
       final reconstructed = u * sigma * vt;
       for (var i = 0; i < a.rowCount; i++) {
         for (var j = 0; j < a.colCount; j++) {
-          expect(reconstructed.get(i, j), closeTo(a.get(i, j), 1e-6));
+          check(reconstructed.get(i, j)).isCloseTo(a.get(i, j), 1e-6);
         }
       }
     });
@@ -47,9 +48,9 @@ void main() {
       ], type: DataType.float64);
 
       final x = a.svd.solveVector(b);
-      expect(x.length, 2);
-      expect(x[0], closeTo(0.0, 1e-6));
-      expect(x[1], closeTo(2.0, 1e-6));
+      check(x.length).equals(2);
+      check(x[0]).isCloseTo(0.0, 1e-6);
+      check(x[1]).isCloseTo(2.0, 1e-6);
     });
   });
 }

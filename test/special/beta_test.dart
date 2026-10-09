@@ -1,7 +1,8 @@
 import 'dart:math' as math;
 
+import 'package:checks/checks.dart';
 import 'package:data/special.dart';
-import 'package:test/test.dart';
+import 'package:test/scaffolding.dart';
 
 void main() {
   group('beta functions', () {
@@ -22,38 +23,39 @@ void main() {
     test('beta', () {
       for (final tuple in betaTuples) {
         if (tuple.$3.isNaN) {
-          expect(beta(tuple.$1, tuple.$2).isNaN, isTrue);
-        } else {
-          expect(
+          check(
+            because: 'beta(${tuple.$1}, ${tuple.$2})',
             beta(tuple.$1, tuple.$2),
-            closeTo(tuple.$3, 1e-6),
-            reason: 'beta(${tuple.$1}, ${tuple.$2})',
-          );
+          ).isNaN();
+        } else {
+          check(
+            because: 'beta(${tuple.$1}, ${tuple.$2})',
+            beta(tuple.$1, tuple.$2),
+          ).isCloseTo(tuple.$3, 1e-6);
         }
       }
     });
 
     test('betaLn', () {
       for (final tuple in betaTuples.where((t) => !t.$3.isNaN)) {
-        expect(
+        check(
+          because: 'betaLn(${tuple.$1}, ${tuple.$2})',
           betaLn(tuple.$1, tuple.$2),
-          closeTo(math.log(tuple.$3), 1e-6),
-          reason: 'betaLn(${tuple.$1}, ${tuple.$2})',
-        );
+        ).isCloseTo(math.log(tuple.$3), 1e-6);
       }
     });
 
     test('ibeta and ibetaInv', () {
-      expect(ibetaInv(0.0, 2.5, 0.5), 0.0);
-      expect(ibetaInv(1.0, 2.5, 0.5), 1.0);
-      expect(ibeta(0.0, 2.0, 3.0), 0.0);
-      expect(ibeta(1.0, 2.0, 3.0), 1.0);
-      expect(ibeta(0.5, 1.0, 1.0), closeTo(0.5, 1e-6));
-      expect(ibeta(-0.1, 1, 1).isNaN, isTrue);
-      expect(ibeta(1.1, 1, 1).isNaN, isTrue);
+      check(ibetaInv(0.0, 2.5, 0.5)).equals(0.0);
+      check(ibetaInv(1.0, 2.5, 0.5)).equals(1.0);
+      check(ibeta(0.0, 2.0, 3.0)).equals(0.0);
+      check(ibeta(1.0, 2.0, 3.0)).equals(1.0);
+      check(ibeta(0.5, 1.0, 1.0)).isCloseTo(0.5, 1e-6);
+      check(ibeta(-0.1, 1, 1)).isNaN();
+      check(ibeta(1.1, 1, 1)).isNaN();
 
       final p = ibeta(0.4, 3.0, 4.0);
-      expect(ibetaInv(p, 3.0, 4.0), closeTo(0.4, 1e-5));
+      check(ibetaInv(p, 3.0, 4.0)).isCloseTo(0.4, 1e-5);
     });
   });
 }

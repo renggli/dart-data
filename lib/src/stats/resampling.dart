@@ -7,6 +7,7 @@ import 'package:more/printer.dart' show ObjectPrinter, ToStringPrinter;
 
 import '../../special.dart';
 import 'descriptive.dart';
+import 'distribution.dart';
 
 /// Result of bootstrap resampling.
 class BootstrapResult with ToStringPrinter {
@@ -83,20 +84,102 @@ BootstrapResult bootstrap<T>(
     bootEstimates[b] = statistic(resampleBuffer);
   }
 
-  bootEstimates.sort();
+  return _computeBootstrapResult(
+    sample: samples,
+    originalEstimate: originalEstimate,
+    bootEstimates: bootEstimates,
+    statistic: statistic,
+    confidenceLevel: confidenceLevel,
+  );
+}
 
-  final bootMean = mean(bootEstimates);
-  final se = standardDeviation(bootEstimates);
+/// Computes parametric bootstrap estimates and confidence intervals (Percentile and BCa).
+///
+/// Unlike non-parametric bootstrap which resamples with replacement from empirical observations,
+/// parametric bootstrap generates synthetic samples by drawing from a fitted parametric model
+/// or generative function [sampler].
+BootstrapResult parametricBootstrap<T>({
+  required List<T> sample,
+  required double Function(List<T>) statistic,
+  required List<T> Function(math.Random random) sampler,
+  int resamples = 1000,
+  double confidenceLevel = 0.95,
+  math.Random? random,
+}) {
+  final n = sample.length;
+  if (n < 2) {
+    throw ArgumentError('At least 2 samples required for bootstrap');
+  }
+  if (resamples < 10) {
+    throw ArgumentError('At least 10 resamples required');
+  }
+  if (confidenceLevel <= 0.0 || confidenceLevel >= 1.0) {
+    throw ArgumentError('Confidence level must be between 0 and 1');
+  }
+
+  final rng = random ?? math.Random();
+  final originalEstimate = statistic(sample);
+
+  final bootEstimates = List<double>.generate(
+    resamples,
+    (_) => statistic(sampler(rng)),
+    growable: false,
+  );
+
+  return _computeBootstrapResult(
+    sample: sample,
+    originalEstimate: originalEstimate,
+    bootEstimates: bootEstimates,
+    statistic: statistic,
+    confidenceLevel: confidenceLevel,
+  );
+}
+
+/// Computes parametric bootstrap estimates drawing from a fitted probability [distribution].
+BootstrapResult parametricBootstrapDistribution({
+  required List<num> sample,
+  required double Function(List<num>) statistic,
+  required Distribution<num> distribution,
+  int resamples = 1000,
+  double confidenceLevel = 0.95,
+  math.Random? random,
+}) {
+  final n = sample.length;
+  return parametricBootstrap<num>(
+    sample: sample,
+    statistic: statistic,
+    sampler: (rng) => [
+      for (var i = 0; i < n; i++) distribution.sample(random: rng),
+    ],
+    resamples: resamples,
+    confidenceLevel: confidenceLevel,
+    random: random,
+  );
+}
+
+BootstrapResult _computeBootstrapResult<T>({
+  required List<T> sample,
+  required double originalEstimate,
+  required List<double> bootEstimates,
+  required double Function(List<T>) statistic,
+  required double confidenceLevel,
+}) {
+  final n = sample.length;
+  final resamples = bootEstimates.length;
+  final sortedEstimates = List<double>.of(bootEstimates)..sort();
+
+  final bootMean = mean(sortedEstimates);
+  final se = standardDeviation(sortedEstimates);
   final bias = bootMean - originalEstimate;
 
   final alpha = 1.0 - confidenceLevel;
-  final percLower = quantile(bootEstimates, alpha / 2.0);
-  final percUpper = quantile(bootEstimates, 1.0 - alpha / 2.0);
+  final percLower = quantile(sortedEstimates, alpha / 2.0);
+  final percUpper = quantile(sortedEstimates, 1.0 - alpha / 2.0);
 
   // Compute BCa intervals
   // 1. z0 bias correction
   var lessCount = 0;
-  for (final est in bootEstimates) {
+  for (final est in sortedEstimates) {
     if (est < originalEstimate) lessCount++;
   }
   final fracLess = (lessCount / resamples).clamp(1e-6, 1.0 - 1e-6);
@@ -105,7 +188,7 @@ BootstrapResult bootstrap<T>(
   // 2. Acceleration parameter a via jackknife
   final jackEstimates = List<double>.filled(n, 0.0);
   for (var i = 0; i < n; i++) {
-    final jackSample = _JackknifeResampling<T>(samples, i);
+    final jackSample = _JackknifeResampling<T>(sample, i);
     jackEstimates[i] = statistic(jackSample);
   }
   final jackMean = mean(jackEstimates);
@@ -134,8 +217,8 @@ BootstrapResult bootstrap<T>(
       ? phi(z0 + (z0 + z1MinusAlpha2) / denomUpper).clamp(0.0, 1.0)
       : 1.0 - alpha / 2.0;
 
-  final bcaLower = quantile(bootEstimates, q1);
-  final bcaUpper = quantile(bootEstimates, q2);
+  final bcaLower = quantile(sortedEstimates, q1);
+  final bcaUpper = quantile(sortedEstimates, q2);
 
   return BootstrapResult(
     estimate: originalEstimate,
@@ -143,7 +226,7 @@ BootstrapResult bootstrap<T>(
     bias: bias,
     percentileInterval: (percLower, percUpper),
     bcaInterval: (bcaLower, bcaUpper),
-    bootstrapEstimates: bootEstimates,
+    bootstrapEstimates: sortedEstimates,
     confidenceLevel: confidenceLevel,
   );
 }

@@ -1,8 +1,9 @@
 import 'dart:math' as math;
 
+import 'package:checks/checks.dart';
 import 'package:data/stats.dart';
 import 'package:more/collection.dart' show IntegerRange;
-import 'package:test/test.dart';
+import 'package:test/scaffolding.dart';
 
 void main() {
   group('resampling', () {
@@ -13,21 +14,21 @@ void main() {
           samples,
           (list) => list.arithmeticMean(),
         );
-        expect(jackknife.samples, same(samples));
-        expect(jackknife.confidenceLevel, 0.95);
-        expect(jackknife.resamples, hasLength(10));
+        check(jackknife.samples).identicalTo(samples);
+        check(jackknife.confidenceLevel).equals(0.95);
+        check(jackknife.resamples).length.equals(10);
         for (var i = 0; i < 10; i++) {
-          expect(jackknife.resamples[i], [
+          check(jackknife.resamples[i]).deepEquals([
             ...IntegerRange(0, i),
             ...IntegerRange(i + 1, samples.length),
           ]);
-          expect(() => jackknife.resamples[i][0] = 0, throwsUnsupportedError);
+          check(() => jackknife.resamples[i][0] = 0).throws<UnsupportedError>();
         }
-        expect(jackknife.estimate, closeTo(4.5, 1e-6));
-        expect(jackknife.bias, closeTo(0.0, 1e-6));
-        expect(jackknife.standardError, closeTo(0.95742710, 1e-6));
-        expect(jackknife.lowerBound, closeTo(2.62347735, 1e-6));
-        expect(jackknife.upperBound, closeTo(6.37652265, 1e-6));
+        check(jackknife.estimate).isCloseTo(4.5, 1e-6);
+        check(jackknife.bias).isCloseTo(0.0, 1e-6);
+        check(jackknife.standardError).isCloseTo(0.95742710, 1e-6);
+        check(jackknife.lowerBound).isCloseTo(2.62347735, 1e-6);
+        check(jackknife.upperBound).isCloseTo(6.37652265, 1e-6);
       });
 
       test('variance', () {
@@ -36,21 +37,21 @@ void main() {
           samples,
           (list) => list.variance(population: true),
         );
-        expect(jackknife.samples, same(samples));
-        expect(jackknife.confidenceLevel, 0.95);
-        expect(jackknife.resamples, hasLength(10));
+        check(jackknife.samples).identicalTo(samples);
+        check(jackknife.confidenceLevel).equals(0.95);
+        check(jackknife.resamples).length.equals(10);
         for (var i = 0; i < 10; i++) {
-          expect(jackknife.resamples[i], [
+          check(jackknife.resamples[i]).deepEquals([
             ...IntegerRange(0, i),
             ...IntegerRange(i + 1, samples.length),
           ]);
-          expect(() => jackknife.resamples[i][0] = 0, throwsUnsupportedError);
+          check(() => jackknife.resamples[i][0] = 0).throws<UnsupportedError>();
         }
-        expect(jackknife.estimate, closeTo(9.16666667, 1e-6));
-        expect(jackknife.bias, closeTo(-0.91666667, 1e-6));
-        expect(jackknife.standardError, closeTo(2.69124476, 1e-6));
-        expect(jackknife.lowerBound, closeTo(3.89192387, 1e-6));
-        expect(jackknife.upperBound, closeTo(14.44140947, 1e-6));
+        check(jackknife.estimate).isCloseTo(9.16666667, 1e-6);
+        check(jackknife.bias).isCloseTo(-0.91666667, 1e-6);
+        check(jackknife.standardError).isCloseTo(2.69124476, 1e-6);
+        check(jackknife.lowerBound).isCloseTo(3.89192387, 1e-6);
+        check(jackknife.upperBound).isCloseTo(14.44140947, 1e-6);
       });
 
       test('small samples', () {
@@ -60,11 +61,11 @@ void main() {
           (list) => list.arithmeticMean(),
           confidenceLevel: 0.90,
         );
-        expect(jackknife.estimate, closeTo(3.0, 1e-6));
-        expect(jackknife.bias, closeTo(0.0, 1e-6));
-        expect(jackknife.standardError, closeTo(1.0, 1e-6));
-        expect(jackknife.lowerBound, closeTo(1.35514638, 1e-6));
-        expect(jackknife.upperBound, closeTo(4.64485361, 1e-6));
+        check(jackknife.estimate).isCloseTo(3.0, 1e-6);
+        check(jackknife.bias).isCloseTo(0.0, 1e-6);
+        check(jackknife.standardError).isCloseTo(1.0, 1e-6);
+        check(jackknife.lowerBound).isCloseTo(1.35514638, 1e-6);
+        check(jackknife.upperBound).isCloseTo(4.64485361, 1e-6);
       });
     });
 
@@ -102,22 +103,54 @@ void main() {
           random: math.Random(42),
         );
 
-        expect(result.estimate, closeTo(50.275, 1e-6));
-        expect(result.bias, closeTo(0.0, 0.1));
-        expect(result.standardError, greaterThan(0.2));
-        expect(result.standardError, lessThan(0.5));
+        check(result.estimate).isCloseTo(50.275, 1e-6);
+        check(result.bias).isCloseTo(0.0, 0.1);
+        check(result.standardError).isGreaterThan(0.2);
+        check(result.standardError).isLessThan(0.5);
 
         final (pLow, pHigh) = result.percentileInterval;
-        expect(pLow, lessThan(result.estimate));
-        expect(pHigh, greaterThan(result.estimate));
-        expect(pLow, greaterThan(49.0));
-        expect(pHigh, lessThan(52.0));
+        check(pLow).isLessThan(result.estimate);
+        check(pHigh).isGreaterThan(result.estimate);
+        check(pLow).isGreaterThan(49.0);
+        check(pHigh).isLessThan(52.0);
 
         final (bcaLow, bcaHigh) = result.bcaInterval;
-        expect(bcaLow, lessThan(result.estimate));
-        expect(bcaHigh, greaterThan(result.estimate));
-        expect(bcaLow, greaterThan(49.0));
-        expect(bcaHigh, lessThan(52.0));
+        check(bcaLow).isLessThan(result.estimate);
+        check(bcaHigh).isGreaterThan(result.estimate);
+        check(bcaLow).isGreaterThan(49.0);
+        check(bcaHigh).isLessThan(52.0);
+      });
+
+      test('parametric bootstrap with fitted distribution', () {
+        final sample = [
+          48.2,
+          51.5,
+          49.8,
+          52.3,
+          47.9,
+          50.1,
+          51.2,
+          49.0,
+          50.8,
+          52.0,
+        ];
+
+        final fittedDist = NormalDistribution.fit(sample);
+        final result = parametricBootstrapDistribution(
+          sample: sample,
+          statistic: (list) => list.arithmeticMean(),
+          distribution: fittedDist,
+          resamples: 500,
+          confidenceLevel: 0.95,
+          random: math.Random(42),
+        );
+
+        check(result.estimate).isCloseTo(50.28, 0.1);
+        check(result.standardError).isGreaterThan(0.1);
+        check(result.percentileInterval.$1).isLessThan(result.estimate);
+        check(result.percentileInterval.$2).isGreaterThan(result.estimate);
+        check(result.bcaInterval.$1).isLessThan(result.estimate);
+        check(result.bcaInterval.$2).isGreaterThan(result.estimate);
       });
     });
   });

@@ -1,18 +1,19 @@
 import 'dart:math' as math;
 
+import 'package:checks/checks.dart';
 import 'package:data/linear.dart';
 import 'package:data/src/numeric/calculus.dart';
 import 'package:data/symbolic.dart';
 import 'package:data/type.dart';
-import 'package:test/test.dart';
+import 'package:test/scaffolding.dart';
 
 void main() {
   group('Numerical & Symbolic Calculus', () {
     test('numerical derivative of scalar function', () {
       // f(x) = x^3 => f'(2) = 12
       double f(double x) => x * x * x;
-      expect(numericalDerivative(f, 2.0), closeTo(12.0, 1e-5));
-      expect(numericalSecondDerivative(f, 2.0), closeTo(12.0, 1e-3));
+      check(numericalDerivative(f, 2.0)).isCloseTo(12.0, 1e-5);
+      check(numericalSecondDerivative(f, 2.0)).isCloseTo(12.0, 1e-3);
     });
 
     test('derivative of Expr symbolic AST', () {
@@ -22,10 +23,8 @@ void main() {
       // f'(x) = sin(x) + x * cos(x)
       const pt = 1.0;
       final expected = math.sin(pt) + pt * math.cos(pt);
-      expect(
-        numericalDerivative(f, pt, variable: 'x'),
-        closeTo(expected, 1e-6),
-      );
+      check(numericalDerivative(f, pt, variable: 'x'))
+          .isCloseTo(expected, 1e-6);
     });
 
     test('numerical gradient of 2D function', () {
@@ -37,8 +36,8 @@ void main() {
 
       final pt = Vector<double>.fromList([1.0, 2.0], type: DataType.float64);
       final grad = numericalGradient(f, pt);
-      expect(grad[0], closeTo(8.0, 1e-4));
-      expect(grad[1], closeTo(15.0, 1e-4));
+      check(grad[0]).isCloseTo(8.0, 1e-4);
+      check(grad[1]).isCloseTo(15.0, 1e-4);
     });
 
     test('symbolic gradient and Hessian of Expr', () {
@@ -50,15 +49,15 @@ void main() {
 
       final grad = numericalGradient(f, pt, variables: ['x', 'y']);
       // grad = [2x + 3y, 3x + 2y] = [8, 7]
-      expect(grad[0], closeTo(8.0, 1e-6));
-      expect(grad[1], closeTo(7.0, 1e-6));
+      check(grad[0]).isCloseTo(8.0, 1e-6);
+      check(grad[1]).isCloseTo(7.0, 1e-6);
 
       final hess = numericalHessian(f, pt, variables: ['x', 'y']);
       // H = [[2, 3], [3, 2]]
-      expect(hess.get(0, 0), closeTo(2.0, 1e-6));
-      expect(hess.get(0, 1), closeTo(3.0, 1e-6));
-      expect(hess.get(1, 0), closeTo(3.0, 1e-6));
-      expect(hess.get(1, 1), closeTo(2.0, 1e-6));
+      check(hess.get(0, 0)).isCloseTo(2.0, 1e-6);
+      check(hess.get(0, 1)).isCloseTo(3.0, 1e-6);
+      check(hess.get(1, 0)).isCloseTo(3.0, 1e-6);
+      check(hess.get(1, 1)).isCloseTo(2.0, 1e-6);
     });
 
     test('Jacobian matrix of vector function', () {
@@ -72,10 +71,10 @@ void main() {
 
       final pt = Vector<double>.fromList([2.0, 3.0], type: DataType.float64);
       final j = numericalJacobian(f, pt);
-      expect(j.get(0, 0), closeTo(4.0, 1e-4));
-      expect(j.get(0, 1), closeTo(1.0, 1e-4));
-      expect(j.get(1, 0), closeTo(5.0, 1e-4));
-      expect(j.get(1, 1), closeTo(-6.0, 1e-4));
+      check(j.get(0, 0)).isCloseTo(4.0, 1e-4);
+      check(j.get(0, 1)).isCloseTo(1.0, 1e-4);
+      check(j.get(1, 0)).isCloseTo(5.0, 1e-4);
+      check(j.get(1, 1)).isCloseTo(-6.0, 1e-4);
     });
   });
 }

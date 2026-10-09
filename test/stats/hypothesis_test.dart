@@ -1,23 +1,24 @@
+import 'package:checks/checks.dart';
 import 'package:data/linear.dart';
 import 'package:data/stats.dart';
 import 'package:data/type.dart';
-import 'package:test/test.dart';
+import 'package:test/scaffolding.dart';
 
 void main() {
   group('hypothesis testing', () {
     test('one-sample t-test', () {
       final sample = [10.2, 9.8, 10.1, 10.5, 9.9, 10.0, 10.3, 9.7];
       final resNullTrue = tTestOneSample(sample, mu0: 10.0);
-      expect(resNullTrue.isSignificant, isFalse);
-      expect(resNullTrue.pValue, greaterThan(0.5));
-      expect(resNullTrue.confidenceInterval, isNotNull);
+      check(resNullTrue.isSignificant).isFalse();
+      check(resNullTrue.pValue).isGreaterThan(0.5);
+      check(resNullTrue.confidenceInterval).isNotNull();
       final (lower, upper) = resNullTrue.confidenceInterval!;
-      expect(lower, lessThan(10.0));
-      expect(upper, greaterThan(10.0));
+      check(lower).isLessThan(10.0);
+      check(upper).isGreaterThan(10.0);
 
       final resNullFalse = tTestOneSample(sample, mu0: 15.0);
-      expect(resNullFalse.isSignificant, isTrue);
-      expect(resNullFalse.pValue, lessThan(1e-5));
+      check(resNullFalse.isSignificant).isTrue();
+      check(resNullFalse.pValue).isLessThan(1e-5);
     });
 
     test('two-sample t-test (Student and Welch)', () {
@@ -25,12 +26,12 @@ void main() {
       final groupB = [18.0, 19.0, 17.0, 20.0, 18.5];
 
       final resStudent = tTestTwoSample(groupA, groupB, equalVariance: true);
-      expect(resStudent.isSignificant, isTrue);
-      expect(resStudent.pValue, lessThan(0.001));
+      check(resStudent.isSignificant).isTrue();
+      check(resStudent.pValue).isLessThan(0.001);
 
       final resWelch = tTestTwoSample(groupA, groupB, equalVariance: false);
-      expect(resWelch.isSignificant, isTrue);
-      expect(resWelch.pValue, lessThan(0.001));
+      check(resWelch.isSignificant).isTrue();
+      check(resWelch.pValue).isLessThan(0.001);
     });
 
     test('paired t-test', () {
@@ -38,9 +39,9 @@ void main() {
       final after = [115.0, 118.0, 121.0, 120.0, 116.0];
 
       final res = tTestPaired(before, after);
-      expect(res.isSignificant, isTrue);
-      expect(res.pValue, lessThan(0.01));
-      expect(res.statistic, greaterThan(0.0));
+      check(res.isSignificant).isTrue();
+      check(res.pValue).isLessThan(0.01);
+      check(res.statistic).isGreaterThan(0.0);
     });
 
     test('one-way ANOVA', () {
@@ -50,23 +51,23 @@ void main() {
       final g3 = [20.0, 19.5, 21.0, 20.5, 19.8];
 
       final res = oneWayAnova([g1, g2, g3]);
-      expect(res.isSignificant, isTrue);
-      expect(res.pValue, lessThan(1e-6));
-      expect(res.statistic, greaterThan(100.0));
+      check(res.isSignificant).isTrue();
+      check(res.pValue).isLessThan(1e-6);
+      check(res.statistic).isGreaterThan(100.0);
     });
 
     test('chi-squared goodness-of-fit test', () {
       // Fair 6-sided die expected: 20 per side (120 rolls total)
       final fairRolls = [19, 21, 20, 18, 22, 20];
       final resFair = chiSquaredTest(fairRolls);
-      expect(resFair.isSignificant, isFalse);
-      expect(resFair.pValue, greaterThan(0.9));
+      check(resFair.isSignificant).isFalse();
+      check(resFair.pValue).isGreaterThan(0.9);
 
       // Biased die
       final biasedRolls = [5, 5, 10, 10, 30, 60];
       final resBiased = chiSquaredTest(biasedRolls);
-      expect(resBiased.isSignificant, isTrue);
-      expect(resBiased.pValue, lessThan(1e-5));
+      check(resBiased.isSignificant).isTrue();
+      check(resBiased.pValue).isLessThan(1e-5);
     });
 
     test('chi-squared test of independence on contingency table', () {
@@ -80,9 +81,9 @@ void main() {
       ], type: DataType.int32);
 
       final res = chiSquaredContingency(table);
-      expect(res.isSignificant, isTrue);
-      expect(res.degreesOfFreedom, 1.0);
-      expect(res.pValue, lessThan(0.001));
+      check(res.isSignificant).isTrue();
+      check(res.degreesOfFreedom).equals(1.0);
+      check(res.pValue).isLessThan(0.001);
     });
 
     test('Mann-Whitney U test', () {
@@ -90,9 +91,9 @@ void main() {
       final y = [6.0, 7.0, 8.0, 9.0, 10.0];
 
       final res = mannWhitneyUTest(x, y);
-      expect(res.statistic, closeTo(0.0, 1e-10));
-      expect(res.isSignificant, isTrue);
-      expect(res.pValue, lessThan(0.05));
+      check(res.statistic).isCloseTo(0.0, 1e-10);
+      check(res.isSignificant).isTrue();
+      check(res.pValue).isLessThan(0.05);
     });
   });
 }

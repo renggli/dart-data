@@ -1,5 +1,6 @@
+import 'package:checks/checks.dart';
 import 'package:data/special.dart';
-import 'package:test/test.dart';
+import 'package:test/scaffolding.dart';
 
 void main() {
   group('error function', () {
@@ -23,34 +24,32 @@ void main() {
 
     test('erf', () {
       for (final tuple in errorFunctionTuples) {
-        expect(
+        check(
+          because: 'erf(${tuple.$1})',
           erf(tuple.$1),
-          closeTo(tuple.$2, 1e-6),
-          reason: 'erf(${tuple.$1})',
-        );
+        ).isCloseTo(tuple.$2, 1e-6);
       }
     });
 
     test('erfc', () {
       for (final tuple in errorFunctionTuples) {
-        expect(
+        check(
+          because: 'erfc(${tuple.$1})',
           erfc(tuple.$1),
-          closeTo(1.0 - tuple.$2, 1e-6),
-          reason: 'erfc(${tuple.$1})',
-        );
+        ).isCloseTo(1.0 - tuple.$2, 1e-6);
       }
     });
 
     test('erfInv and erfcInv', () {
-      expect(erfInv(0.0), 0.0);
-      expect(erfInv(-1.0), double.negativeInfinity);
-      expect(erfInv(1.0), double.infinity);
-      expect(erfInv(2.0).isNaN, isTrue);
-      expect(erfInv(-2.0).isNaN, isTrue);
+      check(erfInv(0.0)).equals(0.0);
+      check(erfInv(-1.0)).equals(double.negativeInfinity);
+      check(erfInv(1.0)).equals(double.infinity);
+      check(erfInv(2.0)).isNaN();
+      check(erfInv(-2.0)).isNaN();
 
-      expect(erfInv(erf(0.5)), closeTo(0.5, 1e-6));
-      expect(erfInv(erf(-0.75)), closeTo(-0.75, 1e-6));
-      expect(erfcInv(erfc(0.5)), closeTo(0.5, 1e-6));
+      check(erfInv(erf(0.5))).isCloseTo(0.5, 1e-6);
+      check(erfInv(erf(-0.75))).isCloseTo(-0.75, 1e-6);
+      check(erfcInv(erfc(0.5))).isCloseTo(0.5, 1e-6);
     });
   });
 }

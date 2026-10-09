@@ -1,6 +1,7 @@
+import 'package:checks/checks.dart';
 import 'package:data/linear.dart';
 import 'package:data/type.dart';
-import 'package:test/test.dart';
+import 'package:test/scaffolding.dart';
 
 void main() {
   group('QR Decomposition', () {
@@ -12,7 +13,7 @@ void main() {
       ], type: DataType.float64);
 
       final qr = a.qr;
-      expect(qr.isFullRank, isTrue);
+      check(qr.isFullRank).isTrue();
 
       final q = qr.q;
       final r = qr.r;
@@ -21,14 +22,14 @@ void main() {
       final qTq = q.transposed * q;
       for (var i = 0; i < 3; i++) {
         for (var j = 0; j < 3; j++) {
-          expect(qTq.get(i, j), closeTo(i == j ? 1.0 : 0.0, 1e-6));
+          check(qTq.get(i, j)).isCloseTo(i == j ? 1.0 : 0.0, 1e-6);
         }
       }
 
       // R must be upper triangular
       for (var i = 0; i < 3; i++) {
         for (var j = 0; j < i; j++) {
-          expect(r.get(i, j), 0.0);
+          check(r.get(i, j)).equals(0.0);
         }
       }
 
@@ -36,7 +37,7 @@ void main() {
       final qrProd = q * r;
       for (var i = 0; i < 3; i++) {
         for (var j = 0; j < 3; j++) {
-          expect(qrProd.get(i, j), closeTo(a.get(i, j), 1e-6));
+          check(qrProd.get(i, j)).isCloseTo(a.get(i, j), 1e-6);
         }
       }
     });
@@ -61,9 +62,9 @@ void main() {
       final qr = a.qr;
       final x = qr.solveVector(b);
 
-      expect(x.length, 2);
-      expect(x[0], closeTo(2.0, 1e-6));
-      expect(x[1], closeTo(3.0, 1e-6));
+      check(x.length).equals(2);
+      check(x[0]).isCloseTo(2.0, 1e-6);
+      check(x[1]).isCloseTo(3.0, 1e-6);
     });
 
     test('invalid dimensions throw', () {
@@ -71,7 +72,7 @@ void main() {
         [1.0, 2.0, 3.0],
         [4.0, 5.0, 6.0],
       ], type: DataType.float64);
-      expect(() => a.qr, throwsArgumentError);
+      check(() => a.qr).throws<ArgumentError>();
     });
   });
 }

@@ -77,6 +77,7 @@ List<Complex> ifft(Iterable<Complex> input) => fft(input, inverse: true);
 ///
 /// Returns the non-redundant positive frequency components of length $N/2 + 1$.
 List<Complex> rfft(Iterable<num> input) {
+  if (input.isEmpty) return const [];
   final complexInput = [for (final x in input) Complex(x.toDouble(), 0.0)];
   final full = fft(complexInput);
   final n = full.length;
@@ -113,31 +114,31 @@ List<double> irfft(List<Complex> input, [int? n]) {
 List<List<Complex>> fft2(List<List<Complex>> matrix, {bool inverse = false}) {
   if (matrix.isEmpty || matrix[0].isEmpty) return const [];
   final rowCount = matrix.length;
+  final colCount = matrix[0].length;
+  final targetRows = _nextPowerOf2(rowCount);
+  final targetCols = _nextPowerOf2(colCount);
 
-  // 1. Transform each row
+  // 1. Transform each row (with targetCols padding)
   final rowTransformed = <List<Complex>>[];
   for (var r = 0; r < rowCount; r++) {
     rowTransformed.add(fft(matrix[r], inverse: inverse));
   }
-
-  final newRowCount = rowTransformed.length;
-  final newColCount = rowTransformed[0].length;
+  final zeroRow = List<Complex>.filled(targetCols, Complex.zero);
+  while (rowTransformed.length < targetRows) {
+    rowTransformed.add(List<Complex>.of(zeroRow));
+  }
 
   // 2. Transform each column
   final result = List.generate(
-    newRowCount,
-    (_) => List<Complex>.filled(newColCount, Complex.zero),
+    targetRows,
+    (_) => List<Complex>.filled(targetCols, Complex.zero),
   );
 
-  for (var c = 0; c < newColCount; c++) {
-    final colVals = [
-      for (var r = 0; r < newRowCount; r++) rowTransformed[r][c],
-    ];
+  for (var c = 0; c < targetCols; c++) {
+    final colVals = [for (var r = 0; r < targetRows; r++) rowTransformed[r][c]];
     final colTransformed = fft(colVals, inverse: inverse);
-    for (var r = 0; r < colTransformed.length; r++) {
-      if (r < newRowCount) {
-        result[r][c] = colTransformed[r];
-      }
+    for (var r = 0; r < targetRows; r++) {
+      result[r][c] = colTransformed[r];
     }
   }
 

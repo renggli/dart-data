@@ -29,6 +29,7 @@ double brentRoot(
   var fa = fn(a);
   var fb = fn(b);
 
+  if (fa.isNaN || fb.isNaN) return double.nan;
   if (fa * fb > 0.0) {
     throw ArgumentError(
       'Root is not bracketed: f($a) = $fa and f($b) = $fb have identical signs.',
@@ -134,6 +135,16 @@ double newtonRaphson(
       dfn = (x) {
         const h = 1e-6;
         return (f(x + h) - f(x - h)) / (2.0 * h);
+      };
+    }
+  } else if (f is num Function(num)) {
+    fn = (x) => f(x).toDouble();
+    if (derivative is num Function(num)) {
+      dfn = (x) => derivative(x).toDouble();
+    } else {
+      dfn = (x) {
+        const h = 1e-6;
+        return (f(x + h).toDouble() - f(x - h).toDouble()) / (2.0 * h);
       };
     }
   } else {

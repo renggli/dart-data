@@ -1,8 +1,9 @@
 import 'dart:math' as math;
 
+import 'package:checks/checks.dart';
 import 'package:data/src/numeric/root_finding.dart';
 import 'package:data/symbolic.dart';
-import 'package:test/test.dart';
+import 'package:test/scaffolding.dart';
 
 void main() {
   group('Root Finding Algorithms', () {
@@ -11,8 +12,8 @@ void main() {
       double f(double x) => math.cos(x) - x;
 
       final root = brentRoot(f, 0.0, 1.0);
-      expect(root, closeTo(0.739085133215, 1e-10));
-      expect(f(root), closeTo(0.0, 1e-12));
+      check(root).isCloseTo(0.739085133215, 1e-10);
+      check(f(root)).isCloseTo(0.0, 1e-12);
     });
 
     test('Brent-Dekker root solver with Expr', () {
@@ -21,7 +22,11 @@ void main() {
       final f = x.pow(3) - const Constant(2.0) * x - const Constant(5.0);
 
       final root = brentRoot(f, 1.0, 3.0, variable: 'x');
-      expect(root, closeTo(2.0945514815, 1e-8));
+      check(root).isCloseTo(2.0945514815, 1e-8);
+    });
+
+    test('Brent-Dekker with NaN returns NaN', () {
+      check(brentRoot((double x) => double.nan, 0.0, 1.0)).isNaN();
     });
 
     test('Newton-Raphson root solver with automatic symbolic derivative', () {
@@ -30,19 +35,25 @@ void main() {
       final f = x.pow(2) - const Constant(2.0);
 
       final root = newtonRaphson(f, 1.0, variable: 'x');
-      expect(root, closeTo(math.sqrt(2.0), 1e-10));
+      check(root).isCloseTo(math.sqrt(2.0), 1e-10);
+    });
+
+    test('Newton-Raphson root solver with num Function(num)', () {
+      num f(num x) => x * x - 2;
+      final root = newtonRaphson(f, 1.0);
+      check(root).isCloseTo(math.sqrt(2.0), 1e-10);
     });
 
     test('Bisection root solver', () {
       double f(double x) => x * x * x - 27.0; // root at 3.0
       final root = bisection(f, 0.0, 5.0);
-      expect(root, closeTo(3.0, 1e-9));
+      check(root).isCloseTo(3.0, 1e-9);
     });
 
     test('unbracketed root throws ArgumentError', () {
       double f(double x) => x * x + 1.0;
-      expect(() => brentRoot(f, 1.0, 2.0), throwsArgumentError);
-      expect(() => bisection(f, 1.0, 2.0), throwsArgumentError);
+      check(() => brentRoot(f, 1.0, 2.0)).throws<ArgumentError>();
+      check(() => bisection(f, 1.0, 2.0)).throws<ArgumentError>();
     });
   });
 }

@@ -1,9 +1,10 @@
 import 'dart:math' as math;
 
+import 'package:checks/checks.dart';
 import 'package:data/linear.dart';
 import 'package:data/src/numeric/ode.dart';
 import 'package:data/type.dart';
-import 'package:test/test.dart';
+import 'package:test/scaffolding.dart';
 
 void main() {
   group('ODE Solvers: RK4 and Adaptive RK45', () {
@@ -15,7 +16,7 @@ void main() {
       final y0 = Vector<double>.fromList([1.0], type: DataType.float64);
       final sol = rk4(f: f, t0: 0.0, tEnd: 1.0, y0: y0, stepSize: 0.01);
 
-      expect(sol.last[0], closeTo(math.exp(-2.0), 1e-5));
+      check(sol.last[0]).isCloseTo(math.exp(-2.0), 1e-5);
     });
 
     test('RK45 on harmonic oscillator d^2 y / dt^2 = -y', () {
@@ -38,14 +39,14 @@ void main() {
       );
 
       // At t = 2*pi: y(2*pi) = 0, v(2*pi) = 1
-      expect(sol.last[0], closeTo(0.0, 1e-5));
-      expect(sol.last[1], closeTo(1.0, 1e-5));
+      check(sol.last[0]).isCloseTo(0.0, 1e-5);
+      check(sol.last[1]).isCloseTo(1.0, 1e-5);
 
       // Test intermediate point t = pi/2
       final halfPiIdx = sol.t.length ~/ 4;
       final tMid = sol.t[halfPiIdx];
-      expect(sol.y[halfPiIdx][0], closeTo(math.sin(tMid), 1e-4));
-      expect(sol.y[halfPiIdx][1], closeTo(math.cos(tMid), 1e-4));
+      check(sol.y[halfPiIdx][0]).isCloseTo(math.sin(tMid), 1e-4);
+      check(sol.y[halfPiIdx][1]).isCloseTo(math.cos(tMid), 1e-4);
     });
   });
 }

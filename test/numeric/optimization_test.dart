@@ -1,8 +1,9 @@
+import 'package:checks/checks.dart';
 import 'package:data/linear.dart';
 import 'package:data/src/numeric/optimization.dart';
 import 'package:data/symbolic.dart';
 import 'package:data/type.dart';
-import 'package:test/test.dart';
+import 'package:test/scaffolding.dart';
 
 void main() {
   group('Optimization Algorithms', () {
@@ -11,8 +12,8 @@ void main() {
       double f(double x) => (x - 3.0) * (x - 3.0) + 5.0;
 
       final result = brentMinimize(f, a: 0.0, b: 6.0);
-      expect(result.point, closeTo(3.0, 1e-6));
-      expect(result.value, closeTo(5.0, 1e-6));
+      check(result.point).isCloseTo(3.0, 1e-6);
+      check(result.value).isCloseTo(5.0, 1e-6);
     });
 
     test('1D Brent minimization with Expr', () {
@@ -21,8 +22,8 @@ void main() {
       final f = (x - const Constant(2.0)).pow(2) - const Constant(4.0);
 
       final result = brentMinimize(f, a: -1.0, b: 5.0, variable: 'x');
-      expect(result.point, closeTo(2.0, 1e-6));
-      expect(result.value, closeTo(-4.0, 1e-6));
+      check(result.point).isCloseTo(2.0, 1e-6);
+      check(result.value).isCloseTo(-4.0, 1e-6);
     });
 
     test('Nelder-Mead simplex optimization on Rosenbrock banana function', () {
@@ -47,9 +48,9 @@ void main() {
         maxIterations: 2000,
       );
 
-      expect(result.point[0], closeTo(1.0, 0.02));
-      expect(result.point[1], closeTo(1.0, 0.02));
-      expect(result.value, closeTo(0.0, 0.01));
+      check(result.point[0]).isCloseTo(1.0, 0.02);
+      check(result.point[1]).isCloseTo(1.0, 0.02);
+      check(result.value).isCloseTo(0.0, 0.01);
     });
 
     test('BFGS optimization on quadratic bowl', () {
@@ -61,9 +62,9 @@ void main() {
       final start = Vector<double>.fromList([0.0, 0.0], type: DataType.float64);
       final result = bfgs(f, start);
 
-      expect(result.point[0], closeTo(2.0, 1e-5));
-      expect(result.point[1], closeTo(-1.0, 1e-5));
-      expect(result.value, closeTo(4.0, 1e-5));
+      check(result.point[0]).isCloseTo(2.0, 1e-5);
+      check(result.point[1]).isCloseTo(-1.0, 1e-5);
+      check(result.value).isCloseTo(4.0, 1e-5);
     });
 
     test('BFGS seamlessly accepting symbolic Expr', () {
@@ -80,9 +81,9 @@ void main() {
       final start = Vector<double>.fromList([0.0, 0.0], type: DataType.float64);
       final result = bfgs(f, start, variables: ['x', 'y']);
 
-      expect(result.point[0], closeTo(2.0, 1e-5));
-      expect(result.point[1], closeTo(3.0, 1e-5));
-      expect(result.value, closeTo(0.0, 1e-5));
+      check(result.point[0]).isCloseTo(2.0, 1e-5);
+      check(result.point[1]).isCloseTo(3.0, 1e-5);
+      check(result.value).isCloseTo(0.0, 1e-5);
     });
 
     test('L-BFGS optimization on 3D quadratic form', () {
@@ -99,10 +100,10 @@ void main() {
       ], type: DataType.float64);
       final result = lbfgs(f, start, memorySize: 5);
 
-      expect(result.point[0], closeTo(1.0, 1e-5));
-      expect(result.point[1], closeTo(2.0, 1e-5));
-      expect(result.point[2], closeTo(3.0, 1e-5));
-      expect(result.value, closeTo(0.0, 1e-5));
+      check(result.point[0]).isCloseTo(1.0, 1e-5);
+      check(result.point[1]).isCloseTo(2.0, 1e-5);
+      check(result.point[2]).isCloseTo(3.0, 1e-5);
+      check(result.value).isCloseTo(0.0, 1e-5);
     });
   });
 }

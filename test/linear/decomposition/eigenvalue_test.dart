@@ -1,6 +1,7 @@
+import 'package:checks/checks.dart';
 import 'package:data/linear.dart';
 import 'package:data/type.dart';
-import 'package:test/test.dart';
+import 'package:test/scaffolding.dart';
 
 void main() {
   group('Eigenvalue Decomposition', () {
@@ -17,7 +18,7 @@ void main() {
 
       // For symmetric matrix, imaginary parts are 0
       for (final im in eig.imagEigenvalues) {
-        expect(im, closeTo(0.0, 1e-9));
+        check(im).isCloseTo(0.0, 1e-9);
       }
 
       // V * D * V^T == A
@@ -25,7 +26,7 @@ void main() {
       final reconstructed = v * d * v.transposed;
       for (var i = 0; i < 3; i++) {
         for (var j = 0; j < 3; j++) {
-          expect(reconstructed.get(i, j), closeTo(a.get(i, j), 1e-6));
+          check(reconstructed.get(i, j)).isCloseTo(a.get(i, j), 1e-6);
         }
       }
 
@@ -35,7 +36,7 @@ void main() {
         final aCol = a.apply(colI);
         final lambdaCol = colI.scale(vals[i]);
         for (var k = 0; k < 3; k++) {
-          expect(aCol[k], closeTo(lambdaCol[k], 1e-6));
+          check(aCol[k]).isCloseTo(lambdaCol[k], 1e-6);
         }
       }
     });
@@ -50,11 +51,11 @@ void main() {
       final eig = a.eigenvalue;
       final complexEigs = eig.eigenvalues;
 
-      expect(complexEigs.length, 2);
-      expect(complexEigs[0].a, closeTo(0.0, 1e-9)); // real
-      expect(complexEigs[0].b.abs(), closeTo(1.0, 1e-9)); // imag
-      expect(complexEigs[1].a, closeTo(0.0, 1e-9));
-      expect(complexEigs[1].b.abs(), closeTo(1.0, 1e-9));
+      check(complexEigs.length).equals(2);
+      check(complexEigs[0].a).isCloseTo(0.0, 1e-9); // real
+      check(complexEigs[0].b.abs()).isCloseTo(1.0, 1e-9); // imag
+      check(complexEigs[1].a).isCloseTo(0.0, 1e-9);
+      check(complexEigs[1].b.abs()).isCloseTo(1.0, 1e-9);
     });
 
     test('non-square matrix throws', () {
@@ -62,7 +63,7 @@ void main() {
         [1.0, 2.0, 3.0],
         [4.0, 5.0, 6.0],
       ], type: DataType.float64);
-      expect(() => a.eigenvalue, throwsArgumentError);
+      check(() => a.eigenvalue).throws<ArgumentError>();
     });
   });
 }

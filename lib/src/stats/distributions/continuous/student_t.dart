@@ -16,6 +16,56 @@ class StudentDistribution extends ContinuousDistribution {
   /// A Student's t-distribution with degrees of freedom [dof] ν.
   const new(this.dof) : assert(dof > 0, 'ν > 0');
 
+  /// Fits a Student's t-distribution to [samples] using maximum likelihood estimation.
+  factory fit(Iterable<num> samples) {
+    final list = samples.map((e) => e.toDouble()).toList();
+    if (list.length < 3) {
+      throw ArgumentError.value(
+        samples,
+        'samples',
+        'At least 3 samples required to fit Student-t distribution',
+      );
+    }
+    final n = list.length;
+    double logLikelihood(double nu) {
+      final term1 =
+          n *
+          (gammaLn(0.5 * (nu + 1.0)) - gammaLn(0.5 * nu) - 0.5 * log(nu * pi));
+      var term2 = 0.0;
+      for (final x in list) {
+        term2 += log(1.0 + (x * x) / nu);
+      }
+      return term1 - 0.5 * (nu + 1.0) * term2;
+    }
+
+    var a = 0.1;
+    var b = 100.0;
+    const phi = 0.618033988749895;
+    var c = b - phi * (b - a);
+    var d = a + phi * (b - a);
+    var fc = logLikelihood(c);
+    var fd = logLikelihood(d);
+
+    for (var iter = 0; iter < 60; iter++) {
+      if ((b - a).abs() < 1e-5) break;
+      if (fc > fd) {
+        b = d;
+        d = c;
+        fd = fc;
+        c = b - phi * (b - a);
+        fc = logLikelihood(c);
+      } else {
+        a = c;
+        c = d;
+        fc = fd;
+        d = a + phi * (b - a);
+        fd = logLikelihood(d);
+      }
+    }
+    final bestNu = 0.5 * (a + b);
+    return StudentDistribution(bestNu);
+  }
+
   /// The degrees of freedom ν.
   final double dof;
 

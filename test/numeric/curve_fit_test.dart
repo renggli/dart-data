@@ -1,9 +1,10 @@
 import 'dart:math' as math;
 
+import 'package:checks/checks.dart';
 import 'package:data/linear.dart';
 import 'package:data/src/numeric/curve_fit.dart';
 import 'package:data/type.dart';
-import 'package:test/test.dart';
+import 'package:test/scaffolding.dart';
 
 void main() {
   group('Curve Fitting & Regression', () {
@@ -24,10 +25,10 @@ void main() {
       ], type: DataType.float64);
 
       final result = linearRegression(xs, ys);
-      expect(result.slope, closeTo(2.0, 1e-6));
-      expect(result.intercept, closeTo(1.0, 1e-6));
-      expect(result.rSquared, closeTo(1.0, 1e-6));
-      expect(result.predict(5.0), closeTo(11.0, 1e-6));
+      check(result.slope).isCloseTo(2.0, 1e-6);
+      check(result.intercept).isCloseTo(1.0, 1e-6);
+      check(result.rSquared).isCloseTo(1.0, 1e-6);
+      check(result.predict(5.0)).isCloseTo(11.0, 1e-6);
     });
 
     test('polynomial regression y = 3 - 2x + x^2', () {
@@ -50,11 +51,11 @@ void main() {
       ], type: DataType.float64);
 
       final poly = polynomialRegression(xs, ys, degree: 2);
-      expect(poly.degree, 2);
-      expect(poly[0], closeTo(3.0, 1e-6));
-      expect(poly[1], closeTo(-2.0, 1e-6));
-      expect(poly[2], closeTo(1.0, 1e-6));
-      expect(poly.evaluateDouble(4.0), closeTo(11.0, 1e-6));
+      check(poly.degree).equals(2);
+      check(poly[0]).isCloseTo(3.0, 1e-6);
+      check(poly[1]).isCloseTo(-2.0, 1e-6);
+      check(poly[2]).isCloseTo(1.0, 1e-6);
+      check(poly.evaluateDouble(4.0)).isCloseTo(11.0, 1e-6);
     });
 
     test('multiple linear regression y = 1 + 2*x1 - 3*x2', () {
@@ -74,17 +75,17 @@ void main() {
       ], type: DataType.float64);
 
       final model = multipleLinearRegression(x, y, fitIntercept: true);
-      expect(model.intercept, closeTo(1.0, 1e-6));
-      expect(model.coefficients[0], closeTo(2.0, 1e-6));
-      expect(model.coefficients[1], closeTo(-3.0, 1e-6));
-      expect(model.rSquared, closeTo(1.0, 1e-6));
+      check(model.intercept).isCloseTo(1.0, 1e-6);
+      check(model.coefficients[0]).isCloseTo(2.0, 1e-6);
+      check(model.coefficients[1]).isCloseTo(-3.0, 1e-6);
+      check(model.rSquared).isCloseTo(1.0, 1e-6);
 
       final testPoint = Vector<double>.fromList([
         4.0,
         1.0,
       ], type: DataType.float64);
       // 1 + 2*4 - 3*1 = 6
-      expect(model.predict(testPoint), closeTo(6.0, 1e-6));
+      check(model.predict(testPoint)).isCloseTo(6.0, 1e-6);
     });
 
     test(
@@ -114,8 +115,8 @@ void main() {
           initialParams: initialGuess,
         );
 
-        expect(fitted[0], closeTo(2.5, 1e-3));
-        expect(fitted[1], closeTo(0.5, 1e-3));
+        check(fitted[0]).isCloseTo(2.5, 1e-3);
+        check(fitted[1]).isCloseTo(0.5, 1e-3);
       },
     );
   });

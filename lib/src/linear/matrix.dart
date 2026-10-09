@@ -134,6 +134,9 @@ class Matrix<T> implements LinearOperator<T> {
   @override
   DataType<T> get type => tensor.type;
 
+  /// Returns an iterable over the elements in row-major traversal order.
+  Iterable<T> get values => tensor.values;
+
   /// Gets the element at [row, col].
   T get(int row, int col) => tensor.getValue([row, col]);
 

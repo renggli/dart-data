@@ -14,6 +14,28 @@ class ChiSquaredDistribution extends ContinuousDistribution {
   /// A Chi-squared distribution with degrees of freedom [dof] k.
   const new(this.dof) : assert(dof > 0, 'k > 0');
 
+  /// Fits a Chi-squared distribution to [samples] using maximum likelihood estimation.
+  factory fit(Iterable<num> samples) {
+    var count = 0;
+    var sum = 0.0;
+    for (final x in samples) {
+      if (x < 0) {
+        throw ArgumentError.value(
+          x,
+          'samples',
+          'Chi-squared samples must be non-negative',
+        );
+      }
+      count++;
+      sum += x;
+    }
+    if (count == 0) {
+      throw ArgumentError.value(samples, 'samples', 'Cannot fit empty samples');
+    }
+    final k = sum / count;
+    return ChiSquaredDistribution(k > 0 ? k : 1.0);
+  }
+
   /// The degrees of freedom k.
   final double dof;
 

@@ -1,7 +1,8 @@
 import 'dart:math' as math;
 
+import 'package:checks/checks.dart';
 import 'package:data/src/numeric/interpolation.dart';
-import 'package:test/test.dart';
+import 'package:test/scaffolding.dart';
 
 void main() {
   group('Interpolation', () {
@@ -10,9 +11,9 @@ void main() {
       final ys = [0.0, 10.0, 20.0, 30.0];
 
       final interp = LinearInterpolation(xs, ys);
-      expect(interp(0.5), closeTo(5.0, 1e-9));
-      expect(interp(1.5), closeTo(15.0, 1e-9));
-      expect(interp(2.0), closeTo(20.0, 1e-9));
+      check(interp(0.5)).isCloseTo(5.0, 1e-9);
+      check(interp(1.5)).isCloseTo(15.0, 1e-9);
+      check(interp(2.0)).isCloseTo(20.0, 1e-9);
     });
 
     test('natural cubic spline interpolation', () {
@@ -30,11 +31,11 @@ void main() {
 
       // Must interpolate nodes exactly
       for (var i = 0; i < xs.length; i++) {
-        expect(spline(xs[i]), closeTo(ys[i], 1e-9));
+        check(spline(xs[i])).isCloseTo(ys[i], 1e-9);
       }
 
       // Midpoints should closely approximate sin(x)
-      expect(spline(math.pi / 4.0), closeTo(math.sin(math.pi / 4.0), 0.05));
+      check(spline(math.pi / 4.0)).isCloseTo(math.sin(math.pi / 4.0), 0.05);
     });
 
     test('clamped cubic spline interpolation', () {
@@ -50,11 +51,11 @@ void main() {
         rightSlope: 12.0,
       );
 
-      expect(spline(0.0), closeTo(0.0, 1e-9));
-      expect(spline(1.0), closeTo(1.0, 1e-9));
-      expect(spline(2.0), closeTo(8.0, 1e-9));
-      expect(spline.derivative(0.0), closeTo(0.0, 1e-9));
-      expect(spline.derivative(2.0), closeTo(12.0, 1e-9));
+      check(spline(0.0)).isCloseTo(0.0, 1e-9);
+      check(spline(1.0)).isCloseTo(1.0, 1e-9);
+      check(spline(2.0)).isCloseTo(8.0, 1e-9);
+      check(spline.derivative(0.0)).isCloseTo(0.0, 1e-9);
+      check(spline.derivative(2.0)).isCloseTo(12.0, 1e-9);
     });
 
     test(
@@ -67,17 +68,17 @@ void main() {
         final pchip = PchipInterpolation(xs, ys);
 
         // Interpolation on flat section [0, 2] must stay exactly 0.0
-        expect(pchip(0.5), closeTo(0.0, 1e-9));
-        expect(pchip(1.5), closeTo(0.0, 1e-9));
+        check(pchip(0.5)).isCloseTo(0.0, 1e-9);
+        check(pchip(1.5)).isCloseTo(0.0, 1e-9);
 
         // Interpolation on transition [2, 3] must be strictly between 0 and 1
         final mid = pchip(2.5);
-        expect(mid, greaterThan(0.0));
-        expect(mid, lessThan(1.0));
+        check(mid).isGreaterThan(0.0);
+        check(mid).isLessThan(1.0);
 
         // Flat section [3, 5] must stay 1.0 (no overshoot!)
-        expect(pchip(3.5), closeTo(1.0, 1e-9));
-        expect(pchip(4.5), closeTo(1.0, 1e-9));
+        check(pchip(3.5)).isCloseTo(1.0, 1e-9);
+        check(pchip(4.5)).isCloseTo(1.0, 1e-9);
       },
     );
   });

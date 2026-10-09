@@ -142,7 +142,17 @@ double _kurtosis(
 }
 
 /// Computes the sample or population covariance between [x] and [y].
-double covariance(Iterable<num> x, Iterable<num> y, {bool population = false}) {
+double covariance(
+  Iterable<num> x,
+  Iterable<num> y, {
+  bool population = false,
+}) => _covariance(x, y, population: population);
+
+double _covariance(
+  Iterable<num> x,
+  Iterable<num> y, {
+  bool population = false,
+}) {
   final xList = x.map((e) => e.toDouble()).toList();
   final yList = y.map((e) => e.toDouble()).toList();
   if (xList.length != yList.length) {
@@ -161,7 +171,10 @@ double covariance(Iterable<num> x, Iterable<num> y, {bool population = false}) {
 }
 
 /// Computes Pearson correlation coefficient $r \in [-1, 1]$ between [x] and [y].
-double pearsonCorrelation(Iterable<num> x, Iterable<num> y) {
+double pearsonCorrelation(Iterable<num> x, Iterable<num> y) =>
+    _pearsonCorrelation(x, y);
+
+double _pearsonCorrelation(Iterable<num> x, Iterable<num> y) {
   final xList = x.map((e) => e.toDouble()).toList();
   final yList = y.map((e) => e.toDouble()).toList();
   if (xList.length != yList.length) {
@@ -209,7 +222,10 @@ List<double> rankData(Iterable<num> values) {
 
 /// Computes Spearman rank correlation coefficient $\rho \in [-1, 1]$ between [x] and [y].
 double spearmanCorrelation(Iterable<num> x, Iterable<num> y) =>
-    pearsonCorrelation(rankData(x), rankData(y));
+    _spearmanCorrelation(x, y);
+
+double _spearmanCorrelation(Iterable<num> x, Iterable<num> y) =>
+    _pearsonCorrelation(rankData(x), rankData(y));
 
 /// Computes the sample covariance matrix of [data].
 ///
@@ -217,7 +233,10 @@ double spearmanCorrelation(Iterable<num> x, Iterable<num> y) =>
 /// If [rowVar] is true, rows represent variables and columns represent observations.
 ///
 /// Transparently uses [HardwareManager] BLAS acceleration for large matrix multiplications.
-Matrix<double> covarianceMatrix(dynamic data, {bool rowVar = false}) {
+Matrix<double> covarianceMatrix(dynamic data, {bool rowVar = false}) =>
+    _covarianceMatrix(data, rowVar: rowVar);
+
+Matrix<double> _covarianceMatrix(dynamic data, {bool rowVar = false}) {
   final m = switch (data) {
     Matrix<num>() => data,
     Tensor<num>() => Matrix(data),
@@ -277,8 +296,11 @@ Matrix<double> covarianceMatrix(dynamic data, {bool rowVar = false}) {
 }
 
 /// Computes the Pearson correlation matrix of [data].
-Matrix<double> pearsonCorrelationMatrix(dynamic data, {bool rowVar = false}) {
-  final cov = covarianceMatrix(data, rowVar: rowVar);
+Matrix<double> pearsonCorrelationMatrix(dynamic data, {bool rowVar = false}) =>
+    _pearsonCorrelationMatrix(data, rowVar: rowVar);
+
+Matrix<double> _pearsonCorrelationMatrix(dynamic data, {bool rowVar = false}) {
+  final cov = _covarianceMatrix(data, rowVar: rowVar);
   final p = cov.rowCount;
   final std = List<double>.generate(p, (i) => math.sqrt(cov.get(i, i)));
   final corr = Matrix<double>.filled(p, p, 0.0, type: DataType.float64);
@@ -295,7 +317,10 @@ Matrix<double> pearsonCorrelationMatrix(dynamic data, {bool rowVar = false}) {
 }
 
 /// Computes the Spearman rank correlation matrix of [data].
-Matrix<double> spearmanCorrelationMatrix(dynamic data, {bool rowVar = false}) {
+Matrix<double> spearmanCorrelationMatrix(dynamic data, {bool rowVar = false}) =>
+    _spearmanCorrelationMatrix(data, rowVar: rowVar);
+
+Matrix<double> _spearmanCorrelationMatrix(dynamic data, {bool rowVar = false}) {
   final m = switch (data) {
     Matrix<num>() => data,
     Tensor<num>() => Matrix(data),
@@ -329,7 +354,7 @@ Matrix<double> spearmanCorrelationMatrix(dynamic data, {bool rowVar = false}) {
     }
   }
 
-  return pearsonCorrelationMatrix(ranked, rowVar: false);
+  return _pearsonCorrelationMatrix(ranked, rowVar: false);
 }
 
 /// Result of Principal Component Analysis (PCA).
@@ -628,4 +653,106 @@ extension DescriptiveVectorNumExtension on Vector<num> {
   /// Returns the kurtosis of vector elements.
   double kurtosis({bool excess = true, bool bias = false}) =>
       _kurtosis(toList(), excess: excess, bias: bias);
+
+  /// Computes the sample or population covariance with [other].
+  double covariance(Vector<num> other, {bool population = false}) =>
+      _covariance(toList(), other.toList(), population: population);
+
+  /// Computes the Pearson correlation coefficient with [other].
+  double pearsonCorrelation(Vector<num> other) =>
+      _pearsonCorrelation(toList(), other.toList());
+
+  /// Computes the Spearman rank correlation coefficient with [other].
+  double spearmanCorrelation(Vector<num> other) =>
+      _spearmanCorrelation(toList(), other.toList());
+}
+
+/// Statistics extensions on [Tensor<num>].
+extension DescriptiveTensorNumExtension on Tensor<num> {
+  /// Returns the arithmetic mean of tensor elements.
+  double mean() => _mean(values);
+
+  /// Returns the variance of tensor elements.
+  double variance({bool population = false}) =>
+      _variance(values, population: population);
+
+  /// Returns the standard deviation of tensor elements.
+  double standardDeviation({bool population = false}) =>
+      _standardDeviation(values, population: population);
+
+  /// Returns the median of tensor elements.
+  double median() => _median(values);
+
+  /// Returns the empirical quantile for [q] $\in [0, 1]$.
+  double quantile(num q) => _quantile(values, q);
+
+  /// Returns the percentile for [p] $\in [0, 100]$.
+  double percentile(num p) => _percentile(values, p);
+
+  /// Returns the interquartile range (IQR).
+  double iqr() => _iqr(values);
+
+  /// Returns the skewness of tensor elements.
+  double skewness({bool bias = false}) => _skewness(values, bias: bias);
+
+  /// Returns the kurtosis of tensor elements.
+  double kurtosis({bool excess = true, bool bias = false}) =>
+      _kurtosis(values, excess: excess, bias: bias);
+
+  /// Computes the covariance matrix of a rank-2 tensor.
+  Matrix<double> covarianceMatrix({bool rowVar = false}) =>
+      _covarianceMatrix(this, rowVar: rowVar);
+
+  /// Computes the Pearson correlation matrix of a rank-2 tensor.
+  Matrix<double> pearsonCorrelationMatrix({bool rowVar = false}) =>
+      _pearsonCorrelationMatrix(this, rowVar: rowVar);
+
+  /// Computes the Spearman rank correlation matrix of a rank-2 tensor.
+  Matrix<double> spearmanCorrelationMatrix({bool rowVar = false}) =>
+      _spearmanCorrelationMatrix(this, rowVar: rowVar);
+}
+
+/// Statistics extensions on [Matrix<num>].
+extension DescriptiveMatrixNumExtension on Matrix<num> {
+  /// Returns the arithmetic mean of matrix elements.
+  double mean() => _mean(values);
+
+  /// Returns the variance of matrix elements.
+  double variance({bool population = false}) =>
+      _variance(values, population: population);
+
+  /// Returns the standard deviation of matrix elements.
+  double standardDeviation({bool population = false}) =>
+      _standardDeviation(values, population: population);
+
+  /// Returns the median of matrix elements.
+  double median() => _median(values);
+
+  /// Returns the empirical quantile for [q] $\in [0, 1]$.
+  double quantile(num q) => _quantile(values, q);
+
+  /// Returns the percentile for [p] $\in [0, 100]$.
+  double percentile(num p) => _percentile(values, p);
+
+  /// Returns the interquartile range (IQR).
+  double iqr() => _iqr(values);
+
+  /// Returns the skewness of matrix elements.
+  double skewness({bool bias = false}) => _skewness(values, bias: bias);
+
+  /// Returns the kurtosis of matrix elements.
+  double kurtosis({bool excess = true, bool bias = false}) =>
+      _kurtosis(values, excess: excess, bias: bias);
+
+  /// Computes the covariance matrix.
+  Matrix<double> covarianceMatrix({bool rowVar = false}) =>
+      _covarianceMatrix(this, rowVar: rowVar);
+
+  /// Computes the Pearson correlation matrix.
+  Matrix<double> pearsonCorrelationMatrix({bool rowVar = false}) =>
+      _pearsonCorrelationMatrix(this, rowVar: rowVar);
+
+  /// Computes the Spearman rank correlation matrix.
+  Matrix<double> spearmanCorrelationMatrix({bool rowVar = false}) =>
+      _spearmanCorrelationMatrix(this, rowVar: rowVar);
 }
