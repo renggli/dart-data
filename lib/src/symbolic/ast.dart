@@ -64,8 +64,9 @@ final class Variable extends Expr {
   @override
   double evaluate(Map<String, double> context) {
     final val = context[name];
-    if (val == null)
+    if (val == null) {
       throw ArgumentError('Variable "$name" not provided in context');
+    }
     return val;
   }
 

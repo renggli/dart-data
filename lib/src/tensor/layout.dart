@@ -5,8 +5,9 @@ class Layout {
   factory({Iterable<int>? shape, Iterable<int>? strides, int offset = 0}) {
     final s = shape == null ? Int32List(0) : Int32List.fromList(shape.toList());
     for (final dim in s) {
-      if (dim < 0)
+      if (dim < 0) {
         throw ArgumentError('Shape dimensions must be non-negative: $s');
+      }
     }
     final rank = s.length;
     var length = rank == 0 ? (shape == null ? 0 : 1) : 1;
@@ -145,8 +146,9 @@ class Layout {
     for (var i = 0; i < newShape.length; i++) {
       final dim = newShape[i];
       if (dim == -1) {
-        if (inferredIndex != -1)
+        if (inferredIndex != -1) {
           throw ArgumentError('Can only infer one dimension');
+        }
         inferredIndex = i;
       } else if (dim < 0) {
         throw ArgumentError(

@@ -41,8 +41,9 @@ class Simplifier {
 
   static Expr div(Expr left, Expr right) {
     if (left is Constant && right is Constant) {
-      if (right.value == 0.0)
+      if (right.value == 0.0) {
         throw UnsupportedError('Division by zero in simplification');
+      }
       return Constant(left.value / right.value);
     }
     if (left is Constant && left.value == 0.0) return const Constant(0.0);
@@ -55,8 +56,9 @@ class Simplifier {
     if (base is Constant && exponent is Constant) {
       return Constant(math.pow(base.value, exponent.value).toDouble());
     }
-    if (exponent is Constant && exponent.value == 0.0)
+    if (exponent is Constant && exponent.value == 0.0) {
       return const Constant(1.0);
+    }
     if (exponent is Constant && exponent.value == 1.0) return base;
     if (base is Constant && base.value == 0.0) return const Constant(0.0);
     if (base is Constant && base.value == 1.0) return const Constant(1.0);
@@ -86,10 +88,11 @@ class Simplifier {
 
   static Expr ln(Expr expr) {
     if (expr is Constant) {
-      if (expr.value <= 0.0)
+      if (expr.value <= 0.0) {
         throw ArgumentError(
           'Natural logarithm domain error: ${expr.value} <= 0',
         );
+      }
       return Constant(math.log(expr.value));
     }
     return Ln(expr);

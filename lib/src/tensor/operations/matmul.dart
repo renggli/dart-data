@@ -66,8 +66,15 @@ extension MatmulTensorExtension<T> on Tensor<T> {
     Field<T> f,
   ) {
     // Transparent hardware acceleration when contiguous and unshifted
-    if (a.isContiguous && b.isContiguous && c.isContiguous && a.offset == 0 && b.offset == 0 && c.offset == 0) {
-      if (a.data is Float64List && b.data is Float64List && c.data is Float64List) {
+    if (a.isContiguous &&
+        b.isContiguous &&
+        c.isContiguous &&
+        a.offset == 0 &&
+        b.offset == 0 &&
+        c.offset == 0) {
+      if (a.data is Float64List &&
+          b.data is Float64List &&
+          c.data is Float64List) {
         final success = HardwareManager.dgemm(
           m: m,
           n: n,
@@ -82,7 +89,9 @@ extension MatmulTensorExtension<T> on Tensor<T> {
           ldc: n,
         );
         if (success) return;
-      } else if (a.data is Float32List && b.data is Float32List && c.data is Float32List) {
+      } else if (a.data is Float32List &&
+          b.data is Float32List &&
+          c.data is Float32List) {
         final success = HardwareManager.sgemm(
           m: m,
           n: n,
