@@ -56,6 +56,32 @@ void main() {
       check(complexEigs[0].b.abs()).isCloseTo(1.0, 1e-9); // imag
       check(complexEigs[1].a).isCloseTo(0.0, 1e-9);
       check(complexEigs[1].b.abs()).isCloseTo(1.0, 1e-9);
+
+      // Accessing V and D on non-symmetric matrix
+      final v = eig.v;
+      final d = eig.d;
+      check(v.rowCount).equals(2);
+      check(d.rowCount).equals(2);
+
+      // 3x3 and 4x4 non-symmetric matrices with real and complex eigenvalues
+      final m3 = Matrix<double>.fromRows([
+        [1.0, -2.0, 0.0],
+        [2.0, 1.0, 0.0],
+        [0.0, 0.0, 3.0],
+      ], type: DataType.float64);
+      final eig3 = m3.eigenvalue;
+      check(eig3.v.rowCount).equals(3);
+      check(eig3.d.rowCount).equals(3);
+
+      final m4 = Matrix<double>.fromRows([
+        [0.0, 1.0, 0.0, 0.0],
+        [-1.0, 0.0, 0.0, 0.0],
+        [0.0, 0.0, 2.0, -3.0],
+        [0.0, 0.0, 3.0, 2.0],
+      ], type: DataType.float64);
+      final eig4 = m4.eigenvalue;
+      check(eig4.v.rowCount).equals(4);
+      check(eig4.d.rowCount).equals(4);
     });
 
     test('non-square matrix throws', () {
@@ -64,6 +90,17 @@ void main() {
         [4.0, 5.0, 6.0],
       ], type: DataType.float64);
       check(() => a.eigenvalue).throws<ArgumentError>();
+    });
+
+    test('symmetric diagonal matrix (scale == 0 branch)', () {
+      final diag = Matrix<double>.fromRows([
+        [2.0, 0.0, 0.0],
+        [0.0, 5.0, 0.0],
+        [0.0, 0.0, 7.0],
+      ], type: DataType.float64);
+      final eig = diag.eigenvalue;
+      check(eig.realEigenvalues.length).equals(3);
+      check(eig.v.rowCount).equals(3);
     });
   });
 }

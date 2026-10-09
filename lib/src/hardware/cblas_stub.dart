@@ -25,6 +25,8 @@ const int CblasLower = 122;
 /// Stub implementation of BLAS library when FFI is unavailable (e.g. Web).
 class BlasLibrary {
   bool get isAvailable => false;
+  bool get hasDgeqrf => false;
+  bool get hasDgesvd => false;
 
   bool dgemm({
     int transA = cblasNoTrans,

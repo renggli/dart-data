@@ -24,8 +24,10 @@ void main() {
       check(besselY1(-1)).isNaN();
       check(besselY0(1.0)).isCloseTo(0.0882569642156765, 1e-6);
       check(besselY0(5.0)).isCloseTo(-0.308517623137123, 1e-6);
+      check(besselY0(10.0)).isCloseTo(0.0556711672835994, 1e-6);
       check(besselY1(1.0)).isCloseTo(-0.7812128213002889, 1e-6);
       check(besselY1(5.0)).isCloseTo(0.147863143391227, 1e-6);
+      check(besselY1(10.0)).isCloseTo(0.2490154242069538, 1e-6);
     });
 
     test('Modified Bessel I0 and I1 reference values', () {

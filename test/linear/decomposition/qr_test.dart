@@ -67,6 +67,54 @@ void main() {
       check(x[1]).isCloseTo(3.0, 1e-6);
     });
 
+    test('solveMatrix least squares solve', () {
+      final a = Matrix<double>.fromRows([
+        [1.0, 1.0],
+        [1.0, 2.0],
+        [1.0, 3.0],
+        [1.0, 4.0],
+      ], type: DataType.float64);
+
+      final b = Matrix<double>.fromRows([
+        [5.0, 10.0],
+        [8.0, 16.0],
+        [11.0, 22.0],
+        [14.0, 28.0],
+      ], type: DataType.float64);
+
+      final qr = a.qr;
+      final x = qr.solveMatrix(b);
+      check(x.rowCount).equals(2);
+      check(x.colCount).equals(2);
+      check(x.get(0, 0)).isCloseTo(2.0, 1e-6);
+      check(x.get(1, 0)).isCloseTo(3.0, 1e-6);
+      check(x.get(0, 1)).isCloseTo(4.0, 1e-6);
+      check(x.get(1, 1)).isCloseTo(6.0, 1e-6);
+
+      // Dimension mismatch
+      final bWrong = Matrix<double>.fromRows([
+        [1.0, 2.0],
+      ]);
+      check(() => qr.solveMatrix(bWrong)).throws<ArgumentError>();
+      final bVecWrong = Vector<double>.fromList([1.0]);
+      check(() => qr.solveVector(bVecWrong)).throws<ArgumentError>();
+    });
+
+    test('rank deficient matrix solve throws StateError', () {
+      final a = Matrix<double>.fromRows([
+        [1.0, 2.0],
+        [2.0, 4.0],
+      ], type: DataType.float64);
+      final qr = a.qr;
+      check(qr.isFullRank).isFalse();
+      final b = Vector<double>.fromList([1.0, 2.0]);
+      check(() => qr.solveVector(b)).throws<StateError>();
+      check(
+        () =>
+            qr.solveMatrix(Matrix<double>.identity(2, type: DataType.float64)),
+      ).throws<StateError>();
+    });
+
     test('invalid dimensions throw', () {
       final a = Matrix<double>.fromRows([
         [1.0, 2.0, 3.0],

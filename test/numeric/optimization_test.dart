@@ -104,6 +104,88 @@ void main() {
       check(result.point[1]).isCloseTo(2.0, 1e-5);
       check(result.point[2]).isCloseTo(3.0, 1e-5);
       check(result.value).isCloseTo(0.0, 1e-5);
+
+      // L-BFGS with Expr
+      const x = Variable('x');
+      const y = Variable('y');
+      final fExpr =
+          (x - const Constant(1.0)).pow(2) + (y - const Constant(2.0)).pow(2);
+      final lbfgsExprRes = lbfgs(
+        fExpr,
+        Vector<double>.fromList([0.0, 0.0], type: DataType.float64),
+        variables: ['x', 'y'],
+      );
+      check(lbfgsExprRes.point[0]).isCloseTo(1.0, 1e-5);
+      check(lbfgsExprRes.point[1]).isCloseTo(2.0, 1e-5);
     });
+
+    test(
+      'Optimization error checking on unsupported types and num functions',
+      () {
+        num fnNum(num v) => (v - 4) * (v - 4);
+        final brentNum = brentMinimize(fnNum, a: 0.0, b: 10.0);
+        check(brentNum.point).isCloseTo(4.0, 1e-6);
+
+        // Nelder-Mead with Expr
+        const x = Variable('x');
+        const y = Variable('y');
+        final fExpr =
+            (x - const Constant(3.0)).pow(2) + (y - const Constant(4.0)).pow(2);
+        final nmRes = nelderMead(
+          fExpr,
+          Vector<double>.fromList([0.0, 0.0], type: DataType.float64),
+          variables: ['x', 'y'],
+        );
+        check(nmRes.point[0]).isCloseTo(3.0, 1e-4);
+        check(nmRes.point[1]).isCloseTo(4.0, 1e-4);
+
+        // Invalid types
+        final start = Vector<double>.fromList([0.0], type: DataType.float64);
+        check(() => brentMinimize('invalid', a: 0.0, b: 1.0))
+            .throws<ArgumentError>();
+        check(() => nelderMead('invalid', start)).throws<ArgumentError>();
+        check(() => bfgs('invalid', start)).throws<ArgumentError>();
+        check(() => lbfgs('invalid', start)).throws<ArgumentError>();
+
+        // BFGS with Expr
+        final bfgsExpr = bfgs(
+          fExpr,
+          Vector<double>.fromList([0.0, 0.0], type: DataType.float64),
+          variables: ['x', 'y'],
+        );
+        check(bfgsExpr.point[0]).isCloseTo(3.0, 1e-4);
+        check(bfgsExpr.point[1]).isCloseTo(4.0, 1e-4);
+
+        // Max iterations hit
+        final brentLimited = brentMinimize(
+          (num x) => (x * x).toDouble(),
+          a: -1.0,
+          b: 1.0,
+          maxIterations: 1,
+        );
+        check(brentLimited.iterations).equals(1);
+
+        final nmLimited = nelderMead(
+          (Vector<double> v) => v[0] * v[0],
+          start,
+          maxIterations: 1,
+        );
+        check(nmLimited.iterations).equals(1);
+
+        final bfgsLimited = bfgs(
+          (Vector<double> v) => v[0] * v[0] + 10.0,
+          Vector<double>.fromList([10.0], type: DataType.float64),
+          maxIterations: 1,
+        );
+        check(bfgsLimited.iterations).equals(1);
+
+        final lbfgsLimited = lbfgs(
+          (Vector<double> v) => v[0] * v[0] + 10.0,
+          Vector<double>.fromList([10.0], type: DataType.float64),
+          maxIterations: 1,
+        );
+        check(lbfgsLimited.iterations).equals(1);
+      },
+    );
   });
 }

@@ -19,6 +19,27 @@ void main() {
       final resNullFalse = tTestOneSample(sample, mu0: 15.0);
       check(resNullFalse.isSignificant).isTrue();
       check(resNullFalse.pValue).isLessThan(1e-5);
+      check(resNullFalse.toString()).contains('test');
+
+      // Alternative directions
+      final resLess = tTestOneSample(
+        sample,
+        mu0: 15.0,
+        alternative: AlternativeHypothesis.less,
+      );
+      check(resLess.isSignificant).isTrue();
+      check(resLess.pValue).isLessThan(1e-5);
+
+      final resGreater = tTestOneSample(
+        sample,
+        mu0: 5.0,
+        alternative: AlternativeHypothesis.greater,
+      );
+      check(resGreater.isSignificant).isTrue();
+      check(resGreater.pValue).isLessThan(1e-5);
+
+      // Errors
+      check(() => tTestOneSample([1.0])).throws<ArgumentError>();
     });
 
     test('two-sample t-test (Student and Welch)', () {
@@ -32,6 +53,24 @@ void main() {
       final resWelch = tTestTwoSample(groupA, groupB, equalVariance: false);
       check(resWelch.isSignificant).isTrue();
       check(resWelch.pValue).isLessThan(0.001);
+
+      final resLess = tTestTwoSample(
+        groupA,
+        groupB,
+        alternative: AlternativeHypothesis.less,
+      );
+      check(resLess.pValue).isLessThan(0.001);
+
+      final resGreater = tTestTwoSample(
+        groupA,
+        groupB,
+        alternative: AlternativeHypothesis.greater,
+      );
+      check(resGreater.pValue).isGreaterThan(0.9);
+
+      // Errors
+      check(() => tTestTwoSample([1.0], groupB)).throws<ArgumentError>();
+      check(() => tTestTwoSample(groupA, [1.0])).throws<ArgumentError>();
     });
 
     test('paired t-test', () {
@@ -42,6 +81,25 @@ void main() {
       check(res.isSignificant).isTrue();
       check(res.pValue).isLessThan(0.01);
       check(res.statistic).isGreaterThan(0.0);
+
+      final resGreater = tTestPaired(
+        before,
+        after,
+        alternative: AlternativeHypothesis.greater,
+      );
+      check(resGreater.pValue).isLessThan(0.01);
+
+      final resLess = tTestPaired(
+        before,
+        after,
+        alternative: AlternativeHypothesis.less,
+      );
+      check(resLess.pValue).isGreaterThan(0.99);
+
+      // Errors
+      check(() => tTestPaired([1.0], after)).throws<ArgumentError>();
+      check(() => tTestPaired([1.0, 2.0], [1.0, 2.0, 3.0]))
+          .throws<ArgumentError>();
     });
 
     test('one-way ANOVA', () {
@@ -54,6 +112,16 @@ void main() {
       check(res.isSignificant).isTrue();
       check(res.pValue).isLessThan(1e-6);
       check(res.statistic).isGreaterThan(100.0);
+
+      // Errors
+      check(() => oneWayAnova([g1])).throws<ArgumentError>();
+      check(() => oneWayAnova([g1, <double>[]])).throws<ArgumentError>();
+      check(
+        () => oneWayAnova([
+          [1.0],
+          [2.0],
+        ]),
+      ).throws<ArgumentError>();
     });
 
     test('chi-squared goodness-of-fit test', () {
@@ -63,11 +131,24 @@ void main() {
       check(resFair.isSignificant).isFalse();
       check(resFair.pValue).isGreaterThan(0.9);
 
+      // Explicit expected with scaling and ddof
+      final exp = [20, 20, 20, 20, 20, 20];
+      final resExp = chiSquaredTest(fairRolls, expected: exp, ddof: 1);
+      check(resExp.degreesOfFreedom).equals(4.0);
+
       // Biased die
       final biasedRolls = [5, 5, 10, 10, 30, 60];
       final resBiased = chiSquaredTest(biasedRolls);
       check(resBiased.isSignificant).isTrue();
       check(resBiased.pValue).isLessThan(1e-5);
+
+      // Errors
+      check(() => chiSquaredTest([5])).throws<ArgumentError>();
+      check(() => chiSquaredTest([5, 5], expected: [1, 2, 3]))
+          .throws<ArgumentError>();
+      check(() => chiSquaredTest([5, 5], expected: [0, 5]))
+          .throws<ArgumentError>();
+      check(() => chiSquaredTest([5, 5], ddof: 2)).throws<ArgumentError>();
     });
 
     test('chi-squared test of independence on contingency table', () {
@@ -84,6 +165,12 @@ void main() {
       check(res.isSignificant).isTrue();
       check(res.degreesOfFreedom).equals(1.0);
       check(res.pValue).isLessThan(0.001);
+
+      // Error
+      final badTable = Matrix<int>.fromRows([
+        [10, 20],
+      ], type: DataType.int32);
+      check(() => chiSquaredContingency(badTable)).throws<ArgumentError>();
     });
 
     test('Mann-Whitney U test', () {
@@ -94,6 +181,24 @@ void main() {
       check(res.statistic).isCloseTo(0.0, 1e-10);
       check(res.isSignificant).isTrue();
       check(res.pValue).isLessThan(0.05);
+
+      final resLess = mannWhitneyUTest(
+        x,
+        y,
+        alternative: AlternativeHypothesis.less,
+      );
+      check(resLess.pValue).isLessThan(0.05);
+
+      final resGreater = mannWhitneyUTest(
+        x,
+        y,
+        alternative: AlternativeHypothesis.greater,
+      );
+      check(resGreater.pValue).isGreaterThan(0.9);
+
+      // Errors
+      check(() => mannWhitneyUTest(<double>[], y)).throws<ArgumentError>();
+      check(() => mannWhitneyUTest(x, <double>[])).throws<ArgumentError>();
     });
   });
 }

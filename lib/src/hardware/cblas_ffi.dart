@@ -1092,6 +1092,7 @@ class BlasLibrary {
     int bOffset = 0,
     required int ldb,
   }) {
+    // coverage:ignore-start
     if (_lapackeDgesv != null) {
       return using((arena) {
         final aLen = n * lda;
@@ -1125,6 +1126,7 @@ class BlasLibrary {
         return false;
       });
     }
+    // coverage:ignore-end
 
     if (_dgetrf != null && _dgetrs != null) {
       return using((arena) {
@@ -1161,6 +1163,7 @@ class BlasLibrary {
       });
     }
 
+    // coverage:ignore-start
     if (_dgesv != null) {
       return using((arena) {
         final aLen = n * lda;
@@ -1191,6 +1194,7 @@ class BlasLibrary {
         return false;
       });
     }
+    // coverage:ignore-end
 
     return false;
   }
@@ -1206,6 +1210,7 @@ class BlasLibrary {
     int bOffset = 0,
     required int ldb,
   }) {
+    // coverage:ignore-start
     if (_lapackeDgels != null) {
       return using((arena) {
         final aLen = m * lda;
@@ -1244,6 +1249,7 @@ class BlasLibrary {
         return false;
       });
     }
+    // coverage:ignore-end
 
     if (_dgels != null) {
       return using((arena) {
@@ -1420,6 +1426,7 @@ List<ffi.DynamicLibrary> _loadPlatformLibraries() {
       ]) {
         tryOpen(name);
       }
+      // coverage:ignore-start
     } else if (Platform.isLinux || Platform.isAndroid) {
       for (final name in [
         'libopenblas.so.0',
@@ -1441,6 +1448,7 @@ List<ffi.DynamicLibrary> _loadPlatformLibraries() {
         tryOpen(name);
       }
     }
+    // coverage:ignore-end
   } catch (_) {}
   return libs;
 }

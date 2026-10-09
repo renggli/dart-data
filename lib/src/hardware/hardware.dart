@@ -7,7 +7,7 @@ import 'simd.dart';
 /// Central hardware acceleration manager providing transparent routing between
 /// native BLAS/LAPACK (via FFI), Dart SIMD, and pure Dart scalar algorithms.
 class HardwareManager {
-  new _();
+  new _(); // coverage:ignore-line
 
   /// Whether hardware acceleration is globally enabled. Can be disabled for benchmarking or testing fallbacks.
   static bool isEnabled = true;

@@ -119,5 +119,56 @@ void main() {
         check(fitted[1]).isCloseTo(0.5, 1e-3);
       },
     );
+
+    test('multiple linear regression without intercept and predict errors', () {
+      final x = Matrix<double>.fromRows([
+        [1.0, 2.0],
+        [2.0, 1.0],
+      ], type: DataType.float64);
+      // y = 2*x1 + 3*x2
+      final y = Vector<double>.fromList([8.0, 7.0], type: DataType.float64);
+      final model = multipleLinearRegression(x, y, fitIntercept: false);
+      check(model.intercept).equals(0.0);
+      check(model.coefficients[0]).isCloseTo(2.0, 1e-6);
+      check(model.coefficients[1]).isCloseTo(3.0, 1e-6);
+
+      // Predict length mismatch
+      check(() => model.predict(Vector<double>.fromList([1.0])))
+          .throws<ArgumentError>();
+      // Data rowCount mismatch
+      check(() => multipleLinearRegression(x, Vector<double>.fromList([1.0])))
+          .throws<ArgumentError>();
+    });
+
+    test('leastSquares and regression error validations', () {
+      final a = Matrix<double>.fromRows([
+        [1.0, 2.0],
+        [3.0, 4.0],
+      ]);
+      final bBad = Vector<double>.fromList([1.0]);
+      check(() => leastSquares(a, bBad)).throws<ArgumentError>();
+
+      // Non-float64 leastSquares
+      final aInt = Matrix<int>.fromRows([
+        [1, 0],
+        [0, 1],
+      ]);
+      final bInt = Vector<int>.fromList([3, 4]);
+      final sol = leastSquares(aInt, bInt);
+      check(sol[0]).isCloseTo(3.0, 1e-6);
+      check(sol[1]).isCloseTo(4.0, 1e-6);
+
+      // linearRegression errors
+      final v1 = Vector<double>.fromList([1.0, 2.0]);
+      final v2 = Vector<double>.fromList([1.0]);
+      check(() => linearRegression(v1, v2)).throws<ArgumentError>();
+      check(() => linearRegression(v2, v2)).throws<ArgumentError>();
+
+      // polynomialRegression errors
+      check(() => polynomialRegression(v1, v2, degree: 1))
+          .throws<ArgumentError>();
+      check(() => polynomialRegression(v1, v1, degree: 3))
+          .throws<ArgumentError>();
+    });
   });
 }

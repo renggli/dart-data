@@ -182,5 +182,47 @@ void main() {
       check(realParts4[1]).isCloseTo(2.0, 1e-6);
       check(realParts4[2]).isCloseTo(3.0, 1e-6);
     });
+
+    test('Polynomial factories, division errors, integration on zero, and toString', () {
+      final zero = Polynomial<double>.zero();
+      check(zero.degree).equals(-1);
+      check(zero.toString()).equals('0');
+
+      final gen = Polynomial<int>.generate(2, (exp) => exp + 1);
+      check(gen.coefficients).deepEquals([1, 2, 3]);
+
+      // Division by zero polynomial throws
+      final p = Polynomial<int>.fromCoefficients([1, 2]);
+      final zeroInt = Polynomial<int>.zero();
+      check(() => p.divide(zeroInt)).throws<UnsupportedError>();
+
+      // degA < degB
+      final small = Polynomial<int>.fromCoefficients([1]);
+      final big = Polynomial<int>.fromCoefficients([1, 2, 3]);
+      final div = small.divide(big);
+      check(div.quotient.degree).equals(-1);
+      check(div.remainder.coefficients).deepEquals([1]);
+
+      // Coprime gcd
+      final p1 = Polynomial<double>.fromCoefficients([1.0, 1.0]); // x + 1
+      final p2 = Polynomial<double>.fromCoefficients([2.0, 1.0]); // x + 2
+      final gcd = p1.gcd(p2);
+      check(gcd.degree).equals(0);
+      check(gcd[0]).isCloseTo(1.0, 1e-9);
+
+      // Integration on zero polynomial and without constant
+      final intZero = zero.integrate(2.0);
+      check(intZero.coefficients).deepEquals([2.0]);
+      final intDefault = p.integrate();
+      check(intDefault[0]).equals(0);
+
+      // toString formatting
+      final constP = Polynomial<int>.fromCoefficients([5]);
+      check(constP.toString()).equals('5');
+      final poly1 = Polynomial<int>.fromCoefficients([1, 1]);
+      check(poly1.toString()).equals('x + 1');
+      final poly3 = Polynomial<int>.fromCoefficients([3, 0, 2, 1]);
+      check(poly3.toString()).equals('x^3 + 2x^2 + 3');
+    });
   });
 }

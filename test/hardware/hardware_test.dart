@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'dart:typed_data';
 
 import 'package:checks/checks.dart';
@@ -785,6 +786,761 @@ void main() {
 
       check(params[0]).isCloseTo(3.25, 1e-3);
       check(params[1]).isCloseTo(1.0, 1e-3);
+    });
+  });
+
+  group('HardwareManager comprehensive fallback & float32 coverage', () {
+    test('CblasFfi getters and flags', () {
+      check(HardwareManager.isAccelerated)
+          .equals(HardwareManager.isNativeAvailable);
+      final blas = loadBlas();
+      check(blas.isAvailable).equals(HardwareManager.isNativeAvailable);
+      check(blas.hasDgeqrf).isA<bool>();
+      check(blas.hasDgesvd).isA<bool>();
+    });
+
+    test('dgemm and sgemm fallback with transA, transB, offsets, and non-zero beta', () {
+      for (final enableHw in [true, false]) {
+        HardwareManager.isEnabled = enableHw;
+
+        // Double precision: C = 2.0 * A^T * B^T + 0.5 * C
+        // A is 2x3 (transposed to 3x2), B is 3x2 (transposed to 2x3), C is 3x3
+        // Memory has padding offsets
+        final a = Float64List.fromList([99.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0]);
+        final b = Float64List.fromList([99.0, 7.0, 8.0, 9.0, 10.0, 11.0, 12.0]);
+        final c = Float64List(10);
+        c[1] = 1.0;
+        c[2] = 2.0;
+        c[3] = 3.0;
+        c[4] = 4.0;
+        c[5] = 5.0;
+        c[6] = 6.0;
+        c[7] = 7.0;
+        c[8] = 8.0;
+        c[9] = 9.0;
+
+        final res = HardwareManager.dgemm(
+          transA: cblasTrans,
+          transB: cblasTrans,
+          m: 3,
+          n: 3,
+          k: 2,
+          alpha: 2.0,
+          a: a,
+          aOffset: 1,
+          lda: 3,
+          b: b,
+          bOffset: 1,
+          ldb: 2,
+          beta: 0.5,
+          c: c,
+          cOffset: 1,
+          ldc: 3,
+        );
+        check(res).isTrue();
+
+        // Single precision sgemm
+        final as = Float32List.fromList([99.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0]);
+        final bs = Float32List.fromList([
+          99.0,
+          7.0,
+          8.0,
+          9.0,
+          10.0,
+          11.0,
+          12.0,
+        ]);
+        final cs = Float32List(10);
+        cs[1] = 1.0;
+        cs[2] = 2.0;
+        cs[3] = 3.0;
+        cs[4] = 4.0;
+        cs[5] = 5.0;
+        cs[6] = 6.0;
+        cs[7] = 7.0;
+        cs[8] = 8.0;
+        cs[9] = 9.0;
+
+        final resS = HardwareManager.sgemm(
+          transA: cblasTrans,
+          transB: cblasTrans,
+          m: 3,
+          n: 3,
+          k: 2,
+          alpha: 2.0,
+          a: as,
+          aOffset: 1,
+          lda: 3,
+          b: bs,
+          bOffset: 1,
+          ldb: 2,
+          beta: 0.5,
+          c: cs,
+          cOffset: 1,
+          ldc: 3,
+        );
+        check(resS).isTrue();
+      }
+      HardwareManager.isEnabled = true;
+    });
+
+    test('dgemv and sgemv fallback with transA, offset, and non-zero beta', () {
+      for (final enableHw in [true, false]) {
+        HardwareManager.isEnabled = enableHw;
+
+        // y = 2.0 * A^T * x + 0.5 * y
+        // A is 2x3, x is length 2, y is length 3
+        final a = Float64List.fromList([0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0]);
+        final x = Float64List.fromList([0.0, 1.0, 2.0]);
+        final y = Float64List.fromList([0.0, 10.0, 20.0, 30.0]);
+
+        final res = HardwareManager.dgemv(
+          transA: cblasTrans,
+          m: 2,
+          n: 3,
+          alpha: 2.0,
+          a: a,
+          aOffset: 1,
+          lda: 3,
+          x: x,
+          xOffset: 1,
+          incX: 1,
+          beta: 0.5,
+          y: y,
+          yOffset: 1,
+          incY: 1,
+        );
+        check(res).isTrue();
+
+        final as = Float32List.fromList([0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0]);
+        final xs = Float32List.fromList([0.0, 1.0, 2.0]);
+        final ys = Float32List.fromList([0.0, 10.0, 20.0, 30.0]);
+
+        final resS = HardwareManager.sgemv(
+          transA: cblasTrans,
+          m: 2,
+          n: 3,
+          alpha: 2.0,
+          a: as,
+          aOffset: 1,
+          lda: 3,
+          x: xs,
+          xOffset: 1,
+          incX: 1,
+          beta: 0.5,
+          y: ys,
+          yOffset: 1,
+          incY: 1,
+        );
+        check(resS).isTrue();
+      }
+      HardwareManager.isEnabled = true;
+    });
+
+    test('ddot, sdot, dnrm2, snrm2, dasum, daxpy, saxpy, dscal, sscal with strides and offsets', () {
+      for (final enableHw in [true, false]) {
+        HardwareManager.isEnabled = enableHw;
+
+        final x = Float64List.fromList([0.0, 1.0, 0.0, 2.0, 0.0, 3.0]);
+        final y = Float64List.fromList([0.0, 4.0, 0.0, 5.0, 0.0, 6.0]);
+
+        final dot = HardwareManager.ddot(
+          n: 3,
+          x: x,
+          xOffset: 1,
+          incX: 2,
+          y: y,
+          yOffset: 1,
+          incY: 2,
+        );
+        check(dot).equals(1.0 * 4.0 + 2.0 * 5.0 + 3.0 * 6.0);
+
+        final xs = Float32List.fromList([0.0, 1.0, 0.0, 2.0, 0.0, 3.0]);
+        final ys = Float32List.fromList([0.0, 4.0, 0.0, 5.0, 0.0, 6.0]);
+        final sdot = HardwareManager.sdot(
+          n: 3,
+          x: xs,
+          xOffset: 1,
+          incX: 2,
+          y: ys,
+          yOffset: 1,
+          incY: 2,
+        );
+        check(sdot).equals(1.0 * 4.0 + 2.0 * 5.0 + 3.0 * 6.0);
+
+        final nrm = HardwareManager.dnrm2(n: 3, x: x, xOffset: 1, incX: 2);
+        check(nrm!).isCloseTo(3.74165738677, 1e-6);
+
+        final snrm = HardwareManager.snrm2(n: 3, x: xs, xOffset: 1, incX: 2);
+        check(snrm!).isCloseTo(3.74165738677, 1e-4);
+
+        HardwareManager.daxpy(
+          n: 3,
+          alpha: 2.0,
+          x: x,
+          xOffset: 1,
+          incX: 2,
+          y: y,
+          yOffset: 1,
+          incY: 2,
+        );
+        check(y[1]).equals(4.0 + 2.0 * 1.0);
+        check(y[3]).equals(5.0 + 2.0 * 2.0);
+        check(y[5]).equals(6.0 + 2.0 * 3.0);
+
+        HardwareManager.saxpy(
+          n: 3,
+          alpha: 2.0,
+          x: xs,
+          xOffset: 1,
+          incX: 2,
+          y: ys,
+          yOffset: 1,
+          incY: 2,
+        );
+        check(ys[1]).equals(4.0 + 2.0 * 1.0);
+
+        HardwareManager.dscal(n: 3, alpha: 3.0, x: x, xOffset: 1, incX: 2);
+        check(x[1]).equals(3.0);
+        check(x[3]).equals(6.0);
+        check(x[5]).equals(9.0);
+
+        HardwareManager.sscal(n: 3, alpha: 3.0, x: xs, xOffset: 1, incX: 2);
+        check(xs[1]).equals(3.0);
+      }
+      HardwareManager.isEnabled = true;
+    });
+
+    test(
+      'dsyrk, ssyrk, dsyr2, ssyr2 with lower and upper triangular updates',
+      () {
+        for (final enableHw in [true, false]) {
+          HardwareManager.isEnabled = enableHw;
+
+          // dsyrk upper and lower
+          for (final uplo in [cblasUpper, cblasLower]) {
+            final a = Float64List.fromList([1.0, 2.0, 3.0, 4.0]); // 2x2
+            final c = Float64List(4);
+            final res = HardwareManager.dsyrk(
+              uplo: uplo,
+              trans: cblasNoTrans,
+              n: 2,
+              k: 2,
+              alpha: 1.0,
+              a: a,
+              lda: 2,
+              beta: 0.0,
+              c: c,
+              ldc: 2,
+            );
+            check(res).isTrue();
+
+            // With trans = cblasTrans
+            final resTrans = HardwareManager.dsyrk(
+              uplo: uplo,
+              trans: cblasTrans,
+              n: 2,
+              k: 2,
+              alpha: 1.0,
+              a: a,
+              lda: 2,
+              beta: 0.5,
+              c: c,
+              ldc: 2,
+            );
+            check(resTrans).isTrue();
+
+            // Single precision ssyrk
+            final as = Float32List.fromList([1.0, 2.0, 3.0, 4.0]);
+            final cs = Float32List(4);
+            final resS = HardwareManager.ssyrk(
+              uplo: uplo,
+              trans: cblasNoTrans,
+              n: 2,
+              k: 2,
+              alpha: 1.0,
+              a: as,
+              lda: 2,
+              beta: 0.0,
+              c: cs,
+              ldc: 2,
+            );
+            check(resS).isTrue();
+          }
+
+          // dsyr2 and ssyr2
+          for (final uplo in [cblasUpper, cblasLower]) {
+            final x = Float64List.fromList([0.0, 1.0, 2.0]);
+            final y = Float64List.fromList([0.0, 3.0, 4.0]);
+            final a = Float64List(4);
+            final res = HardwareManager.dsyr2(
+              uplo: uplo,
+              n: 2,
+              alpha: 1.0,
+              x: x,
+              xOffset: 1,
+              y: y,
+              yOffset: 1,
+              a: a,
+              lda: 2,
+            );
+            check(res).isTrue();
+
+            final xs = Float32List.fromList([0.0, 1.0, 2.0]);
+            final ys = Float32List.fromList([0.0, 3.0, 4.0]);
+            final as = Float32List(4);
+            final resS = HardwareManager.ssyr2(
+              uplo: uplo,
+              n: 2,
+              alpha: 1.0,
+              x: xs,
+              xOffset: 1,
+              y: ys,
+              yOffset: 1,
+              a: as,
+              lda: 2,
+            );
+            check(resS).isTrue();
+          }
+        }
+        HardwareManager.isEnabled = true;
+      },
+    );
+
+    test('dpotrf fallback and precision with lower triangular', () {
+      for (final enableHw in [true, false]) {
+        HardwareManager.isEnabled = enableHw;
+
+        // Symmetric positive definite 2x2: [[4, 2], [2, 5]]
+        final a = Float64List.fromList([4.0, 2.0, 2.0, 5.0]);
+        final ok = HardwareManager.dpotrf(uplo: cblasLower, n: 2, a: a, lda: 2);
+        check(ok).isTrue();
+        check(a[0]).isCloseTo(2.0, 1e-6); // sqrt(4) = 2
+        check(a[2]).isCloseTo(1.0, 1e-6); // 2/2 = 1
+        check(a[3]).isCloseTo(2.0, 1e-6); // sqrt(5 - 1^2) = 2
+      }
+      HardwareManager.isEnabled = true;
+    });
+
+    test('dgesv, dposv, and dgels fallback and edge cases', () {
+      for (final enableHw in [true, false]) {
+        HardwareManager.isEnabled = enableHw;
+
+        // Singular matrix fails gracefully
+        final aSingular = Float64List.fromList([1.0, 2.0, 2.0, 4.0]);
+        final bSingular = Float64List.fromList([3.0, 6.0]);
+        final okSingular = HardwareManager.dgesv(
+          n: 2,
+          nrhs: 1,
+          a: aSingular,
+          lda: 2,
+          b: bSingular,
+          ldb: 1,
+        );
+        check(okSingular).isFalse();
+
+        // dgels 2x2 identity system
+        final aGels = Float64List.fromList([2.0, 0.0, 0.0, 2.0]);
+        final bGels = Float64List.fromList([4.0, 6.0]);
+        final okGels = HardwareManager.dgels(
+          m: 2,
+          n: 2,
+          nrhs: 1,
+          a: aGels,
+          lda: 2,
+          b: bGels,
+          ldb: 1,
+        );
+        if (enableHw && HardwareManager.isNativeAvailable) {
+          check(okGels).isTrue();
+          check(bGels[0]).isCloseTo(2.0, 1e-6);
+          check(bGels[1]).isCloseTo(3.0, 1e-6);
+        } else {
+          check(okGels).isFalse();
+        }
+      }
+      HardwareManager.isEnabled = true;
+    });
+
+    test('hardware fallback remaining branches: no-transpose, SIMD dot/nrm2, upper dpotrf', () {
+      HardwareManager.isEnabled = false;
+
+      // dgemm no-trans fallback
+      final a = Float64List.fromList([1.0, 2.0, 3.0, 4.0]);
+      final b = Float64List.fromList([5.0, 6.0, 7.0, 8.0]);
+      final c = Float64List(4);
+      final okGemm = HardwareManager.dgemm(
+        transA: cblasNoTrans,
+        transB: cblasNoTrans,
+        m: 2,
+        n: 2,
+        k: 2,
+        alpha: 1.0,
+        a: a,
+        lda: 2,
+        b: b,
+        ldb: 2,
+        beta: 0.0,
+        c: c,
+        ldc: 2,
+      );
+      check(okGemm).isTrue();
+      check(c[0]).equals(1.0 * 5.0 + 2.0 * 7.0);
+
+      // dgemv no-trans fallback
+      final x = Float64List.fromList([2.0, 3.0]);
+      final y = Float64List(2);
+      final okGemv = HardwareManager.dgemv(
+        transA: cblasNoTrans,
+        m: 2,
+        n: 2,
+        alpha: 1.0,
+        a: a,
+        lda: 2,
+        x: x,
+        incX: 1,
+        beta: 0.0,
+        y: y,
+        incY: 1,
+      );
+      check(okGemv).isTrue();
+      check(y[0]).equals(1.0 * 2.0 + 2.0 * 3.0);
+
+      // sdot SIMD fast path (offset 0, inc 1, length == n)
+      final xs = Float32List.fromList([1.0, 2.0, 3.0, 4.0]);
+      final ys = Float32List.fromList([5.0, 6.0, 7.0, 8.0]);
+      final sdotSimd = HardwareManager.sdot(n: 4, x: xs, y: ys);
+      check(sdotSimd).equals(1.0 * 5.0 + 2.0 * 6.0 + 3.0 * 7.0 + 4.0 * 8.0);
+
+      // snrm2 SIMD fast path
+      final snrmSimd = HardwareManager.snrm2(n: 4, x: xs);
+      check(snrmSimd!).isCloseTo(math.sqrt(1 + 4 + 9 + 16), 1e-5);
+
+      // dpotrf upper triangular fallback
+      final aSym = Float64List.fromList([4.0, 2.0, 2.0, 5.0]);
+      final okUpper = HardwareManager.dpotrf(
+        uplo: cblasUpper,
+        n: 2,
+        a: aSym,
+        lda: 2,
+      );
+      check(okUpper).isTrue();
+
+      HardwareManager.isEnabled = true;
+    });
+
+    test(
+      'native zero-copy float32 and heap-allocated dgesv/dgels acceleration',
+      () {
+        if (!HardwareManager.isNativeAvailable) return;
+
+        HardwareManager.isEnabled = true;
+
+        // Native float32 buffers
+        final bufX = NativeBuffer<double>(4, type: DataType.float32);
+        final bufY = NativeBuffer<double>(4, type: DataType.float32);
+        final x = bufX.data as Float32List;
+        final y = bufY.data as Float32List;
+        for (var i = 0; i < 4; i++) {
+          x[i] = (i + 1).toDouble();
+          y[i] = (i + 2).toDouble();
+        }
+
+        final dot = HardwareManager.sdot(n: 4, x: x, y: y);
+        check(dot!).isCloseTo(1 * 2 + 2 * 3 + 3 * 4 + 4 * 5, 1e-4);
+
+        final nrm = HardwareManager.snrm2(n: 4, x: x);
+        check(nrm!).isCloseTo(math.sqrt(1 + 4 + 9 + 16), 1e-4);
+
+        HardwareManager.saxpy(n: 4, alpha: 2.0, x: x, y: y);
+        check(y[0]).isCloseTo(2.0 + 2.0 * 1.0, 1e-4);
+
+        HardwareManager.sscal(n: 4, alpha: 3.0, x: x);
+        check(x[0]).isCloseTo(3.0, 1e-4);
+
+        // Heap-allocated dgesv (copy-to-arena path)
+        final aHeap = Float64List.fromList([3.0, 1.0, 1.0, 2.0]);
+        final bHeap = Float64List.fromList([9.0, 8.0]);
+        final okSolve = HardwareManager.dgesv(
+          n: 2,
+          nrhs: 1,
+          a: aHeap,
+          lda: 2,
+          b: bHeap,
+          ldb: 1,
+        );
+        check(okSolve).isTrue();
+        check(bHeap[0]).isCloseTo(2.0, 1e-9);
+        check(bHeap[1]).isCloseTo(3.0, 1e-9);
+
+        // Heap-allocated dgels (copy-to-arena path)
+        final aGelsHeap = Float64List.fromList([1.0, 1.0, 1.0, 2.0, 1.0, 3.0]);
+        final bGelsHeap = Float64List.fromList([6.0, 5.0, 7.0]);
+        final okGels = HardwareManager.dgels(
+          m: 3,
+          n: 2,
+          nrhs: 1,
+          a: aGelsHeap,
+          lda: 2,
+          b: bGelsHeap,
+          ldb: 1,
+        );
+        check(okGels).isTrue();
+        check(bGelsHeap[0]).isCloseTo(5.0, 1e-6);
+        check(bGelsHeap[1]).isCloseTo(0.5, 1e-6);
+
+        bufX.dispose();
+        bufY.dispose();
+      },
+    );
+
+    test(
+      'SimdEngine constructor & NativeBuffer sgemm, ssyrk, dsyr2, ssyr2 paths',
+      () {
+        const simd = SimdEngine();
+        check(simd).isNotNull();
+
+        // Native sgemm
+        final bufA = NativeBuffer<double>(4, type: DataType.float32);
+        final bufB = NativeBuffer<double>(4, type: DataType.float32);
+        final bufC = NativeBuffer<double>(4, type: DataType.float32);
+        bufA.data.setRange(0, 4, [1.0, 2.0, 3.0, 4.0]);
+        bufB.data.setRange(0, 4, [5.0, 6.0, 7.0, 8.0]);
+        final okSgemm = HardwareManager.sgemm(
+          m: 2,
+          n: 2,
+          k: 2,
+          alpha: 1.0,
+          a: bufA.data as Float32List,
+          lda: 2,
+          b: bufB.data as Float32List,
+          ldb: 2,
+          beta: 0.0,
+          c: bufC.data as Float32List,
+          ldc: 2,
+        );
+        check(okSgemm).isTrue();
+        check(bufC.data[0]).isCloseTo(19.0, 1e-4);
+
+        // Heap ssyrk with beta != 0.0
+        final aHeapFloat = Float32List.fromList([1.0, 2.0, 3.0, 4.0]);
+        final cHeapFloat = Float32List.fromList([1.0, 0.0, 0.0, 1.0]);
+        final okSsyrk = HardwareManager.ssyrk(
+          n: 2,
+          k: 2,
+          alpha: 1.0,
+          a: aHeapFloat,
+          lda: 2,
+          beta: 2.0,
+          c: cHeapFloat,
+          ldc: 2,
+        );
+        check(okSsyrk).isTrue();
+
+        // Native dsyr2
+        final bufX64 = NativeBuffer<double>(2, type: DataType.float64);
+        final bufY64 = NativeBuffer<double>(2, type: DataType.float64);
+        final bufA64 = NativeBuffer<double>(4, type: DataType.float64);
+        bufX64.data.setRange(0, 2, [1.0, 2.0]);
+        bufY64.data.setRange(0, 2, [3.0, 4.0]);
+        final okDsyr2 = HardwareManager.dsyr2(
+          n: 2,
+          alpha: 1.0,
+          x: bufX64.data as Float64List,
+          incX: 1,
+          y: bufY64.data as Float64List,
+          incY: 1,
+          a: bufA64.data as Float64List,
+          lda: 2,
+        );
+        check(okDsyr2).isTrue();
+
+        // Native ssyr2
+        final bufX32 = NativeBuffer<double>(2, type: DataType.float32);
+        final bufY32 = NativeBuffer<double>(2, type: DataType.float32);
+        final bufA32 = NativeBuffer<double>(4, type: DataType.float32);
+        bufX32.data.setRange(0, 2, [1.0, 2.0]);
+        bufY32.data.setRange(0, 2, [3.0, 4.0]);
+        final okSsyr2 = HardwareManager.ssyr2(
+          n: 2,
+          alpha: 1.0,
+          x: bufX32.data as Float32List,
+          incX: 1,
+          y: bufY32.data as Float32List,
+          incY: 1,
+          a: bufA32.data as Float32List,
+          lda: 2,
+        );
+        check(okSsyr2).isTrue();
+
+        bufA.dispose();
+        bufB.dispose();
+        bufC.dispose();
+        bufX64.dispose();
+        bufY64.dispose();
+        bufA64.dispose();
+        bufX32.dispose();
+        bufY32.dispose();
+        bufA32.dispose();
+      },
+    );
+
+    test('HardwareManager pure Dart fallback transposition branches', () {
+      HardwareManager.isEnabled = false;
+      try {
+        // dgemm with transA == cblasNoTrans and transB == cblasNoTrans
+        final a = Float64List.fromList([1.0, 2.0, 3.0, 4.0]);
+        final b = Float64List.fromList([5.0, 6.0, 7.0, 8.0]);
+        final c = Float64List(4);
+        HardwareManager.dgemm(
+          transA: cblasNoTrans,
+          transB: cblasNoTrans,
+          m: 2,
+          n: 2,
+          k: 2,
+          alpha: 1.0,
+          a: a,
+          lda: 2,
+          b: b,
+          ldb: 2,
+          beta: 0.0,
+          c: c,
+          ldc: 2,
+        );
+        check(c[0]).isCloseTo(19.0, 1e-9);
+
+        // dgemm with transA == cblasTrans and transB == cblasTrans
+        final aT = Float64List.fromList([1.0, 3.0, 2.0, 4.0]);
+        final bT = Float64List.fromList([5.0, 7.0, 6.0, 8.0]);
+        final cT = Float64List(4);
+        HardwareManager.dgemm(
+          transA: cblasTrans,
+          transB: cblasTrans,
+          m: 2,
+          n: 2,
+          k: 2,
+          alpha: 1.0,
+          a: aT,
+          lda: 2,
+          b: bT,
+          ldb: 2,
+          beta: 0.0,
+          c: cT,
+          ldc: 2,
+        );
+        check(cT[0]).isCloseTo(19.0, 1e-9);
+
+        // dgemv with transA == cblasNoTrans
+        final x = Float64List.fromList([1.0, 2.0]);
+        final y = Float64List(2);
+        HardwareManager.dgemv(
+          transA: cblasNoTrans,
+          m: 2,
+          n: 2,
+          alpha: 1.0,
+          a: a,
+          lda: 2,
+          x: x,
+          incX: 1,
+          beta: 0.0,
+          y: y,
+          incY: 1,
+        );
+        check(y[0]).isCloseTo(5.0, 1e-9);
+        check(y[1]).isCloseTo(11.0, 1e-9);
+
+        // dgemv with transA == cblasTrans
+        final yT = Float64List(2);
+        HardwareManager.dgemv(
+          transA: cblasTrans,
+          m: 2,
+          n: 2,
+          alpha: 1.0,
+          a: a,
+          lda: 2,
+          x: x,
+          incX: 1,
+          beta: 0.0,
+          y: yT,
+          incY: 1,
+        );
+        check(yT[0]).isCloseTo(7.0, 1e-9);
+        check(yT[1]).isCloseTo(10.0, 1e-9);
+
+        // dsyrk with trans == cblasTrans
+        final cSyrk = Float64List(4);
+        HardwareManager.dsyrk(
+          trans: cblasTrans,
+          n: 2,
+          k: 2,
+          alpha: 1.0,
+          a: a,
+          lda: 2,
+          beta: 0.0,
+          c: cSyrk,
+          ldc: 2,
+        );
+        // a^T * a: [1*1 + 3*3, 1*2 + 3*4; 2*1 + 4*3, 2*2 + 4*4] = [10, 14; 14, 20]
+        check(cSyrk[0]).isCloseTo(10.0, 1e-9);
+        check(cSyrk[1]).isCloseTo(14.0, 1e-9);
+        check(cSyrk[3]).isCloseTo(20.0, 1e-9);
+
+        // sgemm with transA == cblasNoTrans and transB == cblasNoTrans
+        final a32 = Float32List.fromList([1.0, 2.0, 3.0, 4.0]);
+        final b32 = Float32List.fromList([5.0, 6.0, 7.0, 8.0]);
+        final c32 = Float32List(4);
+        HardwareManager.sgemm(
+          transA: cblasNoTrans,
+          transB: cblasNoTrans,
+          m: 2,
+          n: 2,
+          k: 2,
+          alpha: 1.0,
+          a: a32,
+          lda: 2,
+          b: b32,
+          ldb: 2,
+          beta: 0.0,
+          c: c32,
+          ldc: 2,
+        );
+        check(c32[0]).isCloseTo(19.0, 1e-5);
+
+        // sgemv with transA == cblasNoTrans
+        final x32 = Float32List.fromList([1.0, 2.0]);
+        final y32 = Float32List(2);
+        HardwareManager.sgemv(
+          transA: cblasNoTrans,
+          m: 2,
+          n: 2,
+          alpha: 1.0,
+          a: a32,
+          lda: 2,
+          x: x32,
+          incX: 1,
+          beta: 0.0,
+          y: y32,
+          incY: 1,
+        );
+        check(y32[0]).isCloseTo(5.0, 1e-5);
+
+        // ssyrk with trans == cblasTrans
+        final cSyrk32 = Float32List(4);
+        HardwareManager.ssyrk(
+          trans: cblasTrans,
+          n: 2,
+          k: 2,
+          alpha: 1.0,
+          a: a32,
+          lda: 2,
+          beta: 0.0,
+          c: cSyrk32,
+          ldc: 2,
+        );
+        check(cSyrk32[0]).isCloseTo(10.0, 1e-5);
+      } finally {
+        HardwareManager.isEnabled = true;
+      }
     });
   });
 }

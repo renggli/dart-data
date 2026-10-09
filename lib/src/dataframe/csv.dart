@@ -3,7 +3,7 @@ import 'series.dart';
 
 /// Fast CSV parser with automatic column type inference.
 class CsvReader {
-  new _();
+  new _(); // coverage:ignore-line
 
   /// Parses CSV string into a DataFrame.
   static DataFrame parse(
@@ -145,7 +145,7 @@ class CsvReader {
 
 /// CSV serialization for DataFrame.
 class CsvWriter {
-  new _();
+  new _(); // coverage:ignore-line
 
   /// Writes DataFrame into CSV string format.
   static String write(DataFrame df, {String separator = ','}) {

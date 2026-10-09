@@ -213,6 +213,91 @@ void main() {
       check(model.std).isNotNull();
       // Both features are perfectly linearly correlated, so PC1 explains 100% of variance
       check(model.explainedVarianceRatio[0]).isCloseTo(1.0, 1e-10);
+
+      // Reconstruct with standardized model
+      final transformed = model.transform(data);
+      final recon = model.inverseTransform(transformed);
+      check(recon.get(0, 0)).isCloseTo(100.0, 1e-4);
+
+      // PCA errors
+      check(
+        () => pca(
+          Matrix<double>.fromRows([
+            [1.0, 2.0],
+          ]),
+        ),
+      ).throws<ArgumentError>();
+      check(() => model.transform(Matrix<double>.filled(2, 3, 1.0)))
+          .throws<ArgumentError>();
+      check(() => model.inverseTransform(Matrix<double>.filled(2, 5, 1.0)))
+          .throws<ArgumentError>();
     });
+
+    test(
+      'top-level functions, tied ranks, and iterable/tensor/matrix extensions',
+      () {
+        final data = [1.0, 2.0, 2.0, 3.0, 4.0];
+        check(percentile(data, 50)).isCloseTo(2.0, 1e-10);
+        check(covariance(data, data)).isCloseTo(variance(data), 1e-10);
+
+        // Tied ranks
+        final ranks = rankData([10.0, 20.0, 20.0, 30.0]);
+        check(ranks).deepEquals([1.0, 2.5, 2.5, 4.0]);
+
+        // Iterable<num> extensions
+        check(data.product()).isCloseTo(48.0, 1e-10);
+        check(data.average()).isCloseTo(mean(data), 1e-10);
+        check(data.mean()).isCloseTo(mean(data), 1e-10);
+        check(data.variance()).isCloseTo(variance(data), 1e-10);
+        check(data.standardDeviation())
+            .isCloseTo(standardDeviation(data), 1e-10);
+        check(data.median()).isCloseTo(2.0, 1e-10);
+        check(data.quantile(0.5)).isCloseTo(2.0, 1e-10);
+        check(data.percentile(50)).isCloseTo(2.0, 1e-10);
+        check(data.iqr()).isCloseTo(1.0, 1e-10);
+        check(data.skewness()).isNotNull();
+        check(data.kurtosis(bias: true, excess: false)).isNotNull();
+
+        // Iterable<int> extensions
+        final intList = [1, 2, 3, 4];
+        check(intList.sum()).equals(10);
+        check(intList.product()).equals(24);
+
+        // Tensor extensions
+        final t = Tensor<double>.fromIterable([1.0, 2.0, 3.0, 4.0]);
+        check(t.variance()).isCloseTo(5.0 / 3.0, 1e-10);
+        check(t.standardDeviation()).isCloseTo(math.sqrt(5.0 / 3.0), 1e-10);
+        check(t.quantile(0.5)).isCloseTo(2.5, 1e-10);
+        check(t.percentile(50)).isCloseTo(2.5, 1e-10);
+        check(t.skewness()).isCloseTo(0.0, 1e-10);
+        check(t.kurtosis()).isNotNull();
+
+        // Matrix extensions
+        final m = Matrix<double>.fromRows([
+          [1.0, 2.0],
+          [3.0, 4.0],
+        ]);
+        check(m.mean()).isCloseTo(2.5, 1e-10);
+        check(m.variance()).isCloseTo(5.0 / 3.0, 1e-10);
+        check(m.standardDeviation()).isCloseTo(math.sqrt(5.0 / 3.0), 1e-10);
+        check(m.median()).isCloseTo(2.5, 1e-10);
+        check(m.quantile(0.5)).isCloseTo(2.5, 1e-10);
+        check(m.percentile(50)).isCloseTo(2.5, 1e-10);
+        check(m.iqr()).isCloseTo(1.5, 1e-10);
+        check(m.skewness()).isCloseTo(0.0, 1e-10);
+        check(m.kurtosis()).isNotNull();
+        check(m.spearmanCorrelationMatrix().rowCount).equals(2);
+
+        // Covariance errors
+        check(() => covariance([1.0], [1.0, 2.0])).throws<ArgumentError>();
+        check(() => pearsonCorrelation([1.0], [1.0, 2.0]))
+            .throws<ArgumentError>();
+        check(
+          () => Matrix<double>.fromRows([
+            [1.0, 2.0],
+          ]).covarianceMatrix(),
+        ).throws<ArgumentError>();
+      },
+    );
   });
 }

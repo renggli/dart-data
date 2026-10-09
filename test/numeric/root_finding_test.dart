@@ -48,12 +48,43 @@ void main() {
       double f(double x) => x * x * x - 27.0; // root at 3.0
       final root = bisection(f, 0.0, 5.0);
       check(root).isCloseTo(3.0, 1e-9);
+
+      // With Expr and num Function
+      const x = Variable('x');
+      final expr = x.pow(3) - const Constant(27.0);
+      check(bisection(expr, 0.0, 5.0)).isCloseTo(3.0, 1e-9);
+
+      num fnNum(num v) => v * v * v - 27;
+      check(bisection(fnNum, 0.0, 5.0)).isCloseTo(3.0, 1e-9);
     });
 
-    test('unbracketed root throws ArgumentError', () {
+    test('Newton-Raphson explicit derivatives and zero derivative error', () {
+      double f(double x) => x * x - 4.0;
+      double df(double x) => 2.0 * x;
+      check(newtonRaphson(f, 1.0, derivative: df)).isCloseTo(2.0, 1e-9);
+
+      num fNum(num x) => x * x - 4;
+      num dfNum(num x) => 2 * x;
+      check(newtonRaphson(fNum, 1.0, derivative: dfNum)).isCloseTo(2.0, 1e-9);
+
+      // Derivative near zero throws StateError
+      double fZeroDeriv(double x) => x * x + 1.0;
+      check(() => newtonRaphson(fZeroDeriv, 0.0)).throws<StateError>();
+    });
+
+    test('Brent-Dekker with num Function(num)', () {
+      num fn(num x) => x * x - 9;
+      check(brentRoot(fn, 0.0, 5.0)).isCloseTo(3.0, 1e-9);
+    });
+
+    test('unbracketed root and invalid types throw ArgumentError', () {
       double f(double x) => x * x + 1.0;
       check(() => brentRoot(f, 1.0, 2.0)).throws<ArgumentError>();
       check(() => bisection(f, 1.0, 2.0)).throws<ArgumentError>();
+
+      check(() => brentRoot('not-a-func', 0.0, 1.0)).throws<ArgumentError>();
+      check(() => bisection('not-a-func', 0.0, 1.0)).throws<ArgumentError>();
+      check(() => newtonRaphson('not-a-func', 1.0)).throws<ArgumentError>();
     });
   });
 }

@@ -502,7 +502,11 @@ class ObjectSeries<T> extends Series<T> {
   }) : length = data.length;
 
   factory fromList(String name, List<T?> list, {DataType<T>? type}) {
-    final effectiveType = type ?? DataType.object as DataType<T>;
+    final effectiveType =
+        type ??
+        (T == dynamic || T == Object
+            ? DataType.object as DataType<T>
+            : DataType.fromType<T>());
     final len = list.length;
     final data = List<T>.filled(len, effectiveType.defaultValue);
     ValidityMask? mask;

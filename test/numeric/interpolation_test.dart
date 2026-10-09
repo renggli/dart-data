@@ -142,5 +142,68 @@ void main() {
       // At x = 3.0: 2*(9) - 9 + 1 = 10.0
       check(interp(3.0)).isCloseTo(10.0, 1e-9);
     });
+
+    test(
+      'PCHIP 2 points, local extrema flat derivative, and endpoint clipping',
+      () {
+        final pchip2 = PchipInterpolation([0.0, 1.0], [2.0, 5.0]);
+        check(pchip2(0.5)).isCloseTo(3.5, 1e-6);
+
+        // Local extrema where delta[i-1] * delta[i] <= 0 (derivative becomes 0)
+        final pchipExtrema = PchipInterpolation(
+          [0.0, 1.0, 2.0],
+          [0.0, 10.0, 5.0],
+        );
+        check(pchipExtrema(1.0)).isCloseTo(10.0, 1e-9);
+
+        // Large initial slope triggering endpoint clipping
+        final pchipClip = PchipInterpolation(
+          [0.0, 1.0, 2.0, 3.0],
+          [0.0, 100.0, 101.0, 102.0],
+        );
+        check(pchipClip(0.5)).isGreaterThan(0.0);
+      },
+    );
+
+    test('Interpolator constructor errors', () {
+      final xs2 = [1.0, 2.0];
+      final ys2 = [1.0, 2.0];
+      final xs1 = [1.0];
+      final ys1 = [1.0];
+      final xsNonInc = [2.0, 1.0];
+
+      // Linear
+      check(() => LinearInterpolation(xs2, ys1)).throws<ArgumentError>();
+      check(() => LinearInterpolation(xs1, ys1)).throws<ArgumentError>();
+      check(() => LinearInterpolation(xsNonInc, ys2)).throws<ArgumentError>();
+
+      // PCHIP
+      check(() => PchipInterpolation(xs2, ys1)).throws<ArgumentError>();
+      check(() => PchipInterpolation(xs1, ys1)).throws<ArgumentError>();
+      check(() => PchipInterpolation(xsNonInc, ys2)).throws<ArgumentError>();
+
+      // Nearest
+      check(() => NearestInterpolation(xs2, ys1)).throws<ArgumentError>();
+      check(() => NearestInterpolation(<double>[], <double>[]))
+          .throws<ArgumentError>();
+      check(() => NearestInterpolation(xsNonInc, ys2)).throws<ArgumentError>();
+
+      // Previous
+      check(() => PreviousInterpolation(xs2, ys1)).throws<ArgumentError>();
+      check(() => PreviousInterpolation(<double>[], <double>[]))
+          .throws<ArgumentError>();
+      check(() => PreviousInterpolation(xsNonInc, ys2)).throws<ArgumentError>();
+
+      // Next
+      check(() => NextInterpolation(xs2, ys1)).throws<ArgumentError>();
+      check(() => NextInterpolation(<double>[], <double>[]))
+          .throws<ArgumentError>();
+      check(() => NextInterpolation(xsNonInc, ys2)).throws<ArgumentError>();
+
+      // Lagrange
+      check(() => LagrangeInterpolation(xs2, ys1)).throws<ArgumentError>();
+      check(() => LagrangeInterpolation(<double>[], <double>[]))
+          .throws<ArgumentError>();
+    });
   });
 }

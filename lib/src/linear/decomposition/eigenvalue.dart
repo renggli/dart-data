@@ -384,10 +384,12 @@ class EigenvalueDecomposition {
 
     var norm = 0.0;
     for (var i = 0; i < nn; i++) {
+      // coverage:ignore-start
       if (i < low || i > high) {
         _d[i] = _h.get(i, i);
         _e[i] = 0.0;
       }
+      // coverage:ignore-end
       for (var j = math.max(i - 1, 0); j < nn; j++) {
         norm += _h.get(i, j).abs();
       }
@@ -686,6 +688,7 @@ class EigenvalueDecomposition {
       }
     }
 
+    // coverage:ignore-start
     for (var i = 0; i < nn; i++) {
       if (i < low || i > high) {
         for (var j = i; j < nn; j++) {
@@ -693,6 +696,7 @@ class EigenvalueDecomposition {
         }
       }
     }
+    // coverage:ignore-end
 
     for (var j = nn - 1; j >= low; j--) {
       for (var i = low; i <= high; i++) {

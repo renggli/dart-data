@@ -90,8 +90,8 @@ class StudentDistribution extends ContinuousDistribution {
 
   @override
   double get excessKurtosis => dof > 4.0
-      ? 6.0 / (dof - 2.0)
-      : dof >= 2.0
+      ? 6.0 / (dof - 4.0)
+      : dof > 2.0
       ? double.infinity
       : double.nan;
 

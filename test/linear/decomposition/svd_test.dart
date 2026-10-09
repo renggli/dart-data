@@ -47,10 +47,52 @@ void main() {
         6.0,
       ], type: DataType.float64);
 
-      final x = a.svd.solveVector(b);
+      final svd = a.svd;
+      check(svd.norm2).isCloseTo(svd.s[0], 1e-6);
+      check(svd.cond).isGreaterThan(1.0);
+      check(svd.v.rowCount).equals(2);
+
+      final x = svd.solveVector(b);
       check(x.length).equals(2);
       check(x[0]).isCloseTo(0.0, 1e-6);
       check(x[1]).isCloseTo(2.0, 1e-6);
+
+      // Errors
+      check(() => svd.solveVector(Vector<double>.fromList([1.0, 2.0])))
+          .throws<ArgumentError>();
+
+      final noVectors = SingularValueDecomposition(a, computeVectors: false);
+      check(noVectors.vectorsComputed).equals(false);
+      check(() => noVectors.solveVector(b)).throws<StateError>();
+    });
+
+    test('wide matrix SVD (rowCount < colCount)', () {
+      final a = Matrix<double>.fromRows([
+        [1.0, 2.0, 3.0],
+        [4.0, 5.0, 6.0],
+      ], type: DataType.float64);
+      final svd = a.svd;
+      check(svd.s.length).equals(2);
+      check(svd.u.rowCount).equals(2);
+      check(svd.vt.colCount).equals(3);
+
+      final reconstructed = svd.u * svd.sigma * svd.vt;
+      for (var i = 0; i < 2; i++) {
+        for (var j = 0; j < 3; j++) {
+          check(reconstructed.get(i, j)).isCloseTo(a.get(i, j), 1e-6);
+        }
+      }
+    });
+
+    test('rank-deficient matrix triggering internal zero paths', () {
+      final a = Matrix<double>.fromRows([
+        [0.0, 0.0, 0.0],
+        [0.0, 2.0, 0.0],
+        [0.0, 0.0, 3.0],
+      ], type: DataType.float64);
+      final svd = a.svd;
+      check(svd.rank).equals(2);
+      check(svd.cond).equals(double.infinity);
     });
   });
 }

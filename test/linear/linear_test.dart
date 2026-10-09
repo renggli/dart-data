@@ -1,4 +1,8 @@
+import 'dart:math' as math;
+
 import 'package:data/linear.dart';
+import 'package:data/tensor.dart';
+import 'package:data/type.dart';
 import 'package:test/test.dart';
 
 void main() {
@@ -451,6 +455,359 @@ void main() {
       // Rank: 2
       expect(a.rank, 2);
       expect(a.cond, greaterThan(1.0));
+      expect(a.trace, 5.0);
+    });
+
+    test('Matrix constructors, operations, and inversion errors', () {
+      final nativeMat = Matrix<double>.native(2, 2);
+      expect(nativeMat.rowCount, 2);
+      expect(nativeMat.colCount, 2);
+
+      // Inconsistent columns throw
+      expect(
+        () => Matrix<int>.fromColumns([
+          [1, 2],
+          [3],
+        ]),
+        throwsArgumentError,
+      );
+
+      // Submatrix out of bounds
+      final m = Matrix<int>.fromRows([
+        [1, 2],
+        [3, 4],
+      ]);
+      expect(
+        () => m.subMatrix(rowStart: -1, rowEnd: 2, colStart: 0, colEnd: 2),
+        throwsRangeError,
+      );
+      expect(
+        () => m.subMatrix(rowStart: 0, rowEnd: 3, colStart: 0, colEnd: 2),
+        throwsRangeError,
+      );
+
+      // Apply dimension mismatch
+      final vecWrong = Vector<double>.fromList([1.0, 2.0, 3.0]);
+      final a = Matrix<double>.fromRows([
+        [1.0, 2.0],
+        [3.0, 4.0],
+      ]);
+      expect(() => a.apply(vecWrong), throwsArgumentError);
+      expect(() => a.applyTranspose(vecWrong), throwsArgumentError);
+
+      // LU decomposition errors: non-square det, singular solve
+      final nonSquare = Matrix<double>.fromRows([
+        [1.0, 2.0, 3.0],
+        [4.0, 5.0, 6.0],
+      ]);
+      expect(() => nonSquare.lu.det, throwsArgumentError);
+
+      final singular = Matrix<double>.fromRows([
+        [1.0, 2.0],
+        [2.0, 4.0],
+      ]);
+      expect(
+        () => singular.lu.solve(
+          Matrix<double>.identity(2, type: DataType.float64),
+        ),
+        throwsArgumentError,
+      );
+
+      // Cholesky decomposition errors: non-SPD det, solve
+      final nonSpd = Matrix<double>.fromRows([
+        [-1.0, 0.0],
+        [0.0, -1.0],
+      ]);
+      expect(() => nonSpd.cholesky.det, throwsArgumentError);
+      expect(
+        () => nonSpd.cholesky.solve(
+          Matrix<double>.identity(2, type: DataType.float64),
+        ),
+        throwsArgumentError,
+      );
+      final nonSquareChol = CholeskyDecomposition(nonSquare);
+      expect(nonSquareChol.isSymmetricPositiveDefinite, isFalse);
+      expect(nonSpd.cholesky.L.rowCount, 2);
+
+      // Non-double / Float32 Matrix.apply
+      final intMat = Matrix<int>.fromRows([
+        [1, 2],
+        [3, 4],
+      ]);
+      final intVec = Vector<int>.fromList([5, 6]);
+      expect(intMat.apply(intVec).toList(), [17, 39]);
+      expect(intMat.applyTranspose(intVec).toList(), [23, 34]);
+    });
+
+    test('Vector comprehensive constructors, operations, and errors', () {
+      final filledVec = Vector<double>.filled(3, 7.0);
+      expect(filledVec.toList(), [7.0, 7.0, 7.0]);
+
+      final genVec = Vector<int>.generate(4, (i) => i * 3);
+      expect(genVec.toList(), [0, 3, 6, 9]);
+
+      final nativeVec = Vector<double>.native(3);
+      expect(nativeVec.length, 3);
+
+      final fromIter = Vector<int>.fromIterable([10, 20, 30]);
+      expect(fromIter.toList(), [10, 20, 30]);
+
+      final copyVec = fromIter.copy();
+      expect(copyVec.toList(), fromIter.toList());
+      expect(copyVec.sum, 60);
+      expect(copyVec.toString(), 'Vector([10, 20, 30])');
+
+      // subVector with omitted end
+      expect(fromIter.subVector(1).toList(), [20, 30]);
+
+      // Vector norms
+      final v = Vector<double>.fromList([1.0, 2.0, 2.0]);
+      expect(v.norm(3), closeTo(math.pow(17.0, 1.0 / 3.0), 1e-6));
+
+      final intNormVec = Vector<int>.fromList([3, 4]);
+      expect(intNormVec.norm(2), 5.0);
+
+      // Zero vector normalization throws
+      final zeroVec = Vector<double>.fromList([0.0, 0.0]);
+      expect(zeroVec.normalized, throwsStateError);
+
+      // Dimension mismatch throws
+      final v3 = Vector<double>.fromList([1.0, 2.0, 3.0]);
+      final v2 = Vector<double>.fromList([1.0, 2.0]);
+      expect(() => v3.dot(v2), throwsArgumentError);
+      expect(() => v3.addScaled(v2, 2.0), throwsArgumentError);
+
+      // Generic addScaled & scaleInPlace
+      final vInt1 = Vector<int>.fromList([1, 2, 3]);
+      final vInt2 = Vector<int>.fromList([10, 20, 30]);
+      vInt1.addScaled(vInt2, 2);
+      expect(vInt1.toList(), [21, 42, 63]);
+
+      vInt1.scaleInPlace(2);
+      expect(vInt1.toList(), [42, 84, 126]);
+
+      // Float32List dot, addScaled, scaleInPlace, norm
+      final f32_1 = Vector<double>.fromList([
+        1.0,
+        2.0,
+        3.0,
+      ], type: DataType.float32);
+      final f32_2 = Vector<double>.fromList([
+        4.0,
+        5.0,
+        6.0,
+      ], type: DataType.float32);
+      expect(f32_1.dot(f32_2), 32.0);
+      expect(f32_1.norm(2), closeTo(math.sqrt(14.0), 1e-4));
+
+      f32_1.addScaled(f32_2, 2.0);
+      expect(f32_1.toList()[0], closeTo(9.0, 1e-4));
+
+      f32_1.scaleInPlace(0.5);
+      expect(f32_1.toList()[0], closeTo(4.5, 1e-4));
+    });
+
+    test(
+      'Sparse matrices comprehensive suite: conversions, matmul, errors',
+      () {
+        final dense = Matrix<double>.fromRows([
+          [1.0, 2.0],
+          [0.0, 3.0],
+        ]);
+        final coo = CooMatrix.fromDense(dense);
+        final csr = coo.toCsr();
+        final csc = csr.toCsc();
+
+        // toDense and toCoo roundtrips
+        expect(csc.toCoo().toDense().toNestedList(), dense.toNestedList());
+
+        // matmul between sparse and dense
+        final matmulRes = csr.matmul(dense);
+        expect(matmulRes.rowCount, 2);
+        expect(matmulRes.colCount, 2);
+
+        final cscMatmul = csc.matmul(dense);
+        expect(cscMatmul.rowCount, 2);
+
+        final cooMatmul = coo.matmul(dense);
+        expect(cooMatmul.rowCount, 2);
+
+        // Errors: get out of bounds
+        expect(() => coo.get(-1, 0), throwsRangeError);
+        expect(() => coo.get(0, 5), throwsRangeError);
+        expect(() => csr.get(-1, 0), throwsRangeError);
+        expect(() => csr.get(0, 5), throwsRangeError);
+        expect(() => csc.get(-1, 0), throwsRangeError);
+        expect(() => csc.get(0, 5), throwsRangeError);
+
+        // Coordinate out of bounds during CooMatrix creation
+        expect(
+          () => CooMatrix<double>.fromEntries(2, 2, [(-1, 0, 1.0)]),
+          throwsRangeError,
+        );
+
+        // Dimension mismatch on apply, applyTranspose, matmul
+        final vWrong = Vector<double>.fromList([1.0, 2.0, 3.0]);
+        expect(() => coo.apply(vWrong), throwsArgumentError);
+        expect(() => coo.applyTranspose(vWrong), throwsArgumentError);
+        expect(() => csr.apply(vWrong), throwsArgumentError);
+        expect(() => csr.applyTranspose(vWrong), throwsArgumentError);
+        expect(() => csc.apply(vWrong), throwsArgumentError);
+        expect(() => csc.applyTranspose(vWrong), throwsArgumentError);
+
+        final wrongOp = Matrix<double>.filled(3, 2, 0.0);
+        expect(() => csr.matmul(wrongOp), throwsArgumentError);
+
+        final cscEntries = CscMatrix<double>.fromEntries(2, 2, [(0, 0, 5.0)]);
+        expect(cscEntries.get(0, 0), 5.0);
+        expect(cscEntries.get(1, 0), 0.0);
+        expect(cscEntries.get(0, 1), 0.0);
+
+        // Non-contiguous applyTranspose on CSC
+        final vFlipped = Vector<double>(
+          Tensor<double>.fromIterable([1.0, 2.0]).flip(),
+        );
+        expect(vFlipped.tensor.isContiguous, isFalse);
+        expect(cscEntries.applyTranspose(vFlipped)[0], 10.0);
+      },
+    );
+
+    test('Iterative solvers comprehensive suite: errors and fast returns', () {
+      final nonSquare = Matrix<double>.filled(2, 3, 1.0);
+      final b2 = Vector<double>.fromList([1.0, 2.0]);
+      final b3 = Vector<double>.fromList([1.0, 2.0, 3.0]);
+
+      // Conjugate gradient errors
+      expect(() => conjugateGradient(nonSquare, b2), throwsArgumentError);
+      final square2 = Matrix<double>.identity(2);
+      expect(() => conjugateGradient(square2, b3), throwsArgumentError);
+
+      // Fast return when initial residual is zero
+      final xExact = Vector<double>.fromList([1.0, 2.0]);
+      final bExact = square2.apply(xExact);
+      final xSolved = conjugateGradient(square2, bExact, x0: xExact);
+      expect(xSolved.toList(), xExact.toList());
+
+      // GMRES errors and fast return
+      expect(() => gmres(nonSquare, b2), throwsArgumentError);
+      expect(() => gmres(square2, b3), throwsArgumentError);
+
+      final xGmresExact = gmres(square2, bExact, x0: xExact);
+      expect(xGmresExact.toList(), xExact.toList());
+
+      // GMRES with small restart
+      final a = Matrix<double>.fromRows([
+        [4.0, 1.0],
+        [1.0, 3.0],
+      ]);
+      final b = Vector<double>.fromList([5.0, 4.0]);
+      final xRestart = gmres(a, b, restart: 1);
+      expect(xRestart[0], closeTo(1.0, 1e-5));
+      expect(xRestart[1], closeTo(1.0, 1e-5));
+    });
+
+    test('Matrix operations, representations, error handling, and norms', () {
+      // 1. Matrix.fromRows ragged error
+      expect(
+        () => Matrix.fromRows([
+          [1, 2],
+          [3],
+        ]),
+        throwsArgumentError,
+      );
+
+      // 2. Matrix.trace on non-square matrix
+      final nonSquare = Matrix<int>.filled(2, 3, 1);
+      expect(() => nonSquare.trace, throwsStateError);
+
+      // 3. Matrix.rotated(3)
+      final m2 = Matrix<int>.fromRows([
+        [1, 2],
+        [3, 4],
+      ]);
+      final rot3 = m2.rotated(3);
+      expect(rot3.toNestedList(), [
+        [2, 4],
+        [1, 3],
+      ]);
+
+      // 4. concatHorizontal & concatVertical errors
+      final diffRows = Matrix<int>.filled(3, 2, 1);
+      final diffCols = Matrix<int>.filled(2, 3, 1);
+      expect(() => m2.concatHorizontal(diffRows), throwsArgumentError);
+      expect(() => m2.concatVertical(diffCols), throwsArgumentError);
+
+      // 5. solve errors
+      final v2 = Vector<double>.fromList([1.0, 2.0]);
+      final v3 = Vector<double>.fromList([1.0, 2.0, 3.0]);
+      final m2d = Matrix<double>.fromRows([
+        [2.0, 1.0],
+        [1.0, 2.0],
+      ]);
+      final nonSquareD = Matrix<double>.filled(2, 3, 1.0);
+      expect(() => nonSquareD.solve(v2), throwsStateError);
+      expect(() => m2d.solve(v3), throwsArgumentError);
+
+      // 6. solve on non-double matrix (falls back to GMRES)
+      final mComp = Matrix<Complex>.fromRows([
+        [const Complex(2.0), const Complex(0.0)],
+        [const Complex(0.0), const Complex(3.0)],
+      ]);
+      final vComp = Vector<Complex>.fromList([
+        const Complex(4.0),
+        const Complex(9.0),
+      ]);
+      final xComp = mComp.solve(vComp);
+      expect(xComp[0].a, closeTo(2.0, 1e-5));
+      expect(xComp[1].a, closeTo(3.0, 1e-5));
+
+      // 7. Unary negation
+      final negM = -m2;
+      expect(negM.toNestedList(), [
+        [-1, -2],
+        [-3, -4],
+      ]);
+
+      // 8. matmul with generic LinearOperator and dimension mismatch
+      final op = CooMatrix<int>.fromDense(m2);
+      final composed = m2.matmul(op);
+      expect((composed as Matrix<int>).toNestedList(), [
+        [7, 10],
+        [15, 22],
+      ]);
+      expect(() => m2.matmul(diffRows), throwsArgumentError);
+
+      // 9. apply and applyTranspose with non-contiguous matrices/vectors and Float32List
+      final mTransposed = m2.transpose();
+      final applied = mTransposed.apply(Vector<int>.fromList([1, 2]));
+      expect(applied.toList(), [7, 10]);
+
+      final m32 = Matrix<double>.fromRows([
+        [1.0, 2.0],
+        [3.0, 4.0],
+      ], type: DataType.float32);
+      final v32 = Vector<double>.fromList([1.0, 2.0], type: DataType.float32);
+      final appliedTrans32 = m32.applyTranspose(v32);
+      expect(appliedTrans32.toList(), [7.0, 10.0]);
+
+      // 10. syrk fallback (pure Dart)
+      final syrkInt = m2.syrk();
+      expect(syrkInt.toNestedList(), [
+        [5, 11],
+        [11, 25],
+      ]);
+
+      // 11. toString
+      expect(m2.toString(), contains('Matrix(2 x 2'));
+
+      // 12. norm.dart: trace extension and Frobenius norm scale branch
+      final mNorm = Matrix<double>.fromRows([
+        [10.0, 1.0],
+        [0.0, 2.0],
+      ]);
+      expect(mNorm.trace, 12.0);
+      expect(MatrixNormExtension(mNorm).trace, 12.0);
+      expect(mNorm.normFrobenius, closeTo(math.sqrt(100 + 1 + 4), 1e-6));
     });
   });
 }

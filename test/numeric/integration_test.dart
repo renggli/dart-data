@@ -28,10 +28,36 @@ void main() {
       check(result).isCloseTo(0.746824132812427, 1e-8);
     });
 
-    test('integration with a > b inverts sign', () {
+    test('integration with a > b inverts sign and a == b is zero', () {
       double f(double x) => x * x;
       check(adaptiveSimpson(f, 2.0, 0.0)).isCloseTo(-8.0 / 3.0, 1e-8);
       check(gaussKronrod(f, 2.0, 0.0)).isCloseTo(-8.0 / 3.0, 1e-8);
+
+      check(adaptiveSimpson(f, 2.0, 2.0)).equals(0.0);
+      check(gaussKronrod(f, 2.0, 2.0)).equals(0.0);
     });
+
+    test(
+      'Gauss-Kronrod adaptive recursion on oscillatory function and with Expr',
+      () {
+        // High frequency oscillation triggers recursive subdivision
+        double fOsc(double x) => math.sin(50.0 * x);
+        final res = gaussKronrod(fOsc, 0.0, math.pi, tolerance: 1e-12);
+        check(res).isCloseTo((1.0 - math.cos(50.0 * math.pi)) / 50.0, 1e-8);
+
+        const x = Variable('x');
+        const fExpr = Cos(x);
+        check(gaussKronrod(fExpr, 0.0, math.pi / 2.0, variable: 'x'))
+            .isCloseTo(1.0, 1e-8);
+
+        num fNum(num v) => v * v;
+        check(adaptiveSimpson(fNum, 0.0, 1.0)).isCloseTo(1.0 / 3.0, 1e-8);
+        check(gaussKronrod(fNum, 0.0, 1.0)).isCloseTo(1.0 / 3.0, 1e-8);
+
+        check(() => adaptiveSimpson('invalid', 0.0, 1.0))
+            .throws<ArgumentError>();
+        check(() => gaussKronrod('invalid', 0.0, 1.0)).throws<ArgumentError>();
+      },
+    );
   });
 }

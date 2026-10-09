@@ -1,4 +1,5 @@
 import 'package:data/dataframe.dart';
+import 'package:data/type.dart';
 import 'package:test/test.dart';
 
 void main() {
@@ -21,6 +22,18 @@ void main() {
       mask.setValid(3);
       expect(mask.nullCount, 1);
       expect(mask.isValid(3), isTrue);
+
+      final fromBytes = ValidityMask.fromBytes(16, mask.bytes);
+      expect(fromBytes.nullCount, 1);
+      expect(fromBytes.isValid(3), isTrue);
+      expect(fromBytes.isNull(11), isTrue);
+
+      expect(() => mask.isNull(-1), throwsRangeError);
+      expect(() => mask.isNull(20), throwsRangeError);
+      expect(() => mask.setNull(-1), throwsRangeError);
+      expect(() => mask.setNull(20), throwsRangeError);
+      expect(() => mask.setValid(-1), throwsRangeError);
+      expect(() => mask.setValid(20), throwsRangeError);
     });
   });
 
@@ -40,9 +53,26 @@ void main() {
       final filtered = s.filter([true, true, false, true]);
       expect(filtered.length, 3);
       expect(filtered.toList(), [10.0, null, 40.0]);
+      expect(() => s.filter([true]), throwsArgumentError);
+
+      final sliced = s.slice(-1, 3);
+      expect(sliced.length, 3);
 
       final sorted = s.sort(ascending: false);
       expect(sorted.toList().first, 40.0);
+      final sortedAsc = s.sort(ascending: true);
+      expect(sortedAsc.toList().first, 10.0);
+
+      final renamed = s.rename('temperature');
+      expect(renamed.name, 'temperature');
+      expect(s.toString(), contains('Series<double>'));
+
+      // All null series
+      final allNull = TypedSeries<double>.fromList('all_null', [null, null]);
+      expect(allNull.min, isNull);
+      expect(allNull.max, isNull);
+      expect(allNull.sum, isNull);
+      expect(allNull.mean, isNull);
     });
 
     test('StringSeries and BoolSeries', () {
@@ -55,11 +85,76 @@ void main() {
       expect(strCol.nullCount, 1);
       expect(strCol[1], 'Bob');
       expect(strCol[2], isNull);
+      expect(strCol.min, 'Alice');
+      expect(strCol.max, 'Charlie');
+      expect(strCol.sum, isNull);
+      expect(strCol.mean, isNull);
+
+      final strFiltered = strCol.filter([true, false, true, false]);
+      expect(strFiltered.length, 2);
+      final strSliced = strCol.slice(1, 3);
+      expect(strSliced.length, 2);
+      final strSorted = strCol.sort(ascending: true);
+      expect(strSorted[0], 'Alice');
+      final strRenamed = strCol.rename('full_names');
+      expect(strRenamed.name, 'full_names');
 
       final boolCol = BoolSeries.fromList('active', [true, false, true, null]);
       expect(boolCol.nullCount, 1);
       expect(boolCol[0], isTrue);
       expect(boolCol[1], isFalse);
+      expect(boolCol.min, isNull);
+      expect(boolCol.max, isNull);
+      expect(boolCol.sum, 2);
+      expect(boolCol.mean, closeTo(2.0 / 3.0, 1e-4));
+
+      final boolFiltered = boolCol.filter([true, false, true, false]);
+      expect(boolFiltered.length, 2);
+      final boolSliced = boolCol.slice(0, 2);
+      expect(boolSliced.length, 2);
+      final boolSorted = boolCol.sort(ascending: true);
+      expect(boolSorted[0], isFalse);
+      final boolRenamed = boolCol.rename('is_active');
+      expect(boolRenamed.name, 'is_active');
+    });
+
+    test('ObjectSeries and Series.fromList factory', () {
+      final objSeries = Series<DateTime?>.fromList('items', [
+        DateTime(2025, 1, 1),
+        null,
+        DateTime(2025, 1, 3),
+      ]);
+      expect(objSeries.length, 3);
+      expect(objSeries.nullCount, 1);
+      expect(objSeries.min, isNull);
+      expect(objSeries.max, isNull);
+      expect(objSeries.sum, isNull);
+      expect(objSeries.mean, isNull);
+
+      final objFiltered = objSeries.filter([true, false, true]);
+      expect(objFiltered.length, 2);
+      final objSliced = objSeries.slice(0, 2);
+      expect(objSliced.length, 2);
+      final objRenamed = objSeries.rename('dates');
+      expect(objRenamed.name, 'dates');
+
+      // Explicit type factory
+      final numSeries = Series<num>.fromList('num_col', [
+        1,
+        2,
+        3,
+      ], type: DataType.int32);
+      expect(numSeries, isA<TypedSeries<num>>());
+      final sSeries = Series.fromList('str_col', [
+        'a',
+        'b',
+      ], type: DataType.string);
+      expect(sSeries, isA<StringSeries>());
+      final bSeries = Series.fromList('b_col', [
+        true,
+        false,
+      ], type: DataType.boolean);
+      expect(bSeries, isA<BoolSeries>());
     });
   });
 
@@ -79,6 +174,27 @@ void main() {
       expect(row1['id'], 2);
       expect(row1['name'], 'B');
       expect(row1['score'], 80.0);
+
+      // Access helpers
+      expect(df.typedColumn<num>('id')[0], 1);
+      expect(df.rows.length, 3);
+      expect(() => df.column('nonexistent'), throwsArgumentError);
+      expect(() => df.getRow(-1), throwsRangeError);
+      expect(() => df.getRow(10), throwsRangeError);
+
+      // Empty fromRows
+      final emptyDf = DataFrame.fromRows([]);
+      expect(emptyDf.rowCount, 0);
+      expect(emptyDf.columnCount, 0);
+
+      // Constructor column length mismatch
+      expect(
+        () => DataFrame([
+          Series.fromList('a', [1, 2]),
+          Series.fromList('b', [1]),
+        ]),
+        throwsArgumentError,
+      );
     });
 
     test('select, drop, withColumn', () {
@@ -97,24 +213,41 @@ void main() {
       final withNew = df.withColumn(Series.fromList('d', [7, 8]));
       expect(withNew.columnCount, 4);
       expect(withNew['d'][1], 8);
+
+      // Replace existing column
+      final replaced = df.withColumn(Series.fromList('a', [10, 20]));
+      expect(replaced.columnCount, 3);
+      expect(replaced['a'][0], 10);
     });
 
-    test('filtering, slicing, sorting', () {
+    test('filtering, slicing, sorting, and toString', () {
       final df = DataFrame.fromColumns({
-        'val': [10, 50, 20, 40, 30],
-        'label': ['v1', 'v2', 'v3', 'v4', 'v5'],
+        'val': [10, 50, 20, 40, 30, 60],
+        'label': ['v1', 'v2', 'v3', 'v4', 'v5', 'v6'],
       });
 
       final filtered = df.filterBy((row) => (row['val'] as int) > 25);
-      expect(filtered.rowCount, 3);
-      expect(filtered['val'].toList(), [50, 40, 30]);
+      expect(filtered.rowCount, 4);
+      expect(filtered['val'].toList(), [50, 40, 30, 60]);
+      expect(() => df.filter([true]), throwsArgumentError);
 
       final sorted = df.sortBy('val', ascending: true);
-      expect(sorted['val'].toList(), [10, 20, 30, 40, 50]);
+      expect(sorted['val'].toList(), [10, 20, 30, 40, 50, 60]);
+      final sortedDesc = df.sortBy('val', ascending: false);
+      expect(sortedDesc['val'].toList().first, 60);
 
       final head2 = sorted.head(2);
       expect(head2.rowCount, 2);
       expect(head2['val'].toList(), [10, 20]);
+
+      final tail2 = sorted.tail(2);
+      expect(tail2.rowCount, 2);
+      expect(tail2['val'].toList(), [50, 60]);
+
+      // toString with > 5 rows
+      final repr = df.toString();
+      expect(repr, contains('DataFrame(6 rows x 2 columns)'));
+      expect(repr, contains('... and 1 more rows'));
     });
 
     test('conversion to Matrix and Tensor', () {
@@ -131,8 +264,8 @@ void main() {
       expect(mat.get(1, 0), 2.0);
       expect(mat.get(1, 1), 4.0);
 
-      final ten = df.toTensor();
-      expect(ten.shape, [2, 2]);
+      final ten = df.toTensor(columns: ['x']);
+      expect(ten.shape, [2, 1]);
     });
   });
 
@@ -143,9 +276,20 @@ void main() {
         'salary': [100.0, 80.0, 120.0, 90.0, 110.0],
       });
 
+      expect(() => df.groupBy([]), throwsArgumentError);
+
       final grouped = df.groupBy(['dept']);
       final summary = grouped.aggregate({
-        'salary': [Agg.count, Agg.mean, Agg.sum, Agg.min, Agg.max],
+        'salary': [
+          Agg.count,
+          Agg.mean,
+          Agg.sum,
+          Agg.min,
+          Agg.max,
+          Agg.std,
+          Agg.first,
+          Agg.last,
+        ],
       });
 
       expect(summary.rowCount, 2);
@@ -156,6 +300,9 @@ void main() {
         'salary_sum',
         'salary_min',
         'salary_max',
+        'salary_std',
+        'salary_first',
+        'salary_last',
       ]);
 
       for (var r = 0; r < summary.rowCount; r++) {
@@ -165,12 +312,24 @@ void main() {
           expect(summary['salary_mean'][r], 110.0);
           expect(summary['salary_min'][r], 100.0);
           expect(summary['salary_max'][r], 120.0);
+          expect(summary['salary_first'][r], 100.0);
+          expect(summary['salary_last'][r], 110.0);
         } else if (summary['dept'][r] == 'HR') {
           expect(summary['salary_count'][r], 2);
           expect(summary['salary_sum'][r], 170.0);
           expect(summary['salary_mean'][r], 85.0);
         }
       }
+
+      // Convenience methods
+      final meanDf = grouped.mean();
+      expect(meanDf.columnNames, ['dept', 'salary_mean']);
+
+      final sumDf = grouped.sum();
+      expect(sumDf.columnNames, ['dept', 'salary_sum']);
+
+      final countDf = grouped.count();
+      expect(countDf.rowCount, 2);
     });
   });
 
@@ -284,6 +443,86 @@ line 2",10
       final s = TypedSeries<double>.fromList('empty', []);
       expect(s.length, 0);
       expect(s.dataType.name, 'float64');
+    });
+
+    test('DataFrame.fromRows, CSV edge cases, Joins, and Series sorting', () {
+      // 1. DataFrame.fromRows
+      final dfRows = DataFrame.fromRows([
+        {'id': 1, 'name': 'Alice'},
+        {'id': 2, 'name': 'Bob'},
+      ]);
+      expect(dfRows.rowCount, 2);
+      expect(dfRows['name'].toList(), ['Alice', 'Bob']);
+      expect(DataFrame.fromRows([]).rowCount, 0);
+
+      // 2. sortBy on non-Comparable objects
+      final dfCustom = DataFrame.fromColumns({
+        'obj': [Object(), Object()],
+      });
+      final sortedCustom = dfCustom.sortBy('obj');
+      expect(sortedCustom.rowCount, 2);
+
+      // 3. CSV header: false, CRLF, only nulls column, and escaping
+      const noHeaderCsv = '10,foo\r\n20,bar';
+      final dfNoHeader = CsvReader.parse(noHeaderCsv, header: false);
+      expect(dfNoHeader.columnNames, ['col_0', 'col_1']);
+      expect(dfNoHeader.rowCount, 2);
+
+      const nullColCsv = 'a,b\n1,\n2,null\n';
+      final dfNullCol = CsvReader.parse(nullColCsv);
+      expect(dfNullCol['b'].nullCount, 2);
+
+      final dfEscaped = DataFrame.fromColumns({
+        'text': ['hello, world', 'quote "test"', 'line1\nline2'],
+      });
+      final csvOut = CsvWriter.write(dfEscaped);
+      expect(csvOut, contains('"hello, world"'));
+      expect(csvOut, contains('"quote ""test"""'));
+
+      // 4. Join column errors & left join with null key
+      final dfA = DataFrame.fromColumns({
+        'k': [1, null],
+      });
+      final dfB = DataFrame.fromColumns({
+        'k': [1],
+      });
+      expect(() => dfA.join(dfB, on: ['missing']), throwsArgumentError);
+      expect(() => dfA.join(dfB, on: ['k'], suffix: '_b'), returnsNormally);
+      final dfBNoK = DataFrame.fromColumns({
+        'other': [1],
+      });
+      expect(() => dfA.join(dfBNoK, on: ['k']), throwsArgumentError);
+
+      final leftWithNull = dfA.join(dfB, on: ['k'], type: JoinType.left);
+      expect(leftWithNull.rowCount, 2);
+      expect(leftWithNull['k'][1], isNull);
+
+      // 5. StringSeries, BoolSeries, and ObjectSeries descending / custom sorts
+      final strSeries = Series<String?>.fromList('s', [
+        'banana',
+        'apple',
+        null,
+      ]);
+      final strDesc = strSeries.sort(ascending: false);
+      expect(strDesc[0], 'banana');
+      expect(strDesc[1], 'apple');
+      expect(strDesc[2], isNull);
+
+      final boolSeries = Series<bool?>.fromList('b', [false, true, null]);
+      final boolDesc = boolSeries.sort(ascending: false);
+      expect(boolDesc[0], true);
+      expect(boolDesc[1], false);
+
+      final objSeries = ObjectSeries<int>.fromList('obj', [
+        30,
+        10,
+        null,
+        20,
+      ], type: DataType.int32);
+      final objAsc = objSeries.sort(ascending: true);
+      expect(objAsc.toList(), [10, 20, 30, null]);
+      final objDesc = objSeries.sort(ascending: false);
+      expect(objDesc.toList(), [30, 20, 10, null]);
     });
   });
 }

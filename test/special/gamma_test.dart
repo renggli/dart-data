@@ -89,6 +89,20 @@ void main() {
       check(gammapInv(1.0, 2.0)).isGreaterThan(10.0);
       final p = lowRegGamma(2.5, 3.0);
       check(gammapInv(p, 2.5)).isCloseTo(3.0, 1e-4);
+
+      // a <= 1.0 branches
+      final pSmall = lowRegGamma(0.5, 0.2);
+      check(gammapInv(pSmall, 0.5)).isCloseTo(0.2, 1e-3);
+      final pLarge = lowRegGamma(0.5, 2.0);
+      check(gammapInv(pLarge, 0.5)).isCloseTo(2.0, 1e-3);
+
+      // a > 1.0 with p < 0.5
+      final pLow = lowRegGamma(3.0, 0.5);
+      check(gammapInv(pLow, 3.0)).isCloseTo(0.5, 1e-3);
+    });
+
+    test('gamma for large x', () {
+      check(gamma(105.0).isFinite).isTrue();
     });
 
     test('factorial and combinations', () {

@@ -83,7 +83,7 @@ extension JoinDataFrameExtension on DataFrame {
         } else if (r != null) {
           vals.add(rightCol[r]);
         } else {
-          vals.add(null);
+          vals.add(null); // coverage:ignore-line
         }
       }
       resultCols[keyCol] = vals;

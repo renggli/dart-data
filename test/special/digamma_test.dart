@@ -12,6 +12,9 @@ void main() {
       check(digamma(0.5)).isCloseTo(-2.0 * math.ln2 - 0.5772156649, 1e-6);
       check(digamma(0)).isNaN();
       check(digamma(-1)).isNaN();
+      check(digamma(double.infinity)).equals(double.infinity);
+      check(digamma(double.negativeInfinity)).isNaN();
+      check(digamma(-1.5).isFinite).isTrue();
     });
 
     test('trigamma known values', () {
@@ -19,6 +22,8 @@ void main() {
       check(trigamma(2)).isCloseTo(math.pi * math.pi / 6.0 - 1.0, 1e-6);
       check(trigamma(0)).isNaN();
       check(trigamma(-1)).isNaN();
+      check(trigamma(double.infinity)).equals(0.0);
+      check(trigamma(-1.5).isFinite).isTrue();
     });
   });
 }
