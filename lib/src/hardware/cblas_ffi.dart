@@ -147,35 +147,6 @@ class BlasLibrary {
     );
   }
 
-  final List<ffi.DynamicLibrary> _libraries;
-
-  _CblasDgemm? _dgemm;
-  _CblasSgemm? _sgemm;
-  _CblasDgemv? _dgemv;
-  _CblasSgemv? _sgemv;
-  _CblasDdot? _ddot;
-  _CblasSdot? _sdot;
-  _CblasDnrm2? _dnrm2;
-  _CblasSnrm2? _snrm2;
-  _CblasDaxpy? _daxpy;
-  _CblasSaxpy? _saxpy;
-  _CblasDscal? _dscal;
-  _CblasSscal? _sscal;
-  _CblasDsyrk? _dsyrk;
-  _CblasSsyrk? _ssyrk;
-  _CblasDsyr2? _dsyr2;
-  _CblasSsyr2? _ssyr2;
-  _LapackeDgesv? _lapackeDgesv;
-  _FortranDgetrf? _dgetrf;
-  _FortranDgetrs? _dgetrs;
-  _FortranDgesv? _dgesv;
-  _LapackeDgels? _lapackeDgels;
-  _FortranDgels? _dgels;
-  _FortranDpotrf? _dpotrf;
-  _FortranDgeqrf? _dgeqrf;
-  _FortranDgesvd? _dgesvd;
-  _FortranDgesdd? _dgesdd;
-
   bool get isAvailable => _dgemm != null;
 
   /// Whether native QR factorization (_dgeqrf) is bound.
@@ -1318,6 +1289,35 @@ class BlasLibrary {
 
     return false;
   }
+
+  final List<ffi.DynamicLibrary> _libraries;
+
+  _CblasDgemm? _dgemm;
+  _CblasSgemm? _sgemm;
+  _CblasDgemv? _dgemv;
+  _CblasSgemv? _sgemv;
+  _CblasDdot? _ddot;
+  _CblasSdot? _sdot;
+  _CblasDnrm2? _dnrm2;
+  _CblasSnrm2? _snrm2;
+  _CblasDaxpy? _daxpy;
+  _CblasSaxpy? _saxpy;
+  _CblasDscal? _dscal;
+  _CblasSscal? _sscal;
+  _CblasDsyrk? _dsyrk;
+  _CblasSsyrk? _ssyrk;
+  _CblasDsyr2? _dsyr2;
+  _CblasSsyr2? _ssyr2;
+  _LapackeDgesv? _lapackeDgesv;
+  _FortranDgetrf? _dgetrf;
+  _FortranDgetrs? _dgetrs;
+  _FortranDgesv? _dgesv;
+  _LapackeDgels? _lapackeDgels;
+  _FortranDgels? _dgels;
+  _FortranDpotrf? _dpotrf;
+  _FortranDgeqrf? _dgeqrf;
+  _FortranDgesvd? _dgesvd;
+  _FortranDgesdd? _dgesdd;
 
   T? _lookup<T extends Function>(T Function(ffi.DynamicLibrary lib) lookup) {
     for (final lib in _libraries) {

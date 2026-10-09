@@ -3,17 +3,6 @@ import 'memory_buffer.dart';
 
 /// Stub implementation of [NativeBuffer] for platforms without `dart:ffi` (e.g. Web).
 class NativeBuffer<T> extends MemoryBuffer<T> {
-  new _(super.data, this.type) : _isDisposed = false;
-
-  /// Whether native buffers are supported on this platform.
-  static const bool isSupported = false;
-
-  /// Whether native buffer allocation is globally enabled.
-  static bool isEnabled = false;
-
-  /// Whether native buffers are currently active.
-  static bool get isActive => false;
-
   /// Allocates a standard heap buffer when FFI is unavailable.
   factory(int length, {DataType<T>? type}) {
     RangeError.checkNotNegative(length, 'length');
@@ -33,6 +22,17 @@ class NativeBuffer<T> extends MemoryBuffer<T> {
     final data = effectiveType.newList(length);
     return NativeBuffer<T>._(data, effectiveType);
   }
+
+  new _(super.data, this.type) : _isDisposed = false;
+
+  /// Whether native buffers are supported on this platform.
+  static const bool isSupported = false;
+
+  /// Whether native buffer allocation is globally enabled.
+  static bool isEnabled = false;
+
+  /// Whether native buffers are currently active.
+  static bool get isActive => false;
 
   /// Registers an additional list/view [alias] to point to [buffer].
   static void register(dynamic alias, NativeBuffer<dynamic> buffer) {}

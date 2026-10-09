@@ -9,8 +9,6 @@ import 'simd.dart';
 class HardwareManager {
   new _();
 
-  static final BlasLibrary _blas = loadBlas();
-
   /// Whether hardware acceleration is globally enabled. Can be disabled for benchmarking or testing fallbacks.
   static bool isEnabled = true;
 
@@ -876,4 +874,6 @@ class HardwareManager {
     b.setRange(bOffset, bOffset + n * ldb, bCopy);
     return true;
   }
+
+  static final BlasLibrary _blas = loadBlas();
 }

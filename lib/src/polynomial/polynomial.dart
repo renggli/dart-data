@@ -57,8 +57,6 @@ class Polynomial<T> {
   /// The data type of the coefficients.
   final DataType<T> type;
 
-  final List<T> _coefficients;
-
   /// The list of coefficients from exponent 0 to [degree].
   List<T> get coefficients => _coefficients;
 
@@ -513,4 +511,6 @@ class Polynomial<T> {
     }
     return parts.join(' + ');
   }
+
+  final List<T> _coefficients;
 }

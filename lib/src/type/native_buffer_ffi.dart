@@ -7,22 +7,6 @@ import 'memory_buffer.dart';
 
 /// Off-heap native memory buffer managed via [calloc] and [ffi.NativeFinalizer].
 class NativeBuffer<T> extends MemoryBuffer<T> implements ffi.Finalizable {
-  new _(this.pointer, List<T> data, this.type)
-    : _isDisposed = false,
-      super(data) {
-    _finalizer.attach(this, pointer.cast(), detach: this);
-    _expando[data] = this;
-  }
-
-  /// Whether native buffers are supported on this platform.
-  static const bool isSupported = true;
-
-  /// Whether native buffer allocation is globally enabled.
-  static bool isEnabled = true;
-
-  /// Whether native buffers are currently active.
-  static bool get isActive => isSupported && isEnabled;
-
   /// Allocates an off-heap native buffer of [length] elements of [type].
   factory(int length, {DataType<T>? type}) {
     RangeError.checkNotNegative(length, 'length');
@@ -76,6 +60,22 @@ class NativeBuffer<T> extends MemoryBuffer<T> implements ffi.Finalizable {
       );
     }
   }
+
+  new _(this.pointer, List<T> data, this.type)
+    : _isDisposed = false,
+      super(data) {
+    _finalizer.attach(this, pointer.cast(), detach: this);
+    _expando[data] = this;
+  }
+
+  /// Whether native buffers are supported on this platform.
+  static const bool isSupported = true;
+
+  /// Whether native buffer allocation is globally enabled.
+  static bool isEnabled = true;
+
+  /// Whether native buffers are currently active.
+  static bool get isActive => isSupported && isEnabled;
 
   /// Registers an additional list/view [alias] to point to [buffer].
   static void register(dynamic alias, NativeBuffer<dynamic> buffer) {

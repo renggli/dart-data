@@ -34,9 +34,6 @@ class LinearInterpolation implements Interpolator {
     }
   }
 
-  final List<double> _xs;
-  final List<double> _ys;
-
   @override
   double call(num x) {
     final xd = x.toDouble();
@@ -48,6 +45,9 @@ class LinearInterpolation implements Interpolator {
     final t = (xd - x0) / (x1 - x0);
     return y0 + t * (y1 - y0);
   }
+
+  final List<double> _xs;
+  final List<double> _ys;
 }
 
 /// Piecewise cubic spline interpolator with natural or clamped boundary conditions.
@@ -129,13 +129,6 @@ class CubicSpline implements Interpolator {
     }
   }
 
-  final List<double> _xs;
-  final List<double> _ys;
-  late final List<double> _a;
-  late final List<double> _b;
-  late final List<double> _c;
-  late final List<double> _d;
-
   /// The boundary condition used by this spline.
   final CubicSplineBoundary boundary;
 
@@ -154,6 +147,13 @@ class CubicSpline implements Interpolator {
     final dx = xd - _xs[idx];
     return _b[idx] + 2.0 * _c[idx] * dx + 3.0 * _d[idx] * dx * dx;
   }
+
+  final List<double> _xs;
+  final List<double> _ys;
+  late final List<double> _a;
+  late final List<double> _b;
+  late final List<double> _c;
+  late final List<double> _d;
 }
 
 /// Monotonic Piecewise Cubic Hermite Interpolating Polynomial (PCHIP).
@@ -226,12 +226,6 @@ class PchipInterpolation implements Interpolator {
     }
   }
 
-  final List<double> _xs;
-  final List<double> _ys;
-  late final List<double> _h;
-  late final List<double> _delta;
-  late final List<double> _d;
-
   @override
   double call(num x) {
     final xd = x.toDouble();
@@ -255,6 +249,12 @@ class PchipInterpolation implements Interpolator {
 
     return h00 * y0 + h10 * h * d0 + h01 * y1 + h11 * h * d1;
   }
+
+  final List<double> _xs;
+  final List<double> _ys;
+  late final List<double> _h;
+  late final List<double> _delta;
+  late final List<double> _d;
 }
 
 int _binarySearchInterval(List<double> xs, double x) {

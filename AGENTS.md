@@ -23,8 +23,9 @@
 
 ### Ordering
 
-- All public members, methods, and constants must be placed at the top of classes and files.
-- All private methods and constants must be placed at the bottom of their respective classes and files.
+- All public members, methods, functions, variables, and constants must be placed at the top of classes and files.
+- All private methods, functions, variables, and constants must be placed at the bottom of their respective classes and files.
+- Class fields (both public and private) must be placed after constructors.
 
 ### Imports
 

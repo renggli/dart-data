@@ -52,9 +52,6 @@ class DataFrame {
   factory fromCsv(String csv, {String separator = ',', bool header = true}) =>
       CsvReader.parse(csv, separator: separator, header: header);
 
-  final List<Series<dynamic>> _columns;
-  final Map<String, int> _columnIndex;
-
   /// Number of rows.
   final int rowCount;
 
@@ -238,4 +235,7 @@ class DataFrame {
     if (rowCount > 5) buffer.writeln('... and ${rowCount - 5} more rows');
     return buffer.toString();
   }
+
+  final List<Series<dynamic>> _columns;
+  final Map<String, int> _columnIndex;
 }
