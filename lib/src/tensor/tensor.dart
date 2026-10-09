@@ -1,12 +1,40 @@
 import '../type/data_type.dart';
 import '../type/memory_buffer.dart';
+import '../type/native_buffer.dart';
 import 'layout.dart';
 import 'operations/operation.dart';
 
 /// Multi-dimensional dense array backed by a flat buffer and strided layout.
 class Tensor<T> {
-  new internal({required this.type, required this.layout, required this.data})
-    : buffer = MemoryBuffer<T>(data);
+  new internal({
+    required this.type,
+    required this.layout,
+    required this.data,
+    MemoryBuffer<T>? buffer,
+  }) : buffer =
+           buffer ??
+           (NativeBuffer.find(data) as MemoryBuffer<T>?) ??
+           MemoryBuffer<T>(data);
+
+  /// Constructs a tensor backed by off-heap native memory.
+  factory native({
+    required List<int> shape,
+    List<int>? strides,
+    DataType<T>? type,
+  }) {
+    final effectiveType = type ?? DataType.fromType<T>();
+    final effectiveLayout = Layout(shape: shape, strides: strides);
+    final nativeBuf = NativeBuffer<T>(
+      effectiveLayout.length,
+      type: effectiveType,
+    );
+    return Tensor.internal(
+      type: effectiveType,
+      layout: effectiveLayout,
+      data: nativeBuf.data,
+      buffer: nativeBuf,
+    );
+  }
 
   /// Constructs a tensor filled with [value].
   factory filled(

@@ -1,5 +1,7 @@
 import 'dart:math' as math;
+import 'dart:typed_data';
 
+import '../../hardware.dart';
 import '../../linear.dart';
 import '../../polynomial.dart';
 import '../../type.dart';
@@ -17,7 +19,51 @@ Vector<double> leastSquares(Matrix<num> a, Vector<num> b) {
       'Matrix row count (${a.rowCount}) must match vector length (${b.length}).',
     );
   }
-  if (a.rowCount >= a.colCount) {
+  final m = a.rowCount;
+  final n = a.colCount;
+  if (m >= n && HardwareManager.isAccelerated) {
+    final Float64List aData;
+    if (a.type == DataType.float64 &&
+        a.tensor.isContiguous &&
+        a.tensor.data is Float64List) {
+      aData = Float64List(m * n);
+      aData.setRange(0, m * n, a.tensor.data as Float64List, a.tensor.offset);
+    } else {
+      aData = Float64List(m * n);
+      final aFlat = a.values.toList(growable: false);
+      for (var i = 0; i < aFlat.length; i++) {
+        aData[i] = aFlat[i].toDouble();
+      }
+    }
+    final Float64List bData;
+    if (b.type == DataType.float64 &&
+        b.tensor.isContiguous &&
+        b.tensor.data is Float64List) {
+      bData = Float64List(m);
+      bData.setRange(0, m, b.tensor.data as Float64List, b.tensor.offset);
+    } else {
+      bData = Float64List(m);
+      for (var i = 0; i < m; i++) {
+        bData[i] = b[i].toDouble();
+      }
+    }
+    final success = HardwareManager.dgels(
+      m: m,
+      n: n,
+      nrhs: 1,
+      a: aData,
+      lda: n,
+      b: bData,
+      ldb: m,
+    );
+    if (success) {
+      return Vector<double>.fromList(
+        bData.sublist(0, n),
+        type: DataType.float64,
+      );
+    }
+  }
+  if (m >= n) {
     final qr = a.qr;
     if (qr.isFullRank) {
       return qr.solveVector(b);
@@ -221,9 +267,8 @@ Vector<double> levenbergMarquardt({
     }, type: DataType.float64);
 
     // Augmented normal equations: (J^T J + lambda * diag(J^T J)) delta = -J^T r
-    final jT = j.transposed;
-    final jTj = jT * j;
-    final jTr = jT.apply(r);
+    final jTj = j.syrk(transpose: true);
+    final jTr = j.applyTranspose(r);
 
     final a = Matrix<double>.generate(n, n, (row, col) {
       var val = jTj.get(row, col);

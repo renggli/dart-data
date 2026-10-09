@@ -1,5 +1,7 @@
 import 'dart:math' as math;
+import 'dart:typed_data';
 
+import '../hardware/hardware.dart';
 import '../tensor/operations/operation.dart';
 import '../tensor/tensor.dart';
 import '../type/data_type.dart';
@@ -20,6 +22,10 @@ class Vector<T> {
     );
     return Vector(tensor);
   }
+
+  /// Constructs a vector with [length] elements backed by off-heap native memory.
+  factory native(int length, {DataType<T>? type}) =>
+      Vector(Tensor<T>.native(shape: [length], type: type));
 
   /// Constructs a vector populated by [generator].
   factory generate(
@@ -96,6 +102,38 @@ class Vector<T> {
         'Vector lengths must match: $length vs ${other.length}',
       );
     }
+    if (T == double &&
+        tensor.strides[0] > 0 &&
+        other.tensor.strides[0] > 0 &&
+        tensor.data is Float64List &&
+        other.tensor.data is Float64List) {
+      final res = HardwareManager.ddot(
+        n: length,
+        x: tensor.data as Float64List,
+        xOffset: tensor.offset,
+        incX: tensor.strides[0],
+        y: other.tensor.data as Float64List,
+        yOffset: other.tensor.offset,
+        incY: other.tensor.strides[0],
+      );
+      if (res != null) return res as T;
+    } else if (T == double &&
+        tensor.strides[0] > 0 &&
+        other.tensor.strides[0] > 0 &&
+        tensor.data is Float32List &&
+        other.tensor.data is Float32List) {
+      final res = HardwareManager.sdot(
+        n: length,
+        x: tensor.data as Float32List,
+        xOffset: tensor.offset,
+        incX: tensor.strides[0],
+        y: other.tensor.data as Float32List,
+        yOffset: other.tensor.offset,
+        incY: other.tensor.strides[0],
+      );
+      if (res != null) return res as T;
+    }
+
     final f = type.field;
     var sum = f.additiveIdentity;
     final t1 = tensor;
@@ -148,6 +186,26 @@ class Vector<T> {
       return sum;
     }
     if (p == 2) {
+      if (T == double && tensor.strides[0] > 0 && tensor.data is Float64List) {
+        final res = HardwareManager.dnrm2(
+          n: length,
+          x: tensor.data as Float64List,
+          xOffset: tensor.offset,
+          incX: tensor.strides[0],
+        );
+        if (res != null) return res;
+      } else if (T == double &&
+          tensor.strides[0] > 0 &&
+          tensor.data is Float32List) {
+        final res = HardwareManager.snrm2(
+          n: length,
+          x: tensor.data as Float32List,
+          xOffset: tensor.offset,
+          incX: tensor.strides[0],
+        );
+        if (res != null) return res;
+      }
+
       var sumSq = 0.0;
       for (var i = 0; i < length; i++) {
         final val = f.norm(this[i]);
@@ -160,6 +218,87 @@ class Vector<T> {
       sumP += math.pow(f.norm(this[i]), p);
     }
     return math.pow(sumP, 1.0 / p).toDouble();
+  }
+
+  /// Adds scaled [other] vector in-place: $y \leftarrow y + \alpha \cdot x$.
+  void addScaled(Vector<T> other, T alpha) {
+    if (length != other.length) {
+      throw ArgumentError(
+        'Vector lengths must match: $length vs ${other.length}',
+      );
+    }
+    if (T == double &&
+        alpha is num &&
+        tensor.strides[0] > 0 &&
+        other.tensor.strides[0] > 0 &&
+        tensor.data is Float64List &&
+        other.tensor.data is Float64List) {
+      final success = HardwareManager.daxpy(
+        n: length,
+        alpha: alpha.toDouble(),
+        x: other.tensor.data as Float64List,
+        xOffset: other.tensor.offset,
+        incX: other.tensor.strides[0],
+        y: tensor.data as Float64List,
+        yOffset: tensor.offset,
+        incY: tensor.strides[0],
+      );
+      if (success) return;
+    } else if (T == double &&
+        alpha is num &&
+        tensor.strides[0] > 0 &&
+        other.tensor.strides[0] > 0 &&
+        tensor.data is Float32List &&
+        other.tensor.data is Float32List) {
+      final success = HardwareManager.saxpy(
+        n: length,
+        alpha: alpha.toDouble(),
+        x: other.tensor.data as Float32List,
+        xOffset: other.tensor.offset,
+        incX: other.tensor.strides[0],
+        y: tensor.data as Float32List,
+        yOffset: tensor.offset,
+        incY: tensor.strides[0],
+      );
+      if (success) return;
+    }
+    final f = type.field;
+    for (var i = 0; i < length; i++) {
+      this[i] = f.add(this[i], f.mul(alpha, other[i]));
+    }
+  }
+
+  /// Scales every element in-place by [scalar]: $x \leftarrow \alpha \cdot x$.
+  void scaleInPlace(T scalar) {
+    if (T == double &&
+        scalar is num &&
+        tensor.strides[0] > 0 &&
+        tensor.data is Float64List) {
+      final success = HardwareManager.dscal(
+        n: length,
+        alpha: scalar.toDouble(),
+        x: tensor.data as Float64List,
+        xOffset: tensor.offset,
+        incX: tensor.strides[0],
+      );
+      if (success) return;
+    } else if (T == double &&
+        scalar is num &&
+        tensor.strides[0] > 0 &&
+        tensor.data is Float32List) {
+      final success = HardwareManager.sscal(
+        n: length,
+        alpha: scalar.toDouble(),
+        x: tensor.data as Float32List,
+        xOffset: tensor.offset,
+        incX: tensor.strides[0],
+      );
+      if (success) return;
+    }
+    final f = type.field;
+    for (var i = 0; i < length; i++) {
+      this[i] = f.mul(this[i], scalar);
+    }
   }
 
   /// Returns the unit vector in the same direction.

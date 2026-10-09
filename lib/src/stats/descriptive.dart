@@ -1,6 +1,5 @@
 import 'dart:math' as math;
 
-import '../hardware/hardware.dart';
 import '../linear/decomposition/eigenvalue.dart';
 import '../linear/matrix.dart';
 import '../linear/vector.dart';
@@ -232,7 +231,7 @@ double _spearmanCorrelation(Iterable<num> x, Iterable<num> y) =>
 /// If [rowVar] is false (default), columns represent variables and rows represent observations.
 /// If [rowVar] is true, rows represent variables and columns represent observations.
 ///
-/// Transparently uses [HardwareManager] BLAS acceleration for large matrix multiplications.
+/// Transparently uses [Matrix.syrk] BLAS acceleration for large matrix multiplications.
 Matrix<double> covarianceMatrix(dynamic data, {bool rowVar = false}) =>
     _covarianceMatrix(data, rowVar: rowVar);
 
@@ -278,21 +277,8 @@ Matrix<double> _covarianceMatrix(dynamic data, {bool rowVar = false}) {
     }
   }
 
-  final xt = xc.transpose();
-  final prod = xt * xc;
   final scale = 1.0 / (nSamples - 1.0);
-  final result = Matrix<double>.filled(
-    nFeatures,
-    nFeatures,
-    0.0,
-    type: DataType.float64,
-  );
-  for (var i = 0; i < nFeatures; i++) {
-    for (var j = 0; j < nFeatures; j++) {
-      result.set(i, j, prod.get(i, j) * scale);
-    }
-  }
-  return result;
+  return xc.syrk(transpose: true, alpha: scale);
 }
 
 /// Computes the Pearson correlation matrix of [data].

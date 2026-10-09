@@ -1,5 +1,6 @@
 import 'dart:typed_data';
 
+import '../../hardware/cblas.dart';
 import '../../hardware/hardware.dart';
 import '../../type/field.dart';
 import '../../type/memory_buffer.dart';
@@ -78,45 +79,77 @@ extension MatmulTensorExtension<T> on Tensor<T> {
     int n,
     Field<T> f,
   ) {
-    // Transparent hardware acceleration when contiguous and unshifted
-    if (a.isContiguous &&
-        b.isContiguous &&
-        c.isContiguous &&
-        a.offset == 0 &&
-        b.offset == 0 &&
-        c.offset == 0) {
+    // Transparent hardware acceleration when contiguous or transposed row-major
+    int? transA;
+    int? lda;
+    if (a.layout.strides[1] == 1 && (a.layout.strides[0] >= k || m == 1)) {
+      transA = cblasNoTrans;
+      lda = m == 1 ? (k > 0 ? k : 1) : a.layout.strides[0];
+    } else if (a.layout.strides[0] == 1 &&
+        (a.layout.strides[1] >= m || k == 1)) {
+      transA = cblasTrans;
+      lda = k == 1 ? (m > 0 ? m : 1) : a.layout.strides[1];
+    }
+
+    int? transB;
+    int? ldb;
+    if (b.layout.strides[1] == 1 && (b.layout.strides[0] >= n || k == 1)) {
+      transB = cblasNoTrans;
+      ldb = k == 1 ? (n > 0 ? n : 1) : b.layout.strides[0];
+    } else if (b.layout.strides[0] == 1 &&
+        (b.layout.strides[1] >= k || n == 1)) {
+      transB = cblasTrans;
+      ldb = n == 1 ? (k > 0 ? k : 1) : b.layout.strides[1];
+    }
+
+    int? ldc;
+    if (c.layout.strides[1] == 1 && (c.layout.strides[0] >= n || m == 1)) {
+      ldc = m == 1 ? (n > 0 ? n : 1) : c.layout.strides[0];
+    }
+
+    if (transA != null && transB != null && ldc != null) {
       if (a.data is Float64List &&
           b.data is Float64List &&
           c.data is Float64List) {
         final success = HardwareManager.dgemm(
+          transA: transA,
+          transB: transB,
           m: m,
           n: n,
           k: k,
           alpha: 1.0,
           a: a.data as Float64List,
-          lda: k,
+          aOffset: a.offset,
+          lda: lda!,
           b: b.data as Float64List,
-          ldb: n,
+          bOffset: b.offset,
+          ldb: ldb!,
           beta: 0.0,
           c: c.data as Float64List,
-          ldc: n,
+          cOffset: c.offset,
+          ldc: ldc,
         );
         if (success) return;
       } else if (a.data is Float32List &&
           b.data is Float32List &&
           c.data is Float32List) {
         final success = HardwareManager.sgemm(
+          transA: transA,
+          transB: transB,
           m: m,
           n: n,
           k: k,
           alpha: 1.0,
           a: a.data as Float32List,
-          lda: k,
+          aOffset: a.offset,
+          lda: lda!,
           b: b.data as Float32List,
-          ldb: n,
+          bOffset: b.offset,
+          ldb: ldb!,
           beta: 0.0,
           c: c.data as Float32List,
-          ldc: n,
+          cOffset: c.offset,
+          ldc: ldc,
         );
         if (success) return;
       }

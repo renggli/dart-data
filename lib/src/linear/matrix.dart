@@ -1,5 +1,6 @@
 import 'dart:typed_data';
 
+import '../hardware/cblas.dart';
 import '../hardware/hardware.dart';
 import '../tensor/layout.dart';
 import '../tensor/operations/matmul.dart';
@@ -17,6 +18,10 @@ import 'vector.dart';
 class Matrix<T> implements LinearOperator<T> {
   new(this.tensor)
     : assert(tensor.rank == 2, 'Tensor must have rank 2, got ${tensor.rank}');
+
+  /// Constructs an [rowCount x colCount] matrix backed by off-heap native memory.
+  factory native(int rowCount, int colCount, {DataType<T>? type}) =>
+      Matrix(Tensor<T>.native(shape: [rowCount, colCount], type: type));
 
   /// Constructs an [rowCount x colCount] matrix filled with [value].
   factory filled(int rowCount, int colCount, T value, {DataType<T>? type}) {
@@ -307,6 +312,72 @@ class Matrix<T> implements LinearOperator<T> {
     }
     final f = type.field;
     final res = Vector<T>.filled(rowCount, f.additiveIdentity, type: type);
+
+    // Fast-path: hardware-accelerated DGEMV / SGEMV
+    if (T == double && x.tensor.strides[0] > 0 && res.tensor.strides[0] > 0) {
+      final s0 = tensor.strides[0];
+      final s1 = tensor.strides[1];
+      int? transA;
+      int? mVal;
+      int? nVal;
+      int? lda;
+      if (s1 == 1 && (s0 >= colCount || rowCount == 1)) {
+        transA = cblasNoTrans;
+        mVal = rowCount;
+        nVal = colCount;
+        lda = rowCount == 1 ? (colCount > 0 ? colCount : 1) : s0;
+      } else if (s0 == 1 && (s1 >= rowCount || colCount == 1)) {
+        transA = cblasTrans;
+        mVal = colCount;
+        nVal = rowCount;
+        lda = colCount == 1 ? (rowCount > 0 ? rowCount : 1) : s1;
+      }
+
+      if (transA != null && lda != null) {
+        if (tensor.data is Float64List &&
+            x.tensor.data is Float64List &&
+            res.tensor.data is Float64List) {
+          final success = HardwareManager.dgemv(
+            transA: transA,
+            m: mVal!,
+            n: nVal!,
+            alpha: 1.0,
+            a: tensor.data as Float64List,
+            aOffset: tensor.offset,
+            lda: lda,
+            x: x.tensor.data as Float64List,
+            xOffset: x.tensor.offset,
+            incX: x.tensor.strides[0],
+            beta: 0.0,
+            y: res.tensor.data as Float64List,
+            yOffset: res.tensor.offset,
+            incY: res.tensor.strides[0],
+          );
+          if (success) return res;
+        } else if (tensor.data is Float32List &&
+            x.tensor.data is Float32List &&
+            res.tensor.data is Float32List) {
+          final success = HardwareManager.sgemv(
+            transA: transA,
+            m: mVal!,
+            n: nVal!,
+            alpha: 1.0,
+            a: tensor.data as Float32List,
+            aOffset: tensor.offset,
+            lda: lda,
+            x: x.tensor.data as Float32List,
+            xOffset: x.tensor.offset,
+            incX: x.tensor.strides[0],
+            beta: 0.0,
+            y: res.tensor.data as Float32List,
+            yOffset: res.tensor.offset,
+            incY: res.tensor.strides[0],
+          );
+          if (success) return res;
+        }
+      }
+    }
+
     final xContig = x.tensor.isContiguous;
     final xData = x.tensor.data;
     final xOffset = x.tensor.offset;
@@ -343,6 +414,72 @@ class Matrix<T> implements LinearOperator<T> {
     }
     final f = type.field;
     final res = Vector<T>.filled(colCount, f.additiveIdentity, type: type);
+
+    // Fast-path: hardware-accelerated DGEMV / SGEMV
+    if (T == double && x.tensor.strides[0] > 0 && res.tensor.strides[0] > 0) {
+      final s0 = tensor.strides[0];
+      final s1 = tensor.strides[1];
+      int? transA;
+      int? mVal;
+      int? nVal;
+      int? lda;
+      if (s1 == 1 && (s0 >= colCount || rowCount == 1)) {
+        transA = cblasTrans;
+        mVal = rowCount;
+        nVal = colCount;
+        lda = rowCount == 1 ? (colCount > 0 ? colCount : 1) : s0;
+      } else if (s0 == 1 && (s1 >= rowCount || colCount == 1)) {
+        transA = cblasNoTrans;
+        mVal = colCount;
+        nVal = rowCount;
+        lda = colCount == 1 ? (rowCount > 0 ? rowCount : 1) : s1;
+      }
+
+      if (transA != null && lda != null) {
+        if (tensor.data is Float64List &&
+            x.tensor.data is Float64List &&
+            res.tensor.data is Float64List) {
+          final success = HardwareManager.dgemv(
+            transA: transA,
+            m: mVal!,
+            n: nVal!,
+            alpha: 1.0,
+            a: tensor.data as Float64List,
+            aOffset: tensor.offset,
+            lda: lda,
+            x: x.tensor.data as Float64List,
+            xOffset: x.tensor.offset,
+            incX: x.tensor.strides[0],
+            beta: 0.0,
+            y: res.tensor.data as Float64List,
+            yOffset: res.tensor.offset,
+            incY: res.tensor.strides[0],
+          );
+          if (success) return res;
+        } else if (tensor.data is Float32List &&
+            x.tensor.data is Float32List &&
+            res.tensor.data is Float32List) {
+          final success = HardwareManager.sgemv(
+            transA: transA,
+            m: mVal!,
+            n: nVal!,
+            alpha: 1.0,
+            a: tensor.data as Float32List,
+            aOffset: tensor.offset,
+            lda: lda,
+            x: x.tensor.data as Float32List,
+            xOffset: x.tensor.offset,
+            incX: x.tensor.strides[0],
+            beta: 0.0,
+            y: res.tensor.data as Float32List,
+            yOffset: res.tensor.offset,
+            incY: res.tensor.strides[0],
+          );
+          if (success) return res;
+        }
+      }
+    }
+
     for (var i = 0; i < rowCount; i++) {
       final xi = x[i];
       for (var j = 0; j < colCount; j++) {
@@ -350,6 +487,71 @@ class Matrix<T> implements LinearOperator<T> {
       }
     }
     return res;
+  }
+
+  /// Computes symmetric rank-k update $C = \alpha A A^T + \beta C$ (or $A^T A$).
+  Matrix<T> syrk({
+    double alpha = 1.0,
+    double beta = 0.0,
+    bool transpose = false,
+  }) {
+    final n = transpose ? colCount : rowCount;
+    final k = transpose ? rowCount : colCount;
+    final f = type.field;
+    final result = Matrix<T>.filled(n, n, f.additiveIdentity, type: type);
+    if (T == double) {
+      final s0 = tensor.strides[0];
+      final s1 = tensor.strides[1];
+      int? effectiveTrans;
+      int? lda;
+      if (s1 == 1 && (s0 >= colCount || rowCount == 1)) {
+        effectiveTrans = transpose ? cblasTrans : cblasNoTrans;
+        lda = rowCount == 1 ? (colCount > 0 ? colCount : 1) : s0;
+      } else if (s0 == 1 && (s1 >= rowCount || colCount == 1)) {
+        effectiveTrans = transpose ? cblasNoTrans : cblasTrans;
+        lda = colCount == 1 ? (rowCount > 0 ? rowCount : 1) : s1;
+      }
+
+      if (effectiveTrans != null && lda != null) {
+        if (tensor.data is Float64List && result.tensor.data is Float64List) {
+          final success = HardwareManager.dsyrk(
+            uplo: cblasUpper,
+            trans: effectiveTrans,
+            n: n,
+            k: k,
+            alpha: alpha,
+            a: tensor.data as Float64List,
+            aOffset: tensor.offset,
+            lda: lda,
+            beta: beta,
+            c: result.tensor.data as Float64List,
+            cOffset: result.tensor.offset,
+            ldc: n,
+          );
+          if (success) return result;
+        } else if (tensor.data is Float32List &&
+            result.tensor.data is Float32List) {
+          final success = HardwareManager.ssyrk(
+            uplo: cblasUpper,
+            trans: effectiveTrans,
+            n: n,
+            k: k,
+            alpha: alpha,
+            a: tensor.data as Float32List,
+            aOffset: tensor.offset,
+            lda: lda,
+            beta: beta,
+            c: result.tensor.data as Float32List,
+            cOffset: result.tensor.offset,
+            ldc: n,
+          );
+          if (success) return result;
+        }
+      }
+    }
+    final aOp = transpose ? this.transpose() : this;
+    final aOther = transpose ? this : this.transpose();
+    return (aOp * aOther).scale(f.scale(f.multiplicativeIdentity, alpha));
   }
 
   /// Creates a deep contiguous copy of this matrix.

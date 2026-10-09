@@ -401,13 +401,13 @@ lbfgs(
     }
 
     // L-BFGS two-loop recursion to compute search direction r = -H_k * g
-    var q = g.copy();
+    final q = g.copy();
     final k = sHistory.length;
     final alphas = List<double>.filled(k, 0.0);
 
     for (var i = k - 1; i >= 0; i--) {
       alphas[i] = rhoHistory[i] * sHistory[i].dot(q);
-      q = q - yHistory[i].scale(alphas[i]);
+      q.addScaled(yHistory[i], -alphas[i]);
     }
 
     // Initial scale factor gamma_k = (s_{k-1} . y_{k-1}) / (y_{k-1} . y_{k-1})
@@ -417,11 +417,11 @@ lbfgs(
       final yLast = yHistory.last;
       gamma = sLast.dot(yLast) / yLast.dot(yLast);
     }
-    var r = q.scale(gamma);
+    final r = q.scale(gamma);
 
     for (var i = 0; i < k; i++) {
       final beta = rhoHistory[i] * yHistory[i].dot(r);
-      r = r + sHistory[i].scale(alphas[i] - beta);
+      r.addScaled(sHistory[i], alphas[i] - beta);
     }
 
     final p = -r;

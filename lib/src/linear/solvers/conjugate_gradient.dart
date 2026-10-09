@@ -21,11 +21,11 @@ Vector<T> conjugateGradient<T>(
   }
 
   final f = a.type.field;
-  var x =
+  final x =
       x0?.copy() ??
       Vector<T>.filled(b.length, f.additiveIdentity, type: a.type);
-  var r = b - a.apply(x);
-  var p = r.copy();
+  final r = b - a.apply(x);
+  final p = r.copy();
   var rsOld = r.dot(r);
 
   if (f.norm(rsOld) < tolerance * tolerance) {
@@ -37,14 +37,15 @@ Vector<T> conjugateGradient<T>(
     final pap = p.dot(ap);
     if (f.norm(pap) == 0.0) break;
     final alpha = f.div(rsOld, pap);
-    x = x + p.scale(alpha);
-    r = r - ap.scale(alpha);
+    x.addScaled(p, alpha);
+    r.addScaled(ap, f.neg(alpha));
     final rsNew = r.dot(r);
     if (f.norm(rsNew) < tolerance * tolerance) {
       break;
     }
     final beta = f.div(rsNew, rsOld);
-    p = r + p.scale(beta);
+    p.scaleInPlace(beta);
+    p.addScaled(r, f.multiplicativeIdentity);
     rsOld = rsNew;
   }
 

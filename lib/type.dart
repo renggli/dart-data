@@ -8,3 +8,4 @@ export 'src/type/dtype.dart';
 export 'src/type/equality.dart';
 export 'src/type/field.dart';
 export 'src/type/memory_buffer.dart';
+export 'src/type/native_buffer.dart';

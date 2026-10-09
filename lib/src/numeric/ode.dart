@@ -33,7 +33,7 @@ OdeSolution rk4({
   final yList = <Vector<double>>[y0.copy()];
 
   var t = t0;
-  var y = y0.copy();
+  final y = y0.copy();
   final direction = tEnd >= t0 ? 1.0 : -1.0;
   var h = direction * stepSize.abs();
 
@@ -43,12 +43,16 @@ OdeSolution rk4({
     }
 
     final k1 = f(t, y);
-    final k2 = f(t + 0.5 * h, y + k1.scale(0.5 * h));
-    final k3 = f(t + 0.5 * h, y + k2.scale(0.5 * h));
-    final k4 = f(t + h, y + k3.scale(h));
+    final k2 = f(t + 0.5 * h, (y.copy())..addScaled(k1, 0.5 * h));
+    final k3 = f(t + 0.5 * h, (y.copy())..addScaled(k2, 0.5 * h));
+    final k4 = f(t + h, (y.copy())..addScaled(k3, h));
 
-    final dy = (k1 + k2.scale(2.0) + k3.scale(2.0) + k4).scale(h / 6.0);
-    y = y + dy;
+    final dy = (k1.copy())
+      ..addScaled(k2, 2.0)
+      ..addScaled(k3, 2.0)
+      ..addScaled(k4, 1.0)
+      ..scaleInPlace(h / 6.0);
+    y.addScaled(dy, 1.0);
     t += h;
 
     tList.add(t);
@@ -90,57 +94,59 @@ OdeSolution rk45({
     }
 
     // Dormand-Prince stage calculations
-    final k2 = f(t + h * (1.0 / 5.0), y + k1.scale(h * (1.0 / 5.0)));
+    final k2 = f(
+      t + h * (1.0 / 5.0),
+      (y.copy())..addScaled(k1, h * (1.0 / 5.0)),
+    );
     final k3 = f(
       t + h * (3.0 / 10.0),
-      y + k1.scale(h * (3.0 / 40.0)) + k2.scale(h * (9.0 / 40.0)),
+      (y.copy())
+        ..addScaled(k1, h * (3.0 / 40.0))
+        ..addScaled(k2, h * (9.0 / 40.0)),
     );
     final k4 = f(
       t + h * (4.0 / 5.0),
-      y +
-          k1.scale(h * (44.0 / 45.0)) -
-          k2.scale(h * (56.0 / 15.0)) +
-          k3.scale(h * (32.0 / 9.0)),
+      (y.copy())
+        ..addScaled(k1, h * (44.0 / 45.0))
+        ..addScaled(k2, -h * (56.0 / 15.0))
+        ..addScaled(k3, h * (32.0 / 9.0)),
     );
     final k5 = f(
       t + h * (8.0 / 9.0),
-      y +
-          k1.scale(h * (19372.0 / 6561.0)) -
-          k2.scale(h * (25360.0 / 2187.0)) +
-          k3.scale(h * (64448.0 / 6561.0)) -
-          k4.scale(h * (212.0 / 729.0)),
+      (y.copy())
+        ..addScaled(k1, h * (19372.0 / 6561.0))
+        ..addScaled(k2, -h * (25360.0 / 2187.0))
+        ..addScaled(k3, h * (64448.0 / 6561.0))
+        ..addScaled(k4, -h * (212.0 / 729.0)),
     );
     final k6 = f(
       t + h,
-      y +
-          k1.scale(h * (9017.0 / 3168.0)) -
-          k2.scale(h * (355.0 / 33.0)) +
-          k3.scale(h * (46732.0 / 5247.0)) +
-          k4.scale(h * (49.0 / 176.0)) -
-          k5.scale(h * (5103.0 / 18656.0)),
+      (y.copy())
+        ..addScaled(k1, h * (9017.0 / 3168.0))
+        ..addScaled(k2, -h * (355.0 / 33.0))
+        ..addScaled(k3, h * (46732.0 / 5247.0))
+        ..addScaled(k4, h * (49.0 / 176.0))
+        ..addScaled(k5, -h * (5103.0 / 18656.0)),
     );
 
     // 5th order solution
-    final y5 =
-        y +
-        (k1.scale(35.0 / 384.0) +
-                k3.scale(500.0 / 1113.0) +
-                k4.scale(125.0 / 192.0) -
-                k5.scale(2187.0 / 6784.0) +
-                k6.scale(11.0 / 84.0))
-            .scale(h);
+    final y5 = (y.copy())
+      ..addScaled(k1, h * (35.0 / 384.0))
+      ..addScaled(k3, h * (500.0 / 1113.0))
+      ..addScaled(k4, h * (125.0 / 192.0))
+      ..addScaled(k5, -h * (2187.0 / 6784.0))
+      ..addScaled(k6, h * (11.0 / 84.0));
 
     final k7 = f(t + h, y5); // FSAL property
 
     // 4th order solution difference for error estimation
-    final errorVec =
-        (k1.scale(71.0 / 57600.0) -
-                k3.scale(71.0 / 16695.0) +
-                k4.scale(71.0 / 1920.0) -
-                k5.scale(17253.0 / 339200.0) +
-                k6.scale(22.0 / 525.0) -
-                k7.scale(1.0 / 40.0))
-            .scale(h);
+    final errorVec = (k1.scale(71.0 / 57600.0))
+      ..addScaled(k3, -71.0 / 16695.0)
+      ..addScaled(k4, 71.0 / 1920.0)
+      ..addScaled(k5, -17253.0 / 339200.0)
+      ..addScaled(k6, 22.0 / 525.0)
+      ..addScaled(k7, -1.0 / 40.0)
+      ..scaleInPlace(h);
 
     // Compute error norm relative to tolerance
     var maxErrorRatio = 0.0;

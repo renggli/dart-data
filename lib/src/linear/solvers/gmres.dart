@@ -55,14 +55,14 @@ Vector<T> gmres<T>(
 
     var k = 0;
     for (; k < m && totalIter < maxIterations; k++, totalIter++) {
-      var w = a.apply(v[k]);
+      final w = a.apply(v[k]);
       for (var i = 0; i <= k; i++) {
         final dotVal = w.dot(v[i]);
         final doubleDot = dotVal is num
             ? (dotVal as num).toDouble()
             : f.norm(dotVal);
         h[i][k] = doubleDot;
-        w = w - v[i].scale(dotVal);
+        w.addScaled(v[i], f.neg(dotVal));
       }
       final wNorm = w.norm();
       h[k + 1][k] = wNorm;

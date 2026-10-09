@@ -4,3 +4,4 @@ library;
 export 'src/hardware/cblas.dart';
 export 'src/hardware/hardware.dart';
 export 'src/hardware/simd.dart';
+export 'src/type/native_buffer.dart';
