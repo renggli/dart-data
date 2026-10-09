@@ -6,6 +6,9 @@ import '../tensor/operations/matmul.dart';
 import '../tensor/operations/operation.dart';
 import '../tensor/tensor.dart';
 import '../type/data_type.dart';
+import 'decomposition/eigenvalue.dart';
+import 'decomposition/qr.dart';
+import 'decomposition/svd.dart';
 import 'operator.dart';
 import 'solvers/gmres.dart';
 import 'vector.dart';
@@ -163,7 +166,7 @@ class Matrix<T> implements LinearOperator<T> {
     );
   }
 
-  /// The trace (sum of main diagonal elements) of this square matrix.
+  /// Trace (sum of main diagonal elements) of this square matrix.
   T get trace {
     if (rowCount != colCount) {
       throw StateError(
@@ -172,6 +175,17 @@ class Matrix<T> implements LinearOperator<T> {
     }
     return diagonal().sum;
   }
+
+  /// Computes the QR decomposition of this matrix.
+  QRDecomposition get qr => QRDecomposition(this as Matrix<num>);
+
+  /// Computes the Singular Value Decomposition (SVD) of this matrix.
+  SingularValueDecomposition get svd =>
+      SingularValueDecomposition(this as Matrix<num>);
+
+  /// Computes the Eigenvalue decomposition of this square matrix.
+  EigenvalueDecomposition get eigenvalue =>
+      EigenvalueDecomposition(this as Matrix<num>);
 
   /// Solves the linear system A * x = b.
   Vector<T> solve(Vector<T> b) {
