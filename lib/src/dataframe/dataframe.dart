@@ -68,8 +68,9 @@ class DataFrame {
   /// Accesses a column by [name].
   Series<dynamic> column(String name) {
     final idx = _columnIndex[name];
-    if (idx == null)
+    if (idx == null) {
       throw ArgumentError('Column "$name" not found in DataFrame');
+    }
     return _columns[idx];
   }
 

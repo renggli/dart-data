@@ -59,8 +59,9 @@ class CsvReader {
           if (canBeInt && int.tryParse(val) == null) canBeInt = false;
           if (canBeDouble && double.tryParse(val) == null) canBeDouble = false;
           final lower = val.toLowerCase();
-          if (canBeBool && lower != 'true' && lower != 'false')
+          if (canBeBool && lower != 'true' && lower != 'false') {
             canBeBool = false;
+          }
         }
       }
 
