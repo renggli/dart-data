@@ -36,15 +36,16 @@ extension OperationTensorExtension<T> on Tensor<T> {
       }
       final len = layout.length;
       final targetData = target.data;
-      final sharesMem = MemoryBuffer.sharesMemory(targetData, data);
+      final sharesMem = sharesMemory(targetData, data);
       final hasHazard =
           sharesMem &&
           (!layout.isContiguous ||
               !target.layout.isContiguous ||
               target.layout.offset != layout.offset ||
-              target.buffer.overlaps(
-                buffer,
+              hasOverlap(
+                target.data,
                 target.layout.offset,
+                data,
                 layout.offset,
                 len,
               ));
@@ -114,9 +115,9 @@ extension OperationTensorExtension<T> on Tensor<T> {
             data: resultData,
           );
         } else if (target.layout.isContiguous &&
-            (!MemoryBuffer.sharesMemory(target.data, thisData) ||
+            (!sharesMemory(target.data, thisData) ||
                 target.layout.offset == layout.offset) &&
-            (!MemoryBuffer.sharesMemory(target.data, otherData) ||
+            (!sharesMemory(target.data, otherData) ||
                 target.layout.offset == other.layout.offset)) {
           final targetData = target.data;
           final s1 = layout.offset,
@@ -154,7 +155,7 @@ extension OperationTensorExtension<T> on Tensor<T> {
       );
     } else {
       bool hasHazardFor(Tensor<dynamic> op, Layout opLayout) {
-        if (!MemoryBuffer.sharesMemory(target.data, op.data)) return false;
+        if (!sharesMemory(target.data, op.data)) return false;
         if (target.layout.isContiguous &&
             opLayout.isContiguous &&
             target.layout.offset == opLayout.offset &&

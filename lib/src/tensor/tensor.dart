@@ -4,15 +4,7 @@ import 'operations/operation.dart';
 
 /// Multi-dimensional dense array backed by a flat buffer and strided layout.
 class Tensor<T> {
-  new internal({
-    required this.type,
-    required this.layout,
-    required this.data,
-    MemoryBuffer<T>? buffer,
-  }) : buffer =
-           buffer ??
-           (NativeBuffer.find(data) as MemoryBuffer<T>?) ??
-           MemoryBuffer<T>(data);
+  new internal({required this.type, required this.layout, required this.data});
 
   /// Constructs a tensor backed by off-heap native memory.
   factory native({
@@ -30,7 +22,6 @@ class Tensor<T> {
       type: effectiveType,
       layout: effectiveLayout,
       data: nativeBuf.data,
-      buffer: nativeBuf,
     );
   }
 
@@ -136,7 +127,10 @@ class Tensor<T> {
   final DataType<T> type;
   final Layout layout;
   final List<T> data;
-  final MemoryBuffer<T> buffer;
+
+  /// Checks whether this tensor shares underlying memory with [other].
+  bool sharesMemoryWith(Tensor<dynamic> other) =>
+      sharesMemory(data, other.data);
 
   int get rank => layout.rank;
   int get length => layout.length;

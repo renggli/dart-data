@@ -476,7 +476,7 @@ void main() {
       );
       // Slicing shares the same underlying buffer
       final row0 = a[0];
-      expect(row0.buffer.sharesMemoryWith(a.buffer), isTrue);
+      expect(row0.sharesMemoryWith(a), isTrue);
 
       // Binary operation between row0 and a does not corrupt results due to aliasing
       final result = a + row0;

@@ -495,33 +495,23 @@ void main() {
     });
   });
 
-  group('MemoryBuffer', () {
+  group('Memory', () {
     test('identity and overlap', () {
       final list1 = Float64List(10);
       final list2 = Float64List(10);
       final subList1 = Float64List.sublistView(list1, 0, 5);
       final subList2 = Float64List.sublistView(list1, 3, 8);
 
-      check(MemoryBuffer.sharesMemory(list1, list2)).isFalse();
-      check(MemoryBuffer.sharesMemory(list1, subList1)).isTrue();
-      check(MemoryBuffer.sharesMemory(subList1, subList2)).isTrue();
+      check(sharesMemory(list1, list2)).isFalse();
+      check(sharesMemory(list1, subList1)).isTrue();
+      check(sharesMemory(subList1, subList2)).isTrue();
 
-      final buf1 = MemoryBuffer(subList1);
-      final buf2 = MemoryBuffer(subList2);
-      check(buf1.id).equals(buf2.id);
-      check(buf1.overlaps(buf2, 0, 0, 5)).isTrue();
-
-      // MemoryBuffer.empty
-      const emptyBuf = MemoryBuffer<int>.empty();
-      check(emptyBuf.id).equals(0);
-      check(emptyBuf.length).equals(0);
+      check(hasOverlap(subList1, 0, subList2, 0, 5)).isTrue();
 
       // Overlaps with identical generic List
       final objList = <int>[1, 2, 3, 4, 5];
-      final objBuf1 = MemoryBuffer(objList);
-      final objBuf2 = MemoryBuffer(objList);
-      check(objBuf1.overlaps(objBuf2, 0, 2, 3)).isTrue();
-      check(objBuf1.overlaps(objBuf2, 0, 3, 2)).isFalse();
+      check(hasOverlap(objList, 0, objList, 2, 3)).isTrue();
+      check(hasOverlap(objList, 0, objList, 3, 2)).isFalse();
     });
   });
 

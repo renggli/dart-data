@@ -1,12 +1,13 @@
 import 'dart:ffi' as ffi;
+import 'dart:typed_data';
 
 import 'package:ffi/ffi.dart';
 
 import '../data_type.dart';
-import 'memory_buffer.dart';
+import 'memory.dart';
 
 /// Off-heap native memory buffer managed via [calloc] and [ffi.NativeFinalizer].
-class NativeBuffer<T> extends MemoryBuffer<T> implements ffi.Finalizable {
+class NativeBuffer<T> implements ffi.Finalizable {
   /// Allocates an off-heap native buffer of [length] elements of [type].
   factory(int length, {DataType<T>? type}) {
     RangeError.checkNotNegative(length, 'length');
@@ -62,9 +63,7 @@ class NativeBuffer<T> extends MemoryBuffer<T> implements ffi.Finalizable {
     }
   }
 
-  new _(this.pointer, List<T> data, this.type)
-    : _isDisposed = false,
-      super(data) {
+  new _(this.pointer, this.data, this.type) : _isDisposed = false {
     _finalizer.attach(this, pointer.cast(), detach: this);
     _expando[data] = this;
   }
@@ -72,8 +71,25 @@ class NativeBuffer<T> extends MemoryBuffer<T> implements ffi.Finalizable {
   /// The raw native pointer.
   final ffi.Pointer<ffi.NativeType> pointer;
 
+  /// The underlying list or typed data.
+  final List<T> data;
+
   /// The data type of elements stored in the buffer.
   final DataType<T> type;
+
+  /// The number of elements in the buffer.
+  int get length => data.length;
+
+  /// The byte length of the underlying data.
+  int get byteLength =>
+      data is TypedData ? (data as TypedData).lengthInBytes : data.length * 8;
+
+  /// Checks whether this buffer shares memory with [other].
+  bool sharesMemoryWith(dynamic other) {
+    if (other is NativeBuffer<dynamic>) return sharesMemory(data, other.data);
+    if (other is List<dynamic>) return sharesMemory(data, other);
+    return false;
+  }
 
   bool _isDisposed;
 
@@ -103,15 +119,11 @@ class NativeBuffer<T> extends MemoryBuffer<T> implements ffi.Finalizable {
   static NativeBuffer<dynamic>? find(dynamic target) {
     if (target == null) return null;
     if (target is NativeBuffer<dynamic>) return target;
-    if (target is MemoryBuffer<dynamic>) {
-      return target is NativeBuffer<dynamic> ? target : find(target.data);
-    }
     if (target is List) return _expando[target];
     if (target is num || target is String || target is bool) return null;
     try {
       final dynamic buf = (target as dynamic).buffer;
       if (buf is NativeBuffer<dynamic>) return buf;
-      if (buf is MemoryBuffer<dynamic>) return find(buf);
     } catch (_) {}
     try {
       final dynamic tensor = (target as dynamic).tensor;

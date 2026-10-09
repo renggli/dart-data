@@ -27,7 +27,7 @@ This document presents a comprehensive, unconstrained redesign of `package:data`
                                             │
 ┌───────────────────────────────────────────┴──────────────────────────────────────────┐
 │                               Unified Core: Tensor<T>                                │
-│   - Flat MemoryBuffer<T> (Dart TypedData or Native C FFI Pointer with Finalizer)     │
+│   - Flat TypedData or Native Pointer (with direct ByteBuffer & offset tracking)      │
 │   - StrideLayout (rank, shape, strides, offset, isContiguous)                        │
 │   - Zero-copy structural views: slice, transpose, reshape, broadcast, flip           │
 │   - Strictly eager arithmetic operations (+, -, *, matmul, reductions)               │
@@ -62,7 +62,7 @@ This document presents a comprehensive, unconstrained redesign of `package:data`
   - **Sealed `DType` Enum**: `enum DType { float32, float64, int32, int64, complex64, complex128, boolean }`.
   - **Complete Algebraic Stratification**: `Field<T>` includes `abs`, `norm`, `sqrt`, `pow`, `exp`, `log`, and `conjugate`. Matrix decompositions (QR, SVD, Cholesky) are written generically over any `Field<T>` without hardcoding to `double`.
   - **Zero Mutable Globals**: Default configurations are immutable compile-time constants or scoped via `Zone`.
-  - **Safe Memory Aliasing**: The defunct `Storage` interface is replaced by `MemoryBuffer<T>` with buffer identity and overlap detection, eliminating silent data corruption in operations like `m.transpose().copyInto(m)`.
+  - **Safe Memory Aliasing**: The defunct `Storage` interface is replaced by direct `ByteBuffer` aliasing and overlap detection (`sharesMemory`, `hasOverlap`), eliminating silent data corruption in operations like `m.transpose().copyInto(m)`.
 
 ### 2.4 Native-Aligned Columnar Tabular Data (`DataFrame`)
 - **Apache Arrow RecordBatch Compliance**: `Series<T>` stores raw contiguous typed lists (`Float64List`, `Int32List`) with an Arrow-compatible `Uint8List` validity bitmask (1 bit per entry, zero boxing for nullables).
@@ -94,7 +94,7 @@ This document presents a comprehensive, unconstrained redesign of `package:data`
 
 | Phase | Priority | Milestones |
 | :--- | :--- | :--- |
-| **Phase 1** | **P0** | Implement unified `Tensor<T>` with `MemoryBuffer<T>` (overlap detection) and `StrideLayout`. Purge all scalar lazy view classes. |
+| **Phase 1** | **P0** | Implement unified `Tensor<T>` with native `TypedData` `ByteBuffer` overlap detection and `StrideLayout`. Purge all scalar lazy view classes. |
 | **Phase 2** | **P0** | Stratify algebraic fields (`Field`, `RealField`, `ComplexField`). Implement sealed `DType`. Make all defaults `const`. |
 | **Phase 3** | **P1** | Implement `LinearOperator<T>` contract. Build `CsrMatrix`, `CscMatrix`, and `CooMatrix` with Conjugate Gradient and GMRES solvers. |
 | **Phase 4** | **P1** | Implement transparent CBLAS (`dgemm`) and LAPACK (`dgesv`, `dpotrf`, `dgeqrf`, `dgesvd`) hardware FFI dispatcher. |

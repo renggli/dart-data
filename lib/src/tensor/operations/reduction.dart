@@ -201,8 +201,7 @@ extension ReductionTensorExtension<T> on Tensor<T> {
     }
 
     final outLayout = Layout(shape: outShape);
-    final hasHazard =
-        target != null && MemoryBuffer.sharesMemory(target.data, data);
+    final hasHazard = target != null && sharesMemory(target.data, data);
     final outTensor = (target != null && !hasHazard)
         ? target
         : Tensor<T>.filled(type.defaultValue, shape: outShape, type: type);

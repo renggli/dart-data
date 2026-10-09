@@ -1,8 +1,10 @@
+import 'dart:typed_data';
+
 import '../data_type.dart';
-import 'memory_buffer.dart';
+import 'memory.dart';
 
 /// Stub implementation of [NativeBuffer] for platforms without `dart:ffi` (e.g. Web).
-class NativeBuffer<T> extends MemoryBuffer<T> {
+class NativeBuffer<T> {
   /// Allocates a standard heap buffer when FFI is unavailable.
   factory(int length, {DataType<T>? type}) {
     RangeError.checkNotNegative(length, 'length');
@@ -18,10 +20,27 @@ class NativeBuffer<T> extends MemoryBuffer<T> {
     return NativeBuffer<T>._(data, effectiveType);
   }
 
-  new _(super.data, this.type) : _isDisposed = false;
+  new _(this.data, this.type) : _isDisposed = false;
+
+  /// The underlying list or typed data.
+  final List<T> data;
 
   /// The data type of elements stored in the buffer.
   final DataType<T> type;
+
+  /// The number of elements in the buffer.
+  int get length => data.length;
+
+  /// The byte length of the underlying data.
+  int get byteLength =>
+      data is TypedData ? (data as TypedData).lengthInBytes : data.length * 8;
+
+  /// Checks whether this buffer shares memory with [other].
+  bool sharesMemoryWith(dynamic other) {
+    if (other is NativeBuffer<dynamic>) return sharesMemory(data, other.data);
+    if (other is List<dynamic>) return sharesMemory(data, other);
+    return false;
+  }
 
   bool _isDisposed;
 

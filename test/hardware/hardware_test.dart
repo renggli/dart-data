@@ -140,28 +140,23 @@ void main() {
       // Standard Vector.filled and fromList use native buffer automatically
       final vFilled = Vector<double>.filled(5, 0.0);
       check(NativeBuffer.find(vFilled.tensor.data)).isNotNull();
-      check(vFilled.tensor.buffer).isA<NativeBuffer<double>>();
 
       final vFromList = Vector<double>.fromList([1.0, 2.0, 3.0]);
       check(NativeBuffer.find(vFromList.tensor.data)).isNotNull();
-      check(vFromList.tensor.buffer).isA<NativeBuffer<double>>();
 
       // Standard Matrix.filled and fromRows use native buffer automatically
       final mFilled = Matrix<double>.filled(2, 2, 0.0);
       check(NativeBuffer.find(mFilled.tensor.data)).isNotNull();
-      check(mFilled.tensor.buffer).isA<NativeBuffer<double>>();
 
       final mFromRows = Matrix<double>.fromRows([
         [1.0, 2.0],
         [3.0, 4.0],
       ]);
       check(NativeBuffer.find(mFromRows.tensor.data)).isNotNull();
-      check(mFromRows.tensor.buffer).isA<NativeBuffer<double>>();
 
       // Matrix multiplication result automatically backed by native buffer
       final mResult = mFromRows * mFromRows;
       check(NativeBuffer.find(mResult.tensor.data)).isNotNull();
-      check(mResult.tensor.buffer).isA<NativeBuffer<double>>();
       check(mResult.get(0, 0)).equals(7.0);
       check(mResult.get(0, 1)).equals(10.0);
       check(mResult.get(1, 0)).equals(15.0);
@@ -178,7 +173,6 @@ void main() {
 
       final vHeap = Vector<double>.filled(4, 1.0);
       check(NativeBuffer.find(vHeap.tensor.data)).isNull();
-      check(vHeap.tensor.buffer is NativeBuffer).isFalse();
 
       NativeBuffer.isEnabled = true;
       check(NativeBuffer.isActive).isTrue();
@@ -216,16 +210,11 @@ void main() {
       // Finding on NativeBuffer itself
       check(NativeBuffer.find(buf)).equals(buf);
 
-      // Finding on MemoryBuffer
-      final memBuf = MemoryBuffer(buf.data);
-      check(NativeBuffer.find(memBuf)).equals(buf);
-
       // Finding on Tensor
       final tensor = Tensor<double>.internal(
         type: DataType.float64,
         layout: Layout(shape: [5]),
         data: buf.data,
-        buffer: buf,
       );
       check(NativeBuffer.find(tensor)).equals(buf);
 

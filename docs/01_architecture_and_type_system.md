@@ -172,7 +172,7 @@ Dart 3.3+ extension types allow developers to write natural, statically-typed co
 
 ```dart
 extension type Float64Tensor(Tensor<double> _tensor) implements Tensor<double> {
-  Float64List get asTypedList => _tensor.buffer as Float64List;
+  Float64List get asTypedList => _tensor.data as Float64List;
   
   Float64Tensor operator +(Float64Tensor other) {
     // Direct dispatch to SIMD or BLAS-accelerated vector addition
@@ -189,19 +189,15 @@ extension type Float64Matrix(Matrix<double> _matrix) implements Matrix<double> {
 
 ### 2.5 Robust Aliasing Detection & Memory Safety
 
-Every container holds a reference to an underlying memory block:
+Containers and lists utilize zero-allocation memory functions and `ByteBuffer` comparisons:
 
 ```dart
-abstract interface class MemoryBuffer {
-  int get byteLength;
-  int get id; // Unique buffer instance ID
-  bool overlaps(MemoryBuffer other, int offset, int otherOffset, int length);
-}
+bool sharesMemory(List<dynamic> a, List<dynamic> b);
+bool hasOverlap(List<dynamic> a, int aOffset, List<dynamic> b, int bOffset, int count);
 
-abstract class Storage {
-  List<int> get shape;
-  MemoryBuffer get memoryBuffer;
-  bool sharesMemoryWith(Storage other);
+extension MemoryListExtension on List<dynamic> {
+  bool sharesMemoryWith(List<dynamic> other);
+  bool overlaps(List<dynamic> other, int offset, int otherOffset, int count);
 }
 ```
 

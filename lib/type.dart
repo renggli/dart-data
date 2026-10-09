@@ -4,7 +4,7 @@ library;
 export 'package:more/comparator.dart';
 export 'package:more/number.dart' show Complex, Fraction, Quaternion;
 
-export 'src/type/buffers/memory_buffer.dart';
+export 'src/type/buffers/memory.dart';
 export 'src/type/buffers/native_buffer.dart';
 export 'src/type/data_type.dart';
 export 'src/type/default_data_type.dart';

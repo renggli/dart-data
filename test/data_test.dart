@@ -4,8 +4,7 @@ import 'package:test/test.dart';
 void main() {
   test('Umbrella package:data export test', () {
     expect(DataType.float64.isFloat, isTrue);
-    final buf = MemoryBuffer([1.0, 2.0]);
-    expect(buf.length, 2);
+    expect(sharesMemory([1.0, 2.0], [1.0, 2.0]), isFalse);
 
     // Subsystem 2: Tensor & Layout
     final tensor = Tensor<double>.filled(1.0, shape: [2, 2]);

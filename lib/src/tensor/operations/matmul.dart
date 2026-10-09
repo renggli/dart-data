@@ -32,8 +32,8 @@ extension MatmulTensorExtension<T> on Tensor<T> {
 
     final hasHazard =
         target != null &&
-        (MemoryBuffer.sharesMemory(target.data, data) ||
-            MemoryBuffer.sharesMemory(target.data, other.data));
+        (sharesMemory(target.data, data) ||
+            sharesMemory(target.data, other.data));
     final result = (target != null && !hasHazard)
         ? target
         : Tensor<T>.filled(type.defaultValue, shape: outShape, type: type);
