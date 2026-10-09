@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.16.0
+## 0.16.0 (Unpublished)
 
 - Greenfield multi-dimensional `Tensor` subsystem with generalized strided layout, broadcasting, slicing, contractions, and Einstein summation.
 - Hardware acceleration engine featuring dynamic native BLAS/LAPACK FFI auto-detection and Dart SIMD (`Float32x4` / `Float64x2`) fallback routing.
@@ -13,7 +13,6 @@
 - Curve fitting: non-linear Levenberg-Marquardt damped least-squares, polynomial regression, and multiple linear regression.
 - Special functions: complete elliptic integrals $K(k)$ and $E(k)$, confluent and Gauss hypergeometric functions $_1F_1$ and $_2F_1$, Gamma, Beta, and Bessel functions ($J_\nu, Y_\nu$).
 - Expanded probability distributions: Cauchy, Degenerate, Laplace, LogNormal, Logistic, Pareto, Weibull, Geometric, Hypergeometric, NegativeBinomial, Rademacher, and more.
-- Revived interactive web probability distributions playground (`web/distributions/`).
 
 ## 0.15.2
 
