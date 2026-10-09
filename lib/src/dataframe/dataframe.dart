@@ -1,8 +1,8 @@
 import 'dart:math' as math;
 
+import '../../type.dart';
 import '../linear/matrix.dart';
 import '../tensor/tensor.dart';
-import '../type/data_type.dart';
 import 'csv.dart';
 import 'groupby.dart';
 import 'series.dart';

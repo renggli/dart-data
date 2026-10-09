@@ -1,8 +1,6 @@
 import 'dart:math' as math;
 
-import 'package:more/number.dart' show Complex;
-
-import '../../type/data_type.dart';
+import '../../../type.dart';
 import '../matrix.dart';
 
 /// Eigenvalues and eigenvectors of a real square matrix.

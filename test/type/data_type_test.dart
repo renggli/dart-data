@@ -5,80 +5,73 @@ import 'package:data/type.dart';
 import 'package:test/scaffolding.dart';
 
 void main() {
-  group('DType', () {
+  group('Native attributes', () {
     test('attributes and mapping for all types', () {
-      for (final dt in DType.values) {
-        check(dt.bytesPerElement).isGreaterThan(0);
-        check(dt.dataType).isA<DataType<Object?>>();
+      final nativeTypes = <DataType<num>>[
+        DataType.float32,
+        DataType.float64,
+        DataType.int8,
+        DataType.uint8,
+        DataType.int16,
+        DataType.uint16,
+        DataType.int32,
+        DataType.uint32,
+        DataType.int64,
+        DataType.uint64,
+      ];
+      for (final nt in nativeTypes) {
+        check(nt.bytesPerElement).isGreaterThan(0);
+        check(nt.bits).isGreaterThan(0);
+        check(nt.isNative).isTrue();
       }
 
-      check(DType.float32.isFloat).isTrue();
-      check(DType.float64.isFloat).isTrue();
-      check(DType.int32.isFloat).isFalse();
+      check(DataType.float32.isFloat).isTrue();
+      check(DataType.float64.isFloat).isTrue();
+      check(DataType.int32.isFloat).isFalse();
 
-      check(DType.int8.isInteger).isTrue();
-      check(DType.uint8.isInteger).isTrue();
-      check(DType.int16.isInteger).isTrue();
-      check(DType.uint16.isInteger).isTrue();
-      check(DType.int32.isInteger).isTrue();
-      check(DType.uint32.isInteger).isTrue();
-      check(DType.int64.isInteger).isTrue();
-      check(DType.uint64.isInteger).isTrue();
-      check(DType.float64.isInteger).isFalse();
+      check(DataType.int8.isInteger).isTrue();
+      check(DataType.uint8.isInteger).isTrue();
+      check(DataType.int16.isInteger).isTrue();
+      check(DataType.uint16.isInteger).isTrue();
+      check(DataType.int32.isInteger).isTrue();
+      check(DataType.uint32.isInteger).isTrue();
+      check(DataType.int64.isInteger).isTrue();
+      check(DataType.uint64.isInteger).isTrue();
+      check(DataType.float64.isInteger).isFalse();
 
-      check(DType.float32.isNumeric).isTrue();
-      check(DType.int32.isNumeric).isTrue();
-      check(DType.boolean.isNumeric).isFalse();
-      check(DType.string.isNumeric).isFalse();
+      check(DataType.float32.isNumeric).isTrue();
+      check(DataType.int32.isNumeric).isTrue();
 
-      check(DType.int8.isSigned).isTrue();
-      check(DType.int16.isSigned).isTrue();
-      check(DType.int32.isSigned).isTrue();
-      check(DType.int64.isSigned).isTrue();
-      check(DType.float32.isSigned).isTrue();
-      check(DType.float64.isSigned).isTrue();
+      check(DataType.int8.isSigned).isTrue();
+      check(DataType.int16.isSigned).isTrue();
+      check(DataType.int32.isSigned).isTrue();
+      check(DataType.int64.isSigned).isTrue();
+      check(DataType.float32.isSigned).isTrue();
+      check(DataType.float64.isSigned).isTrue();
 
-      check(DType.uint8.isSigned).isFalse();
-      check(DType.uint16.isSigned).isFalse();
-      check(DType.uint32.isSigned).isFalse();
-      check(DType.uint64.isSigned).isFalse();
-      check(DType.boolean.isSigned).isFalse();
+      check(DataType.uint8.isSigned).isFalse();
+      check(DataType.uint16.isSigned).isFalse();
+      check(DataType.uint32.isSigned).isFalse();
+      check(DataType.uint64.isSigned).isFalse();
 
-      check(DType.int8.bytesPerElement).equals(1);
-      check(DType.int16.bytesPerElement).equals(2);
-      check(DType.int32.bytesPerElement).equals(4);
-      check(DType.int64.bytesPerElement).equals(8);
-      check(DType.complex64.bytesPerElement).equals(8);
-      check(DType.complex128.bytesPerElement).equals(16);
-      check(DType.string.bytesPerElement).equals(8);
-      check(DType.object.bytesPerElement).equals(8);
+      check(DataType.int8.bytesPerElement).equals(1);
+      check(DataType.int16.bytesPerElement).equals(2);
+      check(DataType.int32.bytesPerElement).equals(4);
+      check(DataType.int64.bytesPerElement).equals(8);
+      check(DataType.float32.bytesPerElement).equals(4);
+      check(DataType.float64.bytesPerElement).equals(8);
 
-      check(DType.float32.dataType).equals(DataType.float32);
-      check(DType.float64.dataType).equals(DataType.float64);
-      check(DType.int8.dataType).equals(DataType.int8);
-      check(DType.uint8.dataType).equals(DataType.uint8);
-      check(DType.int16.dataType).equals(DataType.int16);
-      check(DType.uint16.dataType).equals(DataType.uint16);
-      check(DType.int32.dataType).equals(DataType.int32);
-      check(DType.uint32.dataType).equals(DataType.uint32);
-      check(DType.int64.dataType).equals(DataType.int64);
-      check(DType.uint64.dataType).equals(DataType.uint64);
-      check(DType.boolean.dataType).equals(DataType.boolean);
-      check(DType.string.dataType).equals(DataType.string);
-      check(DType.complex64.dataType).equals(DataType.complex);
-      check(DType.complex128.dataType).equals(DataType.complex);
-      check(DType.object.dataType).equals(DataType.objectType);
+      check(DataType.boolean.isNative).isFalse();
+      check(DataType.string.isNative).isFalse();
+      check(DataType.object.isNative).isFalse();
     });
   });
 
   group('DataType promotion and factory methods', () {
     test('defaults are immutable const', () {
-      check(DataTypeDefaults.index).equals(DataType.uint32);
-      check(DataTypeDefaults.integer).equals(DataType.int32);
-      check(DataTypeDefaults.float).equals(DataType.float64);
-      check(DataType.index).equals(DataType.uint32);
-      check(DataType.integer).equals(DataType.int32);
-      check(DataType.float).equals(DataType.float64);
+      check(DefaultDataType.index).equals(DataType.uint32);
+      check(DefaultDataType.integer).equals(DataType.int32);
+      check(DefaultDataType.float).equals(DataType.float64);
     });
 
     test('safe promotion', () {
@@ -120,7 +113,7 @@ void main() {
       check(DataType.uint64.promoteWith(DataType.int64)).equals(DataType.int64);
       // Object fallback
       check(DataType.string.promoteWith(DataType.int32))
-          .equals(DataType.objectType);
+          .equals(DataType.object);
     });
 
     test('fromInstance', () {
@@ -270,6 +263,17 @@ void main() {
     });
 
     test('NativeBuffer allocation and operations', () {
+      if (!NativeBuffer.isSupported) {
+        check(NativeBuffer.isActive).isFalse();
+        final buf = NativeBuffer<double>(5, type: DataType.float64);
+        check(buf.length).equals(5);
+        check(buf.isDisposed).isFalse();
+        check(buf.asDoublePointer).isNull();
+        check(NativeBuffer.find(buf)).isNull();
+        buf.dispose();
+        check(buf.isDisposed).isTrue();
+        return;
+      }
       final prev = NativeBuffer.isEnabled;
       try {
         NativeBuffer.isEnabled = true;
@@ -522,8 +526,8 @@ void main() {
   });
 
   group('DataType coverage', () {
-    test('dType, bits, and comparator', () {
-      final types = <DataType<dynamic>>[
+    test('isNative, bits, and comparator', () {
+      final nativeTypes = <DataType<dynamic>>[
         DataType.int8,
         DataType.int16,
         DataType.int32,
@@ -534,13 +538,13 @@ void main() {
         DataType.uint64,
         DataType.float32,
         DataType.float64,
-        DataType.boolean,
-        DataType.string,
-        DataType.object,
       ];
-      for (final t in types) {
-        check(t.dType).isNotNull();
+      for (final t in nativeTypes) {
+        check(t.isNative).isTrue();
       }
+      check(DataType.boolean.isNative).isFalse();
+      check(DataType.string.isNative).isFalse();
+      check(DataType.object.isNative).isFalse();
       check(DataType.float32.bits).equals(32);
       check(DataType.float64.bits).equals(64);
       check(DataType.string.comparator('apple', 'banana')).isLessThan(0);

@@ -3,8 +3,7 @@ import 'package:test/test.dart';
 
 void main() {
   test('Umbrella package:data export test', () {
-    // Subsystem 1: Type & Memory
-    expect(DType.float64.isFloat, isTrue);
+    expect(DataType.float64.isFloat, isTrue);
     final buf = MemoryBuffer([1.0, 2.0]);
     expect(buf.length, 2);
 

@@ -1,0 +1,373 @@
+import 'dart:math' as math;
+import 'dart:typed_data';
+
+import 'package:more/feature.dart' show isJavaScript;
+import 'package:more/number.dart' show Fraction;
+import 'package:more/printer.dart' show FixedNumberPrinter, Printer;
+
+import '../models/equality.dart';
+import '../models/field.dart';
+import 'typed.dart';
+
+abstract class IntegerDataType<L extends List<int>>
+    extends TypedDataType<int, L> {
+  const new();
+
+  /// Returns the true, if this integer is signed.
+  @override
+  bool get isSigned;
+
+  @override
+  bool get isFloat => false;
+
+  @override
+  bool get isInteger => true;
+
+  @override
+  bool get isNumeric => true;
+
+  /// Returns the safe bits of an integer value. In the Dart VM integer are
+  /// represented using 63 bits and a sign, in JavaScript we only have 53.
+  int get safeBits => bits;
+
+  /// Returns the minimum safe value of this integer.
+  int get safeMin => min;
+
+  /// Returns the maximum safe value of this integer.
+  int get safeMax => max;
+
+  @override
+  String get name => '${isSigned ? '' : 'u'}int$bits';
+
+  @override
+  int get defaultValue => 0;
+
+  @override
+  int comparator(int a, int b) => a.compareTo(b);
+
+  @override
+  Field<int> get field => const IntegerField();
+
+  @override
+  Equality<int> get equality => const IntegerEquality();
+
+  @override
+  int cast(dynamic value) {
+    if (value is num) {
+      if (isSigned) {
+        return value.toInt().toSigned(bits);
+      } else {
+        return value.toInt().toUnsigned(bits);
+      }
+    } else if (value is BigInt) {
+      if (isSigned) {
+        return value.toSigned(bits).toInt();
+      } else {
+        return value.toUnsigned(bits).toInt();
+      }
+    } else if (value is Fraction) {
+      return cast(value.toInt());
+    } else if (value is String) {
+      return int.tryParse(value) ?? super.cast(value);
+    }
+    return super.cast(value);
+  }
+
+  @override
+  Printer<int> get printer => FixedNumberPrinter<int>();
+}
+
+class Int8DataType extends IntegerDataType<Int8List> {
+  const new();
+
+  @override
+  int get bits => 8;
+
+  @override
+  int get min => -128;
+
+  @override
+  int get max => 127;
+
+  @override
+  bool get isSigned => true;
+
+  @override
+  Int8List emptyList(int length) => Int8List(length);
+
+  @override
+  Int8List readonlyList(Int8List list) => list.asUnmodifiableView();
+}
+
+class Uint8DataType extends IntegerDataType<Uint8List> {
+  const new();
+
+  @override
+  int get bits => 8;
+
+  @override
+  int get min => 0;
+
+  @override
+  int get max => 255;
+
+  @override
+  bool get isSigned => false;
+
+  @override
+  Uint8List emptyList(int length) => Uint8List(length);
+
+  @override
+  Uint8List readonlyList(Uint8List list) => list.asUnmodifiableView();
+}
+
+class Int16DataType extends IntegerDataType<Int16List> {
+  const new();
+
+  @override
+  int get bits => 16;
+
+  @override
+  int get min => -32768;
+
+  @override
+  int get max => 32767;
+
+  @override
+  bool get isSigned => true;
+
+  @override
+  Int16List emptyList(int length) => Int16List(length);
+
+  @override
+  Int16List readonlyList(Int16List list) => list.asUnmodifiableView();
+}
+
+class Uint16DataType extends IntegerDataType<Uint16List> {
+  const new();
+
+  @override
+  int get bits => 16;
+
+  @override
+  int get min => 0;
+
+  @override
+  int get max => 65535;
+
+  @override
+  bool get isSigned => false;
+
+  @override
+  Uint16List emptyList(int length) => Uint16List(length);
+
+  @override
+  Uint16List readonlyList(Uint16List list) => list.asUnmodifiableView();
+}
+
+class Int32DataType extends IntegerDataType<Int32List> {
+  const new();
+
+  @override
+  int get bits => 32;
+
+  @override
+  int get min => -2147483648;
+
+  @override
+  int get max => 2147483647;
+
+  @override
+  bool get isSigned => true;
+
+  @override
+  Int32List emptyList(int length) => Int32List(length);
+
+  @override
+  Int32List readonlyList(Int32List list) => list.asUnmodifiableView();
+}
+
+class Uint32DataType extends IntegerDataType<Uint32List> {
+  const new();
+
+  @override
+  int get bits => 32;
+
+  @override
+  int get min => 0;
+
+  @override
+  int get max => 4294967295;
+
+  @override
+  bool get isSigned => false;
+
+  @override
+  Uint32List emptyList(int length) => Uint32List(length);
+
+  @override
+  Uint32List readonlyList(Uint32List list) => list.asUnmodifiableView();
+}
+
+class Int64DataType extends IntegerDataType<List<int>> {
+  const new();
+
+  @override
+  int get bits => 64;
+
+  @override
+  int get min => -4294967296 * 2147483648;
+
+  @override
+  int get max => 454279 * 649657 * 31252369;
+
+  @override
+  int get safeBits => isJavaScript ? 53 : 63;
+
+  @override
+  int get safeMin =>
+      isJavaScript ? -4503599627370496 : -4294967296 * 1073741824;
+
+  @override
+  int get safeMax =>
+      isJavaScript ? 4503599627370495 : 4294967296 * 1073741824 - 1;
+
+  @override
+  bool get isSigned => true;
+
+  @override
+  List<int> emptyList(int length) {
+    if (isJavaScript) {
+      return List<int>.filled(length, 0);
+    }
+    return Int64List(length);
+  }
+
+  @override
+  List<int> readonlyList(List<int> list) {
+    if (isJavaScript) {
+      return List<int>.unmodifiable(list);
+    }
+    return (list as Int64List).asUnmodifiableView();
+  }
+}
+
+class Uint64DataType extends IntegerDataType<List<int>> {
+  const new();
+
+  @override
+  int get bits => 64;
+
+  @override
+  int get min => 0;
+
+  @override
+  int get max => 4294967296 * 4294967296 - 1;
+
+  @override
+  int get safeBits => isJavaScript ? 53 : 63;
+
+  @override
+  int get safeMin => 0;
+
+  @override
+  int get safeMax =>
+      isJavaScript ? 9007199254740991 : 4294967296 * 2147483648 - 1;
+
+  @override
+  bool get isSigned => false;
+
+  @override
+  List<int> emptyList(int length) {
+    if (isJavaScript) {
+      return List<int>.filled(length, 0);
+    }
+    return Uint64List(length);
+  }
+
+  @override
+  List<int> readonlyList(List<int> list) {
+    if (isJavaScript) {
+      return List<int>.unmodifiable(list);
+    }
+    return (list as Uint64List).asUnmodifiableView();
+  }
+}
+
+class IntegerField extends ExtendedField<int> {
+  const new();
+
+  @override
+  int get additiveIdentity => 0;
+
+  @override
+  int neg(int a) => -a;
+
+  @override
+  int add(int a, int b) => a + b;
+
+  @override
+  int sub(int a, int b) => a - b;
+
+  @override
+  int get multiplicativeIdentity => 1;
+
+  @override
+  int inv(int a) => 1 ~/ a;
+
+  @override
+  int mul(int a, int b) => a * b;
+
+  @override
+  int scale(int a, num f) => (a * f).round();
+
+  @override
+  int div(int a, int b) => a ~/ b;
+
+  @override
+  int mod(int a, int b) => a % b;
+
+  @override
+  int division(int a, int b) => a ~/ b;
+
+  @override
+  int remainder(int a, int b) => a.remainder(b);
+
+  @override
+  int pow(int base, int exponent) => math.pow(base, exponent).truncate();
+
+  @override
+  int modPow(int base, int exponent, int modulus) =>
+      base.modPow(exponent, modulus);
+
+  @override
+  int modInverse(int base, int modulus) => base.modInverse(modulus);
+
+  @override
+  int gcd(int a, int b) => a.gcd(b);
+
+  @override
+  int abs(int a) => a.abs();
+
+  @override
+  double norm(int a) => a.abs().toDouble();
+
+  @override
+  int sqrt(int a) => math.sqrt(a).truncate();
+
+  @override
+  int exp(int a) => math.exp(a).truncate();
+
+  @override
+  int log(int a) => math.log(a).truncate();
+
+  @override
+  int conjugate(int a) => a;
+}
+
+class IntegerEquality extends NaturalEquality<int> {
+  const new();
+
+  @override
+  bool isClose(int a, int b, double epsilon) => (a - b).abs() < epsilon;
+}

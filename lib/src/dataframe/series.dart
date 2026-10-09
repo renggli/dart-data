@@ -1,6 +1,6 @@
 import 'dart:math' as math;
 
-import '../type/data_type.dart';
+import '../../type.dart';
 import 'bitmask.dart';
 
 /// 1-dimensional columnar series with optional Apache Arrow validity bitmask.

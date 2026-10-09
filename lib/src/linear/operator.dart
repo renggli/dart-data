@@ -1,4 +1,4 @@
-import '../type/data_type.dart';
+import '../../type.dart';
 import 'vector.dart';
 
 /// Abstract interface representing a linear mapping between finite-dimensional vector spaces.

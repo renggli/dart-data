@@ -1,10 +1,10 @@
 import 'dart:math' as math;
 
+import '../../type.dart';
 import '../linear/decomposition/eigenvalue.dart';
 import '../linear/matrix.dart';
 import '../linear/vector.dart';
 import '../tensor/tensor.dart';
-import '../type/data_type.dart';
 
 /// Returns the arithmetic mean of [values], or [double.nan] if empty.
 double mean(Iterable<num> values) => _mean(values);

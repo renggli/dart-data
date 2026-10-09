@@ -1,4 +1,4 @@
-import 'data_type.dart';
+import '../data_type.dart';
 import 'memory_buffer.dart';
 
 /// Stub implementation of [NativeBuffer] for platforms without `dart:ffi` (e.g. Web).
@@ -7,16 +7,11 @@ class NativeBuffer<T> extends MemoryBuffer<T> {
   factory(int length, {DataType<T>? type}) {
     RangeError.checkNotNegative(length, 'length');
     final effectiveType = type ?? DataType.fromType<T>();
-    final dynamicType = effectiveType as DataType<dynamic>;
-    if (dynamicType != DataType.float64 &&
-        dynamicType != DataType.float32 &&
-        dynamicType != DataType.int32 &&
-        dynamicType != DataType.int64 &&
-        dynamicType != DataType.uint8) {
+    if (!effectiveType.isNative) {
       throw ArgumentError.value(
         effectiveType,
         'type',
-        'NativeBuffer only supports float64, float32, int32, int64, and uint8',
+        'NativeBuffer only supports native types, got: $effectiveType',
       );
     }
     final data = effectiveType.newList(length);

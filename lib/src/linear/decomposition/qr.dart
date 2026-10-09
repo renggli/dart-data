@@ -1,6 +1,6 @@
 import 'dart:math' as math;
 
-import '../../type/data_type.dart';
+import '../../../type.dart';
 import '../matrix.dart';
 import '../vector.dart';
 

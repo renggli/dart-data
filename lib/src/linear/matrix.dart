@@ -1,12 +1,12 @@
 import 'dart:typed_data';
 
+import '../../type.dart';
 import '../hardware/cblas.dart';
 import '../hardware/hardware.dart';
 import '../tensor/layout.dart';
 import '../tensor/operations/matmul.dart';
 import '../tensor/operations/operation.dart';
 import '../tensor/tensor.dart';
-import '../type/data_type.dart';
 import 'decomposition/cholesky.dart';
 import 'decomposition/eigenvalue.dart';
 import 'decomposition/lu.dart';

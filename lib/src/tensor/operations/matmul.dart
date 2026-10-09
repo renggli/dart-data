@@ -1,9 +1,8 @@
 import 'dart:typed_data';
 
+import '../../../type.dart';
 import '../../hardware/cblas.dart';
 import '../../hardware/hardware.dart';
-import '../../type/field.dart';
-import '../../type/memory_buffer.dart';
 import '../layout.dart';
 import '../tensor.dart';
 

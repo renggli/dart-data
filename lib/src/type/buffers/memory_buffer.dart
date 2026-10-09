@@ -1,6 +1,8 @@
+import 'dart:collection';
 import 'dart:typed_data';
 
-/// Represents a contiguous memory buffer with identity tracking and safe aliasing detection.
+/// Represents a flat contiguous memory block with identity tracking
+/// and overlap detection.
 class MemoryBuffer<T> {
   const new empty() : id = 0, data = const [];
 
@@ -34,7 +36,7 @@ class MemoryBuffer<T> {
   /// Checks whether this buffer shares memory with [other].
   bool sharesMemoryWith(MemoryBuffer<Object?> other) => id == other.id;
 
-  /// Checks if this buffer overlaps with [other] over the specified element ranges.
+  /// Checks if this buffer overlaps with [other] over the specified ranges.
   bool overlaps(
     MemoryBuffer<Object?> other,
     int offset,
@@ -62,7 +64,12 @@ class MemoryBuffer<T> {
   }
 }
 
-final Map<Object, int> _bufferIds = <Object, int>{};
+final Map<Object, int> _bufferIds = HashMap<Object, int>(
+  equals: (a, b) =>
+      a is ByteBuffer && b is ByteBuffer ? a == b : identical(a, b),
+  hashCode: (obj) =>
+      obj is ByteBuffer ? obj.lengthInBytes : identityHashCode(obj),
+);
 int _nextBufferId = 1;
 
 int _getBufferId(Object target) {

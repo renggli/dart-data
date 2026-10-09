@@ -1,7 +1,6 @@
 import 'dart:math' as math;
 
-import '../../type/data_type.dart';
-import '../../type/memory_buffer.dart';
+import '../../../type.dart';
 import '../layout.dart';
 import '../tensor.dart';
 import 'operation.dart';

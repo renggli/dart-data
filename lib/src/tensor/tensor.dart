@@ -1,6 +1,4 @@
-import '../type/data_type.dart';
-import '../type/memory_buffer.dart';
-import '../type/native_buffer.dart';
+import '../../type.dart';
 import 'layout.dart';
 import 'operations/operation.dart';
 

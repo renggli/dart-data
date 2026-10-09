@@ -1,10 +1,10 @@
 import 'dart:math' as math;
 import 'dart:typed_data';
 
+import '../../type.dart';
 import '../hardware/hardware.dart';
 import '../tensor/operations/operation.dart';
 import '../tensor/tensor.dart';
-import '../type/data_type.dart';
 import 'matrix.dart';
 
 /// 1-dimensional mathematical vector backed by a 1D [Tensor].

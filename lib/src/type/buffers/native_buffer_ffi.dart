@@ -2,7 +2,7 @@ import 'dart:ffi' as ffi;
 
 import 'package:ffi/ffi.dart';
 
-import 'data_type.dart';
+import '../data_type.dart';
 import 'memory_buffer.dart';
 
 /// Off-heap native memory buffer managed via [calloc] and [ffi.NativeFinalizer].
@@ -12,52 +12,53 @@ class NativeBuffer<T> extends MemoryBuffer<T> implements ffi.Finalizable {
     RangeError.checkNotNegative(length, 'length');
     final effectiveType = type ?? DataType.fromType<T>();
     final allocLength = length <= 0 ? 1 : length;
-    if ((effectiveType as DataType<dynamic>) == DataType.float32) {
-      final ptr = calloc<ffi.Float>(allocLength);
-      final typedList = ptr.asTypedList(length);
-      return NativeBuffer<T>._(ptr, typedList as List<T>, effectiveType);
-    } else if ((effectiveType as DataType<dynamic>) == DataType.int32) {
-      final ptr = calloc<ffi.Int32>(allocLength);
-      final typedList = ptr.asTypedList(length);
-      return NativeBuffer<T>._(ptr, typedList as List<T>, effectiveType);
-    } else if ((effectiveType as DataType<dynamic>) == DataType.int64) {
-      final ptr = calloc<ffi.Int64>(allocLength);
-      final typedList = ptr.asTypedList(length);
-      return NativeBuffer<T>._(ptr, typedList as List<T>, effectiveType);
-    } else if ((effectiveType as DataType<dynamic>) == DataType.int16) {
-      final ptr = calloc<ffi.Int16>(allocLength);
-      final typedList = ptr.asTypedList(length);
-      return NativeBuffer<T>._(ptr, typedList as List<T>, effectiveType);
-    } else if ((effectiveType as DataType<dynamic>) == DataType.int8) {
-      final ptr = calloc<ffi.Int8>(allocLength);
-      final typedList = ptr.asTypedList(length);
-      return NativeBuffer<T>._(ptr, typedList as List<T>, effectiveType);
-    } else if ((effectiveType as DataType<dynamic>) == DataType.uint8) {
-      final ptr = calloc<ffi.Uint8>(allocLength);
-      final typedList = ptr.asTypedList(length);
-      return NativeBuffer<T>._(ptr, typedList as List<T>, effectiveType);
-    } else if ((effectiveType as DataType<dynamic>) == DataType.uint16) {
-      final ptr = calloc<ffi.Uint16>(allocLength);
-      final typedList = ptr.asTypedList(length);
-      return NativeBuffer<T>._(ptr, typedList as List<T>, effectiveType);
-    } else if ((effectiveType as DataType<dynamic>) == DataType.uint32) {
-      final ptr = calloc<ffi.Uint32>(allocLength);
-      final typedList = ptr.asTypedList(length);
-      return NativeBuffer<T>._(ptr, typedList as List<T>, effectiveType);
-    } else if ((effectiveType as DataType<dynamic>) == DataType.uint64) {
-      final ptr = calloc<ffi.Uint64>(allocLength);
-      final typedList = ptr.asTypedList(length);
-      return NativeBuffer<T>._(ptr, typedList as List<T>, effectiveType);
-    } else if ((effectiveType as DataType<dynamic>) == DataType.float64) {
-      final ptr = calloc<ffi.Double>(allocLength);
-      final typedList = ptr.asTypedList(length);
-      return NativeBuffer<T>._(ptr, typedList as List<T>, effectiveType);
-    } else {
-      throw ArgumentError.value(
-        effectiveType,
-        'type',
-        'Unsupported data type for NativeBuffer: $effectiveType',
-      );
+    switch (effectiveType) {
+      case DataType.float32:
+        final ptr = calloc<ffi.Float>(allocLength);
+        final typedList = ptr.asTypedList(length);
+        return NativeBuffer<T>._(ptr, typedList as List<T>, effectiveType);
+      case DataType.float64:
+        final ptr = calloc<ffi.Double>(allocLength);
+        final typedList = ptr.asTypedList(length);
+        return NativeBuffer<T>._(ptr, typedList as List<T>, effectiveType);
+      case DataType.int8:
+        final ptr = calloc<ffi.Int8>(allocLength);
+        final typedList = ptr.asTypedList(length);
+        return NativeBuffer<T>._(ptr, typedList as List<T>, effectiveType);
+      case DataType.uint8:
+        final ptr = calloc<ffi.Uint8>(allocLength);
+        final typedList = ptr.asTypedList(length);
+        return NativeBuffer<T>._(ptr, typedList as List<T>, effectiveType);
+      case DataType.int16:
+        final ptr = calloc<ffi.Int16>(allocLength);
+        final typedList = ptr.asTypedList(length);
+        return NativeBuffer<T>._(ptr, typedList as List<T>, effectiveType);
+      case DataType.uint16:
+        final ptr = calloc<ffi.Uint16>(allocLength);
+        final typedList = ptr.asTypedList(length);
+        return NativeBuffer<T>._(ptr, typedList as List<T>, effectiveType);
+      case DataType.int32:
+        final ptr = calloc<ffi.Int32>(allocLength);
+        final typedList = ptr.asTypedList(length);
+        return NativeBuffer<T>._(ptr, typedList as List<T>, effectiveType);
+      case DataType.uint32:
+        final ptr = calloc<ffi.Uint32>(allocLength);
+        final typedList = ptr.asTypedList(length);
+        return NativeBuffer<T>._(ptr, typedList as List<T>, effectiveType);
+      case DataType.int64:
+        final ptr = calloc<ffi.Int64>(allocLength);
+        final typedList = ptr.asTypedList(length);
+        return NativeBuffer<T>._(ptr, typedList as List<T>, effectiveType);
+      case DataType.uint64:
+        final ptr = calloc<ffi.Uint64>(allocLength);
+        final typedList = ptr.asTypedList(length);
+        return NativeBuffer<T>._(ptr, typedList as List<T>, effectiveType);
+      default:
+        throw ArgumentError.value(
+          effectiveType,
+          'type',
+          'Unsupported data type for NativeBuffer: $effectiveType',
+        );
     }
   }
 
@@ -106,6 +107,7 @@ class NativeBuffer<T> extends MemoryBuffer<T> implements ffi.Finalizable {
       return target is NativeBuffer<dynamic> ? target : find(target.data);
     }
     if (target is List) return _expando[target];
+    if (target is num || target is String || target is bool) return null;
     try {
       final dynamic buf = (target as dynamic).buffer;
       if (buf is NativeBuffer<dynamic>) return buf;

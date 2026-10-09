@@ -6,7 +6,7 @@ import 'dart:typed_data';
 
 import 'package:ffi/ffi.dart';
 
-import '../type/native_buffer_ffi.dart';
+import '../type/buffers/native_buffer_ffi.dart';
 
 /// CBLAS Matrix Layout Order.
 const int cblasRowMajor = 101;

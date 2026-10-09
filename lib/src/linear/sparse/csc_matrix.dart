@@ -1,4 +1,4 @@
-import '../../type/data_type.dart';
+import '../../../type.dart';
 import '../matrix.dart';
 import '../operator.dart';
 import '../vector.dart';
