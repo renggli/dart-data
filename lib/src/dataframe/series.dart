@@ -66,6 +66,22 @@ abstract class Series<T> {
     DataType<T>? type,
   }) {
     final list = iterable.toList(growable: false);
+    if (type != null) {
+      if (type is DataType<num>) {
+        final numList = list.map((e) => e as num?).toList(growable: false);
+        return TypedSeries<num>.fromList(
+          name,
+          numList,
+          type: type as DataType<num>,
+        ) as Series<T>;
+      } else if (type is DataType<String>) {
+        final strList = list.map((e) => e as String?).toList(growable: false);
+        return StringSeries.fromList(name, strList) as Series<T>;
+      } else if (type is DataType<bool>) {
+        final boolList = list.map((e) => e as bool?).toList(growable: false);
+        return BoolSeries.fromList(name, boolList) as Series<T>;
+      }
+    }
     final firstNonNull = list.firstWhere((e) => e != null, orElse: () => null);
     if (firstNonNull is num) {
       final numList = list.map((e) => e as num?).toList(growable: false);
@@ -98,8 +114,13 @@ class TypedSeries<T extends num> extends Series<T> {
   factory fromList(String name, List<T?> list, {DataType<T>? type}) {
     final effectiveType =
         type ??
-        (list.any((e) => e is double) ? DataType.float64 : DataType.int32)
-            as DataType<T>;
+        (T == double
+            ? DataType.float64 as DataType<T>
+            : (T == int
+                  ? DataType.int32 as DataType<T>
+                  : (list.any((e) => e is double)
+                        ? DataType.float64 as DataType<T>
+                        : DataType.int32 as DataType<T>)));
     final len = list.length;
     final data = effectiveType.newList(len);
     ValidityMask? mask;

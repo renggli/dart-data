@@ -204,7 +204,13 @@ class BlasLibrary {
         _dgesv = _dylib.lookupFunction<_LapackeDgesvNative, _LapackeDgesv>(
           'LAPACKE_dgesv',
         );
-      } catch (_) {}
+      } catch (_) {
+        try {
+          _dgesv = _dylib.lookupFunction<_LapackeDgesvNative, _LapackeDgesv>(
+            'clapack_dgesv',
+          );
+        } catch (_) {}
+      }
     }
   }
 
@@ -447,9 +453,14 @@ class BlasLibrary {
 ffi.DynamicLibrary? _loadPlatformLibrary() {
   try {
     if (Platform.isMacOS || Platform.isIOS) {
-      return ffi.DynamicLibrary.open(
+      for (final name in [
         '/System/Library/Frameworks/Accelerate.framework/Accelerate',
-      );
+        'libBLAS.dylib',
+      ]) {
+        try {
+          return ffi.DynamicLibrary.open(name);
+        } catch (_) {}
+      }
     } else if (Platform.isLinux || Platform.isAndroid) {
       for (final name in [
         'libopenblas.so.0',

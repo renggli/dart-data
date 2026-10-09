@@ -17,6 +17,17 @@ class CscMatrix<T> implements LinearOperator<T> {
   }) : assert(colPointers.length == colCount + 1),
        assert(rowIndices.length == values.length);
 
+  /// Constructs a CSC matrix from coordinate triplets.
+  factory fromEntries(
+    int rowCount,
+    int colCount,
+    Iterable<(int, int, T)> entries, {
+    DataType<T>? type,
+  }) => CooMatrix.fromEntries(rowCount, colCount, entries, type: type).toCsc();
+
+  /// Constructs a CSC matrix from a dense [matrix].
+  factory fromDense(Matrix<T> matrix) => CooMatrix.fromDense(matrix).toCsc();
+
   @override
   final int rowCount;
 

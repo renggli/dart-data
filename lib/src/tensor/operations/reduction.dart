@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 
 import '../../type/data_type.dart';
+import '../../type/memory_buffer.dart';
 import '../layout.dart';
 import '../tensor.dart';
 import 'operation.dart';
@@ -201,9 +202,11 @@ extension ReductionTensorExtension<T> on Tensor<T> {
     }
 
     final outLayout = Layout(shape: outShape);
-    final outTensor =
-        target ??
-        Tensor<T>.filled(type.defaultValue, shape: outShape, type: type);
+    final hasHazard =
+        target != null && MemoryBuffer.sharesMemory(target.data, data);
+    final outTensor = (target != null && !hasHazard)
+        ? target
+        : Tensor<T>.filled(type.defaultValue, shape: outShape, type: type);
 
     for (final key in outLayout.keys) {
       final inKey = List<int>.from(key);
@@ -218,6 +221,10 @@ extension ReductionTensorExtension<T> on Tensor<T> {
         acc = combine(acc, getValue(inKey));
       }
       outTensor.setValue(key, acc);
+    }
+    if (hasHazard) {
+      outTensor.copy(target: target);
+      return target;
     }
     return outTensor;
   }

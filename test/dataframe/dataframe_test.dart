@@ -242,5 +242,48 @@ Charlie,,60000.0,true
       expect(df2['name'].toList(), ['Alice', 'Bob', 'Charlie']);
       expect(df2['salary'].toList(), [75000.5, 50000.0, 60000.0]);
     });
+
+    test('multiline CSV with embedded newlines and escaped quotes', () {
+      const csv = '''
+id,desc,val
+1,"line 1
+line 2",10
+2,"say ""hello""",20
+''';
+      final df = DataFrame.fromCsv(csv);
+      expect(df.rowCount, 2);
+      expect(df['desc'][0], 'line 1\nline 2');
+      expect(df['desc'][1], 'say "hello"');
+      expect(df['val'].toList(), [10, 20]);
+    });
+
+    test('join does not match null keys', () {
+      final left = DataFrame.fromColumns({
+        'id': [1, null, 3],
+        'v1': ['a', 'b', 'c'],
+      });
+      final right = DataFrame.fromColumns({
+        'id': [1, null, 4],
+        'v2': ['x', 'y', 'z'],
+      });
+      final inner = left.join(right, on: ['id'], type: JoinType.inner);
+      expect(inner.rowCount, 1);
+      expect(inner['id'].toList(), [1]);
+    });
+
+    test('sortBy boolean column', () {
+      final df = DataFrame.fromColumns({
+        'name': ['A', 'B', 'C'],
+        'flag': [true, false, true],
+      });
+      final sorted = df.sortBy('flag', ascending: true);
+      expect(sorted['flag'].toList(), [false, true, true]);
+    });
+
+    test('TypedSeries empty list creation without error', () {
+      final s = TypedSeries<double>.fromList('empty', []);
+      expect(s.length, 0);
+      expect(s.dataType.name, 'float64');
+    });
   });
 }

@@ -25,7 +25,9 @@ extension JoinDataFrameExtension on DataFrame {
     final rightKeyCols = on.map(other.column).toList();
     final rightIndex = <String, List<int>>{};
     for (var r = 0; r < other.rowCount; r++) {
-      final key = rightKeyCols.map((c) => '${c[r]}').join('__#_#__');
+      final keyVals = [for (final c in rightKeyCols) c[r]];
+      if (keyVals.any((v) => v == null)) continue;
+      final key = keyVals.map((v) => '$v').join('__#_#__');
       rightIndex.putIfAbsent(key, () => []).add(r);
     }
 
@@ -35,7 +37,14 @@ extension JoinDataFrameExtension on DataFrame {
     // Scan left DataFrame
     final leftKeyCols = on.map(column).toList();
     for (var l = 0; l < rowCount; l++) {
-      final key = leftKeyCols.map((c) => '${c[l]}').join('__#_#__');
+      final keyVals = [for (final c in leftKeyCols) c[l]];
+      if (keyVals.any((v) => v == null)) {
+        if (type == JoinType.left || type == JoinType.outer) {
+          matchedPairs.add((l, null));
+        }
+        continue;
+      }
+      final key = keyVals.map((v) => '$v').join('__#_#__');
       final matchingRight = rightIndex[key];
 
       if (matchingRight != null && matchingRight.isNotEmpty) {

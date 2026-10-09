@@ -62,7 +62,7 @@ class Layout {
     required this.isContiguous,
   });
 
-  static final Layout empty = Layout(shape: const []);
+  static final Layout empty = Layout(shape: const [0]);
 
   final int rank;
   final int length;

@@ -323,5 +323,44 @@ void main() {
       expect(result.shape, [2, 2]);
       expect(result.toFlatList(), [2.0, 4.0, 4.0, 6.0]);
     });
+
+    test('empty tensor creation from iterable and object', () {
+      final empty1 = Tensor<int>.fromIterable([]);
+      expect(empty1.length, 0);
+      expect(empty1.shape, [0]);
+      expect(empty1.toFlatList(), isEmpty);
+
+      final empty2 = Tensor<int>.fromObject(<int>[]);
+      expect(empty2.length, 0);
+      expect(empty2.shape, [0]);
+      expect(empty2.toFlatList(), isEmpty);
+
+      expect(Layout.empty.length, 0);
+      expect(Layout.empty.shape, [0]);
+    });
+
+    test('shifted overlapping slice copy does not corrupt memory', () {
+      final a = Tensor<int>.fromIterable([1, 2, 3, 4, 5]);
+      final src = a.getRange(axis: 0, start: 0, end: 4);
+      final dst = a.getRange(axis: 0, start: 1, end: 5);
+
+      src.copy(target: dst);
+      expect(a.toFlatList(), [1, 1, 2, 3, 4]);
+    });
+
+    test('matmul into aliased operand target computes safely', () {
+      final a = Tensor<double>.fromObject([
+        [1.0, 2.0],
+        [3.0, 4.0],
+      ]);
+      final b = Tensor<double>.fromObject([
+        [2.0, 0.0],
+        [1.0, 2.0],
+      ]);
+      final expected = a.matmul(b);
+
+      a.matmul(b, target: a);
+      expect(a.toFlatList(), expected.toFlatList());
+    });
   });
 }

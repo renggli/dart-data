@@ -31,7 +31,7 @@ class CooMatrix<T> implements LinearOperator<T> {
         type ??
         (list.isNotEmpty
             ? DataType.fromInstance(list.first.$3)
-            : DataType.float64 as DataType<T>);
+            : DataType.fromType<T>());
     final rowIndices = <int>[];
     final colIndices = <int>[];
     final values = <T>[];
@@ -102,6 +102,21 @@ class CooMatrix<T> implements LinearOperator<T> {
 
   /// Number of stored non-zero entries.
   int get nnz => values.length;
+
+  /// Gets the element at [row, col], returning additive identity if zero.
+  T get(int row, int col) {
+    if (row < 0 || row >= rowCount || col < 0 || col >= colCount) {
+      throw RangeError(
+        'Coordinates ($row, $col) out of bounds for matrix ($rowCount x $colCount)',
+      );
+    }
+    for (var k = 0; k < nnz; k++) {
+      if (rowIndices[k] == row && colIndices[k] == col) {
+        return values[k];
+      }
+    }
+    return type.field.additiveIdentity;
+  }
 
   @override
   Vector<T> apply(Vector<T> x) {

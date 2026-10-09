@@ -60,8 +60,6 @@ class Tensor<T> {
     final effectiveType = type ?? DataType.fromIterable(list);
     final effectiveLayout = shape != null
         ? Layout(shape: shape, strides: strides)
-        : list.isEmpty
-        ? Layout.empty
         : Layout(shape: [list.length], strides: strides);
     final data = effectiveType.newList(effectiveLayout.length);
     for (var i = 0; i < list.length && i < effectiveLayout.length; i++) {
@@ -81,6 +79,10 @@ class Tensor<T> {
         return Tensor.filled(object, shape: const [], type: type);
       }
       throw ArgumentError.value(object, 'object', 'Expected an Iterable');
+    }
+    if (object.isEmpty) {
+      final effectiveType = type ?? DataType.fromType<T>();
+      return Tensor.fromIterable(<T>[], shape: const [0], type: effectiveType);
     }
     final shape = <int>[];
     dynamic current = object;

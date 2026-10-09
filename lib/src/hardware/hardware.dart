@@ -125,6 +125,7 @@ class HardwareManager {
   }
 
   /// Solves A * X = B for general square matrix A using LU decomposition.
+  /// Attempts native LAPACK if accelerated, falling back to pure Dart LU decomposition.
   static bool dgesv({
     required int n,
     required int nrhs,
@@ -133,7 +134,77 @@ class HardwareManager {
     required Float64List b,
     required int ldb,
   }) {
-    if (!isAccelerated) return false;
-    return _blas.dgesv(n: n, nrhs: nrhs, a: a, lda: lda, b: b, ldb: ldb);
+    if (isAccelerated) {
+      final success = _blas.dgesv(
+        n: n,
+        nrhs: nrhs,
+        a: a,
+        lda: lda,
+        b: b,
+        ldb: ldb,
+      );
+      if (success) return true;
+    }
+    return _luSolve(n, nrhs, a, lda, b, ldb);
+  }
+
+  static bool _luSolve(
+    int n,
+    int nrhs,
+    Float64List a,
+    int lda,
+    Float64List b,
+    int ldb,
+  ) {
+    final aCopy = Float64List.fromList(a);
+
+    for (var i = 0; i < n; i++) {
+      var maxVal = aCopy[i * lda + i].abs();
+      var maxRow = i;
+      for (var r = i + 1; r < n; r++) {
+        final val = aCopy[r * lda + i].abs();
+        if (val > maxVal) {
+          maxVal = val;
+          maxRow = r;
+        }
+      }
+      if (maxVal == 0.0) return false;
+
+      if (maxRow != i) {
+        for (var k = 0; k < n; k++) {
+          final temp = aCopy[i * lda + k];
+          aCopy[i * lda + k] = aCopy[maxRow * lda + k];
+          aCopy[maxRow * lda + k] = temp;
+        }
+        for (var k = 0; k < nrhs; k++) {
+          final temp = b[i * ldb + k];
+          b[i * ldb + k] = b[maxRow * ldb + k];
+          b[maxRow * ldb + k] = temp;
+        }
+      }
+
+      final diag = aCopy[i * lda + i];
+      for (var r = i + 1; r < n; r++) {
+        final factor = aCopy[r * lda + i] / diag;
+        aCopy[r * lda + i] = factor;
+        for (var c = i + 1; c < n; c++) {
+          aCopy[r * lda + c] -= factor * aCopy[i * lda + c];
+        }
+        for (var c = 0; c < nrhs; c++) {
+          b[r * ldb + c] -= factor * b[i * ldb + c];
+        }
+      }
+    }
+
+    for (var c = 0; c < nrhs; c++) {
+      for (var i = n - 1; i >= 0; i--) {
+        var sum = b[i * ldb + c];
+        for (var k = i + 1; k < n; k++) {
+          sum -= aCopy[i * lda + k] * b[k * ldb + c];
+        }
+        b[i * ldb + c] = sum / aCopy[i * lda + i];
+      }
+    }
+    return true;
   }
 }

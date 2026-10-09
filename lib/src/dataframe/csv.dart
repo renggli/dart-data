@@ -11,19 +11,7 @@ class CsvReader {
     String separator = ',',
     bool header = true,
   }) {
-    final lines = csv
-        .split(RegExp(r'\r?\n'))
-        .map((l) => l.trim())
-        .where((l) => l.isNotEmpty)
-        .toList();
-
-    if (lines.isEmpty) return DataFrame([]);
-
-    final parsedRows = <List<String>>[];
-    for (final line in lines) {
-      parsedRows.add(_parseLine(line, separator));
-    }
-
+    final parsedRows = _parseCsv(csv, separator);
     if (parsedRows.isEmpty) return DataFrame([]);
 
     List<String> colNames;
@@ -91,29 +79,67 @@ class CsvReader {
     return DataFrame(columns);
   }
 
-  static List<String> _parseLine(String line, String separator) {
-    final fields = <String>[];
+  static List<List<String>> _parseCsv(String csv, String separator) {
+    final rows = <List<String>>[];
+    var currentRow = <String>[];
     final sb = StringBuffer();
     var inQuotes = false;
+    var fieldStarted = false;
 
-    for (var i = 0; i < line.length; i++) {
-      final ch = line[i];
-      if (ch == '"') {
-        if (inQuotes && i + 1 < line.length && line[i + 1] == '"') {
-          sb.write('"');
-          i++; // Skip escaped quote
+    var i = 0;
+    while (i < csv.length) {
+      final ch = csv[i];
+      if (inQuotes) {
+        if (ch == '"') {
+          if (i + 1 < csv.length && csv[i + 1] == '"') {
+            sb.write('"');
+            i += 2;
+            continue;
+          } else {
+            inQuotes = false;
+            i++;
+            continue;
+          }
         } else {
-          inQuotes = !inQuotes;
+          sb.write(ch);
+          i++;
         }
-      } else if (ch == separator && !inQuotes) {
-        fields.add(sb.toString().trim());
-        sb.clear();
       } else {
-        sb.write(ch);
+        if (ch == '"') {
+          inQuotes = true;
+          fieldStarted = true;
+          i++;
+        } else if (csv.startsWith(separator, i)) {
+          currentRow.add(sb.toString().trim());
+          sb.clear();
+          fieldStarted = false;
+          i += separator.length;
+        } else if (ch == '\r' || ch == '\n') {
+          if (ch == '\r' && i + 1 < csv.length && csv[i + 1] == '\n') {
+            i++;
+          }
+          i++;
+          currentRow.add(sb.toString().trim());
+          sb.clear();
+          if (currentRow.any((s) => s.isNotEmpty)) {
+            rows.add(currentRow);
+          }
+          currentRow = <String>[];
+          fieldStarted = false;
+        } else {
+          sb.write(ch);
+          fieldStarted = true;
+          i++;
+        }
       }
     }
-    fields.add(sb.toString().trim());
-    return fields;
+    if (sb.isNotEmpty || fieldStarted || currentRow.isNotEmpty) {
+      currentRow.add(sb.toString().trim());
+      if (currentRow.any((s) => s.isNotEmpty)) {
+        rows.add(currentRow);
+      }
+    }
+    return rows;
   }
 }
 

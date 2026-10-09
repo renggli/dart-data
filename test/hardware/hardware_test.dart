@@ -135,5 +135,48 @@ void main() {
       expect(resHardware.toFlatList(), resFallback.toFlatList());
       expect(resHardware.toFlatList(), [19.0, 22.0, 43.0, 50.0]);
     });
+
+    test(
+      'dgesv solves linear system with hardware and pure Dart fallback parity',
+      () {
+        // 2x2 system:
+        // [2, 1] [x0] = [4]
+        // [1, 3] [x1] = [7]
+        // solution: x = [1, 2]
+        final a = Float64List.fromList([2.0, 1.0, 1.0, 3.0]);
+        final bHardware = Float64List.fromList([4.0, 7.0]);
+        final bFallback = Float64List.fromList([4.0, 7.0]);
+
+        HardwareManager.isEnabled = true;
+        final successHw = HardwareManager.dgesv(
+          n: 2,
+          nrhs: 1,
+          a: Float64List.fromList(a),
+          lda: 2,
+          b: bHardware,
+          ldb: 1,
+        );
+        expect(successHw, isTrue);
+        expect(bHardware[0], closeTo(1.0, 1e-9));
+        expect(bHardware[1], closeTo(2.0, 1e-9));
+
+        HardwareManager.isEnabled = false;
+        final successFallback = HardwareManager.dgesv(
+          n: 2,
+          nrhs: 1,
+          a: Float64List.fromList(a),
+          lda: 2,
+          b: bFallback,
+          ldb: 1,
+        );
+        HardwareManager.isEnabled = true;
+
+        expect(successFallback, isTrue);
+        expect(bFallback[0], closeTo(1.0, 1e-9));
+        expect(bFallback[1], closeTo(2.0, 1e-9));
+        expect(bHardware[0], closeTo(bFallback[0], 1e-12));
+        expect(bHardware[1], closeTo(bFallback[1], 1e-12));
+      },
+    );
   });
 }

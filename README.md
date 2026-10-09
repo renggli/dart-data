@@ -33,87 +33,60 @@ import 'package:more/printer.dart';
 
 ### How to solve a linear equation?
 
-Solve 'A \* x = b', where 'A' is a matrix and 'b' a vector:
+Solve $A \cdot x = b$, where $A$ is a matrix and $b$ a vector:
 
 ```dart
-final a = Matrix<double>.fromRows(DataType.float64, [
-  [2, 1, 1],
-  [1, 3, 2],
-  [1, 0, 0],
+final a = Matrix<double>.fromRows([
+  [2.0, 1.0],
+  [1.0, 3.0],
 ]);
-final b = Vector<double>.fromList(DataType.float64, [4, 5, 6]);
-final x = a.solve(b.columnMatrix).column(0);
-print(x.format(valuePrinter: FixedNumberPrinter())); // prints '6 15 -23'
+final b = Vector<double>.fromList([4.0, 7.0]);
+final x = a.solve(b);
+print(x); // Vector([1.0, 2.0])
 ```
 
-### How to find the eigenvalues of a matrix?
+### How to work with multi-dimensional tensors?
 
-Find the eigenvalues of a matrix 'A':
+Dense multi-dimensional arrays backed by strided layouts and eager operations:
 
 ```dart
-final a = Matrix<double>.fromRows(DataType.float64, [
-  [1, 0, 0, -1],
-  [0, -1, 0, 0],
-  [0, 0, 1, -1],
-  [-1, 0, -1, 0],
+final t = Tensor<double>.fromObject([
+  [1.0, 2.0],
+  [3.0, 4.0],
 ]);
-final decomposition = a.eigenvalue;
-final eigenvalues = Vector<double>.fromList(
-    DataType.float64, decomposition.realEigenvalues);
-print(eigenvalues.format(valuePrinter: FixedNumberPrinter(precision: 1))); // prints '-1.0 -1.0 1.0 2.0'
+final product = t.matmul(t);
+print(product.toNestedList()); // [[7.0, 10.0], [15.0, 22.0]]
 ```
 
-### How to find all the roots of a polynomial?
+### How to process columnar tabular data (DataFrame)?
 
-To find the roots of `x^5 + -8x^4 + -72x^3 + 242x^2 + 1847x + 2310`:
+Arrow-aligned `DataFrame` with streaming CSV parsing and relational joins:
 
 ```dart
-final polynomial = Polynomial.fromCoefficients(DataType.int32, [1, -8, -72, 242, 1847, 2310]);
-final roots = polynomial.roots;
-print(roots.map((root) => root.real)); // [-5, -3, -2, 7, 11]
-print(roots.map((root) => root.imaginary)); // [0, 0, 0, 0, 0]
+final df = DataFrame.fromCsv('''
+name,age,salary
+Alice,30,75000.5
+Bob,25,50000.0
+Charlie,35,90000.0
+''');
+
+final filtered = df.filterBy((row) => (row['age'] as int) >= 30);
+print(filtered);
 ```
 
-### How to do a polynomial regression?
+### How to perform exact symbolic differentiation & JIT compilation?
 
-To find the best fitting third degree polynomial through a list of points:
+Symbolic expression graphs, exact analytical differentiation, and zero-allocation JIT loops:
 
 ```dart
-final height = [1.47, 1.50, 1.52, 1.55, 1.57, 1.60, 1.63, 1.65, 1.68, 1.70, 1.73, 1.75, 1.78, 1.80, 1.83].toVector();
-final mass = [52.21, 53.12, 54.48, 55.84, 57.20, 58.57, 59.93, 61.29, 63.11, 64.47, 66.28, 68.10, 69.92, 72.19, 74.46].toVector();
-final fitter = PolynomialRegression(degree: 2);
-final result = fitter.fit(xs: height, ys: mass);
-print(result.polynomial.format(valuePrinter: FixedNumberPrinter(precision: 3))); // 61.960x^2 + -143.162x + 128.813
+final x = Variable('x');
+final expr = x * x + Sin(x);
+final deriv = expr.diff('x').simplify();
+print(deriv.toLatex()); // (2 * x) + \cos(x)
+
+final fastFn = expr.compile1D('x');
+print(fastFn(0.0)); // 0.0
 ```
-
-### How to numerically integrate a function?
-
-In both examples we specify a custom depth, since these integrals are tricky at the upper bound (very steep for the first one, very flat for the second one).
-
-```dart
-// Compute the area of a circle by iterating over a quarter circle:
-final pi = 4 * integrate((x) => sqrt(1 - x * x), 0, 1, depth: 30);
-print(pi); // 3.1415925673846368 ~ pi
-
-// Compute an improper integral:
-final one = integrate((x) => exp(-x), 0, double.infinity, depth: 30);
-print(one); // 1.0000000904304227 ~ 1
-```
-
-## Misc
-
-### Demos
-
-This package includes a sandbox web dashboard in `web/distributions` to visualize, configure, and dynamically sample the supported continuous and discrete probability distributions in real-time.
-
-To compile, serve, and explore the interactive distributions demo run:
-
-```bash
-dart pub global activate webdev
-webdev serve --release
-```
-
-Then open <http://localhost:8080/distributions/index.html> in your web browser.
 
 ### License
 

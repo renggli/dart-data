@@ -1,8 +1,13 @@
+import 'dart:typed_data';
+
+import '../hardware/hardware.dart';
+import '../tensor/layout.dart';
 import '../tensor/operations/matmul.dart';
 import '../tensor/operations/operation.dart';
 import '../tensor/tensor.dart';
 import '../type/data_type.dart';
 import 'operator.dart';
+import 'solvers/gmres.dart';
 import 'vector.dart';
 
 /// 2-dimensional mathematical matrix backed by a rank-2 [Tensor].
@@ -39,7 +44,7 @@ class Matrix<T> implements LinearOperator<T> {
 
   /// Constructs an identity matrix of dimension [size x size].
   factory identity(int size, {DataType<T>? type}) {
-    final effectiveType = type ?? DataType.float64 as DataType<T>;
+    final effectiveType = type ?? DataType.fromType<T>();
     final f = effectiveType.field;
     final one = f.multiplicativeIdentity;
     final zero = f.additiveIdentity;
@@ -57,7 +62,7 @@ class Matrix<T> implements LinearOperator<T> {
         .map((r) => r.toList(growable: false))
         .toList(growable: false);
     if (rowList.isEmpty) {
-      final t = type ?? DataType.float64 as DataType<T>;
+      final t = type ?? DataType.fromType<T>();
       return Matrix(Tensor.filled(t.defaultValue, shape: [0, 0], type: t));
     }
     final rCount = rowList.length;
@@ -81,7 +86,7 @@ class Matrix<T> implements LinearOperator<T> {
         .map((c) => c.toList(growable: false))
         .toList(growable: false);
     if (colList.isEmpty) {
-      final t = type ?? DataType.float64 as DataType<T>;
+      final t = type ?? DataType.fromType<T>();
       return Matrix(Tensor.filled(t.defaultValue, shape: [0, 0], type: t));
     }
     final cCount = colList.length;
@@ -140,6 +145,69 @@ class Matrix<T> implements LinearOperator<T> {
 
   /// Returns a zero-copy transposed view of this matrix.
   Matrix<T> transpose() => Matrix(tensor.transpose([1, 0]));
+
+  /// Returns a zero-copy transposed view of this matrix.
+  Matrix<T> get transposed => transpose();
+
+  /// Returns a zero-copy 1D view of the main diagonal.
+  Vector<T> diagonal() {
+    final minDim = rowCount < colCount ? rowCount : colCount;
+    final diagStride = tensor.strides[0] + tensor.strides[1];
+    final diagLayout = Layout(
+      shape: [minDim],
+      strides: [diagStride],
+      offset: tensor.offset,
+    );
+    return Vector(
+      Tensor.internal(type: type, layout: diagLayout, data: tensor.data),
+    );
+  }
+
+  /// The trace (sum of main diagonal elements) of this square matrix.
+  T get trace {
+    if (rowCount != colCount) {
+      throw StateError(
+        'Trace is only defined for square matrices, got $rowCount x $colCount',
+      );
+    }
+    return diagonal().sum;
+  }
+
+  /// Solves the linear system A * x = b.
+  Vector<T> solve(Vector<T> b) {
+    if (rowCount != colCount) {
+      throw StateError(
+        'Matrix must be square to solve, got $rowCount x $colCount',
+      );
+    }
+    if (rowCount != b.length) {
+      throw ArgumentError(
+        'Dimension mismatch: Matrix $rowCount x $colCount, Vector ${b.length}',
+      );
+    }
+    if (T == double) {
+      final aData = Float64List.fromList(tensor.copy().data as List<double>);
+      final bData = Float64List.fromList(b.copy().tensor.data as List<double>);
+      final success = HardwareManager.dgesv(
+        n: rowCount,
+        nrhs: 1,
+        a: aData,
+        lda: colCount,
+        b: bData,
+        ldb: 1,
+      );
+      if (success) {
+        return Vector<T>(
+          Tensor.internal(
+            type: type,
+            layout: Layout(shape: [rowCount]),
+            data: bData as List<T>,
+          ),
+        );
+      }
+    }
+    return gmres(this, b);
+  }
 
   /// Slices a submatrix over the given row and column ranges.
   Matrix<T> subMatrix({

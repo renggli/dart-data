@@ -2,6 +2,7 @@ import 'dart:typed_data';
 
 import '../../hardware/hardware.dart';
 import '../../type/field.dart';
+import '../../type/memory_buffer.dart';
 import '../layout.dart';
 import '../tensor.dart';
 
@@ -29,14 +30,22 @@ extension MatmulTensorExtension<T> on Tensor<T> {
     final batchShape = _broadcastBatchShapes(thisBatch, otherBatch);
     final outShape = [...batchShape, m, n];
 
-    final result =
-        target ??
-        Tensor<T>.filled(type.defaultValue, shape: outShape, type: type);
+    final hasHazard =
+        target != null &&
+        (MemoryBuffer.sharesMemory(target.data, data) ||
+            MemoryBuffer.sharesMemory(target.data, other.data));
+    final result = (target != null && !hasHazard)
+        ? target
+        : Tensor<T>.filled(type.defaultValue, shape: outShape, type: type);
     final f = type.field;
 
     // Fast 2D path
     if (rank == 2 && other.rank == 2) {
       _gemm2D(this, other, result, m, k, n, f);
+      if (hasHazard) {
+        result.copy(target: target);
+        return target;
+      }
       return result;
     }
 
@@ -53,6 +62,10 @@ extension MatmulTensorExtension<T> on Tensor<T> {
       _gemm2D(aSlice, bSlice, cSlice, m, k, n, f);
     }
 
+    if (hasHazard) {
+      result.copy(target: target);
+      return target;
+    }
     return result;
   }
 

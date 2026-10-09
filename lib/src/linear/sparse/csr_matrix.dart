@@ -17,6 +17,17 @@ class CsrMatrix<T> implements LinearOperator<T> {
   }) : assert(rowPointers.length == rowCount + 1),
        assert(colIndices.length == values.length);
 
+  /// Constructs a CSR matrix from coordinate triplets.
+  factory fromEntries(
+    int rowCount,
+    int colCount,
+    Iterable<(int, int, T)> entries, {
+    DataType<T>? type,
+  }) => CooMatrix.fromEntries(rowCount, colCount, entries, type: type).toCsr();
+
+  /// Constructs a CSR matrix from a dense [matrix].
+  factory fromDense(Matrix<T> matrix) => CooMatrix.fromDense(matrix).toCsr();
+
   @override
   final int rowCount;
 

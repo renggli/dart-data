@@ -270,5 +270,79 @@ void main() {
       expect(x[1], closeTo(2.0, 1e-6));
       expect(x[2], closeTo(3.0, 1e-6));
     });
+
+    test('GMRES on non-symmetric system with negative matrix entries', () {
+      final a = Matrix<double>.fromRows([
+        [-2.0, 1.0, 0.0],
+        [1.0, -3.0, 2.0],
+        [0.0, 1.0, -4.0],
+      ]);
+      // True solution x = [1, 2, 3]
+      // b = [-2*1 + 1*2 = 0, 1*1 - 3*2 + 2*3 = 1, 1*2 - 4*3 = -10]
+      final b = Vector<double>.fromList([0.0, 1.0, -10.0]);
+
+      final x = gmres(a, b);
+      expect(x[0], closeTo(1.0, 1e-5));
+      expect(x[1], closeTo(2.0, 1e-5));
+      expect(x[2], closeTo(3.0, 1e-5));
+    });
+
+    test('Matrix.solve direct solver method', () {
+      final a = Matrix<double>.fromRows([
+        [2.0, 1.0],
+        [1.0, 3.0],
+      ]);
+      final b = Vector<double>.fromList([4.0, 7.0]);
+      final x = a.solve(b);
+      expect(x[0], closeTo(1.0, 1e-6));
+      expect(x[1], closeTo(2.0, 1e-6));
+    });
+
+    test('Matrix diagonal, trace, and transposed getters', () {
+      final m = Matrix<int>.fromRows([
+        [1, 2, 3],
+        [4, 5, 6],
+        [7, 8, 9],
+      ]);
+      final diag = m.diagonal();
+      expect(diag.toList(), [1, 5, 9]);
+      expect(diag.sum, 15);
+      expect(m.trace, 15);
+      expect(m.transposed.get(0, 1), 4);
+    });
+
+    test('Matrix and CooMatrix constructors with non-double types', () {
+      final emptyRows = Matrix<int>.fromRows([]);
+      expect(emptyRows.rowCount, 0);
+      expect(emptyRows.colCount, 0);
+
+      final emptyCols = Matrix<int>.fromColumns([]);
+      expect(emptyCols.rowCount, 0);
+      expect(emptyCols.colCount, 0);
+
+      final id3 = Matrix<int>.identity(3);
+      expect(id3.rowCount, 3);
+      expect(id3.colCount, 3);
+      expect(id3.get(0, 0), 1);
+      expect(id3.get(0, 1), 0);
+
+      final cooEmpty = CooMatrix<int>.fromEntries(2, 2, []);
+      expect(cooEmpty.nnz, 0);
+      expect(cooEmpty.get(0, 0), 0);
+    });
+
+    test('CsrMatrix and CscMatrix direct constructors', () {
+      final dense = Matrix<double>.fromRows([
+        [1.0, 0.0, 2.0],
+        [0.0, 3.0, 0.0],
+      ]);
+      final csr = CsrMatrix<double>.fromDense(dense);
+      expect(csr.nnz, 3);
+      expect(csr.get(0, 2), 2.0);
+
+      final csc = CscMatrix<double>.fromDense(dense);
+      expect(csc.nnz, 3);
+      expect(csc.get(1, 1), 3.0);
+    });
   });
 }

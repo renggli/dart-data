@@ -165,8 +165,14 @@ class DataFrame {
       final valB = col[b];
       if (valA == null && valB == null) return 0;
       if (valA == null) return 1;
-      if (valB == null) return -1;
-      final cmp = (valA as Comparable).compareTo(valB);
+      final int cmp;
+      if (valA is bool && valB is bool) {
+        cmp = (valA ? 1 : 0).compareTo(valB ? 1 : 0);
+      } else if (valA is Comparable) {
+        cmp = valA.compareTo(valB);
+      } else {
+        cmp = '$valA'.compareTo('$valB');
+      }
       return ascending ? cmp : -cmp;
     });
 

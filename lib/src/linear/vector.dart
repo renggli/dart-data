@@ -196,6 +196,16 @@ class Vector<T> {
   /// Creates a deep contiguous copy of this vector.
   Vector<T> copy() => Vector(tensor.copy());
 
+  /// Sum of all elements in this vector.
+  T get sum {
+    final f = type.field;
+    var acc = f.additiveIdentity;
+    for (var i = 0; i < length; i++) {
+      acc = f.add(acc, this[i]);
+    }
+    return acc;
+  }
+
   /// Returns a flat list of elements.
   List<T> toList() => tensor.toFlatList();
 
