@@ -2,18 +2,6 @@ import 'dart:math' as math;
 
 import 'package:more/number.dart' show Complex;
 
-int _nextPowerOf2(int v) {
-  if (v <= 1) return 1;
-  var n = v - 1;
-  n |= n >> 1;
-  n |= n >> 2;
-  n |= n >> 4;
-  n |= n >> 8;
-  n |= n >> 16;
-  n |= n >> 32;
-  return n + 1;
-}
-
 /// Computes the 1-dimensional Discrete Fourier Transform (FFT) of [input].
 ///
 /// This implementation is pure and non-mutating. If the length of [input] is
@@ -148,3 +136,15 @@ List<List<Complex>> fft2(List<List<Complex>> matrix, {bool inverse = false}) {
 /// Computes the 2-dimensional Inverse Discrete Fourier Transform of [matrix].
 List<List<Complex>> ifft2(List<List<Complex>> matrix) =>
     fft2(matrix, inverse: true);
+
+int _nextPowerOf2(int v) {
+  if (v <= 1) return 1;
+  var n = v - 1;
+  n |= n >> 1;
+  n |= n >> 2;
+  n |= n >> 4;
+  n |= n >> 8;
+  n |= n >> 16;
+  n |= n >> 32;
+  return n + 1;
+}

@@ -1,8 +1,5 @@
 import 'dart:math';
 
-const _invE = 0.36787944117144232159587; // 1/e
-const _e = 2.718281828459045235360287; // e
-
 /// Returns the principal branch of the Lambert W function $W_0(z)$.
 ///
 /// Satisfies $W(z) e^{W(z)} = z$ for $z \ge -1/e$.
@@ -80,3 +77,6 @@ double lambertW1(num z) {
   }
   return w;
 }
+
+const _invE = 0.36787944117144232159587; // 1/e
+const _e = 2.718281828459045235360287; // e

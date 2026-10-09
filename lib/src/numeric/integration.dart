@@ -45,6 +45,41 @@ double adaptiveSimpson(
   return _adaptiveSimpsonStep(fn, a, b, fa, fb, fc, whole, tolerance, maxDepth);
 }
 
+/// Computes the definite integral $\int_a^b f(x) dx$ using Adaptive Gauss-Kronrod (GK15) quadrature.
+double gaussKronrod(
+  Object f,
+  double a,
+  double b, {
+  String variable = 'x',
+  double tolerance = 1e-9,
+  int maxDepth = 25,
+}) {
+  final double Function(double) fn;
+  if (f is Expr) {
+    fn = (x) => f.evaluate({variable: x});
+  } else if (f is double Function(double)) {
+    fn = f;
+  } else if (f is num Function(num)) {
+    fn = (x) => f(x).toDouble();
+  } else {
+    throw ArgumentError('Unsupported function type: ${f.runtimeType}');
+  }
+
+  if (a == b) return 0.0;
+  if (a > b) {
+    return -gaussKronrod(
+      f,
+      b,
+      a,
+      variable: variable,
+      tolerance: tolerance,
+      maxDepth: maxDepth,
+    );
+  }
+
+  return _gaussKronrodStep(fn, a, b, tolerance, maxDepth);
+}
+
 double _adaptiveSimpsonStep(
   double Function(double) fn,
   double a,
@@ -83,41 +118,6 @@ double _adaptiveSimpsonStep(
         depth - 1,
       ) +
       _adaptiveSimpsonStep(fn, c, b, fc, fb, fe, right, tol * 0.5, depth - 1);
-}
-
-/// Computes the definite integral $\int_a^b f(x) dx$ using Adaptive Gauss-Kronrod (GK15) quadrature.
-double gaussKronrod(
-  Object f,
-  double a,
-  double b, {
-  String variable = 'x',
-  double tolerance = 1e-9,
-  int maxDepth = 25,
-}) {
-  final double Function(double) fn;
-  if (f is Expr) {
-    fn = (x) => f.evaluate({variable: x});
-  } else if (f is double Function(double)) {
-    fn = f;
-  } else if (f is num Function(num)) {
-    fn = (x) => f(x).toDouble();
-  } else {
-    throw ArgumentError('Unsupported function type: ${f.runtimeType}');
-  }
-
-  if (a == b) return 0.0;
-  if (a > b) {
-    return -gaussKronrod(
-      f,
-      b,
-      a,
-      variable: variable,
-      tolerance: tolerance,
-      maxDepth: maxDepth,
-    );
-  }
-
-  return _gaussKronrodStep(fn, a, b, tolerance, maxDepth);
 }
 
 // Gauss-Kronrod 15-point rule abscissae and weights on [-1, 1]

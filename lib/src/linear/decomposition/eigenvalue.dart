@@ -54,6 +54,34 @@ class EigenvalueDecomposition {
     }
   }
 
+  /// The eigenvector matrix $V$.
+  Matrix<double> get v => _v;
+
+  /// The block diagonal eigenvalue matrix $D$.
+  Matrix<double> get d {
+    final result = Matrix<double>.filled(_n, _n, 0.0, type: DataType.float64);
+    for (var i = 0; i < _n; i++) {
+      result.set(i, i, _d[i]);
+      if (_e[i] > 0) {
+        result.set(i, i + 1, _e[i]);
+      } else if (_e[i] < 0) {
+        result.set(i, i - 1, _e[i]);
+      }
+    }
+    return result;
+  }
+
+  /// The real parts of the eigenvalues.
+  List<double> get realEigenvalues => List<double>.unmodifiable(_d);
+
+  /// The imaginary parts of the eigenvalues.
+  List<double> get imagEigenvalues => List<double>.unmodifiable(_e);
+
+  /// The complex eigenvalues.
+  List<Complex> get eigenvalues => [
+    for (var i = 0; i < _n; i++) Complex(_d[i], _e[i]),
+  ];
+
   static bool _checkSymmetry(Matrix<num> a) {
     final n = a.rowCount;
     for (var i = 0; i < n; i++) {
@@ -687,32 +715,4 @@ class EigenvalueDecomposition {
       }
     }
   }
-
-  /// The eigenvector matrix $V$.
-  Matrix<double> get v => _v;
-
-  /// The block diagonal eigenvalue matrix $D$.
-  Matrix<double> get d {
-    final result = Matrix<double>.filled(_n, _n, 0.0, type: DataType.float64);
-    for (var i = 0; i < _n; i++) {
-      result.set(i, i, _d[i]);
-      if (_e[i] > 0) {
-        result.set(i, i + 1, _e[i]);
-      } else if (_e[i] < 0) {
-        result.set(i, i - 1, _e[i]);
-      }
-    }
-    return result;
-  }
-
-  /// The real parts of the eigenvalues.
-  List<double> get realEigenvalues => List<double>.unmodifiable(_d);
-
-  /// The imaginary parts of the eigenvalues.
-  List<double> get imagEigenvalues => List<double>.unmodifiable(_e);
-
-  /// The complex eigenvalues.
-  List<Complex> get eigenvalues => [
-    for (var i = 0; i < _n; i++) Complex(_d[i], _e[i]),
-  ];
 }

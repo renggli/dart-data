@@ -11,6 +11,39 @@ extension ExprCompiler on Expr {
     return _compileFast1D(s, varName);
   }
 
+  /// Compiles into a multi-variable positional closure [double Function(List<double> args)].
+  double Function(List<double> args) compile(List<String> varOrder) {
+    final s = simplify();
+    final varIndices = {
+      for (var i = 0; i < varOrder.length; i++) varOrder[i]: i,
+    };
+    return _buildPositionalEvaluator(s, varIndices);
+  }
+
+  /// Compiles expression into a zero-allocation, vectorized loop over contiguous [Float64List] buffers.
+  void Function(List<Float64List> inputs, Float64List output)
+  compileTensorKernel(List<String> varOrder) {
+    final s = simplify();
+    final varIndices = {
+      for (var i = 0; i < varOrder.length; i++) varOrder[i]: i,
+    };
+    final evaluator = _buildPositionalEvaluator(s, varIndices);
+
+    return (List<Float64List> inputs, Float64List output) {
+      final len = output.length;
+      final argCount = inputs.length;
+      final currentArgs = List<double>.filled(argCount, 0.0);
+
+      // Single contiguous loop - zero Map lookups, zero object allocations
+      for (var i = 0; i < len; i++) {
+        for (var a = 0; a < argCount; a++) {
+          currentArgs[a] = inputs[a][i];
+        }
+        output[i] = evaluator(currentArgs);
+      }
+    };
+  }
+
   static double Function(double x) _compileFast1D(Expr e, String v) =>
       switch (e) {
         Constant(value: final val) => (_) => val,
@@ -56,39 +89,6 @@ extension ExprCompiler on Expr {
           return (double x) => math.log(f(x));
         }(),
       };
-
-  /// Compiles into a multi-variable positional closure [double Function(List<double> args)].
-  double Function(List<double> args) compile(List<String> varOrder) {
-    final s = simplify();
-    final varIndices = {
-      for (var i = 0; i < varOrder.length; i++) varOrder[i]: i,
-    };
-    return _buildPositionalEvaluator(s, varIndices);
-  }
-
-  /// Compiles expression into a zero-allocation, vectorized loop over contiguous [Float64List] buffers.
-  void Function(List<Float64List> inputs, Float64List output)
-  compileTensorKernel(List<String> varOrder) {
-    final s = simplify();
-    final varIndices = {
-      for (var i = 0; i < varOrder.length; i++) varOrder[i]: i,
-    };
-    final evaluator = _buildPositionalEvaluator(s, varIndices);
-
-    return (List<Float64List> inputs, Float64List output) {
-      final len = output.length;
-      final argCount = inputs.length;
-      final currentArgs = List<double>.filled(argCount, 0.0);
-
-      // Single contiguous loop - zero Map lookups, zero object allocations
-      for (var i = 0; i < len; i++) {
-        for (var a = 0; a < argCount; a++) {
-          currentArgs[a] = inputs[a][i];
-        }
-        output[i] = evaluator(currentArgs);
-      }
-    };
-  }
 
   static double Function(List<double> args) _buildPositionalEvaluator(
     Expr e,

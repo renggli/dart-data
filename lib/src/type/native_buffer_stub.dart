@@ -16,7 +16,20 @@ class NativeBuffer<T> extends MemoryBuffer<T> {
 
   /// Allocates a standard heap buffer when FFI is unavailable.
   factory(int length, {DataType<T>? type}) {
+    RangeError.checkNotNegative(length, 'length');
     final effectiveType = type ?? DataType.fromType<T>();
+    final dynamicType = effectiveType as DataType<dynamic>;
+    if (dynamicType != DataType.float64 &&
+        dynamicType != DataType.float32 &&
+        dynamicType != DataType.int32 &&
+        dynamicType != DataType.int64 &&
+        dynamicType != DataType.uint8) {
+      throw ArgumentError.value(
+        effectiveType,
+        'type',
+        'NativeBuffer only supports float64, float32, int32, int64, and uint8',
+      );
+    }
     final data = effectiveType.newList(length);
     return NativeBuffer<T>._(data, effectiveType);
   }
@@ -29,8 +42,6 @@ class NativeBuffer<T> extends MemoryBuffer<T> {
 
   /// The data type of elements stored in the buffer.
   final DataType<T> type;
-
-  bool _isDisposed;
 
   /// Whether this native buffer has been disposed.
   bool get isDisposed => _isDisposed;
@@ -57,4 +68,6 @@ class NativeBuffer<T> extends MemoryBuffer<T> {
 
   /// Returns null on non-FFI platforms.
   dynamic get pointer => null;
+
+  bool _isDisposed;
 }

@@ -18,24 +18,6 @@ class GroupBy {
   final DataFrame dataFrame;
   final List<String> byColumns;
 
-  // Group key string -> list of row indices
-  final Map<String, List<int>> _groups = {};
-  // Group key string -> original key values
-  final Map<String, List<dynamic>> _groupKeys = {};
-
-  void _buildGroups() {
-    final keyCols = byColumns.map(dataFrame.column).toList();
-    for (var r = 0; r < dataFrame.rowCount; r++) {
-      final keyVals = [for (final c in keyCols) c[r]];
-      final keyStr = keyVals.map((v) => '$v').join('__#_#__');
-      if (!_groups.containsKey(keyStr)) {
-        _groups[keyStr] = [];
-        _groupKeys[keyStr] = keyVals;
-      }
-      _groups[keyStr]!.add(r);
-    }
-  }
-
   /// Evaluates aggregations across each group and produces a new DataFrame.
   DataFrame aggregate(Map<String, List<Agg>> aggregations) {
     final resultCols = <String, List<dynamic>>{};
@@ -79,6 +61,60 @@ class GroupBy {
     }
 
     return DataFrame.fromColumns(resultCols);
+  }
+
+  /// Computes mean of all numeric columns per group.
+  DataFrame mean() {
+    final numCols = dataFrame.columnNames
+        .where(
+          (c) => !byColumns.contains(c) && dataFrame.column(c) is TypedSeries,
+        )
+        .toList();
+    return aggregate({
+      for (final c in numCols) c: [Agg.mean],
+    });
+  }
+
+  /// Computes sum of all numeric columns per group.
+  DataFrame sum() {
+    final numCols = dataFrame.columnNames
+        .where(
+          (c) => !byColumns.contains(c) && dataFrame.column(c) is TypedSeries,
+        )
+        .toList();
+    return aggregate({
+      for (final c in numCols) c: [Agg.sum],
+    });
+  }
+
+  /// Computes count of entries per group.
+  DataFrame count() {
+    final targetCols = dataFrame.columnNames
+        .where((c) => !byColumns.contains(c))
+        .take(1)
+        .toList();
+    final col = targetCols.isNotEmpty ? targetCols.first : byColumns.first;
+    return aggregate({
+      col: [Agg.count],
+    });
+  }
+
+  // Group key string -> list of row indices
+  final Map<String, List<int>> _groups = {};
+  // Group key string -> original key values
+  final Map<String, List<dynamic>> _groupKeys = {};
+
+  void _buildGroups() {
+    final keyCols = byColumns.map(dataFrame.column).toList();
+    for (var r = 0; r < dataFrame.rowCount; r++) {
+      final keyVals = [for (final c in keyCols) c[r]];
+      final keyStr = keyVals.map((v) => '$v').join('__#_#__');
+      if (!_groups.containsKey(keyStr)) {
+        _groups[keyStr] = [];
+        _groupKeys[keyStr] = keyVals;
+      }
+      _groups[keyStr]!.add(r);
+    }
   }
 
   dynamic _computeAgg(List<dynamic> values, Agg agg) {
@@ -134,41 +170,5 @@ class GroupBy {
             .reduce((a, b) => a + b);
         return math.sqrt(sumSq / (nums.length - 1));
     }
-  }
-
-  /// Computes mean of all numeric columns per group.
-  DataFrame mean() {
-    final numCols = dataFrame.columnNames
-        .where(
-          (c) => !byColumns.contains(c) && dataFrame.column(c) is TypedSeries,
-        )
-        .toList();
-    return aggregate({
-      for (final c in numCols) c: [Agg.mean],
-    });
-  }
-
-  /// Computes sum of all numeric columns per group.
-  DataFrame sum() {
-    final numCols = dataFrame.columnNames
-        .where(
-          (c) => !byColumns.contains(c) && dataFrame.column(c) is TypedSeries,
-        )
-        .toList();
-    return aggregate({
-      for (final c in numCols) c: [Agg.sum],
-    });
-  }
-
-  /// Computes count of entries per group.
-  DataFrame count() {
-    final targetCols = dataFrame.columnNames
-        .where((c) => !byColumns.contains(c))
-        .take(1)
-        .toList();
-    final col = targetCols.isNotEmpty ? targetCols.first : byColumns.first;
-    return aggregate({
-      col: [Agg.count],
-    });
   }
 }

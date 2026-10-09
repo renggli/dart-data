@@ -28,578 +28,8 @@ const int cblasLower = 122;
 const int CblasUpper = 121;
 const int CblasLower = 122;
 
-typedef _CblasDgemmNative = ffi.Void Function(
-  ffi.Int32 order,
-  ffi.Int32 transA,
-  ffi.Int32 transB,
-  ffi.Int32 m,
-  ffi.Int32 n,
-  ffi.Int32 k,
-  ffi.Double alpha,
-  ffi.Pointer<ffi.Double> a,
-  ffi.Int32 lda,
-  ffi.Pointer<ffi.Double> b,
-  ffi.Int32 ldb,
-  ffi.Double beta,
-  ffi.Pointer<ffi.Double> c,
-  ffi.Int32 ldc,
-);
-typedef _CblasDgemm = void Function(
-  int order,
-  int transA,
-  int transB,
-  int m,
-  int n,
-  int k,
-  double alpha,
-  ffi.Pointer<ffi.Double> a,
-  int lda,
-  ffi.Pointer<ffi.Double> b,
-  int ldb,
-  double beta,
-  ffi.Pointer<ffi.Double> c,
-  int ldc,
-);
-
-typedef _CblasSgemmNative = ffi.Void Function(
-  ffi.Int32 order,
-  ffi.Int32 transA,
-  ffi.Int32 transB,
-  ffi.Int32 m,
-  ffi.Int32 n,
-  ffi.Int32 k,
-  ffi.Float alpha,
-  ffi.Pointer<ffi.Float> a,
-  ffi.Int32 lda,
-  ffi.Pointer<ffi.Float> b,
-  ffi.Int32 ldb,
-  ffi.Float beta,
-  ffi.Pointer<ffi.Float> c,
-  ffi.Int32 ldc,
-);
-typedef _CblasSgemm = void Function(
-  int order,
-  int transA,
-  int transB,
-  int m,
-  int n,
-  int k,
-  double alpha,
-  ffi.Pointer<ffi.Float> a,
-  int lda,
-  ffi.Pointer<ffi.Float> b,
-  int ldb,
-  double beta,
-  ffi.Pointer<ffi.Float> c,
-  int ldc,
-);
-
-typedef _CblasDgemvNative = ffi.Void Function(
-  ffi.Int32 order,
-  ffi.Int32 transA,
-  ffi.Int32 m,
-  ffi.Int32 n,
-  ffi.Double alpha,
-  ffi.Pointer<ffi.Double> a,
-  ffi.Int32 lda,
-  ffi.Pointer<ffi.Double> x,
-  ffi.Int32 incX,
-  ffi.Double beta,
-  ffi.Pointer<ffi.Double> y,
-  ffi.Int32 incY,
-);
-typedef _CblasDgemv = void Function(
-  int order,
-  int transA,
-  int m,
-  int n,
-  double alpha,
-  ffi.Pointer<ffi.Double> a,
-  int lda,
-  ffi.Pointer<ffi.Double> x,
-  int incX,
-  double beta,
-  ffi.Pointer<ffi.Double> y,
-  int incY,
-);
-
-typedef _CblasSgemvNative = ffi.Void Function(
-  ffi.Int32 order,
-  ffi.Int32 transA,
-  ffi.Int32 m,
-  ffi.Int32 n,
-  ffi.Float alpha,
-  ffi.Pointer<ffi.Float> a,
-  ffi.Int32 lda,
-  ffi.Pointer<ffi.Float> x,
-  ffi.Int32 incX,
-  ffi.Float beta,
-  ffi.Pointer<ffi.Float> y,
-  ffi.Int32 incY,
-);
-typedef _CblasSgemv = void Function(
-  int order,
-  int transA,
-  int m,
-  int n,
-  double alpha,
-  ffi.Pointer<ffi.Float> a,
-  int lda,
-  ffi.Pointer<ffi.Float> x,
-  int incX,
-  double beta,
-  ffi.Pointer<ffi.Float> y,
-  int incY,
-);
-
-typedef _CblasDdotNative = ffi.Double Function(
-  ffi.Int32 n,
-  ffi.Pointer<ffi.Double> x,
-  ffi.Int32 incX,
-  ffi.Pointer<ffi.Double> y,
-  ffi.Int32 incY,
-);
-typedef _CblasDdot = double Function(
-  int n,
-  ffi.Pointer<ffi.Double> x,
-  int incX,
-  ffi.Pointer<ffi.Double> y,
-  int incY,
-);
-
-typedef _CblasSdotNative = ffi.Float Function(
-  ffi.Int32 n,
-  ffi.Pointer<ffi.Float> x,
-  ffi.Int32 incX,
-  ffi.Pointer<ffi.Float> y,
-  ffi.Int32 incY,
-);
-typedef _CblasSdot = double Function(
-  int n,
-  ffi.Pointer<ffi.Float> x,
-  int incX,
-  ffi.Pointer<ffi.Float> y,
-  int incY,
-);
-
-typedef _CblasDnrm2Native = ffi.Double Function(
-  ffi.Int32 n,
-  ffi.Pointer<ffi.Double> x,
-  ffi.Int32 incX,
-);
-typedef _CblasDnrm2 = double Function(
-  int n,
-  ffi.Pointer<ffi.Double> x,
-  int incX,
-);
-
-typedef _CblasSnrm2Native = ffi.Float Function(
-  ffi.Int32 n,
-  ffi.Pointer<ffi.Float> x,
-  ffi.Int32 incX,
-);
-typedef _CblasSnrm2 = double Function(
-  int n,
-  ffi.Pointer<ffi.Float> x,
-  int incX,
-);
-
-typedef _CblasDaxpyNative = ffi.Void Function(
-  ffi.Int32 n,
-  ffi.Double alpha,
-  ffi.Pointer<ffi.Double> x,
-  ffi.Int32 incX,
-  ffi.Pointer<ffi.Double> y,
-  ffi.Int32 incY,
-);
-typedef _CblasDaxpy = void Function(
-  int n,
-  double alpha,
-  ffi.Pointer<ffi.Double> x,
-  int incX,
-  ffi.Pointer<ffi.Double> y,
-  int incY,
-);
-
-typedef _CblasSaxpyNative = ffi.Void Function(
-  ffi.Int32 n,
-  ffi.Float alpha,
-  ffi.Pointer<ffi.Float> x,
-  ffi.Int32 incX,
-  ffi.Pointer<ffi.Float> y,
-  ffi.Int32 incY,
-);
-typedef _CblasSaxpy = void Function(
-  int n,
-  double alpha,
-  ffi.Pointer<ffi.Float> x,
-  int incX,
-  ffi.Pointer<ffi.Float> y,
-  int incY,
-);
-
-typedef _CblasDscalNative = ffi.Void Function(
-  ffi.Int32 n,
-  ffi.Double alpha,
-  ffi.Pointer<ffi.Double> x,
-  ffi.Int32 incX,
-);
-typedef _CblasDscal = void Function(
-  int n,
-  double alpha,
-  ffi.Pointer<ffi.Double> x,
-  int incX,
-);
-
-typedef _CblasSscalNative = ffi.Void Function(
-  ffi.Int32 n,
-  ffi.Float alpha,
-  ffi.Pointer<ffi.Float> x,
-  ffi.Int32 incX,
-);
-typedef _CblasSscal = void Function(
-  int n,
-  double alpha,
-  ffi.Pointer<ffi.Float> x,
-  int incX,
-);
-
-typedef _CblasDsyrkNative = ffi.Void Function(
-  ffi.Int32 order,
-  ffi.Int32 uplo,
-  ffi.Int32 trans,
-  ffi.Int32 n,
-  ffi.Int32 k,
-  ffi.Double alpha,
-  ffi.Pointer<ffi.Double> a,
-  ffi.Int32 lda,
-  ffi.Double beta,
-  ffi.Pointer<ffi.Double> c,
-  ffi.Int32 ldc,
-);
-typedef _CblasDsyrk = void Function(
-  int order,
-  int uplo,
-  int trans,
-  int n,
-  int k,
-  double alpha,
-  ffi.Pointer<ffi.Double> a,
-  int lda,
-  double beta,
-  ffi.Pointer<ffi.Double> c,
-  int ldc,
-);
-
-typedef _CblasSsyrkNative = ffi.Void Function(
-  ffi.Int32 order,
-  ffi.Int32 uplo,
-  ffi.Int32 trans,
-  ffi.Int32 n,
-  ffi.Int32 k,
-  ffi.Float alpha,
-  ffi.Pointer<ffi.Float> a,
-  ffi.Int32 lda,
-  ffi.Float beta,
-  ffi.Pointer<ffi.Float> c,
-  ffi.Int32 ldc,
-);
-typedef _CblasSsyrk = void Function(
-  int order,
-  int uplo,
-  int trans,
-  int n,
-  int k,
-  double alpha,
-  ffi.Pointer<ffi.Float> a,
-  int lda,
-  double beta,
-  ffi.Pointer<ffi.Float> c,
-  int ldc,
-);
-typedef _CblasDsyr2Native = ffi.Void Function(
-  ffi.Int32 order,
-  ffi.Int32 uplo,
-  ffi.Int32 n,
-  ffi.Double alpha,
-  ffi.Pointer<ffi.Double> x,
-  ffi.Int32 incX,
-  ffi.Pointer<ffi.Double> y,
-  ffi.Int32 incY,
-  ffi.Pointer<ffi.Double> a,
-  ffi.Int32 lda,
-);
-typedef _CblasDsyr2 = void Function(
-  int order,
-  int uplo,
-  int n,
-  double alpha,
-  ffi.Pointer<ffi.Double> x,
-  int incX,
-  ffi.Pointer<ffi.Double> y,
-  int incY,
-  ffi.Pointer<ffi.Double> a,
-  int lda,
-);
-
-typedef _CblasSsyr2Native = ffi.Void Function(
-  ffi.Int32 order,
-  ffi.Int32 uplo,
-  ffi.Int32 n,
-  ffi.Float alpha,
-  ffi.Pointer<ffi.Float> x,
-  ffi.Int32 incX,
-  ffi.Pointer<ffi.Float> y,
-  ffi.Int32 incY,
-  ffi.Pointer<ffi.Float> a,
-  ffi.Int32 lda,
-);
-typedef _CblasSsyr2 = void Function(
-  int order,
-  int uplo,
-  int n,
-  double alpha,
-  ffi.Pointer<ffi.Float> x,
-  int incX,
-  ffi.Pointer<ffi.Float> y,
-  int incY,
-  ffi.Pointer<ffi.Float> a,
-  int lda,
-);
-
-typedef _FortranDgesvNative = ffi.Void Function(
-  ffi.Pointer<ffi.Int32> n,
-  ffi.Pointer<ffi.Int32> nrhs,
-  ffi.Pointer<ffi.Double> a,
-  ffi.Pointer<ffi.Int32> lda,
-  ffi.Pointer<ffi.Int32> ipiv,
-  ffi.Pointer<ffi.Double> b,
-  ffi.Pointer<ffi.Int32> ldb,
-  ffi.Pointer<ffi.Int32> info,
-);
-typedef _FortranDgesv = void Function(
-  ffi.Pointer<ffi.Int32> n,
-  ffi.Pointer<ffi.Int32> nrhs,
-  ffi.Pointer<ffi.Double> a,
-  ffi.Pointer<ffi.Int32> lda,
-  ffi.Pointer<ffi.Int32> ipiv,
-  ffi.Pointer<ffi.Double> b,
-  ffi.Pointer<ffi.Int32> ldb,
-  ffi.Pointer<ffi.Int32> info,
-);
-
-typedef _FortranDpotrfNative = ffi.Void Function(
-  ffi.Pointer<ffi.Uint8> uplo,
-  ffi.Pointer<ffi.Int32> n,
-  ffi.Pointer<ffi.Double> a,
-  ffi.Pointer<ffi.Int32> lda,
-  ffi.Pointer<ffi.Int32> info,
-);
-typedef _FortranDpotrf = void Function(
-  ffi.Pointer<ffi.Uint8> uplo,
-  ffi.Pointer<ffi.Int32> n,
-  ffi.Pointer<ffi.Double> a,
-  ffi.Pointer<ffi.Int32> lda,
-  ffi.Pointer<ffi.Int32> info,
-);
-
-typedef _FortranDgeqrfNative = ffi.Void Function(
-  ffi.Pointer<ffi.Int32> m,
-  ffi.Pointer<ffi.Int32> n,
-  ffi.Pointer<ffi.Double> a,
-  ffi.Pointer<ffi.Int32> lda,
-  ffi.Pointer<ffi.Double> tau,
-  ffi.Pointer<ffi.Double> work,
-  ffi.Pointer<ffi.Int32> lwork,
-  ffi.Pointer<ffi.Int32> info,
-);
-typedef _FortranDgeqrf = void Function(
-  ffi.Pointer<ffi.Int32> m,
-  ffi.Pointer<ffi.Int32> n,
-  ffi.Pointer<ffi.Double> a,
-  ffi.Pointer<ffi.Int32> lda,
-  ffi.Pointer<ffi.Double> tau,
-  ffi.Pointer<ffi.Double> work,
-  ffi.Pointer<ffi.Int32> lwork,
-  ffi.Pointer<ffi.Int32> info,
-);
-
-typedef _FortranDgesvdNative = ffi.Void Function(
-  ffi.Pointer<ffi.Uint8> jobu,
-  ffi.Pointer<ffi.Uint8> jobvt,
-  ffi.Pointer<ffi.Int32> m,
-  ffi.Pointer<ffi.Int32> n,
-  ffi.Pointer<ffi.Double> a,
-  ffi.Pointer<ffi.Int32> lda,
-  ffi.Pointer<ffi.Double> s,
-  ffi.Pointer<ffi.Double> u,
-  ffi.Pointer<ffi.Int32> ldu,
-  ffi.Pointer<ffi.Double> vt,
-  ffi.Pointer<ffi.Int32> ldvt,
-  ffi.Pointer<ffi.Double> work,
-  ffi.Pointer<ffi.Int32> lwork,
-  ffi.Pointer<ffi.Int32> info,
-);
-typedef _FortranDgesvd = void Function(
-  ffi.Pointer<ffi.Uint8> jobu,
-  ffi.Pointer<ffi.Uint8> jobvt,
-  ffi.Pointer<ffi.Int32> m,
-  ffi.Pointer<ffi.Int32> n,
-  ffi.Pointer<ffi.Double> a,
-  ffi.Pointer<ffi.Int32> lda,
-  ffi.Pointer<ffi.Double> s,
-  ffi.Pointer<ffi.Double> u,
-  ffi.Pointer<ffi.Int32> ldu,
-  ffi.Pointer<ffi.Double> vt,
-  ffi.Pointer<ffi.Int32> ldvt,
-  ffi.Pointer<ffi.Double> work,
-  ffi.Pointer<ffi.Int32> lwork,
-  ffi.Pointer<ffi.Int32> info,
-);
-
-typedef _FortranDgesddNative = ffi.Void Function(
-  ffi.Pointer<ffi.Uint8> jobz,
-  ffi.Pointer<ffi.Int32> m,
-  ffi.Pointer<ffi.Int32> n,
-  ffi.Pointer<ffi.Double> a,
-  ffi.Pointer<ffi.Int32> lda,
-  ffi.Pointer<ffi.Double> s,
-  ffi.Pointer<ffi.Double> u,
-  ffi.Pointer<ffi.Int32> ldu,
-  ffi.Pointer<ffi.Double> vt,
-  ffi.Pointer<ffi.Int32> ldvt,
-  ffi.Pointer<ffi.Double> work,
-  ffi.Pointer<ffi.Int32> lwork,
-  ffi.Pointer<ffi.Int32> iwork,
-  ffi.Pointer<ffi.Int32> info,
-);
-typedef _FortranDgesdd = void Function(
-  ffi.Pointer<ffi.Uint8> jobz,
-  ffi.Pointer<ffi.Int32> m,
-  ffi.Pointer<ffi.Int32> n,
-  ffi.Pointer<ffi.Double> a,
-  ffi.Pointer<ffi.Int32> lda,
-  ffi.Pointer<ffi.Double> s,
-  ffi.Pointer<ffi.Double> u,
-  ffi.Pointer<ffi.Int32> ldu,
-  ffi.Pointer<ffi.Double> vt,
-  ffi.Pointer<ffi.Int32> ldvt,
-  ffi.Pointer<ffi.Double> work,
-  ffi.Pointer<ffi.Int32> lwork,
-  ffi.Pointer<ffi.Int32> iwork,
-  ffi.Pointer<ffi.Int32> info,
-);
-
-typedef _LapackeDgesvNative = ffi.Int32 Function(
-  ffi.Int32 matrixLayout,
-  ffi.Int32 n,
-  ffi.Int32 nrhs,
-  ffi.Pointer<ffi.Double> a,
-  ffi.Int32 lda,
-  ffi.Pointer<ffi.Int32> ipiv,
-  ffi.Pointer<ffi.Double> b,
-  ffi.Int32 ldb,
-);
-typedef _LapackeDgesv = int Function(
-  int matrixLayout,
-  int n,
-  int nrhs,
-  ffi.Pointer<ffi.Double> a,
-  int lda,
-  ffi.Pointer<ffi.Int32> ipiv,
-  ffi.Pointer<ffi.Double> b,
-  int ldb,
-);
-
-typedef _FortranDgetrfNative = ffi.Void Function(
-  ffi.Pointer<ffi.Int32> m,
-  ffi.Pointer<ffi.Int32> n,
-  ffi.Pointer<ffi.Double> a,
-  ffi.Pointer<ffi.Int32> lda,
-  ffi.Pointer<ffi.Int32> ipiv,
-  ffi.Pointer<ffi.Int32> info,
-);
-typedef _FortranDgetrf = void Function(
-  ffi.Pointer<ffi.Int32> m,
-  ffi.Pointer<ffi.Int32> n,
-  ffi.Pointer<ffi.Double> a,
-  ffi.Pointer<ffi.Int32> lda,
-  ffi.Pointer<ffi.Int32> ipiv,
-  ffi.Pointer<ffi.Int32> info,
-);
-
-typedef _FortranDgetrsNative = ffi.Void Function(
-  ffi.Pointer<ffi.Uint8> trans,
-  ffi.Pointer<ffi.Int32> n,
-  ffi.Pointer<ffi.Int32> nrhs,
-  ffi.Pointer<ffi.Double> a,
-  ffi.Pointer<ffi.Int32> lda,
-  ffi.Pointer<ffi.Int32> ipiv,
-  ffi.Pointer<ffi.Double> b,
-  ffi.Pointer<ffi.Int32> ldb,
-  ffi.Pointer<ffi.Int32> info,
-);
-typedef _FortranDgetrs = void Function(
-  ffi.Pointer<ffi.Uint8> trans,
-  ffi.Pointer<ffi.Int32> n,
-  ffi.Pointer<ffi.Int32> nrhs,
-  ffi.Pointer<ffi.Double> a,
-  ffi.Pointer<ffi.Int32> lda,
-  ffi.Pointer<ffi.Int32> ipiv,
-  ffi.Pointer<ffi.Double> b,
-  ffi.Pointer<ffi.Int32> ldb,
-  ffi.Pointer<ffi.Int32> info,
-);
-
-typedef _LapackeDgelsNative = ffi.Int32 Function(
-  ffi.Int32 matrixLayout,
-  ffi.Uint8 trans,
-  ffi.Int32 m,
-  ffi.Int32 n,
-  ffi.Int32 nrhs,
-  ffi.Pointer<ffi.Double> a,
-  ffi.Int32 lda,
-  ffi.Pointer<ffi.Double> b,
-  ffi.Int32 ldb,
-);
-typedef _LapackeDgels = int Function(
-  int matrixLayout,
-  int trans,
-  int m,
-  int n,
-  int nrhs,
-  ffi.Pointer<ffi.Double> a,
-  int lda,
-  ffi.Pointer<ffi.Double> b,
-  int ldb,
-);
-
-typedef _FortranDgelsNative = ffi.Void Function(
-  ffi.Pointer<ffi.Uint8> trans,
-  ffi.Pointer<ffi.Int32> m,
-  ffi.Pointer<ffi.Int32> n,
-  ffi.Pointer<ffi.Int32> nrhs,
-  ffi.Pointer<ffi.Double> a,
-  ffi.Pointer<ffi.Int32> lda,
-  ffi.Pointer<ffi.Double> b,
-  ffi.Pointer<ffi.Int32> ldb,
-  ffi.Pointer<ffi.Double> work,
-  ffi.Pointer<ffi.Int32> lwork,
-  ffi.Pointer<ffi.Int32> info,
-);
-typedef _FortranDgels = void Function(
-  ffi.Pointer<ffi.Uint8> trans,
-  ffi.Pointer<ffi.Int32> m,
-  ffi.Pointer<ffi.Int32> n,
-  ffi.Pointer<ffi.Int32> nrhs,
-  ffi.Pointer<ffi.Double> a,
-  ffi.Pointer<ffi.Int32> lda,
-  ffi.Pointer<ffi.Double> b,
-  ffi.Pointer<ffi.Int32> ldb,
-  ffi.Pointer<ffi.Double> work,
-  ffi.Pointer<ffi.Int32> lwork,
-  ffi.Pointer<ffi.Int32> info,
-);
+/// Loads the platform BLAS library.
+BlasLibrary loadBlas() => BlasLibrary._(_loadPlatformLibraries());
 
 /// Native BLAS/LAPACK bindings via dart:ffi.
 class BlasLibrary {
@@ -719,15 +149,6 @@ class BlasLibrary {
 
   final List<ffi.DynamicLibrary> _libraries;
 
-  T? _lookup<T extends Function>(T Function(ffi.DynamicLibrary lib) lookup) {
-    for (final lib in _libraries) {
-      try {
-        return lookup(lib);
-      } catch (_) {}
-    }
-    return null;
-  }
-
   _CblasDgemm? _dgemm;
   _CblasSgemm? _sgemm;
   _CblasDgemv? _dgemv;
@@ -762,36 +183,6 @@ class BlasLibrary {
 
   /// Whether native SVD factorization (_dgesvd or _dgesdd) is bound.
   bool get hasDgesvd => _dgesvd != null || _dgesdd != null;
-
-  static ffi.Pointer<ffi.Double>? _pointerForDouble(
-    Float64List list,
-    int offset,
-  ) {
-    final nb = NativeBuffer.find(list);
-    if (nb != null && !nb.isDisposed) {
-      final ptr = nb.asDoublePointer;
-      if (ptr != null) {
-        final elemOffset = list.offsetInBytes ~/ 8;
-        return ptr + elemOffset + offset;
-      }
-    }
-    return null;
-  }
-
-  static ffi.Pointer<ffi.Float>? _pointerForFloat(
-    Float32List list,
-    int offset,
-  ) {
-    final nb = NativeBuffer.find(list);
-    if (nb != null && !nb.isDisposed) {
-      final ptr = nb.asFloatPointer;
-      if (ptr != null) {
-        final elemOffset = list.offsetInBytes ~/ 4;
-        return ptr + elemOffset + offset;
-      }
-    }
-    return null;
-  }
 
   bool dgemm({
     int transA = cblasNoTrans,
@@ -1523,50 +914,6 @@ class BlasLibrary {
     });
   }
 
-  static void _mirrorSymmetricDouble(
-    Float64List c,
-    int cOffset,
-    int n,
-    int ldc,
-    int uplo,
-  ) {
-    if (uplo == cblasUpper) {
-      for (var i = 0; i < n; i++) {
-        for (var j = i + 1; j < n; j++) {
-          c[cOffset + j * ldc + i] = c[cOffset + i * ldc + j];
-        }
-      }
-    } else {
-      for (var i = 0; i < n; i++) {
-        for (var j = i + 1; j < n; j++) {
-          c[cOffset + i * ldc + j] = c[cOffset + j * ldc + i];
-        }
-      }
-    }
-  }
-
-  static void _mirrorSymmetricFloat(
-    Float32List c,
-    int cOffset,
-    int n,
-    int ldc,
-    int uplo,
-  ) {
-    if (uplo == cblasUpper) {
-      for (var i = 0; i < n; i++) {
-        for (var j = i + 1; j < n; j++) {
-          c[cOffset + j * ldc + i] = c[cOffset + i * ldc + j];
-        }
-      }
-    } else {
-      for (var i = 0; i < n; i++) {
-        for (var j = i + 1; j < n; j++) {
-          c[cOffset + i * ldc + j] = c[cOffset + j * ldc + i];
-        }
-      }
-    }
-  }
-
   bool dsyr2({
     int uplo = cblasUpper,
     required int n,
@@ -1971,6 +1318,89 @@ class BlasLibrary {
 
     return false;
   }
+
+  T? _lookup<T extends Function>(T Function(ffi.DynamicLibrary lib) lookup) {
+    for (final lib in _libraries) {
+      try {
+        return lookup(lib);
+      } catch (_) {}
+    }
+    return null;
+  }
+
+  static ffi.Pointer<ffi.Double>? _pointerForDouble(
+    Float64List list,
+    int offset,
+  ) {
+    final nb = NativeBuffer.find(list);
+    if (nb != null && !nb.isDisposed) {
+      final ptr = nb.asDoublePointer;
+      if (ptr != null) {
+        final elemOffset = list.offsetInBytes ~/ 8;
+        return ptr + elemOffset + offset;
+      }
+    }
+    return null;
+  }
+
+  static ffi.Pointer<ffi.Float>? _pointerForFloat(
+    Float32List list,
+    int offset,
+  ) {
+    final nb = NativeBuffer.find(list);
+    if (nb != null && !nb.isDisposed) {
+      final ptr = nb.asFloatPointer;
+      if (ptr != null) {
+        final elemOffset = list.offsetInBytes ~/ 4;
+        return ptr + elemOffset + offset;
+      }
+    }
+    return null;
+  }
+
+  static void _mirrorSymmetricDouble(
+    Float64List c,
+    int cOffset,
+    int n,
+    int ldc,
+    int uplo,
+  ) {
+    if (uplo == cblasUpper) {
+      for (var i = 0; i < n; i++) {
+        for (var j = i + 1; j < n; j++) {
+          c[cOffset + j * ldc + i] = c[cOffset + i * ldc + j];
+        }
+      }
+    } else {
+      for (var i = 0; i < n; i++) {
+        for (var j = i + 1; j < n; j++) {
+          c[cOffset + i * ldc + j] = c[cOffset + j * ldc + i];
+        }
+      }
+    }
+  }
+
+  static void _mirrorSymmetricFloat(
+    Float32List c,
+    int cOffset,
+    int n,
+    int ldc,
+    int uplo,
+  ) {
+    if (uplo == cblasUpper) {
+      for (var i = 0; i < n; i++) {
+        for (var j = i + 1; j < n; j++) {
+          c[cOffset + j * ldc + i] = c[cOffset + i * ldc + j];
+        }
+      }
+    } else {
+      for (var i = 0; i < n; i++) {
+        for (var j = i + 1; j < n; j++) {
+          c[cOffset + i * ldc + j] = c[cOffset + j * ldc + i];
+        }
+      }
+    }
+  }
 }
 
 List<ffi.DynamicLibrary> _loadPlatformLibraries() {
@@ -2015,5 +1445,575 @@ List<ffi.DynamicLibrary> _loadPlatformLibraries() {
   return libs;
 }
 
-/// Loads the platform BLAS library.
-BlasLibrary loadBlas() => BlasLibrary._(_loadPlatformLibraries());
+typedef _CblasDgemmNative = ffi.Void Function(
+  ffi.Int32 order,
+  ffi.Int32 transA,
+  ffi.Int32 transB,
+  ffi.Int32 m,
+  ffi.Int32 n,
+  ffi.Int32 k,
+  ffi.Double alpha,
+  ffi.Pointer<ffi.Double> a,
+  ffi.Int32 lda,
+  ffi.Pointer<ffi.Double> b,
+  ffi.Int32 ldb,
+  ffi.Double beta,
+  ffi.Pointer<ffi.Double> c,
+  ffi.Int32 ldc,
+);
+typedef _CblasDgemm = void Function(
+  int order,
+  int transA,
+  int transB,
+  int m,
+  int n,
+  int k,
+  double alpha,
+  ffi.Pointer<ffi.Double> a,
+  int lda,
+  ffi.Pointer<ffi.Double> b,
+  int ldb,
+  double beta,
+  ffi.Pointer<ffi.Double> c,
+  int ldc,
+);
+
+typedef _CblasSgemmNative = ffi.Void Function(
+  ffi.Int32 order,
+  ffi.Int32 transA,
+  ffi.Int32 transB,
+  ffi.Int32 m,
+  ffi.Int32 n,
+  ffi.Int32 k,
+  ffi.Float alpha,
+  ffi.Pointer<ffi.Float> a,
+  ffi.Int32 lda,
+  ffi.Pointer<ffi.Float> b,
+  ffi.Int32 ldb,
+  ffi.Float beta,
+  ffi.Pointer<ffi.Float> c,
+  ffi.Int32 ldc,
+);
+typedef _CblasSgemm = void Function(
+  int order,
+  int transA,
+  int transB,
+  int m,
+  int n,
+  int k,
+  double alpha,
+  ffi.Pointer<ffi.Float> a,
+  int lda,
+  ffi.Pointer<ffi.Float> b,
+  int ldb,
+  double beta,
+  ffi.Pointer<ffi.Float> c,
+  int ldc,
+);
+
+typedef _CblasDgemvNative = ffi.Void Function(
+  ffi.Int32 order,
+  ffi.Int32 transA,
+  ffi.Int32 m,
+  ffi.Int32 n,
+  ffi.Double alpha,
+  ffi.Pointer<ffi.Double> a,
+  ffi.Int32 lda,
+  ffi.Pointer<ffi.Double> x,
+  ffi.Int32 incX,
+  ffi.Double beta,
+  ffi.Pointer<ffi.Double> y,
+  ffi.Int32 incY,
+);
+typedef _CblasDgemv = void Function(
+  int order,
+  int transA,
+  int m,
+  int n,
+  double alpha,
+  ffi.Pointer<ffi.Double> a,
+  int lda,
+  ffi.Pointer<ffi.Double> x,
+  int incX,
+  double beta,
+  ffi.Pointer<ffi.Double> y,
+  int incY,
+);
+
+typedef _CblasSgemvNative = ffi.Void Function(
+  ffi.Int32 order,
+  ffi.Int32 transA,
+  ffi.Int32 m,
+  ffi.Int32 n,
+  ffi.Float alpha,
+  ffi.Pointer<ffi.Float> a,
+  ffi.Int32 lda,
+  ffi.Pointer<ffi.Float> x,
+  ffi.Int32 incX,
+  ffi.Float beta,
+  ffi.Pointer<ffi.Float> y,
+  ffi.Int32 incY,
+);
+typedef _CblasSgemv = void Function(
+  int order,
+  int transA,
+  int m,
+  int n,
+  double alpha,
+  ffi.Pointer<ffi.Float> a,
+  int lda,
+  ffi.Pointer<ffi.Float> x,
+  int incX,
+  double beta,
+  ffi.Pointer<ffi.Float> y,
+  int incY,
+);
+
+typedef _CblasDdotNative = ffi.Double Function(
+  ffi.Int32 n,
+  ffi.Pointer<ffi.Double> x,
+  ffi.Int32 incX,
+  ffi.Pointer<ffi.Double> y,
+  ffi.Int32 incY,
+);
+typedef _CblasDdot = double Function(
+  int n,
+  ffi.Pointer<ffi.Double> x,
+  int incX,
+  ffi.Pointer<ffi.Double> y,
+  int incY,
+);
+
+typedef _CblasSdotNative = ffi.Float Function(
+  ffi.Int32 n,
+  ffi.Pointer<ffi.Float> x,
+  ffi.Int32 incX,
+  ffi.Pointer<ffi.Float> y,
+  ffi.Int32 incY,
+);
+typedef _CblasSdot = double Function(
+  int n,
+  ffi.Pointer<ffi.Float> x,
+  int incX,
+  ffi.Pointer<ffi.Float> y,
+  int incY,
+);
+
+typedef _CblasDnrm2Native = ffi.Double Function(
+  ffi.Int32 n,
+  ffi.Pointer<ffi.Double> x,
+  ffi.Int32 incX,
+);
+typedef _CblasDnrm2 = double Function(
+  int n,
+  ffi.Pointer<ffi.Double> x,
+  int incX,
+);
+
+typedef _CblasSnrm2Native = ffi.Float Function(
+  ffi.Int32 n,
+  ffi.Pointer<ffi.Float> x,
+  ffi.Int32 incX,
+);
+typedef _CblasSnrm2 = double Function(
+  int n,
+  ffi.Pointer<ffi.Float> x,
+  int incX,
+);
+
+typedef _CblasDaxpyNative = ffi.Void Function(
+  ffi.Int32 n,
+  ffi.Double alpha,
+  ffi.Pointer<ffi.Double> x,
+  ffi.Int32 incX,
+  ffi.Pointer<ffi.Double> y,
+  ffi.Int32 incY,
+);
+typedef _CblasDaxpy = void Function(
+  int n,
+  double alpha,
+  ffi.Pointer<ffi.Double> x,
+  int incX,
+  ffi.Pointer<ffi.Double> y,
+  int incY,
+);
+
+typedef _CblasSaxpyNative = ffi.Void Function(
+  ffi.Int32 n,
+  ffi.Float alpha,
+  ffi.Pointer<ffi.Float> x,
+  ffi.Int32 incX,
+  ffi.Pointer<ffi.Float> y,
+  ffi.Int32 incY,
+);
+typedef _CblasSaxpy = void Function(
+  int n,
+  double alpha,
+  ffi.Pointer<ffi.Float> x,
+  int incX,
+  ffi.Pointer<ffi.Float> y,
+  int incY,
+);
+
+typedef _CblasDscalNative = ffi.Void Function(
+  ffi.Int32 n,
+  ffi.Double alpha,
+  ffi.Pointer<ffi.Double> x,
+  ffi.Int32 incX,
+);
+typedef _CblasDscal = void Function(
+  int n,
+  double alpha,
+  ffi.Pointer<ffi.Double> x,
+  int incX,
+);
+
+typedef _CblasSscalNative = ffi.Void Function(
+  ffi.Int32 n,
+  ffi.Float alpha,
+  ffi.Pointer<ffi.Float> x,
+  ffi.Int32 incX,
+);
+typedef _CblasSscal = void Function(
+  int n,
+  double alpha,
+  ffi.Pointer<ffi.Float> x,
+  int incX,
+);
+
+typedef _CblasDsyrkNative = ffi.Void Function(
+  ffi.Int32 order,
+  ffi.Int32 uplo,
+  ffi.Int32 trans,
+  ffi.Int32 n,
+  ffi.Int32 k,
+  ffi.Double alpha,
+  ffi.Pointer<ffi.Double> a,
+  ffi.Int32 lda,
+  ffi.Double beta,
+  ffi.Pointer<ffi.Double> c,
+  ffi.Int32 ldc,
+);
+typedef _CblasDsyrk = void Function(
+  int order,
+  int uplo,
+  int trans,
+  int n,
+  int k,
+  double alpha,
+  ffi.Pointer<ffi.Double> a,
+  int lda,
+  double beta,
+  ffi.Pointer<ffi.Double> c,
+  int ldc,
+);
+
+typedef _CblasSsyrkNative = ffi.Void Function(
+  ffi.Int32 order,
+  ffi.Int32 uplo,
+  ffi.Int32 trans,
+  ffi.Int32 n,
+  ffi.Int32 k,
+  ffi.Float alpha,
+  ffi.Pointer<ffi.Float> a,
+  ffi.Int32 lda,
+  ffi.Float beta,
+  ffi.Pointer<ffi.Float> c,
+  ffi.Int32 ldc,
+);
+typedef _CblasSsyrk = void Function(
+  int order,
+  int uplo,
+  int trans,
+  int n,
+  int k,
+  double alpha,
+  ffi.Pointer<ffi.Float> a,
+  int lda,
+  double beta,
+  ffi.Pointer<ffi.Float> c,
+  int ldc,
+);
+typedef _CblasDsyr2Native = ffi.Void Function(
+  ffi.Int32 order,
+  ffi.Int32 uplo,
+  ffi.Int32 n,
+  ffi.Double alpha,
+  ffi.Pointer<ffi.Double> x,
+  ffi.Int32 incX,
+  ffi.Pointer<ffi.Double> y,
+  ffi.Int32 incY,
+  ffi.Pointer<ffi.Double> a,
+  ffi.Int32 lda,
+);
+typedef _CblasDsyr2 = void Function(
+  int order,
+  int uplo,
+  int n,
+  double alpha,
+  ffi.Pointer<ffi.Double> x,
+  int incX,
+  ffi.Pointer<ffi.Double> y,
+  int incY,
+  ffi.Pointer<ffi.Double> a,
+  int lda,
+);
+
+typedef _CblasSsyr2Native = ffi.Void Function(
+  ffi.Int32 order,
+  ffi.Int32 uplo,
+  ffi.Int32 n,
+  ffi.Float alpha,
+  ffi.Pointer<ffi.Float> x,
+  ffi.Int32 incX,
+  ffi.Pointer<ffi.Float> y,
+  ffi.Int32 incY,
+  ffi.Pointer<ffi.Float> a,
+  ffi.Int32 lda,
+);
+typedef _CblasSsyr2 = void Function(
+  int order,
+  int uplo,
+  int n,
+  double alpha,
+  ffi.Pointer<ffi.Float> x,
+  int incX,
+  ffi.Pointer<ffi.Float> y,
+  int incY,
+  ffi.Pointer<ffi.Float> a,
+  int lda,
+);
+
+typedef _FortranDgesvNative = ffi.Void Function(
+  ffi.Pointer<ffi.Int32> n,
+  ffi.Pointer<ffi.Int32> nrhs,
+  ffi.Pointer<ffi.Double> a,
+  ffi.Pointer<ffi.Int32> lda,
+  ffi.Pointer<ffi.Int32> ipiv,
+  ffi.Pointer<ffi.Double> b,
+  ffi.Pointer<ffi.Int32> ldb,
+  ffi.Pointer<ffi.Int32> info,
+);
+typedef _FortranDgesv = void Function(
+  ffi.Pointer<ffi.Int32> n,
+  ffi.Pointer<ffi.Int32> nrhs,
+  ffi.Pointer<ffi.Double> a,
+  ffi.Pointer<ffi.Int32> lda,
+  ffi.Pointer<ffi.Int32> ipiv,
+  ffi.Pointer<ffi.Double> b,
+  ffi.Pointer<ffi.Int32> ldb,
+  ffi.Pointer<ffi.Int32> info,
+);
+
+typedef _FortranDpotrfNative = ffi.Void Function(
+  ffi.Pointer<ffi.Uint8> uplo,
+  ffi.Pointer<ffi.Int32> n,
+  ffi.Pointer<ffi.Double> a,
+  ffi.Pointer<ffi.Int32> lda,
+  ffi.Pointer<ffi.Int32> info,
+);
+typedef _FortranDpotrf = void Function(
+  ffi.Pointer<ffi.Uint8> uplo,
+  ffi.Pointer<ffi.Int32> n,
+  ffi.Pointer<ffi.Double> a,
+  ffi.Pointer<ffi.Int32> lda,
+  ffi.Pointer<ffi.Int32> info,
+);
+
+typedef _FortranDgeqrfNative = ffi.Void Function(
+  ffi.Pointer<ffi.Int32> m,
+  ffi.Pointer<ffi.Int32> n,
+  ffi.Pointer<ffi.Double> a,
+  ffi.Pointer<ffi.Int32> lda,
+  ffi.Pointer<ffi.Double> tau,
+  ffi.Pointer<ffi.Double> work,
+  ffi.Pointer<ffi.Int32> lwork,
+  ffi.Pointer<ffi.Int32> info,
+);
+typedef _FortranDgeqrf = void Function(
+  ffi.Pointer<ffi.Int32> m,
+  ffi.Pointer<ffi.Int32> n,
+  ffi.Pointer<ffi.Double> a,
+  ffi.Pointer<ffi.Int32> lda,
+  ffi.Pointer<ffi.Double> tau,
+  ffi.Pointer<ffi.Double> work,
+  ffi.Pointer<ffi.Int32> lwork,
+  ffi.Pointer<ffi.Int32> info,
+);
+
+typedef _FortranDgesvdNative = ffi.Void Function(
+  ffi.Pointer<ffi.Uint8> jobu,
+  ffi.Pointer<ffi.Uint8> jobvt,
+  ffi.Pointer<ffi.Int32> m,
+  ffi.Pointer<ffi.Int32> n,
+  ffi.Pointer<ffi.Double> a,
+  ffi.Pointer<ffi.Int32> lda,
+  ffi.Pointer<ffi.Double> s,
+  ffi.Pointer<ffi.Double> u,
+  ffi.Pointer<ffi.Int32> ldu,
+  ffi.Pointer<ffi.Double> vt,
+  ffi.Pointer<ffi.Int32> ldvt,
+  ffi.Pointer<ffi.Double> work,
+  ffi.Pointer<ffi.Int32> lwork,
+  ffi.Pointer<ffi.Int32> info,
+);
+typedef _FortranDgesvd = void Function(
+  ffi.Pointer<ffi.Uint8> jobu,
+  ffi.Pointer<ffi.Uint8> jobvt,
+  ffi.Pointer<ffi.Int32> m,
+  ffi.Pointer<ffi.Int32> n,
+  ffi.Pointer<ffi.Double> a,
+  ffi.Pointer<ffi.Int32> lda,
+  ffi.Pointer<ffi.Double> s,
+  ffi.Pointer<ffi.Double> u,
+  ffi.Pointer<ffi.Int32> ldu,
+  ffi.Pointer<ffi.Double> vt,
+  ffi.Pointer<ffi.Int32> ldvt,
+  ffi.Pointer<ffi.Double> work,
+  ffi.Pointer<ffi.Int32> lwork,
+  ffi.Pointer<ffi.Int32> info,
+);
+
+typedef _FortranDgesddNative = ffi.Void Function(
+  ffi.Pointer<ffi.Uint8> jobz,
+  ffi.Pointer<ffi.Int32> m,
+  ffi.Pointer<ffi.Int32> n,
+  ffi.Pointer<ffi.Double> a,
+  ffi.Pointer<ffi.Int32> lda,
+  ffi.Pointer<ffi.Double> s,
+  ffi.Pointer<ffi.Double> u,
+  ffi.Pointer<ffi.Int32> ldu,
+  ffi.Pointer<ffi.Double> vt,
+  ffi.Pointer<ffi.Int32> ldvt,
+  ffi.Pointer<ffi.Double> work,
+  ffi.Pointer<ffi.Int32> lwork,
+  ffi.Pointer<ffi.Int32> iwork,
+  ffi.Pointer<ffi.Int32> info,
+);
+typedef _FortranDgesdd = void Function(
+  ffi.Pointer<ffi.Uint8> jobz,
+  ffi.Pointer<ffi.Int32> m,
+  ffi.Pointer<ffi.Int32> n,
+  ffi.Pointer<ffi.Double> a,
+  ffi.Pointer<ffi.Int32> lda,
+  ffi.Pointer<ffi.Double> s,
+  ffi.Pointer<ffi.Double> u,
+  ffi.Pointer<ffi.Int32> ldu,
+  ffi.Pointer<ffi.Double> vt,
+  ffi.Pointer<ffi.Int32> ldvt,
+  ffi.Pointer<ffi.Double> work,
+  ffi.Pointer<ffi.Int32> lwork,
+  ffi.Pointer<ffi.Int32> iwork,
+  ffi.Pointer<ffi.Int32> info,
+);
+
+typedef _LapackeDgesvNative = ffi.Int32 Function(
+  ffi.Int32 matrixLayout,
+  ffi.Int32 n,
+  ffi.Int32 nrhs,
+  ffi.Pointer<ffi.Double> a,
+  ffi.Int32 lda,
+  ffi.Pointer<ffi.Int32> ipiv,
+  ffi.Pointer<ffi.Double> b,
+  ffi.Int32 ldb,
+);
+typedef _LapackeDgesv = int Function(
+  int matrixLayout,
+  int n,
+  int nrhs,
+  ffi.Pointer<ffi.Double> a,
+  int lda,
+  ffi.Pointer<ffi.Int32> ipiv,
+  ffi.Pointer<ffi.Double> b,
+  int ldb,
+);
+
+typedef _FortranDgetrfNative = ffi.Void Function(
+  ffi.Pointer<ffi.Int32> m,
+  ffi.Pointer<ffi.Int32> n,
+  ffi.Pointer<ffi.Double> a,
+  ffi.Pointer<ffi.Int32> lda,
+  ffi.Pointer<ffi.Int32> ipiv,
+  ffi.Pointer<ffi.Int32> info,
+);
+typedef _FortranDgetrf = void Function(
+  ffi.Pointer<ffi.Int32> m,
+  ffi.Pointer<ffi.Int32> n,
+  ffi.Pointer<ffi.Double> a,
+  ffi.Pointer<ffi.Int32> lda,
+  ffi.Pointer<ffi.Int32> ipiv,
+  ffi.Pointer<ffi.Int32> info,
+);
+
+typedef _FortranDgetrsNative = ffi.Void Function(
+  ffi.Pointer<ffi.Uint8> trans,
+  ffi.Pointer<ffi.Int32> n,
+  ffi.Pointer<ffi.Int32> nrhs,
+  ffi.Pointer<ffi.Double> a,
+  ffi.Pointer<ffi.Int32> lda,
+  ffi.Pointer<ffi.Int32> ipiv,
+  ffi.Pointer<ffi.Double> b,
+  ffi.Pointer<ffi.Int32> ldb,
+  ffi.Pointer<ffi.Int32> info,
+);
+typedef _FortranDgetrs = void Function(
+  ffi.Pointer<ffi.Uint8> trans,
+  ffi.Pointer<ffi.Int32> n,
+  ffi.Pointer<ffi.Int32> nrhs,
+  ffi.Pointer<ffi.Double> a,
+  ffi.Pointer<ffi.Int32> lda,
+  ffi.Pointer<ffi.Int32> ipiv,
+  ffi.Pointer<ffi.Double> b,
+  ffi.Pointer<ffi.Int32> ldb,
+  ffi.Pointer<ffi.Int32> info,
+);
+
+typedef _LapackeDgelsNative = ffi.Int32 Function(
+  ffi.Int32 matrixLayout,
+  ffi.Uint8 trans,
+  ffi.Int32 m,
+  ffi.Int32 n,
+  ffi.Int32 nrhs,
+  ffi.Pointer<ffi.Double> a,
+  ffi.Int32 lda,
+  ffi.Pointer<ffi.Double> b,
+  ffi.Int32 ldb,
+);
+typedef _LapackeDgels = int Function(
+  int matrixLayout,
+  int trans,
+  int m,
+  int n,
+  int nrhs,
+  ffi.Pointer<ffi.Double> a,
+  int lda,
+  ffi.Pointer<ffi.Double> b,
+  int ldb,
+);
+
+typedef _FortranDgelsNative = ffi.Void Function(
+  ffi.Pointer<ffi.Uint8> trans,
+  ffi.Pointer<ffi.Int32> m,
+  ffi.Pointer<ffi.Int32> n,
+  ffi.Pointer<ffi.Int32> nrhs,
+  ffi.Pointer<ffi.Double> a,
+  ffi.Pointer<ffi.Int32> lda,
+  ffi.Pointer<ffi.Double> b,
+  ffi.Pointer<ffi.Int32> ldb,
+  ffi.Pointer<ffi.Double> work,
+  ffi.Pointer<ffi.Int32> lwork,
+  ffi.Pointer<ffi.Int32> info,
+);
+typedef _FortranDgels = void Function(
+  ffi.Pointer<ffi.Uint8> trans,
+  ffi.Pointer<ffi.Int32> m,
+  ffi.Pointer<ffi.Int32> n,
+  ffi.Pointer<ffi.Int32> nrhs,
+  ffi.Pointer<ffi.Double> a,
+  ffi.Pointer<ffi.Int32> lda,
+  ffi.Pointer<ffi.Double> b,
+  ffi.Pointer<ffi.Int32> ldb,
+  ffi.Pointer<ffi.Double> work,
+  ffi.Pointer<ffi.Int32> lwork,
+  ffi.Pointer<ffi.Int32> info,
+);

@@ -15,25 +15,6 @@ abstract class Interpolator {
   double call(num x);
 }
 
-int _binarySearchInterval(List<double> xs, double x) {
-  if (x <= xs.first) return 0;
-  if (x >= xs.last) return xs.length - 2;
-  var low = 0;
-  var high = xs.length - 1;
-  while (low <= high) {
-    final mid = (low + high) >> 1;
-    if (xs[mid] <= x) {
-      if (mid + 1 < xs.length && x < xs[mid + 1]) {
-        return mid;
-      }
-      low = mid + 1;
-    } else {
-      high = mid - 1;
-    }
-  }
-  return math.max(0, math.min(xs.length - 2, low - 1));
-}
-
 /// 1D Piecewise linear interpolation.
 class LinearInterpolation implements Interpolator {
   /// Constructs a linear interpolator from strictly increasing points [xs] and [ys].
@@ -274,4 +255,23 @@ class PchipInterpolation implements Interpolator {
 
     return h00 * y0 + h10 * h * d0 + h01 * y1 + h11 * h * d1;
   }
+}
+
+int _binarySearchInterval(List<double> xs, double x) {
+  if (x <= xs.first) return 0;
+  if (x >= xs.last) return xs.length - 2;
+  var low = 0;
+  var high = xs.length - 1;
+  while (low <= high) {
+    final mid = (low + high) >> 1;
+    if (xs[mid] <= x) {
+      if (mid + 1 < xs.length && x < xs[mid + 1]) {
+        return mid;
+      }
+      low = mid + 1;
+    } else {
+      high = mid - 1;
+    }
+  }
+  return math.max(0, math.min(xs.length - 2, low - 1));
 }

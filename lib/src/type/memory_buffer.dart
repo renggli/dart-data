@@ -1,17 +1,5 @@
 import 'dart:typed_data';
 
-final Map<Object, int> _bufferIds = <Object, int>{};
-int _nextBufferId = 1;
-
-int _getBufferId(Object target) {
-  var id = _bufferIds[target];
-  if (id == null) {
-    id = _nextBufferId++;
-    _bufferIds[target] = id;
-  }
-  return id;
-}
-
 /// Represents a contiguous memory buffer with identity tracking and safe aliasing detection.
 class MemoryBuffer<T> {
   const new empty() : id = 0, data = const [];
@@ -72,4 +60,16 @@ class MemoryBuffer<T> {
     }
     return false;
   }
+}
+
+final Map<Object, int> _bufferIds = <Object, int>{};
+int _nextBufferId = 1;
+
+int _getBufferId(Object target) {
+  var id = _bufferIds[target];
+  if (id == null) {
+    id = _nextBufferId++;
+    _bufferIds[target] = id;
+  }
+  return id;
 }

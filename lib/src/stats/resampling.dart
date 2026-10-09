@@ -157,6 +157,68 @@ BootstrapResult parametricBootstrapDistribution({
   );
 }
 
+/// A deterministic Jackknife resampling technique to estimate variance, bias, and confidence intervals.
+///
+/// See https://en.wikipedia.org/wiki/Jackknife_resampling.
+class Jackknife<T> with ToStringPrinter {
+  new(this.samples, this.statistic, {this.confidenceLevel = 0.95})
+    : assert(samples.isNotEmpty, 'empty samples'),
+      assert(
+        0 < confidenceLevel && confidenceLevel < 1,
+        'confidence level out of range',
+      );
+
+  /// The sample data.
+  final List<T> samples;
+
+  /// The statistical function to measure.
+  final double Function(List<T> list) statistic;
+
+  /// The confidence level for the confidence interval.
+  final double confidenceLevel;
+
+  /// The resamples of the data.
+  late final List<List<T>> resamples = IntegerRange(samples.length)
+      .map((index) => _JackknifeResampling<T>(samples, index))
+      .toList();
+
+  /// The bias.
+  late final double bias =
+      (samples.length - 1) * (_meanResampleMeasure - _sampleMeasure);
+
+  /// The bias corrected estimate.
+  late final double estimate = _sampleMeasure - bias;
+
+  /// The standard error.
+  late final double standardError = math.sqrt(
+    (samples.length - 1) *
+        _resampleMeasures
+            .map((value) => value - _meanResampleMeasure)
+            .map((value) => value * value)
+            .arithmeticMean(),
+  );
+
+  /// The lower bound of the confidence interval.
+  late final double lowerBound = estimate - _zScore * standardError;
+
+  /// The upper bound of the confidence interval.
+  late final double upperBound = estimate + _zScore * standardError;
+
+  @override
+  ObjectPrinter get toStringPrinter => super.toStringPrinter
+    ..addValue(estimate, name: 'estimate')
+    ..addValue(bias, name: 'bias')
+    ..addValue(standardError, name: 'standardError')
+    ..addValue(lowerBound, name: 'lowerBound')
+    ..addValue(upperBound, name: 'upperBound')
+    ..addValue(confidenceLevel, name: 'confidenceLevel');
+
+  late final _sampleMeasure = statistic(samples);
+  late final _resampleMeasures = resamples.map(statistic).toList();
+  late final _meanResampleMeasure = _resampleMeasures.arithmeticMean();
+  late final _zScore = math.sqrt2 * erfInv(confidenceLevel);
+}
+
 BootstrapResult _computeBootstrapResult<T>({
   required List<T> sample,
   required double originalEstimate,
@@ -229,68 +291,6 @@ BootstrapResult _computeBootstrapResult<T>({
     bootstrapEstimates: sortedEstimates,
     confidenceLevel: confidenceLevel,
   );
-}
-
-/// A deterministic Jackknife resampling technique to estimate variance, bias, and confidence intervals.
-///
-/// See https://en.wikipedia.org/wiki/Jackknife_resampling.
-class Jackknife<T> with ToStringPrinter {
-  new(this.samples, this.statistic, {this.confidenceLevel = 0.95})
-    : assert(samples.isNotEmpty, 'empty samples'),
-      assert(
-        0 < confidenceLevel && confidenceLevel < 1,
-        'confidence level out of range',
-      );
-
-  /// The sample data.
-  final List<T> samples;
-
-  /// The statistical function to measure.
-  final double Function(List<T> list) statistic;
-
-  /// The confidence level for the confidence interval.
-  final double confidenceLevel;
-
-  /// The resamples of the data.
-  late final List<List<T>> resamples = IntegerRange(samples.length)
-      .map((index) => _JackknifeResampling<T>(samples, index))
-      .toList();
-
-  /// The bias.
-  late final double bias =
-      (samples.length - 1) * (_meanResampleMeasure - _sampleMeasure);
-
-  /// The bias corrected estimate.
-  late final double estimate = _sampleMeasure - bias;
-
-  /// The standard error.
-  late final double standardError = math.sqrt(
-    (samples.length - 1) *
-        _resampleMeasures
-            .map((value) => value - _meanResampleMeasure)
-            .map((value) => value * value)
-            .arithmeticMean(),
-  );
-
-  /// The lower bound of the confidence interval.
-  late final double lowerBound = estimate - _zScore * standardError;
-
-  /// The upper bound of the confidence interval.
-  late final double upperBound = estimate + _zScore * standardError;
-
-  late final _sampleMeasure = statistic(samples);
-  late final _resampleMeasures = resamples.map(statistic).toList();
-  late final _meanResampleMeasure = _resampleMeasures.arithmeticMean();
-  late final _zScore = math.sqrt2 * erfInv(confidenceLevel);
-
-  @override
-  ObjectPrinter get toStringPrinter => super.toStringPrinter
-    ..addValue(estimate, name: 'estimate')
-    ..addValue(bias, name: 'bias')
-    ..addValue(standardError, name: 'standardError')
-    ..addValue(lowerBound, name: 'lowerBound')
-    ..addValue(upperBound, name: 'upperBound')
-    ..addValue(confidenceLevel, name: 'confidenceLevel');
 }
 
 /// A view of a Jackknife resampling of a [List].

@@ -21,6 +21,11 @@
 - Class names, enums, and extensions must use upper camel-case (e.g., `RecipeCard`).
 - Private class members, variables, and functions (visible only within the file) must be prefixed with an underscore `_`.
 
+### Ordering
+
+- All public members, methods, and constants must be placed at the top of classes and files.
+- All private methods and constants must be placed at the bottom of their respective classes and files.
+
 ### Imports
 
 - Adhere to the `directives_ordering` linter rule: `dart:` imports first, then `package:` imports, then relative imports.

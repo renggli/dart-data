@@ -9,98 +9,30 @@ import '../type/data_type.dart';
 /// Returns the arithmetic mean of [values], or [double.nan] if empty.
 double mean(Iterable<num> values) => _mean(values);
 
-double _mean(Iterable<num> values) {
-  var count = 0;
-  var sum = 0.0;
-  for (final v in values) {
-    count++;
-    sum += v;
-  }
-  return count == 0 ? double.nan : sum / count;
-}
-
 /// Returns the sample or population variance of [values].
 double variance(Iterable<num> values, {bool population = false}) =>
     _variance(values, population: population);
-
-double _variance(Iterable<num> values, {bool population = false}) {
-  var count = 0;
-  var m = 0.0;
-  var m2 = 0.0;
-  for (final v in values) {
-    count++;
-    final delta = v - m;
-    m += delta / count;
-    final delta2 = v - m;
-    m2 += delta * delta2;
-  }
-  final divisor = population ? count : count - 1;
-  return divisor < 1 ? double.nan : m2 / divisor;
-}
 
 /// Returns the standard deviation of [values].
 double standardDeviation(Iterable<num> values, {bool population = false}) =>
     _standardDeviation(values, population: population);
 
-double _standardDeviation(Iterable<num> values, {bool population = false}) =>
-    math.sqrt(_variance(values, population: population));
-
 /// Returns the empirical quantile of [values] for fraction [q] $\in [0, 1]$
 /// using standard linear interpolation between adjacent ranks (Type 7).
 double quantile(Iterable<num> values, num q) => _quantile(values, q);
 
-double _quantile(Iterable<num> values, num q) {
-  final list = values.map((e) => e.toDouble()).toList()..sort();
-  if (list.isEmpty) return double.nan;
-  if (q <= 0.0) return list.first;
-  if (q >= 1.0) return list.last;
-  final idx = q * (list.length - 1);
-  final i = idx.floor();
-  final frac = idx - i;
-  if (i >= list.length - 1) return list.last;
-  return list[i] + frac * (list[i + 1] - list[i]);
-}
-
 /// Returns the [p]-th percentile of [values] where $p \in [0, 100]$.
 double percentile(Iterable<num> values, num p) => _percentile(values, p);
-
-double _percentile(Iterable<num> values, num p) => _quantile(values, p / 100.0);
 
 /// Returns the median of [values].
 double median(Iterable<num> values) => _median(values);
 
-double _median(Iterable<num> values) => _quantile(values, 0.5);
-
 /// Returns the interquartile range (IQR = Q3 - Q1) of [values].
 double iqr(Iterable<num> values) => _iqr(values);
-
-double _iqr(Iterable<num> values) =>
-    _quantile(values, 0.75) - _quantile(values, 0.25);
 
 /// Returns the sample skewness of [values].
 double skewness(Iterable<num> values, {bool bias = false}) =>
     _skewness(values, bias: bias);
-
-double _skewness(Iterable<num> values, {bool bias = false}) {
-  final list = values.map((e) => e.toDouble()).toList();
-  final n = list.length;
-  if (n < 3 && !bias) return double.nan;
-  if (n < 2) return double.nan;
-  final m = _mean(list);
-  var m2 = 0.0;
-  var m3 = 0.0;
-  for (final x in list) {
-    final diff = x - m;
-    m2 += diff * diff;
-    m3 += diff * diff * diff;
-  }
-  m2 /= n;
-  m3 /= n;
-  if (m2 == 0.0) return 0.0;
-  final g1 = m3 / math.pow(m2, 1.5);
-  if (bias) return g1;
-  return (math.sqrt(n * (n - 1.0)) / (n - 2.0)) * g1;
-}
 
 /// Returns the kurtosis of [values]. If [excess] is true (default), returns excess kurtosis (Fisher).
 double kurtosis(
@@ -109,37 +41,6 @@ double kurtosis(
   bool bias = false,
 }) => _kurtosis(values, excess: excess, bias: bias);
 
-double _kurtosis(
-  Iterable<num> values, {
-  bool excess = true,
-  bool bias = false,
-}) {
-  final list = values.map((e) => e.toDouble()).toList();
-  final n = list.length;
-  if (n < 4 && !bias) return double.nan;
-  if (n < 2) return double.nan;
-  final m = _mean(list);
-  var m2 = 0.0;
-  var m4 = 0.0;
-  for (final x in list) {
-    final diff = x - m;
-    final diff2 = diff * diff;
-    m2 += diff2;
-    m4 += diff2 * diff2;
-  }
-  m2 /= n;
-  m4 /= n;
-  if (m2 == 0.0) return 0.0;
-  final k = m4 / (m2 * m2);
-  if (bias) {
-    return excess ? k - 3.0 : k;
-  }
-  final factor1 = (n - 1.0) / ((n - 2.0) * (n - 3.0));
-  final factor2 = (n + 1.0) * k - 3.0 * (n - 1.0);
-  final excessK = factor1 * factor2;
-  return excess ? excessK : excessK + 3.0;
-}
-
 /// Computes the sample or population covariance between [x] and [y].
 double covariance(
   Iterable<num> x,
@@ -147,55 +48,9 @@ double covariance(
   bool population = false,
 }) => _covariance(x, y, population: population);
 
-double _covariance(
-  Iterable<num> x,
-  Iterable<num> y, {
-  bool population = false,
-}) {
-  final xList = x.map((e) => e.toDouble()).toList();
-  final yList = y.map((e) => e.toDouble()).toList();
-  if (xList.length != yList.length) {
-    throw ArgumentError('x and y must have equal length');
-  }
-  final n = xList.length;
-  final divisor = population ? n : n - 1;
-  if (divisor < 1) return double.nan;
-  final mx = _mean(xList);
-  final my = _mean(yList);
-  var sum = 0.0;
-  for (var i = 0; i < n; i++) {
-    sum += (xList[i] - mx) * (yList[i] - my);
-  }
-  return sum / divisor;
-}
-
 /// Computes Pearson correlation coefficient $r \in [-1, 1]$ between [x] and [y].
 double pearsonCorrelation(Iterable<num> x, Iterable<num> y) =>
     _pearsonCorrelation(x, y);
-
-double _pearsonCorrelation(Iterable<num> x, Iterable<num> y) {
-  final xList = x.map((e) => e.toDouble()).toList();
-  final yList = y.map((e) => e.toDouble()).toList();
-  if (xList.length != yList.length) {
-    throw ArgumentError('x and y must have equal length');
-  }
-  final n = xList.length;
-  if (n < 2) return double.nan;
-  final mx = _mean(xList);
-  final my = _mean(yList);
-  var ssX = 0.0;
-  var ssY = 0.0;
-  var ssXY = 0.0;
-  for (var i = 0; i < n; i++) {
-    final dx = xList[i] - mx;
-    final dy = yList[i] - my;
-    ssX += dx * dx;
-    ssY += dy * dy;
-    ssXY += dx * dy;
-  }
-  if (ssX == 0.0 || ssY == 0.0) return double.nan;
-  return ssXY / math.sqrt(ssX * ssY);
-}
 
 /// Returns fractional ranks of [values], handling ties by averaging ranks.
 List<double> rankData(Iterable<num> values) {
@@ -223,9 +78,6 @@ List<double> rankData(Iterable<num> values) {
 double spearmanCorrelation(Iterable<num> x, Iterable<num> y) =>
     _spearmanCorrelation(x, y);
 
-double _spearmanCorrelation(Iterable<num> x, Iterable<num> y) =>
-    _pearsonCorrelation(rankData(x), rankData(y));
-
 /// Computes the sample covariance matrix of [data].
 ///
 /// If [rowVar] is false (default), columns represent variables and rows represent observations.
@@ -235,113 +87,13 @@ double _spearmanCorrelation(Iterable<num> x, Iterable<num> y) =>
 Matrix<double> covarianceMatrix(dynamic data, {bool rowVar = false}) =>
     _covarianceMatrix(data, rowVar: rowVar);
 
-Matrix<double> _covarianceMatrix(dynamic data, {bool rowVar = false}) {
-  final m = switch (data) {
-    Matrix<num>() => data,
-    Tensor<num>() => Matrix(data),
-    _ => throw ArgumentError.value(
-      data,
-      'data',
-      'Expected Matrix<num> or Tensor<num>',
-    ),
-  };
-
-  final numRows = m.rowCount;
-  final numCols = m.colCount;
-  final nSamples = rowVar ? numCols : numRows;
-  final nFeatures = rowVar ? numRows : numCols;
-
-  if (nSamples < 2) {
-    throw ArgumentError(
-      'At least 2 observations required for covariance matrix',
-    );
-  }
-
-  // Build centered data matrix Xc of size (nSamples x nFeatures)
-  final xc = Matrix<double>.filled(
-    nSamples,
-    nFeatures,
-    0.0,
-    type: DataType.float64,
-  );
-
-  for (var j = 0; j < nFeatures; j++) {
-    var sum = 0.0;
-    for (var i = 0; i < nSamples; i++) {
-      sum += rowVar ? m.get(j, i).toDouble() : m.get(i, j).toDouble();
-    }
-    final meanVal = sum / nSamples;
-    for (var i = 0; i < nSamples; i++) {
-      final val = rowVar ? m.get(j, i).toDouble() : m.get(i, j).toDouble();
-      xc.set(i, j, val - meanVal);
-    }
-  }
-
-  final scale = 1.0 / (nSamples - 1.0);
-  return xc.syrk(transpose: true, alpha: scale);
-}
-
 /// Computes the Pearson correlation matrix of [data].
 Matrix<double> pearsonCorrelationMatrix(dynamic data, {bool rowVar = false}) =>
     _pearsonCorrelationMatrix(data, rowVar: rowVar);
 
-Matrix<double> _pearsonCorrelationMatrix(dynamic data, {bool rowVar = false}) {
-  final cov = _covarianceMatrix(data, rowVar: rowVar);
-  final p = cov.rowCount;
-  final std = List<double>.generate(p, (i) => math.sqrt(cov.get(i, i)));
-  final corr = Matrix<double>.filled(p, p, 0.0, type: DataType.float64);
-  for (var i = 0; i < p; i++) {
-    corr.set(i, i, 1.0);
-    for (var j = i + 1; j < p; j++) {
-      final denom = std[i] * std[j];
-      final r = denom > 0.0 ? (cov.get(i, j) / denom).clamp(-1.0, 1.0) : 0.0;
-      corr.set(i, j, r);
-      corr.set(j, i, r);
-    }
-  }
-  return corr;
-}
-
 /// Computes the Spearman rank correlation matrix of [data].
 Matrix<double> spearmanCorrelationMatrix(dynamic data, {bool rowVar = false}) =>
     _spearmanCorrelationMatrix(data, rowVar: rowVar);
-
-Matrix<double> _spearmanCorrelationMatrix(dynamic data, {bool rowVar = false}) {
-  final m = switch (data) {
-    Matrix<num>() => data,
-    Tensor<num>() => Matrix(data),
-    _ => throw ArgumentError.value(
-      data,
-      'data',
-      'Expected Matrix<num> or Tensor<num>',
-    ),
-  };
-
-  final numRows = m.rowCount;
-  final numCols = m.colCount;
-  final nSamples = rowVar ? numCols : numRows;
-  final nFeatures = rowVar ? numRows : numCols;
-
-  final ranked = Matrix<double>.filled(
-    nSamples,
-    nFeatures,
-    0.0,
-    type: DataType.float64,
-  );
-
-  for (var j = 0; j < nFeatures; j++) {
-    final colValues = List<double>.generate(
-      nSamples,
-      (i) => rowVar ? m.get(j, i).toDouble() : m.get(i, j).toDouble(),
-    );
-    final ranks = rankData(colValues);
-    for (var i = 0; i < nSamples; i++) {
-      ranked.set(i, j, ranks[i]);
-    }
-  }
-
-  return _pearsonCorrelationMatrix(ranked, rowVar: false);
-}
 
 /// Result of Principal Component Analysis (PCA).
 class PcaResult {
@@ -741,4 +493,252 @@ extension DescriptiveMatrixNumExtension on Matrix<num> {
   /// Computes the Spearman rank correlation matrix.
   Matrix<double> spearmanCorrelationMatrix({bool rowVar = false}) =>
       _spearmanCorrelationMatrix(this, rowVar: rowVar);
+}
+
+double _mean(Iterable<num> values) {
+  var count = 0;
+  var sum = 0.0;
+  for (final v in values) {
+    count++;
+    sum += v;
+  }
+  return count == 0 ? double.nan : sum / count;
+}
+
+double _variance(Iterable<num> values, {bool population = false}) {
+  var count = 0;
+  var m = 0.0;
+  var m2 = 0.0;
+  for (final v in values) {
+    count++;
+    final delta = v - m;
+    m += delta / count;
+    final delta2 = v - m;
+    m2 += delta * delta2;
+  }
+  final divisor = population ? count : count - 1;
+  return divisor < 1 ? double.nan : m2 / divisor;
+}
+
+double _standardDeviation(Iterable<num> values, {bool population = false}) =>
+    math.sqrt(_variance(values, population: population));
+
+double _quantile(Iterable<num> values, num q) {
+  final list = values.map((e) => e.toDouble()).toList()..sort();
+  if (list.isEmpty) return double.nan;
+  if (q <= 0.0) return list.first;
+  if (q >= 1.0) return list.last;
+  final idx = q * (list.length - 1);
+  final i = idx.floor();
+  final frac = idx - i;
+  if (i >= list.length - 1) return list.last;
+  return list[i] + frac * (list[i + 1] - list[i]);
+}
+
+double _percentile(Iterable<num> values, num p) => _quantile(values, p / 100.0);
+
+double _median(Iterable<num> values) => _quantile(values, 0.5);
+
+double _iqr(Iterable<num> values) =>
+    _quantile(values, 0.75) - _quantile(values, 0.25);
+
+double _skewness(Iterable<num> values, {bool bias = false}) {
+  final list = values.map((e) => e.toDouble()).toList();
+  final n = list.length;
+  if (n < 3 && !bias) return double.nan;
+  if (n < 2) return double.nan;
+  final m = _mean(list);
+  var m2 = 0.0;
+  var m3 = 0.0;
+  for (final x in list) {
+    final diff = x - m;
+    m2 += diff * diff;
+    m3 += diff * diff * diff;
+  }
+  m2 /= n;
+  m3 /= n;
+  if (m2 == 0.0) return 0.0;
+  final g1 = m3 / math.pow(m2, 1.5);
+  if (bias) return g1;
+  return (math.sqrt(n * (n - 1.0)) / (n - 2.0)) * g1;
+}
+
+double _kurtosis(
+  Iterable<num> values, {
+  bool excess = true,
+  bool bias = false,
+}) {
+  final list = values.map((e) => e.toDouble()).toList();
+  final n = list.length;
+  if (n < 4 && !bias) return double.nan;
+  if (n < 2) return double.nan;
+  final m = _mean(list);
+  var m2 = 0.0;
+  var m4 = 0.0;
+  for (final x in list) {
+    final diff = x - m;
+    final diff2 = diff * diff;
+    m2 += diff2;
+    m4 += diff2 * diff2;
+  }
+  m2 /= n;
+  m4 /= n;
+  if (m2 == 0.0) return 0.0;
+  final k = m4 / (m2 * m2);
+  if (bias) {
+    return excess ? k - 3.0 : k;
+  }
+  final factor1 = (n - 1.0) / ((n - 2.0) * (n - 3.0));
+  final factor2 = (n + 1.0) * k - 3.0 * (n - 1.0);
+  final excessK = factor1 * factor2;
+  return excess ? excessK : excessK + 3.0;
+}
+
+double _covariance(
+  Iterable<num> x,
+  Iterable<num> y, {
+  bool population = false,
+}) {
+  final xList = x.map((e) => e.toDouble()).toList();
+  final yList = y.map((e) => e.toDouble()).toList();
+  if (xList.length != yList.length) {
+    throw ArgumentError('x and y must have equal length');
+  }
+  final n = xList.length;
+  final divisor = population ? n : n - 1;
+  if (divisor < 1) return double.nan;
+  final mx = _mean(xList);
+  final my = _mean(yList);
+  var sum = 0.0;
+  for (var i = 0; i < n; i++) {
+    sum += (xList[i] - mx) * (yList[i] - my);
+  }
+  return sum / divisor;
+}
+
+double _pearsonCorrelation(Iterable<num> x, Iterable<num> y) {
+  final xList = x.map((e) => e.toDouble()).toList();
+  final yList = y.map((e) => e.toDouble()).toList();
+  if (xList.length != yList.length) {
+    throw ArgumentError('x and y must have equal length');
+  }
+  final n = xList.length;
+  if (n < 2) return double.nan;
+  final mx = _mean(xList);
+  final my = _mean(yList);
+  var ssX = 0.0;
+  var ssY = 0.0;
+  var ssXY = 0.0;
+  for (var i = 0; i < n; i++) {
+    final dx = xList[i] - mx;
+    final dy = yList[i] - my;
+    ssX += dx * dx;
+    ssY += dy * dy;
+    ssXY += dx * dy;
+  }
+  if (ssX == 0.0 || ssY == 0.0) return double.nan;
+  return ssXY / math.sqrt(ssX * ssY);
+}
+
+double _spearmanCorrelation(Iterable<num> x, Iterable<num> y) =>
+    _pearsonCorrelation(rankData(x), rankData(y));
+
+Matrix<double> _covarianceMatrix(dynamic data, {bool rowVar = false}) {
+  final m = switch (data) {
+    Matrix<num>() => data,
+    Tensor<num>() => Matrix(data),
+    _ => throw ArgumentError.value(
+      data,
+      'data',
+      'Expected Matrix<num> or Tensor<num>',
+    ),
+  };
+
+  final numRows = m.rowCount;
+  final numCols = m.colCount;
+  final nSamples = rowVar ? numCols : numRows;
+  final nFeatures = rowVar ? numRows : numCols;
+
+  if (nSamples < 2) {
+    throw ArgumentError(
+      'At least 2 observations required for covariance matrix',
+    );
+  }
+
+  // Build centered data matrix Xc of size (nSamples x nFeatures)
+  final xc = Matrix<double>.filled(
+    nSamples,
+    nFeatures,
+    0.0,
+    type: DataType.float64,
+  );
+
+  for (var j = 0; j < nFeatures; j++) {
+    var sum = 0.0;
+    for (var i = 0; i < nSamples; i++) {
+      sum += rowVar ? m.get(j, i).toDouble() : m.get(i, j).toDouble();
+    }
+    final meanVal = sum / nSamples;
+    for (var i = 0; i < nSamples; i++) {
+      final val = rowVar ? m.get(j, i).toDouble() : m.get(i, j).toDouble();
+      xc.set(i, j, val - meanVal);
+    }
+  }
+
+  final scale = 1.0 / (nSamples - 1.0);
+  return xc.syrk(transpose: true, alpha: scale);
+}
+
+Matrix<double> _pearsonCorrelationMatrix(dynamic data, {bool rowVar = false}) {
+  final cov = _covarianceMatrix(data, rowVar: rowVar);
+  final p = cov.rowCount;
+  final std = List<double>.generate(p, (i) => math.sqrt(cov.get(i, i)));
+  final corr = Matrix<double>.filled(p, p, 0.0, type: DataType.float64);
+  for (var i = 0; i < p; i++) {
+    corr.set(i, i, 1.0);
+    for (var j = i + 1; j < p; j++) {
+      final denom = std[i] * std[j];
+      final r = denom > 0.0 ? (cov.get(i, j) / denom).clamp(-1.0, 1.0) : 0.0;
+      corr.set(i, j, r);
+      corr.set(j, i, r);
+    }
+  }
+  return corr;
+}
+
+Matrix<double> _spearmanCorrelationMatrix(dynamic data, {bool rowVar = false}) {
+  final m = switch (data) {
+    Matrix<num>() => data,
+    Tensor<num>() => Matrix(data),
+    _ => throw ArgumentError.value(
+      data,
+      'data',
+      'Expected Matrix<num> or Tensor<num>',
+    ),
+  };
+
+  final numRows = m.rowCount;
+  final numCols = m.colCount;
+  final nSamples = rowVar ? numCols : numRows;
+  final nFeatures = rowVar ? numRows : numCols;
+
+  final ranked = Matrix<double>.filled(
+    nSamples,
+    nFeatures,
+    0.0,
+    type: DataType.float64,
+  );
+
+  for (var j = 0; j < nFeatures; j++) {
+    final colValues = List<double>.generate(
+      nSamples,
+      (i) => rowVar ? m.get(j, i).toDouble() : m.get(i, j).toDouble(),
+    );
+    final ranks = rankData(colValues);
+    for (var i = 0; i < nSamples; i++) {
+      ranked.set(i, j, ranks[i]);
+    }
+  }
+
+  return _pearsonCorrelationMatrix(ranked, rowVar: false);
 }

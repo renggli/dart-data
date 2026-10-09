@@ -82,8 +82,10 @@ abstract class DataType<T> {
   }
 
   static DataType<T> fromInstance<T>(T instance) {
-    if (instance is double) return DataType.float64 as DataType<T>;
+    if (T == double) return DataType.float64 as DataType<T>;
+    if (T == int) return DataType.int32 as DataType<T>;
     if (instance is int) return DataType.int32 as DataType<T>;
+    if (instance is double) return DataType.float64 as DataType<T>;
     if (instance is bool) return DataType.boolean as DataType<T>;
     if (instance is String) return DataType.string as DataType<T>;
     if (instance is Complex) return DataType.complex as DataType<T>;
@@ -356,32 +358,6 @@ class Uint64DataType extends IntegerDataType {
       );
 }
 
-L _createList<L extends List<dynamic>, T>(
-  int length,
-  DataType<T> type,
-  L Function(int length) fallback, {
-  T? fillValue,
-  bool readonly = false,
-}) {
-  final list = NativeBuffer.isActive
-      ? (NativeBuffer<T>(length, type: type).data as L)
-      : fallback(length);
-  if (fillValue != null) {
-    if (list is List<double> && fillValue is double && fillValue != 0.0) {
-      list.fillRange(0, length, fillValue);
-    } else if (list is List<int> && fillValue is int && fillValue != 0) {
-      list.fillRange(0, length, fillValue);
-    }
-  }
-  if (readonly) {
-    final dynamic unmod = (list as dynamic).asUnmodifiableView();
-    final nb = NativeBuffer.find(list);
-    if (nb != null) NativeBuffer.register(unmod, nb);
-    return unmod as L;
-  }
-  return list;
-}
-
 class BooleanDataType extends DataType<bool> {
   const new();
   @override
@@ -496,4 +472,30 @@ class ObjectDataType<T> extends DataType<T> {
       List<T>.filled(length, fillValue ?? defaultValue, growable: false);
   @override
   T cast(dynamic value) => value as T;
+}
+
+L _createList<L extends List<dynamic>, T>(
+  int length,
+  DataType<T> type,
+  L Function(int length) fallback, {
+  T? fillValue,
+  bool readonly = false,
+}) {
+  final list = NativeBuffer.isActive
+      ? (NativeBuffer<T>(length, type: type).data as L)
+      : fallback(length);
+  if (fillValue != null) {
+    if (list is List<double> && fillValue is double && fillValue != 0.0) {
+      list.fillRange(0, length, fillValue);
+    } else if (list is List<int> && fillValue is int && fillValue != 0) {
+      list.fillRange(0, length, fillValue);
+    }
+  }
+  if (readonly) {
+    final dynamic unmod = (list as dynamic).asUnmodifiableView();
+    final nb = NativeBuffer.find(list);
+    if (nb != null) NativeBuffer.register(unmod, nb);
+    return unmod as L;
+  }
+  return list;
 }

@@ -302,7 +302,7 @@ void main() {
       );
       check(dotVal).equals(25.0);
     });
-  });
+  }, testOn: 'vm');
 
   group('Native BLAS operations', () {
     test('dgemm and sgemm if native available', () {

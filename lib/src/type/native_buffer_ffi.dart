@@ -77,12 +77,6 @@ class NativeBuffer<T> extends MemoryBuffer<T> implements ffi.Finalizable {
     }
   }
 
-  static final ffi.NativeFinalizer _finalizer = ffi.NativeFinalizer(
-    calloc.nativeFree,
-  );
-  static final Expando<NativeBuffer<dynamic>> _expando =
-      Expando<NativeBuffer<dynamic>>();
-
   /// Registers an additional list/view [alias] to point to [buffer].
   static void register(dynamic alias, NativeBuffer<dynamic> buffer) {
     if (alias is List) {
@@ -120,8 +114,6 @@ class NativeBuffer<T> extends MemoryBuffer<T> implements ffi.Finalizable {
   /// The data type of elements stored in the buffer.
   final DataType<T> type;
 
-  bool _isDisposed;
-
   /// Whether this native buffer has been manually freed.
   bool get isDisposed => _isDisposed;
 
@@ -154,4 +146,12 @@ class NativeBuffer<T> extends MemoryBuffer<T> implements ffi.Finalizable {
   /// Returns the pointer cast to [ffi.Pointer<ffi.Uint8>], or null if disposed.
   ffi.Pointer<ffi.Uint8>? get asUint8Pointer =>
       _isDisposed ? null : pointer.cast<ffi.Uint8>();
+
+  bool _isDisposed;
+
+  static final ffi.NativeFinalizer _finalizer = ffi.NativeFinalizer(
+    calloc.nativeFree,
+  );
+  static final Expando<NativeBuffer<dynamic>> _expando =
+      Expando<NativeBuffer<dynamic>>();
 }
