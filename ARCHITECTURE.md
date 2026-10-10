@@ -449,7 +449,7 @@ This document describes the achieved architecture across all subsystems of `pack
 
 ### 7.3 Hypothesis Testing Suite
 
-- **Reasoning**: Rigorous statistical inference for experimental hypothesis testing.
+- **Reasoning**: Rigorous statistical inference for experimental hypothesis testing, goodness-of-fit validation, and non-parametric paired testing.
 - **Implementation & Constraints**:
   - `tTestOneSample`: Student's t-test comparing sample mean against hypothesized value.
   - `tTestTwoSample`: Two-sample t-test supporting Student's pooled variance and Welch's t-test for unequal variances.
@@ -457,6 +457,10 @@ This document describes the achieved architecture across all subsystems of `pack
   - `oneWayAnova`: One-way Analysis of Variance testing equality of three or more group means.
   - `chiSquaredTest` and `chiSquaredContingency`: Goodness-of-fit and contingency table test of independence.
   - `mannWhitneyUTest`: Non-parametric test for equality of two continuous distributions.
+  - `kolmogorovSmirnovTest`: One-sample Kolmogorov-Smirnov test evaluating maximum supremum distance $D = \max(D^+, D^-)$ between empirical CDF and continuous theoretical distribution with asymptotic Stephens approximation for $p$-values.
+  - `kolmogorovSmirnov2Sample`: Two-sample Kolmogorov-Smirnov test assessing whether two independent empirical samples originate from the same continuous distribution using effective sample size $n_e = \frac{n_1 n_2}{n_1 + n_2}$.
+  - `jarqueBeraTest`: Normality test matching sample skewness $S$ and kurtosis $K$ against normal expectations ($S = 0, K = 3$), testing asymptotic statistic $JB = \frac{n}{6}(S^2 + \frac{(K-3)^2}{4}) \sim \chi^2(2)$.
+  - `wilcoxonSignedRankTest`: Non-parametric paired signed-rank test (or one-sample median against 0) with rank-sum calculation, tie-corrected variance, and continuity-corrected normal approximation.
 
 ### 7.4 Non-Parametric & Parametric Bootstrap Resampling
 

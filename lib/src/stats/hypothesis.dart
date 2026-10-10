@@ -4,6 +4,7 @@ import 'package:more/printer.dart';
 
 import '../linear/matrix.dart';
 import 'descriptive.dart';
+import 'distribution.dart';
 import 'distributions/continuous/chi_squared.dart';
 import 'distributions/continuous/f.dart';
 import 'distributions/continuous/normal.dart';
@@ -434,4 +435,226 @@ HypothesisTestResult mannWhitneyUTest(
     alpha: alpha,
     alternative: alternative,
   );
+}
+
+/// One-sample Kolmogorov-Smirnov test comparing [sample] against a theoretical [distribution].
+///
+/// Tests the null hypothesis that [sample] is drawn from the continuous reference [distribution].
+HypothesisTestResult kolmogorovSmirnovTest(
+  Iterable<num> sample,
+  Distribution<num> distribution, {
+  double alpha = 0.05,
+}) {
+  final list = sample.map((val) => val.toDouble()).toList()..sort();
+  final n = list.length;
+  if (n == 0) {
+    throw ArgumentError('Sample cannot be empty');
+  }
+
+  var dPlus = 0.0;
+  var dMinus = 0.0;
+  for (var i = 0; i < n; i++) {
+    final cdfVal = distribution.cumulativeProbability(list[i]);
+    final iOverN = (i + 1.0) / n;
+    final iMinusOneOverN = i.toDouble() / n;
+    final dp = iOverN - cdfVal;
+    if (dp > dPlus) dPlus = dp;
+    final dm = cdfVal - iMinusOneOverN;
+    if (dm > dMinus) dMinus = dm;
+  }
+  final dStat = math.max(dPlus, dMinus);
+  final pValue = _kolmogorovPValue(dStat, n.toDouble());
+
+  return HypothesisTestResult(
+    testName: 'One-Sample Kolmogorov-Smirnov Test',
+    statistic: dStat,
+    pValue: pValue,
+    alpha: alpha,
+  );
+}
+
+/// Two-sample Kolmogorov-Smirnov test comparing two empirical samples [sample1] and [sample2].
+///
+/// Tests the null hypothesis that both samples are drawn from the same continuous distribution.
+HypothesisTestResult kolmogorovSmirnov2Sample(
+  Iterable<num> sample1,
+  Iterable<num> sample2, {
+  double alpha = 0.05,
+}) {
+  final list1 = sample1.map((val) => val.toDouble()).toList()..sort();
+  final list2 = sample2.map((val) => val.toDouble()).toList()..sort();
+  final n1 = list1.length;
+  final n2 = list2.length;
+  if (n1 == 0 || n2 == 0) {
+    throw ArgumentError('Samples cannot be empty');
+  }
+
+  var i = 0;
+  var j = 0;
+  var dStat = 0.0;
+  while (i < n1 || j < n2) {
+    final double x;
+    if (i < n1 && j < n2) {
+      x = math.min(list1[i], list2[j]);
+    } else if (i < n1) {
+      x = list1[i];
+    } else {
+      x = list2[j];
+    }
+    while (i < n1 && list1[i] <= x) {
+      i++;
+    }
+    while (j < n2 && list2[j] <= x) {
+      j++;
+    }
+    final diff = ((i / n1) - (j / n2)).abs();
+    if (diff > dStat) dStat = diff;
+  }
+
+  final ne = (n1 * n2) / (n1 + n2);
+  final pValue = _kolmogorovPValue(dStat, ne);
+
+  return HypothesisTestResult(
+    testName: 'Two-Sample Kolmogorov-Smirnov Test',
+    statistic: dStat,
+    pValue: pValue,
+    alpha: alpha,
+  );
+}
+
+/// Jarque-Bera goodness-of-fit test for sample normality.
+///
+/// Tests the null hypothesis that [sample] is drawn from a normal distribution
+/// by matching sample skewness $S$ and kurtosis $K$ against normal baselines ($S = 0, K = 3$).
+HypothesisTestResult jarqueBeraTest(
+  Iterable<num> sample, {
+  double alpha = 0.05,
+}) {
+  final list = sample.map((val) => val.toDouble()).toList();
+  final n = list.length;
+  if (n < 4) {
+    throw ArgumentError('Jarque-Bera test requires at least 4 observations');
+  }
+
+  final s = skewness(list, bias: true);
+  final k = kurtosis(list, excess: true, bias: true);
+  final jb = (n / 6.0) * (s * s + 0.25 * k * k);
+
+  const dist = ChiSquaredDistribution(2.0);
+  final pValue = dist.survival(jb).clamp(0.0, 1.0);
+
+  return HypothesisTestResult(
+    testName: 'Jarque-Bera Normality Test',
+    statistic: jb,
+    pValue: pValue,
+    degreesOfFreedom: 2.0,
+    alpha: alpha,
+  );
+}
+
+/// Wilcoxon signed-rank test for paired samples or one-sample median against 0.
+///
+/// If [y] is provided, tests paired differences $x_i - y_i$.
+/// If [y] is omitted, tests $x_i$ directly against a symmetric median of 0.
+HypothesisTestResult wilcoxonSignedRankTest(
+  Iterable<num> x, {
+  Iterable<num>? y,
+  AlternativeHypothesis alternative = AlternativeHypothesis.twoSided,
+  double alpha = 0.05,
+}) {
+  final xList = x.map((val) => val.toDouble()).toList();
+  final List<double> diffs;
+  if (y != null) {
+    final yList = y.map((val) => val.toDouble()).toList();
+    if (xList.length != yList.length) {
+      throw ArgumentError('Paired samples must have equal length');
+    }
+    diffs = List<double>.generate(xList.length, (i) => xList[i] - yList[i]);
+  } else {
+    diffs = xList;
+  }
+
+  final nonZeroDiffs = diffs.where((d) => d != 0.0).toList();
+  final n = nonZeroDiffs.length;
+  if (n == 0) {
+    throw ArgumentError('All sample differences are zero');
+  }
+
+  final absDiffs = nonZeroDiffs.map((d) => d.abs()).toList();
+  final ranks = rankData(absDiffs);
+
+  var wPlus = 0.0;
+  var wMinus = 0.0;
+  for (var i = 0; i < n; i++) {
+    if (nonZeroDiffs[i] > 0.0) {
+      wPlus += ranks[i];
+    } else {
+      wMinus += ranks[i];
+    }
+  }
+
+  final wStat = switch (alternative) {
+    AlternativeHypothesis.twoSided => math.min(wPlus, wMinus),
+    AlternativeHypothesis.greater => wPlus,
+    AlternativeHypothesis.less => wPlus,
+  };
+
+  // Normal approximation with tie correction
+  final muW = (n * (n + 1.0)) / 4.0;
+
+  // Tie correction
+  final tieCounts = <double, int>{};
+  for (final ad in absDiffs) {
+    tieCounts[ad] = (tieCounts[ad] ?? 0) + 1;
+  }
+  var tieTerm = 0.0;
+  for (final count in tieCounts.values) {
+    if (count > 1) {
+      tieTerm += count * count * count - count;
+    }
+  }
+
+  final varW = (n * (n + 1.0) * (2.0 * n + 1.0) - 0.5 * tieTerm) / 24.0;
+  final sigmaW = varW > 0.0 ? math.sqrt(varW) : 1e-15;
+
+  const normal = NormalDistribution.standard();
+  final double pValue;
+  switch (alternative) {
+    case AlternativeHypothesis.twoSided:
+      final z = math.max(0.0, (wPlus - muW).abs() - 0.5) / sigmaW;
+      pValue = (2.0 * normal.survival(z)).clamp(0.0, 1.0);
+    case AlternativeHypothesis.greater:
+      final z = (wPlus - muW - 0.5) / sigmaW;
+      pValue = normal.survival(z).clamp(0.0, 1.0);
+    case AlternativeHypothesis.less:
+      final z = (wPlus - muW + 0.5) / sigmaW;
+      pValue = normal.cumulativeProbability(z).clamp(0.0, 1.0);
+  }
+
+  return HypothesisTestResult(
+    testName: 'Wilcoxon Signed-Rank Test',
+    statistic: wStat,
+    pValue: pValue,
+    alpha: alpha,
+    alternative: alternative,
+  );
+}
+
+double _kolmogorovPValue(double d, double n) {
+  if (d <= 0.0) return 1.0;
+  final sqrtN = math.sqrt(n);
+  final lambda = (sqrtN + 0.12 + 0.11 / sqrtN) * d;
+  if (lambda <= 0.0) return 1.0;
+  if (lambda >= 3.0) return 0.0;
+
+  final lambdaSq = lambda * lambda;
+  var sum = 0.0;
+  var sign = 1.0;
+  for (var k = 1; k <= 100; k++) {
+    final term = 2.0 * math.exp(-2.0 * k * k * lambdaSq);
+    sum += sign * term;
+    if (term < 1e-15) break;
+    sign = -sign;
+  }
+  return sum.clamp(0.0, 1.0);
 }

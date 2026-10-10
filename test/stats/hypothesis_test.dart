@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:checks/checks.dart';
 import 'package:data/linear.dart';
 import 'package:data/stats.dart';
@@ -199,6 +201,114 @@ void main() {
       // Errors
       check(() => mannWhitneyUTest(<double>[], y)).throws<ArgumentError>();
       check(() => mannWhitneyUTest(x, <double>[])).throws<ArgumentError>();
+    });
+
+    test('Kolmogorov-Smirnov one-sample test', () {
+      const normal = NormalDistribution.standard();
+      final normalSample = normal
+          .samples(random: math.Random(42))
+          .take(100)
+          .toList();
+
+      final resNormal = kolmogorovSmirnovTest(normalSample, normal);
+      check(resNormal.isSignificant).isFalse();
+      check(resNormal.pValue).isGreaterThan(0.05);
+      check(resNormal.statistic).isLessThan(0.15);
+
+      const uniform = UniformDistribution(0.0, 1.0);
+      final uniformSample = uniform
+          .samples(random: math.Random(42))
+          .take(100)
+          .toList();
+
+      final resReject = kolmogorovSmirnovTest(uniformSample, normal);
+      check(resReject.isSignificant).isTrue();
+      check(resReject.pValue).isLessThan(1e-4);
+
+      check(() => kolmogorovSmirnovTest(<double>[], normal))
+          .throws<ArgumentError>();
+    });
+
+    test('Kolmogorov-Smirnov two-sample test', () {
+      const normal = NormalDistribution.standard();
+      final sample1 = normal.samples(random: math.Random(1)).take(100).toList();
+      final sample2 = normal.samples(random: math.Random(2)).take(100).toList();
+
+      final resSame = kolmogorovSmirnov2Sample(sample1, sample2);
+      check(resSame.isSignificant).isFalse();
+      check(resSame.pValue).isGreaterThan(0.05);
+
+      final shiftedSample = sample1.map((x) => x + 3.0).toList();
+      final resDiff = kolmogorovSmirnov2Sample(sample1, shiftedSample);
+      check(resDiff.isSignificant).isTrue();
+      check(resDiff.pValue).isLessThan(1e-4);
+
+      check(() => kolmogorovSmirnov2Sample(<double>[], sample2))
+          .throws<ArgumentError>();
+      check(() => kolmogorovSmirnov2Sample(sample1, <double>[]))
+          .throws<ArgumentError>();
+    });
+
+    test('Jarque-Bera normality test', () {
+      const normal = NormalDistribution.standard();
+      final normalSample = normal
+          .samples(random: math.Random(42))
+          .take(200)
+          .toList();
+
+      final resNormal = jarqueBeraTest(normalSample);
+      check(resNormal.isSignificant).isFalse();
+      check(resNormal.degreesOfFreedom).equals(2.0);
+      check(resNormal.pValue).isGreaterThan(0.05);
+
+      const uniform = UniformDistribution(0.0, 1.0);
+      final uniformSample = uniform
+          .samples(random: math.Random(42))
+          .take(200)
+          .toList();
+
+      final resUniform = jarqueBeraTest(uniformSample);
+      check(resUniform.isSignificant).isTrue();
+      check(resUniform.pValue).isLessThan(0.01);
+
+      check(() => jarqueBeraTest([1.0, 2.0, 3.0])).throws<ArgumentError>();
+    });
+
+    test('Wilcoxon signed-rank test', () {
+      // One-sample test: median > 0
+      final x = [3.0, 4.0, 2.5, 5.0, 6.2, 4.1, 5.5, 3.8, 4.9, 6.0];
+      final resOneSample = wilcoxonSignedRankTest(x);
+      check(resOneSample.isSignificant).isTrue();
+      check(resOneSample.pValue).isLessThan(0.01);
+
+      // Paired test with significant difference
+      final before = [120.0, 125.0, 130.0, 118.0, 140.0, 135.0, 122.0, 128.0];
+      final after = [110.0, 115.0, 122.0, 112.0, 128.0, 125.0, 118.0, 120.0];
+      final resPaired = wilcoxonSignedRankTest(before, y: after);
+      check(resPaired.isSignificant).isTrue();
+      check(resPaired.pValue).isLessThan(0.05);
+
+      // Directional alternatives
+      final resGreater = wilcoxonSignedRankTest(
+        before,
+        y: after,
+        alternative: AlternativeHypothesis.greater,
+      );
+      check(resGreater.isSignificant).isTrue();
+      check(resGreater.pValue).isLessThan(0.05);
+
+      final resLess = wilcoxonSignedRankTest(
+        before,
+        y: after,
+        alternative: AlternativeHypothesis.less,
+      );
+      check(resLess.pValue).isGreaterThan(0.95);
+
+      // Errors
+      check(() => wilcoxonSignedRankTest([1.0], y: [1.0, 2.0]))
+          .throws<ArgumentError>();
+      check(() => wilcoxonSignedRankTest([1.0, 2.0], y: [1.0, 2.0]))
+          .throws<ArgumentError>();
     });
   });
 }
