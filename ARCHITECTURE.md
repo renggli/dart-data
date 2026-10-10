@@ -55,8 +55,9 @@ This document describes the achieved architecture across all subsystems of `pack
 - **Reasoning**: Generalized N-D multi-index translation (`toIndex(List<int> coords)`) requires loop overhead and coordinate allocation. Contiguous memory should run at raw array iteration speed.
 - **Implementation & Constraints**:
   - All core operations (`unaryOperation`, `binaryOperation`) branch on `isContiguous`:
-    - **Contiguous Path**: Directly loops over index range `0..length - 1` with a flat index counter, bypassing multi-index translation entirely.
+    - **Contiguous Path**: Directly loops over index range `0..length - 1` with a flat index counter, bypassing multi-index translation entirely. For `binaryOperation`, operands must share identical shapes, and if an explicit `target` is provided, it must also be contiguous and have matching dimension sizes.
     - **Strided / Non-Contiguous Path**: Uses `IndexIterator` to step through arbitrary non-contiguous and non-standard stride layouts.
+  - **Target Shape Validation**: When a destination `target` is provided to `unaryOperation`, its shape must match `layout.shape` exactly; otherwise an `ArgumentError` is thrown, preventing memory overrun or corruption.
 
 ### 2.3 Broadcasting Semantics & Hazard Guards
 
@@ -65,6 +66,7 @@ This document describes the achieved architecture across all subsystems of `pack
   - Shapes are aligned from trailing dimensions forward, inserting unit dimensions (`1`) for missing leading axes.
   - Dimensions match if they are equal or if either operand has size 1. Strides for broadcasted dimensions are set to 0.
   - Broadcaster guards detect when an in-place target matches an operand with stride 0 (broadcasted), forcing copy buffer allocation to prevent writing to memory shared across multiple coordinates.
+  - **Broadcast Target Validation**: When an explicit `target` is provided to `binaryOperation`, its shape must exactly match the broadcasted output shape across all dimensions. If dimension lengths or ranks mismatch, an `ArgumentError` is thrown prior to evaluation, preventing truncated or corrupted writes.
 
 ### 2.4 Multi-Axis Reductions & Structural Manipulation
 

@@ -4,6 +4,9 @@ import '../tensor.dart';
 
 extension OperationTensorExtension<T> on Tensor<T> {
   /// Element-wise unary operation evaluated into [target] or a new tensor.
+  ///
+  /// If [target] is provided, its layout shape must match [shape],
+  /// otherwise an [ArgumentError] is thrown.
   Tensor<R> unaryOperation<R>(
     R Function(T value) function, {
     DataType<R>? type,
@@ -31,8 +34,10 @@ extension OperationTensorExtension<T> on Tensor<T> {
         data: resultData,
       );
     } else {
-      if (target.layout.shape.length != layout.shape.length) {
-        throw ArgumentError('Target shape mismatch');
+      if (!_areShapesEqual(target.layout.shape, layout.shape)) {
+        throw ArgumentError(
+          'Target shape ${target.layout.shape} does not match shape ${layout.shape}',
+        );
       }
       final len = layout.length;
       final targetData = target.data;
@@ -79,6 +84,9 @@ extension OperationTensorExtension<T> on Tensor<T> {
   }
 
   /// Element-wise binary operation evaluated into [target] or a new tensor.
+  ///
+  /// If [target] is provided, its layout shape must match the broadcasted
+  /// output shape, otherwise an [ArgumentError] is thrown.
   Tensor<R> binaryOperation<O, R>(
     Tensor<O> other,
     R Function(T a, O b) function, {
@@ -88,46 +96,42 @@ extension OperationTensorExtension<T> on Tensor<T> {
     final thisData = data;
     final otherData = other.data;
 
+    final isTargetMatching =
+        target == null ||
+        (target.layout.isContiguous &&
+            _areShapesEqual(target.layout.shape, layout.shape));
+
     // Fast contiguous path without broadcasting
     if (layout.isContiguous &&
         other.layout.isContiguous &&
-        layout.shape.length == other.layout.shape.length &&
-        (target == null || target.layout.shape.length == layout.shape.length)) {
-      var sameShape = true;
-      for (var i = 0; i < layout.shape.length; i++) {
-        if (layout.shape[i] != other.layout.shape[i]) {
-          sameShape = false;
-          break;
+        _areShapesEqual(layout.shape, other.layout.shape) &&
+        isTargetMatching) {
+      final len = layout.length;
+      if (target == null) {
+        final resultType = type ?? DataType.fromType<R>();
+        final resultData = resultType.newList(len);
+        final s1 = layout.offset, s2 = other.layout.offset;
+        for (var i = 0; i < len; i++) {
+          resultData[i] = function(thisData[s1 + i], otherData[s2 + i]);
         }
-      }
-      if (sameShape) {
-        final len = layout.length;
-        if (target == null) {
-          final resultType = type ?? DataType.fromType<R>();
-          final resultData = resultType.newList(len);
-          final s1 = layout.offset, s2 = other.layout.offset;
-          for (var i = 0; i < len; i++) {
-            resultData[i] = function(thisData[s1 + i], otherData[s2 + i]);
-          }
-          return Tensor<R>.internal(
-            type: resultType,
-            layout: Layout(shape: layout.shape),
-            data: resultData,
-          );
-        } else if (target.layout.isContiguous &&
-            (!sharesMemory(target.data, thisData) ||
-                target.layout.offset == layout.offset) &&
-            (!sharesMemory(target.data, otherData) ||
-                target.layout.offset == other.layout.offset)) {
-          final targetData = target.data;
-          final s1 = layout.offset,
-              s2 = other.layout.offset,
-              t = target.layout.offset;
-          for (var i = 0; i < len; i++) {
-            targetData[t + i] = function(thisData[s1 + i], otherData[s2 + i]);
-          }
-          return target;
+        return Tensor<R>.internal(
+          type: resultType,
+          layout: Layout(shape: layout.shape),
+          data: resultData,
+        );
+      } else if (target.layout.isContiguous &&
+          (!sharesMemory(target.data, thisData) ||
+              target.layout.offset == layout.offset) &&
+          (!sharesMemory(target.data, otherData) ||
+              target.layout.offset == other.layout.offset)) {
+        final targetData = target.data;
+        final s1 = layout.offset,
+            s2 = other.layout.offset,
+            t = target.layout.offset;
+        for (var i = 0; i < len; i++) {
+          targetData[t + i] = function(thisData[s1 + i], otherData[s2 + i]);
         }
+        return target;
       }
     }
 
@@ -154,13 +158,19 @@ extension OperationTensorExtension<T> on Tensor<T> {
         data: resultData,
       );
     } else {
+      final expectedShape = thisLayout.shape;
+      if (!_areShapesEqual(target.layout.shape, expectedShape)) {
+        throw ArgumentError(
+          'Target shape ${target.layout.shape} does not match broadcasted shape $expectedShape',
+        );
+      }
+
       bool hasHazardFor(Tensor<dynamic> op, Layout opLayout) {
         if (!sharesMemory(target.data, op.data)) return false;
         if (target.layout.isContiguous &&
             opLayout.isContiguous &&
             target.layout.offset == opLayout.offset &&
-            target.layout.shape.length == opLayout.shape.length &&
-            _stridesEqual(target.layout.strides, opLayout.strides)) {
+            _areShapesEqual(target.layout.strides, opLayout.strides)) {
           return false;
         }
         return true;
@@ -240,7 +250,8 @@ extension LogicalTensorExtension on Tensor<bool> {
       binaryOperation<bool, bool>(other, (a, b) => a || b);
 }
 
-bool _stridesEqual(List<int> a, List<int> b) {
+bool _areShapesEqual(List<int> a, List<int> b) {
+  if (identical(a, b)) return true;
   if (a.length != b.length) return false;
   for (var i = 0; i < a.length; i++) {
     if (a[i] != b[i]) return false;
