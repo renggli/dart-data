@@ -45,7 +45,7 @@ void main() {
     });
   });
 
-  group('NativeBuffer, Tensor.native, Matrix.native, and Vector.native', () {
+  group('NativeBuffer and native-allocated containers', () {
     test('NativeBuffer float64 allocation, typed view, and dispose', () {
       final buffer = NativeBuffer<double>(10, type: DataType.float64);
       check(buffer.length).equals(10);
@@ -101,9 +101,9 @@ void main() {
       buf8.dispose();
     });
 
-    test('Tensor.native, Matrix.native, and Vector.native zero-copy BLAS', () {
-      final tNativeA = Tensor<double>.native(shape: [2, 2]);
-      final tNativeB = Tensor<double>.native(shape: [2, 2]);
+    test('Tensor, Matrix, and Vector native zero-copy BLAS', () {
+      final tNativeA = Tensor<double>.filled(0.0, shape: [2, 2], native: true);
+      final tNativeB = Tensor<double>.filled(0.0, shape: [2, 2], native: true);
       tNativeA.setValue([0, 0], 1.0);
       tNativeA.setValue([0, 1], 2.0);
       tNativeA.setValue([1, 0], 3.0);
@@ -117,7 +117,7 @@ void main() {
       final tNativeC = tNativeA.matmul(tNativeB);
       check(tNativeC.toFlatList()).deepEquals([19.0, 22.0, 43.0, 50.0]);
 
-      final mNative = Matrix<double>.native(2, 2);
+      final mNative = Matrix<double>.filled(2, 2, 0.0, native: true);
       mNative.set(0, 0, 2.0);
       mNative.set(0, 1, 1.0);
       mNative.set(1, 0, 1.0);
@@ -125,7 +125,7 @@ void main() {
       check(mNative.get(0, 0)).equals(2.0);
       check(mNative.get(1, 1)).equals(3.0);
 
-      final vNative = Vector<double>.native(3);
+      final vNative = Vector<double>.filled(3, 0.0, native: true);
       vNative[0] = 10.0;
       vNative[1] = 20.0;
       vNative[2] = 30.0;

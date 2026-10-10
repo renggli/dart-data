@@ -9,37 +9,20 @@ class Tensor<T> {
   @internal
   new internal({required this.type, required this.layout, required this.data});
 
-  /// Constructs a tensor backed by off-heap native memory.
-  factory native({
-    required List<int> shape,
-    List<int>? strides,
-    DataType<T>? type,
-  }) {
-    final effectiveType = type ?? DataType.fromType<T>();
-    final effectiveLayout = Layout(shape: shape, strides: strides);
-    final nativeBuf = NativeBuffer<T>(
-      effectiveLayout.length,
-      type: effectiveType,
-    );
-    return Tensor.internal(
-      type: effectiveType,
-      layout: effectiveLayout,
-      data: nativeBuf.data,
-    );
-  }
-
   /// Constructs a tensor filled with [value].
   factory filled(
     T value, {
     List<int>? shape,
     List<int>? strides,
     DataType<T>? type,
+    bool? native,
   }) {
     final effectiveType = type ?? DataType.fromInstance(value);
     final effectiveLayout = Layout(shape: shape, strides: strides);
     final data = effectiveType.newList(
       effectiveLayout.length,
       fillValue: value,
+      native: native,
     );
     return Tensor.internal(
       type: effectiveType,
@@ -54,10 +37,11 @@ class Tensor<T> {
     required List<int> shape,
     List<int>? strides,
     DataType<T>? type,
+    bool? native,
   }) {
     final effectiveLayout = Layout(shape: shape, strides: strides);
     final effectiveType = type ?? DataType.fromType<T>();
-    final data = effectiveType.newList(effectiveLayout.length);
+    final data = effectiveType.newList(effectiveLayout.length, native: native);
     final tensor = Tensor.internal(
       type: effectiveType,
       layout: effectiveLayout,
@@ -75,13 +59,14 @@ class Tensor<T> {
     List<int>? shape,
     List<int>? strides,
     DataType<T>? type,
+    bool? native,
   }) {
     final list = iterable.toList(growable: false);
     final effectiveType = type ?? DataType.fromIterable(list);
     final effectiveLayout = shape != null
         ? Layout(shape: shape, strides: strides)
         : Layout(shape: [list.length], strides: strides);
-    final data = effectiveType.newList(effectiveLayout.length);
+    final data = effectiveType.newList(effectiveLayout.length, native: native);
     for (var i = 0; i < list.length && i < effectiveLayout.length; i++) {
       data[i] = list[i];
     }
@@ -93,16 +78,26 @@ class Tensor<T> {
   }
 
   /// Constructs a tensor from nested Dart lists / objects.
-  factory fromObject(dynamic object, {DataType<T>? type}) {
+  factory fromObject(dynamic object, {DataType<T>? type, bool? native}) {
     if (object is! Iterable) {
       if (object is T) {
-        return Tensor.filled(object, shape: const [], type: type);
+        return Tensor.filled(
+          object,
+          shape: const [],
+          type: type,
+          native: native,
+        );
       }
       throw ArgumentError.value(object, 'object', 'Expected an Iterable');
     }
     if (object.isEmpty) {
       final effectiveType = type ?? DataType.fromType<T>();
-      return Tensor.fromIterable(<T>[], shape: const [0], type: effectiveType);
+      return Tensor.fromIterable(
+        <T>[],
+        shape: const [0],
+        type: effectiveType,
+        native: native,
+      );
     }
     final shape = <int>[];
     dynamic current = object;
@@ -124,7 +119,12 @@ class Tensor<T> {
     }
 
     flatten(object);
-    return Tensor.fromIterable(flatList, shape: shape, type: type);
+    return Tensor.fromIterable(
+      flatList,
+      shape: shape,
+      type: type,
+      native: native,
+    );
   }
 
   final DataType<T> type;

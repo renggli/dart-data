@@ -20,6 +20,7 @@ class BooleanDataType extends DataType<bool> {
     Map1<int, bool>? generate,
     bool? fillValue,
     bool readonly = false,
+    bool? native,
   }) {
     final result = generate != null
         ? BitList.generate(length, generate, growable: false)

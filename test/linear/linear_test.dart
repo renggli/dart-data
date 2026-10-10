@@ -462,7 +462,7 @@ void main() {
     });
 
     test('Matrix constructors, operations, and inversion errors', () {
-      final nativeMat = Matrix<double>.native(2, 2);
+      final nativeMat = Matrix<double>.filled(2, 2, 0.0, native: true);
       check(nativeMat.rowCount).equals(2);
       check(nativeMat.colCount).equals(2);
 
@@ -542,7 +542,7 @@ void main() {
       final genVec = Vector<int>.generate(4, (i) => i * 3);
       check(genVec.toList()).deepEquals([0, 3, 6, 9]);
 
-      final nativeVec = Vector<double>.native(3);
+      final nativeVec = Vector<double>.filled(3, 0.0, native: true);
       check(nativeVec.length).equals(3);
 
       final fromIter = Vector<int>.fromIterable([10, 20, 30]);

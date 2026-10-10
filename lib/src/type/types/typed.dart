@@ -5,6 +5,7 @@ import 'package:more/functional.dart';
 
 import '../buffers/native_buffer.dart';
 import '../data_type.dart';
+import '../default_data_type.dart';
 
 abstract class TypedDataType<T, L extends List<T>> extends DataType<T> {
   const new();
@@ -25,8 +26,10 @@ abstract class TypedDataType<T, L extends List<T>> extends DataType<T> {
     Map1<int, T>? generate,
     T? fillValue,
     bool readonly = false,
+    bool? native,
   }) {
-    final result = NativeBuffer.isActive
+    final useNative = (native ?? DefaultDataType.isNative) && isNative;
+    final result = useNative
         ? (NativeBuffer<T>(length, type: this).data as L)
         : emptyList(length);
     if (generate != null) {
@@ -51,17 +54,15 @@ abstract class TypedDataType<T, L extends List<T>> extends DataType<T> {
     int? length,
     T? fillValue,
     bool readonly = false,
+    bool? native,
   }) {
     final listLength = iterable.length;
-    final result = NativeBuffer.isActive
-        ? (NativeBuffer<T>(length ?? listLength, type: this).data as L)
-        : emptyList(length ?? listLength);
+    final result = newList(
+      length ?? listLength,
+      fillValue: fillValue ?? defaultValue,
+      native: native,
+    );
     result.setRange(0, math.min(result.length, listLength), iterable);
-    if (listLength < result.length &&
-        fillValue != null &&
-        fillValue != defaultValue) {
-      result.fillRange(listLength, result.length, fillValue);
-    }
     if (readonly) {
       final unmod = readonlyList(result);
       final nb = NativeBuffer.find(result);

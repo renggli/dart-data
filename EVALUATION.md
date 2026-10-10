@@ -72,7 +72,7 @@ Below is a detailed verification of achievements against `PROPOSED_CHANGES.md` a
 | **Dynamic Library Discovery** | **Achieved** | `loadBlas()` in `lib/src/hardware/cblas_ffi.dart` detects macOS Accelerate framework, Linux `libopenblas.so`, and Windows `openblas.dll`. |
 | **BLAS Level 1, 2, 3 Bindings** | **Partial** | Bound via `dart:ffi`: `dgemm`, `sgemm`, `dgemv`, `sgemv`, `ddot`, `sdot`, `dnrm2`, `snrm2`, `daxpy`, `saxpy`, `dscal`, `sscal`, `dsyrk`, `ssyrk`, `dsyr2`, `ssyr2`. (`dtrmv`, `strmv`, `dsymm`, `ssymm`, `dtrmm`, `strmm` omitted). |
 | **LAPACK Solvers & Decompositions** | **Partial** | `dgesv` (linear solver), `dpotrf` (Cholesky), `dgels` (least squares), `dgeqrf` (QR), `dgesvd` (SVD) bound. Symmetric eigenvalue solver `dsyev` / `ssyev` omitted. |
-| **Off-Heap Native Memory** | **Achieved** | `NativeBuffer`, `Tensor.native`, `Matrix.native`, `Vector.native` allocate off-heap memory with `NativeFinalizer` cleanup. |
+| **Off-Heap Native Memory** | **Achieved** | `NativeBuffer` and container constructors (`native: true`) allocate off-heap memory with `NativeFinalizer` cleanup. |
 | **Dart SIMD Vectorization** | **Achieved** | `SimdEngine` in `lib/src/hardware/simd.dart` utilizes `Float32x4List` and `Float32x4` for accelerated float32 operations. |
 | **Pure-Dart Cache-Blocked Fallback** | **Missed** | Cache-tiled matrix multiplication for small dimensions ($N < 64$) without FFI overhead was not implemented. |
 

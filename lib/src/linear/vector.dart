@@ -14,28 +14,26 @@ class Vector<T> {
     : assert(tensor.rank == 1, 'Tensor must have rank 1, got ${tensor.rank}');
 
   /// Constructs a vector filled with [value].
-  factory filled(int length, T value, {DataType<T>? type}) {
+  factory filled(int length, T value, {DataType<T>? type, bool? native}) {
     final effectiveType = type ?? DataType.fromInstance(value);
     final tensor = Tensor<T>.filled(
       value,
       shape: [length],
       type: effectiveType,
+      native: native,
     );
     return Vector(tensor);
   }
-
-  /// Constructs a vector with [length] elements backed by off-heap native memory.
-  factory native(int length, {DataType<T>? type}) =>
-      Vector(Tensor<T>.native(shape: [length], type: type));
 
   /// Constructs a vector populated by [generator].
   factory generate(
     int length,
     T Function(int index) generator, {
     DataType<T>? type,
+    bool? native,
   }) {
     final effectiveType = type ?? DataType.fromType<T>();
-    final data = effectiveType.newList(length);
+    final data = effectiveType.newList(length, native: native);
     for (var i = 0; i < length; i++) {
       data[i] = generator(i);
     }
@@ -49,19 +47,27 @@ class Vector<T> {
   }
 
   /// Constructs a vector from a list of elements.
-  factory fromList(List<T> list, {DataType<T>? type}) {
+  factory fromList(List<T> list, {DataType<T>? type, bool? native}) {
     final effectiveType = type ?? DataType.fromIterable(list);
     final tensor = Tensor<T>.fromIterable(
       list,
       shape: [list.length],
       type: effectiveType,
+      native: native,
     );
     return Vector(tensor);
   }
 
   /// Constructs a vector from an iterable of elements.
-  factory fromIterable(Iterable<T> iterable, {DataType<T>? type}) =>
-      Vector.fromList(iterable.toList(growable: false), type: type);
+  factory fromIterable(
+    Iterable<T> iterable, {
+    DataType<T>? type,
+    bool? native,
+  }) => Vector.fromList(
+    iterable.toList(growable: false),
+    type: type,
+    native: native,
+  );
 
   /// The underlying 1D tensor.
   final Tensor<T> tensor;

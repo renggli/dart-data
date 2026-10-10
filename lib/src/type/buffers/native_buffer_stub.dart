@@ -16,7 +16,7 @@ class NativeBuffer<T> {
         'NativeBuffer only supports native types, got: $effectiveType',
       );
     }
-    final data = effectiveType.newList(length);
+    final data = effectiveType.newList(length, native: false);
     return NativeBuffer<T>._(data, effectiveType);
   }
 
