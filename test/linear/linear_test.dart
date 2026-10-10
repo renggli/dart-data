@@ -712,7 +712,7 @@ void main() {
 
       // 2. Matrix.trace on non-square matrix
       final nonSquare = Matrix<int>.filled(2, 3, 1);
-      check(() => nonSquare.trace).throws<StateError>();
+      check(() => nonSquare.trace).throws<ArgumentError>();
 
       // 3. Matrix.rotated(3)
       final m2 = Matrix<int>.fromRows([
@@ -794,13 +794,12 @@ void main() {
       // 11. toString
       check(m2.toString()).contains('Matrix(2 x 2');
 
-      // 12. norm.dart: trace extension and Frobenius norm scale branch
+      // 12. norm.dart: Frobenius norm scale branch
       final mNorm = Matrix<double>.fromRows([
         [10.0, 1.0],
         [0.0, 2.0],
       ]);
       check(mNorm.trace).equals(12.0);
-      check(MatrixNormExtension(mNorm).trace).equals(12.0);
       check(mNorm.normFrobenius).isCloseTo(math.sqrt(100 + 1 + 4), 1e-6);
     });
   });

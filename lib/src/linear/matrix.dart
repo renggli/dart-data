@@ -261,33 +261,26 @@ class Matrix<T> implements LinearOperator<T> {
     );
   }
 
-  /// Trace (sum of main diagonal elements) of this square matrix.
+  /// Returns the trace of this square matrix.
+  ///
+  /// The trace is defined as the sum of the main diagonal elements:
+  ///
+  /// $$\operatorname{tr}(A) = \sum_{i=1}^n A_{ii}$$
+  ///
+  /// Throws an [ArgumentError] if the matrix is not square.
   T get trace {
     if (rowCount != colCount) {
-      throw StateError(
-        'Trace is only defined for square matrices, got $rowCount x $colCount',
+      throw ArgumentError(
+        'Trace is only defined for square matrices, got $rowCount x $colCount.',
       );
     }
-    return diagonal().sum;
+    final field = type.field;
+    var sum = field.additiveIdentity;
+    for (var i = 0; i < rowCount; i++) {
+      sum = field.add(sum, getUnchecked(i, i));
+    }
+    return sum;
   }
-
-  /// Computes the Cholesky decomposition of this symmetric positive-definite matrix.
-  CholeskyDecomposition get cholesky =>
-      CholeskyDecomposition(this as Matrix<num>);
-
-  /// Computes the LU decomposition of this matrix.
-  LUDecomposition get lu => LUDecomposition(this as Matrix<num>);
-
-  /// Computes the QR decomposition of this matrix.
-  QRDecomposition get qr => QRDecomposition(this as Matrix<num>);
-
-  /// Computes the Singular Value Decomposition (SVD) of this matrix.
-  SingularValueDecomposition get svd =>
-      SingularValueDecomposition(this as Matrix<num>);
-
-  /// Computes the Eigenvalue decomposition of this square matrix.
-  EigenvalueDecomposition get eigenvalue =>
-      EigenvalueDecomposition(this as Matrix<num>);
 
   /// Tests if this matrix is square ($M = N$).
   bool get isSquare => rowCount == colCount;
@@ -796,4 +789,23 @@ class Matrix<T> implements LinearOperator<T> {
 
   @override
   String toString() => 'Matrix($rowCount x $colCount, ${toNestedList()})';
+}
+
+/// Extension methods providing linear factorizations and decompositions on
+/// numeric matrices.
+extension MatrixDecompositionExtension<T extends num> on Matrix<T> {
+  /// Computes the Cholesky decomposition of this symmetric positive-definite matrix.
+  CholeskyDecomposition get cholesky => CholeskyDecomposition(this);
+
+  /// Computes the LU decomposition of this matrix.
+  LUDecomposition get lu => LUDecomposition(this);
+
+  /// Computes the QR decomposition of this matrix.
+  QRDecomposition get qr => QRDecomposition(this);
+
+  /// Computes the Singular Value Decomposition (SVD) of this matrix.
+  SingularValueDecomposition get svd => SingularValueDecomposition(this);
+
+  /// Computes the Eigenvalue decomposition of this square matrix.
+  EigenvalueDecomposition get eigenvalue => EigenvalueDecomposition(this);
 }

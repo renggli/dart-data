@@ -2,7 +2,7 @@ import 'dart:math' as math;
 
 import '../matrix.dart';
 
-/// Extension methods for matrix norms, trace, and condition estimators.
+/// Extension methods for matrix norms and condition estimators.
 extension MatrixNormExtension<T extends num> on Matrix<T> {
   /// Returns the Frobenius norm: $\|A\|_F = \sqrt{\sum_{i,j} |a_{ij}|^2}$.
   double get normFrobenius {
@@ -52,16 +52,6 @@ extension MatrixNormExtension<T extends num> on Matrix<T> {
       result = math.max(result, sum);
     }
     return result;
-  }
-
-  /// Returns the trace of the matrix (sum of diagonal elements).
-  double get trace {
-    var sum = 0.0;
-    final count = math.min(rowCount, colCount);
-    for (var i = 0; i < count; i++) {
-      sum += getUnchecked(i, i).toDouble();
-    }
-    return sum;
   }
 
   /// Returns the 2-norm condition number $\kappa(A) = \sigma_{\max} / \sigma_{\min}$.

@@ -243,4 +243,155 @@ void main() {
       check(choleskySol[1]).which((it) => it.isCloseTo(2.0, 1e-12));
     });
   });
+
+  group('Matrix trace', () {
+    test('square numeric matrices (int and double)', () {
+      final matD = Matrix<double>.fromRows([
+        [1.0, 2.0],
+        [3.0, 4.0],
+      ]);
+      check(matD.trace).equals(5.0);
+
+      final matI = Matrix<int>.fromRows([
+        [10, 2, 3],
+        [4, 20, 6],
+        [7, 8, 30],
+      ]);
+      check(matI.trace).equals(60);
+    });
+
+    test('square non-num matrix with Field (Complex)', () {
+      final matC = Matrix<Complex>.fromRows([
+        [const Complex(1.0, 2.0), const Complex(3.0, 4.0)],
+        [const Complex(5.0, 6.0), const Complex(7.0, 8.0)],
+      ]);
+      check(matC.trace).equals(const Complex(8.0, 10.0));
+    });
+
+    test('square non-numeric matrix without Field throws UnsupportedError', () {
+      final matS = Matrix<String>.fromRows([
+        ['a', 'b'],
+        ['c', 'd'],
+      ], type: DataType.string);
+      check(() => matS.trace).throws<UnsupportedError>();
+    });
+
+    test('non-square matrix throws ArgumentError', () {
+      final wide = Matrix<int>.filled(2, 3, 1);
+      check(() => wide.trace).throws<ArgumentError>();
+
+      final tall = Matrix<double>.filled(3, 2, 1.0);
+      check(() => tall.trace).throws<ArgumentError>();
+    });
+
+    test('empty matrix trace', () {
+      final empty = Matrix<double>.generate(0, 0, (r, c) => 0.0);
+      check(empty.trace).equals(0.0);
+    });
+
+    test('sliced submatrix and transposed trace', () {
+      final mat = Matrix<double>.fromRows([
+        [1.0, 2.0, 3.0],
+        [4.0, 5.0, 6.0],
+        [7.0, 8.0, 9.0],
+      ]);
+      check(mat.transpose().trace).equals(15.0);
+      check(mat.subMatrix(rowStart: 0, rowEnd: 2, colStart: 0, colEnd: 2).trace)
+          .equals(6.0);
+      check(mat.subMatrix(rowStart: 1, rowEnd: 3, colStart: 1, colEnd: 3).trace)
+          .equals(14.0);
+    });
+  });
+
+  group('Matrix decompositions', () {
+    test('numeric decompositions on Matrix<double>', () {
+      final a = Matrix<double>.fromRows([
+        [4.0, 2.0],
+        [2.0, 5.0],
+      ]);
+
+      final lu = a.lu;
+      check(lu.det).isCloseTo(16.0, 1e-10);
+
+      final qr = a.qr;
+      check(qr.isFullRank).isTrue();
+
+      final chol = a.cholesky;
+      check(chol.isSymmetricPositiveDefinite).isTrue();
+
+      final svd = a.svd;
+      check(svd.s.length).equals(2);
+      check(svd.norm2).isGreaterThan(0.0);
+
+      final eig = a.eigenvalue;
+      check(eig.realEigenvalues.length).equals(2);
+    });
+
+    test('numeric decompositions on Matrix<int>', () {
+      final a = Matrix<int>.fromRows([
+        [2, 0],
+        [0, 2],
+      ]);
+
+      final lu = a.lu;
+      check(lu.det).isCloseTo(4.0, 1e-10);
+
+      final qr = a.qr;
+      check(qr.isFullRank).isTrue();
+
+      final chol = a.cholesky;
+      check(chol.isSymmetricPositiveDefinite).isTrue();
+
+      final svd = a.svd;
+      check(svd.s.length).equals(2);
+
+      final eig = a.eigenvalue;
+      check(eig.realEigenvalues.length).equals(2);
+    });
+
+    test('numeric decompositions on Matrix<num>', () {
+      final a = Matrix<num>.fromRows([
+        [4.0, 2.0],
+        [2.0, 5.0],
+      ], type: DataType.float64);
+
+      final lu = a.lu;
+      check(lu.det).isCloseTo(16.0, 1e-10);
+
+      final qr = a.qr;
+      check(qr.isFullRank).isTrue();
+
+      final chol = a.cholesky;
+      check(chol.isSymmetricPositiveDefinite).isTrue();
+
+      final svd = a.svd;
+      check(svd.s.length).equals(2);
+      check(svd.norm2).isGreaterThan(0.0);
+
+      final eig = a.eigenvalue;
+      check(eig.realEigenvalues.length).equals(2);
+    });
+
+    test('non-numeric matrices have no decomposition getters and avoid downcast TypeError', () {
+      final strMat = Matrix<String>.fromRows([
+        ['a', 'b'],
+        ['c', 'd'],
+      ], type: DataType.string);
+
+      // At compile-time, `strMat.lu` etc. are unavailable because MatrixDecompositionExtension
+      // is constrained to `T extends num`.
+      // If invoked dynamically, NoSuchMethodError is thrown rather than an internal TypeError
+      // from an unsafe `this as Matrix<num>` cast.
+      // ignore: avoid_dynamic_calls
+      check(() => (strMat as dynamic).lu).throws<NoSuchMethodError>();
+      // ignore: avoid_dynamic_calls
+      check(() => (strMat as dynamic).qr).throws<NoSuchMethodError>();
+      // ignore: avoid_dynamic_calls
+      check(() => (strMat as dynamic).cholesky).throws<NoSuchMethodError>();
+      // ignore: avoid_dynamic_calls
+      check(() => (strMat as dynamic).svd).throws<NoSuchMethodError>();
+      // ignore: avoid_dynamic_calls
+      check(() => (strMat as dynamic).eigenvalue).throws<NoSuchMethodError>();
+    });
+  });
 }

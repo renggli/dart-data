@@ -117,6 +117,9 @@ This document describes the achieved architecture across all subsystems of `pack
   - `Matrix<T>` wraps a `Tensor<T>` where `rank == 2`. Dimensions are `rowCount = shape[0]` and `colCount = shape[1]`.
   - `Vector<T>` wraps a `Tensor<T>` where `rank == 1`. Dimension is `count = shape[0]`.
   - Operations like `matrix.transpose()`, `matrix.row(i)`, `matrix.col(j)`, and `matrix.diagonal()` return zero-copy views backed by the original tensor memory.
+  - **Trace & Diagonal Extraction**:
+    - `matrix.diagonal()` returns a zero-copy 1D view of the main diagonal.
+    - `matrix.trace` sums main diagonal elements $A_{ii}$ for square matrices, returning `T` via `type.field.add` and throwing `ArgumentError` if non-square ($M \ne N$). The property is unified strictly on `Matrix<T>`, eliminating shadowing from `MatrixNormExtension`.
   - **Direct Fast-Path Indexing**:
     - `Tensor.get2D(r, c)`, `Tensor.set2D(r, c, v)`, `Tensor.get1D(idx)`, and `Tensor.set1D(idx, v)` provide `@pragma('vm:prefer-inline')` unchecked scalar access without heap `List<int>` coordinate allocations.
     - `Matrix<T>` provides `getUnchecked(row, col)` and `setUnchecked(row, col, value)` for performance-critical inner loops (factorizations, transformations), alongside bounds-checked `get(row, col)`, `set(row, col, value)`, and Dart 3 record indexing `operator []((int, int))` / `operator []=((int, int), value)`.
@@ -164,10 +167,11 @@ This document describes the achieved architecture across all subsystems of `pack
   - `gmres`: Generalized Minimal Residual method with restart parameter $m$ (GMRES(m)) and Arnoldi modified Gram-Schmidt orthogonalization for general non-symmetric square systems.
   - Iterative solvers consume any `LinearOperator<T>`, executing without forming or modifying matrix entries.
 
-### 3.5 Dense Matrix Decompositions
+### 3.5 Dense Matrix Decompositions (`MatrixDecompositionExtension<T extends num>`)
 
-- **Reasoning**: Direct matrix factorizations provide exact solutions, determinants, inverses, and condition numbers for dense linear systems.
+- **Reasoning**: Direct matrix factorizations provide exact solutions, determinants, inverses, and condition numbers for dense linear systems. Defining decompositions via an extension on `Matrix<T extends num>` guarantees compile-time type safety for numeric matrices (`Matrix<double>`, `Matrix<int>`) while eliminating unsafe runtime downcasts (`this as Matrix<num>`).
 - **Implementation & Constraints**:
+  - **Type-Safe Extension**: Factorization getters (`lu`, `qr`, `cholesky`, `svd`, `eigenvalue`) are declared in `MatrixDecompositionExtension<T extends num> on Matrix<T>` in `lib/src/linear/matrix.dart` (exported via `package:data/linear.dart`).
   - **LU Decomposition (`LU`)**: Doolittle algorithm with partial pivoting ($P A = L U$). Provides determinant computation and triangular back-substitution solves.
   - **QR Decomposition (`QR`)**: Householder reflector transformations yielding orthogonal $Q$ and upper-triangular $R$. Provides full-rank least-squares solves.
   - **Cholesky Factorization (`Cholesky`)**: $A = L L^T$ for symmetric positive-definite matrices, executing in $\frac{1}{3} N^3$ operations ($2\times$ faster than LU).
