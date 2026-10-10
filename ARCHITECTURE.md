@@ -48,6 +48,19 @@ This document describes the achieved architecture across all subsystems of `pack
     - `Field<T>` and `ExtendedField<T>` are declared `abstract interface class`, enforcing pure algebraic contracts that require explicit `implements` for all field implementations across library files. Concrete field classes (`FloatField`, `IntegerField`, `BigIntField`, `ComplexField`, `FractionField`, `NumericField`) implement `ExtendedField<T>` as `final class`, while `QuaternionField` implements `Field<Quaternion>` as `final class`.
     - `Equality<T>` is `abstract interface class Equality<T>`, with canonical `base class NaturalEquality<T> implements Equality<T>`, and all specialized equality classes declared `final class`.
 
+### 1.4 Zero-Cost Extension Types (`Float64Tensor`, `Float64Matrix`, `Float64Vector`)
+
+- **Reasoning**: Generic `Tensor<double>`, `Matrix<double>`, and `Vector<double>` incur polymorphic method dispatch and generic type parameter overhead, preventing direct non-virtual access to typed array buffers without downcasting.
+- **Implementation & Constraints**:
+  - `Float64Tensor` in `lib/src/tensor/float64_tensor.dart` (exported in `lib/tensor.dart`), and `Float64Matrix` & `Float64Vector` in `lib/src/linear/float64_matrix.dart` & `lib/src/linear/float64_vector.dart` (exported in `lib/linear.dart`):
+    - Defined as Dart 3.3+ extension types wrapping `Tensor<double>`, `Matrix<double>`, and `Vector<double>` with zero runtime heap allocation overhead.
+    - Expose `asTypedList` property providing direct, unboxed access to the underlying `Float64List` storage buffer.
+    - Fast contiguous element access: inlined indexers bypass generic checks and bounds-checking cascades.
+    - Implement inlined arithmetic operators (`+`, `-`, `*`, `/`, `-()`, `scale`) that bypass generic field abstraction and execute contiguous vector loops directly on `Float64List` buffers.
+    - On `Float64Matrix`: matrix multiplication (`*`) routes directly to native BLAS `dgemm` when operands are contiguous, while vector multiplication (`apply`) routes directly to BLAS `dgemv`.
+    - On `Float64Vector`: algebraic inner product (`dot`) routes directly to BLAS `ddot`, and Euclidean norm (`norm2`) routes directly to BLAS `dnrm2`.
+    - Seamless subtyping: `Float64Tensor implements Tensor<double>`, `Float64Matrix implements Matrix<double>`, and `Float64Vector implements Vector<double>`, enabling them to pass transparently into any existing API accepting generic floating-point containers.
+
 ---
 
 ## 2. Tensor Subsystem (`package:data/tensor.dart`)

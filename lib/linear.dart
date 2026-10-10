@@ -7,6 +7,8 @@ export 'src/linear/decomposition/lu.dart';
 export 'src/linear/decomposition/norm.dart';
 export 'src/linear/decomposition/qr.dart';
 export 'src/linear/decomposition/svd.dart';
+export 'src/linear/float64_matrix.dart';
+export 'src/linear/float64_vector.dart';
 export 'src/linear/matrix.dart';
 export 'src/linear/operator.dart';
 export 'src/linear/solvers/conjugate_gradient.dart';
