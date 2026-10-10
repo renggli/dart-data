@@ -2,7 +2,7 @@ import 'dart:math' as math;
 
 import 'package:checks/checks.dart';
 import 'package:data/special.dart';
-import 'package:test/scaffolding.dart';
+import 'package:test/test.dart';
 
 void main() {
   group('beta functions', () {
@@ -37,7 +37,7 @@ void main() {
     });
 
     test('betaLn', () {
-      for (final tuple in betaTuples.where((t) => !t.$3.isNaN)) {
+      for (final tuple in betaTuples.where((tuple) => !tuple.$3.isNaN)) {
         check(
           because: 'betaLn(${tuple.$1}, ${tuple.$2})',
           betaLn(tuple.$1, tuple.$2),
@@ -54,8 +54,8 @@ void main() {
       check(ibeta(-0.1, 1, 1)).isNaN();
       check(ibeta(1.1, 1, 1)).isNaN();
 
-      final p = ibeta(0.4, 3.0, 4.0);
-      check(ibetaInv(p, 3.0, 4.0)).isCloseTo(0.4, 1e-5);
+      final prob = ibeta(0.4, 3.0, 4.0);
+      check(ibetaInv(prob, 3.0, 4.0)).isCloseTo(0.4, 1e-5);
     });
   });
 }

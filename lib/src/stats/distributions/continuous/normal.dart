@@ -78,9 +78,12 @@ class NormalDistribution extends ContinuousDistribution {
   }
 
   @override
-  double inverseCumulativeProbability(num p) {
-    InvalidProbability.check(p);
-    return -1.41421356237309505 * standardDeviation * erfcInv(2.0 * p) + mean;
+  double inverseCumulativeProbability(num probability) {
+    InvalidProbability.check(probability);
+    return -1.41421356237309505 *
+            standardDeviation *
+            erfcInv(2.0 * probability) +
+        mean;
   }
 
   @override
@@ -90,15 +93,15 @@ class NormalDistribution extends ContinuousDistribution {
   Iterable<double> samples({Random? random}) sync* {
     const uniform = UniformDistribution(-1.0, 1.0);
     for (;;) {
-      double p1, p2, p;
+      double xVal, yVal, rSq;
       do {
-        p1 = uniform.sample(random: random);
-        p2 = uniform.sample(random: random);
-        p = p1 * p1 + p2 * p2;
-      } while (p >= 1.0 || p == 0.0);
-      p = standardDeviation * sqrt(-2.0 * log(p) / p);
-      yield mean + p1 * p;
-      yield mean + p2 * p;
+        xVal = uniform.sample(random: random);
+        yVal = uniform.sample(random: random);
+        rSq = xVal * xVal + yVal * yVal;
+      } while (rSq >= 1.0 || rSq == 0.0);
+      final factor = standardDeviation * sqrt(-2.0 * log(rSq) / rSq);
+      yield mean + xVal * factor;
+      yield mean + yVal * factor;
     }
   }
 

@@ -1,6 +1,6 @@
 import 'package:checks/checks.dart';
 import 'package:data/type.dart';
-import 'package:test/scaffolding.dart';
+import 'package:test/test.dart';
 
 void main() {
   group('NativeBuffer', () {
@@ -35,10 +35,10 @@ void main() {
         DataType.int64,
         DataType.uint64,
       ];
-      for (final t in types) {
-        final buf = NativeBuffer<num>(5, type: t);
+      for (final type in types) {
+        final buf = NativeBuffer<num>(5, type: type);
         check(buf.length).equals(5);
-        check(buf.type).equals(t);
+        check(buf.type).equals(type);
         buf.dispose();
       }
     });

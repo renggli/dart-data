@@ -51,8 +51,8 @@ class DegenerateDistribution extends ContinuousDistribution {
   double cumulativeProbability(double x) => x < k ? 0 : 1;
 
   @override
-  double inverseCumulativeProbability(num p) {
-    InvalidProbability.check(p);
+  double inverseCumulativeProbability(num probability) {
+    InvalidProbability.check(probability);
     return k;
   }
 

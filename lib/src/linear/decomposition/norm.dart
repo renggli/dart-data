@@ -8,9 +8,9 @@ extension MatrixNormExtension<T extends num> on Matrix<T> {
   double get normFrobenius {
     var scale = 0.0;
     var sumsq = 1.0;
-    for (var r = 0; r < rowCount; r++) {
-      for (var c = 0; c < colCount; c++) {
-        final val = get(r, c).toDouble();
+    for (var row = 0; row < rowCount; row++) {
+      for (var col = 0; col < colCount; col++) {
+        final val = get(row, col).toDouble();
         if (val != 0.0) {
           final absVal = val.abs();
           if (scale < absVal) {
@@ -28,10 +28,10 @@ extension MatrixNormExtension<T extends num> on Matrix<T> {
   /// Returns the 1-norm: maximum absolute column sum $\max_j \sum_i |a_{ij}|$.
   double get norm1 {
     var result = 0.0;
-    for (var c = 0; c < colCount; c++) {
+    for (var col = 0; col < colCount; col++) {
       var sum = 0.0;
-      for (var r = 0; r < rowCount; r++) {
-        sum += get(r, c).abs().toDouble();
+      for (var row = 0; row < rowCount; row++) {
+        sum += get(row, col).abs().toDouble();
       }
       result = math.max(result, sum);
     }
@@ -44,10 +44,10 @@ extension MatrixNormExtension<T extends num> on Matrix<T> {
   /// Returns the infinity norm: maximum absolute row sum $\max_i \sum_j |a_{ij}|$.
   double get normInfinity {
     var result = 0.0;
-    for (var r = 0; r < rowCount; r++) {
+    for (var row = 0; row < rowCount; row++) {
       var sum = 0.0;
-      for (var c = 0; c < colCount; c++) {
-        sum += get(r, c).abs().toDouble();
+      for (var col = 0; col < colCount; col++) {
+        sum += get(row, col).abs().toDouble();
       }
       result = math.max(result, sum);
     }
@@ -66,21 +66,23 @@ extension MatrixNormExtension<T extends num> on Matrix<T> {
 
   /// Returns the 2-norm condition number $\kappa(A) = \sigma_{\max} / \sigma_{\min}$.
   double get cond {
-    final s = svd.s;
-    if (s.length == 0) return 0.0;
-    final minSingular = s[s.length - 1];
-    return minSingular == 0.0 ? double.infinity : s[0] / minSingular;
+    final singularValues = svd.s;
+    if (singularValues.length == 0) return 0.0;
+    final minSingular = singularValues[singularValues.length - 1];
+    return minSingular == 0.0
+        ? double.infinity
+        : singularValues[0] / minSingular;
   }
 
   /// Returns the effective numerical rank of the matrix.
   int get rank {
-    final s = svd.s;
-    if (s.length == 0) return 0;
+    final singularValues = svd.s;
+    if (singularValues.length == 0) return 0;
     final eps = math.pow(2.0, -52).toDouble();
-    final tol = math.max(rowCount, colCount) * s[0] * eps;
+    final tol = math.max(rowCount, colCount) * singularValues[0] * eps;
     var count = 0;
-    for (var i = 0; i < s.length; i++) {
-      if (s[i] > tol) count++;
+    for (var i = 0; i < singularValues.length; i++) {
+      if (singularValues[i] > tol) count++;
     }
     return count;
   }

@@ -120,9 +120,9 @@ class BetaDistribution extends ContinuousDistribution {
   }
 
   @override
-  double inverseCumulativeProbability(num p) {
-    InvalidProbability.check(p);
-    return ibetaInv(p, alpha, beta);
+  double inverseCumulativeProbability(num probability) {
+    InvalidProbability.check(probability);
+    return ibetaInv(probability, alpha, beta);
   }
 
   @override

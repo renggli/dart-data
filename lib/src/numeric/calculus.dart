@@ -4,170 +4,181 @@ import '../../type.dart';
 
 /// Univariate and multivariate numerical and symbolic calculus utilities.
 
-/// Computes the first derivative of [f] at [x].
+/// Computes the first derivative of [function] at [x].
 ///
 /// Accepts either a scalar closure `double Function(double)` or an [Expr].
 double numericalDerivative(
-  Object f,
+  Object function,
   double x, {
   String variable = 'x',
-  double h = 1e-5,
+  double step = 1e-5,
 }) {
-  if (f is Expr) {
-    final deriv = f.diff(variable).simplify();
+  if (function is Expr) {
+    final deriv = function.diff(variable).simplify();
     return deriv.evaluate({variable: x});
-  } else if (f is double Function(double)) {
-    return (f(x + h) - f(x - h)) / (2.0 * h);
-  } else if (f is num Function(num)) {
-    return (f(x + h).toDouble() - f(x - h).toDouble()) / (2.0 * h);
+  } else if (function is double Function(double)) {
+    return (function(x + step) - function(x - step)) / (2.0 * step);
+  } else if (function is num Function(num)) {
+    return (function(x + step).toDouble() - function(x - step).toDouble()) /
+        (2.0 * step);
   }
-  throw ArgumentError('Unsupported function type: ${f.runtimeType}');
+  throw ArgumentError('Unsupported function type: ${function.runtimeType}');
 }
 
-/// Computes the second derivative of [f] at [x].
+/// Computes the second derivative of [function] at [x].
 double numericalSecondDerivative(
-  Object f,
+  Object function,
   double x, {
   String variable = 'x',
-  double h = 1e-4,
+  double step = 1e-4,
 }) {
-  if (f is Expr) {
-    final secondDeriv = f.diff(variable).diff(variable).simplify();
+  if (function is Expr) {
+    final secondDeriv = function.diff(variable).diff(variable).simplify();
     return secondDeriv.evaluate({variable: x});
-  } else if (f is double Function(double)) {
-    return (f(x + h) - 2.0 * f(x) + f(x - h)) / (h * h);
-  } else if (f is num Function(num)) {
-    return (f(x + h).toDouble() - 2.0 * f(x).toDouble() + f(x - h).toDouble()) /
-        (h * h);
+  } else if (function is double Function(double)) {
+    return (function(x + step) - 2.0 * function(x) + function(x - step)) /
+        (step * step);
+  } else if (function is num Function(num)) {
+    return (function(x + step).toDouble() -
+            2.0 * function(x).toDouble() +
+            function(x - step).toDouble()) /
+        (step * step);
   }
-  throw ArgumentError('Unsupported function type: ${f.runtimeType}');
+  throw ArgumentError('Unsupported function type: ${function.runtimeType}');
 }
 
-/// Computes the gradient vector $\nabla f(x)$ of multivariate function [f] at [point].
+/// Computes the gradient vector $\nabla f(x)$ of multivariate function [function] at [point].
 ///
 /// Accepts either a vector closure `double Function(Vector<double>)` or an [Expr].
 Vector<double> numericalGradient(
-  Object f,
+  Object function,
   Vector<double> point, {
   List<String>? variables,
-  double h = 1e-5,
+  double step = 1e-5,
 }) {
-  final n = point.length;
-  if (f is Expr) {
-    final vars = variables ?? (f.freeVariables.toList()..sort());
-    if (vars.length != n) {
+  final dim = point.length;
+  if (function is Expr) {
+    final vars = variables ?? (function.freeVariables.toList()..sort());
+    if (vars.length != dim) {
       throw ArgumentError(
-        'Variable count (${vars.length}) must match point dimension ($n).',
+        'Variable count (${vars.length}) must match point dimension ($dim).',
       );
     }
-    final ctx = <String, double>{for (var i = 0; i < n; i++) vars[i]: point[i]};
-    final gradExprs = Calculus.gradient(f, vars);
+    final ctx = <String, double>{
+      for (var i = 0; i < dim; i++) vars[i]: point[i],
+    };
+    final gradExprs = Calculus.gradient(function, vars);
     return Vector<double>.generate(
-      n,
+      dim,
       (i) => gradExprs[i].evaluate(ctx),
       type: DataType.float64,
     );
-  } else if (f is double Function(Vector<double>)) {
-    return Vector<double>.generate(n, (i) {
+  } else if (function is double Function(Vector<double>)) {
+    return Vector<double>.generate(dim, (i) {
       final xPlus = point.copy();
       final xMinus = point.copy();
-      xPlus[i] += h;
-      xMinus[i] -= h;
-      return (f(xPlus) - f(xMinus)) / (2.0 * h);
+      xPlus[i] += step;
+      xMinus[i] -= step;
+      return (function(xPlus) - function(xMinus)) / (2.0 * step);
     }, type: DataType.float64);
   }
-  throw ArgumentError('Unsupported function type: ${f.runtimeType}');
+  throw ArgumentError('Unsupported function type: ${function.runtimeType}');
 }
 
-/// Computes the Jacobian matrix $J_{i, j} = \frac{\partial f_i}{\partial x_j}$ of vector function [f] at [point].
+/// Computes the Jacobian matrix $J_{i, j} = \frac{\partial f_i}{\partial x_j}$ of vector function [function] at [point].
 Matrix<double> numericalJacobian(
-  Object f,
+  Object function,
   Vector<double> point, {
   List<String>? variables,
-  double h = 1e-5,
+  double step = 1e-5,
 }) {
-  final n = point.length;
-  if (f is List<Expr>) {
+  final dim = point.length;
+  if (function is List<Expr>) {
     final vars =
         variables ??
-        ({for (final expr in f) ...expr.freeVariables}.toList()..sort());
-    if (vars.length != n) {
+        ({for (final expr in function) ...expr.freeVariables}.toList()..sort());
+    if (vars.length != dim) {
       throw ArgumentError(
-        'Variable count (${vars.length}) must match point dimension ($n).',
+        'Variable count (${vars.length}) must match point dimension ($dim).',
       );
     }
-    final ctx = <String, double>{for (var i = 0; i < n; i++) vars[i]: point[i]};
-    final jacExprs = Calculus.jacobian(f, vars);
+    final ctx = <String, double>{
+      for (var i = 0; i < dim; i++) vars[i]: point[i],
+    };
+    final jacExprs = Calculus.jacobian(function, vars);
     return Matrix<double>.generate(
-      f.length,
-      n,
-      (r, c) => jacExprs[r][c].evaluate(ctx),
+      function.length,
+      dim,
+      (row, col) => jacExprs[row][col].evaluate(ctx),
       type: DataType.float64,
     );
-  } else if (f is Vector<double> Function(Vector<double>)) {
-    final f0 = f(point);
-    final m = f0.length;
-    return Matrix<double>.generate(m, n, (r, c) {
+  } else if (function is Vector<double> Function(Vector<double>)) {
+    final f0 = function(point);
+    final numFuncs = f0.length;
+    return Matrix<double>.generate(numFuncs, dim, (row, col) {
       final xPlus = point.copy();
       final xMinus = point.copy();
-      xPlus[c] += h;
-      xMinus[c] -= h;
-      final fPlus = f(xPlus);
-      final fMinus = f(xMinus);
-      return (fPlus[r] - fMinus[r]) / (2.0 * h);
+      xPlus[col] += step;
+      xMinus[col] -= step;
+      final fPlus = function(xPlus);
+      final fMinus = function(xMinus);
+      return (fPlus[row] - fMinus[row]) / (2.0 * step);
     }, type: DataType.float64);
   }
-  throw ArgumentError('Unsupported function type: ${f.runtimeType}');
+  throw ArgumentError('Unsupported function type: ${function.runtimeType}');
 }
 
-/// Computes the Hessian matrix $H_{i, j} = \frac{\partial^2 f}{\partial x_i \partial x_j}$ of [f] at [point].
+/// Computes the Hessian matrix $H_{i, j} = \frac{\partial^2 f}{\partial x_i \partial x_j}$ of [function] at [point].
 Matrix<double> numericalHessian(
-  Object f,
+  Object function,
   Vector<double> point, {
   List<String>? variables,
-  double h = 1e-4,
+  double step = 1e-4,
 }) {
-  final n = point.length;
-  if (f is Expr) {
-    final vars = variables ?? (f.freeVariables.toList()..sort());
-    if (vars.length != n) {
+  final dim = point.length;
+  if (function is Expr) {
+    final vars = variables ?? (function.freeVariables.toList()..sort());
+    if (vars.length != dim) {
       throw ArgumentError(
-        'Variable count (${vars.length}) must match point dimension ($n).',
+        'Variable count (${vars.length}) must match point dimension ($dim).',
       );
     }
-    final ctx = <String, double>{for (var i = 0; i < n; i++) vars[i]: point[i]};
-    final hessExprs = Calculus.hessian(f, vars);
+    final ctx = <String, double>{
+      for (var i = 0; i < dim; i++) vars[i]: point[i],
+    };
+    final hessExprs = Calculus.hessian(function, vars);
     return Matrix<double>.generate(
-      n,
-      n,
-      (r, c) => hessExprs[r][c].evaluate(ctx),
+      dim,
+      dim,
+      (row, col) => hessExprs[row][col].evaluate(ctx),
       type: DataType.float64,
     );
-  } else if (f is double Function(Vector<double>)) {
-    final f0 = f(point);
-    return Matrix<double>.generate(n, n, (i, j) {
+  } else if (function is double Function(Vector<double>)) {
+    final f0 = function(point);
+    return Matrix<double>.generate(dim, dim, (i, j) {
       if (i == j) {
         final xPlus = point.copy();
         final xMinus = point.copy();
-        xPlus[i] += h;
-        xMinus[i] -= h;
-        return (f(xPlus) - 2.0 * f0 + f(xMinus)) / (h * h);
+        xPlus[i] += step;
+        xMinus[i] -= step;
+        return (function(xPlus) - 2.0 * f0 + function(xMinus)) / (step * step);
       } else {
         final xPP = point.copy();
         final xPM = point.copy();
         final xMP = point.copy();
         final xMM = point.copy();
-        xPP[i] += h;
-        xPP[j] += h;
-        xPM[i] += h;
-        xPM[j] -= h;
-        xMP[i] -= h;
-        xMP[j] += h;
-        xMM[i] -= h;
-        xMM[j] -= h;
-        return (f(xPP) - f(xPM) - f(xMP) + f(xMM)) / (4.0 * h * h);
+        xPP[i] += step;
+        xPP[j] += step;
+        xPM[i] += step;
+        xPM[j] -= step;
+        xMP[i] -= step;
+        xMP[j] += step;
+        xMM[i] -= step;
+        xMM[j] -= step;
+        return (function(xPP) - function(xPM) - function(xMP) + function(xMM)) /
+            (4.0 * step * step);
       }
     }, type: DataType.float64);
   }
-  throw ArgumentError('Unsupported function type: ${f.runtimeType}');
+  throw ArgumentError('Unsupported function type: ${function.runtimeType}');
 }

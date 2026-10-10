@@ -17,12 +17,14 @@ double variance(Iterable<num> values, {bool population = false}) =>
 double standardDeviation(Iterable<num> values, {bool population = false}) =>
     _standardDeviation(values, population: population);
 
-/// Returns the empirical quantile of [values] for fraction [q] $\in [0, 1]$
+/// Returns the empirical quantile of [values] for fraction [quantile] $\in [0, 1]$
 /// using standard linear interpolation between adjacent ranks (Type 7).
-double quantile(Iterable<num> values, num q) => _quantile(values, q);
+double quantile(Iterable<num> values, num quantile) =>
+    _quantile(values, quantile);
 
-/// Returns the [p]-th percentile of [values] where $p \in [0, 100]$.
-double percentile(Iterable<num> values, num p) => _percentile(values, p);
+/// Returns the [percentile]-th percentile of [values] where [percentile] $\in [0, 100]$.
+double percentile(Iterable<num> values, num percentile) =>
+    _percentile(values, percentile);
 
 /// Returns the median of [values].
 double median(Iterable<num> values) => _median(values);
@@ -54,15 +56,15 @@ double pearsonCorrelation(Iterable<num> x, Iterable<num> y) =>
 
 /// Returns fractional ranks of [values], handling ties by averaging ranks.
 List<double> rankData(Iterable<num> values) {
-  final list = values.map((e) => e.toDouble()).toList();
-  final n = list.length;
-  final indices = List.generate(n, (i) => i)
+  final list = values.map((value) => value.toDouble()).toList();
+  final length = list.length;
+  final indices = List.generate(length, (i) => i)
     ..sort((a, b) => list[a].compareTo(list[b]));
-  final ranks = List<double>.filled(n, 0.0);
+  final ranks = List<double>.filled(length, 0.0);
   var i = 0;
-  while (i < n) {
+  while (i < length) {
     var j = i;
-    while (j + 1 < n && list[indices[j + 1]] == list[indices[i]]) {
+    while (j + 1 < length && list[indices[j + 1]] == list[indices[i]]) {
       j++;
     }
     final avgRank = 1.0 + (i + j) / 2.0;
@@ -126,16 +128,21 @@ class PcaResult {
 
   /// Projects [x] onto the principal component space.
   Matrix<double> transform(Matrix<num> x) {
-    final n = x.rowCount;
-    final p = x.colCount;
-    if (p != mean.length) {
+    final rowCount = x.rowCount;
+    final colCount = x.colCount;
+    if (colCount != mean.length) {
       throw ArgumentError(
-        'Feature dimension $p does not match fitted features ${mean.length}',
+        'Feature dimension $colCount does not match fitted features ${mean.length}',
       );
     }
-    final centered = Matrix<double>.filled(n, p, 0.0, type: DataType.float64);
-    for (var i = 0; i < n; i++) {
-      for (var j = 0; j < p; j++) {
+    final centered = Matrix<double>.filled(
+      rowCount,
+      colCount,
+      0.0,
+      type: DataType.float64,
+    );
+    for (var i = 0; i < rowCount; i++) {
+      for (var j = 0; j < colCount; j++) {
         var val = x.get(i, j).toDouble() - mean[j];
         if (standardize && std != null && std![j] > 0.0) {
           val /= std![j];
@@ -148,24 +155,34 @@ class PcaResult {
 
   /// Transforms [x] from principal component space back to original feature space.
   Matrix<double> inverseTransform(Matrix<num> x) {
-    final n = x.rowCount;
-    final k = x.colCount;
-    if (k != components.rowCount) {
+    final rowCount = x.rowCount;
+    final compCount = x.colCount;
+    if (compCount != components.rowCount) {
       throw ArgumentError(
-        'Component dimension $k does not match ${components.rowCount}',
+        'Component dimension $compCount does not match ${components.rowCount}',
       );
     }
-    final p = components.colCount;
-    final xDouble = Matrix<double>.filled(n, k, 0.0, type: DataType.float64);
-    for (var i = 0; i < n; i++) {
-      for (var j = 0; j < k; j++) {
+    final featureCount = components.colCount;
+    final xDouble = Matrix<double>.filled(
+      rowCount,
+      compCount,
+      0.0,
+      type: DataType.float64,
+    );
+    for (var i = 0; i < rowCount; i++) {
+      for (var j = 0; j < compCount; j++) {
         xDouble.set(i, j, x.get(i, j).toDouble());
       }
     }
     final recon = xDouble * components;
-    final result = Matrix<double>.filled(n, p, 0.0, type: DataType.float64);
-    for (var i = 0; i < n; i++) {
-      for (var j = 0; j < p; j++) {
+    final result = Matrix<double>.filled(
+      rowCount,
+      featureCount,
+      0.0,
+      type: DataType.float64,
+    );
+    for (var i = 0; i < rowCount; i++) {
+      for (var j = 0; j < featureCount; j++) {
         var val = recon.get(i, j);
         if (standardize && std != null) {
           val *= std![j];
@@ -188,7 +205,10 @@ PcaResult pca(Matrix<num> data, {int? nComponents, bool standardize = false}) {
   if (nSamples < 2) {
     throw ArgumentError('At least 2 samples required for PCA');
   }
-  final k = (nComponents ?? math.min(nSamples, nFeatures)).clamp(1, nFeatures);
+  final numComponents = (nComponents ?? math.min(nSamples, nFeatures)).clamp(
+    1,
+    nFeatures,
+  );
 
   final meanVec = Vector<double>.filled(nFeatures, 0.0, type: DataType.float64);
   final stdVec = Vector<double>.filled(nFeatures, 1.0, type: DataType.float64);
@@ -198,17 +218,17 @@ PcaResult pca(Matrix<num> data, {int? nComponents, bool standardize = false}) {
     for (var i = 0; i < nSamples; i++) {
       sum += data.get(i, j).toDouble();
     }
-    final m = sum / nSamples;
-    meanVec[j] = m;
+    final meanVal = sum / nSamples;
+    meanVec[j] = meanVal;
 
     if (standardize) {
       var ss = 0.0;
       for (var i = 0; i < nSamples; i++) {
-        final d = data.get(i, j).toDouble() - m;
-        ss += d * d;
+        final diff = data.get(i, j).toDouble() - meanVal;
+        ss += diff * diff;
       }
-      final s = math.sqrt(ss / (nSamples - 1.0));
-      stdVec[j] = s > 0.0 ? s : 1.0;
+      final stdVal = math.sqrt(ss / (nSamples - 1.0));
+      stdVec[j] = stdVal > 0.0 ? stdVal : 1.0;
     }
   }
 
@@ -218,7 +238,7 @@ PcaResult pca(Matrix<num> data, {int? nComponents, bool standardize = false}) {
 
   final eig = EigenvalueDecomposition(cov);
   final rawEigenvalues = eig.realEigenvalues;
-  final v = eig.v;
+  final eigVectors = eig.v;
 
   final order = List.generate(nFeatures, (i) => i)
     ..sort((a, b) => rawEigenvalues[b].compareTo(rawEigenvalues[a]));
@@ -229,22 +249,30 @@ PcaResult pca(Matrix<num> data, {int? nComponents, bool standardize = false}) {
   }
 
   final compMatrix = Matrix<double>.filled(
-    k,
+    numComponents,
     nFeatures,
     0.0,
     type: DataType.float64,
   );
-  final expVar = Vector<double>.filled(k, 0.0, type: DataType.float64);
-  final expVarRatio = Vector<double>.filled(k, 0.0, type: DataType.float64);
+  final expVar = Vector<double>.filled(
+    numComponents,
+    0.0,
+    type: DataType.float64,
+  );
+  final expVarRatio = Vector<double>.filled(
+    numComponents,
+    0.0,
+    type: DataType.float64,
+  );
 
-  for (var compIdx = 0; compIdx < k; compIdx++) {
+  for (var compIdx = 0; compIdx < numComponents; compIdx++) {
     final featureIdx = order[compIdx];
     final ev = math.max(0.0, rawEigenvalues[featureIdx]);
     expVar[compIdx] = ev;
     expVarRatio[compIdx] = totalVar > 0.0 ? ev / totalVar : 0.0;
 
     for (var j = 0; j < nFeatures; j++) {
-      compMatrix.set(compIdx, j, v.get(j, featureIdx));
+      compMatrix.set(compIdx, j, eigVectors.get(j, featureIdx));
     }
   }
 
@@ -262,20 +290,20 @@ PcaResult pca(Matrix<num> data, {int? nComponents, bool standardize = false}) {
 extension DescriptiveIterableNumExtension on Iterable<num> {
   /// Returns the sum of values.
   double sum() {
-    var s = 0.0;
-    for (final v in this) {
-      s += v;
+    var total = 0.0;
+    for (final value in this) {
+      total += value;
     }
-    return s;
+    return total;
   }
 
   /// Returns the product of values.
   double product() {
-    var p = 1.0;
-    for (final v in this) {
-      p *= v;
+    var result = 1.0;
+    for (final value in this) {
+      result *= value;
     }
-    return p;
+    return result;
   }
 
   /// Returns the arithmetic mean of values.
@@ -291,10 +319,10 @@ extension DescriptiveIterableNumExtension on Iterable<num> {
   double geometricMean() {
     var count = 0;
     var sum = 0.0;
-    for (final v in this) {
-      if (v <= 0) return double.nan;
+    for (final value in this) {
+      if (value <= 0) return double.nan;
       count++;
-      sum += math.log(v);
+      sum += math.log(value);
     }
     return count == 0 ? double.nan : math.exp(sum / count);
   }
@@ -303,10 +331,10 @@ extension DescriptiveIterableNumExtension on Iterable<num> {
   double harmonicMean() {
     var count = 0;
     var sum = 0.0;
-    for (final v in this) {
-      if (v == 0) return double.nan;
+    for (final value in this) {
+      if (value == 0) return double.nan;
       count++;
-      sum += 1.0 / v;
+      sum += 1.0 / value;
     }
     return sum == 0.0 || count == 0 ? double.nan : count / sum;
   }
@@ -322,11 +350,11 @@ extension DescriptiveIterableNumExtension on Iterable<num> {
   /// Returns the median of values.
   double median() => _median(this);
 
-  /// Returns the empirical quantile for [q] $\in [0, 1]$.
-  double quantile(num q) => _quantile(this, q);
+  /// Returns the empirical quantile for [quantile] $\in [0, 1]$.
+  double quantile(num quantile) => _quantile(this, quantile);
 
-  /// Returns the percentile for [p] $\in [0, 100]$.
-  double percentile(num p) => _percentile(this, p);
+  /// Returns the percentile for [percentile] $\in [0, 100]$.
+  double percentile(num percentile) => _percentile(this, percentile);
 
   /// Returns the interquartile range (IQR).
   double iqr() => _iqr(this);
@@ -343,20 +371,20 @@ extension DescriptiveIterableNumExtension on Iterable<num> {
 extension DescriptiveIterableIntExtension on Iterable<int> {
   /// Returns the integer sum.
   int sum() {
-    var s = 0;
-    for (final v in this) {
-      s += v;
+    var total = 0;
+    for (final value in this) {
+      total += value;
     }
-    return s;
+    return total;
   }
 
   /// Returns the integer product.
   int product() {
-    var p = 1;
-    for (final v in this) {
-      p *= v;
+    var result = 1;
+    for (final value in this) {
+      result *= value;
     }
-    return p;
+    return result;
   }
 }
 
@@ -376,11 +404,11 @@ extension DescriptiveVectorNumExtension on Vector<num> {
   /// Returns the median of vector elements.
   double median() => _median(toList());
 
-  /// Returns the empirical quantile for [q] $\in [0, 1]$.
-  double quantile(num q) => _quantile(toList(), q);
+  /// Returns the empirical quantile for [quantile] $\in [0, 1]$.
+  double quantile(num quantile) => _quantile(toList(), quantile);
 
-  /// Returns the percentile for [p] $\in [0, 100]$.
-  double percentile(num p) => _percentile(toList(), p);
+  /// Returns the percentile for [percentile] $\in [0, 100]$.
+  double percentile(num percentile) => _percentile(toList(), percentile);
 
   /// Returns the interquartile range (IQR).
   double iqr() => _iqr(toList());
@@ -421,11 +449,11 @@ extension DescriptiveTensorNumExtension on Tensor<num> {
   /// Returns the median of tensor elements.
   double median() => _median(values);
 
-  /// Returns the empirical quantile for [q] $\in [0, 1]$.
-  double quantile(num q) => _quantile(values, q);
+  /// Returns the empirical quantile for [quantile] $\in [0, 1]$.
+  double quantile(num quantile) => _quantile(values, quantile);
 
-  /// Returns the percentile for [p] $\in [0, 100]$.
-  double percentile(num p) => _percentile(values, p);
+  /// Returns the percentile for [percentile] $\in [0, 100]$.
+  double percentile(num percentile) => _percentile(values, percentile);
 
   /// Returns the interquartile range (IQR).
   double iqr() => _iqr(values);
@@ -466,11 +494,11 @@ extension DescriptiveMatrixNumExtension on Matrix<num> {
   /// Returns the median of matrix elements.
   double median() => _median(values);
 
-  /// Returns the empirical quantile for [q] $\in [0, 1]$.
-  double quantile(num q) => _quantile(values, q);
+  /// Returns the empirical quantile for [quantile] $\in [0, 1]$.
+  double quantile(num quantile) => _quantile(values, quantile);
 
-  /// Returns the percentile for [p] $\in [0, 100]$.
-  double percentile(num p) => _percentile(values, p);
+  /// Returns the percentile for [percentile] $\in [0, 100]$.
+  double percentile(num percentile) => _percentile(values, percentile);
 
   /// Returns the interquartile range (IQR).
   double iqr() => _iqr(values);
@@ -498,22 +526,22 @@ extension DescriptiveMatrixNumExtension on Matrix<num> {
 double _mean(Iterable<num> values) {
   var count = 0;
   var sum = 0.0;
-  for (final v in values) {
+  for (final val in values) {
     count++;
-    sum += v;
+    sum += val;
   }
   return count == 0 ? double.nan : sum / count;
 }
 
 double _variance(Iterable<num> values, {bool population = false}) {
   var count = 0;
-  var m = 0.0;
+  var mean = 0.0;
   var m2 = 0.0;
-  for (final v in values) {
+  for (final val in values) {
     count++;
-    final delta = v - m;
-    m += delta / count;
-    final delta2 = v - m;
+    final delta = val - mean;
+    mean += delta / count;
+    final delta2 = val - mean;
     m2 += delta * delta2;
   }
   final divisor = population ? count : count - 1;
@@ -523,19 +551,20 @@ double _variance(Iterable<num> values, {bool population = false}) {
 double _standardDeviation(Iterable<num> values, {bool population = false}) =>
     math.sqrt(_variance(values, population: population));
 
-double _quantile(Iterable<num> values, num q) {
-  final list = values.map((e) => e.toDouble()).toList()..sort();
+double _quantile(Iterable<num> values, num quantile) {
+  final list = values.map((val) => val.toDouble()).toList()..sort();
   if (list.isEmpty) return double.nan;
-  if (q <= 0.0) return list.first;
-  if (q >= 1.0) return list.last;
-  final idx = q * (list.length - 1);
-  final i = idx.floor();
-  final frac = idx - i;
-  if (i >= list.length - 1) return list.last;
-  return list[i] + frac * (list[i + 1] - list[i]);
+  if (quantile <= 0.0) return list.first;
+  if (quantile >= 1.0) return list.last;
+  final idx = quantile * (list.length - 1);
+  final baseIdx = idx.floor();
+  final frac = idx - baseIdx;
+  if (baseIdx >= list.length - 1) return list.last;
+  return list[baseIdx] + frac * (list[baseIdx + 1] - list[baseIdx]);
 }
 
-double _percentile(Iterable<num> values, num p) => _quantile(values, p / 100.0);
+double _percentile(Iterable<num> values, num percentile) =>
+    _quantile(values, percentile / 100.0);
 
 double _median(Iterable<num> values) => _quantile(values, 0.5);
 
@@ -543,24 +572,24 @@ double _iqr(Iterable<num> values) =>
     _quantile(values, 0.75) - _quantile(values, 0.25);
 
 double _skewness(Iterable<num> values, {bool bias = false}) {
-  final list = values.map((e) => e.toDouble()).toList();
-  final n = list.length;
-  if (n < 3 && !bias) return double.nan;
-  if (n < 2) return double.nan;
-  final m = _mean(list);
+  final list = values.map((val) => val.toDouble()).toList();
+  final length = list.length;
+  if (length < 3 && !bias) return double.nan;
+  if (length < 2) return double.nan;
+  final meanVal = _mean(list);
   var m2 = 0.0;
   var m3 = 0.0;
   for (final x in list) {
-    final diff = x - m;
+    final diff = x - meanVal;
     m2 += diff * diff;
     m3 += diff * diff * diff;
   }
-  m2 /= n;
-  m3 /= n;
+  m2 /= length;
+  m3 /= length;
   if (m2 == 0.0) return 0.0;
   final g1 = m3 / math.pow(m2, 1.5);
   if (bias) return g1;
-  return (math.sqrt(n * (n - 1.0)) / (n - 2.0)) * g1;
+  return (math.sqrt(length * (length - 1.0)) / (length - 2.0)) * g1;
 }
 
 double _kurtosis(
@@ -568,28 +597,28 @@ double _kurtosis(
   bool excess = true,
   bool bias = false,
 }) {
-  final list = values.map((e) => e.toDouble()).toList();
-  final n = list.length;
-  if (n < 4 && !bias) return double.nan;
-  if (n < 2) return double.nan;
-  final m = _mean(list);
+  final list = values.map((val) => val.toDouble()).toList();
+  final length = list.length;
+  if (length < 4 && !bias) return double.nan;
+  if (length < 2) return double.nan;
+  final meanVal = _mean(list);
   var m2 = 0.0;
   var m4 = 0.0;
   for (final x in list) {
-    final diff = x - m;
+    final diff = x - meanVal;
     final diff2 = diff * diff;
     m2 += diff2;
     m4 += diff2 * diff2;
   }
-  m2 /= n;
-  m4 /= n;
+  m2 /= length;
+  m4 /= length;
   if (m2 == 0.0) return 0.0;
-  final k = m4 / (m2 * m2);
+  final kurtosisVal = m4 / (m2 * m2);
   if (bias) {
-    return excess ? k - 3.0 : k;
+    return excess ? kurtosisVal - 3.0 : kurtosisVal;
   }
-  final factor1 = (n - 1.0) / ((n - 2.0) * (n - 3.0));
-  final factor2 = (n + 1.0) * k - 3.0 * (n - 1.0);
+  final factor1 = (length - 1.0) / ((length - 2.0) * (length - 3.0));
+  final factor2 = (length + 1.0) * kurtosisVal - 3.0 * (length - 1.0);
   final excessK = factor1 * factor2;
   return excess ? excessK : excessK + 3.0;
 }
@@ -599,37 +628,37 @@ double _covariance(
   Iterable<num> y, {
   bool population = false,
 }) {
-  final xList = x.map((e) => e.toDouble()).toList();
-  final yList = y.map((e) => e.toDouble()).toList();
+  final xList = x.map((val) => val.toDouble()).toList();
+  final yList = y.map((val) => val.toDouble()).toList();
   if (xList.length != yList.length) {
     throw ArgumentError('x and y must have equal length');
   }
-  final n = xList.length;
-  final divisor = population ? n : n - 1;
+  final length = xList.length;
+  final divisor = population ? length : length - 1;
   if (divisor < 1) return double.nan;
   final mx = _mean(xList);
   final my = _mean(yList);
   var sum = 0.0;
-  for (var i = 0; i < n; i++) {
+  for (var i = 0; i < length; i++) {
     sum += (xList[i] - mx) * (yList[i] - my);
   }
   return sum / divisor;
 }
 
 double _pearsonCorrelation(Iterable<num> x, Iterable<num> y) {
-  final xList = x.map((e) => e.toDouble()).toList();
-  final yList = y.map((e) => e.toDouble()).toList();
+  final xList = x.map((val) => val.toDouble()).toList();
+  final yList = y.map((val) => val.toDouble()).toList();
   if (xList.length != yList.length) {
     throw ArgumentError('x and y must have equal length');
   }
-  final n = xList.length;
-  if (n < 2) return double.nan;
+  final length = xList.length;
+  if (length < 2) return double.nan;
   final mx = _mean(xList);
   final my = _mean(yList);
   var ssX = 0.0;
   var ssY = 0.0;
   var ssXY = 0.0;
-  for (var i = 0; i < n; i++) {
+  for (var i = 0; i < length; i++) {
     final dx = xList[i] - mx;
     final dy = yList[i] - my;
     ssX += dx * dx;
@@ -644,7 +673,7 @@ double _spearmanCorrelation(Iterable<num> x, Iterable<num> y) =>
     _pearsonCorrelation(rankData(x), rankData(y));
 
 Matrix<double> _covarianceMatrix(dynamic data, {bool rowVar = false}) {
-  final m = switch (data) {
+  final matrix = switch (data) {
     Matrix<num>() => data,
     Tensor<num>() => Matrix(data),
     _ => throw ArgumentError.value(
@@ -654,8 +683,8 @@ Matrix<double> _covarianceMatrix(dynamic data, {bool rowVar = false}) {
     ),
   };
 
-  final numRows = m.rowCount;
-  final numCols = m.colCount;
+  final numRows = matrix.rowCount;
+  final numCols = matrix.colCount;
   final nSamples = rowVar ? numCols : numRows;
   final nFeatures = rowVar ? numRows : numCols;
 
@@ -676,11 +705,13 @@ Matrix<double> _covarianceMatrix(dynamic data, {bool rowVar = false}) {
   for (var j = 0; j < nFeatures; j++) {
     var sum = 0.0;
     for (var i = 0; i < nSamples; i++) {
-      sum += rowVar ? m.get(j, i).toDouble() : m.get(i, j).toDouble();
+      sum += rowVar ? matrix.get(j, i).toDouble() : matrix.get(i, j).toDouble();
     }
     final meanVal = sum / nSamples;
     for (var i = 0; i < nSamples; i++) {
-      final val = rowVar ? m.get(j, i).toDouble() : m.get(i, j).toDouble();
+      final val = rowVar
+          ? matrix.get(j, i).toDouble()
+          : matrix.get(i, j).toDouble();
       xc.set(i, j, val - meanVal);
     }
   }
@@ -691,23 +722,25 @@ Matrix<double> _covarianceMatrix(dynamic data, {bool rowVar = false}) {
 
 Matrix<double> _pearsonCorrelationMatrix(dynamic data, {bool rowVar = false}) {
   final cov = _covarianceMatrix(data, rowVar: rowVar);
-  final p = cov.rowCount;
-  final std = List<double>.generate(p, (i) => math.sqrt(cov.get(i, i)));
-  final corr = Matrix<double>.filled(p, p, 0.0, type: DataType.float64);
-  for (var i = 0; i < p; i++) {
+  final dim = cov.rowCount;
+  final std = List<double>.generate(dim, (i) => math.sqrt(cov.get(i, i)));
+  final corr = Matrix<double>.filled(dim, dim, 0.0, type: DataType.float64);
+  for (var i = 0; i < dim; i++) {
     corr.set(i, i, 1.0);
-    for (var j = i + 1; j < p; j++) {
+    for (var j = i + 1; j < dim; j++) {
       final denom = std[i] * std[j];
-      final r = denom > 0.0 ? (cov.get(i, j) / denom).clamp(-1.0, 1.0) : 0.0;
-      corr.set(i, j, r);
-      corr.set(j, i, r);
+      final correlation = denom > 0.0
+          ? (cov.get(i, j) / denom).clamp(-1.0, 1.0)
+          : 0.0;
+      corr.set(i, j, correlation);
+      corr.set(j, i, correlation);
     }
   }
   return corr;
 }
 
 Matrix<double> _spearmanCorrelationMatrix(dynamic data, {bool rowVar = false}) {
-  final m = switch (data) {
+  final matrix = switch (data) {
     Matrix<num>() => data,
     Tensor<num>() => Matrix(data),
     _ => throw ArgumentError.value(
@@ -717,8 +750,8 @@ Matrix<double> _spearmanCorrelationMatrix(dynamic data, {bool rowVar = false}) {
     ),
   };
 
-  final numRows = m.rowCount;
-  final numCols = m.colCount;
+  final numRows = matrix.rowCount;
+  final numCols = matrix.colCount;
   final nSamples = rowVar ? numCols : numRows;
   final nFeatures = rowVar ? numRows : numCols;
 
@@ -732,7 +765,7 @@ Matrix<double> _spearmanCorrelationMatrix(dynamic data, {bool rowVar = false}) {
   for (var j = 0; j < nFeatures; j++) {
     final colValues = List<double>.generate(
       nSamples,
-      (i) => rowVar ? m.get(j, i).toDouble() : m.get(i, j).toDouble(),
+      (i) => rowVar ? matrix.get(j, i).toDouble() : matrix.get(i, j).toDouble(),
     );
     final ranks = rankData(colValues);
     for (var i = 0; i < nSamples; i++) {

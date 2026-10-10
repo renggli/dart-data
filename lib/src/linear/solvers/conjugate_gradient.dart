@@ -20,32 +20,32 @@ Vector<T> conjugateGradient<T>(
     );
   }
 
-  final f = a.type.field;
+  final field = a.type.field;
   final x =
       x0?.copy() ??
-      Vector<T>.filled(b.length, f.additiveIdentity, type: a.type);
-  final r = b - a.apply(x);
-  final p = r.copy();
-  var rsOld = r.dot(r);
+      Vector<T>.filled(b.length, field.additiveIdentity, type: a.type);
+  final residual = b - a.apply(x);
+  final direction = residual.copy();
+  var rsOld = residual.dot(residual);
 
-  if (f.norm(rsOld) < tolerance * tolerance) {
+  if (field.norm(rsOld) < tolerance * tolerance) {
     return x;
   }
 
   for (var i = 0; i < maxIterations; i++) {
-    final ap = a.apply(p);
-    final pap = p.dot(ap);
-    if (f.norm(pap) == 0.0) break;
-    final alpha = f.div(rsOld, pap);
-    x.addScaled(p, alpha);
-    r.addScaled(ap, f.neg(alpha));
-    final rsNew = r.dot(r);
-    if (f.norm(rsNew) < tolerance * tolerance) {
+    final ap = a.apply(direction);
+    final pap = direction.dot(ap);
+    if (field.norm(pap) == 0.0) break;
+    final alpha = field.div(rsOld, pap);
+    x.addScaled(direction, alpha);
+    residual.addScaled(ap, field.neg(alpha));
+    final rsNew = residual.dot(residual);
+    if (field.norm(rsNew) < tolerance * tolerance) {
       break;
     }
-    final beta = f.div(rsNew, rsOld);
-    p.scaleInPlace(beta);
-    p.addScaled(r, f.multiplicativeIdentity);
+    final beta = field.div(rsNew, rsOld);
+    direction.scaleInPlace(beta);
+    direction.addScaled(residual, field.multiplicativeIdentity);
     rsOld = rsNew;
   }
 

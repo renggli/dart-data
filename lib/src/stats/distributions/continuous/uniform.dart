@@ -85,15 +85,15 @@ class UniformDistribution extends ContinuousDistribution {
   }
 
   @override
-  double inverseCumulativeProbability(num p) {
-    InvalidProbability.check(p);
-    return min + p * (max - min);
+  double inverseCumulativeProbability(num probability) {
+    InvalidProbability.check(probability);
+    return min + probability * (max - min);
   }
 
   @override
   double sample({Random? random}) {
-    final r = (random ?? Random()).nextDouble();
-    return min + r * (max - min);
+    final rng = (random ?? Random()).nextDouble();
+    return min + rng * (max - min);
   }
 
   @override

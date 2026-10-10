@@ -12,10 +12,10 @@ import 'package:more/math.dart';
 /// ```
 double erf(num x) {
   if (x == 0) return x.toDouble();
-  final t = 1.0 / (1.0 + 0.5 * x.abs());
-  final e = -x * x + _erfChebyshev.polynomial(t);
-  final r = t * exp(e);
-  return x.isNegative ? r - 1.0 : 1.0 - r;
+  final tVal = 1.0 / (1.0 + 0.5 * x.abs());
+  final exponent = -x * x + _erfChebyshev.polynomial(tVal);
+  final result = tVal * exp(exponent);
+  return x.isNegative ? result - 1.0 : 1.0 - result;
 }
 
 /// Returns the inverse error function.
@@ -30,32 +30,34 @@ double erfInv(num x) {
     return x.toDouble();
   } else {
     const x0 = 0.7;
-    const a = [0.886226899, -1.645349621, 0.914624893, -0.140543331];
-    const b = [-2.118377725, 1.442710462, -0.329097515, 0.012229801];
-    const c = [-1.970840454, -1.624906493, 3.429567803, 1.641345311];
-    const d = [3.543889200, 1.637067800];
-    var r = 0.0;
+    const coeffsA = [0.886226899, -1.645349621, 0.914624893, -0.140543331];
+    const coeffsB = [-2.118377725, 1.442710462, -0.329097515, 0.012229801];
+    const coeffsC = [-1.970840454, -1.624906493, 3.429567803, 1.641345311];
+    const coeffsD = [3.543889200, 1.637067800];
+    var result = 0.0;
     if (x < -x0) {
       final z = sqrt(-log((1.0 + x) / 2.0));
-      r =
-          -(((c[3] * z + c[2]) * z + c[1]) * z + c[0]) /
-          ((d[1] * z + d[0]) * z + 1.0);
+      result =
+          -(((coeffsC[3] * z + coeffsC[2]) * z + coeffsC[1]) * z + coeffsC[0]) /
+          ((coeffsD[1] * z + coeffsD[0]) * z + 1.0);
     } else if (x < x0) {
       final z = x * x;
-      r =
+      result =
           x *
-          (((a[3] * z + a[2]) * z + a[1]) * z + a[0]) /
-          ((((b[3] * z + b[2]) * z + b[1]) * z + b[0]) * z + 1.0);
+          (((coeffsA[3] * z + coeffsA[2]) * z + coeffsA[1]) * z + coeffsA[0]) /
+          ((((coeffsB[3] * z + coeffsB[2]) * z + coeffsB[1]) * z + coeffsB[0]) *
+                  z +
+              1.0);
     } else {
       final z = sqrt(-log((1.0 - x) / 2.0));
-      r =
-          (((c[3] * z + c[2]) * z + c[1]) * z + c[0]) /
-          ((d[1] * z + d[0]) * z + 1.0);
+      result =
+          (((coeffsC[3] * z + coeffsC[2]) * z + coeffsC[1]) * z + coeffsC[0]) /
+          ((coeffsD[1] * z + coeffsD[0]) * z + 1.0);
     }
     for (var i = 0; i < 2; i++) {
-      r -= (erf(r) - x) / (2.0 / sqrt(pi) * exp(-r * r));
+      result -= (erf(result) - x) / (2.0 / sqrt(pi) * exp(-result * result));
     }
-    return r;
+    return result;
   }
 }
 
@@ -63,10 +65,10 @@ double erfInv(num x) {
 double erfc(num x) {
   if (x.isNaN) return double.nan;
   if (x == 0) return 1.0;
-  final t = 1.0 / (1.0 + 0.5 * x.abs());
-  final e = -x * x + _erfChebyshev.polynomial(t);
-  final r = t * exp(e);
-  return x.isNegative ? 2.0 - r : r;
+  final tVal = 1.0 / (1.0 + 0.5 * x.abs());
+  final exponent = -x * x + _erfChebyshev.polynomial(tVal);
+  final result = tVal * exp(exponent);
+  return x.isNegative ? 2.0 - result : result;
 }
 
 /// Returns the inverse complementary error function.

@@ -32,8 +32,8 @@ class ChiSquaredDistribution extends ContinuousDistribution {
     if (count == 0) {
       throw ArgumentError.value(samples, 'samples', 'Cannot fit empty samples');
     }
-    final k = sum / count;
-    return ChiSquaredDistribution(k > 0 ? k : 1.0);
+    final fittedDof = sum / count;
+    return ChiSquaredDistribution(fittedDof > 0 ? fittedDof : 1.0);
   }
 
   /// The degrees of freedom k.
@@ -72,9 +72,9 @@ class ChiSquaredDistribution extends ContinuousDistribution {
       x <= 0.0 ? 0.0 : lowRegGamma(0.5 * dof, 0.5 * x);
 
   @override
-  double inverseCumulativeProbability(num p) {
-    InvalidProbability.check(p);
-    return gammapInv(p, 0.5 * dof) * 2.0;
+  double inverseCumulativeProbability(num probability) {
+    InvalidProbability.check(probability);
+    return gammapInv(probability, 0.5 * dof) * 2.0;
   }
 
   @override

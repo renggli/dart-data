@@ -11,15 +11,15 @@ List<Complex> fft(Iterable<Complex> input, {bool inverse = false}) {
   if (list.length <= 1) {
     return List<Complex>.of(list);
   }
-  final n = _nextPowerOf2(list.length);
-  final result = List<Complex>.filled(n, Complex.zero, growable: false);
+  final length = _nextPowerOf2(list.length);
+  final result = List<Complex>.filled(length, Complex.zero, growable: false);
   for (var i = 0; i < list.length; i++) {
     result[i] = list[i];
   }
 
   // Bit-reversal permutation
-  for (var i = 1, j = 0; i < n; i++) {
-    var bit = n >> 1;
+  for (var i = 1, j = 0; i < length; i++) {
+    var bit = length >> 1;
     for (; j & bit != 0; bit >>= 1) {
       j ^= bit;
     }
@@ -32,25 +32,25 @@ List<Complex> fft(Iterable<Complex> input, {bool inverse = false}) {
   }
 
   // Cooley-Tukey decimation-in-time radix-2 FFT
-  for (var len = 2; len <= n; len <<= 1) {
+  for (var len = 2; len <= length; len <<= 1) {
     final halfLen = len >> 1;
     final angle = (inverse ? 2.0 : -2.0) * math.pi / len;
     final wStep = Complex(math.cos(angle), math.sin(angle));
-    for (var i = 0; i < n; i += len) {
-      var w = Complex.one;
+    for (var i = 0; i < length; i += len) {
+      var omega = Complex.one;
       for (var j = 0; j < halfLen; j++) {
-        final u = result[i + j];
-        final v = result[i + j + halfLen] * w;
-        result[i + j] = u + v;
-        result[i + j + halfLen] = u - v;
-        w *= wStep;
+        final uVal = result[i + j];
+        final vVal = result[i + j + halfLen] * omega;
+        result[i + j] = uVal + vVal;
+        result[i + j + halfLen] = uVal - vVal;
+        omega *= wStep;
       }
     }
   }
 
   if (inverse) {
-    final factor = 1.0 / n;
-    for (var i = 0; i < n; i++) {
+    final factor = 1.0 / length;
+    for (var i = 0; i < length; i++) {
       result[i] = Complex(result[i].a * factor, result[i].b * factor);
     }
   }
@@ -68,8 +68,8 @@ List<Complex> rfft(Iterable<num> input) {
   if (input.isEmpty) return const [];
   final complexInput = [for (final x in input) Complex(x.toDouble(), 0.0)];
   final full = fft(complexInput);
-  final n = full.length;
-  final half = (n >> 1) + 1;
+  final fullLen = full.length;
+  final half = (fullLen >> 1) + 1;
   return full.sublist(0, half);
 }
 
@@ -108,8 +108,8 @@ List<List<Complex>> fft2(List<List<Complex>> matrix, {bool inverse = false}) {
 
   // 1. Transform each row (with targetCols padding)
   final rowTransformed = <List<Complex>>[];
-  for (var r = 0; r < rowCount; r++) {
-    rowTransformed.add(fft(matrix[r], inverse: inverse));
+  for (var row = 0; row < rowCount; row++) {
+    rowTransformed.add(fft(matrix[row], inverse: inverse));
   }
   final zeroRow = List<Complex>.filled(targetCols, Complex.zero);
   while (rowTransformed.length < targetRows) {
@@ -122,11 +122,13 @@ List<List<Complex>> fft2(List<List<Complex>> matrix, {bool inverse = false}) {
     (_) => List<Complex>.filled(targetCols, Complex.zero),
   );
 
-  for (var c = 0; c < targetCols; c++) {
-    final colVals = [for (var r = 0; r < targetRows; r++) rowTransformed[r][c]];
+  for (var col = 0; col < targetCols; col++) {
+    final colVals = [
+      for (var row = 0; row < targetRows; row++) rowTransformed[row][col],
+    ];
     final colTransformed = fft(colVals, inverse: inverse);
-    for (var r = 0; r < targetRows; r++) {
-      result[r][c] = colTransformed[r];
+    for (var row = 0; row < targetRows; row++) {
+      result[row][col] = colTransformed[row];
     }
   }
 
@@ -137,14 +139,14 @@ List<List<Complex>> fft2(List<List<Complex>> matrix, {bool inverse = false}) {
 List<List<Complex>> ifft2(List<List<Complex>> matrix) =>
     fft2(matrix, inverse: true);
 
-int _nextPowerOf2(int v) {
-  if (v <= 1) return 1;
-  var n = v - 1;
-  n |= n >> 1;
-  n |= n >> 2;
-  n |= n >> 4;
-  n |= n >> 8;
-  n |= n >> 16;
-  n |= n >> 32;
-  return n + 1;
+int _nextPowerOf2(int value) {
+  if (value <= 1) return 1;
+  var power = value - 1;
+  power |= power >> 1;
+  power |= power >> 2;
+  power |= power >> 4;
+  power |= power >> 8;
+  power |= power >> 16;
+  power |= power >> 32;
+  return power + 1;
 }

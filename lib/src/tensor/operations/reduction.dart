@@ -8,13 +8,13 @@ import 'operation.dart';
 extension ReductionTensorExtension<T> on Tensor<T> {
   /// Computes the sum of elements over the given [axis], or all elements if [axis] is null.
   Tensor<T> sum({int? axis, bool keepDims = false, Tensor<T>? target}) {
-    final f = type.field;
+    final field = type.field;
     return _reduceAxis(
       axis: axis,
       keepDims: keepDims,
       target: target,
-      initialValue: f.additiveIdentity,
-      combine: f.add,
+      initialValue: field.additiveIdentity,
+      combine: field.add,
     );
   }
 
@@ -28,10 +28,10 @@ extension ReductionTensorExtension<T> on Tensor<T> {
         ? length
         : layout.shape[axis < 0 ? axis + rank : axis];
     if (count == 0) throw StateError('Cannot compute mean of empty tensor');
-    final s = sum(axis: axis, keepDims: keepDims);
+    final sumTensor = sum(axis: axis, keepDims: keepDims);
     const resultType = DataType.float64;
-    return s.unaryOperation<double>(
-      (T v) => (v as num).toDouble() / count,
+    return sumTensor.unaryOperation<double>(
+      (T value) => (value as num).toDouble() / count,
       type: resultType,
       target: target,
     );
@@ -73,16 +73,16 @@ extension ReductionTensorExtension<T> on Tensor<T> {
         : layout.shape[axis < 0 ? axis + rank : axis];
     final denom = count - ddof;
     if (denom <= 0) throw StateError('Degrees of freedom <= 0');
-    final m = mean(axis: axis, keepDims: true);
+    final meanTensor = mean(axis: axis, keepDims: true);
     final thisDouble = unaryOperation<double>(
-      (T v) => (v as num).toDouble(),
+      (T value) => (value as num).toDouble(),
       type: DataType.float64,
     );
-    final diff = thisDouble - m;
+    final diff = thisDouble - meanTensor;
     final sq = diff * diff;
     final sumSq = sq.sum(axis: axis, keepDims: keepDims);
     return sumSq.unaryOperation<double>(
-      (double v) => v / denom,
+      (double value) => value / denom,
       type: DataType.float64,
       target: target,
     );
@@ -95,8 +95,8 @@ extension ReductionTensorExtension<T> on Tensor<T> {
     int ddof = 0,
     Tensor<double>? target,
   }) {
-    final v = var_(axis: axis, keepDims: keepDims, ddof: ddof);
-    return v.unaryOperation<double>(
+    final varTensor = var_(axis: axis, keepDims: keepDims, ddof: ddof);
+    return varTensor.unaryOperation<double>(
       math.sqrt,
       type: DataType.float64,
       target: target,
@@ -104,34 +104,34 @@ extension ReductionTensorExtension<T> on Tensor<T> {
   }
 
   /// Computes the $L_p$ norm of this tensor.
-  double norm([num p = 2]) {
+  double norm([num pNorm = 2]) {
     if (length == 0) return 0.0;
-    if (p == double.infinity) {
+    if (pNorm == double.infinity) {
       var maxVal = 0.0;
-      for (final v in values) {
-        final absVal = type.field.norm(v);
+      for (final val in values) {
+        final absVal = type.field.norm(val);
         if (absVal > maxVal) maxVal = absVal;
       }
       return maxVal;
-    } else if (p == 1) {
+    } else if (pNorm == 1) {
       var sum = 0.0;
-      for (final v in values) {
-        sum += type.field.norm(v);
+      for (final val in values) {
+        sum += type.field.norm(val);
       }
       return sum;
-    } else if (p == 2) {
+    } else if (pNorm == 2) {
       var sumSq = 0.0;
-      for (final v in values) {
-        final n = type.field.norm(v);
-        sumSq += n * n;
+      for (final val in values) {
+        final normVal = type.field.norm(val);
+        sumSq += normVal * normVal;
       }
       return math.sqrt(sumSq);
     } else {
       var sum = 0.0;
-      for (final v in values) {
-        sum += math.pow(type.field.norm(v), p);
+      for (final val in values) {
+        sum += math.pow(type.field.norm(val), pNorm);
       }
-      return math.pow(sum, 1.0 / p).toDouble();
+      return math.pow(sum, 1.0 / pNorm).toDouble();
     }
   }
 
@@ -154,11 +154,11 @@ extension ReductionTensorExtension<T> on Tensor<T> {
       T result;
       if (layout.isContiguous && length > 0) {
         final start = layout.offset;
-        final d = data;
-        result = initialValue ?? d[start];
+        final srcData = data;
+        result = initialValue ?? srcData[start];
         final i0 = initialValue == null ? start + 1 : start;
         for (var i = i0; i < start + length; i++) {
-          result = combine(result, d[i]);
+          result = combine(result, srcData[i]);
         }
       } else {
         final it = values.iterator;
@@ -238,10 +238,12 @@ extension ReductionTensorExtension<T> on Tensor<T> {
       var bestIdx = 0;
       var bestVal = values.first;
       var idx = 0;
-      for (final v in values) {
-        final isBetter = findMin ? cmp(v, bestVal) < 0 : cmp(v, bestVal) > 0;
+      for (final val in values) {
+        final isBetter = findMin
+            ? cmp(val, bestVal) < 0
+            : cmp(val, bestVal) > 0;
         if (isBetter) {
-          bestVal = v;
+          bestVal = val;
           bestIdx = idx;
         }
         idx++;
@@ -282,10 +284,12 @@ extension ReductionTensorExtension<T> on Tensor<T> {
       var bestVal = getValue(inKey);
       for (var k = 1; k < axisLen; k++) {
         inKey[normalizedAxis] = k;
-        final v = getValue(inKey);
-        final isBetter = findMin ? cmp(v, bestVal) < 0 : cmp(v, bestVal) > 0;
+        final currentVal = getValue(inKey);
+        final isBetter = findMin
+            ? cmp(currentVal, bestVal) < 0
+            : cmp(currentVal, bestVal) > 0;
         if (isBetter) {
-          bestVal = v;
+          bestVal = currentVal;
           bestIdx = k;
         }
       }

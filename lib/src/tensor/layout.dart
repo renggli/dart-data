@@ -3,16 +3,20 @@ import 'dart:typed_data';
 /// Immutable multi-dimensional layout descriptor with strided coordinate mapping.
 class Layout {
   factory({Iterable<int>? shape, Iterable<int>? strides, int offset = 0}) {
-    final s = shape == null ? Int32List(0) : Int32List.fromList(shape.toList());
-    for (final dim in s) {
+    final shapeList = shape == null
+        ? Int32List(0)
+        : Int32List.fromList(shape.toList());
+    for (final dim in shapeList) {
       if (dim < 0) {
-        throw ArgumentError('Shape dimensions must be non-negative: $s');
+        throw ArgumentError(
+          'Shape dimensions must be non-negative: $shapeList',
+        );
       }
     }
-    final rank = s.length;
+    final rank = shapeList.length;
     var length = rank == 0 ? (shape == null ? 0 : 1) : 1;
     for (var i = 0; i < rank; i++) {
-      length *= s[i];
+      length *= shapeList[i];
     }
     Int32List str;
     if (strides != null) {
@@ -27,7 +31,7 @@ class Layout {
       var currentStride = 1;
       for (var i = rank - 1; i >= 0; i--) {
         str[i] = currentStride;
-        currentStride *= s[i];
+        currentStride *= shapeList[i];
       }
     }
 
@@ -35,11 +39,11 @@ class Layout {
     if (rank > 0 && length > 0) {
       var expectedStride = 1;
       for (var i = rank - 1; i >= 0; i--) {
-        if (s[i] > 1 && str[i] != expectedStride) {
+        if (shapeList[i] > 1 && str[i] != expectedStride) {
           isContiguous = false;
           break;
         }
-        expectedStride *= s[i];
+        expectedStride *= shapeList[i];
       }
     }
 
@@ -47,7 +51,7 @@ class Layout {
       rank: rank,
       length: length,
       offset: offset,
-      shape: s,
+      shape: shapeList,
       strides: str,
       isContiguous: isContiguous,
     );
@@ -240,18 +244,22 @@ class Layout {
       throw RangeError.value(axis, 'axis', 'Out of bounds [0, $rank)');
     }
     final dim = shape[normAxis];
-    final s = start ?? 0;
-    final e = end ?? dim;
-    if (s < 0 || s > dim) throw RangeError.range(s, 0, dim, 'start');
-    if (e < s || e > dim) throw RangeError.range(e, s, dim, 'end');
+    final startIdx = start ?? 0;
+    final endIdx = end ?? dim;
+    if (startIdx < 0 || startIdx > dim) {
+      throw RangeError.range(startIdx, 0, dim, 'start');
+    }
+    if (endIdx < startIdx || endIdx > dim) {
+      throw RangeError.range(endIdx, startIdx, dim, 'end');
+    }
     if (step <= 0) throw ArgumentError.value(step, 'step', 'Must be positive');
 
     final newShape = List<int>.from(shape);
     final newStrides = List<int>.from(strides);
-    final count = ((e - s) + step - 1) ~/ step;
+    final count = ((endIdx - startIdx) + step - 1) ~/ step;
     newShape[normAxis] = count;
     newStrides[normAxis] = strides[normAxis] * step;
-    final newOffset = offset + s * strides[normAxis];
+    final newOffset = offset + startIdx * strides[normAxis];
 
     return Layout(shape: newShape, strides: newStrides, offset: newOffset);
   }

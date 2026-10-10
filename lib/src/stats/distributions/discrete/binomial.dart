@@ -30,10 +30,10 @@ class BinomialDistribution extends DiscreteDistribution {
           'Samples must be non-negative integers',
         );
       }
-      final k = x.round();
-      if (k > maxVal) maxVal = k;
+      final intVal = x.round();
+      if (intVal > maxVal) maxVal = intVal;
       count++;
-      sum += k;
+      sum += intVal;
     }
     if (count == 0) {
       throw ArgumentError.value(samples, 'samples', 'Cannot fit empty samples');
@@ -43,8 +43,8 @@ class BinomialDistribution extends DiscreteDistribution {
       return const BinomialDistribution(0, 0.0);
     }
     final mean = sum / count;
-    final p = (mean / actualN).clamp(0.0, 1.0);
-    return BinomialDistribution(actualN, p);
+    final prob = (mean / actualN).clamp(0.0, 1.0);
+    return BinomialDistribution(actualN, prob);
   }
 
   /// Number of trials.

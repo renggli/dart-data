@@ -63,17 +63,17 @@ class LogisticDistribution extends ContinuousDistribution {
   }
 
   @override
-  double inverseCumulativeProbability(num p) {
-    InvalidProbability.check(p);
-    if (p == 0) return double.negativeInfinity;
-    if (p == 1) return double.infinity;
-    return mu + s * log(p / (1 - p));
+  double inverseCumulativeProbability(num probability) {
+    InvalidProbability.check(probability);
+    if (probability == 0) return double.negativeInfinity;
+    if (probability == 1) return double.infinity;
+    return mu + s * log(probability / (1 - probability));
   }
 
   @override
   double sample({Random? random}) {
-    final u = (random ?? _random).nextDouble();
-    return inverseCumulativeProbability(u);
+    final uniform = (random ?? _random).nextDouble();
+    return inverseCumulativeProbability(uniform);
   }
 
   @override

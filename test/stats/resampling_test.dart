@@ -3,7 +3,7 @@ import 'dart:math' as math;
 import 'package:checks/checks.dart';
 import 'package:data/stats.dart';
 import 'package:more/collection.dart' show IntegerRange;
-import 'package:test/scaffolding.dart';
+import 'package:test/test.dart';
 
 void main() {
   group('resampling', () {
@@ -156,29 +156,33 @@ void main() {
 
       test('resampling errors and string printing', () {
         final samples = [1.0, 2.0, 3.0];
-        final j = Jackknife<double>(samples, (l) => l.arithmeticMean());
-        check(j.toString()).contains('Jackknife');
+        final jackknife = Jackknife<double>(
+          samples,
+          (list) => list.arithmeticMean(),
+        );
+        check(jackknife.toString()).contains('Jackknife');
 
-        check(() => bootstrap([1.0], (l) => l[0])).throws<ArgumentError>();
-        check(() => bootstrap(samples, (l) => l[0], resamples: 5))
+        check(() => bootstrap([1.0], (list) => list[0]))
             .throws<ArgumentError>();
-        check(() => bootstrap(samples, (l) => l[0], confidenceLevel: 0.0))
+        check(() => bootstrap(samples, (list) => list[0], resamples: 5))
             .throws<ArgumentError>();
-        check(() => bootstrap(samples, (l) => l[0], confidenceLevel: 1.0))
+        check(() => bootstrap(samples, (list) => list[0], confidenceLevel: 0.0))
+            .throws<ArgumentError>();
+        check(() => bootstrap(samples, (list) => list[0], confidenceLevel: 1.0))
             .throws<ArgumentError>();
 
         const norm = NormalDistribution(0.0, 1.0);
         check(
           () => parametricBootstrapDistribution(
             sample: [1.0],
-            statistic: (l) => l[0].toDouble(),
+            statistic: (list) => list[0].toDouble(),
             distribution: norm,
           ),
         ).throws<ArgumentError>();
         check(
           () => parametricBootstrapDistribution(
             sample: samples,
-            statistic: (l) => l[0].toDouble(),
+            statistic: (list) => list[0].toDouble(),
             distribution: norm,
             resamples: 5,
           ),
@@ -186,7 +190,7 @@ void main() {
         check(
           () => parametricBootstrapDistribution(
             sample: samples,
-            statistic: (l) => l[0].toDouble(),
+            statistic: (list) => list[0].toDouble(),
             distribution: norm,
             confidenceLevel: -0.1,
           ),

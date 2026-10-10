@@ -17,18 +17,21 @@ extension ManipulationTensorExtension<T> on Tensor<T> {
     }
 
     var axisTotal = 0;
-    for (final t in tensors) {
-      if (t.rank != rank) {
-        throw ArgumentError('All tensors must have rank $rank, got ${t.rank}');
+    for (final tensor in tensors) {
+      if (tensor.rank != rank) {
+        throw ArgumentError(
+          'All tensors must have rank $rank, got ${tensor.rank}',
+        );
       }
       for (var i = 0; i < rank; i++) {
-        if (i != normalizedAxis && t.layout.shape[i] != first.layout.shape[i]) {
+        if (i != normalizedAxis &&
+            tensor.layout.shape[i] != first.layout.shape[i]) {
           throw ArgumentError(
             'Mismatched shape along non-concatenation axis $i',
           );
         }
       }
-      axisTotal += t.layout.shape[normalizedAxis];
+      axisTotal += tensor.layout.shape[normalizedAxis];
     }
 
     final outShape = List<int>.from(first.layout.shape);
@@ -40,12 +43,12 @@ extension ManipulationTensorExtension<T> on Tensor<T> {
       type: first.type,
     );
     var axisOffset = 0;
-    for (final t in tensors) {
-      final tLen = t.layout.shape[normalizedAxis];
-      for (final key in t.layout.keys) {
+    for (final tensor in tensors) {
+      final tLen = tensor.layout.shape[normalizedAxis];
+      for (final key in tensor.layout.keys) {
         final outKey = List<int>.from(key);
         outKey[normalizedAxis] += axisOffset;
-        result.setValue(outKey, t.getValue(key));
+        result.setValue(outKey, tensor.getValue(key));
       }
       axisOffset += tLen;
     }
@@ -76,11 +79,11 @@ extension ManipulationTensorExtension<T> on Tensor<T> {
       type: first.type,
     );
     for (var i = 0; i < tensors.length; i++) {
-      final t = tensors[i];
-      for (final key in t.layout.keys) {
+      final tensor = tensors[i];
+      for (final key in tensor.layout.keys) {
         final outKey = List<int>.from(key);
         outKey.insert(normalizedAxis, i);
-        result.setValue(outKey, t.getValue(key));
+        result.setValue(outKey, tensor.getValue(key));
       }
     }
     return result;

@@ -2,7 +2,7 @@ import 'dart:math' as math;
 
 import 'package:checks/checks.dart';
 import 'package:data/polynomial.dart';
-import 'package:test/scaffolding.dart';
+import 'package:test/test.dart';
 
 void main() {
   group('Orthogonal Polynomials and Clenshaw Recurrence', () {
@@ -21,11 +21,11 @@ void main() {
           .deepEquals([1.0, 0.0, -8.0, 0.0, 8.0]);
 
       // Trigonometric identity: T_n(cos(theta)) = cos(n * theta)
-      for (var n = 0; n <= 4; n++) {
-        final poly = Polynomial.chebyshevT(n);
+      for (var deg = 0; deg <= 4; deg++) {
+        final poly = Polynomial.chebyshevT(deg);
         const theta = 0.7;
         final x = math.cos(theta);
-        check(poly.evaluateDouble(x)).isCloseTo(math.cos(n * theta), 1e-6);
+        check(poly.evaluateDouble(x)).isCloseTo(math.cos(deg * theta), 1e-6);
       }
     });
 

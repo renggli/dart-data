@@ -20,6 +20,7 @@
 - File names must use snake-case (e.g., `recipe_card.dart`).
 - Class names, enums, and extensions must use upper camel-case (e.g., `RecipeCard`).
 - Private class members, variables, and functions (visible only within the file) must be prefixed with an underscore `_`.
+- Avoid one-letter variables; unless in loops (i, j, k, ...), referring to axis (x, y, z, ...), or ranges/pairs (a, b).
 
 ### Ordering
 
@@ -55,10 +56,11 @@
 - Keep the root `lib/` directory clean. It should primarily contain the public API exports.
 - Place implementation details in `lib/src/`. Users of the package should not import files from `lib/src/` directly.
 - Avoid introducing new external dependencies in `pubspec.yaml` unless absolutely necessary and no alternative exists in the SDK. Justify any addition to the user.
+- Consult [ARCHITECTURE.md](ARCHITECTURE.md) for detailed technical specifications, subsystem architecture, invariants, and design constraints across all subsystems. Always keep [ARCHITECTURE.md](ARCHITECTURE.md) up-to-date when modifying architecture, introducing new subsystems, or altering invariants and contracts.
 
 ## Testing
 
-- All new code must be accompanied by unit tests in the `test/` folder.
+- All code must be accompanied by unit tests in the `test/` folder.
 - Structure the tests following the same folder structure as the code under test (e.g., `lib/src/foo/bar.dart` -> `test/foo/bar_test.dart`).
-- Use `expect` with literal values or matchers to assert the expected behavior (e.g., `expect(result, 'expected')`, `expect(list, isEmpty)`).
+- Use the Dart `checks` framework (`package:checks`) to assert expected behavior (e.g., `check(result).equals('expected')`, `check(list).isEmpty()`). Prefer `check(...)` assertions over legacy `expect`.
 - Group tests by functionality using `group('description', () { ... })`. Avoid declaring a single top-level group in a file.

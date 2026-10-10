@@ -6,7 +6,7 @@ import '../../symbolic.dart';
 ///
 /// Accepts either a scalar closure `double Function(double)` or an [Expr].
 double adaptiveSimpson(
-  Object f,
+  Object function,
   double a,
   double b, {
   String variable = 'x',
@@ -14,20 +14,20 @@ double adaptiveSimpson(
   int maxDepth = 25,
 }) {
   final double Function(double) fn;
-  if (f is Expr) {
-    fn = (x) => f.evaluate({variable: x});
-  } else if (f is double Function(double)) {
-    fn = f;
-  } else if (f is num Function(num)) {
-    fn = (x) => f(x).toDouble();
+  if (function is Expr) {
+    fn = (x) => function.evaluate({variable: x});
+  } else if (function is double Function(double)) {
+    fn = function;
+  } else if (function is num Function(num)) {
+    fn = (x) => function(x).toDouble();
   } else {
-    throw ArgumentError('Unsupported function type: ${f.runtimeType}');
+    throw ArgumentError('Unsupported function type: ${function.runtimeType}');
   }
 
   if (a == b) return 0.0;
   if (a > b) {
     return -adaptiveSimpson(
-      f,
+      function,
       b,
       a,
       variable: variable,
@@ -36,18 +36,28 @@ double adaptiveSimpson(
     );
   }
 
-  final c = 0.5 * (a + b);
+  final mid = 0.5 * (a + b);
   final fa = fn(a);
   final fb = fn(b);
-  final fc = fn(c);
-  final whole = (b - a) * (fa + 4.0 * fc + fb) / 6.0;
+  final fMid = fn(mid);
+  final whole = (b - a) * (fa + 4.0 * fMid + fb) / 6.0;
 
-  return _adaptiveSimpsonStep(fn, a, b, fa, fb, fc, whole, tolerance, maxDepth);
+  return _adaptiveSimpsonStep(
+    fn,
+    a,
+    b,
+    fa,
+    fb,
+    fMid,
+    whole,
+    tolerance,
+    maxDepth,
+  );
 }
 
 /// Computes the definite integral $\int_a^b f(x) dx$ using Adaptive Gauss-Kronrod (GK15) quadrature.
 double gaussKronrod(
-  Object f,
+  Object function,
   double a,
   double b, {
   String variable = 'x',
@@ -55,20 +65,20 @@ double gaussKronrod(
   int maxDepth = 25,
 }) {
   final double Function(double) fn;
-  if (f is Expr) {
-    fn = (x) => f.evaluate({variable: x});
-  } else if (f is double Function(double)) {
-    fn = f;
-  } else if (f is num Function(num)) {
-    fn = (x) => f(x).toDouble();
+  if (function is Expr) {
+    fn = (x) => function.evaluate({variable: x});
+  } else if (function is double Function(double)) {
+    fn = function;
+  } else if (function is num Function(num)) {
+    fn = (x) => function(x).toDouble();
   } else {
-    throw ArgumentError('Unsupported function type: ${f.runtimeType}');
+    throw ArgumentError('Unsupported function type: ${function.runtimeType}');
   }
 
   if (a == b) return 0.0;
   if (a > b) {
     return -gaussKronrod(
-      f,
+      function,
       b,
       a,
       variable: variable,
@@ -86,19 +96,19 @@ double _adaptiveSimpsonStep(
   double b,
   double fa,
   double fb,
-  double fc,
+  double fMid,
   double whole,
   double tol,
   int depth,
 ) {
-  final c = 0.5 * (a + b);
-  final d = 0.5 * (a + c);
-  final e = 0.5 * (c + b);
-  final fd = fn(d);
-  final fe = fn(e);
+  final mid = 0.5 * (a + b);
+  final leftMid = 0.5 * (a + mid);
+  final rightMid = 0.5 * (mid + b);
+  final fd = fn(leftMid);
+  final fe = fn(rightMid);
 
-  final left = (c - a) * (fa + 4.0 * fd + fc) / 6.0;
-  final right = (b - c) * (fc + 4.0 * fe + fb) / 6.0;
+  final left = (mid - a) * (fa + 4.0 * fd + fMid) / 6.0;
+  final right = (b - mid) * (fMid + 4.0 * fe + fb) / 6.0;
   final sum = left + right;
   final delta = sum - whole;
 
@@ -109,15 +119,25 @@ double _adaptiveSimpsonStep(
   return _adaptiveSimpsonStep(
         fn,
         a,
-        c,
+        mid,
         fa,
-        fc,
+        fMid,
         fd,
         left,
         tol * 0.5,
         depth - 1,
       ) +
-      _adaptiveSimpsonStep(fn, c, b, fc, fb, fe, right, tol * 0.5, depth - 1);
+      _adaptiveSimpsonStep(
+        fn,
+        mid,
+        b,
+        fMid,
+        fb,
+        fe,
+        right,
+        tol * 0.5,
+        depth - 1,
+      );
 }
 
 // Gauss-Kronrod 15-point rule abscissae and weights on [-1, 1]

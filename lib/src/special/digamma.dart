@@ -21,15 +21,15 @@ double digamma(num x) {
     shift += 1.0 / value;
     value += 1.0;
   }
-  final r = 1.0 / value;
-  final r2 = r * r;
+  final invVal = 1.0 / value;
+  final r2 = invVal * invVal;
   final r4 = r2 * r2;
   final r6 = r4 * r2;
   final r8 = r6 * r2;
   final r10 = r8 * r2;
   final result =
       log(value) -
-      0.5 * r -
+      0.5 * invVal -
       (1.0 / 12.0) * r2 +
       (1.0 / 120.0) * r4 -
       (1.0 / 252.0) * r6 +
@@ -52,23 +52,23 @@ double trigamma(num x) {
     if (value.roundToDouble() == value) {
       return double.nan;
     }
-    final s = sin(pi * value);
-    return pi * pi / (s * s) - trigamma(1.0 - value);
+    final sinVal = sin(pi * value);
+    return pi * pi / (sinVal * sinVal) - trigamma(1.0 - value);
   }
   var shift = 0.0;
   while (value < 8.0) {
     shift += 1.0 / (value * value);
     value += 1.0;
   }
-  final r = 1.0 / value;
-  final r2 = r * r;
-  final r3 = r2 * r;
+  final invVal = 1.0 / value;
+  final r2 = invVal * invVal;
+  final r3 = r2 * invVal;
   final r5 = r3 * r2;
   final r7 = r5 * r2;
   final r9 = r7 * r2;
   final r11 = r9 * r2;
   final result =
-      r +
+      invVal +
       0.5 * r2 +
       (1.0 / 6.0) * r3 -
       (1.0 / 30.0) * r5 +

@@ -29,21 +29,26 @@ class SingularValueDecomposition {
 
     _computeSvd(computeVectors, aVals, rowsA, colsA, sVals, uVals, vtVals);
 
-    final u = Matrix<double>.generate(
+    final uMatrix = Matrix<double>.generate(
       rowsA,
       rowsA,
-      (r, c) => uVals[c * rowsA + r],
+      (row, col) => uVals[col * rowsA + row],
       type: DataType.float64,
     );
-    final s = Vector<double>.fromList(sVals, type: DataType.float64);
-    final vt = Matrix<double>.generate(
+    final sVector = Vector<double>.fromList(sVals, type: DataType.float64);
+    final vtMatrix = Matrix<double>.generate(
       colsA,
       colsA,
-      (r, c) => vtVals[c * colsA + r],
+      (row, col) => vtVals[col * colsA + row],
       type: DataType.float64,
     );
 
-    return SingularValueDecomposition._(s, u, vt, computeVectors);
+    return SingularValueDecomposition._(
+      sVector,
+      uMatrix,
+      vtMatrix,
+      computeVectors,
+    );
   }
 
   const new _(this.s, this.u, this.vt, this.vectorsComputed);
@@ -67,7 +72,7 @@ class SingularValueDecomposition {
   Matrix<double> get sigma => Matrix<double>.generate(
     u.rowCount,
     vt.colCount,
-    (r, c) => r == c && r < s.length ? s[r] : 0.0,
+    (row, col) => row == col && row < s.length ? s[row] : 0.0,
     type: DataType.float64,
   );
 
@@ -131,7 +136,7 @@ class SingularValueDecomposition {
     return Vector<double>.fromList(result, type: DataType.float64);
   }
 
-  static ({double da, double db, double c, double s}) _rotg(
+  static ({double da, double db, double cosVal, double sinVal}) _rotg(
     double da,
     double db,
   ) {
@@ -140,24 +145,24 @@ class SingularValueDecomposition {
     final roe = (absda > absdb) ? da : db;
     final scale = absda + absdb;
 
-    double r, z, c, s;
+    double rVal, zVal, cosVal, sinVal;
     if (scale == 0.0) {
-      c = 1.0;
-      s = 0.0;
-      r = 0.0;
-      z = 0.0;
+      cosVal = 1.0;
+      sinVal = 0.0;
+      rVal = 0.0;
+      zVal = 0.0;
     } else {
       final sda = da / scale;
       final sdb = db / scale;
-      r = scale * math.sqrt(sda * sda + sdb * sdb);
-      if (roe < 0.0) r = -r;
-      c = da / r;
-      s = db / r;
-      z = 1.0;
-      if (absda > absdb) z = s;
-      if (absdb >= absda && c != 0.0) z = 1.0 / c;
+      rVal = scale * math.sqrt(sda * sda + sdb * sdb);
+      if (roe < 0.0) rVal = -rVal;
+      cosVal = da / rVal;
+      sinVal = db / rVal;
+      zVal = 1.0;
+      if (absda > absdb) zVal = sinVal;
+      if (absdb >= absda && cosVal != 0.0) zVal = 1.0 / cosVal;
     }
-    return (da: r, db: z, c: c, s: s);
+    return (da: rVal, db: zVal, cosVal: cosVal, sinVal: sinVal);
   }
 
   static void _computeSvd(
@@ -165,13 +170,13 @@ class SingularValueDecomposition {
     List<double> a,
     int rowsA,
     int colsA,
-    List<double> s,
-    List<double> u,
-    List<double> vt,
+    List<double> sVals,
+    List<double> uVals,
+    List<double> vtVals,
   ) {
     final work = List<double>.filled(rowsA, 0.0);
-    final e = List<double>.filled(colsA, 0.0);
-    final v = List<double>.filled(colsA * colsA, 0.0);
+    final eList = List<double>.filled(colsA, 0.0);
+    final vList = List<double>.filled(colsA * colsA, 0.0);
     final stemp = List<double>.filled(math.min(rowsA + 1, colsA), 0.0);
 
     final ncu = rowsA;
@@ -179,76 +184,77 @@ class SingularValueDecomposition {
     final nrt = math.max(0, math.min(colsA - 2, rowsA));
     final lu = math.max(nct, nrt);
 
-    for (var l = 0; l < lu; l++) {
-      final lp1 = l + 1;
-      if (l < nct) {
+    for (var lIdx = 0; lIdx < lu; lIdx++) {
+      final lp1 = lIdx + 1;
+      if (lIdx < nct) {
         var sum = 0.0;
-        for (var i = l; i < rowsA; i++) {
-          final val = a[l * rowsA + i];
+        for (var i = lIdx; i < rowsA; i++) {
+          final val = a[lIdx * rowsA + i];
           sum += val * val;
         }
-        stemp[l] = math.sqrt(sum);
-        if (stemp[l] != 0.0) {
-          if (a[l * rowsA + l] != 0.0) {
-            stemp[l] =
-                stemp[l].abs() * (a[l * rowsA + l] / a[l * rowsA + l].abs());
+        stemp[lIdx] = math.sqrt(sum);
+        if (stemp[lIdx] != 0.0) {
+          if (a[lIdx * rowsA + lIdx] != 0.0) {
+            stemp[lIdx] =
+                stemp[lIdx].abs() *
+                (a[lIdx * rowsA + lIdx] / a[lIdx * rowsA + lIdx].abs());
           }
-          for (var i = l; i < rowsA; i++) {
-            a[l * rowsA + i] /= stemp[l];
+          for (var i = lIdx; i < rowsA; i++) {
+            a[lIdx * rowsA + i] /= stemp[lIdx];
           }
-          a[l * rowsA + l] += 1.0;
+          a[lIdx * rowsA + lIdx] += 1.0;
         }
-        stemp[l] = -stemp[l];
+        stemp[lIdx] = -stemp[lIdx];
       }
 
       for (var j = lp1; j < colsA; j++) {
-        if (l < nct && stemp[l] != 0.0) {
-          var t = 0.0;
-          for (var i = l; i < rowsA; i++) {
-            t += a[j * rowsA + i] * a[l * rowsA + i];
+        if (lIdx < nct && stemp[lIdx] != 0.0) {
+          var tVal = 0.0;
+          for (var i = lIdx; i < rowsA; i++) {
+            tVal += a[j * rowsA + i] * a[lIdx * rowsA + i];
           }
-          t = -t / a[l * rowsA + l];
-          for (var ii = l; ii < rowsA; ii++) {
-            a[j * rowsA + ii] += t * a[l * rowsA + ii];
+          tVal = -tVal / a[lIdx * rowsA + lIdx];
+          for (var ii = lIdx; ii < rowsA; ii++) {
+            a[j * rowsA + ii] += tVal * a[lIdx * rowsA + ii];
           }
         }
-        e[j] = a[j * rowsA + l];
+        eList[j] = a[j * rowsA + lIdx];
       }
 
-      if (computeVectors && l < nct) {
-        for (var i = l; i < rowsA; i++) {
-          u[l * rowsA + i] = a[l * rowsA + i];
+      if (computeVectors && lIdx < nct) {
+        for (var i = lIdx; i < rowsA; i++) {
+          uVals[lIdx * rowsA + i] = a[lIdx * rowsA + i];
         }
       }
 
-      if (l < nrt) {
+      if (lIdx < nrt) {
         var enorm = 0.0;
-        for (var i = lp1; i < e.length; i++) {
-          enorm += e[i] * e[i];
+        for (var i = lp1; i < eList.length; i++) {
+          enorm += eList[i] * eList[i];
         }
-        e[l] = math.sqrt(enorm);
-        if (e[l] != 0.0) {
-          if (e[lp1] != 0.0) {
-            e[l] = e[l].abs() * (e[lp1] / e[lp1].abs());
+        eList[lIdx] = math.sqrt(enorm);
+        if (eList[lIdx] != 0.0) {
+          if (eList[lp1] != 0.0) {
+            eList[lIdx] = eList[lIdx].abs() * (eList[lp1] / eList[lp1].abs());
           }
-          for (var i = lp1; i < e.length; i++) {
-            e[i] /= e[l];
+          for (var i = lp1; i < eList.length; i++) {
+            eList[i] /= eList[lIdx];
           }
-          e[lp1] += 1.0;
+          eList[lp1] += 1.0;
         }
-        e[l] = -e[l];
+        eList[lIdx] = -eList[lIdx];
 
-        if (lp1 < rowsA && e[l] != 0.0) {
+        if (lp1 < rowsA && eList[lIdx] != 0.0) {
           for (var i = lp1; i < rowsA; i++) {
             work[i] = 0.0;
           }
           for (var j = lp1; j < colsA; j++) {
             for (var ii = lp1; ii < rowsA; ii++) {
-              work[ii] += e[j] * a[j * rowsA + ii];
+              work[ii] += eList[j] * a[j * rowsA + ii];
             }
           }
           for (var j = lp1; j < colsA; j++) {
-            final ww = -e[j] / e[lp1];
+            final ww = -eList[j] / eList[lp1];
             for (var ii = lp1; ii < rowsA; ii++) {
               a[j * rowsA + ii] += ww * work[ii];
             }
@@ -257,305 +263,313 @@ class SingularValueDecomposition {
 
         if (computeVectors) {
           for (var i = lp1; i < colsA; i++) {
-            v[l * colsA + i] = e[i];
+            vList[lIdx * colsA + i] = eList[i];
           }
         }
       }
     }
 
-    var m = math.min(colsA, rowsA + 1);
+    var mDim = math.min(colsA, rowsA + 1);
     final nctp1 = nct + 1;
     final nrtp1 = nrt + 1;
     if (nct < colsA) {
       stemp[nctp1 - 1] = a[(nctp1 - 1) * rowsA + (nctp1 - 1)];
     }
-    if (rowsA < m) {
-      stemp[m - 1] = 0.0;
+    if (rowsA < mDim) {
+      stemp[mDim - 1] = 0.0;
     }
-    if (nrtp1 < m) {
-      e[nrtp1 - 1] = a[(m - 1) * rowsA + (nrtp1 - 1)];
+    if (nrtp1 < mDim) {
+      eList[nrtp1 - 1] = a[(mDim - 1) * rowsA + (nrtp1 - 1)];
     }
-    e[m - 1] = 0.0;
+    eList[mDim - 1] = 0.0;
 
     if (computeVectors) {
       for (var j = nctp1 - 1; j < ncu; j++) {
         for (var i = 0; i < rowsA; i++) {
-          u[j * rowsA + i] = 0.0;
+          uVals[j * rowsA + i] = 0.0;
         }
-        u[j * rowsA + j] = 1.0;
+        uVals[j * rowsA + j] = 1.0;
       }
-      for (var l = nct - 1; l >= 0; l--) {
-        if (stemp[l] != 0.0) {
-          for (var j = l + 1; j < ncu; j++) {
-            var t = 0.0;
-            for (var i = l; i < rowsA; i++) {
-              t += u[j * rowsA + i] * u[l * rowsA + i];
+      for (var lIdx = nct - 1; lIdx >= 0; lIdx--) {
+        if (stemp[lIdx] != 0.0) {
+          for (var j = lIdx + 1; j < ncu; j++) {
+            var tVal = 0.0;
+            for (var i = lIdx; i < rowsA; i++) {
+              tVal += uVals[j * rowsA + i] * uVals[lIdx * rowsA + i];
             }
-            t = -t / u[l * rowsA + l];
-            for (var ii = l; ii < rowsA; ii++) {
-              u[j * rowsA + ii] += t * u[l * rowsA + ii];
+            tVal = -tVal / uVals[lIdx * rowsA + lIdx];
+            for (var ii = lIdx; ii < rowsA; ii++) {
+              uVals[j * rowsA + ii] += tVal * uVals[lIdx * rowsA + ii];
             }
           }
-          for (var i = l; i < rowsA; i++) {
-            u[l * rowsA + i] = -u[l * rowsA + i];
+          for (var i = lIdx; i < rowsA; i++) {
+            uVals[lIdx * rowsA + i] = -uVals[lIdx * rowsA + i];
           }
-          u[l * rowsA + l] = 1.0 + u[l * rowsA + l];
-          for (var i = 0; i < l; i++) {
-            u[l * rowsA + i] = 0.0;
+          uVals[lIdx * rowsA + lIdx] = 1.0 + uVals[lIdx * rowsA + lIdx];
+          for (var i = 0; i < lIdx; i++) {
+            uVals[lIdx * rowsA + i] = 0.0;
           }
         } else {
           for (var i = 0; i < rowsA; i++) {
-            u[l * rowsA + i] = 0.0;
+            uVals[lIdx * rowsA + i] = 0.0;
           }
-          u[l * rowsA + l] = 1.0;
+          uVals[lIdx * rowsA + lIdx] = 1.0;
         }
       }
 
-      for (var l = colsA - 1; l >= 0; l--) {
-        final lp1 = l + 1;
-        if (l < nrt && e[l] != 0.0) {
+      for (var lIdx = colsA - 1; lIdx >= 0; lIdx--) {
+        final lp1 = lIdx + 1;
+        if (lIdx < nrt && eList[lIdx] != 0.0) {
           for (var j = lp1; j < colsA; j++) {
-            var t = 0.0;
+            var tVal = 0.0;
             for (var i = lp1; i < colsA; i++) {
-              t += v[j * colsA + i] * v[l * colsA + i];
+              tVal += vList[j * colsA + i] * vList[lIdx * colsA + i];
             }
-            t = -t / v[l * colsA + lp1];
-            for (var ii = l; ii < colsA; ii++) {
-              v[j * colsA + ii] += t * v[l * colsA + ii];
+            tVal = -tVal / vList[lIdx * colsA + lp1];
+            for (var ii = lIdx; ii < colsA; ii++) {
+              vList[j * colsA + ii] += tVal * vList[lIdx * colsA + ii];
             }
           }
         }
         for (var i = 0; i < colsA; i++) {
-          v[l * colsA + i] = 0.0;
+          vList[lIdx * colsA + i] = 0.0;
         }
-        v[l * colsA + l] = 1.0;
+        vList[lIdx * colsA + lIdx] = 1.0;
       }
     }
 
-    for (var i = 0; i < m; i++) {
+    for (var i = 0; i < mDim; i++) {
       if (stemp[i] != 0.0) {
-        final t = stemp[i];
-        final r = stemp[i] / t;
-        stemp[i] = t;
-        if (i < m - 1) e[i] /= r;
+        final tVal = stemp[i];
+        final rVal = stemp[i] / tVal;
+        stemp[i] = tVal;
+        if (i < mDim - 1) eList[i] /= rVal;
         if (computeVectors) {
           for (var j = 0; j < rowsA; j++) {
-            u[i * rowsA + j] *= r;
+            uVals[i * rowsA + j] *= rVal;
           }
         }
       }
-      if (i == m - 1) break;
-      if (e[i] != 0.0) {
-        final t = e[i];
-        final r = t / e[i];
-        e[i] = t;
-        stemp[i + 1] *= r;
+      if (i == mDim - 1) break;
+      if (eList[i] != 0.0) {
+        final tVal = eList[i];
+        final rVal = tVal / eList[i];
+        eList[i] = tVal;
+        stemp[i + 1] *= rVal;
         if (computeVectors) {
           for (var j = 0; j < colsA; j++) {
-            v[(i + 1) * colsA + j] *= r;
+            vList[(i + 1) * colsA + j] *= rVal;
           }
         }
       }
     }
 
-    final mn = m;
+    final mn = mDim;
     var iter = 0;
-    while (m > 0) {
+    while (mDim > 0) {
       if (iter >= 1000) break;
 
-      int l;
-      for (l = m - 2; l >= 0; l--) {
-        final test = stemp[l].abs() + stemp[l + 1].abs();
-        final ztest = test + e[l].abs();
+      int lIdx;
+      for (lIdx = mDim - 2; lIdx >= 0; lIdx--) {
+        final test = stemp[lIdx].abs() + stemp[lIdx + 1].abs();
+        final ztest = test + eList[lIdx].abs();
         if ((ztest - test).abs() < 1e-15 * test) {
-          e[l] = 0.0;
+          eList[lIdx] = 0.0;
           break;
         }
       }
 
       int kase;
-      if (l == m - 2) {
+      if (lIdx == mDim - 2) {
         kase = 4;
       } else {
-        int ls;
-        for (ls = m - 1; ls > l; ls--) {
+        int lsIdx;
+        for (lsIdx = mDim - 1; lsIdx > lIdx; lsIdx--) {
           var test = 0.0;
-          if (ls != m - 1) test += e[ls].abs();
-          if (ls != l + 1) test += e[ls - 1].abs();
-          final ztest = test + stemp[ls].abs();
+          if (lsIdx != mDim - 1) test += eList[lsIdx].abs();
+          if (lsIdx != lIdx + 1) test += eList[lsIdx - 1].abs();
+          final ztest = test + stemp[lsIdx].abs();
           if ((ztest - test).abs() < 1e-15 * test) {
-            stemp[ls] = 0.0;
+            stemp[lsIdx] = 0.0;
             break;
           }
         }
-        if (ls == l) {
+        if (lsIdx == lIdx) {
           kase = 3;
-        } else if (ls == m - 1) {
+        } else if (lsIdx == mDim - 1) {
           kase = 1;
         } else {
           kase = 2;
-          l = ls;
+          lIdx = lsIdx;
         }
       }
-      l = l + 1;
+      lIdx = lIdx + 1;
 
       switch (kase) {
         case 1:
-          var f = e[m - 2];
-          e[m - 2] = 0.0;
-          for (var kk = l; kk < m - 1; kk++) {
-            final k = m - 2 - kk + l;
+          var fVal = eList[mDim - 2];
+          eList[mDim - 2] = 0.0;
+          for (var kk = lIdx; kk < mDim - 1; kk++) {
+            final k = mDim - 2 - kk + lIdx;
             var t1 = stemp[k];
-            final rotg = _rotg(t1, f);
+            final rotg = _rotg(t1, fVal);
             t1 = rotg.da;
-            f = rotg.db;
-            final cs = rotg.c;
-            final sn = rotg.s;
+            fVal = rotg.db;
+            final cs = rotg.cosVal;
+            final sn = rotg.sinVal;
             stemp[k] = t1;
-            if (k != l) {
-              f = -sn * e[k - 1];
-              e[k - 1] = cs * e[k - 1];
+            if (k != lIdx) {
+              fVal = -sn * eList[k - 1];
+              eList[k - 1] = cs * eList[k - 1];
             }
             if (computeVectors) {
               for (var i = 0; i < colsA; i++) {
-                final z = cs * v[k * colsA + i] + sn * v[(m - 1) * colsA + i];
-                v[(m - 1) * colsA + i] =
-                    cs * v[(m - 1) * colsA + i] - sn * v[k * colsA + i];
-                v[k * colsA + i] = z;
+                final z =
+                    cs * vList[k * colsA + i] +
+                    sn * vList[(mDim - 1) * colsA + i];
+                vList[(mDim - 1) * colsA + i] =
+                    cs * vList[(mDim - 1) * colsA + i] -
+                    sn * vList[k * colsA + i];
+                vList[k * colsA + i] = z;
               }
             }
           }
         case 2:
-          var f = e[l - 1];
-          e[l - 1] = 0.0;
-          for (var k = l; k < m; k++) {
+          var fVal = eList[lIdx - 1];
+          eList[lIdx - 1] = 0.0;
+          for (var k = lIdx; k < mDim; k++) {
             var t1 = stemp[k];
-            final rotg = _rotg(t1, f);
+            final rotg = _rotg(t1, fVal);
             t1 = rotg.da;
-            f = rotg.db;
-            final cs = rotg.c;
-            final sn = rotg.s;
+            fVal = rotg.db;
+            final cs = rotg.cosVal;
+            final sn = rotg.sinVal;
             stemp[k] = t1;
-            f = -sn * e[k];
-            e[k] = cs * e[k];
+            fVal = -sn * eList[k];
+            eList[k] = cs * eList[k];
             if (computeVectors) {
               for (var i = 0; i < rowsA; i++) {
-                final z = cs * u[k * rowsA + i] + sn * u[(l - 1) * rowsA + i];
-                u[(l - 1) * rowsA + i] =
-                    cs * u[(l - 1) * rowsA + i] - sn * u[k * rowsA + i];
-                u[k * rowsA + i] = z;
+                final z =
+                    cs * uVals[k * rowsA + i] +
+                    sn * uVals[(lIdx - 1) * rowsA + i];
+                uVals[(lIdx - 1) * rowsA + i] =
+                    cs * uVals[(lIdx - 1) * rowsA + i] -
+                    sn * uVals[k * rowsA + i];
+                uVals[k * rowsA + i] = z;
               }
             }
           }
         case 3:
           var scale = 0.0;
-          scale = math.max(scale, stemp[m - 1].abs());
-          scale = math.max(scale, stemp[m - 2].abs());
-          scale = math.max(scale, e[m - 2].abs());
-          scale = math.max(scale, stemp[l].abs());
-          scale = math.max(scale, e[l].abs());
-          final sm = stemp[m - 1] / scale;
-          final smm1 = stemp[m - 2] / scale;
-          final emm1 = e[m - 2] / scale;
-          final sl = stemp[l] / scale;
-          final el = e[l] / scale;
+          scale = math.max(scale, stemp[mDim - 1].abs());
+          scale = math.max(scale, stemp[mDim - 2].abs());
+          scale = math.max(scale, eList[mDim - 2].abs());
+          scale = math.max(scale, stemp[lIdx].abs());
+          scale = math.max(scale, eList[lIdx].abs());
+          final sm = stemp[mDim - 1] / scale;
+          final smm1 = stemp[mDim - 2] / scale;
+          final emm1 = eList[mDim - 2] / scale;
+          final sl = stemp[lIdx] / scale;
+          final el = eList[lIdx] / scale;
           final b = ((smm1 + sm) * (smm1 - sm) + emm1 * emm1) / 2.0;
-          final c = (sm * emm1) * (sm * emm1);
+          final cVal = (sm * emm1) * (sm * emm1);
           var shift = 0.0;
-          if (b != 0.0 || c != 0.0) {
-            shift = math.sqrt(b * b + c);
+          if (b != 0.0 || cVal != 0.0) {
+            shift = math.sqrt(b * b + cVal);
             if (b < 0.0) shift = -shift;
-            shift = c / (b + shift);
+            shift = cVal / (b + shift);
           }
-          var f = (sl + sm) * (sl - sm) + shift;
-          var g = sl * el;
-          for (var k = l; k < m - 1; k++) {
-            var rotg = _rotg(f, g);
-            f = rotg.da;
-            g = rotg.db;
-            var cs = rotg.c;
-            var sn = rotg.s;
-            if (k != l) e[k - 1] = f;
-            f = cs * stemp[k] + sn * e[k];
-            e[k] = cs * e[k] - sn * stemp[k];
-            g = sn * stemp[k + 1];
+          var fVal = (sl + sm) * (sl - sm) + shift;
+          var gVal = sl * el;
+          for (var k = lIdx; k < mDim - 1; k++) {
+            var rotg = _rotg(fVal, gVal);
+            fVal = rotg.da;
+            gVal = rotg.db;
+            var cs = rotg.cosVal;
+            var sn = rotg.sinVal;
+            if (k != lIdx) eList[k - 1] = fVal;
+            fVal = cs * stemp[k] + sn * eList[k];
+            eList[k] = cs * eList[k] - sn * stemp[k];
+            gVal = sn * stemp[k + 1];
             stemp[k + 1] = cs * stemp[k + 1];
             if (computeVectors) {
               for (var i = 0; i < colsA; i++) {
-                final z = cs * v[k * colsA + i] + sn * v[(k + 1) * colsA + i];
-                v[(k + 1) * colsA + i] =
-                    cs * v[(k + 1) * colsA + i] - sn * v[k * colsA + i];
-                v[k * colsA + i] = z;
+                final z =
+                    cs * vList[k * colsA + i] + sn * vList[(k + 1) * colsA + i];
+                vList[(k + 1) * colsA + i] =
+                    cs * vList[(k + 1) * colsA + i] - sn * vList[k * colsA + i];
+                vList[k * colsA + i] = z;
               }
             }
-            rotg = _rotg(f, g);
-            f = rotg.da;
-            g = rotg.db;
-            cs = rotg.c;
-            sn = rotg.s;
-            stemp[k] = f;
-            f = cs * e[k] + sn * stemp[k + 1];
-            stemp[k + 1] = -sn * e[k] + cs * stemp[k + 1];
-            g = sn * e[k + 1];
-            e[k + 1] = cs * e[k + 1];
+            rotg = _rotg(fVal, gVal);
+            fVal = rotg.da;
+            gVal = rotg.db;
+            cs = rotg.cosVal;
+            sn = rotg.sinVal;
+            stemp[k] = fVal;
+            fVal = cs * eList[k] + sn * stemp[k + 1];
+            stemp[k + 1] = -sn * eList[k] + cs * stemp[k + 1];
+            gVal = sn * eList[k + 1];
+            eList[k + 1] = cs * eList[k + 1];
             if (computeVectors && k < rowsA) {
               for (var i = 0; i < rowsA; i++) {
-                final z = cs * u[k * rowsA + i] + sn * u[(k + 1) * rowsA + i];
-                u[(k + 1) * rowsA + i] =
-                    cs * u[(k + 1) * rowsA + i] - sn * u[k * rowsA + i];
-                u[k * rowsA + i] = z;
+                final z =
+                    cs * uVals[k * rowsA + i] + sn * uVals[(k + 1) * rowsA + i];
+                uVals[(k + 1) * rowsA + i] =
+                    cs * uVals[(k + 1) * rowsA + i] - sn * uVals[k * rowsA + i];
+                uVals[k * rowsA + i] = z;
               }
             }
           }
-          e[m - 2] = f;
+          eList[mDim - 2] = fVal;
           iter++;
         case 4:
-          if (stemp[l] < 0.0) {
-            stemp[l] = -stemp[l];
+          if (stemp[lIdx] < 0.0) {
+            stemp[lIdx] = -stemp[lIdx];
             if (computeVectors) {
               for (var i = 0; i < colsA; i++) {
-                v[l * colsA + i] = -v[l * colsA + i];
+                vList[lIdx * colsA + i] = -vList[lIdx * colsA + i];
               }
             }
           }
-          while (l != mn - 1) {
-            if (stemp[l] >= stemp[l + 1]) break;
-            final t = stemp[l];
-            stemp[l] = stemp[l + 1];
-            stemp[l + 1] = t;
-            if (computeVectors && l < colsA) {
+          while (lIdx != mn - 1) {
+            if (stemp[lIdx] >= stemp[lIdx + 1]) break;
+            final temp = stemp[lIdx];
+            stemp[lIdx] = stemp[lIdx + 1];
+            stemp[lIdx + 1] = temp;
+            if (computeVectors && lIdx < colsA) {
               for (var i = 0; i < colsA; i++) {
-                final aVal = v[(l + 1) * colsA + i];
-                final bVal = v[l * colsA + i];
-                v[l * colsA + i] = aVal;
-                v[(l + 1) * colsA + i] = bVal;
+                final aVal = vList[(lIdx + 1) * colsA + i];
+                final bVal = vList[lIdx * colsA + i];
+                vList[lIdx * colsA + i] = aVal;
+                vList[(lIdx + 1) * colsA + i] = bVal;
               }
             }
-            if (computeVectors && l < rowsA) {
+            if (computeVectors && lIdx < rowsA) {
               for (var i = 0; i < rowsA; i++) {
-                final aVal = u[(l + 1) * rowsA + i];
-                final bVal = u[l * rowsA + i];
-                u[l * rowsA + i] = aVal;
-                u[(l + 1) * rowsA + i] = bVal;
+                final aVal = uVals[(lIdx + 1) * rowsA + i];
+                final bVal = uVals[lIdx * rowsA + i];
+                uVals[lIdx * rowsA + i] = aVal;
+                uVals[(lIdx + 1) * rowsA + i] = bVal;
               }
             }
-            l++;
+            lIdx++;
           }
           iter = 0;
-          m--;
+          mDim--;
       }
     }
 
     if (computeVectors) {
       for (var i = 0; i < colsA; i++) {
         for (var j = 0; j < colsA; j++) {
-          vt[j * colsA + i] = v[i * colsA + j];
+          vtVals[j * colsA + i] = vList[i * colsA + j];
         }
       }
     }
 
     for (var i = 0; i < math.min(rowsA, colsA); i++) {
-      s[i] = stemp[i];
+      sVals[i] = stemp[i];
     }
   }
 }

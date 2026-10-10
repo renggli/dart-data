@@ -2,7 +2,7 @@ import 'dart:math' as math;
 
 import 'package:checks/checks.dart';
 import 'package:data/stats.dart';
-import 'package:test/scaffolding.dart';
+import 'package:test/test.dart';
 
 void main() {
   group('discrete distributions', () {
@@ -51,7 +51,7 @@ void main() {
 
       // Samples
       final samples = dist.samples(random: math.Random(42)).take(100).toList();
-      check(samples.every((s) => s == 0 || s == 1)).isTrue();
+      check(samples.every((sample) => sample == 0 || sample == 1)).isTrue();
 
       // Fit
       final fitted = BernoulliDistribution.fit(const [
@@ -121,7 +121,7 @@ void main() {
 
       // Samples
       final samples = dist.samples(random: math.Random(42)).take(50).toList();
-      check(samples.every((s) => s >= 0 && s <= 10)).isTrue();
+      check(samples.every((sample) => sample >= 0 && sample <= 10)).isTrue();
 
       // Fit
       final fitted = BinomialDistribution.fit(samples, n: 10);
@@ -170,7 +170,7 @@ void main() {
 
       // Samples
       final samples = dist.samples(random: math.Random(42)).take(50).toList();
-      check(samples.every((s) => s >= 0)).isTrue();
+      check(samples.every((sample) => sample >= 0)).isTrue();
 
       // Fit
       final fitted = PoissonDistribution.fit(samples);
@@ -218,7 +218,7 @@ void main() {
 
       // Samples
       final samples = dist.samples(random: math.Random(42)).take(50).toList();
-      check(samples.every((s) => s >= 1 && s <= 6)).isTrue();
+      check(samples.every((sample) => sample >= 1 && sample <= 6)).isTrue();
 
       // Fit
       final fitted = UniformDiscreteDistribution.fit(samples);
@@ -264,7 +264,7 @@ void main() {
 
       // Samples
       final samples = dist.samples(random: math.Random(42)).take(50).toList();
-      check(samples.every((s) => s >= 0)).isTrue();
+      check(samples.every((sample) => sample >= 0)).isTrue();
 
       // Constructor validation
       check(() => GeometricDistribution(0.0)).throws<AssertionError>();
@@ -306,7 +306,7 @@ void main() {
 
       // Samples
       final samples = dist.samples(random: math.Random(42)).take(50).toList();
-      check(samples.every((s) => s >= 0 && s <= 5)).isTrue();
+      check(samples.every((sample) => sample >= 0 && sample <= 5)).isTrue();
 
       // Constructor validation
       check(() => HypergeometricDistribution(0, 5, 2)).throws<AssertionError>();
@@ -353,7 +353,7 @@ void main() {
 
       // Samples
       final samples = dist.samples(random: math.Random(42)).take(50).toList();
-      check(samples.every((s) => s >= 0)).isTrue();
+      check(samples.every((sample) => sample >= 0)).isTrue();
 
       // Constructor validation
       check(() => NegativeBinomialDistribution(0.0, 0.5))
@@ -403,7 +403,7 @@ void main() {
 
       // Samples
       final samples = dist.samples(random: math.Random(42)).take(50).toList();
-      check(samples.every((s) => s == -1 || s == 1)).isTrue();
+      check(samples.every((sample) => sample == -1 || sample == 1)).isTrue();
 
       check(dist.toString()).contains('RademacherDistribution');
     });

@@ -12,7 +12,7 @@ import 'calculus.dart';
 /// Combines golden section search and successive parabolic interpolation.
 /// Accepts either `double Function(double)` or an [Expr].
 ({double point, double value, int iterations}) brentMinimize(
-  Object f, {
+  Object function, {
   required double a,
   required double b,
   String variable = 'x',
@@ -20,28 +20,28 @@ import 'calculus.dart';
   int maxIterations = 100,
 }) {
   final double Function(double) fn;
-  if (f is Expr) {
-    fn = (x) => f.evaluate({variable: x});
-  } else if (f is double Function(double)) {
-    fn = f;
-  } else if (f is num Function(num)) {
-    fn = (x) => f(x).toDouble();
+  if (function is Expr) {
+    fn = (x) => function.evaluate({variable: x});
+  } else if (function is double Function(double)) {
+    fn = function;
+  } else if (function is num Function(num)) {
+    fn = (x) => function(x).toDouble();
   } else {
-    throw ArgumentError('Unsupported function type: ${f.runtimeType}');
+    throw ArgumentError('Unsupported function type: ${function.runtimeType}');
   }
 
-  const c = 0.38196601125010515179541316563436; // (3 - sqrt(5)) / 2
+  const goldenRatio = 0.38196601125010515179541316563436; // (3 - sqrt(5)) / 2
 
   var xA = a < b ? a : b;
   var xB = a < b ? b : a;
-  var x = xA + c * (xB - xA);
-  var w = x;
-  var v = w;
+  var x = xA + goldenRatio * (xB - xA);
+  var wVal = x;
+  var vVal = wVal;
   var fx = fn(x);
   var fw = fx;
   var fv = fw;
-  var d = 0.0;
-  var e = 0.0;
+  var dStep = 0.0;
+  var eStep = 0.0;
 
   var iter = 0;
   for (; iter < maxIterations; iter++) {
@@ -53,64 +53,66 @@ import 'calculus.dart';
       break;
     }
 
-    var p = 0.0;
-    var q = 0.0;
-    var r = 0.0;
+    var pVal = 0.0;
+    var qVal = 0.0;
+    var rVal = 0.0;
 
-    if (e.abs() > tol1) {
-      r = (x - w) * (fx - fv);
-      q = (x - v) * (fx - fw);
-      p = (x - v) * q - (x - w) * r;
-      q = 2.0 * (q - r);
-      if (q > 0.0) p = -p;
-      q = q.abs();
-      final rTemp = e;
-      e = d;
-      if (p.abs() < (0.5 * q * rTemp).abs() &&
-          p > q * (xA - x) &&
-          p < q * (xB - x)) {
-        d = p / q;
-        final u = x + d;
-        if (u - xA < tol2 || xB - u < tol2) {
-          d = xm - x >= 0 ? tol1 : -tol1;
+    if (eStep.abs() > tol1) {
+      rVal = (x - wVal) * (fx - fv);
+      qVal = (x - vVal) * (fx - fw);
+      pVal = (x - vVal) * qVal - (x - wVal) * rVal;
+      qVal = 2.0 * (qVal - rVal);
+      if (qVal > 0.0) pVal = -pVal;
+      qVal = qVal.abs();
+      final rTemp = eStep;
+      eStep = dStep;
+      if (pVal.abs() < (0.5 * qVal * rTemp).abs() &&
+          pVal > qVal * (xA - x) &&
+          pVal < qVal * (xB - x)) {
+        dStep = pVal / qVal;
+        final uVal = x + dStep;
+        if (uVal - xA < tol2 || xB - uVal < tol2) {
+          dStep = xm - x >= 0 ? tol1 : -tol1;
         }
       } else {
-        e = x >= xm ? xA - x : xB - x;
-        d = c * e;
+        eStep = x >= xm ? xA - x : xB - x;
+        dStep = goldenRatio * eStep;
       }
     } else {
-      e = x >= xm ? xA - x : xB - x;
-      d = c * e;
+      eStep = x >= xm ? xA - x : xB - x;
+      dStep = goldenRatio * eStep;
     }
 
-    final u = d.abs() >= tol1 ? x + d : x + (d > 0 ? tol1 : -tol1);
-    final fu = fn(u);
+    final uVal = dStep.abs() >= tol1
+        ? x + dStep
+        : x + (dStep > 0 ? tol1 : -tol1);
+    final fu = fn(uVal);
 
     if (fu <= fx) {
-      if (u >= x) {
+      if (uVal >= x) {
         xA = x;
       } else {
         xB = x;
       }
-      v = w;
+      vVal = wVal;
       fv = fw;
-      w = x;
+      wVal = x;
       fw = fx;
-      x = u;
+      x = uVal;
       fx = fu;
     } else {
-      if (u < x) {
-        xA = u;
+      if (uVal < x) {
+        xA = uVal;
       } else {
-        xB = u;
+        xB = uVal;
       }
-      if (fu <= fw || w == x) {
-        v = w;
+      if (fu <= fw || wVal == x) {
+        vVal = wVal;
         fv = fw;
-        w = u;
+        wVal = uVal;
         fw = fu;
-      } else if (fu <= fv || v == x || v == w) {
-        v = u;
+      } else if (fu <= fv || vVal == x || vVal == wVal) {
+        vVal = uVal;
         fv = fu;
       }
     }
@@ -121,7 +123,7 @@ import 'calculus.dart';
 
 /// Derivative-free multivariate optimization using the Nelder-Mead simplex algorithm.
 ({Vector<double> point, double value, int iterations}) nelderMead(
-  Object f,
+  Object function,
   Vector<double> initialPoint, {
   List<String>? variables,
   double step = 1.0,
@@ -129,26 +131,27 @@ import 'calculus.dart';
   int maxIterations = 1000,
 }) {
   final double Function(Vector<double>) fn;
-  if (f is Expr) {
-    final vars = variables ?? (f.freeVariables.toList()..sort());
-    fn = (vec) =>
-        f.evaluate({for (var i = 0; i < vec.length; i++) vars[i]: vec[i]});
-  } else if (f is double Function(Vector<double>)) {
-    fn = f;
+  if (function is Expr) {
+    final vars = variables ?? (function.freeVariables.toList()..sort());
+    fn = (vec) => function.evaluate({
+      for (var i = 0; i < vec.length; i++) vars[i]: vec[i],
+    });
+  } else if (function is double Function(Vector<double>)) {
+    fn = function;
   } else {
-    throw ArgumentError('Unsupported function type: ${f.runtimeType}');
+    throw ArgumentError('Unsupported function type: ${function.runtimeType}');
   }
 
-  final n = initialPoint.length;
-  // Simplex of n + 1 vertices
+  final dim = initialPoint.length;
+  // Simplex of dim + 1 vertices
   final simplex = <Vector<double>>[initialPoint.copy()];
-  for (var i = 0; i < n; i++) {
+  for (var i = 0; i < dim; i++) {
     final vertex = initialPoint.copy();
     vertex[i] += vertex[i] == 0.0 ? step : vertex[i] * 0.05 + step;
     simplex.add(vertex);
   }
 
-  final values = [for (final v in simplex) fn(v)];
+  final values = [for (final pt in simplex) fn(pt)];
 
   const alpha = 1.0; // reflection
   const gamma = 2.0; // expansion
@@ -158,26 +161,26 @@ import 'calculus.dart';
   var iter = 0;
   for (; iter < maxIterations; iter++) {
     // Sort simplex by values
-    final indices = List<int>.generate(n + 1, (i) => i)
+    final indices = List<int>.generate(dim + 1, (i) => i)
       ..sort((a, b) => values[a].compareTo(values[b]));
 
     final bestIdx = indices[0];
-    final worstIdx = indices[n];
-    final secondWorstIdx = indices[n - 1];
+    final worstIdx = indices[dim];
+    final secondWorstIdx = indices[dim - 1];
 
     // Check convergence: standard deviation of simplex values
     var meanVal = 0.0;
-    for (var i = 0; i <= n; i++) {
+    for (var i = 0; i <= dim; i++) {
       meanVal += values[i];
     }
-    meanVal /= n + 1;
+    meanVal /= dim + 1;
 
     var variance = 0.0;
-    for (var i = 0; i <= n; i++) {
+    for (var i = 0; i <= dim; i++) {
       final diff = values[i] - meanVal;
       variance += diff * diff;
     }
-    if (math.sqrt(variance / (n + 1)) < tolerance) {
+    if (math.sqrt(variance / (dim + 1)) < tolerance) {
       return (
         point: simplex[bestIdx],
         value: values[bestIdx],
@@ -186,15 +189,15 @@ import 'calculus.dart';
     }
 
     // Compute centroid of all vertices except worst
-    final centroid = Vector<double>.filled(n, 0.0, type: DataType.float64);
-    for (var i = 0; i < n; i++) {
+    final centroid = Vector<double>.filled(dim, 0.0, type: DataType.float64);
+    for (var i = 0; i < dim; i++) {
       final idx = indices[i];
-      for (var d = 0; d < n; d++) {
-        centroid[d] += simplex[idx][d];
+      for (var dimIdx = 0; dimIdx < dim; dimIdx++) {
+        centroid[dimIdx] += simplex[idx][dimIdx];
       }
     }
-    for (var d = 0; d < n; d++) {
-      centroid[d] /= n;
+    for (var dimIdx = 0; dimIdx < dim; dimIdx++) {
+      centroid[dimIdx] /= dim;
     }
 
     // 1. Reflection
@@ -244,7 +247,7 @@ import 'calculus.dart';
 
     // 4. Shrink towards best vertex
     final xBest = simplex[bestIdx];
-    for (var i = 1; i <= n; i++) {
+    for (var i = 1; i <= dim; i++) {
       final idx = indices[i];
       simplex[idx] = xBest + (simplex[idx] - xBest).scale(sigma);
       values[idx] = fn(simplex[idx]);
@@ -252,7 +255,7 @@ import 'calculus.dart';
   }
 
   final bestIdx = List<int>.generate(
-    n + 1,
+    dim + 1,
     (i) => i,
   ).reduce((a, b) => values[a] < values[b] ? a : b);
   return (point: simplex[bestIdx], value: values[bestIdx], iterations: iter);
@@ -264,7 +267,7 @@ import 'calculus.dart';
 /// or an [Expr] (where analytical gradients are automatically derived).
 ({Vector<double> point, double value, double gradientNorm, int iterations})
 bfgs(
-  Object f,
+  Object function,
   Vector<double> initialPoint, {
   Object? gradient,
   List<String>? variables,
@@ -274,91 +277,92 @@ bfgs(
   final double Function(Vector<double>) fn;
   final Vector<double> Function(Vector<double>) gradFn;
 
-  if (f is Expr) {
-    final vars = variables ?? (f.freeVariables.toList()..sort());
-    fn = (vec) =>
-        f.evaluate({for (var i = 0; i < vec.length; i++) vars[i]: vec[i]});
-    gradFn = (vec) => numericalGradient(f, vec, variables: vars);
-  } else if (f is double Function(Vector<double>)) {
-    fn = f;
+  if (function is Expr) {
+    final vars = variables ?? (function.freeVariables.toList()..sort());
+    fn = (vec) => function.evaluate({
+      for (var i = 0; i < vec.length; i++) vars[i]: vec[i],
+    });
+    gradFn = (vec) => numericalGradient(function, vec, variables: vars);
+  } else if (function is double Function(Vector<double>)) {
+    fn = function;
     if (gradient is Vector<double> Function(Vector<double>)) {
       gradFn = gradient;
     } else {
-      gradFn = (vec) => numericalGradient(f, vec);
+      gradFn = (vec) => numericalGradient(function, vec);
     }
   } else {
-    throw ArgumentError('Unsupported function type: ${f.runtimeType}');
+    throw ArgumentError('Unsupported function type: ${function.runtimeType}');
   }
 
-  final n = initialPoint.length;
+  final dim = initialPoint.length;
   var x = initialPoint.copy();
   var fx = fn(x);
-  var g = gradFn(x);
+  var grad = gradFn(x);
 
   // Initial inverse Hessian approximation H0 = Identity
-  var hMat = Matrix<double>.identity(n, type: DataType.float64);
+  var hMat = Matrix<double>.identity(dim, type: DataType.float64);
 
   var iter = 0;
   for (; iter < maxIterations; iter++) {
-    final gNorm = g.norm();
+    final gNorm = grad.norm();
     if (gNorm < tolerance) {
       return (point: x, value: fx, gradientNorm: gNorm, iterations: iter);
     }
 
-    // Search direction p = -H * g
-    final p = -hMat.apply(g);
+    // Search direction dir = -H * grad
+    final dir = -hMat.apply(grad);
 
-    // Backtracking line search with Armijo condition: f(x + alpha * p) <= f(x) + c1 * alpha * (g . p)
+    // Backtracking line search with Armijo condition: f(x + alpha * dir) <= f(x) + c1 * alpha * (grad . dir)
     const c1 = 1e-4;
     var alpha = 1.0;
-    final slope = g.dot(p);
+    final slope = grad.dot(dir);
     if (slope >= 0.0) {
       // Re-initialize Hessian if direction is not descent
-      hMat = Matrix<double>.identity(n, type: DataType.float64);
-      final pReset = -g;
-      final slopeReset = g.dot(pReset);
+      hMat = Matrix<double>.identity(dim, type: DataType.float64);
+      final pReset = -grad;
+      final slopeReset = grad.dot(pReset);
       var a = 1.0;
       while (fn(x + pReset.scale(a)) > fx + c1 * a * slopeReset && a > 1e-12) {
         a *= 0.5;
       }
       alpha = a;
     } else {
-      while (fn(x + p.scale(alpha)) > fx + c1 * alpha * slope &&
+      while (fn(x + dir.scale(alpha)) > fx + c1 * alpha * slope &&
           alpha > 1e-12) {
         alpha *= 0.5;
       }
     }
 
-    final s = (slope >= 0.0 ? -g : p).scale(alpha);
-    final xNext = x + s;
+    final step = (slope >= 0.0 ? -grad : dir).scale(alpha);
+    final xNext = x + step;
     final fxNext = fn(xNext);
     final gNext = gradFn(xNext);
-    final y = gNext - g;
+    final y = gNext - grad;
 
-    final ys = y.dot(s);
+    final ys = y.dot(step);
     if (ys > 1e-10) {
       final rho = 1.0 / ys;
-      final eye = Matrix<double>.identity(n, type: DataType.float64);
-      final syT = s.outer(y).scale(rho);
-      final ysT = y.outer(s).scale(rho);
+      final eye = Matrix<double>.identity(dim, type: DataType.float64);
+      final syT = step.outer(y).scale(rho);
+      final ysT = y.outer(step).scale(rho);
       final v1 = eye - syT;
       final v2 = eye - ysT;
-      final ssT = s.outer(s).scale(rho);
+      final ssT = step.outer(step).scale(rho);
       hMat = (v1 * hMat * v2) + ssT;
     }
 
     x = xNext;
     fx = fxNext;
-    g = gNext;
+    grad = gNext;
   }
 
-  return (point: x, value: fx, gradientNorm: g.norm(), iterations: iter);
+  return (point: x, value: fx, gradientNorm: grad.norm(), iterations: iter);
 }
 
 /// Limited-memory BFGS (L-BFGS) unconstrained optimization.
 ({Vector<double> point, double value, double gradientNorm, int iterations})
 lbfgs(
-  Object f,
+  Object function,
   Vector<double> initialPoint, {
   Object? gradient,
   List<String>? variables,
@@ -369,25 +373,26 @@ lbfgs(
   final double Function(Vector<double>) fn;
   final Vector<double> Function(Vector<double>) gradFn;
 
-  if (f is Expr) {
-    final vars = variables ?? (f.freeVariables.toList()..sort());
-    fn = (vec) =>
-        f.evaluate({for (var i = 0; i < vec.length; i++) vars[i]: vec[i]});
-    gradFn = (vec) => numericalGradient(f, vec, variables: vars);
-  } else if (f is double Function(Vector<double>)) {
-    fn = f;
+  if (function is Expr) {
+    final vars = variables ?? (function.freeVariables.toList()..sort());
+    fn = (vec) => function.evaluate({
+      for (var i = 0; i < vec.length; i++) vars[i]: vec[i],
+    });
+    gradFn = (vec) => numericalGradient(function, vec, variables: vars);
+  } else if (function is double Function(Vector<double>)) {
+    fn = function;
     if (gradient is Vector<double> Function(Vector<double>)) {
       gradFn = gradient;
     } else {
-      gradFn = (vec) => numericalGradient(f, vec);
+      gradFn = (vec) => numericalGradient(function, vec);
     }
   } else {
-    throw ArgumentError('Unsupported function type: ${f.runtimeType}');
+    throw ArgumentError('Unsupported function type: ${function.runtimeType}');
   }
 
   var x = initialPoint.copy();
   var fx = fn(x);
-  var g = gradFn(x);
+  var grad = gradFn(x);
 
   final sHistory = <Vector<double>>[];
   final yHistory = <Vector<double>>[];
@@ -395,71 +400,71 @@ lbfgs(
 
   var iter = 0;
   for (; iter < maxIterations; iter++) {
-    final gNorm = g.norm();
-    if (gNorm < tolerance) {
-      return (point: x, value: fx, gradientNorm: gNorm, iterations: iter);
+    final gradNorm = grad.norm();
+    if (gradNorm < tolerance) {
+      return (point: x, value: fx, gradientNorm: gradNorm, iterations: iter);
     }
 
     // L-BFGS two-loop recursion to compute search direction r = -H_k * g
-    final q = g.copy();
-    final k = sHistory.length;
-    final alphas = List<double>.filled(k, 0.0);
+    final qVec = grad.copy();
+    final histLen = sHistory.length;
+    final alphas = List<double>.filled(histLen, 0.0);
 
-    for (var i = k - 1; i >= 0; i--) {
-      alphas[i] = rhoHistory[i] * sHistory[i].dot(q);
-      q.addScaled(yHistory[i], -alphas[i]);
+    for (var i = histLen - 1; i >= 0; i--) {
+      alphas[i] = rhoHistory[i] * sHistory[i].dot(qVec);
+      qVec.addScaled(yHistory[i], -alphas[i]);
     }
 
     // Initial scale factor gamma_k = (s_{k-1} . y_{k-1}) / (y_{k-1} . y_{k-1})
     var gamma = 1.0;
-    if (k > 0) {
+    if (histLen > 0) {
       final sLast = sHistory.last;
       final yLast = yHistory.last;
       gamma = sLast.dot(yLast) / yLast.dot(yLast);
     }
-    final r = q.scale(gamma);
+    final rVec = qVec.scale(gamma);
 
-    for (var i = 0; i < k; i++) {
-      final beta = rhoHistory[i] * yHistory[i].dot(r);
-      r.addScaled(sHistory[i], alphas[i] - beta);
+    for (var i = 0; i < histLen; i++) {
+      final beta = rhoHistory[i] * yHistory[i].dot(rVec);
+      rVec.addScaled(sHistory[i], alphas[i] - beta);
     }
 
-    final p = -r;
+    final searchDir = -rVec;
 
     // Backtracking line search
     const c1 = 1e-4;
     var alpha = 1.0;
-    final slope = g.dot(p);
-    final dir = slope < 0.0 ? p : -g;
-    final effectiveSlope = slope < 0.0 ? slope : -g.dot(g);
+    final slope = grad.dot(searchDir);
+    final dir = slope < 0.0 ? searchDir : -grad;
+    final effectiveSlope = slope < 0.0 ? slope : -grad.dot(grad);
 
     while (fn(x + dir.scale(alpha)) > fx + c1 * alpha * effectiveSlope &&
         alpha > 1e-12) {
       alpha *= 0.5;
     }
 
-    final s = dir.scale(alpha);
-    final xNext = x + s;
+    final step = dir.scale(alpha);
+    final xNext = x + step;
     final fxNext = fn(xNext);
-    final gNext = gradFn(xNext);
-    final y = gNext - g;
+    final gradNext = gradFn(xNext);
+    final yGrad = gradNext - grad;
 
-    final ys = y.dot(s);
+    final ys = yGrad.dot(step);
     if (ys > 1e-10) {
       if (sHistory.length >= memorySize) {
         sHistory.removeAt(0);
         yHistory.removeAt(0);
         rhoHistory.removeAt(0);
       }
-      sHistory.add(s);
-      yHistory.add(y);
+      sHistory.add(step);
+      yHistory.add(yGrad);
       rhoHistory.add(1.0 / ys);
     }
 
     x = xNext;
     fx = fxNext;
-    g = gNext;
+    grad = gradNext;
   }
 
-  return (point: x, value: fx, gradientNorm: g.norm(), iterations: iter);
+  return (point: x, value: fx, gradientNorm: grad.norm(), iterations: iter);
 }

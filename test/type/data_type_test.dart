@@ -2,7 +2,7 @@ import 'dart:typed_data';
 
 import 'package:checks/checks.dart';
 import 'package:data/type.dart';
-import 'package:test/scaffolding.dart';
+import 'package:test/test.dart';
 
 void main() {
   group('Native attributes', () {
@@ -197,7 +197,7 @@ void main() {
       check(DataType.boolean.defaultValue).isFalse();
       check(DataType.boolean.cast(true)).isTrue();
       check(DataType.boolean.newList(3, fillValue: true))
-          .which((l) => l.every((b) => b));
+          .which((list) => list.every((val) => val));
       check(() => DataType.boolean.field).throws<UnsupportedError>();
 
       // String
@@ -307,10 +307,10 @@ void main() {
           DataType.int64,
           DataType.uint64,
         ];
-        for (final t in types) {
-          final b = NativeBuffer(2, type: t);
-          check(b.length).equals(2);
-          b.dispose();
+        for (final type in types) {
+          final buffer = NativeBuffer(2, type: type);
+          check(buffer.length).equals(2);
+          buffer.dispose();
         }
 
         // Negative length throws
@@ -344,135 +344,137 @@ void main() {
 
   group('Field operations', () {
     test('Float field', () {
-      final f = DataType.float64.field;
-      check(f.additiveIdentity).equals(0.0);
-      check(f.multiplicativeIdentity).equals(1.0);
-      check(f.add(2.0, 3.0)).equals(5.0);
-      check(f.sub(5.0, 2.0)).equals(3.0);
-      check(f.neg(4.0)).equals(-4.0);
-      check(f.mul(4.0, 2.5)).equals(10.0);
-      check(f.div(10.0, 2.0)).equals(5.0);
-      check(f.inv(2.0)).equals(0.5);
-      check(f.scale(3.0, 4)).equals(12.0);
-      check(f.pow(2.0, 3.0)).equals(8.0);
-      check(f.abs(-4.5)).equals(4.5);
-      check(f.norm(-3.0)).equals(3.0);
-      check(f.sqrt(16.0)).equals(4.0);
-      check(f.exp(0.0)).equals(1.0);
-      check(f.log(1.0)).equals(0.0);
-      check(f.conjugate(5.0)).equals(5.0);
+      final field = DataType.float64.field;
+      check(field.additiveIdentity).equals(0.0);
+      check(field.multiplicativeIdentity).equals(1.0);
+      check(field.add(2.0, 3.0)).equals(5.0);
+      check(field.sub(5.0, 2.0)).equals(3.0);
+      check(field.neg(4.0)).equals(-4.0);
+      check(field.mul(4.0, 2.5)).equals(10.0);
+      check(field.div(10.0, 2.0)).equals(5.0);
+      check(field.inv(2.0)).equals(0.5);
+      check(field.scale(3.0, 4)).equals(12.0);
+      check(field.pow(2.0, 3.0)).equals(8.0);
+      check(field.abs(-4.5)).equals(4.5);
+      check(field.norm(-3.0)).equals(3.0);
+      check(field.sqrt(16.0)).equals(4.0);
+      check(field.exp(0.0)).equals(1.0);
+      check(field.log(1.0)).equals(0.0);
+      check(field.conjugate(5.0)).equals(5.0);
     });
 
     test('Integer field', () {
-      final f = DataType.int32.field;
-      check(f.additiveIdentity).equals(0);
-      check(f.multiplicativeIdentity).equals(1);
-      check(f.add(2, 3)).equals(5);
-      check(f.sub(5, 2)).equals(3);
-      check(f.neg(4)).equals(-4);
-      check(f.mul(4, 3)).equals(12);
-      check(f.div(10, 2)).equals(5);
-      check(f.inv(1)).equals(1);
-      check(f.scale(3, 4)).equals(12);
-      check(f.pow(2, 3)).equals(8);
-      check(f.abs(-7)).equals(7);
-      check(f.norm(-7)).equals(7.0);
-      check(f.sqrt(25)).equals(5);
-      check(f.exp(0)).equals(1);
-      check(f.log(1)).equals(0);
-      check(f.conjugate(7)).equals(7);
+      final field = DataType.int32.field;
+      check(field.additiveIdentity).equals(0);
+      check(field.multiplicativeIdentity).equals(1);
+      check(field.add(2, 3)).equals(5);
+      check(field.sub(5, 2)).equals(3);
+      check(field.neg(4)).equals(-4);
+      check(field.mul(4, 3)).equals(12);
+      check(field.div(10, 2)).equals(5);
+      check(field.inv(1)).equals(1);
+      check(field.scale(3, 4)).equals(12);
+      check(field.pow(2, 3)).equals(8);
+      check(field.abs(-7)).equals(7);
+      check(field.norm(-7)).equals(7.0);
+      check(field.sqrt(25)).equals(5);
+      check(field.exp(0)).equals(1);
+      check(field.log(1)).equals(0);
+      check(field.conjugate(7)).equals(7);
     });
 
     test('Complex field', () {
-      final f = DataType.complex.field;
-      check(f.additiveIdentity).equals(Complex.zero);
-      check(f.multiplicativeIdentity).equals(Complex.one);
+      final field = DataType.complex.field;
+      check(field.additiveIdentity).equals(Complex.zero);
+      check(field.multiplicativeIdentity).equals(Complex.one);
       const c1 = Complex(3, 4);
       const c2 = Complex(1, 2);
-      check(f.add(c1, c2)).equals(const Complex(4, 6));
-      check(f.sub(c1, c2)).equals(const Complex(2, 2));
-      check(f.neg(c1)).equals(const Complex(-3, -4));
-      check(f.mul(c1, c2)).equals(c1 * c2);
-      check(f.div(c1, c2)).equals(c1 / c2);
-      check(f.inv(c1)).equals(c1.reciprocal());
-      check(f.scale(c1, 2)).equals(const Complex(6, 8));
-      check(f.pow(c1, c2)).equals(c1.pow(c2));
-      check(f.norm(c1)).equals(5.0);
-      check(f.abs(c1)).equals(const Complex(5, 0));
-      check(f.sqrt(c1)).equals(c1.sqrt());
-      check(f.exp(c1)).equals(c1.exp());
-      check(f.log(c1)).equals(c1.log());
-      check(f.conjugate(c1)).equals(const Complex(3, -4));
+      check(field.add(c1, c2)).equals(const Complex(4, 6));
+      check(field.sub(c1, c2)).equals(const Complex(2, 2));
+      check(field.neg(c1)).equals(const Complex(-3, -4));
+      check(field.mul(c1, c2)).equals(c1 * c2);
+      check(field.div(c1, c2)).equals(c1 / c2);
+      check(field.inv(c1)).equals(c1.reciprocal());
+      check(field.scale(c1, 2)).equals(const Complex(6, 8));
+      check(field.pow(c1, c2)).equals(c1.pow(c2));
+      check(field.norm(c1)).equals(5.0);
+      check(field.abs(c1)).equals(const Complex(5, 0));
+      check(field.sqrt(c1)).equals(c1.sqrt());
+      check(field.exp(c1)).equals(c1.exp());
+      check(field.log(c1)).equals(c1.log());
+      check(field.conjugate(c1)).equals(const Complex(3, -4));
     });
 
     test('Fraction field', () {
-      final f = DataType.fraction.field;
-      check(f.additiveIdentity).equals(Fraction.zero);
-      check(f.multiplicativeIdentity).equals(Fraction.one);
+      final field = DataType.fraction.field;
+      check(field.additiveIdentity).equals(Fraction.zero);
+      check(field.multiplicativeIdentity).equals(Fraction.one);
       final frac1 = Fraction(3, 4);
       final frac2 = Fraction(1, 2);
-      check(f.add(frac1, frac2)).equals(Fraction(5, 4));
-      check(f.sub(frac1, frac2)).equals(Fraction(1, 4));
-      check(f.neg(frac1)).equals(Fraction(-3, 4));
-      check(f.mul(frac1, frac2)).equals(Fraction(3, 8));
-      check(f.div(frac1, frac2)).equals(Fraction(3, 2));
-      check(f.inv(frac1)).equals(Fraction(4, 3));
-      check(f.scale(frac1, 2)).equals(Fraction(3, 2));
-      check(f.pow(frac1, Fraction(2, 1))).equals(Fraction(9, 16));
-      check(f.abs(Fraction(-3, 4))).equals(Fraction(3, 4));
-      check(f.norm(frac1)).equals(0.75);
-      check(f.sqrt(Fraction(4, 9))).equals(Fraction(2, 3));
-      check(f.exp(Fraction.zero)).equals(Fraction.one);
-      check(f.log(Fraction.one)).equals(Fraction.zero);
-      check(f.conjugate(frac1)).equals(frac1);
+      check(field.add(frac1, frac2)).equals(Fraction(5, 4));
+      check(field.sub(frac1, frac2)).equals(Fraction(1, 4));
+      check(field.neg(frac1)).equals(Fraction(-3, 4));
+      check(field.mul(frac1, frac2)).equals(Fraction(3, 8));
+      check(field.div(frac1, frac2)).equals(Fraction(3, 2));
+      check(field.inv(frac1)).equals(Fraction(4, 3));
+      check(field.scale(frac1, 2)).equals(Fraction(3, 2));
+      check(field.pow(frac1, Fraction(2, 1))).equals(Fraction(9, 16));
+      check(field.abs(Fraction(-3, 4))).equals(Fraction(3, 4));
+      check(field.norm(frac1)).equals(0.75);
+      check(field.sqrt(Fraction(4, 9))).equals(Fraction(2, 3));
+      check(field.exp(Fraction.zero)).equals(Fraction.one);
+      check(field.log(Fraction.one)).equals(Fraction.zero);
+      check(field.conjugate(frac1)).equals(frac1);
     });
 
     test('BigInt field', () {
-      final f = DataType.bigInt.field;
-      check(f.additiveIdentity).equals(BigInt.zero);
-      check(f.multiplicativeIdentity).equals(BigInt.one);
-      final b1 = BigInt.from(10);
-      final b2 = BigInt.from(3);
-      check(f.add(b1, b2)).equals(BigInt.from(13));
-      check(f.sub(b1, b2)).equals(BigInt.from(7));
-      check(f.neg(b1)).equals(BigInt.from(-10));
-      check(f.mul(b1, b2)).equals(BigInt.from(30));
-      check(f.div(b1, b2)).equals(BigInt.from(3));
-      check(f.inv(BigInt.one)).equals(BigInt.one);
-      check(f.pow(b1, BigInt.from(2))).equals(BigInt.from(100));
-      check(f.abs(BigInt.from(-10))).equals(BigInt.from(10));
-      check(f.norm(BigInt.from(-10))).equals(10.0);
-      check(f.sqrt(BigInt.zero)).equals(BigInt.zero);
-      check(f.sqrt(BigInt.one)).equals(BigInt.one);
-      check(f.sqrt(BigInt.from(100))).equals(BigInt.from(10));
-      check(() => f.sqrt(BigInt.from(-5))).throws<ArgumentError>();
-      check(f.scale(b1, 2)).equals(BigInt.from(20));
-      check(f.scale(b1, 0.5)).equals(BigInt.from(5));
-      check(f.exp(BigInt.zero)).equals(BigInt.one);
-      check(f.log(BigInt.one)).equals(BigInt.zero);
-      check(f.conjugate(b1)).equals(b1);
+      final field = DataType.bigInt.field;
+      check(field.additiveIdentity).equals(BigInt.zero);
+      check(field.multiplicativeIdentity).equals(BigInt.one);
+      final big1 = BigInt.from(10);
+      final big2 = BigInt.from(3);
+      check(field.add(big1, big2)).equals(BigInt.from(13));
+      check(field.sub(big1, big2)).equals(BigInt.from(7));
+      check(field.neg(big1)).equals(BigInt.from(-10));
+      check(field.mul(big1, big2)).equals(BigInt.from(30));
+      check(field.div(big1, big2)).equals(BigInt.from(3));
+      check(field.inv(BigInt.one)).equals(BigInt.one);
+      check(field.pow(big1, BigInt.from(2))).equals(BigInt.from(100));
+      check(field.abs(BigInt.from(-10))).equals(BigInt.from(10));
+      check(field.norm(BigInt.from(-10))).equals(10.0);
+      check(field.sqrt(BigInt.zero)).equals(BigInt.zero);
+      check(field.sqrt(BigInt.one)).equals(BigInt.one);
+      check(field.sqrt(BigInt.from(100))).equals(BigInt.from(10));
+      check(() => field.sqrt(BigInt.from(-5))).throws<ArgumentError>();
+      check(field.scale(big1, 2)).equals(BigInt.from(20));
+      check(field.scale(big1, 0.5)).equals(BigInt.from(5));
+      check(field.exp(BigInt.zero)).equals(BigInt.one);
+      check(field.log(BigInt.one)).equals(BigInt.zero);
+      check(field.conjugate(big1)).equals(big1);
     });
 
     test('Quaternion field', () {
-      final f = DataType.quaternion.field;
-      check(f.additiveIdentity).equals(Quaternion.zero);
-      check(f.multiplicativeIdentity).equals(Quaternion.one);
+      final field = DataType.quaternion.field;
+      check(field.additiveIdentity).equals(Quaternion.zero);
+      check(field.multiplicativeIdentity).equals(Quaternion.one);
       const q1 = Quaternion(1.0, 2.0, 3.0, 4.0);
       const q2 = Quaternion(2.0, 0.0, 1.0, -1.0);
-      check(f.add(q1, q2)).equals(const Quaternion(3.0, 2.0, 4.0, 3.0));
-      check(f.sub(q1, q2)).equals(const Quaternion(-1.0, 2.0, 2.0, 5.0));
-      check(f.neg(q1)).equals(const Quaternion(-1.0, -2.0, -3.0, -4.0));
-      check(f.mul(q1, q2)).equals(q1 * q2);
-      check(f.div(q1, q2)).equals(q1 / q2);
-      check(f.inv(q1)).equals(q1.reciprocal());
-      check(f.scale(q1, 2)).equals(q1 * 2);
-      check(f.pow(q1, const Quaternion(2))).equals(q1.pow(const Quaternion(2)));
-      check(f.abs(q1)).equals(Quaternion(q1.abs()));
-      check(f.norm(q1)).equals(q1.abs());
-      check(f.conjugate(q1)).equals(const Quaternion(1.0, -2.0, -3.0, -4.0));
-      check(() => f.sqrt(q1)).throws<UnsupportedError>();
-      check(() => f.exp(q1)).throws<UnsupportedError>();
-      check(() => f.log(q1)).throws<UnsupportedError>();
+      check(field.add(q1, q2)).equals(const Quaternion(3.0, 2.0, 4.0, 3.0));
+      check(field.sub(q1, q2)).equals(const Quaternion(-1.0, 2.0, 2.0, 5.0));
+      check(field.neg(q1)).equals(const Quaternion(-1.0, -2.0, -3.0, -4.0));
+      check(field.mul(q1, q2)).equals(q1 * q2);
+      check(field.div(q1, q2)).equals(q1 / q2);
+      check(field.inv(q1)).equals(q1.reciprocal());
+      check(field.scale(q1, 2)).equals(q1 * 2);
+      check(field.pow(q1, const Quaternion(2)))
+          .equals(q1.pow(const Quaternion(2)));
+      check(field.abs(q1)).equals(Quaternion(q1.abs()));
+      check(field.norm(q1)).equals(q1.abs());
+      check(field.conjugate(q1))
+          .equals(const Quaternion(1.0, -2.0, -3.0, -4.0));
+      check(() => field.sqrt(q1)).throws<UnsupportedError>();
+      check(() => field.exp(q1)).throws<UnsupportedError>();
+      check(() => field.log(q1)).throws<UnsupportedError>();
     });
   });
 
@@ -529,8 +531,8 @@ void main() {
         DataType.float32,
         DataType.float64,
       ];
-      for (final t in nativeTypes) {
-        check(t.isNative).isTrue();
+      for (final type in nativeTypes) {
+        check(type.isNative).isTrue();
       }
       check(DataType.boolean.isNative).isFalse();
       check(DataType.string.isNative).isFalse();

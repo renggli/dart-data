@@ -1,7 +1,7 @@
 import 'package:checks/checks.dart';
 import 'package:data/linear.dart';
 import 'package:data/type.dart';
-import 'package:test/scaffolding.dart';
+import 'package:test/test.dart';
 
 void main() {
   group('Eigenvalue Decomposition', () {
@@ -14,7 +14,7 @@ void main() {
 
       final eig = a.eigenvalue;
       final vals = eig.realEigenvalues;
-      final v = eig.v;
+      final vMat = eig.v;
 
       // For symmetric matrix, imaginary parts are 0
       for (final im in eig.imagEigenvalues) {
@@ -22,8 +22,8 @@ void main() {
       }
 
       // V * D * V^T == A
-      final d = eig.d;
-      final reconstructed = v * d * v.transposed;
+      final dMat = eig.d;
+      final reconstructed = vMat * dMat * vMat.transposed;
       for (var i = 0; i < 3; i++) {
         for (var j = 0; j < 3; j++) {
           check(reconstructed.get(i, j)).isCloseTo(a.get(i, j), 1e-6);
@@ -32,7 +32,7 @@ void main() {
 
       // A * v_i == lambda_i * v_i
       for (var i = 0; i < 3; i++) {
-        final colI = v.col(i);
+        final colI = vMat.col(i);
         final aCol = a.apply(colI);
         final lambdaCol = colI.scale(vals[i]);
         for (var k = 0; k < 3; k++) {
@@ -58,10 +58,10 @@ void main() {
       check(complexEigs[1].b.abs()).isCloseTo(1.0, 1e-9);
 
       // Accessing V and D on non-symmetric matrix
-      final v = eig.v;
-      final d = eig.d;
-      check(v.rowCount).equals(2);
-      check(d.rowCount).equals(2);
+      final vMat = eig.v;
+      final dMat = eig.d;
+      check(vMat.rowCount).equals(2);
+      check(dMat.rowCount).equals(2);
 
       // 3x3 and 4x4 non-symmetric matrices with real and complex eigenvalues
       final m3 = Matrix<double>.fromRows([

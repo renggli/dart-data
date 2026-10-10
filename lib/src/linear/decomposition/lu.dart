@@ -18,7 +18,7 @@ class LUDecomposition {
       _lu = Matrix<double>.generate(
         matrix.rowCount,
         matrix.colCount,
-        (r, c) => matrix.get(r, c).toDouble(),
+        (row, col) => matrix.get(row, col).toDouble(),
         type: DataType.float64,
       ),
       _piv = List<int>.generate(matrix.rowCount, (i) => i) {
@@ -27,27 +27,27 @@ class LUDecomposition {
     for (var j = 0; j < _n; j++) {
       for (var i = 0; i < _m; i++) {
         final kmax = math.min(i, j);
-        var s = 0.0;
+        var sum = 0.0;
         for (var k = 0; k < kmax; k++) {
-          s += _lu.get(i, k) * _lu.get(k, j);
+          sum += _lu.get(i, k) * _lu.get(k, j);
         }
-        _lu.set(i, j, _lu.get(i, j) - s);
+        _lu.set(i, j, _lu.get(i, j) - sum);
       }
 
-      var p = j;
+      var pivot = j;
       for (var i = j + 1; i < _m; i++) {
-        if (_lu.get(i, j).abs() > _lu.get(p, j).abs()) {
-          p = i;
+        if (_lu.get(i, j).abs() > _lu.get(pivot, j).abs()) {
+          pivot = i;
         }
       }
-      if (p != j) {
+      if (pivot != j) {
         for (var k = 0; k < _n; k++) {
-          final t = _lu.get(p, k);
-          _lu.set(p, k, _lu.get(j, k));
-          _lu.set(j, k, t);
+          final temp = _lu.get(pivot, k);
+          _lu.set(pivot, k, _lu.get(j, k));
+          _lu.set(j, k, temp);
         }
-        final k = _piv[p];
-        _piv[p] = _piv[j];
+        final k = _piv[pivot];
+        _piv[pivot] = _piv[j];
         _piv[j] = k;
         _pivSign = -_pivSign;
       }
@@ -113,11 +113,11 @@ class LUDecomposition {
     if (_m != _n) {
       throw ArgumentError('Matrix must be square to compute determinant.');
     }
-    var d = 1.0;
+    var detVal = 1.0;
     for (var j = 0; j < _n; j++) {
-      d *= _lu.get(j, j);
+      detVal *= _lu.get(j, j);
     }
-    return d * _pivSign;
+    return detVal * _pivSign;
   }
 
   /// Solves $A X = B$ for $X$.
@@ -135,7 +135,7 @@ class LUDecomposition {
     final x = Matrix<double>.generate(
       _m,
       nx,
-      (r, c) => b.get(_piv[r], c).toDouble(),
+      (row, col) => b.get(_piv[row], col).toDouble(),
       type: DataType.float64,
     );
 

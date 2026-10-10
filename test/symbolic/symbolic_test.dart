@@ -3,7 +3,7 @@ import 'dart:typed_data';
 
 import 'package:checks/checks.dart';
 import 'package:data/symbolic.dart';
-import 'package:test/scaffolding.dart';
+import 'package:test/test.dart';
 
 void main() {
   group('Expression AST creation & evaluation', () {
@@ -154,8 +154,8 @@ void main() {
   group('Exact Analytical Differentiation', () {
     test('polynomial differentiation', () {
       const x = Variable('x');
-      final f = x.pow(3);
-      final df = f.diff('x').simplify();
+      final expr = x.pow(3);
+      final df = expr.diff('x').simplify();
       final fn = df.compile1D('x');
       check(fn(2.0)).equals(12.0); // 3 * 4 = 12
     });
@@ -163,14 +163,14 @@ void main() {
     test('product and quotient rule', () {
       const x = Variable('x');
       // Product: x^2 * sin(x)
-      final f = (x.pow(2)) * const Sin(x);
-      final df = f.diff('x').simplify();
+      final expr = (x.pow(2)) * const Sin(x);
+      final df = expr.diff('x').simplify();
       final dfCompiled = df.compile1D('x');
       check(dfCompiled(0.0)).equals(0.0);
 
       // Quotient: (x + 1) / (x - 1)
-      final q = (x + 1) / (x - 1);
-      final dq = q.diff('x').simplify();
+      final quotient = (x + 1) / (x - 1);
+      final dq = quotient.diff('x').simplify();
       // d/dx ((x+1)/(x-1)) = ((x-1) - (x+1))/(x-1)^2 = -2 / (x-1)^2 -> at x = 3: -2 / 4 = -0.5
       final dqCompiled = dq.compile1D('x');
       check(dqCompiled(3.0)).isCloseTo(-0.5, 1e-6);
@@ -178,21 +178,21 @@ void main() {
 
     test('chain rule: exp(2*x) and cos(x)', () {
       const x = Variable('x');
-      final f = Exp(x * 2);
-      final df = f.diff('x').simplify();
+      final expr = Exp(x * 2);
+      final df = expr.diff('x').simplify();
       final dfCompiled = df.compile1D('x');
       check(dfCompiled(0.0)).equals(2.0);
 
-      const c = Cos(x);
-      final dc = c.diff('x').simplify();
+      const cosine = Cos(x);
+      final dc = cosine.diff('x').simplify();
       final dcCompiled = dc.compile1D('x');
       check(dcCompiled(0.0)).equals(0.0);
     });
 
     test('logarithm: ln(x)', () {
       const x = Variable('x');
-      const f = Ln(x);
-      final df = f.diff('x').simplify();
+      const expr = Ln(x);
+      final df = expr.diff('x').simplify();
       final dfCompiled = df.compile1D('x');
       check(dfCompiled(2.0)).equals(0.5);
     });
@@ -321,7 +321,7 @@ void main() {
     test('compile multi-variable closure', () {
       const x = Variable('x');
       const y = Variable('y');
-      final f =
+      final expr =
           (x * 2) +
           (y * 3) +
           const Neg(x) +
@@ -330,7 +330,7 @@ void main() {
           const Exp(y) +
           const Ln(x) +
           const Pow(x, y);
-      final compiled = f.compile(['x', 'y']);
+      final compiled = expr.compile(['x', 'y']);
 
       final res = compiled([2.0, 1.0]);
       check(res).isCloseTo(
@@ -346,14 +346,14 @@ void main() {
       );
 
       // Unbound variable throws
-      check(() => f.compile(['x'])([2.0])).throws<ArgumentError>();
+      check(() => expr.compile(['x'])([2.0])).throws<ArgumentError>();
     });
 
     test('compileTensorKernel vectorized flat loop', () {
       const x = Variable('x');
       const y = Variable('y');
-      final f = (x * 2) + y;
-      final kernel = f.compileTensorKernel(['x', 'y']);
+      final expr = (x * 2) + y;
+      final kernel = expr.compileTensorKernel(['x', 'y']);
 
       final xData = Float64List.fromList([1.0, 2.0, 3.0, 4.0]);
       final yData = Float64List.fromList([10.0, 20.0, 30.0, 40.0]);
@@ -368,9 +368,9 @@ void main() {
     test('Gradient and Hessian of f(x, y) = x^2 + 3xy + y^3', () {
       const x = Variable('x');
       const y = Variable('y');
-      final f = x.pow(2) + (x * y * 3) + y.pow(3);
+      final expr = x.pow(2) + (x * y * 3) + y.pow(3);
 
-      final grad = Calculus.gradient(f, ['x', 'y']);
+      final grad = Calculus.gradient(expr, ['x', 'y']);
       check(grad.length).equals(2);
 
       final dfDx = grad[0].compile(['x', 'y']);
@@ -379,7 +379,7 @@ void main() {
       check(dfDx([1.0, 2.0])).equals(8.0);
       check(dfDy([1.0, 2.0])).equals(15.0);
 
-      final hess = Calculus.hessian(f, ['x', 'y']);
+      final hess = Calculus.hessian(expr, ['x', 'y']);
       check(hess.length).equals(2);
       check(hess[0].length).equals(2);
       final d2fDx2 = hess[0][0].compile(['x', 'y']);
@@ -413,8 +413,8 @@ void main() {
 
     test('Taylor series expansion of exp(x)', () {
       const x = Variable('x');
-      const f = Exp(x);
-      final taylor = Calculus.taylorSeries(f, 'x', point: 0.0, order: 4);
+      const expr = Exp(x);
+      final taylor = Calculus.taylorSeries(expr, 'x', point: 0.0, order: 4);
 
       final fn = taylor.compile1D('x');
       check(fn(0.5)).isCloseTo(1.6484375, 1e-4);

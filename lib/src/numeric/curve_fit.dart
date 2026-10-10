@@ -19,17 +19,22 @@ Vector<double> leastSquares(Matrix<num> a, Vector<num> b) {
       'Matrix row count (${a.rowCount}) must match vector length (${b.length}).',
     );
   }
-  final m = a.rowCount;
-  final n = a.colCount;
-  if (m >= n && HardwareManager.isAccelerated) {
+  final rows = a.rowCount;
+  final cols = a.colCount;
+  if (rows >= cols && HardwareManager.isAccelerated) {
     final Float64List aData;
     if (a.type == DataType.float64 &&
         a.tensor.isContiguous &&
         a.tensor.data is Float64List) {
-      aData = DataType.float64.newList(m * n);
-      aData.setRange(0, m * n, a.tensor.data as Float64List, a.tensor.offset);
+      aData = DataType.float64.newList(rows * cols);
+      aData.setRange(
+        0,
+        rows * cols,
+        a.tensor.data as Float64List,
+        a.tensor.offset,
+      );
     } else {
-      aData = DataType.float64.newList(m * n);
+      aData = DataType.float64.newList(rows * cols);
       final aFlat = a.values.toList(growable: false);
       for (var i = 0; i < aFlat.length; i++) {
         aData[i] = aFlat[i].toDouble();
@@ -39,31 +44,31 @@ Vector<double> leastSquares(Matrix<num> a, Vector<num> b) {
     if (b.type == DataType.float64 &&
         b.tensor.isContiguous &&
         b.tensor.data is Float64List) {
-      bData = DataType.float64.newList(m);
-      bData.setRange(0, m, b.tensor.data as Float64List, b.tensor.offset);
+      bData = DataType.float64.newList(rows);
+      bData.setRange(0, rows, b.tensor.data as Float64List, b.tensor.offset);
     } else {
-      bData = DataType.float64.newList(m);
-      for (var i = 0; i < m; i++) {
+      bData = DataType.float64.newList(rows);
+      for (var i = 0; i < rows; i++) {
         bData[i] = b[i].toDouble();
       }
     }
     final success = HardwareManager.dgels(
-      m: m,
-      n: n,
+      m: rows,
+      n: cols,
       nrhs: 1,
       a: aData,
-      lda: n,
+      lda: cols,
       b: bData,
-      ldb: m,
+      ldb: rows,
     );
     if (success) {
       return Vector<double>.fromList(
-        bData.sublist(0, n),
+        bData.sublist(0, cols),
         type: DataType.float64,
       );
     }
   }
-  if (m >= n) {
+  if (rows >= cols) {
     final qr = a.qr;
     if (qr.isFullRank) {
       return qr.solveVector(b);
@@ -83,8 +88,8 @@ linearRegression(Vector<num> xs, Vector<num> ys) {
   if (xs.length != ys.length) {
     throw ArgumentError('xs and ys must have the same length.');
   }
-  final n = xs.length;
-  if (n < 2) {
+  final numPoints = xs.length;
+  if (numPoints < 2) {
     throw ArgumentError(
       'At least 2 points are required for linear regression.',
     );
@@ -92,9 +97,9 @@ linearRegression(Vector<num> xs, Vector<num> ys) {
 
   // Construct Vandermonde design matrix A of size [N x 2]: [1, x_i]
   final a = Matrix<double>.generate(
-    n,
+    numPoints,
     2,
-    (r, c) => c == 0 ? 1.0 : xs[r].toDouble(),
+    (row, col) => col == 0 ? 1.0 : xs[row].toDouble(),
     type: DataType.float64,
   );
   final beta = leastSquares(a, ys);
@@ -103,14 +108,14 @@ linearRegression(Vector<num> xs, Vector<num> ys) {
 
   // Calculate R^2 coefficient of determination
   var meanY = 0.0;
-  for (var i = 0; i < n; i++) {
+  for (var i = 0; i < numPoints; i++) {
     meanY += ys[i].toDouble();
   }
-  meanY /= n;
+  meanY /= numPoints;
 
   var ssTot = 0.0;
   var ssRes = 0.0;
-  for (var i = 0; i < n; i++) {
+  for (var i = 0; i < numPoints; i++) {
     final yi = ys[i].toDouble();
     final yPred = intercept + slope * xs[i].toDouble();
     final totDiff = yi - meanY;
@@ -138,22 +143,22 @@ Polynomial<double> polynomialRegression(
   if (xs.length != ys.length) {
     throw ArgumentError('xs and ys must have the same length.');
   }
-  final n = xs.length;
-  if (n < degree + 1) {
+  final numPoints = xs.length;
+  if (numPoints < degree + 1) {
     throw ArgumentError(
-      'At least ${degree + 1} points are required to fit degree $degree polynomial, got $n.',
+      'At least ${degree + 1} points are required to fit degree $degree polynomial, got $numPoints.',
     );
   }
 
   // Construct Vandermonde matrix V of size [n x (degree + 1)] where V[i, j] = xs[i]^j
-  final v = Matrix<double>.generate(
-    n,
+  final vandermonde = Matrix<double>.generate(
+    numPoints,
     degree + 1,
-    (r, c) => math.pow(xs[r].toDouble(), c).toDouble(),
+    (row, col) => math.pow(xs[row].toDouble(), col).toDouble(),
     type: DataType.float64,
   );
 
-  final coeffs = leastSquares(v, ys);
+  final coeffs = leastSquares(vandermonde, ys);
   return Polynomial<double>.fromCoefficients(
     coeffs.toList(),
     type: DataType.float64,
@@ -175,39 +180,39 @@ multipleLinearRegression(
   if (x.rowCount != y.length) {
     throw ArgumentError('x rowCount must match y length.');
   }
-  final n = x.rowCount;
-  final p = x.colCount;
+  final numSamples = x.rowCount;
+  final numFeatures = x.colCount;
 
   final designMatrix = fitIntercept
       ? Matrix<double>.generate(
-          n,
-          p + 1,
-          (r, c) => c == 0 ? 1.0 : x.get(r, c - 1).toDouble(),
+          numSamples,
+          numFeatures + 1,
+          (row, col) => col == 0 ? 1.0 : x.get(row, col - 1).toDouble(),
           type: DataType.float64,
         )
       : Matrix<double>.generate(
-          n,
-          p,
-          (r, c) => x.get(r, c).toDouble(),
+          numSamples,
+          numFeatures,
+          (row, col) => x.get(row, col).toDouble(),
           type: DataType.float64,
         );
 
   final beta = leastSquares(designMatrix, y);
   final intercept = fitIntercept ? beta[0] : 0.0;
-  final coefs = fitIntercept ? beta.subVector(1, p + 1) : beta;
+  final coefs = fitIntercept ? beta.subVector(1, numFeatures + 1) : beta;
 
   var meanY = 0.0;
-  for (var i = 0; i < n; i++) {
+  for (var i = 0; i < numSamples; i++) {
     meanY += y[i].toDouble();
   }
-  meanY /= n;
+  meanY /= numSamples;
 
   var ssTot = 0.0;
   var ssRes = 0.0;
-  for (var i = 0; i < n; i++) {
+  for (var i = 0; i < numSamples; i++) {
     final yi = y[i].toDouble();
     var yPred = intercept;
-    for (var j = 0; j < p; j++) {
+    for (var j = 0; j < numFeatures; j++) {
       yPred += coefs[j] * x.get(i, j).toDouble();
     }
     final totDiff = yi - meanY;
@@ -222,13 +227,13 @@ multipleLinearRegression(
     intercept: intercept,
     rSquared: rSquared,
     predict: (Vector<num> xVec) {
-      if (xVec.length != p) {
+      if (xVec.length != numFeatures) {
         throw ArgumentError(
-          'Input vector length must match number of features ($p).',
+          'Input vector length must match number of features ($numFeatures).',
         );
       }
       var out = intercept;
-      for (var j = 0; j < p; j++) {
+      for (var j = 0; j < numFeatures; j++) {
         out += coefs[j] * xVec[j].toDouble();
       }
       return out;
@@ -246,31 +251,31 @@ Vector<double> levenbergMarquardt({
   double tolerance = 1e-7,
   int maxIterations = 100,
 }) {
-  var p = initialParams.copy();
-  var r = residualFunction(p);
-  var currentCost = r.dot(r);
+  var params = initialParams.copy();
+  var residuals = residualFunction(params);
+  var currentCost = residuals.dot(residuals);
   var lambda = damping;
 
   for (var iter = 0; iter < maxIterations; iter++) {
     if (math.sqrt(currentCost) < tolerance) break;
 
     // Approximate Jacobian J_ij = dr_i / dp_j via finite differences
-    final m = r.length;
-    final n = p.length;
-    const h = 1e-7;
+    final numResiduals = residuals.length;
+    final numParams = params.length;
+    const step = 1e-7;
 
-    final j = Matrix<double>.generate(m, n, (row, col) {
-      final pForward = p.copy();
-      pForward[col] += h;
+    final j = Matrix<double>.generate(numResiduals, numParams, (row, col) {
+      final pForward = params.copy();
+      pForward[col] += step;
       final rForward = residualFunction(pForward);
-      return (rForward[row] - r[row]) / h;
+      return (rForward[row] - residuals[row]) / step;
     }, type: DataType.float64);
 
     // Augmented normal equations: (J^T J + lambda * diag(J^T J)) delta = -J^T r
     final jTj = j.syrk(transpose: true);
-    final jTr = j.applyTranspose(r);
+    final jTr = j.applyTranspose(residuals);
 
-    final a = Matrix<double>.generate(n, n, (row, col) {
+    final a = Matrix<double>.generate(numParams, numParams, (row, col) {
       var val = jTj.get(row, col);
       if (row == col) {
         val += lambda * (val.abs() > 1e-6 ? val.abs() : 1.0);
@@ -283,13 +288,13 @@ Vector<double> levenbergMarquardt({
 
     if (delta.norm() < tolerance) break;
 
-    final pCandidate = p + delta;
+    final pCandidate = params + delta;
     final rCandidate = residualFunction(pCandidate);
     final candidateCost = rCandidate.dot(rCandidate);
 
     if (candidateCost < currentCost) {
-      p = pCandidate;
-      r = rCandidate;
+      params = pCandidate;
+      residuals = rCandidate;
       currentCost = candidateCost;
       lambda *= dampingStepDown;
     } else {
@@ -297,5 +302,5 @@ Vector<double> levenbergMarquardt({
     }
   }
 
-  return p;
+  return params;
 }

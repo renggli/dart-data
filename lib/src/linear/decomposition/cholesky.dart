@@ -23,22 +23,23 @@ class CholeskyDecomposition {
       return;
     }
     for (var j = 0; j < _n; j++) {
-      var d = 0.0;
+      var diag = 0.0;
       for (var k = 0; k < j; k++) {
-        var s = 0.0;
+        var sum = 0.0;
         for (var i = 0; i < k; i++) {
-          s += _l.get(k, i) * _l.get(j, i);
+          sum += _l.get(k, i) * _l.get(j, i);
         }
-        s = (matrix.get(j, k).toDouble() - s) / _l.get(k, k);
-        _l.set(j, k, s);
-        d += s * s;
+        sum = (matrix.get(j, k).toDouble() - sum) / _l.get(k, k);
+        _l.set(j, k, sum);
+        diag += sum * sum;
         _isSymmetricPositiveDefinite =
             _isSymmetricPositiveDefinite &&
             (matrix.get(k, j).toDouble() == matrix.get(j, k).toDouble());
       }
-      d = matrix.get(j, j).toDouble() - d;
-      _isSymmetricPositiveDefinite = _isSymmetricPositiveDefinite && (d > 0.0);
-      _l.set(j, j, math.sqrt(math.max(d, 0.0)));
+      diag = matrix.get(j, j).toDouble() - diag;
+      _isSymmetricPositiveDefinite =
+          _isSymmetricPositiveDefinite && (diag > 0.0);
+      _l.set(j, j, math.sqrt(math.max(diag, 0.0)));
       for (var k = j + 1; k < _n; k++) {
         _l.set(j, k, 0.0);
       }
@@ -63,11 +64,11 @@ class CholeskyDecomposition {
     if (!_isSymmetricPositiveDefinite) {
       throw ArgumentError('Matrix is not symmetric positive definite.');
     }
-    var d = 1.0;
+    var detVal = 1.0;
     for (var i = 0; i < _n; i++) {
-      d *= _l.get(i, i);
+      detVal *= _l.get(i, i);
     }
-    return d * d;
+    return detVal * detVal;
   }
 
   /// Solves $A X = B$ for $X$ using forward and back substitution.
@@ -85,7 +86,7 @@ class CholeskyDecomposition {
     final result = Matrix<double>.generate(
       _n,
       nx,
-      (r, c) => b.get(r, c).toDouble(),
+      (row, col) => b.get(row, col).toDouble(),
       type: DataType.float64,
     );
 

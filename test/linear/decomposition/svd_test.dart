@@ -1,7 +1,7 @@
 import 'package:checks/checks.dart';
 import 'package:data/linear.dart';
 import 'package:data/type.dart';
-import 'package:test/scaffolding.dart';
+import 'package:test/test.dart';
 
 void main() {
   group('Singular Value Decomposition (SVD)', () {
@@ -23,11 +23,11 @@ void main() {
       }
 
       // Reconstruct A = U * Sigma * V^T
-      final u = svd.u;
+      final uMat = svd.u;
       final sigma = svd.sigma;
-      final vt = svd.vt;
+      final vtMat = svd.vt;
 
-      final reconstructed = u * sigma * vt;
+      final reconstructed = uMat * sigma * vtMat;
       for (var i = 0; i < a.rowCount; i++) {
         for (var j = 0; j < a.colCount; j++) {
           check(reconstructed.get(i, j)).isCloseTo(a.get(i, j), 1e-6);

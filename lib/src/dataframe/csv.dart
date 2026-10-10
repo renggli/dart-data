@@ -30,16 +30,16 @@ class CsvReader {
 
     // Collect values column-wise and infer types
     final columns = <Series<dynamic>>[];
-    for (var c = 0; c < colCount; c++) {
-      final name = colNames[c];
+    for (var colIdx = 0; colIdx < colCount; colIdx++) {
+      final name = colNames[colIdx];
       final rawVals = <String?>[];
       var canBeInt = true;
       var canBeDouble = true;
       var canBeBool = true;
 
-      for (var r = 0; r < rowCount; r++) {
-        final row = dataRows[r];
-        final val = c < row.length ? row[c] : '';
+      for (var rowIdx = 0; rowIdx < rowCount; rowIdx++) {
+        final row = dataRows[rowIdx];
+        final val = colIdx < row.length ? row[colIdx] : '';
         if (val.isEmpty || val == 'null' || val == 'NA') {
           rawVals.add(null);
         } else {
@@ -53,22 +53,24 @@ class CsvReader {
         }
       }
 
-      final nonNulls = rawVals.where((v) => v != null).toList();
+      final nonNulls = rawVals.where((value) => value != null).toList();
       if (nonNulls.isEmpty) {
         columns.add(Series.fromList(name, rawVals));
       } else if (canBeInt) {
         final intVals = rawVals
-            .map((v) => v != null ? int.parse(v) : null)
+            .map((value) => value != null ? int.parse(value) : null)
             .toList();
         columns.add(TypedSeries<int>.fromList(name, intVals));
       } else if (canBeDouble) {
         final doubleVals = rawVals
-            .map((v) => v != null ? double.parse(v) : null)
+            .map((value) => value != null ? double.parse(value) : null)
             .toList();
         columns.add(TypedSeries<double>.fromList(name, doubleVals));
       } else if (canBeBool) {
         final boolVals = rawVals
-            .map((v) => v != null ? v.toLowerCase() == 'true' : null)
+            .map(
+              (value) => value != null ? value.toLowerCase() == 'true' : null,
+            )
             .toList();
         columns.add(BoolSeries.fromList(name, boolVals));
       } else {
@@ -121,7 +123,7 @@ class CsvReader {
           i++;
           currentRow.add(sb.toString().trim());
           sb.clear();
-          if (currentRow.any((s) => s.isNotEmpty)) {
+          if (currentRow.any((entry) => entry.isNotEmpty)) {
             rows.add(currentRow);
           }
           currentRow = <String>[];
@@ -135,7 +137,7 @@ class CsvReader {
     }
     if (sb.isNotEmpty || fieldStarted || currentRow.isNotEmpty) {
       currentRow.add(sb.toString().trim());
-      if (currentRow.any((s) => s.isNotEmpty)) {
+      if (currentRow.any((entry) => entry.isNotEmpty)) {
         rows.add(currentRow);
       }
     }
@@ -154,9 +156,9 @@ class CsvWriter {
     sb.writeln(df.columnNames.map(_escape).join(separator));
 
     // Rows
-    for (var r = 0; r < df.rowCount; r++) {
+    for (var rowIdx = 0; rowIdx < df.rowCount; rowIdx++) {
       final rowVals = [
-        for (final col in df.columnNames) _formatVal(df.column(col)[r]),
+        for (final col in df.columnNames) _formatVal(df.column(col)[rowIdx]),
       ];
       sb.writeln(rowVals.join(separator));
     }

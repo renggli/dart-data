@@ -46,52 +46,55 @@ double ibeta(num x, num a, num b) {
 }
 
 /// Inverse of the incomplete beta function.
-double ibetaInv(num p, num a, num b) {
+/// Inverse of the incomplete beta function.
+double ibetaInv(num probability, num a, num b) {
   if (a <= 0 || b <= 0) {
     return double.nan;
   }
   const epsilon = 1.0e-8;
   final a1 = a - 1.0;
   final b1 = b - 1.0;
-  if (p <= 0.0) {
+  if (probability <= 0.0) {
     return 0.0;
   }
-  if (p >= 1.0) {
+  if (probability >= 1.0) {
     return 1.0;
   }
   var x = 0.0;
   if (a >= 1.0 && b >= 1.0) {
-    final pp = (p < 0.5) ? p : 1 - p;
-    final t = sqrt(-2 * log(pp));
-    x = (2.30753 + t * 0.27061) / (1 + t * (0.99229 + t * 0.04481)) - t;
-    if (p < 0.5) {
+    final pp = (probability < 0.5) ? probability : 1 - probability;
+    final tVal = sqrt(-2 * log(pp));
+    x =
+        (2.30753 + tVal * 0.27061) / (1 + tVal * (0.99229 + tVal * 0.04481)) -
+        tVal;
+    if (probability < 0.5) {
       x = -x;
     }
     final al = (x * x - 3) / 6;
-    final h = 2 / (1 / (2 * a - 1) + 1 / (2 * b - 1));
-    final w =
-        (x * sqrt(al + h) / h) -
-        (1 / (2 * b - 1) - 1 / (2 * a - 1)) * (al + 5 / 6 - 2 / (3 * h));
-    x = a / (a + b * exp(2 * w));
+    final hVal = 2 / (1 / (2 * a - 1) + 1 / (2 * b - 1));
+    final wVal =
+        (x * sqrt(al + hVal) / hVal) -
+        (1 / (2 * b - 1) - 1 / (2 * a - 1)) * (al + 5 / 6 - 2 / (3 * hVal));
+    x = a / (a + b * exp(2 * wVal));
   } else {
     final lna = log(a / (a + b));
     final lnb = log(b / (a + b));
-    final t = exp(a * lna) / a;
-    final u = exp(b * lnb) / b;
-    final w = t + u;
-    if (p < t / w) {
-      x = pow(a * w * p, 1 / a).toDouble();
+    final tVal = exp(a * lna) / a;
+    final uVal = exp(b * lnb) / b;
+    final wVal = tVal + uVal;
+    if (probability < tVal / wVal) {
+      x = pow(a * wVal * probability, 1 / a).toDouble();
     } else {
-      x = 1.0 - pow(b * w * (1 - p), 1 / b);
+      x = 1.0 - pow(b * wVal * (1 - probability), 1 / b);
     }
   }
   final afac = -gammaLn(a) - gammaLn(b) + gammaLn(a + b);
   for (var j = 0; j < 10; j++) {
     if (x == 0 || x == 1) return x;
-    final err = ibeta(x, a, b) - p;
-    final t = exp(a1 * log(x) + b1 * log(1 - x) + afac);
-    final u = err / t;
-    final step = u / (1 - 0.5 * min(1, u * (a1 / x - b1 / (1 - x))));
+    final err = ibeta(x, a, b) - probability;
+    final tVal = exp(a1 * log(x) + b1 * log(1 - x) + afac);
+    final uVal = err / tVal;
+    final step = uVal / (1 - 0.5 * min(1, uVal * (a1 / x - b1 / (1 - x))));
     x -= step;
     if (x <= 0) {
       x = 0.5 * (x + step);
@@ -111,41 +114,41 @@ double _betacf(num x, num a, num b) {
   final qab = a + b + 0.0;
   final qap = a + 1.0;
   final qam = a - 1.0;
-  var c = 1.0;
-  var d = 1.0 - qab * x / qap;
-  if (d.abs() < fpmin) {
-    d = fpmin;
+  var cVal = 1.0;
+  var dVal = 1.0 - qab * x / qap;
+  if (dVal.abs() < fpmin) {
+    dVal = fpmin;
   }
-  d = 1.0 / d;
-  var h = d;
-  for (var m = 1; m <= 100; m++) {
-    final m2 = 2.0 * m;
-    var aa = m * (b - m) * x / ((qam + m2) * (a + m2));
-    d = 1.0 + aa * d;
-    if (d.abs() < fpmin) {
-      d = fpmin;
+  dVal = 1.0 / dVal;
+  var hVal = dVal;
+  for (var stepIdx = 1; stepIdx <= 100; stepIdx++) {
+    final m2 = 2.0 * stepIdx;
+    var aa = stepIdx * (b - stepIdx) * x / ((qam + m2) * (a + m2));
+    dVal = 1.0 + aa * dVal;
+    if (dVal.abs() < fpmin) {
+      dVal = fpmin;
     }
-    c = 1.0 + aa / c;
-    if (c.abs() < fpmin) {
-      c = fpmin;
+    cVal = 1.0 + aa / cVal;
+    if (cVal.abs() < fpmin) {
+      cVal = fpmin;
     }
-    d = 1.0 / d;
-    h *= d * c;
-    aa = -(a + m) * (qab + m) * x / ((a + m2) * (qap + m2));
-    d = 1.0 + aa * d;
-    if (d.abs() < fpmin) {
-      d = fpmin;
+    dVal = 1.0 / dVal;
+    hVal *= dVal * cVal;
+    aa = -(a + stepIdx) * (qab + stepIdx) * x / ((a + m2) * (qap + m2));
+    dVal = 1.0 + aa * dVal;
+    if (dVal.abs() < fpmin) {
+      dVal = fpmin;
     }
-    c = 1.0 + aa / c;
-    if (c.abs() < fpmin) {
-      c = fpmin;
+    cVal = 1.0 + aa / cVal;
+    if (cVal.abs() < fpmin) {
+      cVal = fpmin;
     }
-    d = 1.0 / d;
-    final del = d * c;
-    h *= del;
+    dVal = 1.0 / dVal;
+    final del = dVal * cVal;
+    hVal *= del;
     if ((del - 1.0).abs() < 1.0e-15) {
       break;
     }
   }
-  return h;
+  return hVal;
 }

@@ -73,7 +73,7 @@ class FractionField extends ExtendedField<Fraction> {
   Fraction mul(Fraction a, Fraction b) => a * b;
 
   @override
-  Fraction scale(Fraction a, num f) => a * f;
+  Fraction scale(Fraction a, num factor) => a * factor;
 
   @override
   Fraction div(Fraction a, Fraction b) => a / b;

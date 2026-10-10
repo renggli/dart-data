@@ -67,9 +67,9 @@ class LogNormalDistribution extends ContinuousDistribution {
       x < 0 ? 0 : 0.5 * (1 + erf((log(x) - mu) / (sqrt2 * sigma)));
 
   @override
-  double inverseCumulativeProbability(num p) {
-    InvalidProbability.check(p);
-    return exp(-sqrt2 * sigma * erfcInv(2 * p) + mu);
+  double inverseCumulativeProbability(num probability) {
+    InvalidProbability.check(probability);
+    return exp(-sqrt2 * sigma * erfcInv(2 * probability) + mu);
   }
 
   @override

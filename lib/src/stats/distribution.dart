@@ -61,19 +61,19 @@ abstract class Distribution<T extends num> with ToStringPrinter {
   /// Cumulative distribution function (alias for [cumulativeProbability]).
   double cdf(T x) => cumulativeProbability(x);
 
-  /// Returns the quantile (percent-point function / inverse CDF) for probability [p].
-  T inverseCumulativeProbability(num p);
+  /// Returns the quantile (percent-point function / inverse CDF) for [probability].
+  T inverseCumulativeProbability(num probability);
 
   /// Quantile function (alias for [inverseCumulativeProbability]).
-  T quantile(num p) => inverseCumulativeProbability(p);
+  T quantile(num probability) => inverseCumulativeProbability(probability);
 
   /// Returns the survival function $S(x) = P(X > x) = 1 - F(x)$.
   double survival(T x) => 1.0 - cumulativeProbability(x);
 
-  /// Returns the inverse survival function for probability [p].
-  T inverseSurvival(num p) {
-    InvalidProbability.check(p);
-    return inverseCumulativeProbability(1.0 - p);
+  /// Returns the inverse survival function for [probability].
+  T inverseSurvival(num probability) {
+    InvalidProbability.check(probability);
+    return inverseCumulativeProbability(1.0 - probability);
   }
 
   /// Draws a single pseudo-random sample from the distribution.

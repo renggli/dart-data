@@ -150,7 +150,7 @@ class FloatField extends ExtendedField<double> {
   double mul(double a, double b) => a * b;
 
   @override
-  double scale(double a, num f) => a * f;
+  double scale(double a, num factor) => a * factor;
 
   @override
   double div(double a, double b) => a / b;

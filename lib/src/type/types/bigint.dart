@@ -70,9 +70,9 @@ class BigIntField extends ExtendedField<BigInt> {
   BigInt mul(BigInt a, BigInt b) => a * b;
 
   @override
-  BigInt scale(BigInt a, num f) {
-    if (f is int) return a * BigInt.from(f);
-    final frac = Fraction.fromDouble(f.toDouble());
+  BigInt scale(BigInt a, num factor) {
+    if (factor is int) return a * BigInt.from(factor);
+    final frac = Fraction.fromDouble(factor.toDouble());
     return (a * BigInt.from(frac.numerator)) ~/ BigInt.from(frac.denominator);
   }
 

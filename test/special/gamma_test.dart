@@ -2,7 +2,7 @@ import 'dart:math' as math;
 
 import 'package:checks/checks.dart';
 import 'package:data/special.dart';
-import 'package:test/scaffolding.dart';
+import 'package:test/test.dart';
 
 void main() {
   group('gamma function', () {
@@ -67,7 +67,7 @@ void main() {
     });
 
     test('gammaLn', () {
-      for (final tuple in gammaTuples.where((t) => t.$1 > 0)) {
+      for (final tuple in gammaTuples.where((tuple) => tuple.$1 > 0)) {
         check(
           because: 'gammaLn(${tuple.$1})',
           gammaLn(tuple.$1),
@@ -87,8 +87,8 @@ void main() {
     test('gammapInv', () {
       check(gammapInv(0.0, 2.0)).equals(0.0);
       check(gammapInv(1.0, 2.0)).isGreaterThan(10.0);
-      final p = lowRegGamma(2.5, 3.0);
-      check(gammapInv(p, 2.5)).isCloseTo(3.0, 1e-4);
+      final prob = lowRegGamma(2.5, 3.0);
+      check(gammapInv(prob, 2.5)).isCloseTo(3.0, 1e-4);
 
       // a <= 1.0 branches
       final pSmall = lowRegGamma(0.5, 0.2);

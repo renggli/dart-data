@@ -5,11 +5,11 @@ import 'dart:math';
 /// Defined for $-1 \le k \le 1$.
 ///
 /// See https://en.wikipedia.org/wiki/Elliptic_integral for details.
-double ellipticK(num k) {
-  if (k.isNaN || k.abs() > 1.0) {
+double ellipticK(num modulus) {
+  if (modulus.isNaN || modulus.abs() > 1.0) {
     return double.nan;
   }
-  final kd = k.toDouble();
+  final kd = modulus.toDouble();
   if (kd.abs() == 1.0) {
     return double.infinity;
   }
@@ -36,11 +36,11 @@ double ellipticK(num k) {
 /// Defined for $-1 \le k \le 1$.
 ///
 /// See https://en.wikipedia.org/wiki/Elliptic_integral for details.
-double ellipticE(num k) {
-  if (k.isNaN || k.abs() > 1.0) {
+double ellipticE(num modulus) {
+  if (modulus.isNaN || modulus.abs() > 1.0) {
     return double.nan;
   }
-  final kd = k.toDouble();
+  final kd = modulus.toDouble();
   if (kd.abs() == 1.0) {
     return 1.0;
   }
@@ -54,8 +54,8 @@ double ellipticE(num k) {
   for (var i = 0; i < 20; i++) {
     final aNext = 0.5 * (a + b);
     final bNext = sqrt(a * b);
-    final c = a - aNext;
-    sum += power * c * c;
+    final cDiff = a - aNext;
+    sum += power * cDiff * cDiff;
     power *= 2.0;
     if ((a - b).abs() < 1.0e-15 * a) {
       a = aNext;

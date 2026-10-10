@@ -8,8 +8,8 @@ double besselI0(num x) {
   if (x == 0) return 1.0;
   final ax = x.abs().toDouble();
   if (ax < 3.75) {
-    final t = x / 3.75;
-    final y = t * t;
+    final tVal = x / 3.75;
+    final y = tVal * tVal;
     return 1.0 +
         y *
             (3.5156229 +
@@ -50,8 +50,8 @@ double besselI1(num x) {
   if (x == 0) return 0.0;
   final ax = x.abs().toDouble();
   if (ax < 3.75) {
-    final t = x / 3.75;
-    final y = t * t;
+    final tVal = x / 3.75;
+    final y = tVal * tVal;
     final ans =
         ax *
         (0.5 +

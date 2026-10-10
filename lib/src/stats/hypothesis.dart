@@ -74,26 +74,26 @@ HypothesisTestResult tTestOneSample(
   AlternativeHypothesis alternative = AlternativeHypothesis.twoSided,
   double alpha = 0.05,
 }) {
-  final list = sample.map((e) => e.toDouble()).toList();
-  final n = list.length;
-  if (n < 2) {
+  final list = sample.map((val) => val.toDouble()).toList();
+  final count = list.length;
+  if (count < 2) {
     throw ArgumentError('Sample must contain at least 2 observations');
   }
   final sampleMean = mean(list);
   final sampleStd = standardDeviation(list);
-  final se = sampleStd / math.sqrt(n);
-  final t = se > 0.0 ? (sampleMean - mu0) / se : 0.0;
-  final dof = (n - 1).toDouble();
+  final se = sampleStd / math.sqrt(count);
+  final tStat = se > 0.0 ? (sampleMean - mu0) / se : 0.0;
+  final dof = (count - 1).toDouble();
   final dist = StudentDistribution(dof);
 
   final double pValue;
   switch (alternative) {
     case AlternativeHypothesis.twoSided:
-      pValue = (2.0 * dist.survival(t.abs())).clamp(0.0, 1.0);
+      pValue = (2.0 * dist.survival(tStat.abs())).clamp(0.0, 1.0);
     case AlternativeHypothesis.less:
-      pValue = dist.cumulativeProbability(t).clamp(0.0, 1.0);
+      pValue = dist.cumulativeProbability(tStat).clamp(0.0, 1.0);
     case AlternativeHypothesis.greater:
-      pValue = dist.survival(t).clamp(0.0, 1.0);
+      pValue = dist.survival(tStat).clamp(0.0, 1.0);
   }
 
   final tCrit = dist.inverseCumulativeProbability(1.0 - alpha / 2.0);
@@ -101,7 +101,7 @@ HypothesisTestResult tTestOneSample(
 
   return HypothesisTestResult(
     testName: 'One-Sample t-test',
-    statistic: t,
+    statistic: tStat,
     pValue: pValue,
     degreesOfFreedom: dof,
     confidenceInterval: ci,
@@ -121,8 +121,8 @@ HypothesisTestResult tTestTwoSample(
   AlternativeHypothesis alternative = AlternativeHypothesis.twoSided,
   double alpha = 0.05,
 }) {
-  final list1 = sample1.map((e) => e.toDouble()).toList();
-  final list2 = sample2.map((e) => e.toDouble()).toList();
+  final list1 = sample1.map((val) => val.toDouble()).toList();
+  final list2 = sample2.map((val) => val.toDouble()).toList();
   final n1 = list1.length;
   final n2 = list2.length;
   if (n1 < 2 || n2 < 2) {
@@ -151,17 +151,17 @@ HypothesisTestResult tTestTwoSample(
   }
 
   final diff = m1 - m2;
-  final t = se > 0.0 ? diff / se : 0.0;
+  final tStat = se > 0.0 ? diff / se : 0.0;
   final dist = StudentDistribution(dof);
 
   final double pValue;
   switch (alternative) {
     case AlternativeHypothesis.twoSided:
-      pValue = (2.0 * dist.survival(t.abs())).clamp(0.0, 1.0);
+      pValue = (2.0 * dist.survival(tStat.abs())).clamp(0.0, 1.0);
     case AlternativeHypothesis.less:
-      pValue = dist.cumulativeProbability(t).clamp(0.0, 1.0);
+      pValue = dist.cumulativeProbability(tStat).clamp(0.0, 1.0);
     case AlternativeHypothesis.greater:
-      pValue = dist.survival(t).clamp(0.0, 1.0);
+      pValue = dist.survival(tStat).clamp(0.0, 1.0);
   }
 
   final tCrit = dist.inverseCumulativeProbability(1.0 - alpha / 2.0);
@@ -171,7 +171,7 @@ HypothesisTestResult tTestTwoSample(
     testName: equalVariance
         ? "Student's Two-Sample t-test"
         : "Welch's Two-Sample t-test",
-    statistic: t,
+    statistic: tStat,
     pValue: pValue,
     degreesOfFreedom: dof,
     confidenceInterval: ci,
@@ -187,8 +187,8 @@ HypothesisTestResult tTestPaired(
   AlternativeHypothesis alternative = AlternativeHypothesis.twoSided,
   double alpha = 0.05,
 }) {
-  final list1 = sample1.map((e) => e.toDouble()).toList();
-  final list2 = sample2.map((e) => e.toDouble()).toList();
+  final list1 = sample1.map((val) => val.toDouble()).toList();
+  final list2 = sample2.map((val) => val.toDouble()).toList();
   if (list1.length != list2.length) {
     throw ArgumentError('Paired samples must have equal length');
   }
@@ -215,22 +215,22 @@ HypothesisTestResult oneWayAnova(
   List<Iterable<num>> groups, {
   double alpha = 0.05,
 }) {
-  final k = groups.length;
-  if (k < 2) {
+  final numGroups = groups.length;
+  if (numGroups < 2) {
     throw ArgumentError('At least 2 groups required for ANOVA');
   }
 
   final doubleLists = groups
-      .map((g) => g.map((e) => e.toDouble()).toList())
+      .map((group) => group.map((val) => val.toDouble()).toList())
       .toList();
   var totalN = 0;
   var grandSum = 0.0;
-  for (final g in doubleLists) {
-    if (g.isEmpty) {
+  for (final group in doubleLists) {
+    if (group.isEmpty) {
       throw ArgumentError('Groups cannot be empty');
     }
-    totalN += g.length;
-    for (final x in g) {
+    totalN += group.length;
+    for (final x in group) {
       grandSum += x;
     }
   }
@@ -239,31 +239,31 @@ HypothesisTestResult oneWayAnova(
   var ssb = 0.0;
   var ssw = 0.0;
 
-  for (final g in doubleLists) {
-    final gMean = mean(g);
-    ssb += g.length * (gMean - grandMean) * (gMean - grandMean);
-    for (final x in g) {
+  for (final group in doubleLists) {
+    final gMean = mean(group);
+    ssb += group.length * (gMean - grandMean) * (gMean - grandMean);
+    for (final x in group) {
       final diff = x - gMean;
       ssw += diff * diff;
     }
   }
 
-  final df1 = (k - 1).toDouble();
-  final df2 = (totalN - k).toDouble();
+  final df1 = (numGroups - 1).toDouble();
+  final df2 = (totalN - numGroups).toDouble();
   if (df2 <= 0.0) {
     throw ArgumentError('Not enough observations across groups');
   }
 
   final msb = ssb / df1;
   final msw = ssw / df2;
-  final f = msw > 0.0 ? msb / msw : 0.0;
+  final fStat = msw > 0.0 ? msb / msw : 0.0;
 
   final dist = FDistribution(df1, df2);
-  final pValue = dist.survival(f).clamp(0.0, 1.0);
+  final pValue = dist.survival(fStat).clamp(0.0, 1.0);
 
   return HypothesisTestResult(
     testName: 'One-Way ANOVA',
-    statistic: f,
+    statistic: fStat,
     pValue: pValue,
     degreesOfFreedom: df1,
     alpha: alpha,
@@ -279,9 +279,9 @@ HypothesisTestResult chiSquaredTest(
   int ddof = 0,
   double alpha = 0.05,
 }) {
-  final obs = observed.map((e) => e.toDouble()).toList();
-  final k = obs.length;
-  if (k < 2) {
+  final obs = observed.map((val) => val.toDouble()).toList();
+  final numCategories = obs.length;
+  if (numCategories < 2) {
     throw ArgumentError('At least 2 observed categories required');
   }
 
@@ -289,24 +289,24 @@ HypothesisTestResult chiSquaredTest(
   final List<double> exp;
 
   if (expected == null) {
-    final uniformExp = obsSum / k;
-    exp = List<double>.filled(k, uniformExp);
+    final uniformExp = obsSum / numCategories;
+    exp = List<double>.filled(numCategories, uniformExp);
   } else {
-    exp = expected.map((e) => e.toDouble()).toList();
-    if (exp.length != k) {
+    exp = expected.map((val) => val.toDouble()).toList();
+    if (exp.length != numCategories) {
       throw ArgumentError('Expected length must match observed length');
     }
     final expSum = exp.sum();
     if ((expSum - obsSum).abs() > 1e-7 && expSum > 0.0) {
       final factor = obsSum / expSum;
-      for (var i = 0; i < k; i++) {
+      for (var i = 0; i < numCategories; i++) {
         exp[i] *= factor;
       }
     }
   }
 
   var chi2 = 0.0;
-  for (var i = 0; i < k; i++) {
+  for (var i = 0; i < numCategories; i++) {
     if (exp[i] <= 0.0) {
       throw ArgumentError('Expected counts must be positive');
     }
@@ -314,7 +314,7 @@ HypothesisTestResult chiSquaredTest(
     chi2 += (diff * diff) / exp[i];
   }
 
-  final dof = (k - 1 - ddof).toDouble();
+  final dof = (numCategories - 1 - ddof).toDouble();
   if (dof <= 0.0) {
     throw ArgumentError('Degrees of freedom must be positive');
   }
@@ -336,18 +336,18 @@ HypothesisTestResult chiSquaredContingency(
   Matrix<num> table, {
   double alpha = 0.05,
 }) {
-  final r = table.rowCount;
-  final c = table.colCount;
-  if (r < 2 || c < 2) {
+  final rowCount = table.rowCount;
+  final colCount = table.colCount;
+  if (rowCount < 2 || colCount < 2) {
     throw ArgumentError('Contingency table must be at least 2x2');
   }
 
-  final rowSums = List<double>.filled(r, 0.0);
-  final colSums = List<double>.filled(c, 0.0);
+  final rowSums = List<double>.filled(rowCount, 0.0);
+  final colSums = List<double>.filled(colCount, 0.0);
   var total = 0.0;
 
-  for (var i = 0; i < r; i++) {
-    for (var j = 0; j < c; j++) {
+  for (var i = 0; i < rowCount; i++) {
+    for (var j = 0; j < colCount; j++) {
       final val = table.get(i, j).toDouble();
       rowSums[i] += val;
       colSums[j] += val;
@@ -356,8 +356,8 @@ HypothesisTestResult chiSquaredContingency(
   }
 
   var chi2 = 0.0;
-  for (var i = 0; i < r; i++) {
-    for (var j = 0; j < c; j++) {
+  for (var i = 0; i < rowCount; i++) {
+    for (var j = 0; j < colCount; j++) {
       final expected = (rowSums[i] * colSums[j]) / total;
       final observed = table.get(i, j).toDouble();
       final diff = observed - expected;
@@ -365,7 +365,7 @@ HypothesisTestResult chiSquaredContingency(
     }
   }
 
-  final dof = ((r - 1) * (c - 1)).toDouble();
+  final dof = ((rowCount - 1) * (colCount - 1)).toDouble();
   final dist = ChiSquaredDistribution(dof);
   final pValue = dist.survival(chi2).clamp(0.0, 1.0);
 
@@ -385,8 +385,8 @@ HypothesisTestResult mannWhitneyUTest(
   AlternativeHypothesis alternative = AlternativeHypothesis.twoSided,
   double alpha = 0.05,
 }) {
-  final xList = x.map((e) => e.toDouble()).toList();
-  final yList = y.map((e) => e.toDouble()).toList();
+  final xList = x.map((val) => val.toDouble()).toList();
+  final yList = y.map((val) => val.toDouble()).toList();
   final n1 = xList.length;
   final n2 = yList.length;
   if (n1 == 0 || n2 == 0) {
@@ -404,7 +404,7 @@ HypothesisTestResult mannWhitneyUTest(
   final u1 = rankSum1 - (n1 * (n1 + 1.0)) / 2.0;
   final u2 = (n1 * n2).toDouble() - u1;
 
-  final u = switch (alternative) {
+  final uStat = switch (alternative) {
     AlternativeHypothesis.twoSided => math.min(u1, u2),
     AlternativeHypothesis.less => u1,
     AlternativeHypothesis.greater => u1,
@@ -414,7 +414,7 @@ HypothesisTestResult mannWhitneyUTest(
   final muU = (n1 * n2) / 2.0;
   final sigmaU = math.sqrt((n1 * n2 * (n1 + n2 + 1.0)) / 12.0);
 
-  final z = (u - muU) / sigmaU;
+  final z = (uStat - muU) / sigmaU;
   const normal = NormalDistribution.standard();
 
   final double pValue;
@@ -429,7 +429,7 @@ HypothesisTestResult mannWhitneyUTest(
 
   return HypothesisTestResult(
     testName: 'Mann-Whitney U Test',
-    statistic: u,
+    statistic: uStat,
     pValue: pValue,
     alpha: alpha,
     alternative: alternative,

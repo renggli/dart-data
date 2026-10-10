@@ -19,8 +19,8 @@ double hypergeometric1F1(num a, num b, num z) {
   final ad = a.toDouble();
   final bd = b.toDouble();
   final zd = z.toDouble();
-  for (var n = 1; n <= 1500; n++) {
-    term *= (ad + n - 1) / (bd + n - 1) * zd / n;
+  for (var stepIdx = 1; stepIdx <= 1500; stepIdx++) {
+    term *= (ad + stepIdx - 1) / (bd + stepIdx - 1) * zd / stepIdx;
     sum += term;
     if (term.abs() < 1.0e-15 * sum.abs()) {
       break;
@@ -35,58 +35,63 @@ double hypergeometric1F1(num a, num b, num z) {
 /// rapid convergence.
 ///
 /// See https://en.wikipedia.org/wiki/Hypergeometric_function for details.
-double hypergeometric2F1(num a, num b, num c, num z) {
-  if (a.isNaN || b.isNaN || c.isNaN || z.isNaN || c == 0.0) {
+double hypergeometric2F1(num a, num b, num cVal, num z) {
+  if (a.isNaN || b.isNaN || cVal.isNaN || z.isNaN || cVal == 0.0) {
     return double.nan;
   }
-  if (c <= 0.0 && c.roundToDouble() == c) {
+  if (cVal <= 0.0 && cVal.roundToDouble() == cVal) {
     return double.nan;
   }
   if (z == 0.0) return 1.0;
   final ad = a.toDouble();
   final bd = b.toDouble();
-  final cd = c.toDouble();
+  final cd = cVal.toDouble();
   final zd = z.toDouble();
   if (zd > 1.0) {
     return double.nan;
   }
   if (zd <= -1.0) {
-    final w = zd / (zd - 1.0);
-    return pow(1.0 - zd, -ad) * hypergeometric2F1(ad, cd - bd, cd, w);
+    final wVal = zd / (zd - 1.0);
+    return pow(1.0 - zd, -ad) * hypergeometric2F1(ad, cd - bd, cd, wVal);
   }
   if (zd == 1.0) {
-    final d = cd - ad - bd;
-    if (d <= 0.0) {
+    final diff = cd - ad - bd;
+    if (diff <= 0.0) {
       return double.infinity;
     }
-    return gamma(cd) * gamma(d) / (gamma(cd - ad) * gamma(cd - bd));
+    return gamma(cd) * gamma(diff) / (gamma(cd - ad) * gamma(cd - bd));
   }
   if (zd >= 0.9) {
-    final d = cd - ad - bd;
-    if (d.roundToDouble() == d) {
+    final diff = cd - ad - bd;
+    if (diff.roundToDouble() == diff) {
       return _hypergeometric2F1Direct(ad, bd, cd, zd);
     }
     final term1 =
         gamma(cd) *
-        gamma(d) /
+        gamma(diff) /
         (gamma(cd - ad) * gamma(cd - bd)) *
         hypergeometric2F1(ad, bd, ad + bd - cd + 1.0, 1.0 - zd);
     final term2 =
         gamma(cd) *
-        gamma(-d) /
+        gamma(-diff) /
         (gamma(ad) * gamma(bd)) *
-        pow(1.0 - zd, d) *
+        pow(1.0 - zd, diff) *
         hypergeometric2F1(cd - ad, cd - bd, cd - ad - bd + 1.0, 1.0 - zd);
     return term1 + term2;
   }
   return _hypergeometric2F1Direct(ad, bd, cd, zd);
 }
 
-double _hypergeometric2F1Direct(double a, double b, double c, double z) {
+double _hypergeometric2F1Direct(double a, double b, double cVal, double z) {
   var sum = 1.0;
   var term = 1.0;
-  for (var n = 1; n <= 2000; n++) {
-    term *= (a + n - 1) * (b + n - 1) / (c + n - 1) * z / n;
+  for (var stepIdx = 1; stepIdx <= 2000; stepIdx++) {
+    term *=
+        (a + stepIdx - 1) *
+        (b + stepIdx - 1) /
+        (cVal + stepIdx - 1) *
+        z /
+        stepIdx;
     sum += term;
     if (term.abs() < 1.0e-15 * sum.abs()) {
       break;

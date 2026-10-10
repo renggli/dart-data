@@ -24,11 +24,11 @@ extension JoinDataFrameExtension on DataFrame {
     // Build hash index on right DataFrame
     final rightKeyCols = on.map(other.column).toList();
     final rightIndex = <String, List<int>>{};
-    for (var r = 0; r < other.rowCount; r++) {
-      final keyVals = [for (final c in rightKeyCols) c[r]];
-      if (keyVals.any((v) => v == null)) continue;
-      final key = keyVals.map((v) => '$v').join('__#_#__');
-      rightIndex.putIfAbsent(key, () => []).add(r);
+    for (var rightRow = 0; rightRow < other.rowCount; rightRow++) {
+      final keyVals = [for (final col in rightKeyCols) col[rightRow]];
+      if (keyVals.any((val) => val == null)) continue;
+      final key = keyVals.map((val) => '$val').join('__#_#__');
+      rightIndex.putIfAbsent(key, () => []).add(rightRow);
     }
 
     final matchedPairs = <(int?, int?)>[];
@@ -36,34 +36,34 @@ extension JoinDataFrameExtension on DataFrame {
 
     // Scan left DataFrame
     final leftKeyCols = on.map(column).toList();
-    for (var l = 0; l < rowCount; l++) {
-      final keyVals = [for (final c in leftKeyCols) c[l]];
-      if (keyVals.any((v) => v == null)) {
+    for (var leftRow = 0; leftRow < rowCount; leftRow++) {
+      final keyVals = [for (final col in leftKeyCols) col[leftRow]];
+      if (keyVals.any((val) => val == null)) {
         if (type == JoinType.left || type == JoinType.outer) {
-          matchedPairs.add((l, null));
+          matchedPairs.add((leftRow, null));
         }
         continue;
       }
-      final key = keyVals.map((v) => '$v').join('__#_#__');
+      final key = keyVals.map((val) => '$val').join('__#_#__');
       final matchingRight = rightIndex[key];
 
       if (matchingRight != null && matchingRight.isNotEmpty) {
-        for (final r in matchingRight) {
-          matchedPairs.add((l, r));
-          matchedRightIndices.add(r);
+        for (final rightRow in matchingRight) {
+          matchedPairs.add((leftRow, rightRow));
+          matchedRightIndices.add(rightRow);
         }
       } else {
         if (type == JoinType.left || type == JoinType.outer) {
-          matchedPairs.add((l, null));
+          matchedPairs.add((leftRow, null));
         }
       }
     }
 
     // Include unmatched right rows for right/outer joins
     if (type == JoinType.right || type == JoinType.outer) {
-      for (var r = 0; r < other.rowCount; r++) {
-        if (!matchedRightIndices.contains(r)) {
-          matchedPairs.add((null, r));
+      for (var rightRow = 0; rightRow < other.rowCount; rightRow++) {
+        if (!matchedRightIndices.contains(rightRow)) {
+          matchedPairs.add((null, rightRow));
         }
       }
     }
@@ -77,11 +77,11 @@ extension JoinDataFrameExtension on DataFrame {
       final leftCol = column(keyCol);
       final rightCol = other.column(keyCol);
       final vals = <dynamic>[];
-      for (final (l, r) in matchedPairs) {
-        if (l != null) {
-          vals.add(leftCol[l]);
-        } else if (r != null) {
-          vals.add(rightCol[r]);
+      for (final (leftIdx, rightIdx) in matchedPairs) {
+        if (leftIdx != null) {
+          vals.add(leftCol[leftIdx]);
+        } else if (rightIdx != null) {
+          vals.add(rightCol[rightIdx]);
         } else {
           vals.add(null); // coverage:ignore-line
         }
@@ -94,8 +94,8 @@ extension JoinDataFrameExtension on DataFrame {
       if (onSet.contains(col)) continue;
       final leftCol = column(col);
       resultCols[col] = [
-        for (final (l, _) in matchedPairs)
-          if (l != null) leftCol[l] else null,
+        for (final (leftIdx, _) in matchedPairs)
+          if (leftIdx != null) leftCol[leftIdx] else null,
       ];
     }
 
@@ -105,8 +105,8 @@ extension JoinDataFrameExtension on DataFrame {
       final outName = resultCols.containsKey(col) ? '$col$suffix' : col;
       final rightCol = other.column(col);
       resultCols[outName] = [
-        for (final (_, r) in matchedPairs)
-          if (r != null) rightCol[r] else null,
+        for (final (_, rightIdx) in matchedPairs)
+          if (rightIdx != null) rightCol[rightIdx] else null,
       ];
     }
 

@@ -67,7 +67,7 @@ class NumericField extends Field<num> {
   num mul(num a, num b) => a * b;
 
   @override
-  num scale(num a, num f) => a * f;
+  num scale(num a, num factor) => a * factor;
 
   @override
   num div(num a, num b) => a / b;

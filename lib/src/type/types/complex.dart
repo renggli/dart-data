@@ -68,7 +68,7 @@ class ComplexField extends ExtendedField<Complex> {
   Complex mul(Complex a, Complex b) => a * b;
 
   @override
-  Complex scale(Complex a, num f) => a * f;
+  Complex scale(Complex a, num factor) => a * factor;
 
   @override
   Complex div(Complex a, Complex b) => a / b;

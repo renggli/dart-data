@@ -20,9 +20,9 @@ class UniformDiscreteDistribution extends DiscreteDistribution {
     var minVal = maxSafeInteger;
     var maxVal = minSafeInteger;
     for (final x in samples) {
-      final k = x.round();
-      if (k < minVal) minVal = k;
-      if (k > maxVal) maxVal = k;
+      final intVal = x.round();
+      if (intVal < minVal) minVal = intVal;
+      if (intVal > maxVal) maxVal = intVal;
     }
     return UniformDiscreteDistribution(minVal, maxVal);
   }
@@ -81,15 +81,15 @@ class UniformDiscreteDistribution extends DiscreteDistribution {
   }
 
   @override
-  int inverseCumulativeProbability(num p) {
-    InvalidProbability.check(p);
-    return min + (p * n).floor().clamp(0, n - 1);
+  int inverseCumulativeProbability(num probability) {
+    InvalidProbability.check(probability);
+    return min + (probability * n).floor().clamp(0, n - 1);
   }
 
   @override
   int sample({Random? random}) {
-    final r = random ?? Random();
-    return min + r.nextInt(n);
+    final rng = random ?? Random();
+    return min + rng.nextInt(n);
   }
 
   @override

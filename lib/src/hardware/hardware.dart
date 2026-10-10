@@ -65,13 +65,13 @@ class HardwareManager {
     for (var i = 0; i < m; i++) {
       for (var j = 0; j < n; j++) {
         var sum = 0.0;
-        for (var p = 0; p < k; p++) {
+        for (var pIdx = 0; pIdx < k; pIdx++) {
           final aVal = transA == cblasTrans
-              ? a[aOffset + p * lda + i]
-              : a[aOffset + i * lda + p];
+              ? a[aOffset + pIdx * lda + i]
+              : a[aOffset + i * lda + pIdx];
           final bVal = transB == cblasTrans
-              ? b[bOffset + j * ldb + p]
-              : b[bOffset + p * ldb + j];
+              ? b[bOffset + j * ldb + pIdx]
+              : b[bOffset + pIdx * ldb + j];
           sum += aVal * bVal;
         }
         final cIdx = cOffset + i * ldc + j;
@@ -126,13 +126,13 @@ class HardwareManager {
     for (var i = 0; i < m; i++) {
       for (var j = 0; j < n; j++) {
         var sum = 0.0;
-        for (var p = 0; p < k; p++) {
+        for (var pIdx = 0; pIdx < k; pIdx++) {
           final aVal = transA == cblasTrans
-              ? a[aOffset + p * lda + i]
-              : a[aOffset + i * lda + p];
+              ? a[aOffset + pIdx * lda + i]
+              : a[aOffset + i * lda + pIdx];
           final bVal = transB == cblasTrans
-              ? b[bOffset + j * ldb + p]
-              : b[bOffset + p * ldb + j];
+              ? b[bOffset + j * ldb + pIdx]
+              : b[bOffset + pIdx * ldb + j];
           sum += aVal * bVal;
         }
         final cIdx = cOffset + i * ldc + j;
@@ -529,12 +529,12 @@ class HardwareManager {
       for (var j = i; j < n; j++) {
         var sum = 0.0;
         if (trans == cblasTrans) {
-          for (var p = 0; p < k; p++) {
-            sum += a[aOffset + p * lda + i] * a[aOffset + p * lda + j];
+          for (var pIdx = 0; pIdx < k; pIdx++) {
+            sum += a[aOffset + pIdx * lda + i] * a[aOffset + pIdx * lda + j];
           }
         } else {
-          for (var p = 0; p < k; p++) {
-            sum += a[aOffset + i * lda + p] * a[aOffset + j * lda + p];
+          for (var pIdx = 0; pIdx < k; pIdx++) {
+            sum += a[aOffset + i * lda + pIdx] * a[aOffset + j * lda + pIdx];
           }
         }
         final val =
@@ -584,12 +584,12 @@ class HardwareManager {
       for (var j = i; j < n; j++) {
         var sum = 0.0;
         if (trans == cblasTrans) {
-          for (var p = 0; p < k; p++) {
-            sum += a[aOffset + p * lda + i] * a[aOffset + p * lda + j];
+          for (var pIdx = 0; pIdx < k; pIdx++) {
+            sum += a[aOffset + pIdx * lda + i] * a[aOffset + pIdx * lda + j];
           }
         } else {
-          for (var p = 0; p < k; p++) {
-            sum += a[aOffset + i * lda + p] * a[aOffset + j * lda + p];
+          for (var pIdx = 0; pIdx < k; pIdx++) {
+            sum += a[aOffset + i * lda + pIdx] * a[aOffset + j * lda + pIdx];
           }
         }
         final val =
@@ -720,21 +720,21 @@ class HardwareManager {
     }
 
     // Pure Dart fallback Cholesky factorization
-    final l = Float64List(n * n);
+    final lower = Float64List(n * n);
     for (var i = 0; i < n; i++) {
       for (var j = 0; j <= i; j++) {
         var sum = 0.0;
         for (var k = 0; k < j; k++) {
-          sum += l[i * n + k] * l[j * n + k];
+          sum += lower[i * n + k] * lower[j * n + k];
         }
         if (i == j) {
           final val = a[aOffset + i * lda + i] - sum;
           if (val <= 0.0) return false;
-          l[i * n + j] = math.sqrt(val);
+          lower[i * n + j] = math.sqrt(val);
         } else {
-          final denom = l[j * n + j];
+          final denom = lower[j * n + j];
           if (denom == 0.0) return false;
-          l[i * n + j] = (a[aOffset + i * lda + j] - sum) / denom;
+          lower[i * n + j] = (a[aOffset + i * lda + j] - sum) / denom;
         }
       }
     }
@@ -742,13 +742,13 @@ class HardwareManager {
     if (uplo == cblasUpper) {
       for (var i = 0; i < n; i++) {
         for (var j = i; j < n; j++) {
-          a[aOffset + i * lda + j] = l[j * n + i];
+          a[aOffset + i * lda + j] = lower[j * n + i];
         }
       }
     } else {
       for (var i = 0; i < n; i++) {
         for (var j = 0; j <= i; j++) {
-          a[aOffset + i * lda + j] = l[i * n + j];
+          a[aOffset + i * lda + j] = lower[i * n + j];
         }
       }
     }
@@ -829,11 +829,11 @@ class HardwareManager {
     for (var i = 0; i < n; i++) {
       var maxVal = aCopy[i * lda + i].abs();
       var maxRow = i;
-      for (var r = i + 1; r < n; r++) {
-        final val = aCopy[r * lda + i].abs();
+      for (var row = i + 1; row < n; row++) {
+        final val = aCopy[row * lda + i].abs();
         if (val > maxVal) {
           maxVal = val;
-          maxRow = r;
+          maxRow = row;
         }
       }
       if (maxVal == 0.0) return false;
@@ -852,25 +852,25 @@ class HardwareManager {
       }
 
       final diag = aCopy[i * lda + i];
-      for (var r = i + 1; r < n; r++) {
-        final factor = aCopy[r * lda + i] / diag;
-        aCopy[r * lda + i] = factor;
-        for (var c = i + 1; c < n; c++) {
-          aCopy[r * lda + c] -= factor * aCopy[i * lda + c];
+      for (var row = i + 1; row < n; row++) {
+        final factor = aCopy[row * lda + i] / diag;
+        aCopy[row * lda + i] = factor;
+        for (var col = i + 1; col < n; col++) {
+          aCopy[row * lda + col] -= factor * aCopy[i * lda + col];
         }
-        for (var c = 0; c < nrhs; c++) {
-          bCopy[r * ldb + c] -= factor * bCopy[i * ldb + c];
+        for (var col = 0; col < nrhs; col++) {
+          bCopy[row * ldb + col] -= factor * bCopy[i * ldb + col];
         }
       }
     }
 
-    for (var c = 0; c < nrhs; c++) {
+    for (var col = 0; col < nrhs; col++) {
       for (var i = n - 1; i >= 0; i--) {
-        var sum = bCopy[i * ldb + c];
+        var sum = bCopy[i * ldb + col];
         for (var k = i + 1; k < n; k++) {
-          sum -= aCopy[i * lda + k] * bCopy[k * ldb + c];
+          sum -= aCopy[i * lda + k] * bCopy[k * ldb + col];
         }
-        bCopy[i * ldb + c] = sum / aCopy[i * lda + i];
+        bCopy[i * ldb + col] = sum / aCopy[i * lda + i];
       }
     }
     b.setRange(bOffset, bOffset + n * ldb, bCopy);

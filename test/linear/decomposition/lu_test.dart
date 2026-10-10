@@ -1,7 +1,7 @@
 import 'package:checks/checks.dart';
 import 'package:data/linear.dart';
 import 'package:data/type.dart';
-import 'package:test/scaffolding.dart';
+import 'package:test/test.dart';
 
 void main() {
   group('LU Decomposition', () {
@@ -15,27 +15,27 @@ void main() {
       final lu = a.lu;
       check(lu.isNonsingular).isTrue();
 
-      final l = lu.lower;
-      final u = lu.upper;
+      final lower = lu.lower;
+      final upper = lu.upper;
       final piv = lu.pivot;
 
       // L must be unit lower triangular
       for (var i = 0; i < 3; i++) {
-        check(l.get(i, i)).equals(1.0);
+        check(lower.get(i, i)).equals(1.0);
         for (var j = i + 1; j < 3; j++) {
-          check(l.get(i, j)).equals(0.0);
+          check(lower.get(i, j)).equals(0.0);
         }
       }
 
       // U must be upper triangular
       for (var i = 0; i < 3; i++) {
         for (var j = 0; j < i; j++) {
-          check(u.get(i, j)).equals(0.0);
+          check(upper.get(i, j)).equals(0.0);
         }
       }
 
       // Check L * U == A(piv,:)
-      final luProd = l * u;
+      final luProd = lower * upper;
       for (var i = 0; i < 3; i++) {
         for (var j = 0; j < 3; j++) {
           check(luProd.get(i, j)).isCloseTo(a.get(piv[i], j), 1e-6);

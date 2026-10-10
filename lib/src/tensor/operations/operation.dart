@@ -15,9 +15,9 @@ extension OperationTensorExtension<T> on Tensor<T> {
       final resultData = resultType.newList(len);
       if (layout.isContiguous) {
         final offset = layout.offset;
-        final d = data;
+        final srcData = data;
         for (var i = 0; i < len; i++) {
-          resultData[i] = function(d[offset + i]);
+          resultData[i] = function(srcData[offset + i]);
         }
       } else {
         var i = 0;
@@ -63,9 +63,9 @@ extension OperationTensorExtension<T> on Tensor<T> {
       if (layout.isContiguous && target.layout.isContiguous) {
         final sOffset = layout.offset;
         final tOffset = target.layout.offset;
-        final d = data;
+        final srcData = data;
         for (var i = 0; i < len; i++) {
-          targetData[tOffset + i] = function(d[sOffset + i]);
+          targetData[tOffset + i] = function(srcData[sOffset + i]);
         }
       } else {
         final sIter = layout.indices.iterator;

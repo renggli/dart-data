@@ -16,7 +16,7 @@ class QRDecomposition {
       _qr = Matrix<double>.generate(
         matrix.rowCount,
         matrix.colCount,
-        (r, c) => matrix.get(r, c).toDouble(),
+        (row, col) => matrix.get(row, col).toDouble(),
         type: DataType.float64,
       ),
       _rdiag = List<double>.filled(matrix.colCount, 0.0) {
@@ -52,13 +52,13 @@ class QRDecomposition {
         _qr.set(k, k, _qr.get(k, k) + 1.0);
 
         for (var j = k + 1; j < _n; j++) {
-          var s = 0.0;
+          var sum = 0.0;
           for (var i = k; i < _m; i++) {
-            s += _qr.get(i, k) * _qr.get(i, j);
+            sum += _qr.get(i, k) * _qr.get(i, j);
           }
-          s = -s / _qr.get(k, k);
+          sum = -sum / _qr.get(k, k);
           for (var i = k; i < _m; i++) {
-            _qr.set(i, j, _qr.get(i, j) + s * _qr.get(i, k));
+            _qr.set(i, j, _qr.get(i, j) + sum * _qr.get(i, k));
           }
         }
       }
@@ -112,13 +112,13 @@ class QRDecomposition {
       result.set(k, k, 1.0);
       for (var j = k; j < _n; j++) {
         if (_qr.get(k, k) != 0.0) {
-          var s = 0.0;
+          var sum = 0.0;
           for (var i = k; i < _m; i++) {
-            s += _qr.get(i, k) * result.get(i, j);
+            sum += _qr.get(i, k) * result.get(i, j);
           }
-          s = -s / _qr.get(k, k);
+          sum = -sum / _qr.get(k, k);
           for (var i = k; i < _m; i++) {
-            result.set(i, j, result.get(i, j) + s * _qr.get(i, k));
+            result.set(i, j, result.get(i, j) + sum * _qr.get(i, k));
           }
         }
       }
@@ -140,13 +140,13 @@ class QRDecomposition {
 
     // Compute Y = Q^T * b
     for (var k = 0; k < _n; k++) {
-      var s = 0.0;
+      var sum = 0.0;
       for (var i = k; i < _m; i++) {
-        s += _qr.get(i, k) * x[i];
+        sum += _qr.get(i, k) * x[i];
       }
-      s = -s / _qr.get(k, k);
+      sum = -sum / _qr.get(k, k);
       for (var i = k; i < _m; i++) {
-        x[i] += s * _qr.get(i, k);
+        x[i] += sum * _qr.get(i, k);
       }
     }
 
@@ -175,20 +175,20 @@ class QRDecomposition {
     final x = Matrix<double>.generate(
       _m,
       nx,
-      (r, c) => b.get(r, c).toDouble(),
+      (row, col) => b.get(row, col).toDouble(),
       type: DataType.float64,
     );
 
     // Compute Y = Q^T * B
     for (var k = 0; k < _n; k++) {
       for (var j = 0; j < nx; j++) {
-        var s = 0.0;
+        var sum = 0.0;
         for (var i = k; i < _m; i++) {
-          s += _qr.get(i, k) * x.get(i, j);
+          sum += _qr.get(i, k) * x.get(i, j);
         }
-        s = -s / _qr.get(k, k);
+        sum = -sum / _qr.get(k, k);
         for (var i = k; i < _m; i++) {
-          x.set(i, j, x.get(i, j) + s * _qr.get(i, k));
+          x.set(i, j, x.get(i, j) + sum * _qr.get(i, k));
         }
       }
     }

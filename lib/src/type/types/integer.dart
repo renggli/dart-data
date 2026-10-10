@@ -319,7 +319,7 @@ class IntegerField extends ExtendedField<int> {
   int mul(int a, int b) => a * b;
 
   @override
-  int scale(int a, num f) => (a * f).round();
+  int scale(int a, num factor) => (a * factor).round();
 
   @override
   int div(int a, int b) => a ~/ b;

@@ -25,8 +25,8 @@ double clenshawEvaluate(
   required OrthogonalFamily family,
 }) {
   if (coefficients.isEmpty) return 0.0;
-  final n = coefficients.length - 1;
-  if (n == 0) return coefficients[0].toDouble();
+  final degree = coefficients.length - 1;
+  if (degree == 0) return coefficients[0].toDouble();
 
   final xd = x.toDouble();
   var b2 = 0.0;
@@ -34,7 +34,7 @@ double clenshawEvaluate(
 
   switch (family) {
     case OrthogonalFamily.chebyshevT:
-      for (var k = n; k >= 1; k--) {
+      for (var k = degree; k >= 1; k--) {
         final b0 = coefficients[k].toDouble() + 2.0 * xd * b1 - b2;
         b2 = b1;
         b1 = b0;
@@ -42,7 +42,7 @@ double clenshawEvaluate(
       return coefficients[0].toDouble() + xd * b1 - b2;
 
     case OrthogonalFamily.chebyshevU:
-      for (var k = n; k >= 1; k--) {
+      for (var k = degree; k >= 1; k--) {
         final b0 = coefficients[k].toDouble() + 2.0 * xd * b1 - b2;
         b2 = b1;
         b1 = b0;
@@ -50,7 +50,7 @@ double clenshawEvaluate(
       return coefficients[0].toDouble() + 2.0 * xd * b1 - b2;
 
     case OrthogonalFamily.legendreP:
-      for (var k = n; k >= 1; k--) {
+      for (var k = degree; k >= 1; k--) {
         final alphaK = (2.0 * k + 1.0) / (k + 1.0);
         final gammaKPlus1 = (k + 1.0) / (k + 2.0);
         final b0 =
@@ -61,7 +61,7 @@ double clenshawEvaluate(
       return coefficients[0].toDouble() + xd * b1 - 0.5 * b2;
 
     case OrthogonalFamily.hermiteH:
-      for (var k = n; k >= 1; k--) {
+      for (var k = degree; k >= 1; k--) {
         final gammaKPlus1 = 2.0 * (k + 1.0);
         final b0 =
             coefficients[k].toDouble() + 2.0 * xd * b1 - gammaKPlus1 * b2;
@@ -71,7 +71,7 @@ double clenshawEvaluate(
       return coefficients[0].toDouble() + 2.0 * xd * b1 - 2.0 * b2;
 
     case OrthogonalFamily.hermiteHe:
-      for (var k = n; k >= 1; k--) {
+      for (var k = degree; k >= 1; k--) {
         final gammaKPlus1 = (k + 1.0).toDouble();
         final b0 = coefficients[k].toDouble() + xd * b1 - gammaKPlus1 * b2;
         b2 = b1;

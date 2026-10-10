@@ -71,7 +71,7 @@ class QuaternionField extends Field<Quaternion> {
   Quaternion mul(Quaternion a, Quaternion b) => a * b;
 
   @override
-  Quaternion scale(Quaternion a, num f) => a * f;
+  Quaternion scale(Quaternion a, num factor) => a * factor;
 
   @override
   Quaternion div(Quaternion a, Quaternion b) => a / b;

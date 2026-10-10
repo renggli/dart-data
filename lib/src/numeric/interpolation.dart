@@ -45,8 +45,8 @@ class LinearInterpolation implements Interpolator {
     final x1 = _xs[idx + 1];
     final y0 = _ys[idx];
     final y1 = _ys[idx + 1];
-    final t = (xd - x0) / (x1 - x0);
-    return y0 + t * (y1 - y0);
+    final tFrac = (xd - x0) / (x1 - x0);
+    return y0 + tFrac * (y1 - y0);
   }
 }
 
@@ -61,71 +61,77 @@ class CubicSpline implements Interpolator {
     double rightSlope = 0.0,
   }) : _xs = [for (final x in xs) x.toDouble()],
        _ys = [for (final y in ys) y.toDouble()] {
-    final n = _xs.length;
-    if (n != _ys.length) {
+    final count = _xs.length;
+    if (count != _ys.length) {
       throw ArgumentError('xs and ys must have identical length.');
     }
-    if (n < 2) {
+    if (count < 2) {
       throw ArgumentError('At least 2 points required for cubic spline.');
     }
-    for (var i = 0; i < n - 1; i++) {
+    for (var i = 0; i < count - 1; i++) {
       if (_xs[i] >= _xs[i + 1]) {
         throw ArgumentError('xs must be strictly monotonically increasing.');
       }
     }
 
     _a = List<double>.of(_ys);
-    _b = List<double>.filled(n - 1, 0.0);
-    _c = List<double>.filled(n, 0.0);
-    _d = List<double>.filled(n - 1, 0.0);
+    _b = List<double>.filled(count - 1, 0.0);
+    _c = List<double>.filled(count, 0.0);
+    _d = List<double>.filled(count - 1, 0.0);
 
-    final h = List<double>.generate(n - 1, (i) => _xs[i + 1] - _xs[i]);
+    final stepSizes = List<double>.generate(
+      count - 1,
+      (i) => _xs[i + 1] - _xs[i],
+    );
     final delta = List<double>.generate(
-      n - 1,
-      (i) => (_ys[i + 1] - _ys[i]) / h[i],
+      count - 1,
+      (i) => (_ys[i + 1] - _ys[i]) / stepSizes[i],
     );
 
     // Tridiagonal matrix solver for c coefficients
-    final alpha = List<double>.filled(n, 0.0);
-    final l = List<double>.filled(n, 1.0);
-    final mu = List<double>.filled(n, 0.0);
-    final z = List<double>.filled(n, 0.0);
+    final alpha = List<double>.filled(count, 0.0);
+    final diag = List<double>.filled(count, 1.0);
+    final mu = List<double>.filled(count, 0.0);
+    final z = List<double>.filled(count, 0.0);
 
     if (boundary == CubicSplineBoundary.natural) {
-      l[0] = 1.0;
+      diag[0] = 1.0;
       mu[0] = 0.0;
       z[0] = 0.0;
-      for (var i = 1; i < n - 1; i++) {
+      for (var i = 1; i < count - 1; i++) {
         alpha[i] = 3.0 * (delta[i] - delta[i - 1]);
-        l[i] = 2.0 * (_xs[i + 1] - _xs[i - 1]) - h[i - 1] * mu[i - 1];
-        mu[i] = h[i] / l[i];
-        z[i] = (alpha[i] - h[i - 1] * z[i - 1]) / l[i];
+        diag[i] =
+            2.0 * (_xs[i + 1] - _xs[i - 1]) - stepSizes[i - 1] * mu[i - 1];
+        mu[i] = stepSizes[i] / diag[i];
+        z[i] = (alpha[i] - stepSizes[i - 1] * z[i - 1]) / diag[i];
       }
-      l[n - 1] = 1.0;
-      z[n - 1] = 0.0;
-      _c[n - 1] = 0.0;
+      diag[count - 1] = 1.0;
+      z[count - 1] = 0.0;
+      _c[count - 1] = 0.0;
     } else {
       // Clamped boundary
-      alpha[0] = 3.0 * (delta[0] - leftSlope) / h[0];
-      l[0] = 2.0;
+      alpha[0] = 3.0 * (delta[0] - leftSlope) / stepSizes[0];
+      diag[0] = 2.0;
       mu[0] = 0.5;
-      z[0] = alpha[0] / l[0];
-      for (var i = 1; i < n - 1; i++) {
+      z[0] = alpha[0] / diag[0];
+      for (var i = 1; i < count - 1; i++) {
         alpha[i] = 3.0 * (delta[i] - delta[i - 1]);
-        l[i] = 2.0 * (_xs[i + 1] - _xs[i - 1]) - h[i - 1] * mu[i - 1];
-        mu[i] = h[i] / l[i];
-        z[i] = (alpha[i] - h[i - 1] * z[i - 1]) / l[i];
+        diag[i] =
+            2.0 * (_xs[i + 1] - _xs[i - 1]) - stepSizes[i - 1] * mu[i - 1];
+        mu[i] = stepSizes[i] / diag[i];
+        z[i] = (alpha[i] - stepSizes[i - 1] * z[i - 1]) / diag[i];
       }
-      alpha[n - 1] = 3.0 * (rightSlope - delta[n - 2]) / h[n - 2];
-      l[n - 1] = 2.0 - mu[n - 2];
-      z[n - 1] = (alpha[n - 1] - z[n - 2]) / l[n - 1];
-      _c[n - 1] = z[n - 1];
+      alpha[count - 1] =
+          3.0 * (rightSlope - delta[count - 2]) / stepSizes[count - 2];
+      diag[count - 1] = 2.0 - mu[count - 2];
+      z[count - 1] = (alpha[count - 1] - z[count - 2]) / diag[count - 1];
+      _c[count - 1] = z[count - 1];
     }
 
-    for (var j = n - 2; j >= 0; j--) {
+    for (var j = count - 2; j >= 0; j--) {
       _c[j] = z[j] - mu[j] * _c[j + 1];
-      _b[j] = delta[j] - h[j] * (2.0 * _c[j] + _c[j + 1]) / 3.0;
-      _d[j] = (_c[j + 1] - _c[j]) / (3.0 * h[j]);
+      _b[j] = delta[j] - stepSizes[j] * (2.0 * _c[j] + _c[j + 1]) / 3.0;
+      _d[j] = (_c[j + 1] - _c[j]) / (3.0 * stepSizes[j]);
     }
   }
 
@@ -163,33 +169,36 @@ class PchipInterpolation implements Interpolator {
   new(Iterable<num> xs, Iterable<num> ys)
     : _xs = [for (final x in xs) x.toDouble()],
       _ys = [for (final y in ys) y.toDouble()] {
-    final n = _xs.length;
-    if (n != _ys.length) {
+    final count = _xs.length;
+    if (count != _ys.length) {
       throw ArgumentError('xs and ys must have identical length.');
     }
-    if (n < 2) {
+    if (count < 2) {
       throw ArgumentError(
         'At least 2 points required for PCHIP interpolation.',
       );
     }
-    for (var i = 0; i < n - 1; i++) {
+    for (var i = 0; i < count - 1; i++) {
       if (_xs[i] >= _xs[i + 1]) {
         throw ArgumentError('xs must be strictly monotonically increasing.');
       }
     }
 
-    _h = List<double>.generate(n - 1, (i) => _xs[i + 1] - _xs[i]);
-    _delta = List<double>.generate(n - 1, (i) => (_ys[i + 1] - _ys[i]) / _h[i]);
-    _d = List<double>.filled(n, 0.0);
+    _h = List<double>.generate(count - 1, (i) => _xs[i + 1] - _xs[i]);
+    _delta = List<double>.generate(
+      count - 1,
+      (i) => (_ys[i + 1] - _ys[i]) / _h[i],
+    );
+    _d = List<double>.filled(count, 0.0);
 
-    if (n == 2) {
+    if (count == 2) {
       _d[0] = _delta[0];
       _d[1] = _delta[0];
       return;
     }
 
     // Interior derivatives via weighted harmonic mean
-    for (var i = 1; i < n - 1; i++) {
+    for (var i = 1; i < count - 1; i++) {
       final d0 = _delta[i - 1];
       final d1 = _delta[i];
       if (d0 * d1 <= 0.0) {
@@ -212,7 +221,7 @@ class PchipInterpolation implements Interpolator {
       _d[0] = 3.0 * _delta[0];
     }
 
-    final last = n - 1;
+    final last = count - 1;
     _d[last] =
         ((2.0 * _h[last - 1] + _h[last - 2]) * _delta[last - 1] -
             _h[last - 1] * _delta[last - 2]) /
@@ -238,21 +247,21 @@ class PchipInterpolation implements Interpolator {
     final x0 = _xs[idx];
     final y0 = _ys[idx];
     final y1 = _ys[idx + 1];
-    final h = _h[idx];
+    final step = _h[idx];
     final d0 = _d[idx];
     final d1 = _d[idx + 1];
 
-    final t = (xd - x0) / h;
-    final t2 = t * t;
-    final t3 = t2 * t;
+    final tVal = (xd - x0) / step;
+    final t2 = tVal * tVal;
+    final t3 = t2 * tVal;
 
     // Hermite basis
     final h00 = 2.0 * t3 - 3.0 * t2 + 1.0;
-    final h10 = t3 - 2.0 * t2 + t;
+    final h10 = t3 - 2.0 * t2 + tVal;
     final h01 = -2.0 * t3 + 3.0 * t2;
     final h11 = t3 - t2;
 
-    return h00 * y0 + h10 * h * d0 + h01 * y1 + h11 * h * d1;
+    return h00 * y0 + h10 * step * d0 + h01 * y1 + h11 * step * d1;
   }
 }
 

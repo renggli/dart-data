@@ -26,8 +26,8 @@ abstract class Field<T> {
   /// Computes the multiplication: `a * b`.
   T mul(T a, T b);
 
-  /// Computes the multiplicative scaling: `a * f`.
-  T scale(T a, num f);
+  /// Computes the multiplicative scaling: `a * factor`.
+  T scale(T a, num factor);
 
   /// Computes the division: `a / b`.
   T div(T a, T b);

@@ -3,7 +3,7 @@ import 'dart:math' as math;
 import 'package:checks/checks.dart';
 import 'package:data/src/numeric/fft.dart';
 import 'package:data/type.dart';
-import 'package:test/scaffolding.dart';
+import 'package:test/test.dart';
 
 void main() {
   group('Fast Fourier Transform (FFT)', () {
@@ -50,18 +50,18 @@ void main() {
     });
 
     test('rfft and irfft on real cosine wave', () {
-      const n = 16;
+      const size = 16;
       final wave = List<double>.generate(
-        n,
-        (i) => math.cos(2.0 * math.pi * 2.0 * i / n),
+        size,
+        (i) => math.cos(2.0 * math.pi * 2.0 * i / size),
       );
       final rSpectrum = rfft(wave);
-      check(rSpectrum).length.equals(n ~/ 2 + 1);
+      check(rSpectrum).length.equals(size ~/ 2 + 1);
       // Frequency bin 2 should have peak magnitude n/2 = 8
       check(rSpectrum[2].a).isCloseTo(8.0, 1e-6);
 
-      final recovered = irfft(rSpectrum, n);
-      for (var i = 0; i < n; i++) {
+      final recovered = irfft(rSpectrum, size);
+      for (var i = 0; i < size; i++) {
         check(recovered[i]).isCloseTo(wave[i], 1e-6);
       }
     });
@@ -78,10 +78,10 @@ void main() {
       check(spectrum2d[0][0].a).isCloseTo(10.0, 1e-9);
 
       final restored2d = ifft2(spectrum2d);
-      for (var r = 0; r < 2; r++) {
-        for (var c = 0; c < 2; c++) {
-          check(restored2d[r][c].a).isCloseTo(image[r][c].a, 1e-6);
-          check(restored2d[r][c].b).isCloseTo(image[r][c].b, 1e-6);
+      for (var row = 0; row < 2; row++) {
+        for (var col = 0; col < 2; col++) {
+          check(restored2d[row][col].a).isCloseTo(image[row][col].a, 1e-6);
+          check(restored2d[row][col].b).isCloseTo(image[row][col].b, 1e-6);
         }
       }
     });
@@ -112,10 +112,10 @@ void main() {
       check(spectrum2d[0][0].a).isCloseTo(45.0, 1e-9);
 
       final restored2d = ifft2(spectrum2d);
-      for (var r = 0; r < 3; r++) {
-        for (var c = 0; c < 3; c++) {
-          check(restored2d[r][c].a).isCloseTo(image[r][c].a, 1e-6);
-          check(restored2d[r][c].b).isCloseTo(image[r][c].b, 1e-6);
+      for (var row = 0; row < 3; row++) {
+        for (var col = 0; col < 3; col++) {
+          check(restored2d[row][col].a).isCloseTo(image[row][col].a, 1e-6);
+          check(restored2d[row][col].b).isCloseTo(image[row][col].b, 1e-6);
         }
       }
     });

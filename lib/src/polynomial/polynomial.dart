@@ -39,15 +39,15 @@ class Polynomial<T> {
   /// $P(x) = (x - r_1)(x - r_2)\dots(x - r_k)$.
   factory fromRoots(Iterable<num> roots, {DataType<T>? type}) {
     final effectiveType = (type ?? DataType.float64) as DataType<T>;
-    final f = effectiveType.field;
+    final field = effectiveType.field;
     var result = Polynomial<T>.fromCoefficients([
-      f.multiplicativeIdentity,
+      field.multiplicativeIdentity,
     ], type: effectiveType);
-    for (final r in roots) {
-      final rootVal = effectiveType.cast(r);
+    for (final root in roots) {
+      final rootVal = effectiveType.cast(root);
       final factor = Polynomial<T>.fromCoefficients([
-        f.neg(rootVal),
-        f.multiplicativeIdentity,
+        field.neg(rootVal),
+        field.multiplicativeIdentity,
       ], type: effectiveType);
       result = result * factor;
     }
@@ -65,8 +65,8 @@ class Polynomial<T> {
   /// The degree of this polynomial (the highest power with a non-zero coefficient),
   /// or -1 if the polynomial is zero.
   int get degree {
-    final f = type.field;
-    final zero = f.additiveIdentity;
+    final field = type.field;
+    final zero = field.additiveIdentity;
     for (var i = _coefficients.length - 1; i >= 0; i--) {
       if (_coefficients[i] != zero) return i;
     }
@@ -92,10 +92,10 @@ class Polynomial<T> {
   T evaluate(T x) {
     final deg = degree;
     if (deg < 0) return type.field.additiveIdentity;
-    final f = type.field;
+    final field = type.field;
     var acc = _coefficients[deg];
     for (var i = deg - 1; i >= 0; i--) {
-      acc = f.add(f.mul(acc, x), _coefficients[i]);
+      acc = field.add(field.mul(acc, x), _coefficients[i]);
     }
     return acc;
   }
@@ -125,11 +125,11 @@ class Polynomial<T> {
 
   /// Polynomial addition $P(x) + Q(x)$.
   Polynomial<T> operator +(Polynomial<T> other) {
-    final f = type.field;
+    final field = type.field;
     final maxLen = math.max(_coefficients.length, other._coefficients.length);
     final newCoeffs = List<T>.generate(
       maxLen,
-      (i) => f.add(this[i], other[i]),
+      (i) => field.add(this[i], other[i]),
       growable: false,
     );
     return Polynomial<T>.fromCoefficients(newCoeffs, type: type);
@@ -137,11 +137,11 @@ class Polynomial<T> {
 
   /// Polynomial subtraction $P(x) - Q(x)$.
   Polynomial<T> operator -(Polynomial<T> other) {
-    final f = type.field;
+    final field = type.field;
     final maxLen = math.max(_coefficients.length, other._coefficients.length);
     final newCoeffs = List<T>.generate(
       maxLen,
-      (i) => f.sub(this[i], other[i]),
+      (i) => field.sub(this[i], other[i]),
       growable: false,
     );
     return Polynomial<T>.fromCoefficients(newCoeffs, type: type);
@@ -149,10 +149,10 @@ class Polynomial<T> {
 
   /// Unary polynomial negation $-P(x)$.
   Polynomial<T> operator -() {
-    final f = type.field;
+    final field = type.field;
     final newCoeffs = List<T>.generate(
       _coefficients.length,
-      (i) => f.neg(_coefficients[i]),
+      (i) => field.neg(_coefficients[i]),
       growable: false,
     );
     return Polynomial<T>.fromCoefficients(newCoeffs, type: type);
@@ -160,10 +160,10 @@ class Polynomial<T> {
 
   /// Multiplies every coefficient by [scalar].
   Polynomial<T> scale(T scalar) {
-    final f = type.field;
+    final field = type.field;
     final newCoeffs = List<T>.generate(
       _coefficients.length,
-      (i) => f.mul(_coefficients[i], scalar),
+      (i) => field.mul(_coefficients[i], scalar),
       growable: false,
     );
     return Polynomial<T>.fromCoefficients(newCoeffs, type: type);
@@ -175,21 +175,21 @@ class Polynomial<T> {
     final deg2 = other.degree;
     if (deg1 < 0 || deg2 < 0) return Polynomial<T>.zero(type: type);
 
-    final f = type.field;
+    final field = type.field;
     final outDegree = deg1 + deg2;
     final resultCoeffs = List<T>.filled(
       outDegree + 1,
-      f.additiveIdentity,
+      field.additiveIdentity,
       growable: false,
     );
 
     for (var i = 0; i <= deg1; i++) {
       final ci = this[i];
-      if (ci == f.additiveIdentity) continue;
+      if (ci == field.additiveIdentity) continue;
       for (var j = 0; j <= deg2; j++) {
         final cj = other[j];
-        if (cj == f.additiveIdentity) continue;
-        resultCoeffs[i + j] = f.add(resultCoeffs[i + j], f.mul(ci, cj));
+        if (cj == field.additiveIdentity) continue;
+        resultCoeffs[i + j] = field.add(resultCoeffs[i + j], field.mul(ci, cj));
       }
     }
 
@@ -209,24 +209,24 @@ class Polynomial<T> {
       return (quotient: Polynomial<T>.zero(type: type), remainder: this);
     }
 
-    final f = type.field;
+    final field = type.field;
     final leadB = divisor.leadingCoefficient;
     final qCoeffs = List<T>.filled(
       degA - degB + 1,
-      f.additiveIdentity,
+      field.additiveIdentity,
       growable: false,
     );
     final rCoeffs = List<T>.generate(degA + 1, (i) => this[i]);
 
     for (var i = degA; i >= degB; i--) {
       final curCoeff = rCoeffs[i];
-      if (curCoeff != f.additiveIdentity) {
-        final factor = f.div(curCoeff, leadB);
+      if (curCoeff != field.additiveIdentity) {
+        final factor = field.div(curCoeff, leadB);
         final qIdx = i - degB;
         qCoeffs[qIdx] = factor;
         for (var j = 0; j <= degB; j++) {
-          final term = f.mul(factor, divisor[j]);
-          rCoeffs[qIdx + j] = f.sub(rCoeffs[qIdx + j], term);
+          final term = field.mul(factor, divisor[j]);
+          rCoeffs[qIdx + j] = field.sub(rCoeffs[qIdx + j], term);
         }
       }
     }
@@ -248,9 +248,9 @@ class Polynomial<T> {
     var a = this;
     var b = other;
     while (b.degree >= 0) {
-      final r = a % b;
+      final remainder = a % b;
       a = b;
-      b = r;
+      b = remainder;
     }
     if (a.degree <= 0) {
       return Polynomial<T>.fromCoefficients([
@@ -268,10 +268,10 @@ class Polynomial<T> {
     final deg = degree;
     if (deg <= 0) return Polynomial<T>.zero(type: type);
 
-    final f = type.field;
+    final field = type.field;
     final newCoeffs = List<T>.generate(deg, (i) {
       final exp = i + 1;
-      return f.scale(this[exp], exp.toDouble());
+      return field.scale(this[exp], exp.toDouble());
     }, growable: false);
 
     return Polynomial<T>.fromCoefficients(newCoeffs, type: type);
@@ -279,8 +279,8 @@ class Polynomial<T> {
 
   /// Computes the formal antiderivative $\int P(x) dx = C + c_0 x + \frac{c_1}{2} x^2 + \dots$
   Polynomial<T> integrate([T? constant]) {
-    final f = type.field;
-    final c0 = constant ?? f.additiveIdentity;
+    final field = type.field;
+    final c0 = constant ?? field.additiveIdentity;
     final deg = degree;
     if (deg < 0) {
       return Polynomial<T>.fromCoefficients([c0], type: type);
@@ -288,13 +288,13 @@ class Polynomial<T> {
 
     final newCoeffs = List<T>.filled(
       deg + 2,
-      f.additiveIdentity,
+      field.additiveIdentity,
       growable: false,
     );
     newCoeffs[0] = c0;
     for (var i = 0; i <= deg; i++) {
       final denom = (i + 1).toDouble();
-      final scaled = f.scale(this[i], 1.0 / denom);
+      final scaled = field.scale(this[i], 1.0 / denom);
       newCoeffs[i + 1] = scaled;
     }
 
@@ -330,10 +330,10 @@ class Polynomial<T> {
 
     // High degree: companion matrix eigenvalue decomposition
     final lead = (this[deg] as num).toDouble();
-    final companion = Matrix<double>.generate(deg, deg, (r, c) {
-      if (r == deg - 1) {
-        return -(this[c] as num).toDouble() / lead;
-      } else if (r + 1 == c) {
+    final companion = Matrix<double>.generate(deg, deg, (row, col) {
+      if (row == deg - 1) {
+        return -(this[col] as num).toDouble() / lead;
+      } else if (row + 1 == col) {
         return 1.0;
       } else {
         return 0.0;
@@ -344,12 +344,12 @@ class Polynomial<T> {
   }
 
   /// Generates the Chebyshev polynomial of the first kind $T_n(x)$.
-  static Polynomial<double> chebyshevT(int n) {
-    if (n < 0) throw ArgumentError('Degree must be non-negative: $n');
-    if (n == 0) {
+  static Polynomial<double> chebyshevT(int degree) {
+    if (degree < 0) throw ArgumentError('Degree must be non-negative: $degree');
+    if (degree == 0) {
       return Polynomial<double>.fromCoefficients([1.0], type: DataType.float64);
     }
-    if (n == 1) {
+    if (degree == 1) {
       return Polynomial<double>.fromCoefficients([
         0.0,
         1.0,
@@ -365,7 +365,7 @@ class Polynomial<T> {
       2.0,
     ], type: DataType.float64);
 
-    for (var k = 2; k <= n; k++) {
+    for (var k = 2; k <= degree; k++) {
       final pNext = twoX * p1 - p0;
       p0 = p1;
       p1 = pNext;
@@ -374,12 +374,12 @@ class Polynomial<T> {
   }
 
   /// Generates the Chebyshev polynomial of the second kind $U_n(x)$.
-  static Polynomial<double> chebyshevU(int n) {
-    if (n < 0) throw ArgumentError('Degree must be non-negative: $n');
-    if (n == 0) {
+  static Polynomial<double> chebyshevU(int degree) {
+    if (degree < 0) throw ArgumentError('Degree must be non-negative: $degree');
+    if (degree == 0) {
       return Polynomial<double>.fromCoefficients([1.0], type: DataType.float64);
     }
-    if (n == 1) {
+    if (degree == 1) {
       return Polynomial<double>.fromCoefficients([
         0.0,
         2.0,
@@ -395,7 +395,7 @@ class Polynomial<T> {
       2.0,
     ], type: DataType.float64);
 
-    for (var k = 2; k <= n; k++) {
+    for (var k = 2; k <= degree; k++) {
       final pNext = twoX * p1 - p0;
       p0 = p1;
       p1 = pNext;
@@ -404,12 +404,12 @@ class Polynomial<T> {
   }
 
   /// Generates the Legendre polynomial $P_n(x)$.
-  static Polynomial<double> legendreP(int n) {
-    if (n < 0) throw ArgumentError('Degree must be non-negative: $n');
-    if (n == 0) {
+  static Polynomial<double> legendreP(int degree) {
+    if (degree < 0) throw ArgumentError('Degree must be non-negative: $degree');
+    if (degree == 0) {
       return Polynomial<double>.fromCoefficients([1.0], type: DataType.float64);
     }
-    if (n == 1) {
+    if (degree == 1) {
       return Polynomial<double>.fromCoefficients([
         0.0,
         1.0,
@@ -421,7 +421,7 @@ class Polynomial<T> {
       1.0,
     ], type: DataType.float64);
 
-    for (var k = 1; k < n; k++) {
+    for (var k = 1; k < degree; k++) {
       final alpha = (2.0 * k + 1.0) / (k + 1.0);
       final gamma = k.toDouble() / (k + 1.0);
       final alphaX = Polynomial<double>.fromCoefficients([
@@ -436,12 +436,12 @@ class Polynomial<T> {
   }
 
   /// Generates the Physicists' Hermite polynomial $H_n(x)$.
-  static Polynomial<double> hermiteH(int n) {
-    if (n < 0) throw ArgumentError('Degree must be non-negative: $n');
-    if (n == 0) {
+  static Polynomial<double> hermiteH(int degree) {
+    if (degree < 0) throw ArgumentError('Degree must be non-negative: $degree');
+    if (degree == 0) {
       return Polynomial<double>.fromCoefficients([1.0], type: DataType.float64);
     }
-    if (n == 1) {
+    if (degree == 1) {
       return Polynomial<double>.fromCoefficients([
         0.0,
         2.0,
@@ -457,7 +457,7 @@ class Polynomial<T> {
       2.0,
     ], type: DataType.float64);
 
-    for (var k = 1; k < n; k++) {
+    for (var k = 1; k < degree; k++) {
       final pNext = twoX * p1 - p0.scale(2.0 * k);
       p0 = p1;
       p1 = pNext;
@@ -466,12 +466,12 @@ class Polynomial<T> {
   }
 
   /// Generates the Probabilists' Hermite polynomial $He_n(x)$.
-  static Polynomial<double> hermiteHe(int n) {
-    if (n < 0) throw ArgumentError('Degree must be non-negative: $n');
-    if (n == 0) {
+  static Polynomial<double> hermiteHe(int degree) {
+    if (degree < 0) throw ArgumentError('Degree must be non-negative: $degree');
+    if (degree == 0) {
       return Polynomial<double>.fromCoefficients([1.0], type: DataType.float64);
     }
-    if (n == 1) {
+    if (degree == 1) {
       return Polynomial<double>.fromCoefficients([
         0.0,
         1.0,
@@ -487,7 +487,7 @@ class Polynomial<T> {
       1.0,
     ], type: DataType.float64);
 
-    for (var k = 1; k < n; k++) {
+    for (var k = 1; k < degree; k++) {
       final pNext = x * p1 - p0.scale(k.toDouble());
       p0 = p1;
       p1 = pNext;
@@ -501,14 +501,18 @@ class Polynomial<T> {
     if (deg < 0) return '0';
     final parts = <String>[];
     for (var i = deg; i >= 0; i--) {
-      final c = this[i];
-      if (c == type.field.additiveIdentity && deg > 0) continue;
+      final coeff = this[i];
+      if (coeff == type.field.additiveIdentity && deg > 0) continue;
       if (i == 0) {
-        parts.add('$c');
+        parts.add('$coeff');
       } else if (i == 1) {
-        parts.add(c == type.field.multiplicativeIdentity ? 'x' : '${c}x');
+        parts.add(
+          coeff == type.field.multiplicativeIdentity ? 'x' : '${coeff}x',
+        );
       } else {
-        parts.add(c == type.field.multiplicativeIdentity ? 'x^$i' : '${c}x^$i');
+        parts.add(
+          coeff == type.field.multiplicativeIdentity ? 'x^$i' : '${coeff}x^$i',
+        );
       }
     }
     return parts.join(' + ');

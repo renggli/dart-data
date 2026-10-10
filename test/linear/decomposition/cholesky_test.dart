@@ -1,7 +1,7 @@
 import 'package:checks/checks.dart';
 import 'package:data/linear.dart';
 import 'package:data/type.dart';
-import 'package:test/scaffolding.dart';
+import 'package:test/test.dart';
 
 void main() {
   group('Cholesky Decomposition', () {
@@ -15,16 +15,16 @@ void main() {
       final cholesky = a.cholesky;
       check(cholesky.isSymmetricPositiveDefinite).isTrue();
 
-      final l = cholesky.l;
+      final lower = cholesky.l;
       // L must be lower triangular
       for (var i = 0; i < 3; i++) {
         for (var j = i + 1; j < 3; j++) {
-          check(l.get(i, j)).equals(0.0);
+          check(lower.get(i, j)).equals(0.0);
         }
       }
 
       // L * L^T == A
-      final lLt = l * l.transpose();
+      final lLt = lower * lower.transpose();
       for (var i = 0; i < 3; i++) {
         for (var j = 0; j < 3; j++) {
           check(lLt.get(i, j)).isCloseTo(a.get(i, j), 1e-6);

@@ -62,12 +62,12 @@ class CooMatrix<T> implements LinearOperator<T> {
     final rowIndices = <int>[];
     final colIndices = <int>[];
     final values = <T>[];
-    for (var r = 0; r < matrix.rowCount; r++) {
-      for (var c = 0; c < matrix.colCount; c++) {
-        final val = matrix.get(r, c);
+    for (var row = 0; row < matrix.rowCount; row++) {
+      for (var col = 0; col < matrix.colCount; col++) {
+        final val = matrix.get(row, col);
         if (!type.equality.isEqual(val, zero)) {
-          rowIndices.add(r);
-          colIndices.add(c);
+          rowIndices.add(row);
+          colIndices.add(col);
           values.add(val);
         }
       }
@@ -125,13 +125,13 @@ class CooMatrix<T> implements LinearOperator<T> {
         'Vector length (${x.length}) must match colCount ($colCount)',
       );
     }
-    final f = type.field;
-    final res = Vector<T>.filled(rowCount, f.additiveIdentity, type: type);
+    final field = type.field;
+    final res = Vector<T>.filled(rowCount, field.additiveIdentity, type: type);
     for (var k = 0; k < nnz; k++) {
-      final r = rowIndices[k];
-      final c = colIndices[k];
-      final v = values[k];
-      res[r] = f.add(res[r], f.mul(v, x[c]));
+      final row = rowIndices[k];
+      final col = colIndices[k];
+      final val = values[k];
+      res[row] = field.add(res[row], field.mul(val, x[col]));
     }
     return res;
   }
@@ -143,13 +143,13 @@ class CooMatrix<T> implements LinearOperator<T> {
         'Vector length (${x.length}) must match rowCount ($rowCount)',
       );
     }
-    final f = type.field;
-    final res = Vector<T>.filled(colCount, f.additiveIdentity, type: type);
+    final field = type.field;
+    final res = Vector<T>.filled(colCount, field.additiveIdentity, type: type);
     for (var k = 0; k < nnz; k++) {
-      final r = rowIndices[k];
-      final c = colIndices[k];
-      final v = values[k];
-      res[c] = f.add(res[c], f.mul(f.conjugate(v), x[r]));
+      final row = rowIndices[k];
+      final col = colIndices[k];
+      final val = values[k];
+      res[col] = field.add(res[col], field.mul(field.conjugate(val), x[row]));
     }
     return res;
   }

@@ -38,18 +38,18 @@ class FDistribution extends ContinuousDistribution {
         'At least 4 samples required to fit F-distribution',
       );
     }
-    final m = sum / count;
+    final mean = sum / count;
     var sumSqDiff = 0.0;
     for (final x in samples) {
-      final diff = x - m;
+      final diff = x - mean;
       sumSqDiff += diff * diff;
     }
-    final v = sumSqDiff / (count - 1);
+    final variance = sumSqDiff / (count - 1);
 
-    var d2 = m > 1.0 ? (2.0 * m) / (m - 1.0) : 6.0;
+    var d2 = mean > 1.0 ? (2.0 * mean) / (mean - 1.0) : 6.0;
     d2 = d2.clamp(2.1, 100.0);
-    final denom = v * (d2 - 4.0) - 2.0 * m * m;
-    var d1 = denom > 0.0 ? (2.0 * m * m * (d2 - 2.0)) / denom : 5.0;
+    final denom = variance * (d2 - 4.0) - 2.0 * mean * mean;
+    var d1 = denom > 0.0 ? (2.0 * mean * mean * (d2 - 2.0)) / denom : 5.0;
     if (d1.isNaN || d1 <= 0.0) d1 = 5.0;
     d1 = d1.clamp(0.5, 100.0);
     return FDistribution(d1, d2);
@@ -112,12 +112,12 @@ class FDistribution extends ContinuousDistribution {
   }
 
   @override
-  double inverseCumulativeProbability(num p) {
-    InvalidProbability.check(p);
-    if (p == 0.0) return 0.0;
-    if (p == 1.0) return double.infinity;
-    final u = ibetaInv(p, 0.5 * d1, 0.5 * d2);
-    return (d2 * u) / (d1 * (1.0 - u));
+  double inverseCumulativeProbability(num probability) {
+    InvalidProbability.check(probability);
+    if (probability == 0.0) return 0.0;
+    if (probability == 1.0) return double.infinity;
+    final betaVal = ibetaInv(probability, 0.5 * d1, 0.5 * d2);
+    return (d2 * betaVal) / (d1 * (1.0 - betaVal));
   }
 
   @override

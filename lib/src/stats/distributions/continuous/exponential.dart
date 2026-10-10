@@ -63,9 +63,9 @@ class ExponentialDistribution extends ContinuousDistribution {
       x >= 0.0 ? 1.0 - exp(-rate * x) : 0.0;
 
   @override
-  double inverseCumulativeProbability(num p) {
-    InvalidProbability.check(p);
-    return -log(1.0 - p) / rate;
+  double inverseCumulativeProbability(num probability) {
+    InvalidProbability.check(probability);
+    return -log(1.0 - probability) / rate;
   }
 
   @override

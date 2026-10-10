@@ -95,9 +95,9 @@ class GammaDistribution extends ContinuousDistribution {
       x <= 0.0 ? 0.0 : lowRegGamma(shape, x / scale);
 
   @override
-  double inverseCumulativeProbability(num p) {
-    InvalidProbability.check(p);
-    return gammapInv(p, shape) * scale;
+  double inverseCumulativeProbability(num probability) {
+    InvalidProbability.check(probability);
+    return gammapInv(probability, shape) * scale;
   }
 
   @override
@@ -105,25 +105,25 @@ class GammaDistribution extends ContinuousDistribution {
     const normal = NormalDistribution.standard();
     const uniform = UniformDistribution.standard();
     final correctedShape = shape < 1.0 ? shape + 1.0 : shape;
-    double u, v, x;
+    double uSample, vVal, x;
     final a1 = correctedShape - 1.0 / 3.0;
     final a2 = 1.0 / sqrt(9.0 * a1);
     do {
       do {
         x = normal.sample(random: random);
-        v = 1.0 + a2 * x;
-      } while (v <= 0.0);
-      v = v * v * v;
-      u = uniform.sample(random: random);
-    } while (u > 1.0 - 0.331 * pow(x, 4) &&
-        log(u) > 0.5 * x * x + a1 * (1.0 - v + log(v)));
+        vVal = 1.0 + a2 * x;
+      } while (vVal <= 0.0);
+      vVal = vVal * vVal * vVal;
+      uSample = uniform.sample(random: random);
+    } while (uSample > 1.0 - 0.331 * pow(x, 4) &&
+        log(uSample) > 0.5 * x * x + a1 * (1.0 - vVal + log(vVal)));
     if (shape == correctedShape) {
-      return a1 * v * scale;
+      return a1 * vVal * scale;
     }
     do {
-      u = uniform.sample(random: random);
-    } while (u == 0.0);
-    return pow(u, 1.0 / shape) * a1 * v * scale;
+      uSample = uniform.sample(random: random);
+    } while (uSample == 0.0);
+    return pow(uSample, 1.0 / shape) * a1 * vVal * scale;
   }
 
   @override

@@ -57,17 +57,17 @@ class CauchyDistribution extends ContinuousDistribution {
   double cumulativeProbability(double x) => atan((x - xo) / gamma) / pi + 0.5;
 
   @override
-  double inverseCumulativeProbability(num p) {
-    InvalidProbability.check(p);
-    if (p == 0) return double.negativeInfinity;
-    if (p == 1) return double.infinity;
-    return xo + gamma * tan(pi * (p - 0.5));
+  double inverseCumulativeProbability(num probability) {
+    InvalidProbability.check(probability);
+    if (probability == 0) return double.negativeInfinity;
+    if (probability == 1) return double.infinity;
+    return xo + gamma * tan(pi * (probability - 0.5));
   }
 
   @override
   double sample({Random? random}) {
-    final u = (random ?? _random).nextDouble();
-    return xo + gamma * tan(pi * (u - 0.5));
+    final uniform = (random ?? _random).nextDouble();
+    return xo + gamma * tan(pi * (uniform - 0.5));
   }
 
   @override

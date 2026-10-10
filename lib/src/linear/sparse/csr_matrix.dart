@@ -58,9 +58,9 @@ class CsrMatrix<T> implements LinearOperator<T> {
     }
     final start = rowPointers[row];
     final end = rowPointers[row + 1];
-    for (var p = start; p < end; p++) {
-      if (colIndices[p] == col) return values[p];
-      if (colIndices[p] > col) break;
+    for (var ptr = start; ptr < end; ptr++) {
+      if (colIndices[ptr] == col) return values[ptr];
+      if (colIndices[ptr] > col) break;
     }
     return type.field.additiveIdentity;
   }
@@ -72,8 +72,8 @@ class CsrMatrix<T> implements LinearOperator<T> {
         'Vector length (${x.length}) must match colCount ($colCount)',
       );
     }
-    final f = type.field;
-    final res = Vector<T>.filled(rowCount, f.additiveIdentity, type: type);
+    final field = type.field;
+    final res = Vector<T>.filled(rowCount, field.additiveIdentity, type: type);
     final xContig = x.tensor.isContiguous;
     final xData = x.tensor.data;
     final xOffset = x.tensor.offset;
@@ -81,14 +81,17 @@ class CsrMatrix<T> implements LinearOperator<T> {
     for (var i = 0; i < rowCount; i++) {
       final start = rowPointers[i];
       final end = rowPointers[i + 1];
-      var sum = f.additiveIdentity;
+      var sum = field.additiveIdentity;
       if (xContig) {
-        for (var p = start; p < end; p++) {
-          sum = f.add(sum, f.mul(values[p], xData[xOffset + colIndices[p]]));
+        for (var ptr = start; ptr < end; ptr++) {
+          sum = field.add(
+            sum,
+            field.mul(values[ptr], xData[xOffset + colIndices[ptr]]),
+          );
         }
       } else {
-        for (var p = start; p < end; p++) {
-          sum = f.add(sum, f.mul(values[p], x[colIndices[p]]));
+        for (var ptr = start; ptr < end; ptr++) {
+          sum = field.add(sum, field.mul(values[ptr], x[colIndices[ptr]]));
         }
       }
       res[i] = sum;
@@ -103,15 +106,18 @@ class CsrMatrix<T> implements LinearOperator<T> {
         'Vector length (${x.length}) must match rowCount ($rowCount)',
       );
     }
-    final f = type.field;
-    final res = Vector<T>.filled(colCount, f.additiveIdentity, type: type);
+    final field = type.field;
+    final res = Vector<T>.filled(colCount, field.additiveIdentity, type: type);
     for (var i = 0; i < rowCount; i++) {
       final xi = x[i];
       final start = rowPointers[i];
       final end = rowPointers[i + 1];
-      for (var p = start; p < end; p++) {
-        final c = colIndices[p];
-        res[c] = f.add(res[c], f.mul(f.conjugate(values[p]), xi));
+      for (var ptr = start; ptr < end; ptr++) {
+        final col = colIndices[ptr];
+        res[col] = field.add(
+          res[col],
+          field.mul(field.conjugate(values[ptr]), xi),
+        );
       }
     }
     return res;
@@ -124,17 +130,21 @@ class CsrMatrix<T> implements LinearOperator<T> {
         'Dimension mismatch: CsrMatrix ($rowCount x $colCount) * Operator (${other.rowCount} x ${other.colCount})',
       );
     }
-    final f = type.field;
+    final field = type.field;
     final res = Matrix<T>.filled(
       rowCount,
       other.colCount,
-      f.additiveIdentity,
+      field.additiveIdentity,
       type: type,
     );
-    final eJ = Vector<T>.filled(other.colCount, f.additiveIdentity, type: type);
+    final eJ = Vector<T>.filled(
+      other.colCount,
+      field.additiveIdentity,
+      type: type,
+    );
     for (var j = 0; j < other.colCount; j++) {
-      if (j > 0) eJ[j - 1] = f.additiveIdentity;
-      eJ[j] = f.multiplicativeIdentity;
+      if (j > 0) eJ[j - 1] = field.additiveIdentity;
+      eJ[j] = field.multiplicativeIdentity;
       final otherCol = other.apply(eJ);
       final thisCol = apply(otherCol);
       for (var i = 0; i < rowCount; i++) {
@@ -154,10 +164,10 @@ class CsrMatrix<T> implements LinearOperator<T> {
     for (var i = 0; i < rowCount; i++) {
       final start = rowPointers[i];
       final end = rowPointers[i + 1];
-      for (var p = start; p < end; p++) {
+      for (var ptr = start; ptr < end; ptr++) {
         rIdx[k] = i;
-        cIdx[k] = colIndices[p];
-        vals[k] = values[p];
+        cIdx[k] = colIndices[ptr];
+        vals[k] = values[ptr];
         k++;
       }
     }
@@ -186,8 +196,8 @@ class CsrMatrix<T> implements LinearOperator<T> {
     for (var i = 0; i < rowCount; i++) {
       final start = rowPointers[i];
       final end = rowPointers[i + 1];
-      for (var p = start; p < end; p++) {
-        res.set(i, colIndices[p], values[p]);
+      for (var ptr = start; ptr < end; ptr++) {
+        res.set(i, colIndices[ptr], values[ptr]);
       }
     }
     return res;

@@ -301,7 +301,7 @@ void main() {
       // 2x2 double matrix multiply
       final a = Float64List.fromList([1.0, 2.0, 3.0, 4.0]);
       final b = Float64List.fromList([5.0, 6.0, 7.0, 8.0]);
-      final c = Float64List(4);
+      final cBuffer = Float64List(4);
 
       final successD = HardwareManager.dgemm(
         m: 2,
@@ -313,14 +313,14 @@ void main() {
         b: b,
         ldb: 2,
         beta: 0.0,
-        c: c,
+        c: cBuffer,
         ldc: 2,
       );
       check(successD).isTrue();
-      check(c[0]).equals(19.0);
-      check(c[1]).equals(22.0);
-      check(c[2]).equals(43.0);
-      check(c[3]).equals(50.0);
+      check(cBuffer[0]).equals(19.0);
+      check(cBuffer[1]).equals(22.0);
+      check(cBuffer[2]).equals(43.0);
+      check(cBuffer[3]).equals(50.0);
 
       // 2x2 float matrix multiply
       final a32 = Float32List.fromList([1.0, 2.0, 3.0, 4.0]);
@@ -377,8 +377,8 @@ void main() {
         type: DataType.float64,
       );
 
-      final c = aTrans.matmul(b);
-      check(c.toFlatList()).deepEquals([19.0, 22.0, 43.0, 50.0]);
+      final result1 = aTrans.matmul(b);
+      check(result1.toFlatList()).deepEquals([19.0, 22.0, 43.0, 50.0]);
     });
 
     test('transposed B matrix (transB)', () {
@@ -394,8 +394,8 @@ void main() {
       );
       final bTrans = bOrig.transpose(); // shape [2, 2], values [5, 6, 7, 8]
 
-      final c = a.matmul(bTrans);
-      check(c.toFlatList()).deepEquals([19.0, 22.0, 43.0, 50.0]);
+      final result2 = a.matmul(bTrans);
+      check(result2.toFlatList()).deepEquals([19.0, 22.0, 43.0, 50.0]);
     });
 
     test('both A and B transposed (transA and transB)', () {
@@ -413,8 +413,8 @@ void main() {
       );
       final bTrans = bOrig.transpose();
 
-      final c = aTrans.matmul(bTrans);
-      check(c.toFlatList()).deepEquals([19.0, 22.0, 43.0, 50.0]);
+      final result3 = aTrans.matmul(bTrans);
+      check(result3.toFlatList()).deepEquals([19.0, 22.0, 43.0, 50.0]);
     });
 
     test('hardware vs fallback parity on matmul', () {
@@ -565,14 +565,14 @@ void main() {
     });
 
     test('Vector in-place addScaled (daxpy) and scaleInPlace (dscal)', () {
-      final v = Vector<double>.fromList([1.0, 2.0, 3.0]);
+      final vector = Vector<double>.fromList([1.0, 2.0, 3.0]);
       final other = Vector<double>.fromList([10.0, 20.0, 30.0]);
 
-      v.addScaled(other, 0.5);
-      check(v.toList()).deepEquals([6.0, 12.0, 18.0]);
+      vector.addScaled(other, 0.5);
+      check(vector.toList()).deepEquals([6.0, 12.0, 18.0]);
 
-      v.scaleInPlace(2.0);
-      check(v.toList()).deepEquals([12.0, 24.0, 36.0]);
+      vector.scaleInPlace(2.0);
+      check(vector.toList()).deepEquals([12.0, 24.0, 36.0]);
     });
 
     test('HardwareManager.dsyr2 rank-2 update', () {
@@ -764,17 +764,17 @@ void main() {
           .map((x) => 2.5 * 1.3 * x + 1.0)
           .toList(); // linear surrogate
 
-      final params = levenbergMarquardt(
-        residualFunction: (p) => Vector<double>.generate(
+      final resultParams = levenbergMarquardt(
+        residualFunction: (params) => Vector<double>.generate(
           xs.length,
-          (i) => (p[0] * xs[i] + p[1]) - ys[i],
+          (i) => (params[0] * xs[i] + params[1]) - ys[i],
         ),
         initialParams: Vector<double>.fromList([1.0, 0.5]),
         tolerance: 1e-5,
       );
 
-      check(params[0]).isCloseTo(3.25, 1e-3);
-      check(params[1]).isCloseTo(1.0, 1e-3);
+      check(resultParams[0]).isCloseTo(3.25, 1e-3);
+      check(resultParams[1]).isCloseTo(1.0, 1e-3);
     });
   });
 
@@ -797,16 +797,16 @@ void main() {
         // Memory has padding offsets
         final a = Float64List.fromList([99.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0]);
         final b = Float64List.fromList([99.0, 7.0, 8.0, 9.0, 10.0, 11.0, 12.0]);
-        final c = Float64List(10);
-        c[1] = 1.0;
-        c[2] = 2.0;
-        c[3] = 3.0;
-        c[4] = 4.0;
-        c[5] = 5.0;
-        c[6] = 6.0;
-        c[7] = 7.0;
-        c[8] = 8.0;
-        c[9] = 9.0;
+        final cBuffer = Float64List(10);
+        cBuffer[1] = 1.0;
+        cBuffer[2] = 2.0;
+        cBuffer[3] = 3.0;
+        cBuffer[4] = 4.0;
+        cBuffer[5] = 5.0;
+        cBuffer[6] = 6.0;
+        cBuffer[7] = 7.0;
+        cBuffer[8] = 8.0;
+        cBuffer[9] = 9.0;
 
         final res = HardwareManager.dgemm(
           transA: cblasTrans,
@@ -822,7 +822,7 @@ void main() {
           bOffset: 1,
           ldb: 2,
           beta: 0.5,
-          c: c,
+          c: cBuffer,
           cOffset: 1,
           ldc: 3,
         );
@@ -1009,7 +1009,7 @@ void main() {
           // dsyrk upper and lower
           for (final uplo in [cblasUpper, cblasLower]) {
             final a = Float64List.fromList([1.0, 2.0, 3.0, 4.0]); // 2x2
-            final c = Float64List(4);
+            final cBuffer = Float64List(4);
             final res = HardwareManager.dsyrk(
               uplo: uplo,
               trans: cblasNoTrans,
@@ -1019,7 +1019,7 @@ void main() {
               a: a,
               lda: 2,
               beta: 0.0,
-              c: c,
+              c: cBuffer,
               ldc: 2,
             );
             check(res).isTrue();
@@ -1034,7 +1034,7 @@ void main() {
               a: a,
               lda: 2,
               beta: 0.5,
-              c: c,
+              c: cBuffer,
               ldc: 2,
             );
             check(resTrans).isTrue();
@@ -1157,7 +1157,7 @@ void main() {
       // dgemm no-trans fallback
       final a = Float64List.fromList([1.0, 2.0, 3.0, 4.0]);
       final b = Float64List.fromList([5.0, 6.0, 7.0, 8.0]);
-      final c = Float64List(4);
+      final cBuffer = Float64List(4);
       final okGemm = HardwareManager.dgemm(
         transA: cblasNoTrans,
         transB: cblasNoTrans,
@@ -1170,11 +1170,11 @@ void main() {
         b: b,
         ldb: 2,
         beta: 0.0,
-        c: c,
+        c: cBuffer,
         ldc: 2,
       );
       check(okGemm).isTrue();
-      check(c[0]).equals(1.0 * 5.0 + 2.0 * 7.0);
+      check(cBuffer[0]).equals(1.0 * 5.0 + 2.0 * 7.0);
 
       // dgemv no-trans fallback
       final x = Float64List.fromList([2.0, 3.0]);
@@ -1380,7 +1380,7 @@ void main() {
         // dgemm with transA == cblasNoTrans and transB == cblasNoTrans
         final a = Float64List.fromList([1.0, 2.0, 3.0, 4.0]);
         final b = Float64List.fromList([5.0, 6.0, 7.0, 8.0]);
-        final c = Float64List(4);
+        final cBuffer = Float64List(4);
         HardwareManager.dgemm(
           transA: cblasNoTrans,
           transB: cblasNoTrans,
@@ -1393,10 +1393,10 @@ void main() {
           b: b,
           ldb: 2,
           beta: 0.0,
-          c: c,
+          c: cBuffer,
           ldc: 2,
         );
-        check(c[0]).isCloseTo(19.0, 1e-9);
+        check(cBuffer[0]).isCloseTo(19.0, 1e-9);
 
         // dgemm with transA == cblasTrans and transB == cblasTrans
         final aT = Float64List.fromList([1.0, 3.0, 2.0, 4.0]);

@@ -8,7 +8,7 @@ import '../../symbolic.dart';
 /// Combines bisection, secant method, and inverse quadratic interpolation.
 /// Accepts either `double Function(double)` or an [Expr].
 double brentRoot(
-  Object f,
+  Object function,
   double a,
   double b, {
   String variable = 'x',
@@ -16,14 +16,14 @@ double brentRoot(
   int maxIterations = 100,
 }) {
   final double Function(double) fn;
-  if (f is Expr) {
-    fn = (x) => f.evaluate({variable: x});
-  } else if (f is double Function(double)) {
-    fn = f;
-  } else if (f is num Function(num)) {
-    fn = (x) => f(x).toDouble();
+  if (function is Expr) {
+    fn = (x) => function.evaluate({variable: x});
+  } else if (function is double Function(double)) {
+    fn = function;
+  } else if (function is num Function(num)) {
+    fn = (x) => function(x).toDouble();
   } else {
-    throw ArgumentError('Unsupported function type: ${f.runtimeType}');
+    throw ArgumentError('Unsupported function type: ${function.runtimeType}');
   }
 
   var fa = fn(a);
@@ -42,15 +42,15 @@ double brentRoot(
   var xB = b;
   var xC = a;
   var fc = fa;
-  var d = 0.0;
-  var e = 0.0;
+  var dStep = 0.0;
+  var eStep = 0.0;
 
   for (var iter = 0; iter < maxIterations; iter++) {
     if ((fb > 0.0 && fc > 0.0) || (fb < 0.0 && fc < 0.0)) {
       xC = xA;
       fc = fa;
-      d = xB - xA;
-      e = d;
+      dStep = xB - xA;
+      eStep = dStep;
     }
     if (fc.abs() < fb.abs()) {
       xA = xB;
@@ -68,40 +68,42 @@ double brentRoot(
       return xB;
     }
 
-    if (e.abs() >= tol1 && fa.abs() > fb.abs()) {
-      final s = fb / fa;
-      double p, q;
+    if (eStep.abs() >= tol1 && fa.abs() > fb.abs()) {
+      final ratioS = fb / fa;
+      double pVal, qVal;
       if (xA == xC) {
         // Linear interpolation
-        p = 2.0 * xm * s;
-        q = 1.0 - s;
+        pVal = 2.0 * xm * ratioS;
+        qVal = 1.0 - ratioS;
       } else {
         // Inverse quadratic interpolation
-        q = fa / fc;
-        final r = fb / fc;
-        p = s * (2.0 * xm * q * (q - r) - (xB - xA) * (r - 1.0));
-        q = (q - 1.0) * (r - 1.0) * (s - 1.0);
+        qVal = fa / fc;
+        final ratioR = fb / fc;
+        pVal =
+            ratioS *
+            (2.0 * xm * qVal * (qVal - ratioR) - (xB - xA) * (ratioR - 1.0));
+        qVal = (qVal - 1.0) * (ratioR - 1.0) * (ratioS - 1.0);
       }
-      if (p > 0.0) q = -q;
-      p = p.abs();
-      final min1 = 3.0 * xm * q - (tol1 * q).abs();
-      final min2 = (e * q).abs();
-      if (2.0 * p < (min1 < min2 ? min1 : min2)) {
-        e = d;
-        d = p / q;
+      if (pVal > 0.0) qVal = -qVal;
+      pVal = pVal.abs();
+      final min1 = 3.0 * xm * qVal - (tol1 * qVal).abs();
+      final min2 = (eStep * qVal).abs();
+      if (2.0 * pVal < (min1 < min2 ? min1 : min2)) {
+        eStep = dStep;
+        dStep = pVal / qVal;
       } else {
-        d = xm;
-        e = d;
+        dStep = xm;
+        eStep = dStep;
       }
     } else {
-      d = xm;
-      e = d;
+      dStep = xm;
+      eStep = dStep;
     }
 
     xA = xB;
     fa = fb;
-    if (d.abs() > tol1) {
-      xB += d;
+    if (dStep.abs() > tol1) {
+      xB += dStep;
     } else {
       xB += xm >= 0.0 ? tol1 : -tol1;
     }
@@ -113,7 +115,7 @@ double brentRoot(
 
 /// Finds a root of $f(x) = 0$ starting from [x0] using Newton-Raphson iteration.
 double newtonRaphson(
-  Object f,
+  Object function,
   double x0, {
   Object? derivative,
   String variable = 'x',
@@ -123,32 +125,33 @@ double newtonRaphson(
   final double Function(double) fn;
   final double Function(double) dfn;
 
-  if (f is Expr) {
-    fn = (x) => f.evaluate({variable: x});
-    final diffExpr = f.diff(variable).simplify();
+  if (function is Expr) {
+    fn = (x) => function.evaluate({variable: x});
+    final diffExpr = function.diff(variable).simplify();
     dfn = (x) => diffExpr.evaluate({variable: x});
-  } else if (f is double Function(double)) {
-    fn = f;
+  } else if (function is double Function(double)) {
+    fn = function;
     if (derivative is double Function(double)) {
       dfn = derivative;
     } else {
       dfn = (x) {
-        const h = 1e-6;
-        return (f(x + h) - f(x - h)) / (2.0 * h);
+        const step = 1e-6;
+        return (function(x + step) - function(x - step)) / (2.0 * step);
       };
     }
-  } else if (f is num Function(num)) {
-    fn = (x) => f(x).toDouble();
+  } else if (function is num Function(num)) {
+    fn = (x) => function(x).toDouble();
     if (derivative is num Function(num)) {
       dfn = (x) => derivative(x).toDouble();
     } else {
       dfn = (x) {
-        const h = 1e-6;
-        return (f(x + h).toDouble() - f(x - h).toDouble()) / (2.0 * h);
+        const step = 1e-6;
+        return (function(x + step).toDouble() - function(x - step).toDouble()) /
+            (2.0 * step);
       };
     }
   } else {
-    throw ArgumentError('Unsupported function type: ${f.runtimeType}');
+    throw ArgumentError('Unsupported function type: ${function.runtimeType}');
   }
 
   var x = x0;
@@ -168,7 +171,7 @@ double newtonRaphson(
 
 /// Finds a root of $f(x) = 0$ on bracket $[a, b]$ using Bisection.
 double bisection(
-  Object f,
+  Object function,
   double a,
   double b, {
   String variable = 'x',
@@ -176,14 +179,14 @@ double bisection(
   int maxIterations = 100,
 }) {
   final double Function(double) fn;
-  if (f is Expr) {
-    fn = (x) => f.evaluate({variable: x});
-  } else if (f is double Function(double)) {
-    fn = f;
-  } else if (f is num Function(num)) {
-    fn = (x) => f(x).toDouble();
+  if (function is Expr) {
+    fn = (x) => function.evaluate({variable: x});
+  } else if (function is double Function(double)) {
+    fn = function;
+  } else if (function is num Function(num)) {
+    fn = (x) => function(x).toDouble();
   } else {
-    throw ArgumentError('Unsupported function type: ${f.runtimeType}');
+    throw ArgumentError('Unsupported function type: ${function.runtimeType}');
   }
 
   var fa = fn(a);

@@ -1,6 +1,6 @@
 import 'package:checks/checks.dart';
 import 'package:data/special.dart';
-import 'package:test/scaffolding.dart';
+import 'package:test/test.dart';
 
 void main() {
   group('error function', () {

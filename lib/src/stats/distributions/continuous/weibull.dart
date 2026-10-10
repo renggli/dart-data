@@ -79,9 +79,9 @@ class WeibullDistribution extends ContinuousDistribution {
       x < 0 ? 0 : 1 - exp(-pow(x / scale, shape));
 
   @override
-  double inverseCumulativeProbability(num p) {
-    InvalidProbability.check(p);
-    return scale * pow(-log(1 - p), 1 / shape);
+  double inverseCumulativeProbability(num probability) {
+    InvalidProbability.check(probability);
+    return scale * pow(-log(1 - probability), 1 / shape);
   }
 
   @override

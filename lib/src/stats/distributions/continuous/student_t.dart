@@ -18,7 +18,7 @@ class StudentDistribution extends ContinuousDistribution {
 
   /// Fits a Student's t-distribution to [samples] using maximum likelihood estimation.
   factory fit(Iterable<num> samples) {
-    final list = samples.map((e) => e.toDouble()).toList();
+    final list = samples.map((val) => val.toDouble()).toList();
     if (list.length < 3) {
       throw ArgumentError.value(
         samples,
@@ -26,10 +26,10 @@ class StudentDistribution extends ContinuousDistribution {
         'At least 3 samples required to fit Student-t distribution',
       );
     }
-    final n = list.length;
+    final sampleCount = list.length;
     double logLikelihood(double nu) {
       final term1 =
-          n *
+          sampleCount *
           (gammaLn(0.5 * (nu + 1.0)) - gammaLn(0.5 * nu) - 0.5 * log(nu * pi));
       var term2 = 0.0;
       for (final x in list) {
@@ -41,25 +41,25 @@ class StudentDistribution extends ContinuousDistribution {
     var a = 0.1;
     var b = 100.0;
     const phi = 0.618033988749895;
-    var c = b - phi * (b - a);
-    var d = a + phi * (b - a);
-    var fc = logLikelihood(c);
-    var fd = logLikelihood(d);
+    var x1 = b - phi * (b - a);
+    var x2 = a + phi * (b - a);
+    var f1 = logLikelihood(x1);
+    var f2 = logLikelihood(x2);
 
     for (var iter = 0; iter < 60; iter++) {
       if ((b - a).abs() < 1e-5) break;
-      if (fc > fd) {
-        b = d;
-        d = c;
-        fd = fc;
-        c = b - phi * (b - a);
-        fc = logLikelihood(c);
+      if (f1 > f2) {
+        b = x2;
+        x2 = x1;
+        f2 = f1;
+        x1 = b - phi * (b - a);
+        f1 = logLikelihood(x1);
       } else {
-        a = c;
-        c = d;
-        fc = fd;
-        d = a + phi * (b - a);
-        fd = logLikelihood(d);
+        a = x1;
+        x1 = x2;
+        f1 = f2;
+        x2 = a + phi * (b - a);
+        f2 = logLikelihood(x2);
       }
     }
     final bestNu = 0.5 * (a + b);
@@ -108,11 +108,11 @@ class StudentDistribution extends ContinuousDistribution {
   );
 
   @override
-  double inverseCumulativeProbability(num p) {
-    InvalidProbability.check(p);
-    var x = ibetaInv(2.0 * min(p, 1.0 - p), 0.5 * dof, 0.5);
+  double inverseCumulativeProbability(num probability) {
+    InvalidProbability.check(probability);
+    var x = ibetaInv(2.0 * min(probability, 1.0 - probability), 0.5 * dof, 0.5);
     x = sqrt(dof * (1.0 - x) / x);
-    return p > 0.5 ? x : -x;
+    return probability > 0.5 ? x : -x;
   }
 
   @override

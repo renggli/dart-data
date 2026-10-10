@@ -71,15 +71,15 @@ class PoissonDistribution extends DiscreteDistribution {
   @override
   int sample({Random? random}) {
     if (rate < 30.0) {
-      final l = exp(-rate);
-      var k = 0;
-      var p = 1.0;
+      final limit = exp(-rate);
+      var count = 0;
+      var prod = 1.0;
       const uniform = UniformDistribution.standard();
       do {
-        k++;
-        p *= uniform.sample(random: random);
-      } while (p > l);
-      return k - 1;
+        count++;
+        prod *= uniform.sample(random: random);
+      } while (prod > limit);
+      return count - 1;
     } else {
       final normal = NormalDistribution(rate, sqrt(rate));
       final val = normal.sample(random: random).round();

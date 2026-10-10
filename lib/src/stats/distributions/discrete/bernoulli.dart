@@ -75,9 +75,9 @@ class BernoulliDistribution extends DiscreteDistribution {
   }
 
   @override
-  int inverseCumulativeProbability(num p) {
-    InvalidProbability.check(p);
-    return p <= q ? 0 : 1;
+  int inverseCumulativeProbability(num probability) {
+    InvalidProbability.check(probability);
+    return probability <= q ? 0 : 1;
   }
 
   @override

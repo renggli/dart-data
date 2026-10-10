@@ -60,8 +60,8 @@ BootstrapResult bootstrap<T>(
   double confidenceLevel = 0.95,
   math.Random? random,
 }) {
-  final n = samples.length;
-  if (n < 2) {
+  final sampleSize = samples.length;
+  if (sampleSize < 2) {
     throw ArgumentError('At least 2 samples required for bootstrap');
   }
   if (resamples < 10) {
@@ -75,11 +75,11 @@ BootstrapResult bootstrap<T>(
   final originalEstimate = statistic(samples);
 
   final bootEstimates = List<double>.filled(resamples, 0.0);
-  final resampleBuffer = List<T>.filled(n, samples[0]);
+  final resampleBuffer = List<T>.filled(sampleSize, samples[0]);
 
   for (var b = 0; b < resamples; b++) {
-    for (var i = 0; i < n; i++) {
-      resampleBuffer[i] = samples[rng.nextInt(n)];
+    for (var i = 0; i < sampleSize; i++) {
+      resampleBuffer[i] = samples[rng.nextInt(sampleSize)];
     }
     bootEstimates[b] = statistic(resampleBuffer);
   }
@@ -106,8 +106,8 @@ BootstrapResult parametricBootstrap<T>({
   double confidenceLevel = 0.95,
   math.Random? random,
 }) {
-  final n = sample.length;
-  if (n < 2) {
+  final sampleSize = sample.length;
+  if (sampleSize < 2) {
     throw ArgumentError('At least 2 samples required for bootstrap');
   }
   if (resamples < 10) {
@@ -144,12 +144,12 @@ BootstrapResult parametricBootstrapDistribution({
   double confidenceLevel = 0.95,
   math.Random? random,
 }) {
-  final n = sample.length;
+  final sampleSize = sample.length;
   return parametricBootstrap<num>(
     sample: sample,
     statistic: statistic,
     sampler: (rng) => [
-      for (var i = 0; i < n; i++) distribution.sample(random: rng),
+      for (var i = 0; i < sampleSize; i++) distribution.sample(random: rng),
     ],
     resamples: resamples,
     confidenceLevel: confidenceLevel,
@@ -226,7 +226,7 @@ BootstrapResult _computeBootstrapResult<T>({
   required double Function(List<T>) statistic,
   required double confidenceLevel,
 }) {
-  final n = sample.length;
+  final sampleSize = sample.length;
   final resamples = bootEstimates.length;
   final sortedEstimates = List<double>.of(bootEstimates)..sort();
 
@@ -248,20 +248,20 @@ BootstrapResult _computeBootstrapResult<T>({
   final z0 = math.sqrt2 * erfInv(2.0 * fracLess - 1.0);
 
   // 2. Acceleration parameter a via jackknife
-  final jackEstimates = List<double>.filled(n, 0.0);
-  for (var i = 0; i < n; i++) {
+  final jackEstimates = List<double>.filled(sampleSize, 0.0);
+  for (var i = 0; i < sampleSize; i++) {
     final jackSample = _JackknifeResampling<T>(sample, i);
     jackEstimates[i] = statistic(jackSample);
   }
   final jackMean = mean(jackEstimates);
   var numA = 0.0;
   var denA = 0.0;
-  for (var i = 0; i < n; i++) {
+  for (var i = 0; i < sampleSize; i++) {
     final diff = jackMean - jackEstimates[i];
     numA += diff * diff * diff;
     denA += diff * diff;
   }
-  final a = denA > 0.0 ? numA / (6.0 * math.pow(denA, 1.5)) : 0.0;
+  final accel = denA > 0.0 ? numA / (6.0 * math.pow(denA, 1.5)) : 0.0;
 
   // 3. Adjusted quantiles
   final zAlpha2 = math.sqrt2 * erfInv(2.0 * (alpha / 2.0) - 1.0);
@@ -269,12 +269,12 @@ BootstrapResult _computeBootstrapResult<T>({
 
   double phi(double z) => 0.5 * (1.0 + erf(z / math.sqrt2));
 
-  final denomLower = 1.0 - a * (z0 + zAlpha2);
+  final denomLower = 1.0 - accel * (z0 + zAlpha2);
   final q1 = denomLower != 0.0
       ? phi(z0 + (z0 + zAlpha2) / denomLower).clamp(0.0, 1.0)
       : alpha / 2.0;
 
-  final denomUpper = 1.0 - a * (z0 + z1MinusAlpha2);
+  final denomUpper = 1.0 - accel * (z0 + z1MinusAlpha2);
   final q2 = denomUpper != 0.0
       ? phi(z0 + (z0 + z1MinusAlpha2) / denomUpper).clamp(0.0, 1.0)
       : 1.0 - alpha / 2.0;

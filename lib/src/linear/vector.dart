@@ -91,8 +91,8 @@ class Vector<T> {
 
   /// Multiplies every element by [scalar].
   Vector<T> scale(T scalar) {
-    final f = type.field;
-    return Vector(tensor.unaryOperation((v) => f.mul(v, scalar)));
+    final field = type.field;
+    return Vector(tensor.unaryOperation((val) => field.mul(val, scalar)));
   }
 
   /// Computes the algebraic inner product (dot product) with [other].
@@ -134,19 +134,22 @@ class Vector<T> {
       if (res != null) return res as T;
     }
 
-    final f = type.field;
-    var sum = f.additiveIdentity;
+    final field = type.field;
+    var sum = field.additiveIdentity;
     final t1 = tensor;
     final t2 = other.tensor;
     if (t1.isContiguous && t2.isContiguous) {
       final d1 = t1.data, d2 = t2.data;
       final o1 = t1.offset, o2 = t2.offset;
       for (var i = 0; i < length; i++) {
-        sum = f.add(sum, f.mul(f.conjugate(d1[o1 + i]), d2[o2 + i]));
+        sum = field.add(
+          sum,
+          field.mul(field.conjugate(d1[o1 + i]), d2[o2 + i]),
+        );
       }
     } else {
       for (var i = 0; i < length; i++) {
-        sum = f.add(sum, f.mul(f.conjugate(this[i]), other[i]));
+        sum = field.add(sum, field.mul(field.conjugate(this[i]), other[i]));
       }
     }
     return sum;
@@ -154,38 +157,38 @@ class Vector<T> {
 
   /// Computes the outer product with [other], producing an [M x N] matrix.
   Matrix<T> outer(Vector<T> other) {
-    final m = length;
-    final n = other.length;
-    final f = type.field;
-    final res = Matrix<T>.filled(m, n, type.defaultValue, type: type);
-    for (var i = 0; i < m; i++) {
+    final rows = length;
+    final cols = other.length;
+    final field = type.field;
+    final res = Matrix<T>.filled(rows, cols, type.defaultValue, type: type);
+    for (var i = 0; i < rows; i++) {
       final xi = this[i];
-      for (var j = 0; j < n; j++) {
-        res.set(i, j, f.mul(xi, other[j]));
+      for (var j = 0; j < cols; j++) {
+        res.set(i, j, field.mul(xi, other[j]));
       }
     }
     return res;
   }
 
   /// Computes the $L_p$ norm of this vector.
-  double norm([num p = 2]) {
-    final f = type.field;
-    if (p == double.infinity) {
+  double norm([num pNorm = 2]) {
+    final field = type.field;
+    if (pNorm == double.infinity) {
       var maxVal = 0.0;
       for (var i = 0; i < length; i++) {
-        final val = f.norm(this[i]);
+        final val = field.norm(this[i]);
         if (val > maxVal) maxVal = val;
       }
       return maxVal;
     }
-    if (p == 1) {
+    if (pNorm == 1) {
       var sum = 0.0;
       for (var i = 0; i < length; i++) {
-        sum += f.norm(this[i]);
+        sum += field.norm(this[i]);
       }
       return sum;
     }
-    if (p == 2) {
+    if (pNorm == 2) {
       if (T == double && tensor.strides[0] > 0 && tensor.data is Float64List) {
         final res = HardwareManager.dnrm2(
           n: length,
@@ -208,16 +211,16 @@ class Vector<T> {
 
       var sumSq = 0.0;
       for (var i = 0; i < length; i++) {
-        final val = f.norm(this[i]);
+        final val = field.norm(this[i]);
         sumSq += val * val;
       }
       return math.sqrt(sumSq);
     }
     var sumP = 0.0;
     for (var i = 0; i < length; i++) {
-      sumP += math.pow(f.norm(this[i]), p);
+      sumP += math.pow(field.norm(this[i]), pNorm);
     }
-    return math.pow(sumP, 1.0 / p).toDouble();
+    return math.pow(sumP, 1.0 / pNorm).toDouble();
   }
 
   /// Adds scaled [other] vector in-place: $y \leftarrow y + \alpha \cdot x$.
@@ -262,9 +265,9 @@ class Vector<T> {
       );
       if (success) return;
     }
-    final f = type.field;
+    final field = type.field;
     for (var i = 0; i < length; i++) {
-      this[i] = f.add(this[i], f.mul(alpha, other[i]));
+      this[i] = field.add(this[i], field.mul(alpha, other[i]));
     }
   }
 
@@ -295,20 +298,20 @@ class Vector<T> {
       );
       if (success) return;
     }
-    final f = type.field;
+    final field = type.field;
     for (var i = 0; i < length; i++) {
-      this[i] = f.mul(this[i], scalar);
+      this[i] = field.mul(this[i], scalar);
     }
   }
 
   /// Returns the unit vector in the same direction.
   Vector<T> normalized() {
-    final n = norm();
-    if (n == 0.0) throw StateError('Cannot normalize zero vector');
-    final f = type.field;
-    final inv = f.div(
-      f.multiplicativeIdentity,
-      f.scale(f.multiplicativeIdentity, n),
+    final normVal = norm();
+    if (normVal == 0.0) throw StateError('Cannot normalize zero vector');
+    final field = type.field;
+    final inv = field.div(
+      field.multiplicativeIdentity,
+      field.scale(field.multiplicativeIdentity, normVal),
     );
     return scale(inv);
   }
@@ -337,10 +340,10 @@ class Vector<T> {
 
   /// Sum of all elements in this vector.
   T get sum {
-    final f = type.field;
-    var acc = f.additiveIdentity;
+    final field = type.field;
+    var acc = field.additiveIdentity;
     for (var i = 0; i < length; i++) {
-      acc = f.add(acc, this[i]);
+      acc = field.add(acc, this[i]);
     }
     return acc;
   }

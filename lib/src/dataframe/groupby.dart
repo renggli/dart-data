@@ -72,11 +72,12 @@ class GroupBy {
   DataFrame mean() {
     final numCols = dataFrame.columnNames
         .where(
-          (c) => !byColumns.contains(c) && dataFrame.column(c) is TypedSeries,
+          (col) =>
+              !byColumns.contains(col) && dataFrame.column(col) is TypedSeries,
         )
         .toList();
     return aggregate({
-      for (final c in numCols) c: [Agg.mean],
+      for (final col in numCols) col: [Agg.mean],
     });
   }
 
@@ -84,18 +85,19 @@ class GroupBy {
   DataFrame sum() {
     final numCols = dataFrame.columnNames
         .where(
-          (c) => !byColumns.contains(c) && dataFrame.column(c) is TypedSeries,
+          (col) =>
+              !byColumns.contains(col) && dataFrame.column(col) is TypedSeries,
         )
         .toList();
     return aggregate({
-      for (final c in numCols) c: [Agg.sum],
+      for (final col in numCols) col: [Agg.sum],
     });
   }
 
   /// Computes count of entries per group.
   DataFrame count() {
     final targetCols = dataFrame.columnNames
-        .where((c) => !byColumns.contains(c))
+        .where((col) => !byColumns.contains(col))
         .take(1)
         .toList();
     final col = targetCols.isNotEmpty ? targetCols.first : byColumns.first;
@@ -106,19 +108,19 @@ class GroupBy {
 
   void _buildGroups() {
     final keyCols = byColumns.map(dataFrame.column).toList();
-    for (var r = 0; r < dataFrame.rowCount; r++) {
-      final keyVals = [for (final c in keyCols) c[r]];
-      final keyStr = keyVals.map((v) => '$v').join('__#_#__');
+    for (var rowIdx = 0; rowIdx < dataFrame.rowCount; rowIdx++) {
+      final keyVals = [for (final col in keyCols) col[rowIdx]];
+      final keyStr = keyVals.map((val) => '$val').join('__#_#__');
       if (!_groups.containsKey(keyStr)) {
         _groups[keyStr] = [];
         _groupKeys[keyStr] = keyVals;
       }
-      _groups[keyStr]!.add(r);
+      _groups[keyStr]!.add(rowIdx);
     }
   }
 
   dynamic _computeAgg(List<dynamic> values, Agg agg) {
-    final nonNulls = values.where((v) => v != null).toList();
+    final nonNulls = values.where((val) => val != null).toList();
     switch (agg) {
       case Agg.count:
         return nonNulls.length;
@@ -128,40 +130,40 @@ class GroupBy {
         return nonNulls.isNotEmpty ? nonNulls.last : null;
       case Agg.sum:
         num total = 0;
-        for (final v in nonNulls) {
-          if (v is num) total += v;
+        for (final val in nonNulls) {
+          if (val is num) total += val;
         }
         return total;
       case Agg.mean:
         if (nonNulls.isEmpty) return null;
         num total = 0;
-        var c = 0;
-        for (final v in nonNulls) {
-          if (v is num) {
-            total += v;
-            c++;
+        var count = 0;
+        for (final val in nonNulls) {
+          if (val is num) {
+            total += val;
+            count++;
           }
         }
-        return c > 0 ? total.toDouble() / c : null;
+        return count > 0 ? total.toDouble() / count : null;
       case Agg.min:
         if (nonNulls.isEmpty) return null;
         var minVal = nonNulls.first as Comparable;
-        for (final v in nonNulls.skip(1)) {
-          if ((v as Comparable).compareTo(minVal) < 0) minVal = v;
+        for (final val in nonNulls.skip(1)) {
+          if ((val as Comparable).compareTo(minVal) < 0) minVal = val;
         }
         return minVal;
       case Agg.max:
         if (nonNulls.isEmpty) return null;
         var maxVal = nonNulls.first as Comparable;
-        for (final v in nonNulls.skip(1)) {
-          if ((v as Comparable).compareTo(maxVal) > 0) maxVal = v;
+        for (final val in nonNulls.skip(1)) {
+          if ((val as Comparable).compareTo(maxVal) > 0) maxVal = val;
         }
         return maxVal;
       case Agg.std:
         if (nonNulls.length <= 1) return 0.0;
         final nums = nonNulls
             .whereType<num>()
-            .map((e) => e.toDouble())
+            .map((element) => element.toDouble())
             .toList();
         if (nums.length <= 1) return 0.0;
         final mean = nums.reduce((a, b) => a + b) / nums.length;

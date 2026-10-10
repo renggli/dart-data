@@ -1,7 +1,7 @@
 import 'package:checks/checks.dart';
 import 'package:data/linear.dart';
 import 'package:data/type.dart';
-import 'package:test/scaffolding.dart';
+import 'package:test/test.dart';
 
 void main() {
   group('QR Decomposition', () {
@@ -15,11 +15,11 @@ void main() {
       final qr = a.qr;
       check(qr.isFullRank).isTrue();
 
-      final q = qr.q;
-      final r = qr.r;
+      final qMat = qr.q;
+      final rMat = qr.r;
 
       // Q must be orthogonal: Q^T * Q == I
-      final qTq = q.transposed * q;
+      final qTq = qMat.transposed * qMat;
       for (var i = 0; i < 3; i++) {
         for (var j = 0; j < 3; j++) {
           check(qTq.get(i, j)).isCloseTo(i == j ? 1.0 : 0.0, 1e-6);
@@ -29,12 +29,12 @@ void main() {
       // R must be upper triangular
       for (var i = 0; i < 3; i++) {
         for (var j = 0; j < i; j++) {
-          check(r.get(i, j)).equals(0.0);
+          check(rMat.get(i, j)).equals(0.0);
         }
       }
 
       // Q * R == A
-      final qrProd = q * r;
+      final qrProd = qMat * rMat;
       for (var i = 0; i < 3; i++) {
         for (var j = 0; j < 3; j++) {
           check(qrProd.get(i, j)).isCloseTo(a.get(i, j), 1e-6);

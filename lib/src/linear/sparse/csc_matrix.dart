@@ -58,9 +58,9 @@ class CscMatrix<T> implements LinearOperator<T> {
     }
     final start = colPointers[col];
     final end = colPointers[col + 1];
-    for (var p = start; p < end; p++) {
-      if (rowIndices[p] == row) return values[p];
-      if (rowIndices[p] > row) break;
+    for (var ptr = start; ptr < end; ptr++) {
+      if (rowIndices[ptr] == row) return values[ptr];
+      if (rowIndices[ptr] > row) break;
     }
     return type.field.additiveIdentity;
   }
@@ -72,15 +72,15 @@ class CscMatrix<T> implements LinearOperator<T> {
         'Vector length (${x.length}) must match colCount ($colCount)',
       );
     }
-    final f = type.field;
-    final res = Vector<T>.filled(rowCount, f.additiveIdentity, type: type);
+    final field = type.field;
+    final res = Vector<T>.filled(rowCount, field.additiveIdentity, type: type);
     for (var j = 0; j < colCount; j++) {
       final xj = x[j];
       final start = colPointers[j];
       final end = colPointers[j + 1];
-      for (var p = start; p < end; p++) {
-        final r = rowIndices[p];
-        res[r] = f.add(res[r], f.mul(values[p], xj));
+      for (var ptr = start; ptr < end; ptr++) {
+        final row = rowIndices[ptr];
+        res[row] = field.add(res[row], field.mul(values[ptr], xj));
       }
     }
     return res;
@@ -93,8 +93,8 @@ class CscMatrix<T> implements LinearOperator<T> {
         'Vector length (${x.length}) must match rowCount ($rowCount)',
       );
     }
-    final f = type.field;
-    final res = Vector<T>.filled(colCount, f.additiveIdentity, type: type);
+    final field = type.field;
+    final res = Vector<T>.filled(colCount, field.additiveIdentity, type: type);
     final xContig = x.tensor.isContiguous;
     final xData = x.tensor.data;
     final xOffset = x.tensor.offset;
@@ -102,17 +102,23 @@ class CscMatrix<T> implements LinearOperator<T> {
     for (var j = 0; j < colCount; j++) {
       final start = colPointers[j];
       final end = colPointers[j + 1];
-      var sum = f.additiveIdentity;
+      var sum = field.additiveIdentity;
       if (xContig) {
-        for (var p = start; p < end; p++) {
-          sum = f.add(
+        for (var ptr = start; ptr < end; ptr++) {
+          sum = field.add(
             sum,
-            f.mul(f.conjugate(values[p]), xData[xOffset + rowIndices[p]]),
+            field.mul(
+              field.conjugate(values[ptr]),
+              xData[xOffset + rowIndices[ptr]],
+            ),
           );
         }
       } else {
-        for (var p = start; p < end; p++) {
-          sum = f.add(sum, f.mul(f.conjugate(values[p]), x[rowIndices[p]]));
+        for (var ptr = start; ptr < end; ptr++) {
+          sum = field.add(
+            sum,
+            field.mul(field.conjugate(values[ptr]), x[rowIndices[ptr]]),
+          );
         }
       }
       res[j] = sum;
@@ -133,10 +139,10 @@ class CscMatrix<T> implements LinearOperator<T> {
     for (var j = 0; j < colCount; j++) {
       final start = colPointers[j];
       final end = colPointers[j + 1];
-      for (var p = start; p < end; p++) {
-        rIdx[k] = rowIndices[p];
+      for (var ptr = start; ptr < end; ptr++) {
+        rIdx[k] = rowIndices[ptr];
         cIdx[k] = j;
-        vals[k] = values[p];
+        vals[k] = values[ptr];
         k++;
       }
     }
@@ -165,8 +171,8 @@ class CscMatrix<T> implements LinearOperator<T> {
     for (var j = 0; j < colCount; j++) {
       final start = colPointers[j];
       final end = colPointers[j + 1];
-      for (var p = start; p < end; p++) {
-        res.set(rowIndices[p], j, values[p]);
+      for (var ptr = start; ptr < end; ptr++) {
+        res.set(rowIndices[ptr], j, values[ptr]);
       }
     }
     return res;

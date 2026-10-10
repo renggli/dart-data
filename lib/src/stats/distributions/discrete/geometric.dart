@@ -62,20 +62,20 @@ class GeometricDistribution extends DiscreteDistribution {
   }
 
   @override
-  int inverseCumulativeProbability(num p) {
-    InvalidProbability.check(p);
-    if (this.p == 1) return 0;
-    if (p == 0) return 0;
-    if (p == 1) return upperBound;
-    return (log(1 - p) / log(1 - this.p)).ceil() - 1;
+  int inverseCumulativeProbability(num probability) {
+    InvalidProbability.check(probability);
+    if (p == 1) return 0;
+    if (probability == 0) return 0;
+    if (probability == 1) return upperBound;
+    return (log(1 - probability) / log(1 - p)).ceil() - 1;
   }
 
   @override
   int sample({Random? random}) {
     if (p == 1) return 0;
-    final u = (random ?? _random).nextDouble();
-    if (u == 0) return 0;
-    return (log(u) / log(1 - p)).floor();
+    final uniform = (random ?? _random).nextDouble();
+    if (uniform == 0) return 0;
+    return (log(uniform) / log(1 - p)).floor();
   }
 
   @override

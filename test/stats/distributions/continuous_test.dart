@@ -2,7 +2,7 @@ import 'dart:math' as math;
 
 import 'package:checks/checks.dart';
 import 'package:data/stats.dart';
-import 'package:test/scaffolding.dart';
+import 'package:test/test.dart';
 
 void main() {
   group('continuous distributions', () {
@@ -128,9 +128,9 @@ void main() {
       check(distSmall.mode).equals(0.0);
 
       // Quantile roundtrip
-      const p = 0.95;
-      final q = dist.quantile(p);
-      check(dist.cdf(q)).isCloseTo(p, 1e-5);
+      const prob = 0.95;
+      final quant = dist.quantile(prob);
+      check(dist.cdf(quant)).isCloseTo(prob, 1e-5);
       check(() => dist.quantile(-0.1)).throws<InvalidProbability>();
 
       // Fit
@@ -178,9 +178,9 @@ void main() {
       check(distSmallD2.mode).equals(0.0);
 
       // Quantile roundtrip
-      const p = 0.90;
-      final q = dist.quantile(p);
-      check(dist.cdf(q)).isCloseTo(p, 1e-4);
+      const prob = 0.90;
+      final quant = dist.quantile(prob);
+      check(dist.cdf(quant)).isCloseTo(prob, 1e-4);
       check(() => dist.quantile(-0.1)).throws<InvalidProbability>();
 
       // Fit
@@ -265,16 +265,16 @@ void main() {
           .samples(random: math.Random(42))
           .take(10)
           .toList();
-      check(smallSamples.every((s) => s >= 0)).isTrue();
+      check(smallSamples.every((sample) => sample >= 0)).isTrue();
 
       // Standard constructor
       const distStd = GammaDistribution.shape(4.0);
       check(distStd.scale).equals(1.0);
 
       // Quantile roundtrip
-      const p = 0.8;
-      final q = dist.quantile(p);
-      check(dist.cdf(q)).isCloseTo(p, 1e-5);
+      const prob = 0.8;
+      final quant = dist.quantile(prob);
+      check(dist.cdf(quant)).isCloseTo(prob, 1e-5);
       check(() => dist.quantile(-0.1)).throws<InvalidProbability>();
 
       // Fit
@@ -342,9 +342,9 @@ void main() {
       check(dist.cdf(1.5)).equals(1.0);
 
       // Quantile roundtrip
-      const p = 0.75;
-      final q = dist.quantile(p);
-      check(dist.cdf(q)).isCloseTo(p, 1e-5);
+      const prob = 0.75;
+      final quant = dist.quantile(prob);
+      check(dist.cdf(quant)).isCloseTo(prob, 1e-5);
       check(() => dist.quantile(-0.1)).throws<InvalidProbability>();
 
       // Fit
@@ -453,14 +453,14 @@ void main() {
       check(distSmall4.skewness).isGreaterThan(0.0);
       check(distSmall4.excessKurtosis.isNaN).isTrue();
 
-      const p = 0.5;
-      final q = dist.quantile(p);
-      check(dist.cdf(q)).isCloseTo(p, 1e-5);
+      const prob = 0.5;
+      final quant = dist.quantile(prob);
+      check(dist.cdf(quant)).isCloseTo(prob, 1e-5);
       check(() => dist.quantile(-0.1)).throws<InvalidProbability>();
 
       // Samples
       final samples = dist.samples(random: math.Random(42)).take(50).toList();
-      check(samples.every((s) => s > 0)).isTrue();
+      check(samples.every((sample) => sample > 0)).isTrue();
 
       // Constructor validation
       check(() => InverseGammaDistribution(0.0, 1.0)).throws<AssertionError>();
@@ -534,7 +534,7 @@ void main() {
 
       // Samples
       final samples = dist.samples().take(10).toList();
-      check(samples.every((s) => s == 5.0)).isTrue();
+      check(samples.every((sample) => sample == 5.0)).isTrue();
 
       // Equality and toString
       check(dist == const DegenerateDistribution(5.0)).isTrue();
@@ -688,7 +688,7 @@ void main() {
 
       // Samples
       final samples = dist.samples(random: math.Random(42)).take(50).toList();
-      check(samples.every((s) => s >= 1.0)).isTrue();
+      check(samples.every((sample) => sample >= 1.0)).isTrue();
 
       // Constructor validation
       check(() => ParetoDistribution(0.0, 1.0)).throws<AssertionError>();
@@ -725,7 +725,7 @@ void main() {
 
       // Samples
       final samples = dist.samples(random: math.Random(42)).take(50).toList();
-      check(samples.every((s) => s >= 0.0)).isTrue();
+      check(samples.every((sample) => sample >= 0.0)).isTrue();
 
       // Constructor validation
       check(() => WeibullDistribution(0.0, 1.0)).throws<AssertionError>();

@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 
+import 'package:checks/checks.dart';
 import 'package:data/tensor.dart';
 import 'package:data/type.dart';
 import 'package:test/test.dart';
@@ -8,170 +9,170 @@ void main() {
   group('Layout', () {
     test('1D contiguous layout', () {
       final layout = Layout(shape: [5]);
-      expect(layout.rank, 1);
-      expect(layout.shape, [5]);
-      expect(layout.strides, [1]);
-      expect(layout.length, 5);
-      expect(layout.isContiguous, isTrue);
-      expect(layout.toIndex([3]), 3);
-      expect(layout.toKey(3), [3]);
+      check(layout.rank).equals(1);
+      check(layout.shape).deepEquals([5]);
+      check(layout.strides).deepEquals([1]);
+      check(layout.length).equals(5);
+      check(layout.isContiguous).isTrue();
+      check(layout.toIndex([3])).equals(3);
+      check(layout.toKey(3)).deepEquals([3]);
     });
 
     test('2D contiguous layout and indexing', () {
       final layout = Layout(shape: [2, 3]);
-      expect(layout.rank, 2);
-      expect(layout.strides, [3, 1]);
-      expect(layout.length, 6);
-      expect(layout.isContiguous, isTrue);
-      expect(layout.toIndex([1, 2]), 5);
-      expect(layout.toKey(5), [1, 2]);
+      check(layout.rank).equals(2);
+      check(layout.strides).deepEquals([3, 1]);
+      check(layout.length).equals(6);
+      check(layout.isContiguous).isTrue();
+      check(layout.toIndex([1, 2])).equals(5);
+      check(layout.toKey(5)).deepEquals([1, 2]);
     });
 
     test('transposed layout is non-contiguous', () {
       final layout = Layout(shape: [2, 3]);
       final transposed = layout.transpose([1, 0]);
-      expect(transposed.shape, [3, 2]);
-      expect(transposed.strides, [1, 3]);
-      expect(transposed.isContiguous, isFalse);
-      expect(transposed.toIndex([2, 1]), layout.toIndex([1, 2]));
+      check(transposed.shape).deepEquals([3, 2]);
+      check(transposed.strides).deepEquals([1, 3]);
+      check(transposed.isContiguous).isFalse();
+      check(transposed.toIndex([2, 1])).equals(layout.toIndex([1, 2]));
     });
 
     test('reshape layout', () {
       final layout = Layout(shape: [2, 3]);
       final reshaped = layout.reshape([6]);
-      expect(reshaped.shape, [6]);
-      expect(reshaped.strides, [1]);
-      expect(reshaped.isContiguous, isTrue);
+      check(reshaped.shape).deepEquals([6]);
+      check(reshaped.strides).deepEquals([1]);
+      check(reshaped.isContiguous).isTrue();
     });
 
     test('broadcast layout', () {
       final layout1 = Layout(shape: [1, 3]);
       final layout2 = Layout(shape: [4, 1]);
       final (b1, b2) = layout1.broadcast(layout2);
-      expect(b1.shape, [4, 3]);
-      expect(b1.strides, [0, 1]);
-      expect(b1.isContiguous, isFalse);
-      expect(b2.shape, [4, 3]);
-      expect(b2.strides, [1, 0]);
+      check(b1.shape).deepEquals([4, 3]);
+      check(b1.strides).deepEquals([0, 1]);
+      check(b1.isContiguous).isFalse();
+      check(b2.shape).deepEquals([4, 3]);
+      check(b2.strides).deepEquals([1, 0]);
     });
 
     test('flip and slice layout', () {
       final layout = Layout(shape: [3, 4]);
       final flipped = layout.flip(axis: 0);
-      expect(flipped.shape, [3, 4]);
-      expect(flipped.toIndex([0, 0]), 8);
+      check(flipped.shape).deepEquals([3, 4]);
+      check(flipped.toIndex([0, 0])).equals(8);
 
       final sliced = layout.getRange(axis: 0, start: 1, end: 3);
-      expect(sliced.shape, [2, 4]);
-      expect(sliced.toIndex([0, 0]), 4);
+      check(sliced.shape).deepEquals([2, 4]);
+      check(sliced.toIndex([0, 0])).equals(4);
     });
 
     test('rank 0 scalar layout and toString', () {
       final scalarLayout = Layout(shape: []);
-      expect(scalarLayout.rank, 0);
-      expect(scalarLayout.length, 1);
-      expect(scalarLayout.keys.toList(), [<int>[]]);
-      expect(scalarLayout.indices.toList(), [0]);
-      expect(scalarLayout.toString(), contains('Layout(rank: 0'));
+      check(scalarLayout.rank).equals(0);
+      check(scalarLayout.length).equals(1);
+      check(scalarLayout.keys.toList()).deepEquals([<int>[]]);
+      check(scalarLayout.indices.toList()).deepEquals([0]);
+      check(scalarLayout.toString()).contains('Layout(rank: 0');
     });
 
     test('layout error validations: toIndex, toKey, transpose, reshape, broadcast, getRange', () {
       final layout2D = Layout(shape: [2, 3]);
 
       // toIndex errors
-      expect(() => layout2D.toIndex([0]), throwsArgumentError);
-      expect(() => layout2D.toIndex([0, 5]), throwsRangeError);
-      expect(() => layout2D.toIndex([-5, 0]), throwsRangeError);
+      check(() => layout2D.toIndex([0])).throws<ArgumentError>();
+      check(() => layout2D.toIndex([0, 5])).throws<RangeError>();
+      check(() => layout2D.toIndex([-5, 0])).throws<RangeError>();
 
       // toKey error
-      expect(() => layout2D.toKey(-1), throwsRangeError);
-      expect(() => layout2D.toKey(10), throwsRangeError);
+      check(() => layout2D.toKey(-1)).throws<RangeError>();
+      check(() => layout2D.toKey(10)).throws<RangeError>();
 
       // transpose error
-      expect(() => layout2D.transpose([0]), throwsArgumentError);
+      check(() => layout2D.transpose([0])).throws<ArgumentError>();
 
       // reshape errors and inference
       final inferred = layout2D.reshape([-1, 2]);
-      expect(inferred.shape, [3, 2]);
+      check(inferred.shape).deepEquals([3, 2]);
 
-      expect(() => layout2D.reshape([-1, -1]), throwsArgumentError);
-      expect(() => layout2D.reshape([-2, 3]), throwsArgumentError);
-      expect(
-        () => layout2D.reshape([-1, 4]),
-        throwsArgumentError,
-      ); // 6 % 4 != 0
-      expect(
-        () => layout2D.reshape([2, 4]),
-        throwsArgumentError,
-      ); // length mismatch
+      check(() => layout2D.reshape([-1, -1])).throws<ArgumentError>();
+      check(() => layout2D.reshape([-2, 3])).throws<ArgumentError>();
+      check(() => layout2D.reshape([-1, 4]))
+          .throws<ArgumentError>(); // 6 % 4 != 0
+      check(() => layout2D.reshape([2, 4]))
+          .throws<ArgumentError>(); // length mismatch
 
       final transposed = layout2D.transpose();
-      expect(() => transposed.reshape([6]), throwsStateError); // non-contiguous
+      check(() => transposed.reshape([6]))
+          .throws<StateError>(); // non-contiguous
 
       // flip error
-      expect(() => layout2D.flip(axis: 5), throwsRangeError);
+      check(() => layout2D.flip(axis: 5)).throws<RangeError>();
 
       // broadcast error
       final incompatible = Layout(shape: [3, 2]);
-      expect(() => layout2D.broadcast(incompatible), throwsArgumentError);
+      check(() => layout2D.broadcast(incompatible)).throws<ArgumentError>();
 
       // getRange errors
-      expect(() => layout2D.getRange(axis: 5), throwsRangeError);
-      expect(() => layout2D.getRange(axis: 0, step: 0), throwsArgumentError);
-      expect(() => layout2D.getRange(axis: 0, start: -1), throwsRangeError);
-      expect(() => layout2D.getRange(axis: 0, end: 10), throwsRangeError);
+      check(() => layout2D.getRange(axis: 5)).throws<RangeError>();
+      check(() => layout2D.getRange(axis: 0, step: 0)).throws<ArgumentError>();
+      check(() => layout2D.getRange(axis: 0, start: -1)).throws<RangeError>();
+      check(() => layout2D.getRange(axis: 0, end: 10)).throws<RangeError>();
     });
   });
 
   group('Tensor creation and indexing', () {
     test('filled', () {
-      final t = Tensor<double>.filled(42.0, shape: [2, 2]);
-      expect(t.shape, [2, 2]);
-      expect(t.length, 4);
-      expect(t.getValue([0, 0]), 42.0);
-      expect(t.getValue([1, 1]), 42.0);
+      final tensor = Tensor<double>.filled(42.0, shape: [2, 2]);
+      check(tensor.shape).deepEquals([2, 2]);
+      check(tensor.length).equals(4);
+      check(tensor.getValue([0, 0])).equals(42.0);
+      check(tensor.getValue([1, 1])).equals(42.0);
     });
 
     test('generate', () {
-      final t = Tensor<int>.generate(
+      final tensor = Tensor<int>.generate(
         (key) => key[0] * 10 + key[1],
         shape: [2, 3],
         type: DataType.int32,
       );
-      expect(t.getValue([0, 0]), 0);
-      expect(t.getValue([0, 2]), 2);
-      expect(t.getValue([1, 0]), 10);
-      expect(t.getValue([1, 2]), 12);
+      check(tensor.getValue([0, 0])).equals(0);
+      check(tensor.getValue([0, 2])).equals(2);
+      check(tensor.getValue([1, 0])).equals(10);
+      check(tensor.getValue([1, 2])).equals(12);
     });
 
     test('fromIterable and fromObject', () {
       final t1 = Tensor<int>.fromIterable([1, 2, 3, 4], shape: [2, 2]);
-      expect(t1.shape, [2, 2]);
-      expect(t1.getValue([1, 0]), 3);
+      check(t1.shape).deepEquals([2, 2]);
+      check(t1.getValue([1, 0])).equals(3);
 
       final t2 = Tensor<int>.fromObject([
         [1, 2],
         [3, 4],
       ]);
-      expect(t2.shape, [2, 2]);
-      expect(t2.getValue([0, 1]), 2);
-      expect(t2.toNestedList(), [
+      check(t2.shape).deepEquals([2, 2]);
+      check(t2.getValue([0, 1])).equals(2);
+      check(t2.toNestedList() as List).deepEquals([
         [1, 2],
         [3, 4],
       ]);
     });
 
     test('slicing operator[]', () {
-      final t = Tensor<int>.fromIterable([1, 2, 3, 4, 5, 6], shape: [2, 3]);
-      final row0 = t[0];
-      expect(row0.shape, [3]);
-      expect(row0.getValue([0]), 1);
-      expect(row0.getValue([2]), 3);
+      final tensor = Tensor<int>.fromIterable(
+        [1, 2, 3, 4, 5, 6],
+        shape: [2, 3],
+      );
+      final row0 = tensor[0];
+      check(row0.shape).deepEquals([3]);
+      check(row0.getValue([0])).equals(1);
+      check(row0.getValue([2])).equals(3);
 
-      final row1 = t[1];
-      expect(row1.shape, [3]);
-      expect(row1.getValue([0]), 4);
-      expect(row1.getValue([2]), 6);
+      final row1 = tensor[1];
+      check(row1.shape).deepEquals([3]);
+      check(row1.getValue([0])).equals(4);
+      check(row1.getValue([2])).equals(6);
     });
   });
 
@@ -187,16 +188,16 @@ void main() {
       );
 
       final sum = a + b;
-      expect(sum.toFlatList(), [11.0, 22.0, 33.0, 44.0]);
+      check(sum.toFlatList()).deepEquals([11.0, 22.0, 33.0, 44.0]);
 
       final diff = b - a;
-      expect(diff.toFlatList(), [9.0, 18.0, 27.0, 36.0]);
+      check(diff.toFlatList()).deepEquals([9.0, 18.0, 27.0, 36.0]);
 
       final prod = a * b;
-      expect(prod.toFlatList(), [10.0, 40.0, 90.0, 160.0]);
+      check(prod.toFlatList()).deepEquals([10.0, 40.0, 90.0, 160.0]);
 
       final div = b / a;
-      expect(div.toFlatList(), [10.0, 10.0, 10.0, 10.0]);
+      check(div.toFlatList()).deepEquals([10.0, 10.0, 10.0, 10.0]);
     });
 
     test('broadcasting operations', () {
@@ -207,14 +208,14 @@ void main() {
       final row = Tensor<double>.fromIterable([10.0, 20.0], shape: [1, 2]);
 
       final res = a + row;
-      expect(res.shape, [2, 2]);
-      expect(res.toFlatList(), [11.0, 22.0, 13.0, 24.0]);
+      check(res.shape).deepEquals([2, 2]);
+      check(res.toFlatList()).deepEquals([11.0, 22.0, 13.0, 24.0]);
     });
 
     test('element-wise unary operations', () {
       final a = Tensor<double>.fromIterable([1.0, 4.0, 9.0, 16.0], shape: [4]);
-      expect(a.sqrt().toFlatList(), [1.0, 2.0, 3.0, 4.0]);
-      expect((-a).toFlatList(), [-1.0, -4.0, -9.0, -16.0]);
+      check(a.sqrt().toFlatList()).deepEquals([1.0, 2.0, 3.0, 4.0]);
+      check((-a).toFlatList()).deepEquals([-1.0, -4.0, -9.0, -16.0]);
     });
 
     test('reductions: sum, mean, min, max, var, std, norm', () {
@@ -224,81 +225,81 @@ void main() {
       );
 
       final totalSum = a.sum();
-      expect(totalSum.shape, <int>[]);
-      expect(totalSum.getValue([]), 21.0);
+      check(totalSum.shape).deepEquals(<int>[]);
+      check(totalSum.getValue([])).equals(21.0);
 
       final totalSumKeep = a.sum(keepDims: true);
-      expect(totalSumKeep.shape, [1, 1]);
-      expect(totalSumKeep.getValue([0, 0]), 21.0);
+      check(totalSumKeep.shape).deepEquals([1, 1]);
+      check(totalSumKeep.getValue([0, 0])).equals(21.0);
 
       final rowSum = a.sum(axis: 0);
-      expect(rowSum.shape, [3]);
-      expect(rowSum.toFlatList(), [5.0, 7.0, 9.0]);
+      check(rowSum.shape).deepEquals([3]);
+      check(rowSum.toFlatList()).deepEquals([5.0, 7.0, 9.0]);
 
       final colSum = a.sum(axis: 1);
-      expect(colSum.shape, [2]);
-      expect(colSum.toFlatList(), [6.0, 15.0]);
+      check(colSum.shape).deepEquals([2]);
+      check(colSum.toFlatList()).deepEquals([6.0, 15.0]);
 
       final negAxisSum = a.sum(axis: -1, keepDims: true);
-      expect(negAxisSum.shape, [2, 1]);
-      expect(negAxisSum.toFlatList(), [6.0, 15.0]);
+      check(negAxisSum.shape).deepEquals([2, 1]);
+      check(negAxisSum.toFlatList()).deepEquals([6.0, 15.0]);
 
       // Target with and without memory hazard
       final targetSum = Tensor<double>.filled(0.0, shape: [2]);
       a.sum(axis: 1, target: targetSum);
-      expect(targetSum.toFlatList(), [6.0, 15.0]);
+      check(targetSum.toFlatList()).deepEquals([6.0, 15.0]);
 
       final meanVal = a.mean();
-      expect(meanVal.getValue([]), 3.5);
+      check(meanVal.getValue([])).equals(3.5);
       final meanAxis = a.mean(axis: 0, keepDims: true);
-      expect(meanAxis.shape, [1, 3]);
-      expect(meanAxis.toFlatList(), [2.5, 3.5, 4.5]);
+      check(meanAxis.shape).deepEquals([1, 3]);
+      check(meanAxis.toFlatList()).deepEquals([2.5, 3.5, 4.5]);
 
       final minVal = a.min();
-      expect(minVal.getValue([]), 1.0);
+      check(minVal.getValue([])).equals(1.0);
       final minAxis = a.min(axis: 1, keepDims: true);
-      expect(minAxis.shape, [2, 1]);
-      expect(minAxis.toFlatList(), [1.0, 4.0]);
+      check(minAxis.shape).deepEquals([2, 1]);
+      check(minAxis.toFlatList()).deepEquals([1.0, 4.0]);
 
       final maxVal = a.max();
-      expect(maxVal.getValue([]), 6.0);
+      check(maxVal.getValue([])).equals(6.0);
       final maxAxis = a.max(axis: 0);
-      expect(maxAxis.toFlatList(), [4.0, 5.0, 6.0]);
+      check(maxAxis.toFlatList()).deepEquals([4.0, 5.0, 6.0]);
 
       // Variance and Standard Deviation
-      final v = a.var_();
-      expect(v.getValue([]), closeTo(35.0 / 12.0, 1e-4));
-      final s = a.std();
-      expect(s.getValue([]), closeTo(math.sqrt(35.0 / 12.0), 1e-4));
+      final variance = a.var_();
+      check(variance.getValue([])).isCloseTo(35.0 / 12.0, 1e-4);
+      final stdDev = a.std();
+      check(stdDev.getValue([])).isCloseTo(math.sqrt(35.0 / 12.0), 1e-4);
 
       final vAxis = a.var_(axis: 1, ddof: 1);
-      expect(vAxis.shape, [2]);
-      expect(vAxis.toFlatList(), [1.0, 1.0]);
+      check(vAxis.shape).deepEquals([2]);
+      check(vAxis.toFlatList()).deepEquals([1.0, 1.0]);
 
       // Norms
-      expect(a.norm(1), 21.0);
-      expect(a.norm(2), closeTo(math.sqrt(91.0), 1e-6));
-      expect(a.norm(3), closeTo(math.pow(441.0, 1.0 / 3.0), 1e-4));
-      expect(a.norm(double.infinity), 6.0);
+      check(a.norm(1)).equals(21.0);
+      check(a.norm(2)).isCloseTo(math.sqrt(91.0), 1e-6);
+      check(a.norm(3)).isCloseTo(math.pow(441.0, 1.0 / 3.0), 1e-4);
+      check(a.norm(double.infinity)).equals(6.0);
 
       final empty = Tensor<double>.fromIterable([]);
-      expect(empty.norm(), 0.0);
-      expect(empty.mean, throwsStateError);
-      expect(empty.min, throwsStateError);
-      expect(empty.max, throwsStateError);
-      expect(() => a.var_(ddof: 6), throwsStateError);
+      check(empty.norm()).equals(0.0);
+      check(empty.mean).throws<StateError>();
+      check(empty.min).throws<StateError>();
+      check(empty.max).throws<StateError>();
+      check(() => a.var_(ddof: 6)).throws<StateError>();
 
       // Non-contiguous reduction (transposed tensor)
       final transposed = a.transpose();
-      expect(transposed.layout.isContiguous, isFalse);
-      expect(transposed.sum().getValue([]), 21.0);
-      expect(transposed.sum(axis: 0).toFlatList(), [6.0, 15.0]);
+      check(transposed.layout.isContiguous).isFalse();
+      check(transposed.sum().getValue([])).equals(21.0);
+      check(transposed.sum(axis: 0).toFlatList()).deepEquals([6.0, 15.0]);
     });
 
     test('argmin and argmax', () {
       final a = Tensor<int>.fromIterable([10, 5, 20, 15], shape: [4]);
-      expect(a.argmin().getValue([]), 1);
-      expect(a.argmax().getValue([]), 2);
+      check(a.argmin().getValue([])).equals(1);
+      check(a.argmax().getValue([])).equals(2);
 
       final m = Tensor<int>.fromIterable(
         [10, 20, 30, 5, 50, 15],
@@ -306,19 +307,19 @@ void main() {
       );
 
       final min0 = m.argmin(axis: 0);
-      expect(min0.shape, [3]);
-      expect(min0.toFlatList(), [1, 0, 1]);
+      check(min0.shape).deepEquals([3]);
+      check(min0.toFlatList()).deepEquals([1, 0, 1]);
 
       final max1 = m.argmax(axis: 1, keepDims: true);
-      expect(max1.shape, [2, 1]);
-      expect(max1.toFlatList(), [2, 1]);
+      check(max1.shape).deepEquals([2, 1]);
+      check(max1.toFlatList()).deepEquals([2, 1]);
 
       final maxNeg = m.argmax(axis: -1);
-      expect(maxNeg.shape, [2]);
-      expect(maxNeg.toFlatList(), [2, 1]);
+      check(maxNeg.shape).deepEquals([2]);
+      check(maxNeg.toFlatList()).deepEquals([2, 1]);
 
-      expect(() => m.argmin(axis: 5), throwsRangeError);
-      expect(() => Tensor<int>.fromIterable([]).argmin(), throwsStateError);
+      check(() => m.argmin(axis: 5)).throws<RangeError>();
+      check(() => Tensor<int>.fromIterable([]).argmin()).throws<StateError>();
     });
 
     test('unary and binary operations with hazards and target shapes', () {
@@ -327,22 +328,20 @@ void main() {
         shape: [2, 2],
       );
       final wrongTarget = Tensor<double>.filled(0.0, shape: [3]);
-      expect(
-        () => a.unaryOperation((x) => x, target: wrongTarget),
-        throwsArgumentError,
-      );
+      check(() => a.unaryOperation((x) => x, target: wrongTarget))
+          .throws<ArgumentError>();
 
       // Binary operation with target
       final target = Tensor<double>.filled(0.0, shape: [2, 2]);
       a.binaryOperation(a, (x, y) => x + y, target: target);
-      expect(target.toFlatList(), [2.0, 4.0, 6.0, 8.0]);
+      check(target.toFlatList()).deepEquals([2.0, 4.0, 6.0, 8.0]);
 
       // Broadcasting binary operation: [2, 1] + [1, 2] -> [2, 2]
       final col = Tensor<double>.fromIterable([10.0, 20.0], shape: [2, 1]);
       final row = Tensor<double>.fromIterable([1.0, 2.0], shape: [1, 2]);
       final broadcasted = col + row;
-      expect(broadcasted.shape, [2, 2]);
-      expect(broadcasted.toNestedList(), [
+      check(broadcasted.shape).deepEquals([2, 2]);
+      check(broadcasted.toNestedList() as List).deepEquals([
         [11.0, 12.0],
         [21.0, 22.0],
       ]);
@@ -350,7 +349,7 @@ void main() {
       // In-place unary operation with hazard (transposed view into itself)
       final transposed = a.transpose();
       transposed.unaryOperation((x) => x * 2, target: transposed);
-      expect(a.toFlatList(), [2.0, 4.0, 6.0, 8.0]);
+      check(a.toFlatList()).deepEquals([2.0, 4.0, 6.0, 8.0]);
     });
   });
 
@@ -371,9 +370,9 @@ void main() {
       final a = Tensor<double>.fromIterable([1, 2, 3, 4, 5, 6], shape: [2, 3]);
       final b = Tensor<double>.fromIterable([7, 8, 9, 1, 2, 3], shape: [3, 2]);
 
-      final c = a.matmul(b);
-      expect(c.shape, [2, 2]);
-      expect(c.toNestedList(), [
+      final product = a.matmul(b);
+      check(product.shape).deepEquals([2, 2]);
+      check(product.toNestedList() as List).deepEquals([
         [31.0, 19.0],
         [85.0, 55.0],
       ]);
@@ -394,9 +393,9 @@ void main() {
         shape: [2, 2, 2],
       );
 
-      final c = a.matmul(b);
-      expect(c.shape, [2, 2, 2]);
-      expect(c.toNestedList(), [
+      final product = a.matmul(b);
+      check(product.shape).deepEquals([2, 2, 2]);
+      check(product.toNestedList() as List).deepEquals([
         [
           [3.0, 4.0],
           [5.0, 6.0],
@@ -415,15 +414,15 @@ void main() {
       final b = Tensor<int>.fromIterable([3, 4], shape: [1, 2]);
 
       final concat0 = a.concatenate(b, axis: 0);
-      expect(concat0.shape, [2, 2]);
-      expect(concat0.toNestedList(), [
+      check(concat0.shape).deepEquals([2, 2]);
+      check(concat0.toNestedList() as List).deepEquals([
         [1, 2],
         [3, 4],
       ]);
 
       final concat1 = a.concatenate(b, axis: 1);
-      expect(concat1.shape, [1, 4]);
-      expect(concat1.toNestedList(), [
+      check(concat1.shape).deepEquals([1, 4]);
+      check(concat1.toNestedList() as List).deepEquals([
         [1, 2, 3, 4],
       ]);
     });
@@ -433,8 +432,8 @@ void main() {
       final b = Tensor<int>.fromIterable([3, 4], shape: [2]);
 
       final stacked = a.stack(b, axis: 0);
-      expect(stacked.shape, [2, 2]);
-      expect(stacked.toNestedList(), [
+      check(stacked.shape).deepEquals([2, 2]);
+      check(stacked.toNestedList() as List).deepEquals([
         [1, 2],
         [3, 4],
       ]);
@@ -443,8 +442,8 @@ void main() {
     test('tile', () {
       final a = Tensor<int>.fromIterable([1, 2, 3, 4], shape: [2, 2]);
       final tiled = a.tile([2, 1]);
-      expect(tiled.shape, [4, 2]);
-      expect(tiled.toNestedList(), [
+      check(tiled.shape).deepEquals([4, 2]);
+      check(tiled.toNestedList() as List).deepEquals([
         [1, 2],
         [3, 4],
         [1, 2],
@@ -458,8 +457,8 @@ void main() {
         [1, 1],
         [1, 1],
       ], fillValue: 0);
-      expect(padded.shape, [4, 4]);
-      expect(padded.toNestedList(), [
+      check(padded.shape).deepEquals([4, 4]);
+      check(padded.toNestedList() as List).deepEquals([
         [0, 0, 0, 0],
         [0, 1, 2, 0],
         [0, 3, 4, 0],
@@ -476,27 +475,27 @@ void main() {
       );
       // Slicing shares the same underlying buffer
       final row0 = a[0];
-      expect(row0.sharesMemoryWith(a), isTrue);
+      check(row0.sharesMemoryWith(a)).isTrue();
 
       // Binary operation between row0 and a does not corrupt results due to aliasing
       final result = a + row0;
-      expect(result.shape, [2, 2]);
-      expect(result.toFlatList(), [2.0, 4.0, 4.0, 6.0]);
+      check(result.shape).deepEquals([2, 2]);
+      check(result.toFlatList()).deepEquals([2.0, 4.0, 4.0, 6.0]);
     });
 
     test('empty tensor creation from iterable and object', () {
       final empty1 = Tensor<int>.fromIterable([]);
-      expect(empty1.length, 0);
-      expect(empty1.shape, [0]);
-      expect(empty1.toFlatList(), isEmpty);
+      check(empty1.length).equals(0);
+      check(empty1.shape).deepEquals([0]);
+      check(empty1.toFlatList()).isEmpty();
 
       final empty2 = Tensor<int>.fromObject(<int>[]);
-      expect(empty2.length, 0);
-      expect(empty2.shape, [0]);
-      expect(empty2.toFlatList(), isEmpty);
+      check(empty2.length).equals(0);
+      check(empty2.shape).deepEquals([0]);
+      check(empty2.toFlatList()).isEmpty();
 
-      expect(Layout.empty.length, 0);
-      expect(Layout.empty.shape, [0]);
+      check(Layout.empty.length).equals(0);
+      check(Layout.empty.shape).deepEquals([0]);
     });
 
     test('shifted overlapping slice copy does not corrupt memory', () {
@@ -505,7 +504,7 @@ void main() {
       final dst = a.getRange(axis: 0, start: 1, end: 5);
 
       src.copy(target: dst);
-      expect(a.toFlatList(), [1, 1, 2, 3, 4]);
+      check(a.toFlatList()).deepEquals([1, 1, 2, 3, 4]);
     });
 
     test('matmul into aliased operand target computes safely', () {
@@ -520,7 +519,7 @@ void main() {
       final expected = a.matmul(b);
 
       a.matmul(b, target: a);
-      expect(a.toFlatList(), expected.toFlatList());
+      check(a.toFlatList()).deepEquals(expected.toFlatList());
     });
   });
 
@@ -530,37 +529,35 @@ void main() {
         [-1.0, 2.0, -3.0, 4.0],
         shape: [2, 2],
       );
-      expect(a.abs().toFlatList(), [1.0, 2.0, 3.0, 4.0]);
-      expect((-a).toFlatList(), [1.0, -2.0, 3.0, -4.0]);
+      check(a.abs().toFlatList()).deepEquals([1.0, 2.0, 3.0, 4.0]);
+      check((-a).toFlatList()).deepEquals([1.0, -2.0, 3.0, -4.0]);
 
       final pos = Tensor<double>.fromIterable(
         [1.0, math.e, math.e * math.e, 1.0],
         shape: [4],
       );
-      expect(pos.log().toFlatList()[0], closeTo(0.0, 1e-6));
-      expect(pos.log().toFlatList()[1], closeTo(1.0, 1e-6));
-      expect(pos.log().toFlatList()[2], closeTo(2.0, 1e-6));
+      check(pos.log().toFlatList()[0]).isCloseTo(0.0, 1e-6);
+      check(pos.log().toFlatList()[1]).isCloseTo(1.0, 1e-6);
+      check(pos.log().toFlatList()[2]).isCloseTo(2.0, 1e-6);
 
       final zeros = Tensor<double>.fromIterable([0.0, 1.0, 2.0], shape: [3]);
-      expect(zeros.exp().toFlatList()[0], closeTo(1.0, 1e-6));
-      expect(zeros.exp().toFlatList()[1], closeTo(math.e, 1e-6));
+      check(zeros.exp().toFlatList()[0]).isCloseTo(1.0, 1e-6);
+      check(zeros.exp().toFlatList()[1]).isCloseTo(math.e, 1e-6);
 
       // Non-contiguous unary operation without target
       final transposed = a.transpose();
-      expect(transposed.layout.isContiguous, isFalse);
-      expect(transposed.abs().toFlatList(), [1.0, 3.0, 2.0, 4.0]);
+      check(transposed.layout.isContiguous).isFalse();
+      check(transposed.abs().toFlatList()).deepEquals([1.0, 3.0, 2.0, 4.0]);
 
       // Unary operation with target
       final target = Tensor<double>.filled(0.0, shape: [2, 2]);
       a.unaryOperation((x) => x.abs(), target: target);
-      expect(target.toFlatList(), [1.0, 2.0, 3.0, 4.0]);
+      check(target.toFlatList()).deepEquals([1.0, 2.0, 3.0, 4.0]);
 
       // Target shape mismatch throws
       final wrongTarget = Tensor<double>.filled(0.0, shape: [4]);
-      expect(
-        () => a.unaryOperation((x) => x.abs(), target: wrongTarget),
-        throwsArgumentError,
-      );
+      check(() => a.unaryOperation((x) => x.abs(), target: wrongTarget))
+          .throws<ArgumentError>();
 
       // Non-contiguous target
       final targetNonContig = Tensor<double>.filled(
@@ -568,14 +565,14 @@ void main() {
         shape: [2, 2],
       ).transpose();
       a.unaryOperation((x) => x.abs(), target: targetNonContig);
-      expect(targetNonContig.toFlatList(), [1.0, 2.0, 3.0, 4.0]);
+      check(targetNonContig.toFlatList()).deepEquals([1.0, 2.0, 3.0, 4.0]);
 
       // Memory hazard: unaryOperation into overlapping slice
       final slice = Tensor<double>.fromIterable([1.0, 2.0, 3.0, 4.0, 5.0]);
       final sSrc = slice.getRange(axis: 0, start: 0, end: 4);
       final sDst = slice.getRange(axis: 0, start: 1, end: 5);
       sSrc.unaryOperation((x) => x * 10, target: sDst);
-      expect(slice.toFlatList(), [1.0, 10.0, 20.0, 30.0, 40.0]);
+      check(slice.toFlatList()).deepEquals([1.0, 10.0, 20.0, 30.0, 40.0]);
     });
 
     test('binary operations: arithmetic, comparisons, target & hazard', () {
@@ -588,19 +585,19 @@ void main() {
         shape: [2, 2],
       );
 
-      expect((a + b).toFlatList(), [11.0, 22.0, 33.0, 44.0]);
-      expect((a - b).toFlatList(), [9.0, 18.0, 27.0, 36.0]);
-      expect((a * b).toFlatList(), [10.0, 40.0, 90.0, 160.0]);
-      expect((a / b).toFlatList(), [10.0, 10.0, 10.0, 10.0]);
+      check((a + b).toFlatList()).deepEquals([11.0, 22.0, 33.0, 44.0]);
+      check((a - b).toFlatList()).deepEquals([9.0, 18.0, 27.0, 36.0]);
+      check((a * b).toFlatList()).deepEquals([10.0, 40.0, 90.0, 160.0]);
+      check((a / b).toFlatList()).deepEquals([10.0, 10.0, 10.0, 10.0]);
 
       // Comparisons
       final c1 = Tensor<int>.fromIterable([1, 5, 3]);
       final c2 = Tensor<int>.fromIterable([2, 4, 3]);
-      expect((c1 < c2).toFlatList(), [true, false, false]);
-      expect((c1 <= c2).toFlatList(), [true, false, true]);
-      expect((c1 > c2).toFlatList(), [false, true, false]);
-      expect((c1 >= c2).toFlatList(), [false, true, true]);
-      expect(c1.equalTo(c2).toFlatList(), [false, false, true]);
+      check((c1 < c2).toFlatList()).deepEquals([true, false, false]);
+      check((c1 <= c2).toFlatList()).deepEquals([true, false, true]);
+      check((c1 > c2).toFlatList()).deepEquals([false, true, false]);
+      check((c1 >= c2).toFlatList()).deepEquals([false, true, true]);
+      check(c1.equalTo(c2).toFlatList()).deepEquals([false, false, true]);
 
       // Fast contiguous path with target
       final targetContig = Tensor<double>.filled(0.0, shape: [2, 2]);
@@ -609,7 +606,7 @@ void main() {
         (x, y) => x + y,
         target: targetContig,
       );
-      expect(targetContig.toFlatList(), [11.0, 22.0, 33.0, 44.0]);
+      check(targetContig.toFlatList()).deepEquals([11.0, 22.0, 33.0, 44.0]);
 
       // Broadcasting with non-hazard target
       final row = Tensor<double>.fromIterable([100.0, 200.0], shape: [1, 2]);
@@ -619,7 +616,8 @@ void main() {
         (x, y) => x + y,
         target: targetBroadcast,
       );
-      expect(targetBroadcast.toFlatList(), [110.0, 220.0, 130.0, 240.0]);
+      check(targetBroadcast.toFlatList())
+          .deepEquals([110.0, 220.0, 130.0, 240.0]);
 
       // Broadcasting with memory hazard target
       final targetHazard = a;
@@ -628,16 +626,16 @@ void main() {
         (x, y) => x + y,
         target: targetHazard,
       );
-      expect(targetHazard.toFlatList(), [110.0, 220.0, 130.0, 240.0]);
+      check(targetHazard.toFlatList()).deepEquals([110.0, 220.0, 130.0, 240.0]);
     });
 
     test('logical operations on Tensor<bool>', () {
       final t1 = Tensor<bool>.fromIterable([true, true, false, false]);
       final t2 = Tensor<bool>.fromIterable([true, false, true, false]);
 
-      expect((~t1).toFlatList(), [false, false, true, true]);
-      expect((t1 & t2).toFlatList(), [true, false, false, false]);
-      expect((t1 | t2).toFlatList(), [true, true, true, false]);
+      check((~t1).toFlatList()).deepEquals([false, false, true, true]);
+      check((t1 & t2).toFlatList()).deepEquals([true, false, false, false]);
+      check((t1 | t2).toFlatList()).deepEquals([true, true, true, false]);
     });
 
     test('batched matmul and error cases', () {
@@ -663,8 +661,8 @@ void main() {
         ],
       ]);
       final batchedResult = b1.matmul(b2);
-      expect(batchedResult.shape, [2, 2, 2]);
-      expect(batchedResult.toFlatList(), [
+      check(batchedResult.shape).deepEquals([2, 2, 2]);
+      check(batchedResult.toFlatList()).deepEquals([
         1.0, 2.0, 3.0, 4.0, // identity product
         1.0, 0.0, 0.5, 1.0, // scaled product
       ]);
@@ -677,25 +675,25 @@ void main() {
         ],
       ]);
       final broadcastResult = singleBatch.matmul(b1);
-      expect(broadcastResult.shape, [2, 2, 2]);
-      expect(broadcastResult.toFlatList(), b1.toFlatList());
+      check(broadcastResult.shape).deepEquals([2, 2, 2]);
+      check(broadcastResult.toFlatList()).deepEquals(b1.toFlatList());
 
       // Batched matmul with hazard target
       final batchedHazard = b1.matmul(b2, target: b1);
-      expect(batchedHazard.toFlatList(), batchedResult.toFlatList());
+      check(batchedHazard.toFlatList()).deepEquals(batchedResult.toFlatList());
 
       // Error: rank < 2
       final vec1 = Tensor<double>.fromIterable([1.0, 2.0]);
-      expect(() => vec1.matmul(b1), throwsArgumentError);
+      check(() => vec1.matmul(b1)).throws<ArgumentError>();
 
       // Error: inner dimensions mismatch
       final badK = Tensor<double>.filled(0.0, shape: [3, 2]);
-      expect(() => b1.matmul(badK), throwsArgumentError);
+      check(() => b1.matmul(badK)).throws<ArgumentError>();
 
       // Error: incompatible batch shapes
       final badBatchA = Tensor<double>.filled(0.0, shape: [2, 2, 2]);
       final badBatchB = Tensor<double>.filled(0.0, shape: [3, 2, 2]);
-      expect(() => badBatchA.matmul(badBatchB), throwsArgumentError);
+      check(() => badBatchA.matmul(badBatchB)).throws<ArgumentError>();
 
       // Float32List matmul
       final f32A = Tensor<double>.fromObject([
@@ -707,7 +705,7 @@ void main() {
         [1.0, 2.0],
       ], type: DataType.float32);
       final f32C = f32A.matmul(f32B);
-      expect(f32C.toFlatList(), [4.0, 4.0, 10.0, 8.0]);
+      check(f32C.toFlatList()).deepEquals([4.0, 4.0, 10.0, 8.0]);
 
       // Integer matmul (pure Dart fallback loop)
       final intA = Tensor<int>.fromObject([
@@ -719,12 +717,12 @@ void main() {
         [1, 2],
       ]);
       final intC = intA.matmul(intB);
-      expect(intC.toFlatList(), [4, 4, 10, 8]);
+      check(intC.toFlatList()).deepEquals([4, 4, 10, 8]);
 
       // Matmul target aliased with `other`
       final targetOther = intB.copy();
       final resTarget = intA.matmul(intB, target: targetOther);
-      expect(resTarget.toFlatList(), [4, 4, 10, 8]);
+      check(resTarget.toFlatList()).deepEquals([4, 4, 10, 8]);
     });
 
     test('Tensor manipulation errors and default branches', () {
@@ -736,62 +734,51 @@ void main() {
       ]);
 
       // Concatenate errors
-      expect(
-        () => ManipulationTensorExtension.concatenateAll<int>([]),
-        throwsArgumentError,
-      );
-      expect(
-        () => ManipulationTensorExtension.concatenateAll([t1, t2], axis: 2),
-        throwsRangeError,
-      );
-      expect(
-        () => ManipulationTensorExtension.concatenateAll([t1, t2d]),
-        throwsArgumentError,
-      );
+      check(() => ManipulationTensorExtension.concatenateAll<int>([]))
+          .throws<ArgumentError>();
+      check(() => ManipulationTensorExtension.concatenateAll([t1, t2], axis: 2))
+          .throws<RangeError>();
+      check(() => ManipulationTensorExtension.concatenateAll([t1, t2d]))
+          .throws<ArgumentError>();
       final mismatch = Tensor<int>.fromObject([
         [1, 2, 3],
         [4, 5, 6],
       ]);
-      expect(
+      check(
         () => ManipulationTensorExtension.concatenateAll([
           t2d,
           mismatch,
         ], axis: 0),
-        throwsArgumentError,
-      );
+      ).throws<ArgumentError>();
 
       // Stack errors
-      expect(
-        () => ManipulationTensorExtension.stackAll<int>([]),
-        throwsArgumentError,
-      );
-      expect(
-        () => ManipulationTensorExtension.stackAll([t1, t2], axis: 3),
-        throwsRangeError,
-      );
+      check(() => ManipulationTensorExtension.stackAll<int>([]))
+          .throws<ArgumentError>();
+      check(() => ManipulationTensorExtension.stackAll([t1, t2], axis: 3))
+          .throws<RangeError>();
 
       // Tile errors
-      expect(() => t2d.tile([2]), throwsArgumentError);
+      check(() => t2d.tile([2])).throws<ArgumentError>();
 
       // Pad errors and default fill value
-      expect(
+      check(
         () => t2d.pad([
           [1, 1],
         ]),
-        throwsArgumentError,
-      );
+      ).throws<ArgumentError>();
       final padded = t1.pad([
         [1, 1],
       ]);
-      expect(padded.toFlatList(), [0, 1, 2, 0]);
+      check(padded.toFlatList()).deepEquals([0, 1, 2, 0]);
     });
 
     test('Tensor scalar fromObject, reshape non-contiguous, and toString', () {
       final scalar = Tensor<int>.fromObject(42);
-      expect(scalar.rank, 0);
-      expect(scalar.getValue([]), 42);
+      check(scalar.rank).equals(0);
+      check(scalar.getValue([])).equals(42);
 
-      expect(() => Tensor<int>.fromObject('not-a-number'), throwsArgumentError);
+      check(() => Tensor<int>.fromObject('not-a-number'))
+          .throws<ArgumentError>();
 
       // Non-contiguous reshape
       final t2d = Tensor<int>.fromObject([
@@ -799,12 +786,12 @@ void main() {
         [3, 4],
       ]);
       final transposed = t2d.transpose();
-      expect(transposed.layout.isContiguous, isFalse);
+      check(transposed.layout.isContiguous).isFalse();
       final reshaped = transposed.reshape([4]);
-      expect(reshaped.toFlatList(), [1, 3, 2, 4]);
+      check(reshaped.toFlatList()).deepEquals([1, 3, 2, 4]);
 
       // toString
-      expect(t2d.toString(), contains('Tensor('));
+      check(t2d.toString()).contains('Tensor(');
     });
   });
 }

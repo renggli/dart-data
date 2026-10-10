@@ -68,36 +68,53 @@ abstract class Series<T> {
     final list = iterable.toList(growable: false);
     if (type != null) {
       if (type is DataType<num>) {
-        final numList = list.map((e) => e as num?).toList(growable: false);
+        final numList = list
+            .map((element) => element as num?)
+            .toList(growable: false);
         return TypedSeries<num>.fromList(
           name,
           numList,
           type: type as DataType<num>,
         ) as Series<T>;
       } else if (type is DataType<String>) {
-        final strList = list.map((e) => e as String?).toList(growable: false);
+        final strList = list
+            .map((element) => element as String?)
+            .toList(growable: false);
         return StringSeries.fromList(name, strList) as Series<T>;
       } else if (type is DataType<bool>) {
-        final boolList = list.map((e) => e as bool?).toList(growable: false);
+        final boolList = list
+            .map((element) => element as bool?)
+            .toList(growable: false);
         return BoolSeries.fromList(name, boolList) as Series<T>;
       }
     }
-    final firstNonNull = list.firstWhere((e) => e != null, orElse: () => null);
+    final firstNonNull = list.firstWhere(
+      (element) => element != null,
+      orElse: () => null,
+    );
     if (firstNonNull is num) {
-      final numList = list.map((e) => e as num?).toList(growable: false);
+      final numList = list
+          .map((element) => element as num?)
+          .toList(growable: false);
       return TypedSeries<num>.fromList(
         name,
         numList,
         type: type as DataType<num>?,
       ) as Series<T>;
     } else if (firstNonNull is String) {
-      final strList = list.map((e) => e as String?).toList(growable: false);
+      final strList = list
+          .map((element) => element as String?)
+          .toList(growable: false);
       return StringSeries.fromList(name, strList) as Series<T>;
     } else if (firstNonNull is bool) {
-      final boolList = list.map((e) => e as bool?).toList(growable: false);
+      final boolList = list
+          .map((element) => element as bool?)
+          .toList(growable: false);
       return BoolSeries.fromList(name, boolList) as Series<T>;
     }
-    final objList = list.map((e) => e as T?).toList(growable: false);
+    final objList = list
+        .map((element) => element as T?)
+        .toList(growable: false);
     return ObjectSeries<T>.fromList(name, objList, type: type);
   }
 }
@@ -118,7 +135,7 @@ class TypedSeries<T extends num> extends Series<T> {
             ? DataType.float64 as DataType<T>
             : (T == int
                   ? DataType.int32 as DataType<T>
-                  : (list.any((e) => e is double)
+                  : (list.any((element) => element is double)
                         ? DataType.float64 as DataType<T>
                         : DataType.int32 as DataType<T>)));
     final len = list.length;
@@ -187,10 +204,10 @@ class TypedSeries<T extends num> extends Series<T> {
 
   @override
   Series<T> slice(int start, int end) {
-    final s = math.max(0, start);
-    final e = math.min(length, end);
+    final startIndex = math.max(0, start);
+    final endIndex = math.min(length, end);
     final sliced = <T?>[];
-    for (var i = s; i < e; i++) {
+    for (var i = startIndex; i < endIndex; i++) {
       sliced.add(this[i]);
     }
     return TypedSeries<T>.fromList(name, sliced, type: dataType);
@@ -263,9 +280,11 @@ class TypedSeries<T extends num> extends Series<T> {
 
   @override
   double? get mean {
-    final s = sum;
+    final currentSum = sum;
     final validCount = length - nullCount;
-    return (s != null && validCount > 0) ? s.toDouble() / validCount : null;
+    return (currentSum != null && validCount > 0)
+        ? currentSum.toDouble() / validCount
+        : null;
   }
 
   @override
@@ -328,10 +347,10 @@ class StringSeries extends Series<String> {
 
   @override
   Series<String> slice(int start, int end) {
-    final s = math.max(0, start);
-    final e = math.min(length, end);
+    final startIndex = math.max(0, start);
+    final endIndex = math.min(length, end);
     final sliced = <String?>[];
-    for (var i = s; i < e; i++) {
+    for (var i = startIndex; i < endIndex; i++) {
       sliced.add(this[i]);
     }
     return StringSeries.fromList(name, sliced);
@@ -441,10 +460,10 @@ class BoolSeries extends Series<bool> {
 
   @override
   Series<bool> slice(int start, int end) {
-    final s = math.max(0, start);
-    final e = math.min(length, end);
+    final startIndex = math.max(0, start);
+    final endIndex = math.min(length, end);
     final sliced = <bool?>[];
-    for (var i = s; i < e; i++) {
+    for (var i = startIndex; i < endIndex; i++) {
       sliced.add(this[i]);
     }
     return BoolSeries.fromList(name, sliced);
@@ -486,9 +505,11 @@ class BoolSeries extends Series<bool> {
 
   @override
   double? get mean {
-    final s = sum;
+    final currentSum = sum;
     final valid = length - nullCount;
-    return (s != null && valid > 0) ? s.toDouble() / valid : null;
+    return (currentSum != null && valid > 0)
+        ? currentSum.toDouble() / valid
+        : null;
   }
 }
 
@@ -562,10 +583,10 @@ class ObjectSeries<T> extends Series<T> {
 
   @override
   Series<T> slice(int start, int end) {
-    final s = math.max(0, start);
-    final e = math.min(length, end);
+    final startIndex = math.max(0, start);
+    final endIndex = math.min(length, end);
     final sliced = <T?>[];
-    for (var i = s; i < e; i++) {
+    for (var i = startIndex; i < endIndex; i++) {
       sliced.add(this[i]);
     }
     return ObjectSeries<T>.fromList(name, sliced, type: dataType);
@@ -581,8 +602,8 @@ class ObjectSeries<T> extends Series<T> {
       if (aNull && bNull) return 0;
       if (aNull) return 1;
       if (bNull) return -1;
-      final c = cmp(data[a], data[b]);
-      return ascending ? c : -c;
+      final comparison = cmp(data[a], data[b]);
+      return ascending ? comparison : -comparison;
     });
     return ObjectSeries<T>.fromList(name, [
       for (final idx in indices) this[idx],

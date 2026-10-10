@@ -69,15 +69,15 @@ class ParetoDistribution extends ContinuousDistribution {
       x < xo ? 0.0 : 1.0 - pow(xo / x, alpha).toDouble();
 
   @override
-  double inverseCumulativeProbability(num p) {
-    InvalidProbability.check(p);
-    return xo / pow(1 - p, 1 / alpha).toDouble();
+  double inverseCumulativeProbability(num probability) {
+    InvalidProbability.check(probability);
+    return xo / pow(1 - probability, 1 / alpha).toDouble();
   }
 
   @override
   double sample({Random? random}) {
-    final u = (random ?? _random).nextDouble();
-    return xo / pow(u, 1 / alpha).toDouble();
+    final uniform = (random ?? _random).nextDouble();
+    return xo / pow(uniform, 1 / alpha).toDouble();
   }
 
   @override

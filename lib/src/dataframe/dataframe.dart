@@ -62,7 +62,7 @@ class DataFrame {
 
   /// List of column names in schema order.
   List<String> get columnNames =>
-      _columns.map((c) => c.name).toList(growable: false);
+      _columns.map((column) => column.name).toList(growable: false);
 
   /// Accesses a column by [name].
   Series<dynamic> column(String name) {
@@ -103,7 +103,9 @@ class DataFrame {
   /// Drops the specified columns.
   DataFrame drop(List<String> names) {
     final dropSet = names.toSet();
-    final remaining = _columns.where((c) => !dropSet.contains(c.name)).toList();
+    final remaining = _columns
+        .where((col) => !dropSet.contains(col.name))
+        .toList();
     return DataFrame(remaining);
   }
 
@@ -144,16 +146,17 @@ class DataFrame {
 
   /// Slices rows from [start] to [end].
   DataFrame slice(int start, int end) {
-    final s = math.max(0, start);
-    final e = math.min(rowCount, end);
-    return DataFrame(_columns.map((col) => col.slice(s, e)));
+    final startIndex = math.max(0, start);
+    final endIndex = math.min(rowCount, end);
+    return DataFrame(_columns.map((col) => col.slice(startIndex, endIndex)));
   }
 
-  /// Returns the first [n] rows.
-  DataFrame head([int n = 5]) => slice(0, n);
+  /// Returns the first [count] rows.
+  DataFrame head([int count = 5]) => slice(0, count);
 
-  /// Returns the last [n] rows.
-  DataFrame tail([int n = 5]) => slice(math.max(0, rowCount - n), rowCount);
+  /// Returns the last [count] rows.
+  DataFrame tail([int count = 5]) =>
+      slice(math.max(0, rowCount - count), rowCount);
 
   /// Sorts rows by the values in [columnName].
   DataFrame sortBy(String columnName, {bool ascending = true}) {
@@ -176,9 +179,9 @@ class DataFrame {
     });
 
     final sortedCols = <Series<dynamic>>[];
-    for (final c in _columns) {
-      final sortedVals = [for (final idx in indices) c[idx]];
-      sortedCols.add(Series.fromList(c.name, sortedVals, type: c.dataType));
+    for (final col in _columns) {
+      final sortedVals = [for (final idx in indices) col[idx]];
+      sortedCols.add(Series.fromList(col.name, sortedVals, type: col.dataType));
     }
     return DataFrame(sortedCols);
   }
@@ -195,17 +198,17 @@ class DataFrame {
         ? columns.map(column).toList()
         : _columns;
     final effType = type ?? DataType.float64;
-    final r = rowCount;
-    final c = targetCols.length;
+    final rows = rowCount;
+    final cols = targetCols.length;
     final tensor = Tensor<double>.filled(
       effType.defaultValue,
-      shape: [r, c],
+      shape: [rows, cols],
       type: effType,
     );
 
-    for (var j = 0; j < c; j++) {
+    for (var j = 0; j < cols; j++) {
       final col = targetCols[j];
-      for (var i = 0; i < r; i++) {
+      for (var i = 0; i < rows; i++) {
         final val = col[i];
         final numVal = val is num ? val.toDouble() : 0.0;
         tensor.setValue([i, j], numVal);
@@ -227,11 +230,11 @@ class DataFrame {
       'DataFrame($rowCount rows x $columnCount columns)\n',
     );
     final displayCols = _columns.take(6).toList();
-    buffer.writeln(displayCols.map((c) => c.name.padRight(12)).join(' | '));
+    buffer.writeln(displayCols.map((col) => col.name.padRight(12)).join(' | '));
     buffer.writeln('-' * (displayCols.length * 15));
-    for (var r = 0; r < math.min(rowCount, 5); r++) {
+    for (var row = 0; row < math.min(rowCount, 5); row++) {
       buffer.writeln(
-        displayCols.map((c) => '${c[r]}'.padRight(12)).join(' | '),
+        displayCols.map((col) => '${col[row]}'.padRight(12)).join(' | '),
       );
     }
     if (rowCount > 5) buffer.writeln('... and ${rowCount - 5} more rows');

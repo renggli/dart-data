@@ -40,7 +40,7 @@ class Matrix<T> implements LinearOperator<T> {
   factory generate(
     int rowCount,
     int colCount,
-    T Function(int r, int c) generator, {
+    T Function(int row, int col) generator, {
     DataType<T>? type,
   }) {
     final effectiveType = type ?? DataType.fromType<T>();
@@ -55,13 +55,13 @@ class Matrix<T> implements LinearOperator<T> {
   /// Constructs an identity matrix of dimension [size x size].
   factory identity(int size, {DataType<T>? type}) {
     final effectiveType = type ?? DataType.fromType<T>();
-    final f = effectiveType.field;
-    final one = f.multiplicativeIdentity;
-    final zero = f.additiveIdentity;
+    final field = effectiveType.field;
+    final one = field.multiplicativeIdentity;
+    final zero = field.additiveIdentity;
     return Matrix.generate(
       size,
       size,
-      (r, c) => r == c ? one : zero,
+      (row, col) => row == col ? one : zero,
       type: effectiveType,
     );
   }
@@ -69,15 +69,17 @@ class Matrix<T> implements LinearOperator<T> {
   /// Constructs a matrix from row vectors or row iterables.
   factory fromRows(Iterable<Iterable<T>> rows, {DataType<T>? type}) {
     final rowList = rows
-        .map((r) => r.toList(growable: false))
+        .map((row) => row.toList(growable: false))
         .toList(growable: false);
     if (rowList.isEmpty) {
-      final t = type ?? DataType.fromType<T>();
-      return Matrix(Tensor.filled(t.defaultValue, shape: [0, 0], type: t));
+      final dataType = type ?? DataType.fromType<T>();
+      return Matrix(
+        Tensor.filled(dataType.defaultValue, shape: [0, 0], type: dataType),
+      );
     }
     final rCount = rowList.length;
     final cCount = rowList.first.length;
-    final t = type ?? DataType.fromIterable(rowList.first);
+    final dataType = type ?? DataType.fromIterable(rowList.first);
     final flat = <T>[];
     for (final row in rowList) {
       if (row.length != cCount) {
@@ -87,45 +89,51 @@ class Matrix<T> implements LinearOperator<T> {
       }
       flat.addAll(row);
     }
-    return Matrix(Tensor.fromIterable(flat, shape: [rCount, cCount], type: t));
+    return Matrix(
+      Tensor.fromIterable(flat, shape: [rCount, cCount], type: dataType),
+    );
   }
 
   /// Constructs a matrix from column vectors or column iterables.
   factory fromColumns(Iterable<Iterable<T>> cols, {DataType<T>? type}) {
     final colList = cols
-        .map((c) => c.toList(growable: false))
+        .map((col) => col.toList(growable: false))
         .toList(growable: false);
     if (colList.isEmpty) {
-      final t = type ?? DataType.fromType<T>();
-      return Matrix(Tensor.filled(t.defaultValue, shape: [0, 0], type: t));
+      final dataType = type ?? DataType.fromType<T>();
+      return Matrix(
+        Tensor.filled(dataType.defaultValue, shape: [0, 0], type: dataType),
+      );
     }
     final cCount = colList.length;
     final rCount = colList.first.length;
-    final t = type ?? DataType.fromIterable(colList.first);
+    final dataType = type ?? DataType.fromIterable(colList.first);
     final flat = <T>[];
-    for (var r = 0; r < rCount; r++) {
-      for (var c = 0; c < cCount; c++) {
-        if (colList[c].length != rCount) {
+    for (var row = 0; row < rCount; row++) {
+      for (var col = 0; col < cCount; col++) {
+        if (colList[col].length != rCount) {
           throw ArgumentError(
             'All columns must have identical length ($rCount)',
           );
         }
-        flat.add(colList[c][r]);
+        flat.add(colList[col][row]);
       }
     }
-    return Matrix(Tensor.fromIterable(flat, shape: [rCount, cCount], type: t));
+    return Matrix(
+      Tensor.fromIterable(flat, shape: [rCount, cCount], type: dataType),
+    );
   }
 
   /// Constructs a diagonal matrix from [diagonal] vector.
   factory diagonal(Vector<T> diagonal) {
-    final n = diagonal.length;
-    final t = diagonal.type;
-    final zero = t.field.additiveIdentity;
+    final dim = diagonal.length;
+    final dataType = diagonal.type;
+    final zero = dataType.field.additiveIdentity;
     return Matrix.generate(
-      n,
-      n,
-      (r, c) => r == c ? diagonal[r] : zero,
-      type: t,
+      dim,
+      dim,
+      (row, col) => row == col ? diagonal[row] : zero,
+      type: dataType,
     );
   }
 
@@ -211,9 +219,9 @@ class Matrix<T> implements LinearOperator<T> {
   bool get isSymmetric {
     if (!isSquare) return false;
     final eq = type.equality;
-    for (var r = 1; r < rowCount; r++) {
-      for (var c = 0; c < r; c++) {
-        if (!eq.isEqual(get(r, c), get(c, r))) {
+    for (var row = 1; row < rowCount; row++) {
+      for (var col = 0; col < row; col++) {
+        if (!eq.isEqual(get(row, col), get(col, row))) {
           return false;
         }
       }
@@ -225,9 +233,9 @@ class Matrix<T> implements LinearOperator<T> {
   bool get isDiagonal {
     final eq = type.equality;
     final zero = type.defaultValue;
-    for (var r = 0; r < rowCount; r++) {
-      for (var c = 0; c < colCount; c++) {
-        if (r != c && !eq.isEqual(get(r, c), zero)) {
+    for (var row = 0; row < rowCount; row++) {
+      for (var col = 0; col < colCount; col++) {
+        if (row != col && !eq.isEqual(get(row, col), zero)) {
           return false;
         }
       }
@@ -239,9 +247,9 @@ class Matrix<T> implements LinearOperator<T> {
   bool get isLowerTriangular {
     final eq = type.equality;
     final zero = type.defaultValue;
-    for (var r = 0; r < rowCount; r++) {
-      for (var c = r + 1; c < colCount; c++) {
-        if (!eq.isEqual(get(r, c), zero)) {
+    for (var row = 0; row < rowCount; row++) {
+      for (var col = row + 1; col < colCount; col++) {
+        if (!eq.isEqual(get(row, col), zero)) {
           return false;
         }
       }
@@ -253,9 +261,9 @@ class Matrix<T> implements LinearOperator<T> {
   bool get isUpperTriangular {
     final eq = type.equality;
     final zero = type.defaultValue;
-    for (var r = 1; r < rowCount; r++) {
-      for (var c = 0; c < colCount && c < r; c++) {
-        if (!eq.isEqual(get(r, c), zero)) {
+    for (var row = 1; row < rowCount; row++) {
+      for (var col = 0; col < colCount && col < row; col++) {
+        if (!eq.isEqual(get(row, col), zero)) {
           return false;
         }
       }
@@ -294,7 +302,8 @@ class Matrix<T> implements LinearOperator<T> {
     return Matrix.generate(
       rowCount,
       colCount + other.colCount,
-      (r, c) => c < colCount ? get(r, c) : other.get(r, c - colCount),
+      (row, col) =>
+          col < colCount ? get(row, col) : other.get(row, col - colCount),
       type: type,
     );
   }
@@ -309,7 +318,8 @@ class Matrix<T> implements LinearOperator<T> {
     return Matrix.generate(
       rowCount + other.rowCount,
       colCount,
-      (r, c) => r < rowCount ? get(r, c) : other.get(r - rowCount, c),
+      (row, col) =>
+          row < rowCount ? get(row, col) : other.get(row - rowCount, col),
       type: type,
     );
   }
@@ -381,8 +391,8 @@ class Matrix<T> implements LinearOperator<T> {
 
   /// Scales every element by [scalar].
   Matrix<T> scale(T scalar) {
-    final f = type.field;
-    return Matrix(tensor.unaryOperation((v) => f.mul(v, scalar)));
+    final field = type.field;
+    return Matrix(tensor.unaryOperation((val) => field.mul(val, scalar)));
   }
 
   /// Element-wise Hadamard product.
@@ -402,17 +412,21 @@ class Matrix<T> implements LinearOperator<T> {
       return Matrix(tensor.matmul(other.tensor));
     }
     // Generic column-by-column composition
-    final f = type.field;
+    final field = type.field;
     final result = Matrix<T>.filled(
       rowCount,
       other.colCount,
-      f.additiveIdentity,
+      field.additiveIdentity,
       type: type,
     );
-    final eJ = Vector<T>.filled(other.colCount, f.additiveIdentity, type: type);
+    final eJ = Vector<T>.filled(
+      other.colCount,
+      field.additiveIdentity,
+      type: type,
+    );
     for (var j = 0; j < other.colCount; j++) {
-      if (j > 0) eJ[j - 1] = f.additiveIdentity;
-      eJ[j] = f.multiplicativeIdentity;
+      if (j > 0) eJ[j - 1] = field.additiveIdentity;
+      eJ[j] = field.multiplicativeIdentity;
       final colJ = other.apply(eJ);
       final outColJ = apply(colJ);
       for (var i = 0; i < rowCount; i++) {
@@ -429,8 +443,8 @@ class Matrix<T> implements LinearOperator<T> {
         'Vector length (${x.length}) must match colCount ($colCount)',
       );
     }
-    final f = type.field;
-    final res = Vector<T>.filled(rowCount, f.additiveIdentity, type: type);
+    final field = type.field;
+    final res = Vector<T>.filled(rowCount, field.additiveIdentity, type: type);
 
     // Fast-path: hardware-accelerated DGEMV / SGEMV
     if (T == double && x.tensor.strides[0] > 0 && res.tensor.strides[0] > 0) {
@@ -505,18 +519,21 @@ class Matrix<T> implements LinearOperator<T> {
       final mData = tensor.data;
       var mOffset = tensor.offset;
       for (var i = 0; i < rowCount; i++) {
-        var sum = f.additiveIdentity;
+        var sum = field.additiveIdentity;
         for (var j = 0; j < colCount; j++) {
-          sum = f.add(sum, f.mul(mData[mOffset + j], xData[xOffset + j]));
+          sum = field.add(
+            sum,
+            field.mul(mData[mOffset + j], xData[xOffset + j]),
+          );
         }
         res[i] = sum;
         mOffset += colCount;
       }
     } else {
       for (var i = 0; i < rowCount; i++) {
-        var sum = f.additiveIdentity;
+        var sum = field.additiveIdentity;
         for (var j = 0; j < colCount; j++) {
-          sum = f.add(sum, f.mul(get(i, j), x[j]));
+          sum = field.add(sum, field.mul(get(i, j), x[j]));
         }
         res[i] = sum;
       }
@@ -531,8 +548,8 @@ class Matrix<T> implements LinearOperator<T> {
         'Vector length (${x.length}) must match rowCount ($rowCount)',
       );
     }
-    final f = type.field;
-    final res = Vector<T>.filled(colCount, f.additiveIdentity, type: type);
+    final field = type.field;
+    final res = Vector<T>.filled(colCount, field.additiveIdentity, type: type);
 
     // Fast-path: hardware-accelerated DGEMV / SGEMV
     if (T == double && x.tensor.strides[0] > 0 && res.tensor.strides[0] > 0) {
@@ -602,7 +619,7 @@ class Matrix<T> implements LinearOperator<T> {
     for (var i = 0; i < rowCount; i++) {
       final xi = x[i];
       for (var j = 0; j < colCount; j++) {
-        res[j] = f.add(res[j], f.mul(f.conjugate(get(i, j)), xi));
+        res[j] = field.add(res[j], field.mul(field.conjugate(get(i, j)), xi));
       }
     }
     return res;
@@ -614,10 +631,15 @@ class Matrix<T> implements LinearOperator<T> {
     double beta = 0.0,
     bool transpose = false,
   }) {
-    final n = transpose ? colCount : rowCount;
-    final k = transpose ? rowCount : colCount;
-    final f = type.field;
-    final result = Matrix<T>.filled(n, n, f.additiveIdentity, type: type);
+    final dim = transpose ? colCount : rowCount;
+    final kDim = transpose ? rowCount : colCount;
+    final field = type.field;
+    final result = Matrix<T>.filled(
+      dim,
+      dim,
+      field.additiveIdentity,
+      type: type,
+    );
     if (T == double) {
       final s0 = tensor.strides[0];
       final s1 = tensor.strides[1];
@@ -636,8 +658,8 @@ class Matrix<T> implements LinearOperator<T> {
           final success = HardwareManager.dsyrk(
             uplo: cblasUpper,
             trans: effectiveTrans,
-            n: n,
-            k: k,
+            n: dim,
+            k: kDim,
             alpha: alpha,
             a: tensor.data as Float64List,
             aOffset: tensor.offset,
@@ -645,7 +667,7 @@ class Matrix<T> implements LinearOperator<T> {
             beta: beta,
             c: result.tensor.data as Float64List,
             cOffset: result.tensor.offset,
-            ldc: n,
+            ldc: dim,
           );
           if (success) return result;
         } else if (tensor.data is Float32List &&
@@ -653,8 +675,8 @@ class Matrix<T> implements LinearOperator<T> {
           final success = HardwareManager.ssyrk(
             uplo: cblasUpper,
             trans: effectiveTrans,
-            n: n,
-            k: k,
+            n: dim,
+            k: kDim,
             alpha: alpha,
             a: tensor.data as Float32List,
             aOffset: tensor.offset,
@@ -662,7 +684,7 @@ class Matrix<T> implements LinearOperator<T> {
             beta: beta,
             c: result.tensor.data as Float32List,
             cOffset: result.tensor.offset,
-            ldc: n,
+            ldc: dim,
           );
           if (success) return result;
         }
@@ -670,7 +692,9 @@ class Matrix<T> implements LinearOperator<T> {
     }
     final aOp = transpose ? this.transpose() : this;
     final aOther = transpose ? this : this.transpose();
-    return (aOp * aOther).scale(f.scale(f.multiplicativeIdentity, alpha));
+    return (aOp * aOther).scale(
+      field.scale(field.multiplicativeIdentity, alpha),
+    );
   }
 
   /// Creates a deep contiguous copy of this matrix.
@@ -679,7 +703,7 @@ class Matrix<T> implements LinearOperator<T> {
   /// Converts this matrix into nested rows.
   List<List<T>> toNestedList() => List<List<T>>.generate(
     rowCount,
-    (r) => List<T>.generate(colCount, (c) => get(r, c)),
+    (row) => List<T>.generate(colCount, (col) => get(row, col)),
   );
 
   @override

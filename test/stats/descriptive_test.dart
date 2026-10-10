@@ -5,7 +5,7 @@ import 'package:data/linear.dart';
 import 'package:data/stats.dart';
 import 'package:data/tensor.dart';
 import 'package:data/type.dart';
-import 'package:test/scaffolding.dart';
+import 'package:test/test.dart';
 
 void main() {
   group('descriptive', () {
@@ -138,13 +138,13 @@ void main() {
     test('covariance matrix and correlation matrices', () {
       // 3 observations, 2 features
       // f1: [1, 2, 3], f2: [2, 4, 6]
-      final m = Matrix<double>.fromRows([
+      final matrix = Matrix<double>.fromRows([
         [1.0, 2.0],
         [2.0, 4.0],
         [3.0, 6.0],
       ], type: DataType.float64);
 
-      final cov = covarianceMatrix(m);
+      final cov = covarianceMatrix(matrix);
       check(cov.rowCount).equals(2);
       check(cov.colCount).equals(2);
       check(cov.get(0, 0)).isCloseTo(1.0, 1e-10);
@@ -152,13 +152,13 @@ void main() {
       check(cov.get(0, 1)).isCloseTo(2.0, 1e-10);
       check(cov.get(1, 0)).isCloseTo(2.0, 1e-10);
 
-      final corr = pearsonCorrelationMatrix(m);
+      final corr = pearsonCorrelationMatrix(matrix);
       check(corr.get(0, 0)).isCloseTo(1.0, 1e-10);
       check(corr.get(1, 1)).isCloseTo(1.0, 1e-10);
       check(corr.get(0, 1)).isCloseTo(1.0, 1e-10);
       check(corr.get(1, 0)).isCloseTo(1.0, 1e-10);
 
-      final spearman = spearmanCorrelationMatrix(m);
+      final spearman = spearmanCorrelationMatrix(matrix);
       check(spearman.get(0, 1)).isCloseTo(1.0, 1e-10);
     });
   });
@@ -264,29 +264,31 @@ void main() {
         check(intList.product()).equals(24);
 
         // Tensor extensions
-        final t = Tensor<double>.fromIterable([1.0, 2.0, 3.0, 4.0]);
-        check(t.variance()).isCloseTo(5.0 / 3.0, 1e-10);
-        check(t.standardDeviation()).isCloseTo(math.sqrt(5.0 / 3.0), 1e-10);
-        check(t.quantile(0.5)).isCloseTo(2.5, 1e-10);
-        check(t.percentile(50)).isCloseTo(2.5, 1e-10);
-        check(t.skewness()).isCloseTo(0.0, 1e-10);
-        check(t.kurtosis()).isNotNull();
+        final tensor = Tensor<double>.fromIterable([1.0, 2.0, 3.0, 4.0]);
+        check(tensor.variance()).isCloseTo(5.0 / 3.0, 1e-10);
+        check(tensor.standardDeviation())
+            .isCloseTo(math.sqrt(5.0 / 3.0), 1e-10);
+        check(tensor.quantile(0.5)).isCloseTo(2.5, 1e-10);
+        check(tensor.percentile(50)).isCloseTo(2.5, 1e-10);
+        check(tensor.skewness()).isCloseTo(0.0, 1e-10);
+        check(tensor.kurtosis()).isNotNull();
 
         // Matrix extensions
-        final m = Matrix<double>.fromRows([
+        final matrix = Matrix<double>.fromRows([
           [1.0, 2.0],
           [3.0, 4.0],
         ]);
-        check(m.mean()).isCloseTo(2.5, 1e-10);
-        check(m.variance()).isCloseTo(5.0 / 3.0, 1e-10);
-        check(m.standardDeviation()).isCloseTo(math.sqrt(5.0 / 3.0), 1e-10);
-        check(m.median()).isCloseTo(2.5, 1e-10);
-        check(m.quantile(0.5)).isCloseTo(2.5, 1e-10);
-        check(m.percentile(50)).isCloseTo(2.5, 1e-10);
-        check(m.iqr()).isCloseTo(1.5, 1e-10);
-        check(m.skewness()).isCloseTo(0.0, 1e-10);
-        check(m.kurtosis()).isNotNull();
-        check(m.spearmanCorrelationMatrix().rowCount).equals(2);
+        check(matrix.mean()).isCloseTo(2.5, 1e-10);
+        check(matrix.variance()).isCloseTo(5.0 / 3.0, 1e-10);
+        check(matrix.standardDeviation())
+            .isCloseTo(math.sqrt(5.0 / 3.0), 1e-10);
+        check(matrix.median()).isCloseTo(2.5, 1e-10);
+        check(matrix.quantile(0.5)).isCloseTo(2.5, 1e-10);
+        check(matrix.percentile(50)).isCloseTo(2.5, 1e-10);
+        check(matrix.iqr()).isCloseTo(1.5, 1e-10);
+        check(matrix.skewness()).isCloseTo(0.0, 1e-10);
+        check(matrix.kurtosis()).isNotNull();
+        check(matrix.spearmanCorrelationMatrix().rowCount).equals(2);
 
         // Covariance errors
         check(() => covariance([1.0], [1.0, 2.0])).throws<ArgumentError>();

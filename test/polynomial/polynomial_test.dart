@@ -1,7 +1,7 @@
 import 'package:checks/checks.dart';
 import 'package:data/polynomial.dart';
 import 'package:data/type.dart';
-import 'package:test/scaffolding.dart';
+import 'package:test/test.dart';
 
 void main() {
   group('Polynomial', () {
@@ -27,19 +27,19 @@ void main() {
 
     test('evaluation Horner method', () {
       // P(x) = 2 - 3x + x^2 = (x - 1)(x - 2)
-      final p = Polynomial<double>.fromCoefficients([
+      final poly = Polynomial<double>.fromCoefficients([
         2.0,
         -3.0,
         1.0,
       ], type: DataType.float64);
-      check(p.evaluate(0.0)).equals(2.0);
-      check(p.evaluate(1.0)).equals(0.0);
-      check(p.evaluate(2.0)).equals(0.0);
-      check(p.evaluate(3.0)).equals(2.0);
-      check(p.evaluateDouble(4)).equals(6.0);
+      check(poly.evaluate(0.0)).equals(2.0);
+      check(poly.evaluate(1.0)).equals(0.0);
+      check(poly.evaluate(2.0)).equals(0.0);
+      check(poly.evaluate(3.0)).equals(2.0);
+      check(poly.evaluateDouble(4)).equals(6.0);
 
       // Complex evaluation
-      final complexVal = p.evaluateComplex(const Complex(1.0, 1.0));
+      final complexVal = poly.evaluateComplex(const Complex(1.0, 1.0));
       // P(1 + i) = (1 + i - 1)(1 + i - 2) = i * (i - 1) = -1 - i
       check(complexVal.a).isCloseTo(-1.0, 1e-9);
       check(complexVal.b).isCloseTo(-1.0, 1e-9);
@@ -49,30 +49,30 @@ void main() {
       'arithmetic: addition, subtraction, negation, scaling, multiplication',
       () {
         // P = 1 + 2x, Q = 3 - x + 4x^2
-        final p = Polynomial<double>.fromCoefficients([
+        final polyP = Polynomial<double>.fromCoefficients([
           1.0,
           2.0,
         ], type: DataType.float64);
-        final q = Polynomial<double>.fromCoefficients([
+        final polyQ = Polynomial<double>.fromCoefficients([
           3.0,
           -1.0,
           4.0,
         ], type: DataType.float64);
 
-        final sum = p + q;
+        final sum = polyP + polyQ;
         check(sum.coefficients).deepEquals([4.0, 1.0, 4.0]);
 
-        final diff = p - q;
+        final diff = polyP - polyQ;
         check(diff.coefficients).deepEquals([-2.0, 3.0, -4.0]);
 
-        final neg = -p;
+        final neg = -polyP;
         check(neg.coefficients).deepEquals([-1.0, -2.0]);
 
-        final scaled = p.scale(3.0);
+        final scaled = polyP.scale(3.0);
         check(scaled.coefficients).deepEquals([3.0, 6.0]);
 
         // (1 + 2x) * (3 - x + 4x^2) = 3 + (-1 + 6)x + (4 - 2)x^2 + 8x^3 = 3 + 5x + 2x^2 + 8x^3
-        final prod = p * q;
+        final prod = polyP * polyQ;
         check(prod.coefficients).deepEquals([3.0, 5.0, 2.0, 8.0]);
       },
     );
@@ -120,7 +120,7 @@ void main() {
 
     test('differentiation and integration', () {
       // P(x) = 5 + 4x + 3x^2 + 2x^3
-      final p = Polynomial<double>.fromCoefficients([
+      final poly = Polynomial<double>.fromCoefficients([
         5.0,
         4.0,
         3.0,
@@ -128,7 +128,7 @@ void main() {
       ], type: DataType.float64);
 
       // P'(x) = 4 + 6x + 6x^2
-      final deriv = p.differentiate();
+      final deriv = poly.differentiate();
       check(deriv.coefficients).deepEquals([4.0, 6.0, 6.0]);
 
       // \int P'(x) dx with C=5 gives P(x)
@@ -154,7 +154,7 @@ void main() {
       ], type: DataType.float64);
       final roots2 = p2.roots;
       check(roots2.length).equals(2);
-      final realParts2 = roots2.map((r) => r.a).toList()..sort();
+      final realParts2 = roots2.map((root) => root.a).toList()..sort();
       check(realParts2[0]).isCloseTo(2.0, 1e-9);
       check(realParts2[1]).isCloseTo(3.0, 1e-9);
 
@@ -177,7 +177,7 @@ void main() {
       ], type: DataType.float64);
       final roots4 = p4.roots;
       check(roots4.length).equals(3);
-      final realParts4 = roots4.map((r) => r.a).toList()..sort();
+      final realParts4 = roots4.map((root) => root.a).toList()..sort();
       check(realParts4[0]).isCloseTo(1.0, 1e-6);
       check(realParts4[1]).isCloseTo(2.0, 1e-6);
       check(realParts4[2]).isCloseTo(3.0, 1e-6);
@@ -192,9 +192,9 @@ void main() {
       check(gen.coefficients).deepEquals([1, 2, 3]);
 
       // Division by zero polynomial throws
-      final p = Polynomial<int>.fromCoefficients([1, 2]);
+      final poly = Polynomial<int>.fromCoefficients([1, 2]);
       final zeroInt = Polynomial<int>.zero();
-      check(() => p.divide(zeroInt)).throws<UnsupportedError>();
+      check(() => poly.divide(zeroInt)).throws<UnsupportedError>();
 
       // degA < degB
       final small = Polynomial<int>.fromCoefficients([1]);
@@ -213,7 +213,7 @@ void main() {
       // Integration on zero polynomial and without constant
       final intZero = zero.integrate(2.0);
       check(intZero.coefficients).deepEquals([2.0]);
-      final intDefault = p.integrate();
+      final intDefault = poly.integrate();
       check(intDefault[0]).equals(0);
 
       // toString formatting
