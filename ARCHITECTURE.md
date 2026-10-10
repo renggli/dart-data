@@ -298,8 +298,8 @@ This document describes the achieved architecture across all subsystems of `pack
 - **Implementation & Constraints**:
   - Bound via `dart:ffi`:
     - Level 1: `ddot`, `sdot` (dot products), `dnrm2`, `snrm2` (Euclidean norms), `daxpy`, `saxpy` ($y \leftarrow \alpha x + y$), `dscal`, `sscal` (scaling).
-    - Level 2: `dgemv`, `sgemv` (matrix-vector multiplication).
-    - Level 3: `dgemm`, `sgemm` (general matrix multiplication), `dsyrk`, `ssyrk`, `dsyr2`, `ssyr2` (symmetric rank-$k$ updates).
+    - Level 2: `dgemv`, `sgemv` (matrix-vector multiplication), `dtrmv`, `strmv` (triangular matrix-vector multiplication).
+    - Level 3: `dgemm`, `sgemm` (general matrix multiplication), `dsymm`, `ssymm` (symmetric matrix multiplication), `dtrmm`, `strmm` (triangular matrix multiplication), `dsyrk`, `ssyrk`, `dsyr2`, `ssyr2` (symmetric rank-$k$ and rank-2 updates).
   - Zero-copy interop: Contiguous `Float64List` and `Float32List` buffers pass directly to native C pointers via `Pointer.fromAddress` or typed data addresses without intermediate heap copying.
 
 ### 5.3 LAPACK Solvers & Decompositions
@@ -312,6 +312,7 @@ This document describes the achieved architecture across all subsystems of `pack
     - `dgels`: Linear least-squares solver via QR or LQ factorization.
     - `dgeqrf`: Householder QR decomposition.
     - `dgesvd`: Singular value decomposition computing singular values and singular vectors.
+    - `dsyev`, `ssyev`: LAPACK symmetric eigenvalue solvers computing real eigenvalues in ascending order and corresponding orthonormal eigenvectors. Transparently dispatched by `EigenvalueDecomposition` when matrices are symmetric with `DataType.float64` under active hardware acceleration, seamlessly falling back to pure Dart Householder tridiagonal reduction (`_tred2`) and implicit QL iteration (`_tql2`) when acceleration is disabled or for non-float64 types.
 
 ### 5.4 Off-Heap Native Memory Lifecycle
 

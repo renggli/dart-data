@@ -1,6 +1,9 @@
 import 'dart:math' as math;
+import 'dart:typed_data';
 
 import '../../../type.dart';
+import '../../hardware/cblas.dart';
+import '../../hardware/hardware.dart';
 import '../matrix.dart';
 
 /// Extension methods providing Eigenvalue decomposition on numeric matrices.
@@ -49,14 +52,44 @@ class EigenvalueDecomposition {
         'Matrix must be square, got ${matrix.rowCount} x ${matrix.colCount}.',
       );
     }
+    if (_n == 0) return;
     if (_isSymmetric) {
-      for (var i = 0; i < _n; i++) {
-        for (var j = 0; j < _n; j++) {
-          _v.setUnchecked(i, j, matrix.getUnchecked(i, j).toDouble());
+      var accelerated = false;
+      if (matrix.type == DataType.float64 && HardwareManager.isAccelerated) {
+        final aList = Float64List(_n * _n);
+        for (var i = 0; i < _n; i++) {
+          for (var j = 0; j < _n; j++) {
+            aList[i * _n + j] = matrix.getUnchecked(i, j).toDouble();
+          }
+        }
+        final wList = Float64List(_n);
+        accelerated = HardwareManager.dsyev(
+          jobz: 'V',
+          uplo: cblasUpper,
+          n: _n,
+          a: aList,
+          lda: _n,
+          w: wList,
+        );
+        if (accelerated) {
+          for (var i = 0; i < _n; i++) {
+            _d[i] = wList[i];
+            _e[i] = 0.0;
+            for (var j = 0; j < _n; j++) {
+              _v.setUnchecked(j, i, aList[j * _n + i]);
+            }
+          }
         }
       }
-      _tred2();
-      _tql2();
+      if (!accelerated) {
+        for (var i = 0; i < _n; i++) {
+          for (var j = 0; j < _n; j++) {
+            _v.setUnchecked(i, j, matrix.getUnchecked(i, j).toDouble());
+          }
+        }
+        _tred2();
+        _tql2();
+      }
     } else {
       for (var j = 0; j < _n; j++) {
         for (var i = 0; i < _n; i++) {
@@ -835,6 +868,7 @@ class EigenvalueDecomposition {
   }
 
   static bool _checkSymmetry(Matrix<num> a) {
+    if (a.rowCount != a.colCount) return false;
     final count = a.rowCount;
     for (var i = 0; i < count; i++) {
       for (var j = i + 1; j < count; j++) {

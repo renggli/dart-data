@@ -1,4 +1,5 @@
 import 'package:checks/checks.dart';
+import 'package:data/hardware.dart';
 import 'package:data/linear.dart';
 import 'package:data/type.dart';
 import 'package:test/test.dart';
@@ -101,6 +102,91 @@ void main() {
       final eig = diag.eigenvalue;
       check(eig.realEigenvalues.length).equals(3);
       check(eig.v.rowCount).equals(3);
+    });
+
+    test('symmetric matrix with hardware enabled vs disabled', () {
+      final a = Matrix<double>.fromRows([
+        [5.0, 2.0, -1.0, 0.0],
+        [2.0, 4.0, 1.0, -2.0],
+        [-1.0, 1.0, 6.0, 3.0],
+        [0.0, -2.0, 3.0, 7.0],
+      ], type: DataType.float64);
+
+      for (final hw in [true, false]) {
+        HardwareManager.isEnabled = hw;
+        final eig = a.eigenvalue;
+        final d = eig.d;
+        final v = eig.v;
+        final vals = eig.realEigenvalues;
+
+        // 1. Check eigenvalue ordering: ascending
+        for (var i = 0; i < vals.length - 1; i++) {
+          check(vals[i] <= vals[i + 1]).isTrue();
+        }
+
+        // 2. Check orthonormality: V^T * V = I
+        final vTv = v.transposed * v;
+        for (var i = 0; i < 4; i++) {
+          for (var j = 0; j < 4; j++) {
+            check(vTv.get(i, j)).isCloseTo(i == j ? 1.0 : 0.0, 1e-8);
+          }
+        }
+
+        // 3. Check reconstruction: A * V = V * D
+        final av = a * v;
+        final vd = v * d;
+        for (var i = 0; i < 4; i++) {
+          for (var j = 0; j < 4; j++) {
+            check(av.get(i, j)).isCloseTo(vd.get(i, j), 1e-7);
+          }
+        }
+      }
+      HardwareManager.isEnabled = true;
+    });
+
+    test('non-float64 symmetric matrices use pure Dart fallback', () {
+      final aInt = Matrix<int>.fromRows([
+        [2, 1],
+        [1, 2],
+      ], type: DataType.int32);
+      final eig = aInt.eigenvalue;
+      check(eig.realEigenvalues.length).equals(2);
+      check(eig.realEigenvalues[0]).isCloseTo(1.0, 1e-9);
+      check(eig.realEigenvalues[1]).isCloseTo(3.0, 1e-9);
+    });
+
+    test('non-square matrix with rowCount > colCount throws', () {
+      final a = Matrix<double>.fromRows([
+        [1.0, 2.0],
+        [3.0, 4.0],
+        [5.0, 6.0],
+      ], type: DataType.float64);
+      check(() => a.eigenvalue).throws<ArgumentError>();
+    });
+
+    test('float32 symmetric matrix uses pure Dart fallback', () {
+      final a32 = Matrix<double>.fromRows([
+        [2.0, 1.0],
+        [1.0, 2.0],
+      ], type: DataType.float32);
+      final eig = a32.eigenvalue;
+      check(eig.realEigenvalues.length).equals(2);
+      check(eig.realEigenvalues[0]).isCloseTo(1.0, 1e-6);
+      check(eig.realEigenvalues[1]).isCloseTo(3.0, 1e-6);
+    });
+
+    test('0x0 and 1x1 matrix eigenvalue decompositions', () {
+      final empty = Matrix<double>.fromRows([], type: DataType.float64);
+      final emptyEig = empty.eigenvalue;
+      check(emptyEig.realEigenvalues.length).equals(0);
+      check(emptyEig.v.rowCount).equals(0);
+
+      final single = Matrix<double>.fromRows([
+        [42.0],
+      ], type: DataType.float64);
+      final singleEig = single.eigenvalue;
+      check(singleEig.realEigenvalues[0]).equals(42.0);
+      check(singleEig.v.get(0, 0)).equals(1.0);
     });
   });
 }

@@ -22,11 +22,24 @@ const int cblasLower = 122;
 const int CblasUpper = 121;
 const int CblasLower = 122;
 
+/// CBLAS Unit/Non-unit diagonal options.
+const int cblasNonUnit = 131;
+const int cblasUnit = 132;
+const int CblasNonUnit = 131;
+const int CblasUnit = 132;
+
+/// CBLAS Side options (left/right).
+const int cblasLeft = 141;
+const int cblasRight = 142;
+const int CblasLeft = 141;
+const int CblasRight = 142;
+
 /// Stub implementation of BLAS library when FFI is unavailable (e.g. Web).
 class BlasLibrary {
   bool get isAvailable => false;
   bool get hasDgeqrf => false;
   bool get hasDgesvd => false;
+  bool get hasDsyev => false;
 
   bool dgemm({
     int transA = cblasNoTrans,
@@ -269,6 +282,122 @@ class BlasLibrary {
     required Float64List b,
     int bOffset = 0,
     required int ldb,
+  }) => false;
+
+  bool dtrmv({
+    int uplo = cblasUpper,
+    int trans = cblasNoTrans,
+    int diag = cblasNonUnit,
+    required int n,
+    required Float64List a,
+    int aOffset = 0,
+    required int lda,
+    required Float64List x,
+    int xOffset = 0,
+    int incX = 1,
+  }) => false;
+
+  bool strmv({
+    int uplo = cblasUpper,
+    int trans = cblasNoTrans,
+    int diag = cblasNonUnit,
+    required int n,
+    required Float32List a,
+    int aOffset = 0,
+    required int lda,
+    required Float32List x,
+    int xOffset = 0,
+    int incX = 1,
+  }) => false;
+
+  bool dsymm({
+    int side = cblasLeft,
+    int uplo = cblasUpper,
+    required int m,
+    required int n,
+    required double alpha,
+    required Float64List a,
+    int aOffset = 0,
+    required int lda,
+    required Float64List b,
+    int bOffset = 0,
+    required int ldb,
+    required double beta,
+    required Float64List c,
+    int cOffset = 0,
+    required int ldc,
+  }) => false;
+
+  bool ssymm({
+    int side = cblasLeft,
+    int uplo = cblasUpper,
+    required int m,
+    required int n,
+    required double alpha,
+    required Float32List a,
+    int aOffset = 0,
+    required int lda,
+    required Float32List b,
+    int bOffset = 0,
+    required int ldb,
+    required double beta,
+    required Float32List c,
+    int cOffset = 0,
+    required int ldc,
+  }) => false;
+
+  bool dtrmm({
+    int side = cblasLeft,
+    int uplo = cblasUpper,
+    int transA = cblasNoTrans,
+    int diag = cblasNonUnit,
+    required int m,
+    required int n,
+    required double alpha,
+    required Float64List a,
+    int aOffset = 0,
+    required int lda,
+    required Float64List b,
+    int bOffset = 0,
+    required int ldb,
+  }) => false;
+
+  bool strmm({
+    int side = cblasLeft,
+    int uplo = cblasUpper,
+    int transA = cblasNoTrans,
+    int diag = cblasNonUnit,
+    required int m,
+    required int n,
+    required double alpha,
+    required Float32List a,
+    int aOffset = 0,
+    required int lda,
+    required Float32List b,
+    int bOffset = 0,
+    required int ldb,
+  }) => false;
+
+  bool dsyev({
+    String jobz = 'V',
+    int uplo = cblasUpper,
+    required int n,
+    required Float64List a,
+    int aOffset = 0,
+    required int lda,
+    required Float64List w,
+    int wOffset = 0,
+  }) => false;
+
+  bool ssyev({
+    String jobz = 'V',
+    int uplo = cblasUpper,
+    required int n,
+    required Float32List a,
+    int aOffset = 0,
+    required int lda,
+    required Float32List w,
+    int wOffset = 0,
   }) => false;
 }
 

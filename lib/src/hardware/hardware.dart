@@ -820,6 +820,932 @@ class HardwareManager {
     return false;
   }
 
+  /// Triangular matrix-vector multiplication x = op(A) * x for Float64List.
+  static bool dtrmv({
+    int uplo = cblasUpper,
+    int trans = cblasNoTrans,
+    int diag = cblasNonUnit,
+    required int n,
+    required Float64List a,
+    int aOffset = 0,
+    required int lda,
+    required Float64List x,
+    int xOffset = 0,
+    int incX = 1,
+  }) {
+    if (n < 0 || lda < n || incX == 0) return false;
+    if (uplo != cblasUpper && uplo != cblasLower) return false;
+    if (trans != cblasNoTrans &&
+        trans != cblasTrans &&
+        trans != cblasConjTrans) {
+      return false;
+    }
+    if (diag != cblasNonUnit && diag != cblasUnit) return false;
+    if (n == 0) return true;
+    final aReq = aOffset + (n - 1) * lda + n;
+    final xReq = xOffset + (n - 1) * incX.abs() + 1;
+    if (a.length < aReq || x.length < xReq) return false;
+
+    if (isAccelerated) {
+      final success = _blas.dtrmv(
+        uplo: uplo,
+        trans: trans,
+        diag: diag,
+        n: n,
+        a: a,
+        aOffset: aOffset,
+        lda: lda,
+        x: x,
+        xOffset: xOffset,
+        incX: incX,
+      );
+      if (success) return true;
+    }
+
+    // Pure Dart fallback
+    final temp = Float64List(n);
+    for (var i = 0; i < n; i++) {
+      temp[i] = x[xOffset + i * incX];
+    }
+    for (var i = 0; i < n; i++) {
+      var sum = 0.0;
+      if (trans == cblasNoTrans) {
+        if (uplo == cblasUpper) {
+          for (var j = i; j < n; j++) {
+            final aVal = (i == j && diag == cblasUnit)
+                ? 1.0
+                : a[aOffset + i * lda + j];
+            sum += aVal * temp[j];
+          }
+        } else {
+          for (var j = 0; j <= i; j++) {
+            final aVal = (i == j && diag == cblasUnit)
+                ? 1.0
+                : a[aOffset + i * lda + j];
+            sum += aVal * temp[j];
+          }
+        }
+      } else {
+        if (uplo == cblasUpper) {
+          for (var j = 0; j <= i; j++) {
+            final aVal = (i == j && diag == cblasUnit)
+                ? 1.0
+                : a[aOffset + j * lda + i];
+            sum += aVal * temp[j];
+          }
+        } else {
+          for (var j = i; j < n; j++) {
+            final aVal = (i == j && diag == cblasUnit)
+                ? 1.0
+                : a[aOffset + j * lda + i];
+            sum += aVal * temp[j];
+          }
+        }
+      }
+      x[xOffset + i * incX] = sum;
+    }
+    return true;
+  }
+
+  /// Triangular matrix-vector multiplication x = op(A) * x for Float32List.
+  static bool strmv({
+    int uplo = cblasUpper,
+    int trans = cblasNoTrans,
+    int diag = cblasNonUnit,
+    required int n,
+    required Float32List a,
+    int aOffset = 0,
+    required int lda,
+    required Float32List x,
+    int xOffset = 0,
+    int incX = 1,
+  }) {
+    if (n < 0 || lda < n || incX == 0) return false;
+    if (uplo != cblasUpper && uplo != cblasLower) return false;
+    if (trans != cblasNoTrans &&
+        trans != cblasTrans &&
+        trans != cblasConjTrans) {
+      return false;
+    }
+    if (diag != cblasNonUnit && diag != cblasUnit) return false;
+    if (n == 0) return true;
+    final aReq = aOffset + (n - 1) * lda + n;
+    final xReq = xOffset + (n - 1) * incX.abs() + 1;
+    if (a.length < aReq || x.length < xReq) return false;
+
+    if (isAccelerated) {
+      final success = _blas.strmv(
+        uplo: uplo,
+        trans: trans,
+        diag: diag,
+        n: n,
+        a: a,
+        aOffset: aOffset,
+        lda: lda,
+        x: x,
+        xOffset: xOffset,
+        incX: incX,
+      );
+      if (success) return true;
+    }
+
+    // Pure Dart fallback
+    final temp = Float32List(n);
+    for (var i = 0; i < n; i++) {
+      temp[i] = x[xOffset + i * incX];
+    }
+    for (var i = 0; i < n; i++) {
+      var sum = 0.0;
+      if (trans == cblasNoTrans) {
+        if (uplo == cblasUpper) {
+          for (var j = i; j < n; j++) {
+            final aVal = (i == j && diag == cblasUnit)
+                ? 1.0
+                : a[aOffset + i * lda + j];
+            sum += aVal * temp[j];
+          }
+        } else {
+          for (var j = 0; j <= i; j++) {
+            final aVal = (i == j && diag == cblasUnit)
+                ? 1.0
+                : a[aOffset + i * lda + j];
+            sum += aVal * temp[j];
+          }
+        }
+      } else {
+        if (uplo == cblasUpper) {
+          for (var j = 0; j <= i; j++) {
+            final aVal = (i == j && diag == cblasUnit)
+                ? 1.0
+                : a[aOffset + j * lda + i];
+            sum += aVal * temp[j];
+          }
+        } else {
+          for (var j = i; j < n; j++) {
+            final aVal = (i == j && diag == cblasUnit)
+                ? 1.0
+                : a[aOffset + j * lda + i];
+            sum += aVal * temp[j];
+          }
+        }
+      }
+      x[xOffset + i * incX] = sum;
+    }
+    return true;
+  }
+
+  /// Symmetric matrix-matrix multiplication C = alpha * A * B + beta * C (or B * A) for Float64List.
+  static bool dsymm({
+    int side = cblasLeft,
+    int uplo = cblasUpper,
+    required int m,
+    required int n,
+    required double alpha,
+    required Float64List a,
+    int aOffset = 0,
+    required int lda,
+    required Float64List b,
+    int bOffset = 0,
+    required int ldb,
+    required double beta,
+    required Float64List c,
+    int cOffset = 0,
+    required int ldc,
+  }) {
+    if (m < 0 || n < 0) return false;
+    if (side != cblasLeft && side != cblasRight) return false;
+    if (uplo != cblasUpper && uplo != cblasLower) return false;
+    final aDim = side == cblasLeft ? m : n;
+    if (lda < aDim || ldb < n || ldc < n) return false;
+    if (m == 0 || n == 0) return true;
+    final aReq = aOffset + (aDim - 1) * lda + aDim;
+    final bReq = bOffset + (m - 1) * ldb + n;
+    final cReq = cOffset + (m - 1) * ldc + n;
+    if (a.length < aReq || b.length < bReq || c.length < cReq) return false;
+
+    if (isAccelerated) {
+      final success = _blas.dsymm(
+        side: side,
+        uplo: uplo,
+        m: m,
+        n: n,
+        alpha: alpha,
+        a: a,
+        aOffset: aOffset,
+        lda: lda,
+        b: b,
+        bOffset: bOffset,
+        ldb: ldb,
+        beta: beta,
+        c: c,
+        cOffset: cOffset,
+        ldc: ldc,
+      );
+      if (success) return true;
+    }
+
+    // Pure Dart fallback
+    for (var i = 0; i < m; i++) {
+      for (var j = 0; j < n; j++) {
+        var sum = 0.0;
+        if (side == cblasLeft) {
+          for (var k = 0; k < m; k++) {
+            final aVal = uplo == cblasUpper
+                ? (i <= k ? a[aOffset + i * lda + k] : a[aOffset + k * lda + i])
+                : (i >= k
+                      ? a[aOffset + i * lda + k]
+                      : a[aOffset + k * lda + i]);
+            sum += aVal * b[bOffset + k * ldb + j];
+          }
+        } else {
+          for (var k = 0; k < n; k++) {
+            final aVal = uplo == cblasUpper
+                ? (k <= j ? a[aOffset + k * lda + j] : a[aOffset + j * lda + k])
+                : (k >= j
+                      ? a[aOffset + k * lda + j]
+                      : a[aOffset + j * lda + k]);
+            sum += b[bOffset + i * ldb + k] * aVal;
+          }
+        }
+        final val =
+            alpha * sum + (beta == 0.0 ? 0.0 : beta * c[cOffset + i * ldc + j]);
+        c[cOffset + i * ldc + j] = val;
+      }
+    }
+    return true;
+  }
+
+  /// Symmetric matrix-matrix multiplication for Float32List.
+  static bool ssymm({
+    int side = cblasLeft,
+    int uplo = cblasUpper,
+    required int m,
+    required int n,
+    required double alpha,
+    required Float32List a,
+    int aOffset = 0,
+    required int lda,
+    required Float32List b,
+    int bOffset = 0,
+    required int ldb,
+    required double beta,
+    required Float32List c,
+    int cOffset = 0,
+    required int ldc,
+  }) {
+    if (m < 0 || n < 0) return false;
+    if (side != cblasLeft && side != cblasRight) return false;
+    if (uplo != cblasUpper && uplo != cblasLower) return false;
+    final aDim = side == cblasLeft ? m : n;
+    if (lda < aDim || ldb < n || ldc < n) return false;
+    if (m == 0 || n == 0) return true;
+    final aReq = aOffset + (aDim - 1) * lda + aDim;
+    final bReq = bOffset + (m - 1) * ldb + n;
+    final cReq = cOffset + (m - 1) * ldc + n;
+    if (a.length < aReq || b.length < bReq || c.length < cReq) return false;
+
+    if (isAccelerated) {
+      final success = _blas.ssymm(
+        side: side,
+        uplo: uplo,
+        m: m,
+        n: n,
+        alpha: alpha,
+        a: a,
+        aOffset: aOffset,
+        lda: lda,
+        b: b,
+        bOffset: bOffset,
+        ldb: ldb,
+        beta: beta,
+        c: c,
+        cOffset: cOffset,
+        ldc: ldc,
+      );
+      if (success) return true;
+    }
+
+    // Pure Dart fallback
+    for (var i = 0; i < m; i++) {
+      for (var j = 0; j < n; j++) {
+        var sum = 0.0;
+        if (side == cblasLeft) {
+          for (var k = 0; k < m; k++) {
+            final aVal = uplo == cblasUpper
+                ? (i <= k ? a[aOffset + i * lda + k] : a[aOffset + k * lda + i])
+                : (i >= k
+                      ? a[aOffset + i * lda + k]
+                      : a[aOffset + k * lda + i]);
+            sum += aVal * b[bOffset + k * ldb + j];
+          }
+        } else {
+          for (var k = 0; k < n; k++) {
+            final aVal = uplo == cblasUpper
+                ? (k <= j ? a[aOffset + k * lda + j] : a[aOffset + j * lda + k])
+                : (k >= j
+                      ? a[aOffset + k * lda + j]
+                      : a[aOffset + j * lda + k]);
+            sum += b[bOffset + i * ldb + k] * aVal;
+          }
+        }
+        final val =
+            alpha * sum + (beta == 0.0 ? 0.0 : beta * c[cOffset + i * ldc + j]);
+        c[cOffset + i * ldc + j] = val;
+      }
+    }
+    return true;
+  }
+
+  /// Triangular matrix-matrix multiplication B = alpha * op(A) * B (or B * op(A)) for Float64List.
+  static bool dtrmm({
+    int side = cblasLeft,
+    int uplo = cblasUpper,
+    int transA = cblasNoTrans,
+    int diag = cblasNonUnit,
+    required int m,
+    required int n,
+    required double alpha,
+    required Float64List a,
+    int aOffset = 0,
+    required int lda,
+    required Float64List b,
+    int bOffset = 0,
+    required int ldb,
+  }) {
+    if (m < 0 || n < 0) return false;
+    if (side != cblasLeft && side != cblasRight) return false;
+    if (uplo != cblasUpper && uplo != cblasLower) return false;
+    if (transA != cblasNoTrans &&
+        transA != cblasTrans &&
+        transA != cblasConjTrans) {
+      return false;
+    }
+    if (diag != cblasNonUnit && diag != cblasUnit) return false;
+    final aDim = side == cblasLeft ? m : n;
+    if (lda < aDim || ldb < n) return false;
+    if (m == 0 || n == 0) return true;
+    final aReq = aOffset + (aDim - 1) * lda + aDim;
+    final bReq = bOffset + (m - 1) * ldb + n;
+    if (a.length < aReq || b.length < bReq) return false;
+
+    if (isAccelerated) {
+      final success = _blas.dtrmm(
+        side: side,
+        uplo: uplo,
+        transA: transA,
+        diag: diag,
+        m: m,
+        n: n,
+        alpha: alpha,
+        a: a,
+        aOffset: aOffset,
+        lda: lda,
+        b: b,
+        bOffset: bOffset,
+        ldb: ldb,
+      );
+      if (success) return true;
+    }
+
+    // Pure Dart fallback (copy b to scratch buffer to prevent in-place overwrite corruption)
+    final bCopy = Float64List(m * n);
+    for (var i = 0; i < m; i++) {
+      for (var j = 0; j < n; j++) {
+        bCopy[i * n + j] = b[bOffset + i * ldb + j];
+      }
+    }
+
+    for (var i = 0; i < m; i++) {
+      for (var j = 0; j < n; j++) {
+        var sum = 0.0;
+        if (side == cblasLeft) {
+          if (transA == cblasNoTrans) {
+            final startK = uplo == cblasUpper ? i : 0;
+            final endK = uplo == cblasUpper ? m : i + 1;
+            for (var k = startK; k < endK; k++) {
+              final aVal = (i == k && diag == cblasUnit)
+                  ? 1.0
+                  : a[aOffset + i * lda + k];
+              sum += aVal * bCopy[k * n + j];
+            }
+          } else {
+            final startK = uplo == cblasUpper ? 0 : i;
+            final endK = uplo == cblasUpper ? i + 1 : m;
+            for (var k = startK; k < endK; k++) {
+              final aVal = (i == k && diag == cblasUnit)
+                  ? 1.0
+                  : a[aOffset + k * lda + i];
+              sum += aVal * bCopy[k * n + j];
+            }
+          }
+        } else {
+          if (transA == cblasNoTrans) {
+            final startK = uplo == cblasUpper ? 0 : j;
+            final endK = uplo == cblasUpper ? j + 1 : n;
+            for (var k = startK; k < endK; k++) {
+              final aVal = (k == j && diag == cblasUnit)
+                  ? 1.0
+                  : a[aOffset + k * lda + j];
+              sum += bCopy[i * n + k] * aVal;
+            }
+          } else {
+            final startK = uplo == cblasUpper ? j : 0;
+            final endK = uplo == cblasUpper ? n : j + 1;
+            for (var k = startK; k < endK; k++) {
+              final aVal = (k == j && diag == cblasUnit)
+                  ? 1.0
+                  : a[aOffset + j * lda + k];
+              sum += bCopy[i * n + k] * aVal;
+            }
+          }
+        }
+        b[bOffset + i * ldb + j] = alpha * sum;
+      }
+    }
+    return true;
+  }
+
+  /// Triangular matrix-matrix multiplication for Float32List.
+  static bool strmm({
+    int side = cblasLeft,
+    int uplo = cblasUpper,
+    int transA = cblasNoTrans,
+    int diag = cblasNonUnit,
+    required int m,
+    required int n,
+    required double alpha,
+    required Float32List a,
+    int aOffset = 0,
+    required int lda,
+    required Float32List b,
+    int bOffset = 0,
+    required int ldb,
+  }) {
+    if (m < 0 || n < 0) return false;
+    if (side != cblasLeft && side != cblasRight) return false;
+    if (uplo != cblasUpper && uplo != cblasLower) return false;
+    if (transA != cblasNoTrans &&
+        transA != cblasTrans &&
+        transA != cblasConjTrans) {
+      return false;
+    }
+    if (diag != cblasNonUnit && diag != cblasUnit) return false;
+    final aDim = side == cblasLeft ? m : n;
+    if (lda < aDim || ldb < n) return false;
+    if (m == 0 || n == 0) return true;
+    final aReq = aOffset + (aDim - 1) * lda + aDim;
+    final bReq = bOffset + (m - 1) * ldb + n;
+    if (a.length < aReq || b.length < bReq) return false;
+
+    if (isAccelerated) {
+      final success = _blas.strmm(
+        side: side,
+        uplo: uplo,
+        transA: transA,
+        diag: diag,
+        m: m,
+        n: n,
+        alpha: alpha,
+        a: a,
+        aOffset: aOffset,
+        lda: lda,
+        b: b,
+        bOffset: bOffset,
+        ldb: ldb,
+      );
+      if (success) return true;
+    }
+
+    // Pure Dart fallback
+    final bCopy = Float32List(m * n);
+    for (var i = 0; i < m; i++) {
+      for (var j = 0; j < n; j++) {
+        bCopy[i * n + j] = b[bOffset + i * ldb + j];
+      }
+    }
+
+    for (var i = 0; i < m; i++) {
+      for (var j = 0; j < n; j++) {
+        var sum = 0.0;
+        if (side == cblasLeft) {
+          if (transA == cblasNoTrans) {
+            final startK = uplo == cblasUpper ? i : 0;
+            final endK = uplo == cblasUpper ? m : i + 1;
+            for (var k = startK; k < endK; k++) {
+              final aVal = (i == k && diag == cblasUnit)
+                  ? 1.0
+                  : a[aOffset + i * lda + k];
+              sum += aVal * bCopy[k * n + j];
+            }
+          } else {
+            final startK = uplo == cblasUpper ? 0 : i;
+            final endK = uplo == cblasUpper ? i + 1 : m;
+            for (var k = startK; k < endK; k++) {
+              final aVal = (i == k && diag == cblasUnit)
+                  ? 1.0
+                  : a[aOffset + k * lda + i];
+              sum += aVal * bCopy[k * n + j];
+            }
+          }
+        } else {
+          if (transA == cblasNoTrans) {
+            final startK = uplo == cblasUpper ? 0 : j;
+            final endK = uplo == cblasUpper ? j + 1 : n;
+            for (var k = startK; k < endK; k++) {
+              final aVal = (k == j && diag == cblasUnit)
+                  ? 1.0
+                  : a[aOffset + k * lda + j];
+              sum += bCopy[i * n + k] * aVal;
+            }
+          } else {
+            final startK = uplo == cblasUpper ? j : 0;
+            final endK = uplo == cblasUpper ? n : j + 1;
+            for (var k = startK; k < endK; k++) {
+              final aVal = (k == j && diag == cblasUnit)
+                  ? 1.0
+                  : a[aOffset + j * lda + k];
+              sum += bCopy[i * n + k] * aVal;
+            }
+          }
+        }
+        b[bOffset + i * ldb + j] = alpha * sum;
+      }
+    }
+    return true;
+  }
+
+  /// Computes all eigenvalues and, optionally, eigenvectors of a real symmetric matrix A.
+  ///
+  /// On exit, [w] contains eigenvalues in ascending order. If [jobz] == 'V',
+  /// [a] contains orthonormal eigenvectors in its columns.
+  static bool dsyev({
+    String jobz = 'V',
+    int uplo = cblasUpper,
+    required int n,
+    required Float64List a,
+    int aOffset = 0,
+    required int lda,
+    required Float64List w,
+    int wOffset = 0,
+  }) {
+    if (n < 0 || lda < n) return false;
+    final normJobz = jobz.toUpperCase();
+    if (normJobz != 'V' && normJobz != 'N') return false;
+    if (uplo != cblasUpper && uplo != cblasLower) return false;
+    if (n == 0) return true;
+    final aReq = aOffset + (n - 1) * lda + n;
+    final wReq = wOffset + n;
+    if (a.length < aReq || w.length < wReq) return false;
+
+    if (isAccelerated) {
+      final success = _blas.dsyev(
+        jobz: normJobz,
+        uplo: uplo,
+        n: n,
+        a: a,
+        aOffset: aOffset,
+        lda: lda,
+        w: w,
+        wOffset: wOffset,
+      );
+      if (success) return true;
+    }
+
+    return _dsyevFallback(
+      jobz: normJobz,
+      uplo: uplo,
+      n: n,
+      a: a,
+      aOffset: aOffset,
+      lda: lda,
+      w: w,
+      wOffset: wOffset,
+    );
+  }
+
+  /// Computes all eigenvalues and eigenvectors of a single-precision symmetric matrix.
+  static bool ssyev({
+    String jobz = 'V',
+    int uplo = cblasUpper,
+    required int n,
+    required Float32List a,
+    int aOffset = 0,
+    required int lda,
+    required Float32List w,
+    int wOffset = 0,
+  }) {
+    if (n < 0 || lda < n) return false;
+    final normJobz = jobz.toUpperCase();
+    if (normJobz != 'V' && normJobz != 'N') return false;
+    if (uplo != cblasUpper && uplo != cblasLower) return false;
+    if (n == 0) return true;
+    final aReq = aOffset + (n - 1) * lda + n;
+    final wReq = wOffset + n;
+    if (a.length < aReq || w.length < wReq) return false;
+
+    if (isAccelerated) {
+      final success = _blas.ssyev(
+        jobz: normJobz,
+        uplo: uplo,
+        n: n,
+        a: a,
+        aOffset: aOffset,
+        lda: lda,
+        w: w,
+        wOffset: wOffset,
+      );
+      if (success) return true;
+    }
+
+    return _ssyevFallback(
+      jobz: normJobz,
+      uplo: uplo,
+      n: n,
+      a: a,
+      aOffset: aOffset,
+      lda: lda,
+      w: w,
+      wOffset: wOffset,
+    );
+  }
+
+  static bool _dsyevFallback({
+    required String jobz,
+    required int uplo,
+    required int n,
+    required Float64List a,
+    required int aOffset,
+    required int lda,
+    required Float64List w,
+    required int wOffset,
+  }) {
+    if (n == 1) {
+      w[wOffset] = a[aOffset];
+      if (jobz.toUpperCase() == 'V') a[aOffset] = 1.0;
+      return true;
+    }
+
+    final v = Float64List(n * n);
+    for (var i = 0; i < n; i++) {
+      for (var j = 0; j < n; j++) {
+        final val = uplo == cblasUpper
+            ? (i <= j ? a[aOffset + i * lda + j] : a[aOffset + j * lda + i])
+            : (i >= j ? a[aOffset + i * lda + j] : a[aOffset + j * lda + i]);
+        v[i * n + j] = val;
+      }
+    }
+
+    final d = Float64List(n);
+    final e = Float64List(n);
+
+    // Householder reduction to tridiagonal form (tred2)
+    for (var j = 0; j < n; j++) {
+      d[j] = v[(n - 1) * n + j];
+    }
+    for (var i = n - 1; i > 0; i--) {
+      var scale = 0.0;
+      var hVal = 0.0;
+      for (var k = 0; k < i; k++) {
+        scale += d[k].abs();
+      }
+      if (scale == 0.0) {
+        e[i] = d[i - 1];
+        for (var j = 0; j < i; j++) {
+          d[j] = v[(i - 1) * n + j];
+          v[i * n + j] = 0.0;
+          v[j * n + i] = 0.0;
+        }
+      } else {
+        for (var k = 0; k < i; k++) {
+          d[k] /= scale;
+          hVal += d[k] * d[k];
+        }
+        var fVal = d[i - 1];
+        var gVal = math.sqrt(hVal);
+        if (fVal > 0) gVal = -gVal;
+        e[i] = scale * gVal;
+        hVal -= fVal * gVal;
+        d[i - 1] = fVal - gVal;
+        for (var j = 0; j < i; j++) {
+          e[j] = 0.0;
+        }
+        for (var j = 0; j < i; j++) {
+          fVal = d[j];
+          v[j * n + i] = fVal;
+          gVal = e[j] + v[j * n + j] * fVal;
+          for (var k = j + 1; k <= i - 1; k++) {
+            gVal += v[k * n + j] * d[k];
+            e[k] += v[k * n + j] * fVal;
+          }
+          e[j] = gVal;
+        }
+        fVal = 0.0;
+        for (var j = 0; j < i; j++) {
+          e[j] /= hVal;
+          fVal += e[j] * d[j];
+        }
+        final hh = fVal / (hVal + hVal);
+        for (var j = 0; j < i; j++) {
+          e[j] -= hh * d[j];
+        }
+        for (var j = 0; j < i; j++) {
+          fVal = d[j];
+          gVal = e[j];
+          for (var k = j; k <= i - 1; k++) {
+            v[k * n + j] -= fVal * e[k] + gVal * d[k];
+          }
+          d[j] = v[(i - 1) * n + j];
+          v[i * n + j] = 0.0;
+        }
+      }
+      d[i] = hVal;
+    }
+
+    for (var i = 0; i < n - 1; i++) {
+      v[(n - 1) * n + i] = v[i * n + i];
+      v[i * n + i] = 1.0;
+      final hVal = d[i + 1];
+      if (hVal != 0.0) {
+        for (var k = 0; k <= i; k++) {
+          d[k] = v[k * n + (i + 1)] / hVal;
+        }
+        for (var j = 0; j <= i; j++) {
+          var gVal = 0.0;
+          for (var k = 0; k <= i; k++) {
+            gVal += v[k * n + (i + 1)] * v[k * n + j];
+          }
+          for (var k = 0; k <= i; k++) {
+            v[k * n + j] -= gVal * d[k];
+          }
+        }
+      }
+      for (var k = 0; k <= i; k++) {
+        v[k * n + (i + 1)] = 0.0;
+      }
+    }
+    for (var j = 0; j < n; j++) {
+      d[j] = v[(n - 1) * n + j];
+      v[(n - 1) * n + j] = 0.0;
+    }
+    v[(n - 1) * n + (n - 1)] = 1.0;
+    e[0] = 0.0;
+
+    // QL algorithm with implicit shifts (tql2)
+    for (var i = 1; i < n; i++) {
+      e[i - 1] = e[i];
+    }
+    e[n - 1] = 0.0;
+
+    var fVal = 0.0;
+    var tst1 = 0.0;
+    const eps = 2.220446049250313e-16;
+    for (var lIdx = 0; lIdx < n; lIdx++) {
+      tst1 = math.max(tst1, d[lIdx].abs() + e[lIdx].abs());
+      var mIdx = lIdx;
+      while (mIdx < n) {
+        if (e[mIdx].abs() <= eps * tst1) break;
+        mIdx++;
+      }
+      if (mIdx > lIdx) {
+        var iter = 0;
+        do {
+          iter++;
+          if (iter > 100) return false;
+          var gVal = d[lIdx];
+          var pVal = (d[lIdx + 1] - gVal) / (2.0 * e[lIdx]);
+          var rVal = _hypot(pVal, 1.0);
+          if (pVal < 0) rVal = -rVal;
+          d[lIdx] = e[lIdx] / (pVal + rVal);
+          d[lIdx + 1] = e[lIdx] * (pVal + rVal);
+          final dl1 = d[lIdx + 1];
+          var hVal = gVal - d[lIdx];
+          for (var i = lIdx + 2; i < n; i++) {
+            d[i] -= hVal;
+          }
+          fVal += hVal;
+
+          pVal = d[mIdx];
+          var cosVal = 1.0;
+          var cos2Val = cosVal;
+          var cos3Val = cosVal;
+          final el1 = e[lIdx + 1];
+          var sinVal = 0.0;
+          var sin2Val = 0.0;
+          for (var i = mIdx - 1; i >= lIdx; i--) {
+            cos3Val = cos2Val;
+            cos2Val = cosVal;
+            sin2Val = sinVal;
+            gVal = cosVal * e[i];
+            hVal = cosVal * pVal;
+            rVal = _hypot(pVal, e[i]);
+            e[i + 1] = sinVal * rVal;
+            sinVal = e[i] / rVal;
+            cosVal = pVal / rVal;
+            pVal = cosVal * d[i] - sinVal * gVal;
+            d[i + 1] = hVal + sinVal * (cosVal * gVal + sinVal * d[i]);
+
+            for (var k = 0; k < n; k++) {
+              hVal = v[k * n + (i + 1)];
+              v[k * n + (i + 1)] = sinVal * v[k * n + i] + cosVal * hVal;
+              v[k * n + i] = cosVal * v[k * n + i] - sinVal * hVal;
+            }
+          }
+          pVal = -sinVal * sin2Val * cos3Val * el1 * e[lIdx] / dl1;
+          e[lIdx] = sinVal * pVal;
+          d[lIdx] = cosVal * pVal;
+        } while (e[lIdx].abs() > eps * tst1);
+      }
+      d[lIdx] += fVal;
+      e[lIdx] = 0.0;
+    }
+
+    // Sort eigenvalues and permute eigenvectors
+    for (var i = 0; i < n - 1; i++) {
+      var k = i;
+      var pVal = d[i];
+      for (var j = i + 1; j < n; j++) {
+        if (d[j] < pVal) {
+          k = j;
+          pVal = d[j];
+        }
+      }
+      if (k != i) {
+        d[k] = d[i];
+        d[i] = pVal;
+        for (var j = 0; j < n; j++) {
+          pVal = v[j * n + i];
+          v[j * n + i] = v[j * n + k];
+          v[j * n + k] = pVal;
+        }
+      }
+    }
+
+    for (var i = 0; i < n; i++) {
+      w[wOffset + i] = d[i];
+    }
+    if (jobz.toUpperCase() == 'V') {
+      for (var i = 0; i < n; i++) {
+        for (var j = 0; j < n; j++) {
+          a[aOffset + i * lda + j] = v[i * n + j];
+        }
+      }
+    }
+    return true;
+  }
+
+  static bool _ssyevFallback({
+    required String jobz,
+    required int uplo,
+    required int n,
+    required Float32List a,
+    required int aOffset,
+    required int lda,
+    required Float32List w,
+    required int wOffset,
+  }) {
+    final a64 = Float64List(n * lda);
+    for (var i = 0; i < n; i++) {
+      for (var j = 0; j < n; j++) {
+        a64[i * lda + j] = a[aOffset + i * lda + j];
+      }
+    }
+    final w64 = Float64List(n);
+    final ok = _dsyevFallback(
+      jobz: jobz,
+      uplo: uplo,
+      n: n,
+      a: a64,
+      aOffset: 0,
+      lda: lda,
+      w: w64,
+      wOffset: 0,
+    );
+    if (!ok) return false;
+    for (var i = 0; i < n; i++) {
+      w[wOffset + i] = w64[i];
+    }
+    if (jobz.toUpperCase() == 'V') {
+      for (var i = 0; i < n; i++) {
+        for (var j = 0; j < n; j++) {
+          a[aOffset + i * lda + j] = a64[i * lda + j];
+        }
+      }
+    }
+    return true;
+  }
+
+  static double _hypot(double a, double b) {
+    if (a.abs() > b.abs()) {
+      final ratio = b / a;
+      return a.abs() * math.sqrt(1 + ratio * ratio);
+    } else if (b != 0) {
+      final ratio = a / b;
+      return b.abs() * math.sqrt(1 + ratio * ratio);
+    } else {
+      return 0.0;
+    }
+  }
+
   static bool _luSolve(
     int n,
     int nrhs,
