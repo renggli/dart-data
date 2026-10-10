@@ -96,6 +96,11 @@ This document describes the achieved architecture across all subsystems of `pack
   - `Matrix<T>` wraps a `Tensor<T>` where `rank == 2`. Dimensions are `rowCount = shape[0]` and `colCount = shape[1]`.
   - `Vector<T>` wraps a `Tensor<T>` where `rank == 1`. Dimension is `count = shape[0]`.
   - Operations like `matrix.transpose()`, `matrix.row(i)`, `matrix.col(j)`, and `matrix.diagonal()` return zero-copy views backed by the original tensor memory.
+  - **Direct Fast-Path Indexing**:
+    - `Tensor.get2D(r, c)`, `Tensor.set2D(r, c, v)`, `Tensor.get1D(idx)`, and `Tensor.set1D(idx, v)` provide `@pragma('vm:prefer-inline')` unchecked scalar access without heap `List<int>` coordinate allocations.
+    - `Matrix<T>` provides `getUnchecked(row, col)` and `setUnchecked(row, col, value)` for performance-critical inner loops (factorizations, transformations), alongside bounds-checked `get(row, col)`, `set(row, col, value)`, and Dart 3 record indexing `operator []((int, int))` / `operator []=((int, int), value)`.
+    - `Vector<T>` provides `getUnchecked(index)` and `setUnchecked(index, value)` alongside bounds-checked `operator [](index)` and `operator []=(index, value)`.
+    - Direct linear buffer initialization in `Matrix.generate` and `Vector.generate` avoids coordinate list allocations.
 
 ### 3.2 The `LinearOperator<T>` Contract
 

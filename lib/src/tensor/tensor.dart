@@ -1,9 +1,12 @@
+import 'package:meta/meta.dart';
+
 import '../../type.dart';
 import 'layout.dart';
 import 'operations/operation.dart';
 
 /// Multi-dimensional dense array backed by a flat buffer and strided layout.
 class Tensor<T> {
+  @internal
   new internal({required this.type, required this.layout, required this.data});
 
   /// Constructs a tensor backed by off-heap native memory.
@@ -169,6 +172,26 @@ class Tensor<T> {
 
   /// Sets the value at the given coordinate key.
   void setValue(List<int> key, T value) => data[layout.toIndex(key)] = value;
+
+  /// Returns the value at [r] and [c] without bounds checks for rank-2 tensors.
+  @pragma('vm:prefer-inline')
+  T get2D(int r, int c) =>
+      data[layout.offset + r * layout.strides[0] + c * layout.strides[1]];
+
+  /// Sets the value at [r] and [c] to [value] without bounds checks for rank-2 tensors.
+  @pragma('vm:prefer-inline')
+  void set2D(int r, int c, T value) =>
+      data[layout.offset + r * layout.strides[0] + c * layout.strides[1]] =
+          value;
+
+  /// Returns the value at [index] without bounds checks for rank-1 tensors.
+  @pragma('vm:prefer-inline')
+  T get1D(int index) => data[layout.offset + index * layout.strides[0]];
+
+  /// Sets the value at [index] to [value] without bounds checks for rank-1 tensors.
+  @pragma('vm:prefer-inline')
+  void set1D(int index, T value) =>
+      data[layout.offset + index * layout.strides[0]] = value;
 
   /// Slices the first axis at [index].
   Tensor<T> operator [](int index) =>

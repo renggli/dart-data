@@ -44,12 +44,20 @@ class Matrix<T> implements LinearOperator<T> {
     DataType<T>? type,
   }) {
     final effectiveType = type ?? DataType.fromType<T>();
-    final tensor = Tensor<T>.generate(
-      (key) => generator(key[0], key[1]),
-      shape: [rowCount, colCount],
-      type: effectiveType,
+    final data = effectiveType.newList(rowCount * colCount);
+    var index = 0;
+    for (var r = 0; r < rowCount; r++) {
+      for (var c = 0; c < colCount; c++) {
+        data[index++] = generator(r, c);
+      }
+    }
+    return Matrix(
+      Tensor.internal(
+        type: effectiveType,
+        layout: Layout(shape: [rowCount, colCount]),
+        data: data,
+      ),
     );
-    return Matrix(tensor);
   }
 
   /// Constructs an identity matrix of dimension [size x size].
@@ -79,18 +87,29 @@ class Matrix<T> implements LinearOperator<T> {
     }
     final rCount = rowList.length;
     final cCount = rowList.first.length;
-    final dataType = type ?? DataType.fromIterable(rowList.first);
-    final flat = <T>[];
+    final dataType =
+        type ??
+        (rowList.first.isEmpty
+            ? DataType.fromType<T>()
+            : DataType.fromIterable(rowList.first));
+    final data = dataType.newList(rCount * cCount);
+    var index = 0;
     for (final row in rowList) {
       if (row.length != cCount) {
         throw ArgumentError(
           'All rows must have identical length ($cCount), got ${row.length}',
         );
       }
-      flat.addAll(row);
+      for (var col = 0; col < cCount; col++) {
+        data[index++] = row[col];
+      }
     }
     return Matrix(
-      Tensor.fromIterable(flat, shape: [rCount, cCount], type: dataType),
+      Tensor.internal(
+        type: dataType,
+        layout: Layout(shape: [rCount, cCount]),
+        data: data,
+      ),
     );
   }
 
@@ -107,20 +126,29 @@ class Matrix<T> implements LinearOperator<T> {
     }
     final cCount = colList.length;
     final rCount = colList.first.length;
-    final dataType = type ?? DataType.fromIterable(colList.first);
-    final flat = <T>[];
+    for (final col in colList) {
+      if (col.length != rCount) {
+        throw ArgumentError('All columns must have identical length ($rCount)');
+      }
+    }
+    final dataType =
+        type ??
+        (colList.first.isEmpty
+            ? DataType.fromType<T>()
+            : DataType.fromIterable(colList.first));
+    final data = dataType.newList(rCount * cCount);
+    var index = 0;
     for (var row = 0; row < rCount; row++) {
       for (var col = 0; col < cCount; col++) {
-        if (colList[col].length != rCount) {
-          throw ArgumentError(
-            'All columns must have identical length ($rCount)',
-          );
-        }
-        flat.add(colList[col][row]);
+        data[index++] = colList[col][row];
       }
     }
     return Matrix(
-      Tensor.fromIterable(flat, shape: [rCount, cCount], type: dataType),
+      Tensor.internal(
+        type: dataType,
+        layout: Layout(shape: [rCount, cCount]),
+        data: data,
+      ),
     );
   }
 
@@ -152,11 +180,36 @@ class Matrix<T> implements LinearOperator<T> {
   /// Returns an iterable over the elements in row-major traversal order.
   Iterable<T> get values => tensor.values;
 
-  /// Gets the element at [row, col].
-  T get(int row, int col) => tensor.getValue([row, col]);
+  /// Gets the element at [row] and [col] without bounds checks.
+  @pragma('vm:prefer-inline')
+  T getUnchecked(int row, int col) => tensor.get2D(row, col);
 
-  /// Sets the element at [row, col] to [value].
-  void set(int row, int col, T value) => tensor.setValue([row, col], value);
+  /// Sets the element at [row] and [col] to [value] without bounds checks.
+  @pragma('vm:prefer-inline')
+  void setUnchecked(int row, int col, T value) => tensor.set2D(row, col, value);
+
+  /// Gets the element at [row] and [col].
+  T get(int row, int col) {
+    RangeError.checkValidIndex(row, this, 'row', rowCount);
+    RangeError.checkValidIndex(col, this, 'col', colCount);
+    return getUnchecked(row, col);
+  }
+
+  /// Sets the element at [row] and [col] to [value].
+  void set(int row, int col, T value) {
+    RangeError.checkValidIndex(row, this, 'row', rowCount);
+    RangeError.checkValidIndex(col, this, 'col', colCount);
+    setUnchecked(row, col, value);
+  }
+
+  /// Gets the element at [pos] `(row, col)`.
+  @pragma('vm:prefer-inline')
+  T operator []((int row, int col) pos) => get(pos.$1, pos.$2);
+
+  /// Sets the element at [pos] `(row, col)` to [value].
+  @pragma('vm:prefer-inline')
+  void operator []=((int row, int col) pos, T value) =>
+      set(pos.$1, pos.$2, value);
 
   /// Slices the [row] index into a 1D [Vector].
   Vector<T> row(int row) => Vector(tensor[row]);
@@ -221,7 +274,7 @@ class Matrix<T> implements LinearOperator<T> {
     final eq = type.equality;
     for (var row = 1; row < rowCount; row++) {
       for (var col = 0; col < row; col++) {
-        if (!eq.isEqual(get(row, col), get(col, row))) {
+        if (!eq.isEqual(getUnchecked(row, col), getUnchecked(col, row))) {
           return false;
         }
       }
@@ -235,7 +288,7 @@ class Matrix<T> implements LinearOperator<T> {
     final zero = type.defaultValue;
     for (var row = 0; row < rowCount; row++) {
       for (var col = 0; col < colCount; col++) {
-        if (row != col && !eq.isEqual(get(row, col), zero)) {
+        if (row != col && !eq.isEqual(getUnchecked(row, col), zero)) {
           return false;
         }
       }
@@ -249,7 +302,7 @@ class Matrix<T> implements LinearOperator<T> {
     final zero = type.defaultValue;
     for (var row = 0; row < rowCount; row++) {
       for (var col = row + 1; col < colCount; col++) {
-        if (!eq.isEqual(get(row, col), zero)) {
+        if (!eq.isEqual(getUnchecked(row, col), zero)) {
           return false;
         }
       }
@@ -263,7 +316,7 @@ class Matrix<T> implements LinearOperator<T> {
     final zero = type.defaultValue;
     for (var row = 1; row < rowCount; row++) {
       for (var col = 0; col < colCount && col < row; col++) {
-        if (!eq.isEqual(get(row, col), zero)) {
+        if (!eq.isEqual(getUnchecked(row, col), zero)) {
           return false;
         }
       }
@@ -302,8 +355,9 @@ class Matrix<T> implements LinearOperator<T> {
     return Matrix.generate(
       rowCount,
       colCount + other.colCount,
-      (row, col) =>
-          col < colCount ? get(row, col) : other.get(row, col - colCount),
+      (row, col) => col < colCount
+          ? getUnchecked(row, col)
+          : other.getUnchecked(row, col - colCount),
       type: type,
     );
   }
@@ -318,8 +372,9 @@ class Matrix<T> implements LinearOperator<T> {
     return Matrix.generate(
       rowCount + other.rowCount,
       colCount,
-      (row, col) =>
-          row < rowCount ? get(row, col) : other.get(row - rowCount, col),
+      (row, col) => row < rowCount
+          ? getUnchecked(row, col)
+          : other.getUnchecked(row - rowCount, col),
       type: type,
     );
   }
@@ -430,7 +485,7 @@ class Matrix<T> implements LinearOperator<T> {
       final colJ = other.apply(eJ);
       final outColJ = apply(colJ);
       for (var i = 0; i < rowCount; i++) {
-        result.set(i, j, outColJ[i]);
+        result.setUnchecked(i, j, outColJ.getUnchecked(i));
       }
     }
     return result;
@@ -533,9 +588,12 @@ class Matrix<T> implements LinearOperator<T> {
       for (var i = 0; i < rowCount; i++) {
         var sum = field.additiveIdentity;
         for (var j = 0; j < colCount; j++) {
-          sum = field.add(sum, field.mul(get(i, j), x[j]));
+          sum = field.add(
+            sum,
+            field.mul(getUnchecked(i, j), x.getUnchecked(j)),
+          );
         }
-        res[i] = sum;
+        res.setUnchecked(i, sum);
       }
     }
     return res;
@@ -617,9 +675,15 @@ class Matrix<T> implements LinearOperator<T> {
     }
 
     for (var i = 0; i < rowCount; i++) {
-      final xi = x[i];
+      final xi = x.getUnchecked(i);
       for (var j = 0; j < colCount; j++) {
-        res[j] = field.add(res[j], field.mul(field.conjugate(get(i, j)), xi));
+        res.setUnchecked(
+          j,
+          field.add(
+            res.getUnchecked(j),
+            field.mul(field.conjugate(getUnchecked(i, j)), xi),
+          ),
+        );
       }
     }
     return res;
@@ -703,7 +767,7 @@ class Matrix<T> implements LinearOperator<T> {
   /// Converts this matrix into nested rows.
   List<List<T>> toNestedList() => List<List<T>>.generate(
     rowCount,
-    (row) => List<T>.generate(colCount, (col) => get(row, col)),
+    (row) => List<T>.generate(colCount, (col) => getUnchecked(row, col)),
   );
 
   @override

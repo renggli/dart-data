@@ -16,7 +16,7 @@ class QRDecomposition {
       _qr = Matrix<double>.generate(
         matrix.rowCount,
         matrix.colCount,
-        (row, col) => matrix.get(row, col).toDouble(),
+        (row, col) => matrix.getUnchecked(row, col).toDouble(),
         type: DataType.float64,
       ),
       _rdiag = List<double>.filled(matrix.colCount, 0.0) {
@@ -29,7 +29,7 @@ class QRDecomposition {
       var scale = 0.0;
       var sumsq = 1.0;
       for (var i = k; i < _m; i++) {
-        final val = _qr.get(i, k);
+        final val = _qr.getUnchecked(i, k);
         if (val != 0.0) {
           final absVal = val.abs();
           if (scale < absVal) {
@@ -43,22 +43,26 @@ class QRDecomposition {
       var nrm = scale * math.sqrt(sumsq);
 
       if (nrm != 0.0) {
-        if (_qr.get(k, k) < 0) {
+        if (_qr.getUnchecked(k, k) < 0) {
           nrm = -nrm;
         }
         for (var i = k; i < _m; i++) {
-          _qr.set(i, k, _qr.get(i, k) / nrm);
+          _qr.setUnchecked(i, k, _qr.getUnchecked(i, k) / nrm);
         }
-        _qr.set(k, k, _qr.get(k, k) + 1.0);
+        _qr.setUnchecked(k, k, _qr.getUnchecked(k, k) + 1.0);
 
         for (var j = k + 1; j < _n; j++) {
           var sum = 0.0;
           for (var i = k; i < _m; i++) {
-            sum += _qr.get(i, k) * _qr.get(i, j);
+            sum += _qr.getUnchecked(i, k) * _qr.getUnchecked(i, j);
           }
-          sum = -sum / _qr.get(k, k);
+          sum = -sum / _qr.getUnchecked(k, k);
           for (var i = k; i < _m; i++) {
-            _qr.set(i, j, _qr.get(i, j) + sum * _qr.get(i, k));
+            _qr.setUnchecked(
+              i,
+              j,
+              _qr.getUnchecked(i, j) + sum * _qr.getUnchecked(i, k),
+            );
           }
         }
       }
@@ -93,9 +97,9 @@ class QRDecomposition {
     for (var i = 0; i < _n; i++) {
       for (var j = i; j < _n; j++) {
         if (i < j) {
-          result.set(i, j, _qr.get(i, j));
+          result.setUnchecked(i, j, _qr.getUnchecked(i, j));
         } else if (i == j) {
-          result.set(i, j, _rdiag[i]);
+          result.setUnchecked(i, j, _rdiag[i]);
         }
       }
     }
@@ -107,18 +111,22 @@ class QRDecomposition {
     final result = Matrix<double>.filled(_m, _n, 0.0, type: DataType.float64);
     for (var k = _n - 1; k >= 0; k--) {
       for (var i = 0; i < _m; i++) {
-        result.set(i, k, 0.0);
+        result.setUnchecked(i, k, 0.0);
       }
-      result.set(k, k, 1.0);
+      result.setUnchecked(k, k, 1.0);
       for (var j = k; j < _n; j++) {
-        if (_qr.get(k, k) != 0.0) {
+        if (_qr.getUnchecked(k, k) != 0.0) {
           var sum = 0.0;
           for (var i = k; i < _m; i++) {
-            sum += _qr.get(i, k) * result.get(i, j);
+            sum += _qr.getUnchecked(i, k) * result.getUnchecked(i, j);
           }
-          sum = -sum / _qr.get(k, k);
+          sum = -sum / _qr.getUnchecked(k, k);
           for (var i = k; i < _m; i++) {
-            result.set(i, j, result.get(i, j) + sum * _qr.get(i, k));
+            result.setUnchecked(
+              i,
+              j,
+              result.getUnchecked(i, j) + sum * _qr.getUnchecked(i, k),
+            );
           }
         }
       }
@@ -136,17 +144,17 @@ class QRDecomposition {
     if (!isFullRank) {
       throw StateError('Matrix is rank deficient.');
     }
-    final x = List<double>.generate(_m, (i) => b[i].toDouble());
+    final x = List<double>.generate(_m, (i) => b.getUnchecked(i).toDouble());
 
     // Compute Y = Q^T * b
     for (var k = 0; k < _n; k++) {
       var sum = 0.0;
       for (var i = k; i < _m; i++) {
-        sum += _qr.get(i, k) * x[i];
+        sum += _qr.getUnchecked(i, k) * x[i];
       }
-      sum = -sum / _qr.get(k, k);
+      sum = -sum / _qr.getUnchecked(k, k);
       for (var i = k; i < _m; i++) {
-        x[i] += sum * _qr.get(i, k);
+        x[i] += sum * _qr.getUnchecked(i, k);
       }
     }
 
@@ -154,7 +162,7 @@ class QRDecomposition {
     for (var k = _n - 1; k >= 0; k--) {
       x[k] /= _rdiag[k];
       for (var i = 0; i < k; i++) {
-        x[i] -= x[k] * _qr.get(i, k);
+        x[i] -= x[k] * _qr.getUnchecked(i, k);
       }
     }
 
@@ -175,7 +183,7 @@ class QRDecomposition {
     final x = Matrix<double>.generate(
       _m,
       nx,
-      (row, col) => b.get(row, col).toDouble(),
+      (row, col) => b.getUnchecked(row, col).toDouble(),
       type: DataType.float64,
     );
 
@@ -184,11 +192,15 @@ class QRDecomposition {
       for (var j = 0; j < nx; j++) {
         var sum = 0.0;
         for (var i = k; i < _m; i++) {
-          sum += _qr.get(i, k) * x.get(i, j);
+          sum += _qr.getUnchecked(i, k) * x.getUnchecked(i, j);
         }
-        sum = -sum / _qr.get(k, k);
+        sum = -sum / _qr.getUnchecked(k, k);
         for (var i = k; i < _m; i++) {
-          x.set(i, j, x.get(i, j) + sum * _qr.get(i, k));
+          x.setUnchecked(
+            i,
+            j,
+            x.getUnchecked(i, j) + sum * _qr.getUnchecked(i, k),
+          );
         }
       }
     }
@@ -196,11 +208,16 @@ class QRDecomposition {
     // Solve R * X = Y
     for (var k = _n - 1; k >= 0; k--) {
       for (var j = 0; j < nx; j++) {
-        x.set(k, j, x.get(k, j) / _rdiag[k]);
+        x.setUnchecked(k, j, x.getUnchecked(k, j) / _rdiag[k]);
       }
       for (var i = 0; i < k; i++) {
         for (var j = 0; j < nx; j++) {
-          x.set(i, j, x.get(i, j) - x.get(k, j) * _qr.get(i, k));
+          x.setUnchecked(
+            i,
+            j,
+            x.getUnchecked(i, j) -
+                x.getUnchecked(k, j) * _qr.getUnchecked(i, k),
+          );
         }
       }
     }

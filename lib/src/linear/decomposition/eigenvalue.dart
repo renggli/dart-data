@@ -36,7 +36,7 @@ class EigenvalueDecomposition {
     if (_isSymmetric) {
       for (var i = 0; i < _n; i++) {
         for (var j = 0; j < _n; j++) {
-          _v.set(i, j, matrix.get(i, j).toDouble());
+          _v.setUnchecked(i, j, matrix.getUnchecked(i, j).toDouble());
         }
       }
       _tred2();
@@ -44,7 +44,7 @@ class EigenvalueDecomposition {
     } else {
       for (var j = 0; j < _n; j++) {
         for (var i = 0; i < _n; i++) {
-          _h.set(i, j, matrix.get(i, j).toDouble());
+          _h.setUnchecked(i, j, matrix.getUnchecked(i, j).toDouble());
         }
       }
       _orthes();
@@ -69,11 +69,11 @@ class EigenvalueDecomposition {
   Matrix<double> get d {
     final result = Matrix<double>.filled(_n, _n, 0.0, type: DataType.float64);
     for (var i = 0; i < _n; i++) {
-      result.set(i, i, _d[i]);
+      result.setUnchecked(i, i, _d[i]);
       if (_e[i] > 0) {
-        result.set(i, i + 1, _e[i]);
+        result.setUnchecked(i, i + 1, _e[i]);
       } else if (_e[i] < 0) {
-        result.set(i, i - 1, _e[i]);
+        result.setUnchecked(i, i - 1, _e[i]);
       }
     }
     return result;
@@ -104,7 +104,7 @@ class EigenvalueDecomposition {
 
   void _tred2() {
     for (var j = 0; j < _n; j++) {
-      _d[j] = _v.get(_n - 1, j);
+      _d[j] = _v.getUnchecked(_n - 1, j);
     }
     for (var i = _n - 1; i > 0; i--) {
       var scale = 0.0;
@@ -115,9 +115,9 @@ class EigenvalueDecomposition {
       if (scale == 0.0) {
         _e[i] = _d[i - 1];
         for (var j = 0; j < i; j++) {
-          _d[j] = _v.get(i - 1, j);
-          _v.set(i, j, 0.0);
-          _v.set(j, i, 0.0);
+          _d[j] = _v.getUnchecked(i - 1, j);
+          _v.setUnchecked(i, j, 0.0);
+          _v.setUnchecked(j, i, 0.0);
         }
       } else {
         for (var k = 0; k < i; k++) {
@@ -135,11 +135,11 @@ class EigenvalueDecomposition {
         }
         for (var j = 0; j < i; j++) {
           fVal = _d[j];
-          _v.set(j, i, fVal);
-          gVal = _e[j] + _v.get(j, j) * fVal;
+          _v.setUnchecked(j, i, fVal);
+          gVal = _e[j] + _v.getUnchecked(j, j) * fVal;
           for (var k = j + 1; k <= i - 1; k++) {
-            gVal += _v.get(k, j) * _d[k];
-            _e[k] += _v.get(k, j) * fVal;
+            gVal += _v.getUnchecked(k, j) * _d[k];
+            _e[k] += _v.getUnchecked(k, j) * fVal;
           }
           _e[j] = gVal;
         }
@@ -156,42 +156,46 @@ class EigenvalueDecomposition {
           fVal = _d[j];
           gVal = _e[j];
           for (var k = j; k <= i - 1; k++) {
-            _v.set(k, j, _v.get(k, j) - (fVal * _e[k] + gVal * _d[k]));
+            _v.setUnchecked(
+              k,
+              j,
+              _v.getUnchecked(k, j) - (fVal * _e[k] + gVal * _d[k]),
+            );
           }
-          _d[j] = _v.get(i - 1, j);
-          _v.set(i, j, 0.0);
+          _d[j] = _v.getUnchecked(i - 1, j);
+          _v.setUnchecked(i, j, 0.0);
         }
       }
       _d[i] = hVal;
     }
 
     for (var i = 0; i < _n - 1; i++) {
-      _v.set(_n - 1, i, _v.get(i, i));
-      _v.set(i, i, 1.0);
+      _v.setUnchecked(_n - 1, i, _v.getUnchecked(i, i));
+      _v.setUnchecked(i, i, 1.0);
       final hVal = _d[i + 1];
       if (hVal != 0.0) {
         for (var k = 0; k <= i; k++) {
-          _d[k] = _v.get(k, i + 1) / hVal;
+          _d[k] = _v.getUnchecked(k, i + 1) / hVal;
         }
         for (var j = 0; j <= i; j++) {
           var gVal = 0.0;
           for (var k = 0; k <= i; k++) {
-            gVal += _v.get(k, i + 1) * _v.get(k, j);
+            gVal += _v.getUnchecked(k, i + 1) * _v.getUnchecked(k, j);
           }
           for (var k = 0; k <= i; k++) {
-            _v.set(k, j, _v.get(k, j) - gVal * _d[k]);
+            _v.setUnchecked(k, j, _v.getUnchecked(k, j) - gVal * _d[k]);
           }
         }
       }
       for (var k = 0; k <= i; k++) {
-        _v.set(k, i + 1, 0.0);
+        _v.setUnchecked(k, i + 1, 0.0);
       }
     }
     for (var j = 0; j < _n; j++) {
-      _d[j] = _v.get(_n - 1, j);
-      _v.set(_n - 1, j, 0.0);
+      _d[j] = _v.getUnchecked(_n - 1, j);
+      _v.setUnchecked(_n - 1, j, 0.0);
     }
-    _v.set(_n - 1, _n - 1, 1.0);
+    _v.setUnchecked(_n - 1, _n - 1, 1.0);
     _e[0] = 0.0;
   }
 
@@ -247,9 +251,17 @@ class EigenvalueDecomposition {
             _d[i + 1] = hVal + sinVal * (cosVal * gVal + sinVal * _d[i]);
 
             for (var k = 0; k < _n; k++) {
-              hVal = _v.get(k, i + 1);
-              _v.set(k, i + 1, sinVal * _v.get(k, i) + cosVal * hVal);
-              _v.set(k, i, cosVal * _v.get(k, i) - sinVal * hVal);
+              hVal = _v.getUnchecked(k, i + 1);
+              _v.setUnchecked(
+                k,
+                i + 1,
+                sinVal * _v.getUnchecked(k, i) + cosVal * hVal,
+              );
+              _v.setUnchecked(
+                k,
+                i,
+                cosVal * _v.getUnchecked(k, i) - sinVal * hVal,
+              );
             }
           }
           pVal = -sinVal * sin2Val * cos3Val * el1 * _e[lIdx] / dl1;
@@ -274,9 +286,9 @@ class EigenvalueDecomposition {
         _d[k] = _d[i];
         _d[i] = pVal;
         for (var j = 0; j < _n; j++) {
-          pVal = _v.get(j, i);
-          _v.set(j, i, _v.get(j, k));
-          _v.set(j, k, pVal);
+          pVal = _v.getUnchecked(j, i);
+          _v.setUnchecked(j, i, _v.getUnchecked(j, k));
+          _v.setUnchecked(j, k, pVal);
         }
       }
     }
@@ -287,12 +299,12 @@ class EigenvalueDecomposition {
     for (var mIdx = 1; mIdx <= high - 1; mIdx++) {
       var scale = 0.0;
       for (var i = mIdx; i <= high; i++) {
-        scale += _h.get(i, mIdx - 1).abs();
+        scale += _h.getUnchecked(i, mIdx - 1).abs();
       }
       if (scale != 0.0) {
         var hVal = 0.0;
         for (var i = high; i >= mIdx; i--) {
-          _ort[i] = _h.get(i, mIdx - 1) / scale;
+          _ort[i] = _h.getUnchecked(i, mIdx - 1) / scale;
           hVal += _ort[i] * _ort[i];
         }
         var gVal = math.sqrt(hVal);
@@ -303,46 +315,46 @@ class EigenvalueDecomposition {
         for (var j = mIdx; j < _n; j++) {
           var fVal = 0.0;
           for (var i = high; i >= mIdx; i--) {
-            fVal += _ort[i] * _h.get(i, j);
+            fVal += _ort[i] * _h.getUnchecked(i, j);
           }
           fVal /= hVal;
           for (var i = mIdx; i <= high; i++) {
-            _h.set(i, j, _h.get(i, j) - fVal * _ort[i]);
+            _h.setUnchecked(i, j, _h.getUnchecked(i, j) - fVal * _ort[i]);
           }
         }
         for (var i = 0; i <= high; i++) {
           var fVal = 0.0;
           for (var j = high; j >= mIdx; j--) {
-            fVal += _ort[j] * _h.get(i, j);
+            fVal += _ort[j] * _h.getUnchecked(i, j);
           }
           fVal /= hVal;
           for (var j = mIdx; j <= high; j++) {
-            _h.set(i, j, _h.get(i, j) - fVal * _ort[j]);
+            _h.setUnchecked(i, j, _h.getUnchecked(i, j) - fVal * _ort[j]);
           }
         }
         _ort[mIdx] = scale * _ort[mIdx];
-        _h.set(mIdx, mIdx - 1, scale * gVal);
+        _h.setUnchecked(mIdx, mIdx - 1, scale * gVal);
       }
     }
 
     for (var i = 0; i < _n; i++) {
       for (var j = 0; j < _n; j++) {
-        _v.set(i, j, i == j ? 1.0 : 0.0);
+        _v.setUnchecked(i, j, i == j ? 1.0 : 0.0);
       }
     }
     for (var mIdx = high - 1; mIdx >= 1; mIdx--) {
-      if (_h.get(mIdx, mIdx - 1) != 0.0) {
+      if (_h.getUnchecked(mIdx, mIdx - 1) != 0.0) {
         for (var i = mIdx + 1; i <= high; i++) {
-          _ort[i] = _h.get(i, mIdx - 1);
+          _ort[i] = _h.getUnchecked(i, mIdx - 1);
         }
         for (var j = mIdx; j <= high; j++) {
           var gVal = 0.0;
           for (var i = mIdx; i <= high; i++) {
-            gVal += _ort[i] * _v.get(i, j);
+            gVal += _ort[i] * _v.getUnchecked(i, j);
           }
-          gVal = (gVal / _ort[mIdx]) / _h.get(mIdx, mIdx - 1);
+          gVal = (gVal / _ort[mIdx]) / _h.getUnchecked(mIdx, mIdx - 1);
           for (var i = mIdx; i <= high; i++) {
-            _v.set(i, j, _v.get(i, j) + gVal * _ort[i]);
+            _v.setUnchecked(i, j, _v.getUnchecked(i, j) + gVal * _ort[i]);
           }
         }
       }
@@ -384,12 +396,12 @@ class EigenvalueDecomposition {
     for (var i = 0; i < nn; i++) {
       // coverage:ignore-start
       if (i < low || i > high) {
-        _d[i] = _h.get(i, i);
+        _d[i] = _h.getUnchecked(i, i);
         _e[i] = 0.0;
       }
       // coverage:ignore-end
       for (var j = math.max(i - 1, 0); j < nn; j++) {
-        norm += _h.get(i, j).abs();
+        norm += _h.getUnchecked(i, j).abs();
       }
     }
 
@@ -397,26 +409,36 @@ class EigenvalueDecomposition {
     while (nIdx >= low) {
       var lIdx = nIdx;
       while (lIdx > low) {
-        sVal = _h.get(lIdx - 1, lIdx - 1).abs() + _h.get(lIdx, lIdx).abs();
+        sVal =
+            _h.getUnchecked(lIdx - 1, lIdx - 1).abs() +
+            _h.getUnchecked(lIdx, lIdx).abs();
         if (sVal == 0.0) sVal = norm;
-        if (_h.get(lIdx, lIdx - 1).abs() < eps * sVal) break;
+        if (_h.getUnchecked(lIdx, lIdx - 1).abs() < eps * sVal) break;
         lIdx--;
       }
 
       if (lIdx == nIdx) {
-        _h.set(nIdx, nIdx, _h.get(nIdx, nIdx) + exshift);
-        _d[nIdx] = _h.get(nIdx, nIdx);
+        _h.setUnchecked(nIdx, nIdx, _h.getUnchecked(nIdx, nIdx) + exshift);
+        _d[nIdx] = _h.getUnchecked(nIdx, nIdx);
         _e[nIdx] = 0.0;
         nIdx--;
         iter = 0;
       } else if (lIdx == nIdx - 1) {
-        wVal = _h.get(nIdx, nIdx - 1) * _h.get(nIdx - 1, nIdx);
-        pVal = (_h.get(nIdx - 1, nIdx - 1) - _h.get(nIdx, nIdx)) / 2.0;
+        wVal =
+            _h.getUnchecked(nIdx, nIdx - 1) * _h.getUnchecked(nIdx - 1, nIdx);
+        pVal =
+            (_h.getUnchecked(nIdx - 1, nIdx - 1) -
+                _h.getUnchecked(nIdx, nIdx)) /
+            2.0;
         qVal = pVal * pVal + wVal;
         z = math.sqrt(qVal.abs());
-        _h.set(nIdx, nIdx, _h.get(nIdx, nIdx) + exshift);
-        _h.set(nIdx - 1, nIdx - 1, _h.get(nIdx - 1, nIdx - 1) + exshift);
-        x = _h.get(nIdx, nIdx);
+        _h.setUnchecked(nIdx, nIdx, _h.getUnchecked(nIdx, nIdx) + exshift);
+        _h.setUnchecked(
+          nIdx - 1,
+          nIdx - 1,
+          _h.getUnchecked(nIdx - 1, nIdx - 1) + exshift,
+        );
+        x = _h.getUnchecked(nIdx, nIdx);
 
         if (qVal >= 0) {
           z = pVal >= 0 ? pVal + z : pVal - z;
@@ -425,7 +447,7 @@ class EigenvalueDecomposition {
           if (z != 0.0) _d[nIdx] = x - wVal / z;
           _e[nIdx - 1] = 0.0;
           _e[nIdx] = 0.0;
-          x = _h.get(nIdx, nIdx - 1);
+          x = _h.getUnchecked(nIdx, nIdx - 1);
           sVal = x.abs() + z.abs();
           pVal = x / sVal;
           qVal = z / sVal;
@@ -434,19 +456,43 @@ class EigenvalueDecomposition {
           qVal /= rVal;
 
           for (var j = nIdx - 1; j < nn; j++) {
-            z = _h.get(nIdx - 1, j);
-            _h.set(nIdx - 1, j, qVal * z + pVal * _h.get(nIdx, j));
-            _h.set(nIdx, j, qVal * _h.get(nIdx, j) - pVal * z);
+            z = _h.getUnchecked(nIdx - 1, j);
+            _h.setUnchecked(
+              nIdx - 1,
+              j,
+              qVal * z + pVal * _h.getUnchecked(nIdx, j),
+            );
+            _h.setUnchecked(
+              nIdx,
+              j,
+              qVal * _h.getUnchecked(nIdx, j) - pVal * z,
+            );
           }
           for (var i = 0; i <= nIdx; i++) {
-            z = _h.get(i, nIdx - 1);
-            _h.set(i, nIdx - 1, qVal * z + pVal * _h.get(i, nIdx));
-            _h.set(i, nIdx, qVal * _h.get(i, nIdx) - pVal * z);
+            z = _h.getUnchecked(i, nIdx - 1);
+            _h.setUnchecked(
+              i,
+              nIdx - 1,
+              qVal * z + pVal * _h.getUnchecked(i, nIdx),
+            );
+            _h.setUnchecked(
+              i,
+              nIdx,
+              qVal * _h.getUnchecked(i, nIdx) - pVal * z,
+            );
           }
           for (var i = low; i <= high; i++) {
-            z = _v.get(i, nIdx - 1);
-            _v.set(i, nIdx - 1, qVal * z + pVal * _v.get(i, nIdx));
-            _v.set(i, nIdx, qVal * _v.get(i, nIdx) - pVal * z);
+            z = _v.getUnchecked(i, nIdx - 1);
+            _v.setUnchecked(
+              i,
+              nIdx - 1,
+              qVal * z + pVal * _v.getUnchecked(i, nIdx),
+            );
+            _v.setUnchecked(
+              i,
+              nIdx,
+              qVal * _v.getUnchecked(i, nIdx) - pVal * z,
+            );
           }
         } else {
           _d[nIdx - 1] = x + pVal;
@@ -457,20 +503,22 @@ class EigenvalueDecomposition {
         nIdx -= 2;
         iter = 0;
       } else {
-        x = _h.get(nIdx, nIdx);
+        x = _h.getUnchecked(nIdx, nIdx);
         y = 0.0;
         wVal = 0.0;
         if (lIdx < nIdx) {
-          y = _h.get(nIdx - 1, nIdx - 1);
-          wVal = _h.get(nIdx, nIdx - 1) * _h.get(nIdx - 1, nIdx);
+          y = _h.getUnchecked(nIdx - 1, nIdx - 1);
+          wVal =
+              _h.getUnchecked(nIdx, nIdx - 1) * _h.getUnchecked(nIdx - 1, nIdx);
         }
         if (iter == 10) {
           exshift += x;
           for (var i = low; i <= nIdx; i++) {
-            _h.set(i, i, _h.get(i, i) - x);
+            _h.setUnchecked(i, i, _h.getUnchecked(i, i) - x);
           }
           sVal =
-              _h.get(nIdx, nIdx - 1).abs() + _h.get(nIdx - 1, nIdx - 2).abs();
+              _h.getUnchecked(nIdx, nIdx - 1).abs() +
+              _h.getUnchecked(nIdx - 1, nIdx - 2).abs();
           x = y = 0.75 * sVal;
           wVal = -0.4375 * sVal * sVal;
         }
@@ -482,7 +530,7 @@ class EigenvalueDecomposition {
             if (y < x) sVal = -sVal;
             sVal = x - wVal / ((y - x) / 2.0 + sVal);
             for (var i = low; i <= nIdx; i++) {
-              _h.set(i, i, _h.get(i, i) - sVal);
+              _h.setUnchecked(i, i, _h.getUnchecked(i, i) - sVal);
             }
             exshift += sVal;
             x = y = wVal = 0.964;
@@ -491,39 +539,40 @@ class EigenvalueDecomposition {
         iter++;
         var mIdx = nIdx - 2;
         while (mIdx >= lIdx) {
-          z = _h.get(mIdx, mIdx);
+          z = _h.getUnchecked(mIdx, mIdx);
           rVal = x - z;
           sVal = y - z;
           pVal =
-              (rVal * sVal - wVal) / _h.get(mIdx + 1, mIdx) +
-              _h.get(mIdx, mIdx + 1);
-          qVal = _h.get(mIdx + 1, mIdx + 1) - z - rVal - sVal;
-          rVal = _h.get(mIdx + 2, mIdx + 1);
+              (rVal * sVal - wVal) / _h.getUnchecked(mIdx + 1, mIdx) +
+              _h.getUnchecked(mIdx, mIdx + 1);
+          qVal = _h.getUnchecked(mIdx + 1, mIdx + 1) - z - rVal - sVal;
+          rVal = _h.getUnchecked(mIdx + 2, mIdx + 1);
           sVal = pVal.abs() + qVal.abs() + rVal.abs();
           pVal /= sVal;
           qVal /= sVal;
           rVal /= sVal;
           if (mIdx == lIdx) break;
-          if (_h.get(mIdx, mIdx - 1).abs() * (qVal.abs() + rVal.abs()) <
+          if (_h.getUnchecked(mIdx, mIdx - 1).abs() *
+                  (qVal.abs() + rVal.abs()) <
               eps *
                   (pVal.abs() *
-                      (_h.get(mIdx - 1, mIdx - 1).abs() +
+                      (_h.getUnchecked(mIdx - 1, mIdx - 1).abs() +
                           z.abs() +
-                          _h.get(mIdx + 1, mIdx + 1).abs()))) {
+                          _h.getUnchecked(mIdx + 1, mIdx + 1).abs()))) {
             break;
           }
           mIdx--;
         }
         for (var i = mIdx + 2; i <= nIdx; i++) {
-          _h.set(i, i - 2, 0.0);
-          if (i > mIdx + 2) _h.set(i, i - 3, 0.0);
+          _h.setUnchecked(i, i - 2, 0.0);
+          if (i > mIdx + 2) _h.setUnchecked(i, i - 3, 0.0);
         }
         for (var k = mIdx; k <= nIdx - 1; k++) {
           final notlast = k != nIdx - 1;
           if (k != mIdx) {
-            pVal = _h.get(k, k - 1);
-            qVal = _h.get(k + 1, k - 1);
-            rVal = notlast ? _h.get(k + 2, k - 1) : 0.0;
+            pVal = _h.getUnchecked(k, k - 1);
+            qVal = _h.getUnchecked(k + 1, k - 1);
+            rVal = notlast ? _h.getUnchecked(k + 2, k - 1) : 0.0;
             x = pVal.abs() + qVal.abs() + rVal.abs();
             if (x == 0.0) continue;
             pVal /= x;
@@ -534,9 +583,9 @@ class EigenvalueDecomposition {
           if (pVal < 0) sVal = -sVal;
           if (sVal != 0) {
             if (k != mIdx) {
-              _h.set(k, k - 1, -sVal * x);
+              _h.setUnchecked(k, k - 1, -sVal * x);
             } else if (lIdx != mIdx) {
-              _h.set(k, k - 1, -_h.get(k, k - 1));
+              _h.setUnchecked(k, k - 1, -_h.getUnchecked(k, k - 1));
             }
             pVal += sVal;
             x = pVal / sVal;
@@ -545,31 +594,47 @@ class EigenvalueDecomposition {
             qVal /= pVal;
             rVal /= pVal;
             for (var j = k; j < nn; j++) {
-              pVal = _h.get(k, j) + qVal * _h.get(k + 1, j);
+              pVal = _h.getUnchecked(k, j) + qVal * _h.getUnchecked(k + 1, j);
               if (notlast) {
-                pVal += rVal * _h.get(k + 2, j);
-                _h.set(k + 2, j, _h.get(k + 2, j) - pVal * z);
+                pVal += rVal * _h.getUnchecked(k + 2, j);
+                _h.setUnchecked(k + 2, j, _h.getUnchecked(k + 2, j) - pVal * z);
               }
-              _h.set(k, j, _h.get(k, j) - pVal * x);
-              _h.set(k + 1, j, _h.get(k + 1, j) - pVal * y);
+              _h.setUnchecked(k, j, _h.getUnchecked(k, j) - pVal * x);
+              _h.setUnchecked(k + 1, j, _h.getUnchecked(k + 1, j) - pVal * y);
             }
             for (var i = 0; i <= math.min(nIdx, k + 3); i++) {
-              pVal = x * _h.get(i, k) + y * _h.get(i, k + 1);
+              pVal = x * _h.getUnchecked(i, k) + y * _h.getUnchecked(i, k + 1);
               if (notlast) {
-                pVal += z * _h.get(i, k + 2);
-                _h.set(i, k + 2, _h.get(i, k + 2) - pVal * rVal);
+                pVal += z * _h.getUnchecked(i, k + 2);
+                _h.setUnchecked(
+                  i,
+                  k + 2,
+                  _h.getUnchecked(i, k + 2) - pVal * rVal,
+                );
               }
-              _h.set(i, k, _h.get(i, k) - pVal);
-              _h.set(i, k + 1, _h.get(i, k + 1) - pVal * qVal);
+              _h.setUnchecked(i, k, _h.getUnchecked(i, k) - pVal);
+              _h.setUnchecked(
+                i,
+                k + 1,
+                _h.getUnchecked(i, k + 1) - pVal * qVal,
+              );
             }
             for (var i = low; i <= high; i++) {
-              pVal = x * _v.get(i, k) + y * _v.get(i, k + 1);
+              pVal = x * _v.getUnchecked(i, k) + y * _v.getUnchecked(i, k + 1);
               if (notlast) {
-                pVal += z * _v.get(i, k + 2);
-                _v.set(i, k + 2, _v.get(i, k + 2) - pVal * rVal);
+                pVal += z * _v.getUnchecked(i, k + 2);
+                _v.setUnchecked(
+                  i,
+                  k + 2,
+                  _v.getUnchecked(i, k + 2) - pVal * rVal,
+                );
               }
-              _v.set(i, k, _v.get(i, k) - pVal);
-              _v.set(i, k + 1, _v.get(i, k + 1) - pVal * qVal);
+              _v.setUnchecked(i, k, _v.getUnchecked(i, k) - pVal);
+              _v.setUnchecked(
+                i,
+                k + 1,
+                _v.getUnchecked(i, k + 1) - pVal * qVal,
+              );
             }
           }
         }
@@ -583,12 +648,12 @@ class EigenvalueDecomposition {
       qVal = _e[nIdx];
       if (qVal == 0) {
         var lIdx = nIdx;
-        _h.set(nIdx, nIdx, 1.0);
+        _h.setUnchecked(nIdx, nIdx, 1.0);
         for (var i = nIdx - 1; i >= 0; i--) {
-          wVal = _h.get(i, i) - pVal;
+          wVal = _h.getUnchecked(i, i) - pVal;
           rVal = 0.0;
           for (var j = lIdx; j <= nIdx; j++) {
-            rVal += _h.get(i, j) * _h.get(j, nIdx);
+            rVal += _h.getUnchecked(i, j) * _h.getUnchecked(j, nIdx);
           }
           if (_e[i] < 0.0) {
             z = wVal;
@@ -596,59 +661,65 @@ class EigenvalueDecomposition {
           } else {
             lIdx = i;
             if (_e[i] == 0.0) {
-              _h.set(
+              _h.setUnchecked(
                 i,
                 nIdx,
                 wVal != 0.0 ? -rVal / wVal : -rVal / (eps * norm),
               );
             } else {
-              x = _h.get(i, i + 1);
-              y = _h.get(i + 1, i);
+              x = _h.getUnchecked(i, i + 1);
+              y = _h.getUnchecked(i + 1, i);
               qVal = (_d[i] - pVal) * (_d[i] - pVal) + _e[i] * _e[i];
               tVal = (x * sVal - z * rVal) / qVal;
-              _h.set(i, nIdx, tVal);
+              _h.setUnchecked(i, nIdx, tVal);
               if (x.abs() > z.abs()) {
-                _h.set(i + 1, nIdx, (-rVal - wVal * tVal) / x);
+                _h.setUnchecked(i + 1, nIdx, (-rVal - wVal * tVal) / x);
               } else {
-                _h.set(i + 1, nIdx, (-sVal - y * tVal) / z);
+                _h.setUnchecked(i + 1, nIdx, (-sVal - y * tVal) / z);
               }
             }
-            tVal = _h.get(i, nIdx).abs();
+            tVal = _h.getUnchecked(i, nIdx).abs();
             if ((eps * tVal) * tVal > 1) {
               for (var j = i; j <= nIdx; j++) {
-                _h.set(j, nIdx, _h.get(j, nIdx) / tVal);
+                _h.setUnchecked(j, nIdx, _h.getUnchecked(j, nIdx) / tVal);
               }
             }
           }
         }
       } else if (qVal < 0) {
         var lIdx = nIdx - 1;
-        if (_h.get(nIdx, nIdx - 1).abs() > _h.get(nIdx - 1, nIdx).abs()) {
-          _h.set(nIdx - 1, nIdx - 1, qVal / _h.get(nIdx, nIdx - 1));
-          _h.set(
+        if (_h.getUnchecked(nIdx, nIdx - 1).abs() >
+            _h.getUnchecked(nIdx - 1, nIdx).abs()) {
+          _h.setUnchecked(
+            nIdx - 1,
+            nIdx - 1,
+            qVal / _h.getUnchecked(nIdx, nIdx - 1),
+          );
+          _h.setUnchecked(
             nIdx - 1,
             nIdx,
-            -(_h.get(nIdx, nIdx) - pVal) / _h.get(nIdx, nIdx - 1),
+            -(_h.getUnchecked(nIdx, nIdx) - pVal) /
+                _h.getUnchecked(nIdx, nIdx - 1),
           );
         } else {
           _cdiv(
             0,
-            -_h.get(nIdx - 1, nIdx),
-            _h.get(nIdx - 1, nIdx - 1) - pVal,
+            -_h.getUnchecked(nIdx - 1, nIdx),
+            _h.getUnchecked(nIdx - 1, nIdx - 1) - pVal,
             qVal,
           );
-          _h.set(nIdx - 1, nIdx - 1, _cdivr);
-          _h.set(nIdx - 1, nIdx, _cdivi);
+          _h.setUnchecked(nIdx - 1, nIdx - 1, _cdivr);
+          _h.setUnchecked(nIdx - 1, nIdx, _cdivi);
         }
-        _h.set(nIdx, nIdx - 1, 0.0);
-        _h.set(nIdx, nIdx, 1.0);
+        _h.setUnchecked(nIdx, nIdx - 1, 0.0);
+        _h.setUnchecked(nIdx, nIdx, 1.0);
         for (var i = nIdx - 2; i >= 0; i--) {
           var ra = 0.0, sa = 0.0;
           for (var j = lIdx; j <= nIdx; j++) {
-            ra += _h.get(i, j) * _h.get(j, nIdx - 1);
-            sa += _h.get(i, j) * _h.get(j, nIdx);
+            ra += _h.getUnchecked(i, j) * _h.getUnchecked(j, nIdx - 1);
+            sa += _h.getUnchecked(i, j) * _h.getUnchecked(j, nIdx);
           }
-          wVal = _h.get(i, i) - pVal;
+          wVal = _h.getUnchecked(i, i) - pVal;
           if (_e[i] < 0.0) {
             z = wVal;
             rVal = ra;
@@ -657,11 +728,11 @@ class EigenvalueDecomposition {
             lIdx = i;
             if (_e[i] == 0) {
               _cdiv(-ra, -sa, wVal, qVal);
-              _h.set(i, nIdx - 1, _cdivr);
-              _h.set(i, nIdx, _cdivi);
+              _h.setUnchecked(i, nIdx - 1, _cdivr);
+              _h.setUnchecked(i, nIdx, _cdivi);
             } else {
-              x = _h.get(i, i + 1);
-              y = _h.get(i + 1, i);
+              x = _h.getUnchecked(i, i + 1);
+              y = _h.getUnchecked(i + 1, i);
               var vr =
                   (_d[i] - pVal) * (_d[i] - pVal) + _e[i] * _e[i] - qVal * qVal;
               final vi = (_d[i] - pVal) * 2.0 * qVal;
@@ -677,37 +748,48 @@ class EigenvalueDecomposition {
                 vr,
                 vi,
               );
-              _h.set(i, nIdx - 1, _cdivr);
-              _h.set(i, nIdx, _cdivi);
+              _h.setUnchecked(i, nIdx - 1, _cdivr);
+              _h.setUnchecked(i, nIdx, _cdivi);
               if (x.abs() > (z.abs() + qVal.abs())) {
-                _h.set(
+                _h.setUnchecked(
                   i + 1,
                   nIdx - 1,
-                  (-ra - wVal * _h.get(i, nIdx - 1) + qVal * _h.get(i, nIdx)) /
+                  (-ra -
+                          wVal * _h.getUnchecked(i, nIdx - 1) +
+                          qVal * _h.getUnchecked(i, nIdx)) /
                       x,
                 );
-                _h.set(
+                _h.setUnchecked(
                   i + 1,
                   nIdx,
-                  (-sa - wVal * _h.get(i, nIdx) - qVal * _h.get(i, nIdx - 1)) /
+                  (-sa -
+                          wVal * _h.getUnchecked(i, nIdx) -
+                          qVal * _h.getUnchecked(i, nIdx - 1)) /
                       x,
                 );
               } else {
                 _cdiv(
-                  -rVal - y * _h.get(i, nIdx - 1),
-                  -sVal - y * _h.get(i, nIdx),
+                  -rVal - y * _h.getUnchecked(i, nIdx - 1),
+                  -sVal - y * _h.getUnchecked(i, nIdx),
                   z,
                   qVal,
                 );
-                _h.set(i + 1, nIdx - 1, _cdivr);
-                _h.set(i + 1, nIdx, _cdivi);
+                _h.setUnchecked(i + 1, nIdx - 1, _cdivr);
+                _h.setUnchecked(i + 1, nIdx, _cdivi);
               }
             }
-            tVal = math.max(_h.get(i, nIdx - 1).abs(), _h.get(i, nIdx).abs());
+            tVal = math.max(
+              _h.getUnchecked(i, nIdx - 1).abs(),
+              _h.getUnchecked(i, nIdx).abs(),
+            );
             if ((eps * tVal) * tVal > 1) {
               for (var j = i; j <= nIdx; j++) {
-                _h.set(j, nIdx - 1, _h.get(j, nIdx - 1) / tVal);
-                _h.set(j, nIdx, _h.get(j, nIdx) / tVal);
+                _h.setUnchecked(
+                  j,
+                  nIdx - 1,
+                  _h.getUnchecked(j, nIdx - 1) / tVal,
+                );
+                _h.setUnchecked(j, nIdx, _h.getUnchecked(j, nIdx) / tVal);
               }
             }
           }
@@ -719,7 +801,7 @@ class EigenvalueDecomposition {
     for (var i = 0; i < nn; i++) {
       if (i < low || i > high) {
         for (var j = i; j < nn; j++) {
-          _v.set(i, j, _h.get(i, j));
+          _v.setUnchecked(i, j, _h.getUnchecked(i, j));
         }
       }
     }
@@ -729,9 +811,9 @@ class EigenvalueDecomposition {
       for (var i = low; i <= high; i++) {
         z = 0.0;
         for (var k = low; k <= math.min(j, high); k++) {
-          z += _v.get(i, k) * _h.get(k, j);
+          z += _v.getUnchecked(i, k) * _h.getUnchecked(k, j);
         }
-        _v.set(i, j, z);
+        _v.setUnchecked(i, j, z);
       }
     }
   }
@@ -740,7 +822,7 @@ class EigenvalueDecomposition {
     final count = a.rowCount;
     for (var i = 0; i < count; i++) {
       for (var j = i + 1; j < count; j++) {
-        if (a.get(i, j) != a.get(j, i)) return false;
+        if (a.getUnchecked(i, j) != a.getUnchecked(j, i)) return false;
       }
     }
     return true;

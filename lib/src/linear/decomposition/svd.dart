@@ -20,7 +20,7 @@ class SingularValueDecomposition {
     final aVals = List<double>.generate(rowsA * colsA, (idx) {
       final col = idx ~/ rowsA;
       final row = idx % rowsA;
-      return matrix.get(row, col).toDouble();
+      return matrix.getUnchecked(row, col).toDouble();
     });
 
     final uVals = List<double>.filled(rowsA * rowsA, 0.0);
@@ -117,7 +117,7 @@ class SingularValueDecomposition {
       var val = 0.0;
       if (j < mn) {
         for (var i = 0; i < u.rowCount; i++) {
-          val += u.get(i, j) * b[i].toDouble();
+          val += u.getUnchecked(i, j) * b.getUnchecked(i).toDouble();
         }
         val = s[j].abs() > 1e-15 ? val / s[j] : 0.0;
       }
@@ -128,7 +128,7 @@ class SingularValueDecomposition {
     for (var j = 0; j < cols; j++) {
       var val = 0.0;
       for (var i = 0; i < cols; i++) {
-        val += vt.get(i, j) * tmp[i];
+        val += vt.getUnchecked(i, j) * tmp[i];
       }
       result[j] = val;
     }

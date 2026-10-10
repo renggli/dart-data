@@ -10,7 +10,7 @@ extension MatrixNormExtension<T extends num> on Matrix<T> {
     var sumsq = 1.0;
     for (var row = 0; row < rowCount; row++) {
       for (var col = 0; col < colCount; col++) {
-        final val = get(row, col).toDouble();
+        final val = getUnchecked(row, col).toDouble();
         if (val != 0.0) {
           final absVal = val.abs();
           if (scale < absVal) {
@@ -31,7 +31,7 @@ extension MatrixNormExtension<T extends num> on Matrix<T> {
     for (var col = 0; col < colCount; col++) {
       var sum = 0.0;
       for (var row = 0; row < rowCount; row++) {
-        sum += get(row, col).abs().toDouble();
+        sum += getUnchecked(row, col).abs().toDouble();
       }
       result = math.max(result, sum);
     }
@@ -47,7 +47,7 @@ extension MatrixNormExtension<T extends num> on Matrix<T> {
     for (var row = 0; row < rowCount; row++) {
       var sum = 0.0;
       for (var col = 0; col < colCount; col++) {
-        sum += get(row, col).abs().toDouble();
+        sum += getUnchecked(row, col).abs().toDouble();
       }
       result = math.max(result, sum);
     }
@@ -59,7 +59,7 @@ extension MatrixNormExtension<T extends num> on Matrix<T> {
     var sum = 0.0;
     final count = math.min(rowCount, colCount);
     for (var i = 0; i < count; i++) {
-      sum += get(i, i).toDouble();
+      sum += getUnchecked(i, i).toDouble();
     }
     return sum;
   }

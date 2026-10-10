@@ -3,6 +3,7 @@ import 'dart:typed_data';
 
 import '../../type.dart';
 import '../hardware/hardware.dart';
+import '../tensor/layout.dart';
 import '../tensor/operations/operation.dart';
 import '../tensor/tensor.dart';
 import 'matrix.dart';
@@ -34,12 +35,17 @@ class Vector<T> {
     DataType<T>? type,
   }) {
     final effectiveType = type ?? DataType.fromType<T>();
-    final tensor = Tensor<T>.generate(
-      (key) => generator(key[0]),
-      shape: [length],
-      type: effectiveType,
+    final data = effectiveType.newList(length);
+    for (var i = 0; i < length; i++) {
+      data[i] = generator(i);
+    }
+    return Vector(
+      Tensor.internal(
+        type: effectiveType,
+        layout: Layout(shape: [length]),
+        data: data,
+      ),
     );
-    return Vector(tensor);
   }
 
   /// Constructs a vector from a list of elements.
@@ -66,12 +72,24 @@ class Vector<T> {
   /// The data type of the elements.
   DataType<T> get type => tensor.type;
 
+  /// Gets the element at [index] without bounds checks.
+  @pragma('vm:prefer-inline')
+  T getUnchecked(int index) => tensor.get1D(index);
+
+  /// Sets the element at [index] to [value] without bounds checks.
+  @pragma('vm:prefer-inline')
+  void setUnchecked(int index, T value) => tensor.set1D(index, value);
+
   /// Gets the element at [index].
-  T operator [](int index) => tensor.data[tensor.layout.toIndex([index])];
+  T operator [](int index) {
+    RangeError.checkValidIndex(index, this, 'index', length);
+    return getUnchecked(index);
+  }
 
   /// Sets the element at [index] to [value].
   void operator []=(int index, T value) {
-    tensor.data[tensor.layout.toIndex([index])] = value;
+    RangeError.checkValidIndex(index, this, 'index', length);
+    setUnchecked(index, value);
   }
 
   /// Element-wise vector addition.
@@ -149,7 +167,10 @@ class Vector<T> {
       }
     } else {
       for (var i = 0; i < length; i++) {
-        sum = field.add(sum, field.mul(field.conjugate(this[i]), other[i]));
+        sum = field.add(
+          sum,
+          field.mul(field.conjugate(getUnchecked(i)), other.getUnchecked(i)),
+        );
       }
     }
     return sum;
@@ -162,9 +183,9 @@ class Vector<T> {
     final field = type.field;
     final res = Matrix<T>.filled(rows, cols, type.defaultValue, type: type);
     for (var i = 0; i < rows; i++) {
-      final xi = this[i];
+      final xi = getUnchecked(i);
       for (var j = 0; j < cols; j++) {
-        res.set(i, j, field.mul(xi, other[j]));
+        res.setUnchecked(i, j, field.mul(xi, other.getUnchecked(j)));
       }
     }
     return res;
@@ -176,7 +197,7 @@ class Vector<T> {
     if (pNorm == double.infinity) {
       var maxVal = 0.0;
       for (var i = 0; i < length; i++) {
-        final val = field.norm(this[i]);
+        final val = field.norm(getUnchecked(i));
         if (val > maxVal) maxVal = val;
       }
       return maxVal;
@@ -184,7 +205,7 @@ class Vector<T> {
     if (pNorm == 1) {
       var sum = 0.0;
       for (var i = 0; i < length; i++) {
-        sum += field.norm(this[i]);
+        sum += field.norm(getUnchecked(i));
       }
       return sum;
     }
@@ -211,14 +232,14 @@ class Vector<T> {
 
       var sumSq = 0.0;
       for (var i = 0; i < length; i++) {
-        final val = field.norm(this[i]);
+        final val = field.norm(getUnchecked(i));
         sumSq += val * val;
       }
       return math.sqrt(sumSq);
     }
     var sumP = 0.0;
     for (var i = 0; i < length; i++) {
-      sumP += math.pow(field.norm(this[i]), pNorm);
+      sumP += math.pow(field.norm(getUnchecked(i)), pNorm);
     }
     return math.pow(sumP, 1.0 / pNorm).toDouble();
   }
@@ -267,7 +288,10 @@ class Vector<T> {
     }
     final field = type.field;
     for (var i = 0; i < length; i++) {
-      this[i] = field.add(this[i], field.mul(alpha, other[i]));
+      setUnchecked(
+        i,
+        field.add(getUnchecked(i), field.mul(alpha, other.getUnchecked(i))),
+      );
     }
   }
 
@@ -300,7 +324,7 @@ class Vector<T> {
     }
     final field = type.field;
     for (var i = 0; i < length; i++) {
-      this[i] = field.mul(this[i], scalar);
+      setUnchecked(i, field.mul(getUnchecked(i), scalar));
     }
   }
 
@@ -343,7 +367,7 @@ class Vector<T> {
     final field = type.field;
     var acc = field.additiveIdentity;
     for (var i = 0; i < length; i++) {
-      acc = field.add(acc, this[i]);
+      acc = field.add(acc, getUnchecked(i));
     }
     return acc;
   }

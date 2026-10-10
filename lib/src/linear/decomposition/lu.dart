@@ -18,7 +18,7 @@ class LUDecomposition {
       _lu = Matrix<double>.generate(
         matrix.rowCount,
         matrix.colCount,
-        (row, col) => matrix.get(row, col).toDouble(),
+        (row, col) => matrix.getUnchecked(row, col).toDouble(),
         type: DataType.float64,
       ),
       _piv = List<int>.generate(matrix.rowCount, (i) => i) {
@@ -29,22 +29,22 @@ class LUDecomposition {
         final kmax = math.min(i, j);
         var sum = 0.0;
         for (var k = 0; k < kmax; k++) {
-          sum += _lu.get(i, k) * _lu.get(k, j);
+          sum += _lu.getUnchecked(i, k) * _lu.getUnchecked(k, j);
         }
-        _lu.set(i, j, _lu.get(i, j) - sum);
+        _lu.setUnchecked(i, j, _lu.getUnchecked(i, j) - sum);
       }
 
       var pivot = j;
       for (var i = j + 1; i < _m; i++) {
-        if (_lu.get(i, j).abs() > _lu.get(pivot, j).abs()) {
+        if (_lu.getUnchecked(i, j).abs() > _lu.getUnchecked(pivot, j).abs()) {
           pivot = i;
         }
       }
       if (pivot != j) {
         for (var k = 0; k < _n; k++) {
-          final temp = _lu.get(pivot, k);
-          _lu.set(pivot, k, _lu.get(j, k));
-          _lu.set(j, k, temp);
+          final temp = _lu.getUnchecked(pivot, k);
+          _lu.setUnchecked(pivot, k, _lu.getUnchecked(j, k));
+          _lu.setUnchecked(j, k, temp);
         }
         final k = _piv[pivot];
         _piv[pivot] = _piv[j];
@@ -52,9 +52,13 @@ class LUDecomposition {
         _pivSign = -_pivSign;
       }
 
-      if (j < _m && _lu.get(j, j) != 0.0) {
+      if (j < _m && _lu.getUnchecked(j, j) != 0.0) {
         for (var i = j + 1; i < _m; i++) {
-          _lu.set(i, j, _lu.get(i, j) / _lu.get(j, j));
+          _lu.setUnchecked(
+            i,
+            j,
+            _lu.getUnchecked(i, j) / _lu.getUnchecked(j, j),
+          );
         }
       }
     }
@@ -70,7 +74,7 @@ class LUDecomposition {
   bool get isNonsingular {
     if (_m != _n) return false;
     for (var j = 0; j < _n; j++) {
-      if (_lu.get(j, j) == 0.0) {
+      if (_lu.getUnchecked(j, j) == 0.0) {
         return false;
       }
     }
@@ -83,9 +87,9 @@ class LUDecomposition {
     for (var i = 0; i < _m; i++) {
       for (var j = 0; j < _n; j++) {
         if (i > j) {
-          result.set(i, j, _lu.get(i, j));
+          result.setUnchecked(i, j, _lu.getUnchecked(i, j));
         } else if (i == j) {
-          result.set(i, j, 1.0);
+          result.setUnchecked(i, j, 1.0);
         }
       }
     }
@@ -98,7 +102,7 @@ class LUDecomposition {
     for (var i = 0; i < _n; i++) {
       for (var j = 0; j < _n; j++) {
         if (i <= j) {
-          result.set(i, j, _lu.get(i, j));
+          result.setUnchecked(i, j, _lu.getUnchecked(i, j));
         }
       }
     }
@@ -115,7 +119,7 @@ class LUDecomposition {
     }
     var detVal = 1.0;
     for (var j = 0; j < _n; j++) {
-      detVal *= _lu.get(j, j);
+      detVal *= _lu.getUnchecked(j, j);
     }
     return detVal * _pivSign;
   }
@@ -135,7 +139,7 @@ class LUDecomposition {
     final x = Matrix<double>.generate(
       _m,
       nx,
-      (row, col) => b.get(_piv[row], col).toDouble(),
+      (row, col) => b.getUnchecked(_piv[row], col).toDouble(),
       type: DataType.float64,
     );
 
@@ -143,7 +147,12 @@ class LUDecomposition {
     for (var k = 0; k < _n; k++) {
       for (var i = k + 1; i < _n; i++) {
         for (var j = 0; j < nx; j++) {
-          x.set(i, j, x.get(i, j) - x.get(k, j) * _lu.get(i, k));
+          x.setUnchecked(
+            i,
+            j,
+            x.getUnchecked(i, j) -
+                x.getUnchecked(k, j) * _lu.getUnchecked(i, k),
+          );
         }
       }
     }
@@ -151,11 +160,16 @@ class LUDecomposition {
     // Solve U * X = Y
     for (var k = _n - 1; k >= 0; k--) {
       for (var j = 0; j < nx; j++) {
-        x.set(k, j, x.get(k, j) / _lu.get(k, k));
+        x.setUnchecked(k, j, x.getUnchecked(k, j) / _lu.getUnchecked(k, k));
       }
       for (var i = 0; i < k; i++) {
         for (var j = 0; j < nx; j++) {
-          x.set(i, j, x.get(i, j) - x.get(k, j) * _lu.get(i, k));
+          x.setUnchecked(
+            i,
+            j,
+            x.getUnchecked(i, j) -
+                x.getUnchecked(k, j) * _lu.getUnchecked(i, k),
+          );
         }
       }
     }
@@ -164,11 +178,7 @@ class LUDecomposition {
 
   /// Solves $A x = b$ for vector $x$.
   Vector<double> solveVector(Vector<num> b) {
-    final mat = solve(
-      Matrix<num>.fromColumns([
-        [for (var i = 0; i < b.length; i++) b[i]],
-      ]),
-    );
+    final mat = solve(b.toMatrix());
     return mat.column(0);
   }
 }

@@ -27,21 +27,24 @@ class CholeskyDecomposition {
       for (var k = 0; k < j; k++) {
         var sum = 0.0;
         for (var i = 0; i < k; i++) {
-          sum += _l.get(k, i) * _l.get(j, i);
+          sum += _l.getUnchecked(k, i) * _l.getUnchecked(j, i);
         }
-        sum = (matrix.get(j, k).toDouble() - sum) / _l.get(k, k);
-        _l.set(j, k, sum);
+        sum =
+            (matrix.getUnchecked(j, k).toDouble() - sum) /
+            _l.getUnchecked(k, k);
+        _l.setUnchecked(j, k, sum);
         diag += sum * sum;
         _isSymmetricPositiveDefinite =
             _isSymmetricPositiveDefinite &&
-            (matrix.get(k, j).toDouble() == matrix.get(j, k).toDouble());
+            (matrix.getUnchecked(k, j).toDouble() ==
+                matrix.getUnchecked(j, k).toDouble());
       }
-      diag = matrix.get(j, j).toDouble() - diag;
+      diag = matrix.getUnchecked(j, j).toDouble() - diag;
       _isSymmetricPositiveDefinite =
           _isSymmetricPositiveDefinite && (diag > 0.0);
-      _l.set(j, j, math.sqrt(math.max(diag, 0.0)));
+      _l.setUnchecked(j, j, math.sqrt(math.max(diag, 0.0)));
       for (var k = j + 1; k < _n; k++) {
-        _l.set(j, k, 0.0);
+        _l.setUnchecked(j, k, 0.0);
       }
     }
   }
@@ -66,7 +69,7 @@ class CholeskyDecomposition {
     }
     var detVal = 1.0;
     for (var i = 0; i < _n; i++) {
-      detVal *= _l.get(i, i);
+      detVal *= _l.getUnchecked(i, i);
     }
     return detVal * detVal;
   }
@@ -86,7 +89,7 @@ class CholeskyDecomposition {
     final result = Matrix<double>.generate(
       _n,
       nx,
-      (row, col) => b.get(row, col).toDouble(),
+      (row, col) => b.getUnchecked(row, col).toDouble(),
       type: DataType.float64,
     );
 
@@ -94,9 +97,18 @@ class CholeskyDecomposition {
     for (var k = 0; k < _n; k++) {
       for (var j = 0; j < nx; j++) {
         for (var i = 0; i < k; i++) {
-          result.set(k, j, result.get(k, j) - result.get(i, j) * _l.get(k, i));
+          result.setUnchecked(
+            k,
+            j,
+            result.getUnchecked(k, j) -
+                result.getUnchecked(i, j) * _l.getUnchecked(k, i),
+          );
         }
-        result.set(k, j, result.get(k, j) / _l.get(k, k));
+        result.setUnchecked(
+          k,
+          j,
+          result.getUnchecked(k, j) / _l.getUnchecked(k, k),
+        );
       }
     }
 
@@ -104,9 +116,18 @@ class CholeskyDecomposition {
     for (var k = _n - 1; k >= 0; k--) {
       for (var j = 0; j < nx; j++) {
         for (var i = k + 1; i < _n; i++) {
-          result.set(k, j, result.get(k, j) - result.get(i, j) * _l.get(i, k));
+          result.setUnchecked(
+            k,
+            j,
+            result.getUnchecked(k, j) -
+                result.getUnchecked(i, j) * _l.getUnchecked(i, k),
+          );
         }
-        result.set(k, j, result.get(k, j) / _l.get(k, k));
+        result.setUnchecked(
+          k,
+          j,
+          result.getUnchecked(k, j) / _l.getUnchecked(k, k),
+        );
       }
     }
     return result;
@@ -114,11 +135,7 @@ class CholeskyDecomposition {
 
   /// Solves $A x = b$ for vector $x$.
   Vector<double> solveVector(Vector<num> b) {
-    final mat = solve(
-      Matrix<num>.fromColumns([
-        [for (var i = 0; i < b.length; i++) b[i]],
-      ]),
-    );
+    final mat = solve(b.toMatrix());
     return mat.column(0);
   }
 }
