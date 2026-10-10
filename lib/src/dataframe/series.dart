@@ -19,11 +19,25 @@ abstract class Series<T> {
   /// The number of missing (null) values.
   int get nullCount;
 
+  /// Returns true if this series contains one or more missing (null) values.
+  bool get hasNulls => nullCount > 0;
+
   /// Returns true if the element at [index] is null.
   bool isNull(int index);
 
   /// Gets the element at [index], or null if missing.
   T? operator [](int index);
+
+  /// Returns the non-null value at [index].
+  ///
+  /// Throws a [StateError] if the entry at [index] is null.
+  T getNonNull(int index) {
+    final value = this[index];
+    if (value == null) {
+      throw StateError('Value at index $index is null in series "$name"');
+    }
+    return value;
+  }
 
   /// Returns an iterable over the values (including nulls).
   Iterable<T?> get values sync* {
@@ -197,30 +211,63 @@ class TypedSeries<T extends num> extends Series<T> {
   }
 
   @override
+  T getNonNull(int index) {
+    if (isNull(index)) {
+      throw StateError('Value at index $index is null in series "$name"');
+    }
+    return data[index];
+  }
+
+  /// Returns the value at [index] without null checking.
+  @pragma('vm:prefer-inline')
+  T getUnchecked(int index) => data[index];
+
+  @override
   Series<T> filter(List<bool> filterMask) {
     if (filterMask.length != length) {
       throw ArgumentError(
         'Filter mask length (${filterMask.length}) must match series length ($length)',
       );
     }
-    final filtered = <T?>[];
+    var count = 0;
+    for (var i = 0; i < length; i++) {
+      if (filterMask[i]) count++;
+    }
+    final targetData = dataType.newList(count);
+    ValidityMask? targetMask;
+    var targetIndex = 0;
     for (var i = 0; i < length; i++) {
       if (filterMask[i]) {
-        filtered.add(this[i]);
+        targetData[targetIndex] = data[i];
+        if (isNull(i)) {
+          targetMask ??= ValidityMask(count);
+          targetMask.setNull(targetIndex);
+        }
+        targetIndex++;
       }
     }
-    return TypedSeries<T>.fromList(name, filtered, type: dataType);
+    return TypedSeries<T>(
+      name: name,
+      data: targetData,
+      dataType: dataType,
+      mask: targetMask,
+    );
   }
 
   @override
   Series<T> slice(int start, int end) {
     final startIndex = math.max(0, start);
-    final endIndex = math.min(length, end);
-    final sliced = <T?>[];
-    for (var i = startIndex; i < endIndex; i++) {
-      sliced.add(this[i]);
-    }
-    return TypedSeries<T>.fromList(name, sliced, type: dataType);
+    final endIndex = math.min(length, math.max(startIndex, end));
+    final slicedData = data.sublist(startIndex, endIndex);
+    final slicedMask = mask?.slice(startIndex, endIndex);
+    return TypedSeries<T>(
+      name: name,
+      data: slicedData,
+      dataType: dataType,
+      mask: (slicedMask != null && slicedMask.nullCount > 0)
+          ? slicedMask
+          : null,
+    );
   }
 
   @override

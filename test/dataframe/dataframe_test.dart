@@ -255,23 +255,62 @@ void main() {
       check(repr).contains('... and 1 more rows');
     });
 
-    test('conversion to Matrix and Tensor', () {
-      final df = DataFrame.fromColumns({
-        'x': [1.0, 2.0],
-        'y': [3.0, 4.0],
-      });
+    test(
+      'conversion to Matrix and Tensor with bulk copy and fallback paths',
+      () {
+        final df = DataFrame.fromColumns({
+          'x': [1.0, 2.0, 3.0],
+          'y': [4.0, 5.0, 6.0],
+        });
 
-      final mat = df.toMatrix();
-      check(mat.rowCount).equals(2);
-      check(mat.colCount).equals(2);
-      check(mat.get(0, 0)).equals(1.0);
-      check(mat.get(0, 1)).equals(3.0);
-      check(mat.get(1, 0)).equals(2.0);
-      check(mat.get(1, 1)).equals(4.0);
+        // Multi-column non-null TypedSeries<double> (bulk copy path)
+        final mat = df.toMatrix();
+        check(mat.rowCount).equals(3);
+        check(mat.colCount).equals(2);
+        check(mat.get(0, 0)).equals(1.0);
+        check(mat.get(0, 1)).equals(4.0);
+        check(mat.get(1, 0)).equals(2.0);
+        check(mat.get(1, 1)).equals(5.0);
+        check(mat.get(2, 0)).equals(3.0);
+        check(mat.get(2, 1)).equals(6.0);
 
-      final ten = df.toTensor(columns: ['x']);
-      check(ten.shape).deepEquals([2, 1]);
-    });
+        // Single-column non-null TypedSeries<double> (setRange path)
+        final tenSingle = df.toTensor(columns: ['x']);
+        check(tenSingle.shape).deepEquals([3, 1]);
+        check(tenSingle.getValue([0, 0])).equals(1.0);
+        check(tenSingle.getValue([1, 0])).equals(2.0);
+        check(tenSingle.getValue([2, 0])).equals(3.0);
+
+        // Mixed integer and double with nulls (fallback path)
+        final mixedDf = DataFrame.fromColumns({
+          'i': [10, 20, null],
+          'd': [1.5, null, 3.5],
+          's': ['a', 'b', 'c'],
+        });
+        final mixedTensor = mixedDf.toTensor();
+        check(mixedTensor.shape).deepEquals([3, 3]);
+        check(mixedTensor.getValue([0, 0])).equals(10.0);
+        check(mixedTensor.getValue([1, 0])).equals(20.0);
+        check(mixedTensor.getValue([2, 0])).equals(0.0); // null -> 0.0
+        check(mixedTensor.getValue([0, 1])).equals(1.5);
+        check(mixedTensor.getValue([1, 1])).equals(0.0); // null -> 0.0
+        check(mixedTensor.getValue([2, 1])).equals(3.5);
+        check(mixedTensor.getValue([0, 2])).equals(0.0); // string -> 0.0
+
+        // Float32 target data type
+        final f32Tensor = df.toTensor(type: DataType.float32);
+        check(f32Tensor.type).equals(DataType.float32);
+        check(f32Tensor.getValue([0, 0])).equals(1.0);
+
+        // Empty DataFrame
+        final emptyDf = DataFrame([]);
+        final emptyTensor = emptyDf.toTensor();
+        check(emptyTensor.shape).deepEquals([0, 0]);
+        final emptyMat = emptyDf.toMatrix();
+        check(emptyMat.rowCount).equals(0);
+        check(emptyMat.colCount).equals(0);
+      },
+    );
   });
 
   group('GroupBy and Aggregations', () {

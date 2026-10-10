@@ -61,6 +61,21 @@ class ValidityMask {
     return count;
   }
 
+  /// Creates a slice of this validity mask from [start] (inclusive) to [end] (exclusive).
+  ValidityMask slice(int start, int end) {
+    if (start < 0 || end < start || end > length) {
+      throw RangeError('Invalid range [$start, $end) for length $length');
+    }
+    final sliceLen = end - start;
+    final result = ValidityMask(sliceLen);
+    for (var i = 0; i < sliceLen; i++) {
+      if (isNull(start + i)) {
+        result.setNull(i);
+      }
+    }
+    return result;
+  }
+
   /// Creates a deep copy of this validity mask.
   ValidityMask copy() => ValidityMask.fromBytes(length, _bytes);
 }

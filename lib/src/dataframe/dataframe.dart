@@ -207,12 +207,57 @@ class DataFrame {
       type: effType,
     );
 
+    if (rows == 0 || cols == 0) return tensor;
+
+    final tensorData = tensor.data;
+    final offset = tensor.layout.offset;
+    final rowStride = tensor.layout.strides[0];
+    final colStride = cols > 1 ? tensor.layout.strides[1] : 1;
+
+    final allDoubleNonNull = targetCols.every(
+      (col) => col is TypedSeries<double> && !col.hasNulls,
+    );
+
+    if (allDoubleNonNull) {
+      if (cols == 1) {
+        final colData = (targetCols.first as TypedSeries<double>).data;
+        tensorData.setRange(offset, offset + rows, colData);
+      } else {
+        final colBuffers = [
+          for (final col in targetCols) (col as TypedSeries<double>).data,
+        ];
+        var tensorIdx = offset;
+        for (var i = 0; i < rows; i++) {
+          for (var j = 0; j < cols; j++) {
+            tensorData[tensorIdx++] = colBuffers[j][i];
+          }
+        }
+      }
+      return tensor;
+    }
+
     for (var j = 0; j < cols; j++) {
       final col = targetCols[j];
-      for (var i = 0; i < rows; i++) {
-        final val = col[i];
-        final numVal = val is num ? val.toDouble() : 0.0;
-        tensor.setValue([i, j], numVal);
+      final colOffset = offset + j * colStride;
+      if (col is TypedSeries<num> && !col.hasNulls) {
+        final colData = col.data;
+        for (var i = 0; i < rows; i++) {
+          tensorData[colOffset + i * rowStride] = colData[i].toDouble();
+        }
+      } else if (col is TypedSeries<num>) {
+        final colData = col.data;
+        for (var i = 0; i < rows; i++) {
+          tensorData[colOffset + i * rowStride] = col.isNull(i)
+              ? 0.0
+              : colData[i].toDouble();
+        }
+      } else {
+        for (var i = 0; i < rows; i++) {
+          final val = col[i];
+          tensorData[colOffset + i * rowStride] = val is num
+              ? val.toDouble()
+              : 0.0;
+        }
       }
     }
     return tensor;

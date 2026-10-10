@@ -180,11 +180,14 @@ This document describes the achieved architecture across all subsystems of `pack
   - `ValidityMask` (`lib/src/dataframe/bitmask.dart`) uses 1 bit per row entry packed into `Uint8List` byte buffers, matching the Apache Arrow specification (bit = 1 indicates valid, bit = 0 indicates null).
   - Unboxed numeric series maintain contiguous `TypedData` lists (`Float64List`, `Int32List`) alongside a `ValidityMask`, ensuring data arrays remain primitive and unboxed.
 
-### 4.3 Columnar Series Hierarchy
+### 4.3 Columnar Series Hierarchy & Zero-Allocation Operations
 
-- **Reasoning**: Different data types require specialized memory structures.
+- **Reasoning**: Different data types require specialized memory structures. Numeric columns should achieve Arrow-grade performance without boxing primitives or thrashing garbage collection during query operations.
 - **Implementation & Constraints**:
   - `TypedSeries<T>`: Backed by `TypedData` lists for high-performance numeric data.
+    - Zero-allocation `filter`: Counts valid entries in `filterMask`, pre-allocates target typed array of exact length (`dataType.newList(count)`), copies unboxed elements directly, and maps the validity bitmask without boxing primitives.
+    - Zero-allocation `slice`: Slices underlying typed array directly via `data.sublist(start, end)` and slices validity mask via `ValidityMask.slice(start, end)`.
+    - Zero-overhead scalar access: `getNonNull(int index)` retrieves non-null values (throwing `StateError` on missing entries) without requiring `!` assertions from callers; `getUnchecked(int index)` provides inline raw array access when `hasNulls == false`.
   - `StringSeries`: Backed by string buffers for textual data.
   - `BoolSeries`: Packed boolean bit series.
   - `ObjectSeries`: General object reference series for complex domain models.
@@ -219,8 +222,9 @@ This document describes the achieved architecture across all subsystems of `pack
   - `CsvWriter` (`lib/src/dataframe/csv/csv_writer.dart`):
     - Serializes DataFrames to delimited text.
     - Proper delimiter-aware escaping: quotes and doubles quotes for fields containing the active `separator` (regardless of whether `,`, `\t`, `;`, `|`, etc.), `"` quotes, `\n`, or `\r`.
-  - Container conversions:
-    - `df.toMatrix()` and `df.toTensor()` extract numeric columns directly into linear algebra and tensor containers.
+  - Container conversions (`df.toMatrix()` and `df.toTensor()`):
+    - Bulk column copy fast-path: For non-null `TypedSeries<double>` columns, single columns are copied via `Float64List.setRange`, while multi-column selections use sequential flat buffer indexing without heap `List<int>` coordinate allocations.
+    - Fallback paths preserve compatibility for mixed integer types, nullable columns, and general series.
 
 ---
 
