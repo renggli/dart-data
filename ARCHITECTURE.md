@@ -436,12 +436,16 @@ This document describes the achieved architecture across all subsystems of `pack
 
 ### 7.2 Parametric Distributions & Maximum Likelihood Estimation (MLE)
 
-- **Reasoning**: Closed-form probability modeling and parameter inference from data.
+- **Reasoning**: Closed-form probability modeling and parameter inference from data across univariate and multivariate domains.
 - **Implementation & Constraints**:
-  - 12 probability distributions implemented with probability density/mass functions (`pdf`/`pmf`), cumulative distribution functions (`cdf`), quantile functions (`inverseCdf`), and random sampling (`sample`):
+  - Univariate distributions (12 implemented with `pdf`/`pmf`, `cdf`, quantile/`inverseCdf`, and random sampling):
     - Continuous: `NormalDistribution`, `StudentTDistribution`, `FDistribution`, `BetaDistribution`, `GammaDistribution`, `ExponentialDistribution`, `ChiSquaredDistribution`, `UniformDistribution`.
     - Discrete: `BernoulliDistribution`, `BinomialDistribution`, `PoissonDistribution`, `DiscreteUniformDistribution`.
-  - All distributions support analytical or numerical MLE fitting via `factory .fit(data)` constructors.
+  - Multivariate distributions (`MultivariateDistribution<T extends num>`):
+    - `MultivariateNormalDistribution`: Correlated Gaussian density over $\mathbb{R}^k$ parameterized by mean $\mu \in \mathbb{R}^k$ and covariance matrix $\Sigma \in \mathbb{R}^{k \times k}$. Computes Cholesky factor $\Sigma = L L^T$, evaluates $\ln \text{PDF}$ via forward triangular solve ($L y = x - \mu \implies (x-\mu)^T \Sigma^{-1} (x-\mu) = \|y\|_2^2$), and generates correlated random samples $x = \mu + L z$ with standard normal $z \sim \mathcal{N}(0, I_k)$.
+    - `DirichletDistribution`: Continuous probability distribution over the open $(k-1)$-simplex parameterized by concentration vector $\alpha \in \mathbb{R}^k$ ($\alpha_i > 0$). Evaluates log multivariate beta function via `gammaLn`, provides exact covariance matrix, and generates samples via normalized independent Gamma draws $Y_i \sim \text{Gamma}(\alpha_i, 1.0)$.
+    - `MultinomialDistribution`: Discrete distribution over $k$ categories across $n$ trials parameterized by probability vector $p \in [0, 1]^k$ ($\sum p_i = 1$). Evaluates log PMF via log-factorials (`factorialLn`), provides exact covariance matrix, and draws samples via categorical accumulation.
+  - Univariate distributions support analytical or numerical MLE fitting via `factory .fit(data)` constructors.
 
 ### 7.3 Hypothesis Testing Suite
 
