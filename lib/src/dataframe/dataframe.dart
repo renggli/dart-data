@@ -3,7 +3,8 @@ import 'dart:math' as math;
 import '../../type.dart';
 import '../linear/matrix.dart';
 import '../tensor/tensor.dart';
-import 'csv.dart';
+import 'csv/csv_reader.dart';
+import 'csv/csv_writer.dart';
 import 'groupby.dart';
 import 'series.dart';
 

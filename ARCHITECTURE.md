@@ -204,12 +204,23 @@ This document describes the achieved architecture across all subsystems of `pack
     - Partitions row indices into buckets based on composite key objects (`Map<Object?, List<int>>`).
     - Aggregates groups across columns with `Agg.count`, `Agg.sum`, `Agg.mean`, `Agg.min`, `Agg.max`, `Agg.std`, `Agg.first`, and `Agg.last`.
 
-### 4.5 CSV Import/Export & Container Conversions
+### 4.5 Tabular Parsing (PetitParser), CSV/TSV Serialization & Container Conversions
 
-- **Reasoning**: Seamless data ingestion and transfer into computational models.
+- **Reasoning**: Seamless, robust data ingestion and transfer into computational models with customizable delimiter, quoting, and escaping rules.
 - **Implementation & Constraints**:
-  - `CsvReader` implements RFC 4180 parsing with automated type inference (`int` -> `double` -> `bool` -> `String`).
-  - `df.toMatrix()` and `df.toTensor()` extract numeric columns directly into linear algebra and tensor containers.
+  - `TabularDefinition` (`lib/src/dataframe/csv/parser.dart`): Customizable PEG grammar definition powered by `package:petitparser`. Private to `lib/src/dataframe/csv/`.
+    - Typed combinators: Uses `[...].toChoiceParser()`, `.skip(before: quote.not())`, and `plusString()` for zero-allocation field character repetitions.
+    - Full linter compliance: Grammar passes PetitParser's `linter(parser)` with zero structural defects, verifying absence of left-recursion, unbounded loops, or unreachable rules.
+    - Preconfigured definitions for `TabularDefinition.csv()` (RFC 4180 with `""` quote escaping) and `TabularDefinition.tsv()` (tab delimiters supporting both RFC 4180 quotes and Unix backslash escapes `\t`, `\n`, `\r`, `\\`), with support for arbitrary user-defined delimiters and delimiters passed dynamically.
+  - `CsvReader` (`lib/src/dataframe/csv/csv_reader.dart`):
+    - Parses tabular records and lines via `TabularDefinition`, handling LF and CRLF newlines, multiline fields, and optional trailing line breaks without discarding valid empty rows or 1-column null data.
+    - Automated columnar type inference (`int` -> `double` -> `bool` -> `String`) and null detection (`''`, `'null'`, `'NA'`).
+    - Dedicated `CsvReader.parseTsv` helper configured with `TabularDefinition.tsv()`.
+  - `CsvWriter` (`lib/src/dataframe/csv/csv_writer.dart`):
+    - Serializes DataFrames to delimited text.
+    - Proper delimiter-aware escaping: quotes and doubles quotes for fields containing the active `separator` (regardless of whether `,`, `\t`, `;`, `|`, etc.), `"` quotes, `\n`, or `\r`.
+  - Container conversions:
+    - `df.toMatrix()` and `df.toTensor()` extract numeric columns directly into linear algebra and tensor containers.
 
 ---
 

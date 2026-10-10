@@ -2,7 +2,8 @@
 library;
 
 export 'src/dataframe/bitmask.dart';
-export 'src/dataframe/csv.dart';
+export 'src/dataframe/csv/csv_reader.dart';
+export 'src/dataframe/csv/csv_writer.dart';
 export 'src/dataframe/dataframe.dart';
 export 'src/dataframe/groupby.dart';
 export 'src/dataframe/join.dart';
