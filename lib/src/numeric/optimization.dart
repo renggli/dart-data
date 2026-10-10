@@ -468,3 +468,529 @@ lbfgs(
 
   return (point: x, value: fx, gradientNorm: grad.norm(), iterations: iter);
 }
+
+/// Defines lower and upper bounds for a coordinate in constrained optimization.
+class BoxBound {
+  /// Creates a box bound with optional [lower] and [upper] limits.
+  const new({this.lower, this.upper});
+
+  /// The lower bound, or `null` if unbounded below ($-\infty$).
+  final double? lower;
+
+  /// The upper bound, or `null` if unbounded above ($+\infty$).
+  final double? upper;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is BoxBound && other.lower == lower && other.upper == upper;
+
+  @override
+  int get hashCode => Object.hash(lower, upper);
+
+  @override
+  String toString() => 'BoxBound(lower: $lower, upper: $upper)';
+}
+
+/// Minimizes a scalar objective [function] subject to box bounds and general constraints.
+///
+/// Bounded parameters are mapped through a smooth sigmoid transformation
+/// $x_i = l_i + \frac{u_i - l_i}{1 + e^{-y_i}}$, guaranteeing feasibility throughout
+/// optimization while updating gradients via the chain rule.
+///
+/// General inequality constraints ($g_i(x) \le 0$) and equality constraints
+/// ($h_j(x) = 0$) are resolved using the Augmented Lagrangian Method (ALM)
+/// with adaptive penalty parameter scaling.
+///
+/// Accepts numerical closures (`double Function(Vector<double>)`, or
+/// `double Function(double)` for 1D problems) or symbolic [Expr] expressions.
+///
+/// Example minimizing a 2D quadratic bowl subject to box bounds:
+/// ```dart
+/// final result = minimizeConstrained(
+///   (Vector<double> v) => (v[0] - 2.0) * (v[0] - 2.0) + (v[1] - 3.0) * (v[1] - 3.0),
+///   Vector<double>.fromList([0.0, 0.0], type: DataType.float64),
+///   bounds: const [
+///     BoxBound(lower: 0.0, upper: 1.0),
+///     BoxBound(lower: 0.0, upper: 1.0),
+///   ],
+/// );
+/// print(result.point); // [1.0, 1.0]
+/// ```
+({
+  Vector<double> point,
+  double value,
+  double gradientNorm,
+  int iterations,
+  bool converged,
+})
+minimizeConstrained(
+  Object function,
+  Vector<double> initialPoint, {
+  Object? gradient,
+  List<String>? variables,
+  List<BoxBound>? bounds,
+  List<Object>? inequalities,
+  List<Object>? equalities,
+  double tolerance = 1e-6,
+  int maxIterations = 200,
+}) {
+  final dim = initialPoint.length;
+  if (dim == 0) {
+    throw ArgumentError('Initial point cannot be empty.');
+  }
+  if (tolerance <= 0) {
+    throw ArgumentError('Tolerance must be positive: $tolerance');
+  }
+  if (maxIterations <= 0) {
+    throw ArgumentError('Max iterations must be positive: $maxIterations');
+  }
+  if (variables != null && variables.length != dim) {
+    throw ArgumentError(
+      'Variables length (${variables.length}) must match initial point dimension ($dim).',
+    );
+  }
+  if (bounds != null && bounds.isNotEmpty && bounds.length != dim) {
+    throw ArgumentError(
+      'Bounds length (${bounds.length}) must match initial point dimension ($dim).',
+    );
+  }
+
+  final double Function(Vector<double>) fn;
+  final Vector<double> Function(Vector<double>) baseGradFn;
+  final List<String> resolvedVars;
+
+  if (function is Expr) {
+    resolvedVars = variables ?? (function.freeVariables.toList()..sort());
+    if (resolvedVars.length != dim) {
+      throw ArgumentError(
+        'Variable count (${resolvedVars.length}) must match point dimension ($dim).',
+      );
+    }
+    fn = (vec) => function.evaluate({
+      for (var i = 0; i < dim; i++) resolvedVars[i]: vec[i],
+    });
+    if (gradient is Vector<double> Function(Vector<double>)) {
+      baseGradFn = gradient;
+    } else {
+      baseGradFn = (vec) =>
+          numericalGradient(function, vec, variables: resolvedVars);
+    }
+  } else if (function is double Function(Vector<double>)) {
+    resolvedVars = variables ?? List.generate(dim, (i) => 'x$i');
+    fn = function;
+    if (gradient is Vector<double> Function(Vector<double>)) {
+      baseGradFn = gradient;
+    } else {
+      baseGradFn = (vec) => numericalGradient(function, vec);
+    }
+  } else if (function is double Function(double) && dim == 1) {
+    resolvedVars = variables ?? ['x'];
+    fn = (vec) => function(vec[0]);
+    if (gradient is Vector<double> Function(Vector<double>)) {
+      baseGradFn = gradient;
+    } else {
+      baseGradFn = (vec) => Vector<double>.fromList([
+        numericalDerivative(function, vec[0]),
+      ], type: DataType.float64);
+    }
+  } else if (function is num Function(num) && dim == 1) {
+    resolvedVars = variables ?? ['x'];
+    fn = (vec) => function(vec[0]).toDouble();
+    if (gradient is Vector<double> Function(Vector<double>)) {
+      baseGradFn = gradient;
+    } else {
+      baseGradFn = (vec) => Vector<double>.fromList([
+        numericalDerivative(function, vec[0]),
+      ], type: DataType.float64);
+    }
+  } else {
+    throw ArgumentError('Unsupported function type: ${function.runtimeType}');
+  }
+
+  final boxTransform = _BoxTransform(
+    bounds != null && bounds.isNotEmpty ? bounds : null,
+  );
+
+  final parsedIneqs = <_Constraint>[];
+  if (inequalities != null) {
+    for (final ineq in inequalities) {
+      parsedIneqs.add(
+        _Constraint(
+          ineq,
+          isInequality: true,
+          variables: resolvedVars,
+          dim: dim,
+        ),
+      );
+    }
+  }
+  final parsedEqs = <_Constraint>[];
+  if (equalities != null) {
+    for (final eq in equalities) {
+      parsedEqs.add(
+        _Constraint(eq, isInequality: false, variables: resolvedVars, dim: dim),
+      );
+    }
+  }
+
+  final hasGeneralConstraints = parsedIneqs.isNotEmpty || parsedEqs.isNotEmpty;
+
+  if (!hasGeneralConstraints) {
+    final y0 = boxTransform.toY(initialPoint);
+    double transformedFn(Vector<double> y) => fn(boxTransform.toX(y));
+
+    Vector<double> transformedGrad(Vector<double> y) {
+      final x = boxTransform.toX(y);
+      final gradX = baseGradFn(x);
+      return boxTransform.chainRuleGradient(gradX, y);
+    }
+
+    final bfgsResult = bfgs(
+      transformedFn,
+      y0,
+      gradient: transformedGrad,
+      tolerance: tolerance,
+      maxIterations: maxIterations,
+    );
+
+    final xAtEnd = boxTransform.toX(bfgsResult.point);
+    final gradAtEnd = baseGradFn(xAtEnd);
+    final finalPoint = boxTransform.projectToFeasible(
+      xAtEnd,
+      gradX: gradAtEnd,
+      tolerance: tolerance,
+    );
+    final finalVal = fn(finalPoint);
+    return (
+      point: finalPoint,
+      value: finalVal,
+      gradientNorm: bfgsResult.gradientNorm,
+      iterations: bfgsResult.iterations,
+      converged: bfgsResult.gradientNorm <= tolerance,
+    );
+  }
+
+  var currentPoint = initialPoint.copy();
+  var currentY = boxTransform.toY(currentPoint);
+  currentPoint = boxTransform.toX(currentY);
+
+  final numIneq = parsedIneqs.length;
+  final numEq = parsedEqs.length;
+  final lambda = List<double>.filled(numIneq, 0.0);
+  final nu = List<double>.filled(numEq, 0.0);
+  var mu = 10.0;
+  var prevViolation = double.infinity;
+  var totalIterations = 0;
+  var isConverged = false;
+  var lastGradNorm = 0.0;
+
+  final maxOuter = math.min(30, math.max(5, maxIterations ~/ 5));
+  for (var outer = 0; outer < maxOuter; outer++) {
+    final remainingIterations = maxIterations - totalIterations;
+    if (remainingIterations <= 0) break;
+
+    double augmentedLagrangian(Vector<double> x) {
+      var val = fn(x);
+      for (var j = 0; j < numIneq; j++) {
+        final gj = parsedIneqs[j].evaluate(x);
+        final psi = math.max(0.0, lambda[j] + mu * gj);
+        val += 0.5 / mu * (psi * psi - lambda[j] * lambda[j]);
+      }
+      for (var k = 0; k < numEq; k++) {
+        final hk = parsedEqs[k].evaluate(x);
+        val += nu[k] * hk + 0.5 * mu * hk * hk;
+      }
+      return val;
+    }
+
+    Vector<double> augmentedLagrangianGrad(Vector<double> x) {
+      final gradX = baseGradFn(x).copy();
+      for (var j = 0; j < numIneq; j++) {
+        final gj = parsedIneqs[j].evaluate(x);
+        final psi = math.max(0.0, lambda[j] + mu * gj);
+        if (psi > 0.0) {
+          final gradG = parsedIneqs[j].gradient(x);
+          gradX.addScaled(gradG, psi);
+        }
+      }
+      for (var k = 0; k < numEq; k++) {
+        final hk = parsedEqs[k].evaluate(x);
+        final gradH = parsedEqs[k].gradient(x);
+        gradX.addScaled(gradH, nu[k] + mu * hk);
+      }
+      return gradX;
+    }
+
+    double subproblemFn(Vector<double> y) =>
+        augmentedLagrangian(boxTransform.toX(y));
+
+    Vector<double> subproblemGrad(Vector<double> y) {
+      final x = boxTransform.toX(y);
+      final gradX = augmentedLagrangianGrad(x);
+      return boxTransform.chainRuleGradient(gradX, y);
+    }
+
+    final innerMaxIter = math.min(100, remainingIterations);
+    final innerTol = math.max(tolerance, 1.0 / (mu * math.sqrt(outer + 1.0)));
+
+    final subResult = bfgs(
+      subproblemFn,
+      currentY,
+      gradient: subproblemGrad,
+      tolerance: innerTol,
+      maxIterations: innerMaxIter,
+    );
+
+    totalIterations += subResult.iterations;
+    currentY = subResult.point;
+    currentPoint = boxTransform.toX(currentY);
+    lastGradNorm = subResult.gradientNorm;
+
+    var maxViolation = 0.0;
+    for (var j = 0; j < numIneq; j++) {
+      final gj = parsedIneqs[j].evaluate(currentPoint);
+      if (gj > maxViolation) maxViolation = gj;
+    }
+    for (var k = 0; k < numEq; k++) {
+      final hk = parsedEqs[k].evaluate(currentPoint).abs();
+      if (hk > maxViolation) maxViolation = hk;
+    }
+
+    if (maxViolation <= tolerance && subResult.gradientNorm <= tolerance * 10) {
+      isConverged = true;
+      break;
+    }
+
+    for (var j = 0; j < numIneq; j++) {
+      final gj = parsedIneqs[j].evaluate(currentPoint);
+      lambda[j] = math.max(0.0, lambda[j] + mu * gj);
+    }
+    for (var k = 0; k < numEq; k++) {
+      final hk = parsedEqs[k].evaluate(currentPoint);
+      nu[k] += mu * hk;
+    }
+
+    if (maxViolation > 0.25 * prevViolation) {
+      mu = math.min(mu * 5.0, 1e8);
+    }
+    prevViolation = maxViolation;
+  }
+
+  final gradAtEnd = baseGradFn(currentPoint);
+  final finalPoint = boxTransform.projectToFeasible(
+    currentPoint,
+    gradX: gradAtEnd,
+    tolerance: tolerance,
+  );
+  final finalVal = fn(finalPoint);
+
+  return (
+    point: finalPoint,
+    value: finalVal,
+    gradientNorm: lastGradNorm,
+    iterations: totalIterations,
+    converged: isConverged,
+  );
+}
+
+class _BoxTransform {
+  new(this.bounds) {
+    if (bounds != null) {
+      for (var i = 0; i < bounds!.length; i++) {
+        final b = bounds![i];
+        final lower = (b.lower == null || b.lower!.isInfinite) ? null : b.lower;
+        final upper = (b.upper == null || b.upper!.isInfinite) ? null : b.upper;
+        if (lower != null && upper != null && lower >= upper) {
+          throw ArgumentError(
+            'Lower bound ($lower) must be strictly less than upper bound ($upper) at index $i.',
+          );
+        }
+      }
+    }
+  }
+
+  final List<BoxBound>? bounds;
+
+  Vector<double> toX(Vector<double> y) {
+    if (bounds == null) return y.copy();
+    final dim = y.length;
+    final x = Vector<double>.filled(dim, 0.0, type: DataType.float64);
+    for (var i = 0; i < dim; i++) {
+      final b = bounds![i];
+      final lower = (b.lower == null || b.lower!.isInfinite) ? null : b.lower;
+      final upper = (b.upper == null || b.upper!.isInfinite) ? null : b.upper;
+      final yi = y[i];
+      if (lower != null && upper != null) {
+        x[i] = lower + (upper - lower) * _sigmoid(yi);
+      } else if (lower != null) {
+        final clampedYi = yi.clamp(-50.0, 50.0);
+        x[i] = lower + math.exp(clampedYi);
+      } else if (upper != null) {
+        final clampedYi = yi.clamp(-50.0, 50.0);
+        x[i] = upper - math.exp(-clampedYi);
+      } else {
+        x[i] = yi;
+      }
+    }
+    return x;
+  }
+
+  Vector<double> toY(Vector<double> x) {
+    if (bounds == null) return x.copy();
+    final dim = x.length;
+    final y = Vector<double>.filled(dim, 0.0, type: DataType.float64);
+    for (var i = 0; i < dim; i++) {
+      final b = bounds![i];
+      final lower = (b.lower == null || b.lower!.isInfinite) ? null : b.lower;
+      final upper = (b.upper == null || b.upper!.isInfinite) ? null : b.upper;
+      final xi = x[i];
+      if (lower != null && upper != null) {
+        final span = upper - lower;
+        final t = ((xi - lower) / span).clamp(0.01, 0.99);
+        y[i] = math.log(t / (1.0 - t));
+      } else if (lower != null) {
+        final d = math.max(xi - lower, 0.1);
+        y[i] = math.log(d);
+      } else if (upper != null) {
+        final d = math.max(upper - xi, 0.1);
+        y[i] = -math.log(d);
+      } else {
+        y[i] = xi;
+      }
+    }
+    return y;
+  }
+
+  Vector<double> chainRuleGradient(Vector<double> gradX, Vector<double> y) {
+    if (bounds == null) return gradX.copy();
+    final dim = y.length;
+    final gradY = Vector<double>.filled(dim, 0.0, type: DataType.float64);
+    for (var i = 0; i < dim; i++) {
+      final b = bounds![i];
+      final lower = (b.lower == null || b.lower!.isInfinite) ? null : b.lower;
+      final upper = (b.upper == null || b.upper!.isInfinite) ? null : b.upper;
+      final yi = y[i];
+      final double dxiDyi;
+      if (lower != null && upper != null) {
+        dxiDyi = (upper - lower) * _sigmoidDeriv(yi);
+      } else if (lower != null) {
+        final clampedYi = yi.clamp(-50.0, 50.0);
+        dxiDyi = math.exp(clampedYi);
+      } else if (upper != null) {
+        final clampedYi = yi.clamp(-50.0, 50.0);
+        dxiDyi = math.exp(-clampedYi);
+      } else {
+        dxiDyi = 1.0;
+      }
+      gradY[i] = gradX[i] * dxiDyi;
+    }
+    return gradY;
+  }
+
+  Vector<double> projectToFeasible(
+    Vector<double> x, {
+    Vector<double>? gradX,
+    double tolerance = 1e-6,
+  }) {
+    if (bounds == null) return x.copy();
+    final dim = x.length;
+    final res = Vector<double>.filled(dim, 0.0, type: DataType.float64);
+    for (var i = 0; i < dim; i++) {
+      final b = bounds![i];
+      final lower = (b.lower == null || b.lower!.isInfinite) ? null : b.lower;
+      final upper = (b.upper == null || b.upper!.isInfinite) ? null : b.upper;
+      var xi = x[i];
+      if (lower != null && upper != null) {
+        final span = upper - lower;
+        final tol = math.max(tolerance, span * tolerance);
+        if (xi <= lower ||
+            (xi - lower <= tol && (gradX == null || gradX[i] > 0.0))) {
+          xi = lower;
+        } else if (xi >= upper ||
+            (upper - xi <= tol && (gradX == null || gradX[i] < 0.0))) {
+          xi = upper;
+        }
+      } else if (lower != null) {
+        if (xi <= lower ||
+            (xi - lower <= tolerance && (gradX == null || gradX[i] > 0.0))) {
+          xi = lower;
+        }
+      } else if (upper != null) {
+        if (xi >= upper ||
+            (upper - xi <= tolerance && (gradX == null || gradX[i] < 0.0))) {
+          xi = upper;
+        }
+      }
+      res[i] = xi;
+    }
+    return res;
+  }
+}
+
+class _Constraint {
+  new(
+    this.source, {
+    required this.isInequality,
+    List<String>? variables,
+    required int dim,
+  }) {
+    if (source is Expr) {
+      final expr = source as Expr;
+      final vars = variables ?? (expr.freeVariables.toList()..sort());
+      fn = (vec) => expr.evaluate({
+        for (var i = 0; i < vec.length && i < vars.length; i++) vars[i]: vec[i],
+      });
+      gradFn = (vec) => numericalGradient(expr, vec, variables: vars);
+    } else if (source is double Function(Vector<double>)) {
+      fn = source as double Function(Vector<double>);
+      gradFn = (vec) => numericalGradient(source, vec);
+    } else if (source is num Function(num) && dim == 1) {
+      final numFn = source as num Function(num);
+      fn = (vec) => numFn(vec[0]).toDouble();
+      gradFn = (vec) => Vector<double>.fromList([
+        numericalDerivative(numFn, vec[0]),
+      ], type: DataType.float64);
+    } else if (source is double Function(double) && dim == 1) {
+      final doubleFn = source as double Function(double);
+      fn = (vec) => doubleFn(vec[0]);
+      gradFn = (vec) => Vector<double>.fromList([
+        numericalDerivative(doubleFn, vec[0]),
+      ], type: DataType.float64);
+    } else {
+      throw ArgumentError('Unsupported constraint type: ${source.runtimeType}');
+    }
+  }
+
+  final Object source;
+  final bool isInequality;
+  late final double Function(Vector<double>) fn;
+  late final Vector<double> Function(Vector<double>) gradFn;
+
+  double evaluate(Vector<double> x) => fn(x);
+  Vector<double> gradient(Vector<double> x) => gradFn(x);
+}
+
+double _sigmoid(double y) {
+  if (y >= 50.0) return 1.0;
+  if (y <= -50.0) return 0.0;
+  if (y >= 0.0) {
+    return 1.0 / (1.0 + math.exp(-y));
+  } else {
+    final e = math.exp(y);
+    return e / (1.0 + e);
+  }
+}
+
+double _sigmoidDeriv(double y) {
+  final clampedY = y.clamp(-50.0, 50.0);
+  if (clampedY >= 0.0) {
+    final e = math.exp(-clampedY);
+    final denom = 1.0 + e;
+    return e / (denom * denom);
+  } else {
+    final e = math.exp(clampedY);
+    final denom = 1.0 + e;
+    return e / (denom * denom);
+  }
+}

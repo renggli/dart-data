@@ -369,6 +369,10 @@ This document describes the achieved architecture across all subsystems of `pack
   - `nelderMead`: Multivariate derivative-free simplex method, resilient to non-smooth or noisy objective functions.
   - `bfgs`: Quasi-Newton Broyden-Fletcher-Goldfarb-Shanno method utilizing numerical gradients and Armijo line search to maintain a positive-definite Hessian approximation.
   - `lbfgs`: Limited-memory BFGS storing a rolling history of $m$ displacement vectors, enabling multivariate optimization over thousands of parameters with $\mathcal{O}(m N)$ memory.
+  - `minimizeConstrained`: Constrained optimization handling box bounds (`BoxBound`), general inequality constraints ($g_i(x) \le 0$), and equality constraints ($h_j(x) = 0$):
+    - Box bounds $[l_i, u_i]$ utilize coordinate-wise smooth sigmoid variable transformations ($x_i = l_i + \frac{u_i - l_i}{1 + e^{-y_i}}$) with chain-rule gradient scaling ($\nabla_y F = \nabla_x L_A \odot \Phi'(y)$), strictly preventing out-of-bounds evaluations and domain violations.
+    - General inequality and equality constraints are resolved via the Powell-Hestenes-Rockafellar Augmented Lagrangian Method (ALM) with adaptive penalty parameter scaling ($\mu$) and multiplier updates ($\lambda_j \leftarrow \max(0, \lambda_j + \mu g_j(x))$, $\nu_k \leftarrow \nu_k + \mu h_k(x)$).
+    - Transparently accepts numerical closures (`double Function(Vector<double>)` or `double Function(double)` for 1D) or symbolic [Expr] expressions with automatic analytical gradient generation.
 
 ### 6.2 Adaptive Ordinary Differential Equation (ODE) Solvers
 
