@@ -490,18 +490,30 @@ This document describes the achieved architecture across all subsystems of `pack
     - Chebyshev polynomials of the first kind ($T_n(x)$) and second kind ($U_n(x)$).
     - Legendre polynomials ($P_n(x)$).
     - Hermite polynomials (physicist $H_n(x)$ and probabilist $He_n(x)$).
+    - Generalized Laguerre polynomials ($L_n^{(\alpha)}(x)$ via `Polynomial.laguerreL` / `laguerreL` in `lib/src/polynomial/orthogonal.dart`) computed via 3-term recurrence: $L_{k+1}^{(\alpha)}(x) = \frac{1}{k+1} ((2k + 1 + \alpha - x) L_k^{(\alpha)}(x) - (k + \alpha) L_{k-1}^{(\alpha)}(x))$. Direct point evaluation available via `laguerreEvaluate(n, x, {alpha})`.
   - Evaluated via `clenshawEvaluate` (`lib/src/polynomial/orthogonal.dart`), which evaluates three-term recurrence relations stably without expanding polynomial coefficients.
 
-### 8.3 Formal Polynomial Arithmetic & Root Isolation
+### 8.3 Formal Polynomial Arithmetic, Composition & Root Isolation
 
-- **Reasoning**: Exact algebraic manipulation and root finding for arbitrary degrees.
+- **Reasoning**: Exact algebraic manipulation, composition, and root finding for arbitrary degrees.
 - **Implementation & Constraints**:
   - Formal division with remainder (`divide`, `/`, `%`) and Euclidean Greatest Common Divisor (`gcd`).
+  - Composition: `poly.compose(other)` evaluates $(P \circ Q)(x) = P(Q(x))$ algebraically using Horner's recurrence.
   - Differentiation (`derivative()`) and anti-differentiation (`integrate()`).
   - Root isolation:
     - Degree 1: Analytical linear root.
     - Degree 2: Numerically stable quadratic formula with sign preservation to prevent catastrophic cancellation.
     - Degree $\ge 3$: Constructs Frobenius companion matrix of monic polynomial and solves for complex roots via `EigenvalueDecomposition`.
+
+### 8.4 Rational Functions (`RationalFunction<T>`)
+
+- **Reasoning**: Many scientific modeling and transfer function problems involve ratios of polynomials $R(x) = \frac{P(x)}{Q(x)}$.
+- **Implementation & Constraints**:
+  - `RationalFunction<T>` in `lib/src/polynomial/rational.dart` encapsulates numerator and denominator polynomials.
+  - Automatic and explicit GCD simplification via `simplify()` dividing out $\gcd(P, Q)$ and normalizing the denominator to monic form.
+  - Arithmetic overloads (`+`, `-`, `*`, `/`, `unary-`) with automatic cross-multiplication and canonical simplification.
+  - Exact evaluation (`evaluate`, `evaluateDouble`) with pole zero-division error handling.
+  - Formal derivative (`derivative()`) computed using the quotient rule: $\left(\frac{P}{Q}\right)' = \frac{P' Q - P Q'}{Q^2}$.
 
 ---
 

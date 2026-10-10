@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import '../../linear.dart';
 import '../../symbolic.dart';
 import '../../type.dart';
+import 'orthogonal.dart' as orthogonal;
 
 /// 1-dimensional algebraic polynomial with coefficients in [T].
 ///
@@ -261,6 +262,23 @@ class Polynomial<T> {
     }
 
     return Polynomial<T>.fromCoefficients(resultCoeffs, type: type);
+  }
+
+  /// Computes the polynomial composition $(P \circ Q)(x) = P(Q(x))$
+  /// using Horner's recurrence.
+  Polynomial<T> compose(Polynomial<T> other) {
+    final deg = degree;
+    if (deg < 0) return Polynomial<T>.zero(type: type);
+    if (deg == 0) {
+      return Polynomial<T>.fromCoefficients([_coefficients[0]], type: type);
+    }
+    var acc = Polynomial<T>.fromCoefficients([_coefficients[deg]], type: type);
+    for (var i = deg - 1; i >= 0; i--) {
+      acc =
+          (acc * other) +
+          Polynomial<T>.fromCoefficients([_coefficients[i]], type: type);
+    }
+    return acc;
   }
 
   /// Polynomial division with remainder: $A(x) = Q(x) \cdot B(x) + R(x)$.
@@ -560,6 +578,34 @@ class Polynomial<T> {
       p1 = pNext;
     }
     return p1;
+  }
+
+  /// Generates the generalized Laguerre polynomial $L_n^{(\alpha)}(x)$.
+  static Polynomial<double> laguerreL(int degree, {double alpha = 0.0}) =>
+      orthogonal.laguerreL(degree, alpha: alpha);
+
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    if (other is! Polynomial<T>) return false;
+    final deg = degree;
+    if (deg != other.degree) return false;
+    if (deg < 0) return true;
+    for (var i = 0; i <= deg; i++) {
+      if (this[i] != other[i]) return false;
+    }
+    return true;
+  }
+
+  @override
+  int get hashCode {
+    final deg = degree;
+    if (deg < 0) return 0;
+    var hash = deg;
+    for (var i = 0; i <= deg; i++) {
+      hash = Object.hash(hash, this[i]);
+    }
+    return hash;
   }
 
   @override

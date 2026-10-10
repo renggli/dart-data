@@ -1,3 +1,6 @@
+import '../../type.dart';
+import 'polynomial.dart';
+
 /// Supported orthogonal polynomial families for recurrence generation and
 /// Clenshaw summation.
 enum OrthogonalFamily {
@@ -79,4 +82,53 @@ double clenshawEvaluate(
       }
       return coefficients[0].toDouble() + xd * b1 - b2;
   }
+}
+
+/// Generates the generalized Laguerre polynomial $L_n^{(\alpha)}(x)$.
+Polynomial<double> laguerreL(int degree, {double alpha = 0.0}) {
+  if (degree < 0) throw ArgumentError('Degree must be non-negative: $degree');
+  if (degree == 0) {
+    return Polynomial<double>.fromCoefficients([1.0], type: DataType.float64);
+  }
+  if (degree == 1) {
+    return Polynomial<double>.fromCoefficients([
+      1.0 + alpha,
+      -1.0,
+    ], type: DataType.float64);
+  }
+  var p0 = Polynomial<double>.fromCoefficients([1.0], type: DataType.float64);
+  var p1 = Polynomial<double>.fromCoefficients([
+    1.0 + alpha,
+    -1.0,
+  ], type: DataType.float64);
+
+  for (var k = 1; k < degree; k++) {
+    final term1 = Polynomial<double>.fromCoefficients([
+      2.0 * k + 1.0 + alpha,
+      -1.0,
+    ], type: DataType.float64);
+    final pNext = (term1 * p1 - p0.scale(k + alpha)).scale(1.0 / (k + 1.0));
+    p0 = p1;
+    p1 = pNext;
+  }
+  return p1;
+}
+
+/// Evaluates the generalized Laguerre polynomial $L_n^{(\alpha)}(x)$ at [x]
+/// using the 3-term recurrence relation.
+double laguerreEvaluate(int n, num x, {double alpha = 0.0}) {
+  if (n < 0) throw ArgumentError('Degree must be non-negative: $n');
+  final xd = x.toDouble();
+  if (n == 0) return 1.0;
+  if (n == 1) return 1.0 + alpha - xd;
+
+  var l0 = 1.0;
+  var l1 = 1.0 + alpha - xd;
+  for (var k = 1; k < n; k++) {
+    final lNext =
+        ((2.0 * k + 1.0 + alpha - xd) * l1 - (k + alpha) * l0) / (k + 1.0);
+    l0 = l1;
+    l1 = lNext;
+  }
+  return l1;
 }

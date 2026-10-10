@@ -306,5 +306,67 @@ void main() {
       final poly = Polynomial<double>.fromExpr(const Exp(x), 'x', order: -1);
       check(poly.degree).equals(-1);
     });
+
+    test('polynomial composition compose', () {
+      // P(x) = 2 + 3x + x^2
+      final p = Polynomial<double>.fromCoefficients([2.0, 3.0, 1.0]);
+      // Q(x) = 1 + x (or x + 1)
+      final q = Polynomial<double>.fromCoefficients([1.0, 1.0]);
+
+      // P(Q(x)) = 2 + 3(x + 1) + (x + 1)^2 = x^2 + 5x + 6
+      final composed = p.compose(q);
+      check(composed.degree).equals(2);
+      check(composed[0]).isCloseTo(6.0, 1e-9);
+      check(composed[1]).isCloseTo(5.0, 1e-9);
+      check(composed[2]).isCloseTo(1.0, 1e-9);
+
+      // Value evaluation check: P(Q(3)) == P(4) = 2 + 12 + 16 = 30
+      // composed(3) = 9 + 15 + 6 = 30
+      check(composed.evaluate(3.0)).isCloseTo(30.0, 1e-9);
+
+      // Composition with zero polynomial
+      final zero = Polynomial<double>.zero();
+      check(p.compose(zero)[0]).equals(2.0);
+      check(p.compose(zero).degree).equals(0);
+    });
+
+    test('generalized Laguerre polynomials laguerreL and laguerreEvaluate', () {
+      // L_0(x) = 1
+      final l0 = Polynomial.laguerreL(0);
+      check(l0.degree).equals(0);
+      check(l0[0]).equals(1.0);
+      check(laguerreEvaluate(0, 5.0)).equals(1.0);
+
+      // L_1(x) = 1 - x
+      final l1 = Polynomial.laguerreL(1);
+      check(l1.degree).equals(1);
+      check(l1[0]).equals(1.0);
+      check(l1[1]).equals(-1.0);
+      check(laguerreEvaluate(1, 2.5)).equals(-1.5);
+
+      // L_2(x) = 1 - 2x + 0.5 x^2
+      final l2 = Polynomial.laguerreL(2);
+      check(l2.degree).equals(2);
+      check(l2[0]).isCloseTo(1.0, 1e-9);
+      check(l2[1]).isCloseTo(-2.0, 1e-9);
+      check(l2[2]).isCloseTo(0.5, 1e-9);
+
+      // Evaluation consistency
+      for (final x in [0.0, 1.0, 2.5, 4.0]) {
+        check(laguerreEvaluate(2, x)).isCloseTo(l2.evaluate(x), 1e-9);
+      }
+
+      // Generalized L_2^(alpha=1.0)(x)
+      // L_0^(1) = 1, L_1^(1) = 2 - x, L_2^(1) = 0.5 * (x^2 - 6x + 6) = 3 - 3x + 0.5 x^2
+      final l2Alpha = Polynomial.laguerreL(2, alpha: 1.0);
+      check(l2Alpha[0]).isCloseTo(3.0, 1e-9);
+      check(l2Alpha[1]).isCloseTo(-3.0, 1e-9);
+      check(l2Alpha[2]).isCloseTo(0.5, 1e-9);
+      check(laguerreEvaluate(2, 3.0, alpha: 1.0))
+          .isCloseTo(l2Alpha.evaluate(3.0), 1e-9);
+
+      check(() => Polynomial.laguerreL(-1)).throws<ArgumentError>();
+      check(() => laguerreEvaluate(-1, 0.0)).throws<ArgumentError>();
+    });
   });
 }

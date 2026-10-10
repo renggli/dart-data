@@ -3,3 +3,4 @@ library;
 
 export 'src/polynomial/orthogonal.dart';
 export 'src/polynomial/polynomial.dart';
+export 'src/polynomial/rational.dart';
