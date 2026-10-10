@@ -2,7 +2,10 @@ import 'dart:math' as math;
 import 'dart:typed_data';
 
 import 'cblas.dart';
+import 'pure_dart_gemm.dart';
 import 'simd.dart';
+
+export 'pure_dart_gemm.dart';
 
 /// Central hardware acceleration manager providing transparent routing between
 /// native BLAS/LAPACK (via FFI), Dart SIMD, and pure Dart scalar algorithms.
@@ -39,7 +42,7 @@ class HardwareManager {
     int cOffset = 0,
     required int ldc,
   }) {
-    if (isAccelerated) {
+    if (isAccelerated && (m >= 64 || n >= 64 || k >= 64)) {
       final success = _blas.dgemm(
         transA: transA,
         transB: transB,
@@ -61,24 +64,24 @@ class HardwareManager {
       if (success) return true;
     }
 
-    // Pure Dart fallback
-    for (var i = 0; i < m; i++) {
-      for (var j = 0; j < n; j++) {
-        var sum = 0.0;
-        for (var pIdx = 0; pIdx < k; pIdx++) {
-          final aVal = transA == cblasTrans
-              ? a[aOffset + pIdx * lda + i]
-              : a[aOffset + i * lda + pIdx];
-          final bVal = transB == cblasTrans
-              ? b[bOffset + j * ldb + pIdx]
-              : b[bOffset + pIdx * ldb + j];
-          sum += aVal * bVal;
-        }
-        final cIdx = cOffset + i * ldc + j;
-        c[cIdx] = alpha * sum + (beta == 0.0 ? 0.0 : beta * c[cIdx]);
-      }
-    }
-    return true;
+    return cacheBlockedGemmFloat64(
+      transA: transA,
+      transB: transB,
+      m: m,
+      n: n,
+      k: k,
+      alpha: alpha,
+      a: a,
+      aOffset: aOffset,
+      lda: lda,
+      b: b,
+      bOffset: bOffset,
+      ldb: ldb,
+      beta: beta,
+      c: c,
+      cOffset: cOffset,
+      ldc: ldc,
+    );
   }
 
   /// Computes matrix multiplication C = alpha * op(A) * op(B) + beta * C for Float32List.
@@ -100,7 +103,7 @@ class HardwareManager {
     int cOffset = 0,
     required int ldc,
   }) {
-    if (isAccelerated) {
+    if (isAccelerated && (m >= 64 || n >= 64 || k >= 64)) {
       final success = _blas.sgemm(
         transA: transA,
         transB: transB,
@@ -122,24 +125,24 @@ class HardwareManager {
       if (success) return true;
     }
 
-    // Pure Dart fallback
-    for (var i = 0; i < m; i++) {
-      for (var j = 0; j < n; j++) {
-        var sum = 0.0;
-        for (var pIdx = 0; pIdx < k; pIdx++) {
-          final aVal = transA == cblasTrans
-              ? a[aOffset + pIdx * lda + i]
-              : a[aOffset + i * lda + pIdx];
-          final bVal = transB == cblasTrans
-              ? b[bOffset + j * ldb + pIdx]
-              : b[bOffset + pIdx * ldb + j];
-          sum += aVal * bVal;
-        }
-        final cIdx = cOffset + i * ldc + j;
-        c[cIdx] = alpha * sum + (beta == 0.0 ? 0.0 : beta * c[cIdx]);
-      }
-    }
-    return true;
+    return cacheBlockedGemmFloat32(
+      transA: transA,
+      transB: transB,
+      m: m,
+      n: n,
+      k: k,
+      alpha: alpha,
+      a: a,
+      aOffset: aOffset,
+      lda: lda,
+      b: b,
+      bOffset: bOffset,
+      ldb: ldb,
+      beta: beta,
+      c: c,
+      cOffset: cOffset,
+      ldc: ldc,
+    );
   }
 
   /// Computes matrix-vector product y = alpha * op(A) * x + beta * y for Float64List.

@@ -330,6 +330,14 @@ This document describes the achieved architecture across all subsystems of `pack
   - `SimdEngine` (`lib/src/hardware/simd.dart`) leverages Dart's native `Float32x4List` and `Float32x4` types.
   - Evaluates 4-lane parallel floating-point arithmetic for element-wise vector/matrix addition, subtraction, multiplication, and dot products.
 
+### 5.6 Pure-Dart Cache-Blocked GEMM (`lib/src/hardware/pure_dart_gemm.dart`)
+
+- **Reasoning**: For small matrices ($N < 64$), FFI leaf-call overhead exceeds kernel execution time. On non-FFI environments (Flutter Web, Wasm) or when native BLAS is disabled, naive 3-loop GEMM causes severe CPU cache thrashing due to non-sequential memory strides.
+- **Implementation & Constraints**:
+  - `cacheBlockedGemmFloat64` and `cacheBlockedGemmFloat32` implement cache-tiled matrix multiplication with $32 \times 32$ block tiles ($32 \times 32 \times 8\text{ bytes} = 8\text{ KB}$, fitting within L1 data caches) and $4\times$ loop unrolling.
+  - Transparent dispatch: `HardwareManager.dgemm` and `sgemm` automatically route small matrices ($m < 64 \land n < 64 \land k < 64$) or non-FFI executions directly to the cache-blocked algorithms, bypassing FFI overhead while sustaining optimal memory hierarchy locality and sequential register streaming.
+  - Supports all transposition combinations: `cblasNoTrans`, `cblasTrans`, with arbitrary $\alpha$ and $\beta$ accumulation scaling.
+
 ---
 
 ## 6. Numerical Analysis, ODEs & Optimization (`package:data/numeric.dart`)

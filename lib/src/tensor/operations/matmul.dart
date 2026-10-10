@@ -164,13 +164,11 @@ extension MatmulTensorExtension<T> on Tensor<T> {
     // Cache-friendly i -> kIdx -> j loop for row-major layouts (pure Dart fallback)
     for (var i = 0; i < rowsA; i++) {
       for (var kIdx = 0; kIdx < innerDim; kIdx++) {
-        final aVal = tensorA.getValue([i, kIdx]);
+        final aVal = tensorA.get2D(i, kIdx);
         for (var j = 0; j < colsB; j++) {
-          final prod = field.mul(aVal, tensorB.getValue([kIdx, j]));
-          final cur = kIdx == 0
-              ? field.additiveIdentity
-              : tensorC.getValue([i, j]);
-          tensorC.setValue([i, j], field.add(cur, prod));
+          final prod = field.mul(aVal, tensorB.get2D(kIdx, j));
+          final cur = kIdx == 0 ? field.additiveIdentity : tensorC.get2D(i, j);
+          tensorC.set2D(i, j, field.add(cur, prod));
         }
       }
     }
