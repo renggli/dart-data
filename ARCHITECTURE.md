@@ -204,6 +204,7 @@ This document describes the achieved architecture across all subsystems of `pack
 - **Reasoning**: Storing boxed `null` values inside primitive numeric arrays degrades memory density and prevents unboxed typed storage.
 - **Implementation & Constraints**:
   - `ValidityMask` (`lib/src/dataframe/bitmask.dart`) uses 1 bit per row entry packed into `Uint8List` byte buffers, matching the Apache Arrow specification (bit = 1 indicates valid, bit = 0 indicates null).
+  - Null counts are queried in $\mathcal{O}(1)$ time via an internal `_nullCount` counter updated incrementally on bit state transitions (`setNull`, `setValid`). Bulk byte constructors compute null counts using 32-bit parallel Hamming weight via `int.bitCount` (`package:more/math.dart`) across word chunks with unused tail bits masked out.
   - Unboxed numeric series maintain contiguous `TypedData` lists (`Float64List`, `Int32List`) alongside a `ValidityMask`, ensuring data arrays remain primitive and unboxed.
 
 ### 4.3 Columnar Series Hierarchy & Zero-Allocation Operations
