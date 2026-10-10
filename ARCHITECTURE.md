@@ -429,6 +429,8 @@ This document describes the achieved architecture across all subsystems of `pack
 - **Reasoning**: Comprehensive summary profiles of empirical distributions.
 - **Implementation & Constraints**:
   - Measures of location and dispersion: `quantile`, `median`, `iqr`, sample `skewness`, and excess `kurtosis`.
+  - Weighted statistics: `weightedMean` and `weightedVariance` supporting observation weights and Bessel reliability weight correction ($s_w^2 = \frac{\sum w_i}{(\sum w_i)^2 - \sum w_i^2} \sum w_i (x_i - \bar{x}_w)^2$).
+  - Moving window aggregations: Simple moving average (`movingAverage`) over rolling windows in $\mathcal{O}(N)$ time with $\mathcal{O}(1)$ updates per step, and exponential moving average (`exponentialMovingAverage`) with smoothing parameter $\alpha \in (0, 1]$.
   - Association matrices: `covarianceMatrix`, `correlationMatrix` (Pearson linear correlation and Spearman rank-order correlation).
   - Principal Component Analysis (`pca`): Computes centered covariance matrices, orthogonal eigenvectors, eigenvalues, and explained variance ratios for dimensionality reduction.
 

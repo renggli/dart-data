@@ -97,6 +97,33 @@ Matrix<double> pearsonCorrelationMatrix(dynamic data, {bool rowVar = false}) =>
 Matrix<double> spearmanCorrelationMatrix(dynamic data, {bool rowVar = false}) =>
     _spearmanCorrelationMatrix(data, rowVar: rowVar);
 
+/// Returns the weighted mean of [values] weighted by [weights].
+double weightedMean(Iterable<num> values, Iterable<num> weights) =>
+    _weightedMean(values, weights);
+
+/// Returns the weighted variance of [values] weighted by [weights].
+///
+/// If [unbiased] is true (default), applies the Bessel reliability weights correction:
+/// $s_w^2 = \frac{\sum w_i}{\left(\sum w_i\right)^2 - \sum w_i^2} \sum w_i (x_i - \bar{x}_w)^2$.
+double weightedVariance(
+  Iterable<num> values,
+  Iterable<num> weights, {
+  bool unbiased = true,
+}) => _weightedVariance(values, weights, unbiased: unbiased);
+
+/// Computes the simple moving average (SMA) of [values] over a rolling window of [windowSize].
+///
+/// Returns a list of length `values.length - windowSize + 1` computed in $\mathcal{O}(N)$
+/// time using $\mathcal{O}(1)$ updates per step.
+List<double> movingAverage(Iterable<num> values, int windowSize) =>
+    _movingAverage(values, windowSize);
+
+/// Computes the exponential moving average (EMA) of [values] with smoothing factor [alpha] $\in (0, 1]$.
+///
+/// Returns a list of length `values.length` computed in $\mathcal{O}(N)$ time with $\mathcal{O}(1)$ updates per step.
+List<double> exponentialMovingAverage(Iterable<num> values, double alpha) =>
+    _exponentialMovingAverage(values, alpha);
+
 /// Result of Principal Component Analysis (PCA).
 class PcaResult {
   const new({
@@ -365,6 +392,21 @@ extension DescriptiveIterableNumExtension on Iterable<num> {
   /// Returns the kurtosis of values.
   double kurtosis({bool excess = true, bool bias = false}) =>
       _kurtosis(this, excess: excess, bias: bias);
+
+  /// Returns the weighted mean of values using [weights].
+  double weightedMean(Iterable<num> weights) => _weightedMean(this, weights);
+
+  /// Returns the weighted variance of values using [weights].
+  double weightedVariance(Iterable<num> weights, {bool unbiased = true}) =>
+      _weightedVariance(this, weights, unbiased: unbiased);
+
+  /// Computes the simple moving average (SMA) over a rolling window of [windowSize].
+  List<double> movingAverage(int windowSize) =>
+      _movingAverage(this, windowSize);
+
+  /// Computes the exponential moving average (EMA) with smoothing factor [alpha].
+  List<double> exponentialMovingAverage(double alpha) =>
+      _exponentialMovingAverage(this, alpha);
 }
 
 /// Statistics extensions on [Iterable<int>].
@@ -419,6 +461,27 @@ extension DescriptiveVectorNumExtension on Vector<num> {
   /// Returns the kurtosis of vector elements.
   double kurtosis({bool excess = true, bool bias = false}) =>
       _kurtosis(toList(), excess: excess, bias: bias);
+
+  /// Returns the weighted mean of vector elements using [weights].
+  double weightedMean(Vector<num> weights) =>
+      _weightedMean(toList(), weights.toList());
+
+  /// Returns the weighted variance of vector elements using [weights].
+  double weightedVariance(Vector<num> weights, {bool unbiased = true}) =>
+      _weightedVariance(toList(), weights.toList(), unbiased: unbiased);
+
+  /// Computes the simple moving average (SMA) over a rolling window of [windowSize].
+  Vector<double> movingAverage(int windowSize) => Vector<double>.fromList(
+    _movingAverage(toList(), windowSize),
+    type: DataType.float64,
+  );
+
+  /// Computes the exponential moving average (EMA) with smoothing factor [alpha].
+  Vector<double> exponentialMovingAverage(double alpha) =>
+      Vector<double>.fromList(
+        _exponentialMovingAverage(toList(), alpha),
+        type: DataType.float64,
+      );
 
   /// Computes the sample or population covariance with [other].
   double covariance(Vector<num> other, {bool population = false}) =>
@@ -774,4 +837,116 @@ Matrix<double> _spearmanCorrelationMatrix(dynamic data, {bool rowVar = false}) {
   }
 
   return _pearsonCorrelationMatrix(ranked, rowVar: false);
+}
+
+double _weightedMean(Iterable<num> values, Iterable<num> weights) {
+  final valIter = values.iterator;
+  final weightIter = weights.iterator;
+  var sumWeighted = 0.0;
+  var sumWeights = 0.0;
+
+  while (valIter.moveNext()) {
+    if (!weightIter.moveNext()) {
+      throw ArgumentError('values and weights must have identical length.');
+    }
+    final w = weightIter.current.toDouble();
+    if (w < 0.0) {
+      throw ArgumentError('Weights must be non-negative: $w');
+    }
+    final x = valIter.current.toDouble();
+    sumWeighted += w * x;
+    sumWeights += w;
+  }
+  if (weightIter.moveNext()) {
+    throw ArgumentError('values and weights must have identical length.');
+  }
+  return sumWeights > 0.0 ? sumWeighted / sumWeights : double.nan;
+}
+
+double _weightedVariance(
+  Iterable<num> values,
+  Iterable<num> weights, {
+  bool unbiased = true,
+}) {
+  final valList = [for (final v in values) v.toDouble()];
+  final weightList = [for (final w in weights) w.toDouble()];
+  if (valList.length != weightList.length) {
+    throw ArgumentError('values and weights must have identical length.');
+  }
+  final n = valList.length;
+  if (n == 0) return double.nan;
+
+  var v1 = 0.0;
+  var v2 = 0.0;
+  var sumWeighted = 0.0;
+  for (var i = 0; i < n; i++) {
+    final w = weightList[i];
+    if (w < 0.0) {
+      throw ArgumentError('Weights must be non-negative: $w');
+    }
+    v1 += w;
+    v2 += w * w;
+    sumWeighted += w * valList[i];
+  }
+
+  if (v1 <= 0.0) return double.nan;
+  final meanW = sumWeighted / v1;
+
+  var ssW = 0.0;
+  for (var i = 0; i < n; i++) {
+    final diff = valList[i] - meanW;
+    ssW += weightList[i] * diff * diff;
+  }
+
+  if (!unbiased) {
+    return ssW / v1;
+  }
+  final denom = v1 - (v2 / v1);
+  return denom > 0.0 ? ssW / denom : double.nan;
+}
+
+List<double> _movingAverage(Iterable<num> values, int windowSize) {
+  if (windowSize <= 0) {
+    throw ArgumentError('windowSize must be positive: $windowSize');
+  }
+  final list = [for (final v in values) v.toDouble()];
+  final n = list.length;
+  if (windowSize > n) {
+    throw ArgumentError(
+      'windowSize ($windowSize) cannot exceed values length ($n)',
+    );
+  }
+
+  final result = List<double>.filled(n - windowSize + 1, 0.0);
+  var sum = 0.0;
+  for (var i = 0; i < windowSize; i++) {
+    sum += list[i];
+  }
+  result[0] = sum / windowSize;
+
+  for (var i = windowSize; i < n; i++) {
+    sum += list[i] - list[i - windowSize];
+    result[i - windowSize + 1] = sum / windowSize;
+  }
+  return result;
+}
+
+List<double> _exponentialMovingAverage(Iterable<num> values, double alpha) {
+  if (alpha <= 0.0 || alpha > 1.0) {
+    throw ArgumentError('Smoothing factor alpha must be in (0, 1]: $alpha');
+  }
+  final list = [for (final v in values) v.toDouble()];
+  final n = list.length;
+  if (n == 0) return <double>[];
+
+  final result = List<double>.filled(n, 0.0);
+  var s = list[0];
+  result[0] = s;
+
+  final oneMinusAlpha = 1.0 - alpha;
+  for (var i = 1; i < n; i++) {
+    s = alpha * list[i] + oneMinusAlpha * s;
+    result[i] = s;
+  }
+  return result;
 }

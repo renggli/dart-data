@@ -301,5 +301,98 @@ void main() {
         ).throws<ArgumentError>();
       },
     );
+
+    test('weighted mean and weighted variance', () {
+      final values = [10.0, 20.0, 30.0];
+      final weights = [1.0, 2.0, 1.0];
+
+      // Weighted mean: (10*1 + 20*2 + 30*1) / 4 = 20.0
+      check(weightedMean(values, weights)).isCloseTo(20.0, 1e-10);
+      check(values.weightedMean(weights)).isCloseTo(20.0, 1e-10);
+
+      final vValues = Vector<double>.fromList(values, type: DataType.float64);
+      final vWeights = Vector<double>.fromList(weights, type: DataType.float64);
+      check(vValues.weightedMean(vWeights)).isCloseTo(20.0, 1e-10);
+
+      // Weighted variance (sample / unbiased with reliability weights):
+      // V1 = 4, V2 = 1 + 4 + 1 = 6. V1 - V2/V1 = 4 - 1.5 = 2.5.
+      // Diffs: (10-20)^2 = 100, (20-20)^2 = 0, (30-20)^2 = 100.
+      // Weighted SS: 1*100 + 2*0 + 1*100 = 200.
+      // Unbiased variance: 200 / 2.5 = 80.0
+      // Biased variance: 200 / 4 = 50.0
+      check(weightedVariance(values, weights)).isCloseTo(80.0, 1e-10);
+      check(values.weightedVariance(weights)).isCloseTo(80.0, 1e-10);
+      check(vValues.weightedVariance(vWeights)).isCloseTo(80.0, 1e-10);
+
+      check(weightedVariance(values, weights, unbiased: false))
+          .isCloseTo(50.0, 1e-10);
+
+      // Equal weights matches standard unweighted variance
+      final equalWeights = [1.0, 1.0, 1.0];
+      check(weightedVariance(values, equalWeights))
+          .isCloseTo(variance(values), 1e-10);
+
+      // Error validation
+      check(() => weightedMean([1.0], [1.0, 2.0])).throws<ArgumentError>();
+      check(() => weightedMean([1.0, 2.0], [1.0])).throws<ArgumentError>();
+      check(() => weightedMean([1.0], [-1.0])).throws<ArgumentError>();
+      check(() => weightedVariance([1.0], [1.0, 2.0])).throws<ArgumentError>();
+      check(() => weightedVariance([1.0], [-0.5])).throws<ArgumentError>();
+      check(weightedMean([], []).isNaN).isTrue();
+      check(weightedVariance([], []).isNaN).isTrue();
+    });
+
+    test('simple moving average (SMA)', () {
+      final data = [1.0, 2.0, 3.0, 4.0, 5.0];
+      final sma3 = movingAverage(data, 3);
+      check(sma3.length).equals(3);
+      check(sma3[0]).isCloseTo(2.0, 1e-10); // (1+2+3)/3
+      check(sma3[1]).isCloseTo(3.0, 1e-10); // (2+3+4)/3
+      check(sma3[2]).isCloseTo(4.0, 1e-10); // (3+4+5)/3
+
+      // Extensions
+      check(data.movingAverage(3)).deepEquals(sma3);
+      final vec = Vector<double>.fromList(data, type: DataType.float64);
+      final vecSma = vec.movingAverage(3);
+      check(vecSma.toList()).deepEquals(sma3);
+
+      // Window size == 1
+      check(movingAverage(data, 1)).deepEquals(data);
+
+      // Window size == length
+      final fullWindow = movingAverage(data, 5);
+      check(fullWindow.length).equals(1);
+      check(fullWindow[0]).isCloseTo(3.0, 1e-10);
+
+      // Errors
+      check(() => movingAverage(data, 0)).throws<ArgumentError>();
+      check(() => movingAverage(data, -2)).throws<ArgumentError>();
+      check(() => movingAverage(data, 6)).throws<ArgumentError>();
+    });
+
+    test('exponential moving average (EMA)', () {
+      final data = [10.0, 20.0, 30.0];
+      final ema = exponentialMovingAverage(data, 0.5);
+      check(ema.length).equals(3);
+      check(ema[0]).isCloseTo(10.0, 1e-10);
+      check(ema[1]).isCloseTo(15.0, 1e-10); // 0.5*20 + 0.5*10
+      check(ema[2]).isCloseTo(22.5, 1e-10); // 0.5*30 + 0.5*15
+
+      // Extensions
+      check(data.exponentialMovingAverage(0.5)).deepEquals(ema);
+      final vec = Vector<double>.fromList(data, type: DataType.float64);
+      check(vec.exponentialMovingAverage(0.5).toList()).deepEquals(ema);
+
+      // Alpha == 1.0 is identity
+      check(exponentialMovingAverage(data, 1.0)).deepEquals(data);
+
+      // Empty collection
+      check(exponentialMovingAverage([], 0.5)).isEmpty();
+
+      // Errors
+      check(() => exponentialMovingAverage(data, 0.0)).throws<ArgumentError>();
+      check(() => exponentialMovingAverage(data, -0.5)).throws<ArgumentError>();
+      check(() => exponentialMovingAverage(data, 1.5)).throws<ArgumentError>();
+    });
   });
 }
