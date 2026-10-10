@@ -19,6 +19,9 @@ void main() {
       check(field.norm(-4.5)).equals(4.5);
       check(field.sqrt(9.0)).equals(3.0);
       check(field.conjugate(4.5)).equals(4.5);
+      check(field.nan.isNaN).isTrue();
+      check(field.infinity).equals(double.infinity);
+      check(field.negativeInfinity).equals(double.negativeInfinity);
     });
 
     test('Integer field operations', () {
@@ -38,6 +41,45 @@ void main() {
       check(field.abs(-10)).equals(10);
       check(field.norm(-10)).equals(10.0);
       check(field.conjugate(10)).equals(10);
+      check(() => field.nan).throws<UnsupportedError>();
+      check(() => field.infinity).throws<UnsupportedError>();
+      check(() => field.negativeInfinity).throws<UnsupportedError>();
+    });
+
+    test('Numeric and Quaternion field operations', () {
+      final numField = DataType.numeric.field;
+      check(numField).isA<ExtendedField<num>>();
+      check(numField.nan.isNaN).isTrue();
+      check(numField.infinity).equals(double.infinity);
+      check(numField.negativeInfinity).equals(double.negativeInfinity);
+      check(numField.abs(-5)).equals(5);
+      check(numField.norm(-5)).equals(5.0);
+      check(numField.sqrt(16)).equals(4.0);
+      check(numField.exp(0)).equals(1.0);
+      check(numField.log(1)).equals(0.0);
+      check(numField.conjugate(3)).equals(3);
+
+      final quatField = DataType.quaternion.field;
+      check(() => quatField.nan).throws<UnsupportedError>();
+      check(() => quatField.infinity).throws<UnsupportedError>();
+      check(() => quatField.negativeInfinity).throws<UnsupportedError>();
+      check(() => quatField.sqrt(Quaternion.zero)).throws<UnsupportedError>();
+      check(() => quatField.exp(Quaternion.zero)).throws<UnsupportedError>();
+      check(() => quatField.log(Quaternion.zero)).throws<UnsupportedError>();
+    });
+
+    test('Complex, Fraction, and BigInt field limits', () {
+      final complexField = DataType.complex.field;
+      check(complexField.nan.isNaN).isTrue();
+      check(complexField.infinity.a).equals(double.infinity);
+
+      final fracField = DataType.fraction.field;
+      check(fracField.nan.isNaN).isTrue();
+
+      final bigIntField = DataType.bigInt.field;
+      check(() => bigIntField.nan).throws<UnsupportedError>();
+      check(() => bigIntField.infinity).throws<UnsupportedError>();
+      check(() => bigIntField.negativeInfinity).throws<UnsupportedError>();
     });
   });
 }

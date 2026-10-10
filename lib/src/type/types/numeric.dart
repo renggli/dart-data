@@ -6,7 +6,7 @@ import '../data_type.dart';
 import '../models/equality.dart';
 import '../models/field.dart';
 
-class NumericDataType extends DataType<num> {
+final class NumericDataType extends DataType<num> {
   const new();
 
   @override
@@ -42,7 +42,7 @@ class NumericDataType extends DataType<num> {
   }
 }
 
-class NumericField extends Field<num> {
+final class NumericField implements ExtendedField<num> {
   const new();
 
   @override
@@ -93,9 +93,36 @@ class NumericField extends Field<num> {
 
   @override
   num gcd(num a, num b) => unsupportedOperation('gcd');
+
+  @override
+  num abs(num a) => a.abs();
+
+  @override
+  double norm(num a) => a.abs().toDouble();
+
+  @override
+  num sqrt(num a) => math.sqrt(a);
+
+  @override
+  num exp(num a) => math.exp(a);
+
+  @override
+  num log(num a) => math.log(a);
+
+  @override
+  num conjugate(num a) => a;
+
+  @override
+  num get nan => double.nan;
+
+  @override
+  num get infinity => double.infinity;
+
+  @override
+  num get negativeInfinity => double.negativeInfinity;
 }
 
-class NumericEquality extends NaturalEquality<num> {
+final class NumericEquality extends NaturalEquality<num> {
   const new();
 
   @override

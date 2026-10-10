@@ -1,6 +1,6 @@
 import '../data_type.dart';
 
-class DynamicDataType extends DataType<dynamic> {
+final class DynamicDataType extends DataType<dynamic> {
   const new();
 
   @override

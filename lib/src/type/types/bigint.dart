@@ -6,7 +6,7 @@ import '../data_type.dart';
 import '../models/equality.dart';
 import '../models/field.dart';
 
-class BigIntDataType extends DataType<BigInt> {
+final class BigIntDataType extends DataType<BigInt> {
   const new();
 
   @override
@@ -37,7 +37,7 @@ class BigIntDataType extends DataType<BigInt> {
   Field<BigInt> get field => const BigIntField();
 }
 
-class BigIntEquality extends NaturalEquality<BigInt> {
+final class BigIntEquality extends NaturalEquality<BigInt> {
   const new();
 
   @override
@@ -45,7 +45,7 @@ class BigIntEquality extends NaturalEquality<BigInt> {
       (a - b).abs() < BigInt.from(epsilon.ceil());
 }
 
-class BigIntField extends ExtendedField<BigInt> {
+final class BigIntField implements ExtendedField<BigInt> {
   const new();
 
   @override
@@ -131,4 +131,13 @@ class BigIntField extends ExtendedField<BigInt> {
 
   @override
   BigInt conjugate(BigInt a) => a;
+
+  @override
+  BigInt get nan => unsupportedOperation('nan');
+
+  @override
+  BigInt get infinity => unsupportedOperation('infinity');
+
+  @override
+  BigInt get negativeInfinity => unsupportedOperation('negativeInfinity');
 }

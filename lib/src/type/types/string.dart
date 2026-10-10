@@ -4,7 +4,7 @@ import '../data_type.dart';
 import '../default_data_type.dart';
 import '../models/equality.dart';
 
-class StringDataType extends DataType<String> {
+final class StringDataType extends DataType<String> {
   const new();
 
   @override
@@ -23,7 +23,7 @@ class StringDataType extends DataType<String> {
   String cast(dynamic value) => value.toString();
 }
 
-class StringEquality extends NaturalEquality<String> {
+final class StringEquality extends NaturalEquality<String> {
   const new();
 
   @override

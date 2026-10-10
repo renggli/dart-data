@@ -42,6 +42,11 @@ This document describes the achieved architecture across all subsystems of `pack
     - Extended operations: `abs`, `norm`, `sqrt`, `exp`, `log`, `conjugate`.
   - Implemented across 18 specialized data types: floating-point (`Float32DataType`, `Float64DataType`), integers (`Int8DataType` through `Int64DataType`, unsigned variants), `BigIntDataType`, `ComplexDataType`, `FractionDataType`, `StringDataType`, `BooleanDataType`, and `ObjectDataType`.
   - Exact fractional scaling: `IntegerField.scale` uses `(a * f).round()`, and `BigIntField.scale` uses exact `Fraction.fromDouble` multiplication before truncation, eliminating rounding drift.
+  - **Dart 3 Class Modifiers & Subsystem Encapsulation**:
+    - `DataType<T>` is an `abstract base class`, with category hierarchies `abstract base class TypedDataType<T, L>`, `IntegerDataType<L>`, and `FloatDataType<L>`. Subclasses must adhere to inheritance rules (`base` or `final`), preventing uncoordinated interface mocking across libraries while avoiding `sealed` file-confinement limits.
+    - All built-in concrete data types (`Float64DataType`, `Int32DataType`, `BigIntDataType`, `ComplexDataType`, `FractionDataType`, `NumericDataType`, `BooleanDataType`, `StringDataType`, `ObjectDataType`, `NullableDataType`, etc.) are `final class`.
+    - `Field<T>` and `ExtendedField<T>` are declared `abstract interface class`, enforcing pure algebraic contracts that require explicit `implements` for all field implementations across library files. Concrete field classes (`FloatField`, `IntegerField`, `BigIntField`, `ComplexField`, `FractionField`, `NumericField`) implement `ExtendedField<T>` as `final class`, while `QuaternionField` implements `Field<Quaternion>` as `final class`.
+    - `Equality<T>` is `abstract interface class Equality<T>`, with canonical `base class NaturalEquality<T> implements Equality<T>`, and all specialized equality classes declared `final class`.
 
 ---
 

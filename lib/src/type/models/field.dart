@@ -2,14 +2,14 @@ import 'package:meta/meta.dart';
 
 /// Encapsulates a mathematical field.
 @immutable
-abstract class Field<T> {
+abstract interface class Field<T> {
   const new();
 
   /// The additive neutral element.
   T get additiveIdentity;
 
   /// Computes the additive inverse: `-a`.
-  T neg(T a) => sub(additiveIdentity, a);
+  T neg(T a);
 
   /// Computes the addition: `a + b`.
   T add(T a, T b);
@@ -21,7 +21,7 @@ abstract class Field<T> {
   T get multiplicativeIdentity;
 
   /// Computes the multiplicative inverse: `1 / a`.
-  T inv(T a) => div(multiplicativeIdentity, a);
+  T inv(T a);
 
   /// Computes the multiplication: `a * b`.
   T mul(T a, T b);
@@ -54,40 +54,35 @@ abstract class Field<T> {
   T gcd(T a, T b);
 
   /// Computes the absolute value: `|a|`.
-  T abs(T a) => unsupportedOperation('abs');
+  T abs(T a);
 
   /// Computes the Euclidean norm: `||a||`.
-  double norm(T a) => throw UnsupportedError('norm is not supported.');
+  double norm(T a);
 
   /// Computes the square root: `sqrt(a)`.
-  T sqrt(T a) => unsupportedOperation('sqrt');
+  T sqrt(T a);
 
   /// Computes the exponential function: `exp(a)`.
-  T exp(T a) => unsupportedOperation('exp');
+  T exp(T a);
 
   /// Computes the natural logarithm: `ln(a)`.
-  T log(T a) => unsupportedOperation('log');
+  T log(T a);
 
   /// Computes the complex conjugate: `a*` (identity for real types).
-  T conjugate(T a) => a;
+  T conjugate(T a);
 
   /// Not a number.
-  T get nan => div(additiveIdentity, additiveIdentity);
+  T get nan;
 
   /// Positive infinity.
-  T get infinity => div(multiplicativeIdentity, additiveIdentity);
+  T get infinity;
 
   /// Negative infinity.
-  T get negativeInfinity => neg(infinity);
-
-  /// Thrown when an operation is not supported.
-  @protected
-  T unsupportedOperation(String operation) =>
-      throw UnsupportedError('$operation is not supported.');
+  T get negativeInfinity;
 }
 
 /// An algebraic field extended with norm, square root, power, and transcendental functions.
-abstract class ExtendedField<T> extends Field<T> {
+abstract interface class ExtendedField<T> implements Field<T> {
   const new();
 
   @override
@@ -108,3 +103,7 @@ abstract class ExtendedField<T> extends Field<T> {
   @override
   T conjugate(T a);
 }
+
+/// Thrown when an operation is not supported.
+Never unsupportedOperation(String operation) =>
+    throw UnsupportedError('$operation is not supported.');

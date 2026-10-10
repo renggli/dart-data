@@ -5,7 +5,7 @@ import 'package:more/functional.dart';
 
 import '../data_type.dart';
 
-class BooleanDataType extends DataType<bool> {
+final class BooleanDataType extends DataType<bool> {
   const new();
 
   @override

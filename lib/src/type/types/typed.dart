@@ -7,7 +7,7 @@ import '../buffers/native_buffer.dart';
 import '../data_type.dart';
 import '../default_data_type.dart';
 
-abstract class TypedDataType<T, L extends List<T>> extends DataType<T> {
+abstract base class TypedDataType<T, L extends List<T>> extends DataType<T> {
   const new();
 
   /// Returns the size of one value in bits.

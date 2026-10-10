@@ -4,7 +4,7 @@ import '../data_type.dart';
 import '../models/equality.dart';
 import '../models/field.dart';
 
-class ComplexDataType extends DataType<Complex> {
+final class ComplexDataType extends DataType<Complex> {
   const new();
 
   @override
@@ -36,14 +36,14 @@ class ComplexDataType extends DataType<Complex> {
   Field<Complex> get field => const ComplexField();
 }
 
-class ComplexEquality extends NaturalEquality<Complex> {
+final class ComplexEquality extends NaturalEquality<Complex> {
   const new();
 
   @override
   bool isClose(Complex a, Complex b, double epsilon) => a.closeTo(b, epsilon);
 }
 
-class ComplexField extends ExtendedField<Complex> {
+final class ComplexField implements ExtendedField<Complex> {
   const new();
 
   @override
@@ -113,4 +113,13 @@ class ComplexField extends ExtendedField<Complex> {
 
   @override
   Complex conjugate(Complex a) => a.conjugate();
+
+  @override
+  Complex get nan => Complex.nan;
+
+  @override
+  Complex get infinity => Complex.infinity;
+
+  @override
+  Complex get negativeInfinity => -Complex.infinity;
 }

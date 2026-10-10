@@ -9,7 +9,7 @@ import '../models/equality.dart';
 import '../models/field.dart';
 import 'typed.dart';
 
-abstract class IntegerDataType<L extends List<int>>
+abstract base class IntegerDataType<L extends List<int>>
     extends TypedDataType<int, L> {
   const new();
 
@@ -77,7 +77,7 @@ abstract class IntegerDataType<L extends List<int>>
   Printer<int> get printer => FixedNumberPrinter<int>();
 }
 
-class Int8DataType extends IntegerDataType<Int8List> {
+final class Int8DataType extends IntegerDataType<Int8List> {
   const new();
 
   @override
@@ -99,7 +99,7 @@ class Int8DataType extends IntegerDataType<Int8List> {
   Int8List readonlyList(Int8List list) => list.asUnmodifiableView();
 }
 
-class Uint8DataType extends IntegerDataType<Uint8List> {
+final class Uint8DataType extends IntegerDataType<Uint8List> {
   const new();
 
   @override
@@ -121,7 +121,7 @@ class Uint8DataType extends IntegerDataType<Uint8List> {
   Uint8List readonlyList(Uint8List list) => list.asUnmodifiableView();
 }
 
-class Int16DataType extends IntegerDataType<Int16List> {
+final class Int16DataType extends IntegerDataType<Int16List> {
   const new();
 
   @override
@@ -143,7 +143,7 @@ class Int16DataType extends IntegerDataType<Int16List> {
   Int16List readonlyList(Int16List list) => list.asUnmodifiableView();
 }
 
-class Uint16DataType extends IntegerDataType<Uint16List> {
+final class Uint16DataType extends IntegerDataType<Uint16List> {
   const new();
 
   @override
@@ -165,7 +165,7 @@ class Uint16DataType extends IntegerDataType<Uint16List> {
   Uint16List readonlyList(Uint16List list) => list.asUnmodifiableView();
 }
 
-class Int32DataType extends IntegerDataType<Int32List> {
+final class Int32DataType extends IntegerDataType<Int32List> {
   const new();
 
   @override
@@ -187,7 +187,7 @@ class Int32DataType extends IntegerDataType<Int32List> {
   Int32List readonlyList(Int32List list) => list.asUnmodifiableView();
 }
 
-class Uint32DataType extends IntegerDataType<Uint32List> {
+final class Uint32DataType extends IntegerDataType<Uint32List> {
   const new();
 
   @override
@@ -209,7 +209,7 @@ class Uint32DataType extends IntegerDataType<Uint32List> {
   Uint32List readonlyList(Uint32List list) => list.asUnmodifiableView();
 }
 
-class Int64DataType extends IntegerDataType<List<int>> {
+final class Int64DataType extends IntegerDataType<List<int>> {
   const new();
 
   @override
@@ -252,7 +252,7 @@ class Int64DataType extends IntegerDataType<List<int>> {
   }
 }
 
-class Uint64DataType extends IntegerDataType<List<int>> {
+final class Uint64DataType extends IntegerDataType<List<int>> {
   const new();
 
   @override
@@ -294,7 +294,7 @@ class Uint64DataType extends IntegerDataType<List<int>> {
   }
 }
 
-class IntegerField extends ExtendedField<int> {
+final class IntegerField implements ExtendedField<int> {
   const new();
 
   @override
@@ -363,9 +363,18 @@ class IntegerField extends ExtendedField<int> {
 
   @override
   int conjugate(int a) => a;
+
+  @override
+  int get nan => unsupportedOperation('nan');
+
+  @override
+  int get infinity => unsupportedOperation('infinity');
+
+  @override
+  int get negativeInfinity => unsupportedOperation('negativeInfinity');
 }
 
-class IntegerEquality extends NaturalEquality<int> {
+final class IntegerEquality extends NaturalEquality<int> {
   const new();
 
   @override

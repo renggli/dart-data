@@ -9,7 +9,7 @@ import '../models/equality.dart';
 import '../models/field.dart';
 import 'typed.dart';
 
-abstract class FloatDataType<L extends List<double>>
+abstract base class FloatDataType<L extends List<double>>
     extends TypedDataType<double, L> {
   const new();
 
@@ -62,7 +62,7 @@ abstract class FloatDataType<L extends List<double>>
   }
 }
 
-class Float32DataType extends FloatDataType<Float32List> {
+final class Float32DataType extends FloatDataType<Float32List> {
   const new();
 
   @override
@@ -93,7 +93,7 @@ class Float32DataType extends FloatDataType<Float32List> {
   );
 }
 
-class Float64DataType extends FloatDataType<Float64List> {
+final class Float64DataType extends FloatDataType<Float64List> {
   const new();
 
   @override
@@ -125,7 +125,7 @@ class Float64DataType extends FloatDataType<Float64List> {
   );
 }
 
-class FloatField extends ExtendedField<double> {
+final class FloatField implements ExtendedField<double> {
   const new();
 
   @override
@@ -196,9 +196,18 @@ class FloatField extends ExtendedField<double> {
 
   @override
   double conjugate(double a) => a;
+
+  @override
+  double get nan => double.nan;
+
+  @override
+  double get infinity => double.infinity;
+
+  @override
+  double get negativeInfinity => double.negativeInfinity;
 }
 
-class FloatEquality extends NaturalEquality<double> {
+final class FloatEquality extends NaturalEquality<double> {
   const new();
 
   @override

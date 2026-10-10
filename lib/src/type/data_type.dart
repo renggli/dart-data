@@ -27,7 +27,7 @@ import 'utils.dart' as utils;
 /// Descriptor of a data type [T], how it is efficiently represented and stored
 /// in memory, and strategy of how common operations work.
 @immutable
-abstract class DataType<T> {
+abstract base class DataType<T> {
   /// Abstract const constructor.
   const new();
 

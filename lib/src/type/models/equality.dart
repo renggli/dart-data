@@ -2,7 +2,7 @@ import 'package:meta/meta.dart';
 
 /// Encapsulates equality between and the hash code of objects.
 @immutable
-abstract class Equality<T> {
+abstract interface class Equality<T> {
   const new();
 
   /// Returns `true`, if [a] and [b] are the same.
@@ -16,7 +16,7 @@ abstract class Equality<T> {
 }
 
 /// The natural and canonical equality of objects.
-class NaturalEquality<T> extends Equality<T> {
+base class NaturalEquality<T> implements Equality<T> {
   const new();
 
   @override

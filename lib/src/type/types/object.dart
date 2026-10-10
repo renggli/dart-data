@@ -1,6 +1,6 @@
 import '../data_type.dart';
 
-class ObjectDataType<T> extends DataType<T> {
+final class ObjectDataType<T> extends DataType<T> {
   const new(this.defaultValue);
 
   @override

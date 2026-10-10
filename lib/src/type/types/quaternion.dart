@@ -4,7 +4,7 @@ import '../data_type.dart';
 import '../models/equality.dart';
 import '../models/field.dart';
 
-class QuaternionDataType extends DataType<Quaternion> {
+final class QuaternionDataType extends DataType<Quaternion> {
   const new();
 
   @override
@@ -38,7 +38,7 @@ class QuaternionDataType extends DataType<Quaternion> {
   Equality<Quaternion> get equality => const QuaternionEquality();
 }
 
-class QuaternionEquality extends NaturalEquality<Quaternion> {
+final class QuaternionEquality extends NaturalEquality<Quaternion> {
   const new();
 
   @override
@@ -46,7 +46,7 @@ class QuaternionEquality extends NaturalEquality<Quaternion> {
       a.closeTo(b, epsilon);
 }
 
-class QuaternionField extends Field<Quaternion> {
+final class QuaternionField implements Field<Quaternion> {
   const new();
 
   @override
@@ -109,4 +109,22 @@ class QuaternionField extends Field<Quaternion> {
 
   @override
   Quaternion conjugate(Quaternion a) => a.conjugate();
+
+  @override
+  Quaternion sqrt(Quaternion a) => unsupportedOperation('sqrt');
+
+  @override
+  Quaternion exp(Quaternion a) => unsupportedOperation('exp');
+
+  @override
+  Quaternion log(Quaternion a) => unsupportedOperation('log');
+
+  @override
+  Quaternion get nan => unsupportedOperation('nan');
+
+  @override
+  Quaternion get infinity => unsupportedOperation('infinity');
+
+  @override
+  Quaternion get negativeInfinity => unsupportedOperation('negativeInfinity');
 }
