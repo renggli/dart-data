@@ -86,13 +86,21 @@ abstract class Series<T> {
             .map((element) => element as bool?)
             .toList(growable: false);
         return BoolSeries.fromList(name, boolList) as Series<T>;
+      } else {
+        final objList = list
+            .map((element) => element as T?)
+            .toList(growable: false);
+        return ObjectSeries<T>.fromList(name, objList, type: type);
       }
     }
-    final firstNonNull = list.firstWhere(
-      (element) => element != null,
-      orElse: () => null,
-    );
-    if (firstNonNull is num) {
+    Object? firstNonNull;
+    for (final element in list) {
+      if (element != null) {
+        firstNonNull = element;
+        break;
+      }
+    }
+    if (firstNonNull is num && list.every((e) => e == null || e is num)) {
       final numList = list
           .map((element) => element as num?)
           .toList(growable: false);
@@ -101,12 +109,14 @@ abstract class Series<T> {
         numList,
         type: type as DataType<num>?,
       ) as Series<T>;
-    } else if (firstNonNull is String) {
+    } else if (firstNonNull is String &&
+        list.every((e) => e == null || e is String)) {
       final strList = list
           .map((element) => element as String?)
           .toList(growable: false);
       return StringSeries.fromList(name, strList) as Series<T>;
-    } else if (firstNonNull is bool) {
+    } else if (firstNonNull is bool &&
+        list.every((e) => e == null || e is bool)) {
       final boolList = list
           .map((element) => element as bool?)
           .toList(growable: false);
@@ -149,7 +159,7 @@ class TypedSeries<T extends num> extends Series<T> {
         mask.setNull(i);
         data[i] = effectiveType.defaultValue;
       } else {
-        data[i] = val;
+        data[i] = effectiveType.cast(val);
       }
     }
 

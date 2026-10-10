@@ -2,6 +2,7 @@ import 'dart:math' as math;
 
 import 'dataframe.dart';
 import 'series.dart';
+import 'tuple_key.dart';
 
 /// Aggregation operations supported in GroupBy.
 enum Agg { count, sum, mean, min, max, std, first, last }
@@ -18,10 +19,10 @@ class GroupBy {
   final DataFrame dataFrame;
   final List<String> byColumns;
 
-  // Group key string -> list of row indices
-  final Map<String, List<int>> _groups = {};
-  // Group key string -> original key values
-  final Map<String, List<dynamic>> _groupKeys = {};
+  // Group key -> list of row indices
+  final Map<Object?, List<int>> _groups = {};
+  // Group key -> original key values
+  final Map<Object?, List<dynamic>> _groupKeys = {};
 
   /// Evaluates aggregations across each group and produces a new DataFrame.
   DataFrame aggregate(Map<String, List<Agg>> aggregations) {
@@ -42,9 +43,9 @@ class GroupBy {
 
     // Process each group
     for (final entry in _groups.entries) {
-      final keyStr = entry.key;
+      final key = entry.key;
       final indices = entry.value;
-      final keyVals = _groupKeys[keyStr]!;
+      final keyVals = _groupKeys[key]!;
 
       // Append group key values
       for (var i = 0; i < byColumns.length; i++) {
@@ -65,7 +66,30 @@ class GroupBy {
       }
     }
 
-    return DataFrame.fromColumns(resultCols);
+    for (final entry in resultCols.entries) {
+      if (byColumns.contains(entry.key)) continue;
+      final list = entry.value;
+      if (list.any((v) => v is double)) {
+        resultCols[entry.key] = [
+          for (final v in list)
+            if (v is num) v.toDouble() else v,
+        ];
+      }
+    }
+
+    final outputSeries = <Series<dynamic>>[];
+    for (final col in byColumns) {
+      final origCol = dataFrame.column(col);
+      outputSeries.add(
+        Series.fromList(col, resultCols[col]!, type: origCol.dataType),
+      );
+    }
+    for (final entry in resultCols.entries) {
+      if (byColumns.contains(entry.key)) continue;
+      outputSeries.add(Series.fromList(entry.key, entry.value));
+    }
+
+    return DataFrame(outputSeries);
   }
 
   /// Computes mean of all numeric columns per group.
@@ -108,14 +132,14 @@ class GroupBy {
 
   void _buildGroups() {
     final keyCols = byColumns.map(dataFrame.column).toList();
+    final extractor = RowKeyExtractor(keyCols);
     for (var rowIdx = 0; rowIdx < dataFrame.rowCount; rowIdx++) {
-      final keyVals = [for (final col in keyCols) col[rowIdx]];
-      final keyStr = keyVals.map((val) => '$val').join('__#_#__');
-      if (!_groups.containsKey(keyStr)) {
-        _groups[keyStr] = [];
-        _groupKeys[keyStr] = keyVals;
+      final key = extractor.extractKey(rowIdx);
+      if (!_groups.containsKey(key)) {
+        _groups[key] = [];
+        _groupKeys[key] = [for (final col in keyCols) col[rowIdx]];
       }
-      _groups[keyStr]!.add(rowIdx);
+      _groups[key]!.add(rowIdx);
     }
   }
 

@@ -7,3 +7,4 @@ export 'src/dataframe/dataframe.dart';
 export 'src/dataframe/groupby.dart';
 export 'src/dataframe/join.dart';
 export 'src/dataframe/series.dart';
+export 'src/dataframe/tuple_key.dart';

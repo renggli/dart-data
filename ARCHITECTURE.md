@@ -191,13 +191,17 @@ This document describes the achieved architecture across all subsystems of `pack
 
 ### 4.4 Relational Hash Joins & GroupBy Aggregations
 
-- **Reasoning**: Fast relational transformations require optimized indexing structures.
+- **Reasoning**: Fast relational transformations require collision-free, type-safe composite keys and optimized indexing structures without string allocation overhead.
 - **Implementation & Constraints**:
+  - Safe composite keys (`lib/src/dataframe/tuple_key.dart`):
+    - `RowKeyExtractor` performs specialized zero-allocation record-based key extraction for 1 column (direct scalar `key`), 2 columns (record `(a, b)`), and 3 columns (record `(a, b, c)`).
+    - Falls back to `TupleKey` with cached hash code and `DeepCollectionEquality` for 4 or more key columns.
+    - Prevents delimiter injection attacks and eliminates null-string collisions (`null` vs `'null'`) and numeric type erasure (`1` vs `'1'`).
   - Hash join engine (`lib/src/dataframe/join.dart`):
-    - Constructs hash index maps over right table join keys.
-    - Probes index using left table keys to support `inner`, `left`, `right`, and `outer` joins.
+    - Constructs `Map<Object?, List<int>>` hash index maps over right table join keys.
+    - Probes index using left table keys to support `inner`, `left`, `right`, and `outer` joins. Null keys never match in joins.
   - `GroupBy` engine (`lib/src/dataframe/groupby.dart`):
-    - Partitions row indices into buckets based on key columns.
+    - Partitions row indices into buckets based on composite key objects (`Map<Object?, List<int>>`).
     - Aggregates groups across columns with `Agg.count`, `Agg.sum`, `Agg.mean`, `Agg.min`, `Agg.max`, `Agg.std`, `Agg.first`, and `Agg.last`.
 
 ### 4.5 CSV Import/Export & Container Conversions

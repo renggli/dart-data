@@ -1,4 +1,5 @@
 import 'dataframe.dart';
+import 'tuple_key.dart';
 
 /// Supported relational database join types.
 enum JoinType { inner, left, right, outer }
@@ -22,12 +23,11 @@ extension JoinDataFrameExtension on DataFrame {
     }
 
     // Build hash index on right DataFrame
-    final rightKeyCols = on.map(other.column).toList();
-    final rightIndex = <String, List<int>>{};
+    final rightExtractor = RowKeyExtractor(on.map(other.column).toList());
+    final rightIndex = <Object?, List<int>>{};
     for (var rightRow = 0; rightRow < other.rowCount; rightRow++) {
-      final keyVals = [for (final col in rightKeyCols) col[rightRow]];
-      if (keyVals.any((val) => val == null)) continue;
-      final key = keyVals.map((val) => '$val').join('__#_#__');
+      final key = rightExtractor.extractKeyOrNull(rightRow);
+      if (key == null) continue;
       rightIndex.putIfAbsent(key, () => []).add(rightRow);
     }
 
@@ -35,16 +35,15 @@ extension JoinDataFrameExtension on DataFrame {
     final matchedRightIndices = <int>{};
 
     // Scan left DataFrame
-    final leftKeyCols = on.map(column).toList();
+    final leftExtractor = RowKeyExtractor(on.map(column).toList());
     for (var leftRow = 0; leftRow < rowCount; leftRow++) {
-      final keyVals = [for (final col in leftKeyCols) col[leftRow]];
-      if (keyVals.any((val) => val == null)) {
+      final key = leftExtractor.extractKeyOrNull(leftRow);
+      if (key == null) {
         if (type == JoinType.left || type == JoinType.outer) {
           matchedPairs.add((leftRow, null));
         }
         continue;
       }
-      final key = keyVals.map((val) => '$val').join('__#_#__');
       final matchingRight = rightIndex[key];
 
       if (matchingRight != null && matchingRight.isNotEmpty) {
