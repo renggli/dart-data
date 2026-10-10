@@ -11,6 +11,7 @@ export 'src/linear/matrix.dart';
 export 'src/linear/operator.dart';
 export 'src/linear/solvers/conjugate_gradient.dart';
 export 'src/linear/solvers/gmres.dart';
+export 'src/linear/solvers/tridiagonal.dart';
 export 'src/linear/sparse/coo_matrix.dart';
 export 'src/linear/sparse/csc_matrix.dart';
 export 'src/linear/sparse/csr_matrix.dart';

@@ -155,13 +155,14 @@ This document describes the achieved architecture across all subsystems of `pack
   - **Coordinate List (`CooMatrix`)**:
     - Flat triplets `(row, col, value)`. Ideal for dynamic assembly and incremental sparse matrix construction before converting to CSR/CSC via `toCsr()` or `toCsc()`.
 
-### 3.4 Matrix-Free Iterative Solvers
+### 3.4 Tridiagonal & Matrix-Free Iterative Solvers
 
-- **Reasoning**: Solving $A x = b$ for large sparse systems ($N > 100,000$) via dense LU factorization is computationally impossible ($\mathcal{O}(N^3)$ time, $\mathcal{O}(N^2)$ space).
+- **Reasoning**: Solving $A x = b$ for large sparse or structured banded systems ($N > 100,000$) via dense LU factorization is computationally impossible ($\mathcal{O}(N^3)$ time, $\mathcal{O}(N^2)$ space).
 - **Implementation & Constraints**:
+  - `solveTridiagonal`: Solves tridiagonal systems $A x = d$ in $\mathcal{O}(N)$ time and $\mathcal{O}(1)$ auxiliary space beyond a single modified superdiagonal array using the Thomas algorithm. Contains contiguous buffer fast paths and handles singular zero-pivot validation.
   - `conjugateGradient`: Solves symmetric positive-definite systems using Krylov subspace projection with convergence tolerance and maximum iteration limits.
   - `gmres`: Generalized Minimal Residual method with restart parameter $m$ (GMRES(m)) and Arnoldi modified Gram-Schmidt orthogonalization for general non-symmetric square systems.
-  - Solvers consume any `LinearOperator<T>`, executing without forming or modifying matrix entries.
+  - Iterative solvers consume any `LinearOperator<T>`, executing without forming or modifying matrix entries.
 
 ### 3.5 Dense Matrix Decompositions
 
@@ -347,7 +348,7 @@ This document describes the achieved architecture across all subsystems of `pack
 
 - **Reasoning**: Continuous estimation from discrete empirical samples.
 - **Implementation & Constraints**:
-  - `CubicSpline`: $C^2$ continuous cubic spline interpolation supporting natural ($S''(x) = 0$) and clamped ($S'(x) = f'$) boundary conditions.
+  - `CubicSpline`: $C^2$ continuous cubic spline interpolation supporting natural ($S''(x) = 0$) and clamped ($S'(x) = f'$) boundary conditions. Formulates spline second derivatives as a tridiagonal linear system solved in $\mathcal{O}(N)$ time via `solveTridiagonal`.
   - `PchipInterpolation`: Piecewise Cubic Hermite Interpolating Polynomial preserving monotonicity and preventing overshoot between data points.
   - `leastSquares`: General linear regression using LAPACK `dgels`, Householder QR, or SVD.
   - `polynomialRegression`: Vandermonde polynomial fitting using QR decomposition.

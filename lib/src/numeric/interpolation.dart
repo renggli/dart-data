@@ -1,4 +1,8 @@
 import 'dart:math' as math;
+import 'dart:typed_data';
+
+import '../../linear.dart';
+import '../../type.dart';
 
 /// Boundary condition for cubic spline interpolation.
 enum CubicSplineBoundary {
@@ -76,7 +80,6 @@ class CubicSpline implements Interpolator {
 
     _a = List<double>.of(_ys);
     _b = List<double>.filled(count - 1, 0.0);
-    _c = List<double>.filled(count, 0.0);
     _d = List<double>.filled(count - 1, 0.0);
 
     final stepSizes = List<double>.generate(
@@ -88,48 +91,51 @@ class CubicSpline implements Interpolator {
       (i) => (_ys[i + 1] - _ys[i]) / stepSizes[i],
     );
 
-    // Tridiagonal matrix solver for c coefficients
-    final alpha = List<double>.filled(count, 0.0);
-    final diag = List<double>.filled(count, 1.0);
-    final mu = List<double>.filled(count, 0.0);
-    final z = List<double>.filled(count, 0.0);
+    // Formulate tridiagonal linear system for c coefficients: A * c = rhs
+    final sub = Float64List(count - 1);
+    final diag = Float64List(count);
+    final sup = Float64List(count - 1);
+    final rhs = Float64List(count);
 
     if (boundary == CubicSplineBoundary.natural) {
       diag[0] = 1.0;
-      mu[0] = 0.0;
-      z[0] = 0.0;
+      sup[0] = 0.0;
+      rhs[0] = 0.0;
       for (var i = 1; i < count - 1; i++) {
-        alpha[i] = 3.0 * (delta[i] - delta[i - 1]);
-        diag[i] =
-            2.0 * (_xs[i + 1] - _xs[i - 1]) - stepSizes[i - 1] * mu[i - 1];
-        mu[i] = stepSizes[i] / diag[i];
-        z[i] = (alpha[i] - stepSizes[i - 1] * z[i - 1]) / diag[i];
+        sub[i - 1] = stepSizes[i - 1];
+        diag[i] = 2.0 * (_xs[i + 1] - _xs[i - 1]);
+        sup[i] = stepSizes[i];
+        rhs[i] = 3.0 * (delta[i] - delta[i - 1]);
       }
+      sub[count - 2] = 0.0;
       diag[count - 1] = 1.0;
-      z[count - 1] = 0.0;
-      _c[count - 1] = 0.0;
+      rhs[count - 1] = 0.0;
     } else {
       // Clamped boundary
-      alpha[0] = 3.0 * (delta[0] - leftSlope) / stepSizes[0];
       diag[0] = 2.0;
-      mu[0] = 0.5;
-      z[0] = alpha[0] / diag[0];
+      sup[0] = 1.0;
+      rhs[0] = 3.0 * (delta[0] - leftSlope) / stepSizes[0];
       for (var i = 1; i < count - 1; i++) {
-        alpha[i] = 3.0 * (delta[i] - delta[i - 1]);
-        diag[i] =
-            2.0 * (_xs[i + 1] - _xs[i - 1]) - stepSizes[i - 1] * mu[i - 1];
-        mu[i] = stepSizes[i] / diag[i];
-        z[i] = (alpha[i] - stepSizes[i - 1] * z[i - 1]) / diag[i];
+        sub[i - 1] = stepSizes[i - 1];
+        diag[i] = 2.0 * (_xs[i + 1] - _xs[i - 1]);
+        sup[i] = stepSizes[i];
+        rhs[i] = 3.0 * (delta[i] - delta[i - 1]);
       }
-      alpha[count - 1] =
+      sub[count - 2] = 1.0;
+      diag[count - 1] = 2.0;
+      rhs[count - 1] =
           3.0 * (rightSlope - delta[count - 2]) / stepSizes[count - 2];
-      diag[count - 1] = 2.0 - mu[count - 2];
-      z[count - 1] = (alpha[count - 1] - z[count - 2]) / diag[count - 1];
-      _c[count - 1] = z[count - 1];
     }
 
+    final cVec = solveTridiagonal(
+      Vector<double>.fromList(sub, type: DataType.float64),
+      Vector<double>.fromList(diag, type: DataType.float64),
+      Vector<double>.fromList(sup, type: DataType.float64),
+      Vector<double>.fromList(rhs, type: DataType.float64),
+    );
+    _c = cVec.toList();
+
     for (var j = count - 2; j >= 0; j--) {
-      _c[j] = z[j] - mu[j] * _c[j + 1];
       _b[j] = delta[j] - stepSizes[j] * (2.0 * _c[j] + _c[j + 1]) / 3.0;
       _d[j] = (_c[j + 1] - _c[j]) / (3.0 * stepSizes[j]);
     }
