@@ -119,6 +119,14 @@ This document describes the achieved architecture across all subsystems of `pack
   - `matmul` (`lib/src/tensor/operations/matmul.dart`) validates that inner dimensions match ($K$).
   - Evaluates outer batch iterations over Cartesian product of leading batch dimensions, executing 2D slice multiplications across contiguous sub-matrices.
 
+### 2.6 Generalized Tensor Contraction & Einstein Summation (`tensordot`, `einsum`)
+
+- **Reasoning**: Scientific computing, quantum mechanics, and deep learning architectures require multi-axis tensor contractions and declarative index reductions.
+- **Implementation & Constraints**:
+  - `tensordot` (`lib/src/tensor/operations/contraction.dart`): Contracts arbitrary subsets of axes between two tensors. Permutes free and contracted axes to form contiguous 2D block shapes, dispatches to accelerated 2D `matmul` (mapping to BLAS GEMM when float32/float64), and reshapes to output dimensions.
+  - `innerProduct` and `outerProduct`: Specialized contractions representing full multi-axis inner products (yielding rank-0 scalar tensors) and zero-contraction outer products.
+  - `einsum` (`lib/src/tensor/operations/einsum.dart`): Evaluates Einstein summation convention matching NumPy notation (e.g. `'ij,jk->ik'`, `'ii->'`, `'bij,bjk->bik'`, `'i,j,k->ijk'`). Automatically parses explicit (`->`) and implicit output conventions, routes 2-operand contractions to optimized `tensordot` when applicable, and executes universal multi-index odometer evaluation for general contractions, diagonals, traces, and batched equations.
+
 ---
 
 ## 3. Linear Algebra & Sparse Subsystems (`package:data/linear.dart`)
