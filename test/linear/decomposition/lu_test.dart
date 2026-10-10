@@ -1,7 +1,7 @@
 import 'package:checks/checks.dart';
 import 'package:data/linear.dart';
 import 'package:data/type.dart';
-import 'package:test/test.dart';
+import 'package:test/scaffolding.dart';
 
 void main() {
   group('LU Decomposition', () {
@@ -69,6 +69,46 @@ void main() {
       check(ax[0]).isCloseTo(b[0], 1e-6);
       check(ax[1]).isCloseTo(b[1], 1e-6);
       check(ax[2]).isCloseTo(b[2], 1e-6);
+    });
+
+    test('solves multi-RHS linear system A * X = B', () {
+      final a = Matrix<double>.fromRows([
+        [2.0, 1.0, 0.0, 0.0],
+        [1.0, 2.0, 1.0, 0.0],
+        [0.0, 1.0, 2.0, 1.0],
+        [0.0, 0.0, 1.0, 2.0],
+      ], type: DataType.float64);
+
+      final b = Matrix<double>.fromRows([
+        [4.0, 5.0, 6.0],
+        [4.0, 4.0, 4.0],
+        [3.0, 0.0, 4.0],
+        [5.0, -2.0, 5.0],
+      ], type: DataType.float64);
+
+      final lu = a.lu;
+      check(lu.isNonsingular).isTrue();
+      final x = lu.solve(b);
+
+      final ax = a * x;
+      for (var r = 0; r < 4; r++) {
+        for (var c = 0; c < 3; c++) {
+          check(ax.get(r, c)).isCloseTo(b.get(r, c), 1e-6);
+        }
+      }
+
+      check(x.get(0, 0)).isCloseTo(1.0, 1e-6);
+      check(x.get(0, 1)).isCloseTo(2.0, 1e-6);
+      check(x.get(0, 2)).isCloseTo(3.0, 1e-6);
+      check(x.get(1, 0)).isCloseTo(2.0, 1e-6);
+      check(x.get(1, 1)).isCloseTo(1.0, 1e-6);
+      check(x.get(1, 2)).isCloseTo(0.0, 1e-6);
+      check(x.get(2, 0)).isCloseTo(-1.0, 1e-6);
+      check(x.get(2, 1)).isCloseTo(0.0, 1e-6);
+      check(x.get(2, 2)).isCloseTo(1.0, 1e-6);
+      check(x.get(3, 0)).isCloseTo(3.0, 1e-6);
+      check(x.get(3, 1)).isCloseTo(-1.0, 1e-6);
+      check(x.get(3, 2)).isCloseTo(2.0, 1e-6);
     });
 
     test('singular matrix returns isNonsingular false', () {

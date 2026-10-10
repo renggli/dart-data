@@ -240,6 +240,14 @@ class BlasLibrary {
     required int lda,
   }) => false;
 
+  /// Solves the general linear system $A X = B$ for $X$.
+  ///
+  /// Supports both single-RHS ([nrhs] = 1) and multi-RHS ([nrhs] > 1).
+  /// For Fortran LAPACK routines expecting column-major matrices, multi-RHS
+  /// and strided right-hand side matrices are transposed/gathered to column-major
+  /// layout prior to solving and the solution is scattered back to row-major layout.
+  /// Contiguous single-RHS vectors ([nrhs] = 1 and [ldb] = 1) use an in-place
+  /// zero-copy fast path when backed by native buffers.
   bool dgesv({
     required int n,
     required int nrhs,

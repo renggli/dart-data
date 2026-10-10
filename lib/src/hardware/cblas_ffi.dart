@@ -1082,6 +1082,12 @@ class BlasLibrary {
     });
   }
 
+  /// Solves the general linear system $A X = B$ for $X$.
+  ///
+  /// Supports both single-RHS ([nrhs] = 1) and multi-RHS ([nrhs] > 1).
+  /// For Fortran LAPACK routines expecting column-major matrices, multi-RHS
+  /// right-hand side matrices are transposed to column-major layout prior
+  /// to solving and the solution is transposed back to row-major layout.
   bool dgesv({
     required int n,
     required int nrhs,
@@ -1092,18 +1098,43 @@ class BlasLibrary {
     int bOffset = 0,
     required int ldb,
   }) {
+    if (n < 0 || nrhs < 0 || lda < n || (nrhs > 0 && ldb < nrhs)) return false;
+    if (n == 0 || nrhs == 0) return true;
+    final aRequired = aOffset + (n - 1) * lda + n;
+    final bRequired = bOffset + (n - 1) * ldb + nrhs;
+    if (a.length < aRequired || b.length < bRequired) return false;
+
     // coverage:ignore-start
     if (_lapackeDgesv != null) {
       return using((arena) {
         final aLen = n * lda;
-        final bLen = n * ldb;
-        final aPtr = _pointerForDouble(a, aOffset) ?? arena<ffi.Double>(aLen);
-        if (_pointerForDouble(a, aOffset) == null) {
-          aPtr.asTypedList(aLen).setRange(0, aLen, a, aOffset);
+        final aPtr = arena<ffi.Double>(aLen);
+        if (lda == n) {
+          aPtr.asTypedList(n * n).setRange(0, n * n, a, aOffset);
+        } else {
+          for (var i = 0; i < n; i++) {
+            for (var j = 0; j < n; j++) {
+              aPtr[i * lda + j] = a[aOffset + i * lda + j];
+            }
+          }
         }
-        final bPtr = _pointerForDouble(b, bOffset) ?? arena<ffi.Double>(bLen);
-        if (_pointerForDouble(b, bOffset) == null) {
-          bPtr.asTypedList(bLen).setRange(0, bLen, b, bOffset);
+
+        final isContiguous1D = nrhs == 1 && ldb == 1;
+        final ffi.Pointer<ffi.Double> bPtr;
+        if (isContiguous1D) {
+          final nativeB = _pointerForDouble(b, bOffset);
+          bPtr = nativeB ?? arena<ffi.Double>(n);
+          if (nativeB == null) {
+            bPtr.asTypedList(n).setRange(0, n, b, bOffset);
+          }
+        } else {
+          final bLen = n * ldb;
+          bPtr = arena<ffi.Double>(bLen);
+          for (var i = 0; i < n; i++) {
+            for (var j = 0; j < nrhs; j++) {
+              bPtr[i * ldb + j] = b[bOffset + i * ldb + j];
+            }
+          }
         }
         final ipiv = arena<ffi.Int32>(n);
 
@@ -1118,8 +1149,16 @@ class BlasLibrary {
           ldb,
         );
         if (info == 0) {
-          if (_pointerForDouble(b, bOffset) == null) {
-            b.setRange(bOffset, bOffset + bLen, bPtr.asTypedList(bLen));
+          if (isContiguous1D) {
+            if (_pointerForDouble(b, bOffset) == null) {
+              b.setRange(bOffset, bOffset + n, bPtr.asTypedList(n));
+            }
+          } else {
+            for (var i = 0; i < n; i++) {
+              for (var j = 0; j < nrhs; j++) {
+                b[bOffset + i * ldb + j] = bPtr[i * ldb + j];
+              }
+            }
           }
           return true;
         }
@@ -1131,21 +1170,38 @@ class BlasLibrary {
     if (_dgetrf != null && _dgetrs != null) {
       return using((arena) {
         final aLen = n * lda;
-        final bLen = n * ldb;
-
         final aPtr = arena<ffi.Double>(aLen);
-        aPtr.asTypedList(aLen).setRange(0, aLen, a, aOffset);
+        if (lda == n) {
+          aPtr.asTypedList(n * n).setRange(0, n * n, a, aOffset);
+        } else {
+          for (var i = 0; i < n; i++) {
+            for (var j = 0; j < n; j++) {
+              aPtr[i * lda + j] = a[aOffset + i * lda + j];
+            }
+          }
+        }
 
-        final bPtr = _pointerForDouble(b, bOffset) ?? arena<ffi.Double>(bLen);
-        if (_pointerForDouble(b, bOffset) == null) {
-          bPtr.asTypedList(bLen).setRange(0, bLen, b, bOffset);
+        final isContiguous1D = nrhs == 1 && ldb == 1;
+        final ffi.Pointer<ffi.Double> bPtr;
+        if (!isContiguous1D) {
+          bPtr = arena<ffi.Double>(n * nrhs);
+          for (var j = 0; j < nrhs; j++) {
+            for (var i = 0; i < n; i++) {
+              bPtr[j * n + i] = b[bOffset + i * ldb + j];
+            }
+          }
+        } else {
+          final nativeB = _pointerForDouble(b, bOffset);
+          bPtr = nativeB ?? arena<ffi.Double>(n);
+          if (nativeB == null) {
+            bPtr.asTypedList(n).setRange(0, n, b, bOffset);
+          }
         }
 
         final nPtr = arena<ffi.Int32>()..value = n;
         final nrhsPtr = arena<ffi.Int32>()..value = nrhs;
         final ldaPtr = arena<ffi.Int32>()..value = lda >= n ? lda : n;
-        final fortranLdb = nrhs == 1 ? n : (ldb >= n ? ldb : n);
-        final ldbPtr = arena<ffi.Int32>()..value = fortranLdb;
+        final ldbPtr = arena<ffi.Int32>()..value = n;
         final ipiv = arena<ffi.Int32>(n);
         final info = arena<ffi.Int32>();
         final trans = arena<ffi.Uint8>()..value = 84; // 'T'
@@ -1156,8 +1212,16 @@ class BlasLibrary {
         _dgetrs!(trans, nPtr, nrhsPtr, aPtr, ldaPtr, ipiv, bPtr, ldbPtr, info);
         if (info.value != 0) return false;
 
-        if (_pointerForDouble(b, bOffset) == null) {
-          b.setRange(bOffset, bOffset + bLen, bPtr.asTypedList(bLen));
+        if (!isContiguous1D) {
+          for (var i = 0; i < n; i++) {
+            for (var j = 0; j < nrhs; j++) {
+              b[bOffset + i * ldb + j] = bPtr[j * n + i];
+            }
+          }
+        } else {
+          if (_pointerForDouble(b, bOffset) == null) {
+            b.setRange(bOffset, bOffset + n, bPtr.asTypedList(n));
+          }
         }
         return true;
       });
@@ -1166,18 +1230,29 @@ class BlasLibrary {
     // coverage:ignore-start
     if (_dgesv != null) {
       return using((arena) {
-        final aLen = n * lda;
-        final bLen = n * ldb;
-
-        final aTrans = arena<ffi.Double>(aLen);
+        final aTrans = arena<ffi.Double>(n * n);
         for (var i = 0; i < n; i++) {
           for (var j = 0; j < n; j++) {
             aTrans[j * n + i] = a[aOffset + i * lda + j];
           }
         }
 
-        final bPtr = arena<ffi.Double>(bLen);
-        bPtr.asTypedList(bLen).setRange(0, bLen, b, bOffset);
+        final isContiguous1D = nrhs == 1 && ldb == 1;
+        final ffi.Pointer<ffi.Double> bPtr;
+        if (!isContiguous1D) {
+          bPtr = arena<ffi.Double>(n * nrhs);
+          for (var j = 0; j < nrhs; j++) {
+            for (var i = 0; i < n; i++) {
+              bPtr[j * n + i] = b[bOffset + i * ldb + j];
+            }
+          }
+        } else {
+          final nativeB = _pointerForDouble(b, bOffset);
+          bPtr = nativeB ?? arena<ffi.Double>(n);
+          if (nativeB == null) {
+            bPtr.asTypedList(n).setRange(0, n, b, bOffset);
+          }
+        }
 
         final nPtr = arena<ffi.Int32>()..value = n;
         final nrhsPtr = arena<ffi.Int32>()..value = nrhs;
@@ -1188,7 +1263,17 @@ class BlasLibrary {
 
         _dgesv!(nPtr, nrhsPtr, aTrans, ldaPtr, ipiv, bPtr, ldbPtr, info);
         if (info.value == 0) {
-          b.setRange(bOffset, bOffset + bLen, bPtr.asTypedList(bLen));
+          if (!isContiguous1D) {
+            for (var i = 0; i < n; i++) {
+              for (var j = 0; j < nrhs; j++) {
+                b[bOffset + i * ldb + j] = bPtr[j * n + i];
+              }
+            }
+          } else {
+            if (_pointerForDouble(b, bOffset) == null) {
+              b.setRange(bOffset, bOffset + n, bPtr.asTypedList(n));
+            }
+          }
           return true;
         }
         return false;

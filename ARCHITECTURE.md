@@ -236,7 +236,7 @@ This document describes the achieved architecture across all subsystems of `pack
 - **Reasoning**: Production scientific systems rely on LAPACK for numerically stable factorizations.
 - **Implementation & Constraints**:
   - Bound via `dart:ffi`:
-    - `dgesv`: General linear system solver with partial pivoting.
+    - `dgesv`: General linear system solver with partial pivoting. Transparently handles row-major to column-major layout transposition for multi-RHS matrices ($N \times \text{nrhs}$) and strided RHS matrices when interfacing with Fortran LAPACK routines (`dgetrf`/`dgetrs` or `dgesv_`), with a zero-copy fast path for contiguous single RHS ($nrhs = 1, ldb = 1$).
     - `dpotrf`: Cholesky factorization of symmetric positive-definite matrices.
     - `dgels`: Linear least-squares solver via QR or LQ factorization.
     - `dgeqrf`: Householder QR decomposition.

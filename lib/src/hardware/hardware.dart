@@ -767,6 +767,12 @@ class HardwareManager {
     int bOffset = 0,
     required int ldb,
   }) {
+    if (n < 0 || nrhs < 0 || lda < n || (nrhs > 0 && ldb < nrhs)) return false;
+    if (n == 0 || nrhs == 0) return true;
+    final aRequired = aOffset + (n - 1) * lda + n;
+    final bRequired = bOffset + (n - 1) * ldb + nrhs;
+    if (a.length < aRequired || b.length < bRequired) return false;
+
     if (isAccelerated) {
       final success = _blas.dgesv(
         n: n,
