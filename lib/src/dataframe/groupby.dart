@@ -5,7 +5,37 @@ import 'series.dart';
 import 'tuple_key.dart';
 
 /// Aggregation operations supported in GroupBy.
-enum Agg { count, sum, mean, min, max, std, first, last }
+enum Agg {
+  /// Number of non-null values.
+  count,
+
+  /// Sum of numeric values.
+  sum,
+
+  /// Arithmetic mean of numeric values.
+  mean,
+
+  /// Minimum value.
+  min,
+
+  /// Maximum value.
+  max,
+
+  /// Sample standard deviation.
+  std,
+
+  /// Sample variance (Bessel's correction, n - 1).
+  var_,
+
+  /// Median value.
+  median,
+
+  /// First non-null value.
+  first,
+
+  /// Last non-null value.
+  last,
+}
 
 /// Grouped DataFrame supporting hash-partitioned aggregations.
 class GroupBy {
@@ -41,6 +71,8 @@ class GroupBy {
       }
     }
 
+    final medianScratch = <double>[];
+
     // Process each group
     for (final entry in _groups.entries) {
       final key = entry.key;
@@ -56,11 +88,10 @@ class GroupBy {
       for (final aggEntry in aggregations.entries) {
         final colName = aggEntry.key;
         final col = dataFrame.column(colName);
-        final groupVals = [for (final idx in indices) col[idx]];
 
         for (final agg in aggEntry.value) {
           final outName = '${colName}_${agg.name}';
-          final aggResult = _computeAgg(groupVals, agg);
+          final aggResult = _computeAgg(col, indices, agg, medianScratch);
           resultCols[outName]!.add(aggResult);
         }
       }
@@ -143,26 +174,43 @@ class GroupBy {
     }
   }
 
-  dynamic _computeAgg(List<dynamic> values, Agg agg) {
-    final nonNulls = values.where((val) => val != null).toList();
+  dynamic _computeAgg(
+    Series<dynamic> col,
+    List<int> indices,
+    Agg agg,
+    List<double> scratch,
+  ) {
     switch (agg) {
       case Agg.count:
-        return nonNulls.length;
+        var count = 0;
+        for (var i = 0; i < indices.length; i++) {
+          if (col[indices[i]] != null) count++;
+        }
+        return count;
       case Agg.first:
-        return nonNulls.isNotEmpty ? nonNulls.first : null;
+        for (var i = 0; i < indices.length; i++) {
+          final val = col[indices[i]];
+          if (val != null) return val;
+        }
+        return null;
       case Agg.last:
-        return nonNulls.isNotEmpty ? nonNulls.last : null;
+        for (var i = indices.length - 1; i >= 0; i--) {
+          final val = col[indices[i]];
+          if (val != null) return val;
+        }
+        return null;
       case Agg.sum:
         num total = 0;
-        for (final val in nonNulls) {
+        for (var i = 0; i < indices.length; i++) {
+          final val = col[indices[i]];
           if (val is num) total += val;
         }
         return total;
       case Agg.mean:
-        if (nonNulls.isEmpty) return null;
         num total = 0;
         var count = 0;
-        for (final val in nonNulls) {
+        for (var i = 0; i < indices.length; i++) {
+          final val = col[indices[i]];
           if (val is num) {
             total += val;
             count++;
@@ -170,31 +218,123 @@ class GroupBy {
         }
         return count > 0 ? total.toDouble() / count : null;
       case Agg.min:
-        if (nonNulls.isEmpty) return null;
-        var minVal = nonNulls.first as Comparable;
-        for (final val in nonNulls.skip(1)) {
-          if ((val as Comparable).compareTo(minVal) < 0) minVal = val;
+        Comparable<Object?>? minVal;
+        for (var i = 0; i < indices.length; i++) {
+          final val = col[indices[i]];
+          if (val is Comparable<Object?>) {
+            if (minVal == null || val.compareTo(minVal) < 0) {
+              minVal = val;
+            }
+          }
         }
         return minVal;
       case Agg.max:
-        if (nonNulls.isEmpty) return null;
-        var maxVal = nonNulls.first as Comparable;
-        for (final val in nonNulls.skip(1)) {
-          if ((val as Comparable).compareTo(maxVal) > 0) maxVal = val;
+        Comparable<Object?>? maxVal;
+        for (var i = 0; i < indices.length; i++) {
+          final val = col[indices[i]];
+          if (val is Comparable<Object?>) {
+            if (maxVal == null || val.compareTo(maxVal) > 0) {
+              maxVal = val;
+            }
+          }
         }
         return maxVal;
       case Agg.std:
-        if (nonNulls.length <= 1) return 0.0;
-        final nums = nonNulls
-            .whereType<num>()
-            .map((element) => element.toDouble())
-            .toList();
-        if (nums.length <= 1) return 0.0;
-        final mean = nums.reduce((a, b) => a + b) / nums.length;
-        final sumSq = nums
-            .map((x) => (x - mean) * (x - mean))
-            .reduce((a, b) => a + b);
-        return math.sqrt(sumSq / (nums.length - 1));
+        var count = 0;
+        var mean = 0.0;
+        var m2 = 0.0;
+        for (var i = 0; i < indices.length; i++) {
+          final val = col[indices[i]];
+          if (val is num) {
+            count++;
+            final delta = val - mean;
+            mean += delta / count;
+            final delta2 = val - mean;
+            m2 += delta * delta2;
+          }
+        }
+        if (count <= 1) return 0.0;
+        final variance = m2 / (count - 1);
+        return math.sqrt(variance < 0.0 ? 0.0 : variance);
+      case Agg.var_:
+        var count = 0;
+        var mean = 0.0;
+        var m2 = 0.0;
+        for (var i = 0; i < indices.length; i++) {
+          final val = col[indices[i]];
+          if (val is num) {
+            count++;
+            final delta = val - mean;
+            mean += delta / count;
+            final delta2 = val - mean;
+            m2 += delta * delta2;
+          }
+        }
+        if (count < 2) return null;
+        final variance = m2 / (count - 1);
+        return variance < 0.0 ? 0.0 : variance;
+      case Agg.median:
+        scratch.clear();
+        for (var i = 0; i < indices.length; i++) {
+          final val = col[indices[i]];
+          if (val is num) {
+            scratch.add(val.toDouble());
+          }
+        }
+        final n = scratch.length;
+        if (n == 0) return null;
+        for (var i = 0; i < n; i++) {
+          if (scratch[i].isNaN) return double.nan;
+        }
+        final mid1 = (n - 1) ~/ 2;
+        final mid2 = n ~/ 2;
+        _quickselect(scratch, mid1);
+        if (mid1 != mid2) {
+          _quickselect(scratch, mid2, mid1 + 1, n - 1);
+        }
+        return (scratch[mid1] + scratch[mid2]) / 2.0;
     }
   }
+}
+
+void _quickselect(List<double> list, int k, [int left = 0, int? right]) {
+  var l = left;
+  var r = right ?? list.length - 1;
+  while (l < r) {
+    final mid = l + (r - l) ~/ 2;
+    if (list[l] > list[mid]) _swap(list, l, mid);
+    if (list[l] > list[r]) _swap(list, l, r);
+    if (list[mid] > list[r]) _swap(list, mid, r);
+    final pivot = list[mid];
+
+    var i = l;
+    var lt = l;
+    var gt = r;
+    while (i <= gt) {
+      if (list[i] < pivot) {
+        _swap(list, lt, i);
+        lt++;
+        i++;
+      } else if (list[i] > pivot) {
+        _swap(list, i, gt);
+        gt--;
+      } else {
+        i++;
+      }
+    }
+
+    if (k < lt) {
+      r = lt - 1;
+    } else if (k > gt) {
+      l = gt + 1;
+    } else {
+      return;
+    }
+  }
+}
+
+void _swap(List<double> list, int i, int j) {
+  final temp = list[i];
+  list[i] = list[j];
+  list[j] = temp;
 }

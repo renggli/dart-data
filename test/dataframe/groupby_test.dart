@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:checks/checks.dart';
 import 'package:data/dataframe.dart';
 import 'package:test/test.dart';
@@ -154,6 +156,8 @@ void main() {
           Agg.first,
           Agg.last,
           Agg.std,
+          Agg.var_,
+          Agg.median,
         ],
       });
 
@@ -168,6 +172,8 @@ void main() {
       check(result['v_first'][0]).equals(10.0);
       check(result['v_last'][0]).equals(30.0);
       check(result['v_std'][0]).equals(10.0);
+      check(result['v_var_'][0]).equals(100.0);
+      check(result['v_median'][0]).equals(20.0);
 
       // Group B (only null value)
       check(result['v_count'][1]).equals(0);
@@ -178,6 +184,8 @@ void main() {
       check(result['v_first'][1]).isNull();
       check(result['v_last'][1]).isNull();
       check(result['v_std'][1]).equals(0.0);
+      check(result['v_var_'][1]).isNull();
+      check(result['v_median'][1]).isNull();
     });
 
     test('mean(), sum(), count() convenience methods', () {
@@ -265,5 +273,315 @@ void main() {
       check(result.rowCount).equals(0);
       check(result.columnNames).deepEquals(['k', 'v_count', 'v_sum']);
     });
+  });
+
+  group('GroupBy - Median & Variance Aggregations', () {
+    test('computes median across odd and even group sizes', () {
+      final df = DataFrame.fromColumns({
+        'group': [
+          'odd_3',
+          'odd_3',
+          'odd_3',
+          'odd_5',
+          'odd_5',
+          'odd_5',
+          'odd_5',
+          'odd_5',
+          'even_2',
+          'even_2',
+          'even_4',
+          'even_4',
+          'even_4',
+          'even_4',
+          'even_6',
+          'even_6',
+          'even_6',
+          'even_6',
+          'even_6',
+          'even_6',
+          'dupes',
+          'dupes',
+          'dupes',
+          'dupes',
+        ],
+        'val': [
+          30.0,
+          10.0,
+          20.0,
+          50.0,
+          10.0,
+          40.0,
+          20.0,
+          30.0,
+          100.0,
+          200.0,
+          40.0,
+          10.0,
+          30.0,
+          20.0,
+          60.0,
+          10.0,
+          50.0,
+          20.0,
+          40.0,
+          30.0,
+          5.0,
+          5.0,
+          5.0,
+          5.0,
+        ],
+      });
+
+      final res = df.groupBy(['group']).aggregate({
+        'val': [Agg.median],
+      });
+
+      final map = <String, double>{};
+      for (var row = 0; row < res.rowCount; row++) {
+        map[res['group'][row] as String] = res['val_median'][row] as double;
+      }
+
+      check(map['odd_3']).equals(20.0);
+      check(map['odd_5']).equals(30.0);
+      check(map['even_2']).equals(150.0);
+      check(map['even_4']).equals(25.0);
+      check(map['even_6']).equals(35.0);
+      check(map['dupes']).equals(5.0);
+    });
+
+    test('returns null for variance on single-element groups', () {
+      final dfWithPair = DataFrame.fromColumns({
+        'group': ['single_a', 'single_b', 'pair', 'pair'],
+        'val': [42.0, 99.0, 10.0, 20.0],
+      });
+
+      final res = dfWithPair.groupBy(['group']).aggregate({
+        'val': [Agg.count, Agg.var_, Agg.median],
+      });
+
+      for (var row = 0; row < res.rowCount; row++) {
+        final g = res['group'][row];
+        if (g == 'single_a') {
+          check(res['val_count'][row]).equals(1);
+          check(res['val_var_'][row]).isNull();
+          check(res['val_median'][row]).equals(42.0);
+        } else if (g == 'single_b') {
+          check(res['val_count'][row]).equals(1);
+          check(res['val_var_'][row]).isNull();
+          check(res['val_median'][row]).equals(99.0);
+        } else if (g == 'pair') {
+          check(res['val_count'][row]).equals(2);
+          check(res['val_var_'][row]).equals(50.0);
+          check(res['val_median'][row]).equals(15.0);
+        }
+      }
+    });
+
+    test('handles missing and null values in variance and median', () {
+      final df = DataFrame.fromColumns({
+        'cat': [
+          'all_null',
+          'all_null',
+          'one_valid',
+          'one_valid',
+          'mixed',
+          'mixed',
+          'mixed',
+          'mixed',
+          'mixed',
+        ],
+        'x': [null, null, null, 100.0, 10.0, null, 20.0, null, 30.0],
+      });
+
+      final res = df.groupBy(['cat']).aggregate({
+        'x': [Agg.count, Agg.var_, Agg.median],
+      });
+
+      for (var row = 0; row < res.rowCount; row++) {
+        final cat = res['cat'][row];
+        if (cat == 'all_null') {
+          check(res['x_count'][row]).equals(0);
+          check(res['x_var_'][row]).isNull();
+          check(res['x_median'][row]).isNull();
+        } else if (cat == 'one_valid') {
+          check(res['x_count'][row]).equals(1);
+          check(res['x_var_'][row]).isNull();
+          check(res['x_median'][row]).equals(100.0);
+        } else if (cat == 'mixed') {
+          check(res['x_count'][row]).equals(3);
+          check(res['x_var_'][row]).equals(100.0);
+          check(res['x_median'][row]).equals(20.0);
+        }
+      }
+    });
+
+    test('validates variance against known statistical baselines (Bessel correction n - 1)', () {
+      final df = DataFrame.fromColumns({
+        'set': [
+          'b1',
+          'b1',
+          'b1',
+          'b1',
+          'b1',
+          'b1',
+          'b1',
+          'b1',
+          'b2',
+          'b2',
+          'b2',
+          'b2',
+          'b2',
+        ],
+        'v': [
+          2.0,
+          4.0,
+          4.0,
+          4.0,
+          5.0,
+          5.0,
+          7.0,
+          9.0,
+          10.0,
+          20.0,
+          30.0,
+          40.0,
+          50.0,
+        ],
+      });
+
+      final res = df.groupBy(['set']).aggregate({
+        'v': [Agg.mean, Agg.var_, Agg.std, Agg.median],
+      });
+
+      for (var row = 0; row < res.rowCount; row++) {
+        final s = res['set'][row];
+        if (s == 'b1') {
+          check(res['v_mean'][row]).equals(5.0);
+          final var1 = res['v_var_'][row] as double;
+          check(var1).isCloseTo(32.0 / 7.0, 1e-12);
+          final std1 = res['v_std'][row] as double;
+          check(std1).isCloseTo(math.sqrt(32.0 / 7.0), 1e-12);
+          check(res['v_median'][row]).equals(4.5);
+        } else if (s == 'b2') {
+          check(res['v_mean'][row]).equals(30.0);
+          check(res['v_var_'][row]).equals(250.0);
+          final std2 = res['v_std'][row] as double;
+          check(std2).isCloseTo(math.sqrt(250.0), 1e-12);
+          check(res['v_median'][row]).equals(30.0);
+        }
+      }
+    });
+
+    test('multi-column groupings with combined aggregations', () {
+      final df = DataFrame.fromColumns({
+        'dept': ['IT', 'IT', 'IT', 'HR', 'HR'],
+        'role': ['dev', 'dev', 'qa', 'recruiter', 'recruiter'],
+        'salary': [100.0, 120.0, 90.0, 50.0, 70.0],
+      });
+
+      final res = df.groupBy(['dept', 'role']).aggregate({
+        'salary': [Agg.count, Agg.mean, Agg.var_, Agg.median, Agg.std],
+      });
+
+      check(res.rowCount).equals(3);
+
+      for (var row = 0; row < res.rowCount; row++) {
+        final dept = res['dept'][row];
+        final role = res['role'][row];
+        if (dept == 'IT' && role == 'dev') {
+          check(res['salary_count'][row]).equals(2);
+          check(res['salary_mean'][row]).equals(110.0);
+          check(res['salary_var_'][row]).equals(200.0);
+          check(res['salary_median'][row]).equals(110.0);
+          final stdVal = res['salary_std'][row] as double;
+          check(stdVal).isCloseTo(math.sqrt(200.0), 1e-12);
+        } else if (dept == 'IT' && role == 'qa') {
+          check(res['salary_count'][row]).equals(1);
+          check(res['salary_mean'][row]).equals(90.0);
+          check(res['salary_var_'][row]).isNull();
+          check(res['salary_median'][row]).equals(90.0);
+          check(res['salary_std'][row]).equals(0.0);
+        } else if (dept == 'HR' && role == 'recruiter') {
+          check(res['salary_count'][row]).equals(2);
+          check(res['salary_mean'][row]).equals(60.0);
+          check(res['salary_var_'][row]).equals(200.0);
+          check(res['salary_median'][row]).equals(60.0);
+          final stdVal = res['salary_std'][row] as double;
+          check(stdVal).isCloseTo(math.sqrt(200.0), 1e-12);
+        }
+      }
+    });
+
+    test(
+      'handles negative values, all-identical values, and non-numeric columns',
+      () {
+        final df = DataFrame.fromColumns({
+          'group': [
+            'neg',
+            'neg',
+            'neg',
+            'ident',
+            'ident',
+            'ident',
+            'str',
+            'str',
+          ],
+          'val': [-30.0, -10.0, -20.0, 7.0, 7.0, 7.0, 'a', 'b'],
+        });
+
+        final res = df.groupBy(['group']).aggregate({
+          'val': [Agg.median, Agg.var_],
+        });
+
+        for (var row = 0; row < res.rowCount; row++) {
+          final g = res['group'][row];
+          if (g == 'neg') {
+            check(res['val_median'][row]).equals(-20.0);
+            check(res['val_var_'][row]).equals(100.0);
+          } else if (g == 'ident') {
+            check(res['val_median'][row]).equals(7.0);
+            check(res['val_var_'][row]).equals(0.0);
+          } else if (g == 'str') {
+            check(res['val_median'][row]).isNull();
+            check(res['val_var_'][row]).isNull();
+          }
+        }
+      },
+    );
+
+    test('propagates NaN in median and variance', () {
+      final df = DataFrame.fromColumns({
+        'group': ['nan_grp', 'nan_grp', 'nan_grp'],
+        'val': [1.0, double.nan, 3.0],
+      });
+
+      final res = df.groupBy(['group']).aggregate({
+        'val': [Agg.median, Agg.var_],
+      });
+
+      check((res['val_median'][0] as double).isNaN).isTrue();
+      check((res['val_var_'][0] as double).isNaN).isTrue();
+    });
+
+    test(
+      'computes median across randomized permutations of odd and even sizes',
+      () {
+        final rnd = math.Random(12345);
+        for (final n in [1, 2, 3, 4, 5, 7, 8, 10, 15, 16, 25, 30]) {
+          final values = List.generate(n, (_) => rnd.nextDouble() * 100.0);
+          final sorted = List<double>.from(values)..sort();
+          final expectedMedian = (sorted[(n - 1) ~/ 2] + sorted[n ~/ 2]) / 2.0;
+
+          final df = DataFrame.fromColumns({
+            'k': List.filled(n, 'g'),
+            'v': values,
+          });
+          final res = df.groupBy(['k']).aggregate({
+            'v': [Agg.median],
+          });
+          check(res['v_median'][0] as double).isCloseTo(expectedMedian, 1e-12);
+        }
+      },
+    );
   });
 }

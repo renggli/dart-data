@@ -257,7 +257,9 @@ This document describes the achieved architecture across all subsystems of `pack
     - Probes index using left table keys to support `inner`, `left`, `right`, and `outer` joins. Null keys never match in joins.
   - `GroupBy` engine (`lib/src/dataframe/groupby.dart`):
     - Partitions row indices into buckets based on composite key objects (`Map<Object?, List<int>>`).
-    - Aggregates groups across columns with `Agg.count`, `Agg.sum`, `Agg.mean`, `Agg.min`, `Agg.max`, `Agg.std`, `Agg.first`, and `Agg.last`.
+    - Aggregates groups across columns with `Agg.count`, `Agg.sum`, `Agg.mean`, `Agg.min`, `Agg.max`, `Agg.std`, `Agg.var_`, `Agg.median`, `Agg.first`, and `Agg.last`.
+    - Numerically stable single-pass Welford accumulators for sample variance (`Agg.var_`, with Bessel's correction $n - 1$, returning `null` when $n < 2$) and sample standard deviation (`Agg.std`).
+    - In-place Dutch National Flag 3-way Quickselect for median (`Agg.median`) operating on a reused group scratch buffer without temporary heap allocations.
 
 ### 4.5 Tabular Parsing (PetitParser), CSV/TSV Serialization & Container Conversions
 
