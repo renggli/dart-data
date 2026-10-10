@@ -173,51 +173,59 @@ void main() {
       check(tRoot.type).equals(DataType.int32);
     });
 
+    void checkNative(dynamic target, {required bool native}) {
+      if (NativeBuffer.isSupported && native) {
+        check(NativeBuffer.find(target)).isNotNull();
+      } else {
+        check(NativeBuffer.find(target)).isNull();
+      }
+    }
+
     test('Tensor, Matrix, and Vector respect native zone frames', () {
       DefaultDataType.withDefault(() {
         final t = Tensor.filled(1.0, shape: [2, 2]);
-        check(NativeBuffer.find(t.data)).isNotNull();
+        checkNative(t.data, native: true);
 
         final m = Matrix.filled(2, 2, 1.0);
-        check(NativeBuffer.find(m.tensor.data)).isNotNull();
+        checkNative(m.tensor.data, native: true);
 
         final v = Vector.filled(4, 1.0);
-        check(NativeBuffer.find(v.tensor.data)).isNotNull();
+        checkNative(v.tensor.data, native: true);
       }, native: true);
 
       DefaultDataType.withDefault(() {
         final t = Tensor.filled(1.0, shape: [2, 2]);
-        check(NativeBuffer.find(t.data)).isNull();
+        checkNative(t.data, native: false);
 
         final m = Matrix.filled(2, 2, 1.0);
-        check(NativeBuffer.find(m.tensor.data)).isNull();
+        checkNative(m.tensor.data, native: false);
 
         final v = Vector.filled(4, 1.0);
-        check(NativeBuffer.find(v.tensor.data)).isNull();
+        checkNative(v.tensor.data, native: false);
       }, native: false);
     });
 
     test('explicit native constructor parameter overrides zone defaults', () {
       DefaultDataType.withDefault(() {
         final tExplicitHeap = Tensor.filled(1.0, shape: [2, 2], native: false);
-        check(NativeBuffer.find(tExplicitHeap.data)).isNull();
+        checkNative(tExplicitHeap.data, native: false);
 
         final mExplicitHeap = Matrix.filled(2, 2, 1.0, native: false);
-        check(NativeBuffer.find(mExplicitHeap.tensor.data)).isNull();
+        checkNative(mExplicitHeap.tensor.data, native: false);
 
         final vExplicitHeap = Vector.filled(4, 1.0, native: false);
-        check(NativeBuffer.find(vExplicitHeap.tensor.data)).isNull();
+        checkNative(vExplicitHeap.tensor.data, native: false);
       }, native: true);
 
       DefaultDataType.withDefault(() {
         final tExplicitNative = Tensor.filled(1.0, shape: [2, 2], native: true);
-        check(NativeBuffer.find(tExplicitNative.data)).isNotNull();
+        checkNative(tExplicitNative.data, native: true);
 
         final mExplicitNative = Matrix.filled(2, 2, 1.0, native: true);
-        check(NativeBuffer.find(mExplicitNative.tensor.data)).isNotNull();
+        checkNative(mExplicitNative.tensor.data, native: true);
 
         final vExplicitNative = Vector.filled(4, 1.0, native: true);
-        check(NativeBuffer.find(vExplicitNative.tensor.data)).isNotNull();
+        checkNative(vExplicitNative.tensor.data, native: true);
       }, native: false);
     });
 
@@ -227,49 +235,49 @@ void main() {
         DefaultDataType.withDefault(() {
           // Tensor generate, fromIterable, fromObject
           final tGen = Tensor<double>.generate((k) => 1.0, shape: [2, 2]);
-          check(NativeBuffer.find(tGen.data)).isNotNull();
+          checkNative(tGen.data, native: true);
 
           final tFromIter = Tensor<double>.fromIterable([1.0, 2.0, 3.0]);
-          check(NativeBuffer.find(tFromIter.data)).isNotNull();
+          checkNative(tFromIter.data, native: true);
 
           final tFromObj = Tensor<double>.fromObject([
             [1.0, 2.0],
             [3.0, 4.0],
           ]);
-          check(NativeBuffer.find(tFromObj.data)).isNotNull();
+          checkNative(tFromObj.data, native: true);
 
           // Matrix generate, identity, fromRows, fromColumns, diagonal
           final mGen = Matrix<double>.generate(2, 2, (r, c) => 1.0);
-          check(NativeBuffer.find(mGen.tensor.data)).isNotNull();
+          checkNative(mGen.tensor.data, native: true);
 
           final mIdent = Matrix<double>.identity(3);
-          check(NativeBuffer.find(mIdent.tensor.data)).isNotNull();
+          checkNative(mIdent.tensor.data, native: true);
 
           final mRows = Matrix<double>.fromRows([
             [1.0, 2.0],
             [3.0, 4.0],
           ]);
-          check(NativeBuffer.find(mRows.tensor.data)).isNotNull();
+          checkNative(mRows.tensor.data, native: true);
 
           final mCols = Matrix<double>.fromColumns([
             [1.0, 2.0],
             [3.0, 4.0],
           ]);
-          check(NativeBuffer.find(mCols.tensor.data)).isNotNull();
+          checkNative(mCols.tensor.data, native: true);
 
           final diagVec = Vector<double>.filled(3, 2.0);
           final mDiag = Matrix<double>.diagonal(diagVec);
-          check(NativeBuffer.find(mDiag.tensor.data)).isNotNull();
+          checkNative(mDiag.tensor.data, native: true);
 
           // Vector generate, fromList, fromIterable
           final vGen = Vector<double>.generate(4, (i) => 1.0);
-          check(NativeBuffer.find(vGen.tensor.data)).isNotNull();
+          checkNative(vGen.tensor.data, native: true);
 
           final vList = Vector<double>.fromList([1.0, 2.0]);
-          check(NativeBuffer.find(vList.tensor.data)).isNotNull();
+          checkNative(vList.tensor.data, native: true);
 
           final vIter = Vector<double>.fromIterable([1.0, 2.0]);
-          check(NativeBuffer.find(vIter.tensor.data)).isNotNull();
+          checkNative(vIter.tensor.data, native: true);
 
           // Explicit overrides inside native: true zone
           final tGenHeap = Tensor<double>.generate(
@@ -277,15 +285,15 @@ void main() {
             shape: [2, 2],
             native: false,
           );
-          check(NativeBuffer.find(tGenHeap.data)).isNull();
+          checkNative(tGenHeap.data, native: false);
 
           final mRowsHeap = Matrix<double>.fromRows([
             [1.0, 2.0],
           ], native: false);
-          check(NativeBuffer.find(mRowsHeap.tensor.data)).isNull();
+          checkNative(mRowsHeap.tensor.data, native: false);
 
           final vListHeap = Vector<double>.fromList([1.0, 2.0], native: false);
-          check(NativeBuffer.find(vListHeap.tensor.data)).isNull();
+          checkNative(vListHeap.tensor.data, native: false);
         }, native: true);
       },
     );
@@ -293,15 +301,15 @@ void main() {
     test('non-typed container allocations in native zone succeed safely', () {
       DefaultDataType.withDefault(() {
         final tStr = Tensor<String>.filled('hello', shape: [2, 2]);
-        check(NativeBuffer.find(tStr.data)).isNull();
+        checkNative(tStr.data, native: false);
         check(tStr.getValue([0, 0])).equals('hello');
 
         final mStr = Matrix<String>.filled(2, 2, 'matrix');
-        check(NativeBuffer.find(mStr.tensor.data)).isNull();
+        checkNative(mStr.tensor.data, native: false);
         check(mStr.get(0, 0)).equals('matrix');
 
         final vStr = Vector<String>.filled(3, 'vector');
-        check(NativeBuffer.find(vStr.tensor.data)).isNull();
+        checkNative(vStr.tensor.data, native: false);
         check(vStr[0]).equals('vector');
       }, native: true);
     });
@@ -312,17 +320,17 @@ void main() {
         DefaultDataType.withDefault(() {
           check(DefaultDataType.isNative).isTrue();
           final t1 = Tensor.filled(1.0, shape: [2]);
-          check(NativeBuffer.find(t1.data)).isNotNull();
+          checkNative(t1.data, native: true);
 
           DefaultDataType.withDefault(() {
             check(DefaultDataType.isNative).isFalse();
             final t2 = Tensor.filled(1.0, shape: [2]);
-            check(NativeBuffer.find(t2.data)).isNull();
+            checkNative(t2.data, native: false);
           }, native: false);
 
           check(DefaultDataType.isNative).isTrue();
           final t3 = Tensor.filled(1.0, shape: [2]);
-          check(NativeBuffer.find(t3.data)).isNotNull();
+          checkNative(t3.data, native: true);
         }, native: true);
       },
     );
@@ -364,7 +372,7 @@ void main() {
 
             final tAsync = Tensor.filled(2.0, shape: [2, 2]);
             check(tAsync.type).equals(DataType.float32);
-            check(NativeBuffer.find(tAsync.data)).isNotNull();
+            checkNative(tAsync.data, native: true);
           },
           float: DataType.float32,
           native: true,
@@ -378,26 +386,26 @@ void main() {
     test('copyList respects native zone and explicit native parameter', () {
       DefaultDataType.withDefault(() {
         final listNative = DataType.float64.copyList([1.0, 2.0, 3.0]);
-        check(NativeBuffer.find(listNative)).isNotNull();
+        checkNative(listNative, native: true);
 
         final listExplicitHeap = DataType.float64.copyList([
           1.0,
           2.0,
           3.0,
         ], native: false);
-        check(NativeBuffer.find(listExplicitHeap)).isNull();
+        checkNative(listExplicitHeap, native: false);
       }, native: true);
 
       DefaultDataType.withDefault(() {
         final listHeap = DataType.float64.copyList([1.0, 2.0, 3.0]);
-        check(NativeBuffer.find(listHeap)).isNull();
+        checkNative(listHeap, native: false);
 
         final listExplicitNative = DataType.float64.copyList([
           1.0,
           2.0,
           3.0,
         ], native: true);
-        check(NativeBuffer.find(listExplicitNative)).isNotNull();
+        checkNative(listExplicitNative, native: true);
       }, native: false);
     });
   });
