@@ -611,3 +611,17 @@ This document describes the achieved architecture across all subsystems of `pack
     - Constructs an exact `Polynomial<T>` by evaluating Taylor series coefficients $c_k = \frac{f^{(k)}(x_0)}{k!}$.
     - For expansions around $x_0 = 0.0$, initializes coefficients directly into an array in $\mathcal{O}(order)$ without polynomial power multiplications.
     - For expansions around $x_0 \ne 0.0$, accumulates polynomial powers of $(x - x_0)$ using Horner and polynomial product operations.
+
+### 9.8 Symbolic Equation & Linear System Solving (`solve`, `solveSystem`)
+
+- **Reasoning**: Exact analytical resolution of algebraic equations and simultaneous linear systems directly from symbolic AST expressions.
+- **Implementation & Constraints**:
+  - `SolverExtension on Expr` in `lib/src/symbolic/solver.dart` provides `expr.solve(variable)`:
+    - Linear equations: Identifies affine forms $a x + b = 0$ via `matchLinear`, returning exact root $x = -b / a$.
+    - Quadratic equations: Identifies degree-2 forms $a x^2 + b x + c = 0$ via second derivative curvature analysis ($a = f''/2$, $b = f'(0)$, $c = f(0)$) and solves via discriminant formula $x = \frac{-b \pm \sqrt{b^2 - 4ac}}{2a}$ with real-root discrimination.
+    - Factored equations: Recursively partitions product nodes $f(x) \cdot g(x) = 0$ into component roots $\text{solve}(f) \cup \text{solve}(g)$.
+    - Transcendental isolation: Inverts elementary transcendental equations $f(u(x)) = c$ across $\exp, \ln, \text{pow}$, isolating inner arguments and recursively solving inverted forms.
+  - `SystemSolverExtension on Iterable<Expr>` in `lib/src/symbolic/solver.dart` provides `equations.solveSystem(variables)`:
+    - Solves square $N \times N$ linear systems $f_i(x_1, \dots, x_n) = 0$.
+    - Computes exact Jacobian matrix entries $A_{i, j} = \frac{\partial f_i}{\partial x_j}$ and constant vector $b_i = -f_i(\vec{0})$.
+    - Solves via symbolic Gaussian elimination with partial pivoting and back-substitution, returning `Map<String, Expr>` or `null` for singular systems.

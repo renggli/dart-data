@@ -10,3 +10,4 @@ export 'src/symbolic/calculus/taylor.dart';
 export 'src/symbolic/compiler.dart';
 export 'src/symbolic/latex.dart';
 export 'src/symbolic/simplifier.dart';
+export 'src/symbolic/solver.dart';
