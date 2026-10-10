@@ -139,4 +139,74 @@ extension ManipulationTensorExtension<T> on Tensor<T> {
     }
     return result;
   }
+
+  /// Splits this tensor into [parts] equal chunks along [axis].
+  ///
+  /// Throws [ArgumentError] if [parts] is not positive or if the dimension
+  /// along [axis] is not evenly divisible by [parts].
+  List<Tensor<T>> split(int parts, {int axis = 0}) {
+    if (parts <= 0) {
+      throw ArgumentError.value(
+        parts,
+        'parts',
+        'Number of parts must be positive',
+      );
+    }
+    final normAxis = axis < 0 ? axis + rank : axis;
+    if (normAxis < 0 || normAxis >= rank) {
+      throw RangeError.value(axis, 'axis', 'Axis out of bounds [0, $rank)');
+    }
+    final dim = shape[normAxis];
+    if (dim % parts != 0) {
+      throw ArgumentError(
+        'Dimension size ($dim) along axis $axis must be divisible by parts ($parts)',
+      );
+    }
+    final partSize = dim ~/ parts;
+    return List<Tensor<T>>.generate(parts, (i) {
+      final start = i * partSize;
+      return getRange(axis: normAxis, start: start, end: start + partSize);
+    });
+  }
+
+  /// Splits this tensor into chunks along [axis] with lengths given by [splitSizes].
+  ///
+  /// Throws [ArgumentError] if any size in [splitSizes] is negative or if the sum
+  /// of [splitSizes] does not match the dimension length along [axis].
+  List<Tensor<T>> splitWithSizes(List<int> splitSizes, {int axis = 0}) {
+    final normAxis = axis < 0 ? axis + rank : axis;
+    if (normAxis < 0 || normAxis >= rank) {
+      throw RangeError.value(axis, 'axis', 'Axis out of bounds [0, $rank)');
+    }
+    var sum = 0;
+    for (final size in splitSizes) {
+      if (size < 0) {
+        throw ArgumentError.value(
+          size,
+          'splitSizes',
+          'Split sizes must be non-negative',
+        );
+      }
+      sum += size;
+    }
+    final dim = shape[normAxis];
+    if (sum != dim) {
+      throw ArgumentError(
+        'Sum of splitSizes ($sum) must equal dimension size ($dim) along axis $axis',
+      );
+    }
+    final result = <Tensor<T>>[];
+    var currentOffset = 0;
+    for (final size in splitSizes) {
+      result.add(
+        getRange(
+          axis: normAxis,
+          start: currentOffset,
+          end: currentOffset + size,
+        ),
+      );
+      currentOffset += size;
+    }
+    return result;
+  }
 }

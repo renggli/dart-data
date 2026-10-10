@@ -92,6 +92,12 @@ This document describes the achieved architecture across all subsystems of `pack
     - `stack` / `stackAll`: Inserts a new dimension and concatenates along it.
     - `tile`: Replicates tensor dimensions periodically.
     - `pad`: Pads boundaries with specified constant values or boundary reflections.
+    - `split`: Divides a tensor along a specified axis into equal chunks as zero-copy views; validates positive chunk count and exact divisibility.
+    - `splitWithSizes`: Partitions a tensor along a specified axis into chunks matching given partition sizes as zero-copy views; validates non-negative sizes and exact size sum matching.
+  - Multi-axis strided slicing in `lib/src/tensor/layout.dart` and `lib/src/tensor/tensor.dart`:
+    - `Slice(start, end, step)`: Specifies range and stride per axis, with `Slice.all` selecting all elements.
+    - `Layout.slice(slices)` and `Tensor.slice(slices)`: Constructs zero-copy strided views recalculating `offset`, `shape`, `strides`, `length`, and `isContiguous`.
+    - Conforms to Python/NumPy slicing rules: supports positive and negative steps (reversals), open-ended bounds (`null`), negative indices wrapping relative to dimension length, and boundary clamping for out-of-bounds indices. Missing trailing slices default to `Slice.all`.
 
 ### 2.5 Batched Matrix Multiplication
 

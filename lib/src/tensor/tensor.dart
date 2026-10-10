@@ -228,6 +228,10 @@ class Tensor<T> {
         data: data,
       );
 
+  /// Returns a zero-copy strided multi-axis slice of this tensor.
+  Tensor<T> slice(List<Slice> slices) =>
+      Tensor<T>.internal(type: type, layout: layout.slice(slices), data: data);
+
   /// Creates a contiguous deep copy of this tensor.
   Tensor<T> copy({Tensor<T>? target}) {
     if (target != null) {

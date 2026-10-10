@@ -1,5 +1,38 @@
 import 'dart:typed_data';
 
+/// Range and step specification along an axis for multi-axis tensor slicing.
+class Slice {
+  /// Creates a slice with optional [start], [end], and [step].
+  const new([this.start, this.end, this.step = 1])
+    : assert(step != 0, 'Slice step cannot be zero');
+
+  /// A slice that selects all elements along an axis.
+  static const all = Slice();
+
+  /// Starting index along the axis (inclusive), or `null` for default.
+  final int? start;
+
+  /// Ending index along the axis (exclusive), or `null` for default.
+  final int? end;
+
+  /// Stride step along the axis. Defaults to 1. Cannot be 0.
+  final int step;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is Slice &&
+          other.start == start &&
+          other.end == end &&
+          other.step == step;
+
+  @override
+  int get hashCode => Object.hash(start, end, step);
+
+  @override
+  String toString() => 'Slice($start, $end, $step)';
+}
+
 /// Immutable multi-dimensional layout descriptor with strided coordinate mapping.
 class Layout {
   factory({Iterable<int>? shape, Iterable<int>? strides, int offset = 0}) {
@@ -260,6 +293,83 @@ class Layout {
     newShape[normAxis] = count;
     newStrides[normAxis] = strides[normAxis] * step;
     final newOffset = offset + startIdx * strides[normAxis];
+
+    return Layout(shape: newShape, strides: newStrides, offset: newOffset);
+  }
+
+  /// Returns a strided sub-layout specified by [slices] along each axis.
+  ///
+  /// Missing trailing slices default to [Slice.all]. Negative indices wrap around
+  /// from the end of the dimension, and out-of-bounds indices are clamped conforming
+  /// to Python/NumPy slicing rules.
+  Layout slice(List<Slice> slices) {
+    if (slices.length > rank) {
+      throw ArgumentError(
+        'Number of slices (${slices.length}) cannot exceed rank ($rank)',
+      );
+    }
+    var newOffset = offset;
+    final newShape = List<int>.filled(rank, 0);
+    final newStrides = List<int>.filled(rank, 0);
+
+    for (var i = 0; i < rank; i++) {
+      final slice = i < slices.length ? slices[i] : Slice.all;
+      final step = slice.step;
+      if (step == 0) {
+        throw ArgumentError.value(step, 'step', 'Slice step cannot be zero');
+      }
+
+      final dim = shape[i];
+      final stride = strides[i];
+      int startIdx;
+      int endIdx;
+      int count;
+
+      if (step > 0) {
+        if (slice.start == null) {
+          startIdx = 0;
+        } else {
+          startIdx = slice.start! < 0 ? slice.start! + dim : slice.start!;
+          if (startIdx < 0) startIdx = 0;
+          if (startIdx > dim) startIdx = dim;
+        }
+
+        if (slice.end == null) {
+          endIdx = dim;
+        } else {
+          endIdx = slice.end! < 0 ? slice.end! + dim : slice.end!;
+          if (endIdx < 0) endIdx = 0;
+          if (endIdx > dim) endIdx = dim;
+        }
+
+        count = startIdx >= endIdx ? 0 : (endIdx - startIdx + step - 1) ~/ step;
+      } else {
+        if (slice.start == null) {
+          startIdx = dim - 1;
+        } else {
+          startIdx = slice.start! < 0 ? slice.start! + dim : slice.start!;
+          if (startIdx < -1) startIdx = -1;
+          if (startIdx >= dim) startIdx = dim - 1;
+        }
+
+        if (slice.end == null) {
+          endIdx = -1;
+        } else {
+          endIdx = slice.end! < 0 ? slice.end! + dim : slice.end!;
+          if (endIdx < -1) endIdx = -1;
+          if (endIdx >= dim) endIdx = dim - 1;
+        }
+
+        final s = -step;
+        count = startIdx <= endIdx ? 0 : (startIdx - endIdx + s - 1) ~/ s;
+      }
+
+      newShape[i] = count;
+      newStrides[i] = stride * step;
+      if (count > 0) {
+        newOffset += startIdx * stride;
+      }
+    }
 
     return Layout(shape: newShape, strides: newStrides, offset: newOffset);
   }
