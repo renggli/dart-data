@@ -6,6 +6,7 @@ import '../tensor/tensor.dart';
 import 'csv/csv_reader.dart';
 import 'csv/csv_writer.dart';
 import 'groupby.dart';
+import 'json.dart';
 import 'series.dart';
 
 /// 2-dimensional heterogeneous tabular data structure.
@@ -52,6 +53,19 @@ class DataFrame {
   /// Parses a CSV string into a DataFrame.
   factory fromCsv(String csv, {String separator = ',', bool header = true}) =>
       CsvReader.parse(csv, separator: separator, header: header);
+
+  /// Parses a JSON string into a DataFrame.
+  factory fromJson(
+    String source, {
+    JsonOrient? orient,
+    Map<String, DataType<dynamic>>? columnTypes,
+  }) => DataFrameJson.decode(source, orient: orient, columnTypes: columnTypes);
+
+  /// Constructs a DataFrame from an iterable of record maps.
+  factory fromRecords(
+    Iterable<Map<String, dynamic>> records, {
+    Map<String, DataType<dynamic>>? columnTypes,
+  }) => DataFrameJson.fromRecords(records, columnTypes: columnTypes);
 
   /// Number of rows.
   final int rowCount;
@@ -269,6 +283,13 @@ class DataFrame {
   /// Serializes DataFrame to CSV format.
   String toCsv({String separator = ','}) =>
       CsvWriter.write(this, separator: separator);
+
+  /// Serializes DataFrame to JSON format.
+  String toJson({JsonOrient orient = JsonOrient.records}) =>
+      DataFrameJson.encode(this, orient: orient);
+
+  /// Converts DataFrame rows to a list of record maps.
+  List<Map<String, dynamic>> toRecords() => DataFrameJson.toRecords(this);
 
   @override
   String toString() {

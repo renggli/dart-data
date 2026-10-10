@@ -280,6 +280,22 @@ This document describes the achieved architecture across all subsystems of `pack
     - Bulk column copy fast-path: For non-null `TypedSeries<double>` columns, single columns are copied via `Float64List.setRange`, while multi-column selections use sequential flat buffer indexing without heap `List<int>` coordinate allocations.
     - Fallback paths preserve compatibility for mixed integer types, nullable columns, and general series.
 
+### 4.6 JSON Import & Export Serialization (`lib/src/dataframe/json.dart`)
+
+- **Reasoning**: Web APIs, cloud data pipelines, and microservices exchange tabular data in standard JSON orientations. High-performance JSON interchange requires robust support for both array-of-objects, split columnar payloads, nested column-map orientations, and pure matrix values with clean null handling and type inference.
+- **Implementation & Constraints**:
+  - `JsonOrient` enumeration:
+    - `records`: List of row objects `[{"col1": v1, "col2": v2}, ...]`.
+    - `split`: Payload object `{"columns": ["col1", "col2"], "data": [[v1, v2], ...]}` separating schema from matrix data.
+    - `columns`: Map of column arrays `{"col1": [v1, v2], ...}` or row-indexed maps `{"col1": {"0": v1, "1": v2}}` (supporting non-sequential indices and string index labels).
+    - `values_`: 2D array of rows `[[v1, v2], ...]`, defaulting column names to `col_0`, `col_1`, ... or custom names defined via `columnTypes`.
+  - Auto-detection:
+    - Automatically determines orientation when `orient` is omitted: root `List` of `Map` -> `records`, root `List` of `List` -> `values_`, root `Map` with `'columns'` and 2D `'data'` -> `split`, other root `Map` -> `columns`.
+  - Type-safe deserialization:
+    - Automatic type inference (`Series.fromList`) with optional explicit `columnTypes: Map<String, DataType<dynamic>>` parameter. Non-null values are automatically coerced using `DataType.cast`.
+    - Full null tracking preserved across all orientations with underlying `ValidityMask`.
+  - Zero-overhead record extraction: `df.toRecords()` and `DataFrame.fromRecords` provide direct in-memory record conversions without JSON string encoding round-trips.
+
 ---
 
 ## 5. Hardware Acceleration & FFI Subsystem (`lib/src/hardware/`)
