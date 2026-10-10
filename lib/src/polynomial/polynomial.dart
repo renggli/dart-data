@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 
 import '../../linear.dart';
+import '../../symbolic.dart';
 import '../../type.dart';
 
 /// 1-dimensional algebraic polynomial with coefficients in [T].
@@ -52,6 +53,72 @@ class Polynomial<T> {
       result = result * factor;
     }
     return result;
+  }
+
+  /// Constructs a polynomial from a symbolic [expr] by computing its Taylor expansion
+  /// with respect to [variable] up to [order] around [around].
+  factory fromExpr(
+    Expr expr,
+    String variable, {
+    double around = 0.0,
+    int order = 4,
+    DataType<T>? type,
+  }) {
+    final effectiveType = (type ?? DataType.float64) as DataType<T>;
+    final field = effectiveType.field;
+    if (order < 0) {
+      return Polynomial<T>.zero(type: effectiveType);
+    }
+    if (around == 0.0) {
+      final coeffs = List<T>.filled(order + 1, field.additiveIdentity);
+      var currentDeriv = expr;
+      var factorial = 1.0;
+      for (var k = 0; k <= order; k++) {
+        if (k > 0) {
+          currentDeriv = currentDeriv.diff(variable);
+          factorial *= k;
+        }
+        final valExpr = currentDeriv
+            .substitute(variable, const Constant(0.0))
+            .simplify();
+        final val = valExpr is Constant
+            ? valExpr.value
+            : valExpr.evaluate(const {});
+        coeffs[k] = effectiveType.cast(val / factorial);
+      }
+      return Polynomial<T>.fromCoefficients(coeffs, type: effectiveType);
+    } else {
+      var result = Polynomial<T>.zero(type: effectiveType);
+      final xMinusA = Polynomial<T>.fromCoefficients([
+        effectiveType.cast(-around),
+        field.multiplicativeIdentity,
+      ], type: effectiveType);
+      var currentPower = Polynomial<T>.fromCoefficients([
+        field.multiplicativeIdentity,
+      ], type: effectiveType);
+      var currentDeriv = expr;
+      var factorial = 1.0;
+      for (var k = 0; k <= order; k++) {
+        if (k > 0) {
+          currentDeriv = currentDeriv.diff(variable);
+          factorial *= k;
+        }
+        final valExpr = currentDeriv
+            .substitute(variable, Constant(around))
+            .simplify();
+        final val = valExpr is Constant
+            ? valExpr.value
+            : valExpr.evaluate(const {});
+        final coeff = effectiveType.cast(val / factorial);
+        if (coeff != field.additiveIdentity) {
+          result = result + currentPower.scale(coeff);
+        }
+        if (k < order) {
+          currentPower = currentPower * xMinusA;
+        }
+      }
+      return result;
+    }
   }
 
   /// The data type of the coefficients.

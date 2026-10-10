@@ -28,19 +28,58 @@ extension CompilerExtension on Expr {
     final varIndices = {
       for (var i = 0; i < varOrder.length; i++) varOrder[i]: i,
     };
-    final evaluator = _buildPositionalEvaluator(simplified, varIndices);
+    final instructions = <_Instruction>[];
+    _flattenToRpn(simplified, varIndices, instructions);
+    final maxStack = _computeMaxStack(instructions);
 
     return (List<Float64List> inputs, Float64List output) {
       final len = output.length;
-      final argCount = inputs.length;
-      final currentArgs = List<double>.filled(argCount, 0.0);
+      final stack = Float64List(maxStack);
+      final instrs = instructions;
+      final numInstrs = instrs.length;
 
-      // Single contiguous loop - zero Map lookups, zero object allocations
       for (var i = 0; i < len; i++) {
-        for (var argIdx = 0; argIdx < argCount; argIdx++) {
-          currentArgs[argIdx] = inputs[argIdx][i];
+        var sp = 0;
+        for (var pc = 0; pc < numInstrs; pc++) {
+          final instr = instrs[pc];
+          switch (instr.op) {
+            case _Op.pushConst:
+              stack[sp++] = instr.constValue;
+            case _Op.loadVar:
+              stack[sp++] = inputs[instr.varIndex][i];
+            case _Op.add:
+              final b = stack[--sp];
+              final a = stack[--sp];
+              stack[sp++] = a + b;
+            case _Op.sub:
+              final b = stack[--sp];
+              final a = stack[--sp];
+              stack[sp++] = a - b;
+            case _Op.mul:
+              final b = stack[--sp];
+              final a = stack[--sp];
+              stack[sp++] = a * b;
+            case _Op.div:
+              final b = stack[--sp];
+              final a = stack[--sp];
+              stack[sp++] = a / b;
+            case _Op.pow:
+              final b = stack[--sp];
+              final a = stack[--sp];
+              stack[sp++] = math.pow(a, b).toDouble();
+            case _Op.neg:
+              stack[sp - 1] = -stack[sp - 1];
+            case _Op.sin:
+              stack[sp - 1] = math.sin(stack[sp - 1]);
+            case _Op.cos:
+              stack[sp - 1] = math.cos(stack[sp - 1]);
+            case _Op.exp:
+              stack[sp - 1] = math.exp(stack[sp - 1]);
+            case _Op.ln:
+              stack[sp - 1] = math.log(stack[sp - 1]);
+          }
         }
-        output[i] = evaluator(currentArgs);
+        output[i] = stack[0];
       }
     };
   }
@@ -155,3 +194,87 @@ double Function(List<double> args) _buildPositionalEvaluator(
     return (List<double> args) => math.log(fn(args));
   }(),
 };
+
+void _flattenToRpn(
+  Expr expr,
+  Map<String, int> varIndices,
+  List<_Instruction> instructions,
+) {
+  switch (expr) {
+    case Constant(:final value):
+      instructions.add(_Instruction.pushConst(value));
+    case Variable(:final name):
+      final idx = varIndices[name];
+      if (idx == null) {
+        throw ArgumentError('Unbound variable: $name');
+      }
+      instructions.add(_Instruction.loadVar(idx));
+    case Add(:final left, :final right):
+      _flattenToRpn(left, varIndices, instructions);
+      _flattenToRpn(right, varIndices, instructions);
+      instructions.add(const _Instruction.op(_Op.add));
+    case Sub(:final left, :final right):
+      _flattenToRpn(left, varIndices, instructions);
+      _flattenToRpn(right, varIndices, instructions);
+      instructions.add(const _Instruction.op(_Op.sub));
+    case Mul(:final left, :final right):
+      _flattenToRpn(left, varIndices, instructions);
+      _flattenToRpn(right, varIndices, instructions);
+      instructions.add(const _Instruction.op(_Op.mul));
+    case Div(:final left, :final right):
+      _flattenToRpn(left, varIndices, instructions);
+      _flattenToRpn(right, varIndices, instructions);
+      instructions.add(const _Instruction.op(_Op.div));
+    case Pow(:final base, :final exponent):
+      _flattenToRpn(base, varIndices, instructions);
+      _flattenToRpn(exponent, varIndices, instructions);
+      instructions.add(const _Instruction.op(_Op.pow));
+    case Neg(:final expr):
+      _flattenToRpn(expr, varIndices, instructions);
+      instructions.add(const _Instruction.op(_Op.neg));
+    case Sin(:final expr):
+      _flattenToRpn(expr, varIndices, instructions);
+      instructions.add(const _Instruction.op(_Op.sin));
+    case Cos(:final expr):
+      _flattenToRpn(expr, varIndices, instructions);
+      instructions.add(const _Instruction.op(_Op.cos));
+    case Exp(:final expr):
+      _flattenToRpn(expr, varIndices, instructions);
+      instructions.add(const _Instruction.op(_Op.exp));
+    case Ln(:final expr):
+      _flattenToRpn(expr, varIndices, instructions);
+      instructions.add(const _Instruction.op(_Op.ln));
+  }
+}
+
+int _computeMaxStack(List<_Instruction> instructions) {
+  var current = 0;
+  var maxDepth = 0;
+  for (final instr in instructions) {
+    switch (instr.op) {
+      case _Op.pushConst || _Op.loadVar:
+        current++;
+      case _Op.add || _Op.sub || _Op.mul || _Op.div || _Op.pow:
+        current--;
+      case _Op.neg || _Op.sin || _Op.cos || _Op.exp || _Op.ln:
+        break;
+    }
+    if (current > maxDepth) {
+      maxDepth = current;
+    }
+  }
+  return math.max(maxDepth, 1);
+}
+
+enum _Op { pushConst, loadVar, add, sub, mul, div, pow, neg, sin, cos, exp, ln }
+
+final class _Instruction {
+  const new _(this.op, this.constValue, this.varIndex);
+  const new pushConst(double val) : this._(_Op.pushConst, val, 0);
+  const new loadVar(int idx) : this._(_Op.loadVar, 0.0, idx);
+  const new op(_Op op) : this._(op, 0.0, 0);
+
+  final _Op op;
+  final double constValue;
+  final int varIndex;
+}

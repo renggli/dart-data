@@ -8,4 +8,5 @@ export 'src/symbolic/calculus/linear_form.dart';
 export 'src/symbolic/calculus/multivariable.dart';
 export 'src/symbolic/calculus/taylor.dart';
 export 'src/symbolic/compiler.dart';
+export 'src/symbolic/latex.dart';
 export 'src/symbolic/simplifier.dart';

@@ -414,7 +414,7 @@ void main() {
     test('Taylor series expansion of exp(x)', () {
       const x = Variable('x');
       const expr = Exp(x);
-      final taylor = expr.taylorSeries('x', point: 0.0, order: 4);
+      final taylor = expr.taylorSeries('x', around: 0.0, order: 4);
 
       final fn = taylor.compile1D('x');
       check(fn(0.5)).isCloseTo(1.6484375, 1e-4);

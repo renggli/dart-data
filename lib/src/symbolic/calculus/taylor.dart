@@ -4,20 +4,20 @@ import 'differentiation.dart';
 
 /// Taylor series polynomial expansion extension on [Expr].
 extension TaylorExtension on Expr {
-  /// Computes the Taylor series expansion of this expression around [point] up to [order].
-  Expr taylorSeries(String variable, {double point = 0.0, int order = 4}) =>
-      _computeTaylorSeries(this, variable, point: point, order: order);
+  /// Computes the Taylor series expansion of this expression around [around] up to [order].
+  Expr taylorSeries(String variable, {double around = 0.0, int order = 4}) =>
+      _computeTaylorSeries(this, variable, around: around, order: order);
 }
 
 Expr _computeTaylorSeries(
   Expr function,
   String variable, {
-  double point = 0.0,
+  double around = 0.0,
   int order = 4,
 }) {
   final x = Variable(variable);
-  final a = Constant(point);
-  final delta = Sub(x, a);
+  final a = Constant(around);
+  final delta = around == 0.0 ? x : Sub(x, a);
 
   var currentDeriv = function;
   var result = currentDeriv.substitute(variable, a).simplify();
@@ -29,7 +29,7 @@ Expr _computeTaylorSeries(
     final termVal = currentDeriv.substitute(variable, a).simplify();
     final polyTerm = Mul(
       Div(termVal, Constant(factorial)),
-      Pow(delta, Constant(step.toDouble())),
+      step == 1 ? delta : Pow(delta, Constant(step.toDouble())),
     );
     result = Add(result, polyTerm).simplify();
   }

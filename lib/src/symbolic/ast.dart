@@ -16,9 +16,6 @@ sealed class Expr {
   /// Evaluates this expression using the variable values in [context].
   double evaluate(Map<String, double> context);
 
-  /// Formats this expression into LaTeX math syntax.
-  String toLatex();
-
   Expr operator +(Object other) => Add(this, _wrap(other));
   Expr operator -(Object other) => Sub(this, _wrap(other));
   Expr operator *(Object other) => Mul(this, _wrap(other));
@@ -56,9 +53,6 @@ final class Variable extends Expr {
   }
 
   @override
-  String toLatex() => name;
-
-  @override
   String toString() => name;
 
   @override
@@ -85,9 +79,6 @@ final class Constant extends Expr {
 
   @override
   double evaluate(Map<String, double> context) => value;
-
-  @override
-  String toLatex() => toString();
 
   @override
   String toString() =>
@@ -127,9 +118,6 @@ final class Add extends Expr {
       left.evaluate(context) + right.evaluate(context);
 
   @override
-  String toLatex() => '${left.toLatex()} + ${right.toLatex()}';
-
-  @override
   String toString() => '($left + $right)';
 
   @override
@@ -165,9 +153,6 @@ final class Sub extends Expr {
   @override
   double evaluate(Map<String, double> context) =>
       left.evaluate(context) - right.evaluate(context);
-
-  @override
-  String toLatex() => '${left.toLatex()} - ${right.toLatex()}';
 
   @override
   String toString() => '($left - $right)';
@@ -207,9 +192,6 @@ final class Mul extends Expr {
       left.evaluate(context) * right.evaluate(context);
 
   @override
-  String toLatex() => '${left.toLatex()} \\cdot ${right.toLatex()}';
-
-  @override
   String toString() => '($left * $right)';
 
   @override
@@ -245,9 +227,6 @@ final class Div extends Expr {
   @override
   double evaluate(Map<String, double> context) =>
       left.evaluate(context) / right.evaluate(context);
-
-  @override
-  String toLatex() => '\\frac{${left.toLatex()}}{${right.toLatex()}}';
 
   @override
   String toString() => '($left / $right)';
@@ -288,9 +267,6 @@ final class Pow extends Expr {
       math.pow(base.evaluate(context), exponent.evaluate(context)).toDouble();
 
   @override
-  String toLatex() => '{${base.toLatex()}}^{${exponent.toLatex()}}';
-
-  @override
   String toString() => '($base ^ $exponent)';
 
   @override
@@ -319,9 +295,6 @@ final class Neg extends Expr {
 
   @override
   double evaluate(Map<String, double> context) => -expr.evaluate(context);
-
-  @override
-  String toLatex() => '-${expr.toLatex()}';
 
   @override
   String toString() => '(-$expr)';
@@ -354,9 +327,6 @@ final class Sin extends Expr {
       math.sin(expr.evaluate(context));
 
   @override
-  String toLatex() => '\\sin(${expr.toLatex()})';
-
-  @override
   String toString() => 'sin($expr)';
 
   @override
@@ -385,9 +355,6 @@ final class Cos extends Expr {
   @override
   double evaluate(Map<String, double> context) =>
       math.cos(expr.evaluate(context));
-
-  @override
-  String toLatex() => '\\cos(${expr.toLatex()})';
 
   @override
   String toString() => 'cos($expr)';
@@ -420,9 +387,6 @@ final class Exp extends Expr {
       math.exp(expr.evaluate(context));
 
   @override
-  String toLatex() => 'e^{${expr.toLatex()}}';
-
-  @override
   String toString() => 'exp($expr)';
 
   @override
@@ -451,9 +415,6 @@ final class Ln extends Expr {
   @override
   double evaluate(Map<String, double> context) =>
       math.log(expr.evaluate(context));
-
-  @override
-  String toLatex() => '\\ln(${expr.toLatex()})';
 
   @override
   String toString() => 'ln($expr)';

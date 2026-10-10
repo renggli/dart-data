@@ -480,7 +480,7 @@ This document describes the achieved architecture across all subsystems of `pack
   - `CompilerExtension on Expr` in `lib/src/symbolic/compiler.dart` provides:
     - `compile1D(varName)`: Produces a high-speed closure `double Function(double)`.
     - `compile(varOrder)`: Produces a multivariate closure `double Function(List<double>)`.
-    - `compileTensorKernel(varOrder)`: Compiles an optimized tensor evaluation loop that reuses an internal argument buffer, evaluating symbolic expressions across entire tensors without heap allocations inside the loop.
+    - `compileTensorKernel(varOrder)`: Compiles the simplified AST into a linear instruction sequence (flattened post-order RPN bytecode evaluator) over a single pre-allocated `Float64List` stack. Bypasses recursive closure call overhead and intermediate argument buffers, executing flat-loop vectorized evaluations directly from input buffers to output buffer.
 
 ### 9.5 Symbolic-to-Numeric Synergy
 
@@ -497,7 +497,7 @@ This document describes the achieved architecture across all subsystems of `pack
     - `IntegrationExtension on Expr` in `lib/src/symbolic/calculus/integration.dart` provides `integrate(variable, {from, to})`.
     - `MultivariableExtension on Expr` in `lib/src/symbolic/calculus/multivariable.dart` provides `gradient(variables)` and `hessian(variables)`.
     - `MultivariableIterableExtension on Iterable<Expr>` in `lib/src/symbolic/calculus/multivariable.dart` provides `jacobian(variables)`.
-    - `TaylorExtension on Expr` in `lib/src/symbolic/calculus/taylor.dart` provides `taylorSeries(variable, {point, order})`.
+    - `TaylorExtension on Expr` in `lib/src/symbolic/calculus/taylor.dart` provides `taylorSeries(variable, {around, order})`.
     - `DifferentiationExtension on Expr` in `lib/src/symbolic/calculus/differentiation.dart` provides `diff(variable)`.
     - `LinearFormExtension on Expr` in `lib/src/symbolic/calculus/linear_form.dart` provides `matchLinear(variable)`, `matchScalarMultiple(target, variable)`, and `scale(factor)`.
     - **Analytical Anti-Differentiation Rules**:
@@ -513,3 +513,17 @@ This document describes the achieved architecture across all subsystems of `pack
     - Evaluates analytical anti-derivative $F(b) - F(a)$. If free variables remain, returns the simplified symbolic expression; if scalar, returns `Constant(val)`.
     - If no closed-form anti-derivative exists (throws `UnsupportedError`) or evaluation is non-finite, automatically falls back to Adaptive Gauss-Kronrod quadrature (`gaussKronrod`) from `lib/src/numeric/integration.dart`.
     - For indefinite integrals, unsupported forms throw `UnsupportedError`.
+
+### 9.7 LaTeX Serialization & Taylor Series Polynomial Bridge
+
+- **Reasoning**: Bridging symbolic mathematics to publication-grade document generation and high-performance polynomial algebra.
+- **Implementation & Constraints**:
+  - `LatexExtension on Expr` in `lib/src/symbolic/latex.dart` provides `toLatex()`, rendering publication-grade LaTeX math syntax via pattern matching:
+    - Fractions formatted with `\frac{left}{right}` without extraneous outer parentheses on numerator or denominator.
+    - Multiplication formatted with `\cdot` with precedence parentheses wrapping additive operands.
+    - Exponentiation formatted with `{base}^{exp}` with automatic base wrapping for compound bases.
+    - Transcendentals formatted using LaTeX math operators (`\sin(...)`, `\cos(...)`, `e^{...}`, `\ln(...)`).
+  - `Polynomial.fromExpr(expr, variable, {around = 0.0, order = 4, type})` in `lib/src/polynomial/polynomial.dart`:
+    - Constructs an exact `Polynomial<T>` by evaluating Taylor series coefficients $c_k = \frac{f^{(k)}(x_0)}{k!}$.
+    - For expansions around $x_0 = 0.0$, initializes coefficients directly into an array in $\mathcal{O}(order)$ without polynomial power multiplications.
+    - For expansions around $x_0 \ne 0.0$, accumulates polynomial powers of $(x - x_0)$ using Horner and polynomial product operations.
