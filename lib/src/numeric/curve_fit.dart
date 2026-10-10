@@ -68,13 +68,20 @@ Vector<double> leastSquares(Matrix<num> a, Vector<num> b) {
       );
     }
   }
+  final bDouble = b is Vector<double>
+      ? b
+      : Vector<double>.generate(
+          b.length,
+          (i) => b.getUnchecked(i).toDouble(),
+          type: DataType.float64,
+        );
   if (rows >= cols) {
     final qr = a.qr;
     if (qr.isFullRank) {
-      return qr.solveVector(b);
+      return qr.solveVector(bDouble);
     }
   }
-  return a.svd.solveVector(b);
+  return a.svd.solveVector(bDouble);
 }
 
 /// Simple univariate linear regression fitting $y = \text{slope} \cdot x + \text{intercept}$.

@@ -129,10 +129,11 @@ This document describes the achieved architecture across all subsystems of `pack
 - **Implementation & Constraints**:
   - `Matrix<T>` wraps a `Tensor<T>` where `rank == 2`. Dimensions are `rowCount = shape[0]` and `colCount = shape[1]`.
   - `Vector<T>` wraps a `Tensor<T>` where `rank == 1`. Dimension is `count = shape[0]`.
-  - Operations like `matrix.transpose()`, `matrix.row(i)`, `matrix.col(j)`, and `matrix.diagonal()` return zero-copy views backed by the original tensor memory.
+  - Operations like `matrix.transpose()`, `matrix.conjugateTranspose`, `matrix.row(i)`, `matrix.col(j)`, and `matrix.diagonal()` return views or conjugated adjoints backed by the underlying tensor elements.
   - **Trace & Diagonal Extraction**:
     - `matrix.diagonal()` returns a zero-copy 1D view of the main diagonal.
     - `matrix.trace` sums main diagonal elements $A_{ii}$ for square matrices, returning `T` via `type.field.add` and throwing `ArgumentError` if non-square ($M \ne N$). The property is unified strictly on `Matrix<T>`, eliminating shadowing from `MatrixNormExtension`.
+    - `matrix.conjugateTranspose` computes the Hermitian adjoint $A^* = (\bar{A})^T$ mapping elements through `type.field.conjugate`.
   - **Direct Fast-Path Indexing**:
     - `Tensor.get2D(r, c)`, `Tensor.set2D(r, c, v)`, `Tensor.get1D(idx)`, and `Tensor.set1D(idx, v)` provide `@pragma('vm:prefer-inline')` unchecked scalar access without heap `List<int>` coordinate allocations.
     - `Matrix<T>` provides `getUnchecked(row, col)` and `setUnchecked(row, col, value)` for performance-critical inner loops (factorizations, transformations), alongside bounds-checked `get(row, col)`, `set(row, col, value)`, and Dart 3 record indexing `operator []((int, int))` / `operator []=((int, int), value)`.
@@ -180,16 +181,23 @@ This document describes the achieved architecture across all subsystems of `pack
   - `gmres`: Generalized Minimal Residual method with restart parameter $m$ (GMRES(m)) and Arnoldi modified Gram-Schmidt orthogonalization for general non-symmetric square systems.
   - Iterative solvers consume any `LinearOperator<T>`, executing without forming or modifying matrix entries.
 
-### 3.5 Dense Matrix Decompositions (`MatrixDecompositionExtension<T extends num>`)
+### 3.5 Dense Matrix Decompositions (Modular Decomposition Extensions)
 
-- **Reasoning**: Direct matrix factorizations provide exact solutions, determinants, inverses, and condition numbers for dense linear systems. Defining decompositions via an extension on `Matrix<T extends num>` guarantees compile-time type safety for numeric matrices (`Matrix<double>`, `Matrix<int>`) while eliminating unsafe runtime downcasts (`this as Matrix<num>`).
+- **Reasoning**: Direct matrix factorizations provide exact solutions, determinants, inverses, and condition numbers for dense linear systems. Defining decompositions via modular typed extensions at the top of each algorithm file guarantees compile-time type safety while eliminating unsafe runtime downcasts and keeping `matrix.dart` decoupled from specific decomposition algorithms.
 - **Implementation & Constraints**:
-  - **Type-Safe Extension**: Factorization getters (`lu`, `qr`, `cholesky`, `svd`, `eigenvalue`) are declared in `MatrixDecompositionExtension<T extends num> on Matrix<T>` in `lib/src/linear/matrix.dart` (exported via `package:data/linear.dart`).
-  - **LU Decomposition (`LU`)**: Doolittle algorithm with partial pivoting ($P A = L U$). Provides determinant computation and triangular back-substitution solves.
-  - **QR Decomposition (`QR`)**: Householder reflector transformations yielding orthogonal $Q$ and upper-triangular $R$. Provides full-rank least-squares solves.
-  - **Cholesky Factorization (`Cholesky`)**: $A = L L^T$ for symmetric positive-definite matrices, executing in $\frac{1}{3} N^3$ operations ($2\times$ faster than LU).
-  - **Singular Value Decomposition (`SVD`)**: Golub-Reinsch bidiagonalization with implicit QR shifts computing $A = U \Sigma V^T$. Provides pseudo-inverses, rank estimation, and singular value inspection.
-  - **Eigenvalue Decomposition (`Eigenvalue`)**: Reduction to Hessenberg form followed by Francis shifted double-step QR algorithm computing real and complex eigenvalues/eigenvectors.
+  - **Modular Type-Safe Extensions**: Factorization entry points are declared at the top of their dedicated decomposition files in `lib/src/linear/decomposition/` and exported via `package:data/linear.dart`:
+    - `CholeskyMatrixExtension<T extends num>`, `CholeskyComplexMatrixExtension` in `cholesky.dart` (`.cholesky`)
+    - `LuMatrixExtension<T extends num>`, `LuComplexMatrixExtension` in `lu.dart` (`.lu`)
+    - `QrMatrixExtension<T extends num>`, `QrComplexMatrixExtension` in `qr.dart` (`.qr`)
+    - `SvdMatrixExtension<T extends num>` in `svd.dart` (`.svd`)
+    - `EigenvalueMatrixExtension<T extends num>` in `eigenvalue.dart` (`.eigenvalue`)
+  - **Generic Decomposition Classes**: `LUDecomposition<T>`, `QRDecomposition<T>`, and `CholeskyDecomposition<T>` execute specialized primitive double fast-paths when `type == DataType.float64` and generic algebraic field operations via `type.field` for general scalar fields (including `Complex`).
+  - **LU Decomposition (`LUDecomposition<T>`)**: Doolittle algorithm with partial row pivoting ($P A = L U$) based on modulus norm (`field.norm`). Provides determinant computation and triangular back-substitution solves for both real and complex fields.
+  - **QR Decomposition (`QRDecomposition<T>`)**: Complex Householder reflector transformations yielding unitary/orthogonal $Q$ ($Q^* Q = I$) and upper-triangular $R$. Uses phase factor $\mu = x_k / |x_k|$ to guarantee numerical stability and provides full-rank least-squares solves via canonical `solve(Matrix<T> b)` and `solveVector(Vector<T> b)`.
+  - **Cholesky Factorization (`CholeskyDecomposition<T>`)**: $A = L L^*$ for symmetric/Hermitian positive-definite matrices, executing in $\frac{1}{3} N^3$ operations ($2\times$ faster than LU). Enforces strictly positive real diagonal entries $L_{ii} > 0$ and verifies Hermitian symmetry $A_{kj} = \overline{A_{jk}}$.
+  - **Singular Value Decomposition (`SingularValueDecomposition`)**: Golub-Reinsch bidiagonalization with implicit QR shifts computing $A = U \Sigma V^T$. Provides pseudo-inverses, rank estimation, and singular value inspection.
+  - **Eigenvalue Decomposition (`EigenvalueDecomposition`)**: Reduction to Hessenberg form followed by Francis shifted double-step QR algorithm computing real and complex eigenvalues/eigenvectors.
+
 
 ### 3.6 Vector Operations, Cumulative Scans & Geometric Decompositions
 
@@ -199,7 +207,7 @@ This document describes the achieved architecture across all subsystems of `pack
   - Cumulative prefix scans:
     - `cumsum({Vector<T>? target})`: Computes prefix sum in $\mathcal{O}(N)$ single pass using `field.add`. Fast paths iterate contiguous buffers directly; supports in-place accumulation (`target: this`) and safe defensive copying for overlapping slice aliases.
     - `cumprod({Vector<T>? target})`: Computes prefix product in $\mathcal{O}(N)$ single pass starting from `field.multiplicativeIdentity` using `field.mul`.
-  - Orthogonal decomposition (`VectorNumericExtension<T extends num>`):
+  - Orthogonal decomposition (`VectorProjectionExtension<T extends num>` in `lib/src/linear/projection.dart`):
     - `project(onto)`: Computes $\operatorname{proj}_{\mathbf{v}}(\mathbf{u}) = \frac{\langle \mathbf{u}, \mathbf{v} \rangle}{\|\mathbf{v}\|_2^2} \mathbf{v}$. Throws `ArgumentError` if lengths mismatch or if $\|\mathbf{v}\|_2^2 < 1\text{e-}15$.
     - `reject(from)`: Computes $\operatorname{oproj}_{\mathbf{v}}(\mathbf{u}) = \mathbf{u} - \operatorname{proj}_{\mathbf{v}}(\mathbf{u})$ via in-place reusable buffer update with zero extraneous allocations.
   - Utility operations: `normalized()`, dot product `u.dot(v)`, outer product `u.outer(v)`, in-place scaling `scaleInPlace(factor)`, and scaled addition `addScaled(v, factor)`.

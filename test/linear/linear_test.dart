@@ -523,7 +523,7 @@ void main() {
       ).throws<ArgumentError>();
       final nonSquareChol = CholeskyDecomposition(nonSquare);
       check(nonSquareChol.isSymmetricPositiveDefinite).isFalse();
-      check(nonSpd.cholesky.L.rowCount).equals(2);
+      check(nonSpd.cholesky.l.rowCount).equals(2);
 
       // Non-double / Float32 Matrix.apply
       final intMat = Matrix<int>.fromRows([

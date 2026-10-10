@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 
 import '../matrix.dart';
+import 'svd.dart';
 
 /// Extension methods for matrix norms and condition estimators.
 extension MatrixNormExtension<T extends num> on Matrix<T> {

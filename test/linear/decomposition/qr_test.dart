@@ -83,7 +83,7 @@ void main() {
       ], type: DataType.float64);
 
       final qr = a.qr;
-      final x = qr.solveMatrix(b);
+      final x = qr.solve(b);
       check(x.rowCount).equals(2);
       check(x.colCount).equals(2);
       check(x.get(0, 0)).isCloseTo(2.0, 1e-6);
@@ -95,7 +95,7 @@ void main() {
       final bWrong = Matrix<double>.fromRows([
         [1.0, 2.0],
       ]);
-      check(() => qr.solveMatrix(bWrong)).throws<ArgumentError>();
+      check(() => qr.solve(bWrong)).throws<ArgumentError>();
       final bVecWrong = Vector<double>.fromList([1.0]);
       check(() => qr.solveVector(bVecWrong)).throws<ArgumentError>();
     });
@@ -109,10 +109,8 @@ void main() {
       check(qr.isFullRank).isFalse();
       final b = Vector<double>.fromList([1.0, 2.0]);
       check(() => qr.solveVector(b)).throws<StateError>();
-      check(
-        () =>
-            qr.solveMatrix(Matrix<double>.identity(2, type: DataType.float64)),
-      ).throws<StateError>();
+      check(() => qr.solve(Matrix<double>.identity(2, type: DataType.float64)))
+          .throws<StateError>();
     });
 
     test('invalid dimensions throw', () {

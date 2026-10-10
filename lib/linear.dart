@@ -11,6 +11,7 @@ export 'src/linear/float64_matrix.dart';
 export 'src/linear/float64_vector.dart';
 export 'src/linear/matrix.dart';
 export 'src/linear/operator.dart';
+export 'src/linear/projection.dart';
 export 'src/linear/solvers/conjugate_gradient.dart';
 export 'src/linear/solvers/gmres.dart';
 export 'src/linear/solvers/tridiagonal.dart';

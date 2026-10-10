@@ -378,8 +378,8 @@ void main() {
         ['c', 'd'],
       ], type: DataType.string);
 
-      // At compile-time, `strMat.lu` etc. are unavailable because MatrixDecompositionExtension
-      // is constrained to `T extends num`.
+      // At compile-time, `strMat.lu` etc. are unavailable because decomposition
+      // extensions are constrained to `T extends num` or `Complex`.
       // If invoked dynamically, NoSuchMethodError is thrown rather than an internal TypeError
       // from an unsafe `this as Matrix<num>` cast.
       // ignore: avoid_dynamic_calls

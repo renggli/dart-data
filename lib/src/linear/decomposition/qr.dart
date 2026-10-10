@@ -4,32 +4,236 @@ import '../../../type.dart';
 import '../matrix.dart';
 import '../vector.dart';
 
+/// Extension methods providing QR decomposition on numeric matrices.
+extension QrMatrixExtension<T extends num> on Matrix<T> {
+  /// Computes the QR decomposition of this matrix.
+  QRDecomposition<double> get qr => QRDecomposition<double>(_toDoubleMatrix());
+
+  Matrix<double> _toDoubleMatrix() => this is Matrix<double>
+      ? this as Matrix<double>
+      : Matrix<double>.generate(
+          rowCount,
+          colCount,
+          (r, c) => getUnchecked(r, c).toDouble(),
+          type: DataType.float64,
+        );
+}
+
+/// Extension methods providing QR decomposition on complex matrices.
+extension QrComplexMatrixExtension on Matrix<Complex> {
+  /// Computes the QR decomposition of this complex matrix.
+  QRDecomposition<Complex> get qr => QRDecomposition<Complex>(this);
+}
+
 /// QR Decomposition of an [m x n] matrix $A$ with $m \ge n$.
 ///
-/// Factorizes $A = Q R$ where $Q$ is an [m x n] orthogonal matrix and $R$ is an
-/// [n x n] upper triangular matrix.
-class QRDecomposition {
+/// Factorizes $A = Q R$ where $Q$ is an [m x n] orthogonal (or unitary) matrix
+/// and $R$ is an [n x n] upper triangular matrix.
+class QRDecomposition<T> {
   /// Computes the QR decomposition of [matrix].
-  new(Matrix<num> matrix)
+  new(Matrix<T> matrix)
     : _m = matrix.rowCount,
       _n = matrix.colCount,
-      _qr = Matrix<double>.generate(
-        matrix.rowCount,
+      _type = matrix.type,
+      _qr = matrix.copy(),
+      _rdiag = List<T>.filled(
         matrix.colCount,
-        (row, col) => matrix.getUnchecked(row, col).toDouble(),
-        type: DataType.float64,
+        matrix.type.field.additiveIdentity,
       ),
-      _rdiag = List<double>.filled(matrix.colCount, 0.0) {
+      _tau = List<double>.filled(matrix.colCount, 0.0) {
     if (_m < _n) {
       throw ArgumentError(
         'QR decomposition requires rowCount ($m) >= colCount ($n).',
       );
     }
+    if (matrix is Matrix<double>) {
+      _decomposeFloat64(matrix as Matrix<double>);
+    } else {
+      _decomposeGeneric();
+    }
+  }
+
+  final int _m;
+  final int _n;
+  final DataType<T> _type;
+  final Matrix<T> _qr;
+  final List<T> _rdiag;
+  final List<double> _tau;
+
+  /// Number of rows.
+  int get m => _m;
+
+  /// Number of columns.
+  int get n => _n;
+
+  /// Whether the matrix has full rank.
+  bool get isFullRank {
+    final field = _type.field;
+    final zero = field.additiveIdentity;
+    for (var j = 0; j < _n; j++) {
+      if (_rdiag[j] == zero || field.norm(_rdiag[j]) < 1e-12) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  /// Returns the upper triangular factor $R$.
+  Matrix<T> get r {
+    final field = _type.field;
+    final zero = field.additiveIdentity;
+    final result = Matrix<T>.filled(_n, _n, zero, type: _type);
+    for (var i = 0; i < _n; i++) {
+      for (var j = i; j < _n; j++) {
+        if (i < j) {
+          result.setUnchecked(i, j, _qr.getUnchecked(i, j));
+        } else if (i == j) {
+          result.setUnchecked(i, j, _rdiag[i]);
+        }
+      }
+    }
+    return result;
+  }
+
+  /// Returns the economy-sized orthogonal (or unitary) factor $Q$ of size [m x n].
+  Matrix<T> get q {
+    if (_qr is Matrix<double>) {
+      return _qFloat64() as Matrix<T>;
+    }
+    final field = _type.field;
+    final zero = field.additiveIdentity;
+    final one = field.multiplicativeIdentity;
+    final result = Matrix<T>.filled(_m, _n, zero, type: _type);
+    for (var i = 0; i < _n; i++) {
+      result.setUnchecked(i, i, one);
+    }
+    for (var k = _n - 1; k >= 0; k--) {
+      final tauK = _tau[k];
+      if (tauK == 0.0) continue;
+      final tauT = _type.cast(tauK);
+      for (var j = k; j < _n; j++) {
+        var s = result.getUnchecked(k, j);
+        for (var i = k + 1; i < _m; i++) {
+          s = field.add(
+            s,
+            field.mul(
+              field.conjugate(_qr.getUnchecked(i, k)),
+              result.getUnchecked(i, j),
+            ),
+          );
+        }
+        final tauS = field.mul(tauT, s);
+        result.setUnchecked(k, j, field.sub(result.getUnchecked(k, j), tauS));
+        for (var i = k + 1; i < _m; i++) {
+          result.setUnchecked(
+            i,
+            j,
+            field.sub(
+              result.getUnchecked(i, j),
+              field.mul(tauS, _qr.getUnchecked(i, k)),
+            ),
+          );
+        }
+      }
+    }
+    return result;
+  }
+
+  /// Solves the least squares problem $A x \approx b$ for vector [b].
+  Vector<T> solveVector(Vector<T> b) {
+    if (b.length != _m) {
+      throw ArgumentError(
+        'Vector length (${b.length}) must match rowCount ($_m).',
+      );
+    }
+    if (!isFullRank) {
+      throw StateError('Matrix is rank deficient.');
+    }
+    final mat = solve(b.toMatrix());
+    return mat.col(0);
+  }
+
+  /// Solves the least squares problem $A X \approx B$ for matrix [b].
+  Matrix<T> solve(Matrix<T> b) {
+    if (b.rowCount != _m) {
+      throw ArgumentError(
+        'Matrix row count (${b.rowCount}) must match rowCount ($_m).',
+      );
+    }
+    if (!isFullRank) {
+      throw StateError('Matrix is rank deficient.');
+    }
+    if (b is Matrix<double> && _qr is Matrix<double>) {
+      return _solveFloat64(b as Matrix<double>) as Matrix<T>;
+    }
+    final field = _type.field;
+    final nx = b.colCount;
+    final x = b.copy();
+
+    // Compute Y = Q^* * B
+    for (var k = 0; k < _n; k++) {
+      final tauK = _tau[k];
+      if (tauK == 0.0) continue;
+      final tauT = _type.cast(tauK);
+      for (var j = 0; j < nx; j++) {
+        var s = x.getUnchecked(k, j);
+        for (var i = k + 1; i < _m; i++) {
+          s = field.add(
+            s,
+            field.mul(
+              field.conjugate(_qr.getUnchecked(i, k)),
+              x.getUnchecked(i, j),
+            ),
+          );
+        }
+        final tauS = field.mul(tauT, s);
+        x.setUnchecked(k, j, field.sub(x.getUnchecked(k, j), tauS));
+        for (var i = k + 1; i < _m; i++) {
+          x.setUnchecked(
+            i,
+            j,
+            field.sub(
+              x.getUnchecked(i, j),
+              field.mul(tauS, _qr.getUnchecked(i, k)),
+            ),
+          );
+        }
+      }
+    }
+
+    // Solve R * X = Y
+    for (var k = _n - 1; k >= 0; k--) {
+      final rkk = _rdiag[k];
+      for (var j = 0; j < nx; j++) {
+        x.setUnchecked(k, j, field.div(x.getUnchecked(k, j), rkk));
+      }
+      for (var i = 0; i < k; i++) {
+        final rik = _qr.getUnchecked(i, k);
+        for (var j = 0; j < nx; j++) {
+          x.setUnchecked(
+            i,
+            j,
+            field.sub(
+              x.getUnchecked(i, j),
+              field.mul(rik, x.getUnchecked(k, j)),
+            ),
+          );
+        }
+      }
+    }
+
+    return x.subMatrix(rowStart: 0, rowEnd: _n, colStart: 0, colEnd: nx);
+  }
+
+  void _decomposeFloat64(Matrix<double> matrix) {
+    final qr = _qr as Matrix<double>;
+    final rdiag = _rdiag as List<double>;
+
     for (var k = 0; k < _n; k++) {
       var scale = 0.0;
       var sumsq = 1.0;
       for (var i = k; i < _m; i++) {
-        final val = _qr.getUnchecked(i, k);
+        final val = qr.getUnchecked(i, k);
         if (val != 0.0) {
           final absVal = val.abs();
           if (scale < absVal) {
@@ -43,71 +247,97 @@ class QRDecomposition {
       var nrm = scale * math.sqrt(sumsq);
 
       if (nrm != 0.0) {
-        if (_qr.getUnchecked(k, k) < 0) {
+        if (qr.getUnchecked(k, k) < 0) {
           nrm = -nrm;
         }
         for (var i = k; i < _m; i++) {
-          _qr.setUnchecked(i, k, _qr.getUnchecked(i, k) / nrm);
+          qr.setUnchecked(i, k, qr.getUnchecked(i, k) / nrm);
         }
-        _qr.setUnchecked(k, k, _qr.getUnchecked(k, k) + 1.0);
+        qr.setUnchecked(k, k, qr.getUnchecked(k, k) + 1.0);
 
         for (var j = k + 1; j < _n; j++) {
           var sum = 0.0;
           for (var i = k; i < _m; i++) {
-            sum += _qr.getUnchecked(i, k) * _qr.getUnchecked(i, j);
+            sum += qr.getUnchecked(i, k) * qr.getUnchecked(i, j);
           }
-          sum = -sum / _qr.getUnchecked(k, k);
+          sum = -sum / qr.getUnchecked(k, k);
           for (var i = k; i < _m; i++) {
-            _qr.setUnchecked(
+            qr.setUnchecked(
               i,
               j,
-              _qr.getUnchecked(i, j) + sum * _qr.getUnchecked(i, k),
+              qr.getUnchecked(i, j) + sum * qr.getUnchecked(i, k),
             );
           }
         }
       }
-      _rdiag[k] = -nrm;
+      rdiag[k] = -nrm;
     }
   }
 
-  final int _m;
-  final int _n;
-  final Matrix<double> _qr;
-  final List<double> _rdiag;
+  void _decomposeGeneric() {
+    final field = _type.field;
+    final zero = field.additiveIdentity;
 
-  /// Number of rows.
-  int get m => _m;
-
-  /// Number of columns.
-  int get n => _n;
-
-  /// Whether the matrix has full rank.
-  bool get isFullRank {
-    for (var j = 0; j < _n; j++) {
-      if (_rdiag[j] == 0.0) {
-        return false;
+    for (var k = 0; k < _n; k++) {
+      var sumsq = 0.0;
+      for (var i = k; i < _m; i++) {
+        final norm = field.norm(_qr.getUnchecked(i, k));
+        sumsq += norm * norm;
       }
-    }
-    return true;
-  }
+      final nrm = math.sqrt(sumsq);
 
-  /// Returns the upper triangular factor $R$.
-  Matrix<double> get r {
-    final result = Matrix<double>.filled(_n, _n, 0.0, type: DataType.float64);
-    for (var i = 0; i < _n; i++) {
-      for (var j = i; j < _n; j++) {
-        if (i < j) {
-          result.setUnchecked(i, j, _qr.getUnchecked(i, j));
-        } else if (i == j) {
-          result.setUnchecked(i, j, _rdiag[i]);
+      if (nrm != 0.0) {
+        final xk = _qr.getUnchecked(k, k);
+        final normXk = field.norm(xk);
+        final T mu;
+        if (normXk != 0.0) {
+          mu = field.div(xk, _type.cast(normXk));
+        } else {
+          mu = field.multiplicativeIdentity;
         }
+
+        final vk = field.add(xk, field.mul(mu, _type.cast(nrm)));
+        for (var i = k + 1; i < _m; i++) {
+          _qr.setUnchecked(i, k, field.div(_qr.getUnchecked(i, k), vk));
+        }
+        final tau = (nrm + normXk) / nrm;
+        _tau[k] = tau;
+        final tauT = _type.cast(tau);
+
+        for (var j = k + 1; j < _n; j++) {
+          var s = _qr.getUnchecked(k, j);
+          for (var i = k + 1; i < _m; i++) {
+            s = field.add(
+              s,
+              field.mul(
+                field.conjugate(_qr.getUnchecked(i, k)),
+                _qr.getUnchecked(i, j),
+              ),
+            );
+          }
+          final tauS = field.mul(tauT, s);
+          _qr.setUnchecked(k, j, field.sub(_qr.getUnchecked(k, j), tauS));
+          for (var i = k + 1; i < _m; i++) {
+            _qr.setUnchecked(
+              i,
+              j,
+              field.sub(
+                _qr.getUnchecked(i, j),
+                field.mul(tauS, _qr.getUnchecked(i, k)),
+              ),
+            );
+          }
+        }
+        _rdiag[k] = field.neg(field.mul(mu, _type.cast(nrm)));
+      } else {
+        _rdiag[k] = zero;
+        _tau[k] = 0.0;
       }
     }
-    return result;
   }
 
-  /// Returns the economy-sized orthogonal factor $Q$ of size [m x n].
-  Matrix<double> get q {
+  Matrix<double> _qFloat64() {
+    final qr = _qr as Matrix<double>;
     final result = Matrix<double>.filled(_m, _n, 0.0, type: DataType.float64);
     for (var k = _n - 1; k >= 0; k--) {
       for (var i = 0; i < _m; i++) {
@@ -115,17 +345,17 @@ class QRDecomposition {
       }
       result.setUnchecked(k, k, 1.0);
       for (var j = k; j < _n; j++) {
-        if (_qr.getUnchecked(k, k) != 0.0) {
+        if (qr.getUnchecked(k, k) != 0.0) {
           var sum = 0.0;
           for (var i = k; i < _m; i++) {
-            sum += _qr.getUnchecked(i, k) * result.getUnchecked(i, j);
+            sum += qr.getUnchecked(i, k) * result.getUnchecked(i, j);
           }
-          sum = -sum / _qr.getUnchecked(k, k);
+          sum = -sum / qr.getUnchecked(k, k);
           for (var i = k; i < _m; i++) {
             result.setUnchecked(
               i,
               j,
-              result.getUnchecked(i, j) + sum * _qr.getUnchecked(i, k),
+              result.getUnchecked(i, j) + sum * qr.getUnchecked(i, k),
             );
           }
         }
@@ -134,56 +364,14 @@ class QRDecomposition {
     return result;
   }
 
-  /// Solves the least squares problem $A x \approx b$ for vector [b].
-  Vector<double> solveVector(Vector<num> b) {
-    if (b.length != _m) {
-      throw ArgumentError(
-        'Vector length (${b.length}) must match rowCount ($_m).',
-      );
-    }
-    if (!isFullRank) {
-      throw StateError('Matrix is rank deficient.');
-    }
-    final x = List<double>.generate(_m, (i) => b.getUnchecked(i).toDouble());
-
-    // Compute Y = Q^T * b
-    for (var k = 0; k < _n; k++) {
-      var sum = 0.0;
-      for (var i = k; i < _m; i++) {
-        sum += _qr.getUnchecked(i, k) * x[i];
-      }
-      sum = -sum / _qr.getUnchecked(k, k);
-      for (var i = k; i < _m; i++) {
-        x[i] += sum * _qr.getUnchecked(i, k);
-      }
-    }
-
-    // Solve R * X = Y
-    for (var k = _n - 1; k >= 0; k--) {
-      x[k] /= _rdiag[k];
-      for (var i = 0; i < k; i++) {
-        x[i] -= x[k] * _qr.getUnchecked(i, k);
-      }
-    }
-
-    return Vector<double>.fromList(x.sublist(0, _n), type: DataType.float64);
-  }
-
-  /// Solves the least squares problem $A X \approx B$ for matrix [b].
-  Matrix<double> solveMatrix(Matrix<num> b) {
-    if (b.rowCount != _m) {
-      throw ArgumentError(
-        'Matrix row count (${b.rowCount}) must match rowCount ($_m).',
-      );
-    }
-    if (!isFullRank) {
-      throw StateError('Matrix is rank deficient.');
-    }
+  Matrix<double> _solveFloat64(Matrix<double> b) {
+    final qr = _qr as Matrix<double>;
+    final rdiag = _rdiag as List<double>;
     final nx = b.colCount;
     final x = Matrix<double>.generate(
       _m,
       nx,
-      (row, col) => b.getUnchecked(row, col).toDouble(),
+      (row, col) => b.getUnchecked(row, col),
       type: DataType.float64,
     );
 
@@ -192,14 +380,14 @@ class QRDecomposition {
       for (var j = 0; j < nx; j++) {
         var sum = 0.0;
         for (var i = k; i < _m; i++) {
-          sum += _qr.getUnchecked(i, k) * x.getUnchecked(i, j);
+          sum += qr.getUnchecked(i, k) * x.getUnchecked(i, j);
         }
-        sum = -sum / _qr.getUnchecked(k, k);
+        sum = -sum / qr.getUnchecked(k, k);
         for (var i = k; i < _m; i++) {
           x.setUnchecked(
             i,
             j,
-            x.getUnchecked(i, j) + sum * _qr.getUnchecked(i, k),
+            x.getUnchecked(i, j) + sum * qr.getUnchecked(i, k),
           );
         }
       }
@@ -208,15 +396,14 @@ class QRDecomposition {
     // Solve R * X = Y
     for (var k = _n - 1; k >= 0; k--) {
       for (var j = 0; j < nx; j++) {
-        x.setUnchecked(k, j, x.getUnchecked(k, j) / _rdiag[k]);
+        x.setUnchecked(k, j, x.getUnchecked(k, j) / rdiag[k]);
       }
       for (var i = 0; i < k; i++) {
         for (var j = 0; j < nx; j++) {
           x.setUnchecked(
             i,
             j,
-            x.getUnchecked(i, j) -
-                x.getUnchecked(k, j) * _qr.getUnchecked(i, k),
+            x.getUnchecked(i, j) - x.getUnchecked(k, j) * qr.getUnchecked(i, k),
           );
         }
       }

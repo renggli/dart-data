@@ -7,11 +7,6 @@ import '../tensor/layout.dart';
 import '../tensor/operations/matmul.dart';
 import '../tensor/operations/operation.dart';
 import '../tensor/tensor.dart';
-import 'decomposition/cholesky.dart';
-import 'decomposition/eigenvalue.dart';
-import 'decomposition/lu.dart';
-import 'decomposition/qr.dart';
-import 'decomposition/svd.dart';
 import 'operator.dart';
 import 'solvers/gmres.dart';
 import 'vector.dart';
@@ -247,6 +242,17 @@ class Matrix<T> implements LinearOperator<T> {
   /// Returns a zero-copy transposed view of this matrix.
   Matrix<T> get transposed => transpose();
 
+  /// Returns the conjugate transpose (Hermitian adjoint $A^* = (\bar{A})^T$) of this matrix.
+  Matrix<T> get conjugateTranspose {
+    final field = type.field;
+    return Matrix<T>.generate(
+      colCount,
+      rowCount,
+      (r, c) => field.conjugate(getUnchecked(c, r)),
+      type: type,
+    );
+  }
+
   /// Returns a zero-copy 1D view of the main diagonal.
   Vector<T> diagonal() {
     final minDim = rowCount < colCount ? rowCount : colCount;
@@ -340,9 +346,6 @@ class Matrix<T> implements LinearOperator<T> {
     }
     return true;
   }
-
-  /// Returns column [col] as a 1D [Vector] (alias for [col]).
-  Vector<T> column(int col) => this.col(col);
 
   /// Horizontally flipped view of this matrix.
   Matrix<T> flippedHorizontal() => Matrix(tensor.flip(axis: 1));
@@ -789,23 +792,4 @@ class Matrix<T> implements LinearOperator<T> {
 
   @override
   String toString() => 'Matrix($rowCount x $colCount, ${toNestedList()})';
-}
-
-/// Extension methods providing linear factorizations and decompositions on
-/// numeric matrices.
-extension MatrixDecompositionExtension<T extends num> on Matrix<T> {
-  /// Computes the Cholesky decomposition of this symmetric positive-definite matrix.
-  CholeskyDecomposition get cholesky => CholeskyDecomposition(this);
-
-  /// Computes the LU decomposition of this matrix.
-  LUDecomposition get lu => LUDecomposition(this);
-
-  /// Computes the QR decomposition of this matrix.
-  QRDecomposition get qr => QRDecomposition(this);
-
-  /// Computes the Singular Value Decomposition (SVD) of this matrix.
-  SingularValueDecomposition get svd => SingularValueDecomposition(this);
-
-  /// Computes the Eigenvalue decomposition of this square matrix.
-  EigenvalueDecomposition get eigenvalue => EigenvalueDecomposition(this);
 }

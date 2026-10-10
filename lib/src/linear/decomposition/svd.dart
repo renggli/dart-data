@@ -4,6 +4,22 @@ import '../../../type.dart';
 import '../matrix.dart';
 import '../vector.dart';
 
+/// Extension methods providing Singular Value Decomposition (SVD) on numeric matrices.
+extension SvdMatrixExtension<T extends num> on Matrix<T> {
+  /// Computes the Singular Value Decomposition (SVD) of this matrix.
+  SingularValueDecomposition get svd =>
+      SingularValueDecomposition(_toDoubleMatrix());
+
+  Matrix<double> _toDoubleMatrix() => this is Matrix<double>
+      ? this as Matrix<double>
+      : Matrix<double>.generate(
+          rowCount,
+          colCount,
+          (r, c) => getUnchecked(r, c).toDouble(),
+          type: DataType.float64,
+        );
+}
+
 /// Singular Value Decomposition (SVD) of an [m x n] matrix $A$.
 ///
 /// Factorizes $A = U \Sigma V^T$ where:
