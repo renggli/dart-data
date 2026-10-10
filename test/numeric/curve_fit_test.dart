@@ -169,6 +169,63 @@ void main() {
           .throws<ArgumentError>();
       check(() => polynomialRegression(v1, v1, degree: 3))
           .throws<ArgumentError>();
+      check(() => polynomialRegression(v1, v1, degree: 1, lambda: -0.1))
+          .throws<ArgumentError>();
+    });
+
+    test('regularized polynomial regression coefficient shrinkage', () {
+      final xs = Vector<double>.fromList([
+        -2.0,
+        -1.0,
+        0.0,
+        1.0,
+        2.0,
+      ], type: DataType.float64);
+      // Clean quadratic: y = 2 + 3x^2
+      final ys = Vector<double>.fromList([
+        14.0,
+        5.0,
+        2.0,
+        5.0,
+        14.0,
+      ], type: DataType.float64);
+
+      final unreg = polynomialRegression(xs, ys, degree: 2, lambda: 0.0);
+      final regSmall = polynomialRegression(xs, ys, degree: 2, lambda: 1.0);
+      final regLarge = polynomialRegression(xs, ys, degree: 2, lambda: 100.0);
+
+      // Unpenalized x^2 coefficient is 3.0
+      check(unreg[2]).isCloseTo(3.0, 1e-4);
+
+      // Regularization shrinks the non-intercept coefficients
+      check(regSmall[2].abs()).isLessThan(unreg[2].abs());
+      check(regLarge[2].abs()).isLessThan(regSmall[2].abs());
+
+      // Intercept remains unpenalized (adapts to match mean of ys)
+      check(regLarge[0]).isGreaterThan(0.0);
+    });
+
+    test('regularized polynomial regression underdetermined system (N < degree + 1)', () {
+      // 3 points, degree 4 polynomial
+      final xs = Vector<double>.fromList([
+        0.0,
+        1.0,
+        2.0,
+      ], type: DataType.float64);
+      final ys = Vector<double>.fromList([
+        1.0,
+        3.0,
+        2.0,
+      ], type: DataType.float64);
+
+      // Without regularization, fails due to insufficient points
+      check(() => polynomialRegression(xs, ys, degree: 4, lambda: 0.0))
+          .throws<ArgumentError>();
+
+      // With regularization, solves uniquely via full-rank augmented system
+      final poly = polynomialRegression(xs, ys, degree: 4, lambda: 1e-4);
+      check(poly.degree).equals(4);
+      check(poly.evaluateDouble(0.0)).isCloseTo(1.0, 0.05);
     });
   });
 }

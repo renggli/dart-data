@@ -410,7 +410,7 @@ This document describes the achieved architecture across all subsystems of `pack
   - `BilinearInterpolation`: 2D rectilinear grid interpolation using four-point convex weighting with partial gradient evaluation.
   - `BicubicInterpolation`: 2D surface interpolation over a rectilinear grid with $C^1$ continuity using 16-coefficient bicubic patches ($A = M F M^T$) with partial derivatives and continuous gradient extraction.
   - `leastSquares`: General linear regression using LAPACK `dgels`, Householder QR, or SVD.
-  - `polynomialRegression`: Vandermonde polynomial fitting using QR decomposition.
+  - `polynomialRegression`: Vandermonde polynomial fitting using QR decomposition with optional Tikhonov / Ridge L2 regularization (`lambda`) suppressing high-frequency Runge oscillations and conditioning rank-deficient systems.
   - `levenbergMarquardt`: Damped Gauss-Newton nonlinear least-squares curve fitting.
 
 ### 6.6 Precision & Native Memory Scoping in Numerical Solvers

@@ -141,31 +141,70 @@ linearRegression(Vector<num> xs, Vector<num> ys) {
 }
 
 /// Fits a polynomial of given [degree] to data points [xs] and [ys] using
-/// QR least squares on the Vandermonde matrix.
+/// QR least squares on the Vandermonde matrix, with optional L2 [lambda]
+/// regularization (Ridge / Tikhonov) suppressing high-frequency oscillations.
 Polynomial<double> polynomialRegression(
   Vector<num> xs,
   Vector<num> ys, {
   required int degree,
+  double lambda = 0.0,
 }) {
   if (xs.length != ys.length) {
     throw ArgumentError('xs and ys must have the same length.');
   }
-  final numPoints = xs.length;
-  if (numPoints < degree + 1) {
+  if (lambda < 0.0) {
     throw ArgumentError(
-      'At least ${degree + 1} points are required to fit degree $degree polynomial, got $numPoints.',
+      'Regularization parameter lambda must be non-negative: $lambda',
+    );
+  }
+  final numPoints = xs.length;
+  final numCoeffs = degree + 1;
+  if (lambda == 0.0 && numPoints < numCoeffs) {
+    throw ArgumentError(
+      'At least $numCoeffs points are required to fit unregularized degree $degree polynomial, got $numPoints.',
+    );
+  }
+  if (numPoints < 1) {
+    throw ArgumentError('At least 1 point is required for regression.');
+  }
+
+  final Matrix<double> designMatrix;
+  final Vector<double> targetVector;
+
+  if (lambda == 0.0) {
+    designMatrix = Matrix<double>.generate(
+      numPoints,
+      numCoeffs,
+      (row, col) => math.pow(xs[row].toDouble(), col).toDouble(),
+      type: DataType.float64,
+    );
+    targetVector = ys is Vector<double>
+        ? ys
+        : Vector<double>.generate(
+            numPoints,
+            (i) => ys[i].toDouble(),
+            type: DataType.float64,
+          );
+  } else {
+    // Augment Vandermonde matrix with sqrt(lambda) * I (leaving intercept column 0 unpenalized)
+    final sqrtLambda = math.sqrt(lambda);
+    final totalRows = numPoints + numCoeffs;
+    designMatrix = Matrix<double>.generate(totalRows, numCoeffs, (row, col) {
+      if (row < numPoints) {
+        return math.pow(xs[row].toDouble(), col).toDouble();
+      }
+      final penaltyIdx = row - numPoints;
+      // Do not penalize intercept (col == 0)
+      return (penaltyIdx > 0 && penaltyIdx == col) ? sqrtLambda : 0.0;
+    }, type: DataType.float64);
+    targetVector = Vector<double>.generate(
+      totalRows,
+      (i) => i < numPoints ? ys[i].toDouble() : 0.0,
+      type: DataType.float64,
     );
   }
 
-  // Construct Vandermonde matrix V of size [n x (degree + 1)] where V[i, j] = xs[i]^j
-  final vandermonde = Matrix<double>.generate(
-    numPoints,
-    degree + 1,
-    (row, col) => math.pow(xs[row].toDouble(), col).toDouble(),
-    type: DataType.float64,
-  );
-
-  final coeffs = leastSquares(vandermonde, ys);
+  final coeffs = leastSquares(designMatrix, targetVector);
   return Polynomial<double>.fromCoefficients(
     coeffs.toList(),
     type: DataType.float64,
