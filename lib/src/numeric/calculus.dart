@@ -67,7 +67,7 @@ Vector<double> numericalGradient(
     final ctx = <String, double>{
       for (var i = 0; i < dim; i++) vars[i]: point[i],
     };
-    final gradExprs = Calculus.gradient(function, vars);
+    final gradExprs = function.gradient(vars);
     return Vector<double>.generate(
       dim,
       (i) => gradExprs[i].evaluate(ctx),
@@ -105,7 +105,7 @@ Matrix<double> numericalJacobian(
     final ctx = <String, double>{
       for (var i = 0; i < dim; i++) vars[i]: point[i],
     };
-    final jacExprs = Calculus.jacobian(function, vars);
+    final jacExprs = function.jacobian(vars);
     return Matrix<double>.generate(
       function.length,
       dim,
@@ -146,7 +146,7 @@ Matrix<double> numericalHessian(
     final ctx = <String, double>{
       for (var i = 0; i < dim; i++) vars[i]: point[i],
     };
-    final hessExprs = Calculus.hessian(function, vars);
+    final hessExprs = function.hessian(vars);
     return Matrix<double>.generate(
       dim,
       dim,

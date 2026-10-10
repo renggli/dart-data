@@ -370,7 +370,7 @@ void main() {
       const y = Variable('y');
       final expr = x.pow(2) + (x * y * 3) + y.pow(3);
 
-      final grad = Calculus.gradient(expr, ['x', 'y']);
+      final grad = expr.gradient(['x', 'y']);
       check(grad.length).equals(2);
 
       final dfDx = grad[0].compile(['x', 'y']);
@@ -379,7 +379,7 @@ void main() {
       check(dfDx([1.0, 2.0])).equals(8.0);
       check(dfDy([1.0, 2.0])).equals(15.0);
 
-      final hess = Calculus.hessian(expr, ['x', 'y']);
+      final hess = expr.hessian(['x', 'y']);
       check(hess.length).equals(2);
       check(hess[0].length).equals(2);
       final d2fDx2 = hess[0][0].compile(['x', 'y']);
@@ -398,7 +398,7 @@ void main() {
       final f1 = x.pow(2) + y;
       final f2 = x * y * 3;
 
-      final J = Calculus.jacobian([f1, f2], ['x', 'y']);
+      final J = [f1, f2].jacobian(['x', 'y']);
       check(J.length).equals(2);
       check(J[0].length).equals(2);
 
@@ -414,7 +414,7 @@ void main() {
     test('Taylor series expansion of exp(x)', () {
       const x = Variable('x');
       const expr = Exp(x);
-      final taylor = Calculus.taylorSeries(expr, 'x', point: 0.0, order: 4);
+      final taylor = expr.taylorSeries('x', point: 0.0, order: 4);
 
       final fn = taylor.compile1D('x');
       check(fn(0.5)).isCloseTo(1.6484375, 1e-4);

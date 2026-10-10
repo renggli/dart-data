@@ -1,0 +1,452 @@
+import '../../numeric/integration.dart';
+import '../ast.dart';
+import '../simplifier.dart';
+import 'differentiation.dart';
+import 'linear_form.dart';
+
+/// Symbolic analytical integration extension on [Expr].
+extension IntegrationExtension on Expr {
+  /// Computes the symbolic anti-derivative with respect to [variable],
+  /// or the definite integral when [from] and [to] are specified.
+  Expr integrate(String variable, {num? from, num? to}) =>
+      _symbolicIntegrate(this, variable, from: from, to: to);
+}
+
+Expr _symbolicIntegrate(Expr function, String variable, {num? from, num? to}) {
+  if ((from == null) != (to == null)) {
+    throw ArgumentError(
+      'Both "from" and "to" must be provided for definite integration.',
+    );
+  }
+  if (from != null && to != null) {
+    if (from == to) {
+      return const Constant(0.0);
+    }
+    try {
+      final antiDeriv = _antiDerivative(function, variable);
+      final upper = antiDeriv.substitute(variable, Constant(to.toDouble()));
+      final lower = antiDeriv.substitute(variable, Constant(from.toDouble()));
+      final diff = Sub(upper, lower).simplify();
+      if (diff.freeVariables.isNotEmpty) {
+        return diff;
+      }
+      final val = diff is Constant ? diff.value : diff.evaluate(const {});
+      if (val.isFinite) {
+        return Constant(val);
+      }
+    } on UnsupportedError {
+      // Fall back to numerical integration.
+    } catch (_) {
+      // Fall back to numerical integration if evaluation is non-finite or fails.
+    }
+    final numResult = gaussKronrod(
+      function,
+      from.toDouble(),
+      to.toDouble(),
+      variable: variable,
+    );
+    return Constant(numResult);
+  }
+
+  return _antiDerivative(function, variable).simplify();
+}
+
+Expr _antiDerivative(Expr expr, String variable) {
+  expr = expr.simplify();
+
+  if (!expr.dependsOn(variable)) {
+    if (expr case Constant(value: 0.0)) {
+      return const Constant(0.0);
+    }
+    return Mul(expr, Variable(variable)).simplify();
+  }
+
+  return switch (expr) {
+    Variable(:final name) when name == variable => Div(
+      Pow(expr, const Constant(2.0)),
+      const Constant(2.0),
+    ),
+    Neg(:final expr) => Neg(_antiDerivative(expr, variable)).simplify(),
+    Add(:final left, :final right) => Add(
+      _antiDerivative(left, variable),
+      _antiDerivative(right, variable),
+    ).simplify(),
+    Sub(:final left, :final right) => Sub(
+      _antiDerivative(left, variable),
+      _antiDerivative(right, variable),
+    ).simplify(),
+    Sin(:final expr) =>
+      _antiDerivSin(expr, variable) ?? _unsupported(expr, variable),
+    Cos(:final expr) =>
+      _antiDerivCos(expr, variable) ?? _unsupported(expr, variable),
+    Exp(:final expr) =>
+      _antiDerivExp(expr, variable) ?? _unsupported(expr, variable),
+    Ln(:final expr) =>
+      _antiDerivLn(expr, variable) ?? _unsupported(expr, variable),
+    Pow(:final base, :final exponent) => _antiDerivPow(
+      base,
+      exponent,
+      expr,
+      variable,
+    ),
+    Div(:final left, :final right) => _antiDerivDiv(
+      left,
+      right,
+      expr,
+      variable,
+    ),
+    Mul(:final left, :final right) => _antiDerivMul(
+      left,
+      right,
+      expr,
+      variable,
+    ),
+    _ => _unsupported(expr, variable),
+  };
+}
+
+Never _unsupported(Expr expr, String variable) => throw UnsupportedError(
+  'Cannot compute analytical anti-derivative of "$expr" with respect to "$variable".',
+);
+
+Expr? _antiDerivSin(Expr inner, String variable) =>
+    switch (inner.matchLinear(variable)) {
+      (:final a, b: _) => Div(Neg(Cos(inner)), a).simplify(),
+      null => null,
+    };
+
+Expr? _antiDerivCos(Expr inner, String variable) =>
+    switch (inner.matchLinear(variable)) {
+      (:final a, b: _) => Div(Sin(inner), a).simplify(),
+      null => null,
+    };
+
+Expr? _antiDerivExp(Expr inner, String variable) =>
+    switch (inner.matchLinear(variable)) {
+      (:final a, b: _) => Div(Exp(inner), a).simplify(),
+      null => null,
+    };
+
+Expr? _antiDerivLn(Expr inner, String variable) =>
+    switch (inner.matchLinear(variable)) {
+      (:final a, b: _) => Div(Sub(Mul(inner, Ln(inner)), inner), a).simplify(),
+      null => null,
+    };
+
+Expr _antiDerivPow(Expr base, Expr exponent, Expr original, String variable) {
+  // Form: (ax + b)^n
+  if (!exponent.dependsOn(variable)) {
+    if (base.matchLinear(variable) case (:final a, b: _)) {
+      if (exponent case Constant(value: -1.0)) {
+        return Div(Ln(base), a).simplify();
+      }
+      final nPlus1 = Add(exponent, const Constant(1.0)).simplify();
+      final denom = Mul(a, nPlus1).simplify();
+      final numer = Pow(base, nPlus1).simplify();
+      return Div(numer, denom).simplify();
+    }
+  }
+
+  // Form: c^(ax + b)
+  if (!base.dependsOn(variable)) {
+    if (exponent.matchLinear(variable) case (:final a, b: _)) {
+      var validBase = true;
+      if (base case Constant(value: final cVal)) {
+        validBase = cVal > 0.0 && cVal != 1.0;
+      }
+      if (validBase) {
+        final denom = Mul(a, Ln(base)).simplify();
+        return Div(original, denom).simplify();
+      }
+    }
+  }
+
+  return _unsupported(original, variable);
+}
+
+Expr _antiDerivDiv(Expr left, Expr right, Expr original, String variable) {
+  // int (f / c) dx = (1/c) int f dx
+  if (!right.dependsOn(variable)) {
+    final anti = _antiDerivative(left, variable);
+    return anti.scale(Div(const Constant(1.0), right));
+  }
+
+  // int (c / g(x)) dx
+  if (!left.dependsOn(variable)) {
+    // int c / (ax + b) dx = (c ln(ax + b)) / a
+    if (right.matchLinear(variable) case (:final a, b: _)) {
+      final num = Mul(left, Ln(right)).simplify();
+      return Div(num, a).simplify();
+    }
+
+    // int c / (ax + b)^n dx = int c * (ax + b)^(-n) dx
+    if (right case Pow(:final base, :final exponent)
+        when !exponent.dependsOn(variable)) {
+      final negExp = Neg(exponent).simplify();
+      return _antiDerivative(Mul(left, Pow(base, negExp)), variable);
+    }
+  }
+
+  // Chain rule quotient: int u'(x) / u(x) dx = ln(u(x))
+  if (right.dependsOn(variable)) {
+    final uPrime = right.diff(variable).simplify();
+    final k = left.matchScalarMultiple(uPrime, variable);
+    if (k != null) {
+      return Ln(right).scale(k);
+    }
+    if (right case Pow(:final base, :final exponent)
+        when !exponent.dependsOn(variable)) {
+      final negExp = Neg(exponent).simplify();
+      return _antiDerivative(Mul(left, Pow(base, negExp)), variable);
+    } else if (left.dependsOn(variable)) {
+      return _antiDerivative(
+        Mul(left, Pow(right, const Constant(-1.0))),
+        variable,
+      );
+    }
+  }
+
+  return _unsupported(original, variable);
+}
+
+Expr _antiDerivMul(Expr left, Expr right, Expr original, String variable) {
+  // Linear combinations: c * f(x)
+  if (!left.dependsOn(variable)) {
+    return _antiDerivative(right, variable).scale(left);
+  }
+  if (!right.dependsOn(variable)) {
+    return _antiDerivative(left, variable).scale(right);
+  }
+
+  // Identity multiplication: u * u = u^2
+  if (left == right) {
+    return _antiDerivative(Pow(left, const Constant(2.0)), variable);
+  }
+
+  // Chain-rule substitution: int u'(x) f(u(x)) dx = F(u(x))
+  if (_tryChainRule(right, left, variable) case final subRight?) {
+    return subRight;
+  }
+  if (_tryChainRule(left, right, variable) case final subLeft?) {
+    return subLeft;
+  }
+
+  // Integration by parts:
+  if (_tryIntegrationByParts(left, right, variable) case final ibpLR?) {
+    return ibpLR;
+  }
+  if (_tryIntegrationByParts(right, left, variable) case final ibpRL?) {
+    return ibpRL;
+  }
+
+  // Distributive expansion across additions/subtractions:
+  if (left case Add(:final left, right: final lRight)) {
+    return Add(
+      _antiDerivative(Mul(left, right), variable),
+      _antiDerivative(Mul(lRight, right), variable),
+    ).simplify();
+  }
+  if (left case Sub(:final left, right: final lRight)) {
+    return Sub(
+      _antiDerivative(Mul(left, right), variable),
+      _antiDerivative(Mul(lRight, right), variable),
+    ).simplify();
+  }
+  if (right case Add(left: final rLeft, :final right)) {
+    return Add(
+      _antiDerivative(Mul(left, rLeft), variable),
+      _antiDerivative(Mul(left, right), variable),
+    ).simplify();
+  }
+  if (right case Sub(left: final rLeft, :final right)) {
+    return Sub(
+      _antiDerivative(Mul(left, rLeft), variable),
+      _antiDerivative(Mul(left, right), variable),
+    ).simplify();
+  }
+
+  return _unsupported(original, variable);
+}
+
+Expr? _tryChainRule(Expr candidate, Expr factor, String variable) =>
+    switch (candidate) {
+      Cos(:final expr) when expr.dependsOn(variable) => _scaleMatch(
+        factor,
+        expr.diff(variable).simplify(),
+        Sin(expr),
+        variable,
+      ),
+      Sin(:final expr) when expr.dependsOn(variable) => _scaleMatch(
+        factor,
+        expr.diff(variable).simplify(),
+        Neg(Cos(expr)).simplify(),
+        variable,
+      ),
+      Exp(:final expr) when expr.dependsOn(variable) => _scaleMatch(
+        factor,
+        expr.diff(variable).simplify(),
+        Exp(expr),
+        variable,
+      ),
+      Ln(:final expr) when expr.dependsOn(variable) => _scaleMatch(
+        factor,
+        expr.diff(variable).simplify(),
+        Sub(Mul(expr, Ln(expr)), expr),
+        variable,
+      ),
+      Pow(:final base, :final exponent)
+          when !exponent.dependsOn(variable) && base.dependsOn(variable) =>
+        _tryChainRulePower(base, exponent, factor, variable),
+      Pow(:final base, :final exponent)
+          when !base.dependsOn(variable) && exponent.dependsOn(variable) =>
+        _tryChainRuleExponential(candidate, base, exponent, factor, variable),
+      _ => null,
+    };
+
+Expr? _scaleMatch(Expr factor, Expr deriv, Expr target, String variable) {
+  final k = factor.matchScalarMultiple(deriv, variable);
+  return k != null ? target.scale(k) : null;
+}
+
+Expr? _tryChainRulePower(
+  Expr base,
+  Expr exponent,
+  Expr factor,
+  String variable,
+) {
+  final uPrime = base.diff(variable).simplify();
+  final k = factor.matchScalarMultiple(uPrime, variable);
+  if (k != null) {
+    if (exponent case Constant(value: -1.0)) {
+      return Ln(base).scale(k);
+    }
+    final nPlus1 = Add(exponent, const Constant(1.0)).simplify();
+    final fU = Div(Pow(base, nPlus1), nPlus1).simplify();
+    return fU.scale(k);
+  }
+  return null;
+}
+
+Expr? _tryChainRuleExponential(
+  Expr candidate,
+  Expr base,
+  Expr exponent,
+  Expr factor,
+  String variable,
+) {
+  var validBase = true;
+  if (base case Constant(value: final cVal)) {
+    validBase = cVal > 0.0 && cVal != 1.0;
+  }
+  if (validBase) {
+    final uPrime = exponent.diff(variable).simplify();
+    final k = factor.matchScalarMultiple(uPrime, variable);
+    if (k != null) {
+      final denom = Ln(base);
+      final fU = Div(candidate, denom).simplify();
+      return fU.scale(k);
+    }
+  }
+  return null;
+}
+
+Expr? _tryIntegrationByParts(Expr pExpr, Expr vExpr, String variable) {
+  final linP = pExpr.matchLinear(variable);
+  if (linP == null) return null;
+  final p = linP.a;
+
+  return switch (vExpr) {
+    Ln(:final expr) => switch (expr.matchLinear(variable)) {
+      (:final a, :final b) => _ibpLogarithm(pExpr, vExpr, expr, linP, a, b),
+      null => null,
+    },
+    Exp(:final expr) => switch (expr.matchLinear(variable)) {
+      (:final a, b: _) => _ibpExponential(pExpr, vExpr, p, a),
+      null => null,
+    },
+    Cos(:final expr) => switch (expr.matchLinear(variable)) {
+      (:final a, b: _) => _ibpCosine(pExpr, vExpr, expr, p, a),
+      null => null,
+    },
+    Sin(:final expr) => switch (expr.matchLinear(variable)) {
+      (:final a, b: _) => _ibpSine(pExpr, vExpr, expr, p, a),
+      null => null,
+    },
+    Pow(:final base, :final exponent) when !base.dependsOn(variable) =>
+      switch (exponent.matchLinear(variable)) {
+        (:final a, b: _) => _ibpGeneralExponential(pExpr, vExpr, base, p, a),
+        null => null,
+      },
+    _ => null,
+  };
+}
+
+Expr _ibpLogarithm(
+  Expr pExpr,
+  Expr vExpr,
+  Expr expr,
+  ({Expr a, Expr b}) linP,
+  Expr c,
+  Expr d,
+) {
+  final p = linP.a;
+  final q = linP.b;
+  final cSquared = Mul(c, c).simplify();
+  final aCap = Div(p, cSquared).simplify();
+  final numB = Sub(Mul(q, c), Mul(p, d)).simplify();
+  final bCap = Div(numB, cSquared).simplify();
+  final w = expr;
+  final wSquared = Pow(w, const Constant(2.0)).simplify();
+  final termA1 = Div(Mul(aCap, wSquared), const Constant(2.0)).simplify();
+  final termB1 = Mul(bCap, w).simplify();
+  final coeff1 = Add(termA1, termB1).simplify();
+
+  final termA2 = Div(Mul(aCap, wSquared), const Constant(4.0)).simplify();
+  final coeff2 = Add(termA2, termB1).simplify();
+
+  return Sub(Mul(coeff1, vExpr), coeff2).simplify();
+}
+
+Expr _ibpExponential(Expr pExpr, Expr vExpr, Expr p, Expr c) {
+  final term1 = Div(pExpr, c).simplify();
+  final cSquared = Mul(c, c).simplify();
+  final term2 = Div(p, cSquared).simplify();
+  final coeff = Sub(term1, term2).simplify();
+  return Mul(coeff, vExpr).simplify();
+}
+
+Expr? _ibpGeneralExponential(
+  Expr pExpr,
+  Expr vExpr,
+  Expr base,
+  Expr p,
+  Expr a,
+) {
+  var validBase = true;
+  if (base case Constant(value: final cVal)) {
+    validBase = cVal > 0.0 && cVal != 1.0;
+  }
+  if (validBase) {
+    final cEff = Mul(a, Ln(base)).simplify();
+    final term1 = Div(pExpr, cEff).simplify();
+    final cEffSquared = Mul(cEff, cEff).simplify();
+    final term2 = Div(p, cEffSquared).simplify();
+    final coeff = Sub(term1, term2).simplify();
+    return Mul(coeff, vExpr).simplify();
+  }
+  return null;
+}
+
+Expr _ibpCosine(Expr pExpr, Expr vExpr, Expr expr, Expr p, Expr c) {
+  final term1 = Mul(Div(pExpr, c).simplify(), Sin(expr)).simplify();
+  final cSquared = Mul(c, c).simplify();
+  final term2 = Mul(Div(p, cSquared).simplify(), Cos(expr)).simplify();
+  return Add(term1, term2).simplify();
+}
+
+Expr _ibpSine(Expr pExpr, Expr vExpr, Expr expr, Expr p, Expr c) {
+  final term1 = Neg(Mul(Div(pExpr, c).simplify(), Cos(expr))).simplify();
+  final cSquared = Mul(c, c).simplify();
+  final term2 = Mul(Div(p, cSquared).simplify(), Sin(expr)).simplify();
+  return Add(term1, term2).simplify();
+}

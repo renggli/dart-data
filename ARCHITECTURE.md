@@ -457,17 +457,18 @@ This document describes the achieved architecture across all subsystems of `pack
 
 - **Reasoning**: Symbolic differentiation computes exact analytical derivatives without finite-difference approximation errors or step-size tuning.
 - **Implementation & Constraints**:
-  - Recursive `diff(String variable)` method implementing calculus differentiation rules:
+  - `DifferentiationExtension on Expr` in `lib/src/symbolic/calculus/differentiation.dart` provides `expr.diff(variable)`:
+    - Implemented as an exhaustive `switch (expr)` pattern match over `sealed class Expr`.
     - Product rule: $(f \cdot g)' = f' g + f g'$.
     - Quotient rule: $(f / g)' = (f' g - f g') / g^2$.
-    - Power rule: $(u^v)' = u^v \left(v' \ln u + v \frac{u'}{u}\right)$.
+    - Power rule: Generalized 2-tuple record pattern `(base.dependsOn(x), exponent.dependsOn(x))` handling scalar constant, power rule $u^n$, exponential $c^u$, and general $(u^v)' = u^v (v' \ln u + v \frac{u'}{u})$.
     - Chain rule across all transcendental nodes ($\sin, \cos, \exp, \ln$).
 
 ### 9.3 Canonical Simplification Engine
 
 - **Reasoning**: Repeated differentiation and algebraic construction create bloated expression trees (e.g. $0 \cdot x + 1 \cdot f(x)$).
 - **Implementation & Constraints**:
-  - `simplify()` in `lib/src/symbolic/simplifier.dart` executes bottom-up recursive reductions:
+  - `SimplifierExtension on Expr` in `lib/src/symbolic/simplifier.dart` provides `expr.simplify()`, executing bottom-up recursive reductions via exhaustive pattern matching:
     - Constant folding: Evaluates expressions composed solely of numeric constants.
     - Identity elimination: $x + 0 \to x$, $x \times 1 \to x$, $x \times 0 \to 0$, $x^1 \to x$, $x^0 \to 1$.
     - Structural grouping: Identical term aggregation and negation cancellations ($x - x \to 0$, $-(-x) \to x$).
@@ -476,9 +477,10 @@ This document describes the achieved architecture across all subsystems of `pack
 
 - **Reasoning**: Interpreting AST trees by traversing nodes during iterative loops is orders of magnitude slower than compiled code.
 - **Implementation & Constraints**:
-  - `compile1D(varName)`: Produces a high-speed closure `double Function(double)`.
-  - `compile(varOrder)`: Produces a multivariate closure `double Function(List<double>)`.
-  - `compileTensorKernel(varOrder)`: Compiles an optimized tensor evaluation loop that reuses an internal argument buffer, evaluating symbolic expressions across entire tensors without heap allocations inside the loop.
+  - `CompilerExtension on Expr` in `lib/src/symbolic/compiler.dart` provides:
+    - `compile1D(varName)`: Produces a high-speed closure `double Function(double)`.
+    - `compile(varOrder)`: Produces a multivariate closure `double Function(List<double>)`.
+    - `compileTensorKernel(varOrder)`: Compiles an optimized tensor evaluation loop that reuses an internal argument buffer, evaluating symbolic expressions across entire tensors without heap allocations inside the loop.
 
 ### 9.5 Symbolic-to-Numeric Synergy
 
@@ -486,3 +488,28 @@ This document describes the achieved architecture across all subsystems of `pack
 - **Implementation & Constraints**:
   - Numeric optimizers (`brentMinimize`, `nelderMead`, `bfgs`) accept `Expr` ASTs directly.
   - When an `Expr` is passed to `bfgs`, analytical gradients are computed automatically via `expr.diff()`, completely eliminating finite-difference approximation errors and accelerating convergence.
+
+### 9.6 Exact Analytical Symbolic Integration & Adaptive Quadrature Fallback
+
+- **Reasoning**: Exact symbolic anti-differentiation is essential for closed-form calculus, indefinite integration, and high-precision definite integration. When an elementary anti-derivative does not exist or evaluation is non-finite, bridging to high-precision numerical quadrature guarantees universal solvability.
+- **Implementation & Constraints**:
+  - Modular calculus extensions exported directly via `package:data/symbolic.dart`:
+    - `IntegrationExtension on Expr` in `lib/src/symbolic/calculus/integration.dart` provides `integrate(variable, {from, to})`.
+    - `MultivariableExtension on Expr` in `lib/src/symbolic/calculus/multivariable.dart` provides `gradient(variables)` and `hessian(variables)`.
+    - `MultivariableIterableExtension on Iterable<Expr>` in `lib/src/symbolic/calculus/multivariable.dart` provides `jacobian(variables)`.
+    - `TaylorExtension on Expr` in `lib/src/symbolic/calculus/taylor.dart` provides `taylorSeries(variable, {point, order})`.
+    - `DifferentiationExtension on Expr` in `lib/src/symbolic/calculus/differentiation.dart` provides `diff(variable)`.
+    - `LinearFormExtension on Expr` in `lib/src/symbolic/calculus/linear_form.dart` provides `matchLinear(variable)`, `matchScalarMultiple(target, variable)`, and `scale(factor)`.
+    - **Analytical Anti-Differentiation Rules**:
+      - *Constants & Independent*: $\int c\,dx = c x$ ($\int 0\,dx = 0$), $\int y\,dx = y x$ for $y \ne x$.
+      - *Linear combinations*: $\int (a f(x) + b g(x))\,dx = a \int f\,dx + b \int g\,dx$, $\int (-f)\,dx = -\int f\,dx$, $\int (f / c)\,dx = \frac{1}{c} \int f\,dx$.
+      - *Power rule*: $\int (ax + b)^n\,dx = \frac{(ax + b)^{n+1}}{a (n+1)}$ for $n \ne -1$; $\int (ax + b)^{-1}\,dx = \frac{\ln(ax + b)}{a}$; $\int \frac{c}{ax + b}\,dx = \frac{c \ln(ax + b)}{a}$; $\int \frac{c}{(ax + b)^n}\,dx = \int c (ax + b)^{-n}\,dx$.
+      - *Exponentials*: $\int e^{ax + b}\,dx = \frac{e^{ax + b}}{a}$; $\int c^{ax + b}\,dx = \frac{c^{ax + b}}{a \ln c}$ ($c$ independent of $variable$, $c > 0, c \ne 1$ if numeric).
+      - *Trigonometrics*: $\int \sin(ax + b)\,dx = -\frac{\cos(ax + b)}{a}$; $\int \cos(ax + b)\,dx = \frac{\sin(ax + b)}{a}$.
+      - *Logarithms*: $\int \ln(ax + b)\,dx = \frac{(ax + b) \ln(ax + b) - (ax + b)}{a}$.
+      - *Products, Quotients & Substitutions*: Chain-rule substitution ($\int u'(x) f(u(x))\,dx = F(u(x))$, including rational power denominators $\frac{u'(x)}{u(x)^n}$ and general scalar matching via `matchScalarMultiple`), integration by parts for linear polynomial $\times$ integrable term ($P(x) e^{cx+d}$, $P(x) c^{ax+b}$, $P(x) \cos(cx+d)$, $P(x) \sin(cx+d)$, $P(x) \ln(cx+d)$), distributive expansion across additions/subtractions ($(f_1 + f_2) g \to f_1 g + f_2 g$), and identity multiplication ($u \cdot u \to u^2$).
+  - **Definite Integration & Numerical Quadrature Fallback**:
+    - Definite integration validates that both bounds are supplied; if $from == to$, returns `Constant(0.0)`. Supports reversed integration bounds ($from > to$).
+    - Evaluates analytical anti-derivative $F(b) - F(a)$. If free variables remain, returns the simplified symbolic expression; if scalar, returns `Constant(val)`.
+    - If no closed-form anti-derivative exists (throws `UnsupportedError`) or evaluation is non-finite, automatically falls back to Adaptive Gauss-Kronrod quadrature (`gaussKronrod`) from `lib/src/numeric/integration.dart`.
+    - For indefinite integrals, unsupported forms throw `UnsupportedError`.

@@ -1,7 +1,5 @@
 import 'dart:math' as math;
 
-import 'simplifier.dart';
-
 /// Sealed base class representing an algebraic expression AST node.
 sealed class Expr {
   const new();
@@ -11,12 +9,6 @@ sealed class Expr {
 
   /// All unique variable names appearing in this expression.
   Set<String> get freeVariables;
-
-  /// Exact analytical symbolic derivative with respect to [variable].
-  Expr diff(String variable);
-
-  /// Canonically simplifies this expression.
-  Expr simplify();
 
   /// Substitutes occurrences of [variable] with [replacement].
   Expr substitute(String variable, Expr replacement);
@@ -49,13 +41,6 @@ final class Variable extends Expr {
 
   @override
   Set<String> get freeVariables => {name};
-
-  @override
-  Expr diff(String variable) =>
-      name == variable ? const Constant(1.0) : const Constant(0.0);
-
-  @override
-  Expr simplify() => this;
 
   @override
   Expr substitute(String variable, Expr replacement) =>
@@ -96,12 +81,6 @@ final class Constant extends Expr {
   Set<String> get freeVariables => const {};
 
   @override
-  Expr diff(String variable) => const Constant(0.0);
-
-  @override
-  Expr simplify() => this;
-
-  @override
   Expr substitute(String variable, Expr replacement) => this;
 
   @override
@@ -136,12 +115,6 @@ final class Add extends Expr {
     ...left.freeVariables,
     ...right.freeVariables,
   };
-
-  @override
-  Expr diff(String variable) => Add(left.diff(variable), right.diff(variable));
-
-  @override
-  Expr simplify() => Simplifier.add(left.simplify(), right.simplify());
 
   @override
   Expr substitute(String variable, Expr replacement) => Add(
@@ -184,12 +157,6 @@ final class Sub extends Expr {
   };
 
   @override
-  Expr diff(String variable) => Sub(left.diff(variable), right.diff(variable));
-
-  @override
-  Expr simplify() => Simplifier.sub(left.simplify(), right.simplify());
-
-  @override
   Expr substitute(String variable, Expr replacement) => Sub(
     left.substitute(variable, replacement),
     right.substitute(variable, replacement),
@@ -228,14 +195,6 @@ final class Mul extends Expr {
     ...left.freeVariables,
     ...right.freeVariables,
   };
-
-  // Product rule: (u * v)' = u' * v + u * v'
-  @override
-  Expr diff(String variable) =>
-      Add(Mul(left.diff(variable), right), Mul(left, right.diff(variable)));
-
-  @override
-  Expr simplify() => Simplifier.mul(left.simplify(), right.simplify());
 
   @override
   Expr substitute(String variable, Expr replacement) => Mul(
@@ -276,16 +235,6 @@ final class Div extends Expr {
     ...left.freeVariables,
     ...right.freeVariables,
   };
-
-  // Quotient rule: (u / v)' = (u' * v - u * v') / v^2
-  @override
-  Expr diff(String variable) => Div(
-    Sub(Mul(left.diff(variable), right), Mul(left, right.diff(variable))),
-    Pow(right, const Constant(2.0)),
-  );
-
-  @override
-  Expr simplify() => Simplifier.div(left.simplify(), right.simplify());
 
   @override
   Expr substitute(String variable, Expr replacement) => Div(
@@ -328,33 +277,6 @@ final class Pow extends Expr {
     ...exponent.freeVariables,
   };
 
-  // Generalized power rule: d/dx(u^v) = u^v * (v' * ln(u) + v * u' / u)
-  @override
-  Expr diff(String variable) {
-    final bDep = base.dependsOn(variable);
-    final eDep = exponent.dependsOn(variable);
-    if (!bDep && !eDep) return const Constant(0.0);
-    if (bDep && !eDep) {
-      return Mul(
-        Mul(exponent, Pow(base, Sub(exponent, const Constant(1.0)))),
-        base.diff(variable),
-      );
-    }
-    if (!bDep && eDep) {
-      return Mul(Mul(this, Ln(base)), exponent.diff(variable));
-    }
-    return Mul(
-      this,
-      Add(
-        Mul(exponent.diff(variable), Ln(base)),
-        Div(Mul(exponent, base.diff(variable)), base),
-      ),
-    );
-  }
-
-  @override
-  Expr simplify() => Simplifier.pow(base.simplify(), exponent.simplify());
-
   @override
   Expr substitute(String variable, Expr replacement) => Pow(
     base.substitute(variable, replacement),
@@ -392,12 +314,6 @@ final class Neg extends Expr {
   Set<String> get freeVariables => expr.freeVariables;
 
   @override
-  Expr diff(String variable) => Neg(expr.diff(variable));
-
-  @override
-  Expr simplify() => Simplifier.neg(expr.simplify());
-
-  @override
   Expr substitute(String variable, Expr replacement) =>
       Neg(expr.substitute(variable, replacement));
 
@@ -428,13 +344,6 @@ final class Sin extends Expr {
 
   @override
   Set<String> get freeVariables => expr.freeVariables;
-
-  // d/dx(sin(u)) = cos(u) * u'
-  @override
-  Expr diff(String variable) => Mul(Cos(expr), expr.diff(variable));
-
-  @override
-  Expr simplify() => Simplifier.sin(expr.simplify());
 
   @override
   Expr substitute(String variable, Expr replacement) =>
@@ -469,13 +378,6 @@ final class Cos extends Expr {
   @override
   Set<String> get freeVariables => expr.freeVariables;
 
-  // d/dx(cos(u)) = -sin(u) * u'
-  @override
-  Expr diff(String variable) => Mul(Neg(Sin(expr)), expr.diff(variable));
-
-  @override
-  Expr simplify() => Simplifier.cos(expr.simplify());
-
   @override
   Expr substitute(String variable, Expr replacement) =>
       Cos(expr.substitute(variable, replacement));
@@ -509,13 +411,6 @@ final class Exp extends Expr {
   @override
   Set<String> get freeVariables => expr.freeVariables;
 
-  // d/dx(exp(u)) = exp(u) * u'
-  @override
-  Expr diff(String variable) => Mul(this, expr.diff(variable));
-
-  @override
-  Expr simplify() => Simplifier.exp(expr.simplify());
-
   @override
   Expr substitute(String variable, Expr replacement) =>
       Exp(expr.substitute(variable, replacement));
@@ -548,13 +443,6 @@ final class Ln extends Expr {
 
   @override
   Set<String> get freeVariables => expr.freeVariables;
-
-  // d/dx(ln(u)) = u' / u
-  @override
-  Expr diff(String variable) => Div(expr.diff(variable), expr);
-
-  @override
-  Expr simplify() => Simplifier.ln(expr.simplify());
 
   @override
   Expr substitute(String variable, Expr replacement) =>

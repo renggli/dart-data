@@ -2,99 +2,113 @@ import 'dart:math' as math;
 
 import 'ast.dart';
 
-/// Canonical algebraic simplifier performing constant folding and identity reductions.
-class Simplifier {
-  const new _();
-
-  static Expr add(Expr left, Expr right) {
-    if (left is Constant && right is Constant) {
-      return Constant(left.value + right.value);
-    }
-    if (left is Constant && left.value == 0.0) return right;
-    if (right is Constant && right.value == 0.0) return left;
-    return Add(left, right);
-  }
-
-  static Expr sub(Expr left, Expr right) {
-    if (left is Constant && right is Constant) {
-      return Constant(left.value - right.value);
-    }
-    if (right is Constant && right.value == 0.0) return left;
-    if (left == right) return const Constant(0.0);
-    return Sub(left, right);
-  }
-
-  static Expr mul(Expr left, Expr right) {
-    if (left is Constant && right is Constant) {
-      return Constant(left.value * right.value);
-    }
-    if ((left is Constant && left.value == 0.0) ||
-        (right is Constant && right.value == 0.0)) {
-      return const Constant(0.0);
-    }
-    if (left is Constant && left.value == 1.0) return right;
-    if (right is Constant && right.value == 1.0) return left;
-    if (left is Constant && left.value == -1.0) return Neg(right);
-    if (right is Constant && right.value == -1.0) return Neg(left);
-    return Mul(left, right);
-  }
-
-  static Expr div(Expr left, Expr right) {
-    if (left is Constant && right is Constant) {
-      if (right.value == 0.0) {
-        throw UnsupportedError('Division by zero in simplification');
-      }
-      return Constant(left.value / right.value);
-    }
-    if (left is Constant && left.value == 0.0) return const Constant(0.0);
-    if (right is Constant && right.value == 1.0) return left;
-    if (left == right) return const Constant(1.0);
-    return Div(left, right);
-  }
-
-  static Expr pow(Expr base, Expr exponent) {
-    if (base is Constant && exponent is Constant) {
-      return Constant(math.pow(base.value, exponent.value).toDouble());
-    }
-    if (exponent is Constant && exponent.value == 0.0) {
-      return const Constant(1.0);
-    }
-    if (exponent is Constant && exponent.value == 1.0) return base;
-    if (base is Constant && base.value == 0.0) return const Constant(0.0);
-    if (base is Constant && base.value == 1.0) return const Constant(1.0);
-    return Pow(base, exponent);
-  }
-
-  static Expr neg(Expr expr) {
-    if (expr is Constant) return Constant(-expr.value);
-    if (expr is Neg) return expr.expr;
-    return Neg(expr);
-  }
-
-  static Expr sin(Expr expr) {
-    if (expr is Constant) return Constant(math.sin(expr.value));
-    return Sin(expr);
-  }
-
-  static Expr cos(Expr expr) {
-    if (expr is Constant) return Constant(math.cos(expr.value));
-    return Cos(expr);
-  }
-
-  static Expr exp(Expr expr) {
-    if (expr is Constant) return Constant(math.exp(expr.value));
-    return Exp(expr);
-  }
-
-  static Expr ln(Expr expr) {
-    if (expr is Constant) {
-      if (expr.value <= 0.0) {
-        throw ArgumentError(
-          'Natural logarithm domain error: ${expr.value} <= 0',
-        );
-      }
-      return Constant(math.log(expr.value));
-    }
-    return Ln(expr);
-  }
+/// Canonical algebraic simplification extension on [Expr].
+extension SimplifierExtension on Expr {
+  /// Canonically simplifies this expression performing constant folding and identity reductions.
+  Expr simplify() => _simplify(this);
 }
+
+Expr _simplify(Expr expr) => switch (expr) {
+  Constant() || Variable() => expr,
+  Add(:final left, :final right) => _simplifyAdd(
+    _simplify(left),
+    _simplify(right),
+  ),
+  Sub(:final left, :final right) => _simplifySub(
+    _simplify(left),
+    _simplify(right),
+  ),
+  Mul(:final left, :final right) => _simplifyMul(
+    _simplify(left),
+    _simplify(right),
+  ),
+  Div(:final left, :final right) => _simplifyDiv(
+    _simplify(left),
+    _simplify(right),
+  ),
+  Pow(:final base, :final exponent) => _simplifyPow(
+    _simplify(base),
+    _simplify(exponent),
+  ),
+  Neg(:final expr) => _simplifyNeg(_simplify(expr)),
+  Sin(:final expr) => _simplifySin(_simplify(expr)),
+  Cos(:final expr) => _simplifyCos(_simplify(expr)),
+  Exp(:final expr) => _simplifyExp(_simplify(expr)),
+  Ln(:final expr) => _simplifyLn(_simplify(expr)),
+};
+
+Expr _simplifyAdd(Expr left, Expr right) => switch ((left, right)) {
+  (Constant(value: final l), Constant(value: final r)) => Constant(l + r),
+  (Constant(value: 0.0), final r) => r,
+  (final l, Constant(value: 0.0)) => l,
+  _ => Add(left, right),
+};
+
+Expr _simplifySub(Expr left, Expr right) => switch ((left, right)) {
+  (Constant(value: final l), Constant(value: final r)) => Constant(l - r),
+  (final l, Constant(value: 0.0)) => l,
+  _ when left == right => const Constant(0.0),
+  _ => Sub(left, right),
+};
+
+Expr _simplifyMul(Expr left, Expr right) => switch ((left, right)) {
+  (Constant(value: final l), Constant(value: final r)) => Constant(l * r),
+  (Constant(value: 0.0), _) || (_, Constant(value: 0.0)) => const Constant(0.0),
+  (Constant(value: 1.0), final r) => r,
+  (final l, Constant(value: 1.0)) => l,
+  (Constant(value: -1.0), final r) => Neg(r),
+  (final l, Constant(value: -1.0)) => Neg(l),
+  _ => Mul(left, right),
+};
+
+Expr _simplifyDiv(Expr left, Expr right) => switch ((left, right)) {
+  (_, Constant(value: 0.0)) => throw UnsupportedError(
+    'Division by zero in simplification',
+  ),
+  (Constant(value: final l), Constant(value: final r)) => Constant(l / r),
+  (Constant(value: 0.0), _) => const Constant(0.0),
+  (final l, Constant(value: 1.0)) => l,
+  (final l, Constant(value: -1.0)) => Neg(l),
+  _ when left == right => const Constant(1.0),
+  _ => Div(left, right),
+};
+
+Expr _simplifyPow(Expr base, Expr exponent) => switch ((base, exponent)) {
+  (Constant(value: final b), Constant(value: final e)) => Constant(
+    math.pow(b, e).toDouble(),
+  ),
+  (_, Constant(value: 0.0)) => const Constant(1.0),
+  (final b, Constant(value: 1.0)) => b,
+  (Constant(value: 0.0), _) => const Constant(0.0),
+  (Constant(value: 1.0), _) => const Constant(1.0),
+  _ => Pow(base, exponent),
+};
+
+Expr _simplifyNeg(Expr expr) => switch (expr) {
+  Constant(:final value) => Constant(-value),
+  Neg(:final expr) => expr,
+  _ => Neg(expr),
+};
+
+Expr _simplifySin(Expr expr) => switch (expr) {
+  Constant(:final value) => Constant(math.sin(value)),
+  _ => Sin(expr),
+};
+
+Expr _simplifyCos(Expr expr) => switch (expr) {
+  Constant(:final value) => Constant(math.cos(value)),
+  _ => Cos(expr),
+};
+
+Expr _simplifyExp(Expr expr) => switch (expr) {
+  Constant(:final value) => Constant(math.exp(value)),
+  _ => Exp(expr),
+};
+
+Expr _simplifyLn(Expr expr) => switch (expr) {
+  Constant(:final value) when value <= 0.0 => throw ArgumentError(
+    'Natural logarithm domain error: $value <= 0',
+  ),
+  Constant(:final value) => Constant(math.log(value)),
+  _ => Ln(expr),
+};

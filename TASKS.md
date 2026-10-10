@@ -831,6 +831,33 @@ This document defines the prioritized, actionable engineering roadmap for `packa
 
 ---
 
+### Task 2.17: Symbolic Equation & Linear System Solving (`solve` / `solveSystem`)
+
+- **Problem / Goal**:
+  Currently, symbolic `Expr` trees can be evaluated, simplified, differentiated, and integrated, but there is no analytical solver for algebraic equations ($f(x) = 0$ or $f(x) = g(x)$) or systems of linear/polynomial equations.
+- **The Win**:
+  - Closed-form symbolic root and equation solving: `expr.solve('x')`, supporting linear forms ($a x + b = 0 \implies x = -b/a$), quadratics ($a x^2 + b x + c = 0$), invertible transcendental forms ($\ln, \exp, \sin, \cos, \text{pow}$), and systems of linear equations via symbolic Gaussian elimination or Cramer's rule.
+- **Target Files**:
+  - `lib/src/symbolic/solver.dart` (new)
+  - `lib/symbolic.dart`
+  - `test/symbolic/solver_test.dart` (new)
+  - `ARCHITECTURE.md` (Section 9.7)
+- **Step-by-Step Implementation Details**:
+  1. Create `lib/src/symbolic/solver.dart`:
+     - Implement `extension SolverExtension on Expr`:
+       - `List<Expr> solve(String variable)`: Solves $f(\text{variable}) = 0$ for [variable].
+       - Form isolation using pattern matching:
+         - Linear form: $a x + b = 0 \to x = -b / a$.
+         - Polynomial conversion / Quadratic formula: $a x^2 + b x + c = 0 \to \frac{-b \pm \sqrt{b^2 - 4ac}}{2a}$.
+         - Factorized products: $f(x) \cdot g(x) = 0 \to \text{solve}(f) \cup \text{solve}(g)$.
+         - Invertible transcendental equations: $\exp(u(x)) = c \to u(x) = \ln(c)$, $\ln(u(x)) = c \to u(x) = e^c$, $\sin(u(x)) = c$, $(u(x))^n = c$.
+     - Implement `extension SystemSolverExtension on Iterable<Expr>`:
+       - `Map<String, Expr>? solveSystem(List<String> variables)`: Solves a system of equations $f_i(x_1, \dots, x_n) = 0$ using symbolic Gaussian elimination / LU decomposition over the coefficient field.
+  2. Export from `lib/symbolic.dart`.
+  3. Add exhaustive unit tests covering linear, quadratic, transcendental, and multi-variable linear equation systems.
+
+---
+
 ## Priority 3: Longer-Term Roadmap & External Interoperability
 
 ### Task 3.1: Apache Arrow C Data Interface & IPC Stream Export
