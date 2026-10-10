@@ -173,11 +173,17 @@ This document describes the achieved architecture across all subsystems of `pack
   - **Singular Value Decomposition (`SVD`)**: Golub-Reinsch bidiagonalization with implicit QR shifts computing $A = U \Sigma V^T$. Provides pseudo-inverses, rank estimation, and singular value inspection.
   - **Eigenvalue Decomposition (`Eigenvalue`)**: Reduction to Hessenberg form followed by Francis shifted double-step QR algorithm computing real and complex eigenvalues/eigenvectors.
 
-### 3.6 Vector Operations & Norms
+### 3.6 Vector Operations, Cumulative Scans & Geometric Decompositions
 
-- **Reasoning**: Geometric and functional operations on vectors are foundational across optimization and analysis.
+- **Reasoning**: Geometric and functional operations on vectors are foundational across numerical analysis, optimization, and signal processing.
 - **Implementation & Constraints**:
   - Generalized $L_p$ norm: `norm([p = 2.0])` supports $L_1$ (Manhattan), $L_2$ (Euclidean), and $L_\infty$ (Chebyshev maximum absolute).
+  - Cumulative prefix scans:
+    - `cumsum({Vector<T>? target})`: Computes prefix sum in $\mathcal{O}(N)$ single pass using `field.add`. Fast paths iterate contiguous buffers directly; supports in-place accumulation (`target: this`) and safe defensive copying for overlapping slice aliases.
+    - `cumprod({Vector<T>? target})`: Computes prefix product in $\mathcal{O}(N)$ single pass starting from `field.multiplicativeIdentity` using `field.mul`.
+  - Orthogonal decomposition (`VectorNumericExtension<T extends num>`):
+    - `project(onto)`: Computes $\operatorname{proj}_{\mathbf{v}}(\mathbf{u}) = \frac{\langle \mathbf{u}, \mathbf{v} \rangle}{\|\mathbf{v}\|_2^2} \mathbf{v}$. Throws `ArgumentError` if lengths mismatch or if $\|\mathbf{v}\|_2^2 < 1\text{e-}15$.
+    - `reject(from)`: Computes $\operatorname{oproj}_{\mathbf{v}}(\mathbf{u}) = \mathbf{u} - \operatorname{proj}_{\mathbf{v}}(\mathbf{u})$ via in-place reusable buffer update with zero extraneous allocations.
   - Utility operations: `normalized()`, dot product `u.dot(v)`, outer product `u.outer(v)`, in-place scaling `scaleInPlace(factor)`, and scaled addition `addScaled(v, factor)`.
 
 ---
