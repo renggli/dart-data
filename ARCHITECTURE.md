@@ -407,6 +407,8 @@ This document describes the achieved architecture across all subsystems of `pack
 - **Implementation & Constraints**:
   - `CubicSpline`: $C^2$ continuous cubic spline interpolation supporting natural ($S''(x) = 0$) and clamped ($S'(x) = f'$) boundary conditions. Formulates spline second derivatives as a tridiagonal linear system solved in $\mathcal{O}(N)$ time via `solveTridiagonal`.
   - `PchipInterpolation`: Piecewise Cubic Hermite Interpolating Polynomial preserving monotonicity and preventing overshoot between data points.
+  - `BilinearInterpolation`: 2D rectilinear grid interpolation using four-point convex weighting with partial gradient evaluation.
+  - `BicubicInterpolation`: 2D surface interpolation over a rectilinear grid with $C^1$ continuity using 16-coefficient bicubic patches ($A = M F M^T$) with partial derivatives and continuous gradient extraction.
   - `leastSquares`: General linear regression using LAPACK `dgels`, Householder QR, or SVD.
   - `polynomialRegression`: Vandermonde polynomial fitting using QR decomposition.
   - `levenbergMarquardt`: Damped Gauss-Newton nonlinear least-squares curve fitting.
