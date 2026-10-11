@@ -1,13 +1,18 @@
 import 'dart:typed_data';
 
+import 'package:more/number.dart' show Complex;
+
 import 'acceleration_mode.dart';
 import 'blas/cblas.dart';
 import 'routines/blas_level1.dart';
 import 'routines/blas_level2.dart';
 import 'routines/blas_level3.dart';
+import 'routines/fft_routines.dart';
 import 'routines/lapack.dart';
+import 'routines/vforce_routines.dart';
+import 'vdsp/vdsp.dart';
 
-/// Central acceleration manager providing routing between native BLAS/LAPACK
+/// Central acceleration manager providing routing between native BLAS/LAPACK/vDSP
 /// (via FFI), Dart SIMD, and pure Dart scalar algorithms according to [mode].
 class AccelerationManager {
   new _(); // coverage:ignore-line
@@ -26,13 +31,23 @@ class AccelerationManager {
   }
 
   static final BlasLibrary _blas = loadBlas();
+  static final VdspLibrary _vdsp = loadVdsp();
 
   /// Whether native BLAS is loaded and available on the current platform.
   static bool get isNativeAvailable => _blas.isAvailable;
 
+  /// Whether native vDSP or vForce acceleration is available on the current platform.
+  static bool get isVdspAvailable => _vdsp.isAvailable;
+
+  /// Whether native FFT acceleration is available on the current platform.
+  static bool get isFftAvailable => _vdsp.hasFft;
+
+  /// Whether native vForce transcendental acceleration is available on the current platform.
+  static bool get isVForceAvailable => _vdsp.hasVForce;
+
   /// Whether hardware acceleration is currently active.
   static bool get isAccelerated =>
-      mode != AccelerationMode.dart && _blas.isAvailable;
+      mode != AccelerationMode.dart && (_blas.isAvailable || _vdsp.isAvailable);
 
   // --- BLAS Level 1: Vector-Vector Operations ---
 
@@ -731,6 +746,70 @@ class AccelerationManager {
     wOffset: wOffset,
     blas: _blas,
   );
+
+  // --- FFT and Signal Processing ---
+
+  /// Computes the 1-dimensional Discrete Fourier Transform (FFT) of [input].
+  static List<Complex> fft(Iterable<Complex> input) =>
+      FftRoutines.fft(input, vdsp: _vdsp, inverse: false);
+
+  /// Computes the 1-dimensional Inverse Discrete Fourier Transform (IFFT) of [input].
+  static List<Complex> ifft(Iterable<Complex> input) =>
+      FftRoutines.fft(input, vdsp: _vdsp, inverse: true);
+
+  /// Computes the 1-dimensional Discrete Fourier Transform for real-valued [input].
+  static List<Complex> rfft(Iterable<num> input) =>
+      FftRoutines.rfft(input, vdsp: _vdsp);
+
+  /// Computes the Inverse Discrete Fourier Transform for real-valued signals.
+  static List<double> irfft(List<Complex> input, [int? n]) =>
+      FftRoutines.irfft(input, vdsp: _vdsp, n: n);
+
+  /// Computes the 2-dimensional Discrete Fourier Transform of [matrix].
+  static List<List<Complex>> fft2(List<List<Complex>> matrix) =>
+      FftRoutines.fft2(matrix, vdsp: _vdsp, inverse: false);
+
+  /// Computes the 2-dimensional Inverse Discrete Fourier Transform of [matrix].
+  static List<List<Complex>> ifft2(List<List<Complex>> matrix) =>
+      FftRoutines.fft2(matrix, vdsp: _vdsp, inverse: true);
+
+  // --- Elementwise Transcendental Functions ---
+
+  /// Computes elementwise sine: `output[i] = sin(input[i])`.
+  static Float64List vsin(Float64List input) =>
+      VforceRoutines.vsin(input, vdsp: _vdsp);
+
+  /// Computes elementwise cosine: `output[i] = cos(input[i])`.
+  static Float64List vcos(Float64List input) =>
+      VforceRoutines.vcos(input, vdsp: _vdsp);
+
+  /// Computes elementwise exponential: `output[i] = exp(input[i])`.
+  static Float64List vexp(Float64List input) =>
+      VforceRoutines.vexp(input, vdsp: _vdsp);
+
+  /// Computes elementwise natural logarithm: `output[i] = ln(input[i])`.
+  static Float64List vlog(Float64List input) =>
+      VforceRoutines.vlog(input, vdsp: _vdsp);
+
+  /// Computes elementwise square root: `output[i] = sqrt(input[i])`.
+  static Float64List vsqrt(Float64List input) =>
+      VforceRoutines.vsqrt(input, vdsp: _vdsp);
+
+  /// Computes elementwise power: `output[i] = pow(base[i], exponent[i])`.
+  static Float64List vpow(Float64List base, Float64List exponent) =>
+      VforceRoutines.vpow(base, exponent, vdsp: _vdsp);
+
+  // --- Vector Reductions ---
+
+  /// Computes sum of elements in [x].
+  static double sum(Float64List x) => VforceRoutines.sum(x, vdsp: _vdsp);
+
+  /// Computes arithmetic mean of elements in [x].
+  static double mean(Float64List x) => VforceRoutines.mean(x, vdsp: _vdsp);
+
+  /// Computes sample or population variance of elements in [x].
+  static double variance(Float64List x, {bool sample = true}) =>
+      VforceRoutines.variance(x, vdsp: _vdsp, sample: sample);
 }
 
 /// Backwards-compatible alias for [AccelerationManager].

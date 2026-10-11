@@ -11,7 +11,7 @@ This document defines the actionable engineering task list for `package:data`.
 - [x] Modularize Implementation Files (Single Responsibility, Low Coupling, High Cohesion)
 - [x] Parallel Unit Test Hierarchy & Comprehensive Coverage (Target Near 100%)
 - [x] Backend Acceleration Parity, Dedicated Modes (Auto, Accelerated, Dart) & Verification
-- [ ] Hardware Acceleration for FFT, Signal Processing & Vectorized Operations
+- [x] Hardware Acceleration for FFT, Signal Processing & Vectorized Operations
 - [ ] Consistent 80-Character Comment Formatting & Doc Reflow
 
 ---
@@ -147,7 +147,7 @@ This document defines the actionable engineering task list for `package:data`.
 
 ---
 
-### [ ] Hardware Acceleration for FFT, Signal Processing & Vectorized Operations
+### [x] Hardware Acceleration for FFT, Signal Processing & Vectorized Operations
 
 - **Problem / Goal**:
   Fourier transform routines (`fft`, `ifft`, `rfft`, `irfft`, `fft2`, `ifft2` in `lib/src/numeric/fft.dart`) and related computational routines across `package:data` (1D/2D convolutions, high-degree polynomial multiplications, descriptive vector statistics in `lib/src/stats/descriptive.dart`, elementwise transcendental math in tensors/vectors, and multidimensional tensor reductions) are implemented exclusively in pure Dart scalar code using heap-allocated objects (`List<Complex>`, `List<num>`). For large 1D vectors ($N \ge 1024$), 2D image matrices ($M \times N \ge 256 \times 256$), and high-degree polynomial multiplications, pure Dart execution creates substantial memory churn and CPU overhead compared to native hardware-accelerated vector DSP libraries. While matrix linear algebra operations already leverage native hardware acceleration via BLAS/LAPACK FFI and SIMD (`HardwareManager`), FFT, signal processing, and other numerical vector operations lack hardware-accelerated execution paths.
