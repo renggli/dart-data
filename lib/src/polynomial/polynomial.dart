@@ -1,16 +1,18 @@
-import 'dart:math' as math;
-
-import '../../linear.dart';
 import '../../symbolic.dart';
 import '../../type.dart';
+import 'impl/compressed_polynomial.dart';
+import 'impl/dense_polynomial.dart';
 import 'orthogonal.dart' as orthogonal;
 
-/// 1-dimensional algebraic polynomial with coefficients in [T].
+/// 1-dimensional algebraic univariate polynomial with coefficients in [T].
 ///
 /// Coefficients are ordered in ascending power of $x$:
 /// $P(x) = c_0 + c_1 x + c_2 x^2 + \dots + c_n x^n$.
-class Polynomial<T> {
-  /// Constructs a polynomial from [coefficients] where index $i$ corresponds to the power $x^i$.
+abstract class Polynomial<T> {
+  /// Base constructor for polynomial implementations.
+  const new();
+
+  /// Constructs a dense polynomial from [coefficients] where index $i$ corresponds to the power $x^i$.
   ///
   /// Conceptually, a polynomial is a linear combination of powers of an indeterminate,
   /// such as $3 + 2x + 5x^2$. The list `[3, 2, 5]` sets the constant term to 3, the linear
@@ -21,9 +23,27 @@ class Polynomial<T> {
   /// ```dart
   /// final p = Polynomial.fromCoefficients([3, 2, 5]); // 3 + 2x + 5x^2
   /// ```
-  new fromCoefficients(Iterable<T> coefficients, {DataType<T>? type})
-    : type = type ?? DataType.fromIterable(coefficients),
-      _coefficients = coefficients.toList(growable: false);
+  factory fromCoefficients(Iterable<T> coefficients, {DataType<T>? type}) =
+      DensePolynomial<T>.fromCoefficients;
+
+  /// Constructs a sparse compressed polynomial from [entries] mapping exponents to non-zero coefficients.
+  ///
+  /// ```dart
+  /// final p = Polynomial<double>.sparse({0: -1.0, 10000: 1.0}); // x^10000 - 1
+  /// ```
+  factory sparse(Map<int, T> entries, {DataType<T>? type}) =
+      CompressedPolynomial<T>.fromMap;
+
+  /// Constructs a sparse compressed polynomial from parallel [exponents] and [coefficients].
+  ///
+  /// ```dart
+  /// final p = Polynomial<double>.compressed([0, 10000], [-1.0, 1.0]); // x^10000 - 1
+  /// ```
+  factory compressed(
+    Iterable<int> exponents,
+    Iterable<T> coefficients, {
+    DataType<T>? type,
+  }) = CompressedPolynomial<T>;
 
   /// Constructs a polynomial using [generator] for each exponent from 0 to [degree].
   factory generate(
@@ -37,13 +57,13 @@ class Polynomial<T> {
       generator,
       growable: false,
     );
-    return Polynomial.fromCoefficients(coeffs, type: effectiveType);
+    return DensePolynomial<T>.fromCoefficients(coeffs, type: effectiveType);
   }
 
   /// Constructs a zero polynomial with degree -1.
   factory zero({DataType<T>? type}) {
     final effectiveType = type ?? DataType.fromType<T>();
-    return Polynomial.fromCoefficients(const [], type: effectiveType);
+    return DensePolynomial<T>.fromCoefficients(const [], type: effectiveType);
   }
 
   /// Constructs a monic polynomial from its real [roots]:
@@ -150,40 +170,26 @@ class Polynomial<T> {
   }
 
   /// The data type of the coefficients.
-  final DataType<T> type;
-
-  final List<T> _coefficients;
+  DataType<T> get type;
 
   /// The list of coefficients from exponent 0 to [degree].
-  List<T> get coefficients => _coefficients;
+  List<T> get coefficients;
 
   /// The degree of this polynomial (the highest power with a non-zero coefficient),
   /// or -1 if the polynomial is zero.
-  int get degree {
-    final field = type.field;
-    final zero = field.additiveIdentity;
-    for (var i = _coefficients.length - 1; i >= 0; i--) {
-      if (_coefficients[i] != zero) return i;
-    }
-    return -1;
-  }
+  int get degree;
+
+  /// The number of non-zero terms in this polynomial.
+  int get termCount;
 
   /// Returns the coefficient for $x^{exponent}$, or zero if beyond the stored degree.
-  T operator [](int exponent) {
-    if (exponent < 0 || exponent >= _coefficients.length) {
-      return type.field.additiveIdentity;
-    }
-    return _coefficients[exponent];
-  }
+  T operator [](int exponent);
 
   /// The leading coefficient of the polynomial (coefficient of $x^{\deg(P)}$),
   /// or zero if the polynomial is empty.
-  T get leadingCoefficient {
-    final deg = degree;
-    return deg < 0 ? type.field.additiveIdentity : _coefficients[deg];
-  }
+  T get leadingCoefficient;
 
-  /// Evaluates $P(x)$ at [x] using Horner's method in $\mathcal{O}(n)$ time.
+  /// Evaluates $P(x)$ at [x] using Horner's method or binary exponentiation in $\mathcal{O}(n)$ time.
   ///
   /// Conceptually, this evaluates the polynomial at a given coordinate without computing powers explicitly.
   /// Formally, Horner's algorithm computes nested multiplications
@@ -193,112 +199,28 @@ class Polynomial<T> {
   /// final p = Polynomial.fromCoefficients([1, 2, 3]); // 1 + 2x + 3x^2
   /// final y = p.evaluate(2); // 1 + 2(2) + 3(4) = 17
   /// ```
-  T evaluate(T x) {
-    final deg = degree;
-    if (deg < 0) return type.field.additiveIdentity;
-    final field = type.field;
-    var acc = _coefficients[deg];
-    for (var i = deg - 1; i >= 0; i--) {
-      acc = field.add(field.mul(acc, x), _coefficients[i]);
-    }
-    return acc;
-  }
+  T evaluate(T x);
 
   /// Evaluates $P(x)$ for a numeric value [x] as a double.
-  double evaluateDouble(num x) {
-    final deg = degree;
-    if (deg < 0) return 0.0;
-    final xd = x.toDouble();
-    var acc = (this[deg] as num).toDouble();
-    for (var i = deg - 1; i >= 0; i--) {
-      acc = acc * xd + (this[i] as num).toDouble();
-    }
-    return acc;
-  }
+  double evaluateDouble(num x);
 
   /// Evaluates $P(x)$ for a complex value [x].
-  Complex evaluateComplex(Complex x) {
-    final deg = degree;
-    if (deg < 0) return Complex.zero;
-    var acc = Complex((this[deg] as num).toDouble());
-    for (var i = deg - 1; i >= 0; i--) {
-      acc = acc * x + Complex((this[i] as num).toDouble());
-    }
-    return acc;
-  }
+  Complex evaluateComplex(Complex x);
 
   /// Polynomial addition $P(x) + Q(x)$.
-  Polynomial<T> operator +(Polynomial<T> other) {
-    final field = type.field;
-    final maxLen = math.max(_coefficients.length, other._coefficients.length);
-    final newCoeffs = List<T>.generate(
-      maxLen,
-      (i) => field.add(this[i], other[i]),
-      growable: false,
-    );
-    return Polynomial<T>.fromCoefficients(newCoeffs, type: type);
-  }
+  Polynomial<T> operator +(Polynomial<T> other);
 
   /// Polynomial subtraction $P(x) - Q(x)$.
-  Polynomial<T> operator -(Polynomial<T> other) {
-    final field = type.field;
-    final maxLen = math.max(_coefficients.length, other._coefficients.length);
-    final newCoeffs = List<T>.generate(
-      maxLen,
-      (i) => field.sub(this[i], other[i]),
-      growable: false,
-    );
-    return Polynomial<T>.fromCoefficients(newCoeffs, type: type);
-  }
+  Polynomial<T> operator -(Polynomial<T> other);
 
   /// Unary polynomial negation $-P(x)$.
-  Polynomial<T> operator -() {
-    final field = type.field;
-    final newCoeffs = List<T>.generate(
-      _coefficients.length,
-      (i) => field.neg(_coefficients[i]),
-      growable: false,
-    );
-    return Polynomial<T>.fromCoefficients(newCoeffs, type: type);
-  }
+  Polynomial<T> operator -();
 
   /// Multiplies every coefficient by [scalar].
-  Polynomial<T> scale(T scalar) {
-    final field = type.field;
-    final newCoeffs = List<T>.generate(
-      _coefficients.length,
-      (i) => field.mul(_coefficients[i], scalar),
-      growable: false,
-    );
-    return Polynomial<T>.fromCoefficients(newCoeffs, type: type);
-  }
+  Polynomial<T> scale(T scalar);
 
   /// Polynomial multiplication $P(x) \cdot Q(x)$.
-  Polynomial<T> operator *(Polynomial<T> other) {
-    final deg1 = degree;
-    final deg2 = other.degree;
-    if (deg1 < 0 || deg2 < 0) return Polynomial<T>.zero(type: type);
-
-    final field = type.field;
-    final outDegree = deg1 + deg2;
-    final resultCoeffs = List<T>.filled(
-      outDegree + 1,
-      field.additiveIdentity,
-      growable: false,
-    );
-
-    for (var i = 0; i <= deg1; i++) {
-      final ci = this[i];
-      if (ci == field.additiveIdentity) continue;
-      for (var j = 0; j <= deg2; j++) {
-        final cj = other[j];
-        if (cj == field.additiveIdentity) continue;
-        resultCoeffs[i + j] = field.add(resultCoeffs[i + j], field.mul(ci, cj));
-      }
-    }
-
-    return Polynomial<T>.fromCoefficients(resultCoeffs, type: type);
-  }
+  Polynomial<T> operator *(Polynomial<T> other);
 
   /// Computes the polynomial composition $(P \circ Q)(x) = P(Q(x))$ using Horner's recurrence.
   ///
@@ -309,61 +231,12 @@ class Polynomial<T> {
   /// final q = Polynomial.fromCoefficients([1, 1]);    // x + 1
   /// final comp = p.compose(q);                       // (x + 1)^2 = 1 + 2x + x^2
   /// ```
-  Polynomial<T> compose(Polynomial<T> other) {
-    final deg = degree;
-    if (deg < 0) return Polynomial<T>.zero(type: type);
-    if (deg == 0) {
-      return Polynomial<T>.fromCoefficients([_coefficients[0]], type: type);
-    }
-    var acc = Polynomial<T>.fromCoefficients([_coefficients[deg]], type: type);
-    for (var i = deg - 1; i >= 0; i--) {
-      acc =
-          (acc * other) +
-          Polynomial<T>.fromCoefficients([_coefficients[i]], type: type);
-    }
-    return acc;
-  }
+  Polynomial<T> compose(Polynomial<T> other);
 
   /// Polynomial division with remainder: $A(x) = Q(x) \cdot B(x) + R(x)$.
   ({Polynomial<T> quotient, Polynomial<T> remainder}) divide(
     Polynomial<T> divisor,
-  ) {
-    final degB = divisor.degree;
-    if (degB < 0) {
-      throw UnsupportedError('Division by zero polynomial.');
-    }
-    final degA = degree;
-    if (degA < degB) {
-      return (quotient: Polynomial<T>.zero(type: type), remainder: this);
-    }
-
-    final field = type.field;
-    final leadB = divisor.leadingCoefficient;
-    final qCoeffs = List<T>.filled(
-      degA - degB + 1,
-      field.additiveIdentity,
-      growable: false,
-    );
-    final rCoeffs = List<T>.generate(degA + 1, (i) => this[i]);
-
-    for (var i = degA; i >= degB; i--) {
-      final curCoeff = rCoeffs[i];
-      if (curCoeff != field.additiveIdentity) {
-        final factor = field.div(curCoeff, leadB);
-        final qIdx = i - degB;
-        qCoeffs[qIdx] = factor;
-        for (var j = 0; j <= degB; j++) {
-          final term = field.mul(factor, divisor[j]);
-          rCoeffs[qIdx + j] = field.sub(rCoeffs[qIdx + j], term);
-        }
-      }
-    }
-
-    return (
-      quotient: Polynomial<T>.fromCoefficients(qCoeffs, type: type),
-      remainder: Polynomial<T>.fromCoefficients(rCoeffs, type: type),
-    );
-  }
+  );
 
   /// Returns the quotient polynomial $A(x) / B(x)$.
   Polynomial<T> operator /(Polynomial<T> divisor) => divide(divisor).quotient;
@@ -397,18 +270,10 @@ class Polynomial<T> {
   /// final p = Polynomial.fromCoefficients([1, 2, 3]); // 1 + 2x + 3x^2
   /// final dp = p.differentiate(); // 2 + 6x
   /// ```
-  Polynomial<T> differentiate() {
-    final deg = degree;
-    if (deg <= 0) return Polynomial<T>.zero(type: type);
+  Polynomial<T> differentiate();
 
-    final field = type.field;
-    final newCoeffs = List<T>.generate(deg, (i) {
-      final exp = i + 1;
-      return field.scale(this[exp], exp.toDouble());
-    }, growable: false);
-
-    return Polynomial<T>.fromCoefficients(newCoeffs, type: type);
-  }
+  /// Computes the formal derivative $P'(x)$.
+  Polynomial<T> derivative() => differentiate();
 
   /// Computes the formal antiderivative $\int P(x) dx = C + c_0 x + \frac{c_1}{2} x^2 + \dots$
   ///
@@ -416,28 +281,7 @@ class Polynomial<T> {
   /// final p = Polynomial.fromCoefficients([2, 6]); // 2 + 6x
   /// final intP = p.integrate(); // 2x + 3x^2
   /// ```
-  Polynomial<T> integrate([T? constant]) {
-    final field = type.field;
-    final c0 = constant ?? field.additiveIdentity;
-    final deg = degree;
-    if (deg < 0) {
-      return Polynomial<T>.fromCoefficients([c0], type: type);
-    }
-
-    final newCoeffs = List<T>.filled(
-      deg + 2,
-      field.additiveIdentity,
-      growable: false,
-    );
-    newCoeffs[0] = c0;
-    for (var i = 0; i <= deg; i++) {
-      final denom = (i + 1).toDouble();
-      final scaled = field.scale(this[i], 1.0 / denom);
-      newCoeffs[i + 1] = scaled;
-    }
-
-    return Polynomial<T>.fromCoefficients(newCoeffs, type: type);
-  }
+  Polynomial<T> integrate([T? constant]);
 
   /// Computes all complex roots of this polynomial.
   ///
@@ -449,46 +293,13 @@ class Polynomial<T> {
   /// final p = Polynomial<double>.fromCoefficients([-4.0, 0.0, 1.0]); // x^2 - 4
   /// final r = p.roots; // [Complex(-2.0), Complex(2.0)]
   /// ```
-  List<Complex> get roots {
-    final deg = degree;
-    if (deg <= 0) return const [];
-    if (deg == 1) {
-      final c0 = (this[0] as num).toDouble();
-      final c1 = (this[1] as num).toDouble();
-      return [Complex(-c0 / c1)];
-    }
-    if (deg == 2) {
-      final c0 = (this[0] as num).toDouble();
-      final c1 = (this[1] as num).toDouble();
-      final c2 = (this[2] as num).toDouble();
-      final disc = c1 * c1 - 4.0 * c2 * c0;
-      if (disc >= 0) {
-        final sqrtDisc = math.sqrt(disc);
-        return [
-          Complex((-c1 + sqrtDisc) / (2.0 * c2)),
-          Complex((-c1 - sqrtDisc) / (2.0 * c2)),
-        ];
-      } else {
-        final realPart = -c1 / (2.0 * c2);
-        final imagPart = math.sqrt(-disc) / (2.0 * c2);
-        return [Complex(realPart, imagPart), Complex(realPart, -imagPart)];
-      }
-    }
+  List<Complex> get roots;
 
-    // High degree: companion matrix eigenvalue decomposition
-    final lead = (this[deg] as num).toDouble();
-    final companion = Matrix<double>.generate(deg, deg, (row, col) {
-      if (row == deg - 1) {
-        return -(this[col] as num).toDouble() / lead;
-      } else if (row + 1 == col) {
-        return 1.0;
-      } else {
-        return 0.0;
-      }
-    }, type: DataType.float64);
+  /// Converts this polynomial to a sparse [CompressedPolynomial].
+  CompressedPolynomial<T> toCompressed();
 
-    return companion.eigenvalue.eigenvalues;
-  }
+  /// Converts this polynomial to a [DensePolynomial].
+  DensePolynomial<T> toDense();
 
   /// Generates the Chebyshev polynomial of the first kind $T_n(x)$.
   static Polynomial<double> chebyshevT(int degree) {
@@ -645,51 +456,4 @@ class Polynomial<T> {
   /// Generates the generalized Laguerre polynomial $L_n^{(\alpha)}(x)$.
   static Polynomial<double> laguerreL(int degree, {double alpha = 0.0}) =>
       orthogonal.laguerreL(degree, alpha: alpha);
-
-  @override
-  bool operator ==(Object other) {
-    if (identical(this, other)) return true;
-    if (other is! Polynomial<T>) return false;
-    final deg = degree;
-    if (deg != other.degree) return false;
-    if (deg < 0) return true;
-    for (var i = 0; i <= deg; i++) {
-      if (this[i] != other[i]) return false;
-    }
-    return true;
-  }
-
-  @override
-  int get hashCode {
-    final deg = degree;
-    if (deg < 0) return 0;
-    var hash = deg;
-    for (var i = 0; i <= deg; i++) {
-      hash = Object.hash(hash, this[i]);
-    }
-    return hash;
-  }
-
-  @override
-  String toString() {
-    final deg = degree;
-    if (deg < 0) return '0';
-    final parts = <String>[];
-    for (var i = deg; i >= 0; i--) {
-      final coeff = this[i];
-      if (coeff == type.field.additiveIdentity && deg > 0) continue;
-      if (i == 0) {
-        parts.add('$coeff');
-      } else if (i == 1) {
-        parts.add(
-          coeff == type.field.multiplicativeIdentity ? 'x' : '${coeff}x',
-        );
-      } else {
-        parts.add(
-          coeff == type.field.multiplicativeIdentity ? 'x^$i' : '${coeff}x^$i',
-        );
-      }
-    }
-    return parts.join(' + ');
-  }
 }

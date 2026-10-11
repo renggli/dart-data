@@ -4,7 +4,6 @@ This document defines the actionable engineering task list for `package:data`.
 
 ## Tasks
 
-- [ ] Sparse Polynomial Representation
 - [ ] Apache Arrow C Data Interface & IPC Stream Export
 - [ ] Apache Arrow UTF-8 String Offset Buffer (`ArrowStringSeries`)
 - [ ] Sort-Merge Relational Join
@@ -12,23 +11,6 @@ This document defines the actionable engineering task list for `package:data`.
 - [ ] Modularize Implementation Files (Single Responsibility, Low Coupling, High Cohesion)
 - [ ] Parallel Unit Test Hierarchy & Comprehensive Coverage (Target Near 100%)
 - [ ] Backend Acceleration Parity, Dedicated Modes (Auto, Accelerated, Dart) & Verification
-
----
-
-### [ ] Sparse Polynomial Representation
-
-- **Problem / Goal**:
-  In `v0.16.0`, `Polynomial` supported sparse representations (`CompressedPolynomial`, `KeyedPolynomial`), which allowed polynomials with large sparse exponents (e.g. $x^{10000} - 1$) without allocating a 10,001-element dense array. In HEAD, `Polynomial` is backed strictly by dense `List<T> _coefficients`, making high-degree sparse polynomials memory-prohibitive.
-- **The Win**:
-  - Memory-efficient sparse polynomial algebra without allocating enormous contiguous coefficient lists.
-- **Target Files**:
-  - `lib/src/polynomial/impl/compressed_polynomial.dart` (new)
-  - `lib/polynomial.dart`
-  - `test/polynomial/compressed_polynomial_test.dart` (new)
-- **Step-by-Step Implementation Details**:
-  1. Implement `SparsePolynomial<T>` or `CompressedPolynomial<T>` in `lib/src/polynomial/` storing a map or sorted lists of non-zero `(degree, coefficient)` pairs.
-  2. Ensure `Polynomial` operations (`+`, `-`, `*`, `evaluate`, `derivative`) support sparse representations seamlessly.
-  3. Add unit tests for high-degree sparse polynomial operations ($x^{10000} - 1$), degree determination, multiplication, and evaluation.
 
 ---
 
