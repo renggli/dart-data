@@ -12,9 +12,9 @@ void main() {
       const y = Variable('y');
       // f(x, y) = 3 * x^2 - 2 * y + 5
       final expr =
-          const Constant(3.0) * x.pow(const Constant(2.0)) -
-          const Constant(2.0) * y +
-          const Constant(5.0);
+          const RationalNumber(3) * x.pow(const RationalNumber(2)) -
+          const RationalNumber(2) * y +
+          const RationalNumber(5);
       final kernel = expr.compileTensorKernel(['x', 'y']);
 
       final xBuf = Float64List.fromList([1.0, 2.0, 3.0, 4.0]);
@@ -62,8 +62,8 @@ void main() {
     test('large scale vector buffer evaluation (N = 10000)', () {
       const x = Variable('x');
       final expr =
-          (x * const Constant(2.5) + const Constant(1.5)) /
-          (x + const Constant(1.0));
+          (x * const RationalNumber(5, 2) + const RationalNumber(3, 2)) /
+          (x + const RationalNumber(1));
       final kernel = expr.compileTensorKernel(['x']);
 
       const size = 10000;
@@ -88,7 +88,7 @@ void main() {
       // (((((x + 1) + 2) + 3) + 4) + 5)
       Expr expr = const Variable('x');
       for (var i = 1; i <= 20; i++) {
-        expr = expr + Constant(i.toDouble());
+        expr = expr + RationalNumber(i);
       }
       final kernel = expr.compileTensorKernel(['x']);
 
@@ -113,7 +113,8 @@ void main() {
   group('Compiler - Fast 1D and Positional Parity', () {
     test('parity between compile1D and compile', () {
       const x = Variable('x');
-      final expr = Sin(x.pow(const Constant(2.0))) + const Constant(3.0) * x;
+      final expr =
+          Sin(x.pow(const RationalNumber(2))) + const RationalNumber(3) * x;
 
       final fn1D = expr.compile1D('x');
       final fnPos = expr.compile(['x']);

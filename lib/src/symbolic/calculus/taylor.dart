@@ -18,31 +18,33 @@ extension TaylorExtension on Expr {
   /// final expansion = Exp(x).taylorSeries('x', order: 2);
   /// // 1 + x + 0.5 * (x ^ 2)
   /// ```
-  Expr taylorSeries(String variable, {double around = 0.0, int order = 4}) =>
+  Expr taylorSeries(String variable, {num around = 0, int order = 4}) =>
       _computeTaylorSeries(this, variable, around: around, order: order);
 }
 
 Expr _computeTaylorSeries(
   Expr function,
   String variable, {
-  double around = 0.0,
+  num around = 0,
   int order = 4,
 }) {
   final x = Variable(variable);
-  final a = Constant(around);
-  final delta = around == 0.0 ? x : Sub(x, a);
+  final a = around is int
+      ? RationalNumber(around)
+      : RationalNumber.fromDouble(around);
+  final delta = around == 0 ? x : Sub(x, a);
 
   var currentDeriv = function;
   var result = currentDeriv.substitute(variable, a).simplify();
-  var factorial = 1.0;
+  var factorial = 1;
 
   for (var step = 1; step <= order; step++) {
     currentDeriv = currentDeriv.diff(variable);
     factorial *= step;
     final termVal = currentDeriv.substitute(variable, a).simplify();
     final polyTerm = Mul(
-      Div(termVal, Constant(factorial)),
-      step == 1 ? delta : Pow(delta, Constant(step.toDouble())),
+      Div(termVal, RationalNumber(factorial)),
+      step == 1 ? delta : Pow(delta, RationalNumber(step)),
     );
     result = Add(result, polyTerm).simplify();
   }

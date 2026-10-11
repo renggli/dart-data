@@ -20,11 +20,17 @@ extension LatexExtension on Expr {
 
 String _toLatex(Expr expr) => switch (expr) {
   Variable(:final name) => name,
-  Constant(:final value, :final name) => switch (name) {
+  ConstantNumber(:final name) => switch (name) {
     'pi' => r'\pi',
-    _ when name != null => name,
-    _ => value % 1 == 0 ? value.toInt().toString() : value.toString(),
+    _ => name,
   },
+  RationalNumber(:final numerator, :final denominator) =>
+    denominator == 1
+        ? '$numerator'
+        : numerator < 0
+        ? '-\\frac{${-numerator}}{$denominator}'
+        : '\\frac{$numerator}{$denominator}',
+  RealNumber(:final value) => '$value',
   Add(:final left, :final right) => '${_toLatex(left)} + ${_toLatex(right)}',
   Sub(:final left, :final right) =>
     '${_toLatex(left)} - ${_formatSubRight(right)}',
@@ -32,14 +38,24 @@ String _toLatex(Expr expr) => switch (expr) {
     '${_formatMulOperand(left)} \\cdot ${_formatMulOperand(right)}',
   Div(:final left, :final right) =>
     '\\frac{${_toLatex(left)}}{${_toLatex(right)}}',
-  Pow(:final base, :final exponent) =>
-    '{${_formatPowBase(base)}}^{${_toLatex(exponent)}}',
+  Pow(:final base, :final exponent) => _formatPow(base, exponent),
   Neg(:final expr) => '-${_formatNegOperand(expr)}',
   Sin(:final expr) => '\\sin(${_toLatex(expr)})',
   Cos(:final expr) => '\\cos(${_toLatex(expr)})',
   Exp(:final expr) => 'e^{${_toLatex(expr)}}',
   Ln(:final expr) => '\\ln(${_toLatex(expr)})',
 };
+
+String _formatPow(Expr base, Expr exponent) {
+  if (exponent is RationalNumber && exponent.numerator == 1) {
+    if (exponent.denominator == 2) {
+      return '\\sqrt{${_toLatex(base)}}';
+    } else if (exponent.denominator > 2) {
+      return '\\sqrt[${exponent.denominator}]{${_toLatex(base)}}';
+    }
+  }
+  return '{${_formatPowBase(base)}}^{${_toLatex(exponent)}}';
+}
 
 String _formatSubRight(Expr right) => switch (right) {
   Add() || Sub() => '(${_toLatex(right)})',

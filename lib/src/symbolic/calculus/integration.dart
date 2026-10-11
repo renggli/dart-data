@@ -1,3 +1,5 @@
+import 'package:more/number.dart' show Fraction;
+
 import '../../numeric/integration.dart';
 import '../ast.dart';
 import '../simplifier.dart';
@@ -21,7 +23,7 @@ extension IntegrationExtension on Expr {
   /// ```dart
   /// final x = Variable('x');
   /// final area = (x * x).integrate('x', from: 0, to: 3);
-  /// // area: Constant(9.0) because \int_0^3 x^2 dx = [x^3 / 3]_0^3 = 9.0
+  /// // area: RationalNumber(9) because \int_0^3 x^2 dx = [x^3 / 3]_0^3 = 9.0
   /// ```
   Expr integrate(String variable, {num? from, num? to}) =>
       _symbolicIntegrate(this, variable, from: from, to: to);
@@ -35,19 +37,19 @@ Expr _symbolicIntegrate(Expr function, String variable, {num? from, num? to}) {
   }
   if (from != null && to != null) {
     if (from == to) {
-      return const Constant(0.0);
+      return RationalNumber.zero;
     }
     try {
       final antiDeriv = _antiDerivative(function, variable);
-      final upper = antiDeriv.substitute(variable, Constant(to.toDouble()));
-      final lower = antiDeriv.substitute(variable, Constant(from.toDouble()));
+      final upper = antiDeriv.substitute(variable, _numToNumber(to));
+      final lower = antiDeriv.substitute(variable, _numToNumber(from));
       final diff = Sub(upper, lower).simplify();
       if (diff.freeVariables.isNotEmpty) {
         return diff;
       }
-      final val = diff is Constant ? diff.value : diff.evaluate(const {});
+      final val = diff is Number ? diff.value : diff.evaluate(const {});
       if (val.isFinite) {
-        return Constant(val);
+        return _numToNumber(val);
       }
     } on UnsupportedError {
       // Fall back to numerical integration.
@@ -60,26 +62,35 @@ Expr _symbolicIntegrate(Expr function, String variable, {num? from, num? to}) {
       from.toDouble(),
       to.toDouble(),
     );
-    return Constant(numResult);
+    return _numToNumber(numResult);
   }
 
   return _antiDerivative(function, variable).simplify();
+}
+
+Number _numToNumber(num n) {
+  if (n is int) return RationalNumber(n);
+  final frac = Fraction.fromDouble(n, maxDenominator: 64);
+  if ((n.toDouble() - frac.toDouble()).abs() < 1e-12) {
+    return RationalNumber(frac.numerator, frac.denominator);
+  }
+  return RealNumber(n.toDouble());
 }
 
 Expr _antiDerivative(Expr expr, String variable) {
   expr = expr.simplify();
 
   if (!expr.dependsOn(variable)) {
-    if (expr case Constant(value: 0.0)) {
-      return const Constant(0.0);
+    if (expr case RationalNumber(isZero: true)) {
+      return RationalNumber.zero;
     }
     return Mul(expr, Variable(variable)).simplify();
   }
 
   return switch (expr) {
     Variable(:final name) when name == variable => Div(
-      Pow(expr, const Constant(2.0)),
-      const Constant(2.0),
+      Pow(expr, const RationalNumber(2)),
+      const RationalNumber(2),
     ),
     Neg(:final expr) => Neg(_antiDerivative(expr, variable)).simplify(),
     Add(:final left, :final right) => Add(
@@ -152,10 +163,10 @@ Expr _antiDerivPow(Expr base, Expr exponent, Expr original, String variable) {
   // Form: (ax + b)^n
   if (!exponent.dependsOn(variable)) {
     if (base.matchLinear(variable) case (:final a, b: _)) {
-      if (exponent case Constant(value: -1.0)) {
+      if (exponent case RationalNumber(isNegativeOne: true)) {
         return Div(Ln(base), a).simplify();
       }
-      final nPlus1 = Add(exponent, const Constant(1.0)).simplify();
+      final nPlus1 = Add(exponent, RationalNumber.one).simplify();
       final denom = Mul(a, nPlus1).simplify();
       final numer = Pow(base, nPlus1).simplify();
       return Div(numer, denom).simplify();
@@ -166,8 +177,14 @@ Expr _antiDerivPow(Expr base, Expr exponent, Expr original, String variable) {
   if (!base.dependsOn(variable)) {
     if (exponent.matchLinear(variable) case (:final a, b: _)) {
       var validBase = true;
-      if (base case Constant(value: final cVal)) {
-        validBase = cVal > 0.0 && cVal != 1.0;
+      if (base case RationalNumber(
+        :final isNegative,
+        :final isZero,
+        :final isOne,
+      )) {
+        validBase = !isNegative && !isZero && !isOne;
+      } else if (base case RealNumber(:final value)) {
+        validBase = value > 0 && value != 1.0;
       }
       if (validBase) {
         final denom = Mul(a, Ln(base)).simplify();
@@ -183,7 +200,7 @@ Expr _antiDerivDiv(Expr left, Expr right, Expr original, String variable) {
   // int (f / c) dx = (1/c) int f dx
   if (!right.dependsOn(variable)) {
     final anti = _antiDerivative(left, variable);
-    return anti.scale(Div(const Constant(1.0), right));
+    return anti.scale(Div(RationalNumber.one, right));
   }
 
   // int (c / g(x)) dx
@@ -215,7 +232,7 @@ Expr _antiDerivDiv(Expr left, Expr right, Expr original, String variable) {
       return _antiDerivative(Mul(left, Pow(base, negExp)), variable);
     } else if (left.dependsOn(variable)) {
       return _antiDerivative(
-        Mul(left, Pow(right, const Constant(-1.0))),
+        Mul(left, Pow(right, RationalNumber.negativeOne)),
         variable,
       );
     }
@@ -235,7 +252,7 @@ Expr _antiDerivMul(Expr left, Expr right, Expr original, String variable) {
 
   // Identity multiplication: u * u = u^2
   if (left == right) {
-    return _antiDerivative(Pow(left, const Constant(2.0)), variable);
+    return _antiDerivative(Pow(left, const RationalNumber(2)), variable);
   }
 
   // Chain-rule substitution: int u'(x) f(u(x)) dx = F(u(x))
@@ -332,10 +349,10 @@ Expr? _tryChainRulePower(
   final uPrime = base.diff(variable).simplify();
   final k = factor.matchScalarMultiple(uPrime, variable);
   if (k != null) {
-    if (exponent case Constant(value: -1.0)) {
+    if (exponent case RationalNumber(isNegativeOne: true)) {
       return Ln(base).scale(k);
     }
-    final nPlus1 = Add(exponent, const Constant(1.0)).simplify();
+    final nPlus1 = Add(exponent, RationalNumber.one).simplify();
     final fU = Div(Pow(base, nPlus1), nPlus1).simplify();
     return fU.scale(k);
   }
@@ -350,8 +367,14 @@ Expr? _tryChainRuleExponential(
   String variable,
 ) {
   var validBase = true;
-  if (base case Constant(value: final cVal)) {
-    validBase = cVal > 0.0 && cVal != 1.0;
+  if (base case RationalNumber(
+    :final isNegative,
+    :final isZero,
+    :final isOne,
+  )) {
+    validBase = !isNegative && !isZero && !isOne;
+  } else if (base case RealNumber(:final value)) {
+    validBase = value > 0 && value != 1.0;
   }
   if (validBase) {
     final uPrime = exponent.diff(variable).simplify();
@@ -411,12 +434,12 @@ Expr _ibpLogarithm(
   final numB = Sub(Mul(q, c), Mul(p, d)).simplify();
   final bCap = Div(numB, cSquared).simplify();
   final w = expr;
-  final wSquared = Pow(w, const Constant(2.0)).simplify();
-  final termA1 = Div(Mul(aCap, wSquared), const Constant(2.0)).simplify();
+  final wSquared = Pow(w, const RationalNumber(2)).simplify();
+  final termA1 = Div(Mul(aCap, wSquared), const RationalNumber(2)).simplify();
   final termB1 = Mul(bCap, w).simplify();
   final coeff1 = Add(termA1, termB1).simplify();
 
-  final termA2 = Div(Mul(aCap, wSquared), const Constant(4.0)).simplify();
+  final termA2 = Div(Mul(aCap, wSquared), const RationalNumber(4)).simplify();
   final coeff2 = Add(termA2, termB1).simplify();
 
   return Sub(Mul(coeff1, vExpr), coeff2).simplify();
@@ -438,8 +461,14 @@ Expr? _ibpGeneralExponential(
   Expr a,
 ) {
   var validBase = true;
-  if (base case Constant(value: final cVal)) {
-    validBase = cVal > 0.0 && cVal != 1.0;
+  if (base case RationalNumber(
+    :final isNegative,
+    :final isZero,
+    :final isOne,
+  )) {
+    validBase = !isNegative && !isZero && !isOne;
+  } else if (base case RealNumber(:final value)) {
+    validBase = value > 0 && value != 1.0;
   }
   if (validBase) {
     final cEff = Mul(a, Ln(base)).simplify();

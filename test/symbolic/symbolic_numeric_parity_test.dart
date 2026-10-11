@@ -11,7 +11,7 @@ void main() {
     const x = Variable('x');
 
     test('derivative higher orders', () {
-      final poly = x.pow(const Constant(4.0)); // x^4
+      final poly = x.pow(const RationalNumber(4)); // x^4
 
       final d0 = poly.derivative('x', order: 0);
       check(d0).equals(poly);
@@ -33,7 +33,7 @@ void main() {
     });
 
     test('diff order alias', () {
-      final poly = x.pow(const Constant(3.0));
+      final poly = x.pow(const RationalNumber(3));
       final d2 = poly.diff('x', order: 2).simplify();
       check(d2.evaluate({'x': 5.0})).isCloseTo(30.0, 1e-9); // 6 * 5
     });
@@ -48,7 +48,8 @@ void main() {
     const y = Variable('y');
 
     test('toFunction1D and compile1D', () {
-      final expr = x * x + const Constant(3.0) * x + const Constant(2.0);
+      final expr =
+          x * x + const RationalNumber(3) * x + const RationalNumber(2);
       final fn1 = expr.toFunction1D('x');
       final fn2 = expr.compile1D('x');
 
@@ -60,7 +61,7 @@ void main() {
     });
 
     test('toVectorFunction on Expr', () {
-      final expr = x * x + const Constant(2.0) * y;
+      final expr = x * x + const RationalNumber(2) * y;
       final vecFn = expr.toVectorFunction(['x', 'y']);
 
       final pt = Vector<double>.fromList([3.0, 4.0]);
@@ -173,7 +174,7 @@ void main() {
 
     test('univariate equation solving', () {
       // f(x) = x^2 - 4 = 0 -> x = 2
-      final expr = x * x - const Constant(4.0);
+      final expr = x * x - const RationalNumber(4);
       final symRoots = expr.solve('x');
       final posSymRoot = symRoots
           .map((r) => r.evaluate(const {}))
@@ -189,8 +190,8 @@ void main() {
       // x + 2y - 7 = 0
       // 3x - y - 7 = 0
       // Solution: x = 3, y = 2
-      final eq1 = x + const Constant(2.0) * y - const Constant(7.0);
-      final eq2 = const Constant(3.0) * x - y - const Constant(7.0);
+      final eq1 = x + const RationalNumber(2) * y - const RationalNumber(7);
+      final eq2 = const RationalNumber(3) * x - y - const RationalNumber(7);
 
       final symSol = [eq1, eq2].solveSystem(['x', 'y']);
       check(symSol).isNotNull();
@@ -212,7 +213,7 @@ void main() {
       // f(x) = sin(x) + x^3
       // f'(x) = cos(x) + 3x^2
       // f''(x) = -sin(x) + 6x
-      final expr = const Sin(x) + x.pow(const Constant(3.0));
+      final expr = const Sin(x) + x.pow(const RationalNumber(3));
       const testX = 1.25;
 
       final symD1 = expr.derivative('x', order: 1).toFunction1D('x')(testX);
@@ -229,7 +230,7 @@ void main() {
     test('multivariable gradient parity', () {
       // f(x, y) = x^2 * y + 3 * y^2
       // grad = [2xy, x^2 + 6y]
-      final expr = x * x * y + const Constant(3.0) * y * y;
+      final expr = x * x * y + const RationalNumber(3) * y * y;
       final symGradExprs = expr.gradient(['x', 'y']);
       final pt = Vector<double>.fromList([2.0, 3.0]);
 
@@ -250,7 +251,7 @@ void main() {
       // f(x, y) = x^3 + x * y^2
       // H = [ [6x, 2y],
       //       [2y, 2x] ]
-      final expr = x.pow(const Constant(3.0)) + x * y * y;
+      final expr = x.pow(const RationalNumber(3)) + x * y * y;
       final symHessExprs = expr.hessian(['x', 'y']);
       final pt = Vector<double>.fromList([1.5, 2.5]);
 
@@ -293,11 +294,11 @@ void main() {
     test('definite integration parity', () {
       // \int_0^2 (3x^2 + 2x + 1) dx = [x^3 + x^2 + x]_0^2 = 8 + 4 + 2 = 14
       final expr =
-          const Constant(3.0) * x * x +
-          const Constant(2.0) * x +
-          const Constant(1.0);
+          const RationalNumber(3) * x * x +
+          const RationalNumber(2) * x +
+          const RationalNumber(1);
 
-      final symIntegral = expr.integrate('x', from: 0.0, to: 2.0);
+      final symIntegral = expr.integrate('x', from: 0, to: 2);
       final symVal = symIntegral.evaluate(const {});
 
       final numVal = integrate(expr.toFunction1D('x'), 0.0, 2.0);

@@ -12,14 +12,19 @@ void main() {
           .equals('<math><mi>a&amp;b</mi></math>');
     });
 
-    test('constants', () {
-      check(const Constant(0.0).toMathMl()).equals('<math><mn>0</mn></math>');
-      check(const Constant(42.0).toMathMl()).equals('<math><mn>42</mn></math>');
-      check(const Constant(-7.0).toMathMl()).equals('<math><mn>-7</mn></math>');
-      check(const Constant(3.14159).toMathMl())
-          .equals('<math><mn>3.14159</mn></math>');
-      check(Constant.pi.toMathMl()).equals('<math><mi>π</mi></math>');
-      check(Constant.e.toMathMl()).equals('<math><mi>e</mi></math>');
+    test('numbers', () {
+      check(const RationalNumber(0).toMathMl())
+          .equals('<math><mn>0</mn></math>');
+      check(const RationalNumber(42).toMathMl())
+          .equals('<math><mn>42</mn></math>');
+      check(const RationalNumber(-7).toMathMl())
+          .equals('<math><mn>-7</mn></math>');
+      check(const RationalNumber(1, 2).toMathMl())
+          .equals('<math><mfrac><mn>1</mn><mn>2</mn></mfrac></math>');
+      check(const RealNumber(3.14).toMathMl())
+          .equals('<math><mn>3.14</mn></math>');
+      check(ConstantNumber.pi.toMathMl()).equals('<math><mi>π</mi></math>');
+      check(ConstantNumber.e.toMathMl()).equals('<math><mi>e</mi></math>');
     });
 
     test('display and root configuration', () {
@@ -86,8 +91,26 @@ void main() {
       check((x * y).pow(z).toMathMl()).equals(
         '<math><msup><mrow><mo>(</mo><mrow><mi>x</mi><mo>&#x22c5;</mo><mi>y</mi></mrow><mo>)</mo></mrow><mi>z</mi></msup></math>',
       );
-      check((-x).pow(const Constant(2.0)).toMathMl()).equals(
+      check((-x).pow(const RationalNumber(2)).toMathMl()).equals(
         '<math><msup><mrow><mo>(</mo><mrow><mo>-</mo><mi>x</mi></mrow><mo>)</mo></mrow><mn>2</mn></msup></math>',
+      );
+    });
+
+    test('root formatting with msqrt and mroot', () {
+      check(x.pow(const RationalNumber(1, 2)).toMathMl())
+          .equals('<math><msqrt><mi>x</mi></msqrt></math>');
+      check((x + y).pow(const RationalNumber(1, 2)).toMathMl()).equals(
+        '<math><msqrt><mrow><mi>x</mi><mo>+</mo><mi>y</mi></mrow></msqrt></math>',
+      );
+      check(x.pow(const RationalNumber(1, 3)).toMathMl())
+          .equals('<math><mroot><mi>x</mi><mn>3</mn></mroot></math>');
+      check(x.pow(const RationalNumber(1, 5)).toMathMl())
+          .equals('<math><mroot><mi>x</mi><mn>5</mn></mroot></math>');
+      check(x.pow(const RationalNumber(2, 3)).toMathMl()).equals(
+        '<math><msup><mi>x</mi><mfrac><mn>2</mn><mn>3</mn></mfrac></msup></math>',
+      );
+      check(x.pow(const RationalNumber(-1, 2)).toMathMl()).equals(
+        '<math><msup><mi>x</mi><mrow><mo>-</mo><mfrac><mn>1</mn><mn>2</mn></mfrac></mrow></msup></math>',
       );
     });
 
@@ -126,13 +149,13 @@ void main() {
 
     test('composite calculus expressions', () {
       final f =
-          (x.pow(const Constant(2.0)) + const Constant(1.0)) /
-          (x - const Constant(1.0));
+          (x.pow(const RationalNumber(2)) + const RationalNumber(1)) /
+          (x - const RationalNumber(1));
       check(f.toMathMl()).equals(
         '<math><mfrac><mrow><msup><mi>x</mi><mn>2</mn></msup><mo>+</mo><mn>1</mn></mrow><mrow><mi>x</mi><mo>-</mo><mn>1</mn></mrow></mfrac></math>',
       );
 
-      final g = Exp(-x.pow(const Constant(2.0)));
+      final g = Exp(-x.pow(const RationalNumber(2)));
       check(g.toMathMl()).equals(
         '<math><msup><mi>e</mi><mrow><mo>-</mo><msup><mi>x</mi><mn>2</mn></msup></mrow></msup></math>',
       );

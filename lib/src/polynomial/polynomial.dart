@@ -137,9 +137,9 @@ abstract class Polynomial<T> {
           factorial *= k;
         }
         final valExpr = currentDeriv
-            .substitute(variable, const Constant(0.0))
+            .substitute(variable, RationalNumber.zero)
             .simplify();
-        final val = valExpr is Constant
+        final val = valExpr is Number
             ? valExpr.value
             : valExpr.evaluate(const {});
         coeffs[k] = effectiveType.cast(val / factorial);
@@ -162,9 +162,9 @@ abstract class Polynomial<T> {
           factorial *= k;
         }
         final valExpr = currentDeriv
-            .substitute(variable, Constant(around))
+            .substitute(variable, RationalNumber.fromDouble(around))
             .simplify();
-        final val = valExpr is Constant
+        final val = valExpr is Number
             ? valExpr.value
             : valExpr.evaluate(const {});
         final coeff = effectiveType.cast(val / factorial);

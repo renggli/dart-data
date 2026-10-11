@@ -32,9 +32,9 @@ extension DifferentiationExtension on Expr {
 }
 
 Expr _differentiate(Expr expr, String variable) => switch (expr) {
-  Constant() => const Constant(0.0),
+  Number() => RationalNumber.zero,
   Variable(:final name) =>
-    name == variable ? const Constant(1.0) : const Constant(0.0),
+    name == variable ? RationalNumber.one : RationalNumber.zero,
   Add(:final left, :final right) => Add(
     _differentiate(left, variable),
     _differentiate(right, variable),
@@ -52,15 +52,15 @@ Expr _differentiate(Expr expr, String variable) => switch (expr) {
       Mul(_differentiate(left, variable), right),
       Mul(left, _differentiate(right, variable)),
     ),
-    Pow(right, const Constant(2.0)),
+    Pow(right, const RationalNumber(2)),
   ),
   Pow(:final base, :final exponent) => switch ((
     base.dependsOn(variable),
     exponent.dependsOn(variable),
   )) {
-    (false, false) => const Constant(0.0),
+    (false, false) => RationalNumber.zero,
     (true, false) => Mul(
-      Mul(exponent, Pow(base, Sub(exponent, const Constant(1.0)))),
+      Mul(exponent, Pow(base, Sub(exponent, RationalNumber.one))),
       _differentiate(base, variable),
     ),
     (false, true) => Mul(

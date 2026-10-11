@@ -10,13 +10,15 @@ void main() {
       check(const Variable('alpha_1').toLatex()).equals('alpha_1');
     });
 
-    test('constants', () {
-      check(const Constant(0.0).toLatex()).equals('0');
-      check(const Constant(42.0).toLatex()).equals('42');
-      check(const Constant(-7.0).toLatex()).equals('-7');
-      check(const Constant(3.14159).toLatex()).equals('3.14159');
-      check(Constant.pi.toLatex()).equals(r'\pi');
-      check(Constant.e.toLatex()).equals('e');
+    test('numbers', () {
+      check(const RationalNumber(0).toLatex()).equals('0');
+      check(const RationalNumber(42).toLatex()).equals('42');
+      check(const RationalNumber(-7).toLatex()).equals('-7');
+      check(const RationalNumber(1, 2).toLatex()).equals(r'\frac{1}{2}');
+      check(const RationalNumber(-1, 2).toLatex()).equals(r'-\frac{1}{2}');
+      check(const RealNumber(3.14159).toLatex()).equals('3.14159');
+      check(ConstantNumber.pi.toLatex()).equals(r'\pi');
+      check(ConstantNumber.e.toLatex()).equals('e');
     });
   });
 
@@ -48,7 +50,7 @@ void main() {
     test('division formatting as frac', () {
       check((x / y).toLatex()).equals('\\frac{x}{y}');
       check(((x + y) / (x - y)).toLatex()).equals('\\frac{x + y}{x - y}');
-      check(((x * y) / (z + const Constant(1.0))).toLatex())
+      check(((x * y) / (z + const RationalNumber(1))).toLatex())
           .equals('\\frac{x \\cdot y}{z + 1}');
     });
 
@@ -57,7 +59,19 @@ void main() {
       check((x + y).pow(z).toLatex()).equals('{(x + y)}^{z}');
       check((x * y).pow(z).toLatex()).equals('{(x \\cdot y)}^{z}');
       check((x / y).pow(z).toLatex()).equals('{(\\frac{x}{y})}^{z}');
-      check((-x).pow(const Constant(2.0)).toLatex()).equals('{(-x)}^{2}');
+      check((-x).pow(const RationalNumber(2)).toLatex()).equals('{(-x)}^{2}');
+    });
+
+    test('root formatting for fractional powers', () {
+      check(x.pow(const RationalNumber(1, 2)).toLatex()).equals(r'\sqrt{x}');
+      check((x + y).pow(const RationalNumber(1, 2)).toLatex())
+          .equals(r'\sqrt{x + y}');
+      check(x.pow(const RationalNumber(1, 3)).toLatex()).equals(r'\sqrt[3]{x}');
+      check(x.pow(const RationalNumber(1, 5)).toLatex()).equals(r'\sqrt[5]{x}');
+      check(x.pow(const RationalNumber(2, 3)).toLatex())
+          .equals(r'{x}^{\frac{2}{3}}');
+      check(x.pow(const RationalNumber(-1, 2)).toLatex())
+          .equals(r'{x}^{-\frac{1}{2}}');
     });
 
     test('unary negation', () {
@@ -81,18 +95,19 @@ void main() {
 
     test('exponential and logarithm', () {
       check(const Exp(x).toLatex()).equals('e^{x}');
-      check(Exp(x.pow(const Constant(2.0))).toLatex()).equals('e^{{x}^{2}}');
+      check(Exp(x.pow(const RationalNumber(2))).toLatex())
+          .equals('e^{{x}^{2}}');
       check(const Ln(x).toLatex()).equals('\\ln(x)');
-      check(Ln(x + const Constant(1.0)).toLatex()).equals('\\ln(x + 1)');
+      check(Ln(x + const RationalNumber(1)).toLatex()).equals('\\ln(x + 1)');
     });
 
     test('composite calculus expressions', () {
       final f =
-          (x.pow(const Constant(2.0)) + const Constant(1.0)) /
-          (x - const Constant(1.0));
+          (x.pow(const RationalNumber(2)) + const RationalNumber(1)) /
+          (x - const RationalNumber(1));
       check(f.toLatex()).equals('\\frac{{x}^{2} + 1}{x - 1}');
 
-      final g = Exp(-x.pow(const Constant(2.0)));
+      final g = Exp(-x.pow(const RationalNumber(2)));
       check(g.toLatex()).equals('e^{-{x}^{2}}');
     });
   });

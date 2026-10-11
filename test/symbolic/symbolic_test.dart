@@ -54,12 +54,13 @@ void main() {
       check(x.toLatex()).equals('x');
       check(x.toString()).equals('x');
 
-      check(const Constant(4.0).toLatex()).equals('4');
-      check(const Constant(4.5).toLatex()).equals('4.5');
-      check(Constant.pi.toLatex()).equals(r'\pi');
-      check(Constant.pi.toString()).equals('pi');
-      check(Constant.e.toLatex()).equals('e');
-      check(Constant.e.toString()).equals('e');
+      check(const RationalNumber(4).toLatex()).equals('4');
+      check(const RationalNumber(9, 2).toLatex()).equals(r'\frac{9}{2}');
+      check(const RealNumber(3.14).toLatex()).equals('3.14');
+      check(ConstantNumber.pi.toLatex()).equals(r'\pi');
+      check(ConstantNumber.pi.toString()).equals('pi');
+      check(ConstantNumber.e.toLatex()).equals('e');
+      check(ConstantNumber.e.toString()).equals('e');
       check(pi.toLatex()).equals(r'\pi');
       check(e.toLatex()).equals('e');
 
@@ -105,23 +106,26 @@ void main() {
 
       // Precedence & nested string textualization
       const compound = Mul(
-        Exp(Mul(Constant(-0.2), x)),
-        Cos(Mul(Constant(3.0), x)),
+        Exp(Mul(RationalNumber(-2), x)),
+        Cos(Mul(RationalNumber(3), x)),
       );
-      check(compound.toString()).equals('exp(-0.2 * x) * cos(3 * x)');
+      check(compound.toString()).equals('exp(-2 * x) * cos(3 * x)');
 
       const poly = Add(
-        Sub(Pow(x, Constant(3.0)), Mul(Constant(3.0), x)),
-        Constant(1.0),
+        Sub(Pow(x, RationalNumber(3)), Mul(RationalNumber(3), x)),
+        RationalNumber(1),
       );
       check(poly.toString()).equals('x ^ 3 - 3 * x + 1');
 
-      const parenMul = Mul(Add(x, Constant(1.0)), Sub(x, Constant(1.0)));
+      const parenMul = Mul(
+        Add(x, RationalNumber(1)),
+        Sub(x, RationalNumber(1)),
+      );
       check(parenMul.toString()).equals('(x + 1) * (x - 1)');
 
       const parenDiv = Div(
-        Constant(1.0),
-        Add(Constant(1.0), Pow(x, Constant(2.0))),
+        RationalNumber(1),
+        Add(RationalNumber(1), Pow(x, RationalNumber(2))),
       );
       check(parenDiv.toString()).equals('1 / (1 + x ^ 2)');
     });
@@ -134,9 +138,12 @@ void main() {
       check(const Variable('x').hashCode).equals(x.hashCode);
       check(x == y).isFalse();
 
-      check(const Constant(3.0) == const Constant(3.0)).isTrue();
-      check(const Constant(3.0).hashCode).equals(const Constant(3.0).hashCode);
-      check(const Constant(3.0) == const Constant(4.0)).isFalse();
+      check(const RationalNumber(3) == const RationalNumber(3)).isTrue();
+      check(const RationalNumber(3).hashCode)
+          .equals(const RationalNumber(3).hashCode);
+      check(const RationalNumber(3) == const RationalNumber(4)).isFalse();
+      check(const RealNumber(3.14) == const RealNumber(3.14)).isTrue();
+      check(ConstantNumber.pi == ConstantNumber.pi).isTrue();
 
       check(const Add(x, y) == const Add(x, y)).isTrue();
       check(const Add(x, y).hashCode).equals(const Add(x, y).hashCode);
@@ -163,8 +170,8 @@ void main() {
     test('named mathematical constants pi and e', () {
       check(pi.value).equals(math.pi);
       check(e.value).equals(math.e);
-      check(Constant.pi).equals(pi);
-      check(Constant.e).equals(e);
+      check(ConstantNumber.pi).equals(pi);
+      check(ConstantNumber.e).equals(e);
 
       check(pi.freeVariables).isEmpty();
       check(e.freeVariables).isEmpty();
@@ -177,8 +184,8 @@ void main() {
       check(pi.substitute('x', const Variable('y'))).equals(pi);
       check(e.substitute('x', const Variable('y'))).equals(e);
 
-      check(pi.diff('x')).equals(const Constant(0.0));
-      check(e.diff('x')).equals(const Constant(0.0));
+      check(pi.diff('x')).equals(const RationalNumber(0));
+      check(e.diff('x')).equals(const RationalNumber(0));
     });
 
     test('Substitution and freeVariables', () {
@@ -194,7 +201,7 @@ void main() {
       check(expr.dependsOn('x')).isTrue();
       check(expr.dependsOn('w')).isFalse();
 
-      final substituted = expr.substitute('x', const Constant(2.0));
+      final substituted = expr.substitute('x', const RationalNumber(2));
       check(substituted.freeVariables).unorderedEquals({'y', 'z'});
       check(substituted.dependsOn('x')).isFalse();
     });
@@ -251,15 +258,15 @@ void main() {
       const x = Variable('x');
 
       // Neither depends
-      check(const Pow(Constant(2.0), Constant(3.0)).diff('x'))
-          .equals(const Constant(0.0));
+      check(const Pow(RationalNumber(2), RationalNumber(3)).diff('x'))
+          .equals(const RationalNumber(0));
 
       // Base only depends: x^3
-      final bOnly = const Pow(x, Constant(3.0)).diff('x');
+      final bOnly = const Pow(x, RationalNumber(3)).diff('x');
       check(bOnly.evaluate({'x': 2.0})).equals(12.0);
 
       // Exponent only depends: 2^x -> d/dx (2^x) = 2^x * ln(2)
-      final eOnly = const Pow(Constant(2.0), x).diff('x');
+      final eOnly = const Pow(RationalNumber(2), x).diff('x');
       check(eOnly.evaluate({'x': 3.0})).isCloseTo(8.0 * math.log(2.0), 1e-6);
 
       // Both depend: x^x -> d/dx (x^x) = x^x * (ln(x) + 1)
@@ -279,89 +286,115 @@ void main() {
       check(expr1.simplify()).equals(y);
 
       // (4 + 6) -> 10
-      final expr2 = const Constant(4.0) + const Constant(6.0);
-      check(expr2.simplify()).equals(const Constant(10.0));
+      final expr2 = const RationalNumber(4) + const RationalNumber(6);
+      check(expr2.simplify()).equals(const RationalNumber(10));
 
       // (10 - 4) -> 6
-      final exprSub = const Constant(10.0) - const Constant(4.0);
-      check(exprSub.simplify()).equals(const Constant(6.0));
+      final exprSub = const RationalNumber(10) - const RationalNumber(4);
+      check(exprSub.simplify()).equals(const RationalNumber(6));
 
       // x - x -> 0
       final expr3 = x - x;
-      check(expr3.simplify()).equals(const Constant(0.0));
+      check(expr3.simplify()).equals(const RationalNumber(0));
 
       // x - 0 -> x
       check((x - 0).simplify()).equals(x);
 
       // 0 + x -> x, x + 0 -> x
-      check((const Constant(0.0) + x).simplify()).equals(x);
-      check((x + const Constant(0.0)).simplify()).equals(x);
+      check((const RationalNumber(0) + x).simplify()).equals(x);
+      check((x + const RationalNumber(0)).simplify()).equals(x);
 
       // x * 1 -> x, 1 * x -> x
       check((x * 1).simplify()).equals(x);
-      check((const Constant(1.0) * x).simplify()).equals(x);
+      check((const RationalNumber(1) * x).simplify()).equals(x);
 
       // x * -1 -> -x, -1 * x -> -x
       check((x * -1).simplify()).equals(const Neg(x));
-      check((const Constant(-1.0) * x).simplify()).equals(const Neg(x));
+      check((const RationalNumber(-1) * x).simplify()).equals(const Neg(x));
 
       // 0 * x -> 0
-      check((const Constant(0.0) * x).simplify()).equals(const Constant(0.0));
+      check((const RationalNumber(0) * x).simplify())
+          .equals(const RationalNumber(0));
 
       // 0 / x -> 0, x / 1 -> x, x / x -> 1
-      check((const Constant(0.0) / x).simplify()).equals(const Constant(0.0));
+      check((const RationalNumber(0) / x).simplify())
+          .equals(const RationalNumber(0));
       check((x / 1).simplify()).equals(x);
-      check((x / x).simplify()).equals(const Constant(1.0));
-      check((const Constant(6.0) / const Constant(2.0)).simplify())
-          .equals(const Constant(3.0));
-      check(() => (const Constant(6.0) / const Constant(0.0)).simplify())
-          .throws<UnsupportedError>();
+      check((x / x).simplify()).equals(const RationalNumber(1));
+      check((const RationalNumber(6) / const RationalNumber(2)).simplify())
+          .equals(const RationalNumber(3));
+      check(
+        () => (const RationalNumber(6) / const RationalNumber(0)).simplify(),
+      ).throws<UnsupportedError>();
 
       // x^0 -> 1, x^1 -> x, 0^x -> 0, 1^x -> 1
-      check(x.pow(0).simplify()).equals(const Constant(1.0));
+      check(x.pow(0).simplify()).equals(const RationalNumber(1));
       check(x.pow(1).simplify()).equals(x);
-      check(const Constant(0.0).pow(x).simplify()).equals(const Constant(0.0));
-      check(const Constant(1.0).pow(x).simplify()).equals(const Constant(1.0));
-      check(const Constant(2.0).pow(const Constant(3.0)).simplify())
-          .equals(const Constant(8.0));
+      check(const RationalNumber(0).pow(x).simplify())
+          .equals(const RationalNumber(0));
+      check(const RationalNumber(1).pow(x).simplify())
+          .equals(const RationalNumber(1));
+      check(const RationalNumber(2).pow(const RationalNumber(3)).simplify())
+          .equals(const RationalNumber(8));
 
       // Neg(-(-x)) -> x
       check(const Neg(Neg(x)).simplify()).equals(x);
-      check(const Neg(Constant(5.0)).simplify()).equals(const Constant(-5.0));
+      check(const Neg(RationalNumber(5)).simplify())
+          .equals(const RationalNumber(-5));
 
       // Sin, Cos, Exp, Ln of Constants
-      check(const Sin(Constant(0.0)).simplify()).equals(const Constant(0.0));
-      check(const Cos(Constant(0.0)).simplify()).equals(const Constant(1.0));
-      check(const Exp(Constant(0.0)).simplify()).equals(const Constant(1.0));
-      check(const Ln(Constant(1.0)).simplify()).equals(const Constant(0.0));
-      check(() => const Ln(Constant(0.0)).simplify()).throws<ArgumentError>();
+      check(const Sin(RationalNumber(0)).simplify())
+          .equals(const RationalNumber(0));
+      check(const Cos(RationalNumber(0)).simplify())
+          .equals(const RationalNumber(1));
+      check(const Exp(RationalNumber(0)).simplify())
+          .equals(const RationalNumber(1));
+      check(const Ln(RationalNumber(1)).simplify())
+          .equals(const RationalNumber(0));
+      check(() => const Ln(RationalNumber(0)).simplify())
+          .throws<ArgumentError>();
 
       // Constants pi and e simplifications
-      check(const Sin(Constant.pi).simplify()).equals(const Constant(0.0));
-      check(const Cos(Constant.pi).simplify()).equals(const Constant(-1.0));
-      check(const Ln(Constant.e).simplify()).equals(const Constant(1.0));
-      check(const Exp(Constant(1.0)).simplify()).equals(Constant.e);
-      check(Constant.e.pow(x).simplify()).equals(const Exp(x));
+      check(const Sin(ConstantNumber.pi).simplify())
+          .equals(const RationalNumber(0));
+      check(const Cos(ConstantNumber.pi).simplify())
+          .equals(const RationalNumber(-1));
+      check(const Ln(ConstantNumber.e).simplify())
+          .equals(const RationalNumber(1));
+      check(const Exp(RationalNumber(1)).simplify()).equals(ConstantNumber.e);
+      check(ConstantNumber.e.pow(x).simplify()).equals(const Exp(x));
       check(const Ln(Exp(x)).simplify()).equals(x);
       check(const Exp(Ln(x)).simplify()).equals(x);
-      check(const Neg(Constant.pi).simplify()).equals(const Neg(Constant.pi));
-      check(const Neg(Neg(Constant.pi)).simplify()).equals(Constant.pi);
-      check((Constant.pi * const Constant(1.0)).simplify()).equals(Constant.pi);
-      check((const Constant(1.0) * Constant.pi).simplify()).equals(Constant.pi);
-      check((Constant.pi + const Constant(0.0)).simplify()).equals(Constant.pi);
-      check((const Constant(0.0) + Constant.pi).simplify()).equals(Constant.pi);
-      check((Constant.pi - const Constant(0.0)).simplify()).equals(Constant.pi);
-      check((Constant.pi / const Constant(1.0)).simplify()).equals(Constant.pi);
-      check(Constant.pi.pow(const Constant(1.0)).simplify())
-          .equals(Constant.pi);
-      check(Constant.pi.pow(const Constant(0.0)).simplify())
-          .equals(const Constant(1.0));
-      check((Constant.pi - Constant.pi).simplify()).equals(const Constant(0.0));
-      check((Constant.e * const Constant(1.0)).simplify()).equals(Constant.e);
-      check((Constant.e + const Constant(0.0)).simplify()).equals(Constant.e);
-      check(Constant.e.pow(const Constant(0.0)).simplify())
-          .equals(const Constant(1.0));
-      check(Constant.e.pow(const Constant(1.0)).simplify()).equals(Constant.e);
+      check(const Neg(ConstantNumber.pi).simplify())
+          .equals(const Neg(ConstantNumber.pi));
+      check(const Neg(Neg(ConstantNumber.pi)).simplify())
+          .equals(ConstantNumber.pi);
+      check((ConstantNumber.pi * const RationalNumber(1)).simplify())
+          .equals(ConstantNumber.pi);
+      check((const RationalNumber(1) * ConstantNumber.pi).simplify())
+          .equals(ConstantNumber.pi);
+      check((ConstantNumber.pi + const RationalNumber(0)).simplify())
+          .equals(ConstantNumber.pi);
+      check((const RationalNumber(0) + ConstantNumber.pi).simplify())
+          .equals(ConstantNumber.pi);
+      check((ConstantNumber.pi - const RationalNumber(0)).simplify())
+          .equals(ConstantNumber.pi);
+      check((ConstantNumber.pi / const RationalNumber(1)).simplify())
+          .equals(ConstantNumber.pi);
+      check(ConstantNumber.pi.pow(const RationalNumber(1)).simplify())
+          .equals(ConstantNumber.pi);
+      check(ConstantNumber.pi.pow(const RationalNumber(0)).simplify())
+          .equals(const RationalNumber(1));
+      check((ConstantNumber.pi - ConstantNumber.pi).simplify())
+          .equals(const RationalNumber(0));
+      check((ConstantNumber.e * const RationalNumber(1)).simplify())
+          .equals(ConstantNumber.e);
+      check((ConstantNumber.e + const RationalNumber(0)).simplify())
+          .equals(ConstantNumber.e);
+      check(ConstantNumber.e.pow(const RationalNumber(0)).simplify())
+          .equals(const RationalNumber(1));
+      check(ConstantNumber.e.pow(const RationalNumber(1)).simplify())
+          .equals(ConstantNumber.e);
     });
 
     test('like-term additions and subtractions', () {
@@ -369,46 +402,51 @@ void main() {
       const y = Variable('y');
 
       // x + x => 2 * x
-      check((x + x).simplify()).equals(const Mul(Constant(2.0), x));
-      check((x + x + x).simplify()).equals(const Mul(Constant(3.0), x));
+      check((x + x).simplify()).equals(const Mul(RationalNumber(2), x));
+      check((x + x + x).simplify()).equals(const Mul(RationalNumber(3), x));
 
       // c1 * x + c2 * x => (c1 + c2) * x
-      final c1xPlusC2x = const Constant(3.0) * x + const Constant(5.0) * x;
-      check(c1xPlusC2x.simplify()).equals(const Mul(Constant(8.0), x));
+      final c1xPlusC2x =
+          const RationalNumber(3) * x + const RationalNumber(5) * x;
+      check(c1xPlusC2x.simplify()).equals(const Mul(RationalNumber(8), x));
 
       // x + c * x => (c + 1) * x, c * x + x => (c + 1) * x
-      check((x + const Constant(4.0) * x).simplify())
-          .equals(const Mul(Constant(5.0), x));
-      check((const Constant(4.0) * x + x).simplify())
-          .equals(const Mul(Constant(5.0), x));
+      check((x + const RationalNumber(4) * x).simplify())
+          .equals(const Mul(RationalNumber(5), x));
+      check((const RationalNumber(4) * x + x).simplify())
+          .equals(const Mul(RationalNumber(5), x));
 
       // Subtraction like-terms
-      check((const Constant(3.0) * x - x).simplify())
-          .equals(const Mul(Constant(2.0), x));
-      check((x - const Constant(3.0) * x).simplify())
-          .equals(const Mul(Constant(-2.0), x));
-      check((const Constant(2.0) * x - const Constant(2.0) * x).simplify())
-          .equals(const Constant(0.0));
-      check((x - const Constant(2.0) * x).simplify()).equals(const Neg(x));
-      check((const Constant(2.0) * x - x).simplify()).equals(x);
+      check((const RationalNumber(3) * x - x).simplify())
+          .equals(const Mul(RationalNumber(2), x));
+      check((x - const RationalNumber(3) * x).simplify())
+          .equals(const Mul(RationalNumber(-2), x));
+      check(
+        (const RationalNumber(2) * x - const RationalNumber(2) * x).simplify(),
+      ).equals(const RationalNumber(0));
+      check((x - const RationalNumber(2) * x).simplify()).equals(const Neg(x));
+      check((const RationalNumber(2) * x - x).simplify()).equals(x);
 
       // Additive term cancellation across mixed expressions
       check(((x + y) - x).simplify()).equals(y);
       check(((x - y) + y).simplify()).equals(x);
-      check(((const Constant(2.0) * x + y) - x).simplify())
+      check(((const RationalNumber(2) * x + y) - x).simplify())
           .equals(const Add(x, y));
 
       // Like terms on named constants
       check(
-        (const Constant(2.0) * Constant.pi + const Constant(3.0) * Constant.pi)
+        (const RationalNumber(2) * ConstantNumber.pi +
+                const RationalNumber(3) * ConstantNumber.pi)
             .simplify(),
-      ).equals(const Mul(Constant(5.0), Constant.pi));
+      ).equals(const Mul(RationalNumber(5), ConstantNumber.pi));
 
       // Higher degree like terms
-      final x2 = x.pow(const Constant(2.0));
-      check((x2 + x2).simplify()).equals(Mul(const Constant(2.0), x2));
-      check((const Constant(3.0) * x2 + const Constant(4.0) * x2).simplify())
-          .equals(Mul(const Constant(7.0), x2));
+      final x2 = x.pow(const RationalNumber(2));
+      check((x2 + x2).simplify()).equals(Mul(const RationalNumber(2), x2));
+      check(
+        (const RationalNumber(3) * x2 + const RationalNumber(4) * x2)
+            .simplify(),
+      ).equals(Mul(const RationalNumber(7), x2));
     });
 
     test('like-factor multiplications and power combinations', () {
@@ -418,35 +456,37 @@ void main() {
       const b = Variable('b');
 
       // x * x => x ^ 2
-      check((x * x).simplify()).equals(x.pow(const Constant(2.0)));
-      check((x * x * x).simplify()).equals(x.pow(const Constant(3.0)));
+      check((x * x).simplify()).equals(x.pow(const RationalNumber(2)));
+      check((x * x * x).simplify()).equals(x.pow(const RationalNumber(3)));
 
       // x^a * x^b => x^(a+b)
-      final x2 = x.pow(const Constant(2.0));
-      final x3 = x.pow(const Constant(3.0));
-      check((x2 * x3).simplify()).equals(x.pow(const Constant(5.0)));
-      check((x * x2).simplify()).equals(x.pow(const Constant(3.0)));
-      check((x2 * x).simplify()).equals(x.pow(const Constant(3.0)));
+      final x2 = x.pow(const RationalNumber(2));
+      final x3 = x.pow(const RationalNumber(3));
+      check((x2 * x3).simplify()).equals(x.pow(const RationalNumber(5)));
+      check((x * x2).simplify()).equals(x.pow(const RationalNumber(3)));
+      check((x2 * x).simplify()).equals(x.pow(const RationalNumber(3)));
 
       // Symbolic exponents
       check((x.pow(a) * x.pow(b)).simplify()).equals(x.pow(const Add(a, b)));
       check((x * x.pow(b)).simplify())
-          .equals(x.pow(const Add(b, Constant(1.0))));
+          .equals(x.pow(const Add(b, RationalNumber(1))));
       check((x.pow(a) * x).simplify())
-          .equals(x.pow(const Add(a, Constant(1.0))));
+          .equals(x.pow(const Add(a, RationalNumber(1))));
 
       // Exponents cancelling
-      check((x2 * x.pow(const Constant(-1.0))).simplify()).equals(x);
-      check((x2 * x.pow(const Constant(-2.0))).simplify())
-          .equals(const Constant(1.0));
+      check((x2 * x.pow(const RationalNumber(-1))).simplify()).equals(x);
+      check((x2 * x.pow(const RationalNumber(-2))).simplify())
+          .equals(const RationalNumber(1));
 
       // Scaled products: (c1 * x) * (c2 * x) => (c1 * c2) * x^2
-      check(((const Constant(2.0) * x) * (const Constant(3.0) * x)).simplify())
-          .equals(Mul(const Constant(6.0), x2));
-      check(((const Constant(2.0) * x) * x).simplify())
-          .equals(Mul(const Constant(2.0), x2));
-      check((x * (const Constant(2.0) * x)).simplify())
-          .equals(Mul(const Constant(2.0), x2));
+      check(
+        ((const RationalNumber(2) * x) * (const RationalNumber(3) * x))
+            .simplify(),
+      ).equals(Mul(const RationalNumber(6), x2));
+      check(((const RationalNumber(2) * x) * x).simplify())
+          .equals(Mul(const RationalNumber(2), x2));
+      check((x * (const RationalNumber(2) * x)).simplify())
+          .equals(Mul(const RationalNumber(2), x2));
 
       // Associative like-factor multiplications: (x * y) * x => x^2 * y
       check(((x * y) * x).simplify()).equals(Mul(x2, y));
@@ -457,76 +497,78 @@ void main() {
       const x = Variable('x');
 
       // Additive constant folding: x + 1 + 2 => x + 3
-      check((x + 1 + 2).simplify()).equals(const Add(x, Constant(3.0)));
-      check((const Constant(1.0) + x + const Constant(2.0)).simplify())
-          .equals(const Add(x, Constant(3.0)));
-      check((x + const Constant(5.0) - const Constant(2.0)).simplify())
-          .equals(const Add(x, Constant(3.0)));
-      check((x - const Constant(1.0) - const Constant(2.0)).simplify())
-          .equals(const Sub(x, Constant(3.0)));
+      check((x + 1 + 2).simplify()).equals(const Add(x, RationalNumber(3)));
+      check((const RationalNumber(1) + x + const RationalNumber(2)).simplify())
+          .equals(const Add(x, RationalNumber(3)));
+      check((x + const RationalNumber(5) - const RationalNumber(2)).simplify())
+          .equals(const Add(x, RationalNumber(3)));
+      check((x - const RationalNumber(1) - const RationalNumber(2)).simplify())
+          .equals(const Sub(x, RationalNumber(3)));
 
-      // Multiplicative constant folding: x * 2 * 3 => x * 6
-      check(((x * 2) * 3).simplify()).equals(const Mul(x, Constant(6.0)));
-      check(((const Constant(2.0) * x) * 3).simplify())
-          .equals(const Mul(Constant(6.0), x));
-      check((const Constant(2.0) * (const Constant(3.0) * x)).simplify())
-          .equals(const Mul(Constant(6.0), x));
-      check((const Constant(2.0) * (x * 3)).simplify())
-          .equals(const Mul(Constant(6.0), x));
+      // Multiplicative constant folding: x * 2 * 3 => 6 * x
+      check(((x * 2) * 3).simplify()).equals(const Mul(RationalNumber(6), x));
+      check(((const RationalNumber(2) * x) * 3).simplify())
+          .equals(const Mul(RationalNumber(6), x));
+      check(
+        (const RationalNumber(2) * (const RationalNumber(3) * x)).simplify(),
+      ).equals(const Mul(RationalNumber(6), x));
+      check((const RationalNumber(2) * (x * 3)).simplify())
+          .equals(const Mul(RationalNumber(6), x));
       check((((x * 2) * 3) * 4).simplify())
-          .equals(const Mul(x, Constant(24.0)));
+          .equals(const Mul(RationalNumber(24), x));
     });
 
     test('canonical polynomial term sorting in descending degree', () {
       const x = Variable('x');
       const y = Variable('y');
-      final x2 = x.pow(const Constant(2.0));
-      final x3 = x.pow(const Constant(3.0));
+      final x2 = x.pow(const RationalNumber(2));
+      final x3 = x.pow(const RationalNumber(3));
 
       // x + x^2 => x^2 + x
       check((x + x2).simplify()).equals(Add(x2, x));
 
       // 1 + x => x + 1
-      check((const Constant(1.0) + x).simplify())
-          .equals(const Add(x, Constant(1.0)));
+      check((const RationalNumber(1) + x).simplify())
+          .equals(const Add(x, RationalNumber(1)));
 
       // 1 + x + x^2 => x^2 + x + 1
-      check((const Constant(1.0) + x + x2).simplify())
-          .equals(Add(Add(x2, x), const Constant(1.0)));
+      check((const RationalNumber(1) + x + x2).simplify())
+          .equals(Add(Add(x2, x), const RationalNumber(1)));
 
       // 3 + 2x + x^2 => x^2 + 2x + 3
-      final poly1 = const Constant(3.0) + const Constant(2.0) * x + x2;
-      check(
-        poly1.simplify(),
-      ).equals(Add(Add(x2, const Mul(Constant(2.0), x)), const Constant(3.0)));
+      final poly1 = const RationalNumber(3) + const RationalNumber(2) * x + x2;
+      check(poly1.simplify()).equals(
+        Add(Add(x2, const Mul(RationalNumber(2), x)), const RationalNumber(3)),
+      );
 
       // x^3 + 2x + 5x^2 + 1 => x^3 + 5x^2 + 2x + 1
       final poly2 =
           x3 +
-          const Constant(2.0) * x +
-          const Constant(5.0) * x2 +
-          const Constant(1.0);
+          const RationalNumber(2) * x +
+          const RationalNumber(5) * x2 +
+          const RationalNumber(1);
       check(poly2.simplify()).equals(
         Add(
           Add(
-            Add(x3, Mul(const Constant(5.0), x2)),
-            const Mul(Constant(2.0), x),
+            Add(x3, Mul(const RationalNumber(5), x2)),
+            const Mul(RationalNumber(2), x),
           ),
-          const Constant(1.0),
+          const RationalNumber(1),
         ),
       );
 
       // Polynomial with subtractions: x^2 - 2x - 3
-      final polySub = x2 - const Constant(2.0) * x - const Constant(3.0);
-      check(
-        polySub.simplify(),
-      ).equals(Sub(Sub(x2, const Mul(Constant(2.0), x)), const Constant(3.0)));
+      final polySub =
+          x2 - const RationalNumber(2) * x - const RationalNumber(3);
+      check(polySub.simplify()).equals(
+        Sub(Sub(x2, const Mul(RationalNumber(2), x)), const RationalNumber(3)),
+      );
 
       // Variable sorting: y + x => x + y
       check((y + x).simplify()).equals(const Add(x, y));
 
       // Multi-variable graded degree sorting: x^2 + y^2 + x + y
-      final y2 = y.pow(const Constant(2.0));
+      final y2 = y.pow(const RationalNumber(2));
       check((y + x2 + y2 + x).simplify()).equals(Add(Add(Add(x2, y2), x), y));
     });
   });
@@ -540,9 +582,9 @@ void main() {
       check(y.compile1D('x')(5.0)).equals(0.0);
 
       const complexExpr = Add(
-        Sub(Mul(x, Constant(2.0)), Div(x, Constant(2.0))),
+        Sub(Mul(x, RationalNumber(2)), Div(x, RationalNumber(2))),
         Add(
-          Pow(x, Constant(2.0)),
+          Pow(x, RationalNumber(2)),
           Add(Neg(x), Add(Sin(x), Add(Cos(x), Add(Exp(x), Ln(x))))),
         ),
       );

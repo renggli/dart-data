@@ -1,18 +1,27 @@
+import 'package:more/number.dart' show Fraction;
 import 'package:petitparser/petitparser.dart';
 
 import 'ast.dart';
 
-/// The internal PetitParser [Parser] for symbolic mathematical expressions.
-final parser = () {
+/// Builds a PetitParser [Parser] for symbolic mathematical expressions with
+/// the specified [maxDenominator] for detecting rational numbers.
+Parser<Expr> buildParser({int maxDenominator = 64}) {
   final builder = ExpressionBuilder<Expr>();
   builder
     // Numbers
     ..primitive(
       seq3(
-        digit().plus(),
-        seq2(char('.'), digit().plus()).optional(),
-        seq3(pattern('eE'), anyOf('+-').optional(), digit().plus()).optional(),
-      ).flatten('number expected').trim().map(_createValue),
+            digit().plus(),
+            seq2(char('.'), digit().plus()).optional(),
+            seq3(
+              pattern('eE'),
+              anyOf('+-').optional(),
+              digit().plus(),
+            ).optional(),
+          )
+          .flatten('number expected')
+          .trim()
+          .map((value) => _createValue(value, maxDenominator: maxDenominator)),
     )
     // Constant, variables, and functions
     ..primitive(
@@ -46,15 +55,35 @@ final parser = () {
     ..left(char('+').trim(), (a, _, b) => Add(a, b))
     ..left(char('-').trim(), (a, _, b) => Sub(a, b));
   return resolve(builder.build()).end();
-}();
+}
 
-Expr _createValue(String value) => Constant(double.parse(value));
+/// The default internal PetitParser [Parser] for symbolic mathematical expressions.
+final parser = buildParser();
+
+Expr _createValue(String value, {int maxDenominator = 64}) {
+  final intValue = int.tryParse(value);
+  if (intValue != null) {
+    return RationalNumber(intValue);
+  }
+  final doubleValue = double.parse(value);
+  if (maxDenominator > 0) {
+    final frac = Fraction.fromDouble(
+      doubleValue,
+      maxDenominator: maxDenominator,
+    );
+    if (frac.denominator <= maxDenominator &&
+        (doubleValue - frac.toDouble()).abs() < 1e-12) {
+      return RationalNumber(frac.numerator, frac.denominator);
+    }
+  }
+  return RealNumber(doubleValue);
+}
 
 Expr _createBinding(String name, List<Expr> arguments) =>
     switch (arguments.length) {
       0 => switch (name.toLowerCase()) {
-        'pi' => Constant.pi,
-        'e' => Constant.e,
+        'pi' => ConstantNumber.pi,
+        'e' => ConstantNumber.e,
         _ => Variable(name),
       },
       1 => switch (name.toLowerCase()) {
@@ -62,16 +91,19 @@ Expr _createBinding(String name, List<Expr> arguments) =>
         'cos' => Cos(arguments[0]),
         'exp' => Exp(arguments[0]),
         'ln' || 'log' => Ln(arguments[0]),
-        'sqrt' => Pow(arguments[0], const Constant(0.5)),
+        'sqrt' => Pow(arguments[0], const RationalNumber(1, 2)),
         _ => throw ArgumentError.value(name, 'Unknown function'),
       },
       _ => throw ArgumentError.value(name, 'Unknown function'),
     };
 
 /// Parses [input] into an [Expr]. Throws [FormatException] if parsing fails.
-Expr parseExpression(String input) {
+Expr parseExpression(String input, {int maxDenominator = 64}) {
   try {
-    final result = parser.parse(input);
+    final p = maxDenominator == 64
+        ? parser
+        : buildParser(maxDenominator: maxDenominator);
+    final result = p.parse(input);
     if (result case Success(:final value)) {
       return value;
     }
@@ -89,9 +121,12 @@ Expr parseExpression(String input) {
 }
 
 /// Tries to parse [input] into an [Expr], returning `null` on failure.
-Expr? tryParseExpression(String input) {
+Expr? tryParseExpression(String input, {int maxDenominator = 64}) {
   try {
-    final result = parser.parse(input);
+    final p = maxDenominator == 64
+        ? parser
+        : buildParser(maxDenominator: maxDenominator);
+    final result = p.parse(input);
     return result is Success<Expr> ? result.value : null;
   } on Object {
     return null;

@@ -163,7 +163,7 @@ double Function(double x) _compileFast1D(
   Expr expression,
   String variableName,
 ) => switch (expression) {
-  Constant(value: final val) => (_) => val,
+  Number(value: final val) => (_) => val,
   Variable(name: final name) => name == variableName ? (x) => x : (_) => 0.0,
   Add(left: final left, right: final right) => () {
     final fL = _compileFast1D(left, variableName),
@@ -216,7 +216,7 @@ double Function(List<double> args) _buildPositionalEvaluator(
   Expr expression,
   Map<String, int> indices,
 ) => switch (expression) {
-  Constant(value: final val) => (_) => val,
+  Number(value: final val) => (_) => val,
   Variable(name: final name) => () {
     final idx =
         indices[name] ?? (throw ArgumentError('Unbound variable: $name'));
@@ -273,7 +273,7 @@ double Function(Vector<double> args) _buildVectorEvaluator(
   Expr expression,
   Map<String, int> indices,
 ) => switch (expression) {
-  Constant(value: final val) => (_) => val,
+  Number(value: final val) => (_) => val,
   Variable(name: final name) => () {
     final idx =
         indices[name] ?? (throw ArgumentError('Unbound variable: $name'));
@@ -332,7 +332,7 @@ void _flattenToRpn(
   List<_Instruction> instructions,
 ) {
   switch (expr) {
-    case Constant(:final value):
+    case Number(:final value):
       instructions.add(_Instruction.pushConst(value));
     case Variable(:final name):
       final idx = varIndices[name];

@@ -267,9 +267,9 @@ void main() {
       const x = Variable('x');
       // P(x) = 1 + 2x + 3x^2
       final expr =
-          const Constant(1.0) +
-          (const Constant(2.0) * x) +
-          (const Constant(3.0) * x.pow(const Constant(2.0)));
+          const RationalNumber(1) +
+          (const RationalNumber(2) * x) +
+          (const RationalNumber(3) * x.pow(const RationalNumber(2)));
       final poly = Polynomial<double>.fromExpr(expr, 'x', order: 2);
 
       check(poly.degree).equals(2);
@@ -317,7 +317,7 @@ void main() {
     test('Taylor expansion around non-zero point', () {
       const x = Variable('x');
       // f(x) = (x - 2)^3 = x^3 - 6x^2 + 12x - 8
-      final expr = (x - const Constant(2.0)).pow(const Constant(3.0));
+      final expr = (x - const RationalNumber(2)).pow(const RationalNumber(3));
       final poly = Polynomial<double>.fromExpr(
         expr,
         'x',

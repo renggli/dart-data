@@ -1,5 +1,11 @@
+import 'package:more/number.dart' show Fraction;
+
 import '../ast.dart';
 import '../simplifier.dart';
+
+extension on Fraction {
+  bool get isInteger => b == 1;
+}
 
 /// Linear form matching, affine decomposition, and scalar scaling extension on
 /// [Expr].
@@ -10,7 +16,7 @@ extension LinearFormExtension on Expr {
   /// ```dart
   /// final x = Variable('x');
   /// final lin = (2 * x + 5).matchLinear('x');
-  /// // lin?.a == Constant(2.0), lin?.b == Constant(5.0)
+  /// // lin?.a == RationalNumber(2), lin?.b == RationalNumber(5)
   /// ```
   ({Expr a, Expr b})? matchLinear(String variable) =>
       _matchLinear(this, variable);
@@ -34,8 +40,8 @@ extension LinearFormExtension on Expr {
   }
   return switch (expr) {
     Variable(:final name) when name == variable => (
-      a: const Constant(1.0),
-      b: const Constant(0.0),
+      a: RationalNumber.one,
+      b: RationalNumber.zero,
     ),
     Neg(:final expr) => _matchLinearNeg(expr, variable),
     Mul(:final left, :final right) => _matchLinearMul(left, right, variable),
@@ -51,7 +57,7 @@ Expr? _matchScalarMultiple(Expr expr, Expr target, String variable) {
   expr = expr.simplify();
   target = target.simplify();
   if (expr == target) {
-    return const Constant(1.0);
+    return RationalNumber.one;
   }
   return switch ((expr, target)) {
     (Neg(:final expr), Neg(expr: final targetExpr)) => _matchScalarMultiple(
@@ -97,39 +103,43 @@ Expr? _matchScalarMultiple(Expr expr, Expr target, String variable) {
 
 Expr _scaleExpr(Expr expr, Expr factor) {
   factor = factor.simplify();
-  if (factor is Constant) {
-    if (factor.value == 0.0) return const Constant(0.0);
-    if (factor.value == 1.0) return expr;
-    if (factor.value == -1.0) return Neg(expr).simplify();
+  if (factor is RationalNumber) {
+    if (factor.isZero) return RationalNumber.zero;
+    if (factor.isOne) return expr;
+    if (factor.isNegativeOne) return Neg(expr).simplify();
   }
   expr = expr.simplify();
-  if (expr is Constant) {
+  if (expr is RationalNumber) {
     return Mul(factor, expr).simplify();
   }
-  if (factor is Constant) {
-    final k = factor.value;
+  if (factor is RationalNumber) {
+    final k = factor.toFraction();
     return switch (expr) {
-      Neg(:final expr) => _scaleExpr(expr, Constant(-k)),
-      Div(:final left, right: Constant(value: final c)) => _scaleDivRight(
-        left,
-        k,
-        c,
-      ),
-      Div(left: Constant(value: final c), :final right) => () {
-        final newK = k * c;
-        if (newK == 1.0) return Div(const Constant(1.0), right);
-        return Div(Constant(newK), right).simplify();
-      }(),
-      Mul(left: Constant(value: final c), :final right) => _scaleMulConstant(
-        right,
-        k,
-        c,
-      ),
-      Mul(:final left, right: Constant(value: final c)) => _scaleMulConstant(
-        left,
-        k,
-        c,
-      ),
+      Neg(:final expr) => _scaleExpr(expr, RationalNumber.fraction(-k)),
+      Div(
+        :final left,
+        right: RationalNumber(:final numerator, :final denominator),
+      ) =>
+        _scaleDivRight(left, k, Fraction(numerator, denominator)),
+      Div(
+        left: RationalNumber(:final numerator, :final denominator),
+        :final right,
+      ) =>
+        () {
+          final newK = k * Fraction(numerator, denominator);
+          if (newK == Fraction.one) return Div(RationalNumber.one, right);
+          return Div(RationalNumber.fraction(newK), right).simplify();
+        }(),
+      Mul(
+        left: RationalNumber(:final numerator, :final denominator),
+        :final right,
+      ) =>
+        _scaleMulConstant(right, k, Fraction(numerator, denominator)),
+      Mul(
+        :final left,
+        right: RationalNumber(:final numerator, :final denominator),
+      ) =>
+        _scaleMulConstant(left, k, Fraction(numerator, denominator)),
       Add(:final left, :final right) => Add(
         _scaleExpr(left, factor),
         _scaleExpr(right, factor),
@@ -139,9 +149,7 @@ Expr _scaleExpr(Expr expr, Expr factor) {
         _scaleExpr(right, factor),
       ).simplify(),
       _ => () {
-        if (k % 1 == 0) return Mul(Constant(k), expr);
-        final invK = 1.0 / k;
-        if (invK % 1 == 0 && invK.abs() >= 1) return Div(expr, Constant(invK));
+        if (k.isInteger) return Mul(RationalNumber(k.numerator), expr);
         return Mul(factor, expr).simplify();
       }(),
     };
@@ -248,7 +256,7 @@ Expr? _matchLinearOrQuotient(Expr expr, Expr target, String variable) {
   final lin2 = _matchLinear(target, variable);
   if (lin1 != null && lin2 != null) {
     final cross = Sub(Mul(lin1.a, lin2.b), Mul(lin2.a, lin1.b)).simplify();
-    if (cross is Constant && cross.value == 0.0) {
+    if (cross is RationalNumber && cross.isZero) {
       return Div(lin1.a, lin2.a).simplify();
     }
   }
@@ -259,28 +267,24 @@ Expr? _matchLinearOrQuotient(Expr expr, Expr target, String variable) {
   return null;
 }
 
-Expr _scaleDivRight(Expr left, double k, double c) {
+Expr _scaleDivRight(Expr left, Fraction k, Fraction c) {
   final newK = k / c;
-  if (newK == 1.0) return left;
-  if (newK == -1.0) return Neg(left).simplify();
-  if (newK % 1 == 0) return Mul(Constant(newK), left);
-  final invK = 1.0 / newK;
-  if (invK % 1 == 0 && invK.abs() >= 1) return Div(left, Constant(invK));
-  return Mul(Constant(newK), left);
+  if (newK == Fraction.one) return left;
+  if (newK == -Fraction.one) return Neg(left).simplify();
+  if (newK.isInteger) return Mul(RationalNumber(newK.numerator), left);
+  return Mul(RationalNumber.fraction(newK), left);
 }
 
-Expr _scaleMulConstant(Expr other, double k, double c) {
+Expr _scaleMulConstant(Expr other, Fraction k, Fraction c) {
   final newK = k * c;
-  if (newK == 1.0) return other;
-  if (newK == -1.0) return Neg(other).simplify();
-  if (newK % 1 == 0) return Mul(Constant(newK), other);
-  final invK = 1.0 / newK;
-  if (invK % 1 == 0 && invK.abs() >= 1) return Div(other, Constant(invK));
-  return Mul(Constant(newK), other);
+  if (newK == Fraction.one) return other;
+  if (newK == -Fraction.one) return Neg(other).simplify();
+  if (newK.isInteger) return Mul(RationalNumber(newK.numerator), other);
+  return Mul(RationalNumber.fraction(newK), other);
 }
 
 ({Expr a, Expr b})? _validLinear(Expr a, Expr b, String variable) {
   if (a.dependsOn(variable) || b.dependsOn(variable)) return null;
-  if (a is Constant && a.value == 0.0) return null;
+  if (a is RationalNumber && a.isZero) return null;
   return (a: a, b: b);
 }

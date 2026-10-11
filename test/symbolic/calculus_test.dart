@@ -10,11 +10,11 @@ void main() {
       const y = Variable('y');
 
       // Constant zero integrates to zero
-      final zero = const Constant(0.0).integrate('x');
-      check(zero).equals(const Constant(0.0));
+      final zero = const RationalNumber(0).integrate('x');
+      check(zero).equals(const RationalNumber(0));
 
       // Constant scalar
-      final c5 = const Constant(5.0).integrate('x');
+      final c5 = const RationalNumber(5).integrate('x');
       check(c5.evaluate({'x': 2.0})).equals(10.0);
       check(c5.evaluate({'x': 0.0})).equals(0.0);
 
@@ -24,7 +24,7 @@ void main() {
       check(intY.evaluate({'x': 3.0, 'y': 4.0})).equals(12.0);
 
       // Verify integrate extension invocation matches
-      check(const Constant(5.0).integrate('x')).equals(c5);
+      check(const RationalNumber(5).integrate('x')).equals(c5);
     });
 
     test('linear variable: x -> x^2 / 2', () {
@@ -88,7 +88,7 @@ void main() {
       check(antiInv.evaluate({'x': math.e})).isCloseTo(1.0, 1e-9);
 
       // 1 / x -> ln(x)
-      final divX = const Constant(1.0) / x;
+      final divX = const RationalNumber(1) / x;
       final antiDiv = divX.integrate('x');
       check(antiDiv).equals(const Ln(x));
       check(antiDiv.evaluate({'x': math.e})).isCloseTo(1.0, 1e-9);
@@ -96,7 +96,7 @@ void main() {
 
     test('linear rational denominator: 1 / (2x + 3)', () {
       const x = Variable('x');
-      final expr = const Constant(1.0) / ((x * 2) + 3);
+      final expr = const RationalNumber(1) / ((x * 2) + 3);
       final anti = expr.integrate('x');
 
       // (ln(2x + 3)) / 2
@@ -109,13 +109,13 @@ void main() {
       const x = Variable('x');
 
       // 1 / x^2 -> -1 / x
-      final expr1 = const Constant(1.0) / x.pow(2);
+      final expr1 = const RationalNumber(1) / x.pow(2);
       final anti1 = expr1.integrate('x');
       check(anti1.evaluate({'x': 2.0})).isCloseTo(-0.5, 1e-9);
       check(anti1.diff('x').compile1D('x')(2.0)).isCloseTo(0.25, 1e-9);
 
       // 5 / (2x + 3)^2 -> -5 / (2 * (2x + 3))
-      final expr2 = const Constant(5.0) / ((x * 2) + 3).pow(2);
+      final expr2 = const RationalNumber(5) / ((x * 2) + 3).pow(2);
       final anti2 = expr2.integrate('x');
       check(anti2.evaluate({'x': 1.0})).isCloseTo(-0.5, 1e-9);
       check(anti2.diff('x').compile1D('x')(1.0)).isCloseTo(5.0 / 25.0, 1e-9);
@@ -165,7 +165,7 @@ void main() {
 
     test('arbitrary constant base: 2^x', () {
       const x = Variable('x');
-      final expr = const Constant(2.0).pow(x);
+      final expr = const RationalNumber(2).pow(x);
       final anti = expr.integrate('x');
 
       // 2^x / ln(2)
@@ -371,7 +371,7 @@ void main() {
 
     test('integration by parts: x * 2^x', () {
       const x = Variable('x');
-      final expr = x * const Constant(2.0).pow(x);
+      final expr = x * const RationalNumber(2).pow(x);
       final anti = expr.integrate('x');
 
       check(anti.diff('x').compile1D('x')(2.0)).isCloseTo(2.0 * 4.0, 1e-9);
@@ -400,7 +400,7 @@ void main() {
         final poly = (x.pow(2) * 3) + (x * 2) + 1;
         final result = poly.integrate('x', from: 0, to: 2);
 
-        check(result).equals(const Constant(14.0));
+        check(result).equals(const RationalNumber(14));
       },
     );
 
@@ -409,16 +409,16 @@ void main() {
       const expr = Sin(x);
       final result = expr.integrate('x', from: 0, to: math.pi);
 
-      check(result).isA<Constant>();
+      check(result).isA<Number>();
       check(result.evaluate(const {})).isCloseTo(2.0, 1e-9);
     });
 
     test('definite integral of 1 / x: int_1^e (1 / x) dx = 1', () {
       const x = Variable('x');
-      final expr = const Constant(1.0) / x;
+      final expr = const RationalNumber(1) / x;
       final result = expr.integrate('x', from: 1, to: math.e);
 
-      check(result).isA<Constant>();
+      check(result).isA<Number>();
       check(result.evaluate(const {})).isCloseTo(1.0, 1e-9);
     });
 
@@ -427,7 +427,7 @@ void main() {
       final expr = (x.pow(3) * 5) + const Exp(x);
       final result = expr.integrate('x', from: 4.5, to: 4.5);
 
-      check(result).equals(const Constant(0.0));
+      check(result).equals(const RationalNumber(0));
     });
 
     test('definite integral with reversed bounds: int_2^0 (2x) dx = -4', () {
@@ -435,7 +435,7 @@ void main() {
       final expr = x * 2;
       final result = expr.integrate('x', from: 2, to: 0);
 
-      check(result).equals(const Constant(-4.0));
+      check(result).equals(const RationalNumber(-4));
     });
   });
 
@@ -462,7 +462,7 @@ void main() {
         final expr = Exp(-x.pow(2));
         final result = expr.integrate('x', from: 0, to: 1);
 
-        check(result).isA<Constant>();
+        check(result).isA<Number>();
         check(result.evaluate(const {})).isCloseTo(0.7468241328, 1e-6);
       },
     );
@@ -472,7 +472,7 @@ void main() {
       final expr = Sin(x.pow(2));
       final result = expr.integrate('x', from: 0, to: 1);
 
-      check(result).isA<Constant>();
+      check(result).isA<Number>();
       check(result.evaluate(const {})).isCloseTo(0.3102683, 1e-5);
     });
   });
@@ -501,21 +501,21 @@ void main() {
 
     test('matchLinear decomposes affine expressions', () {
       // 3x + 5 -> a = 3, b = 5
-      final expr = (const Constant(3.0) * x) + const Constant(5.0);
+      final expr = (const RationalNumber(3) * x) + const RationalNumber(5);
       final lin = expr.matchLinear('x');
       check(lin).isNotNull();
-      check(lin!.a).equals(const Constant(3.0));
-      check(lin.b).equals(const Constant(5.0));
+      check(lin!.a).equals(const RationalNumber(3));
+      check(lin.b).equals(const RationalNumber(5));
 
       // -x -> a = -1, b = 0
       final negX = -x;
       final linNeg = negX.matchLinear('x');
       check(linNeg).isNotNull();
-      check(linNeg!.a).equals(const Constant(-1.0));
-      check(linNeg.b).equals(const Constant(0.0));
+      check(linNeg!.a).equals(const RationalNumber(-1));
+      check(linNeg.b).equals(const RationalNumber(0));
 
       // x / 2 -> a = 0.5, b = 0
-      final halfX = x / const Constant(2.0);
+      final halfX = x / const RationalNumber(2);
       final linDiv = halfX.matchLinear('x');
       check(linDiv).isNotNull();
       check(linDiv!.a.evaluate(const {})).equals(0.5);
@@ -527,7 +527,7 @@ void main() {
 
     test('matchScalarMultiple checks scalar proportionality', () {
       final u = x.pow(2);
-      final twoU = const Constant(2.0) * x.pow(2);
+      final twoU = const RationalNumber(2) * x.pow(2);
       final k = twoU.matchScalarMultiple(u, 'x');
       check(k).isNotNull();
       check(k!.evaluate(const {})).equals(2.0);
@@ -537,11 +537,12 @@ void main() {
     });
 
     test('scale scales expression with identity and constant folding', () {
-      final expr = x + const Constant(2.0);
-      check(expr.scale(const Constant(1.0))).equals(expr);
-      check(expr.scale(const Constant(0.0))).equals(const Constant(0.0));
-      check(const Constant(3.0).scale(const Constant(2.0)))
-          .equals(const Constant(6.0));
+      final expr = x + const RationalNumber(2);
+      check(expr.scale(const RationalNumber(1))).equals(expr);
+      check(expr.scale(const RationalNumber(0)))
+          .equals(const RationalNumber(0));
+      check(const RationalNumber(3).scale(const RationalNumber(2)))
+          .equals(const RationalNumber(6));
     });
   });
 }

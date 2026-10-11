@@ -27,7 +27,7 @@ extension SolverExtension on Expr {
   /// ```dart
   /// final x = Variable('x');
   /// final roots = (x * x - 4).solve('x');
-  /// // roots: [Constant(-2.0), Constant(2.0)]
+  /// // roots: [RationalNumber(-2), RationalNumber(2)]
   /// ```
   List<Expr> solve(String variable) => _solveEquation(this, variable);
 }
@@ -49,7 +49,7 @@ extension SystemSolverExtension on Iterable<Expr> {
   /// final x = Variable('x');
   /// final y = Variable('y');
   /// final solution = [x + y - 10, x - y - 2].solveSystem(['x', 'y']);
-  /// // solution?['x'] == Constant(6.0), solution?['y'] == Constant(4.0)
+  /// // solution?['x'] == RationalNumber(6), solution?['y'] == RationalNumber(4)
   /// ```
   Map<String, Expr>? solveSystem(List<String> variables) =>
       _solveSystem(toList(), variables);
@@ -75,24 +75,24 @@ List<Expr> _solveEquation(Expr expr, String variable) {
     final a = quad.a;
     final b = quad.b;
     final c = quad.c;
-    final disc = ((b * b) - (const Constant(4.0) * a * c)).simplify();
+    final disc = ((b * b) - (const RationalNumber(4) * a * c)).simplify();
 
-    if (disc is Constant) {
-      if (disc.value < 0.0) {
+    if (disc is RationalNumber) {
+      if (disc.isNegative) {
         return const []; // No real roots
-      } else if (disc.value == 0.0) {
-        final root = ((-b) / (const Constant(2.0) * a)).simplify();
+      } else if (disc.isZero) {
+        final root = ((-b) / (const RationalNumber(2) * a)).simplify();
         return [root];
       } else {
-        final sqrtDisc = Constant(math.sqrt(disc.value));
-        final twoA = (const Constant(2.0) * a).simplify();
+        final sqrtDisc = _sqrtConstant(disc);
+        final twoA = (const RationalNumber(2) * a).simplify();
         final r1 = (((-b) + sqrtDisc) / twoA).simplify();
         final r2 = (((-b) - sqrtDisc) / twoA).simplify();
         return _deduplicate([r1, r2]);
       }
     } else {
-      final sqrtDisc = disc.pow(const Constant(0.5)).simplify();
-      final twoA = (const Constant(2.0) * a).simplify();
+      final sqrtDisc = disc.pow(const RationalNumber(1, 2)).simplify();
+      final twoA = (const RationalNumber(2) * a).simplify();
       final r1 = (((-b) + sqrtDisc) / twoA).simplify();
       final r2 = (((-b) - sqrtDisc) / twoA).simplify();
       return _deduplicate([r1, r2]);
@@ -115,6 +115,18 @@ List<Expr> _solveEquation(Expr expr, String variable) {
   return const [];
 }
 
+Expr _sqrtConstant(RationalNumber c) {
+  if (c.numerator >= 0) {
+    final numSqrt = math.sqrt(c.numerator).round();
+    final denSqrt = math.sqrt(c.denominator).round();
+    if (numSqrt * numSqrt == c.numerator &&
+        denSqrt * denSqrt == c.denominator) {
+      return RationalNumber(numSqrt, denSqrt);
+    }
+  }
+  return c.pow(const RationalNumber(1, 2)).simplify();
+}
+
 ({Expr a, Expr b, Expr c})? _matchQuadratic(Expr expr, String variable) {
   // Compute second derivative f''(x)
   final d1 = expr.diff(variable).simplify();
@@ -124,17 +136,17 @@ List<Expr> _solveEquation(Expr expr, String variable) {
   }
 
   // a = f''(x) / 2
-  final a = (d2 / const Constant(2.0)).simplify();
-  if (a is Constant && a.value == 0.0) {
+  final a = (d2 / const RationalNumber(2)).simplify();
+  if (a is RationalNumber && a.isZero) {
     return null;
   }
 
   // b = f'(0)
-  final b = d1.substitute(variable, const Constant(0.0)).simplify();
+  final b = d1.substitute(variable, RationalNumber.zero).simplify();
   if (b.dependsOn(variable)) return null;
 
   // c = f(0)
-  final c = expr.substitute(variable, const Constant(0.0)).simplify();
+  final c = expr.substitute(variable, RationalNumber.zero).simplify();
   if (c.dependsOn(variable)) return null;
 
   return (a: a, b: b, c: c);
@@ -165,7 +177,7 @@ List<Expr>? _isolateAndInvert(Expr expr, String variable) {
   }
 
   // Case 2: expr is alone (equated to 0)
-  return _invertEquation(expr, const Constant(0.0), variable);
+  return _invertEquation(expr, RationalNumber.zero, variable);
 }
 
 List<Expr>? _invertEquation(Expr u, Expr c, String variable) {
@@ -178,7 +190,7 @@ List<Expr>? _invertEquation(Expr u, Expr c, String variable) {
 
   if (u is Exp) {
     // exp(arg) = c -> arg = ln(c) (requires c > 0)
-    if (c is Constant && c.value <= 0.0) return const [];
+    if (c is RationalNumber && (c.isNegative || c.isZero)) return const [];
     final lnC = Ln(c).simplify();
     return _solveEquation((u.expr - lnC).simplify(), variable);
   }
@@ -191,20 +203,20 @@ List<Expr>? _invertEquation(Expr u, Expr c, String variable) {
 
   if (u is Pow) {
     if (!u.exponent.dependsOn(variable)) {
-      if (u.exponent is Constant) {
-        final p = (u.exponent as Constant).value;
-        if (p != 0.0) {
-          final invP = 1.0 / p;
-          if (p.toInt() == p && p.toInt().isEven) {
+      if (u.exponent is RationalNumber) {
+        final expConst = u.exponent as RationalNumber;
+        if (!expConst.isZero) {
+          final invP = RationalNumber(expConst.denominator, expConst.numerator);
+          if (expConst.isInteger && expConst.numerator.isEven) {
             // Even power: u^n = c -> u = +/- c^(1/n) (requires c >= 0)
-            if (c is Constant && c.value < 0.0) return const [];
-            final posRoot = c.pow(Constant(invP)).simplify();
+            if (c is RationalNumber && c.isNegative) return const [];
+            final posRoot = c.pow(invP).simplify();
             final negRoot = (-posRoot).simplify();
             final s1 = _solveEquation((u.base - posRoot).simplify(), variable);
             final s2 = _solveEquation((u.base - negRoot).simplify(), variable);
             return _deduplicate([...s1, ...s2]);
           } else {
-            final root = c.pow(Constant(invP)).simplify();
+            final root = c.pow(invP).simplify();
             return _solveEquation((u.base - root).simplify(), variable);
           }
         }
@@ -244,9 +256,9 @@ Map<String, Expr>? _solveSystem(List<Expr> equations, List<String> variables) {
   // b_i = -c_i
   final a = List<List<Expr>>.generate(
     n,
-    (_) => List<Expr>.filled(n, const Constant(0.0)),
+    (_) => List<Expr>.filled(n, RationalNumber.zero),
   );
-  final b = List<Expr>.filled(n, const Constant(0.0));
+  final b = List<Expr>.filled(n, RationalNumber.zero);
 
   for (var i = 0; i < n; i++) {
     final eq = equations[i].simplify();
@@ -259,10 +271,10 @@ Map<String, Expr>? _solveSystem(List<Expr> equations, List<String> variables) {
       a[i][j] = aij;
     }
 
-    // Constant term: evaluate with all variables set to 0.0
+    // Constant term: evaluate with all variables set to 0
     var cTerm = eq;
     for (final v in variables) {
-      cTerm = cTerm.substitute(v, const Constant(0.0));
+      cTerm = cTerm.substitute(v, RationalNumber.zero);
     }
     b[i] = (-cTerm).simplify();
   }
@@ -273,8 +285,8 @@ Map<String, Expr>? _solveSystem(List<Expr> equations, List<String> variables) {
     var pivotRow = -1;
     for (var i = k; i < n; i++) {
       final aik = a[i][k];
-      if (aik != const Constant(0.0) &&
-          !(aik is Constant && aik.value == 0.0)) {
+      if (aik != RationalNumber.zero &&
+          !(aik is RationalNumber && aik.isZero)) {
         pivotRow = i;
         break;
       }
@@ -296,8 +308,8 @@ Map<String, Expr>? _solveSystem(List<Expr> equations, List<String> variables) {
     final pivot = a[k][k];
     for (var i = k + 1; i < n; i++) {
       final factor = (a[i][k] / pivot).simplify();
-      if (factor != const Constant(0.0) &&
-          !(factor is Constant && factor.value == 0.0)) {
+      if (factor != RationalNumber.zero &&
+          !(factor is RationalNumber && factor.isZero)) {
         for (var j = k; j < n; j++) {
           a[i][j] = (a[i][j] - factor * a[k][j]).simplify();
         }
@@ -307,7 +319,7 @@ Map<String, Expr>? _solveSystem(List<Expr> equations, List<String> variables) {
   }
 
   // Back-substitution
-  final x = List<Expr>.filled(n, const Constant(0.0));
+  final x = List<Expr>.filled(n, RationalNumber.zero);
   for (var i = n - 1; i >= 0; i--) {
     var sum = b[i];
     for (var j = i + 1; j < n; j++) {
@@ -330,8 +342,8 @@ List<Expr> _deduplicate(List<Expr> list) {
     final isDup = result.any(
       (existing) =>
           existing == simplified ||
-          (existing is Constant &&
-              simplified is Constant &&
+          (existing is Number &&
+              simplified is Number &&
               (existing.value - simplified.value).abs() < 1e-12),
     );
     if (!isDup) {

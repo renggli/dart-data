@@ -1,13 +1,15 @@
 import 'dart:math' as math;
 
+import 'package:more/number.dart' show Fraction;
+
 import 'parser.dart';
 import 'textualization/string.dart';
 
 /// Mathematical constant $\pi \approx 3.141592653589793$ as a symbolic [Expr].
-const pi = Constant.pi;
+const pi = ConstantNumber.pi;
 
 /// Mathematical constant $e \approx 2.718281828459045$ as a symbolic [Expr].
-const e = Constant.e;
+const e = ConstantNumber.e;
 
 /// Sealed base class representing an algebraic expression abstract syntax tree
 /// (AST) node.
@@ -41,7 +43,8 @@ sealed class Expr {
   /// final f = Expr.parse('sin(pi * x) + 2 * x');
   /// print(f.evaluate({'x': 0.5}));
   /// ```
-  static Expr parse(String input) => parseExpression(input);
+  static Expr parse(String input, {int maxDenominator = 64}) =>
+      parseExpression(input, maxDenominator: maxDenominator);
 
   /// Tries to parse a mathematical expression from [input], returning `null` on
   /// syntax error.
@@ -49,7 +52,8 @@ sealed class Expr {
   /// ```dart
   /// final expr = Expr.tryParse('2 * x + 1');
   /// ```
-  static Expr? tryParse(String input) => tryParseExpression(input);
+  static Expr? tryParse(String input, {int maxDenominator = 64}) =>
+      tryParseExpression(input, maxDenominator: maxDenominator);
 
   /// Whether this expression depends on [name].
   bool dependsOn(String name);
@@ -84,8 +88,26 @@ sealed class Expr {
   @override
   String toString() => formatExpr(this);
 
-  static Expr _wrap(Object value) =>
-      value is Expr ? value : Constant((value as num).toDouble());
+  static Expr _wrap(Object value, {int maxDenominator = 64}) {
+    if (value is Expr) return value;
+    if (value is int) return RationalNumber(value);
+    if (value is Fraction) return RationalNumber.fraction(value);
+    if (value is num) {
+      if (maxDenominator > 0) {
+        final frac = Fraction.fromDouble(value, maxDenominator: maxDenominator);
+        if (frac.denominator <= maxDenominator &&
+            (value.toDouble() - frac.toDouble()).abs() < 1e-12) {
+          return RationalNumber(frac.numerator, frac.denominator);
+        }
+      }
+      return RealNumber(value.toDouble());
+    }
+    throw ArgumentError.value(
+      value,
+      'value',
+      'Cannot convert to symbolic Expr',
+    );
+  }
 }
 
 /// [Variable] node representing a named symbol.
@@ -125,22 +147,13 @@ final class Variable extends Expr {
   int get hashCode => name.hashCode;
 }
 
-/// [Constant] numeric value node.
-final class Constant extends Expr {
-  /// Creates a constant numeric node with [value] and optional symbolic [name].
-  const new(this.value, [this.name]);
+/// Sealed base class representing a numeric value node.
+sealed class Number extends Expr {
+  /// Abstract const constructor for numeric nodes.
+  const new();
 
-  /// Mathematical constant $\pi \approx 3.141592653589793$.
-  static const pi = Constant(math.pi, 'pi');
-
-  /// Mathematical constant $e \approx 2.718281828459045$.
-  static const e = Constant(math.e, 'e');
-
-  /// The numeric value of this constant.
-  final double value;
-
-  /// The optional symbolic name of this constant (e.g. `'pi'`, `'e'`).
-  final String? name;
+  /// Floating-point double precision numeric value of this number.
+  double get value;
 
   @override
   bool dependsOn(String name) => false;
@@ -153,17 +166,127 @@ final class Constant extends Expr {
 
   @override
   double evaluate(Map<String, double> context) => value;
+}
+
+/// [RationalNumber] numeric value node representing an exact rational number ($\mathbb{Q}$).
+///
+/// An exact rational number is represented by an integer [numerator] and a
+/// positive integer [denominator]. Canonical rational numbers are in lowest reduced terms
+/// with $\gcd(|numerator|, denominator) = 1$.
+final class RationalNumber extends Number {
+  /// Creates an exact rational number node with [numerator] and optional [denominator].
+  const new(this.numerator, [this.denominator = 1])
+    : assert(denominator > 0, 'Denominator must be strictly positive');
+
+  /// Creates a [RationalNumber] from a [Fraction].
+  factory fraction(Fraction fraction) =>
+      RationalNumber(fraction.numerator, fraction.denominator);
+
+  /// Creates a [RationalNumber] from a numeric [value] using continued fraction expansion.
+  factory fromDouble(num value, {int maxDenominator = 64}) =>
+      RationalNumber.fraction(
+        Fraction.fromDouble(value, maxDenominator: maxDenominator),
+      );
+
+  /// The additive neutral element `0`.
+  static const zero = RationalNumber(0);
+
+  /// The multiplicative neutral element `1`.
+  static const one = RationalNumber(1);
+
+  /// The negative unit element `-1`.
+  static const negativeOne = RationalNumber(-1);
+
+  /// The integer numerator of this rational number.
+  final int numerator;
+
+  /// The positive integer denominator of this rational number.
+  final int denominator;
 
   @override
-  String toString() =>
-      name ?? (value % 1 == 0 ? value.toInt().toString() : value.toString());
+  double get value => numerator / denominator;
+
+  /// Whether this rational number is an integer ($denominator = 1$).
+  bool get isInteger => denominator == 1;
+
+  /// Whether this rational number equals zero.
+  bool get isZero => numerator == 0;
+
+  /// Whether this rational number equals one.
+  bool get isOne => numerator == 1 && denominator == 1;
+
+  /// Whether this rational number equals negative one.
+  bool get isNegativeOne => numerator == -1 && denominator == 1;
+
+  /// Whether this rational number is strictly negative.
+  bool get isNegative => numerator < 0;
+
+  /// Converts this rational number to a [Fraction].
+  Fraction toFraction() => Fraction(numerator, denominator);
+
+  /// Converts this rational number to an [int] (truncated).
+  int toInt() => numerator ~/ denominator;
+
+  /// Converts this rational number to a [double].
+  double toDouble() => numerator / denominator;
+
+  @override
+  String toString() => isInteger ? '$numerator' : '$numerator/$denominator';
 
   @override
   bool operator ==(Object other) =>
-      other is Constant && other.value == value && other.name == name;
+      other is RationalNumber &&
+      other.numerator == numerator &&
+      other.denominator == denominator;
 
   @override
-  int get hashCode => Object.hash(value, name);
+  int get hashCode => Object.hash(numerator, denominator);
+}
+
+/// [RealNumber] numeric value node representing an unreduced or floating-point number ($\mathbb{R}$).
+final class RealNumber extends Number {
+  /// Creates a real/floating-point number node with the given [value].
+  const new(this.value);
+
+  @override
+  final double value;
+
+  @override
+  String toString() => value.toString();
+
+  @override
+  bool operator ==(Object other) => other is RealNumber && other.value == value;
+
+  @override
+  int get hashCode => value.hashCode;
+}
+
+/// [ConstantNumber] representing a recognized transcendental mathematical constant.
+final class ConstantNumber extends Number {
+  /// Creates a named transcendental constant with [name] and numeric [value].
+  const new(this.name, this.value);
+
+  /// Mathematical constant $\pi \approx 3.141592653589793$.
+  static const pi = ConstantNumber('pi', math.pi);
+
+  /// Mathematical constant $e \approx 2.718281828459045$.
+  static const e = ConstantNumber('e', math.e);
+
+  /// The symbolic name of this constant (e.g. `'pi'`, `'e'`).
+  final String name;
+
+  @override
+  final double value;
+
+  @override
+  String toString() => name;
+
+  @override
+  bool operator ==(Object other) =>
+      other is ConstantNumber && other.name == name;
+
+  @override
+  int get hashCode => name.hashCode;
 }
 
 /// [Add] expression node: left + right.

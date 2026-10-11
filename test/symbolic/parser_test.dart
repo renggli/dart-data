@@ -15,34 +15,55 @@ void main() {
 
   group('Numeric literal parsing', () {
     test('parses integer literals', () {
-      check(Expr.parse('0')).equals(const Constant(0.0));
-      check(Expr.parse('42')).equals(const Constant(42.0));
-      check(Expr.parse('1000')).equals(const Constant(1000.0));
+      check(Expr.parse('0')).equals(const RationalNumber(0));
+      check(Expr.parse('42')).equals(const RationalNumber(42));
+      check(Expr.parse('1000')).equals(const RationalNumber(1000));
     });
 
-    test('parses floating point literals', () {
-      check(Expr.parse('3.14')).equals(const Constant(3.14));
-      check(Expr.parse('0.5')).equals(const Constant(0.5));
-      check(Expr.parse('123.456')).equals(const Constant(123.456));
+    test('parses obvious fractions as RationalNumber', () {
+      check(Expr.parse('0.5')).equals(const RationalNumber(1, 2));
+      check(Expr.parse('0.25')).equals(const RationalNumber(1, 4));
+      check(Expr.parse('0.75')).equals(const RationalNumber(3, 4));
+      check(Expr.parse('0.8')).equals(const RationalNumber(4, 5));
+      check(Expr.parse('0.125')).equals(const RationalNumber(1, 8));
+      check(Expr.parse('0.0625')).equals(const RationalNumber(1, 16));
+    });
+
+    test('parses non-obvious floating point literals as RealNumber', () {
+      check(Expr.parse('3.14159')).equals(const RealNumber(3.14159));
+      check(Expr.parse('123.456')).equals(const RealNumber(123.456));
+      check(Expr.parse('0.1234567')).equals(const RealNumber(0.1234567));
+    });
+
+    test('respects configurable maxDenominator', () {
+      // 0.05 = 1/20. With maxDenominator: 10, becomes RealNumber.
+      check(Expr.parse('0.05', maxDenominator: 10))
+          .equals(const RealNumber(0.05));
+      check(Expr.parse('0.05', maxDenominator: 20))
+          .equals(const RationalNumber(1, 20));
+      check(Expr.parse('0.05', maxDenominator: 64))
+          .equals(const RationalNumber(1, 20));
     });
 
     test('parses scientific notation literals', () {
-      check(Expr.parse('1e5')).equals(const Constant(100000.0));
-      check(Expr.parse('2.5e-3')).equals(const Constant(0.0025));
-      check(Expr.parse('1E+6')).equals(const Constant(1000000.0));
-      check(Expr.parse('1e0')).equals(const Constant(1.0));
+      check(Expr.parse('1e5')).equals(const RationalNumber(100000));
+      check(Expr.parse('2.5e-3')).equals(const RealNumber(0.0025));
+      check(Expr.parse('2.5e-3', maxDenominator: 500))
+          .equals(const RationalNumber(1, 400));
+      check(Expr.parse('1E+6')).equals(const RationalNumber(1000000));
+      check(Expr.parse('1e0')).equals(const RationalNumber(1));
     });
   });
 
   group('Mathematical constants parsing', () {
     test('parses pi', () {
-      check(Expr.parse('pi')).equals(Constant.pi);
-      check(Expr.parse('PI')).equals(Constant.pi);
-      check(Expr.parse('Pi')).equals(Constant.pi);
+      check(Expr.parse('pi')).equals(ConstantNumber.pi);
+      check(Expr.parse('PI')).equals(ConstantNumber.pi);
+      check(Expr.parse('Pi')).equals(ConstantNumber.pi);
     });
 
     test('parses e', () {
-      check(Expr.parse('e')).equals(Constant.e);
+      check(Expr.parse('e')).equals(ConstantNumber.e);
     });
 
     test('distinguishes constants from variable prefixes', () {
@@ -96,7 +117,7 @@ void main() {
       check(Expr.parse('+x')).equals(const Variable('x'));
       check(Expr.parse('- -x')).equals(const Neg(Neg(Variable('x'))));
       check(Expr.parse('-(x + 1)'))
-          .equals(const Neg(Add(Variable('x'), Constant(1.0))));
+          .equals(const Neg(Add(Variable('x'), RationalNumber(1))));
     });
 
     test('parses power operator with right associativity', () {
@@ -150,8 +171,8 @@ void main() {
       check(Expr.parse('2 * 3 ^ 2').evaluate({})).equals(18.0);
 
       // Exponentiation before unary negation: -x^2 = -(x^2)
-      check(Expr.parse('-x^2')).equals(const Neg(Pow(x, Constant(2.0))));
-      check(Expr.parse('(-x)^2')).equals(const Pow(Neg(x), Constant(2.0)));
+      check(Expr.parse('-x^2')).equals(const Neg(Pow(x, RationalNumber(2))));
+      check(Expr.parse('(-x)^2')).equals(const Pow(Neg(x), RationalNumber(2)));
       check(Expr.parse('-3^2').evaluate({})).equals(-9.0);
       check(Expr.parse('(-3)^2').evaluate({})).equals(9.0);
 
@@ -181,14 +202,14 @@ void main() {
       check(Expr.parse('exp(x)')).equals(const Exp(x));
       check(Expr.parse('ln(x)')).equals(const Ln(x));
       check(Expr.parse('log(x)')).equals(const Ln(x));
-      check(Expr.parse('sqrt(x)')).equals(const Pow(x, Constant(0.5)));
+      check(Expr.parse('sqrt(x)')).equals(const Pow(x, RationalNumber(1, 2)));
     });
 
     test('parses nested function calls and composite arguments', () {
       check(Expr.parse('sin(cos(x))')).equals(const Sin(Cos(x)));
       check(Expr.parse('ln(exp(x))')).equals(const Ln(Exp(x)));
       check(Expr.parse('sin(pi * x + 1)'))
-          .equals(const Sin(Add(Mul(Constant.pi, x), Constant(1.0))));
+          .equals(const Sin(Add(Mul(ConstantNumber.pi, x), RationalNumber(1))));
     });
 
     test('handles whitespace around function parentheses', () {
@@ -207,9 +228,9 @@ void main() {
       const x = Variable('x');
       check(Expr.parse('   x   ')).equals(x);
       check(Expr.parse('  2   *   x   +   3  '))
-          .equals(const Add(Mul(Constant(2.0), x), Constant(3.0)));
+          .equals(const Add(Mul(RationalNumber(2), x), RationalNumber(3)));
       check(Expr.parse('\t2 * x\n+\n5\t'))
-          .equals(const Add(Mul(Constant(2.0), x), Constant(5.0)));
+          .equals(const Add(Mul(RationalNumber(2), x), RationalNumber(5)));
     });
   });
 
@@ -235,9 +256,9 @@ void main() {
 
     test('tryParse succeeds on valid inputs', () {
       check(Expr.tryParse('x + 1'))
-          .equals(const Add(Variable('x'), Constant(1.0)));
+          .equals(const Add(Variable('x'), RationalNumber(1)));
       check(Expr.tryParse('sin(pi * x)'))
-          .equals(const Sin(Mul(Constant.pi, Variable('x'))));
+          .equals(const Sin(Mul(ConstantNumber.pi, Variable('x'))));
     });
   });
 
@@ -247,8 +268,12 @@ void main() {
       final derivative = expr.diff('x').simplify();
       check(derivative.freeVariables).unorderedEquals({'x'});
       check(derivative.evaluate({'x': 0.0})).equals(math.pi);
-      check(derivative)
-          .equals(const Mul(Cos(Mul(Constant.pi, Variable('x'))), Constant.pi));
+      check(derivative).equals(
+        const Mul(
+          ConstantNumber.pi,
+          Cos(Mul(ConstantNumber.pi, Variable('x'))),
+        ),
+      );
     });
 
     test('evaluates parsed expressions accurately', () {

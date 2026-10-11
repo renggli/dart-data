@@ -737,7 +737,7 @@ void detectRootsAndExtrema() {
   try {
     final solutions = expr.solve('x');
     for (final s in solutions) {
-      if (s is Constant && s.value.isFinite) {
+      if (s is Number && s.value.isFinite) {
         exactRoots.add(s.value);
       }
     }

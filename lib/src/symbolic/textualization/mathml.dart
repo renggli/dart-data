@@ -27,12 +27,17 @@ extension MathMlExtension on Expr {
 
 String _toMathMl(Expr expr) => switch (expr) {
   Variable(:final name) => '<mi>${_escapeXml(name)}</mi>',
-  Constant(:final value, :final name) => switch (name) {
+  ConstantNumber(:final name) => switch (name) {
     'pi' => '<mi>π</mi>',
-    _ when name != null => '<mi>${_escapeXml(name)}</mi>',
-    _ =>
-      '<mn>${value % 1 == 0 ? value.toInt().toString() : value.toString()}</mn>',
+    _ => '<mi>${_escapeXml(name)}</mi>',
   },
+  RationalNumber(:final numerator, :final denominator) =>
+    denominator == 1
+        ? '<mn>$numerator</mn>'
+        : numerator < 0
+        ? '<mrow><mo>-</mo><mfrac><mn>${-numerator}</mn><mn>$denominator</mn></mfrac></mrow>'
+        : '<mfrac><mn>$numerator</mn><mn>$denominator</mn></mfrac>',
+  RealNumber(:final value) => '<mn>$value</mn>',
   Add(:final left, :final right) =>
     '<mrow>${_toMathMl(left)}<mo>+</mo>${_toMathMl(right)}</mrow>',
   Sub(:final left, :final right) =>
@@ -41,8 +46,7 @@ String _toMathMl(Expr expr) => switch (expr) {
     '<mrow>${_formatMulOperand(left)}<mo>&#x22c5;</mo>${_formatMulOperand(right)}</mrow>',
   Div(:final left, :final right) =>
     '<mfrac>${_toMathMl(left)}${_toMathMl(right)}</mfrac>',
-  Pow(:final base, :final exponent) =>
-    '<msup>${_formatPowBase(base)}${_toMathMl(exponent)}</msup>',
+  Pow(:final base, :final exponent) => _formatPow(base, exponent),
   Neg(:final expr) => '<mrow><mo>-</mo>${_formatNegOperand(expr)}</mrow>',
   Sin(:final expr) =>
     '<mrow><mi>sin</mi><mo>(</mo>${_toMathMl(expr)}<mo>)</mo></mrow>',
@@ -52,6 +56,17 @@ String _toMathMl(Expr expr) => switch (expr) {
   Ln(:final expr) =>
     '<mrow><mi>ln</mi><mo>(</mo>${_toMathMl(expr)}<mo>)</mo></mrow>',
 };
+
+String _formatPow(Expr base, Expr exponent) {
+  if (exponent is RationalNumber && exponent.numerator == 1) {
+    if (exponent.denominator == 2) {
+      return '<msqrt>${_toMathMl(base)}</msqrt>';
+    } else if (exponent.denominator > 2) {
+      return '<mroot>${_toMathMl(base)}<mn>${exponent.denominator}</mn></mroot>';
+    }
+  }
+  return '<msup>${_formatPowBase(base)}${_toMathMl(exponent)}</msup>';
+}
 
 String _formatSubRight(Expr right) => switch (right) {
   Add() || Sub() => '<mrow><mo>(</mo>${_toMathMl(right)}<mo>)</mo></mrow>',

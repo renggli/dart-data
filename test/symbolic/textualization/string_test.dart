@@ -10,13 +10,14 @@ void main() {
       check(const Variable('alpha_1').toString()).equals('alpha_1');
     });
 
-    test('constants', () {
-      check(const Constant(0.0).toString()).equals('0');
-      check(const Constant(42.0).toString()).equals('42');
-      check(const Constant(-7.0).toString()).equals('-7');
-      check(const Constant(3.14159).toString()).equals('3.14159');
-      check(Constant.pi.toString()).equals('pi');
-      check(Constant.e.toString()).equals('e');
+    test('numbers', () {
+      check(const RationalNumber(0).toString()).equals('0');
+      check(const RationalNumber(42).toString()).equals('42');
+      check(const RationalNumber(-7).toString()).equals('-7');
+      check(const RationalNumber(1, 2).toString()).equals('1/2');
+      check(const RealNumber(3.14).toString()).equals('3.14');
+      check(ConstantNumber.pi.toString()).equals('pi');
+      check(ConstantNumber.e.toString()).equals('e');
     });
   });
 
@@ -58,11 +59,21 @@ void main() {
       check((x + y).pow(z).toString()).equals('(x + y) ^ z');
       check((x * y).pow(z).toString()).equals('(x * y) ^ z');
       check((x / y).pow(z).toString()).equals('(x / y) ^ z');
-      check((-x).pow(const Constant(2.0)).toString()).equals('(-x) ^ 2');
-      check((-x.pow(const Constant(2.0))).toString()).equals('-x ^ 2');
-      check(x.pow(const Constant(-2.0)).toString()).equals('x ^ (-2)');
+      check((-x).pow(const RationalNumber(2)).toString()).equals('(-x) ^ 2');
+      check((-x.pow(const RationalNumber(2))).toString()).equals('-x ^ 2');
+      check(x.pow(const RationalNumber(-2)).toString()).equals('x ^ (-2)');
       check(x.pow(y).pow(z).toString()).equals('(x ^ y) ^ z');
       check(x.pow(y.pow(z)).toString()).equals('x ^ y ^ z');
+    });
+
+    test('sqrt formatting for half powers', () {
+      check(x.pow(const RationalNumber(1, 2)).toString()).equals('sqrt(x)');
+      check((x + y).pow(const RationalNumber(1, 2)).toString())
+          .equals('sqrt(x + y)');
+      check((x * y).pow(const RationalNumber(1, 2)).toString())
+          .equals('sqrt(x * y)');
+      check(x.pow(const RationalNumber(1, 3)).toString()).equals('x ^ (1/3)');
+      check(x.pow(const RationalNumber(-1, 2)).toString()).equals('x ^ (-1/2)');
     });
 
     test('unary negation', () {
@@ -89,21 +100,23 @@ void main() {
 
     test('compound mathematical expressions without redundant parens', () {
       final dampedOscillator =
-          Exp(const Constant(-0.2) * x) * Cos(const Constant(3.0) * x);
-      check(dampedOscillator.toString()).equals('exp(-0.2 * x) * cos(3 * x)');
+          Exp(const RationalNumber(-1, 5) * x) *
+          Cos(const RationalNumber(3) * x);
+      check(dampedOscillator.toString()).equals('exp(-1/5 * x) * cos(3 * x)');
 
       final cubic =
-          x.pow(const Constant(3.0)) -
-          const Constant(3.0) * x +
-          const Constant(1.0);
+          x.pow(const RationalNumber(3)) -
+          const RationalNumber(3) * x +
+          const RationalNumber(1);
       check(cubic.toString()).equals('x ^ 3 - 3 * x + 1');
 
-      final factored = (x + const Constant(1.0)) * (x - const Constant(1.0));
+      final factored =
+          (x + const RationalNumber(1)) * (x - const RationalNumber(1));
       check(factored.toString()).equals('(x + 1) * (x - 1)');
 
       final rational =
-          const Constant(1.0) /
-          (const Constant(1.0) + x.pow(const Constant(2.0)));
+          const RationalNumber(1) /
+          (const RationalNumber(1) + x.pow(const RationalNumber(2)));
       check(rational.toString()).equals('1 / (1 + x ^ 2)');
     });
   });
@@ -118,10 +131,12 @@ void main() {
       check(precedence(x * y)).equals(2);
       check(precedence(x / y)).equals(2);
       check(precedence(-x)).equals(3);
-      check(precedence(const Constant(-5.0))).equals(3);
+      check(precedence(const RationalNumber(-5))).equals(3);
       check(precedence(x.pow(y))).equals(4);
       check(precedence(x)).equals(5);
-      check(precedence(const Constant(5.0))).equals(5);
+      check(precedence(const RationalNumber(5))).equals(5);
+      check(precedence(const RealNumber(5.5))).equals(5);
+      check(precedence(ConstantNumber.pi)).equals(5);
     });
   });
 }
