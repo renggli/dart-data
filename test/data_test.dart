@@ -17,8 +17,8 @@ void main() {
     final prod = mat.apply(vec);
     check(prod.toList()).deepEquals([3.0, 4.0]);
 
-    // Subsystem 4: Hardware
-    check(HardwareManager.isEnabled).isTrue();
+    // Subsystem 4: Acceleration
+    check(AccelerationManager.isEnabled).isTrue();
 
     // Subsystem 5: DataFrame & Series
     final df = DataFrame.fromColumns({

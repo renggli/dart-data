@@ -79,6 +79,40 @@ void main() {
       },
     );
 
+    test('high-degree polynomial multiplication via FFT acceleration', () {
+      // Degree 40 polynomials with moderate coefficient sizes
+      const deg = 40;
+      final coeffs1 = List.generate(deg + 1, (i) => 1.0 / (i + 1));
+      final coeffs2 = List.generate(
+        deg + 1,
+        (i) => (i % 2 == 0 ? 1.0 : -1.0) / (i + 1),
+      );
+
+      final p1 = Polynomial<double>.fromCoefficients(
+        coeffs1,
+        type: DataType.float64,
+      );
+      final p2 = Polynomial<double>.fromCoefficients(
+        coeffs2,
+        type: DataType.float64,
+      );
+
+      final pProd = p1 * p2;
+      check(pProd.degree).equals(80);
+
+      // Verify against explicit convolution formula:
+      for (var k = 0; k <= 80; k++) {
+        var expected = 0.0;
+        for (var i = 0; i <= deg; i++) {
+          final j = k - i;
+          if (j >= 0 && j <= deg) {
+            expected += coeffs1[i] * coeffs2[j];
+          }
+        }
+        check(pProd[k]).isCloseTo(expected, 1e-9);
+      }
+    });
+
     test('division and modulo', () {
       // Dividend: A(x) = x^3 - 2x^2 - 4
       // Divisor:  B(x) = x - 3

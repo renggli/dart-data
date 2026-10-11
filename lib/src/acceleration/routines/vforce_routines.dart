@@ -240,17 +240,83 @@ abstract final class VforceRoutines {
     if (n == 0 || (sample && n < 2)) return double.nan;
     if (vdsp.hasReductions &&
         (n >= 64 || mode == AccelerationMode.accelerated)) {
-      final meanVal = vdsp.meanv(x: x, n: n);
-      final measqVal = vdsp.measqv(x: x, n: n);
-      if (meanVal != null && measqVal != null) {
-        final popVar = measqVal - meanVal * meanVal;
-        return sample ? (popVar * n / (n - 1)) : popVar;
-      }
+      final val = vdsp.variance(x: x, n: n, sample: sample);
+      if (val != null) return val;
     }
 
     if (mode == AccelerationMode.accelerated) {
       throw StateError('Native hardware variance execution failed.');
     }
     return PureDartFft.variance(x, sample: sample);
+  }
+
+  // --- Signal Processing ---
+
+  /// Computes 1D valid linear convolution of [signal] and [filter].
+  static Float64List convolve(
+    Float64List signal,
+    Float64List filter, {
+    required VdspLibrary vdsp,
+  }) {
+    final mode = AccelerationManager.mode;
+    if (mode == AccelerationMode.dart) {
+      return PureDartFft.convolve(signal, filter);
+    }
+    if (mode == AccelerationMode.accelerated && !vdsp.isAvailable) {
+      throw StateError(
+        'AccelerationMode.accelerated requested but native acceleration is unavailable.',
+      );
+    }
+
+    final sLen = signal.length;
+    final fLen = filter.length;
+    final rLen = sLen - fLen + 1;
+    if (rLen <= 0) return Float64List(0);
+
+    if (vdsp.isAvailable &&
+        (sLen >= 64 || mode == AccelerationMode.accelerated)) {
+      final result = Float64List(rLen);
+      final ok = vdsp.conv1d(signal: signal, filter: filter, result: result);
+      if (ok) return result;
+    }
+
+    if (mode == AccelerationMode.accelerated) {
+      throw StateError('Native hardware convolution execution failed.');
+    }
+    return PureDartFft.convolve(signal, filter);
+  }
+
+  /// Computes 1D valid cross-correlation of [signal] and [filter].
+  static Float64List correlate(
+    Float64List signal,
+    Float64List filter, {
+    required VdspLibrary vdsp,
+  }) {
+    final mode = AccelerationManager.mode;
+    if (mode == AccelerationMode.dart) {
+      return PureDartFft.correlate(signal, filter);
+    }
+    if (mode == AccelerationMode.accelerated && !vdsp.isAvailable) {
+      throw StateError(
+        'AccelerationMode.accelerated requested but native acceleration is unavailable.',
+      );
+    }
+
+    final sLen = signal.length;
+    final fLen = filter.length;
+    final rLen = sLen - fLen + 1;
+    if (rLen <= 0) return Float64List(0);
+
+    if (vdsp.isAvailable &&
+        (sLen >= 64 || mode == AccelerationMode.accelerated)) {
+      final result = Float64List(rLen);
+      final ok = vdsp.xcorr1d(signal: signal, filter: filter, result: result);
+      if (ok) return result;
+    }
+
+    if (mode == AccelerationMode.accelerated) {
+      throw StateError('Native hardware cross-correlation execution failed.');
+    }
+    return PureDartFft.correlate(signal, filter);
   }
 }

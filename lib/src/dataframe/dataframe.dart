@@ -8,7 +8,7 @@ import 'arrowc/arrow_ipc.dart';
 import 'csv/csv_reader.dart';
 import 'csv/csv_writer.dart';
 import 'groupby.dart';
-import 'json.dart';
+import 'json/json.dart';
 import 'series.dart';
 
 /// 2-dimensional heterogeneous tabular data structure.

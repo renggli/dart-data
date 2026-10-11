@@ -1,6 +1,8 @@
 import 'dart:math' as math;
+import 'dart:typed_data';
 
 import '../../type.dart';
+import '../acceleration/acceleration_manager.dart';
 import '../linear/matrix.dart';
 import '../linear/vector.dart';
 import '../tensor/tensor.dart';
@@ -336,16 +338,40 @@ extension DescriptiveIterableIntExtension on Iterable<int> {
 
 /// Statistics extensions on [Vector<num>].
 extension DescriptiveVectorNumExtension on Vector<num> {
+  /// Returns the sum of vector elements.
+  double sum() {
+    final tData = tensor.data;
+    if (tData is Float64List && tensor.layout.isContiguous && length >= 64) {
+      return AccelerationManager.sum(tData);
+    }
+    var total = 0.0;
+    for (var i = 0; i < length; i++) {
+      total += this[i];
+    }
+    return total;
+  }
+
   /// Returns the arithmetic mean of vector elements.
-  double mean() => _mean(toList());
+  double mean() {
+    final tData = tensor.data;
+    if (tData is Float64List && tensor.layout.isContiguous && length >= 64) {
+      return AccelerationManager.mean(tData);
+    }
+    return _mean(toList());
+  }
 
   /// Returns the variance of vector elements.
-  double variance({bool population = false}) =>
-      _variance(toList(), population: population);
+  double variance({bool population = false}) {
+    final tData = tensor.data;
+    if (tData is Float64List && tensor.layout.isContiguous && length >= 64) {
+      return AccelerationManager.variance(tData, sample: !population);
+    }
+    return _variance(toList(), population: population);
+  }
 
   /// Returns the standard deviation of vector elements.
   double standardDeviation({bool population = false}) =>
-      _standardDeviation(toList(), population: population);
+      math.sqrt(variance(population: population));
 
   /// Returns the median of vector elements.
   double median() => _median(toList());

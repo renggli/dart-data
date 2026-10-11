@@ -82,6 +82,51 @@ void main() {
       }
     });
 
+    test('variance numerical stability with large offset', () {
+      const n = 128;
+      final x = Float64List(n);
+      for (var i = 0; i < n; i++) {
+        x[i] = 1e9 + i;
+      }
+
+      AccelerationManager.mode = AccelerationMode.dart;
+      final dartVar = AccelerationManager.variance(x, sample: true);
+
+      if (AccelerationManager.isVdspAvailable) {
+        AccelerationManager.mode = AccelerationMode.accelerated;
+        final nativeVar = AccelerationManager.variance(x, sample: true);
+        check(nativeVar).isCloseTo(dartVar, 1e-4);
+      }
+    });
+
+    test('convolve and correlate parity between native and pure Dart', () {
+      final signal = Float64List.fromList([
+        for (var i = 0; i < 100; i++) (i + 1).toDouble(),
+      ]);
+      final filter = Float64List.fromList([1.0, 0.5, -0.5, 2.0, -1.0]);
+
+      AccelerationManager.mode = AccelerationMode.dart;
+      final dartConv = AccelerationManager.convolve(signal, filter);
+      final dartCorr = AccelerationManager.correlate(signal, filter);
+
+      check(dartConv.length).equals(signal.length - filter.length + 1);
+      check(dartCorr.length).equals(signal.length - filter.length + 1);
+
+      if (AccelerationManager.isVdspAvailable) {
+        AccelerationManager.mode = AccelerationMode.accelerated;
+        final nativeConv = AccelerationManager.convolve(signal, filter);
+        final nativeCorr = AccelerationManager.correlate(signal, filter);
+
+        check(nativeConv.length).equals(dartConv.length);
+        check(nativeCorr.length).equals(dartCorr.length);
+
+        for (var i = 0; i < dartConv.length; i++) {
+          check(nativeConv[i]).isCloseTo(dartConv[i], 1e-9);
+          check(nativeCorr[i]).isCloseTo(dartCorr[i], 1e-9);
+        }
+      }
+    });
+
     test('AccelerationMode.accelerated throws if unavailable', () {
       if (!AccelerationManager.isVForceAvailable) {
         AccelerationManager.mode = AccelerationMode.accelerated;

@@ -53,6 +53,14 @@ class VdspLibrary {
       (lib) =>
           lib.lookupFunction<_VdspMeasqvDNative, _VdspMeasqvD>('vDSP_measqvD'),
     );
+    _vsaddD = _lookup(
+      (lib) =>
+          lib.lookupFunction<_VdspVsaddDNative, _VdspVsaddD>('vDSP_vsaddD'),
+    );
+    _svesqD = _lookup(
+      (lib) =>
+          lib.lookupFunction<_VdspSvesqDNative, _VdspSvesqD>('vDSP_svesqD'),
+    );
 
     _vvsin = _lookup(
       (lib) => lib.lookupFunction<_VForceUnaryNative, _VForceUnary>('vvsin'),
@@ -75,6 +83,7 @@ class VdspLibrary {
   }
 
   final List<ffi.DynamicLibrary> _libraries;
+  final Map<int, ffi.Pointer<ffi.Void>> _fftSetups = {};
 
   _VdspCreateFftSetupD? _createFftSetupD;
   _VdspDestroyFftSetupD? _destroyFftSetupD;
@@ -84,6 +93,8 @@ class VdspLibrary {
   _VdspSveD? _sveD;
   _VdspMeanvD? _meanvD;
   _VdspMeasqvD? _measqvD;
+  _VdspVsaddD? _vsaddD;
+  _VdspSvesqD? _svesqD;
 
   _VForceUnary? _vvsin;
   _VForceUnary? _vvcos;
@@ -102,7 +113,27 @@ class VdspLibrary {
   bool get hasVForce => _vvsin != null;
 
   /// Whether native vector reductions are available.
-  bool get hasReductions => _sveD != null && _meanvD != null;
+  bool get hasReductions =>
+      _sveD != null && _meanvD != null && _vsaddD != null && _svesqD != null;
+
+  ffi.Pointer<ffi.Void>? _getFftSetup(int log2n) {
+    final create = _createFftSetupD;
+    if (create == null) return null;
+    return _fftSetups.putIfAbsent(log2n, () => create(log2n, 0));
+  }
+
+  /// Releases cached FFT setups.
+  void dispose() {
+    final destroy = _destroyFftSetupD;
+    if (destroy != null) {
+      for (final setup in _fftSetups.values) {
+        if (setup != ffi.nullptr) {
+          destroy(setup);
+        }
+      }
+    }
+    _fftSetups.clear();
+  }
 
   T? _lookup<T>(T Function(ffi.DynamicLibrary) lookup) {
     for (final lib in _libraries) {
@@ -136,62 +167,54 @@ class VdspLibrary {
     required int log2n,
     required bool inverse,
   }) {
-    final createSetup = _createFftSetupD;
-    final destroySetup = _destroyFftSetupD;
     final fftZip = _fftZipD;
-    if (createSetup == null || destroySetup == null || fftZip == null) {
-      return false;
-    }
+    if (fftZip == null) return false;
 
     final n = 1 << log2n;
     if (real.length < n || imag.length < n) return false;
 
-    final setup = createSetup(log2n, 0);
-    if (setup == ffi.nullptr) return false;
+    final setup = _getFftSetup(log2n);
+    if (setup == null || setup == ffi.nullptr) return false;
 
-    try {
-      final nativeReal = _pointerForDouble(real, 0);
-      final nativeImag = _pointerForDouble(imag, 0);
+    final nativeReal = _pointerForDouble(real, 0);
+    final nativeImag = _pointerForDouble(imag, 0);
 
-      return using((arena) {
-        final realPtr = nativeReal ?? arena<ffi.Double>(n);
-        final imagPtr = nativeImag ?? arena<ffi.Double>(n);
+    return using((arena) {
+      final realPtr = nativeReal ?? arena<ffi.Double>(n);
+      final imagPtr = nativeImag ?? arena<ffi.Double>(n);
 
-        if (nativeReal == null) {
-          realPtr.asTypedList(n).setRange(0, n, real);
+      if (nativeReal == null) {
+        realPtr.asTypedList(n).setRange(0, n, real);
+      }
+      if (nativeImag == null) {
+        imagPtr.asTypedList(n).setRange(0, n, imag);
+      }
+
+      final splitComplex = arena<DSPDoubleSplitComplex>();
+      splitComplex.ref.realp = realPtr;
+      splitComplex.ref.imagp = imagPtr;
+
+      // vDSP direction: 1 for forward, -1 for inverse
+      final direction = inverse ? -1 : 1;
+      fftZip(setup, splitComplex, 1, log2n, direction);
+
+      if (nativeReal == null) {
+        real.setRange(0, n, realPtr.asTypedList(n));
+      }
+      if (nativeImag == null) {
+        imag.setRange(0, n, imagPtr.asTypedList(n));
+      }
+
+      // vDSP does not divide by N on inverse FFT
+      if (inverse) {
+        final factor = 1.0 / n;
+        for (var i = 0; i < n; i++) {
+          real[i] *= factor;
+          imag[i] *= factor;
         }
-        if (nativeImag == null) {
-          imagPtr.asTypedList(n).setRange(0, n, imag);
-        }
-
-        final splitComplex = arena<DSPDoubleSplitComplex>();
-        splitComplex.ref.realp = realPtr;
-        splitComplex.ref.imagp = imagPtr;
-
-        // vDSP direction: 1 for forward, -1 for inverse
-        final direction = inverse ? -1 : 1;
-        fftZip(setup, splitComplex, 1, log2n, direction);
-
-        if (nativeReal == null) {
-          real.setRange(0, n, realPtr.asTypedList(n));
-        }
-        if (nativeImag == null) {
-          imag.setRange(0, n, imagPtr.asTypedList(n));
-        }
-
-        // vDSP does not divide by N on inverse FFT
-        if (inverse) {
-          final factor = 1.0 / n;
-          for (var i = 0; i < n; i++) {
-            real[i] *= factor;
-            imag[i] *= factor;
-          }
-        }
-        return true;
-      });
-    } finally {
-      destroySetup(setup);
-    }
+      }
+      return true;
+    });
   }
 
   /// Computes 2D in-place complex FFT on row-major [real] and [imag] buffers.
@@ -202,12 +225,8 @@ class VdspLibrary {
     required int log2cols,
     required bool inverse,
   }) {
-    final createSetup = _createFftSetupD;
-    final destroySetup = _destroyFftSetupD;
     final fft2dZip = _fft2dZipD;
-    if (createSetup == null || destroySetup == null || fft2dZip == null) {
-      return false;
-    }
+    if (fft2dZip == null) return false;
 
     final rows = 1 << log2rows;
     final cols = 1 << log2cols;
@@ -215,51 +234,47 @@ class VdspLibrary {
     if (real.length < total || imag.length < total) return false;
 
     final maxLog2 = log2rows > log2cols ? log2rows : log2cols;
-    final setup = createSetup(maxLog2, 0);
-    if (setup == ffi.nullptr) return false;
+    final setup = _getFftSetup(maxLog2);
+    if (setup == null || setup == ffi.nullptr) return false;
 
-    try {
-      final nativeReal = _pointerForDouble(real, 0);
-      final nativeImag = _pointerForDouble(imag, 0);
+    final nativeReal = _pointerForDouble(real, 0);
+    final nativeImag = _pointerForDouble(imag, 0);
 
-      return using((arena) {
-        final realPtr = nativeReal ?? arena<ffi.Double>(total);
-        final imagPtr = nativeImag ?? arena<ffi.Double>(total);
+    return using((arena) {
+      final realPtr = nativeReal ?? arena<ffi.Double>(total);
+      final imagPtr = nativeImag ?? arena<ffi.Double>(total);
 
-        if (nativeReal == null) {
-          realPtr.asTypedList(total).setRange(0, total, real);
+      if (nativeReal == null) {
+        realPtr.asTypedList(total).setRange(0, total, real);
+      }
+      if (nativeImag == null) {
+        imagPtr.asTypedList(total).setRange(0, total, imag);
+      }
+
+      final splitComplex = arena<DSPDoubleSplitComplex>();
+      splitComplex.ref.realp = realPtr;
+      splitComplex.ref.imagp = imagPtr;
+
+      final direction = inverse ? -1 : 1;
+      // rowStride = 1, colStride = 0 (2D format in vDSP)
+      fft2dZip(setup, splitComplex, 1, 0, log2cols, log2rows, direction);
+
+      if (nativeReal == null) {
+        real.setRange(0, total, realPtr.asTypedList(total));
+      }
+      if (nativeImag == null) {
+        imag.setRange(0, total, imagPtr.asTypedList(total));
+      }
+
+      if (inverse) {
+        final factor = 1.0 / total;
+        for (var i = 0; i < total; i++) {
+          real[i] *= factor;
+          imag[i] *= factor;
         }
-        if (nativeImag == null) {
-          imagPtr.asTypedList(total).setRange(0, total, imag);
-        }
-
-        final splitComplex = arena<DSPDoubleSplitComplex>();
-        splitComplex.ref.realp = realPtr;
-        splitComplex.ref.imagp = imagPtr;
-
-        final direction = inverse ? -1 : 1;
-        // rowStride = 1, colStride = 0 (2D format in vDSP)
-        fft2dZip(setup, splitComplex, 1, 0, log2cols, log2rows, direction);
-
-        if (nativeReal == null) {
-          real.setRange(0, total, realPtr.asTypedList(total));
-        }
-        if (nativeImag == null) {
-          imag.setRange(0, total, imagPtr.asTypedList(total));
-        }
-
-        if (inverse) {
-          final factor = 1.0 / total;
-          for (var i = 0; i < total; i++) {
-            real[i] *= factor;
-            imag[i] *= factor;
-          }
-        }
-        return true;
-      });
-    } finally {
-      destroySetup(setup);
-    }
+      }
+      return true;
+    });
   }
 
   /// Computes 1D linear convolution of [signal] and [filter].
@@ -292,6 +307,48 @@ class VdspLibrary {
         filtPtr.asTypedList(filterLen).setRange(0, filterLen, filter);
       }
 
+      // Negative filter stride pointing to end computes convolution.
+      final lastFiltPtr = filtPtr + filterLen - 1;
+      conv(sigPtr, 1, lastFiltPtr, -1, resPtr, 1, resultLen, filterLen);
+
+      if (nativeResult == null) {
+        result.setRange(0, resultLen, resPtr.asTypedList(resultLen));
+      }
+      return true;
+    });
+  }
+
+  /// Computes 1D cross-correlation of [signal] and [filter].
+  bool xcorr1d({
+    required Float64List signal,
+    required Float64List filter,
+    required Float64List result,
+  }) {
+    final conv = _convD;
+    if (conv == null) return false;
+
+    final signalLen = signal.length;
+    final filterLen = filter.length;
+    final resultLen = signalLen - filterLen + 1;
+    if (resultLen <= 0 || result.length < resultLen) return false;
+
+    final nativeSignal = _pointerForDouble(signal, 0);
+    final nativeFilter = _pointerForDouble(filter, 0);
+    final nativeResult = _pointerForDouble(result, 0);
+
+    return using((arena) {
+      final sigPtr = nativeSignal ?? arena<ffi.Double>(signalLen);
+      final filtPtr = nativeFilter ?? arena<ffi.Double>(filterLen);
+      final resPtr = nativeResult ?? arena<ffi.Double>(resultLen);
+
+      if (nativeSignal == null) {
+        sigPtr.asTypedList(signalLen).setRange(0, signalLen, signal);
+      }
+      if (nativeFilter == null) {
+        filtPtr.asTypedList(filterLen).setRange(0, filterLen, filter);
+      }
+
+      // Positive filter stride computes cross-correlation.
       conv(sigPtr, 1, filtPtr, 1, resPtr, 1, resultLen, filterLen);
 
       if (nativeResult == null) {
@@ -468,6 +525,46 @@ class VdspLibrary {
       return outPtr.value;
     });
   }
+
+  /// Computes sample or population variance of elements in [x] using two-pass
+  /// deviation summation with vDSP vector instructions.
+  double? variance({
+    required Float64List x,
+    required int n,
+    required bool sample,
+  }) {
+    final meanv = _meanvD;
+    final vsadd = _vsaddD;
+    final svesq = _svesqD;
+    final minCount = sample ? 2 : 1;
+    if (meanv == null ||
+        vsadd == null ||
+        svesq == null ||
+        n < minCount ||
+        x.length < n) {
+      return null;
+    }
+
+    final nativeX = _pointerForDouble(x, 0);
+    return using((arena) {
+      final xPtr = nativeX ?? arena<ffi.Double>(n);
+      final meanPtr = arena<ffi.Double>();
+      final diffPtr = arena<ffi.Double>(n);
+      final sumSqPtr = arena<ffi.Double>();
+
+      if (nativeX == null) {
+        xPtr.asTypedList(n).setRange(0, n, x);
+      }
+
+      meanv(xPtr, 1, meanPtr, n);
+      final negMean = arena<ffi.Double>()..value = -meanPtr.value;
+      vsadd(xPtr, 1, negMean, diffPtr, 1, n);
+      svesq(diffPtr, 1, sumSqPtr, n);
+
+      final divisor = sample ? (n - 1) : n;
+      return sumSqPtr.value / divisor;
+    });
+  }
 }
 
 List<ffi.DynamicLibrary> _loadPlatformLibraries() {
@@ -625,4 +722,34 @@ typedef _VForcePow = void Function(
   ffi.Pointer<ffi.Double> y,
   ffi.Pointer<ffi.Double> x,
   ffi.Pointer<ffi.Int32> n,
+);
+
+typedef _VdspVsaddDNative = ffi.Void Function(
+  ffi.Pointer<ffi.Double> a,
+  ffi.Int64 strideA,
+  ffi.Pointer<ffi.Double> b,
+  ffi.Pointer<ffi.Double> c,
+  ffi.Int64 strideC,
+  ffi.Uint64 n,
+);
+typedef _VdspVsaddD = void Function(
+  ffi.Pointer<ffi.Double> a,
+  int strideA,
+  ffi.Pointer<ffi.Double> b,
+  ffi.Pointer<ffi.Double> c,
+  int strideC,
+  int n,
+);
+
+typedef _VdspSvesqDNative = ffi.Void Function(
+  ffi.Pointer<ffi.Double> a,
+  ffi.Int64 stride,
+  ffi.Pointer<ffi.Double> c,
+  ffi.Uint64 n,
+);
+typedef _VdspSvesqD = void Function(
+  ffi.Pointer<ffi.Double> a,
+  int stride,
+  ffi.Pointer<ffi.Double> c,
+  int n,
 );

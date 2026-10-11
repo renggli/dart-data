@@ -18,8 +18,8 @@
 /// - **DataFrames** (`dataframe.dart`): Apache Arrow-aligned columnar tabular
 ///   data engine with zero-allocation slicing, relational hash joins, and
 ///   grouping ([DataFrame], [Series], [GroupBy]).
-/// - **Hardware Acceleration** (`hardware.dart`): Transparent routing to native
-///   BLAS/LAPACK via FFI ([HardwareManager]) and 128-bit SIMD vector
+/// - **Acceleration** (`acceleration.dart`): Transparent routing to native
+///   BLAS/LAPACK/vDSP via FFI ([AccelerationManager]) and 128-bit SIMD vector
 ///   instructions ([SimdEngine]).
 /// - **Symbolic Computation** (`symbolic.dart`): Exact algebraic expressions
 ///   ([Expr]), analytical differentiation, Taylor expansions, LaTeX formatting,
@@ -70,7 +70,6 @@ library;
 
 import 'acceleration.dart';
 import 'dataframe.dart';
-import 'hardware.dart';
 import 'linear.dart';
 import 'numeric.dart';
 import 'polynomial.dart';
@@ -82,7 +81,6 @@ import 'type.dart';
 
 export 'acceleration.dart';
 export 'dataframe.dart';
-export 'hardware.dart';
 export 'linear.dart';
 export 'numeric.dart';
 export 'polynomial.dart';

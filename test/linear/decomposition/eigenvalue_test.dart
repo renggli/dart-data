@@ -1,5 +1,5 @@
 import 'package:checks/checks.dart';
-import 'package:data/hardware.dart';
+import 'package:data/acceleration.dart';
 import 'package:data/linear.dart';
 import 'package:data/type.dart';
 import 'package:test/test.dart';
@@ -113,7 +113,7 @@ void main() {
       ], type: DataType.float64);
 
       for (final hw in [true, false]) {
-        HardwareManager.isEnabled = hw;
+        AccelerationManager.isEnabled = hw;
         final eig = a.eigenvalue;
         final d = eig.d;
         final v = eig.v;
@@ -141,7 +141,7 @@ void main() {
           }
         }
       }
-      HardwareManager.isEnabled = true;
+      AccelerationManager.isEnabled = true;
     });
 
     test('non-float64 symmetric matrices use pure Dart fallback', () {

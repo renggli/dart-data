@@ -2,7 +2,7 @@ import 'dart:math' as math;
 import 'dart:typed_data';
 
 import '../../type.dart';
-import '../hardware/hardware.dart';
+import '../acceleration/acceleration_manager.dart';
 import '../tensor/layout.dart';
 import '../tensor/operations/operation.dart';
 import '../tensor/tensor.dart';
@@ -338,7 +338,7 @@ class Vector<T> {
         other.tensor.strides[0] > 0 &&
         tensor.data is Float64List &&
         other.tensor.data is Float64List) {
-      final res = HardwareManager.ddot(
+      final res = AccelerationManager.ddot(
         n: length,
         x: tensor.data as Float64List,
         xOffset: tensor.offset,
@@ -353,7 +353,7 @@ class Vector<T> {
         other.tensor.strides[0] > 0 &&
         tensor.data is Float32List &&
         other.tensor.data is Float32List) {
-      final res = HardwareManager.sdot(
+      final res = AccelerationManager.sdot(
         n: length,
         x: tensor.data as Float32List,
         xOffset: tensor.offset,
@@ -446,7 +446,7 @@ class Vector<T> {
     }
     if (pNorm == 2) {
       if (T == double && tensor.strides[0] > 0 && tensor.data is Float64List) {
-        final res = HardwareManager.dnrm2(
+        final res = AccelerationManager.dnrm2(
           n: length,
           x: tensor.data as Float64List,
           xOffset: tensor.offset,
@@ -456,7 +456,7 @@ class Vector<T> {
       } else if (T == double &&
           tensor.strides[0] > 0 &&
           tensor.data is Float32List) {
-        final res = HardwareManager.snrm2(
+        final res = AccelerationManager.snrm2(
           n: length,
           x: tensor.data as Float32List,
           xOffset: tensor.offset,
@@ -492,7 +492,7 @@ class Vector<T> {
         other.tensor.strides[0] > 0 &&
         tensor.data is Float64List &&
         other.tensor.data is Float64List) {
-      final success = HardwareManager.daxpy(
+      final success = AccelerationManager.daxpy(
         n: length,
         alpha: alpha.toDouble(),
         x: other.tensor.data as Float64List,
@@ -509,7 +509,7 @@ class Vector<T> {
         other.tensor.strides[0] > 0 &&
         tensor.data is Float32List &&
         other.tensor.data is Float32List) {
-      final success = HardwareManager.saxpy(
+      final success = AccelerationManager.saxpy(
         n: length,
         alpha: alpha.toDouble(),
         x: other.tensor.data as Float32List,
@@ -536,7 +536,7 @@ class Vector<T> {
         scalar is num &&
         tensor.strides[0] > 0 &&
         tensor.data is Float64List) {
-      final success = HardwareManager.dscal(
+      final success = AccelerationManager.dscal(
         n: length,
         alpha: scalar.toDouble(),
         x: tensor.data as Float64List,
@@ -548,7 +548,7 @@ class Vector<T> {
         scalar is num &&
         tensor.strides[0] > 0 &&
         tensor.data is Float32List) {
-      final success = HardwareManager.sscal(
+      final success = AccelerationManager.sscal(
         n: length,
         alpha: scalar.toDouble(),
         x: tensor.data as Float32List,

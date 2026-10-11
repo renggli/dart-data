@@ -1,7 +1,7 @@
 import 'dart:typed_data';
 
 import 'package:checks/checks.dart';
-import 'package:data/hardware.dart';
+import 'package:data/acceleration.dart';
 import 'package:data/linear.dart';
 import 'package:data/type.dart';
 import 'package:test/scaffolding.dart';
@@ -50,11 +50,11 @@ void main() {
         check(xLu.get(3, 1)).isCloseTo(-1.0, 1e-9);
         check(xLu.get(3, 2)).isCloseTo(2.0, 1e-9);
 
-        // Solve using HardwareManager with fallback (pure Dart _luSolve)
-        HardwareManager.isEnabled = false;
+        // Solve using AccelerationManager with fallback (pure Dart _luSolve)
+        AccelerationManager.isEnabled = false;
         final aFallback = Float64List.fromList(aMat.tensor.data);
         final bFallback = Float64List.fromList(bMat.tensor.data);
-        final okFallback = HardwareManager.dgesv(
+        final okFallback = AccelerationManager.dgesv(
           n: 4,
           nrhs: 3,
           a: aFallback,
@@ -69,12 +69,12 @@ void main() {
           }
         }
 
-        // Solve using HardwareManager with native hardware acceleration enabled
-        HardwareManager.isEnabled = true;
-        if (HardwareManager.isNativeAvailable) {
+        // Solve using AccelerationManager with native hardware acceleration
+        AccelerationManager.isEnabled = true;
+        if (AccelerationManager.isNativeAvailable) {
           final aHw = Float64List.fromList(aMat.tensor.data);
           final bHw = Float64List.fromList(bMat.tensor.data);
-          final okHw = HardwareManager.dgesv(
+          final okHw = AccelerationManager.dgesv(
             n: 4,
             nrhs: 3,
             a: aHw,
@@ -110,12 +110,12 @@ void main() {
       final xLu = lu.solve(bMat);
 
       for (final enableHw in [false, true]) {
-        HardwareManager.isEnabled = enableHw;
-        if (enableHw && !HardwareManager.isNativeAvailable) continue;
+        AccelerationManager.isEnabled = enableHw;
+        if (enableHw && !AccelerationManager.isNativeAvailable) continue;
 
         final aCopy = Float64List.fromList(aMat.tensor.data);
         final bCopy = Float64List.fromList(bMat.tensor.data);
-        final ok = HardwareManager.dgesv(
+        final ok = AccelerationManager.dgesv(
           n: 3,
           nrhs: 4,
           a: aCopy,
@@ -130,7 +130,7 @@ void main() {
           }
         }
       }
-      HardwareManager.isEnabled = true;
+      AccelerationManager.isEnabled = true;
     });
 
     test('multi-RHS solve with buffer offsets and padding (aOffset, bOffset, ldb > nrhs)', () {
@@ -164,13 +164,13 @@ void main() {
       }
 
       for (final enableHw in [false, true]) {
-        HardwareManager.isEnabled = enableHw;
-        if (enableHw && !HardwareManager.isNativeAvailable) continue;
+        AccelerationManager.isEnabled = enableHw;
+        if (enableHw && !AccelerationManager.isNativeAvailable) continue;
 
         final aCopy = Float64List.fromList(aBuffer);
         final bCopy = Float64List.fromList(bBuffer);
 
-        final ok = HardwareManager.dgesv(
+        final ok = AccelerationManager.dgesv(
           n: 3,
           nrhs: 2,
           a: aCopy,
@@ -186,7 +186,7 @@ void main() {
           check(bCopy[bOffset + r * ldb + 1]).isCloseTo(xLu.get(r, 1), 1e-9);
         }
       }
-      HardwareManager.isEnabled = true;
+      AccelerationManager.isEnabled = true;
     });
 
     test('multi-RHS singular matrix fails gracefully without corrupting b', () {
@@ -204,13 +204,13 @@ void main() {
       final bOriginal = Float64List.fromList([1.0, 2.0, 3.0, 4.0, 5.0, 6.0]);
 
       for (final enableHw in [false, true]) {
-        HardwareManager.isEnabled = enableHw;
-        if (enableHw && !HardwareManager.isNativeAvailable) continue;
+        AccelerationManager.isEnabled = enableHw;
+        if (enableHw && !AccelerationManager.isNativeAvailable) continue;
 
         final aCopy = Float64List.fromList(aSingular);
         final bCopy = Float64List.fromList(bOriginal);
 
-        final ok = HardwareManager.dgesv(
+        final ok = AccelerationManager.dgesv(
           n: 3,
           nrhs: 2,
           a: aCopy,
@@ -221,7 +221,7 @@ void main() {
         check(ok).isFalse();
         check(bCopy).deepEquals(bOriginal);
       }
-      HardwareManager.isEnabled = true;
+      AccelerationManager.isEnabled = true;
     });
 
     test('single-RHS (nrhs = 1) compatibility preserved', () {
@@ -229,13 +229,13 @@ void main() {
       final b = Float64List.fromList([4.0, 7.0]);
 
       for (final enableHw in [false, true]) {
-        HardwareManager.isEnabled = enableHw;
-        if (enableHw && !HardwareManager.isNativeAvailable) continue;
+        AccelerationManager.isEnabled = enableHw;
+        if (enableHw && !AccelerationManager.isNativeAvailable) continue;
 
         final aCopy = Float64List.fromList(a);
         final bCopy = Float64List.fromList(b);
 
-        final ok = HardwareManager.dgesv(
+        final ok = AccelerationManager.dgesv(
           n: 2,
           nrhs: 1,
           a: aCopy,
@@ -247,7 +247,7 @@ void main() {
         check(bCopy[0]).isCloseTo(1.0, 1e-9);
         check(bCopy[1]).isCloseTo(2.0, 1e-9);
       }
-      HardwareManager.isEnabled = true;
+      AccelerationManager.isEnabled = true;
     });
 
     test('single-RHS (nrhs = 1) with ldb > 1 (strided column)', () {
@@ -257,13 +257,13 @@ void main() {
       final b = Float64List.fromList([4.0, 111.0, 222.0, 7.0, 333.0, 444.0]);
 
       for (final enableHw in [false, true]) {
-        HardwareManager.isEnabled = enableHw;
-        if (enableHw && !HardwareManager.isNativeAvailable) continue;
+        AccelerationManager.isEnabled = enableHw;
+        if (enableHw && !AccelerationManager.isNativeAvailable) continue;
 
         final aCopy = Float64List.fromList(a);
         final bCopy = Float64List.fromList(b);
 
-        final ok = HardwareManager.dgesv(
+        final ok = AccelerationManager.dgesv(
           n: 2,
           nrhs: 1,
           a: aCopy,
@@ -279,7 +279,7 @@ void main() {
         check(bCopy[4]).equals(333.0); // padding guard
         check(bCopy[5]).equals(444.0); // padding guard
       }
-      HardwareManager.isEnabled = true;
+      AccelerationManager.isEnabled = true;
     });
 
     test('multi-RHS solve with NativeBuffer backing', () {
@@ -297,7 +297,7 @@ void main() {
       bNative.data[3] = 10.0;
 
       final aCopy = Float64List.fromList(aMat.tensor.data);
-      final ok = HardwareManager.dgesv(
+      final ok = AccelerationManager.dgesv(
         n: 2,
         nrhs: 2,
         a: aCopy,
@@ -321,7 +321,7 @@ void main() {
       bNative.data[0] = 4.0;
       bNative.data[1] = 7.0;
 
-      final ok = HardwareManager.dgesv(
+      final ok = AccelerationManager.dgesv(
         n: 2,
         nrhs: 1,
         a: a,
@@ -340,29 +340,47 @@ void main() {
       final b = Float64List(4);
 
       // lda < n
-      check(HardwareManager.dgesv(n: 2, nrhs: 1, a: a, lda: 1, b: b, ldb: 1))
-          .isFalse();
+      check(
+        AccelerationManager.dgesv(n: 2, nrhs: 1, a: a, lda: 1, b: b, ldb: 1),
+      ).isFalse();
 
       // ldb < nrhs
-      check(HardwareManager.dgesv(n: 2, nrhs: 2, a: a, lda: 2, b: b, ldb: 1))
-          .isFalse();
+      check(
+        AccelerationManager.dgesv(n: 2, nrhs: 2, a: a, lda: 2, b: b, ldb: 1),
+      ).isFalse();
 
       // buffer too short
       final shortA = Float64List(2);
       check(
-        HardwareManager.dgesv(n: 2, nrhs: 1, a: shortA, lda: 2, b: b, ldb: 1),
+        AccelerationManager.dgesv(
+          n: 2,
+          nrhs: 1,
+          a: shortA,
+          lda: 2,
+          b: b,
+          ldb: 1,
+        ),
       ).isFalse();
 
       final shortB = Float64List(1);
       check(
-        HardwareManager.dgesv(n: 2, nrhs: 1, a: a, lda: 2, b: shortB, ldb: 1),
+        AccelerationManager.dgesv(
+          n: 2,
+          nrhs: 1,
+          a: a,
+          lda: 2,
+          b: shortB,
+          ldb: 1,
+        ),
       ).isFalse();
 
       // n = 0 or nrhs = 0
-      check(HardwareManager.dgesv(n: 0, nrhs: 1, a: a, lda: 2, b: b, ldb: 1))
-          .isTrue();
-      check(HardwareManager.dgesv(n: 2, nrhs: 0, a: a, lda: 2, b: b, ldb: 1))
-          .isTrue();
+      check(
+        AccelerationManager.dgesv(n: 0, nrhs: 1, a: a, lda: 2, b: b, ldb: 1),
+      ).isTrue();
+      check(
+        AccelerationManager.dgesv(n: 2, nrhs: 0, a: a, lda: 2, b: b, ldb: 1),
+      ).isTrue();
     });
   });
 
@@ -373,7 +391,7 @@ void main() {
       // Upper, noTrans, nonUnit: [2*5 + 3*7, 4*7] = [31, 28]
       final x1 = Float64List.fromList([5.0, 7.0]);
       check(
-        HardwareManager.dtrmv(
+        AccelerationManager.dtrmv(
           uplo: cblasUpper,
           trans: cblasNoTrans,
           diag: cblasNonUnit,
@@ -389,7 +407,7 @@ void main() {
       // Upper, trans, nonUnit: A^T * x = [2*5 + 0*7, 3*5 + 4*7] = [10, 43]
       final x2 = Float64List.fromList([5.0, 7.0]);
       check(
-        HardwareManager.dtrmv(
+        AccelerationManager.dtrmv(
           uplo: cblasUpper,
           trans: cblasTrans,
           diag: cblasNonUnit,
@@ -405,7 +423,7 @@ void main() {
       // Upper, noTrans, unit: diag treated as 1 -> [1*5 + 3*7, 1*7] = [26, 7]
       final x3 = Float64List.fromList([5.0, 7.0]);
       check(
-        HardwareManager.dtrmv(
+        AccelerationManager.dtrmv(
           uplo: cblasUpper,
           trans: cblasNoTrans,
           diag: cblasUnit,
@@ -422,7 +440,7 @@ void main() {
       final aLower = Float64List.fromList([2.0, 0.0, 3.0, 4.0]);
       final x4 = Float64List.fromList([5.0, 7.0]);
       check(
-        HardwareManager.dtrmv(
+        AccelerationManager.dtrmv(
           uplo: cblasLower,
           trans: cblasNoTrans,
           diag: cblasNonUnit,
@@ -440,7 +458,7 @@ void main() {
       final a = Float32List.fromList([2.0, 3.0, 0.0, 4.0]);
       final x = Float32List.fromList([5.0, 7.0]);
       check(
-        HardwareManager.strmv(
+        AccelerationManager.strmv(
           uplo: cblasUpper,
           trans: cblasNoTrans,
           diag: cblasNonUnit,
@@ -469,9 +487,9 @@ void main() {
       final xHw = Float64List.fromList([2.0, 4.0, 3.0]);
       final xFb = Float64List.fromList([2.0, 4.0, 3.0]);
 
-      HardwareManager.isEnabled = true;
+      AccelerationManager.isEnabled = true;
       check(
-        HardwareManager.dtrmv(
+        AccelerationManager.dtrmv(
           uplo: cblasUpper,
           trans: cblasNoTrans,
           diag: cblasNonUnit,
@@ -482,9 +500,9 @@ void main() {
         ),
       ).isTrue();
 
-      HardwareManager.isEnabled = false;
+      AccelerationManager.isEnabled = false;
       check(
-        HardwareManager.dtrmv(
+        AccelerationManager.dtrmv(
           uplo: cblasUpper,
           trans: cblasNoTrans,
           diag: cblasNonUnit,
@@ -494,7 +512,7 @@ void main() {
           x: xFb,
         ),
       ).isTrue();
-      HardwareManager.isEnabled = true;
+      AccelerationManager.isEnabled = true;
 
       for (var i = 0; i < 3; i++) {
         check(xHw[i]).isCloseTo(xFb[i], 1e-9);
@@ -505,9 +523,10 @@ void main() {
       final a = Float64List(4);
       final x = Float64List(2);
 
-      check(HardwareManager.dtrmv(n: 2, a: a, lda: 1, x: x)).isFalse();
-      check(HardwareManager.dtrmv(n: 2, a: a, lda: 2, x: x, incX: 0)).isFalse();
-      check(HardwareManager.dtrmv(n: 0, a: a, lda: 2, x: x)).isTrue();
+      check(AccelerationManager.dtrmv(n: 2, a: a, lda: 1, x: x)).isFalse();
+      check(AccelerationManager.dtrmv(n: 2, a: a, lda: 2, x: x, incX: 0))
+          .isFalse();
+      check(AccelerationManager.dtrmv(n: 0, a: a, lda: 2, x: x)).isTrue();
     });
   });
 
@@ -521,7 +540,7 @@ void main() {
       // Side left: C = 1.0 * A * B + 0.0 * C = [ [5, 8], [10, 14] ]
       final cLeft = Float64List(4);
       check(
-        HardwareManager.dsymm(
+        AccelerationManager.dsymm(
           side: cblasLeft,
           uplo: cblasUpper,
           m: 2,
@@ -544,7 +563,7 @@ void main() {
       // Side right: C = 1.0 * B * A + 0.0 * C = [ [4, 7], [10, 15] ]
       final cRight = Float64List(4);
       check(
-        HardwareManager.dsymm(
+        AccelerationManager.dsymm(
           side: cblasRight,
           uplo: cblasUpper,
           m: 2,
@@ -570,7 +589,7 @@ void main() {
       final b = Float32List.fromList([1.0, 2.0, 3.0, 4.0]);
       final c = Float32List(4);
       check(
-        HardwareManager.ssymm(
+        AccelerationManager.ssymm(
           side: cblasLeft,
           uplo: cblasUpper,
           m: 2,
@@ -607,9 +626,9 @@ void main() {
       final cHw = Float64List(6);
       final cFb = Float64List(6);
 
-      HardwareManager.isEnabled = true;
+      AccelerationManager.isEnabled = true;
       check(
-        HardwareManager.dsymm(
+        AccelerationManager.dsymm(
           side: cblasLeft,
           uplo: cblasUpper,
           m: 3,
@@ -625,9 +644,9 @@ void main() {
         ),
       ).isTrue();
 
-      HardwareManager.isEnabled = false;
+      AccelerationManager.isEnabled = false;
       check(
-        HardwareManager.dsymm(
+        AccelerationManager.dsymm(
           side: cblasLeft,
           uplo: cblasUpper,
           m: 3,
@@ -642,7 +661,7 @@ void main() {
           ldc: 2,
         ),
       ).isTrue();
-      HardwareManager.isEnabled = true;
+      AccelerationManager.isEnabled = true;
 
       for (var i = 0; i < 6; i++) {
         check(cHw[i]).isCloseTo(cFb[i], 1e-9);
@@ -655,7 +674,7 @@ void main() {
       final c = Float64List(4);
 
       check(
-        HardwareManager.dsymm(
+        AccelerationManager.dsymm(
           side: cblasLeft,
           m: 2,
           n: 2,
@@ -670,7 +689,7 @@ void main() {
         ),
       ).isFalse();
       check(
-        HardwareManager.dsymm(
+        AccelerationManager.dsymm(
           side: cblasLeft,
           m: 0,
           n: 2,
@@ -695,7 +714,7 @@ void main() {
       // Left: B = 1.0 * A * B = [ [11, 16], [12, 16] ]
       final bLeft = Float64List.fromList([1.0, 2.0, 3.0, 4.0]);
       check(
-        HardwareManager.dtrmm(
+        AccelerationManager.dtrmm(
           side: cblasLeft,
           uplo: cblasUpper,
           transA: cblasNoTrans,
@@ -717,7 +736,7 @@ void main() {
       // Left, trans: B = 1.0 * A^T * B = [ [2, 4], [15, 22] ]
       final bLeftTrans = Float64List.fromList([1.0, 2.0, 3.0, 4.0]);
       check(
-        HardwareManager.dtrmm(
+        AccelerationManager.dtrmm(
           side: cblasLeft,
           uplo: cblasUpper,
           transA: cblasTrans,
@@ -739,7 +758,7 @@ void main() {
       // Right: B = 1.0 * B * A = [ [2, 11], [6, 25] ]
       final bRight = Float64List.fromList([1.0, 2.0, 3.0, 4.0]);
       check(
-        HardwareManager.dtrmm(
+        AccelerationManager.dtrmm(
           side: cblasRight,
           uplo: cblasUpper,
           transA: cblasNoTrans,
@@ -763,7 +782,7 @@ void main() {
       final a = Float32List.fromList([2.0, 3.0, 0.0, 4.0]);
       final b = Float32List.fromList([1.0, 2.0, 3.0, 4.0]);
       check(
-        HardwareManager.strmm(
+        AccelerationManager.strmm(
           side: cblasLeft,
           uplo: cblasUpper,
           transA: cblasNoTrans,
@@ -798,9 +817,9 @@ void main() {
       final bHw = Float64List.fromList([1.0, 2.0, 3.0, 4.0, 5.0, 6.0]);
       final bFb = Float64List.fromList([1.0, 2.0, 3.0, 4.0, 5.0, 6.0]);
 
-      HardwareManager.isEnabled = true;
+      AccelerationManager.isEnabled = true;
       check(
-        HardwareManager.dtrmm(
+        AccelerationManager.dtrmm(
           side: cblasLeft,
           uplo: cblasUpper,
           transA: cblasNoTrans,
@@ -815,9 +834,9 @@ void main() {
         ),
       ).isTrue();
 
-      HardwareManager.isEnabled = false;
+      AccelerationManager.isEnabled = false;
       check(
-        HardwareManager.dtrmm(
+        AccelerationManager.dtrmm(
           side: cblasLeft,
           uplo: cblasUpper,
           transA: cblasNoTrans,
@@ -831,7 +850,7 @@ void main() {
           ldb: 2,
         ),
       ).isTrue();
-      HardwareManager.isEnabled = true;
+      AccelerationManager.isEnabled = true;
 
       for (var i = 0; i < 6; i++) {
         check(bHw[i]).isCloseTo(bFb[i], 1e-9);
@@ -843,7 +862,7 @@ void main() {
       final b = Float64List(4);
 
       check(
-        HardwareManager.dtrmm(
+        AccelerationManager.dtrmm(
           side: cblasLeft,
           m: 2,
           n: 2,
@@ -855,7 +874,7 @@ void main() {
         ),
       ).isFalse();
       check(
-        HardwareManager.dtrmm(
+        AccelerationManager.dtrmm(
           side: cblasLeft,
           m: 0,
           n: 2,
@@ -875,7 +894,7 @@ void main() {
       final w = Float64List(2);
 
       check(
-        HardwareManager.dsyev(
+        AccelerationManager.dsyev(
           jobz: 'V',
           uplo: cblasUpper,
           n: 2,
@@ -940,9 +959,9 @@ void main() {
       final wHw = Float64List(3);
       final wFb = Float64List(3);
 
-      HardwareManager.isEnabled = true;
+      AccelerationManager.isEnabled = true;
       check(
-        HardwareManager.dsyev(
+        AccelerationManager.dsyev(
           jobz: 'V',
           uplo: cblasUpper,
           n: 3,
@@ -952,9 +971,9 @@ void main() {
         ),
       ).isTrue();
 
-      HardwareManager.isEnabled = false;
+      AccelerationManager.isEnabled = false;
       check(
-        HardwareManager.dsyev(
+        AccelerationManager.dsyev(
           jobz: 'V',
           uplo: cblasUpper,
           n: 3,
@@ -963,7 +982,7 @@ void main() {
           w: wFb,
         ),
       ).isTrue();
-      HardwareManager.isEnabled = true;
+      AccelerationManager.isEnabled = true;
 
       // Both compute the same eigenvalues in ascending order
       for (var i = 0; i < 3; i++) {
@@ -991,7 +1010,7 @@ void main() {
       final w = Float32List(2);
 
       check(
-        HardwareManager.ssyev(
+        AccelerationManager.ssyev(
           jobz: 'V',
           uplo: cblasUpper,
           n: 2,
@@ -1009,13 +1028,13 @@ void main() {
       final a = Float64List(4);
       final w = Float64List(2);
 
-      check(HardwareManager.dsyev(n: 2, a: a, lda: 1, w: w)).isFalse();
-      check(HardwareManager.dsyev(n: 0, a: a, lda: 2, w: w)).isTrue();
+      check(AccelerationManager.dsyev(n: 2, a: a, lda: 1, w: w)).isFalse();
+      check(AccelerationManager.dsyev(n: 0, a: a, lda: 2, w: w)).isTrue();
 
       // 1x1 matrix
       final a1 = Float64List.fromList([42.0]);
       final w1 = Float64List(1);
-      check(HardwareManager.dsyev(n: 1, a: a1, lda: 1, w: w1)).isTrue();
+      check(AccelerationManager.dsyev(n: 1, a: a1, lda: 1, w: w1)).isTrue();
       check(w1[0]).equals(42.0);
       check(a1[0]).equals(1.0);
     });
@@ -1025,11 +1044,11 @@ void main() {
       final x = Float64List.fromList([5.0, -888.0, 7.0, -888.0, -888.0]);
 
       for (final enableHw in [true, false]) {
-        HardwareManager.isEnabled = enableHw;
+        AccelerationManager.isEnabled = enableHw;
         final xCopy = Float64List.fromList(x);
         final aCopy = Float64List.fromList(a);
         check(
-          HardwareManager.dtrmv(
+          AccelerationManager.dtrmv(
             uplo: cblasUpper,
             trans: cblasNoTrans,
             diag: cblasNonUnit,
@@ -1046,7 +1065,7 @@ void main() {
         check(xCopy[3]).equals(-888.0);
         check(aCopy[2]).equals(-999.0);
       }
-      HardwareManager.isEnabled = true;
+      AccelerationManager.isEnabled = true;
     });
 
     test(
@@ -1056,10 +1075,10 @@ void main() {
         final b = Float64List.fromList([1.0, 2.0, -888.0, 3.0, 4.0]);
 
         for (final enableHw in [true, false]) {
-          HardwareManager.isEnabled = enableHw;
+          AccelerationManager.isEnabled = enableHw;
           final c = Float64List.fromList([0.0, 0.0, -999.0, 0.0, 0.0]);
           check(
-            HardwareManager.dsymm(
+            AccelerationManager.dsymm(
               side: cblasLeft,
               uplo: cblasUpper,
               m: 2,
@@ -1080,17 +1099,17 @@ void main() {
           check(c[3]).isCloseTo(10.0, 1e-9);
           check(c[4]).isCloseTo(14.0, 1e-9);
         }
-        HardwareManager.isEnabled = true;
+        AccelerationManager.isEnabled = true;
       },
     );
 
     test('dtrmm with buffer padding (lda > m, ldb > n)', () {
       final a = Float64List.fromList([2.0, 3.0, -777.0, 0.0, 4.0]);
       for (final enableHw in [true, false]) {
-        HardwareManager.isEnabled = enableHw;
+        AccelerationManager.isEnabled = enableHw;
         final b = Float64List.fromList([1.0, 2.0, -888.0, 3.0, 4.0]);
         check(
-          HardwareManager.dtrmm(
+          AccelerationManager.dtrmm(
             side: cblasLeft,
             uplo: cblasUpper,
             transA: cblasNoTrans,
@@ -1110,7 +1129,7 @@ void main() {
         check(b[3]).isCloseTo(12.0, 1e-9);
         check(b[4]).isCloseTo(16.0, 1e-9);
       }
-      HardwareManager.isEnabled = true;
+      AccelerationManager.isEnabled = true;
     });
 
     test('dsyev with jobz = N (eigenvalues only) and lowercase jobz = v', () {
@@ -1118,7 +1137,7 @@ void main() {
       final aN = Float64List.fromList(origA);
       final wN = Float64List(2);
       check(
-        HardwareManager.dsyev(
+        AccelerationManager.dsyev(
           jobz: 'N',
           uplo: cblasUpper,
           n: 2,
@@ -1133,7 +1152,7 @@ void main() {
       final aV = Float64List.fromList(origA);
       final wV = Float64List(2);
       check(
-        HardwareManager.dsyev(
+        AccelerationManager.dsyev(
           jobz: 'v',
           uplo: cblasUpper,
           n: 2,
@@ -1154,15 +1173,15 @@ void main() {
       final c = Float64List(4);
       final w = Float64List(2);
 
-      check(HardwareManager.dtrmv(uplo: 999, n: 2, a: a, lda: 2, x: b))
+      check(AccelerationManager.dtrmv(uplo: 999, n: 2, a: a, lda: 2, x: b))
           .isFalse();
-      check(HardwareManager.dtrmv(trans: 999, n: 2, a: a, lda: 2, x: b))
+      check(AccelerationManager.dtrmv(trans: 999, n: 2, a: a, lda: 2, x: b))
           .isFalse();
-      check(HardwareManager.dtrmv(diag: 999, n: 2, a: a, lda: 2, x: b))
+      check(AccelerationManager.dtrmv(diag: 999, n: 2, a: a, lda: 2, x: b))
           .isFalse();
 
       check(
-        HardwareManager.dsymm(
+        AccelerationManager.dsymm(
           side: 999,
           m: 2,
           n: 2,
@@ -1177,7 +1196,7 @@ void main() {
         ),
       ).isFalse();
       check(
-        HardwareManager.dsymm(
+        AccelerationManager.dsymm(
           uplo: 999,
           m: 2,
           n: 2,
@@ -1193,7 +1212,7 @@ void main() {
       ).isFalse();
 
       check(
-        HardwareManager.dtrmm(
+        AccelerationManager.dtrmm(
           side: 999,
           m: 2,
           n: 2,
@@ -1205,7 +1224,7 @@ void main() {
         ),
       ).isFalse();
       check(
-        HardwareManager.dtrmm(
+        AccelerationManager.dtrmm(
           transA: 999,
           m: 2,
           n: 2,
@@ -1217,9 +1236,10 @@ void main() {
         ),
       ).isFalse();
 
-      check(HardwareManager.dsyev(jobz: 'INVALID', n: 2, a: a, lda: 2, w: w))
-          .isFalse();
-      check(HardwareManager.dsyev(uplo: 999, n: 2, a: a, lda: 2, w: w))
+      check(
+        AccelerationManager.dsyev(jobz: 'INVALID', n: 2, a: a, lda: 2, w: w),
+      ).isFalse();
+      check(AccelerationManager.dsyev(uplo: 999, n: 2, a: a, lda: 2, w: w))
           .isFalse();
     });
   });

@@ -233,4 +233,42 @@ abstract final class PureDartFft {
     }
     return sumSq / (sample ? (n - 1) : n);
   }
+
+  // --- Signal Processing (Convolution & Correlation) ---
+
+  /// Computes valid 1D linear convolution:
+  /// `result[n] = sum_{p=0}^{P-1} signal[n + p] * filter[P - 1 - p]`.
+  static Float64List convolve(Float64List signal, Float64List filter) {
+    final sLen = signal.length;
+    final fLen = filter.length;
+    final rLen = sLen - fLen + 1;
+    if (rLen <= 0) return Float64List(0);
+    final result = Float64List(rLen);
+    for (var n = 0; n < rLen; n++) {
+      var sum = 0.0;
+      for (var p = 0; p < fLen; p++) {
+        sum += signal[n + p] * filter[fLen - 1 - p];
+      }
+      result[n] = sum;
+    }
+    return result;
+  }
+
+  /// Computes valid 1D cross-correlation:
+  /// `result[n] = sum_{p=0}^{P-1} signal[n + p] * filter[p]`.
+  static Float64List correlate(Float64List signal, Float64List filter) {
+    final sLen = signal.length;
+    final fLen = filter.length;
+    final rLen = sLen - fLen + 1;
+    if (rLen <= 0) return Float64List(0);
+    final result = Float64List(rLen);
+    for (var n = 0; n < rLen; n++) {
+      var sum = 0.0;
+      for (var p = 0; p < fLen; p++) {
+        sum += signal[n + p] * filter[p];
+      }
+      result[n] = sum;
+    }
+    return result;
+  }
 }

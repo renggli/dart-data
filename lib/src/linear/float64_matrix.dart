@@ -3,7 +3,7 @@ import 'dart:typed_data';
 import 'package:meta/meta.dart';
 
 import '../../type.dart';
-import '../hardware/hardware.dart';
+import '../acceleration/acceleration_manager.dart';
 import '../tensor/layout.dart';
 import '../tensor/tensor.dart';
 import 'decomposition/lu.dart';
@@ -183,7 +183,7 @@ extension type Float64Matrix(Matrix<double> _matrix) implements Matrix<double> {
           : (tB.data is Float64List
                 ? tB.data as Float64List
                 : Float64List.fromList(tB.data));
-      final success = HardwareManager.dgemm(
+      final success = AccelerationManager.dgemm(
         m: m,
         n: n,
         k: k,
@@ -235,7 +235,7 @@ extension type Float64Matrix(Matrix<double> _matrix) implements Matrix<double> {
           : (tX.data is Float64List
                 ? tX.data as Float64List
                 : Float64List.fromList(tX.data));
-      final success = HardwareManager.dgemv(
+      final success = AccelerationManager.dgemv(
         m: m,
         n: n,
         alpha: 1.0,

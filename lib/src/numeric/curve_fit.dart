@@ -1,7 +1,7 @@
 import 'dart:math' as math;
 import 'dart:typed_data';
 
-import '../../hardware.dart';
+import '../../acceleration.dart';
 import '../../linear.dart';
 import '../../polynomial.dart';
 import '../../type.dart';
@@ -35,7 +35,7 @@ Vector<double> leastSquares(Matrix<num> a, Vector<num> b) {
   }
   final rows = a.rowCount;
   final cols = a.colCount;
-  if (rows >= cols && HardwareManager.isAccelerated) {
+  if (rows >= cols && AccelerationManager.isAccelerated) {
     final Float64List aData;
     if (a.type == DataType.float64 &&
         a.tensor.isContiguous &&
@@ -66,7 +66,7 @@ Vector<double> leastSquares(Matrix<num> a, Vector<num> b) {
         bData[i] = b[i].toDouble();
       }
     }
-    final success = HardwareManager.dgels(
+    final success = AccelerationManager.dgels(
       m: rows,
       n: cols,
       nrhs: 1,

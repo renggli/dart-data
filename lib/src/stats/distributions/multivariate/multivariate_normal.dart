@@ -8,8 +8,8 @@ import '../../../linear/vector.dart';
 import '../continuous/normal.dart';
 import 'multivariate_distribution.dart';
 
-/// Multivariate normal (Gaussian) distribution parameterized by [mean] vector μ
-/// and [covariance] matrix Σ.
+/// Multivariate normal (Gaussian) distribution parameterized by [mean] vector
+/// μ and [covariance] matrix Σ.
 ///
 /// See https://en.wikipedia.org/wiki/Multivariate_normal_distribution.
 class MultivariateNormalDistribution extends MultivariateDistribution<double> {

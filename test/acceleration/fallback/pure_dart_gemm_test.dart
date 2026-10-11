@@ -2,9 +2,9 @@ import 'dart:math' as math;
 import 'dart:typed_data';
 
 import 'package:checks/checks.dart';
-import 'package:data/hardware.dart';
+import 'package:data/acceleration.dart';
 import 'package:data/linear.dart';
-import 'package:data/src/hardware/pure_dart_gemm.dart';
+import 'package:data/src/acceleration/fallback/pure_dart_gemm.dart';
 import 'package:test/test.dart';
 
 void main() {
@@ -322,15 +322,15 @@ void main() {
     });
   });
 
-  group('HardwareManager GEMM Routing & Matrix Integration', () {
+  group('AccelerationManager GEMM Routing & Matrix Integration', () {
     test(
-      'HardwareManager.dgemm small matrix (N < 64) matches blocked GEMM',
+      'AccelerationManager.dgemm small matrix (N < 64) matches blocked GEMM',
       () {
         final a = Float64List.fromList([2.0, 0.0, 0.0, 3.0]);
         final b = Float64List.fromList([1.0, 4.0, 5.0, 2.0]);
         final c = Float64List(4);
 
-        final success = HardwareManager.dgemm(
+        final success = AccelerationManager.dgemm(
           m: 2,
           n: 2,
           k: 2,
@@ -352,7 +352,7 @@ void main() {
       },
     );
 
-    test('Matrix operator * produces consistent output regardless of HardwareManager.isEnabled', () {
+    test('Matrix operator * produces consistent output regardless of AccelerationManager.isEnabled', () {
       final m1 = Matrix<double>.generate(
         16,
         16,
@@ -364,12 +364,12 @@ void main() {
         (r, c) => (r * c + 1).toDouble(),
       );
 
-      final prev = HardwareManager.isEnabled;
+      final prev = AccelerationManager.isEnabled;
       try {
-        HardwareManager.isEnabled = true;
+        AccelerationManager.isEnabled = true;
         final resAcc = m1 * m2;
 
-        HardwareManager.isEnabled = false;
+        AccelerationManager.isEnabled = false;
         final resPure = m1 * m2;
 
         for (var r = 0; r < 16; r++) {
@@ -379,21 +379,21 @@ void main() {
           }
         }
       } finally {
-        HardwareManager.isEnabled = prev;
+        AccelerationManager.isEnabled = prev;
       }
     });
 
-    test('Matrix operator * on 70x70 matrix with HardwareManager enabled vs disabled', () {
+    test('Matrix operator * on 70x70 matrix with AccelerationManager enabled vs disabled', () {
       final rng = math.Random(123);
       final m1 = Matrix<double>.generate(70, 70, (r, c) => rng.nextDouble());
       final m2 = Matrix<double>.generate(70, 70, (r, c) => rng.nextDouble());
 
-      final prev = HardwareManager.isEnabled;
+      final prev = AccelerationManager.isEnabled;
       try {
-        HardwareManager.isEnabled = true;
+        AccelerationManager.isEnabled = true;
         final resAcc = m1 * m2;
 
-        HardwareManager.isEnabled = false;
+        AccelerationManager.isEnabled = false;
         final resPure = m1 * m2;
 
         for (var r = 0; r < 70; r++) {
@@ -403,7 +403,7 @@ void main() {
           }
         }
       } finally {
-        HardwareManager.isEnabled = prev;
+        AccelerationManager.isEnabled = prev;
       }
     });
   });

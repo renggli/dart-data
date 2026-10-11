@@ -119,5 +119,27 @@ void main() {
         }
       }
     });
+
+    test('convolve 1D valid linear convolution', () {
+      final signal = [1.0, 2.0, 3.0, 4.0, 5.0];
+      final filter = [1.0, 2.0];
+      final result = convolve(signal, filter);
+      check(result).length.equals(4);
+      check(result[0]).isCloseTo(4.0, 1e-9);
+      check(result[1]).isCloseTo(7.0, 1e-9);
+      check(result[2]).isCloseTo(10.0, 1e-9);
+      check(result[3]).isCloseTo(13.0, 1e-9);
+    });
+
+    test('correlate 1D valid cross-correlation', () {
+      final signal = [1.0, 2.0, 3.0, 4.0, 5.0];
+      final filter = [1.0, 2.0];
+      final result = correlate(signal, filter);
+      check(result).length.equals(4);
+      check(result[0]).isCloseTo(5.0, 1e-9);
+      check(result[1]).isCloseTo(8.0, 1e-9);
+      check(result[2]).isCloseTo(11.0, 1e-9);
+      check(result[3]).isCloseTo(14.0, 1e-9);
+    });
   });
 }

@@ -45,6 +45,13 @@ class VdspLibrary {
     required Float64List result,
   }) => false;
 
+  /// Computes 1D cross-correlation of [signal] and [filter].
+  bool xcorr1d({
+    required Float64List signal,
+    required Float64List filter,
+    required Float64List result,
+  }) => false;
+
   /// Computes elementwise sine: `output[i] = sin(input[i])`.
   bool vvsin({
     required Float64List input,
@@ -96,4 +103,14 @@ class VdspLibrary {
 
   /// Computes mean of squared elements in [x].
   double? measqv({required Float64List x, required int n}) => null;
+
+  /// Computes sample or population variance of elements in [x].
+  double? variance({
+    required Float64List x,
+    required int n,
+    required bool sample,
+  }) => null;
+
+  /// Releases any cached setups.
+  void dispose() {}
 }

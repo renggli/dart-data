@@ -1,8 +1,8 @@
 import 'dart:typed_data';
 
 import '../../../type.dart';
-import '../../hardware/cblas.dart';
-import '../../hardware/hardware.dart';
+import '../../acceleration/acceleration_manager.dart';
+import '../../acceleration/blas/cblas.dart';
 import '../layout.dart';
 import '../tensor.dart';
 
@@ -134,7 +134,7 @@ extension MatmulTensorExtension<T> on Tensor<T> {
       if (tensorA.data is Float64List &&
           tensorB.data is Float64List &&
           tensorC.data is Float64List) {
-        final success = HardwareManager.dgemm(
+        final success = AccelerationManager.dgemm(
           transA: transA,
           transB: transB,
           m: rowsA,
@@ -156,7 +156,7 @@ extension MatmulTensorExtension<T> on Tensor<T> {
       } else if (tensorA.data is Float32List &&
           tensorB.data is Float32List &&
           tensorC.data is Float32List) {
-        final success = HardwareManager.sgemm(
+        final success = AccelerationManager.sgemm(
           transA: transA,
           transB: transB,
           m: rowsA,

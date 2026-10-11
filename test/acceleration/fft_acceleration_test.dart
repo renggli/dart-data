@@ -90,6 +90,72 @@ void main() {
       }
     });
 
+    test('2D FFT rectangular matrix parity (8x16 and 16x8)', () {
+      for (final (rows, cols) in [(8, 16), (16, 8)]) {
+        final matrix = List.generate(
+          rows,
+          (r) => List.generate(
+            cols,
+            (c) => Complex((r + 1).toDouble(), (c + 1).toDouble()),
+          ),
+        );
+
+        AccelerationManager.mode = AccelerationMode.dart;
+        final dartResult = AccelerationManager.fft2(matrix);
+
+        if (AccelerationManager.isFftAvailable) {
+          AccelerationManager.mode = AccelerationMode.accelerated;
+          final nativeResult = AccelerationManager.fft2(matrix);
+
+          check(nativeResult.length).equals(dartResult.length);
+          for (var r = 0; r < dartResult.length; r++) {
+            for (var c = 0; c < dartResult[r].length; c++) {
+              check(nativeResult[r][c].a).isCloseTo(dartResult[r][c].a, 1e-8);
+              check(nativeResult[r][c].b).isCloseTo(dartResult[r][c].b, 1e-8);
+            }
+          }
+
+          final dartInverse = AccelerationManager.ifft2(dartResult);
+          final nativeInverse = AccelerationManager.ifft2(nativeResult);
+          for (var r = 0; r < rows; r++) {
+            for (var c = 0; c < cols; c++) {
+              check(nativeInverse[r][c].a).isCloseTo(dartInverse[r][c].a, 1e-8);
+              check(nativeInverse[r][c].b).isCloseTo(dartInverse[r][c].b, 1e-8);
+            }
+          }
+        }
+      }
+    });
+
+    test('2D FFT extreme aspect (1x16 and 16x1) parity', () {
+      for (final (rows, cols) in [(1, 16), (16, 1)]) {
+        final matrix = List.generate(
+          rows,
+          (r) => List.generate(
+            cols,
+            (c) => Complex((r + 1).toDouble(), (c + 1).toDouble()),
+          ),
+        );
+
+        AccelerationManager.mode = AccelerationMode.dart;
+        final dartResult = AccelerationManager.fft2(matrix);
+
+        if (AccelerationManager.isFftAvailable) {
+          AccelerationManager.mode = AccelerationMode.accelerated;
+          final nativeResult = AccelerationManager.fft2(matrix);
+
+          final dartInverse = AccelerationManager.ifft2(dartResult);
+          final nativeInverse = AccelerationManager.ifft2(nativeResult);
+          for (var r = 0; r < rows; r++) {
+            for (var c = 0; c < cols; c++) {
+              check(nativeInverse[r][c].a).isCloseTo(dartInverse[r][c].a, 1e-8);
+              check(nativeInverse[r][c].b).isCloseTo(dartInverse[r][c].b, 1e-8);
+            }
+          }
+        }
+      }
+    });
+
     test('rfft and irfft parity', () {
       final realSignal = List.generate(
         64,

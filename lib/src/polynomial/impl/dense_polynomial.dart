@@ -2,6 +2,8 @@ import 'dart:math' as math;
 
 import '../../../linear.dart';
 import '../../../type.dart';
+import '../../acceleration/acceleration_manager.dart';
+import '../../acceleration/fallback/pure_dart_fft.dart';
 import '../polynomial.dart';
 import 'compressed_polynomial.dart';
 
@@ -155,8 +157,42 @@ class DensePolynomial<T> extends Polynomial<T> {
     final deg2 = other.degree;
     if (deg1 < 0 || deg2 < 0) return Polynomial<T>.zero(type: type);
 
-    final field = type.field;
     final outDegree = deg1 + deg2;
+    final dynamicType = type as DataType<dynamic>;
+    if (outDegree >= 64 &&
+        (dynamicType == DataType.float64 || dynamicType == DataType.float32)) {
+      final n = PureDartFft.nextPowerOf2(outDegree + 1);
+      final aList = List<Complex>.generate(
+        n,
+        (i) =>
+            i <= deg1 ? Complex((this[i] as num).toDouble(), 0) : Complex.zero,
+        growable: false,
+      );
+      final bList = List<Complex>.generate(
+        n,
+        (i) =>
+            i <= deg2 ? Complex((other[i] as num).toDouble(), 0) : Complex.zero,
+        growable: false,
+      );
+
+      final fftA = AccelerationManager.fft(aList);
+      final fftB = AccelerationManager.fft(bList);
+      final fftC = List<Complex>.generate(
+        n,
+        (i) => fftA[i] * fftB[i],
+        growable: false,
+      );
+      final reconstructed = AccelerationManager.ifft(fftC);
+
+      final resultCoeffs = List<T>.generate(outDegree + 1, (i) {
+        final val = reconstructed[i].a.toDouble();
+        return (dynamicType == DataType.float32 ? val.toDouble() : val) as T;
+      }, growable: false);
+
+      return DensePolynomial<T>.fromCoefficients(resultCoeffs, type: type);
+    }
+
+    final field = type.field;
     final resultCoeffs = List<T>.filled(
       outDegree + 1,
       field.additiveIdentity,

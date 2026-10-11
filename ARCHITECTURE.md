@@ -306,13 +306,13 @@ This document describes the achieved architecture across all subsystems of `pack
 
 ---
 
-## 5. Hardware Acceleration & FFI Subsystem (`lib/src/hardware/`)
+## 5. Hardware Acceleration & FFI Subsystem (`lib/src/acceleration/`)
 
 ### 5.1 Dynamic Library Discovery & Platform Detection
 
 - **Reasoning**: High-performance linear algebra must transparently leverage hardware-tuned BLAS and LAPACK vendor libraries when available on the host OS.
 - **Implementation & Constraints**:
-  - `loadBlas()` in `lib/src/hardware/cblas_ffi.dart` dynamically queries system libraries:
+  - `loadBlas()` in `lib/src/acceleration/blas/cblas_ffi.dart` dynamically queries system libraries:
     - macOS: Apple Accelerate framework (`Accelerate.framework/Accelerate`).
     - Linux: `libopenblas.so`, `libblas.so`, `liblapack.so`.
     - Windows: `openblas.dll`.
@@ -354,15 +354,15 @@ This document describes the achieved architecture across all subsystems of `pack
 
 - **Reasoning**: Environments without FFI support (e.g. Flutter Web, Wasm) still benefit from CPU vector hardware.
 - **Implementation & Constraints**:
-  - `SimdEngine` (`lib/src/hardware/simd.dart`) leverages Dart's native `Float32x4List` and `Float32x4` types.
+  - `SimdEngine` (`lib/src/acceleration/fallback/simd.dart`) leverages Dart's native `Float32x4List` and `Float32x4` types.
   - Evaluates 4-lane parallel floating-point arithmetic for element-wise vector/matrix addition, subtraction, multiplication, and dot products.
 
-### 5.6 Pure-Dart Cache-Blocked GEMM (`lib/src/hardware/pure_dart_gemm.dart`)
+### 5.6 Pure-Dart Cache-Blocked GEMM (`lib/src/acceleration/fallback/pure_dart_gemm.dart`)
 
 - **Reasoning**: For small matrices ($N < 64$), FFI leaf-call overhead exceeds kernel execution time. On non-FFI environments (Flutter Web, Wasm) or when native BLAS is disabled, naive 3-loop GEMM causes severe CPU cache thrashing due to non-sequential memory strides.
 - **Implementation & Constraints**:
   - `cacheBlockedGemmFloat64` and `cacheBlockedGemmFloat32` implement cache-tiled matrix multiplication with $32 \times 32$ block tiles ($32 \times 32 \times 8\text{ bytes} = 8\text{ KB}$, fitting within L1 data caches) and $4\times$ loop unrolling.
-  - Transparent dispatch: `HardwareManager.dgemm` and `sgemm` automatically route small matrices ($m < 64 \land n < 64 \land k < 64$) or non-FFI executions directly to the cache-blocked algorithms, bypassing FFI overhead while sustaining optimal memory hierarchy locality and sequential register streaming.
+  - Transparent dispatch: `AccelerationManager.dgemm` and `sgemm` automatically route small matrices ($m < 64 \land n < 64 \land k < 64$) or non-FFI executions directly to the cache-blocked algorithms, bypassing FFI overhead while sustaining optimal memory hierarchy locality and sequential register streaming.
   - Supports all transposition combinations: `cblasNoTrans`, `cblasTrans`, with arbitrary $\alpha$ and $\beta$ accumulation scaling.
 
 ---

@@ -108,7 +108,8 @@ void main() {
       check(p.evaluateDouble(1)).equals(0.0);
       check(p.evaluateDouble(-1)).equals(0.0);
 
-      // (1 + 1/10000)^10000 ≈ e ≈ 2.7182818 => P(1.0001) ≈ e - 1 ≈ 1.71828
+      // (1 + 1/10000)^10000 ≈ e ≈ 2.7182818 =>
+      // P(1.0001) ≈ e - 1 ≈ 1.71828
       final valE = p.evaluateDouble(1.0001);
       check(valE).isCloseTo(math.e - 1.0, 1e-3);
 

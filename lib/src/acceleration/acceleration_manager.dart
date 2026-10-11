@@ -828,7 +828,14 @@ class AccelerationManager {
   /// Computes sample or population variance of elements in [x].
   static double variance(Float64List x, {bool sample = true}) =>
       VforceRoutines.variance(x, vdsp: _vdsp, sample: sample);
-}
 
-/// Backwards-compatible alias for [AccelerationManager].
-typedef HardwareManager = AccelerationManager;
+  // --- Signal Processing ---
+
+  /// Computes 1-dimensional valid linear convolution of [signal] and [filter].
+  static Float64List convolve(Float64List signal, Float64List filter) =>
+      VforceRoutines.convolve(signal, filter, vdsp: _vdsp);
+
+  /// Computes 1-dimensional valid cross-correlation of [signal] and [filter].
+  static Float64List correlate(Float64List signal, Float64List filter) =>
+      VforceRoutines.correlate(signal, filter, vdsp: _vdsp);
+}

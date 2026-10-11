@@ -579,14 +579,14 @@ void main() {
       check(summary.columnNames).contains('salary_count');
     });
 
-    test('lib/hardware.dart quick start', () {
-      check(HardwareManager.isAccelerated).isA<bool>();
+    test('lib/acceleration.dart quick start', () {
+      check(AccelerationManager.isAccelerated).isA<bool>();
 
       final a = Float64List.fromList([1.0, 2.0, 3.0, 4.0]);
       final b = Float64List.fromList([5.0, 6.0, 7.0, 8.0]);
       final c = Float64List(4);
 
-      HardwareManager.dgemm(
+      AccelerationManager.dgemm(
         m: 2,
         n: 2,
         k: 2,

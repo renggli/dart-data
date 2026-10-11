@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:more/number.dart' show Complex;
 
 import '../acceleration/acceleration_manager.dart';
@@ -109,3 +111,41 @@ List<List<Complex>> fft2(List<List<Complex>> matrix) =>
 /// ```
 List<List<Complex>> ifft2(List<List<Complex>> matrix) =>
     AccelerationManager.ifft2(matrix);
+
+/// Computes the 1-dimensional discrete linear convolution of [signal] and
+/// [filter].
+///
+/// Conceptually, convolution filters or transforms an input signal by sliding
+/// a filter kernel across it and computing weighted sums. Formally, it computes
+/// $c_n = \sum_{p=0}^{P-1} s_{n+p} f_{P-1-p}$ for valid overlap length
+/// $N = \text{signal.length} - \text{filter.length} + 1$.
+///
+/// ```dart
+/// final signal = [1.0, 2.0, 3.0, 4.0];
+/// final filter = [0.5, 0.5];
+/// final smoothed = convolve(signal, filter);
+/// ```
+List<double> convolve(Iterable<num> signal, Iterable<num> filter) {
+  final s = Float64List.fromList([for (final x in signal) x.toDouble()]);
+  final f = Float64List.fromList([for (final x in filter) x.toDouble()]);
+  return AccelerationManager.convolve(s, f);
+}
+
+/// Computes the 1-dimensional discrete cross-correlation of [signal] and
+/// [filter].
+///
+/// Conceptually, cross-correlation measures the similarity of two waveforms as
+/// a function of the displacement of one relative to the other. Formally, it
+/// computes $r_n = \sum_{p=0}^{P-1} s_{n+p} f_p$ for valid overlap length
+/// $N = \text{signal.length} - \text{filter.length} + 1$.
+///
+/// ```dart
+/// final signal = [1.0, 2.0, 3.0, 4.0];
+/// final pattern = [2.0, 3.0];
+/// final match = correlate(signal, pattern);
+/// ```
+List<double> correlate(Iterable<num> signal, Iterable<num> filter) {
+  final s = Float64List.fromList([for (final x in signal) x.toDouble()]);
+  final f = Float64List.fromList([for (final x in filter) x.toDouble()]);
+  return AccelerationManager.correlate(s, f);
+}

@@ -86,13 +86,5 @@ void main() {
         }
       },
     );
-
-    test('HardwareManager alias refers to AccelerationManager', () {
-      check(HardwareManager.mode).equals(AccelerationManager.mode);
-      HardwareManager.isEnabled = false;
-      check(AccelerationManager.mode).equals(AccelerationMode.dart);
-      HardwareManager.isEnabled = true;
-      check(AccelerationManager.mode).equals(AccelerationMode.auto);
-    });
   });
 }

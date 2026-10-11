@@ -2,8 +2,8 @@ import 'dart:math' as math;
 import 'dart:typed_data';
 
 import '../../../type.dart';
-import '../../hardware/cblas.dart';
-import '../../hardware/hardware.dart';
+import '../../acceleration/acceleration_manager.dart';
+import '../../acceleration/blas/cblas.dart';
 import '../matrix.dart';
 
 /// Extension methods providing Eigenvalue decomposition on numeric matrices.
@@ -25,13 +25,13 @@ extension EigenvalueMatrixExtension<T extends num> on Matrix<T> {
 /// Eigenvalues and eigenvectors of a real square matrix.
 ///
 /// Conceptually, when a matrix transforms space, an eigenvector is a special
-/// direction that does not rotate—it only gets stretched or shrunk by a scaling
-/// factor called the eigenvalue ($A \mathbf{v} = \lambda \mathbf{v}$). More
-/// formally, this computes the spectral decomposition $A V = V \Lambda$. For
-/// real symmetric matrices, uses Householder tridiagonalization and implicit
-/// QL/QR shifts to yield orthogonal eigenvectors ($A = V D V^T$). For general
-/// matrices, reduces to Hessenberg form and applies Francis double-shift QR
-/// iteration.
+/// direction that does not rotate—it only gets stretched or shrunk by a
+/// scaling factor called the eigenvalue ($A \mathbf{v} = \lambda \mathbf{v}$).
+/// More formally, this computes the spectral decomposition
+/// $A V = V \Lambda$. For real symmetric matrices, uses Householder
+/// tridiagonalization and implicit QL/QR shifts to yield orthogonal
+/// eigenvectors ($A = V D V^T$). For general matrices, reduces to Hessenberg
+/// form and applies Francis double-shift QR iteration.
 ///
 /// ```dart
 /// final a = Matrix<double>.fromRows([
@@ -69,7 +69,8 @@ class EigenvalueDecomposition {
     if (_n == 0) return;
     if (_isSymmetric) {
       var accelerated = false;
-      if (matrix.type == DataType.float64 && HardwareManager.isAccelerated) {
+      if (matrix.type == DataType.float64 &&
+          AccelerationManager.isAccelerated) {
         final aList = Float64List(_n * _n);
         for (var i = 0; i < _n; i++) {
           for (var j = 0; j < _n; j++) {
@@ -77,7 +78,7 @@ class EigenvalueDecomposition {
           }
         }
         final wList = Float64List(_n);
-        accelerated = HardwareManager.dsyev(
+        accelerated = AccelerationManager.dsyev(
           jobz: 'V',
           uplo: cblasUpper,
           n: _n,

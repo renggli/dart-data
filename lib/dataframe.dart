@@ -52,7 +52,7 @@ import 'src/dataframe/csv/csv_writer.dart';
 import 'src/dataframe/dataframe.dart';
 import 'src/dataframe/groupby.dart';
 import 'src/dataframe/join.dart';
-import 'src/dataframe/json.dart';
+import 'src/dataframe/json/json.dart';
 import 'src/dataframe/series.dart';
 
 export 'src/dataframe/arrow_string_series.dart';
@@ -65,6 +65,5 @@ export 'src/dataframe/csv/csv_writer.dart';
 export 'src/dataframe/dataframe.dart';
 export 'src/dataframe/groupby.dart';
 export 'src/dataframe/join.dart';
-export 'src/dataframe/json.dart';
-export 'src/dataframe/json/json_stream.dart';
+export 'src/dataframe/json/json.dart';
 export 'src/dataframe/series.dart';

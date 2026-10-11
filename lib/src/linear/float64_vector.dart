@@ -4,7 +4,7 @@ import 'dart:typed_data';
 import 'package:meta/meta.dart';
 
 import '../../type.dart';
-import '../hardware/hardware.dart';
+import '../acceleration/acceleration_manager.dart';
 import '../tensor/layout.dart';
 import '../tensor/tensor.dart';
 import 'vector.dart';
@@ -158,7 +158,7 @@ extension type Float64Vector(Vector<double> _vector) implements Vector<double> {
               ? tB.data as Float64List
               : Float64List.fromList(tB.data));
     if (tA.strides[0] > 0 && tB.strides[0] > 0) {
-      final res = HardwareManager.ddot(
+      final res = AccelerationManager.ddot(
         n: length,
         x: asTypedList,
         xOffset: tA.offset,
@@ -186,7 +186,7 @@ extension type Float64Vector(Vector<double> _vector) implements Vector<double> {
   double norm2() {
     final t = _vector.tensor;
     if (t.strides[0] > 0) {
-      final res = HardwareManager.dnrm2(
+      final res = AccelerationManager.dnrm2(
         n: length,
         x: asTypedList,
         xOffset: t.offset,
