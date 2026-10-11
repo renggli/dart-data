@@ -414,59 +414,76 @@ void main() {
 
   group('Numerical Analysis Doc Examples', () {
     test('quadrature integration', () {
-      final areaSimp = adaptiveSimpson((double x) => x * x, 0.0, 3.0);
+      final areaSimp = integrate(
+        (double x) => x * x,
+        0.0,
+        3.0,
+        method: IntegrationMethod.simpson,
+      );
       check(areaSimp).isCloseTo(9.0, 1e-6);
 
-      final areaGk = gaussKronrod((double x) => x * x, 0.0, 3.0);
+      final areaGk = integrate((double x) => x * x, 0.0, 3.0);
       check(areaGk).isCloseTo(9.0, 1e-6);
     });
 
     test('root finding', () {
-      final rootBrent = brentRoot((double x) => x * x - 4.0, 0.0, 5.0);
+      final rootBrent = solve((double x) => x * x - 4.0, 0.0, b: 5.0);
       check(rootBrent).isCloseTo(2.0, 1e-6);
 
-      final rootNewton = newtonRaphson((double x) => x * x - 9.0, 2.0);
+      final rootNewton = solve(
+        (double x) => x * x - 9.0,
+        2.0,
+        method: RootMethod.newtonRaphson,
+      );
       check(rootNewton).isCloseTo(3.0, 1e-6);
 
-      final rootBisect = bisection((double x) => x * x - 2.0, 1.0, 2.0);
+      final rootBisect = solve(
+        (double x) => x * x - 2.0,
+        1.0,
+        b: 2.0,
+        method: RootMethod.bisection,
+      );
       check(rootBisect).isCloseTo(1.41421356, 1e-5);
     });
 
     test('optimization', () {
-      final optBrent = brentMinimize(
-        (double x) => (x - 2.0) * (x - 2.0) + 3.0,
+      final optBrent = minimize(
+        (Vector<double> v) => (v[0] - 2.0) * (v[0] - 2.0) + 3.0,
         a: 0.0,
         b: 5.0,
       );
-      check(optBrent.point).isCloseTo(2.0, 1e-5);
+      check(optBrent.point1D).isCloseTo(2.0, 1e-5);
 
       final start = Vector<double>.fromList([2.0, 2.0]);
-      final optNelder = nelderMead(
+      final optNelder = minimize(
         (Vector<double> v) => v[0] * v[0] + v[1] * v[1],
-        start,
+        initialPoint: start,
+        method: OptimizationMethod.nelderMead,
       );
       check(optNelder.point[0]).isCloseTo(0.0, 1e-4);
       check(optNelder.point[1]).isCloseTo(0.0, 1e-4);
 
       final startBfgs = Vector<double>.fromList([3.0, 4.0]);
-      final optBfgs = bfgs(
+      final optBfgs = minimize(
         (Vector<double> v) => v[0] * v[0] + v[1] * v[1],
-        startBfgs,
+        initialPoint: startBfgs,
+        method: OptimizationMethod.bfgs,
       );
       check(optBfgs.point[0]).isCloseTo(0.0, 1e-5);
       check(optBfgs.point[1]).isCloseTo(0.0, 1e-5);
     });
 
     test('ODEs', () {
-      final solRk4 = rk4(
+      final solRk4 = solveOde(
         f: (t, y) => Vector<double>.fromList([-y[0]]),
         t0: 0.0,
         tEnd: 1.0,
         y0: Vector<double>.fromList([1.0]),
+        method: OdeMethod.rk4,
       );
       check(solRk4.last[0]).isCloseTo(0.367879, 1e-4);
 
-      final solRk45 = rk45(
+      final solRk45 = solveOde(
         f: (t, y) => Vector<double>.fromList([-y[0]]),
         t0: 0.0,
         tEnd: 1.0,
@@ -491,21 +508,18 @@ void main() {
     });
 
     test('calculus derivatives, gradient, Jacobian, Hessian', () {
-      final slope = numericalDerivative((double x) => x * x, 3.0);
+      final slope = derivative((double x) => x * x, 3.0);
       check(slope).isCloseTo(6.0, 1e-4);
 
-      final curv = numericalSecondDerivative((double x) => x * x * x, 2.0);
+      final curv = derivative((double x) => x * x * x, 2.0, order: 2);
       check(curv).isCloseTo(12.0, 1e-3);
 
       final p = Vector<double>.fromList([1.0, 2.0]);
-      final grad = numericalGradient(
-        (Vector<double> v) => v[0] * v[0] + v[1] * v[1],
-        p,
-      );
+      final grad = gradient((Vector<double> v) => v[0] * v[0] + v[1] * v[1], p);
       check(grad[0]).isCloseTo(2.0, 1e-4);
       check(grad[1]).isCloseTo(4.0, 1e-4);
 
-      final jac = numericalJacobian(
+      final jac = jacobian(
         (Vector<double> v) =>
             Vector<double>.fromList([v[0] + v[1], v[0] * v[1]]),
         p,
@@ -513,10 +527,7 @@ void main() {
       check(jac.getUnchecked(0, 0)).isCloseTo(1.0, 1e-4);
       check(jac.getUnchecked(1, 0)).isCloseTo(2.0, 1e-4);
 
-      final hess = numericalHessian(
-        (Vector<double> v) => v[0] * v[0] + v[1] * v[1],
-        p,
-      );
+      final hess = hessian((Vector<double> v) => v[0] * v[0] + v[1] * v[1], p);
       check(hess.getUnchecked(0, 0)).isCloseTo(2.0, 1e-3);
       check(hess.getUnchecked(1, 1)).isCloseTo(2.0, 1e-3);
     });
@@ -605,10 +616,10 @@ void main() {
     });
 
     test('lib/numeric.dart quick start', () {
-      final result = gaussKronrod(math.sin, 0.0, math.pi);
+      final result = integrate(math.sin, 0.0, math.pi);
       check(result).isCloseTo(2.0, 1e-4);
 
-      final root = brentRoot((double x) => math.cos(x) - x, 0.0, 1.0);
+      final root = solve((double x) => math.cos(x) - x, 0.0, b: 1.0);
       check(root).isCloseTo(0.739085, 1e-4);
     });
 

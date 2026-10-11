@@ -8,7 +8,7 @@ import '../tensor/operations/matmul.dart';
 import '../tensor/operations/operation.dart';
 import '../tensor/tensor.dart';
 import 'operator.dart';
-import 'solvers/gmres.dart';
+import 'solvers/iterative.dart';
 import 'vector.dart';
 
 /// 2-dimensional mathematical matrix backed by a rank-2 [Tensor].
@@ -422,7 +422,7 @@ class Matrix<T> implements LinearOperator<T> {
   /// (such as $2x + 3y = 8$ and $4x - y = 2$) for all variables simultaneously.
   /// Formally, this computes $x = A^{-1} b$ using LAPACK GESV LU factorization
   /// with partial pivoting when hardware acceleration is available, falling back to
-  /// the [gmres] iterative solver.
+  /// the [solveIterative] solver.
   ///
   /// ```dart
   /// final a = Matrix<double>.fromRows([
@@ -464,7 +464,7 @@ class Matrix<T> implements LinearOperator<T> {
         );
       }
     }
-    return gmres(this, b);
+    return solveIterative(this, b);
   }
 
   /// Slices a submatrix over the given row and column ranges.

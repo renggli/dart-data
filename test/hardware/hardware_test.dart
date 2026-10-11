@@ -757,15 +757,15 @@ void main() {
       check(solHw[1]).isCloseTo(solFallback[1], 1e-9);
     });
 
-    test('levenbergMarquardt parameter estimation', () {
+    test('fitNonlinear parameter estimation', () {
       // Fit y = a * exp(b * x) with true params a = 2.5, b = 1.3
       final xs = [0.1, 0.2, 0.4, 0.7, 1.0];
       final ys = xs
           .map((x) => 2.5 * 1.3 * x + 1.0)
           .toList(); // linear surrogate
 
-      final resultParams = levenbergMarquardt(
-        residualFunction: (params) => Vector<double>.generate(
+      final resultParams = fitNonlinear(
+        residualFunction: (Vector<double> params) => Vector<double>.generate(
           xs.length,
           (i) => (params[0] * xs[i] + params[1]) - ys[i],
         ),

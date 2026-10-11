@@ -22,8 +22,13 @@ void main() {
   // 2. Numerical Integration
   stdout.writeln('2. Numerical Integration');
   // Exact integral of sin(x) from 0 to pi is 2.0
-  final simpsonResult = adaptiveSimpson(math.sin, 0.0, math.pi);
-  final kronrodResult = gaussKronrod(math.sin, 0.0, math.pi);
+  final simpsonResult = integrate(
+    math.sin,
+    0.0,
+    math.pi,
+    method: IntegrationMethod.simpson,
+  );
+  final kronrodResult = integrate(math.sin, 0.0, math.pi);
   stdout.writeln(
     '   Simpson integral of sin(x) on [0, π]: $simpsonResult (exact: 2.0)',
   );
@@ -34,7 +39,7 @@ void main() {
   // 3. Root Finding
   stdout.writeln('3. Root Finding');
   // Find root of cos(x) - x = 0 (Dottie number ≈ 0.739085)
-  final brentR = brentRoot((double x) => math.cos(x) - x, 0.0, 1.0);
+  final brentR = solve((double x) => math.cos(x) - x, 0.0, b: 1.0);
   stdout.writeln('   Brent-Dekker root of cos(x) - x = 0: $brentR\n');
 
   // 4. Non-Linear Optimization (Rosenbrock Banana Function)
@@ -48,7 +53,11 @@ void main() {
   }
 
   final start = Vector<double>.fromList([-1.2, 1.0], type: DataType.float64);
-  final optResult = bfgs(rosenbrock, start);
+  final optResult = minimize(
+    rosenbrock,
+    initialPoint: start,
+    method: OptimizationMethod.bfgs,
+  );
   stdout.writeln(
     '   BFGS minimum at (${optResult.point[0]}, ${optResult.point[1]}) with value ${optResult.value}\n',
   );
@@ -60,7 +69,7 @@ void main() {
       Vector<double>.fromList([state[1], -state[0]], type: DataType.float64);
 
   final y0 = Vector<double>.fromList([0.0, 1.0], type: DataType.float64);
-  final odeSol = rk45(f: oscillator, t0: 0.0, tEnd: 2.0 * math.pi, y0: y0);
+  final odeSol = solveOde(f: oscillator, t0: 0.0, tEnd: 2.0 * math.pi, y0: y0);
   stdout.writeln('   Steps taken: ${odeSol.t.length}');
   stdout.writeln(
     '   Final state at t = 2π: [y = ${odeSol.last[0]}, v = ${odeSol.last[1]}]',
@@ -85,7 +94,7 @@ void main() {
     1.0,
     1.0,
   ], type: DataType.float64);
-  final fit = levenbergMarquardt(
+  final fit = fitNonlinear(
     residualFunction: expResiduals,
     initialParams: initialGuess,
   );

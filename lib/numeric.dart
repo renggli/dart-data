@@ -5,17 +5,13 @@
 ///
 /// ## Key Capabilities
 ///
-/// - **Numerical Calculus**: [numericalDerivative] for univariate differentiation,
-///   and [numericalGradient], [numericalHessian], and [numericalJacobian] for multivariate calculus.
-/// - **Root Finding**: [brentRoot] (Brent-Dekker method with guaranteed convergence),
-///   [newtonRaphson] (Newton-Raphson method), and [bisection] for solving $f(x) = 0$.
-/// - **Numerical Integration**: [gaussKronrod] (15-point Gauss-Kronrod quadrature)
-///   and [adaptiveSimpson] (adaptive Simpson's quadrature) for computing $\int_a^b f(x) dx$.
-/// - **Numerical Optimization**: [brentMinimize] for 1D scalar minimization, [nelderMead] simplex,
-///   and [bfgs] quasi-Newton method for unconstrained multivariate optimization.
-/// - **Curve Fitting & Regression**: [leastSquares], [linearRegression], and [polynomialRegression]
-///   using numerically stable QR and SVD factorizations.
-/// - **Differential Equations**: [rk4] (classical 4th-order Runge-Kutta) and [rk45] (adaptive step-size) for solving $y' = f(t, y)$.
+/// - **Numerical Calculus**: [derivative] for univariate differentiation,
+///   and [gradient], [hessian], and [jacobian] for multivariate calculus.
+/// - **Root Finding**: [solve] with [RootMethod] ([RootMethod.brent], [RootMethod.newtonRaphson], [RootMethod.bisection]).
+/// - **Numerical Integration**: [integrate] with [IntegrationMethod] ([IntegrationMethod.gaussKronrod], [IntegrationMethod.simpson]).
+/// - **Numerical Optimization**: [minimize] with [OptimizationMethod] ([OptimizationMethod.nelderMead], [OptimizationMethod.bfgs], [OptimizationMethod.lbfgs], [OptimizationMethod.brent]) and [BoxBound] constraints.
+/// - **Curve Fitting & Regression**: [leastSquares], [linearRegression], [polynomialRegression], and [fitNonlinear].
+/// - **Differential Equations**: [solveOde] with [OdeMethod] ([OdeMethod.dormandPrince45], [OdeMethod.rk4]).
 /// - **Interpolation**: 1D linear ([LinearInterpolation]), cubic spline ([CubicSpline]),
 ///   monotonic cubic ([PchipInterpolation]), and 2D bilinear ([BilinearInterpolation]) / bicubic ([BicubicInterpolation]).
 /// - **Fast Fourier Transform**: [fft] and [ifft] for 1D complex frequency-domain signal processing.
@@ -28,11 +24,11 @@
 ///
 /// void main() {
 ///   // Approximate the integral of sin(x) from 0 to pi (exact value: 2.0)
-///   final result = gaussKronrod((double x) => sin(x), 0.0, pi);
+///   final result = integrate((double x) => sin(x), 0.0, pi);
 ///   print('Integral of sin(x) on [0, pi]: $result');
 ///
 ///   // Find the root of cos(x) - x = 0 near x = 0.5
-///   final root = brentRoot((double x) => cos(x) - x, 0.0, 1.0);
+///   final root = solve((double x) => cos(x) - x, 0.0, b: 1.0);
 ///   print('Root: $root');
 /// }
 /// ```

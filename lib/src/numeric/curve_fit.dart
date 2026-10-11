@@ -313,7 +313,7 @@ multipleLinearRegression(
 }
 
 /// Fits non-linear parameters using the Levenberg-Marquardt damped least-squares algorithm.
-Vector<double> levenbergMarquardt({
+Vector<double> fitNonlinear({
   required Vector<double> Function(Vector<double> params) residualFunction,
   required Vector<double> initialParams,
   double damping = 1e-2,

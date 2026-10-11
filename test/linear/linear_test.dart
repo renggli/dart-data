@@ -245,14 +245,18 @@ void main() {
       // b = A * x = [4*1 + 1*2, 1*1 + 3*2 + 1*3, 1*2 + 2*3] = [6, 10, 8]
       final b = Vector<double>.fromList([6.0, 10.0, 8.0]);
 
-      final x = conjugateGradient(a, b);
+      final x = solveIterative(a, b, method: IterativeMethod.conjugateGradient);
       check(x[0]).isCloseTo(1.0, 1e-6);
       check(x[1]).isCloseTo(2.0, 1e-6);
       check(x[2]).isCloseTo(3.0, 1e-6);
 
       // Test with CSR sparse representation
       final csr = CooMatrix.fromDense(a).toCsr();
-      final xSparse = conjugateGradient(csr, b);
+      final xSparse = solveIterative(
+        csr,
+        b,
+        method: IterativeMethod.conjugateGradient,
+      );
       check(xSparse[0]).isCloseTo(1.0, 1e-6);
       check(xSparse[1]).isCloseTo(2.0, 1e-6);
       check(xSparse[2]).isCloseTo(3.0, 1e-6);
@@ -272,7 +276,7 @@ void main() {
       // b = [2*1 + 1*2, 3*2 + 2*3, 1*1 + 4*3] = [4, 12, 13]
       final b = Vector<double>.fromList([4.0, 12.0, 13.0]);
 
-      final x = gmres(a, b);
+      final x = solveIterative(a, b);
       check(x[0]).isCloseTo(1.0, 1e-6);
       check(x[1]).isCloseTo(2.0, 1e-6);
       check(x[2]).isCloseTo(3.0, 1e-6);
@@ -288,7 +292,7 @@ void main() {
       // b = [-2*1 + 1*2 = 0, 1*1 - 3*2 + 2*3 = 1, 1*2 - 4*3 = -10]
       final b = Vector<double>.fromList([0.0, 1.0, -10.0]);
 
-      final x = gmres(a, b);
+      final x = solveIterative(a, b);
       check(x[0]).isCloseTo(1.0, 1e-5);
       check(x[1]).isCloseTo(2.0, 1e-5);
       check(x[2]).isCloseTo(3.0, 1e-5);
@@ -673,21 +677,45 @@ void main() {
       final b3 = Vector<double>.fromList([1.0, 2.0, 3.0]);
 
       // Conjugate gradient errors
-      check(() => conjugateGradient(nonSquare, b2)).throws<ArgumentError>();
+      check(
+        () => solveIterative(
+          nonSquare,
+          b2,
+          method: IterativeMethod.conjugateGradient,
+        ),
+      ).throws<ArgumentError>();
       final square2 = Matrix<double>.identity(2);
-      check(() => conjugateGradient(square2, b3)).throws<ArgumentError>();
+      check(
+        () => solveIterative(
+          square2,
+          b3,
+          method: IterativeMethod.conjugateGradient,
+        ),
+      ).throws<ArgumentError>();
 
       // Fast return when initial residual is zero
       final xExact = Vector<double>.fromList([1.0, 2.0]);
       final bExact = square2.apply(xExact);
-      final xSolved = conjugateGradient(square2, bExact, x0: xExact);
+      final xSolved = solveIterative(
+        square2,
+        bExact,
+        x0: xExact,
+        method: IterativeMethod.conjugateGradient,
+      );
       check(xSolved.toList()).deepEquals(xExact.toList());
 
       // GMRES errors and fast return
-      check(() => gmres(nonSquare, b2)).throws<ArgumentError>();
-      check(() => gmres(square2, b3)).throws<ArgumentError>();
+      check(() => solveIterative(nonSquare, b2, method: IterativeMethod.gmres))
+          .throws<ArgumentError>();
+      check(() => solveIterative(square2, b3, method: IterativeMethod.gmres))
+          .throws<ArgumentError>();
 
-      final xGmresExact = gmres(square2, bExact, x0: xExact);
+      final xGmresExact = solveIterative(
+        square2,
+        bExact,
+        x0: xExact,
+        method: IterativeMethod.gmres,
+      );
       check(xGmresExact.toList()).deepEquals(xExact.toList());
 
       // GMRES with small restart
@@ -696,7 +724,12 @@ void main() {
         [1.0, 3.0],
       ]);
       final b = Vector<double>.fromList([5.0, 4.0]);
-      final xRestart = gmres(a, b, restart: 1);
+      final xRestart = solveIterative(
+        a,
+        b,
+        restart: 1,
+        method: IterativeMethod.gmres,
+      );
       check(xRestart[0]).isCloseTo(1.0, 1e-5);
       check(xRestart[1]).isCloseTo(1.0, 1e-5);
     });

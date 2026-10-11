@@ -27,8 +27,7 @@
 ///
 /// ## Solvers
 ///
-/// - [conjugateGradient]: Iterative Krylov solver for symmetric positive-definite systems.
-/// - [gmres]: Generalized Minimal Residual solver for general nonsymmetric systems.
+/// - [solveIterative]: Iterative Krylov solver ([IterativeMethod.conjugateGradient] for symmetric positive-definite, [IterativeMethod.gmres] for general square systems).
 /// - [solveTridiagonal]: Fast $\mathcal{O}(n)$ Thomas algorithm for tridiagonal systems.
 ///
 /// ## Example
@@ -62,8 +61,7 @@ import 'src/linear/float64_vector.dart';
 import 'src/linear/matrix.dart';
 import 'src/linear/operator.dart';
 import 'src/linear/projection.dart';
-import 'src/linear/solvers/conjugate_gradient.dart';
-import 'src/linear/solvers/gmres.dart';
+import 'src/linear/solvers/iterative.dart';
 import 'src/linear/solvers/tridiagonal.dart';
 import 'src/linear/sparse/coo_matrix.dart';
 import 'src/linear/sparse/csc_matrix.dart';
@@ -81,8 +79,7 @@ export 'src/linear/float64_vector.dart';
 export 'src/linear/matrix.dart';
 export 'src/linear/operator.dart';
 export 'src/linear/projection.dart';
-export 'src/linear/solvers/conjugate_gradient.dart';
-export 'src/linear/solvers/gmres.dart';
+export 'src/linear/solvers/iterative.dart';
 export 'src/linear/solvers/tridiagonal.dart';
 export 'src/linear/sparse/coo_matrix.dart';
 export 'src/linear/sparse/csc_matrix.dart';

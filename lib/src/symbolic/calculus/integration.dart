@@ -53,11 +53,10 @@ Expr _symbolicIntegrate(Expr function, String variable, {num? from, num? to}) {
     } catch (_) {
       // Fall back to numerical integration if evaluation is non-finite or fails.
     }
-    final numResult = gaussKronrod(
-      function,
+    final numResult = integrate(
+      (double x) => function.evaluate({variable: x}),
       from.toDouble(),
       to.toDouble(),
-      variable: variable,
     );
     return Constant(numResult);
   }

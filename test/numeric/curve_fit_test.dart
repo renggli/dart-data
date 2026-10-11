@@ -110,7 +110,7 @@ void main() {
           1.0,
           1.0,
         ], type: DataType.float64);
-        final fitted = levenbergMarquardt(
+        final fitted = fitNonlinear(
           residualFunction: residuals,
           initialParams: initialGuess,
         );

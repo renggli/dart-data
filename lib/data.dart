@@ -8,7 +8,7 @@
 /// - **Tensors** (`tensor.dart`): Multi-dimensional arrays with
 ///   generalized stride layouts ([Layout]), broadcasting, contraction, and Einstein summation ([einsum]).
 /// - **Linear Algebra** (`linear.dart`): Vectors ([Vector]), matrices ([Matrix]), iterative
-///   solvers ([gmres], [conjugateGradient]), and matrix factorizations ([LUDecomposition], [QRDecomposition], [CholeskyDecomposition], [SingularValueDecomposition], [EigenvalueDecomposition]).
+///   solvers ([solveIterative]), and matrix factorizations ([LUDecomposition], [QRDecomposition], [CholeskyDecomposition], [SingularValueDecomposition], [EigenvalueDecomposition]).
 /// - **DataFrames** (`dataframe.dart`): Apache Arrow-aligned columnar
 ///   tabular data engine with zero-allocation slicing, relational hash joins, and grouping ([DataFrame], [Series], [GroupBy]).
 /// - **Hardware Acceleration** (`hardware.dart`): Transparent routing to
@@ -16,7 +16,7 @@
 /// - **Symbolic Computation** (`symbolic.dart`): Exact algebraic expressions ([Expr]),
 ///   analytical differentiation, Taylor expansions, LaTeX formatting, and JIT compilation.
 /// - **Numerical Analysis** (`numeric.dart`): Numerical root-finding
-///   ([brentRoot], [newtonRaphson]), numerical integration ([adaptiveSimpson], [gaussKronrod]), ODE solvers ([rk4]),
+///   ([solve]), numerical integration ([integrate]), ODE solvers ([solveOde]),
 ///   and linear/polynomial regression ([leastSquares], [linearRegression]).
 /// - **Polynomials** (`polynomial.dart`): Polynomial algebra ([Polynomial]), root isolation,
 ///   rational functions ([RationalFunction]), and orthogonal polynomials ([Polynomial.chebyshevT], [Polynomial.legendreP], [Polynomial.hermiteH], [Polynomial.laguerreL]).

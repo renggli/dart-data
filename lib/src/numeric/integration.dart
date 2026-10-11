@@ -1,115 +1,95 @@
-import '../../symbolic.dart';
+/// Method used for numerical quadrature.
+enum IntegrationMethod {
+  /// Adaptive Gauss-Kronrod 15-point rule (GK15).
+  gaussKronrod,
 
-/// Numerical integration via adaptive quadrature.
+  /// Adaptive Simpson's 3-point parabolic rule.
+  simpson,
+}
 
-/// Computes the definite integral $\int_a^b f(x) dx$ using Adaptive Simpson's quadrature.
+/// Computes the definite integral $\int_a^b f(x) dx$ using the specified quadrature [method].
 ///
 /// Conceptually, calculating an integral evaluates the total accumulated area
 /// underneath a curve between two boundary points $x = a$ and $x = b$.
-/// Formally, it recursively subdivides intervals using Simpson's 3-point parabolic
-/// rule $(b - a) \frac{f(a) + 4f(m) + f(b)}{6}$ with adaptive error estimation
-/// $|S_{\text{fine}} - S_{\text{coarse}}| / 15 \le \epsilon$. Accepts either a closure or an [Expr].
+/// Formally, it recursively subdivides intervals using the selected [method]
+/// ([IntegrationMethod.gaussKronrod] by default, or [IntegrationMethod.simpson]).
 ///
 /// ```dart
-/// final area = adaptiveSimpson((x) => x * x, 0.0, 3.0); // 9.0
+/// final area = integrate((x) => x * x, 0.0, 3.0); // 9.0
 /// ```
-double adaptiveSimpson(
-  Object function,
+double integrate(
+  double Function(double) function,
   double a,
   double b, {
-  String variable = 'x',
+  IntegrationMethod method = IntegrationMethod.gaussKronrod,
   double tolerance = 1e-9,
   int maxDepth = 25,
+  Iterable<double> poles = const [],
 }) {
-  final double Function(double) fn;
-  if (function is Expr) {
-    fn = (x) => function.evaluate({variable: x});
-  } else if (function is double Function(double)) {
-    fn = function;
-  } else if (function is num Function(num)) {
-    fn = (x) => function(x).toDouble();
-  } else if (function is Function) {
-    fn = (x) => ((function as dynamic)(x) as num).toDouble();
-  } else {
-    throw ArgumentError('Unsupported function type: ${function.runtimeType}');
-  }
-
   if (a == b) return 0.0;
   if (a > b) {
-    return -adaptiveSimpson(
+    return -integrate(
       function,
       b,
       a,
-      variable: variable,
+      method: method,
       tolerance: tolerance,
       maxDepth: maxDepth,
+      poles: poles,
     );
   }
 
-  final mid = 0.5 * (a + b);
-  final fa = fn(a);
-  final fb = fn(b);
-  final fMid = fn(mid);
-  final whole = (b - a) * (fa + 4.0 * fMid + fb) / 6.0;
-
-  return _adaptiveSimpsonStep(
-    fn,
-    a,
-    b,
-    fa,
-    fb,
-    fMid,
-    whole,
-    tolerance,
-    maxDepth,
-  );
-}
-
-/// Computes the definite integral $\int_a^b f(x) dx$ using Adaptive Gauss-Kronrod (GK15) quadrature.
-///
-/// Conceptually, this is a high-precision quadrature algorithm that selects 15
-/// strategically optimal points along the curve to achieve accurate results with minimal function evaluations.
-/// Formally, it applies the 15-point Kronrod extension to the 7-point Gauss-Legendre
-/// rule on $\lbrack -1, 1 \rbrack$, enabling high-precision quadrature with an embedded error estimate
-/// $|I_{\text{Kronrod}} - I_{\text{Gauss}}|$.
-///
-/// ```dart
-/// final area = gaussKronrod((x) => x * x, 0.0, 3.0); // 9.0
-/// ```
-double gaussKronrod(
-  Object function,
-  double a,
-  double b, {
-  String variable = 'x',
-  double tolerance = 1e-9,
-  int maxDepth = 25,
-}) {
-  final double Function(double) fn;
-  if (function is Expr) {
-    fn = (x) => function.evaluate({variable: x});
-  } else if (function is double Function(double)) {
-    fn = function;
-  } else if (function is num Function(num)) {
-    fn = (x) => function(x).toDouble();
-  } else if (function is Function) {
-    fn = (x) => ((function as dynamic)(x) as num).toDouble();
-  } else {
-    throw ArgumentError('Unsupported function type: ${function.runtimeType}');
+  // Handle interior poles by interval decomposition
+  if (poles.isNotEmpty) {
+    final validPoles = poles.where((p) => p > a && p < b).toSet().toList()
+      ..sort();
+    if (validPoles.isNotEmpty) {
+      var total = 0.0;
+      var current = a;
+      for (final p in validPoles) {
+        total += integrate(
+          function,
+          current,
+          p,
+          method: method,
+          tolerance: tolerance,
+          maxDepth: maxDepth,
+        );
+        current = p;
+      }
+      total += integrate(
+        function,
+        current,
+        b,
+        method: method,
+        tolerance: tolerance,
+        maxDepth: maxDepth,
+      );
+      return total;
+    }
   }
 
-  if (a == b) return 0.0;
-  if (a > b) {
-    return -gaussKronrod(
-      function,
-      b,
-      a,
-      variable: variable,
-      tolerance: tolerance,
-      maxDepth: maxDepth,
-    );
+  switch (method) {
+    case IntegrationMethod.gaussKronrod:
+      return _gaussKronrodStep(function, a, b, tolerance, maxDepth);
+    case IntegrationMethod.simpson:
+      final mid = 0.5 * (a + b);
+      final fa = function(a);
+      final fb = function(b);
+      final fMid = function(mid);
+      final whole = (b - a) * (fa + 4.0 * fMid + fb) / 6.0;
+      return _adaptiveSimpsonStep(
+        function,
+        a,
+        b,
+        fa,
+        fb,
+        fMid,
+        whole,
+        tolerance,
+        maxDepth,
+      );
   }
-
-  return _gaussKronrodStep(fn, a, b, tolerance, maxDepth);
 }
 
 double _adaptiveSimpsonStep(
@@ -215,7 +195,6 @@ double _gaussKronrodStep(
 
     kronrodSum += _gk15WeightsKronrod[i] * fSum;
 
-    // Gauss rule uses nodes 2, 4, 6 (1-indexed: 2, 4, 6)
     if (i == 2) {
       gaussSum += _gk7WeightsGauss[1] * fSum;
     } else if (i == 4) {

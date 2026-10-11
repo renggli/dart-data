@@ -20,25 +20,65 @@ class OdeSolution {
   int get stepCount => t.length;
 }
 
-/// Solves an initial value problem $\frac{dy}{dt} = f(t, y)$ using classical
-/// 4th order Runge-Kutta (RK4) with fixed step size [stepSize].
+/// Numerical integration method for ordinary differential equations.
+enum OdeMethod {
+  /// Classical 4th-order Runge-Kutta with fixed step size.
+  rk4,
+
+  /// Adaptive 5(4) Dormand-Prince Runge-Kutta with dynamic step-size control.
+  dormandPrince45,
+}
+
+/// Solves an initial value problem $\frac{dy}{dt} = f(t, y)$ from [t0] to [tEnd]
+/// starting at state [y0] using the specified [method].
 ///
 /// Conceptually, this simulates how a dynamic system evolves over time
-/// (such as an orbital trajectory or harmonic oscillator) by taking small time steps and
-/// combining four slope estimates at each step.
-/// Formally, it computes trajectory updates using the classical 4th-order
-/// Runge-Kutta Butcher tableau with local truncation error $\mathcal{O}(h^5)$ and
-/// global discretization error $\mathcal{O}(h^4)$.
+/// (such as an orbital trajectory or harmonic oscillator).
+/// Formally, it executes the chosen [method] ([OdeMethod.dormandPrince45] by default
+/// for adaptive step-size error control, or [OdeMethod.rk4] for fixed step size).
 ///
 /// ```dart
-/// final sol = rk4(
+/// final sol = solveOde(
 ///   f: (t, y) => Vector<double>.fromList([-y[0]]),
 ///   t0: 0.0,
 ///   tEnd: 1.0,
 ///   y0: Vector<double>.fromList([1.0]),
 /// );
 /// ```
-OdeSolution rk4({
+OdeSolution solveOde({
+  required Vector<double> Function(double t, Vector<double> y) f,
+  required double t0,
+  required double tEnd,
+  required Vector<double> y0,
+  OdeMethod method = OdeMethod.dormandPrince45,
+  double stepSize = 0.01,
+  double initialStep = 0.01,
+  double relativeTolerance = 1e-6,
+  double absoluteTolerance = 1e-8,
+  double minStep = 1e-12,
+  double maxStep = 1.0,
+  int maxSteps = 100000,
+}) {
+  switch (method) {
+    case OdeMethod.rk4:
+      return _rk4(f: f, t0: t0, tEnd: tEnd, y0: y0, stepSize: stepSize);
+    case OdeMethod.dormandPrince45:
+      return _rk45(
+        f: f,
+        t0: t0,
+        tEnd: tEnd,
+        y0: y0,
+        initialStep: initialStep,
+        relativeTolerance: relativeTolerance,
+        absoluteTolerance: absoluteTolerance,
+        minStep: minStep,
+        maxStep: maxStep,
+        maxSteps: maxSteps,
+      );
+  }
+}
+
+OdeSolution _rk4({
   required Vector<double> Function(double t, Vector<double> y) f,
   required double t0,
   required double tEnd,
@@ -84,25 +124,7 @@ OdeSolution rk4({
   return OdeSolution(t: tList, y: yList);
 }
 
-/// Solves an initial value problem $\frac{dy}{dt} = f(t, y)$ using adaptive
-/// Dormand-Prince 5(4) Runge-Kutta (RK45) with local error control.
-///
-/// Conceptually, this adaptive simulator automatically shrinks its
-/// integration time steps during rapid transients and increases step sizes during smooth
-/// intervals to maintain desired accuracy with minimal computational overhead.
-/// Formally, it implements the Dormand-Prince 5(4) embedded Runge-Kutta
-/// pair (DOPRI5), comparing 4th and 5th order solutions to adjust step size dynamically
-/// based on the specified [relativeTolerance] and [absoluteTolerance].
-///
-/// ```dart
-/// final sol = rk45(
-///   f: (t, y) => Vector<double>.fromList([-y[0]]),
-///   t0: 0.0,
-///   tEnd: 1.0,
-///   y0: Vector<double>.fromList([1.0]),
-/// );
-/// ```
-OdeSolution rk45({
+OdeSolution _rk45({
   required Vector<double> Function(double t, Vector<double> y) f,
   required double t0,
   required double tEnd,
@@ -132,7 +154,6 @@ OdeSolution rk45({
       step = tEnd - currentTime;
     }
 
-    // Dormand-Prince stage calculations
     final k2 = f(
       currentTime + step * (1.0 / 5.0),
       (y.copy())..addScaled(k1, step * (1.0 / 5.0)),
@@ -168,7 +189,6 @@ OdeSolution rk45({
         ..addScaled(k5, -step * (5103.0 / 18656.0)),
     );
 
-    // 5th order solution
     final y5 = (y.copy())
       ..addScaled(k1, step * (35.0 / 384.0))
       ..addScaled(k3, step * (500.0 / 1113.0))
@@ -176,9 +196,8 @@ OdeSolution rk45({
       ..addScaled(k5, -step * (2187.0 / 6784.0))
       ..addScaled(k6, step * (11.0 / 84.0));
 
-    final k7 = f(currentTime + step, y5); // FSAL property
+    final k7 = f(currentTime + step, y5);
 
-    // 4th order solution difference for error estimation
     final errorVec = (k1.scale(71.0 / 57600.0))
       ..addScaled(k3, -71.0 / 16695.0)
       ..addScaled(k4, 71.0 / 1920.0)
@@ -187,7 +206,6 @@ OdeSolution rk45({
       ..addScaled(k7, -1.0 / 40.0)
       ..scaleInPlace(step);
 
-    // Compute error norm relative to tolerance
     var maxErrorRatio = 0.0;
     for (var i = 0; i < y.length; i++) {
       final sc =
@@ -198,15 +216,13 @@ OdeSolution rk45({
     }
 
     if (maxErrorRatio <= 1.0) {
-      // Step accepted
       currentTime += step;
       y = y5;
-      k1 = k7; // Re-use FSAL evaluation
+      k1 = k7;
       tList.add(currentTime);
       yList.add(y.copy());
     }
 
-    // Adapt step size
     var factor =
         0.9 * math.pow(maxErrorRatio > 0.0 ? 1.0 / maxErrorRatio : 10.0, 0.2);
     factor = math.max(0.2, math.min(5.0, factor));

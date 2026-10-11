@@ -1,45 +1,254 @@
 import 'dart:math' as math;
 
 import '../../linear.dart';
-import '../../symbolic.dart';
 import '../../type.dart';
 import 'calculus.dart';
 
 /// 1D and multivariate numerical optimization algorithms.
 
-/// Minimizes a 1D scalar function on the interval between [a] and [b] using Brent's method.
+/// Method used for numerical optimization.
+enum OptimizationMethod {
+  /// 1D Brent minimization combining golden section search and parabolic interpolation.
+  brent,
+
+  /// Derivative-free Nelder-Mead downhill simplex algorithm.
+  nelderMead,
+
+  /// Quasi-Newton Broyden-Fletcher-Goldfarb-Shanno (BFGS) algorithm.
+  bfgs,
+
+  /// Limited-memory BFGS (L-BFGS) algorithm for high-dimensional problems.
+  lbfgs,
+}
+
+/// Result of a numerical optimization.
+class OptimizationResult {
+  /// Constructs an optimization result.
+  const new({
+    required this.point,
+    required this.value,
+    required this.iterations,
+    this.gradientNorm,
+    this.converged = true,
+  });
+
+  /// The optimal parameter vector found by the optimizer.
+  final Vector<double> point;
+
+  /// The objective function value at [point].
+  final double value;
+
+  /// Number of iterations executed.
+  final int iterations;
+
+  /// The norm of the gradient at [point], if computed.
+  final double? gradientNorm;
+
+  /// Whether the optimizer converged within tolerance.
+  final bool converged;
+
+  /// Convenience getter returning the first coordinate `point[0]`, useful for 1D problems.
+  double get point1D => point[0];
+
+  @override
+  String toString() =>
+      'OptimizationResult(point: $point, value: $value, iterations: $iterations, converged: $converged)';
+}
+
+/// Defines lower and upper bounds for a coordinate in constrained optimization.
+class BoxBound {
+  /// Creates a box bound with optional [lower] and [upper] limits.
+  const new({this.lower, this.upper});
+
+  /// The lower bound, or `null` if unbounded below ($-\infty$).
+  final double? lower;
+
+  /// The upper bound, or `null` if unbounded above ($+\infty$).
+  final double? upper;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is BoxBound && other.lower == lower && other.upper == upper;
+
+  @override
+  int get hashCode => Object.hash(lower, upper);
+
+  @override
+  String toString() => 'BoxBound(lower: $lower, upper: $upper)';
+}
+
+/// Minimizes a scalar objective [function] using the specified [method].
 ///
-/// Conceptually, this finds the local minimum point of a univariate function
-/// within a specified bounded interval $\lbrack a, b \rbrack$.
-/// Formally, it combines golden section search with successive parabolic
-/// interpolation to guarantee linear convergence in the worst case and superlinear
-/// convergence near smooth quadratic minima.
+/// Conceptually, optimization finds the input parameters that produce
+/// the lowest possible value of an objective surface.
+/// Formally, it computes $\min_{\mathbf{x}} f(\mathbf{x})$ subject to optional box bounds
+/// and constraints using the chosen [method] ([OptimizationMethod.nelderMead] by default
+/// for unconstrained problems, [OptimizationMethod.bfgs] for constrained problems,
+/// or [OptimizationMethod.brent] for 1D bounded problems).
+///
+/// For 1D problems, [a] and [b] can be provided to specify the bounded interval.
 ///
 /// ```dart
-/// final min = brentMinimize((x) => (x - 2) * (x - 2) + 3, a: 0.0, b: 5.0);
-/// print(min.point); // ~2.0
+/// final min = minimize(
+///   (v) => (v[0] - 2.0) * (v[0] - 2.0) + (v[1] - 3.0) * (v[1] - 3.0),
+///   initialPoint: Vector<double>.fromList([0.0, 0.0]),
+/// );
+/// print(min.point); // Vector([2.0, 3.0])
 /// ```
-({double point, double value, int iterations}) brentMinimize(
-  Object function, {
+OptimizationResult minimize(
+  double Function(Vector<double>) function, {
+  Vector<double>? initialPoint,
+  OptimizationMethod? method,
+  Vector<double> Function(Vector<double>)? gradient,
+  List<BoxBound>? bounds,
+  List<double Function(Vector<double>)>? inequalities,
+  List<double Function(Vector<double>)>? equalities,
+  double? a,
+  double? b,
+  double tolerance = 1e-8,
+  int maxIterations = 500,
+  double step = 1.0,
+  int memorySize = 7,
+}) {
+  if (tolerance <= 0) {
+    throw ArgumentError('Tolerance must be positive: $tolerance');
+  }
+  if (maxIterations <= 0) {
+    throw ArgumentError('Max iterations must be positive: $maxIterations');
+  }
+
+  var init = initialPoint;
+  var bnds = bounds;
+  var resolvedMethod = method;
+
+  if (init == null) {
+    if (a != null && b != null) {
+      init = Vector<double>.fromList([(a + b) / 2.0], type: DataType.float64);
+      bnds ??= [BoxBound(lower: a, upper: b)];
+      resolvedMethod ??= OptimizationMethod.brent;
+    } else {
+      throw ArgumentError(
+        'Either initialPoint or both interval bounds a and b must be provided.',
+      );
+    }
+  }
+
+  if (init.length == 0) {
+    throw ArgumentError('Initial point cannot be empty.');
+  }
+
+  final hasConstraints =
+      (bnds != null && bnds.isNotEmpty) ||
+      (inequalities != null && inequalities.isNotEmpty) ||
+      (equalities != null && equalities.isNotEmpty);
+
+  resolvedMethod ??= hasConstraints
+      ? OptimizationMethod.bfgs
+      : OptimizationMethod.nelderMead;
+
+  if (resolvedMethod == OptimizationMethod.brent) {
+    final low =
+        a ??
+        (bnds != null && bnds.isNotEmpty ? bnds[0].lower : null) ??
+        (init[0] - 1.0);
+    final high =
+        b ??
+        (bnds != null && bnds.isNotEmpty ? bnds[0].upper : null) ??
+        (init[0] + 1.0);
+    final res = _brentMinimize(
+      (x) => function(Vector<double>.fromList([x], type: DataType.float64)),
+      a: low,
+      b: high,
+      tolerance: tolerance,
+      maxIterations: maxIterations,
+    );
+    return OptimizationResult(
+      point: Vector<double>.fromList([res.point], type: DataType.float64),
+      value: res.value,
+      iterations: res.iterations,
+      converged: true,
+    );
+  }
+
+  if (hasConstraints) {
+    final res = _minimizeConstrained(
+      function,
+      init,
+      gradient: gradient,
+      bounds: bnds,
+      inequalities: inequalities,
+      equalities: equalities,
+      tolerance: tolerance,
+      maxIterations: maxIterations,
+    );
+    return OptimizationResult(
+      point: res.point,
+      value: res.value,
+      iterations: res.iterations,
+      gradientNorm: res.gradientNorm,
+      converged: res.converged,
+    );
+  }
+
+  switch (resolvedMethod) {
+    case OptimizationMethod.nelderMead:
+      final res = _nelderMead(
+        function,
+        init,
+        step: step,
+        tolerance: tolerance,
+        maxIterations: maxIterations,
+      );
+      return OptimizationResult(
+        point: res.point,
+        value: res.value,
+        iterations: res.iterations,
+        converged: true,
+      );
+    case OptimizationMethod.bfgs:
+      final res = _bfgs(
+        function,
+        init,
+        gradient: gradient,
+        tolerance: tolerance,
+        maxIterations: maxIterations,
+      );
+      return OptimizationResult(
+        point: res.point,
+        value: res.value,
+        iterations: res.iterations,
+        gradientNorm: res.gradientNorm,
+        converged: res.gradientNorm <= tolerance,
+      );
+    case OptimizationMethod.lbfgs:
+      final res = _lbfgs(
+        function,
+        init,
+        gradient: gradient,
+        memorySize: memorySize,
+        tolerance: tolerance,
+        maxIterations: maxIterations,
+      );
+      return OptimizationResult(
+        point: res.point,
+        value: res.value,
+        iterations: res.iterations,
+        gradientNorm: res.gradientNorm,
+        converged: res.gradientNorm <= tolerance,
+      );
+    case OptimizationMethod.brent:
+      throw StateError('Unreachable');
+  }
+}
+
+({double point, double value, int iterations}) _brentMinimize(
+  double Function(double) fn, {
   required double a,
   required double b,
-  String variable = 'x',
   double tolerance = 1e-8,
   int maxIterations = 100,
 }) {
-  final double Function(double) fn;
-  if (function is Expr) {
-    fn = (x) => function.evaluate({variable: x});
-  } else if (function is double Function(double)) {
-    fn = function;
-  } else if (function is num Function(num)) {
-    fn = (x) => function(x).toDouble();
-  } else if (function is Function) {
-    fn = (x) => ((function as dynamic)(x) as num).toDouble();
-  } else {
-    throw ArgumentError('Unsupported function type: ${function.runtimeType}');
-  }
-
   const goldenRatio = 0.38196601125010515179541316563436; // (3 - sqrt(5)) / 2
 
   var xA = a < b ? a : b;
@@ -131,43 +340,14 @@ import 'calculus.dart';
   return (point: x, value: fx, iterations: iter);
 }
 
-/// Derivative-free multivariate optimization using the Nelder-Mead simplex algorithm.
-///
-/// Conceptually, Nelder-Mead maneuvers a geometric simplex
-/// (a triangle or polygon) downhill across the objective surface, dynamically reflecting,
-/// expanding, and contracting until it encloses the local minimum without requiring derivatives.
-/// Formally, it implements the downhill simplex heuristic reflecting,
-/// expanding, and contracting an $n+1$ vertex polytope in $\mathbb{R}^n$.
-///
-/// ```dart
-/// final start = Vector<double>.fromList([2.0, 2.0]);
-/// final min = nelderMead((v) => v[0] * v[0] + v[1] * v[1], start);
-/// // min.point: Vector([0.0, 0.0])
-/// ```
-({Vector<double> point, double value, int iterations}) nelderMead(
-  Object function,
+({Vector<double> point, double value, int iterations}) _nelderMead(
+  double Function(Vector<double>) fn,
   Vector<double> initialPoint, {
-  List<String>? variables,
   double step = 1.0,
   double tolerance = 1e-8,
   int maxIterations = 1000,
 }) {
-  final double Function(Vector<double>) fn;
-  if (function is Expr) {
-    final vars = variables ?? (function.freeVariables.toList()..sort());
-    fn = (vec) => function.evaluate({
-      for (var i = 0; i < vec.length; i++) vars[i]: vec[i],
-    });
-  } else if (function is double Function(Vector<double>)) {
-    fn = function;
-  } else if (function is Function) {
-    fn = (vec) => ((function as dynamic)(vec) as num).toDouble();
-  } else {
-    throw ArgumentError('Unsupported function type: ${function.runtimeType}');
-  }
-
   final dim = initialPoint.length;
-  // Simplex of dim + 1 vertices
   final simplex = <Vector<double>>[initialPoint.copy()];
   for (var i = 0; i < dim; i++) {
     final vertex = initialPoint.copy();
@@ -184,7 +364,6 @@ import 'calculus.dart';
 
   var iter = 0;
   for (; iter < maxIterations; iter++) {
-    // Sort simplex by values
     final indices = List<int>.generate(dim + 1, (i) => i)
       ..sort((a, b) => values[a].compareTo(values[b]));
 
@@ -192,7 +371,6 @@ import 'calculus.dart';
     final worstIdx = indices[dim];
     final secondWorstIdx = indices[dim - 1];
 
-    // Check convergence: standard deviation of simplex values
     var meanVal = 0.0;
     for (var i = 0; i <= dim; i++) {
       meanVal += values[i];
@@ -212,7 +390,6 @@ import 'calculus.dart';
       );
     }
 
-    // Compute centroid of all vertices except worst
     final centroid = Vector<double>.filled(dim, 0.0, type: DataType.float64);
     for (var i = 0; i < dim; i++) {
       final idx = indices[i];
@@ -250,7 +427,6 @@ import 'calculus.dart';
 
     // 3. Contraction
     if (fR < values[worstIdx]) {
-      // Outside contraction
       final xC = centroid + (xR - centroid).scale(rho);
       final fC = fn(xC);
       if (fC <= fR) {
@@ -259,7 +435,6 @@ import 'calculus.dart';
         continue;
       }
     } else {
-      // Inside contraction
       final xC = centroid + (simplex[worstIdx] - centroid).scale(rho);
       final fC = fn(xC);
       if (fC < values[worstIdx]) {
@@ -285,65 +460,21 @@ import 'calculus.dart';
   return (point: simplex[bestIdx], value: values[bestIdx], iterations: iter);
 }
 
-/// Quasi-Newton BFGS unconstrained optimization.
-///
-/// Conceptually, BFGS iteratively estimates both the local gradient and surface curvature
-/// at each step, choosing optimal descent directions toward the minimum.
-/// Formally, it computes unconstrained local minima via the Broyden-Fletcher-Goldfarb-Shanno
-/// rank-2 inverse Hessian approximation updates with backtracking Armijo line search,
-/// achieving superlinear convergence. Seamlessly accepts either a closure or an [Expr].
-///
-/// ```dart
-/// final start = Vector<double>.fromList([3.0, 4.0]);
-/// final opt = bfgs((v) => v[0] * v[0] + v[1] * v[1], start);
-/// // opt.point: Vector([0.0, 0.0])
-/// ```
 ({Vector<double> point, double value, double gradientNorm, int iterations})
-bfgs(
-  Object function,
+_bfgs(
+  double Function(Vector<double>) fn,
   Vector<double> initialPoint, {
-  Object? gradient,
-  List<String>? variables,
+  Vector<double> Function(Vector<double>)? gradient,
   double tolerance = 1e-6,
   int maxIterations = 200,
 }) {
-  final double Function(Vector<double>) fn;
-  final Vector<double> Function(Vector<double>) gradFn;
-
-  if (function is Expr) {
-    final vars = variables ?? (function.freeVariables.toList()..sort());
-    fn = (vec) => function.evaluate({
-      for (var i = 0; i < vec.length; i++) vars[i]: vec[i],
-    });
-    gradFn = (vec) => numericalGradient(function, vec, variables: vars);
-  } else if (function is double Function(Vector<double>)) {
-    fn = function;
-    if (gradient is Vector<double> Function(Vector<double>)) {
-      gradFn = gradient;
-    } else if (gradient is Function) {
-      gradFn = (vec) => (gradient as dynamic)(vec) as Vector<double>;
-    } else {
-      gradFn = (vec) => numericalGradient(function, vec);
-    }
-  } else if (function is Function) {
-    fn = (vec) => ((function as dynamic)(vec) as num).toDouble();
-    if (gradient is Vector<double> Function(Vector<double>)) {
-      gradFn = gradient;
-    } else if (gradient is Function) {
-      gradFn = (vec) => (gradient as dynamic)(vec) as Vector<double>;
-    } else {
-      gradFn = (vec) => numericalGradient(fn, vec);
-    }
-  } else {
-    throw ArgumentError('Unsupported function type: ${function.runtimeType}');
-  }
-
+  final gradFn =
+      gradient ?? ((Vector<double> vec) => calculusGradient(fn, vec));
   final dim = initialPoint.length;
   var x = initialPoint.copy();
   var fx = fn(x);
   var grad = gradFn(x);
 
-  // Initial inverse Hessian approximation H0 = Identity
   var hMat = Matrix<double>.identity(dim, type: DataType.float64);
 
   var iter = 0;
@@ -353,15 +484,12 @@ bfgs(
       return (point: x, value: fx, gradientNorm: gNorm, iterations: iter);
     }
 
-    // Search direction dir = -H * grad
     final dir = -hMat.apply(grad);
 
-    // Backtracking line search with Armijo condition: f(x + alpha * dir) <= f(x) + c1 * alpha * (grad . dir)
     const c1 = 1e-4;
     var alpha = 1.0;
     final slope = grad.dot(dir);
     if (slope >= 0.0) {
-      // Re-initialize Hessian if direction is not descent
       hMat = Matrix<double>.identity(dim, type: DataType.float64);
       final pReset = -grad;
       final slopeReset = grad.dot(pReset);
@@ -403,47 +531,17 @@ bfgs(
   return (point: x, value: fx, gradientNorm: grad.norm(), iterations: iter);
 }
 
-/// Limited-memory BFGS (L-BFGS) unconstrained optimization.
 ({Vector<double> point, double value, double gradientNorm, int iterations})
-lbfgs(
-  Object function,
+_lbfgs(
+  double Function(Vector<double>) fn,
   Vector<double> initialPoint, {
-  Object? gradient,
-  List<String>? variables,
+  Vector<double> Function(Vector<double>)? gradient,
   int memorySize = 7,
   double tolerance = 1e-6,
   int maxIterations = 200,
 }) {
-  final double Function(Vector<double>) fn;
-  final Vector<double> Function(Vector<double>) gradFn;
-
-  if (function is Expr) {
-    final vars = variables ?? (function.freeVariables.toList()..sort());
-    fn = (vec) => function.evaluate({
-      for (var i = 0; i < vec.length; i++) vars[i]: vec[i],
-    });
-    gradFn = (vec) => numericalGradient(function, vec, variables: vars);
-  } else if (function is double Function(Vector<double>)) {
-    fn = function;
-    if (gradient is Vector<double> Function(Vector<double>)) {
-      gradFn = gradient;
-    } else if (gradient is Function) {
-      gradFn = (vec) => (gradient as dynamic)(vec) as Vector<double>;
-    } else {
-      gradFn = (vec) => numericalGradient(function, vec);
-    }
-  } else if (function is Function) {
-    fn = (vec) => ((function as dynamic)(vec) as num).toDouble();
-    if (gradient is Vector<double> Function(Vector<double>)) {
-      gradFn = gradient;
-    } else if (gradient is Function) {
-      gradFn = (vec) => (gradient as dynamic)(vec) as Vector<double>;
-    } else {
-      gradFn = (vec) => numericalGradient(fn, vec);
-    }
-  } else {
-    throw ArgumentError('Unsupported function type: ${function.runtimeType}');
-  }
+  final gradFn =
+      gradient ?? ((Vector<double> vec) => calculusGradient(fn, vec));
 
   var x = initialPoint.copy();
   var fx = fn(x);
@@ -460,7 +558,6 @@ lbfgs(
       return (point: x, value: fx, gradientNorm: gradNorm, iterations: iter);
     }
 
-    // L-BFGS two-loop recursion to compute search direction r = -H_k * g
     final qVec = grad.copy();
     final histLen = sHistory.length;
     final alphas = List<double>.filled(histLen, 0.0);
@@ -470,7 +567,6 @@ lbfgs(
       qVec.addScaled(yHistory[i], -alphas[i]);
     }
 
-    // Initial scale factor gamma_k = (s_{k-1} . y_{k-1}) / (y_{k-1} . y_{k-1})
     var gamma = 1.0;
     if (histLen > 0) {
       final sLast = sHistory.last;
@@ -486,7 +582,6 @@ lbfgs(
 
     final searchDir = -rVec;
 
-    // Backtracking line search
     const c1 = 1e-4;
     var alpha = 1.0;
     final slope = grad.dot(searchDir);
@@ -524,54 +619,6 @@ lbfgs(
   return (point: x, value: fx, gradientNorm: grad.norm(), iterations: iter);
 }
 
-/// Defines lower and upper bounds for a coordinate in constrained optimization.
-class BoxBound {
-  /// Creates a box bound with optional [lower] and [upper] limits.
-  const new({this.lower, this.upper});
-
-  /// The lower bound, or `null` if unbounded below ($-\infty$).
-  final double? lower;
-
-  /// The upper bound, or `null` if unbounded above ($+\infty$).
-  final double? upper;
-
-  @override
-  bool operator ==(Object other) =>
-      identical(this, other) ||
-      other is BoxBound && other.lower == lower && other.upper == upper;
-
-  @override
-  int get hashCode => Object.hash(lower, upper);
-
-  @override
-  String toString() => 'BoxBound(lower: $lower, upper: $upper)';
-}
-
-/// Minimizes a scalar objective [function] subject to box bounds and general constraints.
-///
-/// Bounded parameters are mapped through a smooth sigmoid transformation
-/// $x_i = l_i + \frac{u_i - l_i}{1 + e^{-y_i}}$, guaranteeing feasibility throughout
-/// optimization while updating gradients via the chain rule.
-///
-/// General inequality constraints ($g_i(x) \le 0$) and equality constraints
-/// ($h_j(x) = 0$) are resolved using the Augmented Lagrangian Method (ALM)
-/// with adaptive penalty parameter scaling.
-///
-/// Accepts numerical closures (`double Function(Vector<double>)`, or
-/// `double Function(double)` for 1D problems) or symbolic [Expr] expressions.
-///
-/// Example minimizing a 2D quadratic bowl subject to box bounds:
-/// ```dart
-/// final result = minimizeConstrained(
-///   (Vector<double> v) => (v[0] - 2.0) * (v[0] - 2.0) + (v[1] - 3.0) * (v[1] - 3.0),
-///   Vector<double>.fromList([0.0, 0.0], type: DataType.float64),
-///   bounds: const [
-///     BoxBound(lower: 0.0, upper: 1.0),
-///     BoxBound(lower: 0.0, upper: 1.0),
-///   ],
-/// );
-/// print(result.point); // [1.0, 1.0]
-/// ```
 ({
   Vector<double> point,
   double value,
@@ -579,14 +626,13 @@ class BoxBound {
   int iterations,
   bool converged,
 })
-minimizeConstrained(
-  Object function,
+_minimizeConstrained(
+  double Function(Vector<double>) fn,
   Vector<double> initialPoint, {
-  Object? gradient,
-  List<String>? variables,
+  Vector<double> Function(Vector<double>)? gradient,
   List<BoxBound>? bounds,
-  List<Object>? inequalities,
-  List<Object>? equalities,
+  List<double Function(Vector<double>)>? inequalities,
+  List<double Function(Vector<double>)>? equalities,
   double tolerance = 1e-6,
   int maxIterations = 200,
 }) {
@@ -600,118 +646,27 @@ minimizeConstrained(
   if (maxIterations <= 0) {
     throw ArgumentError('Max iterations must be positive: $maxIterations');
   }
-  if (variables != null && variables.length != dim) {
-    throw ArgumentError(
-      'Variables length (${variables.length}) must match initial point dimension ($dim).',
-    );
-  }
   if (bounds != null && bounds.isNotEmpty && bounds.length != dim) {
     throw ArgumentError(
       'Bounds length (${bounds.length}) must match initial point dimension ($dim).',
     );
   }
 
-  final double Function(Vector<double>) fn;
-  final Vector<double> Function(Vector<double>) baseGradFn;
-  final List<String> resolvedVars;
-
-  if (function is Expr) {
-    resolvedVars = variables ?? (function.freeVariables.toList()..sort());
-    if (resolvedVars.length != dim) {
-      throw ArgumentError(
-        'Variable count (${resolvedVars.length}) must match point dimension ($dim).',
-      );
-    }
-    fn = (vec) => function.evaluate({
-      for (var i = 0; i < dim; i++) resolvedVars[i]: vec[i],
-    });
-    if (gradient is Vector<double> Function(Vector<double>)) {
-      baseGradFn = gradient;
-    } else {
-      baseGradFn = (vec) =>
-          numericalGradient(function, vec, variables: resolvedVars);
-    }
-  } else if (function is double Function(Vector<double>)) {
-    resolvedVars = variables ?? List.generate(dim, (i) => 'x$i');
-    fn = function;
-    if (gradient is Vector<double> Function(Vector<double>)) {
-      baseGradFn = gradient;
-    } else {
-      baseGradFn = (vec) => numericalGradient(function, vec);
-    }
-  } else if (function is double Function(double) && dim == 1) {
-    resolvedVars = variables ?? ['x'];
-    fn = (vec) => function(vec[0]);
-    if (gradient is Vector<double> Function(Vector<double>)) {
-      baseGradFn = gradient;
-    } else {
-      baseGradFn = (vec) => Vector<double>.fromList([
-        numericalDerivative(function, vec[0]),
-      ], type: DataType.float64);
-    }
-  } else if (function is num Function(num) && dim == 1) {
-    resolvedVars = variables ?? ['x'];
-    fn = (vec) => function(vec[0]).toDouble();
-    if (gradient is Vector<double> Function(Vector<double>)) {
-      baseGradFn = gradient;
-    } else {
-      baseGradFn = (vec) => Vector<double>.fromList([
-        numericalDerivative(function, vec[0]),
-      ], type: DataType.float64);
-    }
-  } else if (function is Function) {
-    if (dim == 1) {
-      resolvedVars = variables ?? ['x'];
-      fn = (vec) => ((function as dynamic)(vec[0]) as num).toDouble();
-      if (gradient is Vector<double> Function(Vector<double>)) {
-        baseGradFn = gradient;
-      } else if (gradient is Function) {
-        baseGradFn = (vec) => (gradient as dynamic)(vec) as Vector<double>;
-      } else {
-        baseGradFn = (vec) => Vector<double>.fromList([
-          numericalDerivative(function, vec[0]),
-        ], type: DataType.float64);
-      }
-    } else {
-      resolvedVars = variables ?? List.generate(dim, (i) => 'x$i');
-      fn = (vec) => ((function as dynamic)(vec) as num).toDouble();
-      if (gradient is Vector<double> Function(Vector<double>)) {
-        baseGradFn = gradient;
-      } else if (gradient is Function) {
-        baseGradFn = (vec) => (gradient as dynamic)(vec) as Vector<double>;
-      } else {
-        baseGradFn = (vec) => numericalGradient(fn, vec);
-      }
-    }
-  } else {
-    throw ArgumentError('Unsupported function type: ${function.runtimeType}');
-  }
+  final baseGradFn =
+      gradient ?? ((Vector<double> vec) => calculusGradient(fn, vec));
 
   final boxTransform = _BoxTransform(
     bounds != null && bounds.isNotEmpty ? bounds : null,
   );
 
-  final parsedIneqs = <_Constraint>[];
-  if (inequalities != null) {
-    for (final ineq in inequalities) {
-      parsedIneqs.add(
-        _Constraint(
-          ineq,
-          isInequality: true,
-          variables: resolvedVars,
-          dim: dim,
-        ),
-      );
-    }
-  }
-  final parsedEqs = <_Constraint>[];
-  if (equalities != null) {
-    for (final eq in equalities) {
-      parsedEqs.add(
-        _Constraint(eq, isInequality: false, variables: resolvedVars, dim: dim),
-      );
-    }
-  }
+  final parsedIneqs = <_Constraint>[
+    if (inequalities != null)
+      for (final ineq in inequalities) _Constraint(ineq, isInequality: true),
+  ];
+  final parsedEqs = <_Constraint>[
+    if (equalities != null)
+      for (final eq in equalities) _Constraint(eq, isInequality: false),
+  ];
 
   final hasGeneralConstraints = parsedIneqs.isNotEmpty || parsedEqs.isNotEmpty;
 
@@ -725,7 +680,7 @@ minimizeConstrained(
       return boxTransform.chainRuleGradient(gradX, y);
     }
 
-    final bfgsResult = bfgs(
+    final bfgsResult = _bfgs(
       transformedFn,
       y0,
       gradient: transformedGrad,
@@ -801,24 +756,22 @@ minimizeConstrained(
       return gradX;
     }
 
-    double subproblemFn(Vector<double> y) =>
+    double transformedAugmentedLagrangian(Vector<double> y) =>
         augmentedLagrangian(boxTransform.toX(y));
 
-    Vector<double> subproblemGrad(Vector<double> y) {
+    Vector<double> transformedAugmentedLagrangianGrad(Vector<double> y) {
       final x = boxTransform.toX(y);
       final gradX = augmentedLagrangianGrad(x);
       return boxTransform.chainRuleGradient(gradX, y);
     }
 
-    final innerMaxIter = math.min(100, remainingIterations);
-    final innerTol = math.max(tolerance, 1.0 / (mu * math.sqrt(outer + 1.0)));
-
-    final subResult = bfgs(
-      subproblemFn,
+    final innerMax = math.max(10, remainingIterations);
+    final subResult = _bfgs(
+      transformedAugmentedLagrangian,
       currentY,
-      gradient: subproblemGrad,
-      tolerance: innerTol,
-      maxIterations: innerMaxIter,
+      gradient: transformedAugmentedLagrangianGrad,
+      tolerance: math.max(tolerance * 0.1, 1e-8),
+      maxIterations: innerMax,
     );
 
     totalIterations += subResult.iterations;
@@ -836,11 +789,6 @@ minimizeConstrained(
       if (hk > maxViolation) maxViolation = hk;
     }
 
-    if (maxViolation <= tolerance && subResult.gradientNorm <= tolerance * 10) {
-      isConverged = true;
-      break;
-    }
-
     for (var j = 0; j < numIneq; j++) {
       final gj = parsedIneqs[j].evaluate(currentPoint);
       lambda[j] = math.max(0.0, lambda[j] + mu * gj);
@@ -850,16 +798,20 @@ minimizeConstrained(
       nu[k] += mu * hk;
     }
 
+    if (maxViolation <= tolerance && subResult.gradientNorm <= tolerance * 10) {
+      isConverged = true;
+      break;
+    }
+
     if (maxViolation > 0.25 * prevViolation) {
-      mu = math.min(mu * 5.0, 1e8);
+      mu = math.min(mu * 10.0, 1e8);
     }
     prevViolation = maxViolation;
   }
 
-  final gradAtEnd = baseGradFn(currentPoint);
   final finalPoint = boxTransform.projectToFeasible(
     currentPoint,
-    gradX: gradAtEnd,
+    gradX: baseGradFn(currentPoint),
     tolerance: tolerance,
   );
   final finalVal = fn(finalPoint);
@@ -1009,42 +961,14 @@ class _BoxTransform {
 
 class _Constraint {
   new(
-    this.source, {
+    this.fn, {
     required this.isInequality,
-    List<String>? variables,
-    required int dim,
-  }) {
-    if (source is Expr) {
-      final expr = source as Expr;
-      final vars = variables ?? (expr.freeVariables.toList()..sort());
-      fn = (vec) => expr.evaluate({
-        for (var i = 0; i < vec.length && i < vars.length; i++) vars[i]: vec[i],
-      });
-      gradFn = (vec) => numericalGradient(expr, vec, variables: vars);
-    } else if (source is double Function(Vector<double>)) {
-      fn = source as double Function(Vector<double>);
-      gradFn = (vec) => numericalGradient(source, vec);
-    } else if (source is num Function(num) && dim == 1) {
-      final numFn = source as num Function(num);
-      fn = (vec) => numFn(vec[0]).toDouble();
-      gradFn = (vec) => Vector<double>.fromList([
-        numericalDerivative(numFn, vec[0]),
-      ], type: DataType.float64);
-    } else if (source is double Function(double) && dim == 1) {
-      final doubleFn = source as double Function(double);
-      fn = (vec) => doubleFn(vec[0]);
-      gradFn = (vec) => Vector<double>.fromList([
-        numericalDerivative(doubleFn, vec[0]),
-      ], type: DataType.float64);
-    } else {
-      throw ArgumentError('Unsupported constraint type: ${source.runtimeType}');
-    }
-  }
+    Vector<double> Function(Vector<double>)? gradFn,
+  }) : gradFn = gradFn ?? ((Vector<double> x) => calculusGradient(fn, x));
 
-  final Object source;
+  final double Function(Vector<double>) fn;
   final bool isInequality;
-  late final double Function(Vector<double>) fn;
-  late final Vector<double> Function(Vector<double>) gradFn;
+  final Vector<double> Function(Vector<double>) gradFn;
 
   double evaluate(Vector<double> x) => fn(x);
   Vector<double> gradient(Vector<double> x) => gradFn(x);
@@ -1073,3 +997,9 @@ double _sigmoidDeriv(double y) {
     return e / (denom * denom);
   }
 }
+
+/// Calculus gradient helper alias to avoid naming conflict.
+Vector<double> calculusGradient(
+  double Function(Vector<double>) function,
+  Vector<double> point,
+) => gradient(function, point);

@@ -4,7 +4,6 @@ This document defines the actionable engineering task list for `package:data`.
 
 ## Tasks
 
-- [ ] Canonical Solution-Oriented APIs (Unify Algorithm-Centric Functions)
 - [ ] Symbolic & Numeric Parity, Alignment, and Decoupling
 - [ ] Infinite Domains, Singularities (Poles), and High-Order Differentiation Restoration
 - [ ] High-Level Curve Fitting & Parametric Model Architecture Restoration
@@ -15,43 +14,6 @@ This document defines the actionable engineering task list for `package:data`.
 - [ ] Apache Arrow UTF-8 String Offset Buffer (`ArrowStringSeries`)
 - [ ] Sort-Merge Relational Join
 - [ ] Streaming CSV & JSON Parsers
-
----
-
-### [ ] Canonical Solution-Oriented APIs (Unify Algorithm-Centric Functions)
-
-- **Problem / Goal**:
-  In the greenfield rewrite, public APIs in `numeric.dart` and `linear.dart` were renamed after internal numerical techniques rather than the problems they solve:
-  - Root-finding is split into `brentRoot`, `newtonRaphson`, and `bisection`.
-  - Integration is split into `gaussKronrod` and `adaptiveSimpson`.
-  - Minimization is split into `brentMinimize`, `nelderMead`, `bfgs`, and `lbfgs`.
-  - ODE solving is split into `rk4` and `rk45`.
-  - Non-linear curve fitting is called `levenbergMarquardt`.
-  - Calculus functions carry redundant prefixes (`numericalDerivative`, `numericalSecondDerivative`, `numericalGradient`, `numericalHessian`, `numericalJacobian`) inside `package:data/numeric.dart`.
-  - Linear solvers are split into `conjugateGradient`, `gmres`, and `solveTridiagonal`.
-  This increases cognitive load, forces users to know specific numerical analysis literature, and violates the charter principle: *"Provide a single canonical way to perform an operation; avoid redundant convenience aliases... No backward compatibility is needed; update and rewrite existing code directly."*
-- **The Win**:
-  - Problem-first, canonical entrypoints (`solve`, `integrate`, `derivative`, `gradient`, `hessian`, `jacobian`, `minimize`, `solveOde`, `curveFit`) with algorithm selection handled via typed enums and robust default algorithms (e.g. `RootMethod.brent`, `IntegrationMethod.gaussKronrod`, `OptimizationMethod.nelderMead`).
-- **Target Files**:
-  - `lib/numeric.dart`
-  - `lib/linear.dart`
-  - `lib/src/numeric/root_finding.dart`
-  - `lib/src/numeric/integration.dart`
-  - `lib/src/numeric/optimization.dart`
-  - `lib/src/numeric/ode.dart`
-  - `lib/src/numeric/calculus.dart`
-  - `lib/src/numeric/curve_fit.dart`
-  - `lib/src/linear/solvers/iterative.dart` (new / unified)
-  - `test/numeric/`
-  - `test/linear/`
-- **Step-by-Step Implementation Details**:
-  1. In `lib/src/numeric/root_finding.dart`, define `enum RootMethod { brent, newtonRaphson, bisection }` and provide a single canonical function `double solve(double Function(double) function, double a, [double? b, {RootMethod method = RootMethod.brent, double tolerance = 1e-12, int maxIterations = 100, double Function(double)? derivative}])`. Purge standalone `brentRoot`, `newtonRaphson`, and `bisection` top-level exports.
-  2. In `lib/src/numeric/integration.dart`, define `enum IntegrationMethod { gaussKronrod, simpson }` and provide a single canonical function `double integrate(double Function(double) function, double a, double b, {IntegrationMethod method = IntegrationMethod.gaussKronrod, double tolerance = 1e-9, int maxDepth = 25, Iterable<double> poles = const []})`. Purge standalone `adaptiveSimpson` and `gaussKronrod` top-level exports.
-  3. In `lib/src/numeric/calculus.dart`, rename `numericalDerivative` to `derivative`, supporting an `order` parameter (1 to 6) and `accuracy` (2, 4, 6, 8 points); remove `numericalSecondDerivative`; rename `numericalGradient` to `gradient`, `numericalHessian` to `hessian`, and `numericalJacobian` to `jacobian`.
-  4. In `lib/src/numeric/optimization.dart`, provide a single canonical `minimize` function with `enum OptimizationMethod { brent, nelderMead, bfgs, lbfgs }` and unconstrained/bounded options.
-  5. In `lib/src/numeric/ode.dart`, provide a single canonical `OdeSolution solveOde(...)` with `enum OdeMethod { rk4, dormandPrince45 }`, eliminating standalone `rk4` and `rk45` top-level functions.
-  6. In `lib/src/numeric/curve_fit.dart`, rename `levenbergMarquardt` to canonical `curveFit` / `fitNonlinear`.
-  7. Update all call sites across `example/`, `doc/`, and `test/` to use the unified canonical entrypoints.
 
 ---
 

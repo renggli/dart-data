@@ -3,25 +3,113 @@ import 'dart:math' as math;
 import '../operator.dart';
 import '../vector.dart';
 
-/// Solves a general square linear system $A x = b$ using restarted GMRES(m).
+/// Iterative solver method for linear systems $A x = b$.
+enum IterativeMethod {
+  /// Conjugate Gradient algorithm for symmetric positive-definite systems.
+  conjugateGradient,
+
+  /// Generalized Minimal Residual (GMRES) algorithm for general square systems.
+  gmres,
+}
+
+/// Solves a square linear system $A x = b$ using the specified iterative [method].
 ///
-/// Conceptually, GMRES is an iterative equation solver that works on
-/// general matrices. It starts with an initial guess and iteratively minimizes
-/// the residual error until reaching convergence.
-/// More formally, it computes the Generalized Minimal Residual approximation
-/// $\mathbf{x}_m \in \mathbf{x}_0 + \mathcal{K}_m(A, \mathbf{r}_0)$ minimizing
-/// $\|\mathbf{b} - A \mathbf{x}\|_2$ using Arnoldi orthogonalization and Givens
-/// rotations with restart threshold $m = \text{restart}$.
+/// Conceptually, when an equation system has thousands of variables,
+/// direct factorization is computationally expensive. Iterative solvers refine
+/// successive approximations, converging rapidly toward the exact solution.
+///
+/// For symmetric positive-definite systems, select [IterativeMethod.conjugateGradient].
+/// For general nonsymmetric square systems, select [IterativeMethod.gmres] (the default).
 ///
 /// ```dart
 /// final a = Matrix<double>.fromRows([
-///   [3.0, 2.0],
-///   [1.0, 2.0],
+///   [4.0, 1.0],
+///   [1.0, 3.0],
 /// ]);
-/// final b = Vector<double>.fromList([5.0, 5.0]);
-/// final x = gmres(a, b);
+/// final b = Vector<double>.fromList([1.0, 2.0]);
+/// final x = solveIterative(a, b, method: IterativeMethod.conjugateGradient);
 /// ```
-Vector<T> gmres<T>(
+Vector<T> solveIterative<T>(
+  LinearOperator<T> a,
+  Vector<T> b, {
+  IterativeMethod method = IterativeMethod.gmres,
+  Vector<T>? x0,
+  int restart = 30,
+  double tolerance = 1e-10,
+  int maxIterations = 1000,
+}) {
+  switch (method) {
+    case IterativeMethod.conjugateGradient:
+      return _conjugateGradient(
+        a,
+        b,
+        x0: x0,
+        tolerance: tolerance,
+        maxIterations: maxIterations,
+      );
+    case IterativeMethod.gmres:
+      return _gmres(
+        a,
+        b,
+        x0: x0,
+        restart: restart,
+        tolerance: tolerance,
+        maxIterations: maxIterations,
+      );
+  }
+}
+
+Vector<T> _conjugateGradient<T>(
+  LinearOperator<T> a,
+  Vector<T> b, {
+  Vector<T>? x0,
+  double tolerance = 1e-10,
+  int maxIterations = 1000,
+}) {
+  if (a.rowCount != a.colCount) {
+    throw ArgumentError(
+      'Matrix A must be square, got ${a.rowCount} x ${a.colCount}',
+    );
+  }
+  if (a.rowCount != b.length) {
+    throw ArgumentError(
+      'Matrix rowCount (${a.rowCount}) must match vector b length (${b.length})',
+    );
+  }
+
+  final field = a.type.field;
+  final x =
+      x0?.copy() ??
+      Vector<T>.filled(b.length, field.additiveIdentity, type: a.type);
+  final residual = b - a.apply(x);
+  final direction = residual.copy();
+  var rsOld = residual.dot(residual);
+
+  if (field.norm(rsOld) < tolerance * tolerance) {
+    return x;
+  }
+
+  for (var i = 0; i < maxIterations; i++) {
+    final ap = a.apply(direction);
+    final pap = direction.dot(ap);
+    if (field.norm(pap) == 0.0) break;
+    final alpha = field.div(rsOld, pap);
+    x.addScaled(direction, alpha);
+    residual.addScaled(ap, field.neg(alpha));
+    final rsNew = residual.dot(residual);
+    if (field.norm(rsNew) < tolerance * tolerance) {
+      break;
+    }
+    final beta = field.div(rsNew, rsOld);
+    direction.scaleInPlace(beta);
+    direction.addScaled(residual, field.multiplicativeIdentity);
+    rsOld = rsNew;
+  }
+
+  return x;
+}
+
+Vector<T> _gmres<T>(
   LinearOperator<T> a,
   Vector<T> b, {
   Vector<T>? x0,
