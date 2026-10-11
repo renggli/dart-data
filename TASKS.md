@@ -6,7 +6,7 @@ This document defines the actionable engineering task list for `package:data`.
 
 - [x] Apache Arrow C Data Interface & IPC Stream Export
 - [x] Apache Arrow UTF-8 String Offset Buffer (`ArrowStringSeries`)
-- [ ] Sort-Merge Relational Join
+- [x] Sort-Merge Relational Join
 - [ ] Streaming CSV & JSON Parsers
 - [ ] Modularize Implementation Files (Single Responsibility, Low Coupling, High Cohesion)
 - [ ] Parallel Unit Test Hierarchy & Comprehensive Coverage (Target Near 100%)
@@ -56,7 +56,7 @@ This document defines the actionable engineering task list for `package:data`.
 
 ---
 
-### [ ] Sort-Merge Relational Join
+### [x] Sort-Merge Relational Join
 
 - **Problem / Goal**:
   DataFrame joins strictly use hash tables, requiring $\mathcal{O}(M)$ auxiliary memory and dynamic hashing.

@@ -288,4 +288,177 @@ void main() {
       check(inner['val_r'].toList()).deepEquals(['one_r', 'two_r']);
     });
   });
+
+  group('DataFrame.sortMergeJoin', () {
+    test('inner join with pre-sorted keys', () {
+      final left = DataFrame.fromColumns({
+        'id': [1, 2, 4],
+        'name': ['Alice', 'Bob', 'Dave'],
+      });
+      final right = DataFrame.fromColumns({
+        'id': [2, 3, 4],
+        'age': [25, 30, 40],
+      });
+
+      final merged = left.sortMergeJoin(right, on: ['id'], isSorted: true);
+      check(merged.rowCount).equals(2);
+      check(merged['id'].toList()).deepEquals([2, 4]);
+      check(merged['name'].toList()).deepEquals(['Bob', 'Dave']);
+      check(merged['age'].toList()).deepEquals([25, 40]);
+    });
+
+    test('left, right, and outer sort-merge joins', () {
+      final left = DataFrame.fromColumns({
+        'id': [1, 2, 4],
+        'name': ['Alice', 'Bob', 'Dave'],
+      });
+      final right = DataFrame.fromColumns({
+        'id': [2, 3, 4],
+        'age': [25, 30, 40],
+      });
+
+      final leftJoined = left.join(
+        right,
+        on: ['id'],
+        type: JoinType.left,
+        method: JoinMethod.sortMerge,
+        isSorted: true,
+      );
+      check(leftJoined.rowCount).equals(3);
+      check(leftJoined['id'].toList()).deepEquals([1, 2, 4]);
+      check(leftJoined['age'].toList()).deepEquals([null, 25, 40]);
+
+      final rightJoined = left.join(
+        right,
+        on: ['id'],
+        type: JoinType.right,
+        method: JoinMethod.sortMerge,
+        isSorted: true,
+      );
+      check(rightJoined.rowCount).equals(3);
+      check(rightJoined['id'].toList()).deepEquals([2, 3, 4]);
+      check(rightJoined['name'].toList()).deepEquals(['Bob', null, 'Dave']);
+      check(rightJoined['age'].toList()).deepEquals([25, 30, 40]);
+
+      final outerJoined = left.join(
+        right,
+        on: ['id'],
+        type: JoinType.outer,
+        method: JoinMethod.sortMerge,
+        isSorted: true,
+      );
+      check(outerJoined.rowCount).equals(4);
+      check(outerJoined['id'].toList()).deepEquals([1, 2, 3, 4]);
+      check(outerJoined['name'].toList())
+          .deepEquals(['Alice', 'Bob', null, 'Dave']);
+      check(outerJoined['age'].toList()).deepEquals([null, 25, 30, 40]);
+    });
+
+    test('handles duplicate key runs (many-to-many)', () {
+      final left = DataFrame.fromColumns({
+        'id': [1, 1, 2, 3, 3],
+        'val_l': ['a', 'b', 'c', 'd', 'e'],
+      });
+      final right = DataFrame.fromColumns({
+        'id': [1, 1, 1, 3, 4],
+        'val_r': ['u', 'v', 'w', 'x', 'y'],
+      });
+
+      final merged = left.sortMergeJoin(right, on: ['id'], isSorted: true);
+      // id 1: 2 * 3 = 6 rows
+      // id 3: 2 * 1 = 2 rows
+      check(merged.rowCount).equals(8);
+      check(merged['id'].toList()).deepEquals([1, 1, 1, 1, 1, 1, 3, 3]);
+      check(merged['val_l'].toList())
+          .deepEquals(['a', 'a', 'a', 'b', 'b', 'b', 'd', 'e']);
+      check(merged['val_r'].toList())
+          .deepEquals(['u', 'v', 'w', 'u', 'v', 'w', 'x', 'x']);
+    });
+
+    test('sorts automatically when isSorted is false', () {
+      final left = DataFrame.fromColumns({
+        'id': [4, 1, 2],
+        'name': ['Dave', 'Alice', 'Bob'],
+      });
+      final right = DataFrame.fromColumns({
+        'id': [3, 2, 4],
+        'age': [30, 25, 40],
+      });
+
+      final merged = left.sortMergeJoin(right, on: ['id']);
+      check(merged.rowCount).equals(2);
+      check(merged['id'].toList()).deepEquals([2, 4]);
+      check(merged['name'].toList()).deepEquals(['Bob', 'Dave']);
+      check(merged['age'].toList()).deepEquals([25, 40]);
+    });
+
+    test('validates sorted order when isSorted is true', () {
+      final unsortedLeft = DataFrame.fromColumns({
+        'id': [2, 1],
+        'val': ['a', 'b'],
+      });
+      final sortedRight = DataFrame.fromColumns({
+        'id': [1, 2],
+        'val': ['x', 'y'],
+      });
+
+      check(
+        () =>
+            unsortedLeft.sortMergeJoin(sortedRight, on: ['id'], isSorted: true),
+      ).throws<ArgumentError>();
+      check(
+        () =>
+            sortedRight.sortMergeJoin(unsortedLeft, on: ['id'], isSorted: true),
+      ).throws<ArgumentError>();
+    });
+
+    test('parity between hash join and sortMergeJoin across join types', () {
+      final left = DataFrame.fromColumns({
+        'k': [1, 2, 3, 5],
+        'name': ['A', 'B', 'C', 'E'],
+      });
+      final right = DataFrame.fromColumns({
+        'k': [2, 3, 4, 5],
+        'val': [20, 30, 40, 50],
+      });
+
+      for (final type in JoinType.values) {
+        final hashRes = left.join(
+          right,
+          on: ['k'],
+          type: type,
+          method: JoinMethod.hash,
+        );
+        final sortRes = left.join(
+          right,
+          on: ['k'],
+          type: type,
+          method: JoinMethod.sortMerge,
+        );
+
+        check(sortRes.rowCount).equals(hashRes.rowCount);
+        check(sortRes.columnNames).deepEquals(hashRes.columnNames);
+      }
+    });
+
+    test('handles empty DataFrames in sort-merge', () {
+      final empty = DataFrame.fromColumns({'id': <int>[], 'val': <String>[]});
+      final non = DataFrame.fromColumns({
+        'id': [1, 2],
+        'val': ['a', 'b'],
+      });
+
+      final inner = empty.sortMergeJoin(non, on: ['id'], isSorted: true);
+      check(inner.rowCount).equals(0);
+
+      final rightOuter = empty.sortMergeJoin(
+        non,
+        on: ['id'],
+        type: JoinType.right,
+        isSorted: true,
+      );
+      check(rightOuter.rowCount).equals(2);
+      check(rightOuter['id'].toList()).deepEquals([1, 2]);
+    });
+  });
 }
