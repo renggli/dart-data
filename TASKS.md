@@ -8,7 +8,7 @@ This document defines the actionable engineering task list for `package:data`.
 - [x] Apache Arrow UTF-8 String Offset Buffer (`ArrowStringSeries`)
 - [x] Sort-Merge Relational Join
 - [x] Streaming CSV & JSON Parsers
-- [ ] Modularize Implementation Files (Single Responsibility, Low Coupling, High Cohesion)
+- [x] Modularize Implementation Files (Single Responsibility, Low Coupling, High Cohesion)
 - [ ] Parallel Unit Test Hierarchy & Comprehensive Coverage (Target Near 100%)
 - [x] Backend Acceleration Parity, Dedicated Modes (Auto, Accelerated, Dart) & Verification
 - [ ] Hardware Acceleration for FFT, Signal Processing & Vectorized Operations
@@ -90,7 +90,7 @@ This document defines the actionable engineering task list for `package:data`.
 
 ---
 
-### [ ] Modularize Implementation Files (Single Responsibility, Low Coupling, High Cohesion)
+### [x] Modularize Implementation Files (Single Responsibility, Low Coupling, High Cohesion)
 
 - **Problem / Goal**:
   Several implementation files in `lib/src/` have grown very large and handle multiple distinct concerns (core data structures, hardware FFI routing, formatting, decompositions, and algorithms). This violates the Single Responsibility Principle and complicates navigation, code reviews, and tree-shaking.

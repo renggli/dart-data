@@ -125,4 +125,5 @@ export 'src/stats/distributions/multivariate/multinomial.dart';
 export 'src/stats/distributions/multivariate/multivariate_distribution.dart';
 export 'src/stats/distributions/multivariate/multivariate_normal.dart';
 export 'src/stats/hypothesis.dart';
+export 'src/stats/pca.dart';
 export 'src/stats/resampling.dart';
