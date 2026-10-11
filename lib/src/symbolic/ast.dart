@@ -1,5 +1,13 @@
 import 'dart:math' as math;
 
+import 'parser.dart';
+
+/// Mathematical constant $\pi \approx 3.141592653589793$ as a symbolic [Expr].
+const pi = Constant.pi;
+
+/// Mathematical constant $e \approx 2.718281828459045$ as a symbolic [Expr].
+const e = Constant.e;
+
 /// Sealed base class representing an algebraic expression abstract syntax tree
 /// (AST) node.
 ///
@@ -18,6 +26,30 @@ import 'dart:math' as math;
 sealed class Expr {
   /// Abstract const constructor for expression nodes.
   const new();
+
+  /// Parses a mathematical expression from [input] into an [Expr] tree.
+  ///
+  /// Supports numbers (integers, floating-point, scientific notation), mathematical
+  /// constants ([pi], [e], `\pi`, `π`), variables, basic arithmetic (`+`, `-`,
+  /// `*`, `/`, `^`, `**`), unary operators (`+`, `-`), functions ([Sin], [Cos],
+  /// [Exp], [Ln], `log`, `sqrt`), parentheses/brackets/braces, and LaTeX
+  /// constructs (`\frac{num}{den}`, `\cdot`, `\times`).
+  ///
+  /// Throws a [FormatException] if [input] cannot be parsed.
+  ///
+  /// ```dart
+  /// final f = Expr.parse('sin(pi * x) + 2 * x');
+  /// print(f.evaluate({'x': 0.5}));
+  /// ```
+  static Expr parse(String input) => ExpressionParser.parse(input);
+
+  /// Tries to parse a mathematical expression from [input], returning `null` on
+  /// syntax error.
+  ///
+  /// ```dart
+  /// final expr = Expr.tryParse('2 * x + 1');
+  /// ```
+  static Expr? tryParse(String input) => ExpressionParser.tryParse(input);
 
   /// Whether this expression depends on [name].
   bool dependsOn(String name);
@@ -92,11 +124,20 @@ final class Variable extends Expr {
 
 /// [Constant] numeric value node.
 final class Constant extends Expr {
-  /// Creates a constant numeric node with [value].
-  const new(this.value);
+  /// Creates a constant numeric node with [value] and optional symbolic [name].
+  const new(this.value, [this.name]);
+
+  /// Mathematical constant $\pi \approx 3.141592653589793$.
+  static const pi = Constant(math.pi, 'pi');
+
+  /// Mathematical constant $e \approx 2.718281828459045$.
+  static const e = Constant(math.e, 'e');
 
   /// The numeric value of this constant.
   final double value;
+
+  /// The optional symbolic name of this constant (e.g. `'pi'`, `'e'`).
+  final String? name;
 
   @override
   bool dependsOn(String name) => false;
@@ -112,13 +153,14 @@ final class Constant extends Expr {
 
   @override
   String toString() =>
-      value % 1 == 0 ? value.toInt().toString() : value.toString();
+      name ?? (value % 1 == 0 ? value.toInt().toString() : value.toString());
 
   @override
-  bool operator ==(Object other) => other is Constant && other.value == value;
+  bool operator ==(Object other) =>
+      other is Constant && other.value == value && other.name == name;
 
   @override
-  int get hashCode => value.hashCode;
+  int get hashCode => Object.hash(value, name);
 }
 
 /// [Add] expression node: left + right.

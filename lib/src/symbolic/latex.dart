@@ -20,8 +20,11 @@ extension LatexExtension on Expr {
 
 String _toLatex(Expr expr) => switch (expr) {
   Variable(:final name) => name,
-  Constant(:final value) =>
-    value % 1 == 0 ? value.toInt().toString() : value.toString(),
+  Constant(:final value, :final name) => switch (name) {
+    'pi' => r'\pi',
+    _ when name != null => name,
+    _ => value % 1 == 0 ? value.toInt().toString() : value.toString(),
+  },
   Add(:final left, :final right) => '${_toLatex(left)} + ${_toLatex(right)}',
   Sub(:final left, :final right) =>
     '${_toLatex(left)} - ${_formatSubRight(right)}',

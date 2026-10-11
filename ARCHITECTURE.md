@@ -532,7 +532,7 @@ This document describes the achieved architecture across all subsystems of `pack
 - **Reasoning**: Mathematical expressions require an abstract syntax tree (AST) for analytical manipulation, simplification, and compilation.
 - **Implementation & Constraints**:
   - Base class `Expr` (`lib/src/symbolic/ast.dart`) with immutable node subtypes:
-    - Terminals: `Constant(num value)`, `Variable(String name)`.
+    - Terminals: `Constant(double value, [String? name])` (with named constants `Constant.pi`, `Constant.e` and top-level `pi`, `e`), `Variable(String name)`.
     - Arithmetic: `Add`, `Sub`, `Mul`, `Div`, `Neg`, `Pow`.
     - Transcendental: `Sin`, `Cos`, `Exp`, `Ln`.
   - Overloads Dart arithmetic operators (`+`, `-`, `*`, `/`) so standard Dart code builds symbolic trees naturally.
@@ -625,3 +625,23 @@ This document describes the achieved architecture across all subsystems of `pack
     - Solves square $N \times N$ linear systems $f_i(x_1, \dots, x_n) = 0$.
     - Computes exact Jacobian matrix entries $A_{i, j} = \frac{\partial f_i}{\partial x_j}$ and constant vector $b_i = -f_i(\vec{0})$.
     - Solves via symbolic Gaussian elimination with partial pivoting and back-substitution, returning `Map<String, Expr>` or `null` for singular systems.
+
+### 9.9 Symbolic Mathematical Constants & PetitParser Grammar Parsing
+
+- **Reasoning**: Symbolic math requires first-class mathematical constants ($\pi, e$) and text parsing capabilities to construct AST expressions ergonomically from mathematical strings, papers, and interactive user inputs.
+- **Implementation & Constraints**:
+  - `Constant` in `lib/src/symbolic/ast.dart` supports named constants `Constant.pi` ($\pi \approx 3.141592653589793$) and `Constant.e` ($e \approx 2.718281828459045$), also exported as top-level `pi` and `e`.
+  - LaTeX serialization formats `Constant.pi` as `\pi` and `Constant.e` as `e`.
+  - Simplifier recognizes mathematical identities involving constants ($\sin(\pi) \to 0$, $\cos(\pi) \to -1$, $\ln(e) \to 1$, $e^x \to \exp(x)$, $\exp(1) \to e$), while strictly preserving named constant identity across algebraic reductions ($\pi \cdot 1 \to \pi$, $\pi + 0 \to \pi$, $\pi - 0 \to \pi$, $e^1 \to e$, $\pi - \pi \to 0$, $\pi / \pi \to 1$) without premature floating-point folding.
+  - `ExpressionParser` (`lib/src/symbolic/parser.dart`) powered by `package:petitparser`:
+    - `buildExpressionParser()` creates a customizable `Parser<Expr>` using `ExpressionBuilder<Expr>` with exact operator precedence and associativity.
+    - `Expr.parse(String input)` and `Expr.tryParse(String input)` provide high-level parsing with strict syntax validation, throwing `FormatException` on parse errors.
+    - Supported syntax:
+      - Numbers: Integers, decimals, and scientific notation (`42`, `3.14`, `1e-5`, `.5`).
+      - Named constants: `pi`, `PI`, `\pi`, `π`, `e`, `\e`, `ℯ`. Word boundary lookahead ensures no false matches against identifiers (`pixel`, `eigen`, `eta`).
+      - Variables: Alphanumeric and underscore identifiers (`x`, `y1`, `var_2`), LaTeX commands (`\theta`, `\alpha`), and direct Unicode Greek letters (`θ`, `α`, `β`).
+      - Functions: `sin`, `cos`, `exp`, `ln`, `log`, `sqrt` with parentheses `(...)`, brackets `[...]`, or curly braces `{...}`, case-insensitively and with optional LaTeX backslash (`\sin(...)`).
+      - LaTeX constructs: `\frac{num}{den}`, `\dfrac{num}{den}`, `\cdot`, `\times`, `\div`.
+      - Operators: Prefix `+`, `-`; right-associative exponentiation `^`, `**`; left-associative `*`, `/`; left-associative `+`, `-`.
+      - Delimiters: Parentheses `(...)`, brackets `[...]`, braces `{...}`.
+    - Verified defect-free with PetitParser grammar reflection linter (`linter(expressionParser).isEmpty`).

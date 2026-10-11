@@ -9,8 +9,10 @@
 /// ## Key Capabilities
 ///
 /// - **Symbolic Expressions ([Expr])**: Build trees of variables ([Variable]),
-///   constants ([Constant]), and mathematical functions like [Sin], [Cos],
-///   [Exp], and [Ln].
+///   constants ([Constant], [pi], [e]), and mathematical functions like [Sin],
+///   [Cos], [Exp], and [Ln].
+/// - **Expression Parsing**: Parse mathematical formulas from text with PetitParser
+///   using [Expr.parse] or [expressionParser].
 /// - **Analytical Calculus**: Exact differentiation
 ///   ([DifferentiationExtension.derivative], [DifferentiationExtension.diff])
 ///   with product, quotient, and chain rules; multivariate gradients
@@ -41,8 +43,7 @@
 /// import 'package:data/symbolic.dart';
 ///
 /// void main() {
-///   const x = Variable('x');
-///   final f = x.pow(3) + x * 2; // f(x) = x^3 + 2x
+///   final f = Expr.parse('x^3 + 2 * x');
 ///
 ///   // Compute exact derivative: f'(x) = 3x^2 + 2
 ///   final df = f.diff('x').simplify();
@@ -66,6 +67,7 @@ import 'src/symbolic/calculus/multivariable.dart';
 import 'src/symbolic/calculus/taylor.dart';
 import 'src/symbolic/compiler.dart';
 import 'src/symbolic/latex.dart';
+import 'src/symbolic/parser.dart';
 import 'src/symbolic/simplifier.dart';
 import 'src/symbolic/solver.dart';
 
@@ -77,5 +79,6 @@ export 'src/symbolic/calculus/multivariable.dart';
 export 'src/symbolic/calculus/taylor.dart';
 export 'src/symbolic/compiler.dart';
 export 'src/symbolic/latex.dart';
+export 'src/symbolic/parser.dart';
 export 'src/symbolic/simplifier.dart';
 export 'src/symbolic/solver.dart';

@@ -56,6 +56,12 @@ void main() {
 
       check(const Constant(4.0).toLatex()).equals('4');
       check(const Constant(4.5).toLatex()).equals('4.5');
+      check(Constant.pi.toLatex()).equals(r'\pi');
+      check(Constant.pi.toString()).equals('pi');
+      check(Constant.e.toLatex()).equals('e');
+      check(Constant.e.toString()).equals('e');
+      check(pi.toLatex()).equals(r'\pi');
+      check(e.toLatex()).equals('e');
 
       const add = Add(x, y);
       check(add.toLatex()).equals('x + y');
@@ -130,6 +136,27 @@ void main() {
       check(const Exp(x).hashCode).equals(const Exp(x).hashCode);
       check(const Ln(x) == const Ln(x)).isTrue();
       check(const Ln(x).hashCode).equals(const Ln(x).hashCode);
+    });
+
+    test('named mathematical constants pi and e', () {
+      check(pi.value).equals(math.pi);
+      check(e.value).equals(math.e);
+      check(Constant.pi).equals(pi);
+      check(Constant.e).equals(e);
+
+      check(pi.freeVariables).isEmpty();
+      check(e.freeVariables).isEmpty();
+      check(pi.dependsOn('x')).isFalse();
+      check(e.dependsOn('x')).isFalse();
+
+      check(pi.evaluate({})).equals(math.pi);
+      check(e.evaluate({})).equals(math.e);
+
+      check(pi.substitute('x', const Variable('y'))).equals(pi);
+      check(e.substitute('x', const Variable('y'))).equals(e);
+
+      check(pi.diff('x')).equals(const Constant(0.0));
+      check(e.diff('x')).equals(const Constant(0.0));
     });
 
     test('Substitution and freeVariables', () {
@@ -286,6 +313,33 @@ void main() {
       check(const Exp(Constant(0.0)).simplify()).equals(const Constant(1.0));
       check(const Ln(Constant(1.0)).simplify()).equals(const Constant(0.0));
       check(() => const Ln(Constant(0.0)).simplify()).throws<ArgumentError>();
+
+      // Constants pi and e simplifications
+      check(const Sin(Constant.pi).simplify()).equals(const Constant(0.0));
+      check(const Cos(Constant.pi).simplify()).equals(const Constant(-1.0));
+      check(const Ln(Constant.e).simplify()).equals(const Constant(1.0));
+      check(const Exp(Constant(1.0)).simplify()).equals(Constant.e);
+      check(Constant.e.pow(x).simplify()).equals(const Exp(x));
+      check(const Ln(Exp(x)).simplify()).equals(x);
+      check(const Exp(Ln(x)).simplify()).equals(x);
+      check(const Neg(Constant.pi).simplify()).equals(const Neg(Constant.pi));
+      check(const Neg(Neg(Constant.pi)).simplify()).equals(Constant.pi);
+      check((Constant.pi * const Constant(1.0)).simplify()).equals(Constant.pi);
+      check((const Constant(1.0) * Constant.pi).simplify()).equals(Constant.pi);
+      check((Constant.pi + const Constant(0.0)).simplify()).equals(Constant.pi);
+      check((const Constant(0.0) + Constant.pi).simplify()).equals(Constant.pi);
+      check((Constant.pi - const Constant(0.0)).simplify()).equals(Constant.pi);
+      check((Constant.pi / const Constant(1.0)).simplify()).equals(Constant.pi);
+      check(Constant.pi.pow(const Constant(1.0)).simplify())
+          .equals(Constant.pi);
+      check(Constant.pi.pow(const Constant(0.0)).simplify())
+          .equals(const Constant(1.0));
+      check((Constant.pi - Constant.pi).simplify()).equals(const Constant(0.0));
+      check((Constant.e * const Constant(1.0)).simplify()).equals(Constant.e);
+      check((Constant.e + const Constant(0.0)).simplify()).equals(Constant.e);
+      check(Constant.e.pow(const Constant(0.0)).simplify())
+          .equals(const Constant(1.0));
+      check(Constant.e.pow(const Constant(1.0)).simplify()).equals(Constant.e);
     });
   });
 

@@ -52,22 +52,35 @@ Expr _simplify(Expr expr) => switch (expr) {
 };
 
 Expr _simplifyAdd(Expr left, Expr right) => switch ((left, right)) {
-  (Constant(value: final l), Constant(value: final r)) => Constant(l + r),
+  (
+    Constant(name: null, value: final l),
+    Constant(name: null, value: final r),
+  ) =>
+    Constant(l + r),
   (Constant(value: 0.0), final r) => r,
   (final l, Constant(value: 0.0)) => l,
   _ => Add(left, right),
 };
 
 Expr _simplifySub(Expr left, Expr right) => switch ((left, right)) {
-  (Constant(value: final l), Constant(value: final r)) => Constant(l - r),
-  (final l, Constant(value: 0.0)) => l,
   _ when left == right => const Constant(0.0),
+  (
+    Constant(name: null, value: final l),
+    Constant(name: null, value: final r),
+  ) =>
+    Constant(l - r),
+  (final l, Constant(value: 0.0)) => l,
+  (Constant(value: 0.0), final r) => Neg(r),
   _ => Sub(left, right),
 };
 
 Expr _simplifyMul(Expr left, Expr right) => switch ((left, right)) {
-  (Constant(value: final l), Constant(value: final r)) => Constant(l * r),
   (Constant(value: 0.0), _) || (_, Constant(value: 0.0)) => const Constant(0.0),
+  (
+    Constant(name: null, value: final l),
+    Constant(name: null, value: final r),
+  ) =>
+    Constant(l * r),
   (Constant(value: 1.0), final r) => r,
   (final l, Constant(value: 1.0)) => l,
   (Constant(value: -1.0), final r) => Neg(r),
@@ -79,50 +92,70 @@ Expr _simplifyDiv(Expr left, Expr right) => switch ((left, right)) {
   (_, Constant(value: 0.0)) => throw UnsupportedError(
     'Division by zero in simplification',
   ),
-  (Constant(value: final l), Constant(value: final r)) => Constant(l / r),
+  _ when left == right => const Constant(1.0),
   (Constant(value: 0.0), _) => const Constant(0.0),
+  (
+    Constant(name: null, value: final l),
+    Constant(name: null, value: final r),
+  ) =>
+    Constant(l / r),
   (final l, Constant(value: 1.0)) => l,
   (final l, Constant(value: -1.0)) => Neg(l),
-  _ when left == right => const Constant(1.0),
   _ => Div(left, right),
 };
 
 Expr _simplifyPow(Expr base, Expr exponent) => switch ((base, exponent)) {
-  (Constant(value: final b), Constant(value: final e)) => Constant(
-    math.pow(b, e).toDouble(),
-  ),
   (_, Constant(value: 0.0)) => const Constant(1.0),
   (final b, Constant(value: 1.0)) => b,
   (Constant(value: 0.0), _) => const Constant(0.0),
   (Constant(value: 1.0), _) => const Constant(1.0),
+  (Constant(name: 'e'), final exponent) => Exp(exponent),
+  (
+    Constant(name: null, value: final b),
+    Constant(name: null, value: final e),
+  ) =>
+    Constant(math.pow(b, e).toDouble()),
   _ => Pow(base, exponent),
 };
 
 Expr _simplifyNeg(Expr expr) => switch (expr) {
-  Constant(:final value) => Constant(-value),
+  Constant(value: 0.0) => const Constant(0.0),
+  Constant(name: null, :final value) => Constant(-value),
   Neg(:final expr) => expr,
   _ => Neg(expr),
 };
 
 Expr _simplifySin(Expr expr) => switch (expr) {
-  Constant(:final value) => Constant(math.sin(value)),
+  Constant(value: 0.0) => const Constant(0.0),
+  Constant(name: 'pi') => const Constant(0.0),
+  Neg(expr: Constant(name: 'pi')) => const Constant(0.0),
+  Constant(name: null, :final value) => Constant(math.sin(value)),
   _ => Sin(expr),
 };
 
 Expr _simplifyCos(Expr expr) => switch (expr) {
-  Constant(:final value) => Constant(math.cos(value)),
+  Constant(value: 0.0) => const Constant(1.0),
+  Constant(name: 'pi') => const Constant(-1.0),
+  Neg(expr: Constant(name: 'pi')) => const Constant(-1.0),
+  Constant(name: null, :final value) => Constant(math.cos(value)),
   _ => Cos(expr),
 };
 
 Expr _simplifyExp(Expr expr) => switch (expr) {
-  Constant(:final value) => Constant(math.exp(value)),
+  Constant(value: 0.0) => const Constant(1.0),
+  Constant(value: 1.0) => Constant.e,
+  Ln(:final expr) => expr,
+  Constant(name: null, :final value) => Constant(math.exp(value)),
   _ => Exp(expr),
 };
 
 Expr _simplifyLn(Expr expr) => switch (expr) {
+  Constant(name: 'e') => const Constant(1.0),
   Constant(:final value) when value <= 0.0 => throw ArgumentError(
     'Natural logarithm domain error: $value <= 0',
   ),
-  Constant(:final value) => Constant(math.log(value)),
+  Constant(value: 1.0) => const Constant(0.0),
+  Exp(:final expr) => expr,
+  Constant(name: null, :final value) => Constant(math.log(value)),
   _ => Ln(expr),
 };
