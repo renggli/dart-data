@@ -129,7 +129,14 @@ Vector<double> solveSystem(
                 (2.0 * step);
           });
 
-    final delta = jac.solve(residual);
+    Vector<double> delta;
+    try {
+      delta = jac.solve(residual);
+    } on Object catch (e) {
+      throw StateError(
+        'Failed to converge: Jacobian is singular or step failed ($e).',
+      );
+    }
     for (var i = 0; i < n; i++) {
       x[i] -= delta[i];
     }

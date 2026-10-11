@@ -4,7 +4,6 @@ This document defines the actionable engineering task list for `package:data`.
 
 ## Tasks
 
-- [ ] Linear Algebra Ergonomics: Natural 2D Indexing, General Matrix Solver, Determinant & Inverse
 - [ ] Sparse Polynomial Representation
 - [ ] Apache Arrow C Data Interface & IPC Stream Export
 - [ ] Apache Arrow UTF-8 String Offset Buffer (`ArrowStringSeries`)
@@ -13,39 +12,6 @@ This document defines the actionable engineering task list for `package:data`.
 - [ ] Modularize Implementation Files (Single Responsibility, Low Coupling, High Cohesion)
 - [ ] Parallel Unit Test Hierarchy & Comprehensive Coverage (Target Near 100%)
 - [ ] Backend Acceleration Parity, Dedicated Modes (Auto, Accelerated, Dart) & Verification
-
----
-
-
-
-
-
-
-
-
-
-### [ ] Linear Algebra Ergonomics: Natural 2D Indexing, General Matrix Solver, Determinant & Inverse
-
-- **Problem / Goal**:
-  - Matrix row indexing: In `v0.16.0`, `matrix[row]` returned a `Vector<T>` view of that row, enabling natural, universal 2D indexing syntax `matrix[r][c]`. In HEAD, `matrix[row]` is disallowed; indexing requires `matrix[(r, c)]` record syntax or `matrix.get(r, c)`.
-  - Matrix `solve`: In `v0.16.0`, `matrix.solve(b)` was a general solver on `Matrix<num>`: if square, it solved via LU decomposition; if rectangular, it automatically solved the least-squares problem via QR decomposition; and it accepted both `Vector` and multi-column `Matrix` right-hand sides. In HEAD, `Matrix.solve(b)` is restricted to square matrices, only accepts `Vector<T>`, and throws `ArgumentError` if rectangular or given a matrix RHS.
-  - Missing determinant and inverse: `v0.16.0` provided `matrix.det` and `matrix.inverse` directly on `Matrix<num>`. In HEAD, `matrix.inverse` was completely dropped, and `matrix.det` was hidden under `matrix.lu.det`.
-- **The Win**:
-  - Intuitive `matrix[row]` returning row `Vector<T>` view, enabling natural `matrix[r][c]` indexing.
-  - Universal `Matrix.solve(rhs)` solving square, under-determined, and over-determined (least squares) systems, supporting both `Vector<T>` and `Matrix<T>` (multiple right-hand sides).
-  - Convenient, direct access to `matrix.det` and `matrix.inverse` on `Matrix<T extends num>`.
-- **Target Files**:
-  - `lib/src/linear/matrix.dart`
-  - `test/linear/matrix_test.dart`
-- **Step-by-Step Implementation Details**:
-  1. In `lib/src/linear/matrix.dart`, add `Vector<T> operator [](int row) => this.row(row);` while maintaining `T get(int row, int col)` and `void set(int row, int col, T value)`. Ensure `operator []=((int, int), T)` or setter methods continue to provide fast element mutation.
-  2. Generalize `Matrix.solve`:
-     - Overload or parameterize `solve(Object b)` to accept either `Vector<T>` or `Matrix<T>`.
-     - When `rowCount == colCount`, route to LU solver (`dgesv` / pure-Dart LU).
-     - When `rowCount != colCount`, route automatically to QR least-squares solver (`dgels` / pure-Dart QR), returning the minimum-norm least-squares solution.
-  3. Reintroduce `T get det` / `double get det => lu.det;` directly on numeric matrices.
-  4. Reintroduce `Matrix<double> get inverse` on square invertible matrices (via LU solve against identity).
-  5. Add unit tests for `matrix[r][c]` read/write semantics, `det`, `inverse`, and square/rectangular multi-RHS solves.
 
 ---
 
@@ -177,7 +143,7 @@ This document defines the actionable engineering task list for `package:data`.
 ### [ ] Backend Acceleration Parity, Dedicated Modes (Auto, Accelerated, Dart) & Verification
 
 - **Problem / Goal**:
-  Operations accelerated by native FFI BLAS/LAPACK or SIMD (currently termed `hardware`) often silently fall back to pure Dart when acceleration is unavailable or fails, masking performance regressions or making it impossible to guarantee that hardware acceleration is actually running. Additionally, the term `hardware` is ambiguous and should be generalized to `Acceleration` / `Backend`. All backend variations (Hardware/Native FFI, SIMD, pure Dart) must be tested on identical inputs and verified to yield numerically identical outputs (within minor floating-point tolerances).
+  Operations accelerated by native FFI BLAS/LAPACK or SIMD (currently termed `hardware`) often silently fall back to pure Dart when acceleration is unavailable or fails, masking performance regressions or making it impossible to guarantee that hardware acceleration is actually running. Additionally, the term `hardware` is ambiguous and should be generalized to `Acceleration` / `Backend`. All backend variations (Hardware/Native FFI, SIMD, pure Dart) must be tested on identical inputs and verified to yield numerically identical outputs (accepting minor floating-point tolerances).
 - **The Win**:
   - Dedicated configuration enum (`AccelerationMode` or `BackendMode`):
     - `auto`: uses the fastest available approach (default).
@@ -194,4 +160,3 @@ This document defines the actionable engineering task list for `package:data`.
   2. Implement backend dispatch mechanics ensuring `hardware` fails fast with an explicit error rather than silently falling back to Dart.
   3. Modernize terminology from `hardware` to `acceleration` across APIs.
   4. Write parameterized parity test suites running identical test vectors across all backends, checking for mathematical equivalence within standard numerical tolerances.
-

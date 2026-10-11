@@ -59,10 +59,12 @@ void main() {
       m.set(0, 1, 4.5);
       m[(1, 0)] = 8.5;
       check(m.get(0, 1)).equals(4.5);
-      check(m[(0, 1)]).equals(4.5);
+      check(m[0][1]).equals(4.5);
       check(m.get(1, 0)).equals(8.5);
-      check(m[(1, 0)]).equals(8.5);
-      check(m.asTypedList).deepEquals([0.0, 4.5, 8.5, 0.0]);
+      check(m[1][0]).equals(8.5);
+      m[0][0] = 1.5;
+      check(m[0][0]).equals(1.5);
+      check(m.asTypedList).deepEquals([1.5, 4.5, 8.5, 0.0]);
     });
 
     test('row, col, diagonal slices, and transposition', () {

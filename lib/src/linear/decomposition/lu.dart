@@ -9,6 +9,22 @@ extension LuMatrixExtension<T extends num> on Matrix<T> {
   /// Computes the LU decomposition of this matrix.
   LUDecomposition<double> get lu => LUDecomposition<double>(_toDoubleMatrix());
 
+  /// Returns the determinant of this matrix.
+  double get det => lu.det;
+
+  /// Returns the multiplicative inverse of this square, non-singular matrix.
+  ///
+  /// Throws an [ArgumentError] if the matrix is not square.
+  /// Throws a [StateError] if the matrix is singular ($\det = 0$).
+  Matrix<double> get inverse {
+    if (rowCount != colCount) {
+      throw ArgumentError(
+        'Matrix must be square to be inverted, got $rowCount x $colCount.',
+      );
+    }
+    return lu.solve(Matrix<double>.identity(rowCount, type: DataType.float64));
+  }
+
   Matrix<double> _toDoubleMatrix() => this is Matrix<double>
       ? this as Matrix<double>
       : Matrix<double>.generate(
@@ -23,6 +39,22 @@ extension LuMatrixExtension<T extends num> on Matrix<T> {
 extension LuComplexMatrixExtension on Matrix<Complex> {
   /// Computes the LU decomposition of this complex matrix.
   LUDecomposition<Complex> get lu => LUDecomposition<Complex>(this);
+
+  /// Returns the determinant of this complex matrix.
+  Complex get det => lu.det;
+
+  /// Returns the multiplicative inverse of this square, non-singular complex matrix.
+  ///
+  /// Throws an [ArgumentError] if the matrix is not square.
+  /// Throws a [StateError] if the matrix is singular ($\det = 0$).
+  Matrix<Complex> get inverse {
+    if (rowCount != colCount) {
+      throw ArgumentError(
+        'Matrix must be square to be inverted, got $rowCount x $colCount.',
+      );
+    }
+    return lu.solve(Matrix<Complex>.identity(rowCount, type: DataType.complex));
+  }
 }
 
 /// LU Decomposition of an $m \times n$ matrix $A$.

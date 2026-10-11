@@ -611,8 +611,8 @@ void main() {
       final x = a.cholesky.solveVector(b);
       check(x.length).equals(2);
       final ax = a * x.toMatrix();
-      check(ax[(0, 0)]).isCloseTo(b[0], 1e-6);
-      check(ax[(1, 0)]).isCloseTo(b[1], 1e-6);
+      check(ax[0][0]).isCloseTo(b[0], 1e-6);
+      check(ax[1][0]).isCloseTo(b[1], 1e-6);
     });
 
     test('lib/numeric.dart quick start', () {

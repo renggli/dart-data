@@ -33,7 +33,7 @@ void main() {
       check(matrix.getUnchecked(2, 3)).equals(123.0);
     });
 
-    test('record indexing syntax [(r, c)]', () {
+    test('natural 2D indexing syntax [r][c] and record write [(r, c)]', () {
       final matrix = Matrix<int>.generate(
         2,
         3,
@@ -41,15 +41,18 @@ void main() {
         type: DataType.int32,
       );
 
-      check(matrix[(0, 0)]).equals(0);
-      check(matrix[(0, 2)]).equals(2);
-      check(matrix[(1, 1)]).equals(2);
-      check(matrix[(1, 2)]).equals(3);
+      check(matrix[0][0]).equals(0);
+      check(matrix[0][2]).equals(2);
+      check(matrix[1][1]).equals(2);
+      check(matrix[1][2]).equals(3);
 
-      matrix[(0, 1)] = 42;
-      check(matrix[(0, 1)]).equals(42);
+      matrix[0][1] = 42;
+      check(matrix[0][1]).equals(42);
       check(matrix.get(0, 1)).equals(42);
       check(matrix.getUnchecked(0, 1)).equals(42);
+
+      matrix[(0, 1)] = 99;
+      check(matrix[0][1]).equals(99);
     });
 
     test('bounds validation throws RangeError', () {
@@ -70,10 +73,10 @@ void main() {
       check(() => matrix.set(2, 0, 0.0)).throws<RangeError>();
       check(() => matrix.set(0, 3, 0.0)).throws<RangeError>();
 
-      check(() => matrix[(-1, 0)]).throws<RangeError>();
-      check(() => matrix[(0, -1)]).throws<RangeError>();
-      check(() => matrix[(2, 0)]).throws<RangeError>();
-      check(() => matrix[(0, 3)]).throws<RangeError>();
+      check(() => matrix[-1]).throws<RangeError>();
+      check(() => matrix[2]).throws<RangeError>();
+      check(() => matrix[0][-1]).throws<RangeError>();
+      check(() => matrix[0][3]).throws<RangeError>();
 
       check(() => matrix[(-1, 0)] = 0.0).throws<RangeError>();
       check(() => matrix[(0, -1)] = 0.0).throws<RangeError>();
@@ -97,7 +100,7 @@ void main() {
         for (var c = 0; c < 2; c++) {
           check(trans.get(r, c)).equals(matrix.get(c, r));
           check(trans.getUnchecked(r, c)).equals(matrix.getUnchecked(c, r));
-          check(trans[(r, c)]).equals(matrix[(c, r)]);
+          check(trans[r][c]).equals(matrix[c][r]);
         }
       }
 
@@ -123,13 +126,13 @@ void main() {
       check(sub.rowCount).equals(2);
       check(sub.colCount).equals(3);
 
-      check(sub[(0, 0)]).equals(matrix[(1, 1)]);
+      check(sub[0][0]).equals(matrix[1][1]);
       check(sub.getUnchecked(0, 0)).equals(matrix.getUnchecked(1, 1));
-      check(sub[(1, 2)]).equals(matrix[(2, 3)]);
+      check(sub[1][2]).equals(matrix[2][3]);
       check(sub.getUnchecked(1, 2)).equals(matrix.getUnchecked(2, 3));
 
-      sub[(0, 0)] = 999;
-      check(matrix.get(1, 1)).equals(999);
+      sub[0][0] = 999;
+      check(matrix[1][1]).equals(999);
     });
 
     test('0-sized matrices bounds and factories', () {
@@ -137,7 +140,7 @@ void main() {
       check(m00.rowCount).equals(0);
       check(m00.colCount).equals(0);
       check(() => m00.get(0, 0)).throws<RangeError>();
-      check(() => m00[(0, 0)]).throws<RangeError>();
+      check(() => m00[0]).throws<RangeError>();
 
       final m03 = Matrix<double>.generate(0, 3, (r, c) => 0.0);
       check(m03.rowCount).equals(0);
@@ -392,6 +395,190 @@ void main() {
       check(() => (strMat as dynamic).svd).throws<NoSuchMethodError>();
       // ignore: avoid_dynamic_calls
       check(() => (strMat as dynamic).eigenvalue).throws<NoSuchMethodError>();
+    });
+  });
+
+  group('Matrix.solve', () {
+    test('square matrix with Vector RHS (Ax = b)', () {
+      final a = Matrix<double>.fromRows([
+        [2.0, 1.0],
+        [1.0, 3.0],
+      ]);
+      final b = Vector<double>.fromList([4.0, 7.0]);
+      final x = a.solve(b);
+
+      check(x.length).equals(2);
+      check(x[0]).isCloseTo(1.0, 1e-10);
+      check(x[1]).isCloseTo(2.0, 1e-10);
+    });
+
+    test('square matrix with multi-column Matrix RHS (AX = B)', () {
+      final a = Matrix<double>.fromRows([
+        [2.0, 1.0],
+        [1.0, 3.0],
+      ]);
+      final b = Matrix<double>.fromRows([
+        [4.0, 5.0],
+        [7.0, 5.0],
+      ]);
+      final x = a.solve(b);
+
+      check(x.rowCount).equals(2);
+      check(x.colCount).equals(2);
+      // Col 0: [1.0, 2.0]
+      check(x[0][0]).isCloseTo(1.0, 1e-10);
+      check(x[1][0]).isCloseTo(2.0, 1e-10);
+      // Col 1: [2.0, 1.0]
+      check(x[0][1]).isCloseTo(2.0, 1e-10);
+      check(x[1][1]).isCloseTo(1.0, 1e-10);
+
+      // Verify A * X == B
+      final ax = a * x;
+      check(ax[0][0]).isCloseTo(4.0, 1e-10);
+      check(ax[0][1]).isCloseTo(5.0, 1e-10);
+      check(ax[1][0]).isCloseTo(7.0, 1e-10);
+      check(ax[1][1]).isCloseTo(5.0, 1e-10);
+    });
+
+    test('overdetermined rectangular matrix with Vector RHS (least-squares via QR)', () {
+      // 3 data points: (1, 2), (2, 3), (3, 5) fitted to y = c0 + c1 * x
+      final a = Matrix<double>.fromRows([
+        [1.0, 1.0],
+        [1.0, 2.0],
+        [1.0, 3.0],
+      ]);
+      final b = Vector<double>.fromList([2.0, 3.0, 5.0]);
+      final x = a.solve(b);
+
+      check(x.length).equals(2);
+      // Normal equations: A^T A x = A^T b
+      // A^T A = [[3, 6], [6, 14]], A^T b = [10, 23]
+      // x = [1/3, 3/2] = [0.33333333, 1.5]
+      check(x[0]).isCloseTo(1.0 / 3.0, 1e-10);
+      check(x[1]).isCloseTo(1.5, 1e-10);
+    });
+
+    test('overdetermined rectangular matrix with Matrix RHS (least-squares via QR)', () {
+      final a = Matrix<double>.fromRows([
+        [1.0, 1.0],
+        [1.0, 2.0],
+        [1.0, 3.0],
+      ]);
+      final b = Matrix<double>.fromRows([
+        [2.0, 4.0],
+        [3.0, 6.0],
+        [5.0, 10.0],
+      ]);
+      final x = a.solve(b);
+
+      check(x.rowCount).equals(2);
+      check(x.colCount).equals(2);
+      // Col 0: [1/3, 1.5]
+      check(x[0][0]).isCloseTo(1.0 / 3.0, 1e-10);
+      check(x[1][0]).isCloseTo(1.5, 1e-10);
+      // Col 1: [2/3, 3.0]
+      check(x[0][1]).isCloseTo(2.0 / 3.0, 1e-10);
+      check(x[1][1]).isCloseTo(3.0, 1e-10);
+    });
+
+    test('dimension mismatch and invalid argument errors', () {
+      final a = Matrix<double>.fromRows([
+        [1.0, 2.0],
+        [3.0, 4.0],
+      ]);
+      final v3 = Vector<double>.fromList([1.0, 2.0, 3.0]);
+      final m3 = Matrix<double>.filled(3, 2, 1.0);
+
+      check(() => a.solve(v3)).throws<ArgumentError>();
+      check(() => a.solve(m3)).throws<ArgumentError>();
+      check(() => a.solve('invalid')).throws<ArgumentError>();
+    });
+  });
+
+  group('Matrix.det and Matrix.inverse', () {
+    test('determinant of 2x2 and 3x3 matrices', () {
+      final a2 = Matrix<double>.fromRows([
+        [3.0, 8.0],
+        [4.0, 6.0],
+      ]);
+      check(a2.det).isCloseTo(-14.0, 1e-10);
+
+      final a3 = Matrix<double>.fromRows([
+        [6.0, 1.0, 1.0],
+        [4.0, -2.0, 5.0],
+        [2.0, 8.0, 7.0],
+      ]);
+      // det = 6*(-14 - 40) - 1*(28 - 10) + 1*(32 - (-4)) = 6*(-54) - 18 + 36 = -324 - 18 + 36 = -306
+      check(a3.det).isCloseTo(-306.0, 1e-10);
+    });
+
+    test('inverse of 2x2 and 3x3 invertible matrices', () {
+      final a2 = Matrix<double>.fromRows([
+        [4.0, 7.0],
+        [2.0, 6.0],
+      ]);
+      final inv2 = a2.inverse;
+      final ident2 = a2 * inv2;
+
+      check(ident2[0][0]).isCloseTo(1.0, 1e-10);
+      check(ident2[0][1]).isCloseTo(0.0, 1e-10);
+      check(ident2[1][0]).isCloseTo(0.0, 1e-10);
+      check(ident2[1][1]).isCloseTo(1.0, 1e-10);
+
+      final a3 = Matrix<double>.fromRows([
+        [1.0, 2.0, 3.0],
+        [0.0, 1.0, 4.0],
+        [5.0, 6.0, 0.0],
+      ]);
+      final inv3 = a3.inverse;
+      final ident3 = a3 * inv3;
+
+      for (var r = 0; r < 3; r++) {
+        for (var c = 0; c < 3; c++) {
+          check(ident3[r][c]).isCloseTo(r == c ? 1.0 : 0.0, 1e-10);
+        }
+      }
+    });
+
+    test('inverse error conditions: non-square and singular', () {
+      final nonSquare = Matrix<double>.filled(2, 3, 1.0);
+      check(() => nonSquare.inverse).throws<ArgumentError>();
+
+      final singular = Matrix<double>.fromRows([
+        [1.0, 2.0],
+        [2.0, 4.0],
+      ]);
+      check(() => singular.inverse).throws<ArgumentError>();
+    });
+
+    test('Float64Matrix det and inverse', () {
+      final m = Float64Matrix.fromRows([
+        [2.0, 1.0],
+        [1.0, 2.0],
+      ]);
+      check(m.det).isCloseTo(3.0, 1e-10);
+
+      final inv = m.inverse;
+      check(inv[0][0]).isCloseTo(2.0 / 3.0, 1e-10);
+      check(inv[0][1]).isCloseTo(-1.0 / 3.0, 1e-10);
+      check(inv[1][0]).isCloseTo(-1.0 / 3.0, 1e-10);
+      check(inv[1][1]).isCloseTo(2.0 / 3.0, 1e-10);
+    });
+
+    test('Complex matrix det and inverse', () {
+      final cMat = Matrix<Complex>.fromRows([
+        [const Complex(1.0, 1.0), const Complex(0.0, 0.0)],
+        [const Complex(0.0, 0.0), const Complex(2.0, 0.0)],
+      ]);
+      check(cMat.det.a).isCloseTo(2.0, 1e-10);
+      check(cMat.det.b).isCloseTo(2.0, 1e-10);
+
+      final cInv = cMat.inverse;
+      // 1 / (1 + i) = (1 - i) / 2 = 0.5 - 0.5i
+      check(cInv[0][0].a).isCloseTo(0.5, 1e-10);
+      check(cInv[0][0].b).isCloseTo(-0.5, 1e-10);
+      check(cInv[1][1].a).isCloseTo(0.5, 1e-10);
+      check(cInv[1][1].b).isCloseTo(0.0, 1e-10);
     });
   });
 }

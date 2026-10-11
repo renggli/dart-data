@@ -7,8 +7,9 @@ import '../tensor/layout.dart';
 import '../tensor/operations/matmul.dart';
 import '../tensor/operations/operation.dart';
 import '../tensor/tensor.dart';
+import 'decomposition/lu.dart';
+import 'decomposition/qr.dart';
 import 'operator.dart';
-import 'solvers/iterative.dart';
 import 'vector.dart';
 
 /// 2-dimensional mathematical matrix backed by a rank-2 [Tensor].
@@ -238,9 +239,18 @@ class Matrix<T> implements LinearOperator<T> {
     setUnchecked(row, col, value);
   }
 
-  /// Gets the element at [pos] `(row, col)`.
+  /// Returns a mutable [Vector] view of the given [row].
+  ///
+  /// This enables natural 2D indexing syntax `matrix[r][c]`:
+  /// ```dart
+  /// final val = matrix[row][col];
+  /// matrix[row][col] = 42.0;
+  /// ```
   @pragma('vm:prefer-inline')
-  T operator []((int row, int col) pos) => get(pos.$1, pos.$2);
+  Vector<T> operator [](int row) {
+    RangeError.checkValidIndex(row, this, 'row', rowCount);
+    return this.row(row);
+  }
 
   /// Sets the element at [pos] `(row, col)` to [value].
   @pragma('vm:prefer-inline')
@@ -416,13 +426,21 @@ class Matrix<T> implements LinearOperator<T> {
     );
   }
 
-  /// Solves the linear system $A x = b$ for unknown vector $x$.
+  /// Solves the linear system $A x = b$ or linear least-squares problem $A x \approx b$.
   ///
-  /// Conceptually, this solves a system of simultaneous linear equations
-  /// (such as $2x + 3y = 8$ and $4x - y = 2$) for all variables simultaneously.
-  /// Formally, this computes $x = A^{-1} b$ using LAPACK GESV LU factorization
-  /// with partial pivoting when hardware acceleration is available, falling back to
-  /// the [solveIterative] solver.
+  /// Conceptually, this solves for the unknown vector or matrix that satisfies
+  /// the system $A x = b$. If the system is overdetermined or underdetermined
+  /// ($m \ne n$), it automatically finds the least-squares solution minimizing
+  /// $\|A x - b\|_2$.
+  ///
+  /// Accepts either a [Vector] or a multi-column [Matrix] right-hand side:
+  /// - When [b] is a [Vector], returns the solution [Vector] of length [colCount].
+  /// - When [b] is a [Matrix], returns the solution [Matrix] of shape `[colCount, b.colCount]`.
+  ///
+  /// For square matrices ($m = n$), the system is solved via LU decomposition
+  /// with partial pivoting (`dgesv` or pure-Dart LU).
+  /// For rectangular matrices ($m \ne n$), the least-squares solution is
+  /// computed via QR decomposition (`dgels` or pure-Dart QR).
   ///
   /// ```dart
   /// final a = Matrix<double>.fromRows([
@@ -432,39 +450,164 @@ class Matrix<T> implements LinearOperator<T> {
   /// final b = Vector<double>.fromList([4.0, 7.0]);
   /// final x = a.solve(b); // [1.0, 2.0]
   /// ```
-  Vector<T> solve(Vector<T> b) {
-    if (rowCount != colCount) {
-      throw StateError(
-        'Matrix must be square to solve, got $rowCount x $colCount',
-      );
-    }
-    if (rowCount != b.length) {
-      throw ArgumentError(
-        'Dimension mismatch: Matrix $rowCount x $colCount, Vector ${b.length}',
-      );
-    }
-    if (T == double) {
-      final aData = Float64List.fromList(tensor.copy().data as List<double>);
-      final bData = Float64List.fromList(b.copy().tensor.data as List<double>);
-      final success = HardwareManager.dgesv(
-        n: rowCount,
-        nrhs: 1,
-        a: aData,
-        lda: colCount,
-        b: bData,
-        ldb: 1,
-      );
-      if (success) {
-        return Vector<T>(
-          Tensor.internal(
-            type: type,
-            layout: Layout(shape: [rowCount]),
-            data: bData as List<T>,
-          ),
+  S solve<S extends Object>(S b) {
+    if (b is Vector) {
+      if (b.length != rowCount) {
+        throw ArgumentError(
+          'Dimension mismatch: Matrix $rowCount x $colCount, Vector ${b.length}',
         );
       }
+      final bVec = b is Vector<T>
+          ? b
+          : Vector<T>.generate(b.length, (i) => type.cast(b[i]), type: type);
+      if (rowCount == colCount) {
+        if (T == double) {
+          final aData = Float64List.fromList(
+            tensor.copy().data as List<double>,
+          );
+          final bData = Float64List.fromList(
+            bVec.copy().tensor.data as List<double>,
+          );
+          final success = HardwareManager.dgesv(
+            n: rowCount,
+            nrhs: 1,
+            a: aData,
+            lda: colCount,
+            b: bData,
+            ldb: 1,
+          );
+          if (success) {
+            return Vector<T>(
+              Tensor.internal(
+                type: type,
+                layout: Layout(shape: [colCount]),
+                data: bData as List<T>,
+              ),
+            ) as S;
+          }
+        }
+        return LUDecomposition<T>(this).solveVector(bVec) as S;
+      } else if (rowCount > colCount) {
+        return QRDecomposition<T>(this).solveVector(bVec) as S;
+      } else {
+        return _solveUnderdetermined(bVec) as S;
+      }
+    } else if (b is Matrix) {
+      if (b.rowCount != rowCount) {
+        throw ArgumentError(
+          'Dimension mismatch: Matrix $rowCount x $colCount, Matrix RHS ${b.rowCount} x ${b.colCount}',
+        );
+      }
+      final bMat = b is Matrix<T>
+          ? b
+          : Matrix<T>.generate(
+              b.rowCount,
+              b.colCount,
+              (r, c) => type.cast(b.get(r, c)),
+              type: type,
+            );
+      if (rowCount == colCount) {
+        if (T == double) {
+          final aData = Float64List.fromList(
+            tensor.copy().data as List<double>,
+          );
+          final bData = Float64List.fromList(
+            bMat.copy().tensor.data as List<double>,
+          );
+          final success = HardwareManager.dgesv(
+            n: rowCount,
+            nrhs: bMat.colCount,
+            a: aData,
+            lda: colCount,
+            b: bData,
+            ldb: bMat.colCount,
+          );
+          if (success) {
+            return Matrix<T>(
+              Tensor.internal(
+                type: type,
+                layout: Layout(shape: [colCount, bMat.colCount]),
+                data: bData as List<T>,
+              ),
+            ) as S;
+          }
+        }
+        return LUDecomposition<T>(this).solve(bMat) as S;
+      } else if (rowCount > colCount) {
+        return QRDecomposition<T>(this).solve(bMat) as S;
+      } else {
+        return _solveUnderdetermined(bMat) as S;
+      }
     }
-    return solveIterative(this, b);
+    throw ArgumentError.value(b, 'b', 'Expected Vector or Matrix');
+  }
+
+  S _solveUnderdetermined<S extends Object>(S b) {
+    final at = transposed;
+    final qr = QRDecomposition<T>(at);
+    if (!qr.isFullRank) {
+      throw StateError('Matrix is rank deficient.');
+    }
+    final field = type.field;
+    final rMat = qr.r;
+    if (b is Vector<T>) {
+      final y = Vector<T>.filled(rowCount, field.additiveIdentity, type: type);
+      for (var i = 0; i < rowCount; i++) {
+        var sum = b.getUnchecked(i);
+        for (var k = 0; k < i; k++) {
+          sum = field.sub(
+            sum,
+            field.mul(rMat.getUnchecked(k, i), y.getUnchecked(k)),
+          );
+        }
+        y.setUnchecked(i, field.div(sum, rMat.getUnchecked(i, i)));
+      }
+      final qMat = qr.q;
+      final x = Vector<T>.generate(colCount, (i) {
+        var sum = field.additiveIdentity;
+        for (var k = 0; k < rowCount; k++) {
+          sum = field.add(
+            sum,
+            field.mul(qMat.getUnchecked(i, k), y.getUnchecked(k)),
+          );
+        }
+        return sum;
+      }, type: type);
+      return x as S;
+    } else if (b is Matrix<T>) {
+      final nx = b.colCount;
+      final y = Matrix<T>.generate(
+        rowCount,
+        nx,
+        (r, c) => field.additiveIdentity,
+        type: type,
+      );
+      for (var j = 0; j < nx; j++) {
+        for (var i = 0; i < rowCount; i++) {
+          var sum = b.getUnchecked(i, j);
+          for (var k = 0; k < i; k++) {
+            sum = field.sub(
+              sum,
+              field.mul(rMat.getUnchecked(k, i), y.getUnchecked(k, j)),
+            );
+          }
+          y.setUnchecked(i, j, field.div(sum, rMat.getUnchecked(i, i)));
+        }
+      }
+      final qMat = qr.q;
+      final x = Matrix<T>.generate(colCount, nx, (i, j) {
+        var sum = field.additiveIdentity;
+        for (var k = 0; k < rowCount; k++) {
+          sum = field.add(
+            sum,
+            field.mul(qMat.getUnchecked(i, k), y.getUnchecked(k, j)),
+          );
+        }
+        return sum;
+      }, type: type);
+      return x as S;
+    }
+    throw ArgumentError.value(b, 'b', 'Expected Vector or Matrix');
   }
 
   /// Slices a submatrix over the given row and column ranges.

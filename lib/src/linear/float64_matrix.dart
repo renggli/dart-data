@@ -6,6 +6,7 @@ import '../../type.dart';
 import '../hardware/hardware.dart';
 import '../tensor/layout.dart';
 import '../tensor/tensor.dart';
+import 'decomposition/lu.dart';
 import 'float64_vector.dart';
 import 'matrix.dart';
 import 'vector.dart';
@@ -113,10 +114,16 @@ extension type Float64Matrix(Matrix<double> _matrix) implements Matrix<double> {
     asTypedList[t.offset + row * t.strides[0] + col * t.strides[1]] = value;
   }
 
-  /// Gets the element at [pos] `(row, col)`.
+  /// Returns a mutable [Float64Vector] view of the given [row].
+  ///
+  /// This enables natural 2D indexing syntax `matrix[r][c]`:
+  /// ```dart
+  /// final val = matrix[row][col];
+  /// matrix[row][col] = 42.0;
+  /// ```
   @pragma('vm:prefer-inline')
   @redeclare
-  double operator []((int row, int col) pos) => get(pos.$1, pos.$2);
+  Float64Vector operator [](int row) => this.row(row);
 
   /// Sets the element at [pos] `(row, col)` to [value].
   @pragma('vm:prefer-inline')
@@ -143,6 +150,12 @@ extension type Float64Matrix(Matrix<double> _matrix) implements Matrix<double> {
   /// Returns a zero-copy 1D view of the main diagonal.
   @redeclare
   Float64Vector diagonal() => Float64Vector(_matrix.diagonal());
+
+  /// Computes the determinant of this matrix.
+  double get det => _matrix.det;
+
+  /// Computes the multiplicative inverse of this square, non-singular matrix.
+  Float64Matrix get inverse => Float64Matrix(_matrix.inverse);
 
   /// High-performance matrix multiplication routing directly to BLAS `dgemm`.
   @redeclare
