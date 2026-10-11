@@ -1,7 +1,10 @@
 import 'dart:math' as math;
 
 import '../../type.dart';
+import 'arrow_string_series.dart';
 import 'bitmask.dart';
+
+export 'arrow_string_series.dart';
 
 /// 1-dimensional columnar series with optional Apache Arrow validity bitmask.
 ///
@@ -397,121 +400,8 @@ class TypedSeries<T extends num> extends Series<T> {
   String toString() => 'Series<$T>($name, length: $length, nulls: $nullCount)';
 }
 
-/// String [Series] column representation.
-class StringSeries extends Series<String> {
-  /// Creates a string series with [name], underlying string [data], and optional null [mask].
-  new({required this.name, required this.data, this.mask})
-    : length = data.length;
-
-  factory fromList(String name, List<String?> list) {
-    final len = list.length;
-    final data = List<String>.filled(len, '');
-    ValidityMask? mask;
-
-    for (var i = 0; i < len; i++) {
-      final val = list[i];
-      if (val == null) {
-        mask ??= ValidityMask(len);
-        mask.setNull(i);
-      } else {
-        data[i] = val;
-      }
-    }
-
-    return StringSeries(name: name, data: data, mask: mask);
-  }
-
-  @override
-  final String name;
-
-  /// Underlying string data buffer.
-  final List<String> data;
-
-  /// Optional validity bitmask tracking null values.
-  final ValidityMask? mask;
-
-  @override
-  final int length;
-
-  @override
-  DataType<String> get dataType => DataType.string;
-
-  @override
-  int get nullCount => mask?.nullCount ?? 0;
-
-  @override
-  bool isNull(int index) => mask?.isNull(index) ?? false;
-
-  @override
-  String? operator [](int index) => isNull(index) ? null : data[index];
-
-  @override
-  Series<String> filter(List<bool> filterMask) {
-    final filtered = <String?>[];
-    for (var i = 0; i < length; i++) {
-      if (filterMask[i]) filtered.add(this[i]);
-    }
-    return StringSeries.fromList(name, filtered);
-  }
-
-  @override
-  Series<String> slice(int start, int end) {
-    final startIndex = math.max(0, start);
-    final endIndex = math.min(length, end);
-    final sliced = <String?>[];
-    for (var i = startIndex; i < endIndex; i++) {
-      sliced.add(this[i]);
-    }
-    return StringSeries.fromList(name, sliced);
-  }
-
-  @override
-  Series<String> sort({bool ascending = true}) {
-    final indices = List<int>.generate(length, (i) => i);
-    indices.sort((a, b) {
-      final aNull = isNull(a);
-      final bNull = isNull(b);
-      if (aNull && bNull) return 0;
-      if (aNull) return 1;
-      if (bNull) return -1;
-      final cmp = data[a].compareTo(data[b]);
-      return ascending ? cmp : -cmp;
-    });
-    return StringSeries.fromList(name, [for (final idx in indices) this[idx]]);
-  }
-
-  @override
-  Series<String> rename(String newName) =>
-      StringSeries(name: newName, data: data, mask: mask);
-
-  @override
-  String? get min {
-    String? res;
-    for (var i = 0; i < length; i++) {
-      if (!isNull(i)) {
-        if (res == null || data[i].compareTo(res) < 0) res = data[i];
-      }
-    }
-    return res;
-  }
-
-  @override
-  String? get max {
-    String? res;
-    for (var i = 0; i < length; i++) {
-      if (!isNull(i)) {
-        if (res == null || data[i].compareTo(res) > 0) res = data[i];
-      }
-    }
-    return res;
-  }
-
-  @override
-  num? get sum => null;
-
-  @override
-  double? get mean => null;
-}
+/// String [Series] column representation backed by Apache Arrow-compliant [ArrowStringSeries].
+typedef StringSeries = ArrowStringSeries;
 
 /// Boolean [Series] column representation.
 class BoolSeries extends Series<bool> {

@@ -8,7 +8,7 @@
 /// ## Key Capabilities
 ///
 /// - **Columnar Series Hierarchy**: Specialized unboxed typed series ([TypedSeries]),
-///   strings ([StringSeries]), packed booleans ([BoolSeries]), and general objects ([ObjectSeries]).
+///   Arrow UTF-8 strings ([ArrowStringSeries], [StringSeries]), packed booleans ([BoolSeries]), and general objects ([ObjectSeries]).
 /// - **Zero-Allocation Slicing & Filtering**: Subsetting and filtering numeric columns
 ///   copies contiguous typed buffers directly without boxing overhead.
 /// - **Relational Hash Joins**: Inner, left, right, and full outer joins ([JoinType]) powered by
@@ -49,6 +49,7 @@ import 'src/dataframe/join.dart';
 import 'src/dataframe/json.dart';
 import 'src/dataframe/series.dart';
 
+export 'src/dataframe/arrow_string_series.dart';
 export 'src/dataframe/bitmask.dart';
 export 'src/dataframe/csv/csv_reader.dart';
 export 'src/dataframe/csv/csv_writer.dart';
