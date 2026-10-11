@@ -170,6 +170,11 @@ dart run build_runner serve web
 
 Then navigate to `http://localhost:8080/distributions/` to explore PDF/CDF curves, parameter adjustments, and real-time sampling histograms.
 
+## Related Packages
+
+- [**more**](https://pub.dev/packages/more): General data structures, collections, math utilities, and discrete graph algorithms (pathfinding, search, traversals, topological sorting, max flow).
+- [**petitparser**](https://pub.dev/packages/petitparser): Dynamic and versatile parsing framework for Dart.
+
 ## License
 
 The MIT License, see [LICENSE](https://raw.githubusercontent.com/renggli/dart-data/main/LICENSE).
