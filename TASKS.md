@@ -37,7 +37,7 @@ This document defines the actionable engineering task list for `package:data`.
 
 ---
 
-### [ ] Apache Arrow UTF-8 String Offset Buffer (`ArrowStringSeries`)
+### [x] Apache Arrow UTF-8 String Offset Buffer (`ArrowStringSeries`)
 
 - **Problem / Goal**:
   `StringSeries` stores individual Dart `String` instances on the garbage-collected heap, consuming large amounts of memory and preventing zero-copy Arrow serialization.
