@@ -51,5 +51,79 @@ void main() {
       final res = integrate(f, 0.0, 2.0, poles: [1.0]);
       check(res).isCloseTo(1.0, 1e-8);
     });
+
+    test('improper integrals over semi-infinite and infinite domains', () {
+      // \int_0^\infty exp(-x) dx = 1.0
+      double expDecay(double x) => math.exp(-x);
+      check(integrate(expDecay, 0.0, double.infinity)).isCloseTo(1.0, 1e-7);
+      check(
+        integrate(
+          expDecay,
+          0.0,
+          double.infinity,
+          method: IntegrationMethod.simpson,
+        ),
+      ).isCloseTo(1.0, 1e-7);
+
+      // \int_{-\infty}^0 exp(x) dx = 1.0
+      double expGrowth(double x) => math.exp(x);
+      check(integrate(expGrowth, double.negativeInfinity, 0.0))
+          .isCloseTo(1.0, 1e-7);
+
+      // \int_{-\infty}^\infty exp(-x^2) dx = sqrt(pi)
+      double gaussian(double x) => math.exp(-x * x);
+      check(integrate(gaussian, double.negativeInfinity, double.infinity))
+          .isCloseTo(math.sqrt(math.pi), 1e-7);
+
+      // \int_0^\infty 1 / (1 + x^2) dx = pi / 2
+      double rational(double x) => 1.0 / (1.0 + x * x);
+      check(integrate(rational, 0.0, double.infinity))
+          .isCloseTo(math.pi / 2.0, 1e-7);
+    });
+
+    test('integration with singular pole and principal value', () {
+      // 1 / sqrt(|x - 1|) on [0, 2]: singular at x = 1, anti-derivative is 2 * sqrt(|x - 1|)
+      // \int_0^1 (1 - x)^(-1/2) dx + \int_1^2 (x - 1)^(-1/2) dx = 2 + 2 = 4.0
+      double singular(double x) {
+        final diff = (x - 1.0).abs();
+        if (diff == 0.0) return double.infinity;
+        return 1.0 / math.sqrt(diff);
+      }
+
+      final res = integrate(singular, 0.0, 2.0, poles: [1.0], tolerance: 1e-5);
+      check(res).isCloseTo(4.0, 0.01);
+    });
+
+    test('warnings and convergence errors', () {
+      // 1 / x on [0, 1] diverges
+      double fDivergent(double x) => x == 0.0 ? double.infinity : 1.0 / x;
+
+      check(
+        () => integrate(
+          fDivergent,
+          0.0,
+          1.0,
+          maxDepth: 3,
+          method: IntegrationMethod.simpson,
+        ),
+      ).throws<IntegrateError>();
+
+      // onWarning intercepts warning without throwing
+      final warnings = <IntegrateWarning>[];
+      final handled = integrate(
+        fDivergent,
+        0.0,
+        1.0,
+        maxDepth: 3,
+        method: IntegrationMethod.simpson,
+        onWarning: (type, x) => warnings.add(type),
+      );
+      check(warnings).isNotEmpty();
+      check(handled.isNaN).isFalse();
+
+      // NaN bounds throw ArgumentError
+      check(() => integrate((x) => x, double.nan, 1.0)).throws<ArgumentError>();
+      check(() => integrate((x) => x, 0.0, double.nan)).throws<ArgumentError>();
+    });
   });
 }

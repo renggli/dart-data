@@ -4,7 +4,6 @@ This document defines the actionable engineering task list for `package:data`.
 
 ## Tasks
 
-- [ ] Infinite Domains, Singularities (Poles), and High-Order Differentiation Restoration
 - [ ] High-Level Curve Fitting & Parametric Model Architecture Restoration
 - [ ] Scientific Sampling Grids (`linearSpaced`, `logarithmicSpaced`, `geometricSpaced`)
 - [ ] Linear Algebra Ergonomics: Natural 2D Indexing, General Matrix Solver, Determinant & Inverse
@@ -18,37 +17,7 @@ This document defines the actionable engineering task list for `package:data`.
 
 
 
-### [ ] Infinite Domains, Singularities (Poles), and High-Order Differentiation Restoration
 
-- **Problem / Goal**:
-  In `v0.16.0`, `integrate` supported:
-  - Infinite intervals: $[-\infty, \infty]$, $[-\infty, b]$, and $[a, \infty)$ via reciprocal variable transformations ($t \in [\epsilon, 1]$).
-  - Explicit poles: `poles: [p1, p2, ...]` with interval splitting and singular boundary buffers.
-  - Warnings / convergence errors: `IntegrateWarning` (`doesNotConverge`, `depthTooShallow`) and `onWarning` callbacks.
-  In HEAD, infinite bounds and poles were completely deleted; `gaussKronrod` and `adaptiveSimpson` fail with `NaN` on infinite bounds, and silently terminate without warnings when recursion limits are reached.
-  Additionally, `v0.16.0` supported numerical derivatives of order 1 through 6 with configurable central-difference stencil accuracy (2, 4, 6, 8 points); HEAD only computes 1st and 2nd derivatives with a fixed 2-point stencil.
-- **The Win**:
-  - Full support for improper integrals over semi-infinite and infinite domains.
-  - Robust handling of functions with known poles/singularities via automatic domain partitioning.
-  - Arbitrary $n$-th order derivatives ($n \in [1, 6]$) with high-order stencil accuracy.
-- **Target Files**:
-  - `lib/src/numeric/integration.dart`
-  - `lib/src/numeric/calculus.dart`
-  - `test/numeric/integration_test.dart`
-  - `test/numeric/calculus_test.dart`
-- **Step-by-Step Implementation Details**:
-  1. In `lib/src/numeric/integration.dart`, reintroduce infinite interval transformations:
-     - For $[-\infty, \infty]$: split into $[-\infty, 0] + [0, \infty]$.
-     - For $[a, \infty)$: transform via $x = a + \frac{1-t}{t}$, substituting $dx = \frac{1}{t^2} dt$ over $t \in [\epsilon, 1]$.
-     - For $(-\infty, b]$: transform via $x = b - \frac{1-t}{t}$, substituting $dx = \frac{1}{t^2} dt$ over $t \in [\epsilon, 1]$.
-  2. Implement pole interval decomposition `_integratePoles`:
-     - Sort and normalize poles in $[a, b]$; partition into sub-intervals $[a, p_1 - \epsilon], [p_1 + \epsilon, p_2 - \epsilon], \dots, [p_n + \epsilon, b]$.
-  3. Reintroduce `enum IntegrateWarning { doesNotConverge, depthTooShallow }` and optional `onWarning` callback / `IntegrateError` exception when quadrature fails to converge.
-  4. In `lib/src/numeric/calculus.dart`, port the full precomputed central finite difference coefficient table from `v0.16.0`:
-     - Support `derivative(function, x, {int order = 1, int accuracy = 2, double step = 1e-5})` for `order` 1 through 6 and `accuracy` 2, 4, 6, 8.
-  5. Add unit tests for improper integrals ($\int_0^\infty e^{-x} dx = 1$, $\int_{-\infty}^\infty e^{-x^2} dx = \sqrt{\pi}$), integrals with poles, and higher-order derivatives (up to 6th order of polynomials/trig functions).
-
----
 
 ### [ ] High-Level Curve Fitting & Parametric Model Architecture Restoration
 

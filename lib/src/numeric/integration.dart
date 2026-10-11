@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 /// Method used for numerical quadrature.
 enum IntegrationMethod {
   /// Adaptive Gauss-Kronrod 15-point rule (GK15).
@@ -7,15 +9,45 @@ enum IntegrationMethod {
   simpson,
 }
 
-/// Computes the definite integral $\int_a^b f(x) dx$ using the specified quadrature [method].
+/// Integration warnings triggered for poorly behaving functions or recursion limits.
+enum IntegrateWarning {
+  /// Quadrature failed to converge to the requested tolerance within max depth.
+  doesNotConverge,
+
+  /// Quadrature reached maximum recursion depth.
+  depthTooShallow,
+}
+
+/// Error thrown when numerical integration fails to converge and no warning callback handles it.
+class IntegrateError extends Error {
+  new(this.type, this.x);
+
+  /// The integration warning thrown.
+  final IntegrateWarning type;
+
+  /// The approximate position of the integration warning.
+  final double x;
+
+  @override
+  String toString() => 'IntegrateError: $type near x = $x';
+}
+
+/// Computes the definite or improper integral $\int_a^b f(x) dx$ using the specified quadrature [method].
 ///
 /// Conceptually, calculating an integral evaluates the total accumulated area
 /// underneath a curve between two boundary points $x = a$ and $x = b$.
 /// Formally, it recursively subdivides intervals using the selected [method]
 /// ([IntegrationMethod.gaussKronrod] by default, or [IntegrationMethod.simpson]).
 ///
+/// Supports:
+/// - Infinite and semi-infinite integration domains ($[-\infty, \infty]$, $[-\infty, b]$, $[a, \infty)$)
+///   via reciprocal coordinate transformations ($t \in [\epsilon, 1]$).
+/// - Known poles and non-differentiable singularities via interval partitioning ([poles]).
+/// - Convergence error diagnostics and handling via [IntegrateWarning], [IntegrateError], and [onWarning].
+///
 /// ```dart
 /// final area = integrate((x) => x * x, 0.0, 3.0); // 9.0
+/// final improper = integrate((x) => math.exp(-x), 0.0, double.infinity); // 1.0
 /// ```
 double integrate(
   double Function(double) function,
@@ -25,7 +57,14 @@ double integrate(
   double tolerance = 1e-9,
   int maxDepth = 25,
   Iterable<double> poles = const [],
+  void Function(IntegrateWarning type, double x)? onWarning,
 }) {
+  if (a.isNaN) {
+    throw ArgumentError.value(a, 'a', 'Invalid lower bound');
+  }
+  if (b.isNaN) {
+    throw ArgumentError.value(b, 'b', 'Invalid upper bound');
+  }
   if (a == b) return 0.0;
   if (a > b) {
     return -integrate(
@@ -36,42 +75,71 @@ double integrate(
       tolerance: tolerance,
       maxDepth: maxDepth,
       poles: poles,
+      onWarning: onWarning,
     );
   }
 
   // Handle interior poles by interval decomposition
   if (poles.isNotEmpty) {
-    final validPoles = poles.where((p) => p > a && p < b).toSet().toList()
-      ..sort();
-    if (validPoles.isNotEmpty) {
-      var total = 0.0;
-      var current = a;
-      for (final p in validPoles) {
-        total += integrate(
+    return _integratePoles(
+      function,
+      a,
+      b,
+      method: method,
+      tolerance: tolerance,
+      maxDepth: maxDepth,
+      poles: poles,
+      onWarning: onWarning,
+    );
+  }
+
+  // Handle infinite bounds
+  if (a == double.negativeInfinity && b == double.infinity) {
+    return integrate(
           function,
-          current,
-          p,
+          a,
+          0.0,
           method: method,
           tolerance: tolerance,
           maxDepth: maxDepth,
+          onWarning: onWarning,
+        ) +
+        integrate(
+          function,
+          0.0,
+          b,
+          method: method,
+          tolerance: tolerance,
+          maxDepth: maxDepth,
+          onWarning: onWarning,
         );
-        current = p;
-      }
-      total += integrate(
-        function,
-        current,
-        b,
-        method: method,
-        tolerance: tolerance,
-        maxDepth: maxDepth,
-      );
-      return total;
-    }
+  } else if (a == double.negativeInfinity) {
+    final eps = math.max(tolerance * 1e-3, 1e-10);
+    return integrate(
+      (t) => function(b - (1.0 - t) / t) / (t * t),
+      eps,
+      1.0,
+      method: method,
+      tolerance: tolerance,
+      maxDepth: maxDepth,
+      onWarning: onWarning,
+    );
+  } else if (b == double.infinity) {
+    final eps = math.max(tolerance * 1e-3, 1e-10);
+    return integrate(
+      (t) => function(a + (1.0 - t) / t) / (t * t),
+      eps,
+      1.0,
+      method: method,
+      tolerance: tolerance,
+      maxDepth: maxDepth,
+      onWarning: onWarning,
+    );
   }
 
   switch (method) {
     case IntegrationMethod.gaussKronrod:
-      return _gaussKronrodStep(function, a, b, tolerance, maxDepth);
+      return _gaussKronrodStep(function, a, b, tolerance, maxDepth, onWarning);
     case IntegrationMethod.simpson:
       final mid = 0.5 * (a + b);
       final fa = function(a);
@@ -88,8 +156,98 @@ double integrate(
         whole,
         tolerance,
         maxDepth,
+        onWarning,
       );
   }
+}
+
+double _integratePoles(
+  double Function(double) function,
+  double a,
+  double b, {
+  required IntegrationMethod method,
+  required double tolerance,
+  required int maxDepth,
+  required Iterable<double> poles,
+  required void Function(IntegrateWarning type, double x)? onWarning,
+}) {
+  final normalized = poles.where((p) => p >= a && p <= b).toSet().toList()
+    ..sort();
+  if (normalized.isEmpty) {
+    return integrate(
+      function,
+      a,
+      b,
+      method: method,
+      tolerance: tolerance,
+      maxDepth: maxDepth,
+      poles: const [],
+      onWarning: onWarning,
+    );
+  }
+
+  bool isSingular(double p) {
+    try {
+      final v = function(p);
+      return v.isNaN || v.isInfinite;
+    } catch (_) {
+      return true;
+    }
+  }
+
+  final poleBuffer = tolerance > 1e-6 ? 1e-6 : tolerance;
+  final intervals = <({double lo, double hi})>[];
+  for (final pole in normalized) {
+    if (isSingular(pole)) {
+      intervals.add((lo: pole - poleBuffer, hi: pole + poleBuffer));
+    } else {
+      intervals.add((lo: pole, hi: pole));
+    }
+  }
+
+  final mergedIntervals = <({double lo, double hi})>[];
+  var current = intervals[0];
+  for (var i = 1; i < intervals.length; i++) {
+    final next = intervals[i];
+    if (next.lo <= current.hi) {
+      current = (lo: current.lo, hi: math.max(current.hi, next.hi));
+    } else {
+      mergedIntervals.add(current);
+      current = next;
+    }
+  }
+  mergedIntervals.add(current);
+
+  var last = a;
+  var result = 0.0;
+  for (final interval in mergedIntervals) {
+    if (last < interval.lo) {
+      result += integrate(
+        function,
+        last,
+        interval.lo,
+        method: method,
+        tolerance: tolerance,
+        maxDepth: maxDepth,
+        poles: const [],
+        onWarning: onWarning,
+      );
+    }
+    last = math.max(last, interval.hi);
+  }
+  if (last < b) {
+    result += integrate(
+      function,
+      last,
+      b,
+      method: method,
+      tolerance: tolerance,
+      maxDepth: maxDepth,
+      poles: const [],
+      onWarning: onWarning,
+    );
+  }
+  return result;
 }
 
 double _adaptiveSimpsonStep(
@@ -102,6 +260,7 @@ double _adaptiveSimpsonStep(
   double whole,
   double tol,
   int depth,
+  void Function(IntegrateWarning type, double x)? onWarning,
 ) {
   final mid = 0.5 * (a + b);
   final leftMid = 0.5 * (a + mid);
@@ -114,7 +273,25 @@ double _adaptiveSimpsonStep(
   final sum = left + right;
   final delta = sum - whole;
 
-  if (depth <= 0 || delta.abs() <= 15.0 * tol) {
+  if (sum.isNaN || delta.isNaN) {
+    if (onWarning != null) {
+      onWarning(IntegrateWarning.doesNotConverge, mid);
+    } else {
+      throw IntegrateError(IntegrateWarning.doesNotConverge, mid);
+    }
+    return sum;
+  }
+
+  if (delta.abs() <= 15.0 * tol) {
+    return sum + delta / 15.0;
+  }
+
+  if (depth <= 0) {
+    if (onWarning != null) {
+      onWarning(IntegrateWarning.depthTooShallow, mid);
+    } else {
+      throw IntegrateError(IntegrateWarning.depthTooShallow, mid);
+    }
     return sum + delta / 15.0;
   }
 
@@ -128,6 +305,7 @@ double _adaptiveSimpsonStep(
         left,
         tol * 0.5,
         depth - 1,
+        onWarning,
       ) +
       _adaptiveSimpsonStep(
         fn,
@@ -139,6 +317,7 @@ double _adaptiveSimpsonStep(
         right,
         tol * 0.5,
         depth - 1,
+        onWarning,
       );
 }
 
@@ -179,6 +358,7 @@ double _gaussKronrodStep(
   double b,
   double tol,
   int depth,
+  void Function(IntegrateWarning type, double x)? onWarning,
 ) {
   final center = 0.5 * (a + b);
   final halfWidth = 0.5 * (b - a);
@@ -208,10 +388,28 @@ double _gaussKronrodStep(
   final gaussResult = halfWidth * gaussSum;
   final error = (kronrodResult - gaussResult).abs();
 
-  if (depth <= 0 || error <= tol) {
+  if (error.isNaN || kronrodResult.isNaN) {
+    if (onWarning != null) {
+      onWarning(IntegrateWarning.doesNotConverge, center);
+    } else {
+      throw IntegrateError(IntegrateWarning.doesNotConverge, center);
+    }
     return kronrodResult;
   }
 
-  return _gaussKronrodStep(fn, a, center, tol * 0.5, depth - 1) +
-      _gaussKronrodStep(fn, center, b, tol * 0.5, depth - 1);
+  if (error <= tol) {
+    return kronrodResult;
+  }
+
+  if (depth <= 0) {
+    if (onWarning != null) {
+      onWarning(IntegrateWarning.depthTooShallow, center);
+    } else {
+      throw IntegrateError(IntegrateWarning.depthTooShallow, center);
+    }
+    return kronrodResult;
+  }
+
+  return _gaussKronrodStep(fn, a, center, tol * 0.5, depth - 1, onWarning) +
+      _gaussKronrodStep(fn, center, b, tol * 0.5, depth - 1, onWarning);
 }
