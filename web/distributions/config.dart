@@ -12,7 +12,7 @@ class ParameterConfig {
   final double step;
   final bool isInt;
 
-  new({
+  const new({
     required this.name,
     required this.label,
     required this.min,
@@ -32,7 +32,7 @@ class DistributionConfig {
   final List<ParameterConfig> parameters;
   final Distribution<num> Function(List<double> params) creator;
 
-  new({
+  const new({
     required this.id,
     required this.name,
     required this.description,
@@ -53,7 +53,7 @@ final List<DistributionConfig> distributions = [
         'foundation of binomial models.',
     isContinuous: false,
     parameters: [
-      ParameterConfig(
+      const ParameterConfig(
         name: 'p',
         label: 'Success Prob. (p)',
         min: 0.0,
@@ -73,7 +73,7 @@ final List<DistributionConfig> distributions = [
         'for binomial trials.',
     isContinuous: true,
     parameters: [
-      ParameterConfig(
+      const ParameterConfig(
         name: 'alpha',
         label: 'Shape (α)',
         min: 0.1,
@@ -81,7 +81,7 @@ final List<DistributionConfig> distributions = [
         defaultValue: 2.0,
         step: 0.1,
       ),
-      ParameterConfig(
+      const ParameterConfig(
         name: 'beta',
         label: 'Shape (β)',
         min: 0.1,
@@ -101,7 +101,7 @@ final List<DistributionConfig> distributions = [
         'statistics.',
     isContinuous: false,
     parameters: [
-      ParameterConfig(
+      const ParameterConfig(
         name: 'n',
         label: 'Trials (n)',
         min: 1,
@@ -110,7 +110,7 @@ final List<DistributionConfig> distributions = [
         step: 1,
         isInt: true,
       ),
-      ParameterConfig(
+      const ParameterConfig(
         name: 'p',
         label: 'Success Prob. (p)',
         min: 0.0,
@@ -130,7 +130,7 @@ final List<DistributionConfig> distributions = [
         'tails and high outlier frequency.',
     isContinuous: true,
     parameters: [
-      ParameterConfig(
+      const ParameterConfig(
         name: 'xo',
         label: 'Location (x₀)',
         min: -10.0,
@@ -138,7 +138,7 @@ final List<DistributionConfig> distributions = [
         defaultValue: 0.0,
         step: 0.1,
       ),
-      ParameterConfig(
+      const ParameterConfig(
         name: 'gamma',
         label: 'Scale (γ)',
         min: 0.1,
@@ -158,7 +158,7 @@ final List<DistributionConfig> distributions = [
         'squared goodness of fit).',
     isContinuous: true,
     parameters: [
-      ParameterConfig(
+      const ParameterConfig(
         name: 'dof',
         label: 'Deg. of Freedom (k)',
         min: 0.5,
@@ -178,7 +178,7 @@ final List<DistributionConfig> distributions = [
         'a probabilistic context.',
     isContinuous: true,
     parameters: [
-      ParameterConfig(
+      const ParameterConfig(
         name: 'k',
         label: 'Location (k)',
         min: -10.0,
@@ -198,7 +198,7 @@ final List<DistributionConfig> distributions = [
         'queuing theory.',
     isContinuous: true,
     parameters: [
-      ParameterConfig(
+      const ParameterConfig(
         name: 'lambda',
         label: 'Rate (λ)',
         min: 0.1,
@@ -218,7 +218,7 @@ final List<DistributionConfig> distributions = [
         'testing.',
     isContinuous: true,
     parameters: [
-      ParameterConfig(
+      const ParameterConfig(
         name: 'dof1',
         label: 'Numerator DOF (d₁)',
         min: 1.0,
@@ -226,7 +226,7 @@ final List<DistributionConfig> distributions = [
         defaultValue: 5.0,
         step: 1.0,
       ),
-      ParameterConfig(
+      const ParameterConfig(
         name: 'dof2',
         label: 'Denominator DOF (d₂)',
         min: 1.0,
@@ -246,7 +246,7 @@ final List<DistributionConfig> distributions = [
         'times and rainfall levels.',
     isContinuous: true,
     parameters: [
-      ParameterConfig(
+      const ParameterConfig(
         name: 'shape',
         label: 'Shape (k)',
         min: 0.1,
@@ -254,7 +254,7 @@ final List<DistributionConfig> distributions = [
         defaultValue: 2.0,
         step: 0.1,
       ),
-      ParameterConfig(
+      const ParameterConfig(
         name: 'scale',
         label: 'Scale (θ)',
         min: 0.1,
@@ -274,7 +274,7 @@ final List<DistributionConfig> distributions = [
         'conversions.',
     isContinuous: false,
     parameters: [
-      ParameterConfig(
+      const ParameterConfig(
         name: 'p',
         label: 'Success Prob. (p)',
         min: 0.05,
@@ -294,7 +294,7 @@ final List<DistributionConfig> distributions = [
         'and card games.',
     isContinuous: false,
     parameters: [
-      ParameterConfig(
+      const ParameterConfig(
         name: 'N',
         label: 'Population Size (N)',
         min: 10,
@@ -303,7 +303,7 @@ final List<DistributionConfig> distributions = [
         step: 1,
         isInt: true,
       ),
-      ParameterConfig(
+      const ParameterConfig(
         name: 'K',
         label: 'Success States (K)',
         min: 1,
@@ -312,7 +312,7 @@ final List<DistributionConfig> distributions = [
         step: 1,
         isInt: true,
       ),
-      ParameterConfig(
+      const ParameterConfig(
         name: 'n',
         label: 'Draws (n)',
         min: 1,
@@ -338,7 +338,7 @@ final List<DistributionConfig> distributions = [
         'distribution in Bayesian statistics.',
     isContinuous: true,
     parameters: [
-      ParameterConfig(
+      const ParameterConfig(
         name: 'shape',
         label: 'Shape (α)',
         min: 0.1,
@@ -346,7 +346,7 @@ final List<DistributionConfig> distributions = [
         defaultValue: 3.0,
         step: 0.1,
       ),
-      ParameterConfig(
+      const ParameterConfig(
         name: 'scale',
         label: 'Scale (β)',
         min: 0.1,
@@ -366,7 +366,7 @@ final List<DistributionConfig> distributions = [
         'distinct, sharp peaks.',
     isContinuous: true,
     parameters: [
-      ParameterConfig(
+      const ParameterConfig(
         name: 'mu',
         label: 'Location (μ)',
         min: -10.0,
@@ -374,7 +374,7 @@ final List<DistributionConfig> distributions = [
         defaultValue: 0.0,
         step: 0.1,
       ),
-      ParameterConfig(
+      const ParameterConfig(
         name: 'b',
         label: 'Scale (b)',
         min: 0.1,
@@ -394,7 +394,7 @@ final List<DistributionConfig> distributions = [
         'distribution or file sizes.',
     isContinuous: true,
     parameters: [
-      ParameterConfig(
+      const ParameterConfig(
         name: 'mu',
         label: 'Log Mean (μ)',
         min: -3.0,
@@ -402,7 +402,7 @@ final List<DistributionConfig> distributions = [
         defaultValue: 0.0,
         step: 0.1,
       ),
-      ParameterConfig(
+      const ParameterConfig(
         name: 'sigma',
         label: 'Log Std Dev (σ)',
         min: 0.1,
@@ -422,7 +422,7 @@ final List<DistributionConfig> distributions = [
         'scale (s). Common in logistic regression models.',
     isContinuous: true,
     parameters: [
-      ParameterConfig(
+      const ParameterConfig(
         name: 'mu',
         label: 'Location (μ)',
         min: -10.0,
@@ -430,7 +430,7 @@ final List<DistributionConfig> distributions = [
         defaultValue: 0.0,
         step: 0.1,
       ),
-      ParameterConfig(
+      const ParameterConfig(
         name: 's',
         label: 'Scale (s)',
         min: 0.1,
@@ -450,7 +450,7 @@ final List<DistributionConfig> distributions = [
         'overdispersed count data.',
     isContinuous: false,
     parameters: [
-      ParameterConfig(
+      const ParameterConfig(
         name: 'r',
         label: 'Failures Limit (r)',
         min: 0.1,
@@ -458,7 +458,7 @@ final List<DistributionConfig> distributions = [
         defaultValue: 5.0,
         step: 0.5,
       ),
-      ParameterConfig(
+      const ParameterConfig(
         name: 'p',
         label: 'Success Prob. (p)',
         min: 0.01,
@@ -478,7 +478,7 @@ final List<DistributionConfig> distributions = [
         'across physical and social sciences.',
     isContinuous: true,
     parameters: [
-      ParameterConfig(
+      const ParameterConfig(
         name: 'mu',
         label: 'Mean (μ)',
         min: -10.0,
@@ -486,7 +486,7 @@ final List<DistributionConfig> distributions = [
         defaultValue: 0.0,
         step: 0.1,
       ),
-      ParameterConfig(
+      const ParameterConfig(
         name: 'sigma',
         label: 'Std Dev (σ)',
         min: 0.1,
@@ -506,7 +506,7 @@ final List<DistributionConfig> distributions = [
         'resources is held by a tiny percentage.',
     isContinuous: true,
     parameters: [
-      ParameterConfig(
+      const ParameterConfig(
         name: 'xo',
         label: 'Scale (x₀)',
         min: 0.5,
@@ -514,7 +514,7 @@ final List<DistributionConfig> distributions = [
         defaultValue: 1.0,
         step: 0.1,
       ),
-      ParameterConfig(
+      const ParameterConfig(
         name: 'alpha',
         label: 'Shape (α)',
         min: 0.5,
@@ -534,7 +534,7 @@ final List<DistributionConfig> distributions = [
         'rate (λ).',
     isContinuous: false,
     parameters: [
-      ParameterConfig(
+      const ParameterConfig(
         name: 'lambda',
         label: 'Event Rate (λ)',
         min: 0.1,
@@ -565,7 +565,7 @@ final List<DistributionConfig> distributions = [
         'Heavy tails scale with degree of freedom.',
     isContinuous: true,
     parameters: [
-      ParameterConfig(
+      const ParameterConfig(
         name: 'dof',
         label: 'Deg. of Freedom (ν)',
         min: 0.5,
@@ -585,7 +585,7 @@ final List<DistributionConfig> distributions = [
         'baseline simulations.',
     isContinuous: true,
     parameters: [
-      ParameterConfig(
+      const ParameterConfig(
         name: 'a',
         label: 'Min (a)',
         min: -10.0,
@@ -593,7 +593,7 @@ final List<DistributionConfig> distributions = [
         defaultValue: -2.0,
         step: 0.1,
       ),
-      ParameterConfig(
+      const ParameterConfig(
         name: 'b',
         label: 'Max (b)',
         min: -9.0,
@@ -616,7 +616,7 @@ final List<DistributionConfig> distributions = [
         'equally probable. For example, rolling a standard six-sided die.',
     isContinuous: false,
     parameters: [
-      ParameterConfig(
+      const ParameterConfig(
         name: 'a',
         label: 'Min (a)',
         min: -20,
@@ -625,7 +625,7 @@ final List<DistributionConfig> distributions = [
         step: 1,
         isInt: true,
       ),
-      ParameterConfig(
+      const ParameterConfig(
         name: 'b',
         label: 'Max (b)',
         min: -19,
@@ -650,7 +650,7 @@ final List<DistributionConfig> distributions = [
         'parameters.',
     isContinuous: true,
     parameters: [
-      ParameterConfig(
+      const ParameterConfig(
         name: 'scale',
         label: 'Scale (λ)',
         min: 0.1,
@@ -658,7 +658,7 @@ final List<DistributionConfig> distributions = [
         defaultValue: 1.5,
         step: 0.1,
       ),
-      ParameterConfig(
+      const ParameterConfig(
         name: 'shape',
         label: 'Shape (k)',
         min: 0.1,

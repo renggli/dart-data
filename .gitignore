@@ -9,3 +9,6 @@
 *.iml
 pubspec.lock
 coverage/
+*.dart.js
+*.dart.js.map
+*.dart.js.deps

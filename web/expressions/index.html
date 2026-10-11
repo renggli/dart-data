@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Expressions - Symbolic & Numerical Mathematics</title>
+  <meta name="description" content="Interactive symbolic and numerical mathematics engine with calculus, differentiation, integration, and Taylor series.">
+  <link rel="stylesheet" href="../shared/style.css">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- Navigation Sidebar -->
+  <aside class="sidebar">
+    <div class="sidebar-header">
+      <h1><span class="app-icon">⚡</span> Expressions</h1>
+      <p>Symbolic & Numerical Mathematics</p>
+      <nav class="app-nav">
+        <a href="../distributions/" class="app-nav-link">📊 Distributions</a>
+        <a href="../expressions/" class="app-nav-link active">⚡ Expressions</a>
+      </nav>
+    </div>
+    <div class="search-container">
+      <input type="text" id="search-box" class="search-box" placeholder="Filter expressions..." aria-label="Filter expressions">
+    </div>
+    <nav class="sidebar-list" id="presets-list">
+      <!-- Injected dynamically from presets -->
+    </nav>
+  </aside>
+
+  <!-- Main Content Dashboard -->
+  <main class="main-content">
+    <header class="main-header">
+      <div class="header-title-container">
+        <h2 class="page-title" id="display-title">Cubic Polynomial</h2>
+        <span class="badge badge-symbolic" id="category-badge">Polynomials & Algebra</span>
+      </div>
+    </header>
+    <p class="page-desc" id="display-desc">
+      A canonical cubic curve featuring a local maximum at x = -1, local minimum at x = +1, and three real roots.
+    </p>
+
+    <!-- Formula Editor Bar & Quick Math Keypad -->
+    <section class="editor-container">
+      <div class="formula-input-bar">
+        <span class="formula-prefix">f(x) =</span>
+        <input type="text" id="expr-input" class="formula-input" value="x^3 - 3*x + 1" placeholder="Enter mathematical formula, e.g. sin(x) * exp(-0.2*x)" aria-label="Mathematical formula">
+        <span id="status-badge" class="formula-status-badge status-valid">✓ Valid</span>
+      </div>
+      <div id="parse-error-message" class="parse-error-message"></div>
+    </section>
+
+    <!-- Central Interactive Visualization Deck -->
+    <section class="card chart-card" style="margin-bottom: 24px;">
+      <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; margin-bottom: 16px; border-bottom: 1px solid rgba(255, 255, 255, 0.05); padding-bottom: 12px;">
+        <h3 class="card-title" style="margin-bottom: 0; border-bottom: none; padding-bottom: 0;"><span class="card-title-text"><span class="card-icon">📈</span> Function & Calculus Plot</span></h3>
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <span style="font-size: 12px; color: var(--text-muted);">Range:</span>
+          <input type="number" id="range-min-x" class="custom-number-input" value="-3.0" step="0.5" title="Min X">
+          <span style="color: var(--text-muted); font-size: 12px;">to</span>
+          <input type="number" id="range-max-x" class="custom-number-input" value="3.0" step="0.5" title="Max X">
+          <button class="btn btn-secondary" id="btn-zoom-reset" style="padding: 4px 10px; font-size: 12px;">Reset</button>
+        </div>
+      </div>
+
+      <div class="canvas-container">
+        <canvas id="plot-canvas" class="chart-canvas"></canvas>
+      </div>
+    </section>
+
+    <!-- Top Row: Output, Evaluation, Differentiation -->
+    <section class="grid-3">
+      <!-- Card 1: Output -->
+      <div class="card">
+        <h3 class="card-title">
+          <span class="card-title-text"><span class="card-icon">📋</span> Output</span>
+          <span class="card-actions">
+            <label class="layer-toggle active" id="toggle-lbl-fx" title="Toggle f(x) curve on plot">
+              <input type="checkbox" id="toggle-fx" class="layer-checkbox" checked>
+              <span class="layer-dot" style="background-color: var(--accent-blue);"></span>
+              <span>f(x)</span>
+            </label>
+          </span>
+        </h3>
+        <div class="attributes-list">
+          <div class="attr-item">
+            <span class="attr-label">f(x)</span>
+            <span class="attr-value" id="val-sym-fx">-</span>
+          </div>
+          <div class="attr-item">
+            <span class="attr-label">Text</span>
+            <span class="attr-value" id="val-sym-text">-</span>
+          </div>
+          <div class="attr-item">
+            <span class="attr-label">LaTeX</span>
+            <span class="attr-value" id="val-sym-latex" style="font-size: 11px;">-</span>
+          </div>
+          <div class="attr-item">
+            <span class="attr-label">MathML</span>
+            <span class="attr-value" id="val-sym-mathml" style="font-size: 11px;">-</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Card 2: Evaluation -->
+      <div class="card">
+        <h3 class="card-title">
+          <span class="card-title-text"><span class="card-icon">🎯</span> Evaluation</span>
+          <span class="card-actions">
+            <label class="layer-toggle" id="toggle-lbl-tangent" title="Toggle tangent line on plot">
+              <input type="checkbox" id="toggle-tangent" class="layer-checkbox">
+              <span class="layer-dot" style="background-color: #f8fafc;"></span>
+              <span>Tangent</span>
+            </label>
+          </span>
+        </h3>
+        <div class="parameter-input-group">
+          <div class="parameter-label-row">
+            <span class="parameter-name">Point (x<sub>0</sub>)</span>
+            <span id="point-x-display" style="font-family: var(--font-mono); font-size: 13px; font-weight: 600;">1.00</span>
+          </div>
+          <div class="parameter-control-row">
+            <input type="range" id="slider-point-x" class="custom-slider" min="-5.0" max="5.0" step="0.05" value="1.0">
+            <input type="number" id="input-point-x" class="custom-number-input" min="-100" max="100" step="0.1" value="1.0">
+          </div>
+        </div>
+
+        <div class="attributes-list" style="margin-top: 14px;">
+          <div class="attr-item">
+            <span class="attr-label">f(x<sub>0</sub>)</span>
+            <span class="attr-value" id="val-eval-fx">-</span>
+          </div>
+          <div class="attr-item">
+            <span class="attr-label">Tangent Eq</span>
+            <span class="attr-value" id="val-tangent-eq" style="font-size: 11px;">-</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Card 3: Differentiation -->
+      <div class="card">
+        <h3 class="card-title">
+          <span class="card-title-text"><span class="card-icon">📐</span> Differentiation</span>
+          <span class="card-actions">
+            <label class="layer-toggle" id="toggle-lbl-dfx" title="Toggle f'(x) derivative on plot">
+              <input type="checkbox" id="toggle-dfx" class="layer-checkbox">
+              <span class="layer-dot" style="background-color: var(--accent-red);"></span>
+              <span>f'(x)</span>
+            </label>
+            <label class="layer-toggle" id="toggle-lbl-d2fx" title="Toggle f''(x) curvature on plot">
+              <input type="checkbox" id="toggle-d2fx" class="layer-checkbox">
+              <span class="layer-dot" style="background-color: var(--accent-purple);"></span>
+              <span>f''(x)</span>
+            </label>
+            <label class="layer-toggle" id="toggle-lbl-d3fx" title="Toggle f'''(x) 3rd derivative on plot">
+              <input type="checkbox" id="toggle-d3fx" class="layer-checkbox">
+              <span class="layer-dot" style="background-color: var(--accent-pink);"></span>
+              <span>f'''(x)</span>
+            </label>
+          </span>
+        </h3>
+        <div class="attributes-list">
+          <div class="attr-item">
+            <span class="attr-label">f'(x)</span>
+            <span class="attr-value" id="val-sym-df">-</span>
+          </div>
+          <div class="attr-item">
+            <span class="attr-label">f''(x)</span>
+            <span class="attr-value" id="val-sym-d2f">-</span>
+          </div>
+          <div class="attr-item">
+            <span class="attr-label">f'''(x)</span>
+            <span class="attr-value" id="val-sym-d3f">-</span>
+          </div>
+          <div class="attr-item">
+            <span class="attr-label">f'(x<sub>0</sub>) [Analytical]</span>
+            <span class="attr-value" id="val-eval-df-analytical">-</span>
+          </div>
+          <div class="attr-item">
+            <span class="attr-label">f'(x<sub>0</sub>) [Numerical]</span>
+            <span class="attr-value" id="val-eval-df-numerical">-</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Bottom Row: Integration, Taylor Approximation, Roots & Critical Points -->
+    <section class="grid-3">
+      <!-- Card 4: Integration -->
+      <div class="card">
+        <h3 class="card-title">
+          <span class="card-title-text"><span class="card-icon">∫</span> Integration</span>
+          <span class="card-actions">
+            <label class="layer-toggle" id="toggle-lbl-integral" title="Toggle integral area on plot">
+              <input type="checkbox" id="toggle-integral" class="layer-checkbox">
+              <span class="layer-dot" style="background-color: var(--accent-emerald);"></span>
+              <span>Area</span>
+            </label>
+          </span>
+        </h3>
+        <div class="attributes-list" style="margin-bottom: 12px;">
+          <div class="attr-item">
+            <span class="attr-label">∫ f(x) dx</span>
+            <span class="attr-value" id="val-sym-antideriv">-</span>
+          </div>
+        </div>
+
+        <div class="parameter-input-group" style="margin-bottom: 12px;">
+          <div class="parameter-label-row">
+            <span class="parameter-name">Interval Bounds [a, b]</span>
+            <select id="select-int-method" class="custom-select" style="font-size: 11px; padding: 3px 8px;">
+              <option value="gaussKronrod">Gauss-Kronrod 15</option>
+              <option value="simpson">Simpson Rule</option>
+            </select>
+          </div>
+          <div style="display: flex; gap: 8px; align-items: center;">
+            <span style="color: var(--text-muted); font-size: 12px;">a:</span>
+            <input type="number" id="input-int-a" class="custom-number-input" value="-1.0" step="0.5" style="flex: 1;">
+            <span style="color: var(--text-muted); font-size: 12px;">b:</span>
+            <input type="number" id="input-int-b" class="custom-number-input" value="2.0" step="0.5" style="flex: 1;">
+          </div>
+        </div>
+
+        <div class="attributes-list">
+          <div class="attr-item">
+            <span class="attr-label">∫ Area [Numerical]</span>
+            <span class="attr-value" id="val-int-numerical" style="color: var(--accent-emerald); font-weight: 700;">-</span>
+          </div>
+          <div class="attr-item">
+            <span class="attr-label">∫ Area [Analytical]</span>
+            <span class="attr-value" id="val-int-analytical">-</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Card 5: Taylor Approximation -->
+      <div class="card">
+        <h3 class="card-title">
+          <span class="card-title-text"><span class="card-icon">🔬</span> Taylor Approximation</span>
+          <span class="card-actions">
+            <label class="layer-toggle" id="toggle-lbl-taylor" title="Toggle Taylor polynomial on plot">
+              <input type="checkbox" id="toggle-taylor" class="layer-checkbox">
+              <span class="layer-dot" style="background-color: var(--accent-amber);"></span>
+              <span>Taylor</span>
+            </label>
+          </span>
+        </h3>
+        <div class="parameter-input-group" style="margin-bottom: 12px;">
+          <div class="parameter-label-row">
+            <span class="parameter-name">Order (n): <span id="taylor-order-val" style="color: var(--accent-amber); font-weight: 600;">3</span></span>
+          </div>
+          <div class="parameter-control-row">
+            <input type="range" id="slider-taylor-order" class="custom-slider" min="1" max="6" step="1" value="3" style="width: 100%;">
+          </div>
+        </div>
+
+        <div class="parameter-input-group" style="margin-bottom: 12px;">
+          <div class="parameter-label-row">
+            <span class="parameter-name">Around:</span>
+            <select id="select-taylor-center" class="custom-select" style="font-size: 11px; padding: 3px 8px;">
+              <option value="x0" selected>Point x₀</option>
+              <option value="zero">0 (Maclaurin)</option>
+              <option value="custom">Custom</option>
+            </select>
+          </div>
+          <div class="parameter-control-row">
+            <input type="number" id="input-taylor-around" class="custom-number-input" value="1.0" step="0.5" style="width: 100%;" title="Expansion Center" disabled>
+          </div>
+        </div>
+        <div class="attributes-list" style="margin-top: 14px;">
+          <div class="attr-item">
+            <span class="attr-label">P(x)</span>
+            <span class="attr-value" id="taylor-polynomial-str">-</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Card 6: Roots & Extrema -->
+      <div class="card">
+        <h3 class="card-title">
+          <span class="card-title-text"><span class="card-icon">📍</span> Roots & Extrema</span>
+          <span class="card-actions">
+            <label class="layer-toggle active" id="toggle-lbl-roots" title="Toggle roots on plot">
+              <input type="checkbox" id="toggle-roots" class="layer-checkbox" checked>
+              <span class="layer-dot" style="background-color: var(--accent-emerald);"></span>
+              <span>Roots</span>
+            </label>
+            <label class="layer-toggle active" id="toggle-lbl-min" title="Toggle local minima on plot">
+              <input type="checkbox" id="toggle-min" class="layer-checkbox" checked>
+              <span class="layer-dot" style="background-color: var(--accent-cyan);"></span>
+              <span>Min</span>
+            </label>
+            <label class="layer-toggle active" id="toggle-lbl-max" title="Toggle local maxima on plot">
+              <input type="checkbox" id="toggle-max" class="layer-checkbox" checked>
+              <span class="layer-dot" style="background-color: var(--accent-amber);"></span>
+              <span>Max</span>
+            </label>
+          </span>
+        </h3>
+        <div class="attributes-list">
+          <div class="attr-item">
+            <span class="attr-label">Roots [Analytical]</span>
+            <span class="attr-value" id="val-roots-exact">-</span>
+          </div>
+          <div class="attr-item">
+            <span class="attr-label">Roots [Numerical]</span>
+            <span class="attr-value" id="val-roots-numeric">-</span>
+          </div>
+          <div class="attr-item">
+            <span class="attr-label">Local Minima</span>
+            <span class="attr-value" id="val-extrema-min">-</span>
+          </div>
+          <div class="attr-item">
+            <span class="attr-label">Local Maxima</span>
+            <span class="attr-value" id="val-extrema-max">-</span>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script defer src="index.dart.js"></script>
+</body>
+</html>

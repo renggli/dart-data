@@ -4,6 +4,7 @@ import 'dart:math' as math;
 import 'package:data/stats.dart';
 import 'package:web/web.dart' as web;
 
+import '../shared/utils.dart';
 import 'config.dart';
 
 // Current states
@@ -50,47 +51,12 @@ late web.HTMLButtonElement btnSampleCopyAll;
 late web.HTMLElement sampleCountBadge;
 late web.HTMLElement samplesChipsContainer;
 
-late web.HTMLElement tMean;
 late web.HTMLElement eMean;
-late web.HTMLElement tVariance;
 late web.HTMLElement eVariance;
-late web.HTMLElement tStdDev;
 late web.HTMLElement eStdDev;
 
-/// Copy a given text to the clipboard.
-void copyToClipboard(String text) {
-  final navigator = web.window.navigator;
-  final clipboard = navigator.clipboard;
-  clipboard.writeText(text);
-}
-
-/// Prettily formats statistical results, handling NaN and Infinities gracefully.
-String formatVal(num value) {
-  if (value.isNaN) return 'undefined';
-  if (value.isInfinite) return value.isNegative ? '-∞' : '∞';
-  // Avoid negative zeroes e.g. -0.00
-  if (value.abs() < 1e-6) return '0.00';
-  return value.toStringAsFixed(4);
-}
-
-/// Safe getter for distribution properties that might throw UnsupportedError or be undefined.
-num? safeGet(num Function() getter) {
-  try {
-    final val = getter();
-    return val.isNaN ? null : val;
-  } catch (_) {
-    return null;
-  }
-}
-
-/// Safely formats a distribution property getter, catching exceptions gracefully.
-String formatProperty(num Function() getter) {
-  try {
-    return formatVal(getter());
-  } catch (_) {
-    return 'undefined';
-  }
-}
+/// Prettily formats statistical results.
+String formatVal(num value) => formatNumber(value);
 
 /// Initialize application and attach listeners.
 void main() {
@@ -140,12 +106,12 @@ void main() {
   samplesChipsContainer =
       web.document.querySelector('#samples-chips') as web.HTMLElement;
 
-  tMean = web.document.querySelector('#t-mean') as web.HTMLElement;
   eMean = web.document.querySelector('#e-mean') as web.HTMLElement;
-  tVariance = web.document.querySelector('#t-variance') as web.HTMLElement;
   eVariance = web.document.querySelector('#e-variance') as web.HTMLElement;
-  tStdDev = web.document.querySelector('#t-stddev') as web.HTMLElement;
   eStdDev = web.document.querySelector('#e-stddev') as web.HTMLElement;
+
+  // Initialize universal copy handler
+  initGlobalCopyHandler();
 
   // Render Sidebar
   buildSidebar();
@@ -169,24 +135,13 @@ void main() {
           )
           .join('\n');
       copyToClipboard(text);
-    }
-  });
-
-  // Click-to-copy setup for mathematical properties list
-  final attrItems = web.document.querySelectorAll('.attr-item');
-  for (var i = 0; i < attrItems.length; i++) {
-    final item = attrItems.item(i) as web.HTMLElement;
-    final valueSpan = item.querySelector('.attr-value') as web.HTMLElement?;
-    final copyBtn = item.querySelector('.copy-btn') as web.HTMLElement?;
-    if (valueSpan != null && copyBtn != null) {
-      copyBtn.onClick.listen((_) {
-        final text = valueSpan.textContent ?? '';
-        if (text.isNotEmpty && text != '-') {
-          copyToClipboard(text);
-        }
+      showCopyToast('${generatedSamples.length} samples');
+      btnSampleCopyAll.classList.add('copied');
+      Future.delayed(const Duration(milliseconds: 1200), () {
+        btnSampleCopyAll.classList.remove('copied');
       });
     }
-  }
+  });
 
   // Listen to Window resizing for responsive graphics redraw
   web.window.addEventListener(
@@ -241,7 +196,7 @@ void buildSidebar() {
 
   for (final def in distributions) {
     final item = web.document.createElement('div') as web.HTMLElement;
-    item.className = 'dist-item';
+    item.className = 'sidebar-item';
     item.setAttribute('data-id', def.id);
 
     final nameSpan = web.document.createElement('span') as web.HTMLElement;
@@ -267,12 +222,13 @@ void buildSidebar() {
 /// Filter sidebar items based on input.
 void filterSidebar(String query) {
   final lowercaseQuery = query.toLowerCase();
-  final items = web.document.querySelectorAll('.dist-item');
+  final items = web.document.querySelectorAll('.sidebar-item');
 
   for (var i = 0; i < items.length; i++) {
     final item = items.item(i) as web.HTMLElement;
     final id = item.getAttribute('data-id') ?? '';
-    final def = distributions.firstWhere((d) => d.id == id);
+    final def = distributions.where((d) => d.id == id).firstOrNull;
+    if (def == null) continue;
     final matches =
         def.name.toLowerCase().contains(lowercaseQuery) ||
         def.description.toLowerCase().contains(lowercaseQuery);
@@ -293,7 +249,7 @@ void selectDistribution(
   activeDef = def;
 
   // Highlight active item in sidebar
-  final items = web.document.querySelectorAll('.dist-item');
+  final items = web.document.querySelectorAll('.sidebar-item');
   for (var i = 0; i < items.length; i++) {
     final item = items.item(i) as web.HTMLElement;
     if (item.getAttribute('data-id') == def.id) {
@@ -320,7 +276,7 @@ void selectDistribution(
     }
   }
 
-  // Reset sampling lab
+  // Reset sampling
   clearSamples(redraw: false);
 
   // Re-build config deck
@@ -365,22 +321,16 @@ void rebuildConfigInputs() {
     nameSpan.className = 'parameter-name';
     nameSpan.textContent = param.label;
 
-    final copyBtn = web.document.createElement('button') as web.HTMLElement;
-    copyBtn.className = 'copy-btn';
-    copyBtn.setAttribute('title', 'Copy value');
-    copyBtn.innerHTML =
-        '''
-      <svg class="copy-icon" viewBox="0 0 24 24" width="12" height="12" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
-        <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-      </svg>
-    '''
-            .toJS;
-
-    copyBtn.onClick.listen((_) {
+    final copyBtn = createCopyButton(title: 'Copy value');
+    void updateCopyData() {
       final val = currentParamValues[index];
-      copyToClipboard(param.isInt ? val.toInt().toString() : val.toString());
-    });
+      copyBtn.setAttribute(
+        'data-copy',
+        param.isInt ? val.toInt().toString() : val.toString(),
+      );
+    }
+
+    updateCopyData();
 
     labelContainer.appendChild(nameSpan);
     labelContainer.appendChild(copyBtn);
@@ -427,6 +377,7 @@ void rebuildConfigInputs() {
       }
 
       currentParamValues[index] = validatedVal;
+      updateCopyData();
       slider.value = validatedVal.toString();
       numInput.value = validatedVal.toString();
       recreateDistribution();
@@ -473,7 +424,7 @@ void loadFromUrlHash() {
     final parts = hash.split('?');
     final distId = Uri.decodeComponent(parts[0].trim());
 
-    final def = distributions.firstWhere((d) => d.id == distId);
+    final def = distributions.where((d) => d.id == distId).firstOrNull;
     targetDef = def;
 
     if (parts.length > 1) {
@@ -534,13 +485,13 @@ void recreateDistribution() {
 
 /// Update mathematical properties panel.
 void updateTelemetry() {
-  valMean.textContent = formatProperty(() => activeDist.mean);
-  valMedian.textContent = formatProperty(() => activeDist.median);
-  valMode.textContent = formatProperty(() => activeDist.mode);
-  valVariance.textContent = formatProperty(() => activeDist.variance);
-  valStdDev.textContent = formatProperty(() => activeDist.standardDeviation);
-  valSkewness.textContent = formatProperty(() => activeDist.skewness);
-  valKurtosis.textContent = formatProperty(() => activeDist.excessKurtosis);
+  setAttrValue(valMean, formatProperty(() => activeDist.mean));
+  setAttrValue(valMedian, formatProperty(() => activeDist.median));
+  setAttrValue(valMode, formatProperty(() => activeDist.mode));
+  setAttrValue(valVariance, formatProperty(() => activeDist.variance));
+  setAttrValue(valStdDev, formatProperty(() => activeDist.standardDeviation));
+  setAttrValue(valSkewness, formatProperty(() => activeDist.skewness));
+  setAttrValue(valKurtosis, formatProperty(() => activeDist.excessKurtosis));
 
   // Format bounds
   try {
@@ -558,15 +509,10 @@ void updateTelemetry() {
     } else if (upper is int) {
       if (upper >= 9007199254740991) uStr = '∞';
     }
-    valBounds.textContent = '[$lStr, $uStr]';
+    setAttrValue(valBounds, '[$lStr, $uStr]');
   } catch (_) {
-    valBounds.textContent = '[-]';
+    setAttrValue(valBounds, '[-]');
   }
-
-  // Update Theoretical labels in Sampler grid
-  tMean.textContent = formatProperty(() => activeDist.mean);
-  tVariance.textContent = formatProperty(() => activeDist.variance);
-  tStdDev.textContent = formatProperty(() => activeDist.standardDeviation);
 }
 
 /// Dynamic bounds estimation for graphing X-axis window.
@@ -694,7 +640,7 @@ void renderCanvas(
   if (isCdf) {
     maxY = 1.0;
   } else {
-    // Scan X intervals to capture maximum probability density/mass peak
+    // Scan X intervals to capture maximum probability density peak
     var peak = 0.0;
     if (activeDef.isContinuous) {
       const steps = 100;
@@ -957,7 +903,7 @@ void renderCanvas(
       }
     }
   } else {
-    // ---------------- PDF / PMF PLOTTING ----------------
+    // ---------------- PDF PLOTTING ----------------
     if (activeDef.isContinuous) {
       // Continuous PDF - smooth curve
       ctx.strokeStyle = '#3b82f6'.toJS; // Ocean Blue
@@ -999,7 +945,7 @@ void renderCanvas(
         ctx.fill();
       }
     } else {
-      // Discrete PMF - lollipop lines (vertical line + terminal dot)
+      // Discrete PDF - lollipop lines (vertical line + terminal dot)
       final iMin = minX.floor();
       final iMax = maxX.ceil();
 
@@ -1218,7 +1164,7 @@ void renderCanvas(
   }
 }
 
-// ==================== RANDOM SAMPLING LAB ENGINE ====================
+// ==================== RANDOM SAMPLING ENGINE ====================
 
 /// Draw N random samples from the active distribution.
 void drawSamples(int count) {
@@ -1243,11 +1189,9 @@ void clearSamples({bool redraw = true}) {
   samplesChipsContainer.innerHTML = ''.toJS;
 
   final noSamplesMsg = web.document.createElement('span') as web.HTMLElement;
-  noSamplesMsg.style.color = 'var(--text-muted)';
-  noSamplesMsg.style.fontSize = '12px';
-  noSamplesMsg.style.fontStyle = 'italic';
+  noSamplesMsg.className = 'samples-empty-msg';
   noSamplesMsg.textContent =
-      'No samples generated yet. Click above to start drawing!';
+      'No samples generated yet. Click a button above to start drawing!';
   samplesChipsContainer.appendChild(noSamplesMsg);
 
   updateEmpiricalStats();
@@ -1256,7 +1200,7 @@ void clearSamples({bool redraw = true}) {
   }
 }
 
-/// Render samples as chips inside the list. Only shows up to 100.
+/// Render samples as chips inside the list. Only shows up to 250.
 void renderRecentChips(List<num> recentDraws) {
   // If first samples, clear placeholder message
   if (generatedSamples.length == recentDraws.length) {
@@ -1264,7 +1208,7 @@ void renderRecentChips(List<num> recentDraws) {
   }
 
   // Add the newly generated ones with a flash animation
-  final int visibleRecent = math.min(recentDraws.length, 30);
+  final int visibleRecent = math.min(recentDraws.length, 60);
   for (
     var i = recentDraws.length - visibleRecent;
     i < recentDraws.length;
@@ -1278,9 +1222,10 @@ void renderRecentChips(List<num> recentDraws) {
         : s.toInt().toString();
     chip.textContent = formattedVal;
     chip.style.cursor = 'pointer';
-    chip.title = 'Click to copy';
+    chip.title = 'Click to copy: $formattedVal';
     chip.onClick.listen((_) {
       copyToClipboard(formattedVal);
+      showCopyToast(formattedVal);
     });
 
     // Prepend to display latest values first
@@ -1296,8 +1241,8 @@ void renderRecentChips(List<num> recentDraws) {
 
   // Truncate list items inside container to prevent slow rendering
   final children = samplesChipsContainer.children;
-  if (children.length > 100) {
-    for (var i = children.length - 1; i >= 100; i--) {
+  if (children.length > 250) {
+    for (var i = children.length - 1; i >= 250; i--) {
       final child = children.item(i);
       if (child != null) {
         samplesChipsContainer.removeChild(child);
@@ -1306,12 +1251,12 @@ void renderRecentChips(List<num> recentDraws) {
   }
 }
 
-/// Compute empirical statistics of drawn samples and update table.
+/// Compute empirical statistics of drawn samples and update attributes.
 void updateEmpiricalStats() {
   if (generatedSamples.isEmpty) {
-    eMean.textContent = '-';
-    eVariance.textContent = '-';
-    eStdDev.textContent = '-';
+    setAttrValue(eMean, '-');
+    setAttrValue(eVariance, '-');
+    setAttrValue(eStdDev, '-');
     return;
   }
 
@@ -1332,8 +1277,8 @@ void updateEmpiricalStats() {
   final empiricalVar = n > 1 ? sumSquares / (n - 1) : 0.0;
   final empiricalStd = math.sqrt(empiricalVar);
 
-  // Update UI Elements
-  eMean.textContent = formatVal(empiricalMean);
-  eVariance.textContent = formatVal(empiricalVar);
-  eStdDev.textContent = formatVal(empiricalStd);
+  // Update UI Elements with setAttrValue for copy handler integration
+  setAttrValue(eMean, formatVal(empiricalMean));
+  setAttrValue(eVariance, formatVal(empiricalVar));
+  setAttrValue(eStdDev, formatVal(empiricalStd));
 }

@@ -1,0 +1,270 @@
+/* Expressions Specific Styling */
+
+/* Formula Editor Bar */
+.editor-container {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.formula-input-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background-color: rgba(15, 23, 42, 0.7);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius);
+  padding: 8px 16px;
+  box-shadow: var(--glass-shadow);
+  transition: all 0.2s ease;
+}
+
+.formula-input-bar:focus-within {
+  border-color: var(--accent-blue);
+  box-shadow: 0 0 0 2px var(--accent-blue-glow);
+}
+
+.formula-prefix {
+  font-family: var(--font-display);
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--accent-blue);
+  user-select: none;
+}
+
+.formula-input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  outline: none;
+  font-family: var(--font-mono);
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.formula-status-badge {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.status-valid {
+  background-color: rgba(16, 185, 129, 0.15);
+  color: var(--accent-emerald);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+.status-invalid {
+  background-color: rgba(239, 68, 68, 0.15);
+  color: var(--accent-red);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+.parse-error-message {
+  color: var(--accent-red);
+  font-size: 12px;
+  font-family: var(--font-mono);
+  padding: 4px 12px;
+  display: none;
+}
+
+/* Card Layer Toggles */
+.layer-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 9px;
+  border-radius: 14px;
+  font-family: var(--font-sans);
+  font-size: 11px;
+  line-height: 1.2;
+  cursor: pointer;
+  user-select: none;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  white-space: nowrap;
+}
+
+/* Inactive State: Distinctly dimmed, hollow dot, muted border */
+.layer-toggle:not(.active) {
+  background-color: rgba(15, 23, 42, 0.55);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: var(--text-muted);
+  opacity: 0.42;
+  font-weight: 500;
+}
+
+.layer-toggle:not(.active):hover {
+  background-color: rgba(255, 255, 255, 0.06);
+  color: var(--text-secondary);
+  border-color: rgba(255, 255, 255, 0.18);
+  opacity: 0.78;
+}
+
+/* Active State: High-contrast translucent wash, solid accent border, white bold text */
+.layer-toggle.active {
+  background-color: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.32);
+  color: #ffffff;
+  font-weight: 600;
+  opacity: 1;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.15);
+}
+
+.layer-toggle.active:hover {
+  filter: brightness(1.15);
+}
+
+/* Base Dot */
+.layer-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+  flex-shrink: 0;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  box-sizing: border-box;
+}
+
+/* Inactive Dot: Empty hollow ring, no glow, desaturated */
+.layer-toggle:not(.active) .layer-dot {
+  background-color: transparent !important;
+  border: 1.5px solid rgba(255, 255, 255, 0.3) !important;
+  box-shadow: none !important;
+  opacity: 0.6;
+  transform: scale(0.9);
+}
+
+/* Active Dot: Vibrant filled dot with vibrant halo glow */
+.layer-toggle.active .layer-dot {
+  opacity: 1;
+  transform: scale(1.05);
+  box-shadow: 0 0 6px currentColor, 0 0 10px currentColor;
+}
+
+/* Accent-specific active tinting for maximum clarity */
+#toggle-lbl-fx .layer-dot { color: var(--accent-blue); background-color: var(--accent-blue); }
+#toggle-lbl-fx.active {
+  background-color: rgba(59, 130, 246, 0.16);
+  border-color: rgba(59, 130, 246, 0.45);
+  box-shadow: 0 0 8px rgba(59, 130, 246, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.15);
+}
+
+#toggle-lbl-tangent .layer-dot { color: #f8fafc; background-color: #f8fafc; }
+#toggle-lbl-tangent.active {
+  background-color: rgba(248, 250, 252, 0.15);
+  border-color: rgba(248, 250, 252, 0.45);
+  box-shadow: 0 0 8px rgba(248, 250, 252, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.15);
+}
+
+#toggle-lbl-dfx .layer-dot { color: var(--accent-red); background-color: var(--accent-red); }
+#toggle-lbl-dfx.active {
+  background-color: rgba(239, 68, 68, 0.16);
+  border-color: rgba(239, 68, 68, 0.45);
+  box-shadow: 0 0 8px rgba(239, 68, 68, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.15);
+}
+
+#toggle-lbl-d2fx .layer-dot { color: var(--accent-purple); background-color: var(--accent-purple); }
+#toggle-lbl-d2fx.active {
+  background-color: rgba(168, 85, 247, 0.16);
+  border-color: rgba(168, 85, 247, 0.45);
+  box-shadow: 0 0 8px rgba(168, 85, 247, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.15);
+}
+
+#toggle-lbl-d3fx .layer-dot { color: var(--accent-pink); background-color: var(--accent-pink); }
+#toggle-lbl-d3fx.active {
+  background-color: rgba(236, 72, 153, 0.16);
+  border-color: rgba(236, 72, 153, 0.45);
+  box-shadow: 0 0 8px rgba(236, 72, 153, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.15);
+}
+
+#toggle-lbl-integral .layer-dot { color: var(--accent-emerald); background-color: var(--accent-emerald); }
+#toggle-lbl-integral.active {
+  background-color: rgba(16, 185, 129, 0.16);
+  border-color: rgba(16, 185, 129, 0.45);
+  box-shadow: 0 0 8px rgba(16, 185, 129, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.15);
+}
+
+#toggle-lbl-taylor .layer-dot { color: var(--accent-amber); background-color: var(--accent-amber); }
+#toggle-lbl-taylor.active {
+  background-color: rgba(245, 158, 11, 0.16);
+  border-color: rgba(245, 158, 11, 0.45);
+  box-shadow: 0 0 8px rgba(245, 158, 11, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.15);
+}
+
+#toggle-lbl-roots .layer-dot { color: var(--accent-emerald); background-color: var(--accent-emerald); }
+#toggle-lbl-roots.active {
+  background-color: rgba(16, 185, 129, 0.16);
+  border-color: rgba(16, 185, 129, 0.45);
+  box-shadow: 0 0 8px rgba(16, 185, 129, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.15);
+}
+
+#toggle-lbl-min .layer-dot { color: var(--accent-cyan); background-color: var(--accent-cyan); }
+#toggle-lbl-min.active {
+  background-color: rgba(6, 182, 212, 0.16);
+  border-color: rgba(6, 182, 212, 0.45);
+  box-shadow: 0 0 8px rgba(6, 182, 212, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.15);
+}
+
+#toggle-lbl-max .layer-dot { color: var(--accent-amber); background-color: var(--accent-amber); }
+#toggle-lbl-max.active {
+  background-color: rgba(245, 158, 11, 0.16);
+  border-color: rgba(245, 158, 11, 0.45);
+  box-shadow: 0 0 8px rgba(245, 158, 11, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.15);
+}
+
+/* Sidebar Non-wrapping Labels & Formulas */
+.sidebar-item {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 2px;
+  padding: 8px 12px;
+}
+
+.sidebar-item-name {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  width: 100%;
+}
+
+.sidebar-item-formula {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  width: 100%;
+}
+
+.sidebar-item:hover .sidebar-item-name {
+  color: var(--text-primary);
+}
+
+.sidebar-item:hover .sidebar-item-formula {
+  color: var(--accent-cyan);
+}
+
+.sidebar-item.active .sidebar-item-name {
+  color: var(--accent-blue);
+  font-weight: 600;
+}
+
+.sidebar-item.active .sidebar-item-formula {
+  color: var(--accent-blue);
+  opacity: 0.85;
+}
+
+.layer-checkbox {
+  display: none;
+}
