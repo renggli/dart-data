@@ -1,7 +1,9 @@
 import 'package:petitparser/petitparser.dart';
 
+import '../../../type.dart';
 import '../dataframe.dart';
 import '../series.dart';
+import 'csv_stream.dart';
 import 'parser.dart';
 
 /// Fast CSV parser with automatic column type inference.
@@ -20,6 +22,38 @@ class CsvReader {
   /// Parses TSV string into a [DataFrame].
   static DataFrame parseTsv(String tsv, {bool header = true}) =>
       _parse(tsv, parser: TabularDefinition.tsv().build(), header: header);
+
+  /// Parses a CSV text [stream] into chunked [DataFrame] instances.
+  static Stream<DataFrame> parseStreamChunks(
+    Stream<String> stream, {
+    String separator = ',',
+    bool header = true,
+    int chunkSize = 1000,
+    List<String>? columnNames,
+    Map<String, DataType<dynamic>>? columnTypes,
+  }) => CsvStream.readChunks(
+    stream,
+    separator: separator,
+    header: header,
+    chunkSize: chunkSize,
+    columnNames: columnNames,
+    columnTypes: columnTypes,
+  );
+
+  /// Parses a CSV text [stream] into a single [DataFrame].
+  static Future<DataFrame> parseStream(
+    Stream<String> stream, {
+    String separator = ',',
+    bool header = true,
+    List<String>? columnNames,
+    Map<String, DataType<dynamic>>? columnTypes,
+  }) => CsvStream.readStream(
+    stream,
+    separator: separator,
+    header: header,
+    columnNames: columnNames,
+    columnTypes: columnTypes,
+  );
 
   static DataFrame _parse(
     String text, {

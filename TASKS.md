@@ -7,7 +7,7 @@ This document defines the actionable engineering task list for `package:data`.
 - [x] Apache Arrow C Data Interface & IPC Stream Export
 - [x] Apache Arrow UTF-8 String Offset Buffer (`ArrowStringSeries`)
 - [x] Sort-Merge Relational Join
-- [ ] Streaming CSV & JSON Parsers
+- [x] Streaming CSV & JSON Parsers
 - [ ] Modularize Implementation Files (Single Responsibility, Low Coupling, High Cohesion)
 - [ ] Parallel Unit Test Hierarchy & Comprehensive Coverage (Target Near 100%)
 - [ ] Backend Acceleration Parity, Dedicated Modes (Auto, Accelerated, Dart) & Verification
@@ -73,7 +73,7 @@ This document defines the actionable engineering task list for `package:data`.
 
 ---
 
-### [ ] Streaming CSV & JSON Parsers
+### [x] Streaming CSV & JSON Parsers
 
 - **Problem / Goal**:
   `CsvReader` and JSON parsers buffer entire multi-gigabyte files into memory strings before parsing.
