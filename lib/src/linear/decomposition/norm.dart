@@ -81,7 +81,8 @@ extension MatrixNormExtension<T extends num> on Matrix<T> {
   /// ]);
   /// print(m.norm2); // 5.0
   /// ```
-  double get norm2 => svd.s.length > 0 ? svd.s[0] : 0.0;
+  double get norm2 =>
+      (rowCount == 0 || colCount == 0 || svd.s.length == 0) ? 0.0 : svd.s[0];
 
   /// Returns the infinity norm: maximum absolute row sum $\max_i \sum_j |a_{ij}|$.
   ///
@@ -122,6 +123,7 @@ extension MatrixNormExtension<T extends num> on Matrix<T> {
   /// print(id.cond); // 1.0
   /// ```
   double get cond {
+    if (rowCount == 0 || colCount == 0) return 0.0;
     final singularValues = svd.s;
     if (singularValues.length == 0) return 0.0;
     final minSingular = singularValues[singularValues.length - 1];
@@ -145,6 +147,7 @@ extension MatrixNormExtension<T extends num> on Matrix<T> {
   /// print(m.rank); // 1
   /// ```
   int get rank {
+    if (rowCount == 0 || colCount == 0) return 0;
     final singularValues = svd.s;
     if (singularValues.length == 0) return 0;
     final eps = math.pow(2.0, -52).toDouble();

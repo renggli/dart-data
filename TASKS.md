@@ -9,7 +9,7 @@ This document defines the actionable engineering task list for `package:data`.
 - [x] Sort-Merge Relational Join
 - [x] Streaming CSV & JSON Parsers
 - [x] Modularize Implementation Files (Single Responsibility, Low Coupling, High Cohesion)
-- [ ] Parallel Unit Test Hierarchy & Comprehensive Coverage (Target Near 100%)
+- [x] Parallel Unit Test Hierarchy & Comprehensive Coverage (Target Near 100%)
 - [x] Backend Acceleration Parity, Dedicated Modes (Auto, Accelerated, Dart) & Verification
 - [ ] Hardware Acceleration for FFT, Signal Processing & Vectorized Operations
 - [ ] Consistent 80-Character Comment Formatting & Doc Reflow
@@ -107,7 +107,7 @@ This document defines the actionable engineering task list for `package:data`.
 
 ---
 
-### [ ] Parallel Unit Test Hierarchy & Comprehensive Coverage (Target Near 100%)
+### [x] Parallel Unit Test Hierarchy & Comprehensive Coverage (Target Near 100%)
 
 - **Problem / Goal**:
   Unit test coverage across some subsystems is incomplete or concentrated in large monolithic test files rather than mirroring the modular structure of the implementation.

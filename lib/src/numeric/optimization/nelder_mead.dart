@@ -46,7 +46,13 @@ import '../../../type.dart';
       final diff = values[i] - meanVal;
       variance += diff * diff;
     }
-    if (math.sqrt(variance / (dim + 1)) < tolerance) {
+    var maxDist = 0.0;
+    for (var i = 1; i <= dim; i++) {
+      final diff = simplex[indices[i]] - simplex[bestIdx];
+      maxDist = math.max(maxDist, diff.norm());
+    }
+
+    if (math.sqrt(variance / (dim + 1)) < tolerance && maxDist < tolerance) {
       return (
         point: simplex[bestIdx],
         value: values[bestIdx],
