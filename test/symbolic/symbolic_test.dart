@@ -363,6 +363,172 @@ void main() {
           .equals(const Constant(1.0));
       check(Constant.e.pow(const Constant(1.0)).simplify()).equals(Constant.e);
     });
+
+    test('like-term additions and subtractions', () {
+      const x = Variable('x');
+      const y = Variable('y');
+
+      // x + x => 2 * x
+      check((x + x).simplify()).equals(const Mul(Constant(2.0), x));
+      check((x + x + x).simplify()).equals(const Mul(Constant(3.0), x));
+
+      // c1 * x + c2 * x => (c1 + c2) * x
+      final c1xPlusC2x = const Constant(3.0) * x + const Constant(5.0) * x;
+      check(c1xPlusC2x.simplify()).equals(const Mul(Constant(8.0), x));
+
+      // x + c * x => (c + 1) * x, c * x + x => (c + 1) * x
+      check((x + const Constant(4.0) * x).simplify())
+          .equals(const Mul(Constant(5.0), x));
+      check((const Constant(4.0) * x + x).simplify())
+          .equals(const Mul(Constant(5.0), x));
+
+      // Subtraction like-terms
+      check((const Constant(3.0) * x - x).simplify())
+          .equals(const Mul(Constant(2.0), x));
+      check((x - const Constant(3.0) * x).simplify())
+          .equals(const Mul(Constant(-2.0), x));
+      check((const Constant(2.0) * x - const Constant(2.0) * x).simplify())
+          .equals(const Constant(0.0));
+      check((x - const Constant(2.0) * x).simplify()).equals(const Neg(x));
+      check((const Constant(2.0) * x - x).simplify()).equals(x);
+
+      // Additive term cancellation across mixed expressions
+      check(((x + y) - x).simplify()).equals(y);
+      check(((x - y) + y).simplify()).equals(x);
+      check(((const Constant(2.0) * x + y) - x).simplify())
+          .equals(const Add(x, y));
+
+      // Like terms on named constants
+      check(
+        (const Constant(2.0) * Constant.pi + const Constant(3.0) * Constant.pi)
+            .simplify(),
+      ).equals(const Mul(Constant(5.0), Constant.pi));
+
+      // Higher degree like terms
+      final x2 = x.pow(const Constant(2.0));
+      check((x2 + x2).simplify()).equals(Mul(const Constant(2.0), x2));
+      check((const Constant(3.0) * x2 + const Constant(4.0) * x2).simplify())
+          .equals(Mul(const Constant(7.0), x2));
+    });
+
+    test('like-factor multiplications and power combinations', () {
+      const x = Variable('x');
+      const y = Variable('y');
+      const a = Variable('a');
+      const b = Variable('b');
+
+      // x * x => x ^ 2
+      check((x * x).simplify()).equals(x.pow(const Constant(2.0)));
+      check((x * x * x).simplify()).equals(x.pow(const Constant(3.0)));
+
+      // x^a * x^b => x^(a+b)
+      final x2 = x.pow(const Constant(2.0));
+      final x3 = x.pow(const Constant(3.0));
+      check((x2 * x3).simplify()).equals(x.pow(const Constant(5.0)));
+      check((x * x2).simplify()).equals(x.pow(const Constant(3.0)));
+      check((x2 * x).simplify()).equals(x.pow(const Constant(3.0)));
+
+      // Symbolic exponents
+      check((x.pow(a) * x.pow(b)).simplify()).equals(x.pow(const Add(a, b)));
+      check((x * x.pow(b)).simplify())
+          .equals(x.pow(const Add(b, Constant(1.0))));
+      check((x.pow(a) * x).simplify())
+          .equals(x.pow(const Add(a, Constant(1.0))));
+
+      // Exponents cancelling
+      check((x2 * x.pow(const Constant(-1.0))).simplify()).equals(x);
+      check((x2 * x.pow(const Constant(-2.0))).simplify())
+          .equals(const Constant(1.0));
+
+      // Scaled products: (c1 * x) * (c2 * x) => (c1 * c2) * x^2
+      check(((const Constant(2.0) * x) * (const Constant(3.0) * x)).simplify())
+          .equals(Mul(const Constant(6.0), x2));
+      check(((const Constant(2.0) * x) * x).simplify())
+          .equals(Mul(const Constant(2.0), x2));
+      check((x * (const Constant(2.0) * x)).simplify())
+          .equals(Mul(const Constant(2.0), x2));
+
+      // Associative like-factor multiplications: (x * y) * x => x^2 * y
+      check(((x * y) * x).simplify()).equals(Mul(x2, y));
+      check((x * (x * y)).simplify()).equals(Mul(x2, y));
+    });
+
+    test('associative constant folding', () {
+      const x = Variable('x');
+
+      // Additive constant folding: x + 1 + 2 => x + 3
+      check((x + 1 + 2).simplify()).equals(const Add(x, Constant(3.0)));
+      check((const Constant(1.0) + x + const Constant(2.0)).simplify())
+          .equals(const Add(x, Constant(3.0)));
+      check((x + const Constant(5.0) - const Constant(2.0)).simplify())
+          .equals(const Add(x, Constant(3.0)));
+      check((x - const Constant(1.0) - const Constant(2.0)).simplify())
+          .equals(const Sub(x, Constant(3.0)));
+
+      // Multiplicative constant folding: x * 2 * 3 => x * 6
+      check(((x * 2) * 3).simplify()).equals(const Mul(x, Constant(6.0)));
+      check(((const Constant(2.0) * x) * 3).simplify())
+          .equals(const Mul(Constant(6.0), x));
+      check((const Constant(2.0) * (const Constant(3.0) * x)).simplify())
+          .equals(const Mul(Constant(6.0), x));
+      check((const Constant(2.0) * (x * 3)).simplify())
+          .equals(const Mul(Constant(6.0), x));
+      check((((x * 2) * 3) * 4).simplify())
+          .equals(const Mul(x, Constant(24.0)));
+    });
+
+    test('canonical polynomial term sorting in descending degree', () {
+      const x = Variable('x');
+      const y = Variable('y');
+      final x2 = x.pow(const Constant(2.0));
+      final x3 = x.pow(const Constant(3.0));
+
+      // x + x^2 => x^2 + x
+      check((x + x2).simplify()).equals(Add(x2, x));
+
+      // 1 + x => x + 1
+      check((const Constant(1.0) + x).simplify())
+          .equals(const Add(x, Constant(1.0)));
+
+      // 1 + x + x^2 => x^2 + x + 1
+      check((const Constant(1.0) + x + x2).simplify())
+          .equals(Add(Add(x2, x), const Constant(1.0)));
+
+      // 3 + 2x + x^2 => x^2 + 2x + 3
+      final poly1 = const Constant(3.0) + const Constant(2.0) * x + x2;
+      check(
+        poly1.simplify(),
+      ).equals(Add(Add(x2, const Mul(Constant(2.0), x)), const Constant(3.0)));
+
+      // x^3 + 2x + 5x^2 + 1 => x^3 + 5x^2 + 2x + 1
+      final poly2 =
+          x3 +
+          const Constant(2.0) * x +
+          const Constant(5.0) * x2 +
+          const Constant(1.0);
+      check(poly2.simplify()).equals(
+        Add(
+          Add(
+            Add(x3, Mul(const Constant(5.0), x2)),
+            const Mul(Constant(2.0), x),
+          ),
+          const Constant(1.0),
+        ),
+      );
+
+      // Polynomial with subtractions: x^2 - 2x - 3
+      final polySub = x2 - const Constant(2.0) * x - const Constant(3.0);
+      check(
+        polySub.simplify(),
+      ).equals(Sub(Sub(x2, const Mul(Constant(2.0), x)), const Constant(3.0)));
+
+      // Variable sorting: y + x => x + y
+      check((y + x).simplify()).equals(const Add(x, y));
+
+      // Multi-variable graded degree sorting: x^2 + y^2 + x + y
+      final y2 = y.pow(const Constant(2.0));
+      check((y + x2 + y2 + x).simplify()).equals(Add(Add(Add(x2, y2), x), y));
+    });
   });
 
   group('JIT Compilation & Tensor Kernel', () {
