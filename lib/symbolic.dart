@@ -34,8 +34,13 @@
 ///   [CompilerExtension.compileTensorKernel] convert symbolic expressions into
 ///   direct Dart functions operating on primitive double arguments or typed
 ///   [Float64List] buffers with zero AST walking overhead.
-/// - **LaTeX Output**: [LatexExtension.toLatex] converts expressions into
-///   publication-grade mathematical LaTeX markup.
+/// - **LaTeX & MathML Output**: [LatexExtension.toLatex] converts expressions into
+///   publication-grade mathematical LaTeX markup; [MathMlExtension.toMathMl]
+///   formats expressions into standard W3C MathML markup for direct browser
+///   rendering.
+/// - **String Formatting**: [formatExpr] and [Expr.toString] serialize
+///   expressions with minimal parentheses according to standard operator
+///   precedence and associativity rules.
 ///
 /// ## Example
 ///
@@ -66,10 +71,12 @@ import 'src/symbolic/calculus/linear_form.dart';
 import 'src/symbolic/calculus/multivariable.dart';
 import 'src/symbolic/calculus/taylor.dart';
 import 'src/symbolic/compiler.dart';
-import 'src/symbolic/latex.dart';
 import 'src/symbolic/parser.dart';
 import 'src/symbolic/simplifier.dart';
 import 'src/symbolic/solver.dart';
+import 'src/symbolic/textualization/latex.dart';
+import 'src/symbolic/textualization/mathml.dart';
+import 'src/symbolic/textualization/string.dart';
 
 export 'src/symbolic/ast.dart';
 export 'src/symbolic/calculus/differentiation.dart';
@@ -78,7 +85,9 @@ export 'src/symbolic/calculus/linear_form.dart';
 export 'src/symbolic/calculus/multivariable.dart';
 export 'src/symbolic/calculus/taylor.dart';
 export 'src/symbolic/compiler.dart';
-export 'src/symbolic/latex.dart';
 export 'src/symbolic/parser.dart';
 export 'src/symbolic/simplifier.dart';
 export 'src/symbolic/solver.dart';
+export 'src/symbolic/textualization/latex.dart';
+export 'src/symbolic/textualization/mathml.dart';
+export 'src/symbolic/textualization/string.dart';

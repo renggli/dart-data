@@ -3,7 +3,7 @@ import 'package:data/symbolic.dart';
 import 'package:test/scaffolding.dart';
 
 void main() {
-  group('LaTeX Serialization - Atomic Expressions', () {
+  group('LaTeX - Atomic Expressions', () {
     test('variables', () {
       check(const Variable('x').toLatex()).equals('x');
       check(const Variable('theta').toLatex()).equals('theta');
@@ -15,10 +15,12 @@ void main() {
       check(const Constant(42.0).toLatex()).equals('42');
       check(const Constant(-7.0).toLatex()).equals('-7');
       check(const Constant(3.14159).toLatex()).equals('3.14159');
+      check(Constant.pi.toLatex()).equals(r'\pi');
+      check(Constant.e.toLatex()).equals('e');
     });
   });
 
-  group('LaTeX Serialization - Arithmetic Operations', () {
+  group('LaTeX - Arithmetic Operations', () {
     const x = Variable('x');
     const y = Variable('y');
     const z = Variable('z');
@@ -66,7 +68,7 @@ void main() {
     });
   });
 
-  group('LaTeX Serialization - Transcendentals', () {
+  group('LaTeX - Transcendentals', () {
     const x = Variable('x');
     const y = Variable('y');
 
@@ -85,13 +87,11 @@ void main() {
     });
 
     test('composite calculus expressions', () {
-      // f(x) = (x^2 + 1) / (x - 1)
       final f =
           (x.pow(const Constant(2.0)) + const Constant(1.0)) /
           (x - const Constant(1.0));
       check(f.toLatex()).equals('\\frac{{x}^{2} + 1}{x - 1}');
 
-      // g(x) = exp(-x^2)
       final g = Exp(-x.pow(const Constant(2.0)));
       check(g.toLatex()).equals('e^{-{x}^{2}}');
     });

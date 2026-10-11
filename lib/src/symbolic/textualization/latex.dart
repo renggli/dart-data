@@ -1,4 +1,4 @@
-import 'ast.dart';
+import '../ast.dart';
 
 /// LaTeX serialization extension on [Expr].
 extension LatexExtension on Expr {

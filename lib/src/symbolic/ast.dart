@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 
 import 'parser.dart';
+import 'textualization/string.dart';
 
 /// Mathematical constant $\pi \approx 3.141592653589793$ as a symbolic [Expr].
 const pi = Constant.pi;
@@ -80,6 +81,9 @@ sealed class Expr {
 
   /// Raises this expression to the power of [exponent].
   Expr pow(Object exponent) => Pow(this, _wrap(exponent));
+
+  @override
+  String toString() => formatExpr(this);
 
   static Expr _wrap(Object value) =>
       value is Expr ? value : Constant((value as num).toDouble());
@@ -194,9 +198,6 @@ final class Add extends Expr {
       left.evaluate(context) + right.evaluate(context);
 
   @override
-  String toString() => '($left + $right)';
-
-  @override
   bool operator ==(Object other) =>
       other is Add && other.left == left && other.right == right;
 
@@ -233,9 +234,6 @@ final class Sub extends Expr {
   @override
   double evaluate(Map<String, double> context) =>
       left.evaluate(context) - right.evaluate(context);
-
-  @override
-  String toString() => '($left - $right)';
 
   @override
   bool operator ==(Object other) =>
@@ -276,9 +274,6 @@ final class Mul extends Expr {
       left.evaluate(context) * right.evaluate(context);
 
   @override
-  String toString() => '($left * $right)';
-
-  @override
   bool operator ==(Object other) =>
       other is Mul && other.left == left && other.right == right;
 
@@ -315,9 +310,6 @@ final class Div extends Expr {
   @override
   double evaluate(Map<String, double> context) =>
       left.evaluate(context) / right.evaluate(context);
-
-  @override
-  String toString() => '($left / $right)';
 
   @override
   bool operator ==(Object other) =>
@@ -359,9 +351,6 @@ final class Pow extends Expr {
       math.pow(base.evaluate(context), exponent.evaluate(context)).toDouble();
 
   @override
-  String toString() => '($base ^ $exponent)';
-
-  @override
   bool operator ==(Object other) =>
       other is Pow && other.base == base && other.exponent == exponent;
 
@@ -389,9 +378,6 @@ final class Neg extends Expr {
 
   @override
   double evaluate(Map<String, double> context) => -expr.evaluate(context);
-
-  @override
-  String toString() => '(-$expr)';
 
   @override
   bool operator ==(Object other) => other is Neg && other.expr == expr;
@@ -423,9 +409,6 @@ final class Sin extends Expr {
       math.sin(expr.evaluate(context));
 
   @override
-  String toString() => 'sin($expr)';
-
-  @override
   bool operator ==(Object other) => other is Sin && other.expr == expr;
 
   @override
@@ -453,9 +436,6 @@ final class Cos extends Expr {
   @override
   double evaluate(Map<String, double> context) =>
       math.cos(expr.evaluate(context));
-
-  @override
-  String toString() => 'cos($expr)';
 
   @override
   bool operator ==(Object other) => other is Cos && other.expr == expr;
@@ -487,9 +467,6 @@ final class Exp extends Expr {
       math.exp(expr.evaluate(context));
 
   @override
-  String toString() => 'exp($expr)';
-
-  @override
   bool operator ==(Object other) => other is Exp && other.expr == expr;
 
   @override
@@ -517,9 +494,6 @@ final class Ln extends Expr {
   @override
   double evaluate(Map<String, double> context) =>
       math.log(expr.evaluate(context));
-
-  @override
-  String toString() => 'ln($expr)';
 
   @override
   bool operator ==(Object other) => other is Ln && other.expr == expr;

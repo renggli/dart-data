@@ -65,27 +65,27 @@ void main() {
 
       const add = Add(x, y);
       check(add.toLatex()).equals('x + y');
-      check(add.toString()).equals('(x + y)');
+      check(add.toString()).equals('x + y');
 
       const sub = Sub(x, y);
       check(sub.toLatex()).equals('x - y');
-      check(sub.toString()).equals('(x - y)');
+      check(sub.toString()).equals('x - y');
 
       const mul = Mul(x, y);
       check(mul.toLatex()).equals('x \\cdot y');
-      check(mul.toString()).equals('(x * y)');
+      check(mul.toString()).equals('x * y');
 
       const div = Div(x, y);
       check(div.toLatex()).equals('\\frac{x}{y}');
-      check(div.toString()).equals('(x / y)');
+      check(div.toString()).equals('x / y');
 
       const pow = Pow(x, y);
       check(pow.toLatex()).equals('{x}^{y}');
-      check(pow.toString()).equals('(x ^ y)');
+      check(pow.toString()).equals('x ^ y');
 
       const neg = Neg(x);
       check(neg.toLatex()).equals('-x');
-      check(neg.toString()).equals('(-x)');
+      check(neg.toString()).equals('-x');
 
       const sin = Sin(x);
       check(sin.toLatex()).equals('\\sin(x)');
@@ -102,6 +102,28 @@ void main() {
       const ln = Ln(x);
       check(ln.toLatex()).equals('\\ln(x)');
       check(ln.toString()).equals('ln(x)');
+
+      // Precedence & nested string textualization
+      const compound = Mul(
+        Exp(Mul(Constant(-0.2), x)),
+        Cos(Mul(Constant(3.0), x)),
+      );
+      check(compound.toString()).equals('exp(-0.2 * x) * cos(3 * x)');
+
+      const poly = Add(
+        Sub(Pow(x, Constant(3.0)), Mul(Constant(3.0), x)),
+        Constant(1.0),
+      );
+      check(poly.toString()).equals('x ^ 3 - 3 * x + 1');
+
+      const parenMul = Mul(Add(x, Constant(1.0)), Sub(x, Constant(1.0)));
+      check(parenMul.toString()).equals('(x + 1) * (x - 1)');
+
+      const parenDiv = Div(
+        Constant(1.0),
+        Add(Constant(1.0), Pow(x, Constant(2.0))),
+      );
+      check(parenDiv.toString()).equals('1 / (1 + x ^ 2)');
     });
 
     test('Equality and hashCode across AST nodes', () {

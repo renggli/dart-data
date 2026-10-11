@@ -1,0 +1,85 @@
+import '../ast.dart';
+
+/// MathML serialization extension on [Expr].
+extension MathMlExtension on Expr {
+  /// Formats this expression into W3C MathML markup.
+  ///
+  /// MathML (Mathematical Markup Language) is an XML standard for encoding
+  /// mathematical notation, natively rendered by modern web browsers and
+  /// document processing tools.
+  ///
+  /// If [display] is `true`, produces `<math display="block">` for block-level
+  /// rendering; otherwise produces inline `<math>`. If [root] is `false`,
+  /// returns only the inner MathML elements without the enclosing `<math>` tag.
+  ///
+  /// ```dart
+  /// final x = Variable('x');
+  /// final mathml = (x / (x + 1)).toMathMl();
+  /// // '<math><mfrac><mi>x</mi><mrow><mi>x</mi><mo>+</mo><mn>1</mn></mrow></mfrac></math>'
+  /// ```
+  String toMathMl({bool display = false, bool root = true}) {
+    final inner = _toMathMl(this);
+    if (!root) return inner;
+    final attr = display ? ' display="block"' : '';
+    return '<math$attr>$inner</math>';
+  }
+}
+
+String _toMathMl(Expr expr) => switch (expr) {
+  Variable(:final name) => '<mi>${_escapeXml(name)}</mi>',
+  Constant(:final value, :final name) => switch (name) {
+    'pi' => '<mi>π</mi>',
+    _ when name != null => '<mi>${_escapeXml(name)}</mi>',
+    _ =>
+      '<mn>${value % 1 == 0 ? value.toInt().toString() : value.toString()}</mn>',
+  },
+  Add(:final left, :final right) =>
+    '<mrow>${_toMathMl(left)}<mo>+</mo>${_toMathMl(right)}</mrow>',
+  Sub(:final left, :final right) =>
+    '<mrow>${_toMathMl(left)}<mo>-</mo>${_formatSubRight(right)}</mrow>',
+  Mul(:final left, :final right) =>
+    '<mrow>${_formatMulOperand(left)}<mo>&#x22c5;</mo>${_formatMulOperand(right)}</mrow>',
+  Div(:final left, :final right) =>
+    '<mfrac>${_toMathMl(left)}${_toMathMl(right)}</mfrac>',
+  Pow(:final base, :final exponent) =>
+    '<msup>${_formatPowBase(base)}${_toMathMl(exponent)}</msup>',
+  Neg(:final expr) => '<mrow><mo>-</mo>${_formatNegOperand(expr)}</mrow>',
+  Sin(:final expr) =>
+    '<mrow><mi>sin</mi><mo>(</mo>${_toMathMl(expr)}<mo>)</mo></mrow>',
+  Cos(:final expr) =>
+    '<mrow><mi>cos</mi><mo>(</mo>${_toMathMl(expr)}<mo>)</mo></mrow>',
+  Exp(:final expr) => '<msup><mi>e</mi>${_toMathMl(expr)}</msup>',
+  Ln(:final expr) =>
+    '<mrow><mi>ln</mi><mo>(</mo>${_toMathMl(expr)}<mo>)</mo></mrow>',
+};
+
+String _formatSubRight(Expr right) => switch (right) {
+  Add() || Sub() => '<mrow><mo>(</mo>${_toMathMl(right)}<mo>)</mo></mrow>',
+  _ => _toMathMl(right),
+};
+
+String _formatMulOperand(Expr operand) => switch (operand) {
+  Add() || Sub() => '<mrow><mo>(</mo>${_toMathMl(operand)}<mo>)</mo></mrow>',
+  _ => _toMathMl(operand),
+};
+
+String _formatPowBase(Expr base) => switch (base) {
+  Add() ||
+  Sub() ||
+  Mul() ||
+  Div() ||
+  Neg() => '<mrow><mo>(</mo>${_toMathMl(base)}<mo>)</mo></mrow>',
+  _ => _toMathMl(base),
+};
+
+String _formatNegOperand(Expr expr) => switch (expr) {
+  Add() || Sub() => '<mrow><mo>(</mo>${_toMathMl(expr)}<mo>)</mo></mrow>',
+  _ => _toMathMl(expr),
+};
+
+String _escapeXml(String text) => text
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&apos;');
