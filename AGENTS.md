@@ -7,6 +7,12 @@
 - Prefer using the Dart MCP tool instead of running commands manually.
 - Provide a single canonical way to perform an operation; avoid redundant convenience aliases, parameter aliases, or duplicate invocation styles. No backward compatibility is needed; update and rewrite existing code directly.
 
+## API Design Principles & Architectural Goals
+
+- **Solution-Oriented Naming**: Public APIs must be named after the mathematical problems or solutions they provide (e.g., `solve`, `integrate`, `derivative`, `gradient`, `hessian`, `jacobian`, `minimize`, `solveOde`, `curveFit`), not internal algorithm or author names (e.g., avoid top-level `brentRoot`, `gaussKronrod`, `rk4`, `levenbergMarquardt`, `nelderMead`). Algorithm techniques should be selected via typed enums (`RootMethod`, `IntegrationMethod`, `OptimizationMethod`, `OdeMethod`) with robust defaults.
+- **Symmetry & Decoupling Between Numeric and Symbolic**: Maintain clean, parallel APIs and terminology across `package:data/numeric.dart` and `package:data/symbolic.dart`. The `numeric` subsystem is a foundational mathematical layer that must have zero knowledge of or dependencies on `symbolic` (no circular imports; strictly typed function closures like `double Function(double)`, eliminating runtime `dynamic` dispatch). The `symbolic` subsystem bridges into `numeric` via high-speed compiled evaluation closures (`expr.toFunction1D()`, `expr.toVectorFunction()`).
+- **Mathematical Completeness & Ergonomics**: Preserve analytical and numerical capabilities: infinite/semi-infinite integration domains via coordinate substitution ($[-\infty, \infty]$, $[a, \infty)$, $(-\infty, b]$), singular pole partitioning, convergence error/warning contracts, high-order differentiation stencils (orders 1–6, up to 8 points), high-level parametric curve fitting with confidence metrics, coordinate sampling grids (`linearSpaced`, `logarithmicSpaced`, `geometricSpaced`), natural 2D matrix indexing (`matrix[r][c]`), general least-squares matrix solves (`Matrix.solve` for rectangular and matrix RHS), and memory-efficient sparse polynomials.
+
 ## Comments, Documentation and Examples
   
 - Use triple-slash (`///`) doc comments for all public members.

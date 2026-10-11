@@ -4,10 +4,219 @@ This document defines the actionable engineering task list for `package:data`.
 
 ## Tasks
 
+- [ ] Canonical Solution-Oriented APIs (Unify Algorithm-Centric Functions)
+- [ ] Symbolic & Numeric Parity, Alignment, and Decoupling
+- [ ] Infinite Domains, Singularities (Poles), and High-Order Differentiation Restoration
+- [ ] High-Level Curve Fitting & Parametric Model Architecture Restoration
+- [ ] Scientific Sampling Grids (`linearSpaced`, `logarithmicSpaced`, `geometricSpaced`)
+- [ ] Linear Algebra Ergonomics: Natural 2D Indexing, General Matrix Solver, Determinant & Inverse
+- [ ] Sparse Polynomial Representation
 - [ ] Apache Arrow C Data Interface & IPC Stream Export
 - [ ] Apache Arrow UTF-8 String Offset Buffer (`ArrowStringSeries`)
 - [ ] Sort-Merge Relational Join
 - [ ] Streaming CSV & JSON Parsers
+
+---
+
+### [ ] Canonical Solution-Oriented APIs (Unify Algorithm-Centric Functions)
+
+- **Problem / Goal**:
+  In the greenfield rewrite, public APIs in `numeric.dart` and `linear.dart` were renamed after internal numerical techniques rather than the problems they solve:
+  - Root-finding is split into `brentRoot`, `newtonRaphson`, and `bisection`.
+  - Integration is split into `gaussKronrod` and `adaptiveSimpson`.
+  - Minimization is split into `brentMinimize`, `nelderMead`, `bfgs`, and `lbfgs`.
+  - ODE solving is split into `rk4` and `rk45`.
+  - Non-linear curve fitting is called `levenbergMarquardt`.
+  - Calculus functions carry redundant prefixes (`numericalDerivative`, `numericalSecondDerivative`, `numericalGradient`, `numericalHessian`, `numericalJacobian`) inside `package:data/numeric.dart`.
+  - Linear solvers are split into `conjugateGradient`, `gmres`, and `solveTridiagonal`.
+  This increases cognitive load, forces users to know specific numerical analysis literature, and violates the charter principle: *"Provide a single canonical way to perform an operation; avoid redundant convenience aliases... No backward compatibility is needed; update and rewrite existing code directly."*
+- **The Win**:
+  - Problem-first, canonical entrypoints (`solve`, `integrate`, `derivative`, `gradient`, `hessian`, `jacobian`, `minimize`, `solveOde`, `curveFit`) with algorithm selection handled via typed enums and robust default algorithms (e.g. `RootMethod.brent`, `IntegrationMethod.gaussKronrod`, `OptimizationMethod.nelderMead`).
+- **Target Files**:
+  - `lib/numeric.dart`
+  - `lib/linear.dart`
+  - `lib/src/numeric/root_finding.dart`
+  - `lib/src/numeric/integration.dart`
+  - `lib/src/numeric/optimization.dart`
+  - `lib/src/numeric/ode.dart`
+  - `lib/src/numeric/calculus.dart`
+  - `lib/src/numeric/curve_fit.dart`
+  - `lib/src/linear/solvers/iterative.dart` (new / unified)
+  - `test/numeric/`
+  - `test/linear/`
+- **Step-by-Step Implementation Details**:
+  1. In `lib/src/numeric/root_finding.dart`, define `enum RootMethod { brent, newtonRaphson, bisection }` and provide a single canonical function `double solve(double Function(double) function, double a, [double? b, {RootMethod method = RootMethod.brent, double tolerance = 1e-12, int maxIterations = 100, double Function(double)? derivative}])`. Purge standalone `brentRoot`, `newtonRaphson`, and `bisection` top-level exports.
+  2. In `lib/src/numeric/integration.dart`, define `enum IntegrationMethod { gaussKronrod, simpson }` and provide a single canonical function `double integrate(double Function(double) function, double a, double b, {IntegrationMethod method = IntegrationMethod.gaussKronrod, double tolerance = 1e-9, int maxDepth = 25, Iterable<double> poles = const []})`. Purge standalone `adaptiveSimpson` and `gaussKronrod` top-level exports.
+  3. In `lib/src/numeric/calculus.dart`, rename `numericalDerivative` to `derivative`, supporting an `order` parameter (1 to 6) and `accuracy` (2, 4, 6, 8 points); remove `numericalSecondDerivative`; rename `numericalGradient` to `gradient`, `numericalHessian` to `hessian`, and `numericalJacobian` to `jacobian`.
+  4. In `lib/src/numeric/optimization.dart`, provide a single canonical `minimize` function with `enum OptimizationMethod { brent, nelderMead, bfgs, lbfgs }` and unconstrained/bounded options.
+  5. In `lib/src/numeric/ode.dart`, provide a single canonical `OdeSolution solveOde(...)` with `enum OdeMethod { rk4, dormandPrince45 }`, eliminating standalone `rk4` and `rk45` top-level functions.
+  6. In `lib/src/numeric/curve_fit.dart`, rename `levenbergMarquardt` to canonical `curveFit` / `fitNonlinear`.
+  7. Update all call sites across `example/`, `doc/`, and `test/` to use the unified canonical entrypoints.
+
+---
+
+### [ ] Symbolic & Numeric Parity, Alignment, and Decoupling
+
+- **Problem / Goal**:
+  - Terminology and naming mismatch: `symbolic` exposes `diff`, `integrate`, `solve`, `solveSystem`, `gradient`, `hessian`, `jacobian`, while `numeric` exposes `numericalDerivative`, `gaussKronrod`, `brentRoot`, `numericalGradient`, etc.
+  - Untyped dynamic coupling: `numeric` routines accept `Object function` and perform runtime `is Expr` checks, invoking dynamic closures (`((function as dynamic)(x) as num).toDouble()`), throwing away static type safety.
+  - Circular imports: `lib/src/numeric/integration.dart` imports `../../symbolic.dart`, while `lib/src/symbolic/calculus/integration.dart` imports `../../numeric/integration.dart`.
+- **The Win**:
+  - Perfect conceptual and naming symmetry between `symbolic` and `numeric`:
+
+    | Mathematical Operation | `package:data/numeric.dart` | `package:data/symbolic.dart` |
+    | :--- | :--- | :--- |
+    | Univariate Equation / Root Solving | `solve(f, a, [b], {method})` | `expr.solve(var)` |
+    | Equation System Solving | `solveSystem(fs, initialGuess)` | `[eq1, eq2].solveSystem(vars)` |
+    | Definite / Indefinite Integration | `integrate(f, a, b, {method})` | `expr.integrate(var, {from, to})` |
+    | Derivative ($n$-th order) | `derivative(f, x, {order, accuracy})` | `expr.derivative(var, {order})` |
+    | Multivariable Gradient ($\nabla f$) | `gradient(f, x)` | `expr.gradient(vars)` |
+    | Multivariable Hessian ($H_f$) | `hessian(f, x)` | `expr.hessian(vars)` |
+    | Vector Function Jacobian ($J_F$) | `jacobian(f, x)` | `[f1, f2].jacobian(vars)` |
+
+  - Strict compile-time static types (`double Function(double)`, `Vector<double> Function(Vector<double>)`) in `numeric`, eliminating runtime `dynamic` dispatch.
+  - Clean one-way dependency: `numeric` is a pure mathematical library with zero knowledge of `symbolic`; `symbolic` provides explicit bridges (`Expr.toFunction1D()`, `Expr.toVectorFunction()`) without circularity.
+- **Target Files**:
+  - `lib/symbolic.dart`
+  - `lib/numeric.dart`
+  - `lib/src/symbolic/ast.dart`
+  - `lib/src/symbolic/calculus/differentiation.dart`
+  - `lib/src/symbolic/calculus/integration.dart`
+  - `lib/src/symbolic/solver.dart`
+  - `lib/src/numeric/calculus.dart`
+  - `lib/src/numeric/integration.dart`
+  - `lib/src/numeric/root_finding.dart`
+  - `lib/src/numeric/optimization.dart`
+- **Step-by-Step Implementation Details**:
+  1. Remove `import '../../symbolic.dart'` and all `if (function is Expr)` / `(function as dynamic)` logic from `lib/src/numeric/integration.dart`, `calculus.dart`, `root_finding.dart`, and `optimization.dart`. Type all functional parameters strictly as `double Function(double)` or `double Function(Vector<double>)`.
+  2. Align naming between packages:
+     - In `symbolic`, ensure both `diff` and `derivative` are supported as aliases or canonicalized to `derivative(variable, {int order = 1})`.
+     - In `numeric`, name the canonical operations `solve`, `solveSystem`, `integrate`, `derivative`, `gradient`, `hessian`, `jacobian`.
+  3. In `numeric`, provide `solveSystem(List<double Function(Vector<double>)> equations, Vector<double> initialGuess)` using Newton-Raphson with numerical Jacobian as the numerical counterpart to symbolic `solveSystem`.
+  4. In `symbolic`, add explicit typed compilation helpers (`expr.toFunction1D(variable)`, `expr.toVectorFunction(variables)`) leveraging the high-speed JIT compiler.
+  5. In `lib/src/symbolic/calculus/integration.dart`, invoke `numeric.integrate(...)` cleanly when analytical anti-derivatives fail on definite limits without circular AST pollution.
+  6. Add unit tests verifying both symbolic and numerical methods side-by-side on identical test equations.
+
+---
+
+### [ ] Infinite Domains, Singularities (Poles), and High-Order Differentiation Restoration
+
+- **Problem / Goal**:
+  In `v0.16.0`, `integrate` supported:
+  - Infinite intervals: $[-\infty, \infty]$, $[-\infty, b]$, and $[a, \infty)$ via reciprocal variable transformations ($t \in [\epsilon, 1]$).
+  - Explicit poles: `poles: [p1, p2, ...]` with interval splitting and singular boundary buffers.
+  - Warnings / convergence errors: `IntegrateWarning` (`doesNotConverge`, `depthTooShallow`) and `onWarning` callbacks.
+  In HEAD, infinite bounds and poles were completely deleted; `gaussKronrod` and `adaptiveSimpson` fail with `NaN` on infinite bounds, and silently terminate without warnings when recursion limits are reached.
+  Additionally, `v0.16.0` supported numerical derivatives of order 1 through 6 with configurable central-difference stencil accuracy (2, 4, 6, 8 points); HEAD only computes 1st and 2nd derivatives with a fixed 2-point stencil.
+- **The Win**:
+  - Full support for improper integrals over semi-infinite and infinite domains.
+  - Robust handling of functions with known poles/singularities via automatic domain partitioning.
+  - Arbitrary $n$-th order derivatives ($n \in [1, 6]$) with high-order stencil accuracy.
+- **Target Files**:
+  - `lib/src/numeric/integration.dart`
+  - `lib/src/numeric/calculus.dart`
+  - `test/numeric/integration_test.dart`
+  - `test/numeric/calculus_test.dart`
+- **Step-by-Step Implementation Details**:
+  1. In `lib/src/numeric/integration.dart`, reintroduce infinite interval transformations:
+     - For $[-\infty, \infty]$: split into $[-\infty, 0] + [0, \infty]$.
+     - For $[a, \infty)$: transform via $x = a + \frac{1-t}{t}$, substituting $dx = \frac{1}{t^2} dt$ over $t \in [\epsilon, 1]$.
+     - For $(-\infty, b]$: transform via $x = b - \frac{1-t}{t}$, substituting $dx = \frac{1}{t^2} dt$ over $t \in [\epsilon, 1]$.
+  2. Implement pole interval decomposition `_integratePoles`:
+     - Sort and normalize poles in $[a, b]$; partition into sub-intervals $[a, p_1 - \epsilon], [p_1 + \epsilon, p_2 - \epsilon], \dots, [p_n + \epsilon, b]$.
+  3. Reintroduce `enum IntegrateWarning { doesNotConverge, depthTooShallow }` and optional `onWarning` callback / `IntegrateError` exception when quadrature fails to converge.
+  4. In `lib/src/numeric/calculus.dart`, port the full precomputed central finite difference coefficient table from `v0.16.0`:
+     - Support `derivative(function, x, {int order = 1, int accuracy = 2, double step = 1e-5})` for `order` 1 through 6 and `accuracy` 2, 4, 6, 8.
+  5. Add unit tests for improper integrals ($\int_0^\infty e^{-x} dx = 1$, $\int_{-\infty}^\infty e^{-x^2} dx = \sqrt{\pi}$), integrals with poles, and higher-order derivatives (up to 6th order of polynomials/trig functions).
+
+---
+
+### [ ] High-Level Curve Fitting & Parametric Model Architecture Restoration
+
+- **Problem / Goal**:
+  In `v0.16.0`, curve fitting was a cohesive, problem-oriented subsystem:
+  - `CurveFit` abstract interface with `fit({required Vector<double> xs, required Vector<double> ys}) -> CurveFitResult`.
+  - `CurveFitResult` returned both the optimal parameters and a ready-to-evaluate mathematical `function`.
+  - `ParametrizedUnaryFunction` provided seamless binding over positional, named, list, map, and vector parameter models, along with parameter bounds (`minValue`, `maxValue`).
+  In HEAD, non-linear fitting was reduced to raw `levenbergMarquardt`, which takes a residual vector function and raw parameter vector, returning only a `Vector<double>`. The user has to manually calculate residual vectors and reconstruct the fitted function.
+- **The Win**:
+  - Intuitive, high-level non-linear curve fitting: pass data vectors `xs` and `ys` and a model function $f(x; \theta)$, receiving back fitted parameters, covariance/uncertainty, $R^2$ goodness-of-fit, and a callable predictor function.
+- **Target Files**:
+  - `lib/src/numeric/curve_fit.dart`
+  - `lib/numeric.dart`
+  - `test/numeric/curve_fit_test.dart`
+- **Step-by-Step Implementation Details**:
+  1. Define `class CurveFitResult` containing `Vector<double> parameters`, `double Function(double) predict`, `double rSquared`, and residual metrics.
+  2. Implement canonical `CurveFitResult curveFit({required Vector<num> xs, required Vector<num> ys, required double Function(double x, Vector<double> params) model, required Vector<double> initialParams, Vector<double>? lowerBounds, Vector<double>? upperBounds, double tolerance = 1e-7, int maxIterations = 100})`.
+  3. Wire internal optimization to the existing Levenberg-Marquardt routine or bounded optimizer while encapsulating the residual vector assembly $(r_i = \text{model}(x_i, p) - y_i)$.
+  4. Provide high-level wrappers for common models (exponential $a e^{b x}$, power $a x^b$, logarithmic $a + b \ln x$, gaussian $a e^{-\frac{(x - \mu)^2}{2\sigma^2}}$).
+  5. Add tests fitting non-linear noisy datasets and verifying parameter convergence and $R^2$ accuracy.
+
+---
+
+### [ ] Scientific Sampling Grids (`linearSpaced`, `logarithmicSpaced`, `geometricSpaced`)
+
+- **Problem / Goal**:
+  `v0.16.0` provided standard scientific grid generator utilities:
+  - `linearSpaced(start, stop, {count, includeEndpoint})` (equivalent to NumPy `linspace`)
+  - `logarithmicSpaced(start, stop, {count, base, includeEndpoint})` (equivalent to NumPy `logspace`)
+  - `geometricSpaced(start, stop, {count, includeEndpoint})` (equivalent to NumPy `geomspace`)
+  These were purged in the greenfield rewrite, forcing users to write manual loops or indexing math whenever setting up evaluation grids, plotting coordinates, ODE time vectors, or interpolation domains.
+- **The Win**:
+  - Standard, zero-boilerplate creation of linearly, logarithmically, and geometrically spaced 1D `Vector<double>` coordinates.
+- **Target Files**:
+  - `lib/src/linear/vector.dart` (or `lib/src/numeric/sampling.dart`)
+  - `lib/numeric.dart`
+  - `lib/linear.dart`
+  - `test/numeric/sampling_test.dart` (new)
+- **Step-by-Step Implementation Details**:
+  1. Implement `Vector<double> linearSpaced(double start, double stop, {int count = 50, bool endpoint = true, DataType<double>? type, bool? native})`.
+  2. Implement `Vector<double> logarithmicSpaced(double start, double stop, {int count = 50, double base = 10.0, bool endpoint = true, DataType<double>? type, bool? native})`.
+  3. Implement `Vector<double> geometricSpaced(double start, double stop, {int count = 50, bool endpoint = true, DataType<double>? type, bool? native})`.
+  4. Also expose `Vector.linspace`, `Vector.logspace`, and `Vector.geomspace` factory constructors on `Vector` for discoverability.
+  5. Add unit tests verifying start/stop boundary inclusion, spacing consistency, count accuracy, and logarithmic scaling.
+
+---
+
+### [ ] Linear Algebra Ergonomics: Natural 2D Indexing, General Matrix Solver, Determinant & Inverse
+
+- **Problem / Goal**:
+  - Matrix row indexing: In `v0.16.0`, `matrix[row]` returned a `Vector<T>` view of that row, enabling natural, universal 2D indexing syntax `matrix[r][c]`. In HEAD, `matrix[row]` is disallowed; indexing requires `matrix[(r, c)]` record syntax or `matrix.get(r, c)`.
+  - Matrix `solve`: In `v0.16.0`, `matrix.solve(b)` was a general solver on `Matrix<num>`: if square, it solved via LU decomposition; if rectangular, it automatically solved the least-squares problem via QR decomposition; and it accepted both `Vector` and multi-column `Matrix` right-hand sides. In HEAD, `Matrix.solve(b)` is restricted to square matrices, only accepts `Vector<T>`, and throws `ArgumentError` if rectangular or given a matrix RHS.
+  - Missing determinant and inverse: `v0.16.0` provided `matrix.det` and `matrix.inverse` directly on `Matrix<num>`. In HEAD, `matrix.inverse` was completely dropped, and `matrix.det` was hidden under `matrix.lu.det`.
+- **The Win**:
+  - Intuitive `matrix[row]` returning row `Vector<T>` view, enabling natural `matrix[r][c]` indexing.
+  - Universal `Matrix.solve(rhs)` solving square, under-determined, and over-determined (least squares) systems, supporting both `Vector<T>` and `Matrix<T>` (multiple right-hand sides).
+  - Convenient, direct access to `matrix.det` and `matrix.inverse` on `Matrix<T extends num>`.
+- **Target Files**:
+  - `lib/src/linear/matrix.dart`
+  - `test/linear/matrix_test.dart`
+- **Step-by-Step Implementation Details**:
+  1. In `lib/src/linear/matrix.dart`, add `Vector<T> operator [](int row) => this.row(row);` while maintaining `T get(int row, int col)` and `void set(int row, int col, T value)`. Ensure `operator []=((int, int), T)` or setter methods continue to provide fast element mutation.
+  2. Generalize `Matrix.solve`:
+     - Overload or parameterize `solve(Object b)` to accept either `Vector<T>` or `Matrix<T>`.
+     - When `rowCount == colCount`, route to LU solver (`dgesv` / pure-Dart LU).
+     - When `rowCount != colCount`, route automatically to QR least-squares solver (`dgels` / pure-Dart QR), returning the minimum-norm least-squares solution.
+  3. Reintroduce `T get det` / `double get det => lu.det;` directly on numeric matrices.
+  4. Reintroduce `Matrix<double> get inverse` on square invertible matrices (via LU solve against identity).
+  5. Add unit tests for `matrix[r][c]` read/write semantics, `det`, `inverse`, and square/rectangular multi-RHS solves.
+
+---
+
+### [ ] Sparse Polynomial Representation
+
+- **Problem / Goal**:
+  In `v0.16.0`, `Polynomial` supported sparse representations (`CompressedPolynomial`, `KeyedPolynomial`), which allowed polynomials with large sparse exponents (e.g. $x^{10000} - 1$) without allocating a 10,001-element dense array. In HEAD, `Polynomial` is backed strictly by dense `List<T> _coefficients`, making high-degree sparse polynomials memory-prohibitive.
+- **The Win**:
+  - Memory-efficient sparse polynomial algebra without allocating enormous contiguous coefficient lists.
+- **Target Files**:
+  - `lib/src/polynomial/impl/compressed_polynomial.dart` (new)
+  - `lib/polynomial.dart`
+  - `test/polynomial/compressed_polynomial_test.dart` (new)
+- **Step-by-Step Implementation Details**:
+  1. Implement `SparsePolynomial<T>` or `CompressedPolynomial<T>` in `lib/src/polynomial/` storing a map or sorted lists of non-zero `(degree, coefficient)` pairs.
+  2. Ensure `Polynomial` operations (`+`, `-`, `*`, `evaluate`, `derivative`) support sparse representations seamlessly.
+  3. Add unit tests for high-degree sparse polynomial operations ($x^{10000} - 1$), degree determination, multiplication, and evaluation.
 
 ---
 
