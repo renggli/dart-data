@@ -3,16 +3,18 @@ import 'dart:math' as math;
 import '../matrix.dart';
 import 'svd.dart';
 
-/// Extension methods for matrix norms, condition estimators, and numerical rank.
+/// Extension methods for matrix norms, condition estimators, and numerical
+/// rank.
 extension MatrixNormExtension<T extends num> on Matrix<T> {
   /// Returns the Frobenius norm: $\|A\|_F = \sqrt{\sum_{i,j} |a_{ij}|^2}$.
   ///
-  /// Conceptually, this calculates the overall magnitude or Euclidean size
-  /// of the matrix by summing the squares of all entries and taking
-  /// the square root.
-  /// Formally, it computes the Frobenius (Hilbert-Schmidt) norm
-  /// $\|A\|_F = \sqrt{\operatorname{Tr}(A^T A)} = \sqrt{\sum_{i=1}^{\min(m, n)} \sigma_i^2}$,
-  /// implemented via scaled summation to prevent intermediate underflow and overflow.
+  /// Conceptually, this calculates the overall magnitude or Euclidean size of
+  /// the matrix by summing the squares of all entries and taking the square
+  /// root. Formally, it computes the Frobenius (Hilbert-Schmidt) norm
+  /// $\|A\|_F = \sqrt{\operatorname{Tr}(A^T A)}$
+  /// $= \sqrt{\sum_{i=1}^{\min(m, n)} \sigma_i^2}$,
+  /// implemented via scaled summation to prevent intermediate underflow and
+  /// overflow.
   ///
   /// ```dart
   /// final m = Matrix<double>.fromRows([
@@ -43,10 +45,10 @@ extension MatrixNormExtension<T extends num> on Matrix<T> {
 
   /// Returns the 1-norm: maximum absolute column sum $\max_j \sum_i |a_{ij}|$.
   ///
-  /// Conceptually, this adds up the absolute values in each column
-  /// and returns the maximum column sum.
-  /// Formally, it computes the induced operator 1-norm
-  /// $\|A\|_1 = \max_{\|\mathbf{x}\|_1 = 1} \|A \mathbf{x}\|_1 = \max_{1 \le j \le n} \sum_{i=1}^m |a_{ij}|$.
+  /// Conceptually, this adds up the absolute values in each column and returns
+  /// the maximum column sum. Formally, it computes the induced operator 1-norm
+  /// $\|A\|_1 = \max_{\|\mathbf{x}\|_1 = 1} \|A \mathbf{x}\|_1$
+  /// $= \max_{1 \le j \le n} \sum_{i=1}^m |a_{ij}|$.
   ///
   /// ```dart
   /// final m = Matrix<double>.fromRows([
@@ -69,9 +71,9 @@ extension MatrixNormExtension<T extends num> on Matrix<T> {
 
   /// Returns the 2-norm: largest singular value $\sigma_{\max}(A)$.
   ///
-  /// Conceptually, this measures the maximum factor by which the matrix
-  /// can stretch the length of any vector.
-  /// Formally, it computes the induced spectral 2-norm
+  /// Conceptually, this measures the maximum factor by which the matrix can
+  /// stretch the length of any vector. Formally, it computes the induced
+  /// spectral 2-norm
   /// $\|A\|_2 = \max_{\|\mathbf{x}\|_2 = 1} \|A \mathbf{x}\|_2 = \sigma_1(A)$.
   ///
   /// ```dart
@@ -84,12 +86,14 @@ extension MatrixNormExtension<T extends num> on Matrix<T> {
   double get norm2 =>
       (rowCount == 0 || colCount == 0 || svd.s.length == 0) ? 0.0 : svd.s[0];
 
-  /// Returns the infinity norm: maximum absolute row sum $\max_i \sum_j |a_{ij}|$.
+  /// Returns the infinity norm: maximum absolute row sum
+  /// $\max_i \sum_j |a_{ij}|$.
   ///
-  /// Conceptually, this adds up the absolute values along each row
-  /// and returns the maximum row sum.
-  /// Formally, it computes the induced operator infinity norm
-  /// $\|A\|_\infty = \max_{\|\mathbf{x}\|_\infty = 1} \|A \mathbf{x}\|_\infty = \max_{1 \le i \le m} \sum_{j=1}^n |a_{ij}|$.
+  /// Conceptually, this adds up the absolute values along each row and returns
+  /// the maximum row sum. Formally, it computes the induced operator infinity
+  /// norm
+  /// $\|A\|_\infty = \max_{\|\mathbf{x}\|_\infty = 1} \|A \mathbf{x}\|_\infty$
+  /// $= \max_{1 \le i \le m} \sum_{j=1}^n |a_{ij}|$.
   ///
   /// ```dart
   /// final m = Matrix<double>.fromRows([
@@ -110,13 +114,19 @@ extension MatrixNormExtension<T extends num> on Matrix<T> {
     return result;
   }
 
-  /// Returns the 2-norm condition number $\kappa(A) = \sigma_{\max} / \sigma_{\min}$.
+  /// Returns the 2-norm condition number
+  /// $\kappa(A) = \sigma_{\max} / \sigma_{\min}$.
   ///
-  /// Conceptually, the condition number indicates how sensitive or numerically unstable
-  /// solving $A x = b$ will be. A condition number near 1 indicates a well-conditioned matrix;
-  /// a very large condition number means rounding errors or slight perturbations will degrade the solution.
-  /// Formally, it computes $\kappa_2(A) = \|A\|_2 \|A^{-1}\|_2 = \frac{\sigma_{\max}}{\sigma_{\min}}$,
-  /// which bounds relative solution error $\frac{\|\delta \mathbf{x}\|}{\|\mathbf{x}\|} \le \kappa(A) \frac{\|\delta \mathbf{b}\|}{\|\mathbf{b}\|}$.
+  /// Conceptually, the condition number indicates how sensitive or numerically
+  /// unstable solving $A x = b$ will be. A condition number near 1 indicates a
+  /// well-conditioned matrix; a very large condition number means rounding
+  /// errors or slight perturbations will degrade the solution. Formally, it
+  /// computes
+  /// $\kappa_2(A) = \|A\|_2 \|A^{-1}\|_2$
+  /// $= \frac{\sigma_{\max}}{\sigma_{\min}}$,
+  /// which bounds relative solution error:
+  /// $\frac{\|\delta \mathbf{x}\|}{\|\mathbf{x}\|} \le$
+  /// $\kappa(A) \frac{\|\delta \mathbf{b}\|}{\|\mathbf{b}\|}$.
   ///
   /// ```dart
   /// final id = Matrix<double>.identity(2);
@@ -135,9 +145,12 @@ extension MatrixNormExtension<T extends num> on Matrix<T> {
   /// Returns the effective numerical rank of the matrix.
   ///
   /// Conceptually, rank is the number of linearly independent rows or columns
-  /// in the matrix that provide unique, non-redundant information.
-  /// Formally, it computes $\operatorname{rank}(A) = \#\{\sigma_i > \max(m, n) \cdot \sigma_1 \cdot \epsilon_{\text{mach}}\}$,
-  /// identifying the dimension of the column space robustly in floating-point arithmetic.
+  /// in the matrix that provide unique, non-redundant information. Formally, it
+  /// computes
+  /// $\operatorname{rank}(A) =$
+  /// $\#\{\sigma_i > \max(m, n) \cdot \sigma_1 \cdot \epsilon_{\text{mach}}\}$,
+  /// identifying the dimension of the column space robustly in floating-point
+  /// arithmetic.
   ///
   /// ```dart
   /// final m = Matrix<double>.fromRows([

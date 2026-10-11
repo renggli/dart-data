@@ -6,10 +6,11 @@ import 'json_decoder.dart';
 
 /// Streaming JSON Lines (NDJSON) and chunked JSON reader for [DataFrame].
 ///
-/// Ingests records line-by-line from [Stream<String>] or [Stream<List<int>>]
-/// in constant memory without loading the complete JSON document into RAM.
+/// Ingests records line-by-line from [Stream<String>] or [Stream<List<int>>] in
+/// constant memory without loading the complete JSON document into RAM.
 abstract final class DataFrameJsonStream {
-  /// Reads a text [stream] of newline-delimited JSON (NDJSON/JSONL) records into chunked [DataFrame] instances.
+  /// Reads a text [stream] of newline-delimited JSON (NDJSON/JSONL) records
+  /// into chunked [DataFrame] instances.
   static Stream<DataFrame> readNdjsonChunks(
     Stream<String> stream, {
     int chunkSize = 1000,
@@ -72,7 +73,8 @@ abstract final class DataFrameJsonStream {
     );
   }
 
-  /// Reads a byte [stream] of NDJSON records into chunked [DataFrame] instances.
+  /// Reads a byte [stream] of NDJSON records into chunked [DataFrame]
+  /// instances.
   static Stream<DataFrame> readByteChunks(
     Stream<List<int>> stream, {
     int chunkSize = 1000,

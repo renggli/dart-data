@@ -1,7 +1,8 @@
 import '../../type.dart';
 import 'vector.dart';
 
-/// Abstract interface representing a linear mapping between finite-dimensional vector spaces.
+/// Abstract interface representing a linear mapping between finite-dimensional
+/// vector spaces.
 abstract interface class LinearOperator<T> {
   /// The number of rows (dimension of the codomain).
   int get rowCount;

@@ -3,28 +3,31 @@ import '../../linear.dart';
 /// Method used for numerical root-finding.
 enum RootMethod {
   /// Brent-Dekker hybrid method combining inverse quadratic interpolation,
-  /// secant steps, and bisection safeguards. Requires bracketed interval `[a, b]`.
+  /// secant steps, and bisection safeguards. Requires bracketed interval
+  /// `[a, b]`.
   brent,
 
   /// Newton-Raphson method with quadratic convergence using analytical or
   /// finite-difference derivative. Starts from initial point `a`.
   newtonRaphson,
 
-  /// Bisection method guaranteeing linear convergence. Requires bracketed interval `[a, b]`.
+  /// Bisection method guaranteeing linear convergence. Requires bracketed
+  /// interval `[a, b]`.
   bisection,
 }
 
 /// Finds a root of $f(x) = 0$ using the specified [method].
 ///
-/// Conceptually, finding a root identifies where a continuous curve crosses
-/// the horizontal axis ($f(x) = 0$), solving the non-linear equation for $x$.
-/// Formally, it executes the chosen [method] ([RootMethod.brent] by default when [b]
-/// is provided, [RootMethod.newtonRaphson] when only [a] is provided, or [RootMethod.bisection]).
+/// Conceptually, finding a root identifies where a continuous curve crosses the
+/// horizontal axis ($f(x) = 0$), solving the non-linear equation for $x$.
+/// Formally, it executes the chosen [method] ([RootMethod.brent] by default
+/// when [b] is provided, [RootMethod.newtonRaphson] when only [a] is provided,
+/// or [RootMethod.bisection]).
 ///
-/// For bracketed methods ([RootMethod.brent] and [RootMethod.bisection]),
-/// both [a] and [b] are required and must satisfy $f(a) \cdot f(b) \le 0$.
-/// For open methods ([RootMethod.newtonRaphson]), [a] serves as the initial
-/// guess $x_0$, and [b] is ignored.
+/// For bracketed methods ([RootMethod.brent] and [RootMethod.bisection]), both
+/// [a] and [b] are required and must satisfy $f(a) \cdot f(b) \le 0$. For open
+/// methods ([RootMethod.newtonRaphson]), [a] serves as the initial guess $x_0$,
+/// and [b] is ignored.
 ///
 /// ```dart
 /// final root = solve((x) => x * x - 4.0, 0.0, b: 5.0); // 2.0
@@ -78,12 +81,15 @@ double solve(
   }
 }
 
-/// Solves a system of equations $F(\mathbf{x}) = \mathbf{0}$ using multivariate Newton-Raphson iteration.
+/// Solves a system of equations $F(\mathbf{x}) = \mathbf{0}$ using multivariate
+/// Newton-Raphson iteration.
 ///
-/// Conceptually, this finds coordinates where multiple equations simultaneously equal zero.
-/// Formally, starting from [initialGuess] $\mathbf{x}_0$, it iteratively updates:
+/// Conceptually, this finds coordinates where multiple equations simultaneously
+/// equal zero. Formally, starting from [initialGuess] $\mathbf{x}_0$, it
+/// iteratively updates:
 /// $$\mathbf{x}_{k+1} = \mathbf{x}_k - J_F(\mathbf{x}_k)^{-1} F(\mathbf{x}_k)$$
-/// where $J_F(\mathbf{x}_k)$ is the Jacobian matrix computed either via [jacobian] or central finite differences.
+/// where $J_F(\mathbf{x}_k)$ is the Jacobian matrix computed either via
+/// [jacobian] or central finite differences.
 ///
 /// ```dart
 /// final sol = solveSystem([

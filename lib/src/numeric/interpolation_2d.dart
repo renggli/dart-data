@@ -85,7 +85,9 @@ class BilinearInterpolation implements Interpolator2D {
   @override
   double call(double x, double y) => evaluate(x, y);
 
-  /// Computes the partial gradient $(\frac{\partial f}{\partial x}, \frac{\partial f}{\partial y})$ at ([x], [y]).
+  /// Computes the partial gradient
+  /// $(\frac{\partial f}{\partial x}, \frac{\partial f}{\partial y})$ at ([x],
+  /// [y]).
   Vector<double> gradient(double x, double y) {
     final xClamped = x.clamp(_xs.first, _xs.last);
     final yClamped = y.clamp(_ys.first, _ys.last);
@@ -116,7 +118,8 @@ class BilinearInterpolation implements Interpolator2D {
   }
 }
 
-/// 2D Bicubic surface interpolation over a rectilinear grid with $C^1$ continuity.
+/// 2D Bicubic surface interpolation over a rectilinear grid with $C^1$
+/// continuity.
 class BicubicInterpolation implements Interpolator2D {
   /// Constructs a bicubic interpolator.
   ///
@@ -305,7 +308,9 @@ class BicubicInterpolation implements Interpolator2D {
   @override
   double call(double x, double y) => evaluate(x, y);
 
-  /// Computes the gradient $(\frac{\partial f}{\partial x}, \frac{\partial f}{\partial y})$ at ([x], [y]).
+  /// Computes the gradient
+  /// $(\frac{\partial f}{\partial x}, \frac{\partial f}{\partial y})$ at ([x],
+  /// [y]).
   Vector<double> gradient(double x, double y) {
     final xClamped = x.clamp(_xs.first, _xs.last);
     final yClamped = y.clamp(_ys.first, _ys.last);

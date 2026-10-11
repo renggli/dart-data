@@ -13,7 +13,8 @@ import 'multivariate_distribution.dart';
 ///
 /// See https://en.wikipedia.org/wiki/Multivariate_normal_distribution.
 class MultivariateNormalDistribution extends MultivariateDistribution<double> {
-  /// Constructs a multivariate normal distribution with given [mean] and [covariance].
+  /// Constructs a multivariate normal distribution with given [mean] and
+  /// [covariance].
   new(this.mean, this.covariance)
     : dimensions = mean.length,
       _l = Matrix<double>.filled(
@@ -58,7 +59,8 @@ class MultivariateNormalDistribution extends MultivariateDistribution<double> {
     _logDetSigma = 2.0 * logDetHalf;
   }
 
-  /// Constructs a standard multivariate normal distribution centered at zero with identity covariance.
+  /// Constructs a standard multivariate normal distribution centered at zero
+  /// with identity covariance.
   factory standard(int dimensions) {
     if (dimensions <= 0) {
       throw ArgumentError.value(

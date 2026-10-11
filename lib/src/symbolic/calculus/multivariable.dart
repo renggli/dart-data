@@ -4,10 +4,14 @@ import 'differentiation.dart';
 
 /// Multivariable calculus extensions on [Expr].
 extension MultivariableExtension on Expr {
-  /// Computes the analytical gradient vector $\nabla f = \left(\frac{\partial f}{\partial x_1}, \dots, \frac{\partial f}{\partial x_n}\right)$.
+  /// Computes the analytical gradient vector:
+  /// $\nabla f =$
+  /// $\left(\frac{\partial f}{\partial x_1}, \dots,\right.$
+  /// $\left.\frac{\partial f}{\partial x_n}\right)$.
   ///
-  /// Conceptually, the gradient points in the direction of steepest ascent on a multivariate surface.
-  /// Formally, this yields the covector of first-order partial derivatives.
+  /// Conceptually, the gradient points in the direction of steepest ascent on a
+  /// multivariate surface. Formally, this yields the covector of first-order
+  /// partial derivatives.
   ///
   /// ```dart
   /// final x = Variable('x');
@@ -18,10 +22,13 @@ extension MultivariableExtension on Expr {
   List<Expr> gradient(List<String> variables) =>
       _multivariableGradient(this, variables);
 
-  /// Computes the analytical Hessian matrix $H_{ij} = \frac{\partial^2 f}{\partial x_i \partial x_j}$.
+  /// Computes the analytical Hessian matrix
+  /// $H_{ij} = \frac{\partial^2 f}{\partial x_i \partial x_j}$.
   ///
-  /// Conceptually, the Hessian describes the local curvature or concavity of a multivariate surface.
-  /// Formally, this is the symmetric matrix of second partial derivatives used in multivariate optimization and critical point classification.
+  /// Conceptually, the Hessian describes the local curvature or concavity of a
+  /// multivariate surface. Formally, this is the symmetric matrix of second
+  /// partial derivatives used in multivariate optimization and critical point
+  /// classification.
   ///
   /// ```dart
   /// final x = Variable('x');
@@ -35,10 +42,13 @@ extension MultivariableExtension on Expr {
 
 /// Multivariable calculus extensions on collections of [Expr].
 extension MultivariableIterableExtension on Iterable<Expr> {
-  /// Computes the analytical Jacobian matrix $J_{ij} = \frac{\partial f_i}{\partial x_j}$.
+  /// Computes the analytical Jacobian matrix
+  /// $J_{ij} = \frac{\partial f_i}{\partial x_j}$.
   ///
-  /// Conceptually, the Jacobian shows how each component of a multivariable vector system changes with respect to each input variable.
-  /// Formally, this represents the linear approximation / pushforward map of a vector-valued function $F: \mathbb{R}^n \to \mathbb{R}^m$.
+  /// Conceptually, the Jacobian shows how each component of a multivariable
+  /// vector system changes with respect to each input variable. Formally, this
+  /// represents the linear approximation / pushforward map of a vector-valued
+  /// function $F: \mathbb{R}^n \to \mathbb{R}^m$.
   ///
   /// ```dart
   /// final x = Variable('x');

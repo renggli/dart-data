@@ -26,11 +26,12 @@ extension EigenvalueMatrixExtension<T extends num> on Matrix<T> {
 ///
 /// Conceptually, when a matrix transforms space, an eigenvector is a special
 /// direction that does not rotate—it only gets stretched or shrunk by a scaling
-/// factor called the eigenvalue ($A \mathbf{v} = \lambda \mathbf{v}$).
-/// More formally, this computes the spectral decomposition $A V = V \Lambda$. For real
-/// symmetric matrices, uses Householder tridiagonalization and implicit QL/QR shifts to yield
-/// orthogonal eigenvectors ($A = V D V^T$). For general matrices, reduces to Hessenberg form
-/// and applies Francis double-shift QR iteration.
+/// factor called the eigenvalue ($A \mathbf{v} = \lambda \mathbf{v}$). More
+/// formally, this computes the spectral decomposition $A V = V \Lambda$. For
+/// real symmetric matrices, uses Householder tridiagonalization and implicit
+/// QL/QR shifts to yield orthogonal eigenvectors ($A = V D V^T$). For general
+/// matrices, reduces to Hessenberg form and applies Francis double-shift QR
+/// iteration.
 ///
 /// ```dart
 /// final a = Matrix<double>.fromRows([

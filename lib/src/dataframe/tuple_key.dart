@@ -58,8 +58,8 @@ abstract interface class RowKeyExtractor {
   /// Extracts the composite key for the row at [rowIndex].
   Object? extractKey(int rowIndex);
 
-  /// Extracts the composite key for the row at [rowIndex], or returns `null`
-  /// if any key column at [rowIndex] is null.
+  /// Extracts the composite key for the row at [rowIndex], or returns `null` if
+  /// any key column at [rowIndex] is null.
   Object? extractKeyOrNull(int rowIndex);
 
   /// Returns `true` if any key column at [rowIndex] is null.

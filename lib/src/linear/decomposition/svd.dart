@@ -4,7 +4,8 @@ import '../../../type.dart';
 import '../matrix.dart';
 import '../vector.dart';
 
-/// Extension methods providing Singular Value Decomposition (SVD) on numeric matrices.
+/// Extension methods providing Singular Value Decomposition (SVD) on numeric
+/// matrices.
 extension SvdMatrixExtension<T extends num> on Matrix<T> {
   /// Computes the Singular Value Decomposition (SVD) of this matrix.
   SingularValueDecomposition get svd =>
@@ -22,11 +23,13 @@ extension SvdMatrixExtension<T extends num> on Matrix<T> {
 
 /// Singular Value Decomposition (SVD) of an $m \times n$ matrix $A$.
 ///
-/// Conceptually, SVD breaks any matrix down into three intuitive geometric steps:
-/// an initial rotation ($V^T$), scaling along coordinate axes ($\Sigma$), and a second rotation ($U$).
-/// More formally, it computes $A = U \Sigma V^T$ where $U \in \mathbb{R}^{m \times m}$
-/// and $V \in \mathbb{R}^{n \times n}$ are orthogonal matrices and $\Sigma$ contains singular values
-/// $\sigma_1 \ge \sigma_2 \ge \dots \ge 0$ in non-increasing order.
+/// Conceptually, SVD breaks any matrix down into three intuitive geometric
+/// steps: an initial rotation ($V^T$), scaling along coordinate axes
+/// ($\Sigma$), and a second rotation ($U$). More formally, it computes
+/// $A = U \Sigma V^T$ where $U \in \mathbb{R}^{m \times m}$ and
+/// $V \in \mathbb{R}^{n \times n}$ are orthogonal matrices and $\Sigma$
+/// contains singular values $\sigma_1 \ge \sigma_2 \ge \dots \ge 0$ in
+/// non-increasing order.
 ///
 /// ```dart
 /// final a = Matrix<double>.fromRows([
@@ -85,7 +88,8 @@ class SingularValueDecomposition {
   /// The left singular vectors as an $m \times m$ orthogonal matrix.
   final Matrix<double> u;
 
-  /// The transpose of right singular vectors as an $n \times n$ orthogonal matrix.
+  /// The transpose of right singular vectors as an $n \times n$ orthogonal
+  /// matrix.
   final Matrix<double> vt;
 
   /// Whether singular vectors were computed.

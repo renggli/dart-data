@@ -19,10 +19,13 @@ enum JoinType {
 
 /// Supported relational database join methods.
 enum JoinMethod {
-  /// Hash join utilizing an in-memory hash table of keys ($\mathcal{O}(M)$ auxiliary memory).
+  /// Hash join utilizing an in-memory hash table of keys ($\mathcal{O}(M)$
+  /// auxiliary memory).
   hash,
 
-  /// Sort-merge join traversing ordered key streams with dual cursors ($\mathcal{O}(M + N)$ time, $\mathcal{O}(1)$ auxiliary memory when sorted).
+  /// Sort-merge join traversing ordered key streams with dual cursors
+  /// ($\mathcal{O}(M + N)$ time, $\mathcal{O}(1)$ auxiliary memory when
+  /// sorted).
   sortMerge,
 }
 
@@ -30,13 +33,13 @@ enum JoinMethod {
 extension JoinDataFrameExtension on DataFrame {
   /// Performs a relational join between this [DataFrame] and [other].
   ///
-  /// Conceptually, a join merges two tables together by matching up
-  /// common identifiers (such as matching records across tables by an ID column).
+  /// Conceptually, a join merges two tables together by matching up common
+  /// identifiers (such as matching records across tables by an ID column).
   /// Mathematically, this calculates the relational algebra join
   /// $R \bowtie_{p} S$ based on key equality.
   ///
-  /// Supports [JoinMethod.hash] (default) and [JoinMethod.sortMerge].
-  /// When [isSorted] is `true` with [JoinMethod.sortMerge], executes in
+  /// Supports [JoinMethod.hash] (default) and [JoinMethod.sortMerge]. When
+  /// [isSorted] is `true` with [JoinMethod.sortMerge], executes in
   /// $\mathcal{O}(M + N)$ time and $\mathcal{O}(1)$ auxiliary memory.
   ///
   /// ```dart
@@ -123,12 +126,14 @@ extension JoinDataFrameExtension on DataFrame {
     return DataFrame.fromColumns(resultCols);
   }
 
-  /// Performs a sort-merge relational join between this [DataFrame] and [other].
+  /// Performs a sort-merge relational join between this [DataFrame] and
+  /// [other].
   ///
   /// Convenience canonical method equivalent to calling [join] with
   /// `method: JoinMethod.sortMerge`. If [isSorted] is `true`, both DataFrames
   /// must already be sorted in ascending order by the join key columns in [on],
-  /// running in $\mathcal{O}(M + N)$ time and $\mathcal{O}(1)$ auxiliary memory.
+  /// running in $\mathcal{O}(M + N)$ time and $\mathcal{O}(1)$ auxiliary
+  /// memory.
   DataFrame sortMergeJoin(
     DataFrame other, {
     required List<String> on,

@@ -9,14 +9,14 @@ import '../tensor.dart';
 extension MatmulTensorExtension<T> on Tensor<T> {
   /// Multiplies this tensor with [other] using matrix multiplication semantics.
   ///
-  /// Conceptually, this performs standard matrix multiplication by computing the
-  /// dot product of rows from the first matrix and columns from the second.
+  /// Conceptually, this performs standard matrix multiplication by computing
+  /// the dot product of rows from the first matrix and columns from the second.
   /// For 3D or higher tensors, it performs the multiplication on each matrix in
   /// the stack (batch).
   ///
-  /// Formally, this calculates $C = A B$ where $C_{ij} = \sum_{k} A_{ik} B_{kj}$,
-  /// generalized across broadcasted batch dimensions:
-  /// $(\dots, M, K) \times (\dots, K, N) \to (\dots, M, N)$.
+  /// Formally, this calculates $C = A B$ where
+  /// $C_{ij} = \sum_{k} A_{ik} B_{kj}$, generalized across broadcasted batch
+  /// dimensions: $(\dots, M, K) \times (\dots, K, N) \to (\dots, M, N)$.
   ///
   /// Supports 2D and batched N-D matrix multiplication.
   ///
@@ -178,7 +178,8 @@ extension MatmulTensorExtension<T> on Tensor<T> {
       }
     }
 
-    // Cache-friendly i -> kIdx -> j loop for row-major layouts (pure Dart fallback)
+    // Cache-friendly i -> kIdx -> j loop for row-major layouts (pure Dart
+    // fallback)
     for (var i = 0; i < rowsA; i++) {
       for (var kIdx = 0; kIdx < innerDim; kIdx++) {
         final aVal = tensorA.get2D(i, kIdx);

@@ -14,8 +14,8 @@ import 'series.dart';
 /// 2-dimensional heterogeneous tabular data structure.
 ///
 /// Conceptually, a [DataFrame] is organized like a spreadsheet table with named
-/// columns (such as 'Name', 'Age', 'Score') where each column has the same number of rows.
-/// Mathematically, it represents a finite relation
+/// columns (such as 'Name', 'Age', 'Score') where each column has the same
+/// number of rows. Mathematically, it represents a finite relation
 /// $R \subseteq T_1 \times T_2 \times \dots \times T_k$ over typed attributes,
 /// isomorphic to a columnar database table supporting relational algebra.
 ///
@@ -50,7 +50,8 @@ class DataFrame {
     }
   }
 
-  /// Constructs a [DataFrame] from an ordered mapping of column names to row values.
+  /// Constructs a [DataFrame] from an ordered mapping of column names to row
+  /// values.
   factory fromColumns(Map<String, List<dynamic>> data) {
     final cols = <Series<dynamic>>[];
     for (final entry in data.entries) {
@@ -91,7 +92,8 @@ class DataFrame {
     Map<String, DataType<dynamic>>? columnTypes,
   }) => DataFrameJson.fromRecords(records, columnTypes: columnTypes);
 
-  /// Constructs a [DataFrame] by decoding an Apache Arrow IPC stream byte buffer.
+  /// Constructs a [DataFrame] by decoding an Apache Arrow IPC stream byte
+  /// buffer.
   factory fromArrowIpc(Uint8List bytes) => ArrowIpc.decode(bytes);
 
   /// Number of rows.

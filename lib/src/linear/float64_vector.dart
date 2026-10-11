@@ -9,12 +9,14 @@ import '../tensor/layout.dart';
 import '../tensor/tensor.dart';
 import 'vector.dart';
 
-/// Zero-cost extension type wrapping [Vector<double>] with direct [Float64List] buffer access.
+/// Zero-cost extension type wrapping [Vector<double>] with direct [Float64List]
+/// buffer access.
 ///
-/// This provides a 1D vector optimized to store 64-bit floating-point
-/// numbers in contiguous memory for high-speed mathematical operations.
-/// Formally, it provides an unboxed vector representation over $\mathbb{R}^n$
-/// backed by flat IEEE 754 double-precision arrays compatible with BLAS level 1 and 2 operations.
+/// This provides a 1D vector optimized to store 64-bit floating-point numbers
+/// in contiguous memory for high-speed mathematical operations. Formally, it
+/// provides an unboxed vector representation over $\mathbb{R}^n$ backed by flat
+/// IEEE 754 double-precision arrays compatible with BLAS level 1 and 2
+/// operations.
 ///
 /// ```dart
 /// final v = Float64Vector.filled(3, 2.5);
@@ -60,8 +62,8 @@ extension type Float64Vector(Vector<double> _vector) implements Vector<double> {
         ),
       );
 
-  /// Constructs a [Float64Vector] with a sequence of [count] evenly spaced values
-  /// over the interval `[start, stop]`.
+  /// Constructs a [Float64Vector] with a sequence of [count] evenly spaced
+  /// values over the interval `[start, stop]`.
   factory linspace(
     double start,
     double stop, {
@@ -79,8 +81,8 @@ extension type Float64Vector(Vector<double> _vector) implements Vector<double> {
     ),
   );
 
-  /// Constructs a [Float64Vector] with a sequence of [count] evenly spaced values
-  /// on a logarithmic scale over `[base^start, base^stop]`.
+  /// Constructs a [Float64Vector] with a sequence of [count] evenly spaced
+  /// values on a logarithmic scale over `[base^start, base^stop]`.
   factory logspace(
     double start,
     double stop, {
@@ -100,8 +102,8 @@ extension type Float64Vector(Vector<double> _vector) implements Vector<double> {
     ),
   );
 
-  /// Constructs a [Float64Vector] with a sequence of [count] geometrically spaced values
-  /// over the interval `[start, stop]`.
+  /// Constructs a [Float64Vector] with a sequence of [count] geometrically
+  /// spaced values over the interval `[start, stop]`.
   factory geomspace(
     double start,
     double stop, {

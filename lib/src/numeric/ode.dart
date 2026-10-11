@@ -2,7 +2,8 @@ import 'dart:math' as math;
 
 import '../../linear.dart';
 
-/// Trajectory of an ODE simulation containing time points [t] and state vectors [y].
+/// Trajectory of an ODE simulation containing time points [t] and state vectors
+/// [y].
 class OdeSolution {
   /// Constructs an ODE solution.
   const new({required this.t, required this.y});
@@ -29,13 +30,13 @@ enum OdeMethod {
   dormandPrince45,
 }
 
-/// Solves an initial value problem $\frac{dy}{dt} = f(t, y)$ from [t0] to [tEnd]
-/// starting at state [y0] using the specified [method].
+/// Solves an initial value problem $\frac{dy}{dt} = f(t, y)$ from [t0] to
+/// [tEnd] starting at state [y0] using the specified [method].
 ///
-/// Conceptually, this simulates how a dynamic system evolves over time
-/// (such as an orbital trajectory or harmonic oscillator).
-/// Formally, it executes the chosen [method] ([OdeMethod.dormandPrince45] by default
-/// for adaptive step-size error control, or [OdeMethod.rk4] for fixed step size).
+/// Conceptually, this simulates how a dynamic system evolves over time (such as
+/// an orbital trajectory or harmonic oscillator). Formally, it executes the
+/// chosen [method] ([OdeMethod.dormandPrince45] by default for adaptive
+/// step-size error control, or [OdeMethod.rk4] for fixed step size).
 ///
 /// ```dart
 /// final sol = solveOde(

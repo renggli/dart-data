@@ -1,12 +1,14 @@
 import 'dart:math' as math;
 
-/// Sealed base class representing an algebraic expression abstract syntax tree (AST) node.
+/// Sealed base class representing an algebraic expression abstract syntax tree
+/// (AST) node.
 ///
-/// In algebra and calculus, an expression combines constants, variables, operators,
-/// and mathematical functions (such as $2x + 1$ or $\sin(x)$). Expressions can be
-/// constructed and evaluated numerically for specific variable assignments, or
-/// manipulated symbolically for exact differentiation, indefinite integration,
-/// equation solving, simplification, and JIT compilation.
+/// In algebra and calculus, an expression combines constants, variables,
+/// operators, and mathematical functions (such as $2x + 1$ or $\sin(x)$).
+/// Expressions can be constructed and evaluated numerically for specific
+/// variable assignments, or manipulated symbolically for exact differentiation,
+/// indefinite integration, equation solving, simplification, and JIT
+/// compilation.
 ///
 /// ```dart
 /// final x = Variable('x');

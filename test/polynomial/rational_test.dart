@@ -108,7 +108,8 @@ void main() {
       check(deriv.evaluate(2.0)).isCloseTo(-0.25, 1e-9);
       check(deriv.evaluate(3.0)).isCloseTo(-1.0 / 9.0, 1e-9);
 
-      // R(x) = x^2 / (x + 1) -> R'(x) = (2x(x+1) - x^2) / (x+1)^2 = (x^2 + 2x) / (x+1)^2
+      // R(x) = x^2 / (x + 1) -> R'(x) = (2x(x+1) - x^2) / (x+1)^2 = (x^2 + 2x)
+      // / (x+1)^2
       final pxSq = Polynomial<double>.fromCoefficients([0.0, 0.0, 1.0]);
       final pxPlus1 = Polynomial<double>.fromCoefficients([1.0, 1.0]);
       final r2 = RationalFunction(pxSq, pxPlus1);

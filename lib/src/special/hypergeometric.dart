@@ -5,7 +5,8 @@ import 'gamma.dart';
 /// Returns the confluent hypergeometric function $_1F_1(a; b; z)$ (also known
 /// as Kummer's function $M(a, b, z)$).
 ///
-/// See https://en.wikipedia.org/wiki/Confluent_hypergeometric_function for details.
+/// See https://en.wikipedia.org/wiki/Confluent_hypergeometric_function for
+/// details.
 double hypergeometric1F1(num a, num b, num z) {
   if (a.isNaN || b.isNaN || z.isNaN || b == 0.0) {
     return double.nan;
@@ -31,8 +32,8 @@ double hypergeometric1F1(num a, num b, num z) {
 
 /// Returns the Gauss hypergeometric function $_2F_1(a, b; c; z)$.
 ///
-/// Handles transformations for $z < -1$ and $z \approx 1$ to ensure
-/// rapid convergence.
+/// Handles transformations for $z < -1$ and $z \approx 1$ to ensure rapid
+/// convergence.
 ///
 /// See https://en.wikipedia.org/wiki/Hypergeometric_function for details.
 double hypergeometric2F1(num a, num b, num cVal, num z) {

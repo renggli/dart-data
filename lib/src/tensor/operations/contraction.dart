@@ -5,16 +5,18 @@ import 'matmul.dart';
 extension ContractionTensorExtension<T> on Tensor<T> {
   /// Computes the tensor dot product (contraction) along specified [axes].
   ///
-  /// Conceptually, this generalizes matrix multiplication and dot products
-  /// to multidimensional tensors along chosen axes.
+  /// Conceptually, this generalizes matrix multiplication and dot products to
+  /// multidimensional tensors along chosen axes.
   ///
-  /// Formally, this calculates the tensor contraction
-  /// $C_{i_1\dots i_m j_1\dots j_n} = \sum_{k_1\dots k_p} A_{i_1\dots i_m k_1\dots k_p} B_{k_1\dots k_p j_1\dots j_n}$.
+  /// Formally, this calculates the tensor contraction:
+  /// $C_{i_1\dots i_m j_1\dots j_n} =$
+  /// $\sum_{k_1\dots k_p} A_{i_1\dots i_m k_1\dots k_p}$
+  /// $B_{k_1\dots k_p j_1\dots j_n}$.
   ///
-  /// - If [axes] is an integer $N$, contracts the last $N$ axes of `this`
-  ///   with the first $N$ axes of [other].
-  /// - If [axes] is a tuple `(axesA, axesB)`, contracts the listed axes of `this`
-  ///   with the corresponding listed axes of [other].
+  /// - If [axes] is an integer $N$, contracts the last $N$ axes of `this` with
+  ///   the first $N$ axes of [other].
+  /// - If [axes] is a tuple `(axesA, axesB)`, contracts the listed axes of
+  ///   `this` with the corresponding listed axes of [other].
   ///
   /// Maps to 2D matrix multiplication ([matmul]), leveraging hardware BLAS
   /// acceleration when available.
@@ -28,10 +30,11 @@ extension ContractionTensorExtension<T> on Tensor<T> {
   Tensor<T> tensordot(Tensor<T> other, {Object axes = 2}) =>
       _tensorDot(this, other, axes: axes);
 
-  /// Computes the tensor inner product (Frobenius / full contraction) with [other].
+  /// Computes the tensor inner product (Frobenius / full contraction) with
+  /// [other].
   ///
-  /// Conceptually, this multiplies all corresponding entries pairwise
-  /// and sums them into a single scalar value.
+  /// Conceptually, this multiplies all corresponding entries pairwise and sums
+  /// them into a single scalar value.
   ///
   /// Formally, this calculates the Frobenius inner product
   /// $\langle A, B \rangle_F = \sum A_{i_1\dots i_k} B_{i_1\dots i_k}$.
@@ -54,13 +57,15 @@ extension ContractionTensorExtension<T> on Tensor<T> {
 
   /// Computes the tensor outer product with [other].
   ///
-  /// Conceptually, this multiplies every entry of the first tensor
-  /// by every entry of the second, creating a higher-dimensional tensor of products.
+  /// Conceptually, this multiplies every entry of the first tensor by every
+  /// entry of the second, creating a higher-dimensional tensor of products.
   ///
-  /// Formally, this computes the tensor product $A \otimes B$ with components
-  /// $(A \otimes B)_{i_1\dots i_m j_1\dots j_n} = A_{i_1\dots i_m} B_{j_1\dots j_n}$.
+  /// Formally, this computes the tensor product $A \otimes B$ with
+  /// $(A \otimes B)_{i_1\dots i_m j_1\dots j_n} =$
+  /// $A_{i_1\dots i_m} B_{j_1\dots j_n}$.
   ///
-  /// No axes are contracted, producing a tensor of rank `this.rank + other.rank`.
+  /// No axes are contracted, producing a tensor of rank
+  /// `this.rank + other.rank`.
   ///
   /// ```dart
   /// final a = Tensor<int>.fromObject([1, 2]);

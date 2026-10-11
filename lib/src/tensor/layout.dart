@@ -33,10 +33,11 @@ class Slice {
   String toString() => 'Slice($start, $end, $step)';
 }
 
-/// Immutable multi-dimensional layout descriptor with strided coordinate mapping.
+/// Immutable multi-dimensional layout descriptor with strided coordinate
+/// mapping.
 ///
-/// Conceptually, a layout specifies how a grid of dimensions (like 2 rows
-/// and 3 columns) maps into a single flat list in computer memory.
+/// Conceptually, a layout specifies how a grid of dimensions (like 2 rows and 3
+/// columns) maps into a single flat list in computer memory.
 ///
 /// Formally, this defines an affine coordinate chart
 /// $\phi(k_0, \dots, k_{n-1}) = \text{offset} + \sum_{i=0}^{n-1} k_i s_i$.
@@ -141,8 +142,9 @@ class Layout {
 
   /// Converts an $N$-dimensional key into a flat buffer index.
   ///
-  /// Conceptually, this maps an $N$-dimensional coordinate (such as `[row, column]`)
-  /// to its corresponding offset within the underlying flat storage buffer.
+  /// Conceptually, this maps an $N$-dimensional coordinate (such as
+  /// `[row, column]`) to its corresponding offset within the underlying flat
+  /// storage buffer.
   ///
   /// Formally, this computes $\text{offset} + \sum_{i=0}^{n-1} k_i s_i$.
   ///
@@ -340,9 +342,9 @@ class Layout {
 
   /// Returns a strided sub-layout specified by [slices] along each axis.
   ///
-  /// Missing trailing slices default to [Slice.all]. Negative indices wrap around
-  /// from the end of the dimension, and out-of-bounds indices are clamped conforming
-  /// to Python/NumPy slicing rules.
+  /// Missing trailing slices default to [Slice.all]. Negative indices wrap
+  /// around from the end of the dimension, and out-of-bounds indices are
+  /// clamped conforming to Python/NumPy slicing rules.
   Layout slice(List<Slice> slices) {
     if (slices.length > rank) {
       throw ArgumentError(

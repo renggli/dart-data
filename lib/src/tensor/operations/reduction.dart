@@ -6,7 +6,8 @@ import '../tensor.dart';
 import 'operation.dart';
 
 extension ReductionTensorExtension<T> on Tensor<T> {
-  /// Computes the sum of elements over the given [axis], or all elements if [axis] is null.
+  /// Computes the sum of elements over the given [axis], or all elements if
+  /// [axis] is null.
   Tensor<T> sum({int? axis, bool keepDims = false, Tensor<T>? target}) {
     final field = type.field;
     return _reduceAxis(
@@ -18,7 +19,8 @@ extension ReductionTensorExtension<T> on Tensor<T> {
     );
   }
 
-  /// Computes the arithmetic mean over the given [axis], or all elements if [axis] is null.
+  /// Computes the arithmetic mean over the given [axis], or all elements if
+  /// [axis] is null.
   Tensor<double> mean({
     int? axis,
     bool keepDims = false,
@@ -37,7 +39,8 @@ extension ReductionTensorExtension<T> on Tensor<T> {
     );
   }
 
-  /// Computes the minimum value over the given [axis], or all elements if [axis] is null.
+  /// Computes the minimum value over the given [axis], or all elements if
+  /// [axis] is null.
   Tensor<T> min({int? axis, bool keepDims = false, Tensor<T>? target}) {
     if (length == 0) throw StateError('Cannot compute min of empty tensor');
     final cmp = type.comparator;
@@ -49,7 +52,8 @@ extension ReductionTensorExtension<T> on Tensor<T> {
     );
   }
 
-  /// Computes the maximum value over the given [axis], or all elements if [axis] is null.
+  /// Computes the maximum value over the given [axis], or all elements if
+  /// [axis] is null.
   Tensor<T> max({int? axis, bool keepDims = false, Tensor<T>? target}) {
     if (length == 0) throw StateError('Cannot compute max of empty tensor');
     final cmp = type.comparator;
@@ -61,7 +65,8 @@ extension ReductionTensorExtension<T> on Tensor<T> {
     );
   }
 
-  /// Computes the variance over the given [axis], or all elements if [axis] is null.
+  /// Computes the variance over the given [axis], or all elements if [axis] is
+  /// null.
   ///
   /// Conceptually, variance measures how spread out the values are from their
   /// arithmetic mean. A variance of zero indicates all values are identical.
@@ -70,7 +75,9 @@ extension ReductionTensorExtension<T> on Tensor<T> {
   /// $\sigma^2 = \frac{1}{N - \text{ddof}} \sum_{i=1}^N (x_i - \bar{x})^2$.
   ///
   /// ```dart
-  /// final t = Tensor<double>.fromIterable([2.0, 4.0, 4.0, 4.0, 5.0, 5.0, 7.0, 9.0]);
+  /// final t = Tensor<double>.fromIterable(
+  ///   [2.0, 4.0, 4.0, 4.0, 5.0, 5.0, 7.0, 9.0],
+  /// );
   /// final v = t.var_().toFlatList().first; // 4.0
   /// ```
   Tensor<double> var_({

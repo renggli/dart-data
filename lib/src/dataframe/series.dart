@@ -10,9 +10,10 @@ export 'arrow_string_series.dart';
 ///
 /// Conceptually, a [Series] is a single named column in a table (such as a
 /// "Score" or "Age" column in a spreadsheet) holding values for each row.
-/// Mathematically, it represents an ordered 1-tuple sequence $(x_0, \dots, x_{n-1})$
-/// over a domain $T \cup \{\bot\}$, backed by contiguous typed buffers and a separate
-/// null bitmap for $\mathcal{O}(1)$ random access without boxing primitive types.
+/// Mathematically, it represents an ordered 1-tuple sequence
+/// $(x_0, \dots, x_{n-1})$ over a domain $T \cup \{\bot\}$, backed by
+/// contiguous typed buffers and a separate null bitmap for $\mathcal{O}(1)$
+/// random access without boxing primitive types.
 ///
 /// ```dart
 /// final series = Series<double>.fromList('scores', [95.0, 88.0, 92.5]);
@@ -91,7 +92,8 @@ abstract class Series<T> {
   /// Mean of all values, ignoring nulls.
   double? get mean;
 
-  /// Factory constructor creating appropriate typed series from an iterable or list.
+  /// Factory constructor creating appropriate typed series from an iterable or
+  /// list.
   factory fromList(
     String name,
     Iterable<dynamic> iterable, {
@@ -200,7 +202,8 @@ abstract class Series<T> {
 
 /// [Series] backed by typed contiguous buffers for numerical values.
 class TypedSeries<T extends num> extends Series<T> {
-  /// Creates a typed series with [name], underlying typed [data], [dataType], and optional null [mask].
+  /// Creates a typed series with [name], underlying typed [data], [dataType],
+  /// and optional null [mask].
   new({
     required this.name,
     required this.data,
@@ -407,12 +410,14 @@ class TypedSeries<T extends num> extends Series<T> {
   String toString() => 'Series<$T>($name, length: $length, nulls: $nullCount)';
 }
 
-/// String [Series] column representation backed by Apache Arrow-compliant [ArrowStringSeries].
+/// String [Series] column representation backed by Apache Arrow-compliant
+/// [ArrowStringSeries].
 typedef StringSeries = ArrowStringSeries;
 
 /// Boolean [Series] column representation.
 class BoolSeries extends Series<bool> {
-  /// Creates a boolean series with [name], underlying boolean [data], and optional null [mask].
+  /// Creates a boolean series with [name], underlying boolean [data], and
+  /// optional null [mask].
   new({required this.name, required this.data, this.mask})
     : length = data.length;
 
@@ -525,7 +530,8 @@ class BoolSeries extends Series<bool> {
 
 /// Generic [Series] fallback for arbitrary Dart objects.
 class ObjectSeries<T> extends Series<T> {
-  /// Creates an object series with [name], underlying object [data], [dataType], and optional null [mask].
+  /// Creates an object series with [name], underlying object [data],
+  /// [dataType], and optional null [mask].
   new({
     required this.name,
     required this.data,

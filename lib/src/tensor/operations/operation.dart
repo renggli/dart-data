@@ -5,8 +5,8 @@ import '../tensor.dart';
 extension OperationTensorExtension<T> on Tensor<T> {
   /// Element-wise unary operation evaluated into [target] or a new tensor.
   ///
-  /// If [target] is provided, its layout shape must match [shape],
-  /// otherwise an [ArgumentError] is thrown.
+  /// If [target] is provided, its layout shape must match [shape], otherwise an
+  /// [ArgumentError] is thrown.
   Tensor<R> unaryOperation<R>(
     R Function(T value) function, {
     DataType<R>? type,
@@ -217,7 +217,8 @@ extension OperationTensorExtension<T> on Tensor<T> {
   Tensor<T> operator -(Tensor<T> other) =>
       binaryOperation<T, T>(other, type.field.sub);
 
-  /// Computes element-wise Hadamard multiplication $(A \odot B)$ supporting broadcasting.
+  /// Computes element-wise Hadamard multiplication $(A \odot B)$ supporting
+  /// broadcasting.
   Tensor<T> operator *(Tensor<T> other) =>
       binaryOperation<T, T>(other, type.field.mul);
 
@@ -237,19 +238,23 @@ extension OperationTensorExtension<T> on Tensor<T> {
   /// Computes the element-wise natural logarithm.
   Tensor<T> log() => unaryOperation<T>(type.field.log);
 
-  /// Computes element-wise strictly less-than $(A < B)$ producing a boolean tensor.
+  /// Computes element-wise strictly less-than $(A < B)$ producing a boolean
+  /// tensor.
   Tensor<bool> operator <(Tensor<T> other) =>
       binaryOperation<T, bool>(other, (a, b) => type.comparator(a, b) < 0);
 
-  /// Computes element-wise less-than or equal-to $(A \le B)$ producing a boolean tensor.
+  /// Computes element-wise less-than or equal-to $(A \le B)$ producing a
+  /// boolean tensor.
   Tensor<bool> operator <=(Tensor<T> other) =>
       binaryOperation<T, bool>(other, (a, b) => type.comparator(a, b) <= 0);
 
-  /// Computes element-wise strictly greater-than $(A > B)$ producing a boolean tensor.
+  /// Computes element-wise strictly greater-than $(A > B)$ producing a boolean
+  /// tensor.
   Tensor<bool> operator >(Tensor<T> other) =>
       binaryOperation<T, bool>(other, (a, b) => type.comparator(a, b) > 0);
 
-  /// Computes element-wise greater-than or equal-to $(A \ge B)$ producing a boolean tensor.
+  /// Computes element-wise greater-than or equal-to $(A \ge B)$ producing a
+  /// boolean tensor.
   Tensor<bool> operator >=(Tensor<T> other) =>
       binaryOperation<T, bool>(other, (a, b) => type.comparator(a, b) >= 0);
 

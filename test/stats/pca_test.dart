@@ -53,7 +53,8 @@ void main() {
       final model = pca(data, nComponents: 2, standardize: true);
       check(model.standardize).isTrue();
       check(model.std).isNotNull();
-      // Both features are perfectly linearly correlated, so PC1 explains 100% of variance
+      // Both features are perfectly linearly correlated, so PC1 explains 100%
+      // of variance
       check(model.explainedVarianceRatio[0]).isCloseTo(1.0, 1e-10);
 
       // Reconstruct with standardized model

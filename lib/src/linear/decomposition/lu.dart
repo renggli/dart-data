@@ -14,8 +14,8 @@ extension LuMatrixExtension<T extends num> on Matrix<T> {
 
   /// Returns the multiplicative inverse of this square, non-singular matrix.
   ///
-  /// Throws an [ArgumentError] if the matrix is not square.
-  /// Throws a [StateError] if the matrix is singular ($\det = 0$).
+  /// Throws an [ArgumentError] if the matrix is not square. Throws a
+  /// [StateError] if the matrix is singular ($\det = 0$).
   Matrix<double> get inverse {
     if (rowCount != colCount) {
       throw ArgumentError(
@@ -43,10 +43,11 @@ extension LuComplexMatrixExtension on Matrix<Complex> {
   /// Returns the determinant of this complex matrix.
   Complex get det => lu.det;
 
-  /// Returns the multiplicative inverse of this square, non-singular complex matrix.
+  /// Returns the multiplicative inverse of this square, non-singular complex
+  /// matrix.
   ///
-  /// Throws an [ArgumentError] if the matrix is not square.
-  /// Throws a [StateError] if the matrix is singular ($\det = 0$).
+  /// Throws an [ArgumentError] if the matrix is not square. Throws a
+  /// [StateError] if the matrix is singular ($\det = 0$).
   Matrix<Complex> get inverse {
     if (rowCount != colCount) {
       throw ArgumentError(
@@ -59,12 +60,13 @@ extension LuComplexMatrixExtension on Matrix<Complex> {
 
 /// LU Decomposition of an $m \times n$ matrix $A$.
 ///
-/// Conceptually, LU decomposition is Gaussian elimination stored in a structured,
-/// reusable format: it factors a matrix into a lower-triangular matrix ($L$) and an
-/// upper-triangular matrix ($U$), making repeated solving of $A x = b$ rapid and straightforward.
-/// More formally, it computes the $P A = L U$ factorization using Gaussian elimination
-/// with row partial pivoting, where $P$ is a permutation matrix represented by [pivot],
-/// $L$ is unit lower triangular, and $U$ is upper triangular.
+/// Conceptually, LU decomposition is Gaussian elimination stored in a
+/// structured, reusable format: it factors a matrix into a lower-triangular
+/// matrix ($L$) and an upper-triangular matrix ($U$), making repeated solving
+/// of $A x = b$ rapid and straightforward. More formally, it computes the
+/// $P A = L U$ factorization using Gaussian elimination with row partial
+/// pivoting, where $P$ is a permutation matrix represented by [pivot], $L$ is
+/// unit lower triangular, and $U$ is upper triangular.
 ///
 /// ```dart
 /// final a = Matrix<double>.fromRows([

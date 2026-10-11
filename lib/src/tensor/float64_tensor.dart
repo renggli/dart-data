@@ -7,13 +7,15 @@ import 'layout.dart';
 import 'operations/operation.dart';
 import 'tensor.dart';
 
-/// Zero-cost extension type wrapping [Tensor] with direct [Float64List] buffer access.
+/// Zero-cost extension type wrapping [Tensor] with direct [Float64List] buffer
+/// access.
 ///
 /// Conceptually, this is an $N$-dimensional grid of decimal numbers optimized
 /// for speed and direct memory access.
 ///
-/// Formally, provides an unboxed multi-dimensional array over $\mathbb{R}^{d_1 \times \dots \times d_k}$
-/// backed by flat IEEE 754 double-precision buffers with strided index layouts.
+/// Formally, provides an unboxed multi-dimensional array over
+/// $\mathbb{R}^{d_1 \times \dots \times d_k}$ backed by flat IEEE 754
+/// double-precision buffers with strided index layouts.
 ///
 /// ```dart
 /// final t = Float64Tensor.filled(0.0, shape: [2, 3]);

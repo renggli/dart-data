@@ -2,14 +2,15 @@ import '../ast.dart';
 
 /// Analytical symbolic differentiation extension on [Expr].
 extension DifferentiationExtension on Expr {
-  /// Computes the exact analytical symbolic derivative of order [order] with respect to [variable].
+  /// Computes the exact analytical symbolic derivative of order [order] with
+  /// respect to [variable].
   ///
-  /// Conceptually, the derivative describes the instantaneous rate
-  /// of change or the slope of the tangent line to the graph at any point (such as how
-  /// the derivative of $x^3$ is $3x^2$).
-  /// Formally, this executes recursive formal differentiation $\frac{\partial^n}{\partial x^n}$
-  /// applying the product rule, quotient rule, chain rule, and generalized power rule
-  /// across the abstract syntax tree for [order] times.
+  /// Conceptually, the derivative describes the instantaneous rate of change or
+  /// the slope of the tangent line to the graph at any point (such as how the
+  /// derivative of $x^3$ is $3x^2$). Formally, this executes recursive formal
+  /// differentiation $\frac{\partial^n}{\partial x^n}$ applying the product
+  /// rule, quotient rule, chain rule, and generalized power rule across the
+  /// abstract syntax tree for [order] times.
   ///
   /// ```dart
   /// final x = Variable('x');

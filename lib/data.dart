@@ -1,32 +1,47 @@
-/// Comprehensive scientific computing, data analysis, and mathematical modeling library for Dart.
+/// Comprehensive scientific computing, data analysis, and mathematical modeling
+/// library for Dart.
 ///
-/// Designed to provide both an intuitive, accessible interface
-/// and mathematically rigorous, high-performance algorithms for scientific computing.
+/// Designed to provide both an intuitive, accessible interface and
+/// mathematically rigorous, high-performance algorithms for scientific
+/// computing.
 ///
 /// ## Subsystems
 ///
-/// - **Tensors** (`tensor.dart`): Multi-dimensional arrays with
-///   generalized stride layouts ([Layout]), broadcasting, contraction, and Einstein summation ([einsum]).
-/// - **Linear Algebra** (`linear.dart`): Vectors ([Vector]), matrices ([Matrix]), iterative
-///   solvers ([solveIterative]), and matrix factorizations ([LUDecomposition], [QRDecomposition], [CholeskyDecomposition], [SingularValueDecomposition], [EigenvalueDecomposition]).
-/// - **DataFrames** (`dataframe.dart`): Apache Arrow-aligned columnar
-///   tabular data engine with zero-allocation slicing, relational hash joins, and grouping ([DataFrame], [Series], [GroupBy]).
-/// - **Hardware Acceleration** (`hardware.dart`): Transparent routing to
-///   native BLAS/LAPACK via FFI ([HardwareManager]) and 128-bit SIMD vector instructions ([SimdEngine]).
-/// - **Symbolic Computation** (`symbolic.dart`): Exact algebraic expressions ([Expr]),
-///   analytical differentiation, Taylor expansions, LaTeX formatting, and JIT compilation.
-/// - **Numerical Analysis** (`numeric.dart`): Numerical root-finding
-///   ([solve]), numerical integration ([integrate]), ODE solvers ([solveOde]),
-///   and linear/polynomial regression ([leastSquares], [linearRegression]).
-/// - **Polynomials** (`polynomial.dart`): Polynomial algebra ([Polynomial]), root isolation,
-///   rational functions ([RationalFunction]), and orthogonal polynomials ([Polynomial.chebyshevT], [Polynomial.legendreP], [Polynomial.hermiteH], [Polynomial.laguerreL]).
-/// - **Special Functions** (`special.dart`): Accurate implementations of $\Gamma(z)$ ([gamma]),
-///   $\beta(a, b)$ ([beta]), Bessel $J_\nu, Y_\nu, I_\nu, K_\nu$ ([besselJ0], [besselY0]), error function $\operatorname{erf}(z)$ ([erf]),
-///   and Lambert $W$ ([lambertW0]).
-/// - **Statistics** (`stats.dart`): Parametric probability distributions ([NormalDistribution], [StudentDistribution]),
-///   hypothesis testing ([tTestOneSample], [tTestTwoSample], [oneWayAnova], [chiSquaredTest]), and bootstrap resampling ([bootstrap]).
-/// - **Type System** (`type.dart`): Algebraic fields ([Field]), data type descriptors ([DataType]),
-///   equality models ([Equality]), and native memory buffers ([NativeBuffer]).
+/// - **Tensors** (`tensor.dart`): Multi-dimensional arrays with generalized
+///   stride layouts ([Layout]), broadcasting, contraction, and Einstein
+///   summation ([einsum]).
+/// - **Linear Algebra** (`linear.dart`): Vectors ([Vector]), matrices
+///   ([Matrix]), iterative solvers ([solveIterative]), and matrix
+///   factorizations ([LUDecomposition], [QRDecomposition],
+///   [CholeskyDecomposition], [SingularValueDecomposition],
+///   [EigenvalueDecomposition]).
+/// - **DataFrames** (`dataframe.dart`): Apache Arrow-aligned columnar tabular
+///   data engine with zero-allocation slicing, relational hash joins, and
+///   grouping ([DataFrame], [Series], [GroupBy]).
+/// - **Hardware Acceleration** (`hardware.dart`): Transparent routing to native
+///   BLAS/LAPACK via FFI ([HardwareManager]) and 128-bit SIMD vector
+///   instructions ([SimdEngine]).
+/// - **Symbolic Computation** (`symbolic.dart`): Exact algebraic expressions
+///   ([Expr]), analytical differentiation, Taylor expansions, LaTeX formatting,
+///   and JIT compilation.
+/// - **Numerical Analysis** (`numeric.dart`): Numerical root-finding ([solve]),
+///   numerical integration ([integrate]), ODE solvers ([solveOde]), and
+///   linear/polynomial regression ([leastSquares], [linearRegression]).
+/// - **Polynomials** (`polynomial.dart`): Polynomial algebra ([Polynomial]),
+///   root isolation, rational functions ([RationalFunction]), and orthogonal
+///   polynomials ([Polynomial.chebyshevT], [Polynomial.legendreP],
+///   [Polynomial.hermiteH], [Polynomial.laguerreL]).
+/// - **Special Functions** (`special.dart`): Accurate implementations of
+///   $\Gamma(z)$ ([gamma]), $\beta(a, b)$ ([beta]), Bessel
+///   $J_\nu, Y_\nu, I_\nu, K_\nu$ ([besselJ0], [besselY0]), error function
+///   $\operatorname{erf}(z)$ ([erf]), and Lambert $W$ ([lambertW0]).
+/// - **Statistics** (`stats.dart`): Parametric probability distributions
+///   ([NormalDistribution], [StudentDistribution]), hypothesis testing
+///   ([tTestOneSample], [tTestTwoSample], [oneWayAnova], [chiSquaredTest]), and
+///   bootstrap resampling ([bootstrap]).
+/// - **Type System** (`type.dart`): Algebraic fields ([Field]), data type
+///   descriptors ([DataType]), equality models ([Equality]), and native memory
+///   buffers ([NativeBuffer]).
 ///
 /// ## Quick Start
 ///

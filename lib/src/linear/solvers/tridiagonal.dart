@@ -3,13 +3,15 @@ import 'dart:typed_data';
 import '../../../type.dart';
 import '../vector.dart';
 
-/// Solves a tridiagonal linear system $A x = d$ in $\mathcal{O}(N)$ time using the Thomas algorithm.
+/// Solves a tridiagonal linear system $A x = d$ in $\mathcal{O}(N)$ time using
+/// the Thomas algorithm.
 ///
-/// Conceptually, a tridiagonal matrix only has non-zero entries along the main diagonal
-/// and its two immediate neighboring diagonals. The Thomas algorithm
-/// sweeps through the system in a single forward and backward pass, solving for all unknowns in linear time.
-/// More formally, it computes specialized Gaussian elimination without pivoting
-/// for tridiagonal systems, executing in $\mathcal{O}(N)$ arithmetic operations.
+/// Conceptually, a tridiagonal matrix only has non-zero entries along the main
+/// diagonal and its two immediate neighboring diagonals. The Thomas algorithm
+/// sweeps through the system in a single forward and backward pass, solving for
+/// all unknowns in linear time. More formally, it computes specialized Gaussian
+/// elimination without pivoting for tridiagonal systems, executing in
+/// $\mathcal{O}(N)$ arithmetic operations.
 ///
 /// The tridiagonal system $A x = d$ is defined by:
 /// - [sub]: subdiagonal elements $a_0, \dots, a_{N-2}$ of length $N - 1$.

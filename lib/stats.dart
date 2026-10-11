@@ -1,35 +1,39 @@
-/// Comprehensive statistical analysis, probability distributions, hypothesis testing, and resampling algorithms.
+/// Comprehensive statistical analysis, probability distributions, hypothesis
+/// testing, and resampling algorithms.
 ///
-/// Designed to model uncertainty, calculate descriptive summaries, perform statistical
-/// inference, and evaluate experimental hypotheses.
+/// Designed to model uncertainty, calculate descriptive summaries, perform
+/// statistical inference, and evaluate experimental hypotheses.
 ///
 /// ## Core Modules
 ///
-/// - **Descriptive Statistics**:
-///   [mean], [median], [variance], [standardDeviation], [quantile], [iqr], [skewness], [kurtosis],
-///   [covariance], [pearsonCorrelation], [spearmanCorrelation], [pca], and [movingAverage].
-/// - **Univariate Continuous Distributions**:
-///   [ContinuousDistribution] base class, [NormalDistribution], [StudentDistribution], [FDistribution],
-///   [ChiSquaredDistribution], [ExponentialDistribution], [GammaDistribution], [InverseGammaDistribution],
-///   [BetaDistribution], [LogNormalDistribution], [WeibullDistribution], [CauchyDistribution],
-///   [LaplaceDistribution], [LogisticDistribution], [ParetoDistribution], [DegenerateDistribution],
+/// - **Descriptive Statistics**: [mean], [median], [variance],
+///   [standardDeviation], [quantile], [iqr], [skewness], [kurtosis],
+///   [covariance], [pearsonCorrelation], [spearmanCorrelation], [pca], and
+///   [movingAverage].
+/// - **Univariate Continuous Distributions**: [ContinuousDistribution] base
+///   class, [NormalDistribution], [StudentDistribution], [FDistribution],
+///   [ChiSquaredDistribution], [ExponentialDistribution], [GammaDistribution],
+///   [InverseGammaDistribution], [BetaDistribution], [LogNormalDistribution],
+///   [WeibullDistribution], [CauchyDistribution], [LaplaceDistribution],
+///   [LogisticDistribution], [ParetoDistribution], [DegenerateDistribution],
 ///   and [UniformDistribution].
-/// - **Univariate Discrete Distributions**:
-///   [DiscreteDistribution] base class, [BinomialDistribution], [PoissonDistribution],
-///   [BernoulliDistribution], [GeometricDistribution], [HypergeometricDistribution],
-///   [NegativeBinomialDistribution], [RademacherDistribution], and [UniformDiscreteDistribution].
-/// - **Multivariate Distributions**:
-///   [MultivariateDistribution] base class, [MultivariateNormalDistribution],
-///   [DirichletDistribution], and [MultinomialDistribution].
-/// - **Hypothesis Testing**:
-///   [tTestOneSample], [tTestTwoSample] (Student's and Welch's $t$-tests), [tTestPaired],
-///   [oneWayAnova] ($F$-test), [chiSquaredTest], [chiSquaredContingency],
-///   [mannWhitneyUTest], [wilcoxonSignedRankTest], [kolmogorovSmirnovTest],
+/// - **Univariate Discrete Distributions**: [DiscreteDistribution] base class,
+///   [BinomialDistribution], [PoissonDistribution], [BernoulliDistribution],
+///   [GeometricDistribution], [HypergeometricDistribution],
+///   [NegativeBinomialDistribution], [RademacherDistribution], and
+///   [UniformDiscreteDistribution].
+/// - **Multivariate Distributions**: [MultivariateDistribution] base class,
+///   [MultivariateNormalDistribution], [DirichletDistribution], and
+///   [MultinomialDistribution].
+/// - **Hypothesis Testing**: [tTestOneSample], [tTestTwoSample] (Student's and
+///   Welch's $t$-tests), [tTestPaired], [oneWayAnova] ($F$-test),
+///   [chiSquaredTest], [chiSquaredContingency], [mannWhitneyUTest],
+///   [wilcoxonSignedRankTest], [kolmogorovSmirnovTest],
 ///   [kolmogorovSmirnov2Sample], and [jarqueBeraTest].
-/// - **Resampling & Inference**:
-///   [bootstrap] (non-parametric confidence intervals and distributions) and [Jackknife].
-/// - **Distribution Infrastructure**:
-///   [Distribution] abstract contract and [InvalidProbability] validation error.
+/// - **Resampling & Inference**: [bootstrap] (non-parametric confidence
+///   intervals and distributions) and [Jackknife].
+/// - **Distribution Infrastructure**: [Distribution] abstract contract and
+///   [InvalidProbability] validation error.
 ///
 /// ## Example
 ///

@@ -1,15 +1,16 @@
 import '../tensor.dart';
 import 'contraction.dart';
 
-/// Evaluates Einstein summation convention on [operands] according to [equation].
+/// Evaluates Einstein summation convention on [operands] according to
+/// [equation].
 ///
 /// Conceptually, Einstein summation provides a concise notation for specifying
-/// multidimensional tensor transformations, products, and contractions
-/// through index subscript labels.
+/// multidimensional tensor transformations, products, and contractions through
+/// index subscript labels.
 ///
-/// Formally, this calculates general tensor contractions
-/// defined by index subscript labels: repeated indices across input operands
-/// that do not appear in the output subscript are summed over.
+/// Formally, this calculates general tensor contractions defined by index
+/// subscript labels: repeated indices across input operands that do not appear
+/// in the output subscript are summed over.
 ///
 /// Supported equations include:
 /// - Matrix multiplication: `'ij,jk->ik'`
@@ -129,7 +130,8 @@ Tensor<T> einsum<T>(String equation, List<Tensor<T>> operands) {
     }
   }
 
-  // Fast path: two operands without duplicate labels within an operand and without batching
+  // Fast path: two operands without duplicate labels within an operand and
+  // without batching
   if (operands.length == 2) {
     final labelA = inputLabels[0];
     final labelB = inputLabels[1];

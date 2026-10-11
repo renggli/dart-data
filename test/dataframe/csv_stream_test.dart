@@ -27,7 +27,8 @@ void main() {
     test(
       'handles quotes and commas split across arbitrary chunk boundaries',
       () async {
-        // Chunk splits directly inside quotes, around commas, and within escaped quotes
+        // Chunk splits directly inside quotes, around commas, and within
+        // escaped quotes
         final chunks = [
           'id,description,val\n1,"A field with , co',
           'mma and\nnewline",100\n2,"Escaped ""qu',

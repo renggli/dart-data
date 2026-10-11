@@ -6,15 +6,18 @@ import 'operations/operation.dart';
 
 /// Multi-dimensional dense array backed by a flat buffer and strided layout.
 ///
-/// Conceptually, a tensor is an organized multidimensional grid of numbers or values:
+/// Conceptually, a tensor is an organized multidimensional grid of numbers or
+/// values:
 /// - Rank 0: a single scalar value
 /// - Rank 1: a list of numbers (a vector)
 /// - Rank 2: a table or grid of numbers (a matrix)
-/// - Rank 3+: a cube or hyper-cube of numbers (e.g. RGB color channels of an image)
+/// - Rank 3+: a cube or hyper-cube of numbers (e.g. RGB color channels of an
+///   image)
 ///
 /// Formally, a tensor represents a multi-linear array over
-/// $\mathbb{R}^{d_1 \times \dots \times d_k}$ backed by a contiguous 1D memory array and an
-/// affine strided indexing layout $\text{offset} + \sum_{i=0}^{k-1} c_i \cdot s_i$.
+/// $\mathbb{R}^{d_1 \times \dots \times d_k}$ backed by a contiguous 1D memory
+/// array and an affine strided indexing layout
+/// $\text{offset} + \sum_{i=0}^{k-1} c_i \cdot s_i$.
 ///
 /// ```dart
 /// final t = Tensor<double>.filled(0.0, shape: [2, 3]);
@@ -27,8 +30,8 @@ class Tensor<T> {
 
   /// Constructs a [Tensor] with every entry initialized to [value].
   ///
-  /// Conceptually, this creates a tensor where every cell
-  /// contains the specified [value].
+  /// Conceptually, this creates a tensor where every cell contains the
+  /// specified [value].
   ///
   /// Formally, this initializes $T \in S^{d_0 \times \dots \times d_{k-1}}$
   /// where $T_{i_0,\dots,i_{k-1}} = \text{value}$ for all indices.
@@ -58,10 +61,11 @@ class Tensor<T> {
     );
   }
 
-  /// Constructs a [Tensor] populated by calling [generator] on each coordinate key.
+  /// Constructs a [Tensor] populated by calling [generator] on each coordinate
+  /// key.
   ///
-  /// Conceptually, this populates each cell by evaluating [generator]
-  /// with its multi-dimensional coordinate key.
+  /// Conceptually, this populates each cell by evaluating [generator] with its
+  /// multi-dimensional coordinate key.
   ///
   /// Formally, this evaluates a coordinate map
   /// $f: \prod_{j=0}^{k-1} \{0, \dots, d_j - 1\} \to T$.
@@ -99,8 +103,8 @@ class Tensor<T> {
   /// Conceptually, this takes a flat sequence of values and structures them
   /// into a multi-dimensional tensor of the requested [shape].
   ///
-  /// Formally, this reads elements in lexicographical (row-major)
-  /// order into the tensor $T \in S^{d_0 \times \dots \times d_{k-1}}$.
+  /// Formally, this reads elements in lexicographical (row-major) order into
+  /// the tensor $T \in S^{d_0 \times \dots \times d_{k-1}}$.
   ///
   /// ```dart
   /// final t = Tensor<int>.fromIterable([1, 2, 3, 4, 5, 6], shape: [2, 3]);
@@ -131,11 +135,11 @@ class Tensor<T> {
 
   /// Constructs a [Tensor] from nested Dart lists or scalar objects.
   ///
-  /// Conceptually, this constructs a tensor from nested Dart lists or scalar objects
-  /// (such as `[[1, 2], [3, 4]]`).
+  /// Conceptually, this constructs a tensor from nested Dart lists or scalar
+  /// objects (such as `[[1, 2], [3, 4]]`).
   ///
-  /// Formally, this performs recursive isomorphism between nested
-  /// lists and multidimensional strided buffers.
+  /// Formally, this performs recursive isomorphism between nested lists and
+  /// multidimensional strided buffers.
   ///
   /// ```dart
   /// final t = Tensor<int>.fromObject([[1, 2, 3], [4, 5, 6]]);
@@ -259,7 +263,8 @@ class Tensor<T> {
   T get2D(int r, int c) =>
       data[layout.offset + r * layout.strides[0] + c * layout.strides[1]];
 
-  /// Sets the value at [r] and [c] to [value] without bounds checks for rank-2 tensors.
+  /// Sets the value at [r] and [c] to [value] without bounds checks for rank-2
+  /// tensors.
   @pragma('vm:prefer-inline')
   void set2D(int r, int c, T value) =>
       data[layout.offset + r * layout.strides[0] + c * layout.strides[1]] =
@@ -269,7 +274,8 @@ class Tensor<T> {
   @pragma('vm:prefer-inline')
   T get1D(int index) => data[layout.offset + index * layout.strides[0]];
 
-  /// Sets the value at [index] to [value] without bounds checks for rank-1 tensors.
+  /// Sets the value at [index] to [value] without bounds checks for rank-1
+  /// tensors.
   @pragma('vm:prefer-inline')
   void set1D(int index, T value) =>
       data[layout.offset + index * layout.strides[0]] = value;

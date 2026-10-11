@@ -16,7 +16,8 @@ void main() {
       check(mask.nullCount).equals(1);
       check(mask.hasNulls).isTrue();
 
-      // Calling setNull again on an already-null index must be a no-op for nullCount
+      // Calling setNull again on an already-null index must be a no-op for
+      // nullCount
       mask.setNull(4);
       mask.setNull(4);
       check(mask.nullCount).equals(1);
@@ -31,7 +32,8 @@ void main() {
       mask.setValid(4);
       check(mask.nullCount).equals(15);
 
-      // Calling setValid again on an already-valid index must be a no-op for nullCount
+      // Calling setValid again on an already-valid index must be a no-op for
+      // nullCount
       mask.setValid(4);
       mask.setValid(4);
       check(mask.nullCount).equals(15);
@@ -137,8 +139,10 @@ void main() {
 
     test('fromBytes computes bit-parallel nullCount and masks tail bits', () {
       // 10 entries packed into 2 bytes
-      // Byte 0: 0b11110000 (indices 0..3 are 0/null, indices 4..7 are 1/valid) -> 4 nulls
-      // Byte 1: 0b11111110 (index 8 is 0/null, index 9 is 1/valid, bits 2..7 are tail/ignored) -> 1 null
+      // Byte 0: 0b11110000 (indices 0..3 are 0/null, indices 4..7 are 1/valid)
+      // -> 4 nulls
+      // Byte 1: 0b11111110 (index 8 is 0/null, index 9 is 1/valid, bits 2..7
+      // are tail/ignored) -> 1 null
       // Total nulls: 4 + 1 = 5
       final raw = Uint8List.fromList([0xF0, 0xFE]);
       final mask = ValidityMask.fromBytes(10, raw);

@@ -70,7 +70,8 @@ void main() {
         AccelerationManager.mode = AccelerationMode.accelerated;
 
         if (!AccelerationManager.isNativeAvailable) {
-          // When native BLAS is unavailable (e.g. web or unsupported OS), must throw StateError
+          // When native BLAS is unavailable (e.g. web or unsupported OS), must
+          // throw StateError
           final x = Float64List.fromList([1.0, 2.0]);
           final y = Float64List.fromList([3.0, 4.0]);
           check(() => AccelerationManager.ddot(n: 2, x: x, y: y))

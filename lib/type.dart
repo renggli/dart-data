@@ -1,21 +1,24 @@
-/// Type descriptors, algebraic structures, memory storage models, and equality relations.
+/// Type descriptors, algebraic structures, memory storage models, and equality
+/// relations.
 ///
-/// Underpins tensors, matrices, vectors, and columnar data structures with explicit
-/// type specifications, algebraic field axioms (identities, addition, multiplication, inversion),
-/// and unboxed typed memory storage.
+/// Underpins tensors, matrices, vectors, and columnar data structures with
+/// explicit type specifications, algebraic field axioms (identities, addition,
+/// multiplication, inversion), and unboxed typed memory storage.
 ///
 /// ## Core Concepts
 ///
-/// - **Type Descriptors ([DataType])**: Singletons representing primitive numbers ([DataType.int32],
-///   [DataType.float64], [DataType.uint8]), complex types ([DataType.complex], [DataType.quaternion]),
-///   arbitrary precision numbers ([DataType.bigInt], [DataType.fraction]), [DataType.string],
+/// - **Type Descriptors ([DataType])**: Singletons representing primitive
+///   numbers ([DataType.int32], [DataType.float64], [DataType.uint8]), complex
+///   types ([DataType.complex], [DataType.quaternion]), arbitrary precision
+///   numbers ([DataType.bigInt], [DataType.fraction]), [DataType.string],
 ///   [DataType.boolean], and generic objects ([DataType.object]).
-/// - **Algebraic Fields ([Field])**: Axiomatic algebraic structures specifying additive
-///   identity ($0$), multiplicative identity ($1$), operations ($+$, $-$, $\times$, $\div$),
-///   and inversion over a type.
-/// - **Memory Storage ([NativeBuffer])**: Flat typed byte buffers that enable zero-copy
-///   passing to native FFI algorithms and hardware accelerators.
-/// - **Equivalence & Ordering**: [Equality] and comparator utilities for deterministic hashing and sorting.
+/// - **Algebraic Fields ([Field])**: Axiomatic algebraic structures specifying
+///   additive identity ($0$), multiplicative identity ($1$), operations ($+$,
+///   $-$, $\times$, $\div$), and inversion over a type.
+/// - **Memory Storage ([NativeBuffer])**: Flat typed byte buffers that enable
+///   zero-copy passing to native FFI algorithms and hardware accelerators.
+/// - **Equivalence & Ordering**: [Equality] and comparator utilities for
+///   deterministic hashing and sorting.
 ///
 /// ## Example
 ///

@@ -8,12 +8,14 @@ import '../../../linear/vector.dart';
 import '../../../special/gamma.dart';
 import 'multivariate_distribution.dart';
 
-/// Multinomial distribution generalizing the binomial distribution to [dimensions] categories
-/// over [trials] independent experiments with category [probabilities].
+/// Multinomial distribution generalizing the binomial distribution to
+/// [dimensions] categories over [trials] independent experiments with category
+/// [probabilities].
 ///
 /// See https://en.wikipedia.org/wiki/Multinomial_distribution.
 class MultinomialDistribution extends MultivariateDistribution<int> {
-  /// Constructs a multinomial distribution with given [trials] count and category [probabilities].
+  /// Constructs a multinomial distribution with given [trials] count and
+  /// category [probabilities].
   new(this.trials, this.probabilities) : dimensions = probabilities.length {
     if (trials < 0) {
       throw ArgumentError.value(

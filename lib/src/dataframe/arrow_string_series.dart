@@ -6,13 +6,17 @@ import '../../type.dart';
 import 'bitmask.dart';
 import 'series.dart';
 
-/// Apache Arrow-compliant string [Series] backed by a flat UTF-8 byte buffer and offset table.
+/// Apache Arrow-compliant string [Series] backed by a flat UTF-8 byte buffer
+/// and offset table.
 ///
-/// Conceptually, this stores text columns without allocating individual heap `String` objects
-/// for each cell, minimizing garbage collection overhead on millions of rows.
-/// Formally, it adheres to the Apache Arrow `utf8` layout specification:
-/// - A flat contiguous `Uint8List` buffer containing all concatenated UTF-8 string bytes.
-/// - A contiguous `Uint32List` of $N + 1$ byte offsets where row $i$ spans `[offsets[i], offsets[i + 1])`.
+/// Conceptually, this stores text columns without allocating individual heap
+/// `String` objects for each cell, minimizing garbage collection overhead on
+/// millions of rows. Formally, it adheres to the Apache Arrow `utf8` layout
+/// specification:
+/// - A flat contiguous `Uint8List` buffer containing all concatenated UTF-8
+///   string bytes.
+/// - A contiguous `Uint32List` of $N + 1$ byte offsets where row $i$ spans
+///   `[offsets[i], offsets[i + 1])`.
 /// - An optional [ValidityMask] bitmask for tracking null values.
 ///
 /// ```dart
@@ -110,7 +114,8 @@ class ArrowStringSeries extends Series<String> {
   @override
   bool isNull(int index) => mask?.isNull(index) ?? false;
 
-  /// Returns the raw UTF-8 byte view of the string at [index] without allocating a `String` instance.
+  /// Returns the raw UTF-8 byte view of the string at [index] without
+  /// allocating a `String` instance.
   ///
   /// Returns an empty view if the entry is null or empty.
   Uint8List getBytes(int index) {

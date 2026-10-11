@@ -16,8 +16,8 @@ abstract base class FloatDataType<L extends List<double>>
   /// Returns the smallest positive value larger than zero.
   double get minPositive;
 
-  /// Returns the machine epsilon, that is the difference between 1 and the
-  /// next larger floating point number.
+  /// Returns the machine epsilon, that is the difference between 1 and the next
+  /// larger floating point number.
   double get epsilon;
 
   @override

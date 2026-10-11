@@ -82,7 +82,8 @@ void main() {
     });
 
     test('integration with singular pole and principal value', () {
-      // 1 / sqrt(|x - 1|) on [0, 2]: singular at x = 1, anti-derivative is 2 * sqrt(|x - 1|)
+      // 1 / sqrt(|x - 1|) on [0, 2]: singular at x = 1, anti-derivative is 2 *
+      // sqrt(|x - 1|)
       // \int_0^1 (1 - x)^(-1/2) dx + \int_1^2 (x - 1)^(-1/2) dx = 2 + 2 = 4.0
       double singular(double x) {
         final diff = (x - 1.0).abs();

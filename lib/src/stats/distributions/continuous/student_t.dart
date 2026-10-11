@@ -16,7 +16,8 @@ class StudentDistribution extends ContinuousDistribution {
   /// A Student's t-distribution with degrees of freedom [dof] ν.
   const new(this.dof) : assert(dof > 0, 'ν > 0');
 
-  /// Fits a Student's t-distribution to [samples] using maximum likelihood estimation.
+  /// Fits a Student's t-distribution to [samples] using maximum likelihood
+  /// estimation.
   factory fit(Iterable<num> samples) {
     final list = samples.map((val) => val.toDouble()).toList();
     if (list.length < 3) {

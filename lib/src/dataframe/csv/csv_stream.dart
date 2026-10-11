@@ -7,10 +7,12 @@ import '../series.dart';
 
 /// RFC 4180-compliant streaming CSV tokenizer and chunked DataFrame reader.
 ///
-/// Enables constant-memory streaming ingestion of large CSV and TSV files
-/// from [Stream<String>] or [Stream<List<int>>] without buffering the full dataset in memory.
+/// Enables constant-memory streaming ingestion of large CSV and TSV files from
+/// [Stream<String>] or [Stream<List<int>>] without buffering the full dataset
+/// in memory.
 abstract final class CsvStream {
-  /// Reads a text [stream] into a stream of chunked [DataFrame] instances of up to [chunkSize] rows.
+  /// Reads a text [stream] into a stream of chunked [DataFrame] instances of up
+  /// to [chunkSize] rows.
   static Stream<DataFrame> readChunks(
     Stream<String> stream, {
     String separator = ',',
@@ -52,7 +54,8 @@ abstract final class CsvStream {
     }
   }
 
-  /// Ingests a text [stream] into a single [DataFrame] without buffering the full raw text in RAM.
+  /// Ingests a text [stream] into a single [DataFrame] without buffering the
+  /// full raw text in RAM.
   static Future<DataFrame> readStream(
     Stream<String> stream, {
     String separator = ',',
@@ -201,9 +204,11 @@ abstract final class CsvStream {
   }
 }
 
-/// Stream transformer that tokenizes a [Stream<String>] into CSV row lists adhering to RFC 4180.
+/// Stream transformer that tokenizes a [Stream<String>] into CSV row lists
+/// adhering to RFC 4180.
 class CsvStreamTransformer extends StreamTransformerBase<String, List<String>> {
-  /// Creates a [CsvStreamTransformer] with configured [separator] and [quoteChar].
+  /// Creates a [CsvStreamTransformer] with configured [separator] and
+  /// [quoteChar].
   const new({this.separator = ',', this.quoteChar = '"'});
 
   /// Field delimiter character.

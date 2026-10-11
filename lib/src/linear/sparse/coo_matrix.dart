@@ -7,10 +7,10 @@ import 'csr_matrix.dart';
 
 /// Coordinate format (COO) sparse matrix.
 ///
-/// Conceptually, a sparse matrix only stores non-zero entries by recording
-/// each entry's row index, column index, and value.
-/// Mathematically, this stores the multiset of non-zero entries
-/// $\{ (i_k, j_k, v_k) \}_{k=0}^{N-1}$ allowing $O(1)$ dynamic appending.
+/// Conceptually, a sparse matrix only stores non-zero entries by recording each
+/// entry's row index, column index, and value. Mathematically, this stores the
+/// multiset of non-zero entries $\{ (i_k, j_k, v_k) \}_{k=0}^{N-1}$ allowing
+/// $O(1)$ dynamic appending.
 ///
 /// ```dart
 /// final coo = CooMatrix<double>(
@@ -23,7 +23,8 @@ import 'csr_matrix.dart';
 /// );
 /// ```
 class CooMatrix<T> implements LinearOperator<T> {
-  /// Creates a Coordinate format (COO) sparse matrix from explicit index and value buffers.
+  /// Creates a Coordinate format (COO) sparse matrix from explicit index and
+  /// value buffers.
   new({
     required this.rowCount,
     required this.colCount,

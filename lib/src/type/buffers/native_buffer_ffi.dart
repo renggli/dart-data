@@ -6,7 +6,8 @@ import 'package:ffi/ffi.dart';
 import '../data_type.dart';
 import 'memory.dart';
 
-/// Off-heap native memory buffer managed via [calloc] and [ffi.NativeFinalizer].
+/// Off-heap native memory buffer managed via [calloc] and
+/// [ffi.NativeFinalizer].
 class NativeBuffer<T> implements ffi.Finalizable {
   /// Allocates an off-heap native buffer of [length] elements of [type].
   factory(int length, {DataType<T>? type}) {
@@ -149,7 +150,8 @@ class NativeBuffer<T> implements ffi.Finalizable {
     }
   }
 
-  /// Returns the pointer cast to [ffi.Pointer<ffi.Double>], or null if disposed.
+  /// Returns the pointer cast to [ffi.Pointer<ffi.Double>], or null if
+  /// disposed.
   ffi.Pointer<ffi.Double>? get asDoublePointer =>
       _isDisposed ? null : pointer.cast<ffi.Double>();
 

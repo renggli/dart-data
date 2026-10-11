@@ -15,10 +15,12 @@ enum AlternativeHypothesis {
   /// Two-sided test ($H_1: \theta \ne \theta_0$).
   twoSided,
 
-  /// One-sided test where the true parameter is less than the null ($H_1: \theta < \theta_0$).
+  /// One-sided test where the true parameter is less than the null
+  /// ($H_1: \theta < \theta_0$).
   less,
 
-  /// One-sided test where the true parameter is greater than the null ($H_1: \theta > \theta_0$).
+  /// One-sided test where the true parameter is greater than the null
+  /// ($H_1: \theta > \theta_0$).
   greater,
 }
 
@@ -40,13 +42,15 @@ class HypothesisTestResult with ToStringPrinter {
   /// Computed test statistic (e.g. t, F, chi-squared, U).
   final double statistic;
 
-  /// Probability of observing a test statistic as extreme as the computed value under $H_0$.
+  /// Probability of observing a test statistic as extreme as the computed value
+  /// under $H_0$.
   final double pValue;
 
   /// Degrees of freedom associated with the test, if applicable.
   final double? degreesOfFreedom;
 
-  /// Confidence interval for the parameter of interest at $(1 - \alpha)$, if applicable.
+  /// Confidence interval for the parameter of interest at $(1 - \alpha)$, if
+  /// applicable.
   final (double, double)? confidenceInterval;
 
   /// Significance level threshold.
@@ -55,7 +59,8 @@ class HypothesisTestResult with ToStringPrinter {
   /// Direction of the alternative hypothesis.
   final AlternativeHypothesis alternative;
 
-  /// Whether the null hypothesis is rejected at the chosen [alpha] significance level.
+  /// Whether the null hypothesis is rejected at the chosen [alpha] significance
+  /// level.
   bool get isSignificant => pValue < alpha;
 
   @override
@@ -68,11 +73,12 @@ class HypothesisTestResult with ToStringPrinter {
     ..addValue(isSignificant, name: 'significant');
 }
 
-/// One-sample Student's t-test for the null hypothesis that the population mean equals [mu0].
+/// One-sample Student's t-test for the null hypothesis that the population mean
+/// equals [mu0].
 ///
-/// Conceptually, this tests whether the sample mean differs
-/// significantly from a specified hypothesized value $\mu_0$.
-/// Formally, this evaluates $H_0: \mu = \mu_0$ using Student's $t$ statistic
+/// Conceptually, this tests whether the sample mean differs significantly from
+/// a specified hypothesized value $\mu_0$. Formally, this evaluates
+/// $H_0: \mu = \mu_0$ using Student's $t$ statistic
 /// $t = \frac{\bar{x} - \mu_0}{s / \sqrt{n}} \sim t_{n-1}$.
 ///
 /// ```dart
@@ -121,21 +127,23 @@ HypothesisTestResult tTestOneSample(
   );
 }
 
-/// Two-sample independent t-test for difference in means between [sample1] and [sample2].
+/// Two-sample independent t-test for difference in means between [sample1] and
+/// [sample2].
 ///
-/// Conceptually, this tests whether the difference between the means of two independent groups
-/// is statistically significant or could have occurred by chance alone.
-/// Formally, this evaluates $H_0: \mu_1 = \mu_2$ using Welch's $t$-test
-/// with Satterthwaite-Welch degrees of freedom when [equalVariance] is false, or pooled
-/// variance Student's $t$ when [equalVariance] is true.
+/// Conceptually, this tests whether the difference between the means of two
+/// independent groups is statistically significant or could have occurred by
+/// chance alone. Formally, this evaluates $H_0: \mu_1 = \mu_2$ using Welch's
+/// $t$-test with Satterthwaite-Welch degrees of freedom when [equalVariance] is
+/// false, or pooled variance Student's $t$ when [equalVariance] is true.
 ///
 /// ```dart
 /// final res = tTestTwoSample([1.0, 2.0, 3.0], [4.0, 5.0, 6.0]);
 /// // res.pValue, res.statistic
 /// ```
 ///
-/// If [equalVariance] is true, uses standard Student's t-test with pooled variance.
-/// If [equalVariance] is false (default), uses Welch's t-test with Satterthwaite degrees of freedom.
+/// If [equalVariance] is true, uses standard Student's t-test with pooled
+/// variance. If [equalVariance] is false (default), uses Welch's t-test with
+/// Satterthwaite degrees of freedom.
 HypothesisTestResult tTestTwoSample(
   Iterable<num> sample1,
   Iterable<num> sample2, {
@@ -232,7 +240,8 @@ HypothesisTestResult tTestPaired(
   );
 }
 
-/// One-way Analysis of Variance (ANOVA) test across multiple independent groups.
+/// One-way Analysis of Variance (ANOVA) test across multiple independent
+/// groups.
 HypothesisTestResult oneWayAnova(
   List<Iterable<num>> groups, {
   double alpha = 0.05,
@@ -400,7 +409,8 @@ HypothesisTestResult chiSquaredContingency(
   );
 }
 
-/// Mann-Whitney U test (Wilcoxon rank-sum test) for two independent groups [x] and [y].
+/// Mann-Whitney U test (Wilcoxon rank-sum test) for two independent groups [x]
+/// and [y].
 HypothesisTestResult mannWhitneyUTest(
   Iterable<num> x,
   Iterable<num> y, {
@@ -458,9 +468,11 @@ HypothesisTestResult mannWhitneyUTest(
   );
 }
 
-/// One-sample Kolmogorov-Smirnov test comparing [sample] against a theoretical [distribution].
+/// One-sample Kolmogorov-Smirnov test comparing [sample] against a theoretical
+/// [distribution].
 ///
-/// Tests the null hypothesis that [sample] is drawn from the continuous reference [distribution].
+/// Tests the null hypothesis that [sample] is drawn from the continuous
+/// reference [distribution].
 HypothesisTestResult kolmogorovSmirnovTest(
   Iterable<num> sample,
   Distribution<num> distribution, {
@@ -494,9 +506,11 @@ HypothesisTestResult kolmogorovSmirnovTest(
   );
 }
 
-/// Two-sample Kolmogorov-Smirnov test comparing two empirical samples [sample1] and [sample2].
+/// Two-sample Kolmogorov-Smirnov test comparing two empirical samples [sample1]
+/// and [sample2].
 ///
-/// Tests the null hypothesis that both samples are drawn from the same continuous distribution.
+/// Tests the null hypothesis that both samples are drawn from the same
+/// continuous distribution.
 HypothesisTestResult kolmogorovSmirnov2Sample(
   Iterable<num> sample1,
   Iterable<num> sample2, {
@@ -546,7 +560,8 @@ HypothesisTestResult kolmogorovSmirnov2Sample(
 /// Jarque-Bera goodness-of-fit test for sample normality.
 ///
 /// Tests the null hypothesis that [sample] is drawn from a normal distribution
-/// by matching sample skewness $S$ and kurtosis $K$ against normal baselines ($S = 0, K = 3$).
+/// by matching sample skewness $S$ and kurtosis $K$ against normal baselines
+/// ($S = 0, K = 3$).
 HypothesisTestResult jarqueBeraTest(
   Iterable<num> sample, {
   double alpha = 0.05,
@@ -575,8 +590,8 @@ HypothesisTestResult jarqueBeraTest(
 
 /// Wilcoxon signed-rank test for paired samples or one-sample median against 0.
 ///
-/// If [y] is provided, tests paired differences $x_i - y_i$.
-/// If [y] is omitted, tests $x_i$ directly against a symmetric median of 0.
+/// If [y] is provided, tests paired differences $x_i - y_i$. If [y] is omitted,
+/// tests $x_i$ directly against a symmetric median of 0.
 HypothesisTestResult wilcoxonSignedRankTest(
   Iterable<num> x, {
   Iterable<num>? y,

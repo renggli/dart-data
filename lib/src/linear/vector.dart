@@ -11,9 +11,9 @@ import 'matrix.dart';
 /// 1-dimensional mathematical vector backed by a 1D [Tensor].
 ///
 /// Conceptually, a vector is an ordered list of numbers with a magnitude
-/// (length) and direction, like a geometric arrow $(x, y, z)$.
-/// Mathematically, a vector represents an element of a finite-dimensional
-/// vector space $V \cong T^n$ over the scalar field $T$.
+/// (length) and direction, like a geometric arrow $(x, y, z)$. Mathematically,
+/// a vector represents an element of a finite-dimensional vector space
+/// $V \cong T^n$ over the scalar field $T$.
 ///
 /// ```dart
 /// final v = Vector<double>.fromList([1.0, 2.0, 3.0]);
@@ -85,8 +85,8 @@ class Vector<T> {
     native: native,
   );
 
-  /// Constructs a [Vector] with a sequence of [count] evenly spaced values
-  /// over the interval `[start, stop]`.
+  /// Constructs a [Vector] with a sequence of [count] evenly spaced values over
+  /// the interval `[start, stop]`.
   ///
   /// Conceptually, this partitions the continuous interval between [start] and
   /// [stop] into equal increments.
@@ -136,8 +136,8 @@ class Vector<T> {
     );
   }
 
-  /// Constructs a [Vector] with a sequence of [count] evenly spaced values
-  /// on a logarithmic scale over `[base^start, base^stop]`.
+  /// Constructs a [Vector] with a sequence of [count] evenly spaced values on a
+  /// logarithmic scale over `[base^start, base^stop]`.
   ///
   /// Conceptually, this evaluates [base] raised to powers that are linearly
   /// spaced from [start] to [stop].
@@ -188,12 +188,12 @@ class Vector<T> {
     );
   }
 
-  /// Constructs a [Vector] with a sequence of [count] geometrically spaced values
-  /// over the interval `[start, stop]`.
+  /// Constructs a [Vector] with a sequence of [count] geometrically spaced
+  /// values over the interval `[start, stop]`.
   ///
-  /// Both [start] and [stop] must be non-zero and share the same sign.
-  /// Values are spaced evenly on a logarithmic scale such that each step
-  /// has a constant multiplicative ratio.
+  /// Both [start] and [stop] must be non-zero and share the same sign. Values
+  /// are spaced evenly on a logarithmic scale such that each step has a
+  /// constant multiplicative ratio.
   ///
   /// ```dart
   /// final v = Vector.geomspace(1.0, 1000.0, count: 4);
@@ -314,12 +314,13 @@ class Vector<T> {
 
   /// Computes the algebraic inner product (dot product) with [other].
   ///
-  /// Conceptually, the dot product multiplies corresponding components and
-  /// sums them: $u \cdot v = u_1 v_1 + u_2 v_2 + \dots$. If the dot product is zero,
-  /// the vectors are orthogonal (perpendicular).
-  /// More formally, this calculates the standard Hermitian inner product
-  /// $\langle u, v \rangle = \sum_{i=1}^n \bar{u}_i v_i$, using conjugate multiplication
-  /// for complex fields and hardware BLAS acceleration when available.
+  /// Conceptually, the dot product multiplies corresponding components and sums
+  /// them: $u \cdot v = u_1 v_1 + u_2 v_2 + \dots$. If the dot product is zero,
+  /// the vectors are orthogonal (perpendicular). More formally, this calculates
+  /// the standard Hermitian inner product
+  /// $\langle u, v \rangle = \sum_{i=1}^n \bar{u}_i v_i$, using conjugate
+  /// multiplication for complex fields and hardware BLAS acceleration when
+  /// available.
   ///
   /// ```dart
   /// final a = Vector<double>.fromList([1.0, 2.0, 3.0]);
@@ -390,9 +391,10 @@ class Vector<T> {
 
   /// Computes the outer product with [other], producing an $M \times N$ matrix.
   ///
-  /// Conceptually, this multiplies each element of the first vector by
-  /// each element of the second vector, producing a full rank-2 [Matrix].
-  /// Formally, this calculates the rank-1 tensor product $u \otimes v = u v^T \in T^{M \times N}$.
+  /// Conceptually, this multiplies each element of the first vector by each
+  /// element of the second vector, producing a full rank-2 [Matrix]. Formally,
+  /// this calculates the rank-1 tensor product
+  /// $u \otimes v = u v^T \in T^{M \times N}$.
   ///
   /// ```dart
   /// final a = Vector<int>.fromList([1, 2]);
@@ -417,8 +419,9 @@ class Vector<T> {
   ///
   /// Conceptually, the default norm ($p=2$) is the standard Euclidean length
   /// calculated via the Pythagorean theorem: $\sqrt{x^2 + y^2 + \dots}$.
-  /// Formally, this calculates the $L_p$ metric $\|v\|_p = \left( \sum_{i=1}^n |v_i|^p \right)^{1/p}$,
-  /// supporting $p=1$ (Manhattan norm), $p=2$ (Euclidean norm), and $p=\infty$ (Chebyshev norm).
+  /// Formally, this calculates the $L_p$ metric
+  /// $\|v\|_p = \left( \sum_{i=1}^n |v_i|^p \right)^{1/p}$, supporting $p=1$
+  /// (Manhattan norm), $p=2$ (Euclidean norm), and $p=\infty$ (Chebyshev norm).
   ///
   /// ```dart
   /// final v = Vector<double>.fromList([3.0, 4.0]);
@@ -572,7 +575,8 @@ class Vector<T> {
     return scale(inv);
   }
 
-  /// Converts this vector into a matrix (as column $N \times 1$ or row $1 \times N$).
+  /// Converts this vector into a matrix (as column $N \times 1$ or row
+  /// $1 \times N$).
   Matrix<T> toMatrix({bool asColumn = true}) {
     final shape = asColumn ? [length, 1] : [1, length];
     return Matrix(tensor.reshape(shape));

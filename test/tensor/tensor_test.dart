@@ -477,7 +477,8 @@ void main() {
       final row0 = a[0];
       check(row0.sharesMemoryWith(a)).isTrue();
 
-      // Binary operation between row0 and a does not corrupt results due to aliasing
+      // Binary operation between row0 and a does not corrupt results due to
+      // aliasing
       final result = a + row0;
       check(result.shape).deepEquals([2, 2]);
       check(result.toFlatList()).deepEquals([2.0, 4.0, 4.0, 6.0]);

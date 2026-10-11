@@ -234,7 +234,8 @@ void main() {
       check(rev.sharesMemoryWith(tensor)).isTrue();
       check(rev.toFlatList()).deepEquals([50, 40, 30, 20, 10]);
 
-      // Modify element at index 0 of reversed view (which corresponds to index 4 of original)
+      // Modify element at index 0 of reversed view (which corresponds to index
+      // 4 of original)
       rev.setValue([0], 999);
       check(tensor.getValue([4])).equals(999);
       check(rev.toFlatList()).deepEquals([999, 40, 30, 20, 10]);
@@ -430,7 +431,8 @@ void main() {
         // Axis 0: reverse [Slice(null, null, -1)] -> indices [1, 0] (len 2)
         // Axis 1: step 2 [Slice(0, 3, 2)] -> indices [0, 2] (len 2)
         // Axis 2: sub-range step 2 [Slice(1, 4, 2)] -> indices [1, 3] (len 2)
-        // Axis 3: reverse step -2 [Slice(null, null, -2)] -> indices [4, 2, 0] (len 3)
+        // Axis 3: reverse step -2 [Slice(null, null, -2)] -> indices [4, 2, 0]
+        // (len 3)
         final sliced = tensor.slice(const [
           Slice(null, null, -1),
           Slice(0, 3, 2),
@@ -496,7 +498,8 @@ void main() {
         final transposed = tensor.transpose();
         check(transposed.shape).deepEquals([3, 2]);
 
-        // Slice rows 1..3, reverse cols -> rows [ [1, 4], [2, 5] ] reversed cols -> [ [4, 1], [5, 2] ]
+        // Slice rows 1..3, reverse cols -> rows [ [1, 4], [2, 5] ] reversed
+        // cols -> [ [4, 1], [5, 2] ]
         final sliced = transposed.slice(const [
           Slice(1, 3),
           Slice(null, null, -1),

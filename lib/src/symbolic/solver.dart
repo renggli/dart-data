@@ -9,14 +9,18 @@ import 'simplifier.dart';
 extension SolverExtension on Expr {
   /// Solves the algebraic equation $\text{this} = 0$ for [variable].
   ///
-  /// Conceptually, this isolates the values of [variable] that
-  /// satisfy the equation $\text{this} = 0$ (such as finding roots where $2x - 6 = 0$ or
-  /// $x^2 - 5x + 6 = 0$).
-  /// Formally, this isolates analytical roots of univariate equations:
+  /// Conceptually, this isolates the values of [variable] that satisfy the
+  /// equation $\text{this} = 0$ (such as finding roots where $2x - 6 = 0$ or
+  /// $x^2 - 5x + 6 = 0$). Formally, this isolates analytical roots of
+  /// univariate equations:
   /// - Linear equations: $a x + b = 0 \implies x = -b / a$
-  /// - Quadratic polynomials: $a x^2 + b x + c = 0 \implies x = \frac{-b \pm \sqrt{b^2 - 4ac}}{2a}$
-  /// - Factored products: $f(x) \cdot g(x) = 0 \implies \text{solve}(f) \cup \text{solve}(g)$ via the zero-product property
-  /// - Invertible transcendental compositions: $\exp(f(x)) = c$, $\ln(f(x)) = c$, $\sin(f(x)) = c$, $\cos(f(x)) = c$, and isolated powers
+  /// - Quadratic polynomials:
+  ///   $a x^2 + b x + c = 0 \implies x = \frac{-b \pm \sqrt{b^2 - 4ac}}{2a}$
+  /// - Factored products:
+  ///   $f(x) \cdot g(x) = 0 \implies \text{solve}(f) \cup \text{solve}(g)$ via
+  ///   the zero-product property
+  /// - Invertible transcendental compositions: $\exp(f(x)) = c$,
+  ///   $\ln(f(x)) = c$, $\sin(f(x)) = c$, $\cos(f(x)) = c$, and isolated powers
   ///
   /// Returns a list of unique exact solution expressions.
   ///
@@ -33,12 +37,13 @@ extension SystemSolverExtension on Iterable<Expr> {
   /// Solves the linear system $f_i(x_1, \dots, x_n) = 0$ for [variables].
   ///
   /// Conceptually, this finds the common solution satisfying multiple
-  /// simultaneous linear equations (such as $x + y - 10 = 0$ and $x - y - 2 = 0$).
+  /// simultaneous linear equations (such as $x + y - 10 = 0$ and
+  /// $x - y - 2 = 0$).
   ///
   /// Formally, this performs exact symbolic Gaussian elimination with partial
-  /// pivoting over the affine coefficient matrix. Returns a mapping from each variable
-  /// name to its solution expression, or `null` if the system is singular, underdetermined,
-  /// or contradictory.
+  /// pivoting over the affine coefficient matrix. Returns a mapping from each
+  /// variable name to its solution expression, or `null` if the system is
+  /// singular, underdetermined, or contradictory.
   ///
   /// ```dart
   /// final x = Variable('x');
@@ -235,7 +240,8 @@ Map<String, Expr>? _solveSystem(List<Expr> equations, List<String> variables) {
   }
 
   // Extract coefficient matrix A and right-hand side b
-  // A_ij * x_j = b_i  where equation is f_i = 0 => sum(A_ij * x_j) + c_i = 0 => b_i = -c_i
+  // A_ij * x_j = b_i where equation is f_i = 0 => sum(A_ij * x_j) + c_i = 0 =>
+  // b_i = -c_i
   final a = List<List<Expr>>.generate(
     n,
     (_) => List<Expr>.filled(n, const Constant(0.0)),

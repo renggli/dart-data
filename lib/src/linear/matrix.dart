@@ -14,10 +14,10 @@ import 'vector.dart';
 
 /// 2-dimensional mathematical matrix backed by a rank-2 [Tensor].
 ///
-/// Conceptually, a matrix is a rectangular grid or table of numbers
-/// organized into rows and columns.
-/// Mathematically, a matrix represents a linear transformation between
-/// finite-dimensional vector spaces $T^n \to T^m$ with components in $T$.
+/// Conceptually, a matrix is a rectangular grid or table of numbers organized
+/// into rows and columns. Mathematically, a matrix represents a linear
+/// transformation between finite-dimensional vector spaces $T^n \to T^m$ with
+/// components in $T$.
 ///
 /// ```dart
 /// final m = Matrix<double>.filled(2, 3, 0.0);
@@ -269,7 +269,8 @@ class Matrix<T> implements LinearOperator<T> {
   /// Returns a zero-copy transposed view of this matrix.
   Matrix<T> get transposed => transpose();
 
-  /// Returns the conjugate transpose (Hermitian adjoint $A^* = (\bar{A})^T$) of this matrix.
+  /// Returns the conjugate transpose (Hermitian adjoint $A^* = (\bar{A})^T$) of
+  /// this matrix.
   Matrix<T> get conjugateTranspose {
     final field = type.field;
     return Matrix<T>.generate(
@@ -426,7 +427,8 @@ class Matrix<T> implements LinearOperator<T> {
     );
   }
 
-  /// Solves the linear system $A x = b$ or linear least-squares problem $A x \approx b$.
+  /// Solves the linear system $A x = b$ or linear least-squares problem
+  /// $A x \approx b$.
   ///
   /// Conceptually, this solves for the unknown vector or matrix that satisfies
   /// the system $A x = b$. If the system is overdetermined or underdetermined
@@ -434,13 +436,15 @@ class Matrix<T> implements LinearOperator<T> {
   /// $\|A x - b\|_2$.
   ///
   /// Accepts either a [Vector] or a multi-column [Matrix] right-hand side:
-  /// - When [b] is a [Vector], returns the solution [Vector] of length [colCount].
-  /// - When [b] is a [Matrix], returns the solution [Matrix] of shape `[colCount, b.colCount]`.
+  /// - When [b] is a [Vector], returns the solution [Vector] of length
+  ///   [colCount].
+  /// - When [b] is a [Matrix], returns the solution [Matrix] of shape
+  ///   `[colCount, b.colCount]`.
   ///
   /// For square matrices ($m = n$), the system is solved via LU decomposition
-  /// with partial pivoting (`dgesv` or pure-Dart LU).
-  /// For rectangular matrices ($m \ne n$), the least-squares solution is
-  /// computed via QR decomposition (`dgels` or pure-Dart QR).
+  /// with partial pivoting (`dgesv` or pure-Dart LU). For rectangular matrices
+  /// ($m \ne n$), the least-squares solution is computed via QR decomposition
+  /// (`dgels` or pure-Dart QR).
   ///
   /// ```dart
   /// final a = Matrix<double>.fromRows([
@@ -884,7 +888,8 @@ class Matrix<T> implements LinearOperator<T> {
     return res;
   }
 
-  /// Computes symmetric rank-k update $C = \alpha A A^T + \beta C$ (or $A^T A$).
+  /// Computes symmetric rank-k update $C = \alpha A A^T + \beta C$ (or
+  /// $A^T A$).
   Matrix<T> syrk({
     double alpha = 1.0,
     double beta = 0.0,

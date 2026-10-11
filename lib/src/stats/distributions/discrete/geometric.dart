@@ -5,9 +5,9 @@ import 'package:more/printer.dart';
 import '../discrete.dart';
 import '../errors.dart';
 
-/// The Geometric distribution is a discrete probability distribution which models
-/// the number of failures before the first success in a sequence of independent
-/// Bernoulli trials with success probability [p].
+/// The Geometric distribution is a discrete probability distribution which
+/// models the number of failures before the first success in a sequence of
+/// independent Bernoulli trials with success probability [p].
 ///
 /// See https://en.wikipedia.org/wiki/Geometric_distribution.
 ///

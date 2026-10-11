@@ -171,7 +171,8 @@ void main() {
       // Quotient: (x + 1) / (x - 1)
       final quotient = (x + 1) / (x - 1);
       final dq = quotient.diff('x').simplify();
-      // d/dx ((x+1)/(x-1)) = ((x-1) - (x+1))/(x-1)^2 = -2 / (x-1)^2 -> at x = 3: -2 / 4 = -0.5
+      // d/dx ((x+1)/(x-1)) = ((x-1) - (x+1))/(x-1)^2 = -2 / (x-1)^2 -> at x =
+      // 3: -2 / 4 = -0.5
       final dqCompiled = dq.compile1D('x');
       check(dqCompiled(3.0)).isCloseTo(-0.5, 1e-6);
     });

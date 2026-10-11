@@ -3,7 +3,8 @@ import 'dart:typed_data';
 
 import 'package:more/number.dart' show Complex;
 
-/// Pure Dart reference implementations of Fast Fourier Transforms and vectorized math.
+/// Pure Dart reference implementations of Fast Fourier Transforms and
+/// vectorized math.
 abstract final class PureDartFft {
   /// Computes the 1D discrete Fourier transform or inverse transform.
   static List<Complex> fft(Iterable<Complex> input, {required bool inverse}) {

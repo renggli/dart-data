@@ -8,8 +8,9 @@ import '../fallback/pure_dart_lapack.dart';
 
 /// LAPACK decomposition and solver routines.
 abstract final class LapackRoutines {
-  /// Computes the Cholesky factorization of a symmetric positive-definite matrix A.
-  /// Overwrites the upper or lower triangle of A with the factor U or L.
+  /// Computes the Cholesky factorization of a symmetric positive-definite
+  /// matrix A. Overwrites the upper or lower triangle of A with the factor U or
+  /// L.
   static bool dpotrf({
     int uplo = cblasUpper,
     required int n,
@@ -138,7 +139,8 @@ abstract final class LapackRoutines {
     return PureDartLapack.luSolve(n, nrhs, a, aOffset, lda, b, bOffset, ldb);
   }
 
-  /// Solves overdetermined linear least squares min ||A * X - B||_2 using LAPACK dgels.
+  /// Solves overdetermined linear least squares min ||A * X - B||_2 using
+  /// LAPACK dgels.
   static bool dgels({
     required int m,
     required int n,
@@ -189,7 +191,8 @@ abstract final class LapackRoutines {
     return false;
   }
 
-  /// Computes all eigenvalues and, optionally, eigenvectors of a real symmetric matrix A.
+  /// Computes all eigenvalues and, optionally, eigenvectors of a real symmetric
+  /// matrix A.
   static bool dsyev({
     String jobz = 'V',
     int uplo = cblasUpper,
@@ -257,7 +260,8 @@ abstract final class LapackRoutines {
     );
   }
 
-  /// Computes all eigenvalues and eigenvectors of a single-precision symmetric matrix.
+  /// Computes all eigenvalues and eigenvectors of a single-precision symmetric
+  /// matrix.
   static bool ssyev({
     String jobz = 'V',
     int uplo = cblasUpper,

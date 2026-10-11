@@ -12,7 +12,7 @@ This document defines the actionable engineering task list for `package:data`.
 - [x] Parallel Unit Test Hierarchy & Comprehensive Coverage (Target Near 100%)
 - [x] Backend Acceleration Parity, Dedicated Modes (Auto, Accelerated, Dart) & Verification
 - [x] Hardware Acceleration for FFT, Signal Processing & Vectorized Operations
-- [ ] Consistent 80-Character Comment Formatting & Doc Reflow
+- [x] Consistent 80-Character Comment Formatting & Doc Reflow
 
 ---
 
@@ -184,7 +184,7 @@ This document defines the actionable engineering task list for `package:data`.
 
 ---
 
-### [ ] Consistent 80-Character Comment Formatting & Doc Reflow
+### [x] Consistent 80-Character Comment Formatting & Doc Reflow
 
 - **Problem / Goal**:
   Dart standard style guidelines (Effective Dart: Documentation and Formatting) prescribe wrapping documentation comments (`///`) and code comments consistently at 80 characters. While `dart format` formats Dart statements, it deliberately does not rewrap existing doc comments or inline comments. As a result, comments across `lib/`, `test/`, and `example/` have accumulated inconsistent line lengths, with many lines exceeding 100–140 characters and others containing awkward manual breaks, impairing readability in standard 80-column editor splits, sidebars, and diffs.

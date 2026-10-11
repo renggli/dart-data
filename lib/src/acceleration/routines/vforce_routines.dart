@@ -5,7 +5,8 @@ import '../acceleration_mode.dart';
 import '../fallback/pure_dart_fft.dart';
 import '../vdsp/vdsp.dart';
 
-/// Vectorized transcendental and reduction routines coordinating between vForce/vDSP and pure Dart.
+/// Vectorized transcendental and reduction routines coordinating between
+/// vForce/vDSP and pure Dart.
 abstract final class VforceRoutines {
   /// Computes elementwise sine: `output[i] = sin(input[i])`.
   static Float64List vsin(Float64List input, {required VdspLibrary vdsp}) {

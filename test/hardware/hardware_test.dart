@@ -1469,7 +1469,8 @@ void main() {
           c: cSyrk,
           ldc: 2,
         );
-        // a^T * a: [1*1 + 3*3, 1*2 + 3*4; 2*1 + 4*3, 2*2 + 4*4] = [10, 14; 14, 20]
+        // a^T * a: [1*1 + 3*3, 1*2 + 3*4; 2*1 + 4*3, 2*2 + 4*4] = [10, 14; 14,
+        // 20]
         check(cSyrk[0]).isCloseTo(10.0, 1e-9);
         check(cSyrk[1]).isCloseTo(14.0, 1e-9);
         check(cSyrk[3]).isCloseTo(20.0, 1e-9);

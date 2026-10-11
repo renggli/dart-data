@@ -57,7 +57,8 @@ void main() {
         'val_r': [10, 20, 30],
       });
 
-      // In inner join, 'null' string matches 'null' string, but null never matches null
+      // In inner join, 'null' string matches 'null' string, but null never
+      // matches null
       final inner = left.join(right, on: ['k1'], type: JoinType.inner);
       check(inner.rowCount).equals(2);
       check(inner['k1'].toList()).deepEquals(['null', 'valid']);
@@ -74,8 +75,10 @@ void main() {
 
     test('prevents delimiter injection across composite keys', () {
       // With delimiter __#_#__:
-      // Row 1: col1 = 'a__#_#__b', col2 = 'c' -> serialized as 'a__#_#__b__#_#__c'
-      // Row 2: col1 = 'a', col2 = 'b__#_#__c' -> serialized as 'a__#_#__b__#_#__c'
+      // Row 1: col1 = 'a__#_#__b', col2 = 'c' -> serialized as
+      // 'a__#_#__b__#_#__c'
+      // Row 2: col1 = 'a', col2 = 'b__#_#__c' -> serialized as
+      // 'a__#_#__b__#_#__c'
       final left = DataFrame.fromColumns({
         'col1': ['a__#_#__b'],
         'col2': ['c'],

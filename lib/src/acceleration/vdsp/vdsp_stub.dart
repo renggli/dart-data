@@ -3,7 +3,8 @@ import 'dart:typed_data';
 /// Loads the platform vDSP / vForce library stub for platforms without FFI.
 VdspLibrary loadVdsp() => const VdspLibrary._();
 
-/// Stub implementation of vDSP / vForce library when FFI is unavailable (e.g. Web).
+/// Stub implementation of vDSP / vForce library when FFI is unavailable (e.g.
+/// Web).
 class VdspLibrary {
   const new _();
 
@@ -19,7 +20,8 @@ class VdspLibrary {
   /// Whether native vector reductions are available.
   bool get hasReductions => false;
 
-  /// Computes 1D in-place complex FFT on [real] and [imag] buffers of size $2^{\text{log2n}}$.
+  /// Computes 1D in-place complex FFT on [real] and [imag] buffers of size
+  /// $2^{\text{log2n}}$.
   bool fft1d({
     required Float64List real,
     required Float64List imag,

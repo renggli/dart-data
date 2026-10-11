@@ -8,7 +8,8 @@ import '../acceleration_mode.dart';
 import '../fallback/pure_dart_fft.dart';
 import '../vdsp/vdsp.dart';
 
-/// Fast Fourier Transform routines with native hardware acceleration and pure Dart fallback.
+/// Fast Fourier Transform routines with native hardware acceleration and pure
+/// Dart fallback.
 abstract final class FftRoutines {
   /// Computes the 1D discrete Fourier transform of [input].
   static List<Complex> fft(

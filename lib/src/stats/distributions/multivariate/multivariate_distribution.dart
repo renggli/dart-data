@@ -6,7 +6,8 @@ import 'package:more/printer.dart' show ToStringPrinter;
 import '../../../linear/matrix.dart';
 import '../../../linear/vector.dart';
 
-/// Abstract base class representing a multivariate probability distribution over vectors of [T].
+/// Abstract base class representing a multivariate probability distribution
+/// over vectors of [T].
 @immutable
 abstract class MultivariateDistribution<T extends num> with ToStringPrinter {
   /// Abstract constant constructor for subclassing [MultivariateDistribution].
@@ -30,7 +31,8 @@ abstract class MultivariateDistribution<T extends num> with ToStringPrinter {
   /// Draws a single pseudo-random sample vector from the distribution.
   Vector<T> sample({Random? random});
 
-  /// Generates an infinite sequence of pseudo-random sample vectors from the distribution.
+  /// Generates an infinite sequence of pseudo-random sample vectors from the
+  /// distribution.
   Iterable<Vector<T>> samples({Random? random}) sync* {
     for (;;) {
       yield sample(random: random);

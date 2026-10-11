@@ -1,7 +1,8 @@
 import '../ast.dart';
 import '../simplifier.dart';
 
-/// Linear form matching, affine decomposition, and scalar scaling extension on [Expr].
+/// Linear form matching, affine decomposition, and scalar scaling extension on
+/// [Expr].
 extension LinearFormExtension on Expr {
   /// Decomposes this expression into affine form $a \cdot [variable] + b$,
   /// where $a$ and $b$ do not depend on [variable], and $a \ne 0$.
@@ -14,9 +15,11 @@ extension LinearFormExtension on Expr {
   ({Expr a, Expr b})? matchLinear(String variable) =>
       _matchLinear(this, variable);
 
-  /// Tests whether this expression is an exact scalar multiple of [target] with respect to [variable].
+  /// Tests whether this expression is an exact scalar multiple of [target] with
+  /// respect to [variable].
   ///
-  /// Returns scalar factor $k$ such that $\text{this} = k \cdot target$, where $k$ does not depend on [variable].
+  /// Returns scalar factor $k$ such that $\text{this} = k \cdot target$, where
+  /// $k$ does not depend on [variable].
   Expr? matchScalarMultiple(Expr target, String variable) =>
       _matchScalarMultiple(this, target, variable);
 

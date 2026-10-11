@@ -10,8 +10,8 @@ export 'pca.dart';
 /// Returns the arithmetic mean of [values], or [double.nan] if empty.
 ///
 /// Conceptually, the mean is the standard average: the sum of all elements
-/// divided by the count of observations.
-/// Formally, it computes the first sample central moment $\bar{x} = \frac{1}{n} \sum_{i=1}^n x_i$.
+/// divided by the count of observations. Formally, it computes the first sample
+/// central moment $\bar{x} = \frac{1}{n} \sum_{i=1}^n x_i$.
 ///
 /// ```dart
 /// final avg = mean([1.0, 2.0, 3.0, 4.0, 5.0]); // 3.0
@@ -20,11 +20,11 @@ double mean(Iterable<num> values) => _mean(values);
 
 /// Returns the sample or population variance of [values].
 ///
-/// Conceptually, variance measures how widely spread the values
-/// are around their arithmetic mean. If all observations are identical, variance is 0.
+/// Conceptually, variance measures how widely spread the values are around
+/// their arithmetic mean. If all observations are identical, variance is 0.
 /// Formally, it computes $s^2 = \frac{1}{n - 1} \sum_{i=1}^n (x_i - \bar{x})^2$
-/// (or $\sigma^2 = \frac{1}{n} \sum (x_i - \bar{x})^2$ when [population] is true)
-/// using Welford's numerically stable one-pass algorithm.
+/// (or $\sigma^2 = \frac{1}{n} \sum (x_i - \bar{x})^2$ when [population] is
+/// true) using Welford's numerically stable one-pass algorithm.
 ///
 /// ```dart
 /// final v = variance([2.0, 4.0, 4.0, 4.0, 5.0, 5.0, 7.0, 9.0]); // 4.5714...
@@ -44,11 +44,12 @@ double variance(Iterable<num> values, {bool population = false}) =>
 double standardDeviation(Iterable<num> values, {bool population = false}) =>
     _standardDeviation(values, population: population);
 
-/// Returns the empirical quantile of [values] for fraction [quantile] in the range `[0.0, 1.0]`
-/// using standard linear interpolation between adjacent ranks (Type 7).
+/// Returns the empirical quantile of [values] for fraction [quantile] in the
+/// range `[0.0, 1.0]` using standard linear interpolation between adjacent
+/// ranks (Type 7).
 ///
-/// Conceptually, a quantile is a dividing threshold: for example, the 0.5 quantile
-/// is the median, and the 0.25 quantile is the lower quartile cutoff.
+/// Conceptually, a quantile is a dividing threshold: for example, the 0.5
+/// quantile is the median, and the 0.25 quantile is the lower quartile cutoff.
 /// Formally, it computes $Q(p) = x_{(k)} + (p(n - 1) - k)(x_{(k+1)} - x_{(k)})$
 /// where $k = \lfloor p(n - 1) \rfloor$ (Hyndman and Fan Type 7).
 ///
@@ -60,8 +61,8 @@ double quantile(Iterable<num> values, num quantile) =>
 
 /// Returns the median of [values].
 ///
-/// Conceptually, the median is the middle value when data is sorted in ascending order.
-/// Formally, it computes the 50th percentile / 0.5 quantile.
+/// Conceptually, the median is the middle value when data is sorted in
+/// ascending order. Formally, it computes the 50th percentile / 0.5 quantile.
 ///
 /// ```dart
 /// final m = median([1.0, 3.0, 5.0]); // 3.0
@@ -70,10 +71,10 @@ double median(Iterable<num> values) => _median(values);
 
 /// Returns the interquartile range (IQR = Q3 - Q1) of [values].
 ///
-/// Conceptually, the IQR is the distance between the 25th percentile and
-/// 75th percentile, spanning the central 50% of the sample.
-/// Formally, it computes $Q(0.75) - Q(0.25)$, providing a robust measure of
-/// statistical dispersion unaffected by extreme outliers.
+/// Conceptually, the IQR is the distance between the 25th percentile and 75th
+/// percentile, spanning the central 50% of the sample. Formally, it computes
+/// $Q(0.75) - Q(0.25)$, providing a robust measure of statistical dispersion
+/// unaffected by extreme outliers.
 ///
 /// ```dart
 /// final r = iqr([1.0, 2.0, 5.0, 6.0, 7.0, 9.0]);
@@ -82,10 +83,11 @@ double iqr(Iterable<num> values) => _iqr(values);
 
 /// Returns the sample skewness of [values].
 ///
-/// Conceptually, skewness indicates distribution asymmetry: whether observations lean to the
-/// left (negative skew, longer left tail) or to the right (positive skew, longer right tail).
-/// Formally, it computes the standardized 3rd central moment
-/// $g_1 = \frac{m_3}{m_2^{3/2}}$, with optional sample bias correction $\frac{\sqrt{n(n-1)}}{n-2}$.
+/// Conceptually, skewness indicates distribution asymmetry: whether
+/// observations lean to the left (negative skew, longer left tail) or to the
+/// right (positive skew, longer right tail). Formally, it computes the
+/// standardized 3rd central moment $g_1 = \frac{m_3}{m_2^{3/2}}$, with optional
+/// sample bias correction $\frac{\sqrt{n(n-1)}}{n-2}$.
 ///
 /// ```dart
 /// final s = skewness([1.0, 2.0, 2.0, 3.0]);
@@ -93,12 +95,13 @@ double iqr(Iterable<num> values) => _iqr(values);
 double skewness(Iterable<num> values, {bool bias = false}) =>
     _skewness(values, bias: bias);
 
-/// Returns the kurtosis of [values]. If [excess] is true (default), returns excess kurtosis (Fisher).
+/// Returns the kurtosis of [values]. If [excess] is true (default), returns
+/// excess kurtosis (Fisher).
 ///
-/// Conceptually, kurtosis measures tail heaviness and propensity toward outliers
-/// relative to a normal distribution.
-/// Formally, it computes the standardized 4th central moment $g_2 = \frac{m_4}{m_2^2} - 3$
-/// (Fisher's excess kurtosis, 0 for normal distribution).
+/// Conceptually, kurtosis measures tail heaviness and propensity toward
+/// outliers relative to a normal distribution. Formally, it computes the
+/// standardized 4th central moment $g_2 = \frac{m_4}{m_2^2} - 3$ (Fisher's
+/// excess kurtosis, 0 for normal distribution).
 ///
 /// ```dart
 /// final k = kurtosis([1.0, 2.0, 3.0, 4.0, 5.0]);
@@ -111,9 +114,11 @@ double kurtosis(
 
 /// Computes the sample or population covariance between [x] and [y].
 ///
-/// Conceptually, covariance indicates whether two variables tend to increase together
-/// (positive covariance) or vary inversely (negative covariance).
-/// Formally, it computes $\operatorname{Cov}(X, Y) = \frac{1}{n - 1} \sum_{i=1}^n (x_i - \bar{x})(y_i - \bar{y})$
+/// Conceptually, covariance indicates whether two variables tend to increase
+/// together (positive covariance) or vary inversely (negative covariance).
+/// Formally, it computes
+/// $\operatorname{Cov}(X, Y) =$
+/// $\frac{1}{n - 1} \sum_{i=1}^n (x_i - \bar{x})(y_i - \bar{y})$
 /// using a numerically stable two-variable Welford-style algorithm.
 ///
 /// ```dart
@@ -125,11 +130,15 @@ double covariance(
   bool population = false,
 }) => _covariance(x, y, population: population);
 
-/// Computes the Pearson correlation coefficient $r$ (in `[-1.0, 1.0]`) between [x] and [y].
+/// Computes the Pearson correlation coefficient $r$ (in `[-1.0, 1.0]`) between
+/// [x] and [y].
 ///
-/// Conceptually, Pearson's $r$ measures the strength and direction of linear association between two variables,
-/// where $+1$ represents a perfect positive linear relationship, $-1$ represents a perfect negative linear relationship, and $0$ indicates absence of linear correlation.
-/// Formally, it computes $r = \frac{\operatorname{Cov}(X, Y)}{\sigma_X \sigma_Y} \in \lbrack -1, 1 \rbrack$.
+/// Conceptually, Pearson's $r$ measures the strength and direction of linear
+/// association between two variables, where $+1$ represents a perfect positive
+/// linear relationship, $-1$ represents a perfect negative linear relationship,
+/// and $0$ indicates absence of linear correlation. Formally, it computes
+/// $r = \frac{\operatorname{Cov}(X, Y)}{\sigma_X \sigma_Y}$
+/// $\in \lbrack -1, 1 \rbrack$.
 ///
 /// ```dart
 /// final r = pearsonCorrelation([1.0, 2.0, 3.0], [2.0, 4.0, 6.0]); // 1.0
@@ -159,16 +168,19 @@ List<double> rankData(Iterable<num> values) {
   return ranks;
 }
 
-/// Computes the Spearman rank correlation coefficient $\rho$ (in `[-1.0, 1.0]`) between [x] and [y].
+/// Computes the Spearman rank correlation coefficient $\rho$ (in `[-1.0, 1.0]`)
+/// between [x] and [y].
 double spearmanCorrelation(Iterable<num> x, Iterable<num> y) =>
     _spearmanCorrelation(x, y);
 
 /// Computes the sample covariance matrix of [data].
 ///
-/// If [rowVar] is false (default), columns represent variables and rows represent observations.
-/// If [rowVar] is true, rows represent variables and columns represent observations.
+/// If [rowVar] is false (default), columns represent variables and rows
+/// represent observations. If [rowVar] is true, rows represent variables and
+/// columns represent observations.
 ///
-/// Transparently uses [Matrix.syrk] BLAS acceleration for large matrix multiplications.
+/// Transparently uses [Matrix.syrk] BLAS acceleration for large matrix
+/// multiplications.
 Matrix<double> covarianceMatrix(Object data, {bool rowVar = false}) =>
     _covarianceMatrix(data, rowVar: rowVar);
 
@@ -186,24 +198,29 @@ double weightedMean(Iterable<num> values, Iterable<num> weights) =>
 
 /// Returns the weighted variance of [values] weighted by [weights].
 ///
-/// If [unbiased] is true (default), applies the Bessel reliability weights correction:
-/// $s_w^2 = \frac{\sum w_i}{\left(\sum w_i\right)^2 - \sum w_i^2} \sum w_i (x_i - \bar{x}_w)^2$.
+/// If [unbiased] is true (default), applies the Bessel reliability weights
+/// correction:
+/// $s_w^2 = \frac{\sum w_i}{\left(\sum w_i\right)^2 - \sum w_i^2}$
+/// $\sum w_i (x_i - \bar{x}_w)^2$.
 double weightedVariance(
   Iterable<num> values,
   Iterable<num> weights, {
   bool unbiased = true,
 }) => _weightedVariance(values, weights, unbiased: unbiased);
 
-/// Computes the simple moving average (SMA) of [values] over a rolling window of [windowSize].
+/// Computes the simple moving average (SMA) of [values] over a rolling window
+/// of [windowSize].
 ///
-/// Returns a list of length `values.length - windowSize + 1` computed in $\mathcal{O}(N)$
-/// time using $\mathcal{O}(1)$ updates per step.
+/// Returns a list of length `values.length - windowSize + 1` computed in
+/// $\mathcal{O}(N)$ time using $\mathcal{O}(1)$ updates per step.
 List<double> movingAverage(Iterable<num> values, int windowSize) =>
     _movingAverage(values, windowSize);
 
-/// Computes the exponential moving average (EMA) of [values] with smoothing factor [alpha] $\in (0, 1]$.
+/// Computes the exponential moving average (EMA) of [values] with smoothing
+/// factor [alpha] $\in (0, 1]$.
 ///
-/// Returns a list of length `values.length` computed in $\mathcal{O}(N)$ time with $\mathcal{O}(1)$ updates per step.
+/// Returns a list of length `values.length` computed in $\mathcal{O}(N)$ time
+/// with $\mathcal{O}(1)$ updates per step.
 List<double> exponentialMovingAverage(Iterable<num> values, double alpha) =>
     _exponentialMovingAverage(values, alpha);
 
@@ -285,11 +302,13 @@ extension DescriptiveIterableNumExtension on Iterable<num> {
   double weightedVariance(Iterable<num> weights, {bool unbiased = true}) =>
       _weightedVariance(this, weights, unbiased: unbiased);
 
-  /// Computes the simple moving average (SMA) over a rolling window of [windowSize].
+  /// Computes the simple moving average (SMA) over a rolling window of
+  /// [windowSize].
   List<double> movingAverage(int windowSize) =>
       _movingAverage(this, windowSize);
 
-  /// Computes the exponential moving average (EMA) with smoothing factor [alpha].
+  /// Computes the exponential moving average (EMA) with smoothing factor
+  /// [alpha].
   List<double> exponentialMovingAverage(double alpha) =>
       _exponentialMovingAverage(this, alpha);
 }
@@ -352,13 +371,15 @@ extension DescriptiveVectorNumExtension on Vector<num> {
   double weightedVariance(Vector<num> weights, {bool unbiased = true}) =>
       _weightedVariance(toList(), weights.toList(), unbiased: unbiased);
 
-  /// Computes the simple moving average (SMA) over a rolling window of [windowSize].
+  /// Computes the simple moving average (SMA) over a rolling window of
+  /// [windowSize].
   Vector<double> movingAverage(int windowSize) => Vector<double>.fromList(
     _movingAverage(toList(), windowSize),
     type: DataType.float64,
   );
 
-  /// Computes the exponential moving average (EMA) with smoothing factor [alpha].
+  /// Computes the exponential moving average (EMA) with smoothing factor
+  /// [alpha].
   Vector<double> exponentialMovingAverage(double alpha) =>
       Vector<double>.fromList(
         _exponentialMovingAverage(toList(), alpha),

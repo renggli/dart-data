@@ -10,7 +10,8 @@ import 'compressed_polynomial.dart';
 /// Coefficients are stored in ascending power of $x$:
 /// $P(x) = c_0 + c_1 x + c_2 x^2 + \dots + c_n x^n$.
 class DensePolynomial<T> extends Polynomial<T> {
-  /// Constructs a dense polynomial from [coefficients] where index $i$ corresponds to the power $x^i$.
+  /// Constructs a dense polynomial from [coefficients] where index $i$
+  /// corresponds to the power $x^i$.
   new fromCoefficients(Iterable<T> coefficients, {DataType<T>? type})
     : type = type ?? DataType.fromIterable(coefficients),
       _coefficients = coefficients.toList(growable: false);

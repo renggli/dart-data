@@ -14,7 +14,8 @@ class PoissonDistribution extends DiscreteDistribution {
   /// A Poisson distribution with expected arrival [rate] $\lambda$.
   const new(this.rate) : assert(rate > 0, 'λ > 0');
 
-  /// Fits a Poisson distribution to [samples] using maximum likelihood estimation.
+  /// Fits a Poisson distribution to [samples] using maximum likelihood
+  /// estimation.
   factory fit(Iterable<num> samples) {
     var count = 0;
     var sum = 0.0;

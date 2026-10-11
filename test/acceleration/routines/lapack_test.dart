@@ -87,7 +87,8 @@ void main() {
 
       final ok = AccelerationManager.dsyev(n: 2, a: a, lda: 2, w: w);
       check(ok).isTrue();
-      // Characteristic equation: (3-L)(6-L) - 4 = L^2 - 9L + 14 = (L-2)(L-7) = 0
+      // Characteristic equation: (3-L)(6-L) - 4 = L^2 - 9L + 14 = (L-2)(L-7) =
+      // 0
       // Eigenvalues: 2.0 and 7.0
       check(w[0]).isCloseTo(2.0, 1e-10);
       check(w[1]).isCloseTo(7.0, 1e-10);

@@ -1,4 +1,5 @@
-/// Linear algebra system providing vectors, matrices, sparse formats, matrix decompositions, and solvers.
+/// Linear algebra system providing vectors, matrices, sparse formats, matrix
+/// decompositions, and solvers.
 ///
 /// Combines a natural, mathematical syntax for operations like addition (`+`),
 /// subtraction (`-`), multiplication (`*`), and inversion with high-performance
@@ -6,31 +7,43 @@
 ///
 /// ## Core Data Structures
 ///
-/// - [Vector]: 1-dimensional mathematical vector supporting dot product, cross product,
-///   $L_1$, $L_2$, and $L_\infty$ norms, projections ([VectorProjectionExtension]),
-///   and coordinate sampling grids ([Vector.linspace], [Vector.logspace], [Vector.geomspace],
-///   [linearSpaced], [logarithmicSpaced], [geometricSpaced]).
-/// - [Matrix]: 2-dimensional matrix supporting matrix multiplication, transposition,
-///   inversion, determinant, trace, and block slicing.
-/// - [Float64Matrix] and [Float64Vector]: Zero-cost extension types providing direct
-///   unboxed buffer access and optimized operations for double-precision floats.
-/// - Sparse matrices: [CsrMatrix] (Compressed Sparse Row), [CscMatrix] (Compressed Sparse Column),
-///   and [CooMatrix] (Coordinate list) for large, sparse linear systems.
+/// - [Vector]: 1-dimensional mathematical vector supporting dot product, cross
+///   product, $L_1$, $L_2$, and $L_\infty$ norms, projections
+///   ([VectorProjectionExtension]), and coordinate sampling grids
+///   ([Vector.linspace], [Vector.logspace], [Vector.geomspace], [linearSpaced],
+///   [logarithmicSpaced], [geometricSpaced]).
+/// - [Matrix]: 2-dimensional matrix supporting matrix multiplication,
+///   transposition, inversion, determinant, trace, and block slicing.
+/// - [Float64Matrix] and [Float64Vector]: Zero-cost extension types providing
+///   direct unboxed buffer access and optimized operations for double-precision
+///   floats.
+/// - Sparse matrices: [CsrMatrix] (Compressed Sparse Row), [CscMatrix]
+///   (Compressed Sparse Column), and [CooMatrix] (Coordinate list) for large,
+///   sparse linear systems.
 /// - [LinearOperator]: Abstract linear map between vector spaces.
 ///
 /// ## Matrix Factorizations & Decompositions
 ///
-/// - [LUDecomposition] ($P A = L U$): Invert matrices, compute determinants, and solve square systems.
-/// - [QRDecomposition] ($A = Q R$): Orthogonal factorization for linear least squares and orthonormalization.
-/// - [CholeskyDecomposition] ($A = L L^T$): Efficient factorization for symmetric positive-definite systems.
-/// - [SingularValueDecomposition] ($A = U \Sigma V^T$): Low-rank approximations, pseudo-inverses, and PCA.
-/// - [EigenvalueDecomposition] ($A V = V \Lambda$): Eigenvalues and eigenvectors of square matrices.
-/// - Matrix norms: [MatrixNormExtension] computes induced $L_1$, $L_2$, $L_\infty$, and Frobenius norms.
+/// - [LUDecomposition] ($P A = L U$): Invert matrices, compute determinants,
+///   and solve square systems.
+/// - [QRDecomposition] ($A = Q R$): Orthogonal factorization for linear least
+///   squares and orthonormalization.
+/// - [CholeskyDecomposition] ($A = L L^T$): Efficient factorization for
+///   symmetric positive-definite systems.
+/// - [SingularValueDecomposition] ($A = U \Sigma V^T$): Low-rank
+///   approximations, pseudo-inverses, and PCA.
+/// - [EigenvalueDecomposition] ($A V = V \Lambda$): Eigenvalues and
+///   eigenvectors of square matrices.
+/// - Matrix norms: [MatrixNormExtension] computes induced $L_1$, $L_2$,
+///   $L_\infty$, and Frobenius norms.
 ///
 /// ## Solvers
 ///
-/// - [solveIterative]: Iterative Krylov solver ([IterativeMethod.conjugateGradient] for symmetric positive-definite, [IterativeMethod.gmres] for general square systems).
-/// - [solveTridiagonal]: Fast $\mathcal{O}(n)$ Thomas algorithm for tridiagonal systems.
+/// - [solveIterative]: Iterative Krylov solver
+///   ([IterativeMethod.conjugateGradient] for symmetric positive-definite,
+///   [IterativeMethod.gmres] for general square systems).
+/// - [solveTridiagonal]: Fast $\mathcal{O}(n)$ Thomas algorithm for tridiagonal
+///   systems.
 ///
 /// ## Example
 ///

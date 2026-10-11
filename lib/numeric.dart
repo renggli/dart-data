@@ -1,23 +1,35 @@
-/// Numerical analysis library for integration, differentiation, root-finding, optimization, ODEs, and signal processing.
+/// Numerical analysis library for integration, differentiation, root-finding,
+/// optimization, ODEs, and signal processing.
 ///
 /// Provides robust, efficient algorithms for problems in calculus, engineering,
-/// and scientific computation where closed-form analytical solutions are unavailable.
+/// and scientific computation where closed-form analytical solutions are
+/// unavailable.
 ///
 /// ## Key Capabilities
 ///
-/// - **Numerical Calculus**: [derivative] for univariate differentiation,
-///   and [gradient], [hessian], and [jacobian] for multivariate calculus.
-/// - **Root Finding**: [solve] with [RootMethod] ([RootMethod.brent], [RootMethod.newtonRaphson], [RootMethod.bisection]),
-///   and [solveSystem] for multivariable systems.
-/// - **Numerical Integration**: [integrate] with [IntegrationMethod] ([IntegrationMethod.gaussKronrod], [IntegrationMethod.simpson]).
-/// - **Numerical Optimization**: [minimize] with [OptimizationMethod] ([OptimizationMethod.nelderMead], [OptimizationMethod.bfgs], [OptimizationMethod.lbfgs], [OptimizationMethod.brent]) and [BoxBound] constraints.
-/// - **Curve Fitting & Regression**: [curveFit] and [CurveModels] for non-linear models,
-///   [leastSquares], [linearRegression], [polynomialRegression], and [fitNonlinear].
-/// - **Sampling Grids**: [linearSpaced], [logarithmicSpaced], and [geometricSpaced] for generating coordinate grids.
-/// - **Differential Equations**: [solveOde] with [OdeMethod] ([OdeMethod.dormandPrince45], [OdeMethod.rk4]).
-/// - **Interpolation**: 1D linear ([LinearInterpolation]), cubic spline ([CubicSpline]),
-///   monotonic cubic ([PchipInterpolation]), and 2D bilinear ([BilinearInterpolation]) / bicubic ([BicubicInterpolation]).
-/// - **Fast Fourier Transform**: [fft] and [ifft] for 1D complex frequency-domain signal processing.
+/// - **Numerical Calculus**: [derivative] for univariate differentiation, and
+///   [gradient], [hessian], and [jacobian] for multivariate calculus.
+/// - **Root Finding**: [solve] with [RootMethod] ([RootMethod.brent],
+///   [RootMethod.newtonRaphson], [RootMethod.bisection]), and [solveSystem] for
+///   multivariable systems.
+/// - **Numerical Integration**: [integrate] with [IntegrationMethod]
+///   ([IntegrationMethod.gaussKronrod], [IntegrationMethod.simpson]).
+/// - **Numerical Optimization**: [minimize] with [OptimizationMethod]
+///   ([OptimizationMethod.nelderMead], [OptimizationMethod.bfgs],
+///   [OptimizationMethod.lbfgs], [OptimizationMethod.brent]) and [BoxBound]
+///   constraints.
+/// - **Curve Fitting & Regression**: [curveFit] and [CurveModels] for
+///   non-linear models, [leastSquares], [linearRegression],
+///   [polynomialRegression], and [fitNonlinear].
+/// - **Sampling Grids**: [linearSpaced], [logarithmicSpaced], and
+///   [geometricSpaced] for generating coordinate grids.
+/// - **Differential Equations**: [solveOde] with [OdeMethod]
+///   ([OdeMethod.dormandPrince45], [OdeMethod.rk4]).
+/// - **Interpolation**: 1D linear ([LinearInterpolation]), cubic spline
+///   ([CubicSpline]), monotonic cubic ([PchipInterpolation]), and 2D bilinear
+///   ([BilinearInterpolation]) / bicubic ([BicubicInterpolation]).
+/// - **Fast Fourier Transform**: [fft] and [ifft] for 1D complex
+///   frequency-domain signal processing.
 ///
 /// ## Example
 ///

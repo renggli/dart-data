@@ -3,9 +3,11 @@ import 'dart:typed_data';
 
 import '../blas/cblas.dart';
 
-/// Pure Dart LAPACK fallback algorithms (eigenvalue solvers and linear system solvers).
+/// Pure Dart LAPACK fallback algorithms (eigenvalue solvers and linear system
+/// solvers).
 abstract final class PureDartLapack {
-  /// Computes eigenvalues and optionally eigenvectors of a symmetric matrix in pure Dart.
+  /// Computes eigenvalues and optionally eigenvectors of a symmetric matrix in
+  /// pure Dart.
   static bool dsyev({
     required String jobz,
     required int uplo,
@@ -339,7 +341,8 @@ abstract final class PureDartLapack {
     return true;
   }
 
-  /// Solves overdetermined or underdetermined linear least squares in pure Dart.
+  /// Solves overdetermined or underdetermined linear least squares in pure
+  /// Dart.
   static bool dgels({
     required int m,
     required int n,

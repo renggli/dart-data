@@ -154,7 +154,8 @@ void main() {
 
     test('2D quadratic bowl with active box bounds', () {
       // f(x, y) = (x - 2)^2 + (y - 3)^2, unconstrained min at (2, 3).
-      // With bounds [0, 1] x [0, 1], constrained min at (1, 1), value (1-2)^2 + (1-3)^2 = 5.
+      // With bounds [0, 1] x [0, 1], constrained min at (1, 1), value (1-2)^2 +
+      // (1-3)^2 = 5.
       double f(Vector<double> v) =>
           (v[0] - 2.0) * (v[0] - 2.0) + (v[1] - 3.0) * (v[1] - 3.0);
 
@@ -230,7 +231,8 @@ void main() {
 
     test('Rosenbrock function with active upper bound on x', () {
       // Global min at (1, 1) is excluded by x <= 0.5.
-      // Constrained min at x = 0.5, y = x^2 = 0.25, f(0.5, 0.25) = (1-0.5)^2 = 0.25.
+      // Constrained min at x = 0.5, y = x^2 = 0.25, f(0.5, 0.25) = (1-0.5)^2 =
+      // 0.25.
       double rosenbrock(Vector<double> v) {
         final x = v[0];
         final y = v[1];
@@ -256,7 +258,8 @@ void main() {
 
     test('Rosenbrock function with active lower bound on x', () {
       // Global min at (1, 1) is excluded by x >= 1.5.
-      // Constrained min at x = 1.5, y = 1.5^2 = 2.25, f(1.5, 2.25) = (1-1.5)^2 = 0.25.
+      // Constrained min at x = 1.5, y = 1.5^2 = 2.25, f(1.5, 2.25) = (1-1.5)^2
+      // = 0.25.
       double rosenbrock(Vector<double> v) {
         final x = v[0];
         final y = v[1];

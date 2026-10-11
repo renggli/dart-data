@@ -4,8 +4,8 @@ import '../../type.dart';
 /// Generates a [Vector] with a sequence of [count] evenly spaced values over
 /// the interval `[start, stop]`.
 ///
-/// Conceptually, this partitions the continuous line segment between [start] and
-/// [stop] into equal step increments, equivalent to NumPy's `linspace`.
+/// Conceptually, this partitions the continuous line segment between [start]
+/// and [stop] into equal step increments, equivalent to NumPy's `linspace`.
 ///
 /// When [endpoint] is `true` (the default), [stop] is included as the final
 /// element of the vector. When [endpoint] is `false`, the step size is

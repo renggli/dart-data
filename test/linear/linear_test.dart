@@ -804,7 +804,8 @@ void main() {
       ]);
       check(() => m2.matmul(diffRows)).throws<ArgumentError>();
 
-      // 9. apply and applyTranspose with non-contiguous matrices/vectors and Float32List
+      // 9. apply and applyTranspose with non-contiguous matrices/vectors and
+      // Float32List
       final mTransposed = m2.transpose();
       final applied = mTransposed.apply(Vector<int>.fromList([1, 2]));
       check(applied.toList()).deepEquals([7, 10]);

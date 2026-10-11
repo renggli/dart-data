@@ -12,18 +12,22 @@ import 'routines/lapack.dart';
 import 'routines/vforce_routines.dart';
 import 'vdsp/vdsp.dart';
 
-/// Central acceleration manager providing routing between native BLAS/LAPACK/vDSP
-/// (via FFI), Dart SIMD, and pure Dart scalar algorithms according to [mode].
+/// Central acceleration manager providing routing between native
+/// BLAS/LAPACK/vDSP (via FFI), Dart SIMD, and pure Dart scalar algorithms
+/// according to [mode].
 class AccelerationManager {
   new _(); // coverage:ignore-line
 
-  /// Current execution mode for acceleration. Default is [AccelerationMode.auto].
+  /// Current execution mode for acceleration. Default is
+  /// [AccelerationMode.auto].
   static AccelerationMode mode = AccelerationMode.auto;
 
-  /// Whether acceleration is enabled. For compatibility with legacy boolean flags.
+  /// Whether acceleration is enabled. For compatibility with legacy boolean
+  /// flags.
   ///
-  /// Getting returns `true` if [mode] is not [AccelerationMode.dart].
-  /// Setting `false` switches to [AccelerationMode.dart]; setting `true` switches to [AccelerationMode.auto].
+  /// Getting returns `true` if [mode] is not [AccelerationMode.dart]. Setting
+  /// `false` switches to [AccelerationMode.dart]; setting `true` switches to
+  /// [AccelerationMode.auto].
   static bool get isEnabled => mode != AccelerationMode.dart;
 
   static set isEnabled(bool value) {
@@ -36,13 +40,15 @@ class AccelerationManager {
   /// Whether native BLAS is loaded and available on the current platform.
   static bool get isNativeAvailable => _blas.isAvailable;
 
-  /// Whether native vDSP or vForce acceleration is available on the current platform.
+  /// Whether native vDSP or vForce acceleration is available on the current
+  /// platform.
   static bool get isVdspAvailable => _vdsp.isAvailable;
 
   /// Whether native FFT acceleration is available on the current platform.
   static bool get isFftAvailable => _vdsp.hasFft;
 
-  /// Whether native vForce transcendental acceleration is available on the current platform.
+  /// Whether native vForce transcendental acceleration is available on the
+  /// current platform.
   static bool get isVForceAvailable => _vdsp.hasVForce;
 
   /// Whether hardware acceleration is currently active.
@@ -185,7 +191,8 @@ class AccelerationManager {
 
   // --- BLAS Level 2: Matrix-Vector Operations ---
 
-  /// Computes matrix-vector product y = alpha * op(A) * x + beta * y for Float64List.
+  /// Computes matrix-vector product y = alpha * op(A) * x + beta * y for
+  /// Float64List.
   static bool dgemv({
     int transA = cblasNoTrans,
     required int m,
@@ -219,7 +226,8 @@ class AccelerationManager {
     blas: _blas,
   );
 
-  /// Computes matrix-vector product y = alpha * op(A) * x + beta * y for Float32List.
+  /// Computes matrix-vector product y = alpha * op(A) * x + beta * y for
+  /// Float32List.
   static bool sgemv({
     int transA = cblasNoTrans,
     required int m,
@@ -253,7 +261,8 @@ class AccelerationManager {
     blas: _blas,
   );
 
-  /// Symmetric rank-2 update: A = alpha * x * y^T + alpha * y * x^T + A for Float64List.
+  /// Symmetric rank-2 update: A = alpha * x * y^T + alpha * y * x^T + A for
+  /// Float64List.
   static bool dsyr2({
     int uplo = cblasUpper,
     required int n,
@@ -283,7 +292,8 @@ class AccelerationManager {
     blas: _blas,
   );
 
-  /// Symmetric rank-2 update: A = alpha * x * y^T + alpha * y * x^T + A for Float32List.
+  /// Symmetric rank-2 update: A = alpha * x * y^T + alpha * y * x^T + A for
+  /// Float32List.
   static bool ssyr2({
     int uplo = cblasUpper,
     required int n,
@@ -367,7 +377,8 @@ class AccelerationManager {
 
   // --- BLAS Level 3: Matrix-Matrix Operations ---
 
-  /// Computes matrix multiplication C = alpha * op(A) * op(B) + beta * C for Float64List.
+  /// Computes matrix multiplication C = alpha * op(A) * op(B) + beta * C for
+  /// Float64List.
   static bool dgemm({
     int transA = cblasNoTrans,
     int transB = cblasNoTrans,
@@ -405,7 +416,8 @@ class AccelerationManager {
     blas: _blas,
   );
 
-  /// Computes matrix multiplication C = alpha * op(A) * op(B) + beta * C for Float32List.
+  /// Computes matrix multiplication C = alpha * op(A) * op(B) + beta * C for
+  /// Float32List.
   static bool sgemm({
     int transA = cblasNoTrans,
     int transB = cblasNoTrans,
@@ -641,7 +653,8 @@ class AccelerationManager {
 
   // --- LAPACK Routines ---
 
-  /// Computes the Cholesky factorization of a symmetric positive-definite matrix A.
+  /// Computes the Cholesky factorization of a symmetric positive-definite
+  /// matrix A.
   static bool dpotrf({
     int uplo = cblasUpper,
     required int n,
@@ -679,7 +692,8 @@ class AccelerationManager {
     blas: _blas,
   );
 
-  /// Solves overdetermined or underdetermined linear systems A * X = B using QR or LQ factorization.
+  /// Solves overdetermined or underdetermined linear systems A * X = B using QR
+  /// or LQ factorization.
   static bool dgels({
     required int m,
     required int n,
@@ -703,7 +717,8 @@ class AccelerationManager {
     blas: _blas,
   );
 
-  /// Computes eigenvalues and, optionally, eigenvectors of a symmetric matrix A for Float64List.
+  /// Computes eigenvalues and, optionally, eigenvectors of a symmetric matrix A
+  /// for Float64List.
   static bool dsyev({
     String jobz = 'V',
     int uplo = cblasUpper,
@@ -725,7 +740,8 @@ class AccelerationManager {
     blas: _blas,
   );
 
-  /// Computes eigenvalues and, optionally, eigenvectors of a symmetric matrix A for Float32List.
+  /// Computes eigenvalues and, optionally, eigenvectors of a symmetric matrix A
+  /// for Float32List.
   static bool ssyev({
     String jobz = 'V',
     int uplo = cblasUpper,
@@ -753,11 +769,13 @@ class AccelerationManager {
   static List<Complex> fft(Iterable<Complex> input) =>
       FftRoutines.fft(input, vdsp: _vdsp, inverse: false);
 
-  /// Computes the 1-dimensional Inverse Discrete Fourier Transform (IFFT) of [input].
+  /// Computes the 1-dimensional Inverse Discrete Fourier Transform (IFFT) of
+  /// [input].
   static List<Complex> ifft(Iterable<Complex> input) =>
       FftRoutines.fft(input, vdsp: _vdsp, inverse: true);
 
-  /// Computes the 1-dimensional Discrete Fourier Transform for real-valued [input].
+  /// Computes the 1-dimensional Discrete Fourier Transform for real-valued
+  /// [input].
   static List<Complex> rfft(Iterable<num> input) =>
       FftRoutines.rfft(input, vdsp: _vdsp);
 

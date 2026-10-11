@@ -5,9 +5,9 @@ import 'package:more/printer.dart';
 import '../continuous.dart';
 import '../errors.dart';
 
-/// The Logistic distribution is a continuous probability distribution parameterized
-/// by its location [mu] and scale [s] parameters. Its cumulative distribution
-/// function is the logistic function.
+/// The Logistic distribution is a continuous probability distribution
+/// parameterized by its location [mu] and scale [s] parameters. Its cumulative
+/// distribution function is the logistic function.
 ///
 /// See https://en.wikipedia.org/wiki/Logistic_distribution.
 ///

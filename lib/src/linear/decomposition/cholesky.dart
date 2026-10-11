@@ -6,7 +6,8 @@ import '../vector.dart';
 
 /// Extension methods providing Cholesky decomposition on numeric matrices.
 extension CholeskyMatrixExtension<T extends num> on Matrix<T> {
-  /// Computes the Cholesky decomposition of this symmetric positive-definite matrix.
+  /// Computes the Cholesky decomposition of this symmetric positive-definite
+  /// matrix.
   CholeskyDecomposition<double> get cholesky =>
       CholeskyDecomposition<double>(_toDoubleMatrix());
 
@@ -22,19 +23,21 @@ extension CholeskyMatrixExtension<T extends num> on Matrix<T> {
 
 /// Extension methods providing Cholesky decomposition on complex matrices.
 extension CholeskyComplexMatrixExtension on Matrix<Complex> {
-  /// Computes the Cholesky decomposition of this Hermitian positive-definite matrix.
+  /// Computes the Cholesky decomposition of this Hermitian positive-definite
+  /// matrix.
   CholeskyDecomposition<Complex> get cholesky =>
       CholeskyDecomposition<Complex>(this);
 }
 
-/// Cholesky Decomposition of a symmetric (or Hermitian) positive-definite matrix $A$.
+/// Cholesky Decomposition of a symmetric (or Hermitian) positive-definite
+/// matrix $A$.
 ///
-/// Conceptually, Cholesky decomposition is like taking the square root
-/// of a positive matrix: it factors a symmetric positive matrix into a lower-triangular
-/// matrix times its transpose ($A = L L^T$).
-/// Formally, it computes the unique lower triangular factor $L$ such that
-/// $A = L L^*$ with strictly positive real diagonal entries, executing in roughly
-/// half the floating-point operations of standard LU factorization.
+/// Conceptually, Cholesky decomposition is like taking the square root of a
+/// positive matrix: it factors a symmetric positive matrix into a
+/// lower-triangular matrix times its transpose ($A = L L^T$). Formally, it
+/// computes the unique lower triangular factor $L$ such that $A = L L^*$ with
+/// strictly positive real diagonal entries, executing in roughly half the
+/// floating-point operations of standard LU factorization.
 ///
 /// ```dart
 /// final a = Matrix<double>.fromRows([

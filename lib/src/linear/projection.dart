@@ -5,12 +5,14 @@ import 'vector.dart';
 extension VectorProjectionExtension<T extends num> on Vector<T> {
   /// Computes the orthogonal projection of this vector onto [onto].
   ///
-  /// The projection is calculated as:
+  /// $$
+  /// \operatorname{proj}_{\mathbf{v}}(\mathbf{u}) =
+  /// \frac{\langle \mathbf{u}, \mathbf{v} \rangle}{\|\mathbf{v}\|_2^2}
+  /// \mathbf{v}
+  /// $$
   ///
-  /// $$\operatorname{proj}_{\mathbf{v}}(\mathbf{u}) = \frac{\langle \mathbf{u}, \mathbf{v} \rangle}{\|\mathbf{v}\|_2^2} \mathbf{v}$$
-  ///
-  /// Throws an [ArgumentError] if vector lengths do not match or if
-  /// the squared $L_2$ norm of [onto] is less than $1\text{e-}15$.
+  /// Throws an [ArgumentError] if vector lengths do not match or if the squared
+  /// $L_2$ norm of [onto] is less than $1\text{e-}15$.
   ///
   /// ```dart
   /// final u = Vector<double>.fromList([3.0, 4.0]);
@@ -72,13 +74,14 @@ extension VectorProjectionExtension<T extends num> on Vector<T> {
 
   /// Computes the orthogonal rejection of this vector from [from].
   ///
-  /// The rejection represents the component of this vector orthogonal
-  /// to [from]:
+  /// The rejection represents the component of this vector orthogonal to
+  /// $$
+  /// \operatorname{oproj}_{\mathbf{v}}(\mathbf{u})
+  ///     = \mathbf{u} - \operatorname{proj}_{\mathbf{v}}(\mathbf{u})
+  /// $$
   ///
-  /// $$\operatorname{oproj}_{\mathbf{v}}(\mathbf{u}) = \mathbf{u} - \operatorname{proj}_{\mathbf{v}}(\mathbf{u})$$
-  ///
-  /// Throws an [ArgumentError] if vector lengths do not match or if
-  /// the squared $L_2$ norm of [from] is less than $1\text{e-}15$.
+  /// Throws an [ArgumentError] if vector lengths do not match or if the squared
+  /// $L_2$ norm of [from] is less than $1\text{e-}15$.
   ///
   /// ```dart
   /// final u = Vector<double>.fromList([3.0, 4.0]);

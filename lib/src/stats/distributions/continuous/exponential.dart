@@ -13,7 +13,8 @@ class ExponentialDistribution extends ContinuousDistribution {
   /// An exponential distribution with [rate] $\lambda$.
   const new(this.rate) : assert(rate > 0, 'λ > 0');
 
-  /// Fits an exponential distribution to [samples] using maximum likelihood estimation.
+  /// Fits an exponential distribution to [samples] using maximum likelihood
+  /// estimation.
   factory fit(Iterable<num> samples) {
     var count = 0;
     var sum = 0.0;

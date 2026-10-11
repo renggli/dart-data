@@ -39,10 +39,10 @@ enum Agg {
 
 /// Grouped [DataFrame] supporting hash-partitioned aggregations.
 ///
-/// Conceptually, grouping organizes table rows into buckets based on
-/// shared values (such as grouping records by department or category).
-/// Mathematically, this induces a quotient partition $R / \sim$ over the relation
-/// based on equivalence under the projection $\pi_{\text{byColumns}}(r)$.
+/// Conceptually, grouping organizes table rows into buckets based on shared
+/// values (such as grouping records by department or category). Mathematically,
+/// this induces a quotient partition $R / \sim$ over the relation based on
+/// equivalence under the projection $\pi_{\text{byColumns}}(r)$.
 ///
 /// ```dart
 /// final df = DataFrame.fromColumns({
@@ -53,7 +53,8 @@ enum Agg {
 /// final summary = grouped.mean();
 /// ```
 class GroupBy {
-  /// Creates a grouped view of [dataFrame] partitioned by values in [byColumns].
+  /// Creates a grouped view of [dataFrame] partitioned by values in
+  /// [byColumns].
   new(this.dataFrame, this.byColumns) {
     if (byColumns.isEmpty) {
       throw ArgumentError('byColumns cannot be empty');

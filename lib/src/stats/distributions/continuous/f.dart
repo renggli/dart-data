@@ -11,7 +11,8 @@ import 'chi_squared.dart';
 ///
 /// See https://en.wikipedia.org/wiki/F-distribution.
 class FDistribution extends ContinuousDistribution {
-  /// An F-distribution with numerator degrees of freedom [d1] and denominator degrees of freedom [d2].
+  /// An F-distribution with numerator degrees of freedom [d1] and denominator
+  /// degrees of freedom [d2].
   const new(this.d1, this.d2)
     : assert(d1 > 0, 'd1 > 0'),
       assert(d2 > 0, 'd2 > 0');

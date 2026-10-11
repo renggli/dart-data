@@ -7,7 +7,8 @@ import '../fallback/pure_dart_gemm.dart';
 
 /// BLAS Level 3 matrix-matrix routines.
 abstract final class BlasLevel3 {
-  /// Computes matrix multiplication C = alpha * op(A) * op(B) + beta * C for Float64List.
+  /// Computes matrix multiplication C = alpha * op(A) * op(B) + beta * C for
+  /// Float64List.
   static bool dgemm({
     int transA = cblasNoTrans,
     int transB = cblasNoTrans,
@@ -99,7 +100,8 @@ abstract final class BlasLevel3 {
     );
   }
 
-  /// Computes matrix multiplication C = alpha * op(A) * op(B) + beta * C for Float32List.
+  /// Computes matrix multiplication C = alpha * op(A) * op(B) + beta * C for
+  /// Float32List.
   static bool sgemm({
     int transA = cblasNoTrans,
     int transB = cblasNoTrans,
@@ -191,7 +193,8 @@ abstract final class BlasLevel3 {
     );
   }
 
-  /// Performs symmetric rank-k update C = alpha * A * A^T + beta * C (or A^T * A).
+  /// Performs symmetric rank-k update C = alpha * A * A^T + beta * C (or A^T *
+  /// A).
   static bool dsyrk({
     int uplo = cblasUpper,
     int trans = cblasNoTrans,
@@ -351,7 +354,8 @@ abstract final class BlasLevel3 {
     return true;
   }
 
-  /// Symmetric matrix-matrix multiplication C = alpha * A * B + beta * C (or B * A) for Float64List.
+  /// Symmetric matrix-matrix multiplication C = alpha * A * B + beta * C (or B
+  /// * A) for Float64List.
   static bool dsymm({
     int side = cblasLeft,
     int uplo = cblasUpper,
@@ -569,7 +573,8 @@ abstract final class BlasLevel3 {
     return true;
   }
 
-  /// Triangular matrix-matrix multiplication B = alpha * op(A) * B (or B * op(A)) for Float64List.
+  /// Triangular matrix-matrix multiplication B = alpha * op(A) * B (or B *
+  /// op(A)) for Float64List.
   static bool dtrmm({
     int side = cblasLeft,
     int uplo = cblasUpper,

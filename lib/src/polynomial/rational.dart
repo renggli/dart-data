@@ -1,7 +1,8 @@
 import '../../type.dart';
 import 'polynomial.dart';
 
-/// Rational function $R(x) = \frac{P(x)}{Q(x)}$ representing the ratio of two [Polynomial] instances.
+/// Rational function $R(x) = \frac{P(x)}{Q(x)}$ representing the ratio of two
+/// [Polynomial] instances.
 ///
 /// Conceptually, a rational function is an algebraic fraction where both
 /// numerator and denominator are polynomials (such as $\frac{x + 1}{x^2 - 4}$).
@@ -23,7 +24,8 @@ class RationalFunction<T> {
     }
   }
 
-  /// Constructs a rational function from a single [polynomial] with denominator 1.
+  /// Constructs a rational function from a single [polynomial] with denominator
+  /// 1.
   factory fromPolynomial(Polynomial<T> polynomial) {
     final one = Polynomial<T>.fromCoefficients([
       polynomial.type.field.multiplicativeIdentity,
@@ -40,7 +42,8 @@ class RationalFunction<T> {
   /// The data type of the polynomial coefficients.
   final DataType<T> type;
 
-  /// Simplifies this rational function by cancelling the greatest common divisor $\gcd(P, Q)$.
+  /// Simplifies this rational function by cancelling the greatest common
+  /// divisor $\gcd(P, Q)$.
   RationalFunction<T> simplify() {
     final g = numerator.gcd(denominator);
     var num = numerator;
@@ -82,7 +85,8 @@ class RationalFunction<T> {
     return numVal / denVal;
   }
 
-  /// Addition: $\frac{P_1}{Q_1} + \frac{P_2}{Q_2} = \frac{P_1 Q_2 + P_2 Q_1}{Q_1 Q_2}$.
+  /// Addition:
+  /// $\frac{P_1}{Q_1} + \frac{P_2}{Q_2} = \frac{P_1 Q_2 + P_2 Q_1}{Q_1 Q_2}$.
   RationalFunction<T> operator +(RationalFunction<T> other) {
     final numVal =
         (numerator * other.denominator) + (other.numerator * denominator);
@@ -90,7 +94,8 @@ class RationalFunction<T> {
     return RationalFunction(numVal, denVal).simplify();
   }
 
-  /// Subtraction: $\frac{P_1}{Q_1} - \frac{P_2}{Q_2} = \frac{P_1 Q_2 - P_2 Q_1}{Q_1 Q_2}$.
+  /// Subtraction:
+  /// $\frac{P_1}{Q_1} - \frac{P_2}{Q_2} = \frac{P_1 Q_2 - P_2 Q_1}{Q_1 Q_2}$.
   RationalFunction<T> operator -(RationalFunction<T> other) {
     final numVal =
         (numerator * other.denominator) - (other.numerator * denominator);
@@ -101,7 +106,8 @@ class RationalFunction<T> {
   /// Negation: $-\frac{P}{Q} = \frac{-P}{Q}$.
   RationalFunction<T> operator -() => RationalFunction(-numerator, denominator);
 
-  /// Multiplication: $\frac{P_1}{Q_1} \cdot \frac{P_2}{Q_2} = \frac{P_1 P_2}{Q_1 Q_2}$.
+  /// Multiplication:
+  /// $\frac{P_1}{Q_1} \cdot \frac{P_2}{Q_2} = \frac{P_1 P_2}{Q_1 Q_2}$.
   RationalFunction<T> operator *(RationalFunction<T> other) {
     final numVal = numerator * other.numerator;
     final denVal = denominator * other.denominator;
@@ -118,7 +124,8 @@ class RationalFunction<T> {
     return RationalFunction(numVal, denVal).simplify();
   }
 
-  /// Computes the formal derivative $\left(\frac{P}{Q}\right)' = \frac{P' Q - P Q'}{Q^2}$.
+  /// Computes the formal derivative
+  /// $\left(\frac{P}{Q}\right)' = \frac{P' Q - P Q'}{Q^2}$.
   RationalFunction<T> differentiate() {
     final pPrime = numerator.differentiate();
     final qPrime = denominator.differentiate();

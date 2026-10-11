@@ -22,7 +22,8 @@ class SimdEngine {
     }
   }
 
-  /// Subtracts [b] from [a] element-wise into [out] using 128-bit SIMD instructions.
+  /// Subtracts [b] from [a] element-wise into [out] using 128-bit SIMD
+  /// instructions.
   static void subFloat32(Float32List a, Float32List b, Float32List out) {
     final len = a.length;
     final simdLen = len ~/ 4;
@@ -39,7 +40,8 @@ class SimdEngine {
     }
   }
 
-  /// Multiplies [a] and [b] element-wise into [out] using 128-bit SIMD instructions.
+  /// Multiplies [a] and [b] element-wise into [out] using 128-bit SIMD
+  /// instructions.
   static void mulFloat32(Float32List a, Float32List b, Float32List out) {
     final len = a.length;
     final simdLen = len ~/ 4;

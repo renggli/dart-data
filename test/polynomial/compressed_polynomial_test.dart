@@ -379,7 +379,8 @@ void main() {
       check(simplified.denominator[0]).equals(1.0);
 
       // Evaluate at x = 2
-      // R(2) = (2^20000 - 1) / (2^10000 - 1) = 2^10000 + 1 (overflows in double, but at x = 0: (0-1)/(0-1) = 1)
+      // R(2) = (2^20000 - 1) / (2^10000 - 1) = 2^10000 + 1 (overflows in
+      // double, but at x = 0: (0-1)/(0-1) = 1)
       check(simplified.evaluateDouble(0.0)).equals(1.0);
     });
   });

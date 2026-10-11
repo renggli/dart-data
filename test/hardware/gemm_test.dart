@@ -74,7 +74,8 @@ void main() {
       check(cTN[4]).isCloseTo(21.0, 1e-10);
       check(cTN[5]).isCloseTo(30.0, 1e-10);
 
-      // 2. NT: A is 2x3, B is 2x3, transB=cblasTrans means op(B) is 3x2 -> C is 2x2
+      // 2. NT: A is 2x3, B is 2x3, transB=cblasTrans means op(B) is 3x2 -> C is
+      // 2x2
       final cNT = Float64List(4);
       final b2x3 = Float64List.fromList([7.0, 8.0, 9.0, 1.0, 2.0, 3.0]);
       cacheBlockedGemmFloat64(
@@ -93,13 +94,15 @@ void main() {
         ldc: 2,
       );
       // row 0: 1*7 + 2*8 + 3*9 = 7 + 16 + 27 = 50; 1*1 + 2*2 + 3*3 = 14
-      // row 1: 4*7 + 5*8 + 6*9 = 28 + 40 + 54 = 122; 4*1 + 5*2 + 6*3 = 4 + 10 + 18 = 32
+      // row 1: 4*7 + 5*8 + 6*9 = 28 + 40 + 54 = 122; 4*1 + 5*2 + 6*3 = 4 + 10 +
+      // 18 = 32
       check(cNT[0]).isCloseTo(50.0, 1e-10);
       check(cNT[1]).isCloseTo(14.0, 1e-10);
       check(cNT[2]).isCloseTo(122.0, 1e-10);
       check(cNT[3]).isCloseTo(32.0, 1e-10);
 
-      // 3. TT: op(A) 3x2 * op(B) 2x2 where A is 2x3 and B is 2x2 transposed -> C is 3x2
+      // 3. TT: op(A) 3x2 * op(B) 2x2 where A is 2x3 and B is 2x2 transposed ->
+      // C is 3x2
       final cTT = Float64List(6);
       cacheBlockedGemmFloat64(
         transA: cblasTrans,

@@ -12,14 +12,16 @@ enum IterativeMethod {
   gmres,
 }
 
-/// Solves a square linear system $A x = b$ using the specified iterative [method].
+/// Solves a square linear system $A x = b$ using the specified iterative
+/// [method].
 ///
-/// Conceptually, when an equation system has thousands of variables,
-/// direct factorization is computationally expensive. Iterative solvers refine
+/// Conceptually, when an equation system has thousands of variables, direct
+/// factorization is computationally expensive. Iterative solvers refine
 /// successive approximations, converging rapidly toward the exact solution.
 ///
-/// For symmetric positive-definite systems, select [IterativeMethod.conjugateGradient].
-/// For general nonsymmetric square systems, select [IterativeMethod.gmres] (the default).
+/// For symmetric positive-definite systems, select
+/// [IterativeMethod.conjugateGradient]. For general nonsymmetric square
+/// systems, select [IterativeMethod.gmres] (the default).
 ///
 /// ```dart
 /// final a = Matrix<double>.fromRows([

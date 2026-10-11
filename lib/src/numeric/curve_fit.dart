@@ -11,11 +11,12 @@ import '../../type.dart';
 
 /// Solves the general linear least squares problem $\min \|A x - b\|_2$.
 ///
-/// Conceptually, when an overdetermined system has more observations than parameters,
-/// an exact solution may not exist. Least squares finds the parameters that best fit
-/// the data by minimizing the sum of squared residuals.
-/// Formally, it computes $\hat{\mathbf{x}} = A^+ \mathbf{b}$
-/// using Householder QR factorization for full-rank systems, and Golub-Reinsch SVD for rank-deficient systems.
+/// Conceptually, when an overdetermined system has more observations than
+/// parameters, an exact solution may not exist. Least squares finds the
+/// parameters that best fit the data by minimizing the sum of squared
+/// residuals. Formally, it computes $\hat{\mathbf{x}} = A^+ \mathbf{b}$ using
+/// Householder QR factorization for full-rank systems, and Golub-Reinsch SVD
+/// for rank-deficient systems.
 ///
 /// ```dart
 /// final a = Matrix<double>.fromRows([
@@ -97,12 +98,14 @@ Vector<double> leastSquares(Matrix<num> a, Vector<num> b) {
   return a.svd.solveVector(bDouble);
 }
 
-/// Simple univariate linear regression fitting $y = \text{slope} \cdot x + \text{intercept}$.
+/// Simple univariate linear regression fitting
+/// $y = \text{slope} \cdot x + \text{intercept}$.
 ///
-/// Conceptually, this fits an optimal straight trendline through scattered data points,
-/// determining the slope and vertical intercept.
-/// Formally, it fits an ordinary least squares affine model minimizing $\sum (y_i - (\beta_0 + \beta_1 x_i))^2$
-/// and computes the coefficient of determination $R^2$.
+/// Conceptually, this fits an optimal straight trendline through scattered data
+/// points, determining the slope and vertical intercept. Formally, it fits an
+/// ordinary least squares affine model minimizing
+/// $\sum (y_i - (\beta_0 + \beta_1 x_i))^2$ and computes the coefficient of
+/// determination $R^2$.
 ///
 /// ```dart
 /// final xs = Vector<double>.fromList([1.0, 2.0, 3.0, 4.0]);
@@ -165,8 +168,8 @@ linearRegression(Vector<num> xs, Vector<num> ys) {
   );
 }
 
-/// Fits a polynomial of given [degree] to data points [xs] and [ys] using
-/// QR least squares on the Vandermonde matrix, with optional L2 [lambda]
+/// Fits a polynomial of given [degree] to data points [xs] and [ys] using QR
+/// least squares on the Vandermonde matrix, with optional L2 [lambda]
 /// regularization (Ridge / Tikhonov) suppressing high-frequency oscillations.
 Polynomial<double> polynomialRegression(
   Vector<num> xs,
@@ -211,7 +214,8 @@ Polynomial<double> polynomialRegression(
             type: DataType.float64,
           );
   } else {
-    // Augment Vandermonde matrix with sqrt(lambda) * I (leaving intercept column 0 unpenalized)
+    // Augment Vandermonde matrix with sqrt(lambda) * I (leaving intercept
+    // column 0 unpenalized)
     final sqrtLambda = math.sqrt(lambda);
     final totalRows = numPoints + numCoeffs;
     designMatrix = Matrix<double>.generate(totalRows, numCoeffs, (row, col) {
@@ -326,10 +330,12 @@ class CurveFitResult {
   /// The optimal parameter vector $\hat{\boldsymbol{\theta}}$.
   final Vector<double> parameters;
 
-  /// Predictor function evaluating the fitted model $\hat{y} = f(x; \hat{\boldsymbol{\theta}})$.
+  /// Predictor function evaluating the fitted model
+  /// $\hat{y} = f(x; \hat{\boldsymbol{\theta}})$.
   final double Function(double x) predict;
 
-  /// Coefficient of determination $R^2 \in (-\infty, 1]$, measuring goodness-of-fit.
+  /// Coefficient of determination $R^2 \in (-\infty, 1]$, measuring
+  /// goodness-of-fit.
   final double rSquared;
 
   /// Residual standard error $\sqrt{\frac{\sum r_i^2}{N - P}}$.
@@ -344,23 +350,21 @@ class CurveFitResult {
 
 /// Predefined parametric models for non-linear curve fitting with [curveFit].
 abstract final class CurveModels {
-  /// Exponential model: $f(x; a, b) = a e^{b x}$.
-  /// Parameters: `[a, b]`.
+  /// Exponential model: $f(x; a, b) = a e^{b x}$. Parameters: `[a, b]`.
   static double exponential(double x, Vector<double> params) =>
       params[0] * math.exp(params[1] * x);
 
-  /// Power-law model: $f(x; a, b) = a x^b$.
-  /// Parameters: `[a, b]`.
+  /// Power-law model: $f(x; a, b) = a x^b$. Parameters: `[a, b]`.
   static double power(double x, Vector<double> params) =>
       params[0] * math.pow(x, params[1]).toDouble();
 
-  /// Logarithmic model: $f(x; a, b) = a + b \ln x$.
-  /// Parameters: `[a, b]`.
+  /// Logarithmic model: $f(x; a, b) = a + b \ln x$. Parameters: `[a, b]`.
   static double logarithmic(double x, Vector<double> params) =>
       params[0] + params[1] * math.log(x);
 
-  /// Gaussian peak model: $f(x; a, \mu, \sigma) = a e^{-\frac{(x - \mu)^2}{2\sigma^2}}$.
-  /// Parameters: `[a, mu, sigma]`.
+  /// Gaussian peak model:
+  /// $f(x; a, \mu, \sigma) = a e^{-\frac{(x - \mu)^2}{2\sigma^2}}$. Parameters:
+  /// `[a, mu, sigma]`.
   static double gaussian(double x, Vector<double> params) {
     final diff = x - params[1];
     final s = params[2];
@@ -368,20 +372,24 @@ abstract final class CurveModels {
   }
 }
 
-/// Fits non-linear parameters $\hat{\boldsymbol{\theta}}$ to data points ([xs], [ys]) using [model].
+/// Fits non-linear parameters $\hat{\boldsymbol{\theta}}$ to data points ([xs],
+/// [ys]) using [model].
 ///
-/// Conceptually, curve fitting determines the optimal parameters of a mathematical function
-/// that best trace the trend of experimental or observed data points.
-/// Formally, it minimizes the sum of squared residuals $\sum_{i=1}^N (f(x_i; \boldsymbol{\theta}) - y_i)^2$
-/// using Levenberg-Marquardt damped least-squares with optional box constraints
+/// Conceptually, curve fitting determines the optimal parameters of a
+/// mathematical function that best trace the trend of experimental or observed
+/// data points. Formally, it minimizes the sum of squared residuals
+/// $\sum_{i=1}^N (f(x_i; \boldsymbol{\theta}) - y_i)^2$ using
+/// Levenberg-Marquardt damped least-squares with optional box constraints
 /// ([lowerBounds] and [upperBounds]).
 ///
-/// Returns a [CurveFitResult] containing the optimal parameters, predictor function,
-/// $R^2$ goodness-of-fit, and residual metrics.
+/// Returns a [CurveFitResult] containing the optimal parameters, predictor
+/// function, $R^2$ goodness-of-fit, and residual metrics.
 ///
 /// ```dart
 /// final xs = Vector<double>.fromList([0.0, 1.0, 2.0, 3.0]);
-/// final ys = Vector<double>.fromList([2.0, 5.4, 14.8, 40.2]); // approx 2 * exp(x)
+/// final ys = Vector<double>.fromList(
+///   [2.0, 5.4, 14.8, 40.2],
+/// ); // approx 2 * exp(x)
 /// final result = curveFit(
 ///   xs: xs,
 ///   ys: ys,
@@ -524,7 +532,8 @@ CurveFitResult curveFit({
   );
 }
 
-/// Fits non-linear parameters using the Levenberg-Marquardt damped least-squares algorithm.
+/// Fits non-linear parameters using the Levenberg-Marquardt damped
+/// least-squares algorithm.
 Vector<double> fitNonlinear({
   required Vector<double> Function(Vector<double> params) residualFunction,
   required Vector<double> initialParams,

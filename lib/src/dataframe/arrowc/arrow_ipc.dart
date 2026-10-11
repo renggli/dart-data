@@ -36,8 +36,8 @@ void _writeUint64(ByteData data, int offset, int val) {
 
 /// Apache Arrow IPC stream serializer and deserializer.
 ///
-/// Encodes and decodes DataFrames to and from the official Apache Arrow IPC Streaming
-/// format (encapsulated schema and record batches).
+/// Encodes and decodes DataFrames to and from the official Apache Arrow IPC
+/// Streaming format (encapsulated schema and record batches).
 abstract final class ArrowIpc {
   /// Encodes a [DataFrame] into an Apache Arrow IPC stream byte buffer.
   static Uint8List encode(DataFrame df) {
@@ -135,7 +135,8 @@ class _ArrowIpcStreamWriter {
       [_FbFieldType.int16, _FbFieldType.offset],
     );
 
-    // Message table: version = 4 (V5), header_type = 1 (Schema), header = schemaOffset, bodyLength = 0
+    // Message table: version = 4 (V5), header_type = 1 (Schema), header =
+    // schemaOffset, bodyLength = 0
     final messageOffset = fb.addTable(
       [4, 1, schemaOffset, 0],
       [
@@ -333,7 +334,8 @@ class _ArrowIpcStreamWriter {
       [_FbFieldType.int64, _FbFieldType.offset, _FbFieldType.offset],
     );
 
-    // Message table: version = 4, header_type = 2 (RecordBatch), header = batchOffset, bodyLength = bodyBytes.length
+    // Message table: version = 4, header_type = 2 (RecordBatch), header =
+    // batchOffset, bodyLength = bodyBytes.length
     final messageOffset = fb.addTable(
       [4, 2, batchOffset, bodyBytes.length],
       [
@@ -967,7 +969,8 @@ class _FlatBufferWriter {
   int addTable(List<dynamic> fieldValues, List<_FbFieldType> fieldTypes) {
     final fieldLocs = List<int>.filled(fieldValues.length, 0);
 
-    // Write table fields in forward order (so higher offset fields are written first in reverse)
+    // Write table fields in forward order (so higher offset fields are written
+    // first in reverse)
     for (var i = fieldValues.length - 1; i >= 0; i--) {
       final val = fieldValues[i];
       if (val == null) continue;

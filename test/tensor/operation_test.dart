@@ -66,7 +66,8 @@ void main() {
         type: DataType.int32,
       );
 
-      // Same total length (12), matching rank (2), but mismatched dimensions [2, 6]
+      // Same total length (12), matching rank (2), but mismatched dimensions
+      // [2, 6]
       final targetSameLen = Tensor<int>.filled(
         0,
         shape: [2, 6],
@@ -183,7 +184,8 @@ void main() {
       final a = Tensor<int>.filled(1, shape: [3, 4], type: DataType.int32);
       final b = Tensor<int>.filled(2, shape: [3, 4], type: DataType.int32);
 
-      // Same total length (12), matching rank (2), mismatched dimension sizes [2, 6]
+      // Same total length (12), matching rank (2), mismatched dimension sizes
+      // [2, 6]
       final target2x6 = Tensor<int>.filled(
         0,
         shape: [2, 6],

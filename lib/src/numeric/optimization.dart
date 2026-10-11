@@ -13,15 +13,18 @@ export 'optimization/optimization_types.dart';
 /// Minimizes a scalar-valued function [function] starting from [initialPoint]
 /// or within an interval `[a, b]`.
 ///
-/// Supports unconstrained and constrained optimization using [OptimizationMethod]:
+/// Supports unconstrained and constrained optimization using
+/// [OptimizationMethod]:
 /// - [OptimizationMethod.brent]: 1D bounded minimization (Brent's method).
-/// - [OptimizationMethod.nelderMead]: derivative-free simplex search for unconstrained problems.
-/// - [OptimizationMethod.bfgs]: quasi-Newton method with line search for smooth problems.
+/// - [OptimizationMethod.nelderMead]: derivative-free simplex search for
+///   unconstrained problems.
+/// - [OptimizationMethod.bfgs]: quasi-Newton method with line search for smooth
+///   problems.
 /// - [OptimizationMethod.lbfgs]: limited-memory BFGS for higher dimensions.
 ///
 /// When [bounds], [inequalities], or [equalities] are supplied, augmented
-/// Lagrangian and box-transformation methods are automatically applied.
-/// For 1D problems, [a] and [b] can be provided to specify the bounded interval.
+/// Lagrangian and box-transformation methods are automatically applied. For 1D
+/// problems, [a] and [b] can be provided to specify the bounded interval.
 ///
 /// ```dart
 /// final min = minimize(

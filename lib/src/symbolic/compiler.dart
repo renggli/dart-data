@@ -5,14 +5,17 @@ import '../linear/vector.dart';
 import 'ast.dart';
 import 'simplifier.dart';
 
-/// Extension providing zero-allocation high-throughput compilation of symbolic expressions.
+/// Extension providing zero-allocation high-throughput compilation of symbolic
+/// expressions.
 extension CompilerExtension on Expr {
-  /// Compiles this expression into a fast native Dart function `double Function(double)`.
+  /// Compiles this expression into a fast native Dart function
+  /// `double Function(double)`.
   ///
-  /// Conceptually, this converts a symbolic formula into a standard Dart function that
-  /// executes with maximum speed without AST dictionary lookups or tree traversals.
-  /// Formally, it eliminates AST traversal overhead by synthesizing an inlined
-  /// closure tree suitable for tight numerical inner loops (such as Monte Carlo simulations or ODE integrators).
+  /// Conceptually, this converts a symbolic formula into a standard Dart
+  /// function that executes with maximum speed without AST dictionary lookups
+  /// or tree traversals. Formally, it eliminates AST traversal overhead by
+  /// synthesizing an inlined closure tree suitable for tight numerical inner
+  /// loops (such as Monte Carlo simulations or ODE integrators).
   ///
   /// ```dart
   /// final x = Variable('x');
@@ -27,7 +30,8 @@ extension CompilerExtension on Expr {
   /// Alias for [toFunction1D].
   double Function(double x) compile1D(String varName) => toFunction1D(varName);
 
-  /// Compiles this expression into a fast vector evaluation closure `double Function(Vector<double>)`.
+  /// Compiles this expression into a fast vector evaluation closure
+  /// `double Function(Vector<double>)`.
   ///
   /// Evaluates variables in the positional order defined by [varOrder].
   ///
@@ -47,7 +51,8 @@ extension CompilerExtension on Expr {
     return _buildVectorEvaluator(simplified, varIndices);
   }
 
-  /// Compiles this expression into a multi-variable positional closure `double Function(List<double> args)`.
+  /// Compiles this expression into a multi-variable positional closure
+  /// `double Function(List<double> args)`.
   ///
   /// Evaluates variables in the positional order defined by [varOrder].
   ///
@@ -65,7 +70,8 @@ extension CompilerExtension on Expr {
     return _buildPositionalEvaluator(simplified, varIndices);
   }
 
-  /// Compiles expression into a zero-allocation, vectorized loop over contiguous [Float64List] buffers.
+  /// Compiles expression into a zero-allocation, vectorized loop over
+  /// contiguous [Float64List] buffers.
   void Function(List<Float64List> inputs, Float64List output)
   compileTensorKernel(List<String> varOrder) {
     final simplified = simplify();
@@ -131,7 +137,8 @@ extension CompilerExtension on Expr {
 
 /// Extension providing compilation of collections of symbolic expressions.
 extension CompilerIterableExtension on Iterable<Expr> {
-  /// Compiles multiple expressions into a vector-valued closure `Vector<double> Function(Vector<double>)`.
+  /// Compiles multiple expressions into a vector-valued closure
+  /// `Vector<double> Function(Vector<double>)`.
   ///
   /// Evaluates variables in the positional order defined by [varOrder].
   ///

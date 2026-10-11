@@ -6,16 +6,17 @@ import 'linear_form.dart';
 
 /// Symbolic analytical integration extension on [Expr].
 extension IntegrationExtension on Expr {
-  /// Computes the symbolic anti-derivative $\int f(x) dx$ with respect to [variable],
-  /// or the definite integral $\int_a^b f(x) dx$ when [from] and [to] are specified.
+  /// Computes the symbolic anti-derivative $\int f(x) dx$ with respect to
+  /// [variable], or the definite integral $\int_a^b f(x) dx$ when [from] and
+  /// [to] are specified.
   ///
-  /// Conceptually, an integral calculates the total accumulated area
-  /// under the curve between two coordinates (or recovers the primitive function from
-  /// its derivative).
-  /// Formally, this implements symbolic integration rules (power rule,
-  /// logarithmic, trigonometric, exponential, integration by parts, and substitution),
-  /// falling back to adaptive Gauss-Kronrod numerical quadrature when an elementary
-  /// closed-form anti-derivative cannot be matched over definite integration limits.
+  /// Conceptually, an integral calculates the total accumulated area under the
+  /// curve between two coordinates (or recovers the primitive function from its
+  /// derivative). Formally, this implements symbolic integration rules (power
+  /// rule, logarithmic, trigonometric, exponential, integration by parts, and
+  /// substitution), falling back to adaptive Gauss-Kronrod numerical quadrature
+  /// when an elementary closed-form anti-derivative cannot be matched over
+  /// definite integration limits.
   ///
   /// ```dart
   /// final x = Variable('x');
@@ -51,7 +52,8 @@ Expr _symbolicIntegrate(Expr function, String variable, {num? from, num? to}) {
     } on UnsupportedError {
       // Fall back to numerical integration.
     } catch (_) {
-      // Fall back to numerical integration if evaluation is non-finite or fails.
+      // Fall back to numerical integration if evaluation is non-finite or
+      // fails.
     }
     final numResult = integrate(
       (double x) => function.evaluate({variable: x}),

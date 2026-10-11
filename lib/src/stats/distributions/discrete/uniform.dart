@@ -5,14 +5,16 @@ import 'package:more/printer.dart';
 import '../discrete.dart';
 import '../errors.dart';
 
-/// The discrete uniform distribution over integers between [min] and [max] inclusive.
+/// The discrete uniform distribution over integers between [min] and [max]
+/// inclusive.
 ///
 /// See https://en.wikipedia.org/wiki/Discrete_uniform_distribution.
 class UniformDiscreteDistribution extends DiscreteDistribution {
   /// A discrete uniform distribution with integer bounds [min] and [max].
   const new(this.min, this.max) : assert(min <= max, 'min <= max');
 
-  /// Fits a discrete uniform distribution to [samples] using min and max values.
+  /// Fits a discrete uniform distribution to [samples] using min and max
+  /// values.
   factory fit(Iterable<num> samples) {
     if (samples.isEmpty) {
       throw ArgumentError.value(samples, 'samples', 'Cannot fit empty samples');

@@ -6,7 +6,8 @@ import '../blas/cblas.dart';
 
 /// BLAS Level 2 matrix-vector routines.
 abstract final class BlasLevel2 {
-  /// Computes matrix-vector product y = alpha * op(A) * x + beta * y for Float64List.
+  /// Computes matrix-vector product y = alpha * op(A) * x + beta * y for
+  /// Float64List.
   static bool dgemv({
     int transA = cblasNoTrans,
     required int m,
@@ -88,7 +89,8 @@ abstract final class BlasLevel2 {
     return true;
   }
 
-  /// Computes matrix-vector product y = alpha * op(A) * x + beta * y for Float32List.
+  /// Computes matrix-vector product y = alpha * op(A) * x + beta * y for
+  /// Float32List.
   static bool sgemv({
     int transA = cblasNoTrans,
     required int m,
@@ -170,7 +172,8 @@ abstract final class BlasLevel2 {
     return true;
   }
 
-  /// Performs symmetric rank-2 update A = alpha * x * y^T + alpha * y * x^T + A for Float64List.
+  /// Performs symmetric rank-2 update A = alpha * x * y^T + alpha * y * x^T + A
+  /// for Float64List.
   static bool dsyr2({
     int uplo = cblasUpper,
     required int n,

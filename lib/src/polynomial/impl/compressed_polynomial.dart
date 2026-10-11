@@ -5,16 +5,20 @@ import '../../../type.dart';
 import '../polynomial.dart';
 import 'dense_polynomial.dart';
 
-/// Sparse compressed univariate polynomial storing non-zero `(exponent, coefficient)` pairs.
+/// Sparse compressed univariate polynomial storing non-zero
+/// `(exponent, coefficient)` pairs.
 ///
-/// Conceptually, a sparse polynomial represents an algebraic polynomial where only
-/// a small subset of possible terms have non-zero coefficients (for example, $x^{10000} - 1$).
-/// Formally, it stores strictly increasing exponents and their corresponding non-zero
-/// coefficients in unmodifiable parallel arrays, avoiding the memory overhead of allocating
-/// contiguous dense arrays of size $\mathcal{O}(\deg(P))$.
+/// Conceptually, a sparse polynomial represents an algebraic polynomial where
+/// only a small subset of possible terms have non-zero coefficients (for
+/// example, $x^{10000} - 1$). Formally, it stores strictly increasing exponents
+/// and their corresponding non-zero coefficients in unmodifiable parallel
+/// arrays, avoiding the memory overhead of allocating contiguous dense arrays
+/// of size $\mathcal{O}(\deg(P))$.
 ///
 /// ```dart
-/// final p = CompressedPolynomial<double>.fromMap({0: -1.0, 10000: 1.0}); // x^10000 - 1
+/// final p = CompressedPolynomial<double>.fromMap(
+///   {0: -1.0, 10000: 1.0},
+/// ); // x^10000 - 1
 /// final deg = p.degree; // 10000
 /// final val = p.evaluate(1.0); // 0.0
 /// ```
@@ -22,9 +26,11 @@ class CompressedPolynomial<T> extends Polynomial<T> {
   /// Internal constructor with pre-validated, unmodifiable parallel arrays.
   const new _(this._exponents, this._coefficients, {required this.type});
 
-  /// Constructs a [CompressedPolynomial] from parallel [exponents] and [coefficients].
+  /// Constructs a [CompressedPolynomial] from parallel [exponents] and
+  /// [coefficients].
   ///
-  /// Combines like exponents, strips zero coefficients, and validates non-negative exponents.
+  /// Combines like exponents, strips zero coefficients, and validates
+  /// non-negative exponents.
   factory(
     Iterable<int> exponents,
     Iterable<T> coefficients, {
@@ -74,7 +80,8 @@ class CompressedPolynomial<T> extends Polynomial<T> {
     );
   }
 
-  /// Constructs a [CompressedPolynomial] from a map of exponent-to-coefficient [entries].
+  /// Constructs a [CompressedPolynomial] from a map of exponent-to-coefficient
+  /// [entries].
   factory fromMap(Map<int, T> entries, {DataType<T>? type}) {
     final effectiveType = type ?? DataType.fromIterable(entries.values);
     final field = effectiveType.field;

@@ -3,7 +3,8 @@ import 'dart:typed_data';
 import '../data_type.dart';
 import 'memory.dart';
 
-/// Stub implementation of [NativeBuffer] for platforms without `dart:ffi` (e.g. Web).
+/// Stub implementation of [NativeBuffer] for platforms without `dart:ffi` (e.g.
+/// Web).
 class NativeBuffer<T> {
   /// Allocates a standard heap buffer when FFI is unavailable.
   factory(int length, {DataType<T>? type}) {
@@ -56,7 +57,8 @@ class NativeBuffer<T> {
   /// Registers an additional list/view [alias] to point to [buffer].
   static void register(dynamic alias, NativeBuffer<dynamic> buffer) {}
 
-  /// Finds the [NativeBuffer] associated with [target], if any. Always null on non-FFI platforms.
+  /// Finds the [NativeBuffer] associated with [target], if any. Always null on
+  /// non-FFI platforms.
   static NativeBuffer<dynamic>? find(dynamic target) => null;
 
   /// Whether this native buffer has been disposed.

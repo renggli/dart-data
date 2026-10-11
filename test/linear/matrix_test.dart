@@ -383,7 +383,8 @@ void main() {
 
       // At compile-time, `strMat.lu` etc. are unavailable because decomposition
       // extensions are constrained to `T extends num` or `Complex`.
-      // If invoked dynamically, NoSuchMethodError is thrown rather than an internal TypeError
+      // If invoked dynamically, NoSuchMethodError is thrown rather than an
+      // internal TypeError
       // from an unsafe `this as Matrix<num>` cast.
       // ignore: avoid_dynamic_calls
       check(() => (strMat as dynamic).lu).throws<NoSuchMethodError>();
@@ -508,7 +509,8 @@ void main() {
         [4.0, -2.0, 5.0],
         [2.0, 8.0, 7.0],
       ]);
-      // det = 6*(-14 - 40) - 1*(28 - 10) + 1*(32 - (-4)) = 6*(-54) - 18 + 36 = -324 - 18 + 36 = -306
+      // det = 6*(-14 - 40) - 1*(28 - 10) + 1*(32 - (-4)) = 6*(-54) - 18 + 36 =
+      // -324 - 18 + 36 = -306
       check(a3.det).isCloseTo(-306.0, 1e-10);
     });
 

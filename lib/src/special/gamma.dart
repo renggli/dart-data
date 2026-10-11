@@ -2,12 +2,12 @@ import 'dart:math';
 
 /// Returns an approximation of the gamma function $\Gamma(x)$.
 ///
-/// Conceptually, the gamma function is a continuous extension of
-/// the factorial function: $\Gamma(n) = (n - 1)!$ for any positive integer $n$
-/// (for example, $\Gamma(5) = 4! = 24$).
-/// Formally, this calculates the Euler integral of the second kind
-/// $\Gamma(x) = \int_0^\infty t^{x-1} e^{-t} dt$ for $x > 0$, extended analytically
-/// across $\mathbb{R} \setminus \{0, -1, -2, \dots\}$ via reflection and Lanczos series.
+/// Conceptually, the gamma function is a continuous extension of the factorial
+/// function: $\Gamma(n) = (n - 1)!$ for any positive integer $n$ (for example,
+/// $\Gamma(5) = 4! = 24$). Formally, this calculates the Euler integral of the
+/// second kind $\Gamma(x) = \int_0^\infty t^{x-1} e^{-t} dt$ for $x > 0$,
+/// extended analytically across $\mathbb{R} \setminus \{0, -1, -2, \dots\}$ via
+/// reflection and Lanczos series.
 ///
 /// See https://en.wikipedia.org/wiki/Gamma_function for details.
 ///
@@ -48,8 +48,8 @@ double gamma(num x) {
 
 /// Returns the natural logarithm of the gamma function $\ln \Gamma(x)$.
 ///
-/// Conceptually, calculating $\ln(\Gamma(x))$ enables operations on very large factorials
-/// and combinations without causing floating-point overflow.
+/// Conceptually, calculating $\ln(\Gamma(x))$ enables operations on very large
+/// factorials and combinations without causing floating-point overflow.
 /// Formally, this directly evaluates $\ln \Gamma(x)$ via Lanczos expansion,
 /// preserving numerical precision and dynamic range.
 ///

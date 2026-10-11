@@ -1,4 +1,5 @@
-/// 1D Brent minimization combining golden section search and parabolic interpolation.
+/// 1D Brent minimization combining golden section search and parabolic
+/// interpolation.
 ({double point, double value, int iterations}) brentMinimize(
   double Function(double) fn, {
   required double a,

@@ -31,7 +31,8 @@ void main() {
     });
 
     test('3D tensor contraction over multiple axes', () {
-      // A: [2, 3, 4], B: [3, 4, 5] contracted along axes ([1, 2], [0, 1]) -> [2, 5]
+      // A: [2, 3, 4], B: [3, 4, 5] contracted along axes ([1, 2], [0, 1]) ->
+      // [2, 5]
       final a = Tensor<double>.generate(
         (idx) => idx[0] + 2.0 * idx[1] + 3.0 * idx[2],
         shape: [2, 3, 4],

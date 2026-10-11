@@ -3,15 +3,17 @@ import 'dart:typed_data';
 import '../blas/cblas.dart';
 
 /// Block tile size for cache-blocked GEMM.
-/// $32 \times 32 \times 8\text{ bytes} = 8\text{ KB}$, fitting comfortably inside L1 data cache.
+/// $32 \times 32 \times 8\text{ bytes} = 8\text{ KB}$, fitting comfortably
+/// inside L1 data cache.
 const int gemmBlockSize = 32;
 
 /// Cache-blocked matrix multiplication for [Float64List]:
 ///
 /// $$C = \alpha \operatorname{op}(A) \operatorname{op}(B) + \beta C$$
 ///
-/// Implements cache tiling with $32 \times 32$ blocks and $4\times$ loop unrolling
-/// for optimal memory hierarchy locality and CPU register utilization.
+/// Implements cache tiling with $32 \times 32$ blocks and $4\times$ loop
+/// unrolling for optimal memory hierarchy locality and CPU register
+/// utilization.
 bool cacheBlockedGemmFloat64({
   int transA = cblasNoTrans,
   int transB = cblasNoTrans,

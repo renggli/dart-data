@@ -1,12 +1,13 @@
 import 'dart:math';
 
 /// Returns the digamma function (also known as the psi function), which is the
-/// logarithmic derivative of the gamma function: $\psi(x) = \Gamma'(x)/\Gamma(x)$.
+/// logarithmic derivative of the gamma function:
+/// $\psi(x) = \Gamma'(x)/\Gamma(x)$.
 ///
 /// Conceptually, digamma calculates the rate of change of the logarithm of the
-/// gamma function at any point. At $x=1$, it equals $-\gamma$
-/// (the negative Euler-Mascheroni constant $\approx -0.5772$).
-/// Formally, this calculates the logarithmic derivative
+/// gamma function at any point. At $x=1$, it equals $-\gamma$ (the negative
+/// Euler-Mascheroni constant $\approx -0.5772$). Formally, this calculates the
+/// logarithmic derivative
 /// $\psi(x) = \frac{d}{dx}\ln\Gamma(x) = \frac{\Gamma'(x)}{\Gamma(x)}$,
 /// evaluated using harmonic recurrence and asymptotic Bernoulli expansion.
 ///
@@ -52,10 +53,11 @@ double digamma(num x) {
 /// Returns the trigamma function, which is the first derivative of the digamma
 /// function: $\psi_1(x) = \psi'(x)$.
 ///
-/// Conceptually, trigamma measures the curvature (second derivative)
-/// of $\ln\Gamma(x)$. At $x=1$, it equals $\pi^2 / 6 \approx 1.6449$.
-/// Formally, this evaluates the first polygamma function
-/// $\psi_1(x) = \frac{d^2}{dx^2}\ln\Gamma(x) = \sum_{k=0}^\infty \frac{1}{(x + k)^2}$.
+/// Conceptually, trigamma measures the curvature (second derivative) of
+/// $\ln\Gamma(x)$. At $x=1$, it equals $\pi^2 / 6 \approx 1.6449$. Formally,
+/// this evaluates the first polygamma function
+/// $\psi_1(x) = \frac{d^2}{dx^2}\ln\Gamma(x)$
+/// $= \sum_{k=0}^\infty \frac{1}{(x + k)^2}$.
 ///
 /// See https://en.wikipedia.org/wiki/Trigamma_function for details.
 ///

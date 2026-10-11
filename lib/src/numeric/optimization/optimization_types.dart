@@ -2,7 +2,8 @@ import '../../../linear.dart';
 
 /// Method used for numerical optimization.
 enum OptimizationMethod {
-  /// 1D Brent minimization combining golden section search and parabolic interpolation.
+  /// 1D Brent minimization combining golden section search and parabolic
+  /// interpolation.
   brent,
 
   /// Derivative-free Nelder-Mead downhill simplex algorithm.
@@ -41,7 +42,8 @@ class OptimizationResult {
   /// Whether the optimizer converged within tolerance.
   final bool converged;
 
-  /// Convenience getter returning the first coordinate `point[0]`, useful for 1D problems.
+  /// Convenience getter returning the first coordinate `point[0]`, useful for
+  /// 1D problems.
   double get point1D => point[0];
 
   @override

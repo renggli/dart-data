@@ -7,7 +7,8 @@ import '../continuous.dart';
 import '../errors.dart';
 import 'uniform.dart';
 
-/// Normal (or Gaussian) distribution described by [mean] μ and [standardDeviation] σ.
+/// Normal (or Gaussian) distribution described by [mean] μ and
+/// [standardDeviation] σ.
 ///
 /// See https://en.wikipedia.org/wiki/Normal_distribution.
 class NormalDistribution extends ContinuousDistribution {
@@ -15,10 +16,12 @@ class NormalDistribution extends ContinuousDistribution {
   const new(this.mean, this.standardDeviation)
     : assert(standardDeviation > 0, 'σ > 0');
 
-  /// A standard normal distribution centered around 0 with standard deviation 1.
+  /// A standard normal distribution centered around 0 with standard deviation
+  /// 1.
   const new standard() : this(0.0, 1.0);
 
-  /// Fits a normal distribution to [samples] using maximum likelihood estimation.
+  /// Fits a normal distribution to [samples] using maximum likelihood
+  /// estimation.
   factory fit(Iterable<num> samples) {
     var count = 0;
     var sum = 0.0;

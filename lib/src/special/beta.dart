@@ -4,10 +4,12 @@ import 'gamma.dart';
 
 /// Beta function based on the [gamma] function.
 ///
-/// Conceptually, the beta function connects two continuous parameters $x$ and $y$,
-/// playing a fundamental role in combinatorics, calculus, and Bayesian probability distributions.
-/// Formally, this calculates the Euler integral of the first kind
-/// $B(x, y) = \int_0^1 t^{x-1} (1-t)^{y-1} dt = \frac{\Gamma(x)\Gamma(y)}{\Gamma(x+y)}$.
+/// Conceptually, the beta function connects two continuous parameters $x$ and
+/// $y$, playing a fundamental role in combinatorics, calculus, and Bayesian
+/// probability distributions. Formally, this calculates the Euler integral of
+/// the first kind
+/// $B(x, y) = \int_0^1 t^{x-1} (1-t)^{y-1} dt$
+/// $= \frac{\Gamma(x)\Gamma(y)}{\Gamma(x+y)}$.
 ///
 /// ```dart
 /// final val = beta(2, 3); // ~ 0.08333333333333333 (1/12)
@@ -24,9 +26,10 @@ double beta(num x, num y) {
 
 /// Logarithm of the beta function based on the [gammaLn] function.
 ///
-/// Conceptually, this computes $\ln(B(x, y))$ directly to prevent numerical overflow
-/// when calculating ratios of large factorials or probability densities.
-/// Formally, this calculates $\ln B(x, y) = \ln \Gamma(x) + \ln \Gamma(y) - \ln \Gamma(x+y)$.
+/// Conceptually, this computes $\ln(B(x, y))$ directly to prevent numerical
+/// overflow when calculating ratios of large factorials or probability
+/// densities. Formally, this calculates
+/// $\ln B(x, y) = \ln \Gamma(x) + \ln \Gamma(y) - \ln \Gamma(x+y)$.
 ///
 /// ```dart
 /// final val = betaLn(2, 3); // ~ -2.484906649788
@@ -36,10 +39,11 @@ double betaLn(num x, num y) =>
 
 /// Incomplete beta function $I_x(a, b)$.
 ///
-/// Conceptually, this calculates the cumulative probability area
-/// under a beta distribution curve from 0 up to point $x$.
-/// Formally, this evaluates the regularized incomplete beta function
-/// $I_x(a, b) = \frac{1}{B(a, b)} \int_0^x t^{a-1} (1-t)^{b-1} dt$ via continued fractions.
+/// Conceptually, this calculates the cumulative probability area under a beta
+/// distribution curve from 0 up to point $x$. Formally, this evaluates the
+/// regularized incomplete beta function
+/// $I_x(a, b) = \frac{1}{B(a, b)} \int_0^x t^{a-1} (1-t)^{b-1} dt$ via
+/// continued fractions.
 ///
 /// ```dart
 /// final p = ibeta(0.5, 2, 3); // 0.6875
@@ -69,10 +73,11 @@ double ibeta(num x, num a, num b) {
 
 /// Inverse of the incomplete beta function $I_p^{-1}(a, b)$.
 ///
-/// Conceptually, this computes the inverse cumulative distribution: given a target
-/// probability or percentile $p$, it determines the cutoff value $x$ such that $I_x(a, b) = p$.
-/// Formally, it computes the quantile function $x = I_p^{-1}(a, b)$ satisfying
-/// $I_x(a, b) = p$, utilizing asymptotic expansions followed by iterative root refinement.
+/// Conceptually, this computes the inverse cumulative distribution: given a
+/// target probability or percentile $p$, it determines the cutoff value $x$
+/// such that $I_x(a, b) = p$. Formally, it computes the quantile function
+/// $x = I_p^{-1}(a, b)$ satisfying $I_x(a, b) = p$, utilizing asymptotic
+/// expansions followed by iterative root refinement.
 ///
 /// ```dart
 /// final x = ibetaInv(0.6875, 2, 3); // ~ 0.5

@@ -81,7 +81,8 @@ abstract interface class Field<T> {
   T get negativeInfinity;
 }
 
-/// An algebraic field extended with norm, square root, power, and transcendental functions.
+/// An algebraic field extended with norm, square root, power, and
+/// transcendental functions.
 abstract interface class ExtendedField<T> implements Field<T> {
   const new();
 

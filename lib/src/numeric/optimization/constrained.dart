@@ -6,7 +6,8 @@ import '../calculus.dart' as calculus;
 import 'optimization_types.dart';
 import 'quasi_newton.dart';
 
-/// Constrained numerical optimization using box transformations and augmented Lagrangian.
+/// Constrained numerical optimization using box transformations and augmented
+/// Lagrangian.
 ({
   Vector<double> point,
   double value,

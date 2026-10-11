@@ -235,7 +235,8 @@ class BlasLibrary {
   /// Whether native SVD factorization (_dgesvd or _dgesdd) is bound.
   bool get hasDgesvd => _dgesvd != null || _dgesdd != null;
 
-  /// Whether native symmetric eigenvalue solver (_dsyev or _lapackeDsyev) is bound.
+  /// Whether native symmetric eigenvalue solver (_dsyev or _lapackeDsyev) is
+  /// bound.
   bool get hasDsyev => _dsyev != null || _lapackeDsyev != null;
 
   bool dgemm({
@@ -1636,7 +1637,8 @@ class BlasLibrary {
         aPtr.asTypedList(aLen).setRange(0, aLen, a, aOffset);
       }
 
-      // For row-major: upper triangle in row-major is lower triangle in Fortran column-major ('L'=76, 'U'=85)
+      // For row-major: upper triangle in row-major is lower triangle in Fortran
+      // column-major ('L'=76, 'U'=85)
       final fortranUplo = uplo == cblasUpper ? 76 : 85;
       final uploPtr = arena<ffi.Uint8>()..value = fortranUplo;
       final nPtr = arena<ffi.Int32>()..value = n;
@@ -1656,10 +1658,10 @@ class BlasLibrary {
 
   /// Solves the general linear system $A X = B$ for $X$.
   ///
-  /// Supports both single-RHS ([nrhs] = 1) and multi-RHS ([nrhs] > 1).
-  /// For Fortran LAPACK routines expecting column-major matrices, multi-RHS
-  /// right-hand side matrices are transposed to column-major layout prior
-  /// to solving and the solution is transposed back to row-major layout.
+  /// Supports both single-RHS ([nrhs] = 1) and multi-RHS ([nrhs] > 1). For
+  /// Fortran LAPACK routines expecting column-major matrices, multi-RHS
+  /// right-hand side matrices are transposed to column-major layout prior to
+  /// solving and the solution is transposed back to row-major layout.
   bool dgesv({
     required int n,
     required int nrhs,

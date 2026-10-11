@@ -16,7 +16,8 @@ import 'package:more/math.dart' show BitUint32Extension;
 /// print(mask.isNull(3)); // true
 /// ```
 class ValidityMask {
-  /// Creates a validity mask of [length] with all entries marked valid (non-null).
+  /// Creates a validity mask of [length] with all entries marked valid
+  /// (non-null).
   new(this.length)
     : _bytes = Uint8List(
         (RangeError.checkNotNegative(length, 'length') + 7) ~/ 8,
@@ -58,8 +59,8 @@ class ValidityMask {
     return mask;
   }
 
-  /// Creates a validity mask from a list of boolean validity flags,
-  /// where `true` indicates valid (non-null) and `false` indicates null.
+  /// Creates a validity mask from a list of boolean validity flags, where
+  /// `true` indicates valid (non-null) and `false` indicates null.
   factory fromList(List<bool> list) {
     final length = list.length;
     final mask = ValidityMask.allNull(length);
@@ -129,7 +130,8 @@ class ValidityMask {
     }
   }
 
-  /// Creates a slice of this validity mask from [start] (inclusive) to [end] (exclusive).
+  /// Creates a slice of this validity mask from [start] (inclusive) to [end]
+  /// (exclusive).
   ValidityMask slice(int start, int end) {
     RangeError.checkValidRange(start, end, length);
     final sliceLen = end - start;

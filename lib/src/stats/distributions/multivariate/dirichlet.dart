@@ -40,7 +40,8 @@ class DirichletDistribution extends MultivariateDistribution<double> {
     _logBeta = sumGammaLn - gammaLn(_alpha0);
   }
 
-  /// Constructs a symmetric Dirichlet distribution with [dimensions] and scalar concentration [alpha].
+  /// Constructs a symmetric Dirichlet distribution with [dimensions] and scalar
+  /// concentration [alpha].
   factory symmetric(int dimensions, double alpha) {
     if (dimensions < 2) {
       throw ArgumentError.value(

@@ -52,7 +52,8 @@ class BootstrapResult with ToStringPrinter {
     ..addValue(confidenceLevel, name: 'confidenceLevel');
 }
 
-/// Computes non-parametric bootstrap estimates and confidence intervals (Percentile and BCa).
+/// Computes non-parametric bootstrap estimates and confidence intervals
+/// (Percentile and BCa).
 BootstrapResult bootstrap<T>(
   List<T> samples,
   double Function(List<T>) statistic, {
@@ -93,11 +94,12 @@ BootstrapResult bootstrap<T>(
   );
 }
 
-/// Computes parametric bootstrap estimates and confidence intervals (Percentile and BCa).
+/// Computes parametric bootstrap estimates and confidence intervals (Percentile
+/// and BCa).
 ///
-/// Unlike non-parametric bootstrap which resamples with replacement from empirical observations,
-/// parametric bootstrap generates synthetic samples by drawing from a fitted parametric model
-/// or generative function [sampler].
+/// Unlike non-parametric bootstrap which resamples with replacement from
+/// empirical observations, parametric bootstrap generates synthetic samples by
+/// drawing from a fitted parametric model or generative function [sampler].
 BootstrapResult parametricBootstrap<T>({
   required List<T> sample,
   required double Function(List<T>) statistic,
@@ -135,7 +137,8 @@ BootstrapResult parametricBootstrap<T>({
   );
 }
 
-/// Computes parametric bootstrap estimates drawing from a fitted probability [distribution].
+/// Computes parametric bootstrap estimates drawing from a fitted probability
+/// [distribution].
 BootstrapResult parametricBootstrapDistribution({
   required List<num> sample,
   required double Function(List<num>) statistic,
@@ -157,7 +160,8 @@ BootstrapResult parametricBootstrapDistribution({
   );
 }
 
-/// A deterministic Jackknife resampling technique to estimate variance, bias, and confidence intervals.
+/// A deterministic Jackknife resampling technique to estimate variance, bias,
+/// and confidence intervals.
 ///
 /// See https://en.wikipedia.org/wiki/Jackknife_resampling.
 class Jackknife<T> with ToStringPrinter {

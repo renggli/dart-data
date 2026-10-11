@@ -128,7 +128,8 @@ class VdspLibrary {
     return null;
   }
 
-  /// Computes 1D in-place complex FFT on [real] and [imag] buffers of size $2^{\text{log2n}}$.
+  /// Computes 1D in-place complex FFT on [real] and [imag] buffers of size
+  /// $2^{\text{log2n}}$.
   bool fft1d({
     required Float64List real,
     required Float64List imag,

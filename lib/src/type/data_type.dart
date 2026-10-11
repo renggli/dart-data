@@ -155,8 +155,7 @@ abstract base class DataType<T> {
   int comparator(T a, T b) =>
       throw UnsupportedError('No comparator available for $this.');
 
-  /// Casts the argument to this data type, otherwise throw an
-  /// [ArgumentError].
+  /// Casts the argument to this data type, otherwise throw an [ArgumentError].
   T cast(dynamic value) => throw ArgumentError.value(
     value,
     'value',

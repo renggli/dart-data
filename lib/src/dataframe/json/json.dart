@@ -39,7 +39,8 @@ abstract final class DataFrameJson {
     Map<String, DataType<dynamic>>? columnTypes,
   }) => DataFrameJsonDecoder.fromRecords(records, columnTypes: columnTypes);
 
-  /// Reads a text [stream] of newline-delimited JSON (NDJSON) into chunked [DataFrame] instances.
+  /// Reads a text [stream] of newline-delimited JSON (NDJSON) into chunked
+  /// [DataFrame] instances.
   static Stream<DataFrame> readNdjsonChunks(
     Stream<String> stream, {
     int chunkSize = 1000,

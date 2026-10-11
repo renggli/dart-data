@@ -62,7 +62,8 @@ class PcaResult {
     return centered * components.transpose();
   }
 
-  /// Transforms [x] from principal component space back to original feature space.
+  /// Transforms [x] from principal component space back to original feature
+  /// space.
   Matrix<double> inverseTransform(Matrix<num> x) {
     final rowCount = x.rowCount;
     final compCount = x.colCount;
@@ -106,8 +107,8 @@ class PcaResult {
 
 /// Fits Principal Component Analysis (PCA) on [data].
 ///
-/// Rows of [data] represent observations, and columns represent features.
-/// If [standardize] is true, features are scaled to unit variance.
+/// Rows of [data] represent observations, and columns represent features. If
+/// [standardize] is true, features are scaled to unit variance.
 PcaResult pca(Matrix<num> data, {int? nComponents, bool standardize = false}) {
   final nSamples = data.rowCount;
   final nFeatures = data.colCount;

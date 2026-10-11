@@ -11,12 +11,14 @@ import 'float64_vector.dart';
 import 'matrix.dart';
 import 'vector.dart';
 
-/// Zero-cost extension type wrapping [Matrix] with direct [Float64List] buffer access.
+/// Zero-cost extension type wrapping [Matrix] with direct [Float64List] buffer
+/// access.
 ///
-/// This provides a 2D matrix optimized to store 64-bit floating-point
-/// numbers in contiguous memory for high-performance linear algebra.
-/// Formally, it provides an unboxed matrix representation over the real field $\mathbb{R}$
-/// backed by flat IEEE 754 double-precision arrays compatible with BLAS level 3 operations.
+/// This provides a 2D matrix optimized to store 64-bit floating-point numbers
+/// in contiguous memory for high-performance linear algebra. Formally, it
+/// provides an unboxed matrix representation over the real field $\mathbb{R}$
+/// backed by flat IEEE 754 double-precision arrays compatible with BLAS level 3
+/// operations.
 ///
 /// ```dart
 /// final m = Float64Matrix.filled(2, 2, 1.5);
@@ -209,7 +211,8 @@ extension type Float64Matrix(Matrix<double> _matrix) implements Matrix<double> {
     return Float64Matrix(_matrix * other);
   }
 
-  /// High-performance matrix-vector multiplication routing directly to BLAS `dgemv`.
+  /// High-performance matrix-vector multiplication routing directly to BLAS
+  /// `dgemv`.
   @redeclare
   Float64Vector apply(Vector<double> x) {
     if (colCount != x.length) {

@@ -6,10 +6,12 @@ import '../../type.dart';
 
 /// Boundary condition for cubic spline interpolation.
 enum CubicSplineBoundary {
-  /// Natural spline: second derivative at endpoints is zero ($S''(x_0) = S''(x_n) = 0$).
+  /// Natural spline: second derivative at endpoints is zero
+  /// ($S''(x_0) = S''(x_n) = 0$).
   natural,
 
-  /// Clamped spline: first derivative at endpoints is fixed to specified values.
+  /// Clamped spline: first derivative at endpoints is fixed to specified
+  /// values.
   clamped,
 }
 
@@ -21,17 +23,19 @@ abstract class Interpolator {
 
 /// 1D Piecewise linear interpolation.
 ///
-/// Conceptually, this connects data points on a Cartesian grid with straight line segments,
-/// allowing intermediate values between known measurements to be estimated.
-/// Formally, it computes the continuous $C^0$ piecewise linear interpolant
-/// $S(x) = y_i + \frac{x - x_i}{x_{i+1} - x_i}(y_{i+1} - y_i)$ on $\[x_i, x_{i+1}\]$.
+/// Conceptually, this connects data points on a Cartesian grid with straight
+/// line segments, allowing intermediate values between known measurements to be
+/// estimated. Formally, it computes the continuous $C^0$ piecewise linear
+/// interpolant $S(x) = y_i + \frac{x - x_i}{x_{i+1} - x_i}(y_{i+1} - y_i)$ on
+/// $\[x_i, x_{i+1}\]$.
 ///
 /// ```dart
 /// final interp = LinearInterpolation([0.0, 1.0, 2.0], [0.0, 10.0, 20.0]);
 /// print(interp(0.5)); // 5.0
 /// ```
 class LinearInterpolation implements Interpolator {
-  /// Constructs a linear interpolator from strictly increasing points [xs] and [ys].
+  /// Constructs a linear interpolator from strictly increasing points [xs] and
+  /// [ys].
   new(Iterable<num> xs, Iterable<num> ys)
     : _xs = [for (final x in xs) x.toDouble()],
       _ys = [for (final y in ys) y.toDouble()] {
@@ -64,12 +68,14 @@ class LinearInterpolation implements Interpolator {
   }
 }
 
-/// Piecewise cubic spline interpolator with natural or clamped boundary conditions.
+/// Piecewise cubic spline interpolator with natural or clamped boundary
+/// conditions.
 ///
-/// Conceptually, rather than connecting data points with straight lines or sharp angles,
-/// a cubic spline fits a smooth curve through every point with continuous curvature.
-/// Formally, it constructs a $C^2$ twice continuously differentiable piecewise cubic polynomial
-/// satisfying continuity of $S(x)$, $S'(x)$, and $S''(x)$ across all knots via a tridiagonal linear system.
+/// Conceptually, rather than connecting data points with straight lines or
+/// sharp angles, a cubic spline fits a smooth curve through every point with
+/// continuous curvature. Formally, it constructs a $C^2$ twice continuously
+/// differentiable piecewise cubic polynomial satisfying continuity of $S(x)$,
+/// $S'(x)$, and $S''(x)$ across all knots via a tridiagonal linear system.
 ///
 /// ```dart
 /// final spline = CubicSpline([0.0, 1.0, 2.0], [0.0, 1.0, 8.0]);
@@ -189,7 +195,8 @@ class CubicSpline implements Interpolator {
 
 /// Monotonic Piecewise Cubic Hermite Interpolating Polynomial (PCHIP).
 ///
-/// Preserves shape and monotonicity of data without overshoot (Fritsch-Carlson algorithm).
+/// Preserves shape and monotonicity of data without overshoot (Fritsch-Carlson
+/// algorithm).
 class PchipInterpolation implements Interpolator {
   /// Constructs a monotonic PCHIP interpolator.
   new(Iterable<num> xs, Iterable<num> ys)
@@ -293,7 +300,8 @@ class PchipInterpolation implements Interpolator {
 
 /// 1D Nearest neighbor interpolation.
 class NearestInterpolation implements Interpolator {
-  /// Constructs a nearest-neighbor interpolator from strictly increasing points [xs] and [ys].
+  /// Constructs a nearest-neighbor interpolator from strictly increasing points
+  /// [xs] and [ys].
   new(Iterable<num> xs, Iterable<num> ys, {this.preferLower = true})
     : _xs = [for (final x in xs) x.toDouble()],
       _ys = [for (final y in ys) y.toDouble()] {
@@ -310,7 +318,8 @@ class NearestInterpolation implements Interpolator {
     }
   }
 
-  /// When an evaluation point is equidistant between two points, whether to prefer the lower point.
+  /// When an evaluation point is equidistant between two points, whether to
+  /// prefer the lower point.
   final bool preferLower;
   final List<double> _xs;
   final List<double> _ys;
@@ -333,7 +342,8 @@ class NearestInterpolation implements Interpolator {
 
 /// 1D Step-wise previous value interpolation.
 class PreviousInterpolation implements Interpolator {
-  /// Constructs a step-wise previous interpolator from strictly increasing points [xs] and [ys].
+  /// Constructs a step-wise previous interpolator from strictly increasing
+  /// points [xs] and [ys].
   new(Iterable<num> xs, Iterable<num> ys, {this.left = double.nan})
     : _xs = [for (final x in xs) x.toDouble()],
       _ys = [for (final y in ys) y.toDouble()] {
@@ -367,7 +377,8 @@ class PreviousInterpolation implements Interpolator {
 
 /// 1D Step-wise next value interpolation.
 class NextInterpolation implements Interpolator {
-  /// Constructs a step-wise next interpolator from strictly increasing points [xs] and [ys].
+  /// Constructs a step-wise next interpolator from strictly increasing points
+  /// [xs] and [ys].
   new(Iterable<num> xs, Iterable<num> ys, {this.right = double.nan})
     : _xs = [for (final x in xs) x.toDouble()],
       _ys = [for (final y in ys) y.toDouble()] {
@@ -399,9 +410,11 @@ class NextInterpolation implements Interpolator {
   }
 }
 
-/// Polynomial interpolation through sample points using Lagrange barycentric formula.
+/// Polynomial interpolation through sample points using Lagrange barycentric
+/// formula.
 class LagrangeInterpolation implements Interpolator {
-  /// Constructs a Lagrange polynomial interpolator through sample points [xs] and [ys].
+  /// Constructs a Lagrange polynomial interpolator through sample points [xs]
+  /// and [ys].
   new(Iterable<num> xs, Iterable<num> ys)
     : _xs = [for (final x in xs) x.toDouble()],
       _ys = [for (final y in ys) y.toDouble()] {

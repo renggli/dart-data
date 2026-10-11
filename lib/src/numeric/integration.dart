@@ -9,7 +9,8 @@ enum IntegrationMethod {
   simpson,
 }
 
-/// Integration warnings triggered for poorly behaving functions or recursion limits.
+/// Integration warnings triggered for poorly behaving functions or recursion
+/// limits.
 enum IntegrateWarning {
   /// Quadrature failed to converge to the requested tolerance within max depth.
   doesNotConverge,
@@ -18,7 +19,8 @@ enum IntegrateWarning {
   depthTooShallow,
 }
 
-/// Error thrown when numerical integration fails to converge and no warning callback handles it.
+/// Error thrown when numerical integration fails to converge and no warning
+/// callback handles it.
 class IntegrateError extends Error {
   new(this.type, this.x);
 
@@ -32,22 +34,28 @@ class IntegrateError extends Error {
   String toString() => 'IntegrateError: $type near x = $x';
 }
 
-/// Computes the definite or improper integral $\int_a^b f(x) dx$ using the specified quadrature [method].
+/// Computes the definite or improper integral $\int_a^b f(x) dx$ using the
+/// specified quadrature [method].
 ///
 /// Conceptually, calculating an integral evaluates the total accumulated area
 /// underneath a curve between two boundary points $x = a$ and $x = b$.
 /// Formally, it recursively subdivides intervals using the selected [method]
-/// ([IntegrationMethod.gaussKronrod] by default, or [IntegrationMethod.simpson]).
+/// ([IntegrationMethod.gaussKronrod] by default, or
+/// [IntegrationMethod.simpson]).
 ///
 /// Supports:
-/// - Infinite and semi-infinite integration domains ($[-\infty, \infty]$, $[-\infty, b]$, $[a, \infty)$)
-///   via reciprocal coordinate transformations ($t \in [\epsilon, 1]$).
-/// - Known poles and non-differentiable singularities via interval partitioning ([poles]).
-/// - Convergence error diagnostics and handling via [IntegrateWarning], [IntegrateError], and [onWarning].
+/// - Infinite and semi-infinite integration domains ($[-\infty, \infty]$,
+///   $[-\infty, b]$, $[a, \infty)$) via reciprocal coordinate transformations
+///   ($t \in [\epsilon, 1]$).
+/// - Known poles and non-differentiable singularities via interval partitioning
+///   ([poles]).
+/// - Convergence error diagnostics and handling via [IntegrateWarning],
+///   [IntegrateError], and [onWarning].
 ///
 /// ```dart
 /// final area = integrate((x) => x * x, 0.0, 3.0); // 9.0
-/// final improper = integrate((x) => math.exp(-x), 0.0, double.infinity); // 1.0
+/// final improper =
+///     integrate((x) => math.exp(-x), 0.0, double.infinity); // 1.0
 /// ```
 double integrate(
   double Function(double) function,

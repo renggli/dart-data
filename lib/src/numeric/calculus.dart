@@ -7,10 +7,11 @@ import '../../type.dart';
 
 /// Computes the derivative of [function] at [x].
 ///
-/// Conceptually, the derivative is the instantaneous slope or rate
-/// of change of a curve at a single point (such as a speedometer reading representing the derivative of position).
-/// Formally, it computes the $n$-th derivative $f^{(n)}(x)$ using central finite
-/// differences for the specified [order] (1 through 6) and stencil [accuracy] (2, 4, 6, or 8 points).
+/// Conceptually, the derivative is the instantaneous slope or rate of change of
+/// a curve at a single point (such as a speedometer reading representing the
+/// derivative of position). Formally, it computes the $n$-th derivative
+/// $f^{(n)}(x)$ using central finite differences for the specified [order] (1
+/// through 6) and stencil [accuracy] (2, 4, 6, or 8 points).
 ///
 /// ```dart
 /// final slope = derivative((x) => x * x, 3.0); // ~6.0
@@ -55,11 +56,15 @@ double derivative(
   return result / math.pow(h, order);
 }
 
-/// Computes the gradient vector $\nabla f(\mathbf{x})$ of multivariate function [function] at [point].
+/// Computes the gradient vector $\nabla f(\mathbf{x})$ of multivariate function
+/// [function] at [point].
 ///
-/// Conceptually, the gradient is a vector pointing in the direction of
-/// steepest ascent on a multivariate surface, with its Euclidean norm representing the steepness.
-/// Formally, it computes $\nabla f(\mathbf{x}) = \left(\frac{\partial f}{\partial x_1}, \dots, \frac{\partial f}{\partial x_n}\right)^T$
+/// Conceptually, the gradient is a vector pointing in the direction of steepest
+/// ascent on a multivariate surface, with its Euclidean norm representing the
+/// steepness. Formally, it computes
+/// $\nabla f(\mathbf{x}) =$
+/// $\left(\frac{\partial f}{\partial x_1}, \dots,\right.$
+/// $\left.\frac{\partial f}{\partial x_n}\right)^T$
 /// via coordinate-wise central finite differences.
 ///
 /// ```dart
@@ -82,12 +87,14 @@ Vector<double> gradient(
   }, type: DataType.float64);
 }
 
-/// Computes the Jacobian matrix $J_{i, j} = \frac{\partial f_i}{\partial x_j}$ of vector function [function] at [point].
+/// Computes the Jacobian matrix $J_{i, j} = \frac{\partial f_i}{\partial x_j}$
+/// of vector function [function] at [point].
 ///
-/// Conceptually, the Jacobian is a matrix of partial slopes describing how a multi-output
-/// vector field distorts, rotates, or shears coordinate space near a point.
-/// Formally, it computes the best local linear affine approximation
-/// $D\mathbf{f}(\mathbf{x}) \in \mathbb{R}^{m \times n}$ where $J_{i, j} = \frac{\partial f_i}{\partial x_j}$.
+/// Conceptually, the Jacobian is a matrix of partial slopes describing how a
+/// multi-output vector field distorts, rotates, or shears coordinate space near
+/// a point. Formally, it computes the best local linear affine approximation
+/// $D\mathbf{f}(\mathbf{x}) \in \mathbb{R}^{m \times n}$ where
+/// $J_{i, j} = \frac{\partial f_i}{\partial x_j}$.
 ///
 /// ```dart
 /// final p = Vector<double>.fromList([1.0, 2.0]);
@@ -115,12 +122,15 @@ Matrix<double> jacobian(
   }, type: DataType.float64);
 }
 
-/// Computes the Hessian matrix $H_{i, j} = \frac{\partial^2 f}{\partial x_i \partial x_j}$ of [function] at [point].
+/// Computes the Hessian matrix
+/// $H_{i, j} = \frac{\partial^2 f}{\partial x_i \partial x_j}$ of [function] at
+/// [point].
 ///
-/// Conceptually, the Hessian describes the local curvature of a multivariate surface,
-/// determining whether a critical point is a local minimum (bowl), local maximum (dome), or saddle pass.
-/// Formally, it computes the symmetric second partial derivative matrix
-/// $H \in \mathbb{R}^{n \times n}$ whose eigenvalues characterize surface curvature and local extrema.
+/// Conceptually, the Hessian describes the local curvature of a multivariate
+/// surface, determining whether a critical point is a local minimum (bowl),
+/// local maximum (dome), or saddle pass. Formally, it computes the symmetric
+/// second partial derivative matrix $H \in \mathbb{R}^{n \times n}$ whose
+/// eigenvalues characterize surface curvature and local extrema.
 ///
 /// ```dart
 /// final p = Vector<double>.fromList([1.0, 2.0]);
@@ -159,7 +169,8 @@ Matrix<double> hessian(
   }, type: DataType.float64);
 }
 
-// https://en.wikipedia.org/wiki/Finite_difference_coefficient#Central_finite_difference
+// Central finite difference table:
+// https://en.wikipedia.org/wiki/Finite_difference_coefficient
 const _centralFiniteDifferences = <int, Map<int, List<double>>>{
   // Derivative 1
   1: {

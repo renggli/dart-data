@@ -72,7 +72,8 @@ void main() {
         final scaled = polyP.scale(3.0);
         check(scaled.coefficients).deepEquals([3.0, 6.0]);
 
-        // (1 + 2x) * (3 - x + 4x^2) = 3 + (-1 + 6)x + (4 - 2)x^2 + 8x^3 = 3 + 5x + 2x^2 + 8x^3
+        // (1 + 2x) * (3 - x + 4x^2) = 3 + (-1 + 6)x + (4 - 2)x^2 + 8x^3 = 3 +
+        // 5x + 2x^2 + 8x^3
         final prod = polyP * polyQ;
         check(prod.coefficients).deepEquals([3.0, 5.0, 2.0, 8.0]);
       },
@@ -357,7 +358,8 @@ void main() {
       }
 
       // Generalized L_2^(alpha=1.0)(x)
-      // L_0^(1) = 1, L_1^(1) = 2 - x, L_2^(1) = 0.5 * (x^2 - 6x + 6) = 3 - 3x + 0.5 x^2
+      // L_0^(1) = 1, L_1^(1) = 2 - x, L_2^(1) = 0.5 * (x^2 - 6x + 6) = 3 - 3x +
+      // 0.5 x^2
       final l2Alpha = Polynomial.laguerreL(2, alpha: 1.0);
       check(l2Alpha[0]).isCloseTo(3.0, 1e-9);
       check(l2Alpha[1]).isCloseTo(-3.0, 1e-9);

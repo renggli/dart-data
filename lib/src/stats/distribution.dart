@@ -7,11 +7,11 @@ import 'distributions/errors.dart';
 
 /// Abstract base class representing a probability distribution over [T].
 ///
-/// Conceptually, a probability distribution describes all possible
-/// outcomes of a random process and how likely each outcome is (such as rolling dice
-/// or measuring natural variations in a population).
-/// Formally, this formalizes a probability space $(\Omega, \mathcal{F}, P)$
-/// and random variable $X: \Omega \to \mathbb{R}$ with support, density, and cumulative
+/// Conceptually, a probability distribution describes all possible outcomes of
+/// a random process and how likely each outcome is (such as rolling dice or
+/// measuring natural variations in a population). Formally, this formalizes a
+/// probability space $(\Omega, \mathcal{F}, P)$ and random variable
+/// $X: \Omega \to \mathbb{R}$ with support, density, and cumulative
 /// distribution functions.
 @immutable
 abstract class Distribution<T extends num> with ToStringPrinter {
@@ -54,10 +54,12 @@ abstract class Distribution<T extends num> with ToStringPrinter {
   /// Returns the probability density (PDF) or probability mass (PMF) at [x].
   double probability(T x);
 
-  /// Returns the cumulative distribution function (CDF) at [x], i.e., $P(X \le x)$.
+  /// Returns the cumulative distribution function (CDF) at [x], i.e.,
+  /// $P(X \le x)$.
   double cumulativeProbability(T x);
 
-  /// Returns the quantile (percent-point function / inverse CDF) for [probability].
+  /// Returns the quantile (percent-point function / inverse CDF) for
+  /// [probability].
   T inverseCumulativeProbability(num probability);
 
   /// Returns the survival function $S(x) = P(X > x) = 1 - F(x)$.
@@ -72,7 +74,8 @@ abstract class Distribution<T extends num> with ToStringPrinter {
   /// Draws a single pseudo-random sample from the distribution.
   T sample({Random? random});
 
-  /// Generates an infinite sequence of pseudo-random samples from the distribution.
+  /// Generates an infinite sequence of pseudo-random samples from the
+  /// distribution.
   Iterable<T> samples({Random? random}) sync* {
     for (;;) {
       yield sample(random: random);
