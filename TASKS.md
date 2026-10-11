@@ -10,7 +10,7 @@ This document defines the actionable engineering task list for `package:data`.
 - [x] Streaming CSV & JSON Parsers
 - [ ] Modularize Implementation Files (Single Responsibility, Low Coupling, High Cohesion)
 - [ ] Parallel Unit Test Hierarchy & Comprehensive Coverage (Target Near 100%)
-- [ ] Backend Acceleration Parity, Dedicated Modes (Auto, Accelerated, Dart) & Verification
+- [x] Backend Acceleration Parity, Dedicated Modes (Auto, Accelerated, Dart) & Verification
 - [ ] Hardware Acceleration for FFT, Signal Processing & Vectorized Operations
 - [ ] Consistent 80-Character Comment Formatting & Doc Reflow
 
@@ -124,7 +124,7 @@ This document defines the actionable engineering task list for `package:data`.
 
 ---
 
-### [ ] Backend Acceleration Parity, Dedicated Modes (Auto, Accelerated, Dart) & Verification
+### [x] Backend Acceleration Parity, Dedicated Modes (Auto, Accelerated, Dart) & Verification
 
 - **Problem / Goal**:
   Operations accelerated by native FFI BLAS/LAPACK or SIMD (currently termed `hardware`) often silently fall back to pure Dart when acceleration is unavailable or fails, masking performance regressions or making it impossible to guarantee that hardware acceleration is actually running. Additionally, the term `hardware` is ambiguous and should be generalized to `Acceleration` / `Backend`. All backend variations (Hardware/Native FFI, SIMD, pure Dart) must be tested on identical inputs and verified to yield numerically identical outputs (accepting minor floating-point tolerances).

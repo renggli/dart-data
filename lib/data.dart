@@ -53,6 +53,7 @@
 /// ```
 library;
 
+import 'acceleration.dart';
 import 'dataframe.dart';
 import 'hardware.dart';
 import 'linear.dart';
@@ -64,6 +65,7 @@ import 'symbolic.dart';
 import 'tensor.dart';
 import 'type.dart';
 
+export 'acceleration.dart';
 export 'dataframe.dart';
 export 'hardware.dart';
 export 'linear.dart';
