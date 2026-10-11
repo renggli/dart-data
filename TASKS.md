@@ -4,7 +4,6 @@ This document defines the actionable engineering task list for `package:data`.
 
 ## Tasks
 
-- [ ] Scientific Sampling Grids (`linearSpaced`, `logarithmicSpaced`, `geometricSpaced`)
 - [ ] Linear Algebra Ergonomics: Natural 2D Indexing, General Matrix Solver, Determinant & Inverse
 - [ ] Sparse Polynomial Representation
 - [ ] Apache Arrow C Data Interface & IPC Stream Export
@@ -20,29 +19,7 @@ This document defines the actionable engineering task list for `package:data`.
 
 
 
-### [ ] Scientific Sampling Grids (`linearSpaced`, `logarithmicSpaced`, `geometricSpaced`)
 
-- **Problem / Goal**:
-  `v0.16.0` provided standard scientific grid generator utilities:
-  - `linearSpaced(start, stop, {count, includeEndpoint})` (equivalent to NumPy `linspace`)
-  - `logarithmicSpaced(start, stop, {count, base, includeEndpoint})` (equivalent to NumPy `logspace`)
-  - `geometricSpaced(start, stop, {count, includeEndpoint})` (equivalent to NumPy `geomspace`)
-  These were purged in the greenfield rewrite, forcing users to write manual loops or indexing math whenever setting up evaluation grids, plotting coordinates, ODE time vectors, or interpolation domains.
-- **The Win**:
-  - Standard, zero-boilerplate creation of linearly, logarithmically, and geometrically spaced 1D `Vector<double>` coordinates.
-- **Target Files**:
-  - `lib/src/linear/vector.dart` (or `lib/src/numeric/sampling.dart`)
-  - `lib/numeric.dart`
-  - `lib/linear.dart`
-  - `test/numeric/sampling_test.dart` (new)
-- **Step-by-Step Implementation Details**:
-  1. Implement `Vector<double> linearSpaced(double start, double stop, {int count = 50, bool endpoint = true, DataType<double>? type, bool? native})`.
-  2. Implement `Vector<double> logarithmicSpaced(double start, double stop, {int count = 50, double base = 10.0, bool endpoint = true, DataType<double>? type, bool? native})`.
-  3. Implement `Vector<double> geometricSpaced(double start, double stop, {int count = 50, bool endpoint = true, DataType<double>? type, bool? native})`.
-  4. Also expose `Vector.linspace`, `Vector.logspace`, and `Vector.geomspace` factory constructors on `Vector` for discoverability.
-  5. Add unit tests verifying start/stop boundary inclusion, spacing consistency, count accuracy, and logarithmic scaling.
-
----
 
 ### [ ] Linear Algebra Ergonomics: Natural 2D Indexing, General Matrix Solver, Determinant & Inverse
 

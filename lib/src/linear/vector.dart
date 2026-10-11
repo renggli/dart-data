@@ -85,6 +85,183 @@ class Vector<T> {
     native: native,
   );
 
+  /// Constructs a [Vector] with a sequence of [count] evenly spaced values
+  /// over the interval `[start, stop]`.
+  ///
+  /// Conceptually, this partitions the continuous interval between [start] and
+  /// [stop] into equal increments.
+  ///
+  /// When [endpoint] is `true` (the default), [stop] is included as the final
+  /// value. When [endpoint] is `false`, the interval is divided into [count]
+  /// sub-intervals and [stop] is excluded.
+  ///
+  /// ```dart
+  /// final v = Vector.linspace(0.0, 1.0, count: 5);
+  /// print(v); // [0.0, 0.25, 0.5, 0.75, 1.0]
+  /// ```
+  factory linspace(
+    double start,
+    double stop, {
+    int count = 50,
+    bool endpoint = true,
+    DataType<T>? type,
+    bool? native,
+  }) {
+    if (count < 0) {
+      throw ArgumentError.value(count, 'count', 'Count must be non-negative.');
+    }
+    final effectiveType = type ?? (DataType.float64 as DataType<T>);
+    final data = effectiveType.newList(count, native: native);
+    if (count == 1) {
+      data[0] = start as T;
+    } else if (count > 1) {
+      final divisor = endpoint ? count - 1 : count;
+      for (var i = 0; i < count; i++) {
+        if (i == 0) {
+          data[i] = start as T;
+        } else if (endpoint && i == count - 1) {
+          data[i] = stop as T;
+        } else {
+          final t = i / divisor;
+          data[i] = (start * (1.0 - t) + stop * t) as T;
+        }
+      }
+    }
+    return Vector(
+      Tensor.internal(
+        type: effectiveType,
+        layout: Layout(shape: [count]),
+        data: data,
+      ),
+    );
+  }
+
+  /// Constructs a [Vector] with a sequence of [count] evenly spaced values
+  /// on a logarithmic scale over `[base^start, base^stop]`.
+  ///
+  /// Conceptually, this evaluates [base] raised to powers that are linearly
+  /// spaced from [start] to [stop].
+  ///
+  /// ```dart
+  /// final v = Vector.logspace(0.0, 3.0, count: 4);
+  /// print(v); // [1.0, 10.0, 100.0, 1000.0]
+  /// ```
+  factory logspace(
+    double start,
+    double stop, {
+    int count = 50,
+    double base = 10.0,
+    bool endpoint = true,
+    DataType<T>? type,
+    bool? native,
+  }) {
+    if (count < 0) {
+      throw ArgumentError.value(count, 'count', 'Count must be non-negative.');
+    }
+    if (base <= 0.0) {
+      throw ArgumentError.value(base, 'base', 'Base must be positive.');
+    }
+    final effectiveType = type ?? (DataType.float64 as DataType<T>);
+    final data = effectiveType.newList(count, native: native);
+    if (count == 1) {
+      data[0] = math.pow(base, start).toDouble() as T;
+    } else if (count > 1) {
+      final divisor = endpoint ? count - 1 : count;
+      for (var i = 0; i < count; i++) {
+        if (i == 0) {
+          data[i] = math.pow(base, start).toDouble() as T;
+        } else if (endpoint && i == count - 1) {
+          data[i] = math.pow(base, stop).toDouble() as T;
+        } else {
+          final t = i / divisor;
+          final exp = start * (1.0 - t) + stop * t;
+          data[i] = math.pow(base, exp).toDouble() as T;
+        }
+      }
+    }
+    return Vector(
+      Tensor.internal(
+        type: effectiveType,
+        layout: Layout(shape: [count]),
+        data: data,
+      ),
+    );
+  }
+
+  /// Constructs a [Vector] with a sequence of [count] geometrically spaced values
+  /// over the interval `[start, stop]`.
+  ///
+  /// Both [start] and [stop] must be non-zero and share the same sign.
+  /// Values are spaced evenly on a logarithmic scale such that each step
+  /// has a constant multiplicative ratio.
+  ///
+  /// ```dart
+  /// final v = Vector.geomspace(1.0, 1000.0, count: 4);
+  /// print(v); // [1.0, 10.0, 100.0, 1000.0]
+  /// ```
+  factory geomspace(
+    double start,
+    double stop, {
+    int count = 50,
+    bool endpoint = true,
+    DataType<T>? type,
+    bool? native,
+  }) {
+    if (count < 0) {
+      throw ArgumentError.value(count, 'count', 'Count must be non-negative.');
+    }
+    if (start == 0.0) {
+      throw ArgumentError.value(
+        start,
+        'start',
+        'Geometric spacing requires non-zero start.',
+      );
+    }
+    if (stop == 0.0) {
+      throw ArgumentError.value(
+        stop,
+        'stop',
+        'Geometric spacing requires non-zero stop.',
+      );
+    }
+    if ((start > 0) != (stop > 0)) {
+      throw ArgumentError(
+        'Geometric spacing requires start and stop to have the same sign.',
+      );
+    }
+    final isNegative = start < 0.0;
+    final effectiveStart = isNegative ? -start : start;
+    final effectiveStop = isNegative ? -stop : stop;
+    final logStart = math.log(effectiveStart);
+    final logStop = math.log(effectiveStop);
+    final effectiveType = type ?? (DataType.float64 as DataType<T>);
+    final data = effectiveType.newList(count, native: native);
+    if (count == 1) {
+      data[0] = start as T;
+    } else if (count > 1) {
+      final divisor = endpoint ? count - 1 : count;
+      for (var i = 0; i < count; i++) {
+        if (i == 0) {
+          data[i] = start as T;
+        } else if (endpoint && i == count - 1) {
+          data[i] = stop as T;
+        } else {
+          final t = i / divisor;
+          final logVal = logStart * (1.0 - t) + logStop * t;
+          final val = math.exp(logVal);
+          data[i] = (isNegative ? -val : val) as T;
+        }
+      }
+    }
+    return Vector(
+      Tensor.internal(
+        type: effectiveType,
+        layout: Layout(shape: [count]),
+        data: data,
+      ),
+    );
+  }
+
   /// The underlying 1D [Tensor].
   final Tensor<T> tensor;
 

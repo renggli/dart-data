@@ -60,6 +60,65 @@ extension type Float64Vector(Vector<double> _vector) implements Vector<double> {
         ),
       );
 
+  /// Constructs a [Float64Vector] with a sequence of [count] evenly spaced values
+  /// over the interval `[start, stop]`.
+  factory linspace(
+    double start,
+    double stop, {
+    int count = 50,
+    bool endpoint = true,
+    bool? native,
+  }) => Float64Vector(
+    Vector<double>.linspace(
+      start,
+      stop,
+      count: count,
+      endpoint: endpoint,
+      type: DataType.float64,
+      native: native,
+    ),
+  );
+
+  /// Constructs a [Float64Vector] with a sequence of [count] evenly spaced values
+  /// on a logarithmic scale over `[base^start, base^stop]`.
+  factory logspace(
+    double start,
+    double stop, {
+    int count = 50,
+    double base = 10.0,
+    bool endpoint = true,
+    bool? native,
+  }) => Float64Vector(
+    Vector<double>.logspace(
+      start,
+      stop,
+      count: count,
+      base: base,
+      endpoint: endpoint,
+      type: DataType.float64,
+      native: native,
+    ),
+  );
+
+  /// Constructs a [Float64Vector] with a sequence of [count] geometrically spaced values
+  /// over the interval `[start, stop]`.
+  factory geomspace(
+    double start,
+    double stop, {
+    int count = 50,
+    bool endpoint = true,
+    bool? native,
+  }) => Float64Vector(
+    Vector<double>.geomspace(
+      start,
+      stop,
+      count: count,
+      endpoint: endpoint,
+      type: DataType.float64,
+      native: native,
+    ),
+  );
+
   /// Direct zero-copy access to the underlying [Float64List] buffer.
   Float64List get asTypedList => _vector.tensor.data is Float64List
       ? _vector.tensor.data as Float64List

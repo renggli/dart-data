@@ -7,7 +7,9 @@
 /// ## Core Data Structures
 ///
 /// - [Vector]: 1-dimensional mathematical vector supporting dot product, cross product,
-///   $L_1$, $L_2$, and $L_\infty$ norms, and projections ([VectorProjectionExtension]).
+///   $L_1$, $L_2$, and $L_\infty$ norms, projections ([VectorProjectionExtension]),
+///   and coordinate sampling grids ([Vector.linspace], [Vector.logspace], [Vector.geomspace],
+///   [linearSpaced], [logarithmicSpaced], [geometricSpaced]).
 /// - [Matrix]: 2-dimensional matrix supporting matrix multiplication, transposition,
 ///   inversion, determinant, trace, and block slicing.
 /// - [Float64Matrix] and [Float64Vector]: Zero-cost extension types providing direct
@@ -67,6 +69,7 @@ import 'src/linear/sparse/coo_matrix.dart';
 import 'src/linear/sparse/csc_matrix.dart';
 import 'src/linear/sparse/csr_matrix.dart';
 import 'src/linear/vector.dart';
+import 'src/numeric/sampling.dart';
 
 export 'src/linear/decomposition/cholesky.dart';
 export 'src/linear/decomposition/eigenvalue.dart';
@@ -85,3 +88,4 @@ export 'src/linear/sparse/coo_matrix.dart';
 export 'src/linear/sparse/csc_matrix.dart';
 export 'src/linear/sparse/csr_matrix.dart';
 export 'src/linear/vector.dart';
+export 'src/numeric/sampling.dart';

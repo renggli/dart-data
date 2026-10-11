@@ -13,6 +13,7 @@
 /// - **Numerical Optimization**: [minimize] with [OptimizationMethod] ([OptimizationMethod.nelderMead], [OptimizationMethod.bfgs], [OptimizationMethod.lbfgs], [OptimizationMethod.brent]) and [BoxBound] constraints.
 /// - **Curve Fitting & Regression**: [curveFit] and [CurveModels] for non-linear models,
 ///   [leastSquares], [linearRegression], [polynomialRegression], and [fitNonlinear].
+/// - **Sampling Grids**: [linearSpaced], [logarithmicSpaced], and [geometricSpaced] for generating coordinate grids.
 /// - **Differential Equations**: [solveOde] with [OdeMethod] ([OdeMethod.dormandPrince45], [OdeMethod.rk4]).
 /// - **Interpolation**: 1D linear ([LinearInterpolation]), cubic spline ([CubicSpline]),
 ///   monotonic cubic ([PchipInterpolation]), and 2D bilinear ([BilinearInterpolation]) / bicubic ([BicubicInterpolation]).
@@ -45,6 +46,7 @@ import 'src/numeric/interpolation_2d.dart';
 import 'src/numeric/ode.dart';
 import 'src/numeric/optimization.dart';
 import 'src/numeric/root_finding.dart';
+import 'src/numeric/sampling.dart';
 
 export 'src/numeric/calculus.dart';
 export 'src/numeric/curve_fit.dart';
@@ -55,3 +57,4 @@ export 'src/numeric/interpolation_2d.dart';
 export 'src/numeric/ode.dart';
 export 'src/numeric/optimization.dart';
 export 'src/numeric/root_finding.dart';
+export 'src/numeric/sampling.dart';
