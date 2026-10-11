@@ -312,6 +312,218 @@ multipleLinearRegression(
   );
 }
 
+/// Result of non-linear parametric curve fitting.
+class CurveFitResult {
+  const new({
+    required this.parameters,
+    required this.predict,
+    required this.rSquared,
+    required this.residualStandardError,
+    required this.residuals,
+    required this.iterations,
+  });
+
+  /// The optimal parameter vector $\hat{\boldsymbol{\theta}}$.
+  final Vector<double> parameters;
+
+  /// Predictor function evaluating the fitted model $\hat{y} = f(x; \hat{\boldsymbol{\theta}})$.
+  final double Function(double x) predict;
+
+  /// Coefficient of determination $R^2 \in (-\infty, 1]$, measuring goodness-of-fit.
+  final double rSquared;
+
+  /// Residual standard error $\sqrt{\frac{\sum r_i^2}{N - P}}$.
+  final double residualStandardError;
+
+  /// The residual vector $\mathbf{r}$ where $r_i = \hat{y}_i - y_i$.
+  final Vector<double> residuals;
+
+  /// The number of optimization iterations performed.
+  final int iterations;
+}
+
+/// Predefined parametric models for non-linear curve fitting with [curveFit].
+abstract final class CurveModels {
+  /// Exponential model: $f(x; a, b) = a e^{b x}$.
+  /// Parameters: `[a, b]`.
+  static double exponential(double x, Vector<double> params) =>
+      params[0] * math.exp(params[1] * x);
+
+  /// Power-law model: $f(x; a, b) = a x^b$.
+  /// Parameters: `[a, b]`.
+  static double power(double x, Vector<double> params) =>
+      params[0] * math.pow(x, params[1]).toDouble();
+
+  /// Logarithmic model: $f(x; a, b) = a + b \ln x$.
+  /// Parameters: `[a, b]`.
+  static double logarithmic(double x, Vector<double> params) =>
+      params[0] + params[1] * math.log(x);
+
+  /// Gaussian peak model: $f(x; a, \mu, \sigma) = a e^{-\frac{(x - \mu)^2}{2\sigma^2}}$.
+  /// Parameters: `[a, mu, sigma]`.
+  static double gaussian(double x, Vector<double> params) {
+    final diff = x - params[1];
+    final s = params[2];
+    return params[0] * math.exp(-(diff * diff) / (2.0 * s * s));
+  }
+}
+
+/// Fits non-linear parameters $\hat{\boldsymbol{\theta}}$ to data points ([xs], [ys]) using [model].
+///
+/// Conceptually, curve fitting determines the optimal parameters of a mathematical function
+/// that best trace the trend of experimental or observed data points.
+/// Formally, it minimizes the sum of squared residuals $\sum_{i=1}^N (f(x_i; \boldsymbol{\theta}) - y_i)^2$
+/// using Levenberg-Marquardt damped least-squares with optional box constraints
+/// ([lowerBounds] and [upperBounds]).
+///
+/// Returns a [CurveFitResult] containing the optimal parameters, predictor function,
+/// $R^2$ goodness-of-fit, and residual metrics.
+///
+/// ```dart
+/// final xs = Vector<double>.fromList([0.0, 1.0, 2.0, 3.0]);
+/// final ys = Vector<double>.fromList([2.0, 5.4, 14.8, 40.2]); // approx 2 * exp(x)
+/// final result = curveFit(
+///   xs: xs,
+///   ys: ys,
+///   model: CurveModels.exponential,
+///   initialParams: Vector<double>.fromList([1.0, 0.5]),
+/// );
+/// print(result.parameters); // [~2.0, ~1.0]
+/// print(result.predict(4.0)); // ~109.2
+/// ```
+CurveFitResult curveFit({
+  required Vector<num> xs,
+  required Vector<num> ys,
+  required double Function(double x, Vector<double> params) model,
+  required Vector<double> initialParams,
+  Vector<double>? lowerBounds,
+  Vector<double>? upperBounds,
+  double tolerance = 1e-7,
+  int maxIterations = 100,
+  double damping = 1e-2,
+  double dampingStepUp = 10.0,
+  double dampingStepDown = 0.1,
+}) {
+  final n = xs.length;
+  if (n != ys.length) {
+    throw ArgumentError('xs length ($n) must match ys length (${ys.length}).');
+  }
+  final numParams = initialParams.length;
+  if (n < numParams) {
+    throw ArgumentError(
+      'Number of data points ($n) must be at least number of parameters ($numParams).',
+    );
+  }
+  if (lowerBounds != null && lowerBounds.length != numParams) {
+    throw ArgumentError(
+      'lowerBounds length (${lowerBounds.length}) must match initialParams length ($numParams).',
+    );
+  }
+  if (upperBounds != null && upperBounds.length != numParams) {
+    throw ArgumentError(
+      'upperBounds length (${upperBounds.length}) must match initialParams length ($numParams).',
+    );
+  }
+
+  final params = initialParams.copy();
+  for (var k = 0; k < numParams; k++) {
+    final lo = lowerBounds?[k] ?? double.negativeInfinity;
+    final hi = upperBounds?[k] ?? double.infinity;
+    params[k] = params[k].clamp(lo, hi);
+  }
+
+  Vector<double> computeResiduals(Vector<double> p) => Vector<double>.generate(
+    n,
+    (i) => model(xs[i].toDouble(), p) - ys[i].toDouble(),
+    type: DataType.float64,
+  );
+
+  var residuals = computeResiduals(params);
+  var currentCost = residuals.dot(residuals);
+  var lambda = damping;
+  var iter = 0;
+
+  for (; iter < maxIterations; iter++) {
+    if (math.sqrt(currentCost) < tolerance) break;
+
+    const step = 1e-7;
+    final j = Matrix<double>.generate(n, numParams, (row, col) {
+      final pForward = params.copy();
+      pForward[col] += step;
+      final rForward = computeResiduals(pForward);
+      return (rForward[row] - residuals[row]) / step;
+    }, type: DataType.float64);
+
+    final jTj = j.syrk(transpose: true);
+    final jTr = j.applyTranspose(residuals);
+
+    final a = Matrix<double>.generate(numParams, numParams, (row, col) {
+      var val = jTj.get(row, col);
+      if (row == col) {
+        val += lambda * (val.abs() > 1e-6 ? val.abs() : 1.0);
+      }
+      return val;
+    }, type: DataType.float64);
+
+    final rhs = -jTr;
+    final delta = leastSquares(a, rhs);
+    if (delta.norm() < tolerance) break;
+
+    final pCandidate = params + delta;
+    for (var k = 0; k < numParams; k++) {
+      final lo = lowerBounds?[k] ?? double.negativeInfinity;
+      final hi = upperBounds?[k] ?? double.infinity;
+      pCandidate[k] = pCandidate[k].clamp(lo, hi);
+    }
+
+    final rCandidate = computeResiduals(pCandidate);
+    final candidateCost = rCandidate.dot(rCandidate);
+
+    if (candidateCost < currentCost) {
+      for (var k = 0; k < numParams; k++) {
+        params[k] = pCandidate[k];
+      }
+      residuals = rCandidate;
+      currentCost = candidateCost;
+      lambda *= dampingStepDown;
+    } else {
+      lambda *= dampingStepUp;
+    }
+  }
+
+  var ySum = 0.0;
+  for (var i = 0; i < n; i++) {
+    ySum += ys[i].toDouble();
+  }
+  final yMean = ySum / n;
+
+  var ssTot = 0.0;
+  var ssRes = 0.0;
+  for (var i = 0; i < n; i++) {
+    final yVal = ys[i].toDouble();
+    final dTot = yVal - yMean;
+    ssTot += dTot * dTot;
+    final r = residuals[i];
+    ssRes += r * r;
+  }
+
+  final rSquared = ssTot > 0.0
+      ? 1.0 - (ssRes / ssTot)
+      : (ssRes == 0.0 ? 1.0 : 0.0);
+  final df = n - numParams;
+  final rse = math.sqrt(ssRes / math.max(df, 1));
+
+  final optimalParams = params.copy();
+  return CurveFitResult(
+    parameters: optimalParams,
+    predict: (double x) => model(x, optimalParams),
+    rSquared: rSquared,
+    residualStandardError: rse,
+    residuals: residuals,
+    iterations: iter,
+  );
+}
+
 /// Fits non-linear parameters using the Levenberg-Marquardt damped least-squares algorithm.
 Vector<double> fitNonlinear({
   required Vector<double> Function(Vector<double> params) residualFunction,

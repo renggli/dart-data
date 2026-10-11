@@ -11,7 +11,8 @@
 ///   and [solveSystem] for multivariable systems.
 /// - **Numerical Integration**: [integrate] with [IntegrationMethod] ([IntegrationMethod.gaussKronrod], [IntegrationMethod.simpson]).
 /// - **Numerical Optimization**: [minimize] with [OptimizationMethod] ([OptimizationMethod.nelderMead], [OptimizationMethod.bfgs], [OptimizationMethod.lbfgs], [OptimizationMethod.brent]) and [BoxBound] constraints.
-/// - **Curve Fitting & Regression**: [leastSquares], [linearRegression], [polynomialRegression], and [fitNonlinear].
+/// - **Curve Fitting & Regression**: [curveFit] and [CurveModels] for non-linear models,
+///   [leastSquares], [linearRegression], [polynomialRegression], and [fitNonlinear].
 /// - **Differential Equations**: [solveOde] with [OdeMethod] ([OdeMethod.dormandPrince45], [OdeMethod.rk4]).
 /// - **Interpolation**: 1D linear ([LinearInterpolation]), cubic spline ([CubicSpline]),
 ///   monotonic cubic ([PchipInterpolation]), and 2D bilinear ([BilinearInterpolation]) / bicubic ([BicubicInterpolation]).

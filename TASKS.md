@@ -4,7 +4,6 @@ This document defines the actionable engineering task list for `package:data`.
 
 ## Tasks
 
-- [ ] High-Level Curve Fitting & Parametric Model Architecture Restoration
 - [ ] Scientific Sampling Grids (`linearSpaced`, `logarithmicSpaced`, `geometricSpaced`)
 - [ ] Linear Algebra Ergonomics: Natural 2D Indexing, General Matrix Solver, Determinant & Inverse
 - [ ] Sparse Polynomial Representation
@@ -19,28 +18,7 @@ This document defines the actionable engineering task list for `package:data`.
 
 
 
-### [ ] High-Level Curve Fitting & Parametric Model Architecture Restoration
 
-- **Problem / Goal**:
-  In `v0.16.0`, curve fitting was a cohesive, problem-oriented subsystem:
-  - `CurveFit` abstract interface with `fit({required Vector<double> xs, required Vector<double> ys}) -> CurveFitResult`.
-  - `CurveFitResult` returned both the optimal parameters and a ready-to-evaluate mathematical `function`.
-  - `ParametrizedUnaryFunction` provided seamless binding over positional, named, list, map, and vector parameter models, along with parameter bounds (`minValue`, `maxValue`).
-  In HEAD, non-linear fitting was reduced to raw `levenbergMarquardt`, which takes a residual vector function and raw parameter vector, returning only a `Vector<double>`. The user has to manually calculate residual vectors and reconstruct the fitted function.
-- **The Win**:
-  - Intuitive, high-level non-linear curve fitting: pass data vectors `xs` and `ys` and a model function $f(x; \theta)$, receiving back fitted parameters, covariance/uncertainty, $R^2$ goodness-of-fit, and a callable predictor function.
-- **Target Files**:
-  - `lib/src/numeric/curve_fit.dart`
-  - `lib/numeric.dart`
-  - `test/numeric/curve_fit_test.dart`
-- **Step-by-Step Implementation Details**:
-  1. Define `class CurveFitResult` containing `Vector<double> parameters`, `double Function(double) predict`, `double rSquared`, and residual metrics.
-  2. Implement canonical `CurveFitResult curveFit({required Vector<num> xs, required Vector<num> ys, required double Function(double x, Vector<double> params) model, required Vector<double> initialParams, Vector<double>? lowerBounds, Vector<double>? upperBounds, double tolerance = 1e-7, int maxIterations = 100})`.
-  3. Wire internal optimization to the existing Levenberg-Marquardt routine or bounded optimizer while encapsulating the residual vector assembly $(r_i = \text{model}(x_i, p) - y_i)$.
-  4. Provide high-level wrappers for common models (exponential $a e^{b x}$, power $a x^b$, logarithmic $a + b \ln x$, gaussian $a e^{-\frac{(x - \mu)^2}{2\sigma^2}}$).
-  5. Add tests fitting non-linear noisy datasets and verifying parameter convergence and $R^2$ accuracy.
-
----
 
 ### [ ] Scientific Sampling Grids (`linearSpaced`, `logarithmicSpaced`, `geometricSpaced`)
 

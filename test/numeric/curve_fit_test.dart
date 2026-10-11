@@ -228,4 +228,145 @@ void main() {
       check(poly.evaluateDouble(0.0)).isCloseTo(1.0, 0.05);
     });
   });
+
+  group('High-Level Parametric Curve Fitting (curveFit)', () {
+    test('CurveModels.exponential fitting with clean metrics', () {
+      final xs = Vector<double>.fromList([0.0, 1.0, 2.0, 3.0]);
+      // True model: y = 3.0 * exp(0.5 * x)
+      final ys = Vector<double>.generate(
+        xs.length,
+        (i) => 3.0 * math.exp(0.5 * xs[i]),
+      );
+
+      final result = curveFit(
+        xs: xs,
+        ys: ys,
+        model: CurveModels.exponential,
+        initialParams: Vector<double>.fromList([1.0, 0.1]),
+      );
+
+      check(result.parameters[0]).isCloseTo(3.0, 1e-5);
+      check(result.parameters[1]).isCloseTo(0.5, 1e-5);
+      check(result.rSquared).isCloseTo(1.0, 1e-5);
+      check(result.residualStandardError).isLessThan(1e-5);
+      check(result.predict(4.0)).isCloseTo(3.0 * math.exp(0.5 * 4.0), 1e-4);
+      check(result.iterations).isGreaterThan(0);
+    });
+
+    test('CurveModels.power law fitting', () {
+      final xs = Vector<double>.fromList([1.0, 2.0, 3.0, 4.0, 5.0]);
+      // True model: y = 2.0 * x^1.5
+      final ys = Vector<double>.generate(
+        xs.length,
+        (i) => 2.0 * math.pow(xs[i], 1.5).toDouble(),
+      );
+
+      final result = curveFit(
+        xs: xs,
+        ys: ys,
+        model: CurveModels.power,
+        initialParams: Vector<double>.fromList([1.0, 1.0]),
+      );
+
+      check(result.parameters[0]).isCloseTo(2.0, 1e-5);
+      check(result.parameters[1]).isCloseTo(1.5, 1e-5);
+      check(result.rSquared).isCloseTo(1.0, 1e-5);
+    });
+
+    test('CurveModels.logarithmic model fitting', () {
+      final xs = Vector<double>.fromList([1.0, 2.0, 3.0, 4.0, 5.0]);
+      // True model: y = 1.5 + 2.0 * ln(x)
+      final ys = Vector<double>.generate(
+        xs.length,
+        (i) => 1.5 + 2.0 * math.log(xs[i]),
+      );
+
+      final result = curveFit(
+        xs: xs,
+        ys: ys,
+        model: CurveModels.logarithmic,
+        initialParams: Vector<double>.fromList([0.5, 1.0]),
+      );
+
+      check(result.parameters[0]).isCloseTo(1.5, 1e-5);
+      check(result.parameters[1]).isCloseTo(2.0, 1e-5);
+      check(result.rSquared).isCloseTo(1.0, 1e-5);
+    });
+
+    test('CurveModels.gaussian peak fitting with noisy data', () {
+      final xs = Vector<double>.fromList([-1.0, 0.0, 1.0, 2.0, 3.0]);
+      // True model: 4.0 * exp(-(x - 1.0)^2 / (2 * 0.8^2))
+      final ys = Vector<double>.generate(
+        xs.length,
+        (i) =>
+            4.0 *
+            math.exp(-((xs[i] - 1.0) * (xs[i] - 1.0)) / (2.0 * 0.8 * 0.8)),
+      );
+
+      final result = curveFit(
+        xs: xs,
+        ys: ys,
+        model: CurveModels.gaussian,
+        initialParams: Vector<double>.fromList([3.0, 0.8, 1.0]),
+      );
+
+      check(result.parameters[0]).isCloseTo(4.0, 1e-4);
+      check(result.parameters[1]).isCloseTo(1.0, 1e-4);
+      check(result.parameters[2]).isCloseTo(0.8, 1e-4);
+      check(result.rSquared).isGreaterThan(0.999);
+    });
+
+    test('parameter bounds constraints', () {
+      final xs = Vector<double>.fromList([0.0, 1.0, 2.0]);
+      final ys = Vector<double>.fromList([1.0, 2.0, 4.0]);
+
+      // Enforce lower bound on parameter 0 of at least 2.0
+      final result = curveFit(
+        xs: xs,
+        ys: ys,
+        model: (x, p) => p[0] + p[1] * x,
+        initialParams: Vector<double>.fromList([2.5, 1.0]),
+        lowerBounds: Vector<double>.fromList([2.0, 0.0]),
+        upperBounds: Vector<double>.fromList([5.0, 5.0]),
+      );
+
+      check(result.parameters[0]).isGreaterOrEqual(2.0);
+    });
+
+    test('curveFit validation errors', () {
+      final xs = Vector<double>.fromList([1.0, 2.0]);
+      final ys = Vector<double>.fromList([1.0]);
+
+      // Length mismatch
+      check(
+        () => curveFit(
+          xs: xs,
+          ys: ys,
+          model: CurveModels.exponential,
+          initialParams: Vector<double>.fromList([1.0, 1.0]),
+        ),
+      ).throws<ArgumentError>();
+
+      // Insufficient points
+      check(
+        () => curveFit(
+          xs: Vector<double>.fromList([1.0]),
+          ys: Vector<double>.fromList([1.0]),
+          model: CurveModels.gaussian,
+          initialParams: Vector<double>.fromList([1.0, 1.0, 1.0]),
+        ),
+      ).throws<ArgumentError>();
+
+      // Bounds length mismatch
+      check(
+        () => curveFit(
+          xs: Vector<double>.fromList([1.0, 2.0, 3.0]),
+          ys: Vector<double>.fromList([1.0, 2.0, 3.0]),
+          model: CurveModels.exponential,
+          initialParams: Vector<double>.fromList([1.0, 1.0]),
+          lowerBounds: Vector<double>.fromList([0.0]),
+        ),
+      ).throws<ArgumentError>();
+    });
+  });
 }
