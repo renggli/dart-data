@@ -12,12 +12,9 @@ String formatExpr(Expr expr, [int parentPrec = 0]) {
     Cos(:final expr) => 'cos(${formatExpr(expr)})',
     Exp(:final expr) => 'exp(${formatExpr(expr)})',
     Ln(:final expr) => 'ln(${formatExpr(expr)})',
-    Neg(:final expr) => switch (expr) {
-      Add() || Sub() || Mul() || Div() || Neg() => '-(${formatExpr(expr)})',
-      _ => '-${formatExpr(expr)}',
-    },
+    Neg(:final expr) => '-${formatExpr(expr, 4)}',
     Pow(:final base, :final exponent) =>
-      '${base is Pow || precedence(base) < 3 ? '(${formatExpr(base)})' : formatExpr(base)} ^ ${precedence(exponent) < 3 ? '(${formatExpr(exponent)})' : formatExpr(exponent)}',
+      '${formatExpr(base, 5)} ^ ${formatExpr(exponent, 4)}',
     Mul(:final left, :final right) =>
       '${formatExpr(left, 2)} * ${formatExpr(right, 2)}',
     Div(:final left, :final right) =>
@@ -34,6 +31,7 @@ String formatExpr(Expr expr, [int parentPrec = 0]) {
 int precedence(Expr expr) => switch (expr) {
   Add() || Sub() => 1,
   Mul() || Div() => 2,
-  Pow() => 3,
-  _ => 4,
+  Neg() || Constant(value: < 0) => 3,
+  Pow() => 4,
+  _ => 5,
 };

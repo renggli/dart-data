@@ -110,7 +110,7 @@ void main() {
       check(Expr.parse('x ^ y ^ z')).equals(const Pow(x, Pow(y, z)));
       check(Expr.parse('2 ^ 3 ^ 2').evaluate({}))
           .equals(math.pow(2.0, math.pow(3.0, 2.0)).toDouble());
-      check(Expr.parse('2 ^ -3').evaluate({})).equals(0.125);
+      check(Expr.parse('2 ^ (-3)').evaluate({})).equals(0.125);
     });
 
     test('parses multiplication and division with left associativity', () {
@@ -140,12 +140,20 @@ void main() {
     });
 
     test('respects standard algebraic operator precedence', () {
+      const x = Variable('x');
+
       // Multiplication before addition: 1 + 2 * 3 = 7
       check(Expr.parse('1 + 2 * 3').evaluate({})).equals(7.0);
       check(Expr.parse('2 * 3 + 1').evaluate({})).equals(7.0);
 
       // Exponentiation before multiplication: 2 * 3 ^ 2 = 18
       check(Expr.parse('2 * 3 ^ 2').evaluate({})).equals(18.0);
+
+      // Exponentiation before unary negation: -x^2 = -(x^2)
+      check(Expr.parse('-x^2')).equals(const Neg(Pow(x, Constant(2.0))));
+      check(Expr.parse('(-x)^2')).equals(const Pow(Neg(x), Constant(2.0)));
+      check(Expr.parse('-3^2').evaluate({})).equals(-9.0);
+      check(Expr.parse('(-3)^2').evaluate({})).equals(9.0);
 
       // Parentheses override precedence: (1 + 2) * 3 = 9
       check(Expr.parse('(1 + 2) * 3').evaluate({})).equals(9.0);

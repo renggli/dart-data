@@ -29,22 +29,22 @@ final parser = () {
   builder.group().wrapper(
     char('(').trim(),
     char(')').trim(),
-    (left, value, right) => value,
+    (_, value, _) => value,
   );
+  // Exponentiation (right-associative)
+  builder.group().right(char('^').trim(), (a, _, b) => Pow(a, b));
   // Unary prefix operators (+, -)
   builder.group()
-    ..prefix(char('+').trim(), (op, a) => a)
-    ..prefix(char('-').trim(), (op, a) => Neg(a));
-  // Exponentiation (right-associative)
-  builder.group().right(char('^').trim(), (a, op, b) => Pow(a, b));
+    ..prefix(char('+').trim(), (_, a) => a)
+    ..prefix(char('-').trim(), (_, a) => Neg(a));
   // Multiplicative operators (*, /, left-associative)
   builder.group()
-    ..left(char('*').trim(), (a, op, b) => Mul(a, b))
-    ..left(char('/').trim(), (a, op, b) => Div(a, b));
+    ..left(char('*').trim(), (a, _, b) => Mul(a, b))
+    ..left(char('/').trim(), (a, _, b) => Div(a, b));
   // Additive operators (+, -, left-associative)
   builder.group()
-    ..left(char('+').trim(), (a, op, b) => Add(a, b))
-    ..left(char('-').trim(), (a, op, b) => Sub(a, b));
+    ..left(char('+').trim(), (a, _, b) => Add(a, b))
+    ..left(char('-').trim(), (a, _, b) => Sub(a, b));
   return resolve(builder.build()).end();
 }();
 
@@ -52,12 +52,12 @@ Expr _createValue(String value) => Constant(double.parse(value));
 
 Expr _createBinding(String name, List<Expr> arguments) =>
     switch (arguments.length) {
-      0 => switch (name) {
-        'pi' || 'PI' || 'Pi' => Constant.pi,
+      0 => switch (name.toLowerCase()) {
+        'pi' => Constant.pi,
         'e' => Constant.e,
         _ => Variable(name),
       },
-      1 => switch (name) {
+      1 => switch (name.toLowerCase()) {
         'sin' => Sin(arguments[0]),
         'cos' => Cos(arguments[0]),
         'exp' => Exp(arguments[0]),
