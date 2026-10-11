@@ -2,7 +2,16 @@ import 'dart:math';
 
 /// Returns the modified Bessel function $I_0(x)$ of the first kind of order 0.
 ///
+/// Conceptually, modified Bessel functions describe physical diffusion processes,
+/// such as heat dissipation or electric fields around cylindrical conductors.
+/// Formally, this calculates the non-oscillatory modified Bessel function
+/// $I_0(x) = J_0(i x) = \sum_{m=0}^\infty \frac{1}{(m!)^2} \left( \frac{x}{2} \right)^{2m}$.
+///
 /// See https://en.wikipedia.org/wiki/Bessel_function for details.
+///
+/// ```dart
+/// final val = besselI0(0.0); // 1.0
+/// ```
 double besselI0(num x) {
   if (x.isNaN) return double.nan;
   if (x == 0) return 1.0;
@@ -172,7 +181,17 @@ double besselK1(num x) {
 
 /// Returns the Bessel function $J_0(x)$ of the first kind of order 0.
 ///
+/// Conceptually, Bessel functions describe radial wave phenomena,
+/// such as concentric ripple patterns on water surfaces or the vibrational modes of a circular drumhead.
+/// Formally, this is the solution to Bessel's differential equation
+/// $x^2 y'' + x y' + x^2 y = 0$ that is non-singular at $x=0$, given by
+/// $J_0(x) = \sum_{m=0}^\infty \frac{(-1)^m}{(m!)^2} \left( \frac{x}{2} \right)^{2m}$.
+///
 /// See https://en.wikipedia.org/wiki/Bessel_function for details.
+///
+/// ```dart
+/// final val = besselJ0(0.0); // 1.0
+/// ```
 double besselJ0(num x) {
   if (x.isNaN) return double.nan;
   if (x == 0) return 1.0;

@@ -1,8 +1,8 @@
 import '../dataframe.dart';
 
-/// CSV serialization for DataFrame.
+/// CSV serialization for [DataFrame].
 class CsvWriter {
-  /// Serializes DataFrame to a CSV formatted string.
+  /// Serializes [DataFrame] to a CSV formatted string.
   static String write(DataFrame df, {String separator = ','}) {
     final sb = StringBuffer();
     // Header

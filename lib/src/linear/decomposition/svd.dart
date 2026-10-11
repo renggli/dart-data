@@ -20,12 +20,22 @@ extension SvdMatrixExtension<T extends num> on Matrix<T> {
         );
 }
 
-/// Singular Value Decomposition (SVD) of an [m x n] matrix $A$.
+/// Singular Value Decomposition (SVD) of an $m \times n$ matrix $A$.
 ///
-/// Factorizes $A = U \Sigma V^T$ where:
-/// - $U$ is an [m x m] orthogonal matrix
-/// - $\Sigma$ is an [m x n] diagonal matrix with singular values $\sigma_1 \ge \sigma_2 \ge \dots \ge 0$
-/// - $V$ is an [n x n] orthogonal matrix ($V^T$ is its transpose)
+/// Conceptually, SVD breaks any matrix down into three intuitive geometric steps:
+/// an initial rotation ($V^T$), scaling along coordinate axes ($\Sigma$), and a second rotation ($U$).
+/// More formally, it computes $A = U \Sigma V^T$ where $U \in \mathbb{R}^{m \times m}$
+/// and $V \in \mathbb{R}^{n \times n}$ are orthogonal matrices and $\Sigma$ contains singular values
+/// $\sigma_1 \ge \sigma_2 \ge \dots \ge 0$ in non-increasing order.
+///
+/// ```dart
+/// final a = Matrix<double>.fromRows([
+///   [3.0, 0.0],
+///   [0.0, 4.0],
+/// ]);
+/// final svd = a.svd;
+/// print(svd.s); // [4.0, 3.0]
+/// ```
 class SingularValueDecomposition {
   /// Computes the SVD of [matrix].
   factory(Matrix<num> matrix, {bool computeVectors = true}) {
@@ -72,19 +82,19 @@ class SingularValueDecomposition {
   /// The singular values in descending order.
   final Vector<double> s;
 
-  /// The left singular vectors ([m x m] orthogonal matrix).
+  /// The left singular vectors as an $m \times m$ orthogonal matrix.
   final Matrix<double> u;
 
-  /// The transpose of right singular vectors ([n x n] orthogonal matrix).
+  /// The transpose of right singular vectors as an $n \times n$ orthogonal matrix.
   final Matrix<double> vt;
 
   /// Whether singular vectors were computed.
   final bool vectorsComputed;
 
-  /// The right singular vectors ([n x n] orthogonal matrix).
+  /// The right singular vectors as an $n \times n$ orthogonal matrix.
   Matrix<double> get v => vt.transposed;
 
-  /// Returns the diagonal matrix of singular values of size [m x n].
+  /// Returns the diagonal matrix of singular values of size $m \times n$.
   Matrix<double> get sigma => Matrix<double>.generate(
     u.rowCount,
     vt.colCount,

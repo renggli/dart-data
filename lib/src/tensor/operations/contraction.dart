@@ -5,20 +5,45 @@ import 'matmul.dart';
 extension ContractionTensorExtension<T> on Tensor<T> {
   /// Computes the tensor dot product (contraction) along specified [axes].
   ///
+  /// Conceptually, this generalizes matrix multiplication and dot products
+  /// to multidimensional tensors along chosen axes.
+  ///
+  /// Formally, this calculates the tensor contraction
+  /// $C_{i_1\dots i_m j_1\dots j_n} = \sum_{k_1\dots k_p} A_{i_1\dots i_m k_1\dots k_p} B_{k_1\dots k_p j_1\dots j_n}$.
+  ///
   /// - If [axes] is an integer $N$, contracts the last $N$ axes of `this`
   ///   with the first $N$ axes of [other].
   /// - If [axes] is a tuple `(axesA, axesB)`, contracts the listed axes of `this`
   ///   with the corresponding listed axes of [other].
   ///
-  /// Maps to 2D matrix multiplication (`matmul`), leveraging hardware BLAS
+  /// Maps to 2D matrix multiplication ([matmul]), leveraging hardware BLAS
   /// acceleration when available.
-  Tensor<T> tensordot(Tensor<T> other, {dynamic axes = 2}) =>
-      tensorDot(this, other, axes: axes);
+  ///
+  /// ```dart
+  /// final a = Tensor<int>.fromObject([[1, 2], [3, 4]]);
+  /// final b = Tensor<int>.fromObject([[5, 6], [7, 8]]);
+  /// final c = a.tensordot(b, axes: 1);
+  /// // c has shape [2, 2] and values [[19, 22], [43, 50]]
+  /// ```
+  Tensor<T> tensordot(Tensor<T> other, {Object axes = 2}) =>
+      _tensorDot(this, other, axes: axes);
 
   /// Computes the tensor inner product (Frobenius / full contraction) with [other].
   ///
+  /// Conceptually, this multiplies all corresponding entries pairwise
+  /// and sums them into a single scalar value.
+  ///
+  /// Formally, this calculates the Frobenius inner product
+  /// $\langle A, B \rangle_F = \sum A_{i_1\dots i_k} B_{i_1\dots i_k}$.
+  ///
   /// Contracts all corresponding axes, resulting in a rank-0 scalar tensor.
-  Tensor<T> innerProduct(Tensor<T> other) => tensorDot(
+  ///
+  /// ```dart
+  /// final a = Tensor<int>.fromObject([1, 2, 3]);
+  /// final b = Tensor<int>.fromObject([4, 5, 6]);
+  /// final ip = a.innerProduct(b).toFlatList().first; // 32
+  /// ```
+  Tensor<T> innerProduct(Tensor<T> other) => _tensorDot(
     this,
     other,
     axes: (
@@ -29,14 +54,23 @@ extension ContractionTensorExtension<T> on Tensor<T> {
 
   /// Computes the tensor outer product with [other].
   ///
+  /// Conceptually, this multiplies every entry of the first tensor
+  /// by every entry of the second, creating a higher-dimensional tensor of products.
+  ///
+  /// Formally, this computes the tensor product $A \otimes B$ with components
+  /// $(A \otimes B)_{i_1\dots i_m j_1\dots j_n} = A_{i_1\dots i_m} B_{j_1\dots j_n}$.
+  ///
   /// No axes are contracted, producing a tensor of rank `this.rank + other.rank`.
-  Tensor<T> outerProduct(Tensor<T> other) => tensorDot(this, other, axes: 0);
+  ///
+  /// ```dart
+  /// final a = Tensor<int>.fromObject([1, 2]);
+  /// final b = Tensor<int>.fromObject([3, 4]);
+  /// final op = a.outerProduct(b); // shape [2, 2]
+  /// ```
+  Tensor<T> outerProduct(Tensor<T> other) => _tensorDot(this, other, axes: 0);
 }
 
-/// Computes the tensor dot product (contraction) of [a] and [b] along specified [axes].
-///
-/// Top-level function for [ContractionTensorExtension.tensordot].
-Tensor<T> tensorDot<T>(Tensor<T> a, Tensor<T> b, {dynamic axes = 2}) {
+Tensor<T> _tensorDot<T>(Tensor<T> a, Tensor<T> b, {dynamic axes = 2}) {
   final (axesA, axesB) = _parseAxes(a.rank, b.rank, axes);
   if (axesA.length != axesB.length) {
     throw ArgumentError(

@@ -7,10 +7,18 @@ import 'calculus.dart';
 
 /// 1D and multivariate numerical optimization algorithms.
 
-/// Minimizes a 1D scalar function on interval $[a, b]$ using Brent's method.
+/// Minimizes a 1D scalar function on the interval between [a] and [b] using Brent's method.
 ///
-/// Combines golden section search and successive parabolic interpolation.
-/// Accepts either `double Function(double)` or an [Expr].
+/// Conceptually, this finds the local minimum point of a univariate function
+/// within a specified bounded interval $\lbrack a, b \rbrack$.
+/// Formally, it combines golden section search with successive parabolic
+/// interpolation to guarantee linear convergence in the worst case and superlinear
+/// convergence near smooth quadratic minima.
+///
+/// ```dart
+/// final min = brentMinimize((x) => (x - 2) * (x - 2) + 3, a: 0.0, b: 5.0);
+/// print(min.point); // ~2.0
+/// ```
 ({double point, double value, int iterations}) brentMinimize(
   Object function, {
   required double a,
@@ -26,6 +34,8 @@ import 'calculus.dart';
     fn = function;
   } else if (function is num Function(num)) {
     fn = (x) => function(x).toDouble();
+  } else if (function is Function) {
+    fn = (x) => ((function as dynamic)(x) as num).toDouble();
   } else {
     throw ArgumentError('Unsupported function type: ${function.runtimeType}');
   }
@@ -122,6 +132,18 @@ import 'calculus.dart';
 }
 
 /// Derivative-free multivariate optimization using the Nelder-Mead simplex algorithm.
+///
+/// Conceptually, Nelder-Mead maneuvers a geometric simplex
+/// (a triangle or polygon) downhill across the objective surface, dynamically reflecting,
+/// expanding, and contracting until it encloses the local minimum without requiring derivatives.
+/// Formally, it implements the downhill simplex heuristic reflecting,
+/// expanding, and contracting an $n+1$ vertex polytope in $\mathbb{R}^n$.
+///
+/// ```dart
+/// final start = Vector<double>.fromList([2.0, 2.0]);
+/// final min = nelderMead((v) => v[0] * v[0] + v[1] * v[1], start);
+/// // min.point: Vector([0.0, 0.0])
+/// ```
 ({Vector<double> point, double value, int iterations}) nelderMead(
   Object function,
   Vector<double> initialPoint, {
@@ -138,6 +160,8 @@ import 'calculus.dart';
     });
   } else if (function is double Function(Vector<double>)) {
     fn = function;
+  } else if (function is Function) {
+    fn = (vec) => ((function as dynamic)(vec) as num).toDouble();
   } else {
     throw ArgumentError('Unsupported function type: ${function.runtimeType}');
   }
@@ -263,8 +287,17 @@ import 'calculus.dart';
 
 /// Quasi-Newton BFGS unconstrained optimization.
 ///
-/// Seamlessly accepts either a numerical closure `double Function(Vector<double>)`
-/// or an [Expr] (where analytical gradients are automatically derived).
+/// Conceptually, BFGS iteratively estimates both the local gradient and surface curvature
+/// at each step, choosing optimal descent directions toward the minimum.
+/// Formally, it computes unconstrained local minima via the Broyden-Fletcher-Goldfarb-Shanno
+/// rank-2 inverse Hessian approximation updates with backtracking Armijo line search,
+/// achieving superlinear convergence. Seamlessly accepts either a closure or an [Expr].
+///
+/// ```dart
+/// final start = Vector<double>.fromList([3.0, 4.0]);
+/// final opt = bfgs((v) => v[0] * v[0] + v[1] * v[1], start);
+/// // opt.point: Vector([0.0, 0.0])
+/// ```
 ({Vector<double> point, double value, double gradientNorm, int iterations})
 bfgs(
   Object function,
@@ -287,8 +320,19 @@ bfgs(
     fn = function;
     if (gradient is Vector<double> Function(Vector<double>)) {
       gradFn = gradient;
+    } else if (gradient is Function) {
+      gradFn = (vec) => (gradient as dynamic)(vec) as Vector<double>;
     } else {
       gradFn = (vec) => numericalGradient(function, vec);
+    }
+  } else if (function is Function) {
+    fn = (vec) => ((function as dynamic)(vec) as num).toDouble();
+    if (gradient is Vector<double> Function(Vector<double>)) {
+      gradFn = gradient;
+    } else if (gradient is Function) {
+      gradFn = (vec) => (gradient as dynamic)(vec) as Vector<double>;
+    } else {
+      gradFn = (vec) => numericalGradient(fn, vec);
     }
   } else {
     throw ArgumentError('Unsupported function type: ${function.runtimeType}');
@@ -383,8 +427,19 @@ lbfgs(
     fn = function;
     if (gradient is Vector<double> Function(Vector<double>)) {
       gradFn = gradient;
+    } else if (gradient is Function) {
+      gradFn = (vec) => (gradient as dynamic)(vec) as Vector<double>;
     } else {
       gradFn = (vec) => numericalGradient(function, vec);
+    }
+  } else if (function is Function) {
+    fn = (vec) => ((function as dynamic)(vec) as num).toDouble();
+    if (gradient is Vector<double> Function(Vector<double>)) {
+      gradFn = gradient;
+    } else if (gradient is Function) {
+      gradFn = (vec) => (gradient as dynamic)(vec) as Vector<double>;
+    } else {
+      gradFn = (vec) => numericalGradient(fn, vec);
     }
   } else {
     throw ArgumentError('Unsupported function type: ${function.runtimeType}');
@@ -603,6 +658,30 @@ minimizeConstrained(
       baseGradFn = (vec) => Vector<double>.fromList([
         numericalDerivative(function, vec[0]),
       ], type: DataType.float64);
+    }
+  } else if (function is Function) {
+    if (dim == 1) {
+      resolvedVars = variables ?? ['x'];
+      fn = (vec) => ((function as dynamic)(vec[0]) as num).toDouble();
+      if (gradient is Vector<double> Function(Vector<double>)) {
+        baseGradFn = gradient;
+      } else if (gradient is Function) {
+        baseGradFn = (vec) => (gradient as dynamic)(vec) as Vector<double>;
+      } else {
+        baseGradFn = (vec) => Vector<double>.fromList([
+          numericalDerivative(function, vec[0]),
+        ], type: DataType.float64);
+      }
+    } else {
+      resolvedVars = variables ?? List.generate(dim, (i) => 'x$i');
+      fn = (vec) => ((function as dynamic)(vec) as num).toDouble();
+      if (gradient is Vector<double> Function(Vector<double>)) {
+        baseGradFn = gradient;
+      } else if (gradient is Function) {
+        baseGradFn = (vec) => (gradient as dynamic)(vec) as Vector<double>;
+      } else {
+        baseGradFn = (vec) => numericalGradient(fn, vec);
+      }
     }
   } else {
     throw ArgumentError('Unsupported function type: ${function.runtimeType}');

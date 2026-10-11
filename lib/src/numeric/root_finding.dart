@@ -2,11 +2,17 @@ import '../../symbolic.dart';
 
 /// 1D root-finding algorithms: Brent-Dekker, Newton-Raphson, and Bisection.
 
-/// Finds a root of $f(x) = 0$ on bracket $[a, b]$ using Brent's method.
+/// Finds a root of $f(x) = 0$ in the interval between [a] and [b] using Brent's method.
 ///
-/// Guaranteed to converge as long as $f(a)$ and $f(b)$ have opposite signs.
-/// Combines bisection, secant method, and inverse quadratic interpolation.
-/// Accepts either `double Function(double)` or an [Expr].
+/// Conceptually, finding a root identifies where a continuous curve crosses
+/// the horizontal axis ($f(x) = 0$), solving the non-linear equation for $x$.
+/// Formally, it implements the Brent-Dekker hybrid method combining inverse
+/// quadratic interpolation, secant steps, and bisection safeguards to guarantee
+/// superlinear convergence on bracketed roots where $f(a) \cdot f(b) \le 0$.
+///
+/// ```dart
+/// final root = brentRoot((x) => x * x - 4.0, 0.0, 5.0); // 2.0
+/// ```
 double brentRoot(
   Object function,
   double a,
@@ -22,6 +28,8 @@ double brentRoot(
     fn = function;
   } else if (function is num Function(num)) {
     fn = (x) => function(x).toDouble();
+  } else if (function is Function) {
+    fn = (x) => ((function as dynamic)(x) as num).toDouble();
   } else {
     throw ArgumentError('Unsupported function type: ${function.runtimeType}');
   }
@@ -114,6 +122,15 @@ double brentRoot(
 }
 
 /// Finds a root of $f(x) = 0$ starting from [x0] using Newton-Raphson iteration.
+///
+/// Conceptually, this projects along the tangent slope of a curve
+/// toward the x-axis to rapidly home in on the root in successive approximations.
+/// Formally, it achieves quadratic convergence $x_{n+1} = x_n - \frac{f(x_n)}{f'(x_n)}$
+/// using exact analytical or finite-difference derivatives.
+///
+/// ```dart
+/// final root = newtonRaphson((x) => x * x - 9.0, 2.0); // 3.0
+/// ```
 double newtonRaphson(
   Object function,
   double x0, {
@@ -143,11 +160,23 @@ double newtonRaphson(
     fn = (x) => function(x).toDouble();
     if (derivative is num Function(num)) {
       dfn = (x) => derivative(x).toDouble();
+    } else if (derivative is Function) {
+      dfn = (x) => ((derivative as dynamic)(x) as num).toDouble();
     } else {
       dfn = (x) {
         const step = 1e-6;
         return (function(x + step).toDouble() - function(x - step).toDouble()) /
             (2.0 * step);
+      };
+    }
+  } else if (function is Function) {
+    fn = (x) => ((function as dynamic)(x) as num).toDouble();
+    if (derivative is Function) {
+      dfn = (x) => ((derivative as dynamic)(x) as num).toDouble();
+    } else {
+      dfn = (x) {
+        const step = 1e-6;
+        return (fn(x + step) - fn(x - step)) / (2.0 * step);
       };
     }
   } else {
@@ -169,7 +198,16 @@ double newtonRaphson(
   return x;
 }
 
-/// Finds a root of $f(x) = 0$ on bracket $[a, b]$ using Bisection.
+/// Finds a root of $f(x) = 0$ in the interval between [a] and [b] using bisection.
+///
+/// Conceptually, bisection repeatedly halves a search interval
+/// containing a sign change until the zero-crossing is pinpointed within tolerance.
+/// Formally, it guarantees linear convergence with error reduction $(b - a) / 2^n$
+/// via the Intermediate Value Theorem whenever $f(a)$ and $f(b)$ have opposite signs.
+///
+/// ```dart
+/// final root = bisection((x) => x * x - 2.0, 1.0, 2.0); // ~1.41421356
+/// ```
 double bisection(
   Object function,
   double a,
@@ -185,6 +223,8 @@ double bisection(
     fn = function;
   } else if (function is num Function(num)) {
     fn = (x) => function(x).toDouble();
+  } else if (function is Function) {
+    fn = (x) => ((function as dynamic)(x) as num).toDouble();
   } else {
     throw ArgumentError('Unsupported function type: ${function.runtimeType}');
   }

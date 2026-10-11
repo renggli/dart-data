@@ -25,10 +25,25 @@ extension QrComplexMatrixExtension on Matrix<Complex> {
   QRDecomposition<Complex> get qr => QRDecomposition<Complex>(this);
 }
 
-/// QR Decomposition of an [m x n] matrix $A$ with $m \ge n$.
+/// QR Decomposition of an $m \times n$ matrix $A$ with $m \ge n$.
 ///
-/// Factorizes $A = Q R$ where $Q$ is an [m x n] orthogonal (or unitary) matrix
-/// and $R$ is an [n x n] upper triangular matrix.
+/// Conceptually, QR decomposition untangles a matrix into mutually perpendicular
+/// (orthogonal) coordinate directions and an upper-triangular scaling matrix,
+/// making least-squares data fitting simple and numerically stable.
+/// More formally, it computes the Householder reflection factorization
+/// $A = Q R$ where $Q \in \mathbb{R}^{m \times n}$ has orthonormal columns ($Q^T Q = I_n$)
+/// and $R \in \mathbb{R}^{n \times n}$ is upper triangular.
+///
+/// ```dart
+/// final a = Matrix<double>.fromRows([
+///   [1.0, 2.0],
+///   [3.0, 4.0],
+///   [5.0, 6.0],
+/// ]);
+/// final qr = a.qr;
+/// final q = qr.q;
+/// final r = qr.r;
+/// ```
 class QRDecomposition<T> {
   /// Computes the QR decomposition of [matrix].
   new(Matrix<T> matrix)
@@ -95,7 +110,7 @@ class QRDecomposition<T> {
     return result;
   }
 
-  /// Returns the economy-sized orthogonal (or unitary) factor $Q$ of size [m x n].
+  /// Returns the economy-sized orthogonal (or unitary) factor $Q$ of size $m \times n$.
   Matrix<T> get q {
     if (_qr is Matrix<double>) {
       return _qFloat64() as Matrix<T>;

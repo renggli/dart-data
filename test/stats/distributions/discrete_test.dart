@@ -21,25 +21,27 @@ void main() {
       check(dist.standardDeviation).isCloseTo(math.sqrt(0.21), 1e-6);
       check(dist.skewness).isCloseTo((1 - 2 * 0.7) / math.sqrt(0.21), 1e-6);
       check(dist.excessKurtosis).isCloseTo((1 - 6 * 0.7 * 0.3) / 0.21, 1e-6);
-      check(dist.kurtosisExcess).equals(dist.excessKurtosis);
+      check(dist.excessKurtosis).equals(dist.excessKurtosis);
 
       // Quantile and CDF
-      check(dist.quantile(0.0)).equals(0);
-      check(dist.quantile(0.29)).equals(0);
-      check(dist.quantile(0.31)).equals(1);
-      check(dist.quantile(1.0)).equals(1);
-      check(() => dist.quantile(-0.1)).throws<InvalidProbability>();
-      check(() => dist.quantile(1.1)).throws<InvalidProbability>();
+      check(dist.inverseCumulativeProbability(0.0)).equals(0);
+      check(dist.inverseCumulativeProbability(0.29)).equals(0);
+      check(dist.inverseCumulativeProbability(0.31)).equals(1);
+      check(dist.inverseCumulativeProbability(1.0)).equals(1);
+      check(() => dist.inverseCumulativeProbability(-0.1))
+          .throws<InvalidProbability>();
+      check(() => dist.inverseCumulativeProbability(1.1))
+          .throws<InvalidProbability>();
 
-      check(dist.pmf(-1)).equals(0.0);
-      check(dist.pmf(0)).isCloseTo(0.3, 1e-6);
-      check(dist.pmf(1)).isCloseTo(0.7, 1e-6);
-      check(dist.pmf(2)).equals(0.0);
+      check(dist.probability(-1)).equals(0.0);
+      check(dist.probability(0)).isCloseTo(0.3, 1e-6);
+      check(dist.probability(1)).isCloseTo(0.7, 1e-6);
+      check(dist.probability(2)).equals(0.0);
 
-      check(dist.cdf(-1)).equals(0.0);
-      check(dist.cdf(0)).isCloseTo(0.3, 1e-6);
-      check(dist.cdf(1)).equals(1.0);
-      check(dist.cdf(2)).equals(1.0);
+      check(dist.cumulativeProbability(-1)).equals(0.0);
+      check(dist.cumulativeProbability(0)).isCloseTo(0.3, 1e-6);
+      check(dist.cumulativeProbability(1)).equals(1.0);
+      check(dist.cumulativeProbability(2)).equals(1.0);
 
       // Median for p < 0.5 and p == 0.5
       const distLow = BernoulliDistribution(0.3);
@@ -96,28 +98,29 @@ void main() {
       check(dist.skewness).equals(0.0);
       check(dist.excessKurtosis).isCloseTo((1.0 - 6.0 * 0.5 * 0.5) / 2.5, 1e-6);
 
-      check(dist.pmf(-1)).equals(0.0);
-      check(dist.pmf(5)).isCloseTo(252.0 / 1024.0, 1e-6);
-      check(dist.pmf(11)).equals(0.0);
+      check(dist.probability(-1)).equals(0.0);
+      check(dist.probability(5)).isCloseTo(252.0 / 1024.0, 1e-6);
+      check(dist.probability(11)).equals(0.0);
 
-      check(dist.cdf(-1)).equals(0.0);
-      check(dist.cdf(0)).isCloseTo(1.0 / 1024.0, 1e-6);
-      check(dist.cdf(10)).equals(1.0);
-      check(dist.cdf(11)).equals(1.0);
+      check(dist.cumulativeProbability(-1)).equals(0.0);
+      check(dist.cumulativeProbability(0)).isCloseTo(1.0 / 1024.0, 1e-6);
+      check(dist.cumulativeProbability(10)).equals(1.0);
+      check(dist.cumulativeProbability(11)).equals(1.0);
 
-      check(dist.quantile(0.0)).equals(0);
-      check(dist.quantile(0.5)).equals(5);
-      check(dist.quantile(1.0)).equals(10);
-      check(() => dist.quantile(-0.1)).throws<InvalidProbability>();
+      check(dist.inverseCumulativeProbability(0.0)).equals(0);
+      check(dist.inverseCumulativeProbability(0.5)).equals(5);
+      check(dist.inverseCumulativeProbability(1.0)).equals(10);
+      check(() => dist.inverseCumulativeProbability(-0.1))
+          .throws<InvalidProbability>();
 
       // Degenerate p = 0 and p = 1
       const dist0 = BinomialDistribution(5, 0.0);
-      check(dist0.pmf(0)).equals(1.0);
-      check(dist0.pmf(1)).equals(0.0);
+      check(dist0.probability(0)).equals(1.0);
+      check(dist0.probability(1)).equals(0.0);
 
       const dist1 = BinomialDistribution(5, 1.0);
-      check(dist1.pmf(5)).equals(1.0);
-      check(dist1.pmf(4)).equals(0.0);
+      check(dist1.probability(5)).equals(1.0);
+      check(dist1.probability(4)).equals(0.0);
 
       // Samples
       final samples = dist.samples(random: math.Random(42)).take(50).toList();
@@ -158,15 +161,16 @@ void main() {
       check(dist.excessKurtosis).equals(0.25);
       check(dist.median).isA<double>();
 
-      check(dist.pmf(-1)).equals(0.0);
-      check(dist.pmf(0)).isCloseTo(math.exp(-4.0), 1e-6);
-      check(dist.cdf(-1)).equals(0.0);
-      check(dist.cdf(0)).isCloseTo(math.exp(-4.0), 1e-6);
-      check(dist.cdf(4)).isGreaterThan(0.5);
+      check(dist.probability(-1)).equals(0.0);
+      check(dist.probability(0)).isCloseTo(math.exp(-4.0), 1e-6);
+      check(dist.cumulativeProbability(-1)).equals(0.0);
+      check(dist.cumulativeProbability(0)).isCloseTo(math.exp(-4.0), 1e-6);
+      check(dist.cumulativeProbability(4)).isGreaterThan(0.5);
 
-      check(dist.quantile(0.0)).equals(0);
-      check(dist.quantile(0.99)).isGreaterThan(5);
-      check(() => dist.quantile(-0.1)).throws<InvalidProbability>();
+      check(dist.inverseCumulativeProbability(0.0)).equals(0);
+      check(dist.inverseCumulativeProbability(0.99)).isGreaterThan(5);
+      check(() => dist.inverseCumulativeProbability(-0.1))
+          .throws<InvalidProbability>();
 
       // Samples
       final samples = dist.samples(random: math.Random(42)).take(50).toList();
@@ -202,19 +206,20 @@ void main() {
       check(dist.skewness).equals(0.0);
       check(dist.excessKurtosis).isCloseTo(-1.2685714, 1e-4);
 
-      check(dist.pmf(0)).equals(0.0);
-      check(dist.pmf(1)).isCloseTo(1.0 / 6.0, 1e-6);
-      check(dist.pmf(7)).equals(0.0);
+      check(dist.probability(0)).equals(0.0);
+      check(dist.probability(1)).isCloseTo(1.0 / 6.0, 1e-6);
+      check(dist.probability(7)).equals(0.0);
 
-      check(dist.cdf(0)).equals(0.0);
-      check(dist.cdf(3)).isCloseTo(0.5, 1e-6);
-      check(dist.cdf(6)).equals(1.0);
-      check(dist.cdf(7)).equals(1.0);
+      check(dist.cumulativeProbability(0)).equals(0.0);
+      check(dist.cumulativeProbability(3)).isCloseTo(0.5, 1e-6);
+      check(dist.cumulativeProbability(6)).equals(1.0);
+      check(dist.cumulativeProbability(7)).equals(1.0);
 
-      check(dist.quantile(0.0)).equals(1);
-      check(dist.quantile(0.5)).equals(4);
-      check(dist.quantile(1.0)).equals(6);
-      check(() => dist.quantile(-0.1)).throws<InvalidProbability>();
+      check(dist.inverseCumulativeProbability(0.0)).equals(1);
+      check(dist.inverseCumulativeProbability(0.5)).equals(4);
+      check(dist.inverseCumulativeProbability(1.0)).equals(6);
+      check(() => dist.inverseCumulativeProbability(-0.1))
+          .throws<InvalidProbability>();
 
       // Samples
       final samples = dist.samples(random: math.Random(42)).take(50).toList();
@@ -249,18 +254,19 @@ void main() {
       check(dist.skewness).isCloseTo((2.0 - 0.5) / math.sqrt(0.5), 1e-6);
       check(dist.excessKurtosis).isCloseTo(6.0 + 0.25 / 0.5, 1e-6);
 
-      check(dist.pmf(-1)).equals(0.0);
-      check(dist.pmf(0)).equals(0.5);
-      check(dist.pmf(1)).equals(0.25);
+      check(dist.probability(-1)).equals(0.0);
+      check(dist.probability(0)).equals(0.5);
+      check(dist.probability(1)).equals(0.25);
 
-      check(dist.cdf(-1)).equals(0.0);
-      check(dist.cdf(0)).equals(0.5);
-      check(dist.cdf(1)).equals(0.75);
+      check(dist.cumulativeProbability(-1)).equals(0.0);
+      check(dist.cumulativeProbability(0)).equals(0.5);
+      check(dist.cumulativeProbability(1)).equals(0.75);
 
-      check(dist.quantile(0.0)).equals(0);
-      check(dist.quantile(0.5)).equals(0);
-      check(dist.quantile(0.75)).equals(1);
-      check(() => dist.quantile(-0.1)).throws<InvalidProbability>();
+      check(dist.inverseCumulativeProbability(0.0)).equals(0);
+      check(dist.inverseCumulativeProbability(0.5)).equals(0);
+      check(dist.inverseCumulativeProbability(0.75)).equals(1);
+      check(() => dist.inverseCumulativeProbability(-0.1))
+          .throws<InvalidProbability>();
 
       // Samples
       final samples = dist.samples(random: math.Random(42)).take(50).toList();
@@ -293,16 +299,17 @@ void main() {
       check(dist.skewness).isA<double>();
       check(dist.excessKurtosis).isA<double>();
 
-      check(dist.pmf(-1)).equals(0.0);
-      check(dist.pmf(0)).isGreaterThan(0.3);
-      check(dist.pmf(6)).equals(0.0);
+      check(dist.probability(-1)).equals(0.0);
+      check(dist.probability(0)).isGreaterThan(0.3);
+      check(dist.probability(6)).equals(0.0);
 
-      check(dist.cdf(-1)).equals(0.0);
-      check(dist.cdf(5)).equals(1.0);
+      check(dist.cumulativeProbability(-1)).equals(0.0);
+      check(dist.cumulativeProbability(5)).equals(1.0);
 
-      check(dist.quantile(0.0)).equals(0);
-      check(dist.quantile(1.0)).equals(5);
-      check(() => dist.quantile(-0.1)).throws<InvalidProbability>();
+      check(dist.inverseCumulativeProbability(0.0)).equals(0);
+      check(dist.inverseCumulativeProbability(1.0)).equals(5);
+      check(() => dist.inverseCumulativeProbability(-0.1))
+          .throws<InvalidProbability>();
 
       // Samples
       final samples = dist.samples(random: math.Random(42)).take(50).toList();
@@ -339,17 +346,18 @@ void main() {
       check(dist.skewness).isCloseTo((2.0 - 0.5) / math.sqrt(1.0 * 0.5), 1e-6);
       check(dist.excessKurtosis).isCloseTo(6.0 / 1.0 + 0.25 / 0.5, 1e-6);
 
-      check(dist.pmf(-1)).equals(0.0);
-      check(dist.pmf(0)).isCloseTo(0.5, 1e-12);
-      check(dist.pmf(1)).isCloseTo(0.25, 1e-12);
+      check(dist.probability(-1)).equals(0.0);
+      check(dist.probability(0)).isCloseTo(0.5, 1e-12);
+      check(dist.probability(1)).isCloseTo(0.25, 1e-12);
 
-      check(dist.cdf(-1)).equals(0.0);
-      check(dist.cdf(0)).isCloseTo(0.5, 1e-12);
-      check(dist.cdf(1)).isCloseTo(0.75, 1e-12);
+      check(dist.cumulativeProbability(-1)).equals(0.0);
+      check(dist.cumulativeProbability(0)).isCloseTo(0.5, 1e-12);
+      check(dist.cumulativeProbability(1)).isCloseTo(0.75, 1e-12);
 
-      check(dist.quantile(0.0)).equals(0);
-      check(dist.quantile(0.5)).equals(0);
-      check(() => dist.quantile(-0.1)).throws<InvalidProbability>();
+      check(dist.inverseCumulativeProbability(0.0)).equals(0);
+      check(dist.inverseCumulativeProbability(0.5)).equals(0);
+      check(() => dist.inverseCumulativeProbability(-0.1))
+          .throws<InvalidProbability>();
 
       // Samples
       final samples = dist.samples(random: math.Random(42)).take(50).toList();
@@ -383,23 +391,24 @@ void main() {
       check(dist.skewness).equals(0.0);
       check(dist.excessKurtosis).equals(-2.0);
 
-      check(dist.pmf(-2)).equals(0.0);
-      check(dist.pmf(-1)).equals(0.5);
-      check(dist.pmf(0)).equals(0.0);
-      check(dist.pmf(1)).equals(0.5);
-      check(dist.pmf(2)).equals(0.0);
+      check(dist.probability(-2)).equals(0.0);
+      check(dist.probability(-1)).equals(0.5);
+      check(dist.probability(0)).equals(0.0);
+      check(dist.probability(1)).equals(0.5);
+      check(dist.probability(2)).equals(0.0);
 
-      check(dist.cdf(-2)).equals(0.0);
-      check(dist.cdf(-1)).equals(0.5);
-      check(dist.cdf(0)).equals(0.5);
-      check(dist.cdf(1)).equals(1.0);
-      check(dist.cdf(2)).equals(1.0);
+      check(dist.cumulativeProbability(-2)).equals(0.0);
+      check(dist.cumulativeProbability(-1)).equals(0.5);
+      check(dist.cumulativeProbability(0)).equals(0.5);
+      check(dist.cumulativeProbability(1)).equals(1.0);
+      check(dist.cumulativeProbability(2)).equals(1.0);
 
-      check(dist.quantile(0.0)).equals(-1);
-      check(dist.quantile(0.49)).equals(-1);
-      check(dist.quantile(0.51)).equals(1);
-      check(dist.quantile(1.0)).equals(1);
-      check(() => dist.quantile(-0.1)).throws<InvalidProbability>();
+      check(dist.inverseCumulativeProbability(0.0)).equals(-1);
+      check(dist.inverseCumulativeProbability(0.49)).equals(-1);
+      check(dist.inverseCumulativeProbability(0.51)).equals(1);
+      check(dist.inverseCumulativeProbability(1.0)).equals(1);
+      check(() => dist.inverseCumulativeProbability(-0.1))
+          .throws<InvalidProbability>();
 
       // Samples
       final samples = dist.samples(random: math.Random(42)).take(50).toList();

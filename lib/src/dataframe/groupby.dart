@@ -4,7 +4,7 @@ import 'dataframe.dart';
 import 'series.dart';
 import 'tuple_key.dart';
 
-/// Aggregation operations supported in GroupBy.
+/// Aggregation operations supported in [GroupBy].
 enum Agg {
   /// Number of non-null values.
   count,
@@ -37,8 +37,23 @@ enum Agg {
   last,
 }
 
-/// Grouped DataFrame supporting hash-partitioned aggregations.
+/// Grouped [DataFrame] supporting hash-partitioned aggregations.
+///
+/// Conceptually, grouping organizes table rows into buckets based on
+/// shared values (such as grouping records by department or category).
+/// Mathematically, this induces a quotient partition $R / \sim$ over the relation
+/// based on equivalence under the projection $\pi_{\text{byColumns}}(r)$.
+///
+/// ```dart
+/// final df = DataFrame.fromColumns({
+///   'dept': ['Sales', 'Sales', 'Eng'],
+///   'salary': [50000, 60000, 80000],
+/// });
+/// final grouped = df.groupBy(['dept']);
+/// final summary = grouped.mean();
+/// ```
 class GroupBy {
+  /// Creates a grouped view of [dataFrame] partitioned by values in [byColumns].
   new(this.dataFrame, this.byColumns) {
     if (byColumns.isEmpty) {
       throw ArgumentError('byColumns cannot be empty');
@@ -46,7 +61,10 @@ class GroupBy {
     _buildGroups();
   }
 
+  /// The source [DataFrame] being partitioned.
   final DataFrame dataFrame;
+
+  /// The column names whose values define group partitions.
   final List<String> byColumns;
 
   // Group key -> list of row indices
@@ -54,7 +72,7 @@ class GroupBy {
   // Group key -> original key values
   final Map<Object?, List<dynamic>> _groupKeys = {};
 
-  /// Evaluates aggregations across each group and produces a new DataFrame.
+  /// Evaluates aggregations across each group and produces a new [DataFrame].
   DataFrame aggregate(Map<String, List<Agg>> aggregations) {
     final resultCols = <String, List<dynamic>>{};
     // Initialize group key columns

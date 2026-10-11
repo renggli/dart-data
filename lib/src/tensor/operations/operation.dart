@@ -206,14 +206,22 @@ extension OperationTensorExtension<T> on Tensor<T> {
     }
   }
 
-  // Eager arithmetic operators
+  /// Computes the element-wise negation $(-A)$.
   Tensor<T> operator -() => unaryOperation<T>(type.field.neg);
+
+  /// Computes element-wise addition $(A + B)$ supporting broadcasting.
   Tensor<T> operator +(Tensor<T> other) =>
       binaryOperation<T, T>(other, type.field.add);
+
+  /// Computes element-wise subtraction $(A - B)$ supporting broadcasting.
   Tensor<T> operator -(Tensor<T> other) =>
       binaryOperation<T, T>(other, type.field.sub);
+
+  /// Computes element-wise Hadamard multiplication $(A \odot B)$ supporting broadcasting.
   Tensor<T> operator *(Tensor<T> other) =>
       binaryOperation<T, T>(other, type.field.mul);
+
+  /// Computes element-wise division $(A / B)$ supporting broadcasting.
   Tensor<T> operator /(Tensor<T> other) =>
       binaryOperation<T, T>(other, type.field.div);
 
@@ -229,23 +237,37 @@ extension OperationTensorExtension<T> on Tensor<T> {
   /// Computes the element-wise natural logarithm.
   Tensor<T> log() => unaryOperation<T>(type.field.log);
 
-  // Comparisons
+  /// Computes element-wise strictly less-than $(A < B)$ producing a boolean tensor.
   Tensor<bool> operator <(Tensor<T> other) =>
       binaryOperation<T, bool>(other, (a, b) => type.comparator(a, b) < 0);
+
+  /// Computes element-wise less-than or equal-to $(A \le B)$ producing a boolean tensor.
   Tensor<bool> operator <=(Tensor<T> other) =>
       binaryOperation<T, bool>(other, (a, b) => type.comparator(a, b) <= 0);
+
+  /// Computes element-wise strictly greater-than $(A > B)$ producing a boolean tensor.
   Tensor<bool> operator >(Tensor<T> other) =>
       binaryOperation<T, bool>(other, (a, b) => type.comparator(a, b) > 0);
+
+  /// Computes element-wise greater-than or equal-to $(A \ge B)$ producing a boolean tensor.
   Tensor<bool> operator >=(Tensor<T> other) =>
       binaryOperation<T, bool>(other, (a, b) => type.comparator(a, b) >= 0);
+
+  /// Computes element-wise equality $(A == B)$ producing a boolean tensor.
   Tensor<bool> equalTo(Tensor<T> other) =>
       binaryOperation<T, bool>(other, (a, b) => type.equality.isEqual(a, b));
 }
 
+/// Logical bitwise operations on boolean tensors.
 extension LogicalTensorExtension on Tensor<bool> {
+  /// Computes element-wise logical NOT $(\neg A)$.
   Tensor<bool> operator ~() => unaryOperation<bool>((a) => !a);
+
+  /// Computes element-wise logical AND $(A \land B)$ supporting broadcasting.
   Tensor<bool> operator &(Tensor<bool> other) =>
       binaryOperation<bool, bool>(other, (a, b) => a && b);
+
+  /// Computes element-wise logical OR $(A \lor B)$ supporting broadcasting.
   Tensor<bool> operator |(Tensor<bool> other) =>
       binaryOperation<bool, bool>(other, (a, b) => a || b);
 }

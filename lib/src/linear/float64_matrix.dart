@@ -10,9 +10,19 @@ import 'float64_vector.dart';
 import 'matrix.dart';
 import 'vector.dart';
 
-/// Zero-cost extension type wrapping [Matrix<double>] with direct [Float64List] buffer access.
+/// Zero-cost extension type wrapping [Matrix] with direct [Float64List] buffer access.
+///
+/// This provides a 2D matrix optimized to store 64-bit floating-point
+/// numbers in contiguous memory for high-performance linear algebra.
+/// Formally, it provides an unboxed matrix representation over the real field $\mathbb{R}$
+/// backed by flat IEEE 754 double-precision arrays compatible with BLAS level 3 operations.
+///
+/// ```dart
+/// final m = Float64Matrix.filled(2, 2, 1.5);
+/// print(m.rowCount); // 2
+/// ```
 extension type Float64Matrix(Matrix<double> _matrix) implements Matrix<double> {
-  /// Constructs a [rowCount x colCount] matrix filled with [value].
+  /// Constructs a [rowCount] by [colCount] [Float64Matrix] filled with [value].
   factory filled(int rowCount, int colCount, double value, {bool? native}) =>
       Float64Matrix(
         Matrix<double>.filled(
@@ -24,7 +34,7 @@ extension type Float64Matrix(Matrix<double> _matrix) implements Matrix<double> {
         ),
       );
 
-  /// Constructs a [rowCount x colCount] matrix using [generator].
+  /// Constructs a [rowCount] by [colCount] [Float64Matrix] using [generator].
   factory generate(
     int rowCount,
     int colCount,
@@ -40,13 +50,13 @@ extension type Float64Matrix(Matrix<double> _matrix) implements Matrix<double> {
     ),
   );
 
-  /// Constructs a matrix from row vectors or row iterables.
+  /// Constructs a [Float64Matrix] from row vectors or row iterables.
   factory fromRows(Iterable<Iterable<double>> rows, {bool? native}) =>
       Float64Matrix(
         Matrix<double>.fromRows(rows, type: DataType.float64, native: native),
       );
 
-  /// Constructs a matrix from column vectors or column iterables.
+  /// Constructs a [Float64Matrix] from column vectors or column iterables.
   factory fromColumns(Iterable<Iterable<double>> cols, {bool? native}) =>
       Float64Matrix(
         Matrix<double>.fromColumns(
@@ -73,7 +83,7 @@ extension type Float64Matrix(Matrix<double> _matrix) implements Matrix<double> {
     ),
   );
 
-  /// Constructs an identity matrix of dimension [size x size].
+  /// Constructs an identity matrix of dimension [size] by [size].
   factory identity(int size, {bool? native}) => Float64Matrix(
     Matrix<double>.identity(size, type: DataType.float64, native: native),
   );

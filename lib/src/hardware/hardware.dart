@@ -5,8 +5,6 @@ import 'cblas.dart';
 import 'pure_dart_gemm.dart';
 import 'simd.dart';
 
-export 'pure_dart_gemm.dart';
-
 /// Central hardware acceleration manager providing transparent routing between
 /// native BLAS/LAPACK (via FFI), Dart SIMD, and pure Dart scalar algorithms.
 class HardwareManager {

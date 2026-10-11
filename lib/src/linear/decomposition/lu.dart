@@ -25,12 +25,24 @@ extension LuComplexMatrixExtension on Matrix<Complex> {
   LUDecomposition<Complex> get lu => LUDecomposition<Complex>(this);
 }
 
-/// LU Decomposition of an [m x n] matrix $A$.
+/// LU Decomposition of an $m \times n$ matrix $A$.
 ///
-/// Factorizes $P A = L U$ with partial row pivoting, where:
-/// - $P$ is a permutation matrix represented by [pivot]
-/// - $L$ is a unit lower triangular matrix
-/// - $U$ is an upper triangular matrix
+/// Conceptually, LU decomposition is Gaussian elimination stored in a structured,
+/// reusable format: it factors a matrix into a lower-triangular matrix ($L$) and an
+/// upper-triangular matrix ($U$), making repeated solving of $A x = b$ rapid and straightforward.
+/// More formally, it computes the $P A = L U$ factorization using Gaussian elimination
+/// with row partial pivoting, where $P$ is a permutation matrix represented by [pivot],
+/// $L$ is unit lower triangular, and $U$ is upper triangular.
+///
+/// ```dart
+/// final a = Matrix<double>.fromRows([
+///   [2.0, 1.0],
+///   [1.0, 3.0],
+/// ]);
+/// final lu = a.lu;
+/// final b = Vector<double>.fromList([4.0, 7.0]);
+/// final x = lu.solve(b.toMatrix());
+/// ```
 class LUDecomposition<T> {
   /// Computes the LU decomposition of [matrix].
   new(Matrix<T> matrix)

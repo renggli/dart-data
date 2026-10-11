@@ -69,11 +69,11 @@ void main() {
   stdout.writeln('4. Probability Distributions');
   const normal = NormalDistribution.standard();
   stdout.writeln(
-    '   Standard Normal P(-1.96 <= Z <= 1.96): ${normal.cdf(1.96) - normal.cdf(-1.96)}',
+    '   Standard Normal P(-1.96 <= Z <= 1.96): ${normal.cumulativeProbability(1.96) - normal.cumulativeProbability(-1.96)}',
   );
   const student = StudentDistribution(5.0);
   stdout.writeln(
-    '   Student-t (df=5) 97.5% quantile: ${student.quantile(0.975)}',
+    '   Student-t (df=5) 97.5% quantile: ${student.inverseCumulativeProbability(0.975)}',
   );
   const fDist = FDistribution(3.0, 20.0);
   stdout.writeln('   F(3, 20) p-value for F = 3.5: ${fDist.survival(3.5)}\n');

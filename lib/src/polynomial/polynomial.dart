@@ -10,8 +10,17 @@ import 'orthogonal.dart' as orthogonal;
 /// Coefficients are ordered in ascending power of $x$:
 /// $P(x) = c_0 + c_1 x + c_2 x^2 + \dots + c_n x^n$.
 class Polynomial<T> {
-  /// Constructs a polynomial from [coefficients] where index $i$ corresponds
-  /// to $x^i$.
+  /// Constructs a polynomial from [coefficients] where index $i$ corresponds to the power $x^i$.
+  ///
+  /// Conceptually, a polynomial is a linear combination of powers of an indeterminate,
+  /// such as $3 + 2x + 5x^2$. The list `[3, 2, 5]` sets the constant term to 3, the linear
+  /// coefficient to 2, and the quadratic coefficient to 5.
+  /// Formally, this models an element $\sum_{i=0}^n c_i x^i$ of the
+  /// polynomial ring $R\[x\]$ over algebraic field $T$.
+  ///
+  /// ```dart
+  /// final p = Polynomial.fromCoefficients([3, 2, 5]); // 3 + 2x + 5x^2
+  /// ```
   new fromCoefficients(Iterable<T> coefficients, {DataType<T>? type})
     : type = type ?? DataType.fromIterable(coefficients),
       _coefficients = coefficients.toList(growable: false);
@@ -39,6 +48,15 @@ class Polynomial<T> {
 
   /// Constructs a monic polynomial from its real [roots]:
   /// $P(x) = (x - r_1)(x - r_2)\dots(x - r_k)$.
+  ///
+  /// Conceptually, given roots where the polynomial curve crosses the horizontal axis
+  /// (such as $x = 2$ and $x = 3$), this constructs the factored expansion $(x - 2)(x - 3) = x^2 - 5x + 6$.
+  /// Formally, it computes the polynomial expansion of the linear root factors by sequential convolution.
+  ///
+  /// ```dart
+  /// final p = Polynomial<double>.fromRoots([2.0, 3.0]);
+  /// // p: 6.0 - 5.0*x + 1.0*x^2
+  /// ```
   factory fromRoots(Iterable<num> roots, {DataType<T>? type}) {
     final effectiveType = (type ?? DataType.float64) as DataType<T>;
     final field = effectiveType.field;
@@ -58,6 +76,15 @@ class Polynomial<T> {
 
   /// Constructs a polynomial from a symbolic [expr] by computing its Taylor expansion
   /// with respect to [variable] up to [order] around [around].
+  ///
+  /// Conceptually, this converts a symbolic algebraic expression into a polynomial approximation.
+  /// Formally, it maps an analytic function to its truncated Taylor series representation.
+  ///
+  /// ```dart
+  /// final x = Variable('x');
+  /// final p = Polynomial<double>.fromExpr(Exp(x), 'x', order: 2);
+  /// // coefficients: [1.0, 1.0, 0.5]
+  /// ```
   factory fromExpr(
     Expr expr,
     String variable, {
@@ -156,7 +183,16 @@ class Polynomial<T> {
     return deg < 0 ? type.field.additiveIdentity : _coefficients[deg];
   }
 
-  /// Evaluates $P(x)$ at [x] using Horner's method.
+  /// Evaluates $P(x)$ at [x] using Horner's method in $\mathcal{O}(n)$ time.
+  ///
+  /// Conceptually, this evaluates the polynomial at a given coordinate without computing powers explicitly.
+  /// Formally, Horner's algorithm computes nested multiplications
+  /// $c_0 + x(c_1 + x(c_2 + \dots))$ ensuring minimal operation count and numerical stability.
+  ///
+  /// ```dart
+  /// final p = Polynomial.fromCoefficients([1, 2, 3]); // 1 + 2x + 3x^2
+  /// final y = p.evaluate(2); // 1 + 2(2) + 3(4) = 17
+  /// ```
   T evaluate(T x) {
     final deg = degree;
     if (deg < 0) return type.field.additiveIdentity;
@@ -264,8 +300,15 @@ class Polynomial<T> {
     return Polynomial<T>.fromCoefficients(resultCoeffs, type: type);
   }
 
-  /// Computes the polynomial composition $(P \circ Q)(x) = P(Q(x))$
-  /// using Horner's recurrence.
+  /// Computes the polynomial composition $(P \circ Q)(x) = P(Q(x))$ using Horner's recurrence.
+  ///
+  /// Conceptually, this substitutes the polynomial [other] everywhere $x$ appears in this polynomial.
+  ///
+  /// ```dart
+  /// final p = Polynomial.fromCoefficients([0, 0, 1]); // x^2
+  /// final q = Polynomial.fromCoefficients([1, 1]);    // x + 1
+  /// final comp = p.compose(q);                       // (x + 1)^2 = 1 + 2x + x^2
+  /// ```
   Polynomial<T> compose(Polynomial<T> other) {
     final deg = degree;
     if (deg < 0) return Polynomial<T>.zero(type: type);
@@ -349,6 +392,11 @@ class Polynomial<T> {
   }
 
   /// Computes the formal derivative $P'(x) = c_1 + 2 c_2 x + 3 c_3 x^2 + \dots$
+  ///
+  /// ```dart
+  /// final p = Polynomial.fromCoefficients([1, 2, 3]); // 1 + 2x + 3x^2
+  /// final dp = p.differentiate(); // 2 + 6x
+  /// ```
   Polynomial<T> differentiate() {
     final deg = degree;
     if (deg <= 0) return Polynomial<T>.zero(type: type);
@@ -363,6 +411,11 @@ class Polynomial<T> {
   }
 
   /// Computes the formal antiderivative $\int P(x) dx = C + c_0 x + \frac{c_1}{2} x^2 + \dots$
+  ///
+  /// ```dart
+  /// final p = Polynomial.fromCoefficients([2, 6]); // 2 + 6x
+  /// final intP = p.integrate(); // 2x + 3x^2
+  /// ```
   Polynomial<T> integrate([T? constant]) {
     final field = type.field;
     final c0 = constant ?? field.additiveIdentity;
@@ -386,7 +439,16 @@ class Polynomial<T> {
     return Polynomial<T>.fromCoefficients(newCoeffs, type: type);
   }
 
-  /// Computes the complex roots of this polynomial.
+  /// Computes all complex roots of this polynomial.
+  ///
+  /// Conceptually, this finds all values $x$ where $P(x) = 0$ (the zeros of the polynomial).
+  /// Formally, it uses the closed-form quadratic formula for degree 2, and constructs the
+  /// Frobenius companion matrix computing its eigenvalues via Schur/QR iteration for higher degrees.
+  ///
+  /// ```dart
+  /// final p = Polynomial<double>.fromCoefficients([-4.0, 0.0, 1.0]); // x^2 - 4
+  /// final r = p.roots; // [Complex(-2.0), Complex(2.0)]
+  /// ```
   List<Complex> get roots {
     final deg = degree;
     if (deg <= 0) return const [];

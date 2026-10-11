@@ -34,7 +34,26 @@ class Slice {
 }
 
 /// Immutable multi-dimensional layout descriptor with strided coordinate mapping.
+///
+/// Conceptually, a layout specifies how a grid of dimensions (like 2 rows
+/// and 3 columns) maps into a single flat list in computer memory.
+///
+/// Formally, this defines an affine coordinate chart
+/// $\phi(k_0, \dots, k_{n-1}) = \text{offset} + \sum_{i=0}^{n-1} k_i s_i$.
+///
+/// ```dart
+/// final layout = Layout(shape: [2, 3]);
+/// final index = layout.toIndex([1, 2]); // 5
+/// ```
 class Layout {
+  /// Creates a strided multi-dimensional layout descriptor.
+  ///
+  /// Computes canonical row-major strides if [strides] is omitted.
+  ///
+  /// ```dart
+  /// final layout = Layout(shape: [2, 3]);
+  /// // layout.rank == 2, layout.length == 6, layout.strides == [3, 1]
+  /// ```
   factory({Iterable<int>? shape, Iterable<int>? strides, int offset = 0}) {
     final shapeList = shape == null
         ? Int32List(0)
@@ -99,16 +118,38 @@ class Layout {
     required this.isContiguous,
   });
 
+  /// An empty layout with shape `[0]` and length 0.
   static final Layout empty = Layout(shape: const [0]);
 
+  /// The number of dimensions (axes) in this layout.
   final int rank;
+
+  /// The total number of elements spanning this layout.
   final int length;
+
+  /// The starting linear buffer offset for the origin key.
   final int offset;
+
+  /// The dimension size along each axis.
   final List<int> shape;
+
+  /// The step size in linear buffer indices per unit step along each axis.
   final List<int> strides;
+
+  /// Whether the layout visits elements in contiguous row-major memory order.
   final bool isContiguous;
 
   /// Converts an $N$-dimensional key into a flat buffer index.
+  ///
+  /// Conceptually, this maps an $N$-dimensional coordinate (such as `[row, column]`)
+  /// to its corresponding offset within the underlying flat storage buffer.
+  ///
+  /// Formally, this computes $\text{offset} + \sum_{i=0}^{n-1} k_i s_i$.
+  ///
+  /// ```dart
+  /// final layout = Layout(shape: [2, 3]);
+  /// final idx = layout.toIndex([1, 2]); // 5
+  /// ```
   int toIndex(List<int> key) {
     if (key.length != rank) {
       throw ArgumentError('Key length (${key.length}) must match rank ($rank)');

@@ -1,5 +1,6 @@
 import 'package:checks/checks.dart';
 import 'package:data/dataframe.dart';
+import 'package:data/src/dataframe/tuple_key.dart';
 import 'package:test/test.dart';
 
 void main() {

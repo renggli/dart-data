@@ -61,7 +61,18 @@ extension ReductionTensorExtension<T> on Tensor<T> {
     );
   }
 
-  /// Computes the variance over the given [axis].
+  /// Computes the variance over the given [axis], or all elements if [axis] is null.
+  ///
+  /// Conceptually, variance measures how spread out the values are from their
+  /// arithmetic mean. A variance of zero indicates all values are identical.
+  ///
+  /// Formally, this calculates the sample or population variance
+  /// $\sigma^2 = \frac{1}{N - \text{ddof}} \sum_{i=1}^N (x_i - \bar{x})^2$.
+  ///
+  /// ```dart
+  /// final t = Tensor<double>.fromIterable([2.0, 4.0, 4.0, 4.0, 5.0, 5.0, 7.0, 9.0]);
+  /// final v = t.var_().toFlatList().first; // 4.0
+  /// ```
   Tensor<double> var_({
     int? axis,
     bool keepDims = false,

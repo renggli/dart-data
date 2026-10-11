@@ -2,9 +2,18 @@ import 'dart:math';
 
 /// Returns the principal branch of the Lambert W function $W_0(z)$.
 ///
+/// Conceptually, the Lambert W function solves transcendental equations where the
+/// unknown variable appears both linearly and in an exponent, such as $w e^w = z$.
+/// Formally, this calculates the principal branch $W_0(z)$ of the inverse
+/// of the transcendental relation $f(w) = w e^w$, defined for real $z \ge -1/e$.
+///
 /// Satisfies $W(z) e^{W(z)} = z$ for $z \ge -1/e$.
 ///
 /// See https://en.wikipedia.org/wiki/Lambert_W_function for details.
+///
+/// ```dart
+/// final val = lambertW0(0.0); // 0.0
+/// ```
 double lambertW0(num z) {
   if (z.isNaN || z < -_invE) {
     return double.nan;
@@ -46,9 +55,18 @@ double lambertW0(num z) {
 /// Returns the secondary branch of the Lambert W function $W_{-1}(z)$ (exported
 /// as `lambertW1(z)`).
 ///
+/// Conceptually, this calculates the secondary negative solution to $w e^w = z$
+/// when $-1/e \le z < 0$.
+/// Formally, this calculates the secondary real branch $W_{-1}(z)$ of the
+/// inverse of $f(w) = w e^w$, satisfying $W(z) \le -1$.
+///
 /// Defined for $-1/e \le z < 0$.
 ///
 /// See https://en.wikipedia.org/wiki/Lambert_W_function for details.
+///
+/// ```dart
+/// final val = lambertW1(-0.1); // ~ -3.577152063957297
+/// ```
 double lambertW1(num z) {
   if (z.isNaN || z < -_invE || z >= 0.0) {
     return double.nan;

@@ -121,13 +121,13 @@ Over 25 discrete and continuous probability distributions with statistics, proba
 ```dart
 // Standard Normal distribution N(0, 1)
 final normal = NormalDistribution(0.0, 1.0);
-print('PDF at 0: ${normal.pdf(0.0)}'); // ~0.3989
-print('CDF at 1.96: ${normal.cdf(1.96)}'); // ~0.975
-print('95% quantile: ${normal.quantile(0.95)}'); // ~1.6448
+print('Probability at 0: ${normal.probability(0.0)}'); // ~0.3989
+print('Cumulative probability at 1.96: ${normal.cumulativeProbability(1.96)}'); // ~0.975
+print('95% quantile: ${normal.inverseCumulativeProbability(0.95)}'); // ~1.6448
 
 // Poisson distribution
 final poisson = PoissonDistribution(4.0);
-print('P(X = 3): ${poisson.pmf(3)}');
+print('P(X = 3): ${poisson.probability(3)}');
 print('Samples: ${poisson.samples().take(5).toList()}');
 ```
 

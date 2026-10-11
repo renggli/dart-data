@@ -83,9 +83,9 @@ void main() {
   });
 
   group('bulk constructors', () {
-    test('allValid constructor', () {
+    test('default valid constructor', () {
       for (final len in [0, 1, 7, 8, 15, 16, 31, 32, 65, 128]) {
-        final mask = ValidityMask.allValid(len);
+        final mask = ValidityMask(len);
         check(mask.length).equals(len);
         check(mask.nullCount).equals(0);
         check(mask.hasNulls).isFalse();
@@ -216,7 +216,7 @@ void main() {
     });
 
     test('slice fast paths for all-valid and all-null masks', () {
-      final validMask = ValidityMask.allValid(50);
+      final validMask = ValidityMask(50);
       final validSlice = validMask.slice(10, 30);
       check(validSlice.length).equals(20);
       check(validSlice.nullCount).equals(0);
@@ -323,7 +323,6 @@ void main() {
     test('negative length in constructors throws RangeError', () {
       check(() => ValidityMask(-1)).throws<RangeError>();
       check(() => ValidityMask(-8)).throws<RangeError>();
-      check(() => ValidityMask.allValid(-1)).throws<RangeError>();
       check(() => ValidityMask.allNull(-1)).throws<RangeError>();
       check(() => ValidityMask.fromBytes(-1, Uint8List(0)))
           .throws<RangeError>();

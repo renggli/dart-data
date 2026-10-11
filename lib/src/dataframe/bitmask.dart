@@ -29,9 +29,6 @@ class ValidityMask {
     }
   }
 
-  /// Creates a validity mask of [length] with all entries marked valid (non-null).
-  new allValid(int length) : this(length);
-
   /// Creates a validity mask of [length] with all entries marked null.
   new allNull(this.length)
     : _bytes = Uint8List(
@@ -140,7 +137,7 @@ class ValidityMask {
       return ValidityMask(0);
     }
     if (_nullCount == 0) {
-      return ValidityMask.allValid(sliceLen);
+      return ValidityMask(sliceLen);
     }
     if (_nullCount == length) {
       return ValidityMask.allNull(sliceLen);

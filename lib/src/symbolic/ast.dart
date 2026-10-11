@@ -1,7 +1,20 @@
 import 'dart:math' as math;
 
-/// Sealed base class representing an algebraic expression AST node.
+/// Sealed base class representing an algebraic expression abstract syntax tree (AST) node.
+///
+/// In algebra and calculus, an expression combines constants, variables, operators,
+/// and mathematical functions (such as $2x + 1$ or $\sin(x)$). Expressions can be
+/// constructed and evaluated numerically for specific variable assignments, or
+/// manipulated symbolically for exact differentiation, indefinite integration,
+/// equation solving, simplification, and JIT compilation.
+///
+/// ```dart
+/// final x = Variable('x');
+/// final expr = x * x + 2 * x + 1;
+/// final val = expr.evaluate({'x': 3.0}); // 3^2 + 2(3) + 1 = 16.0
+/// ```
 sealed class Expr {
+  /// Abstract const constructor for expression nodes.
   const new();
 
   /// Whether this expression depends on [name].
@@ -16,21 +29,34 @@ sealed class Expr {
   /// Evaluates this expression using the variable values in [context].
   double evaluate(Map<String, double> context);
 
+  /// Adds this expression to [other].
   Expr operator +(Object other) => Add(this, _wrap(other));
+
+  /// Subtracts [other] from this expression.
   Expr operator -(Object other) => Sub(this, _wrap(other));
+
+  /// Multiplies this expression by [other].
   Expr operator *(Object other) => Mul(this, _wrap(other));
+
+  /// Divides this expression by [other].
   Expr operator /(Object other) => Div(this, _wrap(other));
+
+  /// Negates this expression.
   Expr operator -() => Neg(this);
+
+  /// Raises this expression to the power of [exponent].
   Expr pow(Object exponent) => Pow(this, _wrap(exponent));
 
   static Expr _wrap(Object value) =>
       value is Expr ? value : Constant((value as num).toDouble());
 }
 
-/// Variable node representing a named symbol.
+/// [Variable] node representing a named symbol.
 final class Variable extends Expr {
+  /// Creates a variable node with the given [name].
   const new(this.name);
 
+  /// The symbol name of this variable (e.g. `'x'`).
   final String name;
 
   @override
@@ -62,10 +88,12 @@ final class Variable extends Expr {
   int get hashCode => name.hashCode;
 }
 
-/// Constant numeric value node.
+/// [Constant] numeric value node.
 final class Constant extends Expr {
+  /// Creates a constant numeric node with [value].
   const new(this.value);
 
+  /// The numeric value of this constant.
   final double value;
 
   @override
@@ -91,11 +119,15 @@ final class Constant extends Expr {
   int get hashCode => value.hashCode;
 }
 
-/// Addition node: left + right.
+/// [Add] expression node: left + right.
 final class Add extends Expr {
+  /// Creates an addition node representing `[left] + [right]`.
   const new(this.left, this.right);
 
+  /// The left operand.
   final Expr left;
+
+  /// The right operand.
   final Expr right;
 
   @override
@@ -128,11 +160,15 @@ final class Add extends Expr {
   int get hashCode => Object.hash(left, right);
 }
 
-/// Subtraction node: left - right.
+/// [Sub] expression node: left - right.
 final class Sub extends Expr {
+  /// Creates a subtraction node representing `[left] - [right]`.
   const new(this.left, this.right);
 
+  /// The left operand.
   final Expr left;
+
+  /// The right operand.
   final Expr right;
 
   @override
@@ -165,11 +201,15 @@ final class Sub extends Expr {
   int get hashCode => Object.hash(left, right);
 }
 
-/// Multiplication node: left * right.
+/// [Mul] expression node: left * right.
 final class Mul extends Expr {
+  /// Creates a multiplication node representing `[left] * [right]`.
   const new(this.left, this.right);
 
+  /// The left operand.
   final Expr left;
+
+  /// The right operand.
   final Expr right;
 
   @override
@@ -202,11 +242,15 @@ final class Mul extends Expr {
   int get hashCode => Object.hash(left, right);
 }
 
-/// Division node: left / right.
+/// [Div] expression node: left / right.
 final class Div extends Expr {
+  /// Creates a division node representing `[left] / [right]`.
   const new(this.left, this.right);
 
+  /// The numerator operand.
   final Expr left;
+
+  /// The denominator operand.
   final Expr right;
 
   @override
@@ -239,11 +283,15 @@ final class Div extends Expr {
   int get hashCode => Object.hash(left, right);
 }
 
-/// Exponentiation node: base ^ exponent.
+/// [Pow] expression node: base ^ exponent.
 final class Pow extends Expr {
+  /// Creates an exponentiation node representing `[base] ^ [exponent]`.
   const new(this.base, this.exponent);
 
+  /// The base expression.
   final Expr base;
+
+  /// The exponent expression.
   final Expr exponent;
 
   @override
@@ -277,10 +325,12 @@ final class Pow extends Expr {
   int get hashCode => Object.hash(base, exponent);
 }
 
-/// Unary negation: -expr.
+/// [Neg] unary negation node: -expr.
 final class Neg extends Expr {
+  /// Creates a unary negation node representing `-[expr]`.
   const new(this.expr);
 
+  /// The negated sub-expression.
   final Expr expr;
 
   @override
@@ -306,10 +356,12 @@ final class Neg extends Expr {
   int get hashCode => expr.hashCode;
 }
 
-/// Sine function: sin(expr).
+/// [Sin] function node: sin(expr).
 final class Sin extends Expr {
+  /// Creates a sine function node representing `sin([expr])`.
   const new(this.expr);
 
+  /// The argument sub-expression.
   final Expr expr;
 
   @override
@@ -336,10 +388,12 @@ final class Sin extends Expr {
   int get hashCode => expr.hashCode;
 }
 
-/// Cosine function: cos(expr).
+/// [Cos] function node: cos(expr).
 final class Cos extends Expr {
+  /// Creates a cosine function node representing `cos([expr])`.
   const new(this.expr);
 
+  /// The argument sub-expression.
   final Expr expr;
 
   @override
@@ -366,10 +420,12 @@ final class Cos extends Expr {
   int get hashCode => expr.hashCode;
 }
 
-/// Exponential function: exp(expr).
+/// [Exp] function node: exp(expr).
 final class Exp extends Expr {
+  /// Creates an exponential function node representing `exp([expr])`.
   const new(this.expr);
 
+  /// The exponent sub-expression.
   final Expr expr;
 
   @override
@@ -396,10 +452,12 @@ final class Exp extends Expr {
   int get hashCode => expr.hashCode;
 }
 
-/// Natural logarithm: ln(expr).
+/// [Ln] function node: ln(expr).
 final class Ln extends Expr {
+  /// Creates a natural logarithm function node representing `ln([expr])`.
   const new(this.expr);
 
+  /// The argument sub-expression.
   final Expr expr;
 
   @override

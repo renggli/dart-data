@@ -10,8 +10,10 @@
 ## Comments, Documentation and Examples
   
 - Use triple-slash (`///`) doc comments for all public members.
-- Use square brackets (`[Name]`) to link to other members within doc comments. Use markdown sparingly.
-- Start with a concise, single-sentence summary. If more detail is required, follow with a blank line and a deeper explanation (e.g., edge cases, parameters, error handling, ...).
+- Use square brackets (`[Name]`) to link all class, constructor, method, and type references within doc comments (e.g., `[DataFrame]`, `[Vector.filled]`, `[Matrix]`, `[Polynomial.fromCoefficients]`). Ensure all bracketed identifiers resolve cleanly without linter warnings (`comment_references`). Use markdown sparingly.
+- Escape square brackets in mathematical formulas and LaTeX expressions (e.g., `$R\[x\]$`, `$[a, b]$`) or enclose in backticks to prevent the Dart analyzer from treating them as in-scope symbol references and triggering `comment_references` warnings.
+- Start with a concise, single-sentence summary headline. When further explanation is needed, transition seamlessly into an accessible, intuitive conceptual explanation followed by mathematically rigorous definitions, properties, and formulas.
+- Never use condescending audience labels (e.g., do not write "For high school students", "For students", or "For mathematicians"). Present conceptual intuition and mathematical rigor naturally as complementary layers of understanding for all readers.
 - Include code examples for non-trivial public APIs. Ensure examples are well-formatted, accurate, and relevant. Verify that examples compile and produce the advertised output.
 
 ## Coding Style and Conventions

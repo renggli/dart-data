@@ -4,7 +4,19 @@ import 'ast.dart';
 
 /// Canonical algebraic simplification extension on [Expr].
 extension SimplifierExtension on Expr {
-  /// Canonically simplifies this expression performing constant folding and identity reductions.
+  /// Canonically simplifies this expression by performing constant folding and identity reductions.
+  ///
+  /// Conceptually, this simplifies expressions using algebraic identities such as $x + 0 \to x$, $x \cdot 1 \to x$,
+  /// $0 \cdot x \to 0$, and evaluates constant sub-expressions like $2 + 3 \to 5$.
+  /// Formally, this executes confluent rewriting rules to reduce algebraic
+  /// expressions into canonical normal form over additive and multiplicative identities,
+  /// annihilators, and constants.
+  ///
+  /// ```dart
+  /// final x = Variable('x');
+  /// final expr = (x + 0) * 1 + (const Constant(2.0) + const Constant(3.0));
+  /// final s = expr.simplify(); // x + 5
+  /// ```
   Expr simplify() => _simplify(this);
 }
 

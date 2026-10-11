@@ -3,6 +3,17 @@ import '../tensor.dart';
 
 extension ManipulationTensorExtension<T> on Tensor<T> {
   /// Concatenates this tensor with [other] along [axis].
+  ///
+  /// Conceptually, this joins two tensors side-by-side or end-to-end along [axis].
+  ///
+  /// Formally, this forms a direct concatenation along coordinate axis $k$.
+  ///
+  /// ```dart
+  /// final a = Tensor<int>.fromObject([[1, 2]]);
+  /// final b = Tensor<int>.fromObject([[3, 4]]);
+  /// final c = a.concatenate(b, axis: 0);
+  /// // c has shape [2, 2] and values [[1, 2], [3, 4]]
+  /// ```
   Tensor<T> concatenate(Tensor<T> other, {int axis = 0}) =>
       concatenateAll([this, other], axis: axis);
 
@@ -56,6 +67,17 @@ extension ManipulationTensorExtension<T> on Tensor<T> {
   }
 
   /// Stacks this tensor with [other] along a new [axis].
+  ///
+  /// Conceptually, this aligns tensors of identical shape along a newly created dimension [axis].
+  ///
+  /// Formally, this embeds the tensors into a new dimension axis.
+  ///
+  /// ```dart
+  /// final a = Tensor<int>.fromObject([1, 2]);
+  /// final b = Tensor<int>.fromObject([3, 4]);
+  /// final c = a.stack(b, axis: 0);
+  /// // c has shape [2, 2] and values [[1, 2], [3, 4]]
+  /// ```
   Tensor<T> stack(Tensor<T> other, {int axis = 0}) =>
       stackAll([this, other], axis: axis);
 
@@ -90,6 +112,16 @@ extension ManipulationTensorExtension<T> on Tensor<T> {
   }
 
   /// Repeats this tensor along each axis according to [reps].
+  ///
+  /// Conceptually, this replicates the tensor repeatedly along each axis according to [reps].
+  ///
+  /// Formally, this computes the periodic extension along axes by [reps].
+  ///
+  /// ```dart
+  /// final a = Tensor<int>.fromObject([1, 2]);
+  /// final b = a.tile([2]);
+  /// // b has shape [4] and values [1, 2, 1, 2]
+  /// ```
   Tensor<T> tile(List<int> reps) {
     if (reps.length < rank) {
       throw ArgumentError(
@@ -122,6 +154,17 @@ extension ManipulationTensorExtension<T> on Tensor<T> {
   }
 
   /// Pads this tensor with [fillValue] according to [padding] per dimension.
+  ///
+  /// Conceptually, this expands the boundaries of the tensor by padding with [fillValue].
+  ///
+  /// Formally, this embeds the tensor into an enlarged index domain
+  /// with constant boundary conditions.
+  ///
+  /// ```dart
+  /// final a = Tensor<int>.fromObject([1, 2]);
+  /// final b = a.pad([[1, 1]], fillValue: 0);
+  /// // b has shape [4] and values [0, 1, 2, 0]
+  /// ```
   Tensor<T> pad(List<List<int>> padding, {T? fillValue}) {
     if (padding.length != rank) {
       throw ArgumentError('padding length must match rank $rank');
@@ -141,6 +184,16 @@ extension ManipulationTensorExtension<T> on Tensor<T> {
   }
 
   /// Splits this tensor into [parts] equal chunks along [axis].
+  ///
+  /// Conceptually, this partitions the tensor into [parts] equally sized slices along [axis].
+  ///
+  /// Formally, this partitions the index domain along axis $k$ into $p$ equal subdomains.
+  ///
+  /// ```dart
+  /// final a = Tensor<int>.fromObject([1, 2, 3, 4]);
+  /// final parts = a.split(2);
+  /// // parts has 2 tensors: [1, 2] and [3, 4]
+  /// ```
   ///
   /// Throws [ArgumentError] if [parts] is not positive or if the dimension
   /// along [axis] is not evenly divisible by [parts].
@@ -170,6 +223,16 @@ extension ManipulationTensorExtension<T> on Tensor<T> {
   }
 
   /// Splits this tensor into chunks along [axis] with lengths given by [splitSizes].
+  ///
+  /// Conceptually, this partitions the tensor into slices along [axis] with lengths given by [splitSizes].
+  ///
+  /// Formally, this partitions the index domain along axis $k$ according to the integer partition [splitSizes].
+  ///
+  /// ```dart
+  /// final a = Tensor<int>.fromObject([1, 2, 3, 4, 5]);
+  /// final parts = a.splitWithSizes([2, 3]);
+  /// // parts has 2 tensors: [1, 2] and [3, 4, 5]
+  /// ```
   ///
   /// Throws [ArgumentError] if any size in [splitSizes] is negative or if the sum
   /// of [splitSizes] does not match the dimension length along [axis].

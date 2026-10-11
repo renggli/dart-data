@@ -69,6 +69,16 @@ class HypothesisTestResult with ToStringPrinter {
 }
 
 /// One-sample Student's t-test for the null hypothesis that the population mean equals [mu0].
+///
+/// Conceptually, this tests whether the sample mean differs
+/// significantly from a specified hypothesized value $\mu_0$.
+/// Formally, this evaluates $H_0: \mu = \mu_0$ using Student's $t$ statistic
+/// $t = \frac{\bar{x} - \mu_0}{s / \sqrt{n}} \sim t_{n-1}$.
+///
+/// ```dart
+/// final res = tTestOneSample([10.0, 11.0, 9.5, 10.5, 10.2], mu0: 10.0);
+/// // res.pValue, res.isSignificant
+/// ```
 HypothesisTestResult tTestOneSample(
   Iterable<num> sample, {
   double mu0 = 0.0,
@@ -112,6 +122,17 @@ HypothesisTestResult tTestOneSample(
 }
 
 /// Two-sample independent t-test for difference in means between [sample1] and [sample2].
+///
+/// Conceptually, this tests whether the difference between the means of two independent groups
+/// is statistically significant or could have occurred by chance alone.
+/// Formally, this evaluates $H_0: \mu_1 = \mu_2$ using Welch's $t$-test
+/// with Satterthwaite-Welch degrees of freedom when [equalVariance] is false, or pooled
+/// variance Student's $t$ when [equalVariance] is true.
+///
+/// ```dart
+/// final res = tTestTwoSample([1.0, 2.0, 3.0], [4.0, 5.0, 6.0]);
+/// // res.pValue, res.statistic
+/// ```
 ///
 /// If [equalVariance] is true, uses standard Student's t-test with pooled variance.
 /// If [equalVariance] is false (default), uses Welch's t-test with Satterthwaite degrees of freedom.

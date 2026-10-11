@@ -22,6 +22,22 @@ class OdeSolution {
 
 /// Solves an initial value problem $\frac{dy}{dt} = f(t, y)$ using classical
 /// 4th order Runge-Kutta (RK4) with fixed step size [stepSize].
+///
+/// Conceptually, this simulates how a dynamic system evolves over time
+/// (such as an orbital trajectory or harmonic oscillator) by taking small time steps and
+/// combining four slope estimates at each step.
+/// Formally, it computes trajectory updates using the classical 4th-order
+/// Runge-Kutta Butcher tableau with local truncation error $\mathcal{O}(h^5)$ and
+/// global discretization error $\mathcal{O}(h^4)$.
+///
+/// ```dart
+/// final sol = rk4(
+///   f: (t, y) => Vector<double>.fromList([-y[0]]),
+///   t0: 0.0,
+///   tEnd: 1.0,
+///   y0: Vector<double>.fromList([1.0]),
+/// );
+/// ```
 OdeSolution rk4({
   required Vector<double> Function(double t, Vector<double> y) f,
   required double t0,
@@ -70,6 +86,22 @@ OdeSolution rk4({
 
 /// Solves an initial value problem $\frac{dy}{dt} = f(t, y)$ using adaptive
 /// Dormand-Prince 5(4) Runge-Kutta (RK45) with local error control.
+///
+/// Conceptually, this adaptive simulator automatically shrinks its
+/// integration time steps during rapid transients and increases step sizes during smooth
+/// intervals to maintain desired accuracy with minimal computational overhead.
+/// Formally, it implements the Dormand-Prince 5(4) embedded Runge-Kutta
+/// pair (DOPRI5), comparing 4th and 5th order solutions to adjust step size dynamically
+/// based on the specified [relativeTolerance] and [absoluteTolerance].
+///
+/// ```dart
+/// final sol = rk45(
+///   f: (t, y) => Vector<double>.fromList([-y[0]]),
+///   t0: 0.0,
+///   tEnd: 1.0,
+///   y0: Vector<double>.fromList([1.0]),
+/// );
+/// ```
 OdeSolution rk45({
   required Vector<double> Function(double t, Vector<double> y) f,
   required double t0,

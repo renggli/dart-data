@@ -2,6 +2,7 @@ import '../distribution.dart';
 
 /// Abstract base class for continuous probability distributions over [double].
 abstract class ContinuousDistribution extends Distribution<double> {
+  /// Abstract constant constructor for subclassing [ContinuousDistribution].
   const new();
 
   @override

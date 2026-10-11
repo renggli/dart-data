@@ -5,6 +5,12 @@ import '../simplifier.dart';
 extension LinearFormExtension on Expr {
   /// Decomposes this expression into affine form $a \cdot [variable] + b$,
   /// where $a$ and $b$ do not depend on [variable], and $a \ne 0$.
+  ///
+  /// ```dart
+  /// final x = Variable('x');
+  /// final lin = (2 * x + 5).matchLinear('x');
+  /// // lin?.a == Constant(2.0), lin?.b == Constant(5.0)
+  /// ```
   ({Expr a, Expr b})? matchLinear(String variable) =>
       _matchLinear(this, variable);
 

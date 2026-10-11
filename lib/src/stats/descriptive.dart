@@ -7,36 +7,101 @@ import '../linear/vector.dart';
 import '../tensor/tensor.dart';
 
 /// Returns the arithmetic mean of [values], or [double.nan] if empty.
+///
+/// Conceptually, the mean is the standard average: the sum of all elements
+/// divided by the count of observations.
+/// Formally, it computes the first sample central moment $\bar{x} = \frac{1}{n} \sum_{i=1}^n x_i$.
+///
+/// ```dart
+/// final avg = mean([1.0, 2.0, 3.0, 4.0, 5.0]); // 3.0
+/// ```
 double mean(Iterable<num> values) => _mean(values);
 
 /// Returns the sample or population variance of [values].
+///
+/// Conceptually, variance measures how widely spread the values
+/// are around their arithmetic mean. If all observations are identical, variance is 0.
+/// Formally, it computes $s^2 = \frac{1}{n - 1} \sum_{i=1}^n (x_i - \bar{x})^2$
+/// (or $\sigma^2 = \frac{1}{n} \sum (x_i - \bar{x})^2$ when [population] is true)
+/// using Welford's numerically stable one-pass algorithm.
+///
+/// ```dart
+/// final v = variance([2.0, 4.0, 4.0, 4.0, 5.0, 5.0, 7.0, 9.0]); // 4.5714...
+/// ```
 double variance(Iterable<num> values, {bool population = false}) =>
     _variance(values, population: population);
 
 /// Returns the standard deviation of [values].
+///
+/// Conceptually, standard deviation is the square root of the variance,
+/// expressing dispersion in the same units of measurement as the original data.
+/// Formally, it computes $s = \sqrt{\operatorname{Var}(X)}$.
+///
+/// ```dart
+/// final sd = standardDeviation([2.0, 4.0, 4.0, 4.0, 5.0, 5.0, 7.0, 9.0]);
+/// ```
 double standardDeviation(Iterable<num> values, {bool population = false}) =>
     _standardDeviation(values, population: population);
 
-/// Returns the empirical quantile of [values] for fraction [quantile] $\in [0, 1]$
+/// Returns the empirical quantile of [values] for fraction [quantile] in the range `[0.0, 1.0]`
 /// using standard linear interpolation between adjacent ranks (Type 7).
+///
+/// Conceptually, a quantile is a dividing threshold: for example, the 0.5 quantile
+/// is the median, and the 0.25 quantile is the lower quartile cutoff.
+/// Formally, it computes $Q(p) = x_{(k)} + (p(n - 1) - k)(x_{(k+1)} - x_{(k)})$
+/// where $k = \lfloor p(n - 1) \rfloor$ (Hyndman and Fan Type 7).
+///
+/// ```dart
+/// final q = quantile([1.0, 2.0, 3.0, 4.0, 5.0], 0.5); // 3.0
+/// ```
 double quantile(Iterable<num> values, num quantile) =>
     _quantile(values, quantile);
 
-/// Returns the [percentile]-th percentile of [values] where [percentile] $\in [0, 100]$.
-double percentile(Iterable<num> values, num percentile) =>
-    _percentile(values, percentile);
-
 /// Returns the median of [values].
+///
+/// Conceptually, the median is the middle value when data is sorted in ascending order.
+/// Formally, it computes the 50th percentile / 0.5 quantile.
+///
+/// ```dart
+/// final m = median([1.0, 3.0, 5.0]); // 3.0
+/// ```
 double median(Iterable<num> values) => _median(values);
 
 /// Returns the interquartile range (IQR = Q3 - Q1) of [values].
+///
+/// Conceptually, the IQR is the distance between the 25th percentile and
+/// 75th percentile, spanning the central 50% of the sample.
+/// Formally, it computes $Q(0.75) - Q(0.25)$, providing a robust measure of
+/// statistical dispersion unaffected by extreme outliers.
+///
+/// ```dart
+/// final r = iqr([1.0, 2.0, 5.0, 6.0, 7.0, 9.0]);
+/// ```
 double iqr(Iterable<num> values) => _iqr(values);
 
 /// Returns the sample skewness of [values].
+///
+/// Conceptually, skewness indicates distribution asymmetry: whether observations lean to the
+/// left (negative skew, longer left tail) or to the right (positive skew, longer right tail).
+/// Formally, it computes the standardized 3rd central moment
+/// $g_1 = \frac{m_3}{m_2^{3/2}}$, with optional sample bias correction $\frac{\sqrt{n(n-1)}}{n-2}$.
+///
+/// ```dart
+/// final s = skewness([1.0, 2.0, 2.0, 3.0]);
+/// ```
 double skewness(Iterable<num> values, {bool bias = false}) =>
     _skewness(values, bias: bias);
 
 /// Returns the kurtosis of [values]. If [excess] is true (default), returns excess kurtosis (Fisher).
+///
+/// Conceptually, kurtosis measures tail heaviness and propensity toward outliers
+/// relative to a normal distribution.
+/// Formally, it computes the standardized 4th central moment $g_2 = \frac{m_4}{m_2^2} - 3$
+/// (Fisher's excess kurtosis, 0 for normal distribution).
+///
+/// ```dart
+/// final k = kurtosis([1.0, 2.0, 3.0, 4.0, 5.0]);
+/// ```
 double kurtosis(
   Iterable<num> values, {
   bool excess = true,
@@ -44,13 +109,30 @@ double kurtosis(
 }) => _kurtosis(values, excess: excess, bias: bias);
 
 /// Computes the sample or population covariance between [x] and [y].
+///
+/// Conceptually, covariance indicates whether two variables tend to increase together
+/// (positive covariance) or vary inversely (negative covariance).
+/// Formally, it computes $\operatorname{Cov}(X, Y) = \frac{1}{n - 1} \sum_{i=1}^n (x_i - \bar{x})(y_i - \bar{y})$
+/// using a numerically stable two-variable Welford-style algorithm.
+///
+/// ```dart
+/// final cov = covariance([1.0, 2.0, 3.0], [2.0, 4.0, 6.0]);
+/// ```
 double covariance(
   Iterable<num> x,
   Iterable<num> y, {
   bool population = false,
 }) => _covariance(x, y, population: population);
 
-/// Computes Pearson correlation coefficient $r \in [-1, 1]$ between [x] and [y].
+/// Computes the Pearson correlation coefficient $r$ (in `[-1.0, 1.0]`) between [x] and [y].
+///
+/// Conceptually, Pearson's $r$ measures the strength and direction of linear association between two variables,
+/// where $+1$ represents a perfect positive linear relationship, $-1$ represents a perfect negative linear relationship, and $0$ indicates absence of linear correlation.
+/// Formally, it computes $r = \frac{\operatorname{Cov}(X, Y)}{\sigma_X \sigma_Y} \in \lbrack -1, 1 \rbrack$.
+///
+/// ```dart
+/// final r = pearsonCorrelation([1.0, 2.0, 3.0], [2.0, 4.0, 6.0]); // 1.0
+/// ```
 double pearsonCorrelation(Iterable<num> x, Iterable<num> y) =>
     _pearsonCorrelation(x, y);
 
@@ -76,7 +158,7 @@ List<double> rankData(Iterable<num> values) {
   return ranks;
 }
 
-/// Computes Spearman rank correlation coefficient $\rho \in [-1, 1]$ between [x] and [y].
+/// Computes the Spearman rank correlation coefficient $\rho$ (in `[-1.0, 1.0]`) between [x] and [y].
 double spearmanCorrelation(Iterable<num> x, Iterable<num> y) =>
     _spearmanCorrelation(x, y);
 
@@ -86,15 +168,15 @@ double spearmanCorrelation(Iterable<num> x, Iterable<num> y) =>
 /// If [rowVar] is true, rows represent variables and columns represent observations.
 ///
 /// Transparently uses [Matrix.syrk] BLAS acceleration for large matrix multiplications.
-Matrix<double> covarianceMatrix(dynamic data, {bool rowVar = false}) =>
+Matrix<double> covarianceMatrix(Object data, {bool rowVar = false}) =>
     _covarianceMatrix(data, rowVar: rowVar);
 
 /// Computes the Pearson correlation matrix of [data].
-Matrix<double> pearsonCorrelationMatrix(dynamic data, {bool rowVar = false}) =>
+Matrix<double> pearsonCorrelationMatrix(Object data, {bool rowVar = false}) =>
     _pearsonCorrelationMatrix(data, rowVar: rowVar);
 
 /// Computes the Spearman rank correlation matrix of [data].
-Matrix<double> spearmanCorrelationMatrix(dynamic data, {bool rowVar = false}) =>
+Matrix<double> spearmanCorrelationMatrix(Object data, {bool rowVar = false}) =>
     _spearmanCorrelationMatrix(data, rowVar: rowVar);
 
 /// Returns the weighted mean of [values] weighted by [weights].
@@ -334,12 +416,6 @@ extension DescriptiveIterableNumExtension on Iterable<num> {
   }
 
   /// Returns the arithmetic mean of values.
-  double average() => arithmeticMean();
-
-  /// Returns the arithmetic mean of values.
-  double arithmeticMean() => _mean(this);
-
-  /// Returns the arithmetic mean of values.
   double mean() => _mean(this);
 
   /// Returns the geometric mean of values.
@@ -377,11 +453,8 @@ extension DescriptiveIterableNumExtension on Iterable<num> {
   /// Returns the median of values.
   double median() => _median(this);
 
-  /// Returns the empirical quantile for [quantile] $\in [0, 1]$.
+  /// Returns the empirical quantile for [quantile] in `[0.0, 1.0]`.
   double quantile(num quantile) => _quantile(this, quantile);
-
-  /// Returns the percentile for [percentile] $\in [0, 100]$.
-  double percentile(num percentile) => _percentile(this, percentile);
 
   /// Returns the interquartile range (IQR).
   double iqr() => _iqr(this);
@@ -446,11 +519,8 @@ extension DescriptiveVectorNumExtension on Vector<num> {
   /// Returns the median of vector elements.
   double median() => _median(toList());
 
-  /// Returns the empirical quantile for [quantile] $\in [0, 1]$.
+  /// Returns the empirical quantile for [quantile] in `[0.0, 1.0]`.
   double quantile(num quantile) => _quantile(toList(), quantile);
-
-  /// Returns the percentile for [percentile] $\in [0, 100]$.
-  double percentile(num percentile) => _percentile(toList(), percentile);
 
   /// Returns the interquartile range (IQR).
   double iqr() => _iqr(toList());
@@ -512,11 +582,8 @@ extension DescriptiveTensorNumExtension on Tensor<num> {
   /// Returns the median of tensor elements.
   double median() => _median(values);
 
-  /// Returns the empirical quantile for [quantile] $\in [0, 1]$.
+  /// Returns the empirical quantile for [quantile] in `[0.0, 1.0]`.
   double quantile(num quantile) => _quantile(values, quantile);
-
-  /// Returns the percentile for [percentile] $\in [0, 100]$.
-  double percentile(num percentile) => _percentile(values, percentile);
 
   /// Returns the interquartile range (IQR).
   double iqr() => _iqr(values);
@@ -557,11 +624,8 @@ extension DescriptiveMatrixNumExtension on Matrix<num> {
   /// Returns the median of matrix elements.
   double median() => _median(values);
 
-  /// Returns the empirical quantile for [quantile] $\in [0, 1]$.
+  /// Returns the empirical quantile for [quantile] in `[0.0, 1.0]`.
   double quantile(num quantile) => _quantile(values, quantile);
-
-  /// Returns the percentile for [percentile] $\in [0, 100]$.
-  double percentile(num percentile) => _percentile(values, percentile);
 
   /// Returns the interquartile range (IQR).
   double iqr() => _iqr(values);
@@ -625,9 +689,6 @@ double _quantile(Iterable<num> values, num quantile) {
   if (baseIdx >= list.length - 1) return list.last;
   return list[baseIdx] + frac * (list[baseIdx + 1] - list[baseIdx]);
 }
-
-double _percentile(Iterable<num> values, num percentile) =>
-    _quantile(values, percentile / 100.0);
 
 double _median(Iterable<num> values) => _quantile(values, 0.5);
 
@@ -735,7 +796,7 @@ double _pearsonCorrelation(Iterable<num> x, Iterable<num> y) {
 double _spearmanCorrelation(Iterable<num> x, Iterable<num> y) =>
     _pearsonCorrelation(rankData(x), rankData(y));
 
-Matrix<double> _covarianceMatrix(dynamic data, {bool rowVar = false}) {
+Matrix<double> _covarianceMatrix(Object data, {bool rowVar = false}) {
   final matrix = switch (data) {
     Matrix<num>() => data,
     Tensor<num>() => Matrix(data),
@@ -783,7 +844,7 @@ Matrix<double> _covarianceMatrix(dynamic data, {bool rowVar = false}) {
   return xc.syrk(transpose: true, alpha: scale);
 }
 
-Matrix<double> _pearsonCorrelationMatrix(dynamic data, {bool rowVar = false}) {
+Matrix<double> _pearsonCorrelationMatrix(Object data, {bool rowVar = false}) {
   final cov = _covarianceMatrix(data, rowVar: rowVar);
   final dim = cov.rowCount;
   final std = List<double>.generate(dim, (i) => math.sqrt(cov.get(i, i)));
@@ -802,7 +863,7 @@ Matrix<double> _pearsonCorrelationMatrix(dynamic data, {bool rowVar = false}) {
   return corr;
 }
 
-Matrix<double> _spearmanCorrelationMatrix(dynamic data, {bool rowVar = false}) {
+Matrix<double> _spearmanCorrelationMatrix(Object data, {bool rowVar = false}) {
   final matrix = switch (data) {
     Matrix<num>() => data,
     Tensor<num>() => Matrix(data),

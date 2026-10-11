@@ -10,10 +10,7 @@ void main() {
     group('jackknife', () {
       test('mean', () {
         final samples = <int>[0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
-        final jackknife = Jackknife<int>(
-          samples,
-          (list) => list.arithmeticMean(),
-        );
+        final jackknife = Jackknife<int>(samples, (list) => list.mean());
         check(jackknife.samples).identicalTo(samples);
         check(jackknife.confidenceLevel).equals(0.95);
         check(jackknife.resamples).length.equals(10);
@@ -58,7 +55,7 @@ void main() {
         final samples = <int>[2, 4];
         final jackknife = Jackknife<int>(
           samples,
-          (list) => list.arithmeticMean(),
+          (list) => list.mean(),
           confidenceLevel: 0.90,
         );
         check(jackknife.estimate).isCloseTo(3.0, 1e-6);
@@ -97,7 +94,7 @@ void main() {
 
         final result = bootstrap<double>(
           sample,
-          (list) => list.arithmeticMean(),
+          (list) => list.mean(),
           resamples: 1000,
           confidenceLevel: 0.95,
           random: math.Random(42),
@@ -138,7 +135,7 @@ void main() {
         final fittedDist = NormalDistribution.fit(sample);
         final result = parametricBootstrapDistribution(
           sample: sample,
-          statistic: (list) => list.arithmeticMean(),
+          statistic: (list) => list.mean(),
           distribution: fittedDist,
           resamples: 500,
           confidenceLevel: 0.95,
@@ -156,10 +153,7 @@ void main() {
 
       test('resampling errors and string printing', () {
         final samples = [1.0, 2.0, 3.0];
-        final jackknife = Jackknife<double>(
-          samples,
-          (list) => list.arithmeticMean(),
-        );
+        final jackknife = Jackknife<double>(samples, (list) => list.mean());
         check(jackknife.toString()).contains('Jackknife');
 
         check(() => bootstrap([1.0], (list) => list[0]))

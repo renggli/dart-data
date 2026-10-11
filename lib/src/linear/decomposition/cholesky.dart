@@ -29,8 +29,21 @@ extension CholeskyComplexMatrixExtension on Matrix<Complex> {
 
 /// Cholesky Decomposition of a symmetric (or Hermitian) positive-definite matrix $A$.
 ///
-/// Factorizes $A = L L^*$ where $L$ is a lower triangular matrix with strictly
-/// positive real diagonal entries.
+/// Conceptually, Cholesky decomposition is like taking the square root
+/// of a positive matrix: it factors a symmetric positive matrix into a lower-triangular
+/// matrix times its transpose ($A = L L^T$).
+/// Formally, it computes the unique lower triangular factor $L$ such that
+/// $A = L L^*$ with strictly positive real diagonal entries, executing in roughly
+/// half the floating-point operations of standard LU factorization.
+///
+/// ```dart
+/// final a = Matrix<double>.fromRows([
+///   [4.0, 2.0],
+///   [2.0, 5.0],
+/// ]);
+/// final chol = a.cholesky;
+/// print(chol.l);
+/// ```
 class CholeskyDecomposition<T> {
   /// Computes the Cholesky decomposition of [matrix].
   new(Matrix<T> matrix)

@@ -9,11 +9,27 @@ import '../tensor/tensor.dart';
 import 'matrix.dart';
 
 /// 1-dimensional mathematical vector backed by a 1D [Tensor].
+///
+/// Conceptually, a vector is an ordered list of numbers with a magnitude
+/// (length) and direction, like a geometric arrow $(x, y, z)$.
+/// Mathematically, a vector represents an element of a finite-dimensional
+/// vector space $V \cong T^n$ over the scalar field $T$.
+///
+/// ```dart
+/// final v = Vector<double>.fromList([1.0, 2.0, 3.0]);
+/// final len = v.length; // 3
+/// ```
 class Vector<T> {
+  /// Creates a [Vector] wrapping a 1-dimensional [tensor].
+  ///
+  /// ```dart
+  /// final t = Tensor<int>.fromIterable([1, 2, 3]);
+  /// final v = Vector<int>(t);
+  /// ```
   new(this.tensor)
     : assert(tensor.rank == 1, 'Tensor must have rank 1, got ${tensor.rank}');
 
-  /// Constructs a vector filled with [value].
+  /// Constructs a [Vector] filled with [value].
   factory filled(int length, T value, {DataType<T>? type, bool? native}) {
     final effectiveType = type ?? DataType.fromInstance(value);
     final tensor = Tensor<T>.filled(
@@ -25,7 +41,7 @@ class Vector<T> {
     return Vector(tensor);
   }
 
-  /// Constructs a vector populated by [generator].
+  /// Constructs a [Vector] populated by [generator].
   factory generate(
     int length,
     T Function(int index) generator, {
@@ -46,7 +62,7 @@ class Vector<T> {
     );
   }
 
-  /// Constructs a vector from a list of elements.
+  /// Constructs a [Vector] from a list of elements.
   factory fromList(List<T> list, {DataType<T>? type, bool? native}) {
     final effectiveType = type ?? DataType.fromIterable(list);
     final tensor = Tensor<T>.fromIterable(
@@ -58,7 +74,7 @@ class Vector<T> {
     return Vector(tensor);
   }
 
-  /// Constructs a vector from an iterable of elements.
+  /// Constructs a [Vector] from an iterable of elements.
   factory fromIterable(
     Iterable<T> iterable, {
     DataType<T>? type,
@@ -69,7 +85,7 @@ class Vector<T> {
     native: native,
   );
 
-  /// The underlying 1D tensor.
+  /// The underlying 1D [Tensor].
   final Tensor<T> tensor;
 
   /// The number of elements in this vector.
@@ -120,6 +136,19 @@ class Vector<T> {
   }
 
   /// Computes the algebraic inner product (dot product) with [other].
+  ///
+  /// Conceptually, the dot product multiplies corresponding components and
+  /// sums them: $u \cdot v = u_1 v_1 + u_2 v_2 + \dots$. If the dot product is zero,
+  /// the vectors are orthogonal (perpendicular).
+  /// More formally, this calculates the standard Hermitian inner product
+  /// $\langle u, v \rangle = \sum_{i=1}^n \bar{u}_i v_i$, using conjugate multiplication
+  /// for complex fields and hardware BLAS acceleration when available.
+  ///
+  /// ```dart
+  /// final a = Vector<double>.fromList([1.0, 2.0, 3.0]);
+  /// final b = Vector<double>.fromList([4.0, 5.0, 6.0]);
+  /// final d = a.dot(b); // 32.0
+  /// ```
   T dot(Vector<T> other) {
     if (length != other.length) {
       throw ArgumentError(
@@ -182,7 +211,17 @@ class Vector<T> {
     return sum;
   }
 
-  /// Computes the outer product with [other], producing an [M x N] matrix.
+  /// Computes the outer product with [other], producing an $M \times N$ matrix.
+  ///
+  /// Conceptually, this multiplies each element of the first vector by
+  /// each element of the second vector, producing a full rank-2 [Matrix].
+  /// Formally, this calculates the rank-1 tensor product $u \otimes v = u v^T \in T^{M \times N}$.
+  ///
+  /// ```dart
+  /// final a = Vector<int>.fromList([1, 2]);
+  /// final b = Vector<int>.fromList([3, 4, 5]);
+  /// final m = a.outer(b); // 2x3 matrix
+  /// ```
   Matrix<T> outer(Vector<T> other) {
     final rows = length;
     final cols = other.length;
@@ -197,7 +236,17 @@ class Vector<T> {
     return res;
   }
 
-  /// Computes the $L_p$ norm of this vector.
+  /// Computes the $L_p$ norm (length or magnitude) of this vector.
+  ///
+  /// Conceptually, the default norm ($p=2$) is the standard Euclidean length
+  /// calculated via the Pythagorean theorem: $\sqrt{x^2 + y^2 + \dots}$.
+  /// Formally, this calculates the $L_p$ metric $\|v\|_p = \left( \sum_{i=1}^n |v_i|^p \right)^{1/p}$,
+  /// supporting $p=1$ (Manhattan norm), $p=2$ (Euclidean norm), and $p=\infty$ (Chebyshev norm).
+  ///
+  /// ```dart
+  /// final v = Vector<double>.fromList([3.0, 4.0]);
+  /// final length = v.norm(); // 5.0
+  /// ```
   double norm([num pNorm = 2]) {
     final field = type.field;
     if (pNorm == double.infinity) {
@@ -346,7 +395,7 @@ class Vector<T> {
     return scale(inv);
   }
 
-  /// Converts this vector into a matrix (as column [N x 1] or row [1 x N]).
+  /// Converts this vector into a matrix (as column $N \times 1$ or row $1 \times N$).
   Matrix<T> toMatrix({bool asColumn = true}) {
     final shape = asColumn ? [length, 1] : [1, length];
     return Matrix(tensor.reshape(shape));

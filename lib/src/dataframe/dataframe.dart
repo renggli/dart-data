@@ -10,7 +10,29 @@ import 'json.dart';
 import 'series.dart';
 
 /// 2-dimensional heterogeneous tabular data structure.
+///
+/// Conceptually, a [DataFrame] is organized like a spreadsheet table with named
+/// columns (such as 'Name', 'Age', 'Score') where each column has the same number of rows.
+/// Mathematically, it represents a finite relation
+/// $R \subseteq T_1 \times T_2 \times \dots \times T_k$ over typed attributes,
+/// isomorphic to a columnar database table supporting relational algebra.
+///
+/// ```dart
+/// final df = DataFrame.fromColumns({
+///   'name': ['Alice', 'Bob'],
+///   'score': [95.0, 88.5],
+/// });
+/// ```
 class DataFrame {
+  /// Creates a [DataFrame] from an ordered collection of [columns].
+  ///
+  /// Every column must have the same length [rowCount].
+  ///
+  /// ```dart
+  /// final s1 = Series<int>.fromList('a', [1, 2]);
+  /// final s2 = Series<String>.fromList('b', ['x', 'y']);
+  /// final df = DataFrame([s1, s2]);
+  /// ```
   new(Iterable<Series<dynamic>> columns)
     : _columns = columns.toList(growable: false),
       _columnIndex = {
@@ -26,7 +48,7 @@ class DataFrame {
     }
   }
 
-  /// Constructs a DataFrame from an ordered mapping of column names to row values.
+  /// Constructs a [DataFrame] from an ordered mapping of column names to row values.
   factory fromColumns(Map<String, List<dynamic>> data) {
     final cols = <Series<dynamic>>[];
     for (final entry in data.entries) {
@@ -35,7 +57,7 @@ class DataFrame {
     return DataFrame(cols);
   }
 
-  /// Constructs a DataFrame from a list of row maps.
+  /// Constructs a [DataFrame] from a list of row maps.
   factory fromRows(List<Map<String, dynamic>> rows) {
     if (rows.isEmpty) return DataFrame([]);
     final colNames = rows.first.keys.toList();
@@ -50,18 +72,18 @@ class DataFrame {
     return DataFrame.fromColumns(colData);
   }
 
-  /// Parses a CSV string into a DataFrame.
+  /// Parses a CSV string into a [DataFrame].
   factory fromCsv(String csv, {String separator = ',', bool header = true}) =>
       CsvReader.parse(csv, separator: separator, header: header);
 
-  /// Parses a JSON string into a DataFrame.
+  /// Parses a JSON string into a [DataFrame].
   factory fromJson(
     String source, {
     JsonOrient? orient,
     Map<String, DataType<dynamic>>? columnTypes,
   }) => DataFrameJson.decode(source, orient: orient, columnTypes: columnTypes);
 
-  /// Constructs a DataFrame from an iterable of record maps.
+  /// Constructs a [DataFrame] from an iterable of record maps.
   factory fromRecords(
     Iterable<Map<String, dynamic>> records, {
     Map<String, DataType<dynamic>>? columnTypes,
@@ -124,7 +146,7 @@ class DataFrame {
     return DataFrame(remaining);
   }
 
-  /// Adds or replaces [series] in this DataFrame.
+  /// Adds or replaces [series] in this [DataFrame].
   DataFrame withColumn(Series<dynamic> series) {
     final newCols = <Series<dynamic>>[];
     var replaced = false;
@@ -280,15 +302,15 @@ class DataFrame {
   /// Groups by [byColumns] for partitioned aggregation.
   GroupBy groupBy(List<String> byColumns) => GroupBy(this, byColumns);
 
-  /// Serializes DataFrame to CSV format.
+  /// Serializes this [DataFrame] to CSV format.
   String toCsv({String separator = ','}) =>
       CsvWriter.write(this, separator: separator);
 
-  /// Serializes DataFrame to JSON format.
+  /// Serializes this [DataFrame] to JSON format.
   String toJson({JsonOrient orient = JsonOrient.records}) =>
       DataFrameJson.encode(this, orient: orient);
 
-  /// Converts DataFrame rows to a list of record maps.
+  /// Converts this [DataFrame] rows to a list of record maps.
   List<Map<String, dynamic>> toRecords() => DataFrameJson.toRecords(this);
 
   @override

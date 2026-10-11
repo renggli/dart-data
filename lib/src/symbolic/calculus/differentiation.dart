@@ -2,7 +2,20 @@ import '../ast.dart';
 
 /// Analytical symbolic differentiation extension on [Expr].
 extension DifferentiationExtension on Expr {
-  /// Computes the exact analytical symbolic derivative of this expression with respect to [variable].
+  /// Computes the exact analytical symbolic derivative $\frac{d}{dx} f(x)$ with respect to [variable].
+  ///
+  /// Conceptually, the derivative describes the instantaneous rate
+  /// of change or the slope of the tangent line to the graph at any point (such as how
+  /// the derivative of $x^3$ is $3x^2$).
+  /// Formally, this executes recursive formal differentiation $\frac{\partial}{\partial x}$
+  /// applying the product rule, quotient rule, chain rule, and generalized power rule
+  /// across the abstract syntax tree.
+  ///
+  /// ```dart
+  /// final x = Variable('x');
+  /// final d = (x * x * x).diff('x').simplify();
+  /// // d: 3 * (x ^ 2)
+  /// ```
   Expr diff(String variable) => _differentiate(this, variable);
 }
 

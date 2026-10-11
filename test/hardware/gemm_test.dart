@@ -4,6 +4,7 @@ import 'dart:typed_data';
 import 'package:checks/checks.dart';
 import 'package:data/hardware.dart';
 import 'package:data/linear.dart';
+import 'package:data/src/hardware/pure_dart_gemm.dart';
 import 'package:test/test.dart';
 
 void main() {

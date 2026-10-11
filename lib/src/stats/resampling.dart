@@ -195,7 +195,7 @@ class Jackknife<T> with ToStringPrinter {
         _resampleMeasures
             .map((value) => value - _meanResampleMeasure)
             .map((value) => value * value)
-            .arithmeticMean(),
+            .mean(),
   );
 
   /// The lower bound of the confidence interval.
@@ -206,7 +206,7 @@ class Jackknife<T> with ToStringPrinter {
 
   late final _sampleMeasure = statistic(samples);
   late final _resampleMeasures = resamples.map(statistic).toList();
-  late final _meanResampleMeasure = _resampleMeasures.arithmeticMean();
+  late final _meanResampleMeasure = _resampleMeasures.mean();
   late final _zScore = math.sqrt2 * erfInv(confidenceLevel);
 
   @override

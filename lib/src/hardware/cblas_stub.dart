@@ -5,34 +5,23 @@ import 'dart:typed_data';
 /// CBLAS Matrix Layout Order.
 const int cblasRowMajor = 101;
 const int cblasColMajor = 102;
-const int CblasRowMajor = 101;
-const int CblasColMajor = 102;
 
 /// CBLAS Transposition options.
 const int cblasNoTrans = 111;
 const int cblasTrans = 112;
 const int cblasConjTrans = 113;
-const int CblasNoTrans = 111;
-const int CblasTrans = 112;
-const int CblasConjTrans = 113;
 
 /// CBLAS Upper/Lower triangular matrix options.
 const int cblasUpper = 121;
 const int cblasLower = 122;
-const int CblasUpper = 121;
-const int CblasLower = 122;
 
 /// CBLAS Unit/Non-unit diagonal options.
 const int cblasNonUnit = 131;
 const int cblasUnit = 132;
-const int CblasNonUnit = 131;
-const int CblasUnit = 132;
 
 /// CBLAS Side options (left/right).
 const int cblasLeft = 141;
 const int cblasRight = 142;
-const int CblasLeft = 141;
-const int CblasRight = 142;
 
 /// Stub implementation of BLAS library when FFI is unavailable (e.g. Web).
 class BlasLibrary {

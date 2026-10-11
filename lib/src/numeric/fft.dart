@@ -4,9 +4,34 @@ import 'package:more/number.dart' show Complex;
 
 /// Computes the 1-dimensional Discrete Fourier Transform (FFT) of [input].
 ///
-/// This implementation is pure and non-mutating. If the length of [input] is
-/// not a power of 2, it is zero-padded to the next power of 2.
-List<Complex> fft(Iterable<Complex> input, {bool inverse = false}) {
+/// Conceptually, the Fast Fourier Transform acts like a prism:
+/// it decomposes a signal measured over time into its constituent
+/// sinusoidal frequencies and their corresponding amplitudes and phases.
+/// Formally, it computes the discrete Fourier transform $X_k = \sum_{n=0}^{N-1} x_n e^{-2\pi i k n / N}$
+/// using the Cooley-Tukey decimation-in-time radix-2 algorithm in $\mathcal{O}(N \log N)$ time.
+/// Inputs are zero-padded to the next power of 2 if needed.
+///
+/// ```dart
+/// final signal = [Complex(1.0, 0.0), Complex(1.0, 0.0), Complex(0.0, 0.0), Complex(0.0, 0.0)];
+/// final spectrum = fft(signal);
+/// ```
+List<Complex> fft(Iterable<Complex> input) => _fft(input, inverse: false);
+
+/// Computes the 1-dimensional Inverse Discrete Fourier Transform (IFFT) of [input].
+///
+/// Conceptually, this reverses the FFT, synthesizing the original time-domain
+/// signal from its frequency spectrum.
+/// Formally, it computes $x_n = \frac{1}{N} \sum_{k=0}^{N-1} X_k e^{2\pi i k n / N}$
+/// satisfying $\text{ifft}(\text{fft}(x)) = x$.
+///
+/// ```dart
+/// final signal = [Complex(1.0, 0.0), Complex(1.0, 0.0), Complex(0.0, 0.0), Complex(0.0, 0.0)];
+/// final spectrum = fft(signal);
+/// final reconstructed = ifft(spectrum);
+/// ```
+List<Complex> ifft(Iterable<Complex> input) => _fft(input, inverse: true);
+
+List<Complex> _fft(Iterable<Complex> input, {required bool inverse}) {
   final list = input.toList();
   if (list.length <= 1) {
     return List<Complex>.of(list);
@@ -58,12 +83,17 @@ List<Complex> fft(Iterable<Complex> input, {bool inverse = false}) {
   return result;
 }
 
-/// Computes the 1-dimensional Inverse Discrete Fourier Transform (IFFT).
-List<Complex> ifft(Iterable<Complex> input) => fft(input, inverse: true);
-
 /// Computes the 1-dimensional Discrete Fourier Transform for real-valued [input].
 ///
-/// Returns the non-redundant positive frequency components of length $N/2 + 1$.
+/// For purely real-valued input signals (such as audio samples),
+/// this computes the frequency spectrum without requiring prior conversion to complex numbers.
+/// Formally, it exploits Hermitian conjugate symmetry $X_{N-k} = X_k^*$
+/// for real sequences, returning only non-redundant frequencies of length $N/2 + 1$.
+///
+/// ```dart
+/// final realSignal = [1.0, 2.0, 3.0, 4.0];
+/// final spectrum = rfft(realSignal);
+/// ```
 List<Complex> rfft(Iterable<num> input) {
   if (input.isEmpty) return const [];
   final complexInput = [for (final x in input) Complex(x.toDouble(), 0.0)];
@@ -76,7 +106,18 @@ List<Complex> rfft(Iterable<num> input) {
 /// Computes the Inverse Discrete Fourier Transform for real-valued signals from
 /// positive frequency spectrum [input].
 ///
+/// Conceptually, this reconstructs the original real-valued time-domain signal from its
+/// one-sided frequency spectrum.
+/// Formally, it synthesizes the full Hermitian symmetric spectrum and computes
+/// the inverse DFT, discarding numerical imaginary roundoff artifacts.
+///
 /// If [n] is not provided, it defaults to $2 \times (\text{input.length} - 1)$.
+///
+/// ```dart
+/// final realSignal = [1.0, 2.0, 3.0, 4.0];
+/// final spectrum = rfft(realSignal);
+/// final restored = irfft(spectrum, realSignal.length);
+/// ```
 List<double> irfft(List<Complex> input, [int? n]) {
   if (input.isEmpty) return const [];
   final targetLength = n ?? (2 * (input.length - 1));
@@ -98,8 +139,37 @@ List<double> irfft(List<Complex> input, [int? n]) {
 
 /// Computes the 2-dimensional Discrete Fourier Transform of [matrix].
 ///
-/// Transforms rows first, then columns. Non-mutating.
-List<List<Complex>> fft2(List<List<Complex>> matrix, {bool inverse = false}) {
+/// Conceptually, 2D FFT analyzes 2D grids (such as images or spatial fields) to identify
+/// directional wave patterns, textures, and spatial frequencies.
+/// Formally, it computes the separable 2D DFT by transforming rows then columns
+/// in $\mathcal{O}(M N \log(M N))$ time.
+///
+/// ```dart
+/// final image = [
+///   [Complex(1.0, 0.0), Complex(2.0, 0.0)],
+///   [Complex(3.0, 0.0), Complex(4.0, 0.0)],
+/// ];
+/// final spectrum2d = fft2(image);
+/// ```
+List<List<Complex>> fft2(List<List<Complex>> matrix) =>
+    _fft2(matrix, inverse: false);
+
+/// Computes the 2-dimensional Inverse Discrete Fourier Transform of [matrix].
+///
+/// Conceptually, this reconstructs a 2D spatial grid or image from its 2D frequency spectrum.
+/// Formally, it applies the 2D inverse DFT satisfying $\text{ifft2}(\text{fft2}(A)) = A$.
+///
+/// ```dart
+/// final image = [
+///   [Complex(1.0, 0.0), Complex(2.0, 0.0)],
+///   [Complex(3.0, 0.0), Complex(4.0, 0.0)],
+/// ];
+/// final restored = ifft2(fft2(image));
+/// ```
+List<List<Complex>> ifft2(List<List<Complex>> matrix) =>
+    _fft2(matrix, inverse: true);
+
+List<List<Complex>> _fft2(List<List<Complex>> matrix, {required bool inverse}) {
   if (matrix.isEmpty || matrix[0].isEmpty) return const [];
   final rowCount = matrix.length;
   final colCount = matrix[0].length;
@@ -109,7 +179,7 @@ List<List<Complex>> fft2(List<List<Complex>> matrix, {bool inverse = false}) {
   // 1. Transform each row (with targetCols padding)
   final rowTransformed = <List<Complex>>[];
   for (var row = 0; row < rowCount; row++) {
-    rowTransformed.add(fft(matrix[row], inverse: inverse));
+    rowTransformed.add(_fft(matrix[row], inverse: inverse));
   }
   final zeroRow = List<Complex>.filled(targetCols, Complex.zero);
   while (rowTransformed.length < targetRows) {
@@ -126,7 +196,7 @@ List<List<Complex>> fft2(List<List<Complex>> matrix, {bool inverse = false}) {
     final colVals = [
       for (var row = 0; row < targetRows; row++) rowTransformed[row][col],
     ];
-    final colTransformed = fft(colVals, inverse: inverse);
+    final colTransformed = _fft(colVals, inverse: inverse);
     for (var row = 0; row < targetRows; row++) {
       result[row][col] = colTransformed[row];
     }
@@ -134,10 +204,6 @@ List<List<Complex>> fft2(List<List<Complex>> matrix, {bool inverse = false}) {
 
   return result;
 }
-
-/// Computes the 2-dimensional Inverse Discrete Fourier Transform of [matrix].
-List<List<Complex>> ifft2(List<List<Complex>> matrix) =>
-    fft2(matrix, inverse: true);
 
 int _nextPowerOf2(int value) {
   if (value <= 1) return 1;

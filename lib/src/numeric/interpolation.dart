@@ -20,6 +20,16 @@ abstract class Interpolator {
 }
 
 /// 1D Piecewise linear interpolation.
+///
+/// Conceptually, this connects data points on a Cartesian grid with straight line segments,
+/// allowing intermediate values between known measurements to be estimated.
+/// Formally, it computes the continuous $C^0$ piecewise linear interpolant
+/// $S(x) = y_i + \frac{x - x_i}{x_{i+1} - x_i}(y_{i+1} - y_i)$ on $\[x_i, x_{i+1}\]$.
+///
+/// ```dart
+/// final interp = LinearInterpolation([0.0, 1.0, 2.0], [0.0, 10.0, 20.0]);
+/// print(interp(0.5)); // 5.0
+/// ```
 class LinearInterpolation implements Interpolator {
   /// Constructs a linear interpolator from strictly increasing points [xs] and [ys].
   new(Iterable<num> xs, Iterable<num> ys)
@@ -55,6 +65,16 @@ class LinearInterpolation implements Interpolator {
 }
 
 /// Piecewise cubic spline interpolator with natural or clamped boundary conditions.
+///
+/// Conceptually, rather than connecting data points with straight lines or sharp angles,
+/// a cubic spline fits a smooth curve through every point with continuous curvature.
+/// Formally, it constructs a $C^2$ twice continuously differentiable piecewise cubic polynomial
+/// satisfying continuity of $S(x)$, $S'(x)$, and $S''(x)$ across all knots via a tridiagonal linear system.
+///
+/// ```dart
+/// final spline = CubicSpline([0.0, 1.0, 2.0], [0.0, 1.0, 8.0]);
+/// print(spline(1.5));
+/// ```
 class CubicSpline implements Interpolator {
   /// Constructs a cubic spline interpolator.
   new(

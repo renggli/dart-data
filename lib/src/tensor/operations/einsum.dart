@@ -3,6 +3,14 @@ import 'contraction.dart';
 
 /// Evaluates Einstein summation convention on [operands] according to [equation].
 ///
+/// Conceptually, Einstein summation provides a concise notation for specifying
+/// multidimensional tensor transformations, products, and contractions
+/// through index subscript labels.
+///
+/// Formally, this calculates general tensor contractions
+/// defined by index subscript labels: repeated indices across input operands
+/// that do not appear in the output subscript are summed over.
+///
 /// Supported equations include:
 /// - Matrix multiplication: `'ij,jk->ik'`
 /// - Dot product: `'i,i->'` or `'i,i'`
@@ -13,6 +21,13 @@ import 'contraction.dart';
 /// - Batched matrix multiplication: `'bij,bjk->bik'`
 /// - Sum of elements: `'ij->'`
 /// - Multi-tensor contractions: `'ijk,jkl,klm->im'`
+///
+/// ```dart
+/// final a = Tensor<int>.fromObject([[1, 2], [3, 4]]);
+/// final b = Tensor<int>.fromObject([[2, 0], [1, 2]]);
+/// final c = einsum('ij,jk->ik', [a, b]);
+/// // c is [[4, 4], [10, 8]]
+/// ```
 Tensor<T> einsum<T>(String equation, List<Tensor<T>> operands) {
   if (operands.isEmpty) {
     throw ArgumentError('At least one operand required for einsum');
@@ -140,15 +155,13 @@ Tensor<T> einsum<T>(String equation, List<Tensor<T>> operands) {
         final tdOutputLabels = [...freeA, ...freeB].join();
 
         if (tdOutputLabels == outputPart) {
-          return tensorDot(
-            operands[0],
+          return operands[0].tensordot(
             operands[1],
             axes: (contractedA, contractedB),
           );
         } else if (tdOutputLabels.length == outputPart.length &&
             tdOutputLabels.split('').toSet().containsAll(outSet)) {
-          final td = tensorDot(
-            operands[0],
+          final td = operands[0].tensordot(
             operands[1],
             axes: (contractedA, contractedB),
           );

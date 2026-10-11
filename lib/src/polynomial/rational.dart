@@ -1,7 +1,20 @@
 import '../../type.dart';
 import 'polynomial.dart';
 
-/// A rational function $R(x) = \frac{P(x)}{Q(x)}$ representing the ratio of two polynomials.
+/// Rational function $R(x) = \frac{P(x)}{Q(x)}$ representing the ratio of two [Polynomial] instances.
+///
+/// Conceptually, a rational function is an algebraic fraction where both
+/// numerator and denominator are polynomials (such as $\frac{x + 1}{x^2 - 4}$).
+/// Formally, this models elements of the field of rational functions
+/// `K(x) = Frac(K[x])`, supporting exact formal algebra, differentiation,
+/// simplification via GCD reduction, and evaluation.
+///
+/// ```dart
+/// final num = Polynomial.fromCoefficients([1.0, 1.0]); // x + 1
+/// final den = Polynomial.fromCoefficients([2.0, 1.0]); // x + 2
+/// final r = RationalFunction(num, den);
+/// final y = r.evaluateDouble(0.0); // 1.0 / 2.0 = 0.5
+/// ```
 class RationalFunction<T> {
   /// Constructs a rational function with [numerator] and [denominator].
   new(this.numerator, this.denominator) : type = numerator.type {

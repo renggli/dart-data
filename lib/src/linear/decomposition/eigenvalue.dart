@@ -24,9 +24,22 @@ extension EigenvalueMatrixExtension<T extends num> on Matrix<T> {
 
 /// Eigenvalues and eigenvectors of a real square matrix.
 ///
-/// If $A$ is symmetric, then $A = V D V^T$ where $D$ is diagonal and $V$ is
-/// orthogonal. If $A$ is not symmetric, eigenvalues are computed in Schur
-/// form where complex conjugate pairs form $2 \times 2$ blocks.
+/// Conceptually, when a matrix transforms space, an eigenvector is a special
+/// direction that does not rotate—it only gets stretched or shrunk by a scaling
+/// factor called the eigenvalue ($A \mathbf{v} = \lambda \mathbf{v}$).
+/// More formally, this computes the spectral decomposition $A V = V \Lambda$. For real
+/// symmetric matrices, uses Householder tridiagonalization and implicit QL/QR shifts to yield
+/// orthogonal eigenvectors ($A = V D V^T$). For general matrices, reduces to Hessenberg form
+/// and applies Francis double-shift QR iteration.
+///
+/// ```dart
+/// final a = Matrix<double>.fromRows([
+///   [2.0, 0.0],
+///   [0.0, 3.0],
+/// ]);
+/// final eig = a.eigenvalue;
+/// print(eig.realEigenvalues); // [2.0, 3.0]
+/// ```
 class EigenvalueDecomposition {
   /// Computes the eigenvalue decomposition of a square [matrix].
   new(Matrix<num> matrix)

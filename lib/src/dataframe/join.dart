@@ -2,11 +2,40 @@ import 'dataframe.dart';
 import 'tuple_key.dart';
 
 /// Supported relational database join types.
-enum JoinType { inner, left, right, outer }
+enum JoinType {
+  /// Inner join: retains rows with matching keys in both [DataFrame] instances.
+  inner,
+
+  /// Left outer join: retains all rows from the left [DataFrame].
+  left,
+
+  /// Right outer join: retains all rows from the right [DataFrame].
+  right,
+
+  /// Full outer join: retains all rows from both [DataFrame] instances.
+  outer,
+}
 
 /// Extension providing relational join functionality on [DataFrame].
 extension JoinDataFrameExtension on DataFrame {
-  /// Performs a relational hash join between this DataFrame and [other].
+  /// Performs a relational hash join between this [DataFrame] and [other].
+  ///
+  /// Conceptually, a join merges two tables together by matching up
+  /// common identifiers (such as matching records across tables by an ID column).
+  /// Mathematically, this calculates the relational algebra join
+  /// $R \bowtie_{p} S$ based on key equality.
+  ///
+  /// ```dart
+  /// final left = DataFrame.fromColumns({
+  ///   'id': [1, 2],
+  ///   'name': ['Alice', 'Bob'],
+  /// });
+  /// final right = DataFrame.fromColumns({
+  ///   'id': [1, 2],
+  ///   'age': [20, 25],
+  /// });
+  /// final merged = left.join(right, on: ['id']);
+  /// ```
   DataFrame join(
     DataFrame other, {
     required List<String> on,

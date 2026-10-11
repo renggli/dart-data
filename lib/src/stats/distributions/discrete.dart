@@ -6,6 +6,7 @@ const int maxSafeInteger = 9007199254740991;
 
 /// Abstract base class for discrete probability distributions over [int].
 abstract class DiscreteDistribution extends Distribution<int> {
+  /// Abstract constant constructor for subclassing [DiscreteDistribution].
   const new();
 
   @override

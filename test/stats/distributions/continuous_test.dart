@@ -15,22 +15,25 @@ void main() {
       check(dist.mode).equals(0.0);
       check(dist.skewness).equals(0.0);
       check(dist.excessKurtosis).equals(0.0);
-      check(dist.kurtosisExcess).equals(0.0);
+      check(dist.excessKurtosis).equals(0.0);
       check(dist.lowerBound).equals(double.negativeInfinity);
       check(dist.upperBound).equals(double.infinity);
       check(dist.isLowerBoundOpen).isTrue();
       check(dist.isUpperBoundOpen).isTrue();
 
       // PDF at x = 0 is 1 / sqrt(2*pi) ≈ 0.39894228
-      check(dist.pdf(0.0)).isCloseTo(1.0 / math.sqrt(2 * math.pi), 1e-6);
-      check(dist.cdf(0.0)).isCloseTo(0.5, 1e-6);
+      check(dist.probability(0.0))
+          .isCloseTo(1.0 / math.sqrt(2 * math.pi), 1e-6);
+      check(dist.cumulativeProbability(0.0)).isCloseTo(0.5, 1e-6);
       check(dist.survival(0.0)).isCloseTo(0.5, 1e-6);
-      check(dist.quantile(0.5)).isCloseTo(0.0, 1e-6);
+      check(dist.inverseCumulativeProbability(0.5)).isCloseTo(0.0, 1e-6);
       check(dist.inverseSurvival(0.5)).isCloseTo(0.0, 1e-6);
-      check(dist.quantile(0.975)).isCloseTo(1.95996, 1e-4);
-      check(dist.quantile(0.025)).isCloseTo(-1.95996, 1e-4);
-      check(() => dist.quantile(-0.1)).throws<InvalidProbability>();
-      check(() => dist.quantile(1.1)).throws<InvalidProbability>();
+      check(dist.inverseCumulativeProbability(0.975)).isCloseTo(1.95996, 1e-4);
+      check(dist.inverseCumulativeProbability(0.025)).isCloseTo(-1.95996, 1e-4);
+      check(() => dist.inverseCumulativeProbability(-0.1))
+          .throws<InvalidProbability>();
+      check(() => dist.inverseCumulativeProbability(1.1))
+          .throws<InvalidProbability>();
 
       // Sample & fit
       final samples = dist.samples(random: math.Random(42)).take(1000).toList();
@@ -65,12 +68,13 @@ void main() {
       check(dist.variance).isCloseTo(10.0 / 8.0, 1e-6);
       check(dist.skewness).equals(0.0);
       check(dist.excessKurtosis).isCloseTo(6.0 / 6.0, 1e-6);
-      check(dist.pdf(0.0)).isGreaterThan(0.3);
-      check(dist.cdf(0.0)).isCloseTo(0.5, 1e-6);
-      check(dist.quantile(0.5)).isCloseTo(0.0, 1e-6);
+      check(dist.probability(0.0)).isGreaterThan(0.3);
+      check(dist.cumulativeProbability(0.0)).isCloseTo(0.5, 1e-6);
+      check(dist.inverseCumulativeProbability(0.5)).isCloseTo(0.0, 1e-6);
       // For df = 10, t_0.975 ≈ 2.2281
-      check(dist.quantile(0.975)).isCloseTo(2.2281, 1e-3);
-      check(() => dist.quantile(-0.1)).throws<InvalidProbability>();
+      check(dist.inverseCumulativeProbability(0.975)).isCloseTo(2.2281, 1e-3);
+      check(() => dist.inverseCumulativeProbability(-0.1))
+          .throws<InvalidProbability>();
 
       // Degenerate moments for small dof
       const distDof1 = StudentDistribution(1.0);
@@ -116,12 +120,12 @@ void main() {
       check(dist.skewness).isCloseTo(math.sqrt(8.0 / 5.0), 1e-6);
       check(dist.excessKurtosis).isCloseTo(12.0 / 5.0, 1e-6);
 
-      check(dist.pdf(-1.0)).equals(0.0);
-      check(dist.pdf(2.0)).isGreaterThan(0.0);
-      check(dist.cdf(0.0)).equals(0.0);
-      check(dist.cdf(-1.0)).equals(0.0);
-      check(dist.cdf(5.0)).isGreaterThan(0.4);
-      check(dist.cdf(5.0)).isLessThan(0.6);
+      check(dist.probability(-1.0)).equals(0.0);
+      check(dist.probability(2.0)).isGreaterThan(0.0);
+      check(dist.cumulativeProbability(0.0)).equals(0.0);
+      check(dist.cumulativeProbability(-1.0)).equals(0.0);
+      check(dist.cumulativeProbability(5.0)).isGreaterThan(0.4);
+      check(dist.cumulativeProbability(5.0)).isLessThan(0.6);
 
       // Mode when dof < 2
       const distSmall = ChiSquaredDistribution(1.0);
@@ -129,9 +133,10 @@ void main() {
 
       // Quantile roundtrip
       const prob = 0.95;
-      final quant = dist.quantile(prob);
-      check(dist.cdf(quant)).isCloseTo(prob, 1e-5);
-      check(() => dist.quantile(-0.1)).throws<InvalidProbability>();
+      final quant = dist.inverseCumulativeProbability(prob);
+      check(dist.cumulativeProbability(quant)).isCloseTo(prob, 1e-5);
+      check(() => dist.inverseCumulativeProbability(-0.1))
+          .throws<InvalidProbability>();
 
       // Fit
       final samples = dist.samples(random: math.Random(42)).take(1000).toList();
@@ -162,12 +167,12 @@ void main() {
       check(dist.skewness).isGreaterThan(0.0);
       check(dist.excessKurtosis).isGreaterThan(0.0);
 
-      check(dist.pdf(-1.0)).equals(0.0);
-      check(dist.pdf(1.0)).isGreaterThan(0.0);
-      check(dist.cdf(-1.0)).equals(0.0);
-      check(dist.cdf(0.0)).equals(0.0);
-      check(dist.cdf(1.0)).isGreaterThan(0.4);
-      check(dist.cdf(1.0)).isLessThan(0.6);
+      check(dist.probability(-1.0)).equals(0.0);
+      check(dist.probability(1.0)).isGreaterThan(0.0);
+      check(dist.cumulativeProbability(-1.0)).equals(0.0);
+      check(dist.cumulativeProbability(0.0)).equals(0.0);
+      check(dist.cumulativeProbability(1.0)).isGreaterThan(0.4);
+      check(dist.cumulativeProbability(1.0)).isLessThan(0.6);
 
       // Edge cases for moments
       const distSmallD2 = FDistribution(1.0, 2.0);
@@ -179,9 +184,10 @@ void main() {
 
       // Quantile roundtrip
       const prob = 0.90;
-      final quant = dist.quantile(prob);
-      check(dist.cdf(quant)).isCloseTo(prob, 1e-4);
-      check(() => dist.quantile(-0.1)).throws<InvalidProbability>();
+      final quant = dist.inverseCumulativeProbability(prob);
+      check(dist.cumulativeProbability(quant)).isCloseTo(prob, 1e-4);
+      check(() => dist.inverseCumulativeProbability(-0.1))
+          .throws<InvalidProbability>();
 
       // Fit
       final samples = dist.samples(random: math.Random(42)).take(2000).toList();
@@ -214,13 +220,16 @@ void main() {
       check(dist.skewness).equals(2.0);
       check(dist.excessKurtosis).equals(6.0);
 
-      check(dist.pdf(-1.0)).equals(0.0);
-      check(dist.pdf(0.0)).equals(2.0);
-      check(dist.cdf(-1.0)).equals(0.0);
-      check(dist.cdf(0.0)).equals(0.0);
-      check(dist.cdf(0.5)).isCloseTo(1.0 - math.exp(-1.0), 1e-6);
-      check(dist.quantile(0.5)).isCloseTo(dist.median, 1e-6);
-      check(() => dist.quantile(-0.1)).throws<InvalidProbability>();
+      check(dist.probability(-1.0)).equals(0.0);
+      check(dist.probability(0.0)).equals(2.0);
+      check(dist.cumulativeProbability(-1.0)).equals(0.0);
+      check(dist.cumulativeProbability(0.0)).equals(0.0);
+      check(dist.cumulativeProbability(0.5))
+          .isCloseTo(1.0 - math.exp(-1.0), 1e-6);
+      check(dist.inverseCumulativeProbability(0.5))
+          .isCloseTo(dist.median, 1e-6);
+      check(() => dist.inverseCumulativeProbability(-0.1))
+          .throws<InvalidProbability>();
 
       // Fit
       final samples = dist.samples(random: math.Random(42)).take(1000).toList();
@@ -252,10 +261,10 @@ void main() {
       check(dist.skewness).isCloseTo(2.0 / math.sqrt(3.0), 1e-6);
       check(dist.excessKurtosis).isCloseTo(6.0 / 3.0, 1e-6);
 
-      check(dist.pdf(-1.0)).equals(0.0);
-      check(dist.pdf(4.0)).isGreaterThan(0.0);
-      check(dist.cdf(-1.0)).equals(0.0);
-      check(dist.cdf(0.0)).equals(0.0);
+      check(dist.probability(-1.0)).equals(0.0);
+      check(dist.probability(4.0)).isGreaterThan(0.0);
+      check(dist.cumulativeProbability(-1.0)).equals(0.0);
+      check(dist.cumulativeProbability(0.0)).equals(0.0);
 
       // Mode when shape < 1
       const distSmallShape = GammaDistribution(0.5, 2.0);
@@ -273,9 +282,10 @@ void main() {
 
       // Quantile roundtrip
       const prob = 0.8;
-      final quant = dist.quantile(prob);
-      check(dist.cdf(quant)).isCloseTo(prob, 1e-5);
-      check(() => dist.quantile(-0.1)).throws<InvalidProbability>();
+      final quant = dist.inverseCumulativeProbability(prob);
+      check(dist.cumulativeProbability(quant)).isCloseTo(prob, 1e-5);
+      check(() => dist.inverseCumulativeProbability(-0.1))
+          .throws<InvalidProbability>();
 
       // Fit
       final samples = dist.samples(random: math.Random(42)).take(1000).toList();
@@ -320,32 +330,33 @@ void main() {
       check(distFlat.mode.isNaN).isTrue();
 
       // PDF boundary checks
-      check(dist.pdf(-0.5)).equals(0.0);
-      check(dist.pdf(1.5)).equals(0.0);
-      check(dist.pdf(0.0)).equals(0.0);
-      check(dist.pdf(1.0)).equals(0.0);
-      check(dist.pdf(0.2)).isGreaterThan(0.0);
+      check(dist.probability(-0.5)).equals(0.0);
+      check(dist.probability(1.5)).equals(0.0);
+      check(dist.probability(0.0)).equals(0.0);
+      check(dist.probability(1.0)).equals(0.0);
+      check(dist.probability(0.2)).isGreaterThan(0.0);
 
       const distAlpha1 = BetaDistribution(1.0, 2.0);
-      check(distAlpha1.pdf(0.0)).equals(2.0);
+      check(distAlpha1.probability(0.0)).equals(2.0);
       const distBeta1 = BetaDistribution(2.0, 1.0);
-      check(distBeta1.pdf(1.0)).equals(2.0);
+      check(distBeta1.probability(1.0)).equals(2.0);
 
       const distAlphaSmall = BetaDistribution(0.5, 2.0);
-      check(distAlphaSmall.pdf(0.0).isInfinite).isTrue();
+      check(distAlphaSmall.probability(0.0).isInfinite).isTrue();
       const distBetaSmall = BetaDistribution(2.0, 0.5);
-      check(distBetaSmall.pdf(1.0).isInfinite).isTrue();
+      check(distBetaSmall.probability(1.0).isInfinite).isTrue();
 
-      check(dist.cdf(-0.5)).equals(0.0);
-      check(dist.cdf(0.0)).equals(0.0);
-      check(dist.cdf(1.0)).equals(1.0);
-      check(dist.cdf(1.5)).equals(1.0);
+      check(dist.cumulativeProbability(-0.5)).equals(0.0);
+      check(dist.cumulativeProbability(0.0)).equals(0.0);
+      check(dist.cumulativeProbability(1.0)).equals(1.0);
+      check(dist.cumulativeProbability(1.5)).equals(1.0);
 
       // Quantile roundtrip
       const prob = 0.75;
-      final quant = dist.quantile(prob);
-      check(dist.cdf(quant)).isCloseTo(prob, 1e-5);
-      check(() => dist.quantile(-0.1)).throws<InvalidProbability>();
+      final quant = dist.inverseCumulativeProbability(prob);
+      check(dist.cumulativeProbability(quant)).isCloseTo(prob, 1e-5);
+      check(() => dist.inverseCumulativeProbability(-0.1))
+          .throws<InvalidProbability>();
 
       // Fit
       final samples = dist.samples(random: math.Random(42)).take(1000).toList();
@@ -383,14 +394,15 @@ void main() {
       check(dist.skewness).equals(0.0);
       check(dist.excessKurtosis).equals(-1.2);
 
-      check(dist.pdf(15.0)).equals(0.1);
-      check(dist.pdf(5.0)).equals(0.0);
-      check(dist.pdf(25.0)).equals(0.0);
-      check(dist.cdf(5.0)).equals(0.0);
-      check(dist.cdf(15.0)).equals(0.5);
-      check(dist.cdf(25.0)).equals(1.0);
-      check(dist.quantile(0.5)).equals(15.0);
-      check(() => dist.quantile(-0.1)).throws<InvalidProbability>();
+      check(dist.probability(15.0)).equals(0.1);
+      check(dist.probability(5.0)).equals(0.0);
+      check(dist.probability(25.0)).equals(0.0);
+      check(dist.cumulativeProbability(5.0)).equals(0.0);
+      check(dist.cumulativeProbability(15.0)).equals(0.5);
+      check(dist.cumulativeProbability(25.0)).equals(1.0);
+      check(dist.inverseCumulativeProbability(0.5)).equals(15.0);
+      check(() => dist.inverseCumulativeProbability(-0.1))
+          .throws<InvalidProbability>();
 
       // Standard constructor
       const stdUniform = UniformDistribution.standard();
@@ -428,11 +440,11 @@ void main() {
       check(dist.skewness).isCloseTo(4.0 * math.sqrt(2.0), 1e-6);
       check(dist.excessKurtosis).isA<double>();
 
-      check(dist.pdf(-1.0)).equals(0.0);
-      check(dist.pdf(0.0)).equals(0.0);
-      check(dist.pdf(1.2)).isGreaterThan(0.0);
-      check(dist.cdf(-1.0)).equals(0.0);
-      check(dist.cdf(0.0)).equals(0.0);
+      check(dist.probability(-1.0)).equals(0.0);
+      check(dist.probability(0.0)).equals(0.0);
+      check(dist.probability(1.2)).isGreaterThan(0.0);
+      check(dist.cumulativeProbability(-1.0)).equals(0.0);
+      check(dist.cumulativeProbability(0.0)).equals(0.0);
 
       // Moments edge cases for small shape
       const distSmall1 = InverseGammaDistribution(0.5, 1.0);
@@ -454,9 +466,10 @@ void main() {
       check(distSmall4.excessKurtosis.isNaN).isTrue();
 
       const prob = 0.5;
-      final quant = dist.quantile(prob);
-      check(dist.cdf(quant)).isCloseTo(prob, 1e-5);
-      check(() => dist.quantile(-0.1)).throws<InvalidProbability>();
+      final quant = dist.inverseCumulativeProbability(prob);
+      check(dist.cumulativeProbability(quant)).isCloseTo(prob, 1e-5);
+      check(() => dist.inverseCumulativeProbability(-0.1))
+          .throws<InvalidProbability>();
 
       // Samples
       final samples = dist.samples(random: math.Random(42)).take(50).toList();
@@ -484,12 +497,14 @@ void main() {
       check(dist.skewness.isNaN).isTrue();
       check(dist.excessKurtosis.isNaN).isTrue();
 
-      check(dist.pdf(0.0)).isCloseTo(1.0 / math.pi, 1e-6);
-      check(dist.cdf(0.0)).isCloseTo(0.5, 1e-6);
-      check(dist.quantile(0.5)).isCloseTo(0.0, 1e-6);
-      check(dist.quantile(0.0)).equals(double.negativeInfinity);
-      check(dist.quantile(1.0)).equals(double.infinity);
-      check(() => dist.quantile(-0.1)).throws<InvalidProbability>();
+      check(dist.probability(0.0)).isCloseTo(1.0 / math.pi, 1e-6);
+      check(dist.cumulativeProbability(0.0)).isCloseTo(0.5, 1e-6);
+      check(dist.inverseCumulativeProbability(0.5)).isCloseTo(0.0, 1e-6);
+      check(dist.inverseCumulativeProbability(0.0))
+          .equals(double.negativeInfinity);
+      check(dist.inverseCumulativeProbability(1.0)).equals(double.infinity);
+      check(() => dist.inverseCumulativeProbability(-0.1))
+          .throws<InvalidProbability>();
 
       // Default constructor
       const defaultCauchy = CauchyDistribution();
@@ -520,13 +535,14 @@ void main() {
       check(dist.skewness.isNaN).isTrue();
       check(dist.excessKurtosis.isNaN).isTrue();
 
-      check(dist.pdf(5.0)).equals(1.0);
-      check(dist.pdf(3.0)).equals(0.0);
-      check(dist.cdf(4.0)).equals(0.0);
-      check(dist.cdf(5.0)).equals(1.0);
-      check(dist.cdf(6.0)).equals(1.0);
-      check(dist.quantile(0.5)).equals(5.0);
-      check(() => dist.quantile(-0.1)).throws<InvalidProbability>();
+      check(dist.probability(5.0)).equals(1.0);
+      check(dist.probability(3.0)).equals(0.0);
+      check(dist.cumulativeProbability(4.0)).equals(0.0);
+      check(dist.cumulativeProbability(5.0)).equals(1.0);
+      check(dist.cumulativeProbability(6.0)).equals(1.0);
+      check(dist.inverseCumulativeProbability(0.5)).equals(5.0);
+      check(() => dist.inverseCumulativeProbability(-0.1))
+          .throws<InvalidProbability>();
 
       // Default constructor
       const defaultDegenerate = DegenerateDistribution();
@@ -553,17 +569,21 @@ void main() {
       check(dist.skewness).equals(0.0);
       check(dist.excessKurtosis).equals(3.0);
 
-      check(dist.pdf(0.0)).equals(0.5);
-      check(dist.cdf(0.0)).equals(0.5);
-      check(dist.cdf(-1.0)).isCloseTo(0.5 * math.exp(-1.0), 1e-6);
-      check(dist.cdf(1.0)).isCloseTo(1.0 - 0.5 * math.exp(-1.0), 1e-6);
+      check(dist.probability(0.0)).equals(0.5);
+      check(dist.cumulativeProbability(0.0)).equals(0.5);
+      check(dist.cumulativeProbability(-1.0))
+          .isCloseTo(0.5 * math.exp(-1.0), 1e-6);
+      check(dist.cumulativeProbability(1.0))
+          .isCloseTo(1.0 - 0.5 * math.exp(-1.0), 1e-6);
 
-      check(dist.quantile(0.5)).equals(0.0);
-      check(dist.quantile(0.0)).equals(double.negativeInfinity);
-      check(dist.quantile(1.0)).equals(double.infinity);
-      check(dist.quantile(0.25)).isLessThan(0.0);
-      check(dist.quantile(0.75)).isGreaterThan(0.0);
-      check(() => dist.quantile(-0.1)).throws<InvalidProbability>();
+      check(dist.inverseCumulativeProbability(0.5)).equals(0.0);
+      check(dist.inverseCumulativeProbability(0.0))
+          .equals(double.negativeInfinity);
+      check(dist.inverseCumulativeProbability(1.0)).equals(double.infinity);
+      check(dist.inverseCumulativeProbability(0.25)).isLessThan(0.0);
+      check(dist.inverseCumulativeProbability(0.75)).isGreaterThan(0.0);
+      check(() => dist.inverseCumulativeProbability(-0.1))
+          .throws<InvalidProbability>();
 
       // Default constructor
       const defaultLaplace = LaplaceDistribution();
@@ -595,13 +615,14 @@ void main() {
       check(dist.skewness).isGreaterThan(0.0);
       check(dist.excessKurtosis).isGreaterThan(0.0);
 
-      check(dist.pdf(-1.0)).equals(0.0);
-      check(dist.pdf(0.0)).equals(0.0);
-      check(dist.pdf(1.0)).isGreaterThan(0.0);
-      check(dist.cdf(-1.0)).equals(0.0);
-      check(dist.cdf(1.0)).isCloseTo(0.5, 1e-6);
-      check(dist.quantile(0.5)).isCloseTo(1.0, 1e-6);
-      check(() => dist.quantile(-0.1)).throws<InvalidProbability>();
+      check(dist.probability(-1.0)).equals(0.0);
+      check(dist.probability(0.0)).equals(0.0);
+      check(dist.probability(1.0)).isGreaterThan(0.0);
+      check(dist.cumulativeProbability(-1.0)).equals(0.0);
+      check(dist.cumulativeProbability(1.0)).isCloseTo(0.5, 1e-6);
+      check(dist.inverseCumulativeProbability(0.5)).isCloseTo(1.0, 1e-6);
+      check(() => dist.inverseCumulativeProbability(-0.1))
+          .throws<InvalidProbability>();
 
       // Samples
       final sample = dist.sample(random: math.Random(42));
@@ -628,12 +649,14 @@ void main() {
       check(dist.skewness).equals(0.0);
       check(dist.excessKurtosis).equals(1.2);
 
-      check(dist.pdf(0.0)).equals(0.25);
-      check(dist.cdf(0.0)).equals(0.5);
-      check(dist.quantile(0.5)).equals(0.0);
-      check(dist.quantile(0.0)).equals(double.negativeInfinity);
-      check(dist.quantile(1.0)).equals(double.infinity);
-      check(() => dist.quantile(-0.1)).throws<InvalidProbability>();
+      check(dist.probability(0.0)).equals(0.25);
+      check(dist.cumulativeProbability(0.0)).equals(0.5);
+      check(dist.inverseCumulativeProbability(0.5)).equals(0.0);
+      check(dist.inverseCumulativeProbability(0.0))
+          .equals(double.negativeInfinity);
+      check(dist.inverseCumulativeProbability(1.0)).equals(double.infinity);
+      check(() => dist.inverseCumulativeProbability(-0.1))
+          .throws<InvalidProbability>();
 
       // Default constructor
       const defaultLogistic = LogisticDistribution();
@@ -678,13 +701,15 @@ void main() {
       check(distAlpha5.skewness).isGreaterThan(0.0);
       check(distAlpha5.excessKurtosis).isGreaterThan(0.0);
 
-      check(dist.pdf(0.5)).equals(0.0);
-      check(dist.pdf(1.0)).equals(3.0);
-      check(dist.cdf(0.5)).equals(0.0);
-      check(dist.cdf(1.0)).equals(0.0);
-      check(dist.cdf(2.0)).isCloseTo(1.0 - 1.0 / 8.0, 1e-6);
-      check(dist.quantile(0.5)).isCloseTo(math.pow(2.0, 1.0 / 3.0), 1e-6);
-      check(() => dist.quantile(-0.1)).throws<InvalidProbability>();
+      check(dist.probability(0.5)).equals(0.0);
+      check(dist.probability(1.0)).equals(3.0);
+      check(dist.cumulativeProbability(0.5)).equals(0.0);
+      check(dist.cumulativeProbability(1.0)).equals(0.0);
+      check(dist.cumulativeProbability(2.0)).isCloseTo(1.0 - 1.0 / 8.0, 1e-6);
+      check(dist.inverseCumulativeProbability(0.5))
+          .isCloseTo(math.pow(2.0, 1.0 / 3.0), 1e-6);
+      check(() => dist.inverseCumulativeProbability(-0.1))
+          .throws<InvalidProbability>();
 
       // Samples
       final samples = dist.samples(random: math.Random(42)).take(50).toList();
@@ -715,13 +740,16 @@ void main() {
       const distShape2 = WeibullDistribution(1.0, 2.0);
       check(distShape2.mode).isGreaterThan(0.0);
 
-      check(dist.pdf(-1.0)).equals(0.0);
-      check(dist.pdf(1.0)).isGreaterThan(0.0);
-      check(dist.cdf(-1.0)).equals(0.0);
-      check(dist.cdf(0.0)).equals(0.0);
-      check(dist.cdf(1.0)).isCloseTo(1.0 - math.exp(-1.0), 1e-6);
-      check(dist.quantile(0.5)).isCloseTo(dist.median, 1e-6);
-      check(() => dist.quantile(-0.1)).throws<InvalidProbability>();
+      check(dist.probability(-1.0)).equals(0.0);
+      check(dist.probability(1.0)).isGreaterThan(0.0);
+      check(dist.cumulativeProbability(-1.0)).equals(0.0);
+      check(dist.cumulativeProbability(0.0)).equals(0.0);
+      check(dist.cumulativeProbability(1.0))
+          .isCloseTo(1.0 - math.exp(-1.0), 1e-6);
+      check(dist.inverseCumulativeProbability(0.5))
+          .isCloseTo(dist.median, 1e-6);
+      check(() => dist.inverseCumulativeProbability(-0.1))
+          .throws<InvalidProbability>();
 
       // Samples
       final samples = dist.samples(random: math.Random(42)).take(50).toList();

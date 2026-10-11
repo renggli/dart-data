@@ -22,6 +22,16 @@ enum OrthogonalFamily {
 
 /// Evaluates a linear combination $\sum_{k=0}^n c_k P_k(x)$ of orthogonal
 /// polynomials [coefficients] at [x] using the Clenshaw recurrence algorithm.
+///
+/// Conceptually, this calculates the value of combined orthogonal polynomial expansions
+/// (such as Chebyshev or Legendre series) accurately while minimizing rounding errors.
+/// More formally, Clenshaw recurrence evaluates polynomial sums backwards from
+/// degree $n$ to 0 using the 3-term recurrence relation in $\mathcal{O}(n)$ time and $\mathcal{O}(1)$ auxiliary memory.
+///
+/// ```dart
+/// final val = clenshawEvaluate([1.0, 2.0], 0.5, family: OrthogonalFamily.chebyshevT);
+/// // T_0(0.5)*1 + T_1(0.5)*2 = 1.0 + 0.5*2 = 2.0
+/// ```
 double clenshawEvaluate(
   List<num> coefficients,
   num x, {
@@ -84,7 +94,16 @@ double clenshawEvaluate(
   }
 }
 
-/// Generates the generalized Laguerre polynomial $L_n^{(\alpha)}(x)$.
+/// Generates the generalized Laguerre polynomial $L_n^{(\alpha)}(x)$ as a [Polynomial].
+///
+/// Conceptually, Laguerre polynomials are orthogonal functions frequently used in quantum
+/// physics (such as modeling the radial wavefunctions of hydrogen atoms) and numerical analysis.
+/// Formally, these are classical orthogonal polynomials on $[0, \infty)$
+/// with respect to weighting measure $w(x) = x^\alpha e^{-x}$.
+///
+/// ```dart
+/// final l2 = laguerreL(2); // 1 - 2x + 0.5x^2
+/// ```
 Polynomial<double> laguerreL(int degree, {double alpha = 0.0}) {
   if (degree < 0) throw ArgumentError('Degree must be non-negative: $degree');
   if (degree == 0) {

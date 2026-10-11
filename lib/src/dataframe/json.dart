@@ -68,10 +68,10 @@ abstract final class DataFrameJson {
   /// Parses a JSON [source] string into a [DataFrame].
   ///
   /// If [orient] is omitted, the layout is automatically detected:
-  /// - Root `List` with `Map` items -> [JsonOrient.records].
-  /// - Root `List` with `List` items -> [JsonOrient.values].
-  /// - Root `Map` with `'columns'` and `'data'` keys -> [JsonOrient.split].
-  /// - Root `Map` -> [JsonOrient.columns].
+  /// - Root [List] with [Map] items -> [JsonOrient.records].
+  /// - Root [List] with [List] items -> [JsonOrient.values_].
+  /// - Root [Map] with `'columns'` and `'data'` keys -> [JsonOrient.split].
+  /// - Root [Map] -> [JsonOrient.columns].
   static DataFrame decode(
     String source, {
     JsonOrient? orient,

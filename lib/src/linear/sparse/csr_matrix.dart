@@ -6,7 +6,25 @@ import 'coo_matrix.dart';
 import 'csc_matrix.dart';
 
 /// Compressed Sparse Row (CSR) matrix.
+///
+/// Conceptually, CSR organizes non-zero sparse matrix entries row by row so that
+/// matrix-vector multiplication is fast and memory-efficient.
+/// Mathematically, this represents a sparse matrix with compressed row intervals
+/// $[\text{rowPointers}_i, \text{rowPointers}_{i+1})$ indexing column numbers and values,
+/// providing optimal $O(\text{nnz})$ row slicing and SpMV performance.
+///
+/// ```dart
+/// final csr = CsrMatrix<double>(
+///   rowCount: 2,
+///   colCount: 2,
+///   rowPointers: [0, 1, 2],
+///   colIndices: [0, 1],
+///   values: [1.0, 2.0],
+///   type: DataType.float64,
+/// );
+/// ```
 class CsrMatrix<T> implements LinearOperator<T> {
+  /// Creates a Compressed Sparse Row (CSR) matrix from row pointers, column indices, and values.
   new({
     required this.rowCount,
     required this.colCount,
@@ -49,7 +67,7 @@ class CsrMatrix<T> implements LinearOperator<T> {
   /// Number of stored non-zero elements.
   int get nnz => values.length;
 
-  /// Gets the element at [row, col], returning additive identity if zero.
+  /// Gets the element at ([row], [col]), returning additive identity if zero.
   T get(int row, int col) {
     if (row < 0 || row >= rowCount || col < 0 || col >= colCount) {
       throw RangeError(

@@ -11,8 +11,21 @@ import '../../type.dart';
 
 /// Solves the general linear least squares problem $\min \|A x - b\|_2$.
 ///
-/// Uses Householder QR decomposition for full-rank systems and Golub-Reinsch
-/// SVD decomposition for rank-deficient or singular systems.
+/// Conceptually, when an overdetermined system has more observations than parameters,
+/// an exact solution may not exist. Least squares finds the parameters that best fit
+/// the data by minimizing the sum of squared residuals.
+/// Formally, it computes $\hat{\mathbf{x}} = A^+ \mathbf{b}$
+/// using Householder QR factorization for full-rank systems, and Golub-Reinsch SVD for rank-deficient systems.
+///
+/// ```dart
+/// final a = Matrix<double>.fromRows([
+///   [1.0, 1.0],
+///   [1.0, 2.0],
+///   [1.0, 3.0],
+/// ]);
+/// final b = Vector<double>.fromList([2.0, 2.8, 4.1]);
+/// final x = leastSquares(a, b);
+/// ```
 Vector<double> leastSquares(Matrix<num> a, Vector<num> b) {
   if (a.rowCount != b.length) {
     throw ArgumentError(
@@ -85,6 +98,18 @@ Vector<double> leastSquares(Matrix<num> a, Vector<num> b) {
 }
 
 /// Simple univariate linear regression fitting $y = \text{slope} \cdot x + \text{intercept}$.
+///
+/// Conceptually, this fits an optimal straight trendline through scattered data points,
+/// determining the slope and vertical intercept.
+/// Formally, it fits an ordinary least squares affine model minimizing $\sum (y_i - (\beta_0 + \beta_1 x_i))^2$
+/// and computes the coefficient of determination $R^2$.
+///
+/// ```dart
+/// final xs = Vector<double>.fromList([1.0, 2.0, 3.0, 4.0]);
+/// final ys = Vector<double>.fromList([2.0, 4.0, 6.0, 8.0]);
+/// final model = linearRegression(xs, ys);
+/// print(model.slope); // ~2.0
+/// ```
 ({
   double slope,
   double intercept,

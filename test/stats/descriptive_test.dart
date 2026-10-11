@@ -69,7 +69,6 @@ void main() {
       check(vec1.standardDeviation()).isCloseTo(math.sqrt(2.5), 1e-10);
       check(vec1.median()).isCloseTo(3.0, 1e-10);
       check(vec1.quantile(0.5)).isCloseTo(3.0, 1e-10);
-      check(vec1.percentile(50)).isCloseTo(3.0, 1e-10);
       check(vec1.iqr()).isCloseTo(2.0, 1e-10);
       check(vec1.skewness()).isCloseTo(0.0, 1e-10);
       check(vec1.kurtosis()).isCloseTo(-1.2, 1e-10);
@@ -237,7 +236,7 @@ void main() {
       'top-level functions, tied ranks, and iterable/tensor/matrix extensions',
       () {
         final data = [1.0, 2.0, 2.0, 3.0, 4.0];
-        check(percentile(data, 50)).isCloseTo(2.0, 1e-10);
+        check(quantile(data, 0.5)).isCloseTo(2.0, 1e-10);
         check(covariance(data, data)).isCloseTo(variance(data), 1e-10);
 
         // Tied ranks
@@ -246,14 +245,12 @@ void main() {
 
         // Iterable<num> extensions
         check(data.product()).isCloseTo(48.0, 1e-10);
-        check(data.average()).isCloseTo(mean(data), 1e-10);
         check(data.mean()).isCloseTo(mean(data), 1e-10);
         check(data.variance()).isCloseTo(variance(data), 1e-10);
         check(data.standardDeviation())
             .isCloseTo(standardDeviation(data), 1e-10);
         check(data.median()).isCloseTo(2.0, 1e-10);
         check(data.quantile(0.5)).isCloseTo(2.0, 1e-10);
-        check(data.percentile(50)).isCloseTo(2.0, 1e-10);
         check(data.iqr()).isCloseTo(1.0, 1e-10);
         check(data.skewness()).isNotNull();
         check(data.kurtosis(bias: true, excess: false)).isNotNull();
@@ -269,7 +266,6 @@ void main() {
         check(tensor.standardDeviation())
             .isCloseTo(math.sqrt(5.0 / 3.0), 1e-10);
         check(tensor.quantile(0.5)).isCloseTo(2.5, 1e-10);
-        check(tensor.percentile(50)).isCloseTo(2.5, 1e-10);
         check(tensor.skewness()).isCloseTo(0.0, 1e-10);
         check(tensor.kurtosis()).isNotNull();
 
@@ -284,7 +280,6 @@ void main() {
             .isCloseTo(math.sqrt(5.0 / 3.0), 1e-10);
         check(matrix.median()).isCloseTo(2.5, 1e-10);
         check(matrix.quantile(0.5)).isCloseTo(2.5, 1e-10);
-        check(matrix.percentile(50)).isCloseTo(2.5, 1e-10);
         check(matrix.iqr()).isCloseTo(1.5, 1e-10);
         check(matrix.skewness()).isCloseTo(0.0, 1e-10);
         check(matrix.kurtosis()).isNotNull();

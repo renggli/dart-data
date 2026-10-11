@@ -12,7 +12,7 @@ class UniformDistribution extends ContinuousDistribution {
   /// Creates a continuous uniform distribution with bounds [min] and [max].
   const new(this.min, this.max) : assert(min < max, 'min < max');
 
-  /// Creates a standard uniform distribution on [0, 1].
+  /// Creates a standard uniform distribution on the interval `[0.0, 1.0]`.
   const new standard() : this(0.0, 1.0);
 
   /// Fits a uniform distribution to [samples] using minimum and maximum values.

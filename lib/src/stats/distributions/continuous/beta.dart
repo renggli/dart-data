@@ -7,7 +7,12 @@ import '../continuous.dart';
 import '../errors.dart';
 import 'gamma.dart';
 
-/// The Beta distribution over interval $[0, 1]$.
+/// Continuous probability distribution defined on the unit interval `[0.0, 1.0]`.
+///
+/// Parameterized by two positive shape parameters [alpha] ($\alpha > 0$) and
+/// [beta] ($\beta > 0$) that control the probabilities of values closer to 0, 1,
+/// or centered in the middle. Commonly used in Bayesian statistics as the conjugate
+/// prior for Bernoulli, binomial, and negative binomial distributions.
 ///
 /// See https://en.wikipedia.org/wiki/Beta_distribution.
 class BetaDistribution extends ContinuousDistribution {

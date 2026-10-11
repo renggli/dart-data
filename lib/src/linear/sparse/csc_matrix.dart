@@ -6,7 +6,24 @@ import 'coo_matrix.dart';
 import 'csr_matrix.dart';
 
 /// Compressed Sparse Column (CSC) matrix.
+///
+/// Conceptually, CSC organizes non-zero sparse matrix entries column by column.
+/// Mathematically, this represents a sparse matrix with compressed column intervals
+/// $[\text{colPointers}_j, \text{colPointers}_{j+1})$ indexing row numbers and values,
+/// providing optimal $O(\text{nnz})$ column slicing and transposed SpMV performance.
+///
+/// ```dart
+/// final csc = CscMatrix<double>(
+///   rowCount: 2,
+///   colCount: 2,
+///   colPointers: [0, 1, 2],
+///   rowIndices: [0, 1],
+///   values: [1.0, 2.0],
+///   type: DataType.float64,
+/// );
+/// ```
 class CscMatrix<T> implements LinearOperator<T> {
+  /// Creates a Compressed Sparse Column (CSC) matrix from column pointers, row indices, and values.
   new({
     required this.rowCount,
     required this.colCount,
@@ -49,7 +66,7 @@ class CscMatrix<T> implements LinearOperator<T> {
   /// Number of stored non-zero elements.
   int get nnz => values.length;
 
-  /// Gets the element at [row, col], returning additive identity if zero.
+  /// Gets the element at ([row], [col]), returning additive identity if zero.
   T get(int row, int col) {
     if (row < 0 || row >= rowCount || col < 0 || col >= colCount) {
       throw RangeError(

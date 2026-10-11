@@ -9,21 +9,43 @@ import 'simplifier.dart';
 extension SolverExtension on Expr {
   /// Solves the algebraic equation $\text{this} = 0$ for [variable].
   ///
-  /// Supports:
+  /// Conceptually, this isolates the values of [variable] that
+  /// satisfy the equation $\text{this} = 0$ (such as finding roots where $2x - 6 = 0$ or
+  /// $x^2 - 5x + 6 = 0$).
+  /// Formally, this isolates analytical roots of univariate equations:
   /// - Linear equations: $a x + b = 0 \implies x = -b / a$
-  /// - Quadratic equations: $a x^2 + b x + c = 0 \implies x = \frac{-b \pm \sqrt{b^2 - 4ac}}{2a}$
-  /// - Factored products: $f(x) \cdot g(x) = 0 \implies \text{solve}(f) \cup \text{solve}(g)$
-  /// - Invertible transcendental equations: $\exp, \ln, \sin, \cos, \text{pow}$
+  /// - Quadratic polynomials: $a x^2 + b x + c = 0 \implies x = \frac{-b \pm \sqrt{b^2 - 4ac}}{2a}$
+  /// - Factored products: $f(x) \cdot g(x) = 0 \implies \text{solve}(f) \cup \text{solve}(g)$ via the zero-product property
+  /// - Invertible transcendental compositions: $\exp(f(x)) = c$, $\ln(f(x)) = c$, $\sin(f(x)) = c$, $\cos(f(x)) = c$, and isolated powers
+  ///
+  /// Returns a list of unique exact solution expressions.
+  ///
+  /// ```dart
+  /// final x = Variable('x');
+  /// final roots = (x * x - 4).solve('x');
+  /// // roots: [Constant(-2.0), Constant(2.0)]
+  /// ```
   List<Expr> solve(String variable) => _solveEquation(this, variable);
 }
 
-/// Extension providing linear equation system solving on `Iterable<Expr>`.
+/// Extension providing linear equation system solving on [Iterable] of [Expr].
 extension SystemSolverExtension on Iterable<Expr> {
   /// Solves the linear system $f_i(x_1, \dots, x_n) = 0$ for [variables].
   ///
-  /// Uses symbolic Gaussian elimination with partial pivoting.
-  /// Returns a map from variable name to its solution expression,
-  /// or `null` if the system is singular or unsolvable.
+  /// Conceptually, this finds the common solution satisfying multiple
+  /// simultaneous linear equations (such as $x + y - 10 = 0$ and $x - y - 2 = 0$).
+  ///
+  /// Formally, this performs exact symbolic Gaussian elimination with partial
+  /// pivoting over the affine coefficient matrix. Returns a mapping from each variable
+  /// name to its solution expression, or `null` if the system is singular, underdetermined,
+  /// or contradictory.
+  ///
+  /// ```dart
+  /// final x = Variable('x');
+  /// final y = Variable('y');
+  /// final solution = [x + y - 10, x - y - 2].solveSystem(['x', 'y']);
+  /// // solution?['x'] == Constant(6.0), solution?['y'] == Constant(4.0)
+  /// ```
   Map<String, Expr>? solveSystem(List<String> variables) =>
       _solveSystem(toList(), variables);
 }

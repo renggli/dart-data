@@ -3,6 +3,17 @@ import 'ast.dart';
 /// LaTeX serialization extension on [Expr].
 extension LatexExtension on Expr {
   /// Formats this expression into publication-grade LaTeX math syntax.
+  ///
+  /// Conceptually, this formats symbolic expressions for mathematical typesetting in
+  /// papers, documentation, MathJax, or Markdown (such as `\frac{x}{2}`).
+  /// Formally, it parses tree precedence to format fractions, exponents,
+  /// negatives, and functions according to standard LaTeX formatting conventions.
+  ///
+  /// ```dart
+  /// final x = Variable('x');
+  /// final tex = (x / (x + 1)).toLatex();
+  /// // tex: '\frac{x}{x + 1}'
+  /// ```
   String toLatex() => _toLatex(this);
 }
 

@@ -9,6 +9,7 @@ import '../../../linear/vector.dart';
 /// Abstract base class representing a multivariate probability distribution over vectors of [T].
 @immutable
 abstract class MultivariateDistribution<T extends num> with ToStringPrinter {
+  /// Abstract constant constructor for subclassing [MultivariateDistribution].
   const new();
 
   /// The number of dimensions / variables in this distribution.

@@ -6,8 +6,16 @@ import 'package:more/printer.dart' show ToStringPrinter;
 import 'distributions/errors.dart';
 
 /// Abstract base class representing a probability distribution over [T].
+///
+/// Conceptually, a probability distribution describes all possible
+/// outcomes of a random process and how likely each outcome is (such as rolling dice
+/// or measuring natural variations in a population).
+/// Formally, this formalizes a probability space $(\Omega, \mathcal{F}, P)$
+/// and random variable $X: \Omega \to \mathbb{R}$ with support, density, and cumulative
+/// distribution functions.
 @immutable
 abstract class Distribution<T extends num> with ToStringPrinter {
+  /// Abstract constant constructor for subclassing [Distribution].
   const new();
 
   /// Returns the lower bound of the distribution.
@@ -43,29 +51,14 @@ abstract class Distribution<T extends num> with ToStringPrinter {
   /// Returns the excess kurtosis of the distribution.
   double get excessKurtosis;
 
-  /// Alias for [excessKurtosis].
-  double get kurtosisExcess => excessKurtosis;
-
   /// Returns the probability density (PDF) or probability mass (PMF) at [x].
   double probability(T x);
-
-  /// Probability density function (alias for [probability]).
-  double pdf(T x) => probability(x);
-
-  /// Probability mass function (alias for [probability]).
-  double pmf(T x) => probability(x);
 
   /// Returns the cumulative distribution function (CDF) at [x], i.e., $P(X \le x)$.
   double cumulativeProbability(T x);
 
-  /// Cumulative distribution function (alias for [cumulativeProbability]).
-  double cdf(T x) => cumulativeProbability(x);
-
   /// Returns the quantile (percent-point function / inverse CDF) for [probability].
   T inverseCumulativeProbability(num probability);
-
-  /// Quantile function (alias for [inverseCumulativeProbability]).
-  T quantile(num probability) => inverseCumulativeProbability(probability);
 
   /// Returns the survival function $S(x) = P(X > x) = 1 - F(x)$.
   double survival(T x) => 1.0 - cumulativeProbability(x);

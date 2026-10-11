@@ -2,13 +2,19 @@ import 'dart:math';
 
 import 'package:more/math.dart';
 
-/// Returns an approximation of the error function, for details see
-/// https://en.wikipedia.org/wiki/Error_function.
+/// Returns an approximation of the error function $\operatorname{erf}(x)$.
 ///
-/// This uses a Chebyshev fitting formula from Numerical Recipes, 6.2.
+/// Conceptually, the error function measures the cumulative probability that a
+/// random variable from a standard Gaussian distribution falls within a central interval
+/// between $-x \sqrt{2}$ and $x \sqrt{2}$.
+/// Formally, this calculates the integral
+/// $\operatorname{erf}(x) = \frac{2}{\sqrt{\pi}} \int_0^x e^{-t^2} dt$
+/// using Chebyshev rational approximation.
+///
+/// See https://en.wikipedia.org/wiki/Error_function for details.
 ///
 /// ```dart
-/// print(erf(1));  // 0.8427007929497149
+/// final val = erf(1.0); // ~ 0.84270079
 /// ```
 double erf(num x) {
   if (x == 0) return x.toDouble();
@@ -18,7 +24,16 @@ double erf(num x) {
   return x.isNegative ? result - 1.0 : 1.0 - result;
 }
 
-/// Returns the inverse error function.
+/// Returns the inverse error function $\operatorname{erf}^{-1}(x)$.
+///
+/// Conceptually, this reverses the error function: given a target central probability,
+/// it computes the corresponding coordinate boundary cutoff point.
+/// Formally, this computes the inverse bijective map
+/// $\operatorname{erf}^{-1}: (-1, 1) \to \mathbb{R}$.
+///
+/// ```dart
+/// final x = erfInv(0.8427007929497149); // ~ 1.0
+/// ```
 double erfInv(num x) {
   if (x < -1.0 || x > 1.0) {
     return double.nan;

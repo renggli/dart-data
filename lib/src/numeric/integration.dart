@@ -4,7 +4,15 @@ import '../../symbolic.dart';
 
 /// Computes the definite integral $\int_a^b f(x) dx$ using Adaptive Simpson's quadrature.
 ///
-/// Accepts either a scalar closure `double Function(double)` or an [Expr].
+/// Conceptually, calculating an integral evaluates the total accumulated area
+/// underneath a curve between two boundary points $x = a$ and $x = b$.
+/// Formally, it recursively subdivides intervals using Simpson's 3-point parabolic
+/// rule $(b - a) \frac{f(a) + 4f(m) + f(b)}{6}$ with adaptive error estimation
+/// $|S_{\text{fine}} - S_{\text{coarse}}| / 15 \le \epsilon$. Accepts either a closure or an [Expr].
+///
+/// ```dart
+/// final area = adaptiveSimpson((x) => x * x, 0.0, 3.0); // 9.0
+/// ```
 double adaptiveSimpson(
   Object function,
   double a,
@@ -20,6 +28,8 @@ double adaptiveSimpson(
     fn = function;
   } else if (function is num Function(num)) {
     fn = (x) => function(x).toDouble();
+  } else if (function is Function) {
+    fn = (x) => ((function as dynamic)(x) as num).toDouble();
   } else {
     throw ArgumentError('Unsupported function type: ${function.runtimeType}');
   }
@@ -56,6 +66,16 @@ double adaptiveSimpson(
 }
 
 /// Computes the definite integral $\int_a^b f(x) dx$ using Adaptive Gauss-Kronrod (GK15) quadrature.
+///
+/// Conceptually, this is a high-precision quadrature algorithm that selects 15
+/// strategically optimal points along the curve to achieve accurate results with minimal function evaluations.
+/// Formally, it applies the 15-point Kronrod extension to the 7-point Gauss-Legendre
+/// rule on $\lbrack -1, 1 \rbrack$, enabling high-precision quadrature with an embedded error estimate
+/// $|I_{\text{Kronrod}} - I_{\text{Gauss}}|$.
+///
+/// ```dart
+/// final area = gaussKronrod((x) => x * x, 0.0, 3.0); // 9.0
+/// ```
 double gaussKronrod(
   Object function,
   double a,
@@ -71,6 +91,8 @@ double gaussKronrod(
     fn = function;
   } else if (function is num Function(num)) {
     fn = (x) => function(x).toDouble();
+  } else if (function is Function) {
+    fn = (x) => ((function as dynamic)(x) as num).toDouble();
   } else {
     throw ArgumentError('Unsupported function type: ${function.runtimeType}');
   }

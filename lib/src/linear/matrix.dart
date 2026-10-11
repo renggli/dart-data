@@ -12,11 +12,28 @@ import 'solvers/gmres.dart';
 import 'vector.dart';
 
 /// 2-dimensional mathematical matrix backed by a rank-2 [Tensor].
+///
+/// Conceptually, a matrix is a rectangular grid or table of numbers
+/// organized into rows and columns.
+/// Mathematically, a matrix represents a linear transformation between
+/// finite-dimensional vector spaces $T^n \to T^m$ with components in $T$.
+///
+/// ```dart
+/// final m = Matrix<double>.filled(2, 3, 0.0);
+/// final rows = m.rowCount; // 2
+/// final cols = m.colCount; // 3
+/// ```
 class Matrix<T> implements LinearOperator<T> {
+  /// Creates a [Matrix] wrapping a 2-dimensional [tensor].
+  ///
+  /// ```dart
+  /// final t = Tensor<int>.filled(0, shape: [2, 3]);
+  /// final m = Matrix<int>(t);
+  /// ```
   new(this.tensor)
     : assert(tensor.rank == 2, 'Tensor must have rank 2, got ${tensor.rank}');
 
-  /// Constructs an [rowCount x colCount] matrix filled with [value].
+  /// Constructs a [rowCount] by [colCount] [Matrix] filled with [value].
   factory filled(
     int rowCount,
     int colCount,
@@ -34,7 +51,7 @@ class Matrix<T> implements LinearOperator<T> {
     return Matrix(tensor);
   }
 
-  /// Constructs an [rowCount x colCount] matrix using [generator].
+  /// Constructs a [rowCount] by [colCount] [Matrix] using [generator].
   factory generate(
     int rowCount,
     int colCount,
@@ -59,7 +76,7 @@ class Matrix<T> implements LinearOperator<T> {
     );
   }
 
-  /// Constructs an identity matrix of dimension [size x size].
+  /// Constructs an identity [Matrix] of dimension [size] by [size].
   factory identity(int size, {DataType<T>? type, bool? native}) {
     final effectiveType = type ?? DataType.fromType<T>();
     final field = effectiveType.field;
@@ -74,7 +91,7 @@ class Matrix<T> implements LinearOperator<T> {
     );
   }
 
-  /// Constructs a matrix from row vectors or row iterables.
+  /// Constructs a [Matrix] from row vectors or row iterables.
   factory fromRows(
     Iterable<Iterable<T>> rows, {
     DataType<T>? type,
@@ -122,7 +139,7 @@ class Matrix<T> implements LinearOperator<T> {
     );
   }
 
-  /// Constructs a matrix from column vectors or column iterables.
+  /// Constructs a [Matrix] from column vectors or column iterables.
   factory fromColumns(
     Iterable<Iterable<T>> cols, {
     DataType<T>? type,
@@ -170,7 +187,7 @@ class Matrix<T> implements LinearOperator<T> {
     );
   }
 
-  /// Constructs a diagonal matrix from [diagonal] vector.
+  /// Constructs a diagonal [Matrix] from [diagonal] vector.
   factory diagonal(Vector<T> diagonal, {bool? native}) {
     final dim = diagonal.length;
     final dataType = diagonal.type;
@@ -399,7 +416,22 @@ class Matrix<T> implements LinearOperator<T> {
     );
   }
 
-  /// Solves the linear system A * x = b.
+  /// Solves the linear system $A x = b$ for unknown vector $x$.
+  ///
+  /// Conceptually, this solves a system of simultaneous linear equations
+  /// (such as $2x + 3y = 8$ and $4x - y = 2$) for all variables simultaneously.
+  /// Formally, this computes $x = A^{-1} b$ using LAPACK GESV LU factorization
+  /// with partial pivoting when hardware acceleration is available, falling back to
+  /// the [gmres] iterative solver.
+  ///
+  /// ```dart
+  /// final a = Matrix<double>.fromRows([
+  ///   [2.0, 1.0],
+  ///   [1.0, 3.0],
+  /// ]);
+  /// final b = Vector<double>.fromList([4.0, 7.0]);
+  /// final x = a.solve(b); // [1.0, 2.0]
+  /// ```
   Vector<T> solve(Vector<T> b) {
     if (rowCount != colCount) {
       throw StateError(

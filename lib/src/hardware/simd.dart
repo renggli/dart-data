@@ -2,6 +2,7 @@ import 'dart:typed_data';
 
 /// Pure Dart SIMD acceleration routines using [Float32x4].
 class SimdEngine {
+  /// Constant default constructor for [SimdEngine].
   const new();
 
   /// Adds [a] and [b] element-wise into [out] using 128-bit SIMD instructions.

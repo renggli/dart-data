@@ -6,13 +6,33 @@ import 'simplifier.dart';
 
 /// Extension providing zero-allocation high-throughput compilation of symbolic expressions.
 extension CompilerExtension on Expr {
-  /// Compiles into a direct [double Function(double)] with ZERO AST walking or Map overhead.
+  /// Compiles this expression into a fast native Dart function `double Function(double)`.
+  ///
+  /// Conceptually, this converts a symbolic formula into a standard Dart function that
+  /// executes with maximum speed without AST dictionary lookups or tree traversals.
+  /// Formally, it eliminates AST traversal overhead by synthesizing an inlined
+  /// closure tree suitable for tight numerical inner loops (such as Monte Carlo simulations or ODE integrators).
+  ///
+  /// ```dart
+  /// final x = Variable('x');
+  /// final f = (x * x + 1).compile1D('x');
+  /// final y = f(3.0); // 10.0
+  /// ```
   double Function(double x) compile1D(String varName) {
     final simplified = simplify();
     return _compileFast1D(simplified, varName);
   }
 
-  /// Compiles into a multi-variable positional closure [double Function(List<double> args)].
+  /// Compiles this expression into a multi-variable positional closure `double Function(List<double> args)`.
+  ///
+  /// Evaluates variables in the positional order defined by [varOrder].
+  ///
+  /// ```dart
+  /// final x = Variable('x');
+  /// final y = Variable('y');
+  /// final f = (x + 2 * y).compile(['x', 'y']);
+  /// final result = f([3.0, 4.0]); // 3 + 2(4) = 11.0
+  /// ```
   double Function(List<double> args) compile(List<String> varOrder) {
     final simplified = simplify();
     final varIndices = {

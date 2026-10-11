@@ -540,7 +540,7 @@ void updateTelemetry() {
   valVariance.textContent = formatProperty(() => activeDist.variance);
   valStdDev.textContent = formatProperty(() => activeDist.standardDeviation);
   valSkewness.textContent = formatProperty(() => activeDist.skewness);
-  valKurtosis.textContent = formatProperty(() => activeDist.kurtosisExcess);
+  valKurtosis.textContent = formatProperty(() => activeDist.excessKurtosis);
 
   // Format bounds
   try {

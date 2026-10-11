@@ -6,7 +6,7 @@ import 'parser.dart';
 
 /// Fast CSV parser with automatic column type inference.
 class CsvReader {
-  /// Parses CSV string into a DataFrame.
+  /// Parses CSV string into a [DataFrame].
   static DataFrame parse(
     String csv, {
     String separator = ',',
@@ -17,7 +17,7 @@ class CsvReader {
     header: header,
   );
 
-  /// Parses TSV string into a DataFrame.
+  /// Parses TSV string into a [DataFrame].
   static DataFrame parseTsv(String tsv, {bool header = true}) =>
       _parse(tsv, parser: TabularDefinition.tsv().build(), header: header);
 

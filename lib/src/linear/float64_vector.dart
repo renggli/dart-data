@@ -10,8 +10,18 @@ import '../tensor/tensor.dart';
 import 'vector.dart';
 
 /// Zero-cost extension type wrapping [Vector<double>] with direct [Float64List] buffer access.
+///
+/// This provides a 1D vector optimized to store 64-bit floating-point
+/// numbers in contiguous memory for high-speed mathematical operations.
+/// Formally, it provides an unboxed vector representation over $\mathbb{R}^n$
+/// backed by flat IEEE 754 double-precision arrays compatible with BLAS level 1 and 2 operations.
+///
+/// ```dart
+/// final v = Float64Vector.filled(3, 2.5);
+/// print(v.length); // 3
+/// ```
 extension type Float64Vector(Vector<double> _vector) implements Vector<double> {
-  /// Constructs a vector filled with [value].
+  /// Constructs a [Float64Vector] filled with [value].
   factory filled(int length, double value, {bool? native}) => Float64Vector(
     Vector<double>.filled(
       length,
@@ -21,7 +31,7 @@ extension type Float64Vector(Vector<double> _vector) implements Vector<double> {
     ),
   );
 
-  /// Constructs a vector populated by [generator].
+  /// Constructs a [Float64Vector] populated by [generator].
   factory generate(
     int length,
     double Function(int index) generator, {
@@ -35,12 +45,12 @@ extension type Float64Vector(Vector<double> _vector) implements Vector<double> {
     ),
   );
 
-  /// Constructs a vector from a list of elements.
+  /// Constructs a [Float64Vector] from a list of elements.
   factory fromList(List<double> list, {bool? native}) => Float64Vector(
     Vector<double>.fromList(list, type: DataType.float64, native: native),
   );
 
-  /// Constructs a vector from an iterable of elements.
+  /// Constructs a [Float64Vector] from an iterable of elements.
   factory fromIterable(Iterable<double> iterable, {bool? native}) =>
       Float64Vector(
         Vector<double>.fromIterable(

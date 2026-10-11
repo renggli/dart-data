@@ -3,7 +3,24 @@ import 'dart:math' as math;
 import '../operator.dart';
 import '../vector.dart';
 
-/// Solves a general square linear system A * x = b using restarted GMRES(m).
+/// Solves a general square linear system $A x = b$ using restarted GMRES(m).
+///
+/// Conceptually, GMRES is an iterative equation solver that works on
+/// general matrices. It starts with an initial guess and iteratively minimizes
+/// the residual error until reaching convergence.
+/// More formally, it computes the Generalized Minimal Residual approximation
+/// $\mathbf{x}_m \in \mathbf{x}_0 + \mathcal{K}_m(A, \mathbf{r}_0)$ minimizing
+/// $\|\mathbf{b} - A \mathbf{x}\|_2$ using Arnoldi orthogonalization and Givens
+/// rotations with restart threshold $m = \text{restart}$.
+///
+/// ```dart
+/// final a = Matrix<double>.fromRows([
+///   [3.0, 2.0],
+///   [1.0, 2.0],
+/// ]);
+/// final b = Vector<double>.fromList([5.0, 5.0]);
+/// final x = gmres(a, b);
+/// ```
 Vector<T> gmres<T>(
   LinearOperator<T> a,
   Vector<T> b, {
