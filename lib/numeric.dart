@@ -7,7 +7,8 @@
 ///
 /// - **Numerical Calculus**: [derivative] for univariate differentiation,
 ///   and [gradient], [hessian], and [jacobian] for multivariate calculus.
-/// - **Root Finding**: [solve] with [RootMethod] ([RootMethod.brent], [RootMethod.newtonRaphson], [RootMethod.bisection]).
+/// - **Root Finding**: [solve] with [RootMethod] ([RootMethod.brent], [RootMethod.newtonRaphson], [RootMethod.bisection]),
+///   and [solveSystem] for multivariable systems.
 /// - **Numerical Integration**: [integrate] with [IntegrationMethod] ([IntegrationMethod.gaussKronrod], [IntegrationMethod.simpson]).
 /// - **Numerical Optimization**: [minimize] with [OptimizationMethod] ([OptimizationMethod.nelderMead], [OptimizationMethod.bfgs], [OptimizationMethod.lbfgs], [OptimizationMethod.brent]) and [BoxBound] constraints.
 /// - **Curve Fitting & Regression**: [leastSquares], [linearRegression], [polynomialRegression], and [fitNonlinear].

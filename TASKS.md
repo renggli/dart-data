@@ -4,7 +4,6 @@ This document defines the actionable engineering task list for `package:data`.
 
 ## Tasks
 
-- [ ] Symbolic & Numeric Parity, Alignment, and Decoupling
 - [ ] Infinite Domains, Singularities (Poles), and High-Order Differentiation Restoration
 - [ ] High-Level Curve Fitting & Parametric Model Architecture Restoration
 - [ ] Scientific Sampling Grids (`linearSpaced`, `logarithmicSpaced`, `geometricSpaced`)
@@ -17,49 +16,7 @@ This document defines the actionable engineering task list for `package:data`.
 
 ---
 
-### [ ] Symbolic & Numeric Parity, Alignment, and Decoupling
 
-- **Problem / Goal**:
-  - Terminology and naming mismatch: `symbolic` exposes `diff`, `integrate`, `solve`, `solveSystem`, `gradient`, `hessian`, `jacobian`, while `numeric` exposes `numericalDerivative`, `gaussKronrod`, `brentRoot`, `numericalGradient`, etc.
-  - Untyped dynamic coupling: `numeric` routines accept `Object function` and perform runtime `is Expr` checks, invoking dynamic closures (`((function as dynamic)(x) as num).toDouble()`), throwing away static type safety.
-  - Circular imports: `lib/src/numeric/integration.dart` imports `../../symbolic.dart`, while `lib/src/symbolic/calculus/integration.dart` imports `../../numeric/integration.dart`.
-- **The Win**:
-  - Perfect conceptual and naming symmetry between `symbolic` and `numeric`:
-
-    | Mathematical Operation | `package:data/numeric.dart` | `package:data/symbolic.dart` |
-    | :--- | :--- | :--- |
-    | Univariate Equation / Root Solving | `solve(f, a, [b], {method})` | `expr.solve(var)` |
-    | Equation System Solving | `solveSystem(fs, initialGuess)` | `[eq1, eq2].solveSystem(vars)` |
-    | Definite / Indefinite Integration | `integrate(f, a, b, {method})` | `expr.integrate(var, {from, to})` |
-    | Derivative ($n$-th order) | `derivative(f, x, {order, accuracy})` | `expr.derivative(var, {order})` |
-    | Multivariable Gradient ($\nabla f$) | `gradient(f, x)` | `expr.gradient(vars)` |
-    | Multivariable Hessian ($H_f$) | `hessian(f, x)` | `expr.hessian(vars)` |
-    | Vector Function Jacobian ($J_F$) | `jacobian(f, x)` | `[f1, f2].jacobian(vars)` |
-
-  - Strict compile-time static types (`double Function(double)`, `Vector<double> Function(Vector<double>)`) in `numeric`, eliminating runtime `dynamic` dispatch.
-  - Clean one-way dependency: `numeric` is a pure mathematical library with zero knowledge of `symbolic`; `symbolic` provides explicit bridges (`Expr.toFunction1D()`, `Expr.toVectorFunction()`) without circularity.
-- **Target Files**:
-  - `lib/symbolic.dart`
-  - `lib/numeric.dart`
-  - `lib/src/symbolic/ast.dart`
-  - `lib/src/symbolic/calculus/differentiation.dart`
-  - `lib/src/symbolic/calculus/integration.dart`
-  - `lib/src/symbolic/solver.dart`
-  - `lib/src/numeric/calculus.dart`
-  - `lib/src/numeric/integration.dart`
-  - `lib/src/numeric/root_finding.dart`
-  - `lib/src/numeric/optimization.dart`
-- **Step-by-Step Implementation Details**:
-  1. Remove `import '../../symbolic.dart'` and all `if (function is Expr)` / `(function as dynamic)` logic from `lib/src/numeric/integration.dart`, `calculus.dart`, `root_finding.dart`, and `optimization.dart`. Type all functional parameters strictly as `double Function(double)` or `double Function(Vector<double>)`.
-  2. Align naming between packages:
-     - In `symbolic`, ensure both `diff` and `derivative` are supported as aliases or canonicalized to `derivative(variable, {int order = 1})`.
-     - In `numeric`, name the canonical operations `solve`, `solveSystem`, `integrate`, `derivative`, `gradient`, `hessian`, `jacobian`.
-  3. In `numeric`, provide `solveSystem(List<double Function(Vector<double>)> equations, Vector<double> initialGuess)` using Newton-Raphson with numerical Jacobian as the numerical counterpart to symbolic `solveSystem`.
-  4. In `symbolic`, add explicit typed compilation helpers (`expr.toFunction1D(variable)`, `expr.toVectorFunction(variables)`) leveraging the high-speed JIT compiler.
-  5. In `lib/src/symbolic/calculus/integration.dart`, invoke `numeric.integrate(...)` cleanly when analytical anti-derivatives fail on definite limits without circular AST pollution.
-  6. Add unit tests verifying both symbolic and numerical methods side-by-side on identical test equations.
-
----
 
 ### [ ] Infinite Domains, Singularities (Poles), and High-Order Differentiation Restoration
 

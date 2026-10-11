@@ -2,21 +2,32 @@ import '../ast.dart';
 
 /// Analytical symbolic differentiation extension on [Expr].
 extension DifferentiationExtension on Expr {
-  /// Computes the exact analytical symbolic derivative $\frac{d}{dx} f(x)$ with respect to [variable].
+  /// Computes the exact analytical symbolic derivative of order [order] with respect to [variable].
   ///
   /// Conceptually, the derivative describes the instantaneous rate
   /// of change or the slope of the tangent line to the graph at any point (such as how
   /// the derivative of $x^3$ is $3x^2$).
-  /// Formally, this executes recursive formal differentiation $\frac{\partial}{\partial x}$
+  /// Formally, this executes recursive formal differentiation $\frac{\partial^n}{\partial x^n}$
   /// applying the product rule, quotient rule, chain rule, and generalized power rule
-  /// across the abstract syntax tree.
+  /// across the abstract syntax tree for [order] times.
   ///
   /// ```dart
   /// final x = Variable('x');
-  /// final d = (x * x * x).diff('x').simplify();
-  /// // d: 3 * (x ^ 2)
+  /// final d1 = (x * x * x).derivative('x').simplify(); // 3 * (x ^ 2)
+  /// final d2 = (x * x * x).derivative('x', order: 2).simplify(); // 6 * x
   /// ```
-  Expr diff(String variable) => _differentiate(this, variable);
+  Expr derivative(String variable, {int order = 1}) {
+    RangeError.checkValueInInterval(order, 0, 1000, 'order');
+    var current = this;
+    for (var i = 0; i < order; i++) {
+      current = _differentiate(current, variable);
+    }
+    return current;
+  }
+
+  /// Alias for [derivative].
+  Expr diff(String variable, {int order = 1}) =>
+      derivative(variable, order: order);
 }
 
 Expr _differentiate(Expr expr, String variable) => switch (expr) {

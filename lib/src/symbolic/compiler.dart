@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 import 'dart:typed_data';
 
+import '../linear/vector.dart';
 import 'ast.dart';
 import 'simplifier.dart';
 
@@ -15,12 +16,35 @@ extension CompilerExtension on Expr {
   ///
   /// ```dart
   /// final x = Variable('x');
-  /// final f = (x * x + 1).compile1D('x');
+  /// final f = (x * x + 1).toFunction1D('x');
   /// final y = f(3.0); // 10.0
   /// ```
-  double Function(double x) compile1D(String varName) {
+  double Function(double x) toFunction1D(String varName) {
     final simplified = simplify();
     return _compileFast1D(simplified, varName);
+  }
+
+  /// Alias for [toFunction1D].
+  double Function(double x) compile1D(String varName) => toFunction1D(varName);
+
+  /// Compiles this expression into a fast vector evaluation closure `double Function(Vector<double>)`.
+  ///
+  /// Evaluates variables in the positional order defined by [varOrder].
+  ///
+  /// ```dart
+  /// final x = Variable('x');
+  /// final y = Variable('y');
+  /// final f = (x + 2 * y).toVectorFunction(['x', 'y']);
+  /// final result = f(Vector.fromList([3.0, 4.0])); // 3 + 2(4) = 11.0
+  /// ```
+  double Function(Vector<double> vector) toVectorFunction(
+    List<String> varOrder,
+  ) {
+    final simplified = simplify();
+    final varIndices = {
+      for (var i = 0; i < varOrder.length; i++) varOrder[i]: i,
+    };
+    return _buildVectorEvaluator(simplified, varIndices);
   }
 
   /// Compiles this expression into a multi-variable positional closure `double Function(List<double> args)`.
@@ -102,6 +126,29 @@ extension CompilerExtension on Expr {
         output[i] = stack[0];
       }
     };
+  }
+}
+
+/// Extension providing compilation of collections of symbolic expressions.
+extension CompilerIterableExtension on Iterable<Expr> {
+  /// Compiles multiple expressions into a vector-valued closure `Vector<double> Function(Vector<double>)`.
+  ///
+  /// Evaluates variables in the positional order defined by [varOrder].
+  ///
+  /// ```dart
+  /// final x = Variable('x');
+  /// final y = Variable('y');
+  /// final system = [x + y, x - y].toVectorFunction(['x', 'y']);
+  /// final res = system(Vector.fromList([3.0, 1.0])); // [4.0, 2.0]
+  /// ```
+  Vector<double> Function(Vector<double> vector) toVectorFunction(
+    List<String> varOrder,
+  ) {
+    final evaluators = [
+      for (final expr in this) expr.toVectorFunction(varOrder),
+    ];
+    return (Vector<double> v) =>
+        Vector.generate(evaluators.length, (i) => evaluators[i](v));
   }
 }
 
@@ -212,6 +259,63 @@ double Function(List<double> args) _buildPositionalEvaluator(
   Ln(expr: final inner) => () {
     final fn = _buildPositionalEvaluator(inner, indices);
     return (List<double> args) => math.log(fn(args));
+  }(),
+};
+
+double Function(Vector<double> args) _buildVectorEvaluator(
+  Expr expression,
+  Map<String, int> indices,
+) => switch (expression) {
+  Constant(value: final val) => (_) => val,
+  Variable(name: final name) => () {
+    final idx =
+        indices[name] ?? (throw ArgumentError('Unbound variable: $name'));
+    return (Vector<double> args) => args[idx];
+  }(),
+  Add(left: final left, right: final right) => () {
+    final fL = _buildVectorEvaluator(left, indices),
+        fR = _buildVectorEvaluator(right, indices);
+    return (Vector<double> args) => fL(args) + fR(args);
+  }(),
+  Sub(left: final left, right: final right) => () {
+    final fL = _buildVectorEvaluator(left, indices),
+        fR = _buildVectorEvaluator(right, indices);
+    return (Vector<double> args) => fL(args) - fR(args);
+  }(),
+  Mul(left: final left, right: final right) => () {
+    final fL = _buildVectorEvaluator(left, indices),
+        fR = _buildVectorEvaluator(right, indices);
+    return (Vector<double> args) => fL(args) * fR(args);
+  }(),
+  Div(left: final left, right: final right) => () {
+    final fL = _buildVectorEvaluator(left, indices),
+        fR = _buildVectorEvaluator(right, indices);
+    return (Vector<double> args) => fL(args) / fR(args);
+  }(),
+  Pow(base: final base, exponent: final exp) => () {
+    final fB = _buildVectorEvaluator(base, indices),
+        fE = _buildVectorEvaluator(exp, indices);
+    return (Vector<double> args) => math.pow(fB(args), fE(args)).toDouble();
+  }(),
+  Neg(expr: final inner) => () {
+    final fn = _buildVectorEvaluator(inner, indices);
+    return (Vector<double> args) => -fn(args);
+  }(),
+  Sin(expr: final inner) => () {
+    final fn = _buildVectorEvaluator(inner, indices);
+    return (Vector<double> args) => math.sin(fn(args));
+  }(),
+  Cos(expr: final inner) => () {
+    final fn = _buildVectorEvaluator(inner, indices);
+    return (Vector<double> args) => math.cos(fn(args));
+  }(),
+  Exp(expr: final inner) => () {
+    final fn = _buildVectorEvaluator(inner, indices);
+    return (Vector<double> args) => math.exp(fn(args));
+  }(),
+  Ln(expr: final inner) => () {
+    final fn = _buildVectorEvaluator(inner, indices);
+    return (Vector<double> args) => math.log(fn(args));
   }(),
 };
 
