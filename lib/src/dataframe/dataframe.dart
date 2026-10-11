@@ -1,8 +1,10 @@
 import 'dart:math' as math;
+import 'dart:typed_data';
 
 import '../../type.dart';
 import '../linear/matrix.dart';
 import '../tensor/tensor.dart';
+import 'arrowc/arrow_ipc.dart';
 import 'csv/csv_reader.dart';
 import 'csv/csv_writer.dart';
 import 'groupby.dart';
@@ -89,6 +91,9 @@ class DataFrame {
     Map<String, DataType<dynamic>>? columnTypes,
   }) => DataFrameJson.fromRecords(records, columnTypes: columnTypes);
 
+  /// Constructs a [DataFrame] by decoding an Apache Arrow IPC stream byte buffer.
+  factory fromArrowIpc(Uint8List bytes) => ArrowIpc.decode(bytes);
+
   /// Number of rows.
   final int rowCount;
   final List<Series<dynamic>> _columns;
@@ -96,6 +101,9 @@ class DataFrame {
 
   /// Number of columns.
   int get columnCount => _columns.length;
+
+  /// Ordered list of all column [Series] in this DataFrame.
+  List<Series<dynamic>> get columns => _columns;
 
   /// List of column names in schema order.
   List<String> get columnNames =>
@@ -312,6 +320,9 @@ class DataFrame {
 
   /// Converts this [DataFrame] rows to a list of record maps.
   List<Map<String, dynamic>> toRecords() => DataFrameJson.toRecords(this);
+
+  /// Serializes this [DataFrame] to Apache Arrow IPC stream byte format.
+  Uint8List toArrowIpc() => ArrowIpc.encode(this);
 
   @override
   String toString() {

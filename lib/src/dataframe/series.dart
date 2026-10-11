@@ -34,6 +34,9 @@ abstract class Series<T> {
   /// The number of missing (null) values.
   int get nullCount;
 
+  /// Optional validity bitmask tracking null values.
+  ValidityMask? get mask => null;
+
   /// Returns true if this series contains one or more missing (null) values.
   bool get hasNulls => nullCount > 0;
 
@@ -152,16 +155,31 @@ abstract class Series<T> {
         break;
       }
     }
-    if (T == int) {
+    if (T == int || list is List<int> || list is List<int?>) {
       final intList = list
           .map((element) => element as int?)
           .toList(growable: false);
       return TypedSeries<int>.fromList(name, intList) as Series<T>;
-    } else if (T == double) {
+    } else if (T == double || list is List<double> || list is List<double?>) {
       final dblList = list
           .map((element) => element as double?)
           .toList(growable: false);
       return TypedSeries<double>.fromList(name, dblList) as Series<T>;
+    } else if (list is List<String> ||
+        list is List<String?> ||
+        (firstNonNull is String &&
+            list.every((e) => e == null || e is String))) {
+      final strList = list
+          .map((element) => element as String?)
+          .toList(growable: false);
+      return StringSeries.fromList(name, strList) as Series<T>;
+    } else if (list is List<bool> ||
+        list is List<bool?> ||
+        (firstNonNull is bool && list.every((e) => e == null || e is bool))) {
+      final boolList = list
+          .map((element) => element as bool?)
+          .toList(growable: false);
+      return BoolSeries.fromList(name, boolList) as Series<T>;
     } else if (firstNonNull is num &&
         list.every((e) => e == null || e is num)) {
       final numList = list
@@ -172,18 +190,6 @@ abstract class Series<T> {
         numList,
         type: type as DataType<num>?,
       ) as Series<T>;
-    } else if (firstNonNull is String &&
-        list.every((e) => e == null || e is String)) {
-      final strList = list
-          .map((element) => element as String?)
-          .toList(growable: false);
-      return StringSeries.fromList(name, strList) as Series<T>;
-    } else if (firstNonNull is bool &&
-        list.every((e) => e == null || e is bool)) {
-      final boolList = list
-          .map((element) => element as bool?)
-          .toList(growable: false);
-      return BoolSeries.fromList(name, boolList) as Series<T>;
     }
     final objList = list
         .map((element) => element as T?)
@@ -242,6 +248,7 @@ class TypedSeries<T extends num> extends Series<T> {
   final List<T> data;
 
   /// Optional validity bitmask tracking null values.
+  @override
   final ValidityMask? mask;
 
   @override
@@ -434,6 +441,7 @@ class BoolSeries extends Series<bool> {
   final List<bool> data;
 
   /// Optional validity bitmask tracking null values.
+  @override
   final ValidityMask? mask;
 
   @override
@@ -560,6 +568,7 @@ class ObjectSeries<T> extends Series<T> {
   final List<T> data;
 
   /// Optional validity bitmask tracking null values.
+  @override
   final ValidityMask? mask;
 
   @override

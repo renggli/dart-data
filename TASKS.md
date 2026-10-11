@@ -4,7 +4,7 @@ This document defines the actionable engineering task list for `package:data`.
 
 ## Tasks
 
-- [ ] Apache Arrow C Data Interface & IPC Stream Export
+- [x] Apache Arrow C Data Interface & IPC Stream Export
 - [x] Apache Arrow UTF-8 String Offset Buffer (`ArrowStringSeries`)
 - [ ] Sort-Merge Relational Join
 - [ ] Streaming CSV & JSON Parsers
@@ -16,7 +16,7 @@ This document defines the actionable engineering task list for `package:data`.
 
 ---
 
-### [ ] Apache Arrow C Data Interface & IPC Stream Export
+### [x] Apache Arrow C Data Interface & IPC Stream Export
 
 - **Problem / Goal**:
   Sharing DataFrames with external engines in Python (Polars, pandas, PyArrow) or DuckDB requires slow serialization to disk CSV or JSON files.

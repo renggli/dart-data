@@ -95,6 +95,7 @@ class ArrowStringSeries extends Series<String> {
   final Uint32List offsets;
 
   /// Optional validity mask for null values.
+  @override
   final ValidityMask? mask;
 
   @override
