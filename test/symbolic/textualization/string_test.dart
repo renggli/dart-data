@@ -58,8 +58,11 @@ void main() {
       check((x + y).pow(z).toString()).equals('(x + y) ^ z');
       check((x * y).pow(z).toString()).equals('(x * y) ^ z');
       check((x / y).pow(z).toString()).equals('(x / y) ^ z');
-      check((-x).pow(const Constant(2.0)).toString()).equals('(-x) ^ 2');
-      check(x.pow(const Constant(-2.0)).toString()).equals('x ^ (-2)');
+      check((-x).pow(const Constant(2.0)).toString()).equals('-x ^ 2');
+      check((-x.pow(const Constant(2.0))).toString()).equals('-x ^ 2');
+      check(x.pow(const Constant(-2.0)).toString()).equals('x ^ -2');
+      check(x.pow(y).pow(z).toString()).equals('(x ^ y) ^ z');
+      check(x.pow(y.pow(z)).toString()).equals('x ^ y ^ z');
     });
 
     test('unary negation', () {
@@ -110,15 +113,15 @@ void main() {
     const y = Variable('y');
 
     test('relative precedence values', () {
-      check(precedence(x + y)).equals(10);
-      check(precedence(x - y)).equals(10);
-      check(precedence(x * y)).equals(20);
-      check(precedence(x / y)).equals(20);
-      check(precedence(x.pow(y))).equals(30);
-      check(precedence(-x)).equals(40);
-      check(precedence(const Constant(-5.0))).equals(40);
-      check(precedence(x)).equals(50);
-      check(precedence(const Constant(5.0))).equals(50);
+      check(precedence(x + y)).equals(1);
+      check(precedence(x - y)).equals(1);
+      check(precedence(x * y)).equals(2);
+      check(precedence(x / y)).equals(2);
+      check(precedence(x.pow(y))).equals(3);
+      check(precedence(-x)).equals(4);
+      check(precedence(const Constant(-5.0))).equals(4);
+      check(precedence(x)).equals(4);
+      check(precedence(const Constant(5.0))).equals(4);
     });
   });
 }

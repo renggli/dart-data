@@ -31,10 +31,9 @@ sealed class Expr {
   /// Parses a mathematical expression from [input] into an [Expr] tree.
   ///
   /// Supports numbers (integers, floating-point, scientific notation), mathematical
-  /// constants ([pi], [e], `\pi`, `π`), variables, basic arithmetic (`+`, `-`,
-  /// `*`, `/`, `^`, `**`), unary operators (`+`, `-`), functions ([Sin], [Cos],
-  /// [Exp], [Ln], `log`, `sqrt`), parentheses/brackets/braces, and LaTeX
-  /// constructs (`\frac{num}{den}`, `\cdot`, `\times`).
+  /// constants ([pi], [e]), variables, basic arithmetic (`+`, `-`, `*`, `/`, `^`),
+  /// unary operators (`+`, `-`), functions ([Sin], [Cos], [Exp], [Ln], `log`, `sqrt`),
+  /// and parentheses.
   ///
   /// Throws a [FormatException] if [input] cannot be parsed.
   ///
@@ -42,7 +41,7 @@ sealed class Expr {
   /// final f = Expr.parse('sin(pi * x) + 2 * x');
   /// print(f.evaluate({'x': 0.5}));
   /// ```
-  static Expr parse(String input) => ExpressionParser.parse(input);
+  static Expr parse(String input) => parseExpression(input);
 
   /// Tries to parse a mathematical expression from [input], returning `null` on
   /// syntax error.
@@ -50,7 +49,7 @@ sealed class Expr {
   /// ```dart
   /// final expr = Expr.tryParse('2 * x + 1');
   /// ```
-  static Expr? tryParse(String input) => ExpressionParser.tryParse(input);
+  static Expr? tryParse(String input) => tryParseExpression(input);
 
   /// Whether this expression depends on [name].
   bool dependsOn(String name);

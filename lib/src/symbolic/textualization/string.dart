@@ -2,30 +2,9 @@ import '../ast.dart';
 
 /// Formats the symbolic [expr] into a clean mathematical string representation
 /// with minimal parentheses based on operator precedence and associativity.
-String formatExpr(
-  Expr expr, {
-  int parentPrec = 0,
-  bool isRight = false,
-  bool isSubRight = false,
-  bool isDivRight = false,
-  bool isPowExp = false,
-  bool isPowBase = false,
-}) {
+String formatExpr(Expr expr, [int parentPrec = 0]) {
   final prec = precedence(expr);
-  final needsParens = switch (expr) {
-    _ when prec < parentPrec => true,
-    Add() || Sub() when isSubRight => true,
-    Mul() || Div() when isDivRight => true,
-    Neg() when isPowBase || isPowExp || isDivRight => true,
-    Constant(:final value, :final name)
-        when (isPowBase || isPowExp || isDivRight) &&
-            name == null &&
-            value < 0 =>
-      true,
-    _ => false,
-  };
-
-  final inner = switch (expr) {
+  final formatted = switch (expr) {
     Variable(:final name) => name,
     Constant(:final value, :final name) =>
       name ?? (value % 1 == 0 ? value.toInt().toString() : value.toString()),
@@ -34,30 +13,27 @@ String formatExpr(
     Exp(:final expr) => 'exp(${formatExpr(expr)})',
     Ln(:final expr) => 'ln(${formatExpr(expr)})',
     Neg(:final expr) => switch (expr) {
-      Add() || Sub() || Neg() => '-(${formatExpr(expr)})',
-      _ => '-${formatExpr(expr, parentPrec: 40)}',
+      Add() || Sub() || Mul() || Div() || Neg() => '-(${formatExpr(expr)})',
+      _ => '-${formatExpr(expr)}',
     },
     Pow(:final base, :final exponent) =>
-      '${formatExpr(base, parentPrec: 30, isPowBase: true)} ^ ${formatExpr(exponent, parentPrec: 30, isRight: true, isPowExp: true)}',
+      '${base is Pow || precedence(base) < 3 ? '(${formatExpr(base)})' : formatExpr(base)} ^ ${precedence(exponent) < 3 ? '(${formatExpr(exponent)})' : formatExpr(exponent)}',
     Mul(:final left, :final right) =>
-      '${formatExpr(left, parentPrec: 20)} * ${formatExpr(right, parentPrec: 20, isRight: true)}',
+      '${formatExpr(left, 2)} * ${formatExpr(right, 2)}',
     Div(:final left, :final right) =>
-      '${formatExpr(left, parentPrec: 20)} / ${formatExpr(right, parentPrec: 20, isRight: true, isDivRight: true)}',
+      '${formatExpr(left, 2)} / ${formatExpr(right, 3)}',
     Add(:final left, :final right) =>
-      '${formatExpr(left, parentPrec: 10)} + ${formatExpr(right, parentPrec: 10, isRight: true)}',
+      '${formatExpr(left, 1)} + ${formatExpr(right, 1)}',
     Sub(:final left, :final right) =>
-      '${formatExpr(left, parentPrec: 10)} - ${formatExpr(right, parentPrec: 10, isRight: true, isSubRight: true)}',
+      '${formatExpr(left, 1)} - ${formatExpr(right, 2)}',
   };
-
-  return needsParens ? '($inner)' : inner;
+  return prec < parentPrec ? '($formatted)' : formatted;
 }
 
 /// Returns the operator precedence for the given [expr].
 int precedence(Expr expr) => switch (expr) {
-  Add() || Sub() => 10,
-  Mul() || Div() => 20,
-  Pow() => 30,
-  Neg() => 40,
-  Constant(:final value, :final name) when name == null && value < 0 => 40,
-  _ => 50,
+  Add() || Sub() => 1,
+  Mul() || Div() => 2,
+  Pow() => 3,
+  _ => 4,
 };

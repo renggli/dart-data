@@ -2,150 +2,76 @@ import 'package:petitparser/petitparser.dart';
 
 import 'ast.dart';
 
-/// Canonical PetitParser [Parser] for symbolic mathematical expressions.
-///
-/// Parses strings into symbolic [Expr] abstract syntax trees.
-///
-/// ```dart
-/// final expr = expressionParser.parse('sin(pi * x)').value;
-/// ```
-final Parser<Expr> expressionParser = buildExpressionParser();
-
-/// Builds a new unanchored [Parser] for symbolic mathematical expressions.
-///
-/// Supports arithmetic operators, parentheses, brackets, mathematical constants
-/// ([pi], [e]), functions ([Sin], [Cos], [Exp], [Ln]), and LaTeX syntax.
-///
-/// ```dart
-/// final parser = buildExpressionParser();
-/// final result = parser.parse('2 * x + 1');
-/// ```
-Parser<Expr> buildExpressionParser() {
+/// The internal PetitParser [Parser] for symbolic mathematical expressions.
+final parser = () {
   final builder = ExpressionBuilder<Expr>();
-
-  final exponent = pattern('eE') & pattern('+-').optional() & digit().plus();
-  final number =
-      [
-            digit().plus() &
-                (char('.') & digit().plus()).optional() &
-                exponent.optional(),
-            char('.') & digit().plus() & exponent.optional(),
-          ]
-          .toChoiceParser()
-          .flatten('number expected')
-          .trim()
-          .map((str) => Constant(double.parse(str)));
-
-  final greekLetter = pattern('α-ωΑ-Ω');
-  final wordBoundary = (word() | greekLetter | char('_')).not();
-
-  final piConstant = [
-    string(r'\pi'),
-    string(r'\PI'),
-    string(r'\Pi'),
-    stringIgnoreCase('pi'),
-    pattern('πΠ'),
-  ].toChoiceParser().seq(wordBoundary).trim().map((_) => Constant.pi);
-
-  final eConstant = [
-    string(r'\e'),
-    pattern('e\u212F\u2147'),
-  ].toChoiceParser().seq(wordBoundary).trim().map((_) => Constant.e);
-
-  final frac = seq2(
-    builder.loopback.skip(
-      before:
-          [
-            string(r'\dfrac'),
-            string(r'\frac'),
-          ].toChoiceParser().seq(wordBoundary).trim() &
-          char('{').trim(),
-      after: char('}').trim(),
-    ),
-    builder.loopback.skip(before: char('{').trim(), after: char('}').trim()),
-  ).map2(Div.new);
-
-  final idStart = letter() | greekLetter | char('_');
-  final idPart = letter() | digit() | greekLetter | char('_');
-
-  final variable = (char(r'\').optional() & idStart & idPart.star())
-      .flatten('variable expected')
-      .trim()
-      .map((name) {
-        final cleanName = name.startsWith(r'\') ? name.substring(1) : name;
-        return Variable(cleanName);
-      });
-
-  builder.primitive(number);
-  builder.primitive(piConstant);
-  builder.primitive(eConstant);
-  builder.primitive(frac);
-  builder.primitive(variable);
-
-  Parser<void> funcPrefix(String name) =>
-      (char(r'\').optional() & stringIgnoreCase(name) & wordBoundary).trim();
-
-  final funcGroup = builder.group();
-  for (final (open, close) in [
-    (char('(').trim(), char(')').trim()),
-    (char('[').trim(), char(']').trim()),
-    (char('{').trim(), char('}').trim()),
-  ]) {
-    funcGroup
-      ..wrapper(open, close, (_, expr, _) => expr)
-      ..wrapper(funcPrefix('sin') & open, close, (_, expr, _) => Sin(expr))
-      ..wrapper(funcPrefix('cos') & open, close, (_, expr, _) => Cos(expr))
-      ..wrapper(funcPrefix('exp') & open, close, (_, expr, _) => Exp(expr))
-      ..wrapper(funcPrefix('ln') & open, close, (_, expr, _) => Ln(expr))
-      ..wrapper(funcPrefix('log') & open, close, (_, expr, _) => Ln(expr))
-      ..wrapper(
-        funcPrefix('sqrt') & open,
-        close,
-        (_, expr, _) => Pow(expr, const Constant(0.5)),
-      );
-  }
-
+  builder
+    // Numbers
+    ..primitive(
+      seq3(
+        digit().plus(),
+        seq2(char('.'), digit().plus()).optional(),
+        seq3(pattern('eE'), anyOf('+-').optional(), digit().plus()).optional(),
+      ).flatten('number expected').trim().map(_createValue),
+    )
+    // Constant, variables, and functions
+    ..primitive(
+      seq2(
+        seq2(letter(), word().starString()).flatten('name expected').trim(),
+        builder.loopback
+            .starSeparated(char(',').trim())
+            .map((list) => list.elements)
+            .skip(before: char('(').trim(), after: char(')').trim())
+            .optionalWith(const <Expr>[]),
+      ).map2(_createBinding),
+    );
+  // Parentheses (highest precedence wrapper)
+  builder.group().wrapper(
+    char('(').trim(),
+    char(')').trim(),
+    (left, value, right) => value,
+  );
+  // Unary prefix operators (+, -)
   builder.group()
-    ..prefix(char('-').trim(), (_, expr) => Neg(expr))
-    ..prefix(char('+').trim(), (_, expr) => expr);
-
-  final powOp = [char('^'), string('**')].toChoiceParser().trim();
-
-  builder.group().right(powOp, (left, _, right) => Pow(left, right));
-
-  final mulOp = [
-    char('*'),
-    char('·'),
-    char('×'),
-    string(r'\cdot'),
-    string(r'\times'),
-  ].toChoiceParser().trim();
-
-  final divOp = [char('/'), char('÷'), string(r'\div')].toChoiceParser().trim();
-
+    ..prefix(char('+').trim(), (op, a) => a)
+    ..prefix(char('-').trim(), (op, a) => Neg(a));
+  // Exponentiation (right-associative)
+  builder.group().right(char('^').trim(), (a, op, b) => Pow(a, b));
+  // Multiplicative operators (*, /, left-associative)
   builder.group()
-    ..left(mulOp, (left, _, right) => Mul(left, right))
-    ..left(divOp, (left, _, right) => Div(left, right));
-
-  final addOp = char('+').trim();
-  final subOp = char('-').trim();
-
+    ..left(char('*').trim(), (a, op, b) => Mul(a, b))
+    ..left(char('/').trim(), (a, op, b) => Div(a, b));
+  // Additive operators (+, -, left-associative)
   builder.group()
-    ..left(addOp, (left, _, right) => Add(left, right))
-    ..left(subOp, (left, _, right) => Sub(left, right));
+    ..left(char('+').trim(), (a, op, b) => Add(a, b))
+    ..left(char('-').trim(), (a, op, b) => Sub(a, b));
+  return resolve(builder.build()).end();
+}();
 
-  return builder.build();
-}
+Expr _createValue(String value) => Constant(double.parse(value));
 
-/// Parser for symbolic [Expr] expressions powered by PetitParser.
-final class ExpressionParser {
-  const new _();
+Expr _createBinding(String name, List<Expr> arguments) =>
+    switch (arguments.length) {
+      0 => switch (name) {
+        'pi' || 'PI' || 'Pi' => Constant.pi,
+        'e' => Constant.e,
+        _ => Variable(name),
+      },
+      1 => switch (name) {
+        'sin' => Sin(arguments[0]),
+        'cos' => Cos(arguments[0]),
+        'exp' => Exp(arguments[0]),
+        'ln' || 'log' => Ln(arguments[0]),
+        'sqrt' => Pow(arguments[0], const Constant(0.5)),
+        _ => throw ArgumentError.value(name, 'Unknown function'),
+      },
+      _ => throw ArgumentError.value(name, 'Unknown function'),
+    };
 
-  static final Parser<Expr> _parser = buildExpressionParser().trim().end();
-
-  /// Parses [input] into an [Expr]. Throws [FormatException] if parsing fails.
-  static Expr parse(String input) {
-    final result = _parser.parse(input);
+/// Parses [input] into an [Expr]. Throws [FormatException] if parsing fails.
+Expr parseExpression(String input) {
+  try {
+    final result = parser.parse(input);
     if (result case Success(:final value)) {
       return value;
     }
@@ -154,11 +80,20 @@ final class ExpressionParser {
       input,
       result.position,
     );
+  } on ArgumentError catch (error) {
+    throw FormatException(
+      error.message?.toString() ?? 'Unknown function',
+      input,
+    );
   }
+}
 
-  /// Tries to parse [input] into an [Expr], returning `null` on failure.
-  static Expr? tryParse(String input) {
-    final result = _parser.parse(input);
+/// Tries to parse [input] into an [Expr], returning `null` on failure.
+Expr? tryParseExpression(String input) {
+  try {
+    final result = parser.parse(input);
     return result is Success<Expr> ? result.value : null;
+  } on Object {
+    return null;
   }
 }

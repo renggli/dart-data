@@ -12,7 +12,7 @@
 ///   constants ([Constant], [pi], [e]), and mathematical functions like [Sin],
 ///   [Cos], [Exp], and [Ln].
 /// - **Expression Parsing**: Parse mathematical formulas from text with PetitParser
-///   using [Expr.parse] or [expressionParser].
+///   using [Expr.parse] or [Expr.tryParse].
 /// - **Analytical Calculus**: Exact differentiation
 ///   ([DifferentiationExtension.derivative], [DifferentiationExtension.diff])
 ///   with product, quotient, and chain rules; multivariate gradients
@@ -71,7 +71,6 @@ import 'src/symbolic/calculus/linear_form.dart';
 import 'src/symbolic/calculus/multivariable.dart';
 import 'src/symbolic/calculus/taylor.dart';
 import 'src/symbolic/compiler.dart';
-import 'src/symbolic/parser.dart';
 import 'src/symbolic/simplifier.dart';
 import 'src/symbolic/solver.dart';
 import 'src/symbolic/textualization/latex.dart';
@@ -85,7 +84,6 @@ export 'src/symbolic/calculus/linear_form.dart';
 export 'src/symbolic/calculus/multivariable.dart';
 export 'src/symbolic/calculus/taylor.dart';
 export 'src/symbolic/compiler.dart';
-export 'src/symbolic/parser.dart';
 export 'src/symbolic/simplifier.dart';
 export 'src/symbolic/solver.dart';
 export 'src/symbolic/textualization/latex.dart';
