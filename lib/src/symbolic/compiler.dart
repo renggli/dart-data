@@ -266,10 +266,6 @@ double Function(T) _compileEvaluator<T>(
       throw UnsupportedError(
         'Expression contains imaginary constant "i"; use toComplexFunction1D instead.',
       );
-    case ComplexNumber():
-      throw UnsupportedError(
-        'Expression contains ComplexNumber; use toComplexFunction1D instead.',
-      );
     case Number(:final value):
       return (_) => value;
     case Variable(:final name):
@@ -368,10 +364,6 @@ void _flattenToRpn(
     case ConstantNumber(name: 'i'):
       throw UnsupportedError(
         'compileTensorKernel does not support expressions with imaginary constant "i".',
-      );
-    case ComplexNumber():
-      throw UnsupportedError(
-        'compileTensorKernel does not support expressions with ComplexNumber.',
       );
     case Number(:final value):
       instructions.add(_Instruction.pushConst(value));

@@ -1,5 +1,3 @@
-import 'package:more/number.dart' show Complex;
-
 import '../ast.dart';
 
 /// Formats the symbolic [expr] into a clean mathematical string representation
@@ -17,7 +15,6 @@ String formatExpr(Expr expr, [int parentPrec = 0]) {
     RationalNumber(:final numerator, :final denominator) =>
       denominator == 1 ? '$numerator' : '$numerator/$denominator',
     RealNumber(:final value) => '$value',
-    ComplexNumber(:final complex) => _formatComplex(complex),
     Sin(:final expr) => 'sin(${formatExpr(expr)})',
     Cos(:final expr) => 'cos(${formatExpr(expr)})',
     Tan(:final expr) => 'tan(${formatExpr(expr)})',
@@ -51,45 +48,6 @@ String formatExpr(Expr expr, [int parentPrec = 0]) {
   return prec < parentPrec ? '($formatted)' : formatted;
 }
 
-String _formatComplex(Complex c) {
-  if (c.b == 0) {
-    return _formatNum(c.a);
-  }
-  if (c.a == 0) {
-    if (c.b == 1) return 'i';
-    if (c.b == -1) return '-i';
-    return '${_formatNum(c.b)} * i';
-  }
-  final aStr = _formatNum(c.a);
-  if (c.b == 1) {
-    return '$aStr + i';
-  } else if (c.b == -1) {
-    return '$aStr - i';
-  } else if (c.b > 0) {
-    return '$aStr + ${_formatNum(c.b)} * i';
-  } else {
-    return '$aStr - ${_formatNum(-c.b)} * i';
-  }
-}
-
-String _formatNum(num n) {
-  if (n is int) return '$n';
-  if (n.truncateToDouble() == n && !n.isInfinite && !n.isNaN) {
-    return '${n.toInt()}';
-  }
-  return '$n';
-}
-
-int _complexPrecedence(Complex c) {
-  if (c.b != 0) {
-    if (c.a != 0) return 1;
-    if (c.b == 1) return 5;
-    if (c.b == -1) return 3;
-    return c.b < 0 ? 3 : 2;
-  }
-  return c.a < 0 ? 3 : 5;
-}
-
 /// Returns the operator precedence level for the given [expr].
 ///
 /// Higher values indicate tighter binding.
@@ -99,7 +57,6 @@ int precedence(Expr expr) => switch (expr) {
   Mul() => 2,
   RationalNumber(isInteger: false) => 2,
   Neg() || RationalNumber(isNegative: true) || RealNumber(value: < 0) => 3,
-  ComplexNumber(:final complex) => _complexPrecedence(complex),
   Pow(:final exponent) =>
     exponent is RationalNumber &&
             exponent.numerator == 1 &&

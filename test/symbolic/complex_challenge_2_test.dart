@@ -218,9 +218,8 @@ void main() {
         ConstantNumber.e,
         ConstantNumber.pi,
         ConstantNumber.i,
-        const ComplexNumber(Complex(0, 1)),
-        const ComplexNumber(Complex(1, 2)),
-        const ComplexNumber(Complex(2, -1)),
+        const RationalNumber(1) + const RationalNumber(2) * i,
+        const RationalNumber(2) - i,
         x,
         y,
         -x,
@@ -284,17 +283,17 @@ void main() {
         check(list1).deepEquals(list2);
       });
 
-      test('ComplexNumber comparison order', () {
-        const c1 = ComplexNumber(Complex(1, 2));
-        const c2 = ComplexNumber(Complex(1, 3));
-        const c3 = ComplexNumber(Complex(2, 0));
-        const c4 = ComplexNumber(Complex(1, 2));
+      test('Complex expression comparison order', () {
+        final c1 = const RationalNumber(1) + const RationalNumber(2) * i;
+        final c2 = const RationalNumber(1) + const RationalNumber(3) * i;
+        const c3 = RationalNumber(2);
+        final c4 = const RationalNumber(1) + const RationalNumber(2) * i;
 
         check(compareStructural(c1, c4)).equals(0);
         check(compareStructural(c1, c2)).isLessThan(0);
         check(compareStructural(c2, c1)).isGreaterThan(0);
-        check(compareStructural(c1, c3)).isLessThan(0);
-        check(compareStructural(c3, c1)).isGreaterThan(0);
+        check(compareStructural(c1, c3)).isGreaterThan(0);
+        check(compareStructural(c3, c1)).isLessThan(0);
       });
     },
   );
@@ -365,7 +364,8 @@ void main() {
 
     test('complex absolute value and roots', () {
       // |3 + 4i| = 5
-      final absZ = const Abs(ComplexNumber(Complex(3, 4))).evaluateComplex();
+      final absZ = Abs(const RationalNumber(3) + const RationalNumber(4) * i)
+          .evaluateComplex();
       check((absZ.a - 5.0).abs()).isLessThan(1e-12);
       check(absZ.b).equals(0.0);
 
@@ -530,33 +530,33 @@ void main() {
       check((const RationalNumber(2) * i).toString()).equals('2 * i');
       check((-const RationalNumber(2) * i).toString()).equals('-2 * i');
 
-      const cSum = ComplexNumber(Complex(1, 2));
-      const cDiff = ComplexNumber(Complex(3, -4));
+      final cSum = const RationalNumber(1) + const RationalNumber(2) * i;
+      final cDiff = const RationalNumber(3) - const RationalNumber(4) * i;
       check(cSum.toString()).equals('1 + 2 * i');
       check(cDiff.toString()).equals('3 - 4 * i');
 
       // Multiplication by a sum should parenthesize the complex number
-      const mulComplex = Mul(RationalNumber(5), cSum);
+      final mulComplex = Mul(const RationalNumber(5), cSum);
       check(formatExpr(mulComplex)).equals('5 * (1 + 2 * i)');
 
       // Power base should parenthesize
-      const powComplex = Pow(cSum, RationalNumber(2));
+      final powComplex = Pow(cSum, const RationalNumber(2));
       check(formatExpr(powComplex)).equals('(1 + 2 * i) ^ 2');
     });
 
     test('LaTeX serialization with complex numbers', () {
       check(i.toLatex()).equals('i');
       check((-i).toLatex()).equals('-i');
-      check((const RationalNumber(3) * i).toLatex()).equals('3 \\cdot i');
+      check((const RationalNumber(3) * i).toLatex()).equals(r'3 \cdot i');
 
-      const c = ComplexNumber(Complex(2, -3));
-      check(c.toLatex()).equals('2 - 3 i');
+      final c = const RationalNumber(2) - const RationalNumber(3) * i;
+      check(c.toLatex()).equals(r'2 - 3 \cdot i');
 
-      const mul = Mul(RationalNumber(4), c);
-      check(mul.toLatex()).equals('4 \\cdot (2 - 3 i)');
+      final mul = Mul(const RationalNumber(4), c);
+      check(mul.toLatex()).equals(r'4 \cdot (2 - 3 \cdot i)');
 
-      const pow = Pow(c, RationalNumber(3));
-      check(pow.toLatex()).equals('{(2 - 3 i)}^{3}');
+      final pow = Pow(c, const RationalNumber(3));
+      check(pow.toLatex()).equals(r'{(2 - 3 \cdot i)}^{3}');
     });
 
     test('MathML serialization with complex numbers', () {
@@ -564,16 +564,16 @@ void main() {
       check((-i).toMathMl())
           .equals('<math><mrow><mo>-</mo><mi>i</mi></mrow></math>');
 
-      const c = ComplexNumber(Complex(1, 1));
+      final c = const RationalNumber(1) + i;
       check(c.toMathMl())
           .equals('<math><mrow><mn>1</mn><mo>+</mo><mi>i</mi></mrow></math>');
 
-      const cScaled = ComplexNumber(Complex(2, 3));
+      final cScaled = const RationalNumber(2) + const RationalNumber(3) * i;
       check(cScaled.toMathMl()).equals(
         '<math><mrow><mn>2</mn><mo>+</mo><mrow><mn>3</mn><mo>&#x22c5;</mo><mi>i</mi></mrow></mrow></math>',
       );
 
-      const mul = Mul(RationalNumber(5), cScaled);
+      final mul = Mul(const RationalNumber(5), cScaled);
       check(mul.toMathMl()).equals(
         '<math><mrow><mn>5</mn><mo>&#x22c5;</mo><mrow><mo>(</mo><mrow><mn>2</mn><mo>+</mo><mrow><mn>3</mn><mo>&#x22c5;</mo><mi>i</mi></mrow></mrow><mo>)</mo></mrow></mrow></math>',
       );
@@ -609,9 +609,12 @@ void main() {
       // d/dx [i] = 0
       check(i.derivative('x')).equals(RationalNumber.zero);
 
-      // d/dx [ComplexNumber(1, 2)] = 0
-      check(const ComplexNumber(Complex(1, 2)).derivative('x'))
-          .equals(RationalNumber.zero);
+      // d/dx [1 + 2 * i] = 0
+      check(
+        (const RationalNumber(1) + const RationalNumber(2) * i)
+            .derivative('x')
+            .simplify(),
+      ).equals(RationalNumber.zero);
 
       // d/dx [x * i] = i
       check((x * i).derivative('x').simplify()).equals(i);
@@ -630,14 +633,9 @@ void main() {
         // evaluate() on ConstantNumber.i throws UnsupportedError
         check(() => (x + i).evaluate({'x': 1.0})).throws<UnsupportedError>();
 
-        // evaluate() on ComplexNumber with b != 0 throws UnsupportedError
-        check(
-          () => (x + const ComplexNumber(Complex(1, 1))).evaluate({'x': 1.0}),
-        ).throws<UnsupportedError>();
-
-        // evaluate() on ComplexNumber with b == 0 succeeds
-        check((x + const ComplexNumber(Complex(5, 0))).evaluate({'x': 1.0}))
-            .equals(6.0);
+        // evaluate() on complex expression throws UnsupportedError
+        check(() => (x + const RationalNumber(1) + i).evaluate({'x': 1.0}))
+            .throws<UnsupportedError>();
 
         // toFunction1D rejects i
         check(() => (x * i).toFunction1D('x')).throws<UnsupportedError>();
@@ -649,16 +647,15 @@ void main() {
         check(() => (x * i).compileTensorKernel(['x']))
             .throws<UnsupportedError>();
 
-        // compileTensorKernel rejects ComplexNumber
+        // compileTensorKernel rejects complex sum
         check(
-          () => (x + const ComplexNumber(Complex(1, 2))).compileTensorKernel([
-            'x',
-          ]),
+          () => (x + const RationalNumber(1) + const RationalNumber(2) * i)
+              .compileTensorKernel(['x']),
         ).throws<UnsupportedError>();
       },
     );
 
-    test('powers of zero in complex domain and ComplexNumber leaf node simplification', () {
+    test('powers of zero in complex domain and complex sum simplification', () {
       final xSq = x.pow(2);
       final valPow = xSq.evaluateComplex({'x': Complex.zero});
       check(valPow).equals(Complex.zero);
@@ -671,9 +668,9 @@ void main() {
       final valFast = fnFast(Complex.zero);
       check(valFast).equals(Complex.zero);
 
-      // ComplexNumber leaf node simplification
-      const c1 = ComplexNumber(Complex(1, 2));
-      const c2 = ComplexNumber(Complex(3, 4));
+      // complex sum simplification
+      final c1 = const RationalNumber(1) + const RationalNumber(2) * i;
+      final c2 = const RationalNumber(3) + const RationalNumber(4) * i;
       check((c1 + c2).simplify())
           .equals(const RationalNumber(4) + const RationalNumber(6) * i);
     });
@@ -701,21 +698,6 @@ void main() {
               (x + const RationalNumber(2) * i));
       final expanded2 = p2.expand().simplify();
       check(expanded2).equals(
-        x.pow(4) -
-            (const RationalNumber(2) * x.pow(3)) +
-            (const RationalNumber(6) * x.pow(2)) -
-            (const RationalNumber(8) * x) +
-            const RationalNumber(8),
-      );
-
-      // Expanding products with ComplexNumber leaf nodes
-      final pComplexNodes =
-          ((x - const ComplexNumber(Complex(1, 1))) *
-              (x - const ComplexNumber(Complex(1, -1)))) *
-          ((x - const ComplexNumber(Complex(0, 2))) *
-              (x + const ComplexNumber(Complex(0, 2))));
-      final expandedComplex = pComplexNodes.expand().simplify();
-      check(expandedComplex).equals(
         x.pow(4) -
             (const RationalNumber(2) * x.pow(3)) +
             (const RationalNumber(6) * x.pow(2)) -

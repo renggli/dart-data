@@ -205,26 +205,27 @@ void main() {
           .equals(const RationalNumber(9) + const RationalNumber(12) * i);
     });
 
-    test('ComplexNumber arithmetic simplification', () {
-      const c1 = ComplexNumber(Complex(1, 2));
-      const c2 = ComplexNumber(Complex(3, 4));
+    test('complex arithmetic simplification', () {
+      final c1 = const RationalNumber(1) + const RationalNumber(2) * i;
+      final c2 = const RationalNumber(3) + const RationalNumber(4) * i;
 
       // c1 + c2 folds into 4 + 6 * i
       check((c1 + c2).simplify())
           .equals(const RationalNumber(4) + const RationalNumber(6) * i);
 
       // c1 * c2 folds into -5 + 10 * i
-      check((c1 * c2).simplify())
+      check((c1 * c2).expand().simplify())
           .equals(const RationalNumber(-5) + const RationalNumber(10) * i);
 
-      // purely real ComplexNumber folds with RationalNumber
+      // purely real complex sum folds with RationalNumber
       check(
-        (const ComplexNumber(Complex(1, 0)) + const RationalNumber(2))
+        ((const RationalNumber(1) + const RationalNumber(0) * i) +
+                const RationalNumber(2))
             .simplify(),
       ).equals(const RationalNumber(3));
 
       // c1 * 3 folds into 3 + 6 * i
-      check((c1 * const RationalNumber(3)).simplify())
+      check((c1 * const RationalNumber(3)).expand().simplify())
           .equals(const RationalNumber(3) + const RationalNumber(6) * i);
     });
 
@@ -366,7 +367,7 @@ void main() {
       check(formatExpr(const RationalNumber(2) - const RationalNumber(3) * i))
           .equals('2 - 3 * i');
 
-      const c = ComplexNumber(Complex(2, 3));
+      final c = const RationalNumber(2) + const RationalNumber(3) * i;
       check(formatExpr(c * x)).equals('(2 + 3 * i) * x');
       check(formatExpr(x / c)).equals('x / (2 + 3 * i)');
       check(formatExpr(c.pow(2))).equals('(2 + 3 * i) ^ 2');
@@ -381,10 +382,10 @@ void main() {
       check((const RationalNumber(2) - const RationalNumber(3) * i).toLatex())
           .equals(r'2 - 3 \cdot i');
 
-      const c = ComplexNumber(Complex(3, -4));
-      check(c.toLatex()).equals('3 - 4 i');
-      check((c * x).toLatex()).equals(r'(3 - 4 i) \cdot x');
-      check((x - c).toLatex()).equals(r'x - (3 - 4 i)');
+      final c = const RationalNumber(3) - const RationalNumber(4) * i;
+      check(c.toLatex()).equals(r'3 - 4 \cdot i');
+      check((c * x).toLatex()).equals(r'(3 - 4 \cdot i) \cdot x');
+      check((x - c).toLatex()).equals(r'x - (3 - 4 \cdot i)');
     });
 
     test('MathML serialization structure', () {
@@ -392,30 +393,30 @@ void main() {
       check((-i).toMathMl())
           .equals('<math><mrow><mo>-</mo><mi>i</mi></mrow></math>');
 
-      const cPos = ComplexNumber(Complex(2, 3));
+      final cPos = const RationalNumber(2) + const RationalNumber(3) * i;
       check(cPos.toMathMl()).equals(
         '<math><mrow><mn>2</mn><mo>+</mo><mrow><mn>3</mn><mo>&#x22c5;</mo><mi>i</mi></mrow></mrow></math>',
       );
 
-      const cNeg = ComplexNumber(Complex(2, -3));
+      final cNeg = const RationalNumber(2) - const RationalNumber(3) * i;
       check(cNeg.toMathMl()).equals(
         '<math><mrow><mn>2</mn><mo>-</mo><mrow><mn>3</mn><mo>&#x22c5;</mo><mi>i</mi></mrow></mrow></math>',
       );
 
-      const cUnitI = ComplexNumber(Complex(0, 1));
+      const cUnitI = i;
       check(cUnitI.toMathMl()).equals('<math><mi>i</mi></math>');
 
-      const cNegUnitI = ComplexNumber(Complex(0, -1));
+      final cNegUnitI = -i;
       check(cNegUnitI.toMathMl())
           .equals('<math><mrow><mo>-</mo><mi>i</mi></mrow></math>');
     });
 
     test('parentheses in LaTeX and MathML for pure imaginary powers and negative signs', () {
-      const c2I = ComplexNumber(Complex(0, 2));
-      const cNegI = ComplexNumber(Complex(0, -1));
+      final c2I = const RationalNumber(2) * i;
+      final cNegI = -i;
 
       // Pure imaginary powers receive parentheses: (2i)^2 -> (2 i)^2, (-i)^2 -> (-i)^2
-      check(c2I.pow(2).toLatex()).equals(r'{(2 i)}^{2}');
+      check(c2I.pow(2).toLatex()).equals(r'{(2 \cdot i)}^{2}');
       check(c2I.pow(2).toMathMl()).equals(
         '<math><msup><mrow><mo>(</mo><mrow><mn>2</mn><mo>&#x22c5;</mo><mi>i</mi></mrow><mo>)</mo></mrow><mn>2</mn></msup></math>',
       );
@@ -475,8 +476,11 @@ void main() {
       check((x.pow(2) * i).derivative('x').simplify())
           .equals(Mul(const RationalNumber(2), i * x));
       check((x + i).derivative('x').simplify()).equals(RationalNumber.one);
-      check((x + const ComplexNumber(Complex(3, 4))).derivative('x').simplify())
-          .equals(RationalNumber.one);
+      check(
+        (x + const RationalNumber(3) + const RationalNumber(4) * i)
+            .derivative('x')
+            .simplify(),
+      ).equals(RationalNumber.one);
     });
 
     test('derivative of complex exponential', () {
@@ -496,35 +500,30 @@ void main() {
   });
 
   group('Dimension 6: Error Handling & Boundary Robustness', () {
+    test('Number.value throws on imaginary constant', () {
+      check(() => i.value).throws<UnsupportedError>();
+    });
+
     test(
-      'Number.value throws on imaginary constant and non-real ComplexNumber',
+      'real evaluators throw UnsupportedError on expressions containing i',
       () {
-        check(() => i.value).throws<UnsupportedError>();
-        check(() => const ComplexNumber(Complex(0, 1)).value)
-            .throws<UnsupportedError>();
-        check(() => const ComplexNumber(Complex(2, -3)).value)
+        final exprI = x + i;
+        check(() => exprI.evaluate({'x': 1.0})).throws<UnsupportedError>();
+        check(() => exprI.toFunction1D('x')).throws<UnsupportedError>();
+        check(() => exprI.compile(['x'])).throws<UnsupportedError>();
+        check(() => exprI.toVectorFunction(['x'])).throws<UnsupportedError>();
+        check(() => exprI.compileTensorKernel(['x']))
             .throws<UnsupportedError>();
 
-        // Purely real ComplexNumber succeeds
-        check(const ComplexNumber(Complex(5, 0)).value).equals(5.0);
+        final exprC = x + const RationalNumber(1) + i;
+        check(() => exprC.evaluate({'x': 1.0})).throws<UnsupportedError>();
+        check(() => exprC.toFunction1D('x')).throws<UnsupportedError>();
+        check(() => exprC.compile(['x'])).throws<UnsupportedError>();
+        check(() => exprC.toVectorFunction(['x'])).throws<UnsupportedError>();
+        check(() => exprC.compileTensorKernel(['x']))
+            .throws<UnsupportedError>();
       },
     );
-
-    test('real evaluators throw UnsupportedError on expressions containing i or ComplexNumber', () {
-      final exprI = x + i;
-      check(() => exprI.evaluate({'x': 1.0})).throws<UnsupportedError>();
-      check(() => exprI.toFunction1D('x')).throws<UnsupportedError>();
-      check(() => exprI.compile(['x'])).throws<UnsupportedError>();
-      check(() => exprI.toVectorFunction(['x'])).throws<UnsupportedError>();
-      check(() => exprI.compileTensorKernel(['x'])).throws<UnsupportedError>();
-
-      final exprC = x + const ComplexNumber(Complex(0, 1));
-      check(() => exprC.evaluate({'x': 1.0})).throws<UnsupportedError>();
-      check(() => exprC.toFunction1D('x')).throws<UnsupportedError>();
-      check(() => exprC.compile(['x'])).throws<UnsupportedError>();
-      check(() => exprC.toVectorFunction(['x'])).throws<UnsupportedError>();
-      check(() => exprC.compileTensorKernel(['x'])).throws<UnsupportedError>();
-    });
 
     test('missing variable in evaluateComplex and compileComplex throws ArgumentError', () {
       check(() => x.evaluateComplex()).throws<ArgumentError>();
@@ -536,33 +535,30 @@ void main() {
       check(() => compiled({})).throws<ArgumentError>();
     });
 
-    test(
-      'structural comparison total order of ComplexNumber and ConstantNumber.i',
-      () {
-        const c1 = ComplexNumber(Complex(1, 2));
-        const c2 = ComplexNumber(Complex(1, 3));
-        const c3 = ComplexNumber(Complex(2, 1));
+    test('structural comparison total order of complex expressions and ConstantNumber.i', () {
+      final c1 = const RationalNumber(1) + const RationalNumber(2) * i;
+      final c2 = const RationalNumber(1) + const RationalNumber(3) * i;
+      final c3 = const RationalNumber(2) + i;
 
-        // Reflexivity
-        check(compareStructural(c1, c1)).equals(0);
-        check(compareStructural(i, i)).equals(0);
+      // Reflexivity
+      check(compareStructural(c1, c1)).equals(0);
+      check(compareStructural(i, i)).equals(0);
 
-        // Antisymmetry
-        check(compareStructural(c1, c2) < 0).isTrue();
-        check(compareStructural(c2, c1) > 0).isTrue();
+      // Antisymmetry
+      check(compareStructural(c1, c2) < 0).isTrue();
+      check(compareStructural(c2, c1) > 0).isTrue();
 
-        // Transitivity
-        check(compareStructural(c1, c2) < 0).isTrue();
-        check(compareStructural(c2, c3) < 0).isTrue();
-        check(compareStructural(c1, c3) < 0).isTrue();
+      // Transitivity
+      check(compareStructural(c1, c2) < 0).isTrue();
+      check(compareStructural(c2, c3) < 0).isTrue();
+      check(compareStructural(c1, c3) < 0).isTrue();
 
-        // Comparison between i and other constants
-        check(compareStructural(i, ConstantNumber.pi) != 0).isTrue();
-        check(compareStructural(ConstantNumber.pi, i) != 0).isTrue();
-        check(compareStructural(i, ConstantNumber.e) != 0).isTrue();
-        check(compareStructural(ConstantNumber.e, i) != 0).isTrue();
-      },
-    );
+      // Comparison between i and other constants
+      check(compareStructural(i, ConstantNumber.pi) != 0).isTrue();
+      check(compareStructural(ConstantNumber.pi, i) != 0).isTrue();
+      check(compareStructural(i, ConstantNumber.e) != 0).isTrue();
+      check(compareStructural(ConstantNumber.e, i) != 0).isTrue();
+    });
   });
 
   group('Dimension 7: Remediation Verification & Edge-Case Stress Harness', () {
@@ -631,110 +627,99 @@ void main() {
       check(fMulti(ctxOrigin)).equals(const Complex(-1, 0));
     });
 
-    test(
-      'ComplexNumber leaf node arithmetic and canonical normal form folding',
-      () {
-        const c1 = ComplexNumber(Complex(1, 2));
-        const c2 = ComplexNumber(Complex(3, 4));
+    test('Complex expression arithmetic and canonical normal form folding', () {
+      final c1 = const RationalNumber(1) + const RationalNumber(2) * i;
+      final c2 = const RationalNumber(3) + const RationalNumber(4) * i;
 
-        // Addition & Subtraction
-        check((c1 + c2).simplify())
-            .equals(const RationalNumber(4) + const RationalNumber(6) * i);
-        check((c1 - c2).simplify())
-            .equals(const RationalNumber(-2) - const RationalNumber(2) * i);
-        check((c1 - c1).simplify()).equals(RationalNumber.zero);
-        check((c1 + const ComplexNumber(Complex(-1, -2))).simplify())
-            .equals(RationalNumber.zero);
+      // Addition & Subtraction
+      check((c1 + c2).simplify())
+          .equals(const RationalNumber(4) + const RationalNumber(6) * i);
+      check((c1 - c2).simplify())
+          .equals(const RationalNumber(-2) - const RationalNumber(2) * i);
+      check((c1 - c1).simplify()).equals(RationalNumber.zero);
+      check(
+        (c1 + (const RationalNumber(-1) - const RationalNumber(2) * i))
+            .simplify(),
+      ).equals(RationalNumber.zero);
 
-        // Cancellation of imaginary part leaves RationalNumber
-        check((c1 - const Mul(RationalNumber(2), ConstantNumber.i)).simplify())
-            .equals(RationalNumber.one);
+      // Cancellation of imaginary part leaves RationalNumber
+      check((c1 - (const RationalNumber(2) * i)).simplify())
+          .equals(RationalNumber.one);
 
-        // Cancellation of real part leaves imaginary term
-        check((c1 - const RationalNumber(1)).simplify())
-            .equals(const RationalNumber(2) * i);
+      // Cancellation of real part leaves imaginary term
+      check((c1 - const RationalNumber(1)).simplify())
+          .equals(const RationalNumber(2) * i);
 
-        // Mixing with Rationals and Reals
-        check((c1 + const RationalNumber(5)).simplify())
-            .equals(const RationalNumber(6) + const RationalNumber(2) * i);
-        check((const RationalNumber(5) + c1).simplify())
-            .equals(const RationalNumber(6) + const RationalNumber(2) * i);
-        check((c1 + const RealNumber(0.5)).simplify())
-            .equals(const RealNumber(1.5) + const RationalNumber(2) * i);
-        check((c1 + i).simplify())
-            .equals(const RationalNumber(1) + const RationalNumber(3) * i);
+      // Mixing with Rationals and Reals
+      check((c1 + const RationalNumber(5)).simplify())
+          .equals(const RationalNumber(6) + const RationalNumber(2) * i);
+      check((const RationalNumber(5) + c1).simplify())
+          .equals(const RationalNumber(6) + const RationalNumber(2) * i);
+      check((c1 + const RealNumber(0.5)).simplify())
+          .equals(const RealNumber(1.5) + const RationalNumber(2) * i);
+      check((c1 + i).simplify())
+          .equals(const RationalNumber(1) + const RationalNumber(3) * i);
 
-        // Multiplication
-        check((c1 * c2).simplify())
-            .equals(const RationalNumber(-5) + const RationalNumber(10) * i);
+      // Multiplication
+      check((c1 * c2).expand().simplify())
+          .equals(const RationalNumber(-5) + const RationalNumber(10) * i);
 
-        // Complex conjugate product gives pure rational sum of squares
-        const cConj = ComplexNumber(Complex(3, -4));
-        check((c2 * cConj).simplify()).equals(const RationalNumber(25));
+      // Complex conjugate product gives pure rational sum of squares
+      final cConj = const RationalNumber(3) - const RationalNumber(4) * i;
+      check((c2 * cConj).expand().simplify()).equals(const RationalNumber(25));
 
-        // Multiplication by scalar and imaginary unit
-        check((c1 * const RationalNumber(3)).simplify())
-            .equals(const RationalNumber(3) + const RationalNumber(6) * i);
-        check((const RationalNumber(3) * c1).simplify())
-            .equals(const RationalNumber(3) + const RationalNumber(6) * i);
-        check((c1 * i).simplify()).equals(const RationalNumber(-2) + i);
-        check((c1 * const ComplexNumber(Complex(0, -1))).simplify())
-            .equals(const RationalNumber(2) - i);
+      // Multiplication by scalar and imaginary unit
+      check((c1 * const RationalNumber(3)).expand().simplify())
+          .equals(const RationalNumber(3) + const RationalNumber(6) * i);
+      check((const RationalNumber(3) * c1).expand().simplify())
+          .equals(const RationalNumber(3) + const RationalNumber(6) * i);
+      check((c1 * i).expand().simplify()).equals(const RationalNumber(-2) + i);
+      check((c1 * (-i)).expand().simplify())
+          .equals(const RationalNumber(2) - i);
 
-        // Annihilation and identity
-        check((c1 * RationalNumber.zero).simplify())
-            .equals(RationalNumber.zero);
-        check((RationalNumber.zero * c1).simplify())
-            .equals(RationalNumber.zero);
-        check((c1 * RationalNumber.one).simplify()).equals(c1);
-        check((RationalNumber.one * c1).simplify()).equals(c1);
-        check((c1 * const RationalNumber(-2)).simplify())
-            .equals(const RationalNumber(-2) - const RationalNumber(4) * i);
+      // Annihilation and identity
+      check((c1 * RationalNumber.zero).simplify()).equals(RationalNumber.zero);
+      check((RationalNumber.zero * c1).simplify()).equals(RationalNumber.zero);
+      check((c1 * RationalNumber.one).simplify()).equals(c1);
+      check((RationalNumber.one * c1).simplify()).equals(c1);
+      check((c1 * const RationalNumber(-2)).expand().simplify())
+          .equals(const RationalNumber(-2) - const RationalNumber(4) * i);
 
-        // Division
-        const cNum = ComplexNumber(Complex(1, 1));
-        const cDen = ComplexNumber(Complex(1, -1));
-        check((cNum / cDen).simplify()).equals(ConstantNumber.i);
+      // Division
+      final cNum = RationalNumber.one + i;
+      final cDen = RationalNumber.one - i;
+      check((cNum / cDen).evaluateComplex()).equals(Complex.i);
 
-        const cScaled = ComplexNumber(Complex(4, 2));
-        check((cScaled / const RationalNumber(2)).simplify())
-            .equals(const RationalNumber(2) + i);
-        check((const RationalNumber(2) / cNum).simplify())
-            .equals(const RationalNumber(1) - i);
-        check((c1 / RationalNumber.one).simplify())
-            .equals(const RationalNumber(1) + const RationalNumber(2) * i);
-        check((c1 / c1).simplify()).equals(RationalNumber.one);
+      // Complex multiplication gives exact Gaussian integers
+      check((cNum * cNum).expand().simplify())
+          .equals(const RationalNumber(2) * i);
+      check((cNum.pow(2).evaluateComplex() - const Complex(0, 2)).abs())
+          .isLessThan(1e-15);
+      check(c1.pow(0).simplify()).equals(RationalNumber.one);
+      check(c1.pow(1).simplify()).equals(c1);
 
-        // Complex multiplication gives exact Gaussian integers
-        check((cNum * cNum).simplify()).equals(const RationalNumber(2) * i);
-        check((cNum.pow(2).evaluateComplex() - const Complex(0, 2)).abs())
-            .isLessThan(1e-15);
-        check(c1.pow(0).simplify()).equals(RationalNumber.one);
-        check(c1.pow(1).simplify()).equals(c1);
-
-        // Polynomial expansion with ComplexNumber leaf nodes
-        final p1 = x + const ComplexNumber(Complex(1, 2));
-        final p2 = x + const ComplexNumber(Complex(1, -2));
-        final expandedProduct = (p1 * p2).expand().simplify();
-        check(expandedProduct).equals(
-          x.pow(2) + const RationalNumber(2) * x + const RationalNumber(5),
-        );
-      },
-    );
+      // Polynomial expansion with complex coefficients
+      final p1 = x + (RationalNumber.one + const RationalNumber(2) * i);
+      final p2 = x + (RationalNumber.one - const RationalNumber(2) * i);
+      final expandedProduct = (p1 * p2).expand().simplify();
+      check(expandedProduct).equals(
+        x.pow(2) + const RationalNumber(2) * x + const RationalNumber(5),
+      );
+    });
 
     test('LaTeX and MathML parenthesization on pure imaginary powers and negative factors', () {
-      const c2I = ComplexNumber(Complex(0, 2));
-      const cNeg2I = ComplexNumber(Complex(0, -2));
-      const cNegI = ComplexNumber(Complex(0, -1));
-      const cBinomNeg = ComplexNumber(Complex(-1, -2));
+      final c2I = const RationalNumber(2) * i;
+      final cNeg2I = -(const RationalNumber(2) * i);
+      final cNegI = -i;
+      final cBinomNeg = const RationalNumber(-1) - const RationalNumber(2) * i;
 
       // 1. Powers of pure imaginary receive parentheses in LaTeX
-      check(c2I.pow(2).toLatex()).equals(r'{(2 i)}^{2}');
-      check(cNeg2I.pow(2).toLatex()).equals(r'{(-2 i)}^{2}');
+      check(c2I.pow(2).toLatex()).equals(r'{(2 \cdot i)}^{2}');
+      check(cNeg2I.pow(2).toLatex()).equals(r'{(-2 \cdot i)}^{2}');
       check(cNegI.pow(2).toLatex()).equals(r'{(-i)}^{2}');
       check(i.pow(2).toLatex())
           .equals(r'{i}^{2}'); // Unit i does not have redundant parens
-      check(c2I.pow(-1).toLatex()).equals(r'{(2 i)}^{-1}');
+      check(c2I.pow(-1).toLatex()).equals(r'{(2 \cdot i)}^{-1}');
 
       // Powers in MathML
       check(c2I.pow(2).toMathMl()).equals(
@@ -747,10 +732,10 @@ void main() {
       // 2. Negative factors in multiplication receive parentheses in LaTeX
       check((x * cNegI).toLatex()).equals(r'x \cdot (-i)');
       check((cNegI * x).toLatex()).equals(r'(-i) \cdot x');
-      check((x * cNeg2I).toLatex()).equals(r'x \cdot (-2 i)');
-      check((cNeg2I * x).toLatex()).equals(r'(-2 i) \cdot x');
-      check((x * cBinomNeg).toLatex()).equals(r'x \cdot (-1 - 2 i)');
-      check((cBinomNeg * x).toLatex()).equals(r'(-1 - 2 i) \cdot x');
+      check((x * cNeg2I).toLatex()).equals(r'x \cdot (-2 \cdot i)');
+      check((cNeg2I * x).toLatex()).equals(r'(-2 \cdot i) \cdot x');
+      check((x * cBinomNeg).toLatex()).equals(r'x \cdot (-1 - 2 \cdot i)');
+      check((cBinomNeg * x).toLatex()).equals(r'(-1 - 2 \cdot i) \cdot x');
 
       // Multiplication in MathML
       check((x * cNegI).toMathMl()).equals(
@@ -762,28 +747,28 @@ void main() {
 
       // 3. Subtraction of negative terms receives parentheses
       check((x - cNegI).toLatex()).equals(r'x - (-i)');
-      check((x - cNeg2I).toLatex()).equals(r'x - (-2 i)');
-      check((x - cBinomNeg).toLatex()).equals(r'x - (-1 - 2 i)');
+      check((x - cNeg2I).toLatex()).equals(r'x - (-2 \cdot i)');
+      check((x - cBinomNeg).toLatex()).equals(r'x - (-1 - 2 \cdot i)');
 
       // Subtraction in MathML
       check((x - cNegI).toMathMl()).equals(
         '<math><mrow><mi>x</mi><mo>-</mo><mrow><mo>(</mo><mrow><mo>-</mo><mi>i</mi></mrow><mo>)</mo></mrow></mrow></math>',
       );
       check((x - cNeg2I).toMathMl()).equals(
-        '<math><mrow><mi>x</mi><mo>-</mo><mrow><mo>(</mo><mrow><mn>-2</mn><mo>&#x22c5;</mo><mi>i</mi></mrow><mo>)</mo></mrow></mrow></math>',
+        '<math><mrow><mi>x</mi><mo>-</mo><mrow><mo>(</mo><mrow><mo>-</mo><mrow><mn>2</mn><mo>&#x22c5;</mo><mi>i</mi></mrow></mrow><mo>)</mo></mrow></mrow></math>',
       );
 
       // 4. Double negation receives parentheses
       check((-cNegI).toLatex()).equals(r'-(-i)');
-      check((-cNeg2I).toLatex()).equals(r'-(-2 i)');
-      check((-cBinomNeg).toLatex()).equals(r'-(-1 - 2 i)');
+      check((-cNeg2I).toLatex()).equals(r'-(-2 \cdot i)');
+      check((-cBinomNeg).toLatex()).equals(r'-(-1 - 2 \cdot i)');
 
       // Double negation in MathML
       check((-cNegI).toMathMl()).equals(
         '<math><mrow><mo>-</mo><mrow><mo>(</mo><mrow><mo>-</mo><mi>i</mi></mrow><mo>)</mo></mrow></mrow></math>',
       );
       check((-cNeg2I).toMathMl()).equals(
-        '<math><mrow><mo>-</mo><mrow><mo>(</mo><mrow><mn>-2</mn><mo>&#x22c5;</mo><mi>i</mi></mrow><mo>)</mo></mrow></mrow></math>',
+        '<math><mrow><mo>-</mo><mrow><mo>(</mo><mrow><mo>-</mo><mrow><mn>2</mn><mo>&#x22c5;</mo><mi>i</mi></mrow></mrow><mo>)</mo></mrow></mrow></math>',
       );
     });
   });

@@ -29,46 +29,21 @@ void main() {
     });
   });
 
-  group('ComplexNumber AST node representation', () {
-    test('construction and accessors', () {
-      const c1 = ComplexNumber(Complex(1.0, 2.0));
-      check(c1.complex).equals(const Complex(1.0, 2.0));
-      check(c1.complexValue).equals(const Complex(1.0, 2.0));
-      check(c1.isReal).isFalse();
-      check(c1.freeVariables).isEmpty();
-      check(c1.dependsOn('x')).isFalse();
-
-      final cFactory = ComplexNumber.fromCartesian(3, 4);
-      check(cFactory.complex).equals(const Complex(3.0, 4.0));
-      check(cFactory.complexValue).equals(const Complex(3.0, 4.0));
-
-      const cReal = ComplexNumber(Complex(5.0, 0.0));
-      check(cReal.isReal).isTrue();
-      check(cReal.value).equals(5.0);
-      check(() => c1.value).throws<UnsupportedError>();
-    });
-
-    test('equality and hash code', () {
-      const c1 = ComplexNumber(Complex(2.0, -3.0));
-      const c2 = ComplexNumber(Complex(2.0, -3.0));
-      const c3 = ComplexNumber(Complex(2.0, 3.0));
-
-      check(c1).equals(c2);
-      check(c1.hashCode).equals(c2.hashCode);
-      check(c1 == c3).isFalse();
-    });
-
-    test('substitute leaves node unchanged', () {
-      const c = ComplexNumber(Complex(1.0, 1.0));
-      check(c.substitute('x', RationalNumber.zero)).equals(c);
-    });
-
+  group('Complex wrapping and conversion', () {
     test('operator overloads wrap Complex operands', () {
       final exprAdd = x + const Complex(1, 2);
-      check(exprAdd).equals(const Add(x, ComplexNumber(Complex(1, 2))));
+      check(exprAdd).equals(
+        const Add(
+          x,
+          Add(RationalNumber(1), Mul(RationalNumber(2), ConstantNumber.i)),
+        ),
+      );
 
       final exprMul = x * Complex.i;
-      check(exprMul).equals(const Mul(x, ComplexNumber(Complex.i)));
+      check(exprMul).equals(const Mul(x, ConstantNumber.i));
+
+      final exprReal = x + const Complex(5, 0);
+      check(exprReal).equals(const Add(x, RationalNumber(5)));
     });
   });
 
@@ -145,23 +120,6 @@ void main() {
       check(c2.simplify())
           .equals(const RationalNumber(-2) - const RationalNumber(2) * i);
     });
-
-    test('ComplexNumber leaf node arithmetic simplification', () {
-      const c1 = ComplexNumber(Complex(1, 2));
-      const c2 = ComplexNumber(Complex(3, 4));
-      check((c1 + c2).simplify())
-          .equals(const RationalNumber(4) + const RationalNumber(6) * i);
-      check((c1 - c2).simplify())
-          .equals(const RationalNumber(-2) - const RationalNumber(2) * i);
-      check((c1 * c2).simplify())
-          .equals(const RationalNumber(-5) + const RationalNumber(10) * i);
-      check(
-        (const ComplexNumber(Complex(1, 0)) + const RationalNumber(2))
-            .simplify(),
-      ).equals(const RationalNumber(3));
-      check((c1 * const RationalNumber(3)).simplify())
-          .equals(const RationalNumber(3) + const RationalNumber(6) * i);
-    });
   });
 
   group('Cyclic power simplification', () {
@@ -210,10 +168,12 @@ void main() {
       check(expr.evaluateComplex()).equals(const Complex(7.0, 0.0));
     });
 
-    test('evaluates i and ComplexNumber directly', () {
+    test('evaluates i and complex expressions directly', () {
       check(i.evaluateComplex()).equals(Complex.i);
-      check(const ComplexNumber(Complex(2, 3)).evaluateComplex())
-          .equals(const Complex(2, 3));
+      check(
+        (const RationalNumber(2) + const RationalNumber(3) * i)
+            .evaluateComplex(),
+      ).equals(const Complex(2, 3));
     });
 
     test('evaluates expressions with variables bound to Complex values', () {
@@ -298,7 +258,8 @@ void main() {
     });
 
     test('evaluates absolute value of complex numbers', () {
-      final absVal = const Abs(ComplexNumber(Complex(3, 4))).evaluateComplex();
+      final absVal = Abs(const RationalNumber(3) + const RationalNumber(4) * i)
+          .evaluateComplex();
       check(absVal).equals(const Complex(5.0, 0.0));
     });
 
@@ -356,11 +317,11 @@ void main() {
       check(compareStructural(ConstantNumber.pi, i) != 0).isTrue();
     });
 
-    test('compares ComplexNumber', () {
-      const c1 = ComplexNumber(Complex(1, 2));
-      const c2 = ComplexNumber(Complex(1, 2));
-      const c3 = ComplexNumber(Complex(1, 3));
-      const c4 = ComplexNumber(Complex(2, 1));
+    test('compares complex expressions', () {
+      final c1 = const RationalNumber(1) + const RationalNumber(2) * i;
+      final c2 = const RationalNumber(1) + const RationalNumber(2) * i;
+      final c3 = const RationalNumber(1) + const RationalNumber(3) * i;
+      final c4 = const RationalNumber(2) + const RationalNumber(1) * i;
 
       check(compareStructural(c1, c2)).equals(0);
       check(compareStructural(c1, c3)).isLessThan(0);
@@ -376,26 +337,20 @@ void main() {
   });
 
   group('Textualization: String, LaTeX, MathML', () {
-    test('String formatting for ConstantNumber.i and ComplexNumber', () {
+    test('String formatting for ConstantNumber.i and complex expressions', () {
       check(formatExpr(i)).equals('i');
       check(formatExpr(-i)).equals('-i');
       check(formatExpr(const RationalNumber(2) * i)).equals('2 * i');
       check(formatExpr(const RationalNumber(2) + const RationalNumber(3) * i))
           .equals('2 + 3 * i');
-
-      check(formatExpr(const ComplexNumber(Complex(0.0, 1.0)))).equals('i');
-      check(formatExpr(const ComplexNumber(Complex(0.0, -1.0)))).equals('-i');
-      check(formatExpr(const ComplexNumber(Complex(0.0, 5.0)))).equals('5 * i');
-      check(formatExpr(const ComplexNumber(Complex(3.0, 4.0))))
+      check(formatExpr(const RationalNumber(3) + const RationalNumber(4) * i))
           .equals('3 + 4 * i');
-      check(formatExpr(const ComplexNumber(Complex(3.0, -4.0))))
+      check(formatExpr(const RationalNumber(3) - const RationalNumber(4) * i))
           .equals('3 - 4 * i');
-      check(formatExpr(const ComplexNumber(Complex(5.0, 0.0)))).equals('5');
 
-      check(formatExpr(const ComplexNumber(Complex(3.0, 4.0)) * x))
-          .equals('(3 + 4 * i) * x');
-      check(formatExpr(const ComplexNumber(Complex(3.0, 4.0)).pow(2)))
-          .equals('(3 + 4 * i) ^ 2');
+      final c = const RationalNumber(3) + const RationalNumber(4) * i;
+      check(formatExpr(c * x)).equals('(3 + 4 * i) * x');
+      check(formatExpr(c.pow(2))).equals('(3 + 4 * i) ^ 2');
     });
 
     test('LaTeX serialization', () {
@@ -404,27 +359,23 @@ void main() {
       check((const RationalNumber(2) * i).toLatex()).equals(r'2 \cdot i');
       check((const RationalNumber(2) + const RationalNumber(3) * i).toLatex())
           .equals(r'2 + 3 \cdot i');
-
-      check(const ComplexNumber(Complex(0.0, 1.0)).toLatex()).equals('i');
-      check(const ComplexNumber(Complex(0.0, -1.0)).toLatex()).equals('-i');
-      check(const ComplexNumber(Complex(3.0, 4.0)).toLatex()).equals('3 + 4 i');
-      check(const ComplexNumber(Complex(3.0, -4.0)).toLatex())
-          .equals('3 - 4 i');
-
-      check((const ComplexNumber(Complex(3.0, 4.0)) * x).toLatex())
-          .equals(r'(3 + 4 i) \cdot x');
+      check((const RationalNumber(3) + const RationalNumber(4) * i).toLatex())
+          .equals(r'3 + 4 \cdot i');
+      check((const RationalNumber(3) - const RationalNumber(4) * i).toLatex())
+          .equals(r'3 - 4 \cdot i');
+      check(
+        ((const RationalNumber(3) + const RationalNumber(4) * i) * x).toLatex(),
+      ).equals(r'(3 + 4 \cdot i) \cdot x');
     });
 
     test('MathML serialization', () {
       check(i.toMathMl()).equals('<math><mi>i</mi></math>');
       check((-i).toMathMl())
           .equals('<math><mrow><mo>-</mo><mi>i</mi></mrow></math>');
-
-      check(const ComplexNumber(Complex(0.0, 1.0)).toMathMl())
-          .equals('<math><mi>i</mi></math>');
-      check(const ComplexNumber(Complex(3.0, 4.0)).toMathMl()).equals(
-        '<math><mrow><mn>3</mn><mo>+</mo><mrow><mn>4</mn><mo>&#x22c5;</mo><mi>i</mi></mrow></mrow></math>',
-      );
+      check((const RationalNumber(3) + const RationalNumber(4) * i).toMathMl())
+          .equals(
+            '<math><mrow><mn>3</mn><mo>+</mo><mrow><mn>4</mn><mo>&#x22c5;</mo><mi>i</mi></mrow></mrow></math>',
+          );
     });
   });
 

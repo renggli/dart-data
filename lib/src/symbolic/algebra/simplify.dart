@@ -1,6 +1,6 @@
 import 'dart:math' as math;
 
-import 'package:more/number.dart' show Complex, Fraction;
+import 'package:more/number.dart' show Fraction;
 
 import '../ast.dart';
 import 'term_accumulator.dart';
@@ -125,32 +125,17 @@ Expr _simplifyMul(Expr left, Expr right) {
   if (right is RationalNumber && right.isZero) return RationalNumber.zero;
   if (left is RealNumber && left.value == 0.0) return RationalNumber.zero;
   if (right is RealNumber && right.value == 0.0) return RationalNumber.zero;
-  if (left is ComplexNumber && left.complex == Complex.zero) {
-    return RationalNumber.zero;
-  }
-  if (right is ComplexNumber && right.complex == Complex.zero) {
-    return RationalNumber.zero;
-  }
-
   // Multiplicative identity: 1 * x = x, x * 1 = x
   if (left is RationalNumber && left.isOne) return right;
   if (right is RationalNumber && right.isOne) return left;
   if (left is RealNumber && left.value == 1.0) return right;
   if (right is RealNumber && right.value == 1.0) return left;
-  if (left is ComplexNumber && left.complex == Complex.one) return right;
-  if (right is ComplexNumber && right.complex == Complex.one) return left;
 
   // Negation: -1 * x = -x, x * -1 = -x
   if (left is RationalNumber && left.isNegativeOne) return _simplifyNeg(right);
   if (right is RationalNumber && right.isNegativeOne) return _simplifyNeg(left);
   if (left is RealNumber && left.value == -1.0) return _simplifyNeg(right);
   if (right is RealNumber && right.value == -1.0) return _simplifyNeg(left);
-  if (left is ComplexNumber && left.complex == -Complex.one) {
-    return _simplifyNeg(right);
-  }
-  if (right is ComplexNumber && right.complex == -Complex.one) {
-    return _simplifyNeg(left);
-  }
 
   // Two numbers:
   if (left is RationalNumber && right is RationalNumber) {
@@ -158,27 +143,6 @@ Expr _simplifyMul(Expr left, Expr right) {
   }
   if (left is RealNumber && right is RealNumber) {
     return RealNumber(left.value * right.value);
-  }
-  if (left is ComplexNumber && right is ComplexNumber) {
-    return _complexToCanonical(left.complex * right.complex);
-  }
-  if (left is ComplexNumber && right is RationalNumber) {
-    return _complexToCanonical(left.complex * Complex(right.toDouble(), 0));
-  }
-  if (left is RationalNumber && right is ComplexNumber) {
-    return _complexToCanonical(Complex(left.toDouble(), 0) * right.complex);
-  }
-  if (left is ComplexNumber && right is RealNumber) {
-    return _complexToCanonical(left.complex * Complex(right.value, 0));
-  }
-  if (left is RealNumber && right is ComplexNumber) {
-    return _complexToCanonical(Complex(left.value, 0) * right.complex);
-  }
-  if (left is ComplexNumber && right == ConstantNumber.i) {
-    return _complexToCanonical(left.complex * Complex.i);
-  }
-  if (left == ConstantNumber.i && right is ComplexNumber) {
-    return _complexToCanonical(Complex.i * right.complex);
   }
 
   // Exponential multiplication: e^a * e^b => e^(a + b)
@@ -286,12 +250,12 @@ Expr _simplifyMul(Expr left, Expr right) {
     }
   }
 
-  // Put numbers on the left of non-numbers, and scalar numbers on the left of constant/complex numbers:
+  // Put numbers on the left of non-numbers, and scalar numbers on the left of constant numbers:
   if (right is Number && left is! Number) {
     return _simplifyMul(right, left);
   }
   if ((right is RationalNumber || right is RealNumber) &&
-      (left is ConstantNumber || left is ComplexNumber)) {
+      left is ConstantNumber) {
     return _simplifyMul(right, left);
   }
 
@@ -313,41 +277,14 @@ Expr _simplifyDiv(Expr left, Expr right) {
   if (right is RealNumber && right.value == 0.0) {
     throw UnsupportedError('Division by zero in simplification');
   }
-  if (right is ComplexNumber && right.complex == Complex.zero) {
-    throw UnsupportedError('Division by zero in simplification');
-  }
   if (left == right) return RationalNumber.one;
   if (left is RationalNumber && left.isZero) return RationalNumber.zero;
   if (left is RealNumber && left.value == 0.0) return RationalNumber.zero;
-  if (left is ComplexNumber && left.complex == Complex.zero) {
-    return RationalNumber.zero;
-  }
   if (left is RationalNumber && right is RationalNumber) {
     return RationalNumber.fraction(left.toFraction() / right.toFraction());
   }
   if (left is RealNumber && right is RealNumber) {
     return RealNumber(left.value / right.value);
-  }
-  if (left is ComplexNumber && right is ComplexNumber) {
-    return _complexToCanonical(left.complex / right.complex);
-  }
-  if (left is ComplexNumber && right is RationalNumber) {
-    return _complexToCanonical(left.complex / Complex(right.toDouble(), 0));
-  }
-  if (left is RationalNumber && right is ComplexNumber) {
-    return _complexToCanonical(Complex(left.toDouble(), 0) / right.complex);
-  }
-  if (left is ComplexNumber && right is RealNumber) {
-    return _complexToCanonical(left.complex / Complex(right.value, 0));
-  }
-  if (left is RealNumber && right is ComplexNumber) {
-    return _complexToCanonical(Complex(left.value, 0) / right.complex);
-  }
-  if (left is ComplexNumber && right == ConstantNumber.i) {
-    return _complexToCanonical(left.complex / Complex.i);
-  }
-  if (left == ConstantNumber.i && right is ComplexNumber) {
-    return _complexToCanonical(Complex.i / right.complex);
   }
 
   // Exponential division: e^a / e^b => e^(a - b)
@@ -360,12 +297,8 @@ Expr _simplifyDiv(Expr left, Expr right) {
   }
   if (right is RationalNumber && right.isOne) return left;
   if (right is RealNumber && right.value == 1.0) return left;
-  if (right is ComplexNumber && right.complex == Complex.one) return left;
   if (right is RationalNumber && right.isNegativeOne) return _simplifyNeg(left);
   if (right is RealNumber && right.value == -1.0) return _simplifyNeg(left);
-  if (right is ComplexNumber && right.complex == -Complex.one) {
-    return _simplifyNeg(left);
-  }
 
   // Canonicalize expr / RationalNumber(c) => RationalNumber(1/c) * expr
   if (right is RationalNumber) {
@@ -516,14 +449,6 @@ Expr _simplifyPow(Expr base, Expr exponent) => switch ((base, exponent)) {
       ),
       _ => Pow(base, exponent),
     },
-  (
-    ComplexNumber(:final complex),
-    RationalNumber(isInteger: true, numerator: final expInt),
-  ) =>
-    _complexToCanonical(_complexPow(complex, Complex(expInt.toDouble(), 0))),
-  (ComplexNumber(:final complex), RealNumber(:final value))
-      when value == value.truncateToDouble() =>
-    _complexToCanonical(_complexPow(complex, Complex(value, 0))),
   (
     RationalNumber(:final numerator, :final denominator),
     RationalNumber(isInteger: true, numerator: final expInt),
@@ -1008,67 +933,6 @@ Fraction? _matchPiMultiple(Expr expr) {
     }
   }
   return null;
-}
-
-Expr _complexToCanonical(Complex c) {
-  if (!c.a.isFinite || !c.b.isFinite) {
-    return ComplexNumber(c);
-  }
-  if (c.a == 0 && c.b == 0) return RationalNumber.zero;
-
-  if (c.b == 0) {
-    if (c.a == c.a.truncateToDouble()) {
-      return RationalNumber(c.a.toInt());
-    }
-    return RealNumber(c.a.toDouble());
-  }
-
-  if (c.a == 0) {
-    if (c.b == 1.0) return ConstantNumber.i;
-    if (c.b == -1.0) return const Neg(ConstantNumber.i);
-    final bExpr = c.b == c.b.truncateToDouble()
-        ? RationalNumber(c.b.toInt())
-        : (Fraction.fromDouble(c.b.toDouble()).denominator <= 64
-              ? RationalNumber.fraction(Fraction.fromDouble(c.b.toDouble()))
-              : RealNumber(c.b.toDouble()));
-    return Mul(bExpr, ConstantNumber.i);
-  }
-
-  final aExpr = c.a == c.a.truncateToDouble()
-      ? RationalNumber(c.a.toInt())
-      : (Fraction.fromDouble(c.a.toDouble()).denominator <= 64
-            ? RationalNumber.fraction(Fraction.fromDouble(c.a.toDouble()))
-            : RealNumber(c.a.toDouble()));
-
-  final absB = c.b.abs();
-  final imagPart = absB == 1.0
-      ? ConstantNumber.i
-      : Mul(
-          absB == absB.truncateToDouble()
-              ? RationalNumber(absB.toInt())
-              : (Fraction.fromDouble(absB.toDouble()).denominator <= 64
-                    ? RationalNumber.fraction(
-                        Fraction.fromDouble(absB.toDouble()),
-                      )
-                    : RealNumber(absB.toDouble())),
-          ConstantNumber.i,
-        );
-
-  return c.b > 0 ? Add(aExpr, imagPart) : Sub(aExpr, imagPart);
-}
-
-Complex _complexPow(Complex base, Complex exponent) {
-  if (base.a == 0 && base.b == 0) {
-    if (exponent.a == 0 && exponent.b == 0) return Complex.one;
-    if (exponent.a > 0) return Complex.zero;
-    if (exponent.a < 0) {
-      return exponent.b == 0
-          ? const Complex(double.infinity, 0.0)
-          : const Complex(double.infinity, double.nan);
-    }
-    return Complex.nan;
-  }
-  return base.pow(exponent);
 }
 
 bool _isHalf(Expr e) {

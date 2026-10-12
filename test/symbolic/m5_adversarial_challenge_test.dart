@@ -194,12 +194,9 @@ void main() {
     });
 
     test('Complex textualization', () {
-      final z = ComplexNumber.fromCartesian(3, 4);
+      final z = const RationalNumber(3) + const RationalNumber(4) * i;
       check(z.toString()).equals('3 + 4 * i');
-      check(z.toLatex()).equals('3 + 4 i');
-      check(z.toMathMl(root: false)).contains(
-        '<mn>3</mn><mo>+</mo><mrow><mn>4</mn><mo>&#x22c5;</mo><mi>i</mi></mrow>',
-      );
+      check(z.toLatex()).equals('3 + 4 \\cdot i');
     });
   });
 
@@ -314,9 +311,9 @@ void main() {
       check(expr2).isNotNull();
     });
 
-    test('ComplexNumber doc examples', () {
-      final z = ComplexNumber.fromCartesian(3, 4);
-      check(z.complexValue).equals(const Complex(3, 4));
+    test('Complex doc examples', () {
+      final z = const RationalNumber(3) + const RationalNumber(4) * i;
+      check(z.evaluateComplex()).equals(const Complex(3, 4));
 
       const x = Variable('x');
       final expr = x * x + 1;

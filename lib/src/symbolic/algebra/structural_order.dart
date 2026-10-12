@@ -117,12 +117,6 @@ int compareStructural(Expr a, Expr b) {
       0 => (a.isReal && b.isReal) ? a.value.compareTo(b.value) : 0,
       final cmp => cmp,
     },
-    ComplexNumber(:final complex) => switch (complex.a.compareTo(
-      (b as ComplexNumber).complex.a,
-    )) {
-      0 => complex.b.compareTo(b.complex.b),
-      final cmp => cmp,
-    },
     Variable(:final name) => name.compareTo((b as Variable).name),
     UnaryExpr(:final expr) => compareStructural(expr, (b as UnaryExpr).expr),
     BinaryExpr(:final left, :final right) => switch (compareStructural(
@@ -172,5 +166,4 @@ int nodeTag(Expr expr) => switch (expr) {
   Div() => 22,
   Add() => 23,
   Sub() => 24,
-  ComplexNumber() => 25,
 };

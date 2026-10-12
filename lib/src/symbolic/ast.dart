@@ -115,7 +115,17 @@ sealed class Expr {
     if (value is Expr) return value;
     if (value is int) return RationalNumber(value);
     if (value is Fraction) return RationalNumber.fraction(value);
-    if (value is Complex) return ComplexNumber(value);
+    if (value is Complex) {
+      if (value.b == 0) return _wrap(value.a, maxDenominator: maxDenominator);
+      final imPart = value.b == 1
+          ? ConstantNumber.i
+          : Mul(
+              _wrap(value.b, maxDenominator: maxDenominator),
+              ConstantNumber.i,
+            );
+      if (value.a == 0) return imPart;
+      return Add(_wrap(value.a, maxDenominator: maxDenominator), imPart);
+    }
     if (value is num) {
       if (maxDenominator > 0) {
         final frac = Fraction.fromDouble(value, maxDenominator: maxDenominator);
@@ -381,61 +391,6 @@ final class ConstantNumber extends Number {
 
   @override
   int get hashCode => name.hashCode;
-}
-
-/// A complex floating-point numeric value node ($\mathbb{C}$) backed by [Complex].
-///
-/// ```dart
-/// final z = ComplexNumber.fromCartesian(3, 4);
-/// print(z.complexValue); // 3 + 4i
-/// ```
-final class ComplexNumber extends Number {
-  /// Creates a complex number node wrapping [complex].
-  const new(this.complex);
-
-  /// Creates a complex number node from Cartesian coordinates [a] and [b].
-  factory fromCartesian(num a, [num b = 0]) => ComplexNumber(Complex(a, b));
-
-  /// The underlying [Complex] value.
-  final Complex complex;
-
-  @override
-  bool get isReal => complex.b == 0;
-
-  @override
-  double get value {
-    if (!isReal) {
-      throw UnsupportedError(
-        'ComplexNumber with non-zero imaginary part cannot be converted to a real double',
-      );
-    }
-    return complex.a.toDouble();
-  }
-
-  @override
-  Complex get complexValue => complex;
-
-  @override
-  String toString() {
-    if (complex.b == 0) return '${complex.a}';
-    if (complex.a == 0) {
-      if (complex.b == 1) return 'i';
-      if (complex.b == -1) return '-i';
-      return '${complex.b} * i';
-    }
-    final sign = complex.b < 0 ? '-' : '+';
-    final absB = complex.b.abs();
-    final bStr = absB == 1 ? 'i' : '$absB * i';
-    return '${complex.a} $sign $bStr';
-  }
-
-  @override
-  bool operator ==(Object other) =>
-      identical(this, other) ||
-      (other is ComplexNumber && other.complex == complex);
-
-  @override
-  int get hashCode => complex.hashCode;
 }
 
 /// Sealed base class representing a unary operation AST node with a single operand.

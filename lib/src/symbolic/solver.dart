@@ -358,8 +358,7 @@ List<Expr>? _invertEquation(Expr u, Expr c, String variable) {
     } else if (!u.left.dependsOn(variable)) {
       if (c == RationalNumber.zero ||
           (c is RationalNumber && c.isZero) ||
-          (c is RealNumber && c.value == 0.0) ||
-          (c is ComplexNumber && c.complex.a == 0 && c.complex.b == 0)) {
+          (c is RealNumber && c.value == 0.0)) {
         return const [];
       }
       return _invertEquation(u.right, (u.left / c).simplify(), variable);

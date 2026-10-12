@@ -39,25 +39,6 @@ class TermAccumulator {
       realValue += (sign.a / sign.b) * expr.value;
       return;
     }
-    if (expr is ComplexNumber) {
-      final c = expr.complex;
-      if (c.a != 0) {
-        if (c.a == c.a.truncateToDouble()) {
-          constantValue += sign * Fraction(c.a.toInt(), 1);
-        } else {
-          realValue += (sign.a / sign.b) * c.a;
-        }
-      }
-      if (c.b != 0) {
-        final bFrac = c.b == c.b.truncateToDouble()
-            ? Fraction(c.b.toInt(), 1)
-            : Fraction.fromDouble(c.b.toDouble(), maxDenominator: 1000000);
-        final totalCoeff = sign * bFrac;
-        final current = terms[ConstantNumber.i] ?? Fraction.zero;
-        terms[ConstantNumber.i] = current + totalCoeff;
-      }
-      return;
-    }
     if (expr is Add) {
       add(expr.left, sign);
       add(expr.right, sign);

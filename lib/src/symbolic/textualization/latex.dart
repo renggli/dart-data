@@ -1,5 +1,3 @@
-import 'package:more/number.dart' show Complex;
-
 import '../ast.dart';
 
 /// LaTeX serialization extension on [Expr].
@@ -34,7 +32,6 @@ String _toLatex(Expr expr) => switch (expr) {
         ? '-\\frac{${-numerator}}{$denominator}'
         : '\\frac{$numerator}{$denominator}',
   RealNumber(:final value) => '$value',
-  ComplexNumber(:final complex) => _formatComplexLatex(complex),
   Add(:final left, :final right) => '${_toLatex(left)} + ${_toLatex(right)}',
   Sub(:final left, :final right) =>
     '${_toLatex(left)} - ${_formatSubRight(right)}',
@@ -71,46 +68,12 @@ String _formatPow(Expr base, Expr exponent) {
   return '{${_formatPowBase(base)}}^{${_toLatex(exponent)}}';
 }
 
-String _formatComplexLatex(Complex c) {
-  if (c.b == 0) {
-    return _formatNum(c.a);
-  }
-  if (c.a == 0) {
-    if (c.b == 1) return 'i';
-    if (c.b == -1) return '-i';
-    return '${_formatNum(c.b)} i';
-  }
-  final aStr = _formatNum(c.a);
-  if (c.b == 1) {
-    return '$aStr + i';
-  } else if (c.b == -1) {
-    return '$aStr - i';
-  } else if (c.b > 0) {
-    return '$aStr + ${_formatNum(c.b)} i';
-  } else {
-    return '$aStr - ${_formatNum(-c.b)} i';
-  }
-}
-
-String _formatNum(num n) {
-  if (n is int) return '$n';
-  if (n.truncateToDouble() == n && !n.isInfinite && !n.isNaN) {
-    return '${n.toInt()}';
-  }
-  return '$n';
-}
-
 String _formatSubRight(Expr right) => switch (right) {
   Add() ||
   Sub() ||
   Neg() ||
   RationalNumber(numerator: < 0) ||
   RealNumber(value: < 0) => '(${_toLatex(right)})',
-  ComplexNumber(:final complex)
-      when (complex.a != 0 && complex.b != 0) ||
-          complex.a < 0 ||
-          (complex.a == 0 && complex.b < 0) =>
-    '(${_toLatex(right)})',
   _ => _toLatex(right),
 };
 
@@ -120,11 +83,6 @@ String _formatMulOperand(Expr operand) => switch (operand) {
   Neg() ||
   RationalNumber(numerator: < 0) ||
   RealNumber(value: < 0) => '(${_toLatex(operand)})',
-  ComplexNumber(:final complex)
-      when (complex.a != 0 && complex.b != 0) ||
-          complex.a < 0 ||
-          (complex.a == 0 && complex.b < 0) =>
-    '(${_toLatex(operand)})',
   _ => _toLatex(operand),
 };
 
@@ -136,9 +94,6 @@ String _formatPowBase(Expr base) => switch (base) {
   Neg() ||
   RationalNumber(numerator: < 0) ||
   RealNumber(value: < 0) => '(${_toLatex(base)})',
-  ComplexNumber(:final complex)
-      when (complex.b != 0 && complex != Complex.i) || complex.a < 0 =>
-    '(${_toLatex(base)})',
   _ => _toLatex(base),
 };
 
@@ -148,10 +103,5 @@ String _formatNegOperand(Expr expr) => switch (expr) {
   Neg() ||
   RationalNumber(numerator: < 0) ||
   RealNumber(value: < 0) => '(${_toLatex(expr)})',
-  ComplexNumber(:final complex)
-      when (complex.a != 0 && complex.b != 0) ||
-          complex.a < 0 ||
-          (complex.a == 0 && complex.b < 0) =>
-    '(${_toLatex(expr)})',
   _ => _toLatex(expr),
 };
