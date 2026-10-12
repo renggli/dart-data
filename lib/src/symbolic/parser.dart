@@ -7,8 +7,7 @@ import 'ast.dart';
 /// the specified [maxDenominator] for detecting rational numbers.
 ///
 /// ```dart
-/// final p = buildParser();
-/// final result = p.parse('2 * x + 1');
+/// final expr = Expr.parse('2 * x + 1');
 /// ```
 Parser<Expr> buildParser({int maxDenominator = 64}) {
   final builder = ExpressionBuilder<Expr>();
@@ -122,7 +121,7 @@ Expr _createBinding(String name, List<Expr> arguments) =>
 /// Throws a [FormatException] if parsing fails.
 ///
 /// ```dart
-/// final expr = parseExpression('2 * x + 1');
+/// final expr = Expr.parse('2 * x + 1');
 /// ```
 Expr parseExpression(String input, {int maxDenominator = 64}) {
   try {
@@ -149,7 +148,7 @@ Expr parseExpression(String input, {int maxDenominator = 64}) {
 /// Tries to parse [input] into an [Expr], returning `null` on failure.
 ///
 /// ```dart
-/// final expr = tryParseExpression('2 * x + 1');
+/// final expr = Expr.tryParse('2 * x + 1');
 /// ```
 Expr? tryParseExpression(String input, {int maxDenominator = 64}) {
   try {

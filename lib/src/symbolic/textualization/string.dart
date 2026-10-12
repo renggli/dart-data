@@ -7,7 +7,7 @@ import '../ast.dart';
 ///
 /// ```dart
 /// final x = Variable('x');
-/// final str = formatExpr(x * x + 1); // 'x ^ 2 + 1'
+/// final str = formatExpr(x * x + 1); // 'x * x + 1'
 /// ```
 String formatExpr(Expr expr, [int parentPrec = 0]) {
   final prec = precedence(expr);

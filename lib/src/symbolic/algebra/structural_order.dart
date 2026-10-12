@@ -97,6 +97,11 @@ String primarySymbol(Expr expr) => switch (expr) {
 /// - Antisymmetry: `compareStructural(a, b) == -compareStructural(b, a)`.
 /// - Transitivity: if `compareStructural(a, b) < 0` and
 ///   `compareStructural(b, c) < 0`, then `compareStructural(a, c) < 0`.
+///
+/// ```dart
+/// final x = Variable('x');
+/// final cmp = compareStructural(const RationalNumber(1), x);
+/// ```
 int compareStructural(Expr a, Expr b) {
   if (identical(a, b)) return 0;
   final tagA = nodeTag(a);

@@ -26,7 +26,7 @@ const i = ConstantNumber.i;
 ///
 /// ```dart
 /// final x = Variable('x');
-/// final expr = x * x + 2 * x + 1;
+/// final expr = x * x + x * 2 + 1;
 /// final val = expr.evaluate({'x': 3.0}); // 3^2 + 2(3) + 1 = 16.0
 /// ```
 sealed class Expr {
@@ -384,6 +384,11 @@ final class ConstantNumber extends Number {
 }
 
 /// A complex floating-point numeric value node ($\mathbb{C}$) backed by [Complex].
+///
+/// ```dart
+/// final z = ComplexNumber.fromCartesian(3, 4);
+/// print(z.complexValue); // 3 + 4i
+/// ```
 final class ComplexNumber extends Number {
   /// Creates a complex number node wrapping [complex].
   const new(this.complex);

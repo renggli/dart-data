@@ -15,7 +15,7 @@ extension LinearFormExtension on Expr {
   ///
   /// ```dart
   /// final x = Variable('x');
-  /// final lin = (2 * x + 5).matchLinear('x');
+  /// final lin = (x * 2 + 5).matchLinear('x');
   /// // lin?.a == RationalNumber(2), lin?.b == RationalNumber(5)
   /// ```
   ({Expr a, Expr b})? matchLinear(String variable) =>
@@ -29,7 +29,7 @@ extension LinearFormExtension on Expr {
   ///
   /// ```dart
   /// final x = Variable('x');
-  /// final k = (6 * x).matchScalarMultiple(2 * x, 'x'); // RationalNumber(3)
+  /// final k = (x * 6).matchScalarMultiple(x * 2, 'x'); // RationalNumber(3)
   /// ```
   Expr? matchScalarMultiple(Expr target, String variable) =>
       _matchScalarMultiple(this, target, variable);

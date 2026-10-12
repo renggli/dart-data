@@ -33,7 +33,7 @@ extension MultivariableExtension on Expr {
   /// ```dart
   /// final x = Variable('x');
   /// final y = Variable('y');
-  /// final h = (x * x + 3 * x * y).hessian(['x', 'y']);
+  /// final h = (x * x + x * y * 3).hessian(['x', 'y']);
   /// // h[0]: [2, 3], h[1]: [3, 0]
   /// ```
   List<List<Expr>> hessian(List<String> variables) =>

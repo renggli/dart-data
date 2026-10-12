@@ -74,7 +74,7 @@ extension CompilerExtension on Expr {
   /// ```dart
   /// final x = Variable('x');
   /// final y = Variable('y');
-  /// final f = (x + 2 * y).toVectorFunction(['x', 'y']);
+  /// final f = (x + y * 2).toVectorFunction(['x', 'y']);
   /// final result = f(Vector.fromList([3.0, 4.0])); // 3 + 2(4) = 11.0
   /// ```
   double Function(Vector<double> vector) toVectorFunction(
@@ -95,7 +95,7 @@ extension CompilerExtension on Expr {
   /// ```dart
   /// final x = Variable('x');
   /// final y = Variable('y');
-  /// final f = (x + 2 * y).compile(['x', 'y']);
+  /// final f = (x + y * 2).compile(['x', 'y']);
   /// final result = f([3.0, 4.0]); // 3 + 2(4) = 11.0
   /// ```
   double Function(List<double> args) compile(List<String> varOrder) {
