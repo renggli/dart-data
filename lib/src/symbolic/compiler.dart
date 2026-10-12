@@ -243,6 +243,13 @@ double Function(T) _compileEvaluator<T>(
       final fL = _compileEvaluator<T>(left, compileVar);
       final fR = _compileEvaluator<T>(right, compileVar);
       return (t) => fL(t) / fR(t);
+    case Pow(
+      :final base,
+      exponent: RationalNumber(numerator: 1, denominator: 2) ||
+          RealNumber(value: 0.5),
+    ):
+      final fB = _compileEvaluator<T>(base, compileVar);
+      return (t) => math.sqrt(fB(t));
     case Pow(:final base, :final exponent):
       final fB = _compileEvaluator<T>(base, compileVar);
       final fE = _compileEvaluator<T>(exponent, compileVar);
@@ -298,9 +305,6 @@ double Function(T) _compileEvaluator<T>(
     case Abs(:final expr):
       final fn = _compileEvaluator<T>(expr, compileVar);
       return (t) => fn(t).abs();
-    case Sqrt(:final expr):
-      final fn = _compileEvaluator<T>(expr, compileVar);
-      return (t) => math.sqrt(fn(t));
     case Log(:final base, :final expr):
       final fB = _compileEvaluator<T>(base, compileVar);
       final fE = _compileEvaluator<T>(expr, compileVar);
@@ -338,6 +342,13 @@ void _flattenToRpn(
       _flattenToRpn(left, varIndices, instructions);
       _flattenToRpn(right, varIndices, instructions);
       instructions.add(const _Instruction.op(_Op.div));
+    case Pow(
+      :final base,
+      exponent: RationalNumber(numerator: 1, denominator: 2) ||
+          RealNumber(value: 0.5),
+    ):
+      _flattenToRpn(base, varIndices, instructions);
+      instructions.add(const _Instruction.op(_Op.sqrt));
     case Pow(:final base, :final exponent):
       _flattenToRpn(base, varIndices, instructions);
       _flattenToRpn(exponent, varIndices, instructions);
@@ -381,9 +392,6 @@ void _flattenToRpn(
     case Abs(:final expr):
       _flattenToRpn(expr, varIndices, instructions);
       instructions.add(const _Instruction.op(_Op.abs));
-    case Sqrt(:final expr):
-      _flattenToRpn(expr, varIndices, instructions);
-      instructions.add(const _Instruction.op(_Op.sqrt));
     case Log(:final base, :final expr):
       _flattenToRpn(expr, varIndices, instructions);
       instructions.add(const _Instruction.op(_Op.ln));

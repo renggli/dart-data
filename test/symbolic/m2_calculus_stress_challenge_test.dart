@@ -120,7 +120,7 @@ void main() {
         }
 
         // 9. Sqrt(x) on (0.1, 20.0)
-        const exprSqrt = Sqrt(x);
+        const exprSqrt = Pow(x, RationalNumber(1, 2));
         final symDSqrt = exprSqrt.derivative('x').toFunction1D('x');
         final numSqrt = exprSqrt.toFunction1D('x');
         for (var i = 0; i < 50; i++) {
@@ -202,7 +202,7 @@ void main() {
         }
 
         // 5. Sqrt''(x) = -1 / (4 * x^(3/2))
-        const exprSqrt = Sqrt(x);
+        const exprSqrt = Pow(x, RationalNumber(1, 2));
         final symD2Sqrt = exprSqrt.derivative('x', order: 2).toFunction1D('x');
         final numSqrt = exprSqrt.toFunction1D('x');
         for (var i = 0; i < 20; i++) {
@@ -274,7 +274,7 @@ void main() {
             },
           ),
           (
-            Sqrt((x * 2) + 3),
+            Pow((x * 2) + 3, const RationalNumber(1, 2)),
             -1.0,
             5.0,
             (t) => 2.0 / (2.0 * math.sqrt(2.0 * t + 3.0)),
@@ -309,7 +309,7 @@ void main() {
         (const Tanh(x), -4.0, 4.0),
         (const Abs(x), 0.2, 5.0),
         (const Abs(x), -5.0, -0.2),
-        (const Sqrt(x), 0.1, 10.0),
+        (const Pow(x, RationalNumber(1, 2)), 0.1, 10.0),
         (const Log(RationalNumber(3), x), 0.2, 8.0),
       ];
 
@@ -355,7 +355,7 @@ void main() {
         (Tanh(x * 2), -3.0, 3.0),
         (Abs((x * 3) - 2), 1.0, 5.0), // strictly positive branch
         (Abs((x * 3) - 2), -5.0, 0.0), // strictly negative branch
-        (Sqrt((x * 2) + 1), 0.1, 8.0),
+        (Pow((x * 2) + 1, const RationalNumber(1, 2)), 0.1, 8.0),
         (Log(const RationalNumber(5), (x * 2) + 1), 0.2, 8.0),
       ];
 
@@ -408,7 +408,8 @@ void main() {
 
       // 1 / sqrt(1 - x^2) -> asin(x)
       final invAsin =
-          const RationalNumber(1) / Sqrt(const RationalNumber(1) - (x * x));
+          const RationalNumber(1) /
+          Pow(const RationalNumber(1) - (x * x), const RationalNumber(1, 2));
       final antiAsin = invAsin.integrate('x');
       check(antiAsin).equals(const Asin(x));
       check(antiAsin.derivative('x').toFunction1D('x')(0.6))
@@ -467,8 +468,8 @@ void main() {
           (const Acos(x), -0.5, 0.5),
 
           // Sqrt(x) on smooth intervals away from zero
-          (const Sqrt(x), 1.0, 4.0),
-          (const Sqrt(x), 2.0, 5.0),
+          (const Pow(x, RationalNumber(1, 2)), 1.0, 4.0),
+          (const Pow(x, RationalNumber(1, 2)), 2.0, 5.0),
         ];
 
         for (final (expr, a, b) in testCases) {
@@ -548,7 +549,7 @@ void main() {
       }
     });
 
-    test('boundary conditions at x = 0 for Abs(x) and Sqrt(x)', () {
+    test('boundary conditions at x = 0 for Abs(x) and Pow(x, 1/2)', () {
       // 1. Abs(0) = 0
       const exprAbs = Abs(x);
       check(exprAbs.evaluate({'x': 0.0})).equals(0.0);
@@ -567,7 +568,7 @@ void main() {
       check(intAbs.evaluate(const {})).isCloseTo(4.0, 1e-9);
 
       // 2. Sqrt(0) = 0
-      const exprSqrt = Sqrt(x);
+      const exprSqrt = Pow(x, RationalNumber(1, 2));
       check(exprSqrt.evaluate({'x': 0.0})).equals(0.0);
       check(exprSqrt.toFunction1D('x')(0.0)).equals(0.0);
 
@@ -585,7 +586,7 @@ void main() {
     });
 
     test('out of domain evaluation produces NaN as per IEEE-754 semantics', () {
-      const exprSqrt = Sqrt(x);
+      const exprSqrt = Pow(x, RationalNumber(1, 2));
       check(exprSqrt.toFunction1D('x')(-1.0).isNaN).isTrue();
 
       const exprAsin = Asin(x);
@@ -731,7 +732,7 @@ void main() {
         // f(x) = tanh(x) * cosh(x / 4) + sqrt(abs(x) + 1) - atan(x) + tan(sin(x) / 2)
         final composite =
             (const Tanh(x) * Cosh(x / const RationalNumber(4))) +
-            const Sqrt(Add(Abs(x), RationalNumber(1))) -
+            const Pow(Add(Abs(x), RationalNumber(1)), RationalNumber(1, 2)) -
             const Atan(x) +
             const Tan(Mul(Sin(x), RationalNumber(1, 2)));
 
@@ -827,9 +828,9 @@ void main() {
         }
       });
 
-      test('Taylor expansion around non-zero point for Sqrt(x)', () {
-        // Sqrt(x) around a = 1, order 2: 1 + 0.5 * (x - 1) - 0.125 * (x - 1)^2
-        const exprSqrt = Sqrt(x);
+      test('Taylor expansion around non-zero point for Pow(x, 1/2)', () {
+        // Pow(x, 1/2) around a = 1, order 2: 1 + 0.5 * (x - 1) - 0.125 * (x - 1)^2
+        const exprSqrt = Pow(x, RationalNumber(1, 2));
         final taylorSqrt = exprSqrt.taylorSeries('x', around: 1, order: 2);
         final taylorSqrtFn = taylorSqrt.toFunction1D('x');
         final sqrtFn = exprSqrt.toFunction1D('x');
@@ -894,8 +895,12 @@ void main() {
       check(const Abs(Exp(x)).simplify()).equals(const Exp(x));
 
       // sqrt(x^2) => |x|
-      check(Sqrt(x.pow(const RationalNumber(2))).simplify())
-          .equals(const Abs(x));
+      check(
+        Pow(
+          x.pow(const RationalNumber(2)),
+          const RationalNumber(1, 2),
+        ).simplify(),
+      ).equals(const Abs(x));
 
       // e^ln(x) => x
       check(const Exp(Ln(x)).simplify()).equals(x);
@@ -919,13 +924,13 @@ void main() {
           .equals(const RationalNumber(0));
       check(const Acos(RationalNumber(1)).simplify())
           .equals(const RationalNumber(0));
-      check(const Sqrt(RationalNumber(0)).simplify())
+      check(const Pow(RationalNumber(0), RationalNumber(1, 2)).simplify())
           .equals(const RationalNumber(0));
-      check(const Sqrt(RationalNumber(1)).simplify())
+      check(const Pow(RationalNumber(1), RationalNumber(1, 2)).simplify())
           .equals(const RationalNumber(1));
-      check(const Sqrt(RationalNumber(4)).simplify())
+      check(const Pow(RationalNumber(4), RationalNumber(1, 2)).simplify())
           .equals(const RationalNumber(2));
-      check(const Sqrt(RationalNumber(9, 16)).simplify())
+      check(const Pow(RationalNumber(9, 16), RationalNumber(1, 2)).simplify())
           .equals(const RationalNumber(3, 4));
       check(const Abs(RationalNumber(-42, 5)).simplify())
           .equals(const RationalNumber(42, 5));

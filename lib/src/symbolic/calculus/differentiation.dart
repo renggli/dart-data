@@ -83,11 +83,17 @@ Expr _differentiate(Expr expr, String variable) => switch (expr) {
   ),
   Asin(expr: final inner) => Div(
     _differentiate(inner, variable),
-    Sqrt(Sub(RationalNumber.one, Pow(inner, const RationalNumber(2)))),
+    Pow(
+      Sub(RationalNumber.one, Pow(inner, const RationalNumber(2))),
+      const RationalNumber(1, 2),
+    ),
   ),
   Acos(expr: final inner) => Div(
     Neg(_differentiate(inner, variable)),
-    Sqrt(Sub(RationalNumber.one, Pow(inner, const RationalNumber(2)))),
+    Pow(
+      Sub(RationalNumber.one, Pow(inner, const RationalNumber(2))),
+      const RationalNumber(1, 2),
+    ),
   ),
   Atan(expr: final inner) => Div(
     _differentiate(inner, variable),
@@ -102,10 +108,6 @@ Expr _differentiate(Expr expr, String variable) => switch (expr) {
   Abs(expr: final inner) => Mul(
     Div(inner, Abs(inner)),
     _differentiate(inner, variable),
-  ),
-  Sqrt(expr: final inner) => Div(
-    _differentiate(inner, variable),
-    Mul(const RationalNumber(2), Sqrt(inner)),
   ),
   Exp(expr: final inner) => Mul(expr, _differentiate(inner, variable)),
   Ln(expr: final inner) => Div(_differentiate(inner, variable), inner),

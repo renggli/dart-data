@@ -67,7 +67,6 @@ String _toMathMl(Expr expr) => switch (expr) {
   Tanh(:final expr) =>
     '<mrow><mi>tanh</mi><mo>(</mo>${_toMathMl(expr)}<mo>)</mo></mrow>',
   Abs(:final expr) => '<mrow><mo>|</mo>${_toMathMl(expr)}<mo>|</mo></mrow>',
-  Sqrt(:final expr) => '<msqrt>${_toMathMl(expr)}</msqrt>',
   Exp(:final expr) => '<msup><mi>e</mi>${_toMathMl(expr)}</msup>',
   Ln(:final expr) =>
     '<mrow><mi>ln</mi><mo>(</mo>${_toMathMl(expr)}<mo>)</mo></mrow>',
@@ -78,9 +77,9 @@ String _toMathMl(Expr expr) => switch (expr) {
 String _formatPow(Expr base, Expr exponent) {
   if (exponent is RationalNumber && exponent.numerator == 1) {
     if (exponent.denominator == 2) {
-      return '<msqrt>${_toMathMl(base)}</msqrt>';
+      return '<msqrt>${_wrapMrow(_toMathMl(base))}</msqrt>';
     } else if (exponent.denominator > 2) {
-      return '<mroot>${_toMathMl(base)}<mn>${exponent.denominator}</mn></mroot>';
+      return '<mroot>${_wrapMrow(_toMathMl(base))}<mrow><mn>${exponent.denominator}</mn></mrow></mroot>';
     }
   }
   return '<msup>${_formatPowBase(base)}${_toMathMl(exponent)}</msup>';
@@ -109,6 +108,11 @@ String _formatNegOperand(Expr expr) => switch (expr) {
   Add() || Sub() => '<mrow><mo>(</mo>${_toMathMl(expr)}<mo>)</mo></mrow>',
   _ => _toMathMl(expr),
 };
+
+String _wrapMrow(String inner) =>
+    inner.startsWith('<mrow>') && inner.endsWith('</mrow>')
+    ? inner
+    : '<mrow>$inner</mrow>';
 
 String _escapeXml(String text) => text
     .replaceAll('&', '&amp;')

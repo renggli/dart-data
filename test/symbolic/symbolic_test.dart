@@ -177,8 +177,12 @@ void main() {
       check(const Tanh(x).hashCode).equals(const Tanh(x).hashCode);
       check(const Abs(x) == const Abs(x)).isTrue();
       check(const Abs(x).hashCode).equals(const Abs(x).hashCode);
-      check(const Sqrt(x) == const Sqrt(x)).isTrue();
-      check(const Sqrt(x).hashCode).equals(const Sqrt(x).hashCode);
+      check(
+        const Pow(x, RationalNumber(1, 2)) ==
+            const Pow(x, RationalNumber(1, 2)),
+      ).isTrue();
+      check(const Pow(x, RationalNumber(1, 2)).hashCode)
+          .equals(const Pow(x, RationalNumber(1, 2)).hashCode);
       check(const Exp(x) == const Exp(x)).isTrue();
       check(const Exp(x).hashCode).equals(const Exp(x).hashCode);
       check(const Ln(x) == const Ln(x)).isTrue();
@@ -396,7 +400,7 @@ void main() {
       check(dAbs.evaluate({'x': -3.0})).equals(-1.0);
 
       // d/dx sqrt(x) = 1 / (2 * sqrt(x))
-      const exprSqrt = Sqrt(x);
+      const exprSqrt = Pow(x, RationalNumber(1, 2));
       final dSqrt = exprSqrt.derivative('x');
       check(dSqrt.evaluate({'x': 4.0})).equals(0.25);
 

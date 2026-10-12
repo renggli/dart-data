@@ -331,7 +331,7 @@ void main() {
       check(antiAbs.evaluate({'x': -2.0})).equals(-2.0);
 
       // sqrt(x) -> 2/3 * x^(3/2)
-      const sqrtExpr = Sqrt(x);
+      const sqrtExpr = Pow(x, RationalNumber(1, 2));
       final antiSqrt = sqrtExpr.integrate('x');
       check(antiSqrt.evaluate({'x': 4.0})).isCloseTo(16.0 / 3.0, 1e-9);
       check(antiSqrt.derivative('x').toFunction1D('x')(9.0))
@@ -494,7 +494,8 @@ void main() {
 
       // 1 / sqrt(1 - x^2) -> asin(x)
       final exprAsin =
-          const RationalNumber(1) / Sqrt(const RationalNumber(1) - x.pow(2));
+          const RationalNumber(1) /
+          Pow(const RationalNumber(1) - x.pow(2), const RationalNumber(1, 2));
       final antiAsin = exprAsin.integrate('x');
       check(antiAsin.derivative('x').toFunction1D('x')(0.5))
           .isCloseTo(1.0 / math.sqrt(1.0 - 0.25), 1e-9);

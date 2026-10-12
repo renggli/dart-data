@@ -25,7 +25,6 @@ String formatExpr(Expr expr, [int parentPrec = 0]) {
     Cosh(:final expr) => 'cosh(${formatExpr(expr)})',
     Tanh(:final expr) => 'tanh(${formatExpr(expr)})',
     Abs(:final expr) => 'abs(${formatExpr(expr)})',
-    Sqrt(:final expr) => 'sqrt(${formatExpr(expr)})',
     Exp(:final expr) => 'exp(${formatExpr(expr)})',
     Ln(:final expr) => 'ln(${formatExpr(expr)})',
     Log(:final base, :final expr) =>

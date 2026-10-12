@@ -288,11 +288,12 @@ void main() {
         12 => Cosh(generateRandomExpr(rand, depth - 1)),
         13 => Tanh(generateRandomExpr(rand, depth - 1)),
         14 => Abs(generateRandomExpr(rand, depth - 1)),
-        15 => Sqrt(
+        15 => Pow(
           Add(
             Pow(generateRandomExpr(rand, depth - 1), const RationalNumber(2)),
             const RationalNumber(1),
           ),
+          const RationalNumber(1, 2),
         ),
         _ => Exp(generateRandomExpr(rand, depth - 1)),
       };
@@ -364,7 +365,9 @@ void main() {
       check(mathml).contains('<mi>arctan</mi>');
 
       final simplifiedMathMl = parsed.simplify().toMathMl();
-      check(simplifiedMathMl).contains('<mroot><mi>s</mi><mn>3</mn></mroot>');
+      check(simplifiedMathMl).contains(
+        '<mroot><mrow><mi>s</mi></mrow><mrow><mn>3</mn></mrow></mroot>',
+      );
 
       // String formatting round-trip
       final str = parsed.toString();
@@ -420,7 +423,7 @@ void main() {
           r'\left|x\right|',
           '<mrow><mo>|</mo><mi>x</mi><mo>|</mo></mrow>',
         ),
-        'sqrt(x)': (r'\sqrt{x}', '<msqrt><mi>x</mi></msqrt>'),
+        'sqrt(x)': (r'\sqrt{x}', '<msqrt><mrow><mi>x</mi></mrow></msqrt>'),
         'log(10, x)': (
           r'\log_{10}(x)',
           '<mrow><msub><mi>log</mi><mn>10</mn></msub><mo>(</mo><mi>x</mi><mo>)</mo></mrow>',

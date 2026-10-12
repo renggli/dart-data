@@ -330,8 +330,8 @@ void main() {
       final numDTanh = derivative(exprTanh.toFunction1D('x'), 0.6, order: 1);
       check(numDTanh).isCloseTo(symDTanh, 1e-5);
 
-      // Sqrt(x): d/dx sqrt(x) = 1 / (2 * sqrt(x))
-      const exprSqrt = Sqrt(x);
+      // Pow(x, 1/2): d/dx sqrt(x) = 1 / (2 * sqrt(x))
+      const exprSqrt = Pow(x, RationalNumber(1, 2));
       final symDSqrt = exprSqrt.derivative('x').toFunction1D('x')(4.0);
       final numDSqrt = derivative(exprSqrt.toFunction1D('x'), 4.0, order: 1);
       check(numDSqrt).isCloseTo(symDSqrt, 1e-5);

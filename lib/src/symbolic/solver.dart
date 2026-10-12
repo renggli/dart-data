@@ -216,6 +216,11 @@ List<Expr>? _invertEquation(Expr u, Expr c, String variable) {
             final s2 = _solveEquation((u.base - negRoot).simplify(), variable);
             return _deduplicate([...s1, ...s2]);
           } else {
+            if (expConst.denominator.isEven &&
+                ((c is RationalNumber && c.isNegative) ||
+                    (c is RealNumber && c.value < 0))) {
+              return const [];
+            }
             final root = c.pow(invP).simplify();
             return _solveEquation((u.base - root).simplify(), variable);
           }

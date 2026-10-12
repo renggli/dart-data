@@ -61,7 +61,6 @@ Expr _simplify(Expr expr) => switch (expr) {
   Cosh(:final expr) => _simplifyCosh(_simplify(expr)),
   Tanh(:final expr) => _simplifyTanh(_simplify(expr)),
   Abs(:final expr) => _simplifyAbs(_simplify(expr)),
-  Sqrt(:final expr) => _simplifySqrt(_simplify(expr)),
   Exp(:final expr) => _simplifyExp(_simplify(expr)),
   Ln(:final expr) => _simplifyLn(_simplify(expr)),
   Log(:final base, :final expr) => _simplifyLog(
@@ -217,9 +216,15 @@ Expr _simplifyMul(Expr left, Expr right) {
   if (left is Exp && right is Exp) {
     return _simplifyExp(_simplifyAdd(left.expr, right.expr));
   }
-  // Radical multiplication: sqrt(a) * sqrt(b) => sqrt(a * b)
-  if (left is Sqrt && right is Sqrt) {
-    return _simplifySqrt(_simplifyMul(left.expr, right.expr));
+  // Power multiplication with identical exponents: a^k * b^k => (a * b)^k
+  if (left is Pow && right is Pow && left.exponent == right.exponent) {
+    if (left.base == right.base) {
+      return _simplifyPow(
+        left.base,
+        _simplifyAdd(left.exponent, right.exponent),
+      );
+    }
+    return _simplifyPow(_simplifyMul(left.base, right.base), left.exponent);
   }
 
   // Associative constant folding:
@@ -347,9 +352,9 @@ Expr _simplifyDiv(Expr left, Expr right) {
   if (left is Exp && right is Exp) {
     return _simplifyExp(_simplifySub(left.expr, right.expr));
   }
-  // Radical division: sqrt(a) / sqrt(b) => sqrt(a / b)
-  if (left is Sqrt && right is Sqrt) {
-    return _simplifySqrt(_simplifyDiv(left.expr, right.expr));
+  // Power division with identical exponents: a^k / b^k => (a / b)^k
+  if (left is Pow && right is Pow && left.exponent == right.exponent) {
+    return _simplifyPow(_simplifyDiv(left.base, right.base), left.exponent);
   }
   if (right is RationalNumber && right.isOne) return left;
   if (right is RealNumber && right.value == 1.0) return left;
@@ -420,6 +425,16 @@ Expr _simplifyPow(Expr base, Expr exponent) => switch ((base, exponent)) {
     _foldRationalPower(numerator, denominator, expInt),
   (RationalNumber() && final b, RationalNumber() && final e) =>
     _foldGeneralPower(b, e),
+  // Involution: (u^2)^(1/2) => |u|
+  (
+    Pow(
+      base: final innerBase,
+      exponent: RationalNumber(numerator: 2, denominator: 1) ||
+          RealNumber(value: 2.0),
+    ),
+    RationalNumber(numerator: 1, denominator: 2) || RealNumber(value: 0.5),
+  ) =>
+    _simplifyAbs(innerBase),
   (
     Pow(base: final innerBase, exponent: RationalNumber() && final e1),
     RationalNumber() && final e2,
@@ -428,14 +443,6 @@ Expr _simplifyPow(Expr base, Expr exponent) => switch ((base, exponent)) {
   (Exp(:final expr), final exponent) => _simplifyExp(
     _simplifyMul(expr, exponent),
   ),
-  (
-    Sqrt(:final expr),
-    RationalNumber(numerator: 2, denominator: 1) || RealNumber(value: 2.0),
-  ) =>
-    expr,
-  (Sqrt(:final expr), RationalNumber(:final numerator, :final denominator))
-      when numerator.isEven =>
-    _simplifyPow(expr, RationalNumber(numerator ~/ 2, denominator)),
   (
     Abs(:final expr),
     RationalNumber(numerator: 2, denominator: 1) || RealNumber(value: 2.0),
@@ -719,40 +726,6 @@ Expr _simplifyAbs(Expr expr) {
   return Abs(expr);
 }
 
-Expr _simplifySqrt(Expr expr) {
-  if (expr is RationalNumber) {
-    if (expr.isZero) return RationalNumber.zero;
-    if (expr.isOne) return RationalNumber.one;
-    if (expr.numerator > 0) {
-      final sqrtNum = math.sqrt(expr.numerator).round();
-      final sqrtDen = math.sqrt(expr.denominator).round();
-      if (sqrtNum * sqrtNum == expr.numerator &&
-          sqrtDen * sqrtDen == expr.denominator) {
-        return RationalNumber(sqrtNum, sqrtDen);
-      }
-    }
-  }
-  if (expr is RealNumber) {
-    if (expr.value == 0.0) return RationalNumber.zero;
-    if (expr.value == 1.0) return RationalNumber.one;
-    final s = math.sqrt(expr.value);
-    if ((s - s.round()).abs() < 1e-12) {
-      return RationalNumber(s.round());
-    }
-  }
-
-  // Involution: sqrt(u^2) = |u|
-  if (expr is Pow) {
-    final exp = expr.exponent;
-    if ((exp is RationalNumber && exp.numerator == 2 && exp.denominator == 1) ||
-        (exp is RealNumber && exp.value == 2.0)) {
-      return _simplifyAbs(expr.base);
-    }
-  }
-
-  return Sqrt(expr);
-}
-
 Expr _simplifyLog(Expr base, Expr expr) {
   // log(b, 1) = 0
   if (expr case RationalNumber(isOne: true) || RealNumber(value: 1.0)) {
@@ -822,10 +795,6 @@ Expr _simplifyLn(Expr expr) {
   // ln(u^k) = k * ln(u)
   if (expr is Pow) {
     return _simplifyMul(expr.exponent, Ln(expr.base));
-  }
-  // ln(sqrt(u)) = 1/2 * ln(u)
-  if (expr is Sqrt) {
-    return _simplifyMul(const RationalNumber(1, 2), Ln(expr.expr));
   }
 
   return Ln(expr);
@@ -1230,7 +1199,6 @@ int _nodeTag(Expr expr) => switch (expr) {
   Cosh() => 14,
   Tanh() => 15,
   Abs() => 16,
-  Sqrt() => 17,
   Log() => 18,
   Pow() => 20,
   Mul() => 21,

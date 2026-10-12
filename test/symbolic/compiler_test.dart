@@ -122,7 +122,7 @@ void main() {
             const Cosh(x) +
             const Tanh(x) +
             const Abs(x) +
-            const Sqrt(Abs(x));
+            const Pow(Abs(x), RationalNumber(1, 2));
         final kernel = expr.compileTensorKernel(['x']);
 
         final inVals = [-0.8, -0.2, 0.0, 0.2, 0.8];

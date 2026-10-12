@@ -122,8 +122,6 @@ Expr _antiDerivative(Expr expr, String variable) {
       _antiDerivTanh(expr, variable) ?? _unsupported(expr, variable),
     Abs(:final expr) =>
       _antiDerivAbs(expr, variable) ?? _unsupported(expr, variable),
-    Sqrt(:final expr) =>
-      _antiDerivSqrt(expr, variable) ?? _unsupported(expr, variable),
     Exp(:final expr) =>
       _antiDerivExp(expr, variable) ?? _unsupported(expr, variable),
     Ln(:final expr) =>
@@ -179,7 +177,10 @@ Expr? _antiDerivAsin(Expr inner, String variable) =>
       (:final a, b: _) => Div(
         Add(
           Mul(inner, Asin(inner)),
-          Sqrt(Sub(RationalNumber.one, Pow(inner, const RationalNumber(2)))),
+          Pow(
+            Sub(RationalNumber.one, Pow(inner, const RationalNumber(2))),
+            const RationalNumber(1, 2),
+          ),
         ),
         a,
       ).simplify(),
@@ -191,7 +192,10 @@ Expr? _antiDerivAcos(Expr inner, String variable) =>
       (:final a, b: _) => Div(
         Sub(
           Mul(inner, Acos(inner)),
-          Sqrt(Sub(RationalNumber.one, Pow(inner, const RationalNumber(2)))),
+          Pow(
+            Sub(RationalNumber.one, Pow(inner, const RationalNumber(2))),
+            const RationalNumber(1, 2),
+          ),
         ),
         a,
       ).simplify(),
@@ -236,15 +240,6 @@ Expr? _antiDerivAbs(Expr inner, String variable) =>
       (:final a, b: _) => Div(
         Mul(inner, Abs(inner)),
         Mul(const RationalNumber(2), a),
-      ).simplify(),
-      null => null,
-    };
-
-Expr? _antiDerivSqrt(Expr inner, String variable) =>
-    switch (inner.matchLinear(variable)) {
-      (:final a, b: _) => Div(
-        Mul(const RationalNumber(2, 3), Pow(inner, const RationalNumber(3, 2))),
-        a,
       ).simplify(),
       null => null,
     };
@@ -326,7 +321,8 @@ Expr _antiDerivDiv(Expr left, Expr right, Expr original, String variable) {
 
     // int c / (ax + b)^n dx = int c * (ax + b)^(-n) dx
     if (right case Pow(:final base, :final exponent)
-        when !exponent.dependsOn(variable)) {
+        when !exponent.dependsOn(variable) &&
+            base.matchLinear(variable) != null) {
       final negExp = Neg(exponent).simplify();
       return _antiDerivative(Mul(left, Pow(base, negExp)), variable);
     }
@@ -352,14 +348,11 @@ Expr _antiDerivDiv(Expr left, Expr right, Expr original, String variable) {
   // int u'(x) / sqrt(1 - u(x)^2) dx = asin(u(x))
   {
     Expr? inner;
-    if (right case Sqrt(expr: final sInner)) {
-      inner = sInner;
-    } else if (right
-        case Pow(
-          base: final b,
-          exponent: RationalNumber(:final numerator, :final denominator),
-        )
-        when numerator == 1 && denominator == 2) {
+    if (right case Pow(
+      base: final b,
+      exponent: RationalNumber(numerator: 1, denominator: 2) ||
+          RealNumber(value: 0.5),
+    )) {
       inner = b;
     }
     Expr? u;
@@ -533,12 +526,6 @@ Expr? _tryChainRule(Expr candidate, Expr factor, String variable) =>
         factor,
         expr.derivative(variable).simplify(),
         Div(Mul(expr, Abs(expr)), const RationalNumber(2)),
-        variable,
-      ),
-      Sqrt(:final expr) when expr.dependsOn(variable) => _scaleMatch(
-        factor,
-        expr.derivative(variable).simplify(),
-        Mul(const RationalNumber(2, 3), Pow(expr, const RationalNumber(3, 2))),
         variable,
       ),
       Pow(:final base, :final exponent)

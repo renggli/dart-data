@@ -98,14 +98,16 @@ void main() {
 
     test('root formatting with msqrt and mroot', () {
       check(x.pow(const RationalNumber(1, 2)).toMathMl())
-          .equals('<math><msqrt><mi>x</mi></msqrt></math>');
+          .equals('<math><msqrt><mrow><mi>x</mi></mrow></msqrt></math>');
       check((x + y).pow(const RationalNumber(1, 2)).toMathMl()).equals(
         '<math><msqrt><mrow><mi>x</mi><mo>+</mo><mi>y</mi></mrow></msqrt></math>',
       );
-      check(x.pow(const RationalNumber(1, 3)).toMathMl())
-          .equals('<math><mroot><mi>x</mi><mn>3</mn></mroot></math>');
-      check(x.pow(const RationalNumber(1, 5)).toMathMl())
-          .equals('<math><mroot><mi>x</mi><mn>5</mn></mroot></math>');
+      check(x.pow(const RationalNumber(1, 3)).toMathMl()).equals(
+        '<math><mroot><mrow><mi>x</mi></mrow><mrow><mn>3</mn></mrow></mroot></math>',
+      );
+      check(x.pow(const RationalNumber(1, 5)).toMathMl()).equals(
+        '<math><mroot><mrow><mi>x</mi></mrow><mrow><mn>5</mn></mrow></mroot></math>',
+      );
       check(x.pow(const RationalNumber(2, 3)).toMathMl()).equals(
         '<math><msup><mi>x</mi><mfrac><mn>2</mn><mn>3</mn></mfrac></msup></math>',
       );
@@ -160,8 +162,8 @@ void main() {
       );
       check(const Abs(x).toMathMl())
           .equals('<math><mrow><mo>|</mo><mi>x</mi><mo>|</mo></mrow></math>');
-      check(const Sqrt(x).toMathMl())
-          .equals('<math><msqrt><mi>x</mi></msqrt></math>');
+      check(const Pow(x, RationalNumber(1, 2)).toMathMl())
+          .equals('<math><msqrt><mrow><mi>x</mi></mrow></msqrt></math>');
       check(const Exp(x).toMathMl())
           .equals('<math><msup><mi>e</mi><mi>x</mi></msup></math>');
       check(const Ln(x).toMathMl()).equals(

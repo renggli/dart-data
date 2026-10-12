@@ -164,7 +164,7 @@ void main() {
           .equals(const Mul(RationalNumber(4), Ln(x)));
 
       // ln(sqrt(x)) = 1/2 * ln(x)
-      check(const Ln(Sqrt(x)).simplify())
+      check(const Ln(Pow(x, RationalNumber(1, 2))).simplify())
           .equals(const Mul(RationalNumber(1, 2), Ln(x)));
     });
 
@@ -224,27 +224,38 @@ void main() {
     });
 
     test('radical reductions', () {
-      check(const Sqrt(RationalNumber.zero).simplify())
+      check(const Pow(RationalNumber.zero, RationalNumber(1, 2)).simplify())
           .equals(RationalNumber.zero);
-      check(const Sqrt(RationalNumber.one).simplify())
+      check(const Pow(RationalNumber.one, RationalNumber(1, 2)).simplify())
           .equals(RationalNumber.one);
-      check(const Sqrt(RationalNumber(4, 9)).simplify())
+      check(const Pow(RationalNumber(4, 9), RationalNumber(1, 2)).simplify())
           .equals(const RationalNumber(2, 3));
 
       // sqrt(x)^2 = x
-      check(const Pow(Sqrt(x), RationalNumber(2)).simplify()).equals(x);
+      check(
+        const Pow(Pow(x, RationalNumber(1, 2)), RationalNumber(2)).simplify(),
+      ).equals(x);
 
       // sqrt(x^2) = |x|
-      check(const Sqrt(Pow(x, RationalNumber(2))).simplify())
-          .equals(const Abs(x));
+      check(
+        const Pow(Pow(x, RationalNumber(2)), RationalNumber(1, 2)).simplify(),
+      ).equals(const Abs(x));
 
       // sqrt(x) * sqrt(y) = sqrt(x * y)
-      check(const Mul(Sqrt(x), Sqrt(y)).simplify())
-          .equals(const Sqrt(Mul(x, y)));
+      check(
+        const Mul(
+          Pow(x, RationalNumber(1, 2)),
+          Pow(y, RationalNumber(1, 2)),
+        ).simplify(),
+      ).equals(const Pow(Mul(x, y), RationalNumber(1, 2)));
 
       // sqrt(x) / sqrt(y) = sqrt(x / y)
-      check(const Div(Sqrt(x), Sqrt(y)).simplify())
-          .equals(const Sqrt(Div(x, y)));
+      check(
+        const Div(
+          Pow(x, RationalNumber(1, 2)),
+          Pow(y, RationalNumber(1, 2)),
+        ).simplify(),
+      ).equals(const Pow(Div(x, y), RationalNumber(1, 2)));
     });
   });
 

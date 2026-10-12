@@ -100,7 +100,7 @@ void main() {
       check(const Cosh(x).toString()).equals('cosh(x)');
       check(const Tanh(x).toString()).equals('tanh(x)');
       check(const Abs(x).toString()).equals('abs(x)');
-      check(const Sqrt(x).toString()).equals('sqrt(x)');
+      check(const Pow(x, RationalNumber(1, 2)).toString()).equals('sqrt(x)');
       check(Sin(x + y).toString()).equals('sin(x + y)');
       check(Cos(x * y).toString()).equals('cos(x * y)');
       check(const Exp(x).toString()).equals('exp(x)');

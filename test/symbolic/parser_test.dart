@@ -213,7 +213,26 @@ void main() {
       check(Expr.parse('exp(x)')).equals(const Exp(x));
       check(Expr.parse('ln(x)')).equals(const Ln(x));
       check(Expr.parse('log(x)')).equals(const Ln(x));
-      check(Expr.parse('sqrt(x)')).equals(const Sqrt(x));
+      check(Expr.parse('sqrt(x)')).equals(const Pow(x, RationalNumber(1, 2)));
+    });
+
+    test('parses sqrt and pow function call syntax to Pow', () {
+      const x = Variable('x');
+      const y = Variable('y');
+      check(Expr.parse('sqrt(x)')).equals(const Pow(x, RationalNumber(1, 2)));
+      check(Expr.parse('sqrt(x + 1)'))
+          .equals(const Pow(Add(x, RationalNumber(1)), RationalNumber(1, 2)));
+      check(Expr.parse('pow(x, y)')).equals(const Pow(x, y));
+      check(Expr.parse('pow(x, 2)')).equals(const Pow(x, RationalNumber(2)));
+      check(Expr.parse('pow(sqrt(x), 2)'))
+          .equals(const Pow(Pow(x, RationalNumber(1, 2)), RationalNumber(2)));
+      check(Expr.tryParse('pow(x, y)')).equals(const Pow(x, y));
+      check(Expr.tryParse('sqrt(x)'))
+          .equals(const Pow(x, RationalNumber(1, 2)));
+      check(() => Expr.parse('pow(x)')).throws<FormatException>();
+      check(() => Expr.parse('sqrt(x, y)')).throws<FormatException>();
+      check(Expr.tryParse('pow(x)')).isNull();
+      check(Expr.tryParse('sqrt(x, y)')).isNull();
     });
 
     test('parses two-argument functions: log and root', () {

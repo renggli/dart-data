@@ -102,7 +102,7 @@ void main() {
       check(const Cosh(x).toLatex()).equals('\\cosh(x)');
       check(const Tanh(x).toLatex()).equals('\\tanh(x)');
       check(const Abs(x).toLatex()).equals('\\left|x\\right|');
-      check(const Sqrt(x).toLatex()).equals('\\sqrt{x}');
+      check(const Pow(x, RationalNumber(1, 2)).toLatex()).equals('\\sqrt{x}');
     });
 
     test('exponential and logarithm', () {

@@ -34,7 +34,7 @@ sealed class Expr {
   ///
   /// Supports numbers (integers, floating-point, scientific notation), mathematical
   /// constants ([pi], [e]), variables, basic arithmetic (`+`, `-`, `*`, `/`, `^`),
-  /// unary operators (`+`, `-`), functions ([Sin], [Cos], [Exp], [Ln], `log`, `sqrt`),
+  /// unary operators (`+`, `-`), functions ([Sin], [Cos], [Exp], [Ln], `log`, `sqrt`, `pow`, `root`),
   /// and parentheses.
   ///
   /// Throws a [FormatException] if [input] cannot be parsed.
@@ -504,8 +504,12 @@ final class Pow extends BinaryExpr {
   );
 
   @override
-  double evaluate(Map<String, double> context) =>
-      math.pow(left.evaluate(context), right.evaluate(context)).toDouble();
+  double evaluate(Map<String, double> context) {
+    if (right case RationalNumber(numerator: 1, denominator: 2)) {
+      return math.sqrt(left.evaluate(context));
+    }
+    return math.pow(left.evaluate(context), right.evaluate(context)).toDouble();
+  }
 }
 
 /// A unary negation expression node representing $-expr$.
@@ -747,24 +751,6 @@ final class Abs extends UnaryExpr {
 
   @override
   double evaluate(Map<String, double> context) => expr.evaluate(context).abs();
-}
-
-/// A square root function expression node representing $\sqrt{expr}$.
-///
-/// ```dart
-/// final s = Sqrt(Variable('x'));
-/// ```
-final class Sqrt extends UnaryExpr {
-  /// Creates a square root function node representing `sqrt([expr])`.
-  const new(super.expr);
-
-  @override
-  Expr substitute(String variable, Expr replacement) =>
-      Sqrt(expr.substitute(variable, replacement));
-
-  @override
-  double evaluate(Map<String, double> context) =>
-      math.sqrt(expr.evaluate(context));
 }
 
 /// A logarithm function expression node representing $\log_{base}(expr)$ with arbitrary base.

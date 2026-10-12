@@ -50,7 +50,6 @@ String _toLatex(Expr expr) => switch (expr) {
   Cosh(:final expr) => '\\cosh(${_toLatex(expr)})',
   Tanh(:final expr) => '\\tanh(${_toLatex(expr)})',
   Abs(:final expr) => '\\left|${_toLatex(expr)}\\right|',
-  Sqrt(:final expr) => '\\sqrt{${_toLatex(expr)}}',
   Exp(:final expr) => 'e^{${_toLatex(expr)}}',
   Ln(:final expr) => '\\ln(${_toLatex(expr)})',
   Log(:final base, :final expr) =>
