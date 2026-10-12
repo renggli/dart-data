@@ -4,69 +4,8 @@ import 'package:checks/checks.dart';
 import 'package:data/symbolic.dart';
 import 'package:test/scaffolding.dart';
 
-// Replication of the simplifier structural comparator to directly challenge its total order invariants.
-int _nodeTag(Expr expr) => switch (expr) {
-  RationalNumber() => 0,
-  RealNumber() => 1,
-  ConstantNumber() => 2,
-  Variable() => 3,
-  Neg() => 4,
-  Cos() => 5,
-  Exp() => 6,
-  Ln() => 7,
-  Sin() => 8,
-  Tan() => 9,
-  Asin() => 10,
-  Acos() => 11,
-  Atan() => 12,
-  Sinh() => 13,
-  Cosh() => 14,
-  Tanh() => 15,
-  Abs() => 16,
-  Log() => 18,
-  Pow() => 20,
-  Mul() => 21,
-  Div() => 22,
-  Add() => 23,
-  Sub() => 24,
-};
-
-int _compareRational(RationalNumber a, RationalNumber b) {
-  if (a.numerator == b.numerator && a.denominator == b.denominator) {
-    return 0;
-  }
-  final delta = a.numerator * b.denominator - b.numerator * a.denominator;
-  if (delta < 0) return -1;
-  if (delta > 0) return 1;
-  return a.denominator.compareTo(b.denominator);
-}
-
-int _compareStructural(Expr a, Expr b) {
-  if (identical(a, b)) return 0;
-  final tagA = _nodeTag(a);
-  final tagB = _nodeTag(b);
-  if (tagA != tagB) return tagA.compareTo(tagB);
-
-  return switch (a) {
-    RationalNumber() => _compareRational(a, b as RationalNumber),
-    RealNumber(:final value) => value.compareTo((b as RealNumber).value),
-    ConstantNumber(:final name, :final value) => switch (name.compareTo(
-      (b as ConstantNumber).name,
-    )) {
-      0 => value.compareTo(b.value),
-      final cmp => cmp,
-    },
-    Variable(:final name) => name.compareTo((b as Variable).name),
-    UnaryExpr(:final expr) => _compareStructural(expr, (b as UnaryExpr).expr),
-    BinaryExpr(:final left, :final right) => switch (_compareStructural(
-      left,
-      (b as BinaryExpr).left,
-    )) {
-      0 => _compareStructural(right, b.right),
-      final cmp => cmp,
-    },
-  };
-}
+// Replaced duplicated comparator functions with public compareStructural.
+const _compareStructural = compareStructural;
 
 /// Helper to clone an AST node into a distinct heap object so `identical(a, b)` is false.
 Expr _cloneExpr(Expr expr) => switch (expr) {

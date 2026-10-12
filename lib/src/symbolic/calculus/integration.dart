@@ -1,9 +1,9 @@
 import 'package:more/number.dart' show Fraction;
 
 import '../../numeric/integration.dart';
+import '../algebra/simplify.dart';
 import '../ast.dart';
 import '../compiler.dart';
-import '../simplifier.dart';
 import 'differentiation.dart';
 import 'linear_form.dart';
 

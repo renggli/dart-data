@@ -1,9 +1,10 @@
 import 'dart:math' as math;
 
+import 'algebra/factor.dart';
+import 'algebra/simplify.dart';
 import 'ast.dart';
 import 'calculus/differentiation.dart';
 import 'calculus/linear_form.dart';
-import 'simplifier.dart';
 
 /// Extension providing analytical equation solving on [Expr].
 extension SolverExtension on Expr {
@@ -96,6 +97,19 @@ List<Expr> _solveEquation(Expr expr, String variable) {
       final r1 = (((-b) + sqrtDisc) / twoA).simplify();
       final r2 = (((-b) - sqrtDisc) / twoA).simplify();
       return _deduplicate([r1, r2]);
+    }
+  }
+
+  // Polynomial factoring step (degree > 2 or multi-term polynomials):
+  final factored = expr.factor();
+  if (factored != expr) {
+    if (factored is Mul) {
+      final rootsLeft = _solveEquation(factored.left, variable);
+      final rootsRight = _solveEquation(factored.right, variable);
+      return _deduplicate([...rootsLeft, ...rootsRight]);
+    }
+    if (factored is Pow && factored.exponent is RationalNumber) {
+      return _solveEquation(factored.base, variable);
     }
   }
 

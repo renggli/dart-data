@@ -2,11 +2,8 @@ import 'dart:math' as math;
 
 import 'package:more/number.dart' show Fraction;
 
-import 'ast.dart';
-
-extension on Fraction {
-  bool get isZero => a == 0;
-}
+import '../ast.dart';
+import 'term_accumulator.dart';
 
 /// Canonical algebraic simplification extension on [Expr].
 extension SimplifierExtension on Expr {
@@ -102,87 +99,11 @@ Expr _simplifyAdditive(Expr left, Expr right, {required bool isSubtraction}) {
     }
   }
 
-  final acc = _TermAccumulator();
+  final acc = TermAccumulator(simplify: _simplify);
   acc.add(left, Fraction.one);
   acc.add(right, isSubtraction ? -Fraction.one : Fraction.one);
-
   acc.reduceIdentities();
-
-  // Filter out terms with zero coefficient
-  acc.terms.removeWhere((_, coeff) => coeff.isZero);
-
-  // If no symbolic terms exist and no real value, return rational constant value
-  if (acc.terms.isEmpty && acc.realValue == 0.0) {
-    if (acc.constantValue.isZero) return RationalNumber.zero;
-    return RationalNumber.fraction(acc.constantValue);
-  }
-
-  // Single symbolic term with no constants
-  if (acc.terms.length == 1 &&
-      acc.constantValue.isZero &&
-      acc.realValue == 0.0) {
-    final entry = acc.terms.entries.first;
-    final base = entry.key;
-    final coeff = entry.value;
-    if (coeff == Fraction.one) return base;
-    if (coeff == -Fraction.one) return _simplifyNeg(base);
-    return Mul(RationalNumber.fraction(coeff), base);
-  }
-
-  // Sort terms canonically: descending power/degree for polynomial terms
-  final sortedEntries = acc.terms.entries.toList()
-    ..sort((a, b) => _compareTerms(a.key, a.value, b.key, b.value));
-
-  Expr? result;
-  for (final entry in sortedEntries) {
-    final base = entry.key;
-    final coeff = entry.value;
-
-    if (result == null) {
-      if (coeff == Fraction.one) {
-        result = base;
-      } else if (coeff == -Fraction.one) {
-        result = _simplifyNeg(base);
-      } else {
-        result = Mul(RationalNumber.fraction(coeff), base);
-      }
-    } else {
-      if (coeff > Fraction.zero) {
-        final term = coeff == Fraction.one
-            ? base
-            : Mul(RationalNumber.fraction(coeff), base);
-        result = Add(result, term);
-      } else {
-        final absCoeff = -coeff;
-        final term = absCoeff == Fraction.one
-            ? base
-            : Mul(RationalNumber.fraction(absCoeff), base);
-        result = Sub(result, term);
-      }
-    }
-  }
-
-  if (!acc.constantValue.isZero) {
-    if (result == null) {
-      result = RationalNumber.fraction(acc.constantValue);
-    } else if (acc.constantValue > Fraction.zero) {
-      result = Add(result, RationalNumber.fraction(acc.constantValue));
-    } else {
-      result = Sub(result, RationalNumber.fraction(-acc.constantValue));
-    }
-  }
-
-  if (acc.realValue != 0.0) {
-    if (result == null) {
-      result = RealNumber(acc.realValue);
-    } else if (acc.realValue > 0.0) {
-      result = Add(result, RealNumber(acc.realValue));
-    } else {
-      result = Sub(result, RealNumber(-acc.realValue));
-    }
-  }
-
-  return result ?? RationalNumber.zero;
+  return acc.toExpr();
 }
 
 Expr _simplifyMul(Expr left, Expr right) {
@@ -266,25 +187,21 @@ Expr _simplifyMul(Expr left, Expr right) {
   }
 
   // Pull out constant scalar from left or right to fold factors:
-  // (c1 * inner) * right => c1 * (inner * right)
   if (left is Mul && left.left is RationalNumber) {
     final c1 = left.left as RationalNumber;
     final sub = _simplifyMul(left.right, right);
     return _simplifyMul(c1, sub);
   }
-  // (inner * c1) * right => c1 * (inner * right)
   if (left is Mul && left.right is RationalNumber) {
     final c1 = left.right as RationalNumber;
     final sub = _simplifyMul(left.left, right);
     return _simplifyMul(c1, sub);
   }
-  // left * (c2 * inner) => c2 * (left * inner)
   if (right is Mul && right.left is RationalNumber) {
     final c2 = right.left as RationalNumber;
     final sub = _simplifyMul(left, right.right);
     return _simplifyMul(c2, sub);
   }
-  // left * (inner * c2) => c2 * (left * inner)
   if (right is Mul && right.right is RationalNumber) {
     final c2 = right.right as RationalNumber;
     final sub = _simplifyMul(left, right.left);
@@ -292,32 +209,30 @@ Expr _simplifyMul(Expr left, Expr right) {
   }
 
   // Like-factor multiplications:
-  // x * x => x ^ 2, x^a * x^b => x^(a+b)
-  final (baseL, expL) = _decomposeFactor(left);
-  final (baseR, expR) = _decomposeFactor(right);
+  final (baseL, expL) = decomposeFactor(left);
+  final (baseR, expR) = decomposeFactor(right);
   if (baseL == baseR) {
     final newExp = _simplifyAdd(expL, expR);
     return _simplifyPow(baseL, newExp);
   }
 
   // Associative like-factor multiplications:
-  // (a * b) * c where b and c have same base => a * (b * c)
   if (left is Mul) {
-    final (baseSubR, _) = _decomposeFactor(left.right);
+    final (baseSubR, _) = decomposeFactor(left.right);
     if (baseSubR == baseR) {
       return _simplifyMul(left.left, _simplifyMul(left.right, right));
     }
-    final (baseSubL, _) = _decomposeFactor(left.left);
+    final (baseSubL, _) = decomposeFactor(left.left);
     if (baseSubL == baseR) {
       return _simplifyMul(_simplifyMul(left.left, right), left.right);
     }
   }
   if (right is Mul) {
-    final (baseSubL, _) = _decomposeFactor(right.left);
+    final (baseSubL, _) = decomposeFactor(right.left);
     if (baseSubL == baseL) {
       return _simplifyMul(_simplifyMul(left, right.left), right.right);
     }
-    final (baseSubR, _) = _decomposeFactor(right.right);
+    final (baseSubR, _) = decomposeFactor(right.right);
     if (baseSubR == baseL) {
       return _simplifyMul(right.left, _simplifyMul(left, right.right));
     }
@@ -370,8 +285,8 @@ Expr _simplifyDiv(Expr left, Expr right) {
   }
 
   // Like factors: x^a / x^b => x^(a - b)
-  final (baseL, expL) = _decomposeFactor(left);
-  final (baseR, expR) = _decomposeFactor(right);
+  final (baseL, expL) = decomposeFactor(left);
+  final (baseR, expR) = decomposeFactor(right);
   if (baseL == baseR) {
     final newExp = _simplifySub(expL, expR);
     return _simplifyPow(baseL, newExp);
@@ -379,11 +294,11 @@ Expr _simplifyDiv(Expr left, Expr right) {
 
   // Mul numerator: (c * r) / r => c, (a * b) / r
   if (left is Mul) {
-    final (baseSubL, _) = _decomposeFactor(left.left);
+    final (baseSubL, _) = decomposeFactor(left.left);
     if (baseSubL == baseR) {
       return _simplifyMul(_simplifyDiv(left.left, right), left.right);
     }
-    final (baseSubR, _) = _decomposeFactor(left.right);
+    final (baseSubR, _) = decomposeFactor(left.right);
     if (baseSubR == baseR) {
       return _simplifyMul(left.left, _simplifyDiv(left.right, right));
     }
@@ -861,348 +776,3 @@ Fraction? _matchPiMultiple(Expr expr) {
   }
   return null;
 }
-
-class _TermAccumulator {
-  Fraction constantValue = Fraction.zero;
-  double realValue = 0.0;
-  final Map<Expr, Fraction> terms = {};
-
-  void add(Expr expr, Fraction sign) {
-    if (expr is RationalNumber) {
-      constantValue += sign * expr.toFraction();
-      return;
-    }
-    if (expr is RealNumber) {
-      realValue += (sign.a / sign.b) * expr.value;
-      return;
-    }
-    if (expr is Add) {
-      add(expr.left, sign);
-      add(expr.right, sign);
-      return;
-    }
-    if (expr is Sub) {
-      add(expr.left, sign);
-      add(expr.right, -sign);
-      return;
-    }
-    if (expr is Neg) {
-      add(expr.expr, -sign);
-      return;
-    }
-    final (c, base) = _decomposeTerm(expr);
-    final totalCoeff = sign * c;
-    final current = terms[base] ?? Fraction.zero;
-    terms[base] = current + totalCoeff;
-  }
-
-  void reduceIdentities() {
-    _reducePythagorean();
-    _reduceHyperbolicPythagorean();
-    _reduceLogarithms();
-  }
-
-  void _reducePythagorean() {
-    final sinSquares = <Expr, (Expr, Fraction)>{};
-    final cosSquares = <Expr, (Expr, Fraction)>{};
-
-    for (final entry in terms.entries) {
-      final uSin = _isSquareOf(entry.key, Sin);
-      if (uSin != null) {
-        sinSquares[uSin] = (entry.key, entry.value);
-      }
-      final uCos = _isSquareOf(entry.key, Cos);
-      if (uCos != null) {
-        cosSquares[uCos] = (entry.key, entry.value);
-      }
-    }
-
-    for (final u in sinSquares.keys) {
-      if (cosSquares.containsKey(u)) {
-        final (sinKey, sinCoeff) = sinSquares[u]!;
-        final (cosKey, cosCoeff) = cosSquares[u]!;
-
-        if (sinCoeff == cosCoeff) {
-          terms.remove(sinKey);
-          terms.remove(cosKey);
-          constantValue += sinCoeff;
-        } else if (sinCoeff > Fraction.zero && cosCoeff > Fraction.zero) {
-          final m = sinCoeff < cosCoeff ? sinCoeff : cosCoeff;
-          final newSin = sinCoeff - m;
-          final newCos = cosCoeff - m;
-          if (newSin.isZero) {
-            terms.remove(sinKey);
-          } else {
-            terms[sinKey] = newSin;
-          }
-          if (newCos.isZero) {
-            terms.remove(cosKey);
-          } else {
-            terms[cosKey] = newCos;
-          }
-          constantValue += m;
-        }
-      }
-    }
-
-    if (constantValue == Fraction.one) {
-      for (final entry in terms.entries.toList()) {
-        final uSin = _isSquareOf(entry.key, Sin);
-        if (uSin != null && entry.value == -Fraction.one) {
-          terms.remove(entry.key);
-          constantValue = Fraction.zero;
-          final cos2 = Pow(Cos(uSin), const RationalNumber(2));
-          terms[cos2] = (terms[cos2] ?? Fraction.zero) + Fraction.one;
-          break;
-        }
-        final uCos = _isSquareOf(entry.key, Cos);
-        if (uCos != null && entry.value == -Fraction.one) {
-          terms.remove(entry.key);
-          constantValue = Fraction.zero;
-          final sin2 = Pow(Sin(uCos), const RationalNumber(2));
-          terms[sin2] = (terms[sin2] ?? Fraction.zero) + Fraction.one;
-          break;
-        }
-      }
-    }
-  }
-
-  void _reduceHyperbolicPythagorean() {
-    final coshSquares = <Expr, (Expr, Fraction)>{};
-    final sinhSquares = <Expr, (Expr, Fraction)>{};
-
-    for (final entry in terms.entries) {
-      final uCosh = _isSquareOf(entry.key, Cosh);
-      if (uCosh != null) {
-        coshSquares[uCosh] = (entry.key, entry.value);
-      }
-      final uSinh = _isSquareOf(entry.key, Sinh);
-      if (uSinh != null) {
-        sinhSquares[uSinh] = (entry.key, entry.value);
-      }
-    }
-
-    for (final u in coshSquares.keys) {
-      if (sinhSquares.containsKey(u)) {
-        final (coshKey, coshCoeff) = coshSquares[u]!;
-        final (sinhKey, sinhCoeff) = sinhSquares[u]!;
-
-        if (coshCoeff == -sinhCoeff && coshCoeff > Fraction.zero) {
-          terms.remove(coshKey);
-          terms.remove(sinhKey);
-          constantValue += coshCoeff;
-        }
-      }
-    }
-
-    if (constantValue == Fraction.one) {
-      for (final entry in terms.entries.toList()) {
-        final uSinh = _isSquareOf(entry.key, Sinh);
-        if (uSinh != null && entry.value == Fraction.one) {
-          terms.remove(entry.key);
-          constantValue = Fraction.zero;
-          final cosh2 = Pow(Cosh(uSinh), const RationalNumber(2));
-          terms[cosh2] = (terms[cosh2] ?? Fraction.zero) + Fraction.one;
-          break;
-        }
-      }
-    }
-
-    if (constantValue == -Fraction.one) {
-      for (final entry in terms.entries.toList()) {
-        final uCosh = _isSquareOf(entry.key, Cosh);
-        if (uCosh != null && entry.value == Fraction.one) {
-          terms.remove(entry.key);
-          constantValue = Fraction.zero;
-          final sinh2 = Pow(Sinh(uCosh), const RationalNumber(2));
-          terms[sinh2] = (terms[sinh2] ?? Fraction.zero) + Fraction.one;
-          break;
-        }
-      }
-    }
-  }
-
-  void _reduceLogarithms() {
-    final lnEntries = [
-      for (final e in terms.entries)
-        if (e.key is Ln &&
-            (e.value == Fraction.one || e.value == -Fraction.one))
-          e,
-    ];
-
-    if (lnEntries.length >= 2) {
-      Expr? num;
-      Expr? den;
-
-      for (final e in lnEntries) {
-        final inner = (e.key as Ln).expr;
-        if (e.value == Fraction.one) {
-          num = num == null ? inner : _simplifyMul(num, inner);
-        } else {
-          den = den == null ? inner : _simplifyMul(den, inner);
-        }
-        terms.remove(e.key);
-      }
-
-      if (num != null && den != null) {
-        final combined = _simplifyLn(_simplifyDiv(num, den));
-        add(combined, Fraction.one);
-      } else if (num != null) {
-        final combined = _simplifyLn(num);
-        add(combined, Fraction.one);
-      } else if (den != null) {
-        final combined = _simplifyLn(_simplifyDiv(RationalNumber.one, den));
-        add(combined, Fraction.one);
-      }
-    }
-  }
-}
-
-Expr? _isSquareOf(Expr term, Type targetType) {
-  if (term is Pow) {
-    final exp = term.exponent;
-    final isSquare =
-        (exp is RationalNumber && exp.numerator == 2 && exp.denominator == 1) ||
-        (exp is RealNumber && exp.value == 2.0);
-    if (isSquare &&
-        term.base.runtimeType == targetType &&
-        term.base is UnaryExpr) {
-      return (term.base as UnaryExpr).expr;
-    }
-  }
-  return null;
-}
-
-(Fraction, Expr) _decomposeTerm(Expr expr) {
-  if (expr is Neg) {
-    final (c, b) = _decomposeTerm(expr.expr);
-    return (-c, b);
-  }
-  if (expr is Mul) {
-    if (expr.left is RationalNumber) {
-      final c1 = (expr.left as RationalNumber).toFraction();
-      final (c2, b) = _decomposeTerm(expr.right);
-      return (c1 * c2, b);
-    }
-    if (expr.right is RationalNumber) {
-      final c1 = (expr.right as RationalNumber).toFraction();
-      final (c2, b) = _decomposeTerm(expr.left);
-      return (c1 * c2, b);
-    }
-  }
-  if (expr is Div && expr.right is RationalNumber) {
-    final c1 = (expr.right as RationalNumber).toFraction();
-    final (c2, b) = _decomposeTerm(expr.left);
-    return (c2 / c1, b);
-  }
-  return (Fraction.one, expr);
-}
-
-(Expr, Expr) _decomposeFactor(Expr expr) {
-  if (expr is Pow) {
-    return (expr.base, expr.exponent);
-  }
-  return (expr, RationalNumber.one);
-}
-
-int _compareTerms(Expr baseA, Fraction coeffA, Expr baseB, Fraction coeffB) {
-  final degA = _termDegree(baseA);
-  final degB = _termDegree(baseB);
-  if (degA != degB) {
-    return degB.compareTo(degA); // Descending degree
-  }
-  final signA = coeffA > Fraction.zero ? 1 : -1;
-  final signB = coeffB > Fraction.zero ? 1 : -1;
-  if (signA != signB) {
-    return signB.compareTo(signA); // Positive terms first
-  }
-  final symA = _primarySymbol(baseA);
-  final symB = _primarySymbol(baseB);
-  final cmp = symA.compareTo(symB);
-  if (cmp != 0) return cmp;
-  return _compareStructural(baseA, baseB);
-}
-
-double _termDegree(Expr expr) => switch (expr) {
-  Variable() => 1.0,
-  Pow(base: Variable(), exponent: Number(:final value)) => value,
-  Pow(base: Variable(), exponent: Neg(expr: Number(:final value))) => -value,
-  Mul(left: final l, right: final r) => _termDegree(l) + _termDegree(r),
-  Neg(:final expr) => _termDegree(expr),
-  Number() => 0.0,
-  _ => 0.0,
-};
-
-String _primarySymbol(Expr expr) => switch (expr) {
-  Variable(:final name) => name,
-  ConstantNumber(:final name) => name,
-  Pow(base: final b) => _primarySymbol(b),
-  Neg(:final expr) => _primarySymbol(expr),
-  Mul(left: final l) => _primarySymbol(l),
-  Div(left: final l) => _primarySymbol(l),
-  UnaryExpr(:final expr) => _primarySymbol(expr),
-  _ => '',
-};
-
-int _compareStructural(Expr a, Expr b) {
-  if (identical(a, b)) return 0;
-  final tagA = _nodeTag(a);
-  final tagB = _nodeTag(b);
-  if (tagA != tagB) return tagA.compareTo(tagB);
-
-  return switch (a) {
-    RationalNumber() => _compareRational(a, b as RationalNumber),
-    RealNumber(:final value) => value.compareTo((b as RealNumber).value),
-    ConstantNumber(:final name, :final value) => switch (name.compareTo(
-      (b as ConstantNumber).name,
-    )) {
-      0 => value.compareTo(b.value),
-      final cmp => cmp,
-    },
-    Variable(:final name) => name.compareTo((b as Variable).name),
-    UnaryExpr(:final expr) => _compareStructural(expr, (b as UnaryExpr).expr),
-    BinaryExpr(:final left, :final right) => switch (_compareStructural(
-      left,
-      (b as BinaryExpr).left,
-    )) {
-      0 => _compareStructural(right, b.right),
-      final cmp => cmp,
-    },
-  };
-}
-
-int _compareRational(RationalNumber a, RationalNumber b) {
-  if (a.numerator == b.numerator && a.denominator == b.denominator) {
-    return 0;
-  }
-  final delta = a.numerator * b.denominator - b.numerator * a.denominator;
-  if (delta < 0) return -1;
-  if (delta > 0) return 1;
-  return a.denominator.compareTo(b.denominator);
-}
-
-int _nodeTag(Expr expr) => switch (expr) {
-  RationalNumber() => 0,
-  RealNumber() => 1,
-  ConstantNumber() => 2,
-  Variable() => 3,
-  Neg() => 4,
-  Cos() => 5,
-  Exp() => 6,
-  Ln() => 7,
-  Sin() => 8,
-  Tan() => 9,
-  Asin() => 10,
-  Acos() => 11,
-  Atan() => 12,
-  Sinh() => 13,
-  Cosh() => 14,
-  Tanh() => 15,
-  Abs() => 16,
-  Log() => 18,
-  Pow() => 20,
-  Mul() => 21,
-  Div() => 22,
-  Add() => 23,
-  Sub() => 24,
-};

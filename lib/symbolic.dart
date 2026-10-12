@@ -24,10 +24,11 @@
 ///   ([IntegrationExtension.integrate]); linear form matching
 ///   ([LinearFormExtension.matchLinear]); and Taylor series expansion
 ///   ([TaylorExtension.taylorSeries]).
-/// - **Algebraic Simplification**: Canonical rule-based simplifier
-///   ([SimplifierExtension.simplify]) applying identity properties
-///   ($x + 0 \to x$, $x \times 1 \to x$, $x^0 \to 1$), constant folding, and
-///   power/logarithm simplifications.
+/// - **Algebraic Manipulation**: Canonical simplification
+///   ([SimplifierExtension.simplify]), polynomial expansion
+///   ([ExpandExtension.expand]), polynomial factorization
+///   ([FactorExtension.factor]), and total structural ordering
+///   ([compareStructural], [compareTerms]).
 /// - **Equation Solving**: [SolverExtension.solve] for single univariate
 ///   equations and [SystemSolverExtension.solveSystem] for linear equation
 ///   systems.
@@ -66,6 +67,10 @@ library;
 
 import 'dart:typed_data';
 
+import 'src/symbolic/algebra/expand.dart';
+import 'src/symbolic/algebra/factor.dart';
+import 'src/symbolic/algebra/simplify.dart';
+import 'src/symbolic/algebra/structural_order.dart';
 import 'src/symbolic/ast.dart';
 import 'src/symbolic/calculus/differentiation.dart';
 import 'src/symbolic/calculus/integration.dart';
@@ -73,12 +78,15 @@ import 'src/symbolic/calculus/linear_form.dart';
 import 'src/symbolic/calculus/multivariable.dart';
 import 'src/symbolic/calculus/taylor.dart';
 import 'src/symbolic/compiler.dart';
-import 'src/symbolic/simplifier.dart';
 import 'src/symbolic/solver.dart';
 import 'src/symbolic/textualization/latex.dart';
 import 'src/symbolic/textualization/mathml.dart';
 import 'src/symbolic/textualization/string.dart';
 
+export 'src/symbolic/algebra/expand.dart';
+export 'src/symbolic/algebra/factor.dart';
+export 'src/symbolic/algebra/simplify.dart';
+export 'src/symbolic/algebra/structural_order.dart';
 export 'src/symbolic/ast.dart';
 export 'src/symbolic/calculus/differentiation.dart';
 export 'src/symbolic/calculus/integration.dart';
@@ -86,7 +94,6 @@ export 'src/symbolic/calculus/linear_form.dart';
 export 'src/symbolic/calculus/multivariable.dart';
 export 'src/symbolic/calculus/taylor.dart';
 export 'src/symbolic/compiler.dart';
-export 'src/symbolic/simplifier.dart';
 export 'src/symbolic/solver.dart';
 export 'src/symbolic/textualization/latex.dart';
 export 'src/symbolic/textualization/mathml.dart';

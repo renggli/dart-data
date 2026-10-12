@@ -2,8 +2,8 @@ import 'dart:math' as math;
 import 'dart:typed_data';
 
 import '../linear/vector.dart';
+import 'algebra/simplify.dart';
 import 'ast.dart';
-import 'simplifier.dart';
 
 /// Extension providing zero-allocation high-throughput compilation of symbolic
 /// expressions.

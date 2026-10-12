@@ -1,5 +1,5 @@
+import '../algebra/simplify.dart';
 import '../ast.dart';
-import '../simplifier.dart';
 import 'differentiation.dart';
 
 /// Multivariable calculus extensions on [Expr].

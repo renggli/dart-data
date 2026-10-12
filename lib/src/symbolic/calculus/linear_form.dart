@@ -1,7 +1,7 @@
 import 'package:more/number.dart' show Fraction;
 
+import '../algebra/simplify.dart';
 import '../ast.dart';
-import '../simplifier.dart';
 
 extension on Fraction {
   bool get isInteger => b == 1;
