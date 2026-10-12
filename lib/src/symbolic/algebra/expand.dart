@@ -84,12 +84,27 @@ List<Expr> _extractAdditiveTerms(Expr expr) => switch (expr) {
   Neg(:final expr) => [
     for (final term in _extractAdditiveTerms(expr)) _negateMonomial(term),
   ],
+  ComplexNumber(:final complex) when complex.a != 0 && complex.b != 0 => [
+    if (complex.a == complex.a.truncateToDouble())
+      RationalNumber(complex.a.toInt())
+    else
+      RealNumber(complex.a.toDouble()),
+    if (complex.b == 1.0)
+      ConstantNumber.i
+    else if (complex.b == -1.0)
+      const Neg(ConstantNumber.i)
+    else if (complex.b == complex.b.truncateToDouble())
+      Mul(RationalNumber(complex.b.toInt()), ConstantNumber.i)
+    else
+      Mul(RealNumber(complex.b.toDouble()), ConstantNumber.i),
+  ],
   _ => [expr],
 };
 
 Expr _negateMonomial(Expr expr) => switch (expr) {
   RationalNumber() => RationalNumber.fraction(-expr.toFraction()),
   RealNumber(:final value) => RealNumber(-value),
+  ComplexNumber(:final complex) => ComplexNumber(-complex),
   Neg(:final expr) => expr,
   _ => Neg(expr),
 };
@@ -150,6 +165,9 @@ void _collectFactorInto(
 }
 
 Expr _multiplyMonomials(Expr left, Expr right) {
+  if (left is Number && right is Number) {
+    return Mul(left, right).simplify();
+  }
   if ((left is RationalNumber && left.isZero) ||
       (right is RationalNumber && right.isZero) ||
       (left is RealNumber && left.value == 0.0) ||

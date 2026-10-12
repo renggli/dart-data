@@ -1,3 +1,5 @@
+import 'package:more/number.dart' show Complex;
+
 import '../ast.dart';
 
 /// MathML serialization extension on [Expr].
@@ -29,6 +31,7 @@ String _toMathMl(Expr expr) => switch (expr) {
   Variable(:final name) => '<mi>${_escapeXml(name)}</mi>',
   ConstantNumber(:final name) => switch (name) {
     'pi' => '<mi>π</mi>',
+    'i' => '<mi>i</mi>',
     _ => '<mi>${_escapeXml(name)}</mi>',
   },
   RationalNumber(:final numerator, :final denominator) =>
@@ -38,6 +41,7 @@ String _toMathMl(Expr expr) => switch (expr) {
         ? '<mrow><mo>-</mo><mfrac><mn>${-numerator}</mn><mn>$denominator</mn></mfrac></mrow>'
         : '<mfrac><mn>$numerator</mn><mn>$denominator</mn></mfrac>',
   RealNumber(:final value) => '<mn>$value</mn>',
+  ComplexNumber(:final complex) => _formatComplexMathMl(complex),
   Add(:final left, :final right) =>
     '<mrow>${_toMathMl(left)}<mo>+</mo>${_toMathMl(right)}</mrow>',
   Sub(:final left, :final right) =>
@@ -85,13 +89,64 @@ String _formatPow(Expr base, Expr exponent) {
   return '<msup>${_formatPowBase(base)}${_toMathMl(exponent)}</msup>';
 }
 
+String _formatComplexMathMl(Complex c) {
+  if (c.b == 0) {
+    return '<mn>${_formatNum(c.a)}</mn>';
+  }
+  if (c.a == 0) {
+    if (c.b == 1) return '<mi>i</mi>';
+    if (c.b == -1) return '<mrow><mo>-</mo><mi>i</mi></mrow>';
+    return '<mrow><mn>${_formatNum(c.b)}</mn><mo>&#x22c5;</mo><mi>i</mi></mrow>';
+  }
+  final aNode = '<mn>${_formatNum(c.a)}</mn>';
+  if (c.b == 1) {
+    return '<mrow>$aNode<mo>+</mo><mi>i</mi></mrow>';
+  } else if (c.b == -1) {
+    return '<mrow>$aNode<mo>-</mo><mi>i</mi></mrow>';
+  } else if (c.b > 0) {
+    return '<mrow>$aNode<mo>+</mo><mrow><mn>${_formatNum(c.b)}</mn><mo>&#x22c5;</mo><mi>i</mi></mrow></mrow>';
+  } else {
+    return '<mrow>$aNode<mo>-</mo><mrow><mn>${_formatNum(-c.b)}</mn><mo>&#x22c5;</mo><mi>i</mi></mrow></mrow>';
+  }
+}
+
+String _formatNum(num n) {
+  if (n is int) return '$n';
+  if (n.truncateToDouble() == n && !n.isInfinite && !n.isNaN) {
+    return '${n.toInt()}';
+  }
+  return '$n';
+}
+
 String _formatSubRight(Expr right) => switch (right) {
-  Add() || Sub() => '<mrow><mo>(</mo>${_toMathMl(right)}<mo>)</mo></mrow>',
+  Add() ||
+  Sub() ||
+  Neg() ||
+  RationalNumber(numerator: < 0) ||
+  RealNumber(
+    value: < 0,
+  ) => '<mrow><mo>(</mo>${_toMathMl(right)}<mo>)</mo></mrow>',
+  ComplexNumber(:final complex)
+      when (complex.a != 0 && complex.b != 0) ||
+          complex.a < 0 ||
+          (complex.a == 0 && complex.b < 0) =>
+    '<mrow><mo>(</mo>${_toMathMl(right)}<mo>)</mo></mrow>',
   _ => _toMathMl(right),
 };
 
 String _formatMulOperand(Expr operand) => switch (operand) {
-  Add() || Sub() => '<mrow><mo>(</mo>${_toMathMl(operand)}<mo>)</mo></mrow>',
+  Add() ||
+  Sub() ||
+  Neg() ||
+  RationalNumber(numerator: < 0) ||
+  RealNumber(
+    value: < 0,
+  ) => '<mrow><mo>(</mo>${_toMathMl(operand)}<mo>)</mo></mrow>',
+  ComplexNumber(:final complex)
+      when (complex.a != 0 && complex.b != 0) ||
+          complex.a < 0 ||
+          (complex.a == 0 && complex.b < 0) =>
+    '<mrow><mo>(</mo>${_toMathMl(operand)}<mo>)</mo></mrow>',
   _ => _toMathMl(operand),
 };
 
@@ -100,12 +155,30 @@ String _formatPowBase(Expr base) => switch (base) {
   Sub() ||
   Mul() ||
   Div() ||
-  Neg() => '<mrow><mo>(</mo>${_toMathMl(base)}<mo>)</mo></mrow>',
+  Neg() ||
+  RationalNumber(numerator: < 0) ||
+  RealNumber(
+    value: < 0,
+  ) => '<mrow><mo>(</mo>${_toMathMl(base)}<mo>)</mo></mrow>',
+  ComplexNumber(:final complex)
+      when (complex.b != 0 && complex != Complex.i) || complex.a < 0 =>
+    '<mrow><mo>(</mo>${_toMathMl(base)}<mo>)</mo></mrow>',
   _ => _toMathMl(base),
 };
 
 String _formatNegOperand(Expr expr) => switch (expr) {
-  Add() || Sub() => '<mrow><mo>(</mo>${_toMathMl(expr)}<mo>)</mo></mrow>',
+  Add() ||
+  Sub() ||
+  Neg() ||
+  RationalNumber(numerator: < 0) ||
+  RealNumber(
+    value: < 0,
+  ) => '<mrow><mo>(</mo>${_toMathMl(expr)}<mo>)</mo></mrow>',
+  ComplexNumber(:final complex)
+      when (complex.a != 0 && complex.b != 0) ||
+          complex.a < 0 ||
+          (complex.a == 0 && complex.b < 0) =>
+    '<mrow><mo>(</mo>${_toMathMl(expr)}<mo>)</mo></mrow>',
   _ => _toMathMl(expr),
 };
 

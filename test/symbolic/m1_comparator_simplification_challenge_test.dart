@@ -38,6 +38,7 @@ Expr _cloneExpr(Expr expr) => switch (expr) {
     _cloneExpr(base),
     _cloneExpr(exponent),
   ),
+  ComplexNumber(:final complex) => ComplexNumber(complex),
 };
 
 void main() {

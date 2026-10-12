@@ -10,9 +10,9 @@
 ///
 /// - **Symbolic Expressions ([Expr])**: Build trees of variables ([Variable]),
 ///   numbers ([Number], [RationalNumber], [RealNumber], [ConstantNumber],
-///   [pi], [e]), and mathematical functions like [Sin], [Cos], [Tan], [Asin],
-///   [Acos], [Atan], [Sinh], [Cosh], [Tanh], [Abs], [Exp], [Ln], and
-///   [Log].
+///   [ComplexNumber], [pi], [e], [i]), and mathematical functions like [Sin],
+///   [Cos], [Tan], [Asin], [Acos], [Atan], [Sinh], [Cosh], [Tanh], [Abs],
+///   [Exp], [Ln], and [Log].
 /// - **Expression Parsing**: Parse mathematical formulas from text with PetitParser
 ///   using [Expr.parse] or [Expr.tryParse].
 /// - **Analytical Calculus**: Exact differentiation

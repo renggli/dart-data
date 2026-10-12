@@ -1,6 +1,6 @@
 import 'dart:math' as math;
 
-import 'package:more/number.dart' show Fraction;
+import 'package:more/number.dart' show Complex, Fraction;
 
 import 'parser.dart';
 import 'textualization/string.dart';
@@ -10,6 +10,9 @@ const pi = ConstantNumber.pi;
 
 /// Mathematical constant $e \approx 2.718281828459045$ as a symbolic [Expr].
 const e = ConstantNumber.e;
+
+/// Imaginary unit constant $i = \sqrt{-1}$ as a symbolic [Expr].
+const i = ConstantNumber.i;
 
 /// Sealed base class representing an algebraic expression abstract syntax tree
 /// (AST) node.
@@ -74,6 +77,19 @@ sealed class Expr {
   /// Evaluates this expression using the variable values in [context].
   double evaluate(Map<String, double> context);
 
+  /// Evaluates this expression using complex variable assignments in [context].
+  ///
+  /// Supports full complex evaluation across all arithmetic, power,
+  /// trigonometric, hyperbolic, exponential, logarithmic, and absolute value nodes.
+  ///
+  /// ```dart
+  /// final x = Variable('x');
+  /// final expr = x * x + 1;
+  /// final result = expr.evaluateComplex({'x': Complex(0, 1)}); // 0.0
+  /// ```
+  Complex evaluateComplex([Map<String, Complex> context = const {}]) =>
+      _evaluateComplex(this, context);
+
   /// Adds this expression to [other].
   Expr operator +(Object other) => Add(this, _wrap(other));
 
@@ -99,6 +115,7 @@ sealed class Expr {
     if (value is Expr) return value;
     if (value is int) return RationalNumber(value);
     if (value is Fraction) return RationalNumber.fraction(value);
+    if (value is Complex) return ComplexNumber(value);
     if (value is num) {
       if (maxDenominator > 0) {
         final frac = Fraction.fromDouble(value, maxDenominator: maxDenominator);
@@ -176,7 +193,16 @@ sealed class Number extends Expr {
   const new();
 
   /// Floating-point double precision numeric value of this number.
+  ///
+  /// Throws an [UnsupportedError] if called on complex numbers with non-zero
+  /// imaginary parts or on the imaginary constant [i].
   double get value;
+
+  /// Whether this number has no imaginary part.
+  bool get isReal => true;
+
+  /// Converts this number to a [Complex] value.
+  Complex get complexValue => Complex(value, 0);
 
   @override
   bool dependsOn(String name) => false;
@@ -310,8 +336,8 @@ final class RealNumber extends Number {
 /// print(c.value); // 3.141592653589793
 /// ```
 final class ConstantNumber extends Number {
-  /// Creates a named transcendental constant with [name] and numeric [value].
-  const new(this.name, this.value);
+  /// Creates a named mathematical constant with [name] and optional numeric [value].
+  const new(this.name, [double value = double.nan]) : _value = value;
 
   /// Mathematical constant $\pi \approx 3.141592653589793$.
   static const pi = ConstantNumber('pi', math.pi);
@@ -319,11 +345,32 @@ final class ConstantNumber extends Number {
   /// Mathematical constant $e \approx 2.718281828459045$.
   static const e = ConstantNumber('e', math.e);
 
-  /// The symbolic name of this constant (e.g. `'pi'`, `'e'`).
+  /// Imaginary unit constant $i = \sqrt{-1}$.
+  static const i = ConstantNumber('i');
+
+  /// The symbolic name of this constant (e.g. `'pi'`, `'e'`, `'i'`).
   final String name;
 
+  final double _value;
+
   @override
-  final double value;
+  bool get isReal => name != 'i';
+
+  @override
+  Complex get complexValue => switch (name) {
+    'i' => Complex.i,
+    _ => Complex(value, 0),
+  };
+
+  @override
+  double get value {
+    if (name == 'i') {
+      throw UnsupportedError(
+        'Imaginary constant "i" cannot be converted to a real double',
+      );
+    }
+    return _value;
+  }
 
   @override
   String toString() => name;
@@ -334,6 +381,56 @@ final class ConstantNumber extends Number {
 
   @override
   int get hashCode => name.hashCode;
+}
+
+/// A complex floating-point numeric value node ($\mathbb{C}$) backed by [Complex].
+final class ComplexNumber extends Number {
+  /// Creates a complex number node wrapping [complex].
+  const new(this.complex);
+
+  /// Creates a complex number node from Cartesian coordinates [a] and [b].
+  factory fromCartesian(num a, [num b = 0]) => ComplexNumber(Complex(a, b));
+
+  /// The underlying [Complex] value.
+  final Complex complex;
+
+  @override
+  bool get isReal => complex.b == 0;
+
+  @override
+  double get value {
+    if (!isReal) {
+      throw UnsupportedError(
+        'ComplexNumber with non-zero imaginary part cannot be converted to a real double',
+      );
+    }
+    return complex.a.toDouble();
+  }
+
+  @override
+  Complex get complexValue => complex;
+
+  @override
+  String toString() {
+    if (complex.b == 0) return '${complex.a}';
+    if (complex.a == 0) {
+      if (complex.b == 1) return 'i';
+      if (complex.b == -1) return '-i';
+      return '${complex.b} * i';
+    }
+    final sign = complex.b < 0 ? '-' : '+';
+    final absB = complex.b.abs();
+    final bStr = absB == 1 ? 'i' : '$absB * i';
+    return '${complex.a} $sign $bStr';
+  }
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is ComplexNumber && other.complex == complex);
+
+  @override
+  int get hashCode => complex.hashCode;
 }
 
 /// Sealed base class representing a unary operation AST node with a single operand.
@@ -777,4 +874,54 @@ final class Log extends BinaryExpr {
   @override
   double evaluate(Map<String, double> context) =>
       math.log(right.evaluate(context)) / math.log(left.evaluate(context));
+}
+
+Complex _evaluateComplex(Expr expr, Map<String, Complex> context) =>
+    switch (expr) {
+      Variable(:final name) =>
+        context[name] ??
+            (throw ArgumentError('Variable "$name" not provided in context')),
+      Number() => expr.complexValue,
+      Add(:final left, :final right) =>
+        _evaluateComplex(left, context) + _evaluateComplex(right, context),
+      Sub(:final left, :final right) =>
+        _evaluateComplex(left, context) - _evaluateComplex(right, context),
+      Mul(:final left, :final right) =>
+        _evaluateComplex(left, context) * _evaluateComplex(right, context),
+      Div(:final left, :final right) =>
+        _evaluateComplex(left, context) / _evaluateComplex(right, context),
+      Pow(:final base, :final exponent) => _complexPow(
+        _evaluateComplex(base, context),
+        _evaluateComplex(exponent, context),
+      ),
+      Neg(:final expr) => -_evaluateComplex(expr, context),
+      Sin(:final expr) => _evaluateComplex(expr, context).sin(),
+      Cos(:final expr) => _evaluateComplex(expr, context).cos(),
+      Tan(:final expr) => _evaluateComplex(expr, context).tan(),
+      Asin(:final expr) => _evaluateComplex(expr, context).asin(),
+      Acos(:final expr) => _evaluateComplex(expr, context).acos(),
+      Atan(:final expr) => _evaluateComplex(expr, context).atan(),
+      Sinh(:final expr) => _evaluateComplex(expr, context).sinh(),
+      Cosh(:final expr) => _evaluateComplex(expr, context).cosh(),
+      Tanh(:final expr) => _evaluateComplex(expr, context).tanh(),
+      Exp(:final expr) => _evaluateComplex(expr, context).exp(),
+      Ln(:final expr) => _evaluateComplex(expr, context).log(),
+      Log(:final base, :final expr) =>
+        _evaluateComplex(expr, context).log() /
+            _evaluateComplex(base, context).log(),
+      Abs(:final expr) => Complex(_evaluateComplex(expr, context).abs(), 0),
+    };
+
+Complex _complexPow(Complex base, Complex exponent) {
+  if (base.a == 0 && base.b == 0) {
+    if (exponent.a == 0 && exponent.b == 0) return Complex.one;
+    if (exponent.a > 0) return Complex.zero;
+    if (exponent.a < 0) {
+      return exponent.b == 0
+          ? const Complex(double.infinity, 0.0)
+          : const Complex(double.infinity, double.nan);
+    }
+    return Complex.nan;
+  }
+  return base.pow(exponent);
 }

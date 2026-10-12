@@ -1,6 +1,8 @@
 import 'dart:math' as math;
 import 'dart:typed_data';
 
+import 'package:more/number.dart' show Complex;
+
 import '../linear/vector.dart';
 import 'algebra/simplify.dart';
 import 'ast.dart';
@@ -25,6 +27,43 @@ extension CompilerExtension on Expr {
   double Function(double x) toFunction1D(String varName) {
     final simplified = simplify();
     return _compileFast1D(simplified, varName);
+  }
+
+  /// Compiles this expression into a fast complex native Dart function
+  /// `Complex Function(Complex x)`.
+  ///
+  /// Conceptually, this converts a symbolic formula into a direct complex
+  /// evaluation closure that executes with maximum throughput without AST
+  /// dictionary lookups or tree traversals.
+  ///
+  /// ```dart
+  /// final x = Variable('x');
+  /// final f = (x * x + 1).toComplexFunction1D('x');
+  /// final y = f(Complex(0, 1)); // i^2 + 1 = 0
+  /// ```
+  Complex Function(Complex x) toComplexFunction1D([String variable = 'x']) {
+    final simplified = simplify();
+    return _compileFastComplex1D(simplified, variable);
+  }
+
+  /// Compiles this expression into a high-speed dictionary-based complex closure
+  /// `Complex Function(Map<String, Complex> context)`.
+  ///
+  /// ```dart
+  /// final x = Variable('x');
+  /// final y = Variable('y');
+  /// final f = (x + y).compileComplex();
+  /// final result = f({'x': Complex(1, 2), 'y': Complex(3, 4)}); // 4 + 6i
+  /// ```
+  Complex Function(Map<String, Complex> context) compileComplex() {
+    final simplified = simplify();
+    return _compileComplexEvaluator<Map<String, Complex>>(
+      simplified,
+      (name) =>
+          (context) =>
+              context[name] ??
+              (throw ArgumentError('Variable "$name" not provided in context')),
+    );
   }
 
   /// Compiles this expression into a fast vector evaluation closure
@@ -223,6 +262,14 @@ double Function(T) _compileEvaluator<T>(
   double Function(T) Function(String name) compileVar,
 ) {
   switch (expression) {
+    case ConstantNumber(name: 'i'):
+      throw UnsupportedError(
+        'Expression contains imaginary constant "i"; use toComplexFunction1D instead.',
+      );
+    case ComplexNumber():
+      throw UnsupportedError(
+        'Expression contains ComplexNumber; use toComplexFunction1D instead.',
+      );
     case Number(:final value):
       return (_) => value;
     case Variable(:final name):
@@ -318,6 +365,14 @@ void _flattenToRpn(
   List<_Instruction> instructions,
 ) {
   switch (expr) {
+    case ConstantNumber(name: 'i'):
+      throw UnsupportedError(
+        'compileTensorKernel does not support expressions with imaginary constant "i".',
+      );
+    case ComplexNumber():
+      throw UnsupportedError(
+        'compileTensorKernel does not support expressions with ComplexNumber.',
+      );
     case Number(:final value):
       instructions.add(_Instruction.pushConst(value));
     case Variable(:final name):
@@ -466,4 +521,102 @@ final class _Instruction {
   final _Op op;
   final double constValue;
   final int varIndex;
+}
+
+Complex Function(Complex x) _compileFastComplex1D(
+  Expr expression,
+  String variableName,
+) => _compileComplexEvaluator<Complex>(
+  expression,
+  (name) => name == variableName ? (x) => x : (_) => Complex.zero,
+);
+
+Complex Function(T) _compileComplexEvaluator<T>(
+  Expr expression,
+  Complex Function(T) Function(String name) compileVar,
+) {
+  switch (expression) {
+    case Variable(:final name):
+      return compileVar(name);
+    case Number():
+      final c = expression.complexValue;
+      return (_) => c;
+    case Add(:final left, :final right):
+      final fL = _compileComplexEvaluator<T>(left, compileVar);
+      final fR = _compileComplexEvaluator<T>(right, compileVar);
+      return (t) => fL(t) + fR(t);
+    case Sub(:final left, :final right):
+      final fL = _compileComplexEvaluator<T>(left, compileVar);
+      final fR = _compileComplexEvaluator<T>(right, compileVar);
+      return (t) => fL(t) - fR(t);
+    case Mul(:final left, :final right):
+      final fL = _compileComplexEvaluator<T>(left, compileVar);
+      final fR = _compileComplexEvaluator<T>(right, compileVar);
+      return (t) => fL(t) * fR(t);
+    case Div(:final left, :final right):
+      final fL = _compileComplexEvaluator<T>(left, compileVar);
+      final fR = _compileComplexEvaluator<T>(right, compileVar);
+      return (t) => fL(t) / fR(t);
+    case Pow(:final base, :final exponent):
+      final fB = _compileComplexEvaluator<T>(base, compileVar);
+      final fE = _compileComplexEvaluator<T>(exponent, compileVar);
+      return (t) => _complexPow(fB(t), fE(t));
+    case Neg(:final expr):
+      final fn = _compileComplexEvaluator<T>(expr, compileVar);
+      return (t) => -fn(t);
+    case Sin(:final expr):
+      final fn = _compileComplexEvaluator<T>(expr, compileVar);
+      return (t) => fn(t).sin();
+    case Cos(:final expr):
+      final fn = _compileComplexEvaluator<T>(expr, compileVar);
+      return (t) => fn(t).cos();
+    case Tan(:final expr):
+      final fn = _compileComplexEvaluator<T>(expr, compileVar);
+      return (t) => fn(t).tan();
+    case Asin(:final expr):
+      final fn = _compileComplexEvaluator<T>(expr, compileVar);
+      return (t) => fn(t).asin();
+    case Acos(:final expr):
+      final fn = _compileComplexEvaluator<T>(expr, compileVar);
+      return (t) => fn(t).acos();
+    case Atan(:final expr):
+      final fn = _compileComplexEvaluator<T>(expr, compileVar);
+      return (t) => fn(t).atan();
+    case Sinh(:final expr):
+      final fn = _compileComplexEvaluator<T>(expr, compileVar);
+      return (t) => fn(t).sinh();
+    case Cosh(:final expr):
+      final fn = _compileComplexEvaluator<T>(expr, compileVar);
+      return (t) => fn(t).cosh();
+    case Tanh(:final expr):
+      final fn = _compileComplexEvaluator<T>(expr, compileVar);
+      return (t) => fn(t).tanh();
+    case Exp(:final expr):
+      final fn = _compileComplexEvaluator<T>(expr, compileVar);
+      return (t) => fn(t).exp();
+    case Ln(:final expr):
+      final fn = _compileComplexEvaluator<T>(expr, compileVar);
+      return (t) => fn(t).log();
+    case Log(:final base, :final expr):
+      final fB = _compileComplexEvaluator<T>(base, compileVar);
+      final fE = _compileComplexEvaluator<T>(expr, compileVar);
+      return (t) => fE(t).log() / fB(t).log();
+    case Abs(:final expr):
+      final fn = _compileComplexEvaluator<T>(expr, compileVar);
+      return (t) => Complex(fn(t).abs(), 0);
+  }
+}
+
+Complex _complexPow(Complex base, Complex exponent) {
+  if (base.a == 0 && base.b == 0) {
+    if (exponent.a == 0 && exponent.b == 0) return Complex.one;
+    if (exponent.a > 0) return Complex.zero;
+    if (exponent.a < 0) {
+      return exponent.b == 0
+          ? const Complex(double.infinity, 0.0)
+          : const Complex(double.infinity, double.nan);
+    }
+    return Complex.nan;
+  }
+  return base.pow(exponent);
 }

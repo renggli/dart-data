@@ -39,6 +39,25 @@ class TermAccumulator {
       realValue += (sign.a / sign.b) * expr.value;
       return;
     }
+    if (expr is ComplexNumber) {
+      final c = expr.complex;
+      if (c.a != 0) {
+        if (c.a == c.a.truncateToDouble()) {
+          constantValue += sign * Fraction(c.a.toInt(), 1);
+        } else {
+          realValue += (sign.a / sign.b) * c.a;
+        }
+      }
+      if (c.b != 0) {
+        final bFrac = c.b == c.b.truncateToDouble()
+            ? Fraction(c.b.toInt(), 1)
+            : Fraction.fromDouble(c.b.toDouble(), maxDenominator: 1000000);
+        final totalCoeff = sign * bFrac;
+        final current = terms[ConstantNumber.i] ?? Fraction.zero;
+        terms[ConstantNumber.i] = current + totalCoeff;
+      }
+      return;
+    }
     if (expr is Add) {
       add(expr.left, sign);
       add(expr.right, sign);
@@ -241,24 +260,47 @@ class TermAccumulator {
     // Filter out terms with zero coefficient
     terms.removeWhere((_, coeff) => coeff.isZero);
 
-    // If no symbolic terms exist and no real value, return rational constant value
-    if (terms.isEmpty && realValue == 0.0) {
-      if (constantValue.isZero) return RationalNumber.zero;
-      return RationalNumber.fraction(constantValue);
+    final iCoeff = terms[ConstantNumber.i];
+    final nonITerms = [
+      for (final entry in terms.entries)
+        if (entry.key != ConstantNumber.i) entry,
+    ];
+
+    // Case 1: Purely numerical / complex (no variable terms)
+    if (nonITerms.isEmpty) {
+      // 1a. Pure real constant
+      if (iCoeff == null) {
+        if (realValue != 0.0) {
+          return RealNumber(realValue + constantValue.toDouble());
+        }
+        if (constantValue.isZero) return RationalNumber.zero;
+        return RationalNumber.fraction(constantValue);
+      }
+
+      // 1b. Pure imaginary constant (no real part)
+      if (constantValue.isZero && realValue == 0.0) {
+        if (iCoeff == Fraction.one) return ConstantNumber.i;
+        if (iCoeff == -Fraction.one) return const Neg(ConstantNumber.i);
+        return Mul(RationalNumber.fraction(iCoeff), ConstantNumber.i);
+      }
+
+      // 1c. Gaussian complex number: a + b*i or a - b*i
+      final realPart = realValue != 0.0
+          ? RealNumber(realValue + constantValue.toDouble())
+          : (!constantValue.isZero
+                ? RationalNumber.fraction(constantValue)
+                : RationalNumber.zero);
+      final absCoeff = iCoeff < Fraction.zero ? -iCoeff : iCoeff;
+      final imagPart = absCoeff == Fraction.one
+          ? ConstantNumber.i
+          : Mul(RationalNumber.fraction(absCoeff), ConstantNumber.i);
+      return iCoeff > Fraction.zero
+          ? Add(realPart, imagPart)
+          : Sub(realPart, imagPart);
     }
 
-    // Single symbolic term with no constants
-    if (terms.length == 1 && constantValue.isZero && realValue == 0.0) {
-      final entry = terms.entries.first;
-      final base = entry.key;
-      final coeff = entry.value;
-      if (coeff == Fraction.one) return base;
-      if (coeff == -Fraction.one) return _negate(base);
-      return Mul(RationalNumber.fraction(coeff), base);
-    }
-
-    // Sort terms canonically: descending power/degree for polynomial terms
-    final sortedEntries = terms.entries.toList()
+    // Case 2: General polynomial terms with variables
+    final sortedEntries = nonITerms
       ..sort((a, b) => compareTerms(a.key, a.value, b.key, b.value));
 
     Expr? result;
@@ -290,7 +332,16 @@ class TermAccumulator {
       }
     }
 
-    if (!constantValue.isZero) {
+    if (realValue != 0.0) {
+      final total = realValue + constantValue.toDouble();
+      if (result == null) {
+        result = RealNumber(total);
+      } else if (total > 0.0) {
+        result = Add(result, RealNumber(total));
+      } else {
+        result = Sub(result, RealNumber(-total));
+      }
+    } else if (!constantValue.isZero) {
       if (result == null) {
         result = RationalNumber.fraction(constantValue);
       } else if (constantValue > Fraction.zero) {
@@ -300,13 +351,17 @@ class TermAccumulator {
       }
     }
 
-    if (realValue != 0.0) {
+    if (iCoeff != null) {
+      final absCoeff = iCoeff < Fraction.zero ? -iCoeff : iCoeff;
+      final imagPart = absCoeff == Fraction.one
+          ? ConstantNumber.i
+          : Mul(RationalNumber.fraction(absCoeff), ConstantNumber.i);
       if (result == null) {
-        result = RealNumber(realValue);
-      } else if (realValue > 0.0) {
-        result = Add(result, RealNumber(realValue));
+        result = iCoeff > Fraction.zero ? imagPart : _negate(imagPart);
+      } else if (iCoeff > Fraction.zero) {
+        result = Add(result, imagPart);
       } else {
-        result = Sub(result, RealNumber(-realValue));
+        result = Sub(result, imagPart);
       }
     }
 

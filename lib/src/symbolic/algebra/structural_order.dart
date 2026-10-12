@@ -39,9 +39,15 @@ int compareTerms(Expr baseA, Fraction coeffA, Expr baseB, Fraction coeffB) {
 /// [symbol] name.
 double symbolDegree(Expr expr, String symbol) => switch (expr) {
   Variable(:final name) => name == symbol ? 1.0 : 0.0,
-  Pow(base: Variable(:final name), exponent: Number(:final value)) =>
+  Pow(
+    base: Variable(:final name),
+    exponent: Number(isReal: true, :final value),
+  ) =>
     name == symbol ? value : 0.0,
-  Pow(base: Variable(:final name), exponent: Neg(expr: Number(:final value))) =>
+  Pow(
+    base: Variable(:final name),
+    exponent: Neg(expr: Number(isReal: true, :final value)),
+  ) =>
     name == symbol ? -value : 0.0,
   Mul(left: final l, right: final r) =>
     symbolDegree(l, symbol) + symbolDegree(r, symbol),
@@ -57,8 +63,12 @@ double symbolDegree(Expr expr, String symbol) => switch (expr) {
 /// `0.0` for constants or non-polynomial sub-expressions.
 double termDegree(Expr expr) => switch (expr) {
   Variable() => 1.0,
-  Pow(base: Variable(), exponent: Number(:final value)) => value,
-  Pow(base: Variable(), exponent: Neg(expr: Number(:final value))) => -value,
+  Pow(base: Variable(), exponent: Number(isReal: true, :final value)) => value,
+  Pow(
+    base: Variable(),
+    exponent: Neg(expr: Number(isReal: true, :final value)),
+  ) =>
+    -value,
   Mul(left: final l, right: final r) => termDegree(l) + termDegree(r),
   Neg(:final expr) => termDegree(expr),
   Number() => 0.0,
@@ -96,10 +106,16 @@ int compareStructural(Expr a, Expr b) {
   return switch (a) {
     RationalNumber() => compareRational(a, b as RationalNumber),
     RealNumber(:final value) => value.compareTo((b as RealNumber).value),
-    ConstantNumber(:final name, :final value) => switch (name.compareTo(
+    ConstantNumber(:final name) => switch (name.compareTo(
       (b as ConstantNumber).name,
     )) {
-      0 => value.compareTo(b.value),
+      0 => (a.isReal && b.isReal) ? a.value.compareTo(b.value) : 0,
+      final cmp => cmp,
+    },
+    ComplexNumber(:final complex) => switch (complex.a.compareTo(
+      (b as ComplexNumber).complex.a,
+    )) {
+      0 => complex.b.compareTo(b.complex.b),
       final cmp => cmp,
     },
     Variable(:final name) => name.compareTo((b as Variable).name),
@@ -151,4 +167,5 @@ int nodeTag(Expr expr) => switch (expr) {
   Div() => 22,
   Add() => 23,
   Sub() => 24,
+  ComplexNumber() => 25,
 };

@@ -89,6 +89,7 @@ Expr _createBinding(String name, List<Expr> arguments) =>
       0 => switch (name.toLowerCase()) {
         'pi' => ConstantNumber.pi,
         'e' => ConstantNumber.e,
+        'i' => ConstantNumber.i,
         _ => Variable(name),
       },
       1 => switch (name.toLowerCase()) {
