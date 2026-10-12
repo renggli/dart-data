@@ -717,6 +717,16 @@ Expr _simplifyAsin(Expr expr) {
     return _simplifyNeg(_simplifyAsin(posExpr));
   }
 
+  if (_isHalf(posExpr)) {
+    return const Mul(RationalNumber(1, 6), ConstantNumber.pi);
+  }
+  if (_isSqrt2Over2(posExpr)) {
+    return const Mul(RationalNumber(1, 4), ConstantNumber.pi);
+  }
+  if (_isSqrt3Over2(posExpr)) {
+    return const Mul(RationalNumber(1, 3), ConstantNumber.pi);
+  }
+
   return Asin(expr);
 }
 
@@ -738,6 +748,31 @@ Expr _simplifyAcos(Expr expr) {
 
   // Involution: acos(cos(u)) = u
   if (expr is Cos) return expr.expr;
+
+  final (posExpr, isNeg) = _extractSign(expr);
+  if (isNeg) {
+    if (posExpr is RationalNumber && posExpr.isOne) return ConstantNumber.pi;
+    if (posExpr is RealNumber && posExpr.value == 1.0) return ConstantNumber.pi;
+    if (_isHalf(posExpr)) {
+      return const Mul(RationalNumber(2, 3), ConstantNumber.pi);
+    }
+    if (_isSqrt2Over2(posExpr)) {
+      return const Mul(RationalNumber(3, 4), ConstantNumber.pi);
+    }
+    if (_isSqrt3Over2(posExpr)) {
+      return const Mul(RationalNumber(5, 6), ConstantNumber.pi);
+    }
+  }
+
+  if (_isHalf(posExpr)) {
+    return const Mul(RationalNumber(1, 3), ConstantNumber.pi);
+  }
+  if (_isSqrt2Over2(posExpr)) {
+    return const Mul(RationalNumber(1, 4), ConstantNumber.pi);
+  }
+  if (_isSqrt3Over2(posExpr)) {
+    return const Mul(RationalNumber(1, 6), ConstantNumber.pi);
+  }
 
   return Acos(expr);
 }
@@ -765,6 +800,13 @@ Expr _simplifyAtan(Expr expr) {
   final (posExpr, isNeg) = _extractSign(expr);
   if (isNeg) {
     return _simplifyNeg(_simplifyAtan(posExpr));
+  }
+
+  if (_isSqrt3Over3(posExpr)) {
+    return const Mul(RationalNumber(1, 6), ConstantNumber.pi);
+  }
+  if (_isSqrt3(posExpr)) {
+    return const Mul(RationalNumber(1, 3), ConstantNumber.pi);
   }
 
   return Atan(expr);
@@ -1027,4 +1069,119 @@ Complex _complexPow(Complex base, Complex exponent) {
     return Complex.nan;
   }
   return base.pow(exponent);
+}
+
+bool _isHalf(Expr e) {
+  if (e is RationalNumber && e.numerator == 1 && e.denominator == 2) {
+    return true;
+  }
+  if (e is RealNumber && (e.value - 0.5).abs() < 1e-12) {
+    return true;
+  }
+  return false;
+}
+
+bool _isSqrt(Expr e, int n) =>
+    e is Pow &&
+    e.base == RationalNumber(n) &&
+    e.exponent == const RationalNumber(1, 2);
+
+bool _isSqrt2Over2(Expr e) {
+  if (e is RealNumber && (e.value - math.sqrt(2) / 2).abs() < 1e-12) {
+    return true;
+  }
+  if (e is Mul) {
+    if ((e.left == const RationalNumber(1, 2) && _isSqrt(e.right, 2)) ||
+        (e.right == const RationalNumber(1, 2) && _isSqrt(e.left, 2))) {
+      return true;
+    }
+  }
+  if (e is Div && _isSqrt(e.left, 2) && e.right == const RationalNumber(2)) {
+    return true;
+  }
+  if (e is Pow &&
+      e.base == const RationalNumber(1, 2) &&
+      e.exponent == const RationalNumber(1, 2)) {
+    return true;
+  }
+  if (e.freeVariables.isEmpty) {
+    try {
+      final c = e.evaluateComplex();
+      if (c.b.abs() < 1e-12 && (c.a - math.sqrt(2) / 2).abs() < 1e-12) {
+        return true;
+      }
+    } catch (_) {}
+  }
+  return false;
+}
+
+bool _isSqrt3Over2(Expr e) {
+  if (e is RealNumber && (e.value - math.sqrt(3) / 2).abs() < 1e-12) {
+    return true;
+  }
+  if (e is Mul) {
+    if ((e.left == const RationalNumber(1, 2) && _isSqrt(e.right, 3)) ||
+        (e.right == const RationalNumber(1, 2) && _isSqrt(e.left, 3))) {
+      return true;
+    }
+  }
+  if (e is Div && _isSqrt(e.left, 3) && e.right == const RationalNumber(2)) {
+    return true;
+  }
+  if (e.freeVariables.isEmpty) {
+    try {
+      final c = e.evaluateComplex();
+      if (c.b.abs() < 1e-12 && (c.a - math.sqrt(3) / 2).abs() < 1e-12) {
+        return true;
+      }
+    } catch (_) {}
+  }
+  return false;
+}
+
+bool _isSqrt3Over3(Expr e) {
+  if (e is RealNumber && (e.value - math.sqrt(3) / 3).abs() < 1e-12) {
+    return true;
+  }
+  if (e is Mul) {
+    if ((e.left == const RationalNumber(1, 3) && _isSqrt(e.right, 3)) ||
+        (e.right == const RationalNumber(1, 3) && _isSqrt(e.left, 3))) {
+      return true;
+    }
+  }
+  if (e is Div && _isSqrt(e.left, 3) && e.right == const RationalNumber(3)) {
+    return true;
+  }
+  if (e is Pow &&
+      e.base == const RationalNumber(1, 3) &&
+      e.exponent == const RationalNumber(1, 2)) {
+    return true;
+  }
+  if (e.freeVariables.isEmpty) {
+    try {
+      final c = e.evaluateComplex();
+      if (c.b.abs() < 1e-12 && (c.a - math.sqrt(3) / 3).abs() < 1e-12) {
+        return true;
+      }
+    } catch (_) {}
+  }
+  return false;
+}
+
+bool _isSqrt3(Expr e) {
+  if (e is RealNumber && (e.value - math.sqrt(3)).abs() < 1e-12) {
+    return true;
+  }
+  if (_isSqrt(e, 3)) {
+    return true;
+  }
+  if (e.freeVariables.isEmpty) {
+    try {
+      final c = e.evaluateComplex();
+      if (c.b.abs() < 1e-12 && (c.a - math.sqrt(3)).abs() < 1e-12) {
+        return true;
+      }
+    } catch (_) {}
+  }
+  return false;
 }
