@@ -46,8 +46,7 @@ sealed class Expr {
   /// final f = Expr.parse('sin(pi * x) + 2 * x');
   /// print(f.evaluate({'x': 0.5}));
   /// ```
-  static Expr parse(String input, {int maxDenominator = 64}) =>
-      parseExpression(input, maxDenominator: maxDenominator);
+  static Expr parse(String input) => parseExpression(input);
 
   /// Tries to parse a mathematical expression from [input], returning `null` on
   /// syntax error.
@@ -55,8 +54,7 @@ sealed class Expr {
   /// ```dart
   /// final expr = Expr.tryParse('2 * x + 1');
   /// ```
-  static Expr? tryParse(String input, {int maxDenominator = 64}) =>
-      tryParseExpression(input, maxDenominator: maxDenominator);
+  static Expr? tryParse(String input) => tryParseExpression(input);
 
   /// Whether this expression depends on [name].
   bool dependsOn(String name);
@@ -111,31 +109,19 @@ sealed class Expr {
   @override
   String toString() => formatExpr(this);
 
-  static Expr _wrap(Object value, {int maxDenominator = 64}) {
+  static Expr _wrap(Object value) {
     if (value is Expr) return value;
     if (value is int) return RationalNumber(value);
     if (value is Fraction) return RationalNumber.fraction(value);
     if (value is Complex) {
-      if (value.b == 0) return _wrap(value.a, maxDenominator: maxDenominator);
+      if (value.b == 0) return _wrap(value.a);
       final imPart = value.b == 1
           ? ConstantNumber.i
-          : Mul(
-              _wrap(value.b, maxDenominator: maxDenominator),
-              ConstantNumber.i,
-            );
+          : Mul(_wrap(value.b), ConstantNumber.i);
       if (value.a == 0) return imPart;
-      return Add(_wrap(value.a, maxDenominator: maxDenominator), imPart);
+      return Add(_wrap(value.a), imPart);
     }
-    if (value is num) {
-      if (maxDenominator > 0) {
-        final frac = Fraction.fromDouble(value, maxDenominator: maxDenominator);
-        if (frac.denominator <= maxDenominator &&
-            (value.toDouble() - frac.toDouble()).abs() < 1e-12) {
-          return RationalNumber(frac.numerator, frac.denominator);
-        }
-      }
-      return RealNumber(value.toDouble());
-    }
+    if (value is num) return RealNumber(value.toDouble());
     throw ArgumentError.value(
       value,
       'value',

@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Expressions - Symbolic & Numerical Mathematics</title>
   <meta name="description" content="Interactive symbolic and numerical mathematics engine with calculus, differentiation, integration, and Taylor series.">
+  <link rel="stylesheet" href="https://fred-wang.github.io/MathFonts/LatinModern/mathfonts.css">
   <link rel="stylesheet" href="../shared/style.css">
   <link rel="stylesheet" href="style.css">
 </head>
@@ -44,7 +45,7 @@
     <section class="editor-container">
       <div class="formula-input-bar">
         <span class="formula-prefix">f(x) =</span>
-        <input type="text" id="expr-input" class="formula-input" value="x^3 - 3*x + 1" placeholder="Enter mathematical formula, e.g. sin(x) * exp(-0.2*x)" aria-label="Mathematical formula">
+        <input type="text" id="expr-input" class="formula-input" value="x^3 - 3*x + 1" placeholder="Enter mathematical formula, e.g. sin(x) * exp(-x / 5)" aria-label="Mathematical formula">
         <span id="status-badge" class="formula-status-badge status-valid">✓ Valid</span>
       </div>
       <div id="parse-error-message" class="parse-error-message"></div>
@@ -68,36 +69,41 @@
       </div>
     </section>
 
-    <!-- Top Row: Output, Evaluation, Differentiation -->
-    <section class="grid-3">
-      <!-- Card 1: Output -->
+    <!-- Cards Grid: 6 Analytical & Numerical Panels -->
+    <section class="cards-grid">
+      <!-- Card 1: Algebra -->
       <div class="card">
         <h3 class="card-title">
-          <span class="card-title-text"><span class="card-icon">📋</span> Output</span>
+          <span class="card-title-text"><span class="card-icon">🧮</span> Algebra</span>
           <span class="card-actions">
             <label class="layer-toggle active" id="toggle-lbl-fx" title="Toggle f(x) curve on plot">
               <input type="checkbox" id="toggle-fx" class="layer-checkbox" checked>
               <span class="layer-dot" style="background-color: var(--accent-blue);"></span>
-              <span>f(x)</span>
+              <span id="toggle-lbl-fx-text">f(x)</span>
+            </label>
+            <label class="layer-toggle active" id="toggle-lbl-im" title="Toggle Im(f(x)) curve on plot" style="display: none;">
+              <input type="checkbox" id="toggle-im" class="layer-checkbox" checked>
+              <span class="layer-dot" style="background-color: var(--accent-purple);"></span>
+              <span>Im f(x)</span>
             </label>
           </span>
         </h3>
         <div class="attributes-list">
           <div class="attr-item">
             <span class="attr-label">f(x)</span>
-            <span class="attr-value" id="val-sym-fx">-</span>
+            <span class="attr-value" id="val-alg-verbatim">-</span>
           </div>
           <div class="attr-item">
-            <span class="attr-label">Text</span>
-            <span class="attr-value" id="val-sym-text">-</span>
+            <span class="attr-label">Simplified</span>
+            <span class="attr-value" id="val-alg-simplified">-</span>
           </div>
           <div class="attr-item">
-            <span class="attr-label">LaTeX</span>
-            <span class="attr-value" id="val-sym-latex" style="font-size: 11px;">-</span>
+            <span class="attr-label">Expanded</span>
+            <span class="attr-value" id="val-alg-expanded">-</span>
           </div>
           <div class="attr-item">
-            <span class="attr-label">MathML</span>
-            <span class="attr-value" id="val-sym-mathml" style="font-size: 11px;">-</span>
+            <span class="attr-label">Factored</span>
+            <span class="attr-value" id="val-alg-factored">-</span>
           </div>
         </div>
       </div>
@@ -173,19 +179,16 @@
             <span class="attr-value" id="val-sym-d3f">-</span>
           </div>
           <div class="attr-item">
-            <span class="attr-label">f'(x<sub>0</sub>) [Analytical]</span>
+            <span class="attr-label">f'(x<sub>0</sub>)</span>
             <span class="attr-value" id="val-eval-df-analytical">-</span>
           </div>
           <div class="attr-item">
-            <span class="attr-label">f'(x<sub>0</sub>) [Numerical]</span>
+            <span class="attr-label">f'(x<sub>0</sub>) <span class="numeric-icon" title="Numerical approximation">≈</span></span>
             <span class="attr-value" id="val-eval-df-numerical">-</span>
           </div>
         </div>
       </div>
-    </section>
 
-    <!-- Bottom Row: Integration, Taylor Approximation, Roots & Critical Points -->
-    <section class="grid-3">
       <!-- Card 4: Integration -->
       <div class="card">
         <h3 class="card-title">
@@ -223,12 +226,12 @@
 
         <div class="attributes-list">
           <div class="attr-item">
-            <span class="attr-label">∫ Area [Numerical]</span>
-            <span class="attr-value" id="val-int-numerical" style="color: var(--accent-emerald); font-weight: 700;">-</span>
+            <span class="attr-label">∫ Area</span>
+            <span class="attr-value" id="val-int-analytical">-</span>
           </div>
           <div class="attr-item">
-            <span class="attr-label">∫ Area [Analytical]</span>
-            <span class="attr-value" id="val-int-analytical">-</span>
+            <span class="attr-label">∫ Area <span class="numeric-icon" title="Numerical approximation">≈</span></span>
+            <span class="attr-value" id="val-int-numerical">-</span>
           </div>
         </div>
       </div>
@@ -299,11 +302,11 @@
         </h3>
         <div class="attributes-list">
           <div class="attr-item">
-            <span class="attr-label">Roots [Analytical]</span>
+            <span class="attr-label">Roots</span>
             <span class="attr-value" id="val-roots-exact">-</span>
           </div>
           <div class="attr-item">
-            <span class="attr-label">Roots [Numerical]</span>
+            <span class="attr-label">Roots <span class="numeric-icon" title="Numerical approximation">≈</span></span>
             <span class="attr-value" id="val-roots-numeric">-</span>
           </div>
           <div class="attr-item">

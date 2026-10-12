@@ -20,36 +20,23 @@ void main() {
       check(Expr.parse('1000')).equals(const RationalNumber(1000));
     });
 
-    test('parses obvious fractions as RationalNumber', () {
-      check(Expr.parse('0.5')).equals(const RationalNumber(1, 2));
-      check(Expr.parse('0.25')).equals(const RationalNumber(1, 4));
-      check(Expr.parse('0.75')).equals(const RationalNumber(3, 4));
-      check(Expr.parse('0.8')).equals(const RationalNumber(4, 5));
-      check(Expr.parse('0.125')).equals(const RationalNumber(1, 8));
-      check(Expr.parse('0.0625')).equals(const RationalNumber(1, 16));
-    });
-
-    test('parses non-obvious floating point literals as RealNumber', () {
+    test('parses floating point literals with a dot as RealNumber', () {
+      check(Expr.parse('0.5')).equals(const RealNumber(0.5));
+      check(Expr.parse('0.25')).equals(const RealNumber(0.25));
+      check(Expr.parse('0.75')).equals(const RealNumber(0.75));
+      check(Expr.parse('0.8')).equals(const RealNumber(0.8));
+      check(Expr.parse('0.125')).equals(const RealNumber(0.125));
+      check(Expr.parse('0.0625')).equals(const RealNumber(0.0625));
+      check(Expr.parse('0.05')).equals(const RealNumber(0.05));
+      check(Expr.parse('1.0')).equals(const RealNumber(1.0));
       check(Expr.parse('3.14159')).equals(const RealNumber(3.14159));
       check(Expr.parse('123.456')).equals(const RealNumber(123.456));
       check(Expr.parse('0.1234567')).equals(const RealNumber(0.1234567));
-    });
-
-    test('respects configurable maxDenominator', () {
-      // 0.05 = 1/20. With maxDenominator: 10, becomes RealNumber.
-      check(Expr.parse('0.05', maxDenominator: 10))
-          .equals(const RealNumber(0.05));
-      check(Expr.parse('0.05', maxDenominator: 20))
-          .equals(const RationalNumber(1, 20));
-      check(Expr.parse('0.05', maxDenominator: 64))
-          .equals(const RationalNumber(1, 20));
+      check(Expr.parse('2.5e-3')).equals(const RealNumber(0.0025));
     });
 
     test('parses scientific notation literals', () {
       check(Expr.parse('1e5')).equals(const RationalNumber(100000));
-      check(Expr.parse('2.5e-3')).equals(const RealNumber(0.0025));
-      check(Expr.parse('2.5e-3', maxDenominator: 500))
-          .equals(const RationalNumber(1, 400));
       check(Expr.parse('1E+6')).equals(const RationalNumber(1000000));
       check(Expr.parse('1e0')).equals(const RationalNumber(1));
     });

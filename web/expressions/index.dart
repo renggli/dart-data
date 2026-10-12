@@ -3,10 +3,12 @@ import 'dart:math' as math;
 
 import 'package:data/numeric.dart';
 import 'package:data/symbolic.dart';
+import 'package:more/number.dart' show Complex;
 import 'package:web/web.dart' as web;
 
 import '../shared/chart.dart';
 import '../shared/utils.dart';
+import 'algebra.dart';
 import 'presets.dart';
 
 // Current Application State
@@ -17,7 +19,12 @@ double Function(double)? fnCompiled;
 double Function(double)? dfCompiled;
 double Function(double)? d2fCompiled;
 double Function(double)? d3fCompiled;
+Complex Function(Complex)? fnComplexCompiled;
+Complex Function(Complex)? dfComplexCompiled;
+Complex Function(Complex)? d2fComplexCompiled;
+Complex Function(Complex)? d3fComplexCompiled;
 double Function(double)? taylorCompiled;
+Complex Function(Complex)? taylorComplexCompiled;
 
 double minX = -3.0;
 double maxX = 3.0;
@@ -29,6 +36,7 @@ int taylorOrder = 3;
 double taylorAround = 0.0;
 
 bool showFx = true;
+bool showIm = true;
 bool showDfx = false;
 bool showD2fx = false;
 bool showD3fx = false;
@@ -38,6 +46,7 @@ bool showTangent = false;
 bool showRoots = true;
 bool showMin = true;
 bool showMax = true;
+bool hasImaginary = false;
 
 // Hover coordinates
 double? mouseX;
@@ -45,6 +54,7 @@ double? mouseY;
 
 // Critical points & roots
 final List<double> exactRoots = [];
+final List<Expr> exactSolutions = [];
 final List<double> numericRoots = [];
 final List<(double, double)> localMinima = [];
 final List<(double, double)> localMaxima = [];
@@ -66,6 +76,7 @@ late web.HTMLInputElement rangeMaxX;
 late web.HTMLButtonElement btnZoomReset;
 
 late web.HTMLInputElement toggleFx;
+late web.HTMLInputElement toggleIm;
 late web.HTMLInputElement toggleDfx;
 late web.HTMLInputElement toggleD2fx;
 late web.HTMLInputElement toggleD3fx;
@@ -77,6 +88,8 @@ late web.HTMLInputElement toggleMin;
 late web.HTMLInputElement toggleMax;
 
 late web.HTMLElement toggleLblFx;
+late web.HTMLElement toggleLblFxText;
+late web.HTMLElement toggleLblIm;
 late web.HTMLElement toggleLblDfx;
 late web.HTMLElement toggleLblD2fx;
 late web.HTMLElement toggleLblD3fx;
@@ -87,14 +100,14 @@ late web.HTMLElement toggleLblRoots;
 late web.HTMLElement toggleLblMin;
 late web.HTMLElement toggleLblMax;
 
-late web.HTMLElement valSymFx;
-late web.HTMLElement valSymText;
+late web.HTMLElement valAlgVerbatim;
+late web.HTMLElement valAlgSimplified;
+late web.HTMLElement valAlgExpanded;
+late web.HTMLElement valAlgFactored;
 late web.HTMLElement valSymDf;
 late web.HTMLElement valSymD2f;
 late web.HTMLElement valSymD3f;
 late web.HTMLElement valSymAntideriv;
-late web.HTMLElement valSymLatex;
-late web.HTMLElement valSymMathml;
 
 late web.HTMLInputElement sliderPointX;
 late web.HTMLInputElement inputPointX;
@@ -153,6 +166,7 @@ void initDom() {
       web.document.querySelector('#btn-zoom-reset') as web.HTMLButtonElement;
 
   toggleFx = web.document.querySelector('#toggle-fx') as web.HTMLInputElement;
+  toggleIm = web.document.querySelector('#toggle-im') as web.HTMLInputElement;
   toggleDfx = web.document.querySelector('#toggle-dfx') as web.HTMLInputElement;
   toggleD2fx =
       web.document.querySelector('#toggle-d2fx') as web.HTMLInputElement;
@@ -170,6 +184,9 @@ void initDom() {
   toggleMax = web.document.querySelector('#toggle-max') as web.HTMLInputElement;
 
   toggleLblFx = web.document.querySelector('#toggle-lbl-fx') as web.HTMLElement;
+  toggleLblFxText =
+      web.document.querySelector('#toggle-lbl-fx-text') as web.HTMLElement;
+  toggleLblIm = web.document.querySelector('#toggle-lbl-im') as web.HTMLElement;
   toggleLblDfx =
       web.document.querySelector('#toggle-lbl-dfx') as web.HTMLElement;
   toggleLblD2fx =
@@ -189,16 +206,19 @@ void initDom() {
   toggleLblMax =
       web.document.querySelector('#toggle-lbl-max') as web.HTMLElement;
 
-  valSymFx = web.document.querySelector('#val-sym-fx') as web.HTMLElement;
-  valSymText = web.document.querySelector('#val-sym-text') as web.HTMLElement;
+  valAlgVerbatim =
+      web.document.querySelector('#val-alg-verbatim') as web.HTMLElement;
+  valAlgSimplified =
+      web.document.querySelector('#val-alg-simplified') as web.HTMLElement;
+  valAlgExpanded =
+      web.document.querySelector('#val-alg-expanded') as web.HTMLElement;
+  valAlgFactored =
+      web.document.querySelector('#val-alg-factored') as web.HTMLElement;
   valSymDf = web.document.querySelector('#val-sym-df') as web.HTMLElement;
   valSymD2f = web.document.querySelector('#val-sym-d2f') as web.HTMLElement;
   valSymD3f = web.document.querySelector('#val-sym-d3f') as web.HTMLElement;
   valSymAntideriv =
       web.document.querySelector('#val-sym-antideriv') as web.HTMLElement;
-  valSymLatex = web.document.querySelector('#val-sym-latex') as web.HTMLElement;
-  valSymMathml =
-      web.document.querySelector('#val-sym-mathml') as web.HTMLElement;
 
   sliderPointX =
       web.document.querySelector('#slider-point-x') as web.HTMLInputElement;
@@ -370,6 +390,8 @@ void attachEventListeners() {
     if (val != null && val < maxX) {
       minX = val;
       updateRangeBounds();
+      updateImaginaryDetection();
+      detectRootsAndExtrema();
       drawCharts();
       updateUrlHash();
     }
@@ -380,6 +402,8 @@ void attachEventListeners() {
     if (val != null && val > minX) {
       maxX = val;
       updateRangeBounds();
+      updateImaginaryDetection();
+      detectRootsAndExtrema();
       drawCharts();
       updateUrlHash();
     }
@@ -396,6 +420,8 @@ void attachEventListeners() {
     rangeMinX.value = minX.toString();
     rangeMaxX.value = maxX.toString();
     updateRangeBounds();
+    updateImaginaryDetection();
+    detectRootsAndExtrema();
     drawCharts();
     updateUrlHash();
   });
@@ -418,6 +444,7 @@ void attachEventListeners() {
   }
 
   setupToggle(toggleFx, toggleLblFx, (v) => showFx = v);
+  setupToggle(toggleIm, toggleLblIm, (v) => showIm = v);
   setupToggle(toggleDfx, toggleLblDfx, (v) => showDfx = v);
   setupToggle(toggleD2fx, toggleLblD2fx, (v) => showD2fx = v);
   setupToggle(toggleD3fx, toggleLblD3fx, (v) => showD3fx = v);
@@ -536,6 +563,47 @@ void updateRangeBounds() {
   sliderPointX.max = maxX.toString();
 }
 
+Complex? safeGetComplex(Complex Function() getter) {
+  try {
+    final val = getter();
+    return (val.a.isNaN || val.b.isNaN) ? null : val;
+  } catch (_) {
+    return null;
+  }
+}
+
+void updateImaginaryDetection() {
+  final expr = parsedExpr;
+  if (expr == null) {
+    hasImaginary = false;
+    toggleLblFxText.textContent = 'f(x)';
+    toggleLblIm.style.display = 'none';
+    return;
+  }
+  hasImaginary = containsImaginary(expr);
+  if (!hasImaginary && fnComplexCompiled != null) {
+    const sampleCount = 20;
+    for (var i = 0; i <= sampleCount; i++) {
+      final x = minX + i * (maxX - minX) / sampleCount;
+      try {
+        final c = fnComplexCompiled!(Complex(x, 0));
+        if (c.b.abs() > 1e-6) {
+          hasImaginary = true;
+          break;
+        }
+      } catch (_) {}
+    }
+  }
+
+  if (hasImaginary) {
+    toggleLblFxText.textContent = 'Re f(x)';
+    toggleLblIm.style.display = 'inline-flex';
+  } else {
+    toggleLblFxText.textContent = 'f(x)';
+    toggleLblIm.style.display = 'none';
+  }
+}
+
 void updateAll() {
   Expr? expr;
   try {
@@ -562,7 +630,12 @@ void updateAll() {
     dfCompiled = null;
     d2fCompiled = null;
     d3fCompiled = null;
+    fnComplexCompiled = null;
+    dfComplexCompiled = null;
+    d2fComplexCompiled = null;
+    d3fComplexCompiled = null;
     taylorCompiled = null;
+    taylorComplexCompiled = null;
     clearTelemetry();
     drawCharts();
     return;
@@ -574,52 +647,138 @@ void updateAll() {
   parseErrorMessage.style.display = 'none';
   parsedExpr = expr;
 
-  // 1. Analytical Calculus
-  final simplified = expr.simplify();
-  final d1 = expr.derivative('x').simplify();
-  final d2 = d1.derivative('x').simplify();
-  final d3 = d2.derivative('x').simplify();
+  // 1. Algebra Card (only MathML rendering)
+  setAttrExpr(valAlgVerbatim, expr);
+  Expr simplified;
+  try {
+    simplified = expr.simplify();
+    setAttrExpr(valAlgSimplified, simplified);
+  } catch (_) {
+    simplified = expr;
+    setAttrExpr(valAlgSimplified, expr);
+  }
 
-  setAttrExpr(valSymFx, simplified);
-  setAttrValue(valSymText, simplified.toString());
-  setAttrExpr(valSymDf, d1);
-  setAttrExpr(valSymD2f, d2);
-  setAttrExpr(valSymD3f, d3);
-  setAttrValue(valSymLatex, simplified.toLatex());
-  setAttrValue(valSymMathml, simplified.toMathMl());
+  try {
+    final expanded = expr.expand();
+    setAttrExpr(valAlgExpanded, expanded);
+  } catch (_) {
+    setAttrExpr(valAlgExpanded, expr);
+  }
+
+  try {
+    final factored = factorExpr(expr);
+    setAttrExpr(valAlgFactored, factored);
+  } catch (_) {
+    setAttrExpr(valAlgFactored, expr);
+  }
+
+  // 2. Analytical Calculus
+  Expr? d1;
+  Expr? d2;
+  Expr? d3;
+  try {
+    d1 = expr.derivative('x').simplify();
+  } catch (_) {}
+  try {
+    d2 = d1?.derivative('x').simplify();
+  } catch (_) {}
+  try {
+    d3 = d2?.derivative('x').simplify();
+  } catch (_) {}
+
+  if (d1 != null) {
+    setAttrExpr(valSymDf, d1);
+  } else {
+    setAttrValue(valSymDf, 'Undefined');
+  }
+  if (d2 != null) {
+    setAttrExpr(valSymD2f, d2);
+  } else {
+    setAttrValue(valSymD2f, 'Undefined');
+  }
+  if (d3 != null) {
+    setAttrExpr(valSymD3f, d3);
+  } else {
+    setAttrValue(valSymD3f, 'Undefined');
+  }
 
   try {
     final antideriv = expr.integrate('x').simplify();
     setAttrExpr(valSymAntideriv, antideriv);
   } catch (_) {
-    setAttrValue(valSymAntideriv, 'No closed-form');
+    setAttrValue(valSymAntideriv, 'No closed form');
   }
 
-  // 2. High-Speed Closure Compilation
-  fnCompiled = expr.toFunction1D('x');
-  dfCompiled = d1.toFunction1D('x');
-  d2fCompiled = d2.toFunction1D('x');
-  d3fCompiled = d3.toFunction1D('x');
+  // 3. Closure Compilation
+  try {
+    fnCompiled = expr.toFunction1D('x');
+  } catch (_) {
+    fnCompiled = null;
+  }
+  try {
+    dfCompiled = d1?.toFunction1D('x');
+  } catch (_) {
+    dfCompiled = null;
+  }
+  try {
+    d2fCompiled = d2?.toFunction1D('x');
+  } catch (_) {
+    d2fCompiled = null;
+  }
+  try {
+    d3fCompiled = d3?.toFunction1D('x');
+  } catch (_) {
+    d3fCompiled = null;
+  }
 
-  // 3. Update Panels
+  try {
+    fnComplexCompiled = expr.toComplexFunction1D('x');
+  } catch (_) {
+    fnComplexCompiled = null;
+  }
+  try {
+    dfComplexCompiled = d1?.toComplexFunction1D('x');
+  } catch (_) {
+    dfComplexCompiled = null;
+  }
+  try {
+    d2fComplexCompiled = d2?.toComplexFunction1D('x');
+  } catch (_) {
+    d2fComplexCompiled = null;
+  }
+  try {
+    d3fComplexCompiled = d3?.toComplexFunction1D('x');
+  } catch (_) {
+    d3fComplexCompiled = null;
+  }
+
+  // 4. Complex / Imaginary Detection
+  // 4. Complex / Imaginary Detection
+  updateImaginaryDetection();
+
+  // 5. Update Panels
   updatePointTelemetry();
   updateIntegrationTelemetry();
   updateTaylorTelemetry();
   detectRootsAndExtrema();
 
-  // 4. Redraw Plot
+  // 6. Redraw Plot
   drawCharts();
 }
 
 void clearTelemetry() {
-  setAttrExpr(valSymFx, null);
-  setAttrValue(valSymText, '-');
+  hasImaginary = false;
+  toggleLblFxText.textContent = 'f(x)';
+  toggleLblIm.style.display = 'none';
+
+  setAttrExpr(valAlgVerbatim, null);
+  setAttrExpr(valAlgSimplified, null);
+  setAttrExpr(valAlgExpanded, null);
+  setAttrExpr(valAlgFactored, null);
   setAttrExpr(valSymDf, null);
   setAttrExpr(valSymD2f, null);
   setAttrExpr(valSymD3f, null);
   setAttrExpr(valSymAntideriv, null);
-  setAttrValue(valSymLatex, '-');
-  setAttrValue(valSymMathml, '-');
 
   setAttrValue(valEvalFx, '-');
   setAttrValue(valEvalDfAnalytical, '-');
@@ -637,64 +796,151 @@ void clearTelemetry() {
 }
 
 void updatePointTelemetry() {
-  final fn = fnCompiled;
-  final df = dfCompiled;
-  if (fn == null || df == null) return;
+  Complex? c0;
+  if (fnComplexCompiled != null) {
+    c0 = safeGetComplex(() => fnComplexCompiled!(Complex(pointX, 0)));
+  } else if (parsedExpr != null) {
+    c0 = safeGetComplex(
+      () => parsedExpr!.evaluateComplex({'x': Complex(pointX, 0)}),
+    );
+  }
 
-  final y0 = safeGet(() => fn(pointX))?.toDouble();
-  setAttrValue(valEvalFx, y0 != null ? formatNumber(y0) : 'undefined');
+  if (c0 != null) {
+    setAttrValue(valEvalFx, formatComplex(c0));
+  } else if (fnCompiled != null) {
+    final y0 = safeGet(() => fnCompiled!(pointX))?.toDouble();
+    setAttrValue(valEvalFx, y0 != null ? formatNumber(y0) : 'Undefined');
+  } else {
+    setAttrValue(valEvalFx, 'Undefined');
+  }
 
-  final slopeAnalytical = safeGet(() => df(pointX))?.toDouble();
-  setAttrValue(
-    valEvalDfAnalytical,
-    slopeAnalytical != null ? formatNumber(slopeAnalytical) : 'undefined',
-  );
+  Complex? cd;
+  if (dfComplexCompiled != null) {
+    cd = safeGetComplex(() => dfComplexCompiled!(Complex(pointX, 0)));
+  }
 
-  final slopeNumerical = safeGet(() => derivative(fn, pointX))?.toDouble();
-  setAttrValue(
-    valEvalDfNumerical,
-    slopeNumerical != null ? formatNumber(slopeNumerical) : 'undefined',
-  );
+  if (cd != null) {
+    setAttrValue(valEvalDfAnalytical, formatComplex(cd));
+  } else if (dfCompiled != null) {
+    final s0 = safeGet(() => dfCompiled!(pointX))?.toDouble();
+    setAttrValue(
+      valEvalDfAnalytical,
+      s0 != null ? formatNumber(s0) : 'Undefined',
+    );
+  } else {
+    setAttrValue(valEvalDfAnalytical, 'Undefined');
+  }
 
-  if (y0 != null && slopeAnalytical != null && slopeAnalytical.isFinite) {
-    final intercept = y0 - slopeAnalytical * pointX;
-    final mStr = formatNumber(slopeAnalytical, precision: 2);
+  if (fnComplexCompiled != null) {
+    final realSlope = safeGet(
+      () => derivative(
+        (x) => fnComplexCompiled!(Complex(x, 0)).a.toDouble(),
+        pointX,
+      ),
+    )?.toDouble();
+    final imagSlope = safeGet(
+      () => derivative(
+        (x) => fnComplexCompiled!(Complex(x, 0)).b.toDouble(),
+        pointX,
+      ),
+    )?.toDouble();
+    if (realSlope != null && imagSlope != null) {
+      setAttrValue(
+        valEvalDfNumerical,
+        formatComplex(Complex(realSlope, imagSlope)),
+      );
+    } else {
+      setAttrValue(valEvalDfNumerical, 'Undefined');
+    }
+  } else if (fnCompiled != null) {
+    final slopeNumerical = safeGet(() => derivative(fnCompiled!, pointX))
+        ?.toDouble();
+    setAttrValue(
+      valEvalDfNumerical,
+      slopeNumerical != null ? formatNumber(slopeNumerical) : 'Undefined',
+    );
+  } else {
+    setAttrValue(valEvalDfNumerical, 'Undefined');
+  }
+
+  final realY0 =
+      c0?.a.toDouble() ??
+      (fnCompiled != null
+          ? safeGet(() => fnCompiled!(pointX))?.toDouble()
+          : null);
+  final realSlope =
+      cd?.a.toDouble() ??
+      (dfCompiled != null
+          ? safeGet(() => dfCompiled!(pointX))?.toDouble()
+          : null);
+  if (realY0 != null &&
+      realSlope != null &&
+      realY0.isFinite &&
+      realSlope.isFinite) {
+    final intercept = realY0 - realSlope * pointX;
+    final mStr = formatNumber(realSlope, precision: 2);
     final bStr = intercept >= 0
         ? '+ ${formatNumber(intercept, precision: 2)}'
         : '- ${formatNumber(intercept.abs(), precision: 2)}';
-    setAttrValue(valTangentEq, 'y = $mStr·x $bStr');
+    final prefix = hasImaginary ? 'Re: ' : '';
+    setAttrValue(valTangentEq, '${prefix}y = $mStr·x $bStr');
   } else {
-    setAttrValue(valTangentEq, '-');
+    setAttrValue(valTangentEq, 'Undefined');
   }
 }
 
 void updateIntegrationTelemetry() {
-  final fn = fnCompiled;
   final expr = parsedExpr;
-  if (fn == null || expr == null) return;
+  if (expr == null) return;
 
-  double? numVal;
-  try {
-    numVal = integrate(fn, intA, intB, method: intMethod);
-  } catch (_) {
-    numVal = null;
+  if (fnComplexCompiled != null) {
+    try {
+      final realVal = integrate(
+        (x) => fnComplexCompiled!(Complex(x, 0)).a.toDouble(),
+        intA,
+        intB,
+        method: intMethod,
+      );
+      final imagVal = integrate(
+        (x) => fnComplexCompiled!(Complex(x, 0)).b.toDouble(),
+        intA,
+        intB,
+        method: intMethod,
+      );
+      setAttrValue(valIntNumerical, formatComplex(Complex(realVal, imagVal)));
+    } catch (_) {
+      setAttrValue(valIntNumerical, 'Undefined');
+    }
+  } else if (fnCompiled != null) {
+    double? numVal;
+    try {
+      numVal = integrate(fnCompiled!, intA, intB, method: intMethod);
+    } catch (_) {
+      numVal = null;
+    }
+    setAttrValue(
+      valIntNumerical,
+      numVal != null ? formatNumber(numVal) : 'Undefined',
+    );
+  } else {
+    setAttrValue(valIntNumerical, 'Undefined');
   }
-  setAttrValue(
-    valIntNumerical,
-    numVal != null ? formatNumber(numVal) : 'undefined',
-  );
 
-  double? exactVal;
   try {
-    final definiteExpr = expr.integrate('x', from: intA, to: intB);
-    exactVal = definiteExpr.evaluate(const {}).toDouble();
+    final antideriv = expr.integrate('x').simplify();
+    final fb = antideriv.evaluateComplex({'x': Complex(intB, 0)});
+    final fa = antideriv.evaluateComplex({'x': Complex(intA, 0)});
+    final exact = fb - fa;
+    if (exact.a.isFinite && exact.b.isFinite) {
+      setAttrValue(valIntAnalytical, formatComplex(exact));
+    } else if (exact.a.isInfinite || exact.b.isInfinite) {
+      setAttrValue(valIntAnalytical, exact.a.isNegative ? '-∞' : '∞');
+    } else {
+      setAttrValue(valIntAnalytical, 'Undefined');
+    }
   } catch (_) {
-    exactVal = null;
+    setAttrValue(valIntAnalytical, 'No closed form');
   }
-  setAttrValue(
-    valIntAnalytical,
-    exactVal != null ? formatNumber(exactVal) : 'No closed form',
-  );
 }
 
 void updateTaylorTelemetry() {
@@ -714,108 +960,177 @@ void updateTaylorTelemetry() {
         .taylorSeries('x', order: taylorOrder, around: taylorAround)
         .simplify();
     setAttrExpr(taylorPolynomialStr, poly);
-    taylorCompiled = poly.toFunction1D('x');
+    try {
+      taylorCompiled = poly.toFunction1D('x');
+    } catch (_) {
+      taylorCompiled = null;
+    }
+    try {
+      taylorComplexCompiled = poly.toComplexFunction1D('x');
+    } catch (_) {
+      taylorComplexCompiled = null;
+    }
   } catch (_) {
-    setAttrValue(taylorPolynomialStr, 'Non-analytic');
+    setAttrValue(taylorPolynomialStr, 'Undefined');
     taylorCompiled = null;
+    taylorComplexCompiled = null;
   }
 }
 
 void detectRootsAndExtrema() {
   exactRoots.clear();
+  exactSolutions.clear();
   numericRoots.clear();
   localMinima.clear();
   localMaxima.clear();
 
   final expr = parsedExpr;
-  final fn = fnCompiled;
-  final df = dfCompiled;
-  final d2f = d2fCompiled;
-  if (expr == null || fn == null || df == null) return;
+  if (expr == null) return;
 
-  // 1. Exact Symbolic Roots
+  // 1. Exact Symbolic Solutions (supports real, imaginary, and complex roots)
   try {
     final solutions = expr.solve('x');
     for (final s in solutions) {
-      if (s is Number && s.value.isFinite) {
-        exactRoots.add(s.value);
+      if (!exactSolutions.contains(s)) {
+        exactSolutions.add(s);
       }
     }
-  } catch (_) {}
-
-  // 2. Numerical Roots Scanning in [minX, maxX]
-  const steps = 60;
-  final stepSize = (maxX - minX) / steps;
-  var prevX = minX;
-  var prevY = safeGet(() => fn(prevX))?.toDouble();
-
-  for (var i = 1; i <= steps; i++) {
-    final curX = minX + i * stepSize;
-    final curY = safeGet(() => fn(curX))?.toDouble();
-
-    if (prevY != null &&
-        curY != null &&
-        prevY.isFinite &&
-        curY.isFinite &&
-        prevY * curY <= 0) {
+    for (final s in solutions) {
       try {
-        final root = solve(fn, prevX, b: curX, method: RootMethod.brent);
-        if (root.isFinite &&
-            !numericRoots.any((r) => (r - root).abs() < 1e-4)) {
-          numericRoots.add(root);
-        }
-      } catch (_) {}
-    }
-    prevX = curX;
-    prevY = curY;
-  }
-
-  // 3. Extrema Detection via derivative zeros f'(x) = 0
-  var prevSlopeX = minX;
-  var prevSlope = safeGet(() => df(prevSlopeX))?.toDouble();
-
-  for (var i = 1; i <= steps; i++) {
-    final curX = minX + i * stepSize;
-    final curSlope = safeGet(() => df(curX))?.toDouble();
-
-    if (prevSlope != null &&
-        curSlope != null &&
-        prevSlope.isFinite &&
-        curSlope.isFinite &&
-        prevSlope * curSlope <= 0) {
-      try {
-        final critX = solve(df, prevSlopeX, b: curX, method: RootMethod.brent);
-        if (critX.isFinite) {
-          final yVal = safeGet(() => fn(critX))?.toDouble();
-          final curvature = d2f != null
-              ? safeGet(() => d2f(critX))?.toDouble()
-              : null;
-
-          if (yVal != null && yVal.isFinite) {
-            if (curvature != null && curvature > 1e-6) {
-              if (!localMinima.any((m) => (m.$1 - critX).abs() < 1e-3)) {
-                localMinima.add((critX, yVal));
-              }
-            } else if (curvature != null && curvature < -1e-6) {
-              if (!localMaxima.any((m) => (m.$1 - critX).abs() < 1e-3)) {
-                localMaxima.add((critX, yVal));
-              }
-            }
+        final cVal = s.evaluateComplex();
+        if (cVal.b.abs() < 1e-9 && cVal.a.toDouble().isFinite) {
+          if (!exactRoots.any((r) => (r - cVal.a.toDouble()).abs() < 1e-4)) {
+            exactRoots.add(cVal.a.toDouble());
           }
         }
       } catch (_) {}
     }
-    prevSlopeX = curX;
-    prevSlope = curSlope;
+  } catch (_) {}
+
+  // 2. Numerical Roots Scanning in [minX, maxX]
+  final realFn =
+      fnCompiled ??
+      (fnComplexCompiled != null
+          ? (double x) {
+              try {
+                return fnComplexCompiled!(Complex(x, 0)).a.toDouble();
+              } catch (_) {
+                return double.nan;
+              }
+            }
+          : null);
+
+  final realDf =
+      dfCompiled ??
+      (dfComplexCompiled != null
+          ? (double x) {
+              try {
+                return dfComplexCompiled!(Complex(x, 0)).a.toDouble();
+              } catch (_) {
+                return double.nan;
+              }
+            }
+          : null);
+
+  final realD2f =
+      d2fCompiled ??
+      (d2fComplexCompiled != null
+          ? (double x) {
+              try {
+                return d2fComplexCompiled!(Complex(x, 0)).a.toDouble();
+              } catch (_) {
+                return double.nan;
+              }
+            }
+          : null);
+
+  if (realFn != null) {
+    const steps = 60;
+    final stepSize = (maxX - minX) / steps;
+    var prevX = minX;
+    var prevY = safeGet(() => realFn(prevX))?.toDouble();
+
+    for (var i = 1; i <= steps; i++) {
+      final curX = minX + i * stepSize;
+      final curY = safeGet(() => realFn(curX))?.toDouble();
+
+      if (prevY != null &&
+          curY != null &&
+          prevY.isFinite &&
+          curY.isFinite &&
+          prevY * curY <= 0) {
+        try {
+          final root = solve(realFn, prevX, b: curX, method: RootMethod.brent);
+          if (root.isFinite &&
+              !numericRoots.any((r) => (r - root).abs() < 1e-4)) {
+            numericRoots.add(root);
+          }
+        } catch (_) {}
+      }
+      prevX = curX;
+      prevY = curY;
+    }
+  }
+
+  // Include analytical real roots within range for plotting
+  for (final r in exactRoots) {
+    if (r >= minX &&
+        r <= maxX &&
+        !numericRoots.any((nr) => (nr - r).abs() < 1e-4)) {
+      numericRoots.add(r);
+    }
+  }
+
+  // 3. Extrema Detection via derivative zeros Re f'(x) = 0
+  if (realFn != null && realDf != null) {
+    const steps = 60;
+    final stepSize = (maxX - minX) / steps;
+    var prevSlopeX = minX;
+    var prevSlope = safeGet(() => realDf(prevSlopeX))?.toDouble();
+
+    for (var i = 1; i <= steps; i++) {
+      final curX = minX + i * stepSize;
+      final curSlope = safeGet(() => realDf(curX))?.toDouble();
+
+      if (prevSlope != null &&
+          curSlope != null &&
+          prevSlope.isFinite &&
+          curSlope.isFinite &&
+          prevSlope * curSlope <= 0) {
+        try {
+          final critX = solve(
+            realDf,
+            prevSlopeX,
+            b: curX,
+            method: RootMethod.brent,
+          );
+          if (critX.isFinite) {
+            final yVal = safeGet(() => realFn(critX))?.toDouble();
+            final curvature = realD2f != null
+                ? safeGet(() => realD2f(critX))?.toDouble()
+                : null;
+
+            if (yVal != null && yVal.isFinite) {
+              if (curvature != null && curvature > 1e-6) {
+                if (!localMinima.any((m) => (m.$1 - critX).abs() < 1e-3)) {
+                  localMinima.add((critX, yVal));
+                }
+              } else if (curvature != null && curvature < -1e-6) {
+                if (!localMaxima.any((m) => (m.$1 - critX).abs() < 1e-3)) {
+                  localMaxima.add((critX, yVal));
+                }
+              }
+            }
+          }
+        } catch (_) {}
+      }
+      prevSlopeX = curX;
+      prevSlope = curSlope;
+    }
   }
 
   // Update Telemetry labels
-  setAttrValue(
-    valRootsExact,
-    exactRoots.isNotEmpty
-        ? exactRoots.map((r) => formatNumber(r, precision: 3)).join(', ')
-        : 'None found',
-  );
+  setAttrExprList(valRootsExact, exactSolutions, emptyText: 'None found');
 
   setAttrValue(
     valRootsNumeric,
@@ -850,19 +1165,20 @@ void detectRootsAndExtrema() {
 }
 
 /// Dynamic bounds estimation for graphing X and Y windows.
-(double, double) estimateYBounds(double Function(double) fn) {
+(double, double) estimateYBounds(
+  double Function(double) fnReal, [
+  double Function(double)? fnImag,
+]) {
   var minY = 0.0;
   var maxY = 0.0;
   var hasSamples = false;
 
-  const sampleCount = 80;
-  for (var i = 0; i <= sampleCount; i++) {
-    final x = minX + i * (maxX - minX) / sampleCount;
+  void sample(double x, double Function(double) f) {
     double y;
     try {
-      y = fn(x);
+      y = f(x);
     } catch (_) {
-      continue;
+      return;
     }
     if (y.isFinite && !y.isNaN) {
       if (!hasSamples) {
@@ -873,6 +1189,15 @@ void detectRootsAndExtrema() {
         if (y < minY) minY = y;
         if (y > maxY) maxY = y;
       }
+    }
+  }
+
+  const sampleCount = 80;
+  for (var i = 0; i <= sampleCount; i++) {
+    final x = minX + i * (maxX - minX) / sampleCount;
+    sample(x, fnReal);
+    if (fnImag != null && showIm) {
+      sample(x, fnImag);
     }
   }
 
@@ -902,10 +1227,78 @@ void drawCharts() {
   if (init == null) return;
   final (ctx, width, height) = init;
 
-  final fn = fnCompiled;
-  if (fn == null) return;
+  final realFn =
+      fnCompiled ??
+      (fnComplexCompiled != null
+          ? (double x) {
+              try {
+                return fnComplexCompiled!(Complex(x, 0)).a.toDouble();
+              } catch (_) {
+                return double.nan;
+              }
+            }
+          : null);
+  final imagFn = (hasImaginary && fnComplexCompiled != null)
+      ? (double x) {
+          try {
+            return fnComplexCompiled!(Complex(x, 0)).b.toDouble();
+          } catch (_) {
+            return double.nan;
+          }
+        }
+      : null;
 
-  final (minY, maxY) = estimateYBounds(fn);
+  final realDf =
+      dfCompiled ??
+      (dfComplexCompiled != null
+          ? (double x) {
+              try {
+                return dfComplexCompiled!(Complex(x, 0)).a.toDouble();
+              } catch (_) {
+                return double.nan;
+              }
+            }
+          : null);
+
+  final realD2f =
+      d2fCompiled ??
+      (d2fComplexCompiled != null
+          ? (double x) {
+              try {
+                return d2fComplexCompiled!(Complex(x, 0)).a.toDouble();
+              } catch (_) {
+                return double.nan;
+              }
+            }
+          : null);
+
+  final realD3f =
+      d3fCompiled ??
+      (d3fComplexCompiled != null
+          ? (double x) {
+              try {
+                return d3fComplexCompiled!(Complex(x, 0)).a.toDouble();
+              } catch (_) {
+                return double.nan;
+              }
+            }
+          : null);
+
+  final realTaylor =
+      taylorCompiled ??
+      (taylorComplexCompiled != null
+          ? (double x) {
+              try {
+                return taylorComplexCompiled!(Complex(x, 0)).a.toDouble();
+              } catch (_) {
+                return double.nan;
+              }
+            }
+          : null);
+
+  if (realFn == null) return;
+
+  final (minY, maxY) = estimateYBounds(realFn, imagFn);
 
   final vp = PlotViewport(
     minX: minX,
@@ -924,7 +1317,7 @@ void drawCharts() {
     drawShadedInterval(
       ctx,
       vp,
-      fn,
+      realFn,
       intA,
       intB,
       fillColor: 'rgba(16, 185, 129, 0.20)',
@@ -932,51 +1325,60 @@ void drawCharts() {
     );
   }
 
-  // 3. Primary Curve f(x)
+  // 3. Primary Curve Re f(x) or f(x)
   if (showFx) {
     drawCurve(
       ctx,
       vp,
-      fn,
+      realFn,
       strokeColor: '#3b82f6',
       lineWidth: 2.5,
-      fillColor: 'rgba(59, 130, 246, 0.08)',
+      fillColor: hasImaginary ? null : 'rgba(59, 130, 246, 0.08)',
     );
   }
 
-  // 4. First Derivative f'(x)
-  final df = dfCompiled;
-  if (showDfx && df != null) {
+  // 3b. Imaginary Component Curve Im f(x)
+  if (showIm && imagFn != null) {
     drawCurve(
       ctx,
       vp,
-      df,
+      imagFn,
+      strokeColor: '#a855f7',
+      lineWidth: 2.0,
+      lineDash: [4, 4],
+    );
+  }
+
+  // 4. First Derivative f'(x) / Re f'(x)
+  if (showDfx && realDf != null) {
+    drawCurve(
+      ctx,
+      vp,
+      realDf,
       strokeColor: '#ef4444',
       lineWidth: 1.8,
       lineDash: [4, 4],
     );
   }
 
-  // 5. Second Derivative f''(x)
-  final d2f = d2fCompiled;
-  if (showD2fx && d2f != null) {
+  // 5. Second Derivative f''(x) / Re f''(x)
+  if (showD2fx && realD2f != null) {
     drawCurve(
       ctx,
       vp,
-      d2f,
+      realD2f,
       strokeColor: '#a855f7',
       lineWidth: 1.5,
       lineDash: [2, 3],
     );
   }
 
-  // 5b. Third Derivative f'''(x)
-  final d3f = d3fCompiled;
-  if (showD3fx && d3f != null) {
+  // 5b. Third Derivative f'''(x) / Re f'''(x)
+  if (showD3fx && realD3f != null) {
     drawCurve(
       ctx,
       vp,
-      d3f,
+      realD3f,
       strokeColor: '#ec4899',
       lineWidth: 1.5,
       lineDash: [1, 3],
@@ -984,12 +1386,11 @@ void drawCharts() {
   }
 
   // 6. Taylor Polynomial Approximation
-  final taylor = taylorCompiled;
-  if (showTaylor && taylor != null) {
+  if (showTaylor && realTaylor != null) {
     drawCurve(
       ctx,
       vp,
-      taylor,
+      realTaylor,
       strokeColor: '#f59e0b',
       lineWidth: 2.0,
       lineDash: [6, 3],
@@ -997,9 +1398,9 @@ void drawCharts() {
   }
 
   // 7. Tangent Line at pointX
-  if (showTangent && df != null) {
-    final y0 = safeGet(() => fn(pointX))?.toDouble();
-    final slope = safeGet(() => df(pointX))?.toDouble();
+  if (showTangent && realDf != null) {
+    final y0 = safeGet(() => realFn(pointX))?.toDouble();
+    final slope = safeGet(() => realDf(pointX))?.toDouble();
     if (y0 != null && slope != null && y0.isFinite && slope.isFinite) {
       double tangentLine(double x) => slope * (x - pointX) + y0;
       drawCurve(
@@ -1081,26 +1482,40 @@ void drawCharts() {
   final my = mouseY;
   if (mx != null && my != null && vp.containsPixel(mx, my)) {
     final hx = vp.fromPixelX(mx);
-    final hy = safeGet(() => fn(hx))?.toDouble();
-    if (hy != null && hy.isFinite) {
-      final hSlope = df != null ? safeGet(() => df(hx))?.toDouble() : null;
-      final hCurv = d2f != null ? safeGet(() => d2f(hx))?.toDouble() : null;
-      final hJerk = d3f != null ? safeGet(() => d3f(hx))?.toDouble() : null;
+    final hyReal = safeGet(() => realFn(hx))?.toDouble();
+    final hyImag = imagFn != null
+        ? safeGet(() => imagFn(hx))?.toDouble()
+        : null;
+    if (hyReal != null && hyReal.isFinite) {
+      final hSlope = realDf != null
+          ? safeGet(() => realDf(hx))?.toDouble()
+          : null;
+      final hCurv = realD2f != null
+          ? safeGet(() => realD2f(hx))?.toDouble()
+          : null;
+      final hJerk = realD3f != null
+          ? safeGet(() => realD3f(hx))?.toDouble()
+          : null;
       final tooltipLines = [
         'x: ${formatNumber(hx, precision: 4)}',
-        'f(x): ${formatNumber(hy, precision: 4)}',
+        if (hasImaginary) ...[
+          'Re f(x): ${formatNumber(hyReal, precision: 4)}',
+          if (hyImag != null && hyImag.isFinite)
+            'Im f(x): ${formatNumber(hyImag, precision: 4)}',
+        ] else
+          'f(x): ${formatNumber(hyReal, precision: 4)}',
         if (hSlope != null && hSlope.isFinite)
-          'f\'(x): ${formatNumber(hSlope, precision: 4)}',
+          '${hasImaginary ? "Re " : ""}f\'(x): ${formatNumber(hSlope, precision: 4)}',
         if (showD2fx && hCurv != null && hCurv.isFinite)
-          'f\'\'(x): ${formatNumber(hCurv, precision: 4)}',
+          '${hasImaginary ? "Re " : ""}f\'\'(x): ${formatNumber(hCurv, precision: 4)}',
         if (showD3fx && hJerk != null && hJerk.isFinite)
-          'f\'\'\'(x): ${formatNumber(hJerk, precision: 4)}',
+          '${hasImaginary ? "Re " : ""}f\'\'\'(x): ${formatNumber(hJerk, precision: 4)}',
       ];
       drawCrosshairAndTooltip(
         ctx,
         vp,
         targetX: hx,
-        targetY: hy,
+        targetY: hyReal,
         tooltipLines: tooltipLines,
         color: '#3b82f6',
       );

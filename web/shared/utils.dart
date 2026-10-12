@@ -57,6 +57,27 @@ void setAttrExpr(web.HTMLElement element, Expr? expr) {
   }
 }
 
+/// Renders a list of [Expr] separated by commas using MathML inside [element].
+void setAttrExprList(
+  web.HTMLElement element,
+  List<Expr> expressions, {
+  String emptyText = 'None found',
+}) {
+  if (expressions.isEmpty) {
+    setAttrValue(element, emptyText);
+    return;
+  }
+  final plainText = expressions.map((s) => s.toString()).join(', ');
+  element.title = plainText;
+  element.setAttribute('data-copy', plainText);
+  try {
+    final mathList = expressions.map((s) => s.toMathMl()).join(', ');
+    element.innerHTML = mathList.toJS;
+  } catch (_) {
+    element.textContent = plainText;
+  }
+}
+
 /// SVG icon markup for the copy button.
 const _copyIconSvg =
     '<svg class="copy-icon" viewBox="0 0 24 24" width="12" height="12" '
@@ -126,7 +147,9 @@ void initGlobalCopyHandler() {
 
       if (textToCopy != null) {
         final clean = textToCopy.trim();
-        if (clean.isNotEmpty && clean != '-' && clean != 'undefined') {
+        if (clean.isNotEmpty &&
+            clean != '-' &&
+            clean.toLowerCase() != 'undefined') {
           copyToClipboard(clean);
           showCopyToast(clean);
           feedbackElement.classList.add('copied');
@@ -141,7 +164,7 @@ void initGlobalCopyHandler() {
 
 /// Prettily formats numeric values, handling NaN, Infinities, and negative zero.
 String formatNumber(num value, {int precision = 4}) {
-  if (value.isNaN) return 'undefined';
+  if (value.isNaN) return 'Undefined';
   if (value.isInfinite) return value.isNegative ? '-∞' : '∞';
   if (value.abs() < 1e-12) return '0.00';
   if (value % 1 == 0 && value.abs() < 1e12) {
@@ -160,11 +183,11 @@ num? safeGet(num Function() getter) {
   }
 }
 
-/// Safely evaluates a numeric getter, returning a formatted string or 'undefined'.
+/// Safely evaluates a numeric getter, returning a formatted string or 'Undefined'.
 String formatProperty(num Function() getter, {int precision = 4}) {
   try {
     return formatNumber(getter(), precision: precision);
   } catch (_) {
-    return 'undefined';
+    return 'Undefined';
   }
 }

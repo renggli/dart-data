@@ -268,3 +268,58 @@
 .layer-checkbox {
   display: none;
 }
+
+/* 2-Column Responsive Layout for Expressions Cards */
+.cards-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 24px;
+  margin-bottom: 24px;
+}
+
+@media (min-width: 960px) {
+  .cards-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* Subtle Numeric Approximation Icon */
+.numeric-icon {
+  display: inline-block;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-weight: 500;
+  color: inherit;
+  opacity: 0.75;
+  margin-left: 4px;
+  vertical-align: baseline;
+  user-select: none;
+}
+
+/* Ample Card Interior & Unclipped Formula Display */
+.card {
+  padding: 20px 22px;
+}
+
+.attr-value {
+  flex: 0 1 auto;
+  max-width: 100%;
+  text-align: left;
+  overflow-x: auto;
+  text-overflow: clip;
+  white-space: nowrap;
+  scrollbar-width: thin;
+}
+
+.attr-value math {
+  max-width: none;
+}
+
+.attr-value::-webkit-scrollbar {
+  height: 3px;
+}
+
+.attr-value::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 2px;
+}
