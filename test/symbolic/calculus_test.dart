@@ -33,7 +33,7 @@ void main() {
 
       check(anti.evaluate({'x': 4.0})).equals(8.0);
       check(anti.evaluate({'x': 0.0})).equals(0.0);
-      check(anti.diff('x').compile1D('x')(3.0)).isCloseTo(3.0, 1e-9);
+      check(anti.derivative('x').toFunction1D('x')(3.0)).isCloseTo(3.0, 1e-9);
     });
 
     test('powers: x^2 and negative powers x^-2', () {
@@ -43,13 +43,14 @@ void main() {
       final x2 = x.pow(2);
       final anti2 = x2.integrate('x');
       check(anti2.evaluate({'x': 3.0})).equals(9.0);
-      check(anti2.diff('x').compile1D('x')(2.5)).isCloseTo(6.25, 1e-9);
+      check(anti2.derivative('x').toFunction1D('x')(2.5)).isCloseTo(6.25, 1e-9);
 
       // x^-2 -> -x^-1
       final xNeg2 = x.pow(-2);
       final antiNeg2 = xNeg2.integrate('x');
       check(antiNeg2.evaluate({'x': 2.0})).isCloseTo(-0.5, 1e-9);
-      check(antiNeg2.diff('x').compile1D('x')(2.0)).isCloseTo(0.25, 1e-9);
+      check(antiNeg2.derivative('x').toFunction1D('x')(2.0))
+          .isCloseTo(0.25, 1e-9);
     });
 
     test('symbolic power: x^n', () {
@@ -72,7 +73,7 @@ void main() {
       check(anti.evaluate({'x': 0.0})).equals(0.0);
       check(anti.evaluate({'x': 1.0})).equals(3.0);
       check(anti.evaluate({'x': 2.0})).equals(14.0);
-      check(anti.diff('x').compile1D('x')(3.0))
+      check(anti.derivative('x').toFunction1D('x')(3.0))
           .isCloseTo(3.0 * 9.0 + 2.0 * 3.0 + 1.0, 1e-9);
     });
   });
@@ -102,7 +103,8 @@ void main() {
       // (ln(2x + 3)) / 2
       final expectedAt0 = math.log(3.0) / 2.0;
       check(anti.evaluate({'x': 0.0})).isCloseTo(expectedAt0, 1e-9);
-      check(anti.diff('x').compile1D('x')(1.0)).isCloseTo(1.0 / 5.0, 1e-9);
+      check(anti.derivative('x').toFunction1D('x')(1.0))
+          .isCloseTo(1.0 / 5.0, 1e-9);
     });
 
     test('reciprocal powers in denominator: 1 / x^2 and c / (ax + b)^n', () {
@@ -112,13 +114,14 @@ void main() {
       final expr1 = const RationalNumber(1) / x.pow(2);
       final anti1 = expr1.integrate('x');
       check(anti1.evaluate({'x': 2.0})).isCloseTo(-0.5, 1e-9);
-      check(anti1.diff('x').compile1D('x')(2.0)).isCloseTo(0.25, 1e-9);
+      check(anti1.derivative('x').toFunction1D('x')(2.0)).isCloseTo(0.25, 1e-9);
 
       // 5 / (2x + 3)^2 -> -5 / (2 * (2x + 3))
       final expr2 = const RationalNumber(5) / ((x * 2) + 3).pow(2);
       final anti2 = expr2.integrate('x');
       check(anti2.evaluate({'x': 1.0})).isCloseTo(-0.5, 1e-9);
-      check(anti2.diff('x').compile1D('x')(1.0)).isCloseTo(5.0 / 25.0, 1e-9);
+      check(anti2.derivative('x').toFunction1D('x')(1.0))
+          .isCloseTo(5.0 / 25.0, 1e-9);
     });
 
     test('logarithm: ln(x)', () {
@@ -129,7 +132,8 @@ void main() {
       // x * ln(x) - x
       check(anti.evaluate({'x': 1.0})).isCloseTo(-1.0, 1e-9);
       check(anti.evaluate({'x': math.e})).isCloseTo(0.0, 1e-9);
-      check(anti.diff('x').compile1D('x')(2.0)).isCloseTo(math.log(2.0), 1e-9);
+      check(anti.derivative('x').toFunction1D('x')(2.0))
+          .isCloseTo(math.log(2.0), 1e-9);
     });
 
     test('linear logarithm: ln(3x + 1)', () {
@@ -139,7 +143,8 @@ void main() {
 
       // ((3x + 1)*ln(3x + 1) - (3x + 1)) / 3
       check(anti.evaluate({'x': 0.0})).isCloseTo(-1.0 / 3.0, 1e-9);
-      check(anti.diff('x').compile1D('x')(1.0)).isCloseTo(math.log(4.0), 1e-9);
+      check(anti.derivative('x').toFunction1D('x')(1.0))
+          .isCloseTo(math.log(4.0), 1e-9);
     });
   });
 
@@ -159,7 +164,7 @@ void main() {
       final anti = expr.integrate('x');
 
       check(anti.evaluate({'x': 0.0})).isCloseTo(0.5, 1e-9);
-      check(anti.diff('x').compile1D('x')(1.0))
+      check(anti.derivative('x').toFunction1D('x')(1.0))
           .isCloseTo(math.exp(2.0) * 2.0 / 2.0, 1e-9);
     });
 
@@ -171,7 +176,7 @@ void main() {
       // 2^x / ln(2)
       final expectedAt3 = math.pow(2.0, 3.0) / math.log(2.0);
       check(anti.evaluate({'x': 3.0})).isCloseTo(expectedAt3, 1e-9);
-      check(anti.diff('x').compile1D('x')(2.0)).isCloseTo(4.0, 1e-9);
+      check(anti.derivative('x').toFunction1D('x')(2.0)).isCloseTo(4.0, 1e-9);
     });
 
     test('linear exponential: exp(3x + 4)', () {
@@ -181,7 +186,8 @@ void main() {
 
       // exp(3x + 4) / 3
       check(anti.evaluate({'x': -1.0})).isCloseTo(math.exp(1.0) / 3.0, 1e-9);
-      check(anti.diff('x').compile1D('x')(0.0)).isCloseTo(math.exp(4.0), 1e-9);
+      check(anti.derivative('x').toFunction1D('x')(0.0))
+          .isCloseTo(math.exp(4.0), 1e-9);
     });
 
     test('symbolic base exponential: b^x', () {
@@ -211,7 +217,7 @@ void main() {
       const exprNeg = Sin(Neg(x));
       final antiNeg = exprNeg.integrate('x');
       check(antiNeg.evaluate({'x': 0.0})).isCloseTo(1.0, 1e-9);
-      check(antiNeg.diff('x').compile1D('x')(1.0))
+      check(antiNeg.derivative('x').toFunction1D('x')(1.0))
           .isCloseTo(math.sin(-1.0), 1e-9);
     });
 
@@ -227,7 +233,7 @@ void main() {
       // cos(-x) -> -sin(-x)
       const exprNeg = Cos(Neg(x));
       final antiNeg = exprNeg.integrate('x');
-      check(antiNeg.diff('x').compile1D('x')(1.0))
+      check(antiNeg.derivative('x').toFunction1D('x')(1.0))
           .isCloseTo(math.cos(-1.0), 1e-9);
     });
 
@@ -238,7 +244,8 @@ void main() {
 
       // -cos(3x) / 3
       check(anti.evaluate({'x': 0.0})).isCloseTo(-1.0 / 3.0, 1e-9);
-      check(anti.diff('x').compile1D('x')(1.0)).isCloseTo(math.sin(3.0), 1e-9);
+      check(anti.derivative('x').toFunction1D('x')(1.0))
+          .isCloseTo(math.sin(3.0), 1e-9);
     });
 
     test('linear cosine: cos(2x - 1)', () {
@@ -248,7 +255,87 @@ void main() {
 
       // sin(2x - 1) / 2
       check(anti.evaluate({'x': 0.5})).isCloseTo(0.0, 1e-9);
-      check(anti.diff('x').compile1D('x')(1.0)).isCloseTo(math.cos(1.0), 1e-9);
+      check(anti.derivative('x').toFunction1D('x')(1.0))
+          .isCloseTo(math.cos(1.0), 1e-9);
+    });
+
+    test('tangent: tan(x) and scaled tan(2x)', () {
+      const x = Variable('x');
+      const expr = Tan(x);
+      final anti = expr.integrate('x');
+
+      // -ln(|cos(x)|)
+      check(anti.evaluate({'x': 0.0})).isCloseTo(0.0, 1e-9);
+      check(anti.derivative('x').toFunction1D('x')(0.5))
+          .isCloseTo(math.tan(0.5), 1e-9);
+
+      final exprScaled = Tan(x * 2);
+      final antiScaled = exprScaled.integrate('x');
+      check(antiScaled.derivative('x').toFunction1D('x')(0.3))
+          .isCloseTo(math.tan(0.6), 1e-9);
+    });
+
+    test('inverse trigonometric: asin(x), acos(x), atan(x)', () {
+      const x = Variable('x');
+
+      // asin(x) -> x*asin(x) + sqrt(1 - x^2)
+      const asinExpr = Asin(x);
+      final antiAsin = asinExpr.integrate('x');
+      check(antiAsin.derivative('x').toFunction1D('x')(0.5))
+          .isCloseTo(math.asin(0.5), 1e-9);
+
+      // acos(x) -> x*acos(x) - sqrt(1 - x^2)
+      const acosExpr = Acos(x);
+      final antiAcos = acosExpr.integrate('x');
+      check(antiAcos.derivative('x').toFunction1D('x')(0.5))
+          .isCloseTo(math.acos(0.5), 1e-9);
+
+      // atan(x) -> x*atan(x) - 1/2*ln(1 + x^2)
+      const atanExpr = Atan(x);
+      final antiAtan = atanExpr.integrate('x');
+      check(antiAtan.derivative('x').toFunction1D('x')(0.8))
+          .isCloseTo(math.atan(0.8), 1e-9);
+    });
+  });
+
+  group('Symbolic Calculus: Hyperbolics and Special Functions', () {
+    test('hyperbolic functions: sinh(x), cosh(x), tanh(x)', () {
+      const x = Variable('x');
+
+      // sinh(x) -> cosh(x)
+      const sinhExpr = Sinh(x);
+      final antiSinh = sinhExpr.integrate('x');
+      check(antiSinh.derivative('x').toFunction1D('x')(1.0))
+          .isCloseTo((math.exp(1.0) - math.exp(-1.0)) / 2.0, 1e-9);
+
+      // cosh(x) -> sinh(x)
+      const coshExpr = Cosh(x);
+      final antiCosh = coshExpr.integrate('x');
+      check(antiCosh.derivative('x').toFunction1D('x')(1.0))
+          .isCloseTo((math.exp(1.0) + math.exp(-1.0)) / 2.0, 1e-9);
+
+      // tanh(x) -> ln(cosh(x))
+      const tanhExpr = Tanh(x);
+      final antiTanh = tanhExpr.integrate('x');
+      check(antiTanh.derivative('x').toFunction1D('x')(0.8))
+          .isCloseTo((math.exp(1.6) - 1.0) / (math.exp(1.6) + 1.0), 1e-9);
+    });
+
+    test('absolute value and square root', () {
+      const x = Variable('x');
+
+      // abs(x) -> 1/2 * x * |x|
+      const absExpr = Abs(x);
+      final antiAbs = absExpr.integrate('x');
+      check(antiAbs.evaluate({'x': 2.0})).equals(2.0);
+      check(antiAbs.evaluate({'x': -2.0})).equals(-2.0);
+
+      // sqrt(x) -> 2/3 * x^(3/2)
+      const sqrtExpr = Sqrt(x);
+      final antiSqrt = sqrtExpr.integrate('x');
+      check(antiSqrt.evaluate({'x': 4.0})).isCloseTo(16.0 / 3.0, 1e-9);
+      check(antiSqrt.derivative('x').toFunction1D('x')(9.0))
+          .isCloseTo(3.0, 1e-9);
     });
   });
 
@@ -261,7 +348,7 @@ void main() {
       // (x - 1) * exp(x)
       check(anti.evaluate({'x': 1.0})).isCloseTo(0.0, 1e-9);
       check(anti.evaluate({'x': 2.0})).isCloseTo(math.exp(2.0), 1e-9);
-      check(anti.diff('x').compile1D('x')(2.0))
+      check(anti.derivative('x').toFunction1D('x')(2.0))
           .isCloseTo(2.0 * math.exp(2.0), 1e-9);
     });
 
@@ -273,7 +360,7 @@ void main() {
       // -x * cos(x) + sin(x)
       check(anti.evaluate({'x': math.pi})).isCloseTo(math.pi, 1e-9);
       check(anti.evaluate({'x': math.pi / 2.0})).isCloseTo(1.0, 1e-9);
-      check(anti.diff('x').compile1D('x')(1.5))
+      check(anti.derivative('x').toFunction1D('x')(1.5))
           .isCloseTo(1.5 * math.sin(1.5), 1e-9);
     });
 
@@ -285,7 +372,7 @@ void main() {
       // x * sin(x) + cos(x)
       check(anti.evaluate({'x': 0.0})).isCloseTo(1.0, 1e-9);
       check(anti.evaluate({'x': math.pi / 2.0})).isCloseTo(math.pi / 2.0, 1e-9);
-      check(anti.diff('x').compile1D('x')(1.5))
+      check(anti.derivative('x').toFunction1D('x')(1.5))
           .isCloseTo(1.5 * math.cos(1.5), 1e-9);
     });
 
@@ -298,19 +385,19 @@ void main() {
       check(anti.evaluate({'x': 1.0})).isCloseTo(-0.25, 1e-9);
       check(anti.evaluate({'x': 2.0}))
           .isCloseTo(2.0 * math.log(2.0) - 1.0, 1e-9);
-      check(anti.diff('x').compile1D('x')(3.0))
+      check(anti.derivative('x').toFunction1D('x')(3.0))
           .isCloseTo(3.0 * math.log(3.0), 1e-9);
 
       // (2x) * ln(x) -> x^2 * ln(x) - x^2 / 2
       final expr2 = (x * 2) * const Ln(x);
       final anti2 = expr2.integrate('x');
-      check(anti2.diff('x').compile1D('x')(2.5))
+      check(anti2.derivative('x').toFunction1D('x')(2.5))
           .isCloseTo(5.0 * math.log(2.5), 1e-9);
 
       // (x + 1) * ln(x)
       final expr3 = (x + 1) * const Ln(x);
       final anti3 = expr3.integrate('x');
-      check(anti3.diff('x').compile1D('x')(2.0))
+      check(anti3.derivative('x').toFunction1D('x')(2.0))
           .isCloseTo(3.0 * math.log(2.0), 1e-9);
     });
 
@@ -323,7 +410,7 @@ void main() {
 
         // sin(x^2 + x)
         check(anti.evaluate({'x': 0.0})).isCloseTo(0.0, 1e-9);
-        check(anti.diff('x').compile1D('x')(1.0))
+        check(anti.derivative('x').toFunction1D('x')(1.0))
             .isCloseTo(3.0 * math.cos(2.0), 1e-9);
       },
     );
@@ -337,7 +424,7 @@ void main() {
       check(anti.evaluate({'x': 0.0})).isCloseTo(0.0, 1e-9);
       check(anti.evaluate({'x': math.sqrt(math.pi / 2.0)}))
           .isCloseTo(1.0, 1e-9);
-      check(anti.diff('x').compile1D('x')(1.2))
+      check(anti.derivative('x').toFunction1D('x')(1.2))
           .isCloseTo(2.4 * math.cos(1.44), 1e-9);
     });
 
@@ -349,13 +436,13 @@ void main() {
       // (1 / 2) * exp(x^2)
       check(anti.evaluate({'x': 0.0})).isCloseTo(0.5, 1e-9);
       check(anti.evaluate({'x': 1.0})).isCloseTo(0.5 * math.e, 1e-9);
-      check(anti.diff('x').compile1D('x')(1.5))
+      check(anti.derivative('x').toFunction1D('x')(1.5))
           .isCloseTo(1.5 * math.exp(2.25), 1e-9);
 
       // (x / 2) * exp(x^2) -> 0.25 * exp(x^2)
       final exprDiv = (x / 2) * Exp(x.pow(2));
       final antiDiv = exprDiv.integrate('x');
-      check(antiDiv.diff('x').compile1D('x')(1.5))
+      check(antiDiv.derivative('x').toFunction1D('x')(1.5))
           .isCloseTo(0.75 * math.exp(2.25), 1e-9);
     });
 
@@ -366,7 +453,8 @@ void main() {
 
       // - (x^2 + 1)^-1
       check(anti.evaluate({'x': 1.0})).isCloseTo(-0.5, 1e-9);
-      check(anti.diff('x').compile1D('x')(2.0)).isCloseTo(4.0 / 25.0, 1e-9);
+      check(anti.derivative('x').toFunction1D('x')(2.0))
+          .isCloseTo(4.0 / 25.0, 1e-9);
     });
 
     test('integration by parts: x * 2^x', () {
@@ -374,8 +462,61 @@ void main() {
       final expr = x * const RationalNumber(2).pow(x);
       final anti = expr.integrate('x');
 
-      check(anti.diff('x').compile1D('x')(2.0)).isCloseTo(2.0 * 4.0, 1e-9);
+      check(anti.derivative('x').toFunction1D('x')(2.0))
+          .isCloseTo(2.0 * 4.0, 1e-9);
     });
+
+    test('integration by parts: x * sinh(x) and x * cosh(x)', () {
+      const x = Variable('x');
+
+      // x * sinh(x) -> x*cosh(x) - sinh(x)
+      final exprSinh = x * const Sinh(x);
+      final antiSinh = exprSinh.integrate('x');
+      check(antiSinh.derivative('x').toFunction1D('x')(1.5))
+          .isCloseTo(1.5 * ((math.exp(1.5) - math.exp(-1.5)) / 2.0), 1e-9);
+
+      // x * cosh(x) -> x*sinh(x) - cosh(x)
+      final exprCosh = x * const Cosh(x);
+      final antiCosh = exprCosh.integrate('x');
+      check(antiCosh.derivative('x').toFunction1D('x')(1.5))
+          .isCloseTo(1.5 * ((math.exp(1.5) + math.exp(-1.5)) / 2.0), 1e-9);
+    });
+
+    test('inverse trig quotient integrations', () {
+      const x = Variable('x');
+
+      // 1 / (1 + x^2) -> atan(x)
+      final exprAtan =
+          const RationalNumber(1) / (const RationalNumber(1) + x.pow(2));
+      final antiAtan = exprAtan.integrate('x');
+      check(antiAtan.derivative('x').toFunction1D('x')(0.5))
+          .isCloseTo(1.0 / (1.0 + 0.25), 1e-9);
+
+      // 1 / sqrt(1 - x^2) -> asin(x)
+      final exprAsin =
+          const RationalNumber(1) / Sqrt(const RationalNumber(1) - x.pow(2));
+      final antiAsin = exprAsin.integrate('x');
+      check(antiAsin.derivative('x').toFunction1D('x')(0.5))
+          .isCloseTo(1.0 / math.sqrt(1.0 - 0.25), 1e-9);
+
+      // 2x / (1 + x^4) -> atan(x^2)
+      final exprChainAtan = (x * 2) / (const RationalNumber(1) + x.pow(4));
+      final antiChainAtan = exprChainAtan.integrate('x');
+      check(antiChainAtan.derivative('x').toFunction1D('x')(0.8))
+          .isCloseTo((2.0 * 0.8) / (1.0 + math.pow(0.8, 4)), 1e-9);
+    });
+
+    test(
+      'chain-rule substitution with hyperbolic functions: 2x * cosh(x^2)',
+      () {
+        const x = Variable('x');
+        final expr = (x * 2) * Cosh(x.pow(2));
+        final anti = expr.integrate('x');
+
+        check(anti.derivative('x').toFunction1D('x')(1.2))
+            .isCloseTo(2.4 * ((math.exp(1.44) + math.exp(-1.44)) / 2.0), 1e-9);
+      },
+    );
 
     test('identity multiplication and distributive expansion', () {
       const x = Variable('x');
@@ -387,7 +528,7 @@ void main() {
       // Distributive expansion: (x + 1) * (x + 2)
       final prod = ((x + 1) * (x + 2)).integrate('x');
       // Integral of x^2 + 3x + 2 is x^3/3 + 1.5*x^2 + 2x
-      check(prod.diff('x').compile1D('x')(2.0))
+      check(prod.derivative('x').toFunction1D('x')(2.0))
           .isCloseTo((2.0 + 1.0) * (2.0 + 2.0), 1e-9);
     });
   });

@@ -576,9 +576,9 @@ void updateAll() {
 
   // 1. Analytical Calculus
   final simplified = expr.simplify();
-  final d1 = expr.diff('x').simplify();
-  final d2 = d1.diff('x').simplify();
-  final d3 = d2.diff('x').simplify();
+  final d1 = expr.derivative('x').simplify();
+  final d2 = d1.derivative('x').simplify();
+  final d3 = d2.derivative('x').simplify();
 
   setAttrExpr(valSymFx, simplified);
   setAttrValue(valSymText, simplified.toString());

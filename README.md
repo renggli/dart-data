@@ -106,11 +106,11 @@ final x = Variable('x');
 final f = x.pow(3) + Sin(x);
 
 // Analytical derivative: f'(x) = 3 * x^2 + cos(x)
-final df = f.diff('x').simplify();
+final df = f.derivative('x').simplify();
 print(df.toLatex()); // 3 * x^{2} + \cos(x)
 
 // JIT-compile into a fast Dart closure
-final fastDf = df.compile1D('x');
+final fastDf = df.toFunction1D('x');
 print(fastDf(0.0)); // 1.0 (since 3*(0)^2 + cos(0) = 1)
 ```
 

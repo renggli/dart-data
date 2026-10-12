@@ -133,7 +133,7 @@ abstract class Polynomial<T> {
       var factorial = 1.0;
       for (var k = 0; k <= order; k++) {
         if (k > 0) {
-          currentDeriv = currentDeriv.diff(variable);
+          currentDeriv = currentDeriv.derivative(variable);
           factorial *= k;
         }
         final valExpr = currentDeriv
@@ -158,7 +158,7 @@ abstract class Polynomial<T> {
       var factorial = 1.0;
       for (var k = 0; k <= order; k++) {
         if (k > 0) {
-          currentDeriv = currentDeriv.diff(variable);
+          currentDeriv = currentDeriv.derivative(variable);
           factorial *= k;
         }
         final valExpr = currentDeriv

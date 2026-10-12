@@ -2,6 +2,7 @@ import 'package:more/number.dart' show Fraction;
 
 import '../../numeric/integration.dart';
 import '../ast.dart';
+import '../compiler.dart';
 import '../simplifier.dart';
 import 'differentiation.dart';
 import 'linear_form.dart';
@@ -58,7 +59,7 @@ Expr _symbolicIntegrate(Expr function, String variable, {num? from, num? to}) {
       // fails.
     }
     final numResult = integrate(
-      (double x) => function.evaluate({variable: x}),
+      function.toFunction1D(variable),
       from.toDouble(),
       to.toDouble(),
     );
@@ -105,10 +106,30 @@ Expr _antiDerivative(Expr expr, String variable) {
       _antiDerivSin(expr, variable) ?? _unsupported(expr, variable),
     Cos(:final expr) =>
       _antiDerivCos(expr, variable) ?? _unsupported(expr, variable),
+    Tan(:final expr) =>
+      _antiDerivTan(expr, variable) ?? _unsupported(expr, variable),
+    Asin(:final expr) =>
+      _antiDerivAsin(expr, variable) ?? _unsupported(expr, variable),
+    Acos(:final expr) =>
+      _antiDerivAcos(expr, variable) ?? _unsupported(expr, variable),
+    Atan(:final expr) =>
+      _antiDerivAtan(expr, variable) ?? _unsupported(expr, variable),
+    Sinh(:final expr) =>
+      _antiDerivSinh(expr, variable) ?? _unsupported(expr, variable),
+    Cosh(:final expr) =>
+      _antiDerivCosh(expr, variable) ?? _unsupported(expr, variable),
+    Tanh(:final expr) =>
+      _antiDerivTanh(expr, variable) ?? _unsupported(expr, variable),
+    Abs(:final expr) =>
+      _antiDerivAbs(expr, variable) ?? _unsupported(expr, variable),
+    Sqrt(:final expr) =>
+      _antiDerivSqrt(expr, variable) ?? _unsupported(expr, variable),
     Exp(:final expr) =>
       _antiDerivExp(expr, variable) ?? _unsupported(expr, variable),
     Ln(:final expr) =>
       _antiDerivLn(expr, variable) ?? _unsupported(expr, variable),
+    Log(:final base, :final expr) =>
+      _antiDerivLog(base, expr, variable) ?? _unsupported(expr, variable),
     Pow(:final base, :final exponent) => _antiDerivPow(
       base,
       exponent,
@@ -146,6 +167,98 @@ Expr? _antiDerivCos(Expr inner, String variable) =>
       (:final a, b: _) => Div(Sin(inner), a).simplify(),
       null => null,
     };
+
+Expr? _antiDerivTan(Expr inner, String variable) =>
+    switch (inner.matchLinear(variable)) {
+      (:final a, b: _) => Div(Neg(Ln(Cos(inner))), a).simplify(),
+      null => null,
+    };
+
+Expr? _antiDerivAsin(Expr inner, String variable) =>
+    switch (inner.matchLinear(variable)) {
+      (:final a, b: _) => Div(
+        Add(
+          Mul(inner, Asin(inner)),
+          Sqrt(Sub(RationalNumber.one, Pow(inner, const RationalNumber(2)))),
+        ),
+        a,
+      ).simplify(),
+      null => null,
+    };
+
+Expr? _antiDerivAcos(Expr inner, String variable) =>
+    switch (inner.matchLinear(variable)) {
+      (:final a, b: _) => Div(
+        Sub(
+          Mul(inner, Acos(inner)),
+          Sqrt(Sub(RationalNumber.one, Pow(inner, const RationalNumber(2)))),
+        ),
+        a,
+      ).simplify(),
+      null => null,
+    };
+
+Expr? _antiDerivAtan(Expr inner, String variable) =>
+    switch (inner.matchLinear(variable)) {
+      (:final a, b: _) => Div(
+        Sub(
+          Mul(inner, Atan(inner)),
+          Mul(
+            const RationalNumber(1, 2),
+            Ln(Add(RationalNumber.one, Pow(inner, const RationalNumber(2)))),
+          ),
+        ),
+        a,
+      ).simplify(),
+      null => null,
+    };
+
+Expr? _antiDerivSinh(Expr inner, String variable) =>
+    switch (inner.matchLinear(variable)) {
+      (:final a, b: _) => Div(Cosh(inner), a).simplify(),
+      null => null,
+    };
+
+Expr? _antiDerivCosh(Expr inner, String variable) =>
+    switch (inner.matchLinear(variable)) {
+      (:final a, b: _) => Div(Sinh(inner), a).simplify(),
+      null => null,
+    };
+
+Expr? _antiDerivTanh(Expr inner, String variable) =>
+    switch (inner.matchLinear(variable)) {
+      (:final a, b: _) => Div(Ln(Cosh(inner)), a).simplify(),
+      null => null,
+    };
+
+Expr? _antiDerivAbs(Expr inner, String variable) =>
+    switch (inner.matchLinear(variable)) {
+      (:final a, b: _) => Div(
+        Mul(inner, Abs(inner)),
+        Mul(const RationalNumber(2), a),
+      ).simplify(),
+      null => null,
+    };
+
+Expr? _antiDerivSqrt(Expr inner, String variable) =>
+    switch (inner.matchLinear(variable)) {
+      (:final a, b: _) => Div(
+        Mul(const RationalNumber(2, 3), Pow(inner, const RationalNumber(3, 2))),
+        a,
+      ).simplify(),
+      null => null,
+    };
+
+Expr? _antiDerivLog(Expr base, Expr inner, String variable) =>
+    !base.dependsOn(variable)
+    ? switch (inner.matchLinear(variable)) {
+        (:final a, b: _) => Div(
+          Sub(Mul(inner, Ln(inner)), inner),
+          Mul(a, Ln(base)),
+        ).simplify(),
+        null => null,
+      }
+    : null;
 
 Expr? _antiDerivExp(Expr inner, String variable) =>
     switch (inner.matchLinear(variable)) {
@@ -219,9 +332,75 @@ Expr _antiDerivDiv(Expr left, Expr right, Expr original, String variable) {
     }
   }
 
+  // int u'(x) / (1 + u(x)^2) dx = arctan(u(x))
+  if (right case Add(left: final rL, right: final rR)) {
+    Expr? u;
+    if (rL case RationalNumber(isOne: true) || RealNumber(value: 1.0)) {
+      u = _extractSquareBase(rR);
+    } else if (rR case RationalNumber(isOne: true) || RealNumber(value: 1.0)) {
+      u = _extractSquareBase(rL);
+    }
+    if (u != null && u.dependsOn(variable)) {
+      final uPrime = u.derivative(variable).simplify();
+      final k = left.matchScalarMultiple(uPrime, variable);
+      if (k != null) {
+        return Atan(u).scale(k);
+      }
+    }
+  }
+
+  // int u'(x) / sqrt(1 - u(x)^2) dx = asin(u(x))
+  {
+    Expr? inner;
+    if (right case Sqrt(expr: final sInner)) {
+      inner = sInner;
+    } else if (right
+        case Pow(
+          base: final b,
+          exponent: RationalNumber(:final numerator, :final denominator),
+        )
+        when numerator == 1 && denominator == 2) {
+      inner = b;
+    }
+    Expr? u;
+    if (inner case Sub(
+      left: RationalNumber(isOne: true) || RealNumber(value: 1.0),
+      right: final term,
+    )) {
+      u = _extractSquareBase(term);
+    } else if (inner case Add(
+      left: Neg(expr: final term) ||
+          Mul(
+            left: RationalNumber(isNegativeOne: true) ||
+                RealNumber(value: -1.0),
+            right: final term,
+          ),
+      right: RationalNumber(isOne: true) || RealNumber(value: 1.0),
+    )) {
+      u = _extractSquareBase(term);
+    } else if (inner case Add(
+      left: RationalNumber(isOne: true) || RealNumber(value: 1.0),
+      right: Neg(expr: final term) ||
+          Mul(
+            left: RationalNumber(isNegativeOne: true) ||
+                RealNumber(value: -1.0),
+            right: final term,
+          ),
+    )) {
+      u = _extractSquareBase(term);
+    }
+    if (u != null && u.dependsOn(variable)) {
+      final uPrime = u.derivative(variable).simplify();
+      final k = left.matchScalarMultiple(uPrime, variable);
+      if (k != null) {
+        return Asin(u).scale(k);
+      }
+    }
+  }
+
   // Chain rule quotient: int u'(x) / u(x) dx = ln(u(x))
   if (right.dependsOn(variable)) {
-    final uPrime = right.diff(variable).simplify();
+    final uPrime = right.derivative(variable).simplify();
     final k = left.matchScalarMultiple(uPrime, variable);
     if (k != null) {
       return Ln(right).scale(k);
@@ -304,26 +483,62 @@ Expr? _tryChainRule(Expr candidate, Expr factor, String variable) =>
     switch (candidate) {
       Cos(:final expr) when expr.dependsOn(variable) => _scaleMatch(
         factor,
-        expr.diff(variable).simplify(),
+        expr.derivative(variable).simplify(),
         Sin(expr),
         variable,
       ),
       Sin(:final expr) when expr.dependsOn(variable) => _scaleMatch(
         factor,
-        expr.diff(variable).simplify(),
+        expr.derivative(variable).simplify(),
         Neg(Cos(expr)).simplify(),
         variable,
       ),
       Exp(:final expr) when expr.dependsOn(variable) => _scaleMatch(
         factor,
-        expr.diff(variable).simplify(),
+        expr.derivative(variable).simplify(),
         Exp(expr),
         variable,
       ),
       Ln(:final expr) when expr.dependsOn(variable) => _scaleMatch(
         factor,
-        expr.diff(variable).simplify(),
+        expr.derivative(variable).simplify(),
         Sub(Mul(expr, Ln(expr)), expr),
+        variable,
+      ),
+      Tan(:final expr) when expr.dependsOn(variable) => _scaleMatch(
+        factor,
+        expr.derivative(variable).simplify(),
+        Neg(Ln(Cos(expr))),
+        variable,
+      ),
+      Sinh(:final expr) when expr.dependsOn(variable) => _scaleMatch(
+        factor,
+        expr.derivative(variable).simplify(),
+        Cosh(expr),
+        variable,
+      ),
+      Cosh(:final expr) when expr.dependsOn(variable) => _scaleMatch(
+        factor,
+        expr.derivative(variable).simplify(),
+        Sinh(expr),
+        variable,
+      ),
+      Tanh(:final expr) when expr.dependsOn(variable) => _scaleMatch(
+        factor,
+        expr.derivative(variable).simplify(),
+        Ln(Cosh(expr)),
+        variable,
+      ),
+      Abs(:final expr) when expr.dependsOn(variable) => _scaleMatch(
+        factor,
+        expr.derivative(variable).simplify(),
+        Div(Mul(expr, Abs(expr)), const RationalNumber(2)),
+        variable,
+      ),
+      Sqrt(:final expr) when expr.dependsOn(variable) => _scaleMatch(
+        factor,
+        expr.derivative(variable).simplify(),
+        Mul(const RationalNumber(2, 3), Pow(expr, const RationalNumber(3, 2))),
         variable,
       ),
       Pow(:final base, :final exponent)
@@ -346,7 +561,7 @@ Expr? _tryChainRulePower(
   Expr factor,
   String variable,
 ) {
-  final uPrime = base.diff(variable).simplify();
+  final uPrime = base.derivative(variable).simplify();
   final k = factor.matchScalarMultiple(uPrime, variable);
   if (k != null) {
     if (exponent case RationalNumber(isNegativeOne: true)) {
@@ -377,7 +592,7 @@ Expr? _tryChainRuleExponential(
     validBase = value > 0 && value != 1.0;
   }
   if (validBase) {
-    final uPrime = exponent.diff(variable).simplify();
+    final uPrime = exponent.derivative(variable).simplify();
     final k = factor.matchScalarMultiple(uPrime, variable);
     if (k != null) {
       final denom = Ln(base);
@@ -408,6 +623,14 @@ Expr? _tryIntegrationByParts(Expr pExpr, Expr vExpr, String variable) {
     },
     Sin(:final expr) => switch (expr.matchLinear(variable)) {
       (:final a, b: _) => _ibpSine(pExpr, vExpr, expr, p, a),
+      null => null,
+    },
+    Sinh(:final expr) => switch (expr.matchLinear(variable)) {
+      (:final a, b: _) => _ibpSinh(pExpr, vExpr, expr, p, a),
+      null => null,
+    },
+    Cosh(:final expr) => switch (expr.matchLinear(variable)) {
+      (:final a, b: _) => _ibpCosh(pExpr, vExpr, expr, p, a),
       null => null,
     },
     Pow(:final base, :final exponent) when !base.dependsOn(variable) =>
@@ -493,4 +716,34 @@ Expr _ibpSine(Expr pExpr, Expr vExpr, Expr expr, Expr p, Expr c) {
   final cSquared = Mul(c, c).simplify();
   final term2 = Mul(Div(p, cSquared).simplify(), Sin(expr)).simplify();
   return Add(term1, term2).simplify();
+}
+
+Expr _ibpSinh(Expr pExpr, Expr vExpr, Expr expr, Expr p, Expr c) {
+  final term1 = Mul(Div(pExpr, c).simplify(), Cosh(expr)).simplify();
+  final cSquared = Mul(c, c).simplify();
+  final term2 = Mul(Div(p, cSquared).simplify(), Sinh(expr)).simplify();
+  return Sub(term1, term2).simplify();
+}
+
+Expr _ibpCosh(Expr pExpr, Expr vExpr, Expr expr, Expr p, Expr c) {
+  final term1 = Mul(Div(pExpr, c).simplify(), Sinh(expr)).simplify();
+  final cSquared = Mul(c, c).simplify();
+  final term2 = Mul(Div(p, cSquared).simplify(), Cosh(expr)).simplify();
+  return Sub(term1, term2).simplify();
+}
+
+Expr? _extractSquareBase(Expr expr) {
+  if (expr is Pow) {
+    final exp = expr.exponent;
+    if (exp is RationalNumber &&
+        exp.denominator == 1 &&
+        exp.numerator % 2 == 0) {
+      final half = exp.numerator ~/ 2;
+      return half == 1 ? expr.base : Pow(expr.base, RationalNumber(half));
+    } else if (exp is RealNumber && exp.value % 2.0 == 0.0) {
+      final half = (exp.value / 2.0).round();
+      return half == 1 ? expr.base : Pow(expr.base, RationalNumber(half));
+    }
+  }
+  return null;
 }

@@ -44,9 +44,9 @@ class IntegrateError extends Error {
 /// [IntegrationMethod.simpson]).
 ///
 /// Supports:
-/// - Infinite and semi-infinite integration domains ($[-\infty, \infty]$,
-///   $[-\infty, b]$, $[a, \infty)$) via reciprocal coordinate transformations
-///   ($t \in [\epsilon, 1]$).
+/// - Infinite and semi-infinite integration domains ($\[-\infty, \infty\]$,
+///   $\[-\infty, b\]$, $\[a, \infty\)$) via reciprocal coordinate transformations
+///   ($t \in \[\epsilon, 1\]$).
 /// - Known poles and non-differentiable singularities via interval partitioning
 ///   ([poles]).
 /// - Convergence error diagnostics and handling via [IntegrateWarning],

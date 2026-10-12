@@ -42,8 +42,19 @@ String _toLatex(Expr expr) => switch (expr) {
   Neg(:final expr) => '-${_formatNegOperand(expr)}',
   Sin(:final expr) => '\\sin(${_toLatex(expr)})',
   Cos(:final expr) => '\\cos(${_toLatex(expr)})',
+  Tan(:final expr) => '\\tan(${_toLatex(expr)})',
+  Asin(:final expr) => '\\arcsin(${_toLatex(expr)})',
+  Acos(:final expr) => '\\arccos(${_toLatex(expr)})',
+  Atan(:final expr) => '\\arctan(${_toLatex(expr)})',
+  Sinh(:final expr) => '\\sinh(${_toLatex(expr)})',
+  Cosh(:final expr) => '\\cosh(${_toLatex(expr)})',
+  Tanh(:final expr) => '\\tanh(${_toLatex(expr)})',
+  Abs(:final expr) => '\\left|${_toLatex(expr)}\\right|',
+  Sqrt(:final expr) => '\\sqrt{${_toLatex(expr)}}',
   Exp(:final expr) => 'e^{${_toLatex(expr)}}',
   Ln(:final expr) => '\\ln(${_toLatex(expr)})',
+  Log(:final base, :final expr) =>
+    '\\log_{${_toLatex(base)}}(${_toLatex(expr)})',
 };
 
 String _formatPow(Expr base, Expr exponent) {

@@ -10,12 +10,13 @@
 ///
 /// - **Symbolic Expressions ([Expr])**: Build trees of variables ([Variable]),
 ///   numbers ([Number], [RationalNumber], [RealNumber], [ConstantNumber],
-///   [pi], [e]), and mathematical functions like [Sin], [Cos], [Exp], and
-///   [Ln].
+///   [pi], [e]), and mathematical functions like [Sin], [Cos], [Tan], [Asin],
+///   [Acos], [Atan], [Sinh], [Cosh], [Tanh], [Abs], [Sqrt], [Exp], [Ln], and
+///   [Log].
 /// - **Expression Parsing**: Parse mathematical formulas from text with PetitParser
 ///   using [Expr.parse] or [Expr.tryParse].
 /// - **Analytical Calculus**: Exact differentiation
-///   ([DifferentiationExtension.derivative], [DifferentiationExtension.diff])
+///   ([DifferentiationExtension.derivative])
 ///   with product, quotient, and chain rules; multivariate gradients
 ///   ([MultivariableExtension.gradient]), Hessians
 ///   ([MultivariableExtension.hessian]), and Jacobians
@@ -52,12 +53,12 @@
 ///   final f = Expr.parse('x^3 + 2 * x');
 ///
 ///   // Compute exact derivative: f'(x) = 3x^2 + 2
-///   final df = f.diff('x').simplify();
+///   final df = f.derivative('x').simplify();
 ///   print('Derivative: $df');
 ///   print('LaTeX: ${df.toLatex()}');
 ///
 ///   // Compile to high-speed numerical function
-///   final fn = df.compile1D('x');
+///   final fn = df.toFunction1D('x');
 ///   print('f\'(2.0) = ${fn(2.0)}'); // 3*(4) + 2 = 14.0
 /// }
 /// ```

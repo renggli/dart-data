@@ -32,12 +32,6 @@ void main() {
       check(d5.evaluate({'x': 2.0})).isCloseTo(0.0, 1e-9); // 0
     });
 
-    test('diff order alias', () {
-      final poly = x.pow(const RationalNumber(3));
-      final d2 = poly.diff('x', order: 2).simplify();
-      check(d2.evaluate({'x': 5.0})).isCloseTo(30.0, 1e-9); // 6 * 5
-    });
-
     test('invalid derivative order throws RangeError', () {
       check(() => x.derivative('x', order: -1)).throws<RangeError>();
     });
@@ -47,16 +41,14 @@ void main() {
     const x = Variable('x');
     const y = Variable('y');
 
-    test('toFunction1D and compile1D', () {
+    test('toFunction1D', () {
       final expr =
           x * x + const RationalNumber(3) * x + const RationalNumber(2);
       final fn1 = expr.toFunction1D('x');
-      final fn2 = expr.compile1D('x');
 
       for (final testX in [-2.0, 0.0, 1.5, 3.0]) {
         final expected = testX * testX + 3.0 * testX + 2.0;
         check(fn1(testX)).isCloseTo(expected, 1e-9);
-        check(fn2(testX)).isCloseTo(expected, 1e-9);
       }
     });
 
@@ -305,6 +297,86 @@ void main() {
 
       check(symVal).isCloseTo(14.0, 1e-9);
       check(numVal).isCloseTo(symVal, 1e-9);
+    });
+
+    test('expanded functions derivative parity', () {
+      // Tan(x): d/dx tan(x) = 1 + tan(x)^2
+      const exprTan = Tan(x);
+      final symDTan = exprTan.derivative('x').toFunction1D('x')(0.5);
+      final numDTan = derivative(exprTan.toFunction1D('x'), 0.5, order: 1);
+      check(numDTan).isCloseTo(symDTan, 1e-4);
+
+      // Atan(x): d/dx atan(x) = 1 / (1 + x^2)
+      const exprAtan = Atan(x);
+      final symDAtan = exprAtan.derivative('x').toFunction1D('x')(0.8);
+      final numDAtan = derivative(exprAtan.toFunction1D('x'), 0.8, order: 1);
+      check(numDAtan).isCloseTo(symDAtan, 1e-5);
+
+      // Sinh(x): d/dx sinh(x) = cosh(x)
+      const exprSinh = Sinh(x);
+      final symDSinh = exprSinh.derivative('x').toFunction1D('x')(1.0);
+      final numDSinh = derivative(exprSinh.toFunction1D('x'), 1.0, order: 1);
+      check(numDSinh).isCloseTo(symDSinh, 1e-5);
+
+      // Cosh(x): d/dx cosh(x) = sinh(x)
+      const exprCosh = Cosh(x);
+      final symDCosh = exprCosh.derivative('x').toFunction1D('x')(1.0);
+      final numDCosh = derivative(exprCosh.toFunction1D('x'), 1.0, order: 1);
+      check(numDCosh).isCloseTo(symDCosh, 1e-5);
+
+      // Tanh(x): d/dx tanh(x) = 1 - tanh(x)^2
+      const exprTanh = Tanh(x);
+      final symDTanh = exprTanh.derivative('x').toFunction1D('x')(0.6);
+      final numDTanh = derivative(exprTanh.toFunction1D('x'), 0.6, order: 1);
+      check(numDTanh).isCloseTo(symDTanh, 1e-5);
+
+      // Sqrt(x): d/dx sqrt(x) = 1 / (2 * sqrt(x))
+      const exprSqrt = Sqrt(x);
+      final symDSqrt = exprSqrt.derivative('x').toFunction1D('x')(4.0);
+      final numDSqrt = derivative(exprSqrt.toFunction1D('x'), 4.0, order: 1);
+      check(numDSqrt).isCloseTo(symDSqrt, 1e-5);
+    });
+
+    test('expanded functions definite integration parity', () {
+      // \int_0^1 sinh(x) dx = cosh(1) - cosh(0)
+      const exprSinh = Sinh(x);
+      final symSinh = exprSinh
+          .integrate('x', from: 0, to: 1)
+          .evaluate(const {});
+      final numSinh = integrate(exprSinh.toFunction1D('x'), 0.0, 1.0);
+      check(numSinh).isCloseTo(symSinh, 1e-6);
+
+      // \int_0^1 cosh(x) dx = sinh(1)
+      const exprCosh = Cosh(x);
+      final symCosh = exprCosh
+          .integrate('x', from: 0, to: 1)
+          .evaluate(const {});
+      final numCosh = integrate(exprCosh.toFunction1D('x'), 0.0, 1.0);
+      check(numCosh).isCloseTo(symCosh, 1e-6);
+
+      // \int_0^0.8 tan(x) dx
+      const exprTan = Tan(x);
+      final symTan = exprTan
+          .integrate('x', from: 0, to: 0.8)
+          .evaluate(const {});
+      final numTan = integrate(exprTan.toFunction1D('x'), 0.0, 0.8);
+      check(numTan).isCloseTo(symTan, 1e-6);
+
+      // \int_0^1 atan(x) dx
+      const exprAtan = Atan(x);
+      final symAtan = exprAtan
+          .integrate('x', from: 0, to: 1)
+          .evaluate(const {});
+      final numAtan = integrate(exprAtan.toFunction1D('x'), 0.0, 1.0);
+      check(numAtan).isCloseTo(symAtan, 1e-6);
+
+      // \int_0^1 tanh(x) dx
+      const exprTanh = Tanh(x);
+      final symTanh = exprTanh
+          .integrate('x', from: 0, to: 1)
+          .evaluate(const {});
+      final numTanh = integrate(exprTanh.toFunction1D('x'), 0.0, 1.0);
+      check(numTanh).isCloseTo(symTanh, 1e-6);
     });
   });
 }

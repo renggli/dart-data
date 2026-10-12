@@ -25,10 +25,6 @@ extension DifferentiationExtension on Expr {
     }
     return current;
   }
-
-  /// Alias for [derivative].
-  Expr diff(String variable, {int order = 1}) =>
-      derivative(variable, order: order);
 }
 
 Expr _differentiate(Expr expr, String variable) => switch (expr) {
@@ -81,6 +77,40 @@ Expr _differentiate(Expr expr, String variable) => switch (expr) {
     Neg(Sin(inner)),
     _differentiate(inner, variable),
   ),
+  Tan(expr: final inner) => Div(
+    _differentiate(inner, variable),
+    Pow(Cos(inner), const RationalNumber(2)),
+  ),
+  Asin(expr: final inner) => Div(
+    _differentiate(inner, variable),
+    Sqrt(Sub(RationalNumber.one, Pow(inner, const RationalNumber(2)))),
+  ),
+  Acos(expr: final inner) => Div(
+    Neg(_differentiate(inner, variable)),
+    Sqrt(Sub(RationalNumber.one, Pow(inner, const RationalNumber(2)))),
+  ),
+  Atan(expr: final inner) => Div(
+    _differentiate(inner, variable),
+    Add(RationalNumber.one, Pow(inner, const RationalNumber(2))),
+  ),
+  Sinh(expr: final inner) => Mul(Cosh(inner), _differentiate(inner, variable)),
+  Cosh(expr: final inner) => Mul(Sinh(inner), _differentiate(inner, variable)),
+  Tanh(expr: final inner) => Div(
+    _differentiate(inner, variable),
+    Pow(Cosh(inner), const RationalNumber(2)),
+  ),
+  Abs(expr: final inner) => Mul(
+    Div(inner, Abs(inner)),
+    _differentiate(inner, variable),
+  ),
+  Sqrt(expr: final inner) => Div(
+    _differentiate(inner, variable),
+    Mul(const RationalNumber(2), Sqrt(inner)),
+  ),
   Exp(expr: final inner) => Mul(expr, _differentiate(inner, variable)),
   Ln(expr: final inner) => Div(_differentiate(inner, variable), inner),
+  Log(:final base, :final expr) => _differentiate(
+    Div(Ln(expr), Ln(base)),
+    variable,
+  ),
 };

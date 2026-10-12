@@ -26,10 +26,20 @@ extension LinearFormExtension on Expr {
   ///
   /// Returns scalar factor $k$ such that $\text{this} = k \cdot target$, where
   /// $k$ does not depend on [variable].
+  ///
+  /// ```dart
+  /// final x = Variable('x');
+  /// final k = (6 * x).matchScalarMultiple(2 * x, 'x'); // RationalNumber(3)
+  /// ```
   Expr? matchScalarMultiple(Expr target, String variable) =>
       _matchScalarMultiple(this, target, variable);
 
   /// Scales this expression by [factor] with constant folding and distribution.
+  ///
+  /// ```dart
+  /// final x = Variable('x');
+  /// final scaled = (x + 2).scale(RationalNumber(3)); // 3 * x + 6
+  /// ```
   Expr scale(Expr factor) => _scaleExpr(this, factor);
 }
 

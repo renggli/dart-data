@@ -89,13 +89,24 @@ void main() {
     const x = Variable('x');
     const y = Variable('y');
 
-    test('trigonometric and logarithm', () {
+    test('trigonometric, hyperbolic, and special functions', () {
       check(const Sin(x).toString()).equals('sin(x)');
       check(const Cos(x).toString()).equals('cos(x)');
+      check(const Tan(x).toString()).equals('tan(x)');
+      check(const Asin(x).toString()).equals('asin(x)');
+      check(const Acos(x).toString()).equals('acos(x)');
+      check(const Atan(x).toString()).equals('atan(x)');
+      check(const Sinh(x).toString()).equals('sinh(x)');
+      check(const Cosh(x).toString()).equals('cosh(x)');
+      check(const Tanh(x).toString()).equals('tanh(x)');
+      check(const Abs(x).toString()).equals('abs(x)');
+      check(const Sqrt(x).toString()).equals('sqrt(x)');
       check(Sin(x + y).toString()).equals('sin(x + y)');
       check(Cos(x * y).toString()).equals('cos(x * y)');
       check(const Exp(x).toString()).equals('exp(x)');
       check(const Ln(x).toString()).equals('ln(x)');
+      check(const Log(RationalNumber(2), x).toString()).equals('log(2, x)');
+      check(const Log(Variable('b'), x).toString()).equals('log(b, x)');
     });
 
     test('compound mathematical expressions without redundant parens', () {

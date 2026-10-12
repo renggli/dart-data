@@ -108,15 +108,65 @@ void main() {
 
       check(() => expr.compileTensorKernel(['x'])).throws<ArgumentError>();
     });
+
+    test(
+      'kernel with expanded transcendentals, special functions, and clamping',
+      () {
+        const x = Variable('x');
+        final expr =
+            const Tan(x) +
+            Asin(x * const RationalNumber(1, 2)) +
+            Acos(x * const RationalNumber(1, 2)) +
+            const Atan(x) +
+            const Sinh(x) +
+            const Cosh(x) +
+            const Tanh(x) +
+            const Abs(x) +
+            const Sqrt(Abs(x));
+        final kernel = expr.compileTensorKernel(['x']);
+
+        final inVals = [-0.8, -0.2, 0.0, 0.2, 0.8];
+        final xBuf = Float64List.fromList(inVals);
+        final out = Float64List(inVals.length);
+        kernel([xBuf], out);
+
+        for (var i = 0; i < inVals.length; i++) {
+          final v = inVals[i];
+          final halfV = v * 0.5;
+          final expected =
+              math.tan(v) +
+              math.asin(halfV) +
+              math.acos(halfV) +
+              math.atan(v) +
+              (math.exp(v) - math.exp(-v)) / 2.0 +
+              (math.exp(v) + math.exp(-v)) / 2.0 +
+              (math.exp(2 * v) - 1.0) / (math.exp(2 * v) + 1.0) +
+              v.abs() +
+              math.sqrt(v.abs());
+          check(out[i]).isCloseTo(expected, 1e-10);
+        }
+
+        // Test clamping on large inputs
+        const largeExpr = Tanh(x);
+        final largeKernel = largeExpr.compileTensorKernel(['x']);
+        final largeBuf = Float64List.fromList([-50.0, -25.0, 25.0, 50.0]);
+        final largeOut = Float64List(4);
+        largeKernel([largeBuf], largeOut);
+        check(largeOut[0]).equals(-1.0);
+        check(largeOut[1]).equals(-1.0);
+        check(largeOut[2]).equals(1.0);
+        check(largeOut[3]).equals(1.0);
+      },
+    );
   });
 
   group('Compiler - Fast 1D and Positional Parity', () {
-    test('parity between compile1D and compile', () {
+    test('parity between toFunction1D and compile', () {
       const x = Variable('x');
       final expr =
           Sin(x.pow(const RationalNumber(2))) + const RationalNumber(3) * x;
 
-      final fn1D = expr.compile1D('x');
+      final fn1D = expr.toFunction1D('x');
       final fnPos = expr.compile(['x']);
 
       for (final v in [0.0, 0.5, 1.0, 2.0, -1.5]) {

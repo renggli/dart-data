@@ -52,9 +52,27 @@ String _toMathMl(Expr expr) => switch (expr) {
     '<mrow><mi>sin</mi><mo>(</mo>${_toMathMl(expr)}<mo>)</mo></mrow>',
   Cos(:final expr) =>
     '<mrow><mi>cos</mi><mo>(</mo>${_toMathMl(expr)}<mo>)</mo></mrow>',
+  Tan(:final expr) =>
+    '<mrow><mi>tan</mi><mo>(</mo>${_toMathMl(expr)}<mo>)</mo></mrow>',
+  Asin(:final expr) =>
+    '<mrow><mi>arcsin</mi><mo>(</mo>${_toMathMl(expr)}<mo>)</mo></mrow>',
+  Acos(:final expr) =>
+    '<mrow><mi>arccos</mi><mo>(</mo>${_toMathMl(expr)}<mo>)</mo></mrow>',
+  Atan(:final expr) =>
+    '<mrow><mi>arctan</mi><mo>(</mo>${_toMathMl(expr)}<mo>)</mo></mrow>',
+  Sinh(:final expr) =>
+    '<mrow><mi>sinh</mi><mo>(</mo>${_toMathMl(expr)}<mo>)</mo></mrow>',
+  Cosh(:final expr) =>
+    '<mrow><mi>cosh</mi><mo>(</mo>${_toMathMl(expr)}<mo>)</mo></mrow>',
+  Tanh(:final expr) =>
+    '<mrow><mi>tanh</mi><mo>(</mo>${_toMathMl(expr)}<mo>)</mo></mrow>',
+  Abs(:final expr) => '<mrow><mo>|</mo>${_toMathMl(expr)}<mo>|</mo></mrow>',
+  Sqrt(:final expr) => '<msqrt>${_toMathMl(expr)}</msqrt>',
   Exp(:final expr) => '<msup><mi>e</mi>${_toMathMl(expr)}</msup>',
   Ln(:final expr) =>
     '<mrow><mi>ln</mi><mo>(</mo>${_toMathMl(expr)}<mo>)</mo></mrow>',
+  Log(:final base, :final expr) =>
+    '<mrow><msub><mi>log</mi>${_toMathMl(base)}</msub><mo>(</mo>${_toMathMl(expr)}<mo>)</mo></mrow>',
 };
 
 String _formatPow(Expr base, Expr exponent) {

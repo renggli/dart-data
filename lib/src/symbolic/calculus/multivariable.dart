@@ -62,7 +62,7 @@ extension MultivariableIterableExtension on Iterable<Expr> {
 }
 
 List<Expr> _multivariableGradient(Expr function, List<String> variables) => [
-  for (final variable in variables) function.diff(variable).simplify(),
+  for (final variable in variables) function.derivative(variable).simplify(),
 ];
 
 List<List<Expr>> _multivariableJacobian(
@@ -70,13 +70,13 @@ List<List<Expr>> _multivariableJacobian(
   List<String> variables,
 ) => [
   for (final fn in functions)
-    [for (final variable in variables) fn.diff(variable).simplify()],
+    [for (final variable in variables) fn.derivative(variable).simplify()],
 ];
 
 List<List<Expr>> _multivariableHessian(Expr function, List<String> variables) {
   final grad = _multivariableGradient(function, variables);
   return [
     for (final df in grad)
-      [for (final variable in variables) df.diff(variable).simplify()],
+      [for (final variable in variables) df.derivative(variable).simplify()],
   ];
 }

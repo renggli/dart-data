@@ -93,12 +93,26 @@ void main() {
       check(Cos(x * y).toLatex()).equals('\\cos(x \\cdot y)');
     });
 
+    test('trigonometric, hyperbolic, and special functions', () {
+      check(const Tan(x).toLatex()).equals('\\tan(x)');
+      check(const Asin(x).toLatex()).equals('\\arcsin(x)');
+      check(const Acos(x).toLatex()).equals('\\arccos(x)');
+      check(const Atan(x).toLatex()).equals('\\arctan(x)');
+      check(const Sinh(x).toLatex()).equals('\\sinh(x)');
+      check(const Cosh(x).toLatex()).equals('\\cosh(x)');
+      check(const Tanh(x).toLatex()).equals('\\tanh(x)');
+      check(const Abs(x).toLatex()).equals('\\left|x\\right|');
+      check(const Sqrt(x).toLatex()).equals('\\sqrt{x}');
+    });
+
     test('exponential and logarithm', () {
       check(const Exp(x).toLatex()).equals('e^{x}');
       check(Exp(x.pow(const RationalNumber(2))).toLatex())
           .equals('e^{{x}^{2}}');
       check(const Ln(x).toLatex()).equals('\\ln(x)');
       check(Ln(x + const RationalNumber(1)).toLatex()).equals('\\ln(x + 1)');
+      check(const Log(RationalNumber(2), x).toLatex()).equals('\\log_{2}(x)');
+      check(const Log(Variable('b'), x).toLatex()).equals('\\log_{b}(x)');
     });
 
     test('composite calculus expressions', () {

@@ -114,9 +114,9 @@ Below is a detailed verification of achievements against `PROPOSED_CHANGES.md` a
 | Proposed Milestone | Status | Verification Details |
 | :--- | :--- | :--- |
 | **Algebraic AST** | **Achieved** | Sealed `Expr` hierarchy (`Variable`, `Constant`, `Add`, `Sub`, `Mul`, `Div`, `Neg`, `Pow`, `Sin`, `Cos`, `Exp`, `Ln`) in `lib/src/symbolic/ast.dart`. |
-| **Exact Differentiation** | **Achieved** | Automated symbolic differentiation (`diff`) with product, quotient, chain, and power rules. |
+| **Exact Differentiation** | **Achieved** | Automated symbolic differentiation (`derivative`) with product, quotient, chain, and power rules. |
 | **Canonical Simplifier** | **Achieved** | Constant folding, identity reduction ($0 \times x = 0$, $1 \times x = x$), and associative term grouping in `lib/src/symbolic/simplifier.dart`. |
-| **Positional 1D & N-D JIT Compiler** | **Achieved** | `compile1D(varName)`, `compile(varOrder)`, and `compileTensorKernel(varOrder)` in `lib/src/symbolic/compiler.dart`. |
+| **Positional 1D & N-D JIT Compiler** | **Achieved** | `toFunction1D(varName)`, `compile(varOrder)`, and `compileTensorKernel(varOrder)` in `lib/src/symbolic/compiler.dart`. |
 | **Numerical/Symbolic Synergy** | **Achieved** | Optimizers (`brentMinimize`, `nelderMead`, `bfgs`) and calculus routines accept `Expr` ASTs directly. |
 | **LaTeX & Taylor Series** | **Missed** | `toLatex()` and `taylorSeries()` were not implemented. |
 

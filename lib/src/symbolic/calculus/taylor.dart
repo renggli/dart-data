@@ -39,7 +39,7 @@ Expr _computeTaylorSeries(
   var factorial = 1;
 
   for (var step = 1; step <= order; step++) {
-    currentDeriv = currentDeriv.diff(variable);
+    currentDeriv = currentDeriv.derivative(variable);
     factorial *= step;
     final termVal = currentDeriv.substitute(variable, a).simplify();
     final polyTerm = Mul(

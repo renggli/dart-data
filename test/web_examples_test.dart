@@ -63,8 +63,8 @@ void main() {
     test('all presets support differentiation and high-speed compilation', () {
       for (final preset in expressionPresets) {
         final expr = Expr.tryParse(preset.formula)!;
-        final d1 = expr.diff('x').simplify();
-        final d2 = d1.diff('x').simplify();
+        final d1 = expr.derivative('x').simplify();
+        final d2 = d1.derivative('x').simplify();
 
         check(d1.toString().isNotEmpty).isTrue();
         check(d2.toString().isNotEmpty).isTrue();

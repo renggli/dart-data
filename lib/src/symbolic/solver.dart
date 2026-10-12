@@ -129,8 +129,8 @@ Expr _sqrtConstant(RationalNumber c) {
 
 ({Expr a, Expr b, Expr c})? _matchQuadratic(Expr expr, String variable) {
   // Compute second derivative f''(x)
-  final d1 = expr.diff(variable).simplify();
-  final d2 = d1.diff(variable).simplify();
+  final d1 = expr.derivative(variable).simplify();
+  final d2 = d1.derivative(variable).simplify();
   if (d2.dependsOn(variable)) {
     return null;
   }
@@ -263,7 +263,7 @@ Map<String, Expr>? _solveSystem(List<Expr> equations, List<String> variables) {
   for (var i = 0; i < n; i++) {
     final eq = equations[i].simplify();
     for (var j = 0; j < n; j++) {
-      final aij = eq.diff(variables[j]).simplify();
+      final aij = eq.derivative(variables[j]).simplify();
       // Ensure linearity: derivative must not depend on any variable
       for (final v in variables) {
         if (aij.dependsOn(v)) return null;

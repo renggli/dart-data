@@ -58,8 +58,15 @@ sealed class Expr {
   /// Whether this expression depends on [name].
   bool dependsOn(String name);
 
+  /// Populates [target] with all unique variable names appearing in this expression.
+  void collectFreeVariables(Set<String> target);
+
   /// All unique variable names appearing in this expression.
-  Set<String> get freeVariables;
+  Set<String> get freeVariables {
+    final result = <String>{};
+    collectFreeVariables(result);
+    return result;
+  }
 
   /// Substitutes occurrences of [variable] with [replacement].
   Expr substitute(String variable, Expr replacement);
@@ -110,7 +117,16 @@ sealed class Expr {
   }
 }
 
-/// [Variable] node representing a named symbol.
+/// A named symbolic variable in an algebraic expression.
+///
+/// Variables act as placeholders for unknown quantities or coordinates (e.g.
+/// `'x'`, `'y'`). During evaluation, their values are supplied via a context map.
+///
+/// ```dart
+/// final x = Variable('x');
+/// final expr = x * x + 1;
+/// print(expr.evaluate({'x': 3.0})); // 10.0
+/// ```
 final class Variable extends Expr {
   /// Creates a variable node with the given [name].
   const new(this.name);
@@ -120,6 +136,9 @@ final class Variable extends Expr {
 
   @override
   bool dependsOn(String name) => this.name == name;
+
+  @override
+  void collectFreeVariables(Set<String> target) => target.add(name);
 
   @override
   Set<String> get freeVariables => {name};
@@ -147,7 +166,11 @@ final class Variable extends Expr {
   int get hashCode => name.hashCode;
 }
 
-/// Sealed base class representing a numeric value node.
+/// Sealed base class representing a numeric value node in an expression AST.
+///
+/// Subtypes include exact rational numbers ([RationalNumber]), floating-point
+/// approximations ([RealNumber]), and recognized transcendental constants
+/// ([ConstantNumber]).
 sealed class Number extends Expr {
   /// Abstract const constructor for numeric nodes.
   const new();
@@ -159,6 +182,9 @@ sealed class Number extends Expr {
   bool dependsOn(String name) => false;
 
   @override
+  void collectFreeVariables(Set<String> target) {}
+
+  @override
   Set<String> get freeVariables => const {};
 
   @override
@@ -168,11 +194,15 @@ sealed class Number extends Expr {
   double evaluate(Map<String, double> context) => value;
 }
 
-/// [RationalNumber] numeric value node representing an exact rational number ($\mathbb{Q}$).
+/// An exact rational number ($\mathbb{Q}$) represented by an integer [numerator] and [denominator].
 ///
-/// An exact rational number is represented by an integer [numerator] and a
-/// positive integer [denominator]. Canonical rational numbers are in lowest reduced terms
-/// with $\gcd(|numerator|, denominator) = 1$.
+/// Canonical rational numbers are in lowest reduced terms with
+/// $\gcd(|numerator|, denominator) = 1$ and a strictly positive denominator.
+///
+/// ```dart
+/// final half = RationalNumber(1, 2);
+/// print(half.toDouble()); // 0.5
+/// ```
 final class RationalNumber extends Number {
   /// Creates an exact rational number node with [numerator] and optional [denominator].
   const new(this.numerator, [this.denominator = 1])
@@ -243,7 +273,15 @@ final class RationalNumber extends Number {
   int get hashCode => Object.hash(numerator, denominator);
 }
 
-/// [RealNumber] numeric value node representing an unreduced or floating-point number ($\mathbb{R}$).
+/// A real floating-point numeric value node ($\mathbb{R}$).
+///
+/// Used for numbers that cannot be represented as exact rational fractions
+/// within the configured denominator bound.
+///
+/// ```dart
+/// final r = RealNumber(1.2345);
+/// print(r.value); // 1.2345
+/// ```
 final class RealNumber extends Number {
   /// Creates a real/floating-point number node with the given [value].
   const new(this.value);
@@ -261,7 +299,16 @@ final class RealNumber extends Number {
   int get hashCode => value.hashCode;
 }
 
-/// [ConstantNumber] representing a recognized transcendental mathematical constant.
+/// A recognized transcendental mathematical constant (such as [pi] or [e]).
+///
+/// Preserves symbolic identity during algebraic manipulations and LaTeX
+/// typesetting without premature floating-point loss of precision.
+///
+/// ```dart
+/// final c = ConstantNumber.pi;
+/// print(c.name); // 'pi'
+/// print(c.value); // 3.141592653589793
+/// ```
 final class ConstantNumber extends Number {
   /// Creates a named transcendental constant with [name] and numeric [value].
   const new(this.name, this.value);
@@ -289,9 +336,43 @@ final class ConstantNumber extends Number {
   int get hashCode => name.hashCode;
 }
 
-/// [Add] expression node: left + right.
-final class Add extends Expr {
-  /// Creates an addition node representing `[left] + [right]`.
+/// Sealed base class representing a unary operation AST node with a single operand.
+///
+/// Encapsulates common structural traversal, variable dependency collection,
+/// and value hashing across unary expressions such as negation ([Neg]) and
+/// transcendental functions ([Sin], [Cos], [Exp], [Ln]).
+sealed class UnaryExpr extends Expr {
+  /// Abstract const constructor for unary expression nodes.
+  const new(this.expr);
+
+  /// The sub-expression argument of this unary operation.
+  final Expr expr;
+
+  @override
+  bool dependsOn(String name) => expr.dependsOn(name);
+
+  @override
+  void collectFreeVariables(Set<String> target) =>
+      expr.collectFreeVariables(target);
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is UnaryExpr &&
+          other.runtimeType == runtimeType &&
+          other.expr == expr);
+
+  @override
+  int get hashCode => Object.hash(runtimeType, expr);
+}
+
+/// Sealed base class representing a binary operation AST node with two operands.
+///
+/// Encapsulates common structural traversal, variable dependency collection,
+/// and value hashing across binary expressions such as arithmetic operations
+/// ([Add], [Sub], [Mul], [Div]) and exponentiation ([Pow]).
+sealed class BinaryExpr extends Expr {
+  /// Abstract const constructor for binary expression nodes.
   const new(this.left, this.right);
 
   /// The left operand.
@@ -304,10 +385,31 @@ final class Add extends Expr {
   bool dependsOn(String name) => left.dependsOn(name) || right.dependsOn(name);
 
   @override
-  Set<String> get freeVariables => {
-    ...left.freeVariables,
-    ...right.freeVariables,
-  };
+  void collectFreeVariables(Set<String> target) {
+    left.collectFreeVariables(target);
+    right.collectFreeVariables(target);
+  }
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is BinaryExpr &&
+          other.runtimeType == runtimeType &&
+          other.left == left &&
+          other.right == right);
+
+  @override
+  int get hashCode => Object.hash(runtimeType, left, right);
+}
+
+/// An addition binary expression node representing $left + right$.
+///
+/// ```dart
+/// final sum = Add(Variable('x'), RationalNumber(1));
+/// ```
+final class Add extends BinaryExpr {
+  /// Creates an addition node representing `[left] + [right]`.
+  const new(super.left, super.right);
 
   @override
   Expr substitute(String variable, Expr replacement) => Add(
@@ -318,34 +420,16 @@ final class Add extends Expr {
   @override
   double evaluate(Map<String, double> context) =>
       left.evaluate(context) + right.evaluate(context);
-
-  @override
-  bool operator ==(Object other) =>
-      other is Add && other.left == left && other.right == right;
-
-  @override
-  int get hashCode => Object.hash(left, right);
 }
 
-/// [Sub] expression node: left - right.
-final class Sub extends Expr {
+/// A subtraction binary expression node representing $left - right$.
+///
+/// ```dart
+/// final diff = Sub(Variable('x'), RationalNumber(1));
+/// ```
+final class Sub extends BinaryExpr {
   /// Creates a subtraction node representing `[left] - [right]`.
-  const new(this.left, this.right);
-
-  /// The left operand.
-  final Expr left;
-
-  /// The right operand.
-  final Expr right;
-
-  @override
-  bool dependsOn(String name) => left.dependsOn(name) || right.dependsOn(name);
-
-  @override
-  Set<String> get freeVariables => {
-    ...left.freeVariables,
-    ...right.freeVariables,
-  };
+  const new(super.left, super.right);
 
   @override
   Expr substitute(String variable, Expr replacement) => Sub(
@@ -356,34 +440,16 @@ final class Sub extends Expr {
   @override
   double evaluate(Map<String, double> context) =>
       left.evaluate(context) - right.evaluate(context);
-
-  @override
-  bool operator ==(Object other) =>
-      other is Sub && other.left == left && other.right == right;
-
-  @override
-  int get hashCode => Object.hash(left, right);
 }
 
-/// [Mul] expression node: left * right.
-final class Mul extends Expr {
+/// A multiplication binary expression node representing $left \times right$.
+///
+/// ```dart
+/// final product = Mul(RationalNumber(2), Variable('x'));
+/// ```
+final class Mul extends BinaryExpr {
   /// Creates a multiplication node representing `[left] * [right]`.
-  const new(this.left, this.right);
-
-  /// The left operand.
-  final Expr left;
-
-  /// The right operand.
-  final Expr right;
-
-  @override
-  bool dependsOn(String name) => left.dependsOn(name) || right.dependsOn(name);
-
-  @override
-  Set<String> get freeVariables => {
-    ...left.freeVariables,
-    ...right.freeVariables,
-  };
+  const new(super.left, super.right);
 
   @override
   Expr substitute(String variable, Expr replacement) => Mul(
@@ -394,34 +460,16 @@ final class Mul extends Expr {
   @override
   double evaluate(Map<String, double> context) =>
       left.evaluate(context) * right.evaluate(context);
-
-  @override
-  bool operator ==(Object other) =>
-      other is Mul && other.left == left && other.right == right;
-
-  @override
-  int get hashCode => Object.hash(left, right);
 }
 
-/// [Div] expression node: left / right.
-final class Div extends Expr {
+/// A division binary expression node representing $left / right$.
+///
+/// ```dart
+/// final quotient = Div(Variable('x'), RationalNumber(2));
+/// ```
+final class Div extends BinaryExpr {
   /// Creates a division node representing `[left] / [right]`.
-  const new(this.left, this.right);
-
-  /// The numerator operand.
-  final Expr left;
-
-  /// The denominator operand.
-  final Expr right;
-
-  @override
-  bool dependsOn(String name) => left.dependsOn(name) || right.dependsOn(name);
-
-  @override
-  Set<String> get freeVariables => {
-    ...left.freeVariables,
-    ...right.freeVariables,
-  };
+  const new(super.left, super.right);
 
   @override
   Expr substitute(String variable, Expr replacement) => Div(
@@ -432,67 +480,42 @@ final class Div extends Expr {
   @override
   double evaluate(Map<String, double> context) =>
       left.evaluate(context) / right.evaluate(context);
-
-  @override
-  bool operator ==(Object other) =>
-      other is Div && other.left == left && other.right == right;
-
-  @override
-  int get hashCode => Object.hash(left, right);
 }
 
-/// [Pow] expression node: base ^ exponent.
-final class Pow extends Expr {
+/// An exponentiation binary expression node representing $base^{exponent}$.
+///
+/// ```dart
+/// final power = Pow(Variable('x'), RationalNumber(2));
+/// ```
+final class Pow extends BinaryExpr {
   /// Creates an exponentiation node representing `[base] ^ [exponent]`.
-  const new(this.base, this.exponent);
+  const new(super.left, super.right);
 
   /// The base expression.
-  final Expr base;
+  Expr get base => left;
 
   /// The exponent expression.
-  final Expr exponent;
-
-  @override
-  bool dependsOn(String name) =>
-      base.dependsOn(name) || exponent.dependsOn(name);
-
-  @override
-  Set<String> get freeVariables => {
-    ...base.freeVariables,
-    ...exponent.freeVariables,
-  };
+  Expr get exponent => right;
 
   @override
   Expr substitute(String variable, Expr replacement) => Pow(
-    base.substitute(variable, replacement),
-    exponent.substitute(variable, replacement),
+    left.substitute(variable, replacement),
+    right.substitute(variable, replacement),
   );
 
   @override
   double evaluate(Map<String, double> context) =>
-      math.pow(base.evaluate(context), exponent.evaluate(context)).toDouble();
-
-  @override
-  bool operator ==(Object other) =>
-      other is Pow && other.base == base && other.exponent == exponent;
-
-  @override
-  int get hashCode => Object.hash(base, exponent);
+      math.pow(left.evaluate(context), right.evaluate(context)).toDouble();
 }
 
-/// [Neg] unary negation node: -expr.
-final class Neg extends Expr {
+/// A unary negation expression node representing $-expr$.
+///
+/// ```dart
+/// final neg = Neg(Variable('x'));
+/// ```
+final class Neg extends UnaryExpr {
   /// Creates a unary negation node representing `-[expr]`.
-  const new(this.expr);
-
-  /// The negated sub-expression.
-  final Expr expr;
-
-  @override
-  bool dependsOn(String name) => expr.dependsOn(name);
-
-  @override
-  Set<String> get freeVariables => expr.freeVariables;
+  const new(super.expr);
 
   @override
   Expr substitute(String variable, Expr replacement) =>
@@ -500,27 +523,16 @@ final class Neg extends Expr {
 
   @override
   double evaluate(Map<String, double> context) => -expr.evaluate(context);
-
-  @override
-  bool operator ==(Object other) => other is Neg && other.expr == expr;
-
-  @override
-  int get hashCode => expr.hashCode;
 }
 
-/// [Sin] function node: sin(expr).
-final class Sin extends Expr {
+/// A trigonometric sine function expression node representing $\sin(expr)$.
+///
+/// ```dart
+/// final s = Sin(Variable('x'));
+/// ```
+final class Sin extends UnaryExpr {
   /// Creates a sine function node representing `sin([expr])`.
-  const new(this.expr);
-
-  /// The argument sub-expression.
-  final Expr expr;
-
-  @override
-  bool dependsOn(String name) => expr.dependsOn(name);
-
-  @override
-  Set<String> get freeVariables => expr.freeVariables;
+  const new(super.expr);
 
   @override
   Expr substitute(String variable, Expr replacement) =>
@@ -529,27 +541,16 @@ final class Sin extends Expr {
   @override
   double evaluate(Map<String, double> context) =>
       math.sin(expr.evaluate(context));
-
-  @override
-  bool operator ==(Object other) => other is Sin && other.expr == expr;
-
-  @override
-  int get hashCode => expr.hashCode;
 }
 
-/// [Cos] function node: cos(expr).
-final class Cos extends Expr {
+/// A trigonometric cosine function expression node representing $\cos(expr)$.
+///
+/// ```dart
+/// final c = Cos(Variable('x'));
+/// ```
+final class Cos extends UnaryExpr {
   /// Creates a cosine function node representing `cos([expr])`.
-  const new(this.expr);
-
-  /// The argument sub-expression.
-  final Expr expr;
-
-  @override
-  bool dependsOn(String name) => expr.dependsOn(name);
-
-  @override
-  Set<String> get freeVariables => expr.freeVariables;
+  const new(super.expr);
 
   @override
   Expr substitute(String variable, Expr replacement) =>
@@ -558,27 +559,16 @@ final class Cos extends Expr {
   @override
   double evaluate(Map<String, double> context) =>
       math.cos(expr.evaluate(context));
-
-  @override
-  bool operator ==(Object other) => other is Cos && other.expr == expr;
-
-  @override
-  int get hashCode => expr.hashCode;
 }
 
-/// [Exp] function node: exp(expr).
-final class Exp extends Expr {
+/// An exponential function expression node representing $e^{expr}$.
+///
+/// ```dart
+/// final exp = Exp(Variable('x'));
+/// ```
+final class Exp extends UnaryExpr {
   /// Creates an exponential function node representing `exp([expr])`.
-  const new(this.expr);
-
-  /// The exponent sub-expression.
-  final Expr expr;
-
-  @override
-  bool dependsOn(String name) => expr.dependsOn(name);
-
-  @override
-  Set<String> get freeVariables => expr.freeVariables;
+  const new(super.expr);
 
   @override
   Expr substitute(String variable, Expr replacement) =>
@@ -587,27 +577,16 @@ final class Exp extends Expr {
   @override
   double evaluate(Map<String, double> context) =>
       math.exp(expr.evaluate(context));
-
-  @override
-  bool operator ==(Object other) => other is Exp && other.expr == expr;
-
-  @override
-  int get hashCode => expr.hashCode;
 }
 
-/// [Ln] function node: ln(expr).
-final class Ln extends Expr {
+/// A natural logarithm function expression node representing $\ln(expr)$.
+///
+/// ```dart
+/// final l = Ln(Variable('x'));
+/// ```
+final class Ln extends UnaryExpr {
   /// Creates a natural logarithm function node representing `ln([expr])`.
-  const new(this.expr);
-
-  /// The argument sub-expression.
-  final Expr expr;
-
-  @override
-  bool dependsOn(String name) => expr.dependsOn(name);
-
-  @override
-  Set<String> get freeVariables => expr.freeVariables;
+  const new(super.expr);
 
   @override
   Expr substitute(String variable, Expr replacement) =>
@@ -616,10 +595,200 @@ final class Ln extends Expr {
   @override
   double evaluate(Map<String, double> context) =>
       math.log(expr.evaluate(context));
+}
+
+/// A trigonometric tangent function expression node representing $\tan(expr)$.
+///
+/// ```dart
+/// final t = Tan(Variable('x'));
+/// ```
+final class Tan extends UnaryExpr {
+  /// Creates a tangent function node representing `tan([expr])`.
+  const new(super.expr);
 
   @override
-  bool operator ==(Object other) => other is Ln && other.expr == expr;
+  Expr substitute(String variable, Expr replacement) =>
+      Tan(expr.substitute(variable, replacement));
 
   @override
-  int get hashCode => expr.hashCode;
+  double evaluate(Map<String, double> context) =>
+      math.tan(expr.evaluate(context));
+}
+
+/// An inverse sine (arcsine) function expression node representing $\arcsin(expr)$.
+///
+/// ```dart
+/// final a = Asin(Variable('x'));
+/// ```
+final class Asin extends UnaryExpr {
+  /// Creates an inverse sine function node representing `asin([expr])`.
+  const new(super.expr);
+
+  @override
+  Expr substitute(String variable, Expr replacement) =>
+      Asin(expr.substitute(variable, replacement));
+
+  @override
+  double evaluate(Map<String, double> context) =>
+      math.asin(expr.evaluate(context));
+}
+
+/// An inverse cosine (arccosine) function expression node representing $\arccos(expr)$.
+///
+/// ```dart
+/// final a = Acos(Variable('x'));
+/// ```
+final class Acos extends UnaryExpr {
+  /// Creates an inverse cosine function node representing `acos([expr])`.
+  const new(super.expr);
+
+  @override
+  Expr substitute(String variable, Expr replacement) =>
+      Acos(expr.substitute(variable, replacement));
+
+  @override
+  double evaluate(Map<String, double> context) =>
+      math.acos(expr.evaluate(context));
+}
+
+/// An inverse tangent (arctangent) function expression node representing $\arctan(expr)$.
+///
+/// ```dart
+/// final a = Atan(Variable('x'));
+/// ```
+final class Atan extends UnaryExpr {
+  /// Creates an inverse tangent function node representing `atan([expr])`.
+  const new(super.expr);
+
+  @override
+  Expr substitute(String variable, Expr replacement) =>
+      Atan(expr.substitute(variable, replacement));
+
+  @override
+  double evaluate(Map<String, double> context) =>
+      math.atan(expr.evaluate(context));
+}
+
+/// A hyperbolic sine function expression node representing $\sinh(expr)$.
+///
+/// ```dart
+/// final s = Sinh(Variable('x'));
+/// ```
+final class Sinh extends UnaryExpr {
+  /// Creates a hyperbolic sine function node representing `sinh([expr])`.
+  const new(super.expr);
+
+  @override
+  Expr substitute(String variable, Expr replacement) =>
+      Sinh(expr.substitute(variable, replacement));
+
+  @override
+  double evaluate(Map<String, double> context) {
+    final v = expr.evaluate(context);
+    return (math.exp(v) - math.exp(-v)) / 2.0;
+  }
+}
+
+/// A hyperbolic cosine function expression node representing $\cosh(expr)$.
+///
+/// ```dart
+/// final c = Cosh(Variable('x'));
+/// ```
+final class Cosh extends UnaryExpr {
+  /// Creates a hyperbolic cosine function node representing `cosh([expr])`.
+  const new(super.expr);
+
+  @override
+  Expr substitute(String variable, Expr replacement) =>
+      Cosh(expr.substitute(variable, replacement));
+
+  @override
+  double evaluate(Map<String, double> context) {
+    final v = expr.evaluate(context);
+    return (math.exp(v) + math.exp(-v)) / 2.0;
+  }
+}
+
+/// A hyperbolic tangent function expression node representing $\tanh(expr)$.
+///
+/// ```dart
+/// final t = Tanh(Variable('x'));
+/// ```
+final class Tanh extends UnaryExpr {
+  /// Creates a hyperbolic tangent function node representing `tanh([expr])`.
+  const new(super.expr);
+
+  @override
+  Expr substitute(String variable, Expr replacement) =>
+      Tanh(expr.substitute(variable, replacement));
+
+  @override
+  double evaluate(Map<String, double> context) {
+    final v = expr.evaluate(context);
+    if (v > 20.0) return 1.0;
+    if (v < -20.0) return -1.0;
+    final e2 = math.exp(2.0 * v);
+    return (e2 - 1.0) / (e2 + 1.0);
+  }
+}
+
+/// An absolute value function expression node representing $|expr|$.
+///
+/// ```dart
+/// final a = Abs(Variable('x'));
+/// ```
+final class Abs extends UnaryExpr {
+  /// Creates an absolute value function node representing `|expr|`.
+  const new(super.expr);
+
+  @override
+  Expr substitute(String variable, Expr replacement) =>
+      Abs(expr.substitute(variable, replacement));
+
+  @override
+  double evaluate(Map<String, double> context) => expr.evaluate(context).abs();
+}
+
+/// A square root function expression node representing $\sqrt{expr}$.
+///
+/// ```dart
+/// final s = Sqrt(Variable('x'));
+/// ```
+final class Sqrt extends UnaryExpr {
+  /// Creates a square root function node representing `sqrt([expr])`.
+  const new(super.expr);
+
+  @override
+  Expr substitute(String variable, Expr replacement) =>
+      Sqrt(expr.substitute(variable, replacement));
+
+  @override
+  double evaluate(Map<String, double> context) =>
+      math.sqrt(expr.evaluate(context));
+}
+
+/// A logarithm function expression node representing $\log_{base}(expr)$ with arbitrary base.
+///
+/// ```dart
+/// final l = Log(RationalNumber(10), Variable('x'));
+/// ```
+final class Log extends BinaryExpr {
+  /// Creates a logarithm function node with [base] and argument [expr].
+  const new(super.left, super.right);
+
+  /// The logarithmic base expression.
+  Expr get base => left;
+
+  /// The argument expression.
+  Expr get expr => right;
+
+  @override
+  Expr substitute(String variable, Expr replacement) => Log(
+    left.substitute(variable, replacement),
+    right.substitute(variable, replacement),
+  );
+
+  @override
+  double evaluate(Map<String, double> context) =>
+      math.log(right.evaluate(context)) / math.log(left.evaluate(context));
 }

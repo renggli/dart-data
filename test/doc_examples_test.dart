@@ -28,9 +28,9 @@ void main() {
       check((systemSol['y'] as Number).value).equals(2.0);
     });
 
-    test('diff', () {
+    test('derivative', () {
       const x = Variable('x');
-      final d = (x * x * x).diff('x');
+      final d = (x * x * x).derivative('x');
       check(d.evaluate({'x': 2.0})).equals(12.0);
     });
 
@@ -71,7 +71,7 @@ void main() {
       final simplified = (x + 0).simplify();
       check(simplified).equals(x);
 
-      final fn = (x * x + 1).compile1D('x');
+      final fn = (x * x + 1).toFunction1D('x');
       check(fn(3.0)).equals(10.0);
 
       final latex = (x * 2 + 1).toLatex();
@@ -657,9 +657,9 @@ void main() {
     test('lib/symbolic.dart quick start', () {
       const x = Variable('x');
       final f = x.pow(3) + x * 2;
-      final df = f.diff('x').simplify();
+      final df = f.derivative('x').simplify();
       check(df.toLatex().isNotEmpty).isTrue();
-      final fn = df.compile1D('x');
+      final fn = df.toFunction1D('x');
       check(fn(2.0)).isCloseTo(14.0, 1e-6);
     });
 

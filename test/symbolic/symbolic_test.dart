@@ -161,10 +161,32 @@ void main() {
       check(const Sin(x).hashCode).equals(const Sin(x).hashCode);
       check(const Cos(x) == const Cos(x)).isTrue();
       check(const Cos(x).hashCode).equals(const Cos(x).hashCode);
+      check(const Tan(x) == const Tan(x)).isTrue();
+      check(const Tan(x).hashCode).equals(const Tan(x).hashCode);
+      check(const Asin(x) == const Asin(x)).isTrue();
+      check(const Asin(x).hashCode).equals(const Asin(x).hashCode);
+      check(const Acos(x) == const Acos(x)).isTrue();
+      check(const Acos(x).hashCode).equals(const Acos(x).hashCode);
+      check(const Atan(x) == const Atan(x)).isTrue();
+      check(const Atan(x).hashCode).equals(const Atan(x).hashCode);
+      check(const Sinh(x) == const Sinh(x)).isTrue();
+      check(const Sinh(x).hashCode).equals(const Sinh(x).hashCode);
+      check(const Cosh(x) == const Cosh(x)).isTrue();
+      check(const Cosh(x).hashCode).equals(const Cosh(x).hashCode);
+      check(const Tanh(x) == const Tanh(x)).isTrue();
+      check(const Tanh(x).hashCode).equals(const Tanh(x).hashCode);
+      check(const Abs(x) == const Abs(x)).isTrue();
+      check(const Abs(x).hashCode).equals(const Abs(x).hashCode);
+      check(const Sqrt(x) == const Sqrt(x)).isTrue();
+      check(const Sqrt(x).hashCode).equals(const Sqrt(x).hashCode);
       check(const Exp(x) == const Exp(x)).isTrue();
       check(const Exp(x).hashCode).equals(const Exp(x).hashCode);
       check(const Ln(x) == const Ln(x)).isTrue();
       check(const Ln(x).hashCode).equals(const Ln(x).hashCode);
+      check(const Log(RationalNumber(2), x) == const Log(RationalNumber(2), x))
+          .isTrue();
+      check(const Log(RationalNumber(2), x).hashCode)
+          .equals(const Log(RationalNumber(2), x).hashCode);
     });
 
     test('named mathematical constants pi and e', () {
@@ -184,8 +206,8 @@ void main() {
       check(pi.substitute('x', const Variable('y'))).equals(pi);
       check(e.substitute('x', const Variable('y'))).equals(e);
 
-      check(pi.diff('x')).equals(const RationalNumber(0));
-      check(e.diff('x')).equals(const RationalNumber(0));
+      check(pi.derivative('x')).equals(const RationalNumber(0));
+      check(e.derivative('x')).equals(const RationalNumber(0));
     });
 
     test('Substitution and freeVariables', () {
@@ -205,14 +227,68 @@ void main() {
       check(substituted.freeVariables).unorderedEquals({'y', 'z'});
       check(substituted.dependsOn('x')).isFalse();
     });
+
+    test('UnaryExpr and BinaryExpr hierarchy and hash non-collision', () {
+      const x = Variable('x');
+      const y = Variable('y');
+
+      // Hierarchy
+      check(const Sin(x)).isA<UnaryExpr>();
+      check(const Cos(x)).isA<UnaryExpr>();
+      check(const Exp(x)).isA<UnaryExpr>();
+      check(const Ln(x)).isA<UnaryExpr>();
+      check(const Neg(x)).isA<UnaryExpr>();
+      check(const Add(x, y)).isA<BinaryExpr>();
+      check(const Sub(x, y)).isA<BinaryExpr>();
+      check(const Mul(x, y)).isA<BinaryExpr>();
+      check(const Div(x, y)).isA<BinaryExpr>();
+      check(const Pow(x, y)).isA<BinaryExpr>();
+
+      // Pow aliases
+      const p = Pow(x, y);
+      check(p.base).equals(p.left);
+      check(p.exponent).equals(p.right);
+
+      // Hash collision resolution
+      check(const Sin(x).hashCode == const Cos(x).hashCode).isFalse();
+      check(const Sin(x).hashCode == const Neg(x).hashCode).isFalse();
+      check(const Exp(x).hashCode == const Ln(x).hashCode).isFalse();
+      check(const Add(x, y).hashCode == const Sub(x, y).hashCode).isFalse();
+      check(const Mul(x, y).hashCode == const Div(x, y).hashCode).isFalse();
+      check(const Add(x, y).hashCode == const Pow(x, y).hashCode).isFalse();
+
+      // Equality
+      check(const Sin(x) == const Sin(x)).isTrue();
+      check(const Sin(x) == const Cos(x)).isFalse();
+      check(const Add(x, y) == const Add(x, y)).isTrue();
+      check(const Add(x, y) == const Sub(x, y)).isFalse();
+
+      // collectFreeVariables allocation-free collection
+      final vars = <String>{};
+      p.collectFreeVariables(vars);
+      check(vars).unorderedEquals({'x', 'y'});
+
+      const complex = Add(Mul(x, Sin(y)), Exp(Ln(x)));
+      final complexVars = <String>{};
+      complex.collectFreeVariables(complexVars);
+      check(complexVars).unorderedEquals({'x', 'y'});
+      check(complex.freeVariables).unorderedEquals({'x', 'y'});
+
+      // Number collectFreeVariables no-op
+      const num = RationalNumber(42);
+      final numVars = <String>{};
+      num.collectFreeVariables(numVars);
+      check(numVars).isEmpty();
+      check(num.freeVariables).isEmpty();
+    });
   });
 
   group('Exact Analytical Differentiation', () {
     test('polynomial differentiation', () {
       const x = Variable('x');
       final expr = x.pow(3);
-      final df = expr.diff('x').simplify();
-      final fn = df.compile1D('x');
+      final df = expr.derivative('x').simplify();
+      final fn = df.toFunction1D('x');
       check(fn(2.0)).equals(12.0); // 3 * 4 = 12
     });
 
@@ -220,37 +296,37 @@ void main() {
       const x = Variable('x');
       // Product: x^2 * sin(x)
       final expr = (x.pow(2)) * const Sin(x);
-      final df = expr.diff('x').simplify();
-      final dfCompiled = df.compile1D('x');
+      final df = expr.derivative('x').simplify();
+      final dfCompiled = df.toFunction1D('x');
       check(dfCompiled(0.0)).equals(0.0);
 
       // Quotient: (x + 1) / (x - 1)
       final quotient = (x + 1) / (x - 1);
-      final dq = quotient.diff('x').simplify();
+      final dq = quotient.derivative('x').simplify();
       // d/dx ((x+1)/(x-1)) = ((x-1) - (x+1))/(x-1)^2 = -2 / (x-1)^2 -> at x =
       // 3: -2 / 4 = -0.5
-      final dqCompiled = dq.compile1D('x');
+      final dqCompiled = dq.toFunction1D('x');
       check(dqCompiled(3.0)).isCloseTo(-0.5, 1e-6);
     });
 
     test('chain rule: exp(2*x) and cos(x)', () {
       const x = Variable('x');
       final expr = Exp(x * 2);
-      final df = expr.diff('x').simplify();
-      final dfCompiled = df.compile1D('x');
+      final df = expr.derivative('x').simplify();
+      final dfCompiled = df.toFunction1D('x');
       check(dfCompiled(0.0)).equals(2.0);
 
       const cosine = Cos(x);
-      final dc = cosine.diff('x').simplify();
-      final dcCompiled = dc.compile1D('x');
+      final dc = cosine.derivative('x').simplify();
+      final dcCompiled = dc.toFunction1D('x');
       check(dcCompiled(0.0)).equals(0.0);
     });
 
     test('logarithm: ln(x)', () {
       const x = Variable('x');
       const expr = Ln(x);
-      final df = expr.diff('x').simplify();
-      final dfCompiled = df.compile1D('x');
+      final df = expr.derivative('x').simplify();
+      final dfCompiled = df.toFunction1D('x');
       check(dfCompiled(2.0)).equals(0.5);
     });
 
@@ -258,21 +334,76 @@ void main() {
       const x = Variable('x');
 
       // Neither depends
-      check(const Pow(RationalNumber(2), RationalNumber(3)).diff('x'))
+      check(const Pow(RationalNumber(2), RationalNumber(3)).derivative('x'))
           .equals(const RationalNumber(0));
 
       // Base only depends: x^3
-      final bOnly = const Pow(x, RationalNumber(3)).diff('x');
+      final bOnly = const Pow(x, RationalNumber(3)).derivative('x');
       check(bOnly.evaluate({'x': 2.0})).equals(12.0);
 
       // Exponent only depends: 2^x -> d/dx (2^x) = 2^x * ln(2)
-      final eOnly = const Pow(RationalNumber(2), x).diff('x');
+      final eOnly = const Pow(RationalNumber(2), x).derivative('x');
       check(eOnly.evaluate({'x': 3.0})).isCloseTo(8.0 * math.log(2.0), 1e-6);
 
       // Both depend: x^x -> d/dx (x^x) = x^x * (ln(x) + 1)
-      final both = const Pow(x, x).diff('x');
+      final both = const Pow(x, x).derivative('x');
       check(both.evaluate({'x': 2.0}))
           .isCloseTo(4.0 * (math.log(2.0) + 1.0), 1e-6);
+    });
+
+    test('expanded functions analytical derivatives', () {
+      const x = Variable('x');
+
+      // d/dx tan(x) = 1 + tan(x)^2
+      const exprTan = Tan(x);
+      final dTan = exprTan.derivative('x');
+      check(dTan.evaluate({'x': 0.0})).equals(1.0);
+
+      // d/dx asin(x) = 1 / sqrt(1 - x^2)
+      const exprAsin = Asin(x);
+      final dAsin = exprAsin.derivative('x');
+      check(dAsin.evaluate({'x': 0.0})).equals(1.0);
+
+      // d/dx acos(x) = -1 / sqrt(1 - x^2)
+      const exprAcos = Acos(x);
+      final dAcos = exprAcos.derivative('x');
+      check(dAcos.evaluate({'x': 0.0})).equals(-1.0);
+
+      // d/dx atan(x) = 1 / (1 + x^2)
+      const exprAtan = Atan(x);
+      final dAtan = exprAtan.derivative('x');
+      check(dAtan.evaluate({'x': 0.0})).equals(1.0);
+
+      // d/dx sinh(x) = cosh(x)
+      const exprSinh = Sinh(x);
+      final dSinh = exprSinh.derivative('x');
+      check(dSinh.evaluate({'x': 0.0})).equals(1.0);
+
+      // d/dx cosh(x) = sinh(x)
+      const exprCosh = Cosh(x);
+      final dCosh = exprCosh.derivative('x');
+      check(dCosh.evaluate({'x': 0.0})).equals(0.0);
+
+      // d/dx tanh(x) = 1 - tanh(x)^2
+      const exprTanh = Tanh(x);
+      final dTanh = exprTanh.derivative('x');
+      check(dTanh.evaluate({'x': 0.0})).equals(1.0);
+
+      // d/dx abs(x) = x / |x|
+      const exprAbs = Abs(x);
+      final dAbs = exprAbs.derivative('x');
+      check(dAbs.evaluate({'x': 3.0})).equals(1.0);
+      check(dAbs.evaluate({'x': -3.0})).equals(-1.0);
+
+      // d/dx sqrt(x) = 1 / (2 * sqrt(x))
+      const exprSqrt = Sqrt(x);
+      final dSqrt = exprSqrt.derivative('x');
+      check(dSqrt.evaluate({'x': 4.0})).equals(0.25);
+
+      // d/dx log(b, x) = 1 / (x * ln(b))
+      const exprLog = Log(RationalNumber(2), x);
+      final dLog = exprLog.derivative('x');
+      check(dLog.evaluate({'x': 1.0})).isCloseTo(1.0 / math.log(2.0), 1e-9);
     });
   });
 
@@ -574,12 +705,12 @@ void main() {
   });
 
   group('JIT Compilation & Tensor Kernel', () {
-    test('compile1D zero-AST closure execution for all nodes', () {
+    test('toFunction1D zero-AST closure execution for all nodes', () {
       const x = Variable('x');
       const y = Variable('y');
 
       // Unrelated variable in 1D returns 0
-      check(y.compile1D('x')(5.0)).equals(0.0);
+      check(y.toFunction1D('x')(5.0)).equals(0.0);
 
       const complexExpr = Add(
         Sub(Mul(x, RationalNumber(2)), Div(x, RationalNumber(2))),
@@ -589,7 +720,7 @@ void main() {
         ),
       );
 
-      final fn = complexExpr.compile1D('x');
+      final fn = complexExpr.toFunction1D('x');
       final val = fn(2.0);
       check(val).isCloseTo(
         (2.0 * 2.0 - 2.0 / 2.0) +
@@ -701,9 +832,35 @@ void main() {
       const expr = Exp(x);
       final taylor = expr.taylorSeries('x', around: 0.0, order: 4);
 
-      final fn = taylor.compile1D('x');
+      final fn = taylor.toFunction1D('x');
       check(fn(0.5)).isCloseTo(1.6484375, 1e-4);
     });
+
+    test(
+      'Taylor series expansion of hyperbolic and inverse trig functions',
+      () {
+        const x = Variable('x');
+
+        // sinh(x) ~ x + x^3/6
+        const sinhExpr = Sinh(x);
+        final taylorSinh = sinhExpr.taylorSeries('x', around: 0.0, order: 3);
+        final fnSinh = taylorSinh.toFunction1D('x');
+        check(fnSinh(0.2)).isCloseTo(0.2 + (0.008 / 6.0), 1e-6);
+
+        // cosh(x) ~ 1 + x^2/2 + x^4/24
+        const coshExpr = Cosh(x);
+        final taylorCosh = coshExpr.taylorSeries('x', around: 0.0, order: 4);
+        final fnCosh = taylorCosh.toFunction1D('x');
+        check(fnCosh(0.2))
+            .isCloseTo(1.0 + (0.04 / 2.0) + (0.0016 / 24.0), 1e-6);
+
+        // atan(x) ~ x - x^3/3
+        const atanExpr = Atan(x);
+        final taylorAtan = atanExpr.taylorSeries('x', around: 0.0, order: 3);
+        final fnAtan = taylorAtan.toFunction1D('x');
+        check(fnAtan(0.2)).isCloseTo(0.2 - (0.008 / 3.0), 1e-6);
+      },
+    );
 
     test('compilePositional with Sub and Div', () {
       const x = Variable('x');

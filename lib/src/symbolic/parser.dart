@@ -5,6 +5,11 @@ import 'ast.dart';
 
 /// Builds a PetitParser [Parser] for symbolic mathematical expressions with
 /// the specified [maxDenominator] for detecting rational numbers.
+///
+/// ```dart
+/// final p = buildParser();
+/// final result = p.parse('2 * x + 1');
+/// ```
 Parser<Expr> buildParser({int maxDenominator = 64}) {
   final builder = ExpressionBuilder<Expr>();
   builder
@@ -89,15 +94,34 @@ Expr _createBinding(String name, List<Expr> arguments) =>
       1 => switch (name.toLowerCase()) {
         'sin' => Sin(arguments[0]),
         'cos' => Cos(arguments[0]),
+        'tan' => Tan(arguments[0]),
+        'asin' || 'arcsin' => Asin(arguments[0]),
+        'acos' || 'arccos' => Acos(arguments[0]),
+        'atan' || 'arctan' => Atan(arguments[0]),
+        'sinh' => Sinh(arguments[0]),
+        'cosh' => Cosh(arguments[0]),
+        'tanh' => Tanh(arguments[0]),
+        'abs' => Abs(arguments[0]),
+        'sqrt' => Sqrt(arguments[0]),
         'exp' => Exp(arguments[0]),
         'ln' || 'log' => Ln(arguments[0]),
-        'sqrt' => Pow(arguments[0], const RationalNumber(1, 2)),
+        _ => throw ArgumentError.value(name, 'Unknown function'),
+      },
+      2 => switch (name.toLowerCase()) {
+        'log' => Log(arguments[0], arguments[1]),
+        'root' => Pow(arguments[1], Div(RationalNumber.one, arguments[0])),
         _ => throw ArgumentError.value(name, 'Unknown function'),
       },
       _ => throw ArgumentError.value(name, 'Unknown function'),
     };
 
-/// Parses [input] into an [Expr]. Throws [FormatException] if parsing fails.
+/// Parses [input] into an [Expr].
+///
+/// Throws a [FormatException] if parsing fails.
+///
+/// ```dart
+/// final expr = parseExpression('2 * x + 1');
+/// ```
 Expr parseExpression(String input, {int maxDenominator = 64}) {
   try {
     final p = maxDenominator == 64
@@ -121,6 +145,10 @@ Expr parseExpression(String input, {int maxDenominator = 64}) {
 }
 
 /// Tries to parse [input] into an [Expr], returning `null` on failure.
+///
+/// ```dart
+/// final expr = tryParseExpression('2 * x + 1');
+/// ```
 Expr? tryParseExpression(String input, {int maxDenominator = 64}) {
   try {
     final p = maxDenominator == 64

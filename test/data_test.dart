@@ -30,7 +30,7 @@ void main() {
     // Subsystem 6: Symbolic
     const x = Variable('x');
     final expr = x * 2 + 1;
-    final fn = expr.compile1D('x');
+    final fn = expr.toFunction1D('x');
     check(fn(5.0)).equals(11.0);
   });
 }

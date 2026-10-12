@@ -137,10 +137,38 @@ void main() {
       check(const Cos(x).toMathMl()).equals(
         '<math><mrow><mi>cos</mi><mo>(</mo><mi>x</mi><mo>)</mo></mrow></math>',
       );
+      check(const Tan(x).toMathMl()).equals(
+        '<math><mrow><mi>tan</mi><mo>(</mo><mi>x</mi><mo>)</mo></mrow></math>',
+      );
+      check(const Asin(x).toMathMl()).equals(
+        '<math><mrow><mi>arcsin</mi><mo>(</mo><mi>x</mi><mo>)</mo></mrow></math>',
+      );
+      check(const Acos(x).toMathMl()).equals(
+        '<math><mrow><mi>arccos</mi><mo>(</mo><mi>x</mi><mo>)</mo></mrow></math>',
+      );
+      check(const Atan(x).toMathMl()).equals(
+        '<math><mrow><mi>arctan</mi><mo>(</mo><mi>x</mi><mo>)</mo></mrow></math>',
+      );
+      check(const Sinh(x).toMathMl()).equals(
+        '<math><mrow><mi>sinh</mi><mo>(</mo><mi>x</mi><mo>)</mo></mrow></math>',
+      );
+      check(const Cosh(x).toMathMl()).equals(
+        '<math><mrow><mi>cosh</mi><mo>(</mo><mi>x</mi><mo>)</mo></mrow></math>',
+      );
+      check(const Tanh(x).toMathMl()).equals(
+        '<math><mrow><mi>tanh</mi><mo>(</mo><mi>x</mi><mo>)</mo></mrow></math>',
+      );
+      check(const Abs(x).toMathMl())
+          .equals('<math><mrow><mo>|</mo><mi>x</mi><mo>|</mo></mrow></math>');
+      check(const Sqrt(x).toMathMl())
+          .equals('<math><msqrt><mi>x</mi></msqrt></math>');
       check(const Exp(x).toMathMl())
           .equals('<math><msup><mi>e</mi><mi>x</mi></msup></math>');
       check(const Ln(x).toMathMl()).equals(
         '<math><mrow><mi>ln</mi><mo>(</mo><mi>x</mi><mo>)</mo></mrow></math>',
+      );
+      check(const Log(RationalNumber(2), x).toMathMl()).equals(
+        '<math><mrow><msub><mi>log</mi><mn>2</mn></msub><mo>(</mo><mi>x</mi><mo>)</mo></mrow></math>',
       );
       check(Sin(x + y).toMathMl()).equals(
         '<math><mrow><mi>sin</mi><mo>(</mo><mrow><mi>x</mi><mo>+</mo><mi>y</mi></mrow><mo>)</mo></mrow></math>',

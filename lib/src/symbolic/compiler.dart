@@ -27,9 +27,6 @@ extension CompilerExtension on Expr {
     return _compileFast1D(simplified, varName);
   }
 
-  /// Alias for [toFunction1D].
-  double Function(double x) compile1D(String varName) => toFunction1D(varName);
-
   /// Compiles this expression into a fast vector evaluation closure
   /// `double Function(Vector<double>)`.
   ///
@@ -70,8 +67,18 @@ extension CompilerExtension on Expr {
     return _buildPositionalEvaluator(simplified, varIndices);
   }
 
-  /// Compiles expression into a zero-allocation, vectorized loop over
+  /// Compiles this expression into a zero-allocation, vectorized loop over
   /// contiguous [Float64List] buffers.
+  ///
+  /// Evaluates variables in the positional order defined by [varOrder].
+  ///
+  /// ```dart
+  /// final x = Variable('x');
+  /// final kernel = (x * 2).compileTensorKernel(['x']);
+  /// final input = Float64List.fromList([1.0, 2.0, 3.0]);
+  /// final output = Float64List(3);
+  /// kernel([input], output);
+  /// ```
   void Function(List<Float64List> inputs, Float64List output)
   compileTensorKernel(List<String> varOrder) {
     final simplified = simplify();
@@ -81,12 +88,12 @@ extension CompilerExtension on Expr {
     final instructions = <_Instruction>[];
     _flattenToRpn(simplified, varIndices, instructions);
     final maxStack = _computeMaxStack(instructions);
+    final stack = Float64List(maxStack);
+    final instrs = instructions;
+    final numInstrs = instrs.length;
 
     return (List<Float64List> inputs, Float64List output) {
       final len = output.length;
-      final stack = Float64List(maxStack);
-      final instrs = instructions;
-      final numInstrs = instrs.length;
 
       for (var i = 0; i < len; i++) {
         var sp = 0;
@@ -127,6 +134,34 @@ extension CompilerExtension on Expr {
               stack[sp - 1] = math.exp(stack[sp - 1]);
             case _Op.ln:
               stack[sp - 1] = math.log(stack[sp - 1]);
+            case _Op.tan:
+              stack[sp - 1] = math.tan(stack[sp - 1]);
+            case _Op.asin:
+              stack[sp - 1] = math.asin(stack[sp - 1]);
+            case _Op.acos:
+              stack[sp - 1] = math.acos(stack[sp - 1]);
+            case _Op.atan:
+              stack[sp - 1] = math.atan(stack[sp - 1]);
+            case _Op.sinh:
+              final v = stack[sp - 1];
+              stack[sp - 1] = (math.exp(v) - math.exp(-v)) / 2.0;
+            case _Op.cosh:
+              final v = stack[sp - 1];
+              stack[sp - 1] = (math.exp(v) + math.exp(-v)) / 2.0;
+            case _Op.tanh:
+              final v = stack[sp - 1];
+              if (v > 20.0) {
+                stack[sp - 1] = 1.0;
+              } else if (v < -20.0) {
+                stack[sp - 1] = -1.0;
+              } else {
+                final e2 = math.exp(2.0 * v);
+                stack[sp - 1] = (e2 - 1.0) / (e2 + 1.0);
+              }
+            case _Op.abs:
+              stack[sp - 1] = stack[sp - 1].abs();
+            case _Op.sqrt:
+              stack[sp - 1] = math.sqrt(stack[sp - 1]);
           }
         }
         output[i] = stack[0];
@@ -162,169 +197,116 @@ extension CompilerIterableExtension on Iterable<Expr> {
 double Function(double x) _compileFast1D(
   Expr expression,
   String variableName,
-) => switch (expression) {
-  Number(value: final val) => (_) => val,
-  Variable(name: final name) => name == variableName ? (x) => x : (_) => 0.0,
-  Add(left: final left, right: final right) => () {
-    final fL = _compileFast1D(left, variableName),
-        fR = _compileFast1D(right, variableName);
-    return (double x) => fL(x) + fR(x);
-  }(),
-  Sub(left: final left, right: final right) => () {
-    final fL = _compileFast1D(left, variableName),
-        fR = _compileFast1D(right, variableName);
-    return (double x) => fL(x) - fR(x);
-  }(),
-  Mul(left: final left, right: final right) => () {
-    final fL = _compileFast1D(left, variableName),
-        fR = _compileFast1D(right, variableName);
-    return (double x) => fL(x) * fR(x);
-  }(),
-  Div(left: final left, right: final right) => () {
-    final fL = _compileFast1D(left, variableName),
-        fR = _compileFast1D(right, variableName);
-    return (double x) => fL(x) / fR(x);
-  }(),
-  Pow(base: final base, exponent: final exp) => () {
-    final fB = _compileFast1D(base, variableName),
-        fE = _compileFast1D(exp, variableName);
-    return (double x) => math.pow(fB(x), fE(x)).toDouble();
-  }(),
-  Neg(expr: final inner) => () {
-    final fn = _compileFast1D(inner, variableName);
-    return (double x) => -fn(x);
-  }(),
-  Sin(expr: final inner) => () {
-    final fn = _compileFast1D(inner, variableName);
-    return (double x) => math.sin(fn(x));
-  }(),
-  Cos(expr: final inner) => () {
-    final fn = _compileFast1D(inner, variableName);
-    return (double x) => math.cos(fn(x));
-  }(),
-  Exp(expr: final inner) => () {
-    final fn = _compileFast1D(inner, variableName);
-    return (double x) => math.exp(fn(x));
-  }(),
-  Ln(expr: final inner) => () {
-    final fn = _compileFast1D(inner, variableName);
-    return (double x) => math.log(fn(x));
-  }(),
-};
+) => _compileEvaluator<double>(
+  expression,
+  (name) => name == variableName ? (x) => x : (_) => 0.0,
+);
 
 double Function(List<double> args) _buildPositionalEvaluator(
   Expr expression,
   Map<String, int> indices,
-) => switch (expression) {
-  Number(value: final val) => (_) => val,
-  Variable(name: final name) => () {
-    final idx =
-        indices[name] ?? (throw ArgumentError('Unbound variable: $name'));
-    return (List<double> args) => args[idx];
-  }(),
-  Add(left: final left, right: final right) => () {
-    final fL = _buildPositionalEvaluator(left, indices),
-        fR = _buildPositionalEvaluator(right, indices);
-    return (List<double> args) => fL(args) + fR(args);
-  }(),
-  Sub(left: final left, right: final right) => () {
-    final fL = _buildPositionalEvaluator(left, indices),
-        fR = _buildPositionalEvaluator(right, indices);
-    return (List<double> args) => fL(args) - fR(args);
-  }(),
-  Mul(left: final left, right: final right) => () {
-    final fL = _buildPositionalEvaluator(left, indices),
-        fR = _buildPositionalEvaluator(right, indices);
-    return (List<double> args) => fL(args) * fR(args);
-  }(),
-  Div(left: final left, right: final right) => () {
-    final fL = _buildPositionalEvaluator(left, indices),
-        fR = _buildPositionalEvaluator(right, indices);
-    return (List<double> args) => fL(args) / fR(args);
-  }(),
-  Pow(base: final base, exponent: final exp) => () {
-    final fB = _buildPositionalEvaluator(base, indices),
-        fE = _buildPositionalEvaluator(exp, indices);
-    return (List<double> args) => math.pow(fB(args), fE(args)).toDouble();
-  }(),
-  Neg(expr: final inner) => () {
-    final fn = _buildPositionalEvaluator(inner, indices);
-    return (List<double> args) => -fn(args);
-  }(),
-  Sin(expr: final inner) => () {
-    final fn = _buildPositionalEvaluator(inner, indices);
-    return (List<double> args) => math.sin(fn(args));
-  }(),
-  Cos(expr: final inner) => () {
-    final fn = _buildPositionalEvaluator(inner, indices);
-    return (List<double> args) => math.cos(fn(args));
-  }(),
-  Exp(expr: final inner) => () {
-    final fn = _buildPositionalEvaluator(inner, indices);
-    return (List<double> args) => math.exp(fn(args));
-  }(),
-  Ln(expr: final inner) => () {
-    final fn = _buildPositionalEvaluator(inner, indices);
-    return (List<double> args) => math.log(fn(args));
-  }(),
-};
+) => _compileEvaluator<List<double>>(expression, (name) {
+  final idx = indices[name] ?? (throw ArgumentError('Unbound variable: $name'));
+  return (args) => args[idx];
+});
 
 double Function(Vector<double> args) _buildVectorEvaluator(
   Expr expression,
   Map<String, int> indices,
-) => switch (expression) {
-  Number(value: final val) => (_) => val,
-  Variable(name: final name) => () {
-    final idx =
-        indices[name] ?? (throw ArgumentError('Unbound variable: $name'));
-    return (Vector<double> args) => args[idx];
-  }(),
-  Add(left: final left, right: final right) => () {
-    final fL = _buildVectorEvaluator(left, indices),
-        fR = _buildVectorEvaluator(right, indices);
-    return (Vector<double> args) => fL(args) + fR(args);
-  }(),
-  Sub(left: final left, right: final right) => () {
-    final fL = _buildVectorEvaluator(left, indices),
-        fR = _buildVectorEvaluator(right, indices);
-    return (Vector<double> args) => fL(args) - fR(args);
-  }(),
-  Mul(left: final left, right: final right) => () {
-    final fL = _buildVectorEvaluator(left, indices),
-        fR = _buildVectorEvaluator(right, indices);
-    return (Vector<double> args) => fL(args) * fR(args);
-  }(),
-  Div(left: final left, right: final right) => () {
-    final fL = _buildVectorEvaluator(left, indices),
-        fR = _buildVectorEvaluator(right, indices);
-    return (Vector<double> args) => fL(args) / fR(args);
-  }(),
-  Pow(base: final base, exponent: final exp) => () {
-    final fB = _buildVectorEvaluator(base, indices),
-        fE = _buildVectorEvaluator(exp, indices);
-    return (Vector<double> args) => math.pow(fB(args), fE(args)).toDouble();
-  }(),
-  Neg(expr: final inner) => () {
-    final fn = _buildVectorEvaluator(inner, indices);
-    return (Vector<double> args) => -fn(args);
-  }(),
-  Sin(expr: final inner) => () {
-    final fn = _buildVectorEvaluator(inner, indices);
-    return (Vector<double> args) => math.sin(fn(args));
-  }(),
-  Cos(expr: final inner) => () {
-    final fn = _buildVectorEvaluator(inner, indices);
-    return (Vector<double> args) => math.cos(fn(args));
-  }(),
-  Exp(expr: final inner) => () {
-    final fn = _buildVectorEvaluator(inner, indices);
-    return (Vector<double> args) => math.exp(fn(args));
-  }(),
-  Ln(expr: final inner) => () {
-    final fn = _buildVectorEvaluator(inner, indices);
-    return (Vector<double> args) => math.log(fn(args));
-  }(),
-};
+) => _compileEvaluator<Vector<double>>(expression, (name) {
+  final idx = indices[name] ?? (throw ArgumentError('Unbound variable: $name'));
+  return (args) => args[idx];
+});
+
+double Function(T) _compileEvaluator<T>(
+  Expr expression,
+  double Function(T) Function(String name) compileVar,
+) {
+  switch (expression) {
+    case Number(:final value):
+      return (_) => value;
+    case Variable(:final name):
+      return compileVar(name);
+    case Add(:final left, :final right):
+      final fL = _compileEvaluator<T>(left, compileVar);
+      final fR = _compileEvaluator<T>(right, compileVar);
+      return (t) => fL(t) + fR(t);
+    case Sub(:final left, :final right):
+      final fL = _compileEvaluator<T>(left, compileVar);
+      final fR = _compileEvaluator<T>(right, compileVar);
+      return (t) => fL(t) - fR(t);
+    case Mul(:final left, :final right):
+      final fL = _compileEvaluator<T>(left, compileVar);
+      final fR = _compileEvaluator<T>(right, compileVar);
+      return (t) => fL(t) * fR(t);
+    case Div(:final left, :final right):
+      final fL = _compileEvaluator<T>(left, compileVar);
+      final fR = _compileEvaluator<T>(right, compileVar);
+      return (t) => fL(t) / fR(t);
+    case Pow(:final base, :final exponent):
+      final fB = _compileEvaluator<T>(base, compileVar);
+      final fE = _compileEvaluator<T>(exponent, compileVar);
+      return (t) => math.pow(fB(t), fE(t)).toDouble();
+    case Neg(:final expr):
+      final fn = _compileEvaluator<T>(expr, compileVar);
+      return (t) => -fn(t);
+    case Sin(:final expr):
+      final fn = _compileEvaluator<T>(expr, compileVar);
+      return (t) => math.sin(fn(t));
+    case Cos(:final expr):
+      final fn = _compileEvaluator<T>(expr, compileVar);
+      return (t) => math.cos(fn(t));
+    case Exp(:final expr):
+      final fn = _compileEvaluator<T>(expr, compileVar);
+      return (t) => math.exp(fn(t));
+    case Ln(:final expr):
+      final fn = _compileEvaluator<T>(expr, compileVar);
+      return (t) => math.log(fn(t));
+    case Tan(:final expr):
+      final fn = _compileEvaluator<T>(expr, compileVar);
+      return (t) => math.tan(fn(t));
+    case Asin(:final expr):
+      final fn = _compileEvaluator<T>(expr, compileVar);
+      return (t) => math.asin(fn(t));
+    case Acos(:final expr):
+      final fn = _compileEvaluator<T>(expr, compileVar);
+      return (t) => math.acos(fn(t));
+    case Atan(:final expr):
+      final fn = _compileEvaluator<T>(expr, compileVar);
+      return (t) => math.atan(fn(t));
+    case Sinh(:final expr):
+      final fn = _compileEvaluator<T>(expr, compileVar);
+      return (t) {
+        final v = fn(t);
+        return (math.exp(v) - math.exp(-v)) / 2.0;
+      };
+    case Cosh(:final expr):
+      final fn = _compileEvaluator<T>(expr, compileVar);
+      return (t) {
+        final v = fn(t);
+        return (math.exp(v) + math.exp(-v)) / 2.0;
+      };
+    case Tanh(:final expr):
+      final fn = _compileEvaluator<T>(expr, compileVar);
+      return (t) {
+        final v = fn(t);
+        if (v > 20.0) return 1.0;
+        if (v < -20.0) return -1.0;
+        final e2 = math.exp(2.0 * v);
+        return (e2 - 1.0) / (e2 + 1.0);
+      };
+    case Abs(:final expr):
+      final fn = _compileEvaluator<T>(expr, compileVar);
+      return (t) => fn(t).abs();
+    case Sqrt(:final expr):
+      final fn = _compileEvaluator<T>(expr, compileVar);
+      return (t) => math.sqrt(fn(t));
+    case Log(:final base, :final expr):
+      final fB = _compileEvaluator<T>(base, compileVar);
+      final fE = _compileEvaluator<T>(expr, compileVar);
+      return (t) => math.log(fE(t)) / math.log(fB(t));
+  }
+}
 
 void _flattenToRpn(
   Expr expr,
@@ -375,6 +357,39 @@ void _flattenToRpn(
     case Ln(:final expr):
       _flattenToRpn(expr, varIndices, instructions);
       instructions.add(const _Instruction.op(_Op.ln));
+    case Tan(:final expr):
+      _flattenToRpn(expr, varIndices, instructions);
+      instructions.add(const _Instruction.op(_Op.tan));
+    case Asin(:final expr):
+      _flattenToRpn(expr, varIndices, instructions);
+      instructions.add(const _Instruction.op(_Op.asin));
+    case Acos(:final expr):
+      _flattenToRpn(expr, varIndices, instructions);
+      instructions.add(const _Instruction.op(_Op.acos));
+    case Atan(:final expr):
+      _flattenToRpn(expr, varIndices, instructions);
+      instructions.add(const _Instruction.op(_Op.atan));
+    case Sinh(:final expr):
+      _flattenToRpn(expr, varIndices, instructions);
+      instructions.add(const _Instruction.op(_Op.sinh));
+    case Cosh(:final expr):
+      _flattenToRpn(expr, varIndices, instructions);
+      instructions.add(const _Instruction.op(_Op.cosh));
+    case Tanh(:final expr):
+      _flattenToRpn(expr, varIndices, instructions);
+      instructions.add(const _Instruction.op(_Op.tanh));
+    case Abs(:final expr):
+      _flattenToRpn(expr, varIndices, instructions);
+      instructions.add(const _Instruction.op(_Op.abs));
+    case Sqrt(:final expr):
+      _flattenToRpn(expr, varIndices, instructions);
+      instructions.add(const _Instruction.op(_Op.sqrt));
+    case Log(:final base, :final expr):
+      _flattenToRpn(expr, varIndices, instructions);
+      instructions.add(const _Instruction.op(_Op.ln));
+      _flattenToRpn(base, varIndices, instructions);
+      instructions.add(const _Instruction.op(_Op.ln));
+      instructions.add(const _Instruction.op(_Op.div));
   }
 }
 
@@ -387,7 +402,20 @@ int _computeMaxStack(List<_Instruction> instructions) {
         current++;
       case _Op.add || _Op.sub || _Op.mul || _Op.div || _Op.pow:
         current--;
-      case _Op.neg || _Op.sin || _Op.cos || _Op.exp || _Op.ln:
+      case _Op.neg ||
+          _Op.sin ||
+          _Op.cos ||
+          _Op.exp ||
+          _Op.ln ||
+          _Op.tan ||
+          _Op.asin ||
+          _Op.acos ||
+          _Op.atan ||
+          _Op.sinh ||
+          _Op.cosh ||
+          _Op.tanh ||
+          _Op.abs ||
+          _Op.sqrt:
         break;
     }
     if (current > maxDepth) {
@@ -397,7 +425,29 @@ int _computeMaxStack(List<_Instruction> instructions) {
   return math.max(maxDepth, 1);
 }
 
-enum _Op { pushConst, loadVar, add, sub, mul, div, pow, neg, sin, cos, exp, ln }
+enum _Op {
+  pushConst,
+  loadVar,
+  add,
+  sub,
+  mul,
+  div,
+  pow,
+  neg,
+  sin,
+  cos,
+  exp,
+  ln,
+  tan,
+  asin,
+  acos,
+  atan,
+  sinh,
+  cosh,
+  tanh,
+  abs,
+  sqrt,
+}
 
 final class _Instruction {
   const new _(this.op, this.constValue, this.varIndex);

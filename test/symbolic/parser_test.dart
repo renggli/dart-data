@@ -199,10 +199,31 @@ void main() {
     test('parses elementary functions', () {
       check(Expr.parse('sin(x)')).equals(const Sin(x));
       check(Expr.parse('cos(x)')).equals(const Cos(x));
+      check(Expr.parse('tan(x)')).equals(const Tan(x));
+      check(Expr.parse('asin(x)')).equals(const Asin(x));
+      check(Expr.parse('arcsin(x)')).equals(const Asin(x));
+      check(Expr.parse('acos(x)')).equals(const Acos(x));
+      check(Expr.parse('arccos(x)')).equals(const Acos(x));
+      check(Expr.parse('atan(x)')).equals(const Atan(x));
+      check(Expr.parse('arctan(x)')).equals(const Atan(x));
+      check(Expr.parse('sinh(x)')).equals(const Sinh(x));
+      check(Expr.parse('cosh(x)')).equals(const Cosh(x));
+      check(Expr.parse('tanh(x)')).equals(const Tanh(x));
+      check(Expr.parse('abs(x)')).equals(const Abs(x));
       check(Expr.parse('exp(x)')).equals(const Exp(x));
       check(Expr.parse('ln(x)')).equals(const Ln(x));
       check(Expr.parse('log(x)')).equals(const Ln(x));
-      check(Expr.parse('sqrt(x)')).equals(const Pow(x, RationalNumber(1, 2)));
+      check(Expr.parse('sqrt(x)')).equals(const Sqrt(x));
+    });
+
+    test('parses two-argument functions: log and root', () {
+      check(Expr.parse('log(2, x)')).equals(const Log(RationalNumber(2), x));
+      check(Expr.parse('log(10, x + 1)'))
+          .equals(const Log(RationalNumber(10), Add(x, RationalNumber(1))));
+      check(Expr.parse('root(3, x)'))
+          .equals(const Pow(x, Div(RationalNumber.one, RationalNumber(3))));
+      check(Expr.parse('root(2, x)'))
+          .equals(const Pow(x, Div(RationalNumber.one, RationalNumber(2))));
     });
 
     test('parses nested function calls and composite arguments', () {
@@ -265,7 +286,7 @@ void main() {
   group('Calculus, simplification & evaluation round-trip', () {
     test('computes analytical derivative from parsed expression', () {
       final expr = Expr.parse('sin(pi * x)');
-      final derivative = expr.diff('x').simplify();
+      final derivative = expr.derivative('x').simplify();
       check(derivative.freeVariables).unorderedEquals({'x'});
       check(derivative.evaluate({'x': 0.0})).equals(math.pi);
       check(derivative).equals(
