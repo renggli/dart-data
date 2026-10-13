@@ -140,6 +140,14 @@
             <span class="attr-label">Tangent Eq</span>
             <span class="attr-value" id="val-tangent-eq" style="font-size: 11px;">-</span>
           </div>
+          <div class="attr-item">
+            <span class="attr-label">lim <sub>x→x₀</sub></span>
+            <span class="attr-value" id="val-eval-lim">-</span>
+          </div>
+          <div class="attr-item">
+            <span class="attr-label">lim <sub>x→±∞</sub></span>
+            <span class="attr-value" id="val-eval-lim-inf">-</span>
+          </div>
         </div>
       </div>
 
@@ -236,15 +244,15 @@
         </div>
       </div>
 
-      <!-- Card 5: Taylor Approximation -->
+      <!-- Card 5: Series & Approximations -->
       <div class="card">
         <h3 class="card-title">
-          <span class="card-title-text"><span class="card-icon">🔬</span> Taylor Approximation</span>
+          <span class="card-title-text"><span class="card-icon">🔬</span> Series & Approximations</span>
           <span class="card-actions">
             <label class="layer-toggle" id="toggle-lbl-taylor" title="Toggle Taylor polynomial on plot">
               <input type="checkbox" id="toggle-taylor" class="layer-checkbox">
               <span class="layer-dot" style="background-color: var(--accent-amber);"></span>
-              <span>Taylor</span>
+              <span>Series</span>
             </label>
           </span>
         </h3>
@@ -271,6 +279,10 @@
           </div>
         </div>
         <div class="attributes-list" style="margin-top: 14px;">
+          <div class="attr-item">
+            <span class="attr-label">Series + O(xⁿ)</span>
+            <span class="attr-value" id="val-formal-series">-</span>
+          </div>
           <div class="attr-item">
             <span class="attr-label">P(x)</span>
             <span class="attr-value" id="taylor-polynomial-str">-</span>

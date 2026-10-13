@@ -122,9 +122,12 @@ Expr _createBinding(String name, List<Expr> arguments) =>
             arguments[0],
             branch: b,
           ),
+          Neg(expr: RationalNumber(isInteger: true, numerator: final b)) =>
+            LambertW(arguments[0], branch: -b),
           _ => throw ArgumentError('Lambert W branch must be an integer'),
         },
         'beta' => Beta(arguments[0], arguments[1]),
+        'piecewise' || 'pw' => Piecewise([(arguments[0], arguments[1])]),
         'o' || 'order' => switch (arguments) {
           [
             Variable(:final name),
@@ -135,7 +138,21 @@ Expr _createBinding(String name, List<Expr> arguments) =>
         },
         _ => throw ArgumentError.value(name, 'Unknown function'),
       },
-      _ => throw ArgumentError.value(name, 'Unknown function'),
+      _ => switch (name.toLowerCase()) {
+        'piecewise' || 'pw' => () {
+          final branches = <(Expr, Expr)>[];
+          Expr? otherwise;
+          for (var i = 0; i < arguments.length; i += 2) {
+            if (i + 1 < arguments.length) {
+              branches.add((arguments[i], arguments[i + 1]));
+            } else {
+              otherwise = arguments[i];
+            }
+          }
+          return Piecewise(branches, otherwise: otherwise);
+        }(),
+        _ => throw ArgumentError.value(name, 'Unknown function'),
+      },
     };
 
 Expr _parseOrderArg(Expr arg) => switch (arg) {

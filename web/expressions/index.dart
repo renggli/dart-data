@@ -116,6 +116,8 @@ late web.HTMLElement valEvalFx;
 late web.HTMLElement valEvalDfAnalytical;
 late web.HTMLElement valEvalDfNumerical;
 late web.HTMLElement valTangentEq;
+late web.HTMLElement valEvalLim;
+late web.HTMLElement valEvalLimInf;
 
 late web.HTMLSelectElement selectIntMethod;
 late web.HTMLInputElement inputIntA;
@@ -127,6 +129,7 @@ late web.HTMLInputElement sliderTaylorOrder;
 late web.HTMLSelectElement selectTaylorCenter;
 late web.HTMLInputElement inputTaylorAround;
 late web.HTMLElement taylorOrderVal;
+late web.HTMLElement valFormalSeries;
 late web.HTMLElement taylorPolynomialStr;
 
 late web.HTMLElement valRootsExact;
@@ -233,6 +236,9 @@ void initDom() {
       web.document.querySelector('#val-eval-df-numerical') as web.HTMLElement;
   valTangentEq =
       web.document.querySelector('#val-tangent-eq') as web.HTMLElement;
+  valEvalLim = web.document.querySelector('#val-eval-lim') as web.HTMLElement;
+  valEvalLimInf =
+      web.document.querySelector('#val-eval-lim-inf') as web.HTMLElement;
 
   selectIntMethod =
       web.document.querySelector('#select-int-method') as web.HTMLSelectElement;
@@ -256,6 +262,8 @@ void initDom() {
   ) as web.HTMLInputElement;
   taylorOrderVal =
       web.document.querySelector('#taylor-order-val') as web.HTMLElement;
+  valFormalSeries =
+      web.document.querySelector('#val-formal-series') as web.HTMLElement;
   taylorPolynomialStr =
       web.document.querySelector('#taylor-polynomial-str') as web.HTMLElement;
 
@@ -784,10 +792,13 @@ void clearTelemetry() {
   setAttrValue(valEvalDfAnalytical, '-');
   setAttrValue(valEvalDfNumerical, '-');
   setAttrValue(valTangentEq, '-');
+  setAttrExpr(valEvalLim, null);
+  setAttrValue(valEvalLimInf, '-');
 
   setAttrValue(valIntNumerical, '-');
   setAttrValue(valIntAnalytical, '-');
 
+  setAttrExpr(valFormalSeries, null);
   setAttrExpr(taylorPolynomialStr, null);
   setAttrValue(valRootsExact, '-');
   setAttrValue(valRootsNumeric, '-');
@@ -887,6 +898,43 @@ void updatePointTelemetry() {
   } else {
     setAttrValue(valTangentEq, 'Undefined');
   }
+
+  final expr = parsedExpr;
+  if (expr != null) {
+    final ptExpr = (pointX - pointX.round()).abs() < 1e-9
+        ? RationalNumber(pointX.round())
+        : RationalNumber.fromDouble(pointX);
+    try {
+      final limVal = expr.limit('x', ptExpr);
+      setAttrExpr(valEvalLim, limVal);
+    } catch (_) {
+      setAttrValue(valEvalLim, 'Undefined');
+    }
+
+    try {
+      final limPos = expr.limit('x', ConstantNumber.infinity);
+      try {
+        final limNeg = expr.limit('x', const Neg(ConstantNumber.infinity));
+        if (limPos == limNeg) {
+          setAttrExpr(valEvalLimInf, limPos);
+        } else {
+          setAttrValue(valEvalLimInf, '+∞: $limPos | -∞: $limNeg');
+        }
+      } catch (_) {
+        setAttrValue(valEvalLimInf, '+∞: $limPos');
+      }
+    } catch (_) {
+      try {
+        final limNeg = expr.limit('x', const Neg(ConstantNumber.infinity));
+        setAttrValue(valEvalLimInf, '-∞: $limNeg');
+      } catch (_) {
+        setAttrValue(valEvalLimInf, 'Undefined');
+      }
+    }
+  } else {
+    setAttrExpr(valEvalLim, null);
+    setAttrValue(valEvalLimInf, '-');
+  }
 }
 
 void updateIntegrationTelemetry() {
@@ -955,10 +1003,19 @@ void updateTaylorTelemetry() {
     inputTaylorAround.value = '0.00';
   }
 
+  final centerExpr = (taylorAround - taylorAround.round()).abs() < 1e-9
+      ? RationalNumber(taylorAround.round())
+      : RationalNumber.fromDouble(taylorAround);
+
   try {
-    final poly = expr
-        .taylorSeries('x', order: taylorOrder, around: taylorAround)
-        .simplify();
+    final seriesObj = expr.toPowerSeries(
+      'x',
+      point: centerExpr,
+      order: taylorOrder + 1,
+    );
+    final formal = seriesObj.toExpr();
+    setAttrExpr(valFormalSeries, formal);
+    final poly = seriesObj.toExpr(includeOrder: false).simplify();
     setAttrExpr(taylorPolynomialStr, poly);
     try {
       taylorCompiled = poly.toFunction1D('x');
@@ -971,9 +1028,28 @@ void updateTaylorTelemetry() {
       taylorComplexCompiled = null;
     }
   } catch (_) {
-    setAttrValue(taylorPolynomialStr, 'Undefined');
-    taylorCompiled = null;
-    taylorComplexCompiled = null;
+    try {
+      final poly = expr
+          .taylorSeries('x', order: taylorOrder, around: taylorAround)
+          .simplify();
+      setAttrExpr(valFormalSeries, poly);
+      setAttrExpr(taylorPolynomialStr, poly);
+      try {
+        taylorCompiled = poly.toFunction1D('x');
+      } catch (_) {
+        taylorCompiled = null;
+      }
+      try {
+        taylorComplexCompiled = poly.toComplexFunction1D('x');
+      } catch (_) {
+        taylorComplexCompiled = null;
+      }
+    } catch (_) {
+      setAttrValue(valFormalSeries, 'Undefined');
+      setAttrValue(taylorPolynomialStr, 'Undefined');
+      taylorCompiled = null;
+      taylorComplexCompiled = null;
+    }
   }
 }
 

@@ -646,4 +646,35 @@ void main() {
       check(() => Expr.parse('log(1, 2, 3, 4)')).throws<FormatException>();
     });
   });
+
+  group('Special functions and Piecewise parsing', () {
+    const x = Variable('x');
+
+    test('parses lambertw with principal and secondary branches', () {
+      check(Expr.parse('lambertw(x)')).equals(const LambertW(x));
+      check(Expr.parse('lambertw(x, 0)')).equals(const LambertW(x));
+      check(Expr.parse('lambertw(x, -1)'))
+          .equals(const LambertW(x, branch: -1));
+      check(Expr.parse('w(x, -1)')).equals(const LambertW(x, branch: -1));
+    });
+
+    test('parses special functions', () {
+      check(Expr.parse('erf(x)')).equals(const Erf(x));
+      check(Expr.parse('erfc(x)')).equals(const Erfc(x));
+      check(Expr.parse('gamma(x)')).equals(const Gamma(x));
+      check(Expr.parse('beta(x, 2)')).equals(const Beta(x, RationalNumber(2)));
+      check(Expr.parse('asinh(x)')).equals(const Asinh(x));
+      check(Expr.parse('acosh(x)')).equals(const Acosh(x));
+      check(Expr.parse('atanh(x)')).equals(const Atanh(x));
+    });
+
+    test('parses piecewise functions', () {
+      final pw2 = Expr.parse('piecewise(x < 0, -x, x)');
+      check(pw2).isA<Piecewise>();
+      final pw4 = Expr.parse('piecewise(x < -1, -1, x > 1, 1, 0)');
+      check(pw4).isA<Piecewise>();
+      check((pw4 as Piecewise).branches.length).equals(2);
+      check(pw4.otherwise).equals(RationalNumber.zero);
+    });
+  });
 }

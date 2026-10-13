@@ -62,33 +62,39 @@ void main() {
       }
     });
 
-    test('all presets support differentiation and high-speed compilation', () {
+    test('all presets support differentiation or report non-elementary derivatives, and high-speed compilation', () {
       for (final preset in expressionPresets) {
         final expr = Expr.tryParse(preset.formula)!;
-        final d1 = expr.derivative('x').simplify();
-        final d2 = d1.derivative('x').simplify();
+        Expr? d1;
+        try {
+          d1 = expr.derivative('x').simplify();
+          final d2 = d1.derivative('x').simplify();
+          check(d1.toString().isNotEmpty).isTrue();
+          check(d2.toString().isNotEmpty).isTrue();
+        } on UnsupportedError {
+          // Functions like Gamma and Beta have non-elementary derivatives.
+        }
 
-        check(d1.toString().isNotEmpty).isTrue();
-        check(d2.toString().isNotEmpty).isTrue();
-
-        if (preset.formula.contains('i')) {
+        if (containsImaginary(expr)) {
           final cfn = expr.toComplexFunction1D('x');
-          final cdf = d1.toComplexFunction1D('x');
           final y0 = cfn(Complex(preset.defaultPointX, 0));
-          final slope = cdf(Complex(preset.defaultPointX, 0));
           check(y0.a.isNaN).isFalse();
           check(y0.b.isNaN).isFalse();
-          check(slope.a.isNaN).isFalse();
-          check(slope.b.isNaN).isFalse();
+          if (d1 != null) {
+            final cdf = d1.toComplexFunction1D('x');
+            final slope = cdf(Complex(preset.defaultPointX, 0));
+            check(slope.a.isNaN).isFalse();
+            check(slope.b.isNaN).isFalse();
+          }
         } else {
           final fn = expr.toFunction1D('x');
-          final df = d1.toFunction1D('x');
-
-          // Evaluate at default point
           final y0 = fn(preset.defaultPointX);
-          final slope = df(preset.defaultPointX);
           check(y0.isNaN).isFalse();
-          check(slope.isNaN).isFalse();
+          if (d1 != null) {
+            final df = d1.toFunction1D('x');
+            final slope = df(preset.defaultPointX);
+            check(slope.isNaN).isFalse();
+          }
         }
       }
     });
@@ -98,7 +104,7 @@ void main() {
       () {
         for (final preset in expressionPresets) {
           final expr = Expr.tryParse(preset.formula)!;
-          if (preset.formula.contains('i')) {
+          if (containsImaginary(expr)) {
             final cfn = expr.toComplexFunction1D('x');
             final realArea = integrate(
               (x) => cfn(Complex(x, 0)).a.toDouble(),
@@ -128,10 +134,14 @@ void main() {
           }
 
           // Taylor series expansion
-          final taylor = expr
-              .taylorSeries('x', order: 2, around: preset.defaultPointX)
-              .simplify();
-          check(taylor.toString().isNotEmpty).isTrue();
+          try {
+            final taylor = expr
+                .taylorSeries('x', order: 2, around: preset.defaultPointX)
+                .simplify();
+            check(taylor.toString().isNotEmpty).isTrue();
+          } on UnsupportedError {
+            // Functions with non-elementary derivatives cannot expand via Taylor derivative loop.
+          }
         }
       },
     );
