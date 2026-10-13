@@ -30,14 +30,14 @@ double lambertW0(num z) {
         pVal -
         (1.0 / 3.0) * pVal * pVal +
         (11.0 / 72.0) * pVal * pVal * pVal;
-  } else if (zd < 1.0) {
+  } else if (zd < _e) {
     wVal = zd / (1.0 + zd * (1.0 + zd * (0.5 - zd / 6.0)));
   } else {
     final lz = log(zd);
     final llz = log(lz);
     wVal = lz - llz + llz / lz;
   }
-  for (var i = 0; i < 10; i++) {
+  for (var i = 0; i < 25; i++) {
     final ew = exp(wVal);
     final fVal = wVal * ew - zd;
     if (fVal.abs() < 1.0e-15 * (1.0 + wVal.abs()) * ew) {
@@ -85,7 +85,7 @@ double lambertW1(num z) {
     final llz = log(-lz);
     wVal = lz - llz + llz / lz;
   }
-  for (var i = 0; i < 15; i++) {
+  for (var i = 0; i < 25; i++) {
     final ew = exp(wVal);
     final fVal = wVal * ew - zd;
     if (fVal.abs() < 1.0e-15 * (1.0 + wVal.abs()) * ew) {

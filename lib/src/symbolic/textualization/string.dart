@@ -48,6 +48,31 @@ String formatExpr(Expr expr, [int parentPrec = 0]) {
       order,
       point,
     ),
+    LambertW(:final expr, :final branch) =>
+      branch == 0
+          ? 'LambertW(${formatExpr(expr)})'
+          : 'LambertW(${formatExpr(expr)}, $branch)',
+    Erf(:final expr) => 'erf(${formatExpr(expr)})',
+    Erfc(:final expr) => 'erfc(${formatExpr(expr)})',
+    Gamma(:final expr) => 'gamma(${formatExpr(expr)})',
+    Beta(:final left, :final right) =>
+      'beta(${formatExpr(left)}, ${formatExpr(right)})',
+    Asinh(:final expr) => 'asinh(${formatExpr(expr)})',
+    Acosh(:final expr) => 'acosh(${formatExpr(expr)})',
+    Atanh(:final expr) => 'atanh(${formatExpr(expr)})',
+    LessThan(:final left, :final right) =>
+      '${formatExpr(left)} < ${formatExpr(right)}',
+    LessEqual(:final left, :final right) =>
+      '${formatExpr(left)} <= ${formatExpr(right)}',
+    GreaterThan(:final left, :final right) =>
+      '${formatExpr(left)} > ${formatExpr(right)}',
+    GreaterEqual(:final left, :final right) =>
+      '${formatExpr(left)} >= ${formatExpr(right)}',
+    Equal(:final left, :final right) =>
+      '${formatExpr(left)} == ${formatExpr(right)}',
+    Piecewise(:final branches, :final otherwise) =>
+      'Piecewise([${branches.map((b) => '(${formatExpr(b.$1)}, ${formatExpr(b.$2)})').join(', ')}]'
+          '${otherwise != null ? ', otherwise: ${formatExpr(otherwise)}' : ''})',
   };
   return prec < parentPrec ? '($formatted)' : formatted;
 }
@@ -68,6 +93,8 @@ String _formatOrderTerm(String variable, int order, Expr point) {
 ///
 /// Higher values indicate tighter binding.
 int precedence(Expr expr) => switch (expr) {
+  RelationalExpr() => 0,
+  Piecewise() => 0,
   ComplexNumber(:final real, :final imaginary)
       when real != 0.0 && imaginary != 0.0 =>
     1,

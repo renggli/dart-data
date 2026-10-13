@@ -1114,27 +1114,17 @@ void _assertNoPowerOfProduct(Expr expr, [String context = '']) {
       }
       _assertNoPowerOfProduct(base, context);
       _assertNoPowerOfProduct(exponent, context);
-    case Neg(:final expr):
+    case UnaryExpr(:final expr):
       _assertNoPowerOfProduct(expr, context);
-    case Add(:final left, :final right):
-    case Sub(:final left, :final right):
-    case Mul(:final left, :final right):
-    case Div(:final left, :final right):
+    case BinaryExpr(:final left, :final right):
       _assertNoPowerOfProduct(left, context);
       _assertNoPowerOfProduct(right, context);
-    case Sin(:final expr):
-    case Cos(:final expr):
-    case Tan(:final expr):
-    case Asin(:final expr):
-    case Acos(:final expr):
-    case Atan(:final expr):
-    case Sinh(:final expr):
-    case Cosh(:final expr):
-    case Tanh(:final expr):
-    case Abs(:final expr):
-    case Exp(:final expr):
-    case Ln(:final expr):
-      _assertNoPowerOfProduct(expr, context);
+    case Piecewise(:final branches, :final otherwise):
+      for (final (cond, e) in branches) {
+        _assertNoPowerOfProduct(cond, context);
+        _assertNoPowerOfProduct(e, context);
+      }
+      if (otherwise != null) _assertNoPowerOfProduct(otherwise, context);
     case Number() || Variable() || OrderTerm():
       break;
   }

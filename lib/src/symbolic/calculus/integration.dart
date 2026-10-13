@@ -115,6 +115,20 @@ Expr _antiDerivative(Expr expr, String variable) {
       _antiDerivExp(expr, variable) ?? _unsupported(expr, variable),
     Ln(:final expr) =>
       _antiDerivLn(expr, variable) ?? _unsupported(expr, variable),
+    LambertW(:final expr, :final branch) =>
+      _antiDerivLambertW(expr, branch, variable) ??
+          _unsupported(expr, variable),
+    Erf(:final expr) =>
+      _antiDerivErf(expr, variable) ?? _unsupported(expr, variable),
+    Erfc(:final expr) =>
+      _antiDerivErfc(expr, variable) ?? _unsupported(expr, variable),
+    Asinh(:final expr) =>
+      _antiDerivAsinh(expr, variable) ?? _unsupported(expr, variable),
+    Acosh(:final expr) =>
+      _antiDerivAcosh(expr, variable) ?? _unsupported(expr, variable),
+    Atanh(:final expr) =>
+      _antiDerivAtanh(expr, variable) ?? _unsupported(expr, variable),
+    Piecewise() => _antiDerivPiecewise(expr, variable),
     Pow(:final base, :final exponent) => _antiDerivPow(
       base,
       exponent,
@@ -242,6 +256,158 @@ Expr? _antiDerivLn(Expr inner, String variable) =>
       (:final a, b: _) => Div(Sub(Mul(inner, Ln(inner)), inner), a).simplify(),
       null => null,
     };
+
+Expr? _antiDerivLambertW(Expr inner, int branch, String variable) =>
+    switch (inner.matchLinear(variable)) {
+      (:final a, b: _) => Div(
+        Add(
+          Mul(inner, Sub(LambertW(inner, branch: branch), RationalNumber.one)),
+          Exp(LambertW(inner, branch: branch)),
+        ),
+        a,
+      ).simplify(),
+      null => null,
+    };
+
+Expr? _antiDerivErf(Expr inner, String variable) =>
+    switch (inner.matchLinear(variable)) {
+      (:final a, b: _) => Div(
+        Add(
+          Mul(inner, Erf(inner)),
+          Div(
+            Exp(Neg(Pow(inner, const RationalNumber(2)))),
+            const Pow(ConstantNumber.pi, RationalNumber(1, 2)),
+          ),
+        ),
+        a,
+      ).simplify(),
+      null => null,
+    };
+
+Expr? _antiDerivErfc(Expr inner, String variable) =>
+    switch (inner.matchLinear(variable)) {
+      (:final a, b: _) => Div(
+        Sub(
+          Mul(inner, Erfc(inner)),
+          Div(
+            Exp(Neg(Pow(inner, const RationalNumber(2)))),
+            const Pow(ConstantNumber.pi, RationalNumber(1, 2)),
+          ),
+        ),
+        a,
+      ).simplify(),
+      null => null,
+    };
+
+Expr? _antiDerivAsinh(Expr inner, String variable) =>
+    switch (inner.matchLinear(variable)) {
+      (:final a, b: _) => Div(
+        Sub(
+          Mul(inner, Asinh(inner)),
+          Pow(
+            Add(Pow(inner, const RationalNumber(2)), RationalNumber.one),
+            const RationalNumber(1, 2),
+          ),
+        ),
+        a,
+      ).simplify(),
+      null => null,
+    };
+
+Expr? _antiDerivAcosh(Expr inner, String variable) =>
+    switch (inner.matchLinear(variable)) {
+      (:final a, b: _) => Div(
+        Sub(
+          Mul(inner, Acosh(inner)),
+          Pow(
+            Sub(Pow(inner, const RationalNumber(2)), RationalNumber.one),
+            const RationalNumber(1, 2),
+          ),
+        ),
+        a,
+      ).simplify(),
+      null => null,
+    };
+
+Expr? _antiDerivAtanh(Expr inner, String variable) =>
+    switch (inner.matchLinear(variable)) {
+      (:final a, b: _) => Div(
+        Add(
+          Mul(inner, Atanh(inner)),
+          Mul(
+            const RationalNumber(1, 2),
+            Ln(Sub(RationalNumber.one, Pow(inner, const RationalNumber(2)))),
+          ),
+        ),
+        a,
+      ).simplify(),
+      null => null,
+    };
+
+Expr _antiDerivPiecewise(Piecewise expr, String variable) {
+  final m = expr.branches.length;
+  final rawG = <Expr>[
+    for (var i = 0; i < m; i++) _antiDerivative(expr.branches[i].$2, variable),
+  ];
+  final rawOth = expr.otherwise != null
+      ? _antiDerivative(expr.otherwise!, variable)
+      : null;
+
+  final constants = <Expr>[RationalNumber.zero];
+  for (var k = 0; k < m - 1; k++) {
+    final pt = _extractBoundaryPoint(expr.branches[k].$1, variable);
+    if (pt != null) {
+      final vLeft = Add(
+        rawG[k].substitute(variable, pt),
+        constants[k],
+      ).simplify();
+      final vRight = rawG[k + 1].substitute(variable, pt).simplify();
+      constants.add(Sub(vLeft, vRight).simplify());
+    } else {
+      constants.add(RationalNumber.zero);
+    }
+  }
+
+  Expr? constOth;
+  if (rawOth != null && m > 0) {
+    final pt = _extractBoundaryPoint(expr.branches[m - 1].$1, variable);
+    if (pt != null) {
+      final vLeft = Add(
+        rawG[m - 1].substitute(variable, pt),
+        constants[m - 1],
+      ).simplify();
+      final vRight = rawOth.substitute(variable, pt).simplify();
+      constOth = Sub(vLeft, vRight).simplify();
+    } else {
+      constOth = RationalNumber.zero;
+    }
+  }
+
+  final newBranches = <(Expr, Expr)>[
+    for (var i = 0; i < m; i++)
+      (expr.branches[i].$1, Add(rawG[i], constants[i]).simplify()),
+  ];
+  final newOtherwise = rawOth != null
+      ? Add(rawOth, constOth ?? RationalNumber.zero).simplify()
+      : null;
+  return Piecewise(newBranches, otherwise: newOtherwise);
+}
+
+Expr? _extractBoundaryPoint(Expr cond, String variable) => switch (cond) {
+  LessThan(left: Variable(:final name), :final right)
+      when name == variable && !right.dependsOn(variable) =>
+    right,
+  LessEqual(left: Variable(:final name), :final right)
+      when name == variable && !right.dependsOn(variable) =>
+    right,
+  GreaterThan(left: final bound, right: Variable(:final name))
+      when name == variable && !bound.dependsOn(variable) =>
+    bound,
+  GreaterEqual(left: final bound, right: Variable(:final name))
+      when name == variable && !bound.dependsOn(variable) =>
+    bound,
+  _ => null,
+};
 
 Expr _antiDerivPow(Expr base, Expr exponent, Expr original, String variable) {
   // Form: (ax + b)^n

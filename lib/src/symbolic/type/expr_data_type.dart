@@ -229,5 +229,43 @@ final class ExprField implements ExtendedField<Expr> {
     Div(:final left, :final right) => Div(_conjugate(left), _conjugate(right)),
     Pow(:final left, :final right) => Pow(_conjugate(left), _conjugate(right)),
     OrderTerm() => expr,
+    LambertW(:final expr, :final branch) => LambertW(
+      _conjugate(expr),
+      branch: branch,
+    ),
+    Erf(:final expr) => Erf(_conjugate(expr)),
+    Erfc(:final expr) => Erfc(_conjugate(expr)),
+    Gamma(:final expr) => Gamma(_conjugate(expr)),
+    Beta(:final left, :final right) => Beta(
+      _conjugate(left),
+      _conjugate(right),
+    ),
+    Asinh(:final expr) => Asinh(_conjugate(expr)),
+    Acosh(:final expr) => Acosh(_conjugate(expr)),
+    Atanh(:final expr) => Atanh(_conjugate(expr)),
+    LessThan(:final left, :final right) => LessThan(
+      _conjugate(left),
+      _conjugate(right),
+    ),
+    LessEqual(:final left, :final right) => LessEqual(
+      _conjugate(left),
+      _conjugate(right),
+    ),
+    GreaterThan(:final left, :final right) => GreaterThan(
+      _conjugate(left),
+      _conjugate(right),
+    ),
+    GreaterEqual(:final left, :final right) => GreaterEqual(
+      _conjugate(left),
+      _conjugate(right),
+    ),
+    Equal(:final left, :final right) => Equal(
+      _conjugate(left),
+      _conjugate(right),
+    ),
+    Piecewise(:final branches, :final otherwise) => Piecewise(
+      branches.map((b) => (_conjugate(b.$1), _conjugate(b.$2))).toList(),
+      otherwise: otherwise != null ? _conjugate(otherwise) : null,
+    ),
   };
 }

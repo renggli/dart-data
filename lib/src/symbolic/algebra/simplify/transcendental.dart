@@ -3,6 +3,7 @@ import 'package:more/number.dart' show Fraction;
 import '../../ast.dart';
 import '../exact_constants.dart';
 import '../simplify.dart';
+import '../structural_order.dart';
 
 /// Simplifies a sine expression $\sin(expr)$.
 Expr simplifySin(Expr expr) {
@@ -404,4 +405,186 @@ Fraction? matchPiMultiple(Expr expr) {
     }
   }
   return null;
+}
+
+/// Simplifies a Lambert W expression $W_b(expr)$.
+Expr simplifyLambertW(Expr expr, int branch) {
+  if (branch == 0) {
+    if (expr case RationalNumber(isZero: true) || RealNumber(value: 0.0)) {
+      return RationalNumber.zero;
+    }
+    if (expr == ConstantNumber.e) {
+      return RationalNumber.one;
+    }
+  }
+  if (expr
+      case Div(
+            left: RationalNumber(isNegativeOne: true),
+            right: ConstantNumber.e,
+          ) ||
+          Neg(
+            expr: Div(
+              left: RationalNumber(isOne: true),
+              right: ConstantNumber.e,
+            ),
+          )) {
+    return RationalNumber.negativeOne;
+  }
+  return LambertW(expr, branch: branch);
+}
+
+/// Simplifies an error function expression $\operatorname{erf}(expr)$.
+Expr simplifyErf(Expr expr) {
+  if (expr case RationalNumber(isZero: true) || RealNumber(value: 0.0)) {
+    return RationalNumber.zero;
+  }
+  final (posExpr, isNeg) = extractSign(expr);
+  if (isNeg) {
+    return simplifyNeg(simplifyErf(posExpr));
+  }
+  return Erf(expr);
+}
+
+/// Simplifies a complementary error function expression $\operatorname{erfc}(expr)$.
+Expr simplifyErfc(Expr expr) {
+  if (expr case RationalNumber(isZero: true) || RealNumber(value: 0.0)) {
+    return RationalNumber.one;
+  }
+  return Erfc(expr);
+}
+
+/// Simplifies an Euler gamma function expression $\Gamma(expr)$.
+Expr simplifyGamma(Expr expr) {
+  if (expr case RationalNumber(:final isInteger, :final numerator)
+      when isInteger && numerator > 0) {
+    var fact = 1;
+    for (var k = 2; k < numerator; k++) {
+      fact *= k;
+    }
+    return RationalNumber(fact);
+  }
+  if (expr case RationalNumber(numerator: 1, denominator: 2)) {
+    return const Pow(ConstantNumber.pi, RationalNumber(1, 2));
+  }
+  return Gamma(expr);
+}
+
+/// Simplifies an Euler beta function expression $\operatorname{B}(a, b)$.
+Expr simplifyBeta(Expr a, Expr b) {
+  if (compareStructural(a, b) > 0) {
+    return simplifyBeta(b, a);
+  }
+  if (a case RationalNumber(isInteger: true, numerator: final m) when m > 0) {
+    if (b case RationalNumber(isInteger: true, numerator: final n) when n > 0) {
+      var factM = 1;
+      for (var k = 2; k < m; k++) {
+        factM *= k;
+      }
+      var factN = 1;
+      for (var k = 2; k < n; k++) {
+        factN *= k;
+      }
+      var factTotal = 1;
+      for (var k = 2; k < m + n; k++) {
+        factTotal *= k;
+      }
+      final frac = Fraction(factM * factN, factTotal);
+      return RationalNumber(frac.numerator, frac.denominator);
+    }
+    if (m == 1) {
+      return Div(RationalNumber.one, b).simplify();
+    }
+  }
+  if (b case RationalNumber(isInteger: true, numerator: 1)) {
+    return Div(RationalNumber.one, a).simplify();
+  }
+  return Beta(a, b);
+}
+
+/// Simplifies an inverse hyperbolic sine expression $\operatorname{asinh}(expr)$.
+Expr simplifyAsinh(Expr expr) {
+  if (expr case RationalNumber(isZero: true) || RealNumber(value: 0.0)) {
+    return RationalNumber.zero;
+  }
+  if (expr is Sinh) return expr.expr;
+  final (posExpr, isNeg) = extractSign(expr);
+  if (isNeg) {
+    return simplifyNeg(simplifyAsinh(posExpr));
+  }
+  return Asinh(expr);
+}
+
+/// Simplifies an inverse hyperbolic cosine expression $\operatorname{acosh}(expr)$.
+Expr simplifyAcosh(Expr expr) {
+  if (expr case RationalNumber(isOne: true) || RealNumber(value: 1.0)) {
+    return RationalNumber.zero;
+  }
+  if (expr is Cosh) return expr.expr;
+  return Acosh(expr);
+}
+
+/// Simplifies an inverse hyperbolic tangent expression $\operatorname{atanh}(expr)$.
+Expr simplifyAtanh(Expr expr) {
+  if (expr case RationalNumber(isZero: true) || RealNumber(value: 0.0)) {
+    return RationalNumber.zero;
+  }
+  if (expr is Tanh) return expr.expr;
+  final (posExpr, isNeg) = extractSign(expr);
+  if (isNeg) {
+    return simplifyNeg(simplifyAtanh(posExpr));
+  }
+  return Atanh(expr);
+}
+
+/// Simplifies a relational expression.
+Expr simplifyRelational(RelationalExpr expr) {
+  final left = expr.left.simplify();
+  final right = expr.right.simplify();
+  if (left is Number &&
+      right is Number &&
+      left is! ComplexNumber &&
+      right is! ComplexNumber) {
+    final vL = left.value;
+    final vR = right.value;
+    final matched = switch (expr) {
+      LessThan() => vL < vR,
+      LessEqual() => vL <= vR,
+      GreaterThan() => vL > vR,
+      GreaterEqual() => vL >= vR,
+      Equal() => vL == vR,
+    };
+    return matched ? RationalNumber.one : RationalNumber.zero;
+  }
+  return switch (expr) {
+    LessThan() => LessThan(left, right),
+    LessEqual() => LessEqual(left, right),
+    GreaterThan() => GreaterThan(left, right),
+    GreaterEqual() => GreaterEqual(left, right),
+    Equal() => Equal(left, right),
+  };
+}
+
+/// Simplifies a piecewise expression.
+Expr simplifyPiecewise(Piecewise expr) {
+  final simplifiedBranches = <(Expr, Expr)>[];
+  for (final (cond, branchExpr) in expr.branches) {
+    final sCond = cond.simplify();
+    if (sCond case RationalNumber(isZero: true) || RealNumber(value: 0.0)) {
+      continue;
+    }
+    final sExpr = branchExpr.simplify();
+    if (sCond case RationalNumber(isOne: true) || RealNumber(value: 1.0)) {
+      if (simplifiedBranches.isEmpty) {
+        return sExpr;
+      }
+      simplifiedBranches.add((sCond, sExpr));
+      return Piecewise(simplifiedBranches);
+    }
+    simplifiedBranches.add((sCond, sExpr));
+  }
+  final sOtherwise = expr.otherwise?.simplify();
+  if (simplifiedBranches.isEmpty) {
+    return sOtherwise ?? RationalNumber.zero;
+  }
+  return Piecewise(simplifiedBranches, otherwise: sOtherwise);
 }

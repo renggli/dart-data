@@ -46,6 +46,38 @@ Expr _expand(Expr expr) => switch (expr) {
   Abs(:final expr) => Abs(_expand(expr)),
   Exp(:final expr) => Exp(_expand(expr)),
   Ln(:final expr) => Ln(_expand(expr)),
+  LambertW(:final expr, :final branch) => LambertW(
+    _expand(expr),
+    branch: branch,
+  ),
+  Erf(:final expr) => Erf(_expand(expr)),
+  Erfc(:final expr) => Erfc(_expand(expr)),
+  Gamma(:final expr) => Gamma(_expand(expr)),
+  Beta(:final left, :final right) => Beta(_expand(left), _expand(right)),
+  Asinh(:final expr) => Asinh(_expand(expr)),
+  Acosh(:final expr) => Acosh(_expand(expr)),
+  Atanh(:final expr) => Atanh(_expand(expr)),
+  LessThan(:final left, :final right) => LessThan(
+    _expand(left),
+    _expand(right),
+  ),
+  LessEqual(:final left, :final right) => LessEqual(
+    _expand(left),
+    _expand(right),
+  ),
+  GreaterThan(:final left, :final right) => GreaterThan(
+    _expand(left),
+    _expand(right),
+  ),
+  GreaterEqual(:final left, :final right) => GreaterEqual(
+    _expand(left),
+    _expand(right),
+  ),
+  Equal(:final left, :final right) => Equal(_expand(left), _expand(right)),
+  Piecewise(:final branches, :final otherwise) => Piecewise(
+    branches.map((b) => (_expand(b.$1), _expand(b.$2))).toList(),
+    otherwise: otherwise != null ? _expand(otherwise) : null,
+  ),
 };
 
 Expr _expandNeg(Expr inner) {

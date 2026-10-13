@@ -127,5 +127,43 @@ Expr _removeOrder(Expr expr) => switch (expr) {
   Exp(:final expr) => Exp(_removeOrder(expr)),
   Ln(:final expr) => Ln(_removeOrder(expr)),
   Abs(:final expr) => Abs(_removeOrder(expr)),
+  LambertW(:final expr, :final branch) => LambertW(
+    _removeOrder(expr),
+    branch: branch,
+  ),
+  Erf(:final expr) => Erf(_removeOrder(expr)),
+  Erfc(:final expr) => Erfc(_removeOrder(expr)),
+  Gamma(:final expr) => Gamma(_removeOrder(expr)),
+  Beta(:final left, :final right) => Beta(
+    _removeOrder(left),
+    _removeOrder(right),
+  ),
+  Asinh(:final expr) => Asinh(_removeOrder(expr)),
+  Acosh(:final expr) => Acosh(_removeOrder(expr)),
+  Atanh(:final expr) => Atanh(_removeOrder(expr)),
+  LessThan(:final left, :final right) => LessThan(
+    _removeOrder(left),
+    _removeOrder(right),
+  ),
+  LessEqual(:final left, :final right) => LessEqual(
+    _removeOrder(left),
+    _removeOrder(right),
+  ),
+  GreaterThan(:final left, :final right) => GreaterThan(
+    _removeOrder(left),
+    _removeOrder(right),
+  ),
+  GreaterEqual(:final left, :final right) => GreaterEqual(
+    _removeOrder(left),
+    _removeOrder(right),
+  ),
+  Equal(:final left, :final right) => Equal(
+    _removeOrder(left),
+    _removeOrder(right),
+  ),
+  Piecewise(:final branches, :final otherwise) => Piecewise(
+    branches.map((b) => (_removeOrder(b.$1), _removeOrder(b.$2))).toList(),
+    otherwise: otherwise != null ? _removeOrder(otherwise) : null,
+  ),
   Number() || Variable() => expr,
 };

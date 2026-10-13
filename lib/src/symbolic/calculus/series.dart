@@ -494,6 +494,28 @@ PowerSeries _expandToPowerSeries(
 
     Abs(:final expr) => _expandAbs(expr, variable, point, order),
 
+    LambertW(:final expr, :final branch) =>
+      branch == 0
+          ? _expandLambertW(expr, variable, point, order)
+          : throw UnsupportedError(
+              'Power series only supported for principal branch W_0',
+            ),
+
+    Erf(:final expr) => _expandErf(expr, variable, point, order),
+
+    Asinh(:final expr) => _expandAsinh(expr, variable, point, order),
+
+    Atanh(:final expr) => _expandAtanh(expr, variable, point, order),
+
+    Erfc() ||
+    Gamma() ||
+    Beta() ||
+    Acosh() ||
+    RelationalExpr() ||
+    Piecewise() => throw UnsupportedError(
+      'Power series expansion not supported for ${expr.runtimeType}',
+    ),
+
     OrderTerm() => throw UnsupportedError(
       'Cannot expand an OrderTerm into a series',
     ),
@@ -738,4 +760,104 @@ PowerSeries _expandAbs(Expr inner, String variable, Expr point, int order) {
     if (c0.isNegative) return -sInner;
   }
   throw UnsupportedError('abs is non-differentiable at zero');
+}
+
+RationalNumber _lambertWMaclaurinCoeff(int k) {
+  var num = 1;
+  for (var i = 0; i < k - 1; i++) {
+    num *= k;
+  }
+  var den = 1;
+  for (var i = 2; i <= k; i++) {
+    den *= i;
+  }
+  if ((k - 1) % 2 == 1) {
+    num = -num;
+  }
+  return RationalNumber(num, den);
+}
+
+PowerSeries _expandLambertW(
+  Expr inner,
+  String variable,
+  Expr point,
+  int order,
+) {
+  final u = _expandToPowerSeries(inner, variable, point, order);
+  if (!PowerSeries._isZero(u.constantTerm)) {
+    throw UnsupportedError(
+      'Lambert W series expansion around non-zero value not supported',
+    );
+  }
+  var res = PowerSeries(variable, point, const {}, order);
+  var uPow = PowerSeries(variable, point, const {0: RationalNumber.one}, order);
+  for (var k = 1; k < order; k++) {
+    uPow = uPow * u;
+    final ck = _lambertWMaclaurinCoeff(k);
+    res = res + uPow.scale(ck);
+  }
+  return res;
+}
+
+PowerSeries _expandErf(Expr inner, String variable, Expr point, int order) {
+  final u = _expandToPowerSeries(inner, variable, point, order);
+  if (!PowerSeries._isZero(u.constantTerm)) {
+    throw UnsupportedError('Erf series around non-zero value not supported');
+  }
+  var res = PowerSeries(variable, point, const {}, order);
+  const factor = Div(
+    RationalNumber(2),
+    Pow(ConstantNumber.pi, RationalNumber(1, 2)),
+  );
+  for (var n = 0; 2 * n + 1 < order; n++) {
+    var fact = 1;
+    for (var k = 2; k <= n; k++) {
+      fact *= k;
+    }
+    final den = fact * (2 * n + 1);
+    final sign = n % 2 == 0 ? 1 : -1;
+    final ck = Mul(factor, RationalNumber(sign, den)).simplify();
+    res = res + u.pow(RationalNumber(2 * n + 1)).scale(ck);
+  }
+  return res;
+}
+
+PowerSeries _expandAsinh(Expr inner, String variable, Expr point, int order) {
+  final u = _expandToPowerSeries(inner, variable, point, order);
+  if (!PowerSeries._isZero(u.constantTerm)) {
+    throw UnsupportedError('Asinh series around non-zero value not supported');
+  }
+  var res = PowerSeries(variable, point, const {}, order);
+  for (var n = 0; 2 * n + 1 < order; n++) {
+    var num = 1;
+    for (var k = 2; k <= 2 * n; k++) {
+      num *= k;
+    }
+    var factN = 1;
+    for (var k = 2; k <= n; k++) {
+      factN *= k;
+    }
+    var pow4 = 1;
+    for (var k = 0; k < n; k++) {
+      pow4 *= 4;
+    }
+    final den = pow4 * factN * factN * (2 * n + 1);
+    final sign = n % 2 == 0 ? 1 : -1;
+    final ck = RationalNumber(sign * num, den);
+    res = res + u.pow(RationalNumber(2 * n + 1)).scale(ck);
+  }
+  return res;
+}
+
+PowerSeries _expandAtanh(Expr inner, String variable, Expr point, int order) {
+  final u = _expandToPowerSeries(inner, variable, point, order);
+  if (!PowerSeries._isZero(u.constantTerm)) {
+    throw UnsupportedError('Atanh series around non-zero value not supported');
+  }
+  var res = PowerSeries(variable, point, const {}, order);
+  for (var n = 0; 2 * n + 1 < order; n++) {
+    final ck = RationalNumber(1, 2 * n + 1);
+    res = res + u.pow(RationalNumber(2 * n + 1)).scale(ck);
+  }
+  return res;
 }

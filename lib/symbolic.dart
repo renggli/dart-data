@@ -32,8 +32,9 @@
 ///   ([FactorExtension.factor]), and total structural ordering
 ///   ([compareStructural], [compareTerms]).
 /// - **Equation Solving**: [SolverExtension.solve] for single univariate
-///   equations and [SystemSolverExtension.solveSystem] for linear equation
-///   systems.
+///   equations, [solvePolynomialSystem] and [SylvesterResultantSolver] for
+///   multivariate polynomial systems, and [SystemSolverExtension.solveSystem]
+///   for linear equation systems.
 /// - **Symbolic Linear Algebra**: Symbolic vectors ([Vector]) and matrices
 ///   ([Matrix]) typed with [exprDataType]; exact fraction-free determinants via
 ///   [BareissEngine] ([SymbolicMatrixExtension.determinant]); characteristic

@@ -56,6 +56,30 @@ String _toLatex(Expr expr) => switch (expr) {
   Ln(:final expr) => '\\ln(${_toLatex(expr)})',
   OrderTerm(:final variable, :final order, :final point) =>
     _formatOrderTermLatex(variable, order, point),
+  LambertW(:final expr, :final branch) =>
+    branch == 0 ? 'W(${_toLatex(expr)})' : 'W_{$branch}(${_toLatex(expr)})',
+  Erf(:final expr) => '\\operatorname{erf}(${_toLatex(expr)})',
+  Erfc(:final expr) => '\\operatorname{erfc}(${_toLatex(expr)})',
+  Gamma(:final expr) => '\\Gamma(${_toLatex(expr)})',
+  Beta(:final left, :final right) =>
+    '\\operatorname{B}(${_toLatex(left)}, ${_toLatex(right)})',
+  Asinh(:final expr) => '\\operatorname{arsinh}(${_toLatex(expr)})',
+  Acosh(:final expr) => '\\operatorname{arcosh}(${_toLatex(expr)})',
+  Atanh(:final expr) => '\\operatorname{artanh}(${_toLatex(expr)})',
+  LessThan(:final left, :final right) =>
+    '${_toLatex(left)} < ${_toLatex(right)}',
+  LessEqual(:final left, :final right) =>
+    '${_toLatex(left)} \\le ${_toLatex(right)}',
+  GreaterThan(:final left, :final right) =>
+    '${_toLatex(left)} > ${_toLatex(right)}',
+  GreaterEqual(:final left, :final right) =>
+    '${_toLatex(left)} \\ge ${_toLatex(right)}',
+  Equal(:final left, :final right) => '${_toLatex(left)} = ${_toLatex(right)}',
+  Piecewise(:final branches, :final otherwise) =>
+    '\\begin{cases} '
+        '${branches.map((b) => '${_toLatex(b.$2)}, & \\text{if } ${_toLatex(b.$1)}').join(' \\\\ ')}'
+        '${otherwise != null ? ' \\\\ ${_toLatex(otherwise)}, & \\text{otherwise}' : ''}'
+        ' \\end{cases}',
 };
 
 String _formatOrderTermLatex(String variable, int order, Expr point) {

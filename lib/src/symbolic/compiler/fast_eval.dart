@@ -2,6 +2,9 @@ import 'dart:math' as math;
 
 import 'package:more/number.dart' show Complex;
 
+import '../../special/beta.dart' as special_beta;
+import '../../special/erf.dart' as special_erf;
+import '../../special/gamma.dart' as special_gamma;
 import '../ast.dart';
 
 /// Compiles [expression] into a fast native Dart closure for a single real variable.
@@ -126,6 +129,89 @@ double Function(T) compileEvaluator<T>(
       return (t) => fn(t).abs();
     case OrderTerm():
       return (_) => 0.0;
+    case LambertW(:final expr, :final branch):
+      final fn = compileEvaluator<T>(expr, compileVar);
+      return (t) => evaluateLambertW(fn(t), branch);
+    case Erf(:final expr):
+      final fn = compileEvaluator<T>(expr, compileVar);
+      return (t) => special_erf.erf(fn(t));
+    case Erfc(:final expr):
+      final fn = compileEvaluator<T>(expr, compileVar);
+      return (t) => special_erf.erfc(fn(t));
+    case Gamma(:final expr):
+      final fn = compileEvaluator<T>(expr, compileVar);
+      return (t) {
+        final v = fn(t);
+        if (v <= 0.0 && v == v.roundToDouble()) {
+          throw ArgumentError('Gamma pole at non-positive integer $v');
+        }
+        return special_gamma.gamma(v);
+      };
+    case Beta(:final left, :final right):
+      final fL = compileEvaluator<T>(left, compileVar);
+      final fR = compileEvaluator<T>(right, compileVar);
+      return (t) => special_beta.beta(fL(t), fR(t));
+    case Asinh(:final expr):
+      final fn = compileEvaluator<T>(expr, compileVar);
+      return (t) {
+        final v = fn(t);
+        return math.log(v + math.sqrt(v * v + 1.0));
+      };
+    case Acosh(:final expr):
+      final fn = compileEvaluator<T>(expr, compileVar);
+      return (t) {
+        final v = fn(t);
+        if (v < 1.0) throw ArgumentError('acosh domain error: $v < 1.0');
+        return math.log(v + math.sqrt(v * v - 1.0));
+      };
+    case Atanh(:final expr):
+      final fn = compileEvaluator<T>(expr, compileVar);
+      return (t) {
+        final v = fn(t);
+        if (v.abs() >= 1.0) {
+          throw ArgumentError('atanh domain error: |$v| >= 1.0');
+        }
+        return 0.5 * math.log((1.0 + v) / (1.0 - v));
+      };
+    case LessThan(:final left, :final right):
+      final fL = compileEvaluator<T>(left, compileVar);
+      final fR = compileEvaluator<T>(right, compileVar);
+      return (t) => fL(t) < fR(t) ? 1.0 : 0.0;
+    case LessEqual(:final left, :final right):
+      final fL = compileEvaluator<T>(left, compileVar);
+      final fR = compileEvaluator<T>(right, compileVar);
+      return (t) => fL(t) <= fR(t) ? 1.0 : 0.0;
+    case GreaterThan(:final left, :final right):
+      final fL = compileEvaluator<T>(left, compileVar);
+      final fR = compileEvaluator<T>(right, compileVar);
+      return (t) => fL(t) > fR(t) ? 1.0 : 0.0;
+    case GreaterEqual(:final left, :final right):
+      final fL = compileEvaluator<T>(left, compileVar);
+      final fR = compileEvaluator<T>(right, compileVar);
+      return (t) => fL(t) >= fR(t) ? 1.0 : 0.0;
+    case Equal(:final left, :final right):
+      final fL = compileEvaluator<T>(left, compileVar);
+      final fR = compileEvaluator<T>(right, compileVar);
+      return (t) => fL(t) == fR(t) ? 1.0 : 0.0;
+    case Piecewise(:final branches, :final otherwise):
+      final compiledBranches = [
+        for (final (cond, e) in branches)
+          (
+            compileEvaluator<T>(cond, compileVar),
+            compileEvaluator<T>(e, compileVar),
+          ),
+      ];
+      final compiledOth = otherwise != null
+          ? compileEvaluator<T>(otherwise, compileVar)
+          : null;
+      return (t) {
+        for (final (c, e) in compiledBranches) {
+          final cVal = c(t);
+          if (cVal != 0.0 && !cVal.isNaN) return e(t);
+        }
+        if (compiledOth != null) return compiledOth(t);
+        throw StateError('No Piecewise branch matched context');
+      };
   }
 }
 
@@ -201,5 +287,74 @@ Complex Function(T) compileComplexEvaluator<T>(
       return (t) => Complex(fn(t).abs(), 0);
     case OrderTerm():
       return (_) => Complex.zero;
+    case LambertW(:final expr, :final branch):
+      final fn = compileComplexEvaluator<T>(expr, compileVar);
+      return (t) => evaluateComplexLambertW(fn(t), branch);
+    case Erf(:final expr):
+      final fn = compileComplexEvaluator<T>(expr, compileVar);
+      return (t) => evaluateComplexErf(fn(t));
+    case Erfc(:final expr):
+      final fn = compileComplexEvaluator<T>(expr, compileVar);
+      return (t) => Complex.one - evaluateComplexErf(fn(t));
+    case Gamma(:final expr):
+      final fn = compileComplexEvaluator<T>(expr, compileVar);
+      return (t) => evaluateComplexGamma(fn(t));
+    case Beta(:final left, :final right):
+      final fL = compileComplexEvaluator<T>(left, compileVar);
+      final fR = compileComplexEvaluator<T>(right, compileVar);
+      return (t) {
+        final zA = fL(t);
+        final zB = fR(t);
+        return (evaluateComplexGamma(zA) * evaluateComplexGamma(zB)) /
+            evaluateComplexGamma(zA + zB);
+      };
+    case Asinh(:final expr):
+      final fn = compileComplexEvaluator<T>(expr, compileVar);
+      return (t) => evaluateComplexAsinh(fn(t));
+    case Acosh(:final expr):
+      final fn = compileComplexEvaluator<T>(expr, compileVar);
+      return (t) => evaluateComplexAcosh(fn(t));
+    case Atanh(:final expr):
+      final fn = compileComplexEvaluator<T>(expr, compileVar);
+      return (t) => evaluateComplexAtanh(fn(t));
+    case LessThan(:final left, :final right):
+      final fL = compileComplexEvaluator<T>(left, compileVar);
+      final fR = compileComplexEvaluator<T>(right, compileVar);
+      return (t) => fL(t).a < fR(t).a ? Complex.one : Complex.zero;
+    case LessEqual(:final left, :final right):
+      final fL = compileComplexEvaluator<T>(left, compileVar);
+      final fR = compileComplexEvaluator<T>(right, compileVar);
+      return (t) => fL(t).a <= fR(t).a ? Complex.one : Complex.zero;
+    case GreaterThan(:final left, :final right):
+      final fL = compileComplexEvaluator<T>(left, compileVar);
+      final fR = compileComplexEvaluator<T>(right, compileVar);
+      return (t) => fL(t).a > fR(t).a ? Complex.one : Complex.zero;
+    case GreaterEqual(:final left, :final right):
+      final fL = compileComplexEvaluator<T>(left, compileVar);
+      final fR = compileComplexEvaluator<T>(right, compileVar);
+      return (t) => fL(t).a >= fR(t).a ? Complex.one : Complex.zero;
+    case Equal(:final left, :final right):
+      final fL = compileComplexEvaluator<T>(left, compileVar);
+      final fR = compileComplexEvaluator<T>(right, compileVar);
+      return (t) => fL(t) == fR(t) ? Complex.one : Complex.zero;
+    case Piecewise(:final branches, :final otherwise):
+      final compiledBranches = [
+        for (final (cond, e) in branches)
+          (
+            compileComplexEvaluator<T>(cond, compileVar),
+            compileComplexEvaluator<T>(e, compileVar),
+          ),
+      ];
+      final compiledOth = otherwise != null
+          ? compileComplexEvaluator<T>(otherwise, compileVar)
+          : null;
+      return (t) {
+        for (final (c, e) in compiledBranches) {
+          final cVal = c(t);
+          if (cVal.a != 0.0 && !cVal.a.isNaN) return e(t);
+        }
+        if (compiledOth != null) return compiledOth(t);
+        throw StateError('No Piecewise branch matched context');
+      };
   }
 }

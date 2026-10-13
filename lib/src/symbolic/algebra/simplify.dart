@@ -70,4 +70,20 @@ Expr simplifyExpr(Expr expr) => switch (expr) {
   Abs(:final expr) => simplifyAbs(simplifyExpr(expr)),
   Exp(:final expr) => simplifyExp(simplifyExpr(expr)),
   Ln(:final expr) => simplifyLn(simplifyExpr(expr)),
+  LambertW(:final expr, :final branch) => simplifyLambertW(
+    simplifyExpr(expr),
+    branch,
+  ),
+  Erf(:final expr) => simplifyErf(simplifyExpr(expr)),
+  Erfc(:final expr) => simplifyErfc(simplifyExpr(expr)),
+  Gamma(:final expr) => simplifyGamma(simplifyExpr(expr)),
+  Beta(:final left, :final right) => simplifyBeta(
+    simplifyExpr(left),
+    simplifyExpr(right),
+  ),
+  Asinh(:final expr) => simplifyAsinh(simplifyExpr(expr)),
+  Acosh(:final expr) => simplifyAcosh(simplifyExpr(expr)),
+  Atanh(:final expr) => simplifyAtanh(simplifyExpr(expr)),
+  RelationalExpr() => simplifyRelational(expr),
+  Piecewise() => simplifyPiecewise(expr),
 };

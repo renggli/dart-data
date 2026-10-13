@@ -447,6 +447,53 @@ Expr _rewriteExpInOmega(Expr expr, String variable, Expr omega) =>
       Acos(:final expr) => Acos(_rewriteExpInOmega(expr, variable, omega)),
       Atan(:final expr) => Atan(_rewriteExpInOmega(expr, variable, omega)),
       Abs(:final expr) => Abs(_rewriteExpInOmega(expr, variable, omega)),
+      LambertW(:final expr, :final branch) => LambertW(
+        _rewriteExpInOmega(expr, variable, omega),
+        branch: branch,
+      ),
+      Erf(:final expr) => Erf(_rewriteExpInOmega(expr, variable, omega)),
+      Erfc(:final expr) => Erfc(_rewriteExpInOmega(expr, variable, omega)),
+      Gamma(:final expr) => Gamma(_rewriteExpInOmega(expr, variable, omega)),
+      Beta(:final left, :final right) => Beta(
+        _rewriteExpInOmega(left, variable, omega),
+        _rewriteExpInOmega(right, variable, omega),
+      ),
+      Asinh(:final expr) => Asinh(_rewriteExpInOmega(expr, variable, omega)),
+      Acosh(:final expr) => Acosh(_rewriteExpInOmega(expr, variable, omega)),
+      Atanh(:final expr) => Atanh(_rewriteExpInOmega(expr, variable, omega)),
+      LessThan(:final left, :final right) => LessThan(
+        _rewriteExpInOmega(left, variable, omega),
+        _rewriteExpInOmega(right, variable, omega),
+      ),
+      LessEqual(:final left, :final right) => LessEqual(
+        _rewriteExpInOmega(left, variable, omega),
+        _rewriteExpInOmega(right, variable, omega),
+      ),
+      GreaterThan(:final left, :final right) => GreaterThan(
+        _rewriteExpInOmega(left, variable, omega),
+        _rewriteExpInOmega(right, variable, omega),
+      ),
+      GreaterEqual(:final left, :final right) => GreaterEqual(
+        _rewriteExpInOmega(left, variable, omega),
+        _rewriteExpInOmega(right, variable, omega),
+      ),
+      Equal(:final left, :final right) => Equal(
+        _rewriteExpInOmega(left, variable, omega),
+        _rewriteExpInOmega(right, variable, omega),
+      ),
+      Piecewise(:final branches, :final otherwise) => Piecewise(
+        branches
+            .map(
+              (b) => (
+                _rewriteExpInOmega(b.$1, variable, omega),
+                _rewriteExpInOmega(b.$2, variable, omega),
+              ),
+            )
+            .toList(),
+        otherwise: otherwise != null
+            ? _rewriteExpInOmega(otherwise, variable, omega)
+            : null,
+      ),
     };
 
 Expr _rewriteSingleExp(Expr inner, String variable, Expr omega) {
@@ -558,29 +605,17 @@ bool _hasExponentialGrowth(Expr expr, String variable) {
       if (k != 0) found = true;
     }
     switch (e) {
-      case Add(:final left, :final right):
-      case Sub(:final left, :final right):
-      case Mul(:final left, :final right):
-      case Div(:final left, :final right):
+      case BinaryExpr(:final left, :final right):
         scan(left);
         scan(right);
-      case Pow(:final base, :final exponent):
-        scan(base);
-        scan(exponent);
-      case Neg(:final expr):
-      case Exp(:final expr):
-      case Ln(:final expr):
-      case Sin(:final expr):
-      case Cos(:final expr):
-      case Tan(:final expr):
-      case Sinh(:final expr):
-      case Cosh(:final expr):
-      case Tanh(:final expr):
-      case Asin(:final expr):
-      case Acos(:final expr):
-      case Atan(:final expr):
-      case Abs(:final expr):
+      case UnaryExpr(:final expr):
         scan(expr);
+      case Piecewise(:final branches, :final otherwise):
+        for (final (cond, b) in branches) {
+          scan(cond);
+          scan(b);
+        }
+        if (otherwise != null) scan(otherwise);
       case Number() || Variable() || OrderTerm():
         break;
     }
@@ -597,29 +632,17 @@ bool _containsLogOfVariable(Expr expr, String variable) {
       found = true;
     }
     switch (e) {
-      case Add(:final left, :final right):
-      case Sub(:final left, :final right):
-      case Mul(:final left, :final right):
-      case Div(:final left, :final right):
+      case BinaryExpr(:final left, :final right):
         scan(left);
         scan(right);
-      case Pow(:final base, :final exponent):
-        scan(base);
-        scan(exponent);
-      case Neg(:final expr):
-      case Exp(:final expr):
-      case Ln(:final expr):
-      case Sin(:final expr):
-      case Cos(:final expr):
-      case Tan(:final expr):
-      case Sinh(:final expr):
-      case Cosh(:final expr):
-      case Tanh(:final expr):
-      case Asin(:final expr):
-      case Acos(:final expr):
-      case Atan(:final expr):
-      case Abs(:final expr):
+      case UnaryExpr(:final expr):
         scan(expr);
+      case Piecewise(:final branches, :final otherwise):
+        for (final (cond, b) in branches) {
+          scan(cond);
+          scan(b);
+        }
+        if (otherwise != null) scan(otherwise);
       case Number() || Variable() || OrderTerm():
         break;
     }

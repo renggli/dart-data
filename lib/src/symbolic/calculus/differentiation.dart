@@ -118,4 +118,66 @@ Expr _differentiate(Expr expr, String variable) => switch (expr) {
         : point.dependsOn(variable)
         ? OrderTerm(v, order, point: point)
         : RationalNumber.zero,
+  LambertW(expr: final inner, :final branch) => Div(
+    _differentiate(inner, variable),
+    Mul(
+      Exp(LambertW(inner, branch: branch)),
+      Add(RationalNumber.one, LambertW(inner, branch: branch)),
+    ),
+  ),
+  Erf(expr: final inner) => Mul(
+    Mul(
+      const Div(
+        RationalNumber(2),
+        Pow(ConstantNumber.pi, RationalNumber(1, 2)),
+      ),
+      Exp(Neg(Pow(inner, const RationalNumber(2)))),
+    ),
+    _differentiate(inner, variable),
+  ),
+  Erfc(expr: final inner) => Mul(
+    Mul(
+      const Div(
+        RationalNumber(-2),
+        Pow(ConstantNumber.pi, RationalNumber(1, 2)),
+      ),
+      Exp(Neg(Pow(inner, const RationalNumber(2)))),
+    ),
+    _differentiate(inner, variable),
+  ),
+  Gamma(expr: final inner) =>
+    !inner.dependsOn(variable)
+        ? RationalNumber.zero
+        : throw UnsupportedError(
+            'Symbolic derivative of Gamma is non-elementary.',
+          ),
+  Beta(left: final l, right: final r) =>
+    (!l.dependsOn(variable) && !r.dependsOn(variable))
+        ? RationalNumber.zero
+        : throw UnsupportedError(
+            'Symbolic derivative of Beta is non-elementary.',
+          ),
+  Asinh(expr: final inner) => Div(
+    _differentiate(inner, variable),
+    Pow(
+      Add(Pow(inner, const RationalNumber(2)), RationalNumber.one),
+      const RationalNumber(1, 2),
+    ),
+  ),
+  Acosh(expr: final inner) => Div(
+    _differentiate(inner, variable),
+    Pow(
+      Sub(Pow(inner, const RationalNumber(2)), RationalNumber.one),
+      const RationalNumber(1, 2),
+    ),
+  ),
+  Atanh(expr: final inner) => Div(
+    _differentiate(inner, variable),
+    Sub(RationalNumber.one, Pow(inner, const RationalNumber(2))),
+  ),
+  RelationalExpr() => RationalNumber.zero,
+  Piecewise(:final branches, :final otherwise) => Piecewise(
+    branches.map((b) => (b.$1, _differentiate(b.$2, variable))).toList(),
+    otherwise: otherwise != null ? _differentiate(otherwise, variable) : null,
+  ),
 };

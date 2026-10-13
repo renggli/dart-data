@@ -817,4 +817,39 @@ Expr _cloneExpr(Expr expr) => switch (expr) {
     order,
     point: _cloneExpr(point),
   ),
+  LambertW(:final expr, :final branch) => LambertW(
+    _cloneExpr(expr),
+    branch: branch,
+  ),
+  Erf(:final expr) => Erf(_cloneExpr(expr)),
+  Erfc(:final expr) => Erfc(_cloneExpr(expr)),
+  Gamma(:final expr) => Gamma(_cloneExpr(expr)),
+  Beta(:final left, :final right) => Beta(_cloneExpr(left), _cloneExpr(right)),
+  Asinh(:final expr) => Asinh(_cloneExpr(expr)),
+  Acosh(:final expr) => Acosh(_cloneExpr(expr)),
+  Atanh(:final expr) => Atanh(_cloneExpr(expr)),
+  LessThan(:final left, :final right) => LessThan(
+    _cloneExpr(left),
+    _cloneExpr(right),
+  ),
+  LessEqual(:final left, :final right) => LessEqual(
+    _cloneExpr(left),
+    _cloneExpr(right),
+  ),
+  GreaterThan(:final left, :final right) => GreaterThan(
+    _cloneExpr(left),
+    _cloneExpr(right),
+  ),
+  GreaterEqual(:final left, :final right) => GreaterEqual(
+    _cloneExpr(left),
+    _cloneExpr(right),
+  ),
+  Equal(:final left, :final right) => Equal(
+    _cloneExpr(left),
+    _cloneExpr(right),
+  ),
+  Piecewise(:final branches, :final otherwise) => Piecewise(
+    branches.map((b) => (_cloneExpr(b.$1), _cloneExpr(b.$2))).toList(),
+    otherwise: otherwise != null ? _cloneExpr(otherwise) : null,
+  ),
 };

@@ -86,6 +86,10 @@ void Function(List<Float64List> inputs, Float64List output) buildTensorKernel(
             stack[sp - 1] = stack[sp - 1].abs();
           case Op.sqrt:
             stack[sp - 1] = math.sqrt(stack[sp - 1]);
+          case Op.lambertW0:
+            stack[sp - 1] = evaluateLambertW(stack[sp - 1], 0);
+          case Op.lambertW1:
+            stack[sp - 1] = evaluateLambertW(stack[sp - 1], -1);
         }
       }
       output[i] = stack[0];
@@ -179,6 +183,23 @@ void flattenToRpn(
     case Abs(:final expr):
       flattenToRpn(expr, varIndices, instructions);
       instructions.add(const Instruction.op(Op.abs));
+    case LambertW(:final expr, :final branch):
+      flattenToRpn(expr, varIndices, instructions);
+      instructions.add(
+        Instruction.op(branch == 0 ? Op.lambertW0 : Op.lambertW1),
+      );
+    case Erf() ||
+        Erfc() ||
+        Gamma() ||
+        Beta() ||
+        Asinh() ||
+        Acosh() ||
+        Atanh() ||
+        RelationalExpr() ||
+        Piecewise():
+      throw UnsupportedError(
+        'compileTensorKernel does not support ${expr.runtimeType}.',
+      );
     case OrderTerm():
       instructions.add(const Instruction.pushConst(0.0));
   }
@@ -207,7 +228,9 @@ int computeMaxStack(List<Instruction> instructions) {
           Op.cosh ||
           Op.tanh ||
           Op.abs ||
-          Op.sqrt:
+          Op.sqrt ||
+          Op.lambertW0 ||
+          Op.lambertW1:
         break;
     }
     if (current > maxDepth) {
@@ -240,6 +263,8 @@ enum Op {
   tanh,
   abs,
   sqrt,
+  lambertW0,
+  lambertW1,
 }
 
 /// A compact stack VM instruction.

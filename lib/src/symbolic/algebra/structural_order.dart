@@ -159,6 +159,33 @@ int compareStructural(Expr a, Expr b) {
       final cmp => cmp,
     },
     Variable(:final name) => name.compareTo((b as Variable).name),
+    LambertW(:final expr, :final branch) => switch (branch.compareTo(
+      (b as LambertW).branch,
+    )) {
+      0 => compareStructural(expr, b.expr),
+      final cmp => cmp,
+    },
+    Piecewise(:final branches, :final otherwise) => () {
+      final bPiece = b as Piecewise;
+      final lenCmp = branches.length.compareTo(bPiece.branches.length);
+      if (lenCmp != 0) return lenCmp;
+      for (var i = 0; i < branches.length; i++) {
+        final condCmp = compareStructural(
+          branches[i].$1,
+          bPiece.branches[i].$1,
+        );
+        if (condCmp != 0) return condCmp;
+        final exprCmp = compareStructural(
+          branches[i].$2,
+          bPiece.branches[i].$2,
+        );
+        if (exprCmp != 0) return exprCmp;
+      }
+      if (otherwise == null && bPiece.otherwise == null) return 0;
+      if (otherwise == null) return -1;
+      if (bPiece.otherwise == null) return 1;
+      return compareStructural(otherwise, bPiece.otherwise!);
+    }(),
     UnaryExpr(:final expr) => compareStructural(expr, (b as UnaryExpr).expr),
     BinaryExpr(:final left, :final right) => switch (compareStructural(
       left,
@@ -210,10 +237,24 @@ int nodeTag(Expr expr) => switch (expr) {
   Cosh() => 14,
   Tanh() => 15,
   Abs() => 16,
+  LambertW() => 17,
+  Erf() => 19,
   Pow() => 20,
   Mul() => 21,
   Div() => 22,
   Add() => 23,
   Sub() => 24,
   OrderTerm() => 25,
+  Erfc() => 26,
+  Gamma() => 27,
+  Beta() => 28,
+  Asinh() => 29,
+  Acosh() => 30,
+  Atanh() => 31,
+  LessThan() => 32,
+  LessEqual() => 33,
+  GreaterThan() => 34,
+  GreaterEqual() => 35,
+  Equal() => 36,
+  Piecewise() => 37,
 };

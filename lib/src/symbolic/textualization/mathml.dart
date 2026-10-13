@@ -79,6 +79,39 @@ String _toMathMl(Expr expr) => switch (expr) {
     '<mrow><mi>ln</mi><mo>(</mo>${_toMathMl(expr)}<mo>)</mo></mrow>',
   OrderTerm(:final variable, :final order, :final point) =>
     _formatOrderTermMathMl(variable, order, point),
+  LambertW(:final expr, :final branch) =>
+    branch == 0
+        ? '<mrow><mi>W</mi><mo>(</mo>${_toMathMl(expr)}<mo>)</mo></mrow>'
+        : '<mrow><msub><mi>W</mi><mn>$branch</mn></msub><mo>(</mo>${_toMathMl(expr)}<mo>)</mo></mrow>',
+  Erf(:final expr) =>
+    '<mrow><mi>erf</mi><mo>(</mo>${_toMathMl(expr)}<mo>)</mo></mrow>',
+  Erfc(:final expr) =>
+    '<mrow><mi>erfc</mi><mo>(</mo>${_toMathMl(expr)}<mo>)</mo></mrow>',
+  Gamma(:final expr) =>
+    '<mrow><mi>Γ</mi><mo>(</mo>${_toMathMl(expr)}<mo>)</mo></mrow>',
+  Beta(:final left, :final right) =>
+    '<mrow><mi>B</mi><mo>(</mo>${_toMathMl(left)}<mo>,</mo>${_toMathMl(right)}<mo>)</mo></mrow>',
+  Asinh(:final expr) =>
+    '<mrow><mi>asinh</mi><mo>(</mo>${_toMathMl(expr)}<mo>)</mo></mrow>',
+  Acosh(:final expr) =>
+    '<mrow><mi>acosh</mi><mo>(</mo>${_toMathMl(expr)}<mo>)</mo></mrow>',
+  Atanh(:final expr) =>
+    '<mrow><mi>atanh</mi><mo>(</mo>${_toMathMl(expr)}<mo>)</mo></mrow>',
+  LessThan(:final left, :final right) =>
+    '<mrow>${_toMathMl(left)}<mo>&lt;</mo>${_toMathMl(right)}</mrow>',
+  LessEqual(:final left, :final right) =>
+    '<mrow>${_toMathMl(left)}<mo>&#x2264;</mo>${_toMathMl(right)}</mrow>',
+  GreaterThan(:final left, :final right) =>
+    '<mrow>${_toMathMl(left)}<mo>&gt;</mo>${_toMathMl(right)}</mrow>',
+  GreaterEqual(:final left, :final right) =>
+    '<mrow>${_toMathMl(left)}<mo>&#x2265;</mo>${_toMathMl(right)}</mrow>',
+  Equal(:final left, :final right) =>
+    '<mrow>${_toMathMl(left)}<mo>=</mo>${_toMathMl(right)}</mrow>',
+  Piecewise(:final branches, :final otherwise) =>
+    '<mrow><mo>{</mo><mtable>'
+        '${branches.map((b) => '<mtr><mtd>${_toMathMl(b.$2)}</mtd><mtd><mtext>if </mtext>${_toMathMl(b.$1)}</mtd></mtr>').join()}'
+        '${otherwise != null ? '<mtr><mtd>${_toMathMl(otherwise)}</mtd><mtd><mtext>otherwise</mtext></mtd></mtr>' : ''}'
+        '</mtable></mrow>',
 };
 
 String _formatOrderTermMathMl(String variable, int order, Expr point) {

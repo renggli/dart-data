@@ -52,6 +52,13 @@ Parser<Expr> buildParser() {
   builder.group()
     ..left(char('+').trim(), (a, _, b) => Add(a, b))
     ..left(char('-').trim(), (a, _, b) => Sub(a, b));
+  // Relational operators (<=, >=, <, >, ==, =)
+  builder.group()
+    ..left(string('<=').trim(), (a, _, b) => LessEqual(a, b))
+    ..left(string('>=').trim(), (a, _, b) => GreaterEqual(a, b))
+    ..left(char('<').trim(), (a, _, b) => LessThan(a, b))
+    ..left(char('>').trim(), (a, _, b) => GreaterThan(a, b))
+    ..left((string('==') | char('=')).trim(), (a, _, b) => Equal(a, b));
   return resolve(builder.build()).end();
 }
 
@@ -97,12 +104,27 @@ Expr _createBinding(String name, List<Expr> arguments) =>
         'exp' => Exp(arguments[0]),
         'ln' || 'log' => Ln(arguments[0]),
         'o' || 'order' => _parseOrderArg(arguments[0]),
+        'lambertw' || 'w' => LambertW(arguments[0]),
+        'erf' => Erf(arguments[0]),
+        'erfc' => Erfc(arguments[0]),
+        'gamma' => Gamma(arguments[0]),
+        'asinh' || 'arsinh' => Asinh(arguments[0]),
+        'acosh' || 'arcosh' => Acosh(arguments[0]),
+        'atanh' || 'artanh' => Atanh(arguments[0]),
         _ => throw ArgumentError.value(name, 'Unknown function'),
       },
       2 => switch (name.toLowerCase()) {
         'pow' => Pow(arguments[0], arguments[1]),
         'log' => Div(Ln(arguments[1]), Ln(arguments[0])),
         'root' => Pow(arguments[1], Div(RationalNumber.one, arguments[0])),
+        'lambertw' || 'w' => switch (arguments[1]) {
+          RationalNumber(isInteger: true, numerator: final b) => LambertW(
+            arguments[0],
+            branch: b,
+          ),
+          _ => throw ArgumentError('Lambert W branch must be an integer'),
+        },
+        'beta' => Beta(arguments[0], arguments[1]),
         'o' || 'order' => switch (arguments) {
           [
             Variable(:final name),
