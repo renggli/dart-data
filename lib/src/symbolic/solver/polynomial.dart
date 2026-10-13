@@ -2,33 +2,21 @@ import 'dart:math' as math;
 
 import '../algebra/expand.dart';
 import '../algebra/simplify.dart';
+import '../algebra/term_accumulator.dart';
 import '../ast.dart';
-import '../calculus/differentiation.dart';
 import 'univariate.dart';
 
 /// Matches quadratic form $a x^2 + b x + c = 0$.
 ({Expr a, Expr b, Expr c})? matchQuadratic(Expr expr, String variable) {
-  // Compute second derivative f''(x)
-  final d1 = expr.derivative(variable).simplify();
-  final d2 = d1.derivative(variable).simplify();
-  if (d2.dependsOn(variable)) {
-    return null;
-  }
+  final coeffs = extractMonomialCoefficients(expr, variable);
+  if (coeffs == null) return null;
+  if (coeffs.keys.any((deg) => deg > 2 || deg < 0)) return null;
 
-  // a = f''(x) / 2
-  final a = (d2 / const RationalNumber(2)).simplify();
-  if (a is RationalNumber && a.isZero) {
-    return null;
-  }
+  final a = coeffs[2];
+  if (a == null || _isZero(a)) return null;
 
-  // b = f'(0)
-  final b = d1.substitute(variable, RationalNumber.zero).simplify();
-  if (b.dependsOn(variable)) return null;
-
-  // c = f(0)
-  final c = expr.substitute(variable, RationalNumber.zero).simplify();
-  if (c.dependsOn(variable)) return null;
-
+  final b = coeffs[1] ?? RationalNumber.zero;
+  final c = coeffs[0] ?? RationalNumber.zero;
   return (a: a, b: b, c: c);
 }
 
@@ -93,52 +81,43 @@ List<Expr> solveQuadratic(Expr a, Expr b, Expr c) {
 
 /// Matches biquadratic form $a x^4 + b x^2 + c = 0$.
 ({Expr a, Expr b, Expr c})? matchBiquadratic(Expr expr, String variable) {
-  final d1 = expr.derivative(variable).simplify();
-  final d2 = d1.derivative(variable).simplify();
-  final d3 = d2.derivative(variable).simplify();
-  final d4 = d3.derivative(variable).simplify();
+  final coeffs = extractMonomialCoefficients(expr, variable);
+  if (coeffs == null) return null;
+  if (coeffs.keys.any((deg) => deg != 0 && deg != 2 && deg != 4)) return null;
 
-  if (d4.dependsOn(variable)) return null;
+  final a = coeffs[4];
+  if (a == null || _isZero(a)) return null;
 
-  final a = (d4 / const RationalNumber(24)).simplify();
-  if ((a is RationalNumber && a.isZero) ||
-      (a is RealNumber && a.value == 0.0) ||
-      a.dependsOn(variable)) {
-    return null;
-  }
-
-  final f30 = d3.substitute(variable, RationalNumber.zero).simplify();
-  if (f30 != RationalNumber.zero && !(f30 is RealNumber && f30.value == 0.0)) {
-    return null;
-  }
-
-  final f10 = d1.substitute(variable, RationalNumber.zero).simplify();
-  if (f10 != RationalNumber.zero && !(f10 is RealNumber && f10.value == 0.0)) {
-    return null;
-  }
-
-  final b =
-      (d2.substitute(variable, RationalNumber.zero) / const RationalNumber(2))
-          .simplify();
-  if (b.dependsOn(variable)) return null;
-
-  final c = expr.substitute(variable, RationalNumber.zero).simplify();
-  if (c.dependsOn(variable)) return null;
-
-  final x = Variable(variable);
-  final expected =
-      ((a * x.pow(const RationalNumber(4))) +
-              (b * x.pow(const RationalNumber(2))) +
-              c)
-          .simplify();
-  final diff = (expr.expand() - expected.expand()).simplify();
-  if (diff != RationalNumber.zero &&
-      !(diff is RealNumber && diff.value == 0.0)) {
-    return null;
-  }
-
+  final b = coeffs[2] ?? RationalNumber.zero;
+  final c = coeffs[0] ?? RationalNumber.zero;
   return (a: a, b: b, c: c);
 }
+
+/// Extracts monomial powers and their coefficients for polynomial [expr] in [variable].
+///
+/// Returns a map where each key $k \ge 0$ is the power of [variable] and the
+/// value is the coefficient expression independent of [variable].
+///
+/// Returns `null` if [expr] is not a polynomial in [variable] (such as rational
+/// functions with [variable] in the denominator, fractional powers, or
+/// transcendental functions of [variable]).
+Map<int, Expr>? extractMonomialCoefficients(Expr expr, String variable) {
+  final expanded = expr.expand();
+  if (!expanded.dependsOn(variable)) {
+    return _isZero(expanded) ? {0: RationalNumber.zero} : {0: expanded};
+  }
+
+  final acc = MonomialAccumulator();
+  acc.add(expanded);
+  return acc.extractPolynomialCoefficients(variable);
+}
+
+bool _isZero(Expr expr) => switch (expr) {
+  RationalNumber(isZero: true) => true,
+  RealNumber(value: 0.0) => true,
+  ComplexNumber(real: 0.0, imaginary: 0.0) => true,
+  _ => false,
+};
 
 /// Solves biquadratic equation $a x^4 + b x^2 + c = 0$.
 List<Expr> solveBiquadratic(Expr a, Expr b, Expr c, String variable) {

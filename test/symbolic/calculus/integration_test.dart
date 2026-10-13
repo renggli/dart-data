@@ -453,16 +453,16 @@ void main() {
       check(result.evaluate({'y': -0.5})).equals(0.0);
     });
 
-    test('numerical quadrature fallback on non-elementary expressions', () {
-      // Gaussian integral: int_0^1 exp(-x^2) dx approx 0.7468241328
+    test('definite integration of non-elementary expressions throws UnsupportedError', () {
+      // Gaussian integral: exp(-x^2) has no elementary anti-derivative
       final exprGauss = Exp(-x.pow(2));
-      final resGauss = exprGauss.integrate('x', from: 0, to: 1);
-      check(resGauss.evaluate(const {})).isCloseTo(0.7468241328, 1e-6);
+      check(() => exprGauss.integrate('x', from: 0, to: 1))
+          .throws<UnsupportedError>();
 
-      // Fresnel integral: int_0^1 sin(x^2) dx approx 0.3102683
+      // Fresnel integral: sin(x^2) has no elementary anti-derivative
       final exprFresnel = Sin(x.pow(2));
-      final resFresnel = exprFresnel.integrate('x', from: 0, to: 1);
-      check(resFresnel.evaluate(const {})).isCloseTo(0.3102683, 1e-5);
+      check(() => exprFresnel.integrate('x', from: 0, to: 1))
+          .throws<UnsupportedError>();
     });
   });
 
@@ -475,6 +475,83 @@ void main() {
     test('indefinite integration of non-elementary expressions throws UnsupportedError', () {
       check(() => Exp(-x.pow(2)).integrate('x')).throws<UnsupportedError>();
       check(() => Sin(x.pow(2)).integrate('x')).throws<UnsupportedError>();
+    });
+
+    test(
+      'adversarial non-elementary definite integrals throw UnsupportedError',
+      () {
+        final nonElementary = <Expr>[
+          Exp(-x.pow(2)), // Gaussian
+          Sin(x.pow(2)), // Fresnel sine
+          Cos(x.pow(2)), // Fresnel cosine
+          const Sin(x) / x, // Sine integral Si(x)
+          const Exp(x) / x, // Exponential integral Ei(x)
+          const RationalNumber(1) / const Ln(x), // Logarithmic integral li(x)
+          x.pow(x), // Sophomore's dream
+          const RationalNumber(1) /
+              Pow(
+                x.pow(3) + const RationalNumber(1),
+                const RationalNumber(1, 2),
+              ), // Elliptic
+        ];
+
+        for (final expr in nonElementary) {
+          check(() => expr.integrate('x', from: 0.5, to: 1.5))
+              .throws<UnsupportedError>();
+        }
+      },
+    );
+
+    test('resolvable analytical integrals maintain exact closed forms', () {
+      // 1. Polynomial
+      final poly =
+          const RationalNumber(3) * x.pow(2) +
+          const RationalNumber(5) * x -
+          const RationalNumber(7);
+      final polyInt = poly.integrate('x');
+      check(polyInt.derivative('x').simplify()).equals(poly.simplify());
+      check(poly.integrate('x', from: 0, to: 2))
+          .equals(const RationalNumber(4));
+
+      // 2. Trigonometric
+      check(const Sin(x).integrate('x')).equals(-const Cos(x));
+      check(const Cos(x).integrate('x')).equals(const Sin(x));
+      check(const Tan(x).integrate('x')).equals(-const Ln(Cos(x)));
+
+      // 3. Exponential & Logarithm
+      check(
+        Exp(const RationalNumber(2) * x).integrate('x'),
+      ).equals(const RationalNumber(1, 2) * Exp(const RationalNumber(2) * x));
+      check(const Ln(x).integrate('x')).equals(x * const Ln(x) - x);
+
+      // 4. Rational / Inverse Trigonometric
+      check((const RationalNumber(1) / x).integrate('x')).equals(const Ln(x));
+      check(
+        (const RationalNumber(1) / (const RationalNumber(1) + x.pow(2)))
+            .integrate('x'),
+      ).equals(const Atan(x));
+      check(
+        (const RationalNumber(1) /
+                Pow(
+                  const RationalNumber(1) - x.pow(2),
+                  const RationalNumber(1, 2),
+                ))
+            .integrate('x'),
+      ).equals(const Asin(x));
+
+      // 5. Integration by parts & substitution
+      final byPartsExp = (x * const Exp(x)).integrate('x');
+      check(byPartsExp.derivative('x').expand().simplify())
+          .equals((x * const Exp(x)).simplify());
+
+      final byPartsTrig = (x * const Cos(x)).integrate('x');
+      check(byPartsTrig.derivative('x').expand().simplify())
+          .equals((x * const Cos(x)).simplify());
+
+      final chainRule = (const RationalNumber(2) * x * Exp(x.pow(2))).integrate(
+        'x',
+      );
+      check(chainRule).equals(Exp(x.pow(2)));
     });
   });
 }

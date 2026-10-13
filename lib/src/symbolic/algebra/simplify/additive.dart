@@ -40,11 +40,11 @@ Expr simplifyAdditive(Expr left, Expr right, {required bool isSubtraction}) {
     }
   }
 
-  final acc = TermAccumulator(simplify: simplifyExpr);
-  acc.add(left, Fraction.one);
+  final acc = MonomialAccumulator(simplify: simplifyExpr);
+  acc.add(left);
   acc.add(right, isSubtraction ? -Fraction.one : Fraction.one);
   acc.reduceIdentities();
-  return acc.toExpr();
+  return acc.build();
 }
 
 /// Simplifies a negation expression -[expr].

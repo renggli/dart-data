@@ -11,20 +11,8 @@ import 'univariate.dart';
 
 /// Recursively flattens additive combinations into signed terms.
 void collectAdditiveTerms(Expr expr, int sign, List<Expr> result) {
-  switch (expr) {
-    case Add(:final left, :final right):
-      collectAdditiveTerms(left, sign, result);
-      collectAdditiveTerms(right, sign, result);
-    case Sub(:final left, :final right):
-      collectAdditiveTerms(left, sign, result);
-      collectAdditiveTerms(right, -sign, result);
-    case Neg(:final expr):
-      collectAdditiveTerms(expr, -sign, result);
-    default:
-      if (expr is! RationalNumber || !expr.isZero) {
-        result.add(sign == 1 ? expr : (-expr).simplify());
-      }
-  }
+  MonomialAccumulator.collectTerms(expr, result, sign: sign);
+  result.removeWhere((t) => t is RationalNumber && t.isZero);
 }
 
 /// Extracts common monomial GCD from [terms].

@@ -49,67 +49,47 @@ Expr _expand(Expr expr) => switch (expr) {
 };
 
 Expr _expandNeg(Expr inner) {
-  final acc = TermAccumulator();
+  final acc = MonomialAccumulator();
   acc.add(inner, -Fraction.one);
   acc.reduceIdentities();
-  return acc.toExpr();
+  return acc.build();
 }
 
 Expr _expandAdd(Expr left, Expr right) {
-  final acc = TermAccumulator();
-  acc.add(left, Fraction.one);
-  acc.add(right, Fraction.one);
+  final acc = MonomialAccumulator();
+  acc.add(left);
+  acc.add(right);
   acc.reduceIdentities();
-  return acc.toExpr();
+  return acc.build();
 }
 
 Expr _expandSub(Expr left, Expr right) {
-  final acc = TermAccumulator();
-  acc.add(left, Fraction.one);
+  final acc = MonomialAccumulator();
+  acc.add(left);
   acc.add(right, -Fraction.one);
   acc.reduceIdentities();
-  return acc.toExpr();
+  return acc.build();
 }
 
-List<Expr> _extractAdditiveTerms(Expr expr) => switch (expr) {
-  Add(:final left, :final right) => [
-    ..._extractAdditiveTerms(left),
-    ..._extractAdditiveTerms(right),
-  ],
-  Sub(:final left, :final right) => [
-    ..._extractAdditiveTerms(left),
-    ..._extractAdditiveTerms(right).map(_negateMonomial),
-  ],
-  Neg(:final expr) => [
-    for (final term in _extractAdditiveTerms(expr)) _negateMonomial(term),
-  ],
-  _ => [expr],
-};
-
-Expr _negateMonomial(Expr expr) => switch (expr) {
-  RationalNumber() => RationalNumber.fraction(-expr.toFraction()),
-  RealNumber(:final value) => RealNumber(-value),
-  Neg(:final expr) => expr,
-  _ => Neg(expr),
-};
-
 Expr _expandMul(Expr left, Expr right) {
-  final leftTerms = _extractAdditiveTerms(left);
-  final rightTerms = _extractAdditiveTerms(right);
+  final leftTerms = <Expr>[];
+  MonomialAccumulator.collectTerms(left, leftTerms);
+  final rightTerms = <Expr>[];
+  MonomialAccumulator.collectTerms(right, rightTerms);
 
   if (leftTerms.length == 1 && rightTerms.length == 1) {
     return _multiplyMonomials(leftTerms.first, rightTerms.first);
   }
 
-  final acc = TermAccumulator();
+  final acc = MonomialAccumulator();
   for (final l in leftTerms) {
     for (final r in rightTerms) {
       final termProduct = _multiplyMonomials(l, r);
-      acc.add(termProduct, Fraction.one);
+      acc.add(termProduct);
     }
   }
   acc.reduceIdentities();
-  return acc.toExpr();
+  return acc.build();
 }
 
 void _collectFactors(Expr expr, List<Expr> target) {
@@ -209,12 +189,16 @@ Expr _multiplyMonomials(Expr left, Expr right) {
     final scalar = RealNumber(realCoeff * ratCoeff.toDouble());
     if (symbolicPart == null) return scalar;
     if (scalar.value == 1.0) return symbolicPart;
-    if (scalar.value == -1.0) return _negateMonomial(symbolicPart);
+    if (scalar.value == -1.0) {
+      return MonomialAccumulator.negateMonomial(symbolicPart);
+    }
     return Mul(scalar, symbolicPart);
   } else {
     if (symbolicPart == null) return RationalNumber.fraction(ratCoeff);
     if (ratCoeff == Fraction.one) return symbolicPart;
-    if (ratCoeff == -Fraction.one) return _negateMonomial(symbolicPart);
+    if (ratCoeff == -Fraction.one) {
+      return MonomialAccumulator.negateMonomial(symbolicPart);
+    }
     return Mul(RationalNumber.fraction(ratCoeff), symbolicPart);
   }
 }
@@ -279,14 +263,15 @@ Expr _expandDiv(Expr left, Expr right) {
     return _expandMul(left, inv);
   }
 
-  final terms = _extractAdditiveTerms(left);
+  final terms = <Expr>[];
+  MonomialAccumulator.collectTerms(left, terms);
   if (terms.length > 1) {
-    final acc = TermAccumulator();
+    final acc = MonomialAccumulator();
     for (final term in terms) {
-      acc.add(Div(term, right).simplify(), Fraction.one);
+      acc.add(Div(term, right).simplify());
     }
     acc.reduceIdentities();
-    return acc.toExpr();
+    return acc.build();
   }
 
   return Div(left, right).simplify();

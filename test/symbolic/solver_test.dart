@@ -1293,5 +1293,103 @@ void main() {
       check((const Exp(x) + const RationalNumber(1)).solve('x')).isEmpty();
       check((const Exp(x) + const RationalNumber(5)).solve('x')).isEmpty();
     });
+
+    group('Monomial coefficient matching and solver isolation', () {
+      test('extractMonomialCoefficients on standard polynomials', () {
+        // Pure quadratic: 3*x^2 + 5*x + 7
+        final pQuad =
+            const RationalNumber(3) * x.pow(const RationalNumber(2)) +
+            const RationalNumber(5) * x +
+            const RationalNumber(7);
+        final cQuad = extractMonomialCoefficients(pQuad, 'x');
+        check(cQuad).isNotNull();
+        check(cQuad![2]).equals(const RationalNumber(3));
+        check(cQuad[1]).equals(const RationalNumber(5));
+        check(cQuad[0]).equals(const RationalNumber(7));
+
+        // Pure biquadratic: 2*x^4 - 3*x^2 + 1
+        final pBi =
+            const RationalNumber(2) * x.pow(const RationalNumber(4)) -
+            const RationalNumber(3) * x.pow(const RationalNumber(2)) +
+            const RationalNumber(1);
+        final cBi = extractMonomialCoefficients(pBi, 'x');
+        check(cBi).isNotNull();
+        check(cBi![4]).equals(const RationalNumber(2));
+        check(cBi[2]).equals(const RationalNumber(-3));
+        check(cBi[0]).equals(const RationalNumber(1));
+
+        // Symbolic coefficient: (2*y)*x^2 - x + 1
+        final pSym =
+            (const RationalNumber(2) * y) * x.pow(const RationalNumber(2)) -
+            x +
+            const RationalNumber(1);
+        final cSym = extractMonomialCoefficients(pSym, 'x');
+        check(cSym).isNotNull();
+        check(cSym![2]).equals(const RationalNumber(2) * y);
+        check(cSym[1]).equals(const RationalNumber(-1));
+        check(cSym[0]).equals(const RationalNumber(1));
+
+        // Complex coefficient: x^2 - 2*i*x - 1
+        final pComp =
+            x.pow(const RationalNumber(2)) -
+            (const RationalNumber(2) * ComplexNumber.i) * x -
+            const RationalNumber(1);
+        final cComp = extractMonomialCoefficients(pComp, 'x');
+        check(cComp).isNotNull();
+        check(cComp![2]).equals(const RationalNumber(1));
+        check(cComp[1]).equals(const RationalNumber(-2) * ComplexNumber.i);
+        check(cComp[0]).equals(const RationalNumber(-1));
+      });
+
+      test('matchQuadratic and matchBiquadratic form matching', () {
+        final pQuad =
+            (const RationalNumber(2) * y) * x.pow(const RationalNumber(2)) -
+            x +
+            const RationalNumber(1);
+        final mQuad = matchQuadratic(pQuad, 'x');
+        check(mQuad).isNotNull();
+        check(mQuad!.a).equals(const RationalNumber(2) * y);
+        check(mQuad.b).equals(const RationalNumber(-1));
+        check(mQuad.c).equals(const RationalNumber(1));
+
+        final pBi =
+            const RationalNumber(2) * x.pow(const RationalNumber(4)) -
+            const RationalNumber(3) * x.pow(const RationalNumber(2)) +
+            const RationalNumber(1);
+        final mBi = matchBiquadratic(pBi, 'x');
+        check(mBi).isNotNull();
+        check(mBi!.a).equals(const RationalNumber(2));
+        check(mBi.b).equals(const RationalNumber(-3));
+        check(mBi.c).equals(const RationalNumber(1));
+
+        // High or odd degree polynomials return null
+        final pCubic =
+            x.pow(const RationalNumber(3)) +
+            x.pow(const RationalNumber(2)) +
+            const RationalNumber(1);
+        check(matchQuadratic(pCubic, 'x')).isNull();
+        check(matchBiquadratic(pCubic, 'x')).isNull();
+      });
+
+      test('returns null for non-polynomial expressions', () {
+        final nonPoly = <Expr>[
+          const RationalNumber(1) / x,
+          const RationalNumber(1) /
+              (x.pow(const RationalNumber(2)) - const RationalNumber(4)),
+          (x + const RationalNumber(1)) / (x - const RationalNumber(1)),
+          x.pow(const RationalNumber(1, 2)),
+          x.pow(const RationalNumber(-2)),
+          const Sin(x),
+          const Exp(x),
+          const Ln(x),
+        ];
+
+        for (final expr in nonPoly) {
+          check(extractMonomialCoefficients(expr, 'x')).isNull();
+          check(matchQuadratic(expr, 'x')).isNull();
+          check(matchBiquadratic(expr, 'x')).isNull();
+        }
+      });
+    });
   });
 }

@@ -1,3 +1,4 @@
+import '../algebra/simplify.dart';
 import '../ast.dart';
 
 /// Analytical symbolic differentiation extension on [Expr].
@@ -21,7 +22,7 @@ extension DifferentiationExtension on Expr {
     RangeError.checkValueInInterval(order, 0, 1000, 'order');
     var current = this;
     for (var i = 0; i < order; i++) {
-      current = _differentiate(current, variable);
+      current = _differentiate(current, variable).simplify();
     }
     return current;
   }

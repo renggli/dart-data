@@ -1,9 +1,7 @@
 import 'package:more/number.dart' show Fraction;
 
-import '../../numeric/integration.dart';
 import '../algebra/simplify.dart';
 import '../ast.dart';
-import '../compiler.dart';
 import 'differentiation.dart';
 import 'linear_form.dart';
 
@@ -17,9 +15,8 @@ extension IntegrationExtension on Expr {
   /// curve between two coordinates (or recovers the primitive function from its
   /// derivative). Formally, this implements symbolic integration rules (power
   /// rule, logarithmic, trigonometric, exponential, integration by parts, and
-  /// substitution), falling back to adaptive Gauss-Kronrod numerical quadrature
-  /// when an elementary closed-form anti-derivative cannot be matched over
-  /// definite integration limits.
+  /// substitution). Throws an [UnsupportedError] when no elementary
+  /// closed-form anti-derivative exists.
   ///
   /// ```dart
   /// final x = Variable('x');
@@ -40,30 +37,22 @@ Expr _symbolicIntegrate(Expr function, String variable, {num? from, num? to}) {
     if (from == to) {
       return RationalNumber.zero;
     }
+    final antiDeriv = _antiDerivative(function, variable);
+    final upper = antiDeriv.substitute(variable, _numToNumber(to));
+    final lower = antiDeriv.substitute(variable, _numToNumber(from));
+    final diff = Sub(upper, lower).simplify();
+    if (diff.freeVariables.isNotEmpty) {
+      return diff;
+    }
     try {
-      final antiDeriv = _antiDerivative(function, variable);
-      final upper = antiDeriv.substitute(variable, _numToNumber(to));
-      final lower = antiDeriv.substitute(variable, _numToNumber(from));
-      final diff = Sub(upper, lower).simplify();
-      if (diff.freeVariables.isNotEmpty) {
-        return diff;
-      }
       final val = diff is Number ? diff.value : diff.evaluate(const {});
       if (val.isFinite) {
         return _numToNumber(val);
       }
-    } on UnsupportedError {
-      // Fall back to numerical integration.
     } catch (_) {
-      // Fall back to numerical integration if evaluation is non-finite or
-      // fails.
+      // Return symbolic difference if numerical evaluation fails.
     }
-    final numResult = integrate(
-      function.toFunction1D(variable),
-      from.toDouble(),
-      to.toDouble(),
-    );
-    return _numToNumber(numResult);
+    return diff;
   }
 
   return _antiDerivative(function, variable).simplify();
@@ -149,7 +138,7 @@ Expr _antiDerivative(Expr expr, String variable) {
 }
 
 Never _unsupported(Expr expr, String variable) => throw UnsupportedError(
-  'Cannot compute analytical anti-derivative of "$expr" with respect to "$variable".',
+  'No closed-form anti-derivative found for $expr with respect to $variable',
 );
 
 Expr? _antiDerivSin(Expr inner, String variable) =>
