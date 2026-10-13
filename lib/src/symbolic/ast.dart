@@ -12,4 +12,5 @@ part 'ast/expr.dart';
 part 'ast/function.dart';
 part 'ast/number.dart';
 part 'ast/operator.dart';
+part 'ast/order_term.dart';
 part 'ast/variable.dart';

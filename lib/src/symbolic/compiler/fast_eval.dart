@@ -124,6 +124,8 @@ double Function(T) compileEvaluator<T>(
     case Abs(:final expr):
       final fn = compileEvaluator<T>(expr, compileVar);
       return (t) => fn(t).abs();
+    case OrderTerm():
+      return (_) => 0.0;
   }
 }
 
@@ -197,5 +199,7 @@ Complex Function(T) compileComplexEvaluator<T>(
     case Abs(:final expr):
       final fn = compileComplexEvaluator<T>(expr, compileVar);
       return (t) => Complex(fn(t).abs(), 0);
+    case OrderTerm():
+      return (_) => Complex.zero;
   }
 }

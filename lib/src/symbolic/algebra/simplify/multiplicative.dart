@@ -44,6 +44,31 @@ Expr simplifyMul(Expr left, Expr right) {
     return RealNumber(left.value * right.value);
   }
 
+  // OrderTerm products and scalings
+  if (left is OrderTerm && right is OrderTerm) {
+    if (left.variable == right.variable && left.point == right.point) {
+      return OrderTerm(
+        left.variable,
+        left.order + right.order,
+        point: left.point,
+      );
+    }
+  }
+  if (left is Number && right is OrderTerm) {
+    return left.isZero ? RationalNumber.zero : right;
+  }
+  if (right is Number && left is OrderTerm) {
+    return right.isZero ? RationalNumber.zero : left;
+  }
+  if (left is OrderTerm) {
+    final res = _multiplyWithOrderTerm(left, right);
+    if (res != null) return res;
+  }
+  if (right is OrderTerm) {
+    final res = _multiplyWithOrderTerm(right, left);
+    if (res != null) return res;
+  }
+
   // Exponential multiplication: e^a * e^b => e^(a + b)
   if (left is Exp && right is Exp) {
     return simplifyExp(simplifyAdd(left.expr, right.expr));
@@ -184,9 +209,12 @@ Expr simplifyDiv(Expr left, Expr right) {
     return RealNumber(left.value / right.value);
   }
 
-  // Exponential division: e^a / e^b => e^(a - b)
+  // Exponential division: e^a / e^b => e^(a - b), 1 / e^b => e^(-b)
   if (left is Exp && right is Exp) {
     return simplifyExp(simplifySub(left.expr, right.expr));
+  }
+  if (left is RationalNumber && left.isOne && right is Exp) {
+    return simplifyExp(simplifyNeg(right.expr));
   }
   // Power division with identical exponents: a^k / b^k => (a / b)^k
   if (left is Pow && right is Pow && left.exponent == right.exponent) {
@@ -241,5 +269,80 @@ Expr simplifyDiv(Expr left, Expr right) {
     }
   }
 
+  if (left is OrderTerm && right is Number && !right.isZero) {
+    return left;
+  }
+
   return Div(left, right);
+}
+
+Expr? _multiplyWithOrderTerm(OrderTerm orderTerm, Expr other) {
+  final v = orderTerm.variable;
+  final p = orderTerm.point;
+  final n = orderTerm.order;
+  final isZeroPoint = p is RationalNumber && p.isZero;
+
+  if (other is Number) {
+    return other.isZero ? RationalNumber.zero : orderTerm;
+  }
+
+  if (isZeroPoint && other is Variable && other.name == v) {
+    return OrderTerm(v, n + 1, point: p);
+  }
+
+  if (isZeroPoint &&
+      other is Pow &&
+      other.base is Variable &&
+      (other.base as Variable).name == v &&
+      other.exponent is RationalNumber &&
+      (other.exponent as RationalNumber).isInteger) {
+    final k = (other.exponent as RationalNumber).numerator;
+    if (k > 0) {
+      return OrderTerm(v, n + k, point: p);
+    }
+  }
+
+  if (!isZeroPoint && other == Sub(Variable(v), p)) {
+    return OrderTerm(v, n + 1, point: p);
+  }
+
+  if (!isZeroPoint &&
+      other is Pow &&
+      other.base == Sub(Variable(v), p) &&
+      other.exponent is RationalNumber &&
+      (other.exponent as RationalNumber).isInteger) {
+    final k = (other.exponent as RationalNumber).numerator;
+    if (k > 0) {
+      return OrderTerm(v, n + k, point: p);
+    }
+  }
+
+  if (other is Add) {
+    return simplifyAdd(
+      simplifyMul(other.left, orderTerm),
+      simplifyMul(other.right, orderTerm),
+    );
+  }
+
+  if (other is Sub) {
+    return simplifySub(
+      simplifyMul(other.left, orderTerm),
+      simplifyMul(other.right, orderTerm),
+    );
+  }
+
+  if (other is Mul) {
+    if (other.left is Number) {
+      final inner = _multiplyWithOrderTerm(orderTerm, other.right);
+      if (inner != null) return simplifyMul(other.left, inner);
+    } else if (other.right is Number) {
+      final inner = _multiplyWithOrderTerm(orderTerm, other.left);
+      if (inner != null) return simplifyMul(other.right, inner);
+    } else {
+      final inner = _multiplyWithOrderTerm(orderTerm, other.left);
+      if (inner != null) return simplifyMul(inner, other.right);
+    }
+  }
+
+  return null;
 }

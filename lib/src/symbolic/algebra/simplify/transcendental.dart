@@ -334,6 +334,11 @@ Expr simplifyLn(Expr expr) {
     return simplifyMul(expr.exponent, Ln(expr.base));
   }
 
+  // ln(1 / u) = -ln(u)
+  if (expr case Div(left: RationalNumber(isOne: true), right: final right)) {
+    return simplifyNeg(simplifyLn(right));
+  }
+
   return Ln(expr);
 }
 

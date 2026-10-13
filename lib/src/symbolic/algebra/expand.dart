@@ -24,7 +24,7 @@ extension ExpandExtension on Expr {
 }
 
 Expr _expand(Expr expr) => switch (expr) {
-  Number() || Variable() => expr,
+  Number() || Variable() || OrderTerm() => expr,
   Neg(:final expr) => _expandNeg(_expand(expr)),
   Add(:final left, :final right) => _expandAdd(_expand(left), _expand(right)),
   Sub(:final left, :final right) => _expandSub(_expand(left), _expand(right)),
@@ -129,6 +129,9 @@ void _collectFactorInto(
 }
 
 Expr _multiplyMonomials(Expr left, Expr right) {
+  if (left is OrderTerm || right is OrderTerm) {
+    return simplifyMul(left, right);
+  }
   if (left is Number && right is Number) {
     return Mul(left, right).simplify();
   }

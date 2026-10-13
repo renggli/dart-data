@@ -15,6 +15,9 @@ sealed class Number extends Expr {
   /// imaginary parts.
   double get value;
 
+  /// Whether this number equals zero.
+  bool get isZero;
+
   /// Whether this number has no imaginary part.
   bool get isReal => true;
 
@@ -83,6 +86,7 @@ final class RationalNumber extends Number {
   bool get isInteger => denominator == 1;
 
   /// Whether this rational number equals zero.
+  @override
   bool get isZero => numerator == 0;
 
   /// Whether this rational number equals one.
@@ -133,6 +137,9 @@ final class RealNumber extends Number {
   final double value;
 
   @override
+  bool get isZero => value == 0.0;
+
+  @override
   String toString() => value.toString();
 
   @override
@@ -162,6 +169,9 @@ final class ConstantNumber extends Number {
   /// Mathematical constant $e \approx 2.718281828459045$.
   static const e = ConstantNumber('e', math.e);
 
+  /// Positive infinity constant $\infty$.
+  static const infinity = ConstantNumber('oo', double.infinity);
+
   /// Imaginary unit constant $i = \sqrt{-1}$.
   static const i = ComplexNumber.i;
 
@@ -172,6 +182,9 @@ final class ConstantNumber extends Number {
 
   @override
   double get value => _value;
+
+  @override
+  bool get isZero => _value == 0.0;
 
   @override
   bool get isReal => true;
@@ -230,6 +243,9 @@ final class ComplexNumber extends Number implements ConstantNumber {
 
   @override
   bool get isReal => imaginary == 0.0;
+
+  @override
+  bool get isZero => real == 0.0 && imaginary == 0.0;
 
   @override
   Complex get complexValue => Complex(real, imaginary);

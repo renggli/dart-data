@@ -32,6 +32,11 @@ extension SimplifierExtension on Expr {
 /// Recursively evaluates and canonically simplifies [expr].
 Expr simplifyExpr(Expr expr) => switch (expr) {
   Number() || Variable() => expr,
+  OrderTerm(:final variable, :final order, :final point) => OrderTerm(
+    variable,
+    order,
+    point: simplifyExpr(point),
+  ),
   Add(:final left, :final right) => simplifyAdd(
     simplifyExpr(left),
     simplifyExpr(right),

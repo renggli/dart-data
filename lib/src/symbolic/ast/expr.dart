@@ -83,6 +83,15 @@ sealed class Expr {
   Complex evaluateComplex([Map<String, Complex> context = const {}]) =>
       _evaluateComplex(this, context);
 
+  /// Returns a copy of this expression with all asymptotic [OrderTerm] nodes removed.
+  ///
+  /// ```dart
+  /// final x = Variable('x');
+  /// final series = 1 + x + OrderTerm('x', 2);
+  /// final poly = series.removeOrder(); // 1 + x
+  /// ```
+  Expr removeOrder() => _removeOrder(this);
+
   /// Adds this expression to [other].
   Expr operator +(Object other) => Add(this, _wrap(other));
 

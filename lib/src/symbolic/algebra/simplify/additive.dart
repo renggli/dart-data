@@ -54,5 +54,6 @@ Expr simplifyNeg(Expr expr) => switch (expr) {
   RationalNumber() => RationalNumber.fraction(-expr.toFraction()),
   RealNumber(:final value) => RealNumber(-value),
   Neg(:final expr) => expr,
+  OrderTerm() => expr,
   _ => Neg(expr),
 };

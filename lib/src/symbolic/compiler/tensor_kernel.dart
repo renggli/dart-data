@@ -179,6 +179,8 @@ void flattenToRpn(
     case Abs(:final expr):
       flattenToRpn(expr, varIndices, instructions);
       instructions.add(const Instruction.op(Op.abs));
+    case OrderTerm():
+      instructions.add(const Instruction.pushConst(0.0));
   }
 }
 

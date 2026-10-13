@@ -96,16 +96,47 @@ Expr _createBinding(String name, List<Expr> arguments) =>
         'sqrt' => Pow(arguments[0], const RationalNumber(1, 2)),
         'exp' => Exp(arguments[0]),
         'ln' || 'log' => Ln(arguments[0]),
+        'o' || 'order' => _parseOrderArg(arguments[0]),
         _ => throw ArgumentError.value(name, 'Unknown function'),
       },
       2 => switch (name.toLowerCase()) {
         'pow' => Pow(arguments[0], arguments[1]),
         'log' => Div(Ln(arguments[1]), Ln(arguments[0])),
         'root' => Pow(arguments[1], Div(RationalNumber.one, arguments[0])),
+        'o' || 'order' => switch (arguments) {
+          [
+            Variable(:final name),
+            RationalNumber(isInteger: true, numerator: final k),
+          ] =>
+            OrderTerm(name, k),
+          _ => throw ArgumentError.value(name, 'Unknown function'),
+        },
         _ => throw ArgumentError.value(name, 'Unknown function'),
       },
       _ => throw ArgumentError.value(name, 'Unknown function'),
     };
+
+Expr _parseOrderArg(Expr arg) => switch (arg) {
+  Variable(:final name) => OrderTerm(name, 1),
+  RationalNumber(isOne: true) => const OrderTerm('x', 0),
+  Pow(
+    :final base,
+    exponent: RationalNumber(isInteger: true, numerator: final k),
+  )
+      when base is Variable =>
+    OrderTerm(base.name, k),
+  Sub(left: Variable(:final name), :final right) => OrderTerm(
+    name,
+    1,
+    point: right,
+  ),
+  Pow(
+    base: Sub(left: Variable(:final name), :final right),
+    exponent: RationalNumber(isInteger: true, numerator: final k),
+  ) =>
+    OrderTerm(name, k, point: right),
+  _ => OrderTerm(arg.freeVariables.firstOrNull ?? 'x', 1),
+};
 
 /// Parses [input] into an [Expr].
 ///

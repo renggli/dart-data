@@ -22,8 +22,10 @@
 ///   ([MultivariableExtension.hessian]), and Jacobians
 ///   ([MultivariableIterableExtension.jacobian]); symbolic integration
 ///   ([IntegrationExtension.integrate]); linear form matching
-///   ([LinearFormExtension.matchLinear]); and Taylor series expansion
-///   ([TaylorExtension.taylorSeries]).
+///   ([LinearFormExtension.matchLinear]); Taylor series expansion
+///   ([TaylorExtension.taylorSeries]); truncated power series
+///   ([SeriesExtension.toPowerSeries], [SeriesExtension.series], [PowerSeries]);
+///   and symbolic limits ([LimitExtension.limit]).
 /// - **Algebraic Manipulation**: Canonical simplification
 ///   ([SimplifierExtension.simplify]), polynomial expansion
 ///   ([ExpandExtension.expand]), polynomial factorization
@@ -74,6 +76,7 @@ import 'src/symbolic/algebra/structural_order.dart';
 import 'src/symbolic/ast.dart';
 import 'src/symbolic/calculus/differentiation.dart';
 import 'src/symbolic/calculus/integration.dart';
+import 'src/symbolic/calculus/limit.dart';
 import 'src/symbolic/calculus/linear_form.dart';
 import 'src/symbolic/calculus/multivariable.dart';
 import 'src/symbolic/calculus/taylor.dart';
@@ -90,8 +93,10 @@ export 'src/symbolic/algebra/structural_order.dart';
 export 'src/symbolic/ast.dart';
 export 'src/symbolic/calculus/differentiation.dart';
 export 'src/symbolic/calculus/integration.dart';
+export 'src/symbolic/calculus/limit.dart';
 export 'src/symbolic/calculus/linear_form.dart';
 export 'src/symbolic/calculus/multivariable.dart';
+export 'src/symbolic/calculus/series.dart';
 export 'src/symbolic/calculus/taylor.dart';
 export 'src/symbolic/compiler.dart';
 export 'src/symbolic/solver.dart';

@@ -130,6 +130,12 @@ Expr simplifyPow(Expr base, Expr exponent) => switch ((base, exponent)) {
     RationalNumber(numerator: 2, denominator: 1) || RealNumber(value: 2.0),
   ) =>
     simplifyPow(expr, exponent),
+  (
+    OrderTerm(:final variable, :final order, :final point),
+    RationalNumber(isInteger: true, numerator: final k),
+  )
+      when k > 0 =>
+    OrderTerm(variable, order * k, point: point),
   _ => Pow(base, exponent),
 };
 

@@ -43,8 +43,25 @@ String formatExpr(Expr expr, [int parentPrec = 0]) {
       '${formatExpr(left, 1)} + ${formatExpr(right, 1)}',
     Sub(:final left, :final right) =>
       '${formatExpr(left, 1)} - ${formatExpr(right, 2)}',
+    OrderTerm(:final variable, :final order, :final point) => _formatOrderTerm(
+      variable,
+      order,
+      point,
+    ),
   };
   return prec < parentPrec ? '($formatted)' : formatted;
+}
+
+String _formatOrderTerm(String variable, int order, Expr point) {
+  final isZero = point is RationalNumber && point.isZero;
+  if (isZero) {
+    if (order == 0) return 'O(1)';
+    if (order == 1) return 'O($variable)';
+    return 'O($variable^$order)';
+  }
+  final delta = formatExpr(Sub(Variable(variable), point));
+  if (order == 1) return 'O($delta)';
+  return 'O(($delta)^$order)';
 }
 
 /// Returns the operator precedence level for the given [expr].

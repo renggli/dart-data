@@ -77,7 +77,26 @@ String _toMathMl(Expr expr) => switch (expr) {
   Exp(:final expr) => '<msup><mi>e</mi>${_toMathMl(expr)}</msup>',
   Ln(:final expr) =>
     '<mrow><mi>ln</mi><mo>(</mo>${_toMathMl(expr)}<mo>)</mo></mrow>',
+  OrderTerm(:final variable, :final order, :final point) =>
+    _formatOrderTermMathMl(variable, order, point),
 };
+
+String _formatOrderTermMathMl(String variable, int order, Expr point) {
+  final isZero = point is RationalNumber && point.isZero;
+  if (isZero) {
+    if (order == 0) {
+      return '<mrow><mi>O</mi><mo>(</mo><mn>1</mn><mo>)</mo></mrow>';
+    }
+    if (order == 1) {
+      return '<mrow><mi>O</mi><mo>(</mo><mi>${_escapeXml(variable)}</mi><mo>)</mo></mrow>';
+    }
+    return '<mrow><mi>O</mi><mo>(</mo><msup><mi>${_escapeXml(variable)}</mi><mn>$order</mn></msup><mo>)</mo></mrow>';
+  }
+  if (order == 1) {
+    return '<mrow><mi>O</mi><mo>(</mo><mrow><mi>${_escapeXml(variable)}</mi><mo>-</mo>${_formatSubRight(point)}</mrow><mo>)</mo></mrow>';
+  }
+  return '<mrow><mi>O</mi><mo>(</mo><msup><mrow><mo>(</mo><mrow><mi>${_escapeXml(variable)}</mi><mo>-</mo>${_formatSubRight(point)}</mrow><mo>)</mo></mrow><mn>$order</mn></msup><mo>)</mo></mrow>';
+}
 
 String _formatPow(Expr base, Expr exponent) {
   if (exponent is RationalNumber && exponent.numerator == 1) {

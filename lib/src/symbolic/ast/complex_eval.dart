@@ -31,6 +31,7 @@ Complex _evaluateComplex(Expr expr, Map<String, Complex> context) =>
       Exp(:final expr) => _evaluateComplex(expr, context).exp(),
       Ln(:final expr) => _evaluateComplex(expr, context).log(),
       Abs(:final expr) => Complex(_evaluateComplex(expr, context).abs(), 0),
+      OrderTerm() => Complex.zero,
     };
 
 /// Computes complex power [base]^[exponent] handling zero-base edge cases.

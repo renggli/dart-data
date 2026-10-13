@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:more/number.dart' show Fraction;
 
 import '../ast.dart';
@@ -19,6 +21,9 @@ class MonomialAccumulator {
 
   /// Optional simplifier callback.
   final Expr Function(Expr)? simplify;
+
+  /// Map of (variable, point) to minimum Landau order term exponent.
+  final Map<(String, Expr), int> orderTerms = {};
 
   /// Accumulated exact rational constant value.
   Fraction constantRational = Fraction.zero;
@@ -57,6 +62,11 @@ class MonomialAccumulator {
         add(right, -scale);
       case Neg(:final expr):
         add(expr, -scale);
+      case OrderTerm(:final variable, :final order, :final point):
+        if (!scale.isZero) {
+          final key = (variable, point);
+          orderTerms[key] = math.min(orderTerms[key] ?? order, order);
+        }
       case RationalNumber():
         constantRational += scale * expr.toFraction();
       case RealNumber(:final value):
@@ -369,6 +379,7 @@ class MonomialAccumulator {
 
   /// Reconstructs the canonical [Expr] AST tree from accumulated terms and constants.
   Expr build() {
+    _absorbOrderTerms();
     rationalTerms.removeWhere((_, coeff) => coeff.isZero);
     realTerms.removeWhere((_, coeff) => coeff == 0.0);
 
@@ -489,7 +500,79 @@ class MonomialAccumulator {
       result = appendEntry(result, item);
     }
 
+    // 5. Append trailing OrderTerm instances
+    for (final entry in orderTerms.entries) {
+      final (variable, point) = entry.key;
+      final order = entry.value;
+      final term = OrderTerm(variable, order, point: point);
+      result = result == null ? term : Add(result, term);
+    }
+
     return result ?? (hasReal ? const RealNumber(0.0) : RationalNumber.zero);
+  }
+
+  void _absorbOrderTerms() {
+    if (orderTerms.isEmpty) return;
+    for (final entry in orderTerms.entries) {
+      final (variable, point) = entry.key;
+      final order = entry.value;
+      final isZeroPoint = point is RationalNumber && point.isZero;
+
+      if (isZeroPoint) {
+        if (order <= 0) {
+          constantRational = Fraction.zero;
+          constantReal = 0.0;
+        }
+        rationalTerms.removeWhere((base, _) {
+          final m = _extractBaseMonomial(base, variable);
+          return m != null && m.power >= order;
+        });
+        realTerms.removeWhere((base, _) {
+          final m = _extractBaseMonomial(base, variable);
+          return m != null && m.power >= order;
+        });
+      } else {
+        if (order <= 0) {
+          constantRational = Fraction.zero;
+          constantReal = 0.0;
+        }
+        rationalTerms.removeWhere(
+          (base, _) => _matchesShiftedPower(base, variable, point, order),
+        );
+        realTerms.removeWhere(
+          (base, _) => _matchesShiftedPower(base, variable, point, order),
+        );
+      }
+    }
+  }
+
+  static bool _matchesShiftedPower(
+    Expr base,
+    String variable,
+    Expr point,
+    int minOrder,
+  ) {
+    if (base is Sub &&
+        base.left is Variable &&
+        (base.left as Variable).name == variable &&
+        base.right == point) {
+      return 1 >= minOrder;
+    }
+    if (base is Pow) {
+      final pBase = base.base;
+      final exp = base.exponent;
+      if (pBase is Sub &&
+          pBase.left is Variable &&
+          (pBase.left as Variable).name == variable &&
+          pBase.right == point) {
+        if (exp is RationalNumber &&
+            exp.isInteger &&
+            exp.numerator >= minOrder) {
+          return true;
+        }
+      }
+    }
+    return false;
   }
 
   /// Backward-compatible alias for [build].

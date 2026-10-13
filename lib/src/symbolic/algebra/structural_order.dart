@@ -167,6 +167,14 @@ int compareStructural(Expr a, Expr b) {
       0 => compareStructural(right, b.right),
       final cmp => cmp,
     },
+    OrderTerm(:final variable, :final order, :final point) => switch (variable
+        .compareTo((b as OrderTerm).variable)) {
+      0 => switch (order.compareTo(b.order)) {
+        0 => compareStructural(point, b.point),
+        final cmp => cmp,
+      },
+      final cmp => cmp,
+    },
   };
 }
 
@@ -207,4 +215,5 @@ int nodeTag(Expr expr) => switch (expr) {
   Div() => 22,
   Add() => 23,
   Sub() => 24,
+  OrderTerm() => 25,
 };

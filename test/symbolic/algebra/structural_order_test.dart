@@ -812,4 +812,9 @@ Expr _cloneExpr(Expr expr) => switch (expr) {
     _cloneExpr(base),
     _cloneExpr(exponent),
   ),
+  OrderTerm(:final variable, :final order, :final point) => OrderTerm(
+    variable,
+    order,
+    point: _cloneExpr(point),
+  ),
 };

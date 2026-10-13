@@ -112,4 +112,10 @@ Expr _differentiate(Expr expr, String variable) => switch (expr) {
   ),
   Exp(expr: final inner) => Mul(expr, _differentiate(inner, variable)),
   Ln(expr: final inner) => Div(_differentiate(inner, variable), inner),
+  OrderTerm(variable: final v, :final order, :final point) =>
+    v == variable
+        ? OrderTerm(v, order - 1, point: point)
+        : point.dependsOn(variable)
+        ? OrderTerm(v, order, point: point)
+        : RationalNumber.zero,
 };

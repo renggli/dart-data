@@ -54,7 +54,20 @@ String _toLatex(Expr expr) => switch (expr) {
   Abs(:final expr) => '\\left|${_toLatex(expr)}\\right|',
   Exp(:final expr) => 'e^{${_toLatex(expr)}}',
   Ln(:final expr) => '\\ln(${_toLatex(expr)})',
+  OrderTerm(:final variable, :final order, :final point) =>
+    _formatOrderTermLatex(variable, order, point),
 };
+
+String _formatOrderTermLatex(String variable, int order, Expr point) {
+  final isZero = point is RationalNumber && point.isZero;
+  if (isZero) {
+    if (order == 0) return 'O(1)';
+    if (order == 1) return 'O($variable)';
+    return 'O($variable^{$order})';
+  }
+  if (order == 1) return 'O($variable - ${_toLatex(point)})';
+  return 'O(($variable - ${_toLatex(point)})^{$order})';
+}
 
 String _formatPow(Expr base, Expr exponent) {
   if (exponent is RationalNumber && exponent.numerator == 1) {

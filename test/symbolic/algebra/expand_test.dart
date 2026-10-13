@@ -1135,7 +1135,7 @@ void _assertNoPowerOfProduct(Expr expr, [String context = '']) {
     case Exp(:final expr):
     case Ln(:final expr):
       _assertNoPowerOfProduct(expr, context);
-    case Number() || Variable():
+    case Number() || Variable() || OrderTerm():
       break;
   }
 }

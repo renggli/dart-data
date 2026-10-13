@@ -1,6 +1,9 @@
 import '../algebra/simplify.dart';
 import '../ast.dart';
 import 'differentiation.dart';
+import 'series.dart';
+
+export 'series.dart' show PowerSeries, SeriesExtension;
 
 /// Taylor series polynomial expansion extension on [Expr].
 extension TaylorExtension on Expr {
@@ -10,38 +13,52 @@ extension TaylorExtension on Expr {
   ///
   /// Conceptually, a Taylor series approximates smooth non-linear functions
   /// (such as $\sin(x)$ or $e^x$) using simple polynomials near an expansion
-  /// point. Formally, this truncates the analytic power series expansion at
-  /// order $n$, with remainder given by Lagrange's formula.
+  /// point. Formally, this delegates to [SeriesExtension.toPowerSeries] with
+  /// `includeOrder: false`, falling back to analytic differentiation if needed.
   ///
   /// ```dart
   /// final x = Variable('x');
   /// final expansion = Exp(x).taylorSeries('x', order: 2);
-  /// // 1 + x + 0.5 * (x ^ 2)
+  /// // 1 + x + 1/2 * (x ^ 2)
   /// ```
-  Expr taylorSeries(String variable, {num around = 0, int order = 4}) =>
-      _computeTaylorSeries(this, variable, around: around, order: order);
+  Expr taylorSeries(String variable, {num around = 0, int order = 4}) {
+    final pt = around is int
+        ? RationalNumber(around)
+        : RationalNumber.fromDouble(around);
+    try {
+      return toPowerSeries(
+        variable,
+        point: pt,
+        order: order + 1,
+      ).toExpr(includeOrder: false);
+    } catch (_) {
+      return _computeTaylorSeriesByDerivatives(
+        this,
+        variable,
+        around: pt,
+        order: order,
+      );
+    }
+  }
 }
 
-Expr _computeTaylorSeries(
+Expr _computeTaylorSeriesByDerivatives(
   Expr function,
   String variable, {
-  num around = 0,
-  int order = 4,
+  required Expr around,
+  required int order,
 }) {
   final x = Variable(variable);
-  final a = around is int
-      ? RationalNumber(around)
-      : RationalNumber.fromDouble(around);
-  final delta = around == 0 ? x : Sub(x, a);
+  final delta = around is RationalNumber && around.isZero ? x : Sub(x, around);
 
   var currentDeriv = function;
-  var result = currentDeriv.substitute(variable, a).simplify();
+  var result = currentDeriv.substitute(variable, around).simplify();
   var factorial = 1;
 
   for (var step = 1; step <= order; step++) {
     currentDeriv = currentDeriv.derivative(variable);
     factorial *= step;
-    final termVal = currentDeriv.substitute(variable, a).simplify();
+    final termVal = currentDeriv.substitute(variable, around).simplify();
     final polyTerm = Mul(
       Div(termVal, RationalNumber(factorial)),
       step == 1 ? delta : Pow(delta, RationalNumber(step)),
