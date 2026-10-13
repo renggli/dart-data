@@ -70,6 +70,7 @@
 ## Testing
 
 - All code must be accompanied by unit tests in the `test/` folder.
-- Structure the tests following the same folder structure as the code under test (e.g., `lib/src/foo/bar.dart` -> `test/foo/bar_test.dart`).
+- Structure the tests following the same folder structure as the code under test (e.g., `lib/src/foo/bar.dart` -> `test/foo/bar_test.dart`). Maintain a strict parallel hierarchy matching `lib/src/`.
+- Never create or commit test files with cryptic, chat-specific, milestone, or temporary names (e.g., `complex_challenge_*_test.dart`, `m2_*_test.dart`, `*_stress_test.dart`, `*_challenge_test.dart`). All committed tests, stress cases, and challenge suites must be cleanly integrated into their canonical test files.
 - Use the Dart `checks` framework (`package:checks`) to assert expected behavior (e.g., `check(result).equals('expected')`, `check(list).isEmpty()`). Prefer `check(...)` assertions over legacy `expect`.
 - Group tests by functionality using `group('description', () { ... })`. Avoid declaring a single top-level group in a file.

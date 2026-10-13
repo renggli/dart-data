@@ -8,6 +8,7 @@ import 'package:test/scaffolding.dart';
 void main() {
   const x = Variable('x');
   const y = Variable('y');
+  const z = Variable('z');
 
   group('ConstantNumber.i properties', () {
     test('symbolic identity and name', () {
@@ -47,7 +48,7 @@ void main() {
     });
   });
 
-  group('Exact Gaussian arithmetic', () {
+  group('Exact Gaussian arithmetic & polynomial expansion', () {
     test('addition of complex and imaginary terms', () {
       final expr1 =
           (const RationalNumber(2) * i) + (const RationalNumber(3) * i);
@@ -95,16 +96,54 @@ void main() {
     test('division by imaginary unit', () {
       check((RationalNumber.one / i).simplify()).equals(-i);
       check((RationalNumber.negativeOne / i).simplify()).equals(i);
+      check((RationalNumber.one / (-i)).simplify()).equals(i);
+      check((RationalNumber.negativeOne / (-i)).simplify()).equals(-i);
       check((i / i).simplify()).equals(RationalNumber.one);
+      check(((-i) / i).simplify()).equals(RationalNumber.negativeOne);
+      check((i / (-i)).simplify()).equals(RationalNumber.negativeOne);
+      check(((-i) / (-i)).simplify()).equals(RationalNumber.one);
       check((const RationalNumber(2) / i).simplify())
           .equals(const RationalNumber(-2) * i);
       check((x / i).simplify()).equals(-(i * x));
       check((x / (-i)).simplify()).equals(i * x);
+      check(() => (i / RationalNumber.zero).simplify())
+          .throws<UnsupportedError>();
     });
 
-    test('polynomial expansion with Gaussian numbers', () {
+    test('Gaussian integer product expansion and conjugate product', () {
       final expr = (RationalNumber.one + i) * (RationalNumber.one - i);
       check(expr.expand().simplify()).equals(const RationalNumber(2));
+
+      final z1 = const RationalNumber(2) + const RationalNumber(3) * i;
+      final z2 = const RationalNumber(4) + const RationalNumber(5) * i;
+      // (2 + 3i)(4 + 5i) = (8 - 15) + (10 + 12)i = -7 + 22i
+      final prod = (z1 * z2).expand().simplify();
+      check(prod)
+          .equals(const RationalNumber(-7) + const RationalNumber(22) * i);
+
+      // (3 + 4i)(3 - 4i) = 25
+      final z3 = const RationalNumber(3) + const RationalNumber(4) * i;
+      final z4 = const RationalNumber(3) - const RationalNumber(4) * i;
+      check((z3 * z4).expand().simplify()).equals(const RationalNumber(25));
+
+      // Symbolic conjugate: (x + i*y)(x - i*y) = x^2 + y^2
+      check(((x + i * y) * (x - i * y)).expand().simplify())
+          .equals(x.pow(2) + y.pow(2));
+    });
+
+    test('associativity and distributivity', () {
+      final z1 = const RationalNumber(1) + const RationalNumber(2) * i;
+      final z2 = const RationalNumber(3) + const RationalNumber(4) * i;
+      final z3 = const RationalNumber(5) + const RationalNumber(6) * i;
+
+      final sum1 = ((z1 + z2) + z3).simplify();
+      final sum2 = (z1 + (z2 + z3)).simplify();
+      check(sum1).equals(sum2);
+      check(sum1)
+          .equals(const RationalNumber(9) + const RationalNumber(12) * i);
+
+      final dist = i * (x + y);
+      check(dist.expand().simplify()).equals(i * x + i * y);
     });
 
     test('canonical reconstruction: a + b * i', () {
@@ -119,65 +158,49 @@ void main() {
           (const RationalNumber(4) + const RationalNumber(5) * i);
       check(c2.simplify())
           .equals(const RationalNumber(-2) - const RationalNumber(2) * i);
+
+      // Fraction simplification: -1/2 + 2/4*i -> -1/2 + 1/2*i
+      final cFrac =
+          const RationalNumber(-1, 2) + (const RationalNumber(2, 4) * i);
+      check(
+        cFrac.simplify(),
+      ).equals(const RationalNumber(-1, 2) + (const RationalNumber(1, 2) * i));
+
+      // Radical ordering
+      const sqrt3 = Pow(RationalNumber(3), RationalNumber(1, 2));
+      final cRadical1 =
+          (const RationalNumber(1, 2) * i * sqrt3) - const RationalNumber(1, 2);
+      check(cRadical1.simplify()).equals(
+        const RationalNumber(-1, 2) +
+            (const RationalNumber(1, 2) * (i * sqrt3)),
+      );
+
+      final cRadical2 =
+          (-const RationalNumber(1, 2) * i * sqrt3) -
+          const RationalNumber(1, 2);
+      check(cRadical2.simplify()).equals(
+        const RationalNumber(-1, 2) -
+            (const RationalNumber(1, 2) * (i * sqrt3)),
+      );
+
+      // Deterministic 4-tier ordering: variables < rationals < transcendentals < i
+      final mixed1 = ConstantNumber.pi + const RationalNumber(1);
+      check(mixed1.simplify())
+          .equals(const RationalNumber(1) + ConstantNumber.pi);
+
+      final mixed2 =
+          i +
+          ConstantNumber.pi +
+          ConstantNumber.e +
+          const RationalNumber(1) +
+          x;
+      check(mixed2.simplify()).equals(
+        x + const RationalNumber(1) + ConstantNumber.e + ConstantNumber.pi + i,
+      );
     });
-
-    test(
-      'canonical reconstruction: a + b * i with fractional and radical parts',
-      () {
-        // Fraction simplification: -1/2 + 2/4*i -> -1/2 + 1/2*i
-        final cFrac =
-            const RationalNumber(-1, 2) + (const RationalNumber(2, 4) * i);
-        check(cFrac.simplify()).equals(
-          const RationalNumber(-1, 2) + (const RationalNumber(1, 2) * i),
-        );
-
-        // Ordering: real terms first, imaginary part at the end
-        const sqrt3 = Pow(RationalNumber(3), RationalNumber(1, 2));
-        final cRadical1 =
-            (const RationalNumber(1, 2) * i * sqrt3) -
-            const RationalNumber(1, 2);
-        check(cRadical1.simplify()).equals(
-          const RationalNumber(-1, 2) +
-              (const RationalNumber(1, 2) * (i * sqrt3)),
-        );
-
-        final cRadical2 =
-            (-const RationalNumber(1, 2) * i * sqrt3) -
-            const RationalNumber(1, 2);
-        check(cRadical2.simplify()).equals(
-          const RationalNumber(-1, 2) -
-              (const RationalNumber(1, 2) * (i * sqrt3)),
-        );
-
-        // Deterministic 4-tier ordering: variables < rational constants < transcendental constants < imaginary unit
-        final mixed1 = ConstantNumber.pi + const RationalNumber(1);
-        check(mixed1.simplify())
-            .equals(const RationalNumber(1) + ConstantNumber.pi);
-
-        final mixed2 =
-            i +
-            ConstantNumber.pi +
-            ConstantNumber.e +
-            const RationalNumber(1) +
-            x;
-        check(mixed2.simplify()).equals(
-          x +
-              const RationalNumber(1) +
-              ConstantNumber.e +
-              ConstantNumber.pi +
-              i,
-        );
-
-        final mixed3 = ConstantNumber.pi + i;
-        check(mixed3.simplify()).equals(ConstantNumber.pi + i);
-
-        final mixed4 = ConstantNumber.e + i;
-        check(mixed4.simplify()).equals(ConstantNumber.e + i);
-      },
-    );
   });
 
-  group('Cyclic power simplification', () {
+  group('Cyclic power simplification & modulo arithmetic', () {
     test('positive integer exponents modulo 4', () {
       check(i.pow(0).simplify()).equals(RationalNumber.one);
       check(i.pow(1).simplify()).equals(i);
@@ -192,15 +215,34 @@ void main() {
       check(i.pow(42).simplify()).equals(RationalNumber.negativeOne);
       check(i.pow(99).simplify()).equals(-i);
       check(i.pow(100).simplify()).equals(RationalNumber.one);
+
+      for (var k = 0; k < 20; k++) {
+        final expected = switch (k % 4) {
+          0 => RationalNumber.one,
+          1 => ConstantNumber.i,
+          2 => RationalNumber.negativeOne,
+          3 => const Neg(ConstantNumber.i),
+          _ => throw StateError('Unreachable'),
+        };
+        check(i.pow(k).simplify()).equals(expected);
+      }
     });
 
-    test('negative integer exponents modulo 4', () {
+    test('large positive and negative powers of i', () {
+      check(i.pow(1000000).simplify()).equals(RationalNumber.one);
+      check(i.pow(1000001).simplify()).equals(i);
+      check(i.pow(1000002).simplify()).equals(RationalNumber.negativeOne);
+      check(i.pow(1000003).simplify()).equals(-i);
+      check(i.pow(1000000007).simplify()).equals(-i);
+
       check(i.pow(-1).simplify()).equals(-i);
       check(i.pow(-2).simplify()).equals(RationalNumber.negativeOne);
       check(i.pow(-3).simplify()).equals(i);
       check(i.pow(-4).simplify()).equals(RationalNumber.one);
       check(i.pow(-5).simplify()).equals(-i);
       check(i.pow(-100).simplify()).equals(RationalNumber.one);
+      check(i.pow(-1000000).simplify()).equals(RationalNumber.one);
+      check(i.pow(-1000000007).simplify()).equals(i);
     });
 
     test('powers of -i modulo 4', () {
@@ -209,11 +251,67 @@ void main() {
       check((-i).pow(2).simplify()).equals(RationalNumber.negativeOne);
       check((-i).pow(3).simplify()).equals(i);
       check((-i).pow(4).simplify()).equals(RationalNumber.one);
+      check((-i).pow(5).simplify()).equals(-i);
+      check((-i).pow(6).simplify()).equals(RationalNumber.negativeOne);
+      check((-i).pow(7).simplify()).equals(i);
+      check((-i).pow(8).simplify()).equals(RationalNumber.one);
+
+      check((-i).pow(-1).simplify()).equals(i);
+      check((-i).pow(-2).simplify()).equals(RationalNumber.negativeOne);
+      check((-i).pow(-3).simplify()).equals(-i);
+      check((-i).pow(-4).simplify()).equals(RationalNumber.one);
+      check((-i).pow(-1000000).simplify()).equals(RationalNumber.one);
+    });
+
+    test('real number exponent powers of i and -i', () {
+      check(i.pow(const RealNumber(0.0)).simplify()).equals(RationalNumber.one);
+      check(i.pow(const RealNumber(1.0)).simplify()).equals(i);
+      check(i.pow(const RealNumber(2.0)).simplify())
+          .equals(RationalNumber.negativeOne);
+      check(i.pow(const RealNumber(3.0)).simplify()).equals(-i);
+      check(i.pow(const RealNumber(4.0)).simplify()).equals(RationalNumber.one);
+      check(i.pow(const RealNumber(-1.0)).simplify()).equals(-i);
+      check(i.pow(const RealNumber(-2.0)).simplify())
+          .equals(RationalNumber.negativeOne);
+
+      check((-i).pow(const RealNumber(1.0)).simplify()).equals(-i);
+      check((-i).pow(const RealNumber(2.0)).simplify())
+          .equals(RationalNumber.negativeOne);
+      check((-i).pow(const RealNumber(3.0)).simplify()).equals(i);
+      check((-i).pow(const RealNumber(4.0)).simplify())
+          .equals(RationalNumber.one);
     });
 
     test('powers of scaled imaginary terms', () {
       final expr = (const RationalNumber(2) * i).pow(2);
       check(expr.simplify()).equals(const RationalNumber(-4));
+
+      check((const RationalNumber(3) * i).pow(3).simplify())
+          .equals(const RationalNumber(-27) * i);
+      check((const RationalNumber(3) * i).pow(4).simplify())
+          .equals(const RationalNumber(81));
+    });
+
+    test('fractional powers evaluation of i and negative numbers', () {
+      // i^(1/2) = e^(i * pi / 4)
+      final sqrtI = i.pow(const RationalNumber(1, 2));
+      final valSqrtI = sqrtI.evaluateComplex();
+      final expectedSqrt2Over2 = math.sqrt(2) / 2;
+      check((valSqrtI.a - expectedSqrt2Over2).abs()).isLessThan(1e-12);
+      check((valSqrtI.b - expectedSqrt2Over2).abs()).isLessThan(1e-12);
+
+      // (-1)^(1/2) = i
+      final sqrtNegOne = RationalNumber.negativeOne.pow(
+        const RationalNumber(1, 2),
+      );
+      check((sqrtNegOne.evaluateComplex() - Complex.i).abs()).isLessThan(1e-12);
+
+      // (-8)^(1/3) = 1 + i * sqrt(3)
+      final cubeRootNegEight = const RationalNumber(-8)
+          .pow(const RationalNumber(1, 3));
+      final valCube = cubeRootNegEight.evaluateComplex();
+      check((valCube.a - 1.0).abs()).isLessThan(1e-12);
+      check((valCube.b - math.sqrt(3)).abs()).isLessThan(1e-12);
     });
   });
 
@@ -240,7 +338,6 @@ void main() {
     });
 
     test('evaluates zero base complex powers', () {
-      const x = Variable('x');
       check(x.pow(2).evaluateComplex({'x': Complex.zero})).equals(Complex.zero);
       check(x.pow(0).evaluateComplex({'x': Complex.zero})).equals(Complex.one);
       check((x.pow(2) + 1).evaluateComplex({'x': Complex.zero}))
@@ -248,12 +345,36 @@ void main() {
       check((x * x + 1).toComplexFunction1D('x')(Complex.zero))
           .equals(Complex.one);
       check((x * x).compileComplex()({'x': Complex.zero})).equals(Complex.zero);
+
+      // 0^x for various x
+      final zeroPowX = const RationalNumber(0).pow(x);
+      check(zeroPowX.evaluateComplex({'x': Complex.zero})).equals(Complex.one);
+      check(zeroPowX.evaluateComplex({'x': Complex.one})).equals(Complex.zero);
+      check(zeroPowX.evaluateComplex({'x': const Complex(2, 0)}))
+          .equals(Complex.zero);
+      check(zeroPowX.evaluateComplex({'x': const Complex(0.5, 0)}))
+          .equals(Complex.zero);
+      check(zeroPowX.evaluateComplex({'x': const Complex(1, 2)}))
+          .equals(Complex.zero);
+      check(zeroPowX.evaluateComplex({'x': const Complex(-1, 0)}))
+          .equals(const Complex(double.infinity, 0.0));
+      check(zeroPowX.evaluateComplex({'x': Complex.i}).isNaN).isTrue();
     });
 
     test("verifies Euler's identity: exp(i * pi) + 1 = 0", () {
       final euler = Exp(i * ConstantNumber.pi) + RationalNumber.one;
       final result = euler.evaluateComplex();
       check(result.abs()).isLessThan(1e-12);
+
+      final expHalfPi = Exp(i * (ConstantNumber.pi / const RationalNumber(2)));
+      final valHalfPi = expHalfPi.evaluateComplex();
+      check(valHalfPi.a.abs()).isLessThan(1e-12);
+      check((valHalfPi.b - 1.0).abs()).isLessThan(1e-12);
+
+      final exp2Pi = Exp(i * (const RationalNumber(2) * ConstantNumber.pi));
+      final val2Pi = exp2Pi.evaluateComplex();
+      check((val2Pi.a - 1.0).abs()).isLessThan(1e-12);
+      check(val2Pi.b.abs()).isLessThan(1e-12);
     });
 
     test('evaluates complex trigonometric and hyperbolic relationships', () {
@@ -289,21 +410,18 @@ void main() {
       check((atanVal.a - math.pi / 4).abs()).isLessThan(1e-12);
     });
 
-    test('evaluates square root of negative numbers', () {
-      final sqrtNegOne = RationalNumber.negativeOne.pow(
-        const RationalNumber(1, 2),
-      );
-      check((sqrtNegOne.evaluateComplex() - Complex.i).abs()).isLessThan(1e-12);
-
+    test('evaluates square root and logarithm of negative numbers', () {
       final sqrtNegFour = const RationalNumber(-4)
           .pow(const RationalNumber(1, 2));
       check((sqrtNegFour.evaluateComplex() - const Complex(0.0, 2.0)).abs())
           .isLessThan(1e-12);
-    });
 
-    test('evaluates logarithms of negative numbers and arbitrary base', () {
       final lnNegOne = const Ln(RationalNumber.negativeOne).evaluateComplex();
       check((lnNegOne - const Complex(0.0, math.pi)).abs()).isLessThan(1e-12);
+
+      final lnI = const Ln(i).evaluateComplex();
+      check(lnI.a.abs()).isLessThan(1e-12);
+      check((lnI.b - math.pi / 2).abs()).isLessThan(1e-12);
 
       final logVal = const Log(
         RationalNumber(10),
@@ -317,62 +435,312 @@ void main() {
           .evaluateComplex();
       check(absVal).equals(const Complex(5.0, 0.0));
     });
-
-    test('throws ArgumentError on missing variable', () {
-      check(() => x.evaluateComplex()).throws<ArgumentError>();
-    });
-
-    test('real evaluate() throws on imaginary expressions', () {
-      final expr = x + i;
-      check(() => expr.evaluate({'x': 1.0})).throws<UnsupportedError>();
-    });
   });
 
-  group('High-speed numerical JIT compilation', () {
-    test('compiles univariate expression to Complex closure', () {
+  group('High-speed numerical JIT compilation & oracle parity', () {
+    final testPoints = <Complex>[
+      Complex.zero,
+      Complex.one,
+      -Complex.one,
+      Complex.i,
+      -Complex.i,
+      const Complex(1.0, 1.0),
+      const Complex(1.0, -1.0),
+      const Complex(-1.0, 1.0),
+      const Complex(-1.0, -1.0),
+      const Complex(0.5, 2.5),
+      const Complex(3.0, -4.0),
+      const Complex(-0.125, 0.75),
+    ];
+
+    void verifyOracleParity1D(Expr expr, {double tol = 1e-10}) {
+      final compiled1D = expr.toComplexFunction1D('x');
+      final compiledMap = expr.compileComplex();
+
+      for (final pt in testPoints) {
+        final evalRes = expr.evaluateComplex({'x': pt});
+        final fast1DRes = compiled1D(pt);
+        final mapRes = compiledMap({'x': pt});
+
+        if (evalRes.isNaN || fast1DRes.isNaN || mapRes.isNaN) {
+          continue;
+        }
+        if (evalRes.isInfinite || fast1DRes.isInfinite || mapRes.isInfinite) {
+          continue;
+        }
+
+        check((evalRes - fast1DRes).abs()).isLessThan(tol);
+        check((evalRes - mapRes).abs()).isLessThan(tol);
+      }
+    }
+
+    test('compiles univariate expressions to Complex closures', () {
       final fn = (x * x + 1).toComplexFunction1D('x');
       check(fn(Complex.i).abs()).isLessThan(1e-12);
       check((fn(const Complex(1.0, 2.0)) - const Complex(-2.0, 4.0)).abs())
           .isLessThan(1e-12);
-    });
 
-    test('compiles transcendental function with i', () {
-      final fn = Exp(i * x).toComplexFunction1D('x');
-      final valPi = fn(const Complex(math.pi));
+      final fnTrans = Exp(i * x).toComplexFunction1D('x');
+      final valPi = fnTrans(const Complex(math.pi));
       check((valPi - const Complex(-1.0, 0.0)).abs()).isLessThan(1e-12);
-    });
 
-    test('compiles rational and algebraic fractions', () {
-      final fn = ((x + 1) / (x - 1)).toComplexFunction1D('x');
-      final valI = fn(Complex.i);
+      final fnFrac = ((x + 1) / (x - 1)).toComplexFunction1D('x');
+      final valI = fnFrac(Complex.i);
       check((valI - const Complex(0.0, -1.0)).abs()).isLessThan(1e-12);
     });
 
-    test('compiles dictionary-based multi-variable complex closure', () {
-      final fn = (x + y).compileComplex();
-      final result = fn({'x': const Complex(1, 2), 'y': const Complex(3, 4)});
-      check(result).equals(const Complex(4, 6));
+    test(
+      'oracle parity across polynomial, rational, and transcendental suites',
+      () {
+        verifyOracleParity1D(
+          x * x * x -
+              const RationalNumber(2) * x.pow(2) +
+              const RationalNumber(4) * x -
+              const RationalNumber(7),
+        );
+        verifyOracleParity1D(x.pow(4) + const RationalNumber(1));
+        verifyOracleParity1D((x + i) * (x - i));
+        verifyOracleParity1D(x.pow(2) + i * x + const RationalNumber(1));
+        verifyOracleParity1D(
+          (x + const RationalNumber(1)) / (x - const RationalNumber(2)),
+        );
+        verifyOracleParity1D(Exp(i * x));
+        verifyOracleParity1D(const Sin(x) + const Cos(x));
+        verifyOracleParity1D(const Sinh(x) + const Cosh(x));
+        verifyOracleParity1D(const Atan(x));
+        verifyOracleParity1D(const Abs(x));
+      },
+    );
 
-      check(() => fn({'x': const Complex(1, 2)})).throws<ArgumentError>();
-    });
+    test('multi-variable compileComplex parity', () {
+      final expr = x * x + y * y + z * i;
+      final compiled = expr.compileComplex();
 
-    test('real compilers reject expressions with imaginary constant i', () {
-      final expr = x + i;
-      check(() => expr.toFunction1D('x')).throws<UnsupportedError>();
-      check(() => expr.compile(['x'])).throws<UnsupportedError>();
-      check(() => expr.toVectorFunction(['x'])).throws<UnsupportedError>();
-      check(() => expr.compileTensorKernel(['x'])).throws<UnsupportedError>();
+      final nonZeroPoints = testPoints.where((p) => p != Complex.zero).take(4);
+      for (final px in nonZeroPoints) {
+        for (final py in nonZeroPoints) {
+          final ctx = {'x': px, 'y': py, 'z': Complex.i};
+          final directVal = expr.evaluateComplex(ctx);
+          final compiledVal = compiled(ctx);
+          check((directVal - compiledVal).abs()).isLessThan(1e-12);
+        }
+      }
     });
   });
 
-  group('Structural order with complex numbers', () {
-    test('compares ConstantNumber without crashing', () {
-      check(compareStructural(i, ConstantNumber.pi) != 0).isTrue();
-      check(compareStructural(i, i)).equals(0);
-      check(compareStructural(ConstantNumber.pi, i) != 0).isTrue();
+  group('Higher-degree complex polynomials & multi-factor expansion', () {
+    test('expanding and simplifying products of complex linear factors', () {
+      // (x + i) * (x - i) * (x + 2*i) * (x - 2*i) = (x^2 + 1)(x^2 + 4) = x^4 + 5*x^2 + 4
+      final p1 =
+          ((x + i) * (x - i)) *
+          ((x + const RationalNumber(2) * i) *
+              (x - const RationalNumber(2) * i));
+      final expanded1 = p1.expand().simplify();
+      check(expanded1).equals(
+        x.pow(4) +
+            (const RationalNumber(5) * x.pow(2)) +
+            const RationalNumber(4),
+      );
+
+      // (x - (1 + i)) * (x - (1 - i)) * (x - 2*i) * (x + 2*i) = x^4 - 2*x^3 + 6*x^2 - 8*x + 8
+      final p2 =
+          ((x - RationalNumber.one - i) * (x - RationalNumber.one + i)) *
+          ((x - const RationalNumber(2) * i) *
+              (x + const RationalNumber(2) * i));
+      final expanded2 = p2.expand().simplify();
+      check(expanded2).equals(
+        x.pow(4) -
+            (const RationalNumber(2) * x.pow(3)) +
+            (const RationalNumber(6) * x.pow(2)) -
+            (const RationalNumber(8) * x) +
+            const RationalNumber(8),
+      );
     });
 
-    test('compares complex expressions', () {
+    test('expanding higher-degree powers of complex binomials', () {
+      // (x + i)^3 = x^3 + 3*i*x^2 - 3*x - i
+      final pCube = (x + i).pow(3);
+      check(pCube.expand().simplify()).equals(
+        x.pow(3) +
+            (const RationalNumber(3) * (i * x.pow(2))) -
+            (const RationalNumber(3) * x) -
+            i,
+      );
+
+      // (x - i)^4 = x^4 - 4*i*x^3 - 6*x^2 + 4*i*x + 1
+      final pQuad = (x - i).pow(4);
+      check(pQuad.expand().simplify()).equals(
+        x.pow(4) -
+            (const RationalNumber(4) * (i * x.pow(3))) -
+            (const RationalNumber(6) * x.pow(2)) +
+            (const RationalNumber(4) * (i * x)) +
+            RationalNumber.one,
+      );
+
+      // (x - i)^5 = x^5 - 5*i*x^4 - 10*x^3 + 10*i*x^2 + 5*x - i
+      final pPower5 = (x - i).pow(5);
+      final expanded5 = pPower5.expand().simplify();
+      check(expanded5).equals(
+        x.pow(5) -
+            (const RationalNumber(5) * (i * x.pow(4))) -
+            (const RationalNumber(10) * x.pow(3)) +
+            (const RationalNumber(10) * (i * x.pow(2))) +
+            (const RationalNumber(5) * x) -
+            i,
+      );
+    });
+
+    test(
+      'evaluations of degree 4 and 6 complex polynomials at roots and origin',
+      () {
+        final p =
+            ((x - RationalNumber.one - i) * (x - RationalNumber.one + i)) *
+            ((x - const RationalNumber(2) * i) *
+                (x + const RationalNumber(2) * i));
+        check(p.evaluateComplex({'x': Complex.zero}))
+            .equals(const Complex(8, 0));
+        check(p.evaluateComplex({'x': const Complex(1, 1)}).abs())
+            .isLessThan(1e-10);
+        check(p.evaluateComplex({'x': const Complex(1, -1)}).abs())
+            .isLessThan(1e-10);
+        check(p.evaluateComplex({'x': const Complex(0, 2)}).abs())
+            .isLessThan(1e-10);
+        check(p.evaluateComplex({'x': const Complex(0, -2)}).abs())
+            .isLessThan(1e-10);
+
+        // Q(x) = (x^2 + 1) * (x^2 + 4) * (x^2 + 9)
+        final q =
+            (x.pow(2) + RationalNumber.one) *
+            (x.pow(2) + const RationalNumber(4)) *
+            (x.pow(2) + const RationalNumber(9));
+        check(q.evaluateComplex({'x': Complex.zero}))
+            .equals(const Complex(36, 0));
+        check(q.evaluateComplex({'x': const Complex(0, 1)}).abs())
+            .isLessThan(1e-10);
+        check(q.evaluateComplex({'x': const Complex(0, 2)}).abs())
+            .isLessThan(1e-10);
+        check(q.evaluateComplex({'x': const Complex(0, 3)}).abs())
+            .isLessThan(1e-10);
+        check(q.evaluateComplex({'x': const Complex(1, 0)}))
+            .equals(const Complex(100, 0));
+      },
+    );
+  });
+
+  group('Calculus with complex constants', () {
+    test('derivatives of complex linear and polynomial expressions', () {
+      check((x * i).derivative('x').simplify()).equals(i);
+      check((x.pow(2) * i).derivative('x').simplify())
+          .equals(Mul(const RationalNumber(2), i * x));
+      check((x + i).derivative('x').simplify()).equals(RationalNumber.one);
+      check(
+        (x + const RationalNumber(3) + const RationalNumber(4) * i)
+            .derivative('x')
+            .simplify(),
+      ).equals(RationalNumber.one);
+    });
+
+    test('derivative of complex exponential', () {
+      final deriv = Exp(i * x).derivative('x').simplify();
+      check(deriv).equals(i * Exp(i * x));
+    });
+
+    test('anti-derivative of complex expressions w.r.t real variable', () {
+      check(i.integrate('x').simplify()).equals(i * x);
+
+      final anti = (x * i).integrate('x').simplify();
+      check(anti.derivative('x').simplify()).equals(i * x);
+    });
+
+    test('differentiation commutes with expansion on complex polynomials', () {
+      final p = (x + i).pow(4);
+      final d1 = p.derivative('x').expand().simplify();
+      final d2 = p.expand().simplify().derivative('x').simplify();
+      check(d1).equals(d2);
+      check(d1).equals(
+        (const RationalNumber(4) * x.pow(3)) +
+            (const RationalNumber(12) * (i * x.pow(2))) -
+            (const RationalNumber(12) * x) -
+            (const RationalNumber(4) * i),
+      );
+    });
+  });
+
+  group('Structural order stability & total ordering invariants', () {
+    final testNodes = <Expr>[
+      RationalNumber.zero,
+      RationalNumber.one,
+      RationalNumber.negativeOne,
+      const RationalNumber(1, 2),
+      const RealNumber(0.5),
+      ConstantNumber.e,
+      ConstantNumber.pi,
+      ConstantNumber.i,
+      const RationalNumber(1) + const RationalNumber(2) * i,
+      const RationalNumber(2) - i,
+      x,
+      y,
+      -x,
+      -i,
+      x + 1,
+      x + i,
+      x * i,
+      i * x,
+      x.pow(2),
+      const Pow(i, RationalNumber(2)),
+      const Sin(x),
+      const Cos(i),
+      Exp(i * ConstantNumber.pi),
+      const Ln(x),
+    ];
+
+    test(
+      'structural order satisfies reflexivity, antisymmetry, and transitivity',
+      () {
+        for (final node in testNodes) {
+          check(compareStructural(node, node)).equals(0);
+        }
+
+        for (var j = 0; j < testNodes.length; j++) {
+          for (var k = 0; k < testNodes.length; k++) {
+            final cmpJK = compareStructural(testNodes[j], testNodes[k]);
+            final cmpKJ = compareStructural(testNodes[k], testNodes[j]);
+            if (cmpJK == 0) {
+              check(cmpKJ).equals(0);
+            } else if (cmpJK < 0) {
+              check(cmpKJ).isGreaterThan(0);
+            } else {
+              check(cmpKJ).isLessThan(0);
+            }
+          }
+        }
+
+        for (var a = 0; a < testNodes.length; a++) {
+          for (var b = 0; b < testNodes.length; b++) {
+            final cmpAB = compareStructural(testNodes[a], testNodes[b]);
+            if (cmpAB <= 0) {
+              for (var c = 0; c < testNodes.length; c++) {
+                final cmpBC = compareStructural(testNodes[b], testNodes[c]);
+                if (cmpBC <= 0) {
+                  final cmpAC = compareStructural(testNodes[a], testNodes[c]);
+                  check(cmpAC).isLessOrEqual(0);
+                }
+              }
+            }
+          }
+        }
+      },
+    );
+
+    test('sorting expressions is stable and deterministic', () {
+      final list1 = List<Expr>.from(testNodes)..shuffle(math.Random(42));
+      final list2 = List<Expr>.from(testNodes)..shuffle(math.Random(99));
+      list1.sort(compareStructural);
+      list2.sort(compareStructural);
+      check(list1).deepEquals(list2);
+    });
+
+    test('compares complex expressions and powers with i', () {
       final c1 = const RationalNumber(1) + const RationalNumber(2) * i;
       final c2 = const RationalNumber(1) + const RationalNumber(2) * i;
       final c3 = const RationalNumber(1) + const RationalNumber(3) * i;
@@ -382,48 +750,45 @@ void main() {
       check(compareStructural(c1, c3)).isLessThan(0);
       check(compareStructural(c3, c1)).isGreaterThan(0);
       check(compareStructural(c1, c4)).isLessThan(0);
-    });
 
-    test('compares powers with complex exponents without crashing', () {
-      final p1 = x.pow(i);
-      final p2 = x.pow(2);
-      check(compareStructural(p1, p2) != 0).isTrue();
+      check(compareStructural(x.pow(i), x.pow(2)) != 0).isTrue();
     });
   });
 
-  group('Textualization: String, LaTeX, MathML', () {
-    test('String formatting for ConstantNumber.i and complex expressions', () {
+  group('Textualization: String, LaTeX, MathML & parenthesization', () {
+    test('String formatting for complex expressions and parenthesization', () {
       check(formatExpr(i)).equals('i');
       check(formatExpr(-i)).equals('-i');
       check(formatExpr(const RationalNumber(2) * i)).equals('2 * i');
+      check(formatExpr(const RationalNumber(-3) * i)).equals('-3 * i');
       check(formatExpr(const RationalNumber(2) + const RationalNumber(3) * i))
           .equals('2 + 3 * i');
-      check(formatExpr(const RationalNumber(3) + const RationalNumber(4) * i))
-          .equals('3 + 4 * i');
       check(formatExpr(const RationalNumber(3) - const RationalNumber(4) * i))
           .equals('3 - 4 * i');
 
       final c = const RationalNumber(3) + const RationalNumber(4) * i;
       check(formatExpr(c * x)).equals('(3 + 4 * i) * x');
+      check(formatExpr(x / c)).equals('x / (3 + 4 * i)');
       check(formatExpr(c.pow(2))).equals('(3 + 4 * i) ^ 2');
     });
 
-    test('LaTeX serialization', () {
+    test('LaTeX serialization and parenthesization', () {
       check(i.toLatex()).equals('i');
       check((-i).toLatex()).equals('-i');
       check((const RationalNumber(2) * i).toLatex()).equals(r'2 \cdot i');
-      check((const RationalNumber(2) + const RationalNumber(3) * i).toLatex())
-          .equals(r'2 + 3 \cdot i');
-      check((const RationalNumber(3) + const RationalNumber(4) * i).toLatex())
-          .equals(r'3 + 4 \cdot i');
       check((const RationalNumber(3) - const RationalNumber(4) * i).toLatex())
           .equals(r'3 - 4 \cdot i');
-      check(
-        ((const RationalNumber(3) + const RationalNumber(4) * i) * x).toLatex(),
-      ).equals(r'(3 + 4 \cdot i) \cdot x');
+
+      final c2I = const RationalNumber(2) * i;
+      final cNegI = -i;
+      check(c2I.pow(2).toLatex()).equals(r'{(2 \cdot i)}^{2}');
+      check(cNegI.pow(2).toLatex()).equals(r'{(-i)}^{2}');
+      check((x * cNegI).toLatex()).equals(r'x \cdot (-i)');
+      check((x - cNegI).toLatex()).equals(r'x - (-i)');
+      check((-cNegI).toLatex()).equals(r'-(-i)');
     });
 
-    test('MathML serialization', () {
+    test('MathML serialization and parenthesization', () {
       check(i.toMathMl()).equals('<math><mi>i</mi></math>');
       check((-i).toMathMl())
           .equals('<math><mrow><mo>-</mo><mi>i</mi></mrow></math>');
@@ -431,16 +796,25 @@ void main() {
           .equals(
             '<math><mrow><mn>3</mn><mo>+</mo><mrow><mn>4</mn><mo>&#x22c5;</mo><mi>i</mi></mrow></mrow></math>',
           );
+
+      final c2I = const RationalNumber(2) * i;
+      final cNegI = -i;
+      check(c2I.pow(2).toMathMl()).equals(
+        '<math><msup><mrow><mo>(</mo><mrow><mn>2</mn><mo>&#x22c5;</mo><mi>i</mi></mrow><mo>)</mo></mrow><mn>2</mn></msup></math>',
+      );
+      check((x * cNegI).toMathMl()).equals(
+        '<math><mrow><mi>x</mi><mo>&#x22c5;</mo><mrow><mo>(</mo><mrow><mo>-</mo><mi>i</mi></mrow><mo>)</mo></mrow></mrow></math>',
+      );
+      check((-cNegI).toMathMl()).equals(
+        '<math><mrow><mo>-</mo><mrow><mo>(</mo><mrow><mo>-</mo><mi>i</mi></mrow><mo>)</mo></mrow></mrow></math>',
+      );
     });
   });
 
-  group('Parser recognition and round-trips', () {
-    test('parses i in standard casing', () {
+  group('Parser recognition, round-trips & identifier distinction', () {
+    test('parses i and Gaussian expressions', () {
       check(Expr.parse('i')).equals(ConstantNumber.i);
       check(Expr.parse('I')).equals(ConstantNumber.i);
-    });
-
-    test('parses arithmetic and Gaussian expressions', () {
       check(Expr.parse('2 + 3 * i')).equals(
         const Add(RationalNumber(2), Mul(RationalNumber(3), ConstantNumber.i)),
       );
@@ -461,6 +835,7 @@ void main() {
       check(Expr.parse('item')).equals(const Variable('item'));
       check(Expr.parse('i1')).equals(const Variable('i1'));
       check(Expr.parse('imag')).equals(const Variable('imag'));
+      check(Expr.parse('identity')).equals(const Variable('identity'));
     });
 
     test('round-trip parsing and evaluation', () {
@@ -469,6 +844,31 @@ void main() {
 
       final euler = Expr.parse('exp(i * pi) + 1');
       check(euler.evaluateComplex().abs()).isLessThan(1e-12);
+    });
+  });
+
+  group('Error handling & boundary robustness', () {
+    test(
+      'real evaluators and compilers safely reject imaginary expressions',
+      () {
+        final exprI = x + i;
+        check(() => exprI.evaluate({'x': 1.0})).throws<UnsupportedError>();
+        check(() => exprI.toFunction1D('x')).throws<UnsupportedError>();
+        check(() => exprI.compile(['x'])).throws<UnsupportedError>();
+        check(() => exprI.toVectorFunction(['x'])).throws<UnsupportedError>();
+        check(() => exprI.compileTensorKernel(['x']))
+            .throws<UnsupportedError>();
+      },
+    );
+
+    test('missing variable in evaluateComplex and compileComplex throws ArgumentError', () {
+      check(() => x.evaluateComplex()).throws<ArgumentError>();
+      check(() => (x + y).evaluateComplex({'x': Complex.one}))
+          .throws<ArgumentError>();
+
+      final compiled = (x + y).compileComplex();
+      check(() => compiled({'x': Complex.one})).throws<ArgumentError>();
+      check(() => compiled({})).throws<ArgumentError>();
     });
   });
 }

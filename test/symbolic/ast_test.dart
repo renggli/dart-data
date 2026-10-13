@@ -1,12 +1,9 @@
-import 'dart:math' as math;
-import 'dart:typed_data';
-
 import 'package:checks/checks.dart';
 import 'package:data/symbolic.dart';
 import 'package:test/scaffolding.dart';
 
 void main() {
-  group('Empirical Challenge 1: AST Node Hashing & Equality', () {
+  group('AST Node Hashing & Equality', () {
     test('distinct unary expressions with identical Variable argument have distinct hash codes', () {
       const x = Variable('x');
       const uSin = Sin(x);
@@ -17,11 +14,9 @@ void main() {
 
       final unaries = <UnaryExpr>[uSin, uCos, uNeg, uExp, uLn];
 
-      // Mutually distinct hash codes
       final hashCodes = unaries.map((e) => e.hashCode).toSet();
       check(hashCodes.length).equals(5);
 
-      // Mutually non-equal
       for (var i = 0; i < unaries.length; i++) {
         for (var j = 0; j < unaries.length; j++) {
           if (i == j) {
@@ -68,11 +63,9 @@ void main() {
 
       final binaries = <BinaryExpr>[bAdd, bSub, bMul, bDiv, bPow];
 
-      // Mutually distinct hash codes
       final hashCodes = binaries.map((e) => e.hashCode).toSet();
       check(hashCodes.length).equals(5);
 
-      // Mutually non-equal
       for (var i = 0; i < binaries.length; i++) {
         for (var j = 0; j < binaries.length; j++) {
           if (i == j) {
@@ -112,11 +105,9 @@ void main() {
       const x = Variable('x');
       const y = Variable('y');
 
-      // Unary vs Binary
       check((const Sin(x) as Expr) == const Add(x, x)).isFalse();
       check((const Neg(x) as Expr) == const Sub(x, x)).isFalse();
 
-      // Reversed operands in non-commutative and commutative syntax
       const sub1 = Sub(x, y);
       const sub2 = Sub(y, x);
       check(sub1 == sub2).isFalse();
@@ -124,10 +115,9 @@ void main() {
 
       const add1 = Add(x, y);
       const add2 = Add(y, x);
-      check(add1 == add2).isFalse(); // AST nodes are structurally ordered
+      check(add1 == add2).isFalse();
       check(add1.hashCode == add2.hashCode).isFalse();
 
-      // Pow accessors
       const p = Pow(x, y);
       check(p.base).equals(x);
       check(p.exponent).equals(y);
@@ -157,131 +147,14 @@ void main() {
         }
       }
 
-      // Total nodes: 3 * 5 + 9 * 5 = 15 + 45 = 60 nodes
       check(nodes.length).equals(60);
       final uniqueHashCodes = nodes.map((e) => e.hashCode).toSet();
-      // Hash collisions among 60 small AST expressions should be 0 with Object.hash
       check(uniqueHashCodes.length).equals(60);
     });
   });
 
-  group(
-    'Empirical Challenge 2: Tensor Kernel Zero-Allocation & Performance',
-    () {
-      test('10,000 iterations tight loop execution with memory and numerical stability', () {
-        const x = Variable('x');
-        const y = Variable('y');
-        const z = Variable('z');
-
-        // Multi-operation transcendental and rational formula
-        // f(x, y, z) = sin(x) * cos(y) + exp(x - y) - ln(z) + (x * y) / (z + 1)
-        final expr =
-            (const Sin(x) * const Cos(y)) +
-            Exp(x - y) -
-            const Ln(z) +
-            ((x * y) / (z + const RationalNumber(1)));
-
-        final kernel = expr.compileTensorKernel(['x', 'y', 'z']);
-
-        const bufferLen = 64;
-        final xBuf = Float64List(bufferLen);
-        final yBuf = Float64List(bufferLen);
-        final zBuf = Float64List(bufferLen);
-        final outBuf = Float64List(bufferLen);
-        final expectedBuf = Float64List(bufferLen);
-
-        for (var i = 0; i < bufferLen; i++) {
-          final xVal = (i + 1) * 0.05;
-          final yVal = (i + 1) * 0.03;
-          final zVal =
-              (i + 1) * 0.1 + 1.0; // keep z > 1 so ln(z) > 0 and z + 1 != 0
-          xBuf[i] = xVal;
-          yBuf[i] = yVal;
-          zBuf[i] = zVal;
-
-          expectedBuf[i] =
-              math.sin(xVal) * math.cos(yVal) +
-              math.exp(xVal - yVal) -
-              math.log(zVal) +
-              (xVal * yVal) / (zVal + 1.0);
-        }
-
-        final stopwatch = Stopwatch()..start();
-
-        // Phase A: Execute 10,000 times with static buffers to test stability
-        const iterations = 10000;
-        for (var iter = 0; iter < iterations; iter++) {
-          kernel([xBuf, yBuf, zBuf], outBuf);
-        }
-
-        stopwatch.stop();
-
-        // Output correctness check across the full buffer
-        for (var i = 0; i < bufferLen; i++) {
-          check(outBuf[i]).isCloseTo(expectedBuf[i], 1e-12);
-        }
-
-        // Performance check: 10,000 iterations over 64 elements = 640,000 vector evaluations
-        // Must complete within 2000ms
-        check(stopwatch.elapsedMilliseconds).isLessThan(2000);
-
-        // Phase B: Execute 1,000 iterations with dynamically mutating inputs to verify no state residue
-        for (var iter = 0; iter < 1000; iter++) {
-          final factor = (iter % 100 + 1) * 0.01;
-          xBuf[0] = factor;
-          yBuf[0] = factor * 0.5;
-          zBuf[0] = factor + 1.5;
-
-          kernel([xBuf, yBuf, zBuf], outBuf);
-
-          final expected =
-              math.sin(xBuf[0]) * math.cos(yBuf[0]) +
-              math.exp(xBuf[0] - yBuf[0]) -
-              math.log(zBuf[0]) +
-              (xBuf[0] * yBuf[0]) / (zBuf[0] + 1.0);
-          check(outBuf[0]).isCloseTo(expected, 1e-12);
-        }
-      });
-
-      test(
-        'kernel execution with deeply nested unary and stack operations',
-        () {
-          const x = Variable('x');
-          // Expression testing heavy stack reuse:
-          // f(x) = exp(-(-(-sin(cos(sin(x)))))) + x^2 - x^3 + x^4
-          final expr =
-              const Exp(Neg(Neg(Neg(Sin(Cos(Sin(x))))))) +
-              x.pow(const RationalNumber(2)) -
-              x.pow(const RationalNumber(3)) +
-              x.pow(const RationalNumber(4));
-
-          final kernel = expr.compileTensorKernel(['x']);
-
-          final xBuf = Float64List.fromList([0.1, 0.5, 1.0, 1.5, 2.0]);
-          final outBuf = Float64List(5);
-
-          for (var iter = 0; iter < 1000; iter++) {
-            kernel([xBuf], outBuf);
-          }
-
-          for (var i = 0; i < 5; i++) {
-            final xVal = xBuf[i];
-            final inner = -math.sin(math.cos(math.sin(xVal)));
-            final expected =
-                math.exp(inner) +
-                math.pow(xVal, 2) -
-                math.pow(xVal, 3) +
-                math.pow(xVal, 4);
-            check(outBuf[i]).isCloseTo(expected, 1e-12);
-          }
-        },
-      );
-    },
-  );
-
-  group('Empirical Challenge 3: Free Variables Correctness & Tree Stress', () {
+  group('Free Variables Correctness & Tree Traversal Stress', () {
     test('bushy tree with hundreds of variables collects all variables without stack overflow', () {
-      // Build a balanced binary tree of depth 14 with 16,384 leaves (32,767 total nodes)
       const depth = 14;
       const numDistinctVars = 512;
 
@@ -302,7 +175,6 @@ void main() {
 
       final bushyTree = buildBushyTree(0, 0);
 
-      // Verify collectFreeVariables with a reused target set
       final collected = <String>{};
       bushyTree.collectFreeVariables(collected);
 
@@ -311,12 +183,10 @@ void main() {
         check(collected.contains('var_$i')).isTrue();
       }
 
-      // Verify freeVariables getter produces identical results
       final fromGetter = bushyTree.freeVariables;
       check(fromGetter.length).equals(numDistinctVars);
       check(fromGetter).unorderedEquals(collected);
 
-      // Verify dependsOn consistency
       check(bushyTree.dependsOn('var_0')).isTrue();
       check(bushyTree.dependsOn('var_255')).isTrue();
       check(bushyTree.dependsOn('var_511')).isTrue();
@@ -363,6 +233,72 @@ void main() {
       check(unaryTree.freeVariables).unorderedEquals({'root'});
       check(unaryTree.dependsOn('root')).isTrue();
       check(unaryTree.dependsOn('other')).isFalse();
+    });
+  });
+
+  group('Canonical Pow & Radical AST Representation', () {
+    const x = Variable('x');
+
+    test('Pow(base, RationalNumber(1, 2)) canonical properties', () {
+      const pow1 = Pow(x, RationalNumber(1, 2));
+      const pow2 = Pow(x, RationalNumber(1, 2));
+      const powOther = Pow(x, RationalNumber(1, 3));
+
+      check(pow1 == pow2).isTrue();
+      check(pow1.hashCode == pow2.hashCode).isTrue();
+      check(pow1 == powOther).isFalse();
+
+      check(pow1.freeVariables).unorderedEquals({'x'});
+
+      final substituted = pow1.substitute('x', const RationalNumber(9));
+      check(substituted)
+          .equals(const Pow(RationalNumber(9), RationalNumber(1, 2)));
+      check(substituted.evaluate({})).equals(3.0);
+    });
+
+    test('sqrt and pow parse canonically to Pow AST node', () {
+      final sqrtExpr = Expr.parse('sqrt(x)');
+      check(sqrtExpr).isA<Pow>();
+      final powNode = sqrtExpr as Pow;
+      check(powNode.base).equals(const Variable('x'));
+      check(powNode.exponent).equals(const RationalNumber(1, 2));
+
+      final powExpr = Expr.parse('pow(x, 3)');
+      check(powExpr).isA<Pow>();
+      final powNode2 = powExpr as Pow;
+      check(powNode2.base).equals(const Variable('x'));
+      check(powNode2.exponent).equals(const RationalNumber(3));
+
+      final nestedSqrt = Expr.parse('sqrt(x^2 + 1)');
+      check(nestedSqrt).isA<Pow>();
+      check((nestedSqrt as Pow).exponent).equals(const RationalNumber(1, 2));
+    });
+
+    test('direct evaluate on square roots and powers', () {
+      // sqrt(4) = 2
+      const sqrt4 = Pow(RationalNumber(4), RationalNumber(1, 2));
+      check(sqrt4.evaluate({})).equals(2.0);
+
+      // sqrt(0) = 0
+      const sqrt0 = Pow(RationalNumber(0), RationalNumber(1, 2));
+      check(sqrt0.evaluate({})).equals(0.0);
+
+      // sqrt(-1) = NaN
+      const sqrtNeg = Pow(RationalNumber(-1), RationalNumber(1, 2));
+      check(sqrtNeg.evaluate({}).isNaN).isTrue();
+
+      // sqrt(x^2) for positive and negative numbers
+      const sqrtX2 = Pow(Pow(x, RationalNumber(2)), RationalNumber(1, 2));
+      check(sqrtX2.evaluate({'x': 5.0})).equals(5.0);
+      check(sqrtX2.evaluate({'x': -5.0})).equals(5.0);
+
+      // pow(x, -2) for x = 4
+      const xPowNeg2 = Pow(x, RationalNumber(-2));
+      check(xPowNeg2.evaluate({'x': 4.0})).equals(0.0625);
+
+      // pow(0, -1) = Infinity
+      const div0 = Pow(RationalNumber(0), RationalNumber(-1));
+      check(div0.evaluate({})).equals(double.infinity);
     });
   });
 }

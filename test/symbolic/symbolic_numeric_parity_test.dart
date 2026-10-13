@@ -1,10 +1,12 @@
 import 'dart:math' as math;
+import 'dart:typed_data';
 
 import 'package:checks/checks.dart';
 import 'package:data/linear.dart';
 import 'package:data/numeric.dart';
 import 'package:data/symbolic.dart';
-import 'package:test/test.dart';
+import 'package:data/type.dart' show Complex;
+import 'package:test/scaffolding.dart';
 
 void main() {
   group('Symbolic differentiation order & aliases', () {
@@ -377,6 +379,189 @@ void main() {
           .evaluate(const {});
       final numTanh = integrate(exprTanh.toFunction1D('x'), 0.0, 1.0);
       check(numTanh).isCloseTo(symTanh, 1e-6);
+    });
+  });
+
+  group('End-to-End Pipeline & Numeric Parity', () {
+    test(
+      'End-to-End: Parse -> Expand -> Derivative -> Factor -> Solve -> Compile',
+      () {
+        final parsed = Expr.parse('(x - 1) * (x - 2) * (x - 3)');
+
+        final expanded = parsed.expand();
+        check(expanded.evaluate({'x': 4.0})).equals(6.0);
+
+        final deriv = expanded.derivative('x').simplify();
+
+        final fn = expanded.toFunction1D('x');
+        final dfn = deriv.toFunction1D('x');
+        for (final testX in [0.0, 1.5, 2.5, 5.0]) {
+          final numDeriv = derivative(fn, testX);
+          final symDeriv = dfn(testX);
+          check(symDeriv).isCloseTo(numDeriv, 1e-4);
+        }
+
+        final roots = expanded.solve('x');
+        check(roots.length).equals(3);
+        check(roots).contains(const RationalNumber(1));
+        check(roots).contains(const RationalNumber(2));
+        check(roots).contains(const RationalNumber(3));
+
+        final integral = expanded.integrate('x', from: 0, to: 1);
+        final numInt = integrate(fn, 0.0, 1.0);
+        check(integral.evaluate({})).isCloseTo(numInt, 1e-5);
+      },
+    );
+
+    test('Analytical vs Numerical Derivative across transcendental suite', () {
+      const x = Variable('x');
+      final testCases = <({Expr expr, double point, double tol})>[
+        (expr: const Sin(x) * const Cos(x), point: 0.7, tol: 1e-4),
+        (expr: Exp(-x * x), point: 0.5, tol: 1e-4),
+        (expr: Ln(x * x + 1), point: 1.2, tol: 1e-4),
+        (expr: const Tanh(x), point: 0.8, tol: 1e-4),
+        (expr: x / (x * x + 1), point: 1.5, tol: 1e-4),
+        (
+          expr: Pow(x * x + 1, const RationalNumber(1, 2)),
+          point: 2.0,
+          tol: 1e-4,
+        ),
+        (expr: const Atan(x), point: 0.6, tol: 1e-4),
+        (expr: const Asin(x), point: 0.4, tol: 1e-4),
+        (expr: x * x * x - x * x * 5 + x * 2 - 7, point: 3.0, tol: 1e-3),
+      ];
+
+      for (final tc in testCases) {
+        final analyticalDeriv = tc.expr.derivative('x').simplify();
+        final symFn = analyticalDeriv.toFunction1D('x');
+        final baseFn = tc.expr.toFunction1D('x');
+        final numVal = derivative(baseFn, tc.point);
+        final symVal = symFn(tc.point);
+        check(symVal).isCloseTo(numVal, tc.tol);
+      }
+    });
+
+    test('Real vs Complex Evaluation Consistency on Real Axis', () {
+      const x = Variable('x');
+      final expressions = <Expr>[
+        x + 2,
+        x * 3 - 5,
+        x.pow(2) + x - 1,
+        const Sin(x),
+        const Cos(x),
+        const Tan(x),
+        const Sinh(x),
+        const Cosh(x),
+        const Tanh(x),
+        const Exp(x),
+        const Ln(x),
+        const Atan(x),
+        Abs(x - 2),
+      ];
+
+      for (final expr in expressions) {
+        for (final val in [0.2, 0.7, 1.3, 2.5]) {
+          final realVal = expr.evaluate({'x': val});
+          final complexVal = expr.evaluateComplex({'x': Complex(val, 0)});
+          check(complexVal.a).isCloseTo(realVal, 1e-10);
+          check(complexVal.b).isCloseTo(0.0, 1e-10);
+        }
+      }
+    });
+  });
+
+  group('Public API Doc Examples Parity', () {
+    test('lib/symbolic.dart library example', () {
+      final f = Expr.parse('x^3 + 2 * x');
+      final df = f.derivative('x').simplify();
+      check(df.toString()).isNotEmpty();
+      check(df.toLatex().isNotEmpty).isTrue();
+      final fn = df.toFunction1D('x');
+      check(fn(2.0)).isCloseTo(14.0, 1e-6);
+    });
+
+    test('Expr evaluation, parse, and tryParse', () {
+      const x = Variable('x');
+      final expr = x * x + x * 2 + 1;
+      final val = expr.evaluate({'x': 3.0});
+      check(val).equals(16.0);
+
+      final str = formatExpr(x * x + 1);
+      check(str).equals('x * x + 1');
+
+      final f = Expr.parse('sin(pi * x) + 2 * x');
+      check(f.evaluate({'x': 0.5})).isCloseTo(2.0, 1e-6);
+
+      final expr2 = Expr.tryParse('2 * x + 1');
+      check(expr2).isNotNull();
+    });
+
+    test('Vector and tensor compilation doc examples', () {
+      const x = Variable('x');
+      const y = Variable('y');
+
+      final fVec = (x + y * 2).toVectorFunction(['x', 'y']);
+      check(fVec(Vector.fromList([3.0, 4.0]))).equals(11.0);
+
+      final fPos = (x + y * 2).compile(['x', 'y']);
+      check(fPos([3.0, 4.0])).equals(11.0);
+
+      final kernel = (x * 2).compileTensorKernel(['x']);
+      final input = Float64List.fromList([1.0, 2.0, 3.0]);
+      final output = Float64List(3);
+      kernel([input], output);
+      check(output[0]).equals(2.0);
+      check(output[1]).equals(4.0);
+      check(output[2]).equals(6.0);
+    });
+
+    test('Complex doc examples', () {
+      final z = const RationalNumber(3) + const RationalNumber(4) * i;
+      check(z.evaluateComplex()).equals(const Complex(3, 4));
+
+      const x = Variable('x');
+      final expr = x * x + 1;
+      final result = expr.evaluateComplex({'x': const Complex(0, 1)});
+      check(result.a).isCloseTo(0.0, 1e-12);
+      check(result.b).isCloseTo(0.0, 1e-12);
+
+      final f = (x * x + 1).toComplexFunction1D('x');
+      final y = f(const Complex(0, 1));
+      check(y.a).isCloseTo(0.0, 1e-12);
+      check(y.b).isCloseTo(0.0, 1e-12);
+    });
+
+    test('Structural order doc example', () {
+      const x = Variable('x');
+      final cmp = compareStructural(const RationalNumber(1), x);
+      check(cmp).isA<int>();
+      check(cmp < 0).isTrue();
+    });
+
+    test('Linear form and multivariable doc examples', () {
+      const x = Variable('x');
+      const y = Variable('y');
+
+      final lin = (x * 2 + 5).matchLinear('x');
+      check(lin).isNotNull();
+      check(lin!.a).equals(const RationalNumber(2));
+      check(lin.b).equals(const RationalNumber(5));
+
+      final k = (x * 6).matchScalarMultiple(x * 2, 'x');
+      check(k).equals(const RationalNumber(3));
+
+      final scaled = (x + 2).scale(const RationalNumber(3));
+      check(scaled.evaluate({'x': 1.0})).equals(9.0);
+
+      final grad = (x * x + y * y).gradient(['x', 'y']);
+      check(grad.length).equals(2);
+
+      final h = (x * x + x * y * 3).hessian(['x', 'y']);
+      check(h.length).equals(2);
+      check(h[0].length).equals(2);
+
+      final jac = [x * y, x + y].jacobian(['x', 'y']);
+      check(jac.length).equals(2);
     });
   });
 }

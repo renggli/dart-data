@@ -314,4 +314,286 @@ void main() {
       check(expr3.evaluate({})).equals(1.0);
     });
   });
+
+  group('Parser stress and radical/composite powers', () {
+    const x = Variable('x');
+    const y = Variable('y');
+
+    test('nested radicals and composite powers', () {
+      final sqrtSqrtX = Expr.parse('sqrt(sqrt(x))');
+      check(
+        sqrtSqrtX,
+      ).equals(const Pow(Pow(x, RationalNumber(1, 2)), RationalNumber(1, 2)));
+      check(Expr.tryParse('sqrt(sqrt(x))')).equals(sqrtSqrtX);
+
+      final sqrtPowX2 = Expr.parse('sqrt(pow(x, 2))');
+      check(sqrtPowX2)
+          .equals(const Pow(Pow(x, RationalNumber(2)), RationalNumber(1, 2)));
+      check(Expr.tryParse('sqrt(pow(x, 2))')).equals(sqrtPowX2);
+
+      final powSqrtX2 = Expr.parse('pow(sqrt(x), 2)');
+      check(powSqrtX2)
+          .equals(const Pow(Pow(x, RationalNumber(1, 2)), RationalNumber(2)));
+
+      final deepSqrt = Expr.parse('sqrt(sqrt(sqrt(16)))');
+      check(deepSqrt.evaluate({})).isCloseTo(math.pow(16.0, 1.0 / 8.0), 1e-12);
+
+      final nestedPow = Expr.parse('pow(pow(x, 2), 3)');
+      check(nestedPow)
+          .equals(const Pow(Pow(x, RationalNumber(2)), RationalNumber(3)));
+      check(nestedPow.evaluate({'x': 2.0})).equals(64.0);
+
+      final compositeRadical = Expr.parse('sqrt(1 / (1 - x ^ 2))');
+      check(compositeRadical).equals(
+        const Pow(
+          Div(
+            RationalNumber(1),
+            Sub(RationalNumber(1), Pow(x, RationalNumber(2))),
+          ),
+          RationalNumber(1, 2),
+        ),
+      );
+    });
+
+    test('multi-argument expressions: pow, root, log', () {
+      check(Expr.parse('pow(x, y)')).equals(const Pow(x, y));
+      check(Expr.tryParse('pow(x, y)')).equals(const Pow(x, y));
+
+      check(
+        Expr.parse('pow(x + 1, y - 1)'),
+      ).equals(const Pow(Add(x, RationalNumber(1)), Sub(y, RationalNumber(1))));
+
+      check(Expr.parse('pow(sin(x), cos(y))'))
+          .equals(const Pow(Sin(x), Cos(y)));
+
+      final root3 = Expr.parse('root(3, x)');
+      check(root3)
+          .equals(const Pow(x, Div(RationalNumber.one, RationalNumber(3))));
+      check(root3.evaluate({'x': 27.0})).isCloseTo(3.0, 1e-9);
+
+      final log2 = Expr.parse('log(2, x)');
+      check(log2).equals(const Log(RationalNumber(2), x));
+      check(log2.evaluate({'x': 8.0})).isCloseTo(3.0, 1e-9);
+    });
+
+    test('negative powers and fractional exponents', () {
+      final powNeg2 = Expr.parse('pow(x, -2)');
+      check(powNeg2).equals(const Pow(x, Neg(RationalNumber(2))));
+      check(powNeg2.evaluate({'x': 2.0})).equals(0.25);
+
+      final xPowNeg2 = Expr.parse('x ^ (-2)');
+      check(xPowNeg2).equals(const Pow(x, Neg(RationalNumber(2))));
+      check(xPowNeg2.evaluate({'x': 4.0})).equals(1.0 / 16.0);
+
+      check(() => Expr.parse('x ^ -2')).throws<FormatException>();
+      check(Expr.tryParse('x ^ -2')).isNull();
+
+      final sqrtPowNeg = Expr.parse('sqrt(x ^ (-2))');
+      check(
+        sqrtPowNeg,
+      ).equals(const Pow(Pow(x, Neg(RationalNumber(2))), RationalNumber(1, 2)));
+      check(sqrtPowNeg.evaluate({'x': 4.0})).equals(0.25);
+
+      final powNegFrac = Expr.parse('pow(x, -1 / 2)');
+      check(powNegFrac)
+          .equals(const Pow(x, Div(Neg(RationalNumber(1)), RationalNumber(2))));
+      check(powNegFrac.evaluate({'x': 4.0})).equals(0.5);
+    });
+
+    test('whitespace variations in function calls', () {
+      check(Expr.parse('  sqrt  (  x  )  '))
+          .equals(const Pow(x, RationalNumber(1, 2)));
+      check(Expr.parse('pow  (  x  ,  y  )  ')).equals(const Pow(x, y));
+      check(Expr.parse('sqrt ( pow ( x , 2 ) )'))
+          .equals(const Pow(Pow(x, RationalNumber(2)), RationalNumber(1, 2)));
+      check(Expr.parse('pow( x , - 2 )'))
+          .equals(const Pow(x, Neg(RationalNumber(2))));
+    });
+
+    test(
+      'malformed syntax throws FormatException or returns null in tryParse',
+      () {
+        check(() => Expr.parse('sqrt(x, y)')).throws<FormatException>();
+        check(Expr.tryParse('sqrt(x, y)')).isNull();
+        check(() => Expr.parse('sqrt(x, y, z)')).throws<FormatException>();
+        check(Expr.tryParse('sqrt(x, y, z)')).isNull();
+
+        check(() => Expr.parse('pow(x)')).throws<FormatException>();
+        check(Expr.tryParse('pow(x)')).isNull();
+        check(() => Expr.parse('pow(x, y, z)')).throws<FormatException>();
+        check(Expr.tryParse('pow(x, y, z)')).isNull();
+
+        check(() => Expr.parse('sqrt(x')).throws<FormatException>();
+        check(Expr.tryParse('sqrt(x')).isNull();
+        check(() => Expr.parse('pow(x, y')).throws<FormatException>();
+        check(Expr.tryParse('pow(x, y')).isNull();
+
+        check(() => Expr.parse('sqrt)x(')).throws<FormatException>();
+        check(Expr.tryParse('sqrt)x(')).isNull();
+
+        check(() => Expr.parse('pow(,)')).throws<FormatException>();
+        check(Expr.tryParse('pow(,)')).isNull();
+        check(() => Expr.parse('sqrt(,)')).throws<FormatException>();
+        check(Expr.tryParse('sqrt(,)')).isNull();
+        check(() => Expr.parse('pow(x, )')).throws<FormatException>();
+        check(Expr.tryParse('pow(x, )')).isNull();
+        check(() => Expr.parse('pow(, y)')).throws<FormatException>();
+        check(Expr.tryParse('pow(, y)')).isNull();
+
+        check(Expr.parse('sqrt()')).equals(const Variable('sqrt'));
+        check(Expr.parse('pow()')).equals(const Variable('pow'));
+      },
+    );
+  });
+
+  group('Parser & textualization round-trip battery', () {
+    test('parses complex expression containing all operations', () {
+      const input =
+          'tan(x + 1) + sinh(2 * y) * cosh(z) / tanh(w) - abs(acos(u)) + sqrt(asin(v)) + log(2, atan(t)) + root(3, s)';
+      final parsed = Expr.parse(input);
+      check(parsed).isA<Expr>();
+
+      check(parsed.freeVariables)
+          .unorderedEquals({'x', 'y', 'z', 'w', 'u', 'v', 't', 's'});
+
+      final latex = parsed.toLatex();
+      check(latex).contains(r'\tan(x + 1)');
+      check(latex).contains(r'\sinh(2 \cdot y)');
+      check(latex).contains(r'\cosh(z)');
+      check(latex).contains(r'\tanh(w)');
+      check(latex).contains(r'\left|\arccos(u)\right|');
+      check(latex).contains(r'\sqrt{\arcsin(v)}');
+      check(latex).contains(r'\log_{2}(\arctan(t))');
+      check(latex).contains(r'{s}^{\frac{1}{3}}');
+
+      final simplifiedLatex = parsed.simplify().toLatex();
+      check(simplifiedLatex).contains(r'\sqrt[3]{s}');
+
+      final mathml = parsed.toMathMl();
+      check(mathml).startsWith('<math>');
+      check(mathml).endsWith('</math>');
+      check(mathml).contains('<mi>tan</mi>');
+      check(mathml).contains('<mi>sinh</mi>');
+      check(mathml).contains('<mi>cosh</mi>');
+      check(mathml).contains('<mi>tanh</mi>');
+      check(mathml).contains('<mo>|</mo>');
+      check(mathml).contains('<mi>arccos</mi>');
+      check(mathml).contains('<msqrt>');
+      check(mathml).contains('<mi>arcsin</mi>');
+      check(mathml).contains('<msub><mi>log</mi><mn>2</mn></msub>');
+      check(mathml).contains('<mi>arctan</mi>');
+
+      final simplifiedMathMl = parsed.simplify().toMathMl();
+      check(simplifiedMathMl).contains(
+        '<mroot><mrow><mi>s</mi></mrow><mrow><mn>3</mn></mrow></mroot>',
+      );
+
+      final str = parsed.toString();
+      final reparsed = Expr.parse(str);
+      check(reparsed.freeVariables).unorderedEquals(parsed.freeVariables);
+
+      final testEnv = {
+        'x': 0.1,
+        'y': 0.2,
+        'z': 0.3,
+        'w': 0.4,
+        'u': 0.5,
+        'v': 0.6,
+        't': 0.7,
+        's': 8.0,
+      };
+      final valOriginal = parsed.evaluate(testEnv);
+      final valReparsed = reparsed.evaluate(testEnv);
+      check((valOriginal - valReparsed).abs()).isLessThan(1e-12);
+    });
+
+    test(
+      'LaTeX and MathML formatting for all 10 operations with nested arguments',
+      () {
+        final tests = <String, (String, String)>{
+          'tan(x)': (
+            r'\tan(x)',
+            '<mrow><mi>tan</mi><mo>(</mo><mi>x</mi><mo>)</mo></mrow>',
+          ),
+          'asin(x)': (
+            r'\arcsin(x)',
+            '<mrow><mi>arcsin</mi><mo>(</mo><mi>x</mi><mo>)</mo></mrow>',
+          ),
+          'acos(x)': (
+            r'\arccos(x)',
+            '<mrow><mi>arccos</mi><mo>(</mo><mi>x</mi><mo>)</mo></mrow>',
+          ),
+          'atan(x)': (
+            r'\arctan(x)',
+            '<mrow><mi>arctan</mi><mo>(</mo><mi>x</mi><mo>)</mo></mrow>',
+          ),
+          'sinh(x)': (
+            r'\sinh(x)',
+            '<mrow><mi>sinh</mi><mo>(</mo><mi>x</mi><mo>)</mo></mrow>',
+          ),
+          'cosh(x)': (
+            r'\cosh(x)',
+            '<mrow><mi>cosh</mi><mo>(</mo><mi>x</mi><mo>)</mo></mrow>',
+          ),
+          'tanh(x)': (
+            r'\tanh(x)',
+            '<mrow><mi>tanh</mi><mo>(</mo><mi>x</mi><mo>)</mo></mrow>',
+          ),
+          'abs(x)': (
+            r'\left|x\right|',
+            '<mrow><mo>|</mo><mi>x</mi><mo>|</mo></mrow>',
+          ),
+          'sqrt(x)': (r'\sqrt{x}', '<msqrt><mrow><mi>x</mi></mrow></msqrt>'),
+          'log(10, x)': (
+            r'\log_{10}(x)',
+            '<mrow><msub><mi>log</mi><mn>10</mn></msub><mo>(</mo><mi>x</mi><mo>)</mo></mrow>',
+          ),
+        };
+
+        for (final entry in tests.entries) {
+          final parsed = Expr.parse(entry.key);
+          final (expectedLatex, expectedMathMlInner) = entry.value;
+          check(parsed.toLatex()).equals(expectedLatex);
+          check(parsed.toMathMl(root: false)).equals(expectedMathMlInner);
+        }
+      },
+    );
+
+    test(
+      'String formatting round-trip invariance across variety of functions',
+      () {
+        final expressions = [
+          'tan(2 * x + 1)',
+          'sinh(x) / cosh(x)',
+          'asin(x / 2) + acos(x / 2)',
+          'atan(x) * tanh(y)',
+          'abs(x - y) + sqrt(x^2 + y^2)',
+          'log(2, x + 1) - log(10, y + 1)',
+          'exp(-x^2) * sin(pi * x)',
+        ];
+
+        for (final exprStr in expressions) {
+          final parsed = Expr.parse(exprStr);
+          final formatted = parsed.toString();
+          final reparsed = Expr.parse(formatted);
+
+          final env = {'x': 0.3, 'y': 0.7};
+          final originalVal = parsed.evaluate(env);
+          final reparsedVal = reparsed.evaluate(env);
+          check((originalVal - reparsedVal).abs()).isLessThan(1e-12);
+        }
+      },
+    );
+
+    test('Parser arity validation', () {
+      check(() => Expr.parse('tan(x, y)')).throws<FormatException>();
+      check(() => Expr.parse('sin(x, y)')).throws<FormatException>();
+      check(() => Expr.parse('cosh(x, y)')).throws<FormatException>();
+      check(() => Expr.parse('abs(x, y)')).throws<FormatException>();
+      check(() => Expr.parse('sqrt(x, y)')).throws<FormatException>();
+      check(() => Expr.parse('log(2, 3, 4)')).throws<FormatException>();
+      check(() => Expr.parse('root(2, 3, 4)')).throws<FormatException>();
+      check(() => Expr.parse('root(2)')).throws<FormatException>();
+    });
+  });
 }
