@@ -2,7 +2,6 @@ import 'dart:math' as math;
 import 'dart:typed_data';
 
 import 'package:checks/checks.dart';
-import 'package:data/linear.dart';
 import 'package:data/symbolic.dart';
 import 'package:test/scaffolding.dart';
 

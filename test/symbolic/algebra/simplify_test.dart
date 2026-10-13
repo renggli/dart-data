@@ -758,8 +758,6 @@ void main() {
   });
 
   group('Adversarial stress-test: Log simplification across bases 2, 10, e and arbitrary expressions', () {
-    const b = Variable('b');
-
     test('log(b, 1) = 0 for bases 2, 10, e and arbitrary expression', () {
       check(Expr.parse('log(2, 1)').simplify()).equals(RationalNumber.zero);
       check(Expr.parse('log(10, 1)').simplify()).equals(RationalNumber.zero);
@@ -799,9 +797,8 @@ void main() {
       check(Expr.parse('log(2, 2^3)').simplify())
           .equals(const Div(Ln(RationalNumber(8)), Ln(RationalNumber(2))));
 
-      // DEFECT in simplifyDiv: (-u) / u does not pull negation out, leaving -ln(b)/ln(b)
       check(Expr.parse('log(b, b^(-1))').simplify())
-          .equals(const Div(Neg(Ln(b)), Ln(b)));
+          .equals(RationalNumber.negativeOne);
     });
 
     test('log evaluation accuracy across bases', () {

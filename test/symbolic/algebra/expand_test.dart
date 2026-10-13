@@ -602,7 +602,7 @@ void main() {
         final p = Pow(x.pow(2) - y.pow(2), const RationalNumber(2)) / z;
         final e = p.expand();
         check(e.toString())
-            .equals('-(2 * (x * y) ^ 2) / z + x ^ 4 / z + y ^ 4 / z');
+            .equals('x ^ 4 / z + y ^ 4 / z - 2 * (x * y) ^ 2 / z');
       });
     },
   );

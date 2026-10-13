@@ -309,7 +309,9 @@ class Vector<T> {
   /// Multiplies every element by [scalar].
   Vector<T> scale(T scalar) {
     final field = type.field;
-    return Vector(tensor.unaryOperation((val) => field.mul(val, scalar)));
+    return Vector(
+      tensor.unaryOperation((val) => field.mul(val, scalar), type: type),
+    );
   }
 
   /// Computes the algebraic inner product (dot product) with [other].

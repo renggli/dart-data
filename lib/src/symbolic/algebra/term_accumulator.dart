@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:more/number.dart' show Fraction;
 
 import '../ast.dart';
+import 'expand.dart';
 import 'simplify.dart';
 import 'structural_order.dart';
 
@@ -380,6 +381,9 @@ class MonomialAccumulator {
   /// Reconstructs the canonical [Expr] AST tree from accumulated terms and constants.
   Expr build() {
     _absorbOrderTerms();
+    if (simplify != null) {
+      combineFractions();
+    }
     rationalTerms.removeWhere((_, coeff) => coeff.isZero);
     realTerms.removeWhere((_, coeff) => coeff == 0.0);
 
@@ -575,6 +579,116 @@ class MonomialAccumulator {
     return false;
   }
 
+  bool _isCombiningFractions = false;
+
+  /// Combines fractions with identical denominators.
+  void combineFractions() {
+    if (_isCombiningFractions) return;
+    _isCombiningFractions = true;
+    try {
+      _doCombineFractions();
+    } finally {
+      _isCombiningFractions = false;
+    }
+  }
+
+  void _doCombineFractions() {
+    final rationalFractions = <Expr, (Div, Fraction)>{};
+    for (final entry in rationalTerms.entries) {
+      if (entry.key is Div && !entry.value.isZero) {
+        rationalFractions[entry.key] = (entry.key as Div, entry.value);
+      }
+    }
+
+    final realFractions = <Expr, (Div, double)>{};
+    for (final entry in realTerms.entries) {
+      if (entry.key is Div && entry.value != 0.0) {
+        realFractions[entry.key] = (entry.key as Div, entry.value);
+      }
+    }
+
+    if (rationalFractions.isEmpty && realFractions.isEmpty) return;
+
+    final groups = <Expr, List<(Expr, Div, Fraction?, double?)>>{};
+    for (final entry in rationalFractions.entries) {
+      groups.putIfAbsent(entry.value.$1.right, () => []).add((
+        entry.key,
+        entry.value.$1,
+        entry.value.$2,
+        null,
+      ));
+    }
+    for (final entry in realFractions.entries) {
+      groups.putIfAbsent(entry.value.$1.right, () => []).add((
+        entry.key,
+        entry.value.$1,
+        null,
+        entry.value.$2,
+      ));
+    }
+
+    for (final entry in groups.entries) {
+      final den = entry.key;
+      final items = entry.value;
+      if (items.length < 2) continue;
+
+      for (final (base, _, frac, realVal) in items) {
+        if (frac != null) {
+          rationalTerms.remove(base);
+        }
+        if (realVal != null) {
+          realTerms.remove(base);
+        }
+      }
+
+      final numerators = <Expr>[];
+      for (final (_, div, frac, realVal) in items) {
+        final num = div.left;
+        if (frac != null) {
+          if (frac == Fraction.one) {
+            numerators.add(num);
+          } else if (frac == -Fraction.one) {
+            numerators.add(simplifyNeg(num));
+          } else {
+            numerators.add(simplifyMul(RationalNumber.fraction(frac), num));
+          }
+        } else if (realVal != null) {
+          if (realVal == 1.0) {
+            numerators.add(num);
+          } else if (realVal == -1.0) {
+            numerators.add(simplifyNeg(num));
+          } else {
+            numerators.add(simplifyMul(RealNumber(realVal), num));
+          }
+        }
+      }
+
+      var totalNum = numerators.first;
+      for (var i = 1; i < numerators.length; i++) {
+        totalNum = Add(totalNum, numerators[i]);
+      }
+      final simplifiedNum = totalNum.expand().simplify();
+
+      if (_isZero(simplifiedNum)) {
+        // Combined numerator is 0: sum is 0, nothing added.
+      } else if (simplifiedNum == den ||
+          _isAlgebraicallyZero(Sub(simplifiedNum, den))) {
+        add(RationalNumber.one);
+      } else if (_isAlgebraicallyZero(Add(simplifiedNum, den))) {
+        add(RationalNumber.negativeOne);
+      } else {
+        final combined = simplifyDiv(simplifiedNum, den);
+        add(combined);
+      }
+    }
+  }
+
+  static bool _isAlgebraicallyZero(Expr expr) {
+    if (_isZero(expr)) return true;
+    final s = expr.expand().simplify();
+    return _isZero(s);
+  }
+
   /// Backward-compatible alias for [build].
   Expr toExpr() => build();
 
@@ -669,6 +783,18 @@ bool _isTranscendental(Expr expr) => switch (expr) {
     }
   }
   if (expr is Div) {
+    if (expr.left is Neg) {
+      final (c, b, r) = _decomposeMonomial(
+        Div((expr.left as Neg).expr, expr.right),
+      );
+      return (-c, b, r != null ? -r : null);
+    }
+    if (expr.right is Neg) {
+      final (c, b, r) = _decomposeMonomial(
+        Div(expr.left, (expr.right as Neg).expr),
+      );
+      return (-c, b, r != null ? -r : null);
+    }
     if (expr.right is RationalNumber) {
       final c1 = (expr.right as RationalNumber).toFraction();
       final (c2, b, r) = _decomposeMonomial(expr.left);
@@ -678,6 +804,16 @@ bool _isTranscendental(Expr expr) => switch (expr) {
       final r1 = (expr.right as RealNumber).value;
       final (c2, b, r2) = _decomposeMonomial(expr.left);
       return (Fraction.one, b, (r2 ?? (c2.a / c2.b)) / r1);
+    }
+    if (expr.left is RationalNumber) {
+      final c1 = (expr.left as RationalNumber).toFraction();
+      if (c1 != Fraction.one) {
+        return (c1, Div(RationalNumber.one, expr.right), null);
+      }
+    }
+    if (expr.left is RealNumber) {
+      final r1 = (expr.left as RealNumber).value;
+      return (Fraction.one, Div(RationalNumber.one, expr.right), r1);
     }
   }
   return (Fraction.one, expr, null);
@@ -795,10 +931,18 @@ Expr? isSquareOf(Expr term, Type targetType) => switch (term) {
       return (c1 * c2, b);
     }
   }
-  if (expr is Div && expr.right is RationalNumber) {
-    final c1 = (expr.right as RationalNumber).toFraction();
-    final (c2, b) = decomposeTerm(expr.left);
-    return (c2 / c1, b);
+  if (expr is Div) {
+    if (expr.right is RationalNumber) {
+      final c1 = (expr.right as RationalNumber).toFraction();
+      final (c2, b) = decomposeTerm(expr.left);
+      return (c2 / c1, b);
+    }
+    if (expr.left is RationalNumber) {
+      final c1 = (expr.left as RationalNumber).toFraction();
+      if (c1 != Fraction.one) {
+        return (c1, Div(RationalNumber.one, expr.right));
+      }
+    }
   }
   return (Fraction.one, expr);
 }
@@ -807,6 +951,15 @@ Expr? isSquareOf(Expr term, Type targetType) => switch (term) {
 (Expr, Expr) decomposeFactor(Expr expr) {
   if (expr is Pow) {
     return (expr.base, expr.exponent);
+  }
+  if (expr is Div &&
+      expr.left is RationalNumber &&
+      (expr.left as RationalNumber).isOne) {
+    if (expr.right is Pow) {
+      final p = expr.right as Pow;
+      return (p.base, simplifyNeg(p.exponent));
+    }
+    return (expr.right, RationalNumber.negativeOne);
   }
   return (expr, RationalNumber.one);
 }

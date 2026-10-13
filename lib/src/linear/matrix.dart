@@ -646,7 +646,9 @@ class Matrix<T> implements LinearOperator<T> {
   /// Scales every element by [scalar].
   Matrix<T> scale(T scalar) {
     final field = type.field;
-    return Matrix(tensor.unaryOperation((val) => field.mul(val, scalar)));
+    return Matrix(
+      tensor.unaryOperation((val) => field.mul(val, scalar), type: type),
+    );
   }
 
   /// Element-wise Hadamard product.

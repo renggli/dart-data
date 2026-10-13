@@ -2,7 +2,6 @@ import 'dart:math' as math;
 import 'dart:typed_data';
 
 import 'package:checks/checks.dart';
-import 'package:data/linear.dart';
 import 'package:data/numeric.dart';
 import 'package:data/symbolic.dart';
 import 'package:data/type.dart' show Complex;
@@ -557,11 +556,13 @@ void main() {
       check(grad.length).equals(2);
 
       final h = (x * x + x * y * 3).hessian(['x', 'y']);
-      check(h.length).equals(2);
+      check(h.rowCount).equals(2);
+      check(h.colCount).equals(2);
       check(h[0].length).equals(2);
 
       final jac = [x * y, x + y].jacobian(['x', 'y']);
-      check(jac.length).equals(2);
+      check(jac.rowCount).equals(2);
+      check(jac.colCount).equals(2);
     });
   });
 }

@@ -34,6 +34,14 @@
 /// - **Equation Solving**: [SolverExtension.solve] for single univariate
 ///   equations and [SystemSolverExtension.solveSystem] for linear equation
 ///   systems.
+/// - **Symbolic Linear Algebra**: Symbolic vectors ([Vector]) and matrices
+///   ([Matrix]) typed with [exprDataType]; exact fraction-free determinants via
+///   [BareissEngine] ([SymbolicMatrixExtension.determinant]); characteristic
+///   polynomials ([SymbolicMatrixExtension.characteristicPolynomial]) and exact
+///   matrix inverses ([SymbolicMatrixExtension.inverse]) via
+///   [FaddeevLeVerrierEngine]; and matrix/vector calculus derivatives
+///   ([SymbolicMatrixExtension.derivative],
+///   [SymbolicVectorExtension.derivative]).
 /// - **High-Performance JIT Compilation**: [CompilerExtension.toFunction1D],
 ///   [CompilerExtension.toVectorFunction], [CompilerExtension.compile], and
 ///   [CompilerExtension.compileTensorKernel] convert symbolic expressions into
@@ -69,6 +77,8 @@ library;
 
 import 'dart:typed_data';
 
+import 'src/linear/matrix.dart';
+import 'src/linear/vector.dart';
 import 'src/symbolic/algebra/expand.dart';
 import 'src/symbolic/algebra/factor.dart';
 import 'src/symbolic/algebra/simplify.dart';
@@ -81,11 +91,17 @@ import 'src/symbolic/calculus/linear_form.dart';
 import 'src/symbolic/calculus/multivariable.dart';
 import 'src/symbolic/calculus/taylor.dart';
 import 'src/symbolic/compiler.dart';
+import 'src/symbolic/linear/bareiss.dart';
+import 'src/symbolic/linear/faddeev_leverrier.dart';
+import 'src/symbolic/linear/matrix.dart';
 import 'src/symbolic/solver.dart';
 import 'src/symbolic/textualization/latex.dart';
 import 'src/symbolic/textualization/mathml.dart';
 import 'src/symbolic/textualization/string.dart';
+import 'src/symbolic/type/expr_data_type.dart';
 
+export 'src/linear/matrix.dart' show Matrix;
+export 'src/linear/vector.dart' show Vector;
 export 'src/symbolic/algebra/expand.dart';
 export 'src/symbolic/algebra/factor.dart' show FactorExtension;
 export 'src/symbolic/algebra/simplify.dart';
@@ -99,7 +115,11 @@ export 'src/symbolic/calculus/multivariable.dart';
 export 'src/symbolic/calculus/series.dart';
 export 'src/symbolic/calculus/taylor.dart';
 export 'src/symbolic/compiler.dart';
+export 'src/symbolic/linear/bareiss.dart';
+export 'src/symbolic/linear/faddeev_leverrier.dart';
+export 'src/symbolic/linear/matrix.dart';
 export 'src/symbolic/solver.dart';
 export 'src/symbolic/textualization/latex.dart';
 export 'src/symbolic/textualization/mathml.dart';
 export 'src/symbolic/textualization/string.dart';
+export 'src/symbolic/type/expr_data_type.dart';

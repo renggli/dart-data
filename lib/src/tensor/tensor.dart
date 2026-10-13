@@ -322,14 +322,14 @@ class Tensor<T> {
   /// Creates a contiguous deep copy of this tensor.
   Tensor<T> copy({Tensor<T>? target}) {
     if (target != null) {
-      return unaryOperation<T>((value) => value, target: target);
+      return unaryOperation<T>((value) => value, target: target, type: type);
     }
     final out = Tensor.filled(
       type.defaultValue,
       shape: layout.shape,
       type: type,
     );
-    return unaryOperation<T>((value) => value, target: out);
+    return unaryOperation<T>((value) => value, target: out, type: type);
   }
 
   @override

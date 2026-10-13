@@ -12,7 +12,10 @@ extension OperationTensorExtension<T> on Tensor<T> {
     DataType<R>? type,
     Tensor<R>? target,
   }) {
-    final resultType = type ?? DataType.fromType<R>();
+    final resultType =
+        type ??
+        target?.type ??
+        (R == T ? this.type as DataType<R> : DataType.fromType<R>());
     if (target == null) {
       final len = layout.length;
       final resultData = resultType.newList(len);
@@ -56,7 +59,7 @@ extension OperationTensorExtension<T> on Tensor<T> {
               ));
 
       if (hasHazard) {
-        final temp = unaryOperation<R>(function, type: type);
+        final temp = unaryOperation<R>(function, type: resultType);
         final targetIter = target.layout.indices.iterator;
         final tempIter = temp.layout.indices.iterator;
         while (targetIter.moveNext() && tempIter.moveNext()) {
@@ -108,7 +111,14 @@ extension OperationTensorExtension<T> on Tensor<T> {
         isTargetMatching) {
       final len = layout.length;
       if (target == null) {
-        final resultType = type ?? DataType.fromType<R>();
+        final resultType =
+            type ??
+            target?.type ??
+            (R == T
+                ? this.type as DataType<R>
+                : (R == O
+                      ? other.type as DataType<R>
+                      : DataType.fromType<R>()));
         final resultData = resultType.newList(len);
         final s1 = layout.offset, s2 = other.layout.offset;
         for (var i = 0; i < len; i++) {
@@ -138,7 +148,12 @@ extension OperationTensorExtension<T> on Tensor<T> {
     final (thisLayout, otherLayout) = layout.broadcast(other.layout);
 
     if (target == null) {
-      final resultType = type ?? DataType.fromType<R>();
+      final resultType =
+          type ??
+          target?.type ??
+          (R == T
+              ? this.type as DataType<R>
+              : (R == O ? other.type as DataType<R> : DataType.fromType<R>()));
       final resultData = resultType.newList(thisLayout.length);
       final thisIter = thisLayout.indices.iterator;
       final otherIter = otherLayout.indices.iterator;
@@ -180,7 +195,11 @@ extension OperationTensorExtension<T> on Tensor<T> {
           hasHazardFor(this, thisLayout) || hasHazardFor(other, otherLayout);
 
       if (hasHazard) {
-        final temp = binaryOperation<O, R>(other, function, type: type);
+        final temp = binaryOperation<O, R>(
+          other,
+          function,
+          type: type ?? target.type,
+        );
         final targetData = target.data;
         final targetIter = target.layout.indices.iterator;
         final tempIter = temp.layout.indices.iterator;
@@ -207,36 +226,36 @@ extension OperationTensorExtension<T> on Tensor<T> {
   }
 
   /// Computes the element-wise negation $(-A)$.
-  Tensor<T> operator -() => unaryOperation<T>(type.field.neg);
+  Tensor<T> operator -() => unaryOperation<T>(type.field.neg, type: type);
 
   /// Computes element-wise addition $(A + B)$ supporting broadcasting.
   Tensor<T> operator +(Tensor<T> other) =>
-      binaryOperation<T, T>(other, type.field.add);
+      binaryOperation<T, T>(other, type.field.add, type: type);
 
   /// Computes element-wise subtraction $(A - B)$ supporting broadcasting.
   Tensor<T> operator -(Tensor<T> other) =>
-      binaryOperation<T, T>(other, type.field.sub);
+      binaryOperation<T, T>(other, type.field.sub, type: type);
 
   /// Computes element-wise Hadamard multiplication $(A \odot B)$ supporting
   /// broadcasting.
   Tensor<T> operator *(Tensor<T> other) =>
-      binaryOperation<T, T>(other, type.field.mul);
+      binaryOperation<T, T>(other, type.field.mul, type: type);
 
   /// Computes element-wise division $(A / B)$ supporting broadcasting.
   Tensor<T> operator /(Tensor<T> other) =>
-      binaryOperation<T, T>(other, type.field.div);
+      binaryOperation<T, T>(other, type.field.div, type: type);
 
   /// Computes the element-wise absolute value.
-  Tensor<T> abs() => unaryOperation<T>(type.field.abs);
+  Tensor<T> abs() => unaryOperation<T>(type.field.abs, type: type);
 
   /// Computes the element-wise square root.
-  Tensor<T> sqrt() => unaryOperation<T>(type.field.sqrt);
+  Tensor<T> sqrt() => unaryOperation<T>(type.field.sqrt, type: type);
 
   /// Computes the element-wise exponential.
-  Tensor<T> exp() => unaryOperation<T>(type.field.exp);
+  Tensor<T> exp() => unaryOperation<T>(type.field.exp, type: type);
 
   /// Computes the element-wise natural logarithm.
-  Tensor<T> log() => unaryOperation<T>(type.field.log);
+  Tensor<T> log() => unaryOperation<T>(type.field.log, type: type);
 
   /// Computes element-wise strictly less-than $(A < B)$ producing a boolean
   /// tensor.
@@ -266,15 +285,15 @@ extension OperationTensorExtension<T> on Tensor<T> {
 /// Logical bitwise operations on boolean tensors.
 extension LogicalTensorExtension on Tensor<bool> {
   /// Computes element-wise logical NOT $(\neg A)$.
-  Tensor<bool> operator ~() => unaryOperation<bool>((a) => !a);
+  Tensor<bool> operator ~() => unaryOperation<bool>((a) => !a, type: type);
 
   /// Computes element-wise logical AND $(A \land B)$ supporting broadcasting.
   Tensor<bool> operator &(Tensor<bool> other) =>
-      binaryOperation<bool, bool>(other, (a, b) => a && b);
+      binaryOperation<bool, bool>(other, (a, b) => a && b, type: type);
 
   /// Computes element-wise logical OR $(A \lor B)$ supporting broadcasting.
   Tensor<bool> operator |(Tensor<bool> other) =>
-      binaryOperation<bool, bool>(other, (a, b) => a || b);
+      binaryOperation<bool, bool>(other, (a, b) => a || b, type: type);
 }
 
 bool _areShapesEqual(List<int> a, List<int> b) {

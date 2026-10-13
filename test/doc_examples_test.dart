@@ -47,11 +47,13 @@ void main() {
       check(grad.length).equals(2);
 
       final hess = (x * x + y * y).hessian(['x', 'y']);
-      check(hess.length).equals(2);
+      check(hess.rowCount).equals(2);
+      check(hess.colCount).equals(2);
       check(hess[0].length).equals(2);
 
       final jac = [x * y, x + y].jacobian(['x', 'y']);
-      check(jac.length).equals(2);
+      check(jac.rowCount).equals(2);
+      check(jac.colCount).equals(2);
       check(jac[0].length).equals(2);
     });
 

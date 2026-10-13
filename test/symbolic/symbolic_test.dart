@@ -800,7 +800,8 @@ void main() {
       check(dfDy([1.0, 2.0])).equals(15.0);
 
       final hess = expr.hessian(['x', 'y']);
-      check(hess.length).equals(2);
+      check(hess.rowCount).equals(2);
+      check(hess.colCount).equals(2);
       check(hess[0].length).equals(2);
       final d2fDx2 = hess[0][0].compile(['x', 'y']);
       check(d2fDx2([1.0, 2.0])).equals(2.0);
@@ -819,7 +820,8 @@ void main() {
       final f2 = x * y * 3;
 
       final J = [f1, f2].jacobian(['x', 'y']);
-      check(J.length).equals(2);
+      check(J.rowCount).equals(2);
+      check(J.colCount).equals(2);
       check(J[0].length).equals(2);
 
       // J[0][0] = 2x, J[0][1] = 1
