@@ -105,8 +105,8 @@ void main() {
       check(Cos(x * y).toString()).equals('cos(x * y)');
       check(const Exp(x).toString()).equals('exp(x)');
       check(const Ln(x).toString()).equals('ln(x)');
-      check(const Log(RationalNumber(2), x).toString()).equals('log(2, x)');
-      check(const Log(Variable('b'), x).toString()).equals('log(b, x)');
+      check(const ComplexNumber(3.0, 4.0).toString()).equals('3.0 + 4.0i');
+      check(ComplexNumber.i.toString()).equals('i');
     });
 
     test('compound mathematical expressions without redundant parens', () {

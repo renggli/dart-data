@@ -725,6 +725,223 @@ void main() {
           .contains(const Mul(RationalNumber(5, 4), ConstantNumber.pi));
     });
 
+    test('special radical angle resolution in trigonometric equations', () {
+      // sin(x) = sqrt(2)/2 -> pi/4, 3pi/4
+      final eqSinSqrt2 =
+          const Sin(x) -
+          const Div(
+            Pow(RationalNumber(2), RationalNumber(1, 2)),
+            RationalNumber(2),
+          );
+      final solSinSqrt2 = eqSinSqrt2.solve('x');
+      check(solSinSqrt2)
+          .contains(const Mul(RationalNumber(1, 4), ConstantNumber.pi));
+      check(solSinSqrt2)
+          .contains(const Mul(RationalNumber(3, 4), ConstantNumber.pi));
+
+      // sin(x) = -sqrt(2)/2 -> 5pi/4, 7pi/4
+      final eqSinNegSqrt2 =
+          const Sin(x) -
+          const Neg(
+            Div(
+              Pow(RationalNumber(2), RationalNumber(1, 2)),
+              RationalNumber(2),
+            ),
+          );
+      final solSinNegSqrt2 = eqSinNegSqrt2.solve('x');
+      check(solSinNegSqrt2)
+          .contains(const Mul(RationalNumber(5, 4), ConstantNumber.pi));
+      check(solSinNegSqrt2)
+          .contains(const Mul(RationalNumber(7, 4), ConstantNumber.pi));
+
+      // sin(x) = sqrt(3)/2 -> pi/3, 2pi/3
+      final eqSinSqrt3 =
+          const Sin(x) -
+          const Div(
+            Pow(RationalNumber(3), RationalNumber(1, 2)),
+            RationalNumber(2),
+          );
+      final solSinSqrt3 = eqSinSqrt3.solve('x');
+      check(solSinSqrt3)
+          .contains(const Mul(RationalNumber(1, 3), ConstantNumber.pi));
+      check(solSinSqrt3)
+          .contains(const Mul(RationalNumber(2, 3), ConstantNumber.pi));
+
+      // sin(x) = -sqrt(3)/2 -> 4pi/3, 5pi/3
+      final eqSinNegSqrt3 =
+          const Sin(x) -
+          const Neg(
+            Div(
+              Pow(RationalNumber(3), RationalNumber(1, 2)),
+              RationalNumber(2),
+            ),
+          );
+      final solSinNegSqrt3 = eqSinNegSqrt3.solve('x');
+      check(solSinNegSqrt3)
+          .contains(const Mul(RationalNumber(4, 3), ConstantNumber.pi));
+      check(solSinNegSqrt3)
+          .contains(const Mul(RationalNumber(5, 3), ConstantNumber.pi));
+
+      // sin(x) = -1/2 -> 7pi/6, 11pi/6
+      final eqSinNegHalf = const Sin(x) - const RationalNumber(-1, 2);
+      final solSinNegHalf = eqSinNegHalf.solve('x');
+      check(solSinNegHalf)
+          .contains(const Mul(RationalNumber(7, 6), ConstantNumber.pi));
+      check(solSinNegHalf)
+          .contains(const Mul(RationalNumber(11, 6), ConstantNumber.pi));
+
+      // cos(x) = sqrt(2)/2 -> pi/4, 7pi/4
+      final eqCosSqrt2 =
+          const Cos(x) -
+          const Div(
+            Pow(RationalNumber(2), RationalNumber(1, 2)),
+            RationalNumber(2),
+          );
+      final solCosSqrt2 = eqCosSqrt2.solve('x');
+      check(solCosSqrt2)
+          .contains(const Mul(RationalNumber(1, 4), ConstantNumber.pi));
+      check(solCosSqrt2)
+          .contains(const Mul(RationalNumber(7, 4), ConstantNumber.pi));
+
+      // cos(x) = -sqrt(2)/2 -> 3pi/4, 5pi/4
+      final eqCosNegSqrt2 =
+          const Cos(x) -
+          const Neg(
+            Div(
+              Pow(RationalNumber(2), RationalNumber(1, 2)),
+              RationalNumber(2),
+            ),
+          );
+      final solCosNegSqrt2 = eqCosNegSqrt2.solve('x');
+      check(solCosNegSqrt2)
+          .contains(const Mul(RationalNumber(3, 4), ConstantNumber.pi));
+      check(solCosNegSqrt2)
+          .contains(const Mul(RationalNumber(5, 4), ConstantNumber.pi));
+
+      // cos(x) = sqrt(3)/2 -> pi/6, 11pi/6
+      final eqCosSqrt3 =
+          const Cos(x) -
+          const Div(
+            Pow(RationalNumber(3), RationalNumber(1, 2)),
+            RationalNumber(2),
+          );
+      final solCosSqrt3 = eqCosSqrt3.solve('x');
+      check(solCosSqrt3)
+          .contains(const Mul(RationalNumber(1, 6), ConstantNumber.pi));
+      check(solCosSqrt3)
+          .contains(const Mul(RationalNumber(11, 6), ConstantNumber.pi));
+
+      // cos(x) = -sqrt(3)/2 -> 5pi/6, 7pi/6
+      final eqCosNegSqrt3 =
+          const Cos(x) -
+          const Neg(
+            Div(
+              Pow(RationalNumber(3), RationalNumber(1, 2)),
+              RationalNumber(2),
+            ),
+          );
+      final solCosNegSqrt3 = eqCosNegSqrt3.solve('x');
+      check(solCosNegSqrt3)
+          .contains(const Mul(RationalNumber(5, 6), ConstantNumber.pi));
+      check(solCosNegSqrt3)
+          .contains(const Mul(RationalNumber(7, 6), ConstantNumber.pi));
+
+      // cos(x) = -1/2 -> 2pi/3, 4pi/3
+      final eqCosNegHalf = const Cos(x) - const RationalNumber(-1, 2);
+      final solCosNegHalf = eqCosNegHalf.solve('x');
+      check(solCosNegHalf)
+          .contains(const Mul(RationalNumber(2, 3), ConstantNumber.pi));
+      check(solCosNegHalf)
+          .contains(const Mul(RationalNumber(4, 3), ConstantNumber.pi));
+
+      // tan(x) = sqrt(3)/3 -> pi/6, 7pi/6
+      final eqTanSqrt3Over3 =
+          const Tan(x) -
+          const Div(
+            Pow(RationalNumber(3), RationalNumber(1, 2)),
+            RationalNumber(3),
+          );
+      final solTanSqrt3Over3 = eqTanSqrt3Over3.solve('x');
+      check(solTanSqrt3Over3)
+          .contains(const Mul(RationalNumber(1, 6), ConstantNumber.pi));
+      check(solTanSqrt3Over3)
+          .contains(const Mul(RationalNumber(7, 6), ConstantNumber.pi));
+
+      // tan(x) = -sqrt(3)/3 -> 5pi/6, 11pi/6
+      final eqTanNegSqrt3Over3 =
+          const Tan(x) -
+          const Neg(
+            Div(
+              Pow(RationalNumber(3), RationalNumber(1, 2)),
+              RationalNumber(3),
+            ),
+          );
+      final solTanNegSqrt3Over3 = eqTanNegSqrt3Over3.solve('x');
+      check(solTanNegSqrt3Over3)
+          .contains(const Mul(RationalNumber(5, 6), ConstantNumber.pi));
+      check(solTanNegSqrt3Over3)
+          .contains(const Mul(RationalNumber(11, 6), ConstantNumber.pi));
+
+      // tan(x) = -1 -> 3pi/4, 7pi/4
+      final eqTanNeg1 = const Tan(x) - const RationalNumber(-1);
+      final solTanNeg1 = eqTanNeg1.solve('x');
+      check(solTanNeg1)
+          .contains(const Mul(RationalNumber(3, 4), ConstantNumber.pi));
+      check(solTanNeg1)
+          .contains(const Mul(RationalNumber(7, 4), ConstantNumber.pi));
+
+      // tan(x) = sqrt(3) -> pi/3, 4pi/3
+      final eqTanSqrt3 =
+          const Tan(x) - const Pow(RationalNumber(3), RationalNumber(1, 2));
+      final solTanSqrt3 = eqTanSqrt3.solve('x');
+      check(solTanSqrt3)
+          .contains(const Mul(RationalNumber(1, 3), ConstantNumber.pi));
+      check(solTanSqrt3)
+          .contains(const Mul(RationalNumber(4, 3), ConstantNumber.pi));
+
+      // tan(x) = -sqrt(3) -> 2pi/3, 5pi/3
+      final eqTanNegSqrt3 =
+          const Tan(x) -
+          const Neg(Pow(RationalNumber(3), RationalNumber(1, 2)));
+      final solTanNegSqrt3 = eqTanNegSqrt3.solve('x');
+      check(solTanNegSqrt3)
+          .contains(const Mul(RationalNumber(2, 3), ConstantNumber.pi));
+      check(solTanNegSqrt3)
+          .contains(const Mul(RationalNumber(5, 3), ConstantNumber.pi));
+    });
+
+    test('parsed trigonometric equations with algebraic radicals', () {
+      // 2 * sin(x) - sqrt(2) = 0
+      final s1 = Expr.parse('2 * sin(x) - sqrt(2)').solve('x');
+      check(s1).contains(const Mul(RationalNumber(1, 4), ConstantNumber.pi));
+      check(s1).contains(const Mul(RationalNumber(3, 4), ConstantNumber.pi));
+
+      // 2 * sin(x) + sqrt(3) = 0
+      final s2 = Expr.parse('2 * sin(x) + sqrt(3)').solve('x');
+      check(s2).contains(const Mul(RationalNumber(4, 3), ConstantNumber.pi));
+      check(s2).contains(const Mul(RationalNumber(5, 3), ConstantNumber.pi));
+
+      // 2 * cos(x) - sqrt(3) = 0
+      final s3 = Expr.parse('2 * cos(x) - sqrt(3)').solve('x');
+      check(s3).contains(const Mul(RationalNumber(1, 6), ConstantNumber.pi));
+      check(s3).contains(const Mul(RationalNumber(11, 6), ConstantNumber.pi));
+
+      // 2 * cos(x) + sqrt(2) = 0
+      final s4 = Expr.parse('2 * cos(x) + sqrt(2)').solve('x');
+      check(s4).contains(const Mul(RationalNumber(3, 4), ConstantNumber.pi));
+      check(s4).contains(const Mul(RationalNumber(5, 4), ConstantNumber.pi));
+
+      // tan(x) - sqrt(3) = 0
+      final s5 = Expr.parse('tan(x) - sqrt(3)').solve('x');
+      check(s5).contains(const Mul(RationalNumber(1, 3), ConstantNumber.pi));
+      check(s5).contains(const Mul(RationalNumber(4, 3), ConstantNumber.pi));
+
+      // tan(x) + sqrt(3) = 0
+      final s6 = Expr.parse('tan(x) + sqrt(3)').solve('x');
+      check(s6).contains(const Mul(RationalNumber(2, 3), ConstantNumber.pi));
+      check(s6).contains(const Mul(RationalNumber(5, 3), ConstantNumber.pi));
+    });
+
     test('non-special angle constants and dual roots in [0, 2pi)', () {
       // sin(x) = 1/3
       final eqSin = const Sin(x) - const RationalNumber(1, 3);

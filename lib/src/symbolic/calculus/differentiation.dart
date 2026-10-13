@@ -111,8 +111,4 @@ Expr _differentiate(Expr expr, String variable) => switch (expr) {
   ),
   Exp(expr: final inner) => Mul(expr, _differentiate(inner, variable)),
   Ln(expr: final inner) => Div(_differentiate(inner, variable), inner),
-  Log(:final base, :final expr) => _differentiate(
-    Div(Ln(expr), Ln(base)),
-    variable,
-  ),
 };

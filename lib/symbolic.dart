@@ -10,9 +10,9 @@
 ///
 /// - **Symbolic Expressions ([Expr])**: Build trees of variables ([Variable]),
 ///   numbers ([Number], [RationalNumber], [RealNumber], [ConstantNumber],
-///   [pi], [e], [i]), and mathematical functions like [Sin],
+///   [ComplexNumber], [pi], [e], [i]), and mathematical functions like [Sin],
 ///   [Cos], [Tan], [Asin], [Acos], [Atan], [Sinh], [Cosh], [Tanh], [Abs],
-///   [Exp], [Ln], and [Log].
+///   [Exp], and [Ln].
 /// - **Expression Parsing**: Parse mathematical formulas from text with PetitParser
 ///   using [Expr.parse] or [Expr.tryParse].
 /// - **Analytical Calculus**: Exact differentiation
@@ -84,7 +84,7 @@ import 'src/symbolic/textualization/mathml.dart';
 import 'src/symbolic/textualization/string.dart';
 
 export 'src/symbolic/algebra/expand.dart';
-export 'src/symbolic/algebra/factor.dart';
+export 'src/symbolic/algebra/factor.dart' show FactorExtension;
 export 'src/symbolic/algebra/simplify.dart';
 export 'src/symbolic/algebra/structural_order.dart';
 export 'src/symbolic/ast.dart';

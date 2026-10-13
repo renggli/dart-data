@@ -11,6 +11,7 @@ String formatExpr(Expr expr, [int parentPrec = 0]) {
   final prec = precedence(expr);
   final formatted = switch (expr) {
     Variable(:final name) => name,
+    ComplexNumber() => expr.toString(),
     ConstantNumber(:final name) => name,
     RationalNumber(:final numerator, :final denominator) =>
       denominator == 1 ? '$numerator' : '$numerator/$denominator',
@@ -27,8 +28,6 @@ String formatExpr(Expr expr, [int parentPrec = 0]) {
     Abs(:final expr) => 'abs(${formatExpr(expr)})',
     Exp(:final expr) => 'exp(${formatExpr(expr)})',
     Ln(:final expr) => 'ln(${formatExpr(expr)})',
-    Log(:final base, :final expr) =>
-      'log(${formatExpr(base)}, ${formatExpr(expr)})',
     Neg(:final expr) => '-${formatExpr(expr, 4)}',
     Pow(:final base, :final exponent) =>
       exponent is RationalNumber &&
@@ -52,11 +51,17 @@ String formatExpr(Expr expr, [int parentPrec = 0]) {
 ///
 /// Higher values indicate tighter binding.
 int precedence(Expr expr) => switch (expr) {
+  ComplexNumber(:final real, :final imaginary)
+      when real != 0.0 && imaginary != 0.0 =>
+    1,
   Add() || Sub() => 1,
   Div() => 2,
   Mul() => 2,
   RationalNumber(isInteger: false) => 2,
-  Neg() || RationalNumber(isNegative: true) || RealNumber(value: < 0) => 3,
+  Neg() ||
+  RationalNumber(isNegative: true) ||
+  RealNumber(value: < 0) ||
+  ComplexNumber(real: < 0, imaginary: 0) => 3,
   Pow(:final exponent) =>
     exponent is RationalNumber &&
             exponent.numerator == 1 &&

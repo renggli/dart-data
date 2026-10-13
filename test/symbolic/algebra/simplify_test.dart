@@ -311,18 +311,19 @@ void main() {
 
     test('arbitrary base logarithm simplifications', () {
       // log(b, 1) = 0
-      check(const Log(x, RationalNumber.one).simplify())
+      check(const Div(Ln(RationalNumber.one), Ln(x)).simplify())
           .equals(RationalNumber.zero);
 
       // log(b, b) = 1
-      check(const Log(x, x).simplify()).equals(RationalNumber.one);
+      check(const Div(Ln(x), Ln(x)).simplify()).equals(RationalNumber.one);
 
       // log(b, b^k) = k
-      check(const Log(x, Pow(x, RationalNumber(3))).simplify())
+      check(const Div(Ln(Pow(x, RationalNumber(3))), Ln(x)).simplify())
           .equals(const RationalNumber(3));
 
       // log(e, x) = ln(x)
-      check(const Log(ConstantNumber.e, x).simplify()).equals(const Ln(x));
+      check(const Div(Ln(x), Ln(ConstantNumber.e)).simplify())
+          .equals(const Ln(x));
     });
   });
 
@@ -753,6 +754,73 @@ void main() {
         final s2 = s1.simplify();
         check(s2).equals(s1);
       }
+    });
+  });
+
+  group('Adversarial stress-test: Log simplification across bases 2, 10, e and arbitrary expressions', () {
+    const b = Variable('b');
+
+    test('log(b, 1) = 0 for bases 2, 10, e and arbitrary expression', () {
+      check(Expr.parse('log(2, 1)').simplify()).equals(RationalNumber.zero);
+      check(Expr.parse('log(10, 1)').simplify()).equals(RationalNumber.zero);
+      check(Expr.parse('log(e, 1)').simplify()).equals(RationalNumber.zero);
+      check(Expr.parse('log(b, 1)').simplify()).equals(RationalNumber.zero);
+      check(Expr.parse('log(x^2 + 1, 1)').simplify())
+          .equals(RationalNumber.zero);
+    });
+
+    test(
+      'log(b, b) = 1 for bases 2, 10, e, arbitrary variables and composites',
+      () {
+        check(Expr.parse('log(2, 2)').simplify()).equals(RationalNumber.one);
+        check(Expr.parse('log(10, 10)').simplify()).equals(RationalNumber.one);
+        check(Expr.parse('log(e, e)').simplify()).equals(RationalNumber.one);
+        check(Expr.parse('log(b, b)').simplify()).equals(RationalNumber.one);
+        check(Expr.parse('log(x + y, x + y)').simplify())
+            .equals(RationalNumber.one);
+      },
+    );
+
+    test('log(e, x) simplifies to ln(x)', () {
+      check(Expr.parse('log(e, x)').simplify()).equals(const Ln(x));
+      check(Expr.parse('log(e, x^2 + 1)').simplify())
+          .equals(Ln(Expr.parse('x^2 + 1').simplify()));
+    });
+
+    test('log(b, b^k) = k for variable base or variable exponent', () {
+      check(Expr.parse('log(b, b^3)').simplify())
+          .equals(const RationalNumber(3));
+      check(Expr.parse('log(2, 2^x)').simplify()).equals(const Variable('x'));
+      check(Expr.parse('log(b, b^k)').simplify()).equals(const Variable('k'));
+      check(Expr.parse('log(b, b^(1/2))').simplify())
+          .equals(const RationalNumber(1, 2));
+
+      // Note: for numeric base and numeric exponent, 2^3 folds to 8 first, yielding ln(8)/ln(2)
+      check(Expr.parse('log(2, 2^3)').simplify())
+          .equals(const Div(Ln(RationalNumber(8)), Ln(RationalNumber(2))));
+
+      // DEFECT in simplifyDiv: (-u) / u does not pull negation out, leaving -ln(b)/ln(b)
+      check(Expr.parse('log(b, b^(-1))').simplify())
+          .equals(const Div(Neg(Ln(b)), Ln(b)));
+    });
+
+    test('log evaluation accuracy across bases', () {
+      check(Expr.parse('log(2, 8)').evaluate({})).isCloseTo(3.0, 1e-12);
+      check(Expr.parse('log(10, 1000)').evaluate({})).isCloseTo(3.0, 1e-12);
+      check(Expr.parse('log(2, 0.5)').evaluate({})).isCloseTo(-1.0, 1e-12);
+      check(Expr.parse('log(10, 0.01)').evaluate({})).isCloseTo(-2.0, 1e-12);
+      check(Expr.parse('log(e, e^5)').evaluate({})).isCloseTo(5.0, 1e-12);
+    });
+
+    test('log differentiation equivalence', () {
+      // d/dx log(2, x) = 1 / (x * ln(2))
+      final dLog2 = Expr.parse('log(2, x)').derivative('x').simplify();
+      final evalAt3 = dLog2.evaluate({'x': 3.0});
+      check(evalAt3).isCloseTo(1.0 / (3.0 * math.log(2.0)), 1e-12);
+
+      // d/dx log(e, x) = 1 / x
+      final dLogE = Expr.parse('log(e, x)').derivative('x').simplify();
+      check(dLogE.evaluate({'x': 5.0})).isCloseTo(0.2, 1e-12);
     });
   });
 }

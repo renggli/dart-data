@@ -46,7 +46,6 @@ Expr _expand(Expr expr) => switch (expr) {
   Abs(:final expr) => Abs(_expand(expr)),
   Exp(:final expr) => Exp(_expand(expr)),
   Ln(:final expr) => Ln(_expand(expr)),
-  Log(:final base, :final expr) => Log(_expand(base), _expand(expr)),
 };
 
 Expr _expandNeg(Expr inner) {

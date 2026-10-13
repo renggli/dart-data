@@ -334,7 +334,7 @@ void main() {
         (const Abs(x), 0.2, 5.0),
         (const Abs(x), -5.0, -0.2),
         (const Pow(x, RationalNumber(1, 2)), 0.1, 10.0),
-        (const Log(RationalNumber(3), x), 0.2, 8.0),
+        (const Div(Ln(x), Ln(RationalNumber(3))), 0.2, 8.0),
       ];
 
       for (final (f, minT, maxT) in functions) {

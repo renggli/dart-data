@@ -79,7 +79,7 @@ Expr _createBinding(String name, List<Expr> arguments) =>
       0 => switch (name.toLowerCase()) {
         'pi' => ConstantNumber.pi,
         'e' => ConstantNumber.e,
-        'i' => ConstantNumber.i,
+        'i' => ComplexNumber.i,
         _ => Variable(name),
       },
       1 => switch (name.toLowerCase()) {
@@ -100,7 +100,7 @@ Expr _createBinding(String name, List<Expr> arguments) =>
       },
       2 => switch (name.toLowerCase()) {
         'pow' => Pow(arguments[0], arguments[1]),
-        'log' => Log(arguments[0], arguments[1]),
+        'log' => Div(Ln(arguments[1]), Ln(arguments[0])),
         'root' => Pow(arguments[1], Div(RationalNumber.one, arguments[0])),
         _ => throw ArgumentError.value(name, 'Unknown function'),
       },

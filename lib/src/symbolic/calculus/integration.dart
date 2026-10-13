@@ -126,8 +126,6 @@ Expr _antiDerivative(Expr expr, String variable) {
       _antiDerivExp(expr, variable) ?? _unsupported(expr, variable),
     Ln(:final expr) =>
       _antiDerivLn(expr, variable) ?? _unsupported(expr, variable),
-    Log(:final base, :final expr) =>
-      _antiDerivLog(base, expr, variable) ?? _unsupported(expr, variable),
     Pow(:final base, :final exponent) => _antiDerivPow(
       base,
       exponent,
@@ -243,17 +241,6 @@ Expr? _antiDerivAbs(Expr inner, String variable) =>
       ).simplify(),
       null => null,
     };
-
-Expr? _antiDerivLog(Expr base, Expr inner, String variable) =>
-    !base.dependsOn(variable)
-    ? switch (inner.matchLinear(variable)) {
-        (:final a, b: _) => Div(
-          Sub(Mul(inner, Ln(inner)), inner),
-          Mul(a, Ln(base)),
-        ).simplify(),
-        null => null,
-      }
-    : null;
 
 Expr? _antiDerivExp(Expr inner, String variable) =>
     switch (inner.matchLinear(variable)) {

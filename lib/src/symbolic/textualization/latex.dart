@@ -20,6 +20,7 @@ extension LatexExtension on Expr {
 
 String _toLatex(Expr expr) => switch (expr) {
   Variable(:final name) => name,
+  ComplexNumber() => expr.toString(),
   ConstantNumber(:final name) => switch (name) {
     'pi' => r'\pi',
     'i' => 'i',
@@ -53,8 +54,6 @@ String _toLatex(Expr expr) => switch (expr) {
   Abs(:final expr) => '\\left|${_toLatex(expr)}\\right|',
   Exp(:final expr) => 'e^{${_toLatex(expr)}}',
   Ln(:final expr) => '\\ln(${_toLatex(expr)})',
-  Log(:final base, :final expr) =>
-    '\\log_{${_toLatex(base)}}(${_toLatex(expr)})',
 };
 
 String _formatPow(Expr base, Expr exponent) {

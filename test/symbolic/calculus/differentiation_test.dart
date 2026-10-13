@@ -152,7 +152,7 @@ void main() {
       }
     });
 
-    test('Abs(x), Sqrt(x), and Log(2, x)', () {
+    test('Abs(x), Sqrt(x), and log2(x)', () {
       const exprAbs = Abs(x);
       final symDAbs = exprAbs.derivative('x').toFunction1D('x');
       final numAbs = exprAbs.toFunction1D('x');
@@ -177,7 +177,7 @@ void main() {
         check(derivative(numSqrt, t, order: 1)).isCloseTo(symVal, 1e-4);
       }
 
-      const exprLog = Log(RationalNumber(2), x);
+      const exprLog = Div(Ln(x), Ln(RationalNumber(2)));
       final symDLog = exprLog.derivative('x').toFunction1D('x');
       final numLog = exprLog.toFunction1D('x');
       for (var i = 0; i < 50; i++) {

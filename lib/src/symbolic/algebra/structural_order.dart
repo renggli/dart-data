@@ -10,12 +10,14 @@ import '../ast.dart';
 int termTier(Expr expr) {
   if (expr.freeVariables.isNotEmpty) return 1;
   if (expr is RationalNumber || expr is RealNumber) return 2;
+  if (expr is ComplexNumber && expr.imaginary == 0.0) return 2;
   if (containsImaginaryUnit(expr)) return 4;
   return 3;
 }
 
-/// Tests whether [expr] contains the imaginary unit [ConstantNumber.i].
+/// Tests whether [expr] contains the imaginary unit [ComplexNumber.i].
 bool containsImaginaryUnit(Expr expr) => switch (expr) {
+  ComplexNumber(:final imaginary) => imaginary != 0.0,
   ConstantNumber(:final name) => name == 'i',
   UnaryExpr(:final expr) => containsImaginaryUnit(expr),
   BinaryExpr(:final left, :final right) =>
@@ -144,16 +146,17 @@ int compareStructural(Expr a, Expr b) {
   return switch (a) {
     RationalNumber() => compareRational(a, b as RationalNumber),
     RealNumber(:final value) => value.compareTo((b as RealNumber).value),
-    ConstantNumber(:final name) => switch ((
-      name == 'i',
-      (b as ConstantNumber).name == 'i',
+    ComplexNumber(:final real, :final imaginary) => switch (real.compareTo(
+      (b as ComplexNumber).real,
     )) {
-      (true, false) => 1,
-      (false, true) => -1,
-      _ => switch (name.compareTo(b.name)) {
-        0 => (a.isReal && b.isReal) ? a.value.compareTo(b.value) : 0,
-        final cmp => cmp,
-      },
+      0 => imaginary.compareTo(b.imaginary),
+      final cmp => cmp,
+    },
+    ConstantNumber(:final name) => switch (name.compareTo(
+      (b as ConstantNumber).name,
+    )) {
+      0 => (a.isReal && b.isReal) ? a.value.compareTo(b.value) : 0,
+      final cmp => cmp,
     },
     Variable(:final name) => name.compareTo((b as Variable).name),
     UnaryExpr(:final expr) => compareStructural(expr, (b as UnaryExpr).expr),
@@ -183,6 +186,7 @@ int compareRational(RationalNumber a, RationalNumber b) {
 int nodeTag(Expr expr) => switch (expr) {
   RationalNumber() => 0,
   RealNumber() => 1,
+  ComplexNumber() => 18,
   ConstantNumber() => 2,
   Variable() => 3,
   Neg() => 4,
@@ -198,7 +202,6 @@ int nodeTag(Expr expr) => switch (expr) {
   Cosh() => 14,
   Tanh() => 15,
   Abs() => 16,
-  Log() => 18,
   Pow() => 20,
   Mul() => 21,
   Div() => 22,

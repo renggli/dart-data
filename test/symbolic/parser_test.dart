@@ -223,9 +223,11 @@ void main() {
     });
 
     test('parses two-argument functions: log and root', () {
-      check(Expr.parse('log(2, x)')).equals(const Log(RationalNumber(2), x));
-      check(Expr.parse('log(10, x + 1)'))
-          .equals(const Log(RationalNumber(10), Add(x, RationalNumber(1))));
+      check(Expr.parse('log(2, x)'))
+          .equals(const Div(Ln(x), Ln(RationalNumber(2))));
+      check(Expr.parse('log(10, x + 1)')).equals(
+        const Div(Ln(Add(x, RationalNumber(1))), Ln(RationalNumber(10))),
+      );
       check(Expr.parse('root(3, x)'))
           .equals(const Pow(x, Div(RationalNumber.one, RationalNumber(3))));
       check(Expr.parse('root(2, x)'))
@@ -372,7 +374,7 @@ void main() {
       check(root3.evaluate({'x': 27.0})).isCloseTo(3.0, 1e-9);
 
       final log2 = Expr.parse('log(2, x)');
-      check(log2).equals(const Log(RationalNumber(2), x));
+      check(log2).equals(const Div(Ln(x), Ln(RationalNumber(2))));
       check(log2.evaluate({'x': 8.0})).isCloseTo(3.0, 1e-9);
     });
 
@@ -463,7 +465,7 @@ void main() {
       check(latex).contains(r'\tanh(w)');
       check(latex).contains(r'\left|\arccos(u)\right|');
       check(latex).contains(r'\sqrt{\arcsin(v)}');
-      check(latex).contains(r'\log_{2}(\arctan(t))');
+      check(latex).contains(r'\frac{\ln(\arctan(t))}{\ln(2)}');
       check(latex).contains(r'{s}^{\frac{1}{3}}');
 
       final simplifiedLatex = parsed.simplify().toLatex();
@@ -480,7 +482,7 @@ void main() {
       check(mathml).contains('<mi>arccos</mi>');
       check(mathml).contains('<msqrt>');
       check(mathml).contains('<mi>arcsin</mi>');
-      check(mathml).contains('<msub><mi>log</mi><mn>2</mn></msub>');
+      check(mathml).contains('<mi>ln</mi>');
       check(mathml).contains('<mi>arctan</mi>');
 
       final simplifiedMathMl = parsed.simplify().toMathMl();
@@ -545,8 +547,8 @@ void main() {
           ),
           'sqrt(x)': (r'\sqrt{x}', '<msqrt><mrow><mi>x</mi></mrow></msqrt>'),
           'log(10, x)': (
-            r'\log_{10}(x)',
-            '<mrow><msub><mi>log</mi><mn>10</mn></msub><mo>(</mo><mi>x</mi><mo>)</mo></mrow>',
+            r'\frac{\ln(x)}{\ln(10)}',
+            '<mfrac><mrow><mi>ln</mi><mo>(</mo><mi>x</mi><mo>)</mo></mrow><mrow><mi>ln</mi><mo>(</mo><mn>10</mn><mo>)</mo></mrow></mfrac>',
           ),
         };
 
@@ -594,6 +596,54 @@ void main() {
       check(() => Expr.parse('log(2, 3, 4)')).throws<FormatException>();
       check(() => Expr.parse('root(2, 3, 4)')).throws<FormatException>();
       check(() => Expr.parse('root(2)')).throws<FormatException>();
+    });
+  });
+
+  group('Adversarial stress-test: Log parsing, equivalence and arity', () {
+    const x = Variable('x');
+    const y = Variable('y');
+
+    test('single-argument log(x) dispatches to Ln(x)', () {
+      check(Expr.parse('log(x)')).equals(const Ln(x));
+      check(Expr.parse('log(2)')).equals(const Ln(RationalNumber(2)));
+      check(Expr.parse('log(e)')).equals(const Ln(ConstantNumber.e));
+      check(Expr.parse('log(x + y)')).equals(const Ln(Add(x, y)));
+    });
+
+    test('two-argument log(b, x) produces canonical Div(Ln(x), Ln(b))', () {
+      check(Expr.parse('log(2, x)'))
+          .equals(const Div(Ln(x), Ln(RationalNumber(2))));
+      check(Expr.parse('log(10, x)'))
+          .equals(const Div(Ln(x), Ln(RationalNumber(10))));
+      check(Expr.parse('log(e, x)'))
+          .equals(const Div(Ln(x), Ln(ConstantNumber.e)));
+      check(Expr.parse('log(x, y)')).equals(const Div(Ln(y), Ln(x)));
+      check(Expr.parse('log(x + 1, x^2 + 1)')).equals(
+        const Div(
+          Ln(Add(Pow(x, RationalNumber(2)), RationalNumber(1))),
+          Ln(Add(x, RationalNumber(1))),
+        ),
+      );
+    });
+
+    test('nested logarithms parse and evaluate accurately', () {
+      final nested = Expr.parse('log(2, log(10, x))');
+      check(nested).equals(
+        const Div(
+          Ln(Div(Ln(x), Ln(RationalNumber(10)))),
+          Ln(RationalNumber(2)),
+        ),
+      );
+      // For x = 100, log(10, 100) = 2, log(2, 2) = 1
+      final val = nested.evaluate({'x': 100.0});
+      check((val - 1.0).abs()).isLessThan(1e-12);
+    });
+
+    test('log parsing error rejection and 0-argument bug observation', () {
+      // 0-argument function calls currently fall through to Variable due to grammar unification
+      check(Expr.parse('log()')).equals(const Variable('log'));
+      check(() => Expr.parse('log(1, 2, 3)')).throws<FormatException>();
+      check(() => Expr.parse('log(1, 2, 3, 4)')).throws<FormatException>();
     });
   });
 }

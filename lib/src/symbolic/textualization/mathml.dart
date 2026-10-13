@@ -27,6 +27,12 @@ extension MathMlExtension on Expr {
 
 String _toMathMl(Expr expr) => switch (expr) {
   Variable(:final name) => '<mi>${_escapeXml(name)}</mi>',
+  ComplexNumber(:final real, :final imaginary) =>
+    real == 0.0 && imaginary == 1.0
+        ? '<mi>i</mi>'
+        : real == 0.0 && imaginary == -1.0
+        ? '<mrow><mo>-</mo><mi>i</mi></mrow>'
+        : '<mn>${_escapeXml(expr.toString())}</mn>',
   ConstantNumber(:final name) => switch (name) {
     'pi' => '<mi>π</mi>',
     'i' => '<mi>i</mi>',
@@ -71,8 +77,6 @@ String _toMathMl(Expr expr) => switch (expr) {
   Exp(:final expr) => '<msup><mi>e</mi>${_toMathMl(expr)}</msup>',
   Ln(:final expr) =>
     '<mrow><mi>ln</mi><mo>(</mo>${_toMathMl(expr)}<mo>)</mo></mrow>',
-  Log(:final base, :final expr) =>
-    '<mrow><msub><mi>log</mi>${_toMathMl(base)}</msub><mo>(</mo>${_toMathMl(expr)}<mo>)</mo></mrow>',
 };
 
 String _formatPow(Expr base, Expr exponent) {

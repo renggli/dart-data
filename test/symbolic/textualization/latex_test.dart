@@ -111,8 +111,8 @@ void main() {
           .equals('e^{{x}^{2}}');
       check(const Ln(x).toLatex()).equals('\\ln(x)');
       check(Ln(x + const RationalNumber(1)).toLatex()).equals('\\ln(x + 1)');
-      check(const Log(RationalNumber(2), x).toLatex()).equals('\\log_{2}(x)');
-      check(const Log(Variable('b'), x).toLatex()).equals('\\log_{b}(x)');
+      check(const ComplexNumber(3.0, 4.0).toLatex()).equals('3.0 + 4.0i');
+      check(ComplexNumber.i.toLatex()).equals('i');
     });
 
     test('composite calculus expressions', () {

@@ -30,6 +30,57 @@ void main() {
     });
   });
 
+  group('ComplexNumber leaf node', () {
+    test('construction and basic properties', () {
+      const c = ComplexNumber(3.0, 4.0);
+      check(c.real).equals(3.0);
+      check(c.imaginary).equals(4.0);
+      check(c.isReal).isFalse();
+      check(c.complexValue).equals(const Complex(3.0, 4.0));
+      check(() => c.value).throws<UnsupportedError>();
+      check(c.toString()).equals('3.0 + 4.0i');
+      check(c.evaluateComplex()).equals(const Complex(3.0, 4.0));
+      check(c.freeVariables).isEmpty();
+      check(c.dependsOn('x')).isFalse();
+      check(c.substitute('x', const Variable('y'))).equals(c);
+    });
+
+    test('purely imaginary constructor', () {
+      const pure = ComplexNumber.imaginary(2.5);
+      check(pure.real).equals(0.0);
+      check(pure.imaginary).equals(2.5);
+      check(pure.isReal).isFalse();
+      check(pure.toString()).equals('2.5i');
+    });
+
+    test('real-valued complex number', () {
+      const realComp = ComplexNumber(5.0, 0.0);
+      check(realComp.isReal).isTrue();
+      check(realComp.value).equals(5.0);
+      check(realComp.toString()).equals('5.0');
+      const zeroComp = ComplexNumber(0.0, 0.0);
+      check(zeroComp.isReal).isTrue();
+      check(zeroComp.value).equals(0.0);
+      check(zeroComp.toString()).equals('0.0');
+    });
+
+    test('fromComplex factory and equality', () {
+      final c1 = ComplexNumber.fromComplex(const Complex(1, -2));
+      const c2 = ComplexNumber(1.0, -2.0);
+      check(c1).equals(c2);
+      check(c1.hashCode).equals(c2.hashCode);
+      check(c1.toString()).equals('1.0 - 2.0i');
+    });
+
+    test('imaginary unit representations', () {
+      check(ComplexNumber.i.name).equals('i');
+      check(ComplexNumber.i.toString()).equals('i');
+      const negI = ComplexNumber(0.0, -1.0);
+      check(negI.name).equals('-i');
+      check(negI.toString()).equals('-i');
+    });
+  });
+
   group('Complex wrapping and conversion', () {
     test('operator overloads wrap Complex operands', () {
       final exprAdd = x + const Complex(1, 2);
@@ -423,9 +474,9 @@ void main() {
       check(lnI.a.abs()).isLessThan(1e-12);
       check((lnI.b - math.pi / 2).abs()).isLessThan(1e-12);
 
-      final logVal = const Log(
-        RationalNumber(10),
-        RationalNumber(100),
+      final logVal = const Div(
+        Ln(RationalNumber(100)),
+        Ln(RationalNumber(10)),
       ).evaluateComplex();
       check((logVal.a - 2.0).abs()).isLessThan(1e-12);
     });
@@ -869,6 +920,260 @@ void main() {
       final compiled = (x + y).compileComplex();
       check(() => compiled({'x': Complex.one})).throws<ArgumentError>();
       check(() => compiled({})).throws<ArgumentError>();
+    });
+  });
+
+  group('Adversarial stress-test: Complex operations, powers, evaluation and functions', () {
+    test('ComplexNumber properties and Liskov substitution invariants', () {
+      const cZero = ComplexNumber(0.0, 0.0);
+      check(cZero.isReal).isTrue();
+      check(cZero.value).equals(0.0);
+      check(cZero.toString()).equals('0.0');
+
+      const cReal = ComplexNumber(-7.5, 0.0);
+      check(cReal.isReal).isTrue();
+      check(cReal.value).equals(-7.5);
+      check(cReal.toString()).equals('-7.5');
+
+      const cImag = ComplexNumber(0.0, -3.5);
+      check(cImag.isReal).isFalse();
+      check(() => cImag.value).throws<UnsupportedError>();
+      check(cImag.toString()).equals('-3.5i');
+
+      const cMixedPos = ComplexNumber(2.0, 3.0);
+      check(cMixedPos.toString()).equals('2.0 + 3.0i');
+
+      const cMixedNeg = ComplexNumber(2.0, -3.0);
+      check(cMixedNeg.toString()).equals('2.0 - 3.0i');
+
+      // ConstantNumber.i identity and interface contracts
+      check(ConstantNumber.i).equals(ComplexNumber.i);
+      check(ConstantNumber.i.isReal).isFalse();
+      check(() => ConstantNumber.i.value).throws<UnsupportedError>();
+      check(ConstantNumber.i.complexValue).equals(const Complex(0, 1));
+      check(ConstantNumber.i.name).equals('i');
+
+      // Number polymorphism: non-real Number throws on value, real Number succeeds
+      const Number numReal = cReal;
+      check(numReal.value).equals(-7.5);
+      const Number numImag = cImag;
+      check(() => numImag.value).throws<UnsupportedError>();
+    });
+
+    test('cyclic integer powers of imaginary unit i across positive and negative bounds', () {
+      final powers = {
+        -8: RationalNumber.one,
+        -7: ConstantNumber.i,
+        -6: RationalNumber.negativeOne,
+        -5: const Neg(ConstantNumber.i),
+        -4: RationalNumber.one,
+        -3: ConstantNumber.i,
+        -2: RationalNumber.negativeOne,
+        -1: const Neg(ConstantNumber.i),
+        0: RationalNumber.one,
+        1: ConstantNumber.i,
+        2: RationalNumber.negativeOne,
+        3: const Neg(ConstantNumber.i),
+        4: RationalNumber.one,
+        5: ConstantNumber.i,
+        6: RationalNumber.negativeOne,
+        7: const Neg(ConstantNumber.i),
+        8: RationalNumber.one,
+        100: RationalNumber.one,
+        101: ConstantNumber.i,
+        102: RationalNumber.negativeOne,
+        103: const Neg(ConstantNumber.i),
+        -100: RationalNumber.one,
+        -99: ConstantNumber.i,
+        -98: RationalNumber.negativeOne,
+        -97: const Neg(ConstantNumber.i),
+      };
+
+      for (final entry in powers.entries) {
+        final p = entry.key;
+        final expected = entry.value;
+        final expr = Pow(ConstantNumber.i, RationalNumber(p)).simplify();
+        check(expr).equals(expected);
+      }
+    });
+
+    test('cyclic powers of negated imaginary unit -i across bounds', () {
+      final negPowers = {
+        -4: RationalNumber.one,
+        -3: const Neg(ConstantNumber.i),
+        -2: RationalNumber.negativeOne,
+        -1: ConstantNumber.i,
+        0: RationalNumber.one,
+        1: const Neg(ConstantNumber.i),
+        2: RationalNumber.negativeOne,
+        3: ConstantNumber.i,
+        4: RationalNumber.one,
+        5: const Neg(ConstantNumber.i),
+        6: RationalNumber.negativeOne,
+        7: ConstantNumber.i,
+      };
+
+      for (final entry in negPowers.entries) {
+        final p = entry.key;
+        final expected = entry.value;
+        final expr = Pow(
+          const Neg(ConstantNumber.i),
+          RationalNumber(p),
+        ).simplify();
+        check(expr).equals(expected);
+      }
+    });
+
+    test('real number exponent powers on imaginary unit', () {
+      check(const Pow(ConstantNumber.i, RealNumber(0.0)).simplify())
+          .equals(RationalNumber.one);
+      check(const Pow(ConstantNumber.i, RealNumber(1.0)).simplify())
+          .equals(ConstantNumber.i);
+      check(const Pow(ConstantNumber.i, RealNumber(2.0)).simplify())
+          .equals(RationalNumber.negativeOne);
+      check(const Pow(ConstantNumber.i, RealNumber(3.0)).simplify())
+          .equals(const Neg(ConstantNumber.i));
+      check(const Pow(ConstantNumber.i, RealNumber(4.0)).simplify())
+          .equals(RationalNumber.one);
+
+      check(const Pow(Neg(ConstantNumber.i), RealNumber(2.0)).simplify())
+          .equals(RationalNumber.negativeOne);
+      check(const Pow(Neg(ConstantNumber.i), RealNumber(3.0)).simplify())
+          .equals(ConstantNumber.i);
+    });
+
+    test('scaled imaginary product powers (c * i)^k and (i * c)^k', () {
+      // (2 * i)^2 = -4
+      const twoI = Mul(RationalNumber(2), ConstantNumber.i);
+      check(const Pow(twoI, RationalNumber(2)).simplify())
+          .equals(const RationalNumber(-4));
+
+      // (2 * i)^3 = -8i
+      check(const Pow(twoI, RationalNumber(3)).simplify())
+          .equals(const Mul(RationalNumber(-8), ConstantNumber.i));
+
+      // (2 * i)^4 = 16
+      check(const Pow(twoI, RationalNumber(4)).simplify())
+          .equals(const RationalNumber(16));
+
+      // (i * 2)^2 = -4
+      const iTwo = Mul(ConstantNumber.i, RationalNumber(2));
+      check(const Pow(iTwo, RationalNumber(2)).simplify())
+          .equals(const RationalNumber(-4));
+
+      // (1/2 * i)^2 = -1/4
+      const halfI = Mul(RationalNumber(1, 2), ConstantNumber.i);
+      check(const Pow(halfI, RationalNumber(2)).simplify())
+          .equals(const RationalNumber(-1, 4));
+
+      // (1/2 * i)^(-2) = -4
+      check(const Pow(halfI, RationalNumber(-2)).simplify())
+          .equals(const RationalNumber(-4));
+    });
+
+    test('complexPow edge cases at zero base and zero exponent', () {
+      // 0^0 = 1
+      check(complexPow(Complex.zero, Complex.zero)).equals(Complex.one);
+      // 0^(positive real) = 0
+      check(complexPow(Complex.zero, const Complex(3, 0))).equals(Complex.zero);
+      // 0^(positive real + imag) = 0
+      check(complexPow(Complex.zero, const Complex(3, 2))).equals(Complex.zero);
+      // 0^(negative real) = infinity
+      final infReal = complexPow(Complex.zero, const Complex(-2, 0));
+      check(infReal.a.isInfinite).isTrue();
+      check(infReal.b).equals(0.0);
+      // 0^(negative real + imag) = infinity + nan i
+      final infComplex = complexPow(Complex.zero, const Complex(-2, 3));
+      check(infComplex.a.isInfinite).isTrue();
+      check(infComplex.b.isNaN).isTrue();
+      // z^0 = 1
+      check(complexPow(const Complex(3, 4), Complex.zero)).equals(Complex.one);
+      check(complexPow(const Complex(-2, -5), Complex.zero))
+          .equals(Complex.one);
+    });
+
+    test('complex functions evaluation via evaluateComplex', () {
+      // Euler's identity: exp(i * pi) + 1 = 0
+      const euler = Add(
+        Exp(Mul(ConstantNumber.i, ConstantNumber.pi)),
+        RationalNumber.one,
+      );
+      check(euler.evaluateComplex().abs()).isLessThan(1e-12);
+
+      // sin(i) matches Complex.i.sin()
+      final sinI = const Sin(ConstantNumber.i).evaluateComplex();
+      check((sinI - Complex.i.sin()).abs()).isLessThan(1e-12);
+      check(sinI.a.abs()).isLessThan(1e-12);
+      check(sinI.b).equals(Complex.i.sin().b);
+
+      // cos(i) = cosh(1)
+      final cosI = const Cos(ConstantNumber.i).evaluateComplex();
+      check((cosI.a - ((math.exp(1) + math.exp(-1)) / 2)).abs())
+          .isLessThan(1e-12);
+      check(cosI.b.abs()).isLessThan(1e-12);
+
+      // tan(i) = i * tanh(1)
+      final tanI = const Tan(ConstantNumber.i).evaluateComplex();
+      check(tanI.a.abs()).isLessThan(1e-12);
+      final expectedTanh =
+          (math.exp(1) - math.exp(-1)) / (math.exp(1) + math.exp(-1));
+      check((tanI.b - expectedTanh).abs()).isLessThan(1e-12);
+
+      // sinh(i) = i * sin(1)
+      final sinhI = const Sinh(ConstantNumber.i).evaluateComplex();
+      check(sinhI.a.abs()).isLessThan(1e-12);
+      check((sinhI.b - math.sin(1)).abs()).isLessThan(1e-12);
+
+      // cosh(i) = cos(1)
+      final coshI = const Cosh(ConstantNumber.i).evaluateComplex();
+      check((coshI.a - math.cos(1)).abs()).isLessThan(1e-12);
+      check(coshI.b.abs()).isLessThan(1e-12);
+
+      // tanh(i) = i * tan(1)
+      final tanhI = const Tanh(ConstantNumber.i).evaluateComplex();
+      check(tanhI.a.abs()).isLessThan(1e-12);
+      check((tanhI.b - math.tan(1)).abs()).isLessThan(1e-12);
+
+      // ln(i) = i * pi / 2
+      final lnI = const Ln(ConstantNumber.i).evaluateComplex();
+      check(lnI.a.abs()).isLessThan(1e-12);
+      check((lnI.b - math.pi / 2).abs()).isLessThan(1e-12);
+
+      // abs(3 + 4i) = 5
+      const threePlusFourI = Add(
+        RationalNumber(3),
+        Mul(RationalNumber(4), ConstantNumber.i),
+      );
+      check(const Abs(threePlusFourI).evaluateComplex().a).equals(5.0);
+    });
+
+    test('complex division and cancellation in simplify', () {
+      // z / i = -z * i = -(i * z) canonically
+      final divI = const Div(x, ConstantNumber.i).simplify();
+      check(divI).equals(const Neg(Mul(ConstantNumber.i, x)));
+
+      // z / (-i) = z * i = i * z canonically
+      final divNegI = const Div(x, Neg(ConstantNumber.i)).simplify();
+      check(divNegI).equals(const Mul(ConstantNumber.i, x));
+
+      // i / i = 1
+      check(const Div(ConstantNumber.i, ConstantNumber.i).simplify())
+          .equals(RationalNumber.one);
+
+      // (2 * i) / i = 2
+      final twoIDivI = const Div(
+        Mul(RationalNumber(2), ConstantNumber.i),
+        ConstantNumber.i,
+      ).simplify();
+      check(twoIDivI).equals(const RationalNumber(2));
+
+      // i * i = -1
+      check(const Mul(ConstantNumber.i, ConstantNumber.i).simplify())
+          .equals(RationalNumber.negativeOne);
+
+      // i * (-i) = 1
+      check(const Mul(ConstantNumber.i, Neg(ConstantNumber.i)).simplify())
+          .equals(RationalNumber.one);
     });
   });
 }

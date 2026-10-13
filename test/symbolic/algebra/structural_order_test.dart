@@ -106,7 +106,7 @@ void main() {
       check(nodeTag(const Cosh(x))).equals(14);
       check(nodeTag(const Tanh(x))).equals(15);
       check(nodeTag(const Abs(x))).equals(16);
-      check(nodeTag(const Log(RationalNumber(10), x))).equals(18);
+      check(nodeTag(ComplexNumber.i)).equals(18);
       check(nodeTag(const Pow(x, RationalNumber(2)))).equals(20);
       check(nodeTag(const Mul(x, y))).equals(21);
       check(nodeTag(const Div(x, y))).equals(22);
@@ -785,6 +785,10 @@ Expr _cloneExpr(Expr expr) => switch (expr) {
     denominator,
   ),
   RealNumber(:final value) => RealNumber(value),
+  ComplexNumber(:final real, :final imaginary) => ComplexNumber(
+    real,
+    imaginary,
+  ),
   ConstantNumber(:final name, :final value) => ConstantNumber(name, value),
   Variable(:final name) => Variable(name),
   Neg(:final expr) => Neg(_cloneExpr(expr)),
@@ -800,7 +804,6 @@ Expr _cloneExpr(Expr expr) => switch (expr) {
   Cosh(:final expr) => Cosh(_cloneExpr(expr)),
   Tanh(:final expr) => Tanh(_cloneExpr(expr)),
   Abs(:final expr) => Abs(_cloneExpr(expr)),
-  Log(:final base, :final expr) => Log(_cloneExpr(base), _cloneExpr(expr)),
   Add(:final left, :final right) => Add(_cloneExpr(left), _cloneExpr(right)),
   Sub(:final left, :final right) => Sub(_cloneExpr(left), _cloneExpr(right)),
   Mul(:final left, :final right) => Mul(_cloneExpr(left), _cloneExpr(right)),

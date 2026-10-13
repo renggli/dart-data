@@ -187,10 +187,10 @@ void main() {
       check(const Exp(x).hashCode).equals(const Exp(x).hashCode);
       check(const Ln(x) == const Ln(x)).isTrue();
       check(const Ln(x).hashCode).equals(const Ln(x).hashCode);
-      check(const Log(RationalNumber(2), x) == const Log(RationalNumber(2), x))
+      check(const ComplexNumber(1.0, 2.0) == const ComplexNumber(1.0, 2.0))
           .isTrue();
-      check(const Log(RationalNumber(2), x).hashCode)
-          .equals(const Log(RationalNumber(2), x).hashCode);
+      check(const ComplexNumber(1.0, 2.0).hashCode)
+          .equals(const ComplexNumber(1.0, 2.0).hashCode);
     });
 
     test('named mathematical constants pi and e', () {
@@ -405,7 +405,7 @@ void main() {
       check(dSqrt.evaluate({'x': 4.0})).equals(0.25);
 
       // d/dx log(b, x) = 1 / (x * ln(b))
-      const exprLog = Log(RationalNumber(2), x);
+      const exprLog = Div(Ln(x), Ln(RationalNumber(2)));
       final dLog = exprLog.derivative('x');
       check(dLog.evaluate({'x': 1.0})).isCloseTo(1.0 / math.log(2.0), 1e-9);
     });

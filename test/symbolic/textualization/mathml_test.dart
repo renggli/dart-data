@@ -187,9 +187,8 @@ void main() {
       check(const Ln(x).toMathMl()).equals(
         '<math><mrow><mi>ln</mi><mo>(</mo><mi>x</mi><mo>)</mo></mrow></math>',
       );
-      check(const Log(RationalNumber(2), x).toMathMl()).equals(
-        '<math><mrow><msub><mi>log</mi><mn>2</mn></msub><mo>(</mo><mi>x</mi><mo>)</mo></mrow></math>',
-      );
+      check(const ComplexNumber(3.0, 4.0).toMathMl())
+          .equals('<math><mn>3.0 + 4.0i</mn></math>');
       check(Sin(x + y).toMathMl()).equals(
         '<math><mrow><mi>sin</mi><mo>(</mo><mrow><mi>x</mi><mo>+</mo><mi>y</mi></mrow><mo>)</mo></mrow></math>',
       );
