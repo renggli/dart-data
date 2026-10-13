@@ -241,78 +241,50 @@ class TermAccumulator {
     // Filter out terms with zero coefficient
     terms.removeWhere((_, coeff) => coeff.isZero);
 
-    final iCoeff = terms[ConstantNumber.i];
-    final nonITerms = [
+    final variableTerms = [
       for (final entry in terms.entries)
-        if (entry.key != ConstantNumber.i) entry,
-    ];
+        if (entry.key.freeVariables.isNotEmpty) entry,
+    ]..sort((a, b) => compareTerms(a.key, a.value, b.key, b.value));
 
-    // Case 1: Purely numerical / complex (no variable terms)
-    if (nonITerms.isEmpty) {
-      // 1a. Pure real constant
-      if (iCoeff == null) {
-        if (realValue != 0.0) {
-          return RealNumber(realValue + constantValue.toDouble());
-        }
-        if (constantValue.isZero) return RationalNumber.zero;
-        return RationalNumber.fraction(constantValue);
-      }
+    final realConstantTerms = [
+      for (final entry in terms.entries)
+        if (entry.key.freeVariables.isEmpty &&
+            !containsImaginaryUnit(entry.key))
+          entry,
+    ]..sort((a, b) => compareTerms(a.key, a.value, b.key, b.value));
 
-      // 1b. Pure imaginary constant (no real part)
-      if (constantValue.isZero && realValue == 0.0) {
-        if (iCoeff == Fraction.one) return ConstantNumber.i;
-        if (iCoeff == -Fraction.one) return const Neg(ConstantNumber.i);
-        return Mul(RationalNumber.fraction(iCoeff), ConstantNumber.i);
-      }
-
-      // 1c. Gaussian complex number: a + b*i or a - b*i
-      final realPart = realValue != 0.0
-          ? RealNumber(realValue + constantValue.toDouble())
-          : (!constantValue.isZero
-                ? RationalNumber.fraction(constantValue)
-                : RationalNumber.zero);
-      final absCoeff = iCoeff < Fraction.zero ? -iCoeff : iCoeff;
-      final imagPart = absCoeff == Fraction.one
-          ? ConstantNumber.i
-          : Mul(RationalNumber.fraction(absCoeff), ConstantNumber.i);
-      return iCoeff > Fraction.zero
-          ? Add(realPart, imagPart)
-          : Sub(realPart, imagPart);
-    }
-
-    // Case 2: General polynomial terms with variables
-    final sortedEntries = nonITerms
-      ..sort((a, b) => compareTerms(a.key, a.value, b.key, b.value));
+    final imaginaryTerms = [
+      for (final entry in terms.entries)
+        if (entry.key.freeVariables.isEmpty && containsImaginaryUnit(entry.key))
+          entry,
+    ]..sort((a, b) => compareTerms(a.key, a.value, b.key, b.value));
 
     Expr? result;
-    for (final entry in sortedEntries) {
-      final base = entry.key;
-      final coeff = entry.value;
 
-      if (result == null) {
+    Expr appendTerm(Expr? current, Expr base, Fraction coeff) {
+      if (current == null) {
         if (coeff == Fraction.one) {
-          result = base;
+          return base;
         } else if (coeff == -Fraction.one) {
-          result = _negate(base);
+          return _negate(base);
         } else {
-          result = Mul(RationalNumber.fraction(coeff), base);
+          return Mul(RationalNumber.fraction(coeff), base);
         }
       } else {
-        if (coeff > Fraction.zero) {
-          final term = coeff == Fraction.one
-              ? base
-              : Mul(RationalNumber.fraction(coeff), base);
-          result = Add(result, term);
-        } else {
-          final absCoeff = -coeff;
-          final term = absCoeff == Fraction.one
-              ? base
-              : Mul(RationalNumber.fraction(absCoeff), base);
-          result = Sub(result, term);
-        }
+        final absCoeff = coeff < Fraction.zero ? -coeff : coeff;
+        final term = absCoeff == Fraction.one
+            ? base
+            : Mul(RationalNumber.fraction(absCoeff), base);
+        return coeff > Fraction.zero ? Add(current, term) : Sub(current, term);
       }
     }
 
+    // 1. Variable polynomial terms first
+    for (final entry in variableTerms) {
+      result = appendTerm(result, entry.key, entry.value);
+    }
+
+    // 2. Pure real numbers / rational constants
     if (realValue != 0.0) {
       final total = realValue + constantValue.toDouble();
       if (result == null) {
@@ -332,18 +304,14 @@ class TermAccumulator {
       }
     }
 
-    if (iCoeff != null) {
-      final absCoeff = iCoeff < Fraction.zero ? -iCoeff : iCoeff;
-      final imagPart = absCoeff == Fraction.one
-          ? ConstantNumber.i
-          : Mul(RationalNumber.fraction(absCoeff), ConstantNumber.i);
-      if (result == null) {
-        result = iCoeff > Fraction.zero ? imagPart : _negate(imagPart);
-      } else if (iCoeff > Fraction.zero) {
-        result = Add(result, imagPart);
-      } else {
-        result = Sub(result, imagPart);
-      }
+    // 3. Real transcendental constants (e, pi) and real constant expressions
+    for (final entry in realConstantTerms) {
+      result = appendTerm(result, entry.key, entry.value);
+    }
+
+    // 4. Imaginary terms containing i strictly at the end
+    for (final entry in imaginaryTerms) {
+      result = appendTerm(result, entry.key, entry.value);
     }
 
     return result ?? RationalNumber.zero;

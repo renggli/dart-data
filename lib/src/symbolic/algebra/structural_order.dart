@@ -2,15 +2,43 @@ import 'package:more/number.dart' show Fraction;
 
 import '../ast.dart';
 
+/// Categorizes [expr] into a deterministic term tier for canonical term ordering:
+/// 1. Variable polynomial terms (degree > 0 or with free variables, without `i`).
+/// 2. Pure real numbers and rational constants.
+/// 3. Real transcendental constants ([ConstantNumber.e], [ConstantNumber.pi]) and real constant expressions.
+/// 4. Imaginary terms containing the imaginary unit `i`.
+int termTier(Expr expr) {
+  if (expr.freeVariables.isNotEmpty) return 1;
+  if (expr is RationalNumber || expr is RealNumber) return 2;
+  if (containsImaginaryUnit(expr)) return 4;
+  return 3;
+}
+
+/// Tests whether [expr] contains the imaginary unit [ConstantNumber.i].
+bool containsImaginaryUnit(Expr expr) => switch (expr) {
+  ConstantNumber(:final name) => name == 'i',
+  UnaryExpr(:final expr) => containsImaginaryUnit(expr),
+  BinaryExpr(:final left, :final right) =>
+    containsImaginaryUnit(left) || containsImaginaryUnit(right),
+  _ => false,
+};
+
 /// Compares two additive terms [baseA] with [coeffA] and [baseB] with [coeffB]
 /// for canonical term ordering.
 ///
 /// Terms are ordered by:
-/// 1. Descending [termDegree] (higher-degree terms appear first).
-/// 2. Positive coefficients before negative coefficients.
-/// 3. Primary variable symbol name alphabetically.
-/// 4. Structural comparison ([compareStructural]) for tie-breaking.
+/// 1. Term tier via [termTier] (variable terms first, rational constants,
+///    real transcendental constants, and imaginary terms containing `i` strictly at the end).
+/// 2. Descending [termDegree] (higher-degree terms appear first).
+/// 3. Positive coefficients before negative coefficients.
+/// 4. Primary variable symbol name alphabetically.
+/// 5. Structural comparison ([compareStructural]) for tie-breaking.
 int compareTerms(Expr baseA, Fraction coeffA, Expr baseB, Fraction coeffB) {
+  final tierA = termTier(baseA);
+  final tierB = termTier(baseB);
+  if (tierA != tierB) {
+    return tierA.compareTo(tierB);
+  }
   final degA = termDegree(baseA);
   final degB = termDegree(baseB);
   if (degA != degB) {
@@ -20,6 +48,11 @@ int compareTerms(Expr baseA, Fraction coeffA, Expr baseB, Fraction coeffB) {
   final signB = coeffB > Fraction.zero ? 1 : -1;
   if (signA != signB) {
     return signB.compareTo(signA); // Positive terms first
+  }
+  final imagA = containsImaginaryUnit(baseA);
+  final imagB = containsImaginaryUnit(baseB);
+  if (imagA != imagB) {
+    return imagA ? 1 : -1; // Real terms before imaginary terms
   }
   final symA = primarySymbol(baseA);
   final symB = primarySymbol(baseB);
@@ -111,11 +144,16 @@ int compareStructural(Expr a, Expr b) {
   return switch (a) {
     RationalNumber() => compareRational(a, b as RationalNumber),
     RealNumber(:final value) => value.compareTo((b as RealNumber).value),
-    ConstantNumber(:final name) => switch (name.compareTo(
-      (b as ConstantNumber).name,
+    ConstantNumber(:final name) => switch ((
+      name == 'i',
+      (b as ConstantNumber).name == 'i',
     )) {
-      0 => (a.isReal && b.isReal) ? a.value.compareTo(b.value) : 0,
-      final cmp => cmp,
+      (true, false) => 1,
+      (false, true) => -1,
+      _ => switch (name.compareTo(b.name)) {
+        0 => (a.isReal && b.isReal) ? a.value.compareTo(b.value) : 0,
+        final cmp => cmp,
+      },
     },
     Variable(:final name) => name.compareTo((b as Variable).name),
     UnaryExpr(:final expr) => compareStructural(expr, (b as UnaryExpr).expr),

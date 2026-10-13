@@ -44,7 +44,7 @@ String _toMathMl(Expr expr) => switch (expr) {
   Sub(:final left, :final right) =>
     '<mrow>${_toMathMl(left)}<mo>-</mo>${_formatSubRight(right)}</mrow>',
   Mul(:final left, :final right) =>
-    '<mrow>${_formatMulOperand(left)}<mo>&#x22c5;</mo>${_formatMulOperand(right)}</mrow>',
+    '<mrow>${_formatMulLeft(left)}<mo>&#x22c5;</mo>${_formatMulRight(right)}</mrow>',
   Div(:final left, :final right) =>
     '<mfrac>${_toMathMl(left)}${_toMathMl(right)}</mfrac>',
   Pow(:final base, :final exponent) => _formatPow(base, exponent),
@@ -97,15 +97,26 @@ String _formatSubRight(Expr right) => switch (right) {
   _ => _toMathMl(right),
 };
 
-String _formatMulOperand(Expr operand) => switch (operand) {
+String _formatMulLeft(Expr left) => switch (left) {
+  Add() ||
+  Sub() ||
+  Neg() ||
+  RationalNumber(isInteger: true, numerator: < 0) ||
+  RealNumber(
+    value: < 0,
+  ) => '<mrow><mo>(</mo>${_toMathMl(left)}<mo>)</mo></mrow>',
+  _ => _toMathMl(left),
+};
+
+String _formatMulRight(Expr right) => switch (right) {
   Add() ||
   Sub() ||
   Neg() ||
   RationalNumber(numerator: < 0) ||
   RealNumber(
     value: < 0,
-  ) => '<mrow><mo>(</mo>${_toMathMl(operand)}<mo>)</mo></mrow>',
-  _ => _toMathMl(operand),
+  ) => '<mrow><mo>(</mo>${_toMathMl(right)}<mo>)</mo></mrow>',
+  _ => _toMathMl(right),
 };
 
 String _formatPowBase(Expr base) => switch (base) {

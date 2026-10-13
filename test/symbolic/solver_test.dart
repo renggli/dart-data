@@ -73,6 +73,19 @@ void main() {
         const RationalNumber(-1) + i,
         const RationalNumber(-1) - i,
       ]);
+
+      // Complex roots with fractional real and radical imaginary parts: x^2 + x + 1 = 0
+      final eq6 = x.pow(const RationalNumber(2)) + x + const RationalNumber(1);
+      final sol6 = eq6.solve('x');
+      check(sol6.length).equals(2);
+      check(sol6[0].toString()).equals('-1/2 + 1/2 * i * sqrt(3)');
+      check(sol6[1].toString()).equals('-1/2 - 1/2 * i * sqrt(3)');
+      check(sol6[0].toMathMl()).equals(
+        '<math><mrow><mrow><mo>-</mo><mfrac><mn>1</mn><mn>2</mn></mfrac></mrow><mo>+</mo><mrow><mfrac><mn>1</mn><mn>2</mn></mfrac><mo>&#x22c5;</mo><mrow><mi>i</mi><mo>&#x22c5;</mo><msqrt><mrow><mn>3</mn></mrow></msqrt></mrow></mrow></mrow></math>',
+      );
+      check(sol6[1].toMathMl()).equals(
+        '<math><mrow><mrow><mo>-</mo><mfrac><mn>1</mn><mn>2</mn></mfrac></mrow><mo>-</mo><mrow><mfrac><mn>1</mn><mn>2</mn></mfrac><mo>&#x22c5;</mo><mrow><mi>i</mi><mo>&#x22c5;</mo><msqrt><mrow><mn>3</mn></mrow></msqrt></mrow></mrow></mrow></math>',
+      );
     });
 
     test('factored product equations', () {

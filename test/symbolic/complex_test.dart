@@ -120,6 +120,61 @@ void main() {
       check(c2.simplify())
           .equals(const RationalNumber(-2) - const RationalNumber(2) * i);
     });
+
+    test(
+      'canonical reconstruction: a + b * i with fractional and radical parts',
+      () {
+        // Fraction simplification: -1/2 + 2/4*i -> -1/2 + 1/2*i
+        final cFrac =
+            const RationalNumber(-1, 2) + (const RationalNumber(2, 4) * i);
+        check(cFrac.simplify()).equals(
+          const RationalNumber(-1, 2) + (const RationalNumber(1, 2) * i),
+        );
+
+        // Ordering: real terms first, imaginary part at the end
+        const sqrt3 = Pow(RationalNumber(3), RationalNumber(1, 2));
+        final cRadical1 =
+            (const RationalNumber(1, 2) * i * sqrt3) -
+            const RationalNumber(1, 2);
+        check(cRadical1.simplify()).equals(
+          const RationalNumber(-1, 2) +
+              (const RationalNumber(1, 2) * (i * sqrt3)),
+        );
+
+        final cRadical2 =
+            (-const RationalNumber(1, 2) * i * sqrt3) -
+            const RationalNumber(1, 2);
+        check(cRadical2.simplify()).equals(
+          const RationalNumber(-1, 2) -
+              (const RationalNumber(1, 2) * (i * sqrt3)),
+        );
+
+        // Deterministic 4-tier ordering: variables < rational constants < transcendental constants < imaginary unit
+        final mixed1 = ConstantNumber.pi + const RationalNumber(1);
+        check(mixed1.simplify())
+            .equals(const RationalNumber(1) + ConstantNumber.pi);
+
+        final mixed2 =
+            i +
+            ConstantNumber.pi +
+            ConstantNumber.e +
+            const RationalNumber(1) +
+            x;
+        check(mixed2.simplify()).equals(
+          x +
+              const RationalNumber(1) +
+              ConstantNumber.e +
+              ConstantNumber.pi +
+              i,
+        );
+
+        final mixed3 = ConstantNumber.pi + i;
+        check(mixed3.simplify()).equals(ConstantNumber.pi + i);
+
+        final mixed4 = ConstantNumber.e + i;
+        check(mixed4.simplify()).equals(ConstantNumber.e + i);
+      },
+    );
   });
 
   group('Cyclic power simplification', () {

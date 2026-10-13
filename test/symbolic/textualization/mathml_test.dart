@@ -74,6 +74,22 @@ void main() {
       );
     });
 
+    test('multiplication with negative fraction does not add unnecessary parentheses on left', () {
+      const halfNeg = RationalNumber(-1, 2);
+      check((halfNeg * x).toMathMl()).equals(
+        '<math><mrow><mrow><mo>-</mo><mfrac><mn>1</mn><mn>2</mn></mfrac></mrow><mo>&#x22c5;</mo><mi>x</mi></mrow></math>',
+      );
+      check((x * halfNeg).toMathMl()).equals(
+        '<math><mrow><mi>x</mi><mo>&#x22c5;</mo><mrow><mo>(</mo><mrow><mo>-</mo><mfrac><mn>1</mn><mn>2</mn></mfrac></mrow><mo>)</mo></mrow></mrow></math>',
+      );
+
+      const sqrt3 = Pow(RationalNumber(3), RationalNumber(1, 2));
+      final complexRadical = halfNeg * (ConstantNumber.i * sqrt3);
+      check(complexRadical.toMathMl()).equals(
+        '<math><mrow><mrow><mo>-</mo><mfrac><mn>1</mn><mn>2</mn></mfrac></mrow><mo>&#x22c5;</mo><mrow><mi>i</mi><mo>&#x22c5;</mo><msqrt><mrow><mn>3</mn></mrow></msqrt></mrow></mrow></math>',
+      );
+    });
+
     test('division formatting as mfrac', () {
       check((x / y).toMathMl())
           .equals('<math><mfrac><mi>x</mi><mi>y</mi></mfrac></math>');

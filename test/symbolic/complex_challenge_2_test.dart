@@ -730,8 +730,8 @@ void main() {
       final pShiftSq = (x + RationalNumber.one + i).pow(2);
       check(pShiftSq.expand().simplify()).equals(
         x.pow(2) +
-            (const RationalNumber(2) * (i * x)) +
             (const RationalNumber(2) * x) +
+            (const RationalNumber(2) * (i * x)) +
             (const RationalNumber(2) * i),
       );
     });

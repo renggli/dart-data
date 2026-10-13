@@ -148,5 +148,89 @@ void main() {
       check(compareTerms(termX, -Fraction.one, termX, Fraction.one))
           .isGreaterThan(0);
     });
+
+    test('termTier categorizes expressions into canonical tiers', () {
+      // Tier 1: Variable polynomial terms
+      check(termTier(x)).equals(1);
+      check(termTier(x * x)).equals(1);
+      check(termTier(const Sin(x))).equals(1);
+
+      // Tier 2: Pure numbers
+      check(termTier(RationalNumber.one)).equals(2);
+      check(termTier(const RealNumber(2.5))).equals(2);
+
+      // Tier 3: Real transcendental constants and constant expressions
+      check(termTier(ConstantNumber.e)).equals(3);
+      check(termTier(ConstantNumber.pi)).equals(3);
+      check(termTier(const Pow(RationalNumber(3), RationalNumber(1, 2))))
+          .equals(3);
+
+      // Tier 4: Imaginary terms containing i
+      check(termTier(ConstantNumber.i)).equals(4);
+      check(
+        termTier(
+          ConstantNumber.i * const Pow(RationalNumber(3), RationalNumber(1, 2)),
+        ),
+      ).equals(4);
+    });
+
+    test('compareTerms enforces 4-tier ordering: variables < pure numbers < e, pi < i', () {
+      const one = RationalNumber(1);
+      const sqrt3 = Pow(RationalNumber(3), RationalNumber(1, 2));
+      final iSqrt3 = ConstantNumber.i * sqrt3;
+
+      // Tier 1 (x) before Tier 2 (1)
+      check(compareTerms(x, Fraction.one, one, Fraction.one)).isLessThan(0);
+
+      // Tier 2 (1) before Tier 3 (e, pi, sqrt(3))
+      check(compareTerms(one, Fraction.one, ConstantNumber.e, Fraction.one))
+          .isLessThan(0);
+      check(compareTerms(one, Fraction.one, ConstantNumber.pi, Fraction.one))
+          .isLessThan(0);
+      check(compareTerms(one, Fraction.one, sqrt3, Fraction.one)).isLessThan(0);
+
+      // Tier 3 (e, pi) before Tier 4 (i, i*sqrt(3))
+      check(
+        compareTerms(
+          ConstantNumber.e,
+          Fraction.one,
+          ConstantNumber.pi,
+          Fraction.one,
+        ),
+      ).isLessThan(0);
+      check(
+        compareTerms(
+          ConstantNumber.pi,
+          Fraction.one,
+          ConstantNumber.i,
+          Fraction.one,
+        ),
+      ).isLessThan(0);
+      check(
+        compareTerms(
+          ConstantNumber.i,
+          Fraction.one,
+          ConstantNumber.pi,
+          Fraction.one,
+        ),
+      ).isGreaterThan(0);
+      check(compareTerms(sqrt3, Fraction.one, iSqrt3, Fraction.one))
+          .isLessThan(0);
+    });
+
+    test('compareStructural places e < pi < i deterministically', () {
+      check(compareStructural(ConstantNumber.e, ConstantNumber.pi))
+          .isLessThan(0);
+      check(compareStructural(ConstantNumber.pi, ConstantNumber.e))
+          .isGreaterThan(0);
+      check(compareStructural(ConstantNumber.pi, ConstantNumber.i))
+          .isLessThan(0);
+      check(compareStructural(ConstantNumber.i, ConstantNumber.pi))
+          .isGreaterThan(0);
+      check(compareStructural(ConstantNumber.e, ConstantNumber.i))
+          .isLessThan(0);
+      check(compareStructural(ConstantNumber.i, ConstantNumber.e))
+          .isGreaterThan(0);
+    });
   });
 }
