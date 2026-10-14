@@ -189,7 +189,6 @@ class FaddeevLeVerrierEngine {
     return switch (s) {
       RationalNumber(isZero: true) => true,
       RealNumber(value: 0.0) => true,
-      ComplexNumber(real: 0.0, imaginary: 0.0) => true,
       _ => false,
     };
   }

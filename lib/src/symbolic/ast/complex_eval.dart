@@ -211,5 +211,8 @@ Complex complexPow(Complex base, Complex exponent) {
     }
     return Complex.nan;
   }
+  if (base.b == 0 && base.a < 0 && exponent.b == 0 && exponent.a == 0.5) {
+    return Complex(0.0, math.sqrt(-base.a));
+  }
   return base.pow(exponent);
 }

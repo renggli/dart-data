@@ -14,13 +14,17 @@ void main() {
   });
 
   group('Numeric literal parsing', () {
-    test('parses integer literals', () {
+    test('parses integer and rational literals', () {
       check(Expr.parse('0')).equals(const RationalNumber(0));
+      check(Expr.parse('1')).equals(const RationalNumber(1));
       check(Expr.parse('42')).equals(const RationalNumber(42));
       check(Expr.parse('1000')).equals(const RationalNumber(1000));
+      check(Expr.parse('1/2').simplify()).equals(const RationalNumber(1, 2));
     });
 
     test('parses floating point literals with a dot as RealNumber', () {
+      check(Expr.parse('1.')).equals(const RealNumber(1.0));
+      check(Expr.parse('0.')).equals(const RealNumber(0.0));
       check(Expr.parse('0.5')).equals(const RealNumber(0.5));
       check(Expr.parse('0.25')).equals(const RealNumber(0.25));
       check(Expr.parse('0.75')).equals(const RealNumber(0.75));
@@ -660,8 +664,9 @@ void main() {
     });
 
     test('parses infinity constants', () {
-      check(Expr.parse('oo')).equals(ConstantNumber.infinity);
+      check(Expr.parse('∞')).equals(ConstantNumber.infinity);
       check(Expr.parse('infinity')).equals(ConstantNumber.infinity);
+      check(ConstantNumber.infinity.toString()).equals('∞');
     });
 
     test('parses special functions', () {

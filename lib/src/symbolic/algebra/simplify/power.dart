@@ -28,44 +28,28 @@ Expr simplifyPow(Expr base, Expr exponent) => switch ((base, exponent)) {
   (RealNumber(value: 1.0), _) => RationalNumber.one,
   (ConstantNumber(name: 'e'), final exponent) => Exp(exponent),
   (
-    ComplexNumber(real: 0.0, imaginary: 1.0) || ConstantNumber(name: 'i'),
+    ConstantNumber(name: 'i'),
     RationalNumber(isInteger: true, numerator: final expInt),
   ) =>
     _evalIPower(expInt),
   (
-    Neg(
-          expr: ComplexNumber(real: 0.0, imaginary: 1.0) ||
-              ConstantNumber(name: 'i'),
-        ) ||
-        ComplexNumber(real: 0.0, imaginary: -1.0),
+    Neg(expr: ConstantNumber(name: 'i')),
     RationalNumber(isInteger: true, numerator: final expInt),
   ) =>
     _evalNegIPower(expInt),
-  (
-    ComplexNumber(real: 0.0, imaginary: 1.0) || ConstantNumber(name: 'i'),
-    RealNumber(:final value),
-  )
+  (ConstantNumber(name: 'i'), RealNumber(:final value))
       when value == value.truncateToDouble() =>
     _evalIPower(value.toInt()),
-  (
-    Neg(
-          expr: ComplexNumber(real: 0.0, imaginary: 1.0) ||
-              ConstantNumber(name: 'i'),
-        ) ||
-        ComplexNumber(real: 0.0, imaginary: -1.0),
-    RealNumber(:final value),
-  )
+  (Neg(expr: ConstantNumber(name: 'i')), RealNumber(:final value))
       when value == value.truncateToDouble() =>
     _evalNegIPower(value.toInt()),
   (
     Mul(
           left: RationalNumber(:final numerator, :final denominator),
-          right: ComplexNumber(real: 0.0, imaginary: 1.0) ||
-              ConstantNumber(name: 'i'),
+          right: ConstantNumber(name: 'i'),
         ) ||
         Mul(
-          left: ComplexNumber(real: 0.0, imaginary: 1.0) ||
-              ConstantNumber(name: 'i'),
+          left: ConstantNumber(name: 'i'),
           right: RationalNumber(:final numerator, :final denominator),
         ),
     RationalNumber(isInteger: true, numerator: final expInt),
@@ -150,16 +134,16 @@ Expr foldGeneralPower(RationalNumber base, RationalNumber exp) {
 
 Expr _evalIPower(int expInt) => switch (((expInt % 4) + 4) % 4) {
   0 => RationalNumber.one,
-  1 => ComplexNumber.i,
+  1 => ConstantNumber.i,
   2 => RationalNumber.negativeOne,
-  _ => const Neg(ComplexNumber.i),
+  _ => const Neg(ConstantNumber.i),
 };
 
 Expr _evalNegIPower(int expInt) => switch (((expInt % 4) + 4) % 4) {
   0 => RationalNumber.one,
-  1 => const Neg(ComplexNumber.i),
+  1 => const Neg(ConstantNumber.i),
   2 => RationalNumber.negativeOne,
-  _ => ComplexNumber.i,
+  _ => ConstantNumber.i,
 };
 
 Expr _evalScaledIPower(int numerator, int denominator, int expInt) =>
@@ -167,7 +151,7 @@ Expr _evalScaledIPower(int numerator, int denominator, int expInt) =>
       0 => foldRationalPower(numerator, denominator, expInt),
       1 => simplifyMul(
         foldRationalPower(numerator, denominator, expInt),
-        ComplexNumber.i,
+        ConstantNumber.i,
       ),
       2 => simplifyMul(
         RationalNumber.negativeOne,
@@ -178,6 +162,6 @@ Expr _evalScaledIPower(int numerator, int denominator, int expInt) =>
           RationalNumber.negativeOne,
           foldRationalPower(numerator, denominator, expInt),
         ),
-        ComplexNumber.i,
+        ConstantNumber.i,
       ),
     };

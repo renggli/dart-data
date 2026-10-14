@@ -85,8 +85,8 @@ void main() {
 
     test('cancels pure imaginary units', () {
       final acc = MonomialAccumulator();
-      acc.add(ComplexNumber.i);
-      acc.add(const ComplexNumber(0.0, -1.0));
+      acc.add(ConstantNumber.i);
+      acc.add(const Neg(ConstantNumber.i));
 
       check(acc.build()).equals(RationalNumber.zero);
     });

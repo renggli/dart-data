@@ -64,7 +64,7 @@ void main() {
       check(x.pow(const RationalNumber(-2)).toString()).equals('x ^ (-2)');
       check(x.pow(y).pow(z).toString()).equals('(x ^ y) ^ z');
       check(x.pow(y.pow(z)).toString()).equals('x ^ y ^ z');
-      check(const Pow(ComplexNumber(0, -1), RationalNumber(2)).toString())
+      check(const Pow(Neg(ConstantNumber.i), RationalNumber(2)).toString())
           .equals('(-i) ^ 2');
     });
 
@@ -107,8 +107,13 @@ void main() {
       check(Cos(x * y).toString()).equals('cos(x * y)');
       check(const Exp(x).toString()).equals('exp(x)');
       check(const Ln(x).toString()).equals('ln(x)');
-      check(const ComplexNumber(3.0, 4.0).toString()).equals('3.0 + 4.0i');
-      check(ComplexNumber.i.toString()).equals('i');
+      check(
+        const Add(
+          RationalNumber(3),
+          Mul(RationalNumber(4), ConstantNumber.i),
+        ).toString(),
+      ).equals('3 + 4 * i');
+      check(ConstantNumber.i.toString()).equals('i');
     });
 
     test('compound mathematical expressions without redundant parens', () {

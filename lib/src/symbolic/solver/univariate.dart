@@ -119,11 +119,6 @@ List<Expr> solveEquation(Expr expr, String variable) {
 bool isZeroExpr(Expr expr) {
   if (expr is RationalNumber && expr.isZero) return true;
   if (expr is RealNumber && expr.value.abs() < 1e-10) return true;
-  if (expr is ComplexNumber &&
-      expr.real.abs() < 1e-10 &&
-      expr.imaginary.abs() < 1e-10) {
-    return true;
-  }
   if (expr.freeVariables.isEmpty) {
     try {
       final c = expr.evaluateComplex();
@@ -142,7 +137,7 @@ List<Expr> deduplicateRoots(List<Expr> list) {
       if (existing == simplified) return true;
       if (existing is Number && simplified is Number) {
         if (existing.isReal && simplified.isReal) {
-          return (existing.value - simplified.value).abs() < 1e-12;
+          return (existing.toDouble() - simplified.toDouble()).abs() < 1e-12;
         } else if (!existing.isReal && !simplified.isReal) {
           final c1 = existing.complexValue;
           final c2 = simplified.complexValue;

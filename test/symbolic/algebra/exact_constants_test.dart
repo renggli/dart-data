@@ -182,7 +182,7 @@ void main() {
 
       // Non-matches
       check(identifySpecialRadical(const RationalNumber(1, 4))).isNull();
-      check(identifySpecialRadical(const ConstantNumber('pi'))).isNull();
+      check(identifySpecialRadical(ConstantNumber.pi)).isNull();
       check(identifySpecialRadical(const Variable('x'))).isNull();
     });
   });

@@ -10,14 +10,12 @@ import '../ast.dart';
 int termTier(Expr expr) {
   if (expr.freeVariables.isNotEmpty) return 1;
   if (expr is RationalNumber || expr is RealNumber) return 2;
-  if (expr is ComplexNumber && expr.imaginary == 0.0) return 2;
   if (containsImaginaryUnit(expr)) return 4;
   return 3;
 }
 
-/// Tests whether [expr] contains the imaginary unit [ComplexNumber.i].
+/// Tests whether [expr] contains the imaginary unit [ConstantNumber.i].
 bool containsImaginaryUnit(Expr expr) => switch (expr) {
-  ComplexNumber(:final imaginary) => imaginary != 0.0,
   ConstantNumber(:final name) => name == 'i',
   UnaryExpr(:final expr) => containsImaginaryUnit(expr),
   BinaryExpr(:final left, :final right) =>
@@ -74,16 +72,12 @@ int compareTerms(Expr baseA, Fraction coeffA, Expr baseB, Fraction coeffB) {
 /// [symbol] name.
 double symbolDegree(Expr expr, String symbol) => switch (expr) {
   Variable(:final name) => name == symbol ? 1.0 : 0.0,
-  Pow(
-    base: Variable(:final name),
-    exponent: Number(isReal: true, :final value),
-  ) =>
-    name == symbol ? value : 0.0,
-  Pow(
-    base: Variable(:final name),
-    exponent: Neg(expr: Number(isReal: true, :final value)),
-  ) =>
-    name == symbol ? -value : 0.0,
+  Pow(base: Variable(:final name), exponent: final Number exp)
+      when exp.isReal =>
+    name == symbol ? exp.toDouble() : 0.0,
+  Pow(base: Variable(:final name), exponent: Neg(expr: final Number exp))
+      when exp.isReal =>
+    name == symbol ? -exp.toDouble() : 0.0,
   Mul(left: final l, right: final r) =>
     symbolDegree(l, symbol) + symbolDegree(r, symbol),
   Neg(:final expr) => symbolDegree(expr, symbol),
@@ -98,12 +92,11 @@ double symbolDegree(Expr expr, String symbol) => switch (expr) {
 /// `0.0` for constants or non-polynomial sub-expressions.
 double termDegree(Expr expr) => switch (expr) {
   Variable() => 1.0,
-  Pow(base: Variable(), exponent: Number(isReal: true, :final value)) => value,
-  Pow(
-    base: Variable(),
-    exponent: Neg(expr: Number(isReal: true, :final value)),
-  ) =>
-    -value,
+  Pow(base: Variable(), exponent: final Number exp) when exp.isReal =>
+    exp.toDouble(),
+  Pow(base: Variable(), exponent: Neg(expr: final Number exp))
+      when exp.isReal =>
+    -exp.toDouble(),
   Mul(left: final l, right: final r) => termDegree(l) + termDegree(r),
   Neg(:final expr) => termDegree(expr),
   Number() => 0.0,
@@ -146,16 +139,10 @@ int compareStructural(Expr a, Expr b) {
   return switch (a) {
     RationalNumber() => compareRational(a, b as RationalNumber),
     RealNumber(:final value) => value.compareTo((b as RealNumber).value),
-    ComplexNumber(:final real, :final imaginary) => switch (real.compareTo(
-      (b as ComplexNumber).real,
-    )) {
-      0 => imaginary.compareTo(b.imaginary),
-      final cmp => cmp,
-    },
-    ConstantNumber(:final name) => switch (name.compareTo(
+    ConstantNumber(:final name, :final value) => switch (name.compareTo(
       (b as ConstantNumber).name,
     )) {
-      0 => (a.isReal && b.isReal) ? a.value.compareTo(b.value) : 0,
+      0 => compareStructural(value, b.value),
       final cmp => cmp,
     },
     Variable(:final name) => name.compareTo((b as Variable).name),
@@ -222,8 +209,7 @@ int compareRational(RationalNumber a, RationalNumber b) {
 int nodeTag(Expr expr) => switch (expr) {
   RationalNumber() => 0,
   RealNumber() => 1,
-  ComplexNumber() => 18,
-  ConstantNumber() => 2,
+  ConstantNumber(:final isReal) => isReal ? 2 : 38,
   Variable() => 3,
   Neg() => 4,
   Cos() => 5,

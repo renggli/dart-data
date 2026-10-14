@@ -18,8 +18,11 @@ bool isMonomial(Expr expr) => switch (expr) {
 /// Degree of [expr] for factor ordering.
 double factorDegree(Expr expr) => switch (expr) {
   Variable() => 1.0,
-  Pow(base: Variable(), exponent: Number(:final value)) => value,
-  Pow(base: Variable(), exponent: Neg(expr: Number(:final value))) => -value,
+  Pow(base: Variable(), exponent: final Number exp) when exp.isReal =>
+    exp.toDouble(),
+  Pow(base: Variable(), exponent: Neg(expr: final Number exp))
+      when exp.isReal =>
+    -exp.toDouble(),
   Mul(left: final l, right: final r) => factorDegree(l) + factorDegree(r),
   Add(left: final l, right: final r) => math.max(
     factorDegree(l),

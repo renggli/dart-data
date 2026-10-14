@@ -140,7 +140,7 @@ abstract class Polynomial<T> {
             .substitute(variable, RationalNumber.zero)
             .simplify();
         final val = valExpr is Number
-            ? valExpr.value
+            ? valExpr.toDouble()
             : valExpr.evaluate(const {});
         coeffs[k] = effectiveType.cast(val / factorial);
       }
@@ -165,7 +165,7 @@ abstract class Polynomial<T> {
             .substitute(variable, RationalNumber.fromDouble(around))
             .simplify();
         final val = valExpr is Number
-            ? valExpr.value
+            ? valExpr.toDouble()
             : valExpr.evaluate(const {});
         final coeff = effectiveType.cast(val / factorial);
         if (coeff != field.additiveIdentity) {

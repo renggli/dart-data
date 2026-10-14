@@ -533,11 +533,12 @@ This document describes the achieved architecture across all subsystems of `pack
 - **Implementation & Constraints**:
   - Base class `Expr` (`lib/src/symbolic/ast/expr.dart`) is an immutable `sealed class` defining foundational properties: `dependsOn`, `collectFreeVariables`, `freeVariables`, `substitute`, generic child traversal (`mapChildren`, `anyNode`), `evaluate(context)`, `evaluateComplex(context)`, and operator overloads (`+`, `-`, `*`, `/`, `-()`, `pow`).
   - Modularized across `lib/src/symbolic/ast/`:
-    - `variable.dart` and `number.dart`: Leaf nodes `Variable` and `Number` (sealed base: `RationalNumber`, `RealNumber`, `ConstantNumber` with `pi`, `e`, `i`, `infinity`, and `ComplexNumber`).
+    - `variable.dart` and `number.dart`: Leaf nodes `Variable` and `Number` (sealed base: `RationalNumber`, `RealNumber`, and `ConstantNumber(name, value)` with `pi`, `e`, `i`, `infinity` (`'∞'`), where `ConstantNumber.value` is an `Expr`).
     - `operator.dart`: Sealed `UnaryExpr` and `BinaryExpr` with `copyWith` reconstruction and arithmetic nodes `Add`, `Sub`, `Mul`, `Div`, `Pow`, `Neg`.
     - `function.dart`, `special_function.dart`, `lambert_w.dart`: Elementary, transcendental, and special function nodes (`Sin`, `Cos`, `Tan`, `Asin`, `Acos`, `Atan`, `Sinh`, `Cosh`, `Tanh`, `Asinh`, `Acosh`, `Atanh`, `Exp`, `Ln`, `Abs`, `Erf`, `Erfc`, `Gamma`, `Beta`, `LambertW`).
     - `piecewise.dart` and `order_term.dart`: Conditional `Piecewise` expressions, relational predicates (`RelationalExpr`: `LessThan`, `LessEqual`, `GreaterThan`, `GreaterEqual`, `Equal`), and asymptotic `OrderTerm` ($O((x - a)^n)$).
     - `complex_eval.dart`: Complex numerical evaluators for special functions (`evaluateComplexErf`, `evaluateComplexGamma`, `evaluateComplexAsinh`, `evaluateComplexAcosh`, `evaluateComplexAtanh`).
+  - Exact numeric discipline: Integer and fraction literals (`"1"`, `"1/2"`) are represented as `RationalNumber`, complex numbers are represented compositionally as `a + b * i` using `ConstantNumber.i`, and `RealNumber` is only produced when parsing literals with a decimal point (`"0.5"`, `"1."`) or when a `RealNumber` is already present in the expression.
   - Sqrt canonicalization: Square roots are parsed and represented canonically as `Pow(base, RationalNumber(1, 2))`, and base-$b$ logarithms `log(b, x)` are represented canonically as `Div(Ln(x), Ln(b))`.
 
 ### 9.2 First-Class Algebraic Field & Container Integration
@@ -572,8 +573,8 @@ This document describes the achieved architecture across all subsystems of `pack
 - **Reasoning**: Algebraic transformations produce unreduced expression trees requiring confluent reduction into minimal canonical normal forms without cyclic expansions.
 - **Implementation & Constraints**:
   - `SimplifyExtension on Expr` (`lib/src/symbolic/algebra/simplify.dart`) executes recursive bottom-up rewriting rules decomposed into modular domain rules (`lib/src/symbolic/algebra/simplify/`):
-    - `additive.dart` and `term_accumulator.dart` (`AdditiveAccumulator`): Like-term collection, Pythagorean ($\sin^2 u + \cos^2 u \to 1$) and hyperbolic ($\cosh^2 u - \sinh^2 u \to 1$) contraction, logarithmic combination ($\ln a + \ln b \to \ln(ab)$), and Landau $O(x^n)$ dominance absorption.
-    - `multiplicative.dart`: Exact rational/real/complex folding, canonical structural factor ordering (`compareStructural`), base-exponent merging ($u^a \cdot u^b \to u^{a+b}$), and polynomial fraction cancellation.
+    - `additive.dart` and `term_accumulator.dart` (`MonomialAccumulator`): Like-term collection, Pythagorean ($\sin^2 u + \cos^2 u \to 1$) and hyperbolic ($\cosh^2 u - \sinh^2 u \to 1$) contraction, logarithmic combination ($\ln a + \ln b \to \ln(ab)$), and Landau $O(x^n)$ dominance absorption.
+    - `multiplicative.dart`: Exact rational/real folding, imaginary unit reductions ($i \cdot i \to -1$, $z / i \to -z \cdot i$), canonical structural factor ordering (`compareStructural`), base-exponent merging ($u^a \cdot u^b \to u^{a+b}$), and polynomial fraction cancellation.
     - `power.dart`: Rational power folding, radical simplification, and imaginary unit cycle reduction ($i^k$).
     - `transcendental.dart` and `exact_constants.dart`: Exact special angles, parity ($\sin(-x) \to -\sin(x)$), inverse compositions, and `Gamma`/`Beta`/`Erf`/`LambertW` identities.
   - Clear separation of concerns:
@@ -611,4 +612,4 @@ This document describes the achieved architecture across all subsystems of `pack
   - `toString()` / `formatExpr` (`lib/src/symbolic/textualization/string.dart`): Precedence-aware serialization with minimal parentheses.
   - `LatexExtension on Expr` (`lib/src/symbolic/textualization/latex.dart`): Publication-grade LaTeX (`\frac{...}{...}`, `\sqrt{...}`, `\sin(...)`, `\infty`, `cases`).
   - `MathMlExtension on Expr` (`lib/src/symbolic/textualization/mathml.dart`): Standard W3C MathML markup with `<msqrt>` and `<mroot>` `<mrow>` container wrapping.
-  - `Expr.parse(input)` / `Expr.tryParse(input)` (`lib/src/symbolic/parser.dart`): PetitParser grammar supporting standard operator precedences, relational operators, constants (`pi`, `e`, `i`, `oo`, `infinity`), elementary and special functions, `piecewise(...)`, `O(...)`, and canonical nodes for `sqrt()`, `pow()`, `root()`, and `log()`.
+  - `Expr.parse(input)` / `Expr.tryParse(input)` (`lib/src/symbolic/parser.dart`): PetitParser grammar supporting standard operator precedences, relational operators, constants (`pi`, `e`, `i`, `∞`, `infinity`), elementary and special functions, `piecewise(...)`, `O(...)`, and canonical nodes for `sqrt()`, `pow()`, `root()`, and `log()`.

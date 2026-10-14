@@ -187,15 +187,19 @@ void main() {
       check(const Exp(x).hashCode).equals(const Exp(x).hashCode);
       check(const Ln(x) == const Ln(x)).isTrue();
       check(const Ln(x).hashCode).equals(const Ln(x).hashCode);
-      check(const ComplexNumber(1.0, 2.0) == const ComplexNumber(1.0, 2.0))
-          .isTrue();
-      check(const ComplexNumber(1.0, 2.0).hashCode)
-          .equals(const ComplexNumber(1.0, 2.0).hashCode);
+      const customI = ConstantNumber(
+        'i',
+        Pow(RationalNumber.negativeOne, RationalNumber(1, 2)),
+      );
+      check(ConstantNumber.i == customI).isTrue();
+      check(ConstantNumber.i.hashCode).equals(customI.hashCode);
     });
 
     test('named mathematical constants pi and e', () {
-      check(pi.value).equals(math.pi);
-      check(e.value).equals(math.e);
+      check(pi.value).equals(const RealNumber(math.pi));
+      check(e.value).equals(const RealNumber(math.e));
+      check(pi.toDouble()).equals(math.pi);
+      check(e.toDouble()).equals(math.e);
       check(ConstantNumber.pi).equals(pi);
       check(ConstantNumber.e).equals(e);
 

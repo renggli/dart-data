@@ -65,9 +65,6 @@ class MonomialAccumulator {
       case RealNumber(:final value):
         hasReal = true;
         constantReal += (scale.a / scale.b) * value;
-      case ComplexNumber(:final real, :final imaginary) when imaginary == 0.0:
-        hasReal = true;
-        constantReal += (scale.a / scale.b) * real;
       default:
         _addMonomialTerm(expr, scale);
     }
@@ -117,13 +114,6 @@ class MonomialAccumulator {
   static Expr negateMonomial(Expr expr) => switch (expr) {
     RationalNumber() => RationalNumber.fraction(-expr.toFraction()),
     RealNumber(:final value) => RealNumber(-value),
-    ComplexNumber(:final real, :final imaginary)
-        when real == 0.0 && imaginary == 1.0 =>
-      Neg(expr),
-    ComplexNumber(:final real, :final imaginary) => ComplexNumber(
-      -real,
-      -imaginary,
-    ),
     Neg(:final expr) => expr,
     _ => Neg(expr),
   };
@@ -739,15 +729,6 @@ bool _isTranscendental(Expr expr) => switch (expr) {
     return (expr.toFraction(), RationalNumber.one, null);
   }
   if (expr is RealNumber) return (Fraction.one, RationalNumber.one, expr.value);
-  if (expr is ComplexNumber && expr.real == 0.0) {
-    if (expr.imaginary == 1.0) {
-      return (Fraction.one, ComplexNumber.i, null);
-    }
-    if (expr.imaginary == -1.0) {
-      return (-Fraction.one, ComplexNumber.i, null);
-    }
-    return (Fraction.one, ComplexNumber.i, expr.imaginary);
-  }
   if (expr is Neg) {
     final (c, b, r) = _decomposeMonomial(expr.expr);
     return (-c, b, r != null ? -r : null);
@@ -884,7 +865,6 @@ int? _asPositiveInt(Expr exponent) {
 bool _isZero(Expr expr) => switch (expr) {
   RationalNumber(isZero: true) => true,
   RealNumber(value: 0.0) => true,
-  ComplexNumber(real: 0.0, imaginary: 0.0) => true,
   _ => false,
 };
 

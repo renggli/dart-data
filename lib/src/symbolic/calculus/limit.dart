@@ -855,7 +855,9 @@ bool _isEverywhereContinuous(Expr expr, String variable) => switch (expr) {
 bool _isWellDefinedFinite(Expr expr) {
   if (expr is RationalNumber) return true;
   if (expr is RealNumber && expr.value.isFinite) return true;
-  if (expr is ConstantNumber && expr.isReal && expr.value.isFinite) return true;
+  if (expr is ConstantNumber && expr.isReal && expr.toDouble().isFinite) {
+    return true;
+  }
   if (!expr.freeVariables.isNotEmpty) {
     try {
       final v = expr.evaluate(const {});
@@ -906,11 +908,10 @@ int _asymptoticSignAtInfinity(Expr expr, String variable) {
 
 bool _isPositiveInfinity(Expr expr) {
   if (expr is RealNumber && expr.value == double.infinity) return true;
-  if (expr is ConstantNumber &&
-      (expr.name == 'oo' || expr.name == 'infinity')) {
+  if (expr is ConstantNumber && (expr.name == '∞' || expr.name == 'infinity')) {
     return true;
   }
-  if (expr is Variable && (expr.name == 'oo' || expr.name == 'infinity')) {
+  if (expr is Variable && (expr.name == '∞' || expr.name == 'infinity')) {
     return true;
   }
   return false;

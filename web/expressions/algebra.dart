@@ -12,12 +12,9 @@ String formatRealNumber(num value, {int precision = 4}) {
   return value.toStringAsFixed(precision);
 }
 
-/// Recursively checks whether [expr] explicitly references a non-real complex number or imaginary unit `i`.
-bool containsImaginary(Expr expr) => expr.anyNode(
-  (node) =>
-      (node is ComplexNumber && !node.isReal) ||
-      (node is ConstantNumber && node.name == 'i'),
-);
+/// Recursively checks whether [expr] explicitly references the imaginary unit `i`.
+bool containsImaginary(Expr expr) =>
+    expr.anyNode((node) => node is ConstantNumber && node.name == 'i');
 
 /// Formats a complex number [c] into standard mathematical notation (e.g. `1 + 2i`, `-i`, `4.50`).
 String formatComplex(Complex c, {int precision = 4}) {

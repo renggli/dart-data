@@ -172,8 +172,8 @@ void main() {
       final eq6 = x.pow(const RationalNumber(2)) + x + const RationalNumber(1);
       final sol6 = eq6.solve('x');
       check(sol6.length).equals(2);
-      check(sol6[0].toString()).equals('-1/2 + 1/2 * i * sqrt(3)');
-      check(sol6[1].toString()).equals('-1/2 - 1/2 * i * sqrt(3)');
+      check(sol6[0].toString()).equals('-1/2 + 1/2 * sqrt(3) * i');
+      check(sol6[1].toString()).equals('-1/2 - 1/2 * sqrt(3) * i');
     });
 
     test('quadratic equations with negative discriminants evaluation', () {
@@ -1332,12 +1332,12 @@ void main() {
         // Complex coefficient: x^2 - 2*i*x - 1
         final pComp =
             x.pow(const RationalNumber(2)) -
-            (const RationalNumber(2) * ComplexNumber.i) * x -
+            (const RationalNumber(2) * ConstantNumber.i) * x -
             const RationalNumber(1);
         final cComp = extractMonomialCoefficients(pComp, 'x');
         check(cComp).isNotNull();
         check(cComp![2]).equals(const RationalNumber(1));
-        check(cComp[1]).equals(const RationalNumber(-2) * ComplexNumber.i);
+        check(cComp[1]).equals(const RationalNumber(-2) * ConstantNumber.i);
         check(cComp[0]).equals(const RationalNumber(-1));
       });
 
@@ -1392,10 +1392,10 @@ void main() {
       });
 
       test('complex exponentials, inverse trig ranges, rational equations, Equal, and parametric linear systems', () {
-        check(const Exp(Mul(ComplexNumber.i, x)).solve('x')).isEmpty();
+        check(const Exp(Mul(ConstantNumber.i, x)).solve('x')).isEmpty();
         check(
           (const Exp(Div(Neg(x), RationalNumber(5))) *
-                  const Exp(Mul(Mul(RationalNumber(3), ComplexNumber.i), x)))
+                  const Exp(Mul(Mul(RationalNumber(3), ConstantNumber.i), x)))
               .solve('x'),
         ).isEmpty();
         check((const Exp(x) + const RealNumber(1.0)).solve('x')).isEmpty();

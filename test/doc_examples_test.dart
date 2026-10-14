@@ -17,15 +17,15 @@ void main() {
     test('solve and solveSystem', () {
       const x = Variable('x');
       final roots = (x * x - 4).solve('x');
-      final rootValues = roots.map((e) => (e as Number).value).toList();
+      final rootValues = roots.map((e) => (e as Number).toDouble()).toList();
       check(rootValues).contains(-2.0);
       check(rootValues).contains(2.0);
 
       const y = Variable('y');
       final systemSol = [x + y - 5, x - y - 1].solveSystem(['x', 'y']);
       check(systemSol).isNotNull();
-      check((systemSol!['x'] as Number).value).equals(3.0);
-      check((systemSol['y'] as Number).value).equals(2.0);
+      check((systemSol!['x'] as Number).toDouble()).equals(3.0);
+      check((systemSol['y'] as Number).toDouble()).equals(2.0);
     });
 
     test('derivative', () {
@@ -64,8 +64,8 @@ void main() {
 
       final match = (x * 3 + 4).matchLinear('x');
       check(match).isNotNull();
-      check((match!.a as Number).value).equals(3.0);
-      check((match.b as Number).value).equals(4.0);
+      check((match!.a as Number).toDouble()).equals(3.0);
+      check((match.b as Number).toDouble()).equals(4.0);
     });
 
     test('simplify, compile, toLatex', () {

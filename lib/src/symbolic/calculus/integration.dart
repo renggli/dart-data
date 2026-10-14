@@ -48,7 +48,7 @@ Expr _symbolicIntegrate(Expr function, String variable, {num? from, num? to}) {
       return diff;
     }
     try {
-      final val = diff is Number ? diff.value : diff.evaluate(const {});
+      final val = diff is Number ? diff.toDouble() : diff.evaluate(const {});
       if (val.isFinite) {
         return _numToNumber(val);
       }

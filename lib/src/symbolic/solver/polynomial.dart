@@ -36,11 +36,11 @@ List<Expr> solveQuadratic(Expr a, Expr b, Expr c) {
       Expr r2;
       if ((realPart is RationalNumber && realPart.isZero) ||
           (realPart is RealNumber && realPart.value == 0.0)) {
-        r1 = (imagPart * ComplexNumber.i).simplify();
-        r2 = ((-imagPart) * ComplexNumber.i).simplify();
+        r1 = (imagPart * ConstantNumber.i).simplify();
+        r2 = ((-imagPart) * ConstantNumber.i).simplify();
       } else {
-        r1 = (realPart + imagPart * ComplexNumber.i).simplify();
-        r2 = (realPart - imagPart * ComplexNumber.i).simplify();
+        r1 = (realPart + imagPart * ConstantNumber.i).simplify();
+        r2 = (realPart - imagPart * ConstantNumber.i).simplify();
       }
       return deduplicateRoots([r1, r2]);
     } else if (disc.isZero) {
@@ -63,11 +63,11 @@ List<Expr> solveQuadratic(Expr a, Expr b, Expr c) {
     Expr r2;
     if ((realPart is RationalNumber && realPart.isZero) ||
         (realPart is RealNumber && realPart.value == 0.0)) {
-      r1 = (imagPart * ComplexNumber.i).simplify();
-      r2 = ((-imagPart) * ComplexNumber.i).simplify();
+      r1 = (imagPart * ConstantNumber.i).simplify();
+      r2 = ((-imagPart) * ConstantNumber.i).simplify();
     } else {
-      r1 = (realPart + imagPart * ComplexNumber.i).simplify();
-      r2 = (realPart - imagPart * ComplexNumber.i).simplify();
+      r1 = (realPart + imagPart * ConstantNumber.i).simplify();
+      r2 = (realPart - imagPart * ConstantNumber.i).simplify();
     }
     return deduplicateRoots([r1, r2]);
   } else {
@@ -189,6 +189,5 @@ Expr rootConstant(Expr c, int n) {
 bool _isZero(Expr expr) => switch (expr) {
   RationalNumber(isZero: true) => true,
   RealNumber(value: 0.0) => true,
-  ComplexNumber(real: 0.0, imaginary: 0.0) => true,
   _ => false,
 };

@@ -3,17 +3,11 @@ part of '../ast.dart';
 /// Sealed base class representing a numeric value node in an expression AST.
 ///
 /// Subtypes include exact rational numbers ([RationalNumber]), floating-point
-/// approximations ([RealNumber]), recognized transcendental constants
-/// ([ConstantNumber]), and complex numbers ([ComplexNumber]).
+/// approximations ([RealNumber]), and recognized mathematical constants
+/// ([ConstantNumber]).
 sealed class Number extends Expr {
   /// Abstract const constructor for numeric nodes.
   const new();
-
-  /// Floating-point double precision numeric value of this number.
-  ///
-  /// Throws an [UnsupportedError] if called on complex numbers with non-zero
-  /// imaginary parts.
-  double get value;
 
   /// Whether this number equals zero.
   bool get isZero;
@@ -21,8 +15,14 @@ sealed class Number extends Expr {
   /// Whether this number has no imaginary part.
   bool get isReal => true;
 
+  /// Converts this number to a floating-point [double].
+  ///
+  /// Throws an [UnsupportedError] if called on a non-real constant such as
+  /// [ConstantNumber.i].
+  double toDouble();
+
   /// Converts this number to a [Complex] value.
-  Complex get complexValue => Complex(value, 0);
+  Complex get complexValue => Complex(toDouble(), 0);
 
   @override
   bool dependsOn(String name) => false;
@@ -37,7 +37,7 @@ sealed class Number extends Expr {
   Expr substitute(String variable, Expr replacement) => this;
 
   @override
-  double evaluate(Map<String, double> context) => value;
+  double evaluate(Map<String, double> context) => toDouble();
 }
 
 /// An exact rational number ($\mathbb{Q}$) represented by an integer [numerator] and [denominator].
@@ -79,9 +79,6 @@ final class RationalNumber extends Number {
   /// The positive integer denominator of this rational number.
   final int denominator;
 
-  @override
-  double get value => numerator / denominator;
-
   /// Whether this rational number is an integer ($denominator = 1$).
   bool get isInteger => denominator == 1;
 
@@ -113,7 +110,7 @@ final class RationalNumber extends Number {
   /// Converts this rational number to an [int] (truncated).
   int toInt() => numerator ~/ denominator;
 
-  /// Converts this rational number to a [double].
+  @override
   double toDouble() => numerator / denominator;
 
   @override
@@ -142,11 +139,14 @@ final class RealNumber extends Number {
   /// Creates a real/floating-point number node with the given [value].
   const new(this.value);
 
-  @override
+  /// The floating-point numeric value of this node.
   final double value;
 
   @override
   bool get isZero => value == 0.0;
+
+  @override
+  double toDouble() => value;
 
   @override
   String toString() => value.toString();
@@ -161,7 +161,7 @@ final class RealNumber extends Number {
   int get hashCode => value.isNaN ? double.nan.hashCode : value.hashCode;
 }
 
-/// A recognized transcendental mathematical constant (such as [pi] or [e]).
+/// A recognized mathematical constant (such as [pi], [e], [infinity], or [i]).
 ///
 /// Preserves symbolic identity during algebraic manipulations and LaTeX
 /// typesetting without premature floating-point loss of precision.
@@ -169,40 +169,48 @@ final class RealNumber extends Number {
 /// ```dart
 /// final c = ConstantNumber.pi;
 /// print(c.name); // 'pi'
-/// print(c.value); // 3.141592653589793
+/// print(c.toDouble()); // 3.141592653589793
 /// ```
 final class ConstantNumber extends Number {
-  /// Creates a named mathematical constant with [name] and optional numeric [value].
-  const new(this.name, [double value = double.nan]) : _value = value;
+  /// Creates a named mathematical constant with [name] and [value].
+  const new(this.name, this.value);
 
   /// Mathematical constant $\pi \approx 3.141592653589793$.
-  static const pi = ConstantNumber('pi', math.pi);
+  static const pi = ConstantNumber('pi', RealNumber(math.pi));
 
   /// Mathematical constant $e \approx 2.718281828459045$.
-  static const e = ConstantNumber('e', math.e);
+  static const e = ConstantNumber('e', RealNumber(math.e));
 
   /// Positive infinity constant $\infty$.
-  static const infinity = ConstantNumber('oo', double.infinity);
+  static const infinity = ConstantNumber('∞', RealNumber(double.infinity));
 
   /// Imaginary unit constant $i = \sqrt{-1}$.
-  static const i = ComplexNumber.i;
+  static const i = ConstantNumber(
+    'i',
+    Pow(RationalNumber.negativeOne, RationalNumber(1, 2)),
+  );
 
-  /// The symbolic name of this constant (e.g. `'pi'`, `'e'`).
+  /// The symbolic name of this constant (e.g. `'pi'`, `'e'`, `'∞'`, `'i'`).
   final String name;
 
-  final double _value;
+  /// The expression representing the value of this constant.
+  final Expr value;
 
   @override
-  double get value => _value;
+  double toDouble() => isReal
+      ? value.evaluate(const {})
+      : throw UnsupportedError(
+          'Constant "$name" has no real floating-point value',
+        );
 
   @override
-  bool get isZero => _value == 0.0;
+  bool get isZero => value is Number && (value as Number).isZero;
 
   @override
-  bool get isReal => true;
+  bool get isReal => value.evaluateComplex().b == 0.0;
 
   @override
-  Complex get complexValue => Complex(_value, 0);
+  Complex get complexValue => value.evaluateComplex();
 
   @override
   String toString() => name;
@@ -210,77 +218,8 @@ final class ConstantNumber extends Number {
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
-      (other is ConstantNumber && other.name == name) ||
-      (name == 'i' && other == ComplexNumber.i);
+      (other is ConstantNumber && other.name == name && other.value == value);
 
   @override
-  int get hashCode => name == 'i' ? ComplexNumber.i.hashCode : name.hashCode;
-}
-
-/// A complex number leaf node ($a + bi \in \mathbb{C}$).
-final class ComplexNumber extends Number {
-  /// Creates a complex number node with [real] and [imaginary] components.
-  const new(this.real, this.imaginary);
-
-  /// Creates a purely imaginary complex number node ($0.0 + bi$).
-  const new imaginary(double imaginary) : this(0.0, imaginary);
-
-  /// Creates a [ComplexNumber] from a [Complex] instance.
-  factory fromComplex(Complex complex) =>
-      ComplexNumber(complex.a.toDouble(), complex.b.toDouble());
-
-  /// Standard imaginary unit ($i = \sqrt{-1}$).
-  static const i = ComplexNumber(0.0, 1.0);
-
-  /// The real scalar component.
-  final double real;
-
-  /// The imaginary scalar component.
-  final double imaginary;
-
-  /// Symbolic representation name of this complex constant.
-  String get name => real == 0.0 && imaginary == 1.0
-      ? 'i'
-      : real == 0.0 && imaginary == -1.0
-      ? '-i'
-      : toString();
-
-  @override
-  double get value => imaginary == 0.0
-      ? real
-      : throw UnsupportedError(
-          'Complex number has non-zero imaginary component: $this',
-        );
-
-  @override
-  bool get isReal => imaginary == 0.0;
-
-  @override
-  bool get isZero => real == 0.0 && imaginary == 0.0;
-
-  @override
-  Complex get complexValue => Complex(real, imaginary);
-
-  @override
-  bool operator ==(Object other) =>
-      identical(this, other) ||
-      (other is ComplexNumber &&
-          other.real == real &&
-          other.imaginary == imaginary) ||
-      (real == 0.0 &&
-          imaginary == 1.0 &&
-          other is ConstantNumber &&
-          other.name == 'i');
-
-  @override
-  int get hashCode => Object.hash(ComplexNumber, real, imaginary);
-
-  @override
-  String toString() {
-    if (imaginary == 0.0) return '$real';
-    if (real == 0.0 && imaginary == 1.0) return 'i';
-    if (real == 0.0 && imaginary == -1.0) return '-i';
-    if (real == 0.0) return '${imaginary}i';
-    return imaginary < 0 ? '$real - ${-imaginary}i' : '$real + ${imaginary}i';
-  }
+  int get hashCode => Object.hash(name, value);
 }

@@ -106,7 +106,7 @@ void main() {
       check(nodeTag(const Cosh(x))).equals(14);
       check(nodeTag(const Tanh(x))).equals(15);
       check(nodeTag(const Abs(x))).equals(16);
-      check(nodeTag(ComplexNumber.i)).equals(18);
+      check(nodeTag(ConstantNumber.i)).equals(38);
       check(nodeTag(const Pow(x, RationalNumber(2)))).equals(20);
       check(nodeTag(const Mul(x, y))).equals(21);
       check(nodeTag(const Div(x, y))).equals(22);
@@ -247,8 +247,8 @@ void main() {
         const RealNumber(-0.0),
         const RealNumber(3.14159),
         const RealNumber(double.nan),
-        const ConstantNumber('pi', math.pi),
-        const ConstantNumber('e', math.e),
+        const ConstantNumber('pi', RealNumber(math.pi)),
+        const ConstantNumber('e', RealNumber(math.e)),
         const Variable('x'),
         const Variable('y'),
         const Variable('z'),
@@ -292,8 +292,8 @@ void main() {
         const RealNumber(-10.0),
         const RealNumber(0.0),
         const RealNumber(10.0),
-        const ConstantNumber('e', math.e),
-        const ConstantNumber('pi', math.pi),
+        const ConstantNumber('e', RealNumber(math.e)),
+        const ConstantNumber('pi', RealNumber(math.pi)),
         const Variable('a'),
         const Variable('b'),
         const Variable('x'),
@@ -343,8 +343,8 @@ void main() {
         const RealNumber(-5.0),
         const RealNumber(0.0),
         const RealNumber(5.0),
-        const ConstantNumber('c1', 1.0),
-        const ConstantNumber('c2', 2.0),
+        const ConstantNumber('c1', RationalNumber(1)),
+        const ConstantNumber('c2', RationalNumber(2)),
       ]);
 
       // Variables
@@ -426,7 +426,7 @@ void main() {
               2 => Variable(varNames[rng.nextInt(varNames.length)]),
               _ => ConstantNumber(
                 varNames[rng.nextInt(varNames.length)],
-                rng.nextDouble(),
+                RealNumber(rng.nextDouble()),
               ),
             };
           }
@@ -785,11 +785,10 @@ Expr _cloneExpr(Expr expr) => switch (expr) {
     denominator,
   ),
   RealNumber(:final value) => RealNumber(value),
-  ComplexNumber(:final real, :final imaginary) => ComplexNumber(
-    real,
-    imaginary,
+  ConstantNumber(:final name, :final value) => ConstantNumber(
+    name,
+    _cloneExpr(value),
   ),
-  ConstantNumber(:final name, :final value) => ConstantNumber(name, value),
   Variable(:final name) => Variable(name),
   Neg(:final expr) => Neg(_cloneExpr(expr)),
   Cos(:final expr) => Cos(_cloneExpr(expr)),

@@ -50,12 +50,12 @@ double Function(T) compileEvaluator<T>(
   double Function(T) Function(String name) compileVar,
 ) {
   switch (expression) {
-    case ComplexNumber(:final imaginary) when imaginary != 0.0:
     case ConstantNumber(name: 'i'):
       throw UnsupportedError(
         'Expression contains imaginary constant "i"; use toComplexFunction1D instead.',
       );
-    case Number(:final value):
+    case Number():
+      final value = expression.toDouble();
       return (_) => value;
     case Variable(:final name):
       return compileVar(name);

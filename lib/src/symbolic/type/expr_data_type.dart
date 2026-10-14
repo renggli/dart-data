@@ -53,7 +53,14 @@ final class ExprDataType extends DataType<Expr> {
     } else if (value is Fraction) {
       return RationalNumber.fraction(value);
     } else if (value is Complex) {
-      return value.b == 0 ? cast(value.a) : ComplexNumber.fromComplex(value);
+      if (value.b == 0) return cast(value.a);
+      final imPart = value.b == 1
+          ? ConstantNumber.i
+          : value.b == -1
+          ? const Neg(ConstantNumber.i)
+          : Mul(cast(value.b), ConstantNumber.i);
+      if (value.a == 0) return imPart;
+      return Add(cast(value.a), imPart).simplify();
     } else if (value is num) {
       return RealNumber(value.toDouble());
     } else if (value is BigInt) {
@@ -85,7 +92,7 @@ final class ExprEquality extends NaturalEquality<Expr> {
     final diff = (a - b).expand().simplify();
     if (diff == RationalNumber.zero) return true;
     if (diff is Number && diff.isReal) {
-      return diff.value.abs() <= epsilon;
+      return diff.toDouble().abs() <= epsilon;
     }
     if (diff.freeVariables.isEmpty) {
       try {
@@ -223,11 +230,7 @@ final class ExprField implements ExtendedField<Expr> {
       a.simplify() == RationalNumber.zero;
 
   static Expr _conjugate(Expr expr) => switch (expr) {
-    ComplexNumber(:final real, :final imaginary) => ComplexNumber(
-      real,
-      -imaginary,
-    ),
-    ConstantNumber(name: 'i') => const Neg(ComplexNumber.i),
+    ConstantNumber(name: 'i') => const Neg(ConstantNumber.i),
     OrderTerm() => expr,
     _ => expr.mapChildren(_conjugate),
   };

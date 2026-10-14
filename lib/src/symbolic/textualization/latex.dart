@@ -20,11 +20,10 @@ extension LatexExtension on Expr {
 
 String _toLatex(Expr expr) => switch (expr) {
   Variable(:final name) => name,
-  ComplexNumber() => expr.toString(),
   ConstantNumber(:final name) => switch (name) {
     'pi' => r'\pi',
     'i' => 'i',
-    'oo' || 'infinity' => r'\infty',
+    '∞' || 'infinity' => r'\infty',
     _ => name,
   },
   RationalNumber(:final numerator, :final denominator) =>
@@ -106,17 +105,12 @@ String _formatPow(Expr base, Expr exponent) {
   return '{${_formatPowBase(base)}}^{${_toLatex(exponent)}}';
 }
 
-bool _isCompoundOrNegativeComplex(ComplexNumber c) =>
-    (c.real != 0.0 && c.imaginary != 0.0) || c.real < 0.0 || c.imaginary < 0.0;
-
 String _formatSubRight(Expr right) => switch (right) {
   Add() ||
   Sub() ||
   Neg() ||
   RationalNumber(numerator: < 0) ||
   RealNumber(value: < 0) => '(${_toLatex(right)})',
-  final ComplexNumber c when _isCompoundOrNegativeComplex(c) =>
-    '(${_toLatex(right)})',
   _ => _toLatex(right),
 };
 
@@ -126,8 +120,6 @@ String _formatMulOperand(Expr operand) => switch (operand) {
   Neg() ||
   RationalNumber(numerator: < 0) ||
   RealNumber(value: < 0) => '(${_toLatex(operand)})',
-  final ComplexNumber c when _isCompoundOrNegativeComplex(c) =>
-    '(${_toLatex(operand)})',
   _ => _toLatex(operand),
 };
 
@@ -139,10 +131,6 @@ String _formatPowBase(Expr base) => switch (base) {
   Neg() ||
   RationalNumber(numerator: < 0) ||
   RealNumber(value: < 0) => '(${_toLatex(base)})',
-  final ComplexNumber c
-      when _isCompoundOrNegativeComplex(c) ||
-          (c.real == 0.0 && c.imaginary != 1.0) =>
-    '(${_toLatex(base)})',
   _ => _toLatex(base),
 };
 
@@ -152,7 +140,5 @@ String _formatNegOperand(Expr expr) => switch (expr) {
   Neg() ||
   RationalNumber(numerator: < 0) ||
   RealNumber(value: < 0) => '(${_toLatex(expr)})',
-  final ComplexNumber c when _isCompoundOrNegativeComplex(c) =>
-    '(${_toLatex(expr)})',
   _ => _toLatex(expr),
 };

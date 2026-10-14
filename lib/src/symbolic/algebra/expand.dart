@@ -173,7 +173,7 @@ Expr _multiplyMonomials(Expr left, Expr right) {
   for (final base in orderedBases) {
     final exp = symbolicBases[base]!;
     var factor = exp == const RationalNumber(1) ? base : Pow(base, exp);
-    if (base is ComplexNumber || (base is ConstantNumber && base.name == 'i')) {
+    if (base is ConstantNumber && base.name == 'i') {
       factor = factor.simplify();
       if (factor is RationalNumber) {
         ratCoeff *= factor.toFraction();

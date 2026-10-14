@@ -11,7 +11,6 @@ String formatExpr(Expr expr, [int parentPrec = 0]) {
   final prec = precedence(expr);
   final formatted = switch (expr) {
     Variable(:final name) => name,
-    ComplexNumber() => expr.toString(),
     ConstantNumber(:final name) => name,
     RationalNumber(:final numerator, :final denominator) =>
       denominator == 1 ? '$numerator' : '$numerator/$denominator',
@@ -95,19 +94,11 @@ String _formatOrderTerm(String variable, int order, Expr point) {
 int precedence(Expr expr) => switch (expr) {
   RelationalExpr() => 0,
   Piecewise() => 0,
-  ComplexNumber(:final real, :final imaginary)
-      when real != 0.0 && imaginary != 0.0 =>
-    1,
   Add() || Sub() => 1,
   Div() => 2,
   Mul() => 2,
   RationalNumber(isInteger: false) => 2,
-  Neg() ||
-  RationalNumber(isNegative: true) ||
-  RealNumber(value: < 0) ||
-  ComplexNumber(real: < 0, imaginary: 0) ||
-  ComplexNumber(real: 0, imaginary: < 0) => 3,
-  ComplexNumber(real: 0, :final imaginary) when imaginary != 1.0 => 2,
+  Neg() || RationalNumber(isNegative: true) || RealNumber(value: < 0) => 3,
   Pow(:final exponent) =>
     exponent is RationalNumber &&
             exponent.numerator == 1 &&

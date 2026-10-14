@@ -50,30 +50,6 @@ Expr simplifyMul(Expr left, Expr right) {
   if (left is RealNumber && right is RationalNumber) {
     return RealNumber(left.value * right.toDouble());
   }
-  if (left is ComplexNumber &&
-      right is ComplexNumber &&
-      !_isImaginaryUnit(left) &&
-      !_isImaginaryUnit(right)) {
-    final r = left.real * right.real - left.imaginary * right.imaginary;
-    final im = left.real * right.imaginary + left.imaginary * right.real;
-    return _buildComplexProduct(r, im);
-  }
-  if (left is ComplexNumber &&
-      !_isImaginaryUnit(left) &&
-      right is Number &&
-      right is! ConstantNumber &&
-      right.isReal) {
-    final k = right.value;
-    return _buildComplexProduct(left.real * k, left.imaginary * k);
-  }
-  if (right is ComplexNumber &&
-      !_isImaginaryUnit(right) &&
-      left is Number &&
-      left is! ConstantNumber &&
-      left.isReal) {
-    final k = left.value;
-    return _buildComplexProduct(right.real * k, right.imaginary * k);
-  }
 
   // Reciprocal cancellation fast path: u * (1 / u) => 1, (1 / u) * u => 1
   if (right is Div &&
@@ -144,16 +120,16 @@ Expr simplifyMul(Expr left, Expr right) {
     return simplifyPow(baseL, newExp);
   }
 
-  // Put numbers on the left of non-numbers, and scalar numbers on the left of constant numbers:
-  if (right is Number && left is! Number) {
+  // Put real numbers on the left of non-numbers, and scalar numbers on the left of constant numbers:
+  if (right is Number && right.isReal && (left is! Number || !left.isReal)) {
     return simplifyMul(right, left);
   }
   if ((right is RationalNumber || right is RealNumber) &&
-      (left is ConstantNumber || left == ComplexNumber.i)) {
+      left is ConstantNumber) {
     return simplifyMul(right, left);
   }
-  if (left is! Number &&
-      right is! Number &&
+  if ((left is! Number || !left.isReal) &&
+      (right is! Number || !right.isReal) &&
       compareStructural(baseL, baseR) > 0) {
     return Mul(right, left);
   }
@@ -207,25 +183,6 @@ Expr simplifyDiv(Expr left, Expr right) {
   }
   if (left is RealNumber && right is RationalNumber) {
     return RealNumber(left.value / right.toDouble());
-  }
-  if (left is ComplexNumber && right is ComplexNumber) {
-    final d = right.real * right.real + right.imaginary * right.imaginary;
-    if (d == 0.0) {
-      throw UnsupportedError('Division by zero in simplification');
-    }
-    final r = (left.real * right.real + left.imaginary * right.imaginary) / d;
-    final im = (left.imaginary * right.real - left.real * right.imaginary) / d;
-    return _buildComplexProduct(r, im);
-  }
-  if (left is ComplexNumber &&
-      right is Number &&
-      right is! ConstantNumber &&
-      right.isReal) {
-    final k = right.value;
-    if (k == 0.0) {
-      throw UnsupportedError('Division by zero in simplification');
-    }
-    return _buildComplexProduct(left.real / k, left.imaginary / k);
   }
 
   // Exponential division: e^a / e^b => e^(a - b), 1 / e^b => e^(-b)
@@ -416,16 +373,7 @@ void _collectProductFactors(Expr expr, List<(Expr, Expr)> list) {
   }
 }
 
-bool _isScalarNumber(Expr expr) =>
-    expr is RationalNumber ||
-    expr is RealNumber ||
-    (expr is ComplexNumber && !_isImaginaryUnit(expr));
-
-bool _isImaginaryUnit(Expr expr) =>
-    expr == ConstantNumber.i ||
-    (expr is ComplexNumber &&
-        expr.real == 0.0 &&
-        (expr.imaginary == 1.0 || expr.imaginary == -1.0));
+bool _isScalarNumber(Expr expr) => expr is RationalNumber || expr is RealNumber;
 
 void _flattenMulFactors(Expr expr, List<Expr> factors) {
   if (expr is Mul) {
@@ -451,9 +399,6 @@ Expr _simplifyMulFlattened(Expr left, Expr right) {
         return RationalNumber.zero;
       }
       if (scalar is RealNumber && scalar.value == 0.0) {
-        return RationalNumber.zero;
-      }
-      if (scalar is ComplexNumber && scalar.isZero) {
         return RationalNumber.zero;
       }
     } else {
@@ -483,9 +428,6 @@ Expr _simplifyMulFlattened(Expr left, Expr right) {
       if (scalar is RealNumber && scalar.value == 0.0) {
         return RationalNumber.zero;
       }
-      if (scalar is ComplexNumber && scalar.isZero) {
-        return RationalNumber.zero;
-      }
     } else {
       remainingFactors.add(term);
     }
@@ -496,8 +438,10 @@ Expr _simplifyMulFlattened(Expr left, Expr right) {
   }
 
   remainingFactors.sort((a, b) {
-    if (a is Number && b is! Number) return -1;
-    if (a is! Number && b is Number) return 1;
+    final aRealNum = a is Number && a.isReal;
+    final bRealNum = b is Number && b.isReal;
+    if (aRealNum && !bRealNum) return -1;
+    if (!aRealNum && bRealNum) return 1;
     return compareStructural(decomposeFactor(a).$1, decomposeFactor(b).$1);
   });
 
@@ -514,15 +458,4 @@ Expr _simplifyMulFlattened(Expr left, Expr right) {
     return simplifyNeg(symbolicPart);
   }
   return Mul(scalar, symbolicPart);
-}
-
-Expr _buildComplexProduct(double r, double im) {
-  if (im == 0.0) {
-    if (r == 0.0) return RationalNumber.zero;
-    if (r.isFinite && r == r.roundToDouble() && r.abs() < 9007199254740992) {
-      return RationalNumber(r.round());
-    }
-    return RealNumber(r);
-  }
-  return ComplexNumber(r, im);
 }

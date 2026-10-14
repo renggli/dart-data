@@ -27,16 +27,10 @@ extension MathMlExtension on Expr {
 
 String _toMathMl(Expr expr) => switch (expr) {
   Variable(:final name) => '<mi>${_escapeXml(name)}</mi>',
-  ComplexNumber(:final real, :final imaginary) =>
-    real == 0.0 && imaginary == 1.0
-        ? '<mi>i</mi>'
-        : real == 0.0 && imaginary == -1.0
-        ? '<mrow><mo>-</mo><mi>i</mi></mrow>'
-        : '<mn>${_escapeXml(expr.toString())}</mn>',
   ConstantNumber(:final name) => switch (name) {
     'pi' => '<mi>π</mi>',
     'i' => '<mi>i</mi>',
-    'oo' || 'infinity' => '<mi>∞</mi>',
+    '∞' || 'infinity' => '<mi>∞</mi>',
     _ => '<mi>${_escapeXml(name)}</mi>',
   },
   RationalNumber(:final numerator, :final denominator) =>

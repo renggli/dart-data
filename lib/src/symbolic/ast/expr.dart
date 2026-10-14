@@ -7,7 +7,7 @@ const pi = ConstantNumber.pi;
 const e = ConstantNumber.e;
 
 /// Imaginary unit constant $i = \sqrt{-1}$ as a symbolic [Expr].
-const i = ComplexNumber.i;
+const i = ConstantNumber.i;
 
 /// Sealed base class representing an algebraic expression abstract syntax tree
 /// (AST) node.
@@ -128,8 +128,10 @@ sealed class Expr {
     if (value is Complex) {
       if (value.b == 0) return _wrap(value.a);
       final imPart = value.b == 1
-          ? ComplexNumber.i
-          : Mul(_wrap(value.b), ComplexNumber.i);
+          ? ConstantNumber.i
+          : value.b == -1
+          ? const Neg(ConstantNumber.i)
+          : Mul(_wrap(value.b), ConstantNumber.i);
       if (value.a == 0) return imPart;
       return Add(_wrap(value.a), imPart);
     }

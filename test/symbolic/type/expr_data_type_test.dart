@@ -40,9 +40,9 @@ void main() {
 
       // Complex
       final castComp = exprDataType.cast(const Complex(2, 5));
-      check(castComp is ComplexNumber).isTrue();
-      check((castComp as ComplexNumber).real).equals(2.0);
-      check(castComp.imaginary).equals(5.0);
+      check(castComp).equals(
+        const RationalNumber(2) + const RationalNumber(5) * ConstantNumber.i,
+      );
 
       // Purely real Complex
       final castRealComp = exprDataType.cast(const Complex(7, 0));
@@ -130,17 +130,26 @@ void main() {
     });
 
     test('conjugate', () {
-      check(field.conjugate(ComplexNumber.i))
-          .equals(const ComplexNumber(0.0, -1.0));
-      check(field.conjugate(const ComplexNumber(3, 4)))
-          .equals(const ComplexNumber(3, -4));
+      check(field.conjugate(ConstantNumber.i))
+          .equals(const Neg(ConstantNumber.i));
+      const c34 = Add(
+        RationalNumber(3),
+        Mul(RationalNumber(4), ConstantNumber.i),
+      );
+      check(field.conjugate(c34)).equals(
+        const Sub(RationalNumber(3), Mul(RationalNumber(4), ConstantNumber.i)),
+      );
       check(field.conjugate(x)).equals(x);
-      check(field.conjugate(x + ComplexNumber.i)).equals(x - ComplexNumber.i);
+      check(field.conjugate(x + ConstantNumber.i)).equals(x - ConstantNumber.i);
     });
 
     test('norm', () {
       check(field.norm(const RationalNumber(3, 4))).equals(0.75);
-      check(field.norm(const ComplexNumber(3, 4))).equals(5.0);
+      const c34 = Add(
+        RationalNumber(3),
+        Mul(RationalNumber(4), ConstantNumber.i),
+      );
+      check(field.norm(c34)).equals(5.0);
       check(() => field.norm(x)).throws<UnsupportedError>();
     });
 
@@ -400,28 +409,41 @@ void main() {
       check(diff.expand().simplify()).equals(RationalNumber.zero);
 
       // Complex number distributivity: c1 * (c2 + c3) == c1 * c2 + c1 * c3
-      const c1 = ComplexNumber(2, 3);
-      const c2 = ComplexNumber(4, -5);
-      const c3 = ComplexNumber(-1, 7);
+      const c1 = Add(
+        RationalNumber(2),
+        Mul(RationalNumber(3), ConstantNumber.i),
+      );
+      const c2 = Sub(
+        RationalNumber(4),
+        Mul(RationalNumber(5), ConstantNumber.i),
+      );
+      const c3 = Add(
+        RationalNumber(-1),
+        Mul(RationalNumber(7), ConstantNumber.i),
+      );
       final cLhs = field.mul(c1, field.add(c2, c3));
       final cRhs = field.add(field.mul(c1, c2), field.mul(c1, c3));
-      check(field.sub(cLhs, cRhs)).equals(RationalNumber.zero);
+      check(field.sub(cLhs, cRhs).expand().simplify())
+          .equals(RationalNumber.zero);
     });
 
     test('Conjugate algebraic properties (involution, additivity, multiplicativity)', () {
       // 1. Involution: conj(conj(a)) == a
-      const cNum = ComplexNumber(3, -4);
+      const cNum = Sub(
+        RationalNumber(3),
+        Mul(RationalNumber(4), ConstantNumber.i),
+      );
       check(field.conjugate(field.conjugate(cNum))).equals(cNum);
-      check(field.conjugate(field.conjugate(ComplexNumber.i)))
-          .equals(ComplexNumber.i);
+      check(field.conjugate(field.conjugate(ConstantNumber.i)))
+          .equals(ConstantNumber.i);
 
-      final symComp = x + field.mul(ComplexNumber.i, y);
+      final symComp = x + field.mul(ConstantNumber.i, y);
       check(field.conjugate(field.conjugate(symComp))).equals(symComp);
 
-      final transExpr = Sin(x + field.mul(ComplexNumber.i, y));
+      final transExpr = Sin(x + field.mul(ConstantNumber.i, y));
       check(field.conjugate(field.conjugate(transExpr))).equals(transExpr);
 
-      final expExpr = Exp(field.mul(ComplexNumber.i, x));
+      final expExpr = Exp(field.mul(ConstantNumber.i, x));
       check(field.conjugate(field.conjugate(expExpr))).equals(expExpr);
 
       // 2. Additivity: conj(a + b) == conj(a) + conj(b)

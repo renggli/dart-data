@@ -145,7 +145,6 @@ class SylvesterResultantSolver {
   static bool _isZeroCoeff(Expr expr) => switch (expr) {
     RationalNumber(isZero: true) => true,
     RealNumber(value: 0.0) => true,
-    ComplexNumber(real: 0.0, imaginary: 0.0) => true,
     _ => false,
   };
 }

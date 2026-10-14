@@ -187,8 +187,14 @@ void main() {
       check(const Ln(x).toMathMl()).equals(
         '<math><mrow><mi>ln</mi><mo>(</mo><mi>x</mi><mo>)</mo></mrow></math>',
       );
-      check(const ComplexNumber(3.0, 4.0).toMathMl())
-          .equals('<math><mn>3.0 + 4.0i</mn></math>');
+      check(
+        const Add(
+          RationalNumber(3),
+          Mul(RationalNumber(4), ConstantNumber.i),
+        ).toMathMl(),
+      ).equals(
+        '<math><mrow><mn>3</mn><mo>+</mo><mrow><mn>4</mn><mo>&#x22c5;</mo><mi>i</mi></mrow></mrow></math>',
+      );
       check(Sin(x + y).toMathMl()).equals(
         '<math><mrow><mi>sin</mi><mo>(</mo><mrow><mi>x</mi><mo>+</mo><mi>y</mi></mrow><mo>)</mo></mrow></math>',
       );

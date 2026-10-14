@@ -14,17 +14,16 @@ Parser<Expr> buildParser() {
     ..primitive(
       seq3(
         digit().plus(),
-        seq2(char('.'), digit().plus()).optional(),
+        seq2(char('.'), digit().star()).optional(),
         seq3(pattern('eE'), anyOf('+-').optional(), digit().plus()).optional(),
       ).flatten(message: 'number expected').trim().map(_createValue),
     )
     // Constant, variables, and functions
     ..primitive(
       seq2(
-        seq2(
-          letter(),
-          word().starString(),
-        ).flatten(message: 'name expected').trim(),
+        (char('∞') | seq2(letter(), word().starString()))
+            .flatten(message: 'name expected')
+            .trim(),
         builder.loopback
             .starSeparated(char(',').trim())
             .map((list) => list.elements)
@@ -86,8 +85,8 @@ Expr _createBinding(String name, List<Expr> arguments) =>
       0 => switch (name.toLowerCase()) {
         'pi' => ConstantNumber.pi,
         'e' => ConstantNumber.e,
-        'i' => ComplexNumber.i,
-        'oo' || 'infinity' => ConstantNumber.infinity,
+        'i' => ConstantNumber.i,
+        '∞' || 'infinity' => ConstantNumber.infinity,
         _ => Variable(name),
       },
       1 => switch (name.toLowerCase()) {

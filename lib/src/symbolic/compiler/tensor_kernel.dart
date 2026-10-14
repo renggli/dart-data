@@ -162,13 +162,12 @@ void flattenToRpn(
   List<Instruction> instructions,
 ) {
   switch (expr) {
-    case ComplexNumber(:final imaginary) when imaginary != 0.0:
     case ConstantNumber(name: 'i'):
       throw UnsupportedError(
         'compileTensorKernel does not support expressions with imaginary constant "i".',
       );
-    case Number(:final value):
-      instructions.add(Instruction.pushConst(value));
+    case Number():
+      instructions.add(Instruction.pushConst(expr.toDouble()));
     case Variable(:final name):
       final idx = varIndices[name];
       if (idx == null) {

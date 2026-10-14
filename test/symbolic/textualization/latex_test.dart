@@ -111,8 +111,13 @@ void main() {
           .equals('e^{{x}^{2}}');
       check(const Ln(x).toLatex()).equals('\\ln(x)');
       check(Ln(x + const RationalNumber(1)).toLatex()).equals('\\ln(x + 1)');
-      check(const ComplexNumber(3.0, 4.0).toLatex()).equals('3.0 + 4.0i');
-      check(ComplexNumber.i.toLatex()).equals('i');
+      check(
+        const Add(
+          RationalNumber(3),
+          Mul(RationalNumber(4), ConstantNumber.i),
+        ).toLatex(),
+      ).equals(r'3 + 4 \cdot i');
+      check(ConstantNumber.i.toLatex()).equals('i');
     });
 
     test('composite calculus expressions', () {
@@ -125,10 +130,14 @@ void main() {
       check(g.toLatex()).equals('e^{-{x}^{2}}');
 
       check(ConstantNumber.infinity.toLatex()).equals(r'\infty');
-      check(const Pow(ComplexNumber(0, -1), RationalNumber(2)).toLatex())
+      check(const Pow(Neg(ConstantNumber.i), RationalNumber(2)).toLatex())
           .equals('{(-i)}^{2}');
-      check(const Mul(ComplexNumber(1, 2), Variable('x')).toLatex())
-          .equals(r'(1.0 + 2.0i) \cdot x');
+      check(
+        const Mul(
+          Add(RationalNumber(1), Mul(RationalNumber(2), ConstantNumber.i)),
+          Variable('x'),
+        ).toLatex(),
+      ).equals(r'(1 + 2 \cdot i) \cdot x');
       check(
         const OrderTerm(
           'x',

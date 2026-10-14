@@ -541,12 +541,9 @@ Expr simplifyAtanh(Expr expr) {
 Expr simplifyRelational(RelationalExpr expr) {
   final left = expr.left.simplify();
   final right = expr.right.simplify();
-  if (left is Number &&
-      right is Number &&
-      left is! ComplexNumber &&
-      right is! ComplexNumber) {
-    final vL = left.value;
-    final vR = right.value;
+  if (left is Number && right is Number && left.isReal && right.isReal) {
+    final vL = left.toDouble();
+    final vR = right.toDouble();
     final matched = switch (expr) {
       LessThan() => vL < vR,
       LessEqual() => vL <= vR,

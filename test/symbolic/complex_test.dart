@@ -26,58 +26,9 @@ void main() {
     test('type checks and value access', () {
       check(i.isReal).isFalse();
       check(i.complexValue).equals(Complex.i);
-      check(() => i.value).throws<UnsupportedError>();
-    });
-  });
-
-  group('ComplexNumber leaf node', () {
-    test('construction and basic properties', () {
-      const c = ComplexNumber(3.0, 4.0);
-      check(c.real).equals(3.0);
-      check(c.imaginary).equals(4.0);
-      check(c.isReal).isFalse();
-      check(c.complexValue).equals(const Complex(3.0, 4.0));
-      check(() => c.value).throws<UnsupportedError>();
-      check(c.toString()).equals('3.0 + 4.0i');
-      check(c.evaluateComplex()).equals(const Complex(3.0, 4.0));
-      check(c.freeVariables).isEmpty();
-      check(c.dependsOn('x')).isFalse();
-      check(c.substitute('x', const Variable('y'))).equals(c);
-    });
-
-    test('purely imaginary constructor', () {
-      const pure = ComplexNumber.imaginary(2.5);
-      check(pure.real).equals(0.0);
-      check(pure.imaginary).equals(2.5);
-      check(pure.isReal).isFalse();
-      check(pure.toString()).equals('2.5i');
-    });
-
-    test('real-valued complex number', () {
-      const realComp = ComplexNumber(5.0, 0.0);
-      check(realComp.isReal).isTrue();
-      check(realComp.value).equals(5.0);
-      check(realComp.toString()).equals('5.0');
-      const zeroComp = ComplexNumber(0.0, 0.0);
-      check(zeroComp.isReal).isTrue();
-      check(zeroComp.value).equals(0.0);
-      check(zeroComp.toString()).equals('0.0');
-    });
-
-    test('fromComplex factory and equality', () {
-      final c1 = ComplexNumber.fromComplex(const Complex(1, -2));
-      const c2 = ComplexNumber(1.0, -2.0);
-      check(c1).equals(c2);
-      check(c1.hashCode).equals(c2.hashCode);
-      check(c1.toString()).equals('1.0 - 2.0i');
-    });
-
-    test('imaginary unit representations', () {
-      check(ComplexNumber.i.name).equals('i');
-      check(ComplexNumber.i.toString()).equals('i');
-      const negI = ComplexNumber(0.0, -1.0);
-      check(negI.name).equals('-i');
-      check(negI.toString()).equals('-i');
+      check(i.value)
+          .equals(const Pow(RationalNumber.negativeOne, RationalNumber(1, 2)));
+      check(() => i.toDouble()).throws<UnsupportedError>();
     });
   });
 
@@ -155,8 +106,8 @@ void main() {
       check(((-i) / (-i)).simplify()).equals(RationalNumber.one);
       check((const RationalNumber(2) / i).simplify())
           .equals(const RationalNumber(-2) * i);
-      check((x / i).simplify()).equals(-(i * x));
-      check((x / (-i)).simplify()).equals(i * x);
+      check((x / i).simplify()).equals(-(x * i));
+      check((x / (-i)).simplify()).equals(x * i);
       check(() => (i / RationalNumber.zero).simplify())
           .throws<UnsupportedError>();
     });
@@ -194,7 +145,7 @@ void main() {
           .equals(const RationalNumber(9) + const RationalNumber(12) * i);
 
       final dist = i * (x + y);
-      check(dist.expand().simplify()).equals(i * x + i * y);
+      check(dist.expand().simplify()).equals(x * i + y * i);
     });
 
     test('canonical reconstruction: a + b * i', () {
@@ -223,7 +174,7 @@ void main() {
           (const RationalNumber(1, 2) * i * sqrt3) - const RationalNumber(1, 2);
       check(cRadical1.simplify()).equals(
         const RationalNumber(-1, 2) +
-            (const RationalNumber(1, 2) * (i * sqrt3)),
+            (const RationalNumber(1, 2) * (sqrt3 * i)),
       );
 
       final cRadical2 =
@@ -231,7 +182,7 @@ void main() {
           const RationalNumber(1, 2);
       check(cRadical2.simplify()).equals(
         const RationalNumber(-1, 2) -
-            (const RationalNumber(1, 2) * (i * sqrt3)),
+            (const RationalNumber(1, 2) * (sqrt3 * i)),
       );
 
       // Deterministic 4-tier ordering: variables < rationals < transcendentals < i
@@ -609,33 +560,33 @@ void main() {
     });
 
     test('expanding higher-degree powers of complex binomials', () {
-      // (x + i)^3 = x^3 + 3*i*x^2 - 3*x - i
+      // (x + i)^3 = x^3 + 3*x^2*i - 3*x - i
       final pCube = (x + i).pow(3);
       check(pCube.expand().simplify()).equals(
         x.pow(3) +
-            (const RationalNumber(3) * (i * x.pow(2))) -
+            (const RationalNumber(3) * (x.pow(2) * i)) -
             (const RationalNumber(3) * x) -
             i,
       );
 
-      // (x - i)^4 = x^4 - 4*i*x^3 - 6*x^2 + 4*i*x + 1
+      // (x - i)^4 = x^4 - 4*x^3*i - 6*x^2 + 4*x*i + 1
       final pQuad = (x - i).pow(4);
       check(pQuad.expand().simplify()).equals(
         x.pow(4) -
-            (const RationalNumber(4) * (i * x.pow(3))) -
+            (const RationalNumber(4) * (x.pow(3) * i)) -
             (const RationalNumber(6) * x.pow(2)) +
-            (const RationalNumber(4) * (i * x)) +
+            (const RationalNumber(4) * (x * i)) +
             RationalNumber.one,
       );
 
-      // (x - i)^5 = x^5 - 5*i*x^4 - 10*x^3 + 10*i*x^2 + 5*x - i
+      // (x - i)^5 = x^5 - 5*x^4*i - 10*x^3 + 10*x^2*i + 5*x - i
       final pPower5 = (x - i).pow(5);
       final expanded5 = pPower5.expand().simplify();
       check(expanded5).equals(
         x.pow(5) -
-            (const RationalNumber(5) * (i * x.pow(4))) -
+            (const RationalNumber(5) * (x.pow(4) * i)) -
             (const RationalNumber(10) * x.pow(3)) +
-            (const RationalNumber(10) * (i * x.pow(2))) +
+            (const RationalNumber(10) * (x.pow(2) * i)) +
             (const RationalNumber(5) * x) -
             i,
       );
@@ -682,7 +633,7 @@ void main() {
     test('derivatives of complex linear and polynomial expressions', () {
       check((x * i).derivative('x').simplify()).equals(i);
       check((x.pow(2) * i).derivative('x').simplify())
-          .equals(Mul(const RationalNumber(2), i * x));
+          .equals(Mul(const RationalNumber(2), x * i));
       check((x + i).derivative('x').simplify()).equals(RationalNumber.one);
       check(
         (x + const RationalNumber(3) + const RationalNumber(4) * i)
@@ -693,14 +644,14 @@ void main() {
 
     test('derivative of complex exponential', () {
       final deriv = Exp(i * x).derivative('x').simplify();
-      check(deriv).equals(i * Exp(i * x));
+      check(deriv).equals(Exp(x * i) * i);
     });
 
     test('anti-derivative of complex expressions w.r.t real variable', () {
-      check(i.integrate('x').simplify()).equals(i * x);
+      check(i.integrate('x').simplify()).equals(x * i);
 
       final anti = (x * i).integrate('x').simplify();
-      check(anti.derivative('x').simplify()).equals(i * x);
+      check(anti.derivative('x').simplify()).equals(x * i);
     });
 
     test('differentiation commutes with expansion on complex polynomials', () {
@@ -710,7 +661,7 @@ void main() {
       check(d1).equals(d2);
       check(d1).equals(
         (const RationalNumber(4) * x.pow(3)) +
-            (const RationalNumber(12) * (i * x.pow(2))) -
+            (const RationalNumber(12) * (x.pow(2) * i)) -
             (const RationalNumber(12) * x) -
             (const RationalNumber(4) * i),
       );
@@ -924,40 +875,26 @@ void main() {
   });
 
   group('Adversarial stress-test: Complex operations, powers, evaluation and functions', () {
-    test('ComplexNumber properties and Liskov substitution invariants', () {
-      const cZero = ComplexNumber(0.0, 0.0);
-      check(cZero.isReal).isTrue();
-      check(cZero.value).equals(0.0);
-      check(cZero.toString()).equals('0.0');
-
-      const cReal = ComplexNumber(-7.5, 0.0);
-      check(cReal.isReal).isTrue();
-      check(cReal.value).equals(-7.5);
-      check(cReal.toString()).equals('-7.5');
-
-      const cImag = ComplexNumber(0.0, -3.5);
-      check(cImag.isReal).isFalse();
-      check(() => cImag.value).throws<UnsupportedError>();
-      check(cImag.toString()).equals('-3.5i');
-
-      const cMixedPos = ComplexNumber(2.0, 3.0);
-      check(cMixedPos.toString()).equals('2.0 + 3.0i');
-
-      const cMixedNeg = ComplexNumber(2.0, -3.0);
-      check(cMixedNeg.toString()).equals('2.0 - 3.0i');
-
+    test('ConstantNumber.i properties and Liskov substitution invariants', () {
       // ConstantNumber.i identity and interface contracts
-      check(ConstantNumber.i).equals(ComplexNumber.i);
+      const expectedI = ConstantNumber(
+        'i',
+        Pow(RationalNumber.negativeOne, RationalNumber(1, 2)),
+      );
+      check(ConstantNumber.i).equals(expectedI);
+      check(ConstantNumber.i.hashCode).equals(expectedI.hashCode);
+      check(ConstantNumber.i.value)
+          .equals(const Pow(RationalNumber.negativeOne, RationalNumber(1, 2)));
       check(ConstantNumber.i.isReal).isFalse();
-      check(() => ConstantNumber.i.value).throws<UnsupportedError>();
+      check(() => ConstantNumber.i.toDouble()).throws<UnsupportedError>();
       check(ConstantNumber.i.complexValue).equals(const Complex(0, 1));
       check(ConstantNumber.i.name).equals('i');
 
-      // Number polymorphism: non-real Number throws on value, real Number succeeds
-      const Number numReal = cReal;
-      check(numReal.value).equals(-7.5);
-      const Number numImag = cImag;
-      check(() => numImag.value).throws<UnsupportedError>();
+      // Number polymorphism: non-real Number throws on toDouble, real Number succeeds
+      const Number numReal = RationalNumber(-15, 2);
+      check(numReal.toDouble()).equals(-7.5);
+      const Number numImag = ConstantNumber.i;
+      check(() => numImag.toDouble()).throws<UnsupportedError>();
     });
 
     test('cyclic integer powers of imaginary unit i across positive and negative bounds', () {
@@ -1148,13 +1085,13 @@ void main() {
     });
 
     test('complex division and cancellation in simplify', () {
-      // z / i = -z * i = -(i * z) canonically
+      // z / i = -z * i = -(z * i) canonically
       final divI = const Div(x, ConstantNumber.i).simplify();
-      check(divI).equals(const Neg(Mul(ConstantNumber.i, x)));
+      check(divI).equals(const Neg(Mul(x, ConstantNumber.i)));
 
-      // z / (-i) = z * i = i * z canonically
+      // z / (-i) = z * i canonically
       final divNegI = const Div(x, Neg(ConstantNumber.i)).simplify();
-      check(divNegI).equals(const Mul(ConstantNumber.i, x));
+      check(divNegI).equals(const Mul(x, ConstantNumber.i));
 
       // i / i = 1
       check(const Div(ConstantNumber.i, ConstantNumber.i).simplify())
