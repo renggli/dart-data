@@ -445,7 +445,6 @@ body {
   flex-direction: column;
   gap: 8px;
   min-width: 0;
-  transition: all 0.3s ease;
 }
 
 .attr-item {
@@ -456,7 +455,7 @@ body {
   background-color: rgba(15, 23, 42, 0.2);
   border: 1px solid var(--border-color);
   border-radius: 6px;
-  transition: all 0.2s ease;
+  transition: background-color 0.2s ease, border-color 0.2s ease;
   min-width: 0;
   gap: 12px;
 }
@@ -501,7 +500,8 @@ body {
 .attr-value math {
   display: inline-block;
   vertical-align: middle;
-  font-size: 14px;
+  font-size: 18px;
+  line-height: 1.4;
   color: inherit;
   max-width: 100%;
 }

@@ -211,13 +211,13 @@ void main() {
 
     test('diagonal zero in 3x3 matrix requiring row swap', () {
       // [[0, x, 1], [x, 1, 0], [1, 0, x]]
-      // det = -(x^3 + 1)
+      // det = -x^3 - 1
       final m = Matrix<Expr>.fromRows([
         [RationalNumber.zero, x, RationalNumber.one],
         [x, RationalNumber.one, RationalNumber.zero],
         [RationalNumber.one, RationalNumber.zero, x],
       ], type: exprDataType);
-      check(m.determinant()).equals(-(x.pow(3) + 1));
+      check(m.determinant()).equals(-x.pow(3) - 1);
     });
 
     test(

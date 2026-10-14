@@ -777,17 +777,17 @@ void main() {
     test('LaTeX serialization and parenthesization', () {
       check(i.toLatex()).equals('i');
       check((-i).toLatex()).equals('-i');
-      check((const RationalNumber(2) * i).toLatex()).equals(r'2 \cdot i');
+      check((const RationalNumber(2) * i).toLatex()).equals('2 i');
       check((const RationalNumber(3) - const RationalNumber(4) * i).toLatex())
-          .equals(r'3 - 4 \cdot i');
+          .equals('3 - 4 i');
 
       final c2I = const RationalNumber(2) * i;
       final cNegI = -i;
-      check(c2I.pow(2).toLatex()).equals(r'{(2 \cdot i)}^{2}');
-      check(cNegI.pow(2).toLatex()).equals(r'{(-i)}^{2}');
+      check(c2I.pow(2).toLatex()).equals('{(2 i)}^{2}');
+      check(cNegI.pow(2).toLatex()).equals('{(-i)}^{2}');
       check((x * cNegI).toLatex()).equals(r'x \cdot (-i)');
-      check((x - cNegI).toLatex()).equals(r'x - (-i)');
-      check((-cNegI).toLatex()).equals(r'-(-i)');
+      check((x - cNegI).toLatex()).equals('x - (-i)');
+      check((-cNegI).toLatex()).equals('-(-i)');
     });
 
     test('MathML serialization and parenthesization', () {
@@ -796,13 +796,13 @@ void main() {
           .equals('<math><mrow><mo>-</mo><mi>i</mi></mrow></math>');
       check((const RationalNumber(3) + const RationalNumber(4) * i).toMathMl())
           .equals(
-            '<math><mrow><mn>3</mn><mo>+</mo><mrow><mn>4</mn><mo>&#x22c5;</mo><mi>i</mi></mrow></mrow></math>',
+            '<math><mrow><mn>3</mn><mo>+</mo><mrow><mn>4</mn><mi>i</mi></mrow></mrow></math>',
           );
 
       final c2I = const RationalNumber(2) * i;
       final cNegI = -i;
       check(c2I.pow(2).toMathMl()).equals(
-        '<math><msup><mrow><mo>(</mo><mrow><mn>2</mn><mo>&#x22c5;</mo><mi>i</mi></mrow><mo>)</mo></mrow><mn>2</mn></msup></math>',
+        '<math><msup><mrow><mo>(</mo><mrow><mn>2</mn><mi>i</mi></mrow><mo>)</mo></mrow><mn>2</mn></msup></math>',
       );
       check((x * cNegI).toMathMl()).equals(
         '<math><mrow><mi>x</mi><mo>&#x22c5;</mo><mrow><mo>(</mo><mrow><mo>-</mo><mi>i</mi></mrow><mo>)</mo></mrow></mrow></math>',

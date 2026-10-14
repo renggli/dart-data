@@ -195,19 +195,19 @@ void main() {
       check(
         Asin(specialRadicalExpr(SpecialRadical.half, negative: true))
             .simplify(),
-      ).equals(const Neg(Mul(RationalNumber(1, 6), ConstantNumber.pi)));
+      ).equals(const Mul(RationalNumber(-1, 6), ConstantNumber.pi));
       check(Asin(specialRadicalExpr(SpecialRadical.sqrt2Over2)).simplify())
           .equals(const Mul(RationalNumber(1, 4), ConstantNumber.pi));
       check(
         Asin(specialRadicalExpr(SpecialRadical.sqrt2Over2, negative: true))
             .simplify(),
-      ).equals(const Neg(Mul(RationalNumber(1, 4), ConstantNumber.pi)));
+      ).equals(const Mul(RationalNumber(-1, 4), ConstantNumber.pi));
       check(Asin(specialRadicalExpr(SpecialRadical.sqrt3Over2)).simplify())
           .equals(const Mul(RationalNumber(1, 3), ConstantNumber.pi));
       check(
         Asin(specialRadicalExpr(SpecialRadical.sqrt3Over2, negative: true))
             .simplify(),
-      ).equals(const Neg(Mul(RationalNumber(1, 3), ConstantNumber.pi)));
+      ).equals(const Mul(RationalNumber(-1, 3), ConstantNumber.pi));
 
       // Acos special radicals
       check(Acos(specialRadicalExpr(SpecialRadical.half)).simplify())
@@ -235,13 +235,13 @@ void main() {
       check(
         Atan(specialRadicalExpr(SpecialRadical.sqrt3Over3, negative: true))
             .simplify(),
-      ).equals(const Neg(Mul(RationalNumber(1, 6), ConstantNumber.pi)));
+      ).equals(const Mul(RationalNumber(-1, 6), ConstantNumber.pi));
       check(Atan(specialRadicalExpr(SpecialRadical.sqrt3)).simplify())
           .equals(const Mul(RationalNumber(1, 3), ConstantNumber.pi));
       check(
         Atan(specialRadicalExpr(SpecialRadical.sqrt3, negative: true))
             .simplify(),
-      ).equals(const Neg(Mul(RationalNumber(1, 3), ConstantNumber.pi)));
+      ).equals(const Mul(RationalNumber(-1, 3), ConstantNumber.pi));
     });
   });
 }

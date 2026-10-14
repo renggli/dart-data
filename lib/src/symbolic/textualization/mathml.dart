@@ -44,8 +44,7 @@ String _toMathMl(Expr expr) => switch (expr) {
     '<mrow>${_toMathMl(left)}<mo>+</mo>${_toMathMl(right)}</mrow>',
   Sub(:final left, :final right) =>
     '<mrow>${_toMathMl(left)}<mo>-</mo>${_formatSubRight(right)}</mrow>',
-  Mul(:final left, :final right) =>
-    '<mrow>${_formatMulLeft(left)}<mo>&#x22c5;</mo>${_formatMulRight(right)}</mrow>',
+  Mul(:final left, :final right) => _formatMul(left, right),
   Div(:final left, :final right) =>
     '<mfrac>${_toMathMl(left)}${_toMathMl(right)}</mfrac>',
   Pow(:final base, :final exponent) => _formatPow(base, exponent),
@@ -104,7 +103,7 @@ String _toMathMl(Expr expr) => switch (expr) {
     '<mrow>${_toMathMl(left)}<mo>=</mo>${_toMathMl(right)}</mrow>',
   Piecewise(:final branches, :final otherwise) =>
     '<mrow><mo>{</mo><mtable>'
-        '${branches.map((b) => '<mtr><mtd>${_toMathMl(b.$2)}</mtd><mtd><mtext>if </mtext>${_toMathMl(b.$1)}</mtd></mtr>').join()}'
+        '${branches.map((b) => '<mtr><mtd>${_toMathMl(b.$2)}</mtd><mtd><mtext>if&#x00a0;</mtext>${_toMathMl(b.$1)}</mtd></mtr>').join()}'
         '${otherwise != null ? '<mtr><mtd>${_toMathMl(otherwise)}</mtd><mtd><mtext>otherwise</mtext></mtd></mtr>' : ''}'
         '</mtable></mrow>',
 };
@@ -138,36 +137,69 @@ String _formatPow(Expr base, Expr exponent) {
 }
 
 String _formatSubRight(Expr right) => switch (right) {
-  Add() ||
-  Sub() ||
-  Neg() ||
-  RationalNumber(numerator: < 0) ||
-  RealNumber(
-    value: < 0,
-  ) => '<mrow><mo>(</mo>${_toMathMl(right)}<mo>)</mo></mrow>',
+  Add() || Sub() => '<mrow><mo>(</mo>${_toMathMl(right)}<mo>)</mo></mrow>',
+  _ when _startsWithNegative(right) =>
+    '<mrow><mo>(</mo>${_toMathMl(right)}<mo>)</mo></mrow>',
   _ => _toMathMl(right),
 };
 
+String _formatMul(Expr left, Expr right) {
+  final leftMathMl = _formatMulLeft(left);
+  final rightMathMl = _formatMulRight(right);
+  final sep = _canOmitMulDot(left, right) ? '' : '<mo>&#x22c5;</mo>';
+  return '<mrow>$leftMathMl$sep$rightMathMl</mrow>';
+}
+
 String _formatMulLeft(Expr left) => switch (left) {
-  Add() ||
-  Sub() ||
-  Neg() ||
-  RationalNumber(isInteger: true, numerator: < 0) ||
-  RealNumber(
-    value: < 0,
-  ) => '<mrow><mo>(</mo>${_toMathMl(left)}<mo>)</mo></mrow>',
+  Add() || Sub() => '<mrow><mo>(</mo>${_toMathMl(left)}<mo>)</mo></mrow>',
   _ => _toMathMl(left),
 };
 
 String _formatMulRight(Expr right) => switch (right) {
-  Add() ||
-  Sub() ||
-  Neg() ||
-  RationalNumber(numerator: < 0) ||
-  RealNumber(
-    value: < 0,
-  ) => '<mrow><mo>(</mo>${_toMathMl(right)}<mo>)</mo></mrow>',
+  Add() || Sub() => '<mrow><mo>(</mo>${_toMathMl(right)}<mo>)</mo></mrow>',
+  _ when _startsWithNegative(right) =>
+    '<mrow><mo>(</mo>${_toMathMl(right)}<mo>)</mo></mrow>',
   _ => _toMathMl(right),
+};
+
+bool _canOmitMulDot(Expr left, Expr right) {
+  final l = _rightmostMulFactor(left);
+  if (!_isNumericFactor(l)) return false;
+  final r = _leftmostMulFactor(right);
+  return switch (r) {
+    RationalNumber() || RealNumber() || Div() => false,
+    _ when _startsWithNegative(r) => false,
+    Pow() => !_startsWithNumber(r),
+    _ => true,
+  };
+}
+
+bool _isNumericFactor(Expr expr) => switch (expr) {
+  RationalNumber() || RealNumber() => true,
+  Neg(expr: RationalNumber() || RealNumber()) => true,
+  _ => false,
+};
+
+bool _startsWithNegative(Expr expr) => switch (expr) {
+  Neg() || RationalNumber(numerator: < 0) || RealNumber(value: < 0) => true,
+  Mul(:final left) => _startsWithNegative(left),
+  _ => false,
+};
+
+Expr _rightmostMulFactor(Expr expr) =>
+    expr is Mul ? _rightmostMulFactor(expr.right) : expr;
+
+Expr _leftmostMulFactor(Expr expr) =>
+    expr is Mul ? _leftmostMulFactor(expr.left) : expr;
+
+bool _startsWithNumber(Expr expr) => switch (expr) {
+  RationalNumber() || RealNumber() => true,
+  Pow(:final base, :final exponent) =>
+    !(exponent is RationalNumber &&
+            exponent.numerator == 1 &&
+            exponent.denominator >= 2) &&
+        _startsWithNumber(base),
+  _ => false,
 };
 
 String _formatPowBase(Expr base) => switch (base) {
@@ -184,13 +216,9 @@ String _formatPowBase(Expr base) => switch (base) {
 };
 
 String _formatNegOperand(Expr expr) => switch (expr) {
-  Add() ||
-  Sub() ||
-  Neg() ||
-  RationalNumber(numerator: < 0) ||
-  RealNumber(
-    value: < 0,
-  ) => '<mrow><mo>(</mo>${_toMathMl(expr)}<mo>)</mo></mrow>',
+  Add() || Sub() => '<mrow><mo>(</mo>${_toMathMl(expr)}<mo>)</mo></mrow>',
+  _ when _startsWithNegative(expr) =>
+    '<mrow><mo>(</mo>${_toMathMl(expr)}<mo>)</mo></mrow>',
   _ => _toMathMl(expr),
 };
 

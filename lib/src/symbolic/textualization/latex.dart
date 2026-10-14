@@ -36,8 +36,7 @@ String _toLatex(Expr expr) => switch (expr) {
   Add(:final left, :final right) => '${_toLatex(left)} + ${_toLatex(right)}',
   Sub(:final left, :final right) =>
     '${_toLatex(left)} - ${_formatSubRight(right)}',
-  Mul(:final left, :final right) =>
-    '${_formatMulOperand(left)} \\cdot ${_formatMulOperand(right)}',
+  Mul(:final left, :final right) => _formatMul(left, right),
   Div(:final left, :final right) =>
     '\\frac{${_toLatex(left)}}{${_toLatex(right)}}',
   Pow(:final base, :final exponent) => _formatPow(base, exponent),
@@ -106,21 +105,67 @@ String _formatPow(Expr base, Expr exponent) {
 }
 
 String _formatSubRight(Expr right) => switch (right) {
-  Add() ||
-  Sub() ||
-  Neg() ||
-  RationalNumber(numerator: < 0) ||
-  RealNumber(value: < 0) => '(${_toLatex(right)})',
+  Add() || Sub() => '(${_toLatex(right)})',
+  _ when _startsWithNegative(right) => '(${_toLatex(right)})',
   _ => _toLatex(right),
 };
 
-String _formatMulOperand(Expr operand) => switch (operand) {
-  Add() ||
-  Sub() ||
-  Neg() ||
-  RationalNumber(numerator: < 0) ||
-  RealNumber(value: < 0) => '(${_toLatex(operand)})',
-  _ => _toLatex(operand),
+String _formatMul(Expr left, Expr right) {
+  final leftLatex = _formatMulLeft(left);
+  final rightLatex = _formatMulRight(right);
+  final sep = _canOmitMulDot(left, right) ? ' ' : r' \cdot ';
+  return '$leftLatex$sep$rightLatex';
+}
+
+String _formatMulLeft(Expr left) => switch (left) {
+  Add() || Sub() => '(${_toLatex(left)})',
+  _ => _toLatex(left),
+};
+
+String _formatMulRight(Expr right) => switch (right) {
+  Add() || Sub() => '(${_toLatex(right)})',
+  _ when _startsWithNegative(right) => '(${_toLatex(right)})',
+  _ => _toLatex(right),
+};
+
+bool _canOmitMulDot(Expr left, Expr right) {
+  final l = _rightmostMulFactor(left);
+  if (!_isNumericFactor(l)) return false;
+  final r = _leftmostMulFactor(right);
+  return switch (r) {
+    RationalNumber() || RealNumber() || Div() => false,
+    _ when _startsWithNegative(r) => false,
+    Pow() => !_startsWithNumber(r),
+    _ => true,
+  };
+}
+
+bool _isNumericFactor(Expr expr) => switch (expr) {
+  RationalNumber() || RealNumber() => true,
+  Neg(expr: RationalNumber() || RealNumber()) => true,
+  _ => false,
+};
+
+bool _startsWithNegative(Expr expr) => switch (expr) {
+  Neg() || RationalNumber(numerator: < 0) || RealNumber(value: < 0) => true,
+  Mul(:final left) => _startsWithNegative(left),
+  _ => false,
+};
+
+Expr _rightmostMulFactor(Expr expr) =>
+    expr is Mul ? _rightmostMulFactor(expr.right) : expr;
+
+Expr _leftmostMulFactor(Expr expr) =>
+    expr is Mul ? _leftmostMulFactor(expr.left) : expr;
+
+bool _startsWithNumber(Expr expr) => switch (expr) {
+  RationalNumber() || RealNumber() => true,
+  Pow(:final base, :final exponent) =>
+    !(exponent is RationalNumber &&
+            exponent.numerator == 1 &&
+            exponent.denominator >= 2) &&
+        _startsWithNumber(base),
+  _ => false,
 };
 
 String _formatPowBase(Expr base) => switch (base) {
@@ -135,10 +180,7 @@ String _formatPowBase(Expr base) => switch (base) {
 };
 
 String _formatNegOperand(Expr expr) => switch (expr) {
-  Add() ||
-  Sub() ||
-  Neg() ||
-  RationalNumber(numerator: < 0) ||
-  RealNumber(value: < 0) => '(${_toLatex(expr)})',
+  Add() || Sub() => '(${_toLatex(expr)})',
+  _ when _startsWithNegative(expr) => '(${_toLatex(expr)})',
   _ => _toLatex(expr),
 };

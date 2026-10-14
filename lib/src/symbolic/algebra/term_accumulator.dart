@@ -115,6 +115,18 @@ class MonomialAccumulator {
     RationalNumber() => RationalNumber.fraction(-expr.toFraction()),
     RealNumber(:final value) => RealNumber(-value),
     Neg(:final expr) => expr,
+    Mul(left: final RationalNumber c, :final right) =>
+      c.isOne
+          ? Neg(right)
+          : c.isNegativeOne
+          ? right
+          : Mul(RationalNumber.fraction(-c.toFraction()), right),
+    Mul(left: final RealNumber c, :final right) =>
+      c.value == 1.0
+          ? Neg(right)
+          : c.value == -1.0
+          ? right
+          : Mul(RealNumber(-c.value), right),
     _ => Neg(expr),
   };
 
@@ -762,10 +774,42 @@ bool _isTranscendental(Expr expr) => switch (expr) {
       );
       return (-c, b, r != null ? -r : null);
     }
+    if (expr.left case Mul(left: final RationalNumber n, :final right)
+        when n.numerator < 0) {
+      final posLeft = n.isNegativeOne
+          ? right
+          : Mul(RationalNumber.fraction(-n.toFraction()), right);
+      final (c, b, r) = _decomposeMonomial(Div(posLeft, expr.right));
+      return (-c, b, r != null ? -r : null);
+    }
+    if (expr.left case Mul(left: final RealNumber n, :final right)
+        when n.value < 0.0) {
+      final posLeft = n.value == -1.0
+          ? right
+          : Mul(RealNumber(-n.value), right);
+      final (c, b, r) = _decomposeMonomial(Div(posLeft, expr.right));
+      return (-c, b, r != null ? -r : null);
+    }
     if (expr.right is Neg) {
       final (c, b, r) = _decomposeMonomial(
         Div(expr.left, (expr.right as Neg).expr),
       );
+      return (-c, b, r != null ? -r : null);
+    }
+    if (expr.right case Mul(left: final RationalNumber n, :final right)
+        when n.numerator < 0) {
+      final posRight = n.isNegativeOne
+          ? right
+          : Mul(RationalNumber.fraction(-n.toFraction()), right);
+      final (c, b, r) = _decomposeMonomial(Div(expr.left, posRight));
+      return (-c, b, r != null ? -r : null);
+    }
+    if (expr.right case Mul(left: final RealNumber n, :final right)
+        when n.value < 0.0) {
+      final posRight = n.value == -1.0
+          ? right
+          : Mul(RealNumber(-n.value), right);
+      final (c, b, r) = _decomposeMonomial(Div(expr.left, posRight));
       return (-c, b, r != null ? -r : null);
     }
     if (expr.right is RationalNumber) {

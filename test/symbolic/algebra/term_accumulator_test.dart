@@ -201,7 +201,7 @@ void main() {
       check(MonomialAccumulator.negateMonomial(const RealNumber(2.5)))
           .equals(const RealNumber(-2.5));
       check(MonomialAccumulator.negateMonomial(const RationalNumber(2) * x))
-          .equals(Neg(const RationalNumber(2) * x));
+          .equals(const RationalNumber(-2) * x);
       check(MonomialAccumulator.negateMonomial(-x)).equals(x);
     });
   });

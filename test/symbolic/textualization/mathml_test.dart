@@ -68,6 +68,26 @@ void main() {
       check((x * y).toMathMl()).equals(
         '<math><mrow><mi>x</mi><mo>&#x22c5;</mo><mi>y</mi></mrow></math>',
       );
+      check((const RationalNumber(12) * x).toMathMl())
+          .equals('<math><mrow><mn>12</mn><mi>x</mi></mrow></math>');
+      check((const RationalNumber(12) * x * y).toMathMl()).equals(
+        '<math><mrow><mrow><mn>12</mn><mi>x</mi></mrow><mo>&#x22c5;</mo><mi>y</mi></mrow></math>',
+      );
+      check(const Mul(RationalNumber(2), RationalNumber(3)).toMathMl()).equals(
+        '<math><mrow><mn>2</mn><mo>&#x22c5;</mo><mn>3</mn></mrow></math>',
+      );
+      check(
+        (const RationalNumber(2) * const RationalNumber(3).pow(x)).toMathMl(),
+      ).equals(
+        '<math><mrow><mn>2</mn><mo>&#x22c5;</mo><msup><mn>3</mn><mi>x</mi></msup></mrow></math>',
+      );
+      check(
+        (const RationalNumber(2) *
+                const RationalNumber(3).pow(const RationalNumber(1, 2)))
+            .toMathMl(),
+      ).equals(
+        '<math><mrow><mn>2</mn><msqrt><mrow><mn>3</mn></mrow></msqrt></mrow></math>',
+      );
       check(((x + y) * z).toMathMl()).equals(
         '<math><mrow><mrow><mo>(</mo><mrow><mi>x</mi><mo>+</mo><mi>y</mi></mrow><mo>)</mo></mrow><mo>&#x22c5;</mo><mi>z</mi></mrow></math>',
       );
@@ -79,7 +99,7 @@ void main() {
     test('multiplication with negative fraction does not add unnecessary parentheses on left', () {
       const halfNeg = RationalNumber(-1, 2);
       check((halfNeg * x).toMathMl()).equals(
-        '<math><mrow><mrow><mo>-</mo><mfrac><mn>1</mn><mn>2</mn></mfrac></mrow><mo>&#x22c5;</mo><mi>x</mi></mrow></math>',
+        '<math><mrow><mrow><mo>-</mo><mfrac><mn>1</mn><mn>2</mn></mfrac></mrow><mi>x</mi></mrow></math>',
       );
       check((x * halfNeg).toMathMl()).equals(
         '<math><mrow><mi>x</mi><mo>&#x22c5;</mo><mrow><mo>(</mo><mrow><mo>-</mo><mfrac><mn>1</mn><mn>2</mn></mfrac></mrow><mo>)</mo></mrow></mrow></math>',
@@ -88,8 +108,28 @@ void main() {
       const sqrt3 = Pow(RationalNumber(3), RationalNumber(1, 2));
       final complexRadical = halfNeg * (ConstantNumber.i * sqrt3);
       check(complexRadical.toMathMl()).equals(
-        '<math><mrow><mrow><mo>-</mo><mfrac><mn>1</mn><mn>2</mn></mfrac></mrow><mo>&#x22c5;</mo><mrow><mi>i</mi><mo>&#x22c5;</mo><msqrt><mrow><mn>3</mn></mrow></msqrt></mrow></mrow></math>',
+        '<math><mrow><mrow><mo>-</mo><mfrac><mn>1</mn><mn>2</mn></mfrac></mrow><mrow><mi>i</mi><mo>&#x22c5;</mo><msqrt><mrow><mn>3</mn></mrow></msqrt></mrow></mrow></math>',
       );
+
+      check(Expr.parse('1 + -2 * x ^ 3').toMathMl()).equals(
+        '<math><mrow><mn>1</mn><mo>+</mo><mrow><mrow><mo>-</mo><mn>2</mn></mrow><msup><mi>x</mi><mn>3</mn></msup></mrow></mrow></math>',
+      );
+      check(
+        Add(
+          const RationalNumber(1),
+          Mul(const RationalNumber(-2), x.pow(const RationalNumber(3))),
+        ).toMathMl(),
+      ).equals(
+        '<math><mrow><mn>1</mn><mo>+</mo><mrow><mn>-2</mn><msup><mi>x</mi><mn>3</mn></msup></mrow></mrow></math>',
+      );
+    });
+
+    test('piecewise formatting preserves non-breaking space after if', () {
+      const pw = Piecewise([
+        (LessThan(x, RationalNumber.zero), Neg(x)),
+        (GreaterEqual(x, RationalNumber.zero), x),
+      ]);
+      check(pw.toMathMl()).contains('<mtext>if&#x00a0;</mtext>');
     });
 
     test('division formatting as mfrac', () {
@@ -193,7 +233,7 @@ void main() {
           Mul(RationalNumber(4), ConstantNumber.i),
         ).toMathMl(),
       ).equals(
-        '<math><mrow><mn>3</mn><mo>+</mo><mrow><mn>4</mn><mo>&#x22c5;</mo><mi>i</mi></mrow></mrow></math>',
+        '<math><mrow><mn>3</mn><mo>+</mo><mrow><mn>4</mn><mi>i</mi></mrow></mrow></math>',
       );
       check(Sin(x + y).toMathMl()).equals(
         '<math><mrow><mi>sin</mi><mo>(</mo><mrow><mi>x</mi><mo>+</mo><mi>y</mi></mrow><mo>)</mo></mrow></math>',

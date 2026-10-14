@@ -41,10 +41,32 @@ void main() {
 
     test('multiplication and precedence parentheses', () {
       check((x * y).toLatex()).equals('x \\cdot y');
+      check((const RationalNumber(12) * x).toLatex()).equals('12 x');
+      check((const RationalNumber(1, 2) * x).toLatex())
+          .equals(r'\frac{1}{2} x');
+      check((const RationalNumber(12) * x * y).toLatex())
+          .equals(r'12 x \cdot y');
+      check(const Mul(RationalNumber(2), RationalNumber(3)).toLatex())
+          .equals(r'2 \cdot 3');
+      check(
+        (const RationalNumber(2) * const RationalNumber(3).pow(x)).toLatex(),
+      ).equals(r'2 \cdot {3}^{x}');
+      check(
+        (const RationalNumber(2) *
+                const RationalNumber(3).pow(const RationalNumber(1, 2)))
+            .toLatex(),
+      ).equals(r'2 \sqrt{3}');
       check(((x + y) * z).toLatex()).equals('(x + y) \\cdot z');
       check((x * (y + z)).toLatex()).equals('x \\cdot (y + z)');
       check(((x + y) * (y - z)).toLatex()).equals('(x + y) \\cdot (y - z)');
       check((x * y * z).toLatex()).equals('x \\cdot y \\cdot z');
+      check(Expr.parse('1 + -2 * x ^ 3').toLatex()).equals('1 + -2 {x}^{3}');
+      check(
+        Add(
+          const RationalNumber(1),
+          Mul(const RationalNumber(-2), x.pow(const RationalNumber(3))),
+        ).toLatex(),
+      ).equals('1 + -2 {x}^{3}');
     });
 
     test('division formatting as frac', () {
@@ -116,7 +138,7 @@ void main() {
           RationalNumber(3),
           Mul(RationalNumber(4), ConstantNumber.i),
         ).toLatex(),
-      ).equals(r'3 + 4 \cdot i');
+      ).equals('3 + 4 i');
       check(ConstantNumber.i.toLatex()).equals('i');
     });
 
@@ -137,7 +159,7 @@ void main() {
           Add(RationalNumber(1), Mul(RationalNumber(2), ConstantNumber.i)),
           Variable('x'),
         ).toLatex(),
-      ).equals(r'(1 + 2 \cdot i) \cdot x');
+      ).equals(r'(1 + 2 i) \cdot x');
       check(
         const OrderTerm(
           'x',

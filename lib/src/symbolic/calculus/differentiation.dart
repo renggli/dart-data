@@ -1,3 +1,4 @@
+import '../algebra/expand.dart';
 import '../algebra/simplify.dart';
 import '../ast.dart';
 
@@ -48,13 +49,23 @@ Expr _differentiate(Expr expr, String variable) {
       Mul(_differentiate(left, variable), right),
       Mul(left, _differentiate(right, variable)),
     ),
-    Div(:final left, :final right) => Div(
-      Sub(
-        Mul(_differentiate(left, variable), right),
-        Mul(left, _differentiate(right, variable)),
+    Div(:final left, :final right) => switch (right) {
+      Pow(:final base, :final exponent) when !exponent.dependsOn(variable) =>
+        Div(
+          Sub(
+            Mul(_differentiate(left, variable), base),
+            Mul(Mul(exponent, left), _differentiate(base, variable)),
+          ).expand(),
+          Pow(base, Add(exponent, RationalNumber.one)),
+        ),
+      _ => Div(
+        Sub(
+          Mul(_differentiate(left, variable), right),
+          Mul(left, _differentiate(right, variable)),
+        ).expand(),
+        Pow(right, const RationalNumber(2)),
       ),
-      Pow(right, const RationalNumber(2)),
-    ),
+    },
     Pow(:final base, :final exponent) => switch ((
       base.dependsOn(variable),
       exponent.dependsOn(variable),

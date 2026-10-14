@@ -129,7 +129,6 @@ late web.HTMLElement valIntAnalytical;
 
 late web.HTMLInputElement sliderTaylorOrder;
 late web.HTMLSelectElement selectTaylorCenter;
-late web.HTMLInputElement inputTaylorAround;
 late web.HTMLElement taylorOrderVal;
 late web.HTMLElement valFormalSeries;
 late web.HTMLElement taylorPolynomialStr;
@@ -259,9 +258,6 @@ void initDom() {
   selectTaylorCenter = web.document.querySelector(
     '#select-taylor-center',
   ) as web.HTMLSelectElement;
-  inputTaylorAround = web.document.querySelector(
-    '#input-taylor-around',
-  ) as web.HTMLInputElement;
   taylorOrderVal =
       web.document.querySelector('#taylor-order-val') as web.HTMLElement;
   valFormalSeries =
@@ -353,10 +349,7 @@ void selectPreset(ExpressionPreset preset) {
   sliderPointX.value = pointX.toString();
   inputPointX.value = pointX.toString();
   pointXDisplay.textContent = formatNumber(pointX, precision: 2);
-  if (selectTaylorCenter.value == 'x0') {
-    taylorAround = pointX;
-    inputTaylorAround.value = formatNumber(pointX, precision: 2);
-  }
+  taylorAround = selectTaylorCenter.value == 'x0' ? pointX : 0.0;
 
   intA = preset.defaultIntA;
   intB = preset.defaultIntB;
@@ -501,25 +494,7 @@ void attachEventListeners() {
     drawCharts();
   });
   selectTaylorCenter.onChange.listen((_) {
-    final mode = selectTaylorCenter.value;
-    if (mode == 'x0') {
-      inputTaylorAround.disabled = true;
-      taylorAround = pointX;
-      inputTaylorAround.value = formatNumber(pointX, precision: 2);
-    } else if (mode == 'zero') {
-      inputTaylorAround.disabled = true;
-      taylorAround = 0.0;
-      inputTaylorAround.value = '0.00';
-    } else {
-      inputTaylorAround.disabled = false;
-      taylorAround = double.tryParse(inputTaylorAround.value) ?? pointX;
-      inputTaylorAround.focus();
-    }
-    updateTaylorTelemetry();
-    drawCharts();
-  });
-  inputTaylorAround.onInput.listen((_) {
-    taylorAround = double.tryParse(inputTaylorAround.value) ?? taylorAround;
+    taylorAround = selectTaylorCenter.value == 'x0' ? pointX : 0.0;
     updateTaylorTelemetry();
     drawCharts();
   });
@@ -570,7 +545,6 @@ void setPointX(double val) {
   updatePointTelemetry();
   if (selectTaylorCenter.value == 'x0') {
     taylorAround = val;
-    inputTaylorAround.value = formatNumber(val, precision: 2);
     updateTaylorTelemetry();
   }
   drawCharts();
@@ -824,7 +798,7 @@ void clearTelemetry() {
   setAttrValue(valEvalFx, '-');
   setAttrValue(valEvalDfAnalytical, '-');
   setAttrValue(valEvalDfNumerical, '-');
-  setAttrValue(valTangentEq, '-');
+  setAttrExpr(valTangentEq, null);
   setAttrExpr(valEvalLim, null);
   setAttrValue(valEvalLimInf, '-');
 
@@ -922,12 +896,10 @@ void updatePointTelemetry() {
       realY0.isFinite &&
       realSlope.isFinite) {
     final intercept = realY0 - realSlope * pointX;
-    final mStr = formatNumber(realSlope, precision: 2);
-    final bStr = intercept >= 0
-        ? '+ ${formatNumber(intercept, precision: 2)}'
-        : '- ${formatNumber(intercept.abs(), precision: 2)}';
-    final prefix = hasImaginary ? 'Re: ' : '';
-    setAttrValue(valTangentEq, '${prefix}y = $mStr·x $bStr');
+    final mExpr = _numberToExpr(realSlope, precision: 2);
+    final bExpr = _numberToExpr(intercept, precision: 2);
+    final rhs = (mExpr * const Variable('x') + bExpr).simplify();
+    setAttrExpr(valTangentEq, Equal(const Variable('y'), rhs));
   } else {
     setAttrValue(valTangentEq, 'Undefined');
   }
@@ -1010,13 +982,7 @@ void updateTaylorTelemetry() {
   final expr = parsedExpr;
   if (expr == null) return;
 
-  if (selectTaylorCenter.value == 'x0') {
-    taylorAround = pointX;
-    inputTaylorAround.value = formatNumber(pointX, precision: 2);
-  } else if (selectTaylorCenter.value == 'zero') {
-    taylorAround = 0.0;
-    inputTaylorAround.value = '0.00';
-  }
+  taylorAround = selectTaylorCenter.value == 'x0' ? pointX : 0.0;
 
   final centerExpr = (taylorAround - taylorAround.round()).abs() < 1e-9
       ? RationalNumber(taylorAround.round())
@@ -1690,13 +1656,20 @@ void loadFromUrlHash() {
   sliderPointX.value = pointX.toString();
   inputPointX.value = pointX.toString();
   pointXDisplay.textContent = formatNumber(pointX, precision: 2);
-  if (selectTaylorCenter.value == 'x0') {
-    taylorAround = pointX;
-    inputTaylorAround.value = formatNumber(pointX, precision: 2);
-  }
+  taylorAround = selectTaylorCenter.value == 'x0' ? pointX : 0.0;
   inputIntA.value = intA.toString();
   inputIntB.value = intB.toString();
   updateRangeBounds();
 
   updateAll();
+}
+
+Number _numberToExpr(double value, {int precision = 2}) {
+  if (value.abs() < 1e-12) return RationalNumber.zero;
+  final rounded = double.parse(value.toStringAsFixed(precision));
+  if (rounded == 0.0) return RationalNumber.zero;
+  if (rounded % 1 == 0 && rounded.abs() < 1e12) {
+    return RationalNumber(rounded.toInt());
+  }
+  return RealNumber(rounded);
 }

@@ -65,6 +65,26 @@ void main() {
       final d3 = sqrtX.derivative('x', order: 3);
       check(d3.evaluate({'x': 4.0})).equals(3.0 / 256.0);
     });
+
+    test(
+      'higher order derivatives of Gaussian distribute negation cleanly',
+      () {
+        final gaussian = Expr.parse('exp(-x^2 / 2)').simplify();
+        final d1 = gaussian.derivative('x', order: 1);
+        final d2 = gaussian.derivative('x', order: 2);
+        final d3 = gaussian.derivative('x', order: 3);
+
+        check(d1.toLatex()).equals(r'-x \cdot e^{-\frac{1}{2} {x}^{2}}');
+        check(d2).isA<Sub>();
+        check(d2.toLatex()).equals(
+          r'{x}^{2} \cdot e^{-\frac{1}{2} {x}^{2}} - e^{-\frac{1}{2} {x}^{2}}',
+        );
+        check(d3).isA<Add>();
+        check(d3.toLatex()).equals(
+          r'-{x}^{3} \cdot e^{-\frac{1}{2} {x}^{2}} + 3 x \cdot e^{-\frac{1}{2} {x}^{2}}',
+        );
+      },
+    );
   });
 
   group('First-order derivative parity across fine sampling grids', () {

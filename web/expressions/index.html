@@ -138,7 +138,7 @@
           </div>
           <div class="attr-item">
             <span class="attr-label">Tangent Eq</span>
-            <span class="attr-value" id="val-tangent-eq" style="font-size: 11px;">-</span>
+            <span class="attr-value" id="val-tangent-eq">-</span>
           </div>
           <div class="attr-item">
             <span class="attr-label">lim <sub>x→x₀</sub></span>
@@ -266,16 +266,12 @@
         </div>
 
         <div class="parameter-input-group" style="margin-bottom: 12px;">
-          <div class="parameter-label-row">
+          <div class="parameter-label-row" style="margin-bottom: 0;">
             <span class="parameter-name">Around:</span>
             <select id="select-taylor-center" class="custom-select" style="font-size: 11px; padding: 3px 8px;">
-              <option value="x0" selected>Point x₀</option>
-              <option value="zero">0 (Maclaurin)</option>
-              <option value="custom">Custom</option>
+              <option value="zero" selected>0 (Maclaurin)</option>
+              <option value="x0">Point x₀</option>
             </select>
-          </div>
-          <div class="parameter-control-row">
-            <input type="number" id="input-taylor-around" class="custom-number-input" value="1.0" step="0.5" style="width: 100%;" title="Expansion Center" disabled>
           </div>
         </div>
         <div class="attributes-list" style="margin-top: 14px;">

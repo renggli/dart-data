@@ -53,12 +53,32 @@ Expr simplifyAdditive(Expr left, Expr right, {required bool isSubtraction}) {
 }
 
 /// Simplifies a negation expression -[expr].
-Expr simplifyNeg(Expr expr) => switch (expr) {
-  RationalNumber(isZero: true) => RationalNumber.zero,
-  RealNumber(value: 0.0) => RationalNumber.zero,
-  RationalNumber() => RationalNumber.fraction(-expr.toFraction()),
-  RealNumber(:final value) => RealNumber(-value),
-  Neg(:final expr) => expr,
-  OrderTerm() => expr,
-  _ => Neg(expr),
-};
+Expr simplifyNeg(Expr expr) {
+  switch (expr) {
+    case RationalNumber(isZero: true):
+      return RationalNumber.zero;
+    case RealNumber(value: 0.0):
+      return RationalNumber.zero;
+    case RationalNumber():
+      return RationalNumber.fraction(-expr.toFraction());
+    case RealNumber(:final value):
+      return RealNumber(-value);
+    case Neg(:final expr):
+      return expr;
+    case OrderTerm():
+      return expr;
+    case Add() || Sub():
+      final acc = MonomialAccumulator(simplify: simplifyExpr);
+      acc.add(expr, -Fraction.one);
+      acc.reduceIdentities();
+      return acc.build();
+    case Mul(left: final RationalNumber c, :final right):
+      return c.isOne
+          ? Neg(right)
+          : Mul(RationalNumber.fraction(-c.toFraction()), right);
+    case Mul(left: final RealNumber c, :final right):
+      return c.value == 1.0 ? Neg(right) : Mul(RealNumber(-c.value), right);
+    default:
+      return Neg(expr);
+  }
+}

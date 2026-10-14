@@ -464,7 +464,7 @@ void main() {
 
       final latex = parsed.toLatex();
       check(latex).contains(r'\tan(x + 1)');
-      check(latex).contains(r'\sinh(2 \cdot y)');
+      check(latex).contains(r'\sinh(2 y)');
       check(latex).contains(r'\cosh(z)');
       check(latex).contains(r'\tanh(w)');
       check(latex).contains(r'\left|\arccos(u)\right|');
