@@ -48,6 +48,7 @@ void main() {
 
   group('Mathematical constants parsing', () {
     test('parses pi', () {
+      check(Expr.parse('π')).equals(ConstantNumber.pi);
       check(Expr.parse('pi')).equals(ConstantNumber.pi);
       check(Expr.parse('PI')).equals(ConstantNumber.pi);
       check(Expr.parse('Pi')).equals(ConstantNumber.pi);
@@ -55,6 +56,19 @@ void main() {
 
     test('parses e', () {
       check(Expr.parse('e')).equals(ConstantNumber.e);
+      check(Expr.parse('E')).equals(ConstantNumber.e);
+    });
+
+    test('parses i', () {
+      check(Expr.parse('i')).equals(ConstantNumber.i);
+      check(Expr.parse('I')).equals(ConstantNumber.i);
+    });
+
+    test('parses infinity', () {
+      check(Expr.parse('∞')).equals(ConstantNumber.infinity);
+      check(Expr.parse('infinity')).equals(ConstantNumber.infinity);
+      check(Expr.parse('Infinity')).equals(ConstantNumber.infinity);
+      check(Expr.parse('Infinity')).equals(ConstantNumber.infinity);
     });
 
     test('distinguishes constants from variable prefixes', () {
@@ -94,6 +108,13 @@ void main() {
       check(Expr.parse('z')).equals(const Variable('z'));
       check(Expr.parse('x1')).equals(const Variable('x1'));
       check(Expr.parse('var_2')).equals(const Variable('var_2'));
+    });
+
+    test('parses greek variables', () {
+      check(Expr.parse('Θ')).equals(const Variable('Θ'));
+      check(Expr.parse('Д')).equals(const Variable('Д'));
+      check(Expr.parse('λ1')).equals(const Variable('λ1'));
+      check(Expr.parse('Xφ')).equals(const Variable('Xφ'));
     });
 
     test('tracks free variables properly', () {
@@ -446,8 +467,8 @@ void main() {
         check(() => Expr.parse('pow(, y)')).throws<FormatException>();
         check(Expr.tryParse('pow(, y)')).isNull();
 
-        check(Expr.parse('sqrt()')).equals(const Variable('sqrt'));
-        check(Expr.parse('pow()')).equals(const Variable('pow'));
+        check(() => Expr.parse('sqrt()')).throws<FormatException>();
+        check(() => Expr.parse('pow()')).throws<FormatException>();
       },
     );
   });
@@ -643,9 +664,8 @@ void main() {
       check((val - 1.0).abs()).isLessThan(1e-12);
     });
 
-    test('log parsing error rejection and 0-argument bug observation', () {
-      // 0-argument function calls currently fall through to Variable due to grammar unification
-      check(Expr.parse('log()')).equals(const Variable('log'));
+    test('log parsing error rejection', () {
+      check(() => Expr.parse('log()')).throws<FormatException>();
       check(() => Expr.parse('log(1, 2, 3)')).throws<FormatException>();
       check(() => Expr.parse('log(1, 2, 3, 4)')).throws<FormatException>();
     });

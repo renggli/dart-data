@@ -9,6 +9,8 @@ import 'ast.dart';
 /// ```
 Parser<Expr> buildParser() {
   final builder = ExpressionBuilder<Expr>();
+  final letter = pattern(_unicodeLetters, unicode: true);
+  final word = pattern('0-9_$_unicodeLetters', unicode: true);
   builder
     // Numbers
     ..primitive(
@@ -21,11 +23,11 @@ Parser<Expr> buildParser() {
     // Constant, variables, and functions
     ..primitive(
       seq2(
-        (char('∞') | seq2(letter(), word().starString()))
+        (char('∞') | seq2(letter, word.starString()))
             .flatten(message: 'name expected')
             .trim(),
         builder.loopback
-            .starSeparated(char(',').trim())
+            .plusSeparated(char(',').trim())
             .map((list) => list.elements)
             .skip(before: char('(').trim(), after: char(')').trim())
             .optionalWith(const <Expr>[]),
@@ -64,6 +66,10 @@ Parser<Expr> buildParser() {
 /// The default internal PetitParser [Parser] for symbolic mathematical expressions.
 final parser = buildParser();
 
+/// English, Western European accents, Cyrillic, Greek, and Arabic
+const _unicodeLetters =
+    'a-zA-Z\u00C0-\u024F\u0400-\u04FF\u0370-\u03FF\u0600-\u06FF';
+
 Expr _createValue(String value) {
   if (value.contains('.')) {
     return RealNumber(double.parse(value));
@@ -83,7 +89,7 @@ Expr _createValue(String value) {
 Expr _createBinding(String name, List<Expr> arguments) =>
     switch (arguments.length) {
       0 => switch (name.toLowerCase()) {
-        'pi' => ConstantNumber.pi,
+        'π' || 'pi' => ConstantNumber.pi,
         'e' => ConstantNumber.e,
         'i' => ConstantNumber.i,
         '∞' || 'infinity' => ConstantNumber.infinity,

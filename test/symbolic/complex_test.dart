@@ -816,7 +816,6 @@ void main() {
   group('Parser recognition, round-trips & identifier distinction', () {
     test('parses i and Gaussian expressions', () {
       check(Expr.parse('i')).equals(ConstantNumber.i);
-      check(Expr.parse('I')).equals(ConstantNumber.i);
       check(Expr.parse('2 + 3 * i')).equals(
         const Add(RationalNumber(2), Mul(RationalNumber(3), ConstantNumber.i)),
       );
