@@ -1,3 +1,5 @@
+import 'package:more/number.dart' show Fraction;
+
 import '../algebra/simplify.dart';
 import '../ast.dart';
 import 'differentiation.dart';
@@ -22,9 +24,7 @@ extension TaylorExtension on Expr {
   /// // 1 + x + 1/2 * (x ^ 2)
   /// ```
   Expr taylorSeries(String variable, {num around = 0, int order = 4}) {
-    final pt = around is int
-        ? RationalNumber(around)
-        : RationalNumber.fromDouble(around);
+    final pt = _numToPoint(around);
     try {
       return toPowerSeries(
         variable,
@@ -40,6 +40,15 @@ extension TaylorExtension on Expr {
       );
     }
   }
+}
+
+Number _numToPoint(num n) {
+  if (n is int) return RationalNumber(n);
+  final frac = Fraction.fromDouble(n, maxDenominator: 64);
+  if ((n.toDouble() - frac.toDouble()).abs() < 1e-12) {
+    return RationalNumber(frac.numerator, frac.denominator);
+  }
+  return RealNumber(n.toDouble());
 }
 
 Expr _computeTaylorSeriesByDerivatives(

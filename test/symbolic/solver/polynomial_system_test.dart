@@ -167,7 +167,7 @@ void main() {
       final solutions = solvePolynomialSystem(
         [eq1, eq2],
         ['x', 'y'],
-        method: 'groebner',
+        method: PolynomialSystemMethod.groebner,
       );
       check(solutions.length).equals(4);
 
@@ -196,7 +196,7 @@ void main() {
       final solutions = solvePolynomialSystem(
         [eq1, eq2],
         ['x', 'y'],
-        method: 'groebner',
+        method: PolynomialSystemMethod.groebner,
       );
       check(solutions).isEmpty();
     });
@@ -218,7 +218,7 @@ void main() {
       final solutions = solvePolynomialSystem(
         [eq1, eq2, eq3],
         ['x', 'y', 'z'],
-        method: 'groebner',
+        method: PolynomialSystemMethod.groebner,
       );
       check(solutions.length).equals(6); // 3! = 6 permutations
 
@@ -245,7 +245,7 @@ void main() {
       final solutions = solvePolynomialSystem(
         [eq1, eq2],
         ['x', 'y'],
-        method: 'groebner',
+        method: PolynomialSystemMethod.groebner,
       );
       check(solutions.length).equals(3);
 
@@ -277,7 +277,7 @@ void main() {
       final solutions = solvePolynomialSystem(
         [eq1, eq2, eq3],
         ['x', 'y', 'z'],
-        method: 'groebner',
+        method: PolynomialSystemMethod.groebner,
       );
       check(solutions.length).equals(2);
 
@@ -291,5 +291,64 @@ void main() {
         check(yv + zv - 1.0).isCloseTo(0.0, 1e-8);
       }
     });
+
+    test('retains complex roots in groebner system solver', () {
+      const x = Variable('x');
+      const y = Variable('y');
+      final eq1 = x.pow(const RationalNumber(2)) + x + RationalNumber.one;
+      final eq2 = y - RationalNumber.one;
+
+      final solutions = solvePolynomialSystem(
+        [eq1, eq2],
+        ['x', 'y'],
+        method: PolynomialSystemMethod.groebner,
+      );
+      check(solutions.length).equals(2);
+      for (final sol in solutions) {
+        final xc = sol['x']!.evaluateComplex();
+        final yc = sol['y']!.evaluateComplex();
+        check((xc * xc + xc + yc).abs()).isCloseTo(0.0, 1e-8);
+      }
+    });
+
+    test('fromExpr rejects non-rational and non-polynomial terms', () {
+      const x = Variable('x');
+      check(
+        () => MultivariatePolynomial.fromExpr(
+          const RealNumber(0.5) * x - RationalNumber.one,
+          ['x'],
+        ),
+      ).throws<ArgumentError>();
+      check(
+        () => MultivariatePolynomial.fromExpr(
+          const Sin(x) - RationalNumber.one,
+          ['x'],
+        ),
+      ).throws<ArgumentError>();
+    });
+
+    test(
+      'MultivariatePolynomial hashCode is independent of term insertion order',
+      () {
+        final m1 = Monomial([1, 0]);
+        final m2 = Monomial([0, 1]);
+        final p1 = MultivariatePolynomial(
+          ['x', 'y'],
+          {
+            m1: const RationalNumber(2).toFraction(),
+            m2: const RationalNumber(3).toFraction(),
+          },
+        );
+        final p2 = MultivariatePolynomial(
+          ['x', 'y'],
+          {
+            m2: const RationalNumber(3).toFraction(),
+            m1: const RationalNumber(2).toFraction(),
+          },
+        );
+        check(p1).equals(p2);
+        check(p1.hashCode).equals(p2.hashCode);
+      },
+    );
   });
 }

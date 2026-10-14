@@ -24,7 +24,6 @@ extension ExpandExtension on Expr {
 }
 
 Expr _expand(Expr expr) => switch (expr) {
-  Number() || Variable() || OrderTerm() => expr,
   Neg(:final expr) => _expandNeg(_expand(expr)),
   Add(:final left, :final right) => _expandAdd(_expand(left), _expand(right)),
   Sub(:final left, :final right) => _expandSub(_expand(left), _expand(right)),
@@ -34,50 +33,7 @@ Expr _expand(Expr expr) => switch (expr) {
     _expand(base),
     _expand(exponent),
   ),
-  Sin(:final expr) => Sin(_expand(expr)),
-  Cos(:final expr) => Cos(_expand(expr)),
-  Tan(:final expr) => Tan(_expand(expr)),
-  Asin(:final expr) => Asin(_expand(expr)),
-  Acos(:final expr) => Acos(_expand(expr)),
-  Atan(:final expr) => Atan(_expand(expr)),
-  Sinh(:final expr) => Sinh(_expand(expr)),
-  Cosh(:final expr) => Cosh(_expand(expr)),
-  Tanh(:final expr) => Tanh(_expand(expr)),
-  Abs(:final expr) => Abs(_expand(expr)),
-  Exp(:final expr) => Exp(_expand(expr)),
-  Ln(:final expr) => Ln(_expand(expr)),
-  LambertW(:final expr, :final branch) => LambertW(
-    _expand(expr),
-    branch: branch,
-  ),
-  Erf(:final expr) => Erf(_expand(expr)),
-  Erfc(:final expr) => Erfc(_expand(expr)),
-  Gamma(:final expr) => Gamma(_expand(expr)),
-  Beta(:final left, :final right) => Beta(_expand(left), _expand(right)),
-  Asinh(:final expr) => Asinh(_expand(expr)),
-  Acosh(:final expr) => Acosh(_expand(expr)),
-  Atanh(:final expr) => Atanh(_expand(expr)),
-  LessThan(:final left, :final right) => LessThan(
-    _expand(left),
-    _expand(right),
-  ),
-  LessEqual(:final left, :final right) => LessEqual(
-    _expand(left),
-    _expand(right),
-  ),
-  GreaterThan(:final left, :final right) => GreaterThan(
-    _expand(left),
-    _expand(right),
-  ),
-  GreaterEqual(:final left, :final right) => GreaterEqual(
-    _expand(left),
-    _expand(right),
-  ),
-  Equal(:final left, :final right) => Equal(_expand(left), _expand(right)),
-  Piecewise(:final branches, :final otherwise) => Piecewise(
-    branches.map((b) => (_expand(b.$1), _expand(b.$2))).toList(),
-    otherwise: otherwise != null ? _expand(otherwise) : null,
-  ),
+  _ => expr.mapChildren(_expand),
 };
 
 Expr _expandNeg(Expr inner) {
@@ -216,7 +172,17 @@ Expr _multiplyMonomials(Expr left, Expr right) {
   Expr? symbolicPart;
   for (final base in orderedBases) {
     final exp = symbolicBases[base]!;
-    final factor = exp == const RationalNumber(1) ? base : Pow(base, exp);
+    var factor = exp == const RationalNumber(1) ? base : Pow(base, exp);
+    if (base is ComplexNumber || (base is ConstantNumber && base.name == 'i')) {
+      factor = factor.simplify();
+      if (factor is RationalNumber) {
+        ratCoeff *= factor.toFraction();
+        continue;
+      } else if (factor is Neg) {
+        ratCoeff = -ratCoeff;
+        factor = factor.expr;
+      }
+    }
     symbolicPart = symbolicPart == null ? factor : Mul(symbolicPart, factor);
   }
 

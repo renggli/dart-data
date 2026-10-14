@@ -2,39 +2,6 @@ import 'dart:math' as math;
 
 import 'multivariate_polynomial.dart';
 
-class _CriticalPair implements Comparable<_CriticalPair> {
-  new({
-    required this.i,
-    required this.j,
-    required this.f,
-    required this.g,
-    required this.lcm,
-    required this.sugar,
-    required this.order,
-    required this.id,
-  });
-
-  final int i;
-  final int j;
-  final MultivariatePolynomial f;
-  final MultivariatePolynomial g;
-  final Monomial lcm;
-  final int sugar;
-  final MonomialOrder order;
-  final int id;
-
-  @override
-  int compareTo(_CriticalPair other) {
-    if (sugar != other.sugar) return sugar.compareTo(other.sugar);
-    if (lcm.totalDegree != other.lcm.totalDegree) {
-      return lcm.totalDegree.compareTo(other.lcm.totalDegree);
-    }
-    final monCmp = order.compare(lcm, other.lcm);
-    if (monCmp != 0) return monCmp;
-    return id.compareTo(other.id);
-  }
-}
-
 /// Buchberger algorithm engine with Sugar selection strategy and Gebauer-Möller criteria.
 class BuchbergerEngine {
   /// Computes the monic, reduced Gröbner basis for [polynomials] with [order].
@@ -56,7 +23,7 @@ class BuchbergerEngine {
 
     for (final p in nonZero) {
       if (p.sugar > maxDegree || p.totalDegree > maxDegree) {
-        throw StateError('Buchberger degree bound (20) exceeded.');
+        throw StateError('Buchberger degree bound ($maxDegree) exceeded.');
       }
       pairs = _updatePairs(gBasis, p, gBasis.length, pairs, order, nextId);
       gBasis.add(p);
@@ -67,12 +34,14 @@ class BuchbergerEngine {
     while (pairs.isNotEmpty) {
       iteration++;
       if (iteration > maxIterations) {
-        throw StateError('Buchberger iteration limit (1000) exceeded.');
+        throw StateError(
+          'Buchberger iteration limit ($maxIterations) exceeded.',
+        );
       }
 
       final pair = pairs.removeAt(0);
       if (pair.sugar > maxDegree) {
-        throw StateError('Buchberger degree bound (20) exceeded.');
+        throw StateError('Buchberger degree bound ($maxDegree) exceeded.');
       }
 
       final sPoly = MultivariatePolynomial.sPolynomial(
@@ -81,7 +50,7 @@ class BuchbergerEngine {
         order: order,
       );
       if (sPoly.sugar > maxDegree || sPoly.totalDegree > maxDegree) {
-        throw StateError('Buchberger degree bound (20) exceeded.');
+        throw StateError('Buchberger degree bound ($maxDegree) exceeded.');
       }
 
       final remainder = sPoly.reduce(gBasis, order: order);
@@ -89,7 +58,7 @@ class BuchbergerEngine {
         final monicRemainder = remainder.monic(order);
         if (monicRemainder.sugar > maxDegree ||
             monicRemainder.totalDegree > maxDegree) {
-          throw StateError('Buchberger degree bound (20) exceeded.');
+          throw StateError('Buchberger degree bound ($maxDegree) exceeded.');
         }
 
         // If constant polynomial 1 is derived, basis is {1}
@@ -111,6 +80,50 @@ class BuchbergerEngine {
     }
 
     return autoreduce(gBasis, order: order);
+  }
+
+  /// Transforms a Gröbner basis into a monic, minimal reduced Gröbner basis.
+  static List<MultivariatePolynomial> autoreduce(
+    List<MultivariatePolynomial> gBasis, {
+    MonomialOrder order = MonomialOrder.grevlex,
+  }) {
+    if (gBasis.isEmpty) return const [];
+
+    // Filter non-minimal leading monomials
+    final minimal = <MultivariatePolynomial>[];
+    for (var i = 0; i < gBasis.length; i++) {
+      final lmI = gBasis[i].leadingMonomial(order);
+      var isDivisible = false;
+      for (var j = 0; j < gBasis.length; j++) {
+        if (i == j) continue;
+        final lmJ = gBasis[j].leadingMonomial(order);
+        if (lmJ.divides(lmI)) {
+          if (lmJ == lmI && j > i) continue;
+          isDivisible = true;
+          break;
+        }
+      }
+      if (!isDivisible) {
+        minimal.add(gBasis[i].monic(order));
+      }
+    }
+
+    // Interreduce: tail reduction against remaining basis elements
+    final reduced = <MultivariatePolynomial>[];
+    for (var i = 0; i < minimal.length; i++) {
+      final others = [
+        for (var j = 0; j < minimal.length; j++)
+          if (i != j) minimal[j],
+      ];
+      final rem = minimal[i].reduce(others, order: order).monic(order);
+      reduced.add(rem);
+    }
+
+    reduced.sort(
+      (a, b) =>
+          order.compare(a.leadingMonomial(order), b.leadingMonomial(order)),
+    );
+    return reduced;
   }
 
   static List<_CriticalPair> _updatePairs(
@@ -188,48 +201,37 @@ class BuchbergerEngine {
 
     return [...retainedExisting, ...newPairs]..sort();
   }
+}
 
-  /// Transforms a Gröbner basis into a monic, minimal reduced Gröbner basis.
-  static List<MultivariatePolynomial> autoreduce(
-    List<MultivariatePolynomial> gBasis, {
-    MonomialOrder order = MonomialOrder.grevlex,
-  }) {
-    if (gBasis.isEmpty) return const [];
+class _CriticalPair implements Comparable<_CriticalPair> {
+  new({
+    required this.i,
+    required this.j,
+    required this.f,
+    required this.g,
+    required this.lcm,
+    required this.sugar,
+    required this.order,
+    required this.id,
+  });
 
-    // Filter non-minimal leading monomials
-    final minimal = <MultivariatePolynomial>[];
-    for (var i = 0; i < gBasis.length; i++) {
-      final lmI = gBasis[i].leadingMonomial(order);
-      var isDivisible = false;
-      for (var j = 0; j < gBasis.length; j++) {
-        if (i == j) continue;
-        final lmJ = gBasis[j].leadingMonomial(order);
-        if (lmJ.divides(lmI)) {
-          if (lmJ == lmI && j > i) continue;
-          isDivisible = true;
-          break;
-        }
-      }
-      if (!isDivisible) {
-        minimal.add(gBasis[i].monic(order));
-      }
+  final int i;
+  final int j;
+  final MultivariatePolynomial f;
+  final MultivariatePolynomial g;
+  final Monomial lcm;
+  final int sugar;
+  final MonomialOrder order;
+  final int id;
+
+  @override
+  int compareTo(_CriticalPair other) {
+    if (sugar != other.sugar) return sugar.compareTo(other.sugar);
+    if (lcm.totalDegree != other.lcm.totalDegree) {
+      return lcm.totalDegree.compareTo(other.lcm.totalDegree);
     }
-
-    // Interreduce: tail reduction against remaining basis elements
-    final reduced = <MultivariatePolynomial>[];
-    for (var i = 0; i < minimal.length; i++) {
-      final others = [
-        for (var j = 0; j < minimal.length; j++)
-          if (i != j) minimal[j],
-      ];
-      final rem = minimal[i].reduce(others, order: order).monic(order);
-      reduced.add(rem);
-    }
-
-    reduced.sort(
-      (a, b) =>
-          order.compare(a.leadingMonomial(order), b.leadingMonomial(order)),
-    );
-    return reduced;
+    final monCmp = order.compare(lcm, other.lcm);
+    if (monCmp != 0) return monCmp;
+    return id.compareTo(other.id);
   }
 }

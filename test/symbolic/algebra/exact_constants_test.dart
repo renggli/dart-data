@@ -6,8 +6,8 @@ import 'package:data/symbolic.dart';
 import 'package:test/test.dart';
 
 void main() {
-  group('exact_constants', () {
-    test('SpecialRadical enum values and numeric values', () {
+  group('SpecialRadical', () {
+    test('enum values and numeric values', () {
       check(SpecialRadical.half.numericValue).equals(0.5);
       check((SpecialRadical.sqrt2Over2.numericValue - math.sqrt(2) / 2).abs())
           .isLessThan(1e-12);
@@ -70,7 +70,9 @@ void main() {
       check(isSqrt3(sqrt3Node)).isTrue();
       check(isNegativeSqrt3(const Neg(sqrt3Node))).isTrue();
     });
+  });
 
+  group('Radical identification', () {
     test('isSpecialAngleConstant matches accurately', () {
       for (final rad in SpecialRadical.values) {
         final posExpr = specialRadicalExpr(rad, negative: false);
@@ -104,7 +106,7 @@ void main() {
       },
     );
 
-    test('adversarial AST representations and complex fallback evaluation', () {
+    test('alternative AST representations and fallback evaluation', () {
       // 1 / sqrt(2) == sqrt(2) / 2
       const invSqrt2 = Div(
         RationalNumber.one,
@@ -183,8 +185,10 @@ void main() {
       check(identifySpecialRadical(const ConstantNumber('pi'))).isNull();
       check(identifySpecialRadical(const Variable('x'))).isNull();
     });
+  });
 
-    test('exact angle simplification across Asin, Acos, Atan', () {
+  group('Exact angle simplification', () {
+    test('Asin, Acos, and Atan simplify special radicals', () {
       // Asin special radicals
       check(Asin(specialRadicalExpr(SpecialRadical.half)).simplify())
           .equals(const Mul(RationalNumber(1, 6), ConstantNumber.pi));

@@ -12,14 +12,12 @@ String formatRealNumber(num value, {int precision = 4}) {
   return value.toStringAsFixed(precision);
 }
 
-/// Recursively checks whether [expr] explicitly references the imaginary unit constant `i`.
-bool containsImaginary(Expr expr) => switch (expr) {
-  ConstantNumber(name: 'i') => true,
-  UnaryExpr(:final expr) => containsImaginary(expr),
-  BinaryExpr(:final left, :final right) =>
-    containsImaginary(left) || containsImaginary(right),
-  _ => false,
-};
+/// Recursively checks whether [expr] explicitly references a non-real complex number or imaginary unit `i`.
+bool containsImaginary(Expr expr) => expr.anyNode(
+  (node) =>
+      (node is ComplexNumber && !node.isReal) ||
+      (node is ConstantNumber && node.name == 'i'),
+);
 
 /// Formats a complex number [c] into standard mathematical notation (e.g. `1 + 2i`, `-i`, `4.50`).
 String formatComplex(Complex c, {int precision = 4}) {

@@ -1174,6 +1174,14 @@ void main() {
       // i * (-i) = 1
       check(const Mul(ConstantNumber.i, Neg(ConstantNumber.i)).simplify())
           .equals(RationalNumber.one);
+
+      // erf(z) and erfc(z) for |z| > 2.5
+      final erfLarge = const Erf(x).evaluateComplex({'x': const Complex(4, 1)});
+      final erfcLarge = const Erfc(x)
+          .evaluateComplex({'x': const Complex(4, 1)});
+      check(erfLarge.a).isCloseTo(1.0, 1e-6);
+      check(erfLarge.b).isCloseTo(0.0, 1e-6);
+      check((erfLarge + erfcLarge - Complex.one).abs()).isLessThan(1e-12);
     });
   });
 }

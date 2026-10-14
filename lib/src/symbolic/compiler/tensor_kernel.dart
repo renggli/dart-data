@@ -1,6 +1,9 @@
 import 'dart:math' as math;
 import 'dart:typed_data';
 
+import '../../special/beta.dart' as special_beta;
+import '../../special/erf.dart' as special_erf;
+import '../../special/gamma.dart' as special_gamma;
 import '../ast.dart';
 
 /// Compiles [simplified] expression into a vectorized tensor kernel over [varOrder].
@@ -12,12 +15,25 @@ void Function(List<Float64List> inputs, Float64List output) buildTensorKernel(
   final instructions = <Instruction>[];
   flattenToRpn(simplified, varIndices, instructions);
   final maxStack = computeMaxStack(instructions);
-  final stack = Float64List(maxStack);
   final instrs = instructions;
   final numInstrs = instrs.length;
+  final expectedInputs = varOrder.length;
 
   return (List<Float64List> inputs, Float64List output) {
+    if (inputs.length != expectedInputs) {
+      throw ArgumentError(
+        'Expected $expectedInputs input buffers, got ${inputs.length}',
+      );
+    }
     final len = output.length;
+    for (var j = 0; j < expectedInputs; j++) {
+      if (inputs[j].length < len) {
+        throw ArgumentError(
+          'Input buffer $j has length ${inputs[j].length}, less than output length $len',
+        );
+      }
+    }
+    final stack = Float64List(maxStack);
 
     for (var i = 0; i < len; i++) {
       var sp = 0;
@@ -68,7 +84,9 @@ void Function(List<Float64List> inputs, Float64List output) buildTensorKernel(
             stack[sp - 1] = math.atan(stack[sp - 1]);
           case Op.sinh:
             final v = stack[sp - 1];
-            stack[sp - 1] = (math.exp(v) - math.exp(-v)) / 2.0;
+            stack[sp - 1] = v.abs() < 1e-5
+                ? v + (v * v * v) / 6.0
+                : (math.exp(v) - math.exp(-v)) / 2.0;
           case Op.cosh:
             final v = stack[sp - 1];
             stack[sp - 1] = (math.exp(v) + math.exp(-v)) / 2.0;
@@ -90,6 +108,46 @@ void Function(List<Float64List> inputs, Float64List output) buildTensorKernel(
             stack[sp - 1] = evaluateLambertW(stack[sp - 1], 0);
           case Op.lambertW1:
             stack[sp - 1] = evaluateLambertW(stack[sp - 1], -1);
+          case Op.erf:
+            stack[sp - 1] = special_erf.erf(stack[sp - 1]);
+          case Op.erfc:
+            stack[sp - 1] = special_erf.erfc(stack[sp - 1]);
+          case Op.gamma:
+            final v = stack[sp - 1];
+            if (v <= 0.0 && v == v.roundToDouble()) {
+              throw ArgumentError('Gamma pole at non-positive integer $v');
+            }
+            stack[sp - 1] = special_gamma.gamma(v);
+          case Op.beta:
+            final b = stack[--sp];
+            final a = stack[--sp];
+            stack[sp++] = special_beta.beta(a, b);
+          case Op.asinh:
+            stack[sp - 1] = evaluateRealAsinh(stack[sp - 1]);
+          case Op.acosh:
+            stack[sp - 1] = evaluateRealAcosh(stack[sp - 1]);
+          case Op.atanh:
+            stack[sp - 1] = evaluateRealAtanh(stack[sp - 1]);
+          case Op.lt:
+            final b = stack[--sp];
+            final a = stack[--sp];
+            stack[sp++] = a < b ? 1.0 : 0.0;
+          case Op.le:
+            final b = stack[--sp];
+            final a = stack[--sp];
+            stack[sp++] = a <= b ? 1.0 : 0.0;
+          case Op.gt:
+            final b = stack[--sp];
+            final a = stack[--sp];
+            stack[sp++] = a > b ? 1.0 : 0.0;
+          case Op.ge:
+            final b = stack[--sp];
+            final a = stack[--sp];
+            stack[sp++] = a >= b ? 1.0 : 0.0;
+          case Op.eq:
+            final b = stack[--sp];
+            final a = stack[--sp];
+            stack[sp++] = a == b ? 1.0 : 0.0;
         }
       }
       output[i] = stack[0];
@@ -188,15 +246,49 @@ void flattenToRpn(
       instructions.add(
         Instruction.op(branch == 0 ? Op.lambertW0 : Op.lambertW1),
       );
-    case Erf() ||
-        Erfc() ||
-        Gamma() ||
-        Beta() ||
-        Asinh() ||
-        Acosh() ||
-        Atanh() ||
-        RelationalExpr() ||
-        Piecewise():
+    case Erf(:final expr):
+      flattenToRpn(expr, varIndices, instructions);
+      instructions.add(const Instruction.op(Op.erf));
+    case Erfc(:final expr):
+      flattenToRpn(expr, varIndices, instructions);
+      instructions.add(const Instruction.op(Op.erfc));
+    case Gamma(:final expr):
+      flattenToRpn(expr, varIndices, instructions);
+      instructions.add(const Instruction.op(Op.gamma));
+    case Beta(:final left, :final right):
+      flattenToRpn(left, varIndices, instructions);
+      flattenToRpn(right, varIndices, instructions);
+      instructions.add(const Instruction.op(Op.beta));
+    case Asinh(:final expr):
+      flattenToRpn(expr, varIndices, instructions);
+      instructions.add(const Instruction.op(Op.asinh));
+    case Acosh(:final expr):
+      flattenToRpn(expr, varIndices, instructions);
+      instructions.add(const Instruction.op(Op.acosh));
+    case Atanh(:final expr):
+      flattenToRpn(expr, varIndices, instructions);
+      instructions.add(const Instruction.op(Op.atanh));
+    case LessThan(:final left, :final right):
+      flattenToRpn(left, varIndices, instructions);
+      flattenToRpn(right, varIndices, instructions);
+      instructions.add(const Instruction.op(Op.lt));
+    case LessEqual(:final left, :final right):
+      flattenToRpn(left, varIndices, instructions);
+      flattenToRpn(right, varIndices, instructions);
+      instructions.add(const Instruction.op(Op.le));
+    case GreaterThan(:final left, :final right):
+      flattenToRpn(left, varIndices, instructions);
+      flattenToRpn(right, varIndices, instructions);
+      instructions.add(const Instruction.op(Op.gt));
+    case GreaterEqual(:final left, :final right):
+      flattenToRpn(left, varIndices, instructions);
+      flattenToRpn(right, varIndices, instructions);
+      instructions.add(const Instruction.op(Op.ge));
+    case Equal(:final left, :final right):
+      flattenToRpn(left, varIndices, instructions);
+      flattenToRpn(right, varIndices, instructions);
+      instructions.add(const Instruction.op(Op.eq));
+    case Piecewise():
       throw UnsupportedError(
         'compileTensorKernel does not support ${expr.runtimeType}.',
       );
@@ -213,7 +305,17 @@ int computeMaxStack(List<Instruction> instructions) {
     switch (instr.op) {
       case Op.pushConst || Op.loadVar:
         current++;
-      case Op.add || Op.sub || Op.mul || Op.div || Op.pow:
+      case Op.add ||
+          Op.sub ||
+          Op.mul ||
+          Op.div ||
+          Op.pow ||
+          Op.beta ||
+          Op.lt ||
+          Op.le ||
+          Op.gt ||
+          Op.ge ||
+          Op.eq:
         current--;
       case Op.neg ||
           Op.sin ||
@@ -230,7 +332,13 @@ int computeMaxStack(List<Instruction> instructions) {
           Op.abs ||
           Op.sqrt ||
           Op.lambertW0 ||
-          Op.lambertW1:
+          Op.lambertW1 ||
+          Op.erf ||
+          Op.erfc ||
+          Op.gamma ||
+          Op.asinh ||
+          Op.acosh ||
+          Op.atanh:
         break;
     }
     if (current > maxDepth) {
@@ -265,6 +373,18 @@ enum Op {
   sqrt,
   lambertW0,
   lambertW1,
+  erf,
+  erfc,
+  gamma,
+  beta,
+  asinh,
+  acosh,
+  atanh,
+  lt,
+  le,
+  gt,
+  ge,
+  eq,
 }
 
 /// A compact stack VM instruction.

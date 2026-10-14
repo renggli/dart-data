@@ -12,10 +12,7 @@ final class LessThan extends RelationalExpr {
   const new(super.left, super.right);
 
   @override
-  Expr substitute(String variable, Expr replacement) => LessThan(
-    left.substitute(variable, replacement),
-    right.substitute(variable, replacement),
-  );
+  LessThan copyWith(Expr newLeft, Expr newRight) => LessThan(newLeft, newRight);
 
   @override
   double evaluate(Map<String, double> context) =>
@@ -28,10 +25,8 @@ final class LessEqual extends RelationalExpr {
   const new(super.left, super.right);
 
   @override
-  Expr substitute(String variable, Expr replacement) => LessEqual(
-    left.substitute(variable, replacement),
-    right.substitute(variable, replacement),
-  );
+  LessEqual copyWith(Expr newLeft, Expr newRight) =>
+      LessEqual(newLeft, newRight);
 
   @override
   double evaluate(Map<String, double> context) =>
@@ -44,10 +39,8 @@ final class GreaterThan extends RelationalExpr {
   const new(super.left, super.right);
 
   @override
-  Expr substitute(String variable, Expr replacement) => GreaterThan(
-    left.substitute(variable, replacement),
-    right.substitute(variable, replacement),
-  );
+  GreaterThan copyWith(Expr newLeft, Expr newRight) =>
+      GreaterThan(newLeft, newRight);
 
   @override
   double evaluate(Map<String, double> context) =>
@@ -60,10 +53,8 @@ final class GreaterEqual extends RelationalExpr {
   const new(super.left, super.right);
 
   @override
-  Expr substitute(String variable, Expr replacement) => GreaterEqual(
-    left.substitute(variable, replacement),
-    right.substitute(variable, replacement),
-  );
+  GreaterEqual copyWith(Expr newLeft, Expr newRight) =>
+      GreaterEqual(newLeft, newRight);
 
   @override
   double evaluate(Map<String, double> context) =>
@@ -76,10 +67,7 @@ final class Equal extends RelationalExpr {
   const new(super.left, super.right);
 
   @override
-  Expr substitute(String variable, Expr replacement) => Equal(
-    left.substitute(variable, replacement),
-    right.substitute(variable, replacement),
-  );
+  Equal copyWith(Expr newLeft, Expr newRight) => Equal(newLeft, newRight);
 
   @override
   double evaluate(Map<String, double> context) =>
@@ -115,17 +103,33 @@ final class Piecewise extends Expr {
   }
 
   @override
-  Expr substitute(String variable, Expr replacement) => Piecewise(
-    branches
-        .map(
-          (b) => (
-            b.$1.substitute(variable, replacement),
-            b.$2.substitute(variable, replacement),
-          ),
-        )
-        .toList(),
-    otherwise: otherwise?.substitute(variable, replacement),
-  );
+  Expr mapChildren(Expr Function(Expr child) transform) {
+    var changed = false;
+    final newBranches = <(Expr, Expr)>[];
+    for (final (cond, e) in branches) {
+      final nextCond = transform(cond);
+      final nextExpr = transform(e);
+      if (!identical(nextCond, cond) || !identical(nextExpr, e)) {
+        changed = true;
+      }
+      newBranches.add((nextCond, nextExpr));
+    }
+    final nextOtherwise = otherwise != null ? transform(otherwise!) : null;
+    if (!identical(nextOtherwise, otherwise)) {
+      changed = true;
+    }
+    return changed ? Piecewise(newBranches, otherwise: nextOtherwise) : this;
+  }
+
+  @override
+  bool anyNode(bool Function(Expr node) predicate) =>
+      predicate(this) ||
+      branches.any((b) => b.$1.anyNode(predicate) || b.$2.anyNode(predicate)) ||
+      (otherwise?.anyNode(predicate) ?? false);
+
+  @override
+  Expr substitute(String variable, Expr replacement) =>
+      mapChildren((child) => child.substitute(variable, replacement));
 
   @override
   double evaluate(Map<String, double> context) {
@@ -158,7 +162,4 @@ final class Piecewise extends Expr {
     Object.hashAll(branches.map((b) => Object.hash(b.$1, b.$2))),
     otherwise,
   );
-
-  @override
-  String toString() => formatExpr(this);
 }

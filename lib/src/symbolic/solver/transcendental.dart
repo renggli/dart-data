@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import '../algebra/simplify.dart';
 import '../ast.dart';
 import '../calculus/linear_form.dart';
@@ -49,8 +51,9 @@ List<Expr>? invertEquation(Expr u, Expr c, String variable) {
   }
 
   if (u is Exp) {
-    // exp(arg) = c -> arg = ln(c) (requires c > 0)
-    if (c is RationalNumber && (c.isNegative || c.isZero)) return const [];
+    // exp(arg) = c -> arg = ln(c) (requires c > 0 for real constants)
+    final cNum = _tryEvalReal(c);
+    if (cNum != null && cNum <= 0.0) return const [];
     final lnC = Ln(c).simplify();
     return solveEquation((u.expr - lnC).simplify(), variable);
   }
@@ -74,18 +77,65 @@ List<Expr>? invertEquation(Expr u, Expr c, String variable) {
   }
 
   if (u is Asin) {
+    if (isRealConstantOutOfRange(c, math.pi / 2)) return const [];
     final sinC = Sin(c).simplify();
     return solveEquation((u.expr - sinC).simplify(), variable);
   }
 
   if (u is Acos) {
+    final cNum = _tryEvalReal(c);
+    if (cNum != null && (cNum < -1e-12 || cNum > math.pi + 1e-12)) {
+      return const [];
+    }
     final cosC = Cos(c).simplify();
     return solveEquation((u.expr - cosC).simplify(), variable);
   }
 
   if (u is Atan) {
+    final cNum = _tryEvalReal(c);
+    if (cNum != null && cNum.abs() >= math.pi / 2 - 1e-12) {
+      return const [];
+    }
     final tanC = Tan(c).simplify();
     return solveEquation((u.expr - tanC).simplify(), variable);
+  }
+
+  if (u is Sinh) {
+    final rhs = Asinh(c).simplify();
+    return solveEquation((u.expr - rhs).simplify(), variable);
+  }
+
+  if (u is Cosh) {
+    final cNum = _tryEvalReal(c);
+    if (cNum != null && cNum < 1.0 - 1e-12) return const [];
+    if (c == RationalNumber.one || (c is RealNumber && c.value == 1.0)) {
+      return solveEquation(u.expr, variable);
+    }
+    final pos = Acosh(c).simplify();
+    final neg = (-pos).simplify();
+    return deduplicateRoots([
+      ...solveEquation((u.expr - pos).simplify(), variable),
+      ...solveEquation((u.expr - neg).simplify(), variable),
+    ]);
+  }
+
+  if (u is Tanh) {
+    final cNum = _tryEvalReal(c);
+    if (cNum != null && cNum.abs() >= 1.0 - 1e-12) return const [];
+    final rhs = Atanh(c).simplify();
+    return solveEquation((u.expr - rhs).simplify(), variable);
+  }
+
+  if (u is Abs) {
+    final cNum = _tryEvalReal(c);
+    if (cNum != null && cNum < -1e-12) return const [];
+    if (c == RationalNumber.zero || (c is RealNumber && c.value == 0.0)) {
+      return solveEquation(u.expr, variable);
+    }
+    return deduplicateRoots([
+      ...solveEquation((u.expr - c).simplify(), variable),
+      ...solveEquation((u.expr + c).simplify(), variable),
+    ]);
   }
 
   if (u is LambertW) {
@@ -134,6 +184,8 @@ List<Expr>? invertEquation(Expr u, Expr c, String variable) {
   if (u is Pow) {
     if (u.base.dependsOn(variable) && u.exponent.dependsOn(variable)) {
       if ((u.exponent / u.base).simplify() == RationalNumber.one) {
+        final cNum = _tryEvalReal(c);
+        if (cNum != null && cNum <= 0.0) return const [];
         return _solveLambertWEquation(
           Ln(u.base).simplify(),
           Ln(c).simplify(),
@@ -145,6 +197,11 @@ List<Expr>? invertEquation(Expr u, Expr c, String variable) {
       if (u.exponent is RationalNumber) {
         final expConst = u.exponent as RationalNumber;
         if (!expConst.isZero) {
+          if (expConst.numerator < 0 &&
+              (c == RationalNumber.zero ||
+                  (c is RealNumber && c.value == 0.0))) {
+            return const [];
+          }
           if (expConst.isInteger) {
             final n = expConst.numerator;
             if (n > 0) {
@@ -204,15 +261,22 @@ List<Expr>? invertEquation(Expr u, Expr c, String variable) {
   }
 
   if (u is Div) {
-    if (!u.right.dependsOn(variable)) {
-      return invertEquation(u.left, (c * u.right).simplify(), variable);
-    } else if (!u.left.dependsOn(variable)) {
+    final num = u.left;
+    final den = u.right;
+    if (!den.dependsOn(variable)) {
+      return invertEquation(num, (c * den).simplify(), variable);
+    } else if (!num.dependsOn(variable)) {
       if (c == RationalNumber.zero ||
           (c is RationalNumber && c.isZero) ||
           (c is RealNumber && c.value == 0.0)) {
         return const [];
       }
-      return invertEquation(u.right, (u.left / c).simplify(), variable);
+      return invertEquation(den, (num / c).simplify(), variable);
+    } else if (!c.dependsOn(variable)) {
+      final candidates = solveEquation((num - c * den).simplify(), variable);
+      return candidates
+          .where((r) => !isZeroExpr(den.substitute(variable, r).simplify()))
+          .toList();
     }
   }
 

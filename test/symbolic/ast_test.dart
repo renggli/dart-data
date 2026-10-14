@@ -299,6 +299,25 @@ void main() {
       // pow(0, -1) = Infinity
       const div0 = Pow(RationalNumber(0), RationalNumber(-1));
       check(div0.evaluate({})).equals(double.infinity);
+
+      // odd rational root of negative number: (-8)^(1/3) = -2.0
+      const cbrtNeg8 = Pow(RationalNumber(-8), RationalNumber(1, 3));
+      check(cbrtNeg8.evaluate({})).isCloseTo(-2.0, 1e-12);
+      const cbrtNeg8Squared = Pow(RationalNumber(-8), RationalNumber(2, 3));
+      check(cbrtNeg8Squared.evaluate({})).isCloseTo(4.0, 1e-12);
+    });
+
+    test('RealNumber(double.nan) reflexivity and stable inverse hyperbolic evaluation', () {
+      const nan1 = RealNumber(double.nan);
+      const nan2 = RealNumber(double.nan);
+      check(nan1 == nan2).isTrue();
+      check(nan1.hashCode).equals(nan2.hashCode);
+
+      // Asinh for large negative argument does not underflow to -Infinity
+      const largeNegAsinh = Asinh(RealNumber(-1e8));
+      final val = largeNegAsinh.evaluate({});
+      check(val.isFinite).isTrue();
+      check(val).isCloseTo(-19.11382792451231, 1e-10);
     });
   });
 }

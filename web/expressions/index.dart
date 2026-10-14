@@ -15,6 +15,7 @@ import 'presets.dart';
 ExpressionPreset? activePreset;
 String currentFormula = 'x^3 - 3*x + 1';
 Expr? parsedExpr;
+Expr? cachedAntideriv;
 double Function(double)? fnCompiled;
 double Function(double)? dfCompiled;
 double Function(double)? d2fCompiled;
@@ -51,6 +52,7 @@ bool hasImaginary = false;
 // Hover coordinates
 double? mouseX;
 double? mouseY;
+bool _rafPending = false;
 
 // Critical points & roots
 final List<double> exactRoots = [];
@@ -527,7 +529,15 @@ void attachEventListeners() {
     final rect = plotCanvas.getBoundingClientRect();
     mouseX = event.clientX - rect.left;
     mouseY = event.clientY - rect.top;
-    drawCharts();
+    if (!_rafPending) {
+      _rafPending = true;
+      web.window.requestAnimationFrame(
+        ((num _) {
+          _rafPending = false;
+          drawCharts();
+        }).toJS,
+      );
+    }
   });
   plotCanvas.onMouseLeave.listen((_) {
     mouseX = null;
@@ -634,6 +644,7 @@ void updateAll() {
     }
 
     parsedExpr = null;
+    cachedAntideriv = null;
     fnCompiled = null;
     dfCompiled = null;
     d2fCompiled = null;
@@ -711,10 +722,33 @@ void updateAll() {
   }
 
   try {
-    final antideriv = expr.integrate('x').simplify();
-    setAttrExpr(valSymAntideriv, antideriv);
+    cachedAntideriv = expr.integrate('x').simplify();
+    setAttrExpr(valSymAntideriv, cachedAntideriv);
   } catch (_) {
+    cachedAntideriv = null;
     setAttrValue(valSymAntideriv, 'No closed form');
+  }
+
+  // Asymptotic limits at +/- infinity depend only on expr, not pointX
+  try {
+    final limPos = expr.limit('x', ConstantNumber.infinity);
+    try {
+      final limNeg = expr.limit('x', const Neg(ConstantNumber.infinity));
+      if (limPos == limNeg) {
+        setAttrExpr(valEvalLimInf, limPos);
+      } else {
+        setAttrValue(valEvalLimInf, '+∞: $limPos | -∞: $limNeg');
+      }
+    } catch (_) {
+      setAttrValue(valEvalLimInf, '+∞: $limPos');
+    }
+  } catch (_) {
+    try {
+      final limNeg = expr.limit('x', const Neg(ConstantNumber.infinity));
+      setAttrValue(valEvalLimInf, '-∞: $limNeg');
+    } catch (_) {
+      setAttrValue(valEvalLimInf, 'Undefined');
+    }
   }
 
   // 3. Closure Compilation
@@ -760,7 +794,6 @@ void updateAll() {
     d3fComplexCompiled = null;
   }
 
-  // 4. Complex / Imaginary Detection
   // 4. Complex / Imaginary Detection
   updateImaginaryDetection();
 
@@ -842,7 +875,14 @@ void updatePointTelemetry() {
     setAttrValue(valEvalDfAnalytical, 'Undefined');
   }
 
-  if (fnComplexCompiled != null) {
+  if (!hasImaginary && fnCompiled != null) {
+    final slopeNumerical = safeGet(() => derivative(fnCompiled!, pointX))
+        ?.toDouble();
+    setAttrValue(
+      valEvalDfNumerical,
+      slopeNumerical != null ? formatNumber(slopeNumerical) : 'Undefined',
+    );
+  } else if (fnComplexCompiled != null) {
     final realSlope = safeGet(
       () => derivative(
         (x) => fnComplexCompiled!(Complex(x, 0)).a.toDouble(),
@@ -863,13 +903,6 @@ void updatePointTelemetry() {
     } else {
       setAttrValue(valEvalDfNumerical, 'Undefined');
     }
-  } else if (fnCompiled != null) {
-    final slopeNumerical = safeGet(() => derivative(fnCompiled!, pointX))
-        ?.toDouble();
-    setAttrValue(
-      valEvalDfNumerical,
-      slopeNumerical != null ? formatNumber(slopeNumerical) : 'Undefined',
-    );
   } else {
     setAttrValue(valEvalDfNumerical, 'Undefined');
   }
@@ -910,30 +943,8 @@ void updatePointTelemetry() {
     } catch (_) {
       setAttrValue(valEvalLim, 'Undefined');
     }
-
-    try {
-      final limPos = expr.limit('x', ConstantNumber.infinity);
-      try {
-        final limNeg = expr.limit('x', const Neg(ConstantNumber.infinity));
-        if (limPos == limNeg) {
-          setAttrExpr(valEvalLimInf, limPos);
-        } else {
-          setAttrValue(valEvalLimInf, '+∞: $limPos | -∞: $limNeg');
-        }
-      } catch (_) {
-        setAttrValue(valEvalLimInf, '+∞: $limPos');
-      }
-    } catch (_) {
-      try {
-        final limNeg = expr.limit('x', const Neg(ConstantNumber.infinity));
-        setAttrValue(valEvalLimInf, '-∞: $limNeg');
-      } catch (_) {
-        setAttrValue(valEvalLimInf, 'Undefined');
-      }
-    }
   } else {
     setAttrExpr(valEvalLim, null);
-    setAttrValue(valEvalLimInf, '-');
   }
 }
 
@@ -941,7 +952,18 @@ void updateIntegrationTelemetry() {
   final expr = parsedExpr;
   if (expr == null) return;
 
-  if (fnComplexCompiled != null) {
+  if (!hasImaginary && fnCompiled != null) {
+    double? numVal;
+    try {
+      numVal = integrate(fnCompiled!, intA, intB, method: intMethod);
+    } catch (_) {
+      numVal = null;
+    }
+    setAttrValue(
+      valIntNumerical,
+      numVal != null ? formatNumber(numVal) : 'Undefined',
+    );
+  } else if (fnComplexCompiled != null) {
     try {
       final realVal = integrate(
         (x) => fnComplexCompiled!(Complex(x, 0)).a.toDouble(),
@@ -959,34 +981,27 @@ void updateIntegrationTelemetry() {
     } catch (_) {
       setAttrValue(valIntNumerical, 'Undefined');
     }
-  } else if (fnCompiled != null) {
-    double? numVal;
-    try {
-      numVal = integrate(fnCompiled!, intA, intB, method: intMethod);
-    } catch (_) {
-      numVal = null;
-    }
-    setAttrValue(
-      valIntNumerical,
-      numVal != null ? formatNumber(numVal) : 'Undefined',
-    );
   } else {
     setAttrValue(valIntNumerical, 'Undefined');
   }
 
-  try {
-    final antideriv = expr.integrate('x').simplify();
-    final fb = antideriv.evaluateComplex({'x': Complex(intB, 0)});
-    final fa = antideriv.evaluateComplex({'x': Complex(intA, 0)});
-    final exact = fb - fa;
-    if (exact.a.isFinite && exact.b.isFinite) {
-      setAttrValue(valIntAnalytical, formatComplex(exact));
-    } else if (exact.a.isInfinite || exact.b.isInfinite) {
-      setAttrValue(valIntAnalytical, exact.a.isNegative ? '-∞' : '∞');
-    } else {
+  final antideriv = cachedAntideriv;
+  if (antideriv != null) {
+    try {
+      final fb = antideriv.evaluateComplex({'x': Complex(intB, 0)});
+      final fa = antideriv.evaluateComplex({'x': Complex(intA, 0)});
+      final exact = fb - fa;
+      if (exact.a.isFinite && exact.b.isFinite) {
+        setAttrValue(valIntAnalytical, formatComplex(exact));
+      } else if (exact.a.isInfinite || exact.b.isInfinite) {
+        setAttrValue(valIntAnalytical, exact.a.isNegative ? '-∞' : '∞');
+      } else {
+        setAttrValue(valIntAnalytical, 'Undefined');
+      }
+    } catch (_) {
       setAttrValue(valIntAnalytical, 'Undefined');
     }
-  } catch (_) {
+  } else {
     setAttrValue(valIntAnalytical, 'No closed form');
   }
 }
@@ -1608,7 +1623,7 @@ void updateUrlHash() {
     'a=$intA',
     'b=$intB',
   ];
-  web.window.location.hash = queryParams.join('&');
+  web.window.history.replaceState(null, '', '#${queryParams.join('&')}');
 }
 
 void loadFromUrlHash() {
@@ -1627,7 +1642,9 @@ void loadFromUrlHash() {
         switch (key) {
           case 'expr':
             currentFormula = val;
-            exprInput.value = val;
+            if (web.document.activeElement != exprInput) {
+              exprInput.value = val;
+            }
           case 'minx':
             final parsed = double.tryParse(val);
             if (parsed != null) minX = parsed;

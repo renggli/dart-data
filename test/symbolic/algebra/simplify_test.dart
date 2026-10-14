@@ -712,12 +712,12 @@ void main() {
       check(s2).equals(s3);
       check(s1).equals(const Add(x, RationalNumber.one));
 
-      // In logarithms, addition sorts terms canonically, while product maintains operand order:
-      // ln(a) + ln(b) -> ln(a * b), while ln(b) + ln(a) -> ln(b * a)
+      // Both addition and multiplication sort terms/factors canonically:
+      // ln(a) + ln(b) -> ln(a * b), and ln(b) + ln(a) -> ln(a * b)
       final l1 = Expr.parse('ln(a) + ln(b) + x').simplify();
       final l2 = Expr.parse('x + ln(b) + ln(a)').simplify();
       check(l1).equals(Expr.parse('x + ln(a * b)'));
-      check(l2).equals(Expr.parse('x + ln(b * a)'));
+      check(l2).equals(Expr.parse('x + ln(a * b)'));
 
       // Both evaluate to identical values across all inputs
       final env = {'x': 1.5, 'a': 2.3, 'b': 4.7};
@@ -818,6 +818,20 @@ void main() {
       // d/dx log(e, x) = 1 / x
       final dLogE = Expr.parse('log(e, x)').derivative('x').simplify();
       check(dLogE.evaluate({'x': 5.0})).isCloseTo(0.2, 1e-12);
+    });
+
+    test('canonical factor ordering, mixed scalar folding, and edge cases', () {
+      check((x * y - y * x).simplify()).equals(RationalNumber.zero);
+      check((const RationalNumber(2) * (const RealNumber(3.0) * x)).simplify())
+          .equals(const RealNumber(6.0) * x);
+      check(const RationalNumber(2, 4).simplify())
+          .equals(const RationalNumber(1, 2));
+      const o2 = OrderTerm('x', 2);
+      check((o2 - o2).simplify()).equals(o2);
+      check(() => (const Ln(x) - const Ln(Neg(x))).simplify())
+          .returnsNormally();
+      check(() => const Pow(RationalNumber(0), RationalNumber(-1)).simplify())
+          .throws<UnsupportedError>();
     });
   });
 }

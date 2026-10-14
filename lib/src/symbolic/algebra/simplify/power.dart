@@ -1,5 +1,7 @@
 import 'dart:math' as math;
 
+import 'package:more/number.dart' show Fraction;
+
 import '../../ast.dart';
 import '../simplify.dart';
 
@@ -9,97 +11,66 @@ Expr simplifyPow(Expr base, Expr exponent) => switch ((base, exponent)) {
   (final b, RationalNumber(isOne: true)) => b,
   (_, RealNumber(value: 0.0)) => RationalNumber.one,
   (final b, RealNumber(value: 1.0)) => b,
+  (
+    RationalNumber(isZero: true) || RealNumber(value: 0.0),
+    RationalNumber(isNegative: true) || Neg(expr: RationalNumber()),
+  ) =>
+    throw UnsupportedError('Division by zero in negative power of zero'),
+  (
+    RationalNumber(isZero: true) || RealNumber(value: 0.0),
+    RealNumber(:final value),
+  )
+      when value < 0.0 =>
+    throw UnsupportedError('Division by zero in negative power of zero'),
   (RationalNumber(isZero: true), _) => RationalNumber.zero,
   (RealNumber(value: 0.0), _) => RationalNumber.zero,
   (RationalNumber(isOne: true), _) => RationalNumber.one,
   (RealNumber(value: 1.0), _) => RationalNumber.one,
   (ConstantNumber(name: 'e'), final exponent) => Exp(exponent),
   (
-    ConstantNumber(name: 'i'),
+    ComplexNumber(real: 0.0, imaginary: 1.0) || ConstantNumber(name: 'i'),
     RationalNumber(isInteger: true, numerator: final expInt),
   ) =>
-    switch (((expInt % 4) + 4) % 4) {
-      0 => RationalNumber.one,
-      1 => ConstantNumber.i,
-      2 => RationalNumber.negativeOne,
-      _ => const Neg(ConstantNumber.i),
-    },
+    _evalIPower(expInt),
   (
-    Neg(expr: ConstantNumber(name: 'i')),
+    Neg(
+          expr: ComplexNumber(real: 0.0, imaginary: 1.0) ||
+              ConstantNumber(name: 'i'),
+        ) ||
+        ComplexNumber(real: 0.0, imaginary: -1.0),
     RationalNumber(isInteger: true, numerator: final expInt),
   ) =>
-    switch (((expInt % 4) + 4) % 4) {
-      0 => RationalNumber.one,
-      1 => const Neg(ConstantNumber.i),
-      2 => RationalNumber.negativeOne,
-      _ => ConstantNumber.i,
-    },
-  (ConstantNumber(name: 'i'), RealNumber(:final value))
+    _evalNegIPower(expInt),
+  (
+    ComplexNumber(real: 0.0, imaginary: 1.0) || ConstantNumber(name: 'i'),
+    RealNumber(:final value),
+  )
       when value == value.truncateToDouble() =>
-    switch (((value.toInt() % 4) + 4) % 4) {
-      0 => RationalNumber.one,
-      1 => ConstantNumber.i,
-      2 => RationalNumber.negativeOne,
-      _ => const Neg(ConstantNumber.i),
-    },
-  (Neg(expr: ConstantNumber(name: 'i')), RealNumber(:final value))
+    _evalIPower(value.toInt()),
+  (
+    Neg(
+          expr: ComplexNumber(real: 0.0, imaginary: 1.0) ||
+              ConstantNumber(name: 'i'),
+        ) ||
+        ComplexNumber(real: 0.0, imaginary: -1.0),
+    RealNumber(:final value),
+  )
       when value == value.truncateToDouble() =>
-    switch (((value.toInt() % 4) + 4) % 4) {
-      0 => RationalNumber.one,
-      1 => const Neg(ConstantNumber.i),
-      2 => RationalNumber.negativeOne,
-      _ => ConstantNumber.i,
-    },
+    _evalNegIPower(value.toInt()),
   (
     Mul(
-      left: RationalNumber(:final numerator, :final denominator),
-      right: ConstantNumber(name: 'i'),
-    ),
+          left: RationalNumber(:final numerator, :final denominator),
+          right: ComplexNumber(real: 0.0, imaginary: 1.0) ||
+              ConstantNumber(name: 'i'),
+        ) ||
+        Mul(
+          left: ComplexNumber(real: 0.0, imaginary: 1.0) ||
+              ConstantNumber(name: 'i'),
+          right: RationalNumber(:final numerator, :final denominator),
+        ),
     RationalNumber(isInteger: true, numerator: final expInt),
   ) =>
-    switch (((expInt % 4) + 4) % 4) {
-      0 => foldRationalPower(numerator, denominator, expInt),
-      1 => simplifyMul(
-        foldRationalPower(numerator, denominator, expInt),
-        ConstantNumber.i,
-      ),
-      2 => simplifyMul(
-        RationalNumber.negativeOne,
-        foldRationalPower(numerator, denominator, expInt),
-      ),
-      _ => simplifyMul(
-        simplifyMul(
-          RationalNumber.negativeOne,
-          foldRationalPower(numerator, denominator, expInt),
-        ),
-        ConstantNumber.i,
-      ),
-    },
-  (
-    Mul(
-      left: ConstantNumber(name: 'i'),
-      right: RationalNumber(:final numerator, :final denominator),
-    ),
-    RationalNumber(isInteger: true, numerator: final expInt),
-  ) =>
-    switch (((expInt % 4) + 4) % 4) {
-      0 => foldRationalPower(numerator, denominator, expInt),
-      1 => simplifyMul(
-        foldRationalPower(numerator, denominator, expInt),
-        ConstantNumber.i,
-      ),
-      2 => simplifyMul(
-        RationalNumber.negativeOne,
-        foldRationalPower(numerator, denominator, expInt),
-      ),
-      _ => simplifyMul(
-        simplifyMul(
-          RationalNumber.negativeOne,
-          foldRationalPower(numerator, denominator, expInt),
-        ),
-        ConstantNumber.i,
-      ),
-    },
+    _evalScaledIPower(numerator, denominator, expInt),
   (
     RationalNumber(:final numerator, :final denominator),
     RationalNumber(isInteger: true, numerator: final expInt),
@@ -143,27 +114,23 @@ Expr simplifyPow(Expr base, Expr exponent) => switch ((base, exponent)) {
 Expr foldRationalPower(int num, int den, int exp) {
   if (exp == 0) return RationalNumber.one;
   if (exp > 0 && exp <= 10) {
-    var n = 1;
-    var d = 1;
-    for (var i = 0; i < exp; i++) {
-      n *= num;
-      d *= den;
+    final bigN = BigInt.from(num).pow(exp);
+    final bigD = BigInt.from(den).pow(exp);
+    if (bigN.bitLength <= 52 && bigD.bitLength <= 52) {
+      return RationalNumber.fraction(Fraction(bigN.toInt(), bigD.toInt()));
     }
-    return RationalNumber(n, d);
   }
   if (exp < 0 && -exp <= 10 && num != 0) {
     final absExp = -exp;
-    var n = 1;
-    var d = 1;
-    for (var i = 0; i < absExp; i++) {
-      n *= den;
-      d *= num;
+    var bigN = BigInt.from(den).pow(absExp);
+    var bigD = BigInt.from(num).pow(absExp);
+    if (bigD < BigInt.zero) {
+      bigN = -bigN;
+      bigD = -bigD;
     }
-    if (d < 0) {
-      n = -n;
-      d = -d;
+    if (bigN.bitLength <= 52 && bigD.bitLength <= 52) {
+      return RationalNumber.fraction(Fraction(bigN.toInt(), bigD.toInt()));
     }
-    return RationalNumber(n, d);
   }
   return Pow(RationalNumber(num, den), RationalNumber(exp));
 }
@@ -180,3 +147,37 @@ Expr foldGeneralPower(RationalNumber base, RationalNumber exp) {
   }
   return Pow(base, exp);
 }
+
+Expr _evalIPower(int expInt) => switch (((expInt % 4) + 4) % 4) {
+  0 => RationalNumber.one,
+  1 => ComplexNumber.i,
+  2 => RationalNumber.negativeOne,
+  _ => const Neg(ComplexNumber.i),
+};
+
+Expr _evalNegIPower(int expInt) => switch (((expInt % 4) + 4) % 4) {
+  0 => RationalNumber.one,
+  1 => const Neg(ComplexNumber.i),
+  2 => RationalNumber.negativeOne,
+  _ => ComplexNumber.i,
+};
+
+Expr _evalScaledIPower(int numerator, int denominator, int expInt) =>
+    switch (((expInt % 4) + 4) % 4) {
+      0 => foldRationalPower(numerator, denominator, expInt),
+      1 => simplifyMul(
+        foldRationalPower(numerator, denominator, expInt),
+        ComplexNumber.i,
+      ),
+      2 => simplifyMul(
+        RationalNumber.negativeOne,
+        foldRationalPower(numerator, denominator, expInt),
+      ),
+      _ => simplifyMul(
+        simplifyMul(
+          RationalNumber.negativeOne,
+          foldRationalPower(numerator, denominator, expInt),
+        ),
+        ComplexNumber.i,
+      ),
+    };

@@ -123,6 +123,19 @@ void main() {
 
       final g = Exp(-x.pow(const RationalNumber(2)));
       check(g.toLatex()).equals('e^{-{x}^{2}}');
+
+      check(ConstantNumber.infinity.toLatex()).equals(r'\infty');
+      check(const Pow(ComplexNumber(0, -1), RationalNumber(2)).toLatex())
+          .equals('{(-i)}^{2}');
+      check(const Mul(ComplexNumber(1, 2), Variable('x')).toLatex())
+          .equals(r'(1.0 + 2.0i) \cdot x');
+      check(
+        const OrderTerm(
+          'x',
+          2,
+          point: Add(Variable('a'), Variable('b')),
+        ).toLatex(),
+      ).equals('O((x - (a + b))^{2})');
     });
   });
 }

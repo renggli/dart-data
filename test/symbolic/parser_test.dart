@@ -599,7 +599,7 @@ void main() {
     });
   });
 
-  group('Adversarial stress-test: Log parsing, equivalence and arity', () {
+  group('Log parsing, equivalence and arity', () {
     const x = Variable('x');
     const y = Variable('y');
 
@@ -656,6 +656,12 @@ void main() {
       check(Expr.parse('lambertw(x, -1)'))
           .equals(const LambertW(x, branch: -1));
       check(Expr.parse('w(x, -1)')).equals(const LambertW(x, branch: -1));
+      check(() => Expr.parse('lambertw(x, 2)')).throws<FormatException>();
+    });
+
+    test('parses infinity constants', () {
+      check(Expr.parse('oo')).equals(ConstantNumber.infinity);
+      check(Expr.parse('infinity')).equals(ConstantNumber.infinity);
     });
 
     test('parses special functions', () {

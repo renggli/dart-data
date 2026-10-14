@@ -70,9 +70,15 @@ Expr? extractMonomialGcd(List<Expr> terms) {
   return result.simplify();
 }
 
-/// Collects total variable powers in a product monomial.
-void collectVariablePowers(Expr expr, Map<String, int> target) {
-  if (expr is Variable) {
+/// Collects variable powers and residual non-variable symbolic factors in a product monomial.
+void collectVariablePowers(
+  Expr expr,
+  Map<String, int> target, [
+  List<Expr>? residuals,
+]) {
+  if (expr is RationalNumber && expr.isOne) {
+    return;
+  } else if (expr is Variable) {
     target[expr.name] = (target[expr.name] ?? 0) + 1;
   } else if (expr is Pow &&
       expr.base is Variable &&
@@ -81,10 +87,14 @@ void collectVariablePowers(Expr expr, Map<String, int> target) {
     if (exp.isInteger && exp.numerator > 0) {
       final v = expr.base as Variable;
       target[v.name] = (target[v.name] ?? 0) + exp.numerator;
+    } else {
+      residuals?.add(expr);
     }
   } else if (expr is Mul) {
-    collectVariablePowers(expr.left, target);
-    collectVariablePowers(expr.right, target);
+    collectVariablePowers(expr.left, target, residuals);
+    collectVariablePowers(expr.right, target, residuals);
+  } else {
+    residuals?.add(expr);
   }
 }
 
@@ -94,9 +104,14 @@ Expr divideMonomial(Expr term, Expr gcd) {
   final (cGcd, bGcd) = decomposeTerm(gcd);
   final coeff = cTerm / cGcd;
   final powersTerm = <String, int>{};
-  collectVariablePowers(bTerm, powersTerm);
+  final residualsTerm = <Expr>[];
+  collectVariablePowers(bTerm, powersTerm, residualsTerm);
   final powersGcd = <String, int>{};
-  collectVariablePowers(bGcd, powersGcd);
+  final residualsGcd = <Expr>[];
+  collectVariablePowers(bGcd, powersGcd, residualsGcd);
+  for (final r in residualsGcd) {
+    residualsTerm.remove(r);
+  }
   final remainingPowers = <String, int>{};
   for (final entry in powersTerm.entries) {
     final rem = entry.value - (powersGcd[entry.key] ?? 0);
@@ -113,6 +128,15 @@ Expr divideMonomial(Expr term, Expr gcd) {
       result = Neg(factor);
     } else {
       result = Mul(result, factor);
+    }
+  }
+  for (final r in residualsTerm) {
+    if (result is RationalNumber && result.isOne) {
+      result = r;
+    } else if (result is RationalNumber && result.isNegativeOne) {
+      result = Neg(r);
+    } else {
+      result = Mul(result, r);
     }
   }
   return result.simplify();

@@ -64,8 +64,16 @@ sealed class Expr {
     return result;
   }
 
-  /// Substitutes occurrences of [variable] with [replacement].
+  ///Substitutes occurrences of [variable] with [replacement].
   Expr substitute(String variable, Expr replacement);
+
+  /// Applies [transform] to all direct child expressions of this node, returning
+  /// `this` when all children remain identical.
+  Expr mapChildren(Expr Function(Expr child) transform) => this;
+
+  /// Returns `true` if [predicate] holds for this expression or any of its
+  /// descendant expressions.
+  bool anyNode(bool Function(Expr node) predicate) => predicate(this);
 
   /// Evaluates this expression using the variable values in [context].
   double evaluate(Map<String, double> context);

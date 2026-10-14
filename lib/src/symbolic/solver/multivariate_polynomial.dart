@@ -101,22 +101,6 @@ class Monomial {
   String toString() => 'Monomial$exponents';
 }
 
-bool _listEquals(List<int> a, List<int> b) {
-  if (a.length != b.length) return false;
-  for (var i = 0; i < a.length; i++) {
-    if (a[i] != b[i]) return false;
-  }
-  return true;
-}
-
-bool _listEqualsStr(List<String> a, List<String> b) {
-  if (a.length != b.length) return false;
-  for (var i = 0; i < a.length; i++) {
-    if (a[i] != b[i]) return false;
-  }
-  return true;
-}
-
 /// Monomial term ordering strategies.
 enum MonomialOrder {
   /// Graded reverse lexicographical order (degree first, then reverse lex on ties).
@@ -222,7 +206,7 @@ class MultivariatePolynomial {
   }
 
   MultivariatePolynomial operator +(MultivariatePolynomial other) {
-    assert(_listEqualsStr(variables, other.variables));
+    assert(_listEquals(variables, other.variables));
     final newTerms = Map<Monomial, Fraction>.of(terms);
     for (final entry in other.terms.entries) {
       final cur = newTerms[entry.key] ?? Fraction.zero;
@@ -241,7 +225,7 @@ class MultivariatePolynomial {
   }
 
   MultivariatePolynomial operator -(MultivariatePolynomial other) {
-    assert(_listEqualsStr(variables, other.variables));
+    assert(_listEquals(variables, other.variables));
     final newTerms = Map<Monomial, Fraction>.of(terms);
     for (final entry in other.terms.entries) {
       final cur = newTerms[entry.key] ?? Fraction.zero;
@@ -295,7 +279,7 @@ class MultivariatePolynomial {
   }
 
   MultivariatePolynomial operator *(MultivariatePolynomial other) {
-    assert(_listEqualsStr(variables, other.variables));
+    assert(_listEquals(variables, other.variables));
     if (isZero || other.isZero) {
       return MultivariatePolynomial.zero(variables);
     }
@@ -373,7 +357,7 @@ class MultivariatePolynomial {
     MultivariatePolynomial g, {
     MonomialOrder order = MonomialOrder.grevlex,
   }) {
-    assert(_listEqualsStr(f.variables, g.variables));
+    assert(_listEquals(f.variables, g.variables));
     final (lmF, lcF) = f.leadingTerm(order);
     final (lmG, lcG) = g.leadingTerm(order);
     final m = lmF.lcm(lmG);
@@ -389,11 +373,7 @@ class MultivariatePolynomial {
   }
 
   /// Parses a symbolic [Expr] into a [MultivariatePolynomial] in [variables].
-  static MultivariatePolynomial fromExpr(
-    Expr expr,
-    List<String> variables, {
-    MonomialOrder order = MonomialOrder.grevlex,
-  }) {
+  static MultivariatePolynomial fromExpr(Expr expr, List<String> variables) {
     final expanded = expr.expand();
     final termsList = <Expr>[];
     collectAdditiveTerms(expanded, 1, termsList);
@@ -402,7 +382,14 @@ class MultivariatePolynomial {
     for (final t in termsList) {
       final (coeff, base) = decomposeTerm(t);
       final powers = <String, int>{};
-      collectVariablePowers(base, powers);
+      final residuals = <Expr>[];
+      collectVariablePowers(base, powers, residuals);
+      if (residuals.isNotEmpty) {
+        throw ArgumentError(
+          'Expression "$expr" is not a polynomial with rational coefficients '
+          'in $variables (non-polynomial or non-rational factor: ${residuals.first})',
+        );
+      }
 
       final expList = List<int>.filled(variables.length, 0);
       for (final e in powers.entries) {
@@ -458,18 +445,27 @@ class MultivariatePolynomial {
   bool operator ==(Object other) =>
       identical(this, other) ||
       (other is MultivariatePolynomial &&
-          _listEqualsStr(variables, other.variables) &&
+          _listEquals(variables, other.variables) &&
           _mapsEqual(terms, other.terms));
 
   @override
   int get hashCode => Object.hash(
     Object.hashAll(variables),
-    Object.hashAll(terms.keys),
-    Object.hashAll(terms.values),
+    Object.hashAllUnordered(
+      terms.entries.map((e) => Object.hash(e.key, e.value)),
+    ),
   );
 
   @override
   String toString() => toExpr().toString();
+}
+
+bool _listEquals<T>(List<T> a, List<T> b) {
+  if (a.length != b.length) return false;
+  for (var i = 0; i < a.length; i++) {
+    if (a[i] != b[i]) return false;
+  }
+  return true;
 }
 
 bool _mapsEqual(Map<Monomial, Fraction> a, Map<Monomial, Fraction> b) {

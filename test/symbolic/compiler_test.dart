@@ -393,5 +393,37 @@ void main() {
       check(fPowNeg(2.0)).equals(0.25);
       check(fPowNeg(4.0)).equals(0.0625);
     });
+
+    test('unbound variable in 1D compiled closure throws ArgumentError', () {
+      check(() => (x + y).toFunction1D('x')).throws<ArgumentError>();
+      check(() => (x + y).toComplexFunction1D('x')).throws<ArgumentError>();
+    });
+
+    test('compileTensorKernel supports special functions and relationals', () {
+      final expr =
+          const Erf(x) +
+          const Erfc(x) +
+          Gamma(x + const RationalNumber(2)) +
+          Beta(x + const RationalNumber(1), const RationalNumber(2)) +
+          const Asinh(x) +
+          Acosh(x + const RationalNumber(2)) +
+          Atanh(x * const RationalNumber(1, 2)) +
+          const LessThan(x, RationalNumber(1));
+      final kernel = expr.compileTensorKernel(['x']);
+      final f1d = expr.toFunction1D('x');
+
+      final input = Float64List.fromList([0.2, 0.5, 1.2]);
+      final output = Float64List(3);
+      kernel([input], output);
+
+      for (var i = 0; i < input.length; i++) {
+        check(output[i]).isCloseTo(f1d(input[i]), 1e-12);
+      }
+
+      // Buffer validation
+      check(() => kernel([], output)).throws<ArgumentError>();
+      check(() => kernel([Float64List(2)], Float64List(3)))
+          .throws<ArgumentError>();
+    });
   });
 }

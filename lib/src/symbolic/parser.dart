@@ -87,6 +87,7 @@ Expr _createBinding(String name, List<Expr> arguments) =>
         'pi' => ConstantNumber.pi,
         'e' => ConstantNumber.e,
         'i' => ComplexNumber.i,
+        'oo' || 'infinity' => ConstantNumber.infinity,
         _ => Variable(name),
       },
       1 => switch (name.toLowerCase()) {
@@ -111,20 +112,20 @@ Expr _createBinding(String name, List<Expr> arguments) =>
         'asinh' || 'arsinh' => Asinh(arguments[0]),
         'acosh' || 'arcosh' => Acosh(arguments[0]),
         'atanh' || 'artanh' => Atanh(arguments[0]),
-        _ => throw ArgumentError.value(name, 'Unknown function'),
+        _ => throw ArgumentError.value(name, 'name', 'Unknown function: $name'),
       },
       2 => switch (name.toLowerCase()) {
         'pow' => Pow(arguments[0], arguments[1]),
         'log' => Div(Ln(arguments[1]), Ln(arguments[0])),
         'root' => Pow(arguments[1], Div(RationalNumber.one, arguments[0])),
         'lambertw' || 'w' => switch (arguments[1]) {
-          RationalNumber(isInteger: true, numerator: final b) => LambertW(
-            arguments[0],
-            branch: b,
-          ),
-          Neg(expr: RationalNumber(isInteger: true, numerator: final b)) =>
+          RationalNumber(isInteger: true, numerator: final b)
+              when b == 0 || b == -1 =>
+            LambertW(arguments[0], branch: b),
+          Neg(expr: RationalNumber(isInteger: true, numerator: final b))
+              when -b == 0 || -b == -1 =>
             LambertW(arguments[0], branch: -b),
-          _ => throw ArgumentError('Lambert W branch must be an integer'),
+          _ => throw ArgumentError('Lambert W branch must be 0 or -1'),
         },
         'beta' => Beta(arguments[0], arguments[1]),
         'piecewise' || 'pw' => Piecewise([(arguments[0], arguments[1])]),
@@ -134,9 +135,13 @@ Expr _createBinding(String name, List<Expr> arguments) =>
             RationalNumber(isInteger: true, numerator: final k),
           ] =>
             OrderTerm(name, k),
-          _ => throw ArgumentError.value(name, 'Unknown function'),
+          _ => throw ArgumentError.value(
+            name,
+            'name',
+            'Unknown function: $name',
+          ),
         },
-        _ => throw ArgumentError.value(name, 'Unknown function'),
+        _ => throw ArgumentError.value(name, 'name', 'Unknown function: $name'),
       },
       _ => switch (name.toLowerCase()) {
         'piecewise' || 'pw' => () {
@@ -151,7 +156,7 @@ Expr _createBinding(String name, List<Expr> arguments) =>
           }
           return Piecewise(branches, otherwise: otherwise);
         }(),
-        _ => throw ArgumentError.value(name, 'Unknown function'),
+        _ => throw ArgumentError.value(name, 'name', 'Unknown function: $name'),
       },
     };
 

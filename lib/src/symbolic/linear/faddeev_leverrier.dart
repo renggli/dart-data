@@ -47,28 +47,29 @@ class FaddeevLeVerrierEngine {
     var bCurrent = Matrix<Expr>.identity(n, type: effectiveType);
 
     for (var k = 1; k <= n; k++) {
-      // A_k = A * B_{k-1}
-      final ak = Matrix<Expr>.generate(n, n, (r, c) {
-        var sum = RationalNumber.zero as Expr;
-        for (var m = 0; m < n; m++) {
-          final prod = matrix.getUnchecked(r, m) * bCurrent.getUnchecked(m, c);
-          sum = sum + prod;
-        }
-        return sum.expand().simplify();
-      }, type: effectiveType);
-
-      // tr(A_k)
-      var tr = RationalNumber.zero as Expr;
-      for (var i = 0; i < n; i++) {
-        tr = tr + ak.getUnchecked(i, i);
-      }
-      tr = tr.expand().simplify();
-
-      // c_k = (1 / k) * tr(A_k)
-      final ck = (tr * RationalNumber(1, k)).expand().simplify();
-      coefficients.add(ck);
-
       if (k < n) {
+        // A_k = A * B_{k-1}
+        final ak = Matrix<Expr>.generate(n, n, (r, c) {
+          var sum = RationalNumber.zero as Expr;
+          for (var m = 0; m < n; m++) {
+            final prod =
+                matrix.getUnchecked(r, m) * bCurrent.getUnchecked(m, c);
+            sum = sum + prod;
+          }
+          return sum.expand().simplify();
+        }, type: effectiveType);
+
+        // tr(A_k)
+        var tr = RationalNumber.zero as Expr;
+        for (var i = 0; i < n; i++) {
+          tr = tr + ak.getUnchecked(i, i);
+        }
+        tr = tr.expand().simplify();
+
+        // c_k = (1 / k) * tr(A_k)
+        final ck = (tr * RationalNumber(1, k)).expand().simplify();
+        coefficients.add(ck);
+
         // B_k = A_k - c_k * I
         bCurrent = Matrix<Expr>.generate(n, n, (r, c) {
           final akVal = ak.getUnchecked(r, c);
@@ -76,6 +77,17 @@ class FaddeevLeVerrierEngine {
           return val.expand().simplify();
         }, type: effectiveType);
         bMatrices.add(bCurrent);
+      } else {
+        // For k == n, only tr(A_n) = sum_{i,m} A_{im} * (B_{n-1})_{mi} is needed.
+        var tr = RationalNumber.zero as Expr;
+        for (var i = 0; i < n; i++) {
+          for (var m = 0; m < n; m++) {
+            tr = tr + matrix.getUnchecked(i, m) * bCurrent.getUnchecked(m, i);
+          }
+        }
+        tr = tr.expand().simplify();
+        final ck = (tr * RationalNumber(1, k)).expand().simplify();
+        coefficients.add(ck);
       }
     }
 

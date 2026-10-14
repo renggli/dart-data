@@ -105,7 +105,9 @@ int precedence(Expr expr) => switch (expr) {
   Neg() ||
   RationalNumber(isNegative: true) ||
   RealNumber(value: < 0) ||
-  ComplexNumber(real: < 0, imaginary: 0) => 3,
+  ComplexNumber(real: < 0, imaginary: 0) ||
+  ComplexNumber(real: 0, imaginary: < 0) => 3,
+  ComplexNumber(real: 0, :final imaginary) when imaginary != 1.0 => 2,
   Pow(:final exponent) =>
     exponent is RationalNumber &&
             exponent.numerator == 1 &&

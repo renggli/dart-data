@@ -1100,6 +1100,11 @@ void main() {
         }
       }
     });
+
+    test('complex conjugate product (x + i) * (x - i) expands to x^2 + 1', () {
+      final expr = (x + ComplexNumber.i) * (x - ComplexNumber.i);
+      check(expr.expand()).equals(x.pow(2) + 1);
+    });
   });
 }
 

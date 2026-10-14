@@ -713,8 +713,8 @@ void main() {
       const x = Variable('x');
       const y = Variable('y');
 
-      // Unrelated variable in 1D returns 0
-      check(y.toFunction1D('x')(5.0)).equals(0.0);
+      // Unbound variable in 1D throws ArgumentError
+      check(() => y.toFunction1D('x')).throws<ArgumentError>();
 
       const complexExpr = Add(
         Sub(Mul(x, RationalNumber(2)), Div(x, RationalNumber(2))),

@@ -6,16 +6,23 @@ import 'multivariate_polynomial.dart';
 import 'resultant.dart';
 import 'univariate.dart';
 
+/// Method selection for solving multivariate polynomial systems.
+enum PolynomialSystemMethod {
+  /// Selects resultant elimination for bivariate systems, Gröbner basis otherwise.
+  auto,
+
+  /// Uses Sylvester resultant elimination (requires 2 equations and 2 variables).
+  resultant,
+
+  /// Uses Buchberger algorithm with Sugar strategy followed by FGLM order conversion.
+  groebner,
+}
+
 /// Solves a polynomial system of [equations] in [variables].
-///
-/// Supported methods:
-/// - `'auto'`: Selects resultant elimination for bivariate systems, Gröbner basis otherwise.
-/// - `'resultant'`: Uses Sylvester resultant elimination (requires exactly 2 equations and 2 variables).
-/// - `'groebner'`: Uses Buchberger algorithm with Sugar strategy followed by FGLM order conversion.
 List<Map<String, Expr>> solvePolynomialSystem(
   List<Expr> equations,
   List<String> variables, {
-  String method = 'auto',
+  PolynomialSystemMethod method = PolynomialSystemMethod.auto,
 }) {
   if (equations.isEmpty || variables.isEmpty) return const [];
 
@@ -26,34 +33,35 @@ List<Map<String, Expr>> solvePolynomialSystem(
     return e.simplify();
   }).toList();
 
-  if (method == 'resultant') {
-    if (normalizedEqs.length != 2 || variables.length != 2) {
-      throw ArgumentError(
-        'Resultant method requires exactly 2 equations and 2 variables',
-      );
-    }
-    return SylvesterResultantSolver.solve(
-      normalizedEqs[0],
-      normalizedEqs[1],
-      variables,
-    );
-  }
-
-  if (method == 'auto') {
-    if (normalizedEqs.length == 2 && variables.length == 2) {
-      try {
-        return SylvesterResultantSolver.solve(
-          normalizedEqs[0],
-          normalizedEqs[1],
-          variables,
+  switch (method) {
+    case PolynomialSystemMethod.resultant:
+      if (normalizedEqs.length != 2 || variables.length != 2) {
+        throw ArgumentError(
+          'Resultant method requires exactly 2 equations and 2 variables',
         );
-      } catch (_) {
-        // Fall back to Gröbner basis
       }
-    }
+      return SylvesterResultantSolver.solve(
+        normalizedEqs[0],
+        normalizedEqs[1],
+        variables,
+      );
+    case PolynomialSystemMethod.auto:
+      if (normalizedEqs.length == 2 && variables.length == 2) {
+        try {
+          final res = SylvesterResultantSolver.solve(
+            normalizedEqs[0],
+            normalizedEqs[1],
+            variables,
+          );
+          if (res.isNotEmpty) return res;
+        } catch (_) {
+          // Fall back to Gröbner basis
+        }
+      }
+      return _solveViaGroebner(normalizedEqs, variables);
+    case PolynomialSystemMethod.groebner:
+      return _solveViaGroebner(normalizedEqs, variables);
   }
-
-  return _solveViaGroebner(normalizedEqs, variables);
 }
 
 List<Map<String, Expr>> _solveViaGroebner(
@@ -85,10 +93,12 @@ List<Map<String, Expr>> _solveViaGroebner(
     return const [];
   }
 
+  final lexExprs = lexBasis.map((p) => p.toExpr()).toList();
+
   // Triangular back-substitution
   final solutions = <Map<String, Expr>>[];
   _backSubstitute(
-    lexBasis,
+    lexExprs,
     variables,
     variables.length - 1,
     {},
@@ -100,7 +110,7 @@ List<Map<String, Expr>> _solveViaGroebner(
 }
 
 void _backSubstitute(
-  List<MultivariatePolynomial> lexBasis,
+  List<Expr> lexExprs,
   List<String> variables,
   int varIndex,
   Map<String, Expr> currentSolution,
@@ -115,7 +125,7 @@ void _backSubstitute(
         val = val.substitute(entry.key, entry.value);
       }
       val = val.simplify();
-      if (!_isSolutionZero(val)) return;
+      if (!isZeroExpr(val)) return;
     }
     results.add(Map<String, Expr>.of(currentSolution));
     return;
@@ -123,10 +133,9 @@ void _backSubstitute(
 
   final currentVar = variables[varIndex];
 
-  // Find a polynomial in lexBasis that depends on currentVar and only already-solved variables
+  // Find a polynomial in lexExprs that depends on currentVar and only already-solved variables
   Expr? candidateEq;
-  for (final p in lexBasis) {
-    final expr = p.toExpr();
+  for (final expr in lexExprs) {
     if (expr.dependsOn(currentVar)) {
       var onlyAllowedVars = true;
       for (var i = 0; i < varIndex; i++) {
@@ -157,7 +166,7 @@ void _backSubstitute(
   for (final r in roots) {
     currentSolution[currentVar] = r.simplify();
     _backSubstitute(
-      lexBasis,
+      lexExprs,
       variables,
       varIndex - 1,
       currentSolution,
@@ -166,19 +175,4 @@ void _backSubstitute(
     );
     currentSolution.remove(currentVar);
   }
-}
-
-bool _isSolutionZero(Expr expr) {
-  if (expr is RationalNumber && expr.isZero) return true;
-  if (expr is RealNumber && expr.value.abs() < 1e-10) return true;
-  if (expr is ComplexNumber &&
-      expr.real.abs() < 1e-10 &&
-      expr.imaginary.abs() < 1e-10) {
-    return true;
-  }
-  try {
-    final v = expr.evaluate(const {});
-    if (v.abs() < 1e-10) return true;
-  } catch (_) {}
-  return false;
 }

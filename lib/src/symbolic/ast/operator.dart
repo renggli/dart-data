@@ -19,6 +19,23 @@ sealed class UnaryExpr extends Expr {
   void collectFreeVariables(Set<String> target) =>
       expr.collectFreeVariables(target);
 
+  /// Reconstructs this unary node with [newExpr].
+  UnaryExpr copyWith(Expr newExpr);
+
+  @override
+  Expr mapChildren(Expr Function(Expr child) transform) {
+    final next = transform(expr);
+    return identical(next, expr) ? this : copyWith(next);
+  }
+
+  @override
+  bool anyNode(bool Function(Expr node) predicate) =>
+      predicate(this) || expr.anyNode(predicate);
+
+  @override
+  Expr substitute(String variable, Expr replacement) =>
+      mapChildren((child) => child.substitute(variable, replacement));
+
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -54,6 +71,26 @@ sealed class BinaryExpr extends Expr {
     right.collectFreeVariables(target);
   }
 
+  /// Reconstructs this binary node with [newLeft] and [newRight].
+  BinaryExpr copyWith(Expr newLeft, Expr newRight);
+
+  @override
+  Expr mapChildren(Expr Function(Expr child) transform) {
+    final nextLeft = transform(left);
+    final nextRight = transform(right);
+    return identical(nextLeft, left) && identical(nextRight, right)
+        ? this
+        : copyWith(nextLeft, nextRight);
+  }
+
+  @override
+  bool anyNode(bool Function(Expr node) predicate) =>
+      predicate(this) || left.anyNode(predicate) || right.anyNode(predicate);
+
+  @override
+  Expr substitute(String variable, Expr replacement) =>
+      mapChildren((child) => child.substitute(variable, replacement));
+
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -76,10 +113,7 @@ final class Add extends BinaryExpr {
   const new(super.left, super.right);
 
   @override
-  Expr substitute(String variable, Expr replacement) => Add(
-    left.substitute(variable, replacement),
-    right.substitute(variable, replacement),
-  );
+  Add copyWith(Expr newLeft, Expr newRight) => Add(newLeft, newRight);
 
   @override
   double evaluate(Map<String, double> context) =>
@@ -96,10 +130,7 @@ final class Sub extends BinaryExpr {
   const new(super.left, super.right);
 
   @override
-  Expr substitute(String variable, Expr replacement) => Sub(
-    left.substitute(variable, replacement),
-    right.substitute(variable, replacement),
-  );
+  Sub copyWith(Expr newLeft, Expr newRight) => Sub(newLeft, newRight);
 
   @override
   double evaluate(Map<String, double> context) =>
@@ -116,10 +147,7 @@ final class Mul extends BinaryExpr {
   const new(super.left, super.right);
 
   @override
-  Expr substitute(String variable, Expr replacement) => Mul(
-    left.substitute(variable, replacement),
-    right.substitute(variable, replacement),
-  );
+  Mul copyWith(Expr newLeft, Expr newRight) => Mul(newLeft, newRight);
 
   @override
   double evaluate(Map<String, double> context) =>
@@ -136,10 +164,7 @@ final class Div extends BinaryExpr {
   const new(super.left, super.right);
 
   @override
-  Expr substitute(String variable, Expr replacement) => Div(
-    left.substitute(variable, replacement),
-    right.substitute(variable, replacement),
-  );
+  Div copyWith(Expr newLeft, Expr newRight) => Div(newLeft, newRight);
 
   @override
   double evaluate(Map<String, double> context) =>
@@ -162,17 +187,23 @@ final class Pow extends BinaryExpr {
   Expr get exponent => right;
 
   @override
-  Expr substitute(String variable, Expr replacement) => Pow(
-    left.substitute(variable, replacement),
-    right.substitute(variable, replacement),
-  );
+  Pow copyWith(Expr newLeft, Expr newRight) => Pow(newLeft, newRight);
 
   @override
   double evaluate(Map<String, double> context) {
-    if (right case RationalNumber(numerator: 1, denominator: 2)) {
-      return math.sqrt(left.evaluate(context));
+    final bVal = left.evaluate(context);
+    if (right case RationalNumber(:final numerator, :final denominator)) {
+      if (numerator == 1 && denominator == 2) {
+        return math.sqrt(bVal);
+      }
+      if (bVal < 0 && denominator > 1 && denominator.isOdd) {
+        final mag = math.pow(-bVal, numerator / denominator).toDouble();
+        return numerator.isOdd ? -mag : mag;
+      }
     }
-    return math.pow(left.evaluate(context), right.evaluate(context)).toDouble();
+    final eVal = right.evaluate(context);
+    if (eVal == 0.5) return math.sqrt(bVal);
+    return math.pow(bVal, eVal).toDouble();
   }
 }
 
@@ -186,8 +217,7 @@ final class Neg extends UnaryExpr {
   const new(super.expr);
 
   @override
-  Expr substitute(String variable, Expr replacement) =>
-      Neg(expr.substitute(variable, replacement));
+  Neg copyWith(Expr newExpr) => Neg(newExpr);
 
   @override
   double evaluate(Map<String, double> context) => -expr.evaluate(context);

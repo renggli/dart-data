@@ -150,9 +150,9 @@ void main() {
       check(jWide.rowCount).equals(1);
       check(jWide.colCount).equals(4);
       check(jWide.type).equals(exprDataType);
-      check(jWide[0][0]).equals(y * z * w);
-      check(jWide[0][1]).equals(x * z * w);
-      check(jWide[0][2]).equals(x * y * w);
+      check(jWide[0][0]).equals(w * y * z);
+      check(jWide[0][1]).equals(w * x * z);
+      check(jWide[0][2]).equals(w * x * y);
       check(jWide[0][3]).equals(x * y * z);
     });
   });

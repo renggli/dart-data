@@ -124,16 +124,33 @@ Complex evaluateComplexLambertW(Complex z, int branch) {
 
 Complex evaluateComplexErf(Complex z) {
   if (z.b == 0.0) return Complex(special_erf.erf(z.a.toDouble()), 0.0);
-  final z2 = z * z;
-  var term = z;
-  var sum = term;
-  const factor = Complex(2.0 / 1.7724538509055159, 0.0);
-  for (var n = 1; n <= 40; n++) {
-    term = -term * z2 * Complex((2 * n - 1) / (n * (2 * n + 1)), 0.0);
-    sum = sum + term;
-    if (term.abs() < 1e-15 * sum.abs()) break;
+  if (z.a < 0.0) return -evaluateComplexErf(-z);
+  final absZ = z.abs();
+  const twoOverSqrtPi = Complex(2.0 / 1.7724538509055159, 0.0);
+  if (absZ <= 2.5) {
+    final z2 = z * z;
+    var term = z;
+    var sum = term;
+    for (var n = 1; n <= 60; n++) {
+      term = -term * z2 * Complex((2 * n - 1) / (n * (2 * n + 1)), 0.0);
+      sum = sum + term;
+      if (term.abs() < 1e-15 * sum.abs()) break;
+    }
+    return sum * twoOverSqrtPi;
   }
-  return sum * factor;
+  // Laplace continued fraction for erfc(z) in Re(z) >= 0:
+  // erfc(z) = (exp(-z^2) / sqrt(pi)) * (1 / (z + (1/2) / (z + 1 / (z + (3/2) / ...))))
+  var cf = z;
+  for (var n = 30; n >= 1; n--) {
+    cf = z + Complex(0.5 * n, 0.0) / cf;
+  }
+  final expNegZ2 = (-z * z).exp();
+  if (expNegZ2.a == 0.0 && expNegZ2.b == 0.0) {
+    return Complex.one;
+  }
+  final erfcVal =
+      (expNegZ2 * const Complex(1.0 / 1.7724538509055159, 0.0)) / cf;
+  return Complex.one - erfcVal;
 }
 
 Complex evaluateComplexGamma(Complex z) {

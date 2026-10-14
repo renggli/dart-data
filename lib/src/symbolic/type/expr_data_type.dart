@@ -87,6 +87,13 @@ final class ExprEquality extends NaturalEquality<Expr> {
     if (diff is Number && diff.isReal) {
       return diff.value.abs() <= epsilon;
     }
+    if (diff.freeVariables.isEmpty) {
+      try {
+        return diff.evaluateComplex(const {}).abs() <= epsilon;
+      } on Object {
+        return false;
+      }
+    }
     return false;
   }
 
@@ -132,8 +139,20 @@ final class ExprField implements ExtendedField<Expr> {
   Expr inv(Expr a) => (RationalNumber.one / a).simplify();
 
   @override
-  Expr scale(Expr a, num factor) =>
-      Mul(a, RationalNumber.fromDouble(factor)).simplify();
+  Expr scale(Expr a, num factor) {
+    if (factor is int) {
+      return Mul(a, RationalNumber(factor)).simplify();
+    }
+    final d = factor.toDouble();
+    if (d.isFinite && d == d.truncateToDouble() && d.abs() < 9007199254740992) {
+      return Mul(a, RationalNumber(d.toInt())).simplify();
+    }
+    final frac = Fraction.fromDouble(d, maxDenominator: 64);
+    if ((frac.toDouble() - d).abs() <= 1e-12) {
+      return Mul(a, RationalNumber.fraction(frac)).simplify();
+    }
+    return Mul(a, RealNumber(d)).simplify();
+  }
 
   @override
   Expr pow(Expr base, Expr exponent) => Pow(base, exponent).simplify();
@@ -209,63 +228,7 @@ final class ExprField implements ExtendedField<Expr> {
       -imaginary,
     ),
     ConstantNumber(name: 'i') => const Neg(ComplexNumber.i),
-    Number() || Variable() => expr,
-    Neg(:final expr) => Neg(_conjugate(expr)),
-    Sin(:final expr) => Sin(_conjugate(expr)),
-    Cos(:final expr) => Cos(_conjugate(expr)),
-    Tan(:final expr) => Tan(_conjugate(expr)),
-    Asin(:final expr) => Asin(_conjugate(expr)),
-    Acos(:final expr) => Acos(_conjugate(expr)),
-    Atan(:final expr) => Atan(_conjugate(expr)),
-    Sinh(:final expr) => Sinh(_conjugate(expr)),
-    Cosh(:final expr) => Cosh(_conjugate(expr)),
-    Tanh(:final expr) => Tanh(_conjugate(expr)),
-    Exp(:final expr) => Exp(_conjugate(expr)),
-    Ln(:final expr) => Ln(_conjugate(expr)),
-    Abs(:final expr) => Abs(_conjugate(expr)),
-    Add(:final left, :final right) => Add(_conjugate(left), _conjugate(right)),
-    Sub(:final left, :final right) => Sub(_conjugate(left), _conjugate(right)),
-    Mul(:final left, :final right) => Mul(_conjugate(left), _conjugate(right)),
-    Div(:final left, :final right) => Div(_conjugate(left), _conjugate(right)),
-    Pow(:final left, :final right) => Pow(_conjugate(left), _conjugate(right)),
     OrderTerm() => expr,
-    LambertW(:final expr, :final branch) => LambertW(
-      _conjugate(expr),
-      branch: branch,
-    ),
-    Erf(:final expr) => Erf(_conjugate(expr)),
-    Erfc(:final expr) => Erfc(_conjugate(expr)),
-    Gamma(:final expr) => Gamma(_conjugate(expr)),
-    Beta(:final left, :final right) => Beta(
-      _conjugate(left),
-      _conjugate(right),
-    ),
-    Asinh(:final expr) => Asinh(_conjugate(expr)),
-    Acosh(:final expr) => Acosh(_conjugate(expr)),
-    Atanh(:final expr) => Atanh(_conjugate(expr)),
-    LessThan(:final left, :final right) => LessThan(
-      _conjugate(left),
-      _conjugate(right),
-    ),
-    LessEqual(:final left, :final right) => LessEqual(
-      _conjugate(left),
-      _conjugate(right),
-    ),
-    GreaterThan(:final left, :final right) => GreaterThan(
-      _conjugate(left),
-      _conjugate(right),
-    ),
-    GreaterEqual(:final left, :final right) => GreaterEqual(
-      _conjugate(left),
-      _conjugate(right),
-    ),
-    Equal(:final left, :final right) => Equal(
-      _conjugate(left),
-      _conjugate(right),
-    ),
-    Piecewise(:final branches, :final otherwise) => Piecewise(
-      branches.map((b) => (_conjugate(b.$1), _conjugate(b.$2))).toList(),
-      otherwise: otherwise != null ? _conjugate(otherwise) : null,
-    ),
+    _ => expr.mapChildren(_conjugate),
   };
 }

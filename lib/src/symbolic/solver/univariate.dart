@@ -34,10 +34,27 @@ extension SolverExtension on Expr {
 
 /// Recursively solves univariate equation [expr] = 0 for [variable].
 List<Expr> solveEquation(Expr expr, String variable) {
+  if (expr is Equal) {
+    expr = Sub(expr.left, expr.right);
+  }
   expr = expr.simplify();
 
   if (!expr.dependsOn(variable)) {
     return const [];
+  }
+
+  // Rational equation: N(x) / D(x) = 0 -> N(x) = 0 with D(x) != 0
+  if (expr is Div) {
+    final num = expr.left;
+    final den = expr.right;
+    if (!num.dependsOn(variable)) {
+      return const [];
+    }
+    final candidates = solveEquation(num, variable);
+    if (!den.dependsOn(variable)) {
+      return candidates;
+    }
+    return candidates.where((r) => !_isZeroAt(den, variable, r)).toList();
   }
 
   // Linear form: a * x + b = 0
@@ -80,7 +97,7 @@ List<Expr> solveEquation(Expr expr, String variable) {
         .where((f) => f.dependsOn(variable))
         .toList();
     if (varFactored.length > 1 ||
-        (varFactored.isNotEmpty && varFactored.first != expr)) {
+        (varFactored.length == 1 && varFactored.first.simplify() != expr)) {
       final allRoots = <Expr>[];
       for (final factor in varFactored) {
         allRoots.addAll(solveEquation(factor, variable));
@@ -96,6 +113,24 @@ List<Expr> solveEquation(Expr expr, String variable) {
   }
 
   return const [];
+}
+
+/// Checks whether a constant symbolic expression [expr] evaluates to zero.
+bool isZeroExpr(Expr expr) {
+  if (expr is RationalNumber && expr.isZero) return true;
+  if (expr is RealNumber && expr.value.abs() < 1e-10) return true;
+  if (expr is ComplexNumber &&
+      expr.real.abs() < 1e-10 &&
+      expr.imaginary.abs() < 1e-10) {
+    return true;
+  }
+  if (expr.freeVariables.isEmpty) {
+    try {
+      final c = expr.evaluateComplex();
+      if (c.a.abs() < 1e-10 && c.b.abs() < 1e-10) return true;
+    } catch (_) {}
+  }
+  return false;
 }
 
 /// Deduplicates roots analytically and numerically.
@@ -146,5 +181,15 @@ void collectFactors(Expr expr, List<Expr> target) {
       if (expr is! Number) {
         target.add(expr);
       }
+  }
+}
+
+bool _isZeroAt(Expr expr, String variable, Expr value) {
+  try {
+    final sub = expr.substitute(variable, value).simplify();
+    return isZeroExpr(sub);
+  } catch (_) {
+    // If evaluating the denominator at value throws (e.g. pole), exclude value.
+    return true;
   }
 }

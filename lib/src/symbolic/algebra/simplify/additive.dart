@@ -30,49 +30,32 @@ Expr simplifyAdditive(Expr left, Expr right, {required bool isSubtraction}) {
         right is ComplexNumber &&
         !_isImaginaryUnit(left) &&
         !_isImaginaryUnit(right)) {
-      final r = left.real + right.real;
-      final im = left.imaginary + right.imaginary;
-      if (im == 0.0) {
-        return r == 0.0
-            ? RationalNumber.zero
-            : (r == r.roundToDouble()
-                  ? RationalNumber(r.round())
-                  : RealNumber(r));
-      }
-      return ComplexNumber(r, im);
+      return _buildComplexOrReal(
+        left.real + right.real,
+        left.imaginary + right.imaginary,
+      );
     }
     if (left is ComplexNumber &&
         !_isImaginaryUnit(left) &&
         right is Number &&
+        right is! ConstantNumber &&
         right.isReal) {
-      final r = left.real + right.value;
-      final im = left.imaginary;
-      if (im == 0.0) {
-        return r == 0.0
-            ? RationalNumber.zero
-            : (r == r.roundToDouble()
-                  ? RationalNumber(r.round())
-                  : RealNumber(r));
-      }
-      return ComplexNumber(r, im);
+      return _buildComplexOrReal(left.real + right.value, left.imaginary);
     }
     if (right is ComplexNumber &&
         !_isImaginaryUnit(right) &&
         left is Number &&
+        left is! ConstantNumber &&
         left.isReal) {
-      final r = left.value + right.real;
-      final im = right.imaginary;
-      if (im == 0.0) {
-        return r == 0.0
-            ? RationalNumber.zero
-            : (r == r.roundToDouble()
-                  ? RationalNumber(r.round())
-                  : RealNumber(r));
-      }
-      return ComplexNumber(r, im);
+      return _buildComplexOrReal(left.value + right.real, right.imaginary);
     }
   } else {
-    if (left == right) return RationalNumber.zero;
+    if (left == right &&
+        left is! OrderTerm &&
+        left != ConstantNumber.infinity &&
+        !left.anyNode((n) => n is OrderTerm || n == ConstantNumber.infinity)) {
+      return RationalNumber.zero;
+    }
     if (right is RationalNumber && right.isZero) return left;
     if (right is RealNumber && right.value == 0.0) return left;
     if (right is ComplexNumber && right.isZero) return left;
@@ -89,46 +72,24 @@ Expr simplifyAdditive(Expr left, Expr right, {required bool isSubtraction}) {
         right is ComplexNumber &&
         !_isImaginaryUnit(left) &&
         !_isImaginaryUnit(right)) {
-      final r = left.real - right.real;
-      final im = left.imaginary - right.imaginary;
-      if (im == 0.0) {
-        return r == 0.0
-            ? RationalNumber.zero
-            : (r == r.roundToDouble()
-                  ? RationalNumber(r.round())
-                  : RealNumber(r));
-      }
-      return ComplexNumber(r, im);
+      return _buildComplexOrReal(
+        left.real - right.real,
+        left.imaginary - right.imaginary,
+      );
     }
     if (left is ComplexNumber &&
         !_isImaginaryUnit(left) &&
         right is Number &&
+        right is! ConstantNumber &&
         right.isReal) {
-      final r = left.real - right.value;
-      final im = left.imaginary;
-      if (im == 0.0) {
-        return r == 0.0
-            ? RationalNumber.zero
-            : (r == r.roundToDouble()
-                  ? RationalNumber(r.round())
-                  : RealNumber(r));
-      }
-      return ComplexNumber(r, im);
+      return _buildComplexOrReal(left.real - right.value, left.imaginary);
     }
     if (right is ComplexNumber &&
         !_isImaginaryUnit(right) &&
         left is Number &&
+        left is! ConstantNumber &&
         left.isReal) {
-      final r = left.value - right.real;
-      final im = -right.imaginary;
-      if (im == 0.0) {
-        return r == 0.0
-            ? RationalNumber.zero
-            : (r == r.roundToDouble()
-                  ? RationalNumber(r.round())
-                  : RealNumber(r));
-      }
-      return ComplexNumber(r, im);
+      return _buildComplexOrReal(left.value - right.real, -right.imaginary);
     }
   }
 
@@ -144,6 +105,17 @@ bool _isImaginaryUnit(Expr expr) =>
     (expr is ComplexNumber &&
         expr.real == 0.0 &&
         (expr.imaginary == 1.0 || expr.imaginary == -1.0));
+
+Expr _buildComplexOrReal(double r, double im) {
+  if (im == 0.0) {
+    if (r == 0.0) return RationalNumber.zero;
+    if (r.isFinite && r == r.roundToDouble() && r.abs() < 9007199254740992) {
+      return RationalNumber(r.round());
+    }
+    return RealNumber(r);
+  }
+  return ComplexNumber(r, im);
+}
 
 /// Simplifies a negation expression -[expr].
 Expr simplifyNeg(Expr expr) => switch (expr) {

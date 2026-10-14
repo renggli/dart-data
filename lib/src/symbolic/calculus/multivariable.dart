@@ -1,6 +1,5 @@
 import '../../linear/matrix.dart';
 import '../../linear/vector.dart';
-import '../algebra/simplify.dart';
 import '../ast.dart';
 import '../type/expr_data_type.dart';
 import 'differentiation.dart';
@@ -75,7 +74,7 @@ extension MultivariableIterableExtension on Iterable<Expr> {
 Vector<Expr> _multivariableGradient(Expr function, List<String> variables) =>
     Vector<Expr>.generate(
       variables.length,
-      (i) => function.derivative(variables[i]).simplify(),
+      (i) => function.derivative(variables[i]),
       type: exprDataType,
     );
 
@@ -88,7 +87,7 @@ Matrix<Expr> _multivariableJacobian(
   return Matrix<Expr>.generate(
     m,
     n,
-    (r, c) => functions[r].derivative(variables[c]).simplify(),
+    (r, c) => functions[r].derivative(variables[c]),
     type: exprDataType,
   );
 }
@@ -100,7 +99,7 @@ Matrix<Expr> _multivariableHessian(Expr function, List<String> variables) {
   for (var i = 0; i < n; i++) {
     final df = grad[i];
     for (var j = i; j < n; j++) {
-      final d2f = df.derivative(variables[j]).simplify();
+      final d2f = df.derivative(variables[j]);
       entries[i * n + j] = d2f;
       entries[j * n + i] = d2f;
     }

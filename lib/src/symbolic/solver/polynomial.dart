@@ -112,21 +112,18 @@ Map<int, Expr>? extractMonomialCoefficients(Expr expr, String variable) {
   return acc.extractPolynomialCoefficients(variable);
 }
 
-bool _isZero(Expr expr) => switch (expr) {
-  RationalNumber(isZero: true) => true,
-  RealNumber(value: 0.0) => true,
-  ComplexNumber(real: 0.0, imaginary: 0.0) => true,
-  _ => false,
-};
-
 /// Solves biquadratic equation $a x^4 + b x^2 + c = 0$.
 List<Expr> solveBiquadratic(Expr a, Expr b, Expr c, String variable) {
-  const uVar = '_u';
-  final uEq =
-      ((a * const Variable(uVar).pow(const RationalNumber(2))) +
-              (b * const Variable(uVar)) +
-              c)
-          .simplify();
+  var uVar = '_u';
+  while (variable == uVar ||
+      a.dependsOn(uVar) ||
+      b.dependsOn(uVar) ||
+      c.dependsOn(uVar)) {
+    uVar = '_$uVar';
+  }
+  final uVarExpr = Variable(uVar);
+  final uEq = ((a * uVarExpr.pow(const RationalNumber(2))) + (b * uVarExpr) + c)
+      .simplify();
   final uRoots = solveEquation(uEq, uVar);
   final x = Variable(variable);
   final allRoots = <Expr>[];
@@ -188,3 +185,10 @@ Expr rootConstant(Expr c, int n) {
   }
   return c.pow(RationalNumber(1, n)).simplify();
 }
+
+bool _isZero(Expr expr) => switch (expr) {
+  RationalNumber(isZero: true) => true,
+  RealNumber(value: 0.0) => true,
+  ComplexNumber(real: 0.0, imaginary: 0.0) => true,
+  _ => false,
+};

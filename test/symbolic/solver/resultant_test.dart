@@ -100,7 +100,7 @@ void main() {
       final solutions = solvePolynomialSystem(
         [f, g],
         ['x', 'y'],
-        method: 'auto',
+        method: PolynomialSystemMethod.auto,
       );
       check(solutions.length).equals(4);
     });
@@ -123,7 +123,7 @@ void main() {
       final solAutoFG = solvePolynomialSystem(
         [f, g],
         ['x', 'y'],
-        method: 'auto',
+        method: PolynomialSystemMethod.auto,
       );
       check(solAutoFG.length).equals(1);
       check(solAutoFG.first['x']!.evaluate(const {})).isCloseTo(1.0, 1e-8);
@@ -132,7 +132,7 @@ void main() {
       final solAutoGF = solvePolynomialSystem(
         [g, f],
         ['x', 'y'],
-        method: 'auto',
+        method: PolynomialSystemMethod.auto,
       );
       check(solAutoGF.length).equals(1);
       check(solAutoGF.first['x']!.evaluate(const {})).isCloseTo(1.0, 1e-8);

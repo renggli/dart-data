@@ -130,7 +130,7 @@ class SylvesterResultantSolver {
       final xRoots = solveEquation(xEq, xVar);
       for (final x0 in xRoots) {
         final checkVal = checkEq.substitute(xVar, x0).simplify();
-        if (_isRootZero(checkVal)) {
+        if (isZeroExpr(checkVal)) {
           final key = '${x0.simplify()}|${y0.simplify()}';
           if (seen.add(key)) {
             solutions.add({xVar: x0.simplify(), yVar: y0.simplify()});
@@ -148,19 +148,4 @@ class SylvesterResultantSolver {
     ComplexNumber(real: 0.0, imaginary: 0.0) => true,
     _ => false,
   };
-
-  static bool _isRootZero(Expr expr) {
-    if (expr is RationalNumber && expr.isZero) return true;
-    if (expr is RealNumber && expr.value.abs() < 1e-10) return true;
-    if (expr is ComplexNumber &&
-        expr.real.abs() < 1e-10 &&
-        expr.imaginary.abs() < 1e-10) {
-      return true;
-    }
-    try {
-      final v = expr.evaluate(const {});
-      if (v.abs() < 1e-10) return true;
-    } catch (_) {}
-    return false;
-  }
 }

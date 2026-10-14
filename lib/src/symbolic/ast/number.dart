@@ -101,6 +101,15 @@ final class RationalNumber extends Number {
   /// Converts this rational number to a [Fraction].
   Fraction toFraction() => Fraction(numerator, denominator);
 
+  /// Returns this rational number reduced to lowest terms.
+  RationalNumber get normalized {
+    if (denominator == 1) return this;
+    if (numerator == 0) return zero;
+    final g = numerator.abs().gcd(denominator);
+    if (g <= 1) return this;
+    return RationalNumber(numerator ~/ g, denominator ~/ g);
+  }
+
   /// Converts this rational number to an [int] (truncated).
   int toInt() => numerator ~/ denominator;
 
@@ -143,10 +152,13 @@ final class RealNumber extends Number {
   String toString() => value.toString();
 
   @override
-  bool operator ==(Object other) => other is RealNumber && other.value == value;
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is RealNumber &&
+          (other.value == value || (value.isNaN && other.value.isNaN)));
 
   @override
-  int get hashCode => value.hashCode;
+  int get hashCode => value.isNaN ? double.nan.hashCode : value.hashCode;
 }
 
 /// A recognized transcendental mathematical constant (such as [pi] or [e]).
@@ -197,14 +209,16 @@ final class ConstantNumber extends Number {
 
   @override
   bool operator ==(Object other) =>
-      other is ConstantNumber && other.name == name;
+      identical(this, other) ||
+      (other is ConstantNumber && other.name == name) ||
+      (name == 'i' && other == ComplexNumber.i);
 
   @override
-  int get hashCode => name.hashCode;
+  int get hashCode => name == 'i' ? ComplexNumber.i.hashCode : name.hashCode;
 }
 
 /// A complex number leaf node ($a + bi \in \mathbb{C}$).
-final class ComplexNumber extends Number implements ConstantNumber {
+final class ComplexNumber extends Number {
   /// Creates a complex number node with [real] and [imaginary] components.
   const new(this.real, this.imaginary);
 
@@ -224,15 +238,12 @@ final class ComplexNumber extends Number implements ConstantNumber {
   /// The imaginary scalar component.
   final double imaginary;
 
-  @override
+  /// Symbolic representation name of this complex constant.
   String get name => real == 0.0 && imaginary == 1.0
       ? 'i'
       : real == 0.0 && imaginary == -1.0
       ? '-i'
       : toString();
-
-  @override
-  double get _value => imaginary == 0.0 ? real : double.nan;
 
   @override
   double get value => imaginary == 0.0
@@ -252,9 +263,14 @@ final class ComplexNumber extends Number implements ConstantNumber {
 
   @override
   bool operator ==(Object other) =>
-      other is ComplexNumber &&
-      other.real == real &&
-      other.imaginary == imaginary;
+      identical(this, other) ||
+      (other is ComplexNumber &&
+          other.real == real &&
+          other.imaginary == imaginary) ||
+      (real == 0.0 &&
+          imaginary == 1.0 &&
+          other is ConstantNumber &&
+          other.name == 'i');
 
   @override
   int get hashCode => Object.hash(ComplexNumber, real, imaginary);

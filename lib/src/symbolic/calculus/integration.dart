@@ -1,6 +1,9 @@
 import 'package:more/number.dart' show Fraction;
 
+import '../algebra/expand.dart';
+import '../algebra/factor.dart';
 import '../algebra/simplify.dart';
+import '../algebra/term_accumulator.dart';
 import '../ast.dart';
 import 'differentiation.dart';
 import 'linear_form.dart';
@@ -421,6 +424,14 @@ Expr _antiDerivPow(Expr base, Expr exponent, Expr original, String variable) {
       final numer = Pow(base, nPlus1).simplify();
       return Div(numer, denom).simplify();
     }
+    if (exponent is RationalNumber &&
+        exponent.isInteger &&
+        exponent.numerator > 1) {
+      final expanded = original.expand().simplify();
+      if (expanded != original) {
+        return _antiDerivative(expanded, variable);
+      }
+    }
   }
 
   // Form: c^(ax + b)
@@ -468,9 +479,35 @@ Expr _antiDerivDiv(Expr left, Expr right, Expr original, String variable) {
       final negExp = Neg(exponent).simplify();
       return _antiDerivative(Mul(left, Pow(base, negExp)), variable);
     }
+
+    // int c / cosh(ax + b) dx = (c / a) * atan(sinh(ax + b))
+    if (right case Cosh(expr: final inner)) {
+      if (inner.matchLinear(variable) case (:final a, b: _)) {
+        return Div(Mul(left, Atan(Sinh(inner))), a).simplify();
+      }
+    }
+
+    // int c / (d + exp(ax + b)) dx = (c / d) * (x - (1 / a) * ln(d + exp(ax + b)))
+    if (right case Add(left: final rL, right: final rR)) {
+      Expr? constTerm;
+      Expr? expArg;
+      if (!rL.dependsOn(variable) && rR is Exp) {
+        constTerm = rL;
+        expArg = rR.expr;
+      } else if (!rR.dependsOn(variable) && rL is Exp) {
+        constTerm = rR;
+        expArg = rL.expr;
+      }
+      if (constTerm != null && expArg != null) {
+        if (expArg.matchLinear(variable) case (:final a, b: _)) {
+          final term = Sub(Variable(variable), Div(Ln(right), a)).simplify();
+          return Mul(Div(left, constTerm), term).simplify();
+        }
+      }
+    }
   }
 
-  // int u'(x) / (1 + u(x)^2) dx = arctan(u(x))
+  // int u'(x) / (a + b * u(x)^2) dx = (1 / sqrt(a * b)) * arctan(sqrt(b / a) * u(x))
   if (right case Add(left: final rL, right: final rR)) {
     Expr? u;
     if (rL case RationalNumber(isOne: true) || RealNumber(value: 1.0)) {
@@ -483,6 +520,29 @@ Expr _antiDerivDiv(Expr left, Expr right, Expr original, String variable) {
       final k = left.matchScalarMultiple(uPrime, variable);
       if (k != null) {
         return Atan(u).scale(k);
+      }
+    }
+    // General positive constant a + sqTerm
+    Expr? aConst;
+    Expr? sqTerm;
+    if (!rL.dependsOn(variable) && rR.dependsOn(variable)) {
+      aConst = rL;
+      sqTerm = rR;
+    } else if (!rR.dependsOn(variable) && rL.dependsOn(variable)) {
+      aConst = rR;
+      sqTerm = rL;
+    }
+    if (aConst != null && sqTerm != null && _isPositiveConstant(aConst)) {
+      final w = _extractScaledSquareBase(
+        Div(sqTerm, aConst).simplify(),
+        variable,
+      );
+      if (w != null && w.dependsOn(variable)) {
+        final wPrime = w.derivative(variable).simplify();
+        final k = left.matchScalarMultiple(wPrime, variable);
+        if (k != null) {
+          return Atan(w).scale(Div(k, aConst).simplify());
+        }
       }
     }
   }
@@ -544,12 +604,31 @@ Expr _antiDerivDiv(Expr left, Expr right, Expr original, String variable) {
         when !exponent.dependsOn(variable)) {
       final negExp = Neg(exponent).simplify();
       return _antiDerivative(Mul(left, Pow(base, negExp)), variable);
-    } else if (left.dependsOn(variable)) {
-      return _antiDerivative(
-        Mul(left, Pow(right, RationalNumber.negativeOne)),
-        variable,
-      );
     }
+  }
+
+  // Univariate polynomial long division when deg(left) >= deg(right) >= 1
+  if (left.dependsOn(variable) && right.dependsOn(variable)) {
+    final divResult = _tryPolynomialLongDivision(left, right, variable);
+    if (divResult != null) {
+      final (quotient, remainder) = divResult;
+      final qInt = _antiDerivative(quotient, variable);
+      if (remainder is RationalNumber && remainder.isZero) {
+        return qInt;
+      }
+      final rInt = _antiDerivative(Div(remainder, right).simplify(), variable);
+      return Add(qInt, rInt).simplify();
+    }
+
+    final factored = original.factor().simplify();
+    if (factored != original && factored is! Div) {
+      return _antiDerivative(factored, variable);
+    }
+
+    return _antiDerivative(
+      Mul(left, Pow(right, RationalNumber.negativeOne)),
+      variable,
+    );
   }
 
   return _unsupported(original, variable);
@@ -609,6 +688,14 @@ Expr _antiDerivMul(Expr left, Expr right, Expr original, String variable) {
       _antiDerivative(Mul(left, rLeft), variable),
       _antiDerivative(Mul(left, right), variable),
     ).simplify();
+  }
+
+  // Full polynomial expansion fallback (e.g. factored polynomials like (x-1)*(x-2)*(x+2)):
+  if (_univariatePolyDegree(original, variable) != null) {
+    final expanded = original.expand().simplify();
+    if (expanded != original) {
+      return _antiDerivative(expanded, variable);
+    }
   }
 
   return _unsupported(original, variable);
@@ -733,42 +820,92 @@ Expr? _tryChainRuleExponential(
 }
 
 Expr? _tryIntegrationByParts(Expr pExpr, Expr vExpr, String variable) {
-  final linP = pExpr.matchLinear(variable);
-  if (linP == null) return null;
-  final p = linP.a;
+  // Cyclic IBP: exp(ax + b) * sin(cx + d) or exp(ax + b) * cos(cx + d)
+  if (pExpr case Exp(expr: final expInner)) {
+    if (expInner.matchLinear(variable) case (a: final a, b: _)) {
+      if (vExpr case Sin(expr: final trigInner)) {
+        if (trigInner.matchLinear(variable) case (a: final c, b: _)) {
+          final denom = Add(Mul(a, a), Mul(c, c)).simplify();
+          final numer = Mul(
+            pExpr,
+            Sub(Mul(a, Sin(trigInner)), Mul(c, Cos(trigInner))),
+          ).simplify();
+          return Div(numer, denom).simplify();
+        }
+      }
+      if (vExpr case Cos(expr: final trigInner)) {
+        if (trigInner.matchLinear(variable) case (a: final c, b: _)) {
+          final denom = Add(Mul(a, a), Mul(c, c)).simplify();
+          final numer = Mul(
+            pExpr,
+            Add(Mul(a, Cos(trigInner)), Mul(c, Sin(trigInner))),
+          ).simplify();
+          return Div(numer, denom).simplify();
+        }
+      }
+    }
+  }
 
-  return switch (vExpr) {
-    Ln(:final expr) => switch (expr.matchLinear(variable)) {
-      (:final a, :final b) => _ibpLogarithm(pExpr, vExpr, expr, linP, a, b),
-      null => null,
-    },
-    Exp(:final expr) => switch (expr.matchLinear(variable)) {
-      (:final a, b: _) => _ibpExponential(pExpr, vExpr, p, a),
-      null => null,
-    },
-    Cos(:final expr) => switch (expr.matchLinear(variable)) {
-      (:final a, b: _) => _ibpCosine(pExpr, vExpr, expr, p, a),
-      null => null,
-    },
-    Sin(:final expr) => switch (expr.matchLinear(variable)) {
-      (:final a, b: _) => _ibpSine(pExpr, vExpr, expr, p, a),
-      null => null,
-    },
-    Sinh(:final expr) => switch (expr.matchLinear(variable)) {
-      (:final a, b: _) => _ibpSinh(pExpr, vExpr, expr, p, a),
-      null => null,
-    },
-    Cosh(:final expr) => switch (expr.matchLinear(variable)) {
-      (:final a, b: _) => _ibpCosh(pExpr, vExpr, expr, p, a),
-      null => null,
-    },
-    Pow(:final base, :final exponent) when !base.dependsOn(variable) =>
-      switch (exponent.matchLinear(variable)) {
-        (:final a, b: _) => _ibpGeneralExponential(pExpr, vExpr, base, p, a),
+  final linP = pExpr.matchLinear(variable);
+  if (linP != null) {
+    final p = linP.a;
+    return switch (vExpr) {
+      Ln(:final expr) => switch (expr.matchLinear(variable)) {
+        (:final a, :final b) => _ibpLogarithm(pExpr, vExpr, expr, linP, a, b),
         null => null,
       },
-    _ => null,
-  };
+      Exp(:final expr) => switch (expr.matchLinear(variable)) {
+        (:final a, b: _) => _ibpExponential(pExpr, vExpr, p, a),
+        null => null,
+      },
+      Cos(:final expr) => switch (expr.matchLinear(variable)) {
+        (:final a, b: _) => _ibpCosine(pExpr, vExpr, expr, p, a),
+        null => null,
+      },
+      Sin(:final expr) => switch (expr.matchLinear(variable)) {
+        (:final a, b: _) => _ibpSine(pExpr, vExpr, expr, p, a),
+        null => null,
+      },
+      Sinh(:final expr) => switch (expr.matchLinear(variable)) {
+        (:final a, b: _) => _ibpSinh(pExpr, vExpr, expr, p, a),
+        null => null,
+      },
+      Cosh(:final expr) => switch (expr.matchLinear(variable)) {
+        (:final a, b: _) => _ibpCosh(pExpr, vExpr, expr, p, a),
+        null => null,
+      },
+      Pow(:final base, :final exponent) when !base.dependsOn(variable) =>
+        switch (exponent.matchLinear(variable)) {
+          (:final a, b: _) => _ibpGeneralExponential(pExpr, vExpr, base, p, a),
+          null => null,
+        },
+      _ => null,
+    };
+  }
+
+  // Higher-degree polynomial P(x) * vExpr (e.g. x^n * exp(ax+b), x^n * sin(ax+b)):
+  final degP = _univariatePolyDegree(pExpr, variable);
+  if (degP != null && degP >= 2 && degP <= 10) {
+    final isIntegrableV = switch (vExpr) {
+      Exp(:final expr) ||
+      Sin(:final expr) ||
+      Cos(:final expr) ||
+      Sinh(:final expr) ||
+      Cosh(:final expr) => expr.matchLinear(variable) != null,
+      _ => false,
+    };
+    if (isIntegrableV) {
+      final v = _antiDerivative(vExpr, variable);
+      final pPrime = pExpr.derivative(variable);
+      final remIntegral = _antiDerivative(
+        Mul(pPrime, v).expand().simplify(),
+        variable,
+      );
+      return Sub(Mul(pExpr, v), remIntegral).simplify();
+    }
+  }
+
+  return null;
 }
 
 Expr _ibpLogarithm(
@@ -875,4 +1012,227 @@ Expr? _extractSquareBase(Expr expr) {
     }
   }
   return null;
+}
+
+bool _isPositiveConstant(Expr expr) {
+  if (expr is RationalNumber) return expr.numerator > 0;
+  if (expr is RealNumber) return expr.value > 0.0;
+  if (expr.freeVariables.isEmpty) {
+    try {
+      return expr.evaluate(const {}) > 0.0;
+    } catch (_) {}
+  }
+  return false;
+}
+
+Expr? _extractScaledSquareBase(Expr expr, String variable) {
+  final direct = _extractSquareBase(expr);
+  if (direct != null) return direct;
+  if (expr case Mul(:final left, :final right)) {
+    if (!left.dependsOn(variable) && _isPositiveConstant(left)) {
+      final sq = _extractSquareBase(right);
+      if (sq != null) {
+        return Mul(
+          Pow(left, const RationalNumber(1, 2)).simplify(),
+          sq,
+        ).simplify();
+      }
+    }
+    if (!right.dependsOn(variable) && _isPositiveConstant(right)) {
+      final sq = _extractSquareBase(left);
+      if (sq != null) {
+        return Mul(
+          Pow(right, const RationalNumber(1, 2)).simplify(),
+          sq,
+        ).simplify();
+      }
+    }
+  }
+  if (expr case Div(:final left, :final right)) {
+    if (!right.dependsOn(variable) && _isPositiveConstant(right)) {
+      final sq = _extractScaledSquareBase(left, variable);
+      if (sq != null) {
+        return Div(
+          sq,
+          Pow(right, const RationalNumber(1, 2)).simplify(),
+        ).simplify();
+      }
+    }
+  }
+  return null;
+}
+
+int? _univariatePolyDegree(Expr expr, String variable) {
+  if (!expr.dependsOn(variable)) return 0;
+  return switch (expr) {
+    Variable(:final name) when name == variable => 1,
+    Neg(:final expr) => _univariatePolyDegree(expr, variable),
+    Add(:final left, :final right) || Sub(:final left, :final right) => () {
+      final dl = _univariatePolyDegree(left, variable);
+      final dr = _univariatePolyDegree(right, variable);
+      if (dl == null || dr == null) return null;
+      return dl > dr ? dl : dr;
+    }(),
+    Mul(:final left, :final right) => () {
+      final dl = _univariatePolyDegree(left, variable);
+      final dr = _univariatePolyDegree(right, variable);
+      if (dl == null || dr == null) return null;
+      return dl + dr;
+    }(),
+    Pow(
+      :final base,
+      exponent: RationalNumber(:final isInteger, :final numerator),
+    )
+        when isInteger && numerator >= 0 =>
+      () {
+        final db = _univariatePolyDegree(base, variable);
+        return db != null ? db * numerator : null;
+      }(),
+    _ => null,
+  };
+}
+
+Map<int, Expr>? _extractUnivariatePolynomialCoeffs(Expr expr, String variable) {
+  final expanded = expr.expand().simplify();
+  final deg = _univariatePolyDegree(expanded, variable);
+  if (deg == null) return null;
+
+  final acc = MonomialAccumulator();
+  acc.add(expanded);
+  final coeffs = <int, Expr>{};
+
+  void addTerm(int d, Expr c) {
+    final existing = coeffs[d];
+    coeffs[d] = existing == null ? c : Add(existing, c).simplify();
+  }
+
+  if (acc.constantRational != Fraction.zero) {
+    addTerm(0, RationalNumber.fraction(acc.constantRational));
+  }
+  if (acc.constantReal != 0.0) {
+    addTerm(0, RealNumber(acc.constantReal));
+  }
+
+  for (final entry in acc.rationalTerms.entries) {
+    final parsed = _parseUnivariateTerm(
+      entry.key,
+      RationalNumber.fraction(entry.value),
+      variable,
+    );
+    if (parsed == null) return null;
+    addTerm(parsed.$1, parsed.$2);
+  }
+  for (final entry in acc.realTerms.entries) {
+    final parsed = _parseUnivariateTerm(
+      entry.key,
+      RealNumber(entry.value),
+      variable,
+    );
+    if (parsed == null) return null;
+    addTerm(parsed.$1, parsed.$2);
+  }
+  return coeffs;
+}
+
+(int, Expr)? _parseUnivariateTerm(Expr base, Expr scalar, String variable) {
+  if (!base.dependsOn(variable)) {
+    return (0, Mul(scalar, base).simplify());
+  }
+  if (base is Variable && base.name == variable) {
+    return (1, scalar);
+  }
+  if (base is Pow &&
+      base.base is Variable &&
+      (base.base as Variable).name == variable &&
+      base.exponent is RationalNumber &&
+      (base.exponent as RationalNumber).isInteger &&
+      (base.exponent as RationalNumber).numerator >= 0) {
+    return ((base.exponent as RationalNumber).numerator, scalar);
+  }
+  if (base is Mul) {
+    if (!base.left.dependsOn(variable)) {
+      return _parseUnivariateTerm(
+        base.right,
+        Mul(scalar, base.left).simplify(),
+        variable,
+      );
+    }
+    if (!base.right.dependsOn(variable)) {
+      return _parseUnivariateTerm(
+        base.left,
+        Mul(scalar, base.right).simplify(),
+        variable,
+      );
+    }
+  }
+  return null;
+}
+
+(Expr, Expr)? _tryPolynomialLongDivision(
+  Expr numExpr,
+  Expr denExpr,
+  String variable,
+) {
+  final numCoeffs = _extractUnivariatePolynomialCoeffs(numExpr, variable);
+  final denCoeffs = _extractUnivariatePolynomialCoeffs(denExpr, variable);
+  if (numCoeffs == null || denCoeffs == null) return null;
+
+  int maxDeg(Map<int, Expr> c) {
+    var m = -1;
+    for (final e in c.entries) {
+      final s = e.value.simplify();
+      if (!(s is Number && s.isZero) && e.key > m) {
+        m = e.key;
+      }
+    }
+    return m;
+  }
+
+  final dDen = maxDeg(denCoeffs);
+  var dRem = maxDeg(numCoeffs);
+  if (dDen < 1 || dRem < dDen) return null;
+
+  final rem = Map<int, Expr>.from(numCoeffs);
+  final quot = <int, Expr>{};
+  final leadDen = denCoeffs[dDen]!;
+
+  var steps = 0;
+  while (dRem >= dDen && steps <= 20) {
+    steps++;
+    final shift = dRem - dDen;
+    final factor = Div(rem[dRem]!, leadDen).simplify();
+    final existingQ = quot[shift];
+    quot[shift] = existingQ == null
+        ? factor
+        : Add(existingQ, factor).simplify();
+
+    for (final entry in denCoeffs.entries) {
+      final targetDeg = entry.key + shift;
+      final subTerm = Mul(factor, entry.value).simplify();
+      final cur = rem[targetDeg] ?? RationalNumber.zero;
+      rem[targetDeg] = Sub(cur, subTerm).simplify();
+    }
+    rem.remove(dRem);
+    dRem = maxDeg(rem);
+  }
+
+  Expr buildPoly(Map<int, Expr> coeffs) {
+    final x = Variable(variable);
+    Expr? res;
+    final keys = coeffs.keys.toList()..sort((a, b) => b.compareTo(a));
+    for (final k in keys) {
+      final c = coeffs[k]!.simplify();
+      if (c is Number && c.isZero) continue;
+      final xPow = k == 0
+          ? RationalNumber.one
+          : k == 1
+          ? x
+          : Pow(x, RationalNumber(k));
+      final term = k == 0 ? c : Mul(c, xPow).simplify();
+      res = res == null ? term : Add(res, term);
+    }
+    return (res ?? RationalNumber.zero).simplify();
+  }
+
+  return (buildPoly(quot), buildPoly(rem));
 }

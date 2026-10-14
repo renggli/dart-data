@@ -102,7 +102,7 @@ Expr buildFactoredExpr({
   }
 
   if (scalar == -Fraction.one) {
-    return Neg(product!).simplify();
+    return Neg(product!);
   }
   return product ?? RationalNumber.fraction(scalar);
 }
@@ -160,9 +160,19 @@ Expr distributePower(Expr base, int exponent) {
       distributePower(base.right, exponent),
     );
   }
+  if (base is Neg) {
+    final inner = distributePower(base.expr, exponent);
+    return exponent.isEven ? inner : Neg(inner);
+  }
+  if (base is RationalNumber) {
+    return foldRationalPower(base.numerator, base.denominator, exponent);
+  }
   if (base is Pow && base.exponent is RationalNumber) {
-    final existingExp = (base.exponent as RationalNumber).toInt();
-    return Pow(base.base, RationalNumber(existingExp * exponent)).simplify();
+    final existingExp = (base.exponent as RationalNumber).toFraction();
+    return Pow(
+      base.base,
+      RationalNumber.fraction(existingExp * Fraction(exponent)),
+    ).simplify();
   }
   return Pow(base, RationalNumber(exponent));
 }

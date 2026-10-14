@@ -36,6 +36,7 @@ String _toMathMl(Expr expr) => switch (expr) {
   ConstantNumber(:final name) => switch (name) {
     'pi' => '<mi>π</mi>',
     'i' => '<mi>i</mi>',
+    'oo' || 'infinity' => '<mi>∞</mi>',
     _ => '<mi>${_escapeXml(name)}</mi>',
   },
   RationalNumber(:final numerator, :final denominator) =>

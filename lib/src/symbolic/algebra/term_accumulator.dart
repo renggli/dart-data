@@ -44,14 +44,6 @@ class MonomialAccumulator {
   /// Whether any transcendental term (Sin, Cos, Sinh, Cosh, Ln, etc.) was added.
   bool hasTranscendental = false;
 
-  /// Backward-compatibility getter for exact rational constant value.
-  Fraction get constantValue => constantRational;
-  set constantValue(Fraction value) => constantRational = value;
-
-  /// Backward-compatibility getter for floating-point real constant value.
-  double get realValue => constantReal;
-  set realValue(double value) => constantReal = value;
-
   /// Recursively flattens and accumulates [expr] multiplied by [scale].
   void add(Expr expr, [Fraction scale = Fraction.one]) {
     switch (expr) {
@@ -337,42 +329,38 @@ class MonomialAccumulator {
           e,
     ];
 
-    if (lnEntries.length >= 2) {
+    if (simplify != null && lnEntries.length >= 2) {
       Expr? num;
       Expr? den;
 
       for (final e in lnEntries) {
         final inner = (e.key as Ln).expr;
         if (e.value == Fraction.one) {
-          num = num == null
-              ? inner
-              : (simplify != null
-                    ? simplify!(Mul(num, inner))
-                    : Mul(num, inner));
+          num = num == null ? inner : simplify!(Mul(num, inner));
         } else {
-          den = den == null
-              ? inner
-              : (simplify != null
-                    ? simplify!(Mul(den, inner))
-                    : Mul(den, inner));
+          den = den == null ? inner : simplify!(Mul(den, inner));
         }
         rationalTerms.remove(e.key);
       }
 
       if (num != null && den != null) {
-        final ratio = simplify != null
-            ? simplify!(Div(num, den))
-            : Div(num, den);
-        final combined = simplify != null ? simplify!(Ln(ratio)) : Ln(ratio);
-        add(combined, Fraction.one);
+        final ratio = simplify!(Div(num, den));
+        if ((ratio is RationalNumber && ratio.numerator <= 0) ||
+            (ratio is RealNumber && ratio.value <= 0.0) ||
+            ratio is Neg) {
+          for (final e in lnEntries) {
+            rationalTerms[e.key] = e.value;
+          }
+        } else {
+          final combined = simplify!(Ln(ratio));
+          add(combined, Fraction.one);
+        }
       } else if (num != null) {
-        final combined = simplify != null ? simplify!(Ln(num)) : Ln(num);
+        final combined = simplify!(Ln(num));
         add(combined, Fraction.one);
       } else if (den != null) {
-        final inv = simplify != null
-            ? simplify!(Div(RationalNumber.one, den))
-            : Div(RationalNumber.one, den);
-        final combined = simplify != null ? simplify!(Ln(inv)) : Ln(inv);
+        final inv = simplify!(Div(RationalNumber.one, den));
+        final combined = simplify!(Ln(inv));
         add(combined, Fraction.one);
       }
     }
@@ -504,12 +492,22 @@ class MonomialAccumulator {
       result = appendEntry(result, item);
     }
 
-    // 5. Append trailing OrderTerm instances
-    for (final entry in orderTerms.entries) {
-      final (variable, point) = entry.key;
-      final order = entry.value;
-      final term = OrderTerm(variable, order, point: point);
-      result = result == null ? term : Add(result, term);
+    // 5. Append trailing OrderTerm instances in deterministic order
+    if (orderTerms.isNotEmpty) {
+      final sortedOrderEntries = orderTerms.entries.toList()
+        ..sort((a, b) {
+          final cmpVar = a.key.$1.compareTo(b.key.$1);
+          if (cmpVar != 0) return cmpVar;
+          final cmpOrd = a.value.compareTo(b.value);
+          if (cmpOrd != 0) return cmpOrd;
+          return compareStructural(a.key.$2, b.key.$2);
+        });
+      for (final entry in sortedOrderEntries) {
+        final (variable, point) = entry.key;
+        final order = entry.value;
+        final term = OrderTerm(variable, order, point: point);
+        result = result == null ? term : Add(result, term);
+      }
     }
 
     return result ?? (hasReal ? const RealNumber(0.0) : RationalNumber.zero);
@@ -689,14 +687,8 @@ class MonomialAccumulator {
     return _isZero(s);
   }
 
-  /// Backward-compatible alias for [build].
-  Expr toExpr() => build();
-
   static Expr _negate(Expr expr) => expr is Neg ? expr.expr : Neg(expr);
 }
-
-/// Compatibility alias for [MonomialAccumulator].
-typedef TermAccumulator = MonomialAccumulator;
 
 Expr? _isSquareOfSin(Expr term) => switch (term) {
   Pow(base: Sin(:final expr), exponent: final exp) when _isTwo(exp) => expr,
@@ -894,20 +886,6 @@ bool _isZero(Expr expr) => switch (expr) {
   RealNumber(value: 0.0) => true,
   ComplexNumber(real: 0.0, imaginary: 0.0) => true,
   _ => false,
-};
-
-/// Tests whether [term] is of the form $f(u)^2$ where $f$ is [targetType].
-Expr? isSquareOf(Expr term, Type targetType) => switch (term) {
-  Pow(:final base, :final exponent) when _isTwo(exponent) => switch (base) {
-    Sin(:final expr) when targetType == Sin => expr,
-    Cos(:final expr) when targetType == Cos => expr,
-    Sinh(:final expr) when targetType == Sinh => expr,
-    Cosh(:final expr) when targetType == Cosh => expr,
-    Tan(:final expr) when targetType == Tan => expr,
-    Tanh(:final expr) when targetType == Tanh => expr,
-    _ => null,
-  },
-  _ => null,
 };
 
 /// Decomposes an expression into a scalar rational coefficient and symbolic base.

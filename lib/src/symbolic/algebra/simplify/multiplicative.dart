@@ -2,6 +2,7 @@ import 'package:more/number.dart' show Fraction;
 
 import '../../ast.dart';
 import '../simplify.dart';
+import '../structural_order.dart';
 import '../term_accumulator.dart';
 
 /// Simplifies a multiplication expression [left] * [right].
@@ -43,52 +44,35 @@ Expr simplifyMul(Expr left, Expr right) {
   if (left is RealNumber && right is RealNumber) {
     return RealNumber(left.value * right.value);
   }
+  if (left is RationalNumber && right is RealNumber) {
+    return RealNumber(left.toDouble() * right.value);
+  }
+  if (left is RealNumber && right is RationalNumber) {
+    return RealNumber(left.value * right.toDouble());
+  }
   if (left is ComplexNumber &&
       right is ComplexNumber &&
       !_isImaginaryUnit(left) &&
       !_isImaginaryUnit(right)) {
     final r = left.real * right.real - left.imaginary * right.imaginary;
     final im = left.real * right.imaginary + left.imaginary * right.real;
-    if (im == 0.0) {
-      return r == 0.0
-          ? RationalNumber.zero
-          : (r == r.roundToDouble()
-                ? RationalNumber(r.round())
-                : RealNumber(r));
-    }
-    return ComplexNumber(r, im);
+    return _buildComplexProduct(r, im);
   }
   if (left is ComplexNumber &&
       !_isImaginaryUnit(left) &&
       right is Number &&
+      right is! ConstantNumber &&
       right.isReal) {
     final k = right.value;
-    final r = left.real * k;
-    final im = left.imaginary * k;
-    if (im == 0.0) {
-      return r == 0.0
-          ? RationalNumber.zero
-          : (r == r.roundToDouble()
-                ? RationalNumber(r.round())
-                : RealNumber(r));
-    }
-    return ComplexNumber(r, im);
+    return _buildComplexProduct(left.real * k, left.imaginary * k);
   }
   if (right is ComplexNumber &&
       !_isImaginaryUnit(right) &&
       left is Number &&
+      left is! ConstantNumber &&
       left.isReal) {
     final k = left.value;
-    final r = right.real * k;
-    final im = right.imaginary * k;
-    if (im == 0.0) {
-      return r == 0.0
-          ? RationalNumber.zero
-          : (r == r.roundToDouble()
-                ? RationalNumber(r.round())
-                : RealNumber(r));
-    }
-    return ComplexNumber(r, im);
+    return _buildComplexProduct(right.real * k, right.imaginary * k);
   }
 
   // Reciprocal cancellation fast path: u * (1 / u) => 1, (1 / u) * u => 1
@@ -165,8 +149,13 @@ Expr simplifyMul(Expr left, Expr right) {
     return simplifyMul(right, left);
   }
   if ((right is RationalNumber || right is RealNumber) &&
-      left is ConstantNumber) {
+      (left is ConstantNumber || left == ComplexNumber.i)) {
     return simplifyMul(right, left);
+  }
+  if (left is! Number &&
+      right is! Number &&
+      compareStructural(baseL, baseR) > 0) {
+    return Mul(right, left);
   }
 
   return Mul(left, right);
@@ -199,7 +188,12 @@ Expr simplifyDiv(Expr left, Expr right) {
   if (right is RealNumber && right.value == 0.0) {
     throw UnsupportedError('Division by zero in simplification');
   }
-  if (left == right) return RationalNumber.one;
+  if (left == right &&
+      left is! OrderTerm &&
+      left != ConstantNumber.infinity &&
+      !left.anyNode((n) => n is OrderTerm || n == ConstantNumber.infinity)) {
+    return RationalNumber.one;
+  }
   if (left is RationalNumber && left.isZero) return RationalNumber.zero;
   if (left is RealNumber && left.value == 0.0) return RationalNumber.zero;
   if (left is RationalNumber && right is RationalNumber) {
@@ -208,6 +202,12 @@ Expr simplifyDiv(Expr left, Expr right) {
   if (left is RealNumber && right is RealNumber) {
     return RealNumber(left.value / right.value);
   }
+  if (left is RationalNumber && right is RealNumber) {
+    return RealNumber(left.toDouble() / right.value);
+  }
+  if (left is RealNumber && right is RationalNumber) {
+    return RealNumber(left.value / right.toDouble());
+  }
   if (left is ComplexNumber && right is ComplexNumber) {
     final d = right.real * right.real + right.imaginary * right.imaginary;
     if (d == 0.0) {
@@ -215,30 +215,17 @@ Expr simplifyDiv(Expr left, Expr right) {
     }
     final r = (left.real * right.real + left.imaginary * right.imaginary) / d;
     final im = (left.imaginary * right.real - left.real * right.imaginary) / d;
-    if (im == 0.0) {
-      return r == 0.0
-          ? RationalNumber.zero
-          : (r == r.roundToDouble()
-                ? RationalNumber(r.round())
-                : RealNumber(r));
-    }
-    return ComplexNumber(r, im);
+    return _buildComplexProduct(r, im);
   }
-  if (left is ComplexNumber && right is Number && right.isReal) {
+  if (left is ComplexNumber &&
+      right is Number &&
+      right is! ConstantNumber &&
+      right.isReal) {
     final k = right.value;
     if (k == 0.0) {
       throw UnsupportedError('Division by zero in simplification');
     }
-    final r = left.real / k;
-    final im = left.imaginary / k;
-    if (im == 0.0) {
-      return r == 0.0
-          ? RationalNumber.zero
-          : (r == r.roundToDouble()
-                ? RationalNumber(r.round())
-                : RealNumber(r));
-    }
-    return ComplexNumber(r, im);
+    return _buildComplexProduct(left.real / k, left.imaginary / k);
   }
 
   // Exponential division: e^a / e^b => e^(a - b), 1 / e^b => e^(-b)
@@ -511,41 +498,31 @@ Expr _simplifyMulFlattened(Expr left, Expr right) {
   remainingFactors.sort((a, b) {
     if (a is Number && b is! Number) return -1;
     if (a is! Number && b is Number) return 1;
-    return 0;
+    return compareStructural(decomposeFactor(a).$1, decomposeFactor(b).$1);
   });
-
-  if (scalar is RationalNumber && scalar.isOne) {
-    var result = remainingFactors.first;
-    for (var i = 1; i < remainingFactors.length; i++) {
-      result = Mul(result, remainingFactors[i]);
-    }
-    return result;
-  }
-  if (scalar is RealNumber && scalar.value == 1.0) {
-    var result = remainingFactors.first;
-    for (var i = 1; i < remainingFactors.length; i++) {
-      result = Mul(result, remainingFactors[i]);
-    }
-    return result;
-  }
-  if (scalar is RationalNumber && scalar.isNegativeOne) {
-    var result = remainingFactors.first;
-    for (var i = 1; i < remainingFactors.length; i++) {
-      result = Mul(result, remainingFactors[i]);
-    }
-    return simplifyNeg(result);
-  }
-  if (scalar is RealNumber && scalar.value == -1.0) {
-    var result = remainingFactors.first;
-    for (var i = 1; i < remainingFactors.length; i++) {
-      result = Mul(result, remainingFactors[i]);
-    }
-    return simplifyNeg(result);
-  }
 
   var symbolicPart = remainingFactors.first;
   for (var i = 1; i < remainingFactors.length; i++) {
     symbolicPart = Mul(symbolicPart, remainingFactors[i]);
   }
+  if ((scalar is RationalNumber && scalar.isOne) ||
+      (scalar is RealNumber && scalar.value == 1.0)) {
+    return symbolicPart;
+  }
+  if ((scalar is RationalNumber && scalar.isNegativeOne) ||
+      (scalar is RealNumber && scalar.value == -1.0)) {
+    return simplifyNeg(symbolicPart);
+  }
   return Mul(scalar, symbolicPart);
+}
+
+Expr _buildComplexProduct(double r, double im) {
+  if (im == 0.0) {
+    if (r == 0.0) return RationalNumber.zero;
+    if (r.isFinite && r == r.roundToDouble() && r.abs() < 9007199254740992) {
+      return RationalNumber(r.round());
+    }
+    return RealNumber(r);
+  }
+  return ComplexNumber(r, im);
 }

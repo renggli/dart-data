@@ -36,12 +36,35 @@ final class OrderTerm extends Expr {
   }
 
   @override
+  Expr mapChildren(Expr Function(Expr child) transform) {
+    final nextPoint = transform(point);
+    return identical(nextPoint, point)
+        ? this
+        : OrderTerm(variable, order, point: nextPoint);
+  }
+
+  @override
+  bool anyNode(bool Function(Expr node) predicate) =>
+      predicate(this) || point.anyNode(predicate);
+
+  @override
   Expr substitute(String variable, Expr replacement) {
     final newPoint = point.substitute(variable, replacement);
-    if (this.variable == variable && replacement is Variable) {
-      return OrderTerm(replacement.name, order, point: newPoint);
+    if (this.variable == variable) {
+      if (replacement is Variable) {
+        return OrderTerm(replacement.name, order, point: newPoint);
+      }
+      if (replacement is Number) {
+        return RationalNumber.zero;
+      }
+      final vars = replacement.freeVariables;
+      if (vars.length == 1) {
+        return OrderTerm(vars.first, order, point: newPoint);
+      }
     }
-    return OrderTerm(this.variable, order, point: newPoint);
+    return identical(newPoint, point)
+        ? this
+        : OrderTerm(this.variable, order, point: newPoint);
   }
 
   @override
@@ -61,9 +84,6 @@ final class OrderTerm extends Expr {
 
   @override
   int get hashCode => Object.hash(OrderTerm, variable, order, point);
-
-  @override
-  String toString() => formatExpr(this);
 }
 
 /// Recursively removes all [OrderTerm] leaves from [expr].
@@ -75,7 +95,8 @@ Expr _removeOrder(Expr expr) => switch (expr) {
   )) {
     (final l, RationalNumber(isZero: true)) => l,
     (RationalNumber(isZero: true), final r) => r,
-    (final l, final r) => Add(l, r),
+    (final l, final r) =>
+      identical(l, left) && identical(r, right) ? expr : Add(l, r),
   },
   Sub(:final left, :final right) => switch ((
     _removeOrder(left),
@@ -83,7 +104,8 @@ Expr _removeOrder(Expr expr) => switch (expr) {
   )) {
     (final l, RationalNumber(isZero: true)) => l,
     (RationalNumber(isZero: true), final r) => Neg(r),
-    (final l, final r) => Sub(l, r),
+    (final l, final r) =>
+      identical(l, left) && identical(r, right) ? expr : Sub(l, r),
   },
   Mul(:final left, :final right) => switch ((
     _removeOrder(left),
@@ -93,7 +115,8 @@ Expr _removeOrder(Expr expr) => switch (expr) {
     (RationalNumber(isZero: true), _) => RationalNumber.zero,
     (final l, RationalNumber(isOne: true)) => l,
     (RationalNumber(isOne: true), final r) => r,
-    (final l, final r) => Mul(l, r),
+    (final l, final r) =>
+      identical(l, left) && identical(r, right) ? expr : Mul(l, r),
   },
   Div(:final left, :final right) => switch ((
     _removeOrder(left),
@@ -101,7 +124,8 @@ Expr _removeOrder(Expr expr) => switch (expr) {
   )) {
     (RationalNumber(isZero: true), _) => RationalNumber.zero,
     (final l, RationalNumber(isOne: true)) => l,
-    (final l, final r) => Div(l, r),
+    (final l, final r) =>
+      identical(l, left) && identical(r, right) ? expr : Div(l, r),
   },
   Neg(:final expr) => switch (_removeOrder(expr)) {
     RationalNumber(isZero: true) => RationalNumber.zero,
@@ -113,57 +137,8 @@ Expr _removeOrder(Expr expr) => switch (expr) {
   )) {
     (_, RationalNumber(isZero: true)) => RationalNumber.one,
     (final b, RationalNumber(isOne: true)) => b,
-    (final b, final e) => Pow(b, e),
+    (final b, final e) =>
+      identical(b, base) && identical(e, exponent) ? expr : Pow(b, e),
   },
-  Sin(:final expr) => Sin(_removeOrder(expr)),
-  Cos(:final expr) => Cos(_removeOrder(expr)),
-  Tan(:final expr) => Tan(_removeOrder(expr)),
-  Sinh(:final expr) => Sinh(_removeOrder(expr)),
-  Cosh(:final expr) => Cosh(_removeOrder(expr)),
-  Tanh(:final expr) => Tanh(_removeOrder(expr)),
-  Asin(:final expr) => Asin(_removeOrder(expr)),
-  Acos(:final expr) => Acos(_removeOrder(expr)),
-  Atan(:final expr) => Atan(_removeOrder(expr)),
-  Exp(:final expr) => Exp(_removeOrder(expr)),
-  Ln(:final expr) => Ln(_removeOrder(expr)),
-  Abs(:final expr) => Abs(_removeOrder(expr)),
-  LambertW(:final expr, :final branch) => LambertW(
-    _removeOrder(expr),
-    branch: branch,
-  ),
-  Erf(:final expr) => Erf(_removeOrder(expr)),
-  Erfc(:final expr) => Erfc(_removeOrder(expr)),
-  Gamma(:final expr) => Gamma(_removeOrder(expr)),
-  Beta(:final left, :final right) => Beta(
-    _removeOrder(left),
-    _removeOrder(right),
-  ),
-  Asinh(:final expr) => Asinh(_removeOrder(expr)),
-  Acosh(:final expr) => Acosh(_removeOrder(expr)),
-  Atanh(:final expr) => Atanh(_removeOrder(expr)),
-  LessThan(:final left, :final right) => LessThan(
-    _removeOrder(left),
-    _removeOrder(right),
-  ),
-  LessEqual(:final left, :final right) => LessEqual(
-    _removeOrder(left),
-    _removeOrder(right),
-  ),
-  GreaterThan(:final left, :final right) => GreaterThan(
-    _removeOrder(left),
-    _removeOrder(right),
-  ),
-  GreaterEqual(:final left, :final right) => GreaterEqual(
-    _removeOrder(left),
-    _removeOrder(right),
-  ),
-  Equal(:final left, :final right) => Equal(
-    _removeOrder(left),
-    _removeOrder(right),
-  ),
-  Piecewise(:final branches, :final otherwise) => Piecewise(
-    branches.map((b) => (_removeOrder(b.$1), _removeOrder(b.$2))).toList(),
-    otherwise: otherwise != null ? _removeOrder(otherwise) : null,
-  ),
-  Number() || Variable() => expr,
+  _ => expr.mapChildren(_removeOrder),
 };

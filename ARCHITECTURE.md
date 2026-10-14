@@ -531,82 +531,84 @@ This document describes the achieved architecture across all subsystems of `pack
 
 - **Reasoning**: Mathematical expressions require an abstract syntax tree (AST) for analytical manipulation, canonical simplification, calculus transformations, and high-performance compilation. Modularizing AST definitions into focused units prevents code sprawl while maintaining strict immutability and exhaustive pattern matching.
 - **Implementation & Constraints**:
-  - Base class `Expr` (`lib/src/symbolic/ast/expression.dart`) is an immutable `sealed class` defining foundational properties: `dependsOn`, `collectFreeVariables`, `freeVariables`, `substitute`, `evaluate(context)`, `evaluateComplex(context)`, and operator overloads (`+`, `-`, `*`, `/`, `-()`, `pow`).
+  - Base class `Expr` (`lib/src/symbolic/ast/expr.dart`) is an immutable `sealed class` defining foundational properties: `dependsOn`, `collectFreeVariables`, `freeVariables`, `substitute`, generic child traversal (`mapChildren`, `anyNode`), `evaluate(context)`, `evaluateComplex(context)`, and operator overloads (`+`, `-`, `*`, `/`, `-()`, `pow`).
   - Modularized across `lib/src/symbolic/ast/`:
-    - `terminal.dart`: Leaf nodes `Variable` and `Number` (sealed base: `RationalNumber`, `RealNumber`, `ConstantNumber` with `pi`, `e`, `i`).
-    - `operations.dart`: Sealed `UnaryExpr` and `BinaryExpr` with arithmetic nodes `Add`, `Sub`, `Mul`, `Div`, `Pow`, `Neg`.
-    - `functions.dart`: Elementary and transcendental nodes (`Sin`, `Cos`, `Tan`, `Asin`, `Acos`, `Atan`, `Sinh`, `Cosh`, `Tanh`, `Exp`, `Ln`, `Log`, `Abs`).
-    - `evaluation.dart`: Unified pattern-matching evaluators for double and `Complex` context maps.
-  - Sqrt canonicalization: Square roots are parsed and represented canonically as `Pow(base, RationalNumber(1, 2))`.
+    - `variable.dart` and `number.dart`: Leaf nodes `Variable` and `Number` (sealed base: `RationalNumber`, `RealNumber`, `ConstantNumber` with `pi`, `e`, `i`, `infinity`, and `ComplexNumber`).
+    - `operator.dart`: Sealed `UnaryExpr` and `BinaryExpr` with `copyWith` reconstruction and arithmetic nodes `Add`, `Sub`, `Mul`, `Div`, `Pow`, `Neg`.
+    - `function.dart`, `special_function.dart`, `lambert_w.dart`: Elementary, transcendental, and special function nodes (`Sin`, `Cos`, `Tan`, `Asin`, `Acos`, `Atan`, `Sinh`, `Cosh`, `Tanh`, `Asinh`, `Acosh`, `Atanh`, `Exp`, `Ln`, `Abs`, `Erf`, `Erfc`, `Gamma`, `Beta`, `LambertW`).
+    - `piecewise.dart` and `order_term.dart`: Conditional `Piecewise` expressions, relational predicates (`RelationalExpr`: `LessThan`, `LessEqual`, `GreaterThan`, `GreaterEqual`, `Equal`), and asymptotic `OrderTerm` ($O((x - a)^n)$).
+    - `complex_eval.dart`: Complex numerical evaluators for special functions (`evaluateComplexErf`, `evaluateComplexGamma`, `evaluateComplexAsinh`, `evaluateComplexAcosh`, `evaluateComplexAtanh`).
+  - Sqrt canonicalization: Square roots are parsed and represented canonically as `Pow(base, RationalNumber(1, 2))`, and base-$b$ logarithms `log(b, x)` are represented canonically as `Div(Ln(x), Ln(b))`.
 
 ### 9.2 First-Class Algebraic Field & Container Integration
 
 - **Reasoning**: Mathematical CAS workflows require symbolic matrices, vectors, and polynomials. Decoupling from `numeric` does not imply isolation from algebraic containers.
 - **Implementation & Constraints**:
   - `ExprDataType` and `ExprField` (`lib/src/symbolic/type/expr_data_type.dart`) implement `DataType<Expr>` and `ExtendedField<Expr>`.
-  - Enables full compatibility with `package:data/linear.dart` and `package:data/polynomial.dart`:
-    - `Matrix<Expr>` supports matrix arithmetic (`+`, `-`, `*`), zero-copy transposition, trace, determinants (`A.det`), symbolic inverses (`A.inverse`), and linear solves (`A.solve(B)`).
-    - `Vector<Expr>` provides coordinate operations and inner products.
-    - Multivariable calculus returns first-class containers:
-      - `expr.gradient(variables)` returns `Vector<Expr>`.
-      - `expr.hessian(variables)` returns `Matrix<Expr>`.
-      - `system.jacobian(variables)` on `Vector<Expr>` returns `Matrix<Expr>`.
-    - `Polynomial<Expr>` models multivariate polynomial rings ($R[x, y]$).
+  - Symbolic linear algebra (`lib/src/symbolic/linear/`):
+    - `BareissEngine` (`lib/src/symbolic/linear/bareiss.dart`): Fraction-free Gaussian elimination computing exact symbolic determinants (`det`), ranks, RREF, nullspaces, and linear solves without intermediate expression swell.
+    - `FaddeevLeVerrierEngine` (`lib/src/symbolic/linear/faddeev_leverrier.dart`): Characteristic polynomial $p(\lambda) = \det(\lambda I - A)$ and symbolic matrix inverse $A^{-1}$ via trace recurrence.
+  - Multivariable calculus (`lib/src/symbolic/calculus/multivariable.dart`) returns first-class containers:
+    - `expr.gradient(variables)` returns `Vector<Expr>`.
+    - `expr.hessian(variables)` returns `Matrix<Expr>`.
+    - `system.jacobian(variables)` on `Iterable<Expr>` / `Vector<Expr>` returns `Matrix<Expr>`.
 
-### 9.3 Exact Analytical Calculus & Closed-Form Integration
+### 9.3 Exact Analytical Calculus, Series & Closed-Form Integration
 
-- **Reasoning**: Exact symbolic calculus requires arbitrary-order differentiation, vector calculus, series expansions, and analytical anti-differentiation with explicit contracts.
+- **Reasoning**: Exact symbolic calculus requires arbitrary-order differentiation, vector calculus, formal Laurent/power series expansions, asymptotic limits, and analytical anti-differentiation.
 - **Implementation & Constraints**:
   - `DifferentiationExtension on Expr` (`lib/src/symbolic/calculus/differentiation.dart`):
-    - `derivative(variable, {order = 1})`: Computes exact analytical derivative via exhaustive pattern matching over AST node types with product, quotient, chain, and generalized power rules.
-  - `IntegrationExtension on Expr` (`lib/src/symbolic/calculus/integration/`):
-    - Decomposed into modular rules: primitive lookup, affine linear substitution ($\int f(ax+b) dx$), chain-rule substitution ($\int u' f(u) dx$), and integration by parts.
-    - Definite integration evaluates $F(b) - F(a)$; when no closed-form primitive exists, falls back to adaptive Gauss-Kronrod numerical quadrature (`gaussKronrod`) with exact-to-floating type transparency.
-  - `TaylorExtension on Expr` (`lib/src/symbolic/calculus/taylor.dart`):
+    - `derivative(variable, {order = 1})`: Computes exact analytical derivative via exhaustive pattern matching over AST node types with dependency short-circuiting (`!expr.dependsOn(variable)`), product, quotient, chain, generalized power, and piecewise branch rules.
+  - `IntegrationExtension on Expr` (`lib/src/symbolic/calculus/integration.dart`):
+    - Computes closed-form symbolic antiderivatives `integrate(variable)` via linearity, univariate polynomial expansion and rational polynomial long division, affine linear substitution ($\int f(ax+b) dx$), chain-rule $u$-substitution ($\int u'(x) f(u(x)) dx$), generalized arctan / hyperbolic secant / logistic forms, multi-step polynomial integration by parts, and cyclic integration by parts ($e^{ax}\sin(cx)$, $e^{ax}\cos(cx)$). Throws `UnsupportedError` when no closed-form antiderivative is found.
+  - `SeriesExtension on Expr` (`lib/src/symbolic/calculus/series.dart`) and `TaylorExtension on Expr` (`lib/src/symbolic/calculus/taylor.dart`):
+    - `toPowerSeries(variable, {point, order})`: Formal truncated Laurent/Maclaurin series arithmetic (`PowerSeries`) supporting Cauchy products, pole tracking (`valuation`), triangular series inversion, fractional powers, and ODE recurrence composition (`Exp`, `Sin`, `Cos`, `Atan`, `Asinh`, `Atanh`, `Erf`, `Erfc`, `LambertW`).
     - `taylorSeries(variable, {around = 0, order = 4})`: Computes truncated Taylor polynomial $\sum_{k=0}^n \frac{f^{(k)}(a)}{k!} (x - a)^k$.
+  - `LimitExtension on Expr` (`lib/src/symbolic/calculus/limit.dart`):
+    - `limit(variable, point, {direction = LimitDirection.both})`: Evaluates finite and infinite limits via direct substitution, formal Laurent series pole/valuation analysis, algebraic rationalization, Gruntz most-rapidly-varying (MRV) asymptotic rewriting, Squeeze Theorem bounds for oscillating factors, and iterated L'Hôpital's rule.
 
 ### 9.4 Modular Algebraic Simplification & Identity Engine
 
 - **Reasoning**: Algebraic transformations produce unreduced expression trees requiring confluent reduction into minimal canonical normal forms without cyclic expansions.
 - **Implementation & Constraints**:
-  - `SimplifierExtension on Expr` (`lib/src/symbolic/algebra/simplify.dart`) executes recursive bottom-up rewriting rules decomposed into modular domain rules (`lib/src/symbolic/algebra/simplifier/rules/`):
-    - `ConstantFoldingRule`: Exact rational arithmetic ($\mathbb{Q}$ via `Fraction`), neutral element eliminations ($x + 0 \to x$, $x \cdot 1 \to x$, $x^0 \to 1$).
-    - `TrigonometricRule`: Special values ($\sin(0) \to 0$), parity ($\sin(-x) \to -\sin(x)$), Pythagorean identities ($\sin^2 x + \cos^2 x \to 1$).
-    - `HyperbolicRule`: Parity and hyperbolic identities ($\cosh^2 x - \sinh^2 x \to 1$).
-    - `ExponentialLogarithmicRule`: Inversions ($e^{\ln x} \to x$, $\ln(e^x) \to x$), power extraction ($\ln(x^k) \to k \ln x$).
+  - `SimplifyExtension on Expr` (`lib/src/symbolic/algebra/simplify.dart`) executes recursive bottom-up rewriting rules decomposed into modular domain rules (`lib/src/symbolic/algebra/simplify/`):
+    - `additive.dart` and `term_accumulator.dart` (`AdditiveAccumulator`): Like-term collection, Pythagorean ($\sin^2 u + \cos^2 u \to 1$) and hyperbolic ($\cosh^2 u - \sinh^2 u \to 1$) contraction, logarithmic combination ($\ln a + \ln b \to \ln(ab)$), and Landau $O(x^n)$ dominance absorption.
+    - `multiplicative.dart`: Exact rational/real/complex folding, canonical structural factor ordering (`compareStructural`), base-exponent merging ($u^a \cdot u^b \to u^{a+b}$), and polynomial fraction cancellation.
+    - `power.dart`: Rational power folding, radical simplification, and imaginary unit cycle reduction ($i^k$).
+    - `transcendental.dart` and `exact_constants.dart`: Exact special angles, parity ($\sin(-x) \to -\sin(x)$), inverse compositions, and `Gamma`/`Beta`/`Erf`/`LambertW` identities.
   - Clear separation of concerns:
     - `simplify()` focuses strictly on confluent reduction to normal form.
     - `expand()` (`lib/src/symbolic/algebra/expand.dart`) distributes multiplications and powers of sums.
-    - `factor()` (`lib/src/symbolic/algebra/factor/`) factors polynomials into irreducible products over $\mathbb{Q}[x]$.
+    - `factor()` (`lib/src/symbolic/algebra/factor/`) extracts multivariate monomial GCDs and factors univariate polynomials into irreducible products over $\mathbb{Q}[x]$.
 
 ### 9.5 High-Performance Zero-Allocation Compilation & Tensor Kernels
 
 - **Reasoning**: Inner simulation loops, numerical optimizers, and ODE integrators require raw primitive execution without AST walking overhead.
 - **Implementation & Constraints**:
   - `CompilerExtension on Expr` (`lib/src/symbolic/compiler.dart`):
-    - `toFunction1D(varName)`: Synthesizes `double Function(double)` closure tree.
-    - `toComplexFunction1D(varName)`: Synthesizes `Complex Function(Complex)` closure tree.
-    - `toVectorFunction(varOrder)`: Compiles expression into `double Function(Vector<double>)`.
-    - `compileTensorKernel(varOrder)`: Compiles expression into a flat RPN instruction stream executing over a single pre-allocated contiguous `Float64List` stack buffer with zero heap allocations during kernel loops.
+    - `toFunction1D(varName)`: Synthesizes `double Function(double)` closure tree (`lib/src/symbolic/compiler/fast_eval.dart`).
+    - `toComplexFunction1D(varName)` and `compileComplex()`: Synthesizes `Complex` evaluation closures.
+    - `toVectorFunction(varOrder)` and `compile(varOrder)`: Compiles expression into `double Function(Vector<double>)` or `double Function(List<double>)` (`lib/src/symbolic/compiler/vector_eval.dart`).
+    - `compileTensorKernel(varOrder)`: Compiles expression into a flat RPN instruction stream (`lib/src/symbolic/compiler/tensor_kernel.dart`) executing over a contiguous `Float64List` stack buffer with input dimension validation.
 
 ### 9.6 Symbolic Equation & System Solving
 
-- **Reasoning**: Analytical resolution of algebraic equations, polynomial roots, and simultaneous linear systems.
+- **Reasoning**: Analytical resolution of algebraic equations, polynomial roots, and simultaneous linear and nonlinear polynomial systems.
 - **Implementation & Constraints**:
   - Univariate `Expr.solve(variable)` (`lib/src/symbolic/solver/`):
-    - Linear equations ($a x + b = 0$).
-    - Quadratic polynomials ($a x^2 + b x + c = 0$) with exact real and complex roots ($i$).
-    - Factored products ($f \cdot g = 0 \implies \text{solve}(f) \cup \text{solve}(g)$).
-    - Higher-degree polynomials via Rational Root Theorem and synthetic division.
-    - Invertible transcendental compositions ($\sin(f(x)) = c$, $e^{f(x)} = c$, $\ln(f(x)) = c$).
-  - Simultaneous linear systems:
-    - `solveLinearSystem(equations, variables)` extracts coefficient matrix $A$ and RHS $b$, constructing `Matrix<Expr>` and `Vector<Expr>` and solving via `A.solve(b)`.
+    - Linear equations ($a x + b = 0$), rational equations ($P(x)/Q(x) = 0$ with pole exclusion), and `Equal(lhs, rhs)` nodes.
+    - Quadratic, cubic (Cardano), quartic (Ferrari), and biquadratic polynomials with exact real and complex roots (`lib/src/symbolic/solver/polynomial.dart`).
+    - Factored products ($f \cdot g = 0 \implies \text{solve}(f) \cup \text{solve}(g)$) and Rational Root Theorem + synthetic division.
+    - Invertible transcendental and hyperbolic compositions (`lib/src/symbolic/solver/transcendental.dart`), including $u e^u = c$ and $u^u = c$ via `LambertW`.
+  - Simultaneous systems:
+    - `solveLinearSystem(equations, variables)` (`lib/src/symbolic/solver/system.dart`): Fraction-free Gaussian elimination and back-substitution for symbolic linear systems.
+    - `solvePolynomialSystem(equations, variables, {method = PolynomialSystemMethod.auto})` (`lib/src/symbolic/solver/polynomial_system.dart`): Solves multivariate nonlinear polynomial systems via Sylvester resultant elimination (`resultant.dart`) for 2-variable systems and Buchberger Gröbner basis + FGLM basis conversion (`buchberger.dart`, `fglm.dart`) for $n$-variable zero-dimensional ideals.
 
 ### 9.7 Serialization & Textualization (String, LaTeX, MathML)
 
 - **Reasoning**: Standardized mathematical output across human consoles, academic LaTeX documents, and web applications.
 - **Implementation & Constraints**:
   - `toString()` / `formatExpr` (`lib/src/symbolic/textualization/string.dart`): Precedence-aware serialization with minimal parentheses.
-  - `LatexExtension on Expr` (`lib/src/symbolic/textualization/latex.dart`): Publication-grade LaTeX (`\frac{...}{...}`, `\sqrt{...}`, `\sin(...)`).
-  - `MathMlExtension on Expr` (`lib/src/symbolic/textualization/mathml.dart`): Standard W3C MathML markup with `<msqrt>` and `<mroot>` structuring.
-  - `Expr.parse(input)` / `Expr.tryParse(input)` (`lib/src/symbolic/parser.dart`): Robust PetitParser grammar supporting implicit multiplication, constants, functions, and synthetic power nodes for `sqrt()` and `pow()`.
+  - `LatexExtension on Expr` (`lib/src/symbolic/textualization/latex.dart`): Publication-grade LaTeX (`\frac{...}{...}`, `\sqrt{...}`, `\sin(...)`, `\infty`, `cases`).
+  - `MathMlExtension on Expr` (`lib/src/symbolic/textualization/mathml.dart`): Standard W3C MathML markup with `<msqrt>` and `<mroot>` `<mrow>` container wrapping.
+  - `Expr.parse(input)` / `Expr.tryParse(input)` (`lib/src/symbolic/parser.dart`): PetitParser grammar supporting standard operator precedences, relational operators, constants (`pi`, `e`, `i`, `oo`, `infinity`), elementary and special functions, `piecewise(...)`, `O(...)`, and canonical nodes for `sqrt()`, `pow()`, `root()`, and `log()`.

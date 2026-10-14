@@ -456,7 +456,7 @@ Expr simplifyErfc(Expr expr) {
 /// Simplifies an Euler gamma function expression $\Gamma(expr)$.
 Expr simplifyGamma(Expr expr) {
   if (expr case RationalNumber(:final isInteger, :final numerator)
-      when isInteger && numerator > 0) {
+      when isInteger && numerator > 0 && numerator <= 18) {
     var fact = 1;
     for (var k = 2; k < numerator; k++) {
       fact *= k;
@@ -475,7 +475,8 @@ Expr simplifyBeta(Expr a, Expr b) {
     return simplifyBeta(b, a);
   }
   if (a case RationalNumber(isInteger: true, numerator: final m) when m > 0) {
-    if (b case RationalNumber(isInteger: true, numerator: final n) when n > 0) {
+    if (b case RationalNumber(isInteger: true, numerator: final n)
+        when n > 0 && m + n <= 18) {
       var factM = 1;
       for (var k = 2; k < m; k++) {
         factM *= k;
@@ -492,11 +493,11 @@ Expr simplifyBeta(Expr a, Expr b) {
       return RationalNumber(frac.numerator, frac.denominator);
     }
     if (m == 1) {
-      return Div(RationalNumber.one, b).simplify();
+      return simplifyDiv(RationalNumber.one, b);
     }
   }
   if (b case RationalNumber(isInteger: true, numerator: 1)) {
-    return Div(RationalNumber.one, a).simplify();
+    return simplifyDiv(RationalNumber.one, a);
   }
   return Beta(a, b);
 }

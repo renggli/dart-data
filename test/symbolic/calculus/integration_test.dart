@@ -552,6 +552,32 @@ void main() {
         'x',
       );
       check(chainRule).equals(Exp(x.pow(2)));
+
+      // 6. Factored polynomials, logistic sigmoid, hyperbolic secant, long division, multi-step IBP
+      final factoredCubic = (x - 1) * (x - 2) * (x + 2);
+      final cubicInt = factoredCubic.integrate('x');
+      check(cubicInt.derivative('x').expand().simplify())
+          .equals(factoredCubic.expand().simplify());
+
+      final sechInt = (RationalNumber.one / const Cosh(x)).integrate('x');
+      check(sechInt).equals(const Atan(Sinh(x)));
+
+      final logistic = RationalNumber.one / (RationalNumber.one + Exp(-x));
+      final logisticInt = logistic.integrate('x');
+      check(logisticInt.derivative('x').simplify().evaluate({'x': 1.5}))
+          .isCloseTo(logistic.evaluate({'x': 1.5}), 1e-12);
+
+      final ratDiv = (x.pow(2) / (x + 1)).integrate('x');
+      check(ratDiv.derivative('x').simplify().evaluate({'x': 2.0}))
+          .isCloseTo(4.0 / 3.0, 1e-12);
+
+      final multiIbp = (x.pow(2) * const Exp(x)).integrate('x');
+      check(multiIbp.derivative('x').expand().simplify())
+          .equals((x.pow(2) * const Exp(x)).simplify());
+
+      final expSin = (const Exp(x) * const Sin(x)).integrate('x');
+      check(expSin.derivative('x').expand().simplify())
+          .equals((const Exp(x) * const Sin(x)).simplify());
     });
   });
 }

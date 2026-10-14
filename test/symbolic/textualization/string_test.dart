@@ -64,6 +64,8 @@ void main() {
       check(x.pow(const RationalNumber(-2)).toString()).equals('x ^ (-2)');
       check(x.pow(y).pow(z).toString()).equals('(x ^ y) ^ z');
       check(x.pow(y.pow(z)).toString()).equals('x ^ y ^ z');
+      check(const Pow(ComplexNumber(0, -1), RationalNumber(2)).toString())
+          .equals('(-i) ^ 2');
     });
 
     test('sqrt formatting for half powers', () {

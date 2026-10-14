@@ -516,5 +516,30 @@ void main() {
         }
       },
     );
+
+    test('essential singularities throw UnsupportedError and Erfc/Piecewise expand cleanly', () {
+      check(() => Exp(RationalNumber.one / x).series('x'))
+          .throws<UnsupportedError>();
+      check(() => Sin(RationalNumber.one / x).series('x'))
+          .throws<UnsupportedError>();
+      check(() => Ln(RationalNumber.one / x).series('x'))
+          .throws<UnsupportedError>();
+
+      final erfcSeries = const Erfc(x).toPowerSeries('x', order: 4);
+      check(erfcSeries.coefficients[0]).equals(RationalNumber.one);
+
+      const pw = Piecewise([
+        (LessThan(x, RationalNumber.zero), Neg(x)),
+        (GreaterEqual(x, RationalNumber.zero), Pow(x, RationalNumber(2))),
+      ]);
+      final pwPos = pw.toPowerSeries(
+        'x',
+        point: const RationalNumber(2),
+        order: 4,
+      );
+      check(pwPos.coefficients[0]).equals(const RationalNumber(4));
+      check(() => pw.toPowerSeries('x', point: RationalNumber.zero, order: 4))
+          .throws<UnsupportedError>();
+    });
   });
 }

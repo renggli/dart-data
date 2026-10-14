@@ -19,8 +19,7 @@ final class LambertW extends UnaryExpr {
   final int branch;
 
   @override
-  Expr substitute(String variable, Expr replacement) =>
-      LambertW(expr.substitute(variable, replacement), branch: branch);
+  LambertW copyWith(Expr newExpr) => LambertW(newExpr, branch: branch);
 
   @override
   double evaluate(Map<String, double> context) =>

@@ -1390,6 +1390,55 @@ void main() {
           check(matchBiquadratic(expr, 'x')).isNull();
         }
       });
+
+      test('complex exponentials, inverse trig ranges, rational equations, Equal, and parametric linear systems', () {
+        check(const Exp(Mul(ComplexNumber.i, x)).solve('x')).isEmpty();
+        check(
+          (const Exp(Div(Neg(x), RationalNumber(5))) *
+                  const Exp(Mul(Mul(RationalNumber(3), ComplexNumber.i), x)))
+              .solve('x'),
+        ).isEmpty();
+        check((const Exp(x) + const RealNumber(1.0)).solve('x')).isEmpty();
+        check((const Asin(x) - const RationalNumber(2)).solve('x')).isEmpty();
+        check((const Acos(x) + const RationalNumber(1)).solve('x')).isEmpty();
+        check((const Atan(x) - const RationalNumber(2)).solve('x')).isEmpty();
+        check(
+          (const Abs(Sub(x, RationalNumber(1))) - const RationalNumber(2))
+              .solve('x'),
+        ).unorderedEquals([const RationalNumber(3), const RationalNumber(-1)]);
+
+        // Rational equations with denominator zero exclusion
+        check((x / (x - const RationalNumber(1))).solve('x'))
+            .deepEquals([RationalNumber.zero]);
+        check(
+          ((x.pow(const RationalNumber(2)) - const RationalNumber(1)) /
+                  (x - const RationalNumber(1)))
+              .solve('x'),
+        ).deepEquals([const RationalNumber(-1)]);
+
+        // Equal equations
+        check(const Equal(x, RationalNumber(2)).solve('x'))
+            .deepEquals([const RationalNumber(2)]);
+        final eqSys = [
+          const Equal(Add(x, y), RationalNumber(10)),
+          const Equal(Sub(x, y), RationalNumber(2)),
+        ].solveSystem(['x', 'y']);
+        check(eqSys).isNotNull();
+        check(eqSys!['x']).equals(const RationalNumber(6));
+        check(eqSys['y']).equals(const RationalNumber(4));
+
+        // Parametric linear system simplifies cleanly
+        const a = Variable('a');
+        final paramSys = [
+          a * x + y - RationalNumber.one,
+          x - y,
+        ].solveSystem(['x', 'y']);
+        check(paramSys).isNotNull();
+        check(paramSys!['x'])
+            .equals(RationalNumber.one / (a + RationalNumber.one));
+        check(paramSys['y'])
+            .equals(RationalNumber.one / (a + RationalNumber.one));
+      });
     });
   });
 }

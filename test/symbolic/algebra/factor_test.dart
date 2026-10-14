@@ -984,6 +984,17 @@ void main() {
         check(roundTrip.toString()).equals('x ^ 4 + y ^ 4 - 2 * x ^ 2 * y ^ 2');
         check(expanded.toString()).equals('x ^ 4 + y ^ 4 - 2 * x ^ 2 * y ^ 2');
       });
+
+      test(
+        'preserves non-variable residual factors and fractional exponents',
+        () {
+          final expr = x * const Sin(x) + x;
+          check(expr.factor()).equals(x * (const Sin(x) + 1));
+
+          const fracPow = Pow(Pow(x, RationalNumber(1, 2)), RationalNumber(3));
+          check(fracPow.factor()).equals(const Pow(x, RationalNumber(3, 2)));
+        },
+      );
     },
   );
 }

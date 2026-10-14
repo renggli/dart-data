@@ -8,11 +8,17 @@ import '../../special/gamma.dart' as special_gamma;
 import '../ast.dart';
 
 /// Compiles [expression] into a fast native Dart closure for a single real variable.
-double Function(double x) compileFast1D(Expr expression, String variableName) =>
-    compileEvaluator<double>(
-      expression,
-      (name) => name == variableName ? (x) => x : (_) => 0.0,
-    );
+double Function(double x) compileFast1D(
+  Expr expression,
+  String variableName,
+) => compileEvaluator<double>(
+  expression,
+  (name) => name == variableName
+      ? (x) => x
+      : throw ArgumentError(
+          'Unbound variable "$name" in 1D compiled function for "$variableName"',
+        ),
+);
 
 /// Compiles [expression] into a fast native Dart closure for a single complex variable.
 Complex Function(Complex x) compileFastComplex1D(
@@ -20,7 +26,11 @@ Complex Function(Complex x) compileFastComplex1D(
   String variableName,
 ) => compileComplexEvaluator<Complex>(
   expression,
-  (name) => name == variableName ? (x) => x : (_) => Complex.zero,
+  (name) => name == variableName
+      ? (x) => x
+      : throw ArgumentError(
+          'Unbound variable "$name" in 1D compiled function for "$variableName"',
+        ),
 );
 
 /// Compiles [expression] into a dictionary-based complex closure.
@@ -107,6 +117,9 @@ double Function(T) compileEvaluator<T>(
       final fn = compileEvaluator<T>(expr, compileVar);
       return (t) {
         final v = fn(t);
+        if (v.abs() < 1e-5) {
+          return v + (v * v * v) / 6.0;
+        }
         return (math.exp(v) - math.exp(-v)) / 2.0;
       };
     case Cosh(:final expr):
@@ -153,26 +166,13 @@ double Function(T) compileEvaluator<T>(
       return (t) => special_beta.beta(fL(t), fR(t));
     case Asinh(:final expr):
       final fn = compileEvaluator<T>(expr, compileVar);
-      return (t) {
-        final v = fn(t);
-        return math.log(v + math.sqrt(v * v + 1.0));
-      };
+      return (t) => evaluateRealAsinh(fn(t));
     case Acosh(:final expr):
       final fn = compileEvaluator<T>(expr, compileVar);
-      return (t) {
-        final v = fn(t);
-        if (v < 1.0) throw ArgumentError('acosh domain error: $v < 1.0');
-        return math.log(v + math.sqrt(v * v - 1.0));
-      };
+      return (t) => evaluateRealAcosh(fn(t));
     case Atanh(:final expr):
       final fn = compileEvaluator<T>(expr, compileVar);
-      return (t) {
-        final v = fn(t);
-        if (v.abs() >= 1.0) {
-          throw ArgumentError('atanh domain error: |$v| >= 1.0');
-        }
-        return 0.5 * math.log((1.0 + v) / (1.0 - v));
-      };
+      return (t) => evaluateRealAtanh(fn(t));
     case LessThan(:final left, :final right):
       final fL = compileEvaluator<T>(left, compileVar);
       final fR = compileEvaluator<T>(right, compileVar);

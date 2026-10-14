@@ -210,9 +210,10 @@ int compareRational(RationalNumber a, RationalNumber b) {
   if (a.numerator == b.numerator && a.denominator == b.denominator) {
     return 0;
   }
-  final delta = a.numerator * b.denominator - b.numerator * a.denominator;
-  if (delta < 0) return -1;
-  if (delta > 0) return 1;
+  final cmp = (BigInt.from(a.numerator) * BigInt.from(b.denominator)).compareTo(
+    BigInt.from(b.numerator) * BigInt.from(a.denominator),
+  );
+  if (cmp != 0) return cmp;
   return a.denominator.compareTo(b.denominator);
 }
 

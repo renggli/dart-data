@@ -449,5 +449,21 @@ void main() {
           .equals(const RealNumber(2.718));
       check(field.conjugate(x)).equals(x);
     });
+
+    test('scale preserves non-dyadic floats and isClose compares constant expressions', () {
+      final scaledPi = field.scale(x, 3.141592653589793);
+      check(scaledPi.evaluate({'x': 1.0})).isCloseTo(3.141592653589793, 1e-15);
+      final scaledSmall = field.scale(x, 1e-5);
+      check(scaledSmall.evaluate({'x': 1.0})).isCloseTo(1e-5, 1e-18);
+
+      const eq = ExprEquality();
+      check(
+        eq.isClose(
+          const Pow(RationalNumber(2), RationalNumber(1, 2)),
+          const RealNumber(1.4142135623730951),
+          1e-9,
+        ),
+      ).isTrue();
+    });
   });
 }

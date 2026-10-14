@@ -10,8 +10,7 @@ final class Sin extends UnaryExpr {
   const new(super.expr);
 
   @override
-  Expr substitute(String variable, Expr replacement) =>
-      Sin(expr.substitute(variable, replacement));
+  Sin copyWith(Expr newExpr) => Sin(newExpr);
 
   @override
   double evaluate(Map<String, double> context) =>
@@ -28,8 +27,7 @@ final class Cos extends UnaryExpr {
   const new(super.expr);
 
   @override
-  Expr substitute(String variable, Expr replacement) =>
-      Cos(expr.substitute(variable, replacement));
+  Cos copyWith(Expr newExpr) => Cos(newExpr);
 
   @override
   double evaluate(Map<String, double> context) =>
@@ -46,8 +44,7 @@ final class Exp extends UnaryExpr {
   const new(super.expr);
 
   @override
-  Expr substitute(String variable, Expr replacement) =>
-      Exp(expr.substitute(variable, replacement));
+  Exp copyWith(Expr newExpr) => Exp(newExpr);
 
   @override
   double evaluate(Map<String, double> context) =>
@@ -64,8 +61,7 @@ final class Ln extends UnaryExpr {
   const new(super.expr);
 
   @override
-  Expr substitute(String variable, Expr replacement) =>
-      Ln(expr.substitute(variable, replacement));
+  Ln copyWith(Expr newExpr) => Ln(newExpr);
 
   @override
   double evaluate(Map<String, double> context) =>
@@ -82,8 +78,7 @@ final class Tan extends UnaryExpr {
   const new(super.expr);
 
   @override
-  Expr substitute(String variable, Expr replacement) =>
-      Tan(expr.substitute(variable, replacement));
+  Tan copyWith(Expr newExpr) => Tan(newExpr);
 
   @override
   double evaluate(Map<String, double> context) =>
@@ -100,8 +95,7 @@ final class Asin extends UnaryExpr {
   const new(super.expr);
 
   @override
-  Expr substitute(String variable, Expr replacement) =>
-      Asin(expr.substitute(variable, replacement));
+  Asin copyWith(Expr newExpr) => Asin(newExpr);
 
   @override
   double evaluate(Map<String, double> context) =>
@@ -118,8 +112,7 @@ final class Acos extends UnaryExpr {
   const new(super.expr);
 
   @override
-  Expr substitute(String variable, Expr replacement) =>
-      Acos(expr.substitute(variable, replacement));
+  Acos copyWith(Expr newExpr) => Acos(newExpr);
 
   @override
   double evaluate(Map<String, double> context) =>
@@ -136,8 +129,7 @@ final class Atan extends UnaryExpr {
   const new(super.expr);
 
   @override
-  Expr substitute(String variable, Expr replacement) =>
-      Atan(expr.substitute(variable, replacement));
+  Atan copyWith(Expr newExpr) => Atan(newExpr);
 
   @override
   double evaluate(Map<String, double> context) =>
@@ -154,12 +146,14 @@ final class Sinh extends UnaryExpr {
   const new(super.expr);
 
   @override
-  Expr substitute(String variable, Expr replacement) =>
-      Sinh(expr.substitute(variable, replacement));
+  Sinh copyWith(Expr newExpr) => Sinh(newExpr);
 
   @override
   double evaluate(Map<String, double> context) {
     final v = expr.evaluate(context);
+    if (v.abs() < 1e-5) {
+      return v * (1.0 + v * v / 6.0);
+    }
     return (math.exp(v) - math.exp(-v)) / 2.0;
   }
 }
@@ -174,8 +168,7 @@ final class Cosh extends UnaryExpr {
   const new(super.expr);
 
   @override
-  Expr substitute(String variable, Expr replacement) =>
-      Cosh(expr.substitute(variable, replacement));
+  Cosh copyWith(Expr newExpr) => Cosh(newExpr);
 
   @override
   double evaluate(Map<String, double> context) {
@@ -194,8 +187,7 @@ final class Tanh extends UnaryExpr {
   const new(super.expr);
 
   @override
-  Expr substitute(String variable, Expr replacement) =>
-      Tanh(expr.substitute(variable, replacement));
+  Tanh copyWith(Expr newExpr) => Tanh(newExpr);
 
   @override
   double evaluate(Map<String, double> context) {
@@ -217,8 +209,7 @@ final class Abs extends UnaryExpr {
   const new(super.expr);
 
   @override
-  Expr substitute(String variable, Expr replacement) =>
-      Abs(expr.substitute(variable, replacement));
+  Abs copyWith(Expr newExpr) => Abs(newExpr);
 
   @override
   double evaluate(Map<String, double> context) => expr.evaluate(context).abs();

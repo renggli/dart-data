@@ -332,5 +332,52 @@ void main() {
         ),
       ).equals(ConstantNumber.infinity);
     });
+
+    test('directional Abs(x)/x limits, rational/super-exponential Gruntz, and Squeeze theorem', () {
+      const signX = Div(Abs(x), x);
+      check(
+        signX.limit(
+          'x',
+          RationalNumber.zero,
+          direction: LimitDirection.fromAbove,
+        ),
+      ).equals(RationalNumber.one);
+      check(
+        signX.limit(
+          'x',
+          RationalNumber.zero,
+          direction: LimitDirection.fromBelow,
+        ),
+      ).equals(RationalNumber.negativeOne);
+      check(
+        () => signX.limit(
+          'x',
+          RationalNumber.zero,
+          direction: LimitDirection.both,
+        ),
+      ).throws<UnsupportedError>();
+
+      // Rational linear exponent: exp(x / 2) / x -> +oo
+      check(
+        (Exp(x / const RationalNumber(2)) / x).limit(
+          'x',
+          ConstantNumber.infinity,
+        ),
+      ).equals(ConstantNumber.infinity);
+
+      // Super-exponential dominance: exp(x^2) - exp(x) -> +oo
+      check((Exp(x.pow(2)) - const Exp(x)).limit('x', ConstantNumber.infinity))
+          .equals(ConstantNumber.infinity);
+
+      // Squeeze theorem: sin(x) / x -> 0 as x -> +oo
+      check((const Sin(x) / x).limit('x', ConstantNumber.infinity))
+          .equals(RationalNumber.zero);
+
+      // Continuous composition at infinity: sin(1 / x) -> 0, cos(1 / x) -> 1
+      check(Sin(RationalNumber.one / x).limit('x', ConstantNumber.infinity))
+          .equals(RationalNumber.zero);
+      check(Cos(RationalNumber.one / x).limit('x', ConstantNumber.infinity))
+          .equals(RationalNumber.one);
+    });
   });
 }
