@@ -136,11 +136,16 @@ void main() {
           // Taylor series expansion
           try {
             final taylor = expr
-                .taylorSeries('x', order: 2, around: preset.defaultPointX)
+                .series(
+                  'x',
+                  point: preset.defaultPointX,
+                  order: 3,
+                  includeOrder: false,
+                )
                 .simplify();
             check(taylor.toString().isNotEmpty).isTrue();
           } on UnsupportedError {
-            // Functions with non-elementary derivatives cannot expand via Taylor derivative loop.
+            // Functions with non-elementary series at the point throw UnsupportedError.
           }
         }
       },

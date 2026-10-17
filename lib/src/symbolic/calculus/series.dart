@@ -20,17 +20,45 @@ extension SeriesExtension on Expr {
   /// ```
   Expr series(
     String variable, {
-    Expr point = IntegerNumber.zero,
+    Object point = IntegerNumber.zero,
     int order = 6,
-  }) => toPowerSeries(variable, point: point, order: order).toExpr();
+    bool includeOrder = true,
+  }) => toPowerSeries(
+    variable,
+    point: point,
+    order: order,
+  ).toExpr(includeOrder: includeOrder);
 
   /// Computes the truncated formal [PowerSeries] representation of this
   /// expression around [point] up to [order].
   PowerSeries toPowerSeries(
     String variable, {
-    Expr point = IntegerNumber.zero,
+    Object point = IntegerNumber.zero,
     int order = 6,
-  }) => _expandToPowerSeries(this, variable, point, order);
+  }) => _expandToPowerSeries(this, variable, _wrapSeriesPoint(point), order);
+}
+
+Expr _wrapSeriesPoint(Object point) => switch (point) {
+  Expr() => point,
+  int() => IntegerNumber(Integer.from(point)),
+  BigInt() => IntegerNumber(Integer.big(point)),
+  double() => _doubleToPoint(point),
+  _ => throw ArgumentError.value(
+    point,
+    'point',
+    'Series expansion point must be an Expr, int, BigInt, or double',
+  ),
+};
+
+Expr _doubleToPoint(double value) {
+  if (!value.isFinite) return RealNumber.fromDouble(value);
+  for (var den = 1; den <= 64; den++) {
+    final numRound = (value * den).round();
+    if ((value - numRound / den).abs() < 1e-12) {
+      return RationalNumber(numRound, den);
+    }
+  }
+  return RealNumber.fromDouble(value);
 }
 
 /// Truncated formal Laurent and power series:
@@ -798,6 +826,15 @@ PowerSeries _expandAbs(Expr inner, String variable, Expr point, int order) {
   if (c0 is RealNumeric) {
     if (c0.sign > 0) return sInner;
     if (c0.sign < 0) return -sInner;
+  }
+  if (!c0.dependsOn(variable) && c0.freeVariables.isEmpty) {
+    try {
+      final val = c0.evaluate();
+      if (val > 0) return sInner;
+      if (val < 0) return -sInner;
+    } on Object {
+      // Fall through
+    }
   }
   throw UnsupportedError('abs is non-differentiable at zero');
 }

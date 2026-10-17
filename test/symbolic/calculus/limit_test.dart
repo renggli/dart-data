@@ -336,6 +336,19 @@ void main() {
               );
           check(() => unsupportedMrv.limit('x', Constant.infinity))
               .throws<UnsupportedError>();
+
+          check((Sin(x) / x).limit('x', 0)).equals(IntegerNumber.one);
+          check((x + IntegerNumber.one).limit('x', BigInt.two))
+              .equals(IntegerNumber.of(3));
+          check((x + IntegerNumber.one).limit('x', 1.5))
+              .equals(const RealNumber(2.5));
+          check((IntegerNumber.one / x).limit('x', double.infinity))
+              .equals(IntegerNumber.zero);
+          check((IntegerNumber.one / x).limit('x', double.negativeInfinity))
+              .equals(IntegerNumber.zero);
+          check(Sin(x).limit('x', Constant.pi / IntegerNumber.two))
+              .equals(IntegerNumber.one);
+          check(() => x.limit('x', 'invalid')).throws<ArgumentError>();
         },
       );
     },

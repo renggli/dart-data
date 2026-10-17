@@ -303,6 +303,46 @@ void main() {
       check(() => Integral(Sin(x), 'x').series('x')).throws<UnsupportedError>();
       check(() => const OrderTerm('x', 3).series('x'))
           .throws<UnsupportedError>();
+      check(() => Sin(x).series('x', point: 'invalid')).throws<ArgumentError>();
+    });
+
+    test('expands with includeOrder: false and int, BigInt, double, and symbolic points', () {
+      final sinTaylor = Sin(x).series('x', order: 6, includeOrder: false);
+      check(sinTaylor.toString()).equals('x - 1/6 * x ^ 3 + 1/120 * x ^ 5');
+
+      final lnTaylor = Ln(x)
+          .series('x', point: 1, order: 4, includeOrder: false);
+      check(lnTaylor.evaluate({'x': 1.1}))
+          .isCloseTo(0.1 - 0.01 / 2 + 0.001 / 3, 1e-12);
+
+      final bigPoint = (x * x).series(
+        'x',
+        point: BigInt.two,
+        order: 3,
+        includeOrder: false,
+      );
+      check(bigPoint.evaluate({'x': 3.0})).isCloseTo(9.0, 1e-12);
+
+      final rationalCenter = (x * x).series(
+        'x',
+        point: 0.5,
+        order: 3,
+        includeOrder: false,
+      );
+      check(rationalCenter.evaluate({'x': 1.5})).isCloseTo(2.25, 1e-12);
+
+      final realCenter = Sin(x)
+          .series('x', point: 3.141592653589793, order: 4, includeOrder: false);
+      check(realCenter.evaluate({'x': 3.141592653589793 + 0.1}))
+          .isCloseTo(-0.09983341664682815, 1e-5);
+
+      final absPlusPi = Abs(x + Constant.pi)
+          .series('x', point: 0, order: 3, includeOrder: false);
+      check(absPlusPi).equals(Constant.pi + x);
+
+      final absMinusPi = Abs(x - Constant.pi)
+          .series('x', point: 0, order: 3, includeOrder: false);
+      check(absMinusPi).equals(Constant.pi - x);
     });
   });
 }

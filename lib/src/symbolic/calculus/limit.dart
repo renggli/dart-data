@@ -31,14 +31,33 @@ extension LimitExtension on Expr {
   /// ```dart
   /// final x = Variable('x');
   /// final expr = Sin(x) / x;
-  /// final lim = expr.limit('x', IntegerNumber.zero); // 1
+  /// final lim = expr.limit('x', 0); // 1
   /// ```
   Expr limit(
     String variable,
-    Expr point, {
+    Object point, {
     LimitDirection direction = LimitDirection.both,
-  }) => computeLimit(this, variable, point, direction: direction);
+  }) => computeLimit(
+    this,
+    variable,
+    _wrapLimitPoint(point),
+    direction: direction,
+  );
 }
+
+Expr _wrapLimitPoint(Object point) => switch (point) {
+  Expr() => point,
+  int() => IntegerNumber(Integer.from(point)),
+  BigInt() => IntegerNumber(Integer.big(point)),
+  double() when point == double.infinity => Constant.infinity,
+  double() when point == double.negativeInfinity => _negInfinity,
+  double() => RealNumber.fromDouble(point),
+  _ => throw ArgumentError.value(
+    point,
+    'point',
+    'Limit point must be an Expr, int, BigInt, or double',
+  ),
+};
 
 final Expr _negInfinity = Mul(const [
   IntegerNumber.negativeOne,

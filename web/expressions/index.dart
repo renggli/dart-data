@@ -1009,28 +1009,10 @@ void updateTaylorTelemetry() {
       taylorComplexCompiled = null;
     }
   } catch (_) {
-    try {
-      final poly = expr
-          .taylorSeries('x', order: taylorOrder, around: taylorAround)
-          .simplify();
-      setAttrExpr(valFormalSeries, poly);
-      setAttrExpr(taylorPolynomialStr, poly);
-      try {
-        taylorCompiled = poly.toFunction1D('x');
-      } catch (_) {
-        taylorCompiled = null;
-      }
-      try {
-        taylorComplexCompiled = poly.toComplexFunction1D('x');
-      } catch (_) {
-        taylorComplexCompiled = null;
-      }
-    } catch (_) {
-      setAttrValue(valFormalSeries, 'Undefined');
-      setAttrValue(taylorPolynomialStr, 'Undefined');
-      taylorCompiled = null;
-      taylorComplexCompiled = null;
-    }
+    setAttrValue(valFormalSeries, 'Undefined');
+    setAttrValue(taylorPolynomialStr, 'Undefined');
+    taylorCompiled = null;
+    taylorComplexCompiled = null;
   }
 }
 

@@ -57,9 +57,12 @@ void main() {
       check(jac[0].length).equals(2);
     });
 
-    test('taylorSeries', () {
+    test('series', () {
       const x = Variable('x');
-      final poly = Pow(Constant.e, x).taylorSeries('x', order: 2);
+      final poly = Pow(
+        Constant.e,
+        x,
+      ).series('x', order: 3, includeOrder: false);
       check(poly.evaluate({'x': 0.0})).isCloseTo(1.0, 1e-6);
     });
 
