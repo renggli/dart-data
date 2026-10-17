@@ -1,6 +1,7 @@
 import '../algebra/factor.dart';
 import '../algebra/simplify.dart';
 import '../algebra/term_accumulator.dart';
+import '../assumptions.dart';
 import '../ast.dart';
 import '../calculus/linear_form.dart';
 import 'polynomial.dart';
@@ -35,7 +36,7 @@ extension SolverExtension on Expr {
 }
 
 /// Recursively solves univariate equation [expr] = 0 for [variable], optionally
-/// filtering roots by [domain] (or the [Variable.domain] present in [expr]).
+/// filtering roots by [domain] (or the [Variable.effectiveDomain] present in [expr]).
 List<Expr> solveEquation(Expr expr, String variable, {VariableDomain? domain}) {
   final effectiveDomain = domain ?? _inferVariableDomain(expr, variable);
   final rawRoots = _solveUnfiltered(expr, variable);
@@ -121,11 +122,11 @@ List<Expr> _solveUnfiltered(Expr expr, String variable) {
 }
 
 VariableDomain _inferVariableDomain(Expr expr, String variable) {
-  var inferred = VariableDomain.unknown;
+  var inferred = Assumptions.domainOf(variable);
   expr.anyNode((node) {
-    if (node case Variable(:final name, :final domain)
-        when name == variable && domain != VariableDomain.unknown) {
-      inferred = domain;
+    if (node case Variable(:final name, :final effectiveDomain)
+        when name == variable && effectiveDomain != VariableDomain.unknown) {
+      inferred = effectiveDomain;
       return true;
     }
     return false;

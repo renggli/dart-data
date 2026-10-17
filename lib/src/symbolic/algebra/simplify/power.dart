@@ -83,17 +83,45 @@ Expr simplifyPow(Expr base, Expr exponent) {
     return Pow(base, exponent, isSimplified: true);
   }
 
-  // 5. Involution: (u^2)^(1/2) => |u|
-  if (base is Pow && _isTwo(base.exponent) && _isHalf(exponent)) {
+  // 4b. (-1)^k = 1 for even integer expression k
+  if (base is Number && base.isNegativeOne && isEvenIntegerExpr(exponent)) {
+    return IntegerNumber.one;
+  }
+
+  // 5. Involution: (u^2)^(1/2) => |u| (or (u^(2*k))^(1/(2*k)) => |u| for real u)
+  if (base is Pow &&
+      _isTwo(base.exponent) &&
+      _isHalf(exponent) &&
+      base.base.isReal) {
     return simplifyAbs(base.base);
+  }
+  if (base
+      case Pow(base: final innerBase, exponent: IntegerNumber(value: final p))
+      when innerBase.isReal &&
+          p > Integer.zero &&
+          p.isEven &&
+          exponent == RationalNumber.of(Integer.one, p)) {
+    return simplifyAbs(innerBase);
   }
 
   // 6. Nested powers: (u^e1)^e2
   if (base case Pow(base: final innerBase, exponent: final innerExp)) {
-    if (innerBase == Constant.e) {
-      return simplifyPow(Constant.e, simplifyMul([innerExp, exponent]));
+    if (innerBase == Constant.e || isNonNegativeExpr(innerBase)) {
+      return simplifyPow(innerBase, simplifyMul([innerExp, exponent]));
     }
     if (innerExp is RationalNumber && exponent is RationalNumber) {
+      if (innerExp is IntegerNumber &&
+          innerExp.value.isEven &&
+          exponent is FractionNumber &&
+          exponent.denominator.isEven) {
+        final prod = innerExp.mulRational(exponent);
+        if (innerBase.isReal && prod is IntegerNumber && prod.value.isOdd) {
+          return simplifyPow(simplifyAbs(innerBase), prod);
+        }
+        if (!innerBase.isReal) {
+          return Pow(base, exponent, isSimplified: true);
+        }
+      }
       return simplifyPow(innerBase, innerExp.mulRational(exponent));
     }
     if (exponent is IntegerNumber) {

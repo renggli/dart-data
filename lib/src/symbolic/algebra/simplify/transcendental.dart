@@ -27,6 +27,9 @@ Expr simplifySin(Expr expr) {
       return k.isEven ? IntegerNumber.one : IntegerNumber.negativeOne;
     }
   }
+  if (_matchIntegerPiMultiple(expr) != null) {
+    return IntegerNumber.zero;
+  }
 
   return Sin(expr, isSimplified: true);
 }
@@ -56,6 +59,12 @@ Expr simplifyCos(Expr expr) {
       return IntegerNumber.zero;
     }
   }
+  if (_matchIntegerPiMultiple(expr) case final intFactor?) {
+    if (isEvenIntegerExpr(intFactor)) {
+      return IntegerNumber.one;
+    }
+    return simplifyPow(IntegerNumber.negativeOne, intFactor);
+  }
 
   return Cos(expr, isSimplified: true);
 }
@@ -84,6 +93,9 @@ Expr simplifyTan(Expr expr) {
       if (rem == 1) return IntegerNumber.one;
       if (rem == 3) return IntegerNumber.negativeOne;
     }
+  }
+  if (_matchIntegerPiMultiple(expr) != null) {
+    return IntegerNumber.zero;
   }
 
   return Tan(expr, isSimplified: true);
@@ -281,25 +293,74 @@ Expr simplifyAbs(Expr expr) {
     return simplifyPow(Constant.e, reExp);
   }
 
-  if (_isNonNegativeExpr(expr)) {
+  if (isNonNegativeExpr(expr)) {
     return expr;
   }
 
   return Abs(expr, isSimplified: true);
 }
 
-bool _isNonNegativeExpr(Expr expr) => switch (expr) {
+/// Returns `true` if [expr] is syntactically non-negative under active domain assumptions.
+bool isNonNegativeExpr(Expr expr) => switch (expr) {
   RealNumeric(:final isNegative) => !isNegative,
   Constant(:final value) => value.b == 0 && value.a >= 0,
-  Variable(:final domain) => domain == VariableDomain.positive,
+  Variable(:final effectiveDomain) =>
+    effectiveDomain == VariableDomain.positive,
   Abs() => true,
   Pow(base: Constant.e, :final exponent) => exponent.isReal,
   Pow(:final base, :final exponent) =>
-    _isNonNegativeExpr(base) ||
+    isNonNegativeExpr(base) ||
         (base.isReal && exponent is IntegerNumber && exponent.value.isEven),
-  Mul(:final factors) => factors.every(_isNonNegativeExpr),
+  Mul(:final factors) => factors.every(isNonNegativeExpr),
   _ => false,
 };
+
+/// Returns `true` if [expr] is syntactically integer-valued under active domain assumptions.
+bool isIntegerExpr(Expr expr) => switch (expr) {
+  IntegerNumber() ||
+  Floor() ||
+  Ceil() ||
+  Round() ||
+  Sign() ||
+  Factorial() ||
+  Binomial() => true,
+  Variable(:final effectiveDomain) => effectiveDomain == VariableDomain.integer,
+  Add(:final terms) => terms.every(isIntegerExpr),
+  Mul(:final factors) => factors.every(isIntegerExpr),
+  Pow(:final base, :final exponent) =>
+    isIntegerExpr(base) && exponent is IntegerNumber && !exponent.isNegative,
+  _ => false,
+};
+
+/// Returns `true` if [expr] is an even integer expression under active domain assumptions.
+bool isEvenIntegerExpr(Expr expr) => switch (expr) {
+  IntegerNumber(:final value) => value.isEven,
+  Mul(:final factors) =>
+    factors.every(isIntegerExpr) && factors.any(isEvenIntegerExpr),
+  Add(:final terms) => terms.every(isEvenIntegerExpr),
+  Pow(:final base, :final exponent) =>
+    isEvenIntegerExpr(base) &&
+        exponent is IntegerNumber &&
+        exponent.value > Integer.zero,
+  _ => false,
+};
+
+Expr? _matchIntegerPiMultiple(Expr expr) {
+  if (expr == Constant.pi) return IntegerNumber.one;
+  if (expr case Mul(:final factors)) {
+    final piIdx = factors.indexOf(Constant.pi);
+    if (piIdx != -1) {
+      final other = <Expr>[
+        for (var i = 0; i < factors.length; i++)
+          if (i != piIdx) factors[i],
+      ];
+      if (other.isNotEmpty && other.every(isIntegerExpr)) {
+        return other.length == 1 ? other.first : Mul(other, isSimplified: true);
+      }
+    }
+  }
+  return null;
+}
 
 /// Simplifies an exponential expression $e^{expr}$.
 Expr simplifyExp(Expr expr) => simplifyPow(Constant.e, expr);
@@ -673,6 +734,7 @@ Expr simplifyBinomial(Expr nExpr, Expr kExpr) {
 
 /// Simplifies a floor expression $\lfloor x \rfloor$.
 Expr simplifyFloor(Expr expr) {
+  if (isIntegerExpr(expr)) return expr;
   switch (expr) {
     case IntegerNumber():
       return expr;
@@ -700,6 +762,7 @@ Expr simplifyFloor(Expr expr) {
 
 /// Simplifies a ceiling expression $\lceil x \rceil$.
 Expr simplifyCeil(Expr expr) {
+  if (isIntegerExpr(expr)) return expr;
   switch (expr) {
     case IntegerNumber():
       return expr;
@@ -727,6 +790,7 @@ Expr simplifyCeil(Expr expr) {
 
 /// Simplifies a rounding expression $\operatorname{round}(x)$.
 Expr simplifyRound(Expr expr) {
+  if (isIntegerExpr(expr)) return expr;
   switch (expr) {
     case IntegerNumber():
       return expr;
@@ -754,7 +818,7 @@ Expr simplifySign(Expr expr) {
   if (expr is RealNumeric) {
     return IntegerNumber.of(expr.sign);
   }
-  if (expr case Variable(domain: VariableDomain.positive)) {
+  if (expr case Variable(effectiveDomain: VariableDomain.positive)) {
     return IntegerNumber.one;
   }
   final (posExpr, isNeg) = extractSign(expr);
@@ -782,7 +846,7 @@ Expr simplifyMod(Expr left, Expr right) {
   if (left is Number && left.isZero) {
     return IntegerNumber.zero;
   }
-  if (right is Number && right.isOne && left is IntegerNumber) {
+  if (right is Number && right.isOne && isIntegerExpr(left)) {
     return IntegerNumber.zero;
   }
   if (left is RationalNumber && right is RationalNumber) {
@@ -881,7 +945,7 @@ Expr simplifyArg(Expr expr) {
     case Conjugate(:final expr):
       return simplifyNeg(simplifyArg(expr));
     case _:
-      if (_isNonNegativeExpr(expr)) {
+      if (isNonNegativeExpr(expr)) {
         return IntegerNumber.zero;
       }
       return Arg(expr, isSimplified: true);
@@ -988,7 +1052,7 @@ bool _isSyntacticallyReal(Expr expr) => switch (expr) {
   RealNumeric() => true,
   ComplexNumber() => false,
   Constant(:final isReal) => isReal,
-  Variable(:final domain) => domain != VariableDomain.complex,
+  Variable(:final effectiveDomain) => effectiveDomain != VariableDomain.complex,
   Re() ||
   Im() ||
   Arg() ||
@@ -1002,7 +1066,7 @@ bool _isSyntacticallyReal(Expr expr) => switch (expr) {
   Pow(base: Constant.e, :final exponent) => _isSyntacticallyReal(exponent),
   Pow(:final base, :final exponent) =>
     (_isSyntacticallyReal(base) && exponent is IntegerNumber) ||
-        (_isNonNegativeExpr(base) && _isSyntacticallyReal(exponent)),
+        (isNonNegativeExpr(base) && _isSyntacticallyReal(exponent)),
   Sin(:final expr) ||
   Cos(:final expr) ||
   Tan(:final expr) ||
@@ -1015,7 +1079,7 @@ bool _isSyntacticallyReal(Expr expr) => switch (expr) {
   Erfc(:final expr) ||
   Gamma(:final expr) ||
   Factorial(:final expr) => _isSyntacticallyReal(expr),
-  Ln(:final expr) => _isNonNegativeExpr(expr),
+  Ln(:final expr) => isNonNegativeExpr(expr),
   Binomial(:final left, :final right) ||
   Beta(:final left, :final right) ||
   Mod(

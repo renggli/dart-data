@@ -9,6 +9,7 @@ export 'src/symbolic/algebra/rational.dart'
 export 'src/symbolic/algebra/simplify.dart' show SimplifierExtension;
 export 'src/symbolic/algebra/trig.dart'
     show RewriteTarget, TrigRewriteExtension;
+export 'src/symbolic/assumptions.dart' show Assumptions;
 export 'src/symbolic/ast.dart';
 export 'src/symbolic/budget.dart'
     show ComputationBudget, ComputationLimitException;

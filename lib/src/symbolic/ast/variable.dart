@@ -29,6 +29,10 @@ final class Variable extends Expr {
   /// Assumed mathematical domain of the variable.
   final VariableDomain domain;
 
+  /// Effective mathematical domain of this variable, combining [domain] with
+  /// any active zone-scoped [Assumptions].
+  VariableDomain get effectiveDomain => Assumptions.domainOf(name, domain);
+
   @override
   bool get isSimplified => true;
 
