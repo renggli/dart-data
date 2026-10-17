@@ -49,7 +49,43 @@ void main() {
       check(Expr.parse('sqrt(x)')).equals(Pow(x, FractionNumber.half));
       check(Expr.parse('exp(x)')).equals(Pow(Constant.e, x));
       check(Expr.parse('ln(x)')).equals(Ln(x));
+      check(Expr.parse('log2(x)')).equals(Ln(x) / Ln(IntegerNumber.two));
+      check(Expr.parse('log10(x)')).equals(Ln(x) / Ln(IntegerNumber.of(10)));
       check(Expr.parse('sin(x)')).equals(Sin(x));
+      check(Expr.parse('sec(x)'))
+          .equals(Pow(Cos(x), IntegerNumber.negativeOne));
+      check(Expr.parse('csc(x)'))
+          .equals(Pow(Sin(x), IntegerNumber.negativeOne));
+      check(Expr.parse('cot(x)')).equals(Cos(x) / Sin(x));
+      check(Expr.parse('asec(x)'))
+          .equals(Acos(Pow(x, IntegerNumber.negativeOne)));
+      check(Expr.parse('arcsec(x)'))
+          .equals(Acos(Pow(x, IntegerNumber.negativeOne)));
+      check(Expr.parse('acsc(x)'))
+          .equals(Asin(Pow(x, IntegerNumber.negativeOne)));
+      check(Expr.parse('arccsc(x)'))
+          .equals(Asin(Pow(x, IntegerNumber.negativeOne)));
+      check(Expr.parse('acot(x)'))
+          .equals(Atan(Pow(x, IntegerNumber.negativeOne)));
+      check(Expr.parse('arccot(x)'))
+          .equals(Atan(Pow(x, IntegerNumber.negativeOne)));
+      check(Expr.parse('sech(x)'))
+          .equals(Pow(Cosh(x), IntegerNumber.negativeOne));
+      check(Expr.parse('csch(x)'))
+          .equals(Pow(Sinh(x), IntegerNumber.negativeOne));
+      check(Expr.parse('coth(x)')).equals(Cosh(x) / Sinh(x));
+      check(Expr.parse('asech(x)'))
+          .equals(Acosh(Pow(x, IntegerNumber.negativeOne)));
+      check(Expr.parse('arcsech(x)'))
+          .equals(Acosh(Pow(x, IntegerNumber.negativeOne)));
+      check(Expr.parse('acsch(x)'))
+          .equals(Asinh(Pow(x, IntegerNumber.negativeOne)));
+      check(Expr.parse('arccsch(x)'))
+          .equals(Asinh(Pow(x, IntegerNumber.negativeOne)));
+      check(Expr.parse('acoth(x)'))
+          .equals(Atanh(Pow(x, IntegerNumber.negativeOne)));
+      check(Expr.parse('arccoth(x)'))
+          .equals(Atanh(Pow(x, IntegerNumber.negativeOne)));
       check(Expr.parse('pow(x, 2)')).equals(Pow(x, IntegerNumber.two));
       check(Expr.parse('root(x, 3)'))
           .equals(Pow(x, IntegerNumber.one / IntegerNumber.of(3)));
