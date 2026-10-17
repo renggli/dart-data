@@ -236,8 +236,14 @@ final class Abs extends UnaryExpr {
   new(super.expr, {super.isSimplified = false});
 
   @override
-  double evaluate([Map<String, double> context = const {}]) =>
-      expr.evaluate(context).abs();
+  bool get isReal => true;
+
+  @override
+  double evaluate([Map<String, double> context = const {}]) => expr.isReal
+      ? expr.evaluate(context).abs()
+      : expr.evaluateComplex({
+          for (final e in context.entries) e.key: Complex(e.value),
+        }).abs();
 
   @override
   Expr substitute(String variable, Expr replacement) =>
@@ -262,4 +268,95 @@ final class Ln extends UnaryExpr {
 
   @override
   Expr mapChildren(Expr Function(Expr) transform) => Ln(transform(expr));
+}
+
+/// Real part function node: $\Re(z)$.
+final class Re extends UnaryExpr {
+  /// Creates a real-part node $\Re(\text{expr})$.
+  new(super.expr, {super.isSimplified = false});
+
+  @override
+  bool get isReal => true;
+
+  @override
+  double evaluate([Map<String, double> context = const {}]) => expr.isReal
+      ? expr.evaluate(context)
+      : expr
+            .evaluateComplex({
+              for (final e in context.entries) e.key: Complex(e.value),
+            })
+            .real
+            .toDouble();
+
+  @override
+  Expr substitute(String variable, Expr replacement) =>
+      Re(expr.substitute(variable, replacement));
+
+  @override
+  Expr mapChildren(Expr Function(Expr) transform) => Re(transform(expr));
+}
+
+/// Imaginary part function node: $\Im(z)$.
+final class Im extends UnaryExpr {
+  /// Creates an imaginary-part node $\Im(\text{expr})$.
+  new(super.expr, {super.isSimplified = false});
+
+  @override
+  bool get isReal => true;
+
+  @override
+  double evaluate([Map<String, double> context = const {}]) => expr.isReal
+      ? 0.0
+      : expr
+            .evaluateComplex({
+              for (final e in context.entries) e.key: Complex(e.value),
+            })
+            .imaginary
+            .toDouble();
+
+  @override
+  Expr substitute(String variable, Expr replacement) =>
+      Im(expr.substitute(variable, replacement));
+
+  @override
+  Expr mapChildren(Expr Function(Expr) transform) => Im(transform(expr));
+}
+
+/// Complex argument (phase angle) function node: $\arg(z) \in (-\pi, \pi]$.
+final class Arg extends UnaryExpr {
+  /// Creates a complex argument node $\arg(\text{expr})$.
+  new(super.expr, {super.isSimplified = false});
+
+  @override
+  bool get isReal => true;
+
+  @override
+  double evaluate([Map<String, double> context = const {}]) =>
+      expr.evaluateComplex({
+        for (final e in context.entries) e.key: Complex(e.value),
+      }).arg();
+
+  @override
+  Expr substitute(String variable, Expr replacement) =>
+      Arg(expr.substitute(variable, replacement));
+
+  @override
+  Expr mapChildren(Expr Function(Expr) transform) => Arg(transform(expr));
+}
+
+/// Complex conjugate function node: $\overline{z}$.
+final class Conjugate extends UnaryExpr {
+  /// Creates a complex conjugate node $\overline{\text{expr}}$.
+  new(super.expr, {super.isSimplified = false});
+
+  @override
+  double evaluate([Map<String, double> context = const {}]) =>
+      expr.evaluate(context);
+
+  @override
+  Expr substitute(String variable, Expr replacement) =>
+      Conjugate(expr.substitute(variable, replacement));
+
+  @override
+  Expr mapChildren(Expr Function(Expr) transform) => Conjugate(transform(expr));
 }

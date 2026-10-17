@@ -74,6 +74,10 @@ Complex _evalComplex(Expr expr, Map<String, Complex> context) => switch (expr) {
   }(),
   Abs(:final expr) => Complex(_evalComplex(expr, context).abs()),
   Ln(:final expr) => _evalComplex(expr, context).log(),
+  Re(:final expr) => Complex(_evalComplex(expr, context).real),
+  Im(:final expr) => Complex(_evalComplex(expr, context).imaginary),
+  Arg(:final expr) => Complex(_evalComplex(expr, context).arg()),
+  Conjugate(:final expr) => _evalComplex(expr, context).conjugate(),
   Erf(:final expr) => () {
     final z = _evalComplex(expr, context);
     if (z.b == 0.0) {

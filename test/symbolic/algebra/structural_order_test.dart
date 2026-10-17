@@ -41,18 +41,22 @@ void main() {
         Round(x), // 29
         Sign(x), // 30
         Mod(x, x), // 31
-        LessThan(x, IntegerNumber.one), // 32
-        LessEqual(x, IntegerNumber.one), // 33
-        GreaterThan(x, IntegerNumber.one), // 34
-        GreaterEqual(x, IntegerNumber.one), // 35
-        Equal(x, IntegerNumber.one), // 36
-        NotEqual(x, IntegerNumber.one), // 37
-        Piecewise([(relation: LessThan(x, IntegerNumber.zero), expr: x)]), // 38
-        Integral(x, 'x'), // 39
-        Derivative(x, 'x'), // 40
-        Limit(x, 'x', IntegerNumber.zero), // 41
-        const OrderTerm('x', 3), // 42
-        VariableFunction('f', const [x]), // 43
+        Re(x), // 32
+        Im(x), // 33
+        Arg(x), // 34
+        Conjugate(x), // 35
+        LessThan(x, IntegerNumber.one), // 36
+        LessEqual(x, IntegerNumber.one), // 37
+        GreaterThan(x, IntegerNumber.one), // 38
+        GreaterEqual(x, IntegerNumber.one), // 39
+        Equal(x, IntegerNumber.one), // 40
+        NotEqual(x, IntegerNumber.one), // 41
+        Piecewise([(relation: LessThan(x, IntegerNumber.zero), expr: x)]), // 42
+        Integral(x, 'x'), // 43
+        Derivative(x, 'x'), // 44
+        Limit(x, 'x', IntegerNumber.zero), // 45
+        const OrderTerm('x', 3), // 46
+        VariableFunction('f', const [x]), // 47
       ];
 
       for (var i = 0; i < allVariants.length; i++) {

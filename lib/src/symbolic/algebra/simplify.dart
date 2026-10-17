@@ -27,6 +27,14 @@ extension SimplifierExtension on Expr {
   /// final s = expr.simplify(); // 3 + 2 * x
   /// ```
   Expr simplify() => simplifyExpr(this);
+
+  /// Rewrites this expression into rectangular complex normal form $a + b i$,
+  /// where $a = \Re(\text{this})$ and $b = \Im(\text{this})$.
+  Expr toRectangular() => toRectangularExpr(this);
+
+  /// Rewrites this expression into polar complex normal form $r e^{i \theta}$,
+  /// where $r = |\text{this}|$ and $\theta = \arg(\text{this})$.
+  Expr toPolar() => toPolarExpr(this);
 }
 
 /// Recursively evaluates and canonically simplifies [expr].
@@ -63,6 +71,10 @@ Expr simplifyExpr(Expr expr) {
     Tanh(:final expr) => simplifyTanh(simplifyExpr(expr)),
     Abs(:final expr) => simplifyAbs(simplifyExpr(expr)),
     Ln(:final expr) => simplifyLn(simplifyExpr(expr)),
+    Re(:final expr) => simplifyRe(simplifyExpr(expr)),
+    Im(:final expr) => simplifyIm(simplifyExpr(expr)),
+    Arg(:final expr) => simplifyArg(simplifyExpr(expr)),
+    Conjugate(:final expr) => simplifyConjugate(simplifyExpr(expr)),
     LambertW(:final expr, :final branch) => simplifyLambertW(
       simplifyExpr(expr),
       branch,

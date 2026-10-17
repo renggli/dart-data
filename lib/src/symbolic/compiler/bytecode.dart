@@ -124,6 +124,18 @@ enum Op {
   /// Modulo (`mod(a, b)`).
   mod,
 
+  /// Real part (`re(a)`).
+  re,
+
+  /// Imaginary part (`im(a)`).
+  im,
+
+  /// Complex argument (`arg(a)`).
+  arg,
+
+  /// Complex conjugate (`conj(a)`).
+  conj,
+
   /// Inverse hyperbolic sine (`asinh(a)`).
   asinh,
 
@@ -353,6 +365,18 @@ BytecodeEvaluator compileToBytecode(
       case Abs(:final expr):
         emit(expr);
         instructions.add(const Instruction.op(Op.abs));
+      case Re(:final expr):
+        emit(expr);
+        instructions.add(const Instruction.op(Op.re));
+      case Im(:final expr):
+        emit(expr);
+        instructions.add(const Instruction.op(Op.im));
+      case Arg(:final expr):
+        emit(expr);
+        instructions.add(const Instruction.op(Op.arg));
+      case Conjugate(:final expr):
+        emit(expr);
+        instructions.add(const Instruction.op(Op.conj));
       case LambertW(:final expr, :final branch):
         emit(expr);
         instructions.add(
@@ -581,6 +605,10 @@ int _computeMaxStack(List<Instruction> instructions) {
           Op.ceil ||
           Op.round ||
           Op.sign ||
+          Op.re ||
+          Op.im ||
+          Op.arg ||
+          Op.conj ||
           Op.asinh ||
           Op.acosh ||
           Op.atanh:

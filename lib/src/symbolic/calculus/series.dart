@@ -540,6 +540,10 @@ PowerSeries _expandToPowerSeries(
     order,
   ),
 
+  Re() ||
+  Im() ||
+  Arg() ||
+  Conjugate() ||
   Gamma() ||
   Beta() ||
   Factorial() ||

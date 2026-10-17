@@ -2,6 +2,7 @@ import 'dart:math' as math;
 
 import 'package:checks/checks.dart';
 import 'package:data/symbolic.dart';
+import 'package:data/type.dart';
 import 'package:test/test.dart';
 
 void main() {
@@ -63,6 +64,84 @@ void main() {
       check(Atanh(x).evaluate({'x': 1.5}).isNaN).isTrue();
       check(Atanh(x).evaluate({'x': 1.0})).equals(double.infinity);
       check(Atanh(x).evaluate({'x': -1.0})).equals(double.negativeInfinity);
+    });
+  });
+
+  group('Complex-part functions and normal forms', () {
+    test(
+      'Re, Im, Arg, and Conjugate simplification, formatting, and evaluation',
+      () {
+        const x = Variable('x');
+        const z = Variable('z', domain: VariableDomain.complex);
+
+        check(Expr.parse('re(3 + 4 * i)').simplify())
+            .equals(IntegerNumber.of(3));
+        check(Expr.parse('im(3 + 4 * i)').simplify())
+            .equals(IntegerNumber.of(4));
+        check(Expr.parse('conj(3 + 4 * i)').simplify())
+            .equals(Expr.parse('3 - 4 * i').simplify());
+        check(Expr.parse('abs(3 + 4 * i)').simplify())
+            .equals(IntegerNumber.of(5));
+        check(Expr.parse('arg(1 + i)').simplify().toString())
+            .equals('1/4 * pi');
+        check(Expr.parse('arg(-1)').simplify()).equals(Constant.pi);
+        check(Expr.parse('arg(i)').simplify().toString()).equals('1/2 * pi');
+        check(Expr.parse('arg(-i)').simplify().toString()).equals('-1/2 * pi');
+
+        // Real variables simplify directly
+        check(Re(x).simplify()).equals(x);
+        check(Im(x).simplify()).equals(IntegerNumber.zero);
+        check(Conjugate(x).simplify()).equals(x);
+        check(Expr.parse('re(exp(i * x))').simplify()).equals(Cos(x));
+        check(Expr.parse('im(exp(i * x))').simplify()).equals(Sin(x));
+        check(Expr.parse('abs(exp(i * x))').simplify())
+            .equals(IntegerNumber.one);
+
+        // Complex variable remains symbolic
+        check(Re(z).simplify()).equals(Re(z, isSimplified: true));
+        check(Im(z).simplify()).equals(Im(z, isSimplified: true));
+        check(Conjugate(z).simplify()).equals(Conjugate(z, isSimplified: true));
+        check(Conjugate(Conjugate(z)).simplify()).equals(z);
+        check(Re(Conjugate(z)).simplify()).equals(Re(z, isSimplified: true));
+        check(Im(Conjugate(z)).simplify())
+            .equals((-Im(z, isSimplified: true)).simplify());
+
+        // Textualization and round-trip
+        for (final source in ['re(z)', 'im(z)', 'arg(z)', 'conj(z)']) {
+          final parsed = Expr.parse(source);
+          check(Expr.parse(parsed.toString())).equals(parsed);
+        }
+        check(Re(z).toLatex()).equals(r'\operatorname{Re}(z)');
+        check(Im(z).toLatex()).equals(r'\operatorname{Im}(z)');
+        check(Arg(z).toLatex()).equals(r'\arg(z)');
+        check(Conjugate(z).toLatex()).equals(r'\overline{z}');
+        check(Conjugate(z).toMathMl()).equals(
+          '<math><mover><mrow><mi>z</mi></mrow><mo>&macr;</mo></mover></math>',
+        );
+
+        // Bytecode compilation
+        final reFn = Re(z).toComplexFunction1D('z');
+        final imFn = Im(z).toComplexFunction1D('z');
+        final conjFn = Conjugate(z).toComplexFunction1D('z');
+        check(reFn(Complex(3, 4))).equals(Complex(3));
+        check(imFn(Complex(3, 4))).equals(Complex(4));
+        check(conjFn(Complex(3, 4))).equals(Complex(3, -4));
+      },
+    );
+
+    test('toRectangular and toPolar normal forms', () {
+      check(Expr.parse('(x + i * y)^2').toRectangular().toString())
+          .equals('x ^ 2 - y ^ 2 + 2 * i * x * y');
+      check(Expr.parse('exp(i * x)').toRectangular().toString())
+          .equals('cos(x) + i * sin(x)');
+      check(Expr.parse('1 / (x + i * y)').toRectangular().toString())
+          .equals('x / (x ^ 2 + y ^ 2) - i * y / (x ^ 2 + y ^ 2)');
+
+      check(Expr.parse('1 + i').toPolar().toString())
+          .equals('sqrt(2) * exp(1/4 * i * pi)');
+      check(Expr.parse('-2').toPolar().toString()).equals('2 * exp(i * pi)');
+      check(Expr.parse('3').toPolar()).equals(IntegerNumber.of(3));
+      check(Expr.parse('0').toPolar()).equals(IntegerNumber.zero);
     });
   });
 }

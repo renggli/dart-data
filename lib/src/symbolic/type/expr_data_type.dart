@@ -180,7 +180,7 @@ final class ExprField implements ExtendedField<Expr> {
   Expr log(Expr a) => Ln(a).simplify();
 
   @override
-  Expr conjugate(Expr a) => _conjugate(a).simplify();
+  Expr conjugate(Expr a) => Conjugate(a).simplify();
 
   @override
   Expr mod(Expr a, Expr b) => unsupportedOperation('mod');
@@ -219,10 +219,4 @@ final class ExprField implements ExtendedField<Expr> {
       a == IntegerNumber.zero ||
       (a is Number && a.isZero) ||
       a.simplify() == IntegerNumber.zero;
-
-  static Expr _conjugate(Expr expr) => switch (expr) {
-    ComplexNumber() => expr.conjugate,
-    OrderTerm() => expr,
-    _ => expr.mapChildren(_conjugate),
-  };
 }

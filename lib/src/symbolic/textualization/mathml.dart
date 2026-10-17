@@ -95,6 +95,14 @@ String _toMathMl(Expr expr) => switch (expr) {
     '<mrow><mi>sgn</mi><mo>(</mo>${_toMathMl(expr)}<mo>)</mo></mrow>',
   Mod(:final left, :final right) =>
     '<mrow>${_formatMulLeft(left)}<mo>mod</mo>${_formatMulRight(right)}</mrow>',
+  Re(:final expr) =>
+    '<mrow><mi>Re</mi><mo>(</mo>${_toMathMl(expr)}<mo>)</mo></mrow>',
+  Im(:final expr) =>
+    '<mrow><mi>Im</mi><mo>(</mo>${_toMathMl(expr)}<mo>)</mo></mrow>',
+  Arg(:final expr) =>
+    '<mrow><mi>arg</mi><mo>(</mo>${_toMathMl(expr)}<mo>)</mo></mrow>',
+  Conjugate(:final expr) =>
+    '<mover><mrow>${_toMathMl(expr)}</mrow><mo>&macr;</mo></mover>',
   Asinh(:final expr) =>
     '<mrow><mi>asinh</mi><mo>(</mo>${_toMathMl(expr)}<mo>)</mo></mrow>',
   Acosh(:final expr) =>

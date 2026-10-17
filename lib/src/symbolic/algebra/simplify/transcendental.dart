@@ -258,10 +258,27 @@ Expr simplifyAbs(Expr expr) {
   if (expr is RealNumber) {
     return RealNumber(expr.value.abs());
   }
+  if (expr case ComplexNumber(:final real, :final imaginary)) {
+    return simplifyPow(
+      simplifyAdd([
+        simplifyPow(real, IntegerNumber.two),
+        simplifyPow(imaginary, IntegerNumber.two),
+      ]),
+      FractionNumber.half,
+    );
+  }
   // Parity: |-u| = |u|
   final (posExpr, isNeg) = extractSign(expr);
   if (isNeg) {
     return simplifyAbs(posExpr);
+  }
+
+  if (expr case Pow(base: Constant.e, :final exponent) when !exponent.isReal) {
+    final reExp = simplifyRe(exponent);
+    if (reExp is Number && reExp.isZero) {
+      return IntegerNumber.one;
+    }
+    return simplifyPow(Constant.e, reExp);
   }
 
   if (_isNonNegativeExpr(expr)) {
@@ -276,10 +293,10 @@ bool _isNonNegativeExpr(Expr expr) => switch (expr) {
   Constant(:final value) => value.b == 0 && value.a >= 0,
   Variable(:final domain) => domain == VariableDomain.positive,
   Abs() => true,
-  Pow(base: Constant.e) => true,
+  Pow(base: Constant.e, :final exponent) => exponent.isReal,
   Pow(:final base, :final exponent) =>
     _isNonNegativeExpr(base) ||
-        (exponent is IntegerNumber && exponent.value.isEven),
+        (base.isReal && exponent is IntegerNumber && exponent.value.isEven),
   Mul(:final factors) => factors.every(_isNonNegativeExpr),
   _ => false,
 };
@@ -778,4 +795,354 @@ Expr simplifyMod(Expr left, Expr right) {
     return RealNumber.fromDouble(a - b * (a / b).floorToDouble());
   }
   return Mod(left, right, isSimplified: true);
+}
+
+/// Simplifies a real-part expression $\Re(z)$.
+Expr simplifyRe(Expr expr) {
+  switch (expr) {
+    case RealNumeric():
+      return expr;
+    case ComplexNumber(:final real):
+      return real;
+    case Re() || Im() || Arg() || Abs():
+      return expr;
+    case Conjugate(:final expr):
+      return simplifyRe(expr);
+    case Add(:final terms):
+      return simplifyAdd([for (final term in terms) simplifyRe(term)]);
+    case _:
+      if (_isSyntacticallyReal(expr)) {
+        return expr;
+      }
+      final (:re, :im) = _decomposeComplex(expr);
+      if (re is! Re || re.expr != expr || im != IntegerNumber.zero) {
+        return re;
+      }
+      return Re(expr, isSimplified: true);
+  }
+}
+
+/// Simplifies an imaginary-part expression $\Im(z)$.
+Expr simplifyIm(Expr expr) {
+  switch (expr) {
+    case RealNumeric() || Re() || Im() || Arg() || Abs():
+      return IntegerNumber.zero;
+    case ComplexNumber(:final imaginary):
+      return imaginary;
+    case Conjugate(:final expr):
+      return simplifyNeg(simplifyIm(expr));
+    case Add(:final terms):
+      return simplifyAdd([for (final term in terms) simplifyIm(term)]);
+    case _:
+      if (_isSyntacticallyReal(expr)) {
+        return IntegerNumber.zero;
+      }
+      final (:re, :im) = _decomposeComplex(expr);
+      if (im is! Im || im.expr != expr || re != IntegerNumber.zero) {
+        return im;
+      }
+      return Im(expr, isSimplified: true);
+  }
+}
+
+/// Simplifies a complex argument expression $\arg(z)$.
+Expr simplifyArg(Expr expr) {
+  switch (expr) {
+    case RealNumeric(:final isNegative):
+      return isNegative ? Constant.pi : IntegerNumber.zero;
+    case ComplexNumber(:final real, :final imaginary):
+      if (real.isZero) {
+        final coeff = imaginary.isNegative
+            ? FractionNumber.negativeHalf
+            : FractionNumber.half;
+        return Mul([coeff, Constant.pi], isSimplified: true);
+      }
+      if (real == imaginary) {
+        final coeff = real.isNegative
+            ? RationalNumber(-3, 4)
+            : RationalNumber(1, 4);
+        return Mul([coeff, Constant.pi], isSimplified: true);
+      }
+      if (real == imaginary.neg()) {
+        final coeff = real.isNegative
+            ? RationalNumber(3, 4)
+            : RationalNumber(-1, 4);
+        return Mul([coeff, Constant.pi], isSimplified: true);
+      }
+      return simplifyAtan(
+            simplifyMul([
+              imaginary,
+              simplifyPow(real, IntegerNumber.negativeOne),
+            ]),
+          ) +
+          (real.isNegative
+              ? (imaginary.isNegative ? -Constant.pi : Constant.pi)
+              : IntegerNumber.zero);
+    case Conjugate(:final expr):
+      return simplifyNeg(simplifyArg(expr));
+    case _:
+      if (_isNonNegativeExpr(expr)) {
+        return IntegerNumber.zero;
+      }
+      return Arg(expr, isSimplified: true);
+  }
+}
+
+/// Simplifies a complex conjugate expression $\overline{z}$.
+Expr simplifyConjugate(Expr expr) {
+  switch (expr) {
+    case RealNumeric() || Re() || Im() || Arg() || Abs() || OrderTerm():
+      return expr;
+    case ComplexNumber():
+      return expr.conjugate;
+    case Conjugate(:final expr):
+      return expr;
+    case Add(:final terms):
+      return simplifyAdd([for (final term in terms) simplifyConjugate(term)]);
+    case Mul(:final factors):
+      return simplifyMul([
+        for (final factor in factors) simplifyConjugate(factor),
+      ]);
+    case Pow(base: Constant.e, :final exponent):
+      return simplifyPow(Constant.e, simplifyConjugate(exponent));
+    case Pow(:final base, :final exponent) when exponent is IntegerNumber:
+      return simplifyPow(simplifyConjugate(base), exponent);
+    case Sin(:final expr):
+      return simplifySin(simplifyConjugate(expr));
+    case Cos(:final expr):
+      return simplifyCos(simplifyConjugate(expr));
+    case Tan(:final expr):
+      return simplifyTan(simplifyConjugate(expr));
+    case Sinh(:final expr):
+      return simplifySinh(simplifyConjugate(expr));
+    case Cosh(:final expr):
+      return simplifyCosh(simplifyConjugate(expr));
+    case Tanh(:final expr):
+      return simplifyTanh(simplifyConjugate(expr));
+    case _:
+      if (_isSyntacticallyReal(expr)) {
+        return expr;
+      }
+      return Conjugate(expr, isSimplified: true);
+  }
+}
+
+/// Rewrites [expr] into rectangular normal form $a + b i$.
+Expr toRectangularExpr(Expr expr) {
+  final simplified = simplifyExpr(expr);
+  final (:re, :im) = _decomposeComplex(simplified);
+  if (im is Number && im.isZero) {
+    return re;
+  }
+  if (re is RealNumeric && im is RealNumeric) {
+    return ComplexNumber.of(re, im);
+  }
+  final imTerm = simplifyMul([ComplexNumber.i, im]);
+  if (re is Number && re.isZero) {
+    return imTerm;
+  }
+  return Add([
+    if (re case Add(:final terms)) ...terms else re,
+    if (imTerm case Add(:final terms)) ...terms else imTerm,
+  ], isSimplified: true);
+}
+
+/// Rewrites [expr] into polar normal form $r e^{i \theta}$.
+Expr toPolarExpr(Expr expr) {
+  final simplified = simplifyExpr(expr);
+  if (simplified is Number && simplified.isZero) {
+    return IntegerNumber.zero;
+  }
+  final (:re, :im) = _decomposeComplex(simplified);
+  var r = simplifyAbs(simplified);
+  if (r is Abs && !(im is Number && im.isZero)) {
+    r = simplifyPow(
+      simplifyAdd([
+        simplifyPow(re, IntegerNumber.two),
+        simplifyPow(im, IntegerNumber.two),
+      ]),
+      FractionNumber.half,
+    );
+  }
+  if (r is Number && r.isZero) {
+    return IntegerNumber.zero;
+  }
+  var theta = simplifyArg(simplified);
+  if (theta is Arg && re is RealNumeric && im is RealNumeric && !im.isZero) {
+    theta = simplifyArg(ComplexNumber.of(re, im));
+  }
+  if (theta is Number && theta.isZero) {
+    return r;
+  }
+  final expPart = simplifyPow(
+    Constant.e,
+    simplifyMul([ComplexNumber.i, theta]),
+  );
+  if (r is Number && r.isOne) {
+    return expPart;
+  }
+  return simplifyMul([r, expPart]);
+}
+
+bool _isSyntacticallyReal(Expr expr) => switch (expr) {
+  RealNumeric() => true,
+  ComplexNumber() => false,
+  Constant(:final isReal) => isReal,
+  Variable(:final domain) => domain != VariableDomain.complex,
+  Re() ||
+  Im() ||
+  Arg() ||
+  Abs() ||
+  Floor() ||
+  Ceil() ||
+  Round() ||
+  Sign() => true,
+  Add(:final terms) => terms.every(_isSyntacticallyReal),
+  Mul(:final factors) => factors.every(_isSyntacticallyReal),
+  Pow(base: Constant.e, :final exponent) => _isSyntacticallyReal(exponent),
+  Pow(:final base, :final exponent) =>
+    (_isSyntacticallyReal(base) && exponent is IntegerNumber) ||
+        (_isNonNegativeExpr(base) && _isSyntacticallyReal(exponent)),
+  Sin(:final expr) ||
+  Cos(:final expr) ||
+  Tan(:final expr) ||
+  Atan(:final expr) ||
+  Sinh(:final expr) ||
+  Cosh(:final expr) ||
+  Tanh(:final expr) ||
+  Asinh(:final expr) ||
+  Erf(:final expr) ||
+  Erfc(:final expr) ||
+  Gamma(:final expr) ||
+  Factorial(:final expr) => _isSyntacticallyReal(expr),
+  Ln(:final expr) => _isNonNegativeExpr(expr),
+  Binomial(:final left, :final right) ||
+  Beta(:final left, :final right) ||
+  Mod(
+    :final left,
+    :final right,
+  ) => _isSyntacticallyReal(left) && _isSyntacticallyReal(right),
+  _ => false,
+};
+
+({Expr re, Expr im}) _decomposeComplex(Expr expr) {
+  if (_isSyntacticallyReal(expr)) {
+    return (re: expr, im: IntegerNumber.zero);
+  }
+  switch (expr) {
+    case RealNumeric():
+      return (re: expr, im: IntegerNumber.zero);
+    case ComplexNumber(:final real, :final imaginary):
+      return (re: real, im: imaginary);
+    case Constant(:final value):
+      return (
+        re: RealNumber.fromDouble(value.real.toDouble()),
+        im: RealNumber.fromDouble(value.imaginary.toDouble()),
+      );
+    case Variable():
+      return (
+        re: Re(expr, isSimplified: true),
+        im: Im(expr, isSimplified: true),
+      );
+    case Conjugate(:final expr):
+      final (:re, :im) = _decomposeComplex(expr);
+      return (re: re, im: simplifyNeg(im));
+    case Re(:final expr):
+      return (re: _decomposeComplex(expr).re, im: IntegerNumber.zero);
+    case Im(:final expr):
+      return (re: _decomposeComplex(expr).im, im: IntegerNumber.zero);
+    case Add(:final terms):
+      final reTerms = <Expr>[];
+      final imTerms = <Expr>[];
+      for (final term in terms) {
+        final (:re, :im) = _decomposeComplex(term);
+        reTerms.add(re);
+        imTerms.add(im);
+      }
+      return (re: simplifyAdd(reTerms), im: simplifyAdd(imTerms));
+    case Mul(:final factors):
+      var accRe = IntegerNumber.one as Expr;
+      var accIm = IntegerNumber.zero as Expr;
+      for (final factor in factors) {
+        final (:re, :im) = _decomposeComplex(factor);
+        final nextRe = simplifyAdd([
+          simplifyMul([accRe, re]),
+          simplifyNeg(simplifyMul([accIm, im])),
+        ]);
+        final nextIm = simplifyAdd([
+          simplifyMul([accRe, im]),
+          simplifyMul([accIm, re]),
+        ]);
+        accRe = nextRe;
+        accIm = nextIm;
+      }
+      return (re: accRe, im: accIm);
+    case Pow(base: Constant.e, :final exponent):
+      final (:re, :im) = _decomposeComplex(exponent);
+      final mag = simplifyPow(Constant.e, re);
+      return (
+        re: simplifyMul([mag, simplifyCos(im)]),
+        im: simplifyMul([mag, simplifySin(im)]),
+      );
+    case Pow(:final base, exponent: IntegerNumber(asInt: final n?))
+        when n >= -6 && n <= 6:
+      final (:re, :im) = _decomposeComplex(base);
+      if (n == 0) return (re: IntegerNumber.one, im: IntegerNumber.zero);
+      final absN = n.abs();
+      var powRe = re;
+      var powIm = im;
+      for (var i = 1; i < absN; i++) {
+        final nextRe = simplifyAdd([
+          simplifyMul([powRe, re]),
+          simplifyNeg(simplifyMul([powIm, im])),
+        ]);
+        final nextIm = simplifyAdd([
+          simplifyMul([powRe, im]),
+          simplifyMul([powIm, re]),
+        ]);
+        powRe = nextRe;
+        powIm = nextIm;
+      }
+      if (n < 0) {
+        final denom = simplifyAdd([
+          simplifyPow(powRe, IntegerNumber.two),
+          simplifyPow(powIm, IntegerNumber.two),
+        ]);
+        final invDenom = simplifyPow(denom, IntegerNumber.negativeOne);
+        return (
+          re: simplifyMul([powRe, invDenom]),
+          im: simplifyNeg(simplifyMul([powIm, invDenom])),
+        );
+      }
+      return (re: powRe, im: powIm);
+    case Sin(:final expr):
+      final (:re, :im) = _decomposeComplex(expr);
+      return (
+        re: simplifyMul([simplifySin(re), simplifyCosh(im)]),
+        im: simplifyMul([simplifyCos(re), simplifySinh(im)]),
+      );
+    case Cos(:final expr):
+      final (:re, :im) = _decomposeComplex(expr);
+      return (
+        re: simplifyMul([simplifyCos(re), simplifyCosh(im)]),
+        im: simplifyNeg(simplifyMul([simplifySin(re), simplifySinh(im)])),
+      );
+    case Sinh(:final expr):
+      final (:re, :im) = _decomposeComplex(expr);
+      return (
+        re: simplifyMul([simplifySinh(re), simplifyCos(im)]),
+        im: simplifyMul([simplifyCosh(re), simplifySin(im)]),
+      );
+    case Cosh(:final expr):
+      final (:re, :im) = _decomposeComplex(expr);
+      return (
+        re: simplifyMul([simplifyCosh(re), simplifyCos(im)]),
+        im: simplifyMul([simplifySinh(re), simplifySin(im)]),
+      );
+    default:
+      return (
+        re: Re(expr, isSimplified: true),
+        im: Im(expr, isSimplified: true),
+      );
+  }
 }

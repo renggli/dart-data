@@ -57,6 +57,10 @@ String formatExpr(Expr expr, [int parentPrec = 0]) {
     Sign(:final expr) => 'sign(${formatExpr(expr)})',
     Mod(:final left, :final right) =>
       'mod(${formatExpr(left)}, ${formatExpr(right)})',
+    Re(:final expr) => 're(${formatExpr(expr)})',
+    Im(:final expr) => 'im(${formatExpr(expr)})',
+    Arg(:final expr) => 'arg(${formatExpr(expr)})',
+    Conjugate(:final expr) => 'conj(${formatExpr(expr)})',
     Asinh(:final expr) => 'asinh(${formatExpr(expr)})',
     Acosh(:final expr) => 'acosh(${formatExpr(expr)})',
     Atanh(:final expr) => 'atanh(${formatExpr(expr)})',

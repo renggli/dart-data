@@ -63,6 +63,10 @@ String _toLatex(Expr expr) => switch (expr) {
   Sign(:final expr) => '\\operatorname{sgn}(${_toLatex(expr)})',
   Mod(:final left, :final right) =>
     '${_formatMulLeft(left)} \\bmod ${_formatMulRight(right)}',
+  Re(:final expr) => '\\operatorname{Re}(${_toLatex(expr)})',
+  Im(:final expr) => '\\operatorname{Im}(${_toLatex(expr)})',
+  Arg(:final expr) => '\\arg(${_toLatex(expr)})',
+  Conjugate(:final expr) => '\\overline{${_toLatex(expr)}}',
   Asinh(:final expr) => '\\operatorname{arsinh}(${_toLatex(expr)})',
   Acosh(:final expr) => '\\operatorname{arcosh}(${_toLatex(expr)})',
   Atanh(:final expr) => '\\operatorname{artanh}(${_toLatex(expr)})',

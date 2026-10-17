@@ -287,6 +287,13 @@ final class BytecodeEvaluator {
           stack[sp++] = (a.isNaN || b.isNaN || b == 0.0)
               ? double.nan
               : a - b * (a / b).floorToDouble();
+        case Op.re || Op.conj:
+          break;
+        case Op.im:
+          stack[sp - 1] = stack[sp - 1].isNaN ? double.nan : 0.0;
+        case Op.arg:
+          final v = stack[sp - 1];
+          stack[sp - 1] = v.isNaN ? double.nan : (v < 0.0 ? math.pi : 0.0);
         case Op.asinh:
           final v = stack[sp - 1];
           stack[sp - 1] = math.log(v + math.sqrt(v * v + 1.0));
@@ -540,6 +547,14 @@ final class BytecodeEvaluator {
                 ? double.nan
                 : a - b * (a / b).floorToDouble(),
           );
+        case Op.re:
+          stack[sp - 1] = Complex(stack[sp - 1].real);
+        case Op.im:
+          stack[sp - 1] = Complex(stack[sp - 1].imaginary);
+        case Op.arg:
+          stack[sp - 1] = Complex(stack[sp - 1].arg());
+        case Op.conj:
+          stack[sp - 1] = stack[sp - 1].conjugate();
         case Op.asinh:
           final z = stack[sp - 1];
           stack[sp - 1] = (z + (z * z + Complex.one).sqrt()).log();
