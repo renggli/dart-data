@@ -320,7 +320,8 @@ Expr? _antiDerivAtanh(Expr inner, String variable) =>
 Expr _antiDerivPiecewise(Piecewise expr, String variable) {
   final m = expr.branches.length;
   final rawG = <Expr>[
-    for (var i = 0; i < m; i++) _antiDerivative(expr.branches[i].$2, variable),
+    for (var i = 0; i < m; i++)
+      _antiDerivative(expr.branches[i].expr, variable),
   ];
   final rawOth = expr.otherwise != null
       ? _antiDerivative(expr.otherwise!, variable)
@@ -328,7 +329,7 @@ Expr _antiDerivPiecewise(Piecewise expr, String variable) {
 
   final constants = <Expr>[IntegerNumber.zero];
   for (var k = 0; k < m - 1; k++) {
-    final pt = _extractBoundaryPoint(expr.branches[k].$1, variable);
+    final pt = _extractBoundaryPoint(expr.branches[k].relation, variable);
     if (pt != null) {
       final vLeft = (rawG[k].substitute(variable, pt) + constants[k])
           .simplify();
@@ -341,7 +342,7 @@ Expr _antiDerivPiecewise(Piecewise expr, String variable) {
 
   Expr? constOth;
   if (rawOth != null && m > 0) {
-    final pt = _extractBoundaryPoint(expr.branches[m - 1].$1, variable);
+    final pt = _extractBoundaryPoint(expr.branches[m - 1].relation, variable);
     if (pt != null) {
       final vLeft = (rawG[m - 1].substitute(variable, pt) + constants[m - 1])
           .simplify();
@@ -352,9 +353,12 @@ Expr _antiDerivPiecewise(Piecewise expr, String variable) {
     }
   }
 
-  final newBranches = <(RelationalExpr, Expr)>[
+  final newBranches = <PiecewiseBranch>[
     for (var i = 0; i < m; i++)
-      (expr.branches[i].$1, (rawG[i] + constants[i]).simplify()),
+      (
+        relation: expr.branches[i].relation,
+        expr: (rawG[i] + constants[i]).simplify(),
+      ),
   ];
   final newOtherwise = rawOth != null
       ? (rawOth + (constOth ?? IntegerNumber.zero)).simplify()

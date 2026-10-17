@@ -144,10 +144,12 @@ void main() {
 
         check(result.estimate).isCloseTo(50.28, 0.1);
         check(result.standardError).isGreaterThan(0.1);
-        check(result.percentileInterval.$1).isLessThan(result.estimate);
-        check(result.percentileInterval.$2).isGreaterThan(result.estimate);
-        check(result.bcaInterval.$1).isLessThan(result.estimate);
-        check(result.bcaInterval.$2).isGreaterThan(result.estimate);
+        final (pLow, pHigh) = result.percentileInterval;
+        final (bcaLow, bcaHigh) = result.bcaInterval;
+        check(pLow).isLessThan(result.estimate);
+        check(pHigh).isGreaterThan(result.estimate);
+        check(bcaLow).isLessThan(result.estimate);
+        check(bcaHigh).isGreaterThan(result.estimate);
         check(result.toString()).contains('estimate');
       });
 

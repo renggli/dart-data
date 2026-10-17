@@ -54,24 +54,23 @@ void main() {
     ];
 
     test('gamma', () {
-      for (final tuple in gammaTuples) {
-        if (tuple.$2.isNaN) {
-          check(because: 'gamma(${tuple.$1})', gamma(tuple.$1)).isNaN();
+      for (final (x, expected) in gammaTuples) {
+        if (expected.isNaN) {
+          check(because: 'gamma($x)', gamma(x)).isNaN();
         } else {
-          check(
-            because: 'gamma(${tuple.$1})',
-            gamma(tuple.$1),
-          ).isCloseTo(tuple.$2, 1e-4);
+          check(because: 'gamma($x)', gamma(x)).isCloseTo(expected, 1e-4);
         }
       }
     });
 
     test('gammaLn', () {
-      for (final tuple in gammaTuples.where((tuple) => tuple.$1 > 0)) {
-        check(
-          because: 'gammaLn(${tuple.$1})',
-          gammaLn(tuple.$1),
-        ).isCloseTo(math.log(tuple.$2), 1e-6);
+      for (final (x, expected) in gammaTuples) {
+        if (x > 0) {
+          check(
+            because: 'gammaLn($x)',
+            gammaLn(x),
+          ).isCloseTo(math.log(expected), 1e-6);
+        }
       }
       check(gammaLn(0)).isNaN();
       check(gammaLn(-1)).isNaN();

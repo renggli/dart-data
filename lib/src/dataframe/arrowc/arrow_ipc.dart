@@ -319,13 +319,15 @@ class _ArrowIpcStreamWriter {
 
     // Struct vectors for FieldNodes and Buffers
     final nodesVecOffset = fb.addStructVector(nodes, (node, writer) {
-      writer.putInt64(node.$2);
-      writer.putInt64(node.$1);
+      final (nullCount, length) = node;
+      writer.putInt64(length);
+      writer.putInt64(nullCount);
     }, 16);
 
     final buffersVecOffset = fb.addStructVector(buffers, (b, writer) {
-      writer.putInt64(b.$2);
-      writer.putInt64(b.$1);
+      final (offset, length) = b;
+      writer.putInt64(length);
+      writer.putInt64(offset);
     }, 16);
 
     // RecordBatch table: length (int64), nodes (vector), buffers (vector)

@@ -100,7 +100,7 @@ String _toMathMl(Expr expr) => switch (expr) {
     '<mrow>${_toMathMl(left)}<mo>=</mo>${_toMathMl(right)}</mrow>',
   Piecewise(:final branches, :final otherwise) =>
     '<mrow><mo>{</mo><mtable>'
-        '${branches.map((b) => '<mtr><mtd>${_toMathMl(b.$2)}</mtd><mtd><mtext>if&#x00a0;</mtext>${_toMathMl(b.$1)}</mtd></mtr>').join()}'
+        '${branches.map((b) => '<mtr><mtd>${_toMathMl(b.expr)}</mtd><mtd><mtext>if&#x00a0;</mtext>${_toMathMl(b.relation)}</mtd></mtr>').join()}'
         '${otherwise != null ? '<mtr><mtd>${_toMathMl(otherwise)}</mtd><mtd><mtext>otherwise</mtext></mtd></mtr>' : ''}'
         '</mtable></mrow>',
   Integral(:final integrand, :final variable, :final lower, :final upper) =>

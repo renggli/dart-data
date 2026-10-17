@@ -47,9 +47,10 @@ class CooMatrix<T> implements LinearOperator<T> {
     final list = entries.toList(growable: false);
     final effectiveType =
         type ??
-        (list.isNotEmpty
-            ? DataType.fromInstance(list.first.$3)
-            : DataType.fromType<T>());
+        (switch (list) {
+          [(_, _, final firstVal), ...] => DataType.fromInstance(firstVal),
+          _ => DataType.fromType<T>(),
+        });
     final rowIndices = <int>[];
     final colIndices = <int>[];
     final values = <T>[];

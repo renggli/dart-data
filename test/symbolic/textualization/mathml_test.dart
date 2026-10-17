@@ -187,7 +187,7 @@ void main() {
       check(Expr.parse('piecewise(x < 0, -x, x)').toMathMl(root: false))
           .contains('<mtable>');
       check(
-        Piecewise([(LessThan(x, IntegerNumber.zero), -x)])
+        Piecewise([(relation: LessThan(x, IntegerNumber.zero), expr: -x)])
             .toMathMl(root: false),
       ).contains('<mtable>');
 

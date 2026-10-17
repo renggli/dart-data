@@ -99,8 +99,10 @@ void main() {
 
       check(Expr.parse('piecewise(x < 0, -x, x)').toLatex())
           .contains(r'\begin{cases}');
-      check(Piecewise([(LessThan(x, IntegerNumber.zero), -x)]).toLatex())
-          .contains(r'\begin{cases}');
+      check(
+        Piecewise([(relation: LessThan(x, IntegerNumber.zero), expr: -x)])
+            .toLatex(),
+      ).contains(r'\begin{cases}');
 
       check(Integral(Expr.parse('exp(x^2)'), 'x').toLatex())
           .equals(r'\int e^{{x}^{2}} \, dx');

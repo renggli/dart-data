@@ -130,9 +130,9 @@ Complex _evalComplex(Expr expr, Map<String, Complex> context) => switch (expr) {
     return cond ? Complex.one : Complex.zero;
   }(),
   Piecewise(:final branches, :final otherwise) => () {
-    for (final (cond, val) in branches) {
-      if (_evalComplex(cond, context) == Complex.one) {
-        return _evalComplex(val, context);
+    for (final (:relation, :expr) in branches) {
+      if (_evalComplex(relation, context) == Complex.one) {
+        return _evalComplex(expr, context);
       }
     }
     if (otherwise != null) return _evalComplex(otherwise, context);

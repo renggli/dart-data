@@ -23,20 +23,14 @@ void main() {
     ];
 
     test('erf', () {
-      for (final tuple in errorFunctionTuples) {
-        check(
-          because: 'erf(${tuple.$1})',
-          erf(tuple.$1),
-        ).isCloseTo(tuple.$2, 1e-6);
+      for (final (x, expected) in errorFunctionTuples) {
+        check(because: 'erf($x)', erf(x)).isCloseTo(expected, 1e-6);
       }
     });
 
     test('erfc', () {
-      for (final tuple in errorFunctionTuples) {
-        check(
-          because: 'erfc(${tuple.$1})',
-          erfc(tuple.$1),
-        ).isCloseTo(1.0 - tuple.$2, 1e-6);
+      for (final (x, expected) in errorFunctionTuples) {
+        check(because: 'erfc($x)', erfc(x)).isCloseTo(1.0 - expected, 1e-6);
       }
     });
 

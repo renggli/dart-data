@@ -400,11 +400,13 @@ class MonomialAccumulator {
     if (orderTerms.isNotEmpty) {
       final sortedOrderEntries = orderTerms.entries.toList()
         ..sort((a, b) {
-          final cmpVar = a.key.$1.compareTo(b.key.$1);
+          final (varA, pointA) = a.key;
+          final (varB, pointB) = b.key;
+          final cmpVar = varA.compareTo(varB);
           if (cmpVar != 0) return cmpVar;
           final cmpOrd = a.value.compareTo(b.value);
           if (cmpOrd != 0) return cmpOrd;
-          return compareStructural(a.key.$2, b.key.$2);
+          return compareStructural(pointA, pointB);
         });
       for (final MapEntry(key: (variable, point), value: order)
           in sortedOrderEntries) {

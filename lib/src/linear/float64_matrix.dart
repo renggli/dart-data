@@ -130,8 +130,10 @@ extension type Float64Matrix(Matrix<double> _matrix) implements Matrix<double> {
   /// Sets the element at [pos] `(row, col)` to [value].
   @pragma('vm:prefer-inline')
   @redeclare
-  void operator []=((int row, int col) pos, double value) =>
-      set(pos.$1, pos.$2, value);
+  void operator []=((int row, int col) pos, double value) {
+    final (row, col) = pos;
+    set(row, col, value);
+  }
 
   /// Slices [row] index into a 1D [Float64Vector].
   @redeclare

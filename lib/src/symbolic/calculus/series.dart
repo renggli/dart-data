@@ -907,7 +907,7 @@ PowerSeries _expandAtanh(Expr inner, String variable, Expr point, int order) {
 }
 
 PowerSeries _expandPiecewise(
-  List<(RelationalExpr, Expr)> branches,
+  List<PiecewiseBranch> branches,
   Expr? otherwise,
   String variable,
   Expr point,
@@ -916,10 +916,10 @@ PowerSeries _expandPiecewise(
   if (!point.dependsOn(variable)) {
     try {
       final ptVal = point.evaluate(const {});
-      for (final (cond, expr) in branches) {
-        final atPt = cond.evaluate({variable: ptVal});
-        final leftVal = cond.evaluate({variable: ptVal - 1e-7});
-        final rightVal = cond.evaluate({variable: ptVal + 1e-7});
+      for (final (:relation, :expr) in branches) {
+        final atPt = relation.evaluate({variable: ptVal});
+        final leftVal = relation.evaluate({variable: ptVal - 1e-7});
+        final rightVal = relation.evaluate({variable: ptVal + 1e-7});
         if (atPt != leftVal || atPt != rightVal) {
           throw UnsupportedError(
             'Piecewise expression is not analytic at boundary point $point',

@@ -147,8 +147,8 @@ void main() {
       check(pwWithOtherwise.evaluate({'x': 2.0})).equals(4.0);
 
       final pwNoOtherwise = Piecewise([
-        (LessThan(x, IntegerNumber.zero), -x),
-        (GreaterEqual(x, IntegerNumber.zero), x),
+        (relation: LessThan(x, IntegerNumber.zero), expr: -x),
+        (relation: GreaterEqual(x, IntegerNumber.zero), expr: x),
       ]).derivative('x');
       check(pwNoOtherwise.evaluate({'x': -2.0})).equals(-1.0);
       check(pwNoOtherwise.evaluate({'x': 2.0})).equals(1.0);

@@ -254,8 +254,10 @@ class Matrix<T> implements LinearOperator<T> {
 
   /// Sets the element at [pos] `(row, col)` to [value].
   @pragma('vm:prefer-inline')
-  void operator []=((int row, int col) pos, T value) =>
-      set(pos.$1, pos.$2, value);
+  void operator []=((int row, int col) pos, T value) {
+    final (row, col) = pos;
+    set(row, col, value);
+  }
 
   /// Slices the [row] index into a 1D [Vector].
   Vector<T> row(int row) => Vector(tensor[row]);

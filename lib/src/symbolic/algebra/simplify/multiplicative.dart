@@ -156,10 +156,9 @@ Expr simplifySymbolicProduct(Number coeff, List<Expr> remainingFactors) {
   }
 
   remainingFactors.sort((a, b) {
-    final cmpBase = compareStructural(
-      decomposeFactor(a).$1,
-      decomposeFactor(b).$1,
-    );
+    final (baseA, _) = decomposeFactor(a);
+    final (baseB, _) = decomposeFactor(b);
+    final cmpBase = compareStructural(baseA, baseB);
     if (cmpBase != 0) return cmpBase;
     return compareStructural(a, b);
   });

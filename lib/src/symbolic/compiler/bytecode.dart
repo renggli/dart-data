@@ -378,11 +378,11 @@ BytecodeEvaluator compileToBytecode(
         instructions.add(const Instruction.op(Op.eq));
       case Piecewise(:final branches, :final otherwise):
         final endJumps = <int>[];
-        for (final (cond, branchExpr) in branches) {
-          emit(cond);
+        for (final (:relation, :expr) in branches) {
+          emit(relation);
           final jFalseIdx = instructions.length;
           instructions.add(const Instruction.jumpIfFalse(0));
-          emit(branchExpr);
+          emit(expr);
           endJumps.add(instructions.length);
           instructions.add(const Instruction.jump(0));
           instructions[jFalseIdx] = Instruction.jumpIfFalse(
@@ -458,9 +458,9 @@ void _forEachChild(Expr node, void Function(Expr) visit) {
     case UnaryExpr(:final expr):
       visit(expr);
     case Piecewise(:final branches, :final otherwise):
-      for (final (cond, val) in branches) {
-        visit(cond);
-        visit(val);
+      for (final (:relation, :expr) in branches) {
+        visit(relation);
+        visit(expr);
       }
       if (otherwise != null) visit(otherwise);
     case Integral(:final integrand, :final lower, :final upper):

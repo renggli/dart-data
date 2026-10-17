@@ -316,10 +316,10 @@ Expr _resolveAsymptoticAbsAndPiecewise(Expr expr, String variable) {
     return sign >= 0 ? inner : (-inner).simplify();
   }
   if (mapped case Piecewise(:final branches, :final otherwise)) {
-    for (final (cond, branchExpr) in branches) {
+    for (final (:relation, :expr) in branches) {
       try {
-        if (cond.evaluate({variable: 1e9}) == 1.0) {
-          return branchExpr;
+        if (relation.evaluate({variable: 1e9}) == 1.0) {
+          return expr;
         }
       } on Object {
         // Ignore
@@ -633,9 +633,9 @@ Expr? _tryFactorLogAdd(Expr a, Expr b, String variable) {
       case UnaryExpr(:final expr):
         scan(expr);
       case Piecewise(:final branches):
-        for (final (cond, b) in branches) {
-          scan(cond);
-          scan(b);
+        for (final (:relation, :expr) in branches) {
+          scan(relation);
+          scan(expr);
         }
       case Integral(:final integrand, :final lower, :final upper):
         scan(integrand);
@@ -814,9 +814,8 @@ int _asymptoticSignAtInfinity(Expr expr, String variable) {
     return first.sign * _asymptoticSignAtInfinity(restExpr, variable);
   }
 
-  final poly = _polynomialDegreeAndLead(s, variable);
-  if (poly != null) {
-    return _getSign(poly.$2);
+  if (_polynomialDegreeAndLead(s, variable) case (_, final leadCoeff)) {
+    return _getSign(leadCoeff);
   }
 
   try {

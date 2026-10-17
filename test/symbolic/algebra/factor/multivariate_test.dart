@@ -94,8 +94,9 @@ void main() {
           Mul([IntegerNumber.of(9), Pow(z, IntegerNumber.two)]),
         ]);
         check(diff).isNotNull();
-        check(diff!.$1.toString()).equals('3 * z');
-        check(diff.$2.toString()).equals('2 * x * y ^ 2');
+        final (leftRoot, rightRoot) = diff!;
+        check(leftRoot.toString()).equals('3 * z');
+        check(rightRoot.toString()).equals('2 * x * y ^ 2');
 
         check(extractBaseSquareRoot(IntegerNumber.one))
             .equals(IntegerNumber.one);

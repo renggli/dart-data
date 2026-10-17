@@ -56,7 +56,9 @@ void main() {
       check(pw.evaluate({'x': 5.0})).equals(1.0);
 
       // Piecewise without otherwise returns NaN when no branch matches
-      final partial = Piecewise([(LessThan(x, IntegerNumber.zero), y)]);
+      final partial = Piecewise([
+        (relation: LessThan(x, IntegerNumber.zero), expr: y),
+      ]);
       check(partial.evaluate({'x': -1.0, 'y': 4.0})).equals(4.0);
       check(partial.evaluate({'x': 1.0, 'y': 4.0}).isNaN).isTrue();
       check(partial.freeVariables).unorderedEquals(['x', 'y']);
@@ -68,7 +70,7 @@ void main() {
       check(partial.anyNode((e) => e == z)).isFalse();
 
       final withOtherwise = Piecewise([
-        (LessThan(x, IntegerNumber.zero), y),
+        (relation: LessThan(x, IntegerNumber.zero), expr: y),
       ], otherwise: z);
       check(withOtherwise.freeVariables).unorderedEquals(['x', 'y', 'z']);
       check(withOtherwise.dependsOn('z')).isTrue();
@@ -78,7 +80,9 @@ void main() {
       check(withOtherwise == partial).isFalse();
       check(
         withOtherwise ==
-            Piecewise([(LessThan(x, IntegerNumber.zero), x)], otherwise: z),
+            Piecewise([
+              (relation: LessThan(x, IntegerNumber.zero), expr: x),
+            ], otherwise: z),
       ).isFalse();
 
       // Substituting a constant collapses to the matching branch

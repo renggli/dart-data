@@ -220,7 +220,10 @@ void main() {
             .equals(IntegerNumber.one);
 
         final pw1 = Piecewise([
-          (GreaterThan(x, IntegerNumber.zero), IntegerNumber.of(7)),
+          (
+            relation: GreaterThan(x, IntegerNumber.zero),
+            expr: IntegerNumber.of(7),
+          ),
         ], otherwise: IntegerNumber.of(-7));
         check(pw1.limit('x', Constant.infinity)).equals(IntegerNumber.of(7));
         check(pw1.limit('x', -Constant.infinity)).equals(IntegerNumber.of(-7));
@@ -321,8 +324,8 @@ void main() {
           final unsupportedMrv =
               Piecewise([
                 (
-                  LessThan(const Variable('y'), IntegerNumber.zero),
-                  Pow(Constant.e, x),
+                  relation: LessThan(const Variable('y'), IntegerNumber.zero),
+                  expr: Pow(Constant.e, x),
                 ),
               ]) +
               Integral(

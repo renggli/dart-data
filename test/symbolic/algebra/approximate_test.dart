@@ -181,7 +181,10 @@ void main() {
           check(rel).equals(IntegerNumber.one);
 
           final pw = Piecewise([
-            (LessThan(const Variable('x'), Constant.pi), FractionNumber.half),
+            (
+              relation: LessThan(const Variable('x'), Constant.pi),
+              expr: FractionNumber.half,
+            ),
           ], otherwise: Constant.e).approximate();
           check(pw).isA<Piecewise>();
 

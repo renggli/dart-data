@@ -140,7 +140,7 @@ void main() {
             .equals(Complex.one);
 
         final pw = Piecewise([
-          (LessThan(x, IntegerNumber.zero), -x),
+          (relation: LessThan(x, IntegerNumber.zero), expr: -x),
         ], otherwise: x);
         check(pw.evaluateComplex({'x': const Complex(-2)}))
             .equals(const Complex(2));
@@ -148,7 +148,7 @@ void main() {
             .equals(const Complex(3));
 
         final pwNoOtherwise = Piecewise([
-          (LessThan(x, IntegerNumber.zero), -x),
+          (relation: LessThan(x, IntegerNumber.zero), expr: -x),
         ]);
         check(pwNoOtherwise.evaluateComplex({'x': const Complex(3)}).isNaN)
             .isTrue();

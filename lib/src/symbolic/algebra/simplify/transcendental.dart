@@ -507,9 +507,9 @@ Expr simplifyRelational(RelationalExpr expr) {
 
 /// Simplifies a piecewise expression.
 Expr simplifyPiecewise(Piecewise expr) {
-  final simplifiedBranches = <(RelationalExpr, Expr)>[];
-  for (final (cond, branchExpr) in expr.branches) {
-    final sCond = cond.simplify();
+  final simplifiedBranches = <PiecewiseBranch>[];
+  for (final (:relation, expr: branchExpr) in expr.branches) {
+    final sCond = relation.simplify();
     if (sCond is Number && sCond.isZero) {
       continue;
     }
@@ -524,8 +524,8 @@ Expr simplifyPiecewise(Piecewise expr) {
         isSimplified: true,
       );
     }
-    final relCond = sCond is RelationalExpr ? sCond : cond;
-    simplifiedBranches.add((relCond, sExpr));
+    final relCond = sCond is RelationalExpr ? sCond : relation;
+    simplifiedBranches.add((relation: relCond, expr: sExpr));
   }
   final sOtherwise = expr.otherwise?.simplify();
   if (simplifiedBranches.isEmpty) {

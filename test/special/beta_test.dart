@@ -21,27 +21,23 @@ void main() {
     ];
 
     test('beta', () {
-      for (final tuple in betaTuples) {
-        if (tuple.$3.isNaN) {
-          check(
-            because: 'beta(${tuple.$1}, ${tuple.$2})',
-            beta(tuple.$1, tuple.$2),
-          ).isNaN();
+      for (final (a, b, expected) in betaTuples) {
+        if (expected.isNaN) {
+          check(because: 'beta($a, $b)', beta(a, b)).isNaN();
         } else {
-          check(
-            because: 'beta(${tuple.$1}, ${tuple.$2})',
-            beta(tuple.$1, tuple.$2),
-          ).isCloseTo(tuple.$3, 1e-6);
+          check(because: 'beta($a, $b)', beta(a, b)).isCloseTo(expected, 1e-6);
         }
       }
     });
 
     test('betaLn', () {
-      for (final tuple in betaTuples.where((tuple) => !tuple.$3.isNaN)) {
-        check(
-          because: 'betaLn(${tuple.$1}, ${tuple.$2})',
-          betaLn(tuple.$1, tuple.$2),
-        ).isCloseTo(math.log(tuple.$3), 1e-6);
+      for (final (a, b, expected) in betaTuples) {
+        if (!expected.isNaN) {
+          check(
+            because: 'betaLn($a, $b)',
+            betaLn(a, b),
+          ).isCloseTo(math.log(expected), 1e-6);
+        }
       }
     });
 

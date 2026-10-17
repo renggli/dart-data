@@ -62,7 +62,7 @@ String formatExpr(Expr expr, [int parentPrec = 0]) {
     Equal(:final left, :final right) =>
       '${formatExpr(left, 1)} == ${formatExpr(right, 1)}',
     Piecewise(:final branches, :final otherwise) =>
-      'Piecewise([${branches.map((b) => '(${formatExpr(b.$1)}, ${formatExpr(b.$2)})').join(', ')}]'
+      'Piecewise([${branches.map((b) => '(${formatExpr(b.relation)}, ${formatExpr(b.expr)})').join(', ')}]'
           '${otherwise != null ? ', otherwise: ${formatExpr(otherwise)}' : ''})',
     Integral(:final integrand, :final variable, :final lower, :final upper) =>
       lower != null && upper != null

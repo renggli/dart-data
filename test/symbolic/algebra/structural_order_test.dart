@@ -39,9 +39,10 @@ void main() {
         GreaterThan(x, IntegerNumber.one), // 27
         GreaterEqual(x, IntegerNumber.one), // 28
         Equal(x, IntegerNumber.one), // 29
-        Piecewise([(LessThan(x, IntegerNumber.zero), x)]), // 30
+        Piecewise([(relation: LessThan(x, IntegerNumber.zero), expr: x)]), // 30
         Integral(x, 'x'), // 31
         const OrderTerm('x', 3), // 32
+        VariableFunction('f', const [x]), // 33
       ];
 
       for (var i = 0; i < allVariants.length; i++) {
@@ -195,24 +196,37 @@ void main() {
       // Piecewise comparisons
       final cond1 = LessThan(x, IntegerNumber.zero);
       final cond2 = LessThan(x, IntegerNumber.one);
-      final pw1 = Piecewise([(cond1, x)]);
-      final pw2 = Piecewise([(cond1, x), (cond2, y)]);
-      final pwCondDiff = Piecewise([(cond2, x)]);
-      final pwValDiff = Piecewise([(cond1, y)]);
+      final pw1 = Piecewise([(relation: cond1, expr: x)]);
+      final pw2 = Piecewise([
+        (relation: cond1, expr: x),
+        (relation: cond2, expr: y),
+      ]);
+      final pwCondDiff = Piecewise([(relation: cond2, expr: x)]);
+      final pwValDiff = Piecewise([(relation: cond1, expr: y)]);
       final pwWithOther1 = Piecewise([
-        (cond1, x),
+        (relation: cond1, expr: x),
       ], otherwise: IntegerNumber.zero);
       final pwWithOther2 = Piecewise([
-        (cond1, x),
+        (relation: cond1, expr: x),
       ], otherwise: IntegerNumber.one);
 
-      check(compareStructural(pw1, Piecewise([(cond1, x)]))).equals(0);
+      check(compareStructural(pw1, Piecewise([(relation: cond1, expr: x)])))
+          .equals(0);
       check(compareStructural(pw1, pw2)).isLessThan(0);
       check(compareStructural(pw1, pwCondDiff)).isLessThan(0);
       check(compareStructural(pw1, pwValDiff)).isLessThan(0);
       check(compareStructural(pw1, pwWithOther1)).isLessThan(0);
       check(compareStructural(pwWithOther1, pw1)).isGreaterThan(0);
       check(compareStructural(pwWithOther1, pwWithOther2)).isLessThan(0);
+
+      // VariableFunction comparisons
+      final vf1 = VariableFunction('f', const [x]);
+      final vf2 = VariableFunction('g', const [x]);
+      final vf3 = VariableFunction('f', const [y]);
+      final vf4 = VariableFunction('f', const [x, y]);
+      check(compareStructural(vf1, vf2)).isLessThan(0);
+      check(compareStructural(vf1, vf3)).isLessThan(0);
+      check(compareStructural(vf1, vf4)).isLessThan(0);
     });
   });
 }

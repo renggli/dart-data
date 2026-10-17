@@ -182,13 +182,21 @@ void main() {
 
       // Piecewise: false branch skipped, true branch after symbolic branch becomes otherwise
       final pwTruncated = Piecewise([
-        (LessThan(IntegerNumber.two, IntegerNumber.one), IntegerNumber.zero),
-        (LessThan(x, IntegerNumber.zero), x),
-        (LessThan(IntegerNumber.one, IntegerNumber.two), y),
+        (
+          relation: LessThan(IntegerNumber.two, IntegerNumber.one),
+          expr: IntegerNumber.zero,
+        ),
+        (relation: LessThan(x, IntegerNumber.zero), expr: x),
+        (relation: LessThan(IntegerNumber.one, IntegerNumber.two), expr: y),
       ]).simplify();
       check(pwTruncated).equals(
         Piecewise(
-          [(LessThan(x, IntegerNumber.zero, isSimplified: true), x)],
+          [
+            (
+              relation: LessThan(x, IntegerNumber.zero, isSimplified: true),
+              expr: x,
+            ),
+          ],
           otherwise: y,
           isSimplified: true,
         ),
@@ -196,12 +204,12 @@ void main() {
 
       // Piecewise with all false branches falls back to otherwise or 0
       final pwAllFalse = Piecewise([
-        (LessThan(IntegerNumber.two, IntegerNumber.one), x),
+        (relation: LessThan(IntegerNumber.two, IntegerNumber.one), expr: x),
       ], otherwise: y).simplify();
       check(pwAllFalse).equals(y);
 
       final pwAllFalseNoOther = Piecewise([
-        (LessThan(IntegerNumber.two, IntegerNumber.one), x),
+        (relation: LessThan(IntegerNumber.two, IntegerNumber.one), expr: x),
       ]).simplify();
       check(pwAllFalseNoOther).equals(IntegerNumber.zero);
 

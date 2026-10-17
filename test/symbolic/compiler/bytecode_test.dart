@@ -11,7 +11,7 @@ void main() {
     test('deduplicates shared composite subtrees into registers', () {
       final sub = Expr.parse('sin(x^2 + 3*x + 1)');
       final pw = Piecewise([
-        (LessThan(sub, IntegerNumber.zero), -sub),
+        (relation: LessThan(sub, IntegerNumber.zero), expr: -sub),
       ], otherwise: sub);
       final integral = Integral(
         sub,

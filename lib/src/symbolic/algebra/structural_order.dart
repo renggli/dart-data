@@ -111,9 +111,15 @@ int compareStructural(Expr a, Expr b) {
       final cmpLen = pa.branches.length.compareTo(pb.branches.length);
       if (cmpLen != 0) return cmpLen;
       for (var i = 0; i < pa.branches.length; i++) {
-        final cmpCond = compareStructural(pa.branches[i].$1, pb.branches[i].$1);
+        final cmpCond = compareStructural(
+          pa.branches[i].relation,
+          pb.branches[i].relation,
+        );
         if (cmpCond != 0) return cmpCond;
-        final cmpVal = compareStructural(pa.branches[i].$2, pb.branches[i].$2);
+        final cmpVal = compareStructural(
+          pa.branches[i].expr,
+          pb.branches[i].expr,
+        );
         if (cmpVal != 0) return cmpVal;
       }
       return switch ((pa.otherwise, pb.otherwise)) {

@@ -164,7 +164,7 @@ void main() {
       }
 
       final pwNoOtherwise = compileToBytecode(
-        Piecewise([(LessThan(x, IntegerNumber.zero), -x)]),
+        Piecewise([(relation: LessThan(x, IntegerNumber.zero), expr: -x)]),
         ['x'],
       );
       check(pwNoOtherwise.evaluate1D(-2.0)).equals(2.0);

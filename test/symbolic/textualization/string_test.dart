@@ -71,11 +71,13 @@ void main() {
 
       check(
         Piecewise([
-          (LessThan(x, IntegerNumber.zero), -x),
+          (relation: LessThan(x, IntegerNumber.zero), expr: -x),
         ], otherwise: x).toString(),
       ).equals('Piecewise([(x < 0, -x)], otherwise: x)');
-      check(Piecewise([(LessThan(x, IntegerNumber.zero), -x)]).toString())
-          .equals('Piecewise([(x < 0, -x)])');
+      check(
+        Piecewise([(relation: LessThan(x, IntegerNumber.zero), expr: -x)])
+            .toString(),
+      ).equals('Piecewise([(x < 0, -x)])');
 
       check(Integral(x, 'x').toString()).equals('integrate(x, x)');
       check(

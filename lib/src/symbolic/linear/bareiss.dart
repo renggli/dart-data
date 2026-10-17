@@ -129,7 +129,7 @@ class BareissEngine {
     if (vars.isEmpty) return null;
 
     // Rank candidate variables
-    final candidates = <(String, int, int, Expr)>[];
+    final candidates = <({String v, int score, int m, Expr dm})>[];
     for (final v in vars) {
       final dCoeffs = _extractCoefficients(den, v);
       if (dCoeffs.isEmpty) continue;
@@ -145,12 +145,12 @@ class BareissEngine {
             _ => 40,
           }) -
           m;
-      candidates.add((v, score, m, dm));
+      candidates.add((v: v, score: score, m: m, dm: dm));
     }
 
-    candidates.sort((a, b) => b.$2.compareTo(a.$2));
+    candidates.sort((a, b) => b.score.compareTo(a.score));
 
-    for (final (v, _, m, dm) in candidates) {
+    for (final (:v, score: _, :m, :dm) in candidates) {
       final res = _divideByVariable(num, den, v, m, dm);
       if (res != null && !_hasDiv(res)) {
         return res;

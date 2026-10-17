@@ -256,7 +256,7 @@ void main() {
           .isCloseTo(Erfc(x).evaluate({'x': 0.1}), 1e-5);
 
       final pw = Piecewise([
-        (LessThan(x, IntegerNumber.zero), -x),
+        (relation: LessThan(x, IntegerNumber.zero), expr: -x),
       ], otherwise: Pow(x, IntegerNumber.two));
       check(
         pw
@@ -283,13 +283,15 @@ void main() {
       check(() => Acosh(x).series('x')).throws<UnsupportedError>();
 
       final pw = Piecewise([
-        (LessThan(x, IntegerNumber.zero), -x),
+        (relation: LessThan(x, IntegerNumber.zero), expr: -x),
       ], otherwise: x);
       check(() => pw.series('x', point: IntegerNumber.zero))
           .throws<UnsupportedError>();
       check(() => pw.series('x', point: y)).throws<UnsupportedError>();
 
-      final pwNoOtherwise = Piecewise([(LessThan(x, IntegerNumber.zero), -x)]);
+      final pwNoOtherwise = Piecewise([
+        (relation: LessThan(x, IntegerNumber.zero), expr: -x),
+      ]);
       check(() => pwNoOtherwise.series('x', point: IntegerNumber.one))
           .throws<UnsupportedError>();
 

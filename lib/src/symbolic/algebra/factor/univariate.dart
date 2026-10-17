@@ -144,8 +144,10 @@ Expr factorUnivariatePoly(PolyQ poly, String variable) {
     }
 
     candidates.sort((c1, c2) {
-      final v1 = (c1.$1 / c1.$2).abs();
-      final v2 = (c2.$1 / c2.$2).abs();
+      final (p1, q1) = c1;
+      final (p2, q2) = c2;
+      final v1 = (p1 / q1).abs();
+      final v2 = (p2 / q2).abs();
       return v1.compareTo(v2);
     });
 
@@ -338,8 +340,9 @@ List<RationalNumber> _polyGcd(List<RationalNumber> a, List<RationalNumber> b) {
   while (!(y.length == 1 && y[0].isZero)) {
     final dm = _polyDivMod(x, y);
     if (dm == null) break;
+    final (_, rem) = dm;
     x = y;
-    y = dm.$2;
+    y = rem;
   }
   return _makeMonic(x);
 }

@@ -135,24 +135,32 @@ void main() {
   group('Piecewise, power, exponential, and rational integration', () {
     test('integrates Piecewise expressions with continuity constants', () {
       final pw1 = Piecewise([
-        (LessThan(x, IntegerNumber.zero), -x),
-        (Equal(x, IntegerNumber.zero), IntegerNumber.zero),
-        (LessEqual(x, IntegerNumber.one), x),
-        (GreaterThan(IntegerNumber.two, x), IntegerNumber.two * x),
-        (GreaterEqual(IntegerNumber.of(3), x), IntegerNumber.of(3)),
-        (Equal(x, IntegerNumber.of(4)), x),
+        (relation: LessThan(x, IntegerNumber.zero), expr: -x),
+        (relation: Equal(x, IntegerNumber.zero), expr: IntegerNumber.zero),
+        (relation: LessEqual(x, IntegerNumber.one), expr: x),
+        (
+          relation: GreaterThan(IntegerNumber.two, x),
+          expr: IntegerNumber.two * x,
+        ),
+        (
+          relation: GreaterEqual(IntegerNumber.of(3), x),
+          expr: IntegerNumber.of(3),
+        ),
+        (relation: Equal(x, IntegerNumber.of(4)), expr: x),
       ], otherwise: IntegerNumber.of(5));
       final intPw1 = pw1.integrate('x');
       check(intPw1).isA<Piecewise>();
 
       final pw2 = Piecewise([
-        (LessThan(x, IntegerNumber.zero), -x),
+        (relation: LessThan(x, IntegerNumber.zero), expr: -x),
       ], otherwise: x);
       final intPw2 = pw2.integrate('x');
       check(intPw2.evaluate({'x': -2.0})).equals(-2.0);
       check(intPw2.evaluate({'x': 2.0})).equals(2.0);
 
-      final pwNoOth = Piecewise([(LessThan(x, IntegerNumber.zero), x)]);
+      final pwNoOth = Piecewise([
+        (relation: LessThan(x, IntegerNumber.zero), expr: x),
+      ]);
       check(pwNoOth.integrate('x')).isA<Piecewise>();
     });
 

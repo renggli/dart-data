@@ -244,14 +244,13 @@ void main() {
           .equals((IntegerNumber.of(5), IntegerNumber.one));
       check(decomposeTerm(Mul([IntegerNumber.two, IntegerNumber.of(3)])))
           .equals((IntegerNumber.of(6), IntegerNumber.one));
-      check(
-        decomposeTerm(
-          Mul([
-            IntegerNumber.two,
-            Mul([IntegerNumber.of(3), x, y]),
-          ]),
-        ).$1,
-      ).equals(IntegerNumber.of(6));
+      final (coeff1, _) = decomposeTerm(
+        Mul([
+          IntegerNumber.two,
+          Mul([IntegerNumber.of(3), x, y]),
+        ]),
+      );
+      check(coeff1).equals(IntegerNumber.of(6));
 
       check(splitNumeratorDenominator(RationalNumber(3, 4)))
           .equals((IntegerNumber.of(3), IntegerNumber.of(4)));
@@ -259,20 +258,18 @@ void main() {
           .equals((IntegerNumber.one, x));
       check(splitNumeratorDenominator(Pow(x, IntegerNumber.of(-2))))
           .equals((IntegerNumber.one, Pow(x, IntegerNumber.two)));
-      check(
-        splitNumeratorDenominator(
-          Mul([
-            FractionNumber.half,
-            Pow(x, IntegerNumber.negativeOne),
-            Pow(y, IntegerNumber.of(-2)),
-          ]),
-        ).$1,
-      ).equals(IntegerNumber.one);
-      check(
-        splitNumeratorDenominator(
-          Mul([RationalNumber(3, 4), x, y, Pow(z, IntegerNumber.negativeOne)]),
-        ).$1.toString(),
-      ).equals('3 * x * y');
+      final (num1, _) = splitNumeratorDenominator(
+        Mul([
+          FractionNumber.half,
+          Pow(x, IntegerNumber.negativeOne),
+          Pow(y, IntegerNumber.of(-2)),
+        ]),
+      );
+      check(num1).equals(IntegerNumber.one);
+      final (num2, _) = splitNumeratorDenominator(
+        Mul([RationalNumber(3, 4), x, y, Pow(z, IntegerNumber.negativeOne)]),
+      );
+      check(num2.toString()).equals('3 * x * y');
       check(
         splitNumeratorDenominator(Mul([x, Pow(y, IntegerNumber.negativeOne)])),
       ).equals((x, y));

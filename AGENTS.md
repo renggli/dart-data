@@ -49,6 +49,7 @@
 - The code must be auto-formatted (run `dart format .`).
 - The code must be free of linter warnings (run `dart analyze` and `dart fix --apply`).
 - Embrace strict null safety. Avoid using the non-null assertion operator (`!`) or `dynamic` types, if possible.
+- Never use positional record field accessors (`.$1`, `.$2`, etc.). Prefer named record fields (or `typedef`s with named fields.
 
 ## Logic and Patterns
 

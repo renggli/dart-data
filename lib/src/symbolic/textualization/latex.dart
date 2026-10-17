@@ -68,7 +68,7 @@ String _toLatex(Expr expr) => switch (expr) {
   Equal(:final left, :final right) => '${_toLatex(left)} = ${_toLatex(right)}',
   Piecewise(:final branches, :final otherwise) =>
     '\\begin{cases} '
-        '${branches.map((b) => '${_toLatex(b.$2)}, & \\text{if } ${_toLatex(b.$1)}').join(' \\\\ ')}'
+        '${branches.map((b) => '${_toLatex(b.expr)}, & \\text{if } ${_toLatex(b.relation)}').join(' \\\\ ')}'
         '${otherwise != null ? ' \\\\ ${_toLatex(otherwise)}, & \\text{otherwise}' : ''}'
         ' \\end{cases}',
   Integral(:final integrand, :final variable, :final lower, :final upper) =>

@@ -113,15 +113,18 @@ final class Equal extends RelationalExpr {
       Equal(transform(left), transform(right));
 }
 
+/// A guarded branch in a [Piecewise] expression.
+typedef PiecewiseBranch = ({RelationalExpr relation, Expr expr});
+
 /// Piecewise conditional expression node:
 /// $$f(x) = \begin{cases} e_1 & \text{if } c_1 \\ e_2 & \text{if } c_2 \\ \text{otherwise} & \text{otherwise} \end{cases}$$
 final class Piecewise extends Expr {
-  /// Creates a piecewise expression from guarded `(condition, expression)`
-  /// [branches] and an optional fallback [otherwise] expression.
+  /// Creates a piecewise expression from guarded [branches] and an optional
+  /// fallback [otherwise] expression.
   new(this.branches, {this.otherwise, this.isSimplified = false});
 
-  /// Ordered list of `(condition, expression)` pairs evaluated top-to-bottom.
-  final List<(RelationalExpr, Expr)> branches;
+  /// Ordered list of [PiecewiseBranch] entries evaluated top-to-bottom.
+  final List<PiecewiseBranch> branches;
 
   /// Optional fallback expression evaluated when no branch condition holds.
   final Expr? otherwise;
@@ -132,14 +135,14 @@ final class Piecewise extends Expr {
   @override
   late final int hashCode = Object.hash(
     Piecewise,
-    Object.hashAll(branches.map((b) => Object.hash(b.$1, b.$2))),
+    Object.hashAll(branches.map((b) => Object.hash(b.relation, b.expr))),
     otherwise,
   );
 
   @override
   double evaluate([Map<String, double> context = const {}]) {
-    for (final (cond, expr) in branches) {
-      if (cond.evaluateCondition(context)) {
+    for (final (:relation, :expr) in branches) {
+      if (relation.evaluateCondition(context)) {
         return expr.evaluate(context);
       }
     }
@@ -151,8 +154,8 @@ final class Piecewise extends Expr {
 
   @override
   void _collectFreeVariables(Set<String> target) {
-    for (final (cond, expr) in branches) {
-      cond._collectFreeVariables(target);
+    for (final (:relation, :expr) in branches) {
+      relation._collectFreeVariables(target);
       expr._collectFreeVariables(target);
     }
     otherwise?._collectFreeVariables(target);
@@ -160,32 +163,32 @@ final class Piecewise extends Expr {
 
   @override
   bool dependsOn(String variable) {
-    for (final (cond, expr) in branches) {
-      if (cond.dependsOn(variable) || expr.dependsOn(variable)) return true;
+    for (final (:relation, :expr) in branches) {
+      if (relation.dependsOn(variable) || expr.dependsOn(variable)) return true;
     }
     return otherwise?.dependsOn(variable) ?? false;
   }
 
   @override
   Expr substitute(String variable, Expr replacement) => Piecewise([
-    for (final (cond, expr) in branches)
+    for (final (:relation, :expr) in branches)
       (
-        cond.substitute(variable, replacement) as RelationalExpr,
-        expr.substitute(variable, replacement),
+        relation: relation.substitute(variable, replacement) as RelationalExpr,
+        expr: expr.substitute(variable, replacement),
       ),
   ], otherwise: otherwise?.substitute(variable, replacement));
 
   @override
   Expr mapChildren(Expr Function(Expr) transform) => Piecewise([
-    for (final (cond, expr) in branches)
-      (transform(cond) as RelationalExpr, transform(expr)),
+    for (final (:relation, :expr) in branches)
+      (relation: transform(relation) as RelationalExpr, expr: transform(expr)),
   ], otherwise: otherwise != null ? transform(otherwise!) : null);
 
   @override
   bool anyNode(bool Function(Expr) predicate) {
     if (predicate(this)) return true;
-    for (final (cond, expr) in branches) {
-      if (cond.anyNode(predicate) || expr.anyNode(predicate)) return true;
+    for (final (:relation, :expr) in branches) {
+      if (relation.anyNode(predicate) || expr.anyNode(predicate)) return true;
     }
     return otherwise?.anyNode(predicate) ?? false;
   }
@@ -200,8 +203,8 @@ final class Piecewise extends Expr {
       return false;
     }
     for (var i = 0; i < branches.length; i++) {
-      if (branches[i].$1 != other.branches[i].$1 ||
-          branches[i].$2 != other.branches[i].$2) {
+      if (branches[i].relation != other.branches[i].relation ||
+          branches[i].expr != other.branches[i].expr) {
         return false;
       }
     }

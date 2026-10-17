@@ -63,8 +63,9 @@ void main() {
       check(LessThan(IntegerNumber.one, IntegerNumber.two).simplify())
           .equals(IntegerNumber.one);
       check(
-        Piecewise([(LessThan(IntegerNumber.one, IntegerNumber.two), x)])
-            .simplify(),
+        Piecewise([
+          (relation: LessThan(IntegerNumber.one, IntegerNumber.two), expr: x),
+        ]).simplify(),
       ).equals(x);
       check(Integral(IntegerNumber.zero, 'x').simplify())
           .equals(IntegerNumber.zero);

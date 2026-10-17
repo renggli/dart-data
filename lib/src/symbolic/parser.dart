@@ -306,7 +306,7 @@ class ExprSyntax {
         'piecewise requires at least 2 arguments (condition, expr)',
       );
     }
-    final branches = <(RelationalExpr, Expr)>[];
+    final branches = <PiecewiseBranch>[];
     final pairCount = args.length ~/ 2;
     for (var i = 0; i < pairCount; i++) {
       final cond = args[2 * i];
@@ -316,7 +316,7 @@ class ExprSyntax {
           'piecewise condition at argument ${2 * i + 1} must be a relational comparison, got: $cond',
         );
       }
-      branches.add((cond, val));
+      branches.add((relation: cond, expr: val));
     }
     final otherwise = args.length.isOdd ? args.last : null;
     return Piecewise(branches, otherwise: otherwise);

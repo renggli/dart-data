@@ -122,10 +122,10 @@ Expr _differentiate(Expr expr, String variable) => switch (expr) {
   Atanh(expr: final inner) =>
     _differentiate(inner, variable) /
         (IntegerNumber.one - Pow(inner, IntegerNumber.two)),
-  Piecewise(:final branches, :final otherwise) => Piecewise(
-    branches.map((b) => (b.$1, _differentiate(b.$2, variable))).toList(),
-    otherwise: otherwise != null ? _differentiate(otherwise, variable) : null,
-  ),
+  Piecewise(:final branches, :final otherwise) => Piecewise([
+    for (final (:relation, :expr) in branches)
+      (relation: relation, expr: _differentiate(expr, variable)),
+  ], otherwise: otherwise != null ? _differentiate(otherwise, variable) : null),
   Integral(
     :final integrand,
     variable: final intVar,
