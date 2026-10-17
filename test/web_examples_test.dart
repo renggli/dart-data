@@ -65,22 +65,20 @@ void main() {
     test('all presets support differentiation or report non-elementary derivatives, and high-speed compilation', () {
       for (final preset in expressionPresets) {
         final expr = Expr.tryParse(preset.formula)!;
-        Expr? d1;
-        try {
-          d1 = expr.derivative('x').simplify();
-          final d2 = d1.derivative('x').simplify();
-          check(d1.toString().isNotEmpty).isTrue();
-          check(d2.toString().isNotEmpty).isTrue();
-        } on UnsupportedError {
-          // Functions like Gamma and Beta have non-elementary derivatives.
-        }
+        final d1 = expr.derivative('x').simplify();
+        final d2 = d1.derivative('x').simplify();
+        check(d1.toString().isNotEmpty).isTrue();
+        check(d2.toString().isNotEmpty).isTrue();
+        final hasUnevaluatedDerivative = d1.anyNode(
+          (node) => node is Derivative,
+        );
 
         if (containsImaginary(expr)) {
           final cfn = expr.toComplexFunction1D('x');
           final y0 = cfn(Complex(preset.defaultPointX, 0));
           check(y0.a.isNaN).isFalse();
           check(y0.b.isNaN).isFalse();
-          if (d1 != null) {
+          if (!hasUnevaluatedDerivative) {
             final cdf = d1.toComplexFunction1D('x');
             final slope = cdf(Complex(preset.defaultPointX, 0));
             check(slope.a.isNaN).isFalse();
@@ -90,7 +88,7 @@ void main() {
           final fn = expr.toFunction1D('x');
           final y0 = fn(preset.defaultPointX);
           check(y0.isNaN).isFalse();
-          if (d1 != null) {
+          if (!hasUnevaluatedDerivative) {
             final df = d1.toFunction1D('x');
             final slope = df(preset.defaultPointX);
             check(slope.isNaN).isFalse();
