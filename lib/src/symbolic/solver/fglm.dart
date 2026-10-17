@@ -1,4 +1,5 @@
 import '../ast.dart';
+import '../budget.dart';
 import 'multivariate_polynomial.dart';
 
 /// FGLM algorithm engine for Gröbner basis order conversion from `grevlex` to `lex`.
@@ -51,6 +52,7 @@ class FglmEngine {
     final candidateQueue = <Monomial>[Monomial.zero(n)];
 
     while (candidateQueue.isNotEmpty) {
+      ComputationBudget.check();
       candidateQueue.sort(targetOrder.compare);
       final m = candidateQueue.removeAt(0);
 

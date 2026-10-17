@@ -2,6 +2,7 @@ import '../algebra/approximate.dart';
 import '../algebra/simplify.dart';
 import '../algebra/term_accumulator.dart';
 import '../ast.dart';
+import '../budget.dart';
 import 'series.dart';
 
 /// Symbolic limit evaluation extension on [Expr].
@@ -59,6 +60,7 @@ Expr computeLimit(
   Expr point, {
   LimitDirection direction = LimitDirection.both,
 }) {
+  ComputationBudget.check();
   if (!expr.dependsOn(variable)) return expr.simplify();
 
   if (expr case Pow(:final base, :final exponent)
@@ -86,6 +88,8 @@ Expr computeLimit(
       if (_isPositiveInfinity(innerLim)) return Constant.infinity;
       if (_isNegativeInfinity(innerLim)) return IntegerNumber.zero;
       return Pow(Constant.e, innerLim).simplify();
+    } on ComputationLimitException {
+      rethrow;
     } on Object {
       // Fall through
     }
@@ -106,6 +110,8 @@ Expr computeLimit(
       if (_isWellDefinedFinite(innerLim)) {
         return Ln(innerLim).simplify();
       }
+    } on ComputationLimitException {
+      rethrow;
     } on Object {
       // Fall through
     }
@@ -141,6 +147,8 @@ Expr computeLimit(
           ),
         };
       }
+    } on ComputationLimitException {
+      rethrow;
     } on UnsupportedError {
       rethrow;
     } on Object {
@@ -184,6 +192,8 @@ Expr _computeFiniteLimit(
         return sub;
       }
     }
+  } on ComputationLimitException {
+    rethrow;
   } on Object {
     // Falls through to Laurent series expansion
   }
@@ -213,6 +223,8 @@ Expr _computeFiniteLimit(
           final cm = (leadNum.coefficient / leadDen.coefficient).simplify();
           return _deduceLimitFromLaurentLeading(m, cm, direction, point);
         }
+      } on ComputationLimitException {
+        rethrow;
       } on Object catch (e) {
         if (e is UnsupportedError &&
             (e.message?.contains('Two-sided limit') ?? false)) {
@@ -245,6 +257,8 @@ Expr _computeFiniteLimit(
       direction,
       point,
     );
+  } on ComputationLimitException {
+    rethrow;
   } on Object catch (e) {
     if (e is UnsupportedError &&
         (e.message?.contains('Two-sided limit') ?? false)) {
@@ -446,6 +460,8 @@ Expr _gruntzLimit(Expr expr, String variable) {
           final sign = _asymptoticSignAtInfinity(lead.coefficient, variable);
           return sign > 0 ? Constant.infinity : _negInfinity;
         }
+      } on ComputationLimitException {
+        rethrow;
       } on Object {
         break;
       }
@@ -481,6 +497,8 @@ Expr _gruntzLimit(Expr expr, String variable) {
         }
         return computeLimit(lead.coefficient, variable, Constant.infinity);
       }
+    } on ComputationLimitException {
+      rethrow;
     } on Object {
       break;
     }
@@ -702,6 +720,8 @@ bool _containsUnboundedOscillation(Expr expr, String variable) =>
         try {
           final lim = computeLimit(inner, variable, Constant.infinity);
           return _isPositiveInfinity(lim) || _isNegativeInfinity(lim);
+        } on ComputationLimitException {
+          rethrow;
         } on Object {
           return true;
         }
@@ -750,6 +770,8 @@ Expr? _trySqueezeBoundedOscillation(Expr expr, String variable) {
     if (envLim is Number && envLim.isZero) {
       return IntegerNumber.zero;
     }
+  } on ComputationLimitException {
+    rethrow;
   } on Object {
     // Ignore
   }

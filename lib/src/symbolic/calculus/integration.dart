@@ -3,6 +3,7 @@ import '../algebra/expand.dart';
 import '../algebra/simplify.dart';
 import '../algebra/term_accumulator.dart';
 import '../ast.dart';
+import '../budget.dart';
 import 'differentiation.dart';
 import 'limit.dart';
 import 'linear_form.dart';
@@ -74,6 +75,8 @@ Expr _symbolicIntegrate(
           ? antiDeriv.limit(variable, fromExpr)
           : antiDeriv.substitute(variable, fromExpr);
       return (upper - lower).simplify();
+    } on ComputationLimitException {
+      rethrow;
     } on Object {
       return Integral(
         function.simplify(),
@@ -118,6 +121,7 @@ Expr _doubleToBoundExpr(double d) {
 }
 
 Expr _antiDerivative(Expr expr, String variable) {
+  ComputationBudget.check();
   final node = expr.simplify();
 
   if (!node.dependsOn(variable)) {

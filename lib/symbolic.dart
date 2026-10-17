@@ -6,6 +6,8 @@ export 'src/symbolic/algebra/expand.dart' show ExpandExtension;
 export 'src/symbolic/algebra/factor.dart' show FactorExtension;
 export 'src/symbolic/algebra/simplify.dart' show SimplifierExtension;
 export 'src/symbolic/ast.dart';
+export 'src/symbolic/budget.dart'
+    show ComputationBudget, ComputationLimitException;
 export 'src/symbolic/calculus/differentiation.dart'
     show DifferentiationExtension;
 export 'src/symbolic/calculus/integration.dart' show IntegrationExtension;

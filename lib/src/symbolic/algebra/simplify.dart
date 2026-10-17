@@ -1,4 +1,5 @@
 import '../ast.dart';
+import '../budget.dart';
 import 'simplify/additive.dart';
 import 'simplify/multiplicative.dart';
 import 'simplify/power.dart';
@@ -39,6 +40,7 @@ extension SimplifierExtension on Expr {
 
 /// Recursively evaluates and canonically simplifies [expr].
 Expr simplifyExpr(Expr expr) {
+  ComputationBudget.check();
   if (expr.isSimplified) return expr;
   return switch (expr) {
     Number() || Constant() || Variable() => expr,

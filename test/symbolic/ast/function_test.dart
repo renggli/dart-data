@@ -123,9 +123,9 @@ void main() {
         final reFn = Re(z).toComplexFunction1D('z');
         final imFn = Im(z).toComplexFunction1D('z');
         final conjFn = Conjugate(z).toComplexFunction1D('z');
-        check(reFn(Complex(3, 4))).equals(Complex(3));
-        check(imFn(Complex(3, 4))).equals(Complex(4));
-        check(conjFn(Complex(3, 4))).equals(Complex(3, -4));
+        check(reFn(const Complex(3, 4))).equals(const Complex(3));
+        check(imFn(const Complex(3, 4))).equals(const Complex(4));
+        check(conjFn(const Complex(3, 4))).equals(const Complex(3, -4));
       },
     );
 

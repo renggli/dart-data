@@ -1,4 +1,5 @@
 import '../ast.dart';
+import '../budget.dart';
 import 'expand.dart';
 import 'factor/fraction.dart';
 import 'factor/multivariate.dart';
@@ -28,6 +29,7 @@ extension FactorExtension on Expr {
 
 /// Recursively factors [expr] into irreducible products and groups like powers.
 Expr factorExpr(Expr expr) {
+  ComputationBudget.check();
   // 1. Structural base cases
   if (expr is IntegerNumber) return _factorInteger(expr.value);
   if (expr is FractionNumber) {
