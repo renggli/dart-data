@@ -12,10 +12,12 @@ export 'number/integer.dart';
 
 part 'ast/complex_eval.dart';
 part 'ast/constant.dart';
+part 'ast/derivative.dart';
 part 'ast/expr.dart';
 part 'ast/function.dart';
 part 'ast/integral.dart';
 part 'ast/lambert_w.dart';
+part 'ast/limit.dart';
 part 'ast/number.dart';
 part 'ast/operator.dart';
 part 'ast/order_term.dart';

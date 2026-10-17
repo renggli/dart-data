@@ -4,18 +4,6 @@ import '../algebra/term_accumulator.dart';
 import '../ast.dart';
 import 'series.dart';
 
-/// Direction for computing directional limits of symbolic expressions.
-enum LimitDirection {
-  /// Two-sided limit $\lim_{x \to a} f(x)$. Requires left and right limits to agree.
-  both,
-
-  /// Right-hand limit $\lim_{x \to a^+} f(x)$ (approaching from above).
-  fromAbove,
-
-  /// Left-hand limit $\lim_{x \to a^-} f(x)$ (approaching from below).
-  fromBelow,
-}
-
 /// Symbolic limit evaluation extension on [Expr].
 extension LimitExtension on Expr {
   /// Computes the symbolic limit $\lim_{variable \to point} f(variable)$.
@@ -160,14 +148,27 @@ Expr computeLimit(
     }
   }
 
-  if (_isPositiveInfinity(point)) {
-    return _computeInfiniteLimit(expr, variable, isPositive: true);
-  }
-  if (_isNegativeInfinity(point)) {
-    return _computeInfiniteLimit(expr, variable, isPositive: false);
-  }
+  try {
+    if (_isPositiveInfinity(point)) {
+      return _computeInfiniteLimit(expr, variable, isPositive: true);
+    }
+    if (_isNegativeInfinity(point)) {
+      return _computeInfiniteLimit(expr, variable, isPositive: false);
+    }
 
-  return _computeFiniteLimit(expr, variable, point, direction: direction);
+    return _computeFiniteLimit(expr, variable, point, direction: direction);
+  } on UnsupportedError catch (e) {
+    if (e.message?.contains('does not exist') ?? false) {
+      rethrow;
+    }
+    return Limit(
+      expr.simplify(),
+      variable,
+      point.simplify(),
+      direction: direction,
+      isSimplified: true,
+    );
+  }
 }
 
 Expr _computeFiniteLimit(
@@ -660,6 +661,11 @@ Expr? _tryFactorLogAdd(Expr a, Expr b, String variable) {
         scan(integrand);
         if (lower != null) scan(lower);
         if (upper != null) scan(upper);
+      case Derivative(:final expr):
+        scan(expr);
+      case Limit(:final expr, :final point):
+        scan(expr);
+        scan(point);
       case VariableFunction(:final arguments):
         for (final argument in arguments) {
           scan(argument);

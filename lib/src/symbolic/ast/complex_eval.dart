@@ -149,6 +149,7 @@ Complex _evalComplex(Expr expr, Map<String, Complex> context) => switch (expr) {
     }
     return Complex.nan;
   }(),
+  Derivative() || Limit() => Complex.nan,
   OrderTerm() => Complex.zero,
 };
 

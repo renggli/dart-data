@@ -564,3 +564,47 @@ Expr simplifyIntegral(
     isSimplified: true,
   );
 }
+
+/// Simplifies a symbolic [Derivative] node.
+Expr simplifyDerivative(Expr expr, String variable, {int order = 1}) {
+  final sExpr = expr.simplify();
+  if (!sExpr.dependsOn(variable)) {
+    return IntegerNumber.zero;
+  }
+  if (sExpr
+      case Derivative(
+        expr: final inner,
+        variable: final innerVar,
+        order: final innerOrder,
+      )
+      when innerVar == variable) {
+    return Derivative(
+      inner,
+      variable,
+      order: innerOrder + order,
+      isSimplified: true,
+    );
+  }
+  return Derivative(sExpr, variable, order: order, isSimplified: true);
+}
+
+/// Simplifies a symbolic [Limit] node.
+Expr simplifyLimit(
+  Expr expr,
+  String variable,
+  Expr point, {
+  LimitDirection direction = LimitDirection.both,
+}) {
+  final sExpr = expr.simplify();
+  final sPoint = point.simplify();
+  if (!sExpr.dependsOn(variable)) {
+    return sExpr;
+  }
+  return Limit(
+    sExpr,
+    variable,
+    sPoint,
+    direction: direction,
+    isSimplified: true,
+  );
+}

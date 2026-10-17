@@ -77,6 +77,18 @@ String _toLatex(Expr expr) => switch (expr) {
     lower != null && upper != null
         ? '\\int_{${_toLatex(lower)}}^{${_toLatex(upper)}} ${_toLatex(integrand)} \\, d$variable'
         : '\\int ${_toLatex(integrand)} \\, d$variable',
+  Derivative(:final expr, :final variable, :final order) =>
+    order == 1
+        ? '\\frac{d}{d$variable} ${_formatMulRight(expr)}'
+        : '\\frac{d^{$order}}{d$variable^{$order}} ${_formatMulRight(expr)}',
+  Limit(:final expr, :final variable, :final point, :final direction) => () {
+    final dirSuffix = switch (direction) {
+      LimitDirection.both => '',
+      LimitDirection.fromAbove => '^+',
+      LimitDirection.fromBelow => '^-',
+    };
+    return '\\lim_{$variable \\to ${_toLatex(point)}$dirSuffix} ${_formatMulRight(expr)}';
+  }(),
 };
 
 String _formatComplexLatex(ComplexNumber c) {

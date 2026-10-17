@@ -109,6 +109,23 @@ String _toMathMl(Expr expr) => switch (expr) {
     lower != null && upper != null
         ? '<mrow><msubsup><mo>&#x222B;</mo>${_toMathMl(lower)}${_toMathMl(upper)}</msubsup>${_toMathMl(integrand)}<mspace width="thinmathspace"/><mi>d</mi><mi>${_escapeXml(variable)}</mi></mrow>'
         : '<mrow><mo>&#x222B;</mo>${_toMathMl(integrand)}<mspace width="thinmathspace"/><mi>d</mi><mi>${_escapeXml(variable)}</mi></mrow>',
+  Derivative(:final expr, :final variable, :final order) => () {
+    final vXml = _escapeXml(variable);
+    final diffOp = order == 1
+        ? '<mfrac><mi>d</mi><mrow><mi>d</mi><mi>$vXml</mi></mrow></mfrac>'
+        : '<mfrac><msup><mi>d</mi><mn>$order</mn></msup><mrow><mi>d</mi><msup><mi>$vXml</mi><mn>$order</mn></msup></mrow></mfrac>';
+    return '<mrow>$diffOp${_formatMulRight(expr)}</mrow>';
+  }(),
+  Limit(:final expr, :final variable, :final point, :final direction) => () {
+    final vXml = _escapeXml(variable);
+    final ptMathMl = switch (direction) {
+      LimitDirection.both => _toMathMl(point),
+      LimitDirection.fromAbove => '<msup>${_toMathMl(point)}<mo>+</mo></msup>',
+      LimitDirection.fromBelow =>
+        '<msup>${_toMathMl(point)}<mo>&minus;</mo></msup>',
+    };
+    return '<mrow><munder><mo>lim</mo><mrow><mi>$vXml</mi><mo>&#x2192;</mo>$ptMathMl</mrow></munder>${_formatMulRight(expr)}</mrow>';
+  }(),
 };
 
 String _formatComplexMathMl(ComplexNumber c) {

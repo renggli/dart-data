@@ -104,9 +104,7 @@ Expr _differentiate(Expr expr, String variable) => switch (expr) {
     Pow(Constant.e, -Pow(inner, IntegerNumber.two)),
     _differentiate(inner, variable),
   ]),
-  Gamma() || Beta() => throw UnsupportedError(
-    'Symbolic derivative of ${expr.runtimeType} is non-elementary.',
-  ),
+  Gamma() || Beta() => Derivative(expr, variable),
   Asinh(expr: final inner) =>
     _differentiate(inner, variable) /
         Pow(
@@ -133,9 +131,11 @@ Expr _differentiate(Expr expr, String variable) => switch (expr) {
     :final upper,
   ) =>
     _differentiateIntegral(integrand, intVar, lower, upper, variable),
-  VariableFunction(:final name) => throw UnsupportedError(
-    'Symbolic derivative of unbound function "$name" is not supported.',
-  ),
+  Derivative(expr: final inner, variable: final dVar, :final order) =>
+    dVar == variable
+        ? Derivative(inner, variable, order: order + 1)
+        : Derivative(expr, variable),
+  Limit() || VariableFunction() => Derivative(expr, variable),
 };
 
 Expr _differentiateIntegral(

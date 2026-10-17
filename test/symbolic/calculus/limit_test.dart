@@ -240,9 +240,10 @@ void main() {
               .equals(Constant.infinity);
           check(Expr.parse('x - sqrt(x^4 + 1)').limit('x', Constant.infinity))
               .equals(-Constant.infinity);
-          check(
-            () => Expr.parse('sqrt(x^3 + 1) - x').limit('x', Constant.infinity),
-          ).throws<UnsupportedError>();
+          final undetAlg = Expr.parse('sqrt(x^3 + 1) - x')
+              .limit('x', Constant.infinity);
+          check(undetAlg).isA<Limit>();
+          check(Expr.parse(undetAlg.toString())).equals(undetAlg);
 
           check((Ln(x) / x).limit('x', Constant.infinity))
               .equals(IntegerNumber.zero);
@@ -334,8 +335,30 @@ void main() {
                 lower: IntegerNumber.zero,
                 upper: IntegerNumber.one,
               );
-          check(() => unsupportedMrv.limit('x', Constant.infinity))
-              .throws<UnsupportedError>();
+          final limNode = unsupportedMrv.limit('x', Constant.infinity);
+          check(limNode).isA<Limit>();
+          check(Expr.parse(limNode.toString())).equals(limNode);
+          check(limNode.toLatex()).contains(r'\lim_{x \to \infty}');
+          check(limNode.toMathMl(root: false)).contains('<munder><mo>lim</mo>');
+
+          final limAbove = Expr.parse('limit(f(x), x, 0, 1)');
+          check(limAbove).equals(
+            Limit(
+              Expr.parse('f(x)'),
+              'x',
+              IntegerNumber.zero,
+              direction: LimitDirection.fromAbove,
+            ),
+          );
+          check(Expr.parse(limAbove.toString())).equals(limAbove);
+          check(limAbove.toLatex()).equals(r'\lim_{x \to 0^+} f(x)');
+          check(limAbove.toMathMl(root: false)).equals(
+            '<mrow><munder><mo>lim</mo><mrow><mi>x</mi><mo>&#x2192;</mo><msup><mn>0</mn><mo>+</mo></msup></mrow></munder><mrow><mi>f</mi><mo>(</mo><mi>x</mi><mo>)</mo></mrow></mrow>',
+          );
+
+          final limBelow = Expr.parse('limit(f(x), x, 0, -1)');
+          check(Expr.parse(limBelow.toString())).equals(limBelow);
+          check(limBelow.toLatex()).equals(r'\lim_{x \to 0^-} f(x)');
 
           check((Sin(x) / x).limit('x', 0)).equals(IntegerNumber.one);
           check((x + IntegerNumber.one).limit('x', BigInt.two))

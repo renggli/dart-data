@@ -544,6 +544,8 @@ PowerSeries _expandToPowerSeries(
   Beta() ||
   RelationalExpr() ||
   Integral() ||
+  Derivative() ||
+  Limit() ||
   VariableFunction() => throw UnsupportedError(
     'Power series expansion not supported for ${expr.runtimeType}',
   ),

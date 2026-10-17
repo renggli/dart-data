@@ -81,5 +81,9 @@ Expr simplifyExpr(Expr expr) {
     Piecewise() => simplifyPiecewise(expr),
     Integral(:final integrand, :final variable, :final lower, :final upper) =>
       simplifyIntegral(integrand, variable, lower: lower, upper: upper),
+    Derivative(:final expr, :final variable, :final order) =>
+      simplifyDerivative(expr, variable, order: order),
+    Limit(:final expr, :final variable, :final point, :final direction) =>
+      simplifyLimit(expr, variable, point, direction: direction),
   };
 }

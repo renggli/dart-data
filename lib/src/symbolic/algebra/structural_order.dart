@@ -40,8 +40,10 @@ int nodeTag(Expr expr) => switch (expr) {
   NotEqual() => 30,
   Piecewise() => 31,
   Integral() => 32,
-  OrderTerm() => 33,
-  VariableFunction() => 34,
+  Derivative() => 33,
+  Limit() => 34,
+  OrderTerm() => 35,
+  VariableFunction() => 36,
 };
 
 /// Total structural ordering comparator over all [Expr] AST nodes.
@@ -100,6 +102,22 @@ int compareStructural(Expr a, Expr b) {
         }(),
         _ => 0,
       };
+    }(),
+    (final Derivative da, final Derivative db) => () {
+      final cmpVar = da.variable.compareTo(db.variable);
+      if (cmpVar != 0) return cmpVar;
+      final cmpOrd = da.order.compareTo(db.order);
+      if (cmpOrd != 0) return cmpOrd;
+      return compareStructural(da.expr, db.expr);
+    }(),
+    (final Limit la, final Limit lb) => () {
+      final cmpVar = la.variable.compareTo(lb.variable);
+      if (cmpVar != 0) return cmpVar;
+      final cmpDir = la.direction.index.compareTo(lb.direction.index);
+      if (cmpDir != 0) return cmpDir;
+      final cmpPt = compareStructural(la.point, lb.point);
+      if (cmpPt != 0) return cmpPt;
+      return compareStructural(la.expr, lb.expr);
     }(),
     (final OrderTerm oa, final OrderTerm ob) => () {
       final cmpVar = oa.variable.compareTo(ob.variable);

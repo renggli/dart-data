@@ -72,6 +72,19 @@ String formatExpr(Expr expr, [int parentPrec = 0]) {
       lower != null && upper != null
           ? 'integrate(${formatExpr(integrand)}, $variable, ${formatExpr(lower)}, ${formatExpr(upper)})'
           : 'integrate(${formatExpr(integrand)}, $variable)',
+    Derivative(:final expr, :final variable, :final order) =>
+      order == 1
+          ? 'diff(${formatExpr(expr)}, $variable)'
+          : 'diff(${formatExpr(expr)}, $variable, $order)',
+    Limit(:final expr, :final variable, :final point, :final direction) =>
+      switch (direction) {
+        LimitDirection.both =>
+          'limit(${formatExpr(expr)}, $variable, ${formatExpr(point)})',
+        LimitDirection.fromAbove =>
+          'limit(${formatExpr(expr)}, $variable, ${formatExpr(point)}, 1)',
+        LimitDirection.fromBelow =>
+          'limit(${formatExpr(expr)}, $variable, ${formatExpr(point)}, -1)',
+      },
   };
   return prec < parentPrec ? '($formatted)' : formatted;
 }

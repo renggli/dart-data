@@ -42,8 +42,10 @@ void main() {
         NotEqual(x, IntegerNumber.one), // 30
         Piecewise([(relation: LessThan(x, IntegerNumber.zero), expr: x)]), // 31
         Integral(x, 'x'), // 32
-        const OrderTerm('x', 3), // 33
-        VariableFunction('f', const [x]), // 34
+        Derivative(x, 'x'), // 33
+        Limit(x, 'x', IntegerNumber.zero), // 34
+        const OrderTerm('x', 3), // 35
+        VariableFunction('f', const [x]), // 36
       ];
 
       for (var i = 0; i < allVariants.length; i++) {
@@ -228,6 +230,31 @@ void main() {
       check(compareStructural(vf1, vf2)).isLessThan(0);
       check(compareStructural(vf1, vf3)).isLessThan(0);
       check(compareStructural(vf1, vf4)).isLessThan(0);
+
+      // Derivative comparisons
+      final d1 = Derivative(x, 'x');
+      final d2 = Derivative(x, 'y');
+      final d3 = Derivative(x, 'x', order: 2);
+      final d4 = Derivative(y, 'x');
+      check(compareStructural(d1, d2)).isLessThan(0);
+      check(compareStructural(d1, d3)).isLessThan(0);
+      check(compareStructural(d1, d4)).isLessThan(0);
+
+      // Limit comparisons
+      final l1 = Limit(x, 'x', IntegerNumber.zero);
+      final l2 = Limit(x, 'y', IntegerNumber.zero);
+      final l3 = Limit(
+        x,
+        'x',
+        IntegerNumber.zero,
+        direction: LimitDirection.fromAbove,
+      );
+      final l4 = Limit(x, 'x', IntegerNumber.one);
+      final l5 = Limit(y, 'x', IntegerNumber.zero);
+      check(compareStructural(l1, l2)).isLessThan(0);
+      check(compareStructural(l1, l3)).isLessThan(0);
+      check(compareStructural(l1, l4)).isLessThan(0);
+      check(compareStructural(l1, l5)).isLessThan(0);
     });
   });
 }

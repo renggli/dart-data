@@ -122,16 +122,44 @@ void main() {
   });
 
   group('Special functions, Piecewise, OrderTerm, and Integral', () {
-    test('differentiates Erf, Erfc, LambertW, and rejects Gamma/Beta', () {
+    test('differentiates Erf, Erfc, LambertW, and returns unevaluated Derivative for Gamma, Beta, and VariableFunction', () {
       check(Erf(x).derivative('x').evaluate({'x': 0.0}))
           .isCloseTo(2.0 / math.sqrt(math.pi), 1e-12);
       check(Erfc(x).derivative('x').evaluate({'x': 0.0}))
           .isCloseTo(-2.0 / math.sqrt(math.pi), 1e-12);
       check(LambertW(x).derivative('x').evaluate({'x': 1.0}))
           .isCloseTo(0.3618962566348892, 1e-12);
-      check(() => Gamma(x).derivative('x')).throws<UnsupportedError>();
-      check(() => Beta(x, IntegerNumber.two).derivative('x'))
-          .throws<UnsupportedError>();
+      check(Gamma(x).derivative('x')).equals(
+        Derivative(Gamma(x, isSimplified: true), 'x', isSimplified: true),
+      );
+      check(Gamma(x).derivative('x', order: 2)).equals(
+        Derivative(
+          Gamma(x, isSimplified: true),
+          'x',
+          order: 2,
+          isSimplified: true,
+        ),
+      );
+      check(Beta(x, IntegerNumber.two).derivative('x')).equals(
+        Derivative(
+          Beta(IntegerNumber.two, x, isSimplified: true),
+          'x',
+          isSimplified: true,
+        ),
+      );
+      final fx = Expr.parse('f(x)');
+      check(fx.derivative('x').toString()).equals('diff(f(x), x)');
+      check(fx.derivative('x', order: 3).toString()).equals('diff(f(x), x, 3)');
+      check(Expr.parse('diff(f(x, y), x)').toString())
+          .equals('diff(f(x, y), x)');
+      check(Expr.parse('diff(f(x), x)').toLatex()).equals(r'\frac{d}{dx} f(x)');
+      check(Expr.parse('diff(f(x), x, 2)').toLatex())
+          .equals(r'\frac{d^{2}}{dx^{2}} f(x)');
+      check(Expr.parse('diff(f(x), x)').toMathMl(root: false)).equals(
+        '<mrow><mfrac><mi>d</mi><mrow><mi>d</mi><mi>x</mi></mrow></mfrac><mrow><mi>f</mi><mo>(</mo><mi>x</mi><mo>)</mo></mrow></mrow>',
+      );
+      check(Expr.parse(fx.derivative('x', order: 2).toString()))
+          .equals(fx.derivative('x', order: 2));
     });
 
     test('differentiates OrderTerm and Piecewise nodes', () {

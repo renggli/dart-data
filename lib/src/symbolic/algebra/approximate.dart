@@ -51,6 +51,8 @@ Expr _approximateNode(Expr node) => switch (node) {
   UnaryExpr(:final expr) => _approximateUnary(node, _approximateNode(expr)),
   RelationalExpr() ||
   Piecewise() ||
+  Derivative() ||
+  Limit() ||
   VariableFunction() => node.mapChildren(_approximateNode),
   Integral() => () {
     final rebuilt = node.mapChildren(_approximateNode) as Integral;

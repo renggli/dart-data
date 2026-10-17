@@ -9,7 +9,7 @@ export 'src/symbolic/ast.dart';
 export 'src/symbolic/calculus/differentiation.dart'
     show DifferentiationExtension;
 export 'src/symbolic/calculus/integration.dart' show IntegrationExtension;
-export 'src/symbolic/calculus/limit.dart' show LimitDirection, LimitExtension;
+export 'src/symbolic/calculus/limit.dart' show LimitExtension;
 export 'src/symbolic/calculus/multivariable.dart'
     show MultivariableExtension, MultivariableIterableExtension;
 export 'src/symbolic/calculus/series.dart' show PowerSeries, SeriesExtension;

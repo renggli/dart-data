@@ -148,6 +148,9 @@ class ExprSyntax {
       'Piecewise': _parsePiecewiseArgs,
       'integrate': _parseIntegralArgs,
       'integral': _parseIntegralArgs,
+      'diff': _parseDerivativeArgs,
+      'derivative': _parseDerivativeArgs,
+      'limit': _parseLimitArgs,
       'O': _parseOrderTermArgs,
     },
   );
@@ -455,6 +458,54 @@ class ExprSyntax {
     ),
     _ => throw FormatException(
       'integrate requires 2 or 4 arguments, got ${args.length}',
+    ),
+  };
+
+  static Expr _parseDerivativeArgs(List<Expr> args) => switch (args) {
+    [final expr, Variable(:final name)] => Derivative(expr, name),
+    [final expr, Variable(:final name), IntegerNumber(asInt: final order?)]
+        when order >= 1 =>
+      Derivative(expr, name, order: order),
+    [_, Variable(), final invalidOrder] => throw FormatException(
+      'diff order must be a positive integer, got: $invalidOrder',
+    ),
+    [_, final invalidVar, ...] => throw FormatException(
+      'diff second argument must be a variable identifier, got: $invalidVar',
+    ),
+    _ => throw FormatException(
+      'diff requires 2 or 3 arguments, got ${args.length}',
+    ),
+  };
+
+  static Expr _parseLimitArgs(List<Expr> args) => switch (args) {
+    [final expr, Variable(:final name), final point] => Limit(
+      expr,
+      name,
+      point,
+    ),
+    [final expr, Variable(:final name), final point, final dirExpr] => Limit(
+      expr,
+      name,
+      point,
+      direction: _parseLimitDirection(dirExpr),
+    ),
+    [_, final invalidVar, ...] => throw FormatException(
+      'limit second argument must be a variable identifier, got: $invalidVar',
+    ),
+    _ => throw FormatException(
+      'limit requires 3 or 4 arguments, got ${args.length}',
+    ),
+  };
+
+  static LimitDirection _parseLimitDirection(Expr dirExpr) => switch (dirExpr) {
+    IntegerNumber(isZero: true) ||
+    Variable(name: 'both') => LimitDirection.both,
+    IntegerNumber(isOne: true) ||
+    Variable(name: 'fromAbove' || 'right') => LimitDirection.fromAbove,
+    IntegerNumber(isNegativeOne: true) ||
+    Variable(name: 'fromBelow' || 'left') => LimitDirection.fromBelow,
+    _ => throw FormatException(
+      'Invalid limit direction: $dirExpr (expected -1, 0, 1, fromBelow, both, or fromAbove)',
     ),
   };
 }
