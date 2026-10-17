@@ -39,12 +39,35 @@ void main() {
       final symConstDef = Pow(Constant.e, x).integrate('x', from: 0, to: 1);
       check(symConstDef)
           .equals((IntegerNumber.negativeOne + Constant.e).simplify());
+
+      check(Sin(x).integrate('x', from: 0, to: Constant.pi))
+          .equals(IntegerNumber.two);
+      check(
+        x.integrate('x', from: const Variable('a'), to: const Variable('b')),
+      ).equals(
+        (FractionNumber.half * Pow(const Variable('b'), IntegerNumber.two) -
+                FractionNumber.half *
+                    Pow(const Variable('a'), IntegerNumber.two))
+            .simplify(),
+      );
+      check(x.integrate('x', from: BigInt.zero, to: BigInt.two))
+          .equals(IntegerNumber.two);
+      check(() => x.integrate('x', from: 0, to: 'invalid'))
+          .throws<ArgumentError>();
     });
 
     test('evaluates improper infinite bounds and unevaluated fallbacks', () {
       final expDecay = Expr.parse('exp(-x)')
           .integrate('x', from: 0, to: double.infinity);
       check(expDecay).equals(IntegerNumber.one);
+
+      final symInfDecay = Expr.parse('exp(-x)')
+          .integrate('x', from: 0, to: Constant.infinity);
+      check(symInfDecay).equals(IntegerNumber.one);
+
+      final symNegInf = Expr.parse('exp(x)')
+          .integrate('x', from: -Constant.infinity, to: 0);
+      check(symNegInf).equals(IntegerNumber.one);
 
       final expGrowthLeft = Expr.parse('exp(x)')
           .integrate('x', from: double.negativeInfinity, to: 0);

@@ -555,9 +555,10 @@ This document describes the achieved architecture across all subsystems of `pack
 - **Reasoning**: Mathematical CAS workflows require symbolic matrices, vectors, and polynomials. Decoupling from `numeric` does not imply isolation from algebraic containers.
 - **Implementation & Constraints**:
   - `ExprDataType` and `ExprField` (`lib/src/symbolic/type/expr_data_type.dart`) implement `DataType<Expr>` and `ExtendedField<Expr>`.
-  - Symbolic linear algebra (`lib/src/symbolic/linear/`):
+  - Symbolic linear algebra & container extensions (`lib/src/symbolic/linear/`):
     - `BareissEngine` (`lib/src/symbolic/linear/bareiss.dart`): Fraction-free Gaussian elimination computing exact symbolic determinants (`determinant`), ranks, RREF, nullspaces, and linear solves without intermediate expression swell.
     - `FaddeevLeVerrierEngine` (`lib/src/symbolic/linear/faddeev_leverrier.dart`): Characteristic polynomial $p(\lambda) = \det(\lambda I - A)$ and symbolic matrix inverse $A^{-1}$ via trace recurrence.
+    - `SymbolicMatrixExtension` (`Matrix<Expr>`) and `SymbolicVectorExtension` (`Vector<Expr>`) in `lib/src/symbolic/linear/matrix.dart`: Element-wise algebraic and calculus operations (`simplify`, `expand`, `factor`, `substitute`, `approximate`, `rationalize`, `derivative`, `integrate`), canonical string formatting (`format`), LaTeX (`toLatex`), and MathML (`toMathMl`), paired with `ExprSyntax.parseMatrix`/`tryParseMatrix` and `ExprSyntax.parseVector`/`tryParseVector`.
   - Multivariable calculus (`lib/src/symbolic/calculus/multivariable.dart`) returns first-class containers:
     - `expr.gradient(variables)` returns `Vector<Expr>`.
     - `expr.hessian(variables)` returns `Matrix<Expr>`.

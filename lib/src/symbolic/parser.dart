@@ -1,6 +1,9 @@
 import 'package:petitparser/petitparser.dart';
 
+import '../linear/matrix.dart';
+import '../linear/vector.dart';
 import 'ast.dart';
+import 'type/expr_data_type.dart';
 
 /// Extensible case-sensitive syntax and parser for mathematical [Expr] strings.
 ///
@@ -163,8 +166,16 @@ class ExprSyntax {
   /// Registered variadic functions.
   final Map<String, Expr Function(List<Expr>)> variadicFunctions;
 
-  /// Underlying PetitParser [Parser] for this syntax.
-  late final Parser<Expr> parser = _buildParser();
+  late final Parser<Expr> _exprParser = _buildExprParser();
+
+  /// Underlying PetitParser [Parser] for [Expr] strings.
+  late final Parser<Expr> parser = _exprParser.end();
+
+  /// Underlying PetitParser [Parser] for `[a, b, c]` [Vector] literals.
+  late final Parser<Vector<Expr>> vectorParser = _buildVectorParser();
+
+  /// Underlying PetitParser [Parser] for `[[a, b], [c, d]]` [Matrix] literals.
+  late final Parser<Matrix<Expr>> matrixParser = _buildMatrixParser();
 
   /// Parses [input] into an [Expr], throwing [FormatException] on syntax error.
   Expr parse(String input) => switch (parser.parse(input)) {
@@ -188,7 +199,71 @@ class ExprSyntax {
     }
   }
 
-  Parser<Expr> _buildParser() {
+  /// Parses a bracketed vector literal `[a, b, c]` into a symbolic [Vector],
+  /// throwing [FormatException] on syntax error.
+  Vector<Expr> parseVector(String input) => switch (vectorParser.parse(input)) {
+    Success(:final value) => value,
+    Failure(:final message, :final position) => throw FormatException(
+      message,
+      input,
+      position,
+    ),
+  };
+
+  /// Parses a bracketed vector literal `[a, b, c]` into a symbolic [Vector],
+  /// or returns `null` if [input] is invalid.
+  Vector<Expr>? tryParseVector(String input) {
+    try {
+      return switch (vectorParser.parse(input)) {
+        Success(:final value) => value,
+        Failure() => null,
+      };
+    } on FormatException {
+      return null;
+    }
+  }
+
+  /// Parses a nested bracketed matrix literal `[[a, b], [c, d]]` into a
+  /// symbolic [Matrix], throwing [FormatException] on syntax error or ragged rows.
+  Matrix<Expr> parseMatrix(String input) => switch (matrixParser.parse(input)) {
+    Success(:final value) => value,
+    Failure(:final message, :final position) => throw FormatException(
+      message,
+      input,
+      position,
+    ),
+  };
+
+  /// Parses a nested bracketed matrix literal `[[a, b], [c, d]]` into a
+  /// symbolic [Matrix], or returns `null` if [input] is invalid.
+  Matrix<Expr>? tryParseMatrix(String input) {
+    try {
+      return switch (matrixParser.parse(input)) {
+        Success(:final value) => value,
+        Failure() => null,
+      };
+    } on FormatException {
+      return null;
+    }
+  }
+
+  Parser<List<Expr>> _buildBracketedExprList() => _exprParser
+      .starSeparated(char(',').trim())
+      .map((list) => list.elements)
+      .skip(before: char('[').trim(), after: char(']').trim());
+
+  Parser<Vector<Expr>> _buildVectorParser() => _buildBracketedExprList()
+      .map((elements) => Vector<Expr>.fromList(elements, type: exprDataType))
+      .end();
+
+  Parser<Matrix<Expr>> _buildMatrixParser() => _buildBracketedExprList()
+      .plusSeparated(char(',').trim())
+      .map((list) => list.elements)
+      .skip(before: char('[').trim(), after: char(']').trim())
+      .map(_createMatrix)
+      .end();
+
+  Parser<Expr> _buildExprParser() {
     final builder = ExpressionBuilder<Expr>();
     final symbol = anyOf(_mathSymbols);
     final identifierStart = <Parser<String>>[
@@ -273,7 +348,20 @@ class ExprSyntax {
         (a, _, b) => Equal(a, b),
       );
 
-    return resolve(builder.build()).end();
+    return resolve(builder.build());
+  }
+
+  static Matrix<Expr> _createMatrix(List<List<Expr>> rows) {
+    final cols = rows.first.length;
+    for (var r = 1; r < rows.length; r++) {
+      if (rows[r].length != cols) {
+        throw FormatException(
+          'Inconsistent matrix row lengths: row 0 has $cols columns, '
+          'row $r has ${rows[r].length}',
+        );
+      }
+    }
+    return Matrix<Expr>.fromRows(rows, type: exprDataType);
   }
 
   Expr _createBinding(String name, List<Expr>? arguments) =>

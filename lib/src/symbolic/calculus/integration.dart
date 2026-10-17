@@ -25,18 +25,35 @@ extension IntegrationExtension on Expr {
   /// final area = (x * x).integrate('x', from: 0, to: 3);
   /// // area: IntegerNumber(9) because \int_0^3 x^2 dx = [x^3 / 3]_0^3 = 9
   /// ```
-  Expr integrate(String variable, {num? from, num? to}) =>
+  Expr integrate(String variable, {Object? from, Object? to}) =>
       _symbolicIntegrate(this, variable, from: from, to: to);
 }
 
-Expr _symbolicIntegrate(Expr function, String variable, {num? from, num? to}) {
+final Expr _negInfinity = Mul(const [
+  IntegerNumber.negativeOne,
+  Constant.infinity,
+], isSimplified: true);
+
+bool _isInfiniteBound(Expr bound) =>
+    bound == Constant.infinity ||
+    bound == _negInfinity ||
+    bound == -Constant.infinity;
+
+Expr _symbolicIntegrate(
+  Expr function,
+  String variable, {
+  Object? from,
+  Object? to,
+}) {
   if ((from == null) != (to == null)) {
     throw ArgumentError(
       'Both "from" and "to" must be provided for definite integration.',
     );
   }
   if (from != null && to != null) {
-    if (from == to) {
+    final fromExpr = _boundToExpr(from).simplify();
+    final toExpr = _boundToExpr(to).simplify();
+    if (fromExpr == toExpr) {
       return IntegerNumber.zero;
     }
     final antiDeriv = _antiDerivative(function, variable).simplify();
@@ -44,31 +61,25 @@ Expr _symbolicIntegrate(Expr function, String variable, {num? from, num? to}) {
       return Integral(
         function.simplify(),
         variable,
-        lower: _numToExpr(from),
-        upper: _numToExpr(to),
+        lower: fromExpr,
+        upper: toExpr,
         isSimplified: true,
       );
     }
     try {
-      final upper = to.isInfinite
-          ? antiDeriv.limit(
-              variable,
-              to > 0 ? Constant.infinity : -Constant.infinity,
-            )
-          : antiDeriv.substitute(variable, _numToExpr(to));
-      final lower = from.isInfinite
-          ? antiDeriv.limit(
-              variable,
-              from > 0 ? Constant.infinity : -Constant.infinity,
-            )
-          : antiDeriv.substitute(variable, _numToExpr(from));
+      final upper = _isInfiniteBound(toExpr)
+          ? antiDeriv.limit(variable, toExpr)
+          : antiDeriv.substitute(variable, toExpr);
+      final lower = _isInfiniteBound(fromExpr)
+          ? antiDeriv.limit(variable, fromExpr)
+          : antiDeriv.substitute(variable, fromExpr);
       return (upper - lower).simplify();
     } on Object {
       return Integral(
         function.simplify(),
         variable,
-        lower: _numToExpr(from),
-        upper: _numToExpr(to),
+        lower: fromExpr,
+        upper: toExpr,
         isSimplified: true,
       );
     }
@@ -79,9 +90,19 @@ Expr _symbolicIntegrate(Expr function, String variable, {num? from, num? to}) {
 
 bool _hasUnevaluatedIntegral(Expr expr) => expr.anyNode((e) => e is Integral);
 
-Expr _numToExpr(num n) {
-  if (n is int) return IntegerNumber.of(n);
-  final d = n.toDouble();
+Expr _boundToExpr(Object bound) => switch (bound) {
+  Expr() => bound,
+  int() => IntegerNumber.of(bound),
+  BigInt() => IntegerNumber(Integer.big(bound)),
+  double() => _doubleToBoundExpr(bound),
+  _ => throw ArgumentError.value(
+    bound,
+    'bound',
+    'Integration bound must be an Expr, int, BigInt, or double',
+  ),
+};
+
+Expr _doubleToBoundExpr(double d) {
   if (d.isNaN) return Constant.undefined;
   if (d == double.infinity) return Constant.infinity;
   if (d == double.negativeInfinity) return -Constant.infinity;
