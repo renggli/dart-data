@@ -14,12 +14,12 @@ sealed class Expr {
   ///
   /// Throws a [FormatException] if [input] is not a valid mathematical expression.
   factory parse(String input, {ExprSyntax? syntax}) =>
-      (syntax ?? ExprSyntax.standard()).parse(input);
+      (syntax ?? ExprSyntax.standard).parse(input);
 
   /// Attempts to parse an algebraic expression from [input], returning `null`
   /// if parsing fails.
   static Expr? tryParse(String input, {ExprSyntax? syntax}) =>
-      (syntax ?? ExprSyntax.standard()).tryParse(input);
+      (syntax ?? ExprSyntax.standard).tryParse(input);
 
   /// Whether this expression node is already in canonical simplified form.
   bool get isSimplified;

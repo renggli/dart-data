@@ -36,4 +36,47 @@ void main() {
       check(xPos1.hashCode).equals(xPos2.hashCode);
     });
   });
+
+  group('VariableFunction AST node', () {
+    test('parsing, formatting, simplification, substitution, and evaluation errors', () {
+      const x = Variable('x');
+      const y = Variable('y');
+      final f = Expr.parse('f(x + x, y)');
+      check(f).equals(VariableFunction('f', [x + x, y]));
+      check(f.isSimplified).isFalse();
+      check(f.toString()).equals('f(x + x, y)');
+      check(f.toLatex()).equals('f(x + x, y)');
+      check(f.toMathMl(root: false)).equals(
+        '<mrow><mi>f</mi><mo>(</mo><mrow><mi>x</mi><mo>+</mo><mi>x</mi></mrow><mo>,</mo><mi>y</mi><mo>)</mo></mrow>',
+      );
+      check(f.freeVariables).unorderedEquals(['x', 'y']);
+      check(f.dependsOn('x')).isTrue();
+      check(f.dependsOn('z')).isFalse();
+      check(f.anyNode((e) => e == y)).isTrue();
+
+      final simplified = f.simplify();
+      check(simplified).equals(
+        VariableFunction('f', [
+          Mul([IntegerNumber.two, x]),
+          y,
+        ], isSimplified: true),
+      );
+      check(simplified.isSimplified).isTrue();
+      check(simplified.hashCode).equals(
+        VariableFunction('f', [
+          Mul([IntegerNumber.two, x]),
+          y,
+        ]).hashCode,
+      );
+
+      final sub = simplified.substitute('y', IntegerNumber.one);
+      check(sub.toString()).equals('f(2 * x, 1)');
+
+      check(() => simplified.evaluate({'x': 1.0, 'y': 2.0}))
+          .throws<UnsupportedError>();
+      check(simplified.evaluateComplex).throws<UnsupportedError>();
+      check(() => simplified.derivative('x')).throws<UnsupportedError>();
+      check(simplified.compileBytecode).throws<UnsupportedError>();
+    });
+  });
 }

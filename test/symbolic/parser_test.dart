@@ -26,28 +26,43 @@ void main() {
       check(Expr.parse('2E+3')).equals(const RealNumber(2000.0));
     });
 
-    test('parses built-in constants, functions, OrderTerm, and Piecewise', () {
+    test('parses built-in constants, functions, OrderTerm, Piecewise, Integral, and case-sensitive identifiers', () {
       check(Expr.parse('pi')).equals(Constant.pi);
-      check(Expr.parse('PI')).equals(Constant.pi);
       check(Expr.parse('π')).equals(Constant.pi);
       check(Expr.parse('e')).equals(Constant.e);
       check(Expr.parse('i')).equals(ComplexNumber.i);
       check(Expr.parse('infinity')).equals(Constant.infinity);
       check(Expr.parse('∞')).equals(Constant.infinity);
-      // Capital I is not treated as imaginary unit by default
+
+      // Identifiers are strictly case-sensitive; uppercase PI, E, I parse as Variables
+      check(Expr.parse('PI')).equals(const Variable('PI'));
+      check(Expr.parse('E')).equals(const Variable('E'));
       check(Expr.parse('I')).equals(const Variable('I'));
+
+      // Unicode identifiers (non-whitespace, non-number, non-math-symbol)
+      check(Expr.parse('α + β'))
+          .equals(const Variable('α') + const Variable('β'));
+      check(Expr.parse('ℏ * ω'))
+          .equals(const Variable('ℏ') * const Variable('ω'));
 
       const x = Variable('x');
       check(Expr.parse('sqrt(x)')).equals(Pow(x, FractionNumber.half));
       check(Expr.parse('exp(x)')).equals(Pow(Constant.e, x));
       check(Expr.parse('ln(x)')).equals(Ln(x));
-      check(Expr.parse('SIN(x)')).equals(Sin(x));
+      check(Expr.parse('sin(x)')).equals(Sin(x));
       check(Expr.parse('pow(x, 2)')).equals(Pow(x, IntegerNumber.two));
       check(Expr.parse('root(x, 3)'))
           .equals(Pow(x, IntegerNumber.one / IntegerNumber.of(3)));
       check(Expr.parse('log(2, x)')).equals(Ln(x) / Ln(IntegerNumber.two));
       check(Expr.parse('lambertw(x, -1)')).equals(LambertW(x, branch: -1));
       check(Expr.parse('lambertw(x, 0)')).equals(LambertW(x));
+      check(Expr.parse('LambertW(x)')).equals(LambertW(x));
+
+      // 2-argument and 4-argument integrate
+      check(Expr.parse('integrate(sin(x), x)')).equals(Integral(Sin(x), 'x'));
+      check(Expr.parse('integrate(sin(x), x, 0, pi)')).equals(
+        Integral(Sin(x), 'x', lower: IntegerNumber.zero, upper: Constant.pi),
+      );
 
       // OrderTerm forms
       check(Expr.parse('O(1)')).equals(const OrderTerm('x', 0));
@@ -92,89 +107,105 @@ void main() {
         final rightAssoc = Expr.parse('2^3^2').simplify();
         check(rightAssoc).equals(IntegerNumber.of(512));
 
-        // Syntax and function errors
-        final syntax = ExprSyntax.standard();
-        check(() => syntax.parse('unknownUnary(x)')).throws<FormatException>();
-        check(() => syntax.parse('unknownBinary(x, y)'))
-            .throws<FormatException>();
-        check(() => syntax.parse('sin(x, y, z)')).throws<FormatException>();
+        // Syntax and function errors (including case sensitivity and arity mismatch)
+        final syntax = ExprSyntax.standard;
+        check(syntax.parse('SIN(x)'))
+            .equals(VariableFunction('SIN', const [Variable('x')]));
+        check(syntax.parse('unknownUnary(x)'))
+            .equals(VariableFunction('unknownUnary', const [Variable('x')]));
+        check(syntax.parse('unknownBinary(x, y)')).equals(
+          VariableFunction('unknownBinary', const [
+            Variable('x'),
+            Variable('y'),
+          ]),
+        );
+        check(syntax.parse('sin(x, y, z)')).equals(
+          VariableFunction('sin', const [
+            Variable('x'),
+            Variable('y'),
+            Variable('z'),
+          ]),
+        );
         check(() => syntax.parse('lambertw(x, 2)')).throws<FormatException>();
         check(() => syntax.parse('O(sin(x))')).throws<FormatException>();
         check(() => syntax.parse('piecewise(x < 0)')).throws<FormatException>();
         check(() => syntax.parse('piecewise(x + 1, 2)'))
             .throws<FormatException>();
+        check(() => syntax.parse('integrate(x, 2)')).throws<FormatException>();
+        check(() => syntax.parse('integrate(x, y, 0)'))
+            .throws<FormatException>();
         check(() => syntax.parse('x +')).throws<FormatException>();
-        check(syntax.tryParse('unknownUnary(x)')).isNull();
         check(syntax.tryParse('x +')).isNull();
       },
     );
   });
 
-  group('Custom ExprSyntaxBuilder', () {
-    test('custom constants, bound variables, removing, and clearing', () {
-      final builder = ExprSyntax.standard().toBuilder()
-        ..removeConstant('e')
-        ..removeConstant('i')
-        ..defineConstant(
-          'phi',
+  group('Custom ExprSyntax and ExprSyntax.empty', () {
+    test('custom constants and empty syntax', () {
+      final phi =
           (IntegerNumber.one + Pow(IntegerNumber.of(5), FractionNumber.half)) /
-              IntegerNumber.two,
-          aliases: const ['golden'],
-        )
-        ..defineVariable('r0', Expr.parse('x^2 + 1'))
-        ..defineVariable('r1', IntegerNumber.two)
-        ..removeVariable('r1');
-      final syntax = builder.build();
+          IntegerNumber.two;
+      final syntax = ExprSyntax(
+        constants: {
+          'phi': phi,
+          'golden': phi,
+          'φ': phi,
+          'r0': Expr.parse('x^2 + 1'),
+        },
+      );
 
-      // e, i, and r1 now parse as variables
-      check(syntax.parse('e')).equals(const Variable('e'));
-      check(syntax.parse('i')).equals(const Variable('i'));
-      check(syntax.parse('r1')).equals(const Variable('r1'));
       check(syntax.parse('golden')).equals(syntax.parse('phi'));
+      check(syntax.parse('φ')).equals(syntax.parse('phi'));
+      check(syntax.parse('PHI')).equals(const Variable('PHI'));
 
       // r0 resolves to bound expression
       final reused = syntax.parse('2 * r0').expand().simplify();
       check(reused.toString()).equals('2 + 2 * x ^ 2');
 
-      final cleared = syntax.toBuilder()
-        ..clearConstants()
-        ..clearVariables();
-      final clearedSyntax = cleared.build();
-      check(clearedSyntax.parse('pi')).equals(const Variable('pi'));
-      check(clearedSyntax.parse('r0')).equals(const Variable('r0'));
+      final emptySyntax = ExprSyntax.empty();
+      check(emptySyntax.parse('pi')).equals(const Variable('pi'));
+      check(emptySyntax.parse('e')).equals(const Variable('e'));
+      check(emptySyntax.parse('i')).equals(const Variable('i'));
+      check(emptySyntax.parse('r0')).equals(const Variable('r0'));
+      check(emptySyntax.parse('cos(x)'))
+          .equals(VariableFunction('cos', const [Variable('x')]));
     });
 
-    test('implicit multiplication, custom functions, removeFunction, and case sensitivity', () {
-      final builder = ExprSyntax.standard().toBuilder()
-        ..implicitMultiplication = true
-        ..caseInsensitiveConstants = false
-        ..caseInsensitiveFunctions = false
-        ..removeFunction('sin')
-        ..defineUnaryFunction(
-          'doubleIt',
-          (a) => IntegerNumber.two * a,
-          aliases: const ['dbl'],
-        )
-        ..defineBinaryFunction(
-          'hypot',
-          (a, b) => Pow(
+    test('custom unary, binary, and variadic functions', () {
+      final syntax = ExprSyntax(
+        unaryFunctions: {
+          'doubleIt': (a) => IntegerNumber.two * a,
+          'dbl': (a) => IntegerNumber.two * a,
+        },
+        binaryFunctions: {
+          'hypot': (a, b) => Pow(
             Pow(a, IntegerNumber.two) + Pow(b, IntegerNumber.two),
             FractionNumber.half,
           ),
-          aliases: const ['pythag'],
-        )
-        ..defineVariadicFunction('sumAll', Add.new, aliases: const ['total']);
-      final syntax = builder.build();
-
-      final expr = syntax.parse('2x + 3(x + 1)').expand().simplify();
-      check(expr.toString()).equals('3 + 5 * x');
+          'pythag': (a, b) => Pow(
+            Pow(a, IntegerNumber.two) + Pow(b, IntegerNumber.two),
+            FractionNumber.half,
+          ),
+        },
+        variadicFunctions: {
+          'fma': (args) => args[0] * args[1] + args[2],
+          'sumAll': Add.new,
+          'total': Add.new,
+        },
+      );
 
       check(syntax.parse('dbl(3)').simplify()).equals(IntegerNumber.of(6));
       check(syntax.parse('pythag(3, 4)').simplify())
           .equals(IntegerNumber.of(5));
+      check(syntax.parse('fma(2, 3, 4)').simplify())
+          .equals(IntegerNumber.of(10));
       check(syntax.parse('total(1, 2, 3)').simplify())
           .equals(IntegerNumber.of(6));
-      check(() => syntax.parse('sin(x)')).throws<FormatException>();
+
+      // Built-in functions remain available in ExprSyntax(...)
+      check(syntax.parse('log(x)')).equals(Ln(const Variable('x')));
+      check(syntax.parse('DBL(3)'))
+          .equals(VariableFunction('DBL', [IntegerNumber.of(3)]));
     });
   });
 }

@@ -26,6 +26,9 @@ Complex _evalComplex(Expr expr, Map<String, Complex> context) => switch (expr) {
     }
     return val;
   }(),
+  VariableFunction(:final name) => throw UnsupportedError(
+    'Cannot evaluate unbound function "$name"',
+  ),
   Add(:final terms) => () {
     var sum = Complex.zero;
     for (var i = 0; i < terms.length; i++) {

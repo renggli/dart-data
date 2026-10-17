@@ -413,6 +413,10 @@ BytecodeEvaluator compileToBytecode(
         instructions.add(Instruction.evalNode(expr));
       case OrderTerm():
         instructions.add(Instruction.pushReal(0.0));
+      case VariableFunction(:final name):
+        throw UnsupportedError(
+          'Cannot compile unbound function "$name" to numeric bytecode',
+        );
     }
 
     if (regIdx != null) {
@@ -463,6 +467,10 @@ void _forEachChild(Expr node, void Function(Expr) visit) {
       visit(integrand);
       if (lower != null) visit(lower);
       if (upper != null) visit(upper);
+    case VariableFunction(:final arguments):
+      for (final argument in arguments) {
+        visit(argument);
+      }
     case Number() || Constant() || Variable() || OrderTerm():
       break;
   }

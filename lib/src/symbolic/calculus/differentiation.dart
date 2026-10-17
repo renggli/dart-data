@@ -133,6 +133,9 @@ Expr _differentiate(Expr expr, String variable) => switch (expr) {
     :final upper,
   ) =>
     _differentiateIntegral(integrand, intVar, lower, upper, variable),
+  VariableFunction(:final name) => throw UnsupportedError(
+    'Symbolic derivative of unbound function "$name" is not supported.',
+  ),
 };
 
 Expr _differentiateIntegral(

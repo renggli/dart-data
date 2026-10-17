@@ -34,6 +34,9 @@ Expr simplifyExpr(Expr expr) {
   if (expr.isSimplified) return expr;
   return switch (expr) {
     Number() || Constant() || Variable() => expr,
+    VariableFunction(:final name, :final arguments) => VariableFunction(name, [
+      for (final argument in arguments) simplifyExpr(argument),
+    ], isSimplified: true),
     OrderTerm(:final variable, :final order, :final point) => OrderTerm(
       variable,
       order,

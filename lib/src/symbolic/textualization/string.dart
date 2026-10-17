@@ -12,6 +12,8 @@ String formatExpr(Expr expr, [int parentPrec = 0]) {
   final prec = precedence(expr);
   final formatted = switch (expr) {
     Variable(:final name) => name,
+    VariableFunction(:final name, :final arguments) =>
+      '$name(${arguments.map(formatExpr).join(', ')})',
     Constant(:final name) => name,
     IntegerNumber(:final value) => '$value',
     FractionNumber(:final numerator, :final denominator) =>

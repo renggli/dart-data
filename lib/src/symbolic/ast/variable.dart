@@ -70,3 +70,72 @@ final class Variable extends Expr {
   @override
   int get hashCode => Object.hash(Variable, name, domain);
 }
+
+/// Symbolic uninterpreted function application node (e.g. $f(x)$, $g(x, y)$).
+final class VariableFunction extends Expr {
+  /// Creates a symbolic function application $name(\text{arguments})$.
+  new(this.name, Iterable<Expr> arguments, {this.isSimplified = false})
+    : arguments = List<Expr>.unmodifiable(arguments);
+
+  /// Identifier name of the function.
+  final String name;
+
+  /// Positional arguments passed to the function.
+  final List<Expr> arguments;
+
+  @override
+  final bool isSimplified;
+
+  @override
+  double evaluate([
+    Map<String, double> context = const {},
+  ]) => throw UnsupportedError(
+    'Cannot numerically evaluate symbolic function "$name(${arguments.join(', ')})"',
+  );
+
+  @override
+  void _collectFreeVariables(Set<String> target) {
+    for (final arg in arguments) {
+      arg._collectFreeVariables(target);
+    }
+  }
+
+  @override
+  bool dependsOn(String variable) =>
+      arguments.any((arg) => arg.dependsOn(variable));
+
+  @override
+  Expr substitute(String variable, Expr replacement) => VariableFunction(name, [
+    for (final arg in arguments) arg.substitute(variable, replacement),
+  ]);
+
+  @override
+  Expr mapChildren(Expr Function(Expr) transform) =>
+      VariableFunction(name, [for (final arg in arguments) transform(arg)]);
+
+  @override
+  bool anyNode(bool Function(Expr) predicate) =>
+      predicate(this) || arguments.any((arg) => arg.anyNode(predicate));
+
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    if (other is! VariableFunction ||
+        hashCode != other.hashCode ||
+        name != other.name ||
+        arguments.length != other.arguments.length) {
+      return false;
+    }
+    for (var i = 0; i < arguments.length; i++) {
+      if (arguments[i] != other.arguments[i]) return false;
+    }
+    return true;
+  }
+
+  @override
+  late final int hashCode = Object.hash(
+    VariableFunction,
+    name,
+    Object.hashAll(arguments),
+  );
+}

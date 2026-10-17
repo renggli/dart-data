@@ -10,9 +10,7 @@ void main() {
       check(Expr.tryParse('x + 1')).equals(const Variable('x') + 1);
       check(Expr.tryParse('invalid ???')).isNull();
 
-      final custom = ExprSyntax.standard().toBuilder()
-        ..defineConstant('k', IntegerNumber.of(7));
-      final syntax = custom.build();
+      final syntax = ExprSyntax(constants: {'k': IntegerNumber.of(7)});
       check(Expr.parse('k', syntax: syntax)).equals(IntegerNumber.of(7));
       check(Expr.tryParse('k', syntax: syntax)).equals(IntegerNumber.of(7));
     });

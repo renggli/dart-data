@@ -40,6 +40,7 @@ int nodeTag(Expr expr) => switch (expr) {
   Piecewise() => 30,
   Integral() => 31,
   OrderTerm() => 32,
+  VariableFunction() => 33,
 };
 
 /// Total structural ordering comparator over all [Expr] AST nodes.
@@ -61,6 +62,11 @@ int compareStructural(Expr a, Expr b) {
       final cmpName = va.name.compareTo(vb.name);
       if (cmpName != 0) return cmpName;
       return va.domain.index.compareTo(vb.domain.index);
+    }(),
+    (final VariableFunction fa, final VariableFunction fb) => () {
+      final cmpName = fa.name.compareTo(fb.name);
+      if (cmpName != 0) return cmpName;
+      return _compareList(fa.arguments, fb.arguments);
     }(),
     (final LambertW la, final LambertW lb) => () {
       final cmpBranch = la.branch.compareTo(lb.branch);

@@ -49,7 +49,9 @@ Expr _approximateNode(Expr node) => switch (node) {
     _approximateNode(exponent),
   ),
   UnaryExpr(:final expr) => _approximateUnary(node, _approximateNode(expr)),
-  RelationalExpr() || Piecewise() => node.mapChildren(_approximateNode),
+  RelationalExpr() ||
+  Piecewise() ||
+  VariableFunction() => node.mapChildren(_approximateNode),
   Integral() => () {
     final rebuilt = node.mapChildren(_approximateNode) as Integral;
     if (rebuilt.isDefinite && rebuilt.freeVariables.isEmpty) {

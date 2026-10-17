@@ -19,7 +19,7 @@ export 'src/symbolic/compiler.dart'
 export 'src/symbolic/linear/matrix.dart'
     show SymbolicMatrixExtension, SymbolicVectorExtension;
 export 'src/symbolic/number/integer.dart' show Integer;
-export 'src/symbolic/parser.dart' show ExprSyntax, ExprSyntaxBuilder;
+export 'src/symbolic/parser.dart' show ExprSyntax;
 export 'src/symbolic/solver/polynomial_system.dart'
     show PolynomialSystemMethod, PolynomialSystemSolverExtension;
 export 'src/symbolic/solver/system.dart' show SystemSolverExtension;

@@ -28,6 +28,8 @@ extension MathMlExtension on Expr {
 
 String _toMathMl(Expr expr) => switch (expr) {
   Variable(:final name) => '<mi>${_escapeXml(name)}</mi>',
+  VariableFunction(:final name, :final arguments) =>
+    '<mrow><mi>${_escapeXml(name)}</mi><mo>(</mo>${arguments.map(_toMathMl).join('<mo>,</mo>')}<mo>)</mo></mrow>',
   Constant(:final mathMl) => mathMl,
   IntegerNumber(:final value) =>
     value.isNegative

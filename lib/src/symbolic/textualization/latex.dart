@@ -21,6 +21,8 @@ extension LatexExtension on Expr {
 
 String _toLatex(Expr expr) => switch (expr) {
   Variable(:final name) => name,
+  VariableFunction(:final name, :final arguments) =>
+    '$name(${arguments.map(_toLatex).join(', ')})',
   Constant(:final latex) => latex,
   IntegerNumber(:final value) => '$value',
   FractionNumber(:final numerator, :final denominator) =>
