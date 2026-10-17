@@ -23,8 +23,7 @@ export 'src/symbolic/linear/matrix.dart'
     show SymbolicEigenpair, SymbolicMatrixExtension, SymbolicVectorExtension;
 export 'src/symbolic/number/integer.dart' show Integer;
 export 'src/symbolic/parser.dart' show ExprSyntax;
-export 'src/symbolic/solver/polynomial_system.dart'
-    show PolynomialSystemMethod, PolynomialSystemSolverExtension;
+export 'src/symbolic/solver/polynomial_system.dart' show PolynomialSystemMethod;
 export 'src/symbolic/solver/system.dart' show SystemSolverExtension;
 export 'src/symbolic/solver/univariate.dart' show SolverExtension;
 export 'src/symbolic/textualization/latex.dart' show LatexExtension;

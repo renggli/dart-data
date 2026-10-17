@@ -1,35 +1,173 @@
 import '../algebra/expand.dart';
 import '../algebra/factor.dart';
+import '../algebra/rational.dart';
 import '../algebra/simplify.dart';
 import '../algebra/term_accumulator.dart';
 import '../ast.dart';
 import '../calculus/differentiation.dart';
+import 'polynomial_system.dart';
 import 'univariate.dart';
 
-/// Extension providing linear equation system solving on [Iterable] of [Expr].
+/// Extension providing unified equation system solving on [Iterable] of [Expr].
 extension SystemSolverExtension on Iterable<Expr> {
-  /// Solves the linear system $f_i(x_1, \dots, x_n) = 0$ for [variables].
+  /// Solves this system of equations $f_i(x_1, \dots, x_n) = 0$ for
+  /// [variables].
   ///
-  /// Conceptually, this finds the common solution satisfying multiple
-  /// simultaneous linear equations (such as $x + y - 10 = 0$ and
-  /// $x - y - 2 = 0$).
+  /// Equations may be [Equal] nodes (`lhs == rhs`) or algebraic expressions
+  /// implicitly equated to $0$, including rational equations whose denominator
+  /// poles are automatically excluded from the solution set.
   ///
-  /// Formally, this performs exact symbolic Gaussian elimination over the
-  /// affine coefficient matrix. Returns a mapping from each variable name to
-  /// its solution expression, or `null` if the system is singular,
-  /// underdetermined, or contradictory.
+  /// When [method] is [PolynomialSystemMethod.auto] (the default), dispatches
+  /// automatically by algebraic structure:
+  /// - Single-equation univariate systems use [SolverExtension.solve].
+  /// - Determined linear systems use exact symbolic Gaussian elimination.
+  /// - Bivariate nonlinear polynomial systems use Sylvester resultant
+  ///   elimination, falling back to Buchberger Gröbner basis + FGLM conversion.
+  /// - General multivariate polynomial systems use Buchberger Gröbner basis
+  ///   with Sugar selection followed by FGLM lexicographic conversion.
+  ///
+  /// Returns a list of solution maps assigning each variable in [variables] to
+  /// its exact symbolic value, or an empty list if the system is inconsistent
+  /// or singular.
   ///
   /// ```dart
   /// final x = Variable('x');
   /// final y = Variable('y');
-  /// final solution = [x + y - 10, x - y - 2].solveSystem(['x', 'y']);
-  /// // solution?['x'] == IntegerNumber(6), solution?['y'] == IntegerNumber(4)
+  /// final solutions = [x + y - 10, x - y - 2].solve(['x', 'y']);
+  /// // solutions == [{'x': IntegerNumber(6), 'y': IntegerNumber(4)}]
   /// ```
-  Map<String, Expr>? solveSystem(List<String> variables) =>
-      solveSystemEquations(toList(), variables);
+  List<Map<String, Expr>> solve(
+    List<String> variables, {
+    PolynomialSystemMethod method = PolynomialSystemMethod.auto,
+  }) => solveEquations(toList(), variables, method: method);
 }
 
-/// Solves a system of [equations] in [variables] via exact Gaussian elimination.
+/// Unified solver for a system of [equations] in [variables].
+List<Map<String, Expr>> solveEquations(
+  List<Expr> equations,
+  List<String> variables, {
+  PolynomialSystemMethod method = PolynomialSystemMethod.auto,
+}) {
+  if (equations.isEmpty || variables.isEmpty) {
+    if (method == PolynomialSystemMethod.resultant) {
+      throw ArgumentError(
+        'Resultant method requires exactly 2 equations and 2 variables',
+      );
+    }
+    return const [];
+  }
+
+  final varSet = variables.toSet();
+  final denominators = <Expr>[];
+  final numEquations = <Expr>[];
+
+  for (final rawEq in equations) {
+    final diff = switch (rawEq) {
+      Equal(:final left, :final right) => left - right,
+      _ => rawEq,
+    };
+    _collectDenominatorBases(diff, varSet, denominators);
+    final combined = diff.together();
+    final (numPart, denPart) = splitNumeratorDenominator(combined);
+    if (denPart != IntegerNumber.one &&
+        denPart.freeVariables.any(varSet.contains)) {
+      denominators.add(denPart);
+    }
+    numEquations.add(numPart.expand().simplify());
+  }
+
+  List<Map<String, Expr>> rawSolutions;
+  if (method != PolynomialSystemMethod.auto) {
+    rawSolutions = solvePolynomialSystemEquations(
+      numEquations,
+      variables,
+      method: method,
+    );
+  } else if (numEquations.length == 1 && variables.length == 1) {
+    final v = variables.first;
+    final roots = solveEquation(numEquations.first, v);
+    rawSolutions = [
+      for (final r in roots) {v: r.simplify()},
+    ];
+  } else if (_isLinearSystem(numEquations, variables)) {
+    if (numEquations.length != variables.length) {
+      rawSolutions = const [];
+    } else {
+      final linearSol = solveSystemEquations(numEquations, variables);
+      rawSolutions = linearSol != null ? [linearSol] : const [];
+    }
+  } else {
+    rawSolutions = solvePolynomialSystemEquations(
+      numEquations,
+      variables,
+      method: PolynomialSystemMethod.auto,
+    );
+  }
+
+  if (denominators.isEmpty || rawSolutions.isEmpty) {
+    return rawSolutions;
+  }
+
+  return [
+    for (final sol in rawSolutions)
+      if (!_vanishesAnyDenominator(denominators, sol)) sol,
+  ];
+}
+
+void _collectDenominatorBases(
+  Expr expr,
+  Set<String> variables,
+  List<Expr> target,
+) {
+  expr.anyNode((node) {
+    if (node case Pow(:final base, exponent: RealNumeric(isNegative: true))) {
+      if (base.freeVariables.any(variables.contains)) {
+        target.add(base);
+      }
+    }
+    return false;
+  });
+}
+
+bool _vanishesAnyDenominator(
+  List<Expr> denominators,
+  Map<String, Expr> solution,
+) {
+  for (final den in denominators) {
+    var sub = den;
+    for (final MapEntry(:key, :value) in solution.entries) {
+      sub = sub.substitute(key, value);
+    }
+    if (isZeroExpr(sub.expand().simplify())) {
+      return true;
+    }
+  }
+  return false;
+}
+
+bool _isLinearSystem(List<Expr> equations, List<String> variables) {
+  for (final eq in equations) {
+    var reconstructed = IntegerNumber.zero as Expr;
+    for (final v in variables) {
+      final deriv = eq.derivative(v).simplify();
+      for (final otherV in variables) {
+        if (deriv.dependsOn(otherV)) return false;
+      }
+      reconstructed = reconstructed + deriv * Variable(v);
+    }
+    var cTerm = eq;
+    for (final v in variables) {
+      cTerm = cTerm.substitute(v, IntegerNumber.zero);
+    }
+    reconstructed = (reconstructed + cTerm).expand().simplify();
+    final residual = (eq - reconstructed).expand().simplify();
+    if (!isZeroExpr(residual)) return false;
+  }
+  return true;
+}
+
+/// Solves a linear system of [equations] in [variables] via exact Gaussian
+/// elimination.
 Map<String, Expr>? solveSystemEquations(
   List<Expr> equations,
   List<String> variables,

@@ -14,7 +14,7 @@ void main() {
       check(result).equals(7.0);
     });
 
-    test('solve and solveSystem', () {
+    test('solve on single equation and equation system', () {
       const x = Variable('x');
       final roots = (x * x - 4).solve('x');
       final rootValues = roots.map((e) => (e as Number).toDouble()).toList();
@@ -22,10 +22,10 @@ void main() {
       check(rootValues).contains(2.0);
 
       const y = Variable('y');
-      final systemSol = [x + y - 5, x - y - 1].solveSystem(['x', 'y']);
-      check(systemSol).isNotNull();
-      check((systemSol!['x'] as Number).toDouble()).equals(3.0);
-      check((systemSol['y'] as Number).toDouble()).equals(2.0);
+      final systemSols = [x + y - 5, x - y - 1].solve(['x', 'y']);
+      check(systemSols.length).equals(1);
+      check((systemSols.first['x'] as Number).toDouble()).equals(3.0);
+      check((systemSols.first['y'] as Number).toDouble()).equals(2.0);
     });
 
     test('derivative', () {

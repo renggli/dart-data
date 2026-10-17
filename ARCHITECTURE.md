@@ -617,8 +617,7 @@ This document describes the achieved architecture across all subsystems of `pack
     - Invertible transcendental and hyperbolic compositions (`lib/src/symbolic/solver/transcendental.dart`), including $u e^u = c$ and $u^u = c$ via `LambertW`.
     - Domain filtering: Filters candidate roots according to the explicit `domain` argument or the `VariableDomain` declared on `Variable(variable)` nodes in the equation (`real` excludes non-real complex roots, `positive` retains strictly positive real roots, `integer` retains exact integer roots).
   - Simultaneous systems:
-    - `solveSystem(variables)` (`lib/src/symbolic/solver/system.dart`): Exact symbolic Gaussian elimination and back-substitution for symbolic linear systems.
-    - `solvePolynomialSystem(variables, {method = PolynomialSystemMethod.auto})` (`lib/src/symbolic/solver/polynomial_system.dart`): Solves multivariate nonlinear polynomial systems via Sylvester resultant elimination (`resultant.dart`) for 2-variable systems and Buchberger Gröbner basis + FGLM basis conversion (`buchberger.dart`, `fglm.dart`) for $n$-variable zero-dimensional ideals.
+    - `Iterable<Expr>.solve(variables, {method = PolynomialSystemMethod.auto})` (`lib/src/symbolic/solver/system.dart` and `polynomial_system.dart`): Single canonical entry point for simultaneous equation systems. Automatically clears rational denominators via `together()`, tracks denominator poles to exclude extraneous roots, and dispatches by structure: univariate equations via `solveEquation`, determined linear systems via exact symbolic Gaussian elimination (`solveSystemEquations`), 2-variable polynomial systems via Sylvester resultant elimination (`resultant.dart`), and general $n$-variable polynomial ideals via Buchberger Gröbner basis + FGLM lexicographic conversion (`buchberger.dart`, `fglm.dart`).
 
 ### 9.7 Extensible Parser & Presentation-Aware Textualization (String, LaTeX, MathML)
 
