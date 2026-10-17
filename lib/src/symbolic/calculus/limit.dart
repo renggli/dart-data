@@ -363,6 +363,28 @@ Expr _resolveAsymptoticAbsAndPiecewise(Expr expr, String variable) {
       return otherwise;
     }
   }
+  if (mapped case Pow(:final base, :final exponent)
+      when base is RealNumeric &&
+          base.sign > 0 &&
+          exponent.dependsOn(variable)) {
+    try {
+      final expLim = _computeInfiniteLimit(
+        exponent,
+        variable,
+        isPositive: true,
+      );
+      final cmpOne = base.compareTo(IntegerNumber.one);
+      if (_isPositiveInfinity(expLim)) {
+        if (cmpOne < 0) return IntegerNumber.zero;
+        if (cmpOne > 0) return Constant.infinity;
+      } else if (_isNegativeInfinity(expLim)) {
+        if (cmpOne > 0) return IntegerNumber.zero;
+        if (cmpOne < 0) return Constant.infinity;
+      }
+    } on Object {
+      // Keep mapped
+    }
+  }
   return mapped;
 }
 

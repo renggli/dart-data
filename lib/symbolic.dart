@@ -20,6 +20,7 @@ export 'src/symbolic/calculus/limit.dart' show LimitExtension;
 export 'src/symbolic/calculus/multivariable.dart'
     show MultivariableExtension, MultivariableIterableExtension;
 export 'src/symbolic/calculus/series.dart' show PowerSeries, SeriesExtension;
+export 'src/symbolic/calculus/summation.dart' show SummationExtension;
 export 'src/symbolic/compiler.dart'
     show BytecodeEvaluator, CompilerExtension, CompilerIterableExtension;
 export 'src/symbolic/linear/matrix.dart'
