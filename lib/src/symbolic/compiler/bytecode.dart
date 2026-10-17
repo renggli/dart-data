@@ -103,6 +103,27 @@ enum Op {
   /// Beta function (`B(a, b)`).
   beta,
 
+  /// Factorial (`a!`).
+  factorial,
+
+  /// Binomial coefficient (`binomial(n, k)`).
+  binomial,
+
+  /// Floor (`floor(a)`).
+  floor,
+
+  /// Ceiling (`ceil(a)`).
+  ceil,
+
+  /// Round to nearest integer (`round(a)`).
+  round,
+
+  /// Signum (`sign(a)`).
+  sign,
+
+  /// Modulo (`mod(a, b)`).
+  mod,
+
   /// Inverse hyperbolic sine (`asinh(a)`).
   asinh,
 
@@ -350,6 +371,29 @@ BytecodeEvaluator compileToBytecode(
         emit(left);
         emit(right);
         instructions.add(const Instruction.op(Op.beta));
+      case Factorial(:final expr):
+        emit(expr);
+        instructions.add(const Instruction.op(Op.factorial));
+      case Binomial(:final left, :final right):
+        emit(left);
+        emit(right);
+        instructions.add(const Instruction.op(Op.binomial));
+      case Floor(:final expr):
+        emit(expr);
+        instructions.add(const Instruction.op(Op.floor));
+      case Ceil(:final expr):
+        emit(expr);
+        instructions.add(const Instruction.op(Op.ceil));
+      case Round(:final expr):
+        emit(expr);
+        instructions.add(const Instruction.op(Op.round));
+      case Sign(:final expr):
+        emit(expr);
+        instructions.add(const Instruction.op(Op.sign));
+      case Mod(:final left, :final right):
+        emit(left);
+        emit(right);
+        instructions.add(const Instruction.op(Op.mod));
       case Asinh(:final expr):
         emit(expr);
         instructions.add(const Instruction.op(Op.asinh));
@@ -501,6 +545,8 @@ int _computeMaxStack(List<Instruction> instructions) {
           Op.div ||
           Op.pow ||
           Op.beta ||
+          Op.binomial ||
+          Op.mod ||
           Op.lt ||
           Op.le ||
           Op.gt ||
@@ -530,6 +576,11 @@ int _computeMaxStack(List<Instruction> instructions) {
           Op.erf ||
           Op.erfc ||
           Op.gamma ||
+          Op.factorial ||
+          Op.floor ||
+          Op.ceil ||
+          Op.round ||
+          Op.sign ||
           Op.asinh ||
           Op.acosh ||
           Op.atanh:

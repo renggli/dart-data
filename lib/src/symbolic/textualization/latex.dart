@@ -54,6 +54,15 @@ String _toLatex(Expr expr) => switch (expr) {
   Gamma(:final expr) => '\\Gamma(${_toLatex(expr)})',
   Beta(:final left, :final right) =>
     '\\operatorname{B}(${_toLatex(left)}, ${_toLatex(right)})',
+  Factorial(:final expr) => '${_formatPowBase(expr)}!',
+  Binomial(:final left, :final right) =>
+    '\\binom{${_toLatex(left)}}{${_toLatex(right)}}',
+  Floor(:final expr) => '\\lfloor ${_toLatex(expr)} \\rfloor',
+  Ceil(:final expr) => '\\lceil ${_toLatex(expr)} \\rceil',
+  Round(:final expr) => '\\operatorname{round}(${_toLatex(expr)})',
+  Sign(:final expr) => '\\operatorname{sgn}(${_toLatex(expr)})',
+  Mod(:final left, :final right) =>
+    '${_formatMulLeft(left)} \\bmod ${_formatMulRight(right)}',
   Asinh(:final expr) => '\\operatorname{arsinh}(${_toLatex(expr)})',
   Acosh(:final expr) => '\\operatorname{arcosh}(${_toLatex(expr)})',
   Atanh(:final expr) => '\\operatorname{artanh}(${_toLatex(expr)})',

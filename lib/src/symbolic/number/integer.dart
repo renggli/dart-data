@@ -209,6 +209,28 @@ extension type const Integer._(Object _value) {
     return Integer.big(toBigInt().gcd(other.toBigInt()));
   }
 
+  /// Returns the non-negative least common multiple of this value and [other].
+  ///
+  /// Returns `0` if either value is zero.
+  Integer lcm(Integer other) {
+    if (isZero || other.isZero) return zero;
+    final g = gcd(other);
+    return (abs() ~/ g) * other.abs();
+  }
+
+  /// Whether this integer is a prime number ($p \ge 2$).
+  ///
+  /// Uses deterministic Miller-Rabin witnesses for 64-bit integers and
+  /// trial division + strong probable prime testing for larger [BigInt] values.
+  bool get isPrime {
+    if (isNegative || isZero || isOne) return false;
+    final n = _value;
+    if (n is int) {
+      return _isSmallPrime(n);
+    }
+    return _isBigPrime(n as BigInt);
+  }
+
   /// Returns this value raised to the non-negative [exponent], or `null` if
   /// the result would need more than [maxBitLength] bits.
   ///
@@ -279,3 +301,52 @@ final _negativeTwoPow53 = -BigInt.two.pow(53);
 
 /// Pattern of a decimal integer with an optional sign.
 final _decimal = RegExp(r'^[+-]?[0-9]+$');
+
+const _smallPrimes = <int>[2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37];
+
+bool _isSmallPrime(int n) {
+  if (n < 2) return false;
+  for (final p in _smallPrimes) {
+    if (n == p) return true;
+    if (n % p == 0) return false;
+  }
+  if (n < 1369) return true; // 37^2 = 1369
+  if (n < 1000000) {
+    for (var d = 41; d * d <= n; d += 6) {
+      if (n % d == 0 || n % (d + 2) == 0) return false;
+    }
+    return true;
+  }
+  return _isBigPrime(BigInt.from(n));
+}
+
+bool _isBigPrime(BigInt n) {
+  if (n < BigInt.two) return false;
+  for (final p in _smallPrimes) {
+    final bp = BigInt.from(p);
+    if (n == bp) return true;
+    if (n % bp == BigInt.zero) return false;
+  }
+  var d = n - BigInt.one;
+  var r = 0;
+  while (d.isEven) {
+    d >>= 1;
+    r++;
+  }
+  for (final aInt in _smallPrimes) {
+    final a = BigInt.from(aInt);
+    if (a >= n) break;
+    var x = a.modPow(d, n);
+    if (x == BigInt.one || x == n - BigInt.one) continue;
+    var composite = true;
+    for (var i = 1; i < r; i++) {
+      x = (x * x) % n;
+      if (x == n - BigInt.one) {
+        composite = false;
+        break;
+      }
+    }
+    if (composite) return false;
+  }
+  return true;
+}

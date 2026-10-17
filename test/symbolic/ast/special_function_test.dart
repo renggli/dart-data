@@ -64,4 +64,81 @@ void main() {
       check(Atanh(x).evaluate({'x': tanhVal})).isCloseTo(0.6, 1e-12);
     });
   });
+
+  group('Combinatorial, rounding, and modular functions', () {
+    test('Factorial and postfix ! operator', () {
+      check(Expr.parse('5!')).equals(Factorial(IntegerNumber.of(5)));
+      check(Expr.parse('5!').simplify()).equals(IntegerNumber.of(120));
+      check(Expr.parse('0!').simplify()).equals(IntegerNumber.one);
+      check(Expr.parse('(x + 1)!').toString()).equals('(x + 1)!');
+      check(Expr.parse('x!').toString()).equals('x!');
+      check(Expr.parse('x! != 1'))
+          .equals(NotEqual(Factorial(const Variable('x')), IntegerNumber.one));
+      check(Expr.parse('x!').toLatex()).equals('x!');
+      check(Expr.parse('(x + 1)!').toLatex()).equals('(x + 1)!');
+      check(Expr.parse('x!').toMathMl())
+          .equals('<math><mrow><mi>x</mi><mo>!</mo></mrow></math>');
+      check(Expr.parse('x!').evaluate({'x': 5.0})).isCloseTo(120.0, 1e-12);
+      check(Expr.parse('x!').toFunction1D('x')(5.0)).isCloseTo(120.0, 1e-12);
+    });
+
+    test('Binomial coefficient', () {
+      check(Expr.parse('binomial(5, 2)').simplify())
+          .equals(IntegerNumber.of(10));
+      check(Expr.parse('nCr(6, 3)').simplify()).equals(IntegerNumber.of(20));
+      check(Expr.parse('binomial(x, 0)').simplify()).equals(IntegerNumber.one);
+      check(Expr.parse('binomial(x, 1)').simplify())
+          .equals(const Variable('x'));
+      check(Expr.parse('binomial(x, x)').simplify()).equals(IntegerNumber.one);
+      check(Expr.parse('binomial(n, k)').toString()).equals('binomial(n, k)');
+      check(Expr.parse('binomial(n, k)').toLatex()).equals(r'\binom{n}{k}');
+      check(Expr.parse('binomial(n, k)').evaluate({'n': 5.0, 'k': 2.0}))
+          .isCloseTo(10.0, 1e-12);
+      check(Expr.parse('binomial(x, 2)').toFunction1D('x')(5.0))
+          .isCloseTo(10.0, 1e-12);
+    });
+
+    test('Floor, Ceil, Round, Sign, and Mod', () {
+      check(Expr.parse('floor(7/2)').simplify()).equals(IntegerNumber.of(3));
+      check(Expr.parse('floor(-7/2)').simplify()).equals(IntegerNumber.of(-4));
+      check(Expr.parse('ceil(7/2)').simplify()).equals(IntegerNumber.of(4));
+      check(Expr.parse('ceil(-7/2)').simplify()).equals(IntegerNumber.of(-3));
+      check(Expr.parse('round(5/2)').simplify()).equals(IntegerNumber.of(3));
+      check(Expr.parse('round(3/2)').simplify()).equals(IntegerNumber.of(2));
+      check(Expr.parse('sign(-5)').simplify())
+          .equals(IntegerNumber.negativeOne);
+      check(Expr.parse('sgn(0)').simplify()).equals(IntegerNumber.zero);
+      check(Expr.parse('sign(5)').simplify()).equals(IntegerNumber.one);
+      check(
+        Sign(const Variable('x', domain: VariableDomain.positive)).simplify(),
+      ).equals(IntegerNumber.one);
+      check(Expr.parse('mod(17, 5)').simplify()).equals(IntegerNumber.of(2));
+      check(Expr.parse('mod(-7, 5)').simplify()).equals(IntegerNumber.of(3));
+      check(Expr.parse('gcd(12, 18)')).equals(IntegerNumber.of(6));
+      check(Expr.parse('lcm(12, 18)')).equals(IntegerNumber.of(36));
+
+      for (final source in [
+        'floor(x)',
+        'ceil(x)',
+        'round(x)',
+        'sign(x)',
+        'mod(x, 3)',
+      ]) {
+        final expr = Expr.parse(source);
+        check(Expr.parse(expr.toString())).equals(expr);
+      }
+      check(Expr.parse('floor(x)').toLatex()).equals(r'\lfloor x \rfloor');
+      check(Expr.parse('ceil(x)').toLatex()).equals(r'\lceil x \rceil');
+      check(Expr.parse('round(x)').toLatex())
+          .equals(r'\operatorname{round}(x)');
+      check(Expr.parse('sign(x)').toLatex()).equals(r'\operatorname{sgn}(x)');
+      check(Expr.parse('mod(x, y)').toLatex()).equals(r'x \bmod y');
+
+      check(Expr.parse('floor(x)').toFunction1D('x')(3.7)).equals(3.0);
+      check(Expr.parse('ceil(x)').toFunction1D('x')(3.2)).equals(4.0);
+      check(Expr.parse('round(x)').toFunction1D('x')(3.6)).equals(4.0);
+      check(Expr.parse('sign(x)').toFunction1D('x')(-3.6)).equals(-1.0);
+      check(Expr.parse('mod(x, 5)').toFunction1D('x')(-7.0)).equals(3.0);
+    });
+  });
 }

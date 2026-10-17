@@ -2,6 +2,7 @@ import 'package:petitparser/petitparser.dart';
 
 import '../linear/matrix.dart';
 import '../linear/vector.dart';
+import 'algebra/simplify.dart';
 import 'ast.dart';
 import 'type/expr_data_type.dart';
 
@@ -117,6 +118,12 @@ class ExprSyntax {
         'erf': Erf.new,
         'erfc': Erfc.new,
         'gamma': Gamma.new,
+        'factorial': Factorial.new,
+        'floor': Floor.new,
+        'ceil': Ceil.new,
+        'round': Round.new,
+        'sign': Sign.new,
+        'sgn': Sign.new,
         'lambertw': LambertW.new,
         'LambertW': LambertW.new,
         'W': LambertW.new,
@@ -131,6 +138,11 @@ class ExprSyntax {
         'log': (a, b) => Ln(b) / Ln(a),
         'root': (a, b) => Pow(a, IntegerNumber.one / b),
         'beta': Beta.new,
+        'binomial': Binomial.new,
+        'nCr': Binomial.new,
+        'mod': Mod.new,
+        'gcd': _evalGcdBinary,
+        'lcm': _evalLcmBinary,
         'lambertw': _parseLambertWBinary,
         'LambertW': _parseLambertWBinary,
         'W': _parseLambertWBinary,
@@ -151,6 +163,8 @@ class ExprSyntax {
       'diff': _parseDerivativeArgs,
       'derivative': _parseDerivativeArgs,
       'limit': _parseLimitArgs,
+      'gcd': _evalGcdVariadic,
+      'lcm': _evalLcmVariadic,
       'O': _parseOrderTermArgs,
     },
   );
@@ -316,6 +330,12 @@ class ExprSyntax {
       char('(').trim(),
       char(')').trim(),
       (_, value, _) => value,
+    );
+
+    // Postfix factorial (!, not followed by =)
+    builder.group().postfix(
+      seq2(char('!'), char('=').not()).trim(),
+      (a, _) => Factorial(a),
     );
 
     // Exponentiation (right-associative)
@@ -508,4 +528,60 @@ class ExprSyntax {
       'Invalid limit direction: $dirExpr (expected -1, 0, 1, fromBelow, both, or fromAbove)',
     ),
   };
+
+  static Expr _evalGcdBinary(Expr a, Expr b) {
+    final sa = a.simplify();
+    final sb = b.simplify();
+    if (sa is RationalNumber && sb is RationalNumber) {
+      return sa.gcd(sb);
+    }
+    return VariableFunction('gcd', [a, b]);
+  }
+
+  static Expr _evalLcmBinary(Expr a, Expr b) {
+    final sa = a.simplify();
+    final sb = b.simplify();
+    if (sa is RationalNumber && sb is RationalNumber) {
+      return sa.lcm(sb);
+    }
+    return VariableFunction('lcm', [a, b]);
+  }
+
+  static Expr _evalGcdVariadic(List<Expr> args) {
+    if (args.isEmpty) {
+      throw const FormatException('gcd requires at least 1 argument');
+    }
+    final current = args.first.simplify();
+    if (current is! RationalNumber) {
+      return VariableFunction('gcd', args);
+    }
+    var acc = current.abs();
+    for (var i = 1; i < args.length; i++) {
+      final next = args[i].simplify();
+      if (next is! RationalNumber) {
+        return VariableFunction('gcd', args);
+      }
+      acc = acc.gcd(next);
+    }
+    return acc;
+  }
+
+  static Expr _evalLcmVariadic(List<Expr> args) {
+    if (args.isEmpty) {
+      throw const FormatException('lcm requires at least 1 argument');
+    }
+    final current = args.first.simplify();
+    if (current is! RationalNumber) {
+      return VariableFunction('lcm', args);
+    }
+    var acc = current.abs();
+    for (var i = 1; i < args.length; i++) {
+      final next = args[i].simplify();
+      if (next is! RationalNumber) {
+        return VariableFunction('lcm', args);
+      }
+      acc = acc.lcm(next);
+    }
+    return acc;
+  }
 }

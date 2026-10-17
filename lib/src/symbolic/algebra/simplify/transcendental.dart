@@ -608,3 +608,174 @@ Expr simplifyLimit(
     isSimplified: true,
   );
 }
+
+/// Simplifies a factorial expression $n!$.
+Expr simplifyFactorial(Expr expr) {
+  if (expr case IntegerNumber(asInt: final n?) when n >= 0 && n <= 100) {
+    var fact = Integer.one;
+    for (var k = 2; k <= n; k++) {
+      fact = fact * Integer(k);
+    }
+    return IntegerNumber(fact);
+  }
+  if (expr == FractionNumber.negativeHalf) {
+    return Pow(Constant.pi, FractionNumber.half, isSimplified: true);
+  }
+  return Factorial(expr, isSimplified: true);
+}
+
+/// Simplifies a binomial coefficient $\binom{n}{k}$.
+Expr simplifyBinomial(Expr nExpr, Expr kExpr) {
+  if (kExpr is Number && kExpr.isZero) {
+    return IntegerNumber.one;
+  }
+  if (kExpr is Number && kExpr.isOne) {
+    return nExpr;
+  }
+  if (nExpr == kExpr) {
+    return IntegerNumber.one;
+  }
+  if (kExpr case IntegerNumber(:final value) when value.isNegative) {
+    return IntegerNumber.zero;
+  }
+  if (nExpr case IntegerNumber(asInt: final n?) when n >= 0) {
+    if (kExpr case IntegerNumber(asInt: final k?)) {
+      if (k < 0 || k > n) return IntegerNumber.zero;
+      final m = k < n - k ? k : n - k;
+      if (m <= 1000) {
+        var res = Integer.one;
+        for (var i = 1; i <= m; i++) {
+          res = (res * Integer(n - m + i)) ~/ Integer(i);
+        }
+        return IntegerNumber(res);
+      }
+    }
+  }
+  return Binomial(nExpr, kExpr, isSimplified: true);
+}
+
+/// Simplifies a floor expression $\lfloor x \rfloor$.
+Expr simplifyFloor(Expr expr) {
+  switch (expr) {
+    case IntegerNumber():
+      return expr;
+    case FractionNumber(:final numerator, :final denominator):
+      final q = numerator ~/ denominator;
+      return IntegerNumber(
+        numerator.isNegative && !(numerator % denominator).isZero
+            ? q - Integer.one
+            : q,
+      );
+    case RealNumber(:final value):
+      return RealNumber.fromDouble(value.floorToDouble());
+    default:
+      if (expr.freeVariables.isEmpty) {
+        try {
+          final v = expr.evaluate();
+          if (v.isFinite) return IntegerNumber(Integer.from(v.floor()));
+        } on Object {
+          // Keep symbolic
+        }
+      }
+      return Floor(expr, isSimplified: true);
+  }
+}
+
+/// Simplifies a ceiling expression $\lceil x \rceil$.
+Expr simplifyCeil(Expr expr) {
+  switch (expr) {
+    case IntegerNumber():
+      return expr;
+    case FractionNumber(:final numerator, :final denominator):
+      final q = numerator ~/ denominator;
+      return IntegerNumber(
+        !numerator.isNegative && !(numerator % denominator).isZero
+            ? q + Integer.one
+            : q,
+      );
+    case RealNumber(:final value):
+      return RealNumber.fromDouble(value.ceilToDouble());
+    default:
+      if (expr.freeVariables.isEmpty) {
+        try {
+          final v = expr.evaluate();
+          if (v.isFinite) return IntegerNumber(Integer.from(v.ceil()));
+        } on Object {
+          // Keep symbolic
+        }
+      }
+      return Ceil(expr, isSimplified: true);
+  }
+}
+
+/// Simplifies a rounding expression $\operatorname{round}(x)$.
+Expr simplifyRound(Expr expr) {
+  switch (expr) {
+    case IntegerNumber():
+      return expr;
+    case FractionNumber(:final numerator, :final denominator):
+      return IntegerNumber(
+        Integer.from((numerator.toDouble() / denominator.toDouble()).round()),
+      );
+    case RealNumber(:final value):
+      return RealNumber.fromDouble(value.roundToDouble());
+    default:
+      if (expr.freeVariables.isEmpty) {
+        try {
+          final v = expr.evaluate();
+          if (v.isFinite) return IntegerNumber(Integer.from(v.round()));
+        } on Object {
+          // Keep symbolic
+        }
+      }
+      return Round(expr, isSimplified: true);
+  }
+}
+
+/// Simplifies a signum expression $\operatorname{sgn}(x)$.
+Expr simplifySign(Expr expr) {
+  if (expr is RealNumeric) {
+    return IntegerNumber.of(expr.sign);
+  }
+  if (expr case Variable(domain: VariableDomain.positive)) {
+    return IntegerNumber.one;
+  }
+  final (posExpr, isNeg) = extractSign(expr);
+  if (isNeg) {
+    return simplifyNeg(simplifySign(posExpr));
+  }
+  if (expr.freeVariables.isEmpty && expr.isReal) {
+    try {
+      final v = expr.evaluate();
+      if (v.isFinite) {
+        return IntegerNumber.of(v == 0.0 ? 0 : (v > 0.0 ? 1 : -1));
+      }
+    } on Object {
+      // Keep symbolic
+    }
+  }
+  return Sign(expr, isSimplified: true);
+}
+
+/// Simplifies a modulo expression $a \bmod b$.
+Expr simplifyMod(Expr left, Expr right) {
+  if (right is Number && right.isZero) {
+    return Constant.undefined;
+  }
+  if (left is Number && left.isZero) {
+    return IntegerNumber.zero;
+  }
+  if (right is Number && right.isOne && left is IntegerNumber) {
+    return IntegerNumber.zero;
+  }
+  if (left is RationalNumber && right is RationalNumber) {
+    final q = simplifyFloor(left.divRational(right)) as IntegerNumber;
+    return left.subRational(right.mulRational(q));
+  }
+  if (left is RealNumeric && right is RealNumeric) {
+    final a = left.toDouble();
+    final b = right.toDouble();
+    return RealNumber.fromDouble(a - b * (a / b).floorToDouble());
+  }
+  return Mod(left, right, isSimplified: true);
+}

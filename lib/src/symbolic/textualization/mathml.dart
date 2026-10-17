@@ -82,6 +82,19 @@ String _toMathMl(Expr expr) => switch (expr) {
     '<mrow><mi>Γ</mi><mo>(</mo>${_toMathMl(expr)}<mo>)</mo></mrow>',
   Beta(:final left, :final right) =>
     '<mrow><mi>B</mi><mo>(</mo>${_toMathMl(left)}<mo>,</mo>${_toMathMl(right)}<mo>)</mo></mrow>',
+  Factorial(:final expr) => '<mrow>${_formatPowBase(expr)}<mo>!</mo></mrow>',
+  Binomial(:final left, :final right) =>
+    '<mrow><mo>(</mo><mfrac linethickness="0">${_toMathMl(left)}${_toMathMl(right)}</mfrac><mo>)</mo></mrow>',
+  Floor(:final expr) =>
+    '<mrow><mo>&#x230A;</mo>${_toMathMl(expr)}<mo>&#x230B;</mo></mrow>',
+  Ceil(:final expr) =>
+    '<mrow><mo>&#x2308;</mo>${_toMathMl(expr)}<mo>&#x2309;</mo></mrow>',
+  Round(:final expr) =>
+    '<mrow><mi>round</mi><mo>(</mo>${_toMathMl(expr)}<mo>)</mo></mrow>',
+  Sign(:final expr) =>
+    '<mrow><mi>sgn</mi><mo>(</mo>${_toMathMl(expr)}<mo>)</mo></mrow>',
+  Mod(:final left, :final right) =>
+    '<mrow>${_formatMulLeft(left)}<mo>mod</mo>${_formatMulRight(right)}</mrow>',
   Asinh(:final expr) =>
     '<mrow><mi>asinh</mi><mo>(</mo>${_toMathMl(expr)}<mo>)</mo></mrow>',
   Acosh(:final expr) =>

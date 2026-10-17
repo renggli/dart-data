@@ -246,6 +246,47 @@ final class BytecodeEvaluator {
           final b = stack[--sp];
           final a = stack[--sp];
           stack[sp++] = special_beta.beta(a, b);
+        case Op.factorial:
+          final v = stack[sp - 1];
+          stack[sp - 1] = special_gamma.gamma(v + 1.0);
+        case Op.binomial:
+          final k = stack[--sp];
+          final n = stack[--sp];
+          if (n.isNaN || k.isNaN) {
+            stack[sp++] = double.nan;
+          } else if (k == k.roundToDouble() && k < 0.0) {
+            stack[sp++] = 0.0;
+          } else if (n == n.roundToDouble() &&
+              k == k.roundToDouble() &&
+              n >= 0.0 &&
+              k > n) {
+            stack[sp++] = 0.0;
+          } else {
+            stack[sp++] =
+                special_gamma.gamma(n + 1.0) /
+                (special_gamma.gamma(k + 1.0) *
+                    special_gamma.gamma(n - k + 1.0));
+          }
+        case Op.floor:
+          final v = stack[sp - 1];
+          stack[sp - 1] = v.isFinite ? v.floorToDouble() : v;
+        case Op.ceil:
+          final v = stack[sp - 1];
+          stack[sp - 1] = v.isFinite ? v.ceilToDouble() : v;
+        case Op.round:
+          final v = stack[sp - 1];
+          stack[sp - 1] = v.isFinite ? v.roundToDouble() : v;
+        case Op.sign:
+          final v = stack[sp - 1];
+          stack[sp - 1] = v.isNaN
+              ? double.nan
+              : (v == 0.0 ? 0.0 : (v > 0.0 ? 1.0 : -1.0));
+        case Op.mod:
+          final b = stack[--sp];
+          final a = stack[--sp];
+          stack[sp++] = (a.isNaN || b.isNaN || b == 0.0)
+              ? double.nan
+              : a - b * (a / b).floorToDouble();
         case Op.asinh:
           final v = stack[sp - 1];
           stack[sp - 1] = math.log(v + math.sqrt(v * v + 1.0));
@@ -421,6 +462,83 @@ final class BytecodeEvaluator {
           }
           stack[sp++] = Complex(
             special_beta.beta(zA.a.toDouble(), zB.a.toDouble()),
+          );
+        case Op.factorial:
+          final z = stack[sp - 1];
+          if (z.b != 0.0) {
+            throw UnsupportedError(
+              'Complex Factorial evaluation is only supported on R',
+            );
+          }
+          stack[sp - 1] = Complex(special_gamma.gamma(z.a.toDouble() + 1.0));
+        case Op.binomial:
+          final zK = stack[--sp];
+          final zN = stack[--sp];
+          if (zN.b != 0.0 || zK.b != 0.0) {
+            throw UnsupportedError(
+              'Complex Binomial evaluation is only supported on R',
+            );
+          }
+          stack[sp++] = Complex(
+            Binomial(
+              RealNumber.fromDouble(zN.a.toDouble()),
+              RealNumber.fromDouble(zK.a.toDouble()),
+            ).evaluate(),
+          );
+        case Op.floor:
+          final z = stack[sp - 1];
+          if (z.b != 0.0) {
+            throw UnsupportedError(
+              'Complex Floor evaluation is only supported on R',
+            );
+          }
+          final v = z.a.toDouble();
+          stack[sp - 1] = Complex(v.isFinite ? v.floorToDouble() : v);
+        case Op.ceil:
+          final z = stack[sp - 1];
+          if (z.b != 0.0) {
+            throw UnsupportedError(
+              'Complex Ceil evaluation is only supported on R',
+            );
+          }
+          final v = z.a.toDouble();
+          stack[sp - 1] = Complex(v.isFinite ? v.ceilToDouble() : v);
+        case Op.round:
+          final z = stack[sp - 1];
+          if (z.b != 0.0) {
+            throw UnsupportedError(
+              'Complex Round evaluation is only supported on R',
+            );
+          }
+          final v = z.a.toDouble();
+          stack[sp - 1] = Complex(v.isFinite ? v.roundToDouble() : v);
+        case Op.sign:
+          final z = stack[sp - 1];
+          if (z == Complex.zero) {
+            stack[sp - 1] = Complex.zero;
+          } else if (z.b == 0.0) {
+            final v = z.a.toDouble();
+            stack[sp - 1] = Complex(
+              v.isNaN ? double.nan : (v == 0.0 ? 0.0 : (v > 0.0 ? 1.0 : -1.0)),
+            );
+          } else {
+            final r = z.abs();
+            stack[sp - 1] = r == 0.0 || r.isNaN ? Complex.nan : z / Complex(r);
+          }
+        case Op.mod:
+          final zB = stack[--sp];
+          final zA = stack[--sp];
+          if (zA.b != 0.0 || zB.b != 0.0) {
+            throw UnsupportedError(
+              'Complex Mod evaluation is only supported on R',
+            );
+          }
+          final a = zA.a.toDouble();
+          final b = zB.a.toDouble();
+          stack[sp++] = Complex(
+            (a.isNaN || b.isNaN || b == 0.0)
+                ? double.nan
+                : a - b * (a / b).floorToDouble(),
           );
         case Op.asinh:
           final z = stack[sp - 1];

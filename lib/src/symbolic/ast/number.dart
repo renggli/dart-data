@@ -436,6 +436,34 @@ sealed class RationalNumber extends RealNumeric {
     final res = rationalPow(_parts, exponent);
     return res != null ? RationalNumber._fromParts(res) : null;
   }
+
+  /// Returns the non-negative greatest common divisor of this rational number
+  /// and [other]: $\gcd(p_1/q_1, p_2/q_2) = \frac{\gcd(p_1, p_2)}{\operatorname{lcm}(q_1, q_2)}$.
+  RationalNumber gcd(RationalNumber other) {
+    if (isZero && other.isZero) return IntegerNumber.zero;
+    if (isZero) return other.abs();
+    if (other.isZero) return abs();
+    return RationalNumber.of(
+      numerator.gcd(other.numerator),
+      denominator.lcm(other.denominator),
+    );
+  }
+
+  /// Returns the non-negative least common multiple of this rational number
+  /// and [other]: $\operatorname{lcm}(p_1/q_1, p_2/q_2) = \frac{\operatorname{lcm}(p_1, p_2)}{\gcd(q_1, q_2)}$.
+  RationalNumber lcm(RationalNumber other) {
+    if (isZero || other.isZero) return IntegerNumber.zero;
+    return RationalNumber.of(
+      numerator.lcm(other.numerator),
+      denominator.gcd(other.denominator),
+    );
+  }
+
+  /// Whether this rational number is a prime integer ($q = 1$ and $p \ge 2$ is prime).
+  bool get isPrime => switch (this) {
+    IntegerNumber(:final value) => value.isPrime,
+    FractionNumber() => false,
+  };
 }
 
 /// Exact arbitrary-precision integer literal $n \in \mathbb{Z}$.

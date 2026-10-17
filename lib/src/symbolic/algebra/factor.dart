@@ -29,6 +29,16 @@ extension FactorExtension on Expr {
 /// Recursively factors [expr] into irreducible products and groups like powers.
 Expr factorExpr(Expr expr) {
   // 1. Structural base cases
+  if (expr is IntegerNumber) return _factorInteger(expr.value);
+  if (expr is FractionNumber) {
+    final numFact = _factorInteger(expr.numerator);
+    final denFact = _factorPositiveIntegerFactors(expr.denominator);
+    return Mul([
+      if (numFact != IntegerNumber.one || denFact.isEmpty) numFact,
+      for (final (:prime, :exponent) in denFact)
+        Pow(IntegerNumber(prime), IntegerNumber.of(-exponent)),
+    ]);
+  }
   if (expr is Number || expr is Constant || expr is Variable) return expr;
 
   // 2. Pure power: factor base
@@ -54,6 +64,8 @@ Expr factorExpr(Expr expr) {
           case Pow(:final base, exponent: IntegerNumber(asInt: final intExp?))
           when intExp < 0) {
         denFactored.add(distributePower(factorExpr(base), -intExp));
+      } else if (factor is Number) {
+        numFactored.add(factor);
       } else {
         numFactored.add(factorExpr(factor));
       }
@@ -135,4 +147,65 @@ Expr factorExpr(Expr expr) {
   }
 
   return expr.simplify();
+}
+
+Expr _factorInteger(Integer n) {
+  if (n.isZero || n.isOne || n == Integer.negativeOne) {
+    return IntegerNumber(n);
+  }
+  final factors = <Expr>[];
+  if (n.isNegative) {
+    factors.add(IntegerNumber.negativeOne);
+  }
+  for (final (:prime, :exponent) in _factorPositiveIntegerFactors(n.abs())) {
+    final pExpr = IntegerNumber(prime);
+    factors.add(exponent == 1 ? pExpr : Pow(pExpr, IntegerNumber.of(exponent)));
+  }
+  return switch (factors) {
+    [final single] => single,
+    _ => Mul(factors),
+  };
+}
+
+List<({Integer prime, int exponent})> _factorPositiveIntegerFactors(Integer n) {
+  final result = <({Integer prime, int exponent})>[];
+  var rem = n;
+  var exp2 = 0;
+  while (rem.isEven && !rem.isZero) {
+    rem = rem ~/ Integer.two;
+    exp2++;
+  }
+  if (exp2 > 0) {
+    result.add((prime: Integer.two, exponent: exp2));
+  }
+  var exp3 = 0;
+  const three = Integer(3);
+  while ((rem % three).isZero && !rem.isZero) {
+    rem = rem ~/ three;
+    exp3++;
+  }
+  if (exp3 > 0) {
+    result.add((prime: three, exponent: exp3));
+  }
+
+  var d = const Integer(5);
+  var step = Integer.two;
+  const six = Integer(6);
+  const maxTrial = Integer(1000000);
+  while (d * d <= rem && d <= maxTrial) {
+    if ((rem % d).isZero) {
+      var exp = 0;
+      while ((rem % d).isZero) {
+        rem = rem ~/ d;
+        exp++;
+      }
+      result.add((prime: d, exponent: exp));
+    }
+    d = d + step;
+    step = six - step;
+  }
+  if (rem > Integer.one) {
+    result.add((prime: rem, exponent: 1));
+  }
+  return result;
 }

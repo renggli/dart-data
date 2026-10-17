@@ -108,6 +108,75 @@ Complex _evalComplex(Expr expr, Map<String, Complex> context) => switch (expr) {
     }
     throw UnsupportedError('Complex Beta evaluation is only supported on R');
   }(),
+  Factorial(:final expr) => () {
+    final z = _evalComplex(expr, context);
+    if (z.b == 0.0) {
+      return Complex(
+        Factorial(RealNumber.fromDouble(z.a.toDouble())).evaluate(),
+      );
+    }
+    throw UnsupportedError(
+      'Complex Factorial evaluation is only supported on R',
+    );
+  }(),
+  Binomial(:final left, :final right) => () {
+    final a = _evalComplex(left, context);
+    final b = _evalComplex(right, context);
+    if (a.b == 0.0 && b.b == 0.0) {
+      return Complex(
+        Binomial(
+          RealNumber.fromDouble(a.a.toDouble()),
+          RealNumber.fromDouble(b.a.toDouble()),
+        ).evaluate(),
+      );
+    }
+    throw UnsupportedError(
+      'Complex Binomial evaluation is only supported on R',
+    );
+  }(),
+  Floor(:final expr) => () {
+    final z = _evalComplex(expr, context);
+    if (z.b == 0.0) {
+      return Complex(Floor(RealNumber.fromDouble(z.a.toDouble())).evaluate());
+    }
+    throw UnsupportedError('Complex Floor evaluation is only supported on R');
+  }(),
+  Ceil(:final expr) => () {
+    final z = _evalComplex(expr, context);
+    if (z.b == 0.0) {
+      return Complex(Ceil(RealNumber.fromDouble(z.a.toDouble())).evaluate());
+    }
+    throw UnsupportedError('Complex Ceil evaluation is only supported on R');
+  }(),
+  Round(:final expr) => () {
+    final z = _evalComplex(expr, context);
+    if (z.b == 0.0) {
+      return Complex(Round(RealNumber.fromDouble(z.a.toDouble())).evaluate());
+    }
+    throw UnsupportedError('Complex Round evaluation is only supported on R');
+  }(),
+  Sign(:final expr) => () {
+    final z = _evalComplex(expr, context);
+    if (z == Complex.zero) return Complex.zero;
+    if (z.b == 0.0) {
+      return Complex(Sign(RealNumber.fromDouble(z.a.toDouble())).evaluate());
+    }
+    final r = z.abs();
+    return r == 0.0 || r.isNaN ? Complex.nan : z / Complex(r);
+  }(),
+  Mod(:final left, :final right) => () {
+    final a = _evalComplex(left, context);
+    final b = _evalComplex(right, context);
+    if (a.b == 0.0 && b.b == 0.0) {
+      return Complex(
+        Mod(
+          RealNumber.fromDouble(a.a.toDouble()),
+          RealNumber.fromDouble(b.a.toDouble()),
+        ).evaluate(),
+      );
+    }
+    throw UnsupportedError('Complex Mod evaluation is only supported on R');
+  }(),
   LambertW(:final expr, :final branch) => () {
     final z = _evalComplex(expr, context);
     if (z.b == 0.0) {

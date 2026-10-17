@@ -542,6 +542,13 @@ PowerSeries _expandToPowerSeries(
 
   Gamma() ||
   Beta() ||
+  Factorial() ||
+  Binomial() ||
+  Floor() ||
+  Ceil() ||
+  Round() ||
+  Sign() ||
+  Mod() ||
   RelationalExpr() ||
   Integral() ||
   Derivative() ||

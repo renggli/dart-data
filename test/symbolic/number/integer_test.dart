@@ -256,6 +256,46 @@ void main() {
       checkInvariant(a.gcd(b), BigInt.two.pow(90) * BigInt.from(3));
     });
   });
+  group('lcm and isPrime', () {
+    test('lcm', () {
+      check(Integer.zero.lcm(Integer.zero)).equals(Integer.zero);
+      check(Integer.zero.lcm(const Integer(6))).equals(Integer.zero);
+      check(const Integer(-12).lcm(const Integer(18)))
+          .equals(const Integer(36));
+      final a = Integer.big(BigInt.two.pow(100) * BigInt.from(3));
+      final b = Integer.big(BigInt.two.pow(90) * BigInt.from(9));
+      checkInvariant(a.lcm(b), BigInt.two.pow(100) * BigInt.from(9));
+    });
+    test('isPrime', () {
+      check(Integer.zero.isPrime).isFalse();
+      check(Integer.one.isPrime).isFalse();
+      check(Integer.negativeOne.isPrime).isFalse();
+      check(const Integer(-7).isPrime).isFalse();
+      for (final p in const [2, 3, 5, 7, 11, 13, 97, 101, 104729, 2147483647]) {
+        check(Integer.from(p).isPrime).isTrue();
+      }
+      for (final c in const [4, 6, 8, 9, 15, 21, 561, 1105, 1729, 104727]) {
+        check(Integer.from(c).isPrime).isFalse();
+      }
+      // Mersenne prime 2^61 - 1 and 2^89 - 1
+      check(Integer.big(BigInt.two.pow(61) - BigInt.one).isPrime).isTrue();
+      check(Integer.big(BigInt.two.pow(89) - BigInt.one).isPrime).isTrue();
+      check(Integer.big(BigInt.two.pow(67) - BigInt.one).isPrime).isFalse();
+    });
+    test('RationalNumber gcd, lcm, and isPrime', () {
+      check(IntegerNumber.of(12).gcd(IntegerNumber.of(18)))
+          .equals(IntegerNumber.of(6));
+      check(IntegerNumber.of(12).lcm(IntegerNumber.of(18)))
+          .equals(IntegerNumber.of(36));
+      check(RationalNumber(2, 3).gcd(RationalNumber(4, 9)))
+          .equals(RationalNumber(2, 9));
+      check(RationalNumber(2, 3).lcm(RationalNumber(4, 9)))
+          .equals(RationalNumber(4, 3));
+      check(IntegerNumber.of(13).isPrime).isTrue();
+      check(IntegerNumber.of(15).isPrime).isFalse();
+      check(RationalNumber(3, 2).isPrime).isFalse();
+    });
+  });
   group('pow', () {
     test('small results', () {
       check(const Integer(3).pow(4)).equals(const Integer(81));

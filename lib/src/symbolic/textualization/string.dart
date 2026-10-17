@@ -48,6 +48,15 @@ String formatExpr(Expr expr, [int parentPrec = 0]) {
     Gamma(:final expr) => 'gamma(${formatExpr(expr)})',
     Beta(:final left, :final right) =>
       'beta(${formatExpr(left)}, ${formatExpr(right)})',
+    Factorial(:final expr) => '${formatExpr(expr, 5)}!',
+    Binomial(:final left, :final right) =>
+      'binomial(${formatExpr(left)}, ${formatExpr(right)})',
+    Floor(:final expr) => 'floor(${formatExpr(expr)})',
+    Ceil(:final expr) => 'ceil(${formatExpr(expr)})',
+    Round(:final expr) => 'round(${formatExpr(expr)})',
+    Sign(:final expr) => 'sign(${formatExpr(expr)})',
+    Mod(:final left, :final right) =>
+      'mod(${formatExpr(left)}, ${formatExpr(right)})',
     Asinh(:final expr) => 'asinh(${formatExpr(expr)})',
     Acosh(:final expr) => 'acosh(${formatExpr(expr)})',
     Atanh(:final expr) => 'atanh(${formatExpr(expr)})',

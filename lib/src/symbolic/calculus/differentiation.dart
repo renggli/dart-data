@@ -104,7 +104,12 @@ Expr _differentiate(Expr expr, String variable) => switch (expr) {
     Pow(Constant.e, -Pow(inner, IntegerNumber.two)),
     _differentiate(inner, variable),
   ]),
-  Gamma() || Beta() => Derivative(expr, variable),
+  Gamma() || Beta() || Factorial() || Binomial() => Derivative(expr, variable),
+  Floor() || Ceil() || Round() || Sign() => IntegerNumber.zero,
+  Mod(:final left, :final right) =>
+    right.dependsOn(variable)
+        ? Derivative(expr, variable)
+        : _differentiate(left, variable),
   Asinh(expr: final inner) =>
     _differentiate(inner, variable) /
         Pow(

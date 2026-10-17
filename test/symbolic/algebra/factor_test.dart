@@ -58,6 +58,29 @@ void main() {
       final grouped = Expr.parse('x * y + x + y + 1').factor();
       check(grouped).equals(Expr.parse('(1 + x) * (1 + y)').simplify());
     });
+
+    test(
+      'factors composite integers and rational numbers into prime powers',
+      () {
+        check(IntegerNumber.zero.factor()).equals(IntegerNumber.zero);
+        check(IntegerNumber.one.factor()).equals(IntegerNumber.one);
+        check(IntegerNumber.negativeOne.factor())
+            .equals(IntegerNumber.negativeOne);
+        check(IntegerNumber.of(7).factor()).equals(IntegerNumber.of(7));
+
+        final f360 = IntegerNumber.of(360).factor();
+        check(f360.toString()).equals('2 ^ 3 * 3 ^ 2 * 5');
+        check(f360.simplify()).equals(IntegerNumber.of(360));
+
+        final fNeg12 = IntegerNumber.of(-12).factor();
+        check(fNeg12.toString()).equals('-(2 ^ 2 * 3)');
+        check(fNeg12.simplify()).equals(IntegerNumber.of(-12));
+
+        final fRat = RationalNumber(12, 25).factor();
+        check(fRat.toString()).equals('2 ^ 2 * 3 / 5 ^ 2');
+        check(fRat.simplify()).equals(RationalNumber(12, 25));
+      },
+    );
   });
 
   group('Special algebraic forms and canonical ordering', () {
