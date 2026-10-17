@@ -72,7 +72,7 @@ void main() {
       'Re, Im, Arg, and Conjugate simplification, formatting, and evaluation',
       () {
         const x = Variable('x');
-        const z = Variable('z', domain: VariableDomain.complex);
+        const z = Variable('z');
 
         check(Expr.parse('re(3 + 4 * i)').simplify())
             .equals(IntegerNumber.of(3));
@@ -98,13 +98,16 @@ void main() {
             .equals(IntegerNumber.one);
 
         // Complex variable remains symbolic
-        check(Re(z).simplify()).equals(Re(z, isSimplified: true));
-        check(Im(z).simplify()).equals(Im(z, isSimplified: true));
-        check(Conjugate(z).simplify()).equals(Conjugate(z, isSimplified: true));
-        check(Conjugate(Conjugate(z)).simplify()).equals(z);
-        check(Re(Conjugate(z)).simplify()).equals(Re(z, isSimplified: true));
-        check(Im(Conjugate(z)).simplify())
-            .equals((-Im(z, isSimplified: true)).simplify());
+        Assumptions.run(() {
+          check(Re(z).simplify()).equals(Re(z, isSimplified: true));
+          check(Im(z).simplify()).equals(Im(z, isSimplified: true));
+          check(Conjugate(z).simplify())
+              .equals(Conjugate(z, isSimplified: true));
+          check(Conjugate(Conjugate(z)).simplify()).equals(z);
+          check(Re(Conjugate(z)).simplify()).equals(Re(z, isSimplified: true));
+          check(Im(Conjugate(z)).simplify())
+              .equals((-Im(z, isSimplified: true)).simplify());
+        }, domains: {'z': VariableDomain.complex});
 
         // Textualization and round-trip
         for (final source in ['re(z)', 'im(z)', 'arg(z)', 'conj(z)']) {

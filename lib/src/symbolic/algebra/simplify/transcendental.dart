@@ -304,8 +304,7 @@ Expr simplifyAbs(Expr expr) {
 bool isNonNegativeExpr(Expr expr) => switch (expr) {
   RealNumeric(:final isNegative) => !isNegative,
   Constant(:final value) => value.b == 0 && value.a >= 0,
-  Variable(:final effectiveDomain) =>
-    effectiveDomain == VariableDomain.positive,
+  Variable(:final domain) => domain == VariableDomain.positive,
   Abs() => true,
   Pow(base: Constant.e, :final exponent) => exponent.isReal,
   Pow(:final base, :final exponent) =>
@@ -324,7 +323,7 @@ bool isIntegerExpr(Expr expr) => switch (expr) {
   Sign() ||
   Factorial() ||
   Binomial() => true,
-  Variable(:final effectiveDomain) => effectiveDomain == VariableDomain.integer,
+  Variable(:final domain) => domain == VariableDomain.integer,
   Add(:final terms) => terms.every(isIntegerExpr),
   Mul(:final factors) => factors.every(isIntegerExpr),
   Pow(:final base, :final exponent) =>
@@ -818,7 +817,7 @@ Expr simplifySign(Expr expr) {
   if (expr is RealNumeric) {
     return IntegerNumber.of(expr.sign);
   }
-  if (expr case Variable(effectiveDomain: VariableDomain.positive)) {
+  if (expr case Variable(domain: VariableDomain.positive)) {
     return IntegerNumber.one;
   }
   final (posExpr, isNeg) = extractSign(expr);
@@ -1052,7 +1051,7 @@ bool _isSyntacticallyReal(Expr expr) => switch (expr) {
   RealNumeric() => true,
   ComplexNumber() => false,
   Constant(:final isReal) => isReal,
-  Variable(:final effectiveDomain) => effectiveDomain != VariableDomain.complex,
+  Variable(:final domain) => domain != VariableDomain.complex,
   Re() ||
   Im() ||
   Arg() ||

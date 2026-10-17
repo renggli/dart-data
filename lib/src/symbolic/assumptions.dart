@@ -57,17 +57,11 @@ abstract final class Assumptions {
 
   /// Resolves the assumed [VariableDomain] for a variable [name] in the current
   /// zone, or [VariableDomain.unknown] if no assumption is active.
-  static VariableDomain domainOf(
-    String name, [
-    VariableDomain explicit = VariableDomain.unknown,
-  ]) {
-    if (_activeZones == 0) return explicit;
+  static VariableDomain domainOf(String name) {
+    if (_activeZones == 0) return VariableDomain.unknown;
     final state = Zone.current[_assumptionsKey] as _AssumptionsState?;
-    if (state == null) return explicit;
-    final mapped = state.domains[name];
-    if (mapped != null) return mapped;
-    if (explicit != VariableDomain.unknown) return explicit;
-    return state.defaultDomain ?? VariableDomain.unknown;
+    if (state == null) return VariableDomain.unknown;
+    return state.domains[name] ?? state.defaultDomain ?? VariableDomain.unknown;
   }
 }
 

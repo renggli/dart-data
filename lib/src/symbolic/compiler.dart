@@ -4,6 +4,7 @@ import 'package:more/number.dart' show Complex;
 
 import '../linear/vector.dart';
 import 'algebra/simplify.dart';
+import 'assumptions.dart';
 import 'ast.dart';
 import 'compiler/bytecode.dart';
 import 'compiler/evaluator.dart';
@@ -74,9 +75,9 @@ extension CompilerExtension on Expr {
     String variable = 'x',
     bool optimize = true,
   ]) {
-    final evaluator = compileBytecode(
-      variables: [variable],
-      optimize: optimize,
+    final evaluator = Assumptions.run(
+      () => compileBytecode(variables: [variable], optimize: optimize),
+      domains: {variable: VariableDomain.complex},
     );
     return evaluator.evaluateComplex1D;
   }
@@ -93,7 +94,10 @@ extension CompilerExtension on Expr {
   Complex Function(Map<String, Complex> context) compileComplex({
     bool optimize = true,
   }) {
-    final evaluator = compileBytecode(optimize: optimize);
+    final evaluator = Assumptions.run(
+      () => compileBytecode(optimize: optimize),
+      defaultDomain: VariableDomain.complex,
+    );
     return evaluator.evaluateComplexMap;
   }
 

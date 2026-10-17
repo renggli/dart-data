@@ -36,9 +36,9 @@ extension SolverExtension on Expr {
 }
 
 /// Recursively solves univariate equation [expr] = 0 for [variable], optionally
-/// filtering roots by [domain] (or the [Variable.effectiveDomain] present in [expr]).
+/// filtering roots by [domain] (or active [Assumptions] for [variable]).
 List<Expr> solveEquation(Expr expr, String variable, {VariableDomain? domain}) {
-  final effectiveDomain = domain ?? _inferVariableDomain(expr, variable);
+  final effectiveDomain = domain ?? Assumptions.domainOf(variable);
   final rawRoots = _solveUnfiltered(expr, variable);
   return _filterByDomain(rawRoots, effectiveDomain);
 }
@@ -119,19 +119,6 @@ List<Expr> _solveUnfiltered(Expr expr, String variable) {
   }
 
   return const [];
-}
-
-VariableDomain _inferVariableDomain(Expr expr, String variable) {
-  var inferred = Assumptions.domainOf(variable);
-  expr.anyNode((node) {
-    if (node case Variable(:final name, :final effectiveDomain)
-        when name == variable && effectiveDomain != VariableDomain.unknown) {
-      inferred = effectiveDomain;
-      return true;
-    }
-    return false;
-  });
-  return inferred;
 }
 
 List<Expr> _filterByDomain(List<Expr> roots, VariableDomain domain) {

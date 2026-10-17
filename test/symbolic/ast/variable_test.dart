@@ -24,16 +24,18 @@ void main() {
     });
   });
 
-  group('VariableDomain equality and hashing', () {
-    test('variables with distinct domains compare unequal', () {
-      const x = Variable('x');
-      const xPos1 = Variable('x', domain: VariableDomain.positive);
-      const xPos2 = Variable('x', domain: VariableDomain.positive);
-      check(x.domain).equals(VariableDomain.unknown);
-      check(xPos1.domain).equals(VariableDomain.positive);
-      check(x == xPos1).isFalse();
-      check(xPos1 == xPos2).isTrue();
-      check(xPos1.hashCode).equals(xPos2.hashCode);
+  group('Variable equality, hashing, and domain resolution', () {
+    test('variables with identical names compare equal and resolve domain via Assumptions', () {
+      const x1 = Variable('x');
+      const x2 = Variable('x');
+      const y = Variable('y');
+      check(x1 == x2).isTrue();
+      check(x1 == y).isFalse();
+      check(x1.hashCode).equals(x2.hashCode);
+      check(x1.domain).equals(VariableDomain.unknown);
+      Assumptions.run(() {
+        check(x1.domain).equals(VariableDomain.positive);
+      }, domains: {'x': VariableDomain.positive});
     });
   });
 

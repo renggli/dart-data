@@ -79,9 +79,13 @@ void main() {
       check(imagEq.solve('x', domain: VariableDomain.real)).isEmpty();
       check(imagEq.solve('x', domain: VariableDomain.complex).length).equals(2);
 
-      const xPos = Variable('x', domain: VariableDomain.positive);
-      final posEq = Pow(xPos, IntegerNumber.two) - IntegerNumber.of(4);
-      check(posEq.solve('x')).deepEquals([IntegerNumber.two]);
+      final posEq = Expr.parse('x^2 - 4');
+      check(
+        Assumptions.run(
+          () => posEq.solve('x'),
+          domains: {'x': VariableDomain.positive},
+        ),
+      ).deepEquals([IntegerNumber.two]);
 
       final ratEq = Expr.parse('(2*x - 3) * (x + 4)');
       check(ratEq.solve('x', domain: VariableDomain.integer))

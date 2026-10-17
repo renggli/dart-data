@@ -20,18 +20,15 @@ enum VariableDomain {
 
 /// Symbolic variable leaf node (e.g. $x$, $y$, $\theta$).
 final class Variable extends Expr {
-  /// Creates a symbolic variable with [name] and optional [domain] assumption.
-  const new(this.name, {this.domain = VariableDomain.unknown});
+  /// Creates a symbolic variable with [name].
+  const new(this.name);
 
   /// Identifier name of the variable.
   final String name;
 
-  /// Assumed mathematical domain of the variable.
-  final VariableDomain domain;
-
-  /// Effective mathematical domain of this variable, combining [domain] with
-  /// any active zone-scoped [Assumptions].
-  VariableDomain get effectiveDomain => Assumptions.domainOf(name, domain);
+  /// Effective mathematical domain of this variable in the active
+  /// [Assumptions] zone, or [VariableDomain.unknown] when none is active.
+  VariableDomain get domain => Assumptions.domainOf(name);
 
   @override
   bool get isSimplified => true;
@@ -68,11 +65,10 @@ final class Variable extends Expr {
 
   @override
   bool operator ==(Object other) =>
-      identical(this, other) ||
-      (other is Variable && name == other.name && domain == other.domain);
+      identical(this, other) || (other is Variable && name == other.name);
 
   @override
-  int get hashCode => Object.hash(Variable, name, domain);
+  int get hashCode => Object.hash(Variable, name);
 }
 
 /// Symbolic uninterpreted function application node (e.g. $f(x)$, $g(x, y)$).

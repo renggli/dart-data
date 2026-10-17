@@ -125,16 +125,14 @@ void main() {
       check(compareStructural(cMathMl1, cMathMl2)).isLessThan(0);
     });
 
-    test('compares Variable by name and VariableDomain', () {
-      const xUnknown = Variable('x');
-      const xReal = Variable('x', domain: VariableDomain.real);
-      const xPos = Variable('x', domain: VariableDomain.positive);
-      const yUnknown = Variable('y');
+    test('compares Variable by name', () {
+      const x1 = Variable('x');
+      const x2 = Variable('x');
+      const y = Variable('y');
 
-      check(compareStructural(xUnknown, yUnknown)).isLessThan(0);
-      check(compareStructural(xUnknown, xReal)).isLessThan(0);
-      check(compareStructural(xReal, xPos)).isLessThan(0);
-      check(compareStructural(xPos, xReal)).isGreaterThan(0);
+      check(compareStructural(x1, x2)).equals(0);
+      check(compareStructural(x1, y)).isLessThan(0);
+      check(compareStructural(y, x1)).isGreaterThan(0);
     });
 
     test('compares UnaryExpr, BinaryExpr, LambertW, Add, and Mul', () {

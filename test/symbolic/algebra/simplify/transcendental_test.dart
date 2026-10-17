@@ -93,7 +93,7 @@ void main() {
       'simplifies exp, ln, and abs across domains and non-negative trees',
       () {
         const x = Variable('x');
-        const p = Variable('p', domain: VariableDomain.positive);
+        const p = Variable('p');
 
         check(simplifyExp(IntegerNumber.zero)).equals(IntegerNumber.one);
         check(() => simplifyLn(IntegerNumber.zero)).throws<ArgumentError>();
@@ -109,10 +109,13 @@ void main() {
         check(simplifyAbs(Constant.pi)).equals(Constant.pi);
         check(simplifyAbs(Abs(x))).equals(Abs(x));
         check(simplifyAbs(Pow(Constant.e, x))).equals(Pow(Constant.e, x));
-        check(simplifyAbs(Pow(p, x))).equals(Pow(p, x));
+        Assumptions.run(() {
+          check(simplifyAbs(Pow(p, x))).equals(Pow(p, x));
+          check(simplifyAbs(Mul([Constant.pi, p])))
+              .equals(Mul([Constant.pi, p]));
+        }, domains: {'p': VariableDomain.positive});
         check(simplifyAbs(Pow(x, IntegerNumber.two)))
             .equals(Pow(x, IntegerNumber.two));
-        check(simplifyAbs(Mul([Constant.pi, p]))).equals(Mul([Constant.pi, p]));
       },
     );
   });

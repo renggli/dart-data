@@ -72,11 +72,7 @@ int compareStructural(Expr a, Expr b) {
   return switch ((a, b)) {
     (final Number na, final Number nb) => _compareNumber(na, nb),
     (final Constant ca, final Constant cb) => _compareConstant(ca, cb),
-    (final Variable va, final Variable vb) => () {
-      final cmpName = va.name.compareTo(vb.name);
-      if (cmpName != 0) return cmpName;
-      return va.domain.index.compareTo(vb.domain.index);
-    }(),
+    (final Variable va, final Variable vb) => va.name.compareTo(vb.name),
     (final VariableFunction fa, final VariableFunction fb) => () {
       final cmpName = fa.name.compareTo(fb.name);
       if (cmpName != 0) return cmpName;
