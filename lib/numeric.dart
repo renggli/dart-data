@@ -21,8 +21,9 @@
 /// - **Curve Fitting & Regression**: [curveFit] and [CurveModels] for
 ///   non-linear models, [leastSquares], [linearRegression],
 ///   [polynomialRegression], and [fitNonlinear].
-/// - **Sampling Grids**: [linearSpaced], [logarithmicSpaced], and
-///   [geometricSpaced] for generating coordinate grids.
+/// - **Sampling Grids & Adaptive Curve Sampling**: [linearSpaced],
+///   [logarithmicSpaced], [geometricSpaced], and [sampleCurve] for generating
+///   coordinate grids and discontinuity-aware adaptive curve samples.
 /// - **Differential Equations**: [solveOde] with [OdeMethod]
 ///   ([OdeMethod.dormandPrince45], [OdeMethod.rk4]).
 /// - **Interpolation**: 1D linear ([LinearInterpolation]), cubic spline

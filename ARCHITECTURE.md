@@ -428,6 +428,13 @@ This document describes the achieved architecture across all subsystems of `pack
   - Routines allocate intermediate vectors and matrices via standard container constructors, dynamically inheriting the zone's active precision (`DefaultDataType.float`) and storage frame (`DefaultDataType.isNative`).
   - High-precision algorithms (e.g. adaptive Dormand-Prince `rk45` or BFGS quasi-Newton line searches) allow users to wrap execution inside `DefaultDataType.withDefault(float: DataType.float64)` or `DefaultDataType.withDefault(native: true)` to ensure convergence or offload large coordinate traces into native off-heap memory.
 
+### 6.7 Coordinate Grids & Adaptive Curve Sampling (`lib/src/numeric/sampling.dart`)
+
+- **Reasoning**: Plotting and numerical discretization require both uniform/logarithmic coordinate grids and curvature-adaptive 1D function sampling that splits cleanly across vertical asymptotes, jump discontinuities, and out-of-domain intervals without drawing spurious vertical spikes.
+- **Implementation & Constraints**:
+  - Uniform and logarithmic grids: `linearSpaced`, `logarithmicSpaced`, and `geometricSpaced`.
+  - `sampleCurve(f, a, b, {initialPoints = 65, maxPoints = 2048, tolerance = 1e-3})`: Evaluates `f` on a jittered initial grid, estimates a robust vertical scale, recursively bisects high-curvature and boundary intervals up to `maxPoints`, splits disjoint continuous `CurveSegment`s at vertical asymptotes (`1/x`, `tan(x)`) and step discontinuities (`floor(x)`, `sign(x)`), and computes a robust vertical range (`yMin`, `yMax`) clipped to the 2nd–98th percentile when discontinuities are present.
+
 ---
 
 ## 7. Statistics & Resampling (`package:data/stats.dart`)

@@ -277,6 +277,77 @@ void main() {
     });
   });
 
+  group('sampleCurve', () {
+    test('samples smooth continuous curves into a single segment', () {
+      final sample = numeric.sampleCurve((x) => x * x, -2.0, 2.0);
+      check(sample.segments.length).equals(1);
+      check(sample.pointCount).isGreaterOrEqual(65);
+      final seg = sample.segments.first;
+      check(seg.x[0]).equals(-2.0);
+      check(seg.x[seg.x.length - 1]).equals(2.0);
+      check(sample.yMin).isCloseTo(0.0, 1e-3);
+      check(sample.yMax).isCloseTo(4.0, 1e-3);
+    });
+
+    test('splits vertical asymptotes and poles into separate segments', () {
+      // 1 / x on [-1, 1] has a pole at x = 0 -> 2 segments
+      final invSample = numeric.sampleCurve((x) => 1.0 / x, -1.0, 1.0);
+      check(invSample.segments.length).equals(2);
+      final seg0 = invSample.segments[0];
+      final seg1 = invSample.segments[1];
+      check(seg0.x[seg0.x.length - 1]).isLessThan(0.0);
+      check(seg1.x[0]).isGreaterThan(0.0);
+
+      // tan(x) on [-3, 3] has poles at -pi/2 and +pi/2 -> 3 segments
+      final tanSample = numeric.sampleCurve(_tan, -3.0, 3.0);
+      check(tanSample.segments.length).equals(3);
+    });
+
+    test('splits step discontinuities and handles out-of-domain intervals', () {
+      // Sign / step function on [-1, 1] -> 2 segments
+      final stepSample = numeric.sampleCurve(
+        (x) => x < 0.0 ? -1.0 : 1.0,
+        -1.0,
+        1.0,
+      );
+      check(stepSample.segments.length).equals(2);
+
+      // Out-of-domain NaN on [-1, 0) for sqrt(x) on [-1, 1] -> 1 segment on [0, 1]
+      final sqrtSample = numeric.sampleCurve(_sqrt, -1.0, 1.0);
+      check(sqrtSample.segments.length).equals(1);
+      final seg = sqrtSample.segments.first;
+      check(seg.x[0]).isGreaterOrEqual(0.0);
+      check(seg.x[seg.x.length - 1]).equals(1.0);
+    });
+
+    test('validates arguments and respects maxPoints budget', () {
+      final bounded = numeric.sampleCurve(
+        _sin10,
+        0.0,
+        1.0,
+        initialPoints: 10,
+        maxPoints: 25,
+      );
+      check(bounded.pointCount).isLessOrEqual(25);
+
+      check(() => numeric.sampleCurve((x) => x, 2.0, 1.0))
+          .throws<ArgumentError>();
+      check(() => numeric.sampleCurve((x) => x, 0.0, 1.0, initialPoints: 2))
+          .throws<ArgumentError>();
+      check(
+        () => numeric.sampleCurve(
+          (x) => x,
+          0.0,
+          1.0,
+          initialPoints: 20,
+          maxPoints: 10,
+        ),
+      ).throws<ArgumentError>();
+      check(() => numeric.sampleCurve((x) => x, 0.0, 1.0, tolerance: 0.0))
+          .throws<ArgumentError>();
+    });
+  });
+
   group('package:data/numeric.dart exports', () {
     test('provides linearSpaced, logarithmicSpaced, geometricSpaced', () {
       final v1 = numeric.linearSpaced(0.0, 1.0, count: 5);
@@ -287,4 +358,35 @@ void main() {
       check(v3.length).equals(3);
     });
   });
+}
+
+double _tan(double x) => _sin(x) / _cos(x);
+
+double _sin(double x) {
+  // Reduce x mod 2*pi
+  const twoPi = 6.283185307179586;
+  var u = x % twoPi;
+  if (u > 3.141592653589793) u -= twoPi;
+  if (u < -3.141592653589793) u += twoPi;
+  var term = u;
+  var sum = u;
+  for (var i = 1; i <= 10; i++) {
+    term *= -u * u / ((2 * i) * (2 * i + 1));
+    sum += term;
+  }
+  return sum;
+}
+
+double _cos(double x) => _sin(x + 1.5707963267948966);
+
+double _sin10(double x) => _sin(10.0 * x);
+
+double _sqrt(double x) {
+  if (x < 0.0) return double.nan;
+  if (x == 0.0) return 0.0;
+  var g = x;
+  for (var i = 0; i < 12; i++) {
+    g = 0.5 * (g + x / g);
+  }
+  return g;
 }
