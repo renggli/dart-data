@@ -50,6 +50,14 @@ Expr _approximateNode(Expr node) => switch (node) {
   ),
   UnaryExpr(:final expr) => _approximateUnary(node, _approximateNode(expr)),
   RelationalExpr() || Piecewise() => node.mapChildren(_approximateNode),
+  Integral() => () {
+    final rebuilt = node.mapChildren(_approximateNode) as Integral;
+    if (rebuilt.isDefinite && rebuilt.freeVariables.isEmpty) {
+      final val = rebuilt.evaluate();
+      if (!val.isNaN) return RealNumber.fromDouble(val);
+    }
+    return rebuilt.simplify();
+  }(),
   BinaryExpr() => _approximateBinary(node),
 };
 

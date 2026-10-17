@@ -1,4 +1,5 @@
 import '../ast.dart';
+import 'formatting.dart';
 
 /// Formats the symbolic [expr] into a clean mathematical string representation
 /// with minimal parentheses based on operator precedence and associativity.
@@ -61,6 +62,10 @@ String formatExpr(Expr expr, [int parentPrec = 0]) {
     Piecewise(:final branches, :final otherwise) =>
       'Piecewise([${branches.map((b) => '(${formatExpr(b.$1)}, ${formatExpr(b.$2)})').join(', ')}]'
           '${otherwise != null ? ', otherwise: ${formatExpr(otherwise)}' : ''})',
+    Integral(:final integrand, :final variable, :final lower, :final upper) =>
+      lower != null && upper != null
+          ? 'integrate(${formatExpr(integrand)}, $variable, ${formatExpr(lower)}, ${formatExpr(upper)})'
+          : 'integrate(${formatExpr(integrand)}, $variable)',
   };
   return prec < parentPrec ? '($formatted)' : formatted;
 }
@@ -103,7 +108,7 @@ String _formatAdd(List<Expr> terms) {
   final buffer = StringBuffer(formatExpr(terms.first, 1));
   for (var i = 1; i < terms.length; i++) {
     final term = terms[i];
-    final stripped = _stripLeadingNegative(term);
+    final stripped = stripLeadingNegative(term);
     if (stripped != null) {
       buffer.write(' - ${formatExpr(stripped, 2)}');
     } else {
@@ -112,37 +117,6 @@ String _formatAdd(List<Expr> terms) {
     }
   }
   return buffer.toString();
-}
-
-Expr? _stripLeadingNegative(Expr term) {
-  if (term is RealNumeric && term.isNegative) {
-    return term.neg();
-  }
-  if (term is ComplexNumber && term.real.isZero && term.imaginary.isNegative) {
-    return ComplexNumber.of(IntegerNumber.zero, term.imaginary.neg());
-  }
-  if (term is Mul && term.factors.isNotEmpty) {
-    final first = term.factors.first;
-    if (first is RealNumeric && first.isNegative) {
-      final posFirst = first.neg();
-      if (posFirst.isOne) {
-        return term.factors.length == 2
-            ? term.factors[1]
-            : Mul(term.factors.sublist(1));
-      }
-      return Mul([posFirst, ...term.factors.skip(1)]);
-    }
-    if (first is ComplexNumber &&
-        first.real.isZero &&
-        first.imaginary.isNegative) {
-      final posFirst = ComplexNumber.of(
-        IntegerNumber.zero,
-        first.imaginary.neg(),
-      );
-      return Mul([posFirst, ...term.factors.skip(1)]);
-    }
-  }
-  return null;
 }
 
 String _formatMul(List<Expr> factors) {

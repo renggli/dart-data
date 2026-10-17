@@ -8,7 +8,7 @@ void main() {
       final mathml = Expr.parse('sqrt(x) + 1 / (x + 1)').toMathMl();
       check(mathml.startsWith('<math>')).isTrue();
       check(mathml.endsWith('</math>')).isTrue();
-      check(mathml.contains('<msqrt>')).isTrue();
+      check(mathml.contains('<mroot><mrow>')).isTrue();
       check(mathml.contains('<mfrac>')).isTrue();
     });
 
@@ -22,23 +22,49 @@ void main() {
       check(const OrderTerm('x', 4).toMathMl()).contains('<mi>O</mi>');
     });
 
+    test('uses &minus; (with form="prefix" in prefix context) and <mroot><mrow>...</mrow>...</mroot>', () {
+      check(Expr.parse('sqrt(x)').toMathMl())
+          .equals('<math><mroot><mrow><mi>x</mi></mrow></mroot></math>');
+      check(
+        Expr.parse('x^(1/3)').toMathMl(),
+      ).equals('<math><mroot><mrow><mi>x</mi></mrow><mn>3</mn></mroot></math>');
+      check(Expr.parse('x - 2').toMathMl()).equals(
+        '<math><mrow><mi>x</mi><mo>&minus;</mo><mn>2</mn></mrow></math>',
+      );
+      check(IntegerNumber.of(-5).toMathMl()).equals(
+        '<math><mrow><mo form="prefix">&minus;</mo><mn>5</mn></mrow></math>',
+      );
+      check(RationalNumber(-2, 5).toMathMl()).equals(
+        '<math><mrow><mo form="prefix">&minus;</mo><mfrac><mn>2</mn><mn>5</mn></mfrac></mrow></math>',
+      );
+      check(Expr.parse('-x / 5').simplify().toMathMl()).equals(
+        '<math><mrow><mo form="prefix">&minus;</mo><mfrac><mi>x</mi><mn>5</mn></mfrac></mrow></math>',
+      );
+      check(Expr.parse('a + b - c').toMathMl()).equals(
+        '<math><mrow><mi>a</mi><mo>+</mo><mi>b</mi><mo>&minus;</mo><mi>c</mi></mrow></math>',
+      );
+    });
+
     test(
-      'uses Unicode minus sign (U+2212) and clean radical/fraction structure',
+      'renders function powers, partitioned product fractions, and integrals',
       () {
-        check(Expr.parse('sqrt(x)').toMathMl())
-            .equals('<math><msqrt><mi>x</mi></msqrt></math>');
-        check(Expr.parse('x - 2').toMathMl())
-            .equals('<math><mrow><mi>x</mi><mo>−</mo><mn>2</mn></mrow></math>');
-        check(IntegerNumber.of(-5).toMathMl())
-            .equals('<math><mrow><mo>−</mo><mn>5</mn></mrow></math>');
-        check(RationalNumber(-2, 5).toMathMl()).equals(
-          '<math><mrow><mo>−</mo><mfrac><mn>2</mn><mn>5</mn></mfrac></mrow></math>',
+        check(Expr.parse('sin(x)^2').toMathMl()).equals(
+          '<math><mrow><msup><mi>sin</mi><mn>2</mn></msup><mo>(</mo><mi>x</mi><mo>)</mo></mrow></math>',
         );
-        check(Expr.parse('-x / 5').simplify().toMathMl()).equals(
-          '<math><mrow><mo>−</mo><mfrac><mi>x</mi><mn>5</mn></mfrac></mrow></math>',
+        check(Expr.parse('(1 / 2) * x').simplify().toMathMl())
+            .equals('<math><mfrac><mi>x</mi><mn>2</mn></mfrac></math>');
+        check(Integral(const Variable('x'), 'x').toMathMl()).equals(
+          '<math><mrow><mo>&#x222B;</mo><mi>x</mi><mspace width="thinmathspace"/><mi>d</mi><mi>x</mi></mrow></math>',
         );
-        check(Expr.parse('a + b - c').toMathMl()).equals(
-          '<math><mrow><mi>a</mi><mo>+</mo><mi>b</mi><mo>−</mo><mi>c</mi></mrow></math>',
+        check(
+          Integral(
+            const Variable('t'),
+            't',
+            lower: IntegerNumber.zero,
+            upper: IntegerNumber.one,
+          ).toMathMl(),
+        ).equals(
+          '<math><mrow><msubsup><mo>&#x222B;</mo><mn>0</mn><mn>1</mn></msubsup><mi>t</mi><mspace width="thinmathspace"/><mi>d</mi><mi>t</mi></mrow></math>',
         );
       },
     );

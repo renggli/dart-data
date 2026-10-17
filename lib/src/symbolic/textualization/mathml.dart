@@ -1,4 +1,5 @@
 import '../ast.dart';
+import 'formatting.dart';
 
 /// MathML serialization extension on [Expr].
 extension MathMlExtension on Expr {
@@ -30,14 +31,16 @@ String _toMathMl(Expr expr) => switch (expr) {
   Constant(:final mathMl) => mathMl,
   IntegerNumber(:final value) =>
     value.isNegative
-        ? '<mrow><mo>−</mo><mn>${-value}</mn></mrow>'
+        ? '<mrow><mo form="prefix">&minus;</mo><mn>${-value}</mn></mrow>'
         : '<mn>$value</mn>',
   FractionNumber(:final numerator, :final denominator) =>
     numerator.isNegative
-        ? '<mrow><mo>−</mo><mfrac><mn>${-numerator}</mn><mn>$denominator</mn></mfrac></mrow>'
+        ? '<mrow><mo form="prefix">&minus;</mo><mfrac><mn>${-numerator}</mn><mn>$denominator</mn></mfrac></mrow>'
         : '<mfrac><mn>$numerator</mn><mn>$denominator</mn></mfrac>',
   RealNumber(:final value) =>
-    value < 0 ? '<mrow><mo>−</mo><mn>${-value}</mn></mrow>' : '<mn>$value</mn>',
+    value < 0
+        ? '<mrow><mo form="prefix">&minus;</mo><mn>${-value}</mn></mrow>'
+        : '<mn>$value</mn>',
   ComplexNumber() => _formatComplexMathMl(expr),
   Add(:final terms) => _formatAddMathMl(terms),
   Mul(:final factors) => _formatMulMathMl(factors),
@@ -98,6 +101,10 @@ String _toMathMl(Expr expr) => switch (expr) {
         '${branches.map((b) => '<mtr><mtd>${_toMathMl(b.$2)}</mtd><mtd><mtext>if&#x00a0;</mtext>${_toMathMl(b.$1)}</mtd></mtr>').join()}'
         '${otherwise != null ? '<mtr><mtd>${_toMathMl(otherwise)}</mtd><mtd><mtext>otherwise</mtext></mtd></mtr>' : ''}'
         '</mtable></mrow>',
+  Integral(:final integrand, :final variable, :final lower, :final upper) =>
+    lower != null && upper != null
+        ? '<mrow><msubsup><mo>&#x222B;</mo>${_toMathMl(lower)}${_toMathMl(upper)}</msubsup>${_toMathMl(integrand)}<mspace width="thinmathspace"/><mi>d</mi><mi>${_escapeXml(variable)}</mi></mrow>'
+        : '<mrow><mo>&#x222B;</mo>${_toMathMl(integrand)}<mspace width="thinmathspace"/><mi>d</mi><mi>${_escapeXml(variable)}</mi></mrow>',
 };
 
 String _formatComplexMathMl(ComplexNumber c) {
@@ -105,18 +112,22 @@ String _formatComplexMathMl(ComplexNumber c) {
   final imag = c.imaginary;
   if (real.isZero) {
     if (imag.isOne) return '<mi>i</mi>';
-    if (imag.isNegativeOne) return '<mrow><mo>−</mo><mi>i</mi></mrow>';
+    if (imag.isNegativeOne) {
+      return '<mrow><mo form="prefix">&minus;</mo><mi>i</mi></mrow>';
+    }
     if (imag.isNegative) {
-      return '<mrow><mo>−</mo>${_toMathMl(imag.neg())}<mi>i</mi></mrow>';
+      return '<mrow><mo form="prefix">&minus;</mo>${_toMathMl(imag.neg())}<mi>i</mi></mrow>';
     }
     return '<mrow>${_toMathMl(imag)}<mi>i</mi></mrow>';
   }
   final realStr = _toMathMl(real);
   if (imag.isOne) return '<mrow>$realStr<mo>+</mo><mi>i</mi></mrow>';
-  if (imag.isNegativeOne) return '<mrow>$realStr<mo>−</mo><mi>i</mi></mrow>';
+  if (imag.isNegativeOne) {
+    return '<mrow>$realStr<mo>&minus;</mo><mi>i</mi></mrow>';
+  }
   if (imag.isNegative) {
     final posImag = imag.neg();
-    return '<mrow>$realStr<mo>−</mo><mrow>${_toMathMl(posImag)}<mi>i</mi></mrow></mrow>';
+    return '<mrow>$realStr<mo>&minus;</mo><mrow>${_toMathMl(posImag)}<mi>i</mi></mrow></mrow>';
   }
   return '<mrow>$realStr<mo>+</mo><mrow>${_toMathMl(imag)}<mi>i</mi></mrow></mrow>';
 }
@@ -127,10 +138,10 @@ String _formatAddMathMl(List<Expr> terms) {
   final buffer = StringBuffer('<mrow>')..write(_toMathMl(terms.first));
   for (var i = 1; i < terms.length; i++) {
     final term = terms[i];
-    final stripped = _stripLeadingNegative(term);
+    final stripped = stripLeadingNegative(term);
     if (stripped != null) {
       buffer
-        ..write('<mo>−</mo>')
+        ..write('<mo>&minus;</mo>')
         ..write(_formatSubRight(stripped));
     } else {
       buffer
@@ -142,85 +153,20 @@ String _formatAddMathMl(List<Expr> terms) {
   return buffer.toString();
 }
 
-Expr? _stripLeadingNegative(Expr term) {
-  if (term is RealNumeric && term.isNegative) {
-    return term.neg();
-  }
-  if (term is ComplexNumber && term.real.isZero && term.imaginary.isNegative) {
-    return ComplexNumber.of(IntegerNumber.zero, term.imaginary.neg());
-  }
-  if (term is Mul && term.factors.isNotEmpty) {
-    final first = term.factors.first;
-    if (first is RealNumeric && first.isNegative) {
-      final posFirst = first.neg();
-      if (posFirst.isOne) {
-        return term.factors.length == 2
-            ? term.factors[1]
-            : Mul(term.factors.sublist(1));
-      }
-      return Mul([posFirst, ...term.factors.skip(1)]);
-    }
-    if (first is ComplexNumber &&
-        first.real.isZero &&
-        first.imaginary.isNegative) {
-      final posFirst = ComplexNumber.of(
-        IntegerNumber.zero,
-        first.imaginary.neg(),
-      );
-      return Mul([posFirst, ...term.factors.skip(1)]);
-    }
-  }
-  return null;
-}
-
 String _formatMulMathMl(List<Expr> factors) {
   if (factors.isEmpty) return '<mn>1</mn>';
   if (factors.length == 1) return _toMathMl(factors.first);
 
-  var isNegative = false;
-  final numFactors = <Expr>[];
-  final denFactors = <Expr>[];
-
-  for (final f in factors) {
-    if (f is FractionNumber) {
-      if (f.isNegative) {
-        isNegative = !isNegative;
-      }
-      final absNum = f.numerator.abs();
-      if (!absNum.isOne) {
-        numFactors.add(IntegerNumber(absNum));
-      }
-      denFactors.add(IntegerNumber(f.denominator));
-      continue;
-    }
-    if (f is Pow && f.exponent is IntegerNumber) {
-      final exp = f.exponent as IntegerNumber;
-      if (exp.isNegative) {
-        denFactors.add(exp.isNegativeOne ? f.base : Pow(f.base, exp.neg()));
-        continue;
-      }
-    }
-    numFactors.add(f);
-  }
-
-  if (denFactors.isNotEmpty) {
-    if (numFactors.isNotEmpty &&
-        numFactors.first is RealNumeric &&
-        (numFactors.first as RealNumeric).isNegative) {
-      isNegative = !isNegative;
-      final posFirst = (numFactors.first as RealNumeric).neg();
-      if (posFirst.isOne) {
-        numFactors.removeAt(0);
-      } else {
-        numFactors[0] = posFirst;
-      }
-    }
-    final numMathMl = numFactors.isEmpty
+  final (:isNegative, :numerator, :denominator) = partitionMulFraction(factors);
+  if (denominator.isNotEmpty) {
+    final numMathMl = numerator.isEmpty
         ? '<mn>1</mn>'
-        : _formatMulProductMathMl(numFactors);
-    final denMathMl = _formatMulProductMathMl(denFactors);
+        : _formatMulProductMathMl(numerator);
+    final denMathMl = _formatMulProductMathMl(denominator);
     final frac = '<mfrac>$numMathMl$denMathMl</mfrac>';
-    return isNegative ? '<mrow><mo>−</mo>$frac</mrow>' : frac;
+    return isNegative
+        ? '<mrow><mo form="prefix">&minus;</mo>$frac</mrow>'
+        : frac;
   }
 
   return _formatMulProductMathMl(factors);
@@ -232,13 +178,13 @@ String _formatMulProductMathMl(List<Expr> factors) {
 
   if (factors.first == IntegerNumber.negativeOne) {
     final rest = factors.length == 2 ? factors[1] : Mul(factors.sublist(1));
-    return '<mrow><mo>−</mo>${_formatNegOperand(rest)}</mrow>';
+    return '<mrow><mo form="prefix">&minus;</mo>${_formatNegOperand(rest)}</mrow>';
   }
 
   final buffer = StringBuffer('<mrow>');
   var firstFactor = factors.first;
   if (firstFactor is RealNumeric && firstFactor.isNegative) {
-    buffer.write('<mo>−</mo>');
+    buffer.write('<mo form="prefix">&minus;</mo>');
     firstFactor = firstFactor.neg();
   }
   buffer.write(_formatMulLeft(firstFactor));
@@ -246,7 +192,7 @@ String _formatMulProductMathMl(List<Expr> factors) {
   for (var i = 1; i < factors.length; i++) {
     final prev = i == 1 ? firstFactor : factors[i - 1];
     final curr = factors[i];
-    final sep = _canOmitMulDot(prev, curr) ? '' : '<mo>&#x22c5;</mo>';
+    final sep = canOmitMulDot(prev, curr) ? '' : '<mo>&#x22c5;</mo>';
     buffer
       ..write(sep)
       ..write(_formatMulRight(curr));
@@ -267,9 +213,9 @@ String _formatOrderTermMathMl(String variable, int order, Expr point) {
     return '<mrow><mi>O</mi><mo>(</mo><msup><mi>${_escapeXml(variable)}</mi><mn>$order</mn></msup><mo>)</mo></mrow>';
   }
   if (order == 1) {
-    return '<mrow><mi>O</mi><mo>(</mo><mrow><mi>${_escapeXml(variable)}</mi><mo>−</mo>${_formatSubRight(point)}</mrow><mo>)</mo></mrow>';
+    return '<mrow><mi>O</mi><mo>(</mo><mrow><mi>${_escapeXml(variable)}</mi><mo>&minus;</mo>${_formatSubRight(point)}</mrow><mo>)</mo></mrow>';
   }
-  return '<mrow><mi>O</mi><mo>(</mo><msup><mrow><mo>(</mo><mrow><mi>${_escapeXml(variable)}</mi><mo>−</mo>${_formatSubRight(point)}</mrow><mo>)</mo></mrow><mn>$order</mn></msup><mo>)</mo></mrow>';
+  return '<mrow><mi>O</mi><mo>(</mo><msup><mrow><mo>(</mo><mrow><mi>${_escapeXml(variable)}</mi><mo>&minus;</mo>${_formatSubRight(point)}</mrow><mo>)</mo></mrow><mn>$order</mn></msup><mo>)</mo></mrow>';
 }
 
 String _formatPow(Expr base, Expr exponent) {
@@ -281,110 +227,37 @@ String _formatPow(Expr base, Expr exponent) {
   }
   if (exponent is RationalNumber && exponent.numerator == Integer.one) {
     if (exponent.denominator == Integer.two) {
-      return '<msqrt>${_toMathMl(base)}</msqrt>';
+      return '<mroot><mrow>${_toMathMl(base)}</mrow></mroot>';
     } else if (exponent.denominator > Integer.two) {
-      return '<mroot>${_toMathMl(base)}<mn>${exponent.denominator}</mn></mroot>';
+      return '<mroot><mrow>${_toMathMl(base)}</mrow><mn>${exponent.denominator}</mn></mroot>';
     }
+  }
+  final fnPow = matchFunctionPower(base, exponent);
+  if (fnPow != null) {
+    return '<mrow><msup><mi>${fnPow.name}</mi>${_toMathMl(exponent)}</msup><mo>(</mo>${_toMathMl(fnPow.argument)}<mo>)</mo></mrow>';
   }
   return '<msup>${_formatPowBase(base)}${_toMathMl(exponent)}</msup>';
 }
 
-String _formatSubRight(Expr right) => switch (right) {
-  Add() => '<mrow><mo>(</mo>${_toMathMl(right)}<mo>)</mo></mrow>',
-  ComplexNumber(:final real) when !real.isZero =>
-    '<mrow><mo>(</mo>${_toMathMl(right)}<mo>)</mo></mrow>',
-  _ when _startsWithNegative(right) =>
-    '<mrow><mo>(</mo>${_toMathMl(right)}<mo>)</mo></mrow>',
-  _ => _toMathMl(right),
-};
+String _formatSubRight(Expr right) => needsSubRightParens(right)
+    ? '<mrow><mo>(</mo>${_toMathMl(right)}<mo>)</mo></mrow>'
+    : _toMathMl(right);
 
-String _formatMulLeft(Expr left) => switch (left) {
-  Add() => '<mrow><mo>(</mo>${_toMathMl(left)}<mo>)</mo></mrow>',
-  ComplexNumber(:final real) when !real.isZero =>
-    '<mrow><mo>(</mo>${_toMathMl(left)}<mo>)</mo></mrow>',
-  _ => _toMathMl(left),
-};
+String _formatMulLeft(Expr left) => needsMulLeftParens(left)
+    ? '<mrow><mo>(</mo>${_toMathMl(left)}<mo>)</mo></mrow>'
+    : _toMathMl(left);
 
-String _formatMulRight(Expr right) => switch (right) {
-  Add() => '<mrow><mo>(</mo>${_toMathMl(right)}<mo>)</mo></mrow>',
-  ComplexNumber(:final real) when !real.isZero =>
-    '<mrow><mo>(</mo>${_toMathMl(right)}<mo>)</mo></mrow>',
-  _ when _startsWithNegative(right) =>
-    '<mrow><mo>(</mo>${_toMathMl(right)}<mo>)</mo></mrow>',
-  _ => _toMathMl(right),
-};
+String _formatMulRight(Expr right) => needsMulRightParens(right)
+    ? '<mrow><mo>(</mo>${_toMathMl(right)}<mo>)</mo></mrow>'
+    : _toMathMl(right);
 
-bool _canOmitMulDot(Expr left, Expr right) {
-  final l = _rightmostMulFactor(left);
-  if (!_isNumericFactor(l)) return false;
-  final r = _leftmostMulFactor(right);
-  return switch (r) {
-    RealNumeric() => false,
-    ComplexNumber(:final real, :final imaginary) =>
-      real.isZero && imaginary.isOne,
-    _ when _startsWithNegative(r) => false,
-    Pow(:final base, :final exponent) =>
-      base == Constant.e ||
-          (exponent != IntegerNumber.negativeOne && !_startsWithNumber(r)),
-    _ => true,
-  };
-}
+String _formatPowBase(Expr base) => needsPowBaseParens(base)
+    ? '<mrow><mo>(</mo>${_toMathMl(base)}<mo>)</mo></mrow>'
+    : _toMathMl(base);
 
-bool _isNumericFactor(Expr expr) => switch (expr) {
-  RealNumeric() => true,
-  _ => false,
-};
-
-bool _startsWithNegative(Expr expr) => switch (expr) {
-  RealNumeric(:final isNegative) => isNegative,
-  ComplexNumber(:final real, :final imaginary) =>
-    real.isZero ? imaginary.isNegative : real.isNegative,
-  Mul(:final factors) when factors.isNotEmpty => _startsWithNegative(
-    factors.first,
-  ),
-  _ => false,
-};
-
-Expr _rightmostMulFactor(Expr expr) => expr is Mul && expr.factors.isNotEmpty
-    ? _rightmostMulFactor(expr.factors.last)
-    : expr;
-
-Expr _leftmostMulFactor(Expr expr) => expr is Mul && expr.factors.isNotEmpty
-    ? _leftmostMulFactor(expr.factors.first)
-    : expr;
-
-bool _startsWithNumber(Expr expr) => switch (expr) {
-  RealNumeric() => true,
-  ComplexNumber(:final real, :final imaginary) =>
-    !real.isZero || !imaginary.isOne,
-  Pow(:final base, :final exponent) =>
-    base != Constant.e &&
-        !(exponent is RationalNumber &&
-            exponent.numerator == Integer.one &&
-            exponent.denominator >= Integer.two) &&
-        _startsWithNumber(base),
-  _ => false,
-};
-
-String _formatPowBase(Expr base) => switch (base) {
-  Add() || Mul() || FractionNumber() || RealNumeric(isNegative: true) =>
-    '<mrow><mo>(</mo>${_toMathMl(base)}<mo>)</mo></mrow>',
-  ComplexNumber(:final real, :final imaginary)
-      when !real.isZero || !imaginary.isOne =>
-    '<mrow><mo>(</mo>${_toMathMl(base)}<mo>)</mo></mrow>',
-  Pow(:final exponent) when exponent == IntegerNumber.negativeOne =>
-    '<mrow><mo>(</mo>${_toMathMl(base)}<mo>)</mo></mrow>',
-  _ => _toMathMl(base),
-};
-
-String _formatNegOperand(Expr expr) => switch (expr) {
-  Add() => '<mrow><mo>(</mo>${_toMathMl(expr)}<mo>)</mo></mrow>',
-  ComplexNumber(:final real) when !real.isZero =>
-    '<mrow><mo>(</mo>${_toMathMl(expr)}<mo>)</mo></mrow>',
-  _ when _startsWithNegative(expr) =>
-    '<mrow><mo>(</mo>${_toMathMl(expr)}<mo>)</mo></mrow>',
-  _ => _toMathMl(expr),
-};
+String _formatNegOperand(Expr expr) => needsNegOperandParens(expr)
+    ? '<mrow><mo>(</mo>${_toMathMl(expr)}<mo>)</mo></mrow>'
+    : _toMathMl(expr);
 
 String _escapeXml(String text) => text
     .replaceAll('&', '&amp;')

@@ -38,5 +38,18 @@ void main() {
           .integrate('x', from: double.negativeInfinity, to: double.infinity);
       check(lorentz).equals(Constant.pi);
     });
+
+    test('returns unevaluated Integral node when no elementary antiderivative exists', () {
+      final gaussian = Expr.parse('exp(x^2)').integrate('x');
+      check(gaussian).isA<Integral>();
+      check(gaussian.toString()).equals('integrate(exp(x ^ 2), x)');
+      check(gaussian.derivative('x').simplify())
+          .equals(Expr.parse('exp(x^2)').simplify());
+
+      final fresnel = Expr.parse('sin(x^2)').integrate('x', from: 0, to: 1);
+      check(fresnel).isA<Integral>();
+      // int_0^1 sin(x^2) dx ≈ 0.3102683017233811
+      check(fresnel.evaluate()).isCloseTo(0.3102683017233811, 1e-12);
+    });
   });
 }

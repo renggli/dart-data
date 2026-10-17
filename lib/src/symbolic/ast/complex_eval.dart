@@ -135,6 +135,16 @@ Complex _evalComplex(Expr expr, Map<String, Complex> context) => switch (expr) {
     if (otherwise != null) return _evalComplex(otherwise, context);
     return Complex.nan;
   }(),
+  Integral() => () {
+    if (expr.isDefinite && context.values.every((z) => z.b == 0.0)) {
+      final realContext = {
+        for (final entry in context.entries)
+          entry.key: entry.value.a.toDouble(),
+      };
+      return Complex(expr.evaluate(realContext));
+    }
+    return Complex.nan;
+  }(),
   OrderTerm() => Complex.zero,
 };
 

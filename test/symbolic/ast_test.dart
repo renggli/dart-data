@@ -148,5 +148,49 @@ void main() {
       check(val.a).isCloseTo(0.0, 1e-12);
       check(val.b).isCloseTo(1.0, 1e-12);
     });
+
+    test('cached structural hashCode and VariableDomain equality', () {
+      const x = Variable('x');
+      const xPos1 = Variable('x', domain: VariableDomain.positive);
+      const xPos2 = Variable('x', domain: VariableDomain.positive);
+      check(x.domain).equals(VariableDomain.unknown);
+      check(xPos1.domain).equals(VariableDomain.positive);
+      check(x == xPos1).isFalse();
+      check(xPos1 == xPos2).isTrue();
+      check(xPos1.hashCode).equals(xPos2.hashCode);
+
+      final expr1 = Expr.parse('sin(x^2 + 1) + 3 * x * cos(x)');
+      final expr2 = Expr.parse('sin(x^2 + 1) + 3 * x * cos(x)');
+      check(expr1.hashCode).equals(expr2.hashCode);
+      check(expr1).equals(expr2);
+    });
+
+    test(
+      'Integral AST node tracks bound variable and evaluates definite bounds',
+      () {
+        final indef = Integral(Expr.parse('exp(-t^2)'), 't');
+        check(indef.freeVariables).contains('t');
+        check(indef.dependsOn('t')).isTrue();
+
+        const x = Variable('x');
+        final defParam = Integral(
+          Expr.parse('exp(-t^2)'),
+          't',
+          lower: IntegerNumber.zero,
+          upper: x,
+        );
+        check(defParam.freeVariables).unorderedEquals(['x']);
+        check(defParam.dependsOn('t')).isFalse();
+        check(defParam.dependsOn('x')).isTrue();
+
+        final defNum = Integral(
+          Expr.parse('x^2'),
+          'x',
+          lower: IntegerNumber.zero,
+          upper: IntegerNumber.of(3),
+        );
+        check(defNum.evaluate()).isCloseTo(9.0, 1e-12);
+      },
+    );
   });
 }

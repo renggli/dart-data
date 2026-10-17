@@ -46,5 +46,21 @@ void main() {
       final r = lambertRoots.first.evaluate();
       check(r * math.exp(r)).isCloseTo(2.0, 1e-12);
     });
+
+    test('filters roots according to VariableDomain assumptions', () {
+      final imagEq = Expr.parse('x^2 + 1');
+      check(imagEq.solve('x', domain: VariableDomain.real)).isEmpty();
+      check(imagEq.solve('x', domain: VariableDomain.complex).length).equals(2);
+
+      const xPos = Variable('x', domain: VariableDomain.positive);
+      final posEq = Pow(xPos, IntegerNumber.two) - IntegerNumber.of(4);
+      check(posEq.solve('x')).deepEquals([IntegerNumber.two]);
+
+      final ratEq = Expr.parse('(2*x - 3) * (x + 4)');
+      check(ratEq.solve('x', domain: VariableDomain.integer))
+          .deepEquals([IntegerNumber.of(-4)]);
+      check(ratEq.solve('x', domain: VariableDomain.positive))
+          .deepEquals([RationalNumber(3, 2)]);
+    });
   });
 }

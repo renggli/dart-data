@@ -235,5 +235,88 @@ Expr? extractBaseSquareRoot(Expr expr) {
   return null;
 }
 
+/// Matches sum or difference of cubes:
+/// - $A^3 - B^3 = (A - B)(A^2 + A B + B^2)$
+/// - $A^3 + B^3 = (A + B)(A^2 - A B + B^2)$
+({Expr a, Expr b, bool isDifference})? matchSumOrDifferenceOfCubes(
+  List<Expr> terms,
+) {
+  if (terms.length != 2) return null;
+  final t1 = terms[0];
+  final t2 = terms[1];
+
+  final (c1, base1) = decomposeTerm(t1);
+  final (c2, base2) = decomposeTerm(t2);
+  if (c1 is! RationalNumber || c2 is! RationalNumber) return null;
+
+  if (c1.sign > 0 && c2.sign < 0) {
+    final cb1 = monomialCubeRoot(c1, base1);
+    final cb2 = monomialCubeRoot(c2.neg(), base2);
+    if (cb1 != null && cb2 != null) {
+      return (a: cb1, b: cb2, isDifference: true);
+    }
+  } else if (c2.sign > 0 && c1.sign < 0) {
+    final cb1 = monomialCubeRoot(c2, base2);
+    final cb2 = monomialCubeRoot(c1.neg(), base1);
+    if (cb1 != null && cb2 != null) {
+      return (a: cb1, b: cb2, isDifference: true);
+    }
+  } else if (c1.sign > 0 && c2.sign > 0) {
+    final cb1 = monomialCubeRoot(c1, base1);
+    final cb2 = monomialCubeRoot(c2, base2);
+    if (cb1 != null && cb2 != null) {
+      return (a: cb1, b: cb2, isDifference: false);
+    }
+  }
+  return null;
+}
+
+/// Computes the cube root of monomial term $coeff \cdot base$.
+Expr? monomialCubeRoot(RationalNumber coeff, Expr base) {
+  final numInt = coeff.numerator.asInt;
+  final denInt = coeff.denominator.asInt;
+  if (numInt == null || denInt == null) return null;
+  final numCbrt = integerCbrt(numInt);
+  final denCbrt = integerCbrt(denInt);
+  if (numCbrt == null || denCbrt == null) return null;
+  final scalar = RationalNumber(numCbrt, denCbrt);
+
+  final baseCbrt = extractBaseCubeRoot(base);
+  if (baseCbrt == null) return null;
+
+  return scalar.isOne ? baseCbrt : simplifyMul([scalar, baseCbrt]);
+}
+
+/// Extracts cube root of [expr] if all factors have exponents divisible by 3.
+Expr? extractBaseCubeRoot(Expr expr) {
+  if (expr is Number && expr.isOne) return IntegerNumber.one;
+  if (expr is Pow && expr.exponent is IntegerNumber) {
+    final exp = (expr.exponent as IntegerNumber).asInt;
+    if (exp != null && exp % 3 == 0) {
+      final third = exp ~/ 3;
+      return third == 1 ? expr.base : Pow(expr.base, IntegerNumber.of(third));
+    }
+  }
+  if (expr is Mul) {
+    final rootFactors = <Expr>[];
+    for (final factor in expr.factors) {
+      final r = extractBaseCubeRoot(factor);
+      if (r == null) return null;
+      rootFactors.add(r);
+    }
+    return simplifyMul(rootFactors);
+  }
+  return null;
+}
+
+/// Computes exact integer cube root of [n] if perfect cube, or `null`.
+int? integerCbrt(int n) {
+  if (n == 0) return 0;
+  final sign = n < 0 ? -1 : 1;
+  final r = math.pow(n.abs(), 1.0 / 3.0).round() * sign;
+  if (r * r * r == n) return r;
+  return null;
+}
+
 /// Tests whether [expr] equals scalar $1$.
 bool isOne(Expr expr) => expr is Number && expr.isOne;

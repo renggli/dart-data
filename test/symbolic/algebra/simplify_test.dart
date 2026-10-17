@@ -63,6 +63,31 @@ void main() {
           .equals(Abs(const Variable('x')));
       check(Expr.parse('abs(-5 * x)').simplify().toString())
           .equals('abs(5 * x)');
+
+      // Exact radical extraction and rational exponent folding on integers
+      check(Expr.parse('sqrt(12)').simplify().toString()).equals('2 * sqrt(3)');
+      check(Expr.parse('sqrt(72)').simplify().toString()).equals('6 * sqrt(2)');
+      check(Expr.parse('2^(3/2)').simplify().toString()).equals('2 * sqrt(2)');
+      check(Expr.parse('2 / sqrt(2)').simplify().toString()).equals('sqrt(2)');
+      check(Expr.parse('sqrt(2) / 2').simplify().toString())
+          .equals('1/2 * sqrt(2)');
+      check(Expr.parse('(8 / 27)^(1/3)').simplify())
+          .equals(RationalNumber(2, 3));
+    });
+
+    test('VariableDomain.positive simplifies even roots and abs', () {
+      const p = Variable('p', domain: VariableDomain.positive);
+      const r = Variable('r', domain: VariableDomain.real);
+
+      check(Pow(Pow(p, IntegerNumber.two), FractionNumber.half).simplify())
+          .equals(p);
+      check(Abs(p).simplify()).equals(p);
+      check(Abs(IntegerNumber.of(-3) * p).simplify())
+          .equals(IntegerNumber.of(3) * p);
+
+      check(Pow(Pow(r, IntegerNumber.two), FractionNumber.half).simplify())
+          .equals(Abs(r));
+      check(Abs(r).simplify()).equals(Abs(r));
     });
   });
 }

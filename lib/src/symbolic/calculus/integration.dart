@@ -18,7 +18,7 @@ extension IntegrationExtension on Expr {
   /// curve between two coordinates (or recovers the primitive function from its
   /// derivative). Formally, this implements symbolic integration rules (power
   /// rule, logarithmic, trigonometric, exponential, integration by parts, and
-  /// substitution). Throws an [UnsupportedError] when no elementary
+  /// substitution). Returns an unevaluated [Integral] node when no elementary
   /// closed-form anti-derivative exists.
   ///
   /// ```dart
@@ -41,43 +41,64 @@ Expr _symbolicIntegrate(Expr function, String variable, {num? from, num? to}) {
       return IntegerNumber.zero;
     }
     final antiDeriv = _antiDerivative(function, variable).simplify();
-    final upper = to.isInfinite
-        ? antiDeriv.limit(
-            variable,
-            to > 0 ? Constant.infinity : -Constant.infinity,
-          )
-        : antiDeriv.substitute(variable, _numToExpr(to));
-    final lower = from.isInfinite
-        ? antiDeriv.limit(
-            variable,
-            from > 0 ? Constant.infinity : -Constant.infinity,
-          )
-        : antiDeriv.substitute(variable, _numToExpr(from));
-    final diff = (upper - lower).simplify();
-    if (diff.freeVariables.isNotEmpty) {
-      return diff;
-    }
-    if (diff is Number) {
-      return diff;
+    if (_hasUnevaluatedIntegral(antiDeriv)) {
+      return Integral(
+        function.simplify(),
+        variable,
+        lower: _numToExpr(from),
+        upper: _numToExpr(to),
+        isSimplified: true,
+      );
     }
     try {
-      final val = diff.evaluate(const {});
-      if (val.isFinite) {
-        final rat = diff.rationalize(maxDenominator: 64);
-        if (rat is RationalNumber &&
-            (val - rat.toDouble()).abs() < 1e-12 &&
-            diff is! Constant) {
-          return diff;
-        }
+      final upper = to.isInfinite
+          ? antiDeriv.limit(
+              variable,
+              to > 0 ? Constant.infinity : -Constant.infinity,
+            )
+          : antiDeriv.substitute(variable, _numToExpr(to));
+      final lower = from.isInfinite
+          ? antiDeriv.limit(
+              variable,
+              from > 0 ? Constant.infinity : -Constant.infinity,
+            )
+          : antiDeriv.substitute(variable, _numToExpr(from));
+      final diff = (upper - lower).simplify();
+      if (diff.freeVariables.isNotEmpty) {
+        return diff;
       }
-    } catch (_) {
-      // Return symbolic difference if numerical evaluation fails.
+      if (diff is Number) {
+        return diff;
+      }
+      try {
+        final val = diff.evaluate(const {});
+        if (val.isFinite) {
+          final rat = diff.rationalize(maxDenominator: 64);
+          if (rat is RationalNumber &&
+              (val - rat.toDouble()).abs() < 1e-12 &&
+              diff is! Constant) {
+            return diff;
+          }
+        }
+      } catch (_) {
+        // Return symbolic difference if numerical evaluation fails.
+      }
+      return diff;
+    } on Object {
+      return Integral(
+        function.simplify(),
+        variable,
+        lower: _numToExpr(from),
+        upper: _numToExpr(to),
+        isSimplified: true,
+      );
     }
-    return diff;
   }
 
   return _antiDerivative(function, variable).simplify();
 }
+
+bool _hasUnevaluatedIntegral(Expr expr) => expr.anyNode((e) => e is Integral);
 
 Expr _numToExpr(num n) {
   if (n is int) return IntegerNumber.of(n);
@@ -97,71 +118,70 @@ Expr _numToExpr(num n) {
 }
 
 Expr _antiDerivative(Expr expr, String variable) {
-  expr = expr.simplify();
+  final node = expr.simplify();
 
-  if (!expr.dependsOn(variable)) {
-    if (expr is Number && expr.isZero) {
+  if (!node.dependsOn(variable)) {
+    if (node is Number && node.isZero) {
       return IntegerNumber.zero;
     }
-    return (expr * Variable(variable)).simplify();
+    return (node * Variable(variable)).simplify();
   }
 
-  return switch (expr) {
+  return switch (node) {
     Variable(:final name) when name == variable =>
-      (Pow(expr, IntegerNumber.two) / IntegerNumber.two).simplify(),
+      (Pow(node, IntegerNumber.two) / IntegerNumber.two).simplify(),
     Add(:final terms) => Add([
       for (final term in terms) _antiDerivative(term, variable),
     ]).simplify(),
-    Sin(:final expr) =>
-      _antiDerivSin(expr, variable) ?? _unsupported(expr, variable),
-    Cos(:final expr) =>
-      _antiDerivCos(expr, variable) ?? _unsupported(expr, variable),
-    Tan(:final expr) =>
-      _antiDerivTan(expr, variable) ?? _unsupported(expr, variable),
-    Asin(:final expr) =>
-      _antiDerivAsin(expr, variable) ?? _unsupported(expr, variable),
-    Acos(:final expr) =>
-      _antiDerivAcos(expr, variable) ?? _unsupported(expr, variable),
-    Atan(:final expr) =>
-      _antiDerivAtan(expr, variable) ?? _unsupported(expr, variable),
-    Sinh(:final expr) =>
-      _antiDerivSinh(expr, variable) ?? _unsupported(expr, variable),
-    Cosh(:final expr) =>
-      _antiDerivCosh(expr, variable) ?? _unsupported(expr, variable),
-    Tanh(:final expr) =>
-      _antiDerivTanh(expr, variable) ?? _unsupported(expr, variable),
-    Abs(:final expr) =>
-      _antiDerivAbs(expr, variable) ?? _unsupported(expr, variable),
-    Ln(:final expr) =>
-      _antiDerivLn(expr, variable) ?? _unsupported(expr, variable),
-    LambertW(:final expr, :final branch) =>
-      _antiDerivLambertW(expr, branch, variable) ??
-          _unsupported(expr, variable),
-    Erf(:final expr) =>
-      _antiDerivErf(expr, variable) ?? _unsupported(expr, variable),
-    Erfc(:final expr) =>
-      _antiDerivErfc(expr, variable) ?? _unsupported(expr, variable),
-    Asinh(:final expr) =>
-      _antiDerivAsinh(expr, variable) ?? _unsupported(expr, variable),
-    Acosh(:final expr) =>
-      _antiDerivAcosh(expr, variable) ?? _unsupported(expr, variable),
-    Atanh(:final expr) =>
-      _antiDerivAtanh(expr, variable) ?? _unsupported(expr, variable),
-    Piecewise() => _antiDerivPiecewise(expr, variable),
+    Sin(expr: final inner) =>
+      _antiDerivSin(inner, variable) ?? _unsupported(node, variable),
+    Cos(expr: final inner) =>
+      _antiDerivCos(inner, variable) ?? _unsupported(node, variable),
+    Tan(expr: final inner) =>
+      _antiDerivTan(inner, variable) ?? _unsupported(node, variable),
+    Asin(expr: final inner) =>
+      _antiDerivAsin(inner, variable) ?? _unsupported(node, variable),
+    Acos(expr: final inner) =>
+      _antiDerivAcos(inner, variable) ?? _unsupported(node, variable),
+    Atan(expr: final inner) =>
+      _antiDerivAtan(inner, variable) ?? _unsupported(node, variable),
+    Sinh(expr: final inner) =>
+      _antiDerivSinh(inner, variable) ?? _unsupported(node, variable),
+    Cosh(expr: final inner) =>
+      _antiDerivCosh(inner, variable) ?? _unsupported(node, variable),
+    Tanh(expr: final inner) =>
+      _antiDerivTanh(inner, variable) ?? _unsupported(node, variable),
+    Abs(expr: final inner) =>
+      _antiDerivAbs(inner, variable) ?? _unsupported(node, variable),
+    Ln(expr: final inner) =>
+      _antiDerivLn(inner, variable) ?? _unsupported(node, variable),
+    LambertW(expr: final inner, :final branch) =>
+      _antiDerivLambertW(inner, branch, variable) ??
+          _unsupported(node, variable),
+    Erf(expr: final inner) =>
+      _antiDerivErf(inner, variable) ?? _unsupported(node, variable),
+    Erfc(expr: final inner) =>
+      _antiDerivErfc(inner, variable) ?? _unsupported(node, variable),
+    Asinh(expr: final inner) =>
+      _antiDerivAsinh(inner, variable) ?? _unsupported(node, variable),
+    Acosh(expr: final inner) =>
+      _antiDerivAcosh(inner, variable) ?? _unsupported(node, variable),
+    Atanh(expr: final inner) =>
+      _antiDerivAtanh(inner, variable) ?? _unsupported(node, variable),
+    Piecewise() => _antiDerivPiecewise(node, variable),
     Pow(:final base, :final exponent) => _antiDerivPow(
       base,
       exponent,
-      expr,
+      node,
       variable,
     ),
-    Mul() => _antiDerivMul(expr, variable),
-    _ => _unsupported(expr, variable),
+    Mul() => _antiDerivMul(node, variable),
+    _ => _unsupported(node, variable),
   };
 }
 
-Never _unsupported(Expr expr, String variable) => throw UnsupportedError(
-  'No closed-form anti-derivative found for $expr with respect to $variable',
-);
+Expr _unsupported(Expr expr, String variable) =>
+    Integral(expr, variable, isSimplified: true);
 
 Expr? _antiDerivSin(Expr inner, String variable) =>
     switch (inner.matchLinear(variable)) {
@@ -904,7 +924,10 @@ Expr? _tryIntegrationByParts(Expr pExpr, Expr vExpr, String variable) {
         (pPrime * v).expand().simplify(),
         variable,
       );
-      return (pExpr * v - remIntegral).simplify();
+      if (!_hasUnevaluatedIntegral(v) &&
+          !_hasUnevaluatedIntegral(remIntegral)) {
+        return (pExpr * v - remIntegral).simplify();
+      }
     }
   }
 

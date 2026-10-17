@@ -1,12 +1,33 @@
 part of '../ast.dart';
 
+/// Mathematical domain assumption for a symbolic [Variable].
+enum VariableDomain {
+  /// Unspecified domain (no branch-cut or sign assumptions applied).
+  unknown,
+
+  /// Complex numbers $\mathbb{C}$.
+  complex,
+
+  /// Real numbers $\mathbb{R}$.
+  real,
+
+  /// Strictly positive real numbers $\mathbb{R}_{> 0}$.
+  positive,
+
+  /// Integers $\mathbb{Z}$.
+  integer,
+}
+
 /// Symbolic variable leaf node (e.g. $x$, $y$, $\theta$).
 final class Variable extends Expr {
-  /// Creates a symbolic variable with [name].
-  const new(this.name);
+  /// Creates a symbolic variable with [name] and optional [domain] assumption.
+  const new(this.name, {this.domain = VariableDomain.unknown});
 
   /// Identifier name of the variable.
   final String name;
+
+  /// Assumed mathematical domain of the variable.
+  final VariableDomain domain;
 
   @override
   bool get isSimplified => true;
@@ -43,8 +64,9 @@ final class Variable extends Expr {
 
   @override
   bool operator ==(Object other) =>
-      identical(this, other) || (other is Variable && name == other.name);
+      identical(this, other) ||
+      (other is Variable && name == other.name && domain == other.domain);
 
   @override
-  int get hashCode => Object.hash(Variable, name);
+  int get hashCode => Object.hash(Variable, name, domain);
 }

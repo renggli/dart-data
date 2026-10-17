@@ -48,5 +48,35 @@ void main() {
       check(Expr.parse('2*x*y + 4*x').factor())
           .equals(Expr.parse('2 * x * (2 + y)').simplify());
     });
+
+    test('factors multivariate sum and difference of cubes', () {
+      final diffCubes = Expr.parse('x^3 - y^3').factor();
+      check(diffCubes).isA<Mul>();
+      check((diffCubes.expand() - Expr.parse('x^3 - y^3')).simplify())
+          .equals(IntegerNumber.zero);
+      check(diffCubes)
+          .equals(Expr.parse('(x - y) * (x^2 + x*y + y^2)').simplify());
+
+      final sumCubes = Expr.parse('8*x^3 + 27*y^3').factor();
+      check(sumCubes).isA<Mul>();
+      check((sumCubes.expand() - Expr.parse('8*x^3 + 27*y^3')).simplify())
+          .equals(IntegerNumber.zero);
+      check(
+        sumCubes,
+      ).equals(Expr.parse('(2*x + 3*y) * (4*x^2 - 6*x*y + 9*y^2)').simplify());
+    });
+
+    test(
+      'performs square-free decomposition on repeated irreducible factors',
+      () {
+        // (x^2 + 1)^2 = x^4 + 2*x^2 + 1 has no rational roots
+        final sqFree1 = Expr.parse('x^4 + 2*x^2 + 1').factor();
+        check(sqFree1).equals(Expr.parse('(1 + x^2)^2').simplify());
+
+        // (x^2 + x + 1)^2 = x^4 + 2*x^3 + 3*x^2 + 2*x + 1
+        final sqFree2 = Expr.parse('x^4 + 2*x^3 + 3*x^2 + 2*x + 1').factor();
+        check(sqFree2).equals(Expr.parse('(1 + x + x^2)^2').simplify());
+      },
+    );
   });
 }

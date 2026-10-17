@@ -129,7 +129,12 @@ final class Piecewise extends Expr {
   @override
   final bool isSimplified;
 
-  int? _hashCode;
+  @override
+  late final int hashCode = Object.hash(
+    Piecewise,
+    Object.hashAll(branches.map((b) => Object.hash(b.$1, b.$2))),
+    otherwise,
+  );
 
   @override
   double evaluate([Map<String, double> context = const {}]) {
@@ -188,9 +193,12 @@ final class Piecewise extends Expr {
   @override
   bool operator ==(Object other) {
     if (identical(this, other)) return true;
-    if (other is! Piecewise) return false;
-    if (otherwise != other.otherwise) return false;
-    if (branches.length != other.branches.length) return false;
+    if (other is! Piecewise ||
+        branches.length != other.branches.length ||
+        hashCode != other.hashCode ||
+        otherwise != other.otherwise) {
+      return false;
+    }
     for (var i = 0; i < branches.length; i++) {
       if (branches[i].$1 != other.branches[i].$1 ||
           branches[i].$2 != other.branches[i].$2) {
@@ -199,11 +207,4 @@ final class Piecewise extends Expr {
     }
     return true;
   }
-
-  @override
-  int get hashCode => _hashCode ??= Object.hash(
-    Piecewise,
-    Object.hashAll(branches.map((b) => Object.hash(b.$1, b.$2))),
-    otherwise,
-  );
 }

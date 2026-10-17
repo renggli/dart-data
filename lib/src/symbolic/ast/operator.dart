@@ -11,7 +11,8 @@ sealed class UnaryExpr extends Expr {
   @override
   final bool isSimplified;
 
-  int? _hashCode;
+  @override
+  late final int hashCode = _computeHash();
 
   @override
   void collectFreeVariables(Set<String> target) {
@@ -30,13 +31,13 @@ sealed class UnaryExpr extends Expr {
       identical(this, other) ||
       (other is UnaryExpr &&
           runtimeType == other.runtimeType &&
-          (_hashCode == null ||
-              other._hashCode == null ||
-              _hashCode == other._hashCode) &&
+          hashCode == other.hashCode &&
+          _extraEquals(other) &&
           expr == other.expr);
 
-  @override
-  int get hashCode => _hashCode ??= Object.hash(runtimeType, expr);
+  bool _extraEquals(UnaryExpr other) => true;
+
+  int _computeHash() => Object.hash(runtimeType, expr);
 }
 
 /// Base class for binary expressions operating on [left] and [right] children.
@@ -53,7 +54,8 @@ sealed class BinaryExpr extends Expr {
   @override
   final bool isSimplified;
 
-  int? _hashCode;
+  @override
+  late final int hashCode = Object.hash(runtimeType, left, right);
 
   @override
   void collectFreeVariables(Set<String> target) {
@@ -74,14 +76,9 @@ sealed class BinaryExpr extends Expr {
       identical(this, other) ||
       (other is BinaryExpr &&
           runtimeType == other.runtimeType &&
-          (_hashCode == null ||
-              other._hashCode == null ||
-              _hashCode == other._hashCode) &&
+          hashCode == other.hashCode &&
           left == other.left &&
           right == other.right);
-
-  @override
-  int get hashCode => _hashCode ??= Object.hash(runtimeType, left, right);
 }
 
 /// N-ary addition node: $\sum_{i} t_i$.
@@ -96,7 +93,8 @@ final class Add extends Expr {
   @override
   final bool isSimplified;
 
-  int? _hashCode;
+  @override
+  late final int hashCode = Object.hash(Add, Object.hashAll(terms));
 
   @override
   double evaluate([Map<String, double> context = const {}]) {
@@ -142,10 +140,9 @@ final class Add extends Expr {
   @override
   bool operator ==(Object other) {
     if (identical(this, other)) return true;
-    if (other is! Add || terms.length != other.terms.length) return false;
-    if (_hashCode != null &&
-        other._hashCode != null &&
-        _hashCode != other._hashCode) {
+    if (other is! Add ||
+        terms.length != other.terms.length ||
+        hashCode != other.hashCode) {
       return false;
     }
     for (var i = 0; i < terms.length; i++) {
@@ -153,9 +150,6 @@ final class Add extends Expr {
     }
     return true;
   }
-
-  @override
-  int get hashCode => _hashCode ??= Object.hash(Add, Object.hashAll(terms));
 }
 
 /// N-ary multiplication node: $\prod_{i} f_i$.
@@ -170,7 +164,8 @@ final class Mul extends Expr {
   @override
   final bool isSimplified;
 
-  int? _hashCode;
+  @override
+  late final int hashCode = Object.hash(Mul, Object.hashAll(factors));
 
   @override
   double evaluate([Map<String, double> context = const {}]) {
@@ -216,10 +211,9 @@ final class Mul extends Expr {
   @override
   bool operator ==(Object other) {
     if (identical(this, other)) return true;
-    if (other is! Mul || factors.length != other.factors.length) return false;
-    if (_hashCode != null &&
-        other._hashCode != null &&
-        _hashCode != other._hashCode) {
+    if (other is! Mul ||
+        factors.length != other.factors.length ||
+        hashCode != other.hashCode) {
       return false;
     }
     for (var i = 0; i < factors.length; i++) {
@@ -227,9 +221,6 @@ final class Mul extends Expr {
     }
     return true;
   }
-
-  @override
-  int get hashCode => _hashCode ??= Object.hash(Mul, Object.hashAll(factors));
 }
 
 /// Exponentiation node: $\text{base}^{\text{exponent}}$.

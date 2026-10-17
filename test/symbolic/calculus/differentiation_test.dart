@@ -52,5 +52,23 @@ void main() {
       check(pw.evaluate({'x': -2.0})).equals(4.0);
       check(pw.evaluate({'x': 2.0})).equals(4.0);
     });
+
+    test('differentiates Integral nodes via Fundamental Theorem of Calculus and Leibniz rule', () {
+      final indef = Integral(Expr.parse('sin(x^2)'), 'x');
+      check(indef.derivative('x').simplify())
+          .equals(Expr.parse('sin(x^2)').simplify());
+
+      final leibniz = Integral(
+        Expr.parse('exp(-t^2)'),
+        't',
+        lower: const Variable('x'),
+        upper: Expr.parse('x^2'),
+      );
+      // d/dx int_x^(x^2) exp(-t^2) dt = 2*x*exp(-x^4) - exp(-x^2)
+      final dLeibniz = leibniz.derivative('x').simplify();
+      final expected = Expr.parse('2 * x * exp(-x^4) - exp(-x^2)').simplify();
+      check(dLeibniz.evaluate({'x': 1.5}))
+          .isCloseTo(expected.evaluate({'x': 1.5}), 1e-12);
+    });
   });
 }

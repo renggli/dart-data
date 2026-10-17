@@ -659,6 +659,10 @@ Expr? _tryFactorLogAdd(Expr a, Expr b, String variable) {
           scan(b);
         }
         if (otherwise != null) scan(otherwise);
+      case Integral(:final integrand, :final lower, :final upper):
+        scan(integrand);
+        if (lower != null) scan(lower);
+        if (upper != null) scan(upper);
       case Number() || Constant() || Variable() || OrderTerm():
         break;
     }

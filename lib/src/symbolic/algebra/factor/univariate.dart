@@ -251,6 +251,18 @@ Expr factorUnivariatePoly(PolyQ poly, String variable) {
     }
   }
 
+  // 7. Square-free decomposition for repeated nonlinear factors (e.g. (x^2 + x + 1)^2)
+  if (currentDeg >= 4) {
+    final sqFree = _decomposeSquareFree(primitiveCoeffs);
+    if (sqFree != null) {
+      for (final (partCoeffs, mult) in sqFree) {
+        final partExpr = buildPolyExpr(partCoeffs, variable);
+        factors[partExpr] = (factors[partExpr] ?? 0) + mult;
+      }
+      return buildFactoredExpr(scalar: scalar, factors: factors);
+    }
+  }
+
   // Irreducible higher degree
   if (factors.isEmpty && content == 1 && lcmDen == 1) {
     return buildPolyExpr(intCoeffs, variable);
@@ -258,6 +270,134 @@ Expr factorUnivariatePoly(PolyQ poly, String variable) {
   final polyExpr = buildPolyExpr(primitiveCoeffs, variable);
   factors[polyExpr] = (factors[polyExpr] ?? 0) + 1;
   return buildFactoredExpr(scalar: scalar, factors: factors);
+}
+
+List<(List<int>, int)>? _decomposeSquareFree(List<int> primitiveCoeffs) {
+  final pRat = [for (final c in primitiveCoeffs) IntegerNumber.of(c)];
+  final dRat = _polyDerivative(pRat);
+  final g = _polyGcd(pRat, dRat);
+  if (g.length <= 1 || g.length >= pRat.length) {
+    return null;
+  }
+
+  var c = g;
+  var d = _polyExactDiv(pRat, g);
+  if (d == null) return null;
+
+  final components = <(List<int>, int)>[];
+  var mult = 1;
+  while (d != null && d.length > 1) {
+    final y = _polyGcd(c, d);
+    final z = _polyExactDiv(d, y);
+    if (z == null) return null;
+    if (z.length > 1) {
+      final primZ = _toPrimitiveIntCoeffs(z);
+      if (primZ == null) return null;
+      components.add((primZ, mult));
+    }
+    final nextC = _polyExactDiv(c, y);
+    if (nextC == null) return null;
+    c = nextC;
+    d = y;
+    mult++;
+  }
+  return components.isEmpty ? null : components;
+}
+
+List<RationalNumber> _trimPoly(List<RationalNumber> coeffs) {
+  var end = coeffs.length;
+  while (end > 1 && coeffs[end - 1].isZero) {
+    end--;
+  }
+  return end == coeffs.length ? coeffs : coeffs.sublist(0, end);
+}
+
+List<RationalNumber> _makeMonic(List<RationalNumber> coeffs) {
+  final trimmed = _trimPoly(coeffs);
+  final lead = trimmed.last;
+  if (lead.isZero || lead.isOne) return trimmed;
+  return [for (final c in trimmed) c.divRational(lead)];
+}
+
+List<RationalNumber> _polyDerivative(List<RationalNumber> coeffs) {
+  if (coeffs.length <= 1) return [IntegerNumber.zero];
+  return _trimPoly([
+    for (var i = 1; i < coeffs.length; i++)
+      coeffs[i].mulRational(IntegerNumber.of(i)),
+  ]);
+}
+
+(List<RationalNumber>, List<RationalNumber>)? _polyDivMod(
+  List<RationalNumber> num,
+  List<RationalNumber> den,
+) {
+  final a = List<RationalNumber>.of(_trimPoly(num));
+  final b = _trimPoly(den);
+  final degB = b.length - 1;
+  if (b.last.isZero) return null;
+  var degA = a.length - 1;
+  if (degA < degB) {
+    return ([IntegerNumber.zero], a);
+  }
+  final quot = List<RationalNumber>.filled(degA - degB + 1, IntegerNumber.zero);
+  final leadB = b.last;
+  while (degA >= degB && !(degA == 0 && a[0].isZero)) {
+    final shift = degA - degB;
+    final factor = a[degA].divRational(leadB);
+    quot[shift] = factor;
+    for (var i = 0; i <= degB; i++) {
+      a[shift + i] = a[shift + i].subRational(factor.mulRational(b[i]));
+    }
+    while (degA > 0 && a[degA].isZero) {
+      degA--;
+    }
+  }
+  return (_trimPoly(quot), _trimPoly(a.sublist(0, degA + 1)));
+}
+
+List<RationalNumber>? _polyExactDiv(
+  List<RationalNumber> a,
+  List<RationalNumber> b,
+) {
+  final dm = _polyDivMod(a, b);
+  if (dm == null) return null;
+  final (q, r) = dm;
+  if (r.length == 1 && r[0].isZero) return q;
+  return null;
+}
+
+List<RationalNumber> _polyGcd(List<RationalNumber> a, List<RationalNumber> b) {
+  var x = _trimPoly(a);
+  var y = _trimPoly(b);
+  while (!(y.length == 1 && y[0].isZero)) {
+    final dm = _polyDivMod(x, y);
+    if (dm == null) break;
+    x = y;
+    y = dm.$2;
+  }
+  return _makeMonic(x);
+}
+
+List<int>? _toPrimitiveIntCoeffs(List<RationalNumber> coeffs) {
+  var lcmDen = 1;
+  for (final c in coeffs) {
+    final den = c.denominator.asInt;
+    if (den == null) return null;
+    lcmDen = lcm(lcmDen, den);
+  }
+  final intCoeffs = <int>[];
+  var content = 0;
+  for (final c in coeffs) {
+    final num = c.numerator.asInt;
+    final den = c.denominator.asInt;
+    if (num == null || den == null) return null;
+    final scaled = num * (lcmDen ~/ den);
+    intCoeffs.add(scaled);
+    if (scaled != 0) content = gcd(content, scaled.abs());
+  }
+  if (content == 0) content = 1;
+  final sign = intCoeffs.last < 0 ? -1 : 1;
+  return [for (final a in intCoeffs) (a * sign) ~/ content];
 }
 
 /// Factors quadratic $a \cdot x^2 + c$.

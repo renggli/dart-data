@@ -29,12 +29,11 @@ final class LambertW extends UnaryExpr {
       LambertW(transform(expr), branch: branch);
 
   @override
-  bool operator ==(Object other) =>
-      identical(this, other) ||
-      (other is LambertW && branch == other.branch && expr == other.expr);
+  bool _extraEquals(UnaryExpr other) =>
+      other is LambertW && branch == other.branch;
 
   @override
-  int get hashCode => Object.hash(LambertW, branch, expr);
+  int _computeHash() => Object.hash(LambertW, branch, expr);
 }
 
 /// Evaluates the real Lambert $W_k(x)$ function for $k \in \{0, -1\}$ using

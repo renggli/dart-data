@@ -121,6 +121,20 @@ Expr factorExpr(Expr expr) {
         factorExpr(simplifyAdd([a, b])),
       ]);
     }
+
+    // 6d. Sum or difference of cubes: A^3 ± B^3
+    final cubes = matchSumOrDifferenceOfCubes(additiveTerms);
+    if (cubes != null) {
+      final (:a, :b, :isDifference) = cubes;
+      final a2 = simplifyPow(a, IntegerNumber.two);
+      final ab = simplifyMul([a, b]);
+      final b2 = simplifyPow(b, IntegerNumber.two);
+      final linear = isDifference ? simplifySub(a, b) : simplifyAdd([a, b]);
+      final quad = isDifference
+          ? simplifyAdd([a2, ab, b2])
+          : simplifyAdd([a2, simplifyNeg(ab), b2]);
+      return combineFactoredProducts([factorExpr(linear), factorExpr(quad)]);
+    }
   }
 
   return expr.simplify();

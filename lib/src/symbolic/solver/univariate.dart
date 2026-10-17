@@ -30,11 +30,19 @@ extension SolverExtension on Expr {
   /// final roots = (x * x - 4).solve('x');
   /// // roots: [IntegerNumber(-2), IntegerNumber(2)]
   /// ```
-  List<Expr> solve(String variable) => solveEquation(this, variable);
+  List<Expr> solve(String variable, {VariableDomain? domain}) =>
+      solveEquation(this, variable, domain: domain);
 }
 
-/// Recursively solves univariate equation [expr] = 0 for [variable].
-List<Expr> solveEquation(Expr expr, String variable) {
+/// Recursively solves univariate equation [expr] = 0 for [variable], optionally
+/// filtering roots by [domain] (or the [Variable.domain] present in [expr]).
+List<Expr> solveEquation(Expr expr, String variable, {VariableDomain? domain}) {
+  final effectiveDomain = domain ?? _inferVariableDomain(expr, variable);
+  final rawRoots = _solveUnfiltered(expr, variable);
+  return _filterByDomain(rawRoots, effectiveDomain);
+}
+
+List<Expr> _solveUnfiltered(Expr expr, String variable) {
   if (expr is Equal) {
     expr = expr.left - expr.right;
   }
@@ -50,7 +58,7 @@ List<Expr> solveEquation(Expr expr, String variable) {
     if (!num.dependsOn(variable)) {
       return const [];
     }
-    final candidates = solveEquation(num, variable);
+    final candidates = _solveUnfiltered(num, variable);
     return candidates.where((r) => !_isZeroAt(den, variable, r)).toList();
   }
 
@@ -80,7 +88,7 @@ List<Expr> solveEquation(Expr expr, String variable) {
   if (varFactors.length > 1) {
     final allRoots = <Expr>[];
     for (final factor in varFactors) {
-      allRoots.addAll(solveEquation(factor, variable));
+      allRoots.addAll(_solveUnfiltered(factor, variable));
     }
     return deduplicateRoots(allRoots);
   }
@@ -97,7 +105,7 @@ List<Expr> solveEquation(Expr expr, String variable) {
         (varFactored.length == 1 && varFactored.first.simplify() != expr)) {
       final allRoots = <Expr>[];
       for (final factor in varFactored) {
-        allRoots.addAll(solveEquation(factor, variable));
+        allRoots.addAll(_solveUnfiltered(factor, variable));
       }
       return deduplicateRoots(allRoots);
     }
@@ -110,6 +118,63 @@ List<Expr> solveEquation(Expr expr, String variable) {
   }
 
   return const [];
+}
+
+VariableDomain _inferVariableDomain(Expr expr, String variable) {
+  var inferred = VariableDomain.unknown;
+  expr.anyNode((node) {
+    if (node is Variable &&
+        node.name == variable &&
+        node.domain != VariableDomain.unknown) {
+      inferred = node.domain;
+      return true;
+    }
+    return false;
+  });
+  return inferred;
+}
+
+List<Expr> _filterByDomain(List<Expr> roots, VariableDomain domain) {
+  if (domain == VariableDomain.unknown || domain == VariableDomain.complex) {
+    return roots;
+  }
+  return roots.where((root) {
+    final s = root.simplify();
+    return switch (domain) {
+      VariableDomain.unknown || VariableDomain.complex => true,
+      VariableDomain.integer => s is IntegerNumber,
+      VariableDomain.real => _isRealRoot(s),
+      VariableDomain.positive => _isPositiveRealRoot(s),
+    };
+  }).toList();
+}
+
+bool _isRealRoot(Expr expr) {
+  if (!expr.isReal) return false;
+  if (expr.freeVariables.isEmpty) {
+    try {
+      final c = expr.evaluateComplex();
+      return !c.isNaN && c.b.abs() < 1e-12;
+    } on Object {
+      return false;
+    }
+  }
+  return true;
+}
+
+bool _isPositiveRealRoot(Expr expr) {
+  if (expr is RationalNumber) return expr.sign > 0;
+  if (expr is RealNumber) return expr.value > 0.0;
+  if (!expr.isReal) return false;
+  if (expr.freeVariables.isEmpty) {
+    try {
+      final v = expr.evaluate();
+      return !v.isNaN && v > 0.0;
+    } on Object {
+      return false;
+    }
+  }
+  return false;
 }
 
 /// Checks whether a constant symbolic expression [expr] evaluates to zero.

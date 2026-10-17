@@ -520,7 +520,10 @@ PowerSeries _expandToPowerSeries(
       order,
     ),
 
-    Gamma() || Beta() || RelationalExpr() => throw UnsupportedError(
+    Gamma() ||
+    Beta() ||
+    RelationalExpr() ||
+    Integral() => throw UnsupportedError(
       'Power series expansion not supported for ${expr.runtimeType}',
     ),
 

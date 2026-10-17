@@ -100,6 +100,11 @@ Expr simplifyMul(List<Expr> factors) {
   // Combine radical factors with matching fractional exponents (e.g. sqrt(x) * sqrt(y) -> sqrt(x * y))
   _combineRadicalBases(baseExponents);
 
+  // Fold rational coefficient factors into matching integer radical bases (e.g. 2 * 2^(-1/2) -> 2^(1/2))
+  if (coeff is RationalNumber && !coeff.isOne && !coeff.isNegativeOne) {
+    coeff = _absorbRationalCoeffIntoRadicals(coeff, baseExponents);
+  }
+
   final remainingFactors = <Expr>[];
   for (final entry in baseExponents.entries) {
     final base = entry.key;
@@ -245,6 +250,36 @@ void _combineRadicalBases(Map<Expr, Expr> baseExponents) {
       }
     }
   }
+}
+
+RationalNumber _absorbRationalCoeffIntoRadicals(
+  RationalNumber coeff,
+  Map<Expr, Expr> baseExponents,
+) {
+  var currentCoeff = coeff;
+  for (final entry in baseExponents.entries.toList()) {
+    final base = entry.key;
+    final exp = entry.value;
+    if (base is IntegerNumber &&
+        base.value > Integer.one &&
+        exp is FractionNumber &&
+        exp.isNegative) {
+      final b = base.value;
+      var newExp = exp as RationalNumber;
+      while (newExp is FractionNumber &&
+          newExp.isNegative &&
+          (currentCoeff.numerator % b).isZero) {
+        currentCoeff = currentCoeff.divRational(base);
+        newExp = newExp.addRational(IntegerNumber.one);
+      }
+      if (newExp.isZero) {
+        baseExponents.remove(base);
+      } else {
+        baseExponents[base] = newExp;
+      }
+    }
+  }
+  return currentCoeff;
 }
 
 Expr? _tryDistributeExactDivision(Number coeff, List<Expr> factors) {

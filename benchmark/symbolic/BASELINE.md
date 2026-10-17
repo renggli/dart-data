@@ -45,4 +45,5 @@ Measured on the same machine after introducing the zero-cost `Integer` extension
 | `solvePolynomialSystem` Katsura-3 | 3,860,962 | 6,555 | **589.0×** | > 15 min | 11,000 | **> 80,000×** |
 
 Notes on refactored results:
+
 - `solvePolynomialSystem` Katsura-3 now finds both exact rational solutions (`{a: 1, b: 0, c: 0, d: 0}` and `{a: 1/3, b: 0, c: 0, d: 1/3}`) without 53-bit or 64-bit integer overflow during FGLM Gaussian elimination.

@@ -38,7 +38,8 @@ int nodeTag(Expr expr) => switch (expr) {
   GreaterEqual() => 28,
   Equal() => 29,
   Piecewise() => 30,
-  OrderTerm() => 31,
+  Integral() => 31,
+  OrderTerm() => 32,
 };
 
 /// Total structural ordering comparator over all [Expr] AST nodes.
@@ -56,7 +57,11 @@ int compareStructural(Expr a, Expr b) {
   return switch ((a, b)) {
     (final Number na, final Number nb) => _compareNumber(na, nb),
     (final Constant ca, final Constant cb) => _compareConstant(ca, cb),
-    (final Variable va, final Variable vb) => va.name.compareTo(vb.name),
+    (final Variable va, final Variable vb) => () {
+      final cmpName = va.name.compareTo(vb.name);
+      if (cmpName != 0) return cmpName;
+      return va.domain.index.compareTo(vb.domain.index);
+    }(),
     (final LambertW la, final LambertW lb) => () {
       final cmpBranch = la.branch.compareTo(lb.branch);
       if (cmpBranch != 0) return cmpBranch;
@@ -73,6 +78,18 @@ int compareStructural(Expr a, Expr b) {
     }(),
     (final Add aa, final Add ab) => _compareList(aa.terms, ab.terms),
     (final Mul ma, final Mul mb) => _compareList(ma.factors, mb.factors),
+    (final Integral ia, final Integral ib) => () {
+      final cmpVar = ia.variable.compareTo(ib.variable);
+      if (cmpVar != 0) return cmpVar;
+      final cmpInt = compareStructural(ia.integrand, ib.integrand);
+      if (cmpInt != 0) return cmpInt;
+      if (ia.lower == null && ib.lower == null) return 0;
+      if (ia.lower == null) return -1;
+      if (ib.lower == null) return 1;
+      final cmpLow = compareStructural(ia.lower!, ib.lower!);
+      if (cmpLow != 0) return cmpLow;
+      return compareStructural(ia.upper!, ib.upper!);
+    }(),
     (final OrderTerm oa, final OrderTerm ob) => () {
       final cmpVar = oa.variable.compareTo(ob.variable);
       if (cmpVar != 0) return cmpVar;

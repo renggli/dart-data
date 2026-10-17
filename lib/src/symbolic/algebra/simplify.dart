@@ -76,5 +76,7 @@ Expr simplifyExpr(Expr expr) {
     Atanh(:final expr) => simplifyAtanh(simplifyExpr(expr)),
     RelationalExpr() => simplifyRelational(expr),
     Piecewise() => simplifyPiecewise(expr),
+    Integral(:final integrand, :final variable, :final lower, :final upper) =>
+      simplifyIntegral(integrand, variable, lower: lower, upper: upper),
   };
 }

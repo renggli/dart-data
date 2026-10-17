@@ -142,7 +142,60 @@ Expr _differentiate(Expr expr, String variable) {
       branches.map((b) => (b.$1, _differentiate(b.$2, variable))).toList(),
       otherwise: otherwise != null ? _differentiate(otherwise, variable) : null,
     ),
+    Integral(
+      :final integrand,
+      variable: final intVar,
+      :final lower,
+      :final upper,
+    ) =>
+      _differentiateIntegral(integrand, intVar, lower, upper, variable),
   };
+}
+
+Expr _differentiateIntegral(
+  Expr integrand,
+  String intVar,
+  Expr? lower,
+  Expr? upper,
+  String variable,
+) {
+  if (lower == null || upper == null) {
+    if (intVar == variable) {
+      return integrand;
+    }
+    return Integral(_differentiate(integrand, variable), intVar);
+  }
+  final terms = <Expr>[];
+  if (upper.dependsOn(variable)) {
+    terms.add(
+      Mul([
+        integrand.substitute(intVar, upper),
+        _differentiate(upper, variable),
+      ]),
+    );
+  }
+  if (lower.dependsOn(variable)) {
+    terms.add(
+      Mul([
+        IntegerNumber.negativeOne,
+        integrand.substitute(intVar, lower),
+        _differentiate(lower, variable),
+      ]),
+    );
+  }
+  if (intVar != variable && integrand.dependsOn(variable)) {
+    terms.add(
+      Integral(
+        _differentiate(integrand, variable),
+        intVar,
+        lower: lower,
+        upper: upper,
+      ),
+    );
+  }
+  if (terms.isEmpty) return IntegerNumber.zero;
+  if (terms.length == 1) return terms.first;
+  return Add(terms);
 }
 
 Expr _differentiateMul(List<Expr> factors, String variable) {

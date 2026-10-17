@@ -258,21 +258,31 @@ Expr simplifyAbs(Expr expr) {
   if (expr is RealNumber) {
     return RealNumber(expr.value.abs());
   }
-
-  // Idempotence: ||u|| = |u|
-  if (expr is Abs) return expr;
-
-  // e^u is strictly positive for real inputs: |e^u| = e^u
-  if (expr is Pow && expr.base == Constant.e) return expr;
-
   // Parity: |-u| = |u|
   final (posExpr, isNeg) = extractSign(expr);
   if (isNeg) {
     return simplifyAbs(posExpr);
   }
 
+  if (_isNonNegativeExpr(expr)) {
+    return expr;
+  }
+
   return Abs(expr, isSimplified: true);
 }
+
+bool _isNonNegativeExpr(Expr expr) => switch (expr) {
+  RealNumeric(:final isNegative) => !isNegative,
+  Constant(:final value) => value.b == 0 && value.a >= 0,
+  Variable(:final domain) => domain == VariableDomain.positive,
+  Abs() => true,
+  Pow(base: Constant.e) => true,
+  Pow(:final base, :final exponent) =>
+    _isNonNegativeExpr(base) ||
+        (exponent is IntegerNumber && exponent.value.isEven),
+  Mul(:final factors) => factors.every(_isNonNegativeExpr),
+  _ => false,
+};
 
 /// Simplifies an exponential expression $e^{expr}$.
 Expr simplifyExp(Expr expr) => simplifyPow(Constant.e, expr);
@@ -536,6 +546,31 @@ Expr simplifyPiecewise(Piecewise expr) {
   return Piecewise(
     simplifiedBranches,
     otherwise: sOtherwise,
+    isSimplified: true,
+  );
+}
+
+/// Simplifies a symbolic [Integral] node.
+Expr simplifyIntegral(
+  Expr integrand,
+  String variable, {
+  Expr? lower,
+  Expr? upper,
+}) {
+  final sIntegrand = integrand.simplify();
+  if (sIntegrand is Number && sIntegrand.isZero) {
+    return IntegerNumber.zero;
+  }
+  final sLower = lower?.simplify();
+  final sUpper = upper?.simplify();
+  if (sLower != null && sUpper != null && sLower == sUpper) {
+    return IntegerNumber.zero;
+  }
+  return Integral(
+    sIntegrand,
+    variable,
+    lower: sLower,
+    upper: sUpper,
     isSimplified: true,
   );
 }

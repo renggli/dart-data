@@ -25,5 +25,30 @@ void main() {
       check(Expr.parse('piecewise(x < 0, -x, x)').toLatex())
           .contains(r'\begin{cases}');
     });
+
+    test('partitions product fractions, formats function powers, and renders integrals', () {
+      check(Expr.parse('(1 / 2) * x').simplify().toLatex())
+          .equals(r'\frac{x}{2}');
+      check(Expr.parse('(-3 / 4) * x / y').simplify().toLatex())
+          .equals(r'-\frac{3 x}{4 y}');
+      check((RationalNumber(2, 3) * Expr.parse('1 + x')).toLatex())
+          .equals(r'\frac{2 (1 + x)}{3}');
+
+      check(Expr.parse('sin(x)^2').toLatex()).equals(r'\sin^{2}(x)');
+      check(Expr.parse('cos(2*x)^3').toLatex()).equals(r'\cos^{3}(2 x)');
+      check(Expr.parse('ln(x)^2').toLatex()).equals(r'\ln^{2}(x)');
+      check(Expr.parse('sin(x)^(-1)').toLatex()).equals(r'\frac{1}{\sin(x)}');
+
+      check(Integral(Expr.parse('exp(x^2)'), 'x').toLatex())
+          .equals(r'\int e^{{x}^{2}} \, dx');
+      check(
+        Integral(
+          Expr.parse('sin(t^2)'),
+          't',
+          lower: IntegerNumber.zero,
+          upper: const Variable('x'),
+        ).toLatex(),
+      ).equals(r'\int_{0}^{x} \sin({t}^{2}) \, dt');
+    });
   });
 }
