@@ -363,19 +363,21 @@ Expr _antiDerivPiecewise(Piecewise expr, String variable) {
 }
 
 Expr? _extractBoundaryPoint(Expr cond, String variable) => switch (cond) {
-  LessThan(left: Variable(:final name), :final right)
-      when name == variable && !right.dependsOn(variable) =>
-    right,
-  LessEqual(left: Variable(:final name), :final right)
-      when name == variable && !right.dependsOn(variable) =>
-    right,
-  GreaterThan(left: final bound, right: Variable(:final name))
-      when name == variable && !bound.dependsOn(variable) =>
-    bound,
-  GreaterEqual(left: final bound, right: Variable(:final name))
-      when name == variable && !bound.dependsOn(variable) =>
-    bound,
+  LessThan(left: Variable(:final name), right: final bound) ||
+  LessEqual(left: Variable(:final name), right: final bound) ||
+  GreaterThan(left: final bound, right: Variable(:final name)) ||
+  GreaterEqual(
+    left: final bound,
+    right: Variable(:final name),
+  ) when name == variable && !bound.dependsOn(variable) => bound,
   _ => null,
+};
+
+bool _isValidExponentialBase(Expr base) => switch (base) {
+  RationalNumber(:final isNegative, :final isZero, :final isOne) =>
+    !isNegative && !isZero && !isOne,
+  RealNumber(:final value) => value > 0 && value != 1.0,
+  _ => true,
 };
 
 Expr _antiDerivPow(Expr base, Expr exponent, Expr original, String variable) {
@@ -397,9 +399,11 @@ Expr _antiDerivPow(Expr base, Expr exponent, Expr original, String variable) {
       }
     }
     // Check if this is 1 / g(x) represented as g(x)^(-n)
-    final isNegExp =
-        (exponent is RationalNumber && exponent.isNegative) ||
-        (exponent is RealNumber && exponent.value < 0);
+    final isNegExp = switch (exponent) {
+      RationalNumber(:final isNegative) => isNegative,
+      RealNumber(:final value) => value < 0,
+      _ => false,
+    };
     if (isNegExp) {
       final posExp = (-exponent).simplify();
       final den = posExp == IntegerNumber.one ? base : Pow(base, posExp);
@@ -414,17 +418,7 @@ Expr _antiDerivPow(Expr base, Expr exponent, Expr original, String variable) {
       if (base == Constant.e) {
         return (original / a).simplify();
       }
-      var validBase = true;
-      if (base case RationalNumber(
-        :final isNegative,
-        :final isZero,
-        :final isOne,
-      )) {
-        validBase = !isNegative && !isZero && !isOne;
-      } else if (base case RealNumber(:final value)) {
-        validBase = value > 0 && value != 1.0;
-      }
-      if (validBase) {
+      if (_isValidExponentialBase(base)) {
         final denom = (a * Ln(base)).simplify();
         return (original / denom).simplify();
       }
@@ -460,42 +454,34 @@ Expr? _tryAntiDerivDiv(Expr left, Expr right, String variable) {
     }
 
     // int c / (d + exp(ax + b)) dx = (c / d) * (x - (1 / a) * ln(d + exp(ax + b)))
-    if (right case Add(:final terms) when terms.length == 2) {
-      final rL = terms[0];
-      final rR = terms[1];
-      if (!rL.dependsOn(variable) && rR is Pow && rR.base == Constant.e) {
-        if (rR.exponent.matchLinear(variable) case (:final a, b: _)) {
-          final term = (Variable(variable) - (Ln(right) / a)).simplify();
-          return ((left / rL) * term).simplify();
-        }
+    if (right
+        case Add(terms: [final rL, Pow(base: Constant.e, :final exponent)])
+        when !rL.dependsOn(variable)) {
+      if (exponent.matchLinear(variable) case (:final a, b: _)) {
+        final term = (Variable(variable) - (Ln(right) / a)).simplify();
+        return ((left / rL) * term).simplify();
       }
     }
   }
 
   // int u'(x) / (a + b * u(x)^2) dx = (1 / sqrt(a * b)) * arctan(sqrt(b / a) * u(x))
-  if (right case Add(:final terms) when terms.length == 2) {
-    final rL = terms[0];
-    final rR = terms[1];
-    Expr? u;
+  if (right case Add(terms: [final rL, final rR])) {
     if (rL case RationalNumber(isOne: true) || RealNumber(value: 1.0)) {
-      u = _extractSquareBase(rR);
-    }
-    if (u != null && u.dependsOn(variable)) {
-      final uPrime = u.derivative(variable).simplify();
-      final k = left.matchScalarMultiple(uPrime, variable);
-      if (k != null) {
-        return Atan(u).scale(k);
+      if (_extractSquareBase(rR) case final u? when u.dependsOn(variable)) {
+        final uPrime = u.derivative(variable).simplify();
+        if (left.matchScalarMultiple(uPrime, variable) case final k?) {
+          return Atan(u).scale(k);
+        }
       }
     }
     // General positive constant a + sqTerm
     if (!rL.dependsOn(variable) &&
         rR.dependsOn(variable) &&
         _isPositiveConstant(rL)) {
-      final w = _extractScaledSquareBase((rR / rL).simplify(), variable);
-      if (w != null && w.dependsOn(variable)) {
+      if (_extractScaledSquareBase((rR / rL).simplify(), variable) case final w?
+          when w.dependsOn(variable)) {
         final wPrime = w.derivative(variable).simplify();
-        final k = left.matchScalarMultiple(wPrime, variable);
-        if (k != null) {
+        if (left.matchScalarMultiple(wPrime, variable) case final k?) {
           return Atan(w).scale((k / rL).simplify());
         }
       }
@@ -503,27 +489,22 @@ Expr? _tryAntiDerivDiv(Expr left, Expr right, String variable) {
   }
 
   // int u'(x) / sqrt(1 - u(x)^2) dx = asin(u(x))
-  {
-    Expr? inner;
-    if (right case Pow(:final base, :final exponent)
-        when exponent == FractionNumber.half ||
-            (exponent is RealNumber && exponent.value == 0.5)) {
-      inner = base;
-    }
-    Expr? u;
-    if (inner case Add(:final terms) when terms.length == 2) {
-      final t0 = terms[0];
-      final t1 = terms[1];
-      if ((t0 is RationalNumber && t0.isOne) ||
-          (t0 is RealNumber && t0.value == 1.0)) {
-        final negTerm = (-t1).simplify();
-        u = _extractSquareBase(negTerm);
-      }
-    }
-    if (u != null && u.dependsOn(variable)) {
+  if (right
+      case Pow(
+        base: Add(
+          terms: [
+            RationalNumber(isOne: true) || RealNumber(value: 1.0),
+            final t1,
+          ],
+        ),
+        :final exponent,
+      )
+      when exponent == FractionNumber.half ||
+          (exponent is RealNumber && exponent.value == 0.5)) {
+    final negTerm = (-t1).simplify();
+    if (_extractSquareBase(negTerm) case final u? when u.dependsOn(variable)) {
       final uPrime = u.derivative(variable).simplify();
-      final k = left.matchScalarMultiple(uPrime, variable);
-      if (k != null) {
+      if (left.matchScalarMultiple(uPrime, variable) case final k?) {
         return Asin(u).scale(k);
       }
     }
@@ -540,9 +521,10 @@ Expr? _tryAntiDerivDiv(Expr left, Expr right, String variable) {
 
   // Univariate polynomial long division when deg(left) >= deg(right) >= 1
   if (left.dependsOn(variable) && right.dependsOn(variable)) {
-    final divResult = _tryPolynomialLongDivision(left, right, variable);
-    if (divResult != null) {
-      final (quotient, remainder) = divResult;
+    if (_tryPolynomialLongDivision(left, right, variable) case (
+      final quotient,
+      final remainder,
+    )) {
       final qInt = _antiDerivative(quotient, variable);
       if (remainder is Number && remainder.isZero) {
         return qInt;
@@ -600,9 +582,7 @@ Expr _antiDerivMul(Mul original, String variable) {
   }
 
   // 4. Integration by parts (try pairing one factor with the rest):
-  if (varFactors.length == 2) {
-    final left = varFactors[0];
-    final right = varFactors[1];
+  if (varFactors case [final left, final right]) {
     if (_tryIntegrationByParts(left, right, variable) case final ibpLR?) {
       return ibpLR;
     }
@@ -751,17 +731,7 @@ Expr? _tryChainRuleExponential(
     }
     return null;
   }
-  var validBase = true;
-  if (base case RationalNumber(
-    :final isNegative,
-    :final isZero,
-    :final isOne,
-  )) {
-    validBase = !isNegative && !isZero && !isOne;
-  } else if (base case RealNumber(:final value)) {
-    validBase = value > 0 && value != 1.0;
-  }
-  if (validBase) {
+  if (_isValidExponentialBase(base)) {
     final uPrime = exponent.derivative(variable).simplify();
     final k = factor.matchScalarMultiple(uPrime, variable);
     if (k != null) {
@@ -775,8 +745,7 @@ Expr? _tryChainRuleExponential(
 
 Expr? _tryIntegrationByParts(Expr pExpr, Expr vExpr, String variable) {
   // Cyclic IBP: exp(ax + b) * sin(cx + d) or exp(ax + b) * cos(cx + d)
-  if (pExpr case Pow(base: final expBase, exponent: final expInner)
-      when expBase == Constant.e) {
+  if (pExpr case Pow(base: Constant.e, exponent: final expInner)) {
     if (expInner.matchLinear(variable) case (a: final a, b: _)) {
       if (vExpr case Sin(expr: final trigInner)) {
         if (trigInner.matchLinear(variable) case (a: final c, b: _)) {
@@ -905,17 +874,7 @@ Expr? _ibpGeneralExponential(
   Expr p,
   Expr a,
 ) {
-  var validBase = true;
-  if (base case RationalNumber(
-    :final isNegative,
-    :final isZero,
-    :final isOne,
-  )) {
-    validBase = !isNegative && !isZero && !isOne;
-  } else if (base case RealNumber(:final value)) {
-    validBase = value > 0 && value != 1.0;
-  }
-  if (validBase) {
+  if (_isValidExponentialBase(base)) {
     final cEff = (a * Ln(base)).simplify();
     final term1 = (pExpr / cEff).simplify();
     final cEffSquared = (cEff * cEff).simplify();
@@ -954,21 +913,17 @@ Expr _ibpCosh(Expr pExpr, Expr vExpr, Expr expr, Expr p, Expr c) {
   return (term1 - term2).simplify();
 }
 
-Expr? _extractSquareBase(Expr expr) {
-  if (expr is Pow) {
-    final exp = expr.exponent;
-    if (exp is IntegerNumber && exp.value.isEven && exp.value > Integer.zero) {
-      final half = exp.value ~/ Integer.two;
-      return half == Integer.one
-          ? expr.base
-          : Pow(expr.base, IntegerNumber(half));
-    } else if (exp is RealNumber && exp.value % 2.0 == 0.0 && exp.value > 0) {
-      final half = (exp.value / 2.0).round();
-      return half == 1 ? expr.base : Pow(expr.base, IntegerNumber.of(half));
-    }
-  }
-  return null;
-}
+Expr? _extractSquareBase(Expr expr) => switch (expr) {
+  Pow(:final base, exponent: IntegerNumber(:final value))
+      when value.isEven && value > Integer.zero =>
+    value == Integer.two
+        ? base
+        : Pow(base, IntegerNumber(value ~/ Integer.two)),
+  Pow(:final base, exponent: RealNumber(:final value))
+      when value % 2.0 == 0.0 && value > 0 =>
+    value == 2.0 ? base : Pow(base, IntegerNumber.of((value / 2.0).round())),
+  _ => null,
+};
 
 bool _isPositiveConstant(Expr expr) {
   if (expr is RationalNumber) return !expr.isNegative && !expr.isZero;
@@ -994,14 +949,13 @@ Expr? _extractScaledSquareBase(Expr expr, String variable) {
         constFactors.add(f);
       }
     }
-    if (constFactors.isNotEmpty && varFactors.length == 1) {
-      final constPart = constFactors.length == 1
-          ? constFactors.first
-          : Mul(constFactors).simplify();
-      final varPart = varFactors.first;
+    if (varFactors case [final varPart] when constFactors.isNotEmpty) {
+      final constPart = switch (constFactors) {
+        [final single] => single,
+        _ => Mul(constFactors).simplify(),
+      };
       if (_isPositiveConstant(constPart)) {
-        final sq = _extractSquareBase(varPart);
-        if (sq != null) {
+        if (_extractSquareBase(varPart) case final sq?) {
           return (Pow(constPart, FractionNumber.half).simplify() * sq)
               .simplify();
         }

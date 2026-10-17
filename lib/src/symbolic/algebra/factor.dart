@@ -32,34 +32,31 @@ Expr factorExpr(Expr expr) {
   if (expr is Number || expr is Constant || expr is Variable) return expr;
 
   // 2. Pure power: factor base
-  if (expr is Pow && expr.exponent is RationalNumber) {
-    final exp = expr.exponent as RationalNumber;
-    final intExp = exp.asInt;
-    if (intExp != null && intExp > 0) {
-      final base = factorExpr(expr.base);
-      return distributePower(base, intExp);
+  if (expr case Pow(
+    :final base,
+    exponent: RationalNumber(asInt: final intExp?),
+  )) {
+    if (intExp > 0) {
+      return distributePower(factorExpr(base), intExp);
     }
-    if (intExp != null && intExp < 0) {
-      final base = factorExpr(expr.base);
-      final den = distributePower(base, -intExp);
+    if (intExp < 0) {
+      final den = distributePower(factorExpr(base), -intExp);
       return cancelFactoredFraction(IntegerNumber.one, den);
     }
   }
 
   // 3. Pure multiplication (including division represented via negative powers)
-  if (expr is Mul) {
+  if (expr case Mul(:final factors)) {
     final numFactored = <Expr>[];
     final denFactored = <Expr>[];
-    for (final factor in expr.factors) {
-      if (factor is Pow && factor.exponent is IntegerNumber) {
-        final intExp = (factor.exponent as IntegerNumber).asInt;
-        if (intExp != null && intExp < 0) {
-          final baseFactored = factorExpr(factor.base);
-          denFactored.add(distributePower(baseFactored, -intExp));
-          continue;
-        }
+    for (final factor in factors) {
+      if (factor
+          case Pow(:final base, exponent: IntegerNumber(asInt: final intExp?))
+          when intExp < 0) {
+        denFactored.add(distributePower(factorExpr(base), -intExp));
+      } else {
+        numFactored.add(factorExpr(factor));
       }
-      numFactored.add(factorExpr(factor));
     }
     if (denFactored.isNotEmpty) {
       final num = numFactored.isEmpty
@@ -113,9 +110,7 @@ Expr factorExpr(Expr expr) {
     }
 
     // 6c. Difference of squares: A^2 - B^2
-    final diffSq = matchDifferenceOfSquares(additiveTerms);
-    if (diffSq != null) {
-      final (a, b) = diffSq;
+    if (matchDifferenceOfSquares(additiveTerms) case (final a, final b)) {
       return combineFactoredProducts([
         factorExpr(simplifySub(a, b)),
         factorExpr(simplifyAdd([a, b])),
@@ -123,9 +118,11 @@ Expr factorExpr(Expr expr) {
     }
 
     // 6d. Sum or difference of cubes: A^3 ± B^3
-    final cubes = matchSumOrDifferenceOfCubes(additiveTerms);
-    if (cubes != null) {
-      final (:a, :b, :isDifference) = cubes;
+    if (matchSumOrDifferenceOfCubes(additiveTerms) case (
+      :final a,
+      :final b,
+      :final isDifference,
+    )) {
       final a2 = simplifyPow(a, IntegerNumber.two);
       final ab = simplifyMul([a, b]);
       final b2 = simplifyPow(b, IntegerNumber.two);

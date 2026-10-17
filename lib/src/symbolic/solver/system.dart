@@ -48,9 +48,10 @@ Map<String, Expr>? solveSystemEquations(
 
   for (var i = 0; i < n; i++) {
     final rawEq = equations[i];
-    final eq = (rawEq is Equal ? (rawEq.left - rawEq.right) : rawEq)
-        .expand()
-        .simplify();
+    final eq = (switch (rawEq) {
+      Equal(:final left, :final right) => left - right,
+      _ => rawEq,
+    }).expand().simplify();
     for (var j = 0; j < n; j++) {
       final aij = eq.derivative(variables[j]).simplify();
       // Ensure linearity: derivative must not depend on any variable

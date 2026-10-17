@@ -50,7 +50,7 @@ class FaddeevLeVerrierEngine {
       if (k < n) {
         // A_k = A * B_{k-1}
         final ak = Matrix<Expr>.generate(n, n, (r, c) {
-          var sum = IntegerNumber.zero as Expr;
+          Expr sum = IntegerNumber.zero;
           for (var m = 0; m < n; m++) {
             final prod =
                 matrix.getUnchecked(r, m) * bCurrent.getUnchecked(m, c);
@@ -60,7 +60,7 @@ class FaddeevLeVerrierEngine {
         }, type: effectiveType);
 
         // tr(A_k)
-        var tr = IntegerNumber.zero as Expr;
+        Expr tr = IntegerNumber.zero;
         for (var i = 0; i < n; i++) {
           tr = tr + ak.getUnchecked(i, i);
         }
@@ -79,7 +79,7 @@ class FaddeevLeVerrierEngine {
         bMatrices.add(bCurrent);
       } else {
         // For k == n, only tr(A_n) = sum_{i,m} A_{im} * (B_{n-1})_{mi} is needed.
-        var tr = IntegerNumber.zero as Expr;
+        Expr tr = IntegerNumber.zero;
         for (var i = 0; i < n; i++) {
           for (var m = 0; m < n; m++) {
             tr = tr + matrix.getUnchecked(i, m) * bCurrent.getUnchecked(m, i);
@@ -170,10 +170,10 @@ class FaddeevLeVerrierEngine {
       final num = bnMinus1.getUnchecked(r, c);
       final direct = (num / cn).simplify();
       final hasNegPow = direct.anyNode(
-        (node) =>
-            node is Pow &&
-            node.exponent is RealNumeric &&
-            (node.exponent as RealNumeric).isNegative,
+        (node) => switch (node) {
+          Pow(exponent: RealNumeric(isNegative: true)) => true,
+          _ => false,
+        },
       );
       if (!hasNegPow) return direct;
       return cancelFactoredFraction(

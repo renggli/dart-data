@@ -28,24 +28,20 @@ PolyQ? extractPoly(Expr expr, String variable) {
     final (c, base) = decomposeTerm(term);
     if (c is! RationalNumber) return null;
 
-    if (base is RationalNumber) {
-      final prod = c.mul(base) as RationalNumber;
-      coeffMap[0] =
-          (coeffMap[0] ?? IntegerNumber.zero).add(prod) as RationalNumber;
-    } else if (base is Variable && base.name == variable) {
-      coeffMap[1] =
-          (coeffMap[1] ?? IntegerNumber.zero).add(c) as RationalNumber;
-    } else if (base is Pow &&
-        base.base is Variable &&
-        (base.base as Variable).name == variable &&
-        base.exponent is RationalNumber) {
-      final exp = base.exponent as RationalNumber;
-      final k = exp.asInt;
-      if (k == null || k < 0) return null;
-      coeffMap[k] =
-          (coeffMap[k] ?? IntegerNumber.zero).add(c) as RationalNumber;
-    } else {
-      return null;
+    switch (base) {
+      case final RationalNumber r:
+        final prod = c.mulRational(r);
+        coeffMap[0] = (coeffMap[0] ?? IntegerNumber.zero).addRational(prod);
+      case Variable(:final name) when name == variable:
+        coeffMap[1] = (coeffMap[1] ?? IntegerNumber.zero).addRational(c);
+      case Pow(
+            base: Variable(:final name),
+            exponent: RationalNumber(asInt: final k?),
+          )
+          when name == variable && k >= 0:
+        coeffMap[k] = (coeffMap[k] ?? IntegerNumber.zero).addRational(c);
+      default:
+        return null;
     }
   }
 
@@ -331,13 +327,10 @@ List<RationalNumber> _polyDerivative(List<RationalNumber> coeffs) {
 List<RationalNumber>? _polyExactDiv(
   List<RationalNumber> a,
   List<RationalNumber> b,
-) {
-  final dm = _polyDivMod(a, b);
-  if (dm == null) return null;
-  final (q, r) = dm;
-  if (r.length == 1 && r[0].isZero) return q;
-  return null;
-}
+) => switch (_polyDivMod(a, b)) {
+  (final q, [RationalNumber(isZero: true)]) => q,
+  _ => null,
+};
 
 List<RationalNumber> _polyGcd(List<RationalNumber> a, List<RationalNumber> b) {
   var x = a;
@@ -404,8 +397,8 @@ Map<Expr, int> factorQuadraticInX(int a, int c, String variable) {
 
 /// Merges factor multiplicities from [source] into [target].
 void mergeFactorsInto(Map<Expr, int> target, Map<Expr, int> source) {
-  for (final e in source.entries) {
-    target[e.key] = (target[e.key] ?? 0) + e.value;
+  for (final MapEntry(:key, :value) in source.entries) {
+    target[key] = (target[key] ?? 0) + value;
   }
 }
 

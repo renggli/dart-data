@@ -161,6 +161,8 @@ void main() {
           Mul([IntegerNumber.negativeOne, x, y]),
         ]).toString(),
       ).equals('x - x * y');
+      check(Mul([IntegerNumber.negativeOne, x, y]).toString())
+          .equals('-(x * y)');
       check(canOmitMulDot(Pow(x, IntegerNumber.two), y)).isTrue();
       check(canOmitMulDot(Pow(x, FractionNumber.half), y)).isTrue();
       check(

@@ -106,26 +106,25 @@ Expr simplifyMul(List<Expr> factors) {
   }
 
   final remainingFactors = <Expr>[];
-  for (final entry in baseExponents.entries) {
-    final base = entry.key;
-    final exp = entry.value;
+  for (final MapEntry(key: base, value: exp) in baseExponents.entries) {
     final term = (exp == IntegerNumber.one && base.isSimplified)
         ? base
         : simplifyPow(base, exp);
-    if (term is Number) {
-      coeff = coeff.mul(term);
-      if (coeff.isZero) return IntegerNumber.zero;
-    } else if (term is Mul) {
-      for (final sub in term.factors) {
-        if (sub is Number) {
-          coeff = coeff.mul(sub);
-          if (coeff.isZero) return IntegerNumber.zero;
-        } else {
-          remainingFactors.add(sub);
+    switch (term) {
+      case final Number n:
+        coeff = coeff.mul(n);
+        if (coeff.isZero) return IntegerNumber.zero;
+      case Mul(:final factors):
+        for (final sub in factors) {
+          if (sub is Number) {
+            coeff = coeff.mul(sub);
+            if (coeff.isZero) return IntegerNumber.zero;
+          } else {
+            remainingFactors.add(sub);
+          }
         }
-      }
-    } else {
-      remainingFactors.add(term);
+      default:
+        remainingFactors.add(term);
     }
   }
 
@@ -257,19 +256,17 @@ RationalNumber _absorbRationalCoeffIntoRadicals(
   Map<Expr, Expr> baseExponents,
 ) {
   var currentCoeff = coeff;
-  for (final entry in baseExponents.entries.toList()) {
-    final base = entry.key;
-    final exp = entry.value;
-    if (base is IntegerNumber &&
-        base.value > Integer.one &&
-        exp is FractionNumber &&
-        exp.isNegative) {
-      final b = base.value;
-      var newExp = exp as RationalNumber;
+  for (final MapEntry(key: base, value: exp)
+      in baseExponents.entries.toList()) {
+    if ((base, exp)
+        case (final IntegerNumber intBase, final FractionNumber fracExp)
+        when intBase.value > Integer.one && fracExp.isNegative) {
+      final b = intBase.value;
+      RationalNumber newExp = fracExp;
       while (newExp is FractionNumber &&
           newExp.isNegative &&
           (currentCoeff.numerator % b).isZero) {
-        currentCoeff = currentCoeff.divRational(base);
+        currentCoeff = currentCoeff.divRational(intBase);
         newExp = newExp.addRational(IntegerNumber.one);
       }
       baseExponents[base] = newExp;
@@ -281,23 +278,24 @@ RationalNumber _absorbRationalCoeffIntoRadicals(
 Expr? _tryDistributeExactDivision(Number coeff, List<Expr> factors) {
   if (factors.length < 2) return null;
   var addIndex = -1;
+  Add? addNode;
   List<int>? negPowIndices;
 
   for (var i = 0; i < factors.length; i++) {
-    final f = factors[i];
-    if (f is Add) {
-      if (addIndex != -1) return null;
-      addIndex = i;
-    } else if (f is Pow &&
-        f.exponent is RealNumeric &&
-        (f.exponent as RealNumeric).isNegative) {
-      (negPowIndices ??= []).add(i);
+    switch (factors[i]) {
+      case final Add a:
+        if (addIndex != -1) return null;
+        addIndex = i;
+        addNode = a;
+      case Pow(exponent: RealNumeric(isNegative: true)):
+        (negPowIndices ??= []).add(i);
+      default:
+        break;
     }
   }
 
-  if (addIndex == -1 || negPowIndices == null) return null;
+  if (addNode == null || negPowIndices == null) return null;
 
-  final addNode = factors[addIndex] as Add;
   final negFactors = [for (final idx in negPowIndices) factors[idx]];
 
   final dividedTerms = <Expr>[];
@@ -317,17 +315,11 @@ Expr? _tryDistributeExactDivision(Number coeff, List<Expr> factors) {
   return simplifyMul([if (!coeff.isOne) coeff, sum, ...otherFactors]);
 }
 
-bool _hasNegativePowerFactor(Expr expr) {
-  if (expr is Pow &&
-      expr.exponent is RealNumeric &&
-      (expr.exponent as RealNumeric).isNegative) {
-    return true;
-  }
-  if (expr is Mul) {
-    return expr.factors.any(_hasNegativePowerFactor);
-  }
-  return false;
-}
+bool _hasNegativePowerFactor(Expr expr) => switch (expr) {
+  Pow(exponent: RealNumeric(isNegative: true)) => true,
+  Mul(:final factors) => factors.any(_hasNegativePowerFactor),
+  _ => false,
+};
 
 Expr? _multiplyWithOrderTerm(OrderTerm orderTerm, Expr other) {
   final v = orderTerm.variable;
@@ -335,24 +327,21 @@ Expr? _multiplyWithOrderTerm(OrderTerm orderTerm, Expr other) {
   final n = orderTerm.order;
   final isZeroPoint = p is Number && p.isZero;
 
-  if (other is Number) {
-    return other.isZero ? IntegerNumber.zero : orderTerm;
-  }
-  if (other is Constant) return orderTerm;
-
-  if (isZeroPoint && other is Variable && other.name == v) {
-    return OrderTerm(v, n + 1, point: p);
-  }
-
-  if (isZeroPoint &&
-      other is Pow &&
-      other.base is Variable &&
-      (other.base as Variable).name == v &&
-      other.exponent is IntegerNumber) {
-    final k = (other.exponent as IntegerNumber).asInt;
-    if (k != null && k > 0) {
+  switch (other) {
+    case Number(:final isZero):
+      return isZero ? IntegerNumber.zero : orderTerm;
+    case Constant():
+      return orderTerm;
+    case Variable(:final name) when isZeroPoint && name == v:
+      return OrderTerm(v, n + 1, point: p);
+    case Pow(
+          base: Variable(:final name),
+          exponent: IntegerNumber(asInt: final k?),
+        )
+        when isZeroPoint && name == v && k > 0:
       return OrderTerm(v, n + k, point: p);
-    }
+    default:
+      break;
   }
 
   if (!isZeroPoint) {
@@ -361,19 +350,15 @@ Expr? _multiplyWithOrderTerm(OrderTerm orderTerm, Expr other) {
     if (other == shifted || other == rawShifted) {
       return OrderTerm(v, n + 1, point: p);
     }
-    if (other is Pow &&
-        (other.base == shifted || other.base == rawShifted) &&
-        other.exponent is IntegerNumber) {
-      final k = (other.exponent as IntegerNumber).asInt;
-      if (k != null && k > 0) {
-        return OrderTerm(v, n + k, point: p);
-      }
+    if (other case Pow(:final base, exponent: IntegerNumber(asInt: final k?))
+        when (base == shifted || base == rawShifted) && k > 0) {
+      return OrderTerm(v, n + k, point: p);
     }
   }
 
-  if (other is Add) {
+  if (other case Add(:final terms)) {
     return simplifyAdd([
-      for (final term in other.terms) simplifyMul([term, orderTerm]),
+      for (final term in terms) simplifyMul([term, orderTerm]),
     ]);
   }
 

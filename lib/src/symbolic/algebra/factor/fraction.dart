@@ -18,15 +18,11 @@ Expr buildFactoredExpr({
   required Map<Expr, int> factors,
 }) {
   final factorList = <Expr>[
-    for (final entry in factors.entries)
-      if (entry.value == 1)
-        entry.key
-      else if (entry.value != 0)
-        Pow(
-          entry.key,
-          IntegerNumber.of(entry.value),
-          isSimplified: entry.key.isSimplified,
-        ),
+    for (final MapEntry(:key, :value) in factors.entries)
+      if (value == 1)
+        key
+      else if (value != 0)
+        Pow(key, IntegerNumber.of(value), isSimplified: key.isSimplified),
   ];
   return simplifySymbolicProduct(scalar, factorList);
 }
@@ -73,7 +69,7 @@ Expr cancelFactoredFraction(Expr num, Expr den) {
   final totalScalar = numScalar.divRational(denScalar);
   final allFactors = <Expr, int>{
     ...numFactors,
-    for (final entry in denFactors.entries) entry.key: -entry.value,
+    for (final MapEntry(:key, :value) in denFactors.entries) key: -value,
   };
   return buildFactoredExpr(scalar: totalScalar, factors: allFactors);
 }
@@ -81,32 +77,27 @@ Expr cancelFactoredFraction(Expr num, Expr den) {
 /// Distributes an integer [exponent] across factored [base].
 Expr distributePower(Expr base, int exponent) {
   if (exponent == 1) return base;
-  if (base is Mul) {
-    final newFactors = <Expr>[];
-    for (final f in base.factors) {
-      if (f is IntegerNumber && f.isNegativeOne) {
-        if (exponent.isOdd) {
-          newFactors.add(IntegerNumber.negativeOne);
-        }
-      } else {
-        newFactors.add(distributePower(f, exponent));
-      }
-    }
-    if (newFactors.isEmpty) return IntegerNumber.one;
-    if (newFactors.length == 1) return newFactors.first;
-    return Mul(newFactors);
-  }
-  if (base is RationalNumber) {
-    return base.powInteger(exponent) ?? Pow(base, IntegerNumber.of(exponent));
-  }
-  if (base is Pow && base.exponent is RationalNumber) {
-    final existingExp = base.exponent as RationalNumber;
-    return Pow(
-      base.base,
-      existingExp.mul(IntegerNumber.of(exponent)),
-    ).simplify();
-  }
-  return Pow(base, IntegerNumber.of(exponent));
+  return switch (base) {
+    Mul(:final factors) => () {
+      final newFactors = <Expr>[
+        for (final f in factors)
+          if (f is IntegerNumber && f.isNegativeOne)
+            if (exponent.isOdd) IntegerNumber.negativeOne else ...<Expr>[]
+          else
+            distributePower(f, exponent),
+      ];
+      return switch (newFactors) {
+        [] => IntegerNumber.one,
+        [final single] => single,
+        _ => Mul(newFactors),
+      };
+    }(),
+    RationalNumber() =>
+      base.powInteger(exponent) ?? Pow(base, IntegerNumber.of(exponent)),
+    Pow(base: final innerBase, exponent: final RationalNumber existingExp) =>
+      Pow(innerBase, existingExp.mul(IntegerNumber.of(exponent))).simplify(),
+    _ => Pow(base, IntegerNumber.of(exponent)),
+  };
 }
 
 /// Combines multiple factored expressions into a single canonical product.
@@ -129,20 +120,17 @@ void flattenFactored(
   Map<Expr, int> factors,
   void Function(RationalNumber) onScalar,
 ) {
-  if (expr is RationalNumber) {
-    onScalar(expr);
-  } else if (expr is Mul) {
-    for (final f in expr.factors) {
-      flattenFactored(f, factors, onScalar);
-    }
-  } else if (expr is Pow && expr.exponent is IntegerNumber) {
-    final exp = (expr.exponent as IntegerNumber).asInt;
-    if (exp != null && exp > 0) {
-      factors[expr.base] = (factors[expr.base] ?? 0) + exp;
-    } else {
+  switch (expr) {
+    case final RationalNumber r:
+      onScalar(r);
+    case Mul(factors: final mulFactors):
+      for (final f in mulFactors) {
+        flattenFactored(f, factors, onScalar);
+      }
+    case Pow(:final base, exponent: IntegerNumber(asInt: final exp?))
+        when exp > 0:
+      factors[base] = (factors[base] ?? 0) + exp;
+    default:
       factors[expr] = (factors[expr] ?? 0) + 1;
-    }
-  } else {
-    factors[expr] = (factors[expr] ?? 0) + 1;
   }
 }

@@ -43,8 +43,8 @@ List<Expr> solveEquation(Expr expr, String variable, {VariableDomain? domain}) {
 }
 
 List<Expr> _solveUnfiltered(Expr expr, String variable) {
-  if (expr is Equal) {
-    expr = expr.left - expr.right;
+  if (expr case Equal(:final left, :final right)) {
+    expr = left - right;
   }
   expr = expr.simplify();
 
@@ -63,22 +63,18 @@ List<Expr> _solveUnfiltered(Expr expr, String variable) {
   }
 
   // Linear form: a * x + b = 0
-  final lin = expr.matchLinear(variable);
-  if (lin != null) {
-    final sol = ((-lin.b) / lin.a).simplify();
-    return [sol];
+  if (expr.matchLinear(variable) case (:final a, :final b)) {
+    return [((-b) / a).simplify()];
   }
 
   // Quadratic form: a * x^2 + b * x + c = 0
-  final quad = matchQuadratic(expr, variable);
-  if (quad != null) {
-    return solveQuadratic(quad.a, quad.b, quad.c);
+  if (matchQuadratic(expr, variable) case (:final a, :final b, :final c)) {
+    return solveQuadratic(a, b, c);
   }
 
   // Biquadratic form: a * x^4 + b * x^2 + c = 0
-  final biquad = matchBiquadratic(expr, variable);
-  if (biquad != null) {
-    return solveBiquadratic(biquad.a, biquad.b, biquad.c, variable);
+  if (matchBiquadratic(expr, variable) case (:final a, :final b, :final c)) {
+    return solveBiquadratic(a, b, c, variable);
   }
 
   // Factored products or unrolled factor decomposition:
@@ -101,8 +97,12 @@ List<Expr> _solveUnfiltered(Expr expr, String variable) {
     final varFactored = factoredList
         .where((f) => f.dependsOn(variable))
         .toList();
-    if (varFactored.length > 1 ||
-        (varFactored.length == 1 && varFactored.first.simplify() != expr)) {
+    final shouldSolveFactors = switch (varFactored) {
+      [final single] => single.simplify() != expr,
+      [_, _, ...] => true,
+      _ => false,
+    };
+    if (shouldSolveFactors) {
       final allRoots = <Expr>[];
       for (final factor in varFactored) {
         allRoots.addAll(_solveUnfiltered(factor, variable));
@@ -123,10 +123,9 @@ List<Expr> _solveUnfiltered(Expr expr, String variable) {
 VariableDomain _inferVariableDomain(Expr expr, String variable) {
   var inferred = VariableDomain.unknown;
   expr.anyNode((node) {
-    if (node is Variable &&
-        node.name == variable &&
-        node.domain != VariableDomain.unknown) {
-      inferred = node.domain;
+    if (node case Variable(:final name, :final domain)
+        when name == variable && domain != VariableDomain.unknown) {
+      inferred = domain;
       return true;
     }
     return false;
@@ -163,29 +162,36 @@ bool _isRealRoot(Expr expr) {
 }
 
 bool _isPositiveRealRoot(Expr expr) {
-  if (expr is RationalNumber) return expr.sign > 0;
-  if (expr is RealNumber) return expr.value > 0.0;
-  if (!expr.isReal) return false;
-  if (expr.freeVariables.isEmpty) {
-    try {
-      final v = expr.evaluate();
-      return !v.isNaN && v > 0.0;
-    } on Object {
+  switch (expr) {
+    case RationalNumber(:final sign):
+      return sign > 0;
+    case RealNumber(:final value):
+      return value > 0.0;
+    case _ when expr.isReal && expr.freeVariables.isEmpty:
+      try {
+        final v = expr.evaluate();
+        return !v.isNaN && v > 0.0;
+      } on Object {
+        return false;
+      }
+    case _:
       return false;
-    }
   }
-  return false;
 }
 
 /// Checks whether a constant symbolic expression [expr] evaluates to zero.
 bool isZeroExpr(Expr expr) {
-  if (expr is Number && expr.isZero) return true;
-  if (expr is RealNumber && expr.value.abs() < 1e-10) return true;
-  if (expr.freeVariables.isEmpty) {
-    try {
-      final c = expr.evaluateComplex();
-      if (c.a.abs() < 1e-10 && c.b.abs() < 1e-10) return true;
-    } catch (_) {}
+  switch (expr) {
+    case Number(isZero: true):
+    case RealNumber(:final value) when value.abs() < 1e-10:
+      return true;
+    case _ when expr.freeVariables.isEmpty:
+      try {
+        final c = expr.evaluateComplex();
+        if (c.a.abs() < 1e-10 && c.b.abs() < 1e-10) return true;
+      } catch (_) {}
+    case _:
+      break;
   }
   return false;
 }
@@ -197,8 +203,11 @@ List<Expr> deduplicateRoots(List<Expr> list) {
     final simplified = item.simplify();
     final isDup = result.any((existing) {
       if (existing == simplified) return true;
-      if (existing is RealNumeric && simplified is RealNumeric) {
-        return (existing.toDouble() - simplified.toDouble()).abs() < 1e-12;
+      if ((existing, simplified) case (
+        final RealNumeric a,
+        final RealNumeric b,
+      )) {
+        return (a.toDouble() - b.toDouble()).abs() < 1e-12;
       }
       if (existing.freeVariables.isEmpty && simplified.freeVariables.isEmpty) {
         try {

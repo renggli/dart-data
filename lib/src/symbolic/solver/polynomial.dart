@@ -23,57 +23,51 @@ import 'univariate.dart';
 /// Solves quadratic equation $a x^2 + b x + c = 0$.
 List<Expr> solveQuadratic(Expr a, Expr b, Expr c) {
   final disc = ((b * b) - (IntegerNumber.of(4) * a * c)).simplify();
+  final twoA = (IntegerNumber.two * a).simplify();
 
-  if (disc is RationalNumber) {
-    if (disc.isNegative) {
-      final posDisc = disc.neg();
-      final sqrtDiscAbs = sqrtConstant(posDisc);
-      final twoA = (IntegerNumber.two * a).simplify();
+  switch (disc) {
+    case RationalNumber(isNegative: true):
+      final sqrtDiscAbs = sqrtConstant(disc.neg());
       final realPart = ((-b) / twoA).simplify();
       final imagPart = (sqrtDiscAbs / twoA).simplify();
-
-      Expr r1;
-      Expr r2;
-      if (realPart is Number && realPart.isZero) {
-        r1 = (imagPart * ComplexNumber.i).simplify();
-        r2 = ((-imagPart) * ComplexNumber.i).simplify();
-      } else {
-        r1 = (realPart + imagPart * ComplexNumber.i).simplify();
-        r2 = (realPart - imagPart * ComplexNumber.i).simplify();
-      }
+      final (r1, r2) = switch (realPart) {
+        Number(isZero: true) => (
+          (imagPart * ComplexNumber.i).simplify(),
+          ((-imagPart) * ComplexNumber.i).simplify(),
+        ),
+        _ => (
+          (realPart + imagPart * ComplexNumber.i).simplify(),
+          (realPart - imagPart * ComplexNumber.i).simplify(),
+        ),
+      };
       return deduplicateRoots([r1, r2]);
-    } else if (disc.isZero) {
-      final root = ((-b) / (IntegerNumber.two * a)).simplify();
-      return [root];
-    } else {
+    case RationalNumber(isZero: true):
+      return [((-b) / twoA).simplify()];
+    case RationalNumber():
       final sqrtDisc = sqrtConstant(disc);
-      final twoA = (IntegerNumber.two * a).simplify();
       final r1 = (((-b) + sqrtDisc) / twoA).simplify();
       final r2 = (((-b) - sqrtDisc) / twoA).simplify();
       return deduplicateRoots([r1, r2]);
-    }
-  } else if (disc is RealNumber && disc.value < 0) {
-    final sqrtDiscAbs = RealNumber(math.sqrt(-disc.value));
-    final twoA = (IntegerNumber.two * a).simplify();
-    final realPart = ((-b) / twoA).simplify();
-    final imagPart = (sqrtDiscAbs / twoA).simplify();
-
-    Expr r1;
-    Expr r2;
-    if (realPart is Number && realPart.isZero) {
-      r1 = (imagPart * ComplexNumber.i).simplify();
-      r2 = ((-imagPart) * ComplexNumber.i).simplify();
-    } else {
-      r1 = (realPart + imagPart * ComplexNumber.i).simplify();
-      r2 = (realPart - imagPart * ComplexNumber.i).simplify();
-    }
-    return deduplicateRoots([r1, r2]);
-  } else {
-    final sqrtDisc = Pow(disc, FractionNumber.half).simplify();
-    final twoA = (IntegerNumber.two * a).simplify();
-    final r1 = (((-b) + sqrtDisc) / twoA).simplify();
-    final r2 = (((-b) - sqrtDisc) / twoA).simplify();
-    return deduplicateRoots([r1, r2]);
+    case RealNumber(:final value) when value < 0:
+      final sqrtDiscAbs = RealNumber(math.sqrt(-value));
+      final realPart = ((-b) / twoA).simplify();
+      final imagPart = (sqrtDiscAbs / twoA).simplify();
+      final (r1, r2) = switch (realPart) {
+        Number(isZero: true) => (
+          (imagPart * ComplexNumber.i).simplify(),
+          ((-imagPart) * ComplexNumber.i).simplify(),
+        ),
+        _ => (
+          (realPart + imagPart * ComplexNumber.i).simplify(),
+          (realPart - imagPart * ComplexNumber.i).simplify(),
+        ),
+      };
+      return deduplicateRoots([r1, r2]);
+    case _:
+      final sqrtDisc = Pow(disc, FractionNumber.half).simplify();
+      final r1 = (((-b) + sqrtDisc) / twoA).simplify();
+      final r2 = (((-b) - sqrtDisc) / twoA).simplify();
+      return deduplicateRoots([r1, r2]);
   }
 }
 
@@ -134,9 +128,8 @@ List<Expr> solveBiquadratic(Expr a, Expr b, Expr c, String variable) {
 
 /// Computes the exact square root of rational constant [c] if reducible.
 Expr sqrtConstant(RationalNumber c) {
-  final numInt = c.numerator.asInt;
-  final denInt = c.denominator.asInt;
-  if (numInt != null && denInt != null && numInt >= 0) {
+  if ((c.numerator.asInt, c.denominator.asInt)
+      case (final int numInt, final int denInt) when numInt >= 0) {
     final numSqrt = math.sqrt(numInt).round();
     final denSqrt = math.sqrt(denInt).round();
     if (numSqrt * numSqrt == numInt && denSqrt * denSqrt == denInt) {
@@ -162,24 +155,24 @@ int? integerNthRoot(int val, int n) {
 
 /// Computes nth root of constant [c].
 Expr rootConstant(Expr c, int n) {
-  if (c is RationalNumber) {
-    if (n.isOdd && c.isNegative) {
+  switch (c) {
+    case RationalNumber(isNegative: true) when n.isOdd:
       final posRoot = rootConstant(c.neg(), n);
       return (-posRoot).simplify();
-    }
-    final numInt = c.numerator.asInt;
-    final denInt = c.denominator.asInt;
-    if (numInt != null && denInt != null && numInt >= 0) {
-      final numR = integerNthRoot(numInt, n);
-      final denR = integerNthRoot(denInt, n);
-      if (numR != null && denR != null) {
-        return RationalNumber(numR, denR);
+    case RationalNumber(:final numerator, :final denominator):
+      if ((numerator.asInt, denominator.asInt)
+          case (final int numInt, final int denInt) when numInt >= 0) {
+        if ((integerNthRoot(numInt, n), integerNthRoot(denInt, n)) case (
+          final int numR,
+          final int denR,
+        )) {
+          return RationalNumber(numR, denR);
+        }
       }
-    }
-  } else if (c is RealNumber) {
-    if (n.isOdd && c.value < 0) {
-      return RealNumber(-math.pow(-c.value, 1.0 / n).toDouble());
-    }
+    case RealNumber(:final value) when n.isOdd && value < 0:
+      return RealNumber(-math.pow(-value, 1.0 / n).toDouble());
+    case _:
+      break;
   }
   return Pow(c, RationalNumber(1, n)).simplify();
 }

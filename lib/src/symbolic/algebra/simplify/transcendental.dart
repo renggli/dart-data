@@ -309,47 +309,43 @@ Expr simplifyLn(Expr expr) {
 }
 
 /// Extracts the sign of [expr], returning the non-negative magnitude and sign flag.
-(Expr, bool) extractSign(Expr expr) {
-  if (expr is RealNumeric && expr.isNegative) {
-    return (expr.neg(), true);
-  }
-  if (expr is Mul && expr.factors.isNotEmpty) {
-    final first = expr.factors.first;
-    if (first is RealNumeric && first.isNegative) {
+(Expr, bool) extractSign(Expr expr) => switch (expr) {
+  final RealNumeric n when n.isNegative => (n.neg(), true),
+  Mul(factors: [final RealNumeric first, ...final rest])
+      when first.isNegative =>
+    () {
       final posFirst = first.neg();
-      final rest = expr.factors.sublist(1);
       if (posFirst.isOne) {
-        return (rest.length == 1 ? rest.first : simplifyMul(rest), true);
+        return (
+          switch (rest) {
+            [final single] => single,
+            _ => simplifyMul(rest),
+          },
+          true,
+        );
       }
       return (simplifyMul([posFirst, ...rest]), true);
-    }
-  }
-  return (expr, false);
-}
+    }(),
+  _ => (expr, false),
+};
 
 /// Matches if [expr] is a rational multiple of $\pi$.
-RationalNumber? matchPiMultiple(Expr expr) {
-  if (expr == Constant.pi) {
-    return IntegerNumber.one;
-  }
-  if (expr is Mul && expr.factors.length == 2) {
-    final f0 = expr.factors[0];
-    final f1 = expr.factors[1];
-    if (f0 is RationalNumber && f1 == Constant.pi) {
-      return f0;
-    }
-    if (f0 == Constant.pi && f1 is RationalNumber) {
-      return f1;
-    }
-    if (f0 == Constant.pi &&
-        f1 is Pow &&
-        f1.base is IntegerNumber &&
-        f1.exponent == IntegerNumber.negativeOne) {
-      return RationalNumber.of(Integer.one, (f1.base as IntegerNumber).value);
-    }
-  }
-  return null;
-}
+RationalNumber? matchPiMultiple(Expr expr) => switch (expr) {
+  Constant.pi => IntegerNumber.one,
+  Mul(factors: [final RationalNumber r, Constant.pi]) ||
+  Mul(factors: [Constant.pi, final RationalNumber r]) => r,
+  Mul(
+    factors: [
+      Constant.pi,
+      Pow(
+        base: IntegerNumber(:final value),
+        exponent: IntegerNumber.negativeOne,
+      ),
+    ],
+  ) =>
+    RationalNumber.of(Integer.one, value),
+  _ => null,
+};
 
 /// Simplifies a Lambert W expression $W_b(expr)$.
 Expr simplifyLambertW(Expr expr, int branch) {
@@ -362,11 +358,12 @@ Expr simplifyLambertW(Expr expr, int branch) {
     }
   }
   // W(-1 / e) = -1
-  if (expr is Mul &&
-      expr.factors.length == 2 &&
-      expr.factors[0] == IntegerNumber.negativeOne &&
-      expr.factors[1] ==
-          Pow(Constant.e, IntegerNumber.negativeOne, isSimplified: true)) {
+  if (expr case Mul(
+    factors: [
+      IntegerNumber.negativeOne,
+      Pow(base: Constant.e, exponent: IntegerNumber.negativeOne),
+    ],
+  )) {
     return IntegerNumber.negativeOne;
   }
   return LambertW(expr, branch: branch, isSimplified: true);
@@ -404,15 +401,12 @@ Expr simplifyErfc(Expr expr) {
 
 /// Simplifies an Euler gamma function expression $\Gamma(expr)$.
 Expr simplifyGamma(Expr expr) {
-  if (expr is IntegerNumber) {
-    final n = expr.asInt;
-    if (n != null && n > 0 && n <= 18) {
-      var fact = Integer.one;
-      for (var k = 2; k < n; k++) {
-        fact = fact * Integer(k);
-      }
-      return IntegerNumber(fact);
+  if (expr case IntegerNumber(asInt: final n?) when n > 0 && n <= 18) {
+    var fact = Integer.one;
+    for (var k = 2; k < n; k++) {
+      fact = fact * Integer(k);
     }
+    return IntegerNumber(fact);
   }
   if (expr == FractionNumber.half) {
     return Pow(Constant.pi, FractionNumber.half, isSimplified: true);
@@ -425,30 +419,24 @@ Expr simplifyBeta(Expr a, Expr b) {
   if (compareStructural(a, b) > 0) {
     return simplifyBeta(b, a);
   }
-  if (a is IntegerNumber) {
-    final m = a.asInt;
-    if (m != null && m > 0) {
-      if (b is IntegerNumber) {
-        final n = b.asInt;
-        if (n != null && n > 0 && m + n <= 18) {
-          var factM = Integer.one;
-          for (var k = 2; k < m; k++) {
-            factM = factM * Integer(k);
-          }
-          var factN = Integer.one;
-          for (var k = 2; k < n; k++) {
-            factN = factN * Integer(k);
-          }
-          var factTotal = Integer.one;
-          for (var k = 2; k < m + n; k++) {
-            factTotal = factTotal * Integer(k);
-          }
-          return RationalNumber.of(factM * factN, factTotal);
-        }
+  if (a case IntegerNumber(asInt: final m?) when m > 0) {
+    if (b case IntegerNumber(asInt: final n?) when n > 0 && m + n <= 18) {
+      var factM = Integer.one;
+      for (var k = 2; k < m; k++) {
+        factM = factM * Integer(k);
       }
-      if (m == 1) {
-        return simplifyPow(b, IntegerNumber.negativeOne);
+      var factN = Integer.one;
+      for (var k = 2; k < n; k++) {
+        factN = factN * Integer(k);
       }
+      var factTotal = Integer.one;
+      for (var k = 2; k < m + n; k++) {
+        factTotal = factTotal * Integer(k);
+      }
+      return RationalNumber.of(factM * factN, factTotal);
+    }
+    if (m == 1) {
+      return simplifyPow(b, IntegerNumber.negativeOne);
     }
   }
   if (b == IntegerNumber.one) {

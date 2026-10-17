@@ -66,15 +66,17 @@ Expr? extractMonomialGcd(List<Expr> terms) {
   if (!scalarGcd.isOne) {
     factors.add(scalarGcd);
   }
-  for (final e in commonVars.entries) {
-    final vExpr = e.value == 1
-        ? Variable(e.key)
-        : Pow(Variable(e.key), IntegerNumber.of(e.value));
+  for (final MapEntry(:key, :value) in commonVars.entries) {
+    final vExpr = value == 1
+        ? Variable(key)
+        : Pow(Variable(key), IntegerNumber.of(value));
     factors.add(vExpr);
   }
-  if (factors.isEmpty) return IntegerNumber.one;
-  if (factors.length == 1) return factors.first;
-  return simplifyMul(factors);
+  return switch (factors) {
+    [] => IntegerNumber.one,
+    [final single] => single,
+    _ => simplifyMul(factors),
+  };
 }
 
 /// Collects variable powers and residual non-variable symbolic factors in a product monomial.
@@ -83,26 +85,23 @@ void collectVariablePowers(
   Map<String, int> target, [
   List<Expr>? residuals,
 ]) {
-  if (expr is Number && expr.isOne) {
-    return;
-  } else if (expr is Variable) {
-    target[expr.name] = (target[expr.name] ?? 0) + 1;
-  } else if (expr is Pow &&
-      expr.base is Variable &&
-      expr.exponent is IntegerNumber) {
-    final exp = (expr.exponent as IntegerNumber).asInt;
-    if (exp != null && exp > 0) {
-      final v = expr.base as Variable;
-      target[v.name] = (target[v.name] ?? 0) + exp;
-    } else {
+  switch (expr) {
+    case Number(isOne: true):
+      return;
+    case Variable(:final name):
+      target[name] = (target[name] ?? 0) + 1;
+    case Pow(
+          base: Variable(:final name),
+          exponent: IntegerNumber(asInt: final exp?),
+        )
+        when exp > 0:
+      target[name] = (target[name] ?? 0) + exp;
+    case Mul(:final factors):
+      for (final factor in factors) {
+        collectVariablePowers(factor, target, residuals);
+      }
+    default:
       residuals?.add(expr);
-    }
-  } else if (expr is Mul) {
-    for (final factor in expr.factors) {
-      collectVariablePowers(factor, target, residuals);
-    }
-  } else {
-    residuals?.add(expr);
   }
 }
 
@@ -121,52 +120,48 @@ Expr divideMonomial(Expr term, Expr gcd) {
     residualsTerm.remove(r);
   }
   final remainingPowers = <String, int>{};
-  for (final entry in powersTerm.entries) {
-    final rem = entry.value - (powersGcd[entry.key] ?? 0);
-    if (rem > 0) remainingPowers[entry.key] = rem;
+  for (final MapEntry(:key, :value) in powersTerm.entries) {
+    final rem = value - (powersGcd[key] ?? 0);
+    if (rem > 0) remainingPowers[key] = rem;
   }
-  final factors = <Expr>[];
-  if (!coeff.isOne) {
-    factors.add(coeff);
-  }
-  for (final entry in remainingPowers.entries) {
-    final factor = entry.value == 1
-        ? Variable(entry.key)
-        : Pow(Variable(entry.key), IntegerNumber.of(entry.value));
-    factors.add(factor);
-  }
-  factors.addAll(residualsTerm);
-  if (factors.isEmpty) return coeff;
-  if (factors.length == 1) return factors.first;
-  return simplifyMul(factors);
+  final factors = <Expr>[
+    if (!coeff.isOne) coeff,
+    for (final MapEntry(:key, :value) in remainingPowers.entries)
+      if (value == 1)
+        Variable(key)
+      else
+        Pow(Variable(key), IntegerNumber.of(value)),
+    ...residualsTerm,
+  ];
+  return switch (factors) {
+    [] => coeff,
+    [final single] => single,
+    _ => simplifyMul(factors),
+  };
 }
 
 /// Factors 4-term expressions by grouping pairwise.
 Expr? factorByGrouping4(List<Expr> terms) {
-  if (terms.length != 4) return null;
+  if (terms case [final a, final b, final c, final d]) {
+    final partitions = [((a, b), (c, d)), ((a, c), (b, d)), ((a, d), (b, c))];
 
-  final partitions = [
-    ((terms[0], terms[1]), (terms[2], terms[3])),
-    ((terms[0], terms[2]), (terms[1], terms[3])),
-    ((terms[0], terms[3]), (terms[1], terms[2])),
-  ];
+    for (final ((t1, t2), (t3, t4)) in partitions) {
+      final g1 = extractMonomialGcd([t1, t2]) ?? IntegerNumber.one;
+      final g2 = extractMonomialGcd([t3, t4]) ?? IntegerNumber.one;
 
-  for (final ((t1, t2), (t3, t4)) in partitions) {
-    final g1 = extractMonomialGcd([t1, t2]) ?? IntegerNumber.one;
-    final g2 = extractMonomialGcd([t3, t4]) ?? IntegerNumber.one;
+      final r1 = simplifyAdd([divideMonomial(t1, g1), divideMonomial(t2, g1)]);
+      final r2 = simplifyAdd([divideMonomial(t3, g2), divideMonomial(t4, g2)]);
 
-    final r1 = simplifyAdd([divideMonomial(t1, g1), divideMonomial(t2, g1)]);
-    final r2 = simplifyAdd([divideMonomial(t3, g2), divideMonomial(t4, g2)]);
-
-    if (r1 == r2) {
-      final factorA = factorExpr(simplifyAdd([g1, g2]));
-      final factorB = factorExpr(r1);
-      return combineFactoredProducts([factorA, factorB]);
-    }
-    if (r1 == simplifyNeg(r2)) {
-      final factorA = factorExpr(simplifySub(g1, g2));
-      final factorB = factorExpr(r1);
-      return combineFactoredProducts([factorA, factorB]);
+      if (r1 == r2) {
+        final factorA = factorExpr(simplifyAdd([g1, g2]));
+        final factorB = factorExpr(r1);
+        return combineFactoredProducts([factorA, factorB]);
+      }
+      if (r1 == simplifyNeg(r2)) {
+        final factorA = factorExpr(simplifySub(g1, g2));
+        final factorB = factorExpr(r1);
+        return combineFactoredProducts([factorA, factorB]);
+      }
     }
   }
   return null;
@@ -174,22 +169,22 @@ Expr? factorByGrouping4(List<Expr> terms) {
 
 /// Matches difference of squares $A^2 - B^2 = (A - B)(A + B)$.
 (Expr, Expr)? matchDifferenceOfSquares(List<Expr> terms) {
-  if (terms.length != 2) return null;
-  final t1 = terms[0];
-  final t2 = terms[1];
+  if (terms case [final t1, final t2]) {
+    final (c1, base1) = decomposeTerm(t1);
+    final (c2, base2) = decomposeTerm(t2);
+    if (c1 is! RationalNumber || c2 is! RationalNumber) return null;
 
-  final (c1, base1) = decomposeTerm(t1);
-  final (c2, base2) = decomposeTerm(t2);
-  if (c1 is! RationalNumber || c2 is! RationalNumber) return null;
-
-  if (c1.sign > 0 && c2.sign < 0) {
-    final sq1 = monomialSquareRoot(c1, base1);
-    final sq2 = monomialSquareRoot(c2.neg(), base2);
-    if (sq1 != null && sq2 != null) return (sq1, sq2);
-  } else if (c2.sign > 0 && c1.sign < 0) {
-    final sq1 = monomialSquareRoot(c2, base2);
-    final sq2 = monomialSquareRoot(c1.neg(), base1);
-    if (sq1 != null && sq2 != null) return (sq1, sq2);
+    if (c1.sign > 0 && c2.sign < 0) {
+      if ((monomialSquareRoot(c1, base1), monomialSquareRoot(c2.neg(), base2))
+          case (final sq1?, final sq2?)) {
+        return (sq1, sq2);
+      }
+    } else if (c2.sign > 0 && c1.sign < 0) {
+      if ((monomialSquareRoot(c2, base2), monomialSquareRoot(c1.neg(), base1))
+          case (final sq1?, final sq2?)) {
+        return (sq1, sq2);
+      }
+    }
   }
   return null;
 }
@@ -211,29 +206,25 @@ Expr? monomialSquareRoot(RationalNumber coeff, Expr base) {
 }
 
 /// Extracts square root of [expr] if all factors have even exponents.
-Expr? extractBaseSquareRoot(Expr expr) {
-  if (expr is Number && expr.isOne) return IntegerNumber.one;
-  if (expr is Pow && expr.exponent is IntegerNumber) {
-    final exp = (expr.exponent as IntegerNumber).asInt;
-    if (exp != null && exp % 2 == 0) {
-      final half = exp ~/ 2;
-      return half == 1 ? expr.base : Pow(expr.base, IntegerNumber.of(half));
-    }
-  }
-  if (expr is Mul) {
+Expr? extractBaseSquareRoot(Expr expr) => switch (expr) {
+  Number(isOne: true) => IntegerNumber.one,
+  Pow(:final base, exponent: IntegerNumber(asInt: final exp?))
+      when exp.isEven =>
+    switch (exp ~/ 2) {
+      1 => base,
+      final half => Pow(base, IntegerNumber.of(half)),
+    },
+  Mul(:final factors) => () {
     final rootFactors = <Expr>[];
-    for (final factor in expr.factors) {
+    for (final factor in factors) {
       final r = extractBaseSquareRoot(factor);
       if (r == null) return null;
       rootFactors.add(r);
     }
     return simplifyMul(rootFactors);
-  }
-  if (expr is Variable) {
-    return null;
-  }
-  return null;
-}
+  }(),
+  _ => null,
+};
 
 /// Matches sum or difference of cubes:
 /// - $A^3 - B^3 = (A - B)(A^2 + A B + B^2)$
@@ -241,31 +232,28 @@ Expr? extractBaseSquareRoot(Expr expr) {
 ({Expr a, Expr b, bool isDifference})? matchSumOrDifferenceOfCubes(
   List<Expr> terms,
 ) {
-  if (terms.length != 2) return null;
-  final t1 = terms[0];
-  final t2 = terms[1];
+  if (terms case [final t1, final t2]) {
+    final (c1, base1) = decomposeTerm(t1);
+    final (c2, base2) = decomposeTerm(t2);
+    if (c1 is! RationalNumber || c2 is! RationalNumber) return null;
 
-  final (c1, base1) = decomposeTerm(t1);
-  final (c2, base2) = decomposeTerm(t2);
-  if (c1 is! RationalNumber || c2 is! RationalNumber) return null;
-
-  if (c1.sign > 0 && c2.sign < 0) {
-    final cb1 = monomialCubeRoot(c1, base1);
-    final cb2 = monomialCubeRoot(c2.neg(), base2);
-    if (cb1 != null && cb2 != null) {
-      return (a: cb1, b: cb2, isDifference: true);
-    }
-  } else if (c2.sign > 0 && c1.sign < 0) {
-    final cb1 = monomialCubeRoot(c2, base2);
-    final cb2 = monomialCubeRoot(c1.neg(), base1);
-    if (cb1 != null && cb2 != null) {
-      return (a: cb1, b: cb2, isDifference: true);
-    }
-  } else if (c1.sign > 0 && c2.sign > 0) {
-    final cb1 = monomialCubeRoot(c1, base1);
-    final cb2 = monomialCubeRoot(c2, base2);
-    if (cb1 != null && cb2 != null) {
-      return (a: cb1, b: cb2, isDifference: false);
+    if (c1.sign > 0 && c2.sign < 0) {
+      if ((monomialCubeRoot(c1, base1), monomialCubeRoot(c2.neg(), base2))
+          case (final cb1?, final cb2?)) {
+        return (a: cb1, b: cb2, isDifference: true);
+      }
+    } else if (c2.sign > 0 && c1.sign < 0) {
+      if ((monomialCubeRoot(c2, base2), monomialCubeRoot(c1.neg(), base1))
+          case (final cb1?, final cb2?)) {
+        return (a: cb1, b: cb2, isDifference: true);
+      }
+    } else if (c1.sign > 0 && c2.sign > 0) {
+      if ((monomialCubeRoot(c1, base1), monomialCubeRoot(c2, base2)) case (
+        final cb1?,
+        final cb2?,
+      )) {
+        return (a: cb1, b: cb2, isDifference: false);
+      }
     }
   }
   return null;
@@ -288,26 +276,25 @@ Expr? monomialCubeRoot(RationalNumber coeff, Expr base) {
 }
 
 /// Extracts cube root of [expr] if all factors have exponents divisible by 3.
-Expr? extractBaseCubeRoot(Expr expr) {
-  if (expr is Number && expr.isOne) return IntegerNumber.one;
-  if (expr is Pow && expr.exponent is IntegerNumber) {
-    final exp = (expr.exponent as IntegerNumber).asInt;
-    if (exp != null && exp % 3 == 0) {
-      final third = exp ~/ 3;
-      return third == 1 ? expr.base : Pow(expr.base, IntegerNumber.of(third));
-    }
-  }
-  if (expr is Mul) {
+Expr? extractBaseCubeRoot(Expr expr) => switch (expr) {
+  Number(isOne: true) => IntegerNumber.one,
+  Pow(:final base, exponent: IntegerNumber(asInt: final exp?))
+      when exp % 3 == 0 =>
+    switch (exp ~/ 3) {
+      1 => base,
+      final third => Pow(base, IntegerNumber.of(third)),
+    },
+  Mul(:final factors) => () {
     final rootFactors = <Expr>[];
-    for (final factor in expr.factors) {
+    for (final factor in factors) {
       final r = extractBaseCubeRoot(factor);
       if (r == null) return null;
       rootFactors.add(r);
     }
     return simplifyMul(rootFactors);
-  }
-  return null;
-}
+  }(),
+  _ => null,
+};
 
 /// Computes exact integer cube root of [n] if perfect cube, or `null`.
 int? integerCbrt(int n) {

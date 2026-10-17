@@ -98,45 +98,32 @@ class _PolyMonomial {
   final List<_PolyFactor> factors;
 }
 
-_PolyMonomial? _parsePolyMonomial(Expr expr) {
-  if (expr is Number) {
-    return _PolyMonomial(expr, const []);
-  }
-  if (expr is Variable) {
-    return _PolyMonomial(IntegerNumber.one, [
-      _PolyFactor(expr, IntegerNumber.one, expr),
-    ]);
-  }
-  if (expr is Pow) {
-    final base = expr.base;
-    final exp = expr.exponent;
-    if (base is Variable && exp is IntegerNumber) {
-      return _PolyMonomial(IntegerNumber.one, [_PolyFactor(base, exp, expr)]);
-    }
-    return null;
-  }
-  if (expr is Mul) {
+_PolyMonomial? _parsePolyMonomial(Expr expr) => switch (expr) {
+  Number() => _PolyMonomial(expr, const []),
+  Variable() => _PolyMonomial(IntegerNumber.one, [
+    _PolyFactor(expr, IntegerNumber.one, expr),
+  ]),
+  Pow(base: final Variable base, exponent: final IntegerNumber exp) =>
+    _PolyMonomial(IntegerNumber.one, [_PolyFactor(base, exp, expr)]),
+  Mul(:final factors) => () {
     Number coeff = IntegerNumber.one;
-    final factors = <_PolyFactor>[];
-    for (final f in expr.factors) {
-      if (f is Number) {
-        coeff = coeff.mul(f);
-      } else if (f is Variable) {
-        factors.add(_PolyFactor(f, IntegerNumber.one, f));
-      } else if (f is Pow &&
-          f.base is Variable &&
-          f.exponent is IntegerNumber) {
-        factors.add(
-          _PolyFactor(f.base as Variable, f.exponent as IntegerNumber, f),
-        );
-      } else {
-        return null;
+    final polyFactors = <_PolyFactor>[];
+    for (final f in factors) {
+      switch (f) {
+        case Number():
+          coeff = coeff.mul(f);
+        case Variable():
+          polyFactors.add(_PolyFactor(f, IntegerNumber.one, f));
+        case Pow(base: final Variable base, exponent: final IntegerNumber exp):
+          polyFactors.add(_PolyFactor(base, exp, f));
+        default:
+          return null;
       }
     }
-    return _PolyMonomial(coeff, factors);
-  }
-  return null;
-}
+    return _PolyMonomial(coeff, polyFactors);
+  }(),
+  _ => null,
+};
 
 Expr _mergePolyFactors(List<_PolyFactor> a, List<_PolyFactor> b) {
   if (a.isEmpty && b.isEmpty) return IntegerNumber.one;
@@ -183,20 +170,21 @@ Expr _mergePolyFactors(List<_PolyFactor> a, List<_PolyFactor> b) {
   while (j < b.length) {
     merged.add(b[j++].node);
   }
-  if (merged.isEmpty) return IntegerNumber.one;
-  if (merged.length == 1) return merged.first;
-  return Mul(merged, isSimplified: true);
+  return switch (merged) {
+    [] => IntegerNumber.one,
+    [final single] => single,
+    _ => Mul(merged, isSimplified: true),
+  };
 }
 
 Expr _expandPow(Expr base, Expr exponent) {
-  int? intExp;
-  if (exponent is IntegerNumber) {
-    intExp = exponent.asInt;
-  } else if (exponent is RealNumber &&
-      exponent.value == exponent.value.roundToDouble() &&
-      exponent.value.abs() < 1e9) {
-    intExp = exponent.value.round();
-  }
+  final intExp = switch (exponent) {
+    IntegerNumber(:final asInt) => asInt,
+    RealNumber(:final value)
+        when value == value.roundToDouble() && value.abs() < 1e9 =>
+      value.round(),
+    _ => null,
+  };
 
   if (intExp != null) {
     if (intExp < 0 && base is Number && base.isZero) {

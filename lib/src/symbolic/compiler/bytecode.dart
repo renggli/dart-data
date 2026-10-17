@@ -261,29 +261,24 @@ BytecodeEvaluator compileToBytecode(
           }
         }
         instructions.add(Instruction.loadVar(idx));
-      case Add(:final terms):
-        if (terms.isEmpty) {
-          instructions.add(Instruction.pushReal(0.0));
-        } else {
-          emit(terms[0]);
-          for (var i = 1; i < terms.length; i++) {
-            emit(terms[i]);
-            instructions.add(const Instruction.op(Op.add));
-          }
+      case Add(terms: []):
+        instructions.add(Instruction.pushReal(0.0));
+      case Add(terms: [final first, ...final rest]):
+        emit(first);
+        for (final term in rest) {
+          emit(term);
+          instructions.add(const Instruction.op(Op.add));
         }
-      case Mul(:final factors):
-        if (factors.isEmpty) {
-          instructions.add(Instruction.pushReal(1.0));
-        } else if (factors.length == 2 &&
-            factors[0] == IntegerNumber.negativeOne) {
-          emit(factors[1]);
-          instructions.add(const Instruction.op(Op.neg));
-        } else {
-          emit(factors[0]);
-          for (var i = 1; i < factors.length; i++) {
-            emit(factors[i]);
-            instructions.add(const Instruction.op(Op.mul));
-          }
+      case Mul(factors: []):
+        instructions.add(Instruction.pushReal(1.0));
+      case Mul(factors: [IntegerNumber(isNegativeOne: true), final operand]):
+        emit(operand);
+        instructions.add(const Instruction.op(Op.neg));
+      case Mul(factors: [final first, ...final rest]):
+        emit(first);
+        for (final factor in rest) {
+          emit(factor);
+          instructions.add(const Instruction.op(Op.mul));
         }
       case Pow(base: Constant.e, :final exponent):
         emit(exponent);

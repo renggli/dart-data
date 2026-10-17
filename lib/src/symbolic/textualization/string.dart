@@ -87,97 +87,104 @@ String _formatComplex(ComplexNumber c) {
   return '$realStr + ${formatExpr(imag, 2)} * i';
 }
 
-String _formatPow(Expr base, Expr exponent) {
-  if (base == Constant.e) {
-    return 'exp(${formatExpr(exponent)})';
-  }
-  if (exponent == IntegerNumber.negativeOne) {
-    return '1 / ${formatExpr(base, 3)}';
-  }
-  if (exponent is FractionNumber &&
-      exponent.numerator == Integer.one &&
-      exponent.denominator == Integer.two) {
-    return 'sqrt(${formatExpr(base)})';
-  }
-  return '${formatExpr(base, 5)} ^ ${formatExpr(exponent, 4)}';
-}
+String _formatPow(Expr base, Expr exponent) => switch ((base, exponent)) {
+  (Constant.e, _) => 'exp(${formatExpr(exponent)})',
+  (_, IntegerNumber(isNegativeOne: true)) => '1 / ${formatExpr(base, 3)}',
+  (_, FractionNumber(:final numerator, :final denominator))
+      when numerator == Integer.one && denominator == Integer.two =>
+    'sqrt(${formatExpr(base)})',
+  _ => '${formatExpr(base, 5)} ^ ${formatExpr(exponent, 4)}',
+};
 
 String _formatAdd(List<Expr> terms) {
-  if (terms.isEmpty) return '0';
-  if (terms.length == 1) return formatExpr(terms.first);
-  final buffer = StringBuffer(formatExpr(terms.first, 1));
-  for (var i = 1; i < terms.length; i++) {
-    final term = terms[i];
-    final stripped = stripLeadingNegative(term);
-    if (stripped != null) {
-      buffer.write(' - ${formatExpr(stripped, 2)}');
-    } else {
-      final prec = term is Add ? 2 : 1;
-      buffer.write(' + ${formatExpr(term, prec)}');
-    }
+  switch (terms) {
+    case []:
+      return '0';
+    case [final single]:
+      return formatExpr(single);
+    default:
+      final buffer = StringBuffer(formatExpr(terms.first, 1));
+      for (var i = 1; i < terms.length; i++) {
+        final term = terms[i];
+        if (stripLeadingNegative(term) case final stripped?) {
+          buffer.write(' - ${formatExpr(stripped, 2)}');
+        } else {
+          final prec = term is Add ? 2 : 1;
+          buffer.write(' + ${formatExpr(term, prec)}');
+        }
+      }
+      return buffer.toString();
   }
-  return buffer.toString();
 }
 
 String _formatMul(List<Expr> factors) {
-  if (factors.isEmpty) return '1';
-  if (factors.length == 1) return formatExpr(factors.first);
+  switch (factors) {
+    case []:
+      return '1';
+    case [final single]:
+      return formatExpr(single);
+    default:
+      final numFactors = <Expr>[];
+      final denFactors = <Expr>[];
 
-  final numFactors = <Expr>[];
-  final denFactors = <Expr>[];
-
-  for (final f in factors) {
-    if (f is Pow && f.exponent is IntegerNumber) {
-      final exp = f.exponent as IntegerNumber;
-      if (exp.isNegative) {
-        denFactors.add(exp.isNegativeOne ? f.base : Pow(f.base, exp.neg()));
-        continue;
+      for (final f in factors) {
+        if (f case Pow(:final base, exponent: final IntegerNumber exp)
+            when exp.isNegative) {
+          denFactors.add(exp.isNegativeOne ? base : Pow(base, exp.neg()));
+        } else {
+          numFactors.add(f);
+        }
       }
-    }
-    numFactors.add(f);
-  }
 
-  if (denFactors.isNotEmpty) {
-    final numStr = numFactors.isEmpty
-        ? '1'
-        : _formatMulNumerator(numFactors, 2);
-    if (denFactors.length == 1) {
-      return '$numStr / ${formatExpr(denFactors.first, 3)}';
-    }
-    return '$numStr / (${_formatMulNumerator(denFactors, 0)})';
-  }
+      if (denFactors.isNotEmpty) {
+        final numStr = numFactors.isEmpty
+            ? '1'
+            : _formatMulNumerator(numFactors, 2);
+        return switch (denFactors) {
+          [final single] => '$numStr / ${formatExpr(single, 3)}',
+          _ => '$numStr / (${_formatMulNumerator(denFactors, 0)})',
+        };
+      }
 
-  return _formatMulNumerator(numFactors, 0);
+      return _formatMulNumerator(numFactors, 0);
+  }
 }
 
 String _formatMulNumerator(List<Expr> factors, int parentPrec) {
-  if (factors.isEmpty) return '1';
-  if (factors.length == 1) return formatExpr(factors.first, parentPrec);
-
-  if (factors.first == IntegerNumber.negativeOne) {
-    final rest = factors.length == 2 ? factors[1] : Mul(factors.sublist(1));
-    final formatted = '-${formatExpr(rest, 4)}';
-    return 3 < parentPrec ? '($formatted)' : formatted;
+  switch (factors) {
+    case []:
+      return '1';
+    case [final single]:
+      return formatExpr(single, parentPrec);
+    case [IntegerNumber(isNegativeOne: true), ...final rest]:
+      final operand = switch (rest) {
+        [final single] => single,
+        _ => Mul(rest),
+      };
+      final formatted = '-${formatExpr(operand, 4)}';
+      return 3 < parentPrec ? '($formatted)' : formatted;
+    default:
+      final parts = <String>[];
+      for (var i = 0; i < factors.length; i++) {
+        final f = factors[i];
+        if (i > 0 && f == IntegerNumber.negativeOne && i + 1 < factors.length) {
+          final next = factors[i + 1];
+          parts.add(formatExpr(Mul([IntegerNumber.negativeOne, next]), 2));
+          i++;
+        } else {
+          final reqPrec = (i > 0 && f is Mul && !_isUnaryNegMul(f)) ? 3 : 2;
+          parts.add(formatExpr(f, reqPrec));
+        }
+      }
+      final formatted = parts.join(' * ');
+      return 2 < parentPrec ? '($formatted)' : formatted;
   }
-
-  final parts = <String>[];
-  for (var i = 0; i < factors.length; i++) {
-    final f = factors[i];
-    if (i > 0 && f == IntegerNumber.negativeOne && i + 1 < factors.length) {
-      final next = factors[i + 1];
-      parts.add(formatExpr(Mul([IntegerNumber.negativeOne, next]), 2));
-      i++;
-    } else {
-      final reqPrec = (i > 0 && f is Mul && !_isUnaryNegMul(f)) ? 3 : 2;
-      parts.add(formatExpr(f, reqPrec));
-    }
-  }
-  final formatted = parts.join(' * ');
-  return 2 < parentPrec ? '($formatted)' : formatted;
 }
 
-bool _isUnaryNegMul(Mul expr) =>
-    expr.factors.isNotEmpty && expr.factors.first == IntegerNumber.negativeOne;
+bool _isUnaryNegMul(Mul expr) => switch (expr.factors) {
+  [IntegerNumber(isNegativeOne: true), ...] => true,
+  _ => false,
+};
 
 String _formatOrderTerm(String variable, int order, Expr point) {
   final isZero = point is Number && point.isZero;
@@ -225,14 +232,12 @@ int precedence(Expr expr) => switch (expr) {
 int _mulPrecedence(List<Expr> factors) {
   if (factors.isEmpty) return 5;
   for (final f in factors) {
-    if (f is Pow &&
-        f.exponent is IntegerNumber &&
-        (f.exponent as IntegerNumber).isNegative) {
+    if (f case Pow(exponent: IntegerNumber(isNegative: true))) {
       return 2;
     }
   }
-  if (factors.first == IntegerNumber.negativeOne) {
-    return 3;
-  }
-  return 2;
+  return switch (factors) {
+    [IntegerNumber(isNegativeOne: true), ...] => 3,
+    _ => 2,
+  };
 }

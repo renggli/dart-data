@@ -176,8 +176,10 @@ Expr _differentiateIntegral(
       ),
     );
   }
-  if (terms.length == 1) return terms.first;
-  return Add(terms);
+  return switch (terms) {
+    [final single] => single,
+    _ => Add(terms),
+  };
 }
 
 Expr _differentiateMul(List<Expr> factors, String variable) {
@@ -185,20 +187,23 @@ Expr _differentiateMul(List<Expr> factors, String variable) {
   final denFactors = <Expr>[];
 
   for (final f in factors) {
-    if (f is Pow &&
-        f.exponent is IntegerNumber &&
-        (f.exponent as IntegerNumber).isNegative &&
-        f.base.dependsOn(variable)) {
-      final exp = f.exponent as IntegerNumber;
-      denFactors.add(exp.isNegativeOne ? f.base : Pow(f.base, exp.neg()));
+    if (f case Pow(:final base, exponent: final IntegerNumber exp)
+        when exp.isNegative && base.dependsOn(variable)) {
+      denFactors.add(exp.isNegativeOne ? base : Pow(base, exp.neg()));
     } else {
       numFactors.add(f);
     }
   }
 
   if (denFactors.isNotEmpty && numFactors.isNotEmpty) {
-    final left = numFactors.length == 1 ? numFactors.first : Mul(numFactors);
-    final right = denFactors.length == 1 ? denFactors.first : Mul(denFactors);
+    final left = switch (numFactors) {
+      [final single] => single,
+      _ => Mul(numFactors),
+    };
+    final right = switch (denFactors) {
+      [final single] => single,
+      _ => Mul(denFactors),
+    };
     return switch (right) {
       Pow(:final base, :final exponent) when !exponent.dependsOn(variable) =>
         ((_differentiate(left, variable) * base -
@@ -223,8 +228,8 @@ Expr _differentiateMul(List<Expr> factors, String variable) {
     }
   }
 
-  if (varFactors.length == 1) {
-    final d = _differentiate(varFactors.first, variable);
+  if (varFactors case [final singleVar]) {
+    final d = _differentiate(singleVar, variable);
     return constFactors.isEmpty ? d : Mul([...constFactors, d]);
   }
 

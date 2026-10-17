@@ -76,15 +76,17 @@ Expr _computeTaylorSeriesByDerivatives(
     if (termVal is Number && termVal.isZero) continue;
     final coeff = (termVal / IntegerNumber.of(factorial)).simplify();
     final power = step == 1 ? delta : Pow(delta, IntegerNumber.of(step));
-    final polyTerm = coeff is Number && coeff.isOne
-        ? power
-        : coeff is Number && coeff.isNegativeOne
-        ? -power
-        : Mul([coeff, power]);
+    final polyTerm = switch (coeff) {
+      Number(isOne: true) => power,
+      Number(isNegativeOne: true) => -power,
+      _ => Mul([coeff, power]),
+    };
     terms.add(polyTerm);
   }
 
-  if (terms.isEmpty) return IntegerNumber.zero;
-  if (terms.length == 1) return terms.first;
-  return Add(terms);
+  return switch (terms) {
+    [] => IntegerNumber.zero,
+    [final single] => single,
+    _ => Add(terms),
+  };
 }

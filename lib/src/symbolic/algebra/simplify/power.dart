@@ -13,13 +13,9 @@ Expr simplifyPow(Expr base, Expr exponent) {
 
   // 2. Trivial base identities: 0^e, 1^e
   if (base is Number && base.isZero) {
-    if (exponent is RealNumeric && exponent.isNegative) {
-      throw UnsupportedError('Division by zero in negative power of zero');
-    }
-    if (exponent is Mul &&
-        exponent.factors.isNotEmpty &&
-        exponent.factors.first is RealNumeric &&
-        (exponent.factors.first as RealNumeric).isNegative) {
+    if (exponent
+        case RealNumeric(isNegative: true) ||
+            Mul(factors: [RealNumeric(isNegative: true), ...])) {
       throw UnsupportedError('Division by zero in negative power of zero');
     }
     return IntegerNumber.zero;
@@ -36,15 +32,16 @@ Expr simplifyPow(Expr base, Expr exponent) {
     if (exponent is Mul) {
       final lnIdx = exponent.factors.indexWhere((f) => f is Ln);
       if (lnIdx != -1) {
-        final lnNode = exponent.factors[lnIdx] as Ln;
-        final otherFactors = <Expr>[
-          for (var i = 0; i < exponent.factors.length; i++)
-            if (i != lnIdx) exponent.factors[i],
-        ];
-        final k = otherFactors.length == 1
-            ? otherFactors.first
-            : simplifyMul(otherFactors);
-        return simplifyPow(lnNode.expr, k);
+        if (exponent.factors[lnIdx] case Ln(:final expr)) {
+          final otherFactors = <Expr>[
+            for (var i = 0; i < exponent.factors.length; i++)
+              if (i != lnIdx) exponent.factors[i],
+          ];
+          final k = otherFactors.length == 1
+              ? otherFactors.first
+              : simplifyMul(otherFactors);
+          return simplifyPow(expr, k);
+        }
       }
     }
     return Pow(Constant.e, exponent, isSimplified: true);
@@ -92,18 +89,15 @@ Expr simplifyPow(Expr base, Expr exponent) {
   }
 
   // 6. Nested powers: (u^e1)^e2
-  if (base is Pow) {
-    if (base.base == Constant.e) {
-      return simplifyPow(Constant.e, simplifyMul([base.exponent, exponent]));
+  if (base case Pow(base: final innerBase, exponent: final innerExp)) {
+    if (innerBase == Constant.e) {
+      return simplifyPow(Constant.e, simplifyMul([innerExp, exponent]));
     }
-    if (base.exponent is RationalNumber && exponent is RationalNumber) {
-      return simplifyPow(
-        base.base,
-        (base.exponent as RationalNumber).mulRational(exponent),
-      );
+    if (innerExp is RationalNumber && exponent is RationalNumber) {
+      return simplifyPow(innerBase, innerExp.mulRational(exponent));
     }
     if (exponent is IntegerNumber) {
-      return simplifyPow(base.base, simplifyMul([base.exponent, exponent]));
+      return simplifyPow(innerBase, simplifyMul([innerExp, exponent]));
     }
   }
 
@@ -120,13 +114,13 @@ Expr simplifyPow(Expr base, Expr exponent) {
   }
 
   // 9. OrderTerm^k for positive integer k
-  if (base is OrderTerm &&
-      exponent is IntegerNumber &&
-      exponent.value > Integer.zero) {
-    final k = exponent.asInt;
-    if (k != null) {
-      return OrderTerm(base.variable, base.order * k, point: base.point);
-    }
+  if ((base, exponent)
+      case (
+        OrderTerm(:final variable, :final order, :final point),
+        IntegerNumber(asInt: final k?),
+      )
+      when k > 0) {
+    return OrderTerm(variable, order * k, point: point);
   }
 
   return Pow(base, exponent, isSimplified: true);

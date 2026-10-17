@@ -63,17 +63,20 @@ extension LinearFormExtension on Expr {
       constFactors.add(f);
     }
   }
-  if (varFactors.length != 1) return null;
-  final sub = _matchLinear(varFactors.first, variable);
-  if (sub == null) return null;
-  final scale = constFactors.length == 1
-      ? constFactors.first
-      : Mul(constFactors);
-  return _validLinear(
-    (scale * sub.a).simplify(),
-    (scale * sub.b).simplify(),
-    variable,
-  );
+  if (varFactors case [final singleVar]) {
+    final sub = _matchLinear(singleVar, variable);
+    if (sub == null) return null;
+    final scale = switch (constFactors) {
+      [final single] => single,
+      _ => Mul(constFactors),
+    };
+    return _validLinear(
+      (scale * sub.a).simplify(),
+      (scale * sub.b).simplify(),
+      variable,
+    );
+  }
+  return null;
 }
 
 ({Expr a, Expr b})? _matchLinearAdd(List<Expr> terms, String variable) {
@@ -83,18 +86,25 @@ extension LinearFormExtension on Expr {
     if (!t.dependsOn(variable)) {
       bTerms.add(t);
     } else {
-      final sub = _matchLinear(t, variable);
-      if (sub == null) return null;
-      aTerms.add(sub.a);
-      if (!(sub.b is Number && (sub.b as Number).isZero)) {
-        bTerms.add(sub.b);
+      if (_matchLinear(t, variable) case (:final a, :final b)) {
+        aTerms.add(a);
+        if (b is! Number || !b.isZero) {
+          bTerms.add(b);
+        }
+      } else {
+        return null;
       }
     }
   }
-  final a = (aTerms.length == 1 ? aTerms.first : Add(aTerms)).simplify();
-  final b = bTerms.isEmpty
-      ? IntegerNumber.zero
-      : (bTerms.length == 1 ? bTerms.first : Add(bTerms)).simplify();
+  final a = switch (aTerms) {
+    [final single] => single,
+    _ => Add(aTerms),
+  }.simplify();
+  final b = switch (bTerms) {
+    [] => IntegerNumber.zero,
+    [final single] => single.simplify(),
+    _ => Add(bTerms).simplify(),
+  };
   return _validLinear(a, b, variable);
 }
 
@@ -111,9 +121,10 @@ Expr? _matchScalarMultiple(Expr expr, Expr target, String variable) {
     return (cExpr / cTarget).simplify();
   }
 
-  final lin1 = _matchLinear(expr, variable);
-  final lin2 = _matchLinear(target, variable);
-  if (lin1 != null && lin2 != null) {
+  if ((_matchLinear(expr, variable), _matchLinear(target, variable)) case (
+    final lin1?,
+    final lin2?,
+  )) {
     final cross = (lin1.a * lin2.b - lin2.a * lin1.b).simplify();
     if (cross is Number && cross.isZero) {
       return (lin1.a / lin2.a).simplify();
@@ -128,26 +139,26 @@ Expr? _matchScalarMultiple(Expr expr, Expr target, String variable) {
 }
 
 (Expr, Expr) _splitConstAndVar(Expr expr, String variable) {
-  if (expr is Mul) {
+  if (expr case Mul(:final factors)) {
     final consts = <Expr>[];
     final vars = <Expr>[];
-    for (final f in expr.factors) {
+    for (final f in factors) {
       if (f.dependsOn(variable)) {
         vars.add(f);
       } else {
         consts.add(f);
       }
     }
-    final c = consts.isEmpty
-        ? IntegerNumber.one
-        : consts.length == 1
-        ? consts.first
-        : Mul(consts).simplify();
-    final v = vars.isEmpty
-        ? IntegerNumber.one
-        : vars.length == 1
-        ? vars.first
-        : Mul(vars).simplify();
+    final c = switch (consts) {
+      [] => IntegerNumber.one,
+      [final single] => single,
+      _ => Mul(consts).simplify(),
+    };
+    final v = switch (vars) {
+      [] => IntegerNumber.one,
+      [final single] => single,
+      _ => Mul(vars).simplify(),
+    };
     return (c, v);
   }
   if (!expr.dependsOn(variable)) {
@@ -164,9 +175,8 @@ Expr _scaleExpr(Expr expr, Expr factor) {
     if (factor.isNegativeOne) return (-expr).simplify();
   }
   expr = expr.simplify();
-  if (expr is Add) {
-    return Add(expr.terms.map((t) => _scaleExpr(t, factor)).toList())
-        .simplify();
+  if (expr case Add(:final terms)) {
+    return Add(terms.map((t) => _scaleExpr(t, factor)).toList()).simplify();
   }
   return (factor * expr).simplify();
 }

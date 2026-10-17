@@ -107,13 +107,16 @@ class SylvesterResultantSolver {
 
   /// Solves a bivariate polynomial system `f = 0, g = 0` for [variables] via Sylvester resultant elimination.
   static List<Map<String, Expr>> solve(Expr f, Expr g, List<String> variables) {
-    if (variables.length != 2) {
+    final String xVar;
+    final String yVar;
+    if (variables case [final x, final y]) {
+      xVar = x;
+      yVar = y;
+    } else {
       throw ArgumentError(
         'Sylvester resultant solver requires exactly 2 variables, got ${variables.length}',
       );
     }
-    final xVar = variables[0];
-    final yVar = variables[1];
 
     final resY = resultant(f, g, xVar);
     final yRoots = solveEquation(resY, yVar);

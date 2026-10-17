@@ -93,55 +93,69 @@ String _formatComplexLatex(ComplexNumber c) {
 }
 
 String _formatAddLatex(List<Expr> terms) {
-  if (terms.isEmpty) return '0';
-  if (terms.length == 1) return _toLatex(terms.first);
-  final buffer = StringBuffer(_toLatex(terms.first));
-  for (var i = 1; i < terms.length; i++) {
-    final term = terms[i];
-    final stripped = stripLeadingNegative(term);
-    if (stripped != null) {
-      buffer.write(' - ${_formatSubRight(stripped)}');
-    } else {
-      buffer.write(' + ${_toLatex(term)}');
-    }
+  switch (terms) {
+    case []:
+      return '0';
+    case [final single]:
+      return _toLatex(single);
+    default:
+      final buffer = StringBuffer(_toLatex(terms.first));
+      for (var i = 1; i < terms.length; i++) {
+        final term = terms[i];
+        if (stripLeadingNegative(term) case final stripped?) {
+          buffer.write(' - ${_formatSubRight(stripped)}');
+        } else {
+          buffer.write(' + ${_toLatex(term)}');
+        }
+      }
+      return buffer.toString();
   }
-  return buffer.toString();
 }
 
 String _formatMulLatex(List<Expr> factors) {
-  if (factors.isEmpty) return '1';
-  if (factors.length == 1) return _toLatex(factors.first);
-
-  final (:isNegative, :numerator, :denominator) = partitionMulFraction(factors);
-  if (denominator.isNotEmpty) {
-    final numLatex = numerator.isEmpty
-        ? '1'
-        : _formatMulProductLatex(numerator);
-    final denLatex = _formatMulProductLatex(denominator);
-    final frac = '\\frac{$numLatex}{$denLatex}';
-    return isNegative ? '-$frac' : frac;
+  switch (factors) {
+    case []:
+      return '1';
+    case [final single]:
+      return _toLatex(single);
+    default:
+      final (:isNegative, :numerator, :denominator) = partitionMulFraction(
+        factors,
+      );
+      if (denominator.isNotEmpty) {
+        final numLatex = numerator.isEmpty
+            ? '1'
+            : _formatMulProductLatex(numerator);
+        final denLatex = _formatMulProductLatex(denominator);
+        final frac = '\\frac{$numLatex}{$denLatex}';
+        return isNegative ? '-$frac' : frac;
+      }
+      return _formatMulProductLatex(factors);
   }
-
-  return _formatMulProductLatex(factors);
 }
 
 String _formatMulProductLatex(List<Expr> factors) {
-  if (factors.isEmpty) return '1';
-  if (factors.length == 1) return _toLatex(factors.first);
-
-  if (factors.first == IntegerNumber.negativeOne) {
-    final rest = factors.length == 2 ? factors[1] : Mul(factors.sublist(1));
-    return '-${_formatNegOperand(rest)}';
+  switch (factors) {
+    case []:
+      return '1';
+    case [final single]:
+      return _toLatex(single);
+    case [IntegerNumber(isNegativeOne: true), ...final rest]:
+      final operand = switch (rest) {
+        [final single] => single,
+        _ => Mul(rest),
+      };
+      return '-${_formatNegOperand(operand)}';
+    default:
+      final buffer = StringBuffer(_formatMulLeft(factors.first));
+      for (var i = 1; i < factors.length; i++) {
+        final prev = factors[i - 1];
+        final curr = factors[i];
+        final sep = canOmitMulDot(prev, curr) ? r' \, ' : r' \cdot ';
+        buffer.write('$sep${_formatMulRight(curr)}');
+      }
+      return buffer.toString();
   }
-
-  final buffer = StringBuffer(_formatMulLeft(factors.first));
-  for (var i = 1; i < factors.length; i++) {
-    final prev = factors[i - 1];
-    final curr = factors[i];
-    final sep = canOmitMulDot(prev, curr) ? r' \, ' : r' \cdot ';
-    buffer.write('$sep${_formatMulRight(curr)}');
-  }
-  return buffer.toString();
 }
 
 String _formatOrderTermLatex(String variable, int order, Expr point) {
@@ -163,16 +177,20 @@ String _formatPow(Expr base, Expr exponent) {
   if (exponent == IntegerNumber.negativeOne) {
     return '\\frac{1}{${_toLatex(base)}}';
   }
-  if (exponent is RationalNumber && exponent.numerator == Integer.one) {
-    if (exponent.denominator == Integer.two) {
+  if (exponent case RationalNumber(:final numerator, :final denominator)
+      when numerator == Integer.one) {
+    if (denominator == Integer.two) {
       return '\\sqrt{${_toLatex(base)}}';
-    } else if (exponent.denominator > Integer.two) {
-      return '\\sqrt[${exponent.denominator}]{${_toLatex(base)}}';
+    } else if (denominator > Integer.two) {
+      return '\\sqrt[$denominator]{${_toLatex(base)}}';
     }
   }
-  final fnPow = matchFunctionPower(base, exponent);
-  if (fnPow != null) {
-    return '${fnPow.latexCmd}^{${_toLatex(exponent)}}(${_toLatex(fnPow.argument)})';
+  if (matchFunctionPower(base, exponent) case (
+    :final latexCmd,
+    :final argument,
+    name: _,
+  )) {
+    return '$latexCmd^{${_toLatex(exponent)}}(${_toLatex(argument)})';
   }
   return '{${_formatPowBase(base)}}^{${_toLatex(exponent)}}';
 }

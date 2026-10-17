@@ -244,6 +244,10 @@ void main() {
       check(Expr.parse('(x - 1) * (x + 1)').toMathMl()).equals(
         '<math><mrow><mrow><mo>(</mo><mrow><mi>x</mi><mo>&minus;</mo><mn>1</mn></mrow><mo>)</mo></mrow><mspace width="0.167em"/><mrow><mo>(</mo><mrow><mi>x</mi><mo>+</mo><mn>1</mn></mrow><mo>)</mo></mrow></mrow></math>',
       );
+      check(Mul([IntegerNumber.negativeOne, x, const Variable('y')]).toMathMl())
+          .equals(
+            '<math><mrow><mo form="prefix">&minus;</mo><mrow><mi>x</mi><mspace width="0.167em"/><mi>y</mi></mrow></mrow></math>',
+          );
     });
   });
 }

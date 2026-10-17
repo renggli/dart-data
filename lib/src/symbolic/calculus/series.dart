@@ -237,22 +237,19 @@ class PowerSeries {
 
   /// Power of a power series $P(x)^\alpha$.
   PowerSeries pow(Expr exponent) {
-    if (exponent is IntegerNumber) {
-      final n = exponent.asInt;
-      if (n != null) {
-        if (n == 0) {
-          return PowerSeries(variable, point, {0: IntegerNumber.one}, order);
-        }
-        if (n == 1) return this;
-        if (n > 1) {
-          var result = this;
-          for (var i = 1; i < n; i++) {
-            result = result * this;
-          }
-          return result;
-        }
-        return reciprocal().pow(IntegerNumber.of(-n));
+    if (exponent case IntegerNumber(asInt: final n?)) {
+      if (n == 0) {
+        return PowerSeries(variable, point, {0: IntegerNumber.one}, order);
       }
+      if (n == 1) return this;
+      if (n > 1) {
+        var result = this;
+        for (var i = 1; i < n; i++) {
+          result = result * this;
+        }
+        return result;
+      }
+      return reciprocal().pow(IntegerNumber.of(-n));
     }
 
     // Euler logarithmic derivative power recurrence for non-integer powers
@@ -360,7 +357,7 @@ class PowerSeries {
   /// Converts this power series to a canonical [Expr] AST with [OrderTerm].
   Expr toExpr({bool includeOrder = true}) {
     final sortedKeys = coefficients.keys.toList()..sort();
-    final isCenterZero = point is Number && (point as Number).isZero;
+    final isCenterZero = _isZero(point);
     final terms = <Expr>[];
 
     for (final k in sortedKeys) {
@@ -372,13 +369,11 @@ class PowerSeries {
             ? Variable(variable)
             : Variable(variable) - point;
         final power = k == 1 ? delta : Pow(delta, IntegerNumber.of(k));
-        if (c is Number && c.isOne) {
-          terms.add(power);
-        } else if (c is Number && c.isNegativeOne) {
-          terms.add(-power);
-        } else {
-          terms.add(c * power);
-        }
+        terms.add(switch (c) {
+          Number(isOne: true) => power,
+          Number(isNegativeOne: true) => -power,
+          _ => c * power,
+        });
       }
     }
 
@@ -386,9 +381,11 @@ class PowerSeries {
       terms.add(OrderTerm(variable, order, point: point));
     }
 
-    if (terms.isEmpty) return IntegerNumber.zero;
-    if (terms.length == 1) return terms.first;
-    return Add(terms);
+    return switch (terms) {
+      [] => IntegerNumber.zero,
+      [final single] => single,
+      _ => Add(terms),
+    };
   }
 
   static Map<int, Expr> _cleanCoefficients(Map<int, Expr> raw, int order) {

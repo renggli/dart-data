@@ -136,15 +136,15 @@ class BareissEngine {
       final m = dCoeffs.keys.reduce(math.max);
       if (m <= 0) continue;
       final dm = dCoeffs[m]!;
-      var score = 40;
-      if (dm == IntegerNumber.one || dm == IntegerNumber.negativeOne) {
-        score = 100;
-      } else if (dm is RationalNumber) {
-        score = 80;
-      } else if (dm is Number || dm is Constant) {
-        score = 60;
-      }
-      score -= m;
+      final score =
+          (switch (dm) {
+            IntegerNumber(isOne: true) ||
+            IntegerNumber(isNegativeOne: true) => 100,
+            RationalNumber() => 80,
+            Number() || Constant() => 60,
+            _ => 40,
+          }) -
+          m;
       candidates.add((v, score, m, dm));
     }
 
@@ -162,7 +162,7 @@ class BareissEngine {
 
   static Expr? _divideByVariable(Expr num, Expr den, String v, int m, Expr dm) {
     var remainder = num.expand().simplify();
-    var quotient = IntegerNumber.zero as Expr;
+    Expr quotient = IntegerNumber.zero;
 
     var nCoeffs = _extractCoefficients(remainder, v);
 
@@ -175,15 +175,16 @@ class BareissEngine {
       final nk = nCoeffs[k]!;
 
       final Expr qc;
-      if (dm == IntegerNumber.one) {
-        qc = nk;
-      } else if (dm == IntegerNumber.negativeOne) {
-        qc = (-nk).expand().simplify();
-      } else if (dm is RationalNumber) {
-        qc = (nk * dm.reciprocal()).expand().simplify();
-      } else {
-        qc = _exactDivide(nk, dm);
-        if (_hasDiv(qc)) return null;
+      switch (dm) {
+        case IntegerNumber(isOne: true):
+          qc = nk;
+        case IntegerNumber(isNegativeOne: true):
+          qc = (-nk).expand().simplify();
+        case RationalNumber():
+          qc = (nk * dm.reciprocal()).expand().simplify();
+        case _:
+          qc = _exactDivide(nk, dm);
+          if (_hasDiv(qc)) return null;
       }
 
       final p = k - m;
@@ -213,56 +214,53 @@ class BareissEngine {
       map[deg] = (map[deg] ?? IntegerNumber.zero) + coeff;
     }
     final result = <int, Expr>{};
-    for (final entry in map.entries) {
-      final c = entry.value.expand().simplify();
+    for (final MapEntry(:key, :value) in map.entries) {
+      final c = value.expand().simplify();
       if (!_isExprZero(c)) {
-        result[entry.key] = c;
+        result[key] = c;
       }
     }
     return result;
   }
 
   static (int, Expr) _termDegreeAndCoeff(Expr term, String v) {
-    if (term is Variable && term.name == v) {
-      return (1, IntegerNumber.one);
-    }
-    if (term is Pow && term.exponent is IntegerNumber) {
-      final exp = (term.exponent as IntegerNumber).asInt;
-      if (exp != null &&
-          exp > 0 &&
-          term.base is Variable &&
-          (term.base as Variable).name == v) {
+    switch (term) {
+      case Variable(:final name) when name == v:
+        return (1, IntegerNumber.one);
+      case Pow(
+            base: Variable(:final name),
+            exponent: IntegerNumber(asInt: final int exp),
+          )
+          when name == v && exp > 0:
         return (exp, IntegerNumber.one);
-      }
+      case _ when !term.dependsOn(v):
+        return (0, term);
+      case Mul(:final factors):
+        var totalDeg = 0;
+        Expr totalCoeff = IntegerNumber.one;
+        for (final f in factors) {
+          final (d, c) = _termDegreeAndCoeff(f, v);
+          totalDeg += d;
+          totalCoeff = (totalCoeff * c).simplify();
+        }
+        return (totalDeg, totalCoeff);
+      case _:
+        return (0, term);
     }
-    if (!term.dependsOn(v)) {
-      return (0, term);
-    }
-    if (term is Mul) {
-      var totalDeg = 0;
-      var totalCoeff = IntegerNumber.one as Expr;
-      for (final f in term.factors) {
-        final (d, c) = _termDegreeAndCoeff(f, v);
-        totalDeg += d;
-        totalCoeff = (totalCoeff * c).simplify();
-      }
-      return (totalDeg, totalCoeff);
-    }
-    return (0, term);
   }
 
   static List<Expr> _collectFactors(Expr expr) => switch (expr) {
     Mul(:final factors) => [for (final f in factors) ..._collectFactors(f)],
-    Pow(:final base, exponent: final IntegerNumber n) when (n.asInt ?? 0) > 0 =>
-      List.filled(n.asInt!, base),
+    Pow(:final base, exponent: IntegerNumber(asInt: final int n)) when n > 0 =>
+      List.filled(n, base),
     _ => [expr],
   };
 
   static bool _hasDiv(Expr e) => e.anyNode(
-    (node) =>
-        node is Pow &&
-        node.exponent is RealNumeric &&
-        (node.exponent as RealNumeric).isNegative,
+    (node) => switch (node) {
+      Pow(exponent: RealNumeric(isNegative: true)) => true,
+      _ => false,
+    },
   );
 
   static bool _isExprZero(Expr expr) {

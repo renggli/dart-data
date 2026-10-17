@@ -189,9 +189,9 @@ class MultivariatePolynomial {
     Map<Monomial, RationalNumber> map,
   ) {
     final res = <Monomial, RationalNumber>{};
-    for (final entry in map.entries) {
-      if (!entry.value.isZero) {
-        res[entry.key] = entry.value;
+    for (final MapEntry(:key, :value) in map.entries) {
+      if (!value.isZero) {
+        res[key] = value;
       }
     }
     return Map.unmodifiable(res);
@@ -199,8 +199,8 @@ class MultivariatePolynomial {
 
   static int _calcInitialSugar(Map<Monomial, RationalNumber> terms) {
     var maxDeg = 0;
-    for (final m in terms.keys) {
-      if (!terms[m]!.isZero && m.totalDegree > maxDeg) {
+    for (final MapEntry(key: m, value: c) in terms.entries) {
+      if (!c.isZero && m.totalDegree > maxDeg) {
         maxDeg = m.totalDegree;
       }
     }
@@ -210,13 +210,13 @@ class MultivariatePolynomial {
   MultivariatePolynomial operator +(MultivariatePolynomial other) {
     assert(_listEquals(variables, other.variables));
     final newTerms = Map<Monomial, RationalNumber>.of(terms);
-    for (final entry in other.terms.entries) {
-      final cur = newTerms[entry.key] ?? IntegerNumber.zero;
-      final sum = cur.addRational(entry.value);
+    for (final MapEntry(:key, :value) in other.terms.entries) {
+      final cur = newTerms[key] ?? IntegerNumber.zero;
+      final sum = cur.addRational(value);
       if (sum.isZero) {
-        newTerms.remove(entry.key);
+        newTerms.remove(key);
       } else {
-        newTerms[entry.key] = sum;
+        newTerms[key] = sum;
       }
     }
     return MultivariatePolynomial(
@@ -229,13 +229,13 @@ class MultivariatePolynomial {
   MultivariatePolynomial operator -(MultivariatePolynomial other) {
     assert(_listEquals(variables, other.variables));
     final newTerms = Map<Monomial, RationalNumber>.of(terms);
-    for (final entry in other.terms.entries) {
-      final cur = newTerms[entry.key] ?? IntegerNumber.zero;
-      final diff = cur.subRational(entry.value);
+    for (final MapEntry(:key, :value) in other.terms.entries) {
+      final cur = newTerms[key] ?? IntegerNumber.zero;
+      final diff = cur.subRational(value);
       if (diff.isZero) {
-        newTerms.remove(entry.key);
+        newTerms.remove(key);
       } else {
-        newTerms[entry.key] = diff;
+        newTerms[key] = diff;
       }
     }
     return MultivariatePolynomial(
@@ -249,10 +249,10 @@ class MultivariatePolynomial {
     if (scalar.isZero || terms.isEmpty) {
       return MultivariatePolynomial.zero(variables);
     }
-    final newTerms = <Monomial, RationalNumber>{};
-    for (final entry in terms.entries) {
-      newTerms[entry.key] = entry.value.mulRational(scalar);
-    }
+    final newTerms = <Monomial, RationalNumber>{
+      for (final MapEntry(:key, :value) in terms.entries)
+        key: value.mulRational(scalar),
+    };
     return MultivariatePolynomial(
       variables,
       newTerms,
@@ -268,11 +268,10 @@ class MultivariatePolynomial {
     if (coeff.isZero || terms.isEmpty) {
       return MultivariatePolynomial.zero(variables);
     }
-    final newTerms = <Monomial, RationalNumber>{};
-    for (final entry in terms.entries) {
-      final newM = entry.key * monomial;
-      newTerms[newM] = entry.value.mulRational(coeff);
-    }
+    final newTerms = <Monomial, RationalNumber>{
+      for (final MapEntry(:key, :value) in terms.entries)
+        key * monomial: value.mulRational(coeff),
+    };
     return MultivariatePolynomial(
       variables,
       newTerms,
@@ -286,11 +285,11 @@ class MultivariatePolynomial {
       return MultivariatePolynomial.zero(variables);
     }
     final newTerms = <Monomial, RationalNumber>{};
-    for (final e1 in terms.entries) {
-      for (final e2 in other.terms.entries) {
-        final m = e1.key * e2.key;
+    for (final MapEntry(key: m1, value: c1) in terms.entries) {
+      for (final MapEntry(key: m2, value: c2) in other.terms.entries) {
+        final m = m1 * m2;
         final c = (newTerms[m] ?? IntegerNumber.zero).addRational(
-          e1.value.mulRational(e2.value),
+          c1.mulRational(c2),
         );
         if (c.isZero) {
           newTerms.remove(m);
@@ -394,22 +393,22 @@ class MultivariatePolynomial {
       final powers = <String, int>{};
       final residuals = <Expr>[];
       collectVariablePowers(base, powers, residuals);
-      if (residuals.isNotEmpty) {
+      if (residuals case [final firstResidual, ...]) {
         throw ArgumentError(
           'Expression "$expr" is not a polynomial with rational coefficients '
-          'in $variables (non-polynomial or non-rational factor: ${residuals.first})',
+          'in $variables (non-polynomial or non-rational factor: $firstResidual)',
         );
       }
 
       final expList = List<int>.filled(variables.length, 0);
-      for (final e in powers.entries) {
-        final idx = variables.indexOf(e.key);
+      for (final MapEntry(:key, :value) in powers.entries) {
+        final idx = variables.indexOf(key);
         if (idx == -1) {
           throw ArgumentError(
-            'Unknown variable "${e.key}" in polynomial expression "$expr"',
+            'Unknown variable "$key" in polynomial expression "$expr"',
           );
         }
-        expList[idx] = e.value;
+        expList[idx] = value;
       }
       final mon = Monomial(expList);
       final prev = termMap[mon] ?? IntegerNumber.zero;
@@ -428,28 +427,25 @@ class MultivariatePolynomial {
     final termExprs = <Expr>[];
     for (final m in sortedMonomials) {
       final coeff = terms[m]!;
-      final factors = <Expr>[];
-      if (!coeff.isOne || m.isZero) {
-        factors.add(coeff);
-      }
-      for (var i = 0; i < variables.length; i++) {
-        final power = m.exponents[i];
-        if (power > 0) {
-          final varExpr = Variable(variables[i]);
-          final factor = power == 1
-              ? varExpr
-              : Pow(varExpr, IntegerNumber.of(power));
-          factors.add(factor);
-        }
-      }
-      final termExpr = factors.length == 1
-          ? factors.first
-          : Mul(factors).simplify();
+      final factors = <Expr>[
+        if (!coeff.isOne || m.isZero) coeff,
+        for (var i = 0; i < variables.length; i++)
+          if (m.exponents[i] == 1)
+            Variable(variables[i])
+          else if (m.exponents[i] > 1)
+            Pow(Variable(variables[i]), IntegerNumber.of(m.exponents[i])),
+      ];
+      final termExpr = switch (factors) {
+        [final single] => single,
+        _ => Mul(factors).simplify(),
+      };
       termExprs.add(termExpr);
     }
-    if (termExprs.isEmpty) return IntegerNumber.zero;
-    if (termExprs.length == 1) return termExprs.first;
-    return Add(termExprs).simplify();
+    return switch (termExprs) {
+      [] => IntegerNumber.zero,
+      [final single] => single,
+      _ => Add(termExprs).simplify(),
+    };
   }
 
   @override
@@ -484,8 +480,8 @@ bool _mapsEqual(
   Map<Monomial, RationalNumber> b,
 ) {
   if (a.length != b.length) return false;
-  for (final entry in a.entries) {
-    if (b[entry.key] != entry.value) return false;
+  for (final MapEntry(:key, :value) in a.entries) {
+    if (b[key] != value) return false;
   }
   return true;
 }

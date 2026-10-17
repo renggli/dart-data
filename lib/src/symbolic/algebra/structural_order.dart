@@ -83,12 +83,16 @@ int compareStructural(Expr a, Expr b) {
       if (cmpVar != 0) return cmpVar;
       final cmpInt = compareStructural(ia.integrand, ib.integrand);
       if (cmpInt != 0) return cmpInt;
-      if (ia.lower == null && ib.lower == null) return 0;
-      if (ia.lower == null) return -1;
-      if (ib.lower == null) return 1;
-      final cmpLow = compareStructural(ia.lower!, ib.lower!);
-      if (cmpLow != 0) return cmpLow;
-      return compareStructural(ia.upper!, ib.upper!);
+      return switch ((ia.lower, ib.lower, ia.upper, ib.upper)) {
+        (null, null, _, _) => 0,
+        (null, _, _, _) => -1,
+        (_, null, _, _) => 1,
+        (final lowA?, final lowB?, final upA?, final upB?) => () {
+          final cmpLow = compareStructural(lowA, lowB);
+          return cmpLow != 0 ? cmpLow : compareStructural(upA, upB);
+        }(),
+        _ => 0,
+      };
     }(),
     (final OrderTerm oa, final OrderTerm ob) => () {
       final cmpVar = oa.variable.compareTo(ob.variable);
@@ -106,10 +110,12 @@ int compareStructural(Expr a, Expr b) {
         final cmpVal = compareStructural(pa.branches[i].$2, pb.branches[i].$2);
         if (cmpVal != 0) return cmpVal;
       }
-      if (pa.otherwise == null && pb.otherwise == null) return 0;
-      if (pa.otherwise == null) return -1;
-      if (pb.otherwise == null) return 1;
-      return compareStructural(pa.otherwise!, pb.otherwise!);
+      return switch ((pa.otherwise, pb.otherwise)) {
+        (null, null) => 0,
+        (null, _) => -1,
+        (_, null) => 1,
+        (final otherA?, final otherB?) => compareStructural(otherA, otherB),
+      };
     }(),
     _ => 0,
   };
@@ -124,18 +130,15 @@ int _compareList(List<Expr> listA, List<Expr> listB) {
   return listA.length.compareTo(listB.length);
 }
 
-int _compareNumber(Number a, Number b) {
-  if (a is RealNumeric && b is RealNumeric) {
-    return a.compareTo(b);
-  }
-  if (a is RealNumeric && b is ComplexNumber) return -1;
-  if (a is ComplexNumber && b is RealNumeric) return 1;
-  final ca = a as ComplexNumber;
-  final cb = b as ComplexNumber;
-  final cmpReal = ca.real.compareTo(cb.real);
-  if (cmpReal != 0) return cmpReal;
-  return ca.imaginary.compareTo(cb.imaginary);
-}
+int _compareNumber(Number a, Number b) => switch ((a, b)) {
+  (final RealNumeric ra, final RealNumeric rb) => ra.compareTo(rb),
+  (RealNumeric(), ComplexNumber()) => -1,
+  (ComplexNumber(), RealNumeric()) => 1,
+  (final ComplexNumber ca, final ComplexNumber cb) => () {
+    final cmpReal = ca.real.compareTo(cb.real);
+    return cmpReal != 0 ? cmpReal : ca.imaginary.compareTo(cb.imaginary);
+  }(),
+};
 
 int _compareConstant(Constant a, Constant b) {
   final cmpName = a.name.compareTo(b.name);

@@ -3,36 +3,28 @@ import '../ast.dart';
 /// Strips a leading negative sign from [term] for subtraction reconstruction in
 /// additive sums (`a + (-b) -> a - b`), returning the positive remainder or
 /// `null` if [term] does not start with a negative factor.
-Expr? stripLeadingNegative(Expr term) {
-  if (term is RealNumeric && term.isNegative) {
-    return term.neg();
-  }
-  if (term is ComplexNumber && term.real.isZero && term.imaginary.isNegative) {
-    return ComplexNumber.of(IntegerNumber.zero, term.imaginary.neg());
-  }
-  if (term is Mul && term.factors.isNotEmpty) {
-    final first = term.factors.first;
-    if (first is RealNumeric && first.isNegative) {
-      final posFirst = first.neg();
-      if (posFirst.isOne) {
-        return term.factors.length == 2
-            ? term.factors[1]
-            : Mul(term.factors.sublist(1));
-      }
-      return Mul([posFirst, ...term.factors.skip(1)]);
-    }
-    if (first is ComplexNumber &&
-        first.real.isZero &&
-        first.imaginary.isNegative) {
-      final posFirst = ComplexNumber.of(
-        IntegerNumber.zero,
-        first.imaginary.neg(),
-      );
-      return Mul([posFirst, ...term.factors.skip(1)]);
-    }
-  }
-  return null;
-}
+Expr? stripLeadingNegative(Expr term) => switch (term) {
+  final RealNumeric n when n.isNegative => n.neg(),
+  ComplexNumber(real: RationalNumber(isZero: true), :final imaginary)
+      when imaginary.isNegative =>
+    ComplexNumber.of(IntegerNumber.zero, imaginary.neg()),
+  Mul(factors: [final RealNumeric first, ...final rest])
+      when first.isNegative =>
+    switch ((first.neg(), rest)) {
+      (RealNumeric(isOne: true), [final single]) => single,
+      (RealNumeric(isOne: true), _) => Mul(rest),
+      (final posFirst, _) => Mul([posFirst, ...rest]),
+    },
+  Mul(
+    factors: [
+      ComplexNumber(real: RationalNumber(isZero: true), :final imaginary),
+      ...final rest,
+    ],
+  )
+      when imaginary.isNegative =>
+    Mul([ComplexNumber.of(IntegerNumber.zero, imaginary.neg()), ...rest]),
+  _ => null,
+};
 
 /// Partitions multiplicative [factors] into an overall sign flag, numerator
 /// factors, and denominator factors for 2D fraction formatting (`\frac`, `<mfrac>`).
@@ -43,37 +35,37 @@ partitionMulFraction(List<Expr> factors) {
   final denFactors = <Expr>[];
 
   for (final f in factors) {
-    if (f is FractionNumber) {
-      if (f.isNegative) {
-        isNegative = !isNegative;
-      }
-      final absNum = f.numerator.abs();
-      if (!absNum.isOne) {
-        numFactors.add(IntegerNumber(absNum));
-      }
-      denFactors.add(IntegerNumber(f.denominator));
-      continue;
+    switch (f) {
+      case FractionNumber(
+        isNegative: final fracNeg,
+        :final numerator,
+        :final denominator,
+      ):
+        if (fracNeg) {
+          isNegative = !isNegative;
+        }
+        final absNum = numerator.abs();
+        if (!absNum.isOne) {
+          numFactors.add(IntegerNumber(absNum));
+        }
+        denFactors.add(IntegerNumber(denominator));
+      case Pow(:final base, exponent: final IntegerNumber exp)
+          when exp.isNegative:
+        denFactors.add(exp.isNegativeOne ? base : Pow(base, exp.neg()));
+      default:
+        numFactors.add(f);
     }
-    if (f is Pow && f.exponent is IntegerNumber) {
-      final exp = f.exponent as IntegerNumber;
-      if (exp.isNegative) {
-        denFactors.add(exp.isNegativeOne ? f.base : Pow(f.base, exp.neg()));
-        continue;
-      }
-    }
-    numFactors.add(f);
   }
 
-  if (denFactors.isNotEmpty &&
-      numFactors.isNotEmpty &&
-      numFactors.first is RealNumeric &&
-      (numFactors.first as RealNumeric).isNegative) {
-    isNegative = !isNegative;
-    final posFirst = (numFactors.first as RealNumeric).neg();
-    if (posFirst.isOne) {
-      numFactors.removeAt(0);
-    } else {
-      numFactors[0] = posFirst;
+  if (denFactors.isNotEmpty) {
+    if (numFactors case [final RealNumeric first, ...] when first.isNegative) {
+      isNegative = !isNegative;
+      final posFirst = first.neg();
+      if (posFirst.isOne) {
+        numFactors.removeAt(0);
+      } else {
+        numFactors[0] = posFirst;
+      }
     }
   }
 
@@ -120,9 +112,7 @@ bool startsWithNegative(Expr expr) => switch (expr) {
   RealNumeric(:final isNegative) => isNegative,
   ComplexNumber(:final real, :final imaginary) =>
     real.isZero ? imaginary.isNegative : real.isNegative,
-  Mul(:final factors) when factors.isNotEmpty => startsWithNegative(
-    factors.first,
-  ),
+  Mul(factors: [final first, ...]) => startsWithNegative(first),
   _ => false,
 };
 
@@ -141,9 +131,10 @@ bool startsWithNumber(Expr expr) => switch (expr) {
 };
 
 /// Returns the leftmost leaf factor of a product [expr].
-Expr leftmostMulFactor(Expr expr) => expr is Mul && expr.factors.isNotEmpty
-    ? leftmostMulFactor(expr.factors.first)
-    : expr;
+Expr leftmostMulFactor(Expr expr) => switch (expr) {
+  Mul(factors: [final first, ...]) => leftmostMulFactor(first),
+  _ => expr,
+};
 
 /// Whether [right] requires parentheses when appearing after a binary `-` sign.
 bool needsSubRightParens(Expr right) => switch (right) {

@@ -239,16 +239,13 @@ extension type const Integer._(Object _value) {
 
   /// Compares this value to [other], returning a negative number, zero, or a
   /// positive number.
-  int compareTo(Integer other) {
-    final a = _value, b = other._value;
-    if (a is int) {
-      if (b is int) return a.compareTo(b);
-      // A big value always exceeds every safe value in magnitude.
-      return (b as BigInt).isNegative ? 1 : -1;
-    }
-    if (b is int) return (a as BigInt).isNegative ? -1 : 1;
-    return (a as BigInt).compareTo(b as BigInt);
-  }
+  int compareTo(Integer other) => switch ((_value, other._value)) {
+    (final int a, final int b) => a.compareTo(b),
+    (int(), final BigInt b) => b.isNegative ? 1 : -1,
+    (final BigInt a, int()) => a.isNegative ? -1 : 1,
+    (final BigInt a, final BigInt b) => a.compareTo(b),
+    _ => 0,
+  };
 
   /// Whether this value is less than [other].
   bool operator <(Integer other) => compareTo(other) < 0;

@@ -46,28 +46,19 @@ final class ExprDataType extends DataType<Expr> {
   int comparator(Expr a, Expr b) => compareStructural(a, b);
 
   @override
-  Expr cast(dynamic value) {
-    if (value is Expr) {
-      return value;
-    } else if (value is int) {
-      return IntegerNumber.of(value);
-    } else if (value is BigInt) {
-      return IntegerNumber(Integer.big(value));
-    } else if (value is Complex) {
-      if (value.b == 0) return cast(value.a);
-      final re = cast(value.a);
-      final im = cast(value.b);
-      if (re is RealNumeric && im is RealNumeric) {
-        return ComplexNumber.of(re, im);
-      }
-      return (re + im * ComplexNumber.i).simplify();
-    } else if (value is num) {
-      return RealNumber.fromDouble(value.toDouble());
-    } else if (value is String) {
-      return Expr.tryParse(value) ?? super.cast(value);
-    }
-    return super.cast(value);
-  }
+  Expr cast(dynamic value) => switch (value) {
+    final Expr expr => expr,
+    final int n => IntegerNumber.of(n),
+    final BigInt b => IntegerNumber(Integer.big(b)),
+    Complex(:final a, b: == 0) => cast(a),
+    Complex(:final a, :final b) => switch ((cast(a), cast(b))) {
+      (final RealNumeric re, final RealNumeric im) => ComplexNumber.of(re, im),
+      (final re, final im) => (re + im * ComplexNumber.i).simplify(),
+    },
+    final num n => RealNumber.fromDouble(n.toDouble()),
+    final String s => Expr.tryParse(s) ?? super.cast(s),
+    _ => super.cast(value),
+  };
 
   @override
   Printer<Expr> get printer => const StandardPrinter<Expr>();
@@ -88,25 +79,25 @@ final class ExprEquality extends NaturalEquality<Expr> {
   bool isClose(Expr a, Expr b, double epsilon) {
     if (a == b) return true;
     final diff = (a - b).expand().simplify();
-    if (diff == IntegerNumber.zero) return true;
-    if (diff is RealNumeric) {
-      return diff.toDouble().abs() <= epsilon;
-    }
-    if (diff is ComplexNumber) {
-      return diff.toComplex().abs() <= epsilon;
-    }
-    if (diff.freeVariables.isEmpty) {
-      try {
-        return diff.evaluateComplex(const {}).abs() <= epsilon;
-      } on Object {
-        return false;
-      }
-    }
-    return false;
+    return switch (diff) {
+      IntegerNumber(isZero: true) => true,
+      final RealNumeric r => r.toDouble().abs() <= epsilon,
+      final ComplexNumber c => c.toComplex().abs() <= epsilon,
+      _ when diff.freeVariables.isEmpty => _evalClose(diff, epsilon),
+      _ => false,
+    };
   }
 
   @override
   int hash(Expr a) => a.hashCode;
+
+  static bool _evalClose(Expr diff, double epsilon) {
+    try {
+      return diff.evaluateComplex(const {}).abs() <= epsilon;
+    } on Object {
+      return false;
+    }
+  }
 }
 
 /// Exact algebraic field and extended functions over symbolic expressions.
@@ -150,8 +141,9 @@ final class ExprField implements ExtendedField<Expr> {
     if (d.isFinite && d == d.truncateToDouble() && d.abs() < 9007199254740992) {
       return (a * IntegerNumber.of(d.toInt())).simplify();
     }
-    final rat = RealNumber.fromDouble(d).rationalize(maxDenominator: 64);
-    if (rat is RationalNumber && (rat.toDouble() - d).abs() <= 1e-12) {
+    if (RealNumber.fromDouble(d).rationalize(maxDenominator: 64)
+        case final RationalNumber rat
+        when (rat.toDouble() - d).abs() <= 1e-12) {
       return (a * rat).simplify();
     }
     return (a * RealNumber.fromDouble(d)).simplify();

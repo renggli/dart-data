@@ -114,9 +114,7 @@ bool isSqrt(Expr expr, int n) => switch (expr) {
 
 /// Tests whether [expr] equals $+\sqrt{2}/2 = 1/\sqrt{2}$.
 bool isSqrt2Over2(Expr expr) {
-  if (expr is Pow &&
-      expr.base == FractionNumber.half &&
-      expr.exponent == FractionNumber.half) {
+  if (expr case Pow(base: FractionNumber.half, exponent: FractionNumber.half)) {
     return true;
   }
   return _evalClose(expr, math.sqrt1_2);

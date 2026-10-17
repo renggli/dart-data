@@ -114,8 +114,10 @@ class ExprSyntax {
           final sepList = values[2] as pp.SeparatedList<Expr, String>;
           final args = sepList.elements;
 
-          if (rawName == 'O' && args.length == 1) {
-            return _parseOrderTerm(args[0]);
+          if (rawName == 'O') {
+            if (args case [final arg]) {
+              return _parseOrderTerm(arg);
+            }
           }
 
           final variadic =
@@ -124,18 +126,19 @@ class ExprSyntax {
             return variadic(args);
           }
 
-          if (args.length == 1) {
-            final unary = _unaryFunctions[rawName] ?? _unaryFunctions[key];
-            if (unary != null) return unary(args[0]);
-            throw FormatException('Unknown unary function: "$rawName"');
-          } else if (args.length == 2) {
-            final binary = _binaryFunctions[rawName] ?? _binaryFunctions[key];
-            if (binary != null) return binary(args[0], args[1]);
-            throw FormatException('Unknown binary function: "$rawName"');
-          } else {
-            throw FormatException(
-              'Unsupported number of arguments (${args.length}) for function "$rawName"',
-            );
+          switch (args) {
+            case [final arg]:
+              final unary = _unaryFunctions[rawName] ?? _unaryFunctions[key];
+              if (unary != null) return unary(arg);
+              throw FormatException('Unknown unary function: "$rawName"');
+            case [final a, final b]:
+              final binary = _binaryFunctions[rawName] ?? _binaryFunctions[key];
+              if (binary != null) return binary(a, b);
+              throw FormatException('Unknown binary function: "$rawName"');
+            default:
+              throw FormatException(
+                'Unsupported number of arguments (${args.length}) for function "$rawName"',
+              );
           }
         });
 
@@ -226,34 +229,26 @@ class ExprSyntax {
     return built.end();
   }
 
-  static Expr _parseOrderTerm(Expr arg) {
-    if (arg is IntegerNumber && arg.isOne) {
-      return const OrderTerm('x', 0);
-    }
-    if (arg is Variable) {
-      return OrderTerm(arg.name, 1);
-    }
-    if (arg is Pow && arg.exponent is IntegerNumber) {
-      final n = (arg.exponent as IntegerNumber).asInt;
-      if (n != null) {
-        final base = arg.base;
-        if (base is Variable) {
-          return OrderTerm(base.name, n);
-        }
-        if (base is Add &&
-            base.terms.length == 2 &&
-            base.terms[0] is Variable) {
-          final v = (base.terms[0] as Variable).name;
-          return OrderTerm(v, n, point: -base.terms[1]);
-        }
-      }
-    }
-    if (arg is Add && arg.terms.length == 2 && arg.terms[0] is Variable) {
-      final v = (arg.terms[0] as Variable).name;
-      return OrderTerm(v, 1, point: -arg.terms[1]);
-    }
-    throw FormatException('Invalid OrderTerm syntax: O($arg)');
-  }
+  static Expr _parseOrderTerm(Expr arg) => switch (arg) {
+    IntegerNumber(isOne: true) => const OrderTerm('x', 0),
+    Variable(:final name) => OrderTerm(name, 1),
+    Pow(
+      base: Variable(:final name),
+      exponent: IntegerNumber(asInt: final n?),
+    ) =>
+      OrderTerm(name, n),
+    Pow(
+      base: Add(terms: [Variable(:final name), final shift]),
+      exponent: IntegerNumber(asInt: final n?),
+    ) =>
+      OrderTerm(name, n, point: -shift),
+    Add(terms: [Variable(:final name), final shift]) => OrderTerm(
+      name,
+      1,
+      point: -shift,
+    ),
+    _ => throw FormatException('Invalid OrderTerm syntax: O($arg)'),
+  };
 
   static Expr _parsePiecewiseArgs(String rawName, List<Expr> args) {
     if (args.length < 2) {
@@ -316,11 +311,10 @@ class ExprSyntaxBuilder {
       ..defineBinaryFunction('root', (a, b) => Pow(a, IntegerNumber.one / b))
       ..defineBinaryFunction('beta', Beta.new)
       ..defineBinaryFunction('lambertw', (a, b) {
-        final branch = b is IntegerNumber ? b.asInt : null;
-        if (branch != 0 && branch != -1) {
-          throw FormatException('LambertW branch must be 0 or -1, got: $b');
+        if (b case IntegerNumber(asInt: final int branch && (0 || -1))) {
+          return LambertW(a, branch: branch);
         }
-        return LambertW(a, branch: branch!);
+        throw FormatException('LambertW branch must be 0 or -1, got: $b');
       }, aliases: const ['w'])
       ..defineVariadicFunction(
         'piecewise',

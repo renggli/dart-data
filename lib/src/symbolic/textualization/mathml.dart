@@ -133,74 +133,88 @@ String _formatComplexMathMl(ComplexNumber c) {
 }
 
 String _formatAddMathMl(List<Expr> terms) {
-  if (terms.isEmpty) return '<mn>0</mn>';
-  if (terms.length == 1) return _toMathMl(terms.first);
-  final buffer = StringBuffer('<mrow>')..write(_toMathMl(terms.first));
-  for (var i = 1; i < terms.length; i++) {
-    final term = terms[i];
-    final stripped = stripLeadingNegative(term);
-    if (stripped != null) {
-      buffer
-        ..write('<mo>&minus;</mo>')
-        ..write(_formatSubRight(stripped));
-    } else {
-      buffer
-        ..write('<mo>+</mo>')
-        ..write(_toMathMl(term));
-    }
+  switch (terms) {
+    case []:
+      return '<mn>0</mn>';
+    case [final single]:
+      return _toMathMl(single);
+    default:
+      final buffer = StringBuffer('<mrow>')..write(_toMathMl(terms.first));
+      for (var i = 1; i < terms.length; i++) {
+        final term = terms[i];
+        if (stripLeadingNegative(term) case final stripped?) {
+          buffer
+            ..write('<mo>&minus;</mo>')
+            ..write(_formatSubRight(stripped));
+        } else {
+          buffer
+            ..write('<mo>+</mo>')
+            ..write(_toMathMl(term));
+        }
+      }
+      buffer.write('</mrow>');
+      return buffer.toString();
   }
-  buffer.write('</mrow>');
-  return buffer.toString();
 }
 
 String _formatMulMathMl(List<Expr> factors) {
-  if (factors.isEmpty) return '<mn>1</mn>';
-  if (factors.length == 1) return _toMathMl(factors.first);
-
-  final (:isNegative, :numerator, :denominator) = partitionMulFraction(factors);
-  if (denominator.isNotEmpty) {
-    final numMathMl = numerator.isEmpty
-        ? '<mn>1</mn>'
-        : _formatMulProductMathMl(numerator);
-    final denMathMl = _formatMulProductMathMl(denominator);
-    final frac = '<mfrac>$numMathMl$denMathMl</mfrac>';
-    return isNegative
-        ? '<mrow><mo form="prefix">&minus;</mo>$frac</mrow>'
-        : frac;
+  switch (factors) {
+    case []:
+      return '<mn>1</mn>';
+    case [final single]:
+      return _toMathMl(single);
+    default:
+      final (:isNegative, :numerator, :denominator) = partitionMulFraction(
+        factors,
+      );
+      if (denominator.isNotEmpty) {
+        final numMathMl = numerator.isEmpty
+            ? '<mn>1</mn>'
+            : _formatMulProductMathMl(numerator);
+        final denMathMl = _formatMulProductMathMl(denominator);
+        final frac = '<mfrac>$numMathMl$denMathMl</mfrac>';
+        return isNegative
+            ? '<mrow><mo form="prefix">&minus;</mo>$frac</mrow>'
+            : frac;
+      }
+      return _formatMulProductMathMl(factors);
   }
-
-  return _formatMulProductMathMl(factors);
 }
 
 String _formatMulProductMathMl(List<Expr> factors) {
-  if (factors.isEmpty) return '<mn>1</mn>';
-  if (factors.length == 1) return _toMathMl(factors.first);
+  switch (factors) {
+    case []:
+      return '<mn>1</mn>';
+    case [final single]:
+      return _toMathMl(single);
+    case [IntegerNumber(isNegativeOne: true), ...final rest]:
+      final operand = switch (rest) {
+        [final single] => single,
+        _ => Mul(rest),
+      };
+      return '<mrow><mo form="prefix">&minus;</mo>${_formatNegOperand(operand)}</mrow>';
+    default:
+      final buffer = StringBuffer('<mrow>');
+      var firstFactor = factors.first;
+      if (firstFactor case final RealNumeric n when n.isNegative) {
+        buffer.write('<mo form="prefix">&minus;</mo>');
+        firstFactor = n.neg();
+      }
+      buffer.write(_formatMulLeft(firstFactor));
 
-  if (factors.first == IntegerNumber.negativeOne) {
-    final rest = factors.length == 2 ? factors[1] : Mul(factors.sublist(1));
-    return '<mrow><mo form="prefix">&minus;</mo>${_formatNegOperand(rest)}</mrow>';
+      for (var i = 1; i < factors.length; i++) {
+        final prev = i == 1 ? firstFactor : factors[i - 1];
+        final curr = factors[i];
+        final sep = canOmitMulDot(prev, curr)
+            ? '<mspace width="0.167em"/>'
+            : '<mo>&#x22c5;</mo>';
+        buffer
+          ..write(sep)
+          ..write(_formatMulRight(curr));
+      }
+      buffer.write('</mrow>');
+      return buffer.toString();
   }
-
-  final buffer = StringBuffer('<mrow>');
-  var firstFactor = factors.first;
-  if (firstFactor is RealNumeric && firstFactor.isNegative) {
-    buffer.write('<mo form="prefix">&minus;</mo>');
-    firstFactor = firstFactor.neg();
-  }
-  buffer.write(_formatMulLeft(firstFactor));
-
-  for (var i = 1; i < factors.length; i++) {
-    final prev = i == 1 ? firstFactor : factors[i - 1];
-    final curr = factors[i];
-    final sep = canOmitMulDot(prev, curr)
-        ? '<mspace width="0.167em"/>'
-        : '<mo>&#x22c5;</mo>';
-    buffer
-      ..write(sep)
-      ..write(_formatMulRight(curr));
-  }
-  buffer.write('</mrow>');
-  return buffer.toString();
 }
 
 String _formatOrderTermMathMl(String variable, int order, Expr point) {
@@ -227,16 +241,20 @@ String _formatPow(Expr base, Expr exponent) {
   if (exponent == IntegerNumber.negativeOne) {
     return '<mfrac><mn>1</mn>${_toMathMl(base)}</mfrac>';
   }
-  if (exponent is RationalNumber && exponent.numerator == Integer.one) {
-    if (exponent.denominator == Integer.two) {
+  if (exponent case RationalNumber(:final numerator, :final denominator)
+      when numerator == Integer.one) {
+    if (denominator == Integer.two) {
       return '<mroot><mrow>${_toMathMl(base)}</mrow></mroot>';
-    } else if (exponent.denominator > Integer.two) {
-      return '<mroot><mrow>${_toMathMl(base)}</mrow><mn>${exponent.denominator}</mn></mroot>';
+    } else if (denominator > Integer.two) {
+      return '<mroot><mrow>${_toMathMl(base)}</mrow><mn>$denominator</mn></mroot>';
     }
   }
-  final fnPow = matchFunctionPower(base, exponent);
-  if (fnPow != null) {
-    return '<mrow><msup><mi>${fnPow.name}</mi>${_toMathMl(exponent)}</msup><mo>(</mo>${_toMathMl(fnPow.argument)}<mo>)</mo></mrow>';
+  if (matchFunctionPower(base, exponent) case (
+    :final name,
+    :final argument,
+    latexCmd: _,
+  )) {
+    return '<mrow><msup><mi>$name</mi>${_toMathMl(exponent)}</msup><mo>(</mo>${_toMathMl(argument)}<mo>)</mo></mrow>';
   }
   return '<msup>${_formatPowBase(base)}${_toMathMl(exponent)}</msup>';
 }

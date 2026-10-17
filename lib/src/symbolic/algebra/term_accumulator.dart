@@ -101,32 +101,28 @@ class MonomialAccumulator {
   }
 
   /// Negates a monomial term preserving its canonical structure without extra wrappers.
-  static Expr negateMonomial(Expr expr) {
-    if (expr is Number) {
-      return expr.neg();
-    }
-    if (expr is Mul && expr.factors.isNotEmpty) {
-      final first = expr.factors.first;
-      if (first is Number) {
+  static Expr negateMonomial(Expr expr) => switch (expr) {
+    Number() => expr.neg(),
+    Mul(factors: [final Number first, ...final rest], :final isSimplified) =>
+      () {
         final negFirst = first.neg();
-        final rest = expr.factors.sublist(1);
         if (negFirst.isOne) {
-          return rest.length == 1
-              ? rest.first
-              : Mul(rest, isSimplified: expr.isSimplified);
+          return switch (rest) {
+            [final single] => single,
+            _ => Mul(rest, isSimplified: isSimplified),
+          };
         }
-        return Mul([negFirst, ...rest], isSimplified: expr.isSimplified);
-      }
-      return Mul([
-        IntegerNumber.negativeOne,
-        ...expr.factors,
-      ], isSimplified: expr.isSimplified);
-    }
-    return Mul([
+        return Mul([negFirst, ...rest], isSimplified: isSimplified);
+      }(),
+    Mul(:final factors, :final isSimplified) when factors.isNotEmpty => Mul([
+      IntegerNumber.negativeOne,
+      ...factors,
+    ], isSimplified: isSimplified),
+    _ => Mul([
       IntegerNumber.negativeOne,
       expr,
-    ], isSimplified: expr.isSimplified);
-  }
+    ], isSimplified: expr.isSimplified),
+  };
 
   /// Extracts polynomial coefficients with respect to [variable].
   ///
@@ -147,10 +143,8 @@ class MonomialAccumulator {
       }
     }
 
-    for (final entry in terms.entries) {
-      final coeff = entry.value;
+    for (final MapEntry(key: base, value: coeff) in terms.entries) {
       if (coeff.isZero) continue;
-      final base = entry.key;
 
       if (!base.dependsOn(variable)) {
         addCoeff(0, coeff.isOne ? base : simplifyMul([coeff, base]));
@@ -185,13 +179,12 @@ class MonomialAccumulator {
     final sinSquares = <Expr, (Expr, RationalNumber)>{};
     final cosSquares = <Expr, (Expr, RationalNumber)>{};
 
-    for (final entry in terms.entries) {
-      final coeff = entry.value;
+    for (final MapEntry(:key, value: coeff) in terms.entries) {
       if (coeff is! RationalNumber) continue;
-      final uSin = _isSquareOfSin(entry.key);
-      if (uSin != null) sinSquares[uSin] = (entry.key, coeff);
-      final uCos = _isSquareOfCos(entry.key);
-      if (uCos != null) cosSquares[uCos] = (entry.key, coeff);
+      final uSin = _isSquareOfSin(key);
+      if (uSin != null) sinSquares[uSin] = (key, coeff);
+      final uCos = _isSquareOfCos(key);
+      if (uCos != null) cosSquares[uCos] = (key, coeff);
     }
 
     for (final u in sinSquares.keys) {
@@ -222,10 +215,10 @@ class MonomialAccumulator {
     }
 
     if (constant == IntegerNumber.one) {
-      for (final entry in terms.entries.toList()) {
-        final uSin = _isSquareOfSin(entry.key);
-        if (uSin != null && entry.value == IntegerNumber.negativeOne) {
-          terms.remove(entry.key);
+      for (final MapEntry(:key, :value) in terms.entries.toList()) {
+        final uSin = _isSquareOfSin(key);
+        if (uSin != null && value == IntegerNumber.negativeOne) {
+          terms.remove(key);
           constant = IntegerNumber.zero;
           final cos2 = Pow(
             Cos(uSin, isSimplified: true),
@@ -238,9 +231,9 @@ class MonomialAccumulator {
               : existing.add(IntegerNumber.one);
           break;
         }
-        final uCos = _isSquareOfCos(entry.key);
-        if (uCos != null && entry.value == IntegerNumber.negativeOne) {
-          terms.remove(entry.key);
+        final uCos = _isSquareOfCos(key);
+        if (uCos != null && value == IntegerNumber.negativeOne) {
+          terms.remove(key);
           constant = IntegerNumber.zero;
           final sin2 = Pow(
             Sin(uCos, isSimplified: true),
@@ -261,13 +254,12 @@ class MonomialAccumulator {
     final coshSquares = <Expr, (Expr, RationalNumber)>{};
     final sinhSquares = <Expr, (Expr, RationalNumber)>{};
 
-    for (final entry in terms.entries) {
-      final coeff = entry.value;
+    for (final MapEntry(:key, value: coeff) in terms.entries) {
       if (coeff is! RationalNumber) continue;
-      final uCosh = _isSquareOfCosh(entry.key);
-      if (uCosh != null) coshSquares[uCosh] = (entry.key, coeff);
-      final uSinh = _isSquareOfSinh(entry.key);
-      if (uSinh != null) sinhSquares[uSinh] = (entry.key, coeff);
+      final uCosh = _isSquareOfCosh(key);
+      if (uCosh != null) coshSquares[uCosh] = (key, coeff);
+      final uSinh = _isSquareOfSinh(key);
+      if (uSinh != null) sinhSquares[uSinh] = (key, coeff);
     }
 
     for (final u in coshSquares.keys) {
@@ -283,10 +275,10 @@ class MonomialAccumulator {
     }
 
     if (constant == IntegerNumber.one) {
-      for (final entry in terms.entries.toList()) {
-        final uSinh = _isSquareOfSinh(entry.key);
-        if (uSinh != null && entry.value == IntegerNumber.one) {
-          terms.remove(entry.key);
+      for (final MapEntry(:key, :value) in terms.entries.toList()) {
+        final uSinh = _isSquareOfSinh(key);
+        if (uSinh != null && value == IntegerNumber.one) {
+          terms.remove(key);
           constant = IntegerNumber.zero;
           final cosh2 = Pow(
             Cosh(uSinh, isSimplified: true),
@@ -303,10 +295,10 @@ class MonomialAccumulator {
     }
 
     if (constant == IntegerNumber.negativeOne) {
-      for (final entry in terms.entries.toList()) {
-        final uCosh = _isSquareOfCosh(entry.key);
-        if (uCosh != null && entry.value == IntegerNumber.one) {
-          terms.remove(entry.key);
+      for (final MapEntry(:key, :value) in terms.entries.toList()) {
+        final uCosh = _isSquareOfCosh(key);
+        if (uCosh != null && value == IntegerNumber.one) {
+          terms.remove(key);
           constant = IntegerNumber.zero;
           final sinh2 = Pow(
             Sinh(uCosh, isSimplified: true),
@@ -336,25 +328,26 @@ class MonomialAccumulator {
       Expr? num;
       Expr? den;
 
-      for (final e in lnEntries) {
-        final inner = (e.key as Ln).expr;
-        if (e.value.isOne) {
+      for (final MapEntry(key: lnKey, :value) in lnEntries) {
+        final inner = (lnKey as Ln).expr;
+        if (value.isOne) {
           num = num == null ? inner : simplifyMul([num, inner]);
         } else {
           den = den == null ? inner : simplifyMul([den, inner]);
         }
-        terms.remove(e.key);
+        terms.remove(lnKey);
       }
 
       if (num != null && den != null) {
         final ratio = simplifyDiv(num, den);
-        if ((ratio is RealNumeric && (ratio.isNegative || ratio.isZero)) ||
-            (ratio is Mul &&
-                ratio.factors.isNotEmpty &&
-                ratio.factors.first is RealNumeric &&
-                (ratio.factors.first as RealNumeric).isNegative)) {
-          for (final e in lnEntries) {
-            terms[e.key] = e.value;
+        final isNonPositiveRatio = switch (ratio) {
+          RealNumeric(:final isNegative, :final isZero) => isNegative || isZero,
+          Mul(factors: [RealNumeric(isNegative: true), ...]) => true,
+          _ => false,
+        };
+        if (isNonPositiveRatio) {
+          for (final MapEntry(:key, :value) in lnEntries) {
+            terms[key] = value;
           }
         } else {
           final combined = simplifyLn(ratio);
@@ -396,8 +389,8 @@ class MonomialAccumulator {
       final coeff = terms[base]!;
       if (coeff.isOne) {
         resultTerms.add(base);
-      } else if (base is Mul) {
-        resultTerms.add(Mul([coeff, ...base.factors], isSimplified: true));
+      } else if (base case Mul(:final factors)) {
+        resultTerms.add(Mul([coeff, ...factors], isSimplified: true));
       } else {
         resultTerms.add(Mul([coeff, base], isSimplified: true));
       }
@@ -413,27 +406,23 @@ class MonomialAccumulator {
           if (cmpOrd != 0) return cmpOrd;
           return compareStructural(a.key.$2, b.key.$2);
         });
-      for (final entry in sortedOrderEntries) {
-        final (variable, point) = entry.key;
-        final order = entry.value;
+      for (final MapEntry(key: (variable, point), value: order)
+          in sortedOrderEntries) {
         resultTerms.add(OrderTerm(variable, order, point: point));
       }
     }
 
-    if (resultTerms.isEmpty) {
-      return hasReal ? RealNumber.zero : IntegerNumber.zero;
-    }
-    if (resultTerms.length == 1) {
-      return resultTerms.first;
-    }
-    return Add(resultTerms, isSimplified: true);
+    return switch (resultTerms) {
+      [] => hasReal ? RealNumber.zero : IntegerNumber.zero,
+      [final single] => single,
+      _ => Add(resultTerms, isSimplified: true),
+    };
   }
 
   void _absorbOrderTerms() {
     if (orderTerms.isEmpty) return;
-    for (final entry in orderTerms.entries) {
-      final (variable, point) = entry.key;
-      final order = entry.value;
+    for (final MapEntry(key: (variable, point), value: order)
+        in orderTerms.entries) {
       final isZeroPoint = point is Number && point.isZero;
 
       if (isZeroPoint) {
@@ -466,22 +455,15 @@ class MonomialAccumulator {
     if (base == shifted || base == rawShifted) {
       return 1 >= minOrder;
     }
-    if (base is Pow) {
-      final pBase = base.base;
-      final exp = base.exponent;
-      if ((pBase == shifted || pBase == rawShifted) && exp is IntegerNumber) {
-        final k = exp.asInt;
-        if (k != null && k >= minOrder) {
-          return true;
-        }
-      }
-    }
-    if (base is Mul) {
-      return base.factors.any(
+    return switch (base) {
+      Pow(base: final pBase, exponent: IntegerNumber(asInt: final k?))
+          when (pBase == shifted || pBase == rawShifted) && k >= minOrder =>
+        true,
+      Mul(:final factors) => factors.any(
         (f) => _matchesShiftedPower(f, variable, point, minOrder),
-      );
-    }
-    return false;
+      ),
+      _ => false,
+    };
   }
 
   bool _isCombiningFractions = false;
@@ -501,14 +483,10 @@ class MonomialAccumulator {
     if (terms.length < 2) return;
     Map<Expr, List<(Expr base, Expr numPart, Number coeff)>>? groups;
 
-    for (final entry in terms.entries) {
-      final base = entry.key;
-      final coeff = entry.value;
+    for (final MapEntry(key: base, value: coeff) in terms.entries) {
       if (coeff.isZero) continue;
 
-      final split = _splitFractionBase(base);
-      if (split != null) {
-        final (numPart, denPart) = split;
+      if (_splitFractionBase(base) case (final numPart, final denPart)) {
         (groups ??= {}).putIfAbsent(denPart, () => []).add((
           base,
           numPart,
@@ -519,9 +497,7 @@ class MonomialAccumulator {
 
     if (groups == null) return;
 
-    for (final entry in groups.entries) {
-      final den = entry.key;
-      final items = entry.value;
+    for (final MapEntry(key: den, value: items) in groups.entries) {
       if (items.length < 2) continue;
 
       for (final (base, _, _) in items) {
@@ -556,42 +532,45 @@ class MonomialAccumulator {
     }
   }
 
-  static bool _isNegativePower(Expr expr) =>
-      expr is Pow &&
-      expr.exponent is RealNumeric &&
-      (expr.exponent as RealNumeric).isNegative;
+  static bool _isNegativePower(Expr expr) => switch (expr) {
+    Pow(exponent: RealNumeric(isNegative: true)) => true,
+    _ => false,
+  };
 
   static (Expr numPart, Expr denPart)? _splitFractionBase(Expr base) {
-    if (_isNegativePower(base)) {
-      final pow = base as Pow;
-      final posExp = (pow.exponent as RealNumeric).neg();
+    if (base case Pow(base: final innerBase, exponent: final RealNumeric exp)
+        when exp.isNegative) {
+      final posExp = exp.neg();
       final den = posExp.isOne
-          ? pow.base
-          : Pow(pow.base, posExp, isSimplified: true);
+          ? innerBase
+          : Pow(innerBase, posExp, isSimplified: true);
       return (IntegerNumber.one, den);
     }
-    if (base is Mul && base.factors.any(_isNegativePower)) {
+    if (base case Mul(:final factors) when factors.any(_isNegativePower)) {
       final numFactors = <Expr>[];
       final denFactors = <Expr>[];
-      for (final f in base.factors) {
-        if (_isNegativePower(f)) {
-          final pow = f as Pow;
-          final posExp = (pow.exponent as RealNumeric).neg();
+      for (final f in factors) {
+        if (f case Pow(base: final innerBase, exponent: final RealNumeric exp)
+            when exp.isNegative) {
+          final posExp = exp.neg();
           denFactors.add(
-            posExp.isOne ? pow.base : Pow(pow.base, posExp, isSimplified: true),
+            posExp.isOne
+                ? innerBase
+                : Pow(innerBase, posExp, isSimplified: true),
           );
         } else {
           numFactors.add(f);
         }
       }
-      final numPart = numFactors.isEmpty
-          ? IntegerNumber.one
-          : (numFactors.length == 1
-                ? numFactors.first
-                : Mul(numFactors, isSimplified: true));
-      final denPart = denFactors.length == 1
-          ? denFactors.first
-          : Mul(denFactors, isSimplified: true);
+      final numPart = switch (numFactors) {
+        [] => IntegerNumber.one,
+        [final single] => single,
+        _ => Mul(numFactors, isSimplified: true),
+      };
+      final denPart = switch (denFactors) {
+        [final single] => single,
+        _ => Mul(denFactors, isSimplified: true),
+      };
       return (numPart, denPart);
     }
     return null;
@@ -650,14 +629,15 @@ bool _isReducibleTranscendentalBase(Expr base) => switch (base) {
     final nonNumeric = <Expr>[];
 
     void collect(Expr e) {
-      if (e is Mul) {
-        for (final f in e.factors) {
-          collect(f);
-        }
-      } else if (e is Number) {
-        coeff = coeff.mul(e);
-      } else {
-        nonNumeric.add(e);
+      switch (e) {
+        case Mul(:final factors):
+          for (final f in factors) {
+            collect(f);
+          }
+        case Number():
+          coeff = coeff.mul(e);
+        default:
+          nonNumeric.add(e);
       }
     }
 
@@ -665,74 +645,76 @@ bool _isReducibleTranscendentalBase(Expr base) => switch (base) {
     if (coeff.isZero || nonNumeric.isEmpty) {
       return (coeff, IntegerNumber.one);
     }
-    if (nonNumeric.length == 1) {
-      return (coeff, nonNumeric.first);
-    }
-    return (coeff, Mul(nonNumeric, isSimplified: expr.isSimplified));
+    return switch (nonNumeric) {
+      [final single] => (coeff, single),
+      _ => (coeff, Mul(nonNumeric, isSimplified: expr.isSimplified)),
+    };
   }
   return (IntegerNumber.one, expr);
 }
 
 /// Decomposes an expression into a base and an exponent factor.
-(Expr, Expr) decomposeFactor(Expr expr) {
-  if (expr is Pow) {
-    return (expr.base, expr.exponent);
-  }
-  return (expr, IntegerNumber.one);
-}
+(Expr, Expr) decomposeFactor(Expr expr) => switch (expr) {
+  Pow(:final base, :final exponent) => (base, exponent),
+  _ => (expr, IntegerNumber.one),
+};
 
 /// Splits an expression into `(numerator, denominator)` by extracting
 /// [FractionNumber] denominators and negative-exponent [Pow] factors.
 ///
 /// When [expr] has no denominator factors, returns `(expr, IntegerNumber.one)`.
-(Expr, Expr) splitNumeratorDenominator(Expr expr) {
-  if (expr is FractionNumber) {
-    return (IntegerNumber(expr.numerator), IntegerNumber(expr.denominator));
-  }
-  if (expr is Pow &&
-      expr.exponent is RealNumeric &&
-      (expr.exponent as RealNumeric).isNegative) {
-    final posExp = (expr.exponent as RealNumeric).neg();
-    final den = posExp.isOne
-        ? expr.base
-        : Pow(expr.base, posExp, isSimplified: expr.isSimplified);
-    return (IntegerNumber.one, den);
-  }
-  if (expr is Mul) {
+(Expr, Expr) splitNumeratorDenominator(Expr expr) => switch (expr) {
+  FractionNumber(:final numerator, :final denominator) => (
+    IntegerNumber(numerator),
+    IntegerNumber(denominator),
+  ),
+  Pow(:final base, exponent: final RealNumeric exp, :final isSimplified)
+      when exp.isNegative =>
+    () {
+      final posExp = exp.neg();
+      final den = posExp.isOne
+          ? base
+          : Pow(base, posExp, isSimplified: isSimplified);
+      return (IntegerNumber.one, den);
+    }(),
+  Mul(:final factors, :final isSimplified) => () {
     final numFactors = <Expr>[];
     final denFactors = <Expr>[];
-    for (final f in expr.factors) {
-      if (f is FractionNumber) {
-        if (!f.numerator.isOne) {
-          numFactors.add(IntegerNumber(f.numerator));
-        }
-        denFactors.add(IntegerNumber(f.denominator));
-      } else if (f is Pow &&
-          f.exponent is RealNumeric &&
-          (f.exponent as RealNumeric).isNegative) {
-        final posExp = (f.exponent as RealNumeric).neg();
-        denFactors.add(
-          posExp.isOne
-              ? f.base
-              : Pow(f.base, posExp, isSimplified: f.isSimplified),
-        );
-      } else {
-        numFactors.add(f);
+    for (final f in factors) {
+      switch (f) {
+        case FractionNumber(:final numerator, :final denominator):
+          if (!numerator.isOne) {
+            numFactors.add(IntegerNumber(numerator));
+          }
+          denFactors.add(IntegerNumber(denominator));
+        case Pow(
+              :final base,
+              exponent: final RealNumeric exp,
+              isSimplified: final fSimplified,
+            )
+            when exp.isNegative:
+          final posExp = exp.neg();
+          denFactors.add(
+            posExp.isOne ? base : Pow(base, posExp, isSimplified: fSimplified),
+          );
+        default:
+          numFactors.add(f);
       }
     }
     if (denFactors.isEmpty) return (expr, IntegerNumber.one);
-    final numPart = numFactors.isEmpty
-        ? IntegerNumber.one
-        : (numFactors.length == 1
-              ? numFactors.first
-              : Mul(numFactors, isSimplified: expr.isSimplified));
-    final denPart = denFactors.length == 1
-        ? denFactors.first
-        : Mul(denFactors, isSimplified: expr.isSimplified);
+    final numPart = switch (numFactors) {
+      [] => IntegerNumber.one,
+      [final single] => single,
+      _ => Mul(numFactors, isSimplified: isSimplified),
+    };
+    final denPart = switch (denFactors) {
+      [final single] => single,
+      _ => Mul(denFactors, isSimplified: isSimplified),
+    };
     return (numPart, denPart);
-  }
-  return (expr, IntegerNumber.one);
-}
+  }(),
+  _ => (expr, IntegerNumber.one),
+};
 
 ({int power, Expr coeff})? _extractBaseMonomial(Expr expr, String variable) {
   if (!expr.dependsOn(variable)) {
@@ -743,14 +725,11 @@ bool _isReducibleTranscendentalBase(Expr base) => switch (base) {
     case Variable(:final name) when name == variable:
       return (power: 1, coeff: IntegerNumber.one);
 
-    case Pow(:final base, :final exponent):
-      if (base is Variable && base.name == variable) {
-        if (exponent.dependsOn(variable)) return null;
-        final p = _asPositiveInt(exponent);
-        if (p == null) return null;
-        return (power: p, coeff: IntegerNumber.one);
-      }
-      return null;
+    case Pow(base: Variable(:final name), :final exponent)
+        when name == variable && !exponent.dependsOn(variable):
+      final p = _asPositiveInt(exponent);
+      if (p == null) return null;
+      return (power: p, coeff: IntegerNumber.one);
 
     case Mul(:final factors):
       var totalPower = 0;
@@ -762,8 +741,8 @@ bool _isReducibleTranscendentalBase(Expr base) => switch (base) {
           final sub = _extractBaseMonomial(f, variable);
           if (sub == null) return null;
           totalPower += sub.power;
-          if (!(sub.coeff is Number && (sub.coeff as Number).isOne)) {
-            coeffFactors.add(sub.coeff);
+          if (sub.coeff case final c when !(c is Number && c.isOne)) {
+            coeffFactors.add(c);
           }
         }
       }
@@ -777,15 +756,9 @@ bool _isReducibleTranscendentalBase(Expr base) => switch (base) {
   }
 }
 
-int? _asPositiveInt(Expr exponent) {
-  if (exponent is IntegerNumber) {
-    final v = exponent.asInt;
-    if (v != null && v > 0) return v;
-  } else if (exponent is RealNumber) {
-    if (exponent.value > 0 &&
-        exponent.value == exponent.value.roundToDouble()) {
-      return exponent.value.round();
-    }
-  }
-  return null;
-}
+int? _asPositiveInt(Expr exponent) => switch (exponent) {
+  IntegerNumber(asInt: final v?) when v > 0 => v,
+  RealNumber(:final value) when value > 0 && value == value.roundToDouble() =>
+    value.round(),
+  _ => null,
+};

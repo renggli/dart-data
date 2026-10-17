@@ -38,33 +38,26 @@ List<Map<String, Expr>> solvePolynomialSystemEquations(
 }) {
   if (equations.isEmpty || variables.isEmpty) return const [];
 
-  final normalizedEqs = equations.map((e) {
-    if (e is Equal) {
-      return (e.left - e.right).simplify();
-    }
-    return e.simplify();
-  }).toList();
+  final normalizedEqs = [
+    for (final e in equations)
+      (switch (e) {
+        Equal(:final left, :final right) => left - right,
+        _ => e,
+      }).simplify(),
+  ];
 
   switch (method) {
     case PolynomialSystemMethod.resultant:
-      if (normalizedEqs.length != 2 || variables.length != 2) {
-        throw ArgumentError(
-          'Resultant method requires exactly 2 equations and 2 variables',
-        );
+      if (normalizedEqs case [final f, final g] when variables.length == 2) {
+        return SylvesterResultantSolver.solve(f, g, variables);
       }
-      return SylvesterResultantSolver.solve(
-        normalizedEqs[0],
-        normalizedEqs[1],
-        variables,
+      throw ArgumentError(
+        'Resultant method requires exactly 2 equations and 2 variables',
       );
     case PolynomialSystemMethod.auto:
-      if (normalizedEqs.length == 2 && variables.length == 2) {
+      if (normalizedEqs case [final f, final g] when variables.length == 2) {
         try {
-          final res = SylvesterResultantSolver.solve(
-            normalizedEqs[0],
-            normalizedEqs[1],
-            variables,
-          );
+          final res = SylvesterResultantSolver.solve(f, g, variables);
           if (res.isNotEmpty) return res;
         } catch (_) {
           // Fall back to Gröbner basis
@@ -133,8 +126,8 @@ void _backSubstitute(
     // Validate complete candidate solution against original equations
     for (final eq in originalEquations) {
       var val = eq;
-      for (final entry in currentSolution.entries) {
-        val = val.substitute(entry.key, entry.value);
+      for (final MapEntry(:key, :value) in currentSolution.entries) {
+        val = val.substitute(key, value);
       }
       val = val.simplify();
       if (!isZeroExpr(val)) return;
@@ -169,8 +162,8 @@ void _backSubstitute(
 
   // Substitute already-solved variables
   var instantiated = candidateEq;
-  for (final entry in currentSolution.entries) {
-    instantiated = instantiated.substitute(entry.key, entry.value);
+  for (final MapEntry(:key, :value) in currentSolution.entries) {
+    instantiated = instantiated.substitute(key, value);
   }
   instantiated = instantiated.simplify();
 

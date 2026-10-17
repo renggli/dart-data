@@ -87,10 +87,10 @@ sealed class Expr {
   /// operands in exact input order.
   Expr operator *(Object other) {
     final rhs = _wrap(other);
-    final isRhsUnaryNeg =
-        rhs is Mul &&
-        rhs.factors.length == 2 &&
-        rhs.factors.first == IntegerNumber.negativeOne;
+    final isRhsUnaryNeg = switch (rhs) {
+      Mul(factors: [IntegerNumber.negativeOne, _]) => true,
+      _ => false,
+    };
     return Mul([
       if (this case Mul(:final factors, isSimplified: false))
         ...factors
@@ -110,29 +110,29 @@ sealed class Expr {
   /// otherwise returns `this * Pow(other, -1)`.
   Expr operator /(Object other) {
     final rhs = _wrap(other);
-    if (this is RationalNumber && rhs is RationalNumber && !rhs.isZero) {
-      return (this as RationalNumber).divRational(rhs);
+    if ((this, rhs) case (final RationalNumber a, final RationalNumber b)
+        when !b.isZero) {
+      return a.divRational(b);
     }
     return this * Pow(rhs, IntegerNumber.negativeOne);
   }
 
   /// Symbolic unary negation: `-this`.
-  Expr operator -() {
-    if (this is Number) {
-      return (this as Number).neg();
-    }
-    if (this case Mul(:final factors) when factors.isNotEmpty) {
-      if (factors.first case final Number n) {
-        final negFirst = n.neg();
-        if (negFirst.isOne) {
-          return factors.length == 2 ? factors[1] : Mul(factors.sublist(1));
-        }
-        return Mul([negFirst, ...factors.skip(1)]);
-      }
-      return Mul([IntegerNumber.negativeOne, ...factors]);
-    }
-    return Mul([IntegerNumber.negativeOne, this]);
-  }
+  Expr operator -() => switch (this) {
+    final Number n => n.neg(),
+    Mul(factors: [final Number n, ...final rest]) => switch (n.neg()) {
+      Number(isOne: true) => switch (rest) {
+        [final single] => single,
+        _ => Mul(rest),
+      },
+      final negFirst => Mul([negFirst, ...rest]),
+    },
+    Mul(factors: final factors && [_, ...]) => Mul([
+      IntegerNumber.negativeOne,
+      ...factors,
+    ]),
+    _ => Mul([IntegerNumber.negativeOne, this]),
+  };
 
   /// Symbolic exponentiation: $\text{this}^{\text{exponent}}$.
   ///
@@ -157,17 +157,15 @@ sealed class Expr {
     ),
   };
 
-  static Expr _wrapComplex(num a, num b) {
-    final real = _wrapNum(a);
-    final imag = _wrapNum(b);
-    if (real is RealNumeric && imag is RealNumeric) {
-      return ComplexNumber.of(real, imag);
-    }
-    if (imag is Number && imag.isZero) {
-      return real;
-    }
-    return real + imag * ComplexNumber.i;
-  }
+  static Expr _wrapComplex(num a, num b) =>
+      switch ((_wrapNum(a), _wrapNum(b))) {
+        (final RealNumeric real, final RealNumeric imag) => ComplexNumber.of(
+          real,
+          imag,
+        ),
+        (final real, Number(isZero: true)) => real,
+        (final real, final imag) => real + imag * ComplexNumber.i,
+      };
 
   static Expr _wrapNum(num value) {
     if (value is int) {

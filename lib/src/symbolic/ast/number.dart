@@ -38,8 +38,8 @@ sealed class Number extends Expr {
 
   /// Returns the exact or contagion-promoted sum `this + other`.
   Number add(Number other) {
-    if (this is RealNumeric && other is RealNumeric) {
-      return _addReal(this as RealNumeric, other);
+    if ((this, other) case (final RealNumeric a, final RealNumeric b)) {
+      return _addReal(a, b);
     }
     final (ar, ai) = _components(this);
     final (br, bi) = _components(other);
@@ -51,8 +51,8 @@ sealed class Number extends Expr {
 
   /// Returns the exact or contagion-promoted product `this * other`.
   Number mul(Number other) {
-    if (this is RealNumeric && other is RealNumeric) {
-      return _mulReal(this as RealNumeric, other);
+    if ((this, other) case (final RealNumeric a, final RealNumeric b)) {
+      return _mulReal(a, b);
     }
     final (ar, ai) = _components(this);
     final (br, bi) = _components(other);
@@ -69,8 +69,8 @@ sealed class Number extends Expr {
     if (other.isZero) {
       throw UnsupportedError('Division by zero: $this / $other');
     }
-    if (this is RealNumeric && other is RealNumeric) {
-      return _divReal(this as RealNumeric, other);
+    if ((this, other) case (final RealNumeric a, final RealNumeric b)) {
+      return _divReal(a, b);
     }
     final (ar, ai) = _components(this);
     final (br, bi) = _components(other);
@@ -86,118 +86,118 @@ sealed class Number extends Expr {
 
   /// Evaluates `this ^ exponent` as a single [Number] if it reduces to an
   /// atomic numeric value, or returns `null` if it must remain a symbolic [Pow].
-  Number? powNumber(Number exponent) {
-    if (this is RationalNumber && exponent is IntegerNumber) {
-      final baseRat = this as RationalNumber;
-      if (baseRat.isZero) {
-        if (exponent.isZero) return IntegerNumber.one;
-        if (exponent.isNegative) {
-          throw UnsupportedError('Division by zero in power: 0 ^ $exponent');
-        }
-        return IntegerNumber.zero;
+  Number? powNumber(Number exponent) => switch ((this, exponent)) {
+    (final RationalNumber baseRat, final IntegerNumber exp) => _powRationalInt(
+      baseRat,
+      exp,
+    ),
+    (final RationalNumber baseRat, final FractionNumber exp) =>
+      _powRationalFrac(baseRat, exp),
+    (final ComplexNumber c, final exp) => _powComplex(c, exp),
+    (final RealNumeric baseReal, final RealNumeric exp) => _powReal(
+      baseReal,
+      exp,
+    ),
+    _ => null,
+  };
+
+  static Number? _powRationalInt(
+    RationalNumber baseRat,
+    IntegerNumber exponent,
+  ) {
+    if (baseRat.isZero) {
+      if (exponent.isZero) return IntegerNumber.one;
+      if (exponent.isNegative) {
+        throw UnsupportedError('Division by zero in power: 0 ^ $exponent');
       }
-      if (baseRat.isOne) return IntegerNumber.one;
-      if (baseRat.isNegativeOne) {
-        return exponent.value.isEven
+      return IntegerNumber.zero;
+    }
+    if (baseRat.isOne) return IntegerNumber.one;
+    if (baseRat.isNegativeOne) {
+      return exponent.value.isEven
+          ? IntegerNumber.one
+          : IntegerNumber.negativeOne;
+    }
+    if (exponent.asInt case final expInt? when expInt.abs() <= 1000) {
+      return baseRat.powInteger(expInt);
+    }
+    return null;
+  }
+
+  static Number? _powRationalFrac(
+    RationalNumber baseRat,
+    FractionNumber exponent,
+  ) {
+    if (baseRat.isZero) {
+      if (exponent.isNegative) {
+        throw UnsupportedError('Division by zero in power: 0 ^ $exponent');
+      }
+      return IntegerNumber.zero;
+    }
+    if (baseRat.isOne) return IntegerNumber.one;
+    if (baseRat.isNegative) return null;
+    if ((exponent.denominator.asInt, exponent.numerator.asInt)
+        case (final q?, final p?) when q <= 64 && p.abs() <= 64) {
+      if (_exactIntegerRoot(baseRat.numerator, q) case final rootNum?) {
+        if (_exactIntegerRoot(baseRat.denominator, q) case final rootDen?) {
+          return RationalNumber.of(rootNum, rootDen).powInteger(p);
+        }
+      }
+    }
+    return null;
+  }
+
+  static Number? _powComplex(ComplexNumber c, Number exponent) {
+    final intExp = switch (exponent) {
+      IntegerNumber(:final value) => value,
+      RealNumber(:final value)
+          when value == value.roundToDouble() &&
+              value.abs() < 9007199254740992.0 =>
+        Integer(value.round()),
+      _ => null,
+    };
+    if (intExp == null) return null;
+    if (intExp.isZero) return IntegerNumber.one;
+    if (c.isPureImaginary) {
+      // (b * i)^n = b^n * i^n
+      final mod = (intExp % const Integer(4)).toInt();
+      final iPow = switch (mod) {
+        0 => IntegerNumber.one,
+        1 => ComplexNumber.i,
+        2 => IntegerNumber.negativeOne,
+        _ => ComplexNumber.negativeI,
+      };
+      if (c.imaginary.isOne) return iPow;
+      if (c.imaginary.isNegativeOne) {
+        final sign = intExp.isEven
             ? IntegerNumber.one
             : IntegerNumber.negativeOne;
+        return sign.mul(iPow);
       }
-      final expInt = exponent.asInt;
-      if (expInt != null && expInt.abs() <= 1000) {
-        return baseRat.powInteger(expInt);
-      }
-      return null;
+      return c.imaginary.powNumber(IntegerNumber(intExp))?.mul(iPow);
     }
-
-    if (this is RationalNumber && exponent is FractionNumber) {
-      final baseRat = this as RationalNumber;
-      if (baseRat.isZero) {
-        if (exponent.isNegative) {
-          throw UnsupportedError('Division by zero in power: 0 ^ $exponent');
-        }
-        return IntegerNumber.zero;
-      }
-      if (baseRat.isOne) return IntegerNumber.one;
-      if (baseRat.isNegative) return null;
-      final q = exponent.denominator.asInt;
-      final p = exponent.numerator.asInt;
-      if (q != null && q <= 64 && p != null && p.abs() <= 64) {
-        final rootNum = _exactIntegerRoot(baseRat.numerator, q);
-        if (rootNum != null) {
-          final rootDen = _exactIntegerRoot(baseRat.denominator, q);
-          if (rootDen != null) {
-            final rootRat = RationalNumber.of(rootNum, rootDen);
-            return rootRat.powInteger(p);
-          }
-        }
-      }
-      return null;
+    if (intExp.asInt case final expAsInt? when expAsInt.abs() <= 64) {
+      return _complexIntPow(c, expAsInt);
     }
-
-    if (this is ComplexNumber) {
-      final c = this as ComplexNumber;
-      Integer? intExp;
-      if (exponent is IntegerNumber) {
-        intExp = exponent.value;
-      } else if (exponent is RealNumber &&
-          exponent.value == exponent.value.roundToDouble() &&
-          exponent.value.abs() < 9007199254740992.0) {
-        intExp = Integer(exponent.value.round());
-      }
-      if (intExp != null) {
-        if (intExp.isZero) return IntegerNumber.one;
-        if (c.isPureImaginary) {
-          // (b * i)^n = b^n * i^n
-          final mod = (intExp % const Integer(4)).toInt();
-          final iPow = switch (mod) {
-            0 => IntegerNumber.one,
-            1 => ComplexNumber.i,
-            2 => IntegerNumber.negativeOne,
-            _ => ComplexNumber.negativeI,
-          };
-          if (c.imaginary.isOne) return iPow;
-          if (c.imaginary.isNegativeOne) {
-            final sign = intExp.isEven
-                ? IntegerNumber.one
-                : IntegerNumber.negativeOne;
-            return sign.mul(iPow);
-          }
-          final bPow = c.imaginary.powNumber(IntegerNumber(intExp));
-          if (bPow != null) {
-            return bPow.mul(iPow);
-          }
-          return null;
-        }
-        final expAsInt = intExp.asInt;
-        if (expAsInt != null && expAsInt.abs() <= 64) {
-          return _complexIntPow(c, expAsInt);
-        }
-      }
-      return null;
-    }
-
-    if (this is RealNumeric && exponent is RealNumeric) {
-      final baseReal = this as RealNumeric;
-      if (baseReal.isZero) {
-        if (exponent.isZero) return IntegerNumber.one;
-        if (exponent.isNegative) {
-          throw UnsupportedError('Division by zero in power: 0 ^ $exponent');
-        }
-        return this is RealNumber ? RealNumber.zero : IntegerNumber.zero;
-      }
-      if (baseReal.isOne) return IntegerNumber.one;
-      final bVal = baseReal.toDouble();
-      final eVal = exponent.toDouble();
-      if (bVal < 0 && eVal != eVal.roundToDouble()) {
-        return null;
-      }
-      final res = math.pow(bVal, eVal).toDouble();
-      if (res.isFinite) {
-        return RealNumber(res);
-      }
-    }
-
     return null;
+  }
+
+  static Number? _powReal(RealNumeric baseReal, RealNumeric exponent) {
+    if (baseReal.isZero) {
+      if (exponent.isZero) return IntegerNumber.one;
+      if (exponent.isNegative) {
+        throw UnsupportedError('Division by zero in power: 0 ^ $exponent');
+      }
+      return baseReal is RealNumber ? RealNumber.zero : IntegerNumber.zero;
+    }
+    if (baseReal.isOne) return IntegerNumber.one;
+    final bVal = baseReal.toDouble();
+    final eVal = exponent.toDouble();
+    if (bVal < 0 && eVal != eVal.roundToDouble()) {
+      return null;
+    }
+    final res = math.pow(bVal, eVal).toDouble();
+    return res.isFinite ? RealNumber(res) : null;
   }
 
   @override
@@ -319,17 +319,17 @@ sealed class RealNumeric extends Number implements Comparable<RealNumeric> {
   double evaluate([Map<String, double> context = const {}]) => toDouble();
 
   @override
-  int compareTo(RealNumeric other) {
-    if (this is RationalNumber && other is RationalNumber) {
-      return rationalCompare((this as RationalNumber)._parts, other._parts);
-    }
-    if (this is RealNumber && other is RealNumber) {
-      return (this as RealNumber).value.compareTo(other.value);
-    }
-    final cmp = toDouble().compareTo(other.toDouble());
-    if (cmp != 0) return cmp;
-    return this is RationalNumber ? -1 : 1;
-  }
+  int compareTo(RealNumeric other) => switch ((this, other)) {
+    (final RationalNumber a, final RationalNumber b) => rationalCompare(
+      a._parts,
+      b._parts,
+    ),
+    (final RealNumber a, final RealNumber b) => a.value.compareTo(b.value),
+    _ => switch (toDouble().compareTo(other.toDouble())) {
+      0 => this is RationalNumber ? -1 : 1,
+      final cmp => cmp,
+    },
+  };
 }
 
 /// Exact rational number $p / q \in \mathbb{Q}$, represented canonically as
@@ -371,14 +371,22 @@ sealed class RationalNumber extends RealNumeric {
   bool get isInteger => this is IntegerNumber;
 
   @override
-  bool get isZero => this is IntegerNumber && numerator.isZero;
+  bool get isZero => switch (this) {
+    IntegerNumber(:final value) => value.isZero,
+    FractionNumber() => false,
+  };
 
   @override
-  bool get isOne => this is IntegerNumber && numerator.isOne;
+  bool get isOne => switch (this) {
+    IntegerNumber(:final value) => value.isOne,
+    FractionNumber() => false,
+  };
 
   @override
-  bool get isNegativeOne =>
-      this is IntegerNumber && numerator == Integer.negativeOne;
+  bool get isNegativeOne => switch (this) {
+    IntegerNumber(:final value) => value == Integer.negativeOne,
+    FractionNumber() => false,
+  };
 
   @override
   bool get isNegative => numerator.isNegative;
@@ -388,7 +396,10 @@ sealed class RationalNumber extends RealNumeric {
 
   /// Returns this rational as a machine `int` if it is an [IntegerNumber] that
   /// fits in a signed 64-bit integer, or `null` otherwise.
-  int? get asInt => this is IntegerNumber ? numerator.asInt : null;
+  int? get asInt => switch (this) {
+    IntegerNumber(:final value) => value.asInt,
+    FractionNumber() => null,
+  };
 
   /// Truncates this rational number toward zero as a machine `int`.
   int toInt() => (numerator ~/ denominator).toInt();

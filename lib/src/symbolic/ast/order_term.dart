@@ -71,18 +71,17 @@ extension OrderTermExtension on Expr {
 
 Expr _removeOrder(Expr expr) => switch (expr) {
   OrderTerm() => IntegerNumber.zero,
-  Add(:final terms) => () {
-    final filtered = <Expr>[];
-    for (final term in terms) {
-      if (term is OrderTerm) continue;
-      final cleaned = _removeOrder(term);
-      if (cleaned is! OrderTerm && !(cleaned is Number && cleaned.isZero)) {
-        filtered.add(cleaned);
-      }
-    }
-    if (filtered.isEmpty) return IntegerNumber.zero;
-    if (filtered.length == 1) return filtered.first;
-    return Add(filtered);
-  }(),
+  Add(:final terms) => switch ([
+    for (final term in terms)
+      if (term is! OrderTerm)
+        switch (_removeOrder(term)) {
+          OrderTerm() || Number(isZero: true) => null,
+          final cleaned => cleaned,
+        },
+  ].nonNulls.toList()) {
+    [] => IntegerNumber.zero,
+    [final single] => single,
+    final filtered => Add(filtered),
+  },
   _ => expr.mapChildren(_removeOrder),
 };

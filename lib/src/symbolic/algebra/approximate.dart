@@ -16,8 +16,8 @@ extension ApproximationExtension on Expr {
   /// ```
   Expr approximate([Map<String, Expr> bindings = const {}]) {
     var target = this;
-    for (final entry in bindings.entries) {
-      target = target.substitute(entry.key, entry.value);
+    for (final MapEntry(:key, :value) in bindings.entries) {
+      target = target.substitute(key, value);
     }
     return _approximateNode(target).simplify();
   }
