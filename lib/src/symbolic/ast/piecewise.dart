@@ -113,6 +113,26 @@ final class Equal extends RelationalExpr {
       Equal(transform(left), transform(right));
 }
 
+/// Inequality relation: $\text{left} \ne \text{right}$.
+final class NotEqual extends RelationalExpr {
+  /// Creates a `!=` relation.
+  new(super.left, super.right, {super.isSimplified = false});
+
+  @override
+  bool evaluateCondition([Map<String, double> context = const {}]) =>
+      left.evaluate(context) != right.evaluate(context);
+
+  @override
+  Expr substitute(String variable, Expr replacement) => NotEqual(
+    left.substitute(variable, replacement),
+    right.substitute(variable, replacement),
+  );
+
+  @override
+  Expr mapChildren(Expr Function(Expr) transform) =>
+      NotEqual(transform(left), transform(right));
+}
+
 /// A guarded branch in a [Piecewise] expression.
 typedef PiecewiseBranch = ({RelationalExpr relation, Expr expr});
 

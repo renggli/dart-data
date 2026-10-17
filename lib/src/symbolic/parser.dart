@@ -114,6 +114,7 @@ class ExprSyntax {
         'w': _parseLambertWBinary,
         'integrate': (a, b) => _parseIntegralArgs([a, b]),
         'integral': (a, b) => _parseIntegralArgs([a, b]),
+        'O': (a, b) => _parseOrderTermArgs([a, b]),
       });
 
   /// Standard variadic mathematical functions.
@@ -124,6 +125,7 @@ class ExprSyntax {
       'Piecewise': _parsePiecewiseArgs,
       'integrate': _parseIntegralArgs,
       'integral': _parseIntegralArgs,
+      'O': _parseOrderTermArgs,
     },
   );
 
@@ -239,10 +241,11 @@ class ExprSyntax {
       ..left(char('+').trim(), (a, _, b) => a + b)
       ..left(char('-').trim(), (a, _, b) => a - b);
 
-    // Relational operators (<=, >=, <, >, ==, =)
+    // Relational operators (<=, >=, !=, <, >, ==, =)
     builder.group()
       ..left(string('<=').trim(), (a, _, b) => LessEqual(a, b))
       ..left(string('>=').trim(), (a, _, b) => GreaterEqual(a, b))
+      ..left(string('!=').trim(), (a, _, b) => NotEqual(a, b))
       ..left(char('<').trim(), (a, _, b) => LessThan(a, b))
       ..left(char('>').trim(), (a, _, b) => GreaterThan(a, b))
       ..left(
@@ -298,6 +301,19 @@ class ExprSyntax {
       point: -shift,
     ),
     _ => throw FormatException('Invalid OrderTerm syntax: O($arg)'),
+  };
+
+  static Expr _parseOrderTermArgs(List<Expr> args) => switch (args) {
+    [final arg] => _parseOrderTerm(arg),
+    [Variable(:final name), IntegerNumber(asInt: final n?)] => OrderTerm(
+      name,
+      n,
+    ),
+    [Variable(:final name), IntegerNumber(asInt: final n?), final point] =>
+      OrderTerm(name, n, point: point),
+    _ => throw FormatException(
+      'Invalid OrderTerm syntax: O(${args.join(', ')})',
+    ),
   };
 
   static Expr _parsePiecewiseArgs(List<Expr> args) {

@@ -68,16 +68,17 @@ void main() {
       check(GreaterThan(x, y).toString()).equals('x > y');
       check(GreaterEqual(x, y).toString()).equals('x >= y');
       check(Equal(x, y).toString()).equals('x == y');
+      check(NotEqual(x, y).toString()).equals('x != y');
 
       check(
         Piecewise([
           (relation: LessThan(x, IntegerNumber.zero), expr: -x),
         ], otherwise: x).toString(),
-      ).equals('Piecewise([(x < 0, -x)], otherwise: x)');
+      ).equals('piecewise(x < 0, -x, x)');
       check(
         Piecewise([(relation: LessThan(x, IntegerNumber.zero), expr: -x)])
             .toString(),
-      ).equals('Piecewise([(x < 0, -x)])');
+      ).equals('piecewise(x < 0, -x)');
 
       check(Integral(x, 'x').toString()).equals('integrate(x, x)');
       check(
@@ -103,8 +104,14 @@ void main() {
         'pi',
         'e',
         'i',
+        '-i',
+        '3 * i',
+        '-3 * i',
         '2 + 3 * i',
+        '2 - 3 * i',
         '1 - i',
+        '1 + i',
+        'infinity',
         'x + y - z',
         '2 * x ^ 2 - 3 * x + 1',
         '(x + 1) / (x - 1)',
@@ -117,6 +124,15 @@ void main() {
         'erf(x) - erfc(x)',
         'gamma(x) + beta(x, 2)',
         '1 + x + x ^ 2 / 2 + O(x ^ 3)',
+        'O(x - 1)',
+        'O((x - 1) ^ 3)',
+        'O((x + 2) ^ 3)',
+        'O(x, 0, 1)',
+        'piecewise(x < 0, -x, x >= 0, x)',
+        'piecewise(x != 0, 1 / x, 0)',
+        'integrate(sin(x ^ 2), x)',
+        'integrate(sin(x ^ 2), x, 0, pi)',
+        'f(x, y + 1)',
       ];
 
       for (final src in inputs) {

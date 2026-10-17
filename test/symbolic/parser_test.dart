@@ -72,6 +72,9 @@ void main() {
           .equals(const OrderTerm('x', 1, point: IntegerNumber.one));
       check(Expr.parse('O((x - 1)^3)'))
           .equals(const OrderTerm('x', 3, point: IntegerNumber.one));
+      check(Expr.parse('O(x, 3)')).equals(const OrderTerm('x', 3));
+      check(Expr.parse('O(x, 3, 1)'))
+          .equals(const OrderTerm('x', 3, point: IntegerNumber.one));
 
       // Relational operators
       check(Expr.parse('x < 1')).equals(LessThan(x, IntegerNumber.one));
@@ -80,6 +83,7 @@ void main() {
       check(Expr.parse('x >= 1')).equals(GreaterEqual(x, IntegerNumber.one));
       check(Expr.parse('x == 1')).equals(Equal(x, IntegerNumber.one));
       check(Expr.parse('x = 1')).equals(Equal(x, IntegerNumber.one));
+      check(Expr.parse('x != 1')).equals(NotEqual(x, IntegerNumber.one));
     });
 
     test(

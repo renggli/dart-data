@@ -36,7 +36,7 @@ void main() {
         Add([
           x,
           Constant.infinity,
-          Mul([IntegerNumber.two, ComplexNumber.i]),
+          const ComplexNumber(IntegerNumber.zero, IntegerNumber.two),
         ]),
       );
       check(x + 'y').equals(Add([x, const Variable('y')]));

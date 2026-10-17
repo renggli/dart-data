@@ -68,6 +68,12 @@ sealed class Expr {
   /// operands in exact input order.
   Expr operator +(Object other) {
     final rhs = _wrap(other);
+    if ((this, rhs) case (
+      final RealNumeric real,
+      ComplexNumber(real: IntegerNumber(isZero: true), :final imaginary),
+    )) {
+      return ComplexNumber.of(real, imaginary);
+    }
     return Add([
       if (this case Add(:final terms, isSimplified: false)) ...terms else this,
       if (rhs case Add(:final terms, isSimplified: false)) ...terms else rhs,
@@ -87,6 +93,14 @@ sealed class Expr {
   /// operands in exact input order.
   Expr operator *(Object other) {
     final rhs = _wrap(other);
+    if ((this, rhs) case (
+      final RealNumeric scale,
+      ComplexNumber(real: IntegerNumber(isZero: true), :final imaginary),
+    )) {
+      if (scale.mul(imaginary) case final RealNumeric prod) {
+        return ComplexNumber.of(IntegerNumber.zero, prod);
+      }
+    }
     final isRhsUnaryNeg = switch (rhs) {
       Mul(factors: [IntegerNumber.negativeOne, _]) => true,
       _ => false,

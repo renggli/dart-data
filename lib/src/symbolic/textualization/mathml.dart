@@ -98,6 +98,8 @@ String _toMathMl(Expr expr) => switch (expr) {
     '<mrow>${_toMathMl(left)}<mo>&#x2265;</mo>${_toMathMl(right)}</mrow>',
   Equal(:final left, :final right) =>
     '<mrow>${_toMathMl(left)}<mo>=</mo>${_toMathMl(right)}</mrow>',
+  NotEqual(:final left, :final right) =>
+    '<mrow>${_toMathMl(left)}<mo>&#x2260;</mo>${_toMathMl(right)}</mrow>',
   Piecewise(:final branches, :final otherwise) =>
     '<mrow><mo>{</mo><mtable>'
         '${branches.map((b) => '<mtr><mtd>${_toMathMl(b.expr)}</mtd><mtd><mtext>if&#x00a0;</mtext>${_toMathMl(b.relation)}</mtd></mtr>').join()}'

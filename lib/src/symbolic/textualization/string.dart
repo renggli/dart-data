@@ -61,9 +61,13 @@ String formatExpr(Expr expr, [int parentPrec = 0]) {
       '${formatExpr(left, 1)} >= ${formatExpr(right, 1)}',
     Equal(:final left, :final right) =>
       '${formatExpr(left, 1)} == ${formatExpr(right, 1)}',
+    NotEqual(:final left, :final right) =>
+      '${formatExpr(left, 1)} != ${formatExpr(right, 1)}',
     Piecewise(:final branches, :final otherwise) =>
-      'Piecewise([${branches.map((b) => '(${formatExpr(b.relation)}, ${formatExpr(b.expr)})').join(', ')}]'
-          '${otherwise != null ? ', otherwise: ${formatExpr(otherwise)}' : ''})',
+      'piecewise(${[
+        for (final (:relation, :expr) in branches) ...[formatExpr(relation), formatExpr(expr)],
+        if (otherwise != null) formatExpr(otherwise),
+      ].join(', ')})',
     Integral(:final integrand, :final variable, :final lower, :final upper) =>
       lower != null && upper != null
           ? 'integrate(${formatExpr(integrand)}, $variable, ${formatExpr(lower)}, ${formatExpr(upper)})'
@@ -195,7 +199,12 @@ String _formatOrderTerm(String variable, int order, Expr point) {
     if (order == 1) return 'O($variable)';
     return 'O($variable^$order)';
   }
-  final delta = formatExpr(Variable(variable) - point);
+  if (order == 0) return 'O($variable, 0, ${formatExpr(point)})';
+  final delta = switch (point) {
+    final RealNumeric n when n.isNegative =>
+      '$variable + ${formatExpr(n.neg(), 2)}',
+    _ => '$variable - ${formatExpr(point, 2)}',
+  };
   if (order == 1) return 'O($delta)';
   return 'O(($delta)^$order)';
 }

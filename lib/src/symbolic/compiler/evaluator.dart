@@ -283,6 +283,10 @@ final class BytecodeEvaluator {
           final b = stack[--sp];
           final a = stack[--sp];
           stack[sp++] = a == b ? 1.0 : 0.0;
+        case Op.ne:
+          final b = stack[--sp];
+          final a = stack[--sp];
+          stack[sp++] = a != b ? 1.0 : 0.0;
       }
     }
     return stack[0];
@@ -450,6 +454,10 @@ final class BytecodeEvaluator {
           final b = stack[--sp];
           final a = stack[--sp];
           stack[sp++] = a == b ? Complex.one : Complex.zero;
+        case Op.ne:
+          final b = stack[--sp];
+          final a = stack[--sp];
+          stack[sp++] = a != b ? Complex.one : Complex.zero;
       }
     }
     return stack[0];

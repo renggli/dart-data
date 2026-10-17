@@ -493,6 +493,7 @@ Expr simplifyRelational(RelationalExpr expr) {
       GreaterThan() => vL > vR,
       GreaterEqual() => vL >= vR,
       Equal() => vL == vR,
+      NotEqual() => vL != vR,
     };
     return matched ? IntegerNumber.one : IntegerNumber.zero;
   }
@@ -502,6 +503,7 @@ Expr simplifyRelational(RelationalExpr expr) {
     GreaterThan() => GreaterThan(left, right, isSimplified: true),
     GreaterEqual() => GreaterEqual(left, right, isSimplified: true),
     Equal() => Equal(left, right, isSimplified: true),
+    NotEqual() => NotEqual(left, right, isSimplified: true),
   };
 }
 

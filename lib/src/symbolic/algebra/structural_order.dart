@@ -37,10 +37,11 @@ int nodeTag(Expr expr) => switch (expr) {
   GreaterThan() => 27,
   GreaterEqual() => 28,
   Equal() => 29,
-  Piecewise() => 30,
-  Integral() => 31,
-  OrderTerm() => 32,
-  VariableFunction() => 33,
+  NotEqual() => 30,
+  Piecewise() => 31,
+  Integral() => 32,
+  OrderTerm() => 33,
+  VariableFunction() => 34,
 };
 
 /// Total structural ordering comparator over all [Expr] AST nodes.

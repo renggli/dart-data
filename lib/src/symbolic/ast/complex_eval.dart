@@ -126,6 +126,7 @@ Complex _evalComplex(Expr expr, Map<String, Complex> context) => switch (expr) {
       GreaterThan() => a.a > b.a,
       GreaterEqual() => a.a >= b.a,
       Equal() => a == b,
+      NotEqual() => a != b,
     };
     return cond ? Complex.one : Complex.zero;
   }(),

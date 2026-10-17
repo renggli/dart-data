@@ -126,6 +126,9 @@ enum Op {
 
   /// Equality (`a == b`).
   eq,
+
+  /// Inequality (`a != b`).
+  ne,
 }
 
 /// A single instruction in a compiled [BytecodeEvaluator] program.
@@ -376,6 +379,10 @@ BytecodeEvaluator compileToBytecode(
         emit(left);
         emit(right);
         instructions.add(const Instruction.op(Op.eq));
+      case NotEqual(:final left, :final right):
+        emit(left);
+        emit(right);
+        instructions.add(const Instruction.op(Op.ne));
       case Piecewise(:final branches, :final otherwise):
         final endJumps = <int>[];
         for (final (:relation, :expr) in branches) {
@@ -494,6 +501,7 @@ int _computeMaxStack(List<Instruction> instructions) {
           Op.gt ||
           Op.ge ||
           Op.eq ||
+          Op.ne ||
           Op.jumpIfFalse:
         current = math.max(0, current - 1);
       case Op.storeReg ||

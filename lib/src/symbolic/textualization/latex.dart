@@ -66,6 +66,8 @@ String _toLatex(Expr expr) => switch (expr) {
   GreaterEqual(:final left, :final right) =>
     '${_toLatex(left)} \\ge ${_toLatex(right)}',
   Equal(:final left, :final right) => '${_toLatex(left)} = ${_toLatex(right)}',
+  NotEqual(:final left, :final right) =>
+    '${_toLatex(left)} \\ne ${_toLatex(right)}',
   Piecewise(:final branches, :final otherwise) =>
     '\\begin{cases} '
         '${branches.map((b) => '${_toLatex(b.expr)}, & \\text{if } ${_toLatex(b.relation)}').join(' \\\\ ')}'

@@ -39,10 +39,11 @@ void main() {
         GreaterThan(x, IntegerNumber.one), // 27
         GreaterEqual(x, IntegerNumber.one), // 28
         Equal(x, IntegerNumber.one), // 29
-        Piecewise([(relation: LessThan(x, IntegerNumber.zero), expr: x)]), // 30
-        Integral(x, 'x'), // 31
-        const OrderTerm('x', 3), // 32
-        VariableFunction('f', const [x]), // 33
+        NotEqual(x, IntegerNumber.one), // 30
+        Piecewise([(relation: LessThan(x, IntegerNumber.zero), expr: x)]), // 31
+        Integral(x, 'x'), // 32
+        const OrderTerm('x', 3), // 33
+        VariableFunction('f', const [x]), // 34
       ];
 
       for (var i = 0; i < allVariants.length; i++) {

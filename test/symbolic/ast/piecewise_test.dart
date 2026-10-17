@@ -12,6 +12,7 @@ void main() {
       final gt = GreaterThan(x, IntegerNumber.zero);
       final ge = GreaterEqual(x, IntegerNumber.zero);
       final eq = Equal(x, IntegerNumber.zero);
+      final ne = NotEqual(x, IntegerNumber.zero);
 
       check(lt.evaluateCondition({'x': -1.0})).isTrue();
       check(lt.evaluateCondition({'x': 0.0})).isFalse();
@@ -22,6 +23,8 @@ void main() {
       check(gt.evaluateCondition({'x': 1.0})).isTrue();
       check(ge.evaluateCondition({'x': 0.0})).isTrue();
       check(eq.evaluateCondition({'x': 0.0})).isTrue();
+      check(ne.evaluateCondition({'x': 1.0})).isTrue();
+      check(ne.evaluateCondition({'x': 0.0})).isFalse();
 
       for (final (node, build)
           in <(RelationalExpr, RelationalExpr Function(Expr, Expr))>[
@@ -30,6 +33,7 @@ void main() {
             (gt, GreaterThan.new),
             (ge, GreaterEqual.new),
             (eq, Equal.new),
+            (ne, NotEqual.new),
           ]) {
         check(node.substitute('x', y)).equals(build(y, IntegerNumber.zero));
         check(node.mapChildren((e) => e == x ? y : e))
