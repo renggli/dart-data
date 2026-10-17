@@ -108,7 +108,7 @@ Complex _evalComplex(Expr expr, Map<String, Complex> context) => switch (expr) {
   LambertW(:final expr, :final branch) => () {
     final z = _evalComplex(expr, context);
     if (z.b == 0.0) {
-      return Complex(evaluateLambertWReal(z.a.toDouble(), branch: branch));
+      return Complex(_evaluateLambertWReal(z.a.toDouble(), branch: branch));
     }
     throw UnsupportedError(
       'Complex LambertW evaluation is only supported on R',

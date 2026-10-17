@@ -1,4 +1,5 @@
 import 'package:checks/checks.dart';
+import 'package:data/src/symbolic/number/rational.dart';
 import 'package:data/symbolic.dart';
 import 'package:test/scaffolding.dart';
 

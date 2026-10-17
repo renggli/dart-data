@@ -99,7 +99,7 @@ List<Expr>? invertEquation(Expr u, Expr c, String variable) {
   if (u is Cosh) {
     final cNum = _tryEvalReal(c);
     if (cNum != null && cNum < 1.0 - 1e-12) return const [];
-    if ((c is Number && c.isOne) || (c is RealNumber && c.value == 1.0)) {
+    if (c is Number && c.isOne) {
       return solveEquation(u.expr, variable);
     }
     final pos = Acosh(c).simplify();
@@ -120,7 +120,7 @@ List<Expr>? invertEquation(Expr u, Expr c, String variable) {
   if (u is Abs) {
     final cNum = _tryEvalReal(c);
     if (cNum != null && cNum < -1e-12) return const [];
-    if ((c is Number && c.isZero) || (c is RealNumber && c.value == 0.0)) {
+    if (c is Number && c.isZero) {
       return solveEquation(u.expr, variable);
     }
     return deduplicateRoots([
@@ -161,10 +161,7 @@ List<Expr>? invertEquation(Expr u, Expr c, String variable) {
       return solveEquation(u.expr, variable);
     }
     final cNum = _tryEvalReal(c);
-    if (cNum != null) {
-      if (cNum.abs() > 1.0 + 1e-12) return const [];
-      if (cNum.abs() < 1e-12) return solveEquation(u.expr, variable);
-    }
+    if (cNum != null && cNum.abs() > 1.0 + 1e-12) return const [];
   }
 
   if (u is Add) {
@@ -205,9 +202,7 @@ List<Expr>? invertEquation(Expr u, Expr c, String variable) {
       if (u.exponent is RationalNumber) {
         final expConst = u.exponent as RationalNumber;
         if (!expConst.isZero) {
-          if (expConst.isNegative &&
-              ((c is Number && c.isZero) ||
-                  (c is RealNumber && c.value == 0.0))) {
+          if (expConst.isNegative && c is Number && c.isZero) {
             return const [];
           }
           if (expConst is IntegerNumber) {
@@ -254,7 +249,7 @@ List<Expr>? invertEquation(Expr u, Expr c, String variable) {
     if (!den.dependsOn(variable)) {
       return invertEquation(num, (c * den).simplify(), variable);
     } else if (!num.dependsOn(variable)) {
-      if ((c is Number && c.isZero) || (c is RealNumber && c.value == 0.0)) {
+      if (c is Number && c.isZero) {
         return const [];
       }
       return invertEquation(den, (num / c).simplify(), variable);
@@ -342,63 +337,30 @@ List<Expr>? _solveLambertWEquation(Expr E, Expr cPrime, String variable) {
 
 List<Expr>? _solveProductTranscendental(Mul u, Expr c, String variable) {
   if (u.factors.length != 2) return null;
-  final left = u.factors[0];
-  final right = u.factors[1];
-
-  Expr? expFactor;
-  Expr? otherFactor;
-  if (left is Pow && left.base == Constant.e) {
-    expFactor = left.exponent;
-    otherFactor = right;
-  } else if (right is Pow && right.base == Constant.e) {
-    expFactor = right.exponent;
-    otherFactor = left;
-  }
-
-  if (expFactor != null && otherFactor != null) {
-    final ratio = (expFactor / otherFactor).simplify();
-    if (!ratio.dependsOn(variable) && !(ratio is Number && ratio.isZero)) {
-      final cPrime = (c * ratio).simplify();
-      return _solveLambertWEquation(expFactor, cPrime, variable);
+  for (var i = 0; i < 2; i++) {
+    final a = u.factors[i];
+    final b = u.factors[1 - i];
+    if (a is Pow && a.base == Constant.e) {
+      final ratio = (a.exponent / b).simplify();
+      if (!ratio.dependsOn(variable) && !(ratio is Number && ratio.isZero)) {
+        final cPrime = (c * ratio).simplify();
+        return _solveLambertWEquation(a.exponent, cPrime, variable);
+      }
+    }
+    if (a is Ln && (a.expr / b).simplify() == IntegerNumber.one) {
+      return _solveLambertWEquation(Ln(b).simplify(), c, variable);
     }
   }
-
-  Expr? lnFactor;
-  Expr? pFactor;
-  if (left is Ln) {
-    lnFactor = left.expr;
-    pFactor = right;
-  } else if (right is Ln) {
-    lnFactor = right.expr;
-    pFactor = left;
-  }
-
-  if (lnFactor != null && pFactor != null) {
-    if ((lnFactor / pFactor).simplify() == IntegerNumber.one) {
-      return _solveLambertWEquation(Ln(pFactor).simplify(), c, variable);
-    }
-  }
-
   return null;
 }
 
 List<Expr>? _solveAddTranscendental(Add u, Expr c, String variable) {
   if (u.terms.length != 2) return null;
-  final left = u.terms[0];
-  final right = u.terms[1];
-
-  Expr? p;
-  Expr? q;
-  if (left is Ln && right is! Ln) {
-    q = left.expr;
-    p = right;
-  } else if (right is Ln && left is! Ln) {
-    q = right.expr;
-    p = left;
-  }
-  if (p != null && q != null) {
-    if ((q / p).simplify() == IntegerNumber.one) {
-      return _solveLambertWEquation(p, Pow(Constant.e, c).simplify(), variable);
+  for (var i = 0; i < 2; i++) {
+    final a = u.terms[i];
+    final b = u.terms[1 - i];
+    if (a is Ln && b is! Ln && (a.expr / b).simplify() == IntegerNumber.one) {
+      return _solveLambertWEquation(b, Pow(Constant.e, c).simplify(), variable);
     }
   }
   return null;
@@ -487,7 +449,7 @@ List<Expr>? _matchAffineExponential(Expr expr, String variable) {
   final k3 = (constSum + linConst).simplify();
 
   final expLin = exponent.matchLinear(variable);
-  if (expLin == null || (expLin.a is Number && (expLin.a as Number).isZero)) {
+  if (expLin == null) {
     return null;
   }
   final alpha = expLin.a;
@@ -495,8 +457,6 @@ List<Expr>? _matchAffineExponential(Expr expr, String variable) {
 
   final B = (-k2 / (k1 * alpha)).simplify();
   final C = (-(k3 - (k2 * beta / alpha)) / k1).simplify();
-
-  if (B is Number && B.isZero) return null;
 
   final lnBase = Ln(base).simplify();
   final negCdivB = (-C / B).simplify();

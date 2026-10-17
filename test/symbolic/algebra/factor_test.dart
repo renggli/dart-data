@@ -3,7 +3,7 @@ import 'package:data/symbolic.dart';
 import 'package:test/test.dart';
 
 void main() {
-  group('Polynomial factorization', () {
+  group('Univariate and multivariate polynomial factorization', () {
     test('factors univariate polynomials over Q[x]', () {
       final f1 = Expr.parse('x^2 - 4').factor();
       check((f1.expand() - Expr.parse('x^2 - 4')).simplify())
@@ -27,8 +27,40 @@ void main() {
 
       final rat = Expr.parse('(x^2 - 1) / (x - 1)').factor();
       check(rat).equals(Expr.parse('x + 1').simplify());
+
+      // Pure negative power and product of negative powers
+      final negPow = Expr.parse('(x^2 - 1)^(-2)').factor();
+      check(negPow.evaluate({'x': 2.0})).isCloseTo(1.0 / 9.0, 1e-12);
+
+      final posPow = Expr.parse('(x^2 - 1)^2').factor();
+      check(posPow.evaluate({'x': 2.0})).equals(9.0);
+
+      final invProd = Mul([
+        Pow(Expr.parse('x - 1'), IntegerNumber.negativeOne),
+        Pow(Expr.parse('x + 1'), IntegerNumber.negativeOne),
+      ]).factor();
+      check(invProd.evaluate({'x': 2.0})).isCloseTo(1.0 / 3.0, 1e-12);
     });
 
+    test('handles expressions that collapse to atomic or power nodes upon expansion', () {
+      check(IntegerNumber.of(5).factor()).equals(IntegerNumber.of(5));
+      check(Constant.pi.factor()).equals(Constant.pi);
+      check(const Variable('x').factor()).equals(const Variable('x'));
+
+      // (x + 1) - x -> 1 (atomic after expand)
+      check(Expr.parse('(x + 1) - x').factor()).equals(IntegerNumber.one);
+
+      // (x + 1)^2 - 2*x - 1 -> x^2 (Pow after expand)
+      check(Expr.parse('(x + 1)^2 - 2*x - 1').factor())
+          .equals(Pow(const Variable('x'), IntegerNumber.two));
+
+      // 4-term grouping via factor()
+      final grouped = Expr.parse('x * y + x + y + 1').factor();
+      check(grouped).equals(Expr.parse('(1 + x) * (1 + y)').simplify());
+    });
+  });
+
+  group('Special algebraic forms and canonical ordering', () {
     test('orders terms and factors identically to simplify()', () {
       for (final input in [
         'x^3 - 3*x + 1',
@@ -69,11 +101,9 @@ void main() {
     test(
       'performs square-free decomposition on repeated irreducible factors',
       () {
-        // (x^2 + 1)^2 = x^4 + 2*x^2 + 1 has no rational roots
         final sqFree1 = Expr.parse('x^4 + 2*x^2 + 1').factor();
         check(sqFree1).equals(Expr.parse('(1 + x^2)^2').simplify());
 
-        // (x^2 + x + 1)^2 = x^4 + 2*x^3 + 3*x^2 + 2*x + 1
         final sqFree2 = Expr.parse('x^4 + 2*x^3 + 3*x^2 + 2*x + 1').factor();
         check(sqFree2).equals(Expr.parse('(1 + x + x^2)^2').simplify());
       },

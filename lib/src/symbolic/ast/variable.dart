@@ -45,7 +45,7 @@ final class Variable extends Expr {
   Set<String> get freeVariables => {name};
 
   @override
-  void collectFreeVariables(Set<String> target) {
+  void _collectFreeVariables(Set<String> target) {
     target.add(name);
   }
 

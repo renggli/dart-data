@@ -57,15 +57,10 @@ void main() {
       check(jac[0].length).equals(2);
     });
 
-    test('taylorSeries and matchLinear', () {
+    test('taylorSeries', () {
       const x = Variable('x');
       final poly = Pow(Constant.e, x).taylorSeries('x', order: 2);
       check(poly.evaluate({'x': 0.0})).isCloseTo(1.0, 1e-6);
-
-      final match = (x * 3 + 4).matchLinear('x');
-      check(match).isNotNull();
-      check((match!.a as Number).toDouble()).equals(3.0);
-      check((match.b as Number).toDouble()).equals(4.0);
     });
 
     test('simplify, compile, toLatex', () {

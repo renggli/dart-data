@@ -195,11 +195,7 @@ class PowerSeries {
     }
     final m = valuation;
     final cm = coefficients[m]!;
-
     final nu = order - m;
-    if (nu <= 0) {
-      throw UnsupportedError('Insufficient series order to compute reciprocal');
-    }
 
     final u = List<Expr>.generate(
       nu,
@@ -420,118 +416,113 @@ PowerSeries _expandToPowerSeries(
   String variable,
   Expr point,
   int order,
-) {
-  if (!expr.dependsOn(variable)) {
-    return PowerSeries(variable, point, {0: expr.simplify()}, order);
-  }
+) => switch (expr) {
+  Variable(:final name) when name == variable => _expandVariable(
+    variable,
+    point,
+    order,
+  ),
 
-  return switch (expr) {
-    Variable(:final name) when name == variable => _expandVariable(
-      variable,
-      point,
-      order,
-    ),
+  Number() ||
+  Constant() ||
+  Variable() => PowerSeries(variable, point, {0: expr}, order),
 
-    Number() ||
-    Constant() ||
-    Variable() => PowerSeries(variable, point, {0: expr}, order),
+  _ when !expr.dependsOn(variable) => PowerSeries(variable, point, {
+    0: expr.simplify(),
+  }, order),
 
-    Add(:final terms) => () {
-      var sum = PowerSeries(variable, point, const {}, order);
-      for (final term in terms) {
-        sum = sum + _expandToPowerSeries(term, variable, point, order);
-      }
-      return sum;
-    }(),
+  Add(:final terms) => () {
+    var sum = PowerSeries(variable, point, const {}, order);
+    for (final term in terms) {
+      sum = sum + _expandToPowerSeries(term, variable, point, order);
+    }
+    return sum;
+  }(),
 
-    Mul(:final factors) => _expandMulFactors(factors, variable, point, order),
+  Mul(:final factors) => _expandMulFactors(factors, variable, point, order),
 
-    Pow(base: Constant.e, :final exponent) => _expandExp(
-      exponent,
-      variable,
-      point,
-      order,
-    ),
+  Pow(base: Constant.e, :final exponent) => _expandExp(
+    exponent,
+    variable,
+    point,
+    order,
+  ),
 
-    Pow(:final base, :final exponent) => _expandPow(
-      base,
-      exponent,
-      variable,
-      point,
-      order,
-    ),
+  Pow(:final base, :final exponent) => _expandPow(
+    base,
+    exponent,
+    variable,
+    point,
+    order,
+  ),
 
-    Ln(:final expr) => _expandLn(expr, variable, point, order),
+  Ln(:final expr) => _expandLn(expr, variable, point, order),
 
-    Sin(:final expr) => _expandSin(expr, variable, point, order),
+  Sin(:final expr) => _expandSin(expr, variable, point, order),
 
-    Cos(:final expr) => _expandCos(expr, variable, point, order),
+  Cos(:final expr) => _expandCos(expr, variable, point, order),
 
-    Tan(:final expr) => () {
-      final sc = _expandSinCos(expr, variable, point, order);
-      return sc.sin / sc.cos;
-    }(),
+  Tan(:final expr) => () {
+    final sc = _expandSinCos(expr, variable, point, order);
+    return sc.sin / sc.cos;
+  }(),
 
-    Sinh(:final expr) => _expandSinh(expr, variable, point, order),
+  Sinh(:final expr) => _expandSinh(expr, variable, point, order),
 
-    Cosh(:final expr) => _expandCosh(expr, variable, point, order),
+  Cosh(:final expr) => _expandCosh(expr, variable, point, order),
 
-    Tanh(:final expr) => () {
-      final sc = _expandSinhCosh(expr, variable, point, order);
-      return sc.sinh / sc.cosh;
-    }(),
+  Tanh(:final expr) => () {
+    final sc = _expandSinhCosh(expr, variable, point, order);
+    return sc.sinh / sc.cosh;
+  }(),
 
-    Asin(:final expr) => _expandAsin(expr, variable, point, order),
+  Asin(:final expr) => _expandAsin(expr, variable, point, order),
 
-    Acos(:final expr) =>
-      PowerSeries(variable, point, {
-            0: (Constant.pi / IntegerNumber.two).simplify(),
-          }, order) -
-          _expandAsin(expr, variable, point, order),
+  Acos(:final expr) =>
+    PowerSeries(variable, point, {
+          0: (Constant.pi / IntegerNumber.two).simplify(),
+        }, order) -
+        _expandAsin(expr, variable, point, order),
 
-    Atan(:final expr) => _expandAtan(expr, variable, point, order),
+  Atan(:final expr) => _expandAtan(expr, variable, point, order),
 
-    Abs(:final expr) => _expandAbs(expr, variable, point, order),
+  Abs(:final expr) => _expandAbs(expr, variable, point, order),
 
-    LambertW(:final expr, :final branch) =>
-      branch == 0
-          ? _expandLambertW(expr, variable, point, order)
-          : throw UnsupportedError(
-              'Power series only supported for principal branch W_0',
-            ),
+  LambertW(:final expr, :final branch) =>
+    branch == 0
+        ? _expandLambertW(expr, variable, point, order)
+        : throw UnsupportedError(
+            'Power series only supported for principal branch W_0',
+          ),
 
-    Erf(:final expr) => _expandErf(expr, variable, point, order),
+  Erf(:final expr) => _expandErf(expr, variable, point, order),
 
-    Erfc(:final expr) =>
-      PowerSeries(variable, point, const {0: IntegerNumber.one}, order) -
-          _expandErf(expr, variable, point, order),
+  Erfc(:final expr) =>
+    PowerSeries(variable, point, const {0: IntegerNumber.one}, order) -
+        _expandErf(expr, variable, point, order),
 
-    Asinh(:final expr) => _expandAsinh(expr, variable, point, order),
+  Asinh(:final expr) => _expandAsinh(expr, variable, point, order),
 
-    Acosh(:final expr) => _expandAcosh(expr, variable, point, order),
+  Acosh(:final expr) => _expandAcosh(expr, variable, point, order),
 
-    Atanh(:final expr) => _expandAtanh(expr, variable, point, order),
+  Atanh(:final expr) => _expandAtanh(expr, variable, point, order),
 
-    Piecewise(:final branches, :final otherwise) => _expandPiecewise(
-      branches,
-      otherwise,
-      variable,
-      point,
-      order,
-    ),
+  Piecewise(:final branches, :final otherwise) => _expandPiecewise(
+    branches,
+    otherwise,
+    variable,
+    point,
+    order,
+  ),
 
-    Gamma() ||
-    Beta() ||
-    RelationalExpr() ||
-    Integral() => throw UnsupportedError(
-      'Power series expansion not supported for ${expr.runtimeType}',
-    ),
+  Gamma() || Beta() || RelationalExpr() || Integral() => throw UnsupportedError(
+    'Power series expansion not supported for ${expr.runtimeType}',
+  ),
 
-    OrderTerm() => throw UnsupportedError(
-      'Cannot expand an OrderTerm into a series',
-    ),
-  };
-}
+  OrderTerm() => throw UnsupportedError(
+    'Cannot expand an OrderTerm into a series',
+  ),
+};
 
 void _checkNoPole(PowerSeries u, String functionName) {
   if (u.valuation < 0) {
@@ -555,12 +546,6 @@ PowerSeries _expandMulFactors(
   Expr point,
   int order,
 ) {
-  if (factors.isEmpty) {
-    return PowerSeries(variable, point, const {0: IntegerNumber.one}, order);
-  }
-  if (factors.length == 1) {
-    return _expandToPowerSeries(factors.first, variable, point, order);
-  }
   var res = _expandBinaryMul(factors[0], factors[1], variable, point, order);
   for (var j = 2; j < factors.length; j++) {
     res = _expandSeriesTimesExpr(res, factors[j], variable, point, order);

@@ -97,18 +97,11 @@ extension type const Integer._(Object _value) {
   };
 
   /// Returns this value as a [BigInt].
-  BigInt toBigInt() => switch (_value) {
-    final int value => BigInt.from(value),
-    final BigInt value => value,
-    _ => throw StateError('Invalid representation'),
-  };
+  BigInt toBigInt() => _value is int ? BigInt.from(_value) : (_value as BigInt);
 
   /// Returns the nearest [double] to this value (possibly infinite).
-  double toDouble() => switch (_value) {
-    final int value => value.toDouble(),
-    final BigInt value => value.toDouble(),
-    _ => throw StateError('Invalid representation'),
-  };
+  double toDouble() =>
+      _value is int ? _value.toDouble() : (_value as BigInt).toDouble();
 
   /// Whether this value is `0`.
   bool get isZero => _value == 0;
@@ -117,42 +110,28 @@ extension type const Integer._(Object _value) {
   bool get isOne => _value == 1;
 
   /// Whether this value is strictly negative.
-  bool get isNegative => switch (_value) {
-    final int value => value < 0,
-    final BigInt value => value.isNegative,
-    _ => throw StateError('Invalid representation'),
-  };
+  bool get isNegative =>
+      _value is int ? _value < 0 : (_value as BigInt).isNegative;
 
   /// Whether this value is even.
-  bool get isEven => switch (_value) {
-    final int value => value.isEven,
-    final BigInt value => value.isEven,
-    _ => throw StateError('Invalid representation'),
-  };
+  bool get isEven => _value is int ? _value.isEven : (_value as BigInt).isEven;
 
   /// Whether this value is odd.
   bool get isOdd => !isEven;
 
   /// The sign of this value: `-1`, `0`, or `1`.
-  int get sign => switch (_value) {
-    final int value => value.sign,
-    final BigInt value => value.sign,
-    _ => throw StateError('Invalid representation'),
-  };
+  int get sign => _value is int ? _value.sign : (_value as BigInt).sign;
 
   /// The minimum number of bits required to store this value, excluding the
   /// sign bit, with the semantics of [int.bitLength].
-  int get bitLength => switch (_value) {
-    final int value => value.bitLength,
-    final BigInt value => value.bitLength,
-    _ => throw StateError('Invalid representation'),
-  };
+  int get bitLength =>
+      _value is int ? _value.bitLength : (_value as BigInt).bitLength;
 
   /// Returns the absolute value.
   Integer abs() => switch (_value) {
     final int value => value < 0 ? Integer._(-value) : this,
-    final BigInt value => value.isNegative ? Integer._(-value) : this,
-    _ => throw StateError('Invalid representation'),
+    final BigInt value when value.isNegative => Integer._(-value),
+    _ => this,
   };
 
   /// Returns the sum of this value and [other].
@@ -217,11 +196,8 @@ extension type const Integer._(Object _value) {
   }
 
   /// Returns the negation of this value.
-  Integer operator -() => switch (_value) {
-    final int value => Integer._small(-value),
-    final BigInt value => Integer._(-value),
-    _ => throw StateError('Invalid representation'),
-  };
+  Integer operator -() =>
+      _value is int ? Integer._small(-_value) : Integer._(-(_value as BigInt));
 
   /// Returns the non-negative greatest common divisor of this value and
   /// [other].

@@ -22,9 +22,6 @@ final class Constant extends Expr {
   /// Euler's number $e \approx 2.718281828459045$.
   static const e = Constant('e', Complex(math.e));
 
-  /// The imaginary unit $i = \sqrt{-1}$, represented as [ComplexNumber.i].
-  static const ComplexNumber i = ComplexNumber.i;
-
   /// Positive infinity $+\infty$.
   static const infinity = Constant(
     'infinity',
@@ -75,7 +72,7 @@ final class Constant extends Expr {
   Set<String> get freeVariables => const {};
 
   @override
-  void collectFreeVariables(Set<String> target) {}
+  void _collectFreeVariables(Set<String> target) {}
 
   @override
   bool dependsOn(String variable) => false;

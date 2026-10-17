@@ -66,9 +66,7 @@ extension LinearFormExtension on Expr {
   if (varFactors.length != 1) return null;
   final sub = _matchLinear(varFactors.first, variable);
   if (sub == null) return null;
-  final scale = constFactors.isEmpty
-      ? IntegerNumber.one
-      : constFactors.length == 1
+  final scale = constFactors.length == 1
       ? constFactors.first
       : Mul(constFactors);
   return _validLinear(
@@ -93,9 +91,7 @@ extension LinearFormExtension on Expr {
       }
     }
   }
-  final a = aTerms.isEmpty
-      ? IntegerNumber.zero
-      : (aTerms.length == 1 ? aTerms.first : Add(aTerms)).simplify();
+  final a = (aTerms.length == 1 ? aTerms.first : Add(aTerms)).simplify();
   final b = bTerms.isEmpty
       ? IntegerNumber.zero
       : (bTerms.length == 1 ? bTerms.first : Add(bTerms)).simplify();

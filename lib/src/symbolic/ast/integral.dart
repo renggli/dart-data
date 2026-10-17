@@ -63,16 +63,16 @@ final class Integral extends Expr {
   }
 
   @override
-  void collectFreeVariables(Set<String> target) {
+  void _collectFreeVariables(Set<String> target) {
     if (isDefinite) {
       final innerVars = <String>{};
-      integrand.collectFreeVariables(innerVars);
+      integrand._collectFreeVariables(innerVars);
       innerVars.remove(variable);
       target.addAll(innerVars);
-      lower!.collectFreeVariables(target);
-      upper!.collectFreeVariables(target);
+      lower!._collectFreeVariables(target);
+      upper!._collectFreeVariables(target);
     } else {
-      integrand.collectFreeVariables(target);
+      integrand._collectFreeVariables(target);
       target.add(variable);
     }
   }

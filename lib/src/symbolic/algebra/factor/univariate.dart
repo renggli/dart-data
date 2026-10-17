@@ -44,14 +44,6 @@ PolyQ? extractPoly(Expr expr, String variable) {
       if (k == null || k < 0) return null;
       coeffMap[k] =
           (coeffMap[k] ?? IntegerNumber.zero).add(c) as RationalNumber;
-    } else if (!base.dependsOn(variable)) {
-      if (base is RationalNumber) {
-        final prod = c.mul(base) as RationalNumber;
-        coeffMap[0] =
-            (coeffMap[0] ?? IntegerNumber.zero).add(prod) as RationalNumber;
-      } else {
-        return null;
-      }
     } else {
       return null;
     }
@@ -213,16 +205,6 @@ Expr factorUnivariatePoly(PolyQ poly, String variable) {
     return buildFactoredExpr(scalar: scalar, factors: factors);
   }
 
-  if (currentDeg == 1) {
-    final linFactor = buildLinearFactor(
-      primitiveCoeffs[1],
-      -primitiveCoeffs[0],
-      variable,
-    );
-    factors[linFactor] = (factors[linFactor] ?? 0) + 1;
-    return buildFactoredExpr(scalar: scalar, factors: factors);
-  }
-
   // 6. Biquadratic check if degree 4
   if (currentDeg == 4 && primitiveCoeffs[3] == 0 && primitiveCoeffs[1] == 0) {
     final a = primitiveCoeffs[4];
@@ -304,35 +286,26 @@ List<(List<int>, int)>? _decomposeSquareFree(List<int> primitiveCoeffs) {
   return components.isEmpty ? null : components;
 }
 
-List<RationalNumber> _trimPoly(List<RationalNumber> coeffs) {
-  var end = coeffs.length;
-  while (end > 1 && coeffs[end - 1].isZero) {
-    end--;
-  }
-  return end == coeffs.length ? coeffs : coeffs.sublist(0, end);
-}
-
 List<RationalNumber> _makeMonic(List<RationalNumber> coeffs) {
-  final trimmed = _trimPoly(coeffs);
-  final lead = trimmed.last;
-  if (lead.isZero || lead.isOne) return trimmed;
-  return [for (final c in trimmed) c.divRational(lead)];
+  final lead = coeffs.last;
+  if (lead.isZero || lead.isOne) return coeffs;
+  return [for (final c in coeffs) c.divRational(lead)];
 }
 
 List<RationalNumber> _polyDerivative(List<RationalNumber> coeffs) {
   if (coeffs.length <= 1) return [IntegerNumber.zero];
-  return _trimPoly([
+  return [
     for (var i = 1; i < coeffs.length; i++)
       coeffs[i].mulRational(IntegerNumber.of(i)),
-  ]);
+  ];
 }
 
 (List<RationalNumber>, List<RationalNumber>)? _polyDivMod(
   List<RationalNumber> num,
   List<RationalNumber> den,
 ) {
-  final a = List<RationalNumber>.of(_trimPoly(num));
-  final b = _trimPoly(den);
+  final a = List<RationalNumber>.of(num);
+  final b = den;
   final degB = b.length - 1;
   if (b.last.isZero) return null;
   var degA = a.length - 1;
@@ -352,7 +325,7 @@ List<RationalNumber> _polyDerivative(List<RationalNumber> coeffs) {
       degA--;
     }
   }
-  return (_trimPoly(quot), _trimPoly(a.sublist(0, degA + 1)));
+  return (quot, a.sublist(0, degA + 1));
 }
 
 List<RationalNumber>? _polyExactDiv(
@@ -367,8 +340,8 @@ List<RationalNumber>? _polyExactDiv(
 }
 
 List<RationalNumber> _polyGcd(List<RationalNumber> a, List<RationalNumber> b) {
-  var x = _trimPoly(a);
-  var y = _trimPoly(b);
+  var x = a;
+  var y = b;
   while (!(y.length == 1 && y[0].isZero)) {
     final dm = _polyDivMod(x, y);
     if (dm == null) break;

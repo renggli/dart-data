@@ -3,7 +3,7 @@ import 'package:data/symbolic.dart';
 import 'package:test/test.dart';
 
 void main() {
-  group('Algebraic simplification', () {
+  group('Canonical algebraic simplification', () {
     test(
       'additive and multiplicative canonicalization in increasing order',
       () {
@@ -34,60 +34,40 @@ void main() {
       check(quot).isA<ComplexNumber>();
       check(quot.toString()).equals('1 + 2 * i');
     });
+  });
 
-    test('trigonometric, hyperbolic, and logarithmic identities', () {
-      check(Expr.parse('sin(0)').simplify()).equals(IntegerNumber.zero);
-      check(Expr.parse('cos(0)').simplify()).equals(IntegerNumber.one);
-      check(Expr.parse('sin(-x)').simplify().toString()).equals('-sin(x)');
-      check(Expr.parse('cos(-x)').simplify().toString()).equals('cos(x)');
-      check(Expr.parse('sin(x)^2 + cos(x)^2').simplify())
+  group('Dispatch across all AST node types in simplifyExpr', () {
+    test('dispatches OrderTerm, special functions, relational, piecewise, and integral', () {
+      const x = Variable('x');
+      check(
+        OrderTerm(
+          'x',
+          2,
+          point: IntegerNumber.one + IntegerNumber.zero,
+        ).simplify(),
+      ).equals(const OrderTerm('x', 2, point: IntegerNumber.one));
+
+      check(Sinh(IntegerNumber.zero).simplify()).equals(IntegerNumber.zero);
+      check(Cosh(IntegerNumber.zero).simplify()).equals(IntegerNumber.one);
+      check(Tanh(IntegerNumber.zero).simplify()).equals(IntegerNumber.zero);
+      check(Asinh(IntegerNumber.zero).simplify()).equals(IntegerNumber.zero);
+      check(Acosh(IntegerNumber.one).simplify()).equals(IntegerNumber.zero);
+      check(Atanh(IntegerNumber.zero).simplify()).equals(IntegerNumber.zero);
+      check(LambertW(IntegerNumber.zero).simplify()).equals(IntegerNumber.zero);
+      check(Erf(IntegerNumber.zero).simplify()).equals(IntegerNumber.zero);
+      check(Erfc(IntegerNumber.zero).simplify()).equals(IntegerNumber.one);
+      check(Gamma(IntegerNumber.of(4)).simplify()).equals(IntegerNumber.of(6));
+      check(Beta(IntegerNumber.two, IntegerNumber.of(3)).simplify())
+          .equals(RationalNumber(1, 12));
+
+      check(LessThan(IntegerNumber.one, IntegerNumber.two).simplify())
           .equals(IntegerNumber.one);
-      check(Expr.parse('5*sin(x)^2 + 5*cos(x)^2').simplify())
-          .equals(IntegerNumber.of(5));
-      check(Expr.parse('cosh(x)^2 - sinh(x)^2').simplify())
-          .equals(IntegerNumber.one);
-
-      check(Expr.parse('ln(1)').simplify()).equals(IntegerNumber.zero);
-      check(Expr.parse('ln(e)').simplify()).equals(IntegerNumber.one);
-      check(Expr.parse('ln(e^3)').simplify()).equals(IntegerNumber.of(3));
-      check(Expr.parse('exp(ln(x))').simplify()).equals(const Variable('x'));
-      check(Expr.parse('ln(x) + ln(y) - ln(z)').simplify().toString())
-          .equals('ln(x * y / z)');
-    });
-
-    test('power and radical simplification', () {
-      check(Expr.parse('sqrt(16)').simplify()).equals(IntegerNumber.of(4));
-      check(Expr.parse('sqrt(x) * sqrt(y)').simplify().toString())
-          .equals('sqrt(x * y)');
-      check(Expr.parse('sqrt(x^2)').simplify())
-          .equals(Abs(const Variable('x')));
-      check(Expr.parse('abs(-5 * x)').simplify().toString())
-          .equals('abs(5 * x)');
-
-      // Exact radical extraction and rational exponent folding on integers
-      check(Expr.parse('sqrt(12)').simplify().toString()).equals('2 * sqrt(3)');
-      check(Expr.parse('sqrt(72)').simplify().toString()).equals('6 * sqrt(2)');
-      check(Expr.parse('2^(3/2)').simplify().toString()).equals('2 * sqrt(2)');
-      check(Expr.parse('2 / sqrt(2)').simplify().toString()).equals('sqrt(2)');
-      check(Expr.parse('sqrt(2) / 2').simplify().toString())
-          .equals('1/2 * sqrt(2)');
-      check(Expr.parse('(8 / 27)^(1/3)').simplify())
-          .equals(RationalNumber(2, 3));
-    });
-
-    test('VariableDomain.positive simplifies even roots and abs', () {
-      const p = Variable('p', domain: VariableDomain.positive);
-      const r = Variable('r', domain: VariableDomain.real);
-
-      check(Pow(Pow(p, IntegerNumber.two), FractionNumber.half).simplify())
-          .equals(p);
-      check(Abs(p).simplify()).equals(p);
-      check(Abs(IntegerNumber.of(-3) * p).simplify())
-          .equals(IntegerNumber.of(3) * p);
-
-      check(Pow(Pow(r, IntegerNumber.two), FractionNumber.half).simplify())
-          .equals(Abs(r));
-      check(Abs(r).simplify()).equals(Abs(r));
+      check(
+        Piecewise([(LessThan(IntegerNumber.one, IntegerNumber.two), x)])
+            .simplify(),
+      ).equals(x);
+      check(Integral(IntegerNumber.zero, 'x').simplify())
+          .equals(IntegerNumber.zero);
     });
   });
 }

@@ -27,7 +27,7 @@ extension SymbolicMatrixExtension on Matrix<Expr> {
   Expr determinant() => const BareissEngine().determinant(this);
 
   /// Computes the characteristic polynomial $p(\lambda) = \det(\lambda I - A)$
-  /// of this square matrix using the [FaddeevLeVerrierEngine]:
+  /// of this square matrix using the Faddeev–LeVerrier algorithm:
   ///
   /// $$p(\lambda) = \lambda^n - \sum_{k=1}^n c_k \lambda^{n-k}$$
   ///

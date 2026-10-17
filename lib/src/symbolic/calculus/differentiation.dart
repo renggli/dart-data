@@ -31,126 +31,109 @@ extension DifferentiationExtension on Expr {
   }
 }
 
-Expr _differentiate(Expr expr, String variable) {
-  if (!expr.dependsOn(variable)) return IntegerNumber.zero;
-  return switch (expr) {
-    Number() || Constant() => IntegerNumber.zero,
-    Variable(:final name) =>
-      name == variable ? IntegerNumber.one : IntegerNumber.zero,
-    Add(:final terms) => Add(
-      terms.map((t) => _differentiate(t, variable)).toList(),
-    ),
-    Mul(:final factors) => _differentiateMul(factors, variable),
-    Pow(:final base, :final exponent) => _differentiatePow(
-      expr,
-      base,
-      exponent,
-      variable,
-    ),
-    Sin(expr: final inner) => Mul([
-      Cos(inner),
-      _differentiate(inner, variable),
-    ]),
-    Cos(expr: final inner) => Mul([
-      IntegerNumber.negativeOne,
-      Sin(inner),
-      _differentiate(inner, variable),
-    ]),
-    Tan(expr: final inner) =>
-      _differentiate(inner, variable) / Pow(Cos(inner), IntegerNumber.two),
-    Asin(expr: final inner) =>
-      _differentiate(inner, variable) /
-          Pow(
-            IntegerNumber.one - Pow(inner, IntegerNumber.two),
-            FractionNumber.half,
-          ),
-    Acos(expr: final inner) =>
-      (-_differentiate(inner, variable)) /
-          Pow(
-            IntegerNumber.one - Pow(inner, IntegerNumber.two),
-            FractionNumber.half,
-          ),
-    Atan(expr: final inner) =>
-      _differentiate(inner, variable) /
-          (IntegerNumber.one + Pow(inner, IntegerNumber.two)),
-    Sinh(expr: final inner) => Mul([
-      Cosh(inner),
-      _differentiate(inner, variable),
-    ]),
-    Cosh(expr: final inner) => Mul([
-      Sinh(inner),
-      _differentiate(inner, variable),
-    ]),
-    Tanh(expr: final inner) =>
-      _differentiate(inner, variable) / Pow(Cosh(inner), IntegerNumber.two),
-    Abs(expr: final inner) => Mul([
-      inner / Abs(inner),
-      _differentiate(inner, variable),
-    ]),
-    Ln(expr: final inner) => _differentiate(inner, variable) / inner,
-    OrderTerm(variable: final v, :final order, :final point) =>
-      v == variable
-          ? OrderTerm(v, order - 1, point: point)
-          : point.dependsOn(variable)
-          ? OrderTerm(v, order, point: point)
-          : IntegerNumber.zero,
-    LambertW(expr: final inner, :final branch) =>
-      _differentiate(inner, variable) /
-          Mul([
-            Pow(Constant.e, LambertW(inner, branch: branch)),
-            IntegerNumber.one + LambertW(inner, branch: branch),
-          ]),
-    Erf(expr: final inner) => Mul([
-      (IntegerNumber.two / Pow(Constant.pi, FractionNumber.half)),
-      Pow(Constant.e, -Pow(inner, IntegerNumber.two)),
-      _differentiate(inner, variable),
-    ]),
-    Erfc(expr: final inner) => Mul([
-      (IntegerNumber.of(-2) / Pow(Constant.pi, FractionNumber.half)),
-      Pow(Constant.e, -Pow(inner, IntegerNumber.two)),
-      _differentiate(inner, variable),
-    ]),
-    Gamma(expr: final inner) =>
-      !inner.dependsOn(variable)
-          ? IntegerNumber.zero
-          : throw UnsupportedError(
-              'Symbolic derivative of Gamma is non-elementary.',
-            ),
-    Beta(left: final l, right: final r) =>
-      (!l.dependsOn(variable) && !r.dependsOn(variable))
-          ? IntegerNumber.zero
-          : throw UnsupportedError(
-              'Symbolic derivative of Beta is non-elementary.',
-            ),
-    Asinh(expr: final inner) =>
-      _differentiate(inner, variable) /
-          Pow(
-            Pow(inner, IntegerNumber.two) + IntegerNumber.one,
-            FractionNumber.half,
-          ),
-    Acosh(expr: final inner) =>
-      _differentiate(inner, variable) /
-          Pow(
-            Pow(inner, IntegerNumber.two) - IntegerNumber.one,
-            FractionNumber.half,
-          ),
-    Atanh(expr: final inner) =>
-      _differentiate(inner, variable) /
-          (IntegerNumber.one - Pow(inner, IntegerNumber.two)),
-    RelationalExpr() => IntegerNumber.zero,
-    Piecewise(:final branches, :final otherwise) => Piecewise(
-      branches.map((b) => (b.$1, _differentiate(b.$2, variable))).toList(),
-      otherwise: otherwise != null ? _differentiate(otherwise, variable) : null,
-    ),
-    Integral(
-      :final integrand,
-      variable: final intVar,
-      :final lower,
-      :final upper,
-    ) =>
-      _differentiateIntegral(integrand, intVar, lower, upper, variable),
-  };
-}
+Expr _differentiate(Expr expr, String variable) => switch (expr) {
+  Number() || Constant() || RelationalExpr() => IntegerNumber.zero,
+  Variable(:final name) =>
+    name == variable ? IntegerNumber.one : IntegerNumber.zero,
+  _ when !expr.dependsOn(variable) => IntegerNumber.zero,
+  Add(:final terms) => Add(
+    terms.map((t) => _differentiate(t, variable)).toList(),
+  ),
+  Mul(:final factors) => _differentiateMul(factors, variable),
+  Pow(:final base, :final exponent) => _differentiatePow(
+    expr,
+    base,
+    exponent,
+    variable,
+  ),
+  Sin(expr: final inner) => Mul([Cos(inner), _differentiate(inner, variable)]),
+  Cos(expr: final inner) => Mul([
+    IntegerNumber.negativeOne,
+    Sin(inner),
+    _differentiate(inner, variable),
+  ]),
+  Tan(expr: final inner) =>
+    _differentiate(inner, variable) / Pow(Cos(inner), IntegerNumber.two),
+  Asin(expr: final inner) =>
+    _differentiate(inner, variable) /
+        Pow(
+          IntegerNumber.one - Pow(inner, IntegerNumber.two),
+          FractionNumber.half,
+        ),
+  Acos(expr: final inner) =>
+    (-_differentiate(inner, variable)) /
+        Pow(
+          IntegerNumber.one - Pow(inner, IntegerNumber.two),
+          FractionNumber.half,
+        ),
+  Atan(expr: final inner) =>
+    _differentiate(inner, variable) /
+        (IntegerNumber.one + Pow(inner, IntegerNumber.two)),
+  Sinh(expr: final inner) => Mul([
+    Cosh(inner),
+    _differentiate(inner, variable),
+  ]),
+  Cosh(expr: final inner) => Mul([
+    Sinh(inner),
+    _differentiate(inner, variable),
+  ]),
+  Tanh(expr: final inner) =>
+    _differentiate(inner, variable) / Pow(Cosh(inner), IntegerNumber.two),
+  Abs(expr: final inner) => Mul([
+    inner / Abs(inner),
+    _differentiate(inner, variable),
+  ]),
+  Ln(expr: final inner) => _differentiate(inner, variable) / inner,
+  OrderTerm(variable: final v, :final order, :final point) =>
+    v == variable
+        ? OrderTerm(v, order - 1, point: point)
+        : OrderTerm(v, order, point: point),
+  LambertW(expr: final inner, :final branch) =>
+    _differentiate(inner, variable) /
+        Mul([
+          Pow(Constant.e, LambertW(inner, branch: branch)),
+          IntegerNumber.one + LambertW(inner, branch: branch),
+        ]),
+  Erf(expr: final inner) => Mul([
+    (IntegerNumber.two / Pow(Constant.pi, FractionNumber.half)),
+    Pow(Constant.e, -Pow(inner, IntegerNumber.two)),
+    _differentiate(inner, variable),
+  ]),
+  Erfc(expr: final inner) => Mul([
+    (IntegerNumber.of(-2) / Pow(Constant.pi, FractionNumber.half)),
+    Pow(Constant.e, -Pow(inner, IntegerNumber.two)),
+    _differentiate(inner, variable),
+  ]),
+  Gamma() || Beta() => throw UnsupportedError(
+    'Symbolic derivative of ${expr.runtimeType} is non-elementary.',
+  ),
+  Asinh(expr: final inner) =>
+    _differentiate(inner, variable) /
+        Pow(
+          Pow(inner, IntegerNumber.two) + IntegerNumber.one,
+          FractionNumber.half,
+        ),
+  Acosh(expr: final inner) =>
+    _differentiate(inner, variable) /
+        Pow(
+          Pow(inner, IntegerNumber.two) - IntegerNumber.one,
+          FractionNumber.half,
+        ),
+  Atanh(expr: final inner) =>
+    _differentiate(inner, variable) /
+        (IntegerNumber.one - Pow(inner, IntegerNumber.two)),
+  Piecewise(:final branches, :final otherwise) => Piecewise(
+    branches.map((b) => (b.$1, _differentiate(b.$2, variable))).toList(),
+    otherwise: otherwise != null ? _differentiate(otherwise, variable) : null,
+  ),
+  Integral(
+    :final integrand,
+    variable: final intVar,
+    :final lower,
+    :final upper,
+  ) =>
+    _differentiateIntegral(integrand, intVar, lower, upper, variable),
+};
 
 Expr _differentiateIntegral(
   Expr integrand,
@@ -193,7 +176,6 @@ Expr _differentiateIntegral(
       ),
     );
   }
-  if (terms.isEmpty) return IntegerNumber.zero;
   if (terms.length == 1) return terms.first;
   return Add(terms);
 }
@@ -241,7 +223,6 @@ Expr _differentiateMul(List<Expr> factors, String variable) {
     }
   }
 
-  if (varFactors.isEmpty) return IntegerNumber.zero;
   if (varFactors.length == 1) {
     final d = _differentiate(varFactors.first, variable);
     return constFactors.isEmpty ? d : Mul([...constFactors, d]);
@@ -263,20 +244,21 @@ Expr _differentiatePow(Expr expr, Expr base, Expr exponent, String variable) {
   if (base == Constant.e) {
     return Mul([expr, _differentiate(exponent, variable)]);
   }
-  return switch ((base.dependsOn(variable), exponent.dependsOn(variable))) {
-    (false, false) => IntegerNumber.zero,
-    (true, false) => Mul([
+  if (!exponent.dependsOn(variable)) {
+    return Mul([
       exponent,
       Pow(base, exponent - IntegerNumber.one),
       _differentiate(base, variable),
+    ]);
+  }
+  if (!base.dependsOn(variable)) {
+    return Mul([expr, Ln(base), _differentiate(exponent, variable)]);
+  }
+  return Mul([
+    expr,
+    Add([
+      Mul([_differentiate(exponent, variable), Ln(base)]),
+      (exponent * _differentiate(base, variable)) / base,
     ]),
-    (false, true) => Mul([expr, Ln(base), _differentiate(exponent, variable)]),
-    (true, true) => Mul([
-      expr,
-      Add([
-        Mul([_differentiate(exponent, variable), Ln(base)]),
-        (exponent * _differentiate(base, variable)) / base,
-      ]),
-    ]),
-  };
+  ]);
 }

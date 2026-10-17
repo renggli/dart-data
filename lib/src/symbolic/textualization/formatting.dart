@@ -109,19 +109,28 @@ partitionMulFraction(List<Expr> factors) {
 /// between adjacent factors [left] and [right].
 bool canOmitMulDot(Expr left, Expr right) {
   final l = rightmostMulFactor(left);
-  if (l is! RealNumeric) return false;
   final r = leftmostMulFactor(right);
-  return switch (r) {
-    RealNumeric() => false,
-    ComplexNumber(:final real, :final imaginary) =>
-      real.isZero && imaginary.isOne,
-    _ when startsWithNegative(r) => false,
-    Pow(:final base, :final exponent) =>
-      base == Constant.e ||
-          (exponent != IntegerNumber.negativeOne && !startsWithNumber(r)),
-    _ => true,
-  };
+  if (startsWithNegative(r)) return false;
+  if (!needsMulRightParens(right) && startsWithNumber(r)) return false;
+  if (r is Pow && r.exponent == IntegerNumber.negativeOne) return false;
+  if (!needsMulLeftParens(left) &&
+      _isIdentifierOrPower(l) &&
+      !needsMulRightParens(right) &&
+      _isIdentifierOrPower(r)) {
+    return false;
+  }
+  return true;
 }
+
+bool _isIdentifierOrPower(Expr expr) => switch (expr) {
+  Variable() || Constant() || ComplexNumber() => true,
+  Pow(:final base, :final exponent) =>
+    !(exponent is RationalNumber &&
+            exponent.numerator == Integer.one &&
+            exponent.denominator >= Integer.two) &&
+        matchFunctionPower(base, exponent) == null,
+  _ => false,
+};
 
 /// Whether [expr] begins with a negative sign when formatted.
 bool startsWithNegative(Expr expr) => switch (expr) {

@@ -272,11 +272,7 @@ RationalNumber _absorbRationalCoeffIntoRadicals(
         currentCoeff = currentCoeff.divRational(base);
         newExp = newExp.addRational(IntegerNumber.one);
       }
-      if (newExp.isZero) {
-        baseExponents.remove(base);
-      } else {
-        baseExponents[base] = newExp;
-      }
+      baseExponents[base] = newExp;
     }
   }
   return currentCoeff;

@@ -239,7 +239,7 @@ void main() {
       test(
         'detects presence of imaginary constant i in various AST locations',
         () {
-          check(containsImaginary(Constant.i)).isTrue();
+          check(containsImaginary(ComplexNumber.i)).isTrue();
           check(containsImaginary(Expr.parse('exp(i * x)'))).isTrue();
           check(containsImaginary(Expr.parse('(x + i)^2'))).isTrue();
           check(containsImaginary(Expr.parse('sin(2 * i)'))).isTrue();

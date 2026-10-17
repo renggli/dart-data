@@ -8,8 +8,7 @@ import 'ast.dart';
 import 'compiler/bytecode.dart';
 import 'compiler/evaluator.dart';
 
-export 'compiler/bytecode.dart';
-export 'compiler/evaluator.dart';
+export 'compiler/evaluator.dart' show BytecodeEvaluator;
 
 /// Extension providing zero-allocation high-throughput bytecode compilation of
 /// symbolic expressions.

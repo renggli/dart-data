@@ -142,9 +142,5 @@ class SylvesterResultantSolver {
     return solutions;
   }
 
-  static bool _isZeroCoeff(Expr expr) => switch (expr) {
-    Number(isZero: true) => true,
-    RealNumber(value: 0.0) => true,
-    _ => false,
-  };
+  static bool _isZeroCoeff(Expr expr) => expr is Number && expr.isZero;
 }

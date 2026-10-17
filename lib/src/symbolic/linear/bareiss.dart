@@ -115,33 +115,6 @@ class BareissEngine {
       if (allClean && !_hasDiv(current)) return current.expand().simplify();
     }
 
-    // Monomial division path: if den is a monomial, divide additive terms
-    if (isMonomial(den) ||
-        den is Variable ||
-        den is Number ||
-        den is Constant) {
-      final expanded = num.expand();
-      final terms = <Expr>[];
-      collectAdditiveTerms(expanded, 1, terms);
-      if (terms.isNotEmpty) {
-        var quotientSum = IntegerNumber.zero as Expr;
-        var allDivided = true;
-        for (final t in terms) {
-          try {
-            final q = divideMonomial(t, den);
-            quotientSum = quotientSum + q;
-          } catch (_) {
-            allDivided = false;
-            break;
-          }
-        }
-        if (allDivided) {
-          final res = quotientSum.expand().simplify();
-          if (!_hasDiv(res)) return res;
-        }
-      }
-    }
-
     // Polynomial long division path (univariate or multivariate)
     final polyDiv = _polynomialLongDivide(num, den);
     if (polyDiv != null && !_hasDiv(polyDiv)) {
@@ -153,10 +126,7 @@ class BareissEngine {
 
   static Expr? _polynomialLongDivide(Expr num, Expr den) {
     final vars = den.freeVariables.toList();
-    if (vars.isEmpty) {
-      final res = (num / den).expand().simplify();
-      return _hasDiv(res) ? null : res;
-    }
+    if (vars.isEmpty) return null;
 
     // Rank candidate variables
     final candidates = <(String, int, int, Expr)>[];
@@ -258,21 +228,11 @@ class BareissEngine {
     }
     if (term is Pow && term.exponent is IntegerNumber) {
       final exp = (term.exponent as IntegerNumber).asInt;
-      if (exp != null && exp > 0) {
-        if (term.base is Variable && (term.base as Variable).name == v) {
-          return (exp, IntegerNumber.one);
-        }
-        if (term.base is Mul) {
-          var totalDeg = 0;
-          var totalCoeff = IntegerNumber.one as Expr;
-          for (final f in (term.base as Mul).factors) {
-            final part = exp == 1 ? f : Pow(f, term.exponent);
-            final (d, c) = _termDegreeAndCoeff(part, v);
-            totalDeg += d;
-            totalCoeff = (totalCoeff * c).simplify();
-          }
-          return (totalDeg, totalCoeff);
-        }
+      if (exp != null &&
+          exp > 0 &&
+          term.base is Variable &&
+          (term.base as Variable).name == v) {
+        return (exp, IntegerNumber.one);
       }
     }
     if (!term.dependsOn(v)) {
@@ -306,13 +266,8 @@ class BareissEngine {
   );
 
   static bool _isExprZero(Expr expr) {
-    if (expr == IntegerNumber.zero) return true;
     if (expr is Number && expr.isZero) return true;
     final s = expr.expand().simplify();
-    return switch (s) {
-      RationalNumber(isZero: true) => true,
-      RealNumber(value: 0.0) => true,
-      _ => false,
-    };
+    return s is Number && s.isZero;
   }
 }

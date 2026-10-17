@@ -41,6 +41,8 @@ void main() {
       check(Integer.one.asInt).equals(1);
       check(Integer.two.asInt).equals(2);
       check(Integer.negativeOne.asInt).equals(-1);
+      final unsafe = int.parse('9007199254740992');
+      check(() => Integer(unsafe)).throws<AssertionError>();
     });
     test('from int', () {
       check(Integer.from(Integer.maxSafe).isBig).isFalse();

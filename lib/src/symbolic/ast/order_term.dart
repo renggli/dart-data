@@ -24,9 +24,9 @@ final class OrderTerm extends Expr {
   double evaluate([Map<String, double> context = const {}]) => 0.0;
 
   @override
-  void collectFreeVariables(Set<String> target) {
+  void _collectFreeVariables(Set<String> target) {
     target.add(variable);
-    point.collectFreeVariables(target);
+    point._collectFreeVariables(target);
   }
 
   @override

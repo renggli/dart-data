@@ -465,16 +465,3 @@ class ExprSyntaxBuilder {
     caseInsensitiveFunctions: caseInsensitiveFunctions,
   );
 }
-
-/// Grammar and parser for mathematical expressions into [Expr] ASTs.
-class Parser {
-  new _();
-
-  /// Parses [input] into an [Expr], throwing [FormatException] on syntax errors.
-  static Expr parse(String input, {ExprSyntax? syntax}) =>
-      (syntax ?? ExprSyntax.standard()).parse(input);
-
-  /// Parses [input] into an [Expr], or returns `null` if [input] is invalid.
-  static Expr? tryParse(String input, {ExprSyntax? syntax}) =>
-      (syntax ?? ExprSyntax.standard()).tryParse(input);
-}

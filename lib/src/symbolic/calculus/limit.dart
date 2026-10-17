@@ -364,15 +364,6 @@ Expr? _rationalFunctionLimitAtInfinity(Expr expr, String variable) {
     }
   }
 
-  if (!acc.constant.isZero && maxDegree < 0) {
-    maxDegree = 0;
-    leadCoeff = acc.constant;
-  }
-
-  if (maxDegree < 0) {
-    return (0, IntegerNumber.zero);
-  }
-
   return (maxDegree, leadCoeff ?? IntegerNumber.one);
 }
 
@@ -425,10 +416,7 @@ Expr _gruntzLimit(Expr expr, String variable) {
         final lead = series.leadingTerm;
         if (lead != null) {
           if (lead.exponent > 0) return IntegerNumber.zero;
-          if (lead.exponent == 0) {
-            if (!lead.coefficient.dependsOn(variable)) return lead.coefficient;
-            return computeLimit(lead.coefficient, variable, Constant.infinity);
-          }
+          if (lead.exponent == 0) return lead.coefficient;
           final sign = _asymptoticSignAtInfinity(lead.coefficient, variable);
           return sign > 0 ? Constant.infinity : _negInfinity;
         }
@@ -500,13 +488,6 @@ Expr _rewriteSingleExp(
   int targetDeg,
   RationalNumber alpha,
 ) {
-  if (!inner.dependsOn(variable)) {
-    return Pow(
-      Constant.e,
-      _rewriteExpInOmega(inner, variable, omega, targetDeg, alpha),
-    );
-  }
-
   final dom = _extractDominantPolynomialTerm(inner, variable);
   if (dom != null && dom.degree == targetDeg && !dom.coeff.isZero) {
     final ratio = dom.coeff.divRational(alpha);
@@ -607,14 +588,6 @@ Expr? _tryFactorLogAdd(Expr a, Expr b, String variable) {
           .simplify();
     }
   }
-  if (a is Pow && a.base == Constant.e && a.exponent.dependsOn(variable)) {
-    final dom = _extractDominantPolynomialTerm(a.exponent, variable);
-    if (dom != null && dom.coeff.sign > 0) {
-      final negU = (-a.exponent).simplify();
-      return (a.exponent + Ln(IntegerNumber.one + b * Pow(Constant.e, negU)))
-          .simplify();
-    }
-  }
   return null;
 }
 
@@ -653,12 +626,11 @@ Expr? _tryFactorLogAdd(Expr a, Expr b, String variable) {
         scan(right);
       case UnaryExpr(:final expr):
         scan(expr);
-      case Piecewise(:final branches, :final otherwise):
+      case Piecewise(:final branches):
         for (final (cond, b) in branches) {
           scan(cond);
           scan(b);
         }
-        if (otherwise != null) scan(otherwise);
       case Integral(:final integrand, :final lower, :final upper):
         scan(integrand);
         if (lower != null) scan(lower);

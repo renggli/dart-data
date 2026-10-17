@@ -15,8 +15,8 @@ sealed class UnaryExpr extends Expr {
   late final int hashCode = _computeHash();
 
   @override
-  void collectFreeVariables(Set<String> target) {
-    expr.collectFreeVariables(target);
+  void _collectFreeVariables(Set<String> target) {
+    expr._collectFreeVariables(target);
   }
 
   @override
@@ -58,9 +58,9 @@ sealed class BinaryExpr extends Expr {
   late final int hashCode = Object.hash(runtimeType, left, right);
 
   @override
-  void collectFreeVariables(Set<String> target) {
-    left.collectFreeVariables(target);
-    right.collectFreeVariables(target);
+  void _collectFreeVariables(Set<String> target) {
+    left._collectFreeVariables(target);
+    right._collectFreeVariables(target);
   }
 
   @override
@@ -106,9 +106,9 @@ final class Add extends Expr {
   }
 
   @override
-  void collectFreeVariables(Set<String> target) {
+  void _collectFreeVariables(Set<String> target) {
     for (var i = 0; i < terms.length; i++) {
-      terms[i].collectFreeVariables(target);
+      terms[i]._collectFreeVariables(target);
     }
   }
 
@@ -177,9 +177,9 @@ final class Mul extends Expr {
   }
 
   @override
-  void collectFreeVariables(Set<String> target) {
+  void _collectFreeVariables(Set<String> target) {
     for (var i = 0; i < factors.length; i++) {
-      factors[i].collectFreeVariables(target);
+      factors[i]._collectFreeVariables(target);
     }
   }
 

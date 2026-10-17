@@ -105,7 +105,7 @@ void main(List<String> arguments) {
       ].map(Expr.parse).toList();
       return measure(
         name,
-        () => solvePolynomialSystem(equations, ['a', 'b', 'c']),
+        () => equations.solvePolynomialSystem(['a', 'b', 'c']),
         runs: 21,
         inner: 5,
       );
@@ -119,7 +119,7 @@ void main(List<String> arguments) {
       ].map(Expr.parse).toList();
       return measure(
         name,
-        () => solvePolynomialSystem(equations, ['a', 'b', 'c', 'd']),
+        () => equations.solvePolynomialSystem(['a', 'b', 'c', 'd']),
         warmup: 1,
         runs: 3,
       );

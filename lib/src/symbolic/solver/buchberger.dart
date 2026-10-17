@@ -40,7 +40,7 @@ class BuchbergerEngine {
       }
 
       final pair = pairs.removeAt(0);
-      if (pair.sugar > maxDegree) {
+      if (pair.sugar > maxDegree || pair.lcm.totalDegree > maxDegree) {
         throw StateError('Buchberger degree bound ($maxDegree) exceeded.');
       }
 
@@ -49,17 +49,10 @@ class BuchbergerEngine {
         pair.g,
         order: order,
       );
-      if (sPoly.sugar > maxDegree || sPoly.totalDegree > maxDegree) {
-        throw StateError('Buchberger degree bound ($maxDegree) exceeded.');
-      }
 
       final remainder = sPoly.reduce(gBasis, order: order);
       if (!remainder.isZero) {
         final monicRemainder = remainder.monic(order);
-        if (monicRemainder.sugar > maxDegree ||
-            monicRemainder.totalDegree > maxDegree) {
-          throw StateError('Buchberger degree bound ($maxDegree) exceeded.');
-        }
 
         // If constant polynomial 1 is derived, basis is {1}
         if (monicRemainder.leadingMonomial(order).isZero) {
@@ -227,9 +220,6 @@ class _CriticalPair implements Comparable<_CriticalPair> {
   @override
   int compareTo(_CriticalPair other) {
     if (sugar != other.sugar) return sugar.compareTo(other.sugar);
-    if (lcm.totalDegree != other.lcm.totalDegree) {
-      return lcm.totalDegree.compareTo(other.lcm.totalDegree);
-    }
     final monCmp = order.compare(lcm, other.lcm);
     if (monCmp != 0) return monCmp;
     return id.compareTo(other.id);

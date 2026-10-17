@@ -3,9 +3,10 @@ import 'package:data/symbolic.dart';
 import 'package:test/test.dart';
 
 void main() {
-  group('Special functions and inverse hyperbolic AST', () {
-    test('Erf and Erfc identities and evaluation', () {
+  group('Error functions (Erf and Erfc)', () {
+    test('identities, evaluation, substitution, and mapChildren', () {
       const x = Variable('x');
+      const y = Variable('y');
       check(Erf(IntegerNumber.zero).simplify()).equals(IntegerNumber.zero);
       check(Erfc(IntegerNumber.zero).simplify()).equals(IntegerNumber.one);
       check(Erf(Constant.infinity).simplify()).equals(IntegerNumber.one);
@@ -15,19 +16,39 @@ void main() {
       const v = 0.7;
       check(Erf(x).evaluate({'x': v}) + Erfc(x).evaluate({'x': v}))
           .isCloseTo(1.0, 1e-14);
-    });
 
-    test('Gamma and Beta exact factorials and half-integers', () {
+      check(Erf(x).substitute('x', y)).equals(Erf(y));
+      check(Erf(x).mapChildren((_) => y)).equals(Erf(y));
+      check(Erfc(x).substitute('x', y)).equals(Erfc(y));
+      check(Erfc(x).mapChildren((_) => y)).equals(Erfc(y));
+    });
+  });
+
+  group('Euler Gamma and Beta functions', () {
+    test('exact factorials, half-integers, evaluation, substitution, and mapChildren', () {
+      const x = Variable('x');
+      const y = Variable('y');
       check(Gamma(IntegerNumber.one).simplify()).equals(IntegerNumber.one);
       check(Gamma(IntegerNumber.of(5)).simplify()).equals(IntegerNumber.of(24));
       check(Gamma(FractionNumber.half).simplify())
           .equals(Pow(Constant.pi, FractionNumber.half, isSimplified: true));
+      check(Gamma(x).evaluate({'x': 4.0})).isCloseTo(6.0, 1e-12);
+      check(Gamma(x).substitute('x', y)).equals(Gamma(y));
+      check(Gamma(x).mapChildren((_) => y)).equals(Gamma(y));
 
       check(Beta(IntegerNumber.of(2), IntegerNumber.of(3)).simplify())
           .equals(RationalNumber(1, 12));
+      check(Beta(x, y).evaluate({'x': 2.0, 'y': 3.0}))
+          .isCloseTo(1.0 / 12.0, 1e-12);
+      check(Beta(x, y).substitute('x', IntegerNumber.two))
+          .equals(Beta(IntegerNumber.two, y));
+      check(Beta(x, y).mapChildren((e) => e == x ? IntegerNumber.two : e))
+          .equals(Beta(IntegerNumber.two, y));
     });
+  });
 
-    test('Asinh, Acosh, and Atanh simplification and evaluation', () {
+  group('Inverse hyperbolic functions (Asinh, Acosh, Atanh)', () {
+    test('simplification and evaluation', () {
       const x = Variable('x');
       check(Asinh(IntegerNumber.zero).simplify()).equals(IntegerNumber.zero);
       check(Acosh(IntegerNumber.one).simplify()).equals(IntegerNumber.zero);

@@ -184,13 +184,8 @@ class FaddeevLeVerrierEngine {
   }
 
   static bool _isZero(Expr expr) {
-    if (expr == IntegerNumber.zero) return true;
     if (expr is Number && expr.isZero) return true;
     final s = expr.expand().simplify();
-    return switch (s) {
-      RationalNumber(isZero: true) => true,
-      RealNumber(value: 0.0) => true,
-      _ => false,
-    };
+    return s is Number && s.isZero;
   }
 }

@@ -16,9 +16,10 @@ import 'dart:math';
 /// final val = lambertW0(0.0); // 0.0
 /// ```
 double lambertW0(num z) {
-  if (z.isNaN || z < -_invE) {
+  if (z.isNaN || z < -_invE - 1e-15) {
     return double.nan;
   }
+  if ((z + _invE).abs() <= 1e-15) return -1.0;
   if (z == 0.0) return 0.0;
   if (z.isInfinite) return double.infinity;
   final zd = z.toDouble();
@@ -68,9 +69,10 @@ double lambertW0(num z) {
 /// final val = lambertW1(-0.1); // ~ -3.577152063957297
 /// ```
 double lambertW1(num z) {
-  if (z.isNaN || z < -_invE || z >= 0.0) {
+  if (z.isNaN || z < -_invE - 1e-15 || z >= 0.0) {
     return double.nan;
   }
+  if ((z + _invE).abs() <= 1e-15) return -1.0;
   final zd = z.toDouble();
   var wVal = -1.0;
   if (zd < -0.3) {

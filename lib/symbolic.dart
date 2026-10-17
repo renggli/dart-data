@@ -5,27 +5,26 @@ export 'src/symbolic/algebra/approximate.dart' show ApproximationExtension;
 export 'src/symbolic/algebra/expand.dart' show ExpandExtension;
 export 'src/symbolic/algebra/factor.dart' show FactorExtension;
 export 'src/symbolic/algebra/simplify.dart' show SimplifierExtension;
-export 'src/symbolic/algebra/structural_order.dart';
 export 'src/symbolic/ast.dart';
-export 'src/symbolic/calculus/differentiation.dart';
-export 'src/symbolic/calculus/integration.dart';
-export 'src/symbolic/calculus/limit.dart';
-export 'src/symbolic/calculus/linear_form.dart';
-export 'src/symbolic/calculus/multivariable.dart';
-export 'src/symbolic/calculus/series.dart';
-export 'src/symbolic/calculus/taylor.dart';
-export 'src/symbolic/compiler.dart';
-export 'src/symbolic/linear/bareiss.dart';
-export 'src/symbolic/linear/faddeev_leverrier.dart';
-export 'src/symbolic/linear/matrix.dart';
-export 'src/symbolic/number/integer.dart';
-export 'src/symbolic/number/rational.dart';
-export 'src/symbolic/parser.dart' show ExprSyntax, ExprSyntaxBuilder, Parser;
-export 'src/symbolic/solver/polynomial_system.dart';
-export 'src/symbolic/solver/resultant.dart';
-export 'src/symbolic/solver/system.dart';
-export 'src/symbolic/solver/univariate.dart';
-export 'src/symbolic/textualization/latex.dart';
-export 'src/symbolic/textualization/mathml.dart';
-export 'src/symbolic/textualization/string.dart';
-export 'src/symbolic/type/expr_data_type.dart';
+export 'src/symbolic/calculus/differentiation.dart'
+    show DifferentiationExtension;
+export 'src/symbolic/calculus/integration.dart' show IntegrationExtension;
+export 'src/symbolic/calculus/limit.dart' show LimitDirection, LimitExtension;
+export 'src/symbolic/calculus/multivariable.dart'
+    show MultivariableExtension, MultivariableIterableExtension;
+export 'src/symbolic/calculus/series.dart' show PowerSeries, SeriesExtension;
+export 'src/symbolic/calculus/taylor.dart' show TaylorExtension;
+export 'src/symbolic/compiler.dart'
+    show BytecodeEvaluator, CompilerExtension, CompilerIterableExtension;
+export 'src/symbolic/linear/matrix.dart'
+    show SymbolicMatrixExtension, SymbolicVectorExtension;
+export 'src/symbolic/number/integer.dart' show Integer;
+export 'src/symbolic/parser.dart' show ExprSyntax, ExprSyntaxBuilder;
+export 'src/symbolic/solver/polynomial_system.dart'
+    show PolynomialSystemMethod, PolynomialSystemSolverExtension;
+export 'src/symbolic/solver/system.dart' show SystemSolverExtension;
+export 'src/symbolic/solver/univariate.dart' show SolverExtension;
+export 'src/symbolic/textualization/latex.dart' show LatexExtension;
+export 'src/symbolic/textualization/mathml.dart' show MathMlExtension;
+export 'src/symbolic/type/expr_data_type.dart'
+    show ExprDataType, ExprEquality, ExprField, exprDataType;

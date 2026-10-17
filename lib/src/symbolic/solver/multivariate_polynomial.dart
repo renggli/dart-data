@@ -413,12 +413,7 @@ class MultivariatePolynomial {
       }
       final mon = Monomial(expList);
       final prev = termMap[mon] ?? IntegerNumber.zero;
-      final sum = prev.addRational(coeff);
-      if (sum.isZero) {
-        termMap.remove(mon);
-      } else {
-        termMap[mon] = sum;
-      }
+      termMap[mon] = prev.addRational(coeff);
     }
 
     return MultivariatePolynomial(variables, termMap);

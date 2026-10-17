@@ -168,44 +168,34 @@ class FglmEngine {
       ),
     );
 
-    // Gaussian elimination with partial pivoting
-    var lead = 0;
-    for (var r = 0; r < d; r++) {
-      if (lead >= k + 1) break;
-      var i = r;
-      while (matrix[i][lead].isZero) {
-        i++;
-        if (i == d) {
-          i = r;
-          lead++;
-          if (lead == k + 1) break;
-        }
+    // Gaussian elimination over the k linearly independent columns of vLex
+    for (var col = 0; col < k; col++) {
+      var pivotRow = col;
+      while (matrix[pivotRow][col].isZero) {
+        pivotRow++;
       }
-      if (lead >= k + 1) break;
 
-      // Swap rows i and r
-      final temp = matrix[i];
-      matrix[i] = matrix[r];
-      matrix[r] = temp;
+      final temp = matrix[pivotRow];
+      matrix[pivotRow] = matrix[col];
+      matrix[col] = temp;
 
-      final pivot = matrix[r][lead];
-      for (var col = 0; col < k + 1; col++) {
-        matrix[r][col] = matrix[r][col].divRational(pivot);
+      final pivot = matrix[col][col];
+      for (var c = col; c < k + 1; c++) {
+        matrix[col][c] = matrix[col][c].divRational(pivot);
       }
 
       for (var row = 0; row < d; row++) {
-        if (row != r) {
-          final factor = matrix[row][lead];
+        if (row != col) {
+          final factor = matrix[row][col];
           if (!factor.isZero) {
-            for (var col = 0; col < k + 1; col++) {
-              matrix[row][col] = matrix[row][col].subRational(
-                factor.mulRational(matrix[r][col]),
+            for (var c = col; c < k + 1; c++) {
+              matrix[row][c] = matrix[row][c].subRational(
+                factor.mulRational(matrix[col][c]),
               );
             }
           }
         }
       }
-      lead++;
     }
 
     // Check for inconsistency (row of zeros in coeffs, non-zero in target)

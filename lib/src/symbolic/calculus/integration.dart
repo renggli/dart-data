@@ -1,6 +1,5 @@
 import '../algebra/approximate.dart';
 import '../algebra/expand.dart';
-import '../algebra/factor.dart';
 import '../algebra/simplify.dart';
 import '../algebra/term_accumulator.dart';
 import '../ast.dart';
@@ -63,27 +62,7 @@ Expr _symbolicIntegrate(Expr function, String variable, {num? from, num? to}) {
               from > 0 ? Constant.infinity : -Constant.infinity,
             )
           : antiDeriv.substitute(variable, _numToExpr(from));
-      final diff = (upper - lower).simplify();
-      if (diff.freeVariables.isNotEmpty) {
-        return diff;
-      }
-      if (diff is Number) {
-        return diff;
-      }
-      try {
-        final val = diff.evaluate(const {});
-        if (val.isFinite) {
-          final rat = diff.rationalize(maxDenominator: 64);
-          if (rat is RationalNumber &&
-              (val - rat.toDouble()).abs() < 1e-12 &&
-              diff is! Constant) {
-            return diff;
-          }
-        }
-      } catch (_) {
-        // Return symbolic difference if numerical evaluation fails.
-      }
-      return diff;
+      return (upper - lower).simplify();
     } on Object {
       return Integral(
         function.simplify(),
@@ -456,12 +435,6 @@ Expr _antiDerivPow(Expr base, Expr exponent, Expr original, String variable) {
 }
 
 Expr? _tryAntiDerivDiv(Expr left, Expr right, String variable) {
-  // int (f / c) dx = (1/c) int f dx
-  if (!right.dependsOn(variable)) {
-    final anti = _antiDerivative(left, variable);
-    return anti.scale(IntegerNumber.one / right);
-  }
-
   // int (c / g(x)) dx
   if (!left.dependsOn(variable)) {
     // int c / (ax + b) dx = (c ln(ax + b)) / a
@@ -475,7 +448,8 @@ Expr? _tryAntiDerivDiv(Expr left, Expr right, String variable) {
         when !exponent.dependsOn(variable) &&
             base.matchLinear(variable) != null) {
       final negExp = (-exponent).simplify();
-      return _antiDerivative(left * Pow(base, negExp), variable);
+      final powExpr = Pow(base, negExp);
+      return _antiDerivPow(base, negExp, powExpr, variable).scale(left);
     }
 
     // int c / cosh(ax + b) dx = (c / a) * atan(sinh(ax + b))
@@ -487,23 +461,12 @@ Expr? _tryAntiDerivDiv(Expr left, Expr right, String variable) {
 
     // int c / (d + exp(ax + b)) dx = (c / d) * (x - (1 / a) * ln(d + exp(ax + b)))
     if (right case Add(:final terms) when terms.length == 2) {
-      Expr? constTerm;
-      Expr? expArg;
       final rL = terms[0];
       final rR = terms[1];
       if (!rL.dependsOn(variable) && rR is Pow && rR.base == Constant.e) {
-        constTerm = rL;
-        expArg = rR.exponent;
-      } else if (!rR.dependsOn(variable) &&
-          rL is Pow &&
-          rL.base == Constant.e) {
-        constTerm = rR;
-        expArg = rL.exponent;
-      }
-      if (constTerm != null && expArg != null) {
-        if (expArg.matchLinear(variable) case (:final a, b: _)) {
+        if (rR.exponent.matchLinear(variable) case (:final a, b: _)) {
           final term = (Variable(variable) - (Ln(right) / a)).simplify();
-          return ((left / constTerm) * term).simplify();
+          return ((left / rL) * term).simplify();
         }
       }
     }
@@ -516,8 +479,6 @@ Expr? _tryAntiDerivDiv(Expr left, Expr right, String variable) {
     Expr? u;
     if (rL case RationalNumber(isOne: true) || RealNumber(value: 1.0)) {
       u = _extractSquareBase(rR);
-    } else if (rR case RationalNumber(isOne: true) || RealNumber(value: 1.0)) {
-      u = _extractSquareBase(rL);
     }
     if (u != null && u.dependsOn(variable)) {
       final uPrime = u.derivative(variable).simplify();
@@ -527,25 +488,15 @@ Expr? _tryAntiDerivDiv(Expr left, Expr right, String variable) {
       }
     }
     // General positive constant a + sqTerm
-    Expr? aConst;
-    Expr? sqTerm;
-    if (!rL.dependsOn(variable) && rR.dependsOn(variable)) {
-      aConst = rL;
-      sqTerm = rR;
-    } else if (!rR.dependsOn(variable) && rL.dependsOn(variable)) {
-      aConst = rR;
-      sqTerm = rL;
-    }
-    if (aConst != null && sqTerm != null && _isPositiveConstant(aConst)) {
-      final w = _extractScaledSquareBase(
-        (sqTerm / aConst).simplify(),
-        variable,
-      );
+    if (!rL.dependsOn(variable) &&
+        rR.dependsOn(variable) &&
+        _isPositiveConstant(rL)) {
+      final w = _extractScaledSquareBase((rR / rL).simplify(), variable);
       if (w != null && w.dependsOn(variable)) {
         final wPrime = w.derivative(variable).simplify();
         final k = left.matchScalarMultiple(wPrime, variable);
         if (k != null) {
-          return Atan(w).scale((k / aConst).simplify());
+          return Atan(w).scale((k / rL).simplify());
         }
       }
     }
@@ -566,10 +517,6 @@ Expr? _tryAntiDerivDiv(Expr left, Expr right, String variable) {
       if ((t0 is RationalNumber && t0.isOne) ||
           (t0 is RealNumber && t0.value == 1.0)) {
         final negTerm = (-t1).simplify();
-        u = _extractSquareBase(negTerm);
-      } else if ((t1 is RationalNumber && t1.isOne) ||
-          (t1 is RealNumber && t1.value == 1.0)) {
-        final negTerm = (-t0).simplify();
         u = _extractSquareBase(negTerm);
       }
     }
@@ -603,15 +550,6 @@ Expr? _tryAntiDerivDiv(Expr left, Expr right, String variable) {
       final rInt = _antiDerivative((remainder / right).simplify(), variable);
       return (qInt + rInt).simplify();
     }
-
-    final original = (left / right).simplify();
-    final factored = original.factor().simplify();
-    if (factored != original) {
-      final (_, fDen) = splitNumeratorDenominator(factored);
-      if (!fDen.dependsOn(variable)) {
-        return _antiDerivative(factored, variable);
-      }
-    }
   }
 
   return null;
@@ -644,11 +582,6 @@ Expr _antiDerivMul(Mul original, String variable) {
         ? varFactors.first
         : Mul(varFactors).simplify();
     return _antiDerivative(varPart, variable).scale(constPart);
-  }
-
-  // All factors in varFactors depend on variable.
-  if (varFactors.length == 1) {
-    return _antiDerivative(varFactors.first, variable);
   }
 
   // 3. Chain-rule substitution across any factor as candidate and remaining product as factor:
@@ -796,9 +729,6 @@ Expr? _tryChainRulePower(
   final uPrime = base.derivative(variable).simplify();
   final k = factor.matchScalarMultiple(uPrime, variable);
   if (k != null) {
-    if (exponent is IntegerNumber && exponent.isNegativeOne) {
-      return Ln(base).scale(k);
-    }
     final nPlus1 = (exponent + IntegerNumber.one).simplify();
     final fU = (Pow(base, nPlus1) / nPlus1).simplify();
     return fU.scale(k);
@@ -1064,13 +994,11 @@ Expr? _extractScaledSquareBase(Expr expr, String variable) {
         constFactors.add(f);
       }
     }
-    if (constFactors.isNotEmpty && varFactors.isNotEmpty) {
+    if (constFactors.isNotEmpty && varFactors.length == 1) {
       final constPart = constFactors.length == 1
           ? constFactors.first
           : Mul(constFactors).simplify();
-      final varPart = varFactors.length == 1
-          ? varFactors.first
-          : Mul(varFactors).simplify();
+      final varPart = varFactors.first;
       if (_isPositiveConstant(constPart)) {
         final sq = _extractSquareBase(varPart);
         if (sq != null) {

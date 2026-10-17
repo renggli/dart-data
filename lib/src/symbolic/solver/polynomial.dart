@@ -34,8 +34,7 @@ List<Expr> solveQuadratic(Expr a, Expr b, Expr c) {
 
       Expr r1;
       Expr r2;
-      if ((realPart is Number && realPart.isZero) ||
-          (realPart is RealNumber && realPart.value == 0.0)) {
+      if (realPart is Number && realPart.isZero) {
         r1 = (imagPart * ComplexNumber.i).simplify();
         r2 = ((-imagPart) * ComplexNumber.i).simplify();
       } else {
@@ -61,8 +60,7 @@ List<Expr> solveQuadratic(Expr a, Expr b, Expr c) {
 
     Expr r1;
     Expr r2;
-    if ((realPart is Number && realPart.isZero) ||
-        (realPart is RealNumber && realPart.value == 0.0)) {
+    if (realPart is Number && realPart.isZero) {
       r1 = (imagPart * ComplexNumber.i).simplify();
       r2 = ((-imagPart) * ComplexNumber.i).simplify();
     } else {
@@ -186,8 +184,4 @@ Expr rootConstant(Expr c, int n) {
   return Pow(c, RationalNumber(1, n)).simplify();
 }
 
-bool _isZero(Expr expr) => switch (expr) {
-  Number(isZero: true) => true,
-  RealNumber(value: 0.0) => true,
-  _ => false,
-};
+bool _isZero(Expr expr) => expr is Number && expr.isZero;

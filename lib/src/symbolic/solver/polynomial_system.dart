@@ -18,8 +18,20 @@ enum PolynomialSystemMethod {
   groebner,
 }
 
+/// Extension on [Iterable] of [Expr] for solving multivariate polynomial systems.
+extension PolynomialSystemSolverExtension on Iterable<Expr> {
+  /// Solves this system of multivariate polynomial equations for [variables].
+  ///
+  /// Equations may be [Equal] nodes (`lhs = rhs`) or algebraic expressions
+  /// implicitly equated to $0$.
+  List<Map<String, Expr>> solvePolynomialSystem(
+    List<String> variables, {
+    PolynomialSystemMethod method = PolynomialSystemMethod.auto,
+  }) => solvePolynomialSystemEquations(toList(), variables, method: method);
+}
+
 /// Solves a polynomial system of [equations] in [variables].
-List<Map<String, Expr>> solvePolynomialSystem(
+List<Map<String, Expr>> solvePolynomialSystemEquations(
   List<Expr> equations,
   List<String> variables, {
   PolynomialSystemMethod method = PolynomialSystemMethod.auto,

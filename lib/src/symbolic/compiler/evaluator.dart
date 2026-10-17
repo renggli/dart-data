@@ -7,6 +7,7 @@ import '../../linear/vector.dart';
 import '../../special/beta.dart' as special_beta;
 import '../../special/erf.dart' as special_erf;
 import '../../special/gamma.dart' as special_gamma;
+import '../../special/lambert_w.dart' as special_lambert;
 import '../ast.dart';
 import 'bytecode.dart';
 
@@ -228,9 +229,9 @@ final class BytecodeEvaluator {
         case Op.sqrt:
           stack[sp - 1] = math.sqrt(stack[sp - 1]);
         case Op.lambertW0:
-          stack[sp - 1] = evaluateLambertWReal(stack[sp - 1], branch: 0);
+          stack[sp - 1] = special_lambert.lambertW0(stack[sp - 1]);
         case Op.lambertW1:
-          stack[sp - 1] = evaluateLambertWReal(stack[sp - 1], branch: -1);
+          stack[sp - 1] = special_lambert.lambertW1(stack[sp - 1]);
         case Op.erf:
           stack[sp - 1] = special_erf.erf(stack[sp - 1]);
         case Op.erfc:
@@ -373,9 +374,7 @@ final class BytecodeEvaluator {
               'Complex LambertW evaluation is only supported on R',
             );
           }
-          stack[sp - 1] = Complex(
-            evaluateLambertWReal(z.a.toDouble(), branch: 0),
-          );
+          stack[sp - 1] = Complex(special_lambert.lambertW0(z.a.toDouble()));
         case Op.lambertW1:
           final z = stack[sp - 1];
           if (z.b != 0.0) {
@@ -383,9 +382,7 @@ final class BytecodeEvaluator {
               'Complex LambertW evaluation is only supported on R',
             );
           }
-          stack[sp - 1] = Complex(
-            evaluateLambertWReal(z.a.toDouble(), branch: -1),
-          );
+          stack[sp - 1] = Complex(special_lambert.lambertW1(z.a.toDouble()));
         case Op.erf:
           final z = stack[sp - 1];
           if (z.b != 0.0) {

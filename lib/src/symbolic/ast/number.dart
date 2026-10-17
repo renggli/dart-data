@@ -204,7 +204,7 @@ sealed class Number extends Expr {
   Set<String> get freeVariables => const {};
 
   @override
-  void collectFreeVariables(Set<String> target) {}
+  void _collectFreeVariables(Set<String> target) {}
 
   @override
   bool dependsOn(String variable) => false;
@@ -321,7 +321,7 @@ sealed class RealNumeric extends Number implements Comparable<RealNumeric> {
   @override
   int compareTo(RealNumeric other) {
     if (this is RationalNumber && other is RationalNumber) {
-      return rationalCompare((this as RationalNumber).parts, other.parts);
+      return rationalCompare((this as RationalNumber)._parts, other._parts);
     }
     if (this is RealNumber && other is RealNumber) {
       return (this as RealNumber).value.compareTo(other.value);
@@ -355,8 +355,7 @@ sealed class RationalNumber extends RealNumeric {
         : FractionNumber(norm.numerator, norm.denominator);
   }
 
-  /// Creates an exact rational number from pre-normalized [RationalParts].
-  factory fromParts(RationalParts parts) => parts.denominator.isOne
+  factory _fromParts(RationalParts parts) => parts.denominator.isOne
       ? IntegerNumber(parts.numerator)
       : FractionNumber(parts.numerator, parts.denominator);
 
@@ -366,8 +365,7 @@ sealed class RationalNumber extends RealNumeric {
   /// The positive coprime denominator $q \ge 1$.
   Integer get denominator;
 
-  /// The normalized `(numerator, denominator)` record for `rational.dart` primitives.
-  RationalParts get parts => (numerator: numerator, denominator: denominator);
+  RationalParts get _parts => (numerator: numerator, denominator: denominator);
 
   /// Whether this rational number is an integer ($q = 1$).
   bool get isInteger => this is IntegerNumber;
@@ -403,29 +401,29 @@ sealed class RationalNumber extends RealNumeric {
 
   /// Returns the multiplicative inverse $q / p$ of this rational number.
   RationalNumber reciprocal() =>
-      RationalNumber.fromParts(rationalInvert(parts));
+      RationalNumber._fromParts(rationalInvert(_parts));
 
   /// Exact rational sum `this + other`.
   RationalNumber addRational(RationalNumber other) =>
-      RationalNumber.fromParts(rationalAdd(parts, other.parts));
+      RationalNumber._fromParts(rationalAdd(_parts, other._parts));
 
   /// Exact rational difference `this - other`.
   RationalNumber subRational(RationalNumber other) =>
-      RationalNumber.fromParts(rationalSubtract(parts, other.parts));
+      RationalNumber._fromParts(rationalSubtract(_parts, other._parts));
 
   /// Exact rational product `this * other`.
   RationalNumber mulRational(RationalNumber other) =>
-      RationalNumber.fromParts(rationalMultiply(parts, other.parts));
+      RationalNumber._fromParts(rationalMultiply(_parts, other._parts));
 
   /// Exact rational quotient `this / other`.
   RationalNumber divRational(RationalNumber other) =>
-      RationalNumber.fromParts(rationalDivide(parts, other.parts));
+      RationalNumber._fromParts(rationalDivide(_parts, other._parts));
 
   /// Exact rational integer power `this ^ exponent`, or `null` if the result
   /// exceeds the maximum bit-length limit.
   RationalNumber? powInteger(int exponent) {
-    final res = rationalPow(parts, exponent);
-    return res != null ? RationalNumber.fromParts(res) : null;
+    final res = rationalPow(_parts, exponent);
+    return res != null ? RationalNumber._fromParts(res) : null;
   }
 }
 

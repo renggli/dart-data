@@ -9,7 +9,6 @@ import 'parser.dart';
 import 'textualization/string.dart';
 
 export 'number/integer.dart';
-export 'number/rational.dart';
 
 part 'ast/complex_eval.dart';
 part 'ast/constant.dart';

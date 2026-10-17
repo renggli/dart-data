@@ -531,14 +531,14 @@ This document describes the achieved architecture across all subsystems of `pack
 
 - **Reasoning**: Mathematical expressions require a compact, uniform abstract syntax tree (AST) for analytical manipulation, canonical simplification, calculus transformations, and high-performance compilation. Unifying arithmetic into n-ary `Add`, `Mul`, and `Pow` nodes and representing numbers in a single atomic `Number` tower eliminates combinatorial pattern-matching explosion across algebra and calculus rules.
 - **Implementation & Constraints**:
-  - Base class `Expr` (`lib/src/symbolic/ast/expr.dart`) is an immutable `sealed class` defining foundational properties: `isSimplified`, `isReal`, `dependsOn`, `collectFreeVariables`, `freeVariables`, `substitute`, generic child traversal (`mapChildren`, `anyNode`), `evaluate(context)`, `evaluateComplex(context)`, and operator overloads (`+`, `-`, `*`, `/`, `-()`, `pow`).
+  - Base class `Expr` (`lib/src/symbolic/ast/expr.dart`) is an immutable `sealed class` defining foundational properties: `isSimplified`, `isReal`, `dependsOn`, `freeVariables`, `substitute`, generic child traversal (`mapChildren`, `anyNode`), `evaluate(context)`, `evaluateComplex(context)`, and operator overloads (`+`, `-`, `*`, `/`, `-()`, `pow`).
   - Cached Structural Hashing: All composite AST nodes (`UnaryExpr`, `BinaryExpr`, `Add`, `Mul`, `Piecewise`, `Integral`, with `LambertW` overriding `_computeHash()`) compute and cache their structural hash via `@override late final int hashCode` and short-circuit `hashCode == other.hashCode` in `operator ==`, preventing $O(2^d)$ hash recomputation on shared DAG subtrees.
   - Zero-cost arbitrary-precision integers (`lib/src/symbolic/number/integer.dart` and `rational.dart`):
     - `Integer` is an `extension type const Integer._(Object _value)` wrapping a Dart `int` for values within $\pm(2^{53}-1)$ and transparently promoting/demoting to `BigInt` on overflow.
   - Modularized across `lib/src/symbolic/ast/`:
     - `number.dart`: Atomic `Number` tower (`sealed class Number extends Expr`):
       - `RealNumeric` (`sealed class RealNumeric extends Number`): `RationalNumber` (`IntegerNumber` when $q = 1$, `FractionNumber` when $q > 1$ with $\gcd(|p|, q) = 1$) and finite `RealNumber` (`-0.0` normalized to `0.0`; non-finite doubles mapped via `RealNumber.fromDouble` to `Constant.infinity`, `-Constant.infinity`, or `Constant.undefined`).
-      - `ComplexNumber(RealNumeric real, RealNumeric imaginary)`: Atomic Gaussian/complex numeric node with `imaginary != 0`, auto-demoting to `real` via `ComplexNumber.of(real, imaginary)` when `imaginary.isZero`. Canonical imaginary unit is `ComplexNumber.i` (aliased as top-level `i` and `Constant.i`).
+      - `ComplexNumber(RealNumeric real, RealNumeric imaginary)`: Atomic Gaussian/complex numeric node with `imaginary != 0`, auto-demoting to `real` via `ComplexNumber.of(real, imaginary)` when `imaginary.isZero`. Canonical imaginary unit is `ComplexNumber.i`.
     - `constant.dart`: Opaque leaf `Constant(name, value, {latex, mathMl})` (not a `Number`) with built-ins `pi`, `e`, `infinity`, and `undefined` (NaN). `Constant.value` is a `Complex` used only for numeric evaluation, `approximate()`, and sign queries; symbolic transformations never fold constants into floats unless `.approximate()` is called.
     - `variable.dart`: `Variable(name, {domain = VariableDomain.unknown})` carrying an optional `VariableDomain` (`unknown`, `complex`, `real`, `positive`, `integer`) assumption used by algebraic simplification and equation solving.
     - `operator.dart`: Unified n-ary arithmetic operators (`Sub`, `Div`, `Neg`, and `Exp` are omitted):
@@ -615,8 +615,8 @@ This document describes the achieved architecture across all subsystems of `pack
     - Invertible transcendental and hyperbolic compositions (`lib/src/symbolic/solver/transcendental.dart`), including $u e^u = c$ and $u^u = c$ via `LambertW`.
     - Domain filtering: Filters candidate roots according to the explicit `domain` argument or the `VariableDomain` declared on `Variable(variable)` nodes in the equation (`real` excludes non-real complex roots, `positive` retains strictly positive real roots, `integer` retains exact integer roots).
   - Simultaneous systems:
-    - `solveSystem(variables)` / `solveSystemEquations(equations, variables)` (`lib/src/symbolic/solver/system.dart`): Exact symbolic Gaussian elimination and back-substitution for symbolic linear systems.
-    - `solvePolynomialSystem(equations, variables, {method = PolynomialSystemMethod.auto})` (`lib/src/symbolic/solver/polynomial_system.dart`): Solves multivariate nonlinear polynomial systems via Sylvester resultant elimination (`resultant.dart`) for 2-variable systems and Buchberger Gröbner basis + FGLM basis conversion (`buchberger.dart`, `fglm.dart`) for $n$-variable zero-dimensional ideals.
+    - `solveSystem(variables)` (`lib/src/symbolic/solver/system.dart`): Exact symbolic Gaussian elimination and back-substitution for symbolic linear systems.
+    - `solvePolynomialSystem(variables, {method = PolynomialSystemMethod.auto})` (`lib/src/symbolic/solver/polynomial_system.dart`): Solves multivariate nonlinear polynomial systems via Sylvester resultant elimination (`resultant.dart`) for 2-variable systems and Buchberger Gröbner basis + FGLM basis conversion (`buchberger.dart`, `fglm.dart`) for $n$-variable zero-dimensional ideals.
 
 ### 9.7 Extensible Parser & Presentation-Aware Textualization (String, LaTeX, MathML)
 
@@ -625,7 +625,7 @@ This document describes the achieved architecture across all subsystems of `pack
   - Presentation-aware rendering (`lib/src/symbolic/textualization/`):
     - Shared structural analysis helpers (`formatting.dart`) extract leading negatives (`stripLeadingNegative`), partition `Mul` factors into numerator and denominator lists (`partitionMulFraction`), detect positive powers of elementary functions (`matchFunctionPower`), and evaluate operator precedence parenthesization.
     - Even though the AST only has `Add`, `Mul`, and `Pow`, `string.dart` (`formatExpr`), `latex.dart` (`toLatex`), and `mathml.dart` (`toMathMl`) inspect term signs and factor exponents at render time to emit natural `a - b` (never `a + -b`), `-x` (never `-1 * x`), `<mo>&minus;</mo>` vs `<mo form="prefix">&minus;</mo>`, single combined fractions (`\frac{3 x}{4 y}`, `<mfrac>`), function power notation (`\sin^{2}(x)`, `<msup><mi>sin</mi><mn>2</mn></msup>`), radicals (`sqrt(x)`, `\sqrt{x}`, `<mroot><mrow>...</mrow></mroot>` / `<mroot><mrow>...</mrow><mn>n</mn></mroot>`), exponentials (`exp(x)`, `e^{x}`), and integrals (`\int`, `<mo>&#x222B;</mo>`).
-  - `ExprSyntax`, `ExprSyntaxBuilder`, and `Parser` (`lib/src/symbolic/parser.dart`):
+  - `ExprSyntax` and `ExprSyntaxBuilder` (`lib/src/symbolic/parser.dart`):
     - Configurable PetitParser grammar supporting custom constants (and aliases), bound session variables (e.g., `r0`, `ans`), custom unary/binary/variadic functions, and optional `implicitMultiplication` (`2x`, `2(x+1)`).
 
 

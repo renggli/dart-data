@@ -1,4 +1,5 @@
 import 'package:checks/checks.dart';
+import 'package:data/src/symbolic/textualization/formatting.dart';
 import 'package:data/symbolic.dart';
 import 'package:test/test.dart';
 
@@ -13,15 +14,82 @@ void main() {
     });
 
     test('renders subtraction, negation, division, sqrt, and complex numbers cleanly', () {
+      const x = Variable('x');
+      const y = Variable('y');
+
+      check(Add(const []).toString()).equals('0');
+      check(Add([x]).toString()).equals('x');
+      check(Mul(const []).toString()).equals('1');
+      check(Mul([x]).toString()).equals('x');
+      check(
+        Mul([Pow(x, IntegerNumber.negativeOne), Pow(y, IntegerNumber.of(-2))])
+            .toString(),
+      ).equals('1 / (x * y ^ 2)');
+      check(Mul([x, IntegerNumber.negativeOne, y]).toString()).equals('x * -y');
+
       check(Expr.parse('a - b').toString()).equals('a - b');
       check(Expr.parse('-x').toString()).equals('-x');
       check(Expr.parse('a / b').toString()).equals('a / b');
       check(Expr.parse('sqrt(x)').toString()).equals('sqrt(x)');
       check(Expr.parse('(2 + 3*i)').simplify().toString()).equals('2 + 3 * i');
+      check(Expr.parse('(2 - 3*i)').simplify().toString()).equals('2 - 3 * i');
+      check(Expr.parse('(2 + i)').simplify().toString()).equals('2 + i');
       check(Expr.parse('(2 - i)').simplify().toString()).equals('2 - i');
       check(Expr.parse('-i').simplify().toString()).equals('-i');
+      check(ComplexNumber(IntegerNumber.zero, IntegerNumber.of(3)).toString())
+          .equals('3 * i');
     });
 
+    test('renders all elementary, hyperbolic, special, relational, Piecewise, Integral, and OrderTerm nodes', () {
+      const x = Variable('x');
+      const y = Variable('y');
+
+      check(Tan(x).toString()).equals('tan(x)');
+      check(Asin(x).toString()).equals('asin(x)');
+      check(Acos(x).toString()).equals('acos(x)');
+      check(Sinh(x).toString()).equals('sinh(x)');
+      check(Cosh(x).toString()).equals('cosh(x)');
+      check(Tanh(x).toString()).equals('tanh(x)');
+      check(Asinh(x).toString()).equals('asinh(x)');
+      check(Acosh(x).toString()).equals('acosh(x)');
+      check(Atanh(x).toString()).equals('atanh(x)');
+      check(Abs(x).toString()).equals('abs(x)');
+
+      check(const OrderTerm('x', 0).toString()).equals('O(1)');
+      check(const OrderTerm('x', 1).toString()).equals('O(x)');
+      check(const OrderTerm('x', 3).toString()).equals('O(x^3)');
+      check(const OrderTerm('x', 1, point: IntegerNumber.one).toString())
+          .equals('O(x - 1)');
+      check(const OrderTerm('x', 3, point: IntegerNumber.one).toString())
+          .equals('O((x - 1)^3)');
+
+      check(LessThan(x, y).toString()).equals('x < y');
+      check(LessEqual(x, y).toString()).equals('x <= y');
+      check(GreaterThan(x, y).toString()).equals('x > y');
+      check(GreaterEqual(x, y).toString()).equals('x >= y');
+      check(Equal(x, y).toString()).equals('x == y');
+
+      check(
+        Piecewise([
+          (LessThan(x, IntegerNumber.zero), -x),
+        ], otherwise: x).toString(),
+      ).equals('Piecewise([(x < 0, -x)], otherwise: x)');
+      check(Piecewise([(LessThan(x, IntegerNumber.zero), -x)]).toString())
+          .equals('Piecewise([(x < 0, -x)])');
+
+      check(Integral(x, 'x').toString()).equals('integrate(x, x)');
+      check(
+        Integral(
+          x,
+          'x',
+          lower: IntegerNumber.zero,
+          upper: IntegerNumber.one,
+        ).toString(),
+      ).equals('integrate(x, x, 0, 1)');
+    });
+  });
+
+  group('Round-trip and formatting helpers', () {
     test('round-trip guarantee Expr.parse(e.toString()) == e', () {
       const inputs = [
         '0',
@@ -60,6 +128,51 @@ void main() {
         final reparsed2 = Expr.parse(rendered2).simplify();
         check(reparsed2).equals(e2);
       }
+    });
+
+    test('formatting helper functions handle edge cases', () {
+      const x = Variable('x');
+      const y = Variable('y');
+      final nestedMul = Mul([
+        Mul([x, y]),
+        x,
+      ]);
+      check(leftmostMulFactor(nestedMul)).equals(x);
+      check(rightmostMulFactor(nestedMul)).equals(x);
+
+      const cFull = ComplexNumber(IntegerNumber.one, IntegerNumber.two);
+      check(needsSubRightParens(cFull)).isTrue();
+      check(needsSubRightParens(IntegerNumber.of(-2))).isTrue();
+      check(needsMulLeftParens(cFull)).isTrue();
+      check(needsMulRightParens(cFull)).isTrue();
+      check(needsMulRightParens(IntegerNumber.of(-2))).isTrue();
+      check(needsNegOperandParens(cFull)).isTrue();
+      check(needsNegOperandParens(IntegerNumber.of(-2))).isTrue();
+      check(needsPowBaseParens(Pow(x, IntegerNumber.negativeOne))).isTrue();
+      check(Pow(x, IntegerNumber.negativeOne).toString()).equals('1 / x');
+      check(
+        Mul([
+          x,
+          Mul([y, x]),
+        ]).toString(),
+      ).equals('x * (y * x)');
+      check(
+        Add([
+          x,
+          Mul([IntegerNumber.negativeOne, x, y]),
+        ]).toString(),
+      ).equals('x - x * y');
+      check(canOmitMulDot(Pow(x, IntegerNumber.two), y)).isFalse();
+      check(canOmitMulDot(Pow(x, FractionNumber.half), y)).isTrue();
+      check(
+        startsWithNumber(
+          const ComplexNumber(IntegerNumber.zero, IntegerNumber.two),
+        ),
+      ).isTrue();
+      check(startsWithNumber(Pow(IntegerNumber.two, FractionNumber.half)))
+          .isFalse();
+      check(canOmitMulDot(x, IntegerNumber.of(-2))).isFalse();
+      check(canOmitMulDot(x, Pow(y, IntegerNumber.negativeOne))).isFalse();
     });
   });
 }

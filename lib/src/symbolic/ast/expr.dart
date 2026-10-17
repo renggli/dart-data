@@ -1,14 +1,5 @@
 part of '../ast.dart';
 
-/// Top-level convenience constant for the imaginary unit $i = \sqrt{-1}$.
-///
-/// Alias for [ComplexNumber.i].
-///
-/// ```dart
-/// final z = const Variable('x') + 2 * i;
-/// ```
-const i = ComplexNumber.i;
-
 /// Root of the symbolic expression Abstract Syntax Tree (AST).
 ///
 /// All mathematical expressions are represented as immutable trees of [Expr]
@@ -23,15 +14,15 @@ sealed class Expr {
   ///
   /// Throws a [FormatException] if [input] is not a valid mathematical expression.
   factory parse(String input, {ExprSyntax? syntax}) =>
-      Parser.parse(input, syntax: syntax);
+      (syntax ?? ExprSyntax.standard()).parse(input);
 
   /// Attempts to parse an algebraic expression from [input], returning `null`
   /// if parsing fails.
   static Expr? tryParse(String input, {ExprSyntax? syntax}) =>
-      Parser.tryParse(input, syntax: syntax);
+      (syntax ?? ExprSyntax.standard()).tryParse(input);
 
   /// Whether this expression node is already in canonical simplified form.
-  bool get isSimplified => false;
+  bool get isSimplified;
 
   /// Evaluates this expression to a `double` given variable bindings in [context].
   ///
@@ -41,16 +32,15 @@ sealed class Expr {
 
   /// Returns the set of all free variable names appearing in this expression.
   ///
-  /// Accumulates variables in a single shared [Set] via [collectFreeVariables]
-  /// in $O(N)$ time without allocating intermediate sets at each interior node.
+  /// Accumulates variables in a single shared [Set] in $O(N)$ time without
+  /// allocating intermediate sets at each interior node.
   Set<String> get freeVariables {
     final result = <String>{};
-    collectFreeVariables(result);
+    _collectFreeVariables(result);
     return result;
   }
 
-  /// Accumulates all free variable names appearing in this subtree into [target].
-  void collectFreeVariables(Set<String> target);
+  void _collectFreeVariables(Set<String> target);
 
   /// Whether this expression contains [variable] as a free variable.
   bool dependsOn(String variable);

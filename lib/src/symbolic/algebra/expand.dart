@@ -133,13 +133,6 @@ _PolyMonomial? _parsePolyMonomial(Expr expr) {
         return null;
       }
     }
-    for (var i = 1; i < factors.length; i++) {
-      if (factors[i - 1].variable.name.compareTo(factors[i].variable.name) >=
-          0) {
-        factors.sort((a, b) => a.variable.name.compareTo(b.variable.name));
-        break;
-      }
-    }
     return _PolyMonomial(coeff, factors);
   }
   return null;

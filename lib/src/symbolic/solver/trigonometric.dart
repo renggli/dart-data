@@ -14,12 +14,11 @@ List<Expr> invertSin(Expr arg, Expr c, String variable) {
   }
 
   final angles = <Expr>[];
-  if ((c is Number && c.isZero) || (c is RealNumber && c.value == 0.0)) {
+  if (c is Number && c.isZero) {
     angles.addAll([IntegerNumber.zero, Constant.pi]);
-  } else if ((c is Number && c.isOne) || (c is RealNumber && c.value == 1.0)) {
+  } else if (c is Number && c.isOne) {
     angles.add(_piFraction(1, 2));
-  } else if ((c is Number && c.isNegativeOne) ||
-      (c is RealNumber && c.value == -1.0)) {
+  } else if (c is Number && c.isNegativeOne) {
     angles.add(_piFraction(3, 2));
   } else if (isHalf(c)) {
     angles.addAll([_piFraction(1, 6), _piFraction(5, 6)]);
@@ -57,12 +56,11 @@ List<Expr> invertCos(Expr arg, Expr c, String variable) {
   }
 
   final angles = <Expr>[];
-  if ((c is Number && c.isZero) || (c is RealNumber && c.value == 0.0)) {
+  if (c is Number && c.isZero) {
     angles.addAll([_piFraction(1, 2), _piFraction(3, 2)]);
-  } else if ((c is Number && c.isOne) || (c is RealNumber && c.value == 1.0)) {
+  } else if (c is Number && c.isOne) {
     angles.add(IntegerNumber.zero);
-  } else if ((c is Number && c.isNegativeOne) ||
-      (c is RealNumber && c.value == -1.0)) {
+  } else if (c is Number && c.isNegativeOne) {
     angles.add(Constant.pi);
   } else if (isHalf(c)) {
     angles.addAll([_piFraction(1, 3), _piFraction(5, 3)]);
@@ -96,12 +94,11 @@ List<Expr> invertCos(Expr arg, Expr c, String variable) {
 /// Inverts trigonometric tangent $\tan(\text{arg}) = c$ for special and general angles.
 List<Expr> invertTan(Expr arg, Expr c, String variable) {
   final angles = <Expr>[];
-  if ((c is Number && c.isZero) || (c is RealNumber && c.value == 0.0)) {
+  if (c is Number && c.isZero) {
     angles.addAll([IntegerNumber.zero, Constant.pi]);
-  } else if ((c is Number && c.isOne) || (c is RealNumber && c.value == 1.0)) {
+  } else if (c is Number && c.isOne) {
     angles.addAll([_piFraction(1, 4), _piFraction(5, 4)]);
-  } else if ((c is Number && c.isNegativeOne) ||
-      (c is RealNumber && c.value == -1.0)) {
+  } else if (c is Number && c.isNegativeOne) {
     angles.addAll([_piFraction(3, 4), _piFraction(7, 4)]);
   } else if (isSqrt3Over3(c)) {
     angles.addAll([_piFraction(1, 6), _piFraction(7, 6)]);

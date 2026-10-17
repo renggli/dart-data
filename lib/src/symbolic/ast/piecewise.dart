@@ -150,12 +150,12 @@ final class Piecewise extends Expr {
   }
 
   @override
-  void collectFreeVariables(Set<String> target) {
+  void _collectFreeVariables(Set<String> target) {
     for (final (cond, expr) in branches) {
-      cond.collectFreeVariables(target);
-      expr.collectFreeVariables(target);
+      cond._collectFreeVariables(target);
+      expr._collectFreeVariables(target);
     }
-    otherwise?.collectFreeVariables(target);
+    otherwise?._collectFreeVariables(target);
   }
 
   @override
