@@ -89,7 +89,7 @@ void main() {
         check(Mul(const []).toMathMl(root: false)).equals('<mn>1</mn>');
         check(Mul([x]).toMathMl(root: false)).equals('<mi>x</mi>');
         check(Mul([IntegerNumber.of(-2), x]).toMathMl(root: false)).equals(
-          '<mrow><mo form="prefix">&minus;</mo><mn>2</mn><mi>x</mi></mrow>',
+          '<mrow><mo form="prefix">&minus;</mo><mn>2</mn><mspace width="0.167em"/><mi>x</mi></mrow>',
         );
         check(Mul([IntegerNumber.negativeOne, x + y]).toMathMl(root: false))
             .equals(
@@ -159,7 +159,7 @@ void main() {
       },
     );
 
-    test('renders OrderTerm, RelationalExpr, Piecewise, Integral, and multiplication dots', () {
+    test('renders OrderTerm, RelationalExpr, Piecewise, Integral, and multiplication spacing', () {
       const x = Variable('x');
       check(const OrderTerm('x', 0).toMathMl(root: false))
           .equals('<mrow><mi>O</mi><mo>(</mo><mn>1</mn><mo>)</mo></mrow>');
@@ -218,8 +218,9 @@ void main() {
         '<math><mrow><msubsup><mo>&#x222B;</mo><mn>0</mn><mn>1</mn></msubsup><mi>t</mi><mspace width="thinmathspace"/><mi>d</mi><mi>t</mi></mrow></math>',
       );
 
-      check(Expr.parse('2 * x').toMathMl())
-          .equals('<math><mrow><mn>2</mn><mi>x</mi></mrow></math>');
+      check(Expr.parse('2 * x').toMathMl()).equals(
+        '<math><mrow><mn>2</mn><mspace width="0.167em"/><mi>x</mi></mrow></math>',
+      );
       check(Mul([FractionNumber.negativeHalf, x]).toMathMl()).equals(
         '<math><mrow><mo form="prefix">&minus;</mo><mfrac><mi>x</mi><mn>2</mn></mfrac></mrow></math>',
       );
@@ -232,10 +233,16 @@ void main() {
         '<mrow><mi>x</mi><mo>&minus;</mo><mrow><mo>(</mo><mrow><mi>x</mi><mo>+</mo><mi>y</mi></mrow><mo>)</mo></mrow></mrow>',
       );
       check(Expr.parse('2 * x * y').toMathMl()).equals(
-        '<math><mrow><mn>2</mn><mi>x</mi><mo>&#x22c5;</mo><mi>y</mi></mrow></math>',
+        '<math><mrow><mn>2</mn><mspace width="0.167em"/><mi>x</mi><mspace width="0.167em"/><mi>y</mi></mrow></math>',
+      );
+      check(Expr.parse('ab * c').toMathMl()).equals(
+        '<math><mrow><mi>ab</mi><mspace width="0.167em"/><mi>c</mi></mrow></math>',
+      );
+      check(Mul([IntegerNumber.two, IntegerNumber.of(3)]).toMathMl()).equals(
+        '<math><mrow><mn>2</mn><mo>&#x22c5;</mo><mn>3</mn></mrow></math>',
       );
       check(Expr.parse('(x - 1) * (x + 1)').toMathMl()).equals(
-        '<math><mrow><mrow><mo>(</mo><mrow><mi>x</mi><mo>&minus;</mo><mn>1</mn></mrow><mo>)</mo></mrow><mrow><mo>(</mo><mrow><mi>x</mi><mo>+</mo><mn>1</mn></mrow><mo>)</mo></mrow></mrow></math>',
+        '<math><mrow><mrow><mo>(</mo><mrow><mi>x</mi><mo>&minus;</mo><mn>1</mn></mrow><mo>)</mo></mrow><mspace width="0.167em"/><mrow><mo>(</mo><mrow><mi>x</mi><mo>+</mo><mn>1</mn></mrow><mo>)</mo></mrow></mrow></math>',
       );
     });
   });

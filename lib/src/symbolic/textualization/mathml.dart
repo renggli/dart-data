@@ -192,7 +192,9 @@ String _formatMulProductMathMl(List<Expr> factors) {
   for (var i = 1; i < factors.length; i++) {
     final prev = i == 1 ? firstFactor : factors[i - 1];
     final curr = factors[i];
-    final sep = canOmitMulDot(prev, curr) ? '' : '<mo>&#x22c5;</mo>';
+    final sep = canOmitMulDot(prev, curr)
+        ? '<mspace width="0.167em"/>'
+        : '<mo>&#x22c5;</mo>';
     buffer
       ..write(sep)
       ..write(_formatMulRight(curr));

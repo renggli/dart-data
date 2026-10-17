@@ -46,9 +46,10 @@ void main() {
       check(matchFunctionPower(Asin(x), IntegerNumber.two)).isNull();
 
       check(canOmitMulDot(IntegerNumber.two, x)).isTrue();
-      check(canOmitMulDot(x, y)).isFalse();
+      check(canOmitMulDot(x, y)).isTrue();
       check(canOmitMulDot(IntegerNumber.two, IntegerNumber.of(3))).isFalse();
       check(canOmitMulDot(x, IntegerNumber.of(-2))).isFalse();
+      check(canOmitMulDot(x, Pow(y, IntegerNumber.negativeOne))).isFalse();
     });
 
     test('parenthesization predicates for sub, mul, pow, and neg', () {

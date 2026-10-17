@@ -42,7 +42,7 @@ void main() {
       check(Pow(x, FractionNumber.third).toLatex()).equals(r'\sqrt[3]{x}');
       check(Expr.parse('a / b').toLatex()).equals(r'\frac{a}{b}');
       check(Mul([IntegerNumber.negativeOne, x, y]).toLatex())
-          .equals(r'-x \cdot y');
+          .equals(r'-x \, y');
       check(Mul([IntegerNumber.negativeOne, x + y]).toLatex())
           .equals('-(x + y)');
       check(
@@ -50,14 +50,14 @@ void main() {
           x,
           Mul([ComplexNumber.negativeI, y]),
         ]).toLatex(),
-      ).equals(r'x - i \cdot y');
+      ).equals(r'x - i \, y');
       check(Add([x, ComplexNumber.negativeI]).toLatex()).equals('x - i');
       check(
         Add([
           x,
           Mul([IntegerNumber.of(-2), y]),
         ]).toLatex(),
-      ).equals('x - 2 y');
+      ).equals(r'x - 2 \, y');
 
       check(Sin(x).toLatex()).equals(r'\sin(x)');
       check(Cos(x).toLatex()).equals(r'\cos(x)');
@@ -119,9 +119,9 @@ void main() {
       check(Expr.parse('(1 / 2) * x').simplify().toLatex())
           .equals(r'\frac{x}{2}');
       check(Expr.parse('(-3 / 4) * x / y').simplify().toLatex())
-          .equals(r'-\frac{3 x}{4 y}');
+          .equals(r'-\frac{3 \, x}{4 \, y}');
       check((RationalNumber(2, 3) * Expr.parse('1 + x')).toLatex())
-          .equals(r'\frac{2 (1 + x)}{3}');
+          .equals(r'\frac{2 \, (1 + x)}{3}');
       check(
         Mul([IntegerNumber.negativeOne, Pow(x, IntegerNumber.of(-2))])
             .toLatex(),
@@ -132,7 +132,7 @@ void main() {
       ).equals(r'-\frac{3}{x}');
 
       check(Expr.parse('sin(x)^2').toLatex()).equals(r'\sin^{2}(x)');
-      check(Expr.parse('cos(2*x)^3').toLatex()).equals(r'\cos^{3}(2 x)');
+      check(Expr.parse('cos(2*x)^3').toLatex()).equals(r'\cos^{3}(2 \, x)');
       check(Expr.parse('tan(x)^2').toLatex()).equals(r'\tan^{2}(x)');
       check(Expr.parse('sinh(x)^2').toLatex()).equals(r'\sinh^{2}(x)');
       check(Expr.parse('cosh(x)^2').toLatex()).equals(r'\cosh^{2}(x)');
@@ -140,14 +140,14 @@ void main() {
       check(Expr.parse('ln(x)^2').toLatex()).equals(r'\ln^{2}(x)');
       check(Expr.parse('sin(x)^(-1)').toLatex()).equals(r'\frac{1}{\sin(x)}');
 
-      check(Expr.parse('2 * x').toLatex()).equals('2 x');
-      check(Expr.parse('2 * x * y').toLatex()).equals(r'2 x \cdot y');
-      check(Expr.parse('ab * c').toLatex()).equals(r'ab \cdot c');
-      check(Expr.parse('x * ln(x)').toLatex()).equals(r'x \ln(x)');
+      check(Expr.parse('2 * x').toLatex()).equals(r'2 \, x');
+      check(Expr.parse('2 * x * y').toLatex()).equals(r'2 \, x \, y');
+      check(Expr.parse('ab * c').toLatex()).equals(r'ab \, c');
+      check(Expr.parse('x * ln(x)').toLatex()).equals(r'x \, \ln(x)');
       check(Expr.parse('(x - 1) * (x + 1)').toLatex())
-          .equals('(x - 1) (x + 1)');
+          .equals(r'(x - 1) \, (x + 1)');
       check(Expr.parse('1 / (pi * (1 + x^2))').toLatex())
-          .equals(r'\frac{1}{\pi (1 + {x}^{2})}');
+          .equals(r'\frac{1}{\pi \, (1 + {x}^{2})}');
       check(
         Mul([Pow(IntegerNumber.two, IntegerNumber.of(3)), IntegerNumber.of(3)])
             .toLatex(),

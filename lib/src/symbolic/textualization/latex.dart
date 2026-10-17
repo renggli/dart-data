@@ -138,7 +138,7 @@ String _formatMulProductLatex(List<Expr> factors) {
   for (var i = 1; i < factors.length; i++) {
     final prev = factors[i - 1];
     final curr = factors[i];
-    final sep = canOmitMulDot(prev, curr) ? ' ' : r' \cdot ';
+    final sep = canOmitMulDot(prev, curr) ? r' \, ' : r' \cdot ';
     buffer.write('$sep${_formatMulRight(curr)}');
   }
   return buffer.toString();

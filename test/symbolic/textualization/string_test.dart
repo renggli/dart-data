@@ -138,7 +138,6 @@ void main() {
         x,
       ]);
       check(leftmostMulFactor(nestedMul)).equals(x);
-      check(rightmostMulFactor(nestedMul)).equals(x);
 
       const cFull = ComplexNumber(IntegerNumber.one, IntegerNumber.two);
       check(needsSubRightParens(cFull)).isTrue();
@@ -162,7 +161,7 @@ void main() {
           Mul([IntegerNumber.negativeOne, x, y]),
         ]).toString(),
       ).equals('x - x * y');
-      check(canOmitMulDot(Pow(x, IntegerNumber.two), y)).isFalse();
+      check(canOmitMulDot(Pow(x, IntegerNumber.two), y)).isTrue();
       check(canOmitMulDot(Pow(x, FractionNumber.half), y)).isTrue();
       check(
         startsWithNumber(

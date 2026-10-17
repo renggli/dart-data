@@ -106,31 +106,14 @@ partitionMulFraction(List<Expr> factors) {
 }
 
 /// Whether the explicit multiplication dot (`\cdot`, `&#x22c5;`) can be omitted
-/// between adjacent factors [left] and [right].
+/// in favor of a thin space between adjacent factors [left] and [right].
 bool canOmitMulDot(Expr left, Expr right) {
-  final l = rightmostMulFactor(left);
   final r = leftmostMulFactor(right);
   if (startsWithNegative(r)) return false;
   if (!needsMulRightParens(right) && startsWithNumber(r)) return false;
   if (r is Pow && r.exponent == IntegerNumber.negativeOne) return false;
-  if (!needsMulLeftParens(left) &&
-      _isIdentifierOrPower(l) &&
-      !needsMulRightParens(right) &&
-      _isIdentifierOrPower(r)) {
-    return false;
-  }
   return true;
 }
-
-bool _isIdentifierOrPower(Expr expr) => switch (expr) {
-  Variable() || Constant() || ComplexNumber() => true,
-  Pow(:final base, :final exponent) =>
-    !(exponent is RationalNumber &&
-            exponent.numerator == Integer.one &&
-            exponent.denominator >= Integer.two) &&
-        matchFunctionPower(base, exponent) == null,
-  _ => false,
-};
 
 /// Whether [expr] begins with a negative sign when formatted.
 bool startsWithNegative(Expr expr) => switch (expr) {
@@ -156,11 +139,6 @@ bool startsWithNumber(Expr expr) => switch (expr) {
         startsWithNumber(base),
   _ => false,
 };
-
-/// Returns the rightmost leaf factor of a product [expr].
-Expr rightmostMulFactor(Expr expr) => expr is Mul && expr.factors.isNotEmpty
-    ? rightmostMulFactor(expr.factors.last)
-    : expr;
 
 /// Returns the leftmost leaf factor of a product [expr].
 Expr leftmostMulFactor(Expr expr) => expr is Mul && expr.factors.isNotEmpty
