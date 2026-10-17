@@ -364,4 +364,67 @@ void main() {
       check((Sin(x) * Ln(x)).integrate('x')).isA<Integral>();
     });
   });
+
+  group('Multiple and iterated integration (integrateMultiple)', () {
+    test('evaluates iterated indefinite and rectangular definite integrals', () {
+      final f = Expr.parse('x * y');
+      check(
+        f.integrateMultiple([
+          (variable: 'x', from: null, to: null),
+          (variable: 'y', from: null, to: null),
+        ]),
+      ).equals(Expr.parse('1/4 * x^2 * y^2').simplify());
+
+      // \int_0^2 \int_0^3 (x^2 + y) dx dy = \int_0^2 (9 + 3*y) dy = 18 + 6 = 24
+      final rect = Expr.parse('x^2 + y').integrateMultiple([
+        (variable: 'x', from: 0, to: 3),
+        (variable: 'y', from: 0, to: 2),
+      ]);
+      check(rect).equals(IntegerNumber.of(24));
+    });
+
+    test(
+      'evaluates non-rectangular variable-bound double and triple integrals',
+      () {
+        // \int_0^1 \int_0^x (x * y) dy dx = \int_0^1 (1/2 * x^3) dx = 1/8
+        final triangle = Expr.parse('x * y').integrateMultiple([
+          (variable: 'y', from: 0, to: x),
+          (variable: 'x', from: 0, to: 1),
+        ]);
+        check(triangle).equals(RationalNumber(1, 8));
+
+        // Volume of unit simplex: \int_0^1 \int_0^{1-x} \int_0^{1-x-y} 1 dz dy dx = 1/6
+        final simplexVolume = IntegerNumber.one.integrateMultiple([
+          (variable: 'z', from: 0, to: IntegerNumber.one - x - y),
+          (variable: 'y', from: 0, to: IntegerNumber.one - x),
+          (variable: 'x', from: 0, to: 1),
+        ]);
+        check(simplexVolume).equals(RationalNumber(1, 6));
+      },
+    );
+
+    test('handles mixed closed-form and unevaluated nested integrals', () {
+      // Separable integral where inner has no elementary antiderivative:
+      // \int_0^2 \int_0^1 sin(x^2) dx dy = 2 * \int_0^1 sin(x^2) dx
+      final separable = Expr.parse('sin(x^2)').integrateMultiple([
+        (variable: 'x', from: 0, to: 1),
+        (variable: 'y', from: 0, to: 2),
+      ]);
+      check(separable).equals(
+        (IntegerNumber.two *
+                Expr.parse('sin(x^2)').integrate('x', from: 0, to: 1))
+            .simplify(),
+      );
+      check(separable.evaluate()).isCloseTo(2 * 0.3102683017233811, 1e-12);
+
+      // Non-separable double integral evaluated numerically via nested Gauss-Legendre
+      final nested = Expr.parse('cos(x * y)').integrateMultiple([
+        (variable: 'y', from: 0, to: 1),
+        (variable: 'x', from: 0, to: 1),
+      ]);
+      check(nested).isA<Integral>();
+      // \int_0^1 \int_0^1 cos(x*y) dy dx = \int_0^1 sin(x)/x dx = Si(1) \approx 0.946083070367
+      check(nested.evaluate()).isCloseTo(0.946083070367183, 1e-12);
+    });
+  });
 }

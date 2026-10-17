@@ -15,7 +15,8 @@ export 'src/symbolic/budget.dart'
     show ComputationBudget, ComputationLimitException;
 export 'src/symbolic/calculus/differentiation.dart'
     show DifferentiationExtension;
-export 'src/symbolic/calculus/integration.dart' show IntegrationExtension;
+export 'src/symbolic/calculus/integration.dart'
+    show IntegrationBound, IntegrationExtension;
 export 'src/symbolic/calculus/limit.dart' show LimitExtension;
 export 'src/symbolic/calculus/multivariable.dart'
     show MultivariableExtension, MultivariableIterableExtension;

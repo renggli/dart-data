@@ -8,6 +8,15 @@ import 'differentiation.dart';
 import 'limit.dart';
 import 'linear_form.dart';
 
+/// Specification of a single integration variable and optional definite bounds
+/// for iterated integration via [IntegrationExtension.integrateMultiple].
+///
+/// When both `from` and `to` are omitted (`null`), an indefinite
+/// anti-derivative is computed with respect to `variable`. When `from` and
+/// `to` are provided (as [Expr], [int], [BigInt], or [double]), a definite
+/// integral is evaluated.
+typedef IntegrationBound = ({String variable, Object? from, Object? to});
+
 /// Symbolic analytical integration extension on [Expr].
 extension IntegrationExtension on Expr {
   /// Computes the symbolic anti-derivative $\int f(x) dx$ with respect to
@@ -28,6 +37,40 @@ extension IntegrationExtension on Expr {
   /// ```
   Expr integrate(String variable, {Object? from, Object? to}) =>
       _symbolicIntegrate(this, variable, from: from, to: to);
+
+  /// Computes an iterated (multiple) integral across [bounds] in sequence from
+  /// innermost to outermost integration variable.
+  ///
+  /// For bounds $[(x_1, a_1, b_1), (x_2, a_2, b_2), \dots, (x_n, a_n, b_n)]$,
+  /// this evaluates:
+  /// $$\int_{a_n}^{b_n} \cdots \left(\int_{a_2}^{b_2} \left(\int_{a_1}^{b_1} f \, dx_1\right) dx_2\right) \cdots dx_n$$
+  ///
+  /// Inner bounds may depend symbolically on outer integration variables
+  /// (e.g., integrating over a non-rectangular region $0 \le y \le x$,
+  /// $0 \le x \le 1$). When any step lacks a closed-form anti-derivative, an
+  /// unevaluated [Integral] node is retained, and nested definite [Integral]
+  /// nodes can still be evaluated numerically via [Expr.evaluate] or
+  /// [ApproximationExtension.approximate].
+  ///
+  /// ```dart
+  /// final f = Expr.parse('x * y');
+  /// final triangle = f.integrateMultiple([
+  ///   (variable: 'y', from: 0, to: Variable('x')),
+  ///   (variable: 'x', from: 0, to: 1),
+  /// ]);
+  /// // triangle: 1/8
+  /// ```
+  Expr integrateMultiple(Iterable<IntegrationBound> bounds) {
+    var current = this;
+    for (final bound in bounds) {
+      current = current.integrate(
+        bound.variable,
+        from: bound.from,
+        to: bound.to,
+      );
+    }
+    return current;
+  }
 }
 
 final Expr _negInfinity = Mul(const [
@@ -58,7 +101,7 @@ Expr _symbolicIntegrate(
       return IntegerNumber.zero;
     }
     final antiDeriv = _antiDerivative(function, variable).simplify();
-    if (_hasUnevaluatedIntegral(antiDeriv)) {
+    if (_hasUnevaluatedIntegral(antiDeriv, variable)) {
       return Integral(
         function.simplify(),
         variable,
@@ -91,7 +134,9 @@ Expr _symbolicIntegrate(
   return _antiDerivative(function, variable).simplify();
 }
 
-bool _hasUnevaluatedIntegral(Expr expr) => expr.anyNode((e) => e is Integral);
+bool _hasUnevaluatedIntegral(Expr expr, String variable) => expr.anyNode(
+  (e) => e is Integral && !e.isDefinite && e.variable == variable,
+);
 
 Expr _boundToExpr(Object bound) => switch (bound) {
   Expr() => bound,
@@ -852,8 +897,8 @@ Expr? _tryIntegrationByParts(Expr pExpr, Expr vExpr, String variable) {
         (pPrime * v).expand().simplify(),
         variable,
       );
-      if (!_hasUnevaluatedIntegral(v) &&
-          !_hasUnevaluatedIntegral(remIntegral)) {
+      if (!_hasUnevaluatedIntegral(v, variable) &&
+          !_hasUnevaluatedIntegral(remIntegral, variable)) {
         return (pExpr * v - remIntegral).simplify();
       }
     }
