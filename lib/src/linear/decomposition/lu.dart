@@ -108,9 +108,10 @@ class LUDecomposition<T> {
   /// Whether the matrix is square and non-singular ($\det \ne 0$).
   bool get isNonsingular {
     if (_m != _n) return false;
-    final zero = _type.field.additiveIdentity;
+    final field = _type.field;
+    final zero = field.additiveIdentity;
     for (var j = 0; j < _n; j++) {
-      if (_lu.getUnchecked(j, j) == zero) {
+      if (field.add(_lu.getUnchecked(j, j), zero) == zero) {
         return false;
       }
     }
@@ -248,9 +249,9 @@ class LUDecomposition<T> {
       }
 
       var pivot = j;
-      var maxNorm = field.norm(_lu.getUnchecked(pivot, j));
+      var maxNorm = _pivotNorm(field, _lu.getUnchecked(pivot, j), zero);
       for (var i = j + 1; i < _m; i++) {
-        final norm = field.norm(_lu.getUnchecked(i, j));
+        final norm = _pivotNorm(field, _lu.getUnchecked(i, j), zero);
         if (norm > maxNorm) {
           pivot = i;
           maxNorm = norm;
@@ -268,12 +269,21 @@ class LUDecomposition<T> {
         _pivSign = -_pivSign;
       }
 
-      if (j < _m && _lu.getUnchecked(j, j) != zero) {
+      if (j < _m && field.add(_lu.getUnchecked(j, j), zero) != zero) {
         final ujj = _lu.getUnchecked(j, j);
         for (var i = j + 1; i < _m; i++) {
           _lu.setUnchecked(i, j, field.div(_lu.getUnchecked(i, j), ujj));
         }
       }
+    }
+  }
+
+  static double _pivotNorm<T>(Field<T> field, T value, T zero) {
+    if (field.add(value, zero) == zero) return 0.0;
+    try {
+      return field.norm(value);
+    } on UnsupportedError {
+      return 1.0;
     }
   }
 

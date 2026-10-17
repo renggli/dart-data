@@ -8,6 +8,8 @@ import '../../type/models/equality.dart';
 import '../../type/models/field.dart';
 import '../algebra/approximate.dart';
 import '../algebra/expand.dart';
+import '../algebra/factor.dart';
+import '../algebra/factor/fraction.dart';
 import '../algebra/simplify.dart';
 import '../algebra/structural_order.dart';
 import '../ast.dart';
@@ -115,16 +117,37 @@ final class ExprField implements ExtendedField<Expr> {
   Expr get multiplicativeIdentity => IntegerNumber.one;
 
   @override
-  Expr add(Expr a, Expr b) => (a + b).simplify();
+  Expr add(Expr a, Expr b) {
+    final res = (a + b).simplify();
+    return res is Add ? res.expand().simplify() : res;
+  }
 
   @override
-  Expr sub(Expr a, Expr b) => (a - b).simplify();
+  Expr sub(Expr a, Expr b) {
+    final res = (a - b).simplify();
+    return res is Add ? res.expand().simplify() : res;
+  }
 
   @override
   Expr mul(Expr a, Expr b) => (a * b).simplify();
 
   @override
-  Expr div(Expr a, Expr b) => (a / b).simplify();
+  Expr div(Expr a, Expr b) {
+    final direct = (a / b).simplify();
+    final hasNegPow = direct.anyNode(
+      (node) => switch (node) {
+        Pow(exponent: RealNumeric(isNegative: true)) => true,
+        _ => false,
+      },
+    );
+    if (!hasNegPow) return direct;
+    final expandedA = a.expand().simplify();
+    final expandedB = b.expand().simplify();
+    return cancelFactoredFraction(
+      expandedA.factor(),
+      expandedB.factor(),
+    ).simplify();
+  }
 
   @override
   Expr neg(Expr a) => (-a).simplify();

@@ -1,5 +1,6 @@
 import 'package:checks/checks.dart';
 import 'package:data/linear.dart';
+import 'package:data/src/symbolic/linear/bareiss.dart';
 import 'package:data/symbolic.dart';
 import 'package:test/test.dart';
 
@@ -154,6 +155,22 @@ void main() {
       ], type: exprDataType);
       final det4 = m4.determinant();
       check(det4.freeVariables).unorderedEquals({'x', 'y', 'z'});
+    });
+
+    test('BareissEngine.solve handles consistent, inconsistent, and singular systems', () {
+      const engine = BareissEngine();
+      final syntax = ExprSyntax.standard;
+      final a = syntax.parseMatrix('[[2, 1], [1, 3]]');
+      final b = syntax.parseVector('[5, 5]');
+      check(engine.solve(a, b)!.format()).equals('[2, 1]');
+
+      final singular = syntax.parseMatrix('[[1, 2], [2, 4]]');
+      check(engine.solve(singular, b)).isNull();
+      check(() => engine.solve(a, syntax.parseVector('[1, 2, 3]')))
+          .throws<ArgumentError>();
+      check(() => engine.solve(a, syntax.parseMatrix('[[1], [2], [3]]')))
+          .throws<ArgumentError>();
+      check(() => engine.solve(a, 'invalid')).throws<ArgumentError>();
     });
   });
 }

@@ -18,7 +18,7 @@ export 'src/symbolic/calculus/series.dart' show PowerSeries, SeriesExtension;
 export 'src/symbolic/compiler.dart'
     show BytecodeEvaluator, CompilerExtension, CompilerIterableExtension;
 export 'src/symbolic/linear/matrix.dart'
-    show SymbolicMatrixExtension, SymbolicVectorExtension;
+    show SymbolicEigenpair, SymbolicMatrixExtension, SymbolicVectorExtension;
 export 'src/symbolic/number/integer.dart' show Integer;
 export 'src/symbolic/parser.dart' show ExprSyntax;
 export 'src/symbolic/solver/polynomial_system.dart'

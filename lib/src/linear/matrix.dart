@@ -493,10 +493,13 @@ class Matrix<T> implements LinearOperator<T> {
           }
         }
         return LUDecomposition<T>(this).solveVector(bVec) as S;
-      } else if (rowCount > colCount) {
-        return QRDecomposition<T>(this).solveVector(bVec) as S;
-      } else {
+      } else if (T == double || T == num || T == Complex) {
+        if (rowCount > colCount) {
+          return QRDecomposition<T>(this).solveVector(bVec) as S;
+        }
         return _solveUnderdetermined(bVec) as S;
+      } else {
+        return _solveRref(bVec.toMatrix()).col(0).copy() as S;
       }
     } else if (b is Matrix) {
       if (b.rowCount != rowCount) {
@@ -539,13 +542,89 @@ class Matrix<T> implements LinearOperator<T> {
           }
         }
         return LUDecomposition<T>(this).solve(bMat) as S;
-      } else if (rowCount > colCount) {
-        return QRDecomposition<T>(this).solve(bMat) as S;
-      } else {
+      } else if (T == double || T == num || T == Complex) {
+        if (rowCount > colCount) {
+          return QRDecomposition<T>(this).solve(bMat) as S;
+        }
         return _solveUnderdetermined(bMat) as S;
+      } else {
+        return _solveRref(bMat) as S;
       }
     }
     throw ArgumentError.value(b, 'b', 'Expected Vector or Matrix');
+  }
+
+  Matrix<T> _solveRref(Matrix<T> b) {
+    final field = type.field;
+    final zero = field.additiveIdentity;
+    final one = field.multiplicativeIdentity;
+    final m = rowCount;
+    final n = colCount;
+    final k = b.colCount;
+    final totalCols = n + k;
+    final grid = [
+      for (var r = 0; r < m; r++)
+        [
+          for (var c = 0; c < n; c++) getUnchecked(r, c),
+          for (var c = 0; c < k; c++) b.getUnchecked(r, c),
+        ],
+    ];
+    final pivotColumns = <int>[];
+    var pivotRow = 0;
+
+    for (var col = 0; col < totalCols && pivotRow < m; col++) {
+      var found = -1;
+      for (var r = pivotRow; r < m; r++) {
+        if (field.add(grid[r][col], zero) != zero) {
+          found = r;
+          break;
+        }
+      }
+      if (found == -1) continue;
+      if (found != pivotRow) {
+        final temp = grid[pivotRow];
+        grid[pivotRow] = grid[found];
+        grid[found] = temp;
+      }
+      pivotColumns.add(col);
+      final pivot = grid[pivotRow][col];
+      grid[pivotRow][col] = one;
+      for (var c = col + 1; c < totalCols; c++) {
+        grid[pivotRow][c] = field.div(grid[pivotRow][c], pivot);
+      }
+      for (var r = 0; r < m; r++) {
+        if (r == pivotRow) continue;
+        final factor = grid[r][col];
+        if (field.add(factor, zero) == zero) {
+          grid[r][col] = zero;
+          continue;
+        }
+        grid[r][col] = zero;
+        for (var c = col + 1; c < totalCols; c++) {
+          grid[r][c] = field.sub(
+            grid[r][c],
+            field.mul(factor, grid[pivotRow][c]),
+          );
+        }
+      }
+      pivotRow++;
+    }
+
+    if (pivotColumns.any((p) => p >= n)) {
+      throw StateError('Linear system is inconsistent.');
+    }
+    if (m >= n && pivotColumns.length < n) {
+      throw StateError('Matrix is rank deficient.');
+    }
+
+    final result = Matrix<T>.filled(n, k, zero, type: type);
+    for (var pIdx = 0; pIdx < pivotColumns.length; pIdx++) {
+      final pCol = pivotColumns[pIdx];
+      for (var c = 0; c < k; c++) {
+        result.setUnchecked(pCol, c, grid[pIdx][n + c]);
+      }
+    }
+    return result;
   }
 
   S _solveUnderdetermined<S extends Object>(S b) {

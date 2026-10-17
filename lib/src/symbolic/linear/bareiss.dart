@@ -1,15 +1,18 @@
 import 'dart:math' as math;
 
 import '../../linear/matrix.dart';
+import '../../linear/vector.dart';
 import '../algebra/expand.dart';
 import '../algebra/factor.dart';
 import '../algebra/factor/fraction.dart';
 import '../algebra/factor/multivariate.dart';
 import '../algebra/simplify.dart';
 import '../ast.dart';
+import '../budget.dart';
+import '../type/expr_data_type.dart';
 
-/// Computational engine for fraction-free symbolic matrix determinants using the
-/// Bareiss algorithm.
+/// Computational engine for fraction-free symbolic matrix determinants,
+/// reduced row echelon form (RREF), rank, nullspace, and exact linear solves.
 class BareissEngine {
   /// Const constructor.
   const new();
@@ -42,6 +45,7 @@ class BareissEngine {
     Expr pPrev = IntegerNumber.one;
 
     for (var k = 0; k < n - 1; k++) {
+      ComputationBudget.check();
       // 1. Fraction-free row pivoting if pivot candidate vanishes.
       var pivot = m[k][k];
       if (_isExprZero(pivot)) {
@@ -81,6 +85,191 @@ class BareissEngine {
 
     final det = m[n - 1][n - 1];
     return sign == 1 ? det.simplify() : (-det).simplify();
+  }
+
+  /// Reduces [matrix] to Reduced Row Echelon Form (RREF) and returns the
+  /// reduced matrix together with the list of 0-based pivot column indices.
+  ({Matrix<Expr> rref, List<int> pivotColumns}) rowEchelonWithPivots(
+    Matrix<Expr> matrix,
+  ) {
+    final rowCount = matrix.rowCount;
+    final colCount = matrix.colCount;
+    final effectiveType = matrix.type is ExprDataType
+        ? matrix.type
+        : exprDataType;
+    final grid = [
+      for (var r = 0; r < rowCount; r++)
+        [
+          for (var c = 0; c < colCount; c++)
+            matrix.getUnchecked(r, c).simplify(),
+        ],
+    ];
+    final pivotColumns = <int>[];
+    var pivotRow = 0;
+
+    for (var col = 0; col < colCount && pivotRow < rowCount; col++) {
+      ComputationBudget.check();
+      var bestRow = -1;
+      var bestScore = -1;
+      for (var r = pivotRow; r < rowCount; r++) {
+        final candidate = grid[r][col];
+        if (!_isExprZero(candidate)) {
+          final score = _pivotPreferenceScore(candidate);
+          if (score > bestScore) {
+            bestScore = score;
+            bestRow = r;
+          }
+        }
+      }
+      if (bestRow == -1) continue;
+
+      if (bestRow != pivotRow) {
+        final temp = grid[pivotRow];
+        grid[pivotRow] = grid[bestRow];
+        grid[bestRow] = temp;
+      }
+
+      pivotColumns.add(col);
+      final pivot = grid[pivotRow][col];
+      grid[pivotRow][col] = IntegerNumber.one;
+      if (pivot != IntegerNumber.one) {
+        for (var c = col + 1; c < colCount; c++) {
+          grid[pivotRow][c] = _simplifyRatio(grid[pivotRow][c], pivot);
+        }
+      }
+
+      for (var r = 0; r < rowCount; r++) {
+        if (r == pivotRow) continue;
+        final factor = grid[r][col];
+        if (_isExprZero(factor)) {
+          grid[r][col] = IntegerNumber.zero;
+          continue;
+        }
+        grid[r][col] = IntegerNumber.zero;
+        for (var c = col + 1; c < colCount; c++) {
+          final pivotEntry = grid[pivotRow][c];
+          if (!_isExprZero(pivotEntry)) {
+            grid[r][c] = _simplifyDifference(grid[r][c], factor * pivotEntry);
+          }
+        }
+      }
+
+      pivotRow++;
+    }
+
+    final rref = Matrix<Expr>.fromRows(grid, type: effectiveType);
+    return (rref: rref, pivotColumns: pivotColumns);
+  }
+
+  /// Computes the Reduced Row Echelon Form (RREF) of [matrix].
+  Matrix<Expr> rowEchelon(Matrix<Expr> matrix) =>
+      rowEchelonWithPivots(matrix).rref;
+
+  /// Computes the exact algebraic rank of [matrix].
+  int rank(Matrix<Expr> matrix) =>
+      rowEchelonWithPivots(matrix).pivotColumns.length;
+
+  /// Computes a basis for the right nullspace (kernel) $\{x \mid A x = 0\}$
+  /// of [matrix].
+  List<Vector<Expr>> nullSpace(Matrix<Expr> matrix) {
+    final (:rref, :pivotColumns) = rowEchelonWithPivots(matrix);
+    final colCount = matrix.colCount;
+    final effectiveType = matrix.type is ExprDataType
+        ? matrix.type
+        : exprDataType;
+    final pivotSet = pivotColumns.toSet();
+    final basis = <Vector<Expr>>[];
+
+    for (var freeCol = 0; freeCol < colCount; freeCol++) {
+      if (pivotSet.contains(freeCol)) continue;
+      final coords = List<Expr>.filled(colCount, IntegerNumber.zero);
+      coords[freeCol] = IntegerNumber.one;
+      for (var pIdx = 0; pIdx < pivotColumns.length; pIdx++) {
+        final pCol = pivotColumns[pIdx];
+        final entry = rref.getUnchecked(pIdx, freeCol);
+        if (!_isExprZero(entry)) {
+          coords[pCol] = (-entry).simplify();
+        }
+      }
+      basis.add(Vector<Expr>.fromList(coords, type: effectiveType));
+    }
+    return basis;
+  }
+
+  /// Solves the symbolic linear system $A x = b$ for a [Vector] or [Matrix]
+  /// right-hand side [b], returning `null` if the system has no unique solution.
+  S? solve<S extends Object>(Matrix<Expr> matrix, S b) {
+    final m = matrix.rowCount;
+    final n = matrix.colCount;
+    final effectiveType = matrix.type is ExprDataType
+        ? matrix.type
+        : exprDataType;
+
+    if (b is Vector<Expr>) {
+      if (b.length != m) {
+        throw ArgumentError(
+          'Dimension mismatch: Matrix $m x $n, Vector ${b.length}',
+        );
+      }
+      final solvedMat = solve<Matrix<Expr>>(matrix, b.toMatrix());
+      return solvedMat?.col(0).copy() as S?;
+    }
+
+    if (b is Matrix<Expr>) {
+      if (b.rowCount != m) {
+        throw ArgumentError(
+          'Dimension mismatch: Matrix $m x $n, Matrix RHS ${b.rowCount} x ${b.colCount}',
+        );
+      }
+      final k = b.colCount;
+      final augmented = Matrix<Expr>.generate(
+        m,
+        n + k,
+        (r, c) => c < n ? matrix.getUnchecked(r, c) : b.getUnchecked(r, c - n),
+        type: effectiveType,
+      );
+      final (:rref, :pivotColumns) = rowEchelonWithPivots(augmented);
+
+      // Inconsistent if any pivot column lies in the RHS columns (>= n),
+      // or underdetermined if fewer than n pivots lie in the first n columns.
+      if (pivotColumns.any((p) => p >= n) || pivotColumns.length < n) {
+        return null;
+      }
+
+      return Matrix<Expr>.generate(
+        n,
+        k,
+        (r, c) => rref.getUnchecked(r, n + c),
+        type: effectiveType,
+      ) as S;
+    }
+
+    throw ArgumentError.value(b, 'b', 'Expected Vector<Expr> or Matrix<Expr>');
+  }
+
+  static int _pivotPreferenceScore(Expr expr) => switch (expr) {
+    IntegerNumber(isOne: true) || IntegerNumber(isNegativeOne: true) => 4,
+    IntegerNumber() => 3,
+    RationalNumber() => 2,
+    _ when expr.freeVariables.isEmpty => 1,
+    _ => 0,
+  };
+
+  static Expr _simplifyRatio(Expr num, Expr den) {
+    final sNum = num.expand().simplify();
+    if (_isExprZero(sNum)) return IntegerNumber.zero;
+    final sDen = den.expand().simplify();
+    if (sDen == IntegerNumber.one) return sNum;
+    if (sDen == IntegerNumber.negativeOne) return (-sNum).simplify();
+    final direct = (sNum / sDen).simplify();
+    if (!_hasDiv(direct)) return direct;
+    return cancelFactoredFraction(sNum.factor(), sDen.factor()).simplify();
+  }
+
+  static Expr _simplifyDifference(Expr a, Expr b) {
+    final diff = (a - b).simplify();
+    if (!_hasDiv(diff)) return diff.expand().simplify();
+    return diff;
   }
 
   /// Divides [num] by [den] with guaranteed zero remainder.

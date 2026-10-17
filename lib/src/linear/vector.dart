@@ -417,6 +417,40 @@ class Vector<T> {
     return res;
   }
 
+  /// Computes the 3-dimensional vector cross product $u \times v$ with [other].
+  ///
+  /// Conceptually, the cross product produces a vector perpendicular to both
+  /// input vectors in 3-dimensional space. Formally:
+  ///
+  /// $$u \times v = (u_2 v_3 - u_3 v_2,\, u_3 v_1 - u_1 v_3,\, u_1 v_2 - u_2 v_1)$$
+  ///
+  /// Throws an [ArgumentError] if either vector does not have length 3.
+  ///
+  /// ```dart
+  /// final u = Vector<double>.fromList([1.0, 0.0, 0.0]);
+  /// final v = Vector<double>.fromList([0.0, 1.0, 0.0]);
+  /// final w = u.cross(v); // [0.0, 0.0, 1.0]
+  /// ```
+  Vector<T> cross(Vector<T> other) {
+    if (length != 3 || other.length != 3) {
+      throw ArgumentError(
+        'Cross product is only defined for 3D vectors, got $length and ${other.length}.',
+      );
+    }
+    final field = type.field;
+    final u0 = getUnchecked(0);
+    final u1 = getUnchecked(1);
+    final u2 = getUnchecked(2);
+    final v0 = other.getUnchecked(0);
+    final v1 = other.getUnchecked(1);
+    final v2 = other.getUnchecked(2);
+    return Vector<T>.fromList([
+      field.sub(field.mul(u1, v2), field.mul(u2, v1)),
+      field.sub(field.mul(u2, v0), field.mul(u0, v2)),
+      field.sub(field.mul(u0, v1), field.mul(u1, v0)),
+    ], type: type);
+  }
+
   /// Computes the $L_p$ norm (length or magnitude) of this vector.
   ///
   /// Conceptually, the default norm ($p=2$) is the standard Euclidean length

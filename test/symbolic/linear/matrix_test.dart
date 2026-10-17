@@ -83,19 +83,102 @@ void main() {
       check(syntax.tryParseMatrix('[[1, 2], [3]]')).isNull();
       check(() => syntax.parseMatrix('[[1, 2], [3]]'))
           .throws<FormatException>();
+      check(syntax.tryParseMatrix('[[1, 2], [3, 4]]')).isNotNull();
       check(syntax.tryParseMatrix('not a matrix')).isNull();
       check(() => syntax.parseMatrix('not a matrix')).throws<FormatException>();
+    });
+
+    test(
+      'computes rank, rowEchelon, nullSpace, and solve on symbolic matrices',
+      () {
+        final syntax = ExprSyntax.standard;
+        final a = syntax.parseMatrix('[[1, 2, 3], [2, 4, 6], [1, 1, 1]]');
+        check(a.rank()).equals(2);
+        final rref = a.rowEchelon();
+        check(rref.format()).equals('[[1, 0, -1], [0, 1, 2], [0, 0, 0]]');
+
+        final kernel = a.nullSpace();
+        check(kernel.length).equals(1);
+        check(kernel.first.format()).equals('[1, -2, 1]');
+        check(a.apply(kernel.first).simplify().format()).equals('[0, 0, 0]');
+
+        // Square symbolic linear system solve:
+        // [[x, 1], [1, x]] * [u, v] = [x + 1, x + 1] -> [1, 1]
+        final symMat = syntax.parseMatrix('[[x, 1], [1, x]]');
+        final rhs = syntax.parseVector('[x + 1, x + 1]');
+        final sol = symMat.solve(rhs);
+        check(sol.format()).equals('[1, 1]');
+
+        // Rectangular overdetermined consistent symbolic solve:
+        final overA = syntax.parseMatrix('[[1, 1], [1, -1], [2, 0]]');
+        final overB = syntax.parseVector('[x + y, x - y, 2 * x]');
+        check(overA.solve(overB).format()).equals('[x, y]');
+      },
+    );
+
+    test('computes eigenvalues, eigenvectors, and integer matrix powers', () {
+      final syntax = ExprSyntax.standard;
+      final diagWithShear = syntax.parseMatrix(
+        '[[2, 1, 0], [0, 2, 0], [0, 0, 3]]',
+      );
+      final evals = diagWithShear.eigenvalues();
+      check(evals).unorderedEquals([
+        IntegerNumber.two,
+        IntegerNumber.two,
+        IntegerNumber.of(3),
+      ]);
+
+      final epairs = diagWithShear.eigenvectors();
+      check(epairs.length).equals(2);
+      final pair2 = epairs.firstWhere((p) => p.eigenvalue == IntegerNumber.two);
+      check(pair2.algebraicMultiplicity).equals(2);
+      check(pair2.eigenvectors.length).equals(1);
+      check(pair2.eigenvectors.first.format()).equals('[1, 0, 0]');
+
+      final pair3 = epairs.firstWhere(
+        (p) => p.eigenvalue == IntegerNumber.of(3),
+      );
+      check(pair3.algebraicMultiplicity).equals(1);
+      check(pair3.eigenvectors.length).equals(1);
+      check(pair3.eigenvectors.first.format()).equals('[0, 0, 1]');
+
+      // Matrix powers: 0, positive, negative
+      final pMat = syntax.parseMatrix('[[2, 0], [0, x]]');
+      check(pMat.power(0).format()).equals('[[1, 0], [0, 1]]');
+      check(pMat.power(1).format()).equals('[[2, 0], [0, x]]');
+      check(pMat.power(3).format()).equals('[[8, 0], [0, x ^ 3]]');
+      check(pMat.power(-2).format()).equals('[[1/4, 0], [0, x ^ (-2)]]');
+
+      final singular = syntax.parseMatrix('[[1, 2], [2, 4]]');
+      check(() => singular.power(-1)).throws<StateError>();
+      final nonSquare = syntax.parseMatrix('[[1, 2, 3], [4, 5, 6]]');
+      check(() => nonSquare.power(2)).throws<ArgumentError>();
+      check(nonSquare.eigenvalues).throws<ArgumentError>();
+      check(nonSquare.eigenvectors).throws<ArgumentError>();
     });
   });
 
   group('SymbolicVectorExtension', () {
-    test('computes element-wise derivative of Vector<Expr>', () {
-      const x = Variable('x');
-      final v = Vector<Expr>.fromList([x * x, Sin(x)], type: exprDataType);
-      final dv = v.derivative('x');
-      check(dv[0].toString()).equals('2 * x');
-      check(dv[1]).equals(Cos(x));
-    });
+    test(
+      'computes element-wise derivative, dot product, and cross product',
+      () {
+        const x = Variable('x');
+        final v = Vector<Expr>.fromList([x * x, Sin(x)], type: exprDataType);
+        final dv = v.derivative('x');
+        check(dv[0].toString()).equals('2 * x');
+        check(dv[1]).equals(Cos(x));
+
+        final syntax = ExprSyntax.standard;
+        final u = syntax.parseVector('[1, x, x^2]');
+        final w = syntax.parseVector('[x^2, -2 * x, 1]');
+        check(u.dot(w)).equals(IntegerNumber.zero);
+
+        final c = u.cross(w).simplify();
+        check(c.dot(u).expand().simplify()).equals(IntegerNumber.zero);
+        check(c.dot(w).expand().simplify()).equals(IntegerNumber.zero);
+        check(() => v.cross(dv)).throws<ArgumentError>();
+      },
+    );
 
     test('supports element-wise algebra, calculus, textualization, and parsing round-trip', () {
       final syntax = ExprSyntax.standard;

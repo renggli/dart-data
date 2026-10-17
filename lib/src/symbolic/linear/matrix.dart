@@ -7,12 +7,22 @@ import '../algebra/simplify.dart';
 import '../ast.dart';
 import '../calculus/differentiation.dart';
 import '../calculus/integration.dart';
+import '../solver/univariate.dart';
 import '../textualization/latex.dart';
 import '../textualization/mathml.dart';
 import '../textualization/string.dart';
 import '../type/expr_data_type.dart';
 import 'bareiss.dart';
 import 'faddeev_leverrier.dart';
+
+/// Record representing a distinct symbolic eigenvalue, its algebraic
+/// multiplicity in the characteristic polynomial, and a basis of its
+/// corresponding eigenspace $\ker(A - \lambda I)$.
+typedef SymbolicEigenpair = ({
+  Expr eigenvalue,
+  int algebraicMultiplicity,
+  List<Vector<Expr>> eigenvectors,
+});
 
 /// Linear algebra, element-wise algebra, calculus, and textualization
 /// extensions on symbolic [Matrix].
@@ -34,6 +44,20 @@ extension SymbolicMatrixExtension on Matrix<Expr> {
   /// ```
   Expr determinant() => const BareissEngine().determinant(this);
 
+  /// Computes the Reduced Row Echelon Form (RREF) of this matrix using
+  /// exact symbolic Gauss-Jordan elimination.
+  Matrix<Expr> rowEchelon() => const BareissEngine().rowEchelon(this);
+
+  /// Computes the exact algebraic rank of this matrix (the number of non-zero
+  /// rows in its Reduced Row Echelon Form).
+  int rank() => const BareissEngine().rank(this);
+
+  /// Computes a basis for the right nullspace (kernel) $\{x \mid A x = 0\}$
+  /// of this matrix.
+  ///
+  /// Returns an empty list if the matrix has full column rank.
+  List<Vector<Expr>> nullSpace() => const BareissEngine().nullSpace(this);
+
   /// Computes the characteristic polynomial $p(\lambda) = \det(\lambda I - A)$
   /// of this square matrix using the Faddeev–LeVerrier algorithm:
   ///
@@ -51,6 +75,67 @@ extension SymbolicMatrixExtension on Matrix<Expr> {
   Expr characteristicPolynomial([String lambda = 'lambda']) =>
       const FaddeevLeVerrierEngine().characteristicPolynomial(this, lambda);
 
+  /// Computes the symbolic eigenvalues of this square matrix (repeated
+  /// according to their algebraic multiplicity) by solving the characteristic
+  /// polynomial $\det(\lambda I - A) = 0$.
+  ///
+  /// Throws [ArgumentError] if the matrix is not square.
+  List<Expr> eigenvalues() {
+    if (!isSquare) {
+      throw ArgumentError(
+        'Matrix must be square to compute eigenvalues, got $rowCount x $colCount.',
+      );
+    }
+    if (rowCount == 0) return const [];
+    const lambdaVar = '_lambda';
+    final charPoly = characteristicPolynomial(lambdaVar);
+    final distinctRoots = charPoly.solve(lambdaVar);
+    final result = <Expr>[];
+    for (final root in distinctRoots) {
+      final mult = _algebraicMultiplicity(charPoly, lambdaVar, root, rowCount);
+      for (var i = 0; i < mult; i++) {
+        result.add(root);
+      }
+    }
+    return result;
+  }
+
+  /// Computes the distinct symbolic eigenvalues, their algebraic multiplicities,
+  /// and a basis for each eigenspace $\ker(A - \lambda I)$ of this square matrix.
+  ///
+  /// Throws [ArgumentError] if the matrix is not square.
+  List<SymbolicEigenpair> eigenvectors() {
+    if (!isSquare) {
+      throw ArgumentError(
+        'Matrix must be square to compute eigenvectors, got $rowCount x $colCount.',
+      );
+    }
+    if (rowCount == 0) return const [];
+    const lambdaVar = '_lambda';
+    final charPoly = characteristicPolynomial(lambdaVar);
+    final distinctRoots = charPoly.solve(lambdaVar);
+    final effectiveType = type is ExprDataType ? type : exprDataType;
+    final pairs = <SymbolicEigenpair>[];
+
+    for (final root in distinctRoots) {
+      final mult = _algebraicMultiplicity(charPoly, lambdaVar, root, rowCount);
+      final shifted = Matrix<Expr>.generate(
+        rowCount,
+        colCount,
+        (r, c) => r == c
+            ? (getUnchecked(r, c) - root).simplify()
+            : getUnchecked(r, c),
+        type: effectiveType,
+      );
+      pairs.add((
+        eigenvalue: root,
+        algebraicMultiplicity: mult,
+        eigenvectors: shifted.nullSpace(),
+      ));
+    }
+    return pairs;
+  }
+
   /// Computes the exact symbolic multiplicative inverse of this square matrix,
   /// or returns `null` if the matrix is singular ($\det(A) = 0$):
   ///
@@ -67,6 +152,48 @@ extension SymbolicMatrixExtension on Matrix<Expr> {
   /// // inv[0][0] == 1/2, inv[1][1] == 1/4
   /// ```
   Matrix<Expr>? inverse() => const FaddeevLeVerrierEngine().inverse(this);
+
+  /// Computes the integer matrix power $A^n$ of this square matrix using
+  /// binary exponentiation.
+  ///
+  /// Supports $n = 0$ (returning $I$), positive $n > 0$, and negative $n < 0$
+  /// (via `(inverse())^{-n}`). Throws [ArgumentError] if this matrix is not
+  /// square, or [StateError] if $n < 0$ and this matrix is singular.
+  Matrix<Expr> power(int exponent) {
+    if (!isSquare) {
+      throw ArgumentError(
+        'Matrix must be square to compute matrix power, got $rowCount x $colCount.',
+      );
+    }
+    final effectiveType = type is ExprDataType ? type : exprDataType;
+    if (exponent == 0) {
+      return Matrix<Expr>.identity(rowCount, type: effectiveType);
+    }
+    if (exponent < 0) {
+      final inv = inverse();
+      if (inv == null) {
+        throw StateError(
+          'Cannot raise singular matrix to negative power ($exponent).',
+        );
+      }
+      return inv.power(-exponent);
+    }
+    if (exponent == 1) return simplify();
+
+    var result = Matrix<Expr>.identity(rowCount, type: effectiveType);
+    var base = simplify();
+    var exp = exponent;
+    while (exp > 0) {
+      if (exp.isOdd) {
+        result = (result * base).simplify();
+      }
+      exp ~/= 2;
+      if (exp > 0) {
+        base = (base * base).simplify();
+      }
+    }
+    return result;
+  }
 
   /// Canonically simplifies every entry of this matrix.
   Matrix<Expr> simplify() => _mapEntries((e) => e.simplify());
@@ -229,4 +356,21 @@ extension SymbolicVectorExtension on Vector<Expr> {
         (i) => transform(getUnchecked(i)),
         type: type is ExprDataType ? type : exprDataType,
       );
+}
+
+int _algebraicMultiplicity(
+  Expr charPoly,
+  String lambdaVar,
+  Expr root,
+  int maxDegree,
+) {
+  var multiplicity = 1;
+  var deriv = charPoly.derivative(lambdaVar).simplify();
+  while (multiplicity < maxDegree) {
+    final val = deriv.substitute(lambdaVar, root).expand().simplify();
+    if (!(val is Number && val.isZero)) break;
+    multiplicity++;
+    deriv = deriv.derivative(lambdaVar).simplify();
+  }
+  return multiplicity;
 }
