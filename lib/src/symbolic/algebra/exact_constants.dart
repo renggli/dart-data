@@ -2,36 +2,80 @@ import 'dart:math' as math;
 
 import '../ast.dart';
 
-/// Standard algebraic radical constants appearing in special angles for
-/// trigonometric and inverse trigonometric evaluation and equation solving.
+/// Standard special radical values appearing in exact trigonometric evaluations.
 enum SpecialRadical {
-  /// Half constant: $1/2 = 0.5$.
+  /// $1 / 2 = \sin(\pi/6) = \cos(\pi/3)$.
   half(0.5),
 
-  /// Square root of 2 over 2: $\frac{\sqrt{2}}{2} \approx 0.7071067811865475$.
-  sqrt2Over2(0.70710678118654752440),
+  /// $\sqrt{2} / 2 = \sin(\pi/4) = \cos(\pi/4)$.
+  sqrt2Over2(math.sqrt1_2),
 
-  /// Square root of 3 over 2: $\frac{\sqrt{3}}{2} \approx 0.8660254037844386$.
-  sqrt3Over2(0.86602540378443864676),
+  /// $\sqrt{3} / 2 = \sin(\pi/3) = \cos(\pi/6)$.
+  sqrt3Over2(0.8660254037844386),
 
-  /// Square root of 3 over 3: $\frac{\sqrt{3}}{3} = \frac{1}{\sqrt{3}} \approx 0.5773502691896257$.
-  sqrt3Over3(0.57735026918962576451),
+  /// $\sqrt{3} / 3 = \tan(\pi/6)$.
+  sqrt3Over3(0.5773502691896257),
 
-  /// Square root of 3: $\sqrt{3} \approx 1.7320508075688772$.
-  sqrt3(1.73205080756887729353);
+  /// $\sqrt{3} = \tan(\pi/3)$.
+  sqrt3(1.7320508075688772);
 
   new(this.numericValue);
 
-  /// Positive floating-point numerical value of this special radical.
+  /// Floating-point approximation of this radical.
   final double numericValue;
 }
 
-/// Tests whether [expr] matches [target], taking [negative] sign into account.
+/// Constructs the canonical exact [Expr] for [radical] with optional [negative] sign.
+Expr specialRadicalExpr(SpecialRadical radical, {bool negative = false}) =>
+    switch (radical) {
+      SpecialRadical.half =>
+        negative ? FractionNumber.negativeHalf : FractionNumber.half,
+      SpecialRadical.sqrt2Over2 => Mul([
+        if (negative) FractionNumber.negativeHalf else FractionNumber.half,
+        Pow(IntegerNumber.two, FractionNumber.half, isSimplified: true),
+      ], isSimplified: true),
+      SpecialRadical.sqrt3Over2 => Mul([
+        if (negative) FractionNumber.negativeHalf else FractionNumber.half,
+        Pow(
+          const IntegerNumber(Integer(3)),
+          FractionNumber.half,
+          isSimplified: true,
+        ),
+      ], isSimplified: true),
+      SpecialRadical.sqrt3Over3 => Mul([
+        if (negative)
+          const FractionNumber(Integer.negativeOne, Integer(3))
+        else
+          FractionNumber.third,
+        Pow(
+          const IntegerNumber(Integer(3)),
+          FractionNumber.half,
+          isSimplified: true,
+        ),
+      ], isSimplified: true),
+      SpecialRadical.sqrt3 =>
+        negative
+            ? Mul([
+                IntegerNumber.negativeOne,
+                Pow(
+                  const IntegerNumber(Integer(3)),
+                  FractionNumber.half,
+                  isSimplified: true,
+                ),
+              ], isSimplified: true)
+            : Pow(
+                const IntegerNumber(Integer(3)),
+                FractionNumber.half,
+                isSimplified: true,
+              ),
+    };
+
+/// Tests whether [expr] represents $\pm\text{radical}$.
 bool isSpecialAngleConstant(
   Expr expr,
-  SpecialRadical target, {
+  SpecialRadical radical, {
   bool negative = false,
-}) => switch (target) {
+}) => switch (radical) {
   SpecialRadical.half => negative ? isNegativeHalf(expr) : isHalf(expr),
   SpecialRadical.sqrt2Over2 =>
     negative ? isNegativeSqrt2Over2(expr) : isSqrt2Over2(expr),
@@ -42,289 +86,86 @@ bool isSpecialAngleConstant(
   SpecialRadical.sqrt3 => negative ? isNegativeSqrt3(expr) : isSqrt3(expr),
 };
 
-/// Constructs the canonical symbolic [Expr] for [target], optionally negated.
-Expr specialRadicalExpr(SpecialRadical target, {bool negative = false}) {
-  if (target == SpecialRadical.half) {
-    return negative ? const RationalNumber(-1, 2) : const RationalNumber(1, 2);
+/// Tests whether [expr] equals $+1/2$.
+bool isHalf(Expr expr) => switch (expr) {
+  FractionNumber(:final numerator, :final denominator) =>
+    numerator.isOne && denominator == Integer.two,
+  RealNumber(:final value) => (value - 0.5).abs() < 1e-12,
+  _ => false,
+};
+
+/// Tests whether [expr] equals $-1/2$.
+bool isNegativeHalf(Expr expr) => switch (expr) {
+  FractionNumber(:final numerator, :final denominator) =>
+    numerator == Integer.negativeOne && denominator == Integer.two,
+  RealNumber(:final value) => (value + 0.5).abs() < 1e-12,
+  _ => false,
+};
+
+/// Tests whether [expr] is $\sqrt{n}$ (`Pow(RationalNumber(n), RationalNumber(1, 2))`).
+bool isSqrt(Expr expr, int n) => switch (expr) {
+  Pow(
+    base: IntegerNumber(:final value),
+    exponent: FractionNumber(:final numerator, :final denominator),
+  ) =>
+    value == Integer(n) && numerator.isOne && denominator == Integer.two,
+  _ => false,
+};
+
+/// Tests whether [expr] equals $+\sqrt{2}/2 = 1/\sqrt{2}$.
+bool isSqrt2Over2(Expr expr) {
+  if (expr is Pow &&
+      expr.base == FractionNumber.half &&
+      expr.exponent == FractionNumber.half) {
+    return true;
   }
-  final base = switch (target) {
-    SpecialRadical.half => const RationalNumber(1, 2),
-    SpecialRadical.sqrt2Over2 => const Div(
-      Pow(RationalNumber(2), RationalNumber(1, 2)),
-      RationalNumber(2),
-    ),
-    SpecialRadical.sqrt3Over2 => const Div(
-      Pow(RationalNumber(3), RationalNumber(1, 2)),
-      RationalNumber(2),
-    ),
-    SpecialRadical.sqrt3Over3 => const Div(
-      Pow(RationalNumber(3), RationalNumber(1, 2)),
-      RationalNumber(3),
-    ),
-    SpecialRadical.sqrt3 => const Pow(RationalNumber(3), RationalNumber(1, 2)),
-  };
-  return negative ? Neg(base) : base;
+  return _evalClose(expr, math.sqrt1_2);
 }
 
-/// Identifies if [expr] matches any [SpecialRadical], returning the radical and
-/// its sign, or `null` if no match is found.
+/// Tests whether [expr] equals $-\sqrt{2}/2 = -1/\sqrt{2}$.
+bool isNegativeSqrt2Over2(Expr expr) => _evalClose(expr, -math.sqrt1_2);
+
+/// Tests whether [expr] equals $+\sqrt{3}/2$.
+bool isSqrt3Over2(Expr expr) => _evalClose(expr, 0.8660254037844386);
+
+/// Tests whether [expr] equals $-\sqrt{3}/2$.
+bool isNegativeSqrt3Over2(Expr expr) => _evalClose(expr, -0.8660254037844386);
+
+/// Tests whether [expr] equals $+\sqrt{3}/3 = 1/\sqrt{3}$.
+bool isSqrt3Over3(Expr expr) => _evalClose(expr, 0.5773502691896257);
+
+/// Tests whether [expr] equals $-\sqrt{3}/3 = -1/\sqrt{3}$.
+bool isNegativeSqrt3Over3(Expr expr) => _evalClose(expr, -0.5773502691896257);
+
+/// Tests whether [expr] equals $+\sqrt{3}$.
+bool isSqrt3(Expr expr) {
+  if (isSqrt(expr, 3)) return true;
+  return _evalClose(expr, 1.7320508075688772);
+}
+
+/// Tests whether [expr] equals $-\sqrt{3}$.
+bool isNegativeSqrt3(Expr expr) => _evalClose(expr, -1.7320508075688772);
+
+/// Identifies if [expr] matches any [SpecialRadical] (positive or negative).
 ({SpecialRadical radical, bool isNegative})? identifySpecialRadical(Expr expr) {
-  for (final radical in SpecialRadical.values) {
-    if (isSpecialAngleConstant(expr, radical, negative: false)) {
-      return (radical: radical, isNegative: false);
+  for (final rad in SpecialRadical.values) {
+    if (isSpecialAngleConstant(expr, rad, negative: false)) {
+      return (radical: rad, isNegative: false);
     }
-    if (isSpecialAngleConstant(expr, radical, negative: true)) {
-      return (radical: radical, isNegative: true);
+    if (isSpecialAngleConstant(expr, rad, negative: true)) {
+      return (radical: rad, isNegative: true);
     }
   }
   return null;
 }
 
-/// Tests whether [expr] equals 1/2.
-bool isHalf(Expr expr) {
-  if (expr is RationalNumber && expr.numerator == 1 && expr.denominator == 2) {
-    return true;
+bool _evalClose(Expr expr, double target) {
+  if (expr.freeVariables.isNotEmpty) return false;
+  if (!expr.isReal) return false;
+  try {
+    final v = expr.evaluate(const {});
+    return (v - target).abs() < 1e-12;
+  } on Object {
+    return false;
   }
-  if (expr is RealNumber && (expr.value - 0.5).abs() < 1e-12) {
-    return true;
-  }
-  if (expr is Neg && isNegativeHalf(expr.expr)) {
-    return true;
-  }
-  return false;
-}
-
-/// Tests whether [expr] equals -1/2.
-bool isNegativeHalf(Expr expr) {
-  if (expr is RationalNumber && expr.numerator == -1 && expr.denominator == 2) {
-    return true;
-  }
-  if (expr is RealNumber && (expr.value + 0.5).abs() < 1e-12) {
-    return true;
-  }
-  if (expr is Neg && isHalf(expr.expr)) {
-    return true;
-  }
-  return false;
-}
-
-/// Tests whether [expr] is an exact square root of [n].
-bool isSqrt(Expr expr, int n) =>
-    expr is Pow &&
-    expr.base == RationalNumber(n) &&
-    expr.exponent == const RationalNumber(1, 2);
-
-/// Tests whether [expr] equals $\sqrt{2}/2$.
-bool isSqrt2Over2(Expr expr) {
-  if (expr is RealNumber && (expr.value - math.sqrt(2) / 2).abs() < 1e-12) {
-    return true;
-  }
-  if (expr is Mul) {
-    if ((expr.left == const RationalNumber(1, 2) && isSqrt(expr.right, 2)) ||
-        (expr.right == const RationalNumber(1, 2) && isSqrt(expr.left, 2))) {
-      return true;
-    }
-  }
-  if (expr is Div &&
-      isSqrt(expr.left, 2) &&
-      expr.right == const RationalNumber(2)) {
-    return true;
-  }
-  if (expr is Pow &&
-      expr.base == const RationalNumber(1, 2) &&
-      expr.exponent == const RationalNumber(1, 2)) {
-    return true;
-  }
-  if (expr.freeVariables.isEmpty) {
-    try {
-      final complex = expr.evaluateComplex();
-      if (complex.b.abs() < 1e-12 &&
-          (complex.a - math.sqrt(2) / 2).abs() < 1e-12) {
-        return true;
-      }
-    } catch (_) {}
-  }
-  return false;
-}
-
-/// Tests whether [expr] equals $-\sqrt{2}/2$.
-bool isNegativeSqrt2Over2(Expr expr) {
-  if (expr is RealNumber && (expr.value + math.sqrt(2) / 2).abs() < 1e-12) {
-    return true;
-  }
-  if (expr is Neg && isSqrt2Over2(expr.expr)) {
-    return true;
-  }
-  if (expr is Mul) {
-    if ((expr.left == const RationalNumber(-1, 2) && isSqrt(expr.right, 2)) ||
-        (expr.right == const RationalNumber(-1, 2) && isSqrt(expr.left, 2))) {
-      return true;
-    }
-  }
-  if (expr.freeVariables.isEmpty) {
-    try {
-      final complex = expr.evaluateComplex();
-      if (complex.b.abs() < 1e-12 &&
-          (complex.a + math.sqrt(2) / 2).abs() < 1e-12) {
-        return true;
-      }
-    } catch (_) {}
-  }
-  return false;
-}
-
-/// Tests whether [expr] equals $\sqrt{3}/2$.
-bool isSqrt3Over2(Expr expr) {
-  if (expr is RealNumber && (expr.value - math.sqrt(3) / 2).abs() < 1e-12) {
-    return true;
-  }
-  if (expr is Mul) {
-    if ((expr.left == const RationalNumber(1, 2) && isSqrt(expr.right, 3)) ||
-        (expr.right == const RationalNumber(1, 2) && isSqrt(expr.left, 3))) {
-      return true;
-    }
-  }
-  if (expr is Div &&
-      isSqrt(expr.left, 3) &&
-      expr.right == const RationalNumber(2)) {
-    return true;
-  }
-  if (expr.freeVariables.isEmpty) {
-    try {
-      final complex = expr.evaluateComplex();
-      if (complex.b.abs() < 1e-12 &&
-          (complex.a - math.sqrt(3) / 2).abs() < 1e-12) {
-        return true;
-      }
-    } catch (_) {}
-  }
-  return false;
-}
-
-/// Tests whether [expr] equals $-\sqrt{3}/2$.
-bool isNegativeSqrt3Over2(Expr expr) {
-  if (expr is RealNumber && (expr.value + math.sqrt(3) / 2).abs() < 1e-12) {
-    return true;
-  }
-  if (expr is Neg && isSqrt3Over2(expr.expr)) {
-    return true;
-  }
-  if (expr is Mul) {
-    if ((expr.left == const RationalNumber(-1, 2) && isSqrt(expr.right, 3)) ||
-        (expr.right == const RationalNumber(-1, 2) && isSqrt(expr.left, 3))) {
-      return true;
-    }
-  }
-  if (expr.freeVariables.isEmpty) {
-    try {
-      final complex = expr.evaluateComplex();
-      if (complex.b.abs() < 1e-12 &&
-          (complex.a + math.sqrt(3) / 2).abs() < 1e-12) {
-        return true;
-      }
-    } catch (_) {}
-  }
-  return false;
-}
-
-/// Tests whether [expr] equals $\sqrt{3}/3$.
-bool isSqrt3Over3(Expr expr) {
-  if (expr is RealNumber && (expr.value - math.sqrt(3) / 3).abs() < 1e-12) {
-    return true;
-  }
-  if (expr is Mul) {
-    if ((expr.left == const RationalNumber(1, 3) && isSqrt(expr.right, 3)) ||
-        (expr.right == const RationalNumber(1, 3) && isSqrt(expr.left, 3))) {
-      return true;
-    }
-  }
-  if (expr is Div &&
-      isSqrt(expr.left, 3) &&
-      expr.right == const RationalNumber(3)) {
-    return true;
-  }
-  if (expr is Pow &&
-      expr.base == const RationalNumber(1, 3) &&
-      expr.exponent == const RationalNumber(1, 2)) {
-    return true;
-  }
-  if (expr.freeVariables.isEmpty) {
-    try {
-      final complex = expr.evaluateComplex();
-      if (complex.b.abs() < 1e-12 &&
-          (complex.a - math.sqrt(3) / 3).abs() < 1e-12) {
-        return true;
-      }
-    } catch (_) {}
-  }
-  return false;
-}
-
-/// Tests whether [expr] equals $-\sqrt{3}/3$.
-bool isNegativeSqrt3Over3(Expr expr) {
-  if (expr is RealNumber && (expr.value + math.sqrt(3) / 3).abs() < 1e-12) {
-    return true;
-  }
-  if (expr is Neg && isSqrt3Over3(expr.expr)) {
-    return true;
-  }
-  if (expr is Mul) {
-    if ((expr.left == const RationalNumber(-1, 3) && isSqrt(expr.right, 3)) ||
-        (expr.right == const RationalNumber(-1, 3) && isSqrt(expr.left, 3))) {
-      return true;
-    }
-  }
-  if (expr.freeVariables.isEmpty) {
-    try {
-      final complex = expr.evaluateComplex();
-      if (complex.b.abs() < 1e-12 &&
-          (complex.a + math.sqrt(3) / 3).abs() < 1e-12) {
-        return true;
-      }
-    } catch (_) {}
-  }
-  return false;
-}
-
-/// Tests whether [expr] equals $\sqrt{3}$.
-bool isSqrt3(Expr expr) {
-  if (expr is RealNumber && (expr.value - math.sqrt(3)).abs() < 1e-12) {
-    return true;
-  }
-  if (isSqrt(expr, 3)) {
-    return true;
-  }
-  if (expr.freeVariables.isEmpty) {
-    try {
-      final complex = expr.evaluateComplex();
-      if (complex.b.abs() < 1e-12 && (complex.a - math.sqrt(3)).abs() < 1e-12) {
-        return true;
-      }
-    } catch (_) {}
-  }
-  return false;
-}
-
-/// Tests whether [expr] equals $-\sqrt{3}$.
-bool isNegativeSqrt3(Expr expr) {
-  if (expr is RealNumber && (expr.value + math.sqrt(3)).abs() < 1e-12) {
-    return true;
-  }
-  if (expr is Neg && isSqrt3(expr.expr)) {
-    return true;
-  }
-  if (expr is Mul &&
-      expr.left == RationalNumber.negativeOne &&
-      isSqrt(expr.right, 3)) {
-    return true;
-  }
-  if (expr.freeVariables.isEmpty) {
-    try {
-      final complex = expr.evaluateComplex();
-      if (complex.b.abs() < 1e-12 && (complex.a + math.sqrt(3)).abs() < 1e-12) {
-        return true;
-      }
-    } catch (_) {}
-  }
-  return false;
 }

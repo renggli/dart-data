@@ -1,6 +1,7 @@
 import '../algebra/expand.dart';
 import '../algebra/factor.dart';
 import '../algebra/simplify.dart';
+import '../algebra/term_accumulator.dart';
 import '../ast.dart';
 import '../calculus/differentiation.dart';
 import 'univariate.dart';
@@ -22,7 +23,7 @@ extension SystemSolverExtension on Iterable<Expr> {
   /// final x = Variable('x');
   /// final y = Variable('y');
   /// final solution = [x + y - 10, x - y - 2].solveSystem(['x', 'y']);
-  /// // solution?['x'] == RationalNumber(6), solution?['y'] == RationalNumber(4)
+  /// // solution?['x'] == IntegerNumber(6), solution?['y'] == IntegerNumber(4)
   /// ```
   Map<String, Expr>? solveSystem(List<String> variables) =>
       solveSystemEquations(toList(), variables);
@@ -41,13 +42,13 @@ Map<String, Expr>? solveSystemEquations(
   // Extract coefficient matrix A and right-hand side b
   final a = List<List<Expr>>.generate(
     n,
-    (_) => List<Expr>.filled(n, RationalNumber.zero),
+    (_) => List<Expr>.filled(n, IntegerNumber.zero),
   );
-  final b = List<Expr>.filled(n, RationalNumber.zero);
+  final b = List<Expr>.filled(n, IntegerNumber.zero);
 
   for (var i = 0; i < n; i++) {
     final rawEq = equations[i];
-    final eq = (rawEq is Equal ? Sub(rawEq.left, rawEq.right) : rawEq)
+    final eq = (rawEq is Equal ? (rawEq.left - rawEq.right) : rawEq)
         .expand()
         .simplify();
     for (var j = 0; j < n; j++) {
@@ -62,7 +63,7 @@ Map<String, Expr>? solveSystemEquations(
     // Constant term: evaluate with all variables set to 0
     var cTerm = eq;
     for (final v in variables) {
-      cTerm = cTerm.substitute(v, RationalNumber.zero);
+      cTerm = cTerm.substitute(v, IntegerNumber.zero);
     }
     b[i] = (-cTerm).simplify();
   }
@@ -93,7 +94,7 @@ Map<String, Expr>? solveSystemEquations(
     for (var i = k + 1; i < n; i++) {
       final aik = a[i][k];
       if (!isZeroExpr(aik)) {
-        a[i][k] = RationalNumber.zero;
+        a[i][k] = IntegerNumber.zero;
         for (var j = k + 1; j < n; j++) {
           a[i][j] = (pivot * a[i][j] - aik * a[k][j]).expand().simplify();
         }
@@ -103,12 +104,12 @@ Map<String, Expr>? solveSystemEquations(
   }
 
   // Back-substitution keeping numerator/denominator rational form
-  final xNum = List<Expr>.filled(n, RationalNumber.zero);
-  final xDen = List<Expr>.filled(n, RationalNumber.one);
-  final x = List<Expr>.filled(n, RationalNumber.zero);
+  final xNum = List<Expr>.filled(n, IntegerNumber.zero);
+  final xDen = List<Expr>.filled(n, IntegerNumber.one);
+  final x = List<Expr>.filled(n, IntegerNumber.zero);
   for (var i = n - 1; i >= 0; i--) {
     var numSum = b[i];
-    var denSum = RationalNumber.one as Expr;
+    Expr denSum = IntegerNumber.one;
     for (var j = i + 1; j < n; j++) {
       final aij = a[i][j];
       if (!isZeroExpr(aij) && !isZeroExpr(xNum[j])) {
@@ -119,13 +120,9 @@ Map<String, Expr>? solveSystemEquations(
     final rawDen = (denSum * a[i][i]).expand().simplify();
     final sol = (numSum / rawDen).factor().simplify();
     x[i] = sol;
-    if (sol is Div) {
-      xNum[i] = sol.left;
-      xDen[i] = sol.right;
-    } else {
-      xNum[i] = sol;
-      xDen[i] = RationalNumber.one;
-    }
+    final (numPart, denPart) = splitNumeratorDenominator(sol);
+    xNum[i] = numPart;
+    xDen[i] = denPart;
   }
 
   final result = <String, Expr>{};

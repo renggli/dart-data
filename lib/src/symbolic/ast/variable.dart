@@ -1,50 +1,50 @@
 part of '../ast.dart';
 
-/// A named symbolic variable in an algebraic expression.
-///
-/// Variables act as placeholders for unknown quantities or coordinates (e.g.
-/// `'x'`, `'y'`). During evaluation, their values are supplied via a context map.
-///
-/// ```dart
-/// final x = Variable('x');
-/// final expr = x * x + 1;
-/// print(expr.evaluate({'x': 3.0})); // 10.0
-/// ```
+/// Symbolic variable leaf node (e.g. $x$, $y$, $\theta$).
 final class Variable extends Expr {
-  /// Creates a variable node with the given [name].
+  /// Creates a symbolic variable with [name].
   const new(this.name);
 
-  /// The symbol name of this variable (e.g. `'x'`).
+  /// Identifier name of the variable.
   final String name;
 
   @override
-  bool dependsOn(String name) => this.name == name;
+  bool get isSimplified => true;
 
   @override
-  void collectFreeVariables(Set<String> target) => target.add(name);
+  double evaluate([Map<String, double> context = const {}]) {
+    final val = context[name];
+    if (val == null) {
+      throw ArgumentError('Unbound variable "$name" in evaluation context');
+    }
+    return val;
+  }
 
   @override
   Set<String> get freeVariables => {name};
+
+  @override
+  void collectFreeVariables(Set<String> target) {
+    target.add(name);
+  }
+
+  @override
+  bool dependsOn(String variable) => name == variable;
 
   @override
   Expr substitute(String variable, Expr replacement) =>
       name == variable ? replacement : this;
 
   @override
-  double evaluate(Map<String, double> context) {
-    final val = context[name];
-    if (val == null) {
-      throw ArgumentError('Variable "$name" not provided in context');
-    }
-    return val;
-  }
+  Expr mapChildren(Expr Function(Expr) transform) => this;
 
   @override
-  String toString() => name;
+  bool anyNode(bool Function(Expr) predicate) => predicate(this);
 
   @override
-  bool operator ==(Object other) => other is Variable && other.name == name;
+  bool operator ==(Object other) =>
+      identical(this, other) || (other is Variable && name == other.name);
 
   @override
-  int get hashCode => name.hashCode;
+  int get hashCode => Object.hash(Variable, name);
 }

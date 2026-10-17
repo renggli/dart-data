@@ -1,167 +1,144 @@
-import 'dart:math' as math;
-
-import 'package:more/number.dart' show Fraction;
-
 import '../../ast.dart';
 import '../simplify.dart';
 
 /// Simplifies an exponentiation expression [base] ^ [exponent].
-Expr simplifyPow(Expr base, Expr exponent) => switch ((base, exponent)) {
-  (_, RationalNumber(isZero: true)) => RationalNumber.one,
-  (final b, RationalNumber(isOne: true)) => b,
-  (_, RealNumber(value: 0.0)) => RationalNumber.one,
-  (final b, RealNumber(value: 1.0)) => b,
-  (
-    RationalNumber(isZero: true) || RealNumber(value: 0.0),
-    RationalNumber(isNegative: true) || Neg(expr: RationalNumber()),
-  ) =>
-    throw UnsupportedError('Division by zero in negative power of zero'),
-  (
-    RationalNumber(isZero: true) || RealNumber(value: 0.0),
-    RealNumber(:final value),
-  )
-      when value < 0.0 =>
-    throw UnsupportedError('Division by zero in negative power of zero'),
-  (RationalNumber(isZero: true), _) => RationalNumber.zero,
-  (RealNumber(value: 0.0), _) => RationalNumber.zero,
-  (RationalNumber(isOne: true), _) => RationalNumber.one,
-  (RealNumber(value: 1.0), _) => RationalNumber.one,
-  (ConstantNumber(name: 'e'), final exponent) => Exp(exponent),
-  (
-    ConstantNumber(name: 'i'),
-    RationalNumber(isInteger: true, numerator: final expInt),
-  ) =>
-    _evalIPower(expInt),
-  (
-    Neg(expr: ConstantNumber(name: 'i')),
-    RationalNumber(isInteger: true, numerator: final expInt),
-  ) =>
-    _evalNegIPower(expInt),
-  (ConstantNumber(name: 'i'), RealNumber(:final value))
-      when value == value.truncateToDouble() =>
-    _evalIPower(value.toInt()),
-  (Neg(expr: ConstantNumber(name: 'i')), RealNumber(:final value))
-      when value == value.truncateToDouble() =>
-    _evalNegIPower(value.toInt()),
-  (
-    Mul(
-          left: RationalNumber(:final numerator, :final denominator),
-          right: ConstantNumber(name: 'i'),
-        ) ||
-        Mul(
-          left: ConstantNumber(name: 'i'),
-          right: RationalNumber(:final numerator, :final denominator),
-        ),
-    RationalNumber(isInteger: true, numerator: final expInt),
-  ) =>
-    _evalScaledIPower(numerator, denominator, expInt),
-  (
-    RationalNumber(:final numerator, :final denominator),
-    RationalNumber(isInteger: true, numerator: final expInt),
-  ) =>
-    foldRationalPower(numerator, denominator, expInt),
-  (RationalNumber() && final b, RationalNumber() && final e) =>
-    foldGeneralPower(b, e),
-  // Involution: (u^2)^(1/2) => |u|
-  (
-    Pow(
-      base: final innerBase,
-      exponent: RationalNumber(numerator: 2, denominator: 1) ||
-          RealNumber(value: 2.0),
-    ),
-    RationalNumber(numerator: 1, denominator: 2) || RealNumber(value: 0.5),
-  ) =>
-    simplifyAbs(innerBase),
-  (
-    Pow(base: final innerBase, exponent: RationalNumber() && final e1),
-    RationalNumber() && final e2,
-  ) =>
-    simplifyPow(innerBase, simplifyMul(e1, e2)),
-  (Exp(:final expr), final exponent) => simplifyExp(
-    simplifyMul(expr, exponent),
-  ),
-  (
-    Abs(:final expr),
-    RationalNumber(numerator: 2, denominator: 1) || RealNumber(value: 2.0),
-  ) =>
-    simplifyPow(expr, exponent),
-  (
-    OrderTerm(:final variable, :final order, :final point),
-    RationalNumber(isInteger: true, numerator: final k),
-  )
-      when k > 0 =>
-    OrderTerm(variable, order * k, point: point),
-  _ => Pow(base, exponent),
-};
+Expr simplifyPow(Expr base, Expr exponent) {
+  // 1. Trivial exponent identities: b^0 = 1, b^1 = b
+  if (exponent is Number && exponent.isZero) {
+    return IntegerNumber.one;
+  }
+  if (exponent is Number && exponent.isOne) {
+    return base;
+  }
 
-/// Evaluates integer powers of rational numbers up to exponent magnitude 10.
-Expr foldRationalPower(int num, int den, int exp) {
-  if (exp == 0) return RationalNumber.one;
-  if (exp > 0 && exp <= 10) {
-    final bigN = BigInt.from(num).pow(exp);
-    final bigD = BigInt.from(den).pow(exp);
-    if (bigN.bitLength <= 52 && bigD.bitLength <= 52) {
-      return RationalNumber.fraction(Fraction(bigN.toInt(), bigD.toInt()));
+  // 2. Trivial base identities: 0^e, 1^e
+  if (base is Number && base.isZero) {
+    if (exponent is RealNumeric && exponent.isNegative) {
+      throw UnsupportedError('Division by zero in negative power of zero');
+    }
+    if (exponent is Mul &&
+        exponent.factors.isNotEmpty &&
+        exponent.factors.first is RealNumeric &&
+        (exponent.factors.first as RealNumeric).isNegative) {
+      throw UnsupportedError('Division by zero in negative power of zero');
+    }
+    return IntegerNumber.zero;
+  }
+  if (base is Number && base.isOne) {
+    return IntegerNumber.one;
+  }
+
+  // 3. Natural exponential base e: e^(ln(u)) = u, e^(k * ln(u)) = u^k
+  if (base == Constant.e) {
+    if (exponent is Ln) {
+      return exponent.expr;
+    }
+    if (exponent is Mul) {
+      final lnIdx = exponent.factors.indexWhere((f) => f is Ln);
+      if (lnIdx != -1) {
+        final lnNode = exponent.factors[lnIdx] as Ln;
+        final otherFactors = <Expr>[
+          for (var i = 0; i < exponent.factors.length; i++)
+            if (i != lnIdx) exponent.factors[i],
+        ];
+        final k = otherFactors.length == 1
+            ? otherFactors.first
+            : simplifyMul(otherFactors);
+        return simplifyPow(lnNode.expr, k);
+      }
+    }
+    return Pow(Constant.e, exponent, isSimplified: true);
+  }
+
+  // 4. Numeric base and numeric exponent
+  if (base is Number && exponent is Number) {
+    if (base is RationalNumber && exponent is RationalNumber) {
+      if (exponent is IntegerNumber) {
+        final folded = base.powNumber(exponent);
+        if (folded != null) return folded;
+      } else if (exponent is FractionNumber) {
+        if (base.isNegative) {
+          if (exponent == FractionNumber.half) {
+            return simplifyMul([
+              ComplexNumber.i,
+              simplifyPow(base.neg(), FractionNumber.half),
+            ]);
+          }
+          if (exponent == FractionNumber.negativeHalf) {
+            return simplifyMul([
+              ComplexNumber.negativeI,
+              simplifyPow(base.neg(), FractionNumber.negativeHalf),
+            ]);
+          }
+        } else {
+          final folded = base.powNumber(exponent);
+          if (folded != null) return folded;
+        }
+      }
+      return Pow(base, exponent, isSimplified: true);
+    }
+    if (base is ComplexNumber) {
+      final folded = base.powNumber(exponent);
+      if (folded != null) return folded;
+    }
+    return Pow(base, exponent, isSimplified: true);
+  }
+
+  // 5. Involution: (u^2)^(1/2) => |u|
+  if (base is Pow && _isTwo(base.exponent) && _isHalf(exponent)) {
+    return simplifyAbs(base.base);
+  }
+
+  // 6. Nested powers: (u^e1)^e2
+  if (base is Pow) {
+    if (base.base == Constant.e) {
+      return simplifyPow(Constant.e, simplifyMul([base.exponent, exponent]));
+    }
+    if (base.exponent is RationalNumber && exponent is RationalNumber) {
+      return simplifyPow(
+        base.base,
+        (base.exponent as RationalNumber).mulRational(exponent),
+      );
+    }
+    if (exponent is IntegerNumber) {
+      return simplifyPow(base.base, simplifyMul([base.exponent, exponent]));
     }
   }
-  if (exp < 0 && -exp <= 10 && num != 0) {
-    final absExp = -exp;
-    var bigN = BigInt.from(den).pow(absExp);
-    var bigD = BigInt.from(num).pow(absExp);
-    if (bigD < BigInt.zero) {
-      bigN = -bigN;
-      bigD = -bigD;
-    }
-    if (bigN.bitLength <= 52 && bigD.bitLength <= 52) {
-      return RationalNumber.fraction(Fraction(bigN.toInt(), bigD.toInt()));
+
+  // 7. Product raised to an integer power: (a * b)^k => a^k * b^k
+  if (base is Mul && exponent is IntegerNumber) {
+    return simplifyMul([
+      for (final f in base.factors) simplifyPow(f, exponent),
+    ]);
+  }
+
+  // 8. |u|^2 => u^2
+  if (base is Abs && _isTwo(exponent)) {
+    return simplifyPow(base.expr, exponent);
+  }
+
+  // 9. OrderTerm^k for positive integer k
+  if (base is OrderTerm &&
+      exponent is IntegerNumber &&
+      exponent.value > Integer.zero) {
+    final k = exponent.asInt;
+    if (k != null) {
+      return OrderTerm(base.variable, base.order * k, point: base.point);
     }
   }
-  return Pow(RationalNumber(num, den), RationalNumber(exp));
+
+  return Pow(base, exponent, isSimplified: true);
 }
 
-/// Evaluates exact square roots of rational numbers if perfect squares.
-Expr foldGeneralPower(RationalNumber base, RationalNumber exp) {
-  if (exp.numerator == 1 && exp.denominator == 2 && base.numerator >= 0) {
-    final numSqrt = math.sqrt(base.numerator).round();
-    final denSqrt = math.sqrt(base.denominator).round();
-    if (numSqrt * numSqrt == base.numerator &&
-        denSqrt * denSqrt == base.denominator) {
-      return RationalNumber(numSqrt, denSqrt);
-    }
-  }
-  return Pow(base, exp);
+/// Evaluates integer powers of rational numbers.
+Expr foldRationalPower(Integer num, Integer den, int exp) {
+  final rat = RationalNumber.of(num, den);
+  final folded = rat.powNumber(IntegerNumber(Integer(exp)));
+  return folded ?? Pow(rat, IntegerNumber(Integer(exp)), isSimplified: true);
 }
 
-Expr _evalIPower(int expInt) => switch (((expInt % 4) + 4) % 4) {
-  0 => RationalNumber.one,
-  1 => ConstantNumber.i,
-  2 => RationalNumber.negativeOne,
-  _ => const Neg(ConstantNumber.i),
-};
+bool _isTwo(Expr expr) =>
+    expr == IntegerNumber.two || (expr is RealNumber && expr.value == 2.0);
 
-Expr _evalNegIPower(int expInt) => switch (((expInt % 4) + 4) % 4) {
-  0 => RationalNumber.one,
-  1 => const Neg(ConstantNumber.i),
-  2 => RationalNumber.negativeOne,
-  _ => ConstantNumber.i,
-};
-
-Expr _evalScaledIPower(int numerator, int denominator, int expInt) =>
-    switch (((expInt % 4) + 4) % 4) {
-      0 => foldRationalPower(numerator, denominator, expInt),
-      1 => simplifyMul(
-        foldRationalPower(numerator, denominator, expInt),
-        ConstantNumber.i,
-      ),
-      2 => simplifyMul(
-        RationalNumber.negativeOne,
-        foldRationalPower(numerator, denominator, expInt),
-      ),
-      _ => simplifyMul(
-        simplifyMul(
-          RationalNumber.negativeOne,
-          foldRationalPower(numerator, denominator, expInt),
-        ),
-        ConstantNumber.i,
-      ),
-    };
+bool _isHalf(Expr expr) =>
+    expr == FractionNumber.half || (expr is RealNumber && expr.value == 0.5);

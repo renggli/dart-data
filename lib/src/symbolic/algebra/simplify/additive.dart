@@ -1,84 +1,74 @@
-import 'package:more/number.dart' show Fraction;
-
 import '../../ast.dart';
 import '../simplify.dart';
 import '../term_accumulator.dart';
 
-/// Simplifies an addition expression [left] + [right].
-Expr simplifyAdd(Expr left, Expr right) =>
-    simplifyAdditive(left, right, isSubtraction: false);
-
-/// Simplifies a subtraction expression [left] - [right].
-Expr simplifySub(Expr left, Expr right) =>
-    simplifyAdditive(left, right, isSubtraction: true);
-
-/// Evaluates and simplifies additive combinations of [left] and [right].
-Expr simplifyAdditive(Expr left, Expr right, {required bool isSubtraction}) {
-  // Fast paths for zero identities and constant evaluation
-  if (!isSubtraction) {
-    if (left is RationalNumber && left.isZero) return right;
-    if (right is RationalNumber && right.isZero) return left;
-    if (left is RealNumber && left.value == 0.0) return right;
-    if (right is RealNumber && right.value == 0.0) return left;
-    if (left is RationalNumber && right is RationalNumber) {
-      return RationalNumber.fraction(left.toFraction() + right.toFraction());
+/// Simplifies an N-ary addition expression across [terms].
+Expr simplifyAdd(List<Expr> terms) {
+  if (terms.isEmpty) return IntegerNumber.zero;
+  if (terms.length == 1) {
+    final single = terms.first;
+    if (single is! Add &&
+        !(single is Mul &&
+            single.factors.length == 2 &&
+            single.factors[0] is Number &&
+            (single.factors[0] as Number).isNegativeOne &&
+            single.factors[1] is Add)) {
+      return single;
     }
-    if (left is RealNumber && right is RealNumber) {
-      return RealNumber(left.value + right.value);
-    }
-  } else {
-    if (left == right &&
-        left is! OrderTerm &&
-        left != ConstantNumber.infinity &&
-        !left.anyNode((n) => n is OrderTerm || n == ConstantNumber.infinity)) {
-      return RationalNumber.zero;
-    }
-    if (right is RationalNumber && right.isZero) return left;
-    if (right is RealNumber && right.value == 0.0) return left;
-    if (left is RationalNumber && left.isZero) return simplifyNeg(right);
-    if (left is RealNumber && left.value == 0.0) return simplifyNeg(right);
-    if (left is RationalNumber && right is RationalNumber) {
-      return RationalNumber.fraction(left.toFraction() - right.toFraction());
-    }
-    if (left is RealNumber && right is RealNumber) {
-      return RealNumber(left.value - right.value);
+  }
+  if (terms.length == 2) {
+    final left = terms[0];
+    final right = terms[1];
+    if (left is Number && right is Number) {
+      return left.add(right);
     }
   }
 
   final acc = MonomialAccumulator(simplify: simplifyExpr);
-  acc.add(left);
-  acc.add(right, isSubtraction ? -Fraction.one : Fraction.one);
+  for (final term in terms) {
+    acc.add(term);
+  }
   acc.reduceIdentities();
   return acc.build();
 }
 
-/// Simplifies a negation expression -[expr].
+/// Simplifies a binary subtraction `left - right`.
+Expr simplifySub(Expr left, Expr right) =>
+    simplifyAdd([left, simplifyNeg(right)]);
+
+/// Simplifies a unary negation `-[expr]`.
 Expr simplifyNeg(Expr expr) {
-  switch (expr) {
-    case RationalNumber(isZero: true):
-      return RationalNumber.zero;
-    case RealNumber(value: 0.0):
-      return RationalNumber.zero;
-    case RationalNumber():
-      return RationalNumber.fraction(-expr.toFraction());
-    case RealNumber(:final value):
-      return RealNumber(-value);
-    case Neg(:final expr):
-      return expr;
-    case OrderTerm():
-      return expr;
-    case Add() || Sub():
-      final acc = MonomialAccumulator(simplify: simplifyExpr);
-      acc.add(expr, -Fraction.one);
-      acc.reduceIdentities();
-      return acc.build();
-    case Mul(left: final RationalNumber c, :final right):
-      return c.isOne
-          ? Neg(right)
-          : Mul(RationalNumber.fraction(-c.toFraction()), right);
-    case Mul(left: final RealNumber c, :final right):
-      return c.value == 1.0 ? Neg(right) : Mul(RealNumber(-c.value), right);
-    default:
-      return Neg(expr);
+  if (expr is Number) {
+    return expr.neg();
   }
+  if (expr is OrderTerm) {
+    return expr;
+  }
+  if (expr is Add) {
+    final acc = MonomialAccumulator(simplify: simplifyExpr);
+    acc.add(expr, IntegerNumber.negativeOne);
+    acc.reduceIdentities();
+    return acc.build();
+  }
+  if (expr is Mul && expr.factors.isNotEmpty) {
+    final first = expr.factors.first;
+    if (first is Number) {
+      final negFirst = first.neg();
+      final rest = expr.factors.sublist(1);
+      if (negFirst.isOne) {
+        return rest.length == 1
+            ? rest.first
+            : Mul(rest, isSimplified: expr.isSimplified);
+      }
+      return Mul([negFirst, ...rest], isSimplified: expr.isSimplified);
+    }
+    return Mul([
+      IntegerNumber.negativeOne,
+      ...expr.factors,
+    ], isSimplified: expr.isSimplified);
+  }
+  return Mul([
+    IntegerNumber.negativeOne,
+    expr,
+  ], isSimplified: expr.isSimplified);
 }

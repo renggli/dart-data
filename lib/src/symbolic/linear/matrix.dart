@@ -19,10 +19,10 @@ extension SymbolicMatrixExtension on Matrix<Expr> {
   /// ```dart
   /// final x = Variable('x');
   /// final m = Matrix<Expr>.fromRows([
-  ///   [x, const RationalNumber(1)],
-  ///   [const RationalNumber(2), x],
+  ///   [x, IntegerNumber.one],
+  ///   [IntegerNumber.two, x],
   /// ], type: exprDataType);
-  /// print(m.determinant()); // x^2 - 2
+  /// print(m.determinant()); // -2 + x^2
   /// ```
   Expr determinant() => const BareissEngine().determinant(this);
 
@@ -35,10 +35,10 @@ extension SymbolicMatrixExtension on Matrix<Expr> {
   ///
   /// ```dart
   /// final a = Matrix<Expr>.fromRows([
-  ///   [const RationalNumber(2), const RationalNumber(1)],
-  ///   [RationalNumber.zero, const RationalNumber(3)],
+  ///   [IntegerNumber.two, IntegerNumber.one],
+  ///   [IntegerNumber.zero, IntegerNumber.of(3)],
   /// ], type: exprDataType);
-  /// print(a.characteristicPolynomial('lambda')); // lambda^2 - 5*lambda + 6
+  /// print(a.characteristicPolynomial('lambda')); // 6 - 5 * lambda + lambda^2
   /// ```
   Expr characteristicPolynomial([String lambda = 'lambda']) =>
       const FaddeevLeVerrierEngine().characteristicPolynomial(this, lambda);
@@ -52,8 +52,8 @@ extension SymbolicMatrixExtension on Matrix<Expr> {
   ///
   /// ```dart
   /// final a = Matrix<Expr>.fromRows([
-  ///   [const RationalNumber(2), RationalNumber.zero],
-  ///   [RationalNumber.zero, const RationalNumber(4)],
+  ///   [IntegerNumber.two, IntegerNumber.zero],
+  ///   [IntegerNumber.zero, IntegerNumber.of(4)],
   /// ], type: exprDataType);
   /// final inv = a.inverse();
   /// // inv[0][0] == 1/2, inv[1][1] == 1/4
@@ -69,11 +69,11 @@ extension SymbolicMatrixExtension on Matrix<Expr> {
   /// final x = Variable('x');
   /// final m = Matrix<Expr>.fromRows([
   ///   [x * x, Sin(x)],
-  ///   [const RationalNumber(3) * x, Exp(x)],
+  ///   [IntegerNumber.of(3) * x, Pow(Constant.e, x)],
   /// ], type: exprDataType);
   /// final dm = m.derivative('x');
   /// // dm[0][0] == 2*x, dm[0][1] == Cos(x)
-  /// // dm[1][0] == 3,   dm[1][1] == Exp(x)
+  /// // dm[1][0] == 3,   dm[1][1] == e^x
   /// ```
   Matrix<Expr> derivative(String variable) => Matrix<Expr>.generate(
     rowCount,

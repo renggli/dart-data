@@ -1,17 +1,18 @@
-library;
-
 import 'dart:math' as math;
 
-import 'package:more/number.dart' show Complex, Fraction;
+import 'package:more/number.dart' show Complex;
 
-import '../special/beta.dart' as special_beta;
-import '../special/erf.dart' as special_erf;
-import '../special/gamma.dart' as special_gamma;
-import '../special/lambert_w.dart' as special_lambert_w;
+import '../../special.dart' as special;
+import 'number/integer.dart';
+import 'number/rational.dart';
 import 'parser.dart';
 import 'textualization/string.dart';
 
+export 'number/integer.dart';
+export 'number/rational.dart';
+
 part 'ast/complex_eval.dart';
+part 'ast/constant.dart';
 part 'ast/expr.dart';
 part 'ast/function.dart';
 part 'ast/lambert_w.dart';

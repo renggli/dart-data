@@ -1,163 +1,207 @@
 part of '../ast.dart';
 
-/// Sealed base class representing a relational binary comparison node.
+/// Base class for relational comparison conditions used in [Piecewise] branches.
 sealed class RelationalExpr extends BinaryExpr {
-  /// Abstract const constructor for relational expressions.
-  const new(super.left, super.right);
+  /// Creates a relational comparison between [left] and [right].
+  new(super.left, super.right, {super.isSimplified = false});
+
+  /// Evaluates this relational condition to `true` or `false` under [context].
+  bool evaluateCondition([Map<String, double> context = const {}]);
+
+  @override
+  double evaluate([Map<String, double> context = const {}]) =>
+      evaluateCondition(context) ? 1.0 : 0.0;
 }
 
-/// Less-than relational operator: $left < right$.
+/// Strict less-than relation: $\text{left} < \text{right}$.
 final class LessThan extends RelationalExpr {
-  /// Creates a less-than comparison node.
-  const new(super.left, super.right);
+  /// Creates a `<` relation.
+  new(super.left, super.right, {super.isSimplified = false});
 
   @override
-  LessThan copyWith(Expr newLeft, Expr newRight) => LessThan(newLeft, newRight);
+  bool evaluateCondition([Map<String, double> context = const {}]) =>
+      left.evaluate(context) < right.evaluate(context);
 
   @override
-  double evaluate(Map<String, double> context) =>
-      left.evaluate(context) < right.evaluate(context) ? 1.0 : 0.0;
+  Expr substitute(String variable, Expr replacement) => LessThan(
+    left.substitute(variable, replacement),
+    right.substitute(variable, replacement),
+  );
+
+  @override
+  Expr mapChildren(Expr Function(Expr) transform) =>
+      LessThan(transform(left), transform(right));
 }
 
-/// Less-than-or-equal relational operator: $left \le right$.
+/// Less-than-or-equal relation: $\text{left} \le \text{right}$.
 final class LessEqual extends RelationalExpr {
-  /// Creates a less-equal comparison node.
-  const new(super.left, super.right);
+  /// Creates a `<=` relation.
+  new(super.left, super.right, {super.isSimplified = false});
 
   @override
-  LessEqual copyWith(Expr newLeft, Expr newRight) =>
-      LessEqual(newLeft, newRight);
+  bool evaluateCondition([Map<String, double> context = const {}]) =>
+      left.evaluate(context) <= right.evaluate(context);
 
   @override
-  double evaluate(Map<String, double> context) =>
-      left.evaluate(context) <= right.evaluate(context) ? 1.0 : 0.0;
+  Expr substitute(String variable, Expr replacement) => LessEqual(
+    left.substitute(variable, replacement),
+    right.substitute(variable, replacement),
+  );
+
+  @override
+  Expr mapChildren(Expr Function(Expr) transform) =>
+      LessEqual(transform(left), transform(right));
 }
 
-/// Greater-than relational operator: $left > right$.
+/// Strict greater-than relation: $\text{left} > \text{right}$.
 final class GreaterThan extends RelationalExpr {
-  /// Creates a greater-than comparison node.
-  const new(super.left, super.right);
+  /// Creates a `>` relation.
+  new(super.left, super.right, {super.isSimplified = false});
 
   @override
-  GreaterThan copyWith(Expr newLeft, Expr newRight) =>
-      GreaterThan(newLeft, newRight);
+  bool evaluateCondition([Map<String, double> context = const {}]) =>
+      left.evaluate(context) > right.evaluate(context);
 
   @override
-  double evaluate(Map<String, double> context) =>
-      left.evaluate(context) > right.evaluate(context) ? 1.0 : 0.0;
+  Expr substitute(String variable, Expr replacement) => GreaterThan(
+    left.substitute(variable, replacement),
+    right.substitute(variable, replacement),
+  );
+
+  @override
+  Expr mapChildren(Expr Function(Expr) transform) =>
+      GreaterThan(transform(left), transform(right));
 }
 
-/// Greater-than-or-equal relational operator: $left \ge right$.
+/// Greater-than-or-equal relation: $\text{left} \ge \text{right}$.
 final class GreaterEqual extends RelationalExpr {
-  /// Creates a greater-equal comparison node.
-  const new(super.left, super.right);
+  /// Creates a `>=` relation.
+  new(super.left, super.right, {super.isSimplified = false});
 
   @override
-  GreaterEqual copyWith(Expr newLeft, Expr newRight) =>
-      GreaterEqual(newLeft, newRight);
+  bool evaluateCondition([Map<String, double> context = const {}]) =>
+      left.evaluate(context) >= right.evaluate(context);
 
   @override
-  double evaluate(Map<String, double> context) =>
-      left.evaluate(context) >= right.evaluate(context) ? 1.0 : 0.0;
+  Expr substitute(String variable, Expr replacement) => GreaterEqual(
+    left.substitute(variable, replacement),
+    right.substitute(variable, replacement),
+  );
+
+  @override
+  Expr mapChildren(Expr Function(Expr) transform) =>
+      GreaterEqual(transform(left), transform(right));
 }
 
-/// Equal relational operator: $left = right$.
+/// Equality relation: $\text{left} = \text{right}$.
 final class Equal extends RelationalExpr {
-  /// Creates an equality comparison node.
-  const new(super.left, super.right);
+  /// Creates an `=` relation.
+  new(super.left, super.right, {super.isSimplified = false});
 
   @override
-  Equal copyWith(Expr newLeft, Expr newRight) => Equal(newLeft, newRight);
+  bool evaluateCondition([Map<String, double> context = const {}]) =>
+      left.evaluate(context) == right.evaluate(context);
 
   @override
-  double evaluate(Map<String, double> context) =>
-      left.evaluate(context) == right.evaluate(context) ? 1.0 : 0.0;
+  Expr substitute(String variable, Expr replacement) => Equal(
+    left.substitute(variable, replacement),
+    right.substitute(variable, replacement),
+  );
+
+  @override
+  Expr mapChildren(Expr Function(Expr) transform) =>
+      Equal(transform(left), transform(right));
 }
 
-/// Conditional piecewise expression: selection by boolean condition.
-///
-/// Encapsulates ordered conditional pairs `(condition, expression)` and an
-/// optional [otherwise] default branch.
+/// Piecewise conditional expression node:
+/// $$f(x) = \begin{cases} e_1 & \text{if } c_1 \\ e_2 & \text{if } c_2 \\ \text{otherwise} & \text{otherwise} \end{cases}$$
 final class Piecewise extends Expr {
-  /// Creates a piecewise defined expression.
-  const new(this.branches, {this.otherwise});
+  /// Creates a piecewise expression from guarded `(condition, expression)`
+  /// [branches] and an optional fallback [otherwise] expression.
+  new(this.branches, {this.otherwise, this.isSimplified = false});
 
-  /// The conditional branches in order of evaluation.
-  final List<(Expr condition, Expr expr)> branches;
+  /// Ordered list of `(condition, expression)` pairs evaluated top-to-bottom.
+  final List<(RelationalExpr, Expr)> branches;
 
-  /// The fallback expression evaluated when no branch condition matches.
+  /// Optional fallback expression evaluated when no branch condition holds.
   final Expr? otherwise;
 
   @override
-  bool dependsOn(String name) =>
-      branches.any((b) => b.$1.dependsOn(name) || b.$2.dependsOn(name)) ||
-      (otherwise?.dependsOn(name) ?? false);
+  final bool isSimplified;
+
+  int? _hashCode;
+
+  @override
+  double evaluate([Map<String, double> context = const {}]) {
+    for (final (cond, expr) in branches) {
+      if (cond.evaluateCondition(context)) {
+        return expr.evaluate(context);
+      }
+    }
+    if (otherwise != null) {
+      return otherwise!.evaluate(context);
+    }
+    return double.nan;
+  }
 
   @override
   void collectFreeVariables(Set<String> target) {
-    for (final (cond, e) in branches) {
+    for (final (cond, expr) in branches) {
       cond.collectFreeVariables(target);
-      e.collectFreeVariables(target);
+      expr.collectFreeVariables(target);
     }
     otherwise?.collectFreeVariables(target);
   }
 
   @override
-  Expr mapChildren(Expr Function(Expr child) transform) {
-    var changed = false;
-    final newBranches = <(Expr, Expr)>[];
-    for (final (cond, e) in branches) {
-      final nextCond = transform(cond);
-      final nextExpr = transform(e);
-      if (!identical(nextCond, cond) || !identical(nextExpr, e)) {
-        changed = true;
+  bool dependsOn(String variable) {
+    for (final (cond, expr) in branches) {
+      if (cond.dependsOn(variable) || expr.dependsOn(variable)) return true;
+    }
+    return otherwise?.dependsOn(variable) ?? false;
+  }
+
+  @override
+  Expr substitute(String variable, Expr replacement) => Piecewise([
+    for (final (cond, expr) in branches)
+      (
+        cond.substitute(variable, replacement) as RelationalExpr,
+        expr.substitute(variable, replacement),
+      ),
+  ], otherwise: otherwise?.substitute(variable, replacement));
+
+  @override
+  Expr mapChildren(Expr Function(Expr) transform) => Piecewise([
+    for (final (cond, expr) in branches)
+      (transform(cond) as RelationalExpr, transform(expr)),
+  ], otherwise: otherwise != null ? transform(otherwise!) : null);
+
+  @override
+  bool anyNode(bool Function(Expr) predicate) {
+    if (predicate(this)) return true;
+    for (final (cond, expr) in branches) {
+      if (cond.anyNode(predicate) || expr.anyNode(predicate)) return true;
+    }
+    return otherwise?.anyNode(predicate) ?? false;
+  }
+
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    if (other is! Piecewise) return false;
+    if (otherwise != other.otherwise) return false;
+    if (branches.length != other.branches.length) return false;
+    for (var i = 0; i < branches.length; i++) {
+      if (branches[i].$1 != other.branches[i].$1 ||
+          branches[i].$2 != other.branches[i].$2) {
+        return false;
       }
-      newBranches.add((nextCond, nextExpr));
-    }
-    final nextOtherwise = otherwise != null ? transform(otherwise!) : null;
-    if (!identical(nextOtherwise, otherwise)) {
-      changed = true;
-    }
-    return changed ? Piecewise(newBranches, otherwise: nextOtherwise) : this;
-  }
-
-  @override
-  bool anyNode(bool Function(Expr node) predicate) =>
-      predicate(this) ||
-      branches.any((b) => b.$1.anyNode(predicate) || b.$2.anyNode(predicate)) ||
-      (otherwise?.anyNode(predicate) ?? false);
-
-  @override
-  Expr substitute(String variable, Expr replacement) =>
-      mapChildren((child) => child.substitute(variable, replacement));
-
-  @override
-  double evaluate(Map<String, double> context) {
-    for (final (cond, e) in branches) {
-      final cVal = cond.evaluate(context);
-      if (cVal != 0.0 && !cVal.isNaN) return e.evaluate(context);
-    }
-    if (otherwise != null) return otherwise!.evaluate(context);
-    throw StateError('No Piecewise branch matched context $context');
-  }
-
-  @override
-  bool operator ==(Object other) =>
-      identical(this, other) ||
-      (other is Piecewise &&
-          branches.length == other.branches.length &&
-          otherwise == other.otherwise &&
-          _branchesEqual(branches, other.branches));
-
-  static bool _branchesEqual(List<(Expr, Expr)> a, List<(Expr, Expr)> b) {
-    for (var i = 0; i < a.length; i++) {
-      if (a[i].$1 != b[i].$1 || a[i].$2 != b[i].$2) return false;
     }
     return true;
   }
 
   @override
-  int get hashCode => Object.hash(
+  int get hashCode => _hashCode ??= Object.hash(
     Piecewise,
     Object.hashAll(branches.map((b) => Object.hash(b.$1, b.$2))),
     otherwise,

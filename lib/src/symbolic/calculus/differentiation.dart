@@ -24,7 +24,7 @@ extension DifferentiationExtension on Expr {
     if (order == 0) return simplify();
     var current = this;
     for (var i = 0; i < order; i++) {
-      if (!current.dependsOn(variable)) return RationalNumber.zero;
+      if (!current.dependsOn(variable)) return IntegerNumber.zero;
       current = _differentiate(current, variable).simplify();
     }
     return current;
@@ -32,174 +32,198 @@ extension DifferentiationExtension on Expr {
 }
 
 Expr _differentiate(Expr expr, String variable) {
-  if (!expr.dependsOn(variable)) return RationalNumber.zero;
+  if (!expr.dependsOn(variable)) return IntegerNumber.zero;
   return switch (expr) {
-    Number() => RationalNumber.zero,
+    Number() || Constant() => IntegerNumber.zero,
     Variable(:final name) =>
-      name == variable ? RationalNumber.one : RationalNumber.zero,
-    Add(:final left, :final right) => Add(
-      _differentiate(left, variable),
-      _differentiate(right, variable),
+      name == variable ? IntegerNumber.one : IntegerNumber.zero,
+    Add(:final terms) => Add(
+      terms.map((t) => _differentiate(t, variable)).toList(),
     ),
-    Sub(:final left, :final right) => Sub(
-      _differentiate(left, variable),
-      _differentiate(right, variable),
+    Mul(:final factors) => _differentiateMul(factors, variable),
+    Pow(:final base, :final exponent) => _differentiatePow(
+      expr,
+      base,
+      exponent,
+      variable,
     ),
-    Mul(:final left, :final right) => Add(
-      Mul(_differentiate(left, variable), right),
-      Mul(left, _differentiate(right, variable)),
-    ),
-    Div(:final left, :final right) => switch (right) {
-      Pow(:final base, :final exponent) when !exponent.dependsOn(variable) =>
-        Div(
-          Sub(
-            Mul(_differentiate(left, variable), base),
-            Mul(Mul(exponent, left), _differentiate(base, variable)),
-          ).expand(),
-          Pow(base, Add(exponent, RationalNumber.one)),
-        ),
-      _ => Div(
-        Sub(
-          Mul(_differentiate(left, variable), right),
-          Mul(left, _differentiate(right, variable)),
-        ).expand(),
-        Pow(right, const RationalNumber(2)),
-      ),
-    },
-    Pow(:final base, :final exponent) => switch ((
-      base.dependsOn(variable),
-      exponent.dependsOn(variable),
-    )) {
-      (false, false) => RationalNumber.zero,
-      (true, false) => Mul(
-        Mul(exponent, Pow(base, Sub(exponent, RationalNumber.one))),
-        _differentiate(base, variable),
-      ),
-      (false, true) => Mul(
-        Mul(expr, Ln(base)),
-        _differentiate(exponent, variable),
-      ),
-      (true, true) => Mul(
-        expr,
-        Add(
-          Mul(_differentiate(exponent, variable), Ln(base)),
-          Div(Mul(exponent, _differentiate(base, variable)), base),
-        ),
-      ),
-    },
-    Neg(expr: final inner) => Neg(_differentiate(inner, variable)),
-    Sin(expr: final inner) => Mul(Cos(inner), _differentiate(inner, variable)),
-    Cos(expr: final inner) => Mul(
-      Neg(Sin(inner)),
+    Sin(expr: final inner) => Mul([
+      Cos(inner),
       _differentiate(inner, variable),
-    ),
-    Tan(expr: final inner) => Div(
+    ]),
+    Cos(expr: final inner) => Mul([
+      IntegerNumber.negativeOne,
+      Sin(inner),
       _differentiate(inner, variable),
-      Pow(Cos(inner), const RationalNumber(2)),
-    ),
-    Asin(expr: final inner) => Div(
-      _differentiate(inner, variable),
-      Pow(
-        Sub(RationalNumber.one, Pow(inner, const RationalNumber(2))),
-        const RationalNumber(1, 2),
-      ),
-    ),
-    Acos(expr: final inner) => Div(
-      Neg(_differentiate(inner, variable)),
-      Pow(
-        Sub(RationalNumber.one, Pow(inner, const RationalNumber(2))),
-        const RationalNumber(1, 2),
-      ),
-    ),
-    Atan(expr: final inner) => Div(
-      _differentiate(inner, variable),
-      Add(RationalNumber.one, Pow(inner, const RationalNumber(2))),
-    ),
-    Sinh(expr: final inner) => Mul(
+    ]),
+    Tan(expr: final inner) =>
+      _differentiate(inner, variable) / Pow(Cos(inner), IntegerNumber.two),
+    Asin(expr: final inner) =>
+      _differentiate(inner, variable) /
+          Pow(
+            IntegerNumber.one - Pow(inner, IntegerNumber.two),
+            FractionNumber.half,
+          ),
+    Acos(expr: final inner) =>
+      (-_differentiate(inner, variable)) /
+          Pow(
+            IntegerNumber.one - Pow(inner, IntegerNumber.two),
+            FractionNumber.half,
+          ),
+    Atan(expr: final inner) =>
+      _differentiate(inner, variable) /
+          (IntegerNumber.one + Pow(inner, IntegerNumber.two)),
+    Sinh(expr: final inner) => Mul([
       Cosh(inner),
       _differentiate(inner, variable),
-    ),
-    Cosh(expr: final inner) => Mul(
+    ]),
+    Cosh(expr: final inner) => Mul([
       Sinh(inner),
       _differentiate(inner, variable),
-    ),
-    Tanh(expr: final inner) => Div(
+    ]),
+    Tanh(expr: final inner) =>
+      _differentiate(inner, variable) / Pow(Cosh(inner), IntegerNumber.two),
+    Abs(expr: final inner) => Mul([
+      inner / Abs(inner),
       _differentiate(inner, variable),
-      Pow(Cosh(inner), const RationalNumber(2)),
-    ),
-    Abs(expr: final inner) => Mul(
-      Div(inner, Abs(inner)),
-      _differentiate(inner, variable),
-    ),
-    Exp(expr: final inner) => Mul(expr, _differentiate(inner, variable)),
-    Ln(expr: final inner) => Div(_differentiate(inner, variable), inner),
+    ]),
+    Ln(expr: final inner) => _differentiate(inner, variable) / inner,
     OrderTerm(variable: final v, :final order, :final point) =>
       v == variable
           ? OrderTerm(v, order - 1, point: point)
           : point.dependsOn(variable)
           ? OrderTerm(v, order, point: point)
-          : RationalNumber.zero,
-    LambertW(expr: final inner, :final branch) => Div(
+          : IntegerNumber.zero,
+    LambertW(expr: final inner, :final branch) =>
+      _differentiate(inner, variable) /
+          Mul([
+            Pow(Constant.e, LambertW(inner, branch: branch)),
+            IntegerNumber.one + LambertW(inner, branch: branch),
+          ]),
+    Erf(expr: final inner) => Mul([
+      (IntegerNumber.two / Pow(Constant.pi, FractionNumber.half)),
+      Pow(Constant.e, -Pow(inner, IntegerNumber.two)),
       _differentiate(inner, variable),
-      Mul(
-        Exp(LambertW(inner, branch: branch)),
-        Add(RationalNumber.one, LambertW(inner, branch: branch)),
-      ),
-    ),
-    Erf(expr: final inner) => Mul(
-      Mul(
-        const Div(
-          RationalNumber(2),
-          Pow(ConstantNumber.pi, RationalNumber(1, 2)),
-        ),
-        Exp(Neg(Pow(inner, const RationalNumber(2)))),
-      ),
+    ]),
+    Erfc(expr: final inner) => Mul([
+      (IntegerNumber.of(-2) / Pow(Constant.pi, FractionNumber.half)),
+      Pow(Constant.e, -Pow(inner, IntegerNumber.two)),
       _differentiate(inner, variable),
-    ),
-    Erfc(expr: final inner) => Mul(
-      Mul(
-        const Div(
-          RationalNumber(-2),
-          Pow(ConstantNumber.pi, RationalNumber(1, 2)),
-        ),
-        Exp(Neg(Pow(inner, const RationalNumber(2)))),
-      ),
-      _differentiate(inner, variable),
-    ),
+    ]),
     Gamma(expr: final inner) =>
       !inner.dependsOn(variable)
-          ? RationalNumber.zero
+          ? IntegerNumber.zero
           : throw UnsupportedError(
               'Symbolic derivative of Gamma is non-elementary.',
             ),
     Beta(left: final l, right: final r) =>
       (!l.dependsOn(variable) && !r.dependsOn(variable))
-          ? RationalNumber.zero
+          ? IntegerNumber.zero
           : throw UnsupportedError(
               'Symbolic derivative of Beta is non-elementary.',
             ),
-    Asinh(expr: final inner) => Div(
-      _differentiate(inner, variable),
-      Pow(
-        Add(Pow(inner, const RationalNumber(2)), RationalNumber.one),
-        const RationalNumber(1, 2),
-      ),
-    ),
-    Acosh(expr: final inner) => Div(
-      _differentiate(inner, variable),
-      Pow(
-        Sub(Pow(inner, const RationalNumber(2)), RationalNumber.one),
-        const RationalNumber(1, 2),
-      ),
-    ),
-    Atanh(expr: final inner) => Div(
-      _differentiate(inner, variable),
-      Sub(RationalNumber.one, Pow(inner, const RationalNumber(2))),
-    ),
-    RelationalExpr() => RationalNumber.zero,
+    Asinh(expr: final inner) =>
+      _differentiate(inner, variable) /
+          Pow(
+            Pow(inner, IntegerNumber.two) + IntegerNumber.one,
+            FractionNumber.half,
+          ),
+    Acosh(expr: final inner) =>
+      _differentiate(inner, variable) /
+          Pow(
+            Pow(inner, IntegerNumber.two) - IntegerNumber.one,
+            FractionNumber.half,
+          ),
+    Atanh(expr: final inner) =>
+      _differentiate(inner, variable) /
+          (IntegerNumber.one - Pow(inner, IntegerNumber.two)),
+    RelationalExpr() => IntegerNumber.zero,
     Piecewise(:final branches, :final otherwise) => Piecewise(
       branches.map((b) => (b.$1, _differentiate(b.$2, variable))).toList(),
       otherwise: otherwise != null ? _differentiate(otherwise, variable) : null,
     ),
+  };
+}
+
+Expr _differentiateMul(List<Expr> factors, String variable) {
+  final numFactors = <Expr>[];
+  final denFactors = <Expr>[];
+
+  for (final f in factors) {
+    if (f is Pow &&
+        f.exponent is IntegerNumber &&
+        (f.exponent as IntegerNumber).isNegative &&
+        f.base.dependsOn(variable)) {
+      final exp = f.exponent as IntegerNumber;
+      denFactors.add(exp.isNegativeOne ? f.base : Pow(f.base, exp.neg()));
+    } else {
+      numFactors.add(f);
+    }
+  }
+
+  if (denFactors.isNotEmpty && numFactors.isNotEmpty) {
+    final left = numFactors.length == 1 ? numFactors.first : Mul(numFactors);
+    final right = denFactors.length == 1 ? denFactors.first : Mul(denFactors);
+    return switch (right) {
+      Pow(:final base, :final exponent) when !exponent.dependsOn(variable) =>
+        ((_differentiate(left, variable) * base -
+                    exponent * left * _differentiate(base, variable))
+                .expand()) /
+            Pow(base, exponent + IntegerNumber.one),
+      _ =>
+        ((_differentiate(left, variable) * right -
+                    left * _differentiate(right, variable))
+                .expand()) /
+            Pow(right, IntegerNumber.two),
+    };
+  }
+
+  final constFactors = <Expr>[];
+  final varFactors = <Expr>[];
+  for (final f in factors) {
+    if (f.dependsOn(variable)) {
+      varFactors.add(f);
+    } else {
+      constFactors.add(f);
+    }
+  }
+
+  if (varFactors.isEmpty) return IntegerNumber.zero;
+  if (varFactors.length == 1) {
+    final d = _differentiate(varFactors.first, variable);
+    return constFactors.isEmpty ? d : Mul([...constFactors, d]);
+  }
+
+  final sumTerms = <Expr>[];
+  for (var i = 0; i < varFactors.length; i++) {
+    final prodFactors = <Expr>[
+      ...constFactors,
+      for (var j = 0; j < varFactors.length; j++)
+        if (j == i) _differentiate(varFactors[j], variable) else varFactors[j],
+    ];
+    sumTerms.add(Mul(prodFactors));
+  }
+  return Add(sumTerms);
+}
+
+Expr _differentiatePow(Expr expr, Expr base, Expr exponent, String variable) {
+  if (base == Constant.e) {
+    return Mul([expr, _differentiate(exponent, variable)]);
+  }
+  return switch ((base.dependsOn(variable), exponent.dependsOn(variable))) {
+    (false, false) => IntegerNumber.zero,
+    (true, false) => Mul([
+      exponent,
+      Pow(base, exponent - IntegerNumber.one),
+      _differentiate(base, variable),
+    ]),
+    (false, true) => Mul([expr, Ln(base), _differentiate(exponent, variable)]),
+    (true, true) => Mul([
+      expr,
+      Add([
+        Mul([_differentiate(exponent, variable), Ln(base)]),
+        (exponent * _differentiate(base, variable)) / base,
+      ]),
+    ]),
   };
 }

@@ -1,33 +1,27 @@
 part of '../ast.dart';
 
-/// Asymptotic Landau order term $O((variable - point)^{order})$.
+/// Landau asymptotic order remainder term: $O((x - a)^n)$.
 ///
-/// In mathematical analysis, the big-O notation $O(f(x))$ describes the limiting
-/// behavior of a function when the argument tends towards a particular value or
-/// infinity. For a formal power series around $x = a$, an order term $O((x - a)^n)$
-/// denotes an unspecified remainder function whose absolute value is bounded by
-/// $M \cdot |x - a|^n$ in a neighborhood of $a$.
-///
-/// ```dart
-/// final x = Variable('x');
-/// final remainder = OrderTerm('x', 3); // O(x^3)
-/// final centered = OrderTerm('x', 2, point: RationalNumber(1)); // O((x - 1)^2)
-/// ```
+/// Represents truncated higher-order terms in a Taylor or Laurent series
+/// expansion around [point] $a$ of degree [order] $n$ in [variable] $x$.
 final class OrderTerm extends Expr {
-  /// Creates an asymptotic Landau order term $O((variable - point)^{order})$.
-  const new(this.variable, this.order, {this.point = RationalNumber.zero});
+  /// Creates an asymptotic remainder term $O((x - a)^n)$.
+  const new(this.variable, this.order, {this.point = IntegerNumber.zero});
 
-  /// The asymptotic variable symbol name (e.g. `'x'`).
+  /// Variable of expansion $x$.
   final String variable;
 
-  /// The asymptotic truncation order $n$.
-  final int order;
-
-  /// The expansion point $a$ as $x \to a$ (defaults to [RationalNumber.zero]).
+  /// Expansion center point $a$ (defaults to $0$).
   final Expr point;
 
+  /// Truncation degree $n$.
+  final int order;
+
   @override
-  bool dependsOn(String name) => variable == name || point.dependsOn(name);
+  bool get isSimplified => point.isSimplified;
+
+  @override
+  double evaluate([Map<String, double> context = const {}]) => 0.0;
 
   @override
   void collectFreeVariables(Set<String> target) {
@@ -36,109 +30,59 @@ final class OrderTerm extends Expr {
   }
 
   @override
-  Expr mapChildren(Expr Function(Expr child) transform) {
-    final nextPoint = transform(point);
-    return identical(nextPoint, point)
-        ? this
-        : OrderTerm(variable, order, point: nextPoint);
-  }
-
-  @override
-  bool anyNode(bool Function(Expr node) predicate) =>
-      predicate(this) || point.anyNode(predicate);
+  bool dependsOn(String variable) =>
+      this.variable == variable || point.dependsOn(variable);
 
   @override
   Expr substitute(String variable, Expr replacement) {
     final newPoint = point.substitute(variable, replacement);
-    if (this.variable == variable) {
-      if (replacement is Variable) {
-        return OrderTerm(replacement.name, order, point: newPoint);
-      }
-      if (replacement is Number) {
-        return RationalNumber.zero;
-      }
-      final vars = replacement.freeVariables;
-      if (vars.length == 1) {
-        return OrderTerm(vars.first, order, point: newPoint);
-      }
+    if (this.variable == variable && replacement is Variable) {
+      return OrderTerm(replacement.name, order, point: newPoint);
     }
-    return identical(newPoint, point)
-        ? this
-        : OrderTerm(this.variable, order, point: newPoint);
+    return OrderTerm(this.variable, order, point: newPoint);
   }
 
   @override
-  double evaluate(Map<String, double> context) => 0.0;
+  Expr mapChildren(Expr Function(Expr) transform) =>
+      OrderTerm(variable, order, point: transform(point));
 
   @override
-  Complex evaluateComplex([Map<String, Complex> context = const {}]) =>
-      Complex.zero;
+  bool anyNode(bool Function(Expr) predicate) =>
+      predicate(this) || point.anyNode(predicate);
 
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
-      other is OrderTerm &&
+      (other is OrderTerm &&
           variable == other.variable &&
           order == other.order &&
-          point == other.point;
+          point == other.point);
 
   @override
   int get hashCode => Object.hash(OrderTerm, variable, order, point);
 }
 
-/// Recursively removes all [OrderTerm] leaves from [expr].
+/// Extension on [Expr] for inspecting and stripping Landau [OrderTerm] remainders.
+extension OrderTermExtension on Expr {
+  /// Strips any [OrderTerm] remainder from this expression, returning the pure
+  /// polynomial or Laurent approximation.
+  Expr removeOrder() => _removeOrder(this);
+}
+
 Expr _removeOrder(Expr expr) => switch (expr) {
-  OrderTerm() => RationalNumber.zero,
-  Add(:final left, :final right) => switch ((
-    _removeOrder(left),
-    _removeOrder(right),
-  )) {
-    (final l, RationalNumber(isZero: true)) => l,
-    (RationalNumber(isZero: true), final r) => r,
-    (final l, final r) =>
-      identical(l, left) && identical(r, right) ? expr : Add(l, r),
-  },
-  Sub(:final left, :final right) => switch ((
-    _removeOrder(left),
-    _removeOrder(right),
-  )) {
-    (final l, RationalNumber(isZero: true)) => l,
-    (RationalNumber(isZero: true), final r) => Neg(r),
-    (final l, final r) =>
-      identical(l, left) && identical(r, right) ? expr : Sub(l, r),
-  },
-  Mul(:final left, :final right) => switch ((
-    _removeOrder(left),
-    _removeOrder(right),
-  )) {
-    (_, RationalNumber(isZero: true)) ||
-    (RationalNumber(isZero: true), _) => RationalNumber.zero,
-    (final l, RationalNumber(isOne: true)) => l,
-    (RationalNumber(isOne: true), final r) => r,
-    (final l, final r) =>
-      identical(l, left) && identical(r, right) ? expr : Mul(l, r),
-  },
-  Div(:final left, :final right) => switch ((
-    _removeOrder(left),
-    _removeOrder(right),
-  )) {
-    (RationalNumber(isZero: true), _) => RationalNumber.zero,
-    (final l, RationalNumber(isOne: true)) => l,
-    (final l, final r) =>
-      identical(l, left) && identical(r, right) ? expr : Div(l, r),
-  },
-  Neg(:final expr) => switch (_removeOrder(expr)) {
-    RationalNumber(isZero: true) => RationalNumber.zero,
-    final e => Neg(e),
-  },
-  Pow(:final base, :final exponent) => switch ((
-    _removeOrder(base),
-    _removeOrder(exponent),
-  )) {
-    (_, RationalNumber(isZero: true)) => RationalNumber.one,
-    (final b, RationalNumber(isOne: true)) => b,
-    (final b, final e) =>
-      identical(b, base) && identical(e, exponent) ? expr : Pow(b, e),
-  },
+  OrderTerm() => IntegerNumber.zero,
+  Add(:final terms) => () {
+    final filtered = <Expr>[];
+    for (final term in terms) {
+      if (term is OrderTerm) continue;
+      final cleaned = _removeOrder(term);
+      if (cleaned is! OrderTerm && !(cleaned is Number && cleaned.isZero)) {
+        filtered.add(cleaned);
+      }
+    }
+    if (filtered.isEmpty) return IntegerNumber.zero;
+    if (filtered.length == 1) return filtered.first;
+    return Add(filtered);
+  }(),
   _ => expr.mapChildren(_removeOrder),
 };

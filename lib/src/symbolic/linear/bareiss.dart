@@ -1,7 +1,5 @@
 import 'dart:math' as math;
 
-import 'package:more/number.dart' show Fraction;
-
 import '../../linear/matrix.dart';
 import '../algebra/expand.dart';
 import '../algebra/factor.dart';
@@ -28,7 +26,7 @@ class BareissEngine {
     }
 
     final n = matrix.rowCount;
-    if (n == 0) return RationalNumber.one;
+    if (n == 0) return IntegerNumber.one;
     if (n == 1) return matrix.getUnchecked(0, 0).simplify();
     if (n == 2) {
       final a = matrix.getUnchecked(0, 0);
@@ -41,7 +39,7 @@ class BareissEngine {
     // Working mutable grid of expressions.
     final m = matrix.toNestedList();
     var sign = 1;
-    Expr pPrev = RationalNumber.one;
+    Expr pPrev = IntegerNumber.one;
 
     for (var k = 0; k < n - 1; k++) {
       // 1. Fraction-free row pivoting if pivot candidate vanishes.
@@ -56,7 +54,7 @@ class BareissEngine {
         }
         if (swapRow == -1) {
           // Column is linearly deficient; determinant is zero.
-          return RationalNumber.zero;
+          return IntegerNumber.zero;
         }
 
         // Swap row k and swapRow.
@@ -87,9 +85,9 @@ class BareissEngine {
 
   /// Divides [num] by [den] with guaranteed zero remainder.
   static Expr _exactDivide(Expr num, Expr den) {
-    if (den == RationalNumber.one) return num;
-    if (den == RationalNumber.negativeOne) return (-num).expand().simplify();
-    if (_isExprZero(num)) return RationalNumber.zero;
+    if (den == IntegerNumber.one) return num;
+    if (den == IntegerNumber.negativeOne) return (-num).expand().simplify();
+    if (_isExprZero(num)) return IntegerNumber.zero;
 
     // Fast-path: direct simplification
     final direct = (num / den).simplify();
@@ -118,12 +116,15 @@ class BareissEngine {
     }
 
     // Monomial division path: if den is a monomial, divide additive terms
-    if (isMonomial(den) || den is Variable || den is Number) {
+    if (isMonomial(den) ||
+        den is Variable ||
+        den is Number ||
+        den is Constant) {
       final expanded = num.expand();
       final terms = <Expr>[];
       collectAdditiveTerms(expanded, 1, terms);
       if (terms.isNotEmpty) {
-        var quotientSum = RationalNumber.zero as Expr;
+        var quotientSum = IntegerNumber.zero as Expr;
         var allDivided = true;
         for (final t in terms) {
           try {
@@ -166,11 +167,11 @@ class BareissEngine {
       if (m <= 0) continue;
       final dm = dCoeffs[m]!;
       var score = 40;
-      if (dm == RationalNumber.one || dm == RationalNumber.negativeOne) {
+      if (dm == IntegerNumber.one || dm == IntegerNumber.negativeOne) {
         score = 100;
       } else if (dm is RationalNumber) {
         score = 80;
-      } else if (dm is Number) {
+      } else if (dm is Number || dm is Constant) {
         score = 60;
       }
       score -= m;
@@ -191,7 +192,7 @@ class BareissEngine {
 
   static Expr? _divideByVariable(Expr num, Expr den, String v, int m, Expr dm) {
     var remainder = num.expand().simplify();
-    var quotient = RationalNumber.zero as Expr;
+    var quotient = IntegerNumber.zero as Expr;
 
     var nCoeffs = _extractCoefficients(remainder, v);
 
@@ -204,14 +205,12 @@ class BareissEngine {
       final nk = nCoeffs[k]!;
 
       final Expr qc;
-      if (dm == RationalNumber.one) {
+      if (dm == IntegerNumber.one) {
         qc = nk;
-      } else if (dm == RationalNumber.negativeOne) {
+      } else if (dm == IntegerNumber.negativeOne) {
         qc = (-nk).expand().simplify();
       } else if (dm is RationalNumber) {
-        qc = (nk * RationalNumber.fraction(Fraction.one / dm.toFraction()))
-            .expand()
-            .simplify();
+        qc = (nk * dm.reciprocal()).expand().simplify();
       } else {
         qc = _exactDivide(nk, dm);
         if (_hasDiv(qc)) return null;
@@ -241,7 +240,7 @@ class BareissEngine {
     final map = <int, Expr>{};
     for (final term in terms) {
       final (deg, coeff) = _termDegreeAndCoeff(term, v);
-      map[deg] = (map[deg] ?? RationalNumber.zero) + coeff;
+      map[deg] = (map[deg] ?? IntegerNumber.zero) + coeff;
     }
     final result = <int, Expr>{};
     for (final entry in map.entries) {
@@ -255,64 +254,59 @@ class BareissEngine {
 
   static (int, Expr) _termDegreeAndCoeff(Expr term, String v) {
     if (term is Variable && term.name == v) {
-      return (1, RationalNumber.one);
+      return (1, IntegerNumber.one);
     }
-    if (term is Pow &&
-        term.exponent is RationalNumber &&
-        (term.exponent as RationalNumber).isInteger) {
-      final exp = (term.exponent as RationalNumber).numerator;
-      if (exp > 0) {
+    if (term is Pow && term.exponent is IntegerNumber) {
+      final exp = (term.exponent as IntegerNumber).asInt;
+      if (exp != null && exp > 0) {
         if (term.base is Variable && (term.base as Variable).name == v) {
-          return (exp, RationalNumber.one);
+          return (exp, IntegerNumber.one);
         }
         if (term.base is Mul) {
-          final mul = term.base as Mul;
-          final partL = exp == 1 ? mul.left : Pow(mul.left, term.exponent);
-          final partR = exp == 1 ? mul.right : Pow(mul.right, term.exponent);
-          final (degL, coeffL) = _termDegreeAndCoeff(partL, v);
-          final (degR, coeffR) = _termDegreeAndCoeff(partR, v);
-          return (degL + degR, (coeffL * coeffR).simplify());
+          var totalDeg = 0;
+          var totalCoeff = IntegerNumber.one as Expr;
+          for (final f in (term.base as Mul).factors) {
+            final part = exp == 1 ? f : Pow(f, term.exponent);
+            final (d, c) = _termDegreeAndCoeff(part, v);
+            totalDeg += d;
+            totalCoeff = (totalCoeff * c).simplify();
+          }
+          return (totalDeg, totalCoeff);
         }
       }
     }
     if (!term.dependsOn(v)) {
       return (0, term);
     }
-    if (term is Neg) {
-      final (deg, coeff) = _termDegreeAndCoeff(term.expr, v);
-      return (deg, (-coeff).simplify());
-    }
     if (term is Mul) {
-      final (degL, coeffL) = _termDegreeAndCoeff(term.left, v);
-      final (degR, coeffR) = _termDegreeAndCoeff(term.right, v);
-      return (degL + degR, (coeffL * coeffR).simplify());
+      var totalDeg = 0;
+      var totalCoeff = IntegerNumber.one as Expr;
+      for (final f in term.factors) {
+        final (d, c) = _termDegreeAndCoeff(f, v);
+        totalDeg += d;
+        totalCoeff = (totalCoeff * c).simplify();
+      }
+      return (totalDeg, totalCoeff);
     }
     return (0, term);
   }
 
   static List<Expr> _collectFactors(Expr expr) => switch (expr) {
-    Mul(:final left, :final right) => [
-      ..._collectFactors(left),
-      ..._collectFactors(right),
-    ],
-    Pow(
-      :final base,
-      exponent: RationalNumber(isInteger: true, :final numerator),
-    )
-        when numerator > 0 =>
-      List.filled(numerator, base),
+    Mul(:final factors) => [for (final f in factors) ..._collectFactors(f)],
+    Pow(:final base, exponent: final IntegerNumber n) when (n.asInt ?? 0) > 0 =>
+      List.filled(n.asInt!, base),
     _ => [expr],
   };
 
-  static bool _hasDiv(Expr e) => switch (e) {
-    Div() => true,
-    UnaryExpr(:final expr) => _hasDiv(expr),
-    BinaryExpr(:final left, :final right) => _hasDiv(left) || _hasDiv(right),
-    _ => false,
-  };
+  static bool _hasDiv(Expr e) => e.anyNode(
+    (node) =>
+        node is Pow &&
+        node.exponent is RealNumeric &&
+        (node.exponent as RealNumeric).isNegative,
+  );
 
   static bool _isExprZero(Expr expr) {
-    if (expr == RationalNumber.zero) return true;
+    if (expr == IntegerNumber.zero) return true;
     if (expr is Number && expr.isZero) return true;
     final s = expr.expand().simplify();
     return switch (s) {

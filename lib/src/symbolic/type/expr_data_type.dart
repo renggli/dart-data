@@ -1,4 +1,4 @@
-import 'package:more/number.dart' show Complex, Fraction;
+import 'package:more/number.dart' show Complex;
 import 'package:more/printer.dart' show Printer, StandardPrinter;
 
 import '../../linear/matrix.dart';
@@ -6,6 +6,7 @@ import '../../linear/vector.dart';
 import '../../type/data_type.dart';
 import '../../type/models/equality.dart';
 import '../../type/models/field.dart';
+import '../algebra/approximate.dart';
 import '../algebra/expand.dart';
 import '../algebra/simplify.dart';
 import '../algebra/structural_order.dart';
@@ -30,7 +31,7 @@ final class ExprDataType extends DataType<Expr> {
   String get name => 'expr';
 
   @override
-  Expr get defaultValue => RationalNumber.zero;
+  Expr get defaultValue => IntegerNumber.zero;
 
   @override
   bool get isNullable => false;
@@ -49,22 +50,19 @@ final class ExprDataType extends DataType<Expr> {
     if (value is Expr) {
       return value;
     } else if (value is int) {
-      return RationalNumber(value);
-    } else if (value is Fraction) {
-      return RationalNumber.fraction(value);
+      return IntegerNumber.of(value);
+    } else if (value is BigInt) {
+      return IntegerNumber(Integer.big(value));
     } else if (value is Complex) {
       if (value.b == 0) return cast(value.a);
-      final imPart = value.b == 1
-          ? ConstantNumber.i
-          : value.b == -1
-          ? const Neg(ConstantNumber.i)
-          : Mul(cast(value.b), ConstantNumber.i);
-      if (value.a == 0) return imPart;
-      return Add(cast(value.a), imPart).simplify();
+      final re = cast(value.a);
+      final im = cast(value.b);
+      if (re is RealNumeric && im is RealNumeric) {
+        return ComplexNumber.of(re, im);
+      }
+      return (re + im * ComplexNumber.i).simplify();
     } else if (value is num) {
-      return RealNumber(value.toDouble());
-    } else if (value is BigInt) {
-      return RationalNumber(value.toInt());
+      return RealNumber.fromDouble(value.toDouble());
     } else if (value is String) {
       return Expr.tryParse(value) ?? super.cast(value);
     }
@@ -90,9 +88,12 @@ final class ExprEquality extends NaturalEquality<Expr> {
   bool isClose(Expr a, Expr b, double epsilon) {
     if (a == b) return true;
     final diff = (a - b).expand().simplify();
-    if (diff == RationalNumber.zero) return true;
-    if (diff is Number && diff.isReal) {
+    if (diff == IntegerNumber.zero) return true;
+    if (diff is RealNumeric) {
       return diff.toDouble().abs() <= epsilon;
+    }
+    if (diff is ComplexNumber) {
+      return diff.toComplex().abs() <= epsilon;
     }
     if (diff.freeVariables.isEmpty) {
       try {
@@ -117,10 +118,10 @@ final class ExprField implements ExtendedField<Expr> {
   static const ExprField instance = ExprField();
 
   @override
-  Expr get additiveIdentity => RationalNumber.zero;
+  Expr get additiveIdentity => IntegerNumber.zero;
 
   @override
-  Expr get multiplicativeIdentity => RationalNumber.one;
+  Expr get multiplicativeIdentity => IntegerNumber.one;
 
   @override
   Expr add(Expr a, Expr b) => (a + b).simplify();
@@ -129,12 +130,7 @@ final class ExprField implements ExtendedField<Expr> {
   Expr sub(Expr a, Expr b) => (a - b).simplify();
 
   @override
-  Expr mul(Expr a, Expr b) {
-    if (a is Variable && b is Variable && a.name.compareTo(b.name) > 0) {
-      return (b * a).simplify();
-    }
-    return (a * b).simplify();
-  }
+  Expr mul(Expr a, Expr b) => (a * b).simplify();
 
   @override
   Expr div(Expr a, Expr b) => (a / b).simplify();
@@ -143,22 +139,22 @@ final class ExprField implements ExtendedField<Expr> {
   Expr neg(Expr a) => (-a).simplify();
 
   @override
-  Expr inv(Expr a) => (RationalNumber.one / a).simplify();
+  Expr inv(Expr a) => (IntegerNumber.one / a).simplify();
 
   @override
   Expr scale(Expr a, num factor) {
     if (factor is int) {
-      return Mul(a, RationalNumber(factor)).simplify();
+      return (a * IntegerNumber.of(factor)).simplify();
     }
     final d = factor.toDouble();
     if (d.isFinite && d == d.truncateToDouble() && d.abs() < 9007199254740992) {
-      return Mul(a, RationalNumber(d.toInt())).simplify();
+      return (a * IntegerNumber.of(d.toInt())).simplify();
     }
-    final frac = Fraction.fromDouble(d, maxDenominator: 64);
-    if ((frac.toDouble() - d).abs() <= 1e-12) {
-      return Mul(a, RationalNumber.fraction(frac)).simplify();
+    final rat = RealNumber.fromDouble(d).rationalize(maxDenominator: 64);
+    if (rat is RationalNumber && (rat.toDouble() - d).abs() <= 1e-12) {
+      return (a * rat).simplify();
     }
-    return Mul(a, RealNumber(d)).simplify();
+    return (a * RealNumber.fromDouble(d)).simplify();
   }
 
   @override
@@ -183,10 +179,10 @@ final class ExprField implements ExtendedField<Expr> {
   }
 
   @override
-  Expr sqrt(Expr a) => Pow(a, const RationalNumber(1, 2)).simplify();
+  Expr sqrt(Expr a) => Pow(a, FractionNumber.half).simplify();
 
   @override
-  Expr exp(Expr a) => Exp(a).simplify();
+  Expr exp(Expr a) => Pow(Constant.e, a).simplify();
 
   @override
   Expr log(Expr a) => Ln(a).simplify();
@@ -215,22 +211,25 @@ final class ExprField implements ExtendedField<Expr> {
   Expr gcd(Expr a, Expr b) => unsupportedOperation('gcd');
 
   @override
-  Expr get infinity => ConstantNumber.infinity;
+  Expr get infinity => Constant.infinity;
 
   @override
-  Expr get negativeInfinity => const Neg(ConstantNumber.infinity);
+  Expr get negativeInfinity => Mul(const [
+    IntegerNumber.negativeOne,
+    Constant.infinity,
+  ], isSimplified: true);
 
   @override
-  Expr get nan => const RealNumber(double.nan);
+  Expr get nan => Constant.undefined;
 
   /// Checks whether [a] symbolically simplifies to zero.
   bool isZero(Expr a) =>
-      a == RationalNumber.zero ||
+      a == IntegerNumber.zero ||
       (a is Number && a.isZero) ||
-      a.simplify() == RationalNumber.zero;
+      a.simplify() == IntegerNumber.zero;
 
   static Expr _conjugate(Expr expr) => switch (expr) {
-    ConstantNumber(name: 'i') => const Neg(ConstantNumber.i),
+    ComplexNumber() => expr.conjugate,
     OrderTerm() => expr,
     _ => expr.mapChildren(_conjugate),
   };

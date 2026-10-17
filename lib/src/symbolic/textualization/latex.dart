@@ -20,27 +20,17 @@ extension LatexExtension on Expr {
 
 String _toLatex(Expr expr) => switch (expr) {
   Variable(:final name) => name,
-  ConstantNumber(:final name) => switch (name) {
-    'pi' => r'\pi',
-    'i' => 'i',
-    '∞' || 'infinity' => r'\infty',
-    _ => name,
-  },
-  RationalNumber(:final numerator, :final denominator) =>
-    denominator == 1
-        ? '$numerator'
-        : numerator < 0
+  Constant(:final latex) => latex,
+  IntegerNumber(:final value) => '$value',
+  FractionNumber(:final numerator, :final denominator) =>
+    numerator.isNegative
         ? '-\\frac{${-numerator}}{$denominator}'
         : '\\frac{$numerator}{$denominator}',
   RealNumber(:final value) => '$value',
-  Add(:final left, :final right) => '${_toLatex(left)} + ${_toLatex(right)}',
-  Sub(:final left, :final right) =>
-    '${_toLatex(left)} - ${_formatSubRight(right)}',
-  Mul(:final left, :final right) => _formatMul(left, right),
-  Div(:final left, :final right) =>
-    '\\frac{${_toLatex(left)}}{${_toLatex(right)}}',
+  ComplexNumber() => _formatComplexLatex(expr),
+  Add(:final terms) => _formatAddLatex(terms),
+  Mul(:final factors) => _formatMulLatex(factors),
   Pow(:final base, :final exponent) => _formatPow(base, exponent),
-  Neg(:final expr) => '-${_formatNegOperand(expr)}',
   Sin(:final expr) => '\\sin(${_toLatex(expr)})',
   Cos(:final expr) => '\\cos(${_toLatex(expr)})',
   Tan(:final expr) => '\\tan(${_toLatex(expr)})',
@@ -51,7 +41,6 @@ String _toLatex(Expr expr) => switch (expr) {
   Cosh(:final expr) => '\\cosh(${_toLatex(expr)})',
   Tanh(:final expr) => '\\tanh(${_toLatex(expr)})',
   Abs(:final expr) => '\\left|${_toLatex(expr)}\\right|',
-  Exp(:final expr) => 'e^{${_toLatex(expr)}}',
   Ln(:final expr) => '\\ln(${_toLatex(expr)})',
   OrderTerm(:final variable, :final order, :final point) =>
     _formatOrderTermLatex(variable, order, point),
@@ -81,8 +70,120 @@ String _toLatex(Expr expr) => switch (expr) {
         ' \\end{cases}',
 };
 
+String _formatComplexLatex(ComplexNumber c) {
+  final real = c.real;
+  final imag = c.imaginary;
+  if (real.isZero) {
+    if (imag.isOne) return 'i';
+    if (imag.isNegativeOne) return '-i';
+    return '${_toLatex(imag)} i';
+  }
+  final realStr = _toLatex(real);
+  if (imag.isOne) return '$realStr + i';
+  if (imag.isNegativeOne) return '$realStr - i';
+  if (imag.isNegative) {
+    return '$realStr - ${_toLatex(imag.neg())} i';
+  }
+  return '$realStr + ${_toLatex(imag)} i';
+}
+
+String _formatAddLatex(List<Expr> terms) {
+  if (terms.isEmpty) return '0';
+  if (terms.length == 1) return _toLatex(terms.first);
+  final buffer = StringBuffer(_toLatex(terms.first));
+  for (var i = 1; i < terms.length; i++) {
+    final term = terms[i];
+    final stripped = _stripLeadingNegative(term);
+    if (stripped != null) {
+      buffer.write(' - ${_formatSubRight(stripped)}');
+    } else {
+      buffer.write(' + ${_toLatex(term)}');
+    }
+  }
+  return buffer.toString();
+}
+
+Expr? _stripLeadingNegative(Expr term) {
+  if (term is RealNumeric && term.isNegative) {
+    return term.neg();
+  }
+  if (term is ComplexNumber && term.real.isZero && term.imaginary.isNegative) {
+    return ComplexNumber.of(IntegerNumber.zero, term.imaginary.neg());
+  }
+  if (term is Mul && term.factors.isNotEmpty) {
+    final first = term.factors.first;
+    if (first is RealNumeric && first.isNegative) {
+      final posFirst = first.neg();
+      if (posFirst.isOne) {
+        return term.factors.length == 2
+            ? term.factors[1]
+            : Mul(term.factors.sublist(1));
+      }
+      return Mul([posFirst, ...term.factors.skip(1)]);
+    }
+    if (first is ComplexNumber &&
+        first.real.isZero &&
+        first.imaginary.isNegative) {
+      final posFirst = ComplexNumber.of(
+        IntegerNumber.zero,
+        first.imaginary.neg(),
+      );
+      return Mul([posFirst, ...term.factors.skip(1)]);
+    }
+  }
+  return null;
+}
+
+String _formatMulLatex(List<Expr> factors) {
+  if (factors.isEmpty) return '1';
+  if (factors.length == 1) return _toLatex(factors.first);
+
+  final numFactors = <Expr>[];
+  final denFactors = <Expr>[];
+
+  for (final f in factors) {
+    if (f is Pow && f.exponent is IntegerNumber) {
+      final exp = f.exponent as IntegerNumber;
+      if (exp.isNegative) {
+        denFactors.add(exp.isNegativeOne ? f.base : Pow(f.base, exp.neg()));
+        continue;
+      }
+    }
+    numFactors.add(f);
+  }
+
+  if (denFactors.isNotEmpty) {
+    final numLatex = numFactors.isEmpty
+        ? '1'
+        : _formatMulProductLatex(numFactors);
+    final denLatex = _formatMulProductLatex(denFactors);
+    return '\\frac{$numLatex}{$denLatex}';
+  }
+
+  return _formatMulProductLatex(numFactors);
+}
+
+String _formatMulProductLatex(List<Expr> factors) {
+  if (factors.isEmpty) return '1';
+  if (factors.length == 1) return _toLatex(factors.first);
+
+  if (factors.first == IntegerNumber.negativeOne) {
+    final rest = factors.length == 2 ? factors[1] : Mul(factors.sublist(1));
+    return '-${_formatNegOperand(rest)}';
+  }
+
+  final buffer = StringBuffer(_formatMulLeft(factors.first));
+  for (var i = 1; i < factors.length; i++) {
+    final prev = factors[i - 1];
+    final curr = factors[i];
+    final sep = _canOmitMulDot(prev, curr) ? ' ' : r' \cdot ';
+    buffer.write('$sep${_formatMulRight(curr)}');
+  }
+  return buffer.toString();
+}
+
 String _formatOrderTermLatex(String variable, int order, Expr point) {
-  final isZero = point is RationalNumber && point.isZero;
+  final isZero = point is Number && point.isZero;
   if (isZero) {
     if (order == 0) return 'O(1)';
     if (order == 1) return 'O($variable)';
@@ -94,10 +195,16 @@ String _formatOrderTermLatex(String variable, int order, Expr point) {
 }
 
 String _formatPow(Expr base, Expr exponent) {
-  if (exponent is RationalNumber && exponent.numerator == 1) {
-    if (exponent.denominator == 2) {
+  if (base == Constant.e) {
+    return 'e^{${_toLatex(exponent)}}';
+  }
+  if (exponent == IntegerNumber.negativeOne) {
+    return '\\frac{1}{${_toLatex(base)}}';
+  }
+  if (exponent is RationalNumber && exponent.numerator == Integer.one) {
+    if (exponent.denominator == Integer.two) {
       return '\\sqrt{${_toLatex(base)}}';
-    } else if (exponent.denominator > 2) {
+    } else if (exponent.denominator > Integer.two) {
       return '\\sqrt[${exponent.denominator}]{${_toLatex(base)}}';
     }
   }
@@ -105,25 +212,21 @@ String _formatPow(Expr base, Expr exponent) {
 }
 
 String _formatSubRight(Expr right) => switch (right) {
-  Add() || Sub() => '(${_toLatex(right)})',
+  Add() => '(${_toLatex(right)})',
+  ComplexNumber(:final real) when !real.isZero => '(${_toLatex(right)})',
   _ when _startsWithNegative(right) => '(${_toLatex(right)})',
   _ => _toLatex(right),
 };
 
-String _formatMul(Expr left, Expr right) {
-  final leftLatex = _formatMulLeft(left);
-  final rightLatex = _formatMulRight(right);
-  final sep = _canOmitMulDot(left, right) ? ' ' : r' \cdot ';
-  return '$leftLatex$sep$rightLatex';
-}
-
 String _formatMulLeft(Expr left) => switch (left) {
-  Add() || Sub() => '(${_toLatex(left)})',
+  Add() => '(${_toLatex(left)})',
+  ComplexNumber(:final real) when !real.isZero => '(${_toLatex(left)})',
   _ => _toLatex(left),
 };
 
 String _formatMulRight(Expr right) => switch (right) {
-  Add() || Sub() => '(${_toLatex(right)})',
+  Add() => '(${_toLatex(right)})',
+  ComplexNumber(:final real) when !real.isZero => '(${_toLatex(right)})',
   _ when _startsWithNegative(right) => '(${_toLatex(right)})',
   _ => _toLatex(right),
 };
@@ -133,54 +236,69 @@ bool _canOmitMulDot(Expr left, Expr right) {
   if (!_isNumericFactor(l)) return false;
   final r = _leftmostMulFactor(right);
   return switch (r) {
-    RationalNumber() || RealNumber() || Div() => false,
+    RealNumeric() => false,
+    ComplexNumber(:final real, :final imaginary) =>
+      real.isZero && imaginary.isOne,
     _ when _startsWithNegative(r) => false,
-    Pow() => !_startsWithNumber(r),
+    Pow(:final base, :final exponent) =>
+      base == Constant.e ||
+          (exponent != IntegerNumber.negativeOne && !_startsWithNumber(r)),
     _ => true,
   };
 }
 
 bool _isNumericFactor(Expr expr) => switch (expr) {
-  RationalNumber() || RealNumber() => true,
-  Neg(expr: RationalNumber() || RealNumber()) => true,
+  RealNumeric() => true,
   _ => false,
 };
 
 bool _startsWithNegative(Expr expr) => switch (expr) {
-  Neg() || RationalNumber(numerator: < 0) || RealNumber(value: < 0) => true,
-  Mul(:final left) => _startsWithNegative(left),
+  RealNumeric(:final isNegative) => isNegative,
+  ComplexNumber(:final real, :final imaginary) =>
+    real.isZero ? imaginary.isNegative : real.isNegative,
+  Mul(:final factors) when factors.isNotEmpty => _startsWithNegative(
+    factors.first,
+  ),
   _ => false,
 };
 
-Expr _rightmostMulFactor(Expr expr) =>
-    expr is Mul ? _rightmostMulFactor(expr.right) : expr;
+Expr _rightmostMulFactor(Expr expr) => expr is Mul && expr.factors.isNotEmpty
+    ? _rightmostMulFactor(expr.factors.last)
+    : expr;
 
-Expr _leftmostMulFactor(Expr expr) =>
-    expr is Mul ? _leftmostMulFactor(expr.left) : expr;
+Expr _leftmostMulFactor(Expr expr) => expr is Mul && expr.factors.isNotEmpty
+    ? _leftmostMulFactor(expr.factors.first)
+    : expr;
 
 bool _startsWithNumber(Expr expr) => switch (expr) {
-  RationalNumber() || RealNumber() => true,
+  RealNumeric() => true,
+  ComplexNumber(:final real, :final imaginary) =>
+    !real.isZero || !imaginary.isOne,
   Pow(:final base, :final exponent) =>
-    !(exponent is RationalNumber &&
-            exponent.numerator == 1 &&
-            exponent.denominator >= 2) &&
+    base != Constant.e &&
+        !(exponent is RationalNumber &&
+            exponent.numerator == Integer.one &&
+            exponent.denominator >= Integer.two) &&
         _startsWithNumber(base),
   _ => false,
 };
 
 String _formatPowBase(Expr base) => switch (base) {
   Add() ||
-  Sub() ||
   Mul() ||
-  Div() ||
-  Neg() ||
-  RationalNumber(numerator: < 0) ||
-  RealNumber(value: < 0) => '(${_toLatex(base)})',
+  FractionNumber() ||
+  RealNumeric(isNegative: true) => '(${_toLatex(base)})',
+  ComplexNumber(:final real, :final imaginary)
+      when !real.isZero || !imaginary.isOne =>
+    '(${_toLatex(base)})',
+  Pow(:final exponent) when exponent == IntegerNumber.negativeOne =>
+    '(${_toLatex(base)})',
   _ => _toLatex(base),
 };
 
 String _formatNegOperand(Expr expr) => switch (expr) {
-  Add() || Sub() => '(${_toLatex(expr)})',
+  Add() => '(${_toLatex(expr)})',
+  ComplexNumber(:final real) when !real.isZero => '(${_toLatex(expr)})',
   _ when _startsWithNegative(expr) => '(${_toLatex(expr)})',
   _ => _toLatex(expr),
 };

@@ -1,7 +1,5 @@
 import 'dart:math' as math;
 
-import 'package:more/number.dart' show Fraction;
-
 import '../../ast.dart';
 import '../simplify.dart';
 import '../term_accumulator.dart';
@@ -14,7 +12,7 @@ class PolyQ {
   new(this.coeffs);
 
   /// List of rational coefficients in ascending order of degree.
-  final List<Fraction> coeffs;
+  final List<RationalNumber> coeffs;
 
   /// Degree of the polynomial ($n = coeffs.length - 1$).
   int get degree => coeffs.length - 1;
@@ -25,25 +23,32 @@ PolyQ? extractPoly(Expr expr, String variable) {
   final terms = <Expr>[];
   collectAdditiveTerms(expr, 1, terms);
 
-  final coeffMap = <int, Fraction>{};
+  final coeffMap = <int, RationalNumber>{};
   for (final term in terms) {
     final (c, base) = decomposeTerm(term);
+    if (c is! RationalNumber) return null;
 
     if (base is RationalNumber) {
-      coeffMap[0] = (coeffMap[0] ?? Fraction.zero) + c * base.toFraction();
+      final prod = c.mul(base) as RationalNumber;
+      coeffMap[0] =
+          (coeffMap[0] ?? IntegerNumber.zero).add(prod) as RationalNumber;
     } else if (base is Variable && base.name == variable) {
-      coeffMap[1] = (coeffMap[1] ?? Fraction.zero) + c;
+      coeffMap[1] =
+          (coeffMap[1] ?? IntegerNumber.zero).add(c) as RationalNumber;
     } else if (base is Pow &&
         base.base is Variable &&
         (base.base as Variable).name == variable &&
         base.exponent is RationalNumber) {
       final exp = base.exponent as RationalNumber;
-      if (!exp.isInteger || exp.numerator < 0) return null;
-      final k = exp.numerator;
-      coeffMap[k] = (coeffMap[k] ?? Fraction.zero) + c;
+      final k = exp.asInt;
+      if (k == null || k < 0) return null;
+      coeffMap[k] =
+          (coeffMap[k] ?? IntegerNumber.zero).add(c) as RationalNumber;
     } else if (!base.dependsOn(variable)) {
       if (base is RationalNumber) {
-        coeffMap[0] = (coeffMap[0] ?? Fraction.zero) + c * base.toFraction();
+        final prod = c.mul(base) as RationalNumber;
+        coeffMap[0] =
+            (coeffMap[0] ?? IntegerNumber.zero).add(prod) as RationalNumber;
       } else {
         return null;
       }
@@ -52,14 +57,14 @@ PolyQ? extractPoly(Expr expr, String variable) {
     }
   }
 
-  coeffMap.removeWhere((_, v) => v.a == 0);
+  coeffMap.removeWhere((_, v) => v.isZero);
   if (coeffMap.isEmpty) {
-    return PolyQ([Fraction.zero]);
+    return PolyQ([IntegerNumber.zero]);
   }
   final maxDeg = coeffMap.keys.reduce(math.max);
-  final dense = List<Fraction>.generate(
+  final dense = List<RationalNumber>.generate(
     maxDeg + 1,
-    (i) => coeffMap[i] ?? Fraction.zero,
+    (i) => coeffMap[i] ?? IntegerNumber.zero,
   );
   return PolyQ(dense);
 }
@@ -67,16 +72,26 @@ PolyQ? extractPoly(Expr expr, String variable) {
 /// Factors univariate rational polynomial [poly] in [variable].
 Expr factorUnivariatePoly(PolyQ poly, String variable) {
   if (poly.degree <= 0) {
-    return RationalNumber.fraction(poly.coeffs.first);
+    return poly.coeffs.first;
   }
 
   // 1. Clear denominators
   var lcmDen = 1;
   for (final c in poly.coeffs) {
-    lcmDen = lcm(lcmDen, c.b);
+    final den = c.denominator.asInt;
+    if (den == null) return buildPolyExprFromRational(poly.coeffs, variable);
+    lcmDen = lcm(lcmDen, den);
   }
 
-  final intCoeffs = poly.coeffs.map((c) => c.a * (lcmDen ~/ c.b)).toList();
+  final intCoeffs = <int>[];
+  for (final c in poly.coeffs) {
+    final num = c.numerator.asInt;
+    final den = c.denominator.asInt;
+    if (num == null || den == null) {
+      return buildPolyExprFromRational(poly.coeffs, variable);
+    }
+    intCoeffs.add(num * (lcmDen ~/ den));
+  }
 
   // 2. Extract content GCD
   var content = 0;
@@ -90,7 +105,7 @@ Expr factorUnivariatePoly(PolyQ poly, String variable) {
 
   var primitiveCoeffs = intCoeffs.map((a) => (a * sign) ~/ content).toList();
 
-  final scalar = Fraction(content * sign, lcmDen);
+  final scalar = RationalNumber(content * sign, lcmDen);
   final factors = <Expr, int>{};
 
   // 3. Zero roots: factor out x^m
@@ -109,6 +124,9 @@ Expr factorUnivariatePoly(PolyQ poly, String variable) {
   }
 
   if (currentDeg == 1) {
+    if (factors.isEmpty && content == 1 && lcmDen == 1) {
+      return buildPolyExpr(intCoeffs, variable);
+    }
     final linFactor = buildLinearFactor(
       primitiveCoeffs[1],
       -primitiveCoeffs[0],
@@ -169,16 +187,27 @@ Expr factorUnivariatePoly(PolyQ poly, String variable) {
     if (disc >= 0) {
       final s = integerSqrt(disc);
       if (s != null) {
-        final r1 = Fraction(-b + s, 2 * a);
-        final r2 = Fraction(-b - s, 2 * a);
-        final f1 = buildLinearFactor(r1.b, r1.a, variable);
-        final f2 = buildLinearFactor(r2.b, r2.a, variable);
+        final r1 = RationalNumber(-b + s, 2 * a);
+        final r2 = RationalNumber(-b - s, 2 * a);
+        final f1 = buildLinearFactor(
+          r1.denominator.toInt(),
+          r1.numerator.toInt(),
+          variable,
+        );
+        final f2 = buildLinearFactor(
+          r2.denominator.toInt(),
+          r2.numerator.toInt(),
+          variable,
+        );
         factors[f1] = (factors[f1] ?? 0) + 1;
         factors[f2] = (factors[f2] ?? 0) + 1;
         return buildFactoredExpr(scalar: scalar, factors: factors);
       }
     }
     // Irreducible quadratic
+    if (factors.isEmpty && content == 1 && lcmDen == 1) {
+      return buildPolyExpr(intCoeffs, variable);
+    }
     final quadExpr = buildPolyExpr(primitiveCoeffs, variable);
     factors[quadExpr] = (factors[quadExpr] ?? 0) + 1;
     return buildFactoredExpr(scalar: scalar, factors: factors);
@@ -203,10 +232,18 @@ Expr factorUnivariatePoly(PolyQ poly, String variable) {
     if (disc >= 0) {
       final s = integerSqrt(disc);
       if (s != null) {
-        final u1 = Fraction(-b + s, 2 * a);
-        final u2 = Fraction(-b - s, 2 * a);
-        final q1 = factorQuadraticInX(u1.b, -u1.a, variable);
-        final q2 = factorQuadraticInX(u2.b, -u2.a, variable);
+        final u1 = RationalNumber(-b + s, 2 * a);
+        final u2 = RationalNumber(-b - s, 2 * a);
+        final q1 = factorQuadraticInX(
+          u1.denominator.toInt(),
+          -u1.numerator.toInt(),
+          variable,
+        );
+        final q2 = factorQuadraticInX(
+          u2.denominator.toInt(),
+          -u2.numerator.toInt(),
+          variable,
+        );
         mergeFactorsInto(factors, q1);
         mergeFactorsInto(factors, q2);
         return buildFactoredExpr(scalar: scalar, factors: factors);
@@ -215,6 +252,9 @@ Expr factorUnivariatePoly(PolyQ poly, String variable) {
   }
 
   // Irreducible higher degree
+  if (factors.isEmpty && content == 1 && lcmDen == 1) {
+    return buildPolyExpr(intCoeffs, variable);
+  }
   final polyExpr = buildPolyExpr(primitiveCoeffs, variable);
   factors[polyExpr] = (factors[polyExpr] ?? 0) + 1;
   return buildFactoredExpr(scalar: scalar, factors: factors);
@@ -227,10 +267,18 @@ Map<Expr, int> factorQuadraticInX(int a, int c, String variable) {
   if (disc >= 0) {
     final s = integerSqrt(disc);
     if (s != null) {
-      final r1 = Fraction(s, 2 * a);
-      final r2 = Fraction(-s, 2 * a);
-      final f1 = buildLinearFactor(r1.b, r1.a, variable);
-      final f2 = buildLinearFactor(r2.b, r2.a, variable);
+      final r1 = RationalNumber(s, 2 * a);
+      final r2 = RationalNumber(-s, 2 * a);
+      final f1 = buildLinearFactor(
+        r1.denominator.toInt(),
+        r1.numerator.toInt(),
+        variable,
+      );
+      final f2 = buildLinearFactor(
+        r2.denominator.toInt(),
+        r2.numerator.toInt(),
+        variable,
+      );
       res[f1] = (res[f1] ?? 0) + 1;
       res[f2] = (res[f2] ?? 0) + 1;
       return res;
@@ -268,67 +316,31 @@ List<int>? syntheticDivide(List<int> coeffs, int p, int q) {
   return b;
 }
 
-/// Builds linear factor $q \cdot x - p$.
-Expr buildLinearFactor(int q, int p, String variable) {
+/// Builds linear factor $q \cdot x - p$ in canonical simplified order.
+Expr buildLinearFactor(int q, int p, String variable) =>
+    buildPolyExpr([-p, q], variable);
+
+/// Builds expression from polynomial integer [coeffs] in canonical simplified order.
+Expr buildPolyExpr(List<int> coeffs, String variable) =>
+    buildPolyExprFromRational([
+      for (final a in coeffs) IntegerNumber.of(a),
+    ], variable);
+
+/// Builds expression from rational polynomial [coeffs] in canonical simplified order.
+Expr buildPolyExprFromRational(List<RationalNumber> coeffs, String variable) {
   final x = Variable(variable);
-  if (q == 1) {
-    if (p == 0) return x;
-    if (p > 0) return Sub(x, RationalNumber(p));
-    return Add(x, RationalNumber(-p));
-  } else {
-    final qx = Mul(RationalNumber(q), x);
-    if (p == 0) return qx;
-    if (p > 0) return Sub(qx, RationalNumber(p));
-    return Add(qx, RationalNumber(-p));
-  }
-}
-
-/// Builds expression from polynomial integer [coeffs] in descending powers of [variable].
-Expr buildPolyExpr(List<int> coeffs, String variable) {
-  Expr? result;
-  final x = Variable(variable);
-  for (var k = coeffs.length - 1; k >= 0; k--) {
-    final a = coeffs[k];
-    if (a == 0) continue;
-    final term = switch (k) {
-      0 => RationalNumber(a.abs()),
-      1 => a.abs() == 1 ? x : Mul(RationalNumber(a.abs()), x),
-      _ =>
-        a.abs() == 1
-            ? Pow(x, RationalNumber(k))
-            : Mul(RationalNumber(a.abs()), Pow(x, RationalNumber(k))),
-    };
-
-    if (result == null) {
-      result = a < 0 ? Neg(term) : term;
-    } else {
-      result = a > 0 ? Add(result, term) : Sub(result, term);
-    }
-  }
-  return (result ?? RationalNumber.zero).simplify();
-}
-
-/// Computes the magnitude of the root of linear [expr].
-Fraction? linearRootMagnitude(Expr expr) {
-  if (expr is Variable) return Fraction.zero;
-  if (expr is Mul && expr.left is RationalNumber && expr.right is Variable) {
-    return Fraction.zero;
-  }
-  if (expr is Sub) {
-    final (c, base) = decomposeTerm(expr.left);
-    if (base is Variable && expr.right is RationalNumber) {
-      final p = (expr.right as RationalNumber).toFraction().abs();
-      return p / c.abs();
-    }
-  }
-  if (expr is Add) {
-    final (c, base) = decomposeTerm(expr.left);
-    if (base is Variable && expr.right is RationalNumber) {
-      final p = (expr.right as RationalNumber).toFraction().abs();
-      return p / c.abs();
-    }
-  }
-  return null;
+  return simplifyAdd([
+    for (var k = 0; k < coeffs.length; k++)
+      if (!coeffs[k].isZero)
+        switch (k) {
+          0 => coeffs[k],
+          1 => simplifyMul([coeffs[k], x]),
+          _ => simplifyMul([
+            coeffs[k],
+            Pow(x, IntegerNumber.of(k), isSimplified: true),
+          ]),
+        },
+  ]);
 }
 
 /// Computes the greatest common divisor of [a] and [b].

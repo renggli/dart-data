@@ -1,69 +1,59 @@
 part of '../ast.dart';
 
-/// Sealed base class representing a unary operation AST node with a single operand.
-///
-/// Encapsulates common structural traversal, variable dependency collection,
-/// and value hashing across unary expressions such as negation ([Neg]) and
-/// transcendental functions ([Sin], [Cos], [Exp], [Ln]).
+/// Base class for unary expressions operating on a single child [expr].
 sealed class UnaryExpr extends Expr {
-  /// Abstract const constructor for unary expression nodes.
-  const new(this.expr);
+  /// Creates a unary expression wrapping [expr].
+  new(this.expr, {this.isSimplified = false});
 
-  /// The sub-expression argument of this unary operation.
+  /// The inner operand expression.
   final Expr expr;
 
   @override
-  bool dependsOn(String name) => expr.dependsOn(name);
+  final bool isSimplified;
+
+  int? _hashCode;
 
   @override
-  void collectFreeVariables(Set<String> target) =>
-      expr.collectFreeVariables(target);
-
-  /// Reconstructs this unary node with [newExpr].
-  UnaryExpr copyWith(Expr newExpr);
-
-  @override
-  Expr mapChildren(Expr Function(Expr child) transform) {
-    final next = transform(expr);
-    return identical(next, expr) ? this : copyWith(next);
+  void collectFreeVariables(Set<String> target) {
+    expr.collectFreeVariables(target);
   }
 
   @override
-  bool anyNode(bool Function(Expr node) predicate) =>
-      predicate(this) || expr.anyNode(predicate);
+  bool dependsOn(String variable) => expr.dependsOn(variable);
 
   @override
-  Expr substitute(String variable, Expr replacement) =>
-      mapChildren((child) => child.substitute(variable, replacement));
+  bool anyNode(bool Function(Expr) predicate) =>
+      predicate(this) || expr.anyNode(predicate);
 
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
       (other is UnaryExpr &&
-          other.runtimeType == runtimeType &&
-          other.expr == expr);
+          runtimeType == other.runtimeType &&
+          (_hashCode == null ||
+              other._hashCode == null ||
+              _hashCode == other._hashCode) &&
+          expr == other.expr);
 
   @override
-  int get hashCode => Object.hash(runtimeType, expr);
+  int get hashCode => _hashCode ??= Object.hash(runtimeType, expr);
 }
 
-/// Sealed base class representing a binary operation AST node with two operands.
-///
-/// Encapsulates common structural traversal, variable dependency collection,
-/// and value hashing across binary expressions such as arithmetic operations
-/// ([Add], [Sub], [Mul], [Div]) and exponentiation ([Pow]).
+/// Base class for binary expressions operating on [left] and [right] children.
 sealed class BinaryExpr extends Expr {
-  /// Abstract const constructor for binary expression nodes.
-  const new(this.left, this.right);
+  /// Creates a binary expression with [left] and [right] operands.
+  new(this.left, this.right, {this.isSimplified = false});
 
-  /// The left operand.
+  /// The left-hand operand expression.
   final Expr left;
 
-  /// The right operand.
+  /// The right-hand operand expression.
   final Expr right;
 
   @override
-  bool dependsOn(String name) => left.dependsOn(name) || right.dependsOn(name);
+  final bool isSimplified;
+
+  int? _hashCode;
 
   @override
   void collectFreeVariables(Set<String> target) {
@@ -71,154 +61,215 @@ sealed class BinaryExpr extends Expr {
     right.collectFreeVariables(target);
   }
 
-  /// Reconstructs this binary node with [newLeft] and [newRight].
-  BinaryExpr copyWith(Expr newLeft, Expr newRight);
+  @override
+  bool dependsOn(String variable) =>
+      left.dependsOn(variable) || right.dependsOn(variable);
 
   @override
-  Expr mapChildren(Expr Function(Expr child) transform) {
-    final nextLeft = transform(left);
-    final nextRight = transform(right);
-    return identical(nextLeft, left) && identical(nextRight, right)
-        ? this
-        : copyWith(nextLeft, nextRight);
-  }
-
-  @override
-  bool anyNode(bool Function(Expr node) predicate) =>
+  bool anyNode(bool Function(Expr) predicate) =>
       predicate(this) || left.anyNode(predicate) || right.anyNode(predicate);
-
-  @override
-  Expr substitute(String variable, Expr replacement) =>
-      mapChildren((child) => child.substitute(variable, replacement));
 
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
       (other is BinaryExpr &&
-          other.runtimeType == runtimeType &&
-          other.left == left &&
-          other.right == right);
+          runtimeType == other.runtimeType &&
+          (_hashCode == null ||
+              other._hashCode == null ||
+              _hashCode == other._hashCode) &&
+          left == other.left &&
+          right == other.right);
 
   @override
-  int get hashCode => Object.hash(runtimeType, left, right);
+  int get hashCode => _hashCode ??= Object.hash(runtimeType, left, right);
 }
 
-/// An addition binary expression node representing $left + right$.
-///
-/// ```dart
-/// final sum = Add(Variable('x'), RationalNumber(1));
-/// ```
-final class Add extends BinaryExpr {
-  /// Creates an addition node representing `[left] + [right]`.
-  const new(super.left, super.right);
+/// N-ary addition node: $\sum_{i} t_i$.
+final class Add extends Expr {
+  /// Creates an N-ary sum of [terms].
+  new(List<Expr> terms, {this.isSimplified = false})
+    : terms = List.unmodifiable(terms);
+
+  /// The ordered list of additive terms.
+  final List<Expr> terms;
 
   @override
-  Add copyWith(Expr newLeft, Expr newRight) => Add(newLeft, newRight);
+  final bool isSimplified;
+
+  int? _hashCode;
 
   @override
-  double evaluate(Map<String, double> context) =>
-      left.evaluate(context) + right.evaluate(context);
+  double evaluate([Map<String, double> context = const {}]) {
+    var sum = 0.0;
+    for (var i = 0; i < terms.length; i++) {
+      sum += terms[i].evaluate(context);
+    }
+    return sum;
+  }
+
+  @override
+  void collectFreeVariables(Set<String> target) {
+    for (var i = 0; i < terms.length; i++) {
+      terms[i].collectFreeVariables(target);
+    }
+  }
+
+  @override
+  bool dependsOn(String variable) {
+    for (var i = 0; i < terms.length; i++) {
+      if (terms[i].dependsOn(variable)) return true;
+    }
+    return false;
+  }
+
+  @override
+  Expr substitute(String variable, Expr replacement) =>
+      Add([for (final t in terms) t.substitute(variable, replacement)]);
+
+  @override
+  Expr mapChildren(Expr Function(Expr) transform) =>
+      Add([for (final t in terms) transform(t)]);
+
+  @override
+  bool anyNode(bool Function(Expr) predicate) {
+    if (predicate(this)) return true;
+    for (var i = 0; i < terms.length; i++) {
+      if (terms[i].anyNode(predicate)) return true;
+    }
+    return false;
+  }
+
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    if (other is! Add || terms.length != other.terms.length) return false;
+    if (_hashCode != null &&
+        other._hashCode != null &&
+        _hashCode != other._hashCode) {
+      return false;
+    }
+    for (var i = 0; i < terms.length; i++) {
+      if (terms[i] != other.terms[i]) return false;
+    }
+    return true;
+  }
+
+  @override
+  int get hashCode => _hashCode ??= Object.hash(Add, Object.hashAll(terms));
 }
 
-/// A subtraction binary expression node representing $left - right$.
-///
-/// ```dart
-/// final diff = Sub(Variable('x'), RationalNumber(1));
-/// ```
-final class Sub extends BinaryExpr {
-  /// Creates a subtraction node representing `[left] - [right]`.
-  const new(super.left, super.right);
+/// N-ary multiplication node: $\prod_{i} f_i$.
+final class Mul extends Expr {
+  /// Creates an N-ary product of [factors].
+  new(List<Expr> factors, {this.isSimplified = false})
+    : factors = List.unmodifiable(factors);
+
+  /// The ordered list of multiplicative factors.
+  final List<Expr> factors;
 
   @override
-  Sub copyWith(Expr newLeft, Expr newRight) => Sub(newLeft, newRight);
+  final bool isSimplified;
+
+  int? _hashCode;
 
   @override
-  double evaluate(Map<String, double> context) =>
-      left.evaluate(context) - right.evaluate(context);
+  double evaluate([Map<String, double> context = const {}]) {
+    var product = 1.0;
+    for (var i = 0; i < factors.length; i++) {
+      product *= factors[i].evaluate(context);
+    }
+    return product;
+  }
+
+  @override
+  void collectFreeVariables(Set<String> target) {
+    for (var i = 0; i < factors.length; i++) {
+      factors[i].collectFreeVariables(target);
+    }
+  }
+
+  @override
+  bool dependsOn(String variable) {
+    for (var i = 0; i < factors.length; i++) {
+      if (factors[i].dependsOn(variable)) return true;
+    }
+    return false;
+  }
+
+  @override
+  Expr substitute(String variable, Expr replacement) =>
+      Mul([for (final f in factors) f.substitute(variable, replacement)]);
+
+  @override
+  Expr mapChildren(Expr Function(Expr) transform) =>
+      Mul([for (final f in factors) transform(f)]);
+
+  @override
+  bool anyNode(bool Function(Expr) predicate) {
+    if (predicate(this)) return true;
+    for (var i = 0; i < factors.length; i++) {
+      if (factors[i].anyNode(predicate)) return true;
+    }
+    return false;
+  }
+
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    if (other is! Mul || factors.length != other.factors.length) return false;
+    if (_hashCode != null &&
+        other._hashCode != null &&
+        _hashCode != other._hashCode) {
+      return false;
+    }
+    for (var i = 0; i < factors.length; i++) {
+      if (factors[i] != other.factors[i]) return false;
+    }
+    return true;
+  }
+
+  @override
+  int get hashCode => _hashCode ??= Object.hash(Mul, Object.hashAll(factors));
 }
 
-/// A multiplication binary expression node representing $left \times right$.
-///
-/// ```dart
-/// final product = Mul(RationalNumber(2), Variable('x'));
-/// ```
-final class Mul extends BinaryExpr {
-  /// Creates a multiplication node representing `[left] * [right]`.
-  const new(super.left, super.right);
-
-  @override
-  Mul copyWith(Expr newLeft, Expr newRight) => Mul(newLeft, newRight);
-
-  @override
-  double evaluate(Map<String, double> context) =>
-      left.evaluate(context) * right.evaluate(context);
-}
-
-/// A division binary expression node representing $left / right$.
-///
-/// ```dart
-/// final quotient = Div(Variable('x'), RationalNumber(2));
-/// ```
-final class Div extends BinaryExpr {
-  /// Creates a division node representing `[left] / [right]`.
-  const new(super.left, super.right);
-
-  @override
-  Div copyWith(Expr newLeft, Expr newRight) => Div(newLeft, newRight);
-
-  @override
-  double evaluate(Map<String, double> context) =>
-      left.evaluate(context) / right.evaluate(context);
-}
-
-/// An exponentiation binary expression node representing $base^{exponent}$.
-///
-/// ```dart
-/// final power = Pow(Variable('x'), RationalNumber(2));
-/// ```
+/// Exponentiation node: $\text{base}^{\text{exponent}}$.
 final class Pow extends BinaryExpr {
-  /// Creates an exponentiation node representing `[base] ^ [exponent]`.
-  const new(super.left, super.right);
+  /// Creates an exponentiation node $\text{base}^{\text{exponent}}$.
+  new(super.base, super.exponent, {super.isSimplified = false});
 
-  /// The base expression.
+  /// Base of the power expression.
   Expr get base => left;
 
-  /// The exponent expression.
+  /// Exponent of the power expression.
   Expr get exponent => right;
 
   @override
-  Pow copyWith(Expr newLeft, Expr newRight) => Pow(newLeft, newRight);
-
-  @override
-  double evaluate(Map<String, double> context) {
-    final bVal = left.evaluate(context);
-    if (right case RationalNumber(:final numerator, :final denominator)) {
-      if (numerator == 1 && denominator == 2) {
-        return math.sqrt(bVal);
+  double evaluate([Map<String, double> context = const {}]) {
+    if (base == Constant.e) {
+      return math.exp(exponent.evaluate(context));
+    }
+    final b = base.evaluate(context);
+    if (exponent case FractionNumber(:final numerator, :final denominator)) {
+      if (numerator.isOne && denominator == IntegerNumber.two.numerator) {
+        return math.sqrt(b);
       }
-      if (bVal < 0 && denominator > 1 && denominator.isOdd) {
-        final mag = math.pow(-bVal, numerator / denominator).toDouble();
+      if (b < 0 && denominator.isOdd) {
+        final mag = math
+            .pow(-b, numerator.toDouble() / denominator.toDouble())
+            .toDouble();
         return numerator.isOdd ? -mag : mag;
       }
     }
-    final eVal = right.evaluate(context);
-    if (eVal == 0.5) return math.sqrt(bVal);
-    return math.pow(bVal, eVal).toDouble();
+    return math.pow(b, exponent.evaluate(context)).toDouble();
   }
-}
-
-/// A unary negation expression node representing $-expr$.
-///
-/// ```dart
-/// final neg = Neg(Variable('x'));
-/// ```
-final class Neg extends UnaryExpr {
-  /// Creates a unary negation node representing `-[expr]`.
-  const new(super.expr);
 
   @override
-  Neg copyWith(Expr newExpr) => Neg(newExpr);
+  Expr substitute(String variable, Expr replacement) => Pow(
+    base.substitute(variable, replacement),
+    exponent.substitute(variable, replacement),
+  );
 
   @override
-  double evaluate(Map<String, double> context) => -expr.evaluate(context);
+  Expr mapChildren(Expr Function(Expr) transform) =>
+      Pow(transform(base), transform(exponent));
 }

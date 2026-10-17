@@ -1,5 +1,3 @@
-import 'package:more/number.dart' show Fraction;
-
 import '../../ast.dart';
 import '../exact_constants.dart';
 import '../simplify.dart';
@@ -7,8 +5,7 @@ import '../structural_order.dart';
 
 /// Simplifies a sine expression $\sin(expr)$.
 Expr simplifySin(Expr expr) {
-  if (expr is RationalNumber && expr.isZero) return RationalNumber.zero;
-  if (expr is RealNumber && expr.value == 0.0) return RationalNumber.zero;
+  if (expr is Number && expr.isZero) return IntegerNumber.zero;
 
   // Involution: sin(asin(u)) = u
   if (expr is Asin) return expr.expr;
@@ -22,22 +19,21 @@ Expr simplifySin(Expr expr) {
   // Multiples of pi
   final piMult = matchPiMultiple(expr);
   if (piMult != null) {
-    if (piMult.denominator == 1) {
-      return RationalNumber.zero;
+    if (piMult.isInteger) {
+      return IntegerNumber.zero;
     }
-    if (piMult.denominator == 2) {
-      final k = (piMult.numerator - 1) ~/ 2;
-      return (k % 2 == 0) ? RationalNumber.one : RationalNumber.negativeOne;
+    if (piMult.denominator == Integer.two) {
+      final k = (piMult.numerator - Integer.one) ~/ Integer.two;
+      return k.isEven ? IntegerNumber.one : IntegerNumber.negativeOne;
     }
   }
 
-  return Sin(expr);
+  return Sin(expr, isSimplified: true);
 }
 
 /// Simplifies a cosine expression $\cos(expr)$.
 Expr simplifyCos(Expr expr) {
-  if (expr is RationalNumber && expr.isZero) return RationalNumber.one;
-  if (expr is RealNumber && expr.value == 0.0) return RationalNumber.one;
+  if (expr is Number && expr.isZero) return IntegerNumber.one;
 
   // Involution: cos(acos(u)) = u
   if (expr is Acos) return expr.expr;
@@ -51,23 +47,22 @@ Expr simplifyCos(Expr expr) {
   // Multiples of pi
   final piMult = matchPiMultiple(expr);
   if (piMult != null) {
-    if (piMult.denominator == 1) {
-      return (piMult.numerator % 2 == 0)
-          ? RationalNumber.one
-          : RationalNumber.negativeOne;
+    if (piMult.isInteger) {
+      return piMult.numerator.isEven
+          ? IntegerNumber.one
+          : IntegerNumber.negativeOne;
     }
-    if (piMult.denominator == 2 && piMult.numerator.isOdd) {
-      return RationalNumber.zero;
+    if (piMult.denominator == Integer.two && piMult.numerator.isOdd) {
+      return IntegerNumber.zero;
     }
   }
 
-  return Cos(expr);
+  return Cos(expr, isSimplified: true);
 }
 
 /// Simplifies a tangent expression $\tan(expr)$.
 Expr simplifyTan(Expr expr) {
-  if (expr is RationalNumber && expr.isZero) return RationalNumber.zero;
-  if (expr is RealNumber && expr.value == 0.0) return RationalNumber.zero;
+  if (expr is Number && expr.isZero) return IntegerNumber.zero;
 
   // Involution: tan(atan(u)) = u
   if (expr is Atan) return expr.expr;
@@ -81,34 +76,27 @@ Expr simplifyTan(Expr expr) {
   // Multiples of pi
   final piMult = matchPiMultiple(expr);
   if (piMult != null) {
-    if (piMult.denominator == 1) {
-      return RationalNumber.zero;
+    if (piMult.isInteger) {
+      return IntegerNumber.zero;
     }
-    if (piMult.denominator == 4) {
-      final rem = piMult.numerator % 4;
-      if (rem == 1 || rem == -3) return RationalNumber.one;
-      if (rem == 3 || rem == -1) return RationalNumber.negativeOne;
+    if (piMult.denominator == const Integer(4)) {
+      final rem = (piMult.numerator % const Integer(4)).toInt();
+      if (rem == 1) return IntegerNumber.one;
+      if (rem == 3) return IntegerNumber.negativeOne;
     }
   }
 
-  return Tan(expr);
+  return Tan(expr, isSimplified: true);
 }
 
 /// Simplifies an arcsine expression $\arcsin(expr)$.
 Expr simplifyAsin(Expr expr) {
-  if (expr is RationalNumber && expr.isZero) return RationalNumber.zero;
-  if (expr is RealNumber && expr.value == 0.0) return RationalNumber.zero;
-  if (expr is RationalNumber && expr.isOne) {
-    return const Mul(RationalNumber(1, 2), ConstantNumber.pi);
+  if (expr is Number && expr.isZero) return IntegerNumber.zero;
+  if (expr is Number && expr.isOne) {
+    return Mul([FractionNumber.half, Constant.pi], isSimplified: true);
   }
-  if (expr is RealNumber && expr.value == 1.0) {
-    return const Mul(RationalNumber(1, 2), ConstantNumber.pi);
-  }
-  if (expr is RationalNumber && expr == RationalNumber.negativeOne) {
-    return const Mul(RationalNumber(-1, 2), ConstantNumber.pi);
-  }
-  if (expr is RealNumber && expr.value == -1.0) {
-    return const Mul(RationalNumber(-1, 2), ConstantNumber.pi);
+  if (expr is Number && expr.isNegativeOne) {
+    return Mul([FractionNumber.negativeHalf, Constant.pi], isSimplified: true);
   }
 
   // Involution: asin(sin(u)) = u
@@ -121,33 +109,29 @@ Expr simplifyAsin(Expr expr) {
   }
 
   if (isHalf(posExpr)) {
-    return const Mul(RationalNumber(1, 6), ConstantNumber.pi);
+    return Mul([
+      const FractionNumber(Integer.one, Integer(6)),
+      Constant.pi,
+    ], isSimplified: true);
   }
   if (isSqrt2Over2(posExpr)) {
-    return const Mul(RationalNumber(1, 4), ConstantNumber.pi);
+    return Mul([FractionNumber.quarter, Constant.pi], isSimplified: true);
   }
   if (isSqrt3Over2(posExpr)) {
-    return const Mul(RationalNumber(1, 3), ConstantNumber.pi);
+    return Mul([FractionNumber.third, Constant.pi], isSimplified: true);
   }
 
-  return Asin(expr);
+  return Asin(expr, isSimplified: true);
 }
 
 /// Simplifies an arccosine expression $\arccos(expr)$.
 Expr simplifyAcos(Expr expr) {
-  if (expr is RationalNumber && expr.isOne) return RationalNumber.zero;
-  if (expr is RealNumber && expr.value == 1.0) return RationalNumber.zero;
-  if (expr is RationalNumber && expr.isZero) {
-    return const Mul(RationalNumber(1, 2), ConstantNumber.pi);
+  if (expr is Number && expr.isOne) return IntegerNumber.zero;
+  if (expr is Number && expr.isZero) {
+    return Mul([FractionNumber.half, Constant.pi], isSimplified: true);
   }
-  if (expr is RealNumber && expr.value == 0.0) {
-    return const Mul(RationalNumber(1, 2), ConstantNumber.pi);
-  }
-  if (expr is RationalNumber && expr == RationalNumber.negativeOne) {
-    return ConstantNumber.pi;
-  }
-  if (expr is RealNumber && expr.value == -1.0) {
-    return ConstantNumber.pi;
+  if (expr is Number && expr.isNegativeOne) {
+    return Constant.pi;
   }
 
   // Involution: acos(cos(u)) = u
@@ -155,47 +139,54 @@ Expr simplifyAcos(Expr expr) {
 
   final (posExpr, isNeg) = extractSign(expr);
   if (isNeg) {
-    if (posExpr is RationalNumber && posExpr.isOne) return ConstantNumber.pi;
-    if (posExpr is RealNumber && posExpr.value == 1.0) return ConstantNumber.pi;
+    if (posExpr is Number && posExpr.isOne) return Constant.pi;
     if (isHalf(posExpr)) {
-      return const Mul(RationalNumber(2, 3), ConstantNumber.pi);
+      return Mul([
+        const FractionNumber(Integer.two, Integer(3)),
+        Constant.pi,
+      ], isSimplified: true);
     }
     if (isSqrt2Over2(posExpr)) {
-      return const Mul(RationalNumber(3, 4), ConstantNumber.pi);
+      return Mul([
+        const FractionNumber(Integer(3), Integer(4)),
+        Constant.pi,
+      ], isSimplified: true);
     }
     if (isSqrt3Over2(posExpr)) {
-      return const Mul(RationalNumber(5, 6), ConstantNumber.pi);
+      return Mul([
+        const FractionNumber(Integer(5), Integer(6)),
+        Constant.pi,
+      ], isSimplified: true);
     }
   }
 
   if (isHalf(posExpr)) {
-    return const Mul(RationalNumber(1, 3), ConstantNumber.pi);
+    return Mul([FractionNumber.third, Constant.pi], isSimplified: true);
   }
   if (isSqrt2Over2(posExpr)) {
-    return const Mul(RationalNumber(1, 4), ConstantNumber.pi);
+    return Mul([FractionNumber.quarter, Constant.pi], isSimplified: true);
   }
   if (isSqrt3Over2(posExpr)) {
-    return const Mul(RationalNumber(1, 6), ConstantNumber.pi);
+    return Mul([
+      const FractionNumber(Integer.one, Integer(6)),
+      Constant.pi,
+    ], isSimplified: true);
   }
 
-  return Acos(expr);
+  return Acos(expr, isSimplified: true);
 }
 
 /// Simplifies an arctangent expression $\arctan(expr)$.
 Expr simplifyAtan(Expr expr) {
-  if (expr is RationalNumber && expr.isZero) return RationalNumber.zero;
-  if (expr is RealNumber && expr.value == 0.0) return RationalNumber.zero;
-  if (expr is RationalNumber && expr.isOne) {
-    return const Mul(RationalNumber(1, 4), ConstantNumber.pi);
+  if (expr is Number && expr.isZero) return IntegerNumber.zero;
+  if (expr is Number && expr.isOne) {
+    return Mul([FractionNumber.quarter, Constant.pi], isSimplified: true);
   }
-  if (expr is RealNumber && expr.value == 1.0) {
-    return const Mul(RationalNumber(1, 4), ConstantNumber.pi);
-  }
-  if (expr is RationalNumber && expr == RationalNumber.negativeOne) {
-    return const Mul(RationalNumber(-1, 4), ConstantNumber.pi);
-  }
-  if (expr is RealNumber && expr.value == -1.0) {
-    return const Mul(RationalNumber(-1, 4), ConstantNumber.pi);
+  if (expr is Number && expr.isNegativeOne) {
+    return Mul([
+      const FractionNumber(Integer.negativeOne, Integer(4)),
+      Constant.pi,
+    ], isSimplified: true);
   }
 
   // Involution: atan(tan(u)) = u
@@ -208,19 +199,21 @@ Expr simplifyAtan(Expr expr) {
   }
 
   if (isSqrt3Over3(posExpr)) {
-    return const Mul(RationalNumber(1, 6), ConstantNumber.pi);
+    return Mul([
+      const FractionNumber(Integer.one, Integer(6)),
+      Constant.pi,
+    ], isSimplified: true);
   }
   if (isSqrt3(posExpr)) {
-    return const Mul(RationalNumber(1, 3), ConstantNumber.pi);
+    return Mul([FractionNumber.third, Constant.pi], isSimplified: true);
   }
 
-  return Atan(expr);
+  return Atan(expr, isSimplified: true);
 }
 
 /// Simplifies a hyperbolic sine expression $\sinh(expr)$.
 Expr simplifySinh(Expr expr) {
-  if (expr is RationalNumber && expr.isZero) return RationalNumber.zero;
-  if (expr is RealNumber && expr.value == 0.0) return RationalNumber.zero;
+  if (expr is Number && expr.isZero) return IntegerNumber.zero;
 
   // Parity: sinh(-u) = -sinh(u)
   final (posExpr, isNeg) = extractSign(expr);
@@ -228,13 +221,12 @@ Expr simplifySinh(Expr expr) {
     return simplifyNeg(simplifySinh(posExpr));
   }
 
-  return Sinh(expr);
+  return Sinh(expr, isSimplified: true);
 }
 
 /// Simplifies a hyperbolic cosine expression $\cosh(expr)$.
 Expr simplifyCosh(Expr expr) {
-  if (expr is RationalNumber && expr.isZero) return RationalNumber.one;
-  if (expr is RealNumber && expr.value == 0.0) return RationalNumber.one;
+  if (expr is Number && expr.isZero) return IntegerNumber.one;
 
   // Parity: cosh(-u) = cosh(u)
   final (posExpr, isNeg) = extractSign(expr);
@@ -242,13 +234,12 @@ Expr simplifyCosh(Expr expr) {
     return simplifyCosh(posExpr);
   }
 
-  return Cosh(expr);
+  return Cosh(expr, isSimplified: true);
 }
 
 /// Simplifies a hyperbolic tangent expression $\tanh(expr)$.
 Expr simplifyTanh(Expr expr) {
-  if (expr is RationalNumber && expr.isZero) return RationalNumber.zero;
-  if (expr is RealNumber && expr.value == 0.0) return RationalNumber.zero;
+  if (expr is Number && expr.isZero) return IntegerNumber.zero;
 
   // Parity: tanh(-u) = -tanh(u)
   final (posExpr, isNeg) = extractSign(expr);
@@ -256,13 +247,13 @@ Expr simplifyTanh(Expr expr) {
     return simplifyNeg(simplifyTanh(posExpr));
   }
 
-  return Tanh(expr);
+  return Tanh(expr, isSimplified: true);
 }
 
 /// Simplifies an absolute value expression $|expr|$.
 Expr simplifyAbs(Expr expr) {
   if (expr is RationalNumber) {
-    return expr.isNegative ? RationalNumber.fraction(-expr.toFraction()) : expr;
+    return expr.isNegative ? expr.neg() : expr;
   }
   if (expr is RealNumber) {
     return RealNumber(expr.value.abs());
@@ -271,8 +262,8 @@ Expr simplifyAbs(Expr expr) {
   // Idempotence: ||u|| = |u|
   if (expr is Abs) return expr;
 
-  // Exp is strictly positive for real inputs: |exp(u)| = exp(u)
-  if (expr is Exp) return expr;
+  // e^u is strictly positive for real inputs: |e^u| = e^u
+  if (expr is Pow && expr.base == Constant.e) return expr;
 
   // Parity: |-u| = |u|
   final (posExpr, isNeg) = extractSign(expr);
@@ -280,128 +271,71 @@ Expr simplifyAbs(Expr expr) {
     return simplifyAbs(posExpr);
   }
 
-  return Abs(expr);
+  return Abs(expr, isSimplified: true);
 }
 
-/// Simplifies an exponential expression $\exp(expr)$.
-Expr simplifyExp(Expr expr) {
-  if (expr case RationalNumber(isZero: true) || RealNumber(value: 0.0)) {
-    return RationalNumber.one;
-  }
-  if (expr case RationalNumber(isOne: true)) {
-    return ConstantNumber.e;
-  }
-  // e^(ln(u)) = u
-  if (expr is Ln) {
-    return expr.expr;
-  }
-  // e^(k * ln(u)) = u^k
-  if (expr is Mul) {
-    if (expr.left is Ln) {
-      return simplifyPow((expr.left as Ln).expr, expr.right);
-    }
-    if (expr.right is Ln) {
-      return simplifyPow((expr.right as Ln).expr, expr.left);
-    }
-  }
-  if (expr is Neg && expr.expr is Ln) {
-    return simplifyPow((expr.expr as Ln).expr, RationalNumber.negativeOne);
-  }
-  return Exp(expr);
-}
+/// Simplifies an exponential expression $e^{expr}$.
+Expr simplifyExp(Expr expr) => simplifyPow(Constant.e, expr);
 
 /// Simplifies a natural logarithm expression $\ln(expr)$.
 Expr simplifyLn(Expr expr) {
-  if (expr case ConstantNumber(name: 'e')) return RationalNumber.one;
-  if (expr case RationalNumber(:final isNegative, :final isZero)
-      when isNegative || isZero) {
+  if (expr == Constant.e) return IntegerNumber.one;
+  if (expr is RealNumeric && (expr.isNegative || expr.isZero)) {
     throw ArgumentError(
       'Natural logarithm domain error: non-positive argument',
     );
   }
-  if (expr case RealNumber(:final value) when value <= 0.0) {
-    throw ArgumentError(
-      'Natural logarithm domain error: non-positive argument',
-    );
+  if (expr is Number && expr.isOne) {
+    return IntegerNumber.zero;
   }
-  if (expr case RationalNumber(isOne: true) || RealNumber(value: 1.0)) {
-    return RationalNumber.zero;
-  }
-  // ln(exp(u)) = u
-  if (expr is Exp) return expr.expr;
 
-  // ln(u^k) = k * ln(u)
+  // ln(e^u) = u and ln(u^k) = k * ln(u)
   if (expr is Pow) {
-    return simplifyMul(expr.exponent, Ln(expr.base));
+    if (expr.base == Constant.e) return expr.exponent;
+    return simplifyMul([expr.exponent, Ln(expr.base, isSimplified: true)]);
   }
 
-  // ln(1 / u) = -ln(u)
-  if (expr case Div(left: RationalNumber(isOne: true), right: final right)) {
-    return simplifyNeg(simplifyLn(right));
-  }
-
-  return Ln(expr);
+  return Ln(expr, isSimplified: true);
 }
 
 /// Extracts the sign of [expr], returning the non-negative magnitude and sign flag.
 (Expr, bool) extractSign(Expr expr) {
-  if (expr is Neg) {
-    return (expr.expr, true);
+  if (expr is RealNumeric && expr.isNegative) {
+    return (expr.neg(), true);
   }
-  if (expr is RationalNumber && expr.isNegative) {
-    return (RationalNumber.fraction(-expr.toFraction()), true);
-  }
-  if (expr is RealNumber && expr.value < 0.0) {
-    return (RealNumber(-expr.value), true);
-  }
-  if (expr is Mul) {
-    if (expr.left is RationalNumber &&
-        (expr.left as RationalNumber).isNegative) {
-      final posLeft = RationalNumber.fraction(
-        -(expr.left as RationalNumber).toFraction(),
-      );
-      return (simplifyMul(posLeft, expr.right), true);
-    }
-    if (expr.right is RationalNumber &&
-        (expr.right as RationalNumber).isNegative) {
-      final posRight = RationalNumber.fraction(
-        -(expr.right as RationalNumber).toFraction(),
-      );
-      return (simplifyMul(expr.left, posRight), true);
+  if (expr is Mul && expr.factors.isNotEmpty) {
+    final first = expr.factors.first;
+    if (first is RealNumeric && first.isNegative) {
+      final posFirst = first.neg();
+      final rest = expr.factors.sublist(1);
+      if (posFirst.isOne) {
+        return (rest.length == 1 ? rest.first : simplifyMul(rest), true);
+      }
+      return (simplifyMul([posFirst, ...rest]), true);
     }
   }
   return (expr, false);
 }
 
 /// Matches if [expr] is a rational multiple of $\pi$.
-Fraction? matchPiMultiple(Expr expr) {
-  if (expr is ConstantNumber && expr.name == 'pi') {
-    return Fraction.one;
+RationalNumber? matchPiMultiple(Expr expr) {
+  if (expr == Constant.pi) {
+    return IntegerNumber.one;
   }
-  if (expr is Neg) {
-    final sub = matchPiMultiple(expr.expr);
-    return sub != null ? -sub : null;
-  }
-  if (expr is Mul) {
-    if (expr.left is ConstantNumber &&
-        (expr.left as ConstantNumber).name == 'pi') {
-      if (expr.right is RationalNumber) {
-        return (expr.right as RationalNumber).toFraction();
-      }
+  if (expr is Mul && expr.factors.length == 2) {
+    final f0 = expr.factors[0];
+    final f1 = expr.factors[1];
+    if (f0 is RationalNumber && f1 == Constant.pi) {
+      return f0;
     }
-    if (expr.right is ConstantNumber &&
-        (expr.right as ConstantNumber).name == 'pi') {
-      if (expr.left is RationalNumber) {
-        return (expr.left as RationalNumber).toFraction();
-      }
+    if (f0 == Constant.pi && f1 is RationalNumber) {
+      return f1;
     }
-  }
-  if (expr is Div) {
-    if (expr.left is ConstantNumber &&
-        (expr.left as ConstantNumber).name == 'pi') {
-      if (expr.right is RationalNumber) {
-        return Fraction.one / (expr.right as RationalNumber).toFraction();
-      }
+    if (f0 == Constant.pi &&
+        f1 is Pow &&
+        f1.base is IntegerNumber &&
+        f1.exponent == IntegerNumber.negativeOne) {
+      return RationalNumber.of(Integer.one, (f1.base as IntegerNumber).value);
     }
   }
   return null;
@@ -410,63 +344,70 @@ Fraction? matchPiMultiple(Expr expr) {
 /// Simplifies a Lambert W expression $W_b(expr)$.
 Expr simplifyLambertW(Expr expr, int branch) {
   if (branch == 0) {
-    if (expr case RationalNumber(isZero: true) || RealNumber(value: 0.0)) {
-      return RationalNumber.zero;
+    if (expr is Number && expr.isZero) {
+      return IntegerNumber.zero;
     }
-    if (expr == ConstantNumber.e) {
-      return RationalNumber.one;
+    if (expr == Constant.e) {
+      return IntegerNumber.one;
     }
   }
-  if (expr
-      case Div(
-            left: RationalNumber(isNegativeOne: true),
-            right: ConstantNumber.e,
-          ) ||
-          Neg(
-            expr: Div(
-              left: RationalNumber(isOne: true),
-              right: ConstantNumber.e,
-            ),
-          )) {
-    return RationalNumber.negativeOne;
+  // W(-1 / e) = -1
+  if (expr is Mul &&
+      expr.factors.length == 2 &&
+      expr.factors[0] == IntegerNumber.negativeOne &&
+      expr.factors[1] ==
+          Pow(Constant.e, IntegerNumber.negativeOne, isSimplified: true)) {
+    return IntegerNumber.negativeOne;
   }
-  return LambertW(expr, branch: branch);
+  return LambertW(expr, branch: branch, isSimplified: true);
 }
 
 /// Simplifies an error function expression $\operatorname{erf}(expr)$.
 Expr simplifyErf(Expr expr) {
-  if (expr case RationalNumber(isZero: true) || RealNumber(value: 0.0)) {
-    return RationalNumber.zero;
+  if (expr is Number && expr.isZero) {
+    return IntegerNumber.zero;
   }
   final (posExpr, isNeg) = extractSign(expr);
   if (isNeg) {
     return simplifyNeg(simplifyErf(posExpr));
   }
-  return Erf(expr);
+  if (expr == Constant.infinity) {
+    return IntegerNumber.one;
+  }
+  return Erf(expr, isSimplified: true);
 }
 
 /// Simplifies a complementary error function expression $\operatorname{erfc}(expr)$.
 Expr simplifyErfc(Expr expr) {
-  if (expr case RationalNumber(isZero: true) || RealNumber(value: 0.0)) {
-    return RationalNumber.one;
+  if (expr is Number && expr.isZero) {
+    return IntegerNumber.one;
   }
-  return Erfc(expr);
+  if (expr == Constant.infinity) {
+    return IntegerNumber.zero;
+  }
+  final (posExpr, isNeg) = extractSign(expr);
+  if (isNeg && posExpr == Constant.infinity) {
+    return IntegerNumber.two;
+  }
+  return Erfc(expr, isSimplified: true);
 }
 
 /// Simplifies an Euler gamma function expression $\Gamma(expr)$.
 Expr simplifyGamma(Expr expr) {
-  if (expr case RationalNumber(:final isInteger, :final numerator)
-      when isInteger && numerator > 0 && numerator <= 18) {
-    var fact = 1;
-    for (var k = 2; k < numerator; k++) {
-      fact *= k;
+  if (expr is IntegerNumber) {
+    final n = expr.asInt;
+    if (n != null && n > 0 && n <= 18) {
+      var fact = Integer.one;
+      for (var k = 2; k < n; k++) {
+        fact = fact * Integer(k);
+      }
+      return IntegerNumber(fact);
     }
-    return RationalNumber(fact);
   }
-  if (expr case RationalNumber(numerator: 1, denominator: 2)) {
-    return const Pow(ConstantNumber.pi, RationalNumber(1, 2));
+  if (expr == FractionNumber.half) {
+    return Pow(Constant.pi, FractionNumber.half, isSimplified: true);
   }
-  return Gamma(expr);
+  return Gamma(expr, isSimplified: true);
 }
 
 /// Simplifies an Euler beta function expression $\operatorname{B}(a, b)$.
@@ -474,76 +415,80 @@ Expr simplifyBeta(Expr a, Expr b) {
   if (compareStructural(a, b) > 0) {
     return simplifyBeta(b, a);
   }
-  if (a case RationalNumber(isInteger: true, numerator: final m) when m > 0) {
-    if (b case RationalNumber(isInteger: true, numerator: final n)
-        when n > 0 && m + n <= 18) {
-      var factM = 1;
-      for (var k = 2; k < m; k++) {
-        factM *= k;
+  if (a is IntegerNumber) {
+    final m = a.asInt;
+    if (m != null && m > 0) {
+      if (b is IntegerNumber) {
+        final n = b.asInt;
+        if (n != null && n > 0 && m + n <= 18) {
+          var factM = Integer.one;
+          for (var k = 2; k < m; k++) {
+            factM = factM * Integer(k);
+          }
+          var factN = Integer.one;
+          for (var k = 2; k < n; k++) {
+            factN = factN * Integer(k);
+          }
+          var factTotal = Integer.one;
+          for (var k = 2; k < m + n; k++) {
+            factTotal = factTotal * Integer(k);
+          }
+          return RationalNumber.of(factM * factN, factTotal);
+        }
       }
-      var factN = 1;
-      for (var k = 2; k < n; k++) {
-        factN *= k;
+      if (m == 1) {
+        return simplifyPow(b, IntegerNumber.negativeOne);
       }
-      var factTotal = 1;
-      for (var k = 2; k < m + n; k++) {
-        factTotal *= k;
-      }
-      final frac = Fraction(factM * factN, factTotal);
-      return RationalNumber(frac.numerator, frac.denominator);
-    }
-    if (m == 1) {
-      return simplifyDiv(RationalNumber.one, b);
     }
   }
-  if (b case RationalNumber(isInteger: true, numerator: 1)) {
-    return simplifyDiv(RationalNumber.one, a);
+  if (b == IntegerNumber.one) {
+    return simplifyPow(a, IntegerNumber.negativeOne);
   }
-  return Beta(a, b);
+  return Beta(a, b, isSimplified: true);
 }
 
 /// Simplifies an inverse hyperbolic sine expression $\operatorname{asinh}(expr)$.
 Expr simplifyAsinh(Expr expr) {
-  if (expr case RationalNumber(isZero: true) || RealNumber(value: 0.0)) {
-    return RationalNumber.zero;
+  if (expr is Number && expr.isZero) {
+    return IntegerNumber.zero;
   }
   if (expr is Sinh) return expr.expr;
   final (posExpr, isNeg) = extractSign(expr);
   if (isNeg) {
     return simplifyNeg(simplifyAsinh(posExpr));
   }
-  return Asinh(expr);
+  return Asinh(expr, isSimplified: true);
 }
 
 /// Simplifies an inverse hyperbolic cosine expression $\operatorname{acosh}(expr)$.
 Expr simplifyAcosh(Expr expr) {
-  if (expr case RationalNumber(isOne: true) || RealNumber(value: 1.0)) {
-    return RationalNumber.zero;
+  if (expr is Number && expr.isOne) {
+    return IntegerNumber.zero;
   }
   if (expr is Cosh) return expr.expr;
-  return Acosh(expr);
+  return Acosh(expr, isSimplified: true);
 }
 
 /// Simplifies an inverse hyperbolic tangent expression $\operatorname{atanh}(expr)$.
 Expr simplifyAtanh(Expr expr) {
-  if (expr case RationalNumber(isZero: true) || RealNumber(value: 0.0)) {
-    return RationalNumber.zero;
+  if (expr is Number && expr.isZero) {
+    return IntegerNumber.zero;
   }
   if (expr is Tanh) return expr.expr;
   final (posExpr, isNeg) = extractSign(expr);
   if (isNeg) {
     return simplifyNeg(simplifyAtanh(posExpr));
   }
-  return Atanh(expr);
+  return Atanh(expr, isSimplified: true);
 }
 
 /// Simplifies a relational expression.
 Expr simplifyRelational(RelationalExpr expr) {
   final left = expr.left.simplify();
   final right = expr.right.simplify();
-  if (left is Number && right is Number && left.isReal && right.isReal) {
-    final vL = left.toDouble();
-    final vR = right.toDouble();
+  final vL = realScalarValue(left);
+  final vR = realScalarValue(right);
+  if (vL != null && vR != null) {
     final matched = switch (expr) {
       LessThan() => vL < vR,
       LessEqual() => vL <= vR,
@@ -551,38 +496,46 @@ Expr simplifyRelational(RelationalExpr expr) {
       GreaterEqual() => vL >= vR,
       Equal() => vL == vR,
     };
-    return matched ? RationalNumber.one : RationalNumber.zero;
+    return matched ? IntegerNumber.one : IntegerNumber.zero;
   }
   return switch (expr) {
-    LessThan() => LessThan(left, right),
-    LessEqual() => LessEqual(left, right),
-    GreaterThan() => GreaterThan(left, right),
-    GreaterEqual() => GreaterEqual(left, right),
-    Equal() => Equal(left, right),
+    LessThan() => LessThan(left, right, isSimplified: true),
+    LessEqual() => LessEqual(left, right, isSimplified: true),
+    GreaterThan() => GreaterThan(left, right, isSimplified: true),
+    GreaterEqual() => GreaterEqual(left, right, isSimplified: true),
+    Equal() => Equal(left, right, isSimplified: true),
   };
 }
 
 /// Simplifies a piecewise expression.
 Expr simplifyPiecewise(Piecewise expr) {
-  final simplifiedBranches = <(Expr, Expr)>[];
+  final simplifiedBranches = <(RelationalExpr, Expr)>[];
   for (final (cond, branchExpr) in expr.branches) {
     final sCond = cond.simplify();
-    if (sCond case RationalNumber(isZero: true) || RealNumber(value: 0.0)) {
+    if (sCond is Number && sCond.isZero) {
       continue;
     }
     final sExpr = branchExpr.simplify();
-    if (sCond case RationalNumber(isOne: true) || RealNumber(value: 1.0)) {
+    if (sCond is Number && sCond.isOne) {
       if (simplifiedBranches.isEmpty) {
         return sExpr;
       }
-      simplifiedBranches.add((sCond, sExpr));
-      return Piecewise(simplifiedBranches);
+      return Piecewise(
+        simplifiedBranches,
+        otherwise: sExpr,
+        isSimplified: true,
+      );
     }
-    simplifiedBranches.add((sCond, sExpr));
+    final relCond = sCond is RelationalExpr ? sCond : cond;
+    simplifiedBranches.add((relCond, sExpr));
   }
   final sOtherwise = expr.otherwise?.simplify();
   if (simplifiedBranches.isEmpty) {
-    return sOtherwise ?? RationalNumber.zero;
+    return sOtherwise ?? IntegerNumber.zero;
   }
-  return Piecewise(simplifiedBranches, otherwise: sOtherwise);
+  return Piecewise(
+    simplifiedBranches,
+    otherwise: sOtherwise,
+    isSimplified: true,
+  );
 }

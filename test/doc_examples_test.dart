@@ -59,7 +59,7 @@ void main() {
 
     test('taylorSeries and matchLinear', () {
       const x = Variable('x');
-      final poly = const Exp(x).taylorSeries('x', order: 2);
+      final poly = Pow(Constant.e, x).taylorSeries('x', order: 2);
       check(poly.evaluate({'x': 0.0})).isCloseTo(1.0, 1e-6);
 
       final match = (x * 3 + 4).matchLinear('x');

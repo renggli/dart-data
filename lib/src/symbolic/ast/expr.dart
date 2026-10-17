@@ -1,145 +1,193 @@
 part of '../ast.dart';
 
-/// Mathematical constant $\pi \approx 3.141592653589793$ as a symbolic [Expr].
-const pi = ConstantNumber.pi;
-
-/// Mathematical constant $e \approx 2.718281828459045$ as a symbolic [Expr].
-const e = ConstantNumber.e;
-
-/// Imaginary unit constant $i = \sqrt{-1}$ as a symbolic [Expr].
-const i = ConstantNumber.i;
-
-/// Sealed base class representing an algebraic expression abstract syntax tree
-/// (AST) node.
+/// Top-level convenience constant for the imaginary unit $i = \sqrt{-1}$.
 ///
-/// In algebra and calculus, an expression combines constants, variables,
-/// operators, and mathematical functions (such as $2x + 1$ or $\sin(x)$).
-/// Expressions can be constructed and evaluated numerically for specific
-/// variable assignments, or manipulated symbolically for exact differentiation,
-/// indefinite integration, equation solving, simplification, and JIT
-/// compilation.
+/// Alias for [ComplexNumber.i].
 ///
 /// ```dart
-/// final x = Variable('x');
-/// final expr = x * x + x * 2 + 1;
-/// final val = expr.evaluate({'x': 3.0}); // 3^2 + 2(3) + 1 = 16.0
+/// final z = const Variable('x') + 2 * i;
 /// ```
+const i = ComplexNumber.i;
+
+/// Root of the symbolic expression Abstract Syntax Tree (AST).
+///
+/// All mathematical expressions are represented as immutable trees of [Expr]
+/// nodes. Expressions can be constructed programmatically using constructors
+/// and overloaded arithmetic operators (`+`, `-`, `*`, `/`, `pow`), or parsed
+/// from mathematical strings via [Expr.parse].
 sealed class Expr {
-  /// Abstract const constructor for expression nodes.
+  /// Base const constructor for all AST nodes.
   const new();
 
-  /// Parses a mathematical expression from [input] into an [Expr] tree.
+  /// Parses an algebraic expression from [input] string.
   ///
-  /// Supports numbers (integers, floating-point, scientific notation), mathematical
-  /// constants ([pi], [e], [i]), variables, basic arithmetic (`+`, `-`, `*`, `/`, `^`),
-  /// unary operators (`+`, `-`), functions ([Sin], [Cos], [Exp], [Ln], `log`, `sqrt`, `pow`, `root`),
-  /// and parentheses.
+  /// Throws a [FormatException] if [input] is not a valid mathematical expression.
+  factory parse(String input, {ExprSyntax? syntax}) =>
+      Parser.parse(input, syntax: syntax);
+
+  /// Attempts to parse an algebraic expression from [input], returning `null`
+  /// if parsing fails.
+  static Expr? tryParse(String input, {ExprSyntax? syntax}) =>
+      Parser.tryParse(input, syntax: syntax);
+
+  /// Whether this expression node is already in canonical simplified form.
+  bool get isSimplified => false;
+
+  /// Evaluates this expression to a `double` given variable bindings in [context].
   ///
-  /// Throws a [FormatException] if [input] cannot be parsed.
+  /// Throws an [ArgumentError] if any free variable in this expression is missing
+  /// from [context].
+  double evaluate([Map<String, double> context = const {}]);
+
+  /// Returns the set of all free variable names appearing in this expression.
   ///
-  /// ```dart
-  /// final f = Expr.parse('sin(pi * x) + 2 * x');
-  /// print(f.evaluate({'x': 0.5}));
-  /// ```
-  static Expr parse(String input) => parseExpression(input);
-
-  /// Tries to parse a mathematical expression from [input], returning `null` on
-  /// syntax error.
-  ///
-  /// ```dart
-  /// final expr = Expr.tryParse('2 * x + 1');
-  /// ```
-  static Expr? tryParse(String input) => tryParseExpression(input);
-
-  /// Whether this expression depends on [name].
-  bool dependsOn(String name);
-
-  /// Populates [target] with all unique variable names appearing in this expression.
-  void collectFreeVariables(Set<String> target);
-
-  /// All unique variable names appearing in this expression.
+  /// Accumulates variables in a single shared [Set] via [collectFreeVariables]
+  /// in $O(N)$ time without allocating intermediate sets at each interior node.
   Set<String> get freeVariables {
     final result = <String>{};
     collectFreeVariables(result);
     return result;
   }
 
-  ///Substitutes occurrences of [variable] with [replacement].
+  /// Accumulates all free variable names appearing in this subtree into [target].
+  void collectFreeVariables(Set<String> target);
+
+  /// Whether this expression contains [variable] as a free variable.
+  bool dependsOn(String variable);
+
+  /// Whether this expression is real-valued (contains no complex numbers with
+  /// non-zero imaginary parts).
+  bool get isReal =>
+      !anyNode((node) => node is ComplexNumber && !node.imaginary.isZero);
+
+  /// Returns a new expression with every occurrence of [variable] replaced by [replacement].
   Expr substitute(String variable, Expr replacement);
 
-  /// Applies [transform] to all direct child expressions of this node, returning
-  /// `this` when all children remain identical.
-  Expr mapChildren(Expr Function(Expr child) transform) => this;
+  /// Applies [transform] to all direct child [Expr] nodes of this expression,
+  /// returning a reconstructed node of the same type, or `this` for leaf nodes.
+  Expr mapChildren(Expr Function(Expr) transform);
 
-  /// Returns `true` if [predicate] holds for this expression or any of its
-  /// descendant expressions.
-  bool anyNode(bool Function(Expr node) predicate) => predicate(this);
+  /// Returns `true` if [predicate] holds for this node or any descendant node
+  /// in this expression subtree.
+  bool anyNode(bool Function(Expr) predicate);
 
-  /// Evaluates this expression using the variable values in [context].
-  double evaluate(Map<String, double> context);
-
-  /// Evaluates this expression using complex variable assignments in [context].
+  /// Symbolic addition: `this + other`.
   ///
-  /// Supports full complex evaluation across all arithmetic, power,
-  /// trigonometric, hyperbolic, exponential, logarithmic, and absolute value nodes.
+  /// Accepts an [Expr], `num` (`int` or `double`), [BigInt], [Integer],
+  /// [Complex], or `String` (variable name). Flattens unsimplified [Add]
+  /// operands in exact input order.
+  Expr operator +(Object other) {
+    final rhs = _wrap(other);
+    return Add([
+      if (this case Add(:final terms, isSimplified: false)) ...terms else this,
+      if (rhs case Add(:final terms, isSimplified: false)) ...terms else rhs,
+    ]);
+  }
+
+  /// Symbolic subtraction: `this - other`, represented as `this + (-other)`.
   ///
-  /// ```dart
-  /// final x = Variable('x');
-  /// final expr = x * x + 1;
-  /// final result = expr.evaluateComplex({'x': Complex(0, 1)}); // 0.0
-  /// ```
-  Complex evaluateComplex([Map<String, Complex> context = const {}]) =>
-      _evaluateComplex(this, context);
+  /// Accepts an [Expr], `num` (`int` or `double`), [BigInt], [Integer],
+  /// [Complex], or `String` (variable name).
+  Expr operator -(Object other) => this + (-_wrap(other));
 
-  /// Returns a copy of this expression with all asymptotic [OrderTerm] nodes removed.
+  /// Symbolic multiplication: `this * other`.
   ///
-  /// ```dart
-  /// final x = Variable('x');
-  /// final series = 1 + x + OrderTerm('x', 2);
-  /// final poly = series.removeOrder(); // 1 + x
-  /// ```
-  Expr removeOrder() => _removeOrder(this);
+  /// Accepts an [Expr], `num` (`int` or `double`), [BigInt], [Integer],
+  /// [Complex], or `String` (variable name). Flattens unsimplified [Mul]
+  /// operands in exact input order.
+  Expr operator *(Object other) {
+    final rhs = _wrap(other);
+    final isRhsUnaryNeg =
+        rhs is Mul &&
+        rhs.factors.length == 2 &&
+        rhs.factors.first == IntegerNumber.negativeOne;
+    return Mul([
+      if (this case Mul(:final factors, isSimplified: false))
+        ...factors
+      else
+        this,
+      if (rhs case Mul(:final factors, isSimplified: false) when !isRhsUnaryNeg)
+        ...factors
+      else
+        rhs,
+    ]);
+  }
 
-  /// Adds this expression to [other].
-  Expr operator +(Object other) => Add(this, _wrap(other));
+  /// Symbolic division: `this / other`.
+  ///
+  /// When both operands are exact [RationalNumber]s and the divisor is
+  /// non-zero, returns the reduced [RationalNumber] quotient directly;
+  /// otherwise returns `this * Pow(other, -1)`.
+  Expr operator /(Object other) {
+    final rhs = _wrap(other);
+    if (this is RationalNumber && rhs is RationalNumber && !rhs.isZero) {
+      return (this as RationalNumber).divRational(rhs);
+    }
+    return this * Pow(rhs, IntegerNumber.negativeOne);
+  }
 
-  /// Subtracts [other] from this expression.
-  Expr operator -(Object other) => Sub(this, _wrap(other));
+  /// Symbolic unary negation: `-this`.
+  Expr operator -() {
+    if (this is Number) {
+      return (this as Number).neg();
+    }
+    if (this case Mul(:final factors) when factors.isNotEmpty) {
+      if (factors.first case final Number n) {
+        final negFirst = n.neg();
+        if (negFirst.isOne) {
+          return factors.length == 2 ? factors[1] : Mul(factors.sublist(1));
+        }
+        return Mul([negFirst, ...factors.skip(1)]);
+      }
+      return Mul([IntegerNumber.negativeOne, ...factors]);
+    }
+    return Mul([IntegerNumber.negativeOne, this]);
+  }
 
-  /// Multiplies this expression by [other].
-  Expr operator *(Object other) => Mul(this, _wrap(other));
-
-  /// Divides this expression by [other].
-  Expr operator /(Object other) => Div(this, _wrap(other));
-
-  /// Negates this expression.
-  Expr operator -() => Neg(this);
-
-  /// Raises this expression to the power of [exponent].
+  /// Symbolic exponentiation: $\text{this}^{\text{exponent}}$.
+  ///
+  /// Accepts an [Expr], `num` (`int` or `double`), [BigInt], [Integer],
+  /// [Complex], or `String` (variable name).
   Expr pow(Object exponent) => Pow(this, _wrap(exponent));
 
   @override
   String toString() => formatExpr(this);
 
-  static Expr _wrap(Object value) {
-    if (value is Expr) return value;
-    if (value is int) return RationalNumber(value);
-    if (value is Fraction) return RationalNumber.fraction(value);
-    if (value is Complex) {
-      if (value.b == 0) return _wrap(value.a);
-      final imPart = value.b == 1
-          ? ConstantNumber.i
-          : value.b == -1
-          ? const Neg(ConstantNumber.i)
-          : Mul(_wrap(value.b), ConstantNumber.i);
-      if (value.a == 0) return imPart;
-      return Add(_wrap(value.a), imPart);
-    }
-    if (value is num) return RealNumber(value.toDouble());
-    throw ArgumentError.value(
+  static Expr _wrap(Object value) => switch (value) {
+    Expr() => value,
+    int() => IntegerNumber(Integer.from(value)),
+    BigInt() => IntegerNumber(Integer.big(value)),
+    double() => RealNumber.fromDouble(value),
+    Complex(:final a, :final b) => _wrapComplex(a, b),
+    String() => Variable(value),
+    _ => throw ArgumentError.value(
       value,
       'value',
-      'Cannot convert to symbolic Expr',
-    );
+      'Cannot convert to symbolic expression',
+    ),
+  };
+
+  static Expr _wrapComplex(num a, num b) {
+    final real = _wrapNum(a);
+    final imag = _wrapNum(b);
+    if (real is RealNumeric && imag is RealNumeric) {
+      return ComplexNumber.of(real, imag);
+    }
+    if (imag is Number && imag.isZero) {
+      return real;
+    }
+    return real + imag * ComplexNumber.i;
+  }
+
+  static Expr _wrapNum(num value) {
+    if (value is int) {
+      return IntegerNumber(Integer(value));
+    }
+    if (value == value.truncateToDouble() &&
+        value.isFinite &&
+        value.abs() < 9007199254740992.0) {
+      return IntegerNumber(Integer(value.toInt()));
+    }
+    return RealNumber.fromDouble(value.toDouble());
   }
 }

@@ -105,9 +105,9 @@ void Function(List<Float64List> inputs, Float64List output) buildTensorKernel(
           case Op.sqrt:
             stack[sp - 1] = math.sqrt(stack[sp - 1]);
           case Op.lambertW0:
-            stack[sp - 1] = evaluateLambertW(stack[sp - 1], 0);
+            stack[sp - 1] = evaluateLambertWReal(stack[sp - 1], branch: 0);
           case Op.lambertW1:
-            stack[sp - 1] = evaluateLambertW(stack[sp - 1], -1);
+            stack[sp - 1] = evaluateLambertWReal(stack[sp - 1], branch: -1);
           case Op.erf:
             stack[sp - 1] = special_erf.erf(stack[sp - 1]);
           case Op.erfc:
@@ -123,11 +123,22 @@ void Function(List<Float64List> inputs, Float64List output) buildTensorKernel(
             final a = stack[--sp];
             stack[sp++] = special_beta.beta(a, b);
           case Op.asinh:
-            stack[sp - 1] = evaluateRealAsinh(stack[sp - 1]);
+            final v = stack[sp - 1];
+            stack[sp - 1] = math.log(v + math.sqrt(v * v + 1.0));
           case Op.acosh:
-            stack[sp - 1] = evaluateRealAcosh(stack[sp - 1]);
+            final v = stack[sp - 1];
+            stack[sp - 1] = v < 1.0
+                ? double.nan
+                : math.log(v + math.sqrt(v - 1.0) * math.sqrt(v + 1.0));
           case Op.atanh:
-            stack[sp - 1] = evaluateRealAtanh(stack[sp - 1]);
+            final v = stack[sp - 1];
+            stack[sp - 1] = (v < -1.0 || v > 1.0)
+                ? double.nan
+                : (v == 1.0
+                      ? double.infinity
+                      : (v == -1.0
+                            ? double.negativeInfinity
+                            : 0.5 * math.log((1.0 + v) / (1.0 - v))));
           case Op.lt:
             final b = stack[--sp];
             final a = stack[--sp];
@@ -162,11 +173,17 @@ void flattenToRpn(
   List<Instruction> instructions,
 ) {
   switch (expr) {
-    case ConstantNumber(name: 'i'):
+    case Constant(isReal: false, :final name):
       throw UnsupportedError(
-        'compileTensorKernel does not support expressions with imaginary constant "i".',
+        'compileTensorKernel does not support expressions with imaginary constant "$name".',
       );
-    case Number():
+    case Constant(:final value):
+      instructions.add(Instruction.pushConst(value.a.toDouble()));
+    case ComplexNumber():
+      throw UnsupportedError(
+        'compileTensorKernel does not support complex numbers: $expr.',
+      );
+    case RealNumeric():
       instructions.add(Instruction.pushConst(expr.toDouble()));
     case Variable(:final name):
       final idx = varIndices[name];
@@ -174,45 +191,53 @@ void flattenToRpn(
         throw ArgumentError('Unbound variable: $name');
       }
       instructions.add(Instruction.loadVar(idx));
-    case Add(:final left, :final right):
-      flattenToRpn(left, varIndices, instructions);
-      flattenToRpn(right, varIndices, instructions);
-      instructions.add(const Instruction.op(Op.add));
-    case Sub(:final left, :final right):
-      flattenToRpn(left, varIndices, instructions);
-      flattenToRpn(right, varIndices, instructions);
-      instructions.add(const Instruction.op(Op.sub));
-    case Mul(:final left, :final right):
-      flattenToRpn(left, varIndices, instructions);
-      flattenToRpn(right, varIndices, instructions);
-      instructions.add(const Instruction.op(Op.mul));
-    case Div(:final left, :final right):
-      flattenToRpn(left, varIndices, instructions);
-      flattenToRpn(right, varIndices, instructions);
-      instructions.add(const Instruction.op(Op.div));
-    case Pow(
-      :final base,
-      exponent: RationalNumber(numerator: 1, denominator: 2) ||
-          RealNumber(value: 0.5),
-    ):
+    case Add(:final terms):
+      if (terms.isEmpty) {
+        instructions.add(const Instruction.pushConst(0.0));
+        return;
+      }
+      flattenToRpn(terms[0], varIndices, instructions);
+      for (var i = 1; i < terms.length; i++) {
+        flattenToRpn(terms[i], varIndices, instructions);
+        instructions.add(const Instruction.op(Op.add));
+      }
+    case Mul(:final factors):
+      if (factors.isEmpty) {
+        instructions.add(const Instruction.pushConst(1.0));
+        return;
+      }
+      if (factors.length == 2 && factors[0] == IntegerNumber.negativeOne) {
+        flattenToRpn(factors[1], varIndices, instructions);
+        instructions.add(const Instruction.op(Op.neg));
+        return;
+      }
+      flattenToRpn(factors[0], varIndices, instructions);
+      for (var i = 1; i < factors.length; i++) {
+        flattenToRpn(factors[i], varIndices, instructions);
+        instructions.add(const Instruction.op(Op.mul));
+      }
+    case Pow(base: Constant.e, :final exponent):
+      flattenToRpn(exponent, varIndices, instructions);
+      instructions.add(const Instruction.op(Op.exp));
+    case Pow(:final base, :final exponent)
+        when exponent == FractionNumber.half ||
+            exponent == const RealNumber(0.5):
       flattenToRpn(base, varIndices, instructions);
       instructions.add(const Instruction.op(Op.sqrt));
+    case Pow(:final base, exponent: IntegerNumber(isNegativeOne: true)):
+      instructions.add(const Instruction.pushConst(1.0));
+      flattenToRpn(base, varIndices, instructions);
+      instructions.add(const Instruction.op(Op.div));
     case Pow(:final base, :final exponent):
       flattenToRpn(base, varIndices, instructions);
       flattenToRpn(exponent, varIndices, instructions);
       instructions.add(const Instruction.op(Op.pow));
-    case Neg(:final expr):
-      flattenToRpn(expr, varIndices, instructions);
-      instructions.add(const Instruction.op(Op.neg));
     case Sin(:final expr):
       flattenToRpn(expr, varIndices, instructions);
       instructions.add(const Instruction.op(Op.sin));
     case Cos(:final expr):
       flattenToRpn(expr, varIndices, instructions);
       instructions.add(const Instruction.op(Op.cos));
-    case Exp(:final expr):
-      flattenToRpn(expr, varIndices, instructions);
-      instructions.add(const Instruction.op(Op.exp));
     case Ln(:final expr):
       flattenToRpn(expr, varIndices, instructions);
       instructions.add(const Instruction.op(Op.ln));

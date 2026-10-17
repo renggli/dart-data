@@ -1,216 +1,265 @@
 part of '../ast.dart';
 
-/// A trigonometric sine function expression node representing $\sin(expr)$.
-///
-/// ```dart
-/// final s = Sin(Variable('x'));
-/// ```
+/// Sine function node: $\sin(x)$.
 final class Sin extends UnaryExpr {
-  /// Creates a sine function node representing `sin([expr])`.
-  const new(super.expr);
+  /// Creates a sine node $\sin(\text{expr})$.
+  new(super.expr, {super.isSimplified = false});
 
   @override
-  Sin copyWith(Expr newExpr) => Sin(newExpr);
-
-  @override
-  double evaluate(Map<String, double> context) =>
+  double evaluate([Map<String, double> context = const {}]) =>
       math.sin(expr.evaluate(context));
+
+  @override
+  Expr substitute(String variable, Expr replacement) =>
+      Sin(expr.substitute(variable, replacement));
+
+  @override
+  Expr mapChildren(Expr Function(Expr) transform) => Sin(transform(expr));
 }
 
-/// A trigonometric cosine function expression node representing $\cos(expr)$.
-///
-/// ```dart
-/// final c = Cos(Variable('x'));
-/// ```
+/// Cosine function node: $\cos(x)$.
 final class Cos extends UnaryExpr {
-  /// Creates a cosine function node representing `cos([expr])`.
-  const new(super.expr);
+  /// Creates a cosine node $\cos(\text{expr})$.
+  new(super.expr, {super.isSimplified = false});
 
   @override
-  Cos copyWith(Expr newExpr) => Cos(newExpr);
-
-  @override
-  double evaluate(Map<String, double> context) =>
+  double evaluate([Map<String, double> context = const {}]) =>
       math.cos(expr.evaluate(context));
+
+  @override
+  Expr substitute(String variable, Expr replacement) =>
+      Cos(expr.substitute(variable, replacement));
+
+  @override
+  Expr mapChildren(Expr Function(Expr) transform) => Cos(transform(expr));
 }
 
-/// An exponential function expression node representing $e^{expr}$.
-///
-/// ```dart
-/// final exp = Exp(Variable('x'));
-/// ```
-final class Exp extends UnaryExpr {
-  /// Creates an exponential function node representing `exp([expr])`.
-  const new(super.expr);
-
-  @override
-  Exp copyWith(Expr newExpr) => Exp(newExpr);
-
-  @override
-  double evaluate(Map<String, double> context) =>
-      math.exp(expr.evaluate(context));
-}
-
-/// A natural logarithm function expression node representing $\ln(expr)$.
-///
-/// ```dart
-/// final l = Ln(Variable('x'));
-/// ```
-final class Ln extends UnaryExpr {
-  /// Creates a natural logarithm function node representing `ln([expr])`.
-  const new(super.expr);
-
-  @override
-  Ln copyWith(Expr newExpr) => Ln(newExpr);
-
-  @override
-  double evaluate(Map<String, double> context) =>
-      math.log(expr.evaluate(context));
-}
-
-/// A trigonometric tangent function expression node representing $\tan(expr)$.
-///
-/// ```dart
-/// final t = Tan(Variable('x'));
-/// ```
+/// Tangent function node: $\tan(x)$.
 final class Tan extends UnaryExpr {
-  /// Creates a tangent function node representing `tan([expr])`.
-  const new(super.expr);
+  /// Creates a tangent node $\tan(\text{expr})$.
+  new(super.expr, {super.isSimplified = false});
 
   @override
-  Tan copyWith(Expr newExpr) => Tan(newExpr);
-
-  @override
-  double evaluate(Map<String, double> context) =>
+  double evaluate([Map<String, double> context = const {}]) =>
       math.tan(expr.evaluate(context));
+
+  @override
+  Expr substitute(String variable, Expr replacement) =>
+      Tan(expr.substitute(variable, replacement));
+
+  @override
+  Expr mapChildren(Expr Function(Expr) transform) => Tan(transform(expr));
 }
 
-/// An inverse sine (arcsine) function expression node representing $\arcsin(expr)$.
-///
-/// ```dart
-/// final a = Asin(Variable('x'));
-/// ```
+/// Inverse sine (arcsine) function node: $\arcsin(x)$.
 final class Asin extends UnaryExpr {
-  /// Creates an inverse sine function node representing `asin([expr])`.
-  const new(super.expr);
+  /// Creates an arcsine node $\arcsin(\text{expr})$.
+  new(super.expr, {super.isSimplified = false});
 
   @override
-  Asin copyWith(Expr newExpr) => Asin(newExpr);
-
-  @override
-  double evaluate(Map<String, double> context) =>
+  double evaluate([Map<String, double> context = const {}]) =>
       math.asin(expr.evaluate(context));
+
+  @override
+  Expr substitute(String variable, Expr replacement) =>
+      Asin(expr.substitute(variable, replacement));
+
+  @override
+  Expr mapChildren(Expr Function(Expr) transform) => Asin(transform(expr));
 }
 
-/// An inverse cosine (arccosine) function expression node representing $\arccos(expr)$.
-///
-/// ```dart
-/// final a = Acos(Variable('x'));
-/// ```
+/// Inverse cosine (arccosine) function node: $\arccos(x)$.
 final class Acos extends UnaryExpr {
-  /// Creates an inverse cosine function node representing `acos([expr])`.
-  const new(super.expr);
+  /// Creates an arccosine node $\arccos(\text{expr})$.
+  new(super.expr, {super.isSimplified = false});
 
   @override
-  Acos copyWith(Expr newExpr) => Acos(newExpr);
-
-  @override
-  double evaluate(Map<String, double> context) =>
+  double evaluate([Map<String, double> context = const {}]) =>
       math.acos(expr.evaluate(context));
+
+  @override
+  Expr substitute(String variable, Expr replacement) =>
+      Acos(expr.substitute(variable, replacement));
+
+  @override
+  Expr mapChildren(Expr Function(Expr) transform) => Acos(transform(expr));
 }
 
-/// An inverse tangent (arctangent) function expression node representing $\arctan(expr)$.
-///
-/// ```dart
-/// final a = Atan(Variable('x'));
-/// ```
+/// Inverse tangent (arctangent) function node: $\arctan(x)$.
 final class Atan extends UnaryExpr {
-  /// Creates an inverse tangent function node representing `atan([expr])`.
-  const new(super.expr);
+  /// Creates an arctangent node $\arctan(\text{expr})$.
+  new(super.expr, {super.isSimplified = false});
 
   @override
-  Atan copyWith(Expr newExpr) => Atan(newExpr);
-
-  @override
-  double evaluate(Map<String, double> context) =>
+  double evaluate([Map<String, double> context = const {}]) =>
       math.atan(expr.evaluate(context));
+
+  @override
+  Expr substitute(String variable, Expr replacement) =>
+      Atan(expr.substitute(variable, replacement));
+
+  @override
+  Expr mapChildren(Expr Function(Expr) transform) => Atan(transform(expr));
 }
 
-/// A hyperbolic sine function expression node representing $\sinh(expr)$.
-///
-/// ```dart
-/// final s = Sinh(Variable('x'));
-/// ```
+/// Hyperbolic sine function node: $\sinh(x)$.
 final class Sinh extends UnaryExpr {
-  /// Creates a hyperbolic sine function node representing `sinh([expr])`.
-  const new(super.expr);
+  /// Creates a hyperbolic sine node $\sinh(\text{expr})$.
+  new(super.expr, {super.isSimplified = false});
 
   @override
-  Sinh copyWith(Expr newExpr) => Sinh(newExpr);
-
-  @override
-  double evaluate(Map<String, double> context) {
-    final v = expr.evaluate(context);
-    if (v.abs() < 1e-5) {
-      return v * (1.0 + v * v / 6.0);
-    }
-    return (math.exp(v) - math.exp(-v)) / 2.0;
+  double evaluate([Map<String, double> context = const {}]) {
+    final x = expr.evaluate(context);
+    return (math.exp(x) - math.exp(-x)) / 2.0;
   }
+
+  @override
+  Expr substitute(String variable, Expr replacement) =>
+      Sinh(expr.substitute(variable, replacement));
+
+  @override
+  Expr mapChildren(Expr Function(Expr) transform) => Sinh(transform(expr));
 }
 
-/// A hyperbolic cosine function expression node representing $\cosh(expr)$.
-///
-/// ```dart
-/// final c = Cosh(Variable('x'));
-/// ```
+/// Hyperbolic cosine function node: $\cosh(x)$.
 final class Cosh extends UnaryExpr {
-  /// Creates a hyperbolic cosine function node representing `cosh([expr])`.
-  const new(super.expr);
+  /// Creates a hyperbolic cosine node $\cosh(\text{expr})$.
+  new(super.expr, {super.isSimplified = false});
 
   @override
-  Cosh copyWith(Expr newExpr) => Cosh(newExpr);
-
-  @override
-  double evaluate(Map<String, double> context) {
-    final v = expr.evaluate(context);
-    return (math.exp(v) + math.exp(-v)) / 2.0;
+  double evaluate([Map<String, double> context = const {}]) {
+    final x = expr.evaluate(context);
+    return (math.exp(x) + math.exp(-x)) / 2.0;
   }
+
+  @override
+  Expr substitute(String variable, Expr replacement) =>
+      Cosh(expr.substitute(variable, replacement));
+
+  @override
+  Expr mapChildren(Expr Function(Expr) transform) => Cosh(transform(expr));
 }
 
-/// A hyperbolic tangent function expression node representing $\tanh(expr)$.
-///
-/// ```dart
-/// final t = Tanh(Variable('x'));
-/// ```
+/// Hyperbolic tangent function node: $\tanh(x)$.
 final class Tanh extends UnaryExpr {
-  /// Creates a hyperbolic tangent function node representing `tanh([expr])`.
-  const new(super.expr);
+  /// Creates a hyperbolic tangent node $\tanh(\text{expr})$.
+  new(super.expr, {super.isSimplified = false});
 
   @override
-  Tanh copyWith(Expr newExpr) => Tanh(newExpr);
-
-  @override
-  double evaluate(Map<String, double> context) {
-    final v = expr.evaluate(context);
-    if (v > 20.0) return 1.0;
-    if (v < -20.0) return -1.0;
-    final e2 = math.exp(2.0 * v);
-    return (e2 - 1.0) / (e2 + 1.0);
+  double evaluate([Map<String, double> context = const {}]) {
+    final x = expr.evaluate(context);
+    if (x > 20.0) return 1.0;
+    if (x < -20.0) return -1.0;
+    final e2x = math.exp(2.0 * x);
+    return (e2x - 1.0) / (e2x + 1.0);
   }
+
+  @override
+  Expr substitute(String variable, Expr replacement) =>
+      Tanh(expr.substitute(variable, replacement));
+
+  @override
+  Expr mapChildren(Expr Function(Expr) transform) => Tanh(transform(expr));
 }
 
-/// An absolute value function expression node representing $|expr|$.
-///
-/// ```dart
-/// final a = Abs(Variable('x'));
-/// ```
+/// Inverse hyperbolic sine function node: $\operatorname{asinh}(x) = \ln(x + \sqrt{x^2 + 1})$.
+final class Asinh extends UnaryExpr {
+  /// Creates an inverse hyperbolic sine node $\operatorname{asinh}(\text{expr})$.
+  new(super.expr, {super.isSimplified = false});
+
+  @override
+  double evaluate([Map<String, double> context = const {}]) {
+    final x = expr.evaluate(context);
+    if (x.isNaN) return double.nan;
+    if (x.isInfinite) return x;
+    final absX = x.abs();
+    final val = absX > 1e8
+        ? math.log(absX) + math.ln2
+        : math.log(absX + math.sqrt(absX * absX + 1.0));
+    return x < 0 ? -val : val;
+  }
+
+  @override
+  Expr substitute(String variable, Expr replacement) =>
+      Asinh(expr.substitute(variable, replacement));
+
+  @override
+  Expr mapChildren(Expr Function(Expr) transform) => Asinh(transform(expr));
+}
+
+/// Inverse hyperbolic cosine function node: $\operatorname{acosh}(x) = \ln(x + \sqrt{x^2 - 1})$.
+final class Acosh extends UnaryExpr {
+  /// Creates an inverse hyperbolic cosine node $\operatorname{acosh}(\text{expr})$.
+  new(super.expr, {super.isSimplified = false});
+
+  @override
+  double evaluate([Map<String, double> context = const {}]) {
+    final x = expr.evaluate(context);
+    if (x < 1.0) return double.nan;
+    if (x > 1e8) return math.log(x) + math.ln2;
+    return math.log(x + math.sqrt(x * x - 1.0));
+  }
+
+  @override
+  Expr substitute(String variable, Expr replacement) =>
+      Acosh(expr.substitute(variable, replacement));
+
+  @override
+  Expr mapChildren(Expr Function(Expr) transform) => Acosh(transform(expr));
+}
+
+/// Inverse hyperbolic tangent function node: $\operatorname{atanh}(x) = \frac{1}{2}\ln\left(\frac{1+x}{1-x}\right)$.
+final class Atanh extends UnaryExpr {
+  /// Creates an inverse hyperbolic tangent node $\operatorname{atanh}(\text{expr})$.
+  new(super.expr, {super.isSimplified = false});
+
+  @override
+  double evaluate([Map<String, double> context = const {}]) {
+    final x = expr.evaluate(context);
+    if (x < -1.0 || x > 1.0) return double.nan;
+    if (x == 1.0) return double.infinity;
+    if (x == -1.0) return double.negativeInfinity;
+    return 0.5 * math.log((1.0 + x) / (1.0 - x));
+  }
+
+  @override
+  Expr substitute(String variable, Expr replacement) =>
+      Atanh(expr.substitute(variable, replacement));
+
+  @override
+  Expr mapChildren(Expr Function(Expr) transform) => Atanh(transform(expr));
+}
+
+/// Absolute value function node: $|x|$.
 final class Abs extends UnaryExpr {
-  /// Creates an absolute value function node representing `|expr|`.
-  const new(super.expr);
+  /// Creates an absolute value node $|\text{expr}|$.
+  new(super.expr, {super.isSimplified = false});
 
   @override
-  Abs copyWith(Expr newExpr) => Abs(newExpr);
+  double evaluate([Map<String, double> context = const {}]) =>
+      expr.evaluate(context).abs();
 
   @override
-  double evaluate(Map<String, double> context) => expr.evaluate(context).abs();
+  Expr substitute(String variable, Expr replacement) =>
+      Abs(expr.substitute(variable, replacement));
+
+  @override
+  Expr mapChildren(Expr Function(Expr) transform) => Abs(transform(expr));
+}
+
+/// Natural logarithm function node: $\ln(x)$.
+final class Ln extends UnaryExpr {
+  /// Creates a natural logarithm node $\ln(\text{expr})$.
+  new(super.expr, {super.isSimplified = false});
+
+  @override
+  double evaluate([Map<String, double> context = const {}]) =>
+      math.log(expr.evaluate(context));
+
+  @override
+  Expr substitute(String variable, Expr replacement) =>
+      Ln(expr.substitute(variable, replacement));
+
+  @override
+  Expr mapChildren(Expr Function(Expr) transform) => Ln(transform(expr));
 }

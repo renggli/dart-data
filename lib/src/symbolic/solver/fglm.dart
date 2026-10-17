@@ -1,5 +1,4 @@
-import 'package:more/number.dart' show Fraction;
-
+import '../ast.dart';
 import 'multivariate_polynomial.dart';
 
 /// FGLM algorithm engine for Gröbner basis order conversion from `grevlex` to `lex`.
@@ -18,7 +17,9 @@ class FglmEngine {
       (g) => g.leadingMonomial(MonomialOrder.grevlex).isZero,
     )) {
       return [
-        MultivariatePolynomial(variables, {Monomial.zero(n): Fraction.one}),
+        MultivariatePolynomial(variables, {
+          Monomial.zero(n): IntegerNumber.one,
+        }),
       ];
     }
 
@@ -46,7 +47,7 @@ class FglmEngine {
     // 2. FGLM main loop: search for linear relations in lex order
     final lexBasis = <MultivariatePolynomial>[];
     final bLex = <Monomial>[];
-    final vLex = <List<Fraction>>[]; // Coordinate vectors for bLex
+    final vLex = <List<RationalNumber>>[]; // Coordinate vectors for bLex
     final candidateQueue = <Monomial>[Monomial.zero(n)];
 
     while (candidateQueue.isNotEmpty) {
@@ -60,24 +61,24 @@ class FglmEngine {
 
       // Compute normal form of m with respect to G_grevlex
       final nfPoly = MultivariatePolynomial(variables, {
-        m: Fraction.one,
+        m: IntegerNumber.one,
       }).reduce(grevlexBasis, order: MonomialOrder.grevlex);
 
       // Coordinate vector in standardMonomials basis
-      final coord = List<Fraction>.generate(
+      final coord = List<RationalNumber>.generate(
         bSize,
-        (idx) => nfPoly.terms[standardMonomials[idx]] ?? Fraction.zero,
+        (idx) => nfPoly.terms[standardMonomials[idx]] ?? IntegerNumber.zero,
       );
 
       // Test linear dependence of coord against vLex
       final relation = _findLinearRelation(vLex, coord);
       if (relation != null) {
         // Linearly dependent: m - sum(c_k * bLex[k]) = 0
-        final terms = <Monomial, Fraction>{m: Fraction.one};
+        final terms = <Monomial, RationalNumber>{m: IntegerNumber.one};
         for (var k = 0; k < relation.length; k++) {
           final c = relation[k];
-          if (c != Fraction.zero) {
-            terms[bLex[k]] = -c;
+          if (!c.isZero) {
+            terms[bLex[k]] = c.neg();
           }
         }
         final newPoly = MultivariatePolynomial(
@@ -147,22 +148,24 @@ class FglmEngine {
   }
 
   /// Solves vLex * c = target. Returns c if solvable, null if independent.
-  static List<Fraction>? _findLinearRelation(
-    List<List<Fraction>> vLex,
-    List<Fraction> target,
+  static List<RationalNumber>? _findLinearRelation(
+    List<List<RationalNumber>> vLex,
+    List<RationalNumber> target,
   ) {
     final k = vLex.length;
     if (k == 0) {
-      final isZero = target.every((f) => f == Fraction.zero);
+      final isZero = target.every((f) => f.isZero);
       return isZero ? const [] : null;
     }
     final d = target.length;
 
     // Augmented matrix of size d x (k + 1)
-    final matrix = List<List<Fraction>>.generate(
+    final matrix = List<List<RationalNumber>>.generate(
       d,
-      (r) =>
-          List<Fraction>.generate(k + 1, (c) => c < k ? vLex[c][r] : target[r]),
+      (r) => List<RationalNumber>.generate(
+        k + 1,
+        (c) => c < k ? vLex[c][r] : target[r],
+      ),
     );
 
     // Gaussian elimination with partial pivoting
@@ -170,7 +173,7 @@ class FglmEngine {
     for (var r = 0; r < d; r++) {
       if (lead >= k + 1) break;
       var i = r;
-      while (matrix[i][lead] == Fraction.zero) {
+      while (matrix[i][lead].isZero) {
         i++;
         if (i == d) {
           i = r;
@@ -187,15 +190,17 @@ class FglmEngine {
 
       final pivot = matrix[r][lead];
       for (var col = 0; col < k + 1; col++) {
-        matrix[r][col] = matrix[r][col] / pivot;
+        matrix[r][col] = matrix[r][col].divRational(pivot);
       }
 
       for (var row = 0; row < d; row++) {
         if (row != r) {
           final factor = matrix[row][lead];
-          if (factor != Fraction.zero) {
+          if (!factor.isZero) {
             for (var col = 0; col < k + 1; col++) {
-              matrix[row][col] = matrix[row][col] - factor * matrix[r][col];
+              matrix[row][col] = matrix[row][col].subRational(
+                factor.mulRational(matrix[r][col]),
+              );
             }
           }
         }
@@ -207,25 +212,25 @@ class FglmEngine {
     for (var r = 0; r < d; r++) {
       var allZero = true;
       for (var c = 0; c < k; c++) {
-        if (matrix[r][c] != Fraction.zero) {
+        if (!matrix[r][c].isZero) {
           allZero = false;
           break;
         }
       }
-      if (allZero && matrix[r][k] != Fraction.zero) {
+      if (allZero && !matrix[r][k].isZero) {
         return null; // Linearly independent
       }
     }
 
     // Extract solution c
-    final solution = List<Fraction>.filled(k, Fraction.zero);
+    final solution = List<RationalNumber>.filled(k, IntegerNumber.zero);
     for (var col = 0; col < k; col++) {
       var pivotRow = -1;
       for (var r = 0; r < d; r++) {
-        if (matrix[r][col] == Fraction.one) {
+        if (matrix[r][col].isOne) {
           var isLead = true;
           for (var c = 0; c < col; c++) {
-            if (matrix[r][c] != Fraction.zero) {
+            if (!matrix[r][c].isZero) {
               isLead = false;
               break;
             }

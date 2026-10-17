@@ -137,7 +137,7 @@ abstract class Polynomial<T> {
           factorial *= k;
         }
         final valExpr = currentDeriv
-            .substitute(variable, RationalNumber.zero)
+            .substitute(variable, IntegerNumber.zero)
             .simplify();
         final val = valExpr is Number
             ? valExpr.toDouble()
@@ -162,7 +162,7 @@ abstract class Polynomial<T> {
           factorial *= k;
         }
         final valExpr = currentDeriv
-            .substitute(variable, RationalNumber.fromDouble(around))
+            .substitute(variable, RealNumber(around).rationalize())
             .simplify();
         final val = valExpr is Number
             ? valExpr.toDouble()

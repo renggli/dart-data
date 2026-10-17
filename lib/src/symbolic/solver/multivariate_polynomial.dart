@@ -1,7 +1,5 @@
 import 'dart:math' as math;
 
-import 'package:more/number.dart' show Fraction;
-
 import '../algebra/expand.dart';
 import '../algebra/factor/multivariate.dart';
 import '../algebra/simplify.dart';
@@ -135,7 +133,7 @@ enum MonomialOrder {
 
 /// Represents a polynomial in multiple variables with exact rational coefficients.
 class MultivariatePolynomial {
-  new(this.variables, Map<Monomial, Fraction> terms, {int? sugar})
+  new(this.variables, Map<Monomial, RationalNumber> terms, {int? sugar})
     : terms = _cleanTerms(terms),
       sugar = sugar ?? _calcInitialSugar(terms) {
     if (this.terms.isNotEmpty) {
@@ -151,7 +149,7 @@ class MultivariatePolynomial {
       MultivariatePolynomial(variables, const {});
 
   final List<String> variables;
-  final Map<Monomial, Fraction> terms;
+  final Map<Monomial, RationalNumber> terms;
   final int sugar;
 
   bool get isZero => terms.isEmpty;
@@ -172,33 +170,37 @@ class MultivariatePolynomial {
     return lead!;
   }
 
-  Fraction leadingCoefficient([MonomialOrder order = MonomialOrder.grevlex]) {
-    if (terms.isEmpty) return Fraction.zero;
+  RationalNumber leadingCoefficient([
+    MonomialOrder order = MonomialOrder.grevlex,
+  ]) {
+    if (terms.isEmpty) return IntegerNumber.zero;
     final lm = leadingMonomial(order);
     return terms[lm]!;
   }
 
-  (Monomial, Fraction) leadingTerm([
+  (Monomial, RationalNumber) leadingTerm([
     MonomialOrder order = MonomialOrder.grevlex,
   ]) {
     final lm = leadingMonomial(order);
-    return (lm, terms[lm] ?? Fraction.zero);
+    return (lm, terms[lm] ?? IntegerNumber.zero);
   }
 
-  static Map<Monomial, Fraction> _cleanTerms(Map<Monomial, Fraction> map) {
-    final res = <Monomial, Fraction>{};
+  static Map<Monomial, RationalNumber> _cleanTerms(
+    Map<Monomial, RationalNumber> map,
+  ) {
+    final res = <Monomial, RationalNumber>{};
     for (final entry in map.entries) {
-      if (entry.value != Fraction.zero) {
+      if (!entry.value.isZero) {
         res[entry.key] = entry.value;
       }
     }
     return Map.unmodifiable(res);
   }
 
-  static int _calcInitialSugar(Map<Monomial, Fraction> terms) {
+  static int _calcInitialSugar(Map<Monomial, RationalNumber> terms) {
     var maxDeg = 0;
     for (final m in terms.keys) {
-      if (terms[m] != Fraction.zero && m.totalDegree > maxDeg) {
+      if (!terms[m]!.isZero && m.totalDegree > maxDeg) {
         maxDeg = m.totalDegree;
       }
     }
@@ -207,11 +209,11 @@ class MultivariatePolynomial {
 
   MultivariatePolynomial operator +(MultivariatePolynomial other) {
     assert(_listEquals(variables, other.variables));
-    final newTerms = Map<Monomial, Fraction>.of(terms);
+    final newTerms = Map<Monomial, RationalNumber>.of(terms);
     for (final entry in other.terms.entries) {
-      final cur = newTerms[entry.key] ?? Fraction.zero;
-      final sum = cur + entry.value;
-      if (sum == Fraction.zero) {
+      final cur = newTerms[entry.key] ?? IntegerNumber.zero;
+      final sum = cur.addRational(entry.value);
+      if (sum.isZero) {
         newTerms.remove(entry.key);
       } else {
         newTerms[entry.key] = sum;
@@ -226,11 +228,11 @@ class MultivariatePolynomial {
 
   MultivariatePolynomial operator -(MultivariatePolynomial other) {
     assert(_listEquals(variables, other.variables));
-    final newTerms = Map<Monomial, Fraction>.of(terms);
+    final newTerms = Map<Monomial, RationalNumber>.of(terms);
     for (final entry in other.terms.entries) {
-      final cur = newTerms[entry.key] ?? Fraction.zero;
-      final diff = cur - entry.value;
-      if (diff == Fraction.zero) {
+      final cur = newTerms[entry.key] ?? IntegerNumber.zero;
+      final diff = cur.subRational(entry.value);
+      if (diff.isZero) {
         newTerms.remove(entry.key);
       } else {
         newTerms[entry.key] = diff;
@@ -243,13 +245,13 @@ class MultivariatePolynomial {
     );
   }
 
-  MultivariatePolynomial scale(Fraction scalar, {int? newSugar}) {
-    if (scalar == Fraction.zero || terms.isEmpty) {
+  MultivariatePolynomial scale(RationalNumber scalar, {int? newSugar}) {
+    if (scalar.isZero || terms.isEmpty) {
       return MultivariatePolynomial.zero(variables);
     }
-    final newTerms = <Monomial, Fraction>{};
+    final newTerms = <Monomial, RationalNumber>{};
     for (final entry in terms.entries) {
-      newTerms[entry.key] = entry.value * scalar;
+      newTerms[entry.key] = entry.value.mulRational(scalar);
     }
     return MultivariatePolynomial(
       variables,
@@ -260,16 +262,16 @@ class MultivariatePolynomial {
 
   MultivariatePolynomial multiplyMonomial(
     Monomial monomial,
-    Fraction coeff, {
+    RationalNumber coeff, {
     int? newSugar,
   }) {
-    if (coeff == Fraction.zero || terms.isEmpty) {
+    if (coeff.isZero || terms.isEmpty) {
       return MultivariatePolynomial.zero(variables);
     }
-    final newTerms = <Monomial, Fraction>{};
+    final newTerms = <Monomial, RationalNumber>{};
     for (final entry in terms.entries) {
       final newM = entry.key * monomial;
-      newTerms[newM] = entry.value * coeff;
+      newTerms[newM] = entry.value.mulRational(coeff);
     }
     return MultivariatePolynomial(
       variables,
@@ -283,12 +285,14 @@ class MultivariatePolynomial {
     if (isZero || other.isZero) {
       return MultivariatePolynomial.zero(variables);
     }
-    final newTerms = <Monomial, Fraction>{};
+    final newTerms = <Monomial, RationalNumber>{};
     for (final e1 in terms.entries) {
       for (final e2 in other.terms.entries) {
         final m = e1.key * e2.key;
-        final c = (newTerms[m] ?? Fraction.zero) + (e1.value * e2.value);
-        if (c == Fraction.zero) {
+        final c = (newTerms[m] ?? IntegerNumber.zero).addRational(
+          e1.value.mulRational(e2.value),
+        );
+        if (c.isZero) {
           newTerms.remove(m);
         } else {
           newTerms[m] = c;
@@ -305,8 +309,8 @@ class MultivariatePolynomial {
   MultivariatePolynomial monic([MonomialOrder order = MonomialOrder.grevlex]) {
     if (isZero) return this;
     final lc = leadingCoefficient(order);
-    if (lc == Fraction.one) return this;
-    return scale(Fraction.one / lc, newSugar: sugar);
+    if (lc.isOne) return this;
+    return scale(lc.reciprocal(), newSugar: sugar);
   }
 
   /// Reduces this polynomial against a collection of [divisors].
@@ -319,7 +323,7 @@ class MultivariatePolynomial {
     if (nonZeroDivisors.isEmpty) return this;
 
     var p = this;
-    final remainderTerms = <Monomial, Fraction>{};
+    final remainderTerms = <Monomial, RationalNumber>{};
     var currentSugar = sugar;
 
     while (!p.isZero) {
@@ -329,7 +333,7 @@ class MultivariatePolynomial {
         final (lmG, lcG) = g.leadingTerm(order);
         if (lmG.divides(lmP)) {
           final quotM = lmP.divide(lmG);
-          final quotC = lcP / lcG;
+          final quotC = lcP.divRational(lcG);
           final step = g.multiplyMonomial(quotM, quotC);
           p = p - step;
           currentSugar = math.max(currentSugar, g.sugar + quotM.totalDegree);
@@ -339,7 +343,7 @@ class MultivariatePolynomial {
       }
       if (!reduced) {
         remainderTerms[lmP] = lcP;
-        final remP = Map<Monomial, Fraction>.of(p.terms)..remove(lmP);
+        final remP = Map<Monomial, RationalNumber>.of(p.terms)..remove(lmP);
         p = MultivariatePolynomial(variables, remP, sugar: currentSugar);
       }
     }
@@ -364,8 +368,8 @@ class MultivariatePolynomial {
     final u = m.divide(lmF);
     final v = m.divide(lmG);
 
-    final termF = f.multiplyMonomial(u, Fraction.one / lcF);
-    final termG = g.multiplyMonomial(v, Fraction.one / lcG);
+    final termF = f.multiplyMonomial(u, lcF.reciprocal());
+    final termG = g.multiplyMonomial(v, lcG.reciprocal());
     final sSugar = math.max(f.sugar + u.totalDegree, g.sugar + v.totalDegree);
 
     final sPoly = termF - termG;
@@ -378,9 +382,15 @@ class MultivariatePolynomial {
     final termsList = <Expr>[];
     collectAdditiveTerms(expanded, 1, termsList);
 
-    final termMap = <Monomial, Fraction>{};
+    final termMap = <Monomial, RationalNumber>{};
     for (final t in termsList) {
       final (coeff, base) = decomposeTerm(t);
+      if (coeff is! RationalNumber) {
+        throw ArgumentError(
+          'Expression "$expr" is not a polynomial with rational coefficients '
+          'in $variables (non-rational coefficient: $coeff)',
+        );
+      }
       final powers = <String, int>{};
       final residuals = <Expr>[];
       collectVariablePowers(base, powers, residuals);
@@ -402,9 +412,9 @@ class MultivariatePolynomial {
         expList[idx] = e.value;
       }
       final mon = Monomial(expList);
-      final prev = termMap[mon] ?? Fraction.zero;
-      final sum = prev + coeff;
-      if (sum == Fraction.zero) {
+      final prev = termMap[mon] ?? IntegerNumber.zero;
+      final sum = prev.addRational(coeff);
+      if (sum.isZero) {
         termMap.remove(mon);
       } else {
         termMap[mon] = sum;
@@ -416,29 +426,35 @@ class MultivariatePolynomial {
 
   /// Converts this multivariate polynomial back into a symbolic [Expr].
   Expr toExpr() {
-    if (isZero) return RationalNumber.zero;
+    if (isZero) return IntegerNumber.zero;
     final sortedMonomials = terms.keys.toList()
-      ..sort((a, b) => MonomialOrder.grevlex.compare(b, a));
+      ..sort((a, b) => MonomialOrder.grevlex.compare(a, b));
 
-    Expr? result;
+    final termExprs = <Expr>[];
     for (final m in sortedMonomials) {
       final coeff = terms[m]!;
-      Expr termExpr = RationalNumber.fraction(coeff);
+      final factors = <Expr>[];
+      if (!coeff.isOne || m.isZero) {
+        factors.add(coeff);
+      }
       for (var i = 0; i < variables.length; i++) {
         final power = m.exponents[i];
         if (power > 0) {
           final varExpr = Variable(variables[i]);
           final factor = power == 1
               ? varExpr
-              : Pow(varExpr, RationalNumber(power));
-          termExpr = termExpr is RationalNumber && termExpr.isOne
-              ? factor
-              : Mul(termExpr, factor);
+              : Pow(varExpr, IntegerNumber.of(power));
+          factors.add(factor);
         }
       }
-      result = result == null ? termExpr : Add(result, termExpr);
+      final termExpr = factors.length == 1
+          ? factors.first
+          : Mul(factors).simplify();
+      termExprs.add(termExpr);
     }
-    return result?.simplify() ?? RationalNumber.zero;
+    if (termExprs.isEmpty) return IntegerNumber.zero;
+    if (termExprs.length == 1) return termExprs.first;
+    return Add(termExprs).simplify();
   }
 
   @override
@@ -468,7 +484,10 @@ bool _listEquals<T>(List<T> a, List<T> b) {
   return true;
 }
 
-bool _mapsEqual(Map<Monomial, Fraction> a, Map<Monomial, Fraction> b) {
+bool _mapsEqual(
+  Map<Monomial, RationalNumber> a,
+  Map<Monomial, RationalNumber> b,
+) {
   if (a.length != b.length) return false;
   for (final entry in a.entries) {
     if (b[entry.key] != entry.value) return false;

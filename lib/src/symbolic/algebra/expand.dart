@@ -1,8 +1,5 @@
-import 'package:more/number.dart' show Fraction;
-
 import '../ast.dart';
 import 'simplify.dart';
-import 'structural_order.dart';
 import 'term_accumulator.dart';
 
 /// Algebraic expansion extension on [Expr].
@@ -10,25 +7,22 @@ extension ExpandExtension on Expr {
   /// Expands multiplications over additions and integer powers of sums.
   ///
   /// Conceptually, this distributes products such as $(A + B)(C + D) \to AC + AD + BC + BD$,
-  /// expands integer powers of sums such as $(x + y)^2 \to x^2 + 2xy + y^2$, and
+  /// expands integer powers of sums such as $(x + y)^2 \to 1 \cdot x^2 + 2xy + y^2$, and
   /// recursively expands sub-expressions within mathematical functions such as
-  /// $\sin((x + 1)^2) \to \sin(x^2 + 2x + 1)$. Formally, this applies the distributive
+  /// $\sin((x + 1)^2) \to \sin(1 + 2x + x^2)$. Formally, this applies the distributive
   /// property of the commutative ring of algebraic expressions.
   ///
   /// ```dart
   /// final x = Variable('x');
   /// final expr = (x - 2) * (x - 3);
-  /// final expanded = expr.expand(); // x^2 - 5 * x + 6
+  /// final expanded = expr.expand(); // 6 - 5 * x + x^2
   /// ```
   Expr expand() => _expand(this);
 }
 
 Expr _expand(Expr expr) => switch (expr) {
-  Neg(:final expr) => _expandNeg(_expand(expr)),
-  Add(:final left, :final right) => _expandAdd(_expand(left), _expand(right)),
-  Sub(:final left, :final right) => _expandSub(_expand(left), _expand(right)),
-  Mul(:final left, :final right) => _expandMul(_expand(left), _expand(right)),
-  Div(:final left, :final right) => _expandDiv(_expand(left), _expand(right)),
+  Add(:final terms) => _expandAdd(terms),
+  Mul(:final factors) => _expandMul(factors),
   Pow(:final base, :final exponent) => _expandPow(
     _expand(base),
     _expand(exponent),
@@ -36,244 +30,210 @@ Expr _expand(Expr expr) => switch (expr) {
   _ => expr.mapChildren(_expand),
 };
 
-Expr _expandNeg(Expr inner) {
+Expr _expandAdd(List<Expr> terms) {
   final acc = MonomialAccumulator();
-  acc.add(inner, -Fraction.one);
+  for (final term in terms) {
+    acc.add(_expand(term));
+  }
   acc.reduceIdentities();
   return acc.build();
 }
 
-Expr _expandAdd(Expr left, Expr right) {
-  final acc = MonomialAccumulator();
-  acc.add(left);
-  acc.add(right);
-  acc.reduceIdentities();
-  return acc.build();
+Expr _expandMul(List<Expr> factors) {
+  if (factors.isEmpty) return IntegerNumber.one;
+  var current = _expand(factors.first);
+  for (var i = 1; i < factors.length; i++) {
+    final next = _expand(factors[i]);
+    current = _expandMulPair(current, next);
+  }
+  return current;
 }
 
-Expr _expandSub(Expr left, Expr right) {
-  final acc = MonomialAccumulator();
-  acc.add(left);
-  acc.add(right, -Fraction.one);
-  acc.reduceIdentities();
-  return acc.build();
-}
-
-Expr _expandMul(Expr left, Expr right) {
+Expr _expandMulPair(Expr left, Expr right) {
   final leftTerms = <Expr>[];
   MonomialAccumulator.collectTerms(left, leftTerms);
   final rightTerms = <Expr>[];
   MonomialAccumulator.collectTerms(right, rightTerms);
 
   if (leftTerms.length == 1 && rightTerms.length == 1) {
-    return _multiplyMonomials(leftTerms.first, rightTerms.first);
+    return simplifyMul([leftTerms.first, rightTerms.first]);
   }
 
+  final parsedLeft = leftTerms.map(_parsePolyMonomial).toList(growable: false);
+  final parsedRight = rightTerms
+      .map(_parsePolyMonomial)
+      .toList(growable: false);
+
   final acc = MonomialAccumulator();
-  for (final l in leftTerms) {
-    for (final r in rightTerms) {
-      final termProduct = _multiplyMonomials(l, r);
-      acc.add(termProduct);
+  for (var i = 0; i < leftTerms.length; i++) {
+    final pL = parsedLeft[i];
+    final rawL = leftTerms[i];
+    for (var j = 0; j < rightTerms.length; j++) {
+      final pR = parsedRight[j];
+      if (pL != null && pR != null) {
+        final coeff = pL.coeff.mul(pR.coeff);
+        if (!coeff.isZero) {
+          final base = _mergePolyFactors(pL.factors, pR.factors);
+          acc.addDecomposed(coeff, base);
+        }
+      } else {
+        acc.add(simplifyMul([rawL, rightTerms[j]]));
+      }
     }
   }
   acc.reduceIdentities();
   return acc.build();
 }
 
-void _collectFactors(Expr expr, List<Expr> target) {
+class _PolyFactor {
+  const new(this.variable, this.exponent, this.node);
+  final Variable variable;
+  final IntegerNumber exponent;
+  final Expr node;
+}
+
+class _PolyMonomial {
+  const new(this.coeff, this.factors);
+  final Number coeff;
+  final List<_PolyFactor> factors;
+}
+
+_PolyMonomial? _parsePolyMonomial(Expr expr) {
+  if (expr is Number) {
+    return _PolyMonomial(expr, const []);
+  }
+  if (expr is Variable) {
+    return _PolyMonomial(IntegerNumber.one, [
+      _PolyFactor(expr, IntegerNumber.one, expr),
+    ]);
+  }
+  if (expr is Pow) {
+    final base = expr.base;
+    final exp = expr.exponent;
+    if (base is Variable && exp is IntegerNumber) {
+      return _PolyMonomial(IntegerNumber.one, [_PolyFactor(base, exp, expr)]);
+    }
+    return null;
+  }
   if (expr is Mul) {
-    _collectFactors(expr.left, target);
-    _collectFactors(expr.right, target);
-  } else if (expr is Neg) {
-    target.add(RationalNumber.negativeOne);
-    _collectFactors(expr.expr, target);
-  } else {
-    target.add(expr);
-  }
-}
-
-void _collectFactorInto(
-  Expr f,
-  Map<Expr, Expr> symbolicBases,
-  List<Expr> orderedBases,
-) {
-  final (base, exp) = f is Pow
-      ? (f.base, f.exponent)
-      : (f, const RationalNumber(1));
-
-  if (symbolicBases.containsKey(base)) {
-    final currentExp = symbolicBases[base]!;
-    final newExp = (currentExp + exp).simplify();
-    if (newExp is RationalNumber && newExp.isZero) {
-      symbolicBases.remove(base);
-      orderedBases.remove(base);
-    } else {
-      symbolicBases[base] = newExp;
-    }
-  } else {
-    symbolicBases[base] = exp;
-    orderedBases.add(base);
-  }
-}
-
-Expr _multiplyMonomials(Expr left, Expr right) {
-  if (left is OrderTerm || right is OrderTerm) {
-    return simplifyMul(left, right);
-  }
-  if (left is Number && right is Number) {
-    return Mul(left, right).simplify();
-  }
-  if ((left is RationalNumber && left.isZero) ||
-      (right is RationalNumber && right.isZero) ||
-      (left is RealNumber && left.value == 0.0) ||
-      (right is RealNumber && right.value == 0.0)) {
-    return RationalNumber.zero;
-  }
-
-  final factors = <Expr>[];
-  _collectFactors(left, factors);
-  _collectFactors(right, factors);
-
-  var ratCoeff = Fraction.one;
-  var realCoeff = 1.0;
-  var hasReal = false;
-
-  final symbolicBases = <Expr, Expr>{};
-  final orderedBases = <Expr>[];
-
-  for (final f in factors) {
-    if (f is RationalNumber) {
-      ratCoeff *= f.toFraction();
-    } else if (f is RealNumber) {
-      hasReal = true;
-      realCoeff *= f.value;
-    } else if (f is Neg) {
-      final inner = f.expr;
-      if (inner is RationalNumber) {
-        ratCoeff *= -inner.toFraction();
-      } else if (inner is RealNumber) {
-        hasReal = true;
-        realCoeff *= -inner.value;
+    Number coeff = IntegerNumber.one;
+    final factors = <_PolyFactor>[];
+    for (final f in expr.factors) {
+      if (f is Number) {
+        coeff = coeff.mul(f);
+      } else if (f is Variable) {
+        factors.add(_PolyFactor(f, IntegerNumber.one, f));
+      } else if (f is Pow &&
+          f.base is Variable &&
+          f.exponent is IntegerNumber) {
+        factors.add(
+          _PolyFactor(f.base as Variable, f.exponent as IntegerNumber, f),
+        );
       } else {
-        ratCoeff = -ratCoeff;
-        _collectFactorInto(inner, symbolicBases, orderedBases);
+        return null;
       }
+    }
+    for (var i = 1; i < factors.length; i++) {
+      if (factors[i - 1].variable.name.compareTo(factors[i].variable.name) >=
+          0) {
+        factors.sort((a, b) => a.variable.name.compareTo(b.variable.name));
+        break;
+      }
+    }
+    return _PolyMonomial(coeff, factors);
+  }
+  return null;
+}
+
+Expr _mergePolyFactors(List<_PolyFactor> a, List<_PolyFactor> b) {
+  if (a.isEmpty && b.isEmpty) return IntegerNumber.one;
+  if (a.isEmpty) {
+    return b.length == 1
+        ? b.first.node
+        : Mul([for (final f in b) f.node], isSimplified: true);
+  }
+  if (b.isEmpty) {
+    return a.length == 1
+        ? a.first.node
+        : Mul([for (final f in a) f.node], isSimplified: true);
+  }
+
+  final merged = <Expr>[];
+  var i = 0;
+  var j = 0;
+  while (i < a.length && j < b.length) {
+    final fA = a[i];
+    final fB = b[j];
+    final cmp = fA.variable.name.compareTo(fB.variable.name);
+    if (cmp < 0) {
+      merged.add(fA.node);
+      i++;
+    } else if (cmp > 0) {
+      merged.add(fB.node);
+      j++;
     } else {
-      _collectFactorInto(f, symbolicBases, orderedBases);
-    }
-  }
-
-  if (ratCoeff.a == 0 || (hasReal && realCoeff == 0.0)) {
-    return RationalNumber.zero;
-  }
-
-  orderedBases.sort(compareStructural);
-
-  Expr? symbolicPart;
-  for (final base in orderedBases) {
-    final exp = symbolicBases[base]!;
-    var factor = exp == const RationalNumber(1) ? base : Pow(base, exp);
-    if (base is ConstantNumber && base.name == 'i') {
-      factor = factor.simplify();
-      if (factor is RationalNumber) {
-        ratCoeff *= factor.toFraction();
-        continue;
-      } else if (factor is Neg) {
-        ratCoeff = -ratCoeff;
-        factor = factor.expr;
+      final sumExp = IntegerNumber(fA.exponent.value + fB.exponent.value);
+      if (!sumExp.isZero) {
+        merged.add(
+          sumExp.isOne
+              ? fA.variable
+              : Pow(fA.variable, sumExp, isSimplified: true),
+        );
       }
+      i++;
+      j++;
     }
-    symbolicPart = symbolicPart == null ? factor : Mul(symbolicPart, factor);
   }
-
-  if (hasReal) {
-    final scalar = RealNumber(realCoeff * ratCoeff.toDouble());
-    if (symbolicPart == null) return scalar;
-    if (scalar.value == 1.0) return symbolicPart;
-    if (scalar.value == -1.0) {
-      return MonomialAccumulator.negateMonomial(symbolicPart);
-    }
-    return Mul(scalar, symbolicPart);
-  } else {
-    if (symbolicPart == null) return RationalNumber.fraction(ratCoeff);
-    if (ratCoeff == Fraction.one) return symbolicPart;
-    if (ratCoeff == -Fraction.one) {
-      return MonomialAccumulator.negateMonomial(symbolicPart);
-    }
-    return Mul(RationalNumber.fraction(ratCoeff), symbolicPart);
+  while (i < a.length) {
+    merged.add(a[i++].node);
   }
+  while (j < b.length) {
+    merged.add(b[j++].node);
+  }
+  if (merged.isEmpty) return IntegerNumber.one;
+  if (merged.length == 1) return merged.first;
+  return Mul(merged, isSimplified: true);
 }
 
 Expr _expandPow(Expr base, Expr exponent) {
-  if (exponent is RationalNumber && exponent.denominator == 1) {
-    final n = exponent.numerator;
-    if (n == 0) return const RationalNumber(1);
-    if (n == 1) return base;
-    if (n > 1) {
-      return _expandPowInteger(base, n);
-    }
-    if (n < 0) {
-      final pos = _expandPowInteger(base, -n);
-      return Div(const RationalNumber(1), pos).simplify();
-    }
+  int? intExp;
+  if (exponent is IntegerNumber) {
+    intExp = exponent.asInt;
   } else if (exponent is RealNumber &&
-      exponent.value == exponent.value.roundToDouble()) {
-    final n = exponent.value.round();
-    if (n == 0) return const RationalNumber(1);
-    if (n == 1) return base;
-    if (n > 1) {
-      return _expandPowInteger(base, n);
+      exponent.value == exponent.value.roundToDouble() &&
+      exponent.value.abs() < 1e9) {
+    intExp = exponent.value.round();
+  }
+
+  if (intExp != null) {
+    if (intExp < 0 && base is Number && base.isZero) {
+      throw UnsupportedError('Division by zero in expansion');
     }
-    if (n < 0) {
-      final pos = _expandPowInteger(base, -n);
-      return Div(const RationalNumber(1), pos).simplify();
+    if (intExp == 0) return IntegerNumber.one;
+    if (intExp == 1) return base;
+    if (intExp > 1) {
+      return _expandPowInteger(base, intExp);
+    }
+    if (intExp < 0) {
+      final pos = _expandPowInteger(base, -intExp);
+      return simplifyPow(pos, IntegerNumber.negativeOne);
     }
   }
-  return Pow(base, exponent).simplify();
+  return simplifyPow(base, exponent);
 }
 
 Expr _expandPowInteger(Expr base, int exponent) {
-  Expr result = const RationalNumber(1);
+  Expr result = IntegerNumber.one;
   var current = base;
   var exp = exponent;
   while (exp > 0) {
     if (exp.isOdd) {
-      result = _expandMul(result, current);
+      result = _expandMulPair(result, current);
     }
     exp ~/= 2;
     if (exp > 0) {
-      current = _expandMul(current, current);
+      current = _expandMulPair(current, current);
     }
   }
   return result;
-}
-
-Expr _expandDiv(Expr left, Expr right) {
-  if (right is RationalNumber) {
-    if (right.isZero) {
-      throw UnsupportedError('Division by zero in expansion');
-    }
-    final inv = RationalNumber.fraction(Fraction.one / right.toFraction());
-    return _expandMul(left, inv);
-  }
-  if (right is RealNumber) {
-    if (right.value == 0.0) {
-      throw UnsupportedError('Division by zero in expansion');
-    }
-    final inv = RealNumber(1.0 / right.value);
-    return _expandMul(left, inv);
-  }
-
-  final terms = <Expr>[];
-  MonomialAccumulator.collectTerms(left, terms);
-  if (terms.length > 1) {
-    final acc = MonomialAccumulator();
-    for (final term in terms) {
-      acc.add(Div(term, right).simplify());
-    }
-    acc.reduceIdentities();
-    return acc.build();
-  }
-
-  return Div(left, right).simplify();
 }

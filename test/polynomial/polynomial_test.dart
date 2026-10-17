@@ -267,9 +267,9 @@ void main() {
       const x = Variable('x');
       // P(x) = 1 + 2x + 3x^2
       final expr =
-          const RationalNumber(1) +
-          (const RationalNumber(2) * x) +
-          (const RationalNumber(3) * x.pow(const RationalNumber(2)));
+          IntegerNumber.of(1) +
+          (IntegerNumber.of(2) * x) +
+          (IntegerNumber.of(3) * x.pow(IntegerNumber.of(2)));
       final poly = Polynomial<double>.fromExpr(expr, 'x', order: 2);
 
       check(poly.degree).equals(2);
@@ -280,7 +280,7 @@ void main() {
 
     test('Taylor expansion of exp(x) around 0.0', () {
       const x = Variable('x');
-      const expr = Exp(x);
+      final expr = Pow(Constant.e, x);
       final poly = Polynomial<double>.fromExpr(expr, 'x', order: 4);
 
       check(poly.degree).equals(4);
@@ -296,7 +296,7 @@ void main() {
 
     test('Taylor expansion of sin(x) and cos(x) around 0.0', () {
       const x = Variable('x');
-      final sinPoly = Polynomial<double>.fromExpr(const Sin(x), 'x', order: 5);
+      final sinPoly = Polynomial<double>.fromExpr(Sin(x), 'x', order: 5);
       // sin(x) = x - x^3/6 + x^5/120
       check(sinPoly[0]).isCloseTo(0.0, 1e-9);
       check(sinPoly[1]).isCloseTo(1.0, 1e-9);
@@ -305,7 +305,7 @@ void main() {
       check(sinPoly[4]).isCloseTo(0.0, 1e-9);
       check(sinPoly[5]).isCloseTo(1.0 / 120.0, 1e-9);
 
-      final cosPoly = Polynomial<double>.fromExpr(const Cos(x), 'x', order: 4);
+      final cosPoly = Polynomial<double>.fromExpr(Cos(x), 'x', order: 4);
       // cos(x) = 1 - x^2/2 + x^4/24
       check(cosPoly[0]).isCloseTo(1.0, 1e-9);
       check(cosPoly[1]).isCloseTo(0.0, 1e-9);
@@ -317,7 +317,7 @@ void main() {
     test('Taylor expansion around non-zero point', () {
       const x = Variable('x');
       // f(x) = (x - 2)^3 = x^3 - 6x^2 + 12x - 8
-      final expr = (x - const RationalNumber(2)).pow(const RationalNumber(3));
+      final expr = (x - IntegerNumber.of(2)).pow(IntegerNumber.of(3));
       final poly = Polynomial<double>.fromExpr(
         expr,
         'x',
@@ -338,7 +338,11 @@ void main() {
 
     test('negative order returns zero polynomial', () {
       const x = Variable('x');
-      final poly = Polynomial<double>.fromExpr(const Exp(x), 'x', order: -1);
+      final poly = Polynomial<double>.fromExpr(
+        Pow(Constant.e, x),
+        'x',
+        order: -1,
+      );
       check(poly.degree).equals(-1);
     });
 

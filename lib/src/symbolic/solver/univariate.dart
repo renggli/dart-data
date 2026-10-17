@@ -1,5 +1,6 @@
 import '../algebra/factor.dart';
 import '../algebra/simplify.dart';
+import '../algebra/term_accumulator.dart';
 import '../ast.dart';
 import '../calculus/linear_form.dart';
 import 'polynomial.dart';
@@ -27,7 +28,7 @@ extension SolverExtension on Expr {
   /// ```dart
   /// final x = Variable('x');
   /// final roots = (x * x - 4).solve('x');
-  /// // roots: [RationalNumber(-2), RationalNumber(2)]
+  /// // roots: [IntegerNumber(-2), IntegerNumber(2)]
   /// ```
   List<Expr> solve(String variable) => solveEquation(this, variable);
 }
@@ -35,7 +36,7 @@ extension SolverExtension on Expr {
 /// Recursively solves univariate equation [expr] = 0 for [variable].
 List<Expr> solveEquation(Expr expr, String variable) {
   if (expr is Equal) {
-    expr = Sub(expr.left, expr.right);
+    expr = expr.left - expr.right;
   }
   expr = expr.simplify();
 
@@ -44,16 +45,12 @@ List<Expr> solveEquation(Expr expr, String variable) {
   }
 
   // Rational equation: N(x) / D(x) = 0 -> N(x) = 0 with D(x) != 0
-  if (expr is Div) {
-    final num = expr.left;
-    final den = expr.right;
+  final (num, den) = splitNumeratorDenominator(expr);
+  if (den != IntegerNumber.one && den.dependsOn(variable)) {
     if (!num.dependsOn(variable)) {
       return const [];
     }
     final candidates = solveEquation(num, variable);
-    if (!den.dependsOn(variable)) {
-      return candidates;
-    }
     return candidates.where((r) => !_isZeroAt(den, variable, r)).toList();
   }
 
@@ -117,7 +114,7 @@ List<Expr> solveEquation(Expr expr, String variable) {
 
 /// Checks whether a constant symbolic expression [expr] evaluates to zero.
 bool isZeroExpr(Expr expr) {
-  if (expr is RationalNumber && expr.isZero) return true;
+  if (expr is Number && expr.isZero) return true;
   if (expr is RealNumber && expr.value.abs() < 1e-10) return true;
   if (expr.freeVariables.isEmpty) {
     try {
@@ -135,15 +132,8 @@ List<Expr> deduplicateRoots(List<Expr> list) {
     final simplified = item.simplify();
     final isDup = result.any((existing) {
       if (existing == simplified) return true;
-      if (existing is Number && simplified is Number) {
-        if (existing.isReal && simplified.isReal) {
-          return (existing.toDouble() - simplified.toDouble()).abs() < 1e-12;
-        } else if (!existing.isReal && !simplified.isReal) {
-          final c1 = existing.complexValue;
-          final c2 = simplified.complexValue;
-          return (c1.a - c2.a).abs() < 1e-12 && (c1.b - c2.b).abs() < 1e-12;
-        }
-        return false;
+      if (existing is RealNumeric && simplified is RealNumeric) {
+        return (existing.toDouble() - simplified.toDouble()).abs() < 1e-12;
       }
       if (existing.freeVariables.isEmpty && simplified.freeVariables.isEmpty) {
         try {
@@ -161,19 +151,21 @@ List<Expr> deduplicateRoots(List<Expr> list) {
   return result;
 }
 
-/// Collects factors of [expr] unrolling multiplication, positive power, and negation.
+/// Collects factors of [expr] unrolling multiplication and positive power.
 void collectFactors(Expr expr, List<Expr> target) {
   switch (expr) {
-    case Mul(:final left, :final right):
-      collectFactors(left, target);
-      collectFactors(right, target);
-    case Pow(:final base, exponent: RationalNumber(:final numerator))
-        when numerator > 0:
+    case Mul(:final factors):
+      for (final f in factors) {
+        collectFactors(f, target);
+      }
+    case Pow(
+          :final base,
+          exponent: RationalNumber(:final isNegative, :final isZero),
+        )
+        when !isNegative && !isZero:
       collectFactors(base, target);
-    case Neg(:final expr):
-      collectFactors(expr, target);
     default:
-      if (expr is! Number) {
+      if (expr is! Number && expr is! Constant) {
         target.add(expr);
       }
   }

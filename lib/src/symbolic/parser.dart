@@ -1,228 +1,480 @@
-import 'package:petitparser/petitparser.dart';
+import 'package:petitparser/petitparser.dart' as pp;
 
 import 'ast.dart';
 
-/// Builds a PetitParser [Parser] for symbolic mathematical expressions.
+/// Extensible syntax and parser for mathematical [Expr] strings.
 ///
-/// ```dart
-/// final expr = Expr.parse('2 * x + 1');
-/// ```
-Parser<Expr> buildParser() {
-  final builder = ExpressionBuilder<Expr>();
-  final letter = pattern(_unicodeLetters, unicode: true);
-  final word = pattern('0-9_$_unicodeLetters', unicode: true);
-  builder
-    // Numbers
-    ..primitive(
-      seq3(
-        digit().plus(),
-        seq2(char('.'), digit().star()).optional(),
-        seq3(pattern('eE'), anyOf('+-').optional(), digit().plus()).optional(),
-      ).flatten(message: 'number expected').trim().map(_createValue),
-    )
-    // Constant, variables, and functions
-    ..primitive(
-      seq2(
-        (char('∞') | seq2(letter, word.starString()))
-            .flatten(message: 'name expected')
-            .trim(),
-        builder.loopback
-            .plusSeparated(char(',').trim())
-            .map((list) => list.elements)
-            .skip(before: char('(').trim(), after: char(')').trim())
-            .optionalWith(const <Expr>[]),
-      ).map2(_createBinding),
-    );
-  // Parentheses (highest precedence wrapper)
-  builder.group().wrapper(
-    char('(').trim(),
-    char(')').trim(),
-    (_, value, _) => value,
-  );
-  // Exponentiation (right-associative)
-  builder.group().right(char('^').trim(), (a, _, b) => Pow(a, b));
-  // Unary prefix operators (+, -)
-  builder.group()
-    ..prefix(char('+').trim(), (_, a) => a)
-    ..prefix(char('-').trim(), (_, a) => Neg(a));
-  // Multiplicative operators (*, /, left-associative)
-  builder.group()
-    ..left(char('*').trim(), (a, _, b) => Mul(a, b))
-    ..left(char('/').trim(), (a, _, b) => Div(a, b));
-  // Additive operators (+, -, left-associative)
-  builder.group()
-    ..left(char('+').trim(), (a, _, b) => Add(a, b))
-    ..left(char('-').trim(), (a, _, b) => Sub(a, b));
-  // Relational operators (<=, >=, <, >, ==, =)
-  builder.group()
-    ..left(string('<=').trim(), (a, _, b) => LessEqual(a, b))
-    ..left(string('>=').trim(), (a, _, b) => GreaterEqual(a, b))
-    ..left(char('<').trim(), (a, _, b) => LessThan(a, b))
-    ..left(char('>').trim(), (a, _, b) => GreaterThan(a, b))
-    ..left((string('==') | char('=')).trim(), (a, _, b) => Equal(a, b));
-  return resolve(builder.build()).end();
-}
-
-/// The default internal PetitParser [Parser] for symbolic mathematical expressions.
-final parser = buildParser();
-
-/// English, Western European accents, Cyrillic, Greek, and Arabic
-const _unicodeLetters =
-    'a-zA-Z\u00C0-\u024F\u0400-\u04FF\u0370-\u03FF\u0600-\u06FF';
-
-Expr _createValue(String value) {
-  if (value.contains('.')) {
-    return RealNumber(double.parse(value));
+/// Use [ExprSyntax.standard] for the default grammar, or customize constants,
+/// variable bindings, functions, and implicit multiplication via
+/// [ExprSyntaxBuilder].
+class ExprSyntax {
+  new _({
+    required Map<String, Expr> constants,
+    required Map<String, Expr> variables,
+    required Map<String, Expr Function(Expr)> unaryFunctions,
+    required Map<String, Expr Function(Expr, Expr)> binaryFunctions,
+    required Map<String, Expr Function(List<Expr>)> variadicFunctions,
+    required this.implicitMultiplication,
+    required this.caseInsensitiveConstants,
+    required this.caseInsensitiveFunctions,
+  }) : _constants = Map.unmodifiable(constants),
+       _variables = Map.unmodifiable(variables),
+       _unaryFunctions = Map.unmodifiable(unaryFunctions),
+       _binaryFunctions = Map.unmodifiable(binaryFunctions),
+       _variadicFunctions = Map.unmodifiable(variadicFunctions) {
+    _parser = _buildParser();
   }
-  final intValue = int.tryParse(value);
-  if (intValue != null) {
-    return RationalNumber(intValue);
-  }
-  final doubleValue = double.parse(value);
-  final asInt = doubleValue.toInt();
-  if (asInt.toDouble() == doubleValue) {
-    return RationalNumber(asInt);
-  }
-  return RealNumber(doubleValue);
-}
 
-Expr _createBinding(String name, List<Expr> arguments) =>
-    switch (arguments.length) {
-      0 => switch (name.toLowerCase()) {
-        'π' || 'pi' => ConstantNumber.pi,
-        'e' => ConstantNumber.e,
-        'i' => ConstantNumber.i,
-        '∞' || 'infinity' => ConstantNumber.infinity,
-        _ => Variable(name),
-      },
-      1 => switch (name.toLowerCase()) {
-        'sin' => Sin(arguments[0]),
-        'cos' => Cos(arguments[0]),
-        'tan' => Tan(arguments[0]),
-        'asin' || 'arcsin' => Asin(arguments[0]),
-        'acos' || 'arccos' => Acos(arguments[0]),
-        'atan' || 'arctan' => Atan(arguments[0]),
-        'sinh' => Sinh(arguments[0]),
-        'cosh' => Cosh(arguments[0]),
-        'tanh' => Tanh(arguments[0]),
-        'abs' => Abs(arguments[0]),
-        'sqrt' => Pow(arguments[0], const RationalNumber(1, 2)),
-        'exp' => Exp(arguments[0]),
-        'ln' || 'log' => Ln(arguments[0]),
-        'o' || 'order' => _parseOrderArg(arguments[0]),
-        'lambertw' || 'w' => LambertW(arguments[0]),
-        'erf' => Erf(arguments[0]),
-        'erfc' => Erfc(arguments[0]),
-        'gamma' => Gamma(arguments[0]),
-        'asinh' || 'arsinh' => Asinh(arguments[0]),
-        'acosh' || 'arcosh' => Acosh(arguments[0]),
-        'atanh' || 'artanh' => Atanh(arguments[0]),
-        _ => throw ArgumentError.value(name, 'name', 'Unknown function: $name'),
-      },
-      2 => switch (name.toLowerCase()) {
-        'pow' => Pow(arguments[0], arguments[1]),
-        'log' => Div(Ln(arguments[1]), Ln(arguments[0])),
-        'root' => Pow(arguments[1], Div(RationalNumber.one, arguments[0])),
-        'lambertw' || 'w' => switch (arguments[1]) {
-          RationalNumber(isInteger: true, numerator: final b)
-              when b == 0 || b == -1 =>
-            LambertW(arguments[0], branch: b),
-          Neg(expr: RationalNumber(isInteger: true, numerator: final b))
-              when -b == 0 || -b == -1 =>
-            LambertW(arguments[0], branch: -b),
-          _ => throw ArgumentError('Lambert W branch must be 0 or -1'),
-        },
-        'beta' => Beta(arguments[0], arguments[1]),
-        'piecewise' || 'pw' => Piecewise([(arguments[0], arguments[1])]),
-        'o' || 'order' => switch (arguments) {
-          [
-            Variable(:final name),
-            RationalNumber(isInteger: true, numerator: final k),
-          ] =>
-            OrderTerm(name, k),
-          _ => throw ArgumentError.value(
-            name,
-            'name',
-            'Unknown function: $name',
-          ),
-        },
-        _ => throw ArgumentError.value(name, 'name', 'Unknown function: $name'),
-      },
-      _ => switch (name.toLowerCase()) {
-        'piecewise' || 'pw' => () {
-          final branches = <(Expr, Expr)>[];
-          Expr? otherwise;
-          for (var i = 0; i < arguments.length; i += 2) {
-            if (i + 1 < arguments.length) {
-              branches.add((arguments[i], arguments[i + 1]));
-            } else {
-              otherwise = arguments[i];
+  /// Creates the standard symbolic syntax with built-in constants (`pi`, `π`,
+  /// `e`, `i`, `infinity`, `∞`) and elementary/special functions.
+  factory standard() => _standard;
+
+  static final ExprSyntax _standard = ExprSyntaxBuilder.standard().build();
+
+  final Map<String, Expr> _constants;
+  final Map<String, Expr> _variables;
+  final Map<String, Expr Function(Expr)> _unaryFunctions;
+  final Map<String, Expr Function(Expr, Expr)> _binaryFunctions;
+  final Map<String, Expr Function(List<Expr>)> _variadicFunctions;
+
+  /// Whether adjacent tokens such as `2x`, `2(x + 1)`, or `(x + 1)(x - 1)` are
+  /// parsed as multiplication.
+  final bool implicitMultiplication;
+
+  /// Whether constant lookup is case-insensitive.
+  final bool caseInsensitiveConstants;
+
+  /// Whether function lookup is case-insensitive.
+  final bool caseInsensitiveFunctions;
+
+  late final pp.Parser<Expr> _parser;
+
+  /// Returns a new [ExprSyntaxBuilder] initialized with this syntax's rules.
+  ExprSyntaxBuilder toBuilder() => ExprSyntaxBuilder._from(this);
+
+  /// Parses [input] into an [Expr], throwing [FormatException] on syntax error.
+  Expr parse(String input) {
+    final result = _parser.parse(input);
+    if (result is pp.Failure) {
+      throw FormatException(result.message, input, result.position);
+    }
+    return result.value;
+  }
+
+  /// Parses [input] into an [Expr], or returns `null` if [input] is invalid.
+  Expr? tryParse(String input) {
+    try {
+      final result = _parser.parse(input);
+      return result is pp.Success<Expr> ? result.value : null;
+    } on Object {
+      return null;
+    }
+  }
+
+  pp.Parser<Expr> _buildParser() {
+    final builder = pp.ExpressionBuilder<Expr>();
+
+    // Identifier: [a-zA-Z_\u0370-\u03FF][a-zA-Z0-9_\u0370-\u03FF]* | ∞
+    final startChar =
+        pp.pattern('a-zA-Z_\u0370-\u03FF') | pp.char('\u221E'); // Greek + ∞
+    final contChar = pp.pattern('a-zA-Z0-9_\u0370-\u03FF');
+    final identifier = (startChar & contChar.star()).flatten().trim();
+
+    // Numeric literal: integer or floating-point with optional exponent
+    final digits = pp.digit().plus();
+    final fractional = pp.char('.') & pp.digit().star();
+    final exponent =
+        (pp.char('e') | pp.char('E')) &
+        (pp.char('+') | pp.char('-')).optional() &
+        digits;
+    final numberLexeme =
+        ((digits & fractional.optional() & exponent.optional()) |
+                (pp.char('.') & digits & exponent.optional()))
+            .flatten()
+            .trim();
+
+    final number = numberLexeme.map<Expr>((value) {
+      if (value.contains('.') || value.contains('e') || value.contains('E')) {
+        return RealNumber.fromDouble(double.parse(value));
+      }
+      return IntegerNumber(Integer.parse(value));
+    });
+
+    final exprRef = pp.undefined<Expr>();
+
+    final argList = exprRef.plusSeparated(pp.char(',').trim());
+    final functionCall =
+        (identifier & pp.char('(').trim() & argList & pp.char(')').trim()).map<
+          Expr
+        >((values) {
+          final rawName = values[0] as String;
+          final key = caseInsensitiveFunctions
+              ? rawName.toLowerCase()
+              : rawName;
+          final sepList = values[2] as pp.SeparatedList<Expr, String>;
+          final args = sepList.elements;
+
+          if (rawName == 'O' && args.length == 1) {
+            return _parseOrderTerm(args[0]);
+          }
+
+          final variadic =
+              _variadicFunctions[rawName] ?? _variadicFunctions[key];
+          if (variadic != null) {
+            return variadic(args);
+          }
+
+          if (args.length == 1) {
+            final unary = _unaryFunctions[rawName] ?? _unaryFunctions[key];
+            if (unary != null) return unary(args[0]);
+            throw FormatException('Unknown unary function: "$rawName"');
+          } else if (args.length == 2) {
+            final binary = _binaryFunctions[rawName] ?? _binaryFunctions[key];
+            if (binary != null) return binary(args[0], args[1]);
+            throw FormatException('Unknown binary function: "$rawName"');
+          } else {
+            throw FormatException(
+              'Unsupported number of arguments (${args.length}) for function "$rawName"',
+            );
+          }
+        });
+
+    final variableOrConstant = identifier.map<Expr>((name) {
+      final variableHit = _variables[name];
+      if (variableHit != null) return variableHit;
+
+      final directConstant = _constants[name];
+      if (directConstant != null) return directConstant;
+
+      if (caseInsensitiveConstants && name != 'i' && name != 'I') {
+        final lowerConstant = _constants[name.toLowerCase()];
+        if (lowerConstant != null) return lowerConstant;
+      }
+
+      return Variable(name);
+    });
+
+    final parenthesized = (pp.char('(').trim() & exprRef & pp.char(')').trim())
+        .map<Expr>((values) => values[1] as Expr);
+
+    final primary = <pp.Parser<Expr>>[
+      functionCall,
+      number,
+      variableOrConstant,
+      parenthesized,
+    ].toChoiceParser();
+
+    // 1. Exponentiation (right-associative, highest precedence; allows signed exponents like x^-2)
+    final power = pp.undefined<Expr>();
+    final signedExponent =
+        ((pp.char('+').trim() | pp.char('-').trim()).star() & power).map<Expr>((
+          values,
+        ) {
+          final ops = (values[0] as List<dynamic>).cast<String>();
+          var result = values[1] as Expr;
+          for (var i = ops.length - 1; i >= 0; i--) {
+            if (ops[i] == '-') {
+              result = -result;
             }
           }
-          return Piecewise(branches, otherwise: otherwise);
-        }(),
-        _ => throw ArgumentError.value(name, 'name', 'Unknown function: $name'),
-      },
-    };
+          return result;
+        });
+    power.set(
+      (primary & (pp.char('^').trim() & signedExponent).optional()).map<Expr>((
+        values,
+      ) {
+        final base = values[0] as Expr;
+        final tail = values[1] as List<dynamic>?;
+        if (tail == null) return base;
+        return Pow(base, tail[1] as Expr);
+      }),
+    );
 
-Expr _parseOrderArg(Expr arg) => switch (arg) {
-  Variable(:final name) => OrderTerm(name, 1),
-  RationalNumber(isOne: true) => const OrderTerm('x', 0),
-  Pow(
-    :final base,
-    exponent: RationalNumber(isInteger: true, numerator: final k),
-  )
-      when base is Variable =>
-    OrderTerm(base.name, k),
-  Sub(left: Variable(:final name), :final right) => OrderTerm(
-    name,
-    1,
-    point: right,
-  ),
-  Pow(
-    base: Sub(left: Variable(:final name), :final right),
-    exponent: RationalNumber(isInteger: true, numerator: final k),
-  ) =>
-    OrderTerm(name, k, point: right),
-  _ => OrderTerm(arg.freeVariables.firstOrNull ?? 'x', 1),
-};
+    // 1b. Optional implicit multiplication (e.g. 2x, 2(x+1), (a)(b))
+    final factor = implicitMultiplication
+        ? power.plus().map<Expr>((factors) => factors.reduce((a, b) => a * b))
+        : power;
 
-/// Parses [input] into an [Expr].
-///
-/// Throws a [FormatException] if parsing fails.
-///
-/// ```dart
-/// final expr = Expr.parse('2 * x + 1');
-/// ```
-Expr parseExpression(String input) {
-  try {
-    final result = parser.parse(input);
-    if (result case Success(:final value)) {
-      return value;
+    builder.primitive(factor);
+
+    // 2. Unary prefix operators (+, -)
+    builder.group()
+      ..prefix(pp.char('-').trim(), (op, a) => -a)
+      ..prefix(pp.char('+').trim(), (op, a) => a);
+
+    // 3. Multiplicative operators (*, / left-associative)
+    builder.group()
+      ..left(pp.char('*').trim(), (a, op, b) => a * b)
+      ..left(pp.char('/').trim(), (a, op, b) => a / b);
+
+    // 4. Additive operators (+, - left-associative)
+    builder.group()
+      ..left(pp.char('+').trim(), (a, op, b) => a + b)
+      ..left(pp.char('-').trim(), (a, op, b) => a - b);
+
+    // 5. Relational operators (<, <=, >, >=, ==, = left-associative)
+    builder.group()
+      ..left(pp.string('<=').trim(), (a, op, b) => LessEqual(a, b))
+      ..left(pp.string('>=').trim(), (a, op, b) => GreaterEqual(a, b))
+      ..left(pp.string('==').trim(), (a, op, b) => Equal(a, b))
+      ..left(pp.char('<').trim(), (a, op, b) => LessThan(a, b))
+      ..left(pp.char('>').trim(), (a, op, b) => GreaterThan(a, b))
+      ..left(pp.char('=').trim(), (a, op, b) => Equal(a, b));
+
+    final built = builder.build();
+    exprRef.set(built);
+    return built.end();
+  }
+
+  static Expr _parseOrderTerm(Expr arg) {
+    if (arg is IntegerNumber && arg.isOne) {
+      return const OrderTerm('x', 0);
     }
-    throw FormatException(
-      'Failed to parse expression: ${result.message} at position ${result.position}',
-      input,
-      result.position,
-    );
-  } on ArgumentError catch (error) {
-    throw FormatException(
-      error.message?.toString() ?? 'Unknown function',
-      input,
-    );
+    if (arg is Variable) {
+      return OrderTerm(arg.name, 1);
+    }
+    if (arg is Pow && arg.exponent is IntegerNumber) {
+      final n = (arg.exponent as IntegerNumber).asInt;
+      if (n != null) {
+        final base = arg.base;
+        if (base is Variable) {
+          return OrderTerm(base.name, n);
+        }
+        if (base is Add &&
+            base.terms.length == 2 &&
+            base.terms[0] is Variable) {
+          final v = (base.terms[0] as Variable).name;
+          return OrderTerm(v, n, point: -base.terms[1]);
+        }
+      }
+    }
+    if (arg is Add && arg.terms.length == 2 && arg.terms[0] is Variable) {
+      final v = (arg.terms[0] as Variable).name;
+      return OrderTerm(v, 1, point: -arg.terms[1]);
+    }
+    throw FormatException('Invalid OrderTerm syntax: O($arg)');
+  }
+
+  static Expr _parsePiecewiseArgs(String rawName, List<Expr> args) {
+    if (args.length < 2) {
+      throw FormatException(
+        '$rawName requires at least 2 arguments (condition, expr)',
+      );
+    }
+    final branches = <(RelationalExpr, Expr)>[];
+    final pairCount = args.length ~/ 2;
+    for (var i = 0; i < pairCount; i++) {
+      final cond = args[2 * i];
+      final val = args[2 * i + 1];
+      if (cond is! RelationalExpr) {
+        throw FormatException(
+          '$rawName condition at argument ${2 * i + 1} must be a relational comparison, got: $cond',
+        );
+      }
+      branches.add((cond, val));
+    }
+    final otherwise = args.length.isOdd ? args.last : null;
+    return Piecewise(branches, otherwise: otherwise);
   }
 }
 
-/// Tries to parse [input] into an [Expr], returning `null` on failure.
-///
-/// ```dart
-/// final expr = Expr.tryParse('2 * x + 1');
-/// ```
-Expr? tryParseExpression(String input) {
-  try {
-    final result = parser.parse(input);
-    return result is Success<Expr> ? result.value : null;
-  } on Object {
-    return null;
+/// Builder for configuring custom [ExprSyntax] instances.
+class ExprSyntaxBuilder {
+  /// Creates an empty builder with no predefined constants or functions.
+  new empty();
+
+  /// Creates a builder pre-populated with the standard symbolic constants and
+  /// elementary/special functions.
+  factory standard() {
+    final builder = ExprSyntaxBuilder.empty()
+      ..defineConstant('pi', Constant.pi, aliases: const ['π'])
+      ..defineConstant('e', Constant.e)
+      ..defineConstant('i', ComplexNumber.i)
+      ..defineConstant('infinity', Constant.infinity, aliases: const ['∞'])
+      ..defineUnaryFunction('sin', Sin.new)
+      ..defineUnaryFunction('cos', Cos.new)
+      ..defineUnaryFunction('tan', Tan.new)
+      ..defineUnaryFunction('asin', Asin.new, aliases: const ['arcsin'])
+      ..defineUnaryFunction('acos', Acos.new, aliases: const ['arccos'])
+      ..defineUnaryFunction('atan', Atan.new, aliases: const ['arctan'])
+      ..defineUnaryFunction('sinh', Sinh.new)
+      ..defineUnaryFunction('cosh', Cosh.new)
+      ..defineUnaryFunction('tanh', Tanh.new)
+      ..defineUnaryFunction('asinh', Asinh.new, aliases: const ['arcsinh'])
+      ..defineUnaryFunction('acosh', Acosh.new, aliases: const ['arccosh'])
+      ..defineUnaryFunction('atanh', Atanh.new, aliases: const ['arctanh'])
+      ..defineUnaryFunction('abs', Abs.new)
+      ..defineUnaryFunction('sqrt', (a) => Pow(a, FractionNumber.half))
+      ..defineUnaryFunction('exp', (a) => Pow(Constant.e, a))
+      ..defineUnaryFunction('ln', Ln.new, aliases: const ['log'])
+      ..defineUnaryFunction('erf', Erf.new)
+      ..defineUnaryFunction('erfc', Erfc.new)
+      ..defineUnaryFunction('gamma', Gamma.new)
+      ..defineUnaryFunction('lambertw', LambertW.new, aliases: const ['w'])
+      ..defineBinaryFunction('pow', Pow.new)
+      ..defineBinaryFunction('log', (a, b) => Ln(b) / Ln(a))
+      ..defineBinaryFunction('root', (a, b) => Pow(a, IntegerNumber.one / b))
+      ..defineBinaryFunction('beta', Beta.new)
+      ..defineBinaryFunction('lambertw', (a, b) {
+        final branch = b is IntegerNumber ? b.asInt : null;
+        if (branch != 0 && branch != -1) {
+          throw FormatException('LambertW branch must be 0 or -1, got: $b');
+        }
+        return LambertW(a, branch: branch!);
+      }, aliases: const ['w'])
+      ..defineVariadicFunction(
+        'piecewise',
+        (args) => ExprSyntax._parsePiecewiseArgs('piecewise', args),
+      );
+    return builder;
   }
+
+  new _from(ExprSyntax syntax)
+    : implicitMultiplication = syntax.implicitMultiplication,
+      caseInsensitiveConstants = syntax.caseInsensitiveConstants,
+      caseInsensitiveFunctions = syntax.caseInsensitiveFunctions {
+    _constants.addAll(syntax._constants);
+    _variables.addAll(syntax._variables);
+    _unaryFunctions.addAll(syntax._unaryFunctions);
+    _binaryFunctions.addAll(syntax._binaryFunctions);
+    _variadicFunctions.addAll(syntax._variadicFunctions);
+  }
+
+  final Map<String, Expr> _constants = {};
+  final Map<String, Expr> _variables = {};
+  final Map<String, Expr Function(Expr)> _unaryFunctions = {};
+  final Map<String, Expr Function(Expr, Expr)> _binaryFunctions = {};
+  final Map<String, Expr Function(List<Expr>)> _variadicFunctions = {};
+
+  /// Whether adjacent tokens are parsed as multiplication.
+  bool implicitMultiplication = false;
+
+  /// Whether constant lookup is case-insensitive.
+  bool caseInsensitiveConstants = true;
+
+  /// Whether function lookup is case-insensitive.
+  bool caseInsensitiveFunctions = true;
+
+  /// Registers or replaces a named constant (and optional [aliases]) resolving
+  /// to [expr].
+  void defineConstant(
+    String name,
+    Expr expr, {
+    Iterable<String> aliases = const [],
+  }) {
+    _constants[name] = expr;
+    if (caseInsensitiveConstants && name != 'i' && name != 'I') {
+      _constants[name.toLowerCase()] = expr;
+    }
+    for (final alias in aliases) {
+      _constants[alias] = expr;
+      if (caseInsensitiveConstants && alias != 'i' && alias != 'I') {
+        _constants[alias.toLowerCase()] = expr;
+      }
+    }
+  }
+
+  /// Removes a constant binding so [name] parses as a [Variable].
+  void removeConstant(String name) {
+    _constants.remove(name);
+    _constants.remove(name.toLowerCase());
+  }
+
+  /// Clears all registered constants.
+  void clearConstants() => _constants.clear();
+
+  /// Binds an identifier [name] (such as `'r0'` or `'ans'`) to [expr] at parse
+  /// time.
+  void defineVariable(String name, Expr expr) {
+    _variables[name] = expr;
+  }
+
+  /// Removes a bound variable [name].
+  void removeVariable(String name) {
+    _variables.remove(name);
+  }
+
+  /// Clears all bound variables.
+  void clearVariables() => _variables.clear();
+
+  /// Registers or replaces a 1-argument function [name].
+  void defineUnaryFunction(
+    String name,
+    Expr Function(Expr arg) builder, {
+    Iterable<String> aliases = const [],
+  }) {
+    _unaryFunctions[name] = builder;
+    _unaryFunctions[name.toLowerCase()] = builder;
+    for (final alias in aliases) {
+      _unaryFunctions[alias] = builder;
+      _unaryFunctions[alias.toLowerCase()] = builder;
+    }
+  }
+
+  /// Registers or replaces a 2-argument function [name].
+  void defineBinaryFunction(
+    String name,
+    Expr Function(Expr a, Expr b) builder, {
+    Iterable<String> aliases = const [],
+  }) {
+    _binaryFunctions[name] = builder;
+    _binaryFunctions[name.toLowerCase()] = builder;
+    for (final alias in aliases) {
+      _binaryFunctions[alias] = builder;
+      _binaryFunctions[alias.toLowerCase()] = builder;
+    }
+  }
+
+  /// Registers or replaces a variadic function [name].
+  void defineVariadicFunction(
+    String name,
+    Expr Function(List<Expr> args) builder, {
+    Iterable<String> aliases = const [],
+  }) {
+    _variadicFunctions[name] = builder;
+    _variadicFunctions[name.toLowerCase()] = builder;
+    for (final alias in aliases) {
+      _variadicFunctions[alias] = builder;
+      _variadicFunctions[alias.toLowerCase()] = builder;
+    }
+  }
+
+  /// Removes all function bindings with [name].
+  void removeFunction(String name) {
+    final lower = name.toLowerCase();
+    _unaryFunctions
+      ..remove(name)
+      ..remove(lower);
+    _binaryFunctions
+      ..remove(name)
+      ..remove(lower);
+    _variadicFunctions
+      ..remove(name)
+      ..remove(lower);
+  }
+
+  /// Builds an immutable [ExprSyntax] from the current configuration.
+  ExprSyntax build() => ExprSyntax._(
+    constants: _constants,
+    variables: _variables,
+    unaryFunctions: _unaryFunctions,
+    binaryFunctions: _binaryFunctions,
+    variadicFunctions: _variadicFunctions,
+    implicitMultiplication: implicitMultiplication,
+    caseInsensitiveConstants: caseInsensitiveConstants,
+    caseInsensitiveFunctions: caseInsensitiveFunctions,
+  );
+}
+
+/// Grammar and parser for mathematical expressions into [Expr] ASTs.
+class Parser {
+  new _();
+
+  /// Parses [input] into an [Expr], throwing [FormatException] on syntax errors.
+  static Expr parse(String input, {ExprSyntax? syntax}) =>
+      (syntax ?? ExprSyntax.standard()).parse(input);
+
+  /// Parses [input] into an [Expr], or returns `null` if [input] is invalid.
+  static Expr? tryParse(String input, {ExprSyntax? syntax}) =>
+      (syntax ?? ExprSyntax.standard()).tryParse(input);
 }

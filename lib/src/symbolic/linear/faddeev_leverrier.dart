@@ -50,7 +50,7 @@ class FaddeevLeVerrierEngine {
       if (k < n) {
         // A_k = A * B_{k-1}
         final ak = Matrix<Expr>.generate(n, n, (r, c) {
-          var sum = RationalNumber.zero as Expr;
+          var sum = IntegerNumber.zero as Expr;
           for (var m = 0; m < n; m++) {
             final prod =
                 matrix.getUnchecked(r, m) * bCurrent.getUnchecked(m, c);
@@ -60,7 +60,7 @@ class FaddeevLeVerrierEngine {
         }, type: effectiveType);
 
         // tr(A_k)
-        var tr = RationalNumber.zero as Expr;
+        var tr = IntegerNumber.zero as Expr;
         for (var i = 0; i < n; i++) {
           tr = tr + ak.getUnchecked(i, i);
         }
@@ -79,7 +79,7 @@ class FaddeevLeVerrierEngine {
         bMatrices.add(bCurrent);
       } else {
         // For k == n, only tr(A_n) = sum_{i,m} A_{im} * (B_{n-1})_{mi} is needed.
-        var tr = RationalNumber.zero as Expr;
+        var tr = IntegerNumber.zero as Expr;
         for (var i = 0; i < n; i++) {
           for (var m = 0; m < n; m++) {
             tr = tr + matrix.getUnchecked(i, m) * bCurrent.getUnchecked(m, i);
@@ -110,7 +110,7 @@ class FaddeevLeVerrierEngine {
     }
 
     final n = matrix.rowCount;
-    if (n == 0) return RationalNumber.one;
+    if (n == 0) return IntegerNumber.one;
 
     final result = compute(matrix);
     final c = result.coefficients;
@@ -148,12 +148,7 @@ class FaddeevLeVerrierEngine {
         ? matrix.type
         : exprDataType;
     if (n == 0) {
-      return Matrix<Expr>.filled(
-        0,
-        0,
-        RationalNumber.zero,
-        type: effectiveType,
-      );
+      return Matrix<Expr>.filled(0, 0, IntegerNumber.zero, type: effectiveType);
     }
     if (n == 1) {
       final a00 = matrix.getUnchecked(0, 0).simplify();
@@ -161,7 +156,7 @@ class FaddeevLeVerrierEngine {
       return Matrix<Expr>.generate(
         1,
         1,
-        (r, c) => (RationalNumber.one / a00).simplify(),
+        (r, c) => (IntegerNumber.one / a00).simplify(),
         type: effectiveType,
       );
     }
@@ -174,7 +169,13 @@ class FaddeevLeVerrierEngine {
     return Matrix<Expr>.generate(n, n, (r, c) {
       final num = bnMinus1.getUnchecked(r, c);
       final direct = (num / cn).simplify();
-      if (direct is! Div) return direct;
+      final hasNegPow = direct.anyNode(
+        (node) =>
+            node is Pow &&
+            node.exponent is RealNumeric &&
+            (node.exponent as RealNumeric).isNegative,
+      );
+      if (!hasNegPow) return direct;
       return cancelFactoredFraction(
         num.factor(),
         cn.factor(),
@@ -183,7 +184,7 @@ class FaddeevLeVerrierEngine {
   }
 
   static bool _isZero(Expr expr) {
-    if (expr == RationalNumber.zero) return true;
+    if (expr == IntegerNumber.zero) return true;
     if (expr is Number && expr.isZero) return true;
     final s = expr.expand().simplify();
     return switch (s) {

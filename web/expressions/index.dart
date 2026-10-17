@@ -705,9 +705,9 @@ void updateAll() {
 
   // Asymptotic limits at +/- infinity depend only on expr, not pointX
   try {
-    final limPos = expr.limit('x', ConstantNumber.infinity);
+    final limPos = expr.limit('x', Constant.infinity);
     try {
-      final limNeg = expr.limit('x', const Neg(ConstantNumber.infinity));
+      final limNeg = expr.limit('x', -Constant.infinity);
       if (limPos == limNeg) {
         setAttrExpr(valEvalLimInf, limPos);
       } else {
@@ -718,7 +718,7 @@ void updateAll() {
     }
   } catch (_) {
     try {
-      final limNeg = expr.limit('x', const Neg(ConstantNumber.infinity));
+      final limNeg = expr.limit('x', -Constant.infinity);
       setAttrValue(valEvalLimInf, '-∞: $limNeg');
     } catch (_) {
       setAttrValue(valEvalLimInf, 'Undefined');
@@ -907,8 +907,8 @@ void updatePointTelemetry() {
   final expr = parsedExpr;
   if (expr != null) {
     final ptExpr = (pointX - pointX.round()).abs() < 1e-9
-        ? RationalNumber(pointX.round())
-        : RationalNumber.fromDouble(pointX);
+        ? IntegerNumber.of(pointX.round())
+        : RealNumber(pointX).rationalize();
     try {
       final limVal = expr.limit('x', ptExpr);
       setAttrExpr(valEvalLim, limVal);
@@ -985,8 +985,8 @@ void updateTaylorTelemetry() {
   taylorAround = selectTaylorCenter.value == 'x0' ? pointX : 0.0;
 
   final centerExpr = (taylorAround - taylorAround.round()).abs() < 1e-9
-      ? RationalNumber(taylorAround.round())
-      : RationalNumber.fromDouble(taylorAround);
+      ? IntegerNumber.of(taylorAround.round())
+      : RealNumber(taylorAround).rationalize();
 
   try {
     final seriesObj = expr.toPowerSeries(
@@ -1665,9 +1665,9 @@ void loadFromUrlHash() {
 }
 
 Number _numberToExpr(double value, {int precision = 2}) {
-  if (value.abs() < 1e-12) return RationalNumber.zero;
+  if (value.abs() < 1e-12) return IntegerNumber.zero;
   final rounded = double.parse(value.toStringAsFixed(precision));
-  if (rounded == 0.0) return RationalNumber.zero;
+  if (rounded == 0.0) return IntegerNumber.zero;
   if (rounded % 1 == 0 && rounded.abs() < 1e12) {
     return RationalNumber(rounded.toInt());
   }

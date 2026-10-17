@@ -20,7 +20,7 @@ extension SeriesExtension on Expr {
   /// ```
   Expr series(
     String variable, {
-    Expr point = RationalNumber.zero,
+    Expr point = IntegerNumber.zero,
     int order = 6,
   }) => toPowerSeries(variable, point: point, order: order).toExpr();
 
@@ -28,7 +28,7 @@ extension SeriesExtension on Expr {
   /// expression around [point] up to [order].
   PowerSeries toPowerSeries(
     String variable, {
-    Expr point = RationalNumber.zero,
+    Expr point = IntegerNumber.zero,
     int order = 6,
   }) => _expandToPowerSeries(this, variable, point, order);
 }
@@ -47,7 +47,7 @@ class PowerSeries {
   /// Expansion variable name.
   final String variable;
 
-  /// Expansion point $a$ (defaults to [RationalNumber.zero]).
+  /// Expansion point $a$ (defaults to [IntegerNumber.zero]).
   final Expr point;
 
   /// Sparse mapping from integer exponent $k$ to symbolic coefficient $c_k$.
@@ -79,8 +79,8 @@ class PowerSeries {
     return (exponent: minExp, coefficient: coefficients[minExp]!);
   }
 
-  /// Constant term $c_0$, or [RationalNumber.zero] if absent.
-  Expr get constantTerm => coefficients[0] ?? RationalNumber.zero;
+  /// Constant term $c_0$, or [IntegerNumber.zero] if absent.
+  Expr get constantTerm => coefficients[0] ?? IntegerNumber.zero;
 
   void _checkCompatible(PowerSeries other) {
     if (variable != other.variable) {
@@ -110,7 +110,7 @@ class PowerSeries {
         final existing = newCoeffs[entry.key];
         newCoeffs[entry.key] = existing == null
             ? entry.value
-            : Add(existing, entry.value).simplify();
+            : (existing + entry.value).simplify();
       }
     }
     return PowerSeries(variable, point, newCoeffs, newOrder);
@@ -130,8 +130,8 @@ class PowerSeries {
       if (entry.key < newOrder) {
         final existing = newCoeffs[entry.key];
         newCoeffs[entry.key] = existing == null
-            ? Neg(entry.value).simplify()
-            : Sub(existing, entry.value).simplify();
+            ? (-entry.value).simplify()
+            : (existing - entry.value).simplify();
       }
     }
     return PowerSeries(variable, point, newCoeffs, newOrder);
@@ -141,7 +141,7 @@ class PowerSeries {
   PowerSeries operator -() {
     final newCoeffs = <int, Expr>{};
     for (final entry in coefficients.entries) {
-      newCoeffs[entry.key] = Neg(entry.value).simplify();
+      newCoeffs[entry.key] = (-entry.value).simplify();
     }
     return PowerSeries(variable, point, newCoeffs, order);
   }
@@ -154,7 +154,7 @@ class PowerSeries {
     }
     final newCoeffs = <int, Expr>{};
     for (final entry in coefficients.entries) {
-      newCoeffs[entry.key] = Mul(entry.value, s).simplify();
+      newCoeffs[entry.key] = (entry.value * s).simplify();
     }
     return PowerSeries(variable, point, newCoeffs, order);
   }
@@ -176,11 +176,9 @@ class PowerSeries {
         final dk = entryB.value;
         final n = j + k;
         if (n < newOrder) {
-          final prod = Mul(cj, dk).simplify();
+          final prod = (cj * dk).simplify();
           final existing = newCoeffs[n];
-          newCoeffs[n] = existing == null
-              ? prod
-              : Add(existing, prod).simplify();
+          newCoeffs[n] = existing == null ? prod : (existing + prod).simplify();
         }
       }
     }
@@ -205,25 +203,25 @@ class PowerSeries {
 
     final u = List<Expr>.generate(
       nu,
-      (j) => coefficients[j + m] ?? RationalNumber.zero,
+      (j) => coefficients[j + m] ?? IntegerNumber.zero,
     );
 
     final v = <int, Expr>{};
-    final invC0 = Div(RationalNumber.one, cm).simplify();
+    final invC0 = (IntegerNumber.one / cm).simplify();
     v[0] = invC0;
 
     for (var k = 1; k < nu; k++) {
-      Expr sum = RationalNumber.zero;
+      Expr sum = IntegerNumber.zero;
       for (var j = 1; j <= k; j++) {
         final uj = u[j];
-        final vj = v[k - j] ?? RationalNumber.zero;
+        final vj = v[k - j] ?? IntegerNumber.zero;
         if (!_isZero(uj) && !_isZero(vj)) {
-          final term = Mul(uj, vj).simplify();
-          sum = Add(sum, term).simplify();
+          final term = (uj * vj).simplify();
+          sum = (sum + term).simplify();
         }
       }
       if (!_isZero(sum)) {
-        v[k] = Neg(Mul(invC0, sum)).simplify();
+        v[k] = (-(invC0 * sum)).simplify();
       }
     }
 
@@ -243,20 +241,22 @@ class PowerSeries {
 
   /// Power of a power series $P(x)^\alpha$.
   PowerSeries pow(Expr exponent) {
-    if (exponent is RationalNumber && exponent.isInteger) {
-      final n = exponent.numerator;
-      if (n == 0) {
-        return PowerSeries(variable, point, {0: RationalNumber.one}, order);
-      }
-      if (n == 1) return this;
-      if (n > 1) {
-        var result = this;
-        for (var i = 1; i < n; i++) {
-          result = result * this;
+    if (exponent is IntegerNumber) {
+      final n = exponent.asInt;
+      if (n != null) {
+        if (n == 0) {
+          return PowerSeries(variable, point, {0: IntegerNumber.one}, order);
         }
-        return result;
+        if (n == 1) return this;
+        if (n > 1) {
+          var result = this;
+          for (var i = 1; i < n; i++) {
+            result = result * this;
+          }
+          return result;
+        }
+        return reciprocal().pow(IntegerNumber.of(-n));
       }
-      return reciprocal().pow(RationalNumber(-n));
     }
 
     // Euler logarithmic derivative power recurrence for non-integer powers
@@ -265,29 +265,32 @@ class PowerSeries {
     }
     final m = valuation;
     if (m != 0) {
-      if (exponent is RationalNumber &&
-          (m * exponent.numerator) % exponent.denominator == 0) {
-        final newM = (m * exponent.numerator) ~/ exponent.denominator;
-        final shiftedCoeffs = <int, Expr>{
-          for (final entry in coefficients.entries) entry.key - m: entry.value,
-        };
-        final unitSeries = PowerSeries(
-          variable,
-          point,
-          shiftedCoeffs,
-          order - m,
-        );
-        final poweredUnit = unitSeries.pow(exponent);
-        final resultCoeffs = <int, Expr>{
-          for (final entry in poweredUnit.coefficients.entries)
-            entry.key + newM: entry.value,
-        };
-        return PowerSeries(
-          variable,
-          point,
-          resultCoeffs,
-          poweredUnit.order + newM,
-        );
+      if (exponent is RationalNumber) {
+        final prod = Integer(m) * exponent.numerator;
+        if ((prod % exponent.denominator).isZero) {
+          final newM = (prod ~/ exponent.denominator).toInt();
+          final shiftedCoeffs = <int, Expr>{
+            for (final entry in coefficients.entries)
+              entry.key - m: entry.value,
+          };
+          final unitSeries = PowerSeries(
+            variable,
+            point,
+            shiftedCoeffs,
+            order - m,
+          );
+          final poweredUnit = unitSeries.pow(exponent);
+          final resultCoeffs = <int, Expr>{
+            for (final entry in poweredUnit.coefficients.entries)
+              entry.key + newM: entry.value,
+          };
+          return PowerSeries(
+            variable,
+            point,
+            resultCoeffs,
+            poweredUnit.order + newM,
+          );
+        }
       }
       throw UnsupportedError(
         'Fractional power series expansion requires integer leading exponent '
@@ -298,23 +301,23 @@ class PowerSeries {
     final q = <int, Expr>{};
     q[0] = Pow(c0, exponent).simplify();
 
-    final invC0 = Div(RationalNumber.one, c0).simplify();
+    final invC0 = (IntegerNumber.one / c0).simplify();
     for (var k = 1; k < order; k++) {
-      Expr sum = RationalNumber.zero;
+      Expr sum = IntegerNumber.zero;
       for (var j = 1; j <= k; j++) {
         final cj = coefficients[j];
-        final qj = q[k - j] ?? RationalNumber.zero;
+        final qj = q[k - j] ?? IntegerNumber.zero;
         if (cj != null && !_isZero(cj) && !_isZero(qj)) {
-          final factor = Sub(
-            Mul(Add(RationalNumber.one, exponent), RationalNumber(j)),
-            RationalNumber(k),
-          ).simplify();
-          final term = Mul(factor, Mul(cj, qj)).simplify();
-          sum = Add(sum, term).simplify();
+          final factor =
+              ((IntegerNumber.one + exponent) * IntegerNumber.of(j) -
+                      IntegerNumber.of(k))
+                  .simplify();
+          final term = (factor * cj * qj).simplify();
+          sum = (sum + term).simplify();
         }
       }
       if (!_isZero(sum)) {
-        q[k] = Div(Mul(invC0, sum), RationalNumber(k)).simplify();
+        q[k] = ((invC0 * sum) / IntegerNumber.of(k)).simplify();
       }
     }
     return PowerSeries(variable, point, q, order);
@@ -329,7 +332,7 @@ class PowerSeries {
       if (k != 0) {
         final newK = k - 1;
         if (newK < newOrder) {
-          newCoeffs[newK] = Mul(RationalNumber(k), entry.value).simplify();
+          newCoeffs[newK] = (IntegerNumber.of(k) * entry.value).simplify();
         }
       }
     }
@@ -352,7 +355,7 @@ class PowerSeries {
       final k = entry.key;
       final newK = k + 1;
       if (newK < newOrder) {
-        newCoeffs[newK] = Div(entry.value, RationalNumber(newK)).simplify();
+        newCoeffs[newK] = (entry.value / IntegerNumber.of(newK)).simplify();
       }
     }
     return PowerSeries(variable, point, newCoeffs, newOrder);
@@ -361,54 +364,35 @@ class PowerSeries {
   /// Converts this power series to a canonical [Expr] AST with [OrderTerm].
   Expr toExpr({bool includeOrder = true}) {
     final sortedKeys = coefficients.keys.toList()..sort();
-    final isCenterZero =
-        point is RationalNumber && (point as RationalNumber).isZero;
+    final isCenterZero = point is Number && (point as Number).isZero;
+    final terms = <Expr>[];
 
-    Expr? result;
     for (final k in sortedKeys) {
       final c = coefficients[k]!;
-      Expr term;
-      var isSub = false;
       if (k == 0) {
-        if (c is RationalNumber && c.isNegative) {
-          isSub = true;
-          term = RationalNumber(-c.numerator, c.denominator);
-        } else {
-          term = c;
-        }
+        terms.add(c);
       } else {
         final delta = isCenterZero
             ? Variable(variable)
-            : Sub(Variable(variable), point);
-        final power = k == 1 ? delta : Pow(delta, RationalNumber(k));
-        if (c is RationalNumber && c.isOne) {
-          term = power;
-        } else if (c is RationalNumber && c.isNegativeOne) {
-          isSub = true;
-          term = power;
-        } else if (c is RationalNumber && c.isNegative) {
-          isSub = true;
-          term = Mul(RationalNumber(-c.numerator, c.denominator), power);
+            : Variable(variable) - point;
+        final power = k == 1 ? delta : Pow(delta, IntegerNumber.of(k));
+        if (c is Number && c.isOne) {
+          terms.add(power);
+        } else if (c is Number && c.isNegativeOne) {
+          terms.add(-power);
         } else {
-          term = Mul(c, power);
+          terms.add(c * power);
         }
-      }
-
-      if (result == null) {
-        result = isSub ? Neg(term) : term;
-      } else if (isSub) {
-        result = Sub(result, term);
-      } else {
-        result = Add(result, term);
       }
     }
 
     if (includeOrder) {
-      final orderTerm = OrderTerm(variable, order, point: point);
-      result = result == null ? orderTerm : Add(result, orderTerm);
+      terms.add(OrderTerm(variable, order, point: point));
     }
 
-    return result ?? RationalNumber.zero;
+    if (terms.isEmpty) return IntegerNumber.zero;
+    if (terms.length == 1) return terms.first;
+    return Add(terms);
   }
 
   static Map<int, Expr> _cleanCoefficients(Map<int, Expr> raw, int order) {
@@ -426,9 +410,6 @@ class PowerSeries {
 
   static bool _isZero(Expr expr) {
     if (expr is Number) return expr.isZero;
-    if (expr is Neg && expr.expr is Number) {
-      return (expr.expr as Number).isZero;
-    }
     final s = expr.simplify();
     return s is Number && s.isZero;
   }
@@ -451,29 +432,22 @@ PowerSeries _expandToPowerSeries(
       order,
     ),
 
-    Number() || Variable() => PowerSeries(variable, point, {0: expr}, order),
+    Number() ||
+    Constant() ||
+    Variable() => PowerSeries(variable, point, {0: expr}, order),
 
-    Add(:final left, :final right) =>
-      _expandToPowerSeries(left, variable, point, order) +
-          _expandToPowerSeries(right, variable, point, order),
+    Add(:final terms) => () {
+      var sum = PowerSeries(variable, point, const {}, order);
+      for (final term in terms) {
+        sum = sum + _expandToPowerSeries(term, variable, point, order);
+      }
+      return sum;
+    }(),
 
-    Sub(:final left, :final right) =>
-      _expandToPowerSeries(left, variable, point, order) -
-          _expandToPowerSeries(right, variable, point, order),
+    Mul(:final factors) => _expandMulFactors(factors, variable, point, order),
 
-    Neg(:final expr) => -_expandToPowerSeries(expr, variable, point, order),
-
-    Mul(:final left, :final right) => _expandMul(
-      left,
-      right,
-      variable,
-      point,
-      order,
-    ),
-
-    Div(:final left, :final right) => _expandDiv(
-      left,
-      right,
+    Pow(base: Constant.e, :final exponent) => _expandExp(
+      exponent,
       variable,
       point,
       order,
@@ -486,8 +460,6 @@ PowerSeries _expandToPowerSeries(
       point,
       order,
     ),
-
-    Exp(:final expr) => _expandExp(expr, variable, point, order),
 
     Ln(:final expr) => _expandLn(expr, variable, point, order),
 
@@ -513,7 +485,7 @@ PowerSeries _expandToPowerSeries(
 
     Acos(:final expr) =>
       PowerSeries(variable, point, {
-            0: const Div(ConstantNumber.pi, RationalNumber(2)).simplify(),
+            0: (Constant.pi / IntegerNumber.two).simplify(),
           }, order) -
           _expandAsin(expr, variable, point, order),
 
@@ -531,7 +503,7 @@ PowerSeries _expandToPowerSeries(
     Erf(:final expr) => _expandErf(expr, variable, point, order),
 
     Erfc(:final expr) =>
-      PowerSeries(variable, point, const {0: RationalNumber.one}, order) -
+      PowerSeries(variable, point, const {0: IntegerNumber.one}, order) -
           _expandErf(expr, variable, point, order),
 
     Asinh(:final expr) => _expandAsinh(expr, variable, point, order),
@@ -567,14 +539,33 @@ void _checkNoPole(PowerSeries u, String functionName) {
 }
 
 PowerSeries _expandVariable(String variable, Expr point, int order) {
-  final isZero = point is RationalNumber && point.isZero;
+  final isZero = point is Number && point.isZero;
   if (isZero) {
-    return PowerSeries(variable, point, {1: RationalNumber.one}, order);
+    return PowerSeries(variable, point, {1: IntegerNumber.one}, order);
   }
-  return PowerSeries(variable, point, {0: point, 1: RationalNumber.one}, order);
+  return PowerSeries(variable, point, {0: point, 1: IntegerNumber.one}, order);
 }
 
-PowerSeries _expandMul(
+PowerSeries _expandMulFactors(
+  List<Expr> factors,
+  String variable,
+  Expr point,
+  int order,
+) {
+  if (factors.isEmpty) {
+    return PowerSeries(variable, point, const {0: IntegerNumber.one}, order);
+  }
+  if (factors.length == 1) {
+    return _expandToPowerSeries(factors.first, variable, point, order);
+  }
+  var res = _expandBinaryMul(factors[0], factors[1], variable, point, order);
+  for (var j = 2; j < factors.length; j++) {
+    res = _expandSeriesTimesExpr(res, factors[j], variable, point, order);
+  }
+  return res;
+}
+
+PowerSeries _expandBinaryMul(
   Expr left,
   Expr right,
   String variable,
@@ -595,27 +586,21 @@ PowerSeries _expandMul(
   return boostedLeft * boostedRight;
 }
 
-PowerSeries _expandDiv(
-  Expr left,
+PowerSeries _expandSeriesTimesExpr(
+  PowerSeries sLeft,
   Expr right,
   String variable,
   Expr point,
   int order,
 ) {
-  final sRight = _expandToPowerSeries(right, variable, point, order);
-  final m = sRight.valuation;
-  if (m <= 0) {
-    final sLeft = _expandToPowerSeries(left, variable, point, order);
-    return sLeft / sRight;
-  }
-  final boostedRight = _expandToPowerSeries(
-    right,
-    variable,
-    point,
-    order + 2 * m,
-  );
-  final boostedLeft = _expandToPowerSeries(left, variable, point, order + m);
-  return boostedLeft / boostedRight;
+  final p = sLeft.poleOrder;
+  final sRight = _expandToPowerSeries(right, variable, point, order + p);
+  final q = sRight.poleOrder;
+  if (q == 0) return sLeft * sRight;
+  final boostedLeft = sLeft
+      .toExpr(includeOrder: false)
+      .toPowerSeries(variable, point: point, order: sLeft.order + q);
+  return boostedLeft * sRight;
 }
 
 PowerSeries _expandExp(Expr inner, String variable, Expr point, int order) {
@@ -630,24 +615,24 @@ PowerSeries _expandExpFromSeries(PowerSeries u) {
   final order = u.order;
 
   final q = <int, Expr>{};
-  q[0] = RationalNumber.one;
+  q[0] = IntegerNumber.one;
 
   for (var k = 1; k < order; k++) {
-    Expr sum = RationalNumber.zero;
+    Expr sum = IntegerNumber.zero;
     for (var j = 1; j <= k; j++) {
       final uj = u.coefficients[j];
-      final qj = q[k - j] ?? RationalNumber.zero;
+      final qj = q[k - j] ?? IntegerNumber.zero;
       if (uj != null && !PowerSeries._isZero(uj) && !PowerSeries._isZero(qj)) {
-        final term = Mul(Mul(RationalNumber(j), uj), qj).simplify();
-        sum = Add(sum, term).simplify();
+        final term = (IntegerNumber.of(j) * uj * qj).simplify();
+        sum = (sum + term).simplify();
       }
     }
     if (!PowerSeries._isZero(sum)) {
-      q[k] = Div(sum, RationalNumber(k)).simplify();
+      q[k] = (sum / IntegerNumber.of(k)).simplify();
     }
   }
   final baseExp = PowerSeries(u.variable, u.point, q, order);
-  return isU0Zero ? baseExp : baseExp.scale(Exp(u0).simplify());
+  return isU0Zero ? baseExp : baseExp.scale(Pow(Constant.e, u0).simplify());
 }
 
 PowerSeries _expandLn(Expr inner, String variable, Expr point, int order) {
@@ -662,22 +647,22 @@ PowerSeries _expandLn(Expr inner, String variable, Expr point, int order) {
 
   final q = <int, Expr>{};
   q[0] = Ln(u0).simplify();
-  final invU0 = Div(RationalNumber.one, u0).simplify();
+  final invU0 = (IntegerNumber.one / u0).simplify();
 
   for (var k = 1; k < order; k++) {
-    final uk = u.coefficients[k] ?? RationalNumber.zero;
-    Expr sum = RationalNumber.zero;
+    final uk = u.coefficients[k] ?? IntegerNumber.zero;
+    Expr sum = IntegerNumber.zero;
     for (var j = 1; j < k; j++) {
       final uj = u.coefficients[j];
-      final qj = q[k - j] ?? RationalNumber.zero;
+      final qj = q[k - j] ?? IntegerNumber.zero;
       if (uj != null && !PowerSeries._isZero(uj) && !PowerSeries._isZero(qj)) {
-        final term = Mul(Mul(RationalNumber(k - j), uj), qj).simplify();
-        sum = Add(sum, term).simplify();
+        final term = (IntegerNumber.of(k - j) * uj * qj).simplify();
+        sum = (sum + term).simplify();
       }
     }
-    final adjusted = Sub(uk, Div(sum, RationalNumber(k))).simplify();
+    final adjusted = (uk - (sum / IntegerNumber.of(k))).simplify();
     if (!PowerSeries._isZero(adjusted)) {
-      q[k] = Mul(invU0, adjusted).simplify();
+      q[k] = (invU0 * adjusted).simplify();
     }
   }
   return PowerSeries(variable, point, q, order);
@@ -701,31 +686,31 @@ PowerSeries _expandCos(Expr inner, String variable, Expr point, int order) =>
 
   final s = <int, Expr>{};
   final c = <int, Expr>{};
-  s[0] = RationalNumber.zero;
-  c[0] = RationalNumber.one;
+  s[0] = IntegerNumber.zero;
+  c[0] = IntegerNumber.one;
 
   for (var k = 1; k < order; k++) {
-    Expr sumS = RationalNumber.zero;
-    Expr sumC = RationalNumber.zero;
+    Expr sumS = IntegerNumber.zero;
+    Expr sumC = IntegerNumber.zero;
     for (var j = 1; j <= k; j++) {
       final uj = u.coefficients[j];
       if (uj != null && !PowerSeries._isZero(uj)) {
-        final weight = Mul(RationalNumber(j), uj).simplify();
-        final cPrev = c[k - j] ?? RationalNumber.zero;
+        final weight = (IntegerNumber.of(j) * uj).simplify();
+        final cPrev = c[k - j] ?? IntegerNumber.zero;
         if (!PowerSeries._isZero(cPrev)) {
-          sumS = Add(sumS, Mul(weight, cPrev)).simplify();
+          sumS = (sumS + weight * cPrev).simplify();
         }
-        final sPrev = s[k - j] ?? RationalNumber.zero;
+        final sPrev = s[k - j] ?? IntegerNumber.zero;
         if (!PowerSeries._isZero(sPrev)) {
-          sumC = Add(sumC, Mul(weight, sPrev)).simplify();
+          sumC = (sumC + weight * sPrev).simplify();
         }
       }
     }
     if (!PowerSeries._isZero(sumS)) {
-      s[k] = Div(sumS, RationalNumber(k)).simplify();
+      s[k] = (sumS / IntegerNumber.of(k)).simplify();
     }
     if (!PowerSeries._isZero(sumC)) {
-      c[k] = Neg(Div(sumC, RationalNumber(k))).simplify();
+      c[k] = (-(sumC / IntegerNumber.of(k))).simplify();
     }
   }
 
@@ -753,8 +738,8 @@ PowerSeries _expandCos(Expr inner, String variable, Expr point, int order) =>
   final expU = _expandExpFromSeries(u);
   final expNegU = _expandExpFromSeries(-u);
   return (
-    sinh: (expU - expNegU).scale(const RationalNumber(1, 2)),
-    cosh: (expU + expNegU).scale(const RationalNumber(1, 2)),
+    sinh: (expU - expNegU).scale(FractionNumber.half),
+    cosh: (expU + expNegU).scale(FractionNumber.half),
   );
 }
 
@@ -770,7 +755,7 @@ PowerSeries _expandAtan(Expr inner, String variable, Expr point, int order) {
   final u0 = u.constantTerm;
   final uPrime = u.derivative();
   final denom =
-      PowerSeries(variable, point, {0: RationalNumber.one}, order) + (u * u);
+      PowerSeries(variable, point, {0: IntegerNumber.one}, order) + (u * u);
   final deriv = uPrime / denom;
   final constant = Atan(u0).simplify();
   return deriv.integrate(constant: constant);
@@ -782,8 +767,8 @@ PowerSeries _expandAsin(Expr inner, String variable, Expr point, int order) {
   final u0 = u.constantTerm;
   final uPrime = u.derivative();
   final oneMinusU2 =
-      PowerSeries(variable, point, {0: RationalNumber.one}, order) - (u * u);
-  final invSqrt = oneMinusU2.pow(const RationalNumber(-1, 2));
+      PowerSeries(variable, point, {0: IntegerNumber.one}, order) - (u * u);
+  final invSqrt = oneMinusU2.pow(FractionNumber.negativeHalf);
   final deriv = uPrime * invSqrt;
   final constant = Asin(u0).simplify();
   return deriv.integrate(constant: constant);
@@ -799,10 +784,8 @@ PowerSeries _expandPow(
   if (!exponent.dependsOn(variable)) {
     final expSimp = exponent.simplify();
     final sBase = _expandToPowerSeries(base, variable, point, order);
-    if (expSimp is RationalNumber &&
-        expSimp.isInteger &&
-        expSimp.numerator < 0) {
-      final k = -expSimp.numerator;
+    if (expSimp is IntegerNumber && expSimp.isNegative) {
+      final k = -(expSimp.asInt ?? 1);
       final m = sBase.valuation;
       if (m > 0) {
         final boostedBase = _expandToPowerSeries(
@@ -816,19 +799,16 @@ PowerSeries _expandPow(
     }
     return sBase.pow(expSimp);
   }
-  return _expandExp(Mul(exponent, Ln(base)), variable, point, order);
+  return _expandExp(exponent * Ln(base), variable, point, order);
 }
 
 PowerSeries _expandAbs(Expr inner, String variable, Expr point, int order) {
   final sInner = _expandToPowerSeries(inner, variable, point, order);
   _checkNoPole(sInner, 'abs');
   final c0 = sInner.constantTerm;
-  if (c0 is RationalNumber) {
-    if (c0.numerator > 0) return sInner;
-    if (c0.isNegative) return -sInner;
-  } else if (c0 is RealNumber) {
-    if (c0.value > 0) return sInner;
-    if (c0.value < 0) return -sInner;
+  if (c0 is RealNumeric) {
+    if (c0.sign > 0) return sInner;
+    if (c0.sign < 0) return -sInner;
   }
   throw UnsupportedError('abs is non-differentiable at zero');
 }
@@ -840,12 +820,12 @@ RationalNumber _lambertWMaclaurinCoeff(int k) {
     denBig *= BigInt.from(i);
   }
   final g = numBig.gcd(denBig);
-  var numRed = (numBig ~/ g).toInt();
-  final denRed = (denBig ~/ g).toInt();
+  var numRed = Integer.big(numBig ~/ g);
+  final denRed = Integer.big(denBig ~/ g);
   if ((k - 1).isOdd) {
     numRed = -numRed;
   }
-  return RationalNumber(numRed, denRed);
+  return RationalNumber.of(numRed, denRed);
 }
 
 PowerSeries _expandLambertW(
@@ -862,7 +842,7 @@ PowerSeries _expandLambertW(
     );
   }
   var res = PowerSeries(variable, point, const {}, order);
-  var uPow = PowerSeries(variable, point, const {0: RationalNumber.one}, order);
+  var uPow = PowerSeries(variable, point, const {0: IntegerNumber.one}, order);
   for (var k = 1; k < order; k++) {
     uPow = uPow * u;
     final ck = _lambertWMaclaurinCoeff(k);
@@ -877,10 +857,7 @@ PowerSeries _expandErf(Expr inner, String variable, Expr point, int order) {
   final u0 = u.constantTerm;
   final uPrime = u.derivative();
   final expNegU2 = _expandExpFromSeries(-(u * u));
-  const factor = Div(
-    RationalNumber(2),
-    Pow(ConstantNumber.pi, RationalNumber(1, 2)),
-  );
+  final factor = IntegerNumber.two / Pow(Constant.pi, FractionNumber.half);
   final deriv = (uPrime * expNegU2).scale(factor);
   final constant = Erf(u0).simplify();
   return deriv.integrate(constant: constant);
@@ -892,9 +869,9 @@ PowerSeries _expandAsinh(Expr inner, String variable, Expr point, int order) {
   final u0 = u.constantTerm;
   final uPrime = u.derivative();
   final onePlusU2 =
-      PowerSeries(variable, point, const {0: RationalNumber.one}, order) +
+      PowerSeries(variable, point, const {0: IntegerNumber.one}, order) +
       (u * u);
-  final invSqrt = onePlusU2.pow(const RationalNumber(-1, 2));
+  final invSqrt = onePlusU2.pow(FractionNumber.negativeHalf);
   final deriv = uPrime * invSqrt;
   final constant = Asinh(u0).simplify();
   return deriv.integrate(constant: constant);
@@ -913,13 +890,15 @@ PowerSeries _expandAcosh(Expr inner, String variable, Expr point, int order) {
       }
     } on UnsupportedError {
       rethrow;
-    } catch (_) {}
+    } on Object {
+      // Ignore numeric evaluation errors on symbolic constants
+    }
   }
   final uPrime = u.derivative();
   final u2MinusOne =
       (u * u) -
-      PowerSeries(variable, point, const {0: RationalNumber.one}, order);
-  final invSqrt = u2MinusOne.pow(const RationalNumber(-1, 2));
+      PowerSeries(variable, point, const {0: IntegerNumber.one}, order);
+  final invSqrt = u2MinusOne.pow(FractionNumber.negativeHalf);
   final deriv = uPrime * invSqrt;
   final constant = Acosh(u0).simplify();
   return deriv.integrate(constant: constant);
@@ -931,7 +910,7 @@ PowerSeries _expandAtanh(Expr inner, String variable, Expr point, int order) {
   final u0 = u.constantTerm;
   final uPrime = u.derivative();
   final oneMinusU2 =
-      PowerSeries(variable, point, const {0: RationalNumber.one}, order) -
+      PowerSeries(variable, point, const {0: IntegerNumber.one}, order) -
       (u * u);
   final deriv = uPrime / oneMinusU2;
   final constant = Atanh(u0).simplify();
@@ -939,7 +918,7 @@ PowerSeries _expandAtanh(Expr inner, String variable, Expr point, int order) {
 }
 
 PowerSeries _expandPiecewise(
-  List<(Expr, Expr)> branches,
+  List<(RelationalExpr, Expr)> branches,
   Expr? otherwise,
   String variable,
   Expr point,
@@ -949,7 +928,6 @@ PowerSeries _expandPiecewise(
     try {
       final ptVal = point.evaluate(const {});
       for (final (cond, expr) in branches) {
-        // Check that point is strictly interior to the branch condition
         final atPt = cond.evaluate({variable: ptVal});
         final leftVal = cond.evaluate({variable: ptVal - 1e-7});
         final rightVal = cond.evaluate({variable: ptVal + 1e-7});
@@ -967,7 +945,9 @@ PowerSeries _expandPiecewise(
       }
     } on UnsupportedError {
       rethrow;
-    } catch (_) {}
+    } on Object {
+      // Fall through if point is not numerically evaluable
+    }
   }
   throw UnsupportedError(
     'Power series expansion not supported for Piecewise at $point',

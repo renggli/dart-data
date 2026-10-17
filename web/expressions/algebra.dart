@@ -12,9 +12,9 @@ String formatRealNumber(num value, {int precision = 4}) {
   return value.toStringAsFixed(precision);
 }
 
-/// Recursively checks whether [expr] explicitly references the imaginary unit `i`.
+/// Recursively checks whether [expr] explicitly references a non-real complex number.
 bool containsImaginary(Expr expr) =>
-    expr.anyNode((node) => node is ConstantNumber && node.name == 'i');
+    expr.anyNode((node) => node is ComplexNumber && !node.isReal);
 
 /// Formats a complex number [c] into standard mathematical notation (e.g. `1 + 2i`, `-i`, `4.50`).
 String formatComplex(Complex c, {int precision = 4}) {
@@ -36,10 +36,10 @@ String formatComplex(Complex c, {int precision = 4}) {
 
 /// Factors an integer into a prime power product expression (e.g. 60 -> 2^2 * 3 * 5).
 Expr factorIntegerExpr(int n) {
-  if (n == 0) return RationalNumber.zero;
+  if (n == 0) return IntegerNumber.zero;
   final isNeg = n < 0;
   var rem = n.abs();
-  if (rem == 1) return RationalNumber(n);
+  if (rem == 1) return IntegerNumber.of(n);
 
   final factors = <int, int>{};
   var d = 2;
@@ -54,42 +54,34 @@ Expr factorIntegerExpr(int n) {
     factors[rem] = (factors[rem] ?? 0) + 1;
   }
 
-  Expr? result;
-  for (final entry in factors.entries) {
-    final prime = RationalNumber(entry.key);
-    final count = entry.value;
-    final term = count == 1 ? prime : Pow(prime, RationalNumber(count));
-    result = result == null ? term : Mul(result, term);
-  }
-  if (result == null) return RationalNumber(n);
-  return isNeg ? Neg(result) : result;
+  final factorNodes = <Expr>[
+    if (isNeg) IntegerNumber.negativeOne,
+    for (final entry in factors.entries)
+      if (entry.value == 1)
+        IntegerNumber.of(entry.key)
+      else
+        Pow(IntegerNumber.of(entry.key), IntegerNumber.of(entry.value)),
+  ];
+  if (factorNodes.isEmpty) return IntegerNumber.of(n);
+  if (factorNodes.length == 1) return factorNodes.first;
+  return Mul(factorNodes);
 }
 
 /// Factors an expression, factoring irreducible polynomials or integers into prime powers.
 Expr factorExpr(Expr expr) {
   final factored = expr.factor();
-  if (factored is RationalNumber &&
-      factored.isInteger &&
-      factored.numerator.abs() > 1) {
-    return factorIntegerExpr(factored.numerator);
-  }
-  if (factored is Neg && factored.expr is RationalNumber) {
-    final inner = factored.expr as RationalNumber;
-    if (inner.isInteger && inner.numerator.abs() > 1) {
-      return Neg(factorIntegerExpr(inner.numerator));
-    }
+  if (factored is IntegerNumber &&
+      !factored.value.isBig &&
+      factored.value.abs() > Integer.one) {
+    return factorIntegerExpr(factored.value.toInt());
   }
 
   // Also check if simplifying the expression yields an integer
   final simp = expr.simplify();
-  if (simp is RationalNumber && simp.isInteger && simp.numerator.abs() > 1) {
-    return factorIntegerExpr(simp.numerator);
-  }
-  if (simp is Neg && simp.expr is RationalNumber) {
-    final inner = simp.expr as RationalNumber;
-    if (inner.isInteger && inner.numerator.abs() > 1) {
-      return Neg(factorIntegerExpr(inner.numerator));
-    }
+  if (simp is IntegerNumber &&
+      !simp.value.isBig &&
+      simp.value.abs() > Integer.one) {
+    return factorIntegerExpr(simp.value.toInt());
   }
 
   return factored;

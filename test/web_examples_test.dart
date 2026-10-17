@@ -207,10 +207,10 @@ void main() {
       test(
         'factorIntegerExpr decomposes composite numbers into prime powers',
         () {
-          check(factorIntegerExpr(0)).equals(RationalNumber.zero);
-          check(factorIntegerExpr(1)).equals(const RationalNumber(1));
-          check(factorIntegerExpr(-1)).equals(const RationalNumber(-1));
-          check(factorIntegerExpr(7)).equals(const RationalNumber(7));
+          check(factorIntegerExpr(0)).equals(IntegerNumber.zero);
+          check(factorIntegerExpr(1)).equals(IntegerNumber.one);
+          check(factorIntegerExpr(-1)).equals(IntegerNumber.negativeOne);
+          check(factorIntegerExpr(7)).equals(IntegerNumber.of(7));
 
           final factored24 = factorIntegerExpr(24);
           check(factored24.toString()).equals('2 ^ 3 * 3');
@@ -222,7 +222,7 @@ void main() {
 
       test('factorExpr factors polynomials and integer numbers', () {
         final poly = Expr.parse('x^2 - 4');
-        check(factorExpr(poly).toString()).equals('(x - 2) * (x + 2)');
+        check(factorExpr(poly).toString()).equals('(-2 + x) * (2 + x)');
 
         final intExpr = Expr.parse('24');
         check(factorExpr(intExpr).toString()).equals('2 ^ 3 * 3');
@@ -230,7 +230,7 @@ void main() {
         final negIntExpr = Expr.parse('-60');
         check(factorExpr(negIntExpr).toString()).equals('-(2 ^ 2 * 3 * 5)');
 
-        const calcExpr = Mul(RationalNumber(12), RationalNumber(2));
+        final calcExpr = Mul([IntegerNumber.of(12), IntegerNumber.of(2)]);
         check(factorExpr(calcExpr).toString()).equals('2 ^ 3 * 3');
       });
     });
@@ -239,7 +239,7 @@ void main() {
       test(
         'detects presence of imaginary constant i in various AST locations',
         () {
-          check(containsImaginary(ConstantNumber.i)).isTrue();
+          check(containsImaginary(Constant.i)).isTrue();
           check(containsImaginary(Expr.parse('exp(i * x)'))).isTrue();
           check(containsImaginary(Expr.parse('(x + i)^2'))).isTrue();
           check(containsImaginary(Expr.parse('sin(2 * i)'))).isTrue();

@@ -34,7 +34,7 @@ class SylvesterResultantSolver {
       final mat = Matrix<Expr>.filled(
         1,
         1,
-        RationalNumber.one,
+        IntegerNumber.one,
         type: exprDataType,
       );
       return mat;
@@ -43,10 +43,10 @@ class SylvesterResultantSolver {
       final mat = Matrix<Expr>.filled(
         degG,
         degG,
-        RationalNumber.zero,
+        IntegerNumber.zero,
         type: exprDataType,
       );
-      final cF = fCoeffs[0] ?? RationalNumber.zero;
+      final cF = fCoeffs[0] ?? IntegerNumber.zero;
       for (var i = 0; i < degG; i++) {
         mat.setUnchecked(i, i, cF);
       }
@@ -56,10 +56,10 @@ class SylvesterResultantSolver {
       final mat = Matrix<Expr>.filled(
         degF,
         degF,
-        RationalNumber.zero,
+        IntegerNumber.zero,
         type: exprDataType,
       );
-      final cG = gCoeffs[0] ?? RationalNumber.zero;
+      final cG = gCoeffs[0] ?? IntegerNumber.zero;
       for (var i = 0; i < degF; i++) {
         mat.setUnchecked(i, i, cG);
       }
@@ -70,14 +70,14 @@ class SylvesterResultantSolver {
     final mat = Matrix<Expr>.filled(
       dim,
       dim,
-      RationalNumber.zero,
+      IntegerNumber.zero,
       type: exprDataType,
     );
 
     // Rows for f (degG rows)
     for (var i = 0; i < degG; i++) {
       for (var p = degF; p >= 0; p--) {
-        final coeff = fCoeffs[p] ?? RationalNumber.zero;
+        final coeff = fCoeffs[p] ?? IntegerNumber.zero;
         final col = (degF - p) + i;
         if (col < dim) {
           mat.setUnchecked(i, col, coeff);
@@ -88,7 +88,7 @@ class SylvesterResultantSolver {
     // Rows for g (degF rows)
     for (var j = 0; j < degF; j++) {
       for (var p = degG; p >= 0; p--) {
-        final coeff = gCoeffs[p] ?? RationalNumber.zero;
+        final coeff = gCoeffs[p] ?? IntegerNumber.zero;
         final col = (degG - p) + j;
         if (col < dim) {
           mat.setUnchecked(degG + j, col, coeff);
@@ -143,7 +143,7 @@ class SylvesterResultantSolver {
   }
 
   static bool _isZeroCoeff(Expr expr) => switch (expr) {
-    RationalNumber(isZero: true) => true,
+    Number(isZero: true) => true,
     RealNumber(value: 0.0) => true,
     _ => false,
   };

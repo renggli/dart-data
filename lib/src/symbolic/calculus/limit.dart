@@ -1,5 +1,4 @@
-import 'package:more/number.dart' show Fraction;
-
+import '../algebra/approximate.dart';
 import '../algebra/simplify.dart';
 import '../algebra/term_accumulator.dart';
 import '../ast.dart';
@@ -32,7 +31,7 @@ extension LimitExtension on Expr {
   /// ```dart
   /// final x = Variable('x');
   /// final expr = Sin(x) / x;
-  /// final lim = expr.limit('x', RationalNumber.zero); // 1
+  /// final lim = expr.limit('x', IntegerNumber.zero); // 1
   /// ```
   Expr limit(
     String variable,
@@ -40,6 +39,11 @@ extension LimitExtension on Expr {
     LimitDirection direction = LimitDirection.both,
   }) => computeLimit(this, variable, point, direction: direction);
 }
+
+final Expr _negInfinity = Mul(const [
+  IntegerNumber.negativeOne,
+  Constant.infinity,
+], isSimplified: true);
 
 /// Computes the symbolic limit of [expr] as [variable] approaches [point].
 Expr computeLimit(
@@ -53,30 +57,32 @@ Expr computeLimit(
   if (expr is Pow &&
       expr.base.dependsOn(variable) &&
       expr.exponent.dependsOn(variable)) {
-    final logForm = Mul(expr.exponent, Ln(expr.base));
+    final logForm = expr.exponent * Ln(expr.base);
     final innerLim = computeLimit(
       logForm,
       variable,
       point,
       direction: direction,
     );
-    if (_isPositiveInfinity(innerLim)) return ConstantNumber.infinity;
-    if (_isNegativeInfinity(innerLim)) return RationalNumber.zero;
-    return Exp(innerLim).simplify();
+    if (_isPositiveInfinity(innerLim)) return Constant.infinity;
+    if (_isNegativeInfinity(innerLim)) return IntegerNumber.zero;
+    return Pow(Constant.e, innerLim).simplify();
   }
 
-  if (expr is Exp) {
+  if (expr is Pow && expr.base == Constant.e) {
     try {
       final innerLim = computeLimit(
-        expr.expr,
+        expr.exponent,
         variable,
         point,
         direction: direction,
       );
-      if (_isPositiveInfinity(innerLim)) return ConstantNumber.infinity;
-      if (_isNegativeInfinity(innerLim)) return RationalNumber.zero;
-      return Exp(innerLim).simplify();
-    } catch (_) {}
+      if (_isPositiveInfinity(innerLim)) return Constant.infinity;
+      if (_isNegativeInfinity(innerLim)) return IntegerNumber.zero;
+      return Pow(Constant.e, innerLim).simplify();
+    } on Object {
+      // Fall through
+    }
   }
 
   if (expr is Ln) {
@@ -87,17 +93,16 @@ Expr computeLimit(
         point,
         direction: direction,
       );
-      if (_isPositiveInfinity(innerLim)) return ConstantNumber.infinity;
-      if (innerLim is RationalNumber && innerLim.isZero) {
-        return const Neg(ConstantNumber.infinity).simplify();
-      }
-      if (innerLim is RealNumber && innerLim.value == 0.0) {
-        return const Neg(ConstantNumber.infinity).simplify();
+      if (_isPositiveInfinity(innerLim)) return Constant.infinity;
+      if (innerLim is Number && innerLim.isZero) {
+        return _negInfinity;
       }
       if (_isWellDefinedFinite(innerLim)) {
         return Ln(innerLim).simplify();
       }
-    } catch (_) {}
+    } on Object {
+      // Fall through
+    }
   }
 
   if (expr is Sin || expr is Cos || expr is Atan || expr is Tanh) {
@@ -110,7 +115,7 @@ Expr computeLimit(
         direction: direction,
       );
       if (_isWellDefinedFinite(innerLim)) {
-        return expr.copyWith(innerLim).simplify();
+        return expr.mapChildren((_) => innerLim).simplify();
       }
       if (_isPositiveInfinity(innerLim) || _isNegativeInfinity(innerLim)) {
         if (expr is Sin || expr is Cos) {
@@ -118,18 +123,20 @@ Expr computeLimit(
         }
         if (expr is Atan) {
           return _isPositiveInfinity(innerLim)
-              ? const Div(ConstantNumber.pi, RationalNumber(2))
-              : const Neg(Div(ConstantNumber.pi, RationalNumber(2)));
+              ? (Constant.pi / IntegerNumber.two).simplify()
+              : (-(Constant.pi / IntegerNumber.two)).simplify();
         }
         if (expr is Tanh) {
           return _isPositiveInfinity(innerLim)
-              ? RationalNumber.one
-              : RationalNumber.negativeOne;
+              ? IntegerNumber.one
+              : IntegerNumber.negativeOne;
         }
       }
     } on UnsupportedError {
       rethrow;
-    } catch (_) {}
+    } on Object {
+      // Fall through
+    }
   }
 
   if (_isPositiveInfinity(point)) {
@@ -148,7 +155,6 @@ Expr _computeFiniteLimit(
   Expr point, {
   LimitDirection direction = LimitDirection.both,
 }) {
-  // Try direct substitution for continuous points
   try {
     final sub = expr.substitute(variable, point).simplify();
     if (_isWellDefinedFinite(sub)) {
@@ -156,36 +162,35 @@ Expr _computeFiniteLimit(
         return sub;
       }
     }
-  } catch (_) {
+  } on Object {
     // Falls through to Laurent series expansion
   }
 
-  // Laurent series expansion via PowerSeries around local coordinate h = 0 (where x = point + h)
   const h = Variable('_h');
-  final localExpr = expr.substitute(variable, Add(point, h)).simplify();
+  final localExpr = expr.substitute(variable, point + h).simplify();
 
-  // Check if localExpr is a rational fraction Div(p, q)
-  if (localExpr is Div) {
+  final (numExpr, denExpr) = splitNumeratorDenominator(localExpr);
+  if (denExpr != IntegerNumber.one) {
     for (final ord in const [6, 14]) {
       try {
-        final sNum = localExpr.left.toPowerSeries(
+        final sNum = numExpr.toPowerSeries(
           '_h',
-          point: RationalNumber.zero,
+          point: IntegerNumber.zero,
           order: ord,
         );
-        final sDen = localExpr.right.toPowerSeries(
+        final sDen = denExpr.toPowerSeries(
           '_h',
-          point: RationalNumber.zero,
+          point: IntegerNumber.zero,
           order: ord,
         );
         final leadNum = sNum.leadingTerm;
         final leadDen = sDen.leadingTerm;
         if (leadNum != null && leadDen != null) {
           final m = leadNum.exponent - leadDen.exponent;
-          final cm = Div(leadNum.coefficient, leadDen.coefficient).simplify();
+          final cm = (leadNum.coefficient / leadDen.coefficient).simplify();
           return _deduceLimitFromLaurentLeading(m, cm, direction, point);
         }
-      } catch (e) {
+      } on Object catch (e) {
         if (e is UnsupportedError &&
             (e.message?.contains('Two-sided limit') ?? false)) {
           rethrow;
@@ -198,53 +203,44 @@ Expr _computeFiniteLimit(
   try {
     var series = localExpr.toPowerSeries(
       '_h',
-      point: RationalNumber.zero,
+      point: IntegerNumber.zero,
       order: 6,
     );
     var lead = series.leadingTerm;
     if (lead == null) {
       series = localExpr.toPowerSeries(
         '_h',
-        point: RationalNumber.zero,
+        point: IntegerNumber.zero,
         order: 14,
       );
       lead = series.leadingTerm;
     }
-    if (lead == null) return RationalNumber.zero;
+    if (lead == null) return IntegerNumber.zero;
     return _deduceLimitFromLaurentLeading(
       lead.exponent,
       lead.coefficient,
       direction,
       point,
     );
-  } catch (e) {
+  } on Object catch (e) {
     if (e is UnsupportedError &&
         (e.message?.contains('Two-sided limit') ?? false)) {
       rethrow;
     }
 
-    // Essential singularities or non-analytic points (such as Abs):
-    // Transform h = +1/t (fromAbove) or h = -1/t (fromBelow) as t -> +oo
     const t = Variable('_t');
+    final invT = IntegerNumber.one / t;
     if (direction == LimitDirection.fromAbove) {
-      final transformed = expr
-          .substitute(variable, Add(point, const Div(RationalNumber.one, t)))
-          .simplify();
+      final transformed = expr.substitute(variable, point + invT).simplify();
       return _computeInfiniteLimit(transformed, '_t', isPositive: true);
     }
     if (direction == LimitDirection.fromBelow) {
-      final transformed = expr
-          .substitute(variable, Sub(point, const Div(RationalNumber.one, t)))
-          .simplify();
+      final transformed = expr.substitute(variable, point - invT).simplify();
       return _computeInfiniteLimit(transformed, '_t', isPositive: true);
     }
     if (direction == LimitDirection.both) {
-      final rightExpr = expr
-          .substitute(variable, Add(point, const Div(RationalNumber.one, t)))
-          .simplify();
-      final leftExpr = expr
-          .substitute(variable, Sub(point, const Div(RationalNumber.one, t)))
-          .simplify();
+      final rightExpr = expr.substitute(variable, point + invT).simplify();
+      final leftExpr = expr.substitute(variable, point - invT).simplify();
       final rightLim = _computeInfiniteLimit(rightExpr, '_t', isPositive: true);
       final leftLim = _computeInfiniteLimit(leftExpr, '_t', isPositive: true);
       if (rightLim == leftLim) return rightLim;
@@ -262,30 +258,19 @@ Expr _deduceLimitFromLaurentLeading(
   LimitDirection direction,
   Expr point,
 ) {
-  if (m > 0) return RationalNumber.zero;
+  if (m > 0) return IntegerNumber.zero;
   if (m == 0) return cm;
 
-  // m < 0: pole of order |m|
   final poleOrder = -m;
   final sign = _getSign(cm);
 
-  if (poleOrder % 2 == 0) {
-    // Even pole (e.g. 1/x^2): both sides approach the same infinity
-    return sign > 0
-        ? ConstantNumber.infinity
-        : const Neg(ConstantNumber.infinity).simplify();
+  if (poleOrder.isEven) {
+    return sign > 0 ? Constant.infinity : _negInfinity;
   }
 
-  // Odd pole (e.g. 1/x): sides have opposite signs
   return switch (direction) {
-    LimitDirection.fromAbove =>
-      sign > 0
-          ? ConstantNumber.infinity
-          : const Neg(ConstantNumber.infinity).simplify(),
-    LimitDirection.fromBelow =>
-      sign > 0
-          ? const Neg(ConstantNumber.infinity).simplify()
-          : ConstantNumber.infinity,
+    LimitDirection.fromAbove => sign > 0 ? Constant.infinity : _negInfinity,
+    LimitDirection.fromBelow => sign > 0 ? _negInfinity : Constant.infinity,
     LimitDirection.both => throw UnsupportedError(
       'Two-sided limit does not exist at $point: left and right limits differ',
     ),
@@ -298,22 +283,16 @@ Expr _computeInfiniteLimit(
   required bool isPositive,
 }) {
   if (!isPositive) {
-    // x -> -oo: substitute x -> -x and evaluate limit as x -> +oo
-    final reflected = expr
-        .substitute(variable, Neg(Variable(variable)))
-        .simplify();
+    final reflected = expr.substitute(variable, -Variable(variable)).simplify();
     return _computeInfiniteLimit(reflected, variable, isPositive: true);
   }
 
-  // Resolve Abs and Piecewise for large positive values of variable (x -> +oo)
   final resolved = _resolveAsymptoticAbsAndPiecewise(expr, variable).simplify();
   if (!resolved.dependsOn(variable)) return resolved;
 
-  // Check for rational functions fast path
   final ratLim = _rationalFunctionLimitAtInfinity(resolved, variable);
   if (ratLim != null) return ratLim;
 
-  // Dominik Gruntz MRV algorithm for exp-log expressions
   return _gruntzLimit(resolved, variable);
 }
 
@@ -324,7 +303,7 @@ Expr _resolveAsymptoticAbsAndPiecewise(Expr expr, String variable) {
   );
   if (mapped is Abs) {
     final sign = _asymptoticSignAtInfinity(mapped.expr, variable);
-    return sign >= 0 ? mapped.expr : Neg(mapped.expr).simplify();
+    return sign >= 0 ? mapped.expr : (-mapped.expr).simplify();
   }
   if (mapped is Piecewise) {
     for (final (cond, branchExpr) in mapped.branches) {
@@ -332,7 +311,9 @@ Expr _resolveAsymptoticAbsAndPiecewise(Expr expr, String variable) {
         if (cond.evaluate({variable: 1e9}) == 1.0) {
           return branchExpr;
         }
-      } catch (_) {}
+      } on Object {
+        // Ignore
+      }
     }
     if (mapped.otherwise != null) {
       return mapped.otherwise!;
@@ -342,15 +323,7 @@ Expr _resolveAsymptoticAbsAndPiecewise(Expr expr, String variable) {
 }
 
 Expr? _rationalFunctionLimitAtInfinity(Expr expr, String variable) {
-  Expr num;
-  Expr den;
-  if (expr is Div) {
-    num = expr.left;
-    den = expr.right;
-  } else {
-    num = expr;
-    den = RationalNumber.one;
-  }
+  final (num, den) = splitNumeratorDenominator(expr);
 
   final degNum = _polynomialDegreeAndLead(num, variable);
   final degDen = _polynomialDegreeAndLead(den, variable);
@@ -360,17 +333,14 @@ Expr? _rationalFunctionLimitAtInfinity(Expr expr, String variable) {
   final (dP, cP) = degNum;
   final (dQ, cQ) = degDen;
 
-  if (dP < dQ) return RationalNumber.zero;
+  if (dP < dQ) return IntegerNumber.zero;
   if (dP == dQ) {
-    return Div(cP, cQ).simplify();
+    return (cP / cQ).simplify();
   }
 
-  // dP > dQ: approaches infinity
-  final ratio = Div(cP, cQ).simplify();
+  final ratio = (cP / cQ).simplify();
   final sign = _getSign(ratio);
-  return sign > 0
-      ? ConstantNumber.infinity
-      : const Neg(ConstantNumber.infinity).simplify();
+  return sign > 0 ? Constant.infinity : _negInfinity;
 }
 
 (int, Expr)? _polynomialDegreeAndLead(Expr expr, String variable) {
@@ -384,31 +354,26 @@ Expr? _rationalFunctionLimitAtInfinity(Expr expr, String variable) {
   var maxDegree = -1;
   Expr? leadCoeff;
 
-  for (final entry in acc.rationalTerms.entries) {
+  for (final entry in acc.terms.entries) {
     final (base, coeff) = (entry.key, entry.value);
     final deg = _monomialDegree(base, variable);
     if (deg == null) return null;
     if (deg > maxDegree) {
       maxDegree = deg;
-      leadCoeff = RationalNumber.fraction(coeff);
+      leadCoeff = coeff;
     }
   }
 
-  for (final entry in acc.realTerms.entries) {
-    final (base, coeff) = (entry.key, entry.value);
-    final deg = _monomialDegree(base, variable);
-    if (deg == null) return null;
-    if (deg > maxDegree) {
-      maxDegree = deg;
-      leadCoeff = RealNumber(coeff);
-    }
+  if (!acc.constant.isZero && maxDegree < 0) {
+    maxDegree = 0;
+    leadCoeff = acc.constant;
   }
 
   if (maxDegree < 0) {
-    return (0, RationalNumber.zero);
+    return (0, IntegerNumber.zero);
   }
 
-  return (maxDegree, leadCoeff ?? RationalNumber.one);
+  return (maxDegree, leadCoeff ?? IntegerNumber.one);
 }
 
 int? _monomialDegree(Expr base, String variable) {
@@ -416,10 +381,9 @@ int? _monomialDegree(Expr base, String variable) {
   if (base is Pow &&
       base.base is Variable &&
       (base.base as Variable).name == variable &&
-      base.exponent is RationalNumber &&
-      (base.exponent as RationalNumber).isInteger) {
-    final n = (base.exponent as RationalNumber).numerator;
-    return n >= 0 ? n : null;
+      base.exponent is IntegerNumber) {
+    final n = (base.exponent as IntegerNumber).asInt;
+    return (n != null && n >= 0) ? n : null;
   }
   if (!base.dependsOn(variable)) return 0;
   return null;
@@ -429,58 +393,46 @@ Expr _gruntzLimit(Expr expr, String variable) {
   var f = expr.simplify();
   if (!f.dependsOn(variable)) return f;
 
-  // Handle bounded oscillations multiplied by decaying factors (Squeeze Theorem)
   if (_containsUnboundedOscillation(f, variable)) {
     final squeezed = _trySqueezeBoundedOscillation(f, variable);
     if (squeezed != null) return squeezed;
     throw UnsupportedError('Limit does not exist due to oscillation');
   }
 
-  // Gruntz logarithmic argument expansion: rewrite ln(x + e^x) -> x + ln(1 + x * e^-x)
   f = _expandLogArguments(f, variable);
 
-  // Check for exponentials
   final expScale = _findDominantExpScale(f, variable);
 
-  // If no exponentials, but contains Ln(variable), substitute variable = Exp(u)
-  // This converts powers of logs and polynomials into exp-log form: ln(x) -> u, x -> e^u
   if (expScale == null && _containsLogOfVariable(f, variable)) {
     const u = Variable('_u');
-    final transformed = f.substitute(variable, const Exp(u)).simplify();
+    final transformed = f.substitute(variable, Pow(Constant.e, u)).simplify();
     return _computeInfiniteLimit(transformed, '_u', isPositive: true);
   }
 
   if (expScale == null) {
-    // MRV is {x}, scale representative is omega = 1/x
     const omega = Variable('_omega');
     final rewritten = f
-        .substitute(variable, const Div(RationalNumber.one, omega))
+        .substitute(variable, IntegerNumber.one / omega)
         .simplify();
 
     for (final ord in const [4, 10]) {
       try {
         final series = rewritten.toPowerSeries(
           '_omega',
-          point: RationalNumber.zero,
+          point: IntegerNumber.zero,
           order: ord,
         );
         final lead = series.leadingTerm;
         if (lead != null) {
-          if (lead.exponent > 0) return RationalNumber.zero;
+          if (lead.exponent > 0) return IntegerNumber.zero;
           if (lead.exponent == 0) {
             if (!lead.coefficient.dependsOn(variable)) return lead.coefficient;
-            return computeLimit(
-              lead.coefficient,
-              variable,
-              ConstantNumber.infinity,
-            );
+            return computeLimit(lead.coefficient, variable, Constant.infinity);
           }
           final sign = _asymptoticSignAtInfinity(lead.coefficient, variable);
-          return sign > 0
-              ? ConstantNumber.infinity
-              : const Neg(ConstantNumber.infinity).simplify();
+          return sign > 0 ? Constant.infinity : _negInfinity;
         }
-      } catch (_) {
+      } on Object {
         break;
       }
     }
@@ -490,7 +442,6 @@ Expr _gruntzLimit(Expr expr, String variable) {
     );
   }
 
-  // Exponentials present: scale representative is omega = exp(-alpha * x^maxDeg)
   const omega = Variable('_omega');
   final rewritten = _rewriteExpInOmega(
     f,
@@ -504,26 +455,19 @@ Expr _gruntzLimit(Expr expr, String variable) {
     try {
       final series = rewritten.toPowerSeries(
         '_omega',
-        point: RationalNumber.zero,
+        point: IntegerNumber.zero,
         order: ord,
       );
       final lead = series.leadingTerm;
       if (lead != null) {
-        if (lead.exponent > 0) return RationalNumber.zero;
+        if (lead.exponent > 0) return IntegerNumber.zero;
         if (lead.exponent < 0) {
           final sign = _asymptoticSignAtInfinity(lead.coefficient, variable);
-          return sign > 0
-              ? ConstantNumber.infinity
-              : const Neg(ConstantNumber.infinity).simplify();
+          return sign > 0 ? Constant.infinity : _negInfinity;
         }
-        // lead.exponent == 0: evaluate limit of leading coefficient recursively
-        return computeLimit(
-          lead.coefficient,
-          variable,
-          ConstantNumber.infinity,
-        );
+        return computeLimit(lead.coefficient, variable, Constant.infinity);
       }
-    } catch (_) {
+    } on Object {
       break;
     }
   }
@@ -538,11 +482,11 @@ Expr _rewriteExpInOmega(
   String variable,
   Expr omega,
   int targetDeg,
-  Fraction alpha,
+  RationalNumber alpha,
 ) {
   if (!expr.dependsOn(variable)) return expr;
-  if (expr is Exp) {
-    return _rewriteSingleExp(expr.expr, variable, omega, targetDeg, alpha);
+  if (expr is Pow && expr.base == Constant.e) {
+    return _rewriteSingleExp(expr.exponent, variable, omega, targetDeg, alpha);
   }
   return expr.mapChildren(
     (c) => _rewriteExpInOmega(c, variable, omega, targetDeg, alpha),
@@ -554,151 +498,137 @@ Expr _rewriteSingleExp(
   String variable,
   Expr omega,
   int targetDeg,
-  Fraction alpha,
+  RationalNumber alpha,
 ) {
   if (!inner.dependsOn(variable)) {
-    return Exp(_rewriteExpInOmega(inner, variable, omega, targetDeg, alpha));
+    return Pow(
+      Constant.e,
+      _rewriteExpInOmega(inner, variable, omega, targetDeg, alpha),
+    );
   }
 
   final dom = _extractDominantPolynomialTerm(inner, variable);
-  if (dom != null && dom.degree == targetDeg && dom.coeff != Fraction.zero) {
-    final ratio = dom.coeff / alpha;
-    if (ratio.denominator == 1) {
-      final k = ratio.numerator;
-      final omegaPower = k == 1
-          ? Pow(omega, RationalNumber.negativeOne)
-          : k == -1
-          ? omega
-          : Pow(omega, RationalNumber(-k));
-      final remRewritten = _rewriteExpInOmega(
-        dom.remainder,
-        variable,
-        omega,
-        targetDeg,
-        alpha,
-      );
-      final expRemainder = remRewritten == RationalNumber.zero
-          ? RationalNumber.one
-          : Exp(remRewritten);
-      return Mul(omegaPower, expRemainder).simplify();
-    }
-  }
-
-  return Exp(_rewriteExpInOmega(inner, variable, omega, targetDeg, alpha));
-}
-
-({int degree, Fraction coeff, Expr remainder})? _extractDominantPolynomialTerm(
-  Expr expr,
-  String variable,
-) {
-  final acc = MonomialAccumulator();
-  acc.add(expr.simplify());
-
-  var maxDeg = 0;
-  var leadCoeff = Fraction.zero;
-  Expr? leadKey;
-  var isRealLead = false;
-
-  for (final entry in acc.rationalTerms.entries) {
-    final deg = _monomialDegree(entry.key, variable);
-    if (deg != null && deg > maxDeg) {
-      maxDeg = deg;
-      leadCoeff = entry.value;
-      leadKey = entry.key;
-      isRealLead = false;
-    }
-  }
-
-  for (final entry in acc.realTerms.entries) {
-    final deg = _monomialDegree(entry.key, variable);
-    if (deg != null && deg > maxDeg) {
-      final frac = Fraction.fromDouble(entry.value, maxDenominator: 64);
-      if ((entry.value - frac.toDouble()).abs() < 1e-12) {
-        maxDeg = deg;
-        leadCoeff = frac;
-        leadKey = entry.key;
-        isRealLead = true;
+  if (dom != null && dom.degree == targetDeg && !dom.coeff.isZero) {
+    final ratio = dom.coeff.divRational(alpha);
+    if (ratio is IntegerNumber) {
+      final k = ratio.asInt;
+      if (k != null) {
+        final omegaPower = k == 1
+            ? Pow(omega, IntegerNumber.negativeOne)
+            : k == -1
+            ? omega
+            : Pow(omega, IntegerNumber.of(-k));
+        final remRewritten = _rewriteExpInOmega(
+          dom.remainder,
+          variable,
+          omega,
+          targetDeg,
+          alpha,
+        );
+        final expRemainder = (remRewritten is Number && remRewritten.isZero)
+            ? IntegerNumber.one
+            : Pow(Constant.e, remRewritten);
+        return (omegaPower * expRemainder).simplify();
       }
     }
   }
 
-  if (maxDeg == 0 || leadCoeff == Fraction.zero || leadKey == null) {
+  return Pow(
+    Constant.e,
+    _rewriteExpInOmega(inner, variable, omega, targetDeg, alpha),
+  );
+}
+
+({int degree, RationalNumber coeff, Expr remainder})?
+_extractDominantPolynomialTerm(Expr expr, String variable) {
+  final acc = MonomialAccumulator();
+  acc.add(expr.simplify());
+
+  var maxDeg = 0;
+  RationalNumber leadCoeff = IntegerNumber.zero;
+  Expr? leadKey;
+
+  for (final entry in acc.terms.entries) {
+    final deg = _monomialDegree(entry.key, variable);
+    if (deg != null && deg > maxDeg) {
+      final val = entry.value;
+      if (val is RationalNumber) {
+        maxDeg = deg;
+        leadCoeff = val;
+        leadKey = entry.key;
+      } else if (val is RealNumber) {
+        final rat = val.rationalize(maxDenominator: 64);
+        if (rat is RationalNumber &&
+            (val.value - rat.toDouble()).abs() < 1e-12) {
+          maxDeg = deg;
+          leadCoeff = rat;
+          leadKey = entry.key;
+        }
+      }
+    }
+  }
+
+  if (maxDeg == 0 || leadCoeff.isZero || leadKey == null) {
     return null;
   }
 
   final remainingTerms = <Expr>[];
-  for (final entry in acc.rationalTerms.entries) {
-    if (!isRealLead && entry.key == leadKey) continue;
-    final term = entry.value == Fraction.one
-        ? entry.key
-        : Mul(RationalNumber.fraction(entry.value), entry.key);
+  for (final entry in acc.terms.entries) {
+    if (entry.key == leadKey) continue;
+    final term = entry.value.isOne ? entry.key : entry.value * entry.key;
     remainingTerms.add(term);
   }
-  for (final entry in acc.realTerms.entries) {
-    if (isRealLead && entry.key == leadKey) continue;
-    final term = entry.value == 1.0
-        ? entry.key
-        : Mul(RealNumber(entry.value), entry.key);
-    remainingTerms.add(term);
-  }
-  if (acc.constantRational != Fraction.zero) {
-    remainingTerms.add(RationalNumber.fraction(acc.constantRational));
-  }
-  if (acc.constantReal != 0.0) {
-    remainingTerms.add(RealNumber(acc.constantReal));
+  if (!acc.constant.isZero) {
+    remainingTerms.add(acc.constant);
   }
 
   if (remainingTerms.isEmpty) {
-    return (degree: maxDeg, coeff: leadCoeff, remainder: RationalNumber.zero);
+    return (degree: maxDeg, coeff: leadCoeff, remainder: IntegerNumber.zero);
   }
-  var res = remainingTerms.first;
-  for (var i = 1; i < remainingTerms.length; i++) {
-    res = Add(res, remainingTerms[i]);
-  }
-  return (degree: maxDeg, coeff: leadCoeff, remainder: res.simplify());
+  return (
+    degree: maxDeg,
+    coeff: leadCoeff,
+    remainder: Add(remainingTerms).simplify(),
+  );
 }
 
 Expr _expandLogArguments(Expr expr, String variable) => switch (expr) {
-  Ln(expr: Add(:final left, :final right)) =>
-    _tryFactorLogAdd(left, right, variable) ?? Ln(Add(left, right)),
+  Ln(expr: Add(:final terms)) when terms.length == 2 =>
+    _tryFactorLogAdd(terms[0], terms[1], variable) ?? Ln(Add(terms)),
   _ => expr.mapChildren((c) => _expandLogArguments(c, variable)),
 };
 
 Expr? _tryFactorLogAdd(Expr a, Expr b, String variable) {
-  if (b is Exp && b.expr.dependsOn(variable)) {
-    final dom = _extractDominantPolynomialTerm(b.expr, variable);
-    if (dom != null && dom.coeff > Fraction.zero) {
-      final negU = Neg(b.expr).simplify();
-      return Add(
-        b.expr,
-        Ln(Add(RationalNumber.one, Mul(a, Exp(negU)))),
-      ).simplify();
+  if (b is Pow && b.base == Constant.e && b.exponent.dependsOn(variable)) {
+    final dom = _extractDominantPolynomialTerm(b.exponent, variable);
+    if (dom != null && dom.coeff.sign > 0) {
+      final negU = (-b.exponent).simplify();
+      return (b.exponent + Ln(IntegerNumber.one + a * Pow(Constant.e, negU)))
+          .simplify();
     }
   }
-  if (a is Exp && a.expr.dependsOn(variable)) {
-    final dom = _extractDominantPolynomialTerm(a.expr, variable);
-    if (dom != null && dom.coeff > Fraction.zero) {
-      final negU = Neg(a.expr).simplify();
-      return Add(
-        a.expr,
-        Ln(Add(RationalNumber.one, Mul(b, Exp(negU)))),
-      ).simplify();
+  if (a is Pow && a.base == Constant.e && a.exponent.dependsOn(variable)) {
+    final dom = _extractDominantPolynomialTerm(a.exponent, variable);
+    if (dom != null && dom.coeff.sign > 0) {
+      final negU = (-a.exponent).simplify();
+      return (a.exponent + Ln(IntegerNumber.one + b * Pow(Constant.e, negU)))
+          .simplify();
     }
   }
   return null;
 }
 
-({int degree, Fraction alpha})? _findDominantExpScale(
+({int degree, RationalNumber alpha})? _findDominantExpScale(
   Expr expr,
   String variable,
 ) {
   var maxDeg = 0;
-  final coeffsAtMax = <Fraction>[];
+  final coeffsAtMax = <RationalNumber>[];
 
   void scan(Expr e) {
-    if (e is Exp && e.expr.dependsOn(variable)) {
-      final dom = _extractDominantPolynomialTerm(e.expr, variable);
-      if (dom != null && dom.coeff != Fraction.zero) {
+    if (e is Pow && e.base == Constant.e && e.exponent.dependsOn(variable)) {
+      final dom = _extractDominantPolynomialTerm(e.exponent, variable);
+      if (dom != null && !dom.coeff.isZero) {
         if (dom.degree > maxDeg) {
           maxDeg = dom.degree;
           coeffsAtMax
@@ -710,6 +640,14 @@ Expr? _tryFactorLogAdd(Expr a, Expr b, String variable) {
       }
     }
     switch (e) {
+      case Add(:final terms):
+        for (final t in terms) {
+          scan(t);
+        }
+      case Mul(:final factors):
+        for (final f in factors) {
+          scan(f);
+        }
       case BinaryExpr(:final left, :final right):
         scan(left);
         scan(right);
@@ -721,7 +659,7 @@ Expr? _tryFactorLogAdd(Expr a, Expr b, String variable) {
           scan(b);
         }
         if (otherwise != null) scan(otherwise);
-      case Number() || Variable() || OrderTerm():
+      case Number() || Constant() || Variable() || OrderTerm():
         break;
     }
   }
@@ -737,7 +675,7 @@ Expr? _tryFactorLogAdd(Expr a, Expr b, String variable) {
     final g = denLcm.gcd(c.denominator);
     denLcm = (denLcm ~/ g) * c.denominator;
   }
-  return (degree: maxDeg, alpha: Fraction(numGcd, denLcm));
+  return (degree: maxDeg, alpha: RationalNumber.of(numGcd, denLcm));
 }
 
 bool _containsLogOfVariable(Expr expr, String variable) =>
@@ -748,9 +686,9 @@ bool _containsUnboundedOscillation(Expr expr, String variable) =>
       if ((e is Sin || e is Cos || e is Tan) &&
           (e as UnaryExpr).expr.dependsOn(variable)) {
         try {
-          final lim = computeLimit(e.expr, variable, ConstantNumber.infinity);
+          final lim = computeLimit(e.expr, variable, Constant.infinity);
           return _isPositiveInfinity(lim) || _isNegativeInfinity(lim);
-        } catch (_) {
+        } on Object {
           return true;
         }
       }
@@ -758,31 +696,14 @@ bool _containsUnboundedOscillation(Expr expr, String variable) =>
     });
 
 Expr? _trySqueezeBoundedOscillation(Expr expr, String variable) {
-  final numFactors = <Expr>[];
-  final denFactors = <Expr>[];
+  final (numExpr, denExpr) = splitNumeratorDenominator(expr);
+  if (denExpr == IntegerNumber.one && expr is! Mul) return null;
 
-  void collect(Expr e, List<Expr> target) {
-    if (e is Mul) {
-      collect(e.left, target);
-      collect(e.right, target);
-    } else if (e is Neg) {
-      target.add(RationalNumber.negativeOne);
-      collect(e.expr, target);
-    } else {
-      target.add(e);
-    }
-  }
+  final numFactors = numExpr is Mul ? numExpr.factors : <Expr>[numExpr];
+  final denFactors = denExpr is Mul
+      ? denExpr.factors
+      : (denExpr == IntegerNumber.one ? <Expr>[] : <Expr>[denExpr]);
 
-  if (expr is Div) {
-    collect(expr.left, numFactors);
-    collect(expr.right, denFactors);
-  } else if (expr is Mul || expr is Neg) {
-    collect(expr, numFactors);
-  } else {
-    return null;
-  }
-
-  // Separate bounded oscillating factors (Sin, Cos, Pow(Sin/Cos, k>0)) in numerator
   final nonOscNum = <Expr>[];
   var hasOsc = false;
   for (final f in numFactors) {
@@ -794,33 +715,26 @@ Expr? _trySqueezeBoundedOscillation(Expr expr, String variable) {
   }
   if (!hasOsc) return null;
 
-  // Denominator must not contain oscillating factors that vanish at infinity
   for (final f in denFactors) {
     if (_containsUnboundedOscillation(f, variable)) return null;
   }
 
-  Expr buildProduct(List<Expr> list) {
-    if (list.isEmpty) return RationalNumber.one;
-    var res = list.first;
-    for (var i = 1; i < list.length; i++) {
-      res = Mul(res, list[i]);
-    }
-    return res;
-  }
+  final numPart = nonOscNum.isEmpty
+      ? IntegerNumber.one
+      : (nonOscNum.length == 1 ? nonOscNum.first : Mul(nonOscNum));
+  final denPart = denFactors.isEmpty
+      ? IntegerNumber.one
+      : (denFactors.length == 1 ? denFactors.first : Mul(denFactors));
 
-  final envelope = Div(
-    buildProduct(nonOscNum),
-    buildProduct(denFactors),
-  ).simplify();
+  final envelope = (numPart / denPart).simplify();
   try {
-    final envLim = computeLimit(envelope, variable, ConstantNumber.infinity);
-    if (envLim is RationalNumber && envLim.isZero) {
-      return RationalNumber.zero;
+    final envLim = computeLimit(envelope, variable, Constant.infinity);
+    if (envLim is Number && envLim.isZero) {
+      return IntegerNumber.zero;
     }
-    if (envLim is RealNumber && envLim.value == 0.0) {
-      return RationalNumber.zero;
-    }
-  } catch (_) {}
+  } on Object {
+    // Ignore
+  }
   return null;
 }
 
@@ -829,58 +743,71 @@ bool _isBoundedOscillator(Expr expr, String variable) {
     return _containsUnboundedOscillation(expr, variable);
   }
   if (expr is Pow &&
-      expr.exponent is RationalNumber &&
-      (expr.exponent as RationalNumber).numerator > 0) {
+      expr.exponent is RealNumeric &&
+      !(expr.exponent as RealNumeric).isNegative &&
+      !(expr.exponent as RealNumeric).isZero) {
     return _isBoundedOscillator(expr.base, variable);
   }
   return false;
 }
 
 bool _isEverywhereContinuous(Expr expr, String variable) => switch (expr) {
-  Number() || Variable() => true,
-  Add(:final left, :final right) ||
-  Sub(:final left, :final right) ||
-  Mul(:final left, :final right) =>
-    _isEverywhereContinuous(left, variable) &&
-        _isEverywhereContinuous(right, variable),
-  Neg(:final expr) ||
+  Number() || Constant() || Variable() => true,
+  Add(:final terms) => terms.every((t) => _isEverywhereContinuous(t, variable)),
+  Mul(:final factors) => factors.every(
+    (f) => _isEverywhereContinuous(f, variable),
+  ),
+  Pow(base: Constant.e, :final exponent) => _isEverywhereContinuous(
+    exponent,
+    variable,
+  ),
+  Pow(:final base, exponent: final IntegerNumber n) when !n.isNegative =>
+    _isEverywhereContinuous(base, variable),
   Sin(:final expr) ||
   Cos(:final expr) ||
   Sinh(:final expr) ||
-  Cosh(:final expr) ||
-  Exp(:final expr) => _isEverywhereContinuous(expr, variable),
+  Cosh(:final expr) => _isEverywhereContinuous(expr, variable),
   _ => false,
 };
 
 bool _isWellDefinedFinite(Expr expr) {
+  if (expr == Constant.infinity || expr == Constant.undefined) return false;
+  if (_isNegativeInfinity(expr)) return false;
   if (expr is RationalNumber) return true;
   if (expr is RealNumber && expr.value.isFinite) return true;
-  if (expr is ConstantNumber && expr.isReal && expr.toDouble().isFinite) {
+  if (expr is Constant && expr.isReal && expr.value.a.isFinite) {
     return true;
   }
-  if (!expr.freeVariables.isNotEmpty) {
+  if (expr.freeVariables.isEmpty) {
     try {
       final v = expr.evaluate(const {});
       return v.isFinite;
-    } catch (_) {}
+    } on Object {
+      return false;
+    }
   }
   return false;
 }
 
 int _getSign(Expr expr) {
   final s = expr.simplify();
-  if (s is RationalNumber) {
-    return s.numerator > 0 ? 1 : (s.numerator < 0 ? -1 : 0);
+  if (s is RealNumeric) {
+    return s.sign;
   }
-  if (s is RealNumber) {
-    return s.value > 0.0 ? 1 : (s.value < 0.0 ? -1 : 0);
+  if (s is Mul && s.factors.isNotEmpty && s.factors.first is RealNumeric) {
+    final firstSign = (s.factors.first as RealNumeric).sign;
+    final rest = s.factors.length == 2
+        ? s.factors[1]
+        : Mul(s.factors.sublist(1));
+    return firstSign * _getSign(rest);
   }
-  if (s is Neg) return -_getSign(s.expr);
   if (s.freeVariables.isEmpty) {
     try {
       final v = s.evaluate(const {});
       if (v.isFinite && v != 0.0) return v > 0.0 ? 1 : -1;
-    } catch (_) {}
+    } on Object {
+      // Ignore
+    }
   }
   return 1;
 }
@@ -888,8 +815,14 @@ int _getSign(Expr expr) {
 int _asymptoticSignAtInfinity(Expr expr, String variable) {
   final s = expr.simplify();
   if (!s.dependsOn(variable)) return _getSign(s);
-  if (s is Neg) return -_asymptoticSignAtInfinity(s.expr, variable);
-  if (s is Exp) return 1;
+  if (s is Pow && s.base == Constant.e) return 1;
+  if (s is Mul && s.factors.isNotEmpty && s.factors.first is RealNumeric) {
+    final firstSign = (s.factors.first as RealNumeric).sign;
+    final rest = s.factors.length == 2
+        ? s.factors[1]
+        : Mul(s.factors.sublist(1));
+    return firstSign * _asymptoticSignAtInfinity(rest, variable);
+  }
 
   final poly = _polynomialDegreeAndLead(s, variable);
   if (poly != null) {
@@ -901,16 +834,15 @@ int _asymptoticSignAtInfinity(Expr expr, String variable) {
     if (val1.isFinite && val1 != 0.0) return val1 > 0.0 ? 1 : -1;
     final val2 = s.evaluate({variable: 1000.0});
     if (val2.isFinite && val2 != 0.0) return val2 > 0.0 ? 1 : -1;
-  } catch (_) {}
+  } on Object {
+    // Ignore
+  }
 
   return 1;
 }
 
 bool _isPositiveInfinity(Expr expr) {
-  if (expr is RealNumber && expr.value == double.infinity) return true;
-  if (expr is ConstantNumber && (expr.name == '∞' || expr.name == 'infinity')) {
-    return true;
-  }
+  if (expr == Constant.infinity) return true;
   if (expr is Variable && (expr.name == '∞' || expr.name == 'infinity')) {
     return true;
   }
@@ -918,17 +850,15 @@ bool _isPositiveInfinity(Expr expr) {
 }
 
 bool _isNegativeInfinity(Expr expr) {
-  if (expr is RealNumber && expr.value == double.negativeInfinity) return true;
-  if (expr is Neg && _isPositiveInfinity(expr.expr)) return true;
-  if (expr is Mul) {
-    if (expr.left is RationalNumber &&
-        (expr.left as RationalNumber).isNegativeOne &&
-        _isPositiveInfinity(expr.right)) {
+  if (expr is Mul && expr.factors.length == 2) {
+    if (expr.factors[0] is RealNumeric &&
+        (expr.factors[0] as RealNumeric).isNegative &&
+        _isPositiveInfinity(expr.factors[1])) {
       return true;
     }
-    if (expr.right is RationalNumber &&
-        (expr.right as RationalNumber).isNegativeOne &&
-        _isPositiveInfinity(expr.left)) {
+    if (expr.factors[1] is RealNumeric &&
+        (expr.factors[1] as RealNumeric).isNegative &&
+        _isPositiveInfinity(expr.factors[0])) {
       return true;
     }
   }
