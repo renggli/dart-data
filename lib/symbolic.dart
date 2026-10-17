@@ -4,6 +4,8 @@ library;
 export 'src/symbolic/algebra/approximate.dart' show ApproximationExtension;
 export 'src/symbolic/algebra/expand.dart' show ExpandExtension;
 export 'src/symbolic/algebra/factor.dart' show FactorExtension;
+export 'src/symbolic/algebra/rational.dart'
+    show PolynomialDivisionResult, RationalFunctionExtension;
 export 'src/symbolic/algebra/simplify.dart' show SimplifierExtension;
 export 'src/symbolic/ast.dart';
 export 'src/symbolic/budget.dart'
