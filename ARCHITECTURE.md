@@ -595,6 +595,8 @@ This document describes the achieved architecture across all subsystems of `pack
     - `factor()` (`lib/src/symbolic/algebra/factor/`) decomposes composite `IntegerNumber` and `FractionNumber` values into prime-power products, extracts multivariate monomial GCDs, factors multivariate differences of squares ($A^2 - B^2$) and sums/differences of cubes ($A^3 \pm B^3$), and performs univariate square-free decomposition ($\gcd(P, P')$) and rational/biquadratic factorization over $\mathbb{Q}$.
   - `RationalFunctionExtension on Expr` (`lib/src/symbolic/algebra/rational.dart`):
     - Provides rational-function and polynomial manipulation: `numerator`, `denominator`, `together()` (combining rational sums over a least common denominator), `cancel()` (cancelling common polynomial and numeric factors), `collect(variable)` (grouping multivariate additive terms by powers of `variable`), `polynomialDivide(divisor, variable)` (exact univariate polynomial division returning `PolynomialDivisionResult`), and `apart(variable)` (partial fraction decomposition via polynomial factorization and `BareissEngine` undetermined coefficients).
+  - `TrigRewriteExtension on Expr` (`lib/src/symbolic/algebra/trig.dart`):
+    - Provides trigonometric and hyperbolic rewriting: `expandTrig()` (angle-addition and De Moivre multiple-angle expansions), `simplifyTrig()` (quotient normalization, Pythagorean reduction, product-to-sum, and double-angle contraction), and `rewrite(RewriteTarget)` (`RewriteTarget.exp`, `RewriteTarget.trig`, `RewriteTarget.sinCos`).
 
 ### 9.5 Unified Bytecode Compiler, Common Subexpression Elimination & Multi-Target Evaluator
 

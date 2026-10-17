@@ -7,6 +7,8 @@ export 'src/symbolic/algebra/factor.dart' show FactorExtension;
 export 'src/symbolic/algebra/rational.dart'
     show PolynomialDivisionResult, RationalFunctionExtension;
 export 'src/symbolic/algebra/simplify.dart' show SimplifierExtension;
+export 'src/symbolic/algebra/trig.dart'
+    show RewriteTarget, TrigRewriteExtension;
 export 'src/symbolic/ast.dart';
 export 'src/symbolic/budget.dart'
     show ComputationBudget, ComputationLimitException;
