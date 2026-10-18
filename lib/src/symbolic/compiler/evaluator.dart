@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 import 'dart:typed_data';
 
+import 'package:more/math.dart';
 import 'package:more/number.dart' show Complex;
 
 import '../../linear/vector.dart';
@@ -207,23 +208,11 @@ final class BytecodeEvaluator {
         case Op.atan:
           stack[sp - 1] = math.atan(stack[sp - 1]);
         case Op.sinh:
-          final v = stack[sp - 1];
-          stack[sp - 1] = v.abs() < 1e-5
-              ? v + (v * v * v) / 6.0
-              : (math.exp(v) - math.exp(-v)) / 2.0;
+          stack[sp - 1] = stack[sp - 1].sinh();
         case Op.cosh:
-          final v = stack[sp - 1];
-          stack[sp - 1] = (math.exp(v) + math.exp(-v)) / 2.0;
+          stack[sp - 1] = stack[sp - 1].cosh();
         case Op.tanh:
-          final v = stack[sp - 1];
-          if (v > 20.0) {
-            stack[sp - 1] = 1.0;
-          } else if (v < -20.0) {
-            stack[sp - 1] = -1.0;
-          } else {
-            final e2 = math.exp(2.0 * v);
-            stack[sp - 1] = (e2 - 1.0) / (e2 + 1.0);
-          }
+          stack[sp - 1] = stack[sp - 1].tanh();
         case Op.abs:
           stack[sp - 1] = stack[sp - 1].abs();
         case Op.sqrt:
@@ -295,22 +284,11 @@ final class BytecodeEvaluator {
           final v = stack[sp - 1];
           stack[sp - 1] = v.isNaN ? double.nan : (v < 0.0 ? math.pi : 0.0);
         case Op.asinh:
-          final v = stack[sp - 1];
-          stack[sp - 1] = math.log(v + math.sqrt(v * v + 1.0));
+          stack[sp - 1] = stack[sp - 1].asinh();
         case Op.acosh:
-          final v = stack[sp - 1];
-          stack[sp - 1] = v < 1.0
-              ? double.nan
-              : math.log(v + math.sqrt(v - 1.0) * math.sqrt(v + 1.0));
+          stack[sp - 1] = stack[sp - 1].acosh();
         case Op.atanh:
-          final v = stack[sp - 1];
-          stack[sp - 1] = (v < -1.0 || v > 1.0)
-              ? double.nan
-              : (v == 1.0
-                    ? double.infinity
-                    : (v == -1.0
-                          ? double.negativeInfinity
-                          : 0.5 * math.log((1.0 + v) / (1.0 - v))));
+          stack[sp - 1] = stack[sp - 1].atanh();
         case Op.lt:
           final b = stack[--sp];
           final a = stack[--sp];
@@ -556,17 +534,11 @@ final class BytecodeEvaluator {
         case Op.conj:
           stack[sp - 1] = stack[sp - 1].conjugate();
         case Op.asinh:
-          final z = stack[sp - 1];
-          stack[sp - 1] = (z + (z * z + Complex.one).sqrt()).log();
+          stack[sp - 1] = stack[sp - 1].asinh();
         case Op.acosh:
-          final z = stack[sp - 1];
-          stack[sp - 1] =
-              (z + (z + Complex.one).sqrt() * (z - Complex.one).sqrt()).log();
+          stack[sp - 1] = stack[sp - 1].acosh();
         case Op.atanh:
-          final z = stack[sp - 1];
-          stack[sp - 1] =
-              ((Complex.one + z) / (Complex.one - z)).log() *
-              const Complex(0.5);
+          stack[sp - 1] = stack[sp - 1].atanh();
         case Op.lt:
           final b = stack[--sp];
           final a = stack[--sp];

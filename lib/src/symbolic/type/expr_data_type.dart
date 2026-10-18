@@ -161,7 +161,9 @@ final class ExprField implements ExtendedField<Expr> {
       return (a * IntegerNumber.of(factor)).simplify();
     }
     final d = factor.toDouble();
-    if (d.isFinite && d == d.truncateToDouble() && d.abs() < 9007199254740992) {
+    if (d.isFinite &&
+        d == d.truncateToDouble() &&
+        d.abs() <= Integer.maxSafe.toDouble()) {
       return (a * IntegerNumber.of(d.toInt())).simplify();
     }
     if (RealNumber.fromDouble(d).rationalize(maxDenominator: 64)

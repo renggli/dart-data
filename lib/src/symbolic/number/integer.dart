@@ -1,6 +1,9 @@
 /// Exact arbitrary-precision integers with a small-value fast path.
 library;
 
+import 'package:more/feature.dart' show isJavaScript;
+import 'package:more/math.dart';
+
 /// An exact integer of arbitrary size that is stored as an [int] whenever its
 /// magnitude is platform-independently safe, and as a [BigInt] otherwise.
 ///
@@ -142,7 +145,7 @@ extension type const Integer._(Object _value) {
         return Integer._small(a + b);
       }
       // Safe operands sum to less than 2^54 in magnitude, exact on the VM.
-      if (!_isWeb) return Integer.from(a + b);
+      if (!isJavaScript) return Integer.from(a + b);
     }
     return Integer.big(toBigInt() + other.toBigInt());
   }
@@ -154,7 +157,7 @@ extension type const Integer._(Object _value) {
       if (-_addLimit < a && a < _addLimit && -_addLimit < b && b < _addLimit) {
         return Integer._small(a - b);
       }
-      if (!_isWeb) return Integer.from(a - b);
+      if (!isJavaScript) return Integer.from(a - b);
     }
     return Integer.big(toBigInt() - other.toBigInt());
   }
@@ -164,12 +167,12 @@ extension type const Integer._(Object _value) {
     final a = _value, b = other._value;
     if (a is int && b is int) {
       if (-_mulLimit < a && a < _mulLimit && -_mulLimit < b && b < _mulLimit) {
-        return _isWeb ? Integer._small(a * b) : Integer.from(a * b);
+        return isJavaScript ? Integer._small(a * b) : Integer.from(a * b);
       }
       // |a| < 2^m and |b| < 2^n imply |a * b| < 2^(m + n).
       final bits = a.abs().bitLength + b.abs().bitLength;
       if (bits <= 53) return Integer._small(a * b);
-      if (!_isWeb && bits <= 63) return Integer.from(a * b);
+      if (!isJavaScript && bits <= 63) return Integer.from(a * b);
     }
     return Integer.big(toBigInt() * other.toBigInt());
   }
@@ -220,15 +223,34 @@ extension type const Integer._(Object _value) {
 
   /// Whether this integer is a prime number ($p \ge 2$).
   ///
-  /// Uses deterministic Miller-Rabin witnesses for 64-bit integers and
-  /// trial division + strong probable prime testing for larger [BigInt] values.
+  /// Delegates to [ProbablyPrimeIntegerExtension.isProbablyPrime] and
+  /// [ProbablyPrimeBigIntExtension.isProbablyPrime].
   bool get isPrime {
-    if (isNegative || isZero || isOne) return false;
     final n = _value;
-    if (n is int) {
-      return _isSmallPrime(n);
+    if (n is int) return n.isProbablyPrime;
+    return (n as BigInt).isProbablyPrime;
+  }
+
+  /// Returns the factorial $n!$ of this non-negative integer.
+  ///
+  /// Delegates to [FactorialIntegerExtension.factorial] when $n \le 18$ and
+  /// [FactorialBigIntExtension.factorial] for larger values.
+  Integer factorial() {
+    final n = _value;
+    if (n is int && n >= 0 && n <= 18) return Integer.from(n.factorial());
+    return Integer.big(toBigInt().factorial());
+  }
+
+  /// Returns the binomial coefficient $\binom{n}{k}$.
+  ///
+  /// Delegates to [BinomialIntegerExtension.binomial] and
+  /// [BinomialBigIntExtension.binomial].
+  Integer binomial(Integer k) {
+    final n = _value, m = k._value;
+    if (n is int && m is int && n <= 56) {
+      return Integer.from(n.binomial(m));
     }
-    return _isBigPrime(n as BigInt);
+    return Integer.big(toBigInt().binomial(k.toBigInt()));
   }
 
   /// Returns this value raised to the non-negative [exponent], or `null` if
@@ -286,67 +308,15 @@ extension type const Integer._(Object _value) {
   static Integer _small(int value) => Integer._(value == 0 ? 0 : value);
 }
 
-/// Whether the code runs on the web, where integers are IEEE doubles.
-const _isWeb = identical(1, 1.0);
-
 /// Operands below this magnitude always add to a safe result.
 const _addLimit = 4503599627370496; // 2^52
 
 /// Operands below this magnitude multiply without wrapping (VM) or precision
 /// loss (web).
-const _mulLimit = _isWeb ? 67108864 : 2147483648; // 2^26 : 2^31
+const _mulLimit = isJavaScript ? 67108864 : 2147483648; // 2^26 : 2^31
 
 /// The value $-2^{53}$, the only 53-bit value outside the safe range.
 final _negativeTwoPow53 = -BigInt.two.pow(53);
 
 /// Pattern of a decimal integer with an optional sign.
 final _decimal = RegExp(r'^[+-]?[0-9]+$');
-
-const _smallPrimes = <int>[2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37];
-
-bool _isSmallPrime(int n) {
-  if (n < 2) return false;
-  for (final p in _smallPrimes) {
-    if (n == p) return true;
-    if (n % p == 0) return false;
-  }
-  if (n < 1369) return true; // 37^2 = 1369
-  if (n < 1000000) {
-    for (var d = 41; d * d <= n; d += 6) {
-      if (n % d == 0 || n % (d + 2) == 0) return false;
-    }
-    return true;
-  }
-  return _isBigPrime(BigInt.from(n));
-}
-
-bool _isBigPrime(BigInt n) {
-  if (n < BigInt.two) return false;
-  for (final p in _smallPrimes) {
-    final bp = BigInt.from(p);
-    if (n == bp) return true;
-    if (n % bp == BigInt.zero) return false;
-  }
-  var d = n - BigInt.one;
-  var r = 0;
-  while (d.isEven) {
-    d ~/= BigInt.two;
-    r++;
-  }
-  for (final aInt in _smallPrimes) {
-    final a = BigInt.from(aInt);
-    if (a >= n) break;
-    var x = a.modPow(d, n);
-    if (x == BigInt.one || x == n - BigInt.one) continue;
-    var composite = true;
-    for (var i = 1; i < r; i++) {
-      x = (x * x) % n;
-      if (x == n - BigInt.one) {
-        composite = false;
-        break;
-      }
-    }
-    if (composite) return false;
-  }
-  return true;
-}

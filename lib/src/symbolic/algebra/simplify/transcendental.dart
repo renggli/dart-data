@@ -527,11 +527,7 @@ Expr simplifyErfc(Expr expr) {
 /// Simplifies an Euler gamma function expression $\Gamma(expr)$.
 Expr simplifyGamma(Expr expr) {
   if (expr case IntegerNumber(asInt: final n?) when n > 0 && n <= 18) {
-    var fact = Integer.one;
-    for (var k = 2; k < n; k++) {
-      fact = fact * Integer(k);
-    }
-    return IntegerNumber(fact);
+    return IntegerNumber(Integer(n - 1).factorial());
   }
   if (expr == FractionNumber.half) {
     return Pow(Constant.pi, FractionNumber.half, isSimplified: true);
@@ -546,18 +542,9 @@ Expr simplifyBeta(Expr a, Expr b) {
   }
   if (a case IntegerNumber(asInt: final m?) when m > 0) {
     if (b case IntegerNumber(asInt: final n?) when n > 0 && m + n <= 18) {
-      var factM = Integer.one;
-      for (var k = 2; k < m; k++) {
-        factM = factM * Integer(k);
-      }
-      var factN = Integer.one;
-      for (var k = 2; k < n; k++) {
-        factN = factN * Integer(k);
-      }
-      var factTotal = Integer.one;
-      for (var k = 2; k < m + n; k++) {
-        factTotal = factTotal * Integer(k);
-      }
+      final factM = Integer(m - 1).factorial();
+      final factN = Integer(n - 1).factorial();
+      final factTotal = Integer(m + n - 1).factorial();
       return RationalNumber.of(factM * factN, factTotal);
     }
     if (m == 1) {
@@ -750,11 +737,7 @@ Expr simplifyLimit(
 /// Simplifies a factorial expression $n!$.
 Expr simplifyFactorial(Expr expr) {
   if (expr case IntegerNumber(asInt: final n?) when n >= 0 && n <= 100) {
-    var fact = Integer.one;
-    for (var k = 2; k <= n; k++) {
-      fact = fact * Integer(k);
-    }
-    return IntegerNumber(fact);
+    return IntegerNumber(Integer(n).factorial());
   }
   if (expr == FractionNumber.negativeHalf) {
     return Pow(Constant.pi, FractionNumber.half, isSimplified: true);
@@ -781,11 +764,7 @@ Expr simplifyBinomial(Expr nExpr, Expr kExpr) {
       if (k < 0 || k > n) return IntegerNumber.zero;
       final m = k < n - k ? k : n - k;
       if (m <= 1000) {
-        var res = Integer.one;
-        for (var i = 1; i <= m; i++) {
-          res = (res * Integer(n - m + i)) ~/ Integer(i);
-        }
-        return IntegerNumber(res);
+        return IntegerNumber(Integer(n).binomial(Integer(k)));
       }
     }
   }

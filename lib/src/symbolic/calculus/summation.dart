@@ -355,7 +355,7 @@ Expr _faulhaberAntidifference(String variable, int p) {
   for (var j = 0; j <= p; j++) {
     final bj = bernoulli[j];
     if (bj.isZero) continue;
-    final binom = _binomialInt(pPlus1, j);
+    final binom = Integer(pPlus1).binomial(Integer(j));
     final coeff = bj
         .mulRational(IntegerNumber(binom))
         .divRational(IntegerNumber.of(pPlus1));
@@ -380,23 +380,12 @@ List<RationalNumber> _bernoulliNumbers(int maxIndex) {
     var sum = IntegerNumber.zero as RationalNumber;
     for (var j = 0; j < m; j++) {
       if (b[j].isZero) continue;
-      final binom = IntegerNumber(_binomialInt(m + 1, j));
+      final binom = IntegerNumber(Integer(m + 1).binomial(Integer(j)));
       sum = sum.addRational(binom.mulRational(b[j]));
     }
     b.add(sum.neg().divRational(IntegerNumber.of(m + 1)));
   }
   return b;
-}
-
-Integer _binomialInt(int n, int k) {
-  if (k < 0 || k > n) return Integer.zero;
-  var kk = k;
-  if (kk > n - kk) kk = n - kk;
-  var result = Integer.one;
-  for (var i = 1; i <= kk; i++) {
-    result = (result * Integer(n - kk + i)) ~/ Integer(i);
-  }
-  return result;
 }
 
 ({Expr ratio, Expr scale})? _matchGeometric(Expr term, String variable) {
@@ -454,7 +443,7 @@ Expr? _solvePolynomialGeometricGosper(
   for (var i = maxDeg; i >= 0; i--) {
     var rhs = pCoeffs[i] ?? IntegerNumber.zero;
     for (var j = i + 1; j <= maxDeg; j++) {
-      final binom = IntegerNumber(_binomialInt(j, i));
+      final binom = IntegerNumber(Integer(j).binomial(Integer(i)));
       rhs = (rhs - r * binom * qCoeffs[j]).simplify();
     }
     qCoeffs[i] = (rhs / rMinus1).simplify();
@@ -517,7 +506,7 @@ Expr? _solvePolynomialFactorialGosper(Map<int, Expr> pCoeffs, String variable) {
     // In (k + 1) * sum_{j} q_j (k + 1)^j - sum_j q_j k^j = sum_j q_j ((k + 1)^(j + 1) - k^j)
     for (var j = m; j <= qDeg; j++) {
       // Coefficient of k^m in (k + 1)^(j + 1) - k^j:
-      final binom = IntegerNumber(_binomialInt(j + 1, m));
+      final binom = IntegerNumber(Integer(j + 1).binomial(Integer(m)));
       final subCoeff = j == m ? (binom - IntegerNumber.one).simplify() : binom;
       rhs = (rhs - subCoeff * qCoeffs[j]).simplify();
     }

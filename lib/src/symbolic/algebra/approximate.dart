@@ -1,3 +1,5 @@
+import 'package:more/number.dart' show Fraction;
+
 import '../ast.dart';
 import 'simplify.dart';
 
@@ -174,38 +176,11 @@ RationalNumber _doubleToRational(
   double tolerance,
 ) {
   if (x == 0.0) return IntegerNumber.zero;
-  final sign = x < 0 ? -1 : 1;
-  final target = x.abs();
-
-  var hPrev = 0;
-  var kPrev = 1;
-  var hCurr = 1;
-  var kCurr = 0;
-  var rem = target;
-
-  for (var step = 0; step < 64; step++) {
-    final a = rem.floor();
-    final hNext = a * hCurr + hPrev;
-    final kNext = a * kCurr + kPrev;
-
-    if (kNext > maxDenominator && kCurr > 0) {
-      break;
-    }
-
-    hPrev = hCurr;
-    kPrev = kCurr;
-    hCurr = hNext;
-    kCurr = kNext;
-
-    final approx = hCurr / kCurr;
-    if ((approx - target).abs() <= tolerance * (target > 1.0 ? target : 1.0)) {
-      break;
-    }
-
-    final frac = rem - a;
-    if (frac <= 1e-15) break;
-    rem = 1.0 / frac;
-  }
-
-  return RationalNumber.of(Integer(sign * hCurr), Integer(kCurr));
+  final scaledTolerance = tolerance * (x.abs() > 1.0 ? x.abs() : 1.0);
+  final fraction = Fraction.fromDouble(
+    x,
+    maxDenominator: maxDenominator,
+    absoluteError: scaledTolerance,
+  );
+  return RationalNumber(fraction.numerator, fraction.denominator);
 }

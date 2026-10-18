@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 
+import '../algebra/approximate.dart';
 import '../algebra/simplify.dart';
 import '../assumptions.dart';
 import '../ast.dart';
@@ -60,14 +61,13 @@ Expr _wrapSeriesPoint(Object point) => switch (point) {
 };
 
 Expr _doubleToPoint(double value) {
-  if (!value.isFinite) return RealNumber.fromDouble(value);
-  for (var den = 1; den <= 64; den++) {
-    final numRound = (value * den).round();
-    if ((value - numRound / den).abs() < 1e-12) {
-      return RationalNumber(numRound, den);
-    }
+  final real = RealNumber.fromDouble(value);
+  if (!value.isFinite) return real;
+  if (real.rationalize(maxDenominator: 64) case final RationalNumber rat
+      when (rat.toDouble() - value).abs() < 1e-12) {
+    return rat;
   }
-  return RealNumber.fromDouble(value);
+  return real;
 }
 
 /// Truncated formal Laurent and power series:
@@ -863,10 +863,7 @@ PowerSeries _expandAbs(Expr inner, String variable, Expr point, int order) {
 
 RationalNumber _lambertWMaclaurinCoeff(int k) {
   final numBig = BigInt.from(k).pow(k - 1);
-  var denBig = BigInt.one;
-  for (var i = 2; i <= k; i++) {
-    denBig *= BigInt.from(i);
-  }
+  final denBig = Integer(k).factorial().toBigInt();
   final g = numBig.gcd(denBig);
   var numRed = Integer.big(numBig ~/ g);
   final denRed = Integer.big(denBig ~/ g);

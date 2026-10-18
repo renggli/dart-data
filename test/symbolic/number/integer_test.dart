@@ -295,6 +295,29 @@ void main() {
       check(IntegerNumber.of(15).isPrime).isFalse();
       check(RationalNumber(3, 2).isPrime).isFalse();
     });
+    test('factorial', () {
+      check(Integer.zero.factorial()).equals(Integer.one);
+      check(Integer.one.factorial()).equals(Integer.one);
+      check(const Integer(5).factorial()).equals(const Integer(120));
+      check(const Integer(18).factorial())
+          .equals(Integer.parse('6402373705728000'));
+      check(const Integer(25).factorial())
+          .equals(Integer.parse('15511210043330985984000000'));
+      check(() => const Integer(-1).factorial()).throws<ArgumentError>();
+    });
+    test('binomial', () {
+      check(Integer.zero.binomial(Integer.zero)).equals(Integer.one);
+      check(const Integer(5).binomial(Integer.zero)).equals(Integer.one);
+      check(const Integer(5).binomial(const Integer(2)))
+          .equals(const Integer(10));
+      check(const Integer(5).binomial(const Integer(5))).equals(Integer.one);
+      check(() => const Integer(5).binomial(const Integer(-1)))
+          .throws<ArgumentError>();
+      check(() => const Integer(5).binomial(const Integer(6)))
+          .throws<ArgumentError>();
+      check(const Integer(60).binomial(const Integer(30)))
+          .equals(Integer.parse('118264581564861424'));
+    });
   });
   group('pow', () {
     test('small results', () {

@@ -1,3 +1,5 @@
+import 'package:more/math.dart';
+
 import '../assumptions.dart';
 import '../ast.dart';
 import 'expand.dart';
@@ -222,24 +224,13 @@ Expr _expandTanh(Expr arg) {
   return null;
 }
 
-int _binom(int n, int k) {
-  if (k < 0 || k > n) return 0;
-  var kk = k;
-  if (kk > n - kk) kk = n - kk;
-  var res = 1;
-  for (var i = 1; i <= kk; i++) {
-    res = (res * (n - kk + i)) ~/ i;
-  }
-  return res;
-}
-
 Expr _deMoivreSin(int n, Expr u) {
   final sinU = Sin(u).simplify();
   final cosU = Cos(u).simplify();
   final terms = <Expr>[];
   for (var k = 1; k <= n; k += 2) {
     final sign = ((k - 1) ~/ 2).isEven ? 1 : -1;
-    final coeff = IntegerNumber.of(sign * _binom(n, k));
+    final coeff = IntegerNumber.of(sign * n.binomial(k));
     final cosPow = n - k == 0
         ? IntegerNumber.one
         : Pow(cosU, IntegerNumber.of(n - k));
@@ -255,7 +246,7 @@ Expr _deMoivreCos(int n, Expr u) {
   final terms = <Expr>[];
   for (var k = 0; k <= n; k += 2) {
     final sign = (k ~/ 2).isEven ? 1 : -1;
-    final coeff = IntegerNumber.of(sign * _binom(n, k));
+    final coeff = IntegerNumber.of(sign * n.binomial(k));
     final cosPow = n - k == 0
         ? IntegerNumber.one
         : Pow(cosU, IntegerNumber.of(n - k));
@@ -271,13 +262,13 @@ Expr _deMoivreTan(int n, Expr u) {
   final denTerms = <Expr>[];
   for (var k = 1; k <= n; k += 2) {
     final sign = ((k - 1) ~/ 2).isEven ? 1 : -1;
-    final coeff = IntegerNumber.of(sign * _binom(n, k));
+    final coeff = IntegerNumber.of(sign * n.binomial(k));
     final pow = k == 1 ? tanU : Pow(tanU, IntegerNumber.of(k));
     numTerms.add((coeff * pow).simplify());
   }
   for (var k = 0; k <= n; k += 2) {
     final sign = (k ~/ 2).isEven ? 1 : -1;
-    final coeff = IntegerNumber.of(sign * _binom(n, k));
+    final coeff = IntegerNumber.of(sign * n.binomial(k));
     final pow = k == 0 ? IntegerNumber.one : Pow(tanU, IntegerNumber.of(k));
     denTerms.add((coeff * pow).simplify());
   }
@@ -289,7 +280,7 @@ Expr _deMoivreSinh(int n, Expr u) {
   final coshU = Cosh(u).simplify();
   final terms = <Expr>[];
   for (var k = 1; k <= n; k += 2) {
-    final coeff = IntegerNumber.of(_binom(n, k));
+    final coeff = IntegerNumber.of(n.binomial(k));
     final coshPow = n - k == 0
         ? IntegerNumber.one
         : Pow(coshU, IntegerNumber.of(n - k));
@@ -304,7 +295,7 @@ Expr _deMoivreCosh(int n, Expr u) {
   final coshU = Cosh(u).simplify();
   final terms = <Expr>[];
   for (var k = 0; k <= n; k += 2) {
-    final coeff = IntegerNumber.of(_binom(n, k));
+    final coeff = IntegerNumber.of(n.binomial(k));
     final coshPow = n - k == 0
         ? IntegerNumber.one
         : Pow(coshU, IntegerNumber.of(n - k));
@@ -321,12 +312,12 @@ Expr _deMoivreTanh(int n, Expr u) {
   final numTerms = <Expr>[];
   final denTerms = <Expr>[];
   for (var k = 1; k <= n; k += 2) {
-    final coeff = IntegerNumber.of(_binom(n, k));
+    final coeff = IntegerNumber.of(n.binomial(k));
     final pow = k == 1 ? tanhU : Pow(tanhU, IntegerNumber.of(k));
     numTerms.add((coeff * pow).simplify());
   }
   for (var k = 0; k <= n; k += 2) {
-    final coeff = IntegerNumber.of(_binom(n, k));
+    final coeff = IntegerNumber.of(n.binomial(k));
     final pow = k == 0 ? IntegerNumber.one : Pow(tanhU, IntegerNumber.of(k));
     denTerms.add((coeff * pow).simplify());
   }
