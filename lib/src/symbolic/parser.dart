@@ -32,6 +32,7 @@ class ExprSyntax {
     Map<String, Expr Function(Expr)> unaryFunctions = const {},
     Map<String, Expr Function(Expr, Expr)> binaryFunctions = const {},
     Map<String, Expr Function(List<Expr>)> variadicFunctions = const {},
+    bool implicitMultiplication = false,
   }) : this.empty(
          constants: {...standardConstants, ...constants},
          unaryFunctions: {...standardUnaryFunctions, ...unaryFunctions},
@@ -40,6 +41,7 @@ class ExprSyntax {
            ...standardVariadicFunctions,
            ...variadicFunctions,
          },
+         implicitMultiplication: implicitMultiplication,
        );
 
   /// Creates a syntax containing only the specified [constants],
@@ -49,6 +51,7 @@ class ExprSyntax {
     Map<String, Expr Function(Expr)> unaryFunctions = const {},
     Map<String, Expr Function(Expr, Expr)> binaryFunctions = const {},
     Map<String, Expr Function(List<Expr>)> variadicFunctions = const {},
+    this.implicitMultiplication = false,
   }) : constants = Map.unmodifiable(constants),
        unaryFunctions = Map.unmodifiable(unaryFunctions),
        binaryFunctions = Map.unmodifiable(binaryFunctions),
@@ -176,7 +179,8 @@ class ExprSyntax {
     },
   );
 
-  static const String _mathSymbols = '+-*/^()[]{},;:.=<>!&|~?@#\$%\\\'"`';
+  static const String _mathSymbols =
+      '+-*/^ˆ\u0302‸＾()[]{},;:.=<>!&|~?@#\$%\\\'"`´¨˜−–×·÷≤≥≠²³⁴√';
 
   /// Registered named constants.
   final Map<String, Expr> constants;
@@ -190,16 +194,48 @@ class ExprSyntax {
   /// Registered variadic functions.
   final Map<String, Expr Function(List<Expr>)> variadicFunctions;
 
-  late final Parser<Expr> _exprParser = _buildExprParser();
+  /// Whether juxtaposition (`2x`, `3(x + 1)`, `(a + b)(c + d)`) is parsed as
+  /// multiplication.
+  final bool implicitMultiplication;
 
-  /// Underlying PetitParser [Parser] for [Expr] strings.
-  late final Parser<Expr> parser = _exprParser.end();
+  /// Reusable untrimmed PetitParser [Parser] for identifier tokens.
+  static final Parser<String> identifierTokenParser =
+      _buildIdentifierTokenParser();
 
-  /// Underlying PetitParser [Parser] for `[a, b, c]` [Vector] literals.
-  late final Parser<Vector<Expr>> vectorParser = _buildVectorParser();
+  /// Reusable untrimmed PetitParser [Parser] for numeric literals.
+  static final Parser<Expr> numberTokenParser = _buildNumberTokenParser();
 
-  /// Underlying PetitParser [Parser] for `[[a, b], [c, d]]` [Matrix] literals.
-  late final Parser<Matrix<Expr>> matrixParser = _buildMatrixParser();
+  /// Reusable unanchored PetitParser [Parser] for identifier tokens.
+  late final Parser<String> identifierParser = identifierTokenParser.trim();
+
+  /// Reusable unanchored PetitParser [Parser] for numeric literals.
+  late final Parser<Expr> numberParser = numberTokenParser.trim();
+
+  /// Reusable unanchored PetitParser [Parser] for [Expr] subexpressions.
+  late final Parser<Expr> expressionParser = _buildExprParser();
+
+  /// Underlying anchored PetitParser [Parser] for [Expr] strings.
+  late final Parser<Expr> parser = expressionParser.end();
+
+  /// Reusable unanchored PetitParser [Parser] for `[a, b, c]` [Vector] literals.
+  late final Parser<Vector<Expr>> vectorElementParser =
+      _buildBracketedExprList().map(
+        (elements) => Vector<Expr>.fromList(elements, type: exprDataType),
+      );
+
+  /// Underlying anchored PetitParser [Parser] for `[a, b, c]` [Vector] literals.
+  late final Parser<Vector<Expr>> vectorParser = vectorElementParser.end();
+
+  /// Reusable unanchored PetitParser [Parser] for `[[a, b], [c, d]]` [Matrix] literals.
+  late final Parser<Matrix<Expr>> matrixElementParser =
+      _buildBracketedExprList()
+          .plusSeparated(char(',').trim())
+          .map((list) => list.elements)
+          .skip(before: char('[').trim(), after: char(']').trim())
+          .map(_createMatrix);
+
+  /// Underlying anchored PetitParser [Parser] for `[[a, b], [c, d]]` [Matrix] literals.
+  late final Parser<Matrix<Expr>> matrixParser = matrixElementParser.end();
 
   /// Parses [input] into an [Expr], throwing [FormatException] on syntax error.
   Expr parse(String input) => switch (parser.parse(input)) {
@@ -271,24 +307,12 @@ class ExprSyntax {
     }
   }
 
-  Parser<List<Expr>> _buildBracketedExprList() => _exprParser
+  Parser<List<Expr>> _buildBracketedExprList() => expressionParser
       .starSeparated(char(',').trim())
       .map((list) => list.elements)
       .skip(before: char('[').trim(), after: char(']').trim());
 
-  Parser<Vector<Expr>> _buildVectorParser() => _buildBracketedExprList()
-      .map((elements) => Vector<Expr>.fromList(elements, type: exprDataType))
-      .end();
-
-  Parser<Matrix<Expr>> _buildMatrixParser() => _buildBracketedExprList()
-      .plusSeparated(char(',').trim())
-      .map((list) => list.elements)
-      .skip(before: char('[').trim(), after: char(']').trim())
-      .map(_createMatrix)
-      .end();
-
-  Parser<Expr> _buildExprParser() {
-    final builder = ExpressionBuilder<Expr>();
+  static Parser<String> _buildIdentifierTokenParser() {
     final symbol = anyOf(_mathSymbols);
     final identifierStart = <Parser<String>>[
       whitespace(),
@@ -299,31 +323,32 @@ class ExprSyntax {
       whitespace(),
       symbol,
     ].toChoiceParser().neg();
-    final identifier = seq2(
+    return seq2(
       identifierStart,
       identifierCont.starString(),
-    ).flatten(message: 'identifier expected').trim();
+    ).flatten(message: 'identifier expected');
+  }
 
+  static Parser<Expr> _buildNumberTokenParser() {
     final digits = digit().plusString();
     final fractional = seq2(char('.'), digit().starString());
     final exponent = seq3(anyOf('eE'), anyOf('+-').optional(), digits);
-    final number =
-        <Parser<Object>>[
-              seq3(digits, fractional.optional(), exponent.optional()),
-              seq3(char('.'), digits, exponent.optional()),
-            ]
-            .toChoiceParser()
-            .flatten(message: 'number expected')
-            .trim()
-            .map(_createNumber);
+    return <Parser<Object>>[
+      seq3(digits, fractional.optional(), exponent.optional()),
+      seq3(char('.'), digits, exponent.optional()),
+    ].toChoiceParser().flatten(message: 'number expected').map(_createNumber);
+  }
+
+  Parser<Expr> _buildExprParser() {
+    final builder = ExpressionBuilder<Expr>();
 
     builder
       // Numbers
-      ..primitive(number)
+      ..primitive(numberParser)
       // Constants, variables, and functions
       ..primitive(
         seq2(
-          identifier,
+          identifierParser,
           builder.loopback
               .plusSeparated(char(',').trim())
               .map((list) => list.elements)
@@ -346,20 +371,30 @@ class ExprSyntax {
     );
 
     // Exponentiation (right-associative)
+    final caretOp = anyOf('^ˆ\u0302‸＾').trim();
     builder.group()
-      ..right(seq2(char('^').trim(), char('-').trim()), (a, _, b) => Pow(a, -b))
-      ..right(seq2(char('^').trim(), char('+').trim()), (a, _, b) => Pow(a, b))
-      ..right(char('^').trim(), (a, _, b) => Pow(a, b));
+      ..right(seq2(caretOp, char('-').trim()), (a, _, b) => Pow(a, -b))
+      ..right(seq2(caretOp, char('+').trim()), (a, _, b) => Pow(a, b))
+      ..right(caretOp, (a, _, b) => Pow(a, b));
 
     // Unary prefix operators (+, -)
     builder.group()
       ..prefix(char('+').trim(), (_, a) => a)
       ..prefix(char('-').trim(), (_, a) => -a);
 
-    // Multiplicative operators (*, /, left-associative)
-    builder.group()
+    // Multiplicative operators (*, /, and optional implicit juxtaposition)
+    final mulGroup = builder.group()
       ..left(char('*').trim(), (a, _, b) => a * b)
       ..left(char('/').trim(), (a, _, b) => a / b);
+    if (implicitMultiplication) {
+      // Negative lookahead prevents implicit multiplication from consuming a
+      // leading '+' or '-' as a unary prefix on the right operand (so 'a - b'
+      // remains subtraction, not 'a * (-b)').
+      mulGroup.left(
+        anyOf('+-*/^ˆ\u0302‸＾)=<>!,;:]').trim().not(),
+        (a, _, b) => a * b,
+      );
+    }
 
     // Additive operators (+, -, left-associative)
     builder.group()

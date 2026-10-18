@@ -20,6 +20,14 @@
 - **Probability & Statistics**: 25+ continuous and discrete probability distributions with exact PDF/CDF/quantile calculations, random sampling, descriptive statistics, Pearson/Spearman correlation, and kernel density estimation.
 - **Numeric Algorithms & Special Functions**: ODE solvers (Runge-Kutta, Dormand-Prince), optimization (Nelder-Mead, BFGS), numerical integration, 1D/2D interpolation, curve fitting (Levenberg-Marquardt, Polynomial, Multiple Linear Regression), FFT, and special functions ($\Gamma$, $\mathrm{B}$, Bessel $J_\nu / Y_\nu$, complete elliptic integrals $K / E$, and hypergeometric functions $_1F_1, {}_2F_1$).
 
+## Interactive Web Examples
+
+Explore the interactive web applications hosted on [GitHub Pages](https://renggli.github.io/dart-data/):
+
+- **[Distributions Dashboard](https://renggli.github.io/dart-data/distributions/)**: Interactive probability density, cumulative distribution, quantile plots, and random sampling across 25+ continuous and discrete distributions.
+- **[Symbolic Expressions Explorer](https://renggli.github.io/dart-data/expressions/)**: Interactive symbolic algebra, rational & trigonometric rewriting, exact calculus, Taylor series, summations, and equation solving.
+- **[Symbolic Calculator](https://renggli.github.io/dart-data/calculator/)**: Notebook & RPN symbolic calculator with live MathML preview, 2D function plotting, and Gröbner basis system solving.
+
 ## Tutorial & Examples
 
 ### 1. Multi-Dimensional Tensors

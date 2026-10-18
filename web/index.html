@@ -1,0 +1,645 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-S1VP1P3SH7"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-S1VP1P3SH7');
+  </script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dart Data — Scientific Computing, CAS &amp; Data Science</title>
+  <meta name="description" content="High-performance scientific computing, symbolic computer algebra, linear algebra, N-dimensional tensors, probability distributions, and columnar DataFrames for Dart.">
+  <link rel="stylesheet" href="https://fred-wang.github.io/MathFonts/LatinModern/mathfonts.css">
+  <link rel="stylesheet" href="shared/style.css">
+  <style>
+    .home-body {
+      display: block;
+      min-height: 100vh;
+      background:
+        radial-gradient(circle at 15% 10%, rgba(59, 130, 246, 0.14), transparent 40%),
+        radial-gradient(circle at 85% 20%, rgba(168, 85, 247, 0.12), transparent 40%),
+        radial-gradient(circle at 50% 90%, rgba(16, 185, 129, 0.10), transparent 45%),
+        var(--bg-primary);
+      color: var(--text-primary);
+    }
+
+    .home-topbar {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 32px;
+      background: rgba(15, 23, 42, 0.82);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .home-brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-family: var(--font-display);
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--text-primary);
+      text-decoration: none;
+    }
+
+    .home-brand-badge {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      font-weight: 600;
+      padding: 2px 8px;
+      border-radius: 999px;
+      background: var(--accent-blue-glow);
+      color: var(--accent-blue);
+      border: 1px solid rgba(59, 130, 246, 0.25);
+    }
+
+    .home-topbar-right {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .ext-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 12px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      text-decoration: none;
+      background: rgba(30, 41, 59, 0.6);
+      border: 1px solid var(--border-color);
+      transition: all 0.2s ease;
+    }
+
+    .ext-link:hover {
+      color: var(--text-primary);
+      border-color: var(--border-hover);
+      background: rgba(51, 65, 85, 0.6);
+    }
+
+    .home-container {
+      max-width: 1240px;
+      margin: 0 auto;
+      padding: 48px 32px 64px;
+    }
+
+    /* Hero Section */
+    .hero {
+      text-align: center;
+      max-width: 820px;
+      margin: 0 auto 48px;
+    }
+
+    .hero h1 {
+      font-family: var(--font-display);
+      font-size: 46px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      line-height: 1.12;
+      background: linear-gradient(135deg, #ffffff 20%, #93c5fd 65%, #c084fc 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 14px;
+    }
+
+    .hero p {
+      font-size: 16px;
+      color: var(--text-secondary);
+      line-height: 1.5;
+    }
+
+    /* Interactive Apps Showcase */
+    .apps-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 20px;
+      margin-bottom: 52px;
+    }
+
+    .app-card {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 24px;
+      border-radius: 16px;
+      background: rgba(30, 41, 59, 0.55);
+      border: 1px solid var(--border-color);
+      box-shadow: var(--glass-shadow);
+      text-decoration: none;
+      color: var(--text-primary);
+      transition: transform 0.2s ease, border-color 0.2s ease, background 0.2s ease;
+      overflow: hidden;
+    }
+
+    .app-card::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border-radius: 16px;
+      padding: 1px;
+      background: linear-gradient(135deg, var(--card-accent, var(--accent-blue)), transparent 60%);
+      -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+      -webkit-mask-composite: xor;
+      mask-composite: exclude;
+      opacity: 0.35;
+      transition: opacity 0.2s ease;
+      pointer-events: none;
+    }
+
+    .app-card:hover {
+      transform: translateY(-3px);
+      background: rgba(30, 41, 59, 0.8);
+      border-color: var(--border-hover);
+    }
+
+    .app-card:hover::before {
+      opacity: 0.9;
+    }
+
+    .app-card-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 14px;
+    }
+
+    .app-card-title {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-family: var(--font-display);
+      font-size: 20px;
+      font-weight: 700;
+    }
+
+    .app-card-arrow {
+      font-size: 16px;
+      color: var(--text-muted);
+      transition: transform 0.2s ease, color 0.2s ease;
+    }
+
+    .app-card:hover .app-card-arrow {
+      transform: translateX(3px);
+      color: var(--text-primary);
+    }
+
+    .app-card-desc {
+      font-size: 13px;
+      color: var(--text-secondary);
+      line-height: 1.45;
+      margin-bottom: 18px;
+    }
+
+    .app-card-math {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 76px;
+      padding: 12px 14px;
+      border-radius: 10px;
+      background: rgba(15, 23, 42, 0.65);
+      border: 1px solid var(--border-color);
+      font-size: 1.05rem;
+      overflow-x: auto;
+    }
+
+    /* Capabilities & Formulas Grid */
+    .section-title {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 20px;
+    }
+
+    .section-title h2 {
+      font-family: var(--font-display);
+      font-size: 14px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--text-muted);
+    }
+
+    .capabilities-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 20px;
+    }
+
+    .cap-card {
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 20px;
+      border-radius: 14px;
+      background: rgba(30, 41, 59, 0.35);
+      border: 1px solid var(--border-color);
+    }
+
+    .cap-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 10px;
+    }
+
+    .cap-title {
+      font-family: var(--font-display);
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+
+    .cap-tag {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      color: var(--text-muted);
+      padding: 2px 6px;
+      border-radius: 4px;
+      background: rgba(15, 23, 42, 0.6);
+      border: 1px solid var(--border-color);
+    }
+
+    .cap-tags-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-bottom: 14px;
+    }
+
+    .cap-pill {
+      font-size: 11px;
+      color: var(--text-secondary);
+      padding: 2px 8px;
+      border-radius: 6px;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid var(--border-color);
+    }
+
+    .cap-formula {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 72px;
+      padding: 12px;
+      border-radius: 10px;
+      background: rgba(15, 23, 42, 0.55);
+      border: 1px solid var(--border-color);
+      font-size: 1.05rem;
+      overflow-x: auto;
+    }
+
+    .home-footer {
+      max-width: 1240px;
+      margin: 0 auto;
+      padding: 28px 32px 48px;
+      border-top: 1px solid var(--border-color);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 16px;
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+
+    .home-footer-links {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+
+    .home-footer a {
+      color: var(--text-secondary);
+      text-decoration: none;
+      transition: color 0.15s ease;
+    }
+
+    .home-footer a:hover {
+      color: var(--text-primary);
+    }
+
+    @media (max-width: 980px) {
+      .apps-grid,
+      .capabilities-grid {
+        grid-template-columns: 1fr;
+      }
+      .hero h1 {
+        font-size: 34px;
+      }
+      .home-topbar {
+        padding: 12px 16px;
+      }
+      .home-container {
+        padding: 32px 16px;
+      }
+      .home-footer {
+        padding: 24px 16px 36px;
+        flex-direction: column;
+        align-items: flex-start;
+      }
+    }
+  </style>
+</head>
+<body class="home-body">
+
+  <header class="home-topbar">
+    <a href="./" class="home-brand">
+      <span>📦 Dart Data</span>
+      <span class="home-brand-badge">package:data</span>
+    </a>
+
+    <nav class="app-nav" aria-label="Switch Application">
+      <a href="./" class="app-nav-link active" title="Dart Data Home">🏠<span class="nav-label">Home</span></a>
+      <a href="distributions/" class="app-nav-link" title="Distributions">📊<span class="nav-label">Distributions</span></a>
+      <a href="expressions/" class="app-nav-link" title="Expressions">⚡<span class="nav-label">Expressions</span></a>
+      <a href="calculator/" class="app-nav-link" title="Symbolic Calculator">🧮<span class="nav-label">Calculator</span></a>
+    </nav>
+
+    <div class="home-topbar-right">
+      <a href="https://pub.dev/packages/data" class="ext-link" target="_blank" rel="noopener">pub.dev ↗</a>
+      <a href="https://github.com/renggli/dart-data" class="ext-link" target="_blank" rel="noopener">GitHub ↗</a>
+    </div>
+  </header>
+
+  <main class="home-container">
+    <section class="hero">
+      <h1>Scientific Computing &amp; Symbolic Algebra for Dart</h1>
+      <p>Exact computer algebra, N-dimensional tensors, linear algebra, probability distributions, numerical solvers, and columnar DataFrames.</p>
+    </section>
+
+    <div class="section-title">
+      <h2>Interactive Web Laboratories</h2>
+    </div>
+
+    <section class="apps-grid">
+      <a href="distributions/" class="app-card" style="--card-accent: var(--accent-blue);">
+        <div>
+          <div class="app-card-top">
+            <div class="app-card-title"><span>📊</span> Distributions</div>
+            <span class="app-card-arrow">→</span>
+          </div>
+          <p class="app-card-desc">25+ continuous &amp; discrete distributions with interactive PDF, CDF, quantile plots, and Monte Carlo sampling.</p>
+        </div>
+        <div class="app-card-math">
+          <math display="block">
+            <mrow><mi>f</mi><mo stretchy="false">(</mo><mi>x</mi><mo stretchy="false">)</mo></mrow>
+            <mo>=</mo>
+            <mfrac>
+              <mn>1</mn>
+              <mrow><mi>σ</mi><msqrt><mrow><mn>2</mn><mi>π</mi></mrow></msqrt></mrow>
+            </mfrac>
+            <msup>
+              <mi>e</mi>
+              <mrow>
+                <mo>−</mo><mfrac><mn>1</mn><mn>2</mn></mfrac>
+                <msup>
+                  <mrow><mo>(</mo><mfrac><mrow><mi>x</mi><mo>−</mo><mi>μ</mi></mrow><mi>σ</mi></mfrac><mo>)</mo></mrow>
+                  <mn>2</mn>
+                </msup>
+              </mrow>
+            </msup>
+          </math>
+        </div>
+      </a>
+
+      <a href="expressions/" class="app-card" style="--card-accent: var(--accent-purple);">
+        <div>
+          <div class="app-card-top">
+            <div class="app-card-title"><span>⚡</span> Expressions</div>
+            <span class="app-card-arrow">→</span>
+          </div>
+          <p class="app-card-desc">Symbolic rewriting, polynomial factorization, exact roots, extrema, Taylor series, and definite integration.</p>
+        </div>
+        <div class="app-card-math">
+          <math display="block">
+            <msubsup><mo>∫</mo><mn>0</mn><mi>∞</mi></msubsup>
+            <msup><mi>e</mi><mrow><mo>−</mo><msup><mi>x</mi><mn>2</mn></msup></mrow></msup>
+            <mo rspace="0.15em">d</mo><mi>x</mi>
+            <mo>=</mo>
+            <mfrac><msqrt><mi>π</mi></msqrt><mn>2</mn></mfrac>
+          </math>
+        </div>
+      </a>
+
+      <a href="calculator/" class="app-card" style="--card-accent: var(--accent-emerald);">
+        <div>
+          <div class="app-card-top">
+            <div class="app-card-title"><span>🧮</span> Calculator</div>
+            <span class="app-card-arrow">→</span>
+          </div>
+          <p class="app-card-desc">Notebook &amp; RPN symbolic workbench with live MathML preview, 2D plotting, and Gröbner basis system solver.</p>
+        </div>
+        <div class="app-card-math">
+          <math display="block">
+            <munderover><mo>∑</mo><mrow><mi>k</mi><mo>=</mo><mn>1</mn></mrow><mi>n</mi></munderover>
+            <msup><mi>k</mi><mn>2</mn></msup>
+            <mo>=</mo>
+            <mfrac>
+              <mrow>
+                <mi>n</mi>
+                <mrow><mo stretchy="false">(</mo><mi>n</mi><mo>+</mo><mn>1</mn><mo stretchy="false">)</mo></mrow>
+                <mrow><mo stretchy="false">(</mo><mn>2</mn><mi>n</mi><mo>+</mo><mn>1</mn><mo stretchy="false">)</mo></mrow>
+              </mrow>
+              <mn>6</mn>
+            </mfrac>
+          </math>
+        </div>
+      </a>
+    </section>
+
+    <div class="section-title">
+      <h2>Library Subsystems</h2>
+    </div>
+
+    <section class="capabilities-grid">
+      <div class="cap-card">
+        <div>
+          <div class="cap-header">
+            <span class="cap-title">Symbolic Algebra &amp; Calculus</span>
+            <span class="cap-tag">symbolic.dart</span>
+          </div>
+          <div class="cap-tags-row">
+            <span class="cap-pill">Exact Rationals</span>
+            <span class="cap-pill">Differentiation</span>
+            <span class="cap-pill">Integration</span>
+            <span class="cap-pill">Taylor Series</span>
+            <span class="cap-pill">Gröbner Bases</span>
+            <span class="cap-pill">Bytecode JIT</span>
+          </div>
+        </div>
+        <div class="cap-formula">
+          <math display="block">
+            <mrow><mi>f</mi><mo stretchy="false">(</mo><mi>x</mi><mo stretchy="false">)</mo></mrow>
+            <mo>=</mo>
+            <munderover><mo>∑</mo><mrow><mi>n</mi><mo>=</mo><mn>0</mn></mrow><mi>∞</mi></munderover>
+            <mfrac>
+              <mrow>
+                <msup><mi>f</mi><mrow><mo stretchy="false">(</mo><mi>n</mi><mo stretchy="false">)</mo></mrow></msup>
+                <mo stretchy="false">(</mo><mi>a</mi><mo stretchy="false">)</mo>
+              </mrow>
+              <mrow><mi>n</mi><mo>!</mo></mrow>
+            </mfrac>
+            <msup><mrow><mo stretchy="false">(</mo><mi>x</mi><mo>−</mo><mi>a</mi><mo stretchy="false">)</mo></mrow><mi>n</mi></msup>
+          </math>
+        </div>
+      </div>
+
+      <div class="cap-card">
+        <div>
+          <div class="cap-header">
+            <span class="cap-title">Linear Algebra &amp; Solvers</span>
+            <span class="cap-tag">linear.dart</span>
+          </div>
+          <div class="cap-tags-row">
+            <span class="cap-pill">LU / QR / Cholesky</span>
+            <span class="cap-pill">SVD &amp; Eigenvalues</span>
+            <span class="cap-pill">Least Squares</span>
+            <span class="cap-pill">GMRES / BiCGSTAB</span>
+            <span class="cap-pill">Bareiss Exact</span>
+          </div>
+        </div>
+        <div class="cap-formula">
+          <math display="block">
+            <mi>A</mi><mo>=</mo><mi>U</mi><mi>Σ</mi><msup><mi>V</mi><mi mathvariant="normal">T</mi></msup>
+            <mspace width="1.2em"></mspace>
+            <mi>A</mi><mi>v</mi><mo>=</mo><mi>λ</mi><mi>v</mi>
+          </math>
+        </div>
+      </div>
+
+      <div class="cap-card">
+        <div>
+          <div class="cap-header">
+            <span class="cap-title">N-Dimensional Tensors</span>
+            <span class="cap-tag">tensor.dart</span>
+          </div>
+          <div class="cap-tags-row">
+            <span class="cap-pill">Zero-Copy Strides</span>
+            <span class="cap-pill">Broadcasting</span>
+            <span class="cap-pill">Einsum</span>
+            <span class="cap-pill">BLAS / LAPACK FFI</span>
+            <span class="cap-pill">SIMD Float32x4</span>
+          </div>
+        </div>
+        <div class="cap-formula">
+          <math display="block">
+            <msub><mi>C</mi><mrow><mi>i</mi><mi>k</mi></mrow></msub>
+            <mo>=</mo>
+            <munder><mo>∑</mo><mi>j</mi></munder>
+            <msub><mi>A</mi><mrow><mi>i</mi><mi>j</mi></mrow></msub>
+            <msub><mi>B</mi><mrow><mi>j</mi><mi>k</mi></mrow></msub>
+          </math>
+        </div>
+      </div>
+
+      <div class="cap-card">
+        <div>
+          <div class="cap-header">
+            <span class="cap-title">Numerical Analysis &amp; ODEs</span>
+            <span class="cap-tag">numeric.dart</span>
+          </div>
+          <div class="cap-tags-row">
+            <span class="cap-pill">Gauss–Kronrod</span>
+            <span class="cap-pill">RK45 Dormand–Prince</span>
+            <span class="cap-pill">Levenberg–Marquardt</span>
+            <span class="cap-pill">BFGS / Nelder–Mead</span>
+            <span class="cap-pill">FFT</span>
+          </div>
+        </div>
+        <div class="cap-formula">
+          <math display="block">
+            <mfrac><mrow><mo>d</mo><mi>y</mi></mrow><mrow><mo>d</mo><mi>t</mi></mrow></mfrac>
+            <mo>=</mo>
+            <mrow><mi>f</mi><mo stretchy="false">(</mo><mi>t</mi><mo>,</mo><mi>y</mi><mo stretchy="false">)</mo></mrow>
+            <mspace width="1.2em"></mspace>
+            <msub><mi>X</mi><mi>k</mi></msub><mo>=</mo>
+            <munderover><mo>∑</mo><mrow><mi>n</mi><mo>=</mo><mn>0</mn></mrow><mrow><mi>N</mi><mo>−</mo><mn>1</mn></mrow></munderover>
+            <msub><mi>x</mi><mi>n</mi></msub>
+            <msup><mi>e</mi><mrow><mo>−</mo><mfrac><mrow><mn>2</mn><mi>π</mi><mi>i</mi><mi>k</mi><mi>n</mi></mrow><mi>N</mi></mfrac></mrow></msup>
+          </math>
+        </div>
+      </div>
+
+      <div class="cap-card">
+        <div>
+          <div class="cap-header">
+            <span class="cap-title">Special Functions &amp; Polynomials</span>
+            <span class="cap-tag">special.dart</span>
+          </div>
+          <div class="cap-tags-row">
+            <span class="cap-pill">Gamma &amp; Beta</span>
+            <span class="cap-pill">Erf &amp; Lambert W</span>
+            <span class="cap-pill">Bessel J / Y</span>
+            <span class="cap-pill">Elliptic K / E</span>
+            <span class="cap-pill">Hypergeometric</span>
+          </div>
+        </div>
+        <div class="cap-formula">
+          <math display="block">
+            <mrow><mi>Γ</mi><mo stretchy="false">(</mo><mi>z</mi><mo stretchy="false">)</mo></mrow><mo>=</mo>
+            <msubsup><mo>∫</mo><mn>0</mn><mi>∞</mi></msubsup>
+            <msup><mi>t</mi><mrow><mi>z</mi><mo>−</mo><mn>1</mn></mrow></msup>
+            <msup><mi>e</mi><mrow><mo>−</mo><mi>t</mi></mrow></msup>
+            <mo rspace="0.15em">d</mo><mi>t</mi>
+            <mspace width="1em"></mspace>
+            <mrow><mi>W</mi><mo stretchy="false">(</mo><mi>z</mi><mo stretchy="false">)</mo></mrow>
+            <msup><mi>e</mi><mrow><mi>W</mi><mo stretchy="false">(</mo><mi>z</mi><mo stretchy="false">)</mo></mrow></msup><mo>=</mo><mi>z</mi>
+          </math>
+        </div>
+      </div>
+
+      <div class="cap-card">
+        <div>
+          <div class="cap-header">
+            <span class="cap-title">DataFrames &amp; Statistics</span>
+            <span class="cap-tag">dataframe.dart</span>
+          </div>
+          <div class="cap-tags-row">
+            <span class="cap-pill">Columnar Tables</span>
+            <span class="cap-pill">Streaming CSV</span>
+            <span class="cap-pill">GroupBy &amp; Joins</span>
+            <span class="cap-pill">Correlation</span>
+            <span class="cap-pill">Kernel Density</span>
+          </div>
+        </div>
+        <div class="cap-formula">
+          <math display="block">
+            <mrow><msub><mover><mi>f</mi><mo stretchy="false">^</mo></mover><mi>h</mi></msub><mo stretchy="false">(</mo><mi>x</mi><mo stretchy="false">)</mo></mrow><mo>=</mo>
+            <mfrac><mn>1</mn><mrow><mi>n</mi><mi>h</mi></mrow></mfrac>
+            <munderover><mo>∑</mo><mrow><mi>i</mi><mo>=</mo><mn>1</mn></mrow><mi>n</mi></munderover>
+            <mi>K</mi><mrow><mo>(</mo><mfrac><mrow><mi>x</mi><mo>−</mo><msub><mi>x</mi><mi>i</mi></msub></mrow><mi>h</mi></mfrac><mo>)</mo></mrow>
+          </math>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="home-footer">
+    <div>
+      Open-source software released under the <a href="https://github.com/renggli/dart-data/blob/main/LICENSE" target="_blank" rel="noopener">MIT License</a> · Copyright © <a href="https://www.lukas-renggli.ch" target="_blank" rel="noopener">Lukas Renggli</a> &amp; contributors.
+    </div>
+    <div class="home-footer-links">
+      <a href="https://pub.dev/packages/data" target="_blank" rel="noopener">pub.dev</a>
+      <a href="https://pub.dev/documentation/data/latest/" target="_blank" rel="noopener">API Docs</a>
+      <a href="https://github.com/renggli/dart-data" target="_blank" rel="noopener">Source Code</a>
+      <a href="https://github.com/renggli/dart-data/issues" target="_blank" rel="noopener">Issue Tracker</a>
+    </div>
+  </footer>
+
+</body>
+</html>

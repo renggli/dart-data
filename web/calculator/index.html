@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-S1VP1P3SH7"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-S1VP1P3SH7');
+  </script>
+  <meta charset="utf-8">
+  <title>Symbolic Calculator — Dart Data</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#0f172a">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" type="image/svg+xml" href="icons/icon.svg">
+  <link rel="stylesheet" href="../shared/style.css">
+  <link rel="stylesheet" href="style.css">
+  <script defer src="index.dart.js"></script>
+</head>
+<body class="calc-body">
+  <header class="app-header calc-header">
+    <div class="header-left">
+      <nav class="app-nav" aria-label="Switch Application">
+        <a href="../" class="app-nav-link" title="Dart Data Home">🏠<span class="nav-label">Home</span></a>
+        <a href="../distributions/" class="app-nav-link" title="Distributions">📊<span class="nav-label">Distributions</span></a>
+        <a href="../expressions/" class="app-nav-link" title="Expressions">⚡<span class="nav-label">Expressions</span></a>
+        <a href="../calculator/" class="app-nav-link active" title="Symbolic Calculator">🧮<span class="nav-label">Calculator</span></a>
+      </nav>
+    </div>
+
+    <div class="calc-header-center">
+      <div class="calc-mode-segmented" role="tablist" aria-label="Calculator Mode">
+        <button id="mode-scroll-btn" type="button" class="calc-mode-btn active" title="Notebook Scroll Mode (Ctrl/Cmd+M)">Scroll</button>
+        <button id="mode-rpn-btn" type="button" class="calc-mode-btn" title="Reverse Polish Notation Stack Mode (Ctrl/Cmd+M)">RPN</button>
+      </div>
+
+      <div class="calc-status-pills">
+        <button id="pill-angle" type="button" class="calc-pill-btn" title="Toggle Angle Unit (RAD / DEG)">RAD</button>
+        <button id="pill-exact" type="button" class="calc-pill-btn" title="Toggle Exact vs Approximate Mode">EXACT</button>
+        <button id="pill-domain" type="button" class="calc-pill-btn" title="Cycle Variable Domain Assumptions">x ∈ ℂ/ℝ</button>
+        <div class="calc-popover-anchor">
+          <button id="pill-vars" type="button" class="calc-pill-btn" title="Assigned Variables &amp; Functions">VARS (0)</button>
+          <div id="vars-drawer" class="calc-popover hidden"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="calc-header-right">
+      <button id="btn-palette" type="button" class="calc-header-btn" title="Command Palette (Ctrl/Cmd+K)">⌘K</button>
+      <div class="calc-popover-anchor">
+        <button id="btn-settings" type="button" class="calc-header-btn" title="Calculator Settings &amp; Export">⚙</button>
+        <div id="settings-popover" class="calc-popover calc-settings-popover hidden"></div>
+      </div>
+      <button id="btn-help" type="button" class="calc-header-btn" title="Syntax &amp; Command Reference (Ctrl/Cmd+/)">?</button>
+    </div>
+  </header>
+
+  <main id="calc-workspace" class="calc-workspace"></main>
+
+  <div id="calc-toast" class="calc-toast hidden" role="status" aria-live="polite"></div>
+</body>
+</html>

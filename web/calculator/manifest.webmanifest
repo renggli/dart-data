@@ -1,0 +1,18 @@
+{
+  "name": "Dart Data Symbolic Calculator",
+  "short_name": "Calculator",
+  "description": "Offline-capable symbolic, matrix, calculus, and RPN scientific calculator powered by package:data.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#0f172a",
+  "theme_color": "#2563eb",
+  "icons": [
+    {
+      "src": "icons/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

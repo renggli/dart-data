@@ -1,6 +1,13 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-S1VP1P3SH7"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-S1VP1P3SH7');
+  </script>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Distributions - Interactive Probability & Statistics</title>
@@ -14,12 +21,16 @@
   <!-- Navigation Sidebar -->
   <aside class="sidebar">
     <div class="sidebar-header">
-      <h1><span class="app-icon">📊</span> Distributions</h1>
+      <div class="sidebar-top">
+        <h1><span class="app-icon">📊</span> Distributions</h1>
+        <nav class="app-nav" aria-label="Switch Application">
+          <a href="../" class="app-nav-link" title="Dart Data Home">🏠<span class="nav-label">Home</span></a>
+          <a href="../distributions/" class="app-nav-link active" title="Distributions">📊</a>
+          <a href="../expressions/" class="app-nav-link" title="Expressions">⚡<span class="nav-label">Expressions</span></a>
+          <a href="../calculator/" class="app-nav-link" title="Symbolic Calculator">🧮<span class="nav-label">Calculator</span></a>
+        </nav>
+      </div>
       <p>Interactive Probability & Statistics</p>
-      <nav class="app-nav">
-        <a href="../distributions/" class="app-nav-link active">📊 Distributions</a>
-        <a href="../expressions/" class="app-nav-link">⚡ Expressions</a>
-      </nav>
     </div>
     <div class="search-container">
       <input type="text" id="search-box" class="search-box" placeholder="Filter distributions..." aria-label="Filter distributions">
