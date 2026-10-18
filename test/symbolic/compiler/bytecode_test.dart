@@ -21,8 +21,10 @@ void main() {
       );
       final expr = sub + Pow(sub, IntegerNumber.two) + Cos(sub) + pw + integral;
 
-      final optEval = expr.compileBytecode(variables: ['x'], optimize: true);
-      final unoptEval = expr.compileBytecode(variables: ['x'], optimize: false);
+      final optEval = compileToBytecode(expr.simplify(), ['x'], optimize: true);
+      final unoptEval = compileToBytecode(expr.simplify(), [
+        'x',
+      ], optimize: false);
 
       check(optEval.registerCount).isGreaterThan(0);
       check(unoptEval.registerCount).equals(0);

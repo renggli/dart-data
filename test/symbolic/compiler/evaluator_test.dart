@@ -1,5 +1,6 @@
 import 'package:checks/checks.dart';
 import 'package:data/src/symbolic/compiler/bytecode.dart';
+import 'package:data/src/symbolic/compiler/evaluator.dart';
 import 'package:data/symbolic.dart';
 import 'package:more/number.dart' show Complex;
 import 'package:test/test.dart';
@@ -54,7 +55,7 @@ void main() {
       }
 
       final betaNode = Beta(x, y);
-      final betaEval = betaNode.compileBytecode(variables: ['x', 'y']);
+      final betaEval = compileToBytecode(betaNode, ['x', 'y']);
       check(betaEval.evaluateList([2.0, 3.0])).isCloseTo(1.0 / 12.0, 1e-12);
       check(
         betaEval.evaluateComplexList([
@@ -235,12 +236,10 @@ void main() {
           .equals(const Complex(2.0));
       check(pwNoOtherwise.evaluateComplex1D(const Complex(2.0)).isNaN).isTrue();
 
-      final intEval = Integral(
-        const Variable('t'),
-        't',
-        lower: IntegerNumber.zero,
-        upper: x,
-      ).compileBytecode(variables: ['x']);
+      final intEval = compileToBytecode(
+        Integral(const Variable('t'), 't', lower: IntegerNumber.zero, upper: x),
+        ['x'],
+      );
       check(intEval.evaluateComplex1D(const Complex(2.0)).a)
           .isCloseTo(2.0, 1e-12);
 

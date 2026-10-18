@@ -80,7 +80,7 @@ void main() {
       check(simplified.evaluateComplex).throws<UnsupportedError>();
       check(simplified.derivative('x'))
           .equals(Derivative(simplified, 'x', isSimplified: true));
-      check(simplified.compileBytecode).throws<UnsupportedError>();
+      check(() => simplified.toFunction1D('x')).throws<UnsupportedError>();
     });
   });
 }

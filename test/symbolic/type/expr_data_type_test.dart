@@ -40,7 +40,7 @@ void main() {
 
   group('ExprEquality', () {
     test('isEqual, isClose, and hash across numeric, constant, and symbolic expressions', () {
-      const eq = ExprEquality();
+      final eq = exprDataType.equality;
       final a = Expr.parse('(x + 1)^2');
       final b = Expr.parse('x^2 + 2*x + 1');
 

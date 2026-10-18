@@ -68,20 +68,20 @@ void main() {
           .throws<UnsupportedError>();
 
       const nonRealConst = Constant('c', Complex(1, 2));
-      final evalConst = (x + nonRealConst).compileBytecode(variables: ['x']);
-      check(() => evalConst.evaluate1D(1.0)).throws<UnsupportedError>();
-      check(evalConst.evaluateComplex1D(const Complex(2, 0)))
+      check(() => (x + nonRealConst).toFunction1D('x'))
+          .throws<UnsupportedError>();
+      check((x + nonRealConst).toComplexFunction1D('x')(const Complex(2, 0)))
           .equals(const Complex(3, 2));
 
-      final evalXY = (x + const Variable('y')).compileBytecode();
-      check(() => evalXY.evaluateMap({'x': 1.0})).throws<ArgumentError>();
-      check(() => evalXY.evaluateComplexMap({'x': Complex.one}))
+      final exprXY = x + const Variable('y');
+      check(() => exprXY.evaluate({'x': 1.0})).throws<ArgumentError>();
+      check(() => exprXY.evaluateComplex({'x': Complex.one}))
           .throws<ArgumentError>();
 
+      final kernelXY = exprXY.compileTensorKernel(['x', 'y']);
       final out = Float64List(3);
-      check(() => evalXY.evaluateTensor([Float64List(3)], out))
-          .throws<ArgumentError>();
-      check(() => evalXY.evaluateTensor([Float64List(3), Float64List(2)], out))
+      check(() => kernelXY([Float64List(3)], out)).throws<ArgumentError>();
+      check(() => kernelXY([Float64List(3), Float64List(2)], out))
           .throws<ArgumentError>();
     });
   });

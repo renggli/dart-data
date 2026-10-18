@@ -21,7 +21,7 @@ export 'src/symbolic/calculus/multivariable.dart'
 export 'src/symbolic/calculus/series.dart' show PowerSeries, SeriesExtension;
 export 'src/symbolic/calculus/summation.dart' show SummationExtension;
 export 'src/symbolic/compiler.dart'
-    show BytecodeEvaluator, CompilerExtension, CompilerIterableExtension;
+    show CompilerExtension, CompilerIterableExtension;
 export 'src/symbolic/linear/matrix.dart'
     show SymbolicEigenpair, SymbolicMatrixExtension, SymbolicVectorExtension;
 export 'src/symbolic/number/integer.dart' show Integer;
@@ -32,4 +32,4 @@ export 'src/symbolic/solver/univariate.dart' show SolverExtension;
 export 'src/symbolic/textualization/latex.dart' show LatexExtension;
 export 'src/symbolic/textualization/mathml.dart' show MathMlExtension;
 export 'src/symbolic/type/expr_data_type.dart'
-    show ExprDataType, ExprEquality, ExprField, exprDataType;
+    show ExprDataType, ExprField, exprDataType;

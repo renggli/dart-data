@@ -9,8 +9,6 @@ import 'ast.dart';
 import 'compiler/bytecode.dart';
 import 'compiler/evaluator.dart';
 
-export 'compiler/evaluator.dart' show BytecodeEvaluator;
-
 /// Extension providing zero-allocation high-throughput bytecode compilation of
 /// symbolic expressions.
 extension CompilerExtension on Expr {
@@ -50,33 +48,6 @@ extension CompilerExtension on Expr {
         allowDynamicVars: true,
       ).evaluateComplexMap(context);
 
-  /// Compiles this expression into a unified [BytecodeEvaluator] over
-  /// [variables].
-  ///
-  /// When [optimize] is `true` (the default), Common Subexpression Elimination
-  /// (CSE) deduplicates repeated composite subtrees into registers so each
-  /// shared subexpression is evaluated only once.
-  ///
-  /// ```dart
-  /// final expr = Expr.parse('sin(x)^2 + cos(x)^2');
-  /// final evaluator = expr.compileBytecode(variables: ['x']);
-  /// final y = evaluator.evaluate1D(1.5); // 1.0
-  /// ```
-  BytecodeEvaluator compileBytecode({
-    List<String>? variables,
-    bool optimize = true,
-    Assumptions assumptions = Assumptions.none,
-  }) {
-    final simplified = simplify(assumptions: assumptions);
-    final varList = variables ?? (simplified.freeVariables.toList()..sort());
-    return compileToBytecode(
-      simplified,
-      varList,
-      optimize: optimize,
-      allowDynamicVars: variables == null,
-    );
-  }
-
   /// Compiles this expression into a fast native Dart function
   /// `double Function(double)`.
   ///
@@ -96,7 +67,7 @@ extension CompilerExtension on Expr {
     bool optimize = true,
     Assumptions assumptions = Assumptions.none,
   }) {
-    final evaluator = compileBytecode(
+    final evaluator = _compileBytecode(
       variables: [varName],
       optimize: optimize,
       assumptions: assumptions,
@@ -116,7 +87,7 @@ extension CompilerExtension on Expr {
     String variable = 'x',
     bool optimize = true,
   ]) {
-    final evaluator = compileBytecode(
+    final evaluator = _compileBytecode(
       variables: [variable],
       optimize: optimize,
       assumptions: Assumptions(domains: {variable: VariableDomain.complex}),
@@ -136,7 +107,7 @@ extension CompilerExtension on Expr {
   Complex Function(Map<String, Complex> context) compileComplex({
     bool optimize = true,
   }) {
-    final evaluator = compileBytecode(
+    final evaluator = _compileBytecode(
       optimize: optimize,
       assumptions: Assumptions.complex,
     );
@@ -158,7 +129,7 @@ extension CompilerExtension on Expr {
     List<String> varOrder, {
     bool optimize = true,
   }) {
-    final evaluator = compileBytecode(variables: varOrder, optimize: optimize)
+    final evaluator = _compileBytecode(variables: varOrder, optimize: optimize)
       ..checkRealSupported();
     return evaluator.evaluateVector;
   }
@@ -178,7 +149,7 @@ extension CompilerExtension on Expr {
     List<String> varOrder, {
     bool optimize = true,
   }) {
-    final evaluator = compileBytecode(variables: varOrder, optimize: optimize)
+    final evaluator = _compileBytecode(variables: varOrder, optimize: optimize)
       ..checkRealSupported();
     return evaluator.evaluateList;
   }
@@ -197,9 +168,24 @@ extension CompilerExtension on Expr {
   /// ```
   void Function(List<Float64List> inputs, Float64List output)
   compileTensorKernel(List<String> varOrder, {bool optimize = true}) {
-    final evaluator = compileBytecode(variables: varOrder, optimize: optimize)
+    final evaluator = _compileBytecode(variables: varOrder, optimize: optimize)
       ..checkRealSupported();
     return evaluator.evaluateTensor;
+  }
+
+  BytecodeEvaluator _compileBytecode({
+    List<String>? variables,
+    bool optimize = true,
+    Assumptions assumptions = Assumptions.none,
+  }) {
+    final simplified = simplify(assumptions: assumptions);
+    final varList = variables ?? (simplified.freeVariables.toList()..sort());
+    return compileToBytecode(
+      simplified,
+      varList,
+      optimize: optimize,
+      allowDynamicVars: variables == null,
+    );
   }
 }
 
