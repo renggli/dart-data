@@ -21,16 +21,47 @@
   <!-- Navigation Sidebar -->
   <aside class="sidebar">
     <div class="sidebar-header">
-      <div class="sidebar-top">
-        <h1><span class="app-icon">📊</span> Distributions</h1>
-        <nav class="app-nav" aria-label="Switch Application">
-          <a href="../" class="app-nav-link" title="Dart Data Home">🏠<span class="nav-label">Home</span></a>
-          <a href="../distributions/" class="app-nav-link active" title="Distributions">📊</a>
-          <a href="../expressions/" class="app-nav-link" title="Expressions">⚡<span class="nav-label">Expressions</span></a>
-          <a href="../calculator/" class="app-nav-link" title="Symbolic Calculator">🧮<span class="nav-label">Calculator</span></a>
+      <details class="app-switcher">
+        <summary>
+          <span class="app-switcher-brand">
+            <span>📊</span>
+            <span class="app-switcher-title">Distributions</span>
+          </span>
+          <span class="app-switcher-caret">▾</span>
+        </summary>
+        <nav class="app-switcher-menu" aria-label="Switch Application">
+          <a href="../" class="app-switcher-item">
+            <span class="app-switcher-item-icon">📦</span>
+            <span class="app-switcher-item-text">
+              <span class="app-switcher-item-name">Dart Data Home</span>
+              <span class="app-switcher-item-desc">Overview &amp; subsystems</span>
+            </span>
+          </a>
+          <div class="app-switcher-divider"></div>
+          <a href="../distributions/" class="app-switcher-item active">
+            <span class="app-switcher-item-icon">📊</span>
+            <span class="app-switcher-item-text">
+              <span class="app-switcher-item-name">Distributions</span>
+              <span class="app-switcher-item-desc">Probability &amp; statistics</span>
+            </span>
+          </a>
+          <a href="../expressions/" class="app-switcher-item">
+            <span class="app-switcher-item-icon">⚡</span>
+            <span class="app-switcher-item-text">
+              <span class="app-switcher-item-name">Expressions</span>
+              <span class="app-switcher-item-desc">Symbolic algebra &amp; calculus</span>
+            </span>
+          </a>
+          <a href="../calculator/" class="app-switcher-item">
+            <span class="app-switcher-item-icon">🧮</span>
+            <span class="app-switcher-item-text">
+              <span class="app-switcher-item-name">Calculator</span>
+              <span class="app-switcher-item-desc">Notebook &amp; RPN workbench</span>
+            </span>
+          </a>
         </nav>
-      </div>
-      <p>Interactive Probability & Statistics</p>
+      </details>
+      <p>Interactive Probability &amp; Statistics</p>
     </div>
     <div class="search-container">
       <input type="text" id="search-box" class="search-box" placeholder="Filter distributions..." aria-label="Filter distributions">
@@ -154,7 +185,10 @@
     <section class="charts-layout">
       <!-- Probability Density Function -->
       <div class="card chart-card">
-        <h3 class="card-title"><span class="card-title-text"><span class="card-icon">📈</span> Probability Density (PDF)</span></h3>
+        <h3 class="card-title">
+          <span class="card-title-text"><span class="card-icon">📈</span> Probability Density (PDF)</span>
+          <button class="btn btn-secondary btn-compact" id="btn-pdf-reset" style="margin-left:auto;" title="Reset zoom (or double-click chart)">Reset</button>
+        </h3>
         <div class="canvas-container">
           <canvas id="pdf-canvas" class="chart-canvas"></canvas>
         </div>
@@ -162,7 +196,10 @@
 
       <!-- Cumulative Distribution Function -->
       <div class="card chart-card">
-        <h3 class="card-title"><span class="card-title-text"><span class="card-icon">📉</span> Cumulative Probability (CDF)</span></h3>
+        <h3 class="card-title">
+          <span class="card-title-text"><span class="card-icon">📉</span> Cumulative Probability (CDF)</span>
+          <button class="btn btn-secondary btn-compact" id="btn-cdf-reset" style="margin-left:auto;" title="Reset zoom (or double-click chart)">Reset</button>
+        </h3>
         <div class="canvas-container">
           <canvas id="cdf-canvas" class="chart-canvas"></canvas>
         </div>

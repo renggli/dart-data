@@ -57,10 +57,7 @@ bool showMin = true;
 bool showMax = true;
 bool hasImaginary = false;
 
-// Hover coordinates
-double? mouseX;
-double? mouseY;
-bool _rafPending = false;
+late InteractiveChartController chartController;
 
 typedef ExtremumPoint = ({double x, double y});
 
@@ -442,6 +439,12 @@ void selectPreset(ExpressionPreset preset) {
   maxX = preset.defaultMaxX;
   rangeMinX.value = minX.toString();
   rangeMaxX.value = maxX.toString();
+  chartController.setBounds(
+    minX: minX,
+    maxX: maxX,
+    asDefault: true,
+    clearUserInteraction: true,
+  );
 
   pointXStr = preset.defaultPointX;
   inputPointX.value = pointXStr;
@@ -469,6 +472,22 @@ void highlightActiveSidebarItem(String? id) {
 }
 
 void attachEventListeners() {
+  chartController = InteractiveChartController(
+    plotCanvas,
+    minX: minX,
+    maxX: maxX,
+    onUpdate: drawCharts,
+    onViewportChanged: (newMinX, newMaxX, _, _) {
+      minX = double.parse(newMinX.toStringAsFixed(4));
+      maxX = double.parse(newMaxX.toStringAsFixed(4));
+      rangeMinX.value = formatNumber(minX, precision: 3);
+      rangeMaxX.value = formatNumber(maxX, precision: 3);
+      updateImaginaryDetection();
+      detectRootsAndExtrema();
+      updateUrlHash();
+    },
+  );
+
   searchBox.onInput.listen((_) => filterSidebar(searchBox.value.trim()));
 
   exprInput.onInput.listen((_) {
@@ -479,6 +498,7 @@ void attachEventListeners() {
     displayDesc.textContent =
         'Interactive symbolic algebra and calculus exploration.';
     highlightActiveSidebarItem(null);
+    chartController.hasUserPannedOrZoomed = false;
     updateAll();
     updateUrlHash();
   });
@@ -494,6 +514,7 @@ void attachEventListeners() {
     final val = double.tryParse(rangeMinX.value);
     if (val != null && val < maxX) {
       minX = val;
+      chartController.setBounds(minX: minX, clearUserInteraction: true);
       updateImaginaryDetection();
       detectRootsAndExtrema();
       drawCharts();
@@ -505,6 +526,7 @@ void attachEventListeners() {
     final val = double.tryParse(rangeMaxX.value);
     if (val != null && val > minX) {
       maxX = val;
+      chartController.setBounds(maxX: maxX, clearUserInteraction: true);
       updateImaginaryDetection();
       detectRootsAndExtrema();
       drawCharts();
@@ -522,6 +544,12 @@ void attachEventListeners() {
     }
     rangeMinX.value = minX.toString();
     rangeMaxX.value = maxX.toString();
+    chartController.setBounds(
+      minX: minX,
+      maxX: maxX,
+      asDefault: true,
+      clearUserInteraction: true,
+    );
     updateImaginaryDetection();
     detectRootsAndExtrema();
     drawCharts();
@@ -591,27 +619,6 @@ void attachEventListeners() {
   });
   selectTaylorCenter.onChange.listen((_) {
     updateTaylorTelemetry();
-    drawCharts();
-  });
-
-  // Mouse hover listeners on Canvas
-  plotCanvas.onMouseMove.listen((web.MouseEvent event) {
-    final rect = plotCanvas.getBoundingClientRect();
-    mouseX = event.clientX - rect.left;
-    mouseY = event.clientY - rect.top;
-    if (!_rafPending) {
-      _rafPending = true;
-      web.window.requestAnimationFrame(
-        ((num _) {
-          _rafPending = false;
-          drawCharts();
-        }).toJS,
-      );
-    }
-  });
-  plotCanvas.onMouseLeave.listen((_) {
-    mouseX = null;
-    mouseY = null;
     drawCharts();
   });
 
@@ -1589,16 +1596,18 @@ void drawCharts() {
 
   if (realFn == null) return;
 
-  final (minY, maxY) = estimateYBounds(realFn, imagFn);
+  if (!chartController.hasUserPannedOrZoomed) {
+    final (autoMinY, autoMaxY) = estimateYBounds(realFn, imagFn);
+    chartController.setBounds(
+      minX: minX,
+      maxX: maxX,
+      minY: autoMinY,
+      maxY: autoMaxY,
+      asDefault: true,
+    );
+  }
 
-  final vp = PlotViewport(
-    minX: minX,
-    maxX: maxX,
-    minY: minY,
-    maxY: maxY,
-    width: width,
-    height: height,
-  );
+  final vp = chartController.viewport(width, height);
 
   // 1. Grid & Axes
   drawGrid(ctx, vp);
@@ -1775,8 +1784,8 @@ void drawCharts() {
   }
 
   // 10. Mouse Hover Crosshair & Tooltip
-  final mx = mouseX;
-  final my = mouseY;
+  final mx = chartController.hoverPixelX;
+  final my = chartController.hoverPixelY;
   if (mx != null && my != null && vp.containsPixel(mx, my)) {
     final hx = vp.fromPixelX(mx);
     final hyReal = safeGet(() => realFn(hx))?.toDouble();
@@ -1898,6 +1907,12 @@ void loadFromUrlHash() {
   inputPointX.value = pointXStr;
   inputIntA.value = intAStr;
   inputIntB.value = intBStr;
+  chartController.setBounds(
+    minX: minX,
+    maxX: maxX,
+    asDefault: true,
+    clearUserInteraction: true,
+  );
 
   updateAll();
 }

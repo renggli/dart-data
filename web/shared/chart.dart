@@ -52,17 +52,358 @@ class PlotViewport {
       py <= topMargin + plotHeight;
 }
 
+/// Shared interactive pan/zoom/hover controller for an HTML5 `<canvas>` chart.
+///
+/// Supports:
+/// - Mouse drag and single-finger touch drag to pan X (and Y when [panY] is enabled).
+/// - Mouse wheel zoom anchored at the cursor position (for X and optionally Y).
+/// - Double-click on the plot area to reset the view.
+/// - Hover coordinate tracking (`hoverPixelX`, `hoverPixelY`) with `requestAnimationFrame` throttling.
+class InteractiveChartController {
+  final web.HTMLCanvasElement canvas;
+  final double leftMargin;
+  final double rightMargin;
+  final double topMargin;
+  final double bottomMargin;
+  final bool panY;
+  final bool zoomY;
+  final void Function() onUpdate;
+  final void Function(double minX, double maxX, double minY, double maxY)?
+  onViewportChanged;
+  final void Function()? onReset;
+
+  double minX;
+  double maxX;
+  double minY;
+  double maxY;
+
+  double _defaultMinX;
+  double _defaultMaxX;
+  double _defaultMinY;
+  double _defaultMaxY;
+
+  double? hoverPixelX;
+  double? hoverPixelY;
+  bool isDragging = false;
+  bool hasUserPannedOrZoomed = false;
+
+  double _dragStartX = 0.0;
+  double _dragStartY = 0.0;
+  bool _rafPending = false;
+
+  new(
+    this.canvas, {
+    required this.minX,
+    required this.maxX,
+    this.minY = -5.0,
+    this.maxY = 5.0,
+    this.leftMargin = 55.0,
+    this.rightMargin = 20.0,
+    this.topMargin = 20.0,
+    this.bottomMargin = 36.0,
+    this.panY = true,
+    this.zoomY = true,
+    required this.onUpdate,
+    this.onViewportChanged,
+    this.onReset,
+  }) : _defaultMinX = minX,
+       _defaultMaxX = maxX,
+       _defaultMinY = minY,
+       _defaultMaxY = maxY {
+    _attachListeners();
+  }
+
+  /// Updates the current bounds (and optionally the default reset bounds).
+  void setBounds({
+    double? minX,
+    double? maxX,
+    double? minY,
+    double? maxY,
+    bool asDefault = false,
+    bool clearUserInteraction = false,
+  }) {
+    if (minX != null) {
+      this.minX = minX;
+      if (asDefault) _defaultMinX = minX;
+    }
+    if (maxX != null) {
+      this.maxX = maxX;
+      if (asDefault) _defaultMaxX = maxX;
+    }
+    if (minY != null) {
+      this.minY = minY;
+      if (asDefault) _defaultMinY = minY;
+    }
+    if (maxY != null) {
+      this.maxY = maxY;
+      if (asDefault) _defaultMaxY = maxY;
+    }
+    if (clearUserInteraction) {
+      hasUserPannedOrZoomed = false;
+    }
+  }
+
+  /// Resets the viewport to the default bounds and triggers a redraw.
+  void reset() {
+    minX = _defaultMinX;
+    maxX = _defaultMaxX;
+    minY = _defaultMinY;
+    maxY = _defaultMaxY;
+    hasUserPannedOrZoomed = false;
+    onReset?.call();
+    onViewportChanged?.call(minX, maxX, minY, maxY);
+    scheduleUpdate();
+  }
+
+  /// Creates a [PlotViewport] for the given canvas logical [width] and [height].
+  PlotViewport viewport(
+    double width,
+    double height, {
+    double? overrideMinY,
+    double? overrideMaxY,
+  }) => PlotViewport(
+    minX: minX,
+    maxX: maxX,
+    minY: overrideMinY ?? minY,
+    maxY: overrideMaxY ?? maxY,
+    width: width,
+    height: height,
+    leftMargin: leftMargin,
+    rightMargin: rightMargin,
+    topMargin: topMargin,
+    bottomMargin: bottomMargin,
+  );
+
+  /// Throttles redraws via `requestAnimationFrame`.
+  void scheduleUpdate() {
+    if (_rafPending) return;
+    _rafPending = true;
+    web.window.requestAnimationFrame(
+      ((num _) {
+        _rafPending = false;
+        onUpdate();
+      }).toJS,
+    );
+  }
+
+  void _attachListeners() {
+    canvas.style.cursor = 'grab';
+
+    canvas.addEventListener(
+      'mousedown',
+      ((web.MouseEvent e) {
+        if (e.button != 0) return;
+        isDragging = true;
+        final rect = canvas.getBoundingClientRect();
+        _dragStartX = e.clientX - rect.left;
+        _dragStartY = e.clientY - rect.top;
+        canvas.style.cursor = 'grabbing';
+      }).toJS,
+    );
+
+    canvas.addEventListener(
+      'mousemove',
+      ((web.MouseEvent e) {
+        final rect = canvas.getBoundingClientRect();
+        final curX = e.clientX - rect.left;
+        final curY = e.clientY - rect.top;
+        final plotW = math.max(10.0, rect.width - leftMargin - rightMargin);
+        final plotH = math.max(10.0, rect.height - topMargin - bottomMargin);
+
+        if (isDragging) {
+          final dx = curX - _dragStartX;
+          final dy = curY - _dragStartY;
+          _dragStartX = curX;
+          _dragStartY = curY;
+
+          final spanX = maxX - minX;
+          final shiftX = -dx / plotW * spanX;
+          minX += shiftX;
+          maxX += shiftX;
+
+          if (panY) {
+            final spanY = maxY - minY;
+            final shiftY = dy / plotH * spanY;
+            minY += shiftY;
+            maxY += shiftY;
+          }
+          hasUserPannedOrZoomed = true;
+          onViewportChanged?.call(minX, maxX, minY, maxY);
+        }
+
+        hoverPixelX = curX;
+        hoverPixelY = curY;
+        scheduleUpdate();
+      }).toJS,
+    );
+
+    void endDrag() {
+      if (isDragging) {
+        isDragging = false;
+        canvas.style.cursor = 'grab';
+      }
+    }
+
+    canvas.addEventListener('mouseup', ((web.MouseEvent _) => endDrag()).toJS);
+
+    canvas.addEventListener(
+      'mouseleave',
+      ((web.MouseEvent _) {
+        endDrag();
+        hoverPixelX = null;
+        hoverPixelY = null;
+        scheduleUpdate();
+      }).toJS,
+    );
+
+    canvas.addEventListener(
+      'dblclick',
+      ((web.MouseEvent _) {
+        reset();
+      }).toJS,
+    );
+
+    canvas.addEventListener(
+      'wheel',
+      ((web.WheelEvent e) {
+        e.preventDefault();
+        final rect = canvas.getBoundingClientRect();
+        final curX = e.clientX - rect.left;
+        final curY = e.clientY - rect.top;
+        final plotW = math.max(10.0, rect.width - leftMargin - rightMargin);
+        final plotH = math.max(10.0, rect.height - topMargin - bottomMargin);
+
+        final factor = e.deltaY < 0 ? 0.85 : 1.18;
+
+        // Anchor zoom at cursor fraction inside plot box (or 0.5 if outside)
+        final fracX = ((curX - leftMargin) / plotW).clamp(0.0, 1.0);
+        final anchorX = minX + fracX * (maxX - minX);
+        final newSpanX = (maxX - minX) * factor;
+        if (newSpanX > 1e-9 && newSpanX < 1e9) {
+          minX = anchorX - fracX * newSpanX;
+          maxX = minX + newSpanX;
+        }
+
+        if (zoomY) {
+          final fracY = (1.0 - (curY - topMargin) / plotH).clamp(0.0, 1.0);
+          final anchorY = minY + fracY * (maxY - minY);
+          final newSpanY = (maxY - minY) * factor;
+          if (newSpanY > 1e-9 && newSpanY < 1e9) {
+            minY = anchorY - fracY * newSpanY;
+            maxY = minY + newSpanY;
+          }
+        }
+
+        hasUserPannedOrZoomed = true;
+        onViewportChanged?.call(minX, maxX, minY, maxY);
+        scheduleUpdate();
+      }).toJS,
+    );
+
+    // Touch pan support for mobile
+    canvas.addEventListener(
+      'touchstart',
+      ((web.TouchEvent e) {
+        if (e.touches.length == 1) {
+          final t = e.touches.item(0)!;
+          final rect = canvas.getBoundingClientRect();
+          isDragging = true;
+          _dragStartX = t.clientX - rect.left;
+          _dragStartY = t.clientY - rect.top;
+        }
+      }).toJS,
+    );
+
+    canvas.addEventListener(
+      'touchmove',
+      ((web.TouchEvent e) {
+        if (!isDragging || e.touches.length != 1) return;
+        e.preventDefault();
+        final t = e.touches.item(0)!;
+        final rect = canvas.getBoundingClientRect();
+        final curX = t.clientX - rect.left;
+        final curY = t.clientY - rect.top;
+        final plotW = math.max(10.0, rect.width - leftMargin - rightMargin);
+        final plotH = math.max(10.0, rect.height - topMargin - bottomMargin);
+
+        final dx = curX - _dragStartX;
+        final dy = curY - _dragStartY;
+        _dragStartX = curX;
+        _dragStartY = curY;
+
+        final spanX = maxX - minX;
+        final shiftX = -dx / plotW * spanX;
+        minX += shiftX;
+        maxX += shiftX;
+
+        if (panY) {
+          final spanY = maxY - minY;
+          final shiftY = dy / plotH * spanY;
+          minY += shiftY;
+          maxY += shiftY;
+        }
+        hasUserPannedOrZoomed = true;
+        hoverPixelX = curX;
+        hoverPixelY = curY;
+        onViewportChanged?.call(minX, maxX, minY, maxY);
+        scheduleUpdate();
+      }).toJS,
+    );
+
+    canvas.addEventListener('touchend', ((web.TouchEvent _) => endDrag()).toJS);
+  }
+}
+
+/// Computes human-friendly 1/2/5×10^k tick positions across `[min, max]`.
+List<double> niceTicks(double min, double max, int count) {
+  final span = max - min;
+  if (!span.isFinite || span <= 0) return [min];
+  final rawStep = span / count;
+  final mag = math.pow(10, (math.log(rawStep) / math.ln10).floor()).toDouble();
+  final residual = rawStep / mag;
+  final step = residual > 5
+      ? 10.0 * mag
+      : residual > 2
+      ? 5.0 * mag
+      : residual > 1
+      ? 2.0 * mag
+      : mag;
+  final first = (min / step).ceil() * step;
+  final ticks = <double>[];
+  for (var v = first; v <= max + step * 1e-6; v += step) {
+    ticks.add(v.abs() < step * 1e-9 ? 0.0 : v);
+    if (ticks.length > 20) break;
+  }
+  return ticks;
+}
+
+String _formatTick(double val) {
+  if (val.abs() < 1e-10) return '0';
+  if ((val - val.roundToDouble()).abs() < 1e-9 && val.abs() < 1e6) {
+    return val.round().toString();
+  }
+  final s = val.toStringAsPrecision(4);
+  if (s.contains('.') && !s.contains('e')) {
+    return s.replaceAll(RegExp(r'0+$'), '').replaceAll(RegExp(r'\.$'), '');
+  }
+  return s;
+}
+
 /// Sets up a high-DPI crisp canvas backing store. Returns null if dimensions are zero.
 (web.CanvasRenderingContext2D, double, double)? initCanvas(
   web.HTMLCanvasElement canvas,
 ) {
-  final rect = canvas.parentElement?.getBoundingClientRect();
-  if (rect == null || rect.width <= 0 || rect.height <= 0) return null;
+  final parentRect = canvas.parentElement?.getBoundingClientRect();
+  final selfRect = canvas.getBoundingClientRect();
+  final width = (parentRect != null && parentRect.width > 0)
+      ? parentRect.width
+      : selfRect.width;
+  final height = (parentRect != null && parentRect.height > 0)
+      ? parentRect.height
+      : selfRect.height;
+  if (width <= 0 || height <= 0) return null;
 
   final dpr = web.window.devicePixelRatio;
-  final width = rect.width;
-  final height = rect.height;
-
   canvas.width = (width * dpr).toInt();
   canvas.height = (height * dpr).toInt();
   canvas.style.width = '${width}px';
@@ -75,7 +416,7 @@ class PlotViewport {
   return (ctx, width, height);
 }
 
-/// Draws Cartesian grid lines, tick labels, and axes.
+/// Draws Cartesian grid lines, nice tick labels, and zero axes.
 void drawGrid(
   web.CanvasRenderingContext2D ctx,
   PlotViewport vp, {
@@ -86,12 +427,15 @@ void drawGrid(
   ctx.strokeStyle = 'rgba(255, 255, 255, 0.05)'.toJS;
   ctx.lineWidth = 1.0;
   ctx.fillStyle = '#64748b'.toJS;
-  ctx.font = '10px Inter, sans-serif';
+  ctx.font = '10px Inter, ui-monospace, sans-serif';
 
-  // 1. Vertical grid lines & X ticks
-  for (var i = 0; i < xTicks; i++) {
-    final xVal = vp.minX + i * (vp.maxX - vp.minX) / (xTicks - 1);
+  // 1. Vertical grid lines & nice X ticks
+  final xTickVals = niceTicks(vp.minX, vp.maxX, xTicks);
+  for (final xVal in xTickVals) {
     final px = vp.toPixelX(xVal);
+    if (px < vp.leftMargin - 1 || px > vp.leftMargin + vp.plotWidth + 1) {
+      continue;
+    }
 
     ctx.beginPath();
     ctx.moveTo(px, vp.topMargin);
@@ -99,18 +443,16 @@ void drawGrid(
     ctx.stroke();
 
     ctx.textAlign = 'center';
-    final label = (xVal.abs() < 1e-10)
-        ? '0'
-        : (xVal % 1 == 0 && xVal.abs() < 1e6)
-        ? xVal.toInt().toString()
-        : xVal.toStringAsFixed(2);
-    ctx.fillText(label, px, vp.topMargin + vp.plotHeight + 15);
+    ctx.fillText(_formatTick(xVal), px, vp.topMargin + vp.plotHeight + 15);
   }
 
-  // 2. Horizontal grid lines & Y ticks
-  for (var i = 0; i < yTicks; i++) {
-    final yVal = vp.minY + i * (vp.maxY - vp.minY) / (yTicks - 1);
+  // 2. Horizontal grid lines & nice Y ticks
+  final yTickVals = niceTicks(vp.minY, vp.maxY, yTicks);
+  for (final yVal in yTickVals) {
     final py = vp.toPixelY(yVal);
+    if (py < vp.topMargin - 1 || py > vp.topMargin + vp.plotHeight + 1) {
+      continue;
+    }
 
     ctx.beginPath();
     ctx.moveTo(vp.leftMargin, py);
@@ -118,18 +460,13 @@ void drawGrid(
     ctx.stroke();
 
     ctx.textAlign = 'right';
-    final label = (yVal.abs() < 1e-10)
-        ? '0'
-        : (yVal % 1 == 0 && yVal.abs() < 1e6)
-        ? yVal.toInt().toString()
-        : yVal.toStringAsFixed(2);
-    ctx.fillText(label, vp.leftMargin - 8, py + 3);
+    ctx.fillText(_formatTick(yVal), vp.leftMargin - 8, py + 3);
   }
 
   // 3. Highlighted Zero axes
   if (drawZeroAxes) {
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)'.toJS;
-    ctx.lineWidth = 1.0;
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.16)'.toJS;
+    ctx.lineWidth = 1.15;
 
     // Y = 0 axis line
     if (vp.minY <= 0 && vp.maxY >= 0) {
@@ -239,6 +576,64 @@ void drawCurve(
         ctx.fill();
       }
     }
+  }
+
+  ctx.restore();
+}
+
+/// Draws pre-sampled curve segments `(x, y)` inside the clipped viewport.
+void drawSampledSegments(
+  web.CanvasRenderingContext2D ctx,
+  PlotViewport vp,
+  Iterable<({List<double> x, List<double> y})> segments, {
+  required String strokeColor,
+  double lineWidth = 2.2,
+  List<num>? lineDash,
+}) {
+  ctx.save();
+  ctx.strokeStyle = strokeColor.toJS;
+  ctx.lineWidth = lineWidth;
+  ctx.setLineDash(
+    lineDash != null
+        ? lineDash.map((d) => d.toJS).toList().toJS
+        : <JSNumber>[].toJS,
+  );
+
+  ctx.beginPath();
+  ctx.rect(vp.leftMargin, vp.topMargin, vp.plotWidth, vp.plotHeight);
+  ctx.clip();
+
+  final cssH = vp.height;
+  for (final seg in segments) {
+    var started = false;
+    for (var i = 0; i < seg.x.length; i++) {
+      final x = seg.x[i];
+      final y = seg.y[i];
+      if (!x.isFinite || !y.isFinite) {
+        started = false;
+        continue;
+      }
+      final sx = vp.toPixelX(x);
+      final sy = vp.toPixelY(y);
+      if (sy < -cssH * 2 || sy > cssH * 3) {
+        started = false;
+        continue;
+      }
+      if (!started) {
+        ctx.beginPath();
+        ctx.moveTo(sx, sy);
+        started = true;
+      } else {
+        ctx.lineTo(sx, sy);
+      }
+      if (i == seg.x.length - 1 ||
+          !seg.y[i + 1].isFinite ||
+          (vp.toPixelY(seg.y[i + 1]) - sy).abs() > cssH * 1.5) {
+        ctx.stroke();
+        started = false;
+      }
+    }
+    if (started) ctx.stroke();
   }
 
   ctx.restore();

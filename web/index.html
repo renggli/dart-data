@@ -358,17 +358,49 @@
 <body class="home-body">
 
   <header class="home-topbar">
-    <a href="./" class="home-brand">
-      <span>📦 Dart Data</span>
+    <div style="display: flex; align-items: center; gap: 10px;">
+      <details class="app-switcher">
+        <summary>
+          <span class="app-switcher-brand">
+            <span>📦</span>
+            <span class="app-switcher-title">Dart Data</span>
+          </span>
+          <span class="app-switcher-caret">▾</span>
+        </summary>
+        <nav class="app-switcher-menu" aria-label="Switch Application">
+          <a href="./" class="app-switcher-item active">
+            <span class="app-switcher-item-icon">📦</span>
+            <span class="app-switcher-item-text">
+              <span class="app-switcher-item-name">Dart Data Home</span>
+              <span class="app-switcher-item-desc">Overview &amp; subsystems</span>
+            </span>
+          </a>
+          <div class="app-switcher-divider"></div>
+          <a href="distributions/" class="app-switcher-item">
+            <span class="app-switcher-item-icon">📊</span>
+            <span class="app-switcher-item-text">
+              <span class="app-switcher-item-name">Distributions</span>
+              <span class="app-switcher-item-desc">Probability &amp; statistics</span>
+            </span>
+          </a>
+          <a href="expressions/" class="app-switcher-item">
+            <span class="app-switcher-item-icon">⚡</span>
+            <span class="app-switcher-item-text">
+              <span class="app-switcher-item-name">Expressions</span>
+              <span class="app-switcher-item-desc">Symbolic algebra &amp; calculus</span>
+            </span>
+          </a>
+          <a href="calculator/" class="app-switcher-item">
+            <span class="app-switcher-item-icon">🧮</span>
+            <span class="app-switcher-item-text">
+              <span class="app-switcher-item-name">Calculator</span>
+              <span class="app-switcher-item-desc">Notebook &amp; RPN workbench</span>
+            </span>
+          </a>
+        </nav>
+      </details>
       <span class="home-brand-badge">package:data</span>
-    </a>
-
-    <nav class="app-nav" aria-label="Switch Application">
-      <a href="./" class="app-nav-link active" title="Dart Data Home">🏠<span class="nav-label">Home</span></a>
-      <a href="distributions/" class="app-nav-link" title="Distributions">📊<span class="nav-label">Distributions</span></a>
-      <a href="expressions/" class="app-nav-link" title="Expressions">⚡<span class="nav-label">Expressions</span></a>
-      <a href="calculator/" class="app-nav-link" title="Symbolic Calculator">🧮<span class="nav-label">Calculator</span></a>
-    </nav>
+    </div>
 
     <div class="home-topbar-right">
       <a href="https://pub.dev/packages/data" class="ext-link" target="_blank" rel="noopener">pub.dev ↗</a>

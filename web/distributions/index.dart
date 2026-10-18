@@ -4,6 +4,7 @@ import 'dart:math' as math;
 import 'package:data/stats.dart';
 import 'package:web/web.dart' as web;
 
+import '../shared/chart.dart';
 import '../shared/utils.dart';
 import 'config.dart';
 
@@ -14,11 +15,9 @@ List<double> currentParamValues = [];
 final List<num> generatedSamples = [];
 bool isAppInitialized = false;
 
-// Canvas hover coordinates
-double? pdfMouseX;
-double? pdfMouseY;
-double? cdfMouseX;
-double? cdfMouseY;
+// Interactive chart controllers
+late InteractiveChartController pdfController;
+late InteractiveChartController cdfController;
 
 // DOM references
 late web.HTMLInputElement searchBox;
@@ -40,6 +39,8 @@ late web.HTMLElement valBounds;
 
 late web.HTMLCanvasElement pdfCanvas;
 late web.HTMLCanvasElement cdfCanvas;
+late web.HTMLButtonElement btnPdfReset;
+late web.HTMLButtonElement btnCdfReset;
 
 late web.HTMLButtonElement btnSample1;
 late web.HTMLButtonElement btnSample10;
@@ -87,6 +88,10 @@ void main() {
       web.document.querySelector('#pdf-canvas') as web.HTMLCanvasElement;
   cdfCanvas =
       web.document.querySelector('#cdf-canvas') as web.HTMLCanvasElement;
+  btnPdfReset =
+      web.document.querySelector('#btn-pdf-reset') as web.HTMLButtonElement;
+  btnCdfReset =
+      web.document.querySelector('#btn-cdf-reset') as web.HTMLButtonElement;
 
   btnSample1 =
       web.document.querySelector('#btn-sample-1') as web.HTMLButtonElement;
@@ -151,31 +156,58 @@ void main() {
     }.toJS,
   );
 
-  // Bind mouse hover listeners to PDF Canvas
-  pdfCanvas.onMouseMove.listen((web.MouseEvent event) {
-    final rect = pdfCanvas.getBoundingClientRect();
-    pdfMouseX = event.clientX - rect.left;
-    pdfMouseY = event.clientY - rect.top;
-    drawCharts();
-  });
-  pdfCanvas.onMouseLeave.listen((_) {
-    pdfMouseX = null;
-    pdfMouseY = null;
-    drawCharts();
-  });
+  void syncChartBounds(double newMinX, double newMaxX) {
+    pdfController.setBounds(minX: newMinX, maxX: newMaxX);
+    cdfController.setBounds(minX: newMinX, maxX: newMaxX);
+    pdfController.hasUserPannedOrZoomed = true;
+    cdfController.hasUserPannedOrZoomed = true;
+  }
 
-  // Bind mouse hover listeners to CDF Canvas
-  cdfCanvas.onMouseMove.listen((web.MouseEvent event) {
-    final rect = cdfCanvas.getBoundingClientRect();
-    cdfMouseX = event.clientX - rect.left;
-    cdfMouseY = event.clientY - rect.top;
+  void resetChartBounds() {
+    final bounds = getGraphBounds();
+    final minX = bounds['min']!;
+    final maxX = bounds['max']!;
+    pdfController.setBounds(
+      minX: minX,
+      maxX: maxX,
+      asDefault: true,
+      clearUserInteraction: true,
+    );
+    cdfController.setBounds(
+      minX: minX,
+      maxX: maxX,
+      asDefault: true,
+      clearUserInteraction: true,
+    );
     drawCharts();
-  });
-  cdfCanvas.onMouseLeave.listen((_) {
-    cdfMouseX = null;
-    cdfMouseY = null;
-    drawCharts();
-  });
+  }
+
+  pdfController = InteractiveChartController(
+    pdfCanvas,
+    minX: -5.0,
+    maxX: 5.0,
+    panY: false,
+    zoomY: false,
+    onUpdate: drawCharts,
+    onViewportChanged: (newMinX, newMaxX, _, _) =>
+        syncChartBounds(newMinX, newMaxX),
+    onReset: resetChartBounds,
+  );
+
+  cdfController = InteractiveChartController(
+    cdfCanvas,
+    minX: -5.0,
+    maxX: 5.0,
+    panY: false,
+    zoomY: false,
+    onUpdate: drawCharts,
+    onViewportChanged: (newMinX, newMaxX, _, _) =>
+        syncChartBounds(newMinX, newMaxX),
+    onReset: resetChartBounds,
+  );
+
+  btnPdfReset.onClick.listen((_) => resetChartBounds());
+  btnCdfReset.onClick.listen((_) => resetChartBounds());
 
   // Listen to hashchange events for browser history navigation
   web.window.addEventListener(
@@ -476,6 +508,19 @@ void loadFromUrlHash() {
 /// Recreate the stats distribution using configured inputs.
 void recreateDistribution() {
   activeDist = activeDef.creator(currentParamValues);
+  final bounds = getGraphBounds();
+  pdfController.setBounds(
+    minX: bounds['min'],
+    maxX: bounds['max'],
+    asDefault: true,
+    clearUserInteraction: true,
+  );
+  cdfController.setBounds(
+    minX: bounds['min'],
+    maxX: bounds['max'],
+    asDefault: true,
+    clearUserInteraction: true,
+  );
   clearSamples(redraw: false);
   updateTelemetry();
   drawCharts();
@@ -584,54 +629,49 @@ Map<String, double> getGraphBounds() {
 
 /// Custom Canvas Rendering Engine.
 void drawCharts() {
-  final bounds = getGraphBounds();
-  final minX = bounds['min']!;
-  final maxX = bounds['max']!;
+  if (!pdfController.hasUserPannedOrZoomed) {
+    final bounds = getGraphBounds();
+    pdfController.setBounds(
+      minX: bounds['min'],
+      maxX: bounds['max'],
+      asDefault: true,
+    );
+    cdfController.setBounds(
+      minX: bounds['min'],
+      maxX: bounds['max'],
+      asDefault: true,
+    );
+  }
+  final minX = pdfController.minX;
+  final maxX = pdfController.maxX;
 
-  renderCanvas(pdfCanvas, isCdf: false, minX: minX, maxX: maxX);
+  renderCanvas(
+    pdfCanvas,
+    controller: pdfController,
+    isCdf: false,
+    minX: minX,
+    maxX: maxX,
+  );
 
-  renderCanvas(cdfCanvas, isCdf: true, minX: minX, maxX: maxX);
+  renderCanvas(
+    cdfCanvas,
+    controller: cdfController,
+    isCdf: true,
+    minX: minX,
+    maxX: maxX,
+  );
 }
 
 void renderCanvas(
   web.HTMLCanvasElement canvas, {
+  required InteractiveChartController controller,
   required bool isCdf,
   required double minX,
   required double maxX,
 }) {
-  final rect = canvas.parentElement?.getBoundingClientRect();
-  if (rect == null || rect.width == 0 || rect.height == 0) return;
-
-  final dpr = web.window.devicePixelRatio;
-  final width = rect.width;
-  final height = rect.height;
-
-  // Scale backing store dynamically for high-DPI crisp rendering
-  canvas.width = (width * dpr).toInt();
-  canvas.height = (height * dpr).toInt();
-  canvas.style.width = '${width}px';
-  canvas.style.height = '${height}px';
-
-  final ctx = canvas.context2D;
-  ctx.scale(dpr, dpr);
-
-  ctx.clearRect(0, 0, width, height);
-
-  // Set Margin guidelines
-  const leftMargin = 55.0;
-  const rightMargin = 20.0;
-  const topMargin = 20.0;
-  const bottomMargin = 36.0;
-
-  final plotWidth = width - leftMargin - rightMargin;
-  final plotHeight = height - topMargin - bottomMargin;
-
-  // X & Y Converters
-  double toPixelX(double x) =>
-      leftMargin + (x - minX) * plotWidth / (maxX - minX);
-
-  double fromPixelX(double px) =>
-      minX + (px - leftMargin) * (maxX - minX) / plotWidth;
+  final setup = initCanvas(canvas);
+  if (setup == null) return;
+  final (ctx, width, height) = setup;
 
   // Calculate dynamic Y-axis maximum bounds
   const minY = 0.0;
@@ -647,7 +687,7 @@ void renderCanvas(
       for (var s = 0; s <= steps; s++) {
         final x = minX + s * (maxX - minX) / steps;
         final p = activeDist.probability(x);
-        if (p > peak) {
+        if (p.isFinite && p > peak) {
           peak = p;
         }
       }
@@ -655,9 +695,11 @@ void renderCanvas(
       // Discrete scanning
       final iMin = minX.floor();
       final iMax = maxX.ceil();
-      for (var k = iMin; k <= iMax; k++) {
+      final span = iMax - iMin;
+      final step = span > 500 ? (span / 500).ceil() : 1;
+      for (var k = iMin; k <= iMax; k += step) {
         final p = activeDist.probability(k.toDouble());
-        if (p > peak) {
+        if (p.isFinite && p > peak) {
           peak = p;
         }
       }
@@ -703,8 +745,7 @@ void renderCanvas(
           }
         }
 
-        for (var k = iMin; k <= iMax; k++) {
-          final count = freqMap[k] ?? 0;
+        for (final count in freqMap.values) {
           if (count > 0) {
             final empiricalProb = count / n;
             if (empiricalProb > empiricalPeak) {
@@ -722,51 +763,28 @@ void renderCanvas(
     }
   }
 
-  double toPixelY(double y) =>
-      topMargin + plotHeight - (y - minY) * plotHeight / (maxY - minY);
+  final vp = controller.viewport(
+    width,
+    height,
+    overrideMinY: minY,
+    overrideMaxY: maxY,
+  );
+  final leftMargin = vp.leftMargin;
+  final topMargin = vp.topMargin;
+  final plotWidth = vp.plotWidth;
+  final plotHeight = vp.plotHeight;
+  double toPixelX(double x) => vp.toPixelX(x);
+  double fromPixelX(double px) => vp.fromPixelX(px);
+  double toPixelY(double y) => vp.toPixelY(y);
 
   // ==================== DRAW GRID & LABELS ====================
-  ctx.strokeStyle = 'rgba(255, 255, 255, 0.05)'.toJS;
-  ctx.lineWidth = 1.0;
-  ctx.fillStyle = '#64748b'.toJS;
-  ctx.font = '10px Inter, sans-serif';
+  drawGrid(ctx, vp, drawZeroAxes: false);
 
-  // 1. Vertical lines & X ticks
-  const xTicks = 6;
-  for (var i = 0; i < xTicks; i++) {
-    final xVal = minX + i * (maxX - minX) / (xTicks - 1);
-    final px = toPixelX(xVal);
-
-    // Line
-    ctx.beginPath();
-    ctx.moveTo(px, topMargin);
-    ctx.lineTo(px, topMargin + plotHeight);
-    ctx.stroke();
-
-    // Text Label
-    ctx.textAlign = 'center';
-    final label = (xVal % 1 == 0)
-        ? xVal.toInt().toString()
-        : xVal.toStringAsFixed(2);
-    ctx.fillText(label, px, topMargin + plotHeight + 15);
-  }
-
-  // 2. Horizontal lines & Y ticks
-  const yTicks = 5;
-  for (var i = 0; i < yTicks; i++) {
-    final yVal = minY + i * (maxY - minY) / (yTicks - 1);
-    final py = toPixelY(yVal);
-
-    // Line
-    ctx.beginPath();
-    ctx.moveTo(leftMargin, py);
-    ctx.lineTo(leftMargin + plotWidth, py);
-    ctx.stroke();
-
-    // Text Label
-    ctx.textAlign = 'right';
-    ctx.fillText(yVal.toStringAsFixed(3), leftMargin - 8, py + 3);
-  }
+  // Clip inner plotting region so dragged/zoomed curves stay inside the axes box
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(leftMargin, topMargin, plotWidth, plotHeight);
+  ctx.clip();
 
   // ==================== OVERLAY EMPIRICAL HISTOGRAM ====================
   // For PDF, overlay a transparent histogram
@@ -819,8 +837,9 @@ void renderCanvas(
         }
       }
 
-      for (var k = iMin; k <= iMax; k++) {
-        final count = freqMap[k] ?? 0;
+      for (final entry in freqMap.entries) {
+        final k = entry.key;
+        final count = entry.value;
         if (count == 0) continue;
 
         final empiricalProb = count / n;
@@ -870,11 +889,13 @@ void renderCanvas(
       // Discrete CDF - step function representation (horizontal segments + dots)
       final iMin = minX.floor() - 1;
       final iMax = maxX.ceil() + 1;
+      final span = iMax - iMin;
+      final step = span > 500 ? (span / 500).ceil() : 1;
 
-      for (var k = iMin; k <= iMax; k++) {
+      for (var k = iMin; k <= iMax; k += step) {
         final cdfVal = activeDist.cumulativeProbability(k.toDouble());
         final pxStart = toPixelX(k.toDouble());
-        final pxEnd = toPixelX((k + 1).toDouble());
+        final pxEnd = toPixelX((k + step).toDouble());
         final py = toPixelY(cdfVal);
 
         // Horizontal step bar
@@ -886,7 +907,7 @@ void renderCanvas(
         // Connect vertical jump
         if (k > iMin) {
           final prevCdfVal = activeDist.cumulativeProbability(
-            (k - 1).toDouble(),
+            (k - step).toDouble(),
           );
           final pyPrev = toPixelY(prevCdfVal);
           ctx.strokeStyle =
@@ -948,8 +969,10 @@ void renderCanvas(
       // Discrete PDF - lollipop lines (vertical line + terminal dot)
       final iMin = minX.floor();
       final iMax = maxX.ceil();
+      final span = iMax - iMin;
+      final step = span > 500 ? (span / 500).ceil() : 1;
 
-      for (var k = iMin; k <= iMax; k++) {
+      for (var k = iMin; k <= iMax; k += step) {
         final p = activeDist.probability(k.toDouble());
         if (p.isNaN || p <= 0.0) continue;
 
@@ -972,76 +995,41 @@ void renderCanvas(
     }
   }
 
-  // Draw chart border box boundaries
-  ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)'.toJS;
-  ctx.lineWidth = 1.0;
-  ctx.beginPath();
-  ctx.rect(leftMargin, topMargin, plotWidth, plotHeight);
-  ctx.stroke();
+  ctx.restore();
 
   // ==================== PLOT ATTRIBUTE REFERENCE LINES ====================
-  ctx.save();
-  ctx.lineWidth = 1.0;
-  ctx.setLineDash([4.toJS, 4.toJS].toJS);
-
   final meanVal = safeGet(() => activeDist.mean)?.toDouble();
-  if (meanVal != null &&
-      meanVal.isFinite &&
-      meanVal >= minX &&
-      meanVal <= maxX) {
-    final px = toPixelX(meanVal);
-    ctx.strokeStyle = 'rgba(239, 68, 68, 0.7)'.toJS; // Coral Red
-    ctx.beginPath();
-    ctx.moveTo(px, topMargin);
-    ctx.lineTo(px, topMargin + plotHeight);
-    ctx.stroke();
-
-    ctx.fillStyle = '#ef4444'.toJS;
-    ctx.font = '9px monospace';
-    ctx.textAlign = 'center';
-    ctx.fillText('μ', px, topMargin - 4);
+  if (meanVal != null && meanVal.isFinite) {
+    drawReferenceLine(
+      ctx,
+      vp,
+      meanVal,
+      color: 'rgba(239, 68, 68, 0.7)',
+      label: 'μ',
+    );
   }
 
   final medianVal = safeGet(() => activeDist.median)?.toDouble();
-  if (medianVal != null &&
-      medianVal.isFinite &&
-      medianVal >= minX &&
-      medianVal <= maxX) {
-    final px = toPixelX(medianVal);
-    ctx.strokeStyle = 'rgba(16, 185, 129, 0.7)'.toJS; // Emerald
-    ctx.beginPath();
-    ctx.moveTo(px, topMargin);
-    ctx.lineTo(px, topMargin + plotHeight);
-    ctx.stroke();
-
-    ctx.fillStyle = '#10b981'.toJS;
-    ctx.font = '9px monospace';
-    ctx.textAlign = 'center';
-    var yOffset = topMargin - 4;
+  if (medianVal != null && medianVal.isFinite) {
+    var yOffset = 0.0;
     if (meanVal != null &&
         meanVal.isFinite &&
         (medianVal - meanVal).abs() < (maxX - minX) * 0.05) {
-      yOffset = topMargin - 14; // Stack text slightly higher if they overlap
+      yOffset = 10.0;
     }
-    ctx.fillText('med', px, yOffset);
+    drawReferenceLine(
+      ctx,
+      vp,
+      medianVal,
+      color: 'rgba(16, 185, 129, 0.7)',
+      label: 'med',
+      labelYOffset: yOffset,
+    );
   }
 
   final modeVal = safeGet(() => activeDist.mode)?.toDouble();
-  if (modeVal != null &&
-      modeVal.isFinite &&
-      modeVal >= minX &&
-      modeVal <= maxX) {
-    final px = toPixelX(modeVal);
-    ctx.strokeStyle = 'rgba(168, 85, 247, 0.7)'.toJS; // Purple
-    ctx.beginPath();
-    ctx.moveTo(px, topMargin);
-    ctx.lineTo(px, topMargin + plotHeight);
-    ctx.stroke();
-
-    ctx.fillStyle = '#a855f7'.toJS;
-    ctx.font = '9px monospace';
-    ctx.textAlign = 'center';
-    var yOffset = topMargin - 4;
+  if (modeVal != null && modeVal.isFinite) {
+    var yOffset = 0.0;
     final closeToMean =
         meanVal != null &&
         meanVal.isFinite &&
@@ -1051,115 +1039,54 @@ void renderCanvas(
         medianVal.isFinite &&
         (modeVal - medianVal).abs() < (maxX - minX) * 0.05;
     if (closeToMean || closeToMedian) {
-      yOffset = (closeToMean && closeToMedian)
-          ? topMargin - 24
-          : topMargin - 14;
+      yOffset = (closeToMean && closeToMedian) ? 20.0 : 10.0;
     }
-    ctx.fillText('mode', px, yOffset);
+    drawReferenceLine(
+      ctx,
+      vp,
+      modeVal,
+      color: 'rgba(168, 85, 247, 0.7)',
+      label: 'mode',
+      labelYOffset: yOffset,
+    );
   }
 
-  ctx.restore();
-
   // ==================== INTERACTIVE HOVER COORDINATES ====================
-  final mouseX = isCdf ? cdfMouseX : pdfMouseX;
-  final mouseY = isCdf ? cdfMouseY : pdfMouseY;
+  final mouseX = controller.hoverPixelX;
+  final mouseY = controller.hoverPixelY;
 
-  if (mouseX != null && mouseY != null) {
-    // Only show hover if mouse is inside the boundaries of the plotting area
-    if (mouseX >= leftMargin &&
-        mouseX <= leftMargin + plotWidth &&
-        mouseY >= topMargin &&
-        mouseY <= topMargin + plotHeight) {
-      final xVal = fromPixelX(mouseX);
+  if (mouseX != null && mouseY != null && vp.containsPixel(mouseX, mouseY)) {
+    final xVal = fromPixelX(mouseX);
 
-      // Determine discrete target k
-      final k = xVal.round();
-      final targetX = activeDef.isContinuous ? xVal : k.toDouble();
+    // Determine discrete target k
+    final k = xVal.round();
+    final targetX = activeDef.isContinuous ? xVal : k.toDouble();
 
-      final yVal = isCdf
-          ? activeDist.cumulativeProbability(targetX)
-          : activeDist.probability(targetX);
-      final hasVal = yVal.isFinite && !yVal.isNaN && yVal >= 0.0;
+    final yVal = isCdf
+        ? activeDist.cumulativeProbability(targetX)
+        : activeDist.probability(targetX);
+    final hasVal = yVal.isFinite && !yVal.isNaN && yVal >= 0.0;
 
-      if (hasVal) {
-        final px = toPixelX(targetX);
-        final py = toPixelY(yVal).clamp(topMargin, topMargin + plotHeight);
-
-        ctx.save();
-
-        // 1. Draw glowing vertical crosshair line
-        ctx.strokeStyle = 'rgba(255, 255, 255, 0.25)'.toJS;
-        ctx.lineWidth = 1.0;
-        ctx.beginPath();
-        ctx.moveTo(px, topMargin);
-        ctx.lineTo(px, topMargin + plotHeight);
-        ctx.stroke();
-
-        // 2. Draw glowing dot on the curve
-        final colorStr = isCdf
-            ? '#f59e0b'
-            : (activeDef.isContinuous ? '#3b82f6' : '#10b981');
-
-        ctx.fillStyle = '${colorStr}3b'.toJS; // 23% opacity glow
-        ctx.beginPath();
-        ctx.arc(px, py, 6.0, 0.0, 2 * math.pi);
-        ctx.fill();
-
-        ctx.fillStyle = colorStr.toJS; // Solid dot
-        ctx.beginPath();
-        ctx.arc(px, py, 3.0, 0.0, 2 * math.pi);
-        ctx.fill();
-
-        // 3. Draw premium floating tooltip card
-        const tooltipW = 125.0;
-        const tooltipH = 50.0;
-
-        // Offset card horizontally to avoid overlapping cursor
-        var tooltipX = px + 12.0;
-        if (tooltipX + tooltipW > leftMargin + plotWidth) {
-          tooltipX = px - tooltipW - 12.0;
-        }
-
-        // Center card vertically relative to target dot, clamp inside margins
-        var tooltipY = py - tooltipH - 12.0;
-        if (tooltipY < topMargin) {
-          tooltipY = py + 12.0;
-        }
-        if (tooltipY + tooltipH > topMargin + plotHeight) {
-          tooltipY = topMargin + plotHeight - tooltipH;
-        }
-
-        // Draw card background (slate dark transparent glassmorphic)
-        ctx.fillStyle = 'rgba(15, 23, 42, 0.88)'.toJS;
-        ctx.strokeStyle = 'rgba(255, 255, 255, 0.12)'.toJS;
-        ctx.lineWidth = 1.0;
-        ctx.beginPath();
-        ctx.rect(tooltipX, tooltipY, tooltipW, tooltipH);
-        ctx.fill();
-        ctx.stroke();
-
-        // Write tooltip labels
-        ctx.fillStyle = '#f8fafc'.toJS;
-        ctx.font = 'bold 11px Inter, sans-serif';
-        ctx.textAlign = 'left';
-
-        final labelX = activeDef.isContinuous
-            ? 'x: ${targetX.toStringAsFixed(4)}'
-            : 'k: ${k.toInt()}';
-        final labelY = isCdf
-            ? 'F(x): ${yVal.toStringAsFixed(4)}'
-            : (activeDef.isContinuous
-                  ? 'f(x): ${yVal.toStringAsFixed(4)}'
-                  : 'P(k): ${yVal.toStringAsFixed(4)}');
-
-        ctx.fillText(labelX, tooltipX + 8.0, tooltipY + 18.0);
-
-        ctx.fillStyle = 'rgba(248, 250, 252, 0.7)'.toJS;
-        ctx.font = '10px Inter, sans-serif';
-        ctx.fillText(labelY, tooltipX + 8.0, tooltipY + 36.0);
-
-        ctx.restore();
-      }
+    if (hasVal) {
+      final colorStr = isCdf
+          ? '#f59e0b'
+          : (activeDef.isContinuous ? '#3b82f6' : '#10b981');
+      final labelX = activeDef.isContinuous
+          ? 'x: ${targetX.toStringAsFixed(4)}'
+          : 'k: ${k.toInt()}';
+      final labelY = isCdf
+          ? 'F(x): ${yVal.toStringAsFixed(4)}'
+          : (activeDef.isContinuous
+                ? 'f(x): ${yVal.toStringAsFixed(4)}'
+                : 'P(k): ${yVal.toStringAsFixed(4)}');
+      drawCrosshairAndTooltip(
+        ctx,
+        vp,
+        targetX: targetX,
+        targetY: yVal,
+        tooltipLines: [labelX, labelY],
+        color: colorStr,
+      );
     }
   }
 }
