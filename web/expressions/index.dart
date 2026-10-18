@@ -67,7 +67,6 @@ final List<ExtremumPoint> localMinima = [];
 final List<ExtremumPoint> localMaxima = [];
 
 // DOM References
-late web.HTMLInputElement searchBox;
 late web.HTMLElement presetsList;
 late web.HTMLElement displayTitle;
 late web.HTMLElement categoryBadge;
@@ -181,7 +180,6 @@ void main() {
 }
 
 void initDom() {
-  searchBox = web.document.querySelector('#search-box') as web.HTMLInputElement;
   presetsList = web.document.querySelector('#presets-list') as web.HTMLElement;
   displayTitle =
       web.document.querySelector('#display-title') as web.HTMLElement;
@@ -387,26 +385,6 @@ void buildSidebar() {
   }
 }
 
-void filterSidebar(String query) {
-  final lowercaseQuery = query.toLowerCase();
-  final items = presetsList.querySelectorAll('.sidebar-item');
-
-  for (var i = 0; i < items.length; i++) {
-    final item = items.item(i) as web.HTMLElement;
-    final id = item.getAttribute('data-id') ?? '';
-    final preset = expressionPresets.where((p) => p.id == id).firstOrNull;
-    if (preset == null) continue;
-
-    final matches =
-        preset.name.toLowerCase().contains(lowercaseQuery) ||
-        preset.formula.toLowerCase().contains(lowercaseQuery) ||
-        preset.category.toLowerCase().contains(lowercaseQuery) ||
-        preset.description.toLowerCase().contains(lowercaseQuery);
-
-    item.style.display = matches ? '' : 'none';
-  }
-}
-
 VariableDomain _parseDomain(String value) => switch (value) {
   'complex' => VariableDomain.complex,
   'real' => VariableDomain.real,
@@ -487,8 +465,6 @@ void attachEventListeners() {
       updateUrlHash();
     },
   );
-
-  searchBox.onInput.listen((_) => filterSidebar(searchBox.value.trim()));
 
   exprInput.onInput.listen((_) {
     currentFormula = exprInput.value.trim();

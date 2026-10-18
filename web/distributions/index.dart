@@ -20,7 +20,6 @@ late InteractiveChartController pdfController;
 late InteractiveChartController cdfController;
 
 // DOM references
-late web.HTMLInputElement searchBox;
 late web.HTMLElement continuousGroup;
 late web.HTMLElement discreteGroup;
 late web.HTMLElement distTitle;
@@ -62,7 +61,6 @@ String formatVal(num value) => formatNumber(value);
 /// Initialize application and attach listeners.
 void main() {
   // Grab standard UI hooks
-  searchBox = web.document.querySelector('#search-box') as web.HTMLInputElement;
   continuousGroup =
       web.document.querySelector('#continuous-group') as web.HTMLElement;
   discreteGroup =
@@ -120,9 +118,6 @@ void main() {
 
   // Render Sidebar
   buildSidebar();
-
-  // Attach search filtering
-  searchBox.onInput.listen((_) => filterSidebar(searchBox.value.trim()));
 
   // Random Sampler Button bindings
   btnSample1.onClick.listen((_) => drawSamples(1));
@@ -247,28 +242,6 @@ void buildSidebar() {
       continuousGroup.appendChild(item);
     } else {
       discreteGroup.appendChild(item);
-    }
-  }
-}
-
-/// Filter sidebar items based on input.
-void filterSidebar(String query) {
-  final lowercaseQuery = query.toLowerCase();
-  final items = web.document.querySelectorAll('.sidebar-item');
-
-  for (var i = 0; i < items.length; i++) {
-    final item = items.item(i) as web.HTMLElement;
-    final id = item.getAttribute('data-id') ?? '';
-    final def = distributions.where((d) => d.id == id).firstOrNull;
-    if (def == null) continue;
-    final matches =
-        def.name.toLowerCase().contains(lowercaseQuery) ||
-        def.description.toLowerCase().contains(lowercaseQuery);
-
-    if (matches) {
-      item.style.display = '';
-    } else {
-      item.style.display = 'none';
     }
   }
 }
