@@ -11,8 +11,6 @@ export 'src/symbolic/algebra/trig.dart'
     show RewriteTarget, TrigRewriteExtension;
 export 'src/symbolic/assumptions.dart' show Assumptions;
 export 'src/symbolic/ast.dart';
-export 'src/symbolic/budget.dart'
-    show ComputationBudget, ComputationLimitException;
 export 'src/symbolic/calculus/differentiation.dart'
     show DifferentiationExtension;
 export 'src/symbolic/calculus/integration.dart'

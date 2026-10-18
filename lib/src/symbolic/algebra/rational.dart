@@ -1,6 +1,5 @@
 import '../../../linear.dart';
 import '../ast.dart';
-import '../budget.dart';
 import '../linear/bareiss.dart';
 import '../type/expr_data_type.dart';
 import 'expand.dart';
@@ -180,7 +179,6 @@ extension RationalFunctionExtension on Expr {
     final leadDen = denCoeffs[dDen]!;
 
     while (dRem >= dDen) {
-      ComputationBudget.check();
       final shift = dRem - dDen;
       final factor = field.div(rem[dRem]!, leadDen);
       final existingQ = quot[shift];
@@ -295,7 +293,6 @@ extension RationalFunctionExtension on Expr {
     for (var i = 0; i < polyFactors.length; i++) {
       final fI = polyFactors[i];
       for (var k = 1; k <= fI.multiplicity; k++) {
-        ComputationBudget.check();
         // Cofactor C_{i,k}(x) = prod_{j != i} F_j^{e_j} * F_i^{e_i - k}
         final cofactorParts = <Expr>[];
         for (var j = 0; j < polyFactors.length; j++) {
@@ -389,7 +386,6 @@ extension RationalFunctionExtension on Expr {
 Expr _factorPolynomial(Expr expr) => expr is Number ? expr : expr.factor();
 
 Expr _togetherExpr(Expr expr) {
-  ComputationBudget.check();
   final mapped = expr.mapChildren(_togetherExpr);
   return switch (mapped) {
     Add(:final terms) => _togetherAdd(terms),

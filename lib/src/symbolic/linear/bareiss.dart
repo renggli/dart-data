@@ -8,7 +8,6 @@ import '../algebra/factor/fraction.dart';
 import '../algebra/factor/multivariate.dart';
 import '../algebra/simplify.dart';
 import '../ast.dart';
-import '../budget.dart';
 import '../type/expr_data_type.dart';
 
 /// Computational engine for fraction-free symbolic matrix determinants,
@@ -45,7 +44,6 @@ class BareissEngine {
     Expr pPrev = IntegerNumber.one;
 
     for (var k = 0; k < n - 1; k++) {
-      ComputationBudget.check();
       // 1. Fraction-free row pivoting if pivot candidate vanishes.
       var pivot = m[k][k];
       if (_isExprZero(pivot)) {
@@ -108,7 +106,6 @@ class BareissEngine {
     var pivotRow = 0;
 
     for (var col = 0; col < colCount && pivotRow < rowCount; col++) {
-      ComputationBudget.check();
       var bestRow = -1;
       var bestScore = -1;
       for (var r = pivotRow; r < rowCount; r++) {

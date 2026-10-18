@@ -472,7 +472,7 @@ final class IntegerNumber extends RationalNumber {
   const new(this.value) : super._();
 
   /// Creates an exact integer literal from a machine `int`.
-  factory of(int value) => IntegerNumber(Integer(value));
+  factory of(int value) => IntegerNumber(Integer.from(value));
 
   /// The additive identity $0$.
   static const zero = IntegerNumber(Integer.zero);

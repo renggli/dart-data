@@ -53,8 +53,8 @@ void main() {
         check(simplifyPow(ComplexNumber.i, FractionNumber.half).toString())
             .equals('sqrt(i)');
         check(
-          simplifyPow(const RealNumber(2.0), const RealNumber(3.0)).toString(),
-        ).equals('2.0 ^ 3.0');
+          simplifyPow(const RealNumber(2.5), const RealNumber(3.5)).toString(),
+        ).equals('2.5 ^ 3.5');
 
         check(foldRationalPower(const Integer(2), const Integer(3), 2))
             .equals(RationalNumber(4, 9));

@@ -1,5 +1,4 @@
 import '../ast.dart';
-import '../budget.dart';
 import 'expand.dart';
 import 'rational.dart';
 import 'simplify.dart';
@@ -68,7 +67,6 @@ extension TrigRewriteExtension on Expr {
 }
 
 Expr _expandTrigExpr(Expr expr) {
-  ComputationBudget.check();
   final mapped = expr.mapChildren(_expandTrigExpr).simplify();
   return switch (mapped) {
     Sin(expr: final arg) => _expandSin(arg),
@@ -322,7 +320,6 @@ Expr _deMoivreTanh(int n, Expr u) {
 }
 
 Expr _simplifyTrigExpr(Expr expr) {
-  ComputationBudget.check();
   // 1. Convert tan -> sin/cos and tanh -> sinh/cosh, then combine and cancel
   // rational fractions so Pythagorean identities in numerators/denominators
   // reduce via simplify().
@@ -336,7 +333,6 @@ Expr _simplifyTrigExpr(Expr expr) {
 }
 
 Expr _contractTrigNode(Expr expr) {
-  ComputationBudget.check();
   final mapped = expr.mapChildren(_contractTrigNode).simplify();
   return switch (mapped) {
     Mul(:final factors) => _contractTrigProduct(factors),
@@ -617,7 +613,6 @@ Expr _rewriteToSinCos(Expr expr) {
 }
 
 Expr _rewriteToExp(Expr expr) {
-  ComputationBudget.check();
   final mapped = expr.mapChildren(_rewriteToExp);
   const i = ComplexNumber.i;
   const negHalfI = ComplexNumber(
@@ -660,7 +655,6 @@ Expr _rewriteToExp(Expr expr) {
 }
 
 Expr _rewriteToTrig(Expr expr) {
-  ComputationBudget.check();
   final mapped = expr.mapChildren(_rewriteToTrig);
   return switch (mapped) {
     Pow(base: Constant.e, :final exponent) => _expToTrig(exponent),

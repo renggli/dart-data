@@ -330,7 +330,7 @@ bool _isBigPrime(BigInt n) {
   var d = n - BigInt.one;
   var r = 0;
   while (d.isEven) {
-    d >>= 1;
+    d ~/= BigInt.two;
     r++;
   }
   for (final aInt in _smallPrimes) {

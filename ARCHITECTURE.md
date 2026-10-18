@@ -206,7 +206,6 @@ This document describes the achieved architecture across all subsystems of `pack
   - **Singular Value Decomposition (`SingularValueDecomposition`)**: Golub-Reinsch bidiagonalization with implicit QR shifts computing $A = U \Sigma V^T$. Provides pseudo-inverses, rank estimation, and singular value inspection.
   - **Eigenvalue Decomposition (`EigenvalueDecomposition`)**: Reduction to Hessenberg form followed by Francis shifted double-step QR algorithm computing real and complex eigenvalues/eigenvectors.
 
-
 ### 3.6 Vector Operations, Cumulative Scans & Geometric Decompositions
 
 - **Reasoning**: Geometric and functional operations on vectors are foundational across numerical analysis, optimization, and signal processing.
@@ -641,11 +640,8 @@ This document describes the achieved architecture across all subsystems of `pack
     - Direct declarative configuration via `ExprSyntax({constants, unaryFunctions, binaryFunctions, variadicFunctions})` (which merges custom bindings with standard mathematical constants and functions, including canonical parse-time rewrites for `sec`, `csc`, `cot`, `asec`/`arcsec`, `acsc`/`arccsc`, `acot`/`arccot`, `sech`, `csch`, `coth`, `asech`/`arcsech`, `acsch`/`arccsch`, `acoth`/`arccoth`, `log2`, and `log10`) and `ExprSyntax.empty({...})` (which starts with empty bindings), plus `ExprSyntax.standard`.
     - Strictly case-sensitive PetitParser `ExpressionBuilder<Expr>` grammar (`builder.loopback`, `resolve(builder.build()).end()`) where identifiers are any character sequence not starting with a digit and containing no whitespace or mathematical operator/delimiter symbols. Unbound 0-argument identifiers resolve to `Variable(name)`, and unbound function calls resolve to `VariableFunction(name, arguments)`.
 
-### 9.8 Cooperative Computation Budgets (`ComputationBudget`) & Domain Assumptions (`Assumptions`)
+### 9.8 Domain Assumptions (`Assumptions`)
 
-- **Reasoning**: Symbolic algorithms such as multivariate polynomial expansion, factorization, Laurent series composition, integration by parts, and Gröbner basis reduction can experience combinatorial coefficient or term growth on adversarial inputs. Interactive calculator UIs and servers need a lightweight, isolate-safe way to bound step counts and wall-clock execution time without killing isolates, as well as a non-invasive way to apply mathematical domain assumptions (`positive`, `real`, `integer`, `complex`) to parsed expressions without mutating AST nodes.
+- **Reasoning**: Symbolic operations often depend on mathematical domain assumptions (`positive`, `real`, `integer`, `complex`) for variables without mutating AST nodes.
 - **Implementation & Constraints**:
-  - `ComputationBudget.run<R>(body, {timeout, maxSteps})` (`lib/src/symbolic/budget.dart`) establishes a zone-scoped `_BudgetState` tracking symbolic steps and elapsed `Stopwatch` microseconds, maintaining a static `_activeZones` counter so `ComputationBudget.check()` executes a single integer check (`_activeZones == 0`) with zero Zone lookup overhead when no budget is active.
-  - `ComputationBudget.check()` is invoked at the entry of recursive and iterative symbolic hot paths (`simplifyExpr`, `_expand`, `_expandMulPair`, `factorExpr`, `_antiDerivative`, `computeLimit`, `_expandToPowerSeries`, `BuchbergerEngine.compute`, and `FglmEngine.convert`), throwing `ComputationLimitException` when `maxSteps` or `timeout` is exceeded.
   - `Assumptions.run<R>(body, {domains, defaultDomain})` (`lib/src/symbolic/assumptions.dart`) establishes a zone-scoped domain context consulted via `Variable.domain` and `Assumptions.domainOf`. When `Assumptions.isActive` is false, `Assumptions.domainOf` returns `VariableDomain.unknown` in $O(1)$ without Zone lookups; when active, simplification (`sqrt(x^2) -> x`, `abs(x) -> x`, `sign(x) -> 1`, `arg(x) -> 0` for `positive`; `conj(x) -> x`, `re(x) -> x`, `im(x) -> 0` for `real`/`positive`/`integer`; `floor(n) -> n`, `ceil(n) -> n`, `round(n) -> n`, `sin(n * pi) -> 0`, `cos(2 * n * pi) -> 1`, `(-1)^(2 * n) -> 1` for `integer`) and univariate equation solving (`solve`) automatically apply the active assumptions.
-

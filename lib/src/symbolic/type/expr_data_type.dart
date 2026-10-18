@@ -50,7 +50,7 @@ final class ExprDataType extends DataType<Expr> {
   @override
   Expr cast(dynamic value) => switch (value) {
     final Expr expr => expr,
-    final int n => IntegerNumber.of(n),
+    final int n when n.isFinite => IntegerNumber.of(n),
     final BigInt b => IntegerNumber(Integer.big(b)),
     Complex(:final a, b: == 0) => cast(a),
     Complex(:final a, :final b) => switch ((cast(a), cast(b))) {

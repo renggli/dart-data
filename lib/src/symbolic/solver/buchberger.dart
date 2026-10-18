@@ -1,6 +1,5 @@
 import 'dart:math' as math;
 
-import '../budget.dart';
 import 'multivariate_polynomial.dart';
 
 /// Buchberger algorithm engine with Sugar selection strategy and Gebauer-Möller criteria.
@@ -23,7 +22,6 @@ class BuchbergerEngine {
     var nextId = 0;
 
     for (final p in nonZero) {
-      ComputationBudget.check();
       if (p.sugar > maxDegree || p.totalDegree > maxDegree) {
         throw StateError('Buchberger degree bound ($maxDegree) exceeded.');
       }
@@ -34,7 +32,6 @@ class BuchbergerEngine {
 
     var iteration = 0;
     while (pairs.isNotEmpty) {
-      ComputationBudget.check();
       iteration++;
       if (iteration > maxIterations) {
         throw StateError(

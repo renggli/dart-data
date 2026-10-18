@@ -1,5 +1,4 @@
 import '../ast.dart';
-import '../budget.dart';
 import 'simplify.dart';
 import 'term_accumulator.dart';
 
@@ -21,18 +20,15 @@ extension ExpandExtension on Expr {
   Expr expand() => _expand(this);
 }
 
-Expr _expand(Expr expr) {
-  ComputationBudget.check();
-  return switch (expr) {
-    Add(:final terms) => _expandAdd(terms),
-    Mul(:final factors) => _expandMul(factors),
-    Pow(:final base, :final exponent) => _expandPow(
-      _expand(base),
-      _expand(exponent),
-    ),
-    _ => expr.mapChildren(_expand),
-  };
-}
+Expr _expand(Expr expr) => switch (expr) {
+  Add(:final terms) => _expandAdd(terms),
+  Mul(:final factors) => _expandMul(factors),
+  Pow(:final base, :final exponent) => _expandPow(
+    _expand(base),
+    _expand(exponent),
+  ),
+  _ => expr.mapChildren(_expand),
+};
 
 Expr _expandAdd(List<Expr> terms) {
   final acc = MonomialAccumulator();
@@ -54,7 +50,6 @@ Expr _expandMul(List<Expr> factors) {
 }
 
 Expr _expandMulPair(Expr left, Expr right) {
-  ComputationBudget.check();
   final leftTerms = <Expr>[];
   MonomialAccumulator.collectTerms(left, leftTerms);
   final rightTerms = <Expr>[];
@@ -71,7 +66,6 @@ Expr _expandMulPair(Expr left, Expr right) {
 
   final acc = MonomialAccumulator();
   for (var i = 0; i < leftTerms.length; i++) {
-    ComputationBudget.check();
     final pL = parsedLeft[i];
     final rawL = leftTerms[i];
     for (var j = 0; j < rightTerms.length; j++) {

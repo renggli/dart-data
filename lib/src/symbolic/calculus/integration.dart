@@ -3,7 +3,6 @@ import '../algebra/expand.dart';
 import '../algebra/simplify.dart';
 import '../algebra/term_accumulator.dart';
 import '../ast.dart';
-import '../budget.dart';
 import 'differentiation.dart';
 import 'limit.dart';
 import 'linear_form.dart';
@@ -118,8 +117,6 @@ Expr _symbolicIntegrate(
           ? antiDeriv.limit(variable, fromExpr)
           : antiDeriv.substitute(variable, fromExpr);
       return (upper - lower).simplify();
-    } on ComputationLimitException {
-      rethrow;
     } on Object {
       return Integral(
         function.simplify(),
@@ -140,7 +137,7 @@ bool _hasUnevaluatedIntegral(Expr expr, String variable) => expr.anyNode(
 
 Expr _boundToExpr(Object bound) => switch (bound) {
   Expr() => bound,
-  int() => IntegerNumber.of(bound),
+  int() when bound.isFinite => IntegerNumber.of(bound),
   BigInt() => IntegerNumber(Integer.big(bound)),
   double() => _doubleToBoundExpr(bound),
   _ => throw ArgumentError.value(
@@ -166,7 +163,6 @@ Expr _doubleToBoundExpr(double d) {
 }
 
 Expr _antiDerivative(Expr expr, String variable) {
-  ComputationBudget.check();
   final node = expr.simplify();
 
   if (!node.dependsOn(variable)) {

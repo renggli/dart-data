@@ -277,9 +277,9 @@ void main() {
       for (final c in const [4, 6, 8, 9, 15, 21, 561, 1105, 1729, 104727]) {
         check(Integer.from(c).isPrime).isFalse();
       }
-      // Mersenne prime 2^61 - 1 and 2^89 - 1
-      check(Integer.big(BigInt.two.pow(61) - BigInt.one).isPrime).isTrue();
+      // Mersenne primes 2^89 - 1 and 2^127 - 1, and composite 2^67 - 1
       check(Integer.big(BigInt.two.pow(89) - BigInt.one).isPrime).isTrue();
+      check(Integer.big(BigInt.two.pow(127) - BigInt.one).isPrime).isTrue();
       check(Integer.big(BigInt.two.pow(67) - BigInt.one).isPrime).isFalse();
     });
     test('RationalNumber gcd, lcm, and isPrime', () {

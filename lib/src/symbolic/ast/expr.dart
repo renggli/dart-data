@@ -185,12 +185,13 @@ sealed class Expr {
       };
 
   static Expr _wrapNum(num value) {
-    if (value is int) {
-      return IntegerNumber(Integer(value));
+    if (!value.isFinite) {
+      return RealNumber.fromDouble(value.toDouble());
     }
-    if (value == value.truncateToDouble() &&
-        value.isFinite &&
-        value.abs() < 9007199254740992.0) {
+    if (value is int) {
+      return IntegerNumber(Integer.from(value));
+    }
+    if (value == value.truncateToDouble() && value.abs() < 9007199254740992.0) {
       return IntegerNumber(Integer(value.toInt()));
     }
     return RealNumber.fromDouble(value.toDouble());

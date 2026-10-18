@@ -4,7 +4,6 @@ import '../algebra/rational.dart';
 import '../algebra/simplify.dart';
 import '../algebra/term_accumulator.dart';
 import '../ast.dart';
-import '../budget.dart';
 import '../solver/polynomial.dart';
 import 'limit.dart';
 import 'linear_form.dart';
@@ -70,7 +69,6 @@ Expr _wrapBound(Object bound) => switch (bound) {
 
 /// Evaluates the definite sum $\sum_{k=a}^b \text{term}$.
 Expr computeSum(Expr term, String variable, Expr from, Expr to) {
-  ComputationBudget.check();
   final simplifiedTerm = term.simplify();
   final a = from.simplify();
   final b = to.simplify();
@@ -106,7 +104,6 @@ Expr computeSum(Expr term, String variable, Expr from, Expr to) {
     if (end - start <= 256) {
       final terms = <Expr>[];
       for (var k = start; k <= end; k++) {
-        ComputationBudget.check();
         terms.add(
           simplifiedTerm.substitute(variable, IntegerNumber.of(k)).simplify(),
         );
@@ -143,7 +140,6 @@ Expr computeSum(Expr term, String variable, Expr from, Expr to) {
 
 /// Evaluates the definite product $\prod_{k=a}^b \text{factor}$.
 Expr computeProduct(Expr factor, String variable, Expr from, Expr to) {
-  ComputationBudget.check();
   final simplifiedFactor = factor.simplify();
   final a = from.simplify();
   final b = to.simplify();
@@ -163,7 +159,6 @@ Expr computeProduct(Expr factor, String variable, Expr from, Expr to) {
     if (end - start <= 128) {
       final factors = <Expr>[];
       for (var k = start; k <= end; k++) {
-        ComputationBudget.check();
         factors.add(
           simplifiedFactor.substitute(variable, IntegerNumber.of(k)).simplify(),
         );
@@ -186,7 +181,6 @@ Expr computeProduct(Expr factor, String variable, Expr from, Expr to) {
 }
 
 Expr? _antidifference(Expr expr, String variable) {
-  ComputationBudget.check();
   if (!expr.dependsOn(variable)) {
     return (expr * Variable(variable)).simplify();
   }
