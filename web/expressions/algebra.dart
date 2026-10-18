@@ -35,4 +35,5 @@ String formatComplex(Complex c, {int precision = 4}) {
 }
 
 /// Factors an expression, factoring polynomials or rational numbers into prime powers.
-Expr factorExpr(Expr expr) => expr.simplify().factor();
+Expr factorExpr(Expr expr, {Assumptions assumptions = Assumptions.none}) =>
+    expr.simplify(assumptions: assumptions).factor(assumptions: assumptions);

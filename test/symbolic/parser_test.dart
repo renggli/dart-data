@@ -208,6 +208,11 @@ void main() {
             .throws<FormatException>();
         check(() => syntax.parse('limit(x, 2, 0)')).throws<FormatException>();
         check(() => syntax.parse('limit(x, x)')).throws<FormatException>();
+        check(() => syntax.parse('sum(x, 2, 1, n)')).throws<FormatException>();
+        check(() => syntax.parse('sum(x, x, 1)')).throws<FormatException>();
+        check(() => syntax.parse('product(x, 2, 1, n)'))
+            .throws<FormatException>();
+        check(() => syntax.parse('product(x, x, 1)')).throws<FormatException>();
 
         check(syntax.parse('gcd(12, 18, 24)')).equals(IntegerNumber.of(6));
         check(syntax.parse('lcm(4, 6, 8)')).equals(IntegerNumber.of(24));

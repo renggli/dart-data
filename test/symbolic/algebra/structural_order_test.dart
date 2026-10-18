@@ -55,8 +55,10 @@ void main() {
         Integral(x, 'x'), // 43
         Derivative(x, 'x'), // 44
         Limit(x, 'x', IntegerNumber.zero), // 45
-        const OrderTerm('x', 3), // 46
-        VariableFunction('f', const [x]), // 47
+        Sum(x, 'x', IntegerNumber.one, const Variable('n')), // 46
+        Product(x, 'x', IntegerNumber.one, const Variable('n')), // 47
+        const OrderTerm('x', 3), // 48
+        VariableFunction('f', const [x]), // 49
       ];
 
       for (var i = 0; i < allVariants.length; i++) {
@@ -264,6 +266,27 @@ void main() {
       check(compareStructural(l1, l3)).isLessThan(0);
       check(compareStructural(l1, l4)).isLessThan(0);
       check(compareStructural(l1, l5)).isLessThan(0);
+
+      // Sum and Product comparisons
+      final s1 = Sum(x, 'x', IntegerNumber.zero, IntegerNumber.one);
+      final s2 = Sum(x, 'y', IntegerNumber.zero, IntegerNumber.one);
+      final s3 = Sum(x, 'x', IntegerNumber.one, IntegerNumber.one);
+      final s4 = Sum(x, 'x', IntegerNumber.zero, IntegerNumber.two);
+      final s5 = Sum(y, 'x', IntegerNumber.zero, IntegerNumber.one);
+      check(compareStructural(s1, s2)).isLessThan(0);
+      check(compareStructural(s1, s3)).isLessThan(0);
+      check(compareStructural(s1, s4)).isLessThan(0);
+      check(compareStructural(s1, s5)).isLessThan(0);
+
+      final p1 = Product(x, 'x', IntegerNumber.zero, IntegerNumber.one);
+      final p2 = Product(x, 'y', IntegerNumber.zero, IntegerNumber.one);
+      final p3 = Product(x, 'x', IntegerNumber.one, IntegerNumber.one);
+      final p4 = Product(x, 'x', IntegerNumber.zero, IntegerNumber.two);
+      final p5 = Product(y, 'x', IntegerNumber.zero, IntegerNumber.one);
+      check(compareStructural(p1, p2)).isLessThan(0);
+      check(compareStructural(p1, p3)).isLessThan(0);
+      check(compareStructural(p1, p4)).isLessThan(0);
+      check(compareStructural(p1, p5)).isLessThan(0);
     });
   });
 }

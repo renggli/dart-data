@@ -168,6 +168,8 @@ class ExprSyntax {
       'diff': _parseDerivativeArgs,
       'derivative': _parseDerivativeArgs,
       'limit': _parseLimitArgs,
+      'sum': _parseSumArgs,
+      'product': _parseProductArgs,
       'gcd': _evalGcdVariadic,
       'lcm': _evalLcmVariadic,
       'O': _parseOrderTermArgs,
@@ -531,6 +533,34 @@ class ExprSyntax {
     Variable(name: 'fromBelow' || 'left') => LimitDirection.fromBelow,
     _ => throw FormatException(
       'Invalid limit direction: $dirExpr (expected -1, 0, 1, fromBelow, both, or fromAbove)',
+    ),
+  };
+
+  static Expr _parseSumArgs(List<Expr> args) => switch (args) {
+    [final expr, Variable(:final name), final lower, final upper] => Sum(
+      expr,
+      name,
+      lower,
+      upper,
+    ),
+    [_, final invalidVar, _, _] => throw FormatException(
+      'sum second argument must be a variable identifier, got: $invalidVar',
+    ),
+    _ => throw FormatException('sum requires 4 arguments, got ${args.length}'),
+  };
+
+  static Expr _parseProductArgs(List<Expr> args) => switch (args) {
+    [final expr, Variable(:final name), final lower, final upper] => Product(
+      expr,
+      name,
+      lower,
+      upper,
+    ),
+    [_, final invalidVar, _, _] => throw FormatException(
+      'product second argument must be a variable identifier, got: $invalidVar',
+    ),
+    _ => throw FormatException(
+      'product requires 4 arguments, got ${args.length}',
     ),
   };
 

@@ -53,8 +53,10 @@ int nodeTag(Expr expr) => switch (expr) {
   Integral() => 43,
   Derivative() => 44,
   Limit() => 45,
-  OrderTerm() => 46,
-  VariableFunction() => 47,
+  Sum() => 46,
+  Product() => 47,
+  OrderTerm() => 48,
+  VariableFunction() => 49,
 };
 
 /// Total structural ordering comparator over all [Expr] AST nodes.
@@ -125,6 +127,24 @@ int compareStructural(Expr a, Expr b) {
       final cmpPt = compareStructural(la.point, lb.point);
       if (cmpPt != 0) return cmpPt;
       return compareStructural(la.expr, lb.expr);
+    }(),
+    (final Sum sa, final Sum sb) => () {
+      final cmpVar = sa.variable.compareTo(sb.variable);
+      if (cmpVar != 0) return cmpVar;
+      final cmpLow = compareStructural(sa.lower, sb.lower);
+      if (cmpLow != 0) return cmpLow;
+      final cmpUp = compareStructural(sa.upper, sb.upper);
+      if (cmpUp != 0) return cmpUp;
+      return compareStructural(sa.expr, sb.expr);
+    }(),
+    (final Product pa, final Product pb) => () {
+      final cmpVar = pa.variable.compareTo(pb.variable);
+      if (cmpVar != 0) return cmpVar;
+      final cmpLow = compareStructural(pa.lower, pb.lower);
+      if (cmpLow != 0) return cmpLow;
+      final cmpUp = compareStructural(pa.upper, pb.upper);
+      if (cmpUp != 0) return cmpUp;
+      return compareStructural(pa.expr, pb.expr);
     }(),
     (final OrderTerm oa, final OrderTerm ob) => () {
       final cmpVar = oa.variable.compareTo(ob.variable);

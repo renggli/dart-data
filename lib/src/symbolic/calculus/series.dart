@@ -567,6 +567,8 @@ PowerSeries _expandToPowerSeries(
   Integral() ||
   Derivative() ||
   Limit() ||
+  Sum() ||
+  Product() ||
   VariableFunction() => throw UnsupportedError(
     'Power series expansion not supported for ${expr.runtimeType}',
   ),

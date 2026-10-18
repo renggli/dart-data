@@ -56,6 +56,8 @@ Expr _approximateNode(Expr node) => switch (node) {
   Piecewise() ||
   Derivative() ||
   Limit() ||
+  Sum() ||
+  Product() ||
   VariableFunction() => node.mapChildren(_approximateNode),
   Integral() => () {
     final rebuilt = node.mapChildren(_approximateNode) as Integral;

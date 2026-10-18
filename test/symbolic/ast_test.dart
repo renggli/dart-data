@@ -32,5 +32,29 @@ void main() {
       final sub = expr.substitute('x', IntegerNumber.of(5));
       check(sub.evaluate({'y': 3.0})).equals(11.0);
     });
+
+    test('evaluates isReal across calculus, piecewise, and function nodes', () {
+      const x = Variable('x');
+      check(
+        Piecewise([
+          (relation: LessThan(x, IntegerNumber.zero), expr: -x),
+        ], otherwise: x).isReal,
+      ).isTrue();
+      check(
+        Integral(
+          x,
+          'x',
+          lower: IntegerNumber.zero,
+          upper: IntegerNumber.one,
+        ).isReal,
+      ).isTrue();
+      check(Derivative(x, 'x').isReal).isTrue();
+      check(Limit(x, 'x', IntegerNumber.zero).isReal).isTrue();
+      check(Sum(x, 'x', IntegerNumber.one, const Variable('n')).isReal)
+          .isTrue();
+      check(Product(x, 'x', IntegerNumber.one, const Variable('n')).isReal)
+          .isTrue();
+      check(VariableFunction('f', const [x]).isReal).isTrue();
+    });
   });
 }

@@ -155,7 +155,11 @@ Expr _differentiate(Expr expr, String variable) => switch (expr) {
     dVar == variable
         ? Derivative(inner, variable, order: order + 1)
         : Derivative(expr, variable),
-  Limit() || VariableFunction() => Derivative(expr, variable),
+  Sum(expr: final inner, variable: final sVar, :final lower, :final upper) =>
+    sVar != variable && !lower.dependsOn(variable) && !upper.dependsOn(variable)
+        ? Sum(_differentiate(inner, variable), sVar, lower, upper)
+        : Derivative(expr, variable),
+  Limit() || Product() || VariableFunction() => Derivative(expr, variable),
 };
 
 Expr _differentiateIntegral(

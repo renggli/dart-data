@@ -97,7 +97,10 @@ void main() {
             );
 
         check(Expr.parse('sqrt(x)').toMathMl())
-            .equals('<math><mroot><mrow><mi>x</mi></mrow></mroot></math>');
+            .equals('<math><msqrt><mrow><mi>x</mi></mrow></msqrt></math>');
+        check(Expr.parse('1/6 * (2 + 2 * sqrt(13))').toMathMl()).equals(
+          '<math><mfrac><mrow><mn>2</mn><mo>+</mo><mrow><mn>2</mn><mspace width="0.167em"/><msqrt><mrow><mn>13</mn></mrow></msqrt></mrow></mrow><mn>6</mn></mfrac></math>',
+        );
         check(Expr.parse('x^(1/3)').toMathMl()).equals(
           '<math><mroot><mrow><mi>x</mi></mrow><mn>3</mn></mroot></math>',
         );
@@ -228,6 +231,12 @@ void main() {
           direction: LimitDirection.fromBelow,
         ).toMathMl(root: false),
       ).contains('<mo>&minus;</mo>');
+      check(Expr.parse('sum(2 * abs(x), x, 1, n)').toMathMl()).equals(
+        '<math><mrow><munderover><mo>&#x2211;</mo><mrow><mi>x</mi><mo>=</mo><mn>1</mn></mrow><mi>n</mi></munderover><mrow><mn>2</mn><mspace width="0.167em"/><mrow><mo>|</mo><mi>x</mi><mo>|</mo></mrow></mrow></mrow></math>',
+      );
+      check(Expr.parse('product(2 * abs(x), x, 1, n)').toMathMl()).equals(
+        '<math><mrow><munderover><mo>&#x220F;</mo><mrow><mi>x</mi><mo>=</mo><mn>1</mn></mrow><mi>n</mi></munderover><mrow><mn>2</mn><mspace width="0.167em"/><mrow><mo>|</mo><mi>x</mi><mo>|</mo></mrow></mrow></mrow></math>',
+      );
 
       check(Expr.parse('piecewise(x < 0, -x, x)').toMathMl(root: false))
           .contains('<mtable>');

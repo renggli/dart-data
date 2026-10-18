@@ -486,7 +486,7 @@ BytecodeEvaluator compileToBytecode(
         for (final jmpIdx in endJumps) {
           instructions[jmpIdx] = Instruction.jump(endPc);
         }
-      case Integral() || Derivative() || Limit():
+      case Integral() || Derivative() || Limit() || Sum() || Product():
         for (final freeVar in expr.freeVariables) {
           if (!varIndices.containsKey(freeVar)) {
             if (allowDynamicVars) {
@@ -561,6 +561,11 @@ void _forEachChild(Expr node, void Function(Expr) visit) {
     case Limit(:final expr, :final point):
       visit(expr);
       visit(point);
+    case Sum(:final expr, :final lower, :final upper) ||
+        Product(:final expr, :final lower, :final upper):
+      visit(expr);
+      visit(lower);
+      visit(upper);
     case VariableFunction(:final arguments):
       for (final argument in arguments) {
         visit(argument);

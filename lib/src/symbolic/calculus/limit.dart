@@ -694,6 +694,11 @@ Expr? _tryFactorLogAdd(Expr a, Expr b, String variable) {
       case Limit(:final expr, :final point):
         scan(expr);
         scan(point);
+      case Sum(:final expr, :final lower, :final upper) ||
+          Product(:final expr, :final lower, :final upper):
+        scan(expr);
+        scan(lower);
+        scan(upper);
       case VariableFunction(:final arguments):
         for (final argument in arguments) {
           scan(argument);

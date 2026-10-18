@@ -147,6 +147,10 @@ String _toMathMl(Expr expr) => switch (expr) {
     };
     return '<mrow><munder><mo>lim</mo><mrow><mi>$vXml</mi><mo>&#x2192;</mo>$ptMathMl</mrow></munder>${_formatMulRight(expr)}</mrow>';
   }(),
+  Sum(:final expr, :final variable, :final lower, :final upper) =>
+    '<mrow><munderover><mo>&#x2211;</mo><mrow><mi>${_escapeXml(variable)}</mi><mo>=</mo>${_toMathMl(lower)}</mrow>${_toMathMl(upper)}</munderover>${_formatMulRight(expr)}</mrow>',
+  Product(:final expr, :final variable, :final lower, :final upper) =>
+    '<mrow><munderover><mo>&#x220F;</mo><mrow><mi>${_escapeXml(variable)}</mi><mo>=</mo>${_toMathMl(lower)}</mrow>${_toMathMl(upper)}</munderover>${_formatMulRight(expr)}</mrow>',
 };
 
 String _formatComplexMathMl(ComplexNumber c) {
@@ -286,7 +290,7 @@ String _formatPow(Expr base, Expr exponent) {
   if (exponent case RationalNumber(:final numerator, :final denominator)
       when numerator == Integer.one) {
     if (denominator == Integer.two) {
-      return '<mroot><mrow>${_toMathMl(base)}</mrow></mroot>';
+      return '<msqrt><mrow>${_toMathMl(base)}</mrow></msqrt>';
     } else if (denominator > Integer.two) {
       return '<mroot><mrow>${_toMathMl(base)}</mrow><mn>$denominator</mn></mroot>';
     }

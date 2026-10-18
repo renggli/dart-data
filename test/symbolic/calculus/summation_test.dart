@@ -170,6 +170,58 @@ void main() {
               .product('k', 1, n);
       check(scaledTeleProd.substitute('n', IntegerNumber.of(3)).simplify())
           .equals(RationalNumber(32, 27));
+
+      // Indefinite sum and bound types
+      check(k.indefiniteSum('k').toString()).equals('-1/2 * k + 1/2 * k ^ 2');
+      check(Sin(k * k).indefiniteSum('k')).isNull();
+      check(k.sum('k', BigInt.one, 'n').toString())
+          .equals('1/2 * n + 1/2 * n ^ 2');
+      check(k.sum('k', 1.5, 3.5)).equals(const RealNumber(7.5));
+      check(() => k.sum('k', Object(), 5)).throws<ArgumentError>();
+
+      // Infinite unevaluated sum fallback
+      final infUneval = Sin(k * k).sum('k', 1, Constant.infinity);
+      check(infUneval.toString()).equals('sum(sin(k ^ 2), k, 1, infinity)');
+
+      // Simplifying parsed Sum and Product
+      check(Expr.parse('sum(k, k, 1, n)').simplify().toString())
+          .equals('1/2 * n + 1/2 * n ^ 2');
+      check(Expr.parse('product(k, k, 1, n)').simplify()).equals(Factorial(n));
     });
+
+    test(
+      'Sum and Product AST node scoping, substitution, traversal, and equality',
+      () {
+        const k = Variable('k');
+        const n = Variable('n');
+        const a = Variable('a');
+
+        final s = Sum(a * k, 'k', IntegerNumber.one, n);
+        check(s.freeVariables).unorderedEquals(['a', 'n']);
+        check(s.dependsOn('k')).isFalse();
+        check(s.dependsOn('a')).isTrue();
+        check(s.dependsOn('n')).isTrue();
+        check(s.substitute('k', IntegerNumber.two)).equals(s);
+        check(s.substitute('a', IntegerNumber.two))
+            .equals(Sum(IntegerNumber.two * k, 'k', IntegerNumber.one, n));
+        check(s.mapChildren((c) => c)).equals(s);
+        check(s.anyNode((c) => c == a)).isTrue();
+        check(s.hashCode)
+            .equals(Sum(a * k, 'k', IntegerNumber.one, n).hashCode);
+
+        final p = Product(a + k, 'k', IntegerNumber.one, n);
+        check(p.freeVariables).unorderedEquals(['a', 'n']);
+        check(p.dependsOn('k')).isFalse();
+        check(p.dependsOn('a')).isTrue();
+        check(p.dependsOn('n')).isTrue();
+        check(p.substitute('k', IntegerNumber.two)).equals(p);
+        check(p.substitute('a', IntegerNumber.two))
+            .equals(Product(IntegerNumber.two + k, 'k', IntegerNumber.one, n));
+        check(p.mapChildren((c) => c)).equals(p);
+        check(p.anyNode((c) => c == a)).isTrue();
+        check(p.hashCode)
+            .equals(Product(a + k, 'k', IntegerNumber.one, n).hashCode);
+      },
+    );
   });
 }

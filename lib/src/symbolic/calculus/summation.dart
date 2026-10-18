@@ -22,8 +22,8 @@ extension SummationExtension on Expr {
   /// - Infinite convergent series when `to` is [Constant.infinity] or
   ///   [double.infinity].
   ///
-  /// Returns an unevaluated `VariableFunction('sum', ...)` node when no
-  /// closed-form sum can be determined.
+  /// Returns an unevaluated [Sum] node when no closed-form sum can be
+  /// determined.
   ///
   /// ```dart
   /// final k = Variable('k');
@@ -63,8 +63,8 @@ extension SummationExtension on Expr {
   /// - Exponential factors $\prod r^{g(k)} = r^{\sum g(k)}$.
   /// - Telescoping rational products $\prod \frac{g(k+1)}{g(k)} = \frac{g(b+1)}{g(a)}$.
   ///
-  /// Returns an unevaluated `VariableFunction('product', ...)` node when no
-  /// closed-form product can be determined.
+  /// Returns an unevaluated [Product] node when no closed-form product can be
+  /// determined.
   ///
   /// ```dart
   /// final k = Variable('k');
@@ -120,13 +120,8 @@ Expr computeSum(
       limitVar,
       assumptions: assumptions,
     );
-    if (finite is VariableFunction && finite.name == 'sum') {
-      return VariableFunction('sum', [
-        simplifiedTerm,
-        Variable(variable),
-        a,
-        b,
-      ], isSimplified: true);
+    if (finite is Sum) {
+      return Sum(simplifiedTerm, variable, a, b, isSimplified: true);
     }
     return finite.limit(
       limitVarName,
@@ -178,12 +173,7 @@ Expr computeSum(
     }
   }
 
-  return VariableFunction('sum', [
-    simplifiedTerm,
-    Variable(variable),
-    a,
-    b,
-  ], isSimplified: true);
+  return Sum(simplifiedTerm, variable, a, b, isSimplified: true);
 }
 
 /// Evaluates the definite product $\prod_{k=a}^b \text{factor}$.
@@ -228,12 +218,7 @@ Expr computeProduct(
     return closed.simplify(assumptions: assumptions);
   }
 
-  return VariableFunction('product', [
-    simplifiedFactor,
-    Variable(variable),
-    a,
-    b,
-  ], isSimplified: true);
+  return Product(simplifiedFactor, variable, a, b, isSimplified: true);
 }
 
 Expr? _antidifference(Expr expr, String variable) {

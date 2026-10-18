@@ -13,9 +13,19 @@ import 'presets.dart';
 
 // Current Application State
 ExpressionPreset? activePreset;
-String currentFormula = 'x^3 - 3*x + 1';
+String currentFormula = '(x - 1) * (x - 2) * (x + 2)';
+VariableDomain currentDomain = VariableDomain.unknown;
+
+Assumptions get currentAssumptions => currentDomain == VariableDomain.unknown
+    ? Assumptions.none
+    : Assumptions(defaultDomain: currentDomain);
+
 Expr? parsedExpr;
+Expr? cachedD1;
+Expr? cachedD2;
+Expr? cachedD3;
 Expr? cachedAntideriv;
+
 double Function(double)? fnCompiled;
 double Function(double)? dfCompiled;
 double Function(double)? d2fCompiled;
@@ -29,12 +39,10 @@ Complex Function(Complex)? taylorComplexCompiled;
 
 double minX = -3.0;
 double maxX = 3.0;
-double pointX = 1.0;
-double intA = -1.0;
-double intB = 2.0;
-IntegrationMethod intMethod = IntegrationMethod.gaussKronrod;
+String pointXStr = '0';
+String intAStr = '-2';
+String intBStr = '2';
 int taylorOrder = 3;
-double taylorAround = 0.0;
 
 bool showFx = true;
 bool showIm = true;
@@ -56,10 +64,8 @@ bool _rafPending = false;
 
 typedef ExtremumPoint = ({double x, double y});
 
-// Critical points & roots
-final List<double> exactRoots = [];
-final List<Expr> exactSolutions = [];
-final List<double> numericRoots = [];
+// Plot markers for roots & extrema
+final List<double> plotRoots = [];
 final List<ExtremumPoint> localMinima = [];
 final List<ExtremumPoint> localMaxima = [];
 
@@ -71,6 +77,7 @@ late web.HTMLElement categoryBadge;
 late web.HTMLElement displayDesc;
 
 late web.HTMLInputElement exprInput;
+late web.HTMLSelectElement selectDomain;
 late web.HTMLElement statusBadge;
 late web.HTMLElement parseErrorMessage;
 
@@ -104,39 +111,67 @@ late web.HTMLElement toggleLblRoots;
 late web.HTMLElement toggleLblMin;
 late web.HTMLElement toggleLblMax;
 
+// Card 1: Simplification & Normal Forms
 late web.HTMLElement valAlgVerbatim;
 late web.HTMLElement valAlgSimplified;
 late web.HTMLElement valAlgExpanded;
 late web.HTMLElement valAlgFactored;
+late web.HTMLElement valAlgApproximated;
+late web.HTMLElement valAlgRationalized;
+
+// Card 2: Rational & Polynomial Algebra
+late web.HTMLElement valRatApart;
+late web.HTMLElement valRatTogether;
+late web.HTMLElement valRatCancel;
+late web.HTMLElement valRatCollect;
+late web.HTMLElement valRatNum;
+late web.HTMLElement valRatDen;
+
+// Card 3: Trigonometric & Complex Forms
+late web.HTMLElement valTrigExpand;
+late web.HTMLElement valTrigSimplify;
+late web.HTMLElement valTrigExp;
+late web.HTMLElement valTrigSinCos;
+late web.HTMLElement valComplexRect;
+late web.HTMLElement valComplexPolar;
+
+// Card 4: Differentiation
 late web.HTMLElement valSymDf;
 late web.HTMLElement valSymD2f;
 late web.HTMLElement valSymD3f;
-late web.HTMLElement valSymAntideriv;
-
-late web.HTMLInputElement sliderPointX;
-late web.HTMLInputElement inputPointX;
-late web.HTMLElement pointXDisplay;
-late web.HTMLElement valEvalFx;
-late web.HTMLElement valEvalDfAnalytical;
-late web.HTMLElement valEvalDfNumerical;
+late web.HTMLElement valSymDfAtX0;
 late web.HTMLElement valTangentEq;
-late web.HTMLElement valEvalLim;
-late web.HTMLElement valEvalLimInf;
 
-late web.HTMLSelectElement selectIntMethod;
+// Card 5: Integration
 late web.HTMLInputElement inputIntA;
 late web.HTMLInputElement inputIntB;
-late web.HTMLElement valIntNumerical;
-late web.HTMLElement valIntAnalytical;
+late web.HTMLElement valSymAntideriv;
+late web.HTMLElement valIntDefinite;
+late web.HTMLElement valIntHalfInf;
+late web.HTMLElement valIntFullInf;
 
+// Card 6: Series, Sums & Products
 late web.HTMLInputElement sliderTaylorOrder;
 late web.HTMLSelectElement selectTaylorCenter;
 late web.HTMLElement taylorOrderVal;
 late web.HTMLElement valFormalSeries;
 late web.HTMLElement taylorPolynomialStr;
+late web.HTMLElement valSymSum;
+late web.HTMLElement valSymAntidiff;
+late web.HTMLElement valSymProduct;
 
+// Card 7: Evaluation & Limits
+late web.HTMLInputElement inputPointX;
+late web.HTMLElement valEvalFx;
+late web.HTMLElement valEvalLim;
+late web.HTMLElement valEvalLimDir;
+late web.HTMLElement valEvalLimPosInf;
+late web.HTMLElement valEvalLimNegInf;
+
+// Card 8: Equations, Roots & Extrema
 late web.HTMLElement valRootsExact;
-late web.HTMLElement valRootsNumeric;
+late web.HTMLElement valCriticalExact;
+late web.HTMLElement valInflectionExact;
 late web.HTMLElement valExtremaMin;
 late web.HTMLElement valExtremaMax;
 
@@ -158,6 +193,8 @@ void initDom() {
   displayDesc = web.document.querySelector('#display-desc') as web.HTMLElement;
 
   exprInput = web.document.querySelector('#expr-input') as web.HTMLInputElement;
+  selectDomain =
+      web.document.querySelector('#select-domain') as web.HTMLSelectElement;
   statusBadge = web.document.querySelector('#status-badge') as web.HTMLElement;
   parseErrorMessage =
       web.document.querySelector('#parse-error-message') as web.HTMLElement;
@@ -212,6 +249,7 @@ void initDom() {
   toggleLblMax =
       web.document.querySelector('#toggle-lbl-max') as web.HTMLElement;
 
+  // Card 1
   valAlgVerbatim =
       web.document.querySelector('#val-alg-verbatim') as web.HTMLElement;
   valAlgSimplified =
@@ -220,40 +258,59 @@ void initDom() {
       web.document.querySelector('#val-alg-expanded') as web.HTMLElement;
   valAlgFactored =
       web.document.querySelector('#val-alg-factored') as web.HTMLElement;
+  valAlgApproximated =
+      web.document.querySelector('#val-alg-approximated') as web.HTMLElement;
+  valAlgRationalized =
+      web.document.querySelector('#val-alg-rationalized') as web.HTMLElement;
+
+  // Card 2
+  valRatApart = web.document.querySelector('#val-rat-apart') as web.HTMLElement;
+  valRatTogether =
+      web.document.querySelector('#val-rat-together') as web.HTMLElement;
+  valRatCancel =
+      web.document.querySelector('#val-rat-cancel') as web.HTMLElement;
+  valRatCollect =
+      web.document.querySelector('#val-rat-collect') as web.HTMLElement;
+  valRatNum = web.document.querySelector('#val-rat-num') as web.HTMLElement;
+  valRatDen = web.document.querySelector('#val-rat-den') as web.HTMLElement;
+
+  // Card 3
+  valTrigExpand =
+      web.document.querySelector('#val-trig-expand') as web.HTMLElement;
+  valTrigSimplify =
+      web.document.querySelector('#val-trig-simplify') as web.HTMLElement;
+  valTrigExp = web.document.querySelector('#val-trig-exp') as web.HTMLElement;
+  valTrigSinCos =
+      web.document.querySelector('#val-trig-sincos') as web.HTMLElement;
+  valComplexRect =
+      web.document.querySelector('#val-complex-rect') as web.HTMLElement;
+  valComplexPolar =
+      web.document.querySelector('#val-complex-polar') as web.HTMLElement;
+
+  // Card 4
   valSymDf = web.document.querySelector('#val-sym-df') as web.HTMLElement;
   valSymD2f = web.document.querySelector('#val-sym-d2f') as web.HTMLElement;
   valSymD3f = web.document.querySelector('#val-sym-d3f') as web.HTMLElement;
-  valSymAntideriv =
-      web.document.querySelector('#val-sym-antideriv') as web.HTMLElement;
-
-  sliderPointX =
-      web.document.querySelector('#slider-point-x') as web.HTMLInputElement;
-  inputPointX =
-      web.document.querySelector('#input-point-x') as web.HTMLInputElement;
-  pointXDisplay =
-      web.document.querySelector('#point-x-display') as web.HTMLElement;
-  valEvalFx = web.document.querySelector('#val-eval-fx') as web.HTMLElement;
-  valEvalDfAnalytical =
-      web.document.querySelector('#val-eval-df-analytical') as web.HTMLElement;
-  valEvalDfNumerical =
-      web.document.querySelector('#val-eval-df-numerical') as web.HTMLElement;
+  valSymDfAtX0 =
+      web.document.querySelector('#val-sym-df-at-x0') as web.HTMLElement;
   valTangentEq =
       web.document.querySelector('#val-tangent-eq') as web.HTMLElement;
-  valEvalLim = web.document.querySelector('#val-eval-lim') as web.HTMLElement;
-  valEvalLimInf =
-      web.document.querySelector('#val-eval-lim-inf') as web.HTMLElement;
 
-  selectIntMethod =
-      web.document.querySelector('#select-int-method') as web.HTMLSelectElement;
+  // Card 5
   inputIntA =
       web.document.querySelector('#input-int-a') as web.HTMLInputElement;
   inputIntB =
       web.document.querySelector('#input-int-b') as web.HTMLInputElement;
-  valIntNumerical =
-      web.document.querySelector('#val-int-numerical') as web.HTMLElement;
-  valIntAnalytical =
-      web.document.querySelector('#val-int-analytical') as web.HTMLElement;
+  valSymAntideriv =
+      web.document.querySelector('#val-sym-antideriv') as web.HTMLElement;
+  valIntDefinite =
+      web.document.querySelector('#val-int-definite') as web.HTMLElement;
+  valIntHalfInf =
+      web.document.querySelector('#val-int-half-inf') as web.HTMLElement;
+  valIntFullInf =
+      web.document.querySelector('#val-int-full-inf') as web.HTMLElement;
 
+  // Card 6
   sliderTaylorOrder = web.document.querySelector(
     '#slider-taylor-order',
   ) as web.HTMLInputElement;
@@ -266,11 +323,31 @@ void initDom() {
       web.document.querySelector('#val-formal-series') as web.HTMLElement;
   taylorPolynomialStr =
       web.document.querySelector('#taylor-polynomial-str') as web.HTMLElement;
+  valSymSum = web.document.querySelector('#val-sym-sum') as web.HTMLElement;
+  valSymAntidiff =
+      web.document.querySelector('#val-sym-antidiff') as web.HTMLElement;
+  valSymProduct =
+      web.document.querySelector('#val-sym-product') as web.HTMLElement;
 
+  // Card 7
+  inputPointX =
+      web.document.querySelector('#input-point-x') as web.HTMLInputElement;
+  valEvalFx = web.document.querySelector('#val-eval-fx') as web.HTMLElement;
+  valEvalLim = web.document.querySelector('#val-eval-lim') as web.HTMLElement;
+  valEvalLimDir =
+      web.document.querySelector('#val-eval-lim-dir') as web.HTMLElement;
+  valEvalLimPosInf =
+      web.document.querySelector('#val-eval-lim-pos-inf') as web.HTMLElement;
+  valEvalLimNegInf =
+      web.document.querySelector('#val-eval-lim-neg-inf') as web.HTMLElement;
+
+  // Card 8
   valRootsExact =
       web.document.querySelector('#val-roots-exact') as web.HTMLElement;
-  valRootsNumeric =
-      web.document.querySelector('#val-roots-numeric') as web.HTMLElement;
+  valCriticalExact =
+      web.document.querySelector('#val-critical-exact') as web.HTMLElement;
+  valInflectionExact =
+      web.document.querySelector('#val-inflection-exact') as web.HTMLElement;
   valExtremaMin =
       web.document.querySelector('#val-extrema-min') as web.HTMLElement;
   valExtremaMax =
@@ -333,10 +410,29 @@ void filterSidebar(String query) {
   }
 }
 
+VariableDomain _parseDomain(String value) => switch (value) {
+  'complex' => VariableDomain.complex,
+  'real' => VariableDomain.real,
+  'positive' => VariableDomain.positive,
+  'integer' => VariableDomain.integer,
+  _ => VariableDomain.unknown,
+};
+
+String _domainToString(VariableDomain domain) => switch (domain) {
+  VariableDomain.complex => 'complex',
+  VariableDomain.real => 'real',
+  VariableDomain.positive => 'positive',
+  VariableDomain.integer => 'integer',
+  VariableDomain.unknown => 'unknown',
+};
+
 void selectPreset(ExpressionPreset preset) {
   activePreset = preset;
   currentFormula = preset.formula;
   exprInput.value = preset.formula;
+
+  currentDomain = preset.defaultDomain;
+  selectDomain.value = _domainToString(currentDomain);
 
   displayTitle.textContent = preset.name;
   categoryBadge.textContent = preset.category;
@@ -347,16 +443,13 @@ void selectPreset(ExpressionPreset preset) {
   rangeMinX.value = minX.toString();
   rangeMaxX.value = maxX.toString();
 
-  pointX = preset.defaultPointX;
-  sliderPointX.value = pointX.toString();
-  inputPointX.value = pointX.toString();
-  pointXDisplay.textContent = formatNumber(pointX, precision: 2);
-  taylorAround = selectTaylorCenter.value == 'x0' ? pointX : 0.0;
+  pointXStr = preset.defaultPointX;
+  inputPointX.value = pointXStr;
 
-  intA = preset.defaultIntA;
-  intB = preset.defaultIntB;
-  inputIntA.value = intA.toString();
-  inputIntB.value = intB.toString();
+  intAStr = preset.defaultIntA;
+  intBStr = preset.defaultIntB;
+  inputIntA.value = intAStr;
+  inputIntB.value = intBStr;
 
   highlightActiveSidebarItem(preset.id);
   updateAll();
@@ -383,8 +476,15 @@ void attachEventListeners() {
     activePreset = null;
     displayTitle.textContent = 'Custom Expression';
     categoryBadge.textContent = 'User Defined';
-    displayDesc.textContent = 'Interactive mathematical formula evaluation.';
+    displayDesc.textContent =
+        'Interactive symbolic algebra and calculus exploration.';
     highlightActiveSidebarItem(null);
+    updateAll();
+    updateUrlHash();
+  });
+
+  selectDomain.onChange.listen((_) {
+    currentDomain = _parseDomain(selectDomain.value);
     updateAll();
     updateUrlHash();
   });
@@ -394,7 +494,6 @@ void attachEventListeners() {
     final val = double.tryParse(rangeMinX.value);
     if (val != null && val < maxX) {
       minX = val;
-      updateRangeBounds();
       updateImaginaryDetection();
       detectRootsAndExtrema();
       drawCharts();
@@ -406,7 +505,6 @@ void attachEventListeners() {
     final val = double.tryParse(rangeMaxX.value);
     if (val != null && val > minX) {
       maxX = val;
-      updateRangeBounds();
       updateImaginaryDetection();
       detectRootsAndExtrema();
       drawCharts();
@@ -424,7 +522,6 @@ void attachEventListeners() {
     }
     rangeMinX.value = minX.toString();
     rangeMaxX.value = maxX.toString();
-    updateRangeBounds();
     updateImaginaryDetection();
     detectRootsAndExtrema();
     drawCharts();
@@ -460,32 +557,29 @@ void attachEventListeners() {
   setupToggle(toggleMin, toggleLblMin, (v) => showMin = v);
   setupToggle(toggleMax, toggleLblMax, (v) => showMax = v);
 
-  // Point evaluation slider & input
-  sliderPointX.onInput.listen((_) {
-    final val = double.tryParse(sliderPointX.value) ?? pointX;
-    setPointX(val);
-  });
+  // Symbolic point x0 input
   inputPointX.onInput.listen((_) {
-    final val = double.tryParse(inputPointX.value) ?? pointX;
-    setPointX(val);
+    pointXStr = inputPointX.value.trim();
+    updatePointTelemetry();
+    if (selectTaylorCenter.value == 'x0') {
+      updateTaylorTelemetry();
+    }
+    drawCharts();
+    updateUrlHash();
   });
 
-  // Integration controls
-  selectIntMethod.onChange.listen((_) {
-    intMethod = selectIntMethod.value == 'simpson'
-        ? IntegrationMethod.simpson
-        : IntegrationMethod.gaussKronrod;
-    updateIntegrationTelemetry();
-  });
+  // Symbolic integration bounds
   inputIntA.onInput.listen((_) {
-    intA = double.tryParse(inputIntA.value) ?? intA;
+    intAStr = inputIntA.value.trim();
     updateIntegrationTelemetry();
     drawCharts();
+    updateUrlHash();
   });
   inputIntB.onInput.listen((_) {
-    intB = double.tryParse(inputIntB.value) ?? intB;
+    intBStr = inputIntB.value.trim();
     updateIntegrationTelemetry();
     drawCharts();
+    updateUrlHash();
   });
 
   // Taylor expansion controls
@@ -496,7 +590,6 @@ void attachEventListeners() {
     drawCharts();
   });
   selectTaylorCenter.onChange.listen((_) {
-    taylorAround = selectTaylorCenter.value == 'x0' ? pointX : 0.0;
     updateTaylorTelemetry();
     drawCharts();
   });
@@ -539,33 +632,6 @@ void attachEventListeners() {
   );
 }
 
-void setPointX(double val) {
-  pointX = val;
-  sliderPointX.value = val.toString();
-  inputPointX.value = val.toString();
-  pointXDisplay.textContent = formatNumber(val, precision: 2);
-  updatePointTelemetry();
-  if (selectTaylorCenter.value == 'x0') {
-    taylorAround = val;
-    updateTaylorTelemetry();
-  }
-  drawCharts();
-}
-
-void updateRangeBounds() {
-  sliderPointX.min = minX.toString();
-  sliderPointX.max = maxX.toString();
-}
-
-Complex? safeGetComplex(Complex Function() getter) {
-  try {
-    final val = getter();
-    return (val.a.isNaN || val.b.isNaN) ? null : val;
-  } catch (_) {
-    return null;
-  }
-}
-
 void updateImaginaryDetection() {
   final expr = parsedExpr;
   if (expr == null) {
@@ -598,11 +664,39 @@ void updateImaginaryDetection() {
   }
 }
 
+void _trySetExpr(web.HTMLElement element, Expr? Function() compute) {
+  try {
+    final result = compute();
+    setAttrExpr(element, result);
+  } catch (_) {
+    setAttrValue(element, 'Undefined');
+  }
+}
+
+void _setDirectionalLimits(web.HTMLElement element, Expr? left, Expr? right) {
+  if (left == null && right == null) {
+    setAttrValue(element, '-');
+    return;
+  }
+  final lExpr = left ?? Constant.undefined;
+  final rExpr = right ?? Constant.undefined;
+  final plainText = 'x→x₀⁻: $lExpr | x→x₀⁺: $rExpr';
+  element.title = plainText;
+  element.setAttribute('data-copy', plainText);
+  try {
+    final html =
+        '${lExpr.toMathMl()} <span style="opacity:0.4;padding:0 6px;">|</span> ${rExpr.toMathMl()}';
+    element.innerHTML = html.toJS;
+  } catch (_) {
+    element.textContent = plainText;
+  }
+}
+
 void updateAll() {
   Expr? expr;
   try {
     expr = Expr.tryParse(currentFormula);
-  } catch (e) {
+  } catch (_) {
     expr = null;
   }
 
@@ -620,6 +714,9 @@ void updateAll() {
     }
 
     parsedExpr = null;
+    cachedD1 = null;
+    cachedD2 = null;
+    cachedD3 = null;
     cachedAntideriv = null;
     fnCompiled = null;
     dfCompiled = null;
@@ -636,115 +733,183 @@ void updateAll() {
     return;
   }
 
-  // Syntax is valid!
   statusBadge.className = 'formula-status-badge status-valid';
   statusBadge.textContent = '✓ Valid';
   parseErrorMessage.style.display = 'none';
   parsedExpr = expr;
+  final assumptions = currentAssumptions;
 
-  // 1. Algebra Card (only MathML rendering)
+  // Card 1: Simplification & Normal Forms
   setAttrExpr(valAlgVerbatim, expr);
   Expr simplified;
   try {
-    simplified = expr.simplify();
-    setAttrExpr(valAlgSimplified, simplified);
+    simplified = expr.simplify(assumptions: assumptions);
   } catch (_) {
     simplified = expr;
-    setAttrExpr(valAlgSimplified, expr);
   }
+  setAttrExpr(valAlgSimplified, simplified);
+  _trySetExpr(valAlgExpanded, () => expr!.expand(assumptions: assumptions));
+  _trySetExpr(
+    valAlgFactored,
+    () => factorExpr(expr!, assumptions: assumptions),
+  );
+  _trySetExpr(valAlgApproximated, () => simplified.approximate());
+  _trySetExpr(valAlgRationalized, () => expr!.rationalize());
 
+  // Card 2: Rational & Polynomial Algebra
+  _trySetExpr(valRatApart, () => expr!.apart('x', assumptions: assumptions));
+  _trySetExpr(valRatTogether, () => expr!.together(assumptions: assumptions));
+  _trySetExpr(valRatCancel, () => expr!.cancel(assumptions: assumptions));
+  _trySetExpr(
+    valRatCollect,
+    () => expr!.collect('x', assumptions: assumptions),
+  );
+  _trySetExpr(valRatNum, () => expr!.numerator);
+  _trySetExpr(valRatDen, () => expr!.denominator);
+
+  // Card 3: Trigonometric & Complex Forms
+  _trySetExpr(valTrigExpand, () => expr!.expandTrig(assumptions: assumptions));
+  _trySetExpr(
+    valTrigSimplify,
+    () => expr!.simplifyTrig(assumptions: assumptions),
+  );
+  _trySetExpr(
+    valTrigExp,
+    () => expr!.rewrite(RewriteTarget.exp, assumptions: assumptions),
+  );
+  _trySetExpr(
+    valTrigSinCos,
+    () => expr!.rewrite(RewriteTarget.trig, assumptions: assumptions),
+  );
+  _trySetExpr(
+    valComplexRect,
+    () => expr!.toRectangular(assumptions: assumptions),
+  );
+  _trySetExpr(valComplexPolar, () => expr!.toPolar(assumptions: assumptions));
+
+  // Card 4: Differentiation
   try {
-    final expanded = expr.expand();
-    setAttrExpr(valAlgExpanded, expanded);
+    cachedD1 = expr
+        .derivative('x', assumptions: assumptions)
+        .simplify(assumptions: assumptions);
   } catch (_) {
-    setAttrExpr(valAlgExpanded, expr);
+    cachedD1 = null;
   }
-
   try {
-    final factored = factorExpr(expr);
-    setAttrExpr(valAlgFactored, factored);
+    cachedD2 = cachedD1
+        ?.derivative('x', assumptions: assumptions)
+        .simplify(assumptions: assumptions);
   } catch (_) {
-    setAttrExpr(valAlgFactored, expr);
+    cachedD2 = null;
+  }
+  try {
+    cachedD3 = cachedD2
+        ?.derivative('x', assumptions: assumptions)
+        .simplify(assumptions: assumptions);
+  } catch (_) {
+    cachedD3 = null;
   }
 
-  // 2. Analytical Calculus
-  Expr? d1;
-  Expr? d2;
-  Expr? d3;
-  try {
-    d1 = expr.derivative('x').simplify();
-  } catch (_) {}
-  try {
-    d2 = d1?.derivative('x').simplify();
-  } catch (_) {}
-  try {
-    d3 = d2?.derivative('x').simplify();
-  } catch (_) {}
+  setAttrExpr(valSymDf, cachedD1);
+  setAttrExpr(valSymD2f, cachedD2);
+  setAttrExpr(valSymD3f, cachedD3);
 
-  if (d1 != null) {
-    setAttrExpr(valSymDf, d1);
-  } else {
-    setAttrValue(valSymDf, 'Undefined');
-  }
-  if (d2 != null) {
-    setAttrExpr(valSymD2f, d2);
-  } else {
-    setAttrValue(valSymD2f, 'Undefined');
-  }
-  if (d3 != null) {
-    setAttrExpr(valSymD3f, d3);
-  } else {
-    setAttrValue(valSymD3f, 'Undefined');
-  }
-
+  // Card 5: Indefinite & Improper Integration
   try {
-    cachedAntideriv = expr.integrate('x').simplify();
+    cachedAntideriv = expr
+        .integrate('x', assumptions: assumptions)
+        .simplify(assumptions: assumptions);
     setAttrExpr(valSymAntideriv, cachedAntideriv);
   } catch (_) {
     cachedAntideriv = null;
-    setAttrValue(valSymAntideriv, 'No closed form');
+    setAttrValue(valSymAntideriv, 'Undefined');
   }
 
-  // Asymptotic limits at +/- infinity depend only on expr, not pointX
+  _trySetExpr(
+    valIntHalfInf,
+    () => expr!
+        .integrate(
+          'x',
+          from: IntegerNumber.zero,
+          to: Constant.infinity,
+          assumptions: assumptions,
+        )
+        .simplify(assumptions: assumptions),
+  );
+  _trySetExpr(
+    valIntFullInf,
+    () => expr!
+        .integrate(
+          'x',
+          from: -Constant.infinity,
+          to: Constant.infinity,
+          assumptions: assumptions,
+        )
+        .simplify(assumptions: assumptions),
+  );
+
+  // Card 6: Summations & Products
+  _trySetExpr(
+    valSymSum,
+    () => expr!
+        .sum(
+          'x',
+          IntegerNumber.one,
+          const Variable('n'),
+          assumptions: assumptions,
+        )
+        .simplify(assumptions: assumptions),
+  );
   try {
-    final limPos = expr.limit('x', Constant.infinity);
-    try {
-      final limNeg = expr.limit('x', -Constant.infinity);
-      if (limPos == limNeg) {
-        setAttrExpr(valEvalLimInf, limPos);
-      } else {
-        setAttrValue(valEvalLimInf, '+∞: $limPos | -∞: $limNeg');
-      }
-    } catch (_) {
-      setAttrValue(valEvalLimInf, '+∞: $limPos');
+    final antidiff = expr.indefiniteSum('x', assumptions: assumptions);
+    if (antidiff != null) {
+      setAttrExpr(valSymAntidiff, antidiff);
+    } else {
+      setAttrValue(valSymAntidiff, 'No closed form');
     }
   } catch (_) {
-    try {
-      final limNeg = expr.limit('x', -Constant.infinity);
-      setAttrValue(valEvalLimInf, '-∞: $limNeg');
-    } catch (_) {
-      setAttrValue(valEvalLimInf, 'Undefined');
-    }
+    setAttrValue(valSymAntidiff, 'No closed form');
   }
+  _trySetExpr(
+    valSymProduct,
+    () => expr!
+        .product(
+          'x',
+          IntegerNumber.one,
+          const Variable('n'),
+          assumptions: assumptions,
+        )
+        .simplify(assumptions: assumptions),
+  );
 
-  // 3. Closure Compilation
+  // Card 7: Infinite Limits
+  _trySetExpr(
+    valEvalLimPosInf,
+    () => expr!.limit('x', Constant.infinity, assumptions: assumptions),
+  );
+  _trySetExpr(
+    valEvalLimNegInf,
+    () => expr!.limit('x', -Constant.infinity, assumptions: assumptions),
+  );
+
+  // Compile evaluation closures for plotting
   try {
     fnCompiled = expr.toFunction1D('x');
   } catch (_) {
     fnCompiled = null;
   }
   try {
-    dfCompiled = d1?.toFunction1D('x');
+    dfCompiled = cachedD1?.toFunction1D('x');
   } catch (_) {
     dfCompiled = null;
   }
   try {
-    d2fCompiled = d2?.toFunction1D('x');
+    d2fCompiled = cachedD2?.toFunction1D('x');
   } catch (_) {
     d2fCompiled = null;
   }
   try {
-    d3fCompiled = d3?.toFunction1D('x');
+    d3fCompiled = cachedD3?.toFunction1D('x');
   } catch (_) {
     d3fCompiled = null;
   }
@@ -755,31 +920,26 @@ void updateAll() {
     fnComplexCompiled = null;
   }
   try {
-    dfComplexCompiled = d1?.toComplexFunction1D('x');
+    dfComplexCompiled = cachedD1?.toComplexFunction1D('x');
   } catch (_) {
     dfComplexCompiled = null;
   }
   try {
-    d2fComplexCompiled = d2?.toComplexFunction1D('x');
+    d2fComplexCompiled = cachedD2?.toComplexFunction1D('x');
   } catch (_) {
     d2fComplexCompiled = null;
   }
   try {
-    d3fComplexCompiled = d3?.toComplexFunction1D('x');
+    d3fComplexCompiled = cachedD3?.toComplexFunction1D('x');
   } catch (_) {
     d3fComplexCompiled = null;
   }
 
-  // 4. Complex / Imaginary Detection
   updateImaginaryDetection();
-
-  // 5. Update Panels
   updatePointTelemetry();
   updateIntegrationTelemetry();
   updateTaylorTelemetry();
   detectRootsAndExtrema();
-
-  // 6. Redraw Plot
   drawCharts();
 }
 
@@ -788,210 +948,226 @@ void clearTelemetry() {
   toggleLblFxText.textContent = 'f(x)';
   toggleLblIm.style.display = 'none';
 
-  setAttrExpr(valAlgVerbatim, null);
-  setAttrExpr(valAlgSimplified, null);
-  setAttrExpr(valAlgExpanded, null);
-  setAttrExpr(valAlgFactored, null);
-  setAttrExpr(valSymDf, null);
-  setAttrExpr(valSymD2f, null);
-  setAttrExpr(valSymD3f, null);
-  setAttrExpr(valSymAntideriv, null);
+  for (final el in [
+    valAlgVerbatim,
+    valAlgSimplified,
+    valAlgExpanded,
+    valAlgFactored,
+    valAlgApproximated,
+    valAlgRationalized,
+    valRatApart,
+    valRatTogether,
+    valRatCancel,
+    valRatCollect,
+    valRatNum,
+    valRatDen,
+    valTrigExpand,
+    valTrigSimplify,
+    valTrigExp,
+    valTrigSinCos,
+    valComplexRect,
+    valComplexPolar,
+    valSymDf,
+    valSymD2f,
+    valSymD3f,
+    valSymDfAtX0,
+    valTangentEq,
+    valSymAntideriv,
+    valIntDefinite,
+    valIntHalfInf,
+    valIntFullInf,
+    valFormalSeries,
+    taylorPolynomialStr,
+    valSymSum,
+    valSymAntidiff,
+    valSymProduct,
+    valEvalFx,
+    valEvalLim,
+    valEvalLimDir,
+    valEvalLimPosInf,
+    valEvalLimNegInf,
+    valRootsExact,
+    valCriticalExact,
+    valInflectionExact,
+    valExtremaMin,
+    valExtremaMax,
+  ]) {
+    setAttrExpr(el, null);
+  }
+}
 
-  setAttrValue(valEvalFx, '-');
-  setAttrValue(valEvalDfAnalytical, '-');
-  setAttrValue(valEvalDfNumerical, '-');
-  setAttrExpr(valTangentEq, null);
-  setAttrExpr(valEvalLim, null);
-  setAttrValue(valEvalLimInf, '-');
+bool _isUsableSymbolicValue(Expr expr) => !expr.anyNode(
+  (n) =>
+      n == Constant.undefined ||
+      n == Constant.infinity ||
+      n is Integral ||
+      n is Derivative ||
+      n is Limit ||
+      n is Sum ||
+      n is Product,
+);
 
-  setAttrValue(valIntNumerical, '-');
-  setAttrValue(valIntAnalytical, '-');
+Expr? _parsePointExpr(String raw) {
+  final trimmed = raw.trim();
+  if (trimmed.isEmpty) return null;
+  if (trimmed == '-infinity' || trimmed == '-∞' || trimmed == '-inf') {
+    return -Constant.infinity;
+  }
+  if (trimmed == 'infinity' ||
+      trimmed == '+infinity' ||
+      trimmed == '∞' ||
+      trimmed == '+∞' ||
+      trimmed == 'inf') {
+    return Constant.infinity;
+  }
+  return Expr.tryParse(trimmed);
+}
 
-  setAttrExpr(valFormalSeries, null);
-  setAttrExpr(taylorPolynomialStr, null);
-  setAttrValue(valRootsExact, '-');
-  setAttrValue(valRootsNumeric, '-');
-  setAttrValue(valExtremaMin, '-');
-  setAttrValue(valExtremaMax, '-');
+double? _currentPointPlotX() {
+  final x0Expr = _parsePointExpr(pointXStr);
+  if (x0Expr == null) return null;
+  try {
+    final c = x0Expr.evaluateComplex();
+    if (c.b.abs() < 1e-9 && c.a.isFinite) return c.a.toDouble();
+  } catch (_) {}
+  return null;
 }
 
 void updatePointTelemetry() {
-  Complex? c0;
-  if (fnComplexCompiled != null) {
-    c0 = safeGetComplex(() => fnComplexCompiled!(Complex(pointX, 0)));
-  } else if (parsedExpr != null) {
-    c0 = safeGetComplex(
-      () => parsedExpr!.evaluateComplex({'x': Complex(pointX, 0)}),
-    );
-  }
-
-  if (c0 != null) {
-    setAttrValue(valEvalFx, formatComplex(c0));
-  } else if (fnCompiled != null) {
-    final y0 = safeGet(() => fnCompiled!(pointX))?.toDouble();
-    setAttrValue(valEvalFx, y0 != null ? formatNumber(y0) : 'Undefined');
-  } else {
-    setAttrValue(valEvalFx, 'Undefined');
-  }
-
-  Complex? cd;
-  if (dfComplexCompiled != null) {
-    cd = safeGetComplex(() => dfComplexCompiled!(Complex(pointX, 0)));
-  }
-
-  if (cd != null) {
-    setAttrValue(valEvalDfAnalytical, formatComplex(cd));
-  } else if (dfCompiled != null) {
-    final s0 = safeGet(() => dfCompiled!(pointX))?.toDouble();
-    setAttrValue(
-      valEvalDfAnalytical,
-      s0 != null ? formatNumber(s0) : 'Undefined',
-    );
-  } else {
-    setAttrValue(valEvalDfAnalytical, 'Undefined');
-  }
-
-  if (!hasImaginary && fnCompiled != null) {
-    final slopeNumerical = safeGet(() => derivative(fnCompiled!, pointX))
-        ?.toDouble();
-    setAttrValue(
-      valEvalDfNumerical,
-      slopeNumerical != null ? formatNumber(slopeNumerical) : 'Undefined',
-    );
-  } else if (fnComplexCompiled != null) {
-    final realSlope = safeGet(
-      () => derivative(
-        (x) => fnComplexCompiled!(Complex(x, 0)).a.toDouble(),
-        pointX,
-      ),
-    )?.toDouble();
-    final imagSlope = safeGet(
-      () => derivative(
-        (x) => fnComplexCompiled!(Complex(x, 0)).b.toDouble(),
-        pointX,
-      ),
-    )?.toDouble();
-    if (realSlope != null && imagSlope != null) {
-      setAttrValue(
-        valEvalDfNumerical,
-        formatComplex(Complex(realSlope, imagSlope)),
-      );
-    } else {
-      setAttrValue(valEvalDfNumerical, 'Undefined');
-    }
-  } else {
-    setAttrValue(valEvalDfNumerical, 'Undefined');
-  }
-
-  final realY0 =
-      c0?.a.toDouble() ??
-      (fnCompiled != null
-          ? safeGet(() => fnCompiled!(pointX))?.toDouble()
-          : null);
-  final realSlope =
-      cd?.a.toDouble() ??
-      (dfCompiled != null
-          ? safeGet(() => dfCompiled!(pointX))?.toDouble()
-          : null);
-  if (realY0 != null &&
-      realSlope != null &&
-      realY0.isFinite &&
-      realSlope.isFinite) {
-    final intercept = realY0 - realSlope * pointX;
-    final mExpr = _numberToExpr(realSlope, precision: 2);
-    final bExpr = _numberToExpr(intercept, precision: 2);
-    final rhs = (mExpr * const Variable('x') + bExpr).simplify();
-    setAttrExpr(valTangentEq, Equal(const Variable('y'), rhs));
-  } else {
-    setAttrValue(valTangentEq, 'Undefined');
-  }
-
   final expr = parsedExpr;
-  if (expr != null) {
-    final ptExpr = (pointX - pointX.round()).abs() < 1e-9
-        ? IntegerNumber.of(pointX.round())
-        : RealNumber(pointX).rationalize();
+  if (expr == null) return;
+
+  final x0Expr = _parsePointExpr(pointXStr);
+  if (x0Expr == null) {
+    setAttrValue(valEvalFx, 'Invalid point');
+    setAttrValue(valSymDfAtX0, 'Invalid point');
+    setAttrValue(valTangentEq, 'Invalid point');
+    setAttrValue(valEvalLim, 'Invalid point');
+    setAttrValue(valEvalLimDir, 'Invalid point');
+    return;
+  }
+
+  final assumptions = currentAssumptions;
+
+  // 1. Exact symbolic f(x0)
+  Expr? fx0Sym;
+  try {
+    fx0Sym = expr.substitute('x', x0Expr).simplify(assumptions: assumptions);
+    setAttrExpr(valEvalFx, fx0Sym);
+  } catch (_) {
+    fx0Sym = null;
+    setAttrExpr(valEvalFx, Constant.undefined);
+  }
+
+  // 2. Exact symbolic f'(x0)
+  Expr? dfx0Sym;
+  final d1 = cachedD1;
+  if (d1 != null) {
     try {
-      final limVal = expr.limit('x', ptExpr);
-      setAttrExpr(valEvalLim, limVal);
+      dfx0Sym = d1.substitute('x', x0Expr).simplify(assumptions: assumptions);
+      setAttrExpr(valSymDfAtX0, dfx0Sym);
     } catch (_) {
-      setAttrValue(valEvalLim, 'Undefined');
+      dfx0Sym = null;
+      setAttrExpr(valSymDfAtX0, Constant.undefined);
     }
   } else {
-    setAttrExpr(valEvalLim, null);
+    setAttrExpr(valSymDfAtX0, Constant.undefined);
   }
+
+  // 3. Exact symbolic tangent line y = f(x0) + f'(x0)*(x - x0)
+  if (fx0Sym != null &&
+      dfx0Sym != null &&
+      _isUsableSymbolicValue(fx0Sym) &&
+      _isUsableSymbolicValue(dfx0Sym)) {
+    try {
+      final rhs = (fx0Sym + dfx0Sym * (const Variable('x') - x0Expr))
+          .expand(assumptions: assumptions)
+          .simplify(assumptions: assumptions);
+      setAttrExpr(valTangentEq, Equal(const Variable('y'), rhs));
+    } catch (_) {
+      setAttrExpr(valTangentEq, Constant.undefined);
+    }
+  } else {
+    setAttrExpr(valTangentEq, Constant.undefined);
+  }
+
+  // 4. Two-sided and directional limits at x0
+  _trySetExpr(
+    valEvalLim,
+    () => expr.limit('x', x0Expr, assumptions: assumptions),
+  );
+
+  Expr? limLeft;
+  Expr? limRight;
+  try {
+    limLeft = expr.limit(
+      'x',
+      x0Expr,
+      direction: LimitDirection.fromBelow,
+      assumptions: assumptions,
+    );
+  } catch (_) {}
+  try {
+    limRight = expr.limit(
+      'x',
+      x0Expr,
+      direction: LimitDirection.fromAbove,
+      assumptions: assumptions,
+    );
+  } catch (_) {}
+  _setDirectionalLimits(valEvalLimDir, limLeft, limRight);
+}
+
+double? _boundToPlotCoordinate(Expr? boundExpr) {
+  if (boundExpr == null) return null;
+  if (boundExpr == Constant.infinity) return maxX;
+  if (boundExpr == -Constant.infinity) return minX;
+  try {
+    final c = boundExpr.evaluateComplex();
+    if (c.b.abs() < 1e-9) {
+      if (c.a.isInfinite) return c.a.isNegative ? minX : maxX;
+      if (c.a.isFinite) return c.a.toDouble();
+    }
+  } catch (_) {}
+  return null;
 }
 
 void updateIntegrationTelemetry() {
   final expr = parsedExpr;
   if (expr == null) return;
 
-  if (!hasImaginary && fnCompiled != null) {
-    double? numVal;
-    try {
-      numVal = integrate(fnCompiled!, intA, intB, method: intMethod);
-    } catch (_) {
-      numVal = null;
-    }
-    setAttrValue(
-      valIntNumerical,
-      numVal != null ? formatNumber(numVal) : 'Undefined',
-    );
-  } else if (fnComplexCompiled != null) {
-    try {
-      final realVal = integrate(
-        (x) => fnComplexCompiled!(Complex(x, 0)).a.toDouble(),
-        intA,
-        intB,
-        method: intMethod,
-      );
-      final imagVal = integrate(
-        (x) => fnComplexCompiled!(Complex(x, 0)).b.toDouble(),
-        intA,
-        intB,
-        method: intMethod,
-      );
-      setAttrValue(valIntNumerical, formatComplex(Complex(realVal, imagVal)));
-    } catch (_) {
-      setAttrValue(valIntNumerical, 'Undefined');
-    }
-  } else {
-    setAttrValue(valIntNumerical, 'Undefined');
+  final aExpr = _parsePointExpr(intAStr);
+  final bExpr = _parsePointExpr(intBStr);
+  if (aExpr == null || bExpr == null) {
+    setAttrValue(valIntDefinite, 'Invalid bounds');
+    return;
   }
 
-  final antideriv = cachedAntideriv;
-  if (antideriv != null && antideriv is! Integral) {
-    try {
-      final fb = antideriv.evaluateComplex({'x': Complex(intB, 0)});
-      final fa = antideriv.evaluateComplex({'x': Complex(intA, 0)});
-      final exact = fb - fa;
-      if (exact.a.isFinite && exact.b.isFinite) {
-        setAttrValue(valIntAnalytical, formatComplex(exact));
-      } else if (exact.a.isInfinite || exact.b.isInfinite) {
-        setAttrValue(valIntAnalytical, exact.a.isNegative ? '-∞' : '∞');
-      } else {
-        setAttrValue(valIntAnalytical, 'Undefined');
-      }
-    } catch (_) {
-      setAttrValue(valIntAnalytical, 'Undefined');
-    }
-  } else {
-    setAttrValue(valIntAnalytical, 'No closed form');
-  }
+  final assumptions = currentAssumptions;
+  _trySetExpr(
+    valIntDefinite,
+    () => expr
+        .integrate('x', from: aExpr, to: bExpr, assumptions: assumptions)
+        .simplify(assumptions: assumptions),
+  );
 }
 
 void updateTaylorTelemetry() {
   final expr = parsedExpr;
   if (expr == null) return;
 
-  taylorAround = selectTaylorCenter.value == 'x0' ? pointX : 0.0;
-
-  final centerExpr = (taylorAround - taylorAround.round()).abs() < 1e-9
-      ? IntegerNumber.of(taylorAround.round())
-      : RealNumber(taylorAround).rationalize();
+  final assumptions = currentAssumptions;
+  final centerExpr = selectTaylorCenter.value == 'x0'
+      ? (_parsePointExpr(pointXStr) ?? IntegerNumber.zero)
+      : IntegerNumber.zero;
 
   try {
-    final formal = expr.series('x', point: centerExpr, order: taylorOrder + 1);
+    final formal = expr.series(
+      'x',
+      point: centerExpr,
+      order: taylorOrder + 1,
+      assumptions: assumptions,
+    );
     setAttrExpr(valFormalSeries, formal);
     final poly = expr
         .series(
@@ -999,8 +1175,9 @@ void updateTaylorTelemetry() {
           point: centerExpr,
           order: taylorOrder + 1,
           includeOrder: false,
+          assumptions: assumptions,
         )
-        .simplify();
+        .simplify(assumptions: assumptions);
     setAttrExpr(taylorPolynomialStr, poly);
     try {
       taylorCompiled = poly.toFunction1D('x');
@@ -1021,36 +1198,119 @@ void updateTaylorTelemetry() {
 }
 
 void detectRootsAndExtrema() {
-  exactRoots.clear();
-  exactSolutions.clear();
-  numericRoots.clear();
+  plotRoots.clear();
   localMinima.clear();
   localMaxima.clear();
 
   final expr = parsedExpr;
   if (expr == null) return;
 
-  // 1. Exact Symbolic Solutions (supports real, imaginary, and complex roots)
+  final assumptions = currentAssumptions;
+
+  // 1. Exact symbolic roots f(x) = 0
+  final exactSolutions = <Expr>[];
   try {
-    final solutions = expr.solve('x');
-    for (final s in solutions) {
+    for (final s in expr.solve('x', assumptions: assumptions)) {
       if (!exactSolutions.contains(s)) {
         exactSolutions.add(s);
       }
     }
-    for (final s in solutions) {
-      try {
-        final cVal = s.evaluateComplex();
-        if (cVal.b.abs() < 1e-9 && cVal.a.toDouble().isFinite) {
-          if (!exactRoots.any((r) => (r - cVal.a.toDouble()).abs() < 1e-4)) {
-            exactRoots.add(cVal.a.toDouble());
-          }
-        }
-      } catch (_) {}
-    }
   } catch (_) {}
+  setAttrExprList(valRootsExact, exactSolutions, emptyText: 'None found');
 
-  // 2. Numerical Roots Scanning in [minX, maxX]
+  for (final s in exactSolutions) {
+    try {
+      final cVal = s.evaluateComplex();
+      if (cVal.b.abs() < 1e-7 && cVal.a.toDouble().isFinite) {
+        final rx = cVal.a.toDouble();
+        if (rx >= minX &&
+            rx <= maxX &&
+            !plotRoots.any((r) => (r - rx).abs() < 1e-4)) {
+          plotRoots.add(rx);
+        }
+      }
+    } catch (_) {}
+  }
+
+  // 2. Exact symbolic critical points f'(x) = 0
+  final exactCritical = <Expr>[];
+  final d1 = cachedD1;
+  if (d1 != null && d1 != IntegerNumber.zero) {
+    try {
+      for (final s in d1.solve('x', assumptions: assumptions)) {
+        if (!exactCritical.contains(s)) {
+          exactCritical.add(s);
+        }
+      }
+    } catch (_) {}
+  }
+  setAttrExprList(valCriticalExact, exactCritical, emptyText: 'None found');
+
+  // 3. Exact symbolic inflection points f''(x) = 0
+  final exactInflection = <Expr>[];
+  final d2 = cachedD2;
+  if (d2 != null && d2 != IntegerNumber.zero) {
+    try {
+      for (final s in d2.solve('x', assumptions: assumptions)) {
+        if (!exactInflection.contains(s)) {
+          exactInflection.add(s);
+        }
+      }
+    } catch (_) {}
+  }
+  setAttrExprList(valInflectionExact, exactInflection, emptyText: 'None found');
+
+  // Classify exact symbolic critical points into minima and maxima
+  final symbolicMinima = <Expr>[];
+  final symbolicMaxima = <Expr>[];
+  for (final crit in exactCritical) {
+    try {
+      final cVal = crit.evaluateComplex();
+      if (cVal.b.abs() > 1e-7 || !cVal.a.toDouble().isFinite) continue;
+      final cx = cVal.a.toDouble();
+
+      double? yVal;
+      if (fnCompiled != null) {
+        yVal = safeGet(() => fnCompiled!(cx))?.toDouble();
+      } else if (fnComplexCompiled != null) {
+        final cy = fnComplexCompiled!(Complex(cx, 0));
+        if (cy.b.abs() < 1e-6) yVal = cy.a.toDouble();
+      }
+
+      double? curv;
+      if (d2 != null) {
+        try {
+          final c2 = d2.substitute('x', crit).evaluateComplex();
+          if (c2.b.abs() < 1e-6) curv = c2.a.toDouble();
+        } catch (_) {}
+      }
+      curv ??= d2fCompiled != null
+          ? safeGet(() => d2fCompiled!(cx))?.toDouble()
+          : null;
+
+      if (curv != null && curv > 1e-6) {
+        symbolicMinima.add(crit);
+        if (yVal != null &&
+            yVal.isFinite &&
+            cx >= minX &&
+            cx <= maxX &&
+            !localMinima.any((m) => (m.x - cx).abs() < 1e-3)) {
+          localMinima.add((x: cx, y: yVal));
+        }
+      } else if (curv != null && curv < -1e-6) {
+        symbolicMaxima.add(crit);
+        if (yVal != null &&
+            yVal.isFinite &&
+            cx >= minX &&
+            cx <= maxX &&
+            !localMaxima.any((m) => (m.x - cx).abs() < 1e-3)) {
+          localMaxima.add((x: cx, y: yVal));
+        }
+      }
+    } catch (_) {}
+  }
+
+  // Supplement plot markers for periodic/transcendental functions within [minX, maxX]
   final realFn =
       fnCompiled ??
       (fnComplexCompiled != null
@@ -1105,8 +1365,9 @@ void detectRootsAndExtrema() {
         try {
           final root = solve(realFn, prevX, b: curX, method: RootMethod.brent);
           if (root.isFinite &&
-              !numericRoots.any((r) => (r - root).abs() < 1e-4)) {
-            numericRoots.add(root);
+              realFn(root).abs() < 1e-3 &&
+              !plotRoots.any((r) => (r - root).abs() < 1e-4)) {
+            plotRoots.add(root);
           }
         } catch (_) {}
       }
@@ -1115,16 +1376,6 @@ void detectRootsAndExtrema() {
     }
   }
 
-  // Include analytical real roots within range for plotting
-  for (final r in exactRoots) {
-    if (r >= minX &&
-        r <= maxX &&
-        !numericRoots.any((nr) => (nr - r).abs() < 1e-4)) {
-      numericRoots.add(r);
-    }
-  }
-
-  // 3. Extrema Detection via derivative zeros Re f'(x) = 0
   if (realFn != null && realDf != null) {
     const steps = 60;
     final stepSize = (maxX - minX) / steps;
@@ -1147,7 +1398,7 @@ void detectRootsAndExtrema() {
             b: curX,
             method: RootMethod.brent,
           );
-          if (critX.isFinite) {
+          if (critX.isFinite && realDf(critX).abs() < 1e-3) {
             final yVal = safeGet(() => realFn(critX))?.toDouble();
             final curvature = realD2f != null
                 ? safeGet(() => realD2f(critX))?.toDouble()
@@ -1172,39 +1423,38 @@ void detectRootsAndExtrema() {
     }
   }
 
-  // Update Telemetry labels
-  setAttrExprList(valRootsExact, exactSolutions, emptyText: 'None found');
+  // Present exact symbolic extrema when available, otherwise numeric values (never guess irrationals)
+  if (symbolicMinima.isNotEmpty) {
+    setAttrExprList(valExtremaMin, symbolicMinima);
+  } else if (localMinima.isNotEmpty) {
+    setAttrValue(
+      valExtremaMin,
+      localMinima
+          .map(
+            (m) =>
+                '(${formatNumber(m.x, precision: 3)}, ${formatNumber(m.y, precision: 3)})',
+          )
+          .join('; '),
+    );
+  } else {
+    setAttrValue(valExtremaMin, 'None found');
+  }
 
-  setAttrValue(
-    valRootsNumeric,
-    numericRoots.isNotEmpty
-        ? numericRoots.map((r) => formatNumber(r, precision: 3)).join(', ')
-        : 'None in range',
-  );
-
-  setAttrValue(
-    valExtremaMin,
-    localMinima.isNotEmpty
-        ? localMinima
-              .map(
-                (m) =>
-                    '(${formatNumber(m.x, precision: 2)}, ${formatNumber(m.y, precision: 2)})',
-              )
-              .join('; ')
-        : 'None in range',
-  );
-
-  setAttrValue(
-    valExtremaMax,
-    localMaxima.isNotEmpty
-        ? localMaxima
-              .map(
-                (m) =>
-                    '(${formatNumber(m.x, precision: 2)}, ${formatNumber(m.y, precision: 2)})',
-              )
-              .join('; ')
-        : 'None in range',
-  );
+  if (symbolicMaxima.isNotEmpty) {
+    setAttrExprList(valExtremaMax, symbolicMaxima);
+  } else if (localMaxima.isNotEmpty) {
+    setAttrValue(
+      valExtremaMax,
+      localMaxima
+          .map(
+            (m) =>
+                '(${formatNumber(m.x, precision: 3)}, ${formatNumber(m.y, precision: 3)})',
+          )
+          .join('; '),
+    );
+  } else {
+    setAttrValue(valExtremaMax, 'None found');
+  }
 }
 
 /// Dynamic bounds estimation for graphing X and Y windows.
@@ -1253,12 +1503,10 @@ void detectRootsAndExtrema() {
     minY -= 1.0;
     maxY += 1.0;
   } else {
-    // Add 15% margin
     minY -= range * 0.15;
     maxY += range * 0.15;
   }
 
-  // Cap extreme bounds for vertical asymptotes
   minY = math.max(-100.0, minY);
   maxY = math.min(100.0, maxY);
 
@@ -1357,15 +1605,19 @@ void drawCharts() {
 
   // 2. Shaded Integral Area
   if (showIntegral) {
-    drawShadedInterval(
-      ctx,
-      vp,
-      realFn,
-      intA,
-      intB,
-      fillColor: 'rgba(16, 185, 129, 0.20)',
-      strokeColor: '#10b981',
-    );
+    final plotA = _boundToPlotCoordinate(_parsePointExpr(intAStr));
+    final plotB = _boundToPlotCoordinate(_parsePointExpr(intBStr));
+    if (plotA != null && plotB != null) {
+      drawShadedInterval(
+        ctx,
+        vp,
+        realFn,
+        plotA,
+        plotB,
+        fillColor: 'rgba(16, 185, 129, 0.20)',
+        strokeColor: '#10b981',
+      );
+    }
   }
 
   // 3. Primary Curve Re f(x) or f(x)
@@ -1392,7 +1644,7 @@ void drawCharts() {
     );
   }
 
-  // 4. First Derivative f'(x) / Re f'(x)
+  // 4. First Derivative f'(x)
   if (showDfx && realDf != null) {
     drawCurve(
       ctx,
@@ -1404,7 +1656,7 @@ void drawCharts() {
     );
   }
 
-  // 5. Second Derivative f''(x) / Re f''(x)
+  // 5. Second Derivative f''(x)
   if (showD2fx && realD2f != null) {
     drawCurve(
       ctx,
@@ -1416,7 +1668,7 @@ void drawCharts() {
     );
   }
 
-  // 5b. Third Derivative f'''(x) / Re f'''(x)
+  // 5b. Third Derivative f'''(x)
   if (showD3fx && realD3f != null) {
     drawCurve(
       ctx,
@@ -1440,12 +1692,13 @@ void drawCharts() {
     );
   }
 
-  // 7. Tangent Line at pointX
-  if (showTangent && realDf != null) {
-    final y0 = safeGet(() => realFn(pointX))?.toDouble();
-    final slope = safeGet(() => realDf(pointX))?.toDouble();
+  // 7. Tangent Line & Reference Line at x0
+  final ptX = _currentPointPlotX();
+  if (ptX != null && showTangent && realDf != null) {
+    final y0 = safeGet(() => realFn(ptX))?.toDouble();
+    final slope = safeGet(() => realDf(ptX))?.toDouble();
     if (y0 != null && slope != null && y0.isFinite && slope.isFinite) {
-      double tangentLine(double x) => slope * (x - pointX) + y0;
+      double tangentLine(double x) => slope * (x - ptX) + y0;
       drawCurve(
         ctx,
         vp,
@@ -1453,11 +1706,10 @@ void drawCharts() {
         strokeColor: 'rgba(255, 255, 255, 0.65)',
         lineWidth: 1.2,
       );
-      // Tangent contact dot
       drawPointMarker(
         ctx,
         vp,
-        pointX,
+        ptX,
         y0,
         color: '#f8fafc',
         radius: 3.5,
@@ -1468,7 +1720,7 @@ void drawCharts() {
 
   // 8. Roots Markers
   if (showRoots) {
-    for (final r in numericRoots) {
+    for (final r in plotRoots) {
       drawPointMarker(
         ctx,
         vp,
@@ -1512,13 +1764,15 @@ void drawCharts() {
   }
 
   // 9. Reference line for x0
-  drawReferenceLine(
-    ctx,
-    vp,
-    pointX,
-    color: 'rgba(248, 250, 252, 0.4)',
-    label: 'x₀ = ${formatNumber(pointX, precision: 2)}',
-  );
+  if (ptX != null) {
+    drawReferenceLine(
+      ctx,
+      vp,
+      ptX,
+      color: 'rgba(248, 250, 252, 0.4)',
+      label: 'x₀ = $pointXStr',
+    );
+  }
 
   // 10. Mouse Hover Crosshair & Tooltip
   final mx = mouseX;
@@ -1569,11 +1823,13 @@ void drawCharts() {
 void updateUrlHash() {
   final queryParams = <String>[
     'expr=${Uri.encodeComponent(currentFormula)}',
+    if (currentDomain != VariableDomain.unknown)
+      'domain=${_domainToString(currentDomain)}',
     'minx=$minX',
     'maxx=$maxX',
-    'x0=$pointX',
-    'a=$intA',
-    'b=$intB',
+    'x0=${Uri.encodeComponent(pointXStr)}',
+    'a=${Uri.encodeComponent(intAStr)}',
+    'b=${Uri.encodeComponent(intBStr)}',
   ];
   web.window.history.replaceState(null, '', '#${queryParams.join('&')}');
 }
@@ -1597,6 +1853,9 @@ void loadFromUrlHash() {
             if (web.document.activeElement != exprInput) {
               exprInput.value = val;
             }
+          case 'domain':
+            currentDomain = _parseDomain(val);
+            selectDomain.value = _domainToString(currentDomain);
           case 'minx':
             final parsed = double.tryParse(val);
             if (parsed != null) minX = parsed;
@@ -1604,19 +1863,15 @@ void loadFromUrlHash() {
             final parsed = double.tryParse(val);
             if (parsed != null) maxX = parsed;
           case 'x0':
-            final parsed = double.tryParse(val);
-            if (parsed != null) pointX = parsed;
+            pointXStr = val;
           case 'a':
-            final parsed = double.tryParse(val);
-            if (parsed != null) intA = parsed;
+            intAStr = val;
           case 'b':
-            final parsed = double.tryParse(val);
-            if (parsed != null) intB = parsed;
+            intBStr = val;
         }
       }
     }
   } else {
-    // Default to first preset
     selectPreset(expressionPresets[0]);
     return;
   }
@@ -1633,29 +1888,16 @@ void loadFromUrlHash() {
   } else {
     displayTitle.textContent = 'Custom Expression';
     categoryBadge.textContent = 'User Defined';
-    displayDesc.textContent = 'Interactive mathematical formula evaluation.';
+    displayDesc.textContent =
+        'Interactive symbolic algebra and calculus exploration.';
     highlightActiveSidebarItem(null);
   }
 
   rangeMinX.value = minX.toString();
   rangeMaxX.value = maxX.toString();
-  sliderPointX.value = pointX.toString();
-  inputPointX.value = pointX.toString();
-  pointXDisplay.textContent = formatNumber(pointX, precision: 2);
-  taylorAround = selectTaylorCenter.value == 'x0' ? pointX : 0.0;
-  inputIntA.value = intA.toString();
-  inputIntB.value = intB.toString();
-  updateRangeBounds();
+  inputPointX.value = pointXStr;
+  inputIntA.value = intAStr;
+  inputIntB.value = intBStr;
 
   updateAll();
-}
-
-Number _numberToExpr(double value, {int precision = 2}) {
-  if (value.abs() < 1e-12) return IntegerNumber.zero;
-  final rounded = double.parse(value.toStringAsFixed(precision));
-  if (rounded == 0.0) return IntegerNumber.zero;
-  if (rounded % 1 == 0 && rounded.abs() < 1e12) {
-    return RationalNumber(rounded.toInt());
-  }
-  return RealNumber(rounded);
 }

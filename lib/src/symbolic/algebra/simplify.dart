@@ -1,5 +1,6 @@
 import '../assumptions.dart';
 import '../ast.dart';
+import '../calculus/summation.dart';
 import 'simplify/additive.dart';
 import 'simplify/multiplicative.dart';
 import 'simplify/power.dart';
@@ -201,5 +202,14 @@ Expr simplifyExpr(Expr expr, {Assumptions assumptions = Assumptions.none}) {
         direction: direction,
         assumptions: assumptions,
       ),
+    Sum(:final expr, :final variable, :final lower, :final upper) => computeSum(
+      expr,
+      variable,
+      lower,
+      upper,
+      assumptions: assumptions,
+    ),
+    Product(:final expr, :final variable, :final lower, :final upper) =>
+      computeProduct(expr, variable, lower, upper, assumptions: assumptions),
   };
 }

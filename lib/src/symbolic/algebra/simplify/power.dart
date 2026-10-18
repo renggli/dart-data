@@ -163,6 +163,68 @@ Expr simplifyPow(
     ], assumptions: assumptions);
   }
 
+  // 7b. Product raised to a fractional power: extract positive rational roots
+  // and non-negative power factors whose exponents cancel with the root.
+  if (base is Mul && exponent is FractionNumber) {
+    final q = exponent.denominator;
+    final extractedFactors = <Expr>[];
+    final remainingBaseFactors = <Expr>[];
+
+    for (final f in base.factors) {
+      if (f is RationalNumber && !f.isNegative && !f.isZero) {
+        final exact = f.powNumber(exponent);
+        if (exact != null) {
+          extractedFactors.add(exact);
+          continue;
+        }
+        final extracted = _extractRationalRadical(f, exponent);
+        if (extracted
+            case Mul(
+              factors: [
+                final RationalNumber coeff,
+                Pow(base: final remBase, exponent: final remExp),
+              ],
+            )
+            when remExp == exponent) {
+          extractedFactors.add(coeff);
+          remainingBaseFactors.add(remBase);
+          continue;
+        }
+        remainingBaseFactors.add(f);
+      } else if (f case Pow(base: Constant.e, exponent: final innerExp)
+          when isRealExpr(innerExp, assumptions)) {
+        extractedFactors.add(
+          simplifyPow(
+            Constant.e,
+            simplifyMul([innerExp, exponent], assumptions: assumptions),
+            assumptions: assumptions,
+          ),
+        );
+      } else if (f case Pow(exponent: IntegerNumber(value: final m))
+          when m.abs().gcd(q) > Integer.one &&
+              isNonNegativeExpr(f, assumptions: assumptions)) {
+        extractedFactors.add(
+          simplifyPow(f, exponent, assumptions: assumptions),
+        );
+      } else {
+        remainingBaseFactors.add(f);
+      }
+    }
+
+    if (extractedFactors.isNotEmpty) {
+      if (remainingBaseFactors.isEmpty) {
+        return simplifyMul(extractedFactors, assumptions: assumptions);
+      }
+      final remBase = remainingBaseFactors.length == 1
+          ? remainingBaseFactors.first
+          : simplifyMul(remainingBaseFactors, assumptions: assumptions);
+      return simplifyMul([
+        ...extractedFactors,
+        Pow(remBase, exponent, isSimplified: true),
+      ], assumptions: assumptions);
+    }
+  }
+
   // 8. |u|^2 => u^2
   if (base is Abs && _isTwo(exponent)) {
     return simplifyPow(base.expr, exponent, assumptions: assumptions);

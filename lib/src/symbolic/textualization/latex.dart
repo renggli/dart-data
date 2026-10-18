@@ -102,6 +102,10 @@ String _toLatex(Expr expr) => switch (expr) {
     };
     return '\\lim_{$variable \\to ${_toLatex(point)}$dirSuffix} ${_formatMulRight(expr)}';
   }(),
+  Sum(:final expr, :final variable, :final lower, :final upper) =>
+    '\\sum_{$variable=${_toLatex(lower)}}^{${_toLatex(upper)}} ${_formatMulRight(expr)}',
+  Product(:final expr, :final variable, :final lower, :final upper) =>
+    '\\prod_{$variable=${_toLatex(lower)}}^{${_toLatex(upper)}} ${_formatMulRight(expr)}',
 };
 
 String _formatComplexLatex(ComplexNumber c) {

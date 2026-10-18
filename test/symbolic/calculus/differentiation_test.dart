@@ -160,6 +160,38 @@ void main() {
       );
       check(Expr.parse(fx.derivative('x', order: 2).toString()))
           .equals(fx.derivative('x', order: 2));
+      final fxy = Expr.parse('f(x, y)');
+      check(Derivative(fxy, 'y').derivative('x'))
+          .equals(Derivative(Derivative(fxy, 'y'), 'x'));
+      check(Mod(x * IntegerNumber.two, IntegerNumber.of(5)).derivative('x'))
+          .equals(IntegerNumber.two);
+      check(Mod(x, x).derivative('x')).equals(Derivative(Mod(x, x), 'x'));
+      check(
+        Sum(
+          Sin(x * t),
+          't',
+          IntegerNumber.one,
+          const Variable('n'),
+        ).derivative('x'),
+      ).equals(
+        Sum(
+          t * Cos(t * x),
+          't',
+          IntegerNumber.one,
+          const Variable('n'),
+          isSimplified: true,
+        ),
+      );
+      check(Sum(Sin(t * t), 't', IntegerNumber.one, x).derivative('x'))
+          .isA<Derivative>();
+      check(
+        Product(
+          x * t,
+          't',
+          IntegerNumber.one,
+          const Variable('n'),
+        ).derivative('x'),
+      ).isA<Derivative>();
     });
 
     test('differentiates OrderTerm and Piecewise nodes', () {

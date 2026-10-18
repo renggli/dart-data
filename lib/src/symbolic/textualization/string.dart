@@ -98,6 +98,10 @@ String formatExpr(Expr expr, [int parentPrec = 0]) {
         LimitDirection.fromBelow =>
           'limit(${formatExpr(expr)}, $variable, ${formatExpr(point)}, -1)',
       },
+    Sum(:final expr, :final variable, :final lower, :final upper) =>
+      'sum(${formatExpr(expr)}, $variable, ${formatExpr(lower)}, ${formatExpr(upper)})',
+    Product(:final expr, :final variable, :final lower, :final upper) =>
+      'product(${formatExpr(expr)}, $variable, ${formatExpr(lower)}, ${formatExpr(upper)})',
   };
   return prec < parentPrec ? '($formatted)' : formatted;
 }

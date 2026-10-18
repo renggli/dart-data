@@ -114,6 +114,10 @@ void main() {
           upper: x,
         ).toLatex(),
       ).equals(r'\int_{0}^{x} \sin({t}^{2}) \, dt');
+      check(Expr.parse('sum(2 * abs(x), x, 1, n)').toLatex())
+          .equals(r'\sum_{x=1}^{n} 2 \, \left|x\right|');
+      check(Expr.parse('product(2 * abs(x), x, 1, n)').toLatex())
+          .equals(r'\prod_{x=1}^{n} 2 \, \left|x\right|');
     });
 
     test('partitions product fractions, formats function powers, and handles multiplication dots', () {

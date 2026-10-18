@@ -208,6 +208,12 @@ sealed class Expr {
     Derivative(:final expr) => _isRealSubtree(expr),
     Limit(:final expr, :final point) =>
       _isRealSubtree(expr) && _isRealSubtree(point),
+    Sum(:final expr, :final lower, :final upper) ||
+    Product(
+      :final expr,
+      :final lower,
+      :final upper,
+    ) => _isRealSubtree(expr) && _isRealSubtree(lower) && _isRealSubtree(upper),
     VariableFunction(:final arguments) => arguments.every(_isRealSubtree),
   };
 }

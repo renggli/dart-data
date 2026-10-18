@@ -110,6 +110,22 @@ void main() {
         ).toString(),
       ).equals('8 * x ^ 3');
 
+      // Product raised to fractional power: sqrt(4 * pi^2) -> 2 * pi
+      check(Expr.parse('sqrt(4 * pi^2)').simplify().toString())
+          .equals('2 * pi');
+      check(Expr.parse('sqrt(12 * x^2)').simplify().toString())
+          .equals('2 * sqrt(3) * abs(x)');
+      check(Expr.parse('sqrt(4 * exp(2 * x))').simplify().toString())
+          .equals('2 * exp(x)');
+
+      // Tangent of f(x) = sqrt(x^2) + abs(x) at x0 = -2 * pi simplifies to -2 * x
+      final f = Expr.parse('sqrt(x^2) + abs(x)');
+      final x0 = Expr.parse('-2 * pi').simplify();
+      final fx0 = f.substitute('x', x0).simplify();
+      final dfx0 = f.derivative('x').simplify().substitute('x', x0).simplify();
+      final tangent = (fx0 + dfx0 * (x - x0)).expand().simplify();
+      check(tangent.toString()).equals('-2 * x');
+
       // |x|^2 -> x^2
       check(simplifyPow(Abs(x), IntegerNumber.two).toString()).equals('x ^ 2');
 

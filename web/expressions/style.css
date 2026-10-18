@@ -44,6 +44,28 @@
   color: var(--text-primary);
 }
 
+.domain-selector-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding-left: 12px;
+  border-left: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.domain-prefix {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--accent-cyan);
+  white-space: nowrap;
+  user-select: none;
+}
+
+.domain-select {
+  font-size: 12px;
+  padding: 4px 8px;
+}
+
 .formula-status-badge {
   display: flex;
   align-items: center;

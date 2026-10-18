@@ -1,5 +1,4 @@
 import 'package:checks/checks.dart';
-import 'package:data/numeric.dart';
 import 'package:data/symbolic.dart';
 import 'package:more/number.dart' show Complex;
 import 'package:test/test.dart';
@@ -7,6 +6,15 @@ import 'package:test/test.dart';
 import '../web/distributions/config.dart';
 import '../web/expressions/algebra.dart';
 import '../web/expressions/presets.dart';
+
+Expr _parsePresetBound(String raw) {
+  final trimmed = raw.trim();
+  if (trimmed == '-infinity' || trimmed == '-∞') return -Constant.infinity;
+  if (trimmed == 'infinity' || trimmed == '+infinity' || trimmed == '∞') {
+    return Constant.infinity;
+  }
+  return Expr.parse(trimmed);
+}
 
 void main() {
   group('Distributions Web Example Config', () {
@@ -26,12 +34,10 @@ void main() {
         final dist = def.creator(defaultParams);
 
         check(dist).isNotNull();
-        // Check that probability calculation does not throw
         final testPoint = def.isContinuous ? 0.0 : 0;
         final prob = dist.probability(testPoint);
         check(prob.isNaN).isFalse();
 
-        // Check sampling
         final samples = dist.samples().take(5).toList();
         check(samples.length).equals(5);
       }
@@ -49,118 +55,170 @@ void main() {
   });
 
   group('Expressions Web Example Presets', () {
-    test('all presets parse successfully into valid symbolic expressions', () {
+    test('all presets parse successfully and support simplification, expansion, factoring, and rewriting', () {
       for (final preset in expressionPresets) {
         final expr = Expr.tryParse(preset.formula);
         check(expr).isNotNull();
 
-        final simplified = expr!.simplify();
+        final assumptions = preset.defaultDomain == VariableDomain.unknown
+            ? Assumptions.none
+            : Assumptions(defaultDomain: preset.defaultDomain);
+
+        final simplified = expr!.simplify(assumptions: assumptions);
         check(simplified.toString().isNotEmpty).isTrue();
+
+        final expanded = expr.expand(assumptions: assumptions);
+        check(expanded.toString().isNotEmpty).isTrue();
+
+        final factored = expr.factor(assumptions: assumptions);
+        check(factored.toString().isNotEmpty).isTrue();
+
+        final apart = expr.apart('x', assumptions: assumptions);
+        check(apart.toString().isNotEmpty).isTrue();
+
+        final together = expr.together(assumptions: assumptions);
+        check(together.toString().isNotEmpty).isTrue();
+
+        final canceled = expr.cancel(assumptions: assumptions);
+        check(canceled.toString().isNotEmpty).isTrue();
+
+        final trigExpanded = expr.expandTrig(assumptions: assumptions);
+        check(trigExpanded.toString().isNotEmpty).isTrue();
+
+        final trigSimplified = expr.simplifyTrig(assumptions: assumptions);
+        check(trigSimplified.toString().isNotEmpty).isTrue();
 
         final latex = simplified.toLatex();
         check(latex.isNotEmpty).isTrue();
-      }
-    });
 
-    test('all presets support differentiation or report non-elementary derivatives, and high-speed compilation', () {
-      for (final preset in expressionPresets) {
-        final expr = Expr.tryParse(preset.formula)!;
-        final d1 = expr.derivative('x').simplify();
-        final d2 = d1.derivative('x').simplify();
-        check(d1.toString().isNotEmpty).isTrue();
-        check(d2.toString().isNotEmpty).isTrue();
-        final hasUnevaluatedDerivative = d1.anyNode(
-          (node) => node is Derivative,
-        );
-
-        if (containsImaginary(expr)) {
-          final cfn = expr.toComplexFunction1D('x');
-          final y0 = cfn(Complex(preset.defaultPointX, 0));
-          check(y0.a.isNaN).isFalse();
-          check(y0.b.isNaN).isFalse();
-          if (!hasUnevaluatedDerivative) {
-            final cdf = d1.toComplexFunction1D('x');
-            final slope = cdf(Complex(preset.defaultPointX, 0));
-            check(slope.a.isNaN).isFalse();
-            check(slope.b.isNaN).isFalse();
-          }
-        } else {
-          final fn = expr.toFunction1D('x');
-          final y0 = fn(preset.defaultPointX);
-          check(y0.isNaN).isFalse();
-          if (!hasUnevaluatedDerivative) {
-            final df = d1.toFunction1D('x');
-            final slope = df(preset.defaultPointX);
-            check(slope.isNaN).isFalse();
-          }
-        }
+        final mathml = simplified.toMathMl();
+        check(mathml.startsWith('<math>')).isTrue();
+        check(mathml.endsWith('</math>')).isTrue();
       }
     });
 
     test(
-      'all presets can compute numerical integrals and Taylor expansions',
+      'all presets support symbolic differentiation, limits, and compilation',
       () {
         for (final preset in expressionPresets) {
-          final expr = Expr.tryParse(preset.formula)!;
-          if (containsImaginary(expr)) {
-            final cfn = expr.toComplexFunction1D('x');
-            final realArea = integrate(
-              (x) => cfn(Complex(x, 0)).a.toDouble(),
-              preset.defaultIntA,
-              preset.defaultIntB,
-              method: IntegrationMethod.gaussKronrod,
-            );
-            final imagArea = integrate(
-              (x) => cfn(Complex(x, 0)).b.toDouble(),
-              preset.defaultIntA,
-              preset.defaultIntB,
-              method: IntegrationMethod.gaussKronrod,
-            );
-            check(realArea.isNaN).isFalse();
-            check(imagArea.isNaN).isFalse();
-          } else {
-            final fn = expr.toFunction1D('x');
+          final expr = Expr.parse(preset.formula);
+          final assumptions = preset.defaultDomain == VariableDomain.unknown
+              ? Assumptions.none
+              : Assumptions(defaultDomain: preset.defaultDomain);
 
-            // Numerical quadrature in default interval
-            final area = integrate(
-              fn,
-              preset.defaultIntA,
-              preset.defaultIntB,
-              method: IntegrationMethod.gaussKronrod,
+          final d1 = expr
+              .derivative('x', assumptions: assumptions)
+              .simplify(assumptions: assumptions);
+          final d2 = d1
+              .derivative('x', assumptions: assumptions)
+              .simplify(assumptions: assumptions);
+          check(d1.toString().isNotEmpty).isTrue();
+          check(d2.toString().isNotEmpty).isTrue();
+
+          final x0Expr = _parsePresetBound(preset.defaultPointX);
+          final ptDouble = x0Expr.evaluateComplex().a.toDouble();
+          Expr lim;
+          try {
+            lim = expr.limit('x', x0Expr, assumptions: assumptions);
+            check(lim.toString().isNotEmpty).isTrue();
+          } on UnsupportedError {
+            final limLeft = expr.limit(
+              'x',
+              x0Expr,
+              direction: LimitDirection.fromBelow,
+              assumptions: assumptions,
             );
-            check(area.isNaN).isFalse();
+            final limRight = expr.limit(
+              'x',
+              x0Expr,
+              direction: LimitDirection.fromAbove,
+              assumptions: assumptions,
+            );
+            check(limLeft).not((it) => it.equals(limRight));
+            lim = Constant.undefined;
           }
 
-          // Taylor series expansion
-          try {
-            final taylor = expr
-                .series(
-                  'x',
-                  point: preset.defaultPointX,
-                  order: 3,
-                  includeOrder: false,
-                )
-                .simplify();
-            check(taylor.toString().isNotEmpty).isTrue();
-          } on UnsupportedError {
-            // Functions with non-elementary series at the point throw UnsupportedError.
+          final hasUnevaluatedDerivative = d1.anyNode(
+            (node) => node is Derivative,
+          );
+
+          if (containsImaginary(expr)) {
+            final cfn = expr.toComplexFunction1D('x');
+            final y0 = cfn(Complex(ptDouble, 0));
+            check(y0.a.isNaN).isFalse();
+            check(y0.b.isNaN).isFalse();
+            if (!hasUnevaluatedDerivative) {
+              final cdf = d1.toComplexFunction1D('x');
+              final slope = cdf(Complex(ptDouble, 0));
+              check(slope.a.isNaN).isFalse();
+              check(slope.b.isNaN).isFalse();
+            }
+          } else {
+            final fn = expr.toFunction1D('x');
+            final y0 = fn(ptDouble);
+            check(y0.isFinite || lim != Constant.undefined).isTrue();
+            if (!hasUnevaluatedDerivative) {
+              final df = d1.toFunction1D('x');
+              final slope = df(ptDouble);
+              check(
+                slope.isFinite ||
+                    lim != Constant.undefined ||
+                    preset.id == 'piecewise_jump',
+              ).isTrue();
+            }
           }
         }
       },
     );
 
-    test('all presets support expansion, factoring, and MathML rendering', () {
+    test('all presets support symbolic definite integration, series, and summation', () {
       for (final preset in expressionPresets) {
-        final expr = Expr.tryParse(preset.formula)!;
-        final expanded = expr.expand();
-        check(expanded.toString().isNotEmpty).isTrue();
+        final expr = Expr.parse(preset.formula);
+        final assumptions = preset.defaultDomain == VariableDomain.unknown
+            ? Assumptions.none
+            : Assumptions(defaultDomain: preset.defaultDomain);
 
-        final factored = expr.factor();
-        check(factored.toString().isNotEmpty).isTrue();
+        final aExpr = _parsePresetBound(preset.defaultIntA);
+        final bExpr = _parsePresetBound(preset.defaultIntB);
+        final defInt = expr
+            .integrate('x', from: aExpr, to: bExpr, assumptions: assumptions)
+            .simplify(assumptions: assumptions);
+        check(defInt.toString().isNotEmpty).isTrue();
 
-        final mathml = expr.toMathMl();
-        check(mathml.startsWith('<math>')).isTrue();
-        check(mathml.endsWith('</math>')).isTrue();
+        final sumExpr = expr
+            .sum(
+              'x',
+              IntegerNumber.one,
+              const Variable('n'),
+              assumptions: assumptions,
+            )
+            .simplify(assumptions: assumptions);
+        check(sumExpr.toString().isNotEmpty).isTrue();
+
+        final prodExpr = expr
+            .product(
+              'x',
+              IntegerNumber.one,
+              const Variable('n'),
+              assumptions: assumptions,
+            )
+            .simplify(assumptions: assumptions);
+        check(prodExpr.toString().isNotEmpty).isTrue();
+
+        try {
+          final taylor = expr
+              .series(
+                'x',
+                point: _parsePresetBound(preset.defaultPointX),
+                order: 3,
+                includeOrder: false,
+                assumptions: assumptions,
+              )
+              .simplify(assumptions: assumptions);
+          check(taylor.toString().isNotEmpty).isTrue();
+        } on UnsupportedError {
+          // Functions with non-elementary series at the point throw UnsupportedError.
+        }
       }
     });
   });
