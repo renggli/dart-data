@@ -29,8 +29,9 @@ extension CompilerExtension on Expr {
   BytecodeEvaluator compileBytecode({
     List<String>? variables,
     bool optimize = true,
+    Assumptions assumptions = Assumptions.none,
   }) {
-    final simplified = simplify();
+    final simplified = simplify(assumptions: assumptions);
     final varList = variables ?? (simplified.freeVariables.toList()..sort());
     return compileToBytecode(
       simplified,
@@ -57,9 +58,13 @@ extension CompilerExtension on Expr {
   double Function(double x) toFunction1D(
     String varName, {
     bool optimize = true,
+    Assumptions assumptions = Assumptions.none,
   }) {
-    final evaluator = compileBytecode(variables: [varName], optimize: optimize)
-      ..checkRealSupported();
+    final evaluator = compileBytecode(
+      variables: [varName],
+      optimize: optimize,
+      assumptions: assumptions,
+    )..checkRealSupported();
     return evaluator.evaluate1D;
   }
 
@@ -75,9 +80,10 @@ extension CompilerExtension on Expr {
     String variable = 'x',
     bool optimize = true,
   ]) {
-    final evaluator = Assumptions.run(
-      () => compileBytecode(variables: [variable], optimize: optimize),
-      domains: {variable: VariableDomain.complex},
+    final evaluator = compileBytecode(
+      variables: [variable],
+      optimize: optimize,
+      assumptions: Assumptions(domains: {variable: VariableDomain.complex}),
     );
     return evaluator.evaluateComplex1D;
   }
@@ -94,9 +100,9 @@ extension CompilerExtension on Expr {
   Complex Function(Map<String, Complex> context) compileComplex({
     bool optimize = true,
   }) {
-    final evaluator = Assumptions.run(
-      () => compileBytecode(optimize: optimize),
-      defaultDomain: VariableDomain.complex,
+    final evaluator = compileBytecode(
+      optimize: optimize,
+      assumptions: Assumptions.complex,
     );
     return evaluator.evaluateComplexMap;
   }

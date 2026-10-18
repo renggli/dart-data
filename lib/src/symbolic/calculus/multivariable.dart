@@ -1,5 +1,6 @@
 import '../../linear/matrix.dart';
 import '../../linear/vector.dart';
+import '../assumptions.dart';
 import '../ast.dart';
 import '../type/expr_data_type.dart';
 import 'differentiation.dart';
@@ -22,8 +23,10 @@ extension MultivariableExtension on Expr {
   /// final grad = (x * x + y * y).gradient(['x', 'y']);
   /// // grad[0]: 2 * x, grad[1]: 2 * y
   /// ```
-  Vector<Expr> gradient(List<String> variables) =>
-      _multivariableGradient(this, variables);
+  Vector<Expr> gradient(
+    List<String> variables, {
+    Assumptions assumptions = Assumptions.none,
+  }) => _multivariableGradient(this, variables, assumptions: assumptions);
 
   /// Computes the analytical Hessian matrix
   /// $H_{ij} = \frac{\partial^2 f}{\partial x_i \partial x_j}$
@@ -45,8 +48,10 @@ extension MultivariableExtension on Expr {
   /// final h = (x * x + x * y * 3).hessian(['x', 'y']);
   /// // h[0][0]: 2, h[0][1]: 3, h[1][0]: 3, h[1][1]: 0
   /// ```
-  Matrix<Expr> hessian(List<String> variables) =>
-      _multivariableHessian(this, variables);
+  Matrix<Expr> hessian(
+    List<String> variables, {
+    Assumptions assumptions = Assumptions.none,
+  }) => _multivariableHessian(this, variables, assumptions: assumptions);
 }
 
 /// Multivariable calculus extensions on collections of [Expr].
@@ -67,39 +72,53 @@ extension MultivariableIterableExtension on Iterable<Expr> {
   /// // jac[0][0]: y, jac[0][1]: x
   /// // jac[1][0]: 1, jac[1][1]: 1
   /// ```
-  Matrix<Expr> jacobian(List<String> variables) =>
-      _multivariableJacobian(toList(), variables);
+  Matrix<Expr> jacobian(
+    List<String> variables, {
+    Assumptions assumptions = Assumptions.none,
+  }) => _multivariableJacobian(toList(), variables, assumptions: assumptions);
 }
 
-Vector<Expr> _multivariableGradient(Expr function, List<String> variables) =>
-    Vector<Expr>.generate(
-      variables.length,
-      (i) => function.derivative(variables[i]),
-      type: exprDataType,
-    );
+Vector<Expr> _multivariableGradient(
+  Expr function,
+  List<String> variables, {
+  Assumptions assumptions = Assumptions.none,
+}) => Vector<Expr>.generate(
+  variables.length,
+  (i) => function.derivative(variables[i], assumptions: assumptions),
+  type: exprDataType,
+);
 
 Matrix<Expr> _multivariableJacobian(
   List<Expr> functions,
-  List<String> variables,
-) {
+  List<String> variables, {
+  Assumptions assumptions = Assumptions.none,
+}) {
   final m = functions.length;
   final n = variables.length;
   return Matrix<Expr>.generate(
     m,
     n,
-    (r, c) => functions[r].derivative(variables[c]),
+    (r, c) => functions[r].derivative(variables[c], assumptions: assumptions),
     type: exprDataType,
   );
 }
 
-Matrix<Expr> _multivariableHessian(Expr function, List<String> variables) {
+Matrix<Expr> _multivariableHessian(
+  Expr function,
+  List<String> variables, {
+  Assumptions assumptions = Assumptions.none,
+}) {
   final n = variables.length;
-  final grad = _multivariableGradient(function, variables);
+  final grad = _multivariableGradient(
+    function,
+    variables,
+    assumptions: assumptions,
+  );
   final entries = List<Expr?>.filled(n * n, null);
   for (var i = 0; i < n; i++) {
     final df = grad[i];
     for (var j = i; j < n; j++) {
-      final d2f = df.derivative(variables[j]);
+      final d2f = df.derivative(variables[j], assumptions: assumptions);
       entries[i * n + j] = d2f;
       entries[j * n + i] = d2f;
     }

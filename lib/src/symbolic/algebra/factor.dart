@@ -1,3 +1,4 @@
+import '../assumptions.dart';
 import '../ast.dart';
 import 'expand.dart';
 import 'factor/fraction.dart';
@@ -23,11 +24,12 @@ extension FactorExtension on Expr {
   /// final expr = x * x - const IntegerNumber.from(5) * x + const IntegerNumber.from(6);
   /// print(expr.factor()); // (-3 + x) * (-2 + x)
   /// ```
-  Expr factor() => factorExpr(this);
+  Expr factor({Assumptions assumptions = Assumptions.none}) =>
+      factorExpr(this, assumptions: assumptions);
 }
 
 /// Recursively factors [expr] into irreducible products and groups like powers.
-Expr factorExpr(Expr expr) {
+Expr factorExpr(Expr expr, {Assumptions assumptions = Assumptions.none}) {
   // 1. Structural base cases
   if (expr is IntegerNumber) return _factorInteger(expr.value);
   if (expr is FractionNumber) {
@@ -47,10 +49,16 @@ Expr factorExpr(Expr expr) {
     exponent: RationalNumber(asInt: final intExp?),
   )) {
     if (intExp > 0) {
-      return distributePower(factorExpr(base), intExp);
+      return distributePower(
+        factorExpr(base, assumptions: assumptions),
+        intExp,
+      );
     }
     if (intExp < 0) {
-      final den = distributePower(factorExpr(base), -intExp);
+      final den = distributePower(
+        factorExpr(base, assumptions: assumptions),
+        -intExp,
+      );
       return cancelFactoredFraction(IntegerNumber.one, den);
     }
   }
@@ -63,11 +71,13 @@ Expr factorExpr(Expr expr) {
       if (factor
           case Pow(:final base, exponent: IntegerNumber(asInt: final intExp?))
           when intExp < 0) {
-        denFactored.add(distributePower(factorExpr(base), -intExp));
+        denFactored.add(
+          distributePower(factorExpr(base, assumptions: assumptions), -intExp),
+        );
       } else if (factor is Number) {
         numFactored.add(factor);
       } else {
-        numFactored.add(factorExpr(factor));
+        numFactored.add(factorExpr(factor, assumptions: assumptions));
       }
     }
     if (denFactored.isNotEmpty) {
@@ -81,12 +91,12 @@ Expr factorExpr(Expr expr) {
   }
 
   // 4. Expand additive sums into canonical polynomial form
-  final expanded = expr.expand().simplify();
+  final expanded = expr.expand().simplify(assumptions: assumptions);
   if (expanded is Number || expanded is Constant || expanded is Variable) {
     return expanded;
   }
   if ((expanded is Mul || expanded is Pow) && expanded != expr) {
-    return factorExpr(expanded);
+    return factorExpr(expanded, assumptions: assumptions);
   }
   final vars = expanded.freeVariables;
 
@@ -108,9 +118,9 @@ Expr factorExpr(Expr expr) {
     if (commonGcd != null && !isOne(commonGcd)) {
       final cofactor = simplifyAdd([
         for (final t in additiveTerms) divideMonomial(t, commonGcd),
-      ]);
+      ], assumptions: assumptions);
       if (cofactor != expanded) {
-        final factoredCofactor = factorExpr(cofactor);
+        final factoredCofactor = factorExpr(cofactor, assumptions: assumptions);
         return combineFactoredProducts([commonGcd, factoredCofactor]);
       }
     }
@@ -124,8 +134,14 @@ Expr factorExpr(Expr expr) {
     // 6c. Difference of squares: A^2 - B^2
     if (matchDifferenceOfSquares(additiveTerms) case (final a, final b)) {
       return combineFactoredProducts([
-        factorExpr(simplifySub(a, b)),
-        factorExpr(simplifyAdd([a, b])),
+        factorExpr(
+          simplifySub(a, b, assumptions: assumptions),
+          assumptions: assumptions,
+        ),
+        factorExpr(
+          simplifyAdd([a, b], assumptions: assumptions),
+          assumptions: assumptions,
+        ),
       ]);
     }
 
@@ -135,18 +151,23 @@ Expr factorExpr(Expr expr) {
       :final b,
       :final isDifference,
     )) {
-      final a2 = simplifyPow(a, IntegerNumber.two);
-      final ab = simplifyMul([a, b]);
-      final b2 = simplifyPow(b, IntegerNumber.two);
-      final linear = isDifference ? simplifySub(a, b) : simplifyAdd([a, b]);
+      final a2 = simplifyPow(a, IntegerNumber.two, assumptions: assumptions);
+      final ab = simplifyMul([a, b], assumptions: assumptions);
+      final b2 = simplifyPow(b, IntegerNumber.two, assumptions: assumptions);
+      final linear = isDifference
+          ? simplifySub(a, b, assumptions: assumptions)
+          : simplifyAdd([a, b], assumptions: assumptions);
       final quad = isDifference
-          ? simplifyAdd([a2, ab, b2])
-          : simplifyAdd([a2, simplifyNeg(ab), b2]);
-      return combineFactoredProducts([factorExpr(linear), factorExpr(quad)]);
+          ? simplifyAdd([a2, ab, b2], assumptions: assumptions)
+          : simplifyAdd([a2, simplifyNeg(ab), b2], assumptions: assumptions);
+      return combineFactoredProducts([
+        factorExpr(linear, assumptions: assumptions),
+        factorExpr(quad, assumptions: assumptions),
+      ]);
     }
   }
 
-  return expr.simplify();
+  return expr.simplify(assumptions: assumptions);
 }
 
 Expr _factorInteger(Integer n) {

@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 
 import '../algebra/simplify.dart';
+import '../assumptions.dart';
 import '../ast.dart';
 
 /// Extension providing formal power series and Laurent expansion on [Expr].
@@ -23,10 +24,12 @@ extension SeriesExtension on Expr {
     Object point = IntegerNumber.zero,
     int order = 6,
     bool includeOrder = true,
+    Assumptions assumptions = Assumptions.none,
   }) => toPowerSeries(
     variable,
     point: point,
     order: order,
+    assumptions: assumptions,
   ).toExpr(includeOrder: includeOrder);
 
   /// Computes the truncated formal [PowerSeries] representation of this
@@ -35,7 +38,13 @@ extension SeriesExtension on Expr {
     String variable, {
     Object point = IntegerNumber.zero,
     int order = 6,
-  }) => _expandToPowerSeries(this, variable, _wrapSeriesPoint(point), order);
+    Assumptions assumptions = Assumptions.none,
+  }) => _expandToPowerSeries(
+    assumptions.isEmpty ? this : simplify(assumptions: assumptions),
+    variable,
+    _wrapSeriesPoint(point),
+    order,
+  );
 }
 
 Expr _wrapSeriesPoint(Object point) => switch (point) {

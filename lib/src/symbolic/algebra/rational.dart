@@ -1,4 +1,5 @@
 import '../../../linear.dart';
+import '../assumptions.dart';
 import '../ast.dart';
 import '../linear/bareiss.dart';
 import '../type/expr_data_type.dart';
@@ -54,7 +55,8 @@ extension RationalFunctionExtension on Expr {
   /// final e = Expr.parse('1 / x + 1 / (x + 1)');
   /// print(e.together()); // (1 + 2 * x) / (x * (1 + x))
   /// ```
-  Expr together() => _togetherExpr(simplify());
+  Expr together({Assumptions assumptions = Assumptions.none}) =>
+      _togetherExpr(simplify(assumptions: assumptions));
 
   /// Cancels common polynomial and numeric factors between the numerator and
   /// denominator of this rational expression.
@@ -67,18 +69,18 @@ extension RationalFunctionExtension on Expr {
   /// final e = Expr.parse('(x^2 - 1) / (x^2 + 2*x + 1)');
   /// print(e.cancel()); // (-1 + x) / (1 + x)
   /// ```
-  Expr cancel() {
-    final combined = together();
+  Expr cancel({Assumptions assumptions = Assumptions.none}) {
+    final combined = together(assumptions: assumptions);
     final (numPart, denPart) = splitNumeratorDenominator(combined);
     if (denPart == IntegerNumber.one) {
-      return numPart.simplify();
+      return numPart.simplify(assumptions: assumptions);
     }
-    final expNum = numPart.expand().simplify();
-    final expDen = denPart.expand().simplify();
+    final expNum = numPart.expand().simplify(assumptions: assumptions);
+    final expDen = denPart.expand().simplify(assumptions: assumptions);
     return cancelFactoredFraction(
       _factorPolynomial(expNum),
       _factorPolynomial(expDen),
-    ).simplify();
+    ).simplify(assumptions: assumptions);
   }
 
   /// Expands and collects additive terms by powers of [variable].
@@ -92,13 +94,13 @@ extension RationalFunctionExtension on Expr {
   /// final e = Expr.parse('a * x^2 + b * x^2 + c * x + d * x + 5');
   /// print(e.collect('x')); // 5 + (c + d) * x + (a + b) * x ^ 2
   /// ```
-  Expr collect(String variable) {
-    final simplified = simplify();
+  Expr collect(String variable, {Assumptions assumptions = Assumptions.none}) {
+    final simplified = simplify(assumptions: assumptions);
     final (numPart, denPart) = splitNumeratorDenominator(simplified);
     if (denPart != IntegerNumber.one) {
       final colNum = _collectAdditive(numPart, variable);
       final colDen = _collectAdditive(denPart, variable);
-      return simplifyDiv(colNum, colDen);
+      return simplifyDiv(colNum, colDen, assumptions: assumptions);
     }
     return _collectAdditive(simplified, variable);
   }
@@ -119,9 +121,13 @@ extension RationalFunctionExtension on Expr {
   /// final res = p.polynomialDivide(d, 'x');
   /// // res.quotient == 2 + 3 * x + x ^ 2, res.remainder == 0
   /// ```
-  PolynomialDivisionResult polynomialDivide(Expr divisor, String variable) {
+  PolynomialDivisionResult polynomialDivide(
+    Expr divisor,
+    String variable, {
+    Assumptions assumptions = Assumptions.none,
+  }) {
     const field = ExprField.instance;
-    final simpDivisor = divisor.expand().simplify();
+    final simpDivisor = divisor.expand().simplify(assumptions: assumptions);
     if (field.isZero(simpDivisor)) {
       throw ArgumentError.value(
         divisor,
@@ -130,7 +136,10 @@ extension RationalFunctionExtension on Expr {
       );
     }
 
-    final numCoeffs = _extractPolynomialCoeffs(this, variable);
+    final numCoeffs = _extractPolynomialCoeffs(
+      simplify(assumptions: assumptions),
+      variable,
+    );
     final denCoeffs = _extractPolynomialCoeffs(simpDivisor, variable);
     if (numCoeffs == null) {
       throw ArgumentError(
@@ -216,11 +225,11 @@ extension RationalFunctionExtension on Expr {
   /// final e = Expr.parse('1 / (x^2 - 1)');
   /// print(e.apart('x')); // 1/2 / (-1 + x) - 1/2 / (1 + x)
   /// ```
-  Expr apart(String variable) {
-    final cancelled = cancel();
+  Expr apart(String variable, {Assumptions assumptions = Assumptions.none}) {
+    final cancelled = cancel(assumptions: assumptions);
     final (numExpr, denExpr) = splitNumeratorDenominator(cancelled);
     if (!denExpr.dependsOn(variable)) {
-      return (numExpr / denExpr).expand().simplify();
+      return (numExpr / denExpr).expand().simplify(assumptions: assumptions);
     }
 
     if (_extractPolynomialCoeffs(numExpr, variable) == null ||
@@ -228,7 +237,11 @@ extension RationalFunctionExtension on Expr {
       return cancelled;
     }
 
-    final (:quotient, :remainder) = numExpr.polynomialDivide(denExpr, variable);
+    final (:quotient, :remainder) = numExpr.polynomialDivide(
+      denExpr,
+      variable,
+      assumptions: assumptions,
+    );
     const field = ExprField.instance;
     if (field.isZero(remainder)) {
       return quotient;

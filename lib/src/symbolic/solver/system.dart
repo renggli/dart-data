@@ -3,6 +3,7 @@ import '../algebra/factor.dart';
 import '../algebra/rational.dart';
 import '../algebra/simplify.dart';
 import '../algebra/term_accumulator.dart';
+import '../assumptions.dart';
 import '../ast.dart';
 import '../calculus/differentiation.dart';
 import 'polynomial_system.dart';
@@ -39,7 +40,13 @@ extension SystemSolverExtension on Iterable<Expr> {
   List<Map<String, Expr>> solve(
     List<String> variables, {
     PolynomialSystemMethod method = PolynomialSystemMethod.auto,
-  }) => solveEquations(toList(), variables, method: method);
+    Assumptions assumptions = Assumptions.none,
+  }) => solveEquations(
+    toList(),
+    variables,
+    method: method,
+    assumptions: assumptions,
+  );
 }
 
 /// Unified solver for a system of [equations] in [variables].
@@ -47,6 +54,7 @@ List<Map<String, Expr>> solveEquations(
   List<Expr> equations,
   List<String> variables, {
   PolynomialSystemMethod method = PolynomialSystemMethod.auto,
+  Assumptions assumptions = Assumptions.none,
 }) {
   if (equations.isEmpty || variables.isEmpty) {
     if (method == PolynomialSystemMethod.resultant) {
@@ -67,13 +75,17 @@ List<Map<String, Expr>> solveEquations(
       _ => rawEq,
     };
     _collectDenominatorBases(diff, varSet, denominators);
-    final combined = diff.together();
+    final combined = diff.together(assumptions: assumptions);
     final (numPart, denPart) = splitNumeratorDenominator(combined);
     if (denPart != IntegerNumber.one &&
         denPart.freeVariables.any(varSet.contains)) {
       denominators.add(denPart);
     }
-    numEquations.add(numPart.expand().simplify());
+    numEquations.add(
+      numPart
+          .expand(assumptions: assumptions)
+          .simplify(assumptions: assumptions),
+    );
   }
 
   List<Map<String, Expr>> rawSolutions;
@@ -82,12 +94,17 @@ List<Map<String, Expr>> solveEquations(
       numEquations,
       variables,
       method: method,
+      assumptions: assumptions,
     );
   } else if (numEquations.length == 1 && variables.length == 1) {
     final v = variables.first;
-    final roots = solveEquation(numEquations.first, v);
+    final roots = solveEquation(
+      numEquations.first,
+      v,
+      assumptions: assumptions,
+    );
     rawSolutions = [
-      for (final r in roots) {v: r.simplify()},
+      for (final r in roots) {v: r.simplify(assumptions: assumptions)},
     ];
   } else if (_isLinearSystem(numEquations, variables)) {
     if (numEquations.length != variables.length) {
@@ -101,6 +118,7 @@ List<Map<String, Expr>> solveEquations(
       numEquations,
       variables,
       method: PolynomialSystemMethod.auto,
+      assumptions: assumptions,
     );
   }
 

@@ -1,9 +1,13 @@
+import '../../assumptions.dart';
 import '../../ast.dart';
 import '../simplify.dart';
 import '../term_accumulator.dart';
 
 /// Simplifies an N-ary addition expression across [terms].
-Expr simplifyAdd(List<Expr> terms) {
+Expr simplifyAdd(
+  List<Expr> terms, {
+  Assumptions assumptions = Assumptions.none,
+}) {
   switch (terms) {
     case []:
       return IntegerNumber.zero;
@@ -15,7 +19,9 @@ Expr simplifyAdd(List<Expr> terms) {
       return left.add(right);
   }
 
-  final acc = MonomialAccumulator(simplify: simplifyExpr);
+  final acc = MonomialAccumulator(
+    simplify: (e) => simplifyExpr(e, assumptions: assumptions),
+  );
   for (final term in terms) {
     acc.add(term);
   }
@@ -24,8 +30,11 @@ Expr simplifyAdd(List<Expr> terms) {
 }
 
 /// Simplifies a binary subtraction `left - right`.
-Expr simplifySub(Expr left, Expr right) =>
-    simplifyAdd([left, simplifyNeg(right)]);
+Expr simplifySub(
+  Expr left,
+  Expr right, {
+  Assumptions assumptions = Assumptions.none,
+}) => simplifyAdd([left, simplifyNeg(right)], assumptions: assumptions);
 
 /// Simplifies a unary negation `-[expr]`.
 Expr simplifyNeg(Expr expr) => switch (expr) {

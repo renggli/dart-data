@@ -1,6 +1,7 @@
 import '../algebra/approximate.dart';
 import '../algebra/simplify.dart';
 import '../algebra/term_accumulator.dart';
+import '../assumptions.dart';
 import '../ast.dart';
 import 'series.dart';
 
@@ -25,11 +26,13 @@ extension LimitExtension on Expr {
     String variable,
     Object point, {
     LimitDirection direction = LimitDirection.both,
+    Assumptions assumptions = Assumptions.none,
   }) => computeLimit(
     this,
     variable,
     _wrapLimitPoint(point),
     direction: direction,
+    assumptions: assumptions,
   );
 }
 
@@ -58,8 +61,9 @@ Expr computeLimit(
   String variable,
   Expr point, {
   LimitDirection direction = LimitDirection.both,
+  Assumptions assumptions = Assumptions.none,
 }) {
-  if (!expr.dependsOn(variable)) return expr.simplify();
+  if (!expr.dependsOn(variable)) return expr.simplify(assumptions: assumptions);
 
   if (expr case Pow(:final base, :final exponent)
       when base.dependsOn(variable) && exponent.dependsOn(variable)) {
@@ -69,10 +73,11 @@ Expr computeLimit(
       variable,
       point,
       direction: direction,
+      assumptions: assumptions,
     );
     if (_isPositiveInfinity(innerLim)) return Constant.infinity;
     if (_isNegativeInfinity(innerLim)) return IntegerNumber.zero;
-    return Pow(Constant.e, innerLim).simplify();
+    return Pow(Constant.e, innerLim).simplify(assumptions: assumptions);
   }
 
   if (expr case Pow(base: Constant.e, :final exponent)) {

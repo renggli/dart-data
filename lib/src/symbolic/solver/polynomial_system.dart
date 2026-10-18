@@ -1,4 +1,5 @@
 import '../algebra/simplify.dart';
+import '../assumptions.dart';
 import '../ast.dart';
 import 'buchberger.dart';
 import 'fglm.dart';
@@ -23,6 +24,7 @@ List<Map<String, Expr>> solvePolynomialSystemEquations(
   List<Expr> equations,
   List<String> variables, {
   PolynomialSystemMethod method = PolynomialSystemMethod.auto,
+  Assumptions assumptions = Assumptions.none,
 }) {
   if (equations.isEmpty || variables.isEmpty) return const [];
 
@@ -31,7 +33,7 @@ List<Map<String, Expr>> solvePolynomialSystemEquations(
       (switch (e) {
         Equal(:final left, :final right) => left - right,
         _ => e,
-      }).simplify(),
+      }).simplify(assumptions: assumptions),
   ];
 
   switch (method) {

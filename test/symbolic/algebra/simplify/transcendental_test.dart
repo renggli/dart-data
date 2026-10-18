@@ -109,11 +109,10 @@ void main() {
         check(simplifyAbs(Constant.pi)).equals(Constant.pi);
         check(simplifyAbs(Abs(x))).equals(Abs(x));
         check(simplifyAbs(Pow(Constant.e, x))).equals(Pow(Constant.e, x));
-        Assumptions.run(() {
-          check(simplifyAbs(Pow(p, x))).equals(Pow(p, x));
-          check(simplifyAbs(Mul([Constant.pi, p])))
-              .equals(Mul([Constant.pi, p]));
-        }, domains: {'p': VariableDomain.positive});
+        const posP = Assumptions(domains: {'p': VariableDomain.positive});
+        check(simplifyAbs(Pow(p, x), assumptions: posP)).equals(Pow(p, x));
+        check(simplifyAbs(Mul([Constant.pi, p]), assumptions: posP))
+            .equals(Mul([Constant.pi, p]));
         check(simplifyAbs(Pow(x, IntegerNumber.two)))
             .equals(Pow(x, IntegerNumber.two));
       },
@@ -280,69 +279,101 @@ void main() {
 
       // Complex functions: Re, Im, Arg, Conjugate, toRectangular, toPolar
       const z = Variable('z');
-      Assumptions.run(() {
-        check(simplifyRe(Add([z, IntegerNumber.two])).toString())
-            .equals('2 + re(z)');
-        check(simplifyIm(Add([z, ComplexNumber.i])).toString())
-            .equals('1 + im(z)');
-        check(
-          simplifyArg(
-            ComplexNumber.of(IntegerNumber.of(-1), IntegerNumber.of(-1)),
-          ).toString(),
-        ).equals('-3/4 * pi');
-        check(
-          simplifyArg(
-            ComplexNumber.of(IntegerNumber.of(1), IntegerNumber.of(-1)),
-          ).toString(),
-        ).equals('-1/4 * pi');
-        check(
-          simplifyArg(
-            ComplexNumber.of(IntegerNumber.of(-1), IntegerNumber.of(1)),
-          ).toString(),
-        ).equals('3/4 * pi');
-        check(
-          simplifyArg(
-            ComplexNumber.of(IntegerNumber.of(-3), IntegerNumber.of(-4)),
-          ).toString(),
-        ).equals('atan(4/3) - pi');
-        check(
-          simplifyArg(
-            ComplexNumber.of(IntegerNumber.of(-3), IntegerNumber.of(4)),
-          ).toString(),
-        ).equals('-atan(4/3) + pi');
-        check(simplifyArg(Conjugate(z)).toString()).equals('-arg(z)');
-        check(simplifyArg(Pow(x, IntegerNumber.two)))
-            .equals(IntegerNumber.zero);
-        check(simplifyArg(z)).equals(Arg(z, isSimplified: true));
+      const complexZ = Assumptions(domains: {'z': VariableDomain.complex});
+      check(
+        simplifyRe(
+          Add([z, IntegerNumber.two]),
+          assumptions: complexZ,
+        ).toString(),
+      ).equals('2 + re(z)');
+      check(
+        simplifyIm(Add([z, ComplexNumber.i]), assumptions: complexZ).toString(),
+      ).equals('1 + im(z)');
+      check(
+        simplifyArg(
+          ComplexNumber.of(IntegerNumber.of(-1), IntegerNumber.of(-1)),
+          assumptions: complexZ,
+        ).toString(),
+      ).equals('-3/4 * pi');
+      check(
+        simplifyArg(
+          ComplexNumber.of(IntegerNumber.of(1), IntegerNumber.of(-1)),
+          assumptions: complexZ,
+        ).toString(),
+      ).equals('-1/4 * pi');
+      check(
+        simplifyArg(
+          ComplexNumber.of(IntegerNumber.of(-1), IntegerNumber.of(1)),
+          assumptions: complexZ,
+        ).toString(),
+      ).equals('3/4 * pi');
+      check(
+        simplifyArg(
+          ComplexNumber.of(IntegerNumber.of(-3), IntegerNumber.of(-4)),
+          assumptions: complexZ,
+        ).toString(),
+      ).equals('atan(4/3) - pi');
+      check(
+        simplifyArg(
+          ComplexNumber.of(IntegerNumber.of(-3), IntegerNumber.of(4)),
+          assumptions: complexZ,
+        ).toString(),
+      ).equals('-atan(4/3) + pi');
+      check(simplifyArg(Conjugate(z), assumptions: complexZ).toString())
+          .equals('-arg(z)');
+      check(simplifyArg(Pow(x, IntegerNumber.two), assumptions: complexZ))
+          .equals(IntegerNumber.zero);
+      check(simplifyArg(z, assumptions: complexZ))
+          .equals(Arg(z, isSimplified: true));
 
-        check(simplifyConjugate(Add([z, IntegerNumber.one])).toString())
-            .equals('1 + conj(z)');
-        check(simplifyConjugate(Mul([z, IntegerNumber.two])).toString())
-            .equals('2 * conj(z)');
-        check(simplifyConjugate(Pow(Constant.e, z)).toString())
-            .equals('exp(conj(z))');
-        check(simplifyConjugate(Pow(z, IntegerNumber.two)).toString())
-            .equals('conj(z) ^ 2');
-        check(simplifyConjugate(Sin(z)).toString()).equals('sin(conj(z))');
-        check(simplifyConjugate(Cos(z)).toString()).equals('cos(conj(z))');
-        check(simplifyConjugate(Tan(z)).toString()).equals('tan(conj(z))');
-        check(simplifyConjugate(Sinh(z)).toString()).equals('sinh(conj(z))');
-        check(simplifyConjugate(Cosh(z)).toString()).equals('cosh(conj(z))');
-        check(simplifyConjugate(Tanh(z)).toString()).equals('tanh(conj(z))');
+      check(
+        simplifyConjugate(
+          Add([z, IntegerNumber.one]),
+          assumptions: complexZ,
+        ).toString(),
+      ).equals('1 + conj(z)');
+      check(
+        simplifyConjugate(
+          Mul([z, IntegerNumber.two]),
+          assumptions: complexZ,
+        ).toString(),
+      ).equals('2 * conj(z)');
+      check(
+        simplifyConjugate(Pow(Constant.e, z), assumptions: complexZ).toString(),
+      ).equals('exp(conj(z))');
+      check(
+        simplifyConjugate(
+          Pow(z, IntegerNumber.two),
+          assumptions: complexZ,
+        ).toString(),
+      ).equals('conj(z) ^ 2');
+      check(simplifyConjugate(Sin(z), assumptions: complexZ).toString())
+          .equals('sin(conj(z))');
+      check(simplifyConjugate(Cos(z), assumptions: complexZ).toString())
+          .equals('cos(conj(z))');
+      check(simplifyConjugate(Tan(z), assumptions: complexZ).toString())
+          .equals('tan(conj(z))');
+      check(simplifyConjugate(Sinh(z), assumptions: complexZ).toString())
+          .equals('sinh(conj(z))');
+      check(simplifyConjugate(Cosh(z), assumptions: complexZ).toString())
+          .equals('cosh(conj(z))');
+      check(simplifyConjugate(Tanh(z), assumptions: complexZ).toString())
+          .equals('tanh(conj(z))');
 
-        check(toRectangularExpr(Sin(z)).toString())
-            .equals('sin(re(z)) * cosh(im(z)) + i * cos(re(z)) * sinh(im(z))');
-        check(toRectangularExpr(Cos(z)).toString())
-            .equals('cos(re(z)) * cosh(im(z)) - i * sin(re(z)) * sinh(im(z))');
-        check(toRectangularExpr(Sinh(z)).toString())
-            .equals('cos(im(z)) * sinh(re(z)) + i * sin(im(z)) * cosh(re(z))');
-        check(toRectangularExpr(Cosh(z)).toString())
-            .equals('cos(im(z)) * cosh(re(z)) + i * sin(im(z)) * sinh(re(z))');
-        check(toRectangularExpr(Tan(z)).toString())
-            .equals('re(tan(z)) + i * im(tan(z))');
-        check(toRectangularExpr(Re(z))).equals(Re(z, isSimplified: true));
-        check(toRectangularExpr(Im(z))).equals(Im(z, isSimplified: true));
-      }, domains: {'z': VariableDomain.complex});
+      check(toRectangularExpr(Sin(z), assumptions: complexZ).toString())
+          .equals('sin(re(z)) * cosh(im(z)) + i * cos(re(z)) * sinh(im(z))');
+      check(toRectangularExpr(Cos(z), assumptions: complexZ).toString())
+          .equals('cos(re(z)) * cosh(im(z)) - i * sin(re(z)) * sinh(im(z))');
+      check(toRectangularExpr(Sinh(z), assumptions: complexZ).toString())
+          .equals('cos(im(z)) * sinh(re(z)) + i * sin(im(z)) * cosh(re(z))');
+      check(toRectangularExpr(Cosh(z), assumptions: complexZ).toString())
+          .equals('cos(im(z)) * cosh(re(z)) + i * sin(im(z)) * sinh(re(z))');
+      check(toRectangularExpr(Tan(z), assumptions: complexZ).toString())
+          .equals('re(tan(z)) + i * im(tan(z))');
+      check(toRectangularExpr(Re(z), assumptions: complexZ))
+          .equals(Re(z, isSimplified: true));
+      check(toRectangularExpr(Im(z), assumptions: complexZ))
+          .equals(Im(z, isSimplified: true));
     });
   });
 }

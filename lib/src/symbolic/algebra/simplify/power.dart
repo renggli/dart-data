@@ -1,8 +1,13 @@
+import '../../assumptions.dart';
 import '../../ast.dart';
 import '../simplify.dart';
 
 /// Simplifies an exponentiation expression [base] ^ [exponent].
-Expr simplifyPow(Expr base, Expr exponent) {
+Expr simplifyPow(
+  Expr base,
+  Expr exponent, {
+  Assumptions assumptions = Assumptions.none,
+}) {
   // 1. Trivial exponent identities: b^0 = 1, b^1 = b
   if (exponent is Number && exponent.isZero) {
     return IntegerNumber.one;
@@ -39,8 +44,8 @@ Expr simplifyPow(Expr base, Expr exponent) {
           ];
           final k = otherFactors.length == 1
               ? otherFactors.first
-              : simplifyMul(otherFactors);
-          return simplifyPow(expr, k);
+              : simplifyMul(otherFactors, assumptions: assumptions);
+          return simplifyPow(expr, k, assumptions: assumptions);
         }
       }
     }
@@ -84,7 +89,9 @@ Expr simplifyPow(Expr base, Expr exponent) {
   }
 
   // 4b. (-1)^k = 1 for even integer expression k
-  if (base is Number && base.isNegativeOne && isEvenIntegerExpr(exponent)) {
+  if (base is Number &&
+      base.isNegativeOne &&
+      isEvenIntegerExpr(exponent, assumptions: assumptions)) {
     return IntegerNumber.one;
   }
 
@@ -92,22 +99,27 @@ Expr simplifyPow(Expr base, Expr exponent) {
   if (base is Pow &&
       _isTwo(base.exponent) &&
       _isHalf(exponent) &&
-      base.base.isReal) {
-    return simplifyAbs(base.base);
+      isRealExpr(base.base, assumptions)) {
+    return simplifyAbs(base.base, assumptions: assumptions);
   }
   if (base
       case Pow(base: final innerBase, exponent: IntegerNumber(value: final p))
-      when innerBase.isReal &&
+      when isRealExpr(innerBase, assumptions) &&
           p > Integer.zero &&
           p.isEven &&
           exponent == RationalNumber.of(Integer.one, p)) {
-    return simplifyAbs(innerBase);
+    return simplifyAbs(innerBase, assumptions: assumptions);
   }
 
   // 6. Nested powers: (u^e1)^e2
   if (base case Pow(base: final innerBase, exponent: final innerExp)) {
-    if (innerBase == Constant.e || isNonNegativeExpr(innerBase)) {
-      return simplifyPow(innerBase, simplifyMul([innerExp, exponent]));
+    if (innerBase == Constant.e ||
+        isNonNegativeExpr(innerBase, assumptions: assumptions)) {
+      return simplifyPow(
+        innerBase,
+        simplifyMul([innerExp, exponent], assumptions: assumptions),
+        assumptions: assumptions,
+      );
     }
     if (innerExp is RationalNumber && exponent is RationalNumber) {
       if (innerExp is IntegerNumber &&
@@ -115,30 +127,45 @@ Expr simplifyPow(Expr base, Expr exponent) {
           exponent is FractionNumber &&
           exponent.denominator.isEven) {
         final prod = innerExp.mulRational(exponent);
-        if (innerBase.isReal && prod is IntegerNumber && prod.value.isOdd) {
-          return simplifyPow(simplifyAbs(innerBase), prod);
+        if (isRealExpr(innerBase, assumptions) &&
+            prod is IntegerNumber &&
+            prod.value.isOdd) {
+          return simplifyPow(
+            simplifyAbs(innerBase, assumptions: assumptions),
+            prod,
+            assumptions: assumptions,
+          );
         }
-        if (!innerBase.isReal) {
+        if (!isRealExpr(innerBase, assumptions)) {
           return Pow(base, exponent, isSimplified: true);
         }
       }
-      return simplifyPow(innerBase, innerExp.mulRational(exponent));
+      return simplifyPow(
+        innerBase,
+        innerExp.mulRational(exponent),
+        assumptions: assumptions,
+      );
     }
     if (exponent is IntegerNumber) {
-      return simplifyPow(innerBase, simplifyMul([innerExp, exponent]));
+      return simplifyPow(
+        innerBase,
+        simplifyMul([innerExp, exponent], assumptions: assumptions),
+        assumptions: assumptions,
+      );
     }
   }
 
   // 7. Product raised to an integer power: (a * b)^k => a^k * b^k
   if (base is Mul && exponent is IntegerNumber) {
     return simplifyMul([
-      for (final f in base.factors) simplifyPow(f, exponent),
-    ]);
+      for (final f in base.factors)
+        simplifyPow(f, exponent, assumptions: assumptions),
+    ], assumptions: assumptions);
   }
 
   // 8. |u|^2 => u^2
   if (base is Abs && _isTwo(exponent)) {
-    return simplifyPow(base.expr, exponent);
+    return simplifyPow(base.expr, exponent, assumptions: assumptions);
   }
 
   // 9. OrderTerm^k for positive integer k

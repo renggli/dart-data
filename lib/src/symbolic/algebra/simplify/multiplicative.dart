@@ -1,10 +1,14 @@
+import '../../assumptions.dart';
 import '../../ast.dart';
 import '../simplify.dart';
 import '../structural_order.dart';
 import '../term_accumulator.dart';
 
 /// Simplifies an N-ary multiplication expression across [factors].
-Expr simplifyMul(List<Expr> factors) {
+Expr simplifyMul(
+  List<Expr> factors, {
+  Assumptions assumptions = Assumptions.none,
+}) {
   if (factors.isEmpty) return IntegerNumber.one;
 
   final flatFactors = <Expr>[];
@@ -61,7 +65,7 @@ Expr simplifyMul(List<Expr> factors) {
           ];
           return remaining.length == 1
               ? remaining.first
-              : simplifyMul(remaining);
+              : simplifyMul(remaining, assumptions: assumptions);
         } else {
           unabsorbed.add(other);
         }
@@ -85,7 +89,10 @@ Expr simplifyMul(List<Expr> factors) {
       final (base, exp) = decomposeFactor(f);
       final existingExp = baseExponents[base];
       if (existingExp != null) {
-        final sumExp = simplifyAdd([existingExp, exp]);
+        final sumExp = simplifyAdd([
+          existingExp,
+          exp,
+        ], assumptions: assumptions);
         if (sumExp is Number && sumExp.isZero) {
           baseExponents.remove(base);
         } else {
@@ -107,9 +114,12 @@ Expr simplifyMul(List<Expr> factors) {
 
   final remainingFactors = <Expr>[];
   for (final MapEntry(key: base, value: exp) in baseExponents.entries) {
-    final term = (exp == IntegerNumber.one && base.isSimplified)
+    final term =
+        (exp == IntegerNumber.one &&
+            base.isSimplified &&
+            (identical(assumptions, Assumptions.none) || assumptions.isEmpty))
         ? base
-        : simplifyPow(base, exp);
+        : simplifyPow(base, exp, assumptions: assumptions);
     switch (term) {
       case final Number n:
         coeff = coeff.mul(n);
@@ -138,14 +148,21 @@ Expr simplifyMul(List<Expr> factors) {
 }
 
 /// Simplifies a binary division `left / right`.
-Expr simplifyDiv(Expr left, Expr right) {
+Expr simplifyDiv(
+  Expr left,
+  Expr right, {
+  Assumptions assumptions = Assumptions.none,
+}) {
   if (right is Number && right.isZero) {
     throw UnsupportedError('Division by zero in simplification');
   }
   if (left is Number && right is Number) {
     return left.div(right);
   }
-  return simplifyMul([left, simplifyPow(right, IntegerNumber.negativeOne)]);
+  return simplifyMul([
+    left,
+    simplifyPow(right, IntegerNumber.negativeOne, assumptions: assumptions),
+  ], assumptions: assumptions);
 }
 
 /// Canonically sorts [remainingFactors] and combines with [coeff] into a

@@ -2,6 +2,7 @@ import '../algebra/approximate.dart';
 import '../algebra/expand.dart';
 import '../algebra/simplify.dart';
 import '../algebra/term_accumulator.dart';
+import '../assumptions.dart';
 import '../ast.dart';
 import 'differentiation.dart';
 import 'limit.dart';
@@ -34,8 +35,18 @@ extension IntegrationExtension on Expr {
   /// final area = (x * x).integrate('x', from: 0, to: 3);
   /// // area: IntegerNumber(9) because \int_0^3 x^2 dx = [x^3 / 3]_0^3 = 9
   /// ```
-  Expr integrate(String variable, {Object? from, Object? to}) =>
-      _symbolicIntegrate(this, variable, from: from, to: to);
+  Expr integrate(
+    String variable, {
+    Object? from,
+    Object? to,
+    Assumptions assumptions = Assumptions.none,
+  }) => _symbolicIntegrate(
+    this,
+    variable,
+    from: from,
+    to: to,
+    assumptions: assumptions,
+  );
 
   /// Computes an iterated (multiple) integral across [bounds] in sequence from
   /// innermost to outermost integration variable.
@@ -59,13 +70,17 @@ extension IntegrationExtension on Expr {
   /// ]);
   /// // triangle: 1/8
   /// ```
-  Expr integrateMultiple(Iterable<IntegrationBound> bounds) {
+  Expr integrateMultiple(
+    Iterable<IntegrationBound> bounds, {
+    Assumptions assumptions = Assumptions.none,
+  }) {
     var current = this;
     for (final bound in bounds) {
       current = current.integrate(
         bound.variable,
         from: bound.from,
         to: bound.to,
+        assumptions: assumptions,
       );
     }
     return current;
@@ -87,6 +102,7 @@ Expr _symbolicIntegrate(
   String variable, {
   Object? from,
   Object? to,
+  Assumptions assumptions = Assumptions.none,
 }) {
   if ((from == null) != (to == null)) {
     throw ArgumentError(
@@ -94,15 +110,18 @@ Expr _symbolicIntegrate(
     );
   }
   if (from != null && to != null) {
-    final fromExpr = _boundToExpr(from).simplify();
-    final toExpr = _boundToExpr(to).simplify();
+    final fromExpr = _boundToExpr(from).simplify(assumptions: assumptions);
+    final toExpr = _boundToExpr(to).simplify(assumptions: assumptions);
     if (fromExpr == toExpr) {
       return IntegerNumber.zero;
     }
-    final antiDeriv = _antiDerivative(function, variable).simplify();
+    final antiDeriv = _antiDerivative(
+      function,
+      variable,
+    ).simplify(assumptions: assumptions);
     if (_hasUnevaluatedIntegral(antiDeriv, variable)) {
       return Integral(
-        function.simplify(),
+        function.simplify(assumptions: assumptions),
         variable,
         lower: fromExpr,
         upper: toExpr,
@@ -111,15 +130,15 @@ Expr _symbolicIntegrate(
     }
     try {
       final upper = _isInfiniteBound(toExpr)
-          ? antiDeriv.limit(variable, toExpr)
+          ? antiDeriv.limit(variable, toExpr, assumptions: assumptions)
           : antiDeriv.substitute(variable, toExpr);
       final lower = _isInfiniteBound(fromExpr)
-          ? antiDeriv.limit(variable, fromExpr)
+          ? antiDeriv.limit(variable, fromExpr, assumptions: assumptions)
           : antiDeriv.substitute(variable, fromExpr);
-      return (upper - lower).simplify();
+      return (upper - lower).simplify(assumptions: assumptions);
     } on Object {
       return Integral(
-        function.simplify(),
+        function.simplify(assumptions: assumptions),
         variable,
         lower: fromExpr,
         upper: toExpr,
@@ -128,7 +147,7 @@ Expr _symbolicIntegrate(
     }
   }
 
-  return _antiDerivative(function, variable).simplify();
+  return _antiDerivative(function, variable).simplify(assumptions: assumptions);
 }
 
 bool _hasUnevaluatedIntegral(Expr expr, String variable) => expr.anyNode(

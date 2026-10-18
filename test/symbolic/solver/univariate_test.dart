@@ -75,41 +75,41 @@ void main() {
 
   group('Domain filtering and root deduplication', () {
     test('filters roots according to VariableDomain assumptions', () {
+      const intAssumptions = Assumptions(defaultDomain: VariableDomain.integer);
       final imagEq = Expr.parse('x^2 + 1');
-      check(imagEq.solve('x', domain: VariableDomain.real)).isEmpty();
-      check(imagEq.solve('x', domain: VariableDomain.complex).length).equals(2);
+      check(imagEq.solve('x', assumptions: Assumptions.real)).isEmpty();
+      check(imagEq.solve('x', assumptions: Assumptions.complex).length)
+          .equals(2);
 
       final posEq = Expr.parse('x^2 - 4');
-      check(
-        Assumptions.run(
-          () => posEq.solve('x'),
-          domains: {'x': VariableDomain.positive},
-        ),
-      ).deepEquals([IntegerNumber.two]);
+      check(posEq.solve('x', assumptions: Assumptions.positive))
+          .deepEquals([IntegerNumber.two]);
 
       final ratEq = Expr.parse('(2*x - 3) * (x + 4)');
-      check(ratEq.solve('x', domain: VariableDomain.integer))
+      check(ratEq.solve('x', assumptions: intAssumptions))
           .deepEquals([IntegerNumber.of(-4)]);
-      check(ratEq.solve('x', domain: VariableDomain.positive))
+      check(ratEq.solve('x', assumptions: Assumptions.positive))
           .deepEquals([RationalNumber(3, 2)]);
 
       // Radical and RealNumber roots under real and positive domains
       final radEq = Expr.parse('x^2 - 2');
-      check(radEq.solve('x', domain: VariableDomain.real).length).equals(2);
-      check(radEq.solve('x', domain: VariableDomain.positive).length).equals(1);
-      check(radEq.solve('x', domain: VariableDomain.positive).first.evaluate())
-          .isCloseTo(math.sqrt2, 1e-12);
+      check(radEq.solve('x', assumptions: Assumptions.real).length).equals(2);
+      check(radEq.solve('x', assumptions: Assumptions.positive).length)
+          .equals(1);
+      check(
+        radEq.solve('x', assumptions: Assumptions.positive).first.evaluate(),
+      ).isCloseTo(math.sqrt2, 1e-12);
 
       final realNumEq = Expr.parse('x - 1.5');
-      check(realNumEq.solve('x', domain: VariableDomain.positive))
+      check(realNumEq.solve('x', assumptions: Assumptions.positive))
           .deepEquals([const RealNumber(1.5)]);
 
       // Symbolic roots under real and positive domains
       final symEq = Expr.parse('x - a');
-      check(symEq.solve('x', domain: VariableDomain.real))
+      check(symEq.solve('x', assumptions: Assumptions.real))
           .deepEquals([const Variable('a')]);
-      check(symEq.solve('x', domain: VariableDomain.positive)).isEmpty();
-      check(imagEq.solve('x', domain: VariableDomain.positive)).isEmpty();
+      check(symEq.solve('x', assumptions: Assumptions.positive)).isEmpty();
+      check(imagEq.solve('x', assumptions: Assumptions.positive)).isEmpty();
     });
 
     test(

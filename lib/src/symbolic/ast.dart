@@ -3,7 +3,6 @@ import 'dart:math' as math;
 import 'package:more/number.dart' show Complex;
 
 import '../../special.dart' as special;
-import 'assumptions.dart';
 import 'number/integer.dart';
 import 'number/rational.dart';
 import 'parser.dart';

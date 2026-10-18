@@ -98,16 +98,20 @@ void main() {
             .equals(IntegerNumber.one);
 
         // Complex variable remains symbolic
-        Assumptions.run(() {
-          check(Re(z).simplify()).equals(Re(z, isSimplified: true));
-          check(Im(z).simplify()).equals(Im(z, isSimplified: true));
-          check(Conjugate(z).simplify())
-              .equals(Conjugate(z, isSimplified: true));
-          check(Conjugate(Conjugate(z)).simplify()).equals(z);
-          check(Re(Conjugate(z)).simplify()).equals(Re(z, isSimplified: true));
-          check(Im(Conjugate(z)).simplify())
-              .equals((-Im(z, isSimplified: true)).simplify());
-        }, domains: {'z': VariableDomain.complex});
+        const complexZ = Assumptions(domains: {'z': VariableDomain.complex});
+        check(Re(z).simplify(assumptions: complexZ))
+            .equals(Re(z, isSimplified: true));
+        check(Im(z).simplify(assumptions: complexZ))
+            .equals(Im(z, isSimplified: true));
+        check(Conjugate(z).simplify(assumptions: complexZ))
+            .equals(Conjugate(z, isSimplified: true));
+        check(Conjugate(Conjugate(z)).simplify(assumptions: complexZ))
+            .equals(z);
+        check(Re(Conjugate(z)).simplify(assumptions: complexZ))
+            .equals(Re(z, isSimplified: true));
+        check(
+          Im(Conjugate(z)).simplify(assumptions: complexZ),
+        ).equals((-Im(z, isSimplified: true)).simplify(assumptions: complexZ));
 
         // Textualization and round-trip
         for (final source in ['re(z)', 'im(z)', 'arg(z)', 'conj(z)']) {

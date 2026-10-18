@@ -1,3 +1,4 @@
+import '../assumptions.dart';
 import '../ast.dart';
 import 'expand.dart';
 import 'rational.dart';
@@ -34,7 +35,9 @@ extension TrigRewriteExtension on Expr {
   /// final e = Expr.parse('sin(2 * x)');
   /// print(e.expandTrig()); // 2 * cos(x) * sin(x)
   /// ```
-  Expr expandTrig() => _expandTrigExpr(simplify()).simplify();
+  Expr expandTrig({Assumptions assumptions = Assumptions.none}) =>
+      _expandTrigExpr(simplify(assumptions: assumptions))
+          .simplify(assumptions: assumptions);
 
   /// Simplifies trigonometric and hyperbolic expressions using Pythagorean,
   /// quotient ($\tan u = \sin u / \cos u$), double-angle, and product-to-sum
@@ -44,7 +47,9 @@ extension TrigRewriteExtension on Expr {
   /// final e = Expr.parse('2 * sin(x) * cos(x)');
   /// print(e.simplifyTrig()); // sin(2 * x)
   /// ```
-  Expr simplifyTrig() => _simplifyTrigExpr(simplify());
+  Expr simplifyTrig({Assumptions assumptions = Assumptions.none}) =>
+      _simplifyTrigExpr(simplify(assumptions: assumptions))
+          .simplify(assumptions: assumptions);
 
   /// Rewrites this expression into the specified [target] representation.
   ///
@@ -59,10 +64,19 @@ extension TrigRewriteExtension on Expr {
   /// final euler = Expr.parse('cos(x) + i * sin(x)');
   /// print(euler.rewrite(RewriteTarget.exp)); // exp(i * x)
   /// ```
-  Expr rewrite(RewriteTarget target) => switch (target) {
-    RewriteTarget.exp => _rewriteToExp(simplify()).expand().simplify(),
-    RewriteTarget.trig => _rewriteToTrig(simplify()).expand().simplify(),
-    RewriteTarget.sinCos => _rewriteToSinCos(simplify()).simplify(),
+  Expr rewrite(
+    RewriteTarget target, {
+    Assumptions assumptions = Assumptions.none,
+  }) => switch (target) {
+    RewriteTarget.exp => _rewriteToExp(
+      simplify(assumptions: assumptions),
+    ).expand().simplify(assumptions: assumptions),
+    RewriteTarget.trig => _rewriteToTrig(
+      simplify(assumptions: assumptions),
+    ).expand().simplify(assumptions: assumptions),
+    RewriteTarget.sinCos => _rewriteToSinCos(
+      simplify(assumptions: assumptions),
+    ).simplify(assumptions: assumptions),
   };
 }
 

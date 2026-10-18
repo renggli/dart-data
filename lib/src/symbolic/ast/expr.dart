@@ -46,12 +46,9 @@ sealed class Expr {
   bool dependsOn(String variable);
 
   /// Whether this expression is real-valued (contains no complex numbers with
-  /// non-zero imaginary parts or variables assumed complex).
-  bool get isReal => !anyNode(
-    (node) =>
-        (node is ComplexNumber && !node.imaginary.isZero) ||
-        (node is Variable && node.domain == VariableDomain.complex),
-  );
+  /// non-zero imaginary parts).
+  bool get isReal =>
+      !anyNode((node) => node is ComplexNumber && !node.imaginary.isZero);
 
   /// Returns a new expression with every occurrence of [variable] replaced by [replacement].
   Expr substitute(String variable, Expr replacement);

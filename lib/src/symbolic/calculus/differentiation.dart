@@ -1,5 +1,6 @@
 import '../algebra/expand.dart';
 import '../algebra/simplify.dart';
+import '../assumptions.dart';
 import '../ast.dart';
 
 /// Analytical symbolic differentiation extension on [Expr].
@@ -19,13 +20,20 @@ extension DifferentiationExtension on Expr {
   /// final d1 = (x * x * x).derivative('x').simplify(); // 3 * (x ^ 2)
   /// final d2 = (x * x * x).derivative('x', order: 2).simplify(); // 6 * x
   /// ```
-  Expr derivative(String variable, {int order = 1}) {
+  Expr derivative(
+    String variable, {
+    int order = 1,
+    Assumptions assumptions = Assumptions.none,
+  }) {
     RangeError.checkValueInInterval(order, 0, 1000, 'order');
-    if (order == 0) return simplify();
+    if (order == 0) return simplify(assumptions: assumptions);
     var current = this;
     for (var i = 0; i < order; i++) {
       if (!current.dependsOn(variable)) return IntegerNumber.zero;
-      current = _differentiate(current, variable).simplify();
+      current = _differentiate(
+        current,
+        variable,
+      ).simplify(assumptions: assumptions);
     }
     return current;
   }

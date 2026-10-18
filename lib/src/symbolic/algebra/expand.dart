@@ -1,3 +1,4 @@
+import '../assumptions.dart';
 import '../ast.dart';
 import 'simplify.dart';
 import 'term_accumulator.dart';
@@ -17,7 +18,12 @@ extension ExpandExtension on Expr {
   /// final expr = (x - 2) * (x - 3);
   /// final expanded = expr.expand(); // 6 - 5 * x + x^2
   /// ```
-  Expr expand() => _expand(this);
+  Expr expand({Assumptions assumptions = Assumptions.none}) {
+    final expanded = _expand(this);
+    return (identical(assumptions, Assumptions.none) || assumptions.isEmpty)
+        ? expanded
+        : expanded.simplify(assumptions: assumptions);
+  }
 }
 
 Expr _expand(Expr expr) => switch (expr) {

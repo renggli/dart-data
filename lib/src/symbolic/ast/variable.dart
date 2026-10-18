@@ -26,10 +26,6 @@ final class Variable extends Expr {
   /// Identifier name of the variable.
   final String name;
 
-  /// Effective mathematical domain of this variable in the active
-  /// [Assumptions] zone, or [VariableDomain.unknown] when none is active.
-  VariableDomain get domain => Assumptions.domainOf(name);
-
   @override
   bool get isSimplified => true;
 

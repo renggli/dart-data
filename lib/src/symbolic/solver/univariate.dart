@@ -31,14 +31,20 @@ extension SolverExtension on Expr {
   /// final roots = (x * x - 4).solve('x');
   /// // roots: [IntegerNumber(-2), IntegerNumber(2)]
   /// ```
-  List<Expr> solve(String variable, {VariableDomain? domain}) =>
-      solveEquation(this, variable, domain: domain);
+  List<Expr> solve(
+    String variable, {
+    Assumptions assumptions = Assumptions.none,
+  }) => solveEquation(this, variable, assumptions: assumptions);
 }
 
 /// Recursively solves univariate equation [expr] = 0 for [variable], optionally
-/// filtering roots by [domain] (or active [Assumptions] for [variable]).
-List<Expr> solveEquation(Expr expr, String variable, {VariableDomain? domain}) {
-  final effectiveDomain = domain ?? Assumptions.domainOf(variable);
+/// filtering roots by [assumptions] for [variable].
+List<Expr> solveEquation(
+  Expr expr,
+  String variable, {
+  Assumptions assumptions = Assumptions.none,
+}) {
+  final effectiveDomain = assumptions.domainOf(variable);
   final rawRoots = _solveUnfiltered(expr, variable);
   return _filterByDomain(rawRoots, effectiveDomain);
 }

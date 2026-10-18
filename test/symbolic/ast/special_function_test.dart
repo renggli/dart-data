@@ -110,9 +110,10 @@ void main() {
       check(Expr.parse('sgn(0)').simplify()).equals(IntegerNumber.zero);
       check(Expr.parse('sign(5)').simplify()).equals(IntegerNumber.one);
       check(
-        Assumptions.run(
-          () => Sign(const Variable('x')).simplify(),
-          domains: {'x': VariableDomain.positive},
+        Sign(const Variable('x')).simplify(
+          assumptions: const Assumptions(
+            domains: {'x': VariableDomain.positive},
+          ),
         ),
       ).equals(IntegerNumber.one);
       check(Expr.parse('mod(17, 5)').simplify()).equals(IntegerNumber.of(2));

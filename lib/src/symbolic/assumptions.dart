@@ -1,73 +1,82 @@
-import 'dart:async';
-
 import 'ast.dart';
 
-/// Cooperative zone-scoped mathematical domain assumptions for symbolic variables.
+/// Immutable, chainable mathematical domain assumptions for symbolic variables.
 ///
-/// Wrap symbolic operations (such as simplification, equation solving, or
-/// complex-part reductions) in [Assumptions.run] to supply domain constraints
-/// (`positive`, `real`, `integer`, `complex`) for [Variable] nodes by name
-/// without mutating or reconstructing the AST nodes.
+/// Pass an [Assumptions] instance to symbolic transformation, calculus, or
+/// equation-solving methods to supply domain constraints (`positive`, `real`,
+/// `integer`, `complex`) for [Variable] nodes by name without mutating or
+/// reconstructing the AST nodes.
 ///
 /// ```dart
 /// final expr = Expr.parse('sqrt(x^2) + conj(y)');
-/// final simplified = Assumptions.run(
-///   () => expr.simplify(),
-///   domains: {'x': VariableDomain.positive, 'y': VariableDomain.real},
+/// final simplified = expr.simplify(
+///   assumptions: const Assumptions(
+///     domains: {'x': VariableDomain.positive, 'y': VariableDomain.real},
+///   ),
 /// );
 /// print(simplified); // x + y
 /// ```
-abstract final class Assumptions {
-  static final Object _assumptionsKey = Object();
-  static int _activeZones = 0;
+final class Assumptions {
+  /// Creates an [Assumptions] context with per-variable [domains], a fallback
+  /// [defaultDomain] (defaulting to [VariableDomain.unknown]), and an optional
+  /// [parent] context for hierarchical lookup.
+  const new({
+    this.domains = const {},
+    this.defaultDomain = VariableDomain.unknown,
+    this.parent,
+  });
 
-  /// Whether an [Assumptions.run] zone is currently active.
-  static bool get isActive => _activeZones > 0;
+  /// Empty assumptions where all unspecified variables default to
+  /// [VariableDomain.unknown].
+  static const Assumptions none = Assumptions();
 
-  /// Executes [body] within a zone that binds variable names in [domains]
-  /// (and any unmentioned variables to [defaultDomain], if provided) to their
-  /// assumed [VariableDomain].
-  ///
-  /// When nested inside an outer [Assumptions.run], inner bindings in [domains]
-  /// and [defaultDomain] override outer bindings while preserving non-overridden
-  /// outer assumptions.
-  static R run<R>(
-    R Function() body, {
+  /// Assumptions where all unspecified variables default to
+  /// [VariableDomain.real].
+  static const Assumptions real = Assumptions(
+    defaultDomain: VariableDomain.real,
+  );
+
+  /// Assumptions where all unspecified variables default to
+  /// [VariableDomain.positive].
+  static const Assumptions positive = Assumptions(
+    defaultDomain: VariableDomain.positive,
+  );
+
+  /// Assumptions where all unspecified variables default to
+  /// [VariableDomain.complex].
+  static const Assumptions complex = Assumptions(
+    defaultDomain: VariableDomain.complex,
+  );
+
+  /// Explicit domain assignments by variable name.
+  final Map<String, VariableDomain> domains;
+
+  /// Default domain for variables not explicitly listed in [domains] or [parent].
+  final VariableDomain defaultDomain;
+
+  /// Optional parent assumptions consulted before falling back to [defaultDomain].
+  final Assumptions? parent;
+
+  /// Whether this context specifies no domain assumptions (all variables
+  /// resolve to [VariableDomain.unknown]).
+  bool get isEmpty =>
+      defaultDomain == VariableDomain.unknown &&
+      domains.isEmpty &&
+      (parent == null || parent!.isEmpty);
+
+  /// Resolves the [VariableDomain] of variable [name] by walking the
+  /// assumption chain from this context through [parent]s.
+  VariableDomain domainOf(String name) =>
+      domains[name] ?? parent?.domainOf(name) ?? defaultDomain;
+
+  /// Returns a child [Assumptions] that overrides specific [domains] or
+  /// [defaultDomain] while chaining to `this` as [parent].
+  Assumptions copyWith({
     Map<String, VariableDomain> domains = const {},
     VariableDomain? defaultDomain,
-  }) {
-    final parent = _activeZones > 0
-        ? Zone.current[_assumptionsKey] as _AssumptionsState?
-        : null;
-    final mergedDomains = <String, VariableDomain>{
-      ...?parent?.domains,
-      ...domains,
-    };
-    final state = _AssumptionsState(
-      domains: mergedDomains,
-      defaultDomain: defaultDomain ?? parent?.defaultDomain,
-    );
-    _activeZones++;
-    try {
-      return runZoned(body, zoneValues: {_assumptionsKey: state});
-    } finally {
-      _activeZones--;
-    }
-  }
-
-  /// Resolves the assumed [VariableDomain] for a variable [name] in the current
-  /// zone, or [VariableDomain.unknown] if no assumption is active.
-  static VariableDomain domainOf(String name) {
-    if (_activeZones == 0) return VariableDomain.unknown;
-    final state = Zone.current[_assumptionsKey] as _AssumptionsState?;
-    if (state == null) return VariableDomain.unknown;
-    return state.domains[name] ?? state.defaultDomain ?? VariableDomain.unknown;
-  }
-}
-
-final class _AssumptionsState {
-  const new({required this.domains, required this.defaultDomain});
-
-  final Map<String, VariableDomain> domains;
-  final VariableDomain? defaultDomain;
+  }) => Assumptions(
+    domains: domains,
+    defaultDomain: defaultDomain ?? this.defaultDomain,
+    parent: this,
+  );
 }

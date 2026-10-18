@@ -3,6 +3,7 @@ import '../algebra/factor.dart';
 import '../algebra/rational.dart';
 import '../algebra/simplify.dart';
 import '../algebra/term_accumulator.dart';
+import '../assumptions.dart';
 import '../ast.dart';
 import '../solver/polynomial.dart';
 import 'limit.dart';
@@ -30,13 +31,29 @@ extension SummationExtension on Expr {
   /// print((k * k).sum('k', 1, Variable('n')).factor());
   /// // 1/6 * n * (1 + n) * (1 + 2 * n)
   /// ```
-  Expr sum(String variable, Object from, Object to) =>
-      computeSum(this, variable, _wrapBound(from), _wrapBound(to));
+  Expr sum(
+    String variable,
+    Object from,
+    Object to, {
+    Assumptions assumptions = Assumptions.none,
+  }) => computeSum(
+    this,
+    variable,
+    _wrapBound(from),
+    _wrapBound(to),
+    assumptions: assumptions,
+  );
 
   /// Computes the indefinite antidifference $F(k)$ such that
   /// $F(k + 1) - F(k) = \text{this}$, or returns `null` if no closed-form
   /// antidifference is found.
-  Expr? indefiniteSum(String variable) => _antidifference(simplify(), variable);
+  Expr? indefiniteSum(
+    String variable, {
+    Assumptions assumptions = Assumptions.none,
+  }) => _antidifference(
+    simplify(assumptions: assumptions),
+    variable,
+  )?.simplify(assumptions: assumptions);
 
   /// Computes the definite product $\prod_{\text{variable}=\text{from}}^{\text{to}} \text{this}$.
   ///
@@ -54,8 +71,18 @@ extension SummationExtension on Expr {
   /// final k = Variable('k');
   /// print(k.product('k', 1, Variable('n'))); // n!
   /// ```
-  Expr product(String variable, Object from, Object to) =>
-      computeProduct(this, variable, _wrapBound(from), _wrapBound(to));
+  Expr product(
+    String variable,
+    Object from,
+    Object to, {
+    Assumptions assumptions = Assumptions.none,
+  }) => computeProduct(
+    this,
+    variable,
+    _wrapBound(from),
+    _wrapBound(to),
+    assumptions: assumptions,
+  );
 }
 
 Expr _wrapBound(Object bound) => switch (bound) {
@@ -68,10 +95,16 @@ Expr _wrapBound(Object bound) => switch (bound) {
 };
 
 /// Evaluates the definite sum $\sum_{k=a}^b \text{term}$.
-Expr computeSum(Expr term, String variable, Expr from, Expr to) {
-  final simplifiedTerm = term.simplify();
-  final a = from.simplify();
-  final b = to.simplify();
+Expr computeSum(
+  Expr term,
+  String variable,
+  Expr from,
+  Expr to, {
+  Assumptions assumptions = Assumptions.none,
+}) {
+  final simplifiedTerm = term.simplify(assumptions: assumptions);
+  final a = from.simplify(assumptions: assumptions);
+  final b = to.simplify(assumptions: assumptions);
 
   if (simplifiedTerm is Number && simplifiedTerm.isZero) {
     return IntegerNumber.zero;
@@ -81,7 +114,13 @@ Expr computeSum(Expr term, String variable, Expr from, Expr to) {
   if (b == Constant.infinity) {
     const limitVarName = '__sum_N';
     const limitVar = Variable(limitVarName);
-    final finite = computeSum(simplifiedTerm, variable, a, limitVar);
+    final finite = computeSum(
+      simplifiedTerm,
+      variable,
+      a,
+      limitVar,
+      assumptions: assumptions,
+    );
     if (finite is VariableFunction && finite.name == 'sum') {
       return VariableFunction('sum', [
         simplifiedTerm,
@@ -90,7 +129,11 @@ Expr computeSum(Expr term, String variable, Expr from, Expr to) {
         b,
       ], isSimplified: true);
     }
-    return finite.limit(limitVarName, Constant.infinity);
+    return finite.limit(
+      limitVarName,
+      Constant.infinity,
+      assumptions: assumptions,
+    );
   }
 
   // Concrete integer bounds
@@ -105,10 +148,12 @@ Expr computeSum(Expr term, String variable, Expr from, Expr to) {
       final terms = <Expr>[];
       for (var k = start; k <= end; k++) {
         terms.add(
-          simplifiedTerm.substitute(variable, IntegerNumber.of(k)).simplify(),
+          simplifiedTerm
+              .substitute(variable, IntegerNumber.of(k))
+              .simplify(assumptions: assumptions),
         );
       }
-      return simplifyAdd(terms);
+      return simplifyAdd(terms).simplify(assumptions: assumptions);
     }
   }
 
@@ -117,16 +162,20 @@ Expr computeSum(Expr term, String variable, Expr from, Expr to) {
   if (anti != null) {
     final upperVal = anti
         .substitute(variable, (b + IntegerNumber.one).simplify())
-        .simplify();
-    final lowerVal = anti.substitute(variable, a).simplify();
-    return (upperVal - lowerVal).expand().simplify();
+        .simplify(assumptions: assumptions);
+    final lowerVal = anti
+        .substitute(variable, a)
+        .simplify(assumptions: assumptions);
+    return (upperVal - lowerVal)
+        .expand(assumptions: assumptions)
+        .simplify(assumptions: assumptions);
   }
 
   // Sum of logarithms: sum_{k=a..b} ln(u(k)) = ln(prod_{k=a..b} u(k))
   if (simplifiedTerm case Ln(:final expr)) {
     final prod = _closedFormProduct(expr, variable, a, b);
     if (prod != null) {
-      return Ln(prod).simplify();
+      return Ln(prod).simplify(assumptions: assumptions);
     }
   }
 
@@ -139,10 +188,16 @@ Expr computeSum(Expr term, String variable, Expr from, Expr to) {
 }
 
 /// Evaluates the definite product $\prod_{k=a}^b \text{factor}$.
-Expr computeProduct(Expr factor, String variable, Expr from, Expr to) {
-  final simplifiedFactor = factor.simplify();
-  final a = from.simplify();
-  final b = to.simplify();
+Expr computeProduct(
+  Expr factor,
+  String variable,
+  Expr from,
+  Expr to, {
+  Assumptions assumptions = Assumptions.none,
+}) {
+  final simplifiedFactor = factor.simplify(assumptions: assumptions);
+  final a = from.simplify(assumptions: assumptions);
+  final b = to.simplify(assumptions: assumptions);
 
   if (simplifiedFactor is Number && simplifiedFactor.isOne) {
     return IntegerNumber.one;
@@ -160,16 +215,18 @@ Expr computeProduct(Expr factor, String variable, Expr from, Expr to) {
       final factors = <Expr>[];
       for (var k = start; k <= end; k++) {
         factors.add(
-          simplifiedFactor.substitute(variable, IntegerNumber.of(k)).simplify(),
+          simplifiedFactor
+              .substitute(variable, IntegerNumber.of(k))
+              .simplify(assumptions: assumptions),
         );
       }
-      return simplifyMul(factors);
+      return simplifyMul(factors).simplify(assumptions: assumptions);
     }
   }
 
   final closed = _closedFormProduct(simplifiedFactor, variable, a, b);
   if (closed != null) {
-    return closed.simplify();
+    return closed.simplify(assumptions: assumptions);
   }
 
   return VariableFunction('product', [
