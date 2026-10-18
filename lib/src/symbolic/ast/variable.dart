@@ -30,15 +30,6 @@ final class Variable extends Expr {
   bool get isSimplified => true;
 
   @override
-  double evaluate([Map<String, double> context = const {}]) {
-    final val = context[name];
-    if (val == null) {
-      throw ArgumentError('Unbound variable "$name" in evaluation context');
-    }
-    return val;
-  }
-
-  @override
   Set<String> get freeVariables => {name};
 
   @override
@@ -81,13 +72,6 @@ final class VariableFunction extends Expr {
 
   @override
   final bool isSimplified;
-
-  @override
-  double evaluate([
-    Map<String, double> context = const {},
-  ]) => throw UnsupportedError(
-    'Cannot numerically evaluate symbolic function "$name(${arguments.join(', ')})"',
-  );
 
   @override
   void _collectFreeVariables(Set<String> target) {

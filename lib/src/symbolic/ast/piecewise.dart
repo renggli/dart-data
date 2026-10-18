@@ -4,23 +4,12 @@ part of '../ast.dart';
 sealed class RelationalExpr extends BinaryExpr {
   /// Creates a relational comparison between [left] and [right].
   new(super.left, super.right, {super.isSimplified = false});
-
-  /// Evaluates this relational condition to `true` or `false` under [context].
-  bool evaluateCondition([Map<String, double> context = const {}]);
-
-  @override
-  double evaluate([Map<String, double> context = const {}]) =>
-      evaluateCondition(context) ? 1.0 : 0.0;
 }
 
 /// Strict less-than relation: $\text{left} < \text{right}$.
 final class LessThan extends RelationalExpr {
   /// Creates a `<` relation.
   new(super.left, super.right, {super.isSimplified = false});
-
-  @override
-  bool evaluateCondition([Map<String, double> context = const {}]) =>
-      left.evaluate(context) < right.evaluate(context);
 
   @override
   Expr substitute(String variable, Expr replacement) => LessThan(
@@ -39,10 +28,6 @@ final class LessEqual extends RelationalExpr {
   new(super.left, super.right, {super.isSimplified = false});
 
   @override
-  bool evaluateCondition([Map<String, double> context = const {}]) =>
-      left.evaluate(context) <= right.evaluate(context);
-
-  @override
   Expr substitute(String variable, Expr replacement) => LessEqual(
     left.substitute(variable, replacement),
     right.substitute(variable, replacement),
@@ -57,10 +42,6 @@ final class LessEqual extends RelationalExpr {
 final class GreaterThan extends RelationalExpr {
   /// Creates a `>` relation.
   new(super.left, super.right, {super.isSimplified = false});
-
-  @override
-  bool evaluateCondition([Map<String, double> context = const {}]) =>
-      left.evaluate(context) > right.evaluate(context);
 
   @override
   Expr substitute(String variable, Expr replacement) => GreaterThan(
@@ -79,10 +60,6 @@ final class GreaterEqual extends RelationalExpr {
   new(super.left, super.right, {super.isSimplified = false});
 
   @override
-  bool evaluateCondition([Map<String, double> context = const {}]) =>
-      left.evaluate(context) >= right.evaluate(context);
-
-  @override
   Expr substitute(String variable, Expr replacement) => GreaterEqual(
     left.substitute(variable, replacement),
     right.substitute(variable, replacement),
@@ -99,10 +76,6 @@ final class Equal extends RelationalExpr {
   new(super.left, super.right, {super.isSimplified = false});
 
   @override
-  bool evaluateCondition([Map<String, double> context = const {}]) =>
-      left.evaluate(context) == right.evaluate(context);
-
-  @override
   Expr substitute(String variable, Expr replacement) => Equal(
     left.substitute(variable, replacement),
     right.substitute(variable, replacement),
@@ -117,10 +90,6 @@ final class Equal extends RelationalExpr {
 final class NotEqual extends RelationalExpr {
   /// Creates a `!=` relation.
   new(super.left, super.right, {super.isSimplified = false});
-
-  @override
-  bool evaluateCondition([Map<String, double> context = const {}]) =>
-      left.evaluate(context) != right.evaluate(context);
 
   @override
   Expr substitute(String variable, Expr replacement) => NotEqual(
@@ -158,19 +127,6 @@ final class Piecewise extends Expr {
     Object.hashAll(branches.map((b) => Object.hash(b.relation, b.expr))),
     otherwise,
   );
-
-  @override
-  double evaluate([Map<String, double> context = const {}]) {
-    for (final (:relation, :expr) in branches) {
-      if (relation.evaluateCondition(context)) {
-        return expr.evaluate(context);
-      }
-    }
-    if (otherwise != null) {
-      return otherwise!.evaluate(context);
-    }
-    return double.nan;
-  }
 
   @override
   void _collectFreeVariables(Set<String> target) {

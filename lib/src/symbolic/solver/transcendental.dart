@@ -4,6 +4,7 @@ import '../algebra/simplify.dart';
 import '../algebra/term_accumulator.dart';
 import '../ast.dart';
 import '../calculus/linear_form.dart';
+import '../compiler.dart';
 import 'polynomial.dart';
 import 'trigonometric.dart';
 import 'univariate.dart';

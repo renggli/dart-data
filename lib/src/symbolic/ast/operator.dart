@@ -97,15 +97,6 @@ final class Add extends Expr {
   late final int hashCode = Object.hash(Add, Object.hashAll(terms));
 
   @override
-  double evaluate([Map<String, double> context = const {}]) {
-    var sum = 0.0;
-    for (var i = 0; i < terms.length; i++) {
-      sum += terms[i].evaluate(context);
-    }
-    return sum;
-  }
-
-  @override
   void _collectFreeVariables(Set<String> target) {
     for (var i = 0; i < terms.length; i++) {
       terms[i]._collectFreeVariables(target);
@@ -168,15 +159,6 @@ final class Mul extends Expr {
   late final int hashCode = Object.hash(Mul, Object.hashAll(factors));
 
   @override
-  double evaluate([Map<String, double> context = const {}]) {
-    var product = 1.0;
-    for (var i = 0; i < factors.length; i++) {
-      product *= factors[i].evaluate(context);
-    }
-    return product;
-  }
-
-  @override
   void _collectFreeVariables(Set<String> target) {
     for (var i = 0; i < factors.length; i++) {
       factors[i]._collectFreeVariables(target);
@@ -233,26 +215,6 @@ final class Pow extends BinaryExpr {
 
   /// Exponent of the power expression.
   Expr get exponent => right;
-
-  @override
-  double evaluate([Map<String, double> context = const {}]) {
-    if (base == Constant.e) {
-      return math.exp(exponent.evaluate(context));
-    }
-    final b = base.evaluate(context);
-    if (exponent case FractionNumber(:final numerator, :final denominator)) {
-      if (numerator.isOne && denominator == IntegerNumber.two.numerator) {
-        return math.sqrt(b);
-      }
-      if (b < 0 && denominator.isOdd) {
-        final mag = math
-            .pow(-b, numerator.toDouble() / denominator.toDouble())
-            .toDouble();
-        return numerator.isOdd ? -mag : mag;
-      }
-    }
-    return math.pow(b, exponent.evaluate(context)).toDouble();
-  }
 
   @override
   Expr substitute(String variable, Expr replacement) => Pow(

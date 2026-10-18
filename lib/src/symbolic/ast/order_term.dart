@@ -21,9 +21,6 @@ final class OrderTerm extends Expr {
   bool get isSimplified => point.isSimplified;
 
   @override
-  double evaluate([Map<String, double> context = const {}]) => 0.0;
-
-  @override
   void _collectFreeVariables(Set<String> target) {
     target.add(variable);
     point._collectFreeVariables(target);

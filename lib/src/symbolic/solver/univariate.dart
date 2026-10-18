@@ -4,6 +4,7 @@ import '../algebra/term_accumulator.dart';
 import '../assumptions.dart';
 import '../ast.dart';
 import '../calculus/linear_form.dart';
+import '../compiler.dart';
 import 'polynomial.dart';
 import 'transcendental.dart';
 

@@ -1,9 +1,9 @@
 import '../../linear/matrix.dart';
 import '../algebra/simplify.dart';
+import '../algebra/term_accumulator.dart';
 import '../ast.dart';
 import '../linear/bareiss.dart';
 import '../type/expr_data_type.dart';
-import 'polynomial.dart';
 import 'univariate.dart';
 
 /// Sylvester resultant solver for bivariate polynomial systems.
@@ -11,12 +11,12 @@ class SylvesterResultantSolver {
   /// Constructs the Sylvester resultant matrix $S_x(f, g)$ eliminating [elimVariable].
   static Matrix<Expr> sylvesterMatrix(Expr f, Expr g, String elimVariable) {
     final fCoeffs =
-        extractMonomialCoefficients(f, elimVariable) ??
+        extractPolynomialCoefficients(f, elimVariable) ??
         (throw ArgumentError(
           'Expression f is not polynomial in $elimVariable: $f',
         ));
     final gCoeffs =
-        extractMonomialCoefficients(g, elimVariable) ??
+        extractPolynomialCoefficients(g, elimVariable) ??
         (throw ArgumentError(
           'Expression g is not polynomial in $elimVariable: $g',
         ));

@@ -1,5 +1,6 @@
 import '../../assumptions.dart';
 import '../../ast.dart';
+import '../../compiler.dart';
 import '../exact_constants.dart';
 import '../simplify.dart';
 import '../structural_order.dart';

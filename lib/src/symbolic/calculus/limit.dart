@@ -3,6 +3,7 @@ import '../algebra/simplify.dart';
 import '../algebra/term_accumulator.dart';
 import '../assumptions.dart';
 import '../ast.dart';
+import '../compiler.dart';
 import 'series.dart';
 
 /// Symbolic limit evaluation extension on [Expr].

@@ -2,7 +2,6 @@ import 'dart:math' as math;
 
 import 'package:more/number.dart' show Complex;
 
-import '../../special.dart' as special;
 import 'number/integer.dart';
 import 'number/rational.dart';
 import 'parser.dart';
@@ -10,7 +9,6 @@ import 'textualization/string.dart';
 
 export 'number/integer.dart';
 
-part 'ast/complex_eval.dart';
 part 'ast/constant.dart';
 part 'ast/derivative.dart';
 part 'ast/expr.dart';

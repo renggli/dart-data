@@ -316,9 +316,6 @@ sealed class RealNumeric extends Number implements Comparable<RealNumeric> {
   Complex toComplex() => Complex(toDouble());
 
   @override
-  double evaluate([Map<String, double> context = const {}]) => toDouble();
-
-  @override
   int compareTo(RealNumeric other) => switch ((this, other)) {
     (final RationalNumber a, final RationalNumber b) => rationalCompare(
       a._parts,
@@ -682,13 +679,6 @@ final class ComplexNumber extends Number {
   double toDouble() => throw UnsupportedError(
     'Complex number $this cannot be converted to a real double.',
   );
-
-  @override
-  double evaluate([Map<String, double> context = const {}]) =>
-      throw UnsupportedError(
-        'Cannot evaluate complex number $this in real domain; '
-        'use evaluateComplex instead.',
-      );
 
   @override
   ComplexNumber get conjugate => ComplexNumber(real, imaginary.neg());

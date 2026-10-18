@@ -50,9 +50,6 @@ final class Limit extends Expr {
   );
 
   @override
-  double evaluate([Map<String, double> context = const {}]) => double.nan;
-
-  @override
   void _collectFreeVariables(Set<String> target) {
     final innerVars = <String>{};
     expr._collectFreeVariables(innerVars);

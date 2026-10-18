@@ -204,6 +204,10 @@ final class Instruction {
   /// Creates an AST node fallback evaluation instruction for [node].
   const new evalNode(Expr node) : this._(Op.evalNode, node: node);
 
+  /// Creates an exponentiation instruction with optional [oddRootMode]
+  /// (`1` for odd/odd fraction, `2` for even/odd fraction).
+  const new pow({int oddRootMode = 0}) : this._(Op.pow, index: oddRootMode);
+
   /// Creates a zero-operand stack instruction for [op].
   const new op(Op op) : this._(op);
 
@@ -328,10 +332,19 @@ BytecodeEvaluator compileToBytecode(
         instructions.add(Instruction.pushReal(1.0));
         emit(base);
         instructions.add(const Instruction.op(Op.div));
+      case Pow(
+            :final base,
+            exponent: final exp &&
+                FractionNumber(:final numerator, :final denominator),
+          )
+          when denominator.isOdd:
+        emit(base);
+        emit(exp);
+        instructions.add(Instruction.pow(oddRootMode: numerator.isOdd ? 1 : 2));
       case Pow(:final base, :final exponent):
         emit(base);
         emit(exponent);
-        instructions.add(const Instruction.op(Op.pow));
+        instructions.add(const Instruction.pow());
       case Sin(:final expr):
         emit(expr);
         instructions.add(const Instruction.op(Op.sin));
@@ -508,6 +521,7 @@ BytecodeEvaluator compileToBytecode(
     maxStack: _computeMaxStack(instructions),
     registerCount: regMap.length,
     hasComplexLiterals: hasComplexLiterals,
+    isRealOutput: !hasComplexLiterals || simplified.isReal,
     firstComplexLiteral: firstComplexLiteral,
   );
 }

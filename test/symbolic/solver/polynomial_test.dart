@@ -1,4 +1,5 @@
 import 'package:checks/checks.dart';
+import 'package:data/src/symbolic/algebra/term_accumulator.dart';
 import 'package:data/src/symbolic/solver/polynomial.dart';
 import 'package:data/symbolic.dart';
 import 'package:test/test.dart';
@@ -120,14 +121,14 @@ void main() {
       },
     );
 
-    test('extractMonomialCoefficients handles constants and polynomials', () {
-      check(extractMonomialCoefficients(IntegerNumber.zero, 'x'))
+    test('extractPolynomialCoefficients handles constants and polynomials', () {
+      check(extractPolynomialCoefficients(IntegerNumber.zero, 'x'))
           .isNotNull()
           .deepEquals({0: IntegerNumber.zero});
-      check(extractMonomialCoefficients(IntegerNumber.of(7), 'x'))
+      check(extractPolynomialCoefficients(IntegerNumber.of(7), 'x'))
           .isNotNull()
           .deepEquals({0: IntegerNumber.of(7)});
-      check(extractMonomialCoefficients(Expr.parse('1 / x'), 'x')).isNull();
+      check(extractPolynomialCoefficients(Expr.parse('1 / x'), 'x')).isNull();
     });
 
     test('sqrtConstant, integerNthRoot, and rootConstant cover all cases', () {

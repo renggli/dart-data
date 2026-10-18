@@ -14,6 +14,42 @@ export 'compiler/evaluator.dart' show BytecodeEvaluator;
 /// Extension providing zero-allocation high-throughput bytecode compilation of
 /// symbolic expressions.
 extension CompilerExtension on Expr {
+  /// Evaluates this expression to a `double` given variable bindings in [context].
+  ///
+  /// Throws an [ArgumentError] if any free variable in this expression is
+  /// missing from [context], or an [UnsupportedError] if the expression is
+  /// complex-valued.
+  ///
+  /// ```dart
+  /// final expr = Expr.parse('x^2 + 2*x + 1');
+  /// final val = expr.evaluate({'x': 3.0}); // 16.0
+  /// ```
+  double evaluate([Map<String, double> context = const {}]) =>
+      compileToBytecode(
+        this,
+        const [],
+        optimize: false,
+        allowDynamicVars: true,
+      ).evaluateMap(context);
+
+  /// Evaluates this expression in the complex domain $\mathbb{C}$ given complex
+  /// variable bindings in [context].
+  ///
+  /// Throws an [ArgumentError] if any free variable in this expression is
+  /// missing from [context].
+  ///
+  /// ```dart
+  /// final z = const Variable('x') + 2 * i;
+  /// final val = z.evaluateComplex({'x': const Complex(3, 1)}); // Complex(3, 3)
+  /// ```
+  Complex evaluateComplex([Map<String, Complex> context = const {}]) =>
+      compileToBytecode(
+        this,
+        const [],
+        optimize: false,
+        allowDynamicVars: true,
+      ).evaluateComplexMap(context);
+
   /// Compiles this expression into a unified [BytecodeEvaluator] over
   /// [variables].
   ///

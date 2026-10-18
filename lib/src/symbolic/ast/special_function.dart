@@ -6,10 +6,6 @@ final class Erf extends UnaryExpr {
   new(super.expr, {super.isSimplified = false});
 
   @override
-  double evaluate([Map<String, double> context = const {}]) =>
-      special.erf(expr.evaluate(context));
-
-  @override
   Expr substitute(String variable, Expr replacement) =>
       Erf(expr.substitute(variable, replacement));
 
@@ -21,10 +17,6 @@ final class Erf extends UnaryExpr {
 final class Erfc extends UnaryExpr {
   /// Creates a complementary error function node $\operatorname{erfc}(\text{expr})$.
   new(super.expr, {super.isSimplified = false});
-
-  @override
-  double evaluate([Map<String, double> context = const {}]) =>
-      special.erfc(expr.evaluate(context));
 
   @override
   Expr substitute(String variable, Expr replacement) =>
@@ -40,10 +32,6 @@ final class Gamma extends UnaryExpr {
   new(super.expr, {super.isSimplified = false});
 
   @override
-  double evaluate([Map<String, double> context = const {}]) =>
-      special.gamma(expr.evaluate(context));
-
-  @override
   Expr substitute(String variable, Expr replacement) =>
       Gamma(expr.substitute(variable, replacement));
 
@@ -55,10 +43,6 @@ final class Gamma extends UnaryExpr {
 final class Beta extends BinaryExpr {
   /// Creates a Beta function node $\operatorname{B}(\text{left}, \text{right})$.
   new(super.left, super.right, {super.isSimplified = false});
-
-  @override
-  double evaluate([Map<String, double> context = const {}]) =>
-      special.beta(left.evaluate(context), right.evaluate(context));
 
   @override
   Expr substitute(String variable, Expr replacement) => Beta(
@@ -77,10 +61,6 @@ final class Factorial extends UnaryExpr {
   new(super.expr, {super.isSimplified = false});
 
   @override
-  double evaluate([Map<String, double> context = const {}]) =>
-      special.gamma(expr.evaluate(context) + 1.0);
-
-  @override
   Expr substitute(String variable, Expr replacement) =>
       Factorial(expr.substitute(variable, replacement));
 
@@ -92,19 +72,6 @@ final class Factorial extends UnaryExpr {
 final class Binomial extends BinaryExpr {
   /// Creates a binomial coefficient node $\binom{\text{left}}{\text{right}}$.
   new(super.left, super.right, {super.isSimplified = false});
-
-  @override
-  double evaluate([Map<String, double> context = const {}]) {
-    final n = left.evaluate(context);
-    final k = right.evaluate(context);
-    if (n.isNaN || k.isNaN) return double.nan;
-    if (k == k.roundToDouble() && k < 0.0) return 0.0;
-    if (n == n.roundToDouble() && k == k.roundToDouble() && n >= 0.0 && k > n) {
-      return 0.0;
-    }
-    return special.gamma(n + 1.0) /
-        (special.gamma(k + 1.0) * special.gamma(n - k + 1.0));
-  }
 
   @override
   Expr substitute(String variable, Expr replacement) => Binomial(
@@ -123,12 +90,6 @@ final class Floor extends UnaryExpr {
   new(super.expr, {super.isSimplified = false});
 
   @override
-  double evaluate([Map<String, double> context = const {}]) {
-    final v = expr.evaluate(context);
-    return v.isFinite ? v.floorToDouble() : v;
-  }
-
-  @override
   Expr substitute(String variable, Expr replacement) =>
       Floor(expr.substitute(variable, replacement));
 
@@ -140,12 +101,6 @@ final class Floor extends UnaryExpr {
 final class Ceil extends UnaryExpr {
   /// Creates a ceiling function node $\lceil \text{expr} \rceil$.
   new(super.expr, {super.isSimplified = false});
-
-  @override
-  double evaluate([Map<String, double> context = const {}]) {
-    final v = expr.evaluate(context);
-    return v.isFinite ? v.ceilToDouble() : v;
-  }
 
   @override
   Expr substitute(String variable, Expr replacement) =>
@@ -161,12 +116,6 @@ final class Round extends UnaryExpr {
   new(super.expr, {super.isSimplified = false});
 
   @override
-  double evaluate([Map<String, double> context = const {}]) {
-    final v = expr.evaluate(context);
-    return v.isFinite ? v.roundToDouble() : v;
-  }
-
-  @override
   Expr substitute(String variable, Expr replacement) =>
       Round(expr.substitute(variable, replacement));
 
@@ -180,14 +129,6 @@ final class Sign extends UnaryExpr {
   new(super.expr, {super.isSimplified = false});
 
   @override
-  double evaluate([Map<String, double> context = const {}]) {
-    final v = expr.evaluate(context);
-    if (v.isNaN) return double.nan;
-    if (v == 0.0) return 0.0;
-    return v > 0.0 ? 1.0 : -1.0;
-  }
-
-  @override
   Expr substitute(String variable, Expr replacement) =>
       Sign(expr.substitute(variable, replacement));
 
@@ -199,14 +140,6 @@ final class Sign extends UnaryExpr {
 final class Mod extends BinaryExpr {
   /// Creates a modulo node $\text{left} \bmod \text{right}$.
   new(super.left, super.right, {super.isSimplified = false});
-
-  @override
-  double evaluate([Map<String, double> context = const {}]) {
-    final a = left.evaluate(context);
-    final b = right.evaluate(context);
-    if (a.isNaN || b.isNaN || b == 0.0) return double.nan;
-    return a - b * (a / b).floorToDouble();
-  }
 
   @override
   Expr substitute(String variable, Expr replacement) => Mod(

@@ -1,9 +1,11 @@
 import '../algebra/approximate.dart';
 import '../algebra/expand.dart';
+import '../algebra/rational.dart';
 import '../algebra/simplify.dart';
 import '../algebra/term_accumulator.dart';
 import '../assumptions.dart';
 import '../ast.dart';
+import '../compiler.dart';
 import 'differentiation.dart';
 import 'limit.dart';
 import 'linear_form.dart';
@@ -59,8 +61,8 @@ extension IntegrationExtension on Expr {
   /// (e.g., integrating over a non-rectangular region $0 \le y \le x$,
   /// $0 \le x \le 1$). When any step lacks a closed-form anti-derivative, an
   /// unevaluated [Integral] node is retained, and nested definite [Integral]
-  /// nodes can still be evaluated numerically via [Expr.evaluate] or
-  /// [ApproximationExtension.approximate].
+  /// nodes can still be evaluated numerically via [CompilerExtension.evaluate]
+  /// or [ApproximationExtension.approximate].
   ///
   /// ```dart
   /// final f = Expr.parse('x * y');
@@ -608,18 +610,38 @@ Expr? _tryAntiDerivDiv(Expr left, Expr right, String variable) {
     }
   }
 
-  // Univariate polynomial long division when deg(left) >= deg(right) >= 1
-  if (left.dependsOn(variable) && right.dependsOn(variable)) {
-    if (_tryPolynomialLongDivision(left, right, variable) case (
-      final quotient,
-      final remainder,
-    )) {
-      final qInt = _antiDerivative(quotient, variable);
-      if (remainder is Number && remainder.isZero) {
-        return qInt;
+  // Rational functions P(x) / Q(x): polynomial division and partial fractions
+  if (right.dependsOn(variable)) {
+    final degLeft = polynomialDegree(left.expand().simplify(), variable);
+    final degRight = polynomialDegree(right.expand().simplify(), variable);
+    if (degLeft != null && degRight != null && degRight >= 1) {
+      if (degLeft >= degRight) {
+        final (:quotient, :remainder) = left.polynomialDivide(right, variable);
+        final qInt = _antiDerivative(quotient, variable);
+        if (remainder is Number && remainder.isZero) {
+          return qInt;
+        }
+        final rInt = _antiDerivative((remainder / right).simplify(), variable);
+        return (qInt + rInt).simplify();
       }
-      final rInt = _antiDerivative((remainder / right).simplify(), variable);
-      return (qInt + rInt).simplify();
+      if (degRight >= 2) {
+        final originalRatio = (left / right).simplify();
+        final decomposed = originalRatio.apart(variable);
+        if (decomposed case Add(:final terms)) {
+          return Add([
+            for (final term in terms) _antiDerivative(term, variable),
+          ]).simplify();
+        }
+        if (decomposed != originalRatio) {
+          final (_, newDen) = splitNumeratorDenominator(decomposed);
+          final newDeg = polynomialDegree(newDen.expand().simplify(), variable);
+          if ((newDeg != null && newDeg < degRight) ||
+              (newDen is Pow && newDen.base.matchLinear(variable) != null) ||
+              newDen.matchLinear(variable) != null) {
+            return _antiDerivative(decomposed, variable);
+          }
+        }
+      }
     }
   }
 
@@ -715,7 +737,7 @@ Expr _antiDerivMul(Mul original, String variable) {
   }
 
   // 6. Full polynomial expansion fallback (e.g. factored polynomials like (x-1)*(x-2)*(x+2)):
-  if (_univariatePolyDegree(original, variable) != null) {
+  if (polynomialDegree(original, variable) != null) {
     final expanded = original.expand().simplify();
     if (expanded != original) {
       return _antiDerivative(expanded, variable);
@@ -894,7 +916,7 @@ Expr? _tryIntegrationByParts(Expr pExpr, Expr vExpr, String variable) {
   }
 
   // Higher-degree polynomial P(x) * vExpr (e.g. x^n * exp(ax+b), x^n * sin(ax+b)):
-  final degP = _univariatePolyDegree(pExpr, variable);
+  final degP = polynomialDegree(pExpr, variable);
   if (degP != null && degP >= 2 && degP <= 10) {
     final isIntegrableV = switch (vExpr) {
       Pow(:final base, :final exponent) when base == Constant.e =>
@@ -1052,114 +1074,4 @@ Expr? _extractScaledSquareBase(Expr expr, String variable) {
     }
   }
   return null;
-}
-
-int? _univariatePolyDegree(Expr expr, String variable) {
-  if (!expr.dependsOn(variable)) return 0;
-  return switch (expr) {
-    Variable(:final name) when name == variable => 1,
-    Add(:final terms) => () {
-      var maxD = 0;
-      for (final t in terms) {
-        final d = _univariatePolyDegree(t, variable);
-        if (d == null) return null;
-        if (d > maxD) maxD = d;
-      }
-      return maxD;
-    }(),
-    Mul(:final factors) => () {
-      var sumD = 0;
-      for (final f in factors) {
-        final d = _univariatePolyDegree(f, variable);
-        if (d == null) return null;
-        sumD += d;
-      }
-      return sumD;
-    }(),
-    Pow(:final base, exponent: IntegerNumber(:final value))
-        when value >= Integer.zero && !value.isBig =>
-      () {
-        final db = _univariatePolyDegree(base, variable);
-        return db != null ? db * value.toInt() : null;
-      }(),
-    _ => null,
-  };
-}
-
-Map<int, Expr>? _extractUnivariatePolynomialCoeffs(Expr expr, String variable) {
-  final expanded = expr.expand().simplify();
-  final deg = _univariatePolyDegree(expanded, variable);
-  if (deg == null) return null;
-
-  final acc = MonomialAccumulator()..add(expanded);
-  return acc.extractPolynomialCoefficients(variable);
-}
-
-(Expr, Expr)? _tryPolynomialLongDivision(
-  Expr numExpr,
-  Expr denExpr,
-  String variable,
-) {
-  final numCoeffs = _extractUnivariatePolynomialCoeffs(numExpr, variable);
-  final denCoeffs = _extractUnivariatePolynomialCoeffs(denExpr, variable);
-  if (numCoeffs == null || denCoeffs == null) return null;
-
-  int maxDeg(Map<int, Expr> c) {
-    var m = -1;
-    for (final e in c.entries) {
-      final s = e.value.simplify();
-      if (!(s is Number && s.isZero) && e.key > m) {
-        m = e.key;
-      }
-    }
-    return m;
-  }
-
-  final dDen = maxDeg(denCoeffs);
-  var dRem = maxDeg(numCoeffs);
-  if (dDen < 1 || dRem < dDen) return null;
-
-  final rem = Map<int, Expr>.from(numCoeffs);
-  final quot = <int, Expr>{};
-  final leadDen = denCoeffs[dDen]!;
-
-  var steps = 0;
-  while (dRem >= dDen && steps <= 20) {
-    steps++;
-    final shift = dRem - dDen;
-    final factor = (rem[dRem]! / leadDen).simplify();
-    final existingQ = quot[shift];
-    quot[shift] = existingQ == null ? factor : (existingQ + factor).simplify();
-
-    for (final entry in denCoeffs.entries) {
-      final targetDeg = entry.key + shift;
-      final subTerm = (factor * entry.value).simplify();
-      final cur = rem[targetDeg] ?? IntegerNumber.zero;
-      rem[targetDeg] = (cur - subTerm).simplify();
-    }
-    rem.remove(dRem);
-    dRem = maxDeg(rem);
-  }
-
-  Expr buildPoly(Map<int, Expr> coeffs) {
-    final x = Variable(variable);
-    final terms = <Expr>[];
-    final keys = coeffs.keys.toList()..sort();
-    for (final k in keys) {
-      final c = coeffs[k]!.simplify();
-      if (c is Number && c.isZero) continue;
-      final xPow = k == 0
-          ? IntegerNumber.one
-          : k == 1
-          ? x
-          : Pow(x, IntegerNumber.of(k));
-      final term = k == 0 ? c : (c * xPow).simplify();
-      terms.add(term);
-    }
-    if (terms.isEmpty) return IntegerNumber.zero;
-    if (terms.length == 1) return terms.first;
-    return Add(terms).simplify();
-  }
-
-  return (buildPoly(quot), buildPoly(rem));
 }

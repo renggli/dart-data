@@ -17,10 +17,6 @@ final class LambertW extends UnaryExpr {
   final int branch;
 
   @override
-  double evaluate([Map<String, double> context = const {}]) =>
-      _evaluateLambertWReal(expr.evaluate(context), branch: branch);
-
-  @override
   Expr substitute(String variable, Expr replacement) =>
       LambertW(expr.substitute(variable, replacement), branch: branch);
 
@@ -35,6 +31,3 @@ final class LambertW extends UnaryExpr {
   @override
   int _computeHash() => Object.hash(LambertW, branch, expr);
 }
-
-double _evaluateLambertWReal(double x, {int branch = 0}) =>
-    branch == 0 ? special.lambertW0(x) : special.lambertW1(x);

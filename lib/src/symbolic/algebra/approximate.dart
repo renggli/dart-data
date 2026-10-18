@@ -1,6 +1,7 @@
 import 'package:more/number.dart' show Fraction;
 
 import '../ast.dart';
+import '../compiler.dart';
 import 'simplify.dart';
 
 /// Numeric approximation and rationalization operations on [Expr].

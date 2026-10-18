@@ -24,12 +24,6 @@ sealed class Expr {
   /// Whether this expression node is already in canonical simplified form.
   bool get isSimplified;
 
-  /// Evaluates this expression to a `double` given variable bindings in [context].
-  ///
-  /// Throws an [ArgumentError] if any free variable in this expression is missing
-  /// from [context].
-  double evaluate([Map<String, double> context = const {}]);
-
   /// Returns the set of all free variable names appearing in this expression.
   ///
   /// Accumulates variables in a single shared [Set] in $O(N)$ time without
@@ -45,10 +39,8 @@ sealed class Expr {
   /// Whether this expression contains [variable] as a free variable.
   bool dependsOn(String variable);
 
-  /// Whether this expression is real-valued (contains no complex numbers with
-  /// non-zero imaginary parts).
-  bool get isReal =>
-      !anyNode((node) => node is ComplexNumber && !node.imaginary.isZero);
+  /// Whether this expression is real-valued when all free variables are real.
+  bool get isReal => _isRealSubtree(this);
 
   /// Returns a new expression with every occurrence of [variable] replaced by [replacement].
   Expr substitute(String variable, Expr replacement);
@@ -193,4 +185,29 @@ sealed class Expr {
     }
     return RealNumber.fromDouble(value.toDouble());
   }
+
+  static bool _isRealSubtree(Expr node) => switch (node) {
+    ComplexNumber(:final imaginary) => imaginary.isZero,
+    Constant(:final value) => value.b == 0.0 || value.isNaN,
+    Abs() || Re() || Im() || Arg() => true,
+    RealNumeric() || Variable() || OrderTerm() => true,
+    Add(:final terms) => terms.every(_isRealSubtree),
+    Mul(:final factors) => factors.every(_isRealSubtree),
+    BinaryExpr(:final left, :final right) =>
+      _isRealSubtree(left) && _isRealSubtree(right),
+    UnaryExpr(:final expr) => _isRealSubtree(expr),
+    Piecewise(:final branches, :final otherwise) =>
+      branches.every(
+            (b) => _isRealSubtree(b.relation) && _isRealSubtree(b.expr),
+          ) &&
+          (otherwise == null || _isRealSubtree(otherwise)),
+    Integral(:final integrand, :final lower, :final upper) =>
+      _isRealSubtree(integrand) &&
+          (lower == null || _isRealSubtree(lower)) &&
+          (upper == null || _isRealSubtree(upper)),
+    Derivative(:final expr) => _isRealSubtree(expr),
+    Limit(:final expr, :final point) =>
+      _isRealSubtree(expr) && _isRealSubtree(point),
+    VariableFunction(:final arguments) => arguments.every(_isRealSubtree),
+  };
 }

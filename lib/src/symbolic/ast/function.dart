@@ -6,10 +6,6 @@ final class Sin extends UnaryExpr {
   new(super.expr, {super.isSimplified = false});
 
   @override
-  double evaluate([Map<String, double> context = const {}]) =>
-      math.sin(expr.evaluate(context));
-
-  @override
   Expr substitute(String variable, Expr replacement) =>
       Sin(expr.substitute(variable, replacement));
 
@@ -21,10 +17,6 @@ final class Sin extends UnaryExpr {
 final class Cos extends UnaryExpr {
   /// Creates a cosine node $\cos(\text{expr})$.
   new(super.expr, {super.isSimplified = false});
-
-  @override
-  double evaluate([Map<String, double> context = const {}]) =>
-      math.cos(expr.evaluate(context));
 
   @override
   Expr substitute(String variable, Expr replacement) =>
@@ -40,10 +32,6 @@ final class Tan extends UnaryExpr {
   new(super.expr, {super.isSimplified = false});
 
   @override
-  double evaluate([Map<String, double> context = const {}]) =>
-      math.tan(expr.evaluate(context));
-
-  @override
   Expr substitute(String variable, Expr replacement) =>
       Tan(expr.substitute(variable, replacement));
 
@@ -55,10 +43,6 @@ final class Tan extends UnaryExpr {
 final class Asin extends UnaryExpr {
   /// Creates an arcsine node $\arcsin(\text{expr})$.
   new(super.expr, {super.isSimplified = false});
-
-  @override
-  double evaluate([Map<String, double> context = const {}]) =>
-      math.asin(expr.evaluate(context));
 
   @override
   Expr substitute(String variable, Expr replacement) =>
@@ -74,10 +58,6 @@ final class Acos extends UnaryExpr {
   new(super.expr, {super.isSimplified = false});
 
   @override
-  double evaluate([Map<String, double> context = const {}]) =>
-      math.acos(expr.evaluate(context));
-
-  @override
   Expr substitute(String variable, Expr replacement) =>
       Acos(expr.substitute(variable, replacement));
 
@@ -89,10 +69,6 @@ final class Acos extends UnaryExpr {
 final class Atan extends UnaryExpr {
   /// Creates an arctangent node $\arctan(\text{expr})$.
   new(super.expr, {super.isSimplified = false});
-
-  @override
-  double evaluate([Map<String, double> context = const {}]) =>
-      math.atan(expr.evaluate(context));
 
   @override
   Expr substitute(String variable, Expr replacement) =>
@@ -108,12 +84,6 @@ final class Sinh extends UnaryExpr {
   new(super.expr, {super.isSimplified = false});
 
   @override
-  double evaluate([Map<String, double> context = const {}]) {
-    final x = expr.evaluate(context);
-    return (math.exp(x) - math.exp(-x)) / 2.0;
-  }
-
-  @override
   Expr substitute(String variable, Expr replacement) =>
       Sinh(expr.substitute(variable, replacement));
 
@@ -125,12 +95,6 @@ final class Sinh extends UnaryExpr {
 final class Cosh extends UnaryExpr {
   /// Creates a hyperbolic cosine node $\cosh(\text{expr})$.
   new(super.expr, {super.isSimplified = false});
-
-  @override
-  double evaluate([Map<String, double> context = const {}]) {
-    final x = expr.evaluate(context);
-    return (math.exp(x) + math.exp(-x)) / 2.0;
-  }
 
   @override
   Expr substitute(String variable, Expr replacement) =>
@@ -146,15 +110,6 @@ final class Tanh extends UnaryExpr {
   new(super.expr, {super.isSimplified = false});
 
   @override
-  double evaluate([Map<String, double> context = const {}]) {
-    final x = expr.evaluate(context);
-    if (x > 20.0) return 1.0;
-    if (x < -20.0) return -1.0;
-    final e2x = math.exp(2.0 * x);
-    return (e2x - 1.0) / (e2x + 1.0);
-  }
-
-  @override
   Expr substitute(String variable, Expr replacement) =>
       Tanh(expr.substitute(variable, replacement));
 
@@ -166,18 +121,6 @@ final class Tanh extends UnaryExpr {
 final class Asinh extends UnaryExpr {
   /// Creates an inverse hyperbolic sine node $\operatorname{asinh}(\text{expr})$.
   new(super.expr, {super.isSimplified = false});
-
-  @override
-  double evaluate([Map<String, double> context = const {}]) {
-    final x = expr.evaluate(context);
-    if (x.isNaN) return double.nan;
-    if (x.isInfinite) return x;
-    final absX = x.abs();
-    final val = absX > 1e8
-        ? math.log(absX) + math.ln2
-        : math.log(absX + math.sqrt(absX * absX + 1.0));
-    return x < 0 ? -val : val;
-  }
 
   @override
   Expr substitute(String variable, Expr replacement) =>
@@ -193,14 +136,6 @@ final class Acosh extends UnaryExpr {
   new(super.expr, {super.isSimplified = false});
 
   @override
-  double evaluate([Map<String, double> context = const {}]) {
-    final x = expr.evaluate(context);
-    if (x < 1.0) return double.nan;
-    if (x > 1e8) return math.log(x) + math.ln2;
-    return math.log(x + math.sqrt(x * x - 1.0));
-  }
-
-  @override
   Expr substitute(String variable, Expr replacement) =>
       Acosh(expr.substitute(variable, replacement));
 
@@ -212,15 +147,6 @@ final class Acosh extends UnaryExpr {
 final class Atanh extends UnaryExpr {
   /// Creates an inverse hyperbolic tangent node $\operatorname{atanh}(\text{expr})$.
   new(super.expr, {super.isSimplified = false});
-
-  @override
-  double evaluate([Map<String, double> context = const {}]) {
-    final x = expr.evaluate(context);
-    if (x < -1.0 || x > 1.0) return double.nan;
-    if (x == 1.0) return double.infinity;
-    if (x == -1.0) return double.negativeInfinity;
-    return 0.5 * math.log((1.0 + x) / (1.0 - x));
-  }
 
   @override
   Expr substitute(String variable, Expr replacement) =>
@@ -239,13 +165,6 @@ final class Abs extends UnaryExpr {
   bool get isReal => true;
 
   @override
-  double evaluate([Map<String, double> context = const {}]) => expr.isReal
-      ? expr.evaluate(context).abs()
-      : expr.evaluateComplex({
-          for (final e in context.entries) e.key: Complex(e.value),
-        }).abs();
-
-  @override
   Expr substitute(String variable, Expr replacement) =>
       Abs(expr.substitute(variable, replacement));
 
@@ -257,10 +176,6 @@ final class Abs extends UnaryExpr {
 final class Ln extends UnaryExpr {
   /// Creates a natural logarithm node $\ln(\text{expr})$.
   new(super.expr, {super.isSimplified = false});
-
-  @override
-  double evaluate([Map<String, double> context = const {}]) =>
-      math.log(expr.evaluate(context));
 
   @override
   Expr substitute(String variable, Expr replacement) =>
@@ -279,16 +194,6 @@ final class Re extends UnaryExpr {
   bool get isReal => true;
 
   @override
-  double evaluate([Map<String, double> context = const {}]) => expr.isReal
-      ? expr.evaluate(context)
-      : expr
-            .evaluateComplex({
-              for (final e in context.entries) e.key: Complex(e.value),
-            })
-            .real
-            .toDouble();
-
-  @override
   Expr substitute(String variable, Expr replacement) =>
       Re(expr.substitute(variable, replacement));
 
@@ -303,16 +208,6 @@ final class Im extends UnaryExpr {
 
   @override
   bool get isReal => true;
-
-  @override
-  double evaluate([Map<String, double> context = const {}]) => expr.isReal
-      ? 0.0
-      : expr
-            .evaluateComplex({
-              for (final e in context.entries) e.key: Complex(e.value),
-            })
-            .imaginary
-            .toDouble();
 
   @override
   Expr substitute(String variable, Expr replacement) =>
@@ -331,12 +226,6 @@ final class Arg extends UnaryExpr {
   bool get isReal => true;
 
   @override
-  double evaluate([Map<String, double> context = const {}]) =>
-      expr.evaluateComplex({
-        for (final e in context.entries) e.key: Complex(e.value),
-      }).arg();
-
-  @override
   Expr substitute(String variable, Expr replacement) =>
       Arg(expr.substitute(variable, replacement));
 
@@ -348,10 +237,6 @@ final class Arg extends UnaryExpr {
 final class Conjugate extends UnaryExpr {
   /// Creates a complex conjugate node $\overline{\text{expr}}$.
   new(super.expr, {super.isSimplified = false});
-
-  @override
-  double evaluate([Map<String, double> context = const {}]) =>
-      expr.evaluate(context);
 
   @override
   Expr substitute(String variable, Expr replacement) =>

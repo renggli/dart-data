@@ -5,7 +5,6 @@ import '../algebra/simplify.dart';
 import '../algebra/term_accumulator.dart';
 import '../assumptions.dart';
 import '../ast.dart';
-import '../solver/polynomial.dart';
 import 'limit.dart';
 import 'linear_form.dart';
 
@@ -419,7 +418,7 @@ _matchPolynomialGeometric(Expr term, String variable) {
 
   if (expNode == null || ratio == null || otherFactors.isEmpty) return null;
   final polyExpr = simplifyMul(otherFactors).expand().simplify();
-  final polyCoeffs = extractMonomialCoefficients(polyExpr, variable);
+  final polyCoeffs = extractPolynomialCoefficients(polyExpr, variable);
   if (polyCoeffs == null) return null;
   return (polyCoeffs: polyCoeffs, ratio: ratio, expNode: expNode);
 }
@@ -449,17 +448,9 @@ Expr? _solvePolynomialGeometricGosper(
     qCoeffs[i] = (rhs / rMinus1).simplify();
   }
 
-  final kVar = Variable(variable);
-  final terms = <Expr>[];
-  for (var i = 0; i <= maxDeg; i++) {
-    final c = qCoeffs[i];
-    if (c is Number && c.isZero) continue;
-    final mon = i == 0
-        ? IntegerNumber.one
-        : (i == 1 ? kVar : Pow(kVar, IntegerNumber.of(i)));
-    terms.add((c * mon).simplify());
-  }
-  return simplifyAdd(terms);
+  return buildPolynomialFromCoefficients({
+    for (var i = 0; i <= maxDeg; i++) i: qCoeffs[i],
+  }, variable);
 }
 
 ({Map<int, Expr> polyCoeffs, Expr factNode})? _matchPolynomialFactorial(
@@ -480,7 +471,7 @@ Expr? _solvePolynomialGeometricGosper(
   }
   if (factNode == null || otherFactors.isEmpty) return null;
   final polyExpr = simplifyMul(otherFactors).expand().simplify();
-  final polyCoeffs = extractMonomialCoefficients(polyExpr, variable);
+  final polyCoeffs = extractPolynomialCoefficients(polyExpr, variable);
   if (polyCoeffs == null) return null;
   return (polyCoeffs: polyCoeffs, factNode: factNode);
 }
@@ -523,25 +514,16 @@ Expr? _solvePolynomialFactorialGosper(Map<int, Expr> pCoeffs, String variable) {
     return null;
   }
 
-  final kVar = Variable(variable);
-  final terms = <Expr>[];
-  for (var i = 0; i <= qDeg; i++) {
-    final c = qCoeffs[i];
-    if (c is Number && c.isZero) continue;
-    final mon = i == 0
-        ? IntegerNumber.one
-        : (i == 1 ? kVar : Pow(kVar, IntegerNumber.of(i)));
-    terms.add((c * mon).simplify());
-  }
-  return simplifyAdd(terms);
+  return buildPolynomialFromCoefficients({
+    for (var i = 0; i <= qDeg; i++) i: qCoeffs[i],
+  }, variable);
 }
 
 bool _isRationalIn(Expr expr, String variable) {
   final (num, den) = splitNumeratorDenominator(expr);
   if (!den.dependsOn(variable)) return false;
-  return extractMonomialCoefficients(num.expand().simplify(), variable) !=
-          null &&
-      extractMonomialCoefficients(den.expand().simplify(), variable) != null;
+  return polynomialDegree(num.expand().simplify(), variable) != null &&
+      polynomialDegree(den.expand().simplify(), variable) != null;
 }
 
 /// Checks if a partial-fraction-decomposed rational expression telescopes:

@@ -14,17 +14,15 @@ void main() {
       final eq = Equal(x, IntegerNumber.zero);
       final ne = NotEqual(x, IntegerNumber.zero);
 
-      check(lt.evaluateCondition({'x': -1.0})).isTrue();
-      check(lt.evaluateCondition({'x': 0.0})).isFalse();
       check(lt.evaluate({'x': -1.0})).equals(1.0);
       check(lt.evaluate({'x': 0.0})).equals(0.0);
 
-      check(le.evaluateCondition({'x': 0.0})).isTrue();
-      check(gt.evaluateCondition({'x': 1.0})).isTrue();
-      check(ge.evaluateCondition({'x': 0.0})).isTrue();
-      check(eq.evaluateCondition({'x': 0.0})).isTrue();
-      check(ne.evaluateCondition({'x': 1.0})).isTrue();
-      check(ne.evaluateCondition({'x': 0.0})).isFalse();
+      check(le.evaluate({'x': 0.0})).equals(1.0);
+      check(gt.evaluate({'x': 1.0})).equals(1.0);
+      check(ge.evaluate({'x': 0.0})).equals(1.0);
+      check(eq.evaluate({'x': 0.0})).equals(1.0);
+      check(ne.evaluate({'x': 1.0})).equals(1.0);
+      check(ne.evaluate({'x': 0.0})).equals(0.0);
 
       for (final (node, build)
           in <(RelationalExpr, RelationalExpr Function(Expr, Expr))>[

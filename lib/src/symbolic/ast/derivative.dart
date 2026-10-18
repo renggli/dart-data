@@ -24,9 +24,6 @@ final class Derivative extends Expr {
   late final int hashCode = Object.hash(Derivative, expr, variable, order);
 
   @override
-  double evaluate([Map<String, double> context = const {}]) => double.nan;
-
-  @override
   void _collectFreeVariables(Set<String> target) {
     expr._collectFreeVariables(target);
     target.add(variable);

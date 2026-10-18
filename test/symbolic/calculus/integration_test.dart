@@ -303,6 +303,18 @@ void main() {
                   IntegerNumber.of(3)) /
               (x + IntegerNumber.one),
         );
+        verifyAntiderivative(
+          Expr.parse('1 / (x^2 - 1)'),
+          points: const [1.5, 2.0, 2.5],
+        );
+        verifyAntiderivative(
+          Expr.parse('(2*x + 3) / (x^2 + 2*x + 1)'),
+          points: const [0.5, 1.0, 1.5],
+        );
+        verifyAntiderivative(
+          Expr.parse('1 / (x^2 + 2*x + 1)'),
+          points: const [0.5, 1.0, 1.5],
+        );
       },
     );
   });

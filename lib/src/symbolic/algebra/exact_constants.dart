@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 
 import '../ast.dart';
+import '../compiler.dart';
 
 /// Standard special radical values appearing in exact trigonometric evaluations.
 enum SpecialRadical {

@@ -585,42 +585,6 @@ class MonomialAccumulator {
   }
 }
 
-bool _containsRealNumber(Number n) => switch (n) {
-  RealNumber() => true,
-  ComplexNumber(:final real, :final imaginary) =>
-    real is RealNumber || imaginary is RealNumber,
-  _ => false,
-};
-
-Expr? _isSquareOfSin(Expr term) => switch (term) {
-  Pow(base: Sin(:final expr), exponent: final exp) when _isTwo(exp) => expr,
-  _ => null,
-};
-
-Expr? _isSquareOfCos(Expr term) => switch (term) {
-  Pow(base: Cos(:final expr), exponent: final exp) when _isTwo(exp) => expr,
-  _ => null,
-};
-
-Expr? _isSquareOfSinh(Expr term) => switch (term) {
-  Pow(base: Sinh(:final expr), exponent: final exp) when _isTwo(exp) => expr,
-  _ => null,
-};
-
-Expr? _isSquareOfCosh(Expr term) => switch (term) {
-  Pow(base: Cosh(:final expr), exponent: final exp) when _isTwo(exp) => expr,
-  _ => null,
-};
-
-bool _isTwo(Expr exp) =>
-    exp == IntegerNumber.two || (exp is RealNumber && exp.value == 2.0);
-
-bool _isReducibleTranscendentalBase(Expr base) => switch (base) {
-  Ln() => true,
-  Pow(base: Sin() || Cos() || Sinh() || Cosh()) => true,
-  _ => false,
-};
-
 /// Decomposes an expression into a scalar [Number] coefficient and symbolic base.
 (Number, Expr) decomposeTerm(Expr expr) {
   if (expr is Number) {
@@ -716,6 +680,134 @@ bool _isReducibleTranscendentalBase(Expr base) => switch (base) {
     return (numPart, denPart);
   }(),
   _ => (expr, IntegerNumber.one),
+};
+
+/// Computes the degree of [expr] as a univariate polynomial in [variable],
+/// or returns `null` if [expr] is not a polynomial in [variable].
+int? polynomialDegree(Expr expr, String variable) {
+  if (!expr.dependsOn(variable)) return 0;
+  return switch (expr) {
+    Variable(:final name) when name == variable => 1,
+    Add(:final terms) => () {
+      var maxD = 0;
+      for (final t in terms) {
+        final d = polynomialDegree(t, variable);
+        if (d == null) return null;
+        if (d > maxD) maxD = d;
+      }
+      return maxD;
+    }(),
+    Mul(:final factors) => () {
+      var sumD = 0;
+      for (final f in factors) {
+        final d = polynomialDegree(f, variable);
+        if (d == null) return null;
+        sumD += d;
+      }
+      return sumD;
+    }(),
+    Pow(:final base, exponent: IntegerNumber(:final value))
+        when value >= Integer.zero && !value.isBig =>
+      () {
+        final db = polynomialDegree(base, variable);
+        return db != null ? db * value.toInt() : null;
+      }(),
+    Pow(:final base, exponent: RealNumber(:final value))
+        when value >= 0 && value == value.roundToDouble() =>
+      () {
+        final db = polynomialDegree(base, variable);
+        return db != null ? db * value.round() : null;
+      }(),
+    _ => null,
+  };
+}
+
+/// Extracts univariate polynomial coefficients for [expr] in [variable].
+///
+/// Returns a map where each key $k \ge 0$ is the power of [variable] and the
+/// value is the coefficient expression independent of [variable], or `null` if
+/// [expr] is not a polynomial in [variable].
+Map<int, Expr>? extractPolynomialCoefficients(Expr expr, String variable) {
+  final expanded = expr.expand().simplify();
+  if (!expanded.dependsOn(variable)) {
+    return expanded is Number && expanded.isZero
+        ? {0: IntegerNumber.zero}
+        : {0: expanded};
+  }
+  if (polynomialDegree(expanded, variable) == null) return null;
+  final acc = MonomialAccumulator()..add(expanded);
+  return acc.extractPolynomialCoefficients(variable);
+}
+
+/// Returns the maximum degree $k \ge 0$ with a non-zero coefficient in [coeffs],
+/// or `-1` if [coeffs] has no non-zero terms.
+int maxPolynomialDegree(Map<int, Expr> coeffs) {
+  var maxD = -1;
+  for (final MapEntry(key: deg, value: coeff) in coeffs.entries) {
+    if (!MonomialAccumulator._isAlgebraicallyZero(coeff) && deg > maxD) {
+      maxD = deg;
+    }
+  }
+  return maxD;
+}
+
+/// Reconstructs a simplified polynomial [Expr] in [variable] from a
+/// degree-to-coefficient map [coeffs].
+Expr buildPolynomialFromCoefficients(Map<int, Expr> coeffs, String variable) {
+  final x = Variable(variable);
+  final terms = <Expr>[];
+  final sortedDegrees = coeffs.keys.toList()..sort();
+  for (final deg in sortedDegrees) {
+    final c = coeffs[deg]!.simplify();
+    if (MonomialAccumulator._isAlgebraicallyZero(c)) continue;
+    final xPow = deg == 0
+        ? IntegerNumber.one
+        : deg == 1
+        ? x
+        : Pow(x, IntegerNumber.of(deg));
+    terms.add(deg == 0 ? c : (c * xPow).simplify());
+  }
+  return switch (terms) {
+    [] => IntegerNumber.zero,
+    [final single] => single,
+    _ => Add(terms).simplify(),
+  };
+}
+
+bool _containsRealNumber(Number n) => switch (n) {
+  RealNumber() => true,
+  ComplexNumber(:final real, :final imaginary) =>
+    real is RealNumber || imaginary is RealNumber,
+  _ => false,
+};
+
+Expr? _isSquareOfSin(Expr term) => switch (term) {
+  Pow(base: Sin(:final expr), exponent: final exp) when _isTwo(exp) => expr,
+  _ => null,
+};
+
+Expr? _isSquareOfCos(Expr term) => switch (term) {
+  Pow(base: Cos(:final expr), exponent: final exp) when _isTwo(exp) => expr,
+  _ => null,
+};
+
+Expr? _isSquareOfSinh(Expr term) => switch (term) {
+  Pow(base: Sinh(:final expr), exponent: final exp) when _isTwo(exp) => expr,
+  _ => null,
+};
+
+Expr? _isSquareOfCosh(Expr term) => switch (term) {
+  Pow(base: Cosh(:final expr), exponent: final exp) when _isTwo(exp) => expr,
+  _ => null,
+};
+
+bool _isTwo(Expr exp) =>
+    exp == IntegerNumber.two || (exp is RealNumber && exp.value == 2.0);
+
+bool _isReducibleTranscendentalBase(Expr base) => switch (base) {
+  Ln() => true,
+  Pow(base: Sin() || Cos() || Sinh() || Cosh()) => true,
+  _ => false,
 };
 
 ({int power, Expr coeff})? _extractBaseMonomial(Expr expr, String variable) {

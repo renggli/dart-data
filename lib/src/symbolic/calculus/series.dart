@@ -4,6 +4,7 @@ import '../algebra/approximate.dart';
 import '../algebra/simplify.dart';
 import '../assumptions.dart';
 import '../ast.dart';
+import '../compiler.dart';
 
 /// Extension providing formal power series and Laurent expansion on [Expr].
 extension SeriesExtension on Expr {

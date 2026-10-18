@@ -1,12 +1,10 @@
-import 'dart:math' as math;
-
 import '../../linear/matrix.dart';
 import '../../linear/vector.dart';
 import '../algebra/expand.dart';
 import '../algebra/factor.dart';
 import '../algebra/factor/fraction.dart';
-import '../algebra/factor/multivariate.dart';
 import '../algebra/simplify.dart';
+import '../algebra/term_accumulator.dart';
 import '../ast.dart';
 import '../type/expr_data_type.dart';
 
@@ -317,9 +315,9 @@ class BareissEngine {
     // Rank candidate variables
     final candidates = <({String v, int score, int m, Expr dm})>[];
     for (final v in vars) {
-      final dCoeffs = _extractCoefficients(den, v);
-      if (dCoeffs.isEmpty) continue;
-      final m = dCoeffs.keys.reduce(math.max);
+      final dCoeffs = extractPolynomialCoefficients(den, v);
+      if (dCoeffs == null) continue;
+      final m = maxPolynomialDegree(dCoeffs);
       if (m <= 0) continue;
       final dm = dCoeffs[m]!;
       final score =
@@ -350,11 +348,11 @@ class BareissEngine {
     var remainder = num.expand().simplify();
     Expr quotient = IntegerNumber.zero;
 
-    var nCoeffs = _extractCoefficients(remainder, v);
+    var nCoeffs = extractPolynomialCoefficients(remainder, v);
 
     while (!_isExprZero(remainder)) {
-      if (nCoeffs.isEmpty) break;
-      final k = nCoeffs.keys.reduce(math.max);
+      if (nCoeffs == null) break;
+      final k = maxPolynomialDegree(nCoeffs);
       if (k < m) {
         return null;
       }
@@ -380,59 +378,13 @@ class BareissEngine {
 
       quotient = (quotient + qTerm).expand().simplify();
       remainder = (remainder - (qTerm * den)).expand().simplify();
-      nCoeffs = _extractCoefficients(remainder, v);
+      nCoeffs = extractPolynomialCoefficients(remainder, v);
     }
 
     if (_isExprZero(remainder)) {
       return quotient.expand().simplify();
     }
     return null;
-  }
-
-  static Map<int, Expr> _extractCoefficients(Expr expr, String v) {
-    final expanded = expr.expand().simplify();
-    if (_isExprZero(expanded)) return const {};
-    final terms = <Expr>[];
-    collectAdditiveTerms(expanded, 1, terms);
-    final map = <int, Expr>{};
-    for (final term in terms) {
-      final (deg, coeff) = _termDegreeAndCoeff(term, v);
-      map[deg] = (map[deg] ?? IntegerNumber.zero) + coeff;
-    }
-    final result = <int, Expr>{};
-    for (final MapEntry(:key, :value) in map.entries) {
-      final c = value.expand().simplify();
-      if (!_isExprZero(c)) {
-        result[key] = c;
-      }
-    }
-    return result;
-  }
-
-  static (int, Expr) _termDegreeAndCoeff(Expr term, String v) {
-    switch (term) {
-      case Variable(:final name) when name == v:
-        return (1, IntegerNumber.one);
-      case Pow(
-            base: Variable(:final name),
-            exponent: IntegerNumber(asInt: final int exp),
-          )
-          when name == v && exp > 0:
-        return (exp, IntegerNumber.one);
-      case _ when !term.dependsOn(v):
-        return (0, term);
-      case Mul(:final factors):
-        var totalDeg = 0;
-        Expr totalCoeff = IntegerNumber.one;
-        for (final f in factors) {
-          final (d, c) = _termDegreeAndCoeff(f, v);
-          totalDeg += d;
-          totalCoeff = (totalCoeff * c).simplify();
-        }
-        return (totalDeg, totalCoeff);
-      case _:
-        return (0, term);
-    }
   }
 
   static List<Expr> _collectFactors(Expr expr) => switch (expr) {

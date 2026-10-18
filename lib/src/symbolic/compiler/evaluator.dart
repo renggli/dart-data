@@ -23,6 +23,7 @@ final class BytecodeEvaluator {
     required this.maxStack,
     required this.registerCount,
     this.hasComplexLiterals = false,
+    this.isRealOutput = true,
     this.firstComplexLiteral,
   });
 
@@ -41,6 +42,10 @@ final class BytecodeEvaluator {
   /// Whether the instruction stream contains non-real complex literals.
   final bool hasComplexLiterals;
 
+  /// Whether the overall expression evaluates to a real value when all free
+  /// variables are real.
+  final bool isRealOutput;
+
   /// First non-real literal encountered during compilation, if any.
   final Expr? firstComplexLiteral;
 
@@ -55,10 +60,10 @@ final class BytecodeEvaluator {
     Complex.zero,
   );
 
-  /// Asserts that this evaluator contains no non-real constants when bound to
-  /// a real-valued evaluation target.
+  /// Asserts that this evaluator produces a real value when bound to a
+  /// real-valued evaluation target.
   void checkRealSupported() {
-    if (hasComplexLiterals) {
+    if (hasComplexLiterals && !isRealOutput) {
       throw UnsupportedError(
         'Expression contains complex literal $firstComplexLiteral; '
         'use complex evaluation instead.',
@@ -139,6 +144,9 @@ final class BytecodeEvaluator {
   }
 
   double _runReal(double Function(int varIndex) loadVar) {
+    if (hasComplexLiterals) {
+      return _runComplex((idx) => Complex(loadVar(idx))).a.toDouble();
+    }
     final stack = _realStack;
     final regs = _realRegs;
     final instrs = instructions;
@@ -168,7 +176,7 @@ final class BytecodeEvaluator {
           final ctx = <String, double>{
             for (var i = 0; i < variables.length; i++) variables[i]: loadVar(i),
           };
-          stack[sp++] = instr.node!.evaluate(ctx);
+          stack[sp++] = _evalNodeReal(instr.node!, ctx);
         case Op.add:
           final b = stack[--sp];
           final a = stack[--sp];
@@ -188,7 +196,7 @@ final class BytecodeEvaluator {
         case Op.pow:
           final b = stack[--sp];
           final a = stack[--sp];
-          stack[sp++] = _realPow(a, b);
+          stack[sp++] = _realPow(a, b, instr.index);
         case Op.neg:
           stack[sp - 1] = -stack[sp - 1];
         case Op.sin:
@@ -241,21 +249,7 @@ final class BytecodeEvaluator {
         case Op.binomial:
           final k = stack[--sp];
           final n = stack[--sp];
-          if (n.isNaN || k.isNaN) {
-            stack[sp++] = double.nan;
-          } else if (k == k.roundToDouble() && k < 0.0) {
-            stack[sp++] = 0.0;
-          } else if (n == n.roundToDouble() &&
-              k == k.roundToDouble() &&
-              n >= 0.0 &&
-              k > n) {
-            stack[sp++] = 0.0;
-          } else {
-            stack[sp++] =
-                special_gamma.gamma(n + 1.0) /
-                (special_gamma.gamma(k + 1.0) *
-                    special_gamma.gamma(n - k + 1.0));
-          }
+          stack[sp++] = _evalRealBinomial(n, k);
         case Op.floor:
           final v = stack[sp - 1];
           stack[sp - 1] = v.isFinite ? v.floorToDouble() : v;
@@ -345,10 +339,23 @@ final class BytecodeEvaluator {
             pc = instr.index;
           }
         case Op.evalNode:
-          final ctx = <String, Complex>{
-            for (var i = 0; i < variables.length; i++) variables[i]: loadVar(i),
-          };
-          stack[sp++] = instr.node!.evaluateComplex(ctx);
+          if (instr.node case Integral(isDefinite: true)) {
+            var allReal = true;
+            final realCtx = <String, double>{};
+            for (var i = 0; i < variables.length; i++) {
+              final z = loadVar(i);
+              if (z.b != 0.0) {
+                allReal = false;
+                break;
+              }
+              realCtx[variables[i]] = z.a.toDouble();
+            }
+            stack[sp++] = allReal
+                ? Complex(_evalNodeReal(instr.node!, realCtx))
+                : Complex.nan;
+          } else {
+            stack[sp++] = Complex.nan;
+          }
         case Op.add:
           final b = stack[--sp];
           final a = stack[--sp];
@@ -364,7 +371,9 @@ final class BytecodeEvaluator {
         case Op.div:
           final b = stack[--sp];
           final a = stack[--sp];
-          stack[sp++] = a / b;
+          stack[sp++] = b == Complex.zero && a.b == 0.0 && a.a != 0.0
+              ? Complex(a.a / 0.0)
+              : a / b;
         case Op.pow:
           final b = stack[--sp];
           final a = stack[--sp];
@@ -465,10 +474,7 @@ final class BytecodeEvaluator {
             );
           }
           stack[sp++] = Complex(
-            Binomial(
-              RealNumber.fromDouble(zN.a.toDouble()),
-              RealNumber.fromDouble(zK.a.toDouble()),
-            ).evaluate(),
+            _evalRealBinomial(zN.a.toDouble(), zK.a.toDouble()),
           );
         case Op.floor:
           final z = stack[sp - 1];
@@ -569,8 +575,145 @@ final class BytecodeEvaluator {
   }
 }
 
-double _realPow(double base, double exponent) =>
-    math.pow(base, exponent).toDouble();
+double _evalRealBinomial(double n, double k) {
+  if (n.isNaN || k.isNaN) return double.nan;
+  if (k == k.roundToDouble() && k < 0.0) return 0.0;
+  if (n == n.roundToDouble() && k == k.roundToDouble() && n >= 0.0 && k > n) {
+    return 0.0;
+  }
+  return special_gamma.gamma(n + 1.0) /
+      (special_gamma.gamma(k + 1.0) * special_gamma.gamma(n - k + 1.0));
+}
+
+double _evalNodeReal(Expr node, Map<String, double> context) {
+  if (node case Integral(
+    :final integrand,
+    :final variable,
+    :final lower?,
+    :final upper?,
+  )) {
+    final a = compileToBytecode(
+      lower,
+      const [],
+      optimize: false,
+      allowDynamicVars: true,
+    ).evaluateMap(context);
+    final b = compileToBytecode(
+      upper,
+      const [],
+      optimize: false,
+      allowDynamicVars: true,
+    ).evaluateMap(context);
+    if (a.isNaN || b.isNaN) return double.nan;
+    if (a == b) return 0.0;
+    final integrandEval = compileToBytecode(
+      integrand,
+      const [],
+      optimize: false,
+      allowDynamicVars: true,
+    );
+    final localContext = Map<String, double>.of(context);
+    return _quadratureDefinite(
+      (x) {
+        localContext[variable] = x;
+        return integrandEval.evaluateMap(localContext);
+      },
+      a,
+      b,
+    );
+  }
+  return double.nan;
+}
+
+double _quadratureDefinite(double Function(double) f, double a, double b) {
+  if (b < a) {
+    return -_quadratureDefinite(f, b, a);
+  }
+  if (a == double.negativeInfinity && b == double.infinity) {
+    return _gaussLegendre16(
+      (t) {
+        final denom = 1.0 - t * t;
+        if (denom == 0.0) return 0.0;
+        final x = t / denom;
+        final dx = (1.0 + t * t) / (denom * denom);
+        return f(x) * dx;
+      },
+      -1.0,
+      1.0,
+    );
+  }
+  if (a.isFinite && b == double.infinity) {
+    return _gaussLegendre16(
+      (t) {
+        if (t >= 1.0) return 0.0;
+        final d = 1.0 - t;
+        final x = a + t / d;
+        final dx = 1.0 / (d * d);
+        return f(x) * dx;
+      },
+      0.0,
+      1.0,
+    );
+  }
+  if (a == double.negativeInfinity && b.isFinite) {
+    return _gaussLegendre16(
+      (t) {
+        if (t >= 1.0) return 0.0;
+        final d = 1.0 - t;
+        final x = b - t / d;
+        final dx = 1.0 / (d * d);
+        return f(x) * dx;
+      },
+      0.0,
+      1.0,
+    );
+  }
+  return _gaussLegendre16(f, a, b);
+}
+
+const _glNodes8 = <double>[
+  0.09501250983763744,
+  0.2816035507792589,
+  0.45801677765722737,
+  0.6178762444026438,
+  0.755404408355003,
+  0.8656312023878318,
+  0.9445750230732326,
+  0.9894009349916499,
+];
+
+const _glWeights8 = <double>[
+  0.1894506104550685,
+  0.18260341504492358,
+  0.16915651939500254,
+  0.14959598881657674,
+  0.12462897125553388,
+  0.09515851168249279,
+  0.062253523938647894,
+  0.027152459411754096,
+];
+
+double _gaussLegendre16(double Function(double) f, double a, double b) {
+  final half = 0.5 * (b - a);
+  final mid = 0.5 * (a + b);
+  var sum = 0.0;
+  for (var i = 0; i < 8; i++) {
+    final dx = half * _glNodes8[i];
+    final y1 = f(mid - dx);
+    final y2 = f(mid + dx);
+    sum +=
+        _glWeights8[i] * ((y1.isFinite ? y1 : 0.0) + (y2.isFinite ? y2 : 0.0));
+  }
+  return half * sum;
+}
+
+double _realPow(double base, double exponent, [int oddRootMode = 0]) {
+  if (oddRootMode != 0 && base < 0.0) {
+    final mag = math.pow(-base, exponent).toDouble();
+    return oddRootMode == 1 ? -mag : mag;
+  }
+  return math.pow(base, exponent).toDouble();
+}
 
 Complex _complexPow(Complex base, Complex exponent) {
   if (exponent == Complex.zero) return Complex.one;

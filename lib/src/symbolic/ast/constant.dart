@@ -4,7 +4,7 @@ part of '../ast.dart';
 ///
 /// Named constants are opaque symbolic entities during algebraic manipulation
 /// (they do not fold into floating-point approximations during simplification),
-/// while providing their numerical [value] during [evaluate] or compilation.
+/// while providing their numerical [value] during evaluation or compilation.
 final class Constant extends Expr {
   /// Creates a named mathematical constant with [name] and numerical [value].
   const new(this.name, this.value, {String? latex, String? mathMl})
@@ -56,17 +56,6 @@ final class Constant extends Expr {
   /// Whether this constant is strictly real-valued ($\Im(\text{value}) = 0$).
   @override
   bool get isReal => value.b == 0.0 || value.isNaN;
-
-  @override
-  double evaluate([Map<String, double> context = const {}]) {
-    if (!isReal) {
-      throw UnsupportedError(
-        'Cannot evaluate complex constant "$name" in real domain; '
-        'use evaluateComplex instead.',
-      );
-    }
-    return value.a.toDouble();
-  }
 
   @override
   Set<String> get freeVariables => const {};

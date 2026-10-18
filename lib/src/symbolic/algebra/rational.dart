@@ -136,11 +136,11 @@ extension RationalFunctionExtension on Expr {
       );
     }
 
-    final numCoeffs = _extractPolynomialCoeffs(
+    final numCoeffs = extractPolynomialCoefficients(
       simplify(assumptions: assumptions),
       variable,
     );
-    final denCoeffs = _extractPolynomialCoeffs(simpDivisor, variable);
+    final denCoeffs = extractPolynomialCoefficients(simpDivisor, variable);
     if (numCoeffs == null) {
       throw ArgumentError(
         'Dividend is not a polynomial in "$variable": $this.',
@@ -152,7 +152,7 @@ extension RationalFunctionExtension on Expr {
       );
     }
 
-    final dDen = _maxDegree(denCoeffs, field);
+    final dDen = maxPolynomialDegree(denCoeffs);
     if (dDen < 0) {
       throw ArgumentError.value(
         divisor,
@@ -161,7 +161,7 @@ extension RationalFunctionExtension on Expr {
       );
     }
 
-    var dRem = _maxDegree(numCoeffs, field);
+    var dRem = maxPolynomialDegree(numCoeffs);
     if (dRem < 0) {
       return (quotient: IntegerNumber.zero, remainder: IntegerNumber.zero);
     }
@@ -172,14 +172,14 @@ extension RationalFunctionExtension on Expr {
           deg: field.div(coeff, c0),
       };
       return (
-        quotient: _buildPolynomial(scaledCoeffs, variable),
+        quotient: buildPolynomialFromCoefficients(scaledCoeffs, variable),
         remainder: IntegerNumber.zero,
       );
     }
     if (dRem < dDen) {
       return (
         quotient: IntegerNumber.zero,
-        remainder: _buildPolynomial(numCoeffs, variable),
+        remainder: buildPolynomialFromCoefficients(numCoeffs, variable),
       );
     }
 
@@ -200,12 +200,12 @@ extension RationalFunctionExtension on Expr {
         rem[targetDeg] = field.sub(cur, subTerm);
       }
       rem.remove(dRem);
-      dRem = _maxDegree(rem, field);
+      dRem = maxPolynomialDegree(rem);
     }
 
     return (
-      quotient: _buildPolynomial(quot, variable),
-      remainder: _buildPolynomial(rem, variable),
+      quotient: buildPolynomialFromCoefficients(quot, variable),
+      remainder: buildPolynomialFromCoefficients(rem, variable),
     );
   }
 
@@ -232,8 +232,8 @@ extension RationalFunctionExtension on Expr {
       return (numExpr / denExpr).expand().simplify(assumptions: assumptions);
     }
 
-    if (_extractPolynomialCoeffs(numExpr, variable) == null ||
-        _extractPolynomialCoeffs(denExpr, variable) == null) {
+    if (extractPolynomialCoefficients(numExpr, variable) == null ||
+        extractPolynomialCoefficients(denExpr, variable) == null) {
       return cancelled;
     }
 
@@ -263,9 +263,9 @@ extension RationalFunctionExtension on Expr {
           mult == 1 ? factorBase : Pow(factorBase, IntegerNumber.of(mult)),
         );
       } else {
-        final coeffs = _extractPolynomialCoeffs(factorBase, variable);
+        final coeffs = extractPolynomialCoefficients(factorBase, variable);
         if (coeffs == null) return cancelled;
-        final deg = _maxDegree(coeffs, field);
+        final deg = maxPolynomialDegree(coeffs);
         if (deg <= 0) {
           constFactors.add(
             mult == 1 ? factorBase : Pow(factorBase, IntegerNumber.of(mult)),
@@ -320,7 +320,10 @@ extension RationalFunctionExtension on Expr {
         final cofactorExpr = cofactorParts.isEmpty
             ? IntegerNumber.one
             : simplifyMul(cofactorParts).expand().simplify();
-        final cofactorCoeffs = _extractPolynomialCoeffs(cofactorExpr, variable);
+        final cofactorCoeffs = extractPolynomialCoefficients(
+          cofactorExpr,
+          variable,
+        );
         if (cofactorCoeffs == null) return cancelled;
 
         for (var m = 0; m < fI.degree; m++) {
@@ -337,7 +340,7 @@ extension RationalFunctionExtension on Expr {
     }
 
     final scaledRemainder = field.div(remainder, c0);
-    final remCoeffs = _extractPolynomialCoeffs(scaledRemainder, variable);
+    final remCoeffs = extractPolynomialCoefficients(scaledRemainder, variable);
     if (remCoeffs == null) return cancelled;
 
     final bRows = List.generate(
@@ -591,56 +594,4 @@ Expr _collectAdditive(Expr expr, String variable) {
     return (varPart: varPart, coeffPart: coeffPart);
   }
   return (varPart: term, coeffPart: IntegerNumber.one);
-}
-
-Map<int, Expr>? _extractPolynomialCoeffs(Expr expr, String variable) {
-  final expanded = expr.expand().simplify();
-  if (!_isPolynomialIn(expanded, variable)) return null;
-  final acc = MonomialAccumulator()..add(expanded);
-  return acc.extractPolynomialCoefficients(variable);
-}
-
-bool _isPolynomialIn(Expr expr, String variable) {
-  if (!expr.dependsOn(variable)) return true;
-  return switch (expr) {
-    Variable(:final name) => name == variable,
-    Add(:final terms) => terms.every((t) => _isPolynomialIn(t, variable)),
-    Mul(:final factors) => factors.every((f) => _isPolynomialIn(f, variable)),
-    Pow(:final base, exponent: IntegerNumber(:final value))
-        when value >= Integer.zero && !value.isBig =>
-      _isPolynomialIn(base, variable),
-    _ => false,
-  };
-}
-
-int _maxDegree(Map<int, Expr> coeffs, ExprField field) {
-  var maxD = -1;
-  for (final MapEntry(key: deg, value: coeff) in coeffs.entries) {
-    if (!field.isZero(coeff) && deg > maxD) {
-      maxD = deg;
-    }
-  }
-  return maxD;
-}
-
-Expr _buildPolynomial(Map<int, Expr> coeffs, String variable) {
-  const field = ExprField.instance;
-  final x = Variable(variable);
-  final terms = <Expr>[];
-  final sortedDegrees = coeffs.keys.toList()..sort();
-  for (final deg in sortedDegrees) {
-    final c = coeffs[deg]!.simplify();
-    if (field.isZero(c)) continue;
-    final xPow = deg == 0
-        ? IntegerNumber.one
-        : deg == 1
-        ? x
-        : Pow(x, IntegerNumber.of(deg));
-    terms.add(deg == 0 ? c : (c * xPow).simplify());
-  }
-  return switch (terms) {
-    [] => IntegerNumber.zero,
-    [final single] => single,
-    _ => Add(terms).simplify(),
-  };
 }
