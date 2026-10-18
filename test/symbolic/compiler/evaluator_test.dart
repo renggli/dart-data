@@ -142,6 +142,67 @@ void main() {
           const Complex(-3, 0),
         ]),
       ).equals(const Complex(0, 1));
+      final binomEval = compileToBytecode(Binomial(x, y), ['x', 'y']);
+      check(binomEval.evaluateList([5.0, 2.0])).isCloseTo(10.0, 1e-12);
+      check(binomEval.evaluateList([double.nan, 2.0])).isNaN();
+      check(binomEval.evaluateList([5.0, -1.0])).equals(0.0);
+      check(binomEval.evaluateList([3.0, 5.0])).equals(0.0);
+      check(
+        binomEval.evaluateComplexList([
+          const Complex(5.0),
+          const Complex(2.0),
+        ]).a,
+      ).isCloseTo(10.0, 1e-12);
+      check(
+        () => binomEval.evaluateComplexList([
+          const Complex(1, 1),
+          const Complex(2, 0),
+        ]),
+      ).throws<UnsupportedError>();
+
+      final modEval = compileToBytecode(Mod(x, y), ['x', 'y']);
+      check(modEval.evaluateList([17.0, 5.0])).equals(2.0);
+      check(modEval.evaluateList([17.0, 0.0])).isNaN();
+      check(
+        modEval.evaluateComplexList([const Complex(17.0), const Complex(5.0)]),
+      ).equals(const Complex(2.0));
+      check(
+        () => modEval.evaluateComplexList([
+          const Complex(1, 1),
+          const Complex(2, 0),
+        ]),
+      ).throws<UnsupportedError>();
+
+      for (final node in <Expr>[Factorial(x), Floor(x), Ceil(x), Round(x)]) {
+        final eval = compileToBytecode(node, ['x']);
+        check(eval.evaluate1D(3.5)).isCloseTo(node.evaluate({'x': 3.5}), 1e-12);
+        check(eval.evaluateComplex1D(const Complex(3.5)).a)
+            .isCloseTo(node.evaluate({'x': 3.5}), 1e-12);
+        check(() => eval.evaluateComplex1D(const Complex(1, 1)))
+            .throws<UnsupportedError>();
+      }
+
+      final signEval = compileToBytecode(Sign(x), ['x']);
+      check(signEval.evaluate1D(0.0)).equals(0.0);
+      check(signEval.evaluate1D(-2.0)).equals(-1.0);
+      check(signEval.evaluate1D(2.0)).equals(1.0);
+      check(signEval.evaluateComplex1D(Complex.zero)).equals(Complex.zero);
+      check(signEval.evaluateComplex1D(const Complex(-2.0)))
+          .equals(const Complex(-1.0));
+      check(signEval.evaluateComplex1D(const Complex(3.0, 4.0)))
+          .equals(const Complex(0.6, 0.8));
+
+      final reEval = compileToBytecode(Re(x), ['x'], optimize: false);
+      final imEval = compileToBytecode(Im(x), ['x'], optimize: false);
+      final argEval = compileToBytecode(Arg(x), ['x'], optimize: false);
+      final conjEval = compileToBytecode(Conjugate(x), ['x'], optimize: false);
+      check(reEval.evaluate1D(3.0)).equals(3.0);
+      check(imEval.evaluate1D(3.0)).equals(0.0);
+      check(argEval.evaluate1D(3.0)).equals(0.0);
+      check(argEval.evaluate1D(-3.0)).isCloseTo(3.141592653589793, 1e-12);
+      check(conjEval.evaluate1D(3.0)).equals(3.0);
+      check(argEval.evaluateComplex1D(const Complex(0, 1)).a)
+          .isCloseTo(1.5707963267948966, 1e-12);
     });
 
     test('relational, Piecewise, Integral, and direct Op.sub instructions', () {
@@ -152,6 +213,7 @@ void main() {
         GreaterThan(x, IntegerNumber.zero),
         GreaterEqual(x, IntegerNumber.zero),
         Equal(x, IntegerNumber.zero),
+        NotEqual(x, IntegerNumber.zero),
       ];
 
       for (final rel in relations) {

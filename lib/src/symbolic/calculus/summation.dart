@@ -202,6 +202,11 @@ Expr? _antidifference(Expr expr, String variable) {
   final directTele = _tryGeneralTelescoping(expr, variable);
   if (directTele != null) return directTele;
 
+  if (expr is! Add) {
+    final single = _antidifferenceSingleTerm(expr, variable);
+    if (single != null) return single;
+  }
+
   // Expand and try term-by-term linearity
   final expanded = expr.expand().simplify();
   if (expanded case Add(:final terms)) {

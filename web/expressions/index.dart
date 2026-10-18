@@ -54,12 +54,14 @@ double? mouseX;
 double? mouseY;
 bool _rafPending = false;
 
+typedef ExtremumPoint = ({double x, double y});
+
 // Critical points & roots
 final List<double> exactRoots = [];
 final List<Expr> exactSolutions = [];
 final List<double> numericRoots = [];
-final List<(double, double)> localMinima = [];
-final List<(double, double)> localMaxima = [];
+final List<ExtremumPoint> localMinima = [];
+final List<ExtremumPoint> localMaxima = [];
 
 // DOM References
 late web.HTMLInputElement searchBox;
@@ -958,7 +960,7 @@ void updateIntegrationTelemetry() {
   }
 
   final antideriv = cachedAntideriv;
-  if (antideriv != null) {
+  if (antideriv != null && antideriv is! Integral) {
     try {
       final fb = antideriv.evaluateComplex({'x': Complex(intB, 0)});
       final fa = antideriv.evaluateComplex({'x': Complex(intA, 0)});
@@ -989,14 +991,16 @@ void updateTaylorTelemetry() {
       : RealNumber(taylorAround).rationalize();
 
   try {
-    final seriesObj = expr.toPowerSeries(
-      'x',
-      point: centerExpr,
-      order: taylorOrder + 1,
-    );
-    final formal = seriesObj.toExpr();
+    final formal = expr.series('x', point: centerExpr, order: taylorOrder + 1);
     setAttrExpr(valFormalSeries, formal);
-    final poly = seriesObj.toExpr(includeOrder: false).simplify();
+    final poly = expr
+        .series(
+          'x',
+          point: centerExpr,
+          order: taylorOrder + 1,
+          includeOrder: false,
+        )
+        .simplify();
     setAttrExpr(taylorPolynomialStr, poly);
     try {
       taylorCompiled = poly.toFunction1D('x');
@@ -1151,12 +1155,12 @@ void detectRootsAndExtrema() {
 
             if (yVal != null && yVal.isFinite) {
               if (curvature != null && curvature > 1e-6) {
-                if (!localMinima.any((m) => (m.$1 - critX).abs() < 1e-3)) {
-                  localMinima.add((critX, yVal));
+                if (!localMinima.any((m) => (m.x - critX).abs() < 1e-3)) {
+                  localMinima.add((x: critX, y: yVal));
                 }
               } else if (curvature != null && curvature < -1e-6) {
-                if (!localMaxima.any((m) => (m.$1 - critX).abs() < 1e-3)) {
-                  localMaxima.add((critX, yVal));
+                if (!localMaxima.any((m) => (m.x - critX).abs() < 1e-3)) {
+                  localMaxima.add((x: critX, y: yVal));
                 }
               }
             }
@@ -1184,7 +1188,7 @@ void detectRootsAndExtrema() {
         ? localMinima
               .map(
                 (m) =>
-                    '(${formatNumber(m.$1, precision: 2)}, ${formatNumber(m.$2, precision: 2)})',
+                    '(${formatNumber(m.x, precision: 2)}, ${formatNumber(m.y, precision: 2)})',
               )
               .join('; ')
         : 'None in range',
@@ -1196,7 +1200,7 @@ void detectRootsAndExtrema() {
         ? localMaxima
               .map(
                 (m) =>
-                    '(${formatNumber(m.$1, precision: 2)}, ${formatNumber(m.$2, precision: 2)})',
+                    '(${formatNumber(m.x, precision: 2)}, ${formatNumber(m.y, precision: 2)})',
               )
               .join('; ')
         : 'None in range',
@@ -1483,8 +1487,8 @@ void drawCharts() {
       drawPointMarker(
         ctx,
         vp,
-        minPt.$1,
-        minPt.$2,
+        minPt.x,
+        minPt.y,
         color: '#06b6d4',
         radius: 4.5,
         label: 'min',
@@ -1498,8 +1502,8 @@ void drawCharts() {
       drawPointMarker(
         ctx,
         vp,
-        maxPt.$1,
-        maxPt.$2,
+        maxPt.x,
+        maxPt.y,
         color: '#f59e0b',
         radius: 4.5,
         label: 'max',

@@ -1,6 +1,7 @@
 import 'dart:js_interop';
 import 'dart:math' as math;
 
+import 'package:data/numeric.dart';
 import 'package:web/web.dart' as web;
 
 /// Mathematical plotting viewport defining domain, range, and pixel geometry.
@@ -159,8 +160,8 @@ void drawGrid(
 
 /// Plots a smooth mathematical curve [fn] across the viewport's X range.
 ///
-/// Automatically segments paths around non-finite numbers, singularities,
-/// and asymptotes.
+/// Uses [sampleCurve] to adaptively subdivide high-curvature regions and
+/// automatically split paths across discontinuities and vertical asymptotes.
 void drawCurve(
   web.CanvasRenderingContext2D ctx,
   PlotViewport vp,
@@ -184,68 +185,59 @@ void drawCurve(
   ctx.rect(vp.leftMargin, vp.topMargin, vp.plotWidth, vp.plotHeight);
   ctx.clip();
 
-  var inPath = false;
-  var pathStartX = vp.leftMargin;
-  var lastX = vp.leftMargin;
   final yMinPx = vp.topMargin - 50.0;
   final yMaxPx = vp.topMargin + vp.plotHeight + 50.0;
+  final maxPoints = math.max(256, (vp.plotWidth / stepPx).ceil() * 2);
+  final sample = sampleCurve(
+    fn,
+    vp.minX,
+    vp.maxX,
+    maxPoints: maxPoints,
+    initialPoints: 97,
+  );
 
-  ctx.beginPath();
+  for (final segment in sample.segments) {
+    var inPath = false;
+    var pathStartX = vp.leftMargin;
+    var lastX = vp.leftMargin;
 
-  for (var px = 0.0; px <= vp.plotWidth; px += stepPx) {
-    final curPx = vp.leftMargin + px;
-    final x = vp.fromPixelX(curPx);
-    double y;
-    try {
-      y = fn(x);
-    } catch (_) {
-      y = double.nan;
-    }
+    for (var i = 0; i < segment.x.length; i++) {
+      final curPx = vp.toPixelX(segment.x[i]);
+      final py = vp.toPixelY(segment.y[i]);
 
-    if (!y.isFinite || y.isNaN) {
-      if (inPath) {
-        ctx.stroke();
-        inPath = false;
+      if (py < yMinPx || py > yMaxPx) {
+        if (inPath) {
+          ctx.lineTo(curPx, py.clamp(yMinPx, yMaxPx));
+          ctx.stroke();
+          inPath = false;
+        }
+        continue;
       }
-      continue;
-    }
 
-    final py = vp.toPixelY(y);
-
-    // Guard against vertical asymptotes generating runaway jumps
-    if (py < yMinPx || py > yMaxPx) {
-      if (inPath) {
-        ctx.lineTo(curPx, py.clamp(yMinPx, yMaxPx));
-        ctx.stroke();
-        inPath = false;
+      if (!inPath) {
+        ctx.beginPath();
+        ctx.moveTo(curPx, py);
+        inPath = true;
+        pathStartX = curPx;
+      } else {
+        ctx.lineTo(curPx, py);
       }
-      continue;
+      lastX = curPx;
     }
 
-    if (!inPath) {
-      ctx.beginPath();
-      ctx.moveTo(curPx, py);
-      inPath = true;
-      pathStartX = curPx;
-    } else {
-      ctx.lineTo(curPx, py);
-    }
-    lastX = curPx;
-  }
+    if (inPath) {
+      ctx.stroke();
 
-  if (inPath) {
-    ctx.stroke();
-
-    // Fill under curve if requested
-    if (fillColor != null && fillBaseY != null) {
-      final basePy = vp
-          .toPixelY(fillBaseY)
-          .clamp(vp.topMargin, vp.topMargin + vp.plotHeight);
-      ctx.lineTo(lastX, basePy);
-      ctx.lineTo(pathStartX, basePy);
-      ctx.closePath();
-      ctx.fillStyle = fillColor.toJS;
-      ctx.fill();
+      if (fillColor != null && fillBaseY != null) {
+        final basePy = vp
+            .toPixelY(fillBaseY)
+            .clamp(vp.topMargin, vp.topMargin + vp.plotHeight);
+        ctx.lineTo(lastX, basePy);
+        ctx.lineTo(pathStartX, basePy);
+        ctx.closePath();
+        ctx.fillStyle = fillColor.toJS;
+        ctx.fill();
+      }
     }
   }
 

@@ -159,6 +159,19 @@ void main() {
       final pf2 = e2.apart('x');
       check(pf2.toString()).equals('x + 3/2 / (-1 + x) - 1/2 / (1 + x)');
       check((pf2.together() - e2.cancel()).cancel()).equals(IntegerNumber.zero);
+
+      // Constant denominator, single irreducible factor, and scalar/symbolic constant factors
+      check(Expr.parse('(2*x + 4) / 2').apart('x').toString()).equals('2 + x');
+      check(Expr.parse('(x^2 + x + 1) / (x + 1)').apart('x').toString())
+          .equals('x + 1 / (1 + x)');
+      check(Expr.parse('1 / (2 * a * (x^2 - 1))').apart('x').toString())
+          .equals('1/4 / (a * (-1 + x)) - 1/4 / (a * (1 + x))');
+
+      // Positive power of rational in together, negative coefficient in collect, and multi-factor coeff/var
+      check(Expr.parse('((x + 1) / (x - 1))^2').together().toString())
+          .equals('(1 + x) ^ 2 / (-1 + x) ^ 2');
+      check(Expr.parse('-x + a * b * x * sin(x)').collect('x').toString())
+          .equals('-x + a * b * x * sin(x)');
     });
   });
 }

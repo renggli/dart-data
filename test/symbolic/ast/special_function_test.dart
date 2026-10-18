@@ -137,6 +137,41 @@ void main() {
       check(Expr.parse('sign(x)').toLatex()).equals(r'\operatorname{sgn}(x)');
       check(Expr.parse('mod(x, y)').toLatex()).equals(r'x \bmod y');
 
+      const x = Variable('x');
+      const y = Variable('y');
+      check(Factorial(x).substitute('x', y)).equals(Factorial(y));
+      check(Factorial(x).mapChildren((_) => y)).equals(Factorial(y));
+      check(Binomial(x, y).substitute('x', IntegerNumber.two))
+          .equals(Binomial(IntegerNumber.two, y));
+      check(Binomial(x, y).mapChildren((e) => e == x ? IntegerNumber.two : e))
+          .equals(Binomial(IntegerNumber.two, y));
+      check(Binomial(x, y).evaluate({'x': double.nan, 'y': 2.0})).isNaN();
+      check(Binomial(x, y).evaluate({'x': 5.0, 'y': -1.0})).equals(0.0);
+      check(Binomial(x, y).evaluate({'x': 3.0, 'y': 5.0})).equals(0.0);
+
+      for (final (build, val, expected)
+          in <(Expr Function(Expr), double, double)>[
+            (Floor.new, 3.7, 3.0),
+            (Ceil.new, 3.2, 4.0),
+            (Round.new, 3.6, 4.0),
+            (Sign.new, -3.6, -1.0),
+          ]) {
+        final node = build(x);
+        check(node.evaluate({'x': val})).equals(expected);
+        check(node.evaluate({'x': double.nan})).isNaN();
+        check(node.substitute('x', y)).equals(build(y));
+        check(node.mapChildren((_) => y)).equals(build(y));
+      }
+      check(Sign(x).evaluate({'x': 0.0})).equals(0.0);
+      check(Sign(x).evaluate({'x': 2.5})).equals(1.0);
+
+      check(Mod(x, y).evaluate({'x': 17.0, 'y': 5.0})).equals(2.0);
+      check(Mod(x, y).evaluate({'x': 17.0, 'y': 0.0})).isNaN();
+      check(Mod(x, y).substitute('x', IntegerNumber.two))
+          .equals(Mod(IntegerNumber.two, y));
+      check(Mod(x, y).mapChildren((e) => e == x ? IntegerNumber.two : e))
+          .equals(Mod(IntegerNumber.two, y));
+
       check(Expr.parse('floor(x)').toFunction1D('x')(3.7)).equals(3.0);
       check(Expr.parse('ceil(x)').toFunction1D('x')(3.2)).equals(4.0);
       check(Expr.parse('round(x)').toFunction1D('x')(3.6)).equals(4.0);

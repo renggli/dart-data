@@ -168,14 +168,101 @@ void main() {
         );
         check(() => syntax.parse('lambertw(x, 2)')).throws<FormatException>();
         check(() => syntax.parse('O(sin(x))')).throws<FormatException>();
+        check(() => syntax.parse('O(1, 2)')).throws<FormatException>();
         check(() => syntax.parse('piecewise(x < 0)')).throws<FormatException>();
         check(() => syntax.parse('piecewise(x + 1, 2)'))
             .throws<FormatException>();
         check(() => syntax.parse('integrate(x, 2)')).throws<FormatException>();
         check(() => syntax.parse('integrate(x, y, 0)'))
             .throws<FormatException>();
+        check(syntax.parse('integral(x, x)')).equals(Integral(x, 'x'));
+        check(syntax.parse('diff(x^2, x)'))
+            .equals(Derivative(Pow(x, IntegerNumber.two), 'x'));
+        check(syntax.parse('derivative(x^3, x, 2)'))
+            .equals(Derivative(Pow(x, IntegerNumber.of(3)), 'x', order: 2));
+        check(() => syntax.parse('diff(x, x, 0)')).throws<FormatException>();
+        check(() => syntax.parse('diff(x, 2)')).throws<FormatException>();
+        check(() => syntax.parse('diff(x)')).throws<FormatException>();
+
+        check(syntax.parse('limit(x, x, 0)'))
+            .equals(Limit(x, 'x', IntegerNumber.zero));
+        check(syntax.parse('limit(x, x, 0, both)'))
+            .equals(Limit(x, 'x', IntegerNumber.zero));
+        check(syntax.parse('limit(x, x, 0, 1)')).equals(
+          Limit(
+            x,
+            'x',
+            IntegerNumber.zero,
+            direction: LimitDirection.fromAbove,
+          ),
+        );
+        check(syntax.parse('limit(x, x, 0, -1)')).equals(
+          Limit(
+            x,
+            'x',
+            IntegerNumber.zero,
+            direction: LimitDirection.fromBelow,
+          ),
+        );
+        check(() => syntax.parse('limit(x, x, 0, 2)'))
+            .throws<FormatException>();
+        check(() => syntax.parse('limit(x, 2, 0)')).throws<FormatException>();
+        check(() => syntax.parse('limit(x, x)')).throws<FormatException>();
+
+        check(syntax.parse('gcd(12, 18, 24)')).equals(IntegerNumber.of(6));
+        check(syntax.parse('lcm(4, 6, 8)')).equals(IntegerNumber.of(24));
+        check(syntax.parse('gcd(x, 12)'))
+            .equals(VariableFunction('gcd', [x, IntegerNumber.of(12)]));
+        check(syntax.parse('lcm(x, 12)'))
+            .equals(VariableFunction('lcm', [x, IntegerNumber.of(12)]));
+        check(syntax.parse('gcd(12, x, 18)')).equals(
+          VariableFunction('gcd', [
+            IntegerNumber.of(12),
+            x,
+            IntegerNumber.of(18),
+          ]),
+        );
+        check(syntax.parse('lcm(12, x, 18)')).equals(
+          VariableFunction('lcm', [
+            IntegerNumber.of(12),
+            x,
+            IntegerNumber.of(18),
+          ]),
+        );
+        check(syntax.parse('gcd(x, 12, 18)')).equals(
+          VariableFunction('gcd', [
+            x,
+            IntegerNumber.of(12),
+            IntegerNumber.of(18),
+          ]),
+        );
+        check(syntax.parse('lcm(x, 12, 18)')).equals(
+          VariableFunction('lcm', [
+            x,
+            IntegerNumber.of(12),
+            IntegerNumber.of(18),
+          ]),
+        );
+
+        final vec = syntax.parseVector('[1, x, 2]');
+        check(vec.length).equals(3);
+        check(syntax.tryParseVector('[1, x]')!.length).equals(2);
+        check(syntax.tryParseVector('[1, +]')).isNull();
+        check(syntax.tryParseVector('[diff(x)]')).isNull();
+        check(() => syntax.parseVector('[1, +]')).throws<FormatException>();
+
+        final mat = syntax.parseMatrix('[[1, 2], [3, 4]]');
+        check(mat.rowCount).equals(2);
+        check(syntax.tryParseMatrix('[[1, 2], [3, 4]]')!.colCount).equals(2);
+        check(syntax.tryParseMatrix('[[1, 2], [3]]')).isNull();
+        check(syntax.tryParseMatrix('[1, 2]')).isNull();
+        check(() => syntax.parseMatrix('[[1, 2], [3]]'))
+            .throws<FormatException>();
+        check(() => syntax.parseMatrix('[1, 2]')).throws<FormatException>();
+
         check(() => syntax.parse('x +')).throws<FormatException>();
         check(syntax.tryParse('x +')).isNull();
+        check(syntax.tryParse('diff(x)')).isNull();
       },
     );
   });

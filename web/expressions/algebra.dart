@@ -34,55 +34,5 @@ String formatComplex(Complex c, {int precision = 4}) {
   return '${formatRealNumber(c.a, precision: precision)} $sign $bPart';
 }
 
-/// Factors an integer into a prime power product expression (e.g. 60 -> 2^2 * 3 * 5).
-Expr factorIntegerExpr(int n) {
-  if (n == 0) return IntegerNumber.zero;
-  final isNeg = n < 0;
-  var rem = n.abs();
-  if (rem == 1) return IntegerNumber.of(n);
-
-  final factors = <int, int>{};
-  var d = 2;
-  while (d * d <= rem) {
-    while (rem % d == 0) {
-      factors[d] = (factors[d] ?? 0) + 1;
-      rem ~/= d;
-    }
-    d += (d == 2) ? 1 : 2;
-  }
-  if (rem > 1) {
-    factors[rem] = (factors[rem] ?? 0) + 1;
-  }
-
-  final factorNodes = <Expr>[
-    if (isNeg) IntegerNumber.negativeOne,
-    for (final entry in factors.entries)
-      if (entry.value == 1)
-        IntegerNumber.of(entry.key)
-      else
-        Pow(IntegerNumber.of(entry.key), IntegerNumber.of(entry.value)),
-  ];
-  if (factorNodes.isEmpty) return IntegerNumber.of(n);
-  if (factorNodes.length == 1) return factorNodes.first;
-  return Mul(factorNodes);
-}
-
-/// Factors an expression, factoring irreducible polynomials or integers into prime powers.
-Expr factorExpr(Expr expr) {
-  final factored = expr.factor();
-  if (factored is IntegerNumber &&
-      !factored.value.isBig &&
-      factored.value.abs() > Integer.one) {
-    return factorIntegerExpr(factored.value.toInt());
-  }
-
-  // Also check if simplifying the expression yields an integer
-  final simp = expr.simplify();
-  if (simp is IntegerNumber &&
-      !simp.value.isBig &&
-      simp.value.abs() > Integer.one) {
-    return factorIntegerExpr(simp.value.toInt());
-  }
-
-  return factored;
-}
+/// Factors an expression, factoring polynomials or rational numbers into prime powers.
+Expr factorExpr(Expr expr) => expr.simplify().factor();

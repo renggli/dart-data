@@ -153,6 +153,55 @@ void main() {
         check(pwNoOtherwise.evaluateComplex({'x': const Complex(3)}).isNaN)
             .isTrue();
 
+        check(Factorial(x).evaluateComplex({'x': const Complex(5.0)}).a)
+            .isCloseTo(120.0, 1e-12);
+        check(() => Factorial(x).evaluateComplex({'x': nonRealZ}))
+            .throws<UnsupportedError>();
+
+        check(
+          Binomial(x, y).evaluateComplex({
+            'x': const Complex(5.0),
+            'y': const Complex(2.0),
+          }).a,
+        ).isCloseTo(10.0, 1e-12);
+        check(() => Binomial(x, y).evaluateComplex({'x': nonRealZ, 'y': realZ}))
+            .throws<UnsupportedError>();
+
+        check(Floor(x).evaluateComplex({'x': const Complex(3.7)}))
+            .equals(const Complex(3.0));
+        check(() => Floor(x).evaluateComplex({'x': nonRealZ}))
+            .throws<UnsupportedError>();
+
+        check(Ceil(x).evaluateComplex({'x': const Complex(3.2)}))
+            .equals(const Complex(4.0));
+        check(() => Ceil(x).evaluateComplex({'x': nonRealZ}))
+            .throws<UnsupportedError>();
+
+        check(Round(x).evaluateComplex({'x': const Complex(3.6)}))
+            .equals(const Complex(4.0));
+        check(() => Round(x).evaluateComplex({'x': nonRealZ}))
+            .throws<UnsupportedError>();
+
+        check(Sign(x).evaluateComplex({'x': Complex.zero}))
+            .equals(Complex.zero);
+        check(Sign(x).evaluateComplex({'x': const Complex(-3.0)}))
+            .equals(const Complex(-1.0));
+        check(Sign(x).evaluateComplex({'x': const Complex(3.0, 4.0)}))
+            .equals(const Complex(0.6, 0.8));
+
+        check(
+          Mod(x, y).evaluateComplex({
+            'x': const Complex(17.0),
+            'y': const Complex(5.0),
+          }),
+        ).equals(const Complex(2.0));
+        check(() => Mod(x, y).evaluateComplex({'x': nonRealZ, 'y': realZ}))
+            .throws<UnsupportedError>();
+
+        check(
+          NotEqual(x, IntegerNumber.zero).evaluateComplex({'x': Complex.one}),
+        ).equals(Complex.one);
+
         final defInt = Integral(
           x,
           'x',
@@ -161,6 +210,9 @@ void main() {
         );
         check(defInt.evaluateComplex().a).isCloseTo(2.0, 1e-12);
         check(Integral(x, 'x').evaluateComplex().isNaN).isTrue();
+        check(Derivative(x, 'x').evaluateComplex().isNaN).isTrue();
+        check(Limit(x, 'x', IntegerNumber.zero).evaluateComplex().isNaN)
+            .isTrue();
         check(const OrderTerm('x', 3).evaluateComplex()).equals(Complex.zero);
       },
     );

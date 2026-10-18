@@ -227,6 +227,122 @@ void main() {
       ).equals(IntegerNumber.zero);
       check(Integral(Add([x, IntegerNumber.zero]), 'x').simplify())
           .equals(Integral(x, 'x', isSimplified: true));
+
+      // Derivative and Limit AST simplification
+      check(simplifyDerivative(IntegerNumber.of(5), 'x'))
+          .equals(IntegerNumber.zero);
+      check(simplifyDerivative(Derivative(x, 'x'), 'x'))
+          .equals(Derivative(x, 'x', order: 2, isSimplified: true));
+      check(
+        simplifyDerivative(Sin(x), 'x'),
+      ).equals(Derivative(Sin(x, isSimplified: true), 'x', isSimplified: true));
+      check(simplifyLimit(IntegerNumber.of(5), 'x', IntegerNumber.zero))
+          .equals(IntegerNumber.of(5));
+      check(simplifyLimit(Sin(x), 'x', IntegerNumber.zero)).equals(
+        Limit(
+          Sin(x, isSimplified: true),
+          'x',
+          IntegerNumber.zero,
+          isSimplified: true,
+        ),
+      );
+
+      // Factorial and Binomial
+      check(simplifyFactorial(FractionNumber.negativeHalf).toString())
+          .equals('sqrt(pi)');
+      check(simplifyBinomial(IntegerNumber.of(5), IntegerNumber.of(-2)))
+          .equals(IntegerNumber.zero);
+      check(simplifyBinomial(IntegerNumber.of(3), IntegerNumber.of(5)))
+          .equals(IntegerNumber.zero);
+
+      // Floor, Ceil, Round, Sign, Mod on RealNumber and constant expressions
+      check(simplifyFloor(const RealNumber(3.7))).equals(const RealNumber(3.0));
+      check(simplifyFloor(Constant.pi)).equals(IntegerNumber.of(3));
+      check(simplifyCeil(const RealNumber(3.2))).equals(const RealNumber(4.0));
+      check(simplifyCeil(Constant.pi)).equals(IntegerNumber.of(4));
+      check(simplifyRound(const RealNumber(3.6))).equals(const RealNumber(4.0));
+      check(simplifyRound(Constant.pi)).equals(IntegerNumber.of(3));
+      check(simplifySign(Mul([IntegerNumber.negativeOne, x]))).equals(
+        Mul([
+          IntegerNumber.negativeOne,
+          Sign(x, isSimplified: true),
+        ], isSimplified: true),
+      );
+      check(simplifySign(Constant.pi)).equals(IntegerNumber.one);
+      check(simplifyMod(IntegerNumber.of(5), IntegerNumber.zero))
+          .equals(Constant.undefined);
+      check(simplifyMod(IntegerNumber.zero, IntegerNumber.of(5)))
+          .equals(IntegerNumber.zero);
+      check(simplifyMod(IntegerNumber.of(5), IntegerNumber.one))
+          .equals(IntegerNumber.zero);
+      check(simplifyMod(const RealNumber(7.5), const RealNumber(2.0)))
+          .equals(const RealNumber(1.5));
+
+      // Complex functions: Re, Im, Arg, Conjugate, toRectangular, toPolar
+      const z = Variable('z');
+      Assumptions.run(() {
+        check(simplifyRe(Add([z, IntegerNumber.two])).toString())
+            .equals('2 + re(z)');
+        check(simplifyIm(Add([z, ComplexNumber.i])).toString())
+            .equals('1 + im(z)');
+        check(
+          simplifyArg(
+            ComplexNumber.of(IntegerNumber.of(-1), IntegerNumber.of(-1)),
+          ).toString(),
+        ).equals('-3/4 * pi');
+        check(
+          simplifyArg(
+            ComplexNumber.of(IntegerNumber.of(1), IntegerNumber.of(-1)),
+          ).toString(),
+        ).equals('-1/4 * pi');
+        check(
+          simplifyArg(
+            ComplexNumber.of(IntegerNumber.of(-1), IntegerNumber.of(1)),
+          ).toString(),
+        ).equals('3/4 * pi');
+        check(
+          simplifyArg(
+            ComplexNumber.of(IntegerNumber.of(-3), IntegerNumber.of(-4)),
+          ).toString(),
+        ).equals('atan(4/3) - pi');
+        check(
+          simplifyArg(
+            ComplexNumber.of(IntegerNumber.of(-3), IntegerNumber.of(4)),
+          ).toString(),
+        ).equals('-atan(4/3) + pi');
+        check(simplifyArg(Conjugate(z)).toString()).equals('-arg(z)');
+        check(simplifyArg(Pow(x, IntegerNumber.two)))
+            .equals(IntegerNumber.zero);
+        check(simplifyArg(z)).equals(Arg(z, isSimplified: true));
+
+        check(simplifyConjugate(Add([z, IntegerNumber.one])).toString())
+            .equals('1 + conj(z)');
+        check(simplifyConjugate(Mul([z, IntegerNumber.two])).toString())
+            .equals('2 * conj(z)');
+        check(simplifyConjugate(Pow(Constant.e, z)).toString())
+            .equals('exp(conj(z))');
+        check(simplifyConjugate(Pow(z, IntegerNumber.two)).toString())
+            .equals('conj(z) ^ 2');
+        check(simplifyConjugate(Sin(z)).toString()).equals('sin(conj(z))');
+        check(simplifyConjugate(Cos(z)).toString()).equals('cos(conj(z))');
+        check(simplifyConjugate(Tan(z)).toString()).equals('tan(conj(z))');
+        check(simplifyConjugate(Sinh(z)).toString()).equals('sinh(conj(z))');
+        check(simplifyConjugate(Cosh(z)).toString()).equals('cosh(conj(z))');
+        check(simplifyConjugate(Tanh(z)).toString()).equals('tanh(conj(z))');
+
+        check(toRectangularExpr(Sin(z)).toString())
+            .equals('sin(re(z)) * cosh(im(z)) + i * cos(re(z)) * sinh(im(z))');
+        check(toRectangularExpr(Cos(z)).toString())
+            .equals('cos(re(z)) * cosh(im(z)) - i * sin(re(z)) * sinh(im(z))');
+        check(toRectangularExpr(Sinh(z)).toString())
+            .equals('cos(im(z)) * sinh(re(z)) + i * sin(im(z)) * cosh(re(z))');
+        check(toRectangularExpr(Cosh(z)).toString())
+            .equals('cos(im(z)) * cosh(re(z)) + i * sin(im(z)) * sinh(re(z))');
+        check(toRectangularExpr(Tan(z)).toString())
+            .equals('re(tan(z)) + i * im(tan(z))');
+        check(toRectangularExpr(Re(z))).equals(Re(z, isSimplified: true));
+        check(toRectangularExpr(Im(z))).equals(Im(z, isSimplified: true));
+      }, domains: {'z': VariableDomain.complex});
     });
   });
 }

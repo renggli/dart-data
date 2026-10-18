@@ -156,10 +156,32 @@ void main() {
         check(Beta(x, y).toMathMl(root: false)).equals(
           '<mrow><mi>B</mi><mo>(</mo><mi>x</mi><mo>,</mo><mi>y</mi><mo>)</mo></mrow>',
         );
+        check(Binomial(x, y).toMathMl(root: false)).equals(
+          '<mrow><mo>(</mo><mfrac linethickness="0"><mi>x</mi><mi>y</mi></mfrac><mo>)</mo></mrow>',
+        );
+        check(
+          Floor(x).toMathMl(root: false),
+        ).equals('<mrow><mo>&#x230A;</mo><mi>x</mi><mo>&#x230B;</mo></mrow>');
+        check(
+          Ceil(x).toMathMl(root: false),
+        ).equals('<mrow><mo>&#x2308;</mo><mi>x</mi><mo>&#x2309;</mo></mrow>');
+        check(
+          Round(x).toMathMl(root: false),
+        ).equals('<mrow><mi>round</mi><mo>(</mo><mi>x</mi><mo>)</mo></mrow>');
+        check(Sign(x).toMathMl(root: false))
+            .equals('<mrow><mi>sgn</mi><mo>(</mo><mi>x</mi><mo>)</mo></mrow>');
+        check(Mod(x, y).toMathMl(root: false))
+            .equals('<mrow><mi>x</mi><mo>mod</mo><mi>y</mi></mrow>');
+        check(Re(x).toMathMl(root: false))
+            .equals('<mrow><mi>Re</mi><mo>(</mo><mi>x</mi><mo>)</mo></mrow>');
+        check(Im(x).toMathMl(root: false))
+            .equals('<mrow><mi>Im</mi><mo>(</mo><mi>x</mi><mo>)</mo></mrow>');
+        check(Arg(x).toMathMl(root: false))
+            .equals('<mrow><mi>arg</mi><mo>(</mo><mi>x</mi><mo>)</mo></mrow>');
       },
     );
 
-    test('renders OrderTerm, RelationalExpr, Piecewise, Integral, and multiplication spacing', () {
+    test('renders OrderTerm, RelationalExpr, Piecewise, Integral, Derivative, Limit, and multiplication spacing', () {
       const x = Variable('x');
       check(const OrderTerm('x', 0).toMathMl(root: false))
           .equals('<mrow><mi>O</mi><mo>(</mo><mn>1</mn><mo>)</mo></mrow>');
@@ -183,6 +205,29 @@ void main() {
           .equals('<mrow><mi>x</mi><mo>&#x2265;</mo><mn>0</mn></mrow>');
       check(Equal(x, IntegerNumber.zero).toMathMl(root: false))
           .equals('<mrow><mi>x</mi><mo>=</mo><mn>0</mn></mrow>');
+      check(NotEqual(x, IntegerNumber.zero).toMathMl(root: false))
+          .equals('<mrow><mi>x</mi><mo>&#x2260;</mo><mn>0</mn></mrow>');
+      check(Derivative(x, 'x').toMathMl(root: false)).contains('<mfrac>');
+      check(Derivative(x, 'x', order: 2).toMathMl(root: false))
+          .contains('<msup><mi>d</mi><mn>2</mn></msup>');
+      check(Limit(x, 'x', IntegerNumber.zero).toMathMl(root: false))
+          .contains('<munder><mo>lim</mo>');
+      check(
+        Limit(
+          x,
+          'x',
+          IntegerNumber.zero,
+          direction: LimitDirection.fromAbove,
+        ).toMathMl(root: false),
+      ).contains('<mo>+</mo>');
+      check(
+        Limit(
+          x,
+          'x',
+          IntegerNumber.zero,
+          direction: LimitDirection.fromBelow,
+        ).toMathMl(root: false),
+      ).contains('<mo>&minus;</mo>');
 
       check(Expr.parse('piecewise(x < 0, -x, x)').toMathMl(root: false))
           .contains('<mtable>');

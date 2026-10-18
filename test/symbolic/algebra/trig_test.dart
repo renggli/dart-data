@@ -108,6 +108,23 @@ void main() {
       final tanSum = Expr.parse('tan(x) + tanh(y)');
       check(tanSum.rewrite(RewriteTarget.sinCos).toString())
           .equals('sinh(y) / cosh(y) + sin(x) / cos(x)');
+
+      final tanExp = Expr.parse('tan(x)').rewrite(RewriteTarget.exp);
+      check(tanExp.rewrite(RewriteTarget.trig).simplifyTrig().toString())
+          .equals('tan(x)');
+
+      final tanhExp = Expr.parse('tanh(x)').rewrite(RewriteTarget.exp);
+      check(tanhExp.evaluate({'x': 0.5}))
+          .isCloseTo(Expr.parse('tanh(x)').evaluate({'x': 0.5}), 1e-12);
+
+      check(Expr.parse('exp(x)').rewrite(RewriteTarget.trig).toString())
+          .equals('exp(x)');
+
+      // Unmatched powers in _foldMulToTan
+      check(Expr.parse('sin(x)^2 * cos(y)').simplifyTrig().toString())
+          .equals('cos(y) * sin(x) ^ 2');
+      check(Expr.parse('sinh(x)^2 * cosh(y)').simplifyTrig().toString())
+          .equals('sinh(x) ^ 2 * cosh(y)');
     });
   });
 }

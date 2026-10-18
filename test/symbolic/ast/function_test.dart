@@ -122,6 +122,33 @@ void main() {
           '<math><mover><mrow><mi>z</mi></mrow><mo>&macr;</mo></mover></math>',
         );
 
+        // Direct AST methods: isReal, evaluate, substitute, mapChildren
+        check(Abs(x).isReal).isTrue();
+        check(Re(x).isReal).isTrue();
+        check(Im(x).isReal).isTrue();
+        check(Arg(x).isReal).isTrue();
+        check(
+          Abs(ComplexNumber.of(IntegerNumber.of(3), IntegerNumber.of(4)))
+              .evaluate({'x': 1.0}),
+        ).isCloseTo(5.0, 1e-12);
+        check(Re(x).evaluate({'x': 3.5})).equals(3.5);
+        check(Re(x + ComplexNumber.i).evaluate({'x': 3.5})).equals(3.5);
+        check(Im(x).evaluate({'x': 3.5})).equals(0.0);
+        check(
+          Im(x + ComplexNumber.i * IntegerNumber.of(4)).evaluate({'x': 3.5}),
+        ).equals(4.0);
+        check(Arg(x).evaluate({'x': -2.0})).isCloseTo(math.pi, 1e-12);
+        check(Conjugate(x).evaluate({'x': 3.5})).equals(3.5);
+
+        check(Re(x).substitute('x', z)).equals(Re(z));
+        check(Re(x).mapChildren((_) => z)).equals(Re(z));
+        check(Im(x).substitute('x', z)).equals(Im(z));
+        check(Im(x).mapChildren((_) => z)).equals(Im(z));
+        check(Arg(x).substitute('x', z)).equals(Arg(z));
+        check(Arg(x).mapChildren((_) => z)).equals(Arg(z));
+        check(Conjugate(x).substitute('x', z)).equals(Conjugate(z));
+        check(Conjugate(x).mapChildren((_) => z)).equals(Conjugate(z));
+
         // Bytecode compilation
         final reFn = Re(z).toComplexFunction1D('z');
         final imFn = Im(z).toComplexFunction1D('z');

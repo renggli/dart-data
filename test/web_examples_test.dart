@@ -207,23 +207,13 @@ void main() {
     });
 
     group('integer & expression factoring', () {
-      test(
-        'factorIntegerExpr decomposes composite numbers into prime powers',
-        () {
-          check(factorIntegerExpr(0)).equals(IntegerNumber.zero);
-          check(factorIntegerExpr(1)).equals(IntegerNumber.one);
-          check(factorIntegerExpr(-1)).equals(IntegerNumber.negativeOne);
-          check(factorIntegerExpr(7)).equals(IntegerNumber.of(7));
-
-          final factored24 = factorIntegerExpr(24);
-          check(factored24.toString()).equals('2 ^ 3 * 3');
-
-          final factoredNeg60 = factorIntegerExpr(-60);
-          check(factoredNeg60.toString()).equals('-(2 ^ 2 * 3 * 5)');
-        },
-      );
-
       test('factorExpr factors polynomials and integer numbers', () {
+        check(factorExpr(IntegerNumber.zero)).equals(IntegerNumber.zero);
+        check(factorExpr(IntegerNumber.one)).equals(IntegerNumber.one);
+        check(factorExpr(IntegerNumber.negativeOne))
+            .equals(IntegerNumber.negativeOne);
+        check(factorExpr(IntegerNumber.of(7))).equals(IntegerNumber.of(7));
+
         final poly = Expr.parse('x^2 - 4');
         check(factorExpr(poly).toString()).equals('(-2 + x) * (2 + x)');
 
