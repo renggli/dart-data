@@ -53,7 +53,12 @@ extension LinearFormExtension on Expr {
   };
 }
 
-({Expr a, Expr b})? _matchLinearMul(List<Expr> factors, String variable) {
+/// Partitions [factors] into constant factors and variable-dependent factors
+/// with respect to [variable].
+({List<Expr> constFactors, List<Expr> varFactors}) partitionFactors(
+  Iterable<Expr> factors,
+  String variable,
+) {
   final constFactors = <Expr>[];
   final varFactors = <Expr>[];
   for (final f in factors) {
@@ -63,6 +68,11 @@ extension LinearFormExtension on Expr {
       constFactors.add(f);
     }
   }
+  return (constFactors: constFactors, varFactors: varFactors);
+}
+
+({Expr a, Expr b})? _matchLinearMul(List<Expr> factors, String variable) {
+  final (:constFactors, :varFactors) = partitionFactors(factors, variable);
   if (varFactors case [final singleVar]) {
     final sub = _matchLinear(singleVar, variable);
     if (sub == null) return null;
@@ -140,15 +150,10 @@ Expr? _matchScalarMultiple(Expr expr, Expr target, String variable) {
 
 (Expr, Expr) _splitConstAndVar(Expr expr, String variable) {
   if (expr case Mul(:final factors)) {
-    final consts = <Expr>[];
-    final vars = <Expr>[];
-    for (final f in factors) {
-      if (f.dependsOn(variable)) {
-        vars.add(f);
-      } else {
-        consts.add(f);
-      }
-    }
+    final (constFactors: consts, varFactors: vars) = partitionFactors(
+      factors,
+      variable,
+    );
     final c = switch (consts) {
       [] => IntegerNumber.one,
       [final single] => single,

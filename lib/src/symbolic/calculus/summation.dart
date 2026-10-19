@@ -255,15 +255,7 @@ Expr? _antidifferenceSingleTerm(Expr term, String variable) {
 
   // Separate constant factors from variable-dependent factors
   final factors = term is Mul ? term.factors : [term];
-  final constFactors = <Expr>[];
-  final varFactors = <Expr>[];
-  for (final f in factors) {
-    if (f.dependsOn(variable)) {
-      varFactors.add(f);
-    } else {
-      constFactors.add(f);
-    }
-  }
+  final (:constFactors, :varFactors) = partitionFactors(factors, variable);
   if (constFactors.isNotEmpty) {
     final constPart = simplifyMul(constFactors);
     final varPart = simplifyMul(varFactors);

@@ -650,15 +650,10 @@ Expr _antiDerivMul(Mul original, String variable) {
   }
 
   // 2. Separate constant factors from variable-dependent factors
-  final constFactors = <Expr>[];
-  final varFactors = <Expr>[];
-  for (final f in original.factors) {
-    if (f.dependsOn(variable)) {
-      varFactors.add(f);
-    } else {
-      constFactors.add(f);
-    }
-  }
+  final (:constFactors, :varFactors) = partitionFactors(
+    original.factors,
+    variable,
+  );
 
   if (constFactors.isNotEmpty) {
     final constPart = constFactors.length == 1
@@ -1044,15 +1039,7 @@ Expr? _extractScaledSquareBase(Expr expr, String variable) {
   final direct = _extractSquareBase(expr);
   if (direct != null) return direct;
   if (expr case Mul(:final factors)) {
-    final constFactors = <Expr>[];
-    final varFactors = <Expr>[];
-    for (final f in factors) {
-      if (f.dependsOn(variable)) {
-        varFactors.add(f);
-      } else {
-        constFactors.add(f);
-      }
-    }
+    final (:constFactors, :varFactors) = partitionFactors(factors, variable);
     if (varFactors case [final varPart] when constFactors.isNotEmpty) {
       final constPart = switch (constFactors) {
         [final single] => single,

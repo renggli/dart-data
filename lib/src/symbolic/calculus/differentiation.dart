@@ -2,6 +2,7 @@ import '../algebra/expand.dart';
 import '../algebra/simplify.dart';
 import '../assumptions.dart';
 import '../ast.dart';
+import 'linear_form.dart';
 
 /// Analytical symbolic differentiation extension on [Expr].
 extension DifferentiationExtension on Expr {
@@ -245,15 +246,7 @@ Expr _differentiateMul(List<Expr> factors, String variable) {
     };
   }
 
-  final constFactors = <Expr>[];
-  final varFactors = <Expr>[];
-  for (final f in factors) {
-    if (f.dependsOn(variable)) {
-      varFactors.add(f);
-    } else {
-      constFactors.add(f);
-    }
-  }
+  final (:constFactors, :varFactors) = partitionFactors(factors, variable);
 
   if (varFactors case [final singleVar]) {
     final d = _differentiate(singleVar, variable);
