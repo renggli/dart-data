@@ -470,43 +470,43 @@ extension DescriptiveTensorNumExtension on Tensor<num> {
 /// Statistics extensions on [Matrix<num>].
 extension DescriptiveMatrixNumExtension on Matrix<num> {
   /// Returns the arithmetic mean of matrix elements.
-  double mean() => _mean(values);
+  double mean() => tensor.mean();
 
   /// Returns the variance of matrix elements.
   double variance({bool population = false}) =>
-      _variance(values, population: population);
+      tensor.variance(population: population);
 
   /// Returns the standard deviation of matrix elements.
   double standardDeviation({bool population = false}) =>
-      _standardDeviation(values, population: population);
+      tensor.standardDeviation(population: population);
 
   /// Returns the median of matrix elements.
-  double median() => _median(values);
+  double median() => tensor.median();
 
   /// Returns the empirical quantile for [quantile] in `[0.0, 1.0]`.
-  double quantile(num quantile) => _quantile(values, quantile);
+  double quantile(num quantile) => tensor.quantile(quantile);
 
   /// Returns the interquartile range (IQR).
-  double iqr() => _iqr(values);
+  double iqr() => tensor.iqr();
 
   /// Returns the skewness of matrix elements.
-  double skewness({bool bias = false}) => _skewness(values, bias: bias);
+  double skewness({bool bias = false}) => tensor.skewness(bias: bias);
 
   /// Returns the kurtosis of matrix elements.
   double kurtosis({bool excess = true, bool bias = false}) =>
-      _kurtosis(values, excess: excess, bias: bias);
+      tensor.kurtosis(excess: excess, bias: bias);
 
   /// Computes the covariance matrix.
   Matrix<double> covarianceMatrix({bool rowVar = false}) =>
-      _covarianceMatrix(this, rowVar: rowVar);
+      tensor.covarianceMatrix(rowVar: rowVar);
 
   /// Computes the Pearson correlation matrix.
   Matrix<double> pearsonCorrelationMatrix({bool rowVar = false}) =>
-      _pearsonCorrelationMatrix(this, rowVar: rowVar);
+      tensor.pearsonCorrelationMatrix(rowVar: rowVar);
 
   /// Computes the Spearman rank correlation matrix.
   Matrix<double> spearmanCorrelationMatrix({bool rowVar = false}) =>
-      _spearmanCorrelationMatrix(this, rowVar: rowVar);
+      tensor.spearmanCorrelationMatrix(rowVar: rowVar);
 }
 
 double _mean(Iterable<num> values) {
