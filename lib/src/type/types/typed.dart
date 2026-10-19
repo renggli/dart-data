@@ -39,13 +39,7 @@ abstract base class TypedDataType<T, L extends List<T>> extends DataType<T> {
     } else if (fillValue != null && fillValue != defaultValue) {
       result.fillRange(0, length, fillValue);
     }
-    if (readonly) {
-      final unmod = readonlyList(result);
-      final nb = NativeBuffer.find(result);
-      if (nb != null) NativeBuffer.register(unmod, nb);
-      return unmod;
-    }
-    return result;
+    return readonly ? _asReadonly(result) : result;
   }
 
   @override
@@ -63,13 +57,14 @@ abstract base class TypedDataType<T, L extends List<T>> extends DataType<T> {
       native: native,
     );
     result.setRange(0, math.min(result.length, listLength), iterable);
-    if (readonly) {
-      final unmod = readonlyList(result);
-      final nb = NativeBuffer.find(result);
-      if (nb != null) NativeBuffer.register(unmod, nb);
-      return unmod;
-    }
-    return result;
+    return readonly ? _asReadonly(result) : result;
+  }
+
+  L _asReadonly(L list) {
+    final unmod = readonlyList(list);
+    final nb = NativeBuffer.find(list);
+    if (nb != null) NativeBuffer.register(unmod, nb);
+    return unmod;
   }
 
   /// Internal method to create an empty typed-list of the requested [length].
