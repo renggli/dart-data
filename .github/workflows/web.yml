@@ -44,7 +44,7 @@ jobs:
         with:
           enablement: true
       - name: "Upload Pages Artifact"
-        uses: actions/upload-pages-artifact@v4
+        uses: actions/upload-pages-artifact@v5
         with:
           path: "build/web"
       - name: "Deploy to GitHub Pages"
