@@ -53,7 +53,7 @@ extension IntegrationExtension on Expr {
   /// Computes an iterated (multiple) integral across [bounds] in sequence from
   /// innermost to outermost integration variable.
   ///
-  /// For bounds $[(x_1, a_1, b_1), (x_2, a_2, b_2), \dots, (x_n, a_n, b_n)]$,
+  /// For bounds $\[(x_1, a_1, b_1), (x_2, a_2, b_2), \dots, (x_n, a_n, b_n)\]$,
   /// this evaluates:
   /// $$\int_{a_n}^{b_n} \cdots \left(\int_{a_2}^{b_2} \left(\int_{a_1}^{b_1} f \, dx_1\right) dx_2\right) \cdots dx_n$$
   ///

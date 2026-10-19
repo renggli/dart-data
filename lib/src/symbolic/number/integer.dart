@@ -24,7 +24,7 @@ extension type const Integer._(Object _value) {
   /// Creates an integer from a [value] within the safe range
   /// $[-(2^{53} - 1), 2^{53} - 1]$.
   ///
-  /// Use [Integer.from] for values that might exceed the safe range.
+  /// Use `Integer.from` for values that might exceed the safe range.
   const new(int value)
     : assert(
         -maxSafe <= value && value <= maxSafe,
