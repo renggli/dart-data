@@ -303,7 +303,8 @@ void main() {
       check(() => Integral(Sin(x), 'x').series('x')).throws<UnsupportedError>();
       check(() => const OrderTerm('x', 3).series('x'))
           .throws<UnsupportedError>();
-      check(() => Sin(x).series('x', point: 'invalid')).throws<ArgumentError>();
+      check(() => Sin(x).series('x', point: '??? invalid'))
+          .throws<ArgumentError>();
     });
 
     test('expands with includeOrder: false and int, BigInt, double, and symbolic points', () {

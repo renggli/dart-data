@@ -50,15 +50,8 @@ extension SeriesExtension on Expr {
 }
 
 Expr _wrapSeriesPoint(Object point) => switch (point) {
-  Expr() => point,
-  int() => IntegerNumber(Integer.from(point)),
-  BigInt() => IntegerNumber(Integer.big(point)),
   double() => _doubleToPoint(point),
-  _ => throw ArgumentError.value(
-    point,
-    'point',
-    'Series expansion point must be an Expr, int, BigInt, or double',
-  ),
+  _ => Expr.wrap(point),
 };
 
 Expr _doubleToPoint(double value) {

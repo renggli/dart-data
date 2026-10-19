@@ -1,6 +1,6 @@
 import 'dart:math' as math;
 
-import 'package:more/number.dart' show Complex;
+import 'package:more/number.dart' show Complex, Fraction;
 
 import 'number/integer.dart';
 import 'number/rational.dart';

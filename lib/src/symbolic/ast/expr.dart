@@ -21,6 +21,69 @@ sealed class Expr {
   static Expr? tryParse(String input, {ExprSyntax? syntax}) =>
       (syntax ?? ExprSyntax.standard).tryParse(input);
 
+  /// Converts [value] into a symbolic [Expr].
+  ///
+  /// Accepts an existing [Expr], machine `int`, [BigInt], [Integer],
+  /// [Fraction], IEEE-754 `double`, [Complex], or [String] (variable name or expression).
+  ///
+  /// Throws an [ArgumentError] if [value] cannot be converted to an [Expr].
+  factory wrap(Object? value) =>
+      Expr.tryWrap(value) ??
+      (throw ArgumentError.value(
+        value,
+        'value',
+        'Cannot convert to symbolic expression',
+      ));
+
+  /// Converts [value] into a symbolic [Expr], or returns `null` if [value]
+  /// cannot be converted.
+  ///
+  /// Accepts an existing [Expr], machine `int`, [BigInt], [Integer],
+  /// [Fraction], IEEE-754 `double`, [Complex], or [String] (variable name or expression).
+  static Expr? tryWrap(Object? value) {
+    if (value is Expr) return value;
+    if (value is int && value.isFinite) {
+      return IntegerNumber(Integer.from(value));
+    }
+    if (value is BigInt) {
+      return IntegerNumber(Integer.big(value));
+    }
+    if (value is Fraction) {
+      return RationalNumber.of(
+        Integer(value.numerator),
+        Integer(value.denominator),
+      );
+    }
+    if (value is double) {
+      return RealNumber.fromDouble(value);
+    }
+    if (value is int) {
+      return RealNumber.fromDouble(value.toDouble());
+    }
+    if (value is Complex) {
+      final a = value.a;
+      final b = value.b;
+      if (b == 0) {
+        return a.isFinite ? _wrapNum(a) : RealNumber.fromDouble(a.toDouble());
+      }
+      final real = a.isFinite
+          ? _wrapNum(a)
+          : RealNumber.fromDouble(a.toDouble());
+      final imag = b.isFinite
+          ? _wrapNum(b)
+          : RealNumber.fromDouble(b.toDouble());
+      if (real is RealNumeric && imag is RealNumeric) {
+        return ComplexNumber.of(real, imag);
+      }
+      if (imag is Number && imag.isZero) return real;
+      return real + imag * ComplexNumber.i;
+    }
+    if (value is String) {
+      return Expr.tryParse(value);
+    }
+    return null;
+  }
+
   /// Whether this expression node is already in canonical simplified form.
   bool get isSimplified;
 
@@ -59,7 +122,7 @@ sealed class Expr {
   /// [Complex], or `String` (variable name). Flattens unsimplified [Add]
   /// operands in exact input order.
   Expr operator +(Object other) {
-    final rhs = _wrap(other);
+    final rhs = Expr.wrap(other);
     if ((this, rhs) case (
       final RealNumeric real,
       ComplexNumber(real: IntegerNumber(isZero: true), :final imaginary),
@@ -76,7 +139,7 @@ sealed class Expr {
   ///
   /// Accepts an [Expr], `num` (`int` or `double`), [BigInt], [Integer],
   /// [Complex], or `String` (variable name).
-  Expr operator -(Object other) => this + (-_wrap(other));
+  Expr operator -(Object other) => this + (-Expr.wrap(other));
 
   /// Symbolic multiplication: `this * other`.
   ///
@@ -84,7 +147,7 @@ sealed class Expr {
   /// [Complex], or `String` (variable name). Flattens unsimplified [Mul]
   /// operands in exact input order.
   Expr operator *(Object other) {
-    final rhs = _wrap(other);
+    final rhs = Expr.wrap(other);
     if ((this, rhs) case (
       final RealNumeric scale,
       ComplexNumber(real: IntegerNumber(isZero: true), :final imaginary),
@@ -115,7 +178,7 @@ sealed class Expr {
   /// non-zero, returns the reduced [RationalNumber] quotient directly;
   /// otherwise returns `this * Pow(other, -1)`.
   Expr operator /(Object other) {
-    final rhs = _wrap(other);
+    final rhs = Expr.wrap(other);
     if ((this, rhs) case (final RationalNumber a, final RationalNumber b)
         when !b.isZero) {
       return a.divRational(b);
@@ -144,34 +207,10 @@ sealed class Expr {
   ///
   /// Accepts an [Expr], `num` (`int` or `double`), [BigInt], [Integer],
   /// [Complex], or `String` (variable name).
-  Expr pow(Object exponent) => Pow(this, _wrap(exponent));
+  Expr pow(Object exponent) => Pow(this, Expr.wrap(exponent));
 
   @override
   String toString() => formatExpr(this);
-
-  static Expr _wrap(Object value) => switch (value) {
-    Expr() => value,
-    int() => IntegerNumber(Integer.from(value)),
-    BigInt() => IntegerNumber(Integer.big(value)),
-    double() => RealNumber.fromDouble(value),
-    Complex(:final a, :final b) => _wrapComplex(a, b),
-    String() => Variable(value),
-    _ => throw ArgumentError.value(
-      value,
-      'value',
-      'Cannot convert to symbolic expression',
-    ),
-  };
-
-  static Expr _wrapComplex(num a, num b) =>
-      switch ((_wrapNum(a), _wrapNum(b))) {
-        (final RealNumeric real, final RealNumeric imag) => ComplexNumber.of(
-          real,
-          imag,
-        ),
-        (final real, Number(isZero: true)) => real,
-        (final real, final imag) => real + imag * ComplexNumber.i,
-      };
 
   static Expr _wrapNum(num value) {
     if (!value.isFinite) {

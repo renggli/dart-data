@@ -52,7 +52,7 @@ void main() {
       );
       check(x.integrate('x', from: BigInt.zero, to: BigInt.two))
           .equals(IntegerNumber.two);
-      check(() => x.integrate('x', from: 0, to: 'invalid'))
+      check(() => x.integrate('x', from: 0, to: '??? invalid'))
           .throws<ArgumentError>();
     });
 

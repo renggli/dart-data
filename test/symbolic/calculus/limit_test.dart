@@ -371,7 +371,7 @@ void main() {
               .equals(IntegerNumber.zero);
           check(Sin(x).limit('x', Constant.pi / IntegerNumber.two))
               .equals(IntegerNumber.one);
-          check(() => x.limit('x', 'invalid')).throws<ArgumentError>();
+          check(() => x.limit('x', '??? invalid')).throws<ArgumentError>();
         },
       );
     },

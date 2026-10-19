@@ -1,9 +1,76 @@
 import 'package:checks/checks.dart';
 import 'package:data/symbolic.dart';
-import 'package:more/number.dart' show Complex;
+import 'package:more/number.dart' show Complex, Fraction;
 import 'package:test/test.dart';
 
 void main() {
+  group('Expr.wrap', () {
+    test('wraps Expr directly', () {
+      const x = Variable('x');
+      check(Expr.wrap(x)).equals(x);
+    });
+
+    test('wraps int and BigInt', () {
+      check(Expr.wrap(42)).equals(IntegerNumber.of(42));
+      check(Expr.wrap(-7)).equals(IntegerNumber.of(-7));
+      check(Expr.wrap(BigInt.from(12345)))
+          .equals(IntegerNumber(Integer.big(BigInt.from(12345))));
+    });
+
+    test('wraps Integer', () {
+      check(Expr.wrap(Integer.from(100) as Object))
+          .equals(IntegerNumber.of(100));
+    });
+
+    test('wraps Fraction', () {
+      check(Expr.wrap(Fraction(3, 4)))
+          .equals(FractionNumber(Integer.from(3), Integer.from(4)));
+      check(Expr.wrap(Fraction(6, 2))).equals(IntegerNumber.of(3));
+    });
+
+    test('wraps double', () {
+      check(Expr.wrap(2.5)).equals(const RealNumber(2.5));
+      check(Expr.wrap(double.infinity)).equals(Constant.infinity);
+      check(Expr.wrap(double.negativeInfinity)).equals(-Constant.infinity);
+      check(Expr.wrap(double.nan)).equals(Constant.undefined);
+    });
+
+    test('wraps Complex', () {
+      check(Expr.wrap(const Complex(5, 0))).equals(IntegerNumber.of(5));
+      check(Expr.wrap(const Complex(2.5, 0))).equals(const RealNumber(2.5));
+      check(Expr.wrap(const Complex(0, 1))).equals(ComplexNumber.i);
+      check(Expr.wrap(const Complex(3, 4)))
+          .equals(ComplexNumber(IntegerNumber.of(3), IntegerNumber.of(4)));
+    });
+
+    test('wraps String via parsing', () {
+      check(Expr.wrap('x')).equals(const Variable('x'));
+      check(Expr.wrap('x + 1')).equals(const Variable('x') + 1);
+      check(() => Expr.wrap('invalid ???')).throws<ArgumentError>();
+    });
+
+    test('throws ArgumentError on unsupported types', () {
+      check(() => Expr.wrap(Object())).throws<ArgumentError>();
+      check(() => Expr.wrap([1, 2, 3])).throws<ArgumentError>();
+    });
+  });
+
+  group('Expr.tryWrap', () {
+    test('returns Expr or converted value on success', () {
+      const x = Variable('x');
+      check(Expr.tryWrap(x)).equals(x);
+      check(Expr.tryWrap(42)).equals(IntegerNumber.of(42));
+      check(Expr.tryWrap('x + 1')).equals(const Variable('x') + 1);
+    });
+
+    test('returns null on failure', () {
+      check(Expr.tryWrap(null)).isNull();
+      check(Expr.tryWrap(Object())).isNull();
+      check(Expr.tryWrap([1, 2, 3])).isNull();
+      check(Expr.tryWrap('invalid ???')).isNull();
+    });
+  });
+
   group('Expr parsing', () {
     test('parse and tryParse with standard and custom syntax', () {
       check(Expr.parse('x + 1')).equals(const Variable('x') + 1);

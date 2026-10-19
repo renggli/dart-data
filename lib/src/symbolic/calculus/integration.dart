@@ -157,28 +157,21 @@ bool _hasUnevaluatedIntegral(Expr expr, String variable) => expr.anyNode(
 );
 
 Expr _boundToExpr(Object bound) => switch (bound) {
-  Expr() => bound,
-  int() when bound.isFinite => IntegerNumber.of(bound),
-  BigInt() => IntegerNumber(Integer.big(bound)),
   double() => _doubleToBoundExpr(bound),
-  _ => throw ArgumentError.value(
-    bound,
-    'bound',
-    'Integration bound must be an Expr, int, BigInt, or double',
-  ),
+  _ => Expr.wrap(bound),
 };
 
 Expr _doubleToBoundExpr(double d) {
-  if (d.isNaN) return Constant.undefined;
-  if (d == double.infinity) return Constant.infinity;
-  if (d == double.negativeInfinity) return -Constant.infinity;
+  final real = RealNumber.fromDouble(d);
+  if (!d.isFinite) return real;
   if (d == d.truncateToDouble() && d.abs() <= Integer.maxSafe.toDouble()) {
     return IntegerNumber.of(d.toInt());
   }
-  final real = RealNumber(d);
-  final rat = real.rationalize(maxDenominator: 64);
-  if (rat is RationalNumber && (d - rat.toDouble()).abs() < 1e-12) {
-    return rat;
+  if (real is RealNumber) {
+    final rat = real.rationalize(maxDenominator: 64);
+    if (rat is RationalNumber && (d - rat.toDouble()).abs() < 1e-12) {
+      return rat;
+    }
   }
   return real;
 }

@@ -27,9 +27,8 @@ void main() {
       check(dt.cast(const Complex(5, 0))).equals(IntegerNumber.of(5));
       check(dt.cast(const Complex(2, 3)))
           .equals(ComplexNumber(IntegerNumber.two, IntegerNumber.of(3)));
-      check(dt.cast(const Complex(double.infinity, 2))).equals(
-        (Constant.infinity + IntegerNumber.two * ComplexNumber.i).simplify(),
-      );
+      check(dt.cast(const Complex(double.infinity, 2)))
+          .equals(Expr.wrap(const Complex(double.infinity, 2)));
       check(dt.cast(2.5)).equals(const RealNumber(2.5));
       check(dt.cast('x + 1')).equals(Expr.parse('x + 1'));
 

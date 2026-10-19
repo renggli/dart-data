@@ -31,25 +31,11 @@ extension LimitExtension on Expr {
   }) => computeLimit(
     this,
     variable,
-    _wrapLimitPoint(point),
+    Expr.wrap(point),
     direction: direction,
     assumptions: assumptions,
   );
 }
-
-Expr _wrapLimitPoint(Object point) => switch (point) {
-  Expr() => point,
-  int() when point.isFinite => IntegerNumber(Integer.from(point)),
-  BigInt() => IntegerNumber(Integer.big(point)),
-  double() when point == double.infinity => Constant.infinity,
-  double() when point == double.negativeInfinity => _negInfinity,
-  double() => RealNumber.fromDouble(point),
-  _ => throw ArgumentError.value(
-    point,
-    'point',
-    'Limit point must be an Expr, int, BigInt, or double',
-  ),
-};
 
 final Expr _negInfinity = Mul(const [
   IntegerNumber.negativeOne,

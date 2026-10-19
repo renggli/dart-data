@@ -1,4 +1,3 @@
-import 'package:more/number.dart' show Complex;
 import 'package:more/printer.dart' show Printer, StandardPrinter;
 
 import '../../linear/matrix.dart';
@@ -49,19 +48,7 @@ final class ExprDataType extends DataType<Expr> {
   int comparator(Expr a, Expr b) => compareStructural(a, b);
 
   @override
-  Expr cast(dynamic value) => switch (value) {
-    final Expr expr => expr,
-    final int n when n.isFinite => IntegerNumber.of(n),
-    final BigInt b => IntegerNumber(Integer.big(b)),
-    Complex(:final a, b: == 0) => cast(a),
-    Complex(:final a, :final b) => switch ((cast(a), cast(b))) {
-      (final RealNumeric re, final RealNumeric im) => ComplexNumber.of(re, im),
-      (final re, final im) => (re + im * ComplexNumber.i).simplify(),
-    },
-    final num n => RealNumber.fromDouble(n.toDouble()),
-    final String s => Expr.tryParse(s) ?? super.cast(s),
-    _ => super.cast(value),
-  };
+  Expr cast(dynamic value) => Expr.tryWrap(value) ?? super.cast(value);
 
   @override
   Printer<Expr> get printer => const StandardPrinter<Expr>();

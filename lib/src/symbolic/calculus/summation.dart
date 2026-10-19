@@ -38,8 +38,8 @@ extension SummationExtension on Expr {
   }) => computeSum(
     this,
     variable,
-    _wrapBound(from),
-    _wrapBound(to),
+    Expr.wrap(from),
+    Expr.wrap(to),
     assumptions: assumptions,
   );
 
@@ -78,20 +78,11 @@ extension SummationExtension on Expr {
   }) => computeProduct(
     this,
     variable,
-    _wrapBound(from),
-    _wrapBound(to),
+    Expr.wrap(from),
+    Expr.wrap(to),
     assumptions: assumptions,
   );
 }
-
-Expr _wrapBound(Object bound) => switch (bound) {
-  final Expr e => e,
-  final int n => IntegerNumber.of(n),
-  final BigInt b => IntegerNumber(Integer.big(b)),
-  final double d => RealNumber.fromDouble(d),
-  final String s => Variable(s),
-  _ => throw ArgumentError('Unsupported bound type: ${bound.runtimeType}'),
-};
 
 /// Evaluates the definite sum $\sum_{k=a}^b \text{term}$.
 Expr computeSum(
