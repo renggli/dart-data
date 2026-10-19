@@ -1,8 +1,9 @@
 import 'package:checks/checks.dart';
-import 'package:data/acceleration.dart';
 import 'package:data/linear.dart';
 import 'package:data/type.dart';
 import 'package:test/test.dart';
+
+import '../../test_utils.dart';
 
 void main() {
   group('Eigenvalue Decomposition', () {
@@ -104,7 +105,7 @@ void main() {
       check(eig.v.rowCount).equals(3);
     });
 
-    test('symmetric matrix with hardware enabled vs disabled', () {
+    accelerationTest('symmetric matrix decomposition', () {
       final a = Matrix<double>.fromRows([
         [5.0, 2.0, -1.0, 0.0],
         [2.0, 4.0, 1.0, -2.0],
@@ -112,36 +113,32 @@ void main() {
         [0.0, -2.0, 3.0, 7.0],
       ], type: DataType.float64);
 
-      for (final hw in [true, false]) {
-        AccelerationManager.isEnabled = hw;
-        final eig = a.eigenvalue;
-        final d = eig.d;
-        final v = eig.v;
-        final vals = eig.realEigenvalues;
+      final eig = a.eigenvalue;
+      final d = eig.d;
+      final v = eig.v;
+      final vals = eig.realEigenvalues;
 
-        // 1. Check eigenvalue ordering: ascending
-        for (var i = 0; i < vals.length - 1; i++) {
-          check(vals[i] <= vals[i + 1]).isTrue();
-        }
+      // 1. Check eigenvalue ordering: ascending
+      for (var i = 0; i < vals.length - 1; i++) {
+        check(vals[i] <= vals[i + 1]).isTrue();
+      }
 
-        // 2. Check orthonormality: V^T * V = I
-        final vTv = v.transposed * v;
-        for (var i = 0; i < 4; i++) {
-          for (var j = 0; j < 4; j++) {
-            check(vTv.get(i, j)).isCloseTo(i == j ? 1.0 : 0.0, 1e-8);
-          }
-        }
-
-        // 3. Check reconstruction: A * V = V * D
-        final av = a * v;
-        final vd = v * d;
-        for (var i = 0; i < 4; i++) {
-          for (var j = 0; j < 4; j++) {
-            check(av.get(i, j)).isCloseTo(vd.get(i, j), 1e-7);
-          }
+      // 2. Check orthonormality: V^T * V = I
+      final vTv = v.transposed * v;
+      for (var i = 0; i < 4; i++) {
+        for (var j = 0; j < 4; j++) {
+          check(vTv.get(i, j)).isCloseTo(i == j ? 1.0 : 0.0, 1e-8);
         }
       }
-      AccelerationManager.isEnabled = true;
+
+      // 3. Check reconstruction: A * V = V * D
+      final av = a * v;
+      final vd = v * d;
+      for (var i = 0; i < 4; i++) {
+        for (var j = 0; j < 4; j++) {
+          check(av.get(i, j)).isCloseTo(vd.get(i, j), 1e-7);
+        }
+      }
     });
 
     test('non-float64 symmetric matrices use pure Dart fallback', () {

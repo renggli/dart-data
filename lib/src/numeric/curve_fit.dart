@@ -35,7 +35,9 @@ Vector<double> leastSquares(Matrix<num> a, Vector<num> b) {
   }
   final rows = a.rowCount;
   final cols = a.colCount;
-  if (rows >= cols && AccelerationManager.isAccelerated) {
+  if (rows >= cols &&
+      (AccelerationManager.isAccelerated ||
+          AccelerationManager.mode == AccelerationMode.accelerated)) {
     final Float64List aData;
     if (a.type == DataType.float64 &&
         a.tensor.isContiguous &&

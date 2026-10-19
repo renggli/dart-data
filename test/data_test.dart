@@ -18,7 +18,7 @@ void main() {
     check(prod.toList()).deepEquals([3.0, 4.0]);
 
     // Subsystem 4: Acceleration
-    check(AccelerationManager.isEnabled).isTrue();
+    check(AccelerationManager.mode).equals(AccelerationMode.auto);
 
     // Subsystem 5: DataFrame & Series
     final df = DataFrame.fromColumns({

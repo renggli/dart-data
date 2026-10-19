@@ -4,13 +4,11 @@ import 'package:checks/checks.dart';
 import 'package:data/acceleration.dart';
 import 'package:test/test.dart';
 
+import '../test_utils.dart';
+
 void main() {
   group('BlasLevel3 Routines', () {
-    tearDown(() {
-      AccelerationManager.mode = AccelerationMode.auto;
-    });
-
-    test('dgemm general matrix multiply', () {
+    accelerationTest('dgemm general matrix multiply', () {
       final a = Float64List.fromList([1.0, 2.0, 3.0, 4.0]);
       final b = Float64List.fromList([2.0, 0.0, 1.0, 2.0]);
       final c = Float64List(4);
@@ -34,9 +32,9 @@ void main() {
       check(c[1]).isCloseTo(4.0, 1e-10);
       check(c[2]).isCloseTo(10.0, 1e-10);
       check(c[3]).isCloseTo(8.0, 1e-10);
-    });
+    }, isSupported: AccelerationManager.isBlasAvailable);
 
-    test('sgemm single-precision general matrix multiply', () {
+    accelerationTest('sgemm single-precision general matrix multiply', () {
       final a = Float32List.fromList([1.0, 2.0, 3.0, 4.0]);
       final b = Float32List.fromList([2.0, 0.0, 1.0, 2.0]);
       final c = Float32List(4);
@@ -59,9 +57,9 @@ void main() {
       check(c[1]).isCloseTo(4.0, 1e-5);
       check(c[2]).isCloseTo(10.0, 1e-5);
       check(c[3]).isCloseTo(8.0, 1e-5);
-    });
+    }, isSupported: AccelerationManager.isBlasAvailable);
 
-    test('dsyrk symmetric rank-k update', () {
+    accelerationTest('dsyrk symmetric rank-k update', () {
       final a = Float64List.fromList([1.0, 2.0, 3.0, 4.0]);
       final c = Float64List(4);
 
@@ -84,9 +82,9 @@ void main() {
       check(c[0]).isCloseTo(5.0, 1e-10);
       check(c[1]).isCloseTo(11.0, 1e-10);
       check(c[3]).isCloseTo(25.0, 1e-10);
-    });
+    }, isSupported: AccelerationManager.isBlasAvailable);
 
-    test('ssyrk single-precision symmetric rank-k update', () {
+    accelerationTest('ssyrk single-precision symmetric rank-k update', () {
       final a = Float32List.fromList([1.0, 2.0, 3.0, 4.0]);
       final c = Float32List(4);
 
@@ -105,9 +103,9 @@ void main() {
       check(c[0]).isCloseTo(5.0, 1e-5);
       check(c[1]).isCloseTo(11.0, 1e-5);
       check(c[3]).isCloseTo(25.0, 1e-5);
-    });
+    }, isSupported: AccelerationManager.isBlasAvailable);
 
-    test('dsymm symmetric matrix-matrix multiply', () {
+    accelerationTest('dsymm symmetric matrix-matrix multiply', () {
       final a = Float64List.fromList([2.0, 1.0, 1.0, 3.0]);
       final b = Float64List.fromList([1.0, 2.0, 3.0, 4.0]);
       final c = Float64List(4);
@@ -132,9 +130,9 @@ void main() {
       check(c[1]).isCloseTo(8.0, 1e-10);
       check(c[2]).isCloseTo(10.0, 1e-10);
       check(c[3]).isCloseTo(14.0, 1e-10);
-    });
+    }, isSupported: AccelerationManager.isBlasAvailable);
 
-    test('ssymm single-precision symmetric matrix multiply', () {
+    accelerationTest('ssymm single-precision symmetric matrix multiply', () {
       final a = Float32List.fromList([2.0, 1.0, 1.0, 3.0]);
       final b = Float32List.fromList([1.0, 2.0, 3.0, 4.0]);
       final c = Float32List(4);
@@ -158,9 +156,9 @@ void main() {
       check(c[1]).isCloseTo(8.0, 1e-5);
       check(c[2]).isCloseTo(10.0, 1e-5);
       check(c[3]).isCloseTo(14.0, 1e-5);
-    });
+    }, isSupported: AccelerationManager.isBlasAvailable);
 
-    test('dtrmm triangular matrix-matrix multiply', () {
+    accelerationTest('dtrmm triangular matrix-matrix multiply', () {
       final a = Float64List.fromList([2.0, 1.0, 0.0, 3.0]);
       final b = Float64List.fromList([1.0, 2.0, 3.0, 4.0]);
 
@@ -185,28 +183,32 @@ void main() {
       check(b[1]).isCloseTo(8.0, 1e-10);
       check(b[2]).isCloseTo(9.0, 1e-10);
       check(b[3]).isCloseTo(12.0, 1e-10);
-    });
+    }, isSupported: AccelerationManager.isBlasAvailable);
 
-    test('strmm single-precision triangular matrix-matrix multiply', () {
-      final a = Float32List.fromList([2.0, 1.0, 0.0, 3.0]);
-      final b = Float32List.fromList([1.0, 2.0, 3.0, 4.0]);
+    accelerationTest(
+      'strmm single-precision triangular matrix-matrix multiply',
+      () {
+        final a = Float32List.fromList([2.0, 1.0, 0.0, 3.0]);
+        final b = Float32List.fromList([1.0, 2.0, 3.0, 4.0]);
 
-      final ok = AccelerationManager.strmm(
-        side: cblasLeft,
-        uplo: cblasUpper,
-        m: 2,
-        n: 2,
-        alpha: 1.0,
-        a: a,
-        lda: 2,
-        b: b,
-        ldb: 2,
-      );
-      check(ok).isTrue();
-      check(b[0]).isCloseTo(5.0, 1e-5);
-      check(b[1]).isCloseTo(8.0, 1e-5);
-      check(b[2]).isCloseTo(9.0, 1e-5);
-      check(b[3]).isCloseTo(12.0, 1e-5);
-    });
+        final ok = AccelerationManager.strmm(
+          side: cblasLeft,
+          uplo: cblasUpper,
+          m: 2,
+          n: 2,
+          alpha: 1.0,
+          a: a,
+          lda: 2,
+          b: b,
+          ldb: 2,
+        );
+        check(ok).isTrue();
+        check(b[0]).isCloseTo(5.0, 1e-5);
+        check(b[1]).isCloseTo(8.0, 1e-5);
+        check(b[2]).isCloseTo(9.0, 1e-5);
+        check(b[3]).isCloseTo(12.0, 1e-5);
+      },
+      isSupported: AccelerationManager.isBlasAvailable,
+    );
   });
 }

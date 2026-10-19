@@ -22,23 +22,11 @@ class AccelerationManager {
   /// [AccelerationMode.auto].
   static AccelerationMode mode = AccelerationMode.auto;
 
-  /// Whether acceleration is enabled. For compatibility with legacy boolean
-  /// flags.
-  ///
-  /// Getting returns `true` if [mode] is not [AccelerationMode.dart]. Setting
-  /// `false` switches to [AccelerationMode.dart]; setting `true` switches to
-  /// [AccelerationMode.auto].
-  static bool get isEnabled => mode != AccelerationMode.dart;
-
-  static set isEnabled(bool value) {
-    mode = value ? AccelerationMode.auto : AccelerationMode.dart;
-  }
-
   static final BlasLibrary _blas = loadBlas();
   static final VdspLibrary _vdsp = loadVdsp();
 
   /// Whether native BLAS is loaded and available on the current platform.
-  static bool get isNativeAvailable => _blas.isAvailable;
+  static bool get isBlasAvailable => _blas.isAvailable;
 
   /// Whether native vDSP or vForce acceleration is available on the current
   /// platform.

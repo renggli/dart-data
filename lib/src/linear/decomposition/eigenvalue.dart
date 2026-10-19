@@ -3,6 +3,7 @@ import 'dart:typed_data';
 
 import '../../../type.dart';
 import '../../acceleration/acceleration_manager.dart';
+import '../../acceleration/acceleration_mode.dart';
 import '../../acceleration/blas/cblas.dart';
 import '../matrix.dart';
 
@@ -70,7 +71,8 @@ class EigenvalueDecomposition {
     if (_isSymmetric) {
       var accelerated = false;
       if (matrix.type == DataType.float64 &&
-          AccelerationManager.isAccelerated) {
+          (AccelerationManager.isAccelerated ||
+              AccelerationManager.mode == AccelerationMode.accelerated)) {
         final aList = Float64List(_n * _n);
         for (var i = 0; i < _n; i++) {
           for (var j = 0; j < _n; j++) {

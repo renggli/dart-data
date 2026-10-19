@@ -1,5 +1,6 @@
 import 'dart:typed_data';
 
+import '../acceleration_error.dart';
 import '../acceleration_manager.dart';
 import '../acceleration_mode.dart';
 import '../blas/cblas.dart';
@@ -27,9 +28,7 @@ abstract final class BlasLevel2 {
   }) {
     if (AccelerationManager.mode == AccelerationMode.accelerated) {
       if (!blas.isAvailable) {
-        throw StateError(
-          'Native acceleration is required in AccelerationMode.accelerated, but native BLAS is unavailable.',
-        );
+        throw AccelerationError.unavailable('BLAS');
       }
       final success = blas.dgemv(
         transA: transA,
@@ -48,7 +47,7 @@ abstract final class BlasLevel2 {
         incY: incY,
       );
       if (!success) {
-        throw StateError('dgemv failed in AccelerationMode.accelerated.');
+        throw AccelerationError.failed('dgemv');
       }
       return true;
     } else if (AccelerationManager.mode == AccelerationMode.auto &&
@@ -110,9 +109,7 @@ abstract final class BlasLevel2 {
   }) {
     if (AccelerationManager.mode == AccelerationMode.accelerated) {
       if (!blas.isAvailable) {
-        throw StateError(
-          'Native acceleration is required in AccelerationMode.accelerated, but native BLAS is unavailable.',
-        );
+        throw AccelerationError.unavailable('BLAS');
       }
       final success = blas.sgemv(
         transA: transA,
@@ -131,7 +128,7 @@ abstract final class BlasLevel2 {
         incY: incY,
       );
       if (!success) {
-        throw StateError('sgemv failed in AccelerationMode.accelerated.');
+        throw AccelerationError.failed('sgemv');
       }
       return true;
     } else if (AccelerationManager.mode == AccelerationMode.auto &&
@@ -191,9 +188,7 @@ abstract final class BlasLevel2 {
   }) {
     if (AccelerationManager.mode == AccelerationMode.accelerated) {
       if (!blas.isAvailable) {
-        throw StateError(
-          'Native acceleration is required in AccelerationMode.accelerated, but native BLAS is unavailable.',
-        );
+        throw AccelerationError.unavailable('BLAS');
       }
       final success = blas.dsyr2(
         uplo: uplo,
@@ -210,7 +205,7 @@ abstract final class BlasLevel2 {
         lda: lda,
       );
       if (!success) {
-        throw StateError('dsyr2 failed in AccelerationMode.accelerated.');
+        throw AccelerationError.failed('dsyr2');
       }
       return true;
     } else if (AccelerationManager.mode == AccelerationMode.auto &&
@@ -266,9 +261,7 @@ abstract final class BlasLevel2 {
   }) {
     if (AccelerationManager.mode == AccelerationMode.accelerated) {
       if (!blas.isAvailable) {
-        throw StateError(
-          'Native acceleration is required in AccelerationMode.accelerated, but native BLAS is unavailable.',
-        );
+        throw AccelerationError.unavailable('BLAS');
       }
       final success = blas.ssyr2(
         uplo: uplo,
@@ -285,7 +278,7 @@ abstract final class BlasLevel2 {
         lda: lda,
       );
       if (!success) {
-        throw StateError('ssyr2 failed in AccelerationMode.accelerated.');
+        throw AccelerationError.failed('ssyr2');
       }
       return true;
     } else if (AccelerationManager.mode == AccelerationMode.auto &&
@@ -352,9 +345,7 @@ abstract final class BlasLevel2 {
 
     if (AccelerationManager.mode == AccelerationMode.accelerated) {
       if (!blas.isAvailable) {
-        throw StateError(
-          'Native acceleration is required in AccelerationMode.accelerated, but native BLAS is unavailable.',
-        );
+        throw AccelerationError.unavailable('BLAS');
       }
       final success = blas.dtrmv(
         uplo: uplo,
@@ -369,7 +360,7 @@ abstract final class BlasLevel2 {
         incX: incX,
       );
       if (!success) {
-        throw StateError('dtrmv failed in AccelerationMode.accelerated.');
+        throw AccelerationError.failed('dtrmv');
       }
       return true;
     } else if (AccelerationManager.mode == AccelerationMode.auto &&
@@ -463,9 +454,7 @@ abstract final class BlasLevel2 {
 
     if (AccelerationManager.mode == AccelerationMode.accelerated) {
       if (!blas.isAvailable) {
-        throw StateError(
-          'Native acceleration is required in AccelerationMode.accelerated, but native BLAS is unavailable.',
-        );
+        throw AccelerationError.unavailable('BLAS');
       }
       final success = blas.strmv(
         uplo: uplo,
@@ -480,7 +469,7 @@ abstract final class BlasLevel2 {
         incX: incX,
       );
       if (!success) {
-        throw StateError('strmv failed in AccelerationMode.accelerated.');
+        throw AccelerationError.failed('strmv');
       }
       return true;
     } else if (AccelerationManager.mode == AccelerationMode.auto &&

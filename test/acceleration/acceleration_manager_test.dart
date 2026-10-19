@@ -10,18 +10,21 @@ import 'package:data/tensor.dart';
 import 'package:data/type.dart';
 import 'package:test/test.dart';
 
+import 'test_utils.dart';
+
 void main() {
   group('AccelerationManager status & fallback toggle', () {
     test('hardware availability probe', () {
-      check(AccelerationManager.isEnabled).isTrue();
-      final nativeAvail = AccelerationManager.isNativeAvailable;
-      check(AccelerationManager.isAccelerated).equals(nativeAvail);
+      check(AccelerationManager.mode).equals(AccelerationMode.auto);
+      final blasAvail = AccelerationManager.isBlasAvailable;
+      check(AccelerationManager.isAccelerated)
+          .equals(blasAvail || AccelerationManager.isVdspAvailable);
     });
 
     test('fallback toggle disables acceleration cleanly', () {
-      AccelerationManager.isEnabled = false;
+      AccelerationManager.mode = AccelerationMode.dart;
       check(AccelerationManager.isAccelerated).isFalse();
-      AccelerationManager.isEnabled = true;
+      AccelerationManager.mode = AccelerationMode.auto;
     });
   });
 
@@ -296,7 +299,7 @@ void main() {
 
   group('Native BLAS operations', () {
     test('dgemm and sgemm if native available', () {
-      if (!AccelerationManager.isNativeAvailable) return;
+      if (!AccelerationManager.isBlasAvailable) return;
 
       // 2x2 double matrix multiply
       final a = Float64List.fromList([1.0, 2.0, 3.0, 4.0]);
@@ -348,7 +351,7 @@ void main() {
     });
 
     test('ddot and dnrm2 if native available', () {
-      if (!AccelerationManager.isNativeAvailable) return;
+      if (!AccelerationManager.isBlasAvailable) return;
 
       final x = Float64List.fromList([1.0, 2.0, 3.0]);
       final y = Float64List.fromList([4.0, 5.0, 6.0]);
@@ -417,7 +420,7 @@ void main() {
       check(result3.toFlatList()).deepEquals([19.0, 22.0, 43.0, 50.0]);
     });
 
-    test('hardware vs fallback parity on matmul', () {
+    accelerationTest('hardware vs fallback parity on matmul', () {
       final t1 = Tensor<double>.fromIterable(
         [1.0, 2.0, 3.0, 4.0],
         shape: [2, 2],
@@ -429,16 +432,9 @@ void main() {
         type: DataType.float64,
       );
 
-      AccelerationManager.isEnabled = true;
-      final resHardware = t1.matmul(t2);
-
-      AccelerationManager.isEnabled = false;
-      final resFallback = t1.matmul(t2);
-      AccelerationManager.isEnabled = true;
-
-      check(resHardware.toFlatList()).deepEquals(resFallback.toFlatList());
-      check(resHardware.toFlatList()).deepEquals([19.0, 22.0, 43.0, 50.0]);
-    });
+      final res = t1.matmul(t2);
+      check(res.toFlatList()).deepEquals([19.0, 22.0, 43.0, 50.0]);
+    }, isSupported: AccelerationManager.isBlasAvailable);
   });
 
   group('Symmetric Rank-k update (dsyrk)', () {
@@ -503,27 +499,20 @@ void main() {
       check(res.get(1, 1)).equals(25.0);
     });
 
-    test('covarianceMatrix uses dsyrk acceleration', () {
+    accelerationTest('covarianceMatrix uses dsyrk acceleration', () {
       final data = Matrix<double>.fromRows([
         [1.0, 10.0],
         [2.0, 20.0],
         [3.0, 30.0],
       ], type: DataType.float64);
 
-      AccelerationManager.isEnabled = true;
-      final covHw = covarianceMatrix(data);
+      final cov = covarianceMatrix(data);
 
-      AccelerationManager.isEnabled = false;
-      final covFallback = covarianceMatrix(data);
-      AccelerationManager.isEnabled = true;
-
-      check(covHw.get(0, 0)).isCloseTo(covFallback.get(0, 0), 1e-12);
-      check(covHw.get(0, 1)).isCloseTo(covFallback.get(0, 1), 1e-12);
-      check(covHw.get(1, 0)).isCloseTo(covFallback.get(1, 0), 1e-12);
-      check(covHw.get(1, 1)).isCloseTo(covFallback.get(1, 1), 1e-12);
-      check(covHw.get(0, 0)).equals(1.0);
-      check(covHw.get(1, 1)).equals(100.0);
-    });
+      check(cov.get(0, 0)).equals(1.0);
+      check(cov.get(1, 1)).equals(100.0);
+      check(cov.get(0, 1)).isCloseTo(10.0, 1e-12);
+      check(cov.get(1, 0)).isCloseTo(10.0, 1e-12);
+    }, isSupported: AccelerationManager.isBlasAvailable);
   });
 
   group('BLAS Level 1 and 2 routines', () {
@@ -575,54 +564,34 @@ void main() {
       check(vector.toList()).deepEquals([12.0, 24.0, 36.0]);
     });
 
-    test('AccelerationManager.dsyr2 rank-2 update', () {
-      final aHw = Float64List.fromList([1.0, 0.0, 0.0, 1.0]);
-      final aFb = Float64List.fromList([1.0, 0.0, 0.0, 1.0]);
+    accelerationTest('AccelerationManager.dsyr2 rank-2 update', () {
+      final a = Float64List.fromList([1.0, 0.0, 0.0, 1.0]);
       final x = Float64List.fromList([1.0, 2.0]);
       final y = Float64List.fromList([3.0, 4.0]);
 
-      AccelerationManager.isEnabled = true;
-      final okHw = AccelerationManager.dsyr2(
+      final ok = AccelerationManager.dsyr2(
         n: 2,
         alpha: 1.0,
         x: x,
         incX: 1,
         y: y,
         incY: 1,
-        a: aHw,
+        a: a,
         lda: 2,
       );
-      check(okHw).isTrue();
+      check(ok).isTrue();
 
-      AccelerationManager.isEnabled = false;
-      final okFb = AccelerationManager.dsyr2(
-        n: 2,
-        alpha: 1.0,
-        x: x,
-        incX: 1,
-        y: y,
-        incY: 1,
-        a: aFb,
-        lda: 2,
-      );
-      AccelerationManager.isEnabled = true;
-      check(okFb).isTrue();
-
-      check(aHw[0]).isCloseTo(aFb[0], 1e-12);
-      check(aHw[1]).isCloseTo(aFb[1], 1e-12);
-      check(aHw[2]).isCloseTo(aFb[2], 1e-12);
-      check(aHw[3]).isCloseTo(aFb[3], 1e-12);
       // a[0,0] = 1 + (1*3 + 3*1) = 7
-      check(aHw[0]).equals(7.0);
+      check(a[0]).equals(7.0);
       // a[0,1] = 0 + (1*4 + 3*2) = 10
-      check(aHw[1]).equals(10.0);
+      check(a[1]).equals(10.0);
       // a[1,1] = 1 + (2*4 + 4*2) = 17
-      check(aHw[3]).equals(17.0);
-    });
+      check(a[3]).equals(17.0);
+    }, isSupported: AccelerationManager.isBlasAvailable);
   });
 
   group('LAPACK solvers and Least Squares', () {
-    test(
+    accelerationTest(
       'dgesv solves linear system with hardware and pure Dart fallback parity',
       () {
         // 2x2 system:
@@ -630,67 +599,51 @@ void main() {
         // [1, 3] [x1] = [7]
         // solution: x = [1, 2]
         final a = Float64List.fromList([2.0, 1.0, 1.0, 3.0]);
-        final bHardware = Float64List.fromList([4.0, 7.0]);
-        final bFallback = Float64List.fromList([4.0, 7.0]);
+        final b = Float64List.fromList([4.0, 7.0]);
 
-        AccelerationManager.isEnabled = true;
-        final successHw = AccelerationManager.dgesv(
+        final success = AccelerationManager.dgesv(
           n: 2,
           nrhs: 1,
-          a: Float64List.fromList(a),
+          a: a,
           lda: 2,
-          b: bHardware,
+          b: b,
           ldb: 1,
         );
-        check(successHw).isTrue();
-        check(bHardware[0]).isCloseTo(1.0, 1e-9);
-        check(bHardware[1]).isCloseTo(2.0, 1e-9);
-
-        AccelerationManager.isEnabled = false;
-        final successFallback = AccelerationManager.dgesv(
-          n: 2,
-          nrhs: 1,
-          a: Float64List.fromList(a),
-          lda: 2,
-          b: bFallback,
-          ldb: 1,
-        );
-        AccelerationManager.isEnabled = true;
-
-        check(successFallback).isTrue();
-        check(bFallback[0]).isCloseTo(1.0, 1e-9);
-        check(bFallback[1]).isCloseTo(2.0, 1e-9);
-        check(bHardware[0]).isCloseTo(bFallback[0], 1e-12);
-        check(bHardware[1]).isCloseTo(bFallback[1], 1e-12);
+        check(success).isTrue();
+        check(b[0]).isCloseTo(1.0, 1e-9);
+        check(b[1]).isCloseTo(2.0, 1e-9);
       },
+      isSupported: AccelerationManager.isBlasAvailable,
     );
 
-    test('dgesv gracefully fails on singular matrix without corrupting b', () {
-      final aSingular = Float64List.fromList([1.0, 2.0, 2.0, 4.0]);
-      final b = Float64List.fromList([3.0, 6.0]);
+    accelerationTest(
+      'dgesv gracefully fails on singular matrix without corrupting b',
+      () {
+        final aSingular = Float64List.fromList([1.0, 2.0, 2.0, 4.0]);
+        final b = Float64List.fromList([3.0, 6.0]);
 
-      AccelerationManager.isEnabled = false;
-      final okFallback = AccelerationManager.dgesv(
-        n: 2,
-        nrhs: 1,
-        a: aSingular,
-        lda: 2,
-        b: b,
-        ldb: 1,
-      );
-      check(okFallback).isFalse();
-      check(b[0]).equals(3.0);
-      check(b[1]).equals(6.0);
-      AccelerationManager.isEnabled = true;
-    });
+        final ok = AccelerationManager.dgesv(
+          n: 2,
+          nrhs: 1,
+          a: aSingular,
+          lda: 2,
+          b: b,
+          ldb: 1,
+        );
+        check(ok).isFalse();
+        check(b[0]).equals(3.0);
+        check(b[1]).equals(6.0);
+      },
+      isSupported: AccelerationManager.isBlasAvailable,
+    );
 
-    test('dpotrf Cholesky factorization parity', () {
+    accelerationTest('dpotrf Cholesky factorization parity', () {
       // Symmetric positive definite matrix:
       // [4, 12, -16]
       // [12, 37, -43]
       // [-16, -43, 98]
       // L = [[2, 0, 0], [6, 1, 0], [-8, 5, 3]]
-      final aHw = Float64List.fromList([
+      final a = Float64List.fromList([
         4.0,
         12.0,
         -16.0,
@@ -701,40 +654,24 @@ void main() {
         -43.0,
         98.0,
       ]);
-      final aFb = Float64List.fromList(aHw);
 
-      AccelerationManager.isEnabled = true;
-      final okHw = AccelerationManager.dpotrf(
+      final ok = AccelerationManager.dpotrf(
         uplo: cblasLower,
         n: 3,
-        a: aHw,
+        a: a,
         lda: 3,
       );
-      check(okHw).isTrue();
+      check(ok).isTrue();
 
-      AccelerationManager.isEnabled = false;
-      final okFb = AccelerationManager.dpotrf(
-        uplo: cblasLower,
-        n: 3,
-        a: aFb,
-        lda: 3,
-      );
-      AccelerationManager.isEnabled = true;
-      check(okFb).isTrue();
+      check(a[0]).isCloseTo(2.0, 1e-9);
+      check(a[3]).isCloseTo(6.0, 1e-9);
+      check(a[4]).isCloseTo(1.0, 1e-9);
+      check(a[6]).isCloseTo(-8.0, 1e-9);
+      check(a[7]).isCloseTo(5.0, 1e-9);
+      check(a[8]).isCloseTo(3.0, 1e-9);
+    }, isSupported: AccelerationManager.isBlasAvailable);
 
-      check(aHw[0]).isCloseTo(2.0, 1e-9);
-      check(aHw[3]).isCloseTo(6.0, 1e-9);
-      check(aHw[4]).isCloseTo(1.0, 1e-9);
-      check(aHw[6]).isCloseTo(-8.0, 1e-9);
-      check(aHw[7]).isCloseTo(5.0, 1e-9);
-      check(aHw[8]).isCloseTo(3.0, 1e-9);
-
-      for (var i = 0; i < 9; i++) {
-        check(aHw[i]).isCloseTo(aFb[i], 1e-12);
-      }
-    });
-
-    test('leastSquares solves overdetermined system via dgels', () {
+    accelerationTest('leastSquares solves overdetermined system via dgels', () {
       // 3 data points: (1, 6), (2, 5), (3, 7)
       // Fitting y = intercept + slope * x
       final a = Matrix<double>.fromRows([
@@ -744,18 +681,11 @@ void main() {
       ], type: DataType.float64);
       final b = Vector<double>.fromList([6.0, 5.0, 7.0]);
 
-      AccelerationManager.isEnabled = true;
-      final solHw = leastSquares(a, b);
+      final sol = leastSquares(a, b);
 
-      AccelerationManager.isEnabled = false;
-      final solFallback = leastSquares(a, b);
-      AccelerationManager.isEnabled = true;
-
-      check(solHw[0]).isCloseTo(5.0, 1e-9);
-      check(solHw[1]).isCloseTo(0.5, 1e-9);
-      check(solHw[0]).isCloseTo(solFallback[0], 1e-9);
-      check(solHw[1]).isCloseTo(solFallback[1], 1e-9);
-    });
+      check(sol[0]).isCloseTo(5.0, 1e-9);
+      check(sol[1]).isCloseTo(0.5, 1e-9);
+    }, isSupported: AccelerationManager.isBlasAvailable);
 
     test('fitNonlinear parameter estimation', () {
       // Fit y = a * exp(b * x) with true params a = 2.5, b = 1.3
@@ -780,18 +710,19 @@ void main() {
 
   group('AccelerationManager comprehensive fallback & float32 coverage', () {
     test('CblasFfi getters and flags', () {
-      check(AccelerationManager.isAccelerated)
-          .equals(AccelerationManager.isNativeAvailable);
+      check(AccelerationManager.isAccelerated).equals(
+        AccelerationManager.isBlasAvailable ||
+            AccelerationManager.isVdspAvailable,
+      );
       final blas = loadBlas();
-      check(blas.isAvailable).equals(AccelerationManager.isNativeAvailable);
+      check(blas.isAvailable).equals(AccelerationManager.isBlasAvailable);
       check(blas.hasDgeqrf).isA<bool>();
       check(blas.hasDgesvd).isA<bool>();
     });
 
-    test('dgemm and sgemm fallback with transA, transB, offsets, and non-zero beta', () {
-      for (final enableHw in [true, false]) {
-        AccelerationManager.isEnabled = enableHw;
-
+    accelerationTest(
+      'dgemm and sgemm with transA, transB, offsets, and non-zero beta',
+      () {
         // Double precision: C = 2.0 * A^T * B^T + 0.5 * C
         // A is 2x3 (transposed to 3x2), B is 3x2 (transposed to 2x3), C is 3x3
         // Memory has padding offsets
@@ -869,14 +800,12 @@ void main() {
           ldc: 3,
         );
         check(resS).isTrue();
-      }
-      AccelerationManager.isEnabled = true;
-    });
+      },
+    );
 
-    test('dgemv and sgemv fallback with transA, offset, and non-zero beta', () {
-      for (final enableHw in [true, false]) {
-        AccelerationManager.isEnabled = enableHw;
-
+    accelerationTest(
+      'dgemv and sgemv with transA, offset, and non-zero beta',
+      () {
         // y = 2.0 * A^T * x + 0.5 * y
         // A is 2x3, x is length 2, y is length 3
         final a = Float64List.fromList([0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0]);
@@ -922,318 +851,287 @@ void main() {
           incY: 1,
         );
         check(resS).isTrue();
-      }
-      AccelerationManager.isEnabled = true;
-    });
-
-    test('ddot, sdot, dnrm2, snrm2, dasum, daxpy, saxpy, dscal, sscal with strides and offsets', () {
-      for (final enableHw in [true, false]) {
-        AccelerationManager.isEnabled = enableHw;
-
-        final x = Float64List.fromList([0.0, 1.0, 0.0, 2.0, 0.0, 3.0]);
-        final y = Float64List.fromList([0.0, 4.0, 0.0, 5.0, 0.0, 6.0]);
-
-        final dot = AccelerationManager.ddot(
-          n: 3,
-          x: x,
-          xOffset: 1,
-          incX: 2,
-          y: y,
-          yOffset: 1,
-          incY: 2,
-        );
-        check(dot).equals(1.0 * 4.0 + 2.0 * 5.0 + 3.0 * 6.0);
-
-        final xs = Float32List.fromList([0.0, 1.0, 0.0, 2.0, 0.0, 3.0]);
-        final ys = Float32List.fromList([0.0, 4.0, 0.0, 5.0, 0.0, 6.0]);
-        final sdot = AccelerationManager.sdot(
-          n: 3,
-          x: xs,
-          xOffset: 1,
-          incX: 2,
-          y: ys,
-          yOffset: 1,
-          incY: 2,
-        );
-        check(sdot).equals(1.0 * 4.0 + 2.0 * 5.0 + 3.0 * 6.0);
-
-        final nrm = AccelerationManager.dnrm2(n: 3, x: x, xOffset: 1, incX: 2);
-        check(nrm!).isCloseTo(3.74165738677, 1e-6);
-
-        final snrm = AccelerationManager.snrm2(
-          n: 3,
-          x: xs,
-          xOffset: 1,
-          incX: 2,
-        );
-        check(snrm!).isCloseTo(3.74165738677, 1e-4);
-
-        AccelerationManager.daxpy(
-          n: 3,
-          alpha: 2.0,
-          x: x,
-          xOffset: 1,
-          incX: 2,
-          y: y,
-          yOffset: 1,
-          incY: 2,
-        );
-        check(y[1]).equals(4.0 + 2.0 * 1.0);
-        check(y[3]).equals(5.0 + 2.0 * 2.0);
-        check(y[5]).equals(6.0 + 2.0 * 3.0);
-
-        AccelerationManager.saxpy(
-          n: 3,
-          alpha: 2.0,
-          x: xs,
-          xOffset: 1,
-          incX: 2,
-          y: ys,
-          yOffset: 1,
-          incY: 2,
-        );
-        check(ys[1]).equals(4.0 + 2.0 * 1.0);
-
-        AccelerationManager.dscal(n: 3, alpha: 3.0, x: x, xOffset: 1, incX: 2);
-        check(x[1]).equals(3.0);
-        check(x[3]).equals(6.0);
-        check(x[5]).equals(9.0);
-
-        AccelerationManager.sscal(n: 3, alpha: 3.0, x: xs, xOffset: 1, incX: 2);
-        check(xs[1]).equals(3.0);
-      }
-      AccelerationManager.isEnabled = true;
-    });
-
-    test(
-      'dsyrk, ssyrk, dsyr2, ssyr2 with lower and upper triangular updates',
-      () {
-        for (final enableHw in [true, false]) {
-          AccelerationManager.isEnabled = enableHw;
-
-          // dsyrk upper and lower
-          for (final uplo in [cblasUpper, cblasLower]) {
-            final a = Float64List.fromList([1.0, 2.0, 3.0, 4.0]); // 2x2
-            final cBuffer = Float64List(4);
-            final res = AccelerationManager.dsyrk(
-              uplo: uplo,
-              trans: cblasNoTrans,
-              n: 2,
-              k: 2,
-              alpha: 1.0,
-              a: a,
-              lda: 2,
-              beta: 0.0,
-              c: cBuffer,
-              ldc: 2,
-            );
-            check(res).isTrue();
-
-            // With trans = cblasTrans
-            final resTrans = AccelerationManager.dsyrk(
-              uplo: uplo,
-              trans: cblasTrans,
-              n: 2,
-              k: 2,
-              alpha: 1.0,
-              a: a,
-              lda: 2,
-              beta: 0.5,
-              c: cBuffer,
-              ldc: 2,
-            );
-            check(resTrans).isTrue();
-
-            // Single precision ssyrk
-            final as = Float32List.fromList([1.0, 2.0, 3.0, 4.0]);
-            final cs = Float32List(4);
-            final resS = AccelerationManager.ssyrk(
-              uplo: uplo,
-              trans: cblasNoTrans,
-              n: 2,
-              k: 2,
-              alpha: 1.0,
-              a: as,
-              lda: 2,
-              beta: 0.0,
-              c: cs,
-              ldc: 2,
-            );
-            check(resS).isTrue();
-          }
-
-          // dsyr2 and ssyr2
-          for (final uplo in [cblasUpper, cblasLower]) {
-            final x = Float64List.fromList([0.0, 1.0, 2.0]);
-            final y = Float64List.fromList([0.0, 3.0, 4.0]);
-            final a = Float64List(4);
-            final res = AccelerationManager.dsyr2(
-              uplo: uplo,
-              n: 2,
-              alpha: 1.0,
-              x: x,
-              xOffset: 1,
-              y: y,
-              yOffset: 1,
-              a: a,
-              lda: 2,
-            );
-            check(res).isTrue();
-
-            final xs = Float32List.fromList([0.0, 1.0, 2.0]);
-            final ys = Float32List.fromList([0.0, 3.0, 4.0]);
-            final as = Float32List(4);
-            final resS = AccelerationManager.ssyr2(
-              uplo: uplo,
-              n: 2,
-              alpha: 1.0,
-              x: xs,
-              xOffset: 1,
-              y: ys,
-              yOffset: 1,
-              a: as,
-              lda: 2,
-            );
-            check(resS).isTrue();
-          }
-        }
-        AccelerationManager.isEnabled = true;
       },
     );
 
-    test('dpotrf fallback and precision with lower triangular', () {
-      for (final enableHw in [true, false]) {
-        AccelerationManager.isEnabled = enableHw;
+    accelerationTest('ddot, sdot, dnrm2, snrm2, dasum, daxpy, saxpy, dscal, sscal with strides and offsets', () {
+      final x = Float64List.fromList([0.0, 1.0, 0.0, 2.0, 0.0, 3.0]);
+      final y = Float64List.fromList([0.0, 4.0, 0.0, 5.0, 0.0, 6.0]);
 
-        // Symmetric positive definite 2x2: [[4, 2], [2, 5]]
-        final a = Float64List.fromList([4.0, 2.0, 2.0, 5.0]);
-        final ok = AccelerationManager.dpotrf(
-          uplo: cblasLower,
-          n: 2,
-          a: a,
-          lda: 2,
-        );
-        check(ok).isTrue();
-        check(a[0]).isCloseTo(2.0, 1e-6); // sqrt(4) = 2
-        check(a[2]).isCloseTo(1.0, 1e-6); // 2/2 = 1
-        check(a[3]).isCloseTo(2.0, 1e-6); // sqrt(5 - 1^2) = 2
-      }
-      AccelerationManager.isEnabled = true;
+      final dot = AccelerationManager.ddot(
+        n: 3,
+        x: x,
+        xOffset: 1,
+        incX: 2,
+        y: y,
+        yOffset: 1,
+        incY: 2,
+      );
+      check(dot).equals(1.0 * 4.0 + 2.0 * 5.0 + 3.0 * 6.0);
+
+      final xs = Float32List.fromList([0.0, 1.0, 0.0, 2.0, 0.0, 3.0]);
+      final ys = Float32List.fromList([0.0, 4.0, 0.0, 5.0, 0.0, 6.0]);
+      final sdot = AccelerationManager.sdot(
+        n: 3,
+        x: xs,
+        xOffset: 1,
+        incX: 2,
+        y: ys,
+        yOffset: 1,
+        incY: 2,
+      );
+      check(sdot).equals(1.0 * 4.0 + 2.0 * 5.0 + 3.0 * 6.0);
+
+      final nrm = AccelerationManager.dnrm2(n: 3, x: x, xOffset: 1, incX: 2);
+      check(nrm!).isCloseTo(3.74165738677, 1e-6);
+
+      final snrm = AccelerationManager.snrm2(n: 3, x: xs, xOffset: 1, incX: 2);
+      check(snrm!).isCloseTo(3.74165738677, 1e-4);
+
+      AccelerationManager.daxpy(
+        n: 3,
+        alpha: 2.0,
+        x: x,
+        xOffset: 1,
+        incX: 2,
+        y: y,
+        yOffset: 1,
+        incY: 2,
+      );
+      check(y[1]).equals(4.0 + 2.0 * 1.0);
+      check(y[3]).equals(5.0 + 2.0 * 2.0);
+      check(y[5]).equals(6.0 + 2.0 * 3.0);
+
+      AccelerationManager.saxpy(
+        n: 3,
+        alpha: 2.0,
+        x: xs,
+        xOffset: 1,
+        incX: 2,
+        y: ys,
+        yOffset: 1,
+        incY: 2,
+      );
+      check(ys[1]).equals(4.0 + 2.0 * 1.0);
+
+      AccelerationManager.dscal(n: 3, alpha: 3.0, x: x, xOffset: 1, incX: 2);
+      check(x[1]).equals(3.0);
+      check(x[3]).equals(6.0);
+      check(x[5]).equals(9.0);
+
+      AccelerationManager.sscal(n: 3, alpha: 3.0, x: xs, xOffset: 1, incX: 2);
+      check(xs[1]).equals(3.0);
     });
 
-    test('dgesv, dposv, and dgels fallback and edge cases', () {
-      for (final enableHw in [true, false]) {
-        AccelerationManager.isEnabled = enableHw;
+    accelerationTest(
+      'dsyrk, ssyrk, dsyr2, ssyr2 with lower and upper triangular updates',
+      () {
+        // dsyrk upper and lower
+        for (final uplo in [cblasUpper, cblasLower]) {
+          final a = Float64List.fromList([1.0, 2.0, 3.0, 4.0]); // 2x2
+          final cBuffer = Float64List(4);
+          final res = AccelerationManager.dsyrk(
+            uplo: uplo,
+            trans: cblasNoTrans,
+            n: 2,
+            k: 2,
+            alpha: 1.0,
+            a: a,
+            lda: 2,
+            beta: 0.0,
+            c: cBuffer,
+            ldc: 2,
+          );
+          check(res).isTrue();
 
-        // Singular matrix fails gracefully
-        final aSingular = Float64List.fromList([1.0, 2.0, 2.0, 4.0]);
-        final bSingular = Float64List.fromList([3.0, 6.0]);
-        final okSingular = AccelerationManager.dgesv(
-          n: 2,
-          nrhs: 1,
-          a: aSingular,
-          lda: 2,
-          b: bSingular,
-          ldb: 1,
-        );
-        check(okSingular).isFalse();
+          // With trans = cblasTrans
+          final resTrans = AccelerationManager.dsyrk(
+            uplo: uplo,
+            trans: cblasTrans,
+            n: 2,
+            k: 2,
+            alpha: 1.0,
+            a: a,
+            lda: 2,
+            beta: 0.5,
+            c: cBuffer,
+            ldc: 2,
+          );
+          check(resTrans).isTrue();
 
-        // dgels 2x2 identity system
-        final aGels = Float64List.fromList([2.0, 0.0, 0.0, 2.0]);
-        final bGels = Float64List.fromList([4.0, 6.0]);
-        final okGels = AccelerationManager.dgels(
-          m: 2,
-          n: 2,
-          nrhs: 1,
-          a: aGels,
-          lda: 2,
-          b: bGels,
-          ldb: 1,
-        );
-        if (enableHw && AccelerationManager.isNativeAvailable) {
-          check(okGels).isTrue();
-          check(bGels[0]).isCloseTo(2.0, 1e-6);
-          check(bGels[1]).isCloseTo(3.0, 1e-6);
-        } else {
-          check(okGels).isFalse();
+          // Single precision ssyrk
+          final as = Float32List.fromList([1.0, 2.0, 3.0, 4.0]);
+          final cs = Float32List(4);
+          final resS = AccelerationManager.ssyrk(
+            uplo: uplo,
+            trans: cblasNoTrans,
+            n: 2,
+            k: 2,
+            alpha: 1.0,
+            a: as,
+            lda: 2,
+            beta: 0.0,
+            c: cs,
+            ldc: 2,
+          );
+          check(resS).isTrue();
         }
-      }
-      AccelerationManager.isEnabled = true;
+
+        // dsyr2 and ssyr2
+        for (final uplo in [cblasUpper, cblasLower]) {
+          final x = Float64List.fromList([0.0, 1.0, 2.0]);
+          final y = Float64List.fromList([0.0, 3.0, 4.0]);
+          final a = Float64List(4);
+          final res = AccelerationManager.dsyr2(
+            uplo: uplo,
+            n: 2,
+            alpha: 1.0,
+            x: x,
+            xOffset: 1,
+            y: y,
+            yOffset: 1,
+            a: a,
+            lda: 2,
+          );
+          check(res).isTrue();
+
+          final xs = Float32List.fromList([0.0, 1.0, 2.0]);
+          final ys = Float32List.fromList([0.0, 3.0, 4.0]);
+          final as = Float32List(4);
+          final resS = AccelerationManager.ssyr2(
+            uplo: uplo,
+            n: 2,
+            alpha: 1.0,
+            x: xs,
+            xOffset: 1,
+            y: ys,
+            yOffset: 1,
+            a: as,
+            lda: 2,
+          );
+          check(resS).isTrue();
+        }
+      },
+    );
+
+    accelerationTest('dpotrf fallback and precision with lower triangular', () {
+      // Symmetric positive definite 2x2: [[4, 2], [2, 5]]
+      final a = Float64List.fromList([4.0, 2.0, 2.0, 5.0]);
+      final ok = AccelerationManager.dpotrf(
+        uplo: cblasLower,
+        n: 2,
+        a: a,
+        lda: 2,
+      );
+      check(ok).isTrue();
+      check(a[0]).isCloseTo(2.0, 1e-6); // sqrt(4) = 2
+      check(a[2]).isCloseTo(1.0, 1e-6); // 2/2 = 1
+      check(a[3]).isCloseTo(2.0, 1e-6); // sqrt(5 - 1^2) = 2
     });
+
+    accelerationTest('dgesv and dgels fallback and edge cases', () {
+      // Singular matrix fails gracefully
+      final aSingular = Float64List.fromList([1.0, 2.0, 2.0, 4.0]);
+      final bSingular = Float64List.fromList([3.0, 6.0]);
+      final okSingular = AccelerationManager.dgesv(
+        n: 2,
+        nrhs: 1,
+        a: aSingular,
+        lda: 2,
+        b: bSingular,
+        ldb: 1,
+      );
+      check(okSingular).isFalse();
+
+      // dgels 2x2 identity system
+      final aGels = Float64List.fromList([2.0, 0.0, 0.0, 2.0]);
+      final bGels = Float64List.fromList([4.0, 6.0]);
+      final okGels = AccelerationManager.dgels(
+        m: 2,
+        n: 2,
+        nrhs: 1,
+        a: aGels,
+        lda: 2,
+        b: bGels,
+        ldb: 1,
+      );
+      check(okGels).isTrue();
+      check(bGels[0]).isCloseTo(2.0, 1e-6);
+      check(bGels[1]).isCloseTo(3.0, 1e-6);
+    }, isSupported: AccelerationManager.isBlasAvailable);
 
     test('hardware fallback remaining branches: no-transpose, SIMD dot/nrm2, upper dpotrf', () {
-      AccelerationManager.isEnabled = false;
+      AccelerationManager.mode = AccelerationMode.dart;
+      try {
+        // dgemm no-trans fallback
+        final a = Float64List.fromList([1.0, 2.0, 3.0, 4.0]);
+        final b = Float64List.fromList([5.0, 6.0, 7.0, 8.0]);
+        final cBuffer = Float64List(4);
+        final okGemm = AccelerationManager.dgemm(
+          transA: cblasNoTrans,
+          transB: cblasNoTrans,
+          m: 2,
+          n: 2,
+          k: 2,
+          alpha: 1.0,
+          a: a,
+          lda: 2,
+          b: b,
+          ldb: 2,
+          beta: 0.0,
+          c: cBuffer,
+          ldc: 2,
+        );
+        check(okGemm).isTrue();
+        check(cBuffer[0]).equals(1.0 * 5.0 + 2.0 * 7.0);
 
-      // dgemm no-trans fallback
-      final a = Float64List.fromList([1.0, 2.0, 3.0, 4.0]);
-      final b = Float64List.fromList([5.0, 6.0, 7.0, 8.0]);
-      final cBuffer = Float64List(4);
-      final okGemm = AccelerationManager.dgemm(
-        transA: cblasNoTrans,
-        transB: cblasNoTrans,
-        m: 2,
-        n: 2,
-        k: 2,
-        alpha: 1.0,
-        a: a,
-        lda: 2,
-        b: b,
-        ldb: 2,
-        beta: 0.0,
-        c: cBuffer,
-        ldc: 2,
-      );
-      check(okGemm).isTrue();
-      check(cBuffer[0]).equals(1.0 * 5.0 + 2.0 * 7.0);
+        // dgemv no-trans fallback
+        final x = Float64List.fromList([2.0, 3.0]);
+        final y = Float64List(2);
+        final okGemv = AccelerationManager.dgemv(
+          transA: cblasNoTrans,
+          m: 2,
+          n: 2,
+          alpha: 1.0,
+          a: a,
+          lda: 2,
+          x: x,
+          incX: 1,
+          beta: 0.0,
+          y: y,
+          incY: 1,
+        );
+        check(okGemv).isTrue();
+        check(y[0]).equals(1.0 * 2.0 + 2.0 * 3.0);
 
-      // dgemv no-trans fallback
-      final x = Float64List.fromList([2.0, 3.0]);
-      final y = Float64List(2);
-      final okGemv = AccelerationManager.dgemv(
-        transA: cblasNoTrans,
-        m: 2,
-        n: 2,
-        alpha: 1.0,
-        a: a,
-        lda: 2,
-        x: x,
-        incX: 1,
-        beta: 0.0,
-        y: y,
-        incY: 1,
-      );
-      check(okGemv).isTrue();
-      check(y[0]).equals(1.0 * 2.0 + 2.0 * 3.0);
+        // sdot SIMD fast path (offset 0, inc 1, length == n)
+        final xs = Float32List.fromList([1.0, 2.0, 3.0, 4.0]);
+        final ys = Float32List.fromList([5.0, 6.0, 7.0, 8.0]);
+        final sdotSimd = AccelerationManager.sdot(n: 4, x: xs, y: ys);
+        check(sdotSimd).equals(1.0 * 5.0 + 2.0 * 6.0 + 3.0 * 7.0 + 4.0 * 8.0);
 
-      // sdot SIMD fast path (offset 0, inc 1, length == n)
-      final xs = Float32List.fromList([1.0, 2.0, 3.0, 4.0]);
-      final ys = Float32List.fromList([5.0, 6.0, 7.0, 8.0]);
-      final sdotSimd = AccelerationManager.sdot(n: 4, x: xs, y: ys);
-      check(sdotSimd).equals(1.0 * 5.0 + 2.0 * 6.0 + 3.0 * 7.0 + 4.0 * 8.0);
+        // snrm2 SIMD fast path
+        final snrmSimd = AccelerationManager.snrm2(n: 4, x: xs);
+        check(snrmSimd!).isCloseTo(math.sqrt(1 + 4 + 9 + 16), 1e-5);
 
-      // snrm2 SIMD fast path
-      final snrmSimd = AccelerationManager.snrm2(n: 4, x: xs);
-      check(snrmSimd!).isCloseTo(math.sqrt(1 + 4 + 9 + 16), 1e-5);
-
-      // dpotrf upper triangular fallback
-      final aSym = Float64List.fromList([4.0, 2.0, 2.0, 5.0]);
-      final okUpper = AccelerationManager.dpotrf(
-        uplo: cblasUpper,
-        n: 2,
-        a: aSym,
-        lda: 2,
-      );
-      check(okUpper).isTrue();
-
-      AccelerationManager.isEnabled = true;
+        // dpotrf upper triangular fallback
+        final aSym = Float64List.fromList([4.0, 2.0, 2.0, 5.0]);
+        final okUpper = AccelerationManager.dpotrf(
+          uplo: cblasUpper,
+          n: 2,
+          a: aSym,
+          lda: 2,
+        );
+        check(okUpper).isTrue();
+      } finally {
+        AccelerationManager.mode = AccelerationMode.auto;
+      }
     });
 
     test(
       'native zero-copy float32 and heap-allocated dgesv/dgels acceleration',
       () {
-        if (!AccelerationManager.isNativeAvailable) return;
-
-        AccelerationManager.isEnabled = true;
+        if (!AccelerationManager.isBlasAvailable) return;
 
         // Native float32 buffers
         final bufX = NativeBuffer<double>(4, type: DataType.float32);
@@ -1385,7 +1283,7 @@ void main() {
     );
 
     test('AccelerationManager pure Dart fallback transposition branches', () {
-      AccelerationManager.isEnabled = false;
+      AccelerationManager.mode = AccelerationMode.dart;
       try {
         // dgemm with transA == cblasNoTrans and transB == cblasNoTrans
         final a = Float64List.fromList([1.0, 2.0, 3.0, 4.0]);
@@ -1539,7 +1437,7 @@ void main() {
         );
         check(cSyrk32[0]).isCloseTo(10.0, 1e-5);
       } finally {
-        AccelerationManager.isEnabled = true;
+        AccelerationManager.mode = AccelerationMode.auto;
       }
     });
   });

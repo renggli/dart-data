@@ -1,5 +1,6 @@
 import 'dart:typed_data';
 
+import '../acceleration_error.dart';
 import '../acceleration_manager.dart';
 import '../acceleration_mode.dart';
 import '../blas/cblas.dart';
@@ -30,9 +31,7 @@ abstract final class BlasLevel3 {
   }) {
     if (AccelerationManager.mode == AccelerationMode.accelerated) {
       if (!blas.isAvailable) {
-        throw StateError(
-          'Native acceleration is required in AccelerationMode.accelerated, but native BLAS is unavailable.',
-        );
+        throw AccelerationError.unavailable('BLAS');
       }
       final success = blas.dgemm(
         transA: transA,
@@ -53,7 +52,7 @@ abstract final class BlasLevel3 {
         ldc: ldc,
       );
       if (!success) {
-        throw StateError('dgemm failed in AccelerationMode.accelerated.');
+        throw AccelerationError.failed('dgemm');
       }
       return true;
     } else if (AccelerationManager.mode == AccelerationMode.auto &&
@@ -123,9 +122,7 @@ abstract final class BlasLevel3 {
   }) {
     if (AccelerationManager.mode == AccelerationMode.accelerated) {
       if (!blas.isAvailable) {
-        throw StateError(
-          'Native acceleration is required in AccelerationMode.accelerated, but native BLAS is unavailable.',
-        );
+        throw AccelerationError.unavailable('BLAS');
       }
       final success = blas.sgemm(
         transA: transA,
@@ -146,7 +143,7 @@ abstract final class BlasLevel3 {
         ldc: ldc,
       );
       if (!success) {
-        throw StateError('sgemm failed in AccelerationMode.accelerated.');
+        throw AccelerationError.failed('sgemm');
       }
       return true;
     } else if (AccelerationManager.mode == AccelerationMode.auto &&
@@ -212,9 +209,7 @@ abstract final class BlasLevel3 {
   }) {
     if (AccelerationManager.mode == AccelerationMode.accelerated) {
       if (!blas.isAvailable) {
-        throw StateError(
-          'Native acceleration is required in AccelerationMode.accelerated, but native BLAS is unavailable.',
-        );
+        throw AccelerationError.unavailable('BLAS');
       }
       final success = blas.dsyrk(
         uplo: uplo,
@@ -231,7 +226,7 @@ abstract final class BlasLevel3 {
         ldc: ldc,
       );
       if (!success) {
-        throw StateError('dsyrk failed in AccelerationMode.accelerated.');
+        throw AccelerationError.failed('dsyrk');
       }
       return true;
     } else if (AccelerationManager.mode == AccelerationMode.auto &&
@@ -292,9 +287,7 @@ abstract final class BlasLevel3 {
   }) {
     if (AccelerationManager.mode == AccelerationMode.accelerated) {
       if (!blas.isAvailable) {
-        throw StateError(
-          'Native acceleration is required in AccelerationMode.accelerated, but native BLAS is unavailable.',
-        );
+        throw AccelerationError.unavailable('BLAS');
       }
       final success = blas.ssyrk(
         uplo: uplo,
@@ -311,7 +304,7 @@ abstract final class BlasLevel3 {
         ldc: ldc,
       );
       if (!success) {
-        throw StateError('ssyrk failed in AccelerationMode.accelerated.');
+        throw AccelerationError.failed('ssyrk');
       }
       return true;
     } else if (AccelerationManager.mode == AccelerationMode.auto &&
@@ -387,9 +380,7 @@ abstract final class BlasLevel3 {
 
     if (AccelerationManager.mode == AccelerationMode.accelerated) {
       if (!blas.isAvailable) {
-        throw StateError(
-          'Native acceleration is required in AccelerationMode.accelerated, but native BLAS is unavailable.',
-        );
+        throw AccelerationError.unavailable('BLAS');
       }
       final success = blas.dsymm(
         side: side,
@@ -409,7 +400,7 @@ abstract final class BlasLevel3 {
         ldc: ldc,
       );
       if (!success) {
-        throw StateError('dsymm failed in AccelerationMode.accelerated.');
+        throw AccelerationError.failed('dsymm');
       }
       return true;
     } else if (AccelerationManager.mode == AccelerationMode.auto &&
@@ -496,9 +487,7 @@ abstract final class BlasLevel3 {
 
     if (AccelerationManager.mode == AccelerationMode.accelerated) {
       if (!blas.isAvailable) {
-        throw StateError(
-          'Native acceleration is required in AccelerationMode.accelerated, but native BLAS is unavailable.',
-        );
+        throw AccelerationError.unavailable('BLAS');
       }
       final success = blas.ssymm(
         side: side,
@@ -518,7 +507,7 @@ abstract final class BlasLevel3 {
         ldc: ldc,
       );
       if (!success) {
-        throw StateError('ssymm failed in AccelerationMode.accelerated.');
+        throw AccelerationError.failed('ssymm');
       }
       return true;
     } else if (AccelerationManager.mode == AccelerationMode.auto &&
@@ -609,9 +598,7 @@ abstract final class BlasLevel3 {
 
     if (AccelerationManager.mode == AccelerationMode.accelerated) {
       if (!blas.isAvailable) {
-        throw StateError(
-          'Native acceleration is required in AccelerationMode.accelerated, but native BLAS is unavailable.',
-        );
+        throw AccelerationError.unavailable('BLAS');
       }
       final success = blas.dtrmm(
         side: side,
@@ -629,7 +616,7 @@ abstract final class BlasLevel3 {
         ldb: ldb,
       );
       if (!success) {
-        throw StateError('dtrmm failed in AccelerationMode.accelerated.');
+        throw AccelerationError.failed('dtrmm');
       }
       return true;
     } else if (AccelerationManager.mode == AccelerationMode.auto &&
@@ -744,9 +731,7 @@ abstract final class BlasLevel3 {
 
     if (AccelerationManager.mode == AccelerationMode.accelerated) {
       if (!blas.isAvailable) {
-        throw StateError(
-          'Native acceleration is required in AccelerationMode.accelerated, but native BLAS is unavailable.',
-        );
+        throw AccelerationError.unavailable('BLAS');
       }
       final success = blas.strmm(
         side: side,
@@ -764,7 +749,7 @@ abstract final class BlasLevel3 {
         ldb: ldb,
       );
       if (!success) {
-        throw StateError('strmm failed in AccelerationMode.accelerated.');
+        throw AccelerationError.failed('strmm');
       }
       return true;
     } else if (AccelerationManager.mode == AccelerationMode.auto &&

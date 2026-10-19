@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 import 'dart:typed_data';
 
+import '../acceleration_error.dart';
 import '../acceleration_manager.dart';
 import '../acceleration_mode.dart';
 import '../blas/cblas.dart';
@@ -21,21 +22,9 @@ abstract final class LapackRoutines {
   }) {
     if (AccelerationManager.mode == AccelerationMode.accelerated) {
       if (!blas.isAvailable) {
-        throw StateError(
-          'Native acceleration is required in AccelerationMode.accelerated, but native BLAS/LAPACK is unavailable.',
-        );
+        throw AccelerationError.unavailable('LAPACK');
       }
-      final success = blas.dpotrf(
-        uplo: uplo,
-        n: n,
-        a: a,
-        aOffset: aOffset,
-        lda: lda,
-      );
-      if (!success) {
-        throw StateError('dpotrf failed in AccelerationMode.accelerated.');
-      }
-      return true;
+      return blas.dpotrf(uplo: uplo, n: n, a: a, aOffset: aOffset, lda: lda);
     } else if (AccelerationManager.mode == AccelerationMode.auto &&
         blas.isAvailable) {
       final success = blas.dpotrf(
@@ -104,11 +93,9 @@ abstract final class LapackRoutines {
 
     if (AccelerationManager.mode == AccelerationMode.accelerated) {
       if (!blas.isAvailable) {
-        throw StateError(
-          'Native acceleration is required in AccelerationMode.accelerated, but native BLAS/LAPACK is unavailable.',
-        );
+        throw AccelerationError.unavailable('LAPACK');
       }
-      final success = blas.dgesv(
+      return blas.dgesv(
         n: n,
         nrhs: nrhs,
         a: a,
@@ -118,10 +105,6 @@ abstract final class LapackRoutines {
         bOffset: bOffset,
         ldb: ldb,
       );
-      if (!success) {
-        throw StateError('dgesv failed in AccelerationMode.accelerated.');
-      }
-      return true;
     } else if (AccelerationManager.mode == AccelerationMode.auto &&
         blas.isAvailable) {
       final success = blas.dgesv(
@@ -155,9 +138,7 @@ abstract final class LapackRoutines {
   }) {
     if (AccelerationManager.mode == AccelerationMode.accelerated) {
       if (!blas.isAvailable) {
-        throw StateError(
-          'Native acceleration is required in AccelerationMode.accelerated, but native BLAS/LAPACK is unavailable.',
-        );
+        throw AccelerationError.unavailable('LAPACK');
       }
       final success = blas.dgels(
         m: m,
@@ -171,12 +152,12 @@ abstract final class LapackRoutines {
         ldb: ldb,
       );
       if (!success) {
-        throw StateError('dgels failed in AccelerationMode.accelerated.');
+        throw AccelerationError.failed('dgels');
       }
       return true;
     } else if (AccelerationManager.mode == AccelerationMode.auto &&
         blas.isAvailable) {
-      return blas.dgels(
+      final success = blas.dgels(
         m: m,
         n: n,
         nrhs: nrhs,
@@ -187,8 +168,19 @@ abstract final class LapackRoutines {
         bOffset: bOffset,
         ldb: ldb,
       );
+      if (success) return true;
     }
-    return false;
+    return PureDartLapack.dgels(
+      m: m,
+      n: n,
+      nrhs: nrhs,
+      a: a,
+      aOffset: aOffset,
+      lda: lda,
+      b: b,
+      bOffset: bOffset,
+      ldb: ldb,
+    );
   }
 
   /// Computes all eigenvalues and, optionally, eigenvectors of a real symmetric
@@ -215,9 +207,7 @@ abstract final class LapackRoutines {
 
     if (AccelerationManager.mode == AccelerationMode.accelerated) {
       if (!blas.isAvailable) {
-        throw StateError(
-          'Native acceleration is required in AccelerationMode.accelerated, but native BLAS/LAPACK is unavailable.',
-        );
+        throw AccelerationError.unavailable('LAPACK');
       }
       final success = blas.dsyev(
         jobz: normJobz,
@@ -230,7 +220,7 @@ abstract final class LapackRoutines {
         wOffset: wOffset,
       );
       if (!success) {
-        throw StateError('dsyev failed in AccelerationMode.accelerated.');
+        throw AccelerationError.failed('dsyev');
       }
       return true;
     } else if (AccelerationManager.mode == AccelerationMode.auto &&
@@ -284,9 +274,7 @@ abstract final class LapackRoutines {
 
     if (AccelerationManager.mode == AccelerationMode.accelerated) {
       if (!blas.isAvailable) {
-        throw StateError(
-          'Native acceleration is required in AccelerationMode.accelerated, but native BLAS/LAPACK is unavailable.',
-        );
+        throw AccelerationError.unavailable('LAPACK');
       }
       final success = blas.ssyev(
         jobz: normJobz,
@@ -299,7 +287,7 @@ abstract final class LapackRoutines {
         wOffset: wOffset,
       );
       if (!success) {
-        throw StateError('ssyev failed in AccelerationMode.accelerated.');
+        throw AccelerationError.failed('ssyev');
       }
       return true;
     } else if (AccelerationManager.mode == AccelerationMode.auto &&

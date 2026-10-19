@@ -3,6 +3,7 @@ import 'dart:typed_data';
 
 import 'package:more/number.dart' show Complex;
 
+import '../acceleration_error.dart';
 import '../acceleration_manager.dart';
 import '../acceleration_mode.dart';
 import '../fallback/pure_dart_fft.dart';
@@ -23,9 +24,7 @@ abstract final class FftRoutines {
     }
 
     if (mode == AccelerationMode.accelerated && !vdsp.hasFft) {
-      throw StateError(
-        'AccelerationMode.accelerated requested but native FFT acceleration is unavailable.',
-      );
+      throw AccelerationError.unavailable('FFT');
     }
 
     final list = input.toList();
@@ -62,7 +61,7 @@ abstract final class FftRoutines {
     }
 
     if (mode == AccelerationMode.accelerated) {
-      throw StateError('Native hardware FFT execution failed.');
+      throw AccelerationError.failed('FFT');
     }
 
     return PureDartFft.fft(input, inverse: inverse);
@@ -115,9 +114,7 @@ abstract final class FftRoutines {
     }
 
     if (mode == AccelerationMode.accelerated && !vdsp.hasFft) {
-      throw StateError(
-        'AccelerationMode.accelerated requested but native FFT acceleration is unavailable.',
-      );
+      throw AccelerationError.unavailable('FFT');
     }
 
     if (matrix.isEmpty || matrix[0].isEmpty) return const [];
@@ -165,7 +162,7 @@ abstract final class FftRoutines {
     }
 
     if (mode == AccelerationMode.accelerated) {
-      throw StateError('Native hardware 2D FFT execution failed.');
+      throw AccelerationError.failed('2D FFT');
     }
 
     return PureDartFft.fft2(matrix, inverse: inverse);

@@ -1,5 +1,6 @@
 import 'dart:typed_data';
 
+import '../acceleration_error.dart';
 import '../acceleration_manager.dart';
 import '../acceleration_mode.dart';
 import '../fallback/pure_dart_fft.dart';
@@ -15,9 +16,7 @@ abstract final class VforceRoutines {
       return PureDartFft.vsin(input);
     }
     if (mode == AccelerationMode.accelerated && !vdsp.hasVForce) {
-      throw StateError(
-        'AccelerationMode.accelerated requested but native vForce is unavailable.',
-      );
+      throw AccelerationError.unavailable('vForce');
     }
 
     final n = input.length;
@@ -28,7 +27,7 @@ abstract final class VforceRoutines {
     }
 
     if (mode == AccelerationMode.accelerated) {
-      throw StateError('Native hardware vvsin execution failed.');
+      throw AccelerationError.failed('vvsin');
     }
     return PureDartFft.vsin(input);
   }
@@ -40,9 +39,7 @@ abstract final class VforceRoutines {
       return PureDartFft.vcos(input);
     }
     if (mode == AccelerationMode.accelerated && !vdsp.hasVForce) {
-      throw StateError(
-        'AccelerationMode.accelerated requested but native vForce is unavailable.',
-      );
+      throw AccelerationError.unavailable('vForce');
     }
 
     final n = input.length;
@@ -53,7 +50,7 @@ abstract final class VforceRoutines {
     }
 
     if (mode == AccelerationMode.accelerated) {
-      throw StateError('Native hardware vvcos execution failed.');
+      throw AccelerationError.failed('vvcos');
     }
     return PureDartFft.vcos(input);
   }
@@ -65,9 +62,7 @@ abstract final class VforceRoutines {
       return PureDartFft.vexp(input);
     }
     if (mode == AccelerationMode.accelerated && !vdsp.hasVForce) {
-      throw StateError(
-        'AccelerationMode.accelerated requested but native vForce is unavailable.',
-      );
+      throw AccelerationError.unavailable('vForce');
     }
 
     final n = input.length;
@@ -78,7 +73,7 @@ abstract final class VforceRoutines {
     }
 
     if (mode == AccelerationMode.accelerated) {
-      throw StateError('Native hardware vvexp execution failed.');
+      throw AccelerationError.failed('vvexp');
     }
     return PureDartFft.vexp(input);
   }
@@ -90,9 +85,7 @@ abstract final class VforceRoutines {
       return PureDartFft.vlog(input);
     }
     if (mode == AccelerationMode.accelerated && !vdsp.hasVForce) {
-      throw StateError(
-        'AccelerationMode.accelerated requested but native vForce is unavailable.',
-      );
+      throw AccelerationError.unavailable('vForce');
     }
 
     final n = input.length;
@@ -103,7 +96,7 @@ abstract final class VforceRoutines {
     }
 
     if (mode == AccelerationMode.accelerated) {
-      throw StateError('Native hardware vvlog execution failed.');
+      throw AccelerationError.failed('vvlog');
     }
     return PureDartFft.vlog(input);
   }
@@ -115,9 +108,7 @@ abstract final class VforceRoutines {
       return PureDartFft.vsqrt(input);
     }
     if (mode == AccelerationMode.accelerated && !vdsp.hasVForce) {
-      throw StateError(
-        'AccelerationMode.accelerated requested but native vForce is unavailable.',
-      );
+      throw AccelerationError.unavailable('vForce');
     }
 
     final n = input.length;
@@ -128,7 +119,7 @@ abstract final class VforceRoutines {
     }
 
     if (mode == AccelerationMode.accelerated) {
-      throw StateError('Native hardware vvsqrt execution failed.');
+      throw AccelerationError.failed('vvsqrt');
     }
     return PureDartFft.vsqrt(input);
   }
@@ -144,9 +135,7 @@ abstract final class VforceRoutines {
       return PureDartFft.vpow(base, exponent);
     }
     if (mode == AccelerationMode.accelerated && !vdsp.hasVForce) {
-      throw StateError(
-        'AccelerationMode.accelerated requested but native vForce is unavailable.',
-      );
+      throw AccelerationError.unavailable('vForce');
     }
 
     final n = base.length < exponent.length ? base.length : exponent.length;
@@ -162,7 +151,7 @@ abstract final class VforceRoutines {
     }
 
     if (mode == AccelerationMode.accelerated) {
-      throw StateError('Native hardware vvpow execution failed.');
+      throw AccelerationError.failed('vvpow');
     }
     return PureDartFft.vpow(base, exponent);
   }
@@ -176,9 +165,7 @@ abstract final class VforceRoutines {
       return PureDartFft.sum(x);
     }
     if (mode == AccelerationMode.accelerated && !vdsp.hasReductions) {
-      throw StateError(
-        'AccelerationMode.accelerated requested but native vector reductions are unavailable.',
-      );
+      throw AccelerationError.unavailable('vector reductions');
     }
 
     final n = x.length;
@@ -189,7 +176,7 @@ abstract final class VforceRoutines {
     }
 
     if (mode == AccelerationMode.accelerated) {
-      throw StateError('Native hardware vDSP_sveD execution failed.');
+      throw AccelerationError.failed('vDSP_sveD');
     }
     return PureDartFft.sum(x);
   }
@@ -201,9 +188,7 @@ abstract final class VforceRoutines {
       return PureDartFft.mean(x);
     }
     if (mode == AccelerationMode.accelerated && !vdsp.hasReductions) {
-      throw StateError(
-        'AccelerationMode.accelerated requested but native vector reductions are unavailable.',
-      );
+      throw AccelerationError.unavailable('vector reductions');
     }
 
     final n = x.length;
@@ -215,7 +200,7 @@ abstract final class VforceRoutines {
     }
 
     if (mode == AccelerationMode.accelerated) {
-      throw StateError('Native hardware vDSP_meanvD execution failed.');
+      throw AccelerationError.failed('vDSP_meanvD');
     }
     return PureDartFft.mean(x);
   }
@@ -231,9 +216,7 @@ abstract final class VforceRoutines {
       return PureDartFft.variance(x, sample: sample);
     }
     if (mode == AccelerationMode.accelerated && !vdsp.hasReductions) {
-      throw StateError(
-        'AccelerationMode.accelerated requested but native vector reductions are unavailable.',
-      );
+      throw AccelerationError.unavailable('vector reductions');
     }
 
     final n = x.length;
@@ -245,7 +228,7 @@ abstract final class VforceRoutines {
     }
 
     if (mode == AccelerationMode.accelerated) {
-      throw StateError('Native hardware variance execution failed.');
+      throw AccelerationError.failed('variance');
     }
     return PureDartFft.variance(x, sample: sample);
   }
@@ -263,9 +246,7 @@ abstract final class VforceRoutines {
       return PureDartFft.convolve(signal, filter);
     }
     if (mode == AccelerationMode.accelerated && !vdsp.isAvailable) {
-      throw StateError(
-        'AccelerationMode.accelerated requested but native acceleration is unavailable.',
-      );
+      throw AccelerationError.unavailable('vDSP');
     }
 
     final sLen = signal.length;
@@ -281,7 +262,7 @@ abstract final class VforceRoutines {
     }
 
     if (mode == AccelerationMode.accelerated) {
-      throw StateError('Native hardware convolution execution failed.');
+      throw AccelerationError.failed('convolution');
     }
     return PureDartFft.convolve(signal, filter);
   }
@@ -297,9 +278,7 @@ abstract final class VforceRoutines {
       return PureDartFft.correlate(signal, filter);
     }
     if (mode == AccelerationMode.accelerated && !vdsp.isAvailable) {
-      throw StateError(
-        'AccelerationMode.accelerated requested but native acceleration is unavailable.',
-      );
+      throw AccelerationError.unavailable('vDSP');
     }
 
     final sLen = signal.length;
@@ -315,7 +294,7 @@ abstract final class VforceRoutines {
     }
 
     if (mode == AccelerationMode.accelerated) {
-      throw StateError('Native hardware cross-correlation execution failed.');
+      throw AccelerationError.failed('cross-correlation');
     }
     return PureDartFft.correlate(signal, filter);
   }

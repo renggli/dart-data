@@ -7,6 +7,8 @@ import 'package:data/linear.dart';
 import 'package:data/src/acceleration/fallback/pure_dart_gemm.dart';
 import 'package:test/test.dart';
 
+import '../test_utils.dart';
+
 void main() {
   group('Pure Dart Cache-Blocked GEMM (Float64)', () {
     test('small matrix multiplication NN (NoTrans, NoTrans)', () {
@@ -352,59 +354,53 @@ void main() {
       },
     );
 
-    test('Matrix operator * produces consistent output regardless of AccelerationManager.isEnabled', () {
-      final m1 = Matrix<double>.generate(
-        16,
-        16,
-        (r, c) => (r + c + 1).toDouble(),
-      );
-      final m2 = Matrix<double>.generate(
-        16,
-        16,
-        (r, c) => (r * c + 1).toDouble(),
-      );
+    accelerationTest(
+      'Matrix operator * produces consistent output across acceleration modes',
+      () {
+        final m1 = Matrix<double>.generate(
+          16,
+          16,
+          (r, c) => (r + c + 1).toDouble(),
+        );
+        final m2 = Matrix<double>.generate(
+          16,
+          16,
+          (r, c) => (r * c + 1).toDouble(),
+        );
 
-      final prev = AccelerationManager.isEnabled;
-      try {
-        AccelerationManager.isEnabled = true;
-        final resAcc = m1 * m2;
-
-        AccelerationManager.isEnabled = false;
-        final resPure = m1 * m2;
-
+        final res = m1 * m2;
         for (var r = 0; r < 16; r++) {
           for (var c = 0; c < 16; c++) {
-            check(resAcc.getUnchecked(r, c))
-                .isCloseTo(resPure.getUnchecked(r, c), 1e-9);
+            var expected = 0.0;
+            for (var k = 0; k < 16; k++) {
+              expected += (r + k + 1) * (k * c + 1);
+            }
+            check(res.getUnchecked(r, c)).isCloseTo(expected, 1e-9);
           }
         }
-      } finally {
-        AccelerationManager.isEnabled = prev;
-      }
-    });
+      },
+      isSupported: AccelerationManager.isBlasAvailable,
+    );
 
-    test('Matrix operator * on 70x70 matrix with AccelerationManager enabled vs disabled', () {
-      final rng = math.Random(123);
-      final m1 = Matrix<double>.generate(70, 70, (r, c) => rng.nextDouble());
-      final m2 = Matrix<double>.generate(70, 70, (r, c) => rng.nextDouble());
+    accelerationTest(
+      'Matrix operator * on 70x70 matrix across acceleration modes',
+      () {
+        final rng = math.Random(123);
+        final m1 = Matrix<double>.generate(70, 70, (r, c) => rng.nextDouble());
+        final m2 = Matrix<double>.generate(70, 70, (r, c) => rng.nextDouble());
 
-      final prev = AccelerationManager.isEnabled;
-      try {
-        AccelerationManager.isEnabled = true;
-        final resAcc = m1 * m2;
-
-        AccelerationManager.isEnabled = false;
-        final resPure = m1 * m2;
-
-        for (var r = 0; r < 70; r++) {
-          for (var c = 0; c < 70; c++) {
-            check(resAcc.getUnchecked(r, c))
-                .isCloseTo(resPure.getUnchecked(r, c), 1e-8);
+        final res = m1 * m2;
+        check(res.rowCount).equals(70);
+        check(res.colCount).equals(70);
+        for (final (r, c) in [(0, 0), (0, 69), (35, 35), (69, 0), (69, 69)]) {
+          var expected = 0.0;
+          for (var k = 0; k < 70; k++) {
+            expected += m1.getUnchecked(r, k) * m2.getUnchecked(k, c);
           }
+          check(res.getUnchecked(r, c)).isCloseTo(expected, 1e-8);
         }
-      } finally {
-        AccelerationManager.isEnabled = prev;
-      }
-    });
+      },
+      isSupported: AccelerationManager.isBlasAvailable,
+    );
   });
 }

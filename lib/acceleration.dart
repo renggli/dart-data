@@ -11,7 +11,7 @@
 /// Execution modes can be configured via [AccelerationMode]:
 /// - [AccelerationMode.auto]: uses the fastest approach available (default).
 /// - [AccelerationMode.accelerated]: forces native BLAS/LAPACK execution and
-///   throws [StateError] if unavailable (no silent fallback).
+///   throws [AccelerationUnavailableError] if unavailable (no silent fallback).
 /// - [AccelerationMode.dart]: forces pure Dart execution for benchmarking and
 ///   portability.
 ///
@@ -25,6 +25,13 @@
 ///   fast element-wise addition, subtraction, multiplication, and dot products.
 /// - [AccelerationMode]: Enum specifying execution strategy (`auto`,
 ///   `accelerated`, `dart`).
+/// - [AccelerationError]: Base class for exceptions thrown when accelerated
+///   execution fails or is unavailable.
+/// - [AccelerationUnavailableError]: Dedicated exception thrown when hardware
+///   acceleration is requested in [AccelerationMode.accelerated] but is
+///   unavailable.
+/// - [AccelerationFailedError]: Dedicated exception thrown when native hardware
+///   execution fails.
 ///
 /// ## Example
 ///
@@ -53,10 +60,12 @@
 /// ```
 library;
 
+import 'src/acceleration/acceleration_error.dart';
 import 'src/acceleration/acceleration_manager.dart';
 import 'src/acceleration/acceleration_mode.dart';
 import 'src/acceleration/fallback/simd.dart';
 
+export 'src/acceleration/acceleration_error.dart';
 export 'src/acceleration/acceleration_manager.dart';
 export 'src/acceleration/acceleration_mode.dart';
 export 'src/acceleration/blas/cblas.dart';

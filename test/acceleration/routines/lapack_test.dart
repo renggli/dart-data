@@ -4,13 +4,11 @@ import 'package:checks/checks.dart';
 import 'package:data/acceleration.dart';
 import 'package:test/test.dart';
 
+import '../test_utils.dart';
+
 void main() {
   group('LapackRoutines', () {
-    tearDown(() {
-      AccelerationManager.mode = AccelerationMode.auto;
-    });
-
-    test('dpotrf Cholesky factorization of SPD matrix', () {
+    accelerationTest('dpotrf Cholesky factorization of SPD matrix', () {
       final a = Float64List.fromList([4.0, 12.0, 12.0, 45.0]);
 
       final ok = AccelerationManager.dpotrf(
@@ -24,20 +22,24 @@ void main() {
       check(a[0]).isCloseTo(2.0, 1e-10);
       check(a[1]).isCloseTo(6.0, 1e-10);
       check(a[3]).isCloseTo(3.0, 1e-10);
-    });
+    }, isSupported: AccelerationManager.isBlasAvailable);
 
-    test('dpotrf returns false for non-positive-definite matrix', () {
-      final a = Float64List.fromList([-1.0, 0.0, 0.0, 2.0]);
-      final ok = AccelerationManager.dpotrf(
-        uplo: cblasUpper,
-        n: 2,
-        a: a,
-        lda: 2,
-      );
-      check(ok).isFalse();
-    });
+    accelerationTest(
+      'dpotrf returns false for non-positive-definite matrix',
+      () {
+        final a = Float64List.fromList([-1.0, 0.0, 0.0, 2.0]);
+        final ok = AccelerationManager.dpotrf(
+          uplo: cblasUpper,
+          n: 2,
+          a: a,
+          lda: 2,
+        );
+        check(ok).isFalse();
+      },
+      isSupported: AccelerationManager.isBlasAvailable,
+    );
 
-    test('dgesv solve linear system', () {
+    accelerationTest('dgesv solve linear system', () {
       final a = Float64List.fromList([3.0, 1.0, 1.0, 2.0]);
       final b = Float64List.fromList([9.0, 8.0]);
 
@@ -53,9 +55,9 @@ void main() {
       // 3*x + y = 9, x + 2*y = 8  => x = 2, y = 3
       check(b[0]).isCloseTo(2.0, 1e-10);
       check(b[1]).isCloseTo(3.0, 1e-10);
-    });
+    }, isSupported: AccelerationManager.isBlasAvailable);
 
-    test('dgels least squares solve', () {
+    accelerationTest('dgels least squares solve', () {
       // Overdetermined system:
       // x = 1
       // x = 2
@@ -73,15 +75,11 @@ void main() {
         b: b,
         ldb: 1,
       );
-      if (AccelerationManager.isNativeAvailable) {
-        check(ok).isTrue();
-        check(b[0]).isCloseTo(2.0, 1e-10);
-      } else {
-        check(ok).isFalse();
-      }
-    });
+      check(ok).isTrue();
+      check(b[0]).isCloseTo(2.0, 1e-10);
+    }, isSupported: AccelerationManager.isBlasAvailable);
 
-    test('dsyev eigenvalue solver', () {
+    accelerationTest('dsyev eigenvalue solver', () {
       final a = Float64List.fromList([3.0, 2.0, 2.0, 6.0]);
       final w = Float64List(2);
 
@@ -92,9 +90,9 @@ void main() {
       // Eigenvalues: 2.0 and 7.0
       check(w[0]).isCloseTo(2.0, 1e-10);
       check(w[1]).isCloseTo(7.0, 1e-10);
-    });
+    }, isSupported: AccelerationManager.isBlasAvailable);
 
-    test('ssyev single-precision eigenvalue solver', () {
+    accelerationTest('ssyev single-precision eigenvalue solver', () {
       final a = Float32List.fromList([3.0, 2.0, 2.0, 6.0]);
       final w = Float32List(2);
 
@@ -102,6 +100,6 @@ void main() {
       check(ok).isTrue();
       check(w[0]).isCloseTo(2.0, 1e-5);
       check(w[1]).isCloseTo(7.0, 1e-5);
-    });
+    }, isSupported: AccelerationManager.isBlasAvailable);
   });
 }

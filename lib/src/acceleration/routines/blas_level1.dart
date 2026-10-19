@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 import 'dart:typed_data';
 
+import '../acceleration_error.dart';
 import '../acceleration_manager.dart';
 import '../acceleration_mode.dart';
 import '../blas/cblas.dart';
@@ -21,9 +22,7 @@ abstract final class BlasLevel1 {
   }) {
     if (AccelerationManager.mode == AccelerationMode.accelerated) {
       if (!blas.isAvailable) {
-        throw StateError(
-          'Native acceleration is required in AccelerationMode.accelerated, but native BLAS is unavailable.',
-        );
+        throw AccelerationError.unavailable('BLAS');
       }
       final res = blas.ddot(
         n: n,
@@ -35,7 +34,7 @@ abstract final class BlasLevel1 {
         incY: incY,
       );
       if (res == null) {
-        throw StateError('ddot failed in AccelerationMode.accelerated.');
+        throw AccelerationError.failed('ddot');
       }
       return res;
     } else if (AccelerationManager.mode == AccelerationMode.auto &&
@@ -76,9 +75,7 @@ abstract final class BlasLevel1 {
   }) {
     if (AccelerationManager.mode == AccelerationMode.accelerated) {
       if (!blas.isAvailable) {
-        throw StateError(
-          'Native acceleration is required in AccelerationMode.accelerated, but native BLAS is unavailable.',
-        );
+        throw AccelerationError.unavailable('BLAS');
       }
       final res = blas.sdot(
         n: n,
@@ -90,7 +87,7 @@ abstract final class BlasLevel1 {
         incY: incY,
       );
       if (res == null) {
-        throw StateError('sdot failed in AccelerationMode.accelerated.');
+        throw AccelerationError.failed('sdot');
       }
       return res;
     } else if (AccelerationManager.mode == AccelerationMode.auto &&
@@ -137,13 +134,11 @@ abstract final class BlasLevel1 {
   }) {
     if (AccelerationManager.mode == AccelerationMode.accelerated) {
       if (!blas.isAvailable) {
-        throw StateError(
-          'Native acceleration is required in AccelerationMode.accelerated, but native BLAS is unavailable.',
-        );
+        throw AccelerationError.unavailable('BLAS');
       }
       final res = blas.dnrm2(n: n, x: x, xOffset: xOffset, incX: incX);
       if (res == null) {
-        throw StateError('dnrm2 failed in AccelerationMode.accelerated.');
+        throw AccelerationError.failed('dnrm2');
       }
       return res;
     } else if (AccelerationManager.mode == AccelerationMode.auto &&
@@ -170,13 +165,11 @@ abstract final class BlasLevel1 {
   }) {
     if (AccelerationManager.mode == AccelerationMode.accelerated) {
       if (!blas.isAvailable) {
-        throw StateError(
-          'Native acceleration is required in AccelerationMode.accelerated, but native BLAS is unavailable.',
-        );
+        throw AccelerationError.unavailable('BLAS');
       }
       final res = blas.snrm2(n: n, x: x, xOffset: xOffset, incX: incX);
       if (res == null) {
-        throw StateError('snrm2 failed in AccelerationMode.accelerated.');
+        throw AccelerationError.failed('snrm2');
       }
       return res;
     } else if (AccelerationManager.mode == AccelerationMode.auto &&
@@ -211,9 +204,7 @@ abstract final class BlasLevel1 {
   }) {
     if (AccelerationManager.mode == AccelerationMode.accelerated) {
       if (!blas.isAvailable) {
-        throw StateError(
-          'Native acceleration is required in AccelerationMode.accelerated, but native BLAS is unavailable.',
-        );
+        throw AccelerationError.unavailable('BLAS');
       }
       final success = blas.daxpy(
         n: n,
@@ -226,7 +217,7 @@ abstract final class BlasLevel1 {
         incY: incY,
       );
       if (!success) {
-        throw StateError('daxpy failed in AccelerationMode.accelerated.');
+        throw AccelerationError.failed('daxpy');
       }
       return true;
     } else if (AccelerationManager.mode == AccelerationMode.auto &&
@@ -268,9 +259,7 @@ abstract final class BlasLevel1 {
   }) {
     if (AccelerationManager.mode == AccelerationMode.accelerated) {
       if (!blas.isAvailable) {
-        throw StateError(
-          'Native acceleration is required in AccelerationMode.accelerated, but native BLAS is unavailable.',
-        );
+        throw AccelerationError.unavailable('BLAS');
       }
       final success = blas.saxpy(
         n: n,
@@ -283,7 +272,7 @@ abstract final class BlasLevel1 {
         incY: incY,
       );
       if (!success) {
-        throw StateError('saxpy failed in AccelerationMode.accelerated.');
+        throw AccelerationError.failed('saxpy');
       }
       return true;
     } else if (AccelerationManager.mode == AccelerationMode.auto &&
@@ -322,9 +311,7 @@ abstract final class BlasLevel1 {
   }) {
     if (AccelerationManager.mode == AccelerationMode.accelerated) {
       if (!blas.isAvailable) {
-        throw StateError(
-          'Native acceleration is required in AccelerationMode.accelerated, but native BLAS is unavailable.',
-        );
+        throw AccelerationError.unavailable('BLAS');
       }
       final success = blas.dscal(
         n: n,
@@ -334,7 +321,7 @@ abstract final class BlasLevel1 {
         incX: incX,
       );
       if (!success) {
-        throw StateError('dscal failed in AccelerationMode.accelerated.');
+        throw AccelerationError.failed('dscal');
       }
       return true;
     } else if (AccelerationManager.mode == AccelerationMode.auto &&
@@ -366,9 +353,7 @@ abstract final class BlasLevel1 {
   }) {
     if (AccelerationManager.mode == AccelerationMode.accelerated) {
       if (!blas.isAvailable) {
-        throw StateError(
-          'Native acceleration is required in AccelerationMode.accelerated, but native BLAS is unavailable.',
-        );
+        throw AccelerationError.unavailable('BLAS');
       }
       final success = blas.sscal(
         n: n,
@@ -378,7 +363,7 @@ abstract final class BlasLevel1 {
         incX: incX,
       );
       if (!success) {
-        throw StateError('sscal failed in AccelerationMode.accelerated.');
+        throw AccelerationError.failed('sscal');
       }
       return true;
     } else if (AccelerationManager.mode == AccelerationMode.auto &&

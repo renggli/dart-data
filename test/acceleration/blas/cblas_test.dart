@@ -4,11 +4,13 @@ import 'package:checks/checks.dart';
 import 'package:data/acceleration.dart';
 import 'package:data/linear.dart';
 import 'package:data/type.dart';
-import 'package:test/scaffolding.dart';
+import 'package:test/test.dart';
+
+import '../test_utils.dart';
 
 void main() {
   group('CBLAS / LAPACK multi-RHS dgesv', () {
-    test(
+    accelerationTest(
       'multi-RHS solve (N = 4, nrhs = 3) compared against pure Dart LU solve',
       () {
         final aMat = Matrix<double>.fromRows([
@@ -50,46 +52,25 @@ void main() {
         check(xLu.get(3, 1)).isCloseTo(-1.0, 1e-9);
         check(xLu.get(3, 2)).isCloseTo(2.0, 1e-9);
 
-        // Solve using AccelerationManager with fallback (pure Dart _luSolve)
-        AccelerationManager.isEnabled = false;
-        final aFallback = Float64List.fromList(aMat.tensor.data);
-        final bFallback = Float64List.fromList(bMat.tensor.data);
-        final okFallback = AccelerationManager.dgesv(
+        // Solve using AccelerationManager
+        final a = Float64List.fromList(aMat.tensor.data);
+        final b = Float64List.fromList(bMat.tensor.data);
+        final ok = AccelerationManager.dgesv(
           n: 4,
           nrhs: 3,
-          a: aFallback,
+          a: a,
           lda: 4,
-          b: bFallback,
+          b: b,
           ldb: 3,
         );
-        check(okFallback).isTrue();
+        check(ok).isTrue();
         for (var r = 0; r < 4; r++) {
           for (var c = 0; c < 3; c++) {
-            check(bFallback[r * 3 + c]).isCloseTo(xLu.get(r, c), 1e-9);
-          }
-        }
-
-        // Solve using AccelerationManager with native hardware acceleration
-        AccelerationManager.isEnabled = true;
-        if (AccelerationManager.isNativeAvailable) {
-          final aHw = Float64List.fromList(aMat.tensor.data);
-          final bHw = Float64List.fromList(bMat.tensor.data);
-          final okHw = AccelerationManager.dgesv(
-            n: 4,
-            nrhs: 3,
-            a: aHw,
-            lda: 4,
-            b: bHw,
-            ldb: 3,
-          );
-          check(okHw).isTrue();
-          for (var r = 0; r < 4; r++) {
-            for (var c = 0; c < 3; c++) {
-              check(bHw[r * 3 + c]).isCloseTo(xLu.get(r, c), 1e-9);
-            }
+            check(b[r * 3 + c]).isCloseTo(xLu.get(r, c), 1e-9);
           }
         }
       },
+      isSupported: AccelerationManager.isBlasAvailable,
     );
 
     test('multi-RHS solve with nrhs > N (N = 3, nrhs = 4)', () {
@@ -109,31 +90,25 @@ void main() {
       check(lu.isNonsingular).isTrue();
       final xLu = lu.solve(bMat);
 
-      for (final enableHw in [false, true]) {
-        AccelerationManager.isEnabled = enableHw;
-        if (enableHw && !AccelerationManager.isNativeAvailable) continue;
-
-        final aCopy = Float64List.fromList(aMat.tensor.data);
-        final bCopy = Float64List.fromList(bMat.tensor.data);
-        final ok = AccelerationManager.dgesv(
-          n: 3,
-          nrhs: 4,
-          a: aCopy,
-          lda: 3,
-          b: bCopy,
-          ldb: 4,
-        );
-        check(ok).isTrue();
-        for (var r = 0; r < 3; r++) {
-          for (var c = 0; c < 4; c++) {
-            check(bCopy[r * 4 + c]).isCloseTo(xLu.get(r, c), 1e-9);
-          }
+      final aCopy = Float64List.fromList(aMat.tensor.data);
+      final bCopy = Float64List.fromList(bMat.tensor.data);
+      final ok = AccelerationManager.dgesv(
+        n: 3,
+        nrhs: 4,
+        a: aCopy,
+        lda: 3,
+        b: bCopy,
+        ldb: 4,
+      );
+      check(ok).isTrue();
+      for (var r = 0; r < 3; r++) {
+        for (var c = 0; c < 4; c++) {
+          check(bCopy[r * 4 + c]).isCloseTo(xLu.get(r, c), 1e-9);
         }
       }
-      AccelerationManager.isEnabled = true;
     });
 
-    test('multi-RHS solve with buffer offsets and padding (aOffset, bOffset, ldb > nrhs)', () {
+    accelerationTest('multi-RHS solve with buffer offsets and padding (aOffset, bOffset, ldb > nrhs)', () {
       final aMat = Matrix<double>.fromRows([
         [4.0, 1.0, 0.0],
         [1.0, 5.0, 2.0],
@@ -163,49 +138,41 @@ void main() {
         bBuffer[bOffset + r * ldb + 3] = -999.0; // padding guard
       }
 
-      for (final enableHw in [false, true]) {
-        AccelerationManager.isEnabled = enableHw;
-        if (enableHw && !AccelerationManager.isNativeAvailable) continue;
+      final aCopy = Float64List.fromList(aBuffer);
+      final bCopy = Float64List.fromList(bBuffer);
 
-        final aCopy = Float64List.fromList(aBuffer);
-        final bCopy = Float64List.fromList(bBuffer);
-
-        final ok = AccelerationManager.dgesv(
-          n: 3,
-          nrhs: 2,
-          a: aCopy,
-          aOffset: aOffset,
-          lda: 3,
-          b: bCopy,
-          bOffset: bOffset,
-          ldb: ldb,
-        );
-        check(ok).isTrue();
-        for (var r = 0; r < 3; r++) {
-          check(bCopy[bOffset + r * ldb + 0]).isCloseTo(xLu.get(r, 0), 1e-9);
-          check(bCopy[bOffset + r * ldb + 1]).isCloseTo(xLu.get(r, 1), 1e-9);
-        }
+      final ok = AccelerationManager.dgesv(
+        n: 3,
+        nrhs: 2,
+        a: aCopy,
+        aOffset: aOffset,
+        lda: 3,
+        b: bCopy,
+        bOffset: bOffset,
+        ldb: ldb,
+      );
+      check(ok).isTrue();
+      for (var r = 0; r < 3; r++) {
+        check(bCopy[bOffset + r * ldb + 0]).isCloseTo(xLu.get(r, 0), 1e-9);
+        check(bCopy[bOffset + r * ldb + 1]).isCloseTo(xLu.get(r, 1), 1e-9);
       }
-      AccelerationManager.isEnabled = true;
     });
 
-    test('multi-RHS singular matrix fails gracefully without corrupting b', () {
-      final aSingular = Float64List.fromList([
-        1.0,
-        2.0,
-        3.0,
-        4.0,
-        5.0,
-        6.0,
-        0.0,
-        0.0,
-        0.0,
-      ]);
-      final bOriginal = Float64List.fromList([1.0, 2.0, 3.0, 4.0, 5.0, 6.0]);
-
-      for (final enableHw in [false, true]) {
-        AccelerationManager.isEnabled = enableHw;
-        if (enableHw && !AccelerationManager.isNativeAvailable) continue;
+    accelerationTest(
+      'multi-RHS singular matrix fails gracefully without corrupting b',
+      () {
+        final aSingular = Float64List.fromList([
+          1.0,
+          2.0,
+          3.0,
+          2.0,
+          4.0,
+          6.0,
+          0.0,
+          0.0,
+          0.0,
+        ]);
+        final bOriginal = Float64List.fromList([1.0, 2.0, 3.0, 4.0, 5.0, 6.0]);
 
         final aCopy = Float64List.fromList(aSingular);
         final bCopy = Float64List.fromList(bOriginal);
@@ -220,66 +187,54 @@ void main() {
         );
         check(ok).isFalse();
         check(bCopy).deepEquals(bOriginal);
-      }
-      AccelerationManager.isEnabled = true;
-    });
+      },
+      isSupported: AccelerationManager.isBlasAvailable,
+    );
 
-    test('single-RHS (nrhs = 1) compatibility preserved', () {
+    accelerationTest('single-RHS (nrhs = 1) compatibility preserved', () {
       final a = Float64List.fromList([2.0, 1.0, 1.0, 3.0]);
       final b = Float64List.fromList([4.0, 7.0]);
 
-      for (final enableHw in [false, true]) {
-        AccelerationManager.isEnabled = enableHw;
-        if (enableHw && !AccelerationManager.isNativeAvailable) continue;
+      final aCopy = Float64List.fromList(a);
+      final bCopy = Float64List.fromList(b);
 
-        final aCopy = Float64List.fromList(a);
-        final bCopy = Float64List.fromList(b);
-
-        final ok = AccelerationManager.dgesv(
-          n: 2,
-          nrhs: 1,
-          a: aCopy,
-          lda: 2,
-          b: bCopy,
-          ldb: 1,
-        );
-        check(ok).isTrue();
-        check(bCopy[0]).isCloseTo(1.0, 1e-9);
-        check(bCopy[1]).isCloseTo(2.0, 1e-9);
-      }
-      AccelerationManager.isEnabled = true;
+      final ok = AccelerationManager.dgesv(
+        n: 2,
+        nrhs: 1,
+        a: aCopy,
+        lda: 2,
+        b: bCopy,
+        ldb: 1,
+      );
+      check(ok).isTrue();
+      check(bCopy[0]).isCloseTo(1.0, 1e-9);
+      check(bCopy[1]).isCloseTo(2.0, 1e-9);
     });
 
-    test('single-RHS (nrhs = 1) with ldb > 1 (strided column)', () {
+    accelerationTest('single-RHS (nrhs = 1) with ldb > 1 (strided column)', () {
       final a = Float64List.fromList([2.0, 1.0, 1.0, 3.0]);
       // b has 2 rows and ldb = 3. Active column is col 0: [4.0, 7.0]^T.
       // Padding / other columns should not be corrupted.
       final b = Float64List.fromList([4.0, 111.0, 222.0, 7.0, 333.0, 444.0]);
 
-      for (final enableHw in [false, true]) {
-        AccelerationManager.isEnabled = enableHw;
-        if (enableHw && !AccelerationManager.isNativeAvailable) continue;
+      final aCopy = Float64List.fromList(a);
+      final bCopy = Float64List.fromList(b);
 
-        final aCopy = Float64List.fromList(a);
-        final bCopy = Float64List.fromList(b);
-
-        final ok = AccelerationManager.dgesv(
-          n: 2,
-          nrhs: 1,
-          a: aCopy,
-          lda: 2,
-          b: bCopy,
-          ldb: 3,
-        );
-        check(ok).isTrue();
-        check(bCopy[0]).isCloseTo(1.0, 1e-9);
-        check(bCopy[1]).equals(111.0); // padding guard
-        check(bCopy[2]).equals(222.0); // padding guard
-        check(bCopy[3]).isCloseTo(2.0, 1e-9);
-        check(bCopy[4]).equals(333.0); // padding guard
-        check(bCopy[5]).equals(444.0); // padding guard
-      }
-      AccelerationManager.isEnabled = true;
+      final ok = AccelerationManager.dgesv(
+        n: 2,
+        nrhs: 1,
+        a: aCopy,
+        lda: 2,
+        b: bCopy,
+        ldb: 3,
+      );
+      check(ok).isTrue();
+      check(bCopy[0]).isCloseTo(1.0, 1e-9);
+      check(bCopy[1]).equals(111.0); // padding guard
+      check(bCopy[2]).equals(222.0); // padding guard
+      check(bCopy[3]).isCloseTo(2.0, 1e-9);
+      check(bCopy[4]).equals(333.0); // padding guard
+      check(bCopy[5]).equals(444.0); // padding guard
     });
 
     test('multi-RHS solve with NativeBuffer backing', () {
@@ -472,7 +427,7 @@ void main() {
       check(x[1]).isCloseTo(28.0, 1e-5);
     });
 
-    test('dtrmv hardware acceleration vs fallback consistency', () {
+    accelerationTest('dtrmv hardware acceleration vs fallback consistency', () {
       final a = Float64List.fromList([
         3.0,
         -1.0,
@@ -484,10 +439,8 @@ void main() {
         0.0,
         6.0,
       ]);
-      final xHw = Float64List.fromList([2.0, 4.0, 3.0]);
-      final xFb = Float64List.fromList([2.0, 4.0, 3.0]);
+      final x = Float64List.fromList([2.0, 4.0, 3.0]);
 
-      AccelerationManager.isEnabled = true;
       check(
         AccelerationManager.dtrmv(
           uplo: cblasUpper,
@@ -496,28 +449,14 @@ void main() {
           n: 3,
           a: a,
           lda: 3,
-          x: xHw,
+          x: x,
         ),
       ).isTrue();
 
-      AccelerationManager.isEnabled = false;
-      check(
-        AccelerationManager.dtrmv(
-          uplo: cblasUpper,
-          trans: cblasNoTrans,
-          diag: cblasNonUnit,
-          n: 3,
-          a: a,
-          lda: 3,
-          x: xFb,
-        ),
-      ).isTrue();
-      AccelerationManager.isEnabled = true;
-
-      for (var i = 0; i < 3; i++) {
-        check(xHw[i]).isCloseTo(xFb[i], 1e-9);
-      }
-    });
+      check(x[0]).isCloseTo(8.0, 1e-9);
+      check(x[1]).isCloseTo(31.0, 1e-9);
+      check(x[2]).isCloseTo(18.0, 1e-9);
+    }, isSupported: AccelerationManager.isBlasAvailable);
 
     test('dtrmv validation bounds', () {
       final a = Float64List(4);
@@ -610,7 +549,7 @@ void main() {
       check(c[3]).isCloseTo(28.0, 1e-5);
     });
 
-    test('dsymm hardware acceleration vs fallback consistency', () {
+    accelerationTest('dsymm hardware acceleration vs fallback consistency', () {
       final a = Float64List.fromList([
         5.0,
         2.0,
@@ -623,10 +562,8 @@ void main() {
         6.0,
       ]);
       final b = Float64List.fromList([1.0, 2.0, 3.0, 4.0, 5.0, 6.0]);
-      final cHw = Float64List(6);
-      final cFb = Float64List(6);
+      final c = Float64List(6);
 
-      AccelerationManager.isEnabled = true;
       check(
         AccelerationManager.dsymm(
           side: cblasLeft,
@@ -639,34 +576,18 @@ void main() {
           b: b,
           ldb: 2,
           beta: 0.0,
-          c: cHw,
+          c: c,
           ldc: 2,
         ),
       ).isTrue();
 
-      AccelerationManager.isEnabled = false;
-      check(
-        AccelerationManager.dsymm(
-          side: cblasLeft,
-          uplo: cblasUpper,
-          m: 3,
-          n: 2,
-          alpha: 1.5,
-          a: a,
-          lda: 3,
-          b: b,
-          ldb: 2,
-          beta: 0.0,
-          c: cFb,
-          ldc: 2,
-        ),
-      ).isTrue();
-      AccelerationManager.isEnabled = true;
-
-      for (var i = 0; i < 6; i++) {
-        check(cHw[i]).isCloseTo(cFb[i], 1e-9);
-      }
-    });
+      check(c[0]).isCloseTo(9.0, 1e-9);
+      check(c[1]).isCloseTo(18.0, 1e-9);
+      check(c[2]).isCloseTo(43.5, 1e-9);
+      check(c[3]).isCloseTo(57.0, 1e-9);
+      check(c[4]).isCloseTo(57.0, 1e-9);
+      check(c[5]).isCloseTo(69.0, 1e-9);
+    }, isSupported: AccelerationManager.isBlasAvailable);
 
     test('dsymm validation bounds', () {
       final a = Float64List(4);
@@ -802,7 +723,7 @@ void main() {
       check(b[3]).isCloseTo(32.0, 1e-5);
     });
 
-    test('dtrmm hardware acceleration vs fallback consistency', () {
+    accelerationTest('dtrmm hardware acceleration vs fallback consistency', () {
       final a = Float64List.fromList([
         2.0,
         1.0,
@@ -814,10 +735,8 @@ void main() {
         0.0,
         4.0,
       ]);
-      final bHw = Float64List.fromList([1.0, 2.0, 3.0, 4.0, 5.0, 6.0]);
-      final bFb = Float64List.fromList([1.0, 2.0, 3.0, 4.0, 5.0, 6.0]);
+      final b = Float64List.fromList([1.0, 2.0, 3.0, 4.0, 5.0, 6.0]);
 
-      AccelerationManager.isEnabled = true;
       check(
         AccelerationManager.dtrmm(
           side: cblasLeft,
@@ -829,33 +748,18 @@ void main() {
           alpha: 1.0,
           a: a,
           lda: 3,
-          b: bHw,
+          b: b,
           ldb: 2,
         ),
       ).isTrue();
 
-      AccelerationManager.isEnabled = false;
-      check(
-        AccelerationManager.dtrmm(
-          side: cblasLeft,
-          uplo: cblasUpper,
-          transA: cblasNoTrans,
-          diag: cblasNonUnit,
-          m: 3,
-          n: 2,
-          alpha: 1.0,
-          a: a,
-          lda: 3,
-          b: bFb,
-          ldb: 2,
-        ),
-      ).isTrue();
-      AccelerationManager.isEnabled = true;
-
-      for (var i = 0; i < 6; i++) {
-        check(bHw[i]).isCloseTo(bFb[i], 1e-9);
-      }
-    });
+      check(b[0]).isCloseTo(0.0, 1e-9);
+      check(b[1]).isCloseTo(2.0, 1e-9);
+      check(b[2]).isCloseTo(19.0, 1e-9);
+      check(b[3]).isCloseTo(24.0, 1e-9);
+      check(b[4]).isCloseTo(20.0, 1e-9);
+      check(b[5]).isCloseTo(24.0, 1e-9);
+    }, isSupported: AccelerationManager.isBlasAvailable);
 
     test('dtrmm validation bounds', () {
       final a = Float64List(4);
@@ -933,8 +837,8 @@ void main() {
       check(av1_1).isCloseTo(w[1] * v11, 1e-9);
     });
 
-    test('dsyev 3x3 hardware vs fallback consistency', () {
-      final aHw = Float64List.fromList([
+    accelerationTest('dsyev 3x3 hardware vs fallback consistency', () {
+      final a = Float64List.fromList([
         4.0,
         1.0,
         -2.0,
@@ -945,65 +849,34 @@ void main() {
         0.0,
         3.0,
       ]);
-      final aFb = Float64List.fromList([
-        4.0,
-        1.0,
-        -2.0,
-        1.0,
-        2.0,
-        0.0,
-        -2.0,
-        0.0,
-        3.0,
-      ]);
-      final wHw = Float64List(3);
-      final wFb = Float64List(3);
+      final w = Float64List(3);
 
-      AccelerationManager.isEnabled = true;
       check(
         AccelerationManager.dsyev(
           jobz: 'V',
           uplo: cblasUpper,
           n: 3,
-          a: aHw,
+          a: a,
           lda: 3,
-          w: wHw,
+          w: w,
         ),
       ).isTrue();
 
-      AccelerationManager.isEnabled = false;
-      check(
-        AccelerationManager.dsyev(
-          jobz: 'V',
-          uplo: cblasUpper,
-          n: 3,
-          a: aFb,
-          lda: 3,
-          w: wFb,
-        ),
-      ).isTrue();
-      AccelerationManager.isEnabled = true;
+      check(w[0] <= w[1]).isTrue();
+      check(w[1] <= w[2]).isTrue();
+      check(w[0] + w[1] + w[2]).isCloseTo(9.0, 1e-8);
 
-      // Both compute the same eigenvalues in ascending order
+      // Check orthonormality of eigenvector matrix
       for (var i = 0; i < 3; i++) {
-        check(wHw[i]).isCloseTo(wFb[i], 1e-8);
-      }
-      check(wHw[0] <= wHw[1]).isTrue();
-      check(wHw[1] <= wHw[2]).isTrue();
-
-      // Check orthonormality of both eigenvector matrices
-      for (final vMat in [aHw, aFb]) {
-        for (var i = 0; i < 3; i++) {
-          for (var j = 0; j < 3; j++) {
-            var dot = 0.0;
-            for (var r = 0; r < 3; r++) {
-              dot += vMat[r * 3 + i] * vMat[r * 3 + j];
-            }
-            check(dot).isCloseTo(i == j ? 1.0 : 0.0, 1e-8);
+        for (var j = 0; j < 3; j++) {
+          var dot = 0.0;
+          for (var r = 0; r < 3; r++) {
+            dot += a[r * 3 + i] * a[r * 3 + j];
           }
+          check(dot).isCloseTo(i == j ? 1.0 : 0.0, 1e-8);
         }
       }
-    });
+    }, isSupported: AccelerationManager.isBlasAvailable);
 
     test('ssyev single-precision calculation', () {
       final a = Float32List.fromList([2.0, 1.0, 1.0, 2.0]);
@@ -1039,12 +912,12 @@ void main() {
       check(a1[0]).equals(1.0);
     });
 
-    test('dtrmv with row padding (lda > n) and strided incX > 1', () {
-      final a = Float64List.fromList([2.0, 3.0, -999.0, 0.0, 4.0]);
-      final x = Float64List.fromList([5.0, -888.0, 7.0, -888.0, -888.0]);
+    accelerationTest(
+      'dtrmv with row padding (lda > n) and strided incX > 1',
+      () {
+        final a = Float64List.fromList([2.0, 3.0, -999.0, 0.0, 4.0]);
+        final x = Float64List.fromList([5.0, -888.0, 7.0, -888.0, -888.0]);
 
-      for (final enableHw in [true, false]) {
-        AccelerationManager.isEnabled = enableHw;
         final xCopy = Float64List.fromList(x);
         final aCopy = Float64List.fromList(a);
         check(
@@ -1064,56 +937,20 @@ void main() {
         check(xCopy[2]).isCloseTo(28.0, 1e-9);
         check(xCopy[3]).equals(-888.0);
         check(aCopy[2]).equals(-999.0);
-      }
-      AccelerationManager.isEnabled = true;
-    });
+      },
+    );
 
-    test(
+    accelerationTest(
       'dsymm with buffer padding and offsets (lda > m, ldb > n, ldc > n)',
       () {
         final a = Float64List.fromList([2.0, 1.0, -777.0, 1.0, 3.0]);
         final b = Float64List.fromList([1.0, 2.0, -888.0, 3.0, 4.0]);
 
-        for (final enableHw in [true, false]) {
-          AccelerationManager.isEnabled = enableHw;
-          final c = Float64List.fromList([0.0, 0.0, -999.0, 0.0, 0.0]);
-          check(
-            AccelerationManager.dsymm(
-              side: cblasLeft,
-              uplo: cblasUpper,
-              m: 2,
-              n: 2,
-              alpha: 1.0,
-              a: a,
-              lda: 3,
-              b: b,
-              ldb: 3,
-              beta: 0.0,
-              c: c,
-              ldc: 3,
-            ),
-          ).isTrue();
-          check(c[0]).isCloseTo(5.0, 1e-9);
-          check(c[1]).isCloseTo(8.0, 1e-9);
-          check(c[2]).equals(-999.0);
-          check(c[3]).isCloseTo(10.0, 1e-9);
-          check(c[4]).isCloseTo(14.0, 1e-9);
-        }
-        AccelerationManager.isEnabled = true;
-      },
-    );
-
-    test('dtrmm with buffer padding (lda > m, ldb > n)', () {
-      final a = Float64List.fromList([2.0, 3.0, -777.0, 0.0, 4.0]);
-      for (final enableHw in [true, false]) {
-        AccelerationManager.isEnabled = enableHw;
-        final b = Float64List.fromList([1.0, 2.0, -888.0, 3.0, 4.0]);
+        final c = Float64List.fromList([0.0, 0.0, -999.0, 0.0, 0.0]);
         check(
-          AccelerationManager.dtrmm(
+          AccelerationManager.dsymm(
             side: cblasLeft,
             uplo: cblasUpper,
-            transA: cblasNoTrans,
-            diag: cblasNonUnit,
             m: 2,
             n: 2,
             alpha: 1.0,
@@ -1121,15 +958,42 @@ void main() {
             lda: 3,
             b: b,
             ldb: 3,
+            beta: 0.0,
+            c: c,
+            ldc: 3,
           ),
         ).isTrue();
-        check(b[0]).isCloseTo(11.0, 1e-9);
-        check(b[1]).isCloseTo(16.0, 1e-9);
-        check(b[2]).equals(-888.0);
-        check(b[3]).isCloseTo(12.0, 1e-9);
-        check(b[4]).isCloseTo(16.0, 1e-9);
-      }
-      AccelerationManager.isEnabled = true;
+        check(c[0]).isCloseTo(5.0, 1e-9);
+        check(c[1]).isCloseTo(8.0, 1e-9);
+        check(c[2]).equals(-999.0);
+        check(c[3]).isCloseTo(10.0, 1e-9);
+        check(c[4]).isCloseTo(14.0, 1e-9);
+      },
+    );
+
+    accelerationTest('dtrmm with buffer padding (lda > m, ldb > n)', () {
+      final a = Float64List.fromList([2.0, 3.0, -777.0, 0.0, 4.0]);
+      final b = Float64List.fromList([1.0, 2.0, -888.0, 3.0, 4.0]);
+      check(
+        AccelerationManager.dtrmm(
+          side: cblasLeft,
+          uplo: cblasUpper,
+          transA: cblasNoTrans,
+          diag: cblasNonUnit,
+          m: 2,
+          n: 2,
+          alpha: 1.0,
+          a: a,
+          lda: 3,
+          b: b,
+          ldb: 3,
+        ),
+      ).isTrue();
+      check(b[0]).isCloseTo(11.0, 1e-9);
+      check(b[1]).isCloseTo(16.0, 1e-9);
+      check(b[2]).equals(-888.0);
+      check(b[3]).isCloseTo(12.0, 1e-9);
+      check(b[4]).isCloseTo(16.0, 1e-9);
     });
 
     test('dsyev with jobz = N (eigenvalues only) and lowercase jobz = v', () {
