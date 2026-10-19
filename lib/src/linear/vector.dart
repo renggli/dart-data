@@ -658,43 +658,8 @@ class Vector<T> {
   /// print(result); // Vector([1, 3, 6, 10])
   /// ```
   Vector<T> cumsum({Vector<T>? target}) {
-    if (target != null && target.length != length) {
-      throw ArgumentError(
-        'Target vector length must match: $length vs ${target.length}',
-      );
-    }
-    final result =
-        target ?? Vector<T>.filled(length, type.defaultValue, type: type);
-    if (length == 0) return result;
-    final Vector<T> effectiveSource;
-    if (target != null &&
-        !identical(this, target) &&
-        identical(tensor.data, target.tensor.data)) {
-      effectiveSource = copy();
-    } else {
-      effectiveSource = this;
-    }
     final field = type.field;
-    final srcTensor = effectiveSource.tensor;
-    final dstTensor = result.tensor;
-    if (srcTensor.isContiguous && dstTensor.isContiguous) {
-      final src = srcTensor.data;
-      final dst = dstTensor.data;
-      final srcOffset = srcTensor.offset;
-      final dstOffset = dstTensor.offset;
-      var acc = field.additiveIdentity;
-      for (var i = 0; i < length; i++) {
-        acc = field.add(acc, src[srcOffset + i]);
-        dst[dstOffset + i] = acc;
-      }
-      return result;
-    }
-    var acc = field.additiveIdentity;
-    for (var i = 0; i < length; i++) {
-      acc = field.add(acc, effectiveSource.getUnchecked(i));
-      result.setUnchecked(i, acc);
-    }
-    return result;
+    return _scan(field.additiveIdentity, field.add, target: target);
   }
 
   /// Computes the cumulative product (prefix product) along this vector.
@@ -711,6 +676,21 @@ class Vector<T> {
   /// print(result); // Vector([1, 2, 6, 24])
   /// ```
   Vector<T> cumprod({Vector<T>? target}) {
+    final field = type.field;
+    return _scan(field.multiplicativeIdentity, field.mul, target: target);
+  }
+
+  /// Returns a flat list of elements.
+  List<T> toList() => tensor.toFlatList();
+
+  @override
+  String toString() => 'Vector(${toList()})';
+
+  Vector<T> _scan(
+    T initial,
+    T Function(T acc, T value) combine, {
+    Vector<T>? target,
+  }) {
     if (target != null && target.length != length) {
       throw ArgumentError(
         'Target vector length must match: $length vs ${target.length}',
@@ -727,7 +707,6 @@ class Vector<T> {
     } else {
       effectiveSource = this;
     }
-    final field = type.field;
     final srcTensor = effectiveSource.tensor;
     final dstTensor = result.tensor;
     if (srcTensor.isContiguous && dstTensor.isContiguous) {
@@ -735,24 +714,18 @@ class Vector<T> {
       final dst = dstTensor.data;
       final srcOffset = srcTensor.offset;
       final dstOffset = dstTensor.offset;
-      var acc = field.multiplicativeIdentity;
+      var acc = initial;
       for (var i = 0; i < length; i++) {
-        acc = field.mul(acc, src[srcOffset + i]);
+        acc = combine(acc, src[srcOffset + i]);
         dst[dstOffset + i] = acc;
       }
       return result;
     }
-    var acc = field.multiplicativeIdentity;
+    var acc = initial;
     for (var i = 0; i < length; i++) {
-      acc = field.mul(acc, effectiveSource.getUnchecked(i));
+      acc = combine(acc, effectiveSource.getUnchecked(i));
       result.setUnchecked(i, acc);
     }
     return result;
   }
-
-  /// Returns a flat list of elements.
-  List<T> toList() => tensor.toFlatList();
-
-  @override
-  String toString() => 'Vector(${toList()})';
 }
