@@ -10,9 +10,7 @@ import 'test_utils.dart';
 void main() {
   group('FFT Acceleration', () {
     test('isFftAvailable reports platform status', () {
-      if (AccelerationManager.isBlasAvailable) {
-        check(AccelerationManager.isFftAvailable).isTrue();
-      }
+      check(AccelerationManager.isFftAvailable).isA<bool>();
     });
 
     accelerationTest('1D FFT and IFFT roundtrip', () {

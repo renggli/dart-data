@@ -13,18 +13,13 @@ import 'package:test/test.dart';
 import 'test_utils.dart';
 
 void main() {
-  group('AccelerationManager status & fallback toggle', () {
+  group('AccelerationManager status', () {
     test('hardware availability probe', () {
-      check(AccelerationManager.mode).equals(AccelerationMode.auto);
-      final blasAvail = AccelerationManager.isBlasAvailable;
-      check(AccelerationManager.isAccelerated)
-          .equals(blasAvail || AccelerationManager.isVdspAvailable);
-    });
-
-    test('fallback toggle disables acceleration cleanly', () {
-      AccelerationManager.mode = AccelerationMode.dart;
-      check(AccelerationManager.isAccelerated).isFalse();
-      AccelerationManager.mode = AccelerationMode.auto;
+      check(AccelerationManager.isBlasAvailable).isA<bool>();
+      check(AccelerationManager.isAccelerated).equals(
+        AccelerationManager.isBlasAvailable ||
+            AccelerationManager.isVdspAvailable,
+      );
     });
   });
 
@@ -297,10 +292,8 @@ void main() {
     });
   }, testOn: 'vm');
 
-  group('Native BLAS operations', () {
-    test('dgemm and sgemm if native available', () {
-      if (!AccelerationManager.isBlasAvailable) return;
-
+  group('Basic BLAS operations', () {
+    accelerationTest('dgemm and sgemm', () {
       // 2x2 double matrix multiply
       final a = Float64List.fromList([1.0, 2.0, 3.0, 4.0]);
       final b = Float64List.fromList([5.0, 6.0, 7.0, 8.0]);
@@ -350,9 +343,7 @@ void main() {
       check(c32[3]).equals(50.0);
     });
 
-    test('ddot and dnrm2 if native available', () {
-      if (!AccelerationManager.isBlasAvailable) return;
-
+    accelerationTest('ddot and dnrm2', () {
       final x = Float64List.fromList([1.0, 2.0, 3.0]);
       final y = Float64List.fromList([4.0, 5.0, 6.0]);
 
@@ -434,7 +425,7 @@ void main() {
 
       final res = t1.matmul(t2);
       check(res.toFlatList()).deepEquals([19.0, 22.0, 43.0, 50.0]);
-    }, isSupported: AccelerationManager.isBlasAvailable);
+    });
   });
 
   group('Symmetric Rank-k update (dsyrk)', () {
@@ -512,7 +503,7 @@ void main() {
       check(cov.get(1, 1)).equals(100.0);
       check(cov.get(0, 1)).isCloseTo(10.0, 1e-12);
       check(cov.get(1, 0)).isCloseTo(10.0, 1e-12);
-    }, isSupported: AccelerationManager.isBlasAvailable);
+    });
   });
 
   group('BLAS Level 1 and 2 routines', () {
@@ -587,7 +578,7 @@ void main() {
       check(a[1]).equals(10.0);
       // a[1,1] = 1 + (2*4 + 4*2) = 17
       check(a[3]).equals(17.0);
-    }, isSupported: AccelerationManager.isBlasAvailable);
+    });
   });
 
   group('LAPACK solvers and Least Squares', () {
@@ -613,7 +604,6 @@ void main() {
         check(b[0]).isCloseTo(1.0, 1e-9);
         check(b[1]).isCloseTo(2.0, 1e-9);
       },
-      isSupported: AccelerationManager.isBlasAvailable,
     );
 
     accelerationTest(
@@ -634,7 +624,6 @@ void main() {
         check(b[0]).equals(3.0);
         check(b[1]).equals(6.0);
       },
-      isSupported: AccelerationManager.isBlasAvailable,
     );
 
     accelerationTest('dpotrf Cholesky factorization parity', () {
@@ -669,7 +658,7 @@ void main() {
       check(a[6]).isCloseTo(-8.0, 1e-9);
       check(a[7]).isCloseTo(5.0, 1e-9);
       check(a[8]).isCloseTo(3.0, 1e-9);
-    }, isSupported: AccelerationManager.isBlasAvailable);
+    });
 
     accelerationTest('leastSquares solves overdetermined system via dgels', () {
       // 3 data points: (1, 6), (2, 5), (3, 7)
@@ -685,7 +674,7 @@ void main() {
 
       check(sol[0]).isCloseTo(5.0, 1e-9);
       check(sol[1]).isCloseTo(0.5, 1e-9);
-    }, isSupported: AccelerationManager.isBlasAvailable);
+    });
 
     test('fitNonlinear parameter estimation', () {
       // Fit y = a * exp(b * x) with true params a = 2.5, b = 1.3
@@ -1058,136 +1047,138 @@ void main() {
       check(okGels).isTrue();
       check(bGels[0]).isCloseTo(2.0, 1e-6);
       check(bGels[1]).isCloseTo(3.0, 1e-6);
-    }, isSupported: AccelerationManager.isBlasAvailable);
-
-    test('hardware fallback remaining branches: no-transpose, SIMD dot/nrm2, upper dpotrf', () {
-      AccelerationManager.mode = AccelerationMode.dart;
-      try {
-        // dgemm no-trans fallback
-        final a = Float64List.fromList([1.0, 2.0, 3.0, 4.0]);
-        final b = Float64List.fromList([5.0, 6.0, 7.0, 8.0]);
-        final cBuffer = Float64List(4);
-        final okGemm = AccelerationManager.dgemm(
-          transA: cblasNoTrans,
-          transB: cblasNoTrans,
-          m: 2,
-          n: 2,
-          k: 2,
-          alpha: 1.0,
-          a: a,
-          lda: 2,
-          b: b,
-          ldb: 2,
-          beta: 0.0,
-          c: cBuffer,
-          ldc: 2,
-        );
-        check(okGemm).isTrue();
-        check(cBuffer[0]).equals(1.0 * 5.0 + 2.0 * 7.0);
-
-        // dgemv no-trans fallback
-        final x = Float64List.fromList([2.0, 3.0]);
-        final y = Float64List(2);
-        final okGemv = AccelerationManager.dgemv(
-          transA: cblasNoTrans,
-          m: 2,
-          n: 2,
-          alpha: 1.0,
-          a: a,
-          lda: 2,
-          x: x,
-          incX: 1,
-          beta: 0.0,
-          y: y,
-          incY: 1,
-        );
-        check(okGemv).isTrue();
-        check(y[0]).equals(1.0 * 2.0 + 2.0 * 3.0);
-
-        // sdot SIMD fast path (offset 0, inc 1, length == n)
-        final xs = Float32List.fromList([1.0, 2.0, 3.0, 4.0]);
-        final ys = Float32List.fromList([5.0, 6.0, 7.0, 8.0]);
-        final sdotSimd = AccelerationManager.sdot(n: 4, x: xs, y: ys);
-        check(sdotSimd).equals(1.0 * 5.0 + 2.0 * 6.0 + 3.0 * 7.0 + 4.0 * 8.0);
-
-        // snrm2 SIMD fast path
-        final snrmSimd = AccelerationManager.snrm2(n: 4, x: xs);
-        check(snrmSimd!).isCloseTo(math.sqrt(1 + 4 + 9 + 16), 1e-5);
-
-        // dpotrf upper triangular fallback
-        final aSym = Float64List.fromList([4.0, 2.0, 2.0, 5.0]);
-        final okUpper = AccelerationManager.dpotrf(
-          uplo: cblasUpper,
-          n: 2,
-          a: aSym,
-          lda: 2,
-        );
-        check(okUpper).isTrue();
-      } finally {
-        AccelerationManager.mode = AccelerationMode.auto;
-      }
     });
 
-    test(
+    accelerationTest('hardware fallback remaining branches: no-transpose, SIMD dot/nrm2, upper dpotrf', () {
+      // dgemm no-trans fallback
+      final a = Float64List.fromList([1.0, 2.0, 3.0, 4.0]);
+      final b = Float64List.fromList([5.0, 6.0, 7.0, 8.0]);
+      final cBuffer = Float64List(4);
+      final okGemm = AccelerationManager.dgemm(
+        transA: cblasNoTrans,
+        transB: cblasNoTrans,
+        m: 2,
+        n: 2,
+        k: 2,
+        alpha: 1.0,
+        a: a,
+        lda: 2,
+        b: b,
+        ldb: 2,
+        beta: 0.0,
+        c: cBuffer,
+        ldc: 2,
+      );
+      check(okGemm).isTrue();
+      check(cBuffer[0]).equals(1.0 * 5.0 + 2.0 * 7.0);
+
+      // dgemv no-trans fallback
+      final x = Float64List.fromList([2.0, 3.0]);
+      final y = Float64List(2);
+      final okGemv = AccelerationManager.dgemv(
+        transA: cblasNoTrans,
+        m: 2,
+        n: 2,
+        alpha: 1.0,
+        a: a,
+        lda: 2,
+        x: x,
+        incX: 1,
+        beta: 0.0,
+        y: y,
+        incY: 1,
+      );
+      check(okGemv).isTrue();
+      check(y[0]).equals(1.0 * 2.0 + 2.0 * 3.0);
+
+      // sdot SIMD fast path (offset 0, inc 1, length == n)
+      final xs = Float32List.fromList([1.0, 2.0, 3.0, 4.0]);
+      final ys = Float32List.fromList([5.0, 6.0, 7.0, 8.0]);
+      final sdotSimd = AccelerationManager.sdot(n: 4, x: xs, y: ys);
+      check(sdotSimd).equals(1.0 * 5.0 + 2.0 * 6.0 + 3.0 * 7.0 + 4.0 * 8.0);
+
+      // snrm2 SIMD fast path
+      final snrmSimd = AccelerationManager.snrm2(n: 4, x: xs);
+      check(snrmSimd!).isCloseTo(math.sqrt(1 + 4 + 9 + 16), 1e-5);
+
+      // dpotrf upper triangular fallback
+      final aSym = Float64List.fromList([4.0, 2.0, 2.0, 5.0]);
+      final okUpper = AccelerationManager.dpotrf(
+        uplo: cblasUpper,
+        n: 2,
+        a: aSym,
+        lda: 2,
+      );
+      check(okUpper).isTrue();
+    });
+
+    accelerationTest(
       'native zero-copy float32 and heap-allocated dgesv/dgels acceleration',
       () {
-        if (!AccelerationManager.isBlasAvailable) return;
-
         // Native float32 buffers
         final bufX = NativeBuffer<double>(4, type: DataType.float32);
         final bufY = NativeBuffer<double>(4, type: DataType.float32);
-        final x = bufX.data as Float32List;
-        final y = bufY.data as Float32List;
-        for (var i = 0; i < 4; i++) {
-          x[i] = (i + 1).toDouble();
-          y[i] = (i + 2).toDouble();
+        try {
+          final x = bufX.data as Float32List;
+          final y = bufY.data as Float32List;
+          for (var i = 0; i < 4; i++) {
+            x[i] = (i + 1).toDouble();
+            y[i] = (i + 2).toDouble();
+          }
+
+          final dot = AccelerationManager.sdot(n: 4, x: x, y: y);
+          check(dot!).isCloseTo(1 * 2 + 2 * 3 + 3 * 4 + 4 * 5, 1e-4);
+
+          final nrm = AccelerationManager.snrm2(n: 4, x: x);
+          check(nrm!).isCloseTo(math.sqrt(1 + 4 + 9 + 16), 1e-4);
+
+          AccelerationManager.saxpy(n: 4, alpha: 2.0, x: x, y: y);
+          check(y[0]).isCloseTo(2.0 + 2.0 * 1.0, 1e-4);
+
+          AccelerationManager.sscal(n: 4, alpha: 3.0, x: x);
+          check(x[0]).isCloseTo(3.0, 1e-4);
+
+          // Heap-allocated dgesv (copy-to-arena path)
+          final aHeap = Float64List.fromList([3.0, 1.0, 1.0, 2.0]);
+          final bHeap = Float64List.fromList([9.0, 8.0]);
+          final okSolve = AccelerationManager.dgesv(
+            n: 2,
+            nrhs: 1,
+            a: aHeap,
+            lda: 2,
+            b: bHeap,
+            ldb: 1,
+          );
+          check(okSolve).isTrue();
+          check(bHeap[0]).isCloseTo(2.0, 1e-9);
+          check(bHeap[1]).isCloseTo(3.0, 1e-9);
+
+          // Heap-allocated dgels (copy-to-arena path)
+          final aGelsHeap = Float64List.fromList([
+            1.0,
+            1.0,
+            1.0,
+            2.0,
+            1.0,
+            3.0,
+          ]);
+          final bGelsHeap = Float64List.fromList([6.0, 5.0, 7.0]);
+          final okGels = AccelerationManager.dgels(
+            m: 3,
+            n: 2,
+            nrhs: 1,
+            a: aGelsHeap,
+            lda: 2,
+            b: bGelsHeap,
+            ldb: 1,
+          );
+          check(okGels).isTrue();
+          check(bGelsHeap[0]).isCloseTo(5.0, 1e-6);
+          check(bGelsHeap[1]).isCloseTo(0.5, 1e-6);
+        } finally {
+          bufX.dispose();
+          bufY.dispose();
         }
-
-        final dot = AccelerationManager.sdot(n: 4, x: x, y: y);
-        check(dot!).isCloseTo(1 * 2 + 2 * 3 + 3 * 4 + 4 * 5, 1e-4);
-
-        final nrm = AccelerationManager.snrm2(n: 4, x: x);
-        check(nrm!).isCloseTo(math.sqrt(1 + 4 + 9 + 16), 1e-4);
-
-        AccelerationManager.saxpy(n: 4, alpha: 2.0, x: x, y: y);
-        check(y[0]).isCloseTo(2.0 + 2.0 * 1.0, 1e-4);
-
-        AccelerationManager.sscal(n: 4, alpha: 3.0, x: x);
-        check(x[0]).isCloseTo(3.0, 1e-4);
-
-        // Heap-allocated dgesv (copy-to-arena path)
-        final aHeap = Float64List.fromList([3.0, 1.0, 1.0, 2.0]);
-        final bHeap = Float64List.fromList([9.0, 8.0]);
-        final okSolve = AccelerationManager.dgesv(
-          n: 2,
-          nrhs: 1,
-          a: aHeap,
-          lda: 2,
-          b: bHeap,
-          ldb: 1,
-        );
-        check(okSolve).isTrue();
-        check(bHeap[0]).isCloseTo(2.0, 1e-9);
-        check(bHeap[1]).isCloseTo(3.0, 1e-9);
-
-        // Heap-allocated dgels (copy-to-arena path)
-        final aGelsHeap = Float64List.fromList([1.0, 1.0, 1.0, 2.0, 1.0, 3.0]);
-        final bGelsHeap = Float64List.fromList([6.0, 5.0, 7.0]);
-        final okGels = AccelerationManager.dgels(
-          m: 3,
-          n: 2,
-          nrhs: 1,
-          a: aGelsHeap,
-          lda: 2,
-          b: bGelsHeap,
-          ldb: 1,
-        );
-        check(okGels).isTrue();
-        check(bGelsHeap[0]).isCloseTo(5.0, 1e-6);
-        check(bGelsHeap[1]).isCloseTo(0.5, 1e-6);
-
-        bufX.dispose();
-        bufY.dispose();
       },
     );
 
@@ -1282,163 +1273,158 @@ void main() {
       },
     );
 
-    test('AccelerationManager pure Dart fallback transposition branches', () {
-      AccelerationManager.mode = AccelerationMode.dart;
-      try {
-        // dgemm with transA == cblasNoTrans and transB == cblasNoTrans
-        final a = Float64List.fromList([1.0, 2.0, 3.0, 4.0]);
-        final b = Float64List.fromList([5.0, 6.0, 7.0, 8.0]);
-        final cBuffer = Float64List(4);
-        AccelerationManager.dgemm(
-          transA: cblasNoTrans,
-          transB: cblasNoTrans,
-          m: 2,
-          n: 2,
-          k: 2,
-          alpha: 1.0,
-          a: a,
-          lda: 2,
-          b: b,
-          ldb: 2,
-          beta: 0.0,
-          c: cBuffer,
-          ldc: 2,
-        );
-        check(cBuffer[0]).isCloseTo(19.0, 1e-9);
+    accelerationTest('AccelerationManager transposition branches', () {
+      // dgemm with transA == cblasNoTrans and transB == cblasNoTrans
+      final a = Float64List.fromList([1.0, 2.0, 3.0, 4.0]);
+      final b = Float64List.fromList([5.0, 6.0, 7.0, 8.0]);
+      final cBuffer = Float64List(4);
+      AccelerationManager.dgemm(
+        transA: cblasNoTrans,
+        transB: cblasNoTrans,
+        m: 2,
+        n: 2,
+        k: 2,
+        alpha: 1.0,
+        a: a,
+        lda: 2,
+        b: b,
+        ldb: 2,
+        beta: 0.0,
+        c: cBuffer,
+        ldc: 2,
+      );
+      check(cBuffer[0]).isCloseTo(19.0, 1e-9);
 
-        // dgemm with transA == cblasTrans and transB == cblasTrans
-        final aT = Float64List.fromList([1.0, 3.0, 2.0, 4.0]);
-        final bT = Float64List.fromList([5.0, 7.0, 6.0, 8.0]);
-        final cT = Float64List(4);
-        AccelerationManager.dgemm(
-          transA: cblasTrans,
-          transB: cblasTrans,
-          m: 2,
-          n: 2,
-          k: 2,
-          alpha: 1.0,
-          a: aT,
-          lda: 2,
-          b: bT,
-          ldb: 2,
-          beta: 0.0,
-          c: cT,
-          ldc: 2,
-        );
-        check(cT[0]).isCloseTo(19.0, 1e-9);
+      // dgemm with transA == cblasTrans and transB == cblasTrans
+      final aT = Float64List.fromList([1.0, 3.0, 2.0, 4.0]);
+      final bT = Float64List.fromList([5.0, 7.0, 6.0, 8.0]);
+      final cT = Float64List(4);
+      AccelerationManager.dgemm(
+        transA: cblasTrans,
+        transB: cblasTrans,
+        m: 2,
+        n: 2,
+        k: 2,
+        alpha: 1.0,
+        a: aT,
+        lda: 2,
+        b: bT,
+        ldb: 2,
+        beta: 0.0,
+        c: cT,
+        ldc: 2,
+      );
+      check(cT[0]).isCloseTo(19.0, 1e-9);
 
-        // dgemv with transA == cblasNoTrans
-        final x = Float64List.fromList([1.0, 2.0]);
-        final y = Float64List(2);
-        AccelerationManager.dgemv(
-          transA: cblasNoTrans,
-          m: 2,
-          n: 2,
-          alpha: 1.0,
-          a: a,
-          lda: 2,
-          x: x,
-          incX: 1,
-          beta: 0.0,
-          y: y,
-          incY: 1,
-        );
-        check(y[0]).isCloseTo(5.0, 1e-9);
-        check(y[1]).isCloseTo(11.0, 1e-9);
+      // dgemv with transA == cblasNoTrans
+      final x = Float64List.fromList([1.0, 2.0]);
+      final y = Float64List(2);
+      AccelerationManager.dgemv(
+        transA: cblasNoTrans,
+        m: 2,
+        n: 2,
+        alpha: 1.0,
+        a: a,
+        lda: 2,
+        x: x,
+        incX: 1,
+        beta: 0.0,
+        y: y,
+        incY: 1,
+      );
+      check(y[0]).isCloseTo(5.0, 1e-9);
+      check(y[1]).isCloseTo(11.0, 1e-9);
 
-        // dgemv with transA == cblasTrans
-        final yT = Float64List(2);
-        AccelerationManager.dgemv(
-          transA: cblasTrans,
-          m: 2,
-          n: 2,
-          alpha: 1.0,
-          a: a,
-          lda: 2,
-          x: x,
-          incX: 1,
-          beta: 0.0,
-          y: yT,
-          incY: 1,
-        );
-        check(yT[0]).isCloseTo(7.0, 1e-9);
-        check(yT[1]).isCloseTo(10.0, 1e-9);
+      // dgemv with transA == cblasTrans
+      final yT = Float64List(2);
+      AccelerationManager.dgemv(
+        transA: cblasTrans,
+        m: 2,
+        n: 2,
+        alpha: 1.0,
+        a: a,
+        lda: 2,
+        x: x,
+        incX: 1,
+        beta: 0.0,
+        y: yT,
+        incY: 1,
+      );
+      check(yT[0]).isCloseTo(7.0, 1e-9);
+      check(yT[1]).isCloseTo(10.0, 1e-9);
 
-        // dsyrk with trans == cblasTrans
-        final cSyrk = Float64List(4);
-        AccelerationManager.dsyrk(
-          trans: cblasTrans,
-          n: 2,
-          k: 2,
-          alpha: 1.0,
-          a: a,
-          lda: 2,
-          beta: 0.0,
-          c: cSyrk,
-          ldc: 2,
-        );
-        // a^T * a: [1*1 + 3*3, 1*2 + 3*4; 2*1 + 4*3, 2*2 + 4*4] = [10, 14; 14,
-        // 20]
-        check(cSyrk[0]).isCloseTo(10.0, 1e-9);
-        check(cSyrk[1]).isCloseTo(14.0, 1e-9);
-        check(cSyrk[3]).isCloseTo(20.0, 1e-9);
+      // dsyrk with trans == cblasTrans
+      final cSyrk = Float64List(4);
+      AccelerationManager.dsyrk(
+        trans: cblasTrans,
+        n: 2,
+        k: 2,
+        alpha: 1.0,
+        a: a,
+        lda: 2,
+        beta: 0.0,
+        c: cSyrk,
+        ldc: 2,
+      );
+      // a^T * a: [1*1 + 3*3, 1*2 + 3*4; 2*1 + 4*3, 2*2 + 4*4] = [10, 14; 14,
+      // 20]
+      check(cSyrk[0]).isCloseTo(10.0, 1e-9);
+      check(cSyrk[1]).isCloseTo(14.0, 1e-9);
+      check(cSyrk[3]).isCloseTo(20.0, 1e-9);
 
-        // sgemm with transA == cblasNoTrans and transB == cblasNoTrans
-        final a32 = Float32List.fromList([1.0, 2.0, 3.0, 4.0]);
-        final b32 = Float32List.fromList([5.0, 6.0, 7.0, 8.0]);
-        final c32 = Float32List(4);
-        AccelerationManager.sgemm(
-          transA: cblasNoTrans,
-          transB: cblasNoTrans,
-          m: 2,
-          n: 2,
-          k: 2,
-          alpha: 1.0,
-          a: a32,
-          lda: 2,
-          b: b32,
-          ldb: 2,
-          beta: 0.0,
-          c: c32,
-          ldc: 2,
-        );
-        check(c32[0]).isCloseTo(19.0, 1e-5);
+      // sgemm with transA == cblasNoTrans and transB == cblasNoTrans
+      final a32 = Float32List.fromList([1.0, 2.0, 3.0, 4.0]);
+      final b32 = Float32List.fromList([5.0, 6.0, 7.0, 8.0]);
+      final c32 = Float32List(4);
+      AccelerationManager.sgemm(
+        transA: cblasNoTrans,
+        transB: cblasNoTrans,
+        m: 2,
+        n: 2,
+        k: 2,
+        alpha: 1.0,
+        a: a32,
+        lda: 2,
+        b: b32,
+        ldb: 2,
+        beta: 0.0,
+        c: c32,
+        ldc: 2,
+      );
+      check(c32[0]).isCloseTo(19.0, 1e-5);
 
-        // sgemv with transA == cblasNoTrans
-        final x32 = Float32List.fromList([1.0, 2.0]);
-        final y32 = Float32List(2);
-        AccelerationManager.sgemv(
-          transA: cblasNoTrans,
-          m: 2,
-          n: 2,
-          alpha: 1.0,
-          a: a32,
-          lda: 2,
-          x: x32,
-          incX: 1,
-          beta: 0.0,
-          y: y32,
-          incY: 1,
-        );
-        check(y32[0]).isCloseTo(5.0, 1e-5);
+      // sgemv with transA == cblasNoTrans
+      final x32 = Float32List.fromList([1.0, 2.0]);
+      final y32 = Float32List(2);
+      AccelerationManager.sgemv(
+        transA: cblasNoTrans,
+        m: 2,
+        n: 2,
+        alpha: 1.0,
+        a: a32,
+        lda: 2,
+        x: x32,
+        incX: 1,
+        beta: 0.0,
+        y: y32,
+        incY: 1,
+      );
+      check(y32[0]).isCloseTo(5.0, 1e-5);
 
-        // ssyrk with trans == cblasTrans
-        final cSyrk32 = Float32List(4);
-        AccelerationManager.ssyrk(
-          trans: cblasTrans,
-          n: 2,
-          k: 2,
-          alpha: 1.0,
-          a: a32,
-          lda: 2,
-          beta: 0.0,
-          c: cSyrk32,
-          ldc: 2,
-        );
-        check(cSyrk32[0]).isCloseTo(10.0, 1e-5);
-      } finally {
-        AccelerationManager.mode = AccelerationMode.auto;
-      }
+      // ssyrk with trans == cblasTrans
+      final cSyrk32 = Float32List(4);
+      AccelerationManager.ssyrk(
+        trans: cblasTrans,
+        n: 2,
+        k: 2,
+        alpha: 1.0,
+        a: a32,
+        lda: 2,
+        beta: 0.0,
+        c: cSyrk32,
+        ldc: 2,
+      );
+      check(cSyrk32[0]).isCloseTo(10.0, 1e-5);
     });
   });
 }

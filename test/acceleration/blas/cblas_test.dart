@@ -70,7 +70,6 @@ void main() {
           }
         }
       },
-      isSupported: AccelerationManager.isBlasAvailable,
     );
 
     test('multi-RHS solve with nrhs > N (N = 3, nrhs = 4)', () {
@@ -188,7 +187,6 @@ void main() {
         check(ok).isFalse();
         check(bCopy).deepEquals(bOriginal);
       },
-      isSupported: AccelerationManager.isBlasAvailable,
     );
 
     accelerationTest('single-RHS (nrhs = 1) compatibility preserved', () {
@@ -456,7 +454,7 @@ void main() {
       check(x[0]).isCloseTo(8.0, 1e-9);
       check(x[1]).isCloseTo(31.0, 1e-9);
       check(x[2]).isCloseTo(18.0, 1e-9);
-    }, isSupported: AccelerationManager.isBlasAvailable);
+    });
 
     test('dtrmv validation bounds', () {
       final a = Float64List(4);
@@ -587,7 +585,7 @@ void main() {
       check(c[3]).isCloseTo(57.0, 1e-9);
       check(c[4]).isCloseTo(57.0, 1e-9);
       check(c[5]).isCloseTo(69.0, 1e-9);
-    }, isSupported: AccelerationManager.isBlasAvailable);
+    });
 
     test('dsymm validation bounds', () {
       final a = Float64List(4);
@@ -759,7 +757,7 @@ void main() {
       check(b[3]).isCloseTo(24.0, 1e-9);
       check(b[4]).isCloseTo(20.0, 1e-9);
       check(b[5]).isCloseTo(24.0, 1e-9);
-    }, isSupported: AccelerationManager.isBlasAvailable);
+    });
 
     test('dtrmm validation bounds', () {
       final a = Float64List(4);
@@ -876,7 +874,7 @@ void main() {
           check(dot).isCloseTo(i == j ? 1.0 : 0.0, 1e-8);
         }
       }
-    }, isSupported: AccelerationManager.isBlasAvailable);
+    });
 
     test('ssyev single-precision calculation', () {
       final a = Float32List.fromList([2.0, 1.0, 1.0, 2.0]);

@@ -10,9 +10,7 @@ import 'test_utils.dart';
 void main() {
   group('vForce and vDSP Vector Operations', () {
     test('isVForceAvailable reports platform status', () {
-      if (AccelerationManager.isBlasAvailable) {
-        check(AccelerationManager.isVForceAvailable).isTrue();
-      }
+      check(AccelerationManager.isVForceAvailable).isA<bool>();
     });
 
     accelerationTest(

@@ -22,7 +22,7 @@ void main() {
       check(a[0]).isCloseTo(2.0, 1e-10);
       check(a[1]).isCloseTo(6.0, 1e-10);
       check(a[3]).isCloseTo(3.0, 1e-10);
-    }, isSupported: AccelerationManager.isBlasAvailable);
+    });
 
     accelerationTest(
       'dpotrf returns false for non-positive-definite matrix',
@@ -36,7 +36,6 @@ void main() {
         );
         check(ok).isFalse();
       },
-      isSupported: AccelerationManager.isBlasAvailable,
     );
 
     accelerationTest('dgesv solve linear system', () {
@@ -55,7 +54,7 @@ void main() {
       // 3*x + y = 9, x + 2*y = 8  => x = 2, y = 3
       check(b[0]).isCloseTo(2.0, 1e-10);
       check(b[1]).isCloseTo(3.0, 1e-10);
-    }, isSupported: AccelerationManager.isBlasAvailable);
+    });
 
     accelerationTest('dgels least squares solve', () {
       // Overdetermined system:
@@ -77,7 +76,7 @@ void main() {
       );
       check(ok).isTrue();
       check(b[0]).isCloseTo(2.0, 1e-10);
-    }, isSupported: AccelerationManager.isBlasAvailable);
+    });
 
     accelerationTest('dsyev eigenvalue solver', () {
       final a = Float64List.fromList([3.0, 2.0, 2.0, 6.0]);
@@ -90,7 +89,7 @@ void main() {
       // Eigenvalues: 2.0 and 7.0
       check(w[0]).isCloseTo(2.0, 1e-10);
       check(w[1]).isCloseTo(7.0, 1e-10);
-    }, isSupported: AccelerationManager.isBlasAvailable);
+    });
 
     accelerationTest('ssyev single-precision eigenvalue solver', () {
       final a = Float32List.fromList([3.0, 2.0, 2.0, 6.0]);
@@ -100,6 +99,6 @@ void main() {
       check(ok).isTrue();
       check(w[0]).isCloseTo(2.0, 1e-5);
       check(w[1]).isCloseTo(7.0, 1e-5);
-    }, isSupported: AccelerationManager.isBlasAvailable);
+    });
   });
 }

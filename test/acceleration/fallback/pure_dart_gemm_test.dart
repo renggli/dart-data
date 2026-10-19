@@ -379,7 +379,6 @@ void main() {
           }
         }
       },
-      isSupported: AccelerationManager.isBlasAvailable,
     );
 
     accelerationTest(
@@ -400,7 +399,6 @@ void main() {
           check(res.getUnchecked(r, c)).isCloseTo(expected, 1e-8);
         }
       },
-      isSupported: AccelerationManager.isBlasAvailable,
     );
   });
 }

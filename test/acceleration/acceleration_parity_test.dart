@@ -14,14 +14,14 @@ void main() {
         final y = Float64List.fromList([2.0, 3.5, -1.0, 0.5, 6.0]);
         final dot = AccelerationManager.ddot(n: 5, x: x, y: y)!;
         check(dot).isCloseTo(-8.25, 1e-10);
-      }, isSupported: AccelerationManager.isBlasAvailable);
+      });
 
       accelerationTest('sdot', () {
         final x = Float32List.fromList([1.5, -2.0, 3.25, 4.0]);
         final y = Float32List.fromList([2.0, 3.5, -1.0, 0.5]);
         final dot = AccelerationManager.sdot(n: 4, x: x, y: y)!;
         check(dot).isCloseTo(-5.25, 1e-5);
-      }, isSupported: AccelerationManager.isBlasAvailable);
+      });
 
       accelerationTest('dnrm2 and snrm2', () {
         final x64 = Float64List.fromList([3.0, 4.0, 12.0]);
@@ -31,7 +31,7 @@ void main() {
         final x32 = Float32List.fromList([3.0, 4.0]);
         final norm32 = AccelerationManager.snrm2(n: 2, x: x32)!;
         check(norm32).isCloseTo(5.0, 1e-5);
-      }, isSupported: AccelerationManager.isBlasAvailable);
+      });
 
       accelerationTest('daxpy and saxpy', () {
         final x = Float64List.fromList([1.0, 2.0, 3.0]);
@@ -40,7 +40,7 @@ void main() {
         check(y[0]).isCloseTo(6.5, 1e-10);
         check(y[1]).isCloseTo(10.0, 1e-10);
         check(y[2]).isCloseTo(13.5, 1e-10);
-      }, isSupported: AccelerationManager.isBlasAvailable);
+      });
     });
 
     group('Level 2 Matrix-Vector Parity', () {
@@ -64,7 +64,7 @@ void main() {
 
         check(y[0]).isCloseTo(14.0, 1e-10);
         check(y[1]).isCloseTo(32.5, 1e-10);
-      }, isSupported: AccelerationManager.isBlasAvailable);
+      });
 
       accelerationTest('dtrmv', () {
         final a = Float64List.fromList([3.0, 2.0, 0.0, 4.0]);
@@ -74,7 +74,7 @@ void main() {
 
         check(x[0]).isCloseTo(16.0, 1e-10);
         check(x[1]).isCloseTo(20.0, 1e-10);
-      }, isSupported: AccelerationManager.isBlasAvailable);
+      });
     });
 
     group('Level 3 Matrix-Matrix Parity', () {
@@ -106,7 +106,7 @@ void main() {
         check(c[6]).isCloseTo(95.0, 1e-10);
         check(c[7]).isCloseTo(106.0, 1e-10);
         check(c[8]).isCloseTo(117.0, 1e-10);
-      }, isSupported: AccelerationManager.isBlasAvailable);
+      });
 
       accelerationTest('dsyrk', () {
         final a = Float64List.fromList([1.0, 2.0, 3.0, 4.0]);
@@ -126,7 +126,7 @@ void main() {
         check(c[0]).isCloseTo(5.0, 1e-10);
         check(c[1]).isCloseTo(11.0, 1e-10);
         check(c[3]).isCloseTo(25.0, 1e-10);
-      }, isSupported: AccelerationManager.isBlasAvailable);
+      });
     });
 
     group('LAPACK Parity', () {
@@ -138,7 +138,7 @@ void main() {
         check(a[0]).isCloseTo(2.0, 1e-10);
         check(a[1]).isCloseTo(1.0, 1e-10);
         check(a[3]).isCloseTo(2.0, 1e-10);
-      }, isSupported: AccelerationManager.isBlasAvailable);
+      });
 
       accelerationTest('dgesv linear solve', () {
         final a = Float64List.fromList([2.0, 1.0, 1.0, 3.0]);
@@ -156,7 +156,7 @@ void main() {
 
         check(b[0]).isCloseTo(1.0, 1e-10);
         check(b[1]).isCloseTo(3.0, 1e-10);
-      }, isSupported: AccelerationManager.isBlasAvailable);
+      });
 
       accelerationTest('dsyev eigenvalue', () {
         final a = Float64List.fromList([2.0, 1.0, 1.0, 2.0]);
@@ -167,7 +167,7 @@ void main() {
 
         check(w[0]).isCloseTo(1.0, 1e-10);
         check(w[1]).isCloseTo(3.0, 1e-10);
-      }, isSupported: AccelerationManager.isBlasAvailable);
+      });
     });
   });
 }

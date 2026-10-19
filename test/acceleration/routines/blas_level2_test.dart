@@ -29,7 +29,7 @@ void main() {
       // [1*1 + 2*2, 3*1 + 4*2] = [5, 11]
       check(y[0]).isCloseTo(5.0, 1e-10);
       check(y[1]).isCloseTo(11.0, 1e-10);
-    }, isSupported: AccelerationManager.isBlasAvailable);
+    });
 
     accelerationTest('dgemv transpose', () {
       final a = Float64List.fromList([1.0, 2.0, 3.0, 4.0]);
@@ -53,7 +53,7 @@ void main() {
       // [1*1 + 3*2, 2*1 + 4*2] = [7, 10]
       check(y[0]).isCloseTo(7.0, 1e-10);
       check(y[1]).isCloseTo(10.0, 1e-10);
-    }, isSupported: AccelerationManager.isBlasAvailable);
+    });
 
     accelerationTest('sgemv single-precision matrix-vector multiply', () {
       final a = Float32List.fromList([2.0, 0.0, 0.0, 3.0]);
@@ -75,7 +75,7 @@ void main() {
       check(ok).isTrue();
       check(y[0]).isCloseTo(8.0, 1e-5);
       check(y[1]).isCloseTo(15.0, 1e-5);
-    }, isSupported: AccelerationManager.isBlasAvailable);
+    });
 
     accelerationTest('dsyr2 rank-2 symmetric update', () {
       final a = Float64List(4);
@@ -99,7 +99,7 @@ void main() {
       check(a[0]).isCloseTo(6.0, 1e-10);
       check(a[1]).isCloseTo(10.0, 1e-10);
       check(a[3]).isCloseTo(16.0, 1e-10);
-    }, isSupported: AccelerationManager.isBlasAvailable);
+    });
 
     accelerationTest('ssyr2 single-precision rank-2 update', () {
       final a = Float32List(4);
@@ -119,7 +119,7 @@ void main() {
       check(a[0]).isCloseTo(6.0, 1e-5);
       check(a[1]).isCloseTo(10.0, 1e-5);
       check(a[3]).isCloseTo(16.0, 1e-5);
-    }, isSupported: AccelerationManager.isBlasAvailable);
+    });
 
     accelerationTest('dtrmv triangular matrix-vector multiply', () {
       final a = Float64List.fromList([2.0, 3.0, 0.0, 4.0]);
@@ -136,7 +136,7 @@ void main() {
       // Upper: [2*5 + 3*7, 4*7] = [31, 28]
       check(x[0]).isCloseTo(31.0, 1e-10);
       check(x[1]).isCloseTo(28.0, 1e-10);
-    }, isSupported: AccelerationManager.isBlasAvailable);
+    });
 
     accelerationTest(
       'strmv single-precision triangular matrix-vector multiply',
@@ -155,7 +155,6 @@ void main() {
         check(x[0]).isCloseTo(31.0, 1e-5);
         check(x[1]).isCloseTo(28.0, 1e-5);
       },
-      isSupported: AccelerationManager.isBlasAvailable,
     );
   });
 }

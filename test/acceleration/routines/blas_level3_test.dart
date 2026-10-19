@@ -32,7 +32,7 @@ void main() {
       check(c[1]).isCloseTo(4.0, 1e-10);
       check(c[2]).isCloseTo(10.0, 1e-10);
       check(c[3]).isCloseTo(8.0, 1e-10);
-    }, isSupported: AccelerationManager.isBlasAvailable);
+    });
 
     accelerationTest('sgemm single-precision general matrix multiply', () {
       final a = Float32List.fromList([1.0, 2.0, 3.0, 4.0]);
@@ -57,7 +57,7 @@ void main() {
       check(c[1]).isCloseTo(4.0, 1e-5);
       check(c[2]).isCloseTo(10.0, 1e-5);
       check(c[3]).isCloseTo(8.0, 1e-5);
-    }, isSupported: AccelerationManager.isBlasAvailable);
+    });
 
     accelerationTest('dsyrk symmetric rank-k update', () {
       final a = Float64List.fromList([1.0, 2.0, 3.0, 4.0]);
@@ -82,7 +82,7 @@ void main() {
       check(c[0]).isCloseTo(5.0, 1e-10);
       check(c[1]).isCloseTo(11.0, 1e-10);
       check(c[3]).isCloseTo(25.0, 1e-10);
-    }, isSupported: AccelerationManager.isBlasAvailable);
+    });
 
     accelerationTest('ssyrk single-precision symmetric rank-k update', () {
       final a = Float32List.fromList([1.0, 2.0, 3.0, 4.0]);
@@ -103,7 +103,7 @@ void main() {
       check(c[0]).isCloseTo(5.0, 1e-5);
       check(c[1]).isCloseTo(11.0, 1e-5);
       check(c[3]).isCloseTo(25.0, 1e-5);
-    }, isSupported: AccelerationManager.isBlasAvailable);
+    });
 
     accelerationTest('dsymm symmetric matrix-matrix multiply', () {
       final a = Float64List.fromList([2.0, 1.0, 1.0, 3.0]);
@@ -130,7 +130,7 @@ void main() {
       check(c[1]).isCloseTo(8.0, 1e-10);
       check(c[2]).isCloseTo(10.0, 1e-10);
       check(c[3]).isCloseTo(14.0, 1e-10);
-    }, isSupported: AccelerationManager.isBlasAvailable);
+    });
 
     accelerationTest('ssymm single-precision symmetric matrix multiply', () {
       final a = Float32List.fromList([2.0, 1.0, 1.0, 3.0]);
@@ -156,7 +156,7 @@ void main() {
       check(c[1]).isCloseTo(8.0, 1e-5);
       check(c[2]).isCloseTo(10.0, 1e-5);
       check(c[3]).isCloseTo(14.0, 1e-5);
-    }, isSupported: AccelerationManager.isBlasAvailable);
+    });
 
     accelerationTest('dtrmm triangular matrix-matrix multiply', () {
       final a = Float64List.fromList([2.0, 1.0, 0.0, 3.0]);
@@ -183,7 +183,7 @@ void main() {
       check(b[1]).isCloseTo(8.0, 1e-10);
       check(b[2]).isCloseTo(9.0, 1e-10);
       check(b[3]).isCloseTo(12.0, 1e-10);
-    }, isSupported: AccelerationManager.isBlasAvailable);
+    });
 
     accelerationTest(
       'strmm single-precision triangular matrix-matrix multiply',
@@ -208,7 +208,6 @@ void main() {
         check(b[2]).isCloseTo(9.0, 1e-5);
         check(b[3]).isCloseTo(12.0, 1e-5);
       },
-      isSupported: AccelerationManager.isBlasAvailable,
     );
   });
 }
