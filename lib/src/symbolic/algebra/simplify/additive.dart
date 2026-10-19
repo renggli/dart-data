@@ -46,19 +46,5 @@ Expr simplifyNeg(Expr expr) => switch (expr) {
     acc.reduceIdentities();
     return acc.build();
   }(),
-  Mul(factors: [final Number first, ...final rest], :final isSimplified) => () {
-    final negFirst = first.neg();
-    if (negFirst.isOne) {
-      return switch (rest) {
-        [final single] => single,
-        _ => Mul(rest, isSimplified: isSimplified),
-      };
-    }
-    return Mul([negFirst, ...rest], isSimplified: isSimplified);
-  }(),
-  Mul(factors: [_, ...], :final isSimplified) => Mul([
-    IntegerNumber.negativeOne,
-    ...expr.factors,
-  ], isSimplified: isSimplified),
-  _ => Mul([IntegerNumber.negativeOne, expr], isSimplified: expr.isSimplified),
+  _ => MonomialAccumulator.negateMonomial(expr),
 };
