@@ -1,3 +1,6 @@
+import 'dart:math' as math;
+
+import '../../linear.dart';
 import '../../symbolic.dart';
 import '../../type.dart';
 import 'impl/compressed_polynomial.dart';
@@ -475,4 +478,54 @@ abstract class Polynomial<T> {
   /// Generates the generalized Laguerre polynomial $L_n^{(\alpha)}(x)$.
   static Polynomial<double> laguerreL(int degree, {double alpha = 0.0}) =>
       orthogonal.laguerreL(degree, alpha: alpha);
+
+  /// Computes complex roots for [poly] using closed-form solutions for low degrees
+  /// and Frobenius companion matrix eigenvalue decomposition for higher degrees.
+  static List<Complex> computeRoots<T>(
+    Polynomial<T> poly, {
+    int maxCompanionDegree = 1000,
+  }) {
+    final deg = poly.degree;
+    if (deg <= 0) return const [];
+    if (deg == 1) {
+      final c0 = (poly[0] as num).toDouble();
+      final c1 = (poly[1] as num).toDouble();
+      return [Complex(-c0 / c1)];
+    }
+    if (deg == 2) {
+      final c0 = (poly[0] as num).toDouble();
+      final c1 = (poly[1] as num).toDouble();
+      final c2 = (poly[2] as num).toDouble();
+      final disc = c1 * c1 - 4.0 * c2 * c0;
+      if (disc >= 0) {
+        final sqrtDisc = math.sqrt(disc);
+        return [
+          Complex((-c1 + sqrtDisc) / (2.0 * c2)),
+          Complex((-c1 - sqrtDisc) / (2.0 * c2)),
+        ];
+      } else {
+        final realPart = -c1 / (2.0 * c2);
+        final imagPart = math.sqrt(-disc) / (2.0 * c2);
+        return [Complex(realPart, imagPart), Complex(realPart, -imagPart)];
+      }
+    }
+    if (deg > maxCompanionDegree) {
+      throw UnsupportedError(
+        'Roots via companion matrix eigenvalue decomposition is not supported '
+        'for high-degree sparse polynomials (degree $deg > $maxCompanionDegree).',
+      );
+    }
+    final lead = (poly[deg] as num).toDouble();
+    final companion = Matrix<double>.generate(deg, deg, (row, col) {
+      if (row == deg - 1) {
+        return -(poly[col] as num).toDouble() / lead;
+      } else if (row + 1 == col) {
+        return 1.0;
+      } else {
+        return 0.0;
+      }
+    }, type: DataType.float64);
+
+    return companion.eigenvalue.eigenvalues;
+  }
 }

@@ -1,6 +1,3 @@
-import 'dart:math' as math;
-
-import '../../../linear.dart';
 import '../../../type.dart';
 import '../polynomial.dart';
 import 'dense_polynomial.dart';
@@ -500,50 +497,7 @@ class CompressedPolynomial<T> extends Polynomial<T> {
   }
 
   @override
-  List<Complex> get roots {
-    final deg = degree;
-    if (deg <= 0) return const [];
-    if (deg == 1) {
-      final c0 = (this[0] as num).toDouble();
-      final c1 = (this[1] as num).toDouble();
-      return [Complex(-c0 / c1)];
-    }
-    if (deg == 2) {
-      final c0 = (this[0] as num).toDouble();
-      final c1 = (this[1] as num).toDouble();
-      final c2 = (this[2] as num).toDouble();
-      final disc = c1 * c1 - 4.0 * c2 * c0;
-      if (disc >= 0) {
-        final sqrtDisc = math.sqrt(disc);
-        return [
-          Complex((-c1 + sqrtDisc) / (2.0 * c2)),
-          Complex((-c1 - sqrtDisc) / (2.0 * c2)),
-        ];
-      } else {
-        final realPart = -c1 / (2.0 * c2);
-        final imagPart = math.sqrt(-disc) / (2.0 * c2);
-        return [Complex(realPart, imagPart), Complex(realPart, -imagPart)];
-      }
-    }
-    if (deg > 1000) {
-      throw UnsupportedError(
-        'Roots via companion matrix eigenvalue decomposition is not supported '
-        'for high-degree sparse polynomials (degree $deg > 1000).',
-      );
-    }
-    final lead = (this[deg] as num).toDouble();
-    final companion = Matrix<double>.generate(deg, deg, (row, col) {
-      if (row == deg - 1) {
-        return -(this[col] as num).toDouble() / lead;
-      } else if (row + 1 == col) {
-        return 1.0;
-      } else {
-        return 0.0;
-      }
-    }, type: DataType.float64);
-
-    return companion.eigenvalue.eigenvalues;
-  }
+  List<Complex> get roots => Polynomial.computeRoots(this);
 
   @override
   CompressedPolynomial<T> toCompressed() => this;
