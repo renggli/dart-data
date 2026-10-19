@@ -804,46 +804,15 @@ class Matrix<T> implements LinearOperator<T> {
       }
 
       if (transA != null && lda != null) {
-        if (tensor.data is Float64List &&
-            x.tensor.data is Float64List &&
-            res.tensor.data is Float64List) {
-          final success = AccelerationManager.dgemv(
-            transA: transA,
-            m: mVal!,
-            n: nVal!,
-            alpha: 1.0,
-            a: tensor.data as Float64List,
-            aOffset: tensor.offset,
-            lda: lda,
-            x: x.tensor.data as Float64List,
-            xOffset: x.tensor.offset,
-            incX: x.tensor.strides[0],
-            beta: 0.0,
-            y: res.tensor.data as Float64List,
-            yOffset: res.tensor.offset,
-            incY: res.tensor.strides[0],
-          );
-          if (success) return res;
-        } else if (tensor.data is Float32List &&
-            x.tensor.data is Float32List &&
-            res.tensor.data is Float32List) {
-          final success = AccelerationManager.sgemv(
-            transA: transA,
-            m: mVal!,
-            n: nVal!,
-            alpha: 1.0,
-            a: tensor.data as Float32List,
-            aOffset: tensor.offset,
-            lda: lda,
-            x: x.tensor.data as Float32List,
-            xOffset: x.tensor.offset,
-            incX: x.tensor.strides[0],
-            beta: 0.0,
-            y: res.tensor.data as Float32List,
-            yOffset: res.tensor.offset,
-            incY: res.tensor.strides[0],
-          );
-          if (success) return res;
+        if (_tryAcceleratedGemv(
+          transA: transA,
+          m: mVal!,
+          n: nVal!,
+          lda: lda,
+          x: x,
+          res: res,
+        )) {
+          return res;
         }
       }
     }
@@ -912,46 +881,15 @@ class Matrix<T> implements LinearOperator<T> {
       }
 
       if (transA != null && lda != null) {
-        if (tensor.data is Float64List &&
-            x.tensor.data is Float64List &&
-            res.tensor.data is Float64List) {
-          final success = AccelerationManager.dgemv(
-            transA: transA,
-            m: mVal!,
-            n: nVal!,
-            alpha: 1.0,
-            a: tensor.data as Float64List,
-            aOffset: tensor.offset,
-            lda: lda,
-            x: x.tensor.data as Float64List,
-            xOffset: x.tensor.offset,
-            incX: x.tensor.strides[0],
-            beta: 0.0,
-            y: res.tensor.data as Float64List,
-            yOffset: res.tensor.offset,
-            incY: res.tensor.strides[0],
-          );
-          if (success) return res;
-        } else if (tensor.data is Float32List &&
-            x.tensor.data is Float32List &&
-            res.tensor.data is Float32List) {
-          final success = AccelerationManager.sgemv(
-            transA: transA,
-            m: mVal!,
-            n: nVal!,
-            alpha: 1.0,
-            a: tensor.data as Float32List,
-            aOffset: tensor.offset,
-            lda: lda,
-            x: x.tensor.data as Float32List,
-            xOffset: x.tensor.offset,
-            incX: x.tensor.strides[0],
-            beta: 0.0,
-            y: res.tensor.data as Float32List,
-            yOffset: res.tensor.offset,
-            incY: res.tensor.strides[0],
-          );
-          if (success) return res;
+        if (_tryAcceleratedGemv(
+          transA: transA,
+          m: mVal!,
+          n: nVal!,
+          lda: lda,
+          x: x,
+          res: res,
+        )) {
+          return res;
         }
       }
     }
@@ -1055,4 +993,54 @@ class Matrix<T> implements LinearOperator<T> {
 
   @override
   String toString() => 'Matrix($rowCount x $colCount, ${toNestedList()})';
+
+  bool _tryAcceleratedGemv({
+    required int transA,
+    required int m,
+    required int n,
+    required int lda,
+    required Vector<T> x,
+    required Vector<T> res,
+  }) {
+    if (tensor.data is Float64List &&
+        x.tensor.data is Float64List &&
+        res.tensor.data is Float64List) {
+      return AccelerationManager.dgemv(
+        transA: transA,
+        m: m,
+        n: n,
+        alpha: 1.0,
+        a: tensor.data as Float64List,
+        aOffset: tensor.offset,
+        lda: lda,
+        x: x.tensor.data as Float64List,
+        xOffset: x.tensor.offset,
+        incX: x.tensor.strides[0],
+        beta: 0.0,
+        y: res.tensor.data as Float64List,
+        yOffset: res.tensor.offset,
+        incY: res.tensor.strides[0],
+      );
+    } else if (tensor.data is Float32List &&
+        x.tensor.data is Float32List &&
+        res.tensor.data is Float32List) {
+      return AccelerationManager.sgemv(
+        transA: transA,
+        m: m,
+        n: n,
+        alpha: 1.0,
+        a: tensor.data as Float32List,
+        aOffset: tensor.offset,
+        lda: lda,
+        x: x.tensor.data as Float32List,
+        xOffset: x.tensor.offset,
+        incX: x.tensor.strides[0],
+        beta: 0.0,
+        y: res.tensor.data as Float32List,
+        yOffset: res.tensor.offset,
+        incY: res.tensor.strides[0],
+      );
+    }
+    return false;
+  }
 }
