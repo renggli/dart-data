@@ -97,24 +97,24 @@ sealed class Expr {
     return result;
   }
 
-  void _collectFreeVariables(Set<String> target);
+  void _collectFreeVariables(Set<String> target) {}
 
   /// Whether this expression contains [variable] as a free variable.
-  bool dependsOn(String variable);
+  bool dependsOn(String variable) => false;
 
   /// Whether this expression is real-valued when all free variables are real.
   bool get isReal => _isRealSubtree(this);
 
   /// Returns a new expression with every occurrence of [variable] replaced by [replacement].
-  Expr substitute(String variable, Expr replacement);
+  Expr substitute(String variable, Expr replacement) => this;
 
   /// Applies [transform] to all direct child [Expr] nodes of this expression,
   /// returning a reconstructed node of the same type, or `this` for leaf nodes.
-  Expr mapChildren(Expr Function(Expr) transform);
+  Expr mapChildren(Expr Function(Expr) transform) => this;
 
   /// Returns `true` if [predicate] holds for this node or any descendant node
   /// in this expression subtree.
-  bool anyNode(bool Function(Expr) predicate);
+  bool anyNode(bool Function(Expr) predicate) => predicate(this);
 
   /// Symbolic addition: `this + other`.
   ///

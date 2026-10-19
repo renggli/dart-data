@@ -30,11 +30,15 @@ final class Derivative extends Expr {
   }
 
   @override
-  bool dependsOn(String v) => v == variable || expr.dependsOn(v);
+  bool dependsOn(String variable) =>
+      variable == this.variable || expr.dependsOn(variable);
 
   @override
-  Expr substitute(String v, Expr replacement) =>
-      Derivative(expr.substitute(v, replacement), variable, order: order);
+  Expr substitute(String variable, Expr replacement) => Derivative(
+    expr.substitute(variable, replacement),
+    this.variable,
+    order: order,
+  );
 
   @override
   Expr mapChildren(Expr Function(Expr) transform) =>

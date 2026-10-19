@@ -59,14 +59,15 @@ final class Limit extends Expr {
   }
 
   @override
-  bool dependsOn(String v) =>
-      (v != variable && expr.dependsOn(v)) || point.dependsOn(v);
+  bool dependsOn(String variable) =>
+      (variable != this.variable && expr.dependsOn(variable)) ||
+      point.dependsOn(variable);
 
   @override
-  Expr substitute(String v, Expr replacement) => Limit(
-    v == variable ? expr : expr.substitute(v, replacement),
-    variable,
-    point.substitute(v, replacement),
+  Expr substitute(String variable, Expr replacement) => Limit(
+    variable == this.variable ? expr : expr.substitute(variable, replacement),
+    this.variable,
+    point.substitute(variable, replacement),
     direction: direction,
   );
 

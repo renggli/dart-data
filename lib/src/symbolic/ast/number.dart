@@ -200,24 +200,6 @@ sealed class Number extends Expr {
     return res.isFinite ? RealNumber(res) : null;
   }
 
-  @override
-  Set<String> get freeVariables => const {};
-
-  @override
-  void _collectFreeVariables(Set<String> target) {}
-
-  @override
-  bool dependsOn(String variable) => false;
-
-  @override
-  Expr substitute(String variable, Expr replacement) => this;
-
-  @override
-  Expr mapChildren(Expr Function(Expr) transform) => this;
-
-  @override
-  bool anyNode(bool Function(Expr) predicate) => predicate(this);
-
   static (RealNumeric, RealNumeric) _components(Number n) => switch (n) {
     RealNumeric() => (n, IntegerNumber.zero),
     ComplexNumber(:final real, :final imaginary) => (real, imaginary),

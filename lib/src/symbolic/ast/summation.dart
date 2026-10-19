@@ -42,17 +42,17 @@ final class Sum extends Expr {
   }
 
   @override
-  bool dependsOn(String v) =>
-      (v != variable && expr.dependsOn(v)) ||
-      lower.dependsOn(v) ||
-      upper.dependsOn(v);
+  bool dependsOn(String variable) =>
+      (variable != this.variable && expr.dependsOn(variable)) ||
+      lower.dependsOn(variable) ||
+      upper.dependsOn(variable);
 
   @override
-  Expr substitute(String v, Expr replacement) => Sum(
-    v == variable ? expr : expr.substitute(v, replacement),
-    variable,
-    lower.substitute(v, replacement),
-    upper.substitute(v, replacement),
+  Expr substitute(String variable, Expr replacement) => Sum(
+    variable == this.variable ? expr : expr.substitute(variable, replacement),
+    this.variable,
+    lower.substitute(variable, replacement),
+    upper.substitute(variable, replacement),
   );
 
   @override
@@ -119,17 +119,17 @@ final class Product extends Expr {
   }
 
   @override
-  bool dependsOn(String v) =>
-      (v != variable && expr.dependsOn(v)) ||
-      lower.dependsOn(v) ||
-      upper.dependsOn(v);
+  bool dependsOn(String variable) =>
+      (variable != this.variable && expr.dependsOn(variable)) ||
+      lower.dependsOn(variable) ||
+      upper.dependsOn(variable);
 
   @override
-  Expr substitute(String v, Expr replacement) => Product(
-    v == variable ? expr : expr.substitute(v, replacement),
-    variable,
-    lower.substitute(v, replacement),
-    upper.substitute(v, replacement),
+  Expr substitute(String variable, Expr replacement) => Product(
+    variable == this.variable ? expr : expr.substitute(variable, replacement),
+    this.variable,
+    lower.substitute(variable, replacement),
+    upper.substitute(variable, replacement),
   );
 
   @override

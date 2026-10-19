@@ -60,26 +60,28 @@ final class Integral extends Expr {
   }
 
   @override
-  bool dependsOn(String v) {
+  bool dependsOn(String variable) {
     if (isDefinite) {
-      return (v != variable && integrand.dependsOn(v)) ||
-          lower!.dependsOn(v) ||
-          upper!.dependsOn(v);
+      return (variable != this.variable && integrand.dependsOn(variable)) ||
+          lower!.dependsOn(variable) ||
+          upper!.dependsOn(variable);
     }
-    return v == variable || integrand.dependsOn(v);
+    return variable == this.variable || integrand.dependsOn(variable);
   }
 
   @override
-  Expr substitute(String v, Expr replacement) {
+  Expr substitute(String variable, Expr replacement) {
     if (isDefinite) {
       return Integral(
-        v == variable ? integrand : integrand.substitute(v, replacement),
-        variable,
-        lower: lower!.substitute(v, replacement),
-        upper: upper!.substitute(v, replacement),
+        variable == this.variable
+            ? integrand
+            : integrand.substitute(variable, replacement),
+        this.variable,
+        lower: lower!.substitute(variable, replacement),
+        upper: upper!.substitute(variable, replacement),
       );
     }
-    return Integral(integrand.substitute(v, replacement), variable);
+    return Integral(integrand.substitute(variable, replacement), this.variable);
   }
 
   @override

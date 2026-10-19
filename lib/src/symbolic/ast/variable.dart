@@ -45,12 +45,6 @@ final class Variable extends Expr {
       name == variable ? replacement : this;
 
   @override
-  Expr mapChildren(Expr Function(Expr) transform) => this;
-
-  @override
-  bool anyNode(bool Function(Expr) predicate) => predicate(this);
-
-  @override
   bool operator ==(Object other) =>
       identical(this, other) || (other is Variable && name == other.name);
 
