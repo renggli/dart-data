@@ -6,8 +6,6 @@ import 'optimization/nelder_mead.dart';
 import 'optimization/optimization_types.dart';
 import 'optimization/quasi_newton.dart';
 
-export 'optimization/optimization_types.dart';
-
 /// 1D and multivariate numerical optimization algorithms.
 
 /// Minimizes a scalar-valued function [function] starting from [initialPoint]

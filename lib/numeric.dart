@@ -65,6 +65,7 @@ import 'src/numeric/interpolation/pchip.dart';
 import 'src/numeric/ode/ode_method.dart';
 import 'src/numeric/ode/solve_ode.dart';
 import 'src/numeric/optimization.dart';
+import 'src/numeric/optimization/optimization_types.dart';
 import 'src/numeric/root_finding/root_method.dart';
 import 'src/numeric/root_finding/solve.dart';
 import 'src/numeric/root_finding/solve_system.dart';
