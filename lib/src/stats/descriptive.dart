@@ -7,8 +7,6 @@ import '../linear/matrix.dart';
 import '../linear/vector.dart';
 import '../tensor/tensor.dart';
 
-export 'pca.dart';
-
 /// Returns the arithmetic mean of [values], or [double.nan] if empty.
 ///
 /// Conceptually, the mean is the standard average: the sum of all elements

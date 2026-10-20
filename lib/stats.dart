@@ -93,6 +93,7 @@ import 'src/stats/distributions/multivariate/multinomial.dart';
 import 'src/stats/distributions/multivariate/multivariate_distribution.dart';
 import 'src/stats/distributions/multivariate/multivariate_normal.dart';
 import 'src/stats/hypothesis.dart';
+import 'src/stats/pca.dart';
 import 'src/stats/resampling/bootstrap.dart';
 import 'src/stats/resampling/jackknife.dart';
 

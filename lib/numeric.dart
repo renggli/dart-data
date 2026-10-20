@@ -69,5 +69,6 @@ export 'src/numeric/interpolation.dart';
 export 'src/numeric/interpolation_2d.dart';
 export 'src/numeric/ode.dart';
 export 'src/numeric/optimization.dart';
+export 'src/numeric/optimization/optimization_types.dart';
 export 'src/numeric/root_finding.dart';
 export 'src/numeric/sampling.dart';

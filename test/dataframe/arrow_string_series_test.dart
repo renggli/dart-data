@@ -128,9 +128,9 @@ void main() {
       check(series.mean).isNull();
     });
 
-    test('data compatibility getter and rename', () {
+    test('rename', () {
       final series = ArrowStringSeries.fromList('words', ['one', null, 'two']);
-      check(series.data).deepEquals(['one', '', 'two']);
+      check(series.toList()).deepEquals(['one', null, 'two']);
 
       final renamed = series.rename('words_renamed');
       check(renamed.name).equals('words_renamed');

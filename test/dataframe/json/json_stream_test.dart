@@ -14,7 +14,7 @@ void main() {
         '{"id": 3, "name": "Charlie", "score": 92.0}\n',
       ];
       final stream = Stream.fromIterable(ndjson);
-      final df = await DataFrameJson.readNdjson(stream);
+      final df = await DataFrameJsonStream.readNdjson(stream);
 
       check(df.rowCount).equals(3);
       check(df.columnNames).deepEquals(['id', 'name', 'score']);
@@ -26,7 +26,7 @@ void main() {
     test('yields chunked DataFrames from NDJSON stream', () async {
       final lines = [for (var i = 0; i < 25; i++) '{"k": $i, "v": "val_$i"}\n'];
       final stream = Stream.fromIterable(lines);
-      final chunks = await DataFrameJson.readNdjsonChunks(
+      final chunks = await DataFrameJsonStream.readNdjsonChunks(
         stream,
         chunkSize: 10,
       ).toList();
@@ -51,7 +51,8 @@ void main() {
 
     test('throws FormatException on malformed non-object JSON line', () async {
       final stream = Stream.value('[1, 2, 3]\n');
-      await check(DataFrameJson.readNdjson(stream)).throws<FormatException>();
+      await check(DataFrameJsonStream.readNdjson(stream))
+          .throws<FormatException>();
     });
   });
 }

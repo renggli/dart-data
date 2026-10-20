@@ -128,9 +128,6 @@ class ArrowStringSeries extends Series<String> {
     return Uint8List.sublistView(bytes, start, end);
   }
 
-  /// Compatibility view returning all string values.
-  List<String> get data => [for (var i = 0; i < length; i++) this[i] ?? ''];
-
   @override
   String? operator [](int index) {
     RangeError.checkValidIndex(index, this, 'index', length);

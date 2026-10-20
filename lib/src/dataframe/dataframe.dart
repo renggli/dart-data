@@ -8,7 +8,9 @@ import 'arrowc/arrow_ipc.dart';
 import 'csv/csv_reader.dart';
 import 'csv/csv_writer.dart';
 import 'groupby.dart';
-import 'json/json.dart';
+import 'json/json_decoder.dart';
+import 'json/json_encoder.dart';
+import 'json/json_orient.dart';
 import 'series.dart';
 
 /// 2-dimensional heterogeneous tabular data structure.
@@ -84,13 +86,17 @@ class DataFrame {
     String source, {
     JsonOrient? orient,
     Map<String, DataType<dynamic>>? columnTypes,
-  }) => DataFrameJson.decode(source, orient: orient, columnTypes: columnTypes);
+  }) => DataFrameJsonDecoder.decode(
+    source,
+    orient: orient,
+    columnTypes: columnTypes,
+  );
 
   /// Constructs a [DataFrame] from an iterable of record maps.
   factory fromRecords(
     Iterable<Map<String, dynamic>> records, {
     Map<String, DataType<dynamic>>? columnTypes,
-  }) => DataFrameJson.fromRecords(records, columnTypes: columnTypes);
+  }) => DataFrameJsonDecoder.fromRecords(records, columnTypes: columnTypes);
 
   /// Constructs a [DataFrame] by decoding an Apache Arrow IPC stream byte
   /// buffer.
@@ -318,10 +324,11 @@ class DataFrame {
 
   /// Serializes this [DataFrame] to JSON format.
   String toJson({JsonOrient orient = JsonOrient.records}) =>
-      DataFrameJson.encode(this, orient: orient);
+      DataFrameJsonEncoder.encode(this, orient: orient);
 
   /// Converts this [DataFrame] rows to a list of record maps.
-  List<Map<String, dynamic>> toRecords() => DataFrameJson.toRecords(this);
+  List<Map<String, dynamic>> toRecords() =>
+      DataFrameJsonEncoder.toRecords(this);
 
   /// Serializes this [DataFrame] to Apache Arrow IPC stream byte format.
   Uint8List toArrowIpc() => ArrowIpc.encode(this);
