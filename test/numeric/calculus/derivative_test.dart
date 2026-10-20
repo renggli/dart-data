@@ -1,0 +1,30 @@
+import 'package:checks/checks.dart';
+import 'package:data/numeric.dart';
+import 'package:test/test.dart';
+
+void main() {
+  group('derivative', () {
+    test('derivative and higher order derivative of scalar function', () {
+      // f(x) = x^3 => f'(2) = 12, f''(2) = 12, f'''(2) = 6
+      double function(double x) => x * x * x;
+      check(derivative(function, 2.0)).isCloseTo(12.0, 1e-4);
+      check(derivative(function, 2.0, order: 2)).isCloseTo(12.0, 1e-3);
+      check(derivative(function, 2.0, accuracy: 4)).isCloseTo(12.0, 1e-6);
+      check(derivative(function, 2.0, order: 2, accuracy: 4))
+          .isCloseTo(12.0, 1e-4);
+      check(derivative(function, 2.0, order: 3)).isCloseTo(6.0, 1e-3);
+
+      // f(x) = x^6 => f^(4)(1) = 360, f^(5)(1) = 720, f^(6)(1) = 720
+      double poly6(double x) => x * x * x * x * x * x;
+      check(derivative(poly6, 1.0, order: 4)).isCloseTo(360.0, 1.0);
+      check(derivative(poly6, 1.0, order: 5)).isCloseTo(720.0, 5.0);
+      check(derivative(poly6, 1.0, order: 6)).isCloseTo(720.0, 15.0);
+
+      // Invalid orders and accuracies
+      check(() => derivative(function, 2.0, order: 0)).throws<ArgumentError>();
+      check(() => derivative(function, 2.0, order: 7)).throws<ArgumentError>();
+      check(() => derivative(function, 2.0, accuracy: 5))
+          .throws<ArgumentError>();
+    });
+  });
+}

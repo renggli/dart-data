@@ -50,7 +50,10 @@
 /// ```
 library;
 
-import 'src/numeric/calculus.dart';
+import 'src/numeric/calculus/derivative.dart';
+import 'src/numeric/calculus/gradient.dart';
+import 'src/numeric/calculus/hessian.dart';
+import 'src/numeric/calculus/jacobian.dart';
 import 'src/numeric/curve_fit.dart';
 import 'src/numeric/fft.dart';
 import 'src/numeric/integration.dart';
@@ -67,7 +70,10 @@ import 'src/numeric/root_finding/solve.dart';
 import 'src/numeric/root_finding/solve_system.dart';
 import 'src/numeric/sampling.dart';
 
-export 'src/numeric/calculus.dart';
+export 'src/numeric/calculus/derivative.dart';
+export 'src/numeric/calculus/gradient.dart';
+export 'src/numeric/calculus/hessian.dart';
+export 'src/numeric/calculus/jacobian.dart';
 export 'src/numeric/curve_fit.dart';
 export 'src/numeric/fft.dart';
 export 'src/numeric/integration.dart';

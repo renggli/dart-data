@@ -2,7 +2,7 @@ import 'dart:math' as math;
 
 import '../../../linear.dart';
 import '../../../type.dart';
-import '../calculus.dart' as calculus;
+import '../calculus/gradient.dart' as calculus;
 import 'optimization_types.dart';
 import 'quasi_newton.dart';
 
