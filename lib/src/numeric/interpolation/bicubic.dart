@@ -1,122 +1,8 @@
 import 'dart:math' as math;
 
-import '../../linear.dart';
-import '../../type.dart';
-
-/// Base interface for 2D surface interpolators.
-abstract class Interpolator2D {
-  /// Evaluates the interpolated surface at ([x], [y]).
-  double evaluate(double x, double y);
-
-  /// Evaluates the interpolated surface at ([x], [y]).
-  double call(double x, double y);
-}
-
-/// 2D Bilinear surface interpolation over a rectilinear grid.
-class BilinearInterpolation implements Interpolator2D {
-  /// Constructs a bilinear interpolator.
-  ///
-  /// Points in [xs] and [ys] must be strictly monotonically increasing with
-  /// length $\ge 2$. [values] must have shape `[xs.length, ys.length]`.
-  new(Iterable<num> xs, Iterable<num> ys, Matrix<num> values)
-    : _xs = [for (final x in xs) x.toDouble()],
-      _ys = [for (final y in ys) y.toDouble()] {
-    if (_xs.length < 2) {
-      throw ArgumentError('xs must contain at least 2 points.');
-    }
-    if (_ys.length < 2) {
-      throw ArgumentError('ys must contain at least 2 points.');
-    }
-    for (var i = 0; i < _xs.length - 1; i++) {
-      if (_xs[i] >= _xs[i + 1]) {
-        throw ArgumentError('xs must be strictly monotonically increasing.');
-      }
-    }
-    for (var j = 0; j < _ys.length - 1; j++) {
-      if (_ys[j] >= _ys[j + 1]) {
-        throw ArgumentError('ys must be strictly monotonically increasing.');
-      }
-    }
-    if (values.rowCount != _xs.length || values.colCount != _ys.length) {
-      throw ArgumentError(
-        'Values matrix shape (${values.rowCount}x${values.colCount}) must '
-        'match grid dimensions (${_xs.length}x${_ys.length}).',
-      );
-    }
-    _values = Matrix<double>.generate(
-      _xs.length,
-      _ys.length,
-      (r, c) => values.getUnchecked(r, c).toDouble(),
-      type: DataType.float64,
-    );
-  }
-
-  final List<double> _xs;
-  final List<double> _ys;
-  late final Matrix<double> _values;
-
-  @override
-  double evaluate(double x, double y) {
-    final xClamped = x.clamp(_xs.first, _xs.last);
-    final yClamped = y.clamp(_ys.first, _ys.last);
-
-    final i = _findInterval(_xs, xClamped);
-    final j = _findInterval(_ys, yClamped);
-
-    final x0 = _xs[i];
-    final x1 = _xs[i + 1];
-    final y0 = _ys[j];
-    final y1 = _ys[j + 1];
-
-    final u = (xClamped - x0) / (x1 - x0);
-    final v = (yClamped - y0) / (y1 - y0);
-
-    final q00 = _values.getUnchecked(i, j);
-    final q10 = _values.getUnchecked(i + 1, j);
-    final q01 = _values.getUnchecked(i, j + 1);
-    final q11 = _values.getUnchecked(i + 1, j + 1);
-
-    return (1.0 - u) * (1.0 - v) * q00 +
-        u * (1.0 - v) * q10 +
-        (1.0 - u) * v * q01 +
-        u * v * q11;
-  }
-
-  @override
-  double call(double x, double y) => evaluate(x, y);
-
-  /// Computes the partial gradient
-  /// $(\frac{\partial f}{\partial x}, \frac{\partial f}{\partial y})$ at ([x],
-  /// [y]).
-  Vector<double> gradient(double x, double y) {
-    final xClamped = x.clamp(_xs.first, _xs.last);
-    final yClamped = y.clamp(_ys.first, _ys.last);
-
-    final i = _findInterval(_xs, xClamped);
-    final j = _findInterval(_ys, yClamped);
-
-    final x0 = _xs[i];
-    final x1 = _xs[i + 1];
-    final y0 = _ys[j];
-    final y1 = _ys[j + 1];
-
-    final dx = x1 - x0;
-    final dy = y1 - y0;
-
-    final u = (xClamped - x0) / dx;
-    final v = (yClamped - y0) / dy;
-
-    final q00 = _values.getUnchecked(i, j);
-    final q10 = _values.getUnchecked(i + 1, j);
-    final q01 = _values.getUnchecked(i, j + 1);
-    final q11 = _values.getUnchecked(i + 1, j + 1);
-
-    final dfDx = ((1.0 - v) * (q10 - q00) + v * (q11 - q01)) / dx;
-    final dfDy = ((1.0 - u) * (q01 - q00) + u * (q11 - q10)) / dy;
-
-    return Vector<double>.fromList([dfDx, dfDy], type: DataType.float64);
-  }
-}
+import '../../../linear.dart';
+import '../../../type.dart';
+import 'interpolator.dart';
 
 /// 2D Bicubic surface interpolation over a rectilinear grid with $C^1$
 /// continuity.
@@ -156,7 +42,7 @@ class BicubicInterpolation implements Interpolator2D {
     _values = Matrix<double>.generate(
       nx,
       ny,
-      (r, c) => values.getUnchecked(r, c).toDouble(),
+      (int r, int c) => values.getUnchecked(r, c).toDouble(),
       type: DataType.float64,
     );
 
@@ -348,7 +234,6 @@ class BicubicInterpolation implements Interpolator2D {
   }
 
   List<List<double>> _computeCoefficients(int i, int j, double dx, double dy) {
-    // 4x4 matrix of corner values and derivatives
     final f00 = _values.getUnchecked(i, j);
     final f10 = _values.getUnchecked(i + 1, j);
     final f01 = _values.getUnchecked(i, j + 1);
@@ -369,11 +254,6 @@ class BicubicInterpolation implements Interpolator2D {
     final fxy01 = _fxy.getUnchecked(i, j + 1) * dx * dy;
     final fxy11 = _fxy.getUnchecked(i + 1, j + 1) * dx * dy;
 
-    // Corner matrix F:
-    // [ f00   f01   fy00   fy01  ]
-    // [ f10   f11   fy10   fy11  ]
-    // [ fx00  fx01  fxy00  fxy01 ]
-    // [ fx10  fx11  fxy10  fxy11 ]
     final fMat = [
       [f00, f01, fy00, fy01],
       [f10, f11, fy10, fy11],
@@ -381,31 +261,30 @@ class BicubicInterpolation implements Interpolator2D {
       [fx10, fx11, fxy10, fxy11],
     ];
 
-    // Compute A = M * F * M^T where M is the standard Hermite matrix
     return _multiply4x4(
       _multiply4x4(_hermiteMatrix, fMat),
       _hermiteMatrixTransposed,
     );
   }
-}
 
-int _findInterval(List<double> list, double value) {
-  if (value <= list.first) return 0;
-  if (value >= list[list.length - 2]) return list.length - 2;
+  int _findInterval(List<double> list, double value) {
+    if (value <= list.first) return 0;
+    if (value >= list[list.length - 2]) return list.length - 2;
 
-  var low = 0;
-  var high = list.length - 2;
-  while (low <= high) {
-    final mid = (low + high) ~/ 2;
-    if (list[mid] <= value && value <= list[mid + 1]) {
-      return mid;
-    } else if (list[mid] > value) {
-      high = mid - 1;
-    } else {
-      low = mid + 1;
+    var low = 0;
+    var high = list.length - 2;
+    while (low <= high) {
+      final mid = (low + high) ~/ 2;
+      if (list[mid] <= value && value <= list[mid + 1]) {
+        return mid;
+      } else if (list[mid] > value) {
+        high = mid - 1;
+      } else {
+        low = mid + 1;
+      }
     }
+    return low.clamp(0, list.length - 2);
   }
-  return low.clamp(0, list.length - 2);
 }
 
 const List<List<double>> _hermiteMatrix = [
