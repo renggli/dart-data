@@ -13,7 +13,7 @@ dart run benchmark/symbolic_benchmark.dart katsura
 dart run benchmark/symbolic_benchmark.dart expand
 ```
 
-Every benchmark executes untimed warmup runs first, then evaluates timed runs reporting the median time and 95% empirical bootstrap confidence interval (computed via `bootstrap` in `package:data/stats.dart`). Fast workloads repeat their body `inner` times per sample to reduce timer quantization noise.
+Every benchmark executes untimed warmup runs first, then evaluates timed runs reporting the median time and 95% empirical bootstrap confidence interval (computed via `Bootstrap` in `package:data/stats.dart`). Fast workloads repeat their body `inner` times per sample to reduce timer quantization noise.
 
 ## Latest Benchmark Results
 

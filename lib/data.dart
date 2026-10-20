@@ -38,7 +38,7 @@
 /// - **Statistics** (`stats.dart`): Parametric probability distributions
 ///   ([NormalDistribution], [StudentDistribution]), hypothesis testing
 ///   ([tTestOneSample], [tTestTwoSample], [oneWayAnova], [chiSquaredTest]), and
-///   bootstrap resampling ([bootstrap]).
+///   bootstrap resampling ([Bootstrap]).
 /// - **Type System** (`type.dart`): Algebraic fields ([Field]), data type
 ///   descriptors ([DataType]), and equality models ([Equality]).
 ///

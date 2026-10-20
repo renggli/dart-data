@@ -18,7 +18,7 @@ Every benchmark executes untimed warmup iterations first, then evaluates timed r
 1. `AccelerationMode.dart` (forcing pure Dart scalar / SIMD execution).
 2. `AccelerationMode.accelerated` (forcing native BLAS / LAPACK / Apple vDSP & vForce execution via leaf `@ffi.Native` direct-address bindings).
 
-Confidence intervals (95%) are computed non-parametrically using 1,000 bootstrap resamples on the measured per-run samples via `bootstrap` in `package:data/stats.dart`.
+Confidence intervals (95%) are computed non-parametrically using 1,000 bootstrap resamples on the measured per-run samples via `Bootstrap` in `package:data/stats.dart`.
 
 ## Benchmark Results
 

@@ -30,7 +30,7 @@
 ///   [chiSquaredTest], [chiSquaredContingency], [mannWhitneyUTest],
 ///   [wilcoxonSignedRankTest], [kolmogorovSmirnovTest],
 ///   [kolmogorovSmirnov2Sample], and [jarqueBeraTest].
-/// - **Resampling & Inference**: [bootstrap] (non-parametric confidence
+/// - **Resampling & Inference**: [Bootstrap] (non-parametric confidence
 ///   intervals and distributions) and [Jackknife].
 /// - **Distribution Infrastructure**: [Distribution] abstract contract and
 ///   [InvalidProbability] validation error.
@@ -93,7 +93,8 @@ import 'src/stats/distributions/multivariate/multinomial.dart';
 import 'src/stats/distributions/multivariate/multivariate_distribution.dart';
 import 'src/stats/distributions/multivariate/multivariate_normal.dart';
 import 'src/stats/hypothesis.dart';
-import 'src/stats/resampling.dart';
+import 'src/stats/resampling/bootstrap.dart';
+import 'src/stats/resampling/jackknife.dart';
 
 export 'src/stats/descriptive.dart';
 export 'src/stats/distribution.dart';
@@ -130,4 +131,5 @@ export 'src/stats/distributions/multivariate/multivariate_distribution.dart';
 export 'src/stats/distributions/multivariate/multivariate_normal.dart';
 export 'src/stats/hypothesis.dart';
 export 'src/stats/pca.dart';
-export 'src/stats/resampling.dart';
+export 'src/stats/resampling/bootstrap.dart';
+export 'src/stats/resampling/jackknife.dart';

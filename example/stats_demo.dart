@@ -80,7 +80,7 @@ void main() {
 
   // 5. Bootstrap Resampling
   stdout.writeln('5. Non-Parametric Bootstrap Resampling');
-  final boot = bootstrap<double>(
+  final boot = Bootstrap<double>(
     groupControl,
     (list) => list.mean(),
     resamples: 1000,

@@ -95,7 +95,7 @@ Below is a detailed verification of achievements against `PROPOSED_CHANGES.md` a
 | **Descriptive Statistics** | **Achieved** | `quantile`, `median`, `iqr`, `skewness`, `kurtosis`, `covarianceMatrix`, `correlationMatrix` (Pearson & Spearman), and PCA in `lib/src/stats/descriptive.dart`. |
 | **Hypothesis Testing** | **Achieved** | `tTestOneSample`, `tTestTwoSample` (Student and Welch), `tTestPaired`, `oneWayAnova`, `chiSquaredTest`, `chiSquaredContingency`, and `mannWhitneyUTest` in `lib/src/stats/hypothesis.dart`. |
 | **Distribution MLE Fitting** | **Achieved** | `factory fit(...)` implemented across 12 distributions (Normal, Student-t, F, Beta, Gamma, Exponential, Chi-Squared, Uniform, Bernoulli, Binomial, Poisson, Discrete Uniform). |
-| **Bootstrap Resampling** | **Achieved** | `bootstrap` in `lib/src/stats/resampling.dart` supporting both percentile and BCa (bias-corrected and accelerated) confidence intervals, plus parametric bootstrap. |
+| **Bootstrap Resampling** | **Achieved** | `Bootstrap` in `lib/src/stats/resampling/bootstrap.dart` supporting both percentile and BCa (bias-corrected and accelerated) confidence intervals, plus parametric bootstrap. |
 | **Weighted & Rolling Statistics** | **Missed** | `weightedMean`, `weightedVariance`, `movingAverage`, and `exponentialMovingAverage` were not implemented. |
 | **Multivariate Distributions** | **Missed** | `MultivariateNormalDistribution`, `DirichletDistribution`, and `MultinomialDistribution` were not implemented. |
 

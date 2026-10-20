@@ -478,7 +478,9 @@ This document describes the achieved architecture across all subsystems of `pack
 
 - **Reasoning**: Estimating standard errors and confidence intervals without distribution assumptions.
 - **Implementation & Constraints**:
-  - `bootstrap`: Generates $B$ resampled datasets with replacement.
+  - `Bootstrap`: Generates $B$ resampled datasets with replacement.
+  - `Bootstrap.parametric`: Generates synthetic resamples using a generative sampler.
+  - `Bootstrap.distribution`: Generates synthetic resamples from a theoretical probability distribution.
   - Confidence interval algorithms:
     - Percentile interval: Direct empirical quantiles of the bootstrap distribution.
     - BCa (Bias-Corrected and Accelerated) interval: Corrects for both median bias and skewness (acceleration parameter $a$ computed via jackknife influence values).

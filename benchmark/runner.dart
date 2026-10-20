@@ -389,7 +389,7 @@ BenchmarkResult measure(
   double? se;
   if (samples.length >= 3) {
     try {
-      final boot = bootstrap<double>(
+      final boot = Bootstrap<double>(
         samples,
         _sampleMedian,
         resamples: 1000,

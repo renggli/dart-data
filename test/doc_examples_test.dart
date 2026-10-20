@@ -402,7 +402,7 @@ void main() {
 
     test('bootstrap', () {
       final data = [1.0, 2.0, 3.0, 4.0, 5.0];
-      final result = bootstrap(
+      final result = Bootstrap<double>(
         data,
         (sample) => sample.reduce((a, b) => a + b) / sample.length,
         resamples: 200,
