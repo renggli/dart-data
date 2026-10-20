@@ -3,11 +3,9 @@ import 'dart:typed_data';
 
 import 'package:more/number.dart' show Complex;
 
-import '../acceleration_error.dart';
-import '../acceleration_manager.dart';
-import '../acceleration_mode.dart';
 import '../fallback/pure_dart_fft.dart';
 import '../vdsp/vdsp.dart';
+import 'dispatcher.dart';
 
 /// Fast Fourier Transform routines with native hardware acceleration and pure
 /// Dart fallback.
@@ -18,15 +16,6 @@ abstract final class FftRoutines {
     required VdspLibrary vdsp,
     bool inverse = false,
   }) {
-    final mode = AccelerationManager.mode;
-    if (mode == AccelerationMode.dart) {
-      return PureDartFft.fft(input, inverse: inverse);
-    }
-
-    if (mode == AccelerationMode.accelerated && !vdsp.hasFft) {
-      throw AccelerationError.unavailable('FFT');
-    }
-
     final list = input.toList();
     if (list.length <= 1) {
       return List<Complex>.of(list);
@@ -34,37 +23,39 @@ abstract final class FftRoutines {
 
     final length = PureDartFft.nextPowerOf2(list.length);
     final log2n = (math.log(length) / math.ln2).round();
+    final canAccelerate = (1 << log2n) == length;
 
-    if (vdsp.hasFft && (1 << log2n) == length) {
-      final real = Float64List(length);
-      final imag = Float64List(length);
-      for (var i = 0; i < list.length; i++) {
-        final c = list[i];
-        real[i] = c.a.toDouble();
-        imag[i] = c.b.toDouble();
-      }
+    return executeAccelerated(
+      feature: 'FFT',
+      operation: 'FFT',
+      isAvailable: vdsp.hasFft,
+      canAccelerate: canAccelerate,
+      accelerate: () {
+        if (!canAccelerate) return null;
+        final real = Float64List(length);
+        final imag = Float64List(length);
+        for (var i = 0; i < list.length; i++) {
+          final c = list[i];
+          real[i] = c.a.toDouble();
+          imag[i] = c.b.toDouble();
+        }
 
-      final success = vdsp.fft1d(
-        real: real,
-        imag: imag,
-        log2n: log2n,
-        inverse: inverse,
-      );
+        final success = vdsp.fft1d(
+          real: real,
+          imag: imag,
+          log2n: log2n,
+          inverse: inverse,
+        );
 
-      if (success) {
+        if (!success) return null;
         return List<Complex>.generate(
           length,
           (i) => Complex(real[i], imag[i]),
           growable: false,
         );
-      }
-    }
-
-    if (mode == AccelerationMode.accelerated) {
-      throw AccelerationError.failed('FFT');
-    }
-
-    return PureDartFft.fft(input, inverse: inverse);
+      },
+      fallback: () => PureDartFft.fft(input, inverse: inverse),
+    );
   }
 
   /// Computes the 1D discrete Fourier transform for real-valued signals.
@@ -108,15 +99,6 @@ abstract final class FftRoutines {
     required VdspLibrary vdsp,
     bool inverse = false,
   }) {
-    final mode = AccelerationManager.mode;
-    if (mode == AccelerationMode.dart) {
-      return PureDartFft.fft2(matrix, inverse: inverse);
-    }
-
-    if (mode == AccelerationMode.accelerated && !vdsp.hasFft) {
-      throw AccelerationError.unavailable('FFT');
-    }
-
     if (matrix.isEmpty || matrix[0].isEmpty) return const [];
     final rowCount = matrix.length;
     final colCount = matrix[0].length;
@@ -124,47 +106,50 @@ abstract final class FftRoutines {
     final targetCols = PureDartFft.nextPowerOf2(colCount);
     final log2rows = (math.log(targetRows) / math.ln2).round();
     final log2cols = (math.log(targetCols) / math.ln2).round();
+    final canAccelerate =
+        (1 << log2rows) == targetRows && (1 << log2cols) == targetCols;
 
-    if (vdsp.hasFft &&
-        (1 << log2rows) == targetRows &&
-        (1 << log2cols) == targetCols) {
-      final total = targetRows * targetCols;
-      final real = Float64List(total);
-      final imag = Float64List(total);
-
-      for (var r = 0; r < rowCount; r++) {
-        final row = matrix[r];
-        final rowOffset = r * targetCols;
-        for (var c = 0; c < row.length && c < targetCols; c++) {
-          real[rowOffset + c] = row[c].a.toDouble();
-          imag[rowOffset + c] = row[c].b.toDouble();
+    return executeAccelerated(
+      feature: 'FFT',
+      operation: 'FFT2',
+      isAvailable: vdsp.hasFft,
+      canAccelerate: canAccelerate,
+      accelerate: () {
+        if (!canAccelerate) return null;
+        final real = Float64List(targetRows * targetCols);
+        final imag = Float64List(targetRows * targetCols);
+        for (var r = 0; r < rowCount; r++) {
+          final row = matrix[r];
+          for (var c = 0; c < colCount; c++) {
+            final val = row[c];
+            final idx = r * targetCols + c;
+            real[idx] = val.a.toDouble();
+            imag[idx] = val.b.toDouble();
+          }
         }
-      }
 
-      final success = vdsp.fft2d(
-        real: real,
-        imag: imag,
-        log2rows: log2rows,
-        log2cols: log2cols,
-        inverse: inverse,
-      );
+        final success = vdsp.fft2d(
+          real: real,
+          imag: imag,
+          log2rows: log2rows,
+          log2cols: log2cols,
+          inverse: inverse,
+        );
 
-      if (success) {
-        return List.generate(targetRows, (r) {
-          final rowOffset = r * targetCols;
-          return List<Complex>.generate(
+        if (!success) return null;
+
+        final out = <List<Complex>>[];
+        for (var r = 0; r < targetRows; r++) {
+          final row = List<Complex>.generate(
             targetCols,
-            (c) => Complex(real[rowOffset + c], imag[rowOffset + c]),
+            (c) => Complex(real[r * targetCols + c], imag[r * targetCols + c]),
             growable: false,
           );
-        });
-      }
-    }
-
-    if (mode == AccelerationMode.accelerated) {
-      throw AccelerationError.failed('2D FFT');
-    }
-
-    return PureDartFft.fft2(matrix, inverse: inverse);
+          out.add(row);
+        }
+        return out;
+      },
+      fallback: () => PureDartFft.fft2(matrix, inverse: inverse),
+    );
   }
 }

@@ -354,13 +354,26 @@ This document describes the achieved architecture across all subsystems of `pack
   - `SimdEngine` (`lib/src/acceleration/fallback/simd.dart`) leverages Dart's native `Float32x4List` and `Float32x4` types.
   - Evaluates 4-lane parallel floating-point arithmetic for element-wise vector/matrix addition, subtraction, multiplication, and dot products.
 
-### 5.6 Pure-Dart Cache-Blocked GEMM (`lib/src/acceleration/fallback/pure_dart_gemm.dart`)
+### 5.6 Pure-Dart Fallback Architecture (`lib/src/acceleration/fallback/`)
 
-- **Reasoning**: For small matrices ($N < 64$), FFI leaf-call overhead exceeds kernel execution time. On non-FFI environments (Flutter Web, Wasm) or when native BLAS is disabled, naive 3-loop GEMM causes severe CPU cache thrashing due to non-sequential memory strides.
+- **Reasoning**: Environments where native acceleration is disabled or unsupported (such as Flutter Web, Wasm, or `AccelerationMode.dart`) require robust, numerically stable reference implementations of all BLAS, LAPACK, FFT, and vForce operations without depending on native shared libraries.
 - **Implementation & Constraints**:
-  - `cacheBlockedGemmFloat64` and `cacheBlockedGemmFloat32` implement cache-tiled matrix multiplication with $32 \times 32$ block tiles ($32 \times 32 \times 8\text{ bytes} = 8\text{ KB}$, fitting within L1 data caches) and $4\times$ loop unrolling.
-  - Transparent dispatch: `AccelerationManager.dgemm` and `sgemm` automatically route small matrices ($m < 64 \land n < 64 \land k < 64$) or non-FFI executions directly to the cache-blocked algorithms, bypassing FFI overhead while sustaining optimal memory hierarchy locality and sequential register streaming.
-  - Supports all transposition combinations: `cblasNoTrans`, `cblasTrans`, with arbitrary $\alpha$ and $\beta$ accumulation scaling.
+  - `PureDartBlas1` (`pure_dart_blas1.dart`): Pure Dart Level 1 vector-vector routines (`ddot`, `sdot`, `dnrm2`, `snrm2`, `daxpy`, `saxpy`, `dscal`, `sscal`), integrating SIMD acceleration when buffers are aligned and contiguous.
+  - `PureDartBlas2` (`pure_dart_blas2.dart`): Pure Dart Level 2 matrix-vector routines (`dgemv`, `sgemv`, `dsyr2`, `ssyr2`, `dtrmv`, `strmv`).
+  - `PureDartBlas3` (`pure_dart_blas3.dart`): Pure Dart Level 3 matrix-matrix routines (`dsyrk`, `ssyrk`, `dsymm`, `ssymm`, `dtrmm`, `strmm`, and cache-blocked GEMM).
+  - Cache-Blocked GEMM (`pure_dart_gemm.dart`): Cache-tiled matrix multiplication (`cacheBlockedGemmFloat64`, `cacheBlockedGemmFloat32`) with $32 \times 32$ block tiles ($32 \times 32 \times 8\text{ bytes} = 8\text{ KB}$, fitting within L1 data caches) and $4\times$ loop unrolling, supporting all transposition combinations (`cblasNoTrans`, `cblasTrans`) and accumulation scalings ($\alpha$, $\beta$).
+  - `PureDartLapack` (`pure_dart_lapack.dart`): Decomposition and solver algorithms (Cholesky factorization `dpotrf`, LU solver `luSolve`, least-squares `dgels`, and symmetric tridiagonal eigenvalue solver `dsyev`/`ssyev`).
+  - `PureDartVforce` (`pure_dart_vforce.dart`): Elementwise transcendental math (`vsin`, `vcos`, `vexp`, `vlog`, `vsqrt`, `vpow`), vector reductions (`sum`, `mean`, `variance`), and 1D signal processing (`convolve`, `correlate`).
+  - `PureDartFft` (`pure_dart_fft.dart`): Cooley-Tukey decimation-in-time radix-2 1D/2D FFT and inverse transforms (`fft`, `rfft`, `irfft`, `fft2`).
+
+### 5.7 Routine Dispatchers (`lib/src/acceleration/routines/dispatcher.dart`)
+
+- **Reasoning**: Routine definitions across BLAS, LAPACK, FFT, and vForce share identical mode-handling, platform-probing, threshold-gating, and error-raising behavior across `AccelerationMode.accelerated`, `AccelerationMode.auto`, and `AccelerationMode.dart`.
+- **Implementation & Constraints**:
+  - `executeAccelerated<T>`: Unified higher-order dispatcher for value-returning routines. Invokes `accelerate()`, verifies non-null output, and falls back to `fallback()` or raises `AccelerationUnavailableError` / `AccelerationFailedError`.
+  - `executeAcceleratedOperation`: Unified higher-order dispatcher for boolean in-place and solver routines with configurable `failOnError` semantics (e.g. `failOnError: false` for `dpotrf` and `dgesv` where `false` denotes a singular or non-positive-definite matrix rather than hardware execution failure).
+  - Threshold gating: In `AccelerationMode.auto`, kernels with fixed overheads (e.g. GEMM or vForce) inspect input size thresholds ($N \ge 64$) to bypass native FFI call transitions when scalar/cache-blocked execution is faster.
+  - Zero-overhead dispatch: Higher-order functions execute in $< 5\text{ ns}$, completely dominated by inner numeric computations and FFI calls.
 
 ---
 

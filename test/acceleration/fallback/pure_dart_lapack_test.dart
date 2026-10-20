@@ -84,5 +84,18 @@ void main() {
       );
       check(singularOk).isFalse();
     });
+
+    test('pureDartDpotrf Cholesky factorization', () {
+      final a = Float64List.fromList([4.0, 12.0, 12.0, 45.0]);
+      final ok = PureDartLapack.dpotrf(uplo: cblasUpper, n: 2, a: a, lda: 2);
+      check(ok).isTrue();
+      check(a[0]).isCloseTo(2.0, 1e-10);
+      check(a[1]).isCloseTo(6.0, 1e-10);
+      check(a[3]).isCloseTo(3.0, 1e-10);
+
+      final notPosDef = Float64List.fromList([-1.0, 0.0, 0.0, 2.0]);
+      check(PureDartLapack.dpotrf(uplo: cblasUpper, n: 2, a: notPosDef, lda: 2))
+          .isFalse();
+    });
   });
 }

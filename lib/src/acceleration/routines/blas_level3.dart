@@ -1,15 +1,13 @@
 import 'dart:typed_data';
 
-import '../acceleration_error.dart';
-import '../acceleration_manager.dart';
-import '../acceleration_mode.dart';
 import '../blas/cblas.dart';
-import '../fallback/pure_dart_gemm.dart';
+import '../fallback/pure_dart_blas3.dart';
+import 'dispatcher.dart';
 
 /// BLAS Level 3 matrix-matrix routines.
 abstract final class BlasLevel3 {
-  /// Computes matrix multiplication C = alpha * op(A) * op(B) + beta * C for
-  /// Float64List.
+  /// Computes matrix-matrix product `C = alpha * op(A) * op(B) + beta * C` for
+  /// [Float64List].
   static bool dgemm({
     int transA = cblasNoTrans,
     int transB = cblasNoTrans,
@@ -29,78 +27,74 @@ abstract final class BlasLevel3 {
     required int ldc,
     required BlasLibrary blas,
   }) {
-    if (AccelerationManager.mode == AccelerationMode.accelerated) {
-      if (!blas.isAvailable) {
-        throw AccelerationError.unavailable('BLAS');
-      }
-      final success = blas.dgemm(
-        transA: transA,
-        transB: transB,
-        m: m,
-        n: n,
-        k: k,
-        alpha: alpha,
-        a: a,
-        aOffset: aOffset,
-        lda: lda,
-        b: b,
-        bOffset: bOffset,
-        ldb: ldb,
-        beta: beta,
-        c: c,
-        cOffset: cOffset,
-        ldc: ldc,
-      );
-      if (!success) {
-        throw AccelerationError.failed('dgemm');
-      }
-      return true;
-    } else if (AccelerationManager.mode == AccelerationMode.auto &&
-        blas.isAvailable &&
-        (m >= 64 || n >= 64 || k >= 64)) {
-      final success = blas.dgemm(
-        transA: transA,
-        transB: transB,
-        m: m,
-        n: n,
-        k: k,
-        alpha: alpha,
-        a: a,
-        aOffset: aOffset,
-        lda: lda,
-        b: b,
-        bOffset: bOffset,
-        ldb: ldb,
-        beta: beta,
-        c: c,
-        cOffset: cOffset,
-        ldc: ldc,
-      );
-      if (success) return true;
+    if (m < 0 || n < 0 || k < 0 || lda < 1 || ldb < 1 || ldc < 1) return false;
+    if (transA != cblasNoTrans &&
+        transA != cblasTrans &&
+        transA != cblasConjTrans) {
+      return false;
     }
+    if (transB != cblasNoTrans &&
+        transB != cblasTrans &&
+        transB != cblasConjTrans) {
+      return false;
+    }
+    final aRows = transA == cblasNoTrans ? m : k;
+    final aCols = transA == cblasNoTrans ? k : m;
+    final bRows = transB == cblasNoTrans ? k : n;
+    final bCols = transB == cblasNoTrans ? n : k;
+    if (lda < aCols || ldb < bCols || ldc < n) return false;
+    if (m == 0 || n == 0) return true;
+    final aReq = aOffset + (aRows - 1) * lda + aCols;
+    final bReq = bOffset + (bRows - 1) * ldb + bCols;
+    final cReq = cOffset + (m - 1) * ldc + n;
+    if (a.length < aReq || b.length < bReq || c.length < cReq) return false;
 
-    return cacheBlockedGemmFloat64(
-      transA: transA,
-      transB: transB,
-      m: m,
-      n: n,
-      k: k,
-      alpha: alpha,
-      a: a,
-      aOffset: aOffset,
-      lda: lda,
-      b: b,
-      bOffset: bOffset,
-      ldb: ldb,
-      beta: beta,
-      c: c,
-      cOffset: cOffset,
-      ldc: ldc,
+    return executeAcceleratedOperation(
+      feature: 'BLAS',
+      operation: 'dgemm',
+      isAvailable: blas.isAvailable,
+      canAccelerate: m >= 64 || n >= 64 || k >= 64,
+      accelerate: () => blas.dgemm(
+        transA: transA,
+        transB: transB,
+        m: m,
+        n: n,
+        k: k,
+        alpha: alpha,
+        a: a,
+        aOffset: aOffset,
+        lda: lda,
+        b: b,
+        bOffset: bOffset,
+        ldb: ldb,
+        beta: beta,
+        c: c,
+        cOffset: cOffset,
+        ldc: ldc,
+      ),
+      fallback: () => PureDartBlas3.gemmFloat64(
+        transA: transA,
+        transB: transB,
+        m: m,
+        n: n,
+        k: k,
+        alpha: alpha,
+        a: a,
+        aOffset: aOffset,
+        lda: lda,
+        b: b,
+        bOffset: bOffset,
+        ldb: ldb,
+        beta: beta,
+        c: c,
+        cOffset: cOffset,
+        ldc: ldc,
+      ),
     );
   }
 
-  /// Computes matrix multiplication C = alpha * op(A) * op(B) + beta * C for
-  /// Float32List.
+  /// Computes matrix-matrix product `C = alpha * op(A) * op(B) + beta * C` for
+  /// [Float32List].
   static bool sgemm({
     int transA = cblasNoTrans,
     int transB = cblasNoTrans,
@@ -120,78 +114,74 @@ abstract final class BlasLevel3 {
     required int ldc,
     required BlasLibrary blas,
   }) {
-    if (AccelerationManager.mode == AccelerationMode.accelerated) {
-      if (!blas.isAvailable) {
-        throw AccelerationError.unavailable('BLAS');
-      }
-      final success = blas.sgemm(
-        transA: transA,
-        transB: transB,
-        m: m,
-        n: n,
-        k: k,
-        alpha: alpha,
-        a: a,
-        aOffset: aOffset,
-        lda: lda,
-        b: b,
-        bOffset: bOffset,
-        ldb: ldb,
-        beta: beta,
-        c: c,
-        cOffset: cOffset,
-        ldc: ldc,
-      );
-      if (!success) {
-        throw AccelerationError.failed('sgemm');
-      }
-      return true;
-    } else if (AccelerationManager.mode == AccelerationMode.auto &&
-        blas.isAvailable &&
-        (m >= 64 || n >= 64 || k >= 64)) {
-      final success = blas.sgemm(
-        transA: transA,
-        transB: transB,
-        m: m,
-        n: n,
-        k: k,
-        alpha: alpha,
-        a: a,
-        aOffset: aOffset,
-        lda: lda,
-        b: b,
-        bOffset: bOffset,
-        ldb: ldb,
-        beta: beta,
-        c: c,
-        cOffset: cOffset,
-        ldc: ldc,
-      );
-      if (success) return true;
+    if (m < 0 || n < 0 || k < 0 || lda < 1 || ldb < 1 || ldc < 1) return false;
+    if (transA != cblasNoTrans &&
+        transA != cblasTrans &&
+        transA != cblasConjTrans) {
+      return false;
     }
+    if (transB != cblasNoTrans &&
+        transB != cblasTrans &&
+        transB != cblasConjTrans) {
+      return false;
+    }
+    final aRows = transA == cblasNoTrans ? m : k;
+    final aCols = transA == cblasNoTrans ? k : m;
+    final bRows = transB == cblasNoTrans ? k : n;
+    final bCols = transB == cblasNoTrans ? n : k;
+    if (lda < aCols || ldb < bCols || ldc < n) return false;
+    if (m == 0 || n == 0) return true;
+    final aReq = aOffset + (aRows - 1) * lda + aCols;
+    final bReq = bOffset + (bRows - 1) * ldb + bCols;
+    final cReq = cOffset + (m - 1) * ldc + n;
+    if (a.length < aReq || b.length < bReq || c.length < cReq) return false;
 
-    return cacheBlockedGemmFloat32(
-      transA: transA,
-      transB: transB,
-      m: m,
-      n: n,
-      k: k,
-      alpha: alpha,
-      a: a,
-      aOffset: aOffset,
-      lda: lda,
-      b: b,
-      bOffset: bOffset,
-      ldb: ldb,
-      beta: beta,
-      c: c,
-      cOffset: cOffset,
-      ldc: ldc,
+    return executeAcceleratedOperation(
+      feature: 'BLAS',
+      operation: 'sgemm',
+      isAvailable: blas.isAvailable,
+      canAccelerate: m >= 64 || n >= 64 || k >= 64,
+      accelerate: () => blas.sgemm(
+        transA: transA,
+        transB: transB,
+        m: m,
+        n: n,
+        k: k,
+        alpha: alpha,
+        a: a,
+        aOffset: aOffset,
+        lda: lda,
+        b: b,
+        bOffset: bOffset,
+        ldb: ldb,
+        beta: beta,
+        c: c,
+        cOffset: cOffset,
+        ldc: ldc,
+      ),
+      fallback: () => PureDartBlas3.gemmFloat32(
+        transA: transA,
+        transB: transB,
+        m: m,
+        n: n,
+        k: k,
+        alpha: alpha,
+        a: a,
+        aOffset: aOffset,
+        lda: lda,
+        b: b,
+        bOffset: bOffset,
+        ldb: ldb,
+        beta: beta,
+        c: c,
+        cOffset: cOffset,
+        ldc: ldc,
+      ),
     );
   }
 
-  /// Performs symmetric rank-k update C = alpha * A * A^T + beta * C (or A^T *
-  /// A).
+  /// Performs symmetric rank-k update `C = alpha * A * A^T + beta * C` (or `A^T
+  /// * A`) for [Float64List].
   static bool dsyrk({
     int uplo = cblasUpper,
     int trans = cblasNoTrans,
@@ -207,69 +197,57 @@ abstract final class BlasLevel3 {
     required int ldc,
     required BlasLibrary blas,
   }) {
-    if (AccelerationManager.mode == AccelerationMode.accelerated) {
-      if (!blas.isAvailable) {
-        throw AccelerationError.unavailable('BLAS');
-      }
-      final success = blas.dsyrk(
-        uplo: uplo,
-        trans: trans,
-        n: n,
-        k: k,
-        alpha: alpha,
-        a: a,
-        aOffset: aOffset,
-        lda: lda,
-        beta: beta,
-        c: c,
-        cOffset: cOffset,
-        ldc: ldc,
-      );
-      if (!success) {
-        throw AccelerationError.failed('dsyrk');
-      }
-      return true;
-    } else if (AccelerationManager.mode == AccelerationMode.auto &&
-        blas.isAvailable) {
-      final success = blas.dsyrk(
-        uplo: uplo,
-        trans: trans,
-        n: n,
-        k: k,
-        alpha: alpha,
-        a: a,
-        aOffset: aOffset,
-        lda: lda,
-        beta: beta,
-        c: c,
-        cOffset: cOffset,
-        ldc: ldc,
-      );
-      if (success) return true;
+    if (n < 0 || k < 0) return false;
+    if (uplo != cblasUpper && uplo != cblasLower) return false;
+    if (trans != cblasNoTrans &&
+        trans != cblasTrans &&
+        trans != cblasConjTrans) {
+      return false;
     }
+    final aRows = trans == cblasNoTrans ? n : k;
+    final aCols = trans == cblasNoTrans ? k : n;
+    if (lda < aCols || ldc < n) return false;
+    if (n == 0) return true;
+    final aReq = aOffset + (aRows - 1) * lda + aCols;
+    final cReq = cOffset + (n - 1) * ldc + n;
+    if (a.length < aReq || c.length < cReq) return false;
 
-    for (var i = 0; i < n; i++) {
-      for (var j = i; j < n; j++) {
-        var sum = 0.0;
-        if (trans == cblasTrans) {
-          for (var pIdx = 0; pIdx < k; pIdx++) {
-            sum += a[aOffset + pIdx * lda + i] * a[aOffset + pIdx * lda + j];
-          }
-        } else {
-          for (var pIdx = 0; pIdx < k; pIdx++) {
-            sum += a[aOffset + i * lda + pIdx] * a[aOffset + j * lda + pIdx];
-          }
-        }
-        final val =
-            alpha * sum + (beta == 0.0 ? 0.0 : beta * c[cOffset + i * ldc + j]);
-        c[cOffset + i * ldc + j] = val;
-        c[cOffset + j * ldc + i] = val;
-      }
-    }
-    return true;
+    return executeAcceleratedOperation(
+      feature: 'BLAS',
+      operation: 'dsyrk',
+      isAvailable: blas.isAvailable,
+      accelerate: () => blas.dsyrk(
+        uplo: uplo,
+        trans: trans,
+        n: n,
+        k: k,
+        alpha: alpha,
+        a: a,
+        aOffset: aOffset,
+        lda: lda,
+        beta: beta,
+        c: c,
+        cOffset: cOffset,
+        ldc: ldc,
+      ),
+      fallback: () => PureDartBlas3.dsyrk(
+        uplo: uplo,
+        trans: trans,
+        n: n,
+        k: k,
+        alpha: alpha,
+        a: a,
+        aOffset: aOffset,
+        lda: lda,
+        beta: beta,
+        c: c,
+        cOffset: cOffset,
+        ldc: ldc,
+      ),
+    );
   }
 
-  /// Performs symmetric rank-k update for Float32List.
+  /// Performs symmetric rank-k update for [Float32List].
   static bool ssyrk({
     int uplo = cblasUpper,
     int trans = cblasNoTrans,
@@ -285,70 +263,58 @@ abstract final class BlasLevel3 {
     required int ldc,
     required BlasLibrary blas,
   }) {
-    if (AccelerationManager.mode == AccelerationMode.accelerated) {
-      if (!blas.isAvailable) {
-        throw AccelerationError.unavailable('BLAS');
-      }
-      final success = blas.ssyrk(
-        uplo: uplo,
-        trans: trans,
-        n: n,
-        k: k,
-        alpha: alpha,
-        a: a,
-        aOffset: aOffset,
-        lda: lda,
-        beta: beta,
-        c: c,
-        cOffset: cOffset,
-        ldc: ldc,
-      );
-      if (!success) {
-        throw AccelerationError.failed('ssyrk');
-      }
-      return true;
-    } else if (AccelerationManager.mode == AccelerationMode.auto &&
-        blas.isAvailable) {
-      final success = blas.ssyrk(
-        uplo: uplo,
-        trans: trans,
-        n: n,
-        k: k,
-        alpha: alpha,
-        a: a,
-        aOffset: aOffset,
-        lda: lda,
-        beta: beta,
-        c: c,
-        cOffset: cOffset,
-        ldc: ldc,
-      );
-      if (success) return true;
+    if (n < 0 || k < 0) return false;
+    if (uplo != cblasUpper && uplo != cblasLower) return false;
+    if (trans != cblasNoTrans &&
+        trans != cblasTrans &&
+        trans != cblasConjTrans) {
+      return false;
     }
+    final aRows = trans == cblasNoTrans ? n : k;
+    final aCols = trans == cblasNoTrans ? k : n;
+    if (lda < aCols || ldc < n) return false;
+    if (n == 0) return true;
+    final aReq = aOffset + (aRows - 1) * lda + aCols;
+    final cReq = cOffset + (n - 1) * ldc + n;
+    if (a.length < aReq || c.length < cReq) return false;
 
-    for (var i = 0; i < n; i++) {
-      for (var j = i; j < n; j++) {
-        var sum = 0.0;
-        if (trans == cblasTrans) {
-          for (var pIdx = 0; pIdx < k; pIdx++) {
-            sum += a[aOffset + pIdx * lda + i] * a[aOffset + pIdx * lda + j];
-          }
-        } else {
-          for (var pIdx = 0; pIdx < k; pIdx++) {
-            sum += a[aOffset + i * lda + pIdx] * a[aOffset + j * lda + pIdx];
-          }
-        }
-        final val =
-            alpha * sum + (beta == 0.0 ? 0.0 : beta * c[cOffset + i * ldc + j]);
-        c[cOffset + i * ldc + j] = val;
-        c[cOffset + j * ldc + i] = val;
-      }
-    }
-    return true;
+    return executeAcceleratedOperation(
+      feature: 'BLAS',
+      operation: 'ssyrk',
+      isAvailable: blas.isAvailable,
+      accelerate: () => blas.ssyrk(
+        uplo: uplo,
+        trans: trans,
+        n: n,
+        k: k,
+        alpha: alpha,
+        a: a,
+        aOffset: aOffset,
+        lda: lda,
+        beta: beta,
+        c: c,
+        cOffset: cOffset,
+        ldc: ldc,
+      ),
+      fallback: () => PureDartBlas3.ssyrk(
+        uplo: uplo,
+        trans: trans,
+        n: n,
+        k: k,
+        alpha: alpha,
+        a: a,
+        aOffset: aOffset,
+        lda: lda,
+        beta: beta,
+        c: c,
+        cOffset: cOffset,
+        ldc: ldc,
+      ),
+    );
   }
 
-  /// Symmetric matrix-matrix multiplication C = alpha * A * B + beta * C (or B
-  /// * A) for Float64List.
+  /// Symmetric matrix-matrix multiplication `C = alpha * A * B + beta * C` (or
+  /// `B * A`) for [Float64List].
   static bool dsymm({
     int side = cblasLeft,
     int uplo = cblasUpper,
@@ -378,11 +344,11 @@ abstract final class BlasLevel3 {
     final cReq = cOffset + (m - 1) * ldc + n;
     if (a.length < aReq || b.length < bReq || c.length < cReq) return false;
 
-    if (AccelerationManager.mode == AccelerationMode.accelerated) {
-      if (!blas.isAvailable) {
-        throw AccelerationError.unavailable('BLAS');
-      }
-      final success = blas.dsymm(
+    return executeAcceleratedOperation(
+      feature: 'BLAS',
+      operation: 'dsymm',
+      isAvailable: blas.isAvailable,
+      accelerate: () => blas.dsymm(
         side: side,
         uplo: uplo,
         m: m,
@@ -398,14 +364,8 @@ abstract final class BlasLevel3 {
         c: c,
         cOffset: cOffset,
         ldc: ldc,
-      );
-      if (!success) {
-        throw AccelerationError.failed('dsymm');
-      }
-      return true;
-    } else if (AccelerationManager.mode == AccelerationMode.auto &&
-        blas.isAvailable) {
-      final success = blas.dsymm(
+      ),
+      fallback: () => PureDartBlas3.dsymm(
         side: side,
         uplo: uplo,
         m: m,
@@ -421,41 +381,11 @@ abstract final class BlasLevel3 {
         c: c,
         cOffset: cOffset,
         ldc: ldc,
-      );
-      if (success) return true;
-    }
-
-    for (var i = 0; i < m; i++) {
-      for (var j = 0; j < n; j++) {
-        var sum = 0.0;
-        if (side == cblasLeft) {
-          for (var k = 0; k < m; k++) {
-            final aVal = uplo == cblasUpper
-                ? (i <= k ? a[aOffset + i * lda + k] : a[aOffset + k * lda + i])
-                : (i >= k
-                      ? a[aOffset + i * lda + k]
-                      : a[aOffset + k * lda + i]);
-            sum += aVal * b[bOffset + k * ldb + j];
-          }
-        } else {
-          for (var k = 0; k < n; k++) {
-            final aVal = uplo == cblasUpper
-                ? (k <= j ? a[aOffset + k * lda + j] : a[aOffset + j * lda + k])
-                : (k >= j
-                      ? a[aOffset + k * lda + j]
-                      : a[aOffset + j * lda + k]);
-            sum += b[bOffset + i * ldb + k] * aVal;
-          }
-        }
-        final val =
-            alpha * sum + (beta == 0.0 ? 0.0 : beta * c[cOffset + i * ldc + j]);
-        c[cOffset + i * ldc + j] = val;
-      }
-    }
-    return true;
+      ),
+    );
   }
 
-  /// Symmetric matrix-matrix multiplication for Float32List.
+  /// Symmetric matrix-matrix multiplication for [Float32List].
   static bool ssymm({
     int side = cblasLeft,
     int uplo = cblasUpper,
@@ -485,11 +415,11 @@ abstract final class BlasLevel3 {
     final cReq = cOffset + (m - 1) * ldc + n;
     if (a.length < aReq || b.length < bReq || c.length < cReq) return false;
 
-    if (AccelerationManager.mode == AccelerationMode.accelerated) {
-      if (!blas.isAvailable) {
-        throw AccelerationError.unavailable('BLAS');
-      }
-      final success = blas.ssymm(
+    return executeAcceleratedOperation(
+      feature: 'BLAS',
+      operation: 'ssymm',
+      isAvailable: blas.isAvailable,
+      accelerate: () => blas.ssymm(
         side: side,
         uplo: uplo,
         m: m,
@@ -505,14 +435,8 @@ abstract final class BlasLevel3 {
         c: c,
         cOffset: cOffset,
         ldc: ldc,
-      );
-      if (!success) {
-        throw AccelerationError.failed('ssymm');
-      }
-      return true;
-    } else if (AccelerationManager.mode == AccelerationMode.auto &&
-        blas.isAvailable) {
-      final success = blas.ssymm(
+      ),
+      fallback: () => PureDartBlas3.ssymm(
         side: side,
         uplo: uplo,
         m: m,
@@ -528,42 +452,12 @@ abstract final class BlasLevel3 {
         c: c,
         cOffset: cOffset,
         ldc: ldc,
-      );
-      if (success) return true;
-    }
-
-    for (var i = 0; i < m; i++) {
-      for (var j = 0; j < n; j++) {
-        var sum = 0.0;
-        if (side == cblasLeft) {
-          for (var k = 0; k < m; k++) {
-            final aVal = uplo == cblasUpper
-                ? (i <= k ? a[aOffset + i * lda + k] : a[aOffset + k * lda + i])
-                : (i >= k
-                      ? a[aOffset + i * lda + k]
-                      : a[aOffset + k * lda + i]);
-            sum += aVal * b[bOffset + k * ldb + j];
-          }
-        } else {
-          for (var k = 0; k < n; k++) {
-            final aVal = uplo == cblasUpper
-                ? (k <= j ? a[aOffset + k * lda + j] : a[aOffset + j * lda + k])
-                : (k >= j
-                      ? a[aOffset + k * lda + j]
-                      : a[aOffset + j * lda + k]);
-            sum += b[bOffset + i * ldb + k] * aVal;
-          }
-        }
-        final val =
-            alpha * sum + (beta == 0.0 ? 0.0 : beta * c[cOffset + i * ldc + j]);
-        c[cOffset + i * ldc + j] = val;
-      }
-    }
-    return true;
+      ),
+    );
   }
 
-  /// Triangular matrix-matrix multiplication B = alpha * op(A) * B (or B *
-  /// op(A)) for Float64List.
+  /// Triangular matrix-matrix multiplication `B = alpha * op(A) * B` (or `B *
+  /// op(A)`) for [Float64List].
   static bool dtrmm({
     int side = cblasLeft,
     int uplo = cblasUpper,
@@ -596,11 +490,11 @@ abstract final class BlasLevel3 {
     final bReq = bOffset + (m - 1) * ldb + n;
     if (a.length < aReq || b.length < bReq) return false;
 
-    if (AccelerationManager.mode == AccelerationMode.accelerated) {
-      if (!blas.isAvailable) {
-        throw AccelerationError.unavailable('BLAS');
-      }
-      final success = blas.dtrmm(
+    return executeAcceleratedOperation(
+      feature: 'BLAS',
+      operation: 'dtrmm',
+      isAvailable: blas.isAvailable,
+      accelerate: () => blas.dtrmm(
         side: side,
         uplo: uplo,
         transA: transA,
@@ -614,14 +508,8 @@ abstract final class BlasLevel3 {
         b: b,
         bOffset: bOffset,
         ldb: ldb,
-      );
-      if (!success) {
-        throw AccelerationError.failed('dtrmm');
-      }
-      return true;
-    } else if (AccelerationManager.mode == AccelerationMode.auto &&
-        blas.isAvailable) {
-      final success = blas.dtrmm(
+      ),
+      fallback: () => PureDartBlas3.dtrmm(
         side: side,
         uplo: uplo,
         transA: transA,
@@ -635,68 +523,11 @@ abstract final class BlasLevel3 {
         b: b,
         bOffset: bOffset,
         ldb: ldb,
-      );
-      if (success) return true;
-    }
-
-    final bCopy = Float64List(m * n);
-    for (var i = 0; i < m; i++) {
-      for (var j = 0; j < n; j++) {
-        bCopy[i * n + j] = b[bOffset + i * ldb + j];
-      }
-    }
-
-    for (var i = 0; i < m; i++) {
-      for (var j = 0; j < n; j++) {
-        var sum = 0.0;
-        if (side == cblasLeft) {
-          if (transA == cblasNoTrans) {
-            final startK = uplo == cblasUpper ? i : 0;
-            final endK = uplo == cblasUpper ? m : i + 1;
-            for (var k = startK; k < endK; k++) {
-              final aVal = (i == k && diag == cblasUnit)
-                  ? 1.0
-                  : a[aOffset + i * lda + k];
-              sum += aVal * bCopy[k * n + j];
-            }
-          } else {
-            final startK = uplo == cblasUpper ? 0 : i;
-            final endK = uplo == cblasUpper ? i + 1 : m;
-            for (var k = startK; k < endK; k++) {
-              final aVal = (i == k && diag == cblasUnit)
-                  ? 1.0
-                  : a[aOffset + k * lda + i];
-              sum += aVal * bCopy[k * n + j];
-            }
-          }
-        } else {
-          if (transA == cblasNoTrans) {
-            final startK = uplo == cblasUpper ? 0 : j;
-            final endK = uplo == cblasUpper ? j + 1 : n;
-            for (var k = startK; k < endK; k++) {
-              final aVal = (k == j && diag == cblasUnit)
-                  ? 1.0
-                  : a[aOffset + k * lda + j];
-              sum += bCopy[i * n + k] * aVal;
-            }
-          } else {
-            final startK = uplo == cblasUpper ? j : 0;
-            final endK = uplo == cblasUpper ? n : j + 1;
-            for (var k = startK; k < endK; k++) {
-              final aVal = (k == j && diag == cblasUnit)
-                  ? 1.0
-                  : a[aOffset + j * lda + k];
-              sum += bCopy[i * n + k] * aVal;
-            }
-          }
-        }
-        b[bOffset + i * ldb + j] = alpha * sum;
-      }
-    }
-    return true;
+      ),
+    );
   }
 
-  /// Triangular matrix-matrix multiplication for Float32List.
+  /// Triangular matrix-matrix multiplication for [Float32List].
   static bool strmm({
     int side = cblasLeft,
     int uplo = cblasUpper,
@@ -729,11 +560,11 @@ abstract final class BlasLevel3 {
     final bReq = bOffset + (m - 1) * ldb + n;
     if (a.length < aReq || b.length < bReq) return false;
 
-    if (AccelerationManager.mode == AccelerationMode.accelerated) {
-      if (!blas.isAvailable) {
-        throw AccelerationError.unavailable('BLAS');
-      }
-      final success = blas.strmm(
+    return executeAcceleratedOperation(
+      feature: 'BLAS',
+      operation: 'strmm',
+      isAvailable: blas.isAvailable,
+      accelerate: () => blas.strmm(
         side: side,
         uplo: uplo,
         transA: transA,
@@ -747,14 +578,8 @@ abstract final class BlasLevel3 {
         b: b,
         bOffset: bOffset,
         ldb: ldb,
-      );
-      if (!success) {
-        throw AccelerationError.failed('strmm');
-      }
-      return true;
-    } else if (AccelerationManager.mode == AccelerationMode.auto &&
-        blas.isAvailable) {
-      final success = blas.strmm(
+      ),
+      fallback: () => PureDartBlas3.strmm(
         side: side,
         uplo: uplo,
         transA: transA,
@@ -768,64 +593,7 @@ abstract final class BlasLevel3 {
         b: b,
         bOffset: bOffset,
         ldb: ldb,
-      );
-      if (success) return true;
-    }
-
-    final bCopy = Float32List(m * n);
-    for (var i = 0; i < m; i++) {
-      for (var j = 0; j < n; j++) {
-        bCopy[i * n + j] = b[bOffset + i * ldb + j];
-      }
-    }
-
-    for (var i = 0; i < m; i++) {
-      for (var j = 0; j < n; j++) {
-        var sum = 0.0;
-        if (side == cblasLeft) {
-          if (transA == cblasNoTrans) {
-            final startK = uplo == cblasUpper ? i : 0;
-            final endK = uplo == cblasUpper ? m : i + 1;
-            for (var k = startK; k < endK; k++) {
-              final aVal = (i == k && diag == cblasUnit)
-                  ? 1.0
-                  : a[aOffset + i * lda + k];
-              sum += aVal * bCopy[k * n + j];
-            }
-          } else {
-            final startK = uplo == cblasUpper ? 0 : i;
-            final endK = uplo == cblasUpper ? i + 1 : m;
-            for (var k = startK; k < endK; k++) {
-              final aVal = (i == k && diag == cblasUnit)
-                  ? 1.0
-                  : a[aOffset + k * lda + i];
-              sum += aVal * bCopy[k * n + j];
-            }
-          }
-        } else {
-          if (transA == cblasNoTrans) {
-            final startK = uplo == cblasUpper ? 0 : j;
-            final endK = uplo == cblasUpper ? j + 1 : n;
-            for (var k = startK; k < endK; k++) {
-              final aVal = (k == j && diag == cblasUnit)
-                  ? 1.0
-                  : a[aOffset + k * lda + j];
-              sum += bCopy[i * n + k] * aVal;
-            }
-          } else {
-            final startK = uplo == cblasUpper ? j : 0;
-            final endK = uplo == cblasUpper ? n : j + 1;
-            for (var k = startK; k < endK; k++) {
-              final aVal = (k == j && diag == cblasUnit)
-                  ? 1.0
-                  : a[aOffset + j * lda + k];
-              sum += bCopy[i * n + k] * aVal;
-            }
-          }
-        }
-        b[bOffset + i * ldb + j] = alpha * sum;
-      }
-    }
-    return true;
+      ),
+    );
   }
 }

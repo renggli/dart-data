@@ -1,11 +1,8 @@
-import 'dart:math' as math;
 import 'dart:typed_data';
 
-import '../acceleration_error.dart';
-import '../acceleration_manager.dart';
-import '../acceleration_mode.dart';
 import '../blas/cblas.dart';
 import '../fallback/pure_dart_lapack.dart';
+import 'dispatcher.dart';
 
 /// LAPACK decomposition and solver routines.
 abstract final class LapackRoutines {
@@ -19,61 +16,23 @@ abstract final class LapackRoutines {
     int aOffset = 0,
     required int lda,
     required BlasLibrary blas,
-  }) {
-    if (AccelerationManager.mode == AccelerationMode.accelerated) {
-      if (!blas.isAvailable) {
-        throw AccelerationError.unavailable('LAPACK');
-      }
-      return blas.dpotrf(uplo: uplo, n: n, a: a, aOffset: aOffset, lda: lda);
-    } else if (AccelerationManager.mode == AccelerationMode.auto &&
-        blas.isAvailable) {
-      final success = blas.dpotrf(
-        uplo: uplo,
-        n: n,
-        a: a,
-        aOffset: aOffset,
-        lda: lda,
-      );
-      if (success) return true;
-    }
+  }) => executeAcceleratedOperation(
+    feature: 'LAPACK',
+    operation: 'dpotrf',
+    isAvailable: blas.isAvailable,
+    failOnError: false,
+    accelerate: () =>
+        blas.dpotrf(uplo: uplo, n: n, a: a, aOffset: aOffset, lda: lda),
+    fallback: () => PureDartLapack.dpotrf(
+      uplo: uplo,
+      n: n,
+      a: a,
+      aOffset: aOffset,
+      lda: lda,
+    ),
+  );
 
-    // Pure Dart fallback Cholesky factorization
-    final lower = Float64List(n * n);
-    for (var i = 0; i < n; i++) {
-      for (var j = 0; j <= i; j++) {
-        var sum = 0.0;
-        for (var k = 0; k < j; k++) {
-          sum += lower[i * n + k] * lower[j * n + k];
-        }
-        if (i == j) {
-          final val = a[aOffset + i * lda + i] - sum;
-          if (val <= 0.0) return false;
-          lower[i * n + j] = math.sqrt(val);
-        } else {
-          final denom = lower[j * n + j];
-          if (denom == 0.0) return false;
-          lower[i * n + j] = (a[aOffset + i * lda + j] - sum) / denom;
-        }
-      }
-    }
-
-    if (uplo == cblasUpper) {
-      for (var i = 0; i < n; i++) {
-        for (var j = i; j < n; j++) {
-          a[aOffset + i * lda + j] = lower[j * n + i];
-        }
-      }
-    } else {
-      for (var i = 0; i < n; i++) {
-        for (var j = 0; j <= i; j++) {
-          a[aOffset + i * lda + j] = lower[i * n + j];
-        }
-      }
-    }
-    return true;
-  }
-
-  /// Solves A * X = B for general square matrix A using LU decomposition.
+  /// Solves `A * X = B` for general square matrix A using LU decomposition.
   static bool dgesv({
     required int n,
     required int nrhs,
@@ -91,11 +50,12 @@ abstract final class LapackRoutines {
     final bRequired = bOffset + (n - 1) * ldb + nrhs;
     if (a.length < aRequired || b.length < bRequired) return false;
 
-    if (AccelerationManager.mode == AccelerationMode.accelerated) {
-      if (!blas.isAvailable) {
-        throw AccelerationError.unavailable('LAPACK');
-      }
-      return blas.dgesv(
+    return executeAcceleratedOperation(
+      feature: 'LAPACK',
+      operation: 'dgesv',
+      isAvailable: blas.isAvailable,
+      failOnError: false,
+      accelerate: () => blas.dgesv(
         n: n,
         nrhs: nrhs,
         a: a,
@@ -104,25 +64,13 @@ abstract final class LapackRoutines {
         b: b,
         bOffset: bOffset,
         ldb: ldb,
-      );
-    } else if (AccelerationManager.mode == AccelerationMode.auto &&
-        blas.isAvailable) {
-      final success = blas.dgesv(
-        n: n,
-        nrhs: nrhs,
-        a: a,
-        aOffset: aOffset,
-        lda: lda,
-        b: b,
-        bOffset: bOffset,
-        ldb: ldb,
-      );
-      if (success) return true;
-    }
-    return PureDartLapack.luSolve(n, nrhs, a, aOffset, lda, b, bOffset, ldb);
+      ),
+      fallback: () =>
+          PureDartLapack.luSolve(n, nrhs, a, aOffset, lda, b, bOffset, ldb),
+    );
   }
 
-  /// Solves overdetermined linear least squares min ||A * X - B||_2 using
+  /// Solves overdetermined linear least squares `min ||A * X - B||_2` using
   /// LAPACK dgels.
   static bool dgels({
     required int m,
@@ -135,42 +83,11 @@ abstract final class LapackRoutines {
     int bOffset = 0,
     required int ldb,
     required BlasLibrary blas,
-  }) {
-    if (AccelerationManager.mode == AccelerationMode.accelerated) {
-      if (!blas.isAvailable) {
-        throw AccelerationError.unavailable('LAPACK');
-      }
-      final success = blas.dgels(
-        m: m,
-        n: n,
-        nrhs: nrhs,
-        a: a,
-        aOffset: aOffset,
-        lda: lda,
-        b: b,
-        bOffset: bOffset,
-        ldb: ldb,
-      );
-      if (!success) {
-        throw AccelerationError.failed('dgels');
-      }
-      return true;
-    } else if (AccelerationManager.mode == AccelerationMode.auto &&
-        blas.isAvailable) {
-      final success = blas.dgels(
-        m: m,
-        n: n,
-        nrhs: nrhs,
-        a: a,
-        aOffset: aOffset,
-        lda: lda,
-        b: b,
-        bOffset: bOffset,
-        ldb: ldb,
-      );
-      if (success) return true;
-    }
-    return PureDartLapack.dgels(
+  }) => executeAcceleratedOperation(
+    feature: 'LAPACK',
+    operation: 'dgels',
+    isAvailable: blas.isAvailable,
+    accelerate: () => blas.dgels(
       m: m,
       n: n,
       nrhs: nrhs,
@@ -180,8 +97,19 @@ abstract final class LapackRoutines {
       b: b,
       bOffset: bOffset,
       ldb: ldb,
-    );
-  }
+    ),
+    fallback: () => PureDartLapack.dgels(
+      m: m,
+      n: n,
+      nrhs: nrhs,
+      a: a,
+      aOffset: aOffset,
+      lda: lda,
+      b: b,
+      bOffset: bOffset,
+      ldb: ldb,
+    ),
+  );
 
   /// Computes all eigenvalues and, optionally, eigenvectors of a real symmetric
   /// matrix A.
@@ -205,11 +133,11 @@ abstract final class LapackRoutines {
     final wReq = wOffset + n;
     if (a.length < aReq || w.length < wReq) return false;
 
-    if (AccelerationManager.mode == AccelerationMode.accelerated) {
-      if (!blas.isAvailable) {
-        throw AccelerationError.unavailable('LAPACK');
-      }
-      final success = blas.dsyev(
+    return executeAcceleratedOperation(
+      feature: 'LAPACK',
+      operation: 'dsyev',
+      isAvailable: blas.isAvailable,
+      accelerate: () => blas.dsyev(
         jobz: normJobz,
         uplo: uplo,
         n: n,
@@ -218,14 +146,8 @@ abstract final class LapackRoutines {
         lda: lda,
         w: w,
         wOffset: wOffset,
-      );
-      if (!success) {
-        throw AccelerationError.failed('dsyev');
-      }
-      return true;
-    } else if (AccelerationManager.mode == AccelerationMode.auto &&
-        blas.isAvailable) {
-      final success = blas.dsyev(
+      ),
+      fallback: () => PureDartLapack.dsyev(
         jobz: normJobz,
         uplo: uplo,
         n: n,
@@ -234,24 +156,12 @@ abstract final class LapackRoutines {
         lda: lda,
         w: w,
         wOffset: wOffset,
-      );
-      if (success) return true;
-    }
-
-    return PureDartLapack.dsyev(
-      jobz: normJobz,
-      uplo: uplo,
-      n: n,
-      a: a,
-      aOffset: aOffset,
-      lda: lda,
-      w: w,
-      wOffset: wOffset,
+      ),
     );
   }
 
-  /// Computes all eigenvalues and eigenvectors of a single-precision symmetric
-  /// matrix.
+  /// Computes all eigenvalues and, optionally, eigenvectors of a real symmetric
+  /// matrix A for [Float32List].
   static bool ssyev({
     String jobz = 'V',
     int uplo = cblasUpper,
@@ -272,11 +182,11 @@ abstract final class LapackRoutines {
     final wReq = wOffset + n;
     if (a.length < aReq || w.length < wReq) return false;
 
-    if (AccelerationManager.mode == AccelerationMode.accelerated) {
-      if (!blas.isAvailable) {
-        throw AccelerationError.unavailable('LAPACK');
-      }
-      final success = blas.ssyev(
+    return executeAcceleratedOperation(
+      feature: 'LAPACK',
+      operation: 'ssyev',
+      isAvailable: blas.isAvailable,
+      accelerate: () => blas.ssyev(
         jobz: normJobz,
         uplo: uplo,
         n: n,
@@ -285,14 +195,8 @@ abstract final class LapackRoutines {
         lda: lda,
         w: w,
         wOffset: wOffset,
-      );
-      if (!success) {
-        throw AccelerationError.failed('ssyev');
-      }
-      return true;
-    } else if (AccelerationManager.mode == AccelerationMode.auto &&
-        blas.isAvailable) {
-      final success = blas.ssyev(
+      ),
+      fallback: () => PureDartLapack.ssyev(
         jobz: normJobz,
         uplo: uplo,
         n: n,
@@ -301,19 +205,7 @@ abstract final class LapackRoutines {
         lda: lda,
         w: w,
         wOffset: wOffset,
-      );
-      if (success) return true;
-    }
-
-    return PureDartLapack.ssyev(
-      jobz: normJobz,
-      uplo: uplo,
-      n: n,
-      a: a,
-      aOffset: aOffset,
-      lda: lda,
-      w: w,
-      wOffset: wOffset,
+      ),
     );
   }
 }

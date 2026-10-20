@@ -6,6 +6,51 @@ import '../blas/cblas.dart';
 /// Pure Dart LAPACK fallback algorithms (eigenvalue solvers and linear system
 /// solvers).
 abstract final class PureDartLapack {
+  /// Computes the Cholesky factorization of a symmetric positive-definite
+  /// matrix A. Overwrites the upper or lower triangle of A with the factor U or
+  /// L.
+  static bool dpotrf({
+    int uplo = cblasUpper,
+    required int n,
+    required Float64List a,
+    int aOffset = 0,
+    required int lda,
+  }) {
+    final lower = Float64List(n * n);
+    for (var i = 0; i < n; i++) {
+      for (var j = 0; j <= i; j++) {
+        var sum = 0.0;
+        for (var k = 0; k < j; k++) {
+          sum += lower[i * n + k] * lower[j * n + k];
+        }
+        if (i == j) {
+          final val = a[aOffset + i * lda + i] - sum;
+          if (val <= 0.0) return false;
+          lower[i * n + j] = math.sqrt(val);
+        } else {
+          final denom = lower[j * n + j];
+          if (denom == 0.0) return false;
+          lower[i * n + j] = (a[aOffset + i * lda + j] - sum) / denom;
+        }
+      }
+    }
+
+    if (uplo == cblasUpper) {
+      for (var i = 0; i < n; i++) {
+        for (var j = i; j < n; j++) {
+          a[aOffset + i * lda + j] = lower[j * n + i];
+        }
+      }
+    } else {
+      for (var i = 0; i < n; i++) {
+        for (var j = 0; j <= i; j++) {
+          a[aOffset + i * lda + j] = lower[i * n + j];
+        }
+      }
+    }
+    return true;
+  }
+
   /// Computes eigenvalues and optionally eigenvectors of a symmetric matrix in
   /// pure Dart.
   static bool dsyev({
