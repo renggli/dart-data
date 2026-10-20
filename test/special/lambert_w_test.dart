@@ -24,5 +24,16 @@ void main() {
       final wVal = lambertW1(-0.1);
       check(wVal * math.exp(wVal)).isCloseTo(-0.1, 1e-7);
     });
+
+    test('Lambert W branch near branch point (-1/e < z < -0.3)', () {
+      const zNear = -0.35;
+      final w0 = lambertW0(zNear);
+      check(w0).isGreaterThan(-1.0);
+      check(w0 * math.exp(w0)).isCloseTo(zNear, 1e-9);
+
+      final w1 = lambertW1(zNear);
+      check(w1).isLessThan(-1.0);
+      check(w1 * math.exp(w1)).isCloseTo(zNear, 1e-9);
+    });
   });
 }

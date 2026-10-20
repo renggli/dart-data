@@ -28,6 +28,17 @@ void main() {
       check(nullable.isNullable).isTrue();
     });
 
+    test('name, nullable, equality, and hashCode', () {
+      final custom = DataType.createObject<String>('hello');
+      check(custom.name).equals('object<String>');
+      check(custom.nullable.isNullable).isTrue();
+      check(custom.nullable.defaultValue).isNull();
+      check(custom == DataType.createObject<String>('hello')).isTrue();
+      check(custom == DataType.createObject<String>('other')).isFalse();
+      check(custom.hashCode)
+          .equals(DataType.createObject<String>('hello').hashCode);
+    });
+
     test('cast', () {
       check(type.cast('hello')).equals('hello');
       check(type.cast(123)).equals(123);

@@ -38,5 +38,65 @@ void main() {
       check(() => solveSystem(eq, Vector.fromList([0.0, 0.0])))
           .throws<ArgumentError>();
     });
+
+    test('supports explicit analytical Jacobian', () {
+      final eq = <double Function(Vector<double>)>[
+        (v) => 2.0 * v[0] + v[1] - 4.0,
+        (v) => v[0] - v[1] - 2.0,
+      ];
+      Matrix<double> analyticalJac(Vector<double> v) => Matrix<double>.generate(
+        2,
+        2,
+        (r, c) => switch ((r, c)) {
+          (0, 0) => 2.0,
+          (0, 1) => 1.0,
+          (1, 0) => 1.0,
+          (1, 1) => -1.0,
+          _ => 0.0,
+        },
+      );
+
+      final res = solveSystem(
+        eq,
+        Vector.fromList([0.0, 0.0]),
+        jacobian: analyticalJac,
+      );
+      check(res[0]).isCloseTo(2.0, 1e-9);
+      check(res[1]).isCloseTo(0.0, 1e-9);
+    });
+
+    test('throws StateError when Jacobian is singular', () {
+      final eq = <double Function(Vector<double>)>[
+        (v) => v[0] + v[1] - 1.0,
+        (v) => v[0] + v[1] - 2.0,
+      ];
+      check(() => solveSystem(eq, Vector.fromList([0.0, 0.0])))
+          .throws<StateError>();
+    });
+
+    test('converges on final iteration check', () {
+      final eq = <double Function(Vector<double>)>[
+        (v) => 2.0 * v[0] - 4.0,
+        (v) => 3.0 * v[1] - 9.0,
+      ];
+      final res = solveSystem(
+        eq,
+        Vector.fromList([0.0, 0.0]),
+        maxIterations: 1,
+        tolerance: 1e-6,
+      );
+      check(res[0]).isCloseTo(2.0, 1e-9);
+      check(res[1]).isCloseTo(3.0, 1e-9);
+    });
+
+    test('throws StateError when maxIterations exceeded', () {
+      final eq = <double Function(Vector<double>)>[
+        (v) => v[0] + 0.1 * math.sin(v[1]) - 100.0,
+        (v) => 0.1 * math.sin(v[0]) + v[1] - 100.0,
+      ];
+      check(
+        () => solveSystem(eq, Vector.fromList([0.0, 0.0]), maxIterations: 1),
+      ).throws<StateError>();
+    });
   });
 }

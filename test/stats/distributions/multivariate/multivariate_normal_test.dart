@@ -70,6 +70,26 @@ void main() {
       }, type: DataType.float64);
       check(() => MultivariateNormalDistribution(mean, asym))
           .throws<ArgumentError>();
+
+      check(() => MultivariateNormalDistribution.standard(0))
+          .throws<ArgumentError>();
+
+      final dist = MultivariateNormalDistribution.standard(2);
+      check(() => dist.logProbability(Vector.fromList([1.0])))
+          .throws<ArgumentError>();
+    });
+
+    test('equality, hashCode, and toString', () {
+      final mean = Vector<double>.fromList([0.0, 0.0]);
+      final cov = Matrix<double>.identity(2, type: DataType.float64);
+      final dist1 = MultivariateNormalDistribution(mean, cov);
+      final dist2 = MultivariateNormalDistribution(mean, cov);
+      final dist3 = MultivariateNormalDistribution.standard(3);
+
+      check(dist1 == dist2).isTrue();
+      check(dist1 == dist3).isFalse();
+      check(dist1.hashCode).equals(dist2.hashCode);
+      check(dist1.toString()).contains('MultivariateNormalDistribution');
     });
 
     test('sampling empirical moments', () {

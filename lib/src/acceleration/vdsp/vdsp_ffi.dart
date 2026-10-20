@@ -1,3 +1,5 @@
+// coverage:ignore-file
+
 import 'dart:ffi' as ffi;
 import 'dart:io' show Platform;
 import 'dart:typed_data';

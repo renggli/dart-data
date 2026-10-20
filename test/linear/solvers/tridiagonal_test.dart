@@ -1,5 +1,6 @@
 import 'package:checks/checks.dart';
 import 'package:data/linear.dart';
+import 'package:data/tensor.dart';
 import 'package:data/type.dart';
 import 'package:test/test.dart';
 
@@ -124,6 +125,28 @@ void main() {
       check(x[1]).isCloseTo(32.0 / 17.0, 1e-12);
       check(x[2]).isCloseTo(41.0 / 17.0, 1e-12);
     });
+
+    test('solves correctly with non-contiguous vectors', () {
+      final sub = Vector<double>(
+        Tensor<double>.fromIterable([2.0, 1.0]).flip(),
+      );
+      final diag = Vector<double>(
+        Tensor<double>.fromIterable([3.0, 4.0, 2.0]).flip(),
+      );
+      final sup = Vector<double>(
+        Tensor<double>.fromIterable([1.0, 1.0]).flip(),
+      );
+      final rhs = Vector<double>(
+        Tensor<double>.fromIterable([11.0, 11.0, 4.0]).flip(),
+      );
+
+      check(diag.tensor.isContiguous).isFalse();
+
+      final x = solveTridiagonal(sub, diag, sup, rhs);
+      check(x[0]).isCloseTo(18.0 / 17.0, 1e-12);
+      check(x[1]).isCloseTo(32.0 / 17.0, 1e-12);
+      check(x[2]).isCloseTo(41.0 / 17.0, 1e-12);
+    });
   });
 
   group('solveTridiagonal large system scalability', () {
@@ -205,6 +228,35 @@ void main() {
       final sup = Vector<double>.fromList([2.0, 1.0]);
       final rhs = Vector<double>.fromList([1.0, 2.0, 3.0]);
 
+      check(() => solveTridiagonal(sub, diag, sup, rhs))
+          .throws<ArgumentError>();
+    });
+
+    test('throws ArgumentError when final pivot becomes 0', () {
+      final sub = Vector<double>.fromList([1.0, 1.0]);
+      final diag = Vector<double>.fromList([2.0, 3.0, 1.0]);
+      final sup = Vector<double>.fromList([2.0, 2.0]);
+      final rhs = Vector<double>.fromList([1.0, 2.0, 3.0]);
+
+      check(() => solveTridiagonal(sub, diag, sup, rhs))
+          .throws<ArgumentError>();
+    });
+
+    test('throws ArgumentError with non-contiguous zero pivot', () {
+      final sub = Vector<double>(
+        Tensor<double>.fromIterable([2.0, 1.0]).flip(),
+      );
+      final diag = Vector<double>(
+        Tensor<double>.fromIterable([3.0, 1.0, 2.0]).flip(),
+      );
+      final sup = Vector<double>(
+        Tensor<double>.fromIterable([1.0, 2.0]).flip(),
+      );
+      final rhs = Vector<double>(
+        Tensor<double>.fromIterable([3.0, 2.0, 1.0]).flip(),
+      );
+
+      check(diag.tensor.isContiguous).isFalse();
       check(() => solveTridiagonal(sub, diag, sup, rhs))
           .throws<ArgumentError>();
     });

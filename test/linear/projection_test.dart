@@ -1,5 +1,6 @@
 import 'package:checks/checks.dart';
 import 'package:data/linear.dart';
+import 'package:data/tensor.dart';
 import 'package:data/type.dart';
 import 'package:test/test.dart';
 
@@ -96,6 +97,21 @@ void main() {
 
       check(rej[0]).isCloseTo(2.0, 1e-10);
       check(rej[1]).isCloseTo(0.0, 1e-10);
+    });
+
+    test('projection and rejection with non-contiguous vectors', () {
+      final u = Vector<double>(Tensor<double>.fromIterable([4.0, 3.0]).flip());
+      final v = Vector<double>(Tensor<double>.fromIterable([0.0, 1.0]).flip());
+      check(u.tensor.isContiguous).isFalse();
+      check(v.tensor.isContiguous).isFalse();
+
+      final proj = u.project(v);
+      final rej = u.reject(v);
+
+      check(proj[0]).isCloseTo(3.0, 1e-10);
+      check(proj[1]).isCloseTo(0.0, 1e-10);
+      check(rej[0]).isCloseTo(0.0, 1e-10);
+      check(rej[1]).isCloseTo(4.0, 1e-10);
     });
 
     test('parallel vectors have full projection and zero rejection', () {

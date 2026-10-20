@@ -50,5 +50,45 @@ void main() {
       check((sumX1 / sampleCount).toDouble()).isCloseTo(12.0, 0.2);
       check((sumX2 / sampleCount).toDouble()).isCloseTo(6.0, 0.2);
     });
+
+    test('argument validation', () {
+      final p = Vector<double>.fromList([0.5, 0.5]);
+      check(() => MultinomialDistribution(-1, p)).throws<ArgumentError>();
+      check(() => MultinomialDistribution(5, Vector<double>.fromList([1.0])))
+          .throws<ArgumentError>();
+      check(
+        () => MultinomialDistribution(5, Vector<double>.fromList([-0.2, 1.2])),
+      ).throws<ArgumentError>();
+      check(
+        () => MultinomialDistribution(5, Vector<double>.fromList([0.3, 0.3])),
+      ).throws<ArgumentError>();
+
+      final dist = MultinomialDistribution(5, p);
+      check(() => dist.logProbability(Vector<int>.fromList([5])))
+          .throws<ArgumentError>();
+    });
+
+    test('sample with default random', () {
+      final dist = MultinomialDistribution(
+        10,
+        Vector<double>.fromList([0.5, 0.5]),
+      );
+      final s = dist.sample();
+      check(s.getUnchecked(0) + s.getUnchecked(1)).equals(10);
+    });
+
+    test('equality, hashCode, and toString', () {
+      final p1 = Vector<double>.fromList([0.4, 0.6]);
+      final p3 = Vector<double>.fromList([0.5, 0.5]);
+
+      final dist1 = MultinomialDistribution(5, p1);
+      final dist2 = MultinomialDistribution(5, p1);
+      final dist3 = MultinomialDistribution(5, p3);
+
+      check(dist1 == dist2).isTrue();
+      check(dist1 == dist3).isFalse();
+      check(dist1.hashCode).equals(dist2.hashCode);
+      check(dist1.toString()).contains('MultinomialDistribution');
+    });
   });
 }

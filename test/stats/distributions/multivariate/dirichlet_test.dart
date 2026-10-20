@@ -57,5 +57,46 @@ void main() {
       check(sumX1 / sampleCount).isCloseTo(0.3, 0.02);
       check(sumX2 / sampleCount).isCloseTo(0.5, 0.02);
     });
+
+    test('argument validation', () {
+      check(() => DirichletDistribution(Vector<double>.fromList([1.0])))
+          .throws<ArgumentError>();
+      check(() => DirichletDistribution(Vector<double>.fromList([1.0, -0.5])))
+          .throws<ArgumentError>();
+      check(() => DirichletDistribution.symmetric(1, 1.0))
+          .throws<ArgumentError>();
+      check(() => DirichletDistribution.symmetric(2, -1.0))
+          .throws<ArgumentError>();
+
+      final dist = DirichletDistribution.symmetric(2, 1.0);
+      check(() => dist.logProbability(Vector<double>.fromList([1.0])))
+          .throws<ArgumentError>();
+    });
+
+    test('boundary evaluations where xi == 0', () {
+      final distSmall = DirichletDistribution(
+        Vector<double>.fromList([0.5, 1.5]),
+      );
+      check(distSmall.logProbability(Vector<double>.fromList([0.0, 1.0])))
+          .equals(double.infinity);
+
+      final distLarge = DirichletDistribution(
+        Vector<double>.fromList([1.5, 0.5]),
+      );
+      check(distLarge.logProbability(Vector<double>.fromList([0.0, 1.0])))
+          .equals(double.negativeInfinity);
+    });
+
+    test('equality, hashCode, and toString', () {
+      final alpha = Vector<double>.fromList([2.0, 3.0]);
+      final dist1 = DirichletDistribution(alpha);
+      final dist2 = DirichletDistribution(alpha);
+      final dist3 = DirichletDistribution.symmetric(3, 3.0);
+
+      check(dist1 == dist2).isTrue();
+      check(dist1 == dist3).isFalse();
+      check(dist1.hashCode).equals(dist2.hashCode);
+      check(dist1.toString()).contains('DirichletDistribution');
+    });
   });
 }
