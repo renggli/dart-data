@@ -1,5 +1,3 @@
-import 'dart:typed_data';
-
 import 'package:checks/checks.dart';
 import 'package:data/type.dart';
 import 'package:test/test.dart';
@@ -261,85 +259,6 @@ void main() {
       );
       check(qList[0]).equals(const Quaternion(1, 2, 3, 4));
     });
-
-    test('NativeBuffer allocation and operations', () {
-      if (!NativeBuffer.isSupported) {
-        check(NativeBuffer.isActive).isFalse();
-        final buf = NativeBuffer<double>(5, type: DataType.float64);
-        check(buf.length).equals(5);
-        check(buf.isDisposed).isFalse();
-        check(buf.asDoublePointer).isNull();
-        check(NativeBuffer.find(buf)).isNull();
-        buf.dispose();
-        check(buf.isDisposed).isTrue();
-        return;
-      }
-      final prev = NativeBuffer.isEnabled;
-      try {
-        NativeBuffer.isEnabled = true;
-        check(NativeBuffer.isActive).isTrue();
-
-        final buf = NativeBuffer<double>(5, type: DataType.float64);
-        check(buf.length).equals(5);
-        check(buf.isDisposed).isFalse();
-        check(buf.asDoublePointer).isNotNull();
-        check(buf.asFloatPointer).isNotNull();
-        check(buf.asInt32Pointer).isNotNull();
-        check(buf.asInt64Pointer).isNotNull();
-        check(buf.asUint8Pointer).isNotNull();
-
-        check(NativeBuffer.find(buf.data)).equals(buf);
-        check(NativeBuffer.find(buf)).equals(buf);
-
-        buf.dispose();
-        check(buf.isDisposed).isTrue();
-        check(buf.asDoublePointer).isNull();
-
-        // All types
-        final types = <DataType<dynamic>>[
-          DataType.float32,
-          DataType.int8,
-          DataType.uint8,
-          DataType.int16,
-          DataType.uint16,
-          DataType.int32,
-          DataType.uint32,
-          DataType.int64,
-          DataType.uint64,
-        ];
-        for (final type in types) {
-          final buffer = NativeBuffer(2, type: type);
-          check(buffer.length).equals(2);
-          buffer.dispose();
-        }
-
-        // Negative length throws
-        check(() => NativeBuffer(-1, type: DataType.float64))
-            .throws<RangeError>();
-
-        // Zero length
-        final zeroBuf = NativeBuffer(0, type: DataType.float64);
-        check(zeroBuf.length).equals(0);
-        zeroBuf.dispose();
-
-        // Unsupported type throws
-        check(() => NativeBuffer(5, type: DataType.string))
-            .throws<ArgumentError>();
-
-        // Fallback when disabled
-        NativeBuffer.isEnabled = false;
-        check(NativeBuffer.isActive).isFalse();
-        final fallbackList = DataType.float64.newList(
-          4,
-          fillValue: 1.5,
-          readonly: true,
-        );
-        check(fallbackList.length).equals(4);
-        check(fallbackList[0]).equals(1.5);
-      } finally {
-        NativeBuffer.isEnabled = prev;
-      }
-    });
   });
 
   group('Field operations', () {
@@ -494,26 +413,6 @@ void main() {
       check(eq.isClose(1.0, 1.05, 0.1)).isTrue();
       check(eq.isClose(1.0, 1.2, 0.1)).isFalse();
       check(eq.hash(1.0)).equals((1.0).hashCode);
-    });
-  });
-
-  group('Memory', () {
-    test('identity and overlap', () {
-      final list1 = Float64List(10);
-      final list2 = Float64List(10);
-      final subList1 = Float64List.sublistView(list1, 0, 5);
-      final subList2 = Float64List.sublistView(list1, 3, 8);
-
-      check(sharesMemory(list1, list2)).isFalse();
-      check(sharesMemory(list1, subList1)).isTrue();
-      check(sharesMemory(subList1, subList2)).isTrue();
-
-      check(hasOverlap(subList1, 0, subList2, 0, 5)).isTrue();
-
-      // Overlaps with identical generic List
-      final objList = <int>[1, 2, 3, 4, 5];
-      check(hasOverlap(objList, 0, objList, 2, 3)).isTrue();
-      check(hasOverlap(objList, 0, objList, 3, 2)).isFalse();
     });
   });
 

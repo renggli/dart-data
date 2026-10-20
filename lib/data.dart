@@ -40,8 +40,7 @@
 ///   ([tTestOneSample], [tTestTwoSample], [oneWayAnova], [chiSquaredTest]), and
 ///   bootstrap resampling ([bootstrap]).
 /// - **Type System** (`type.dart`): Algebraic fields ([Field]), data type
-///   descriptors ([DataType]), equality models ([Equality]), and native memory
-///   buffers ([NativeBuffer]).
+///   descriptors ([DataType]), and equality models ([Equality]).
 ///
 /// ## Quick Start
 ///

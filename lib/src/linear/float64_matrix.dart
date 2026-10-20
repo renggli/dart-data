@@ -26,74 +26,51 @@ import 'vector.dart';
 /// ```
 extension type Float64Matrix(Matrix<double> _matrix) implements Matrix<double> {
   /// Constructs a [rowCount] by [colCount] [Float64Matrix] filled with [value].
-  factory filled(int rowCount, int colCount, double value, {bool? native}) =>
-      Float64Matrix(
-        Matrix<double>.filled(
-          rowCount,
-          colCount,
-          value,
-          type: DataType.float64,
-          native: native,
-        ),
-      );
+  factory filled(int rowCount, int colCount, double value) => Float64Matrix(
+    Matrix<double>.filled(rowCount, colCount, value, type: DataType.float64),
+  );
 
   /// Constructs a [rowCount] by [colCount] [Float64Matrix] using [generator].
   factory generate(
     int rowCount,
     int colCount,
-    double Function(int row, int col) generator, {
-    bool? native,
-  }) => Float64Matrix(
+    double Function(int row, int col) generator,
+  ) => Float64Matrix(
     Matrix<double>.generate(
       rowCount,
       colCount,
       generator,
       type: DataType.float64,
-      native: native,
     ),
   );
 
   /// Constructs a [Float64Matrix] from row vectors or row iterables.
-  factory fromRows(Iterable<Iterable<double>> rows, {bool? native}) =>
-      Float64Matrix(
-        Matrix<double>.fromRows(rows, type: DataType.float64, native: native),
-      );
+  factory fromRows(Iterable<Iterable<double>> rows) =>
+      Float64Matrix(Matrix<double>.fromRows(rows, type: DataType.float64));
 
   /// Constructs a [Float64Matrix] from column vectors or column iterables.
-  factory fromColumns(Iterable<Iterable<double>> cols, {bool? native}) =>
+  factory fromColumns(Iterable<Iterable<double>> cols) =>
+      Float64Matrix(Matrix<double>.fromColumns(cols, type: DataType.float64));
+
+  /// Constructs a matrix from a flat list in row-major order.
+  factory fromList(int rowCount, int colCount, List<double> values) =>
       Float64Matrix(
-        Matrix<double>.fromColumns(
-          cols,
-          type: DataType.float64,
-          native: native,
+        Matrix<double>(
+          Tensor<double>.fromIterable(
+            values,
+            shape: [rowCount, colCount],
+            type: DataType.float64,
+          ),
         ),
       );
 
-  /// Constructs a matrix from a flat list in row-major order.
-  factory fromList(
-    int rowCount,
-    int colCount,
-    List<double> values, {
-    bool? native,
-  }) => Float64Matrix(
-    Matrix<double>(
-      Tensor<double>.fromIterable(
-        values,
-        shape: [rowCount, colCount],
-        type: DataType.float64,
-        native: native,
-      ),
-    ),
-  );
-
   /// Constructs an identity matrix of dimension [size] by [size].
-  factory identity(int size, {bool? native}) => Float64Matrix(
-    Matrix<double>.identity(size, type: DataType.float64, native: native),
-  );
+  factory identity(int size) =>
+      Float64Matrix(Matrix<double>.identity(size, type: DataType.float64));
 
   /// Constructs a diagonal matrix from [diagonal] vector.
-  factory diagonal(Vector<double> diagonal, {bool? native}) =>
-      Float64Matrix(Matrix<double>.diagonal(diagonal, native: native));
+  factory diagonal(Vector<double> diagonal) =>
+      Float64Matrix(Matrix<double>.diagonal(diagonal));
 
   /// Direct zero-copy access to the underlying [Float64List] buffer.
   Float64List get asTypedList => _matrix.tensor.data is Float64List

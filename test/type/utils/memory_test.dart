@@ -1,7 +1,7 @@
 import 'dart:typed_data';
 
 import 'package:checks/checks.dart';
-import 'package:data/type.dart';
+import 'package:data/src/type/utils/memory.dart';
 import 'package:test/test.dart';
 
 void main() {
@@ -14,8 +14,6 @@ void main() {
 
       check(sharesMemory(view1, view2)).isTrue();
       check(sharesMemory(view1, list2)).isFalse();
-      check(view1.sharesMemoryWith(view2)).isTrue();
-      check(view1.sharesMemoryWith(list2)).isFalse();
     });
 
     test('sharesMemory on non-typed lists', () {
@@ -24,8 +22,6 @@ void main() {
 
       check(sharesMemory(list1, list1)).isTrue();
       check(sharesMemory(list1, list2)).isFalse();
-      check(list1.sharesMemoryWith(list1)).isTrue();
-      check(list1.sharesMemoryWith(list2)).isFalse();
     });
 
     test('typed buffer range overlap detection', () {
@@ -38,11 +34,7 @@ void main() {
       check(hasOverlap(v1, 0, v3, 0, 5)).isFalse();
       check(hasOverlap(v2, 0, v3, 0, 5)).isFalse();
       check(hasOverlap(v2, 7, v3, 0, 3)).isTrue();
-
-      check(v1.overlaps(v2, 0, 0, 10)).isTrue();
-      check(v1.overlaps(v3, 0, 0, 5)).isFalse();
-      check(v2.overlaps(v3, 0, 0, 5)).isFalse();
-      check(v2.overlaps(v3, 7, 0, 3)).isTrue();
+      check(hasOverlap(v1, 0, v2, 0, 0)).isFalse();
     });
 
     test('non-typed list overlap detection', () {
@@ -52,10 +44,7 @@ void main() {
       check(hasOverlap(list1, 0, list1, 2, 3)).isTrue();
       check(hasOverlap(list1, 0, list1, 3, 2)).isFalse();
       check(hasOverlap(list1, 0, list2, 0, 5)).isFalse();
-
-      check(list1.overlaps(list1, 0, 2, 3)).isTrue();
-      check(list1.overlaps(list1, 0, 3, 2)).isFalse();
-      check(list1.overlaps(list2, 0, 0, 5)).isFalse();
+      check(hasOverlap(list1, 0, list1, 0, 0)).isFalse();
     });
   });
 }

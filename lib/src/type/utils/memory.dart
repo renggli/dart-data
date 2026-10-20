@@ -3,9 +3,7 @@ import 'dart:typed_data';
 /// Returns `true` if [a] and [b] share the same underlying memory buffer.
 bool sharesMemory(List<dynamic> a, List<dynamic> b) {
   if (identical(a, b)) return true;
-  if (a is TypedData && b is TypedData) {
-    final aTyped = a as TypedData;
-    final bTyped = b as TypedData;
+  if ((a, b) case (final TypedData aTyped, final TypedData bTyped)) {
     return aTyped.buffer == bTyped.buffer;
   }
   return false;
@@ -25,9 +23,7 @@ bool hasOverlap(
     final bEnd = bOffset + count;
     return aOffset < bEnd && bOffset < aEnd;
   }
-  if (a is TypedData && b is TypedData) {
-    final aTyped = a as TypedData;
-    final bTyped = b as TypedData;
+  if ((a, b) case (final TypedData aTyped, final TypedData bTyped)) {
     if (aTyped.buffer == bTyped.buffer) {
       final aStartByte =
           aTyped.offsetInBytes + aOffset * aTyped.elementSizeInBytes;
@@ -39,14 +35,4 @@ bool hasOverlap(
     }
   }
   return false;
-}
-
-/// Memory extensions on [List].
-extension MemoryListExtension on List<dynamic> {
-  /// Returns `true` if this list shares underlying memory with [other].
-  bool sharesMemoryWith(List<dynamic> other) => sharesMemory(this, other);
-
-  /// Returns `true` if this list range overlaps with [other].
-  bool overlaps(List<dynamic> other, int offset, int otherOffset, int count) =>
-      hasOverlap(this, offset, other, otherOffset, count);
 }

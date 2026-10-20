@@ -35,19 +35,12 @@ class Matrix<T> implements LinearOperator<T> {
     : assert(tensor.rank == 2, 'Tensor must have rank 2, got ${tensor.rank}');
 
   /// Constructs a [rowCount] by [colCount] [Matrix] filled with [value].
-  factory filled(
-    int rowCount,
-    int colCount,
-    T value, {
-    DataType<T>? type,
-    bool? native,
-  }) {
+  factory filled(int rowCount, int colCount, T value, {DataType<T>? type}) {
     final effectiveType = type ?? DataType.fromInstance(value);
     final tensor = Tensor<T>.filled(
       value,
       shape: [rowCount, colCount],
       type: effectiveType,
-      native: native,
     );
     return Matrix(tensor);
   }
@@ -58,10 +51,9 @@ class Matrix<T> implements LinearOperator<T> {
     int colCount,
     T Function(int row, int col) generator, {
     DataType<T>? type,
-    bool? native,
   }) {
     final effectiveType = type ?? DataType.fromType<T>();
-    final data = effectiveType.newList(rowCount * colCount, native: native);
+    final data = effectiveType.newList(rowCount * colCount);
     var index = 0;
     for (var r = 0; r < rowCount; r++) {
       for (var c = 0; c < colCount; c++) {
@@ -78,7 +70,7 @@ class Matrix<T> implements LinearOperator<T> {
   }
 
   /// Constructs an identity [Matrix] of dimension [size] by [size].
-  factory identity(int size, {DataType<T>? type, bool? native}) {
+  factory identity(int size, {DataType<T>? type}) {
     final effectiveType = type ?? DataType.fromType<T>();
     final field = effectiveType.field;
     final one = field.multiplicativeIdentity;
@@ -88,28 +80,18 @@ class Matrix<T> implements LinearOperator<T> {
       size,
       (row, col) => row == col ? one : zero,
       type: effectiveType,
-      native: native,
     );
   }
 
   /// Constructs a [Matrix] from row vectors or row iterables.
-  factory fromRows(
-    Iterable<Iterable<T>> rows, {
-    DataType<T>? type,
-    bool? native,
-  }) {
+  factory fromRows(Iterable<Iterable<T>> rows, {DataType<T>? type}) {
     final rowList = rows
         .map((row) => row.toList(growable: false))
         .toList(growable: false);
     if (rowList.isEmpty) {
       final dataType = type ?? DataType.fromType<T>();
       return Matrix(
-        Tensor.filled(
-          dataType.defaultValue,
-          shape: [0, 0],
-          type: dataType,
-          native: native,
-        ),
+        Tensor.filled(dataType.defaultValue, shape: [0, 0], type: dataType),
       );
     }
     final rCount = rowList.length;
@@ -119,7 +101,7 @@ class Matrix<T> implements LinearOperator<T> {
         (rowList.first.isEmpty
             ? DataType.fromType<T>()
             : DataType.fromIterable(rowList.first));
-    final data = dataType.newList(rCount * cCount, native: native);
+    final data = dataType.newList(rCount * cCount);
     var index = 0;
     for (final row in rowList) {
       if (row.length != cCount) {
@@ -141,23 +123,14 @@ class Matrix<T> implements LinearOperator<T> {
   }
 
   /// Constructs a [Matrix] from column vectors or column iterables.
-  factory fromColumns(
-    Iterable<Iterable<T>> cols, {
-    DataType<T>? type,
-    bool? native,
-  }) {
+  factory fromColumns(Iterable<Iterable<T>> cols, {DataType<T>? type}) {
     final colList = cols
         .map((col) => col.toList(growable: false))
         .toList(growable: false);
     if (colList.isEmpty) {
       final dataType = type ?? DataType.fromType<T>();
       return Matrix(
-        Tensor.filled(
-          dataType.defaultValue,
-          shape: [0, 0],
-          type: dataType,
-          native: native,
-        ),
+        Tensor.filled(dataType.defaultValue, shape: [0, 0], type: dataType),
       );
     }
     final cCount = colList.length;
@@ -172,7 +145,7 @@ class Matrix<T> implements LinearOperator<T> {
         (colList.first.isEmpty
             ? DataType.fromType<T>()
             : DataType.fromIterable(colList.first));
-    final data = dataType.newList(rCount * cCount, native: native);
+    final data = dataType.newList(rCount * cCount);
     var index = 0;
     for (var row = 0; row < rCount; row++) {
       for (var col = 0; col < cCount; col++) {
@@ -189,7 +162,7 @@ class Matrix<T> implements LinearOperator<T> {
   }
 
   /// Constructs a diagonal [Matrix] from [diagonal] vector.
-  factory diagonal(Vector<T> diagonal, {bool? native}) {
+  factory diagonal(Vector<T> diagonal) {
     final dim = diagonal.length;
     final dataType = diagonal.type;
     final zero = dataType.field.additiveIdentity;
@@ -198,7 +171,6 @@ class Matrix<T> implements LinearOperator<T> {
       dim,
       (row, col) => row == col ? diagonal[row] : zero,
       type: dataType,
-      native: native,
     );
   }
 

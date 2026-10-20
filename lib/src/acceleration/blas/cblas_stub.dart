@@ -249,7 +249,7 @@ class BlasLibrary {
   /// strided right-hand side matrices are transposed/gathered to column-major
   /// layout prior to solving and the solution is scattered back to row-major
   /// layout. Contiguous single-RHS vectors ([nrhs] = 1 and [ldb] = 1) use an
-  /// in-place zero-copy fast path when backed by native buffers.
+  /// in-place zero-copy fast path directly on typed lists.
   bool dgesv({
     required int n,
     required int nrhs,

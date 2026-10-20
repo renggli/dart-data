@@ -3,9 +3,7 @@ import 'dart:math' as math;
 import 'package:meta/meta.dart';
 import 'package:more/functional.dart';
 
-import '../buffers/native_buffer.dart';
 import '../data_type.dart';
-import '../default_data_type.dart';
 
 abstract base class TypedDataType<T, L extends List<T>> extends DataType<T> {
   const new();
@@ -26,12 +24,8 @@ abstract base class TypedDataType<T, L extends List<T>> extends DataType<T> {
     Map1<int, T>? generate,
     T? fillValue,
     bool readonly = false,
-    bool? native,
   }) {
-    final useNative = (native ?? DefaultDataType.isNative) && isNative;
-    final result = useNative
-        ? (NativeBuffer<T>(length, type: this).data as L)
-        : emptyList(length);
+    final result = emptyList(length);
     if (generate != null) {
       for (var i = 0; i < length; i++) {
         result[i] = generate(i);
@@ -39,7 +33,7 @@ abstract base class TypedDataType<T, L extends List<T>> extends DataType<T> {
     } else if (fillValue != null && fillValue != defaultValue) {
       result.fillRange(0, length, fillValue);
     }
-    return readonly ? _asReadonly(result) : result;
+    return readonly ? readonlyList(result) : result;
   }
 
   @override
@@ -48,23 +42,14 @@ abstract base class TypedDataType<T, L extends List<T>> extends DataType<T> {
     int? length,
     T? fillValue,
     bool readonly = false,
-    bool? native,
   }) {
     final listLength = iterable.length;
     final result = newList(
       length ?? listLength,
       fillValue: fillValue ?? defaultValue,
-      native: native,
     );
     result.setRange(0, math.min(result.length, listLength), iterable);
-    return readonly ? _asReadonly(result) : result;
-  }
-
-  L _asReadonly(L list) {
-    final unmod = readonlyList(list);
-    final nb = NativeBuffer.find(list);
-    if (nb != null) NativeBuffer.register(unmod, nb);
-    return unmod;
+    return readonly ? readonlyList(result) : result;
   }
 
   /// Internal method to create an empty typed-list of the requested [length].

@@ -23,34 +23,27 @@ import 'tensor.dart';
 /// ```
 extension type Float64Tensor(Tensor<double> _tensor) implements Tensor<double> {
   /// Constructs a [Float64Tensor] filled with [value].
-  factory filled(
-    double value, {
-    List<int>? shape,
-    List<int>? strides,
-    bool? native,
-  }) => Float64Tensor(
-    Tensor<double>.filled(
-      value,
-      shape: shape,
-      strides: strides,
-      type: DataType.float64,
-      native: native,
-    ),
-  );
+  factory filled(double value, {List<int>? shape, List<int>? strides}) =>
+      Float64Tensor(
+        Tensor<double>.filled(
+          value,
+          shape: shape,
+          strides: strides,
+          type: DataType.float64,
+        ),
+      );
 
   /// Constructs a [Float64Tensor] using [generator] for each coordinate key.
   factory generate(
     double Function(List<int> key) generator, {
     required List<int> shape,
     List<int>? strides,
-    bool? native,
   }) => Float64Tensor(
     Tensor<double>.generate(
       generator,
       shape: shape,
       strides: strides,
       type: DataType.float64,
-      native: native,
     ),
   );
 
@@ -59,14 +52,12 @@ extension type Float64Tensor(Tensor<double> _tensor) implements Tensor<double> {
     Iterable<double> iterable, {
     List<int>? shape,
     List<int>? strides,
-    bool? native,
   }) => Float64Tensor(
     Tensor<double>.fromIterable(
       iterable,
       shape: shape,
       strides: strides,
       type: DataType.float64,
-      native: native,
     ),
   );
 

@@ -6,8 +6,6 @@ import 'package:more/functional.dart';
 import 'package:more/number.dart';
 import 'package:more/printer.dart' show Printer, StandardPrinter;
 
-import 'buffers/native_buffer.dart';
-import 'default_data_type.dart';
 import 'models/equality.dart';
 import 'models/field.dart';
 import 'types/bigint.dart';
@@ -22,7 +20,7 @@ import 'types/numeric.dart';
 import 'types/object.dart';
 import 'types/quaternion.dart';
 import 'types/string.dart';
-import 'utils.dart' as utils;
+import 'utils/derive.dart' as utils;
 
 /// Descriptor of a data type [T], how it is efficiently represented and stored
 /// in memory, and strategy of how common operations work.
@@ -168,27 +166,10 @@ abstract base class DataType<T> {
     Map1<int, T>? generate,
     T? fillValue,
     bool readonly = false,
-    bool? native,
   }) {
-    final useNative = (native ?? DefaultDataType.isNative) && isNative;
-    final result = useNative
-        ? (NativeBuffer<T>(length, type: this).data)
-        : (generate != null
-              ? List<T>.generate(length, generate, growable: false)
-              : List<T>.filled(
-                  length,
-                  fillValue ?? defaultValue,
-                  growable: false,
-                ));
-    if (useNative) {
-      if (generate != null) {
-        for (var i = 0; i < length; i++) {
-          result[i] = generate(i);
-        }
-      } else if (fillValue != null && fillValue != defaultValue) {
-        result.fillRange(0, length, fillValue);
-      }
-    }
+    final result = generate != null
+        ? List<T>.generate(length, generate, growable: false)
+        : List<T>.filled(length, fillValue ?? defaultValue, growable: false);
     return readonly ? UnmodifiableListView(result) : result;
   }
 
@@ -199,13 +180,11 @@ abstract base class DataType<T> {
     int? length,
     T? fillValue,
     bool readonly = false,
-    bool? native,
   }) {
     final listLength = iterable.length;
     final result = newList(
       length ?? listLength,
       fillValue: fillValue ?? defaultValue,
-      native: native,
     );
     result.setRange(0, math.min(result.length, listLength), iterable);
     return readonly ? UnmodifiableListView<T>(result) : result;

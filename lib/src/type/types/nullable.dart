@@ -41,14 +41,9 @@ final class NullableDataType<T> extends DataType<T?> {
     Map1<int, T?>? generate,
     T? fillValue,
     bool readonly = false,
-    bool? native,
   }) {
     final result = NullableList<T>(
-      delegate.newList(
-        length,
-        fillValue: fillValue ?? delegate.defaultValue,
-        native: native,
-      ),
+      delegate.newList(length, fillValue: fillValue ?? delegate.defaultValue),
       delegate.defaultValue,
       fillValue != null,
     );

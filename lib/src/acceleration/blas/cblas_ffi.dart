@@ -6,8 +6,6 @@ import 'dart:typed_data';
 
 import 'package:ffi/ffi.dart';
 
-import '../../type/buffers/native_buffer_ffi.dart';
-
 /// CBLAS Matrix Layout Order.
 const int cblasRowMajor = 101;
 const int cblasColMajor = 102;
@@ -32,212 +30,112 @@ const int cblasRight = 142;
 /// Loads the platform BLAS library.
 BlasLibrary loadBlas() => BlasLibrary._(_loadPlatformLibraries());
 
-/// Native BLAS/LAPACK bindings via dart:ffi.
+/// Native BLAS/LAPACK bindings via dart:ffi using leaf native calls and
+/// typed data direct addresses.
 class BlasLibrary {
-  new _(this._libraries) {
-    _dgemm = _lookup(
-      (lib) =>
-          lib.lookupFunction<_CblasDgemmNative, _CblasDgemm>('cblas_dgemm'),
-    );
-    _sgemm = _lookup(
-      (lib) =>
-          lib.lookupFunction<_CblasSgemmNative, _CblasSgemm>('cblas_sgemm'),
-    );
-    _dgemv = _lookup(
-      (lib) =>
-          lib.lookupFunction<_CblasDgemvNative, _CblasDgemv>('cblas_dgemv'),
-    );
-    _sgemv = _lookup(
-      (lib) =>
-          lib.lookupFunction<_CblasSgemvNative, _CblasSgemv>('cblas_sgemv'),
-    );
-    _dtrmv = _lookup(
-      (lib) =>
-          lib.lookupFunction<_CblasDtrmvNative, _CblasDtrmv>('cblas_dtrmv'),
-    );
-    _strmv = _lookup(
-      (lib) =>
-          lib.lookupFunction<_CblasStrmvNative, _CblasStrmv>('cblas_strmv'),
-    );
-    _ddot = _lookup(
-      (lib) => lib.lookupFunction<_CblasDdotNative, _CblasDdot>('cblas_ddot'),
-    );
-    _sdot = _lookup(
-      (lib) => lib.lookupFunction<_CblasSdotNative, _CblasSdot>('cblas_sdot'),
-    );
-    _dnrm2 = _lookup(
-      (lib) =>
-          lib.lookupFunction<_CblasDnrm2Native, _CblasDnrm2>('cblas_dnrm2'),
-    );
-    _snrm2 = _lookup(
-      (lib) =>
-          lib.lookupFunction<_CblasSnrm2Native, _CblasSnrm2>('cblas_snrm2'),
-    );
-    _daxpy = _lookup(
-      (lib) =>
-          lib.lookupFunction<_CblasDaxpyNative, _CblasDaxpy>('cblas_daxpy'),
-    );
-    _saxpy = _lookup(
-      (lib) =>
-          lib.lookupFunction<_CblasSaxpyNative, _CblasSaxpy>('cblas_saxpy'),
-    );
-    _dscal = _lookup(
-      (lib) =>
-          lib.lookupFunction<_CblasDscalNative, _CblasDscal>('cblas_dscal'),
-    );
-    _sscal = _lookup(
-      (lib) =>
-          lib.lookupFunction<_CblasSscalNative, _CblasSscal>('cblas_sscal'),
-    );
-    _dsyrk = _lookup(
-      (lib) =>
-          lib.lookupFunction<_CblasDsyrkNative, _CblasDsyrk>('cblas_dsyrk'),
-    );
-    _ssyrk = _lookup(
-      (lib) =>
-          lib.lookupFunction<_CblasSsyrkNative, _CblasSsyrk>('cblas_ssyrk'),
-    );
-    _dsyr2 = _lookup(
-      (lib) =>
-          lib.lookupFunction<_CblasDsyr2Native, _CblasDsyr2>('cblas_dsyr2'),
-    );
-    _ssyr2 = _lookup(
-      (lib) =>
-          lib.lookupFunction<_CblasSsyr2Native, _CblasSsyr2>('cblas_ssyr2'),
-    );
-    _dsymm = _lookup(
-      (lib) =>
-          lib.lookupFunction<_CblasDsymmNative, _CblasDsymm>('cblas_dsymm'),
-    );
-    _ssymm = _lookup(
-      (lib) =>
-          lib.lookupFunction<_CblasSsymmNative, _CblasSsymm>('cblas_ssymm'),
-    );
-    _dtrmm = _lookup(
-      (lib) =>
-          lib.lookupFunction<_CblasDtrmmNative, _CblasDtrmm>('cblas_dtrmm'),
-    );
-    _strmm = _lookup(
-      (lib) =>
-          lib.lookupFunction<_CblasStrmmNative, _CblasStrmm>('cblas_strmm'),
-    );
+  new _(this.libraries)
+    : _hasDgemm = _hasSymbolIn('cblas_dgemm', libraries),
+      _hasSgemm = _hasSymbolIn('cblas_sgemm', libraries),
+      _hasDgemv = _hasSymbolIn('cblas_dgemv', libraries),
+      _hasSgemv = _hasSymbolIn('cblas_sgemv', libraries),
+      _hasDtrmv = _hasSymbolIn('cblas_dtrmv', libraries),
+      _hasStrmv = _hasSymbolIn('cblas_strmv', libraries),
+      _hasDdot = _hasSymbolIn('cblas_ddot', libraries),
+      _hasSdot = _hasSymbolIn('cblas_sdot', libraries),
+      _hasDnrm2 = _hasSymbolIn('cblas_dnrm2', libraries),
+      _hasSnrm2 = _hasSymbolIn('cblas_snrm2', libraries),
+      _hasDaxpy = _hasSymbolIn('cblas_daxpy', libraries),
+      _hasSaxpy = _hasSymbolIn('cblas_saxpy', libraries),
+      _hasDscal = _hasSymbolIn('cblas_dscal', libraries),
+      _hasSscal = _hasSymbolIn('cblas_sscal', libraries),
+      _hasDsyrk = _hasSymbolIn('cblas_dsyrk', libraries),
+      _hasSsyrk = _hasSymbolIn('cblas_ssyrk', libraries),
+      _hasDsyr2 = _hasSymbolIn('cblas_dsyr2', libraries),
+      _hasSsyr2 = _hasSymbolIn('cblas_ssyr2', libraries),
+      _hasDsymm = _hasSymbolIn('cblas_dsymm', libraries),
+      _hasSsymm = _hasSymbolIn('cblas_ssymm', libraries),
+      _hasDtrmm = _hasSymbolIn('cblas_dtrmm', libraries),
+      _hasStrmm = _hasSymbolIn('cblas_strmm', libraries),
+      _hasLapackeDgesv = _hasSymbolIn('LAPACKE_dgesv', libraries),
+      _hasClapackDgesv = _hasSymbolIn('clapack_dgesv', libraries),
+      _hasDgetrf = _hasSymbolIn('dgetrf_', libraries),
+      _hasDgetrs = _hasSymbolIn('dgetrs_', libraries),
+      _hasDgesv = _hasSymbolIn('dgesv_', libraries),
+      _hasLapackeDgels = _hasSymbolIn('LAPACKE_dgels', libraries),
+      _hasDgels = _hasSymbolIn('dgels_', libraries),
+      _hasDpotrf = _hasSymbolIn('dpotrf_', libraries),
+      _hasDgeqrf = _hasSymbolIn('dgeqrf_', libraries),
+      _hasDgesvd =
+          _hasSymbolIn('dgesvd_', libraries) ||
+          _hasSymbolIn('dgesdd_', libraries),
+      _hasLapackeDsyev = _hasSymbolIn('LAPACKE_dsyev', libraries),
+      _hasLapackeSsyev = _hasSymbolIn('LAPACKE_ssyev', libraries),
+      _hasDsyev = _hasSymbolIn('dsyev_', libraries),
+      _hasSsyev = _hasSymbolIn('ssyev_', libraries);
 
-    _lapackeDgesv =
-        _lookup(
-          (lib) => lib.lookupFunction<_LapackeDgesvNative, _LapackeDgesv>(
-            'LAPACKE_dgesv',
-          ),
-        ) ??
-        _lookup(
-          (lib) => lib.lookupFunction<_LapackeDgesvNative, _LapackeDgesv>(
-            'clapack_dgesv',
-          ),
-        );
-    _dgetrf = _lookup(
-      (lib) =>
-          lib.lookupFunction<_FortranDgetrfNative, _FortranDgetrf>('dgetrf_'),
-    );
-    _dgetrs = _lookup(
-      (lib) =>
-          lib.lookupFunction<_FortranDgetrsNative, _FortranDgetrs>('dgetrs_'),
-    );
-    _dgesv = _lookup(
-      (lib) => lib.lookupFunction<_FortranDgesvNative, _FortranDgesv>('dgesv_'),
-    );
+  /// The underlying platform dynamic libraries.
+  final List<ffi.DynamicLibrary> libraries;
 
-    _lapackeDgels = _lookup(
-      (lib) => lib.lookupFunction<_LapackeDgelsNative, _LapackeDgels>(
-        'LAPACKE_dgels',
-      ),
-    );
-    _dgels = _lookup(
-      (lib) => lib.lookupFunction<_FortranDgelsNative, _FortranDgels>('dgels_'),
-    );
+  final bool _hasDgemm;
+  final bool _hasSgemm;
+  final bool _hasDgemv;
+  final bool _hasSgemv;
+  final bool _hasDtrmv;
+  final bool _hasStrmv;
+  final bool _hasDdot;
+  final bool _hasSdot;
+  final bool _hasDnrm2;
+  final bool _hasSnrm2;
+  final bool _hasDaxpy;
+  final bool _hasSaxpy;
+  final bool _hasDscal;
+  final bool _hasSscal;
+  final bool _hasDsyrk;
+  final bool _hasSsyrk;
+  final bool _hasDsyr2;
+  final bool _hasSsyr2;
+  final bool _hasDsymm;
+  final bool _hasSsymm;
+  final bool _hasDtrmm;
+  final bool _hasStrmm;
+  final bool _hasLapackeDgesv;
+  final bool _hasClapackDgesv;
+  final bool _hasDgetrf;
+  final bool _hasDgetrs;
+  final bool _hasDgesv;
+  final bool _hasLapackeDgels;
+  final bool _hasDgels;
+  final bool _hasDpotrf;
+  final bool _hasDgeqrf;
+  final bool _hasDgesvd;
+  final bool _hasLapackeDsyev;
+  final bool _hasLapackeSsyev;
+  final bool _hasDsyev;
+  final bool _hasSsyev;
 
-    _dpotrf = _lookup(
-      (lib) =>
-          lib.lookupFunction<_FortranDpotrfNative, _FortranDpotrf>('dpotrf_'),
-    );
-    _dgeqrf = _lookup(
-      (lib) =>
-          lib.lookupFunction<_FortranDgeqrfNative, _FortranDgeqrf>('dgeqrf_'),
-    );
-    _dgesvd = _lookup(
-      (lib) =>
-          lib.lookupFunction<_FortranDgesvdNative, _FortranDgesvd>('dgesvd_'),
-    );
-    _dgesdd = _lookup(
-      (lib) =>
-          lib.lookupFunction<_FortranDgesddNative, _FortranDgesdd>('dgesdd_'),
-    );
-    _lapackeDsyev = _lookup(
-      (lib) => lib.lookupFunction<_LapackeDsyevNative, _LapackeDsyev>(
-        'LAPACKE_dsyev',
-      ),
-    );
-    _lapackeSsyev = _lookup(
-      (lib) => lib.lookupFunction<_LapackeSsyevNative, _LapackeSsyev>(
-        'LAPACKE_ssyev',
-      ),
-    );
-    _dsyev = _lookup(
-      (lib) => lib.lookupFunction<_FortranDsyevNative, _FortranDsyev>('dsyev_'),
-    );
-    _ssyev = _lookup(
-      (lib) => lib.lookupFunction<_FortranSsyevNative, _FortranSsyev>('ssyev_'),
-    );
+  static bool _hasSymbolIn(String name, List<ffi.DynamicLibrary> libraries) {
+    try {
+      if (ffi.DynamicLibrary.process().providesSymbol(name)) return true;
+    } catch (_) {}
+    for (final lib in libraries) {
+      try {
+        if (lib.providesSymbol(name)) return true;
+      } catch (_) {}
+    }
+    return false;
   }
 
-  final List<ffi.DynamicLibrary> _libraries;
-
-  _CblasDgemm? _dgemm;
-  _CblasSgemm? _sgemm;
-  _CblasDgemv? _dgemv;
-  _CblasSgemv? _sgemv;
-  _CblasDdot? _ddot;
-  _CblasSdot? _sdot;
-  _CblasDnrm2? _dnrm2;
-  _CblasSnrm2? _snrm2;
-  _CblasDaxpy? _daxpy;
-  _CblasSaxpy? _saxpy;
-  _CblasDscal? _dscal;
-  _CblasSscal? _sscal;
-  _CblasDsyrk? _dsyrk;
-  _CblasSsyrk? _ssyrk;
-  _CblasDsyr2? _dsyr2;
-  _CblasSsyr2? _ssyr2;
-  _LapackeDgesv? _lapackeDgesv;
-  _FortranDgetrf? _dgetrf;
-  _FortranDgetrs? _dgetrs;
-  _FortranDgesv? _dgesv;
-  _LapackeDgels? _lapackeDgels;
-  _FortranDgels? _dgels;
-  _FortranDpotrf? _dpotrf;
-  _FortranDgeqrf? _dgeqrf;
-  _FortranDgesvd? _dgesvd;
-  _FortranDgesdd? _dgesdd;
-  _CblasDtrmv? _dtrmv;
-  _CblasStrmv? _strmv;
-  _CblasDsymm? _dsymm;
-  _CblasSsymm? _ssymm;
-  _CblasDtrmm? _dtrmm;
-  _CblasStrmm? _strmm;
-  _LapackeDsyev? _lapackeDsyev;
-  _LapackeSsyev? _lapackeSsyev;
-  _FortranDsyev? _dsyev;
-  _FortranSsyev? _ssyev;
-
-  bool get isAvailable => _dgemm != null;
+  bool get isAvailable => _hasDgemm;
 
   /// Whether native QR factorization (_dgeqrf) is bound.
-  bool get hasDgeqrf => _dgeqrf != null;
+  bool get hasDgeqrf => _hasDgeqrf;
 
   /// Whether native SVD factorization (_dgesvd or _dgesdd) is bound.
-  bool get hasDgesvd => _dgesvd != null || _dgesdd != null;
+  bool get hasDgesvd => _hasDgesvd;
 
   /// Whether native symmetric eigenvalue solver (_dsyev or _lapackeDsyev) is
   /// bound.
-  bool get hasDsyev => _dsyev != null || _lapackeDsyev != null;
+  bool get hasDsyev => _hasDsyev || _hasLapackeDsyev;
 
   bool dgemm({
     int transA = cblasNoTrans,
@@ -257,75 +155,27 @@ class BlasLibrary {
     int cOffset = 0,
     required int ldc,
   }) {
-    final fn = _dgemm;
-    if (fn == null) return false;
-
-    final nativeA = _pointerForDouble(a, aOffset);
-    final nativeB = _pointerForDouble(b, bOffset);
-    final nativeC = _pointerForDouble(c, cOffset);
-
-    if (nativeA != null && nativeB != null && nativeC != null) {
-      fn(
-        cblasRowMajor,
-        transA,
-        transB,
-        m,
-        n,
-        k,
-        alpha,
-        nativeA,
-        lda,
-        nativeB,
-        ldb,
-        beta,
-        nativeC,
-        ldc,
-      );
-      return true;
-    }
-
-    return using((arena) {
-      final aLen = transA == cblasTrans ? k * lda : m * lda;
-      final bLen = transB == cblasTrans ? n * ldb : k * ldb;
-      final cLen = m * ldc;
-
-      final aPtr = nativeA ?? arena<ffi.Double>(aLen);
-      if (nativeA == null) {
-        aPtr.asTypedList(aLen).setRange(0, aLen, a, aOffset);
-      }
-
-      final bPtr = nativeB ?? arena<ffi.Double>(bLen);
-      if (nativeB == null) {
-        bPtr.asTypedList(bLen).setRange(0, bLen, b, bOffset);
-      }
-
-      final cPtr = nativeC ?? arena<ffi.Double>(cLen);
-      if (nativeC == null && beta != 0.0) {
-        cPtr.asTypedList(cLen).setRange(0, cLen, c, cOffset);
-      }
-
-      fn(
-        cblasRowMajor,
-        transA,
-        transB,
-        m,
-        n,
-        k,
-        alpha,
-        aPtr,
-        lda,
-        bPtr,
-        ldb,
-        beta,
-        cPtr,
-        ldc,
-      );
-
-      if (nativeC == null) {
-        c.setRange(cOffset, cOffset + cLen, cPtr.asTypedList(cLen));
-      }
-      return true;
-    });
+    if (!_hasDgemm) return false;
+    final aView = aOffset == 0 ? a : Float64List.sublistView(a, aOffset);
+    final bView = bOffset == 0 ? b : Float64List.sublistView(b, bOffset);
+    final cView = cOffset == 0 ? c : Float64List.sublistView(c, cOffset);
+    _cblasDgemm(
+      cblasRowMajor,
+      transA,
+      transB,
+      m,
+      n,
+      k,
+      alpha,
+      aView.address,
+      lda,
+      bView.address,
+      ldb,
+      beta,
+      cView.address,
+      ldc,
+    );
+    return true;
   }
 
   bool sgemm({
@@ -346,75 +196,27 @@ class BlasLibrary {
     int cOffset = 0,
     required int ldc,
   }) {
-    final fn = _sgemm;
-    if (fn == null) return false;
-
-    final nativeA = _pointerForFloat(a, aOffset);
-    final nativeB = _pointerForFloat(b, bOffset);
-    final nativeC = _pointerForFloat(c, cOffset);
-
-    if (nativeA != null && nativeB != null && nativeC != null) {
-      fn(
-        cblasRowMajor,
-        transA,
-        transB,
-        m,
-        n,
-        k,
-        alpha,
-        nativeA,
-        lda,
-        nativeB,
-        ldb,
-        beta,
-        nativeC,
-        ldc,
-      );
-      return true;
-    }
-
-    return using((arena) {
-      final aLen = transA == cblasTrans ? k * lda : m * lda;
-      final bLen = transB == cblasTrans ? n * ldb : k * ldb;
-      final cLen = m * ldc;
-
-      final aPtr = nativeA ?? arena<ffi.Float>(aLen);
-      if (nativeA == null) {
-        aPtr.asTypedList(aLen).setRange(0, aLen, a, aOffset);
-      }
-
-      final bPtr = nativeB ?? arena<ffi.Float>(bLen);
-      if (nativeB == null) {
-        bPtr.asTypedList(bLen).setRange(0, bLen, b, bOffset);
-      }
-
-      final cPtr = nativeC ?? arena<ffi.Float>(cLen);
-      if (nativeC == null && beta != 0.0) {
-        cPtr.asTypedList(cLen).setRange(0, cLen, c, cOffset);
-      }
-
-      fn(
-        cblasRowMajor,
-        transA,
-        transB,
-        m,
-        n,
-        k,
-        alpha,
-        aPtr,
-        lda,
-        bPtr,
-        ldb,
-        beta,
-        cPtr,
-        ldc,
-      );
-
-      if (nativeC == null) {
-        c.setRange(cOffset, cOffset + cLen, cPtr.asTypedList(cLen));
-      }
-      return true;
-    });
+    if (!_hasSgemm) return false;
+    final aView = aOffset == 0 ? a : Float32List.sublistView(a, aOffset);
+    final bView = bOffset == 0 ? b : Float32List.sublistView(b, bOffset);
+    final cView = cOffset == 0 ? c : Float32List.sublistView(c, cOffset);
+    _cblasSgemm(
+      cblasRowMajor,
+      transA,
+      transB,
+      m,
+      n,
+      k,
+      alpha,
+      aView.address,
+      lda,
+      bView.address,
+      ldb,
+      beta,
+      cView.address,
+      ldc,
+    );
+    return true;
   }
 
   bool dgemv({
@@ -433,73 +235,25 @@ class BlasLibrary {
     int yOffset = 0,
     required int incY,
   }) {
-    final fn = _dgemv;
-    if (fn == null) return false;
-
-    final nativeA = _pointerForDouble(a, aOffset);
-    final nativeX = _pointerForDouble(x, xOffset);
-    final nativeY = _pointerForDouble(y, yOffset);
-
-    if (nativeA != null && nativeX != null && nativeY != null) {
-      fn(
-        cblasRowMajor,
-        transA,
-        m,
-        n,
-        alpha,
-        nativeA,
-        lda,
-        nativeX,
-        incX,
-        beta,
-        nativeY,
-        incY,
-      );
-      return true;
-    }
-
-    return using((arena) {
-      final lenX = transA == cblasTrans ? m : n;
-      final lenY = transA == cblasTrans ? n : m;
-      final aLen = m <= 0 || n <= 0 ? 0 : (m - 1) * lda + n;
-      final xLen = lenX <= 0 ? 0 : 1 + (lenX - 1) * incX.abs();
-      final yLen = lenY <= 0 ? 0 : 1 + (lenY - 1) * incY.abs();
-
-      final aPtr = nativeA ?? arena<ffi.Double>(aLen);
-      if (nativeA == null) {
-        aPtr.asTypedList(aLen).setRange(0, aLen, a, aOffset);
-      }
-
-      final xPtr = nativeX ?? arena<ffi.Double>(xLen);
-      if (nativeX == null) {
-        xPtr.asTypedList(xLen).setRange(0, xLen, x, xOffset);
-      }
-
-      final yPtr = nativeY ?? arena<ffi.Double>(yLen);
-      if (nativeY == null && beta != 0.0) {
-        yPtr.asTypedList(yLen).setRange(0, yLen, y, yOffset);
-      }
-
-      fn(
-        cblasRowMajor,
-        transA,
-        m,
-        n,
-        alpha,
-        aPtr,
-        lda,
-        xPtr,
-        incX,
-        beta,
-        yPtr,
-        incY,
-      );
-
-      if (nativeY == null) {
-        y.setRange(yOffset, yOffset + yLen, yPtr.asTypedList(yLen));
-      }
-      return true;
-    });
+    if (!_hasDgemv) return false;
+    final aView = aOffset == 0 ? a : Float64List.sublistView(a, aOffset);
+    final xView = xOffset == 0 ? x : Float64List.sublistView(x, xOffset);
+    final yView = yOffset == 0 ? y : Float64List.sublistView(y, yOffset);
+    _cblasDgemv(
+      cblasRowMajor,
+      transA,
+      m,
+      n,
+      alpha,
+      aView.address,
+      lda,
+      xView.address,
+      incX,
+      beta,
+      yView.address,
+      incY,
+    );
+    return true;
   }
 
   bool sgemv({
@@ -518,73 +272,25 @@ class BlasLibrary {
     int yOffset = 0,
     required int incY,
   }) {
-    final fn = _sgemv;
-    if (fn == null) return false;
-
-    final nativeA = _pointerForFloat(a, aOffset);
-    final nativeX = _pointerForFloat(x, xOffset);
-    final nativeY = _pointerForFloat(y, yOffset);
-
-    if (nativeA != null && nativeX != null && nativeY != null) {
-      fn(
-        cblasRowMajor,
-        transA,
-        m,
-        n,
-        alpha,
-        nativeA,
-        lda,
-        nativeX,
-        incX,
-        beta,
-        nativeY,
-        incY,
-      );
-      return true;
-    }
-
-    return using((arena) {
-      final lenX = transA == cblasTrans ? m : n;
-      final lenY = transA == cblasTrans ? n : m;
-      final aLen = m <= 0 || n <= 0 ? 0 : (m - 1) * lda + n;
-      final xLen = lenX <= 0 ? 0 : 1 + (lenX - 1) * incX.abs();
-      final yLen = lenY <= 0 ? 0 : 1 + (lenY - 1) * incY.abs();
-
-      final aPtr = nativeA ?? arena<ffi.Float>(aLen);
-      if (nativeA == null) {
-        aPtr.asTypedList(aLen).setRange(0, aLen, a, aOffset);
-      }
-
-      final xPtr = nativeX ?? arena<ffi.Float>(xLen);
-      if (nativeX == null) {
-        xPtr.asTypedList(xLen).setRange(0, xLen, x, xOffset);
-      }
-
-      final yPtr = nativeY ?? arena<ffi.Float>(yLen);
-      if (nativeY == null && beta != 0.0) {
-        yPtr.asTypedList(yLen).setRange(0, yLen, y, yOffset);
-      }
-
-      fn(
-        cblasRowMajor,
-        transA,
-        m,
-        n,
-        alpha,
-        aPtr,
-        lda,
-        xPtr,
-        incX,
-        beta,
-        yPtr,
-        incY,
-      );
-
-      if (nativeY == null) {
-        y.setRange(yOffset, yOffset + yLen, yPtr.asTypedList(yLen));
-      }
-      return true;
-    });
+    if (!_hasSgemv) return false;
+    final aView = aOffset == 0 ? a : Float32List.sublistView(a, aOffset);
+    final xView = xOffset == 0 ? x : Float32List.sublistView(x, xOffset);
+    final yView = yOffset == 0 ? y : Float32List.sublistView(y, yOffset);
+    _cblasSgemv(
+      cblasRowMajor,
+      transA,
+      m,
+      n,
+      alpha,
+      aView.address,
+      lda,
+      xView.address,
+      incX,
+      beta,
+      yView.address,
+      incY,
+    );
+    return true;
   }
 
   bool dtrmv({
@@ -599,55 +305,22 @@ class BlasLibrary {
     int xOffset = 0,
     int incX = 1,
   }) {
-    final fn = _dtrmv;
-    if (fn == null) return false;
+    if (!_hasDtrmv) return false;
     if (n == 0) return true;
-
-    final nativeA = _pointerForDouble(a, aOffset);
-    final nativeX = _pointerForDouble(x, xOffset);
-
-    if (nativeA != null && nativeX != null) {
-      fn(cblasRowMajor, uplo, trans, diag, n, nativeA, lda, nativeX, incX);
-      return true;
-    }
-
-    return using((arena) {
-      final aLen = n * lda;
-      final xLen = 1 + (n - 1) * incX.abs();
-
-      final aPtr = nativeA ?? arena<ffi.Double>(aLen);
-      if (nativeA == null) {
-        for (var i = 0; i < n; i++) {
-          aPtr
-              .asTypedList(aLen)
-              .setRange(i * lda, i * lda + n, a, aOffset + i * lda);
-        }
-      }
-
-      final xPtr = nativeX ?? arena<ffi.Double>(xLen);
-      if (nativeX == null) {
-        if (incX == 1) {
-          xPtr.asTypedList(xLen).setRange(0, n, x, xOffset);
-        } else {
-          for (var i = 0; i < n; i++) {
-            xPtr[i * incX] = x[xOffset + i * incX];
-          }
-        }
-      }
-
-      fn(cblasRowMajor, uplo, trans, diag, n, aPtr, lda, xPtr, incX);
-
-      if (nativeX == null) {
-        if (incX == 1) {
-          x.setRange(xOffset, xOffset + n, xPtr.asTypedList(xLen));
-        } else {
-          for (var i = 0; i < n; i++) {
-            x[xOffset + i * incX] = xPtr[i * incX];
-          }
-        }
-      }
-      return true;
-    });
+    final aView = aOffset == 0 ? a : Float64List.sublistView(a, aOffset);
+    final xView = xOffset == 0 ? x : Float64List.sublistView(x, xOffset);
+    _cblasDtrmv(
+      cblasRowMajor,
+      uplo,
+      trans,
+      diag,
+      n,
+      aView.address,
+      lda,
+      xView.address,
+      incX,
+    );
+    return true;
   }
 
   bool strmv({
@@ -662,55 +335,22 @@ class BlasLibrary {
     int xOffset = 0,
     int incX = 1,
   }) {
-    final fn = _strmv;
-    if (fn == null) return false;
+    if (!_hasStrmv) return false;
     if (n == 0) return true;
-
-    final nativeA = _pointerForFloat(a, aOffset);
-    final nativeX = _pointerForFloat(x, xOffset);
-
-    if (nativeA != null && nativeX != null) {
-      fn(cblasRowMajor, uplo, trans, diag, n, nativeA, lda, nativeX, incX);
-      return true;
-    }
-
-    return using((arena) {
-      final aLen = n * lda;
-      final xLen = 1 + (n - 1) * incX.abs();
-
-      final aPtr = nativeA ?? arena<ffi.Float>(aLen);
-      if (nativeA == null) {
-        for (var i = 0; i < n; i++) {
-          aPtr
-              .asTypedList(aLen)
-              .setRange(i * lda, i * lda + n, a, aOffset + i * lda);
-        }
-      }
-
-      final xPtr = nativeX ?? arena<ffi.Float>(xLen);
-      if (nativeX == null) {
-        if (incX == 1) {
-          xPtr.asTypedList(xLen).setRange(0, n, x, xOffset);
-        } else {
-          for (var i = 0; i < n; i++) {
-            xPtr[i * incX] = x[xOffset + i * incX];
-          }
-        }
-      }
-
-      fn(cblasRowMajor, uplo, trans, diag, n, aPtr, lda, xPtr, incX);
-
-      if (nativeX == null) {
-        if (incX == 1) {
-          x.setRange(xOffset, xOffset + n, xPtr.asTypedList(xLen));
-        } else {
-          for (var i = 0; i < n; i++) {
-            x[xOffset + i * incX] = xPtr[i * incX];
-          }
-        }
-      }
-      return true;
-    });
+    final aView = aOffset == 0 ? a : Float32List.sublistView(a, aOffset);
+    final xView = xOffset == 0 ? x : Float32List.sublistView(x, xOffset);
+    _cblasStrmv(
+      cblasRowMajor,
+      uplo,
+      trans,
+      diag,
+      n,
+      aView.address,
+      lda,
+      xView.address,
+      incX,
+    );
+    return true;
   }
 
   double? ddot({
@@ -722,32 +362,10 @@ class BlasLibrary {
     int yOffset = 0,
     required int incY,
   }) {
-    final fn = _ddot;
-    if (fn == null) return null;
-
-    final nativeX = _pointerForDouble(x, xOffset);
-    final nativeY = _pointerForDouble(y, yOffset);
-
-    if (nativeX != null && nativeY != null) {
-      return fn(n, nativeX, incX, nativeY, incY);
-    }
-
-    return using((arena) {
-      final xLen = n <= 0 ? 0 : 1 + (n - 1) * incX.abs();
-      final yLen = n <= 0 ? 0 : 1 + (n - 1) * incY.abs();
-
-      final xPtr = nativeX ?? arena<ffi.Double>(xLen);
-      if (nativeX == null) {
-        xPtr.asTypedList(xLen).setRange(0, xLen, x, xOffset);
-      }
-
-      final yPtr = nativeY ?? arena<ffi.Double>(yLen);
-      if (nativeY == null) {
-        yPtr.asTypedList(yLen).setRange(0, yLen, y, yOffset);
-      }
-
-      return fn(n, xPtr, incX, yPtr, incY);
-    });
+    if (!_hasDdot) return null;
+    final xView = xOffset == 0 ? x : Float64List.sublistView(x, xOffset);
+    final yView = yOffset == 0 ? y : Float64List.sublistView(y, yOffset);
+    return _cblasDdot(n, xView.address, incX, yView.address, incY);
   }
 
   double? sdot({
@@ -759,32 +377,10 @@ class BlasLibrary {
     int yOffset = 0,
     required int incY,
   }) {
-    final fn = _sdot;
-    if (fn == null) return null;
-
-    final nativeX = _pointerForFloat(x, xOffset);
-    final nativeY = _pointerForFloat(y, yOffset);
-
-    if (nativeX != null && nativeY != null) {
-      return fn(n, nativeX, incX, nativeY, incY);
-    }
-
-    return using((arena) {
-      final xLen = n <= 0 ? 0 : 1 + (n - 1) * incX.abs();
-      final yLen = n <= 0 ? 0 : 1 + (n - 1) * incY.abs();
-
-      final xPtr = nativeX ?? arena<ffi.Float>(xLen);
-      if (nativeX == null) {
-        xPtr.asTypedList(xLen).setRange(0, xLen, x, xOffset);
-      }
-
-      final yPtr = nativeY ?? arena<ffi.Float>(yLen);
-      if (nativeY == null) {
-        yPtr.asTypedList(yLen).setRange(0, yLen, y, yOffset);
-      }
-
-      return fn(n, xPtr, incX, yPtr, incY);
-    });
+    if (!_hasSdot) return null;
+    final xView = xOffset == 0 ? x : Float32List.sublistView(x, xOffset);
+    final yView = yOffset == 0 ? y : Float32List.sublistView(y, yOffset);
+    return _cblasSdot(n, xView.address, incX, yView.address, incY);
   }
 
   double? dnrm2({
@@ -793,20 +389,9 @@ class BlasLibrary {
     int xOffset = 0,
     required int incX,
   }) {
-    final fn = _dnrm2;
-    if (fn == null) return null;
-
-    final nativeX = _pointerForDouble(x, xOffset);
-    if (nativeX != null) {
-      return fn(n, nativeX, incX);
-    }
-
-    return using((arena) {
-      final xLen = n <= 0 ? 0 : 1 + (n - 1) * incX.abs();
-      final xPtr = arena<ffi.Double>(xLen);
-      xPtr.asTypedList(xLen).setRange(0, xLen, x, xOffset);
-      return fn(n, xPtr, incX);
-    });
+    if (!_hasDnrm2) return null;
+    final xView = xOffset == 0 ? x : Float64List.sublistView(x, xOffset);
+    return _cblasDnrm2(n, xView.address, incX);
   }
 
   double? snrm2({
@@ -815,20 +400,9 @@ class BlasLibrary {
     int xOffset = 0,
     required int incX,
   }) {
-    final fn = _snrm2;
-    if (fn == null) return null;
-
-    final nativeX = _pointerForFloat(x, xOffset);
-    if (nativeX != null) {
-      return fn(n, nativeX, incX);
-    }
-
-    return using((arena) {
-      final xLen = n <= 0 ? 0 : 1 + (n - 1) * incX.abs();
-      final xPtr = arena<ffi.Float>(xLen);
-      xPtr.asTypedList(xLen).setRange(0, xLen, x, xOffset);
-      return fn(n, xPtr, incX);
-    });
+    if (!_hasSnrm2) return null;
+    final xView = xOffset == 0 ? x : Float32List.sublistView(x, xOffset);
+    return _cblasSnrm2(n, xView.address, incX);
   }
 
   bool daxpy({
@@ -841,38 +415,11 @@ class BlasLibrary {
     int yOffset = 0,
     required int incY,
   }) {
-    final fn = _daxpy;
-    if (fn == null) return false;
-
-    final nativeX = _pointerForDouble(x, xOffset);
-    final nativeY = _pointerForDouble(y, yOffset);
-
-    if (nativeX != null && nativeY != null) {
-      fn(n, alpha, nativeX, incX, nativeY, incY);
-      return true;
-    }
-
-    return using((arena) {
-      final xLen = n <= 0 ? 0 : 1 + (n - 1) * incX.abs();
-      final yLen = n <= 0 ? 0 : 1 + (n - 1) * incY.abs();
-
-      final xPtr = nativeX ?? arena<ffi.Double>(xLen);
-      if (nativeX == null) {
-        xPtr.asTypedList(xLen).setRange(0, xLen, x, xOffset);
-      }
-
-      final yPtr = nativeY ?? arena<ffi.Double>(yLen);
-      if (nativeY == null) {
-        yPtr.asTypedList(yLen).setRange(0, yLen, y, yOffset);
-      }
-
-      fn(n, alpha, xPtr, incX, yPtr, incY);
-
-      if (nativeY == null) {
-        y.setRange(yOffset, yOffset + yLen, yPtr.asTypedList(yLen));
-      }
-      return true;
-    });
+    if (!_hasDaxpy) return false;
+    final xView = xOffset == 0 ? x : Float64List.sublistView(x, xOffset);
+    final yView = yOffset == 0 ? y : Float64List.sublistView(y, yOffset);
+    _cblasDaxpy(n, alpha, xView.address, incX, yView.address, incY);
+    return true;
   }
 
   bool saxpy({
@@ -885,38 +432,11 @@ class BlasLibrary {
     int yOffset = 0,
     required int incY,
   }) {
-    final fn = _saxpy;
-    if (fn == null) return false;
-
-    final nativeX = _pointerForFloat(x, xOffset);
-    final nativeY = _pointerForFloat(y, yOffset);
-
-    if (nativeX != null && nativeY != null) {
-      fn(n, alpha, nativeX, incX, nativeY, incY);
-      return true;
-    }
-
-    return using((arena) {
-      final xLen = n <= 0 ? 0 : 1 + (n - 1) * incX.abs();
-      final yLen = n <= 0 ? 0 : 1 + (n - 1) * incY.abs();
-
-      final xPtr = nativeX ?? arena<ffi.Float>(xLen);
-      if (nativeX == null) {
-        xPtr.asTypedList(xLen).setRange(0, xLen, x, xOffset);
-      }
-
-      final yPtr = nativeY ?? arena<ffi.Float>(yLen);
-      if (nativeY == null) {
-        yPtr.asTypedList(yLen).setRange(0, yLen, y, yOffset);
-      }
-
-      fn(n, alpha, xPtr, incX, yPtr, incY);
-
-      if (nativeY == null) {
-        y.setRange(yOffset, yOffset + yLen, yPtr.asTypedList(yLen));
-      }
-      return true;
-    });
+    if (!_hasSaxpy) return false;
+    final xView = xOffset == 0 ? x : Float32List.sublistView(x, xOffset);
+    final yView = yOffset == 0 ? y : Float32List.sublistView(y, yOffset);
+    _cblasSaxpy(n, alpha, xView.address, incX, yView.address, incY);
+    return true;
   }
 
   bool dscal({
@@ -926,23 +446,10 @@ class BlasLibrary {
     int xOffset = 0,
     required int incX,
   }) {
-    final fn = _dscal;
-    if (fn == null) return false;
-
-    final nativeX = _pointerForDouble(x, xOffset);
-    if (nativeX != null) {
-      fn(n, alpha, nativeX, incX);
-      return true;
-    }
-
-    return using((arena) {
-      final xLen = n <= 0 ? 0 : 1 + (n - 1) * incX.abs();
-      final xPtr = arena<ffi.Double>(xLen);
-      xPtr.asTypedList(xLen).setRange(0, xLen, x, xOffset);
-      fn(n, alpha, xPtr, incX);
-      x.setRange(xOffset, xOffset + xLen, xPtr.asTypedList(xLen));
-      return true;
-    });
+    if (!_hasDscal) return false;
+    final xView = xOffset == 0 ? x : Float64List.sublistView(x, xOffset);
+    _cblasDscal(n, alpha, xView.address, incX);
+    return true;
   }
 
   bool sscal({
@@ -952,23 +459,10 @@ class BlasLibrary {
     int xOffset = 0,
     required int incX,
   }) {
-    final fn = _sscal;
-    if (fn == null) return false;
-
-    final nativeX = _pointerForFloat(x, xOffset);
-    if (nativeX != null) {
-      fn(n, alpha, nativeX, incX);
-      return true;
-    }
-
-    return using((arena) {
-      final xLen = n <= 0 ? 0 : 1 + (n - 1) * incX.abs();
-      final xPtr = arena<ffi.Float>(xLen);
-      xPtr.asTypedList(xLen).setRange(0, xLen, x, xOffset);
-      fn(n, alpha, xPtr, incX);
-      x.setRange(xOffset, xOffset + xLen, xPtr.asTypedList(xLen));
-      return true;
-    });
+    if (!_hasSscal) return false;
+    final xView = xOffset == 0 ? x : Float32List.sublistView(x, xOffset);
+    _cblasSscal(n, alpha, xView.address, incX);
+    return true;
   }
 
   bool dsyrk({
@@ -985,52 +479,24 @@ class BlasLibrary {
     int cOffset = 0,
     required int ldc,
   }) {
-    final fn = _dsyrk;
-    if (fn == null) return false;
-
-    final nativeA = _pointerForDouble(a, aOffset);
-    final nativeC = _pointerForDouble(c, cOffset);
-
-    if (nativeA != null && nativeC != null) {
-      fn(
-        cblasRowMajor,
-        uplo,
-        trans,
-        n,
-        k,
-        alpha,
-        nativeA,
-        lda,
-        beta,
-        nativeC,
-        ldc,
-      );
-      _mirrorSymmetricDouble(c, cOffset, n, ldc, uplo);
-      return true;
-    }
-
-    return using((arena) {
-      final aLen = trans == cblasTrans ? k * lda : n * lda;
-      final cLen = n * ldc;
-
-      final aPtr = nativeA ?? arena<ffi.Double>(aLen);
-      if (nativeA == null) {
-        aPtr.asTypedList(aLen).setRange(0, aLen, a, aOffset);
-      }
-
-      final cPtr = nativeC ?? arena<ffi.Double>(cLen);
-      if (nativeC == null && beta != 0.0) {
-        cPtr.asTypedList(cLen).setRange(0, cLen, c, cOffset);
-      }
-
-      fn(cblasRowMajor, uplo, trans, n, k, alpha, aPtr, lda, beta, cPtr, ldc);
-
-      if (nativeC == null) {
-        c.setRange(cOffset, cOffset + cLen, cPtr.asTypedList(cLen));
-      }
-      _mirrorSymmetricDouble(c, cOffset, n, ldc, uplo);
-      return true;
-    });
+    if (!_hasDsyrk) return false;
+    final aView = aOffset == 0 ? a : Float64List.sublistView(a, aOffset);
+    final cView = cOffset == 0 ? c : Float64List.sublistView(c, cOffset);
+    _cblasDsyrk(
+      cblasRowMajor,
+      uplo,
+      trans,
+      n,
+      k,
+      alpha,
+      aView.address,
+      lda,
+      beta,
+      cView.address,
+      ldc,
+    );
+    _mirrorSymmetricDouble(c, cOffset, n, ldc, uplo);
+    return true;
   }
 
   bool ssyrk({
@@ -1047,52 +513,24 @@ class BlasLibrary {
     int cOffset = 0,
     required int ldc,
   }) {
-    final fn = _ssyrk;
-    if (fn == null) return false;
-
-    final nativeA = _pointerForFloat(a, aOffset);
-    final nativeC = _pointerForFloat(c, cOffset);
-
-    if (nativeA != null && nativeC != null) {
-      fn(
-        cblasRowMajor,
-        uplo,
-        trans,
-        n,
-        k,
-        alpha,
-        nativeA,
-        lda,
-        beta,
-        nativeC,
-        ldc,
-      );
-      _mirrorSymmetricFloat(c, cOffset, n, ldc, uplo);
-      return true;
-    }
-
-    return using((arena) {
-      final aLen = trans == cblasTrans ? k * lda : n * lda;
-      final cLen = n * ldc;
-
-      final aPtr = nativeA ?? arena<ffi.Float>(aLen);
-      if (nativeA == null) {
-        aPtr.asTypedList(aLen).setRange(0, aLen, a, aOffset);
-      }
-
-      final cPtr = nativeC ?? arena<ffi.Float>(cLen);
-      if (nativeC == null && beta != 0.0) {
-        cPtr.asTypedList(cLen).setRange(0, cLen, c, cOffset);
-      }
-
-      fn(cblasRowMajor, uplo, trans, n, k, alpha, aPtr, lda, beta, cPtr, ldc);
-
-      if (nativeC == null) {
-        c.setRange(cOffset, cOffset + cLen, cPtr.asTypedList(cLen));
-      }
-      _mirrorSymmetricFloat(c, cOffset, n, ldc, uplo);
-      return true;
-    });
+    if (!_hasSsyrk) return false;
+    final aView = aOffset == 0 ? a : Float32List.sublistView(a, aOffset);
+    final cView = cOffset == 0 ? c : Float32List.sublistView(c, cOffset);
+    _cblasSsyrk(
+      cblasRowMajor,
+      uplo,
+      trans,
+      n,
+      k,
+      alpha,
+      aView.address,
+      lda,
+      beta,
+      cView.address,
+      ldc,
+    );
+    _mirrorSymmetricFloat(c, cOffset, n, ldc, uplo);
+    return true;
   }
 
   bool dsyr2({
@@ -1109,56 +547,24 @@ class BlasLibrary {
     int aOffset = 0,
     required int lda,
   }) {
-    final fn = _dsyr2;
-    if (fn == null) return false;
-
-    final nativeX = _pointerForDouble(x, xOffset);
-    final nativeY = _pointerForDouble(y, yOffset);
-    final nativeA = _pointerForDouble(a, aOffset);
-
-    if (nativeX != null && nativeY != null && nativeA != null) {
-      fn(
-        cblasRowMajor,
-        uplo,
-        n,
-        alpha,
-        nativeX,
-        incX,
-        nativeY,
-        incY,
-        nativeA,
-        lda,
-      );
-      _mirrorSymmetricDouble(a, aOffset, n, lda, uplo);
-      return true;
-    }
-
-    return using((arena) {
-      final xLen = n <= 0 ? 0 : 1 + (n - 1) * incX.abs();
-      final yLen = n <= 0 ? 0 : 1 + (n - 1) * incY.abs();
-      final aLen = n * lda;
-
-      final xPtr = nativeX ?? arena<ffi.Double>(xLen);
-      if (nativeX == null) {
-        xPtr.asTypedList(xLen).setRange(0, xLen, x, xOffset);
-      }
-      final yPtr = nativeY ?? arena<ffi.Double>(yLen);
-      if (nativeY == null) {
-        yPtr.asTypedList(yLen).setRange(0, yLen, y, yOffset);
-      }
-      final aPtr = nativeA ?? arena<ffi.Double>(aLen);
-      if (nativeA == null) {
-        aPtr.asTypedList(aLen).setRange(0, aLen, a, aOffset);
-      }
-
-      fn(cblasRowMajor, uplo, n, alpha, xPtr, incX, yPtr, incY, aPtr, lda);
-
-      if (nativeA == null) {
-        a.setRange(aOffset, aOffset + aLen, aPtr.asTypedList(aLen));
-      }
-      _mirrorSymmetricDouble(a, aOffset, n, lda, uplo);
-      return true;
-    });
+    if (!_hasDsyr2) return false;
+    final xView = xOffset == 0 ? x : Float64List.sublistView(x, xOffset);
+    final yView = yOffset == 0 ? y : Float64List.sublistView(y, yOffset);
+    final aView = aOffset == 0 ? a : Float64List.sublistView(a, aOffset);
+    _cblasDsyr2(
+      cblasRowMajor,
+      uplo,
+      n,
+      alpha,
+      xView.address,
+      incX,
+      yView.address,
+      incY,
+      aView.address,
+      lda,
+    );
+    _mirrorSymmetricDouble(a, aOffset, n, lda, uplo);
+    return true;
   }
 
   bool ssyr2({
@@ -1175,56 +581,24 @@ class BlasLibrary {
     int aOffset = 0,
     required int lda,
   }) {
-    final fn = _ssyr2;
-    if (fn == null) return false;
-
-    final nativeX = _pointerForFloat(x, xOffset);
-    final nativeY = _pointerForFloat(y, yOffset);
-    final nativeA = _pointerForFloat(a, aOffset);
-
-    if (nativeX != null && nativeY != null && nativeA != null) {
-      fn(
-        cblasRowMajor,
-        uplo,
-        n,
-        alpha,
-        nativeX,
-        incX,
-        nativeY,
-        incY,
-        nativeA,
-        lda,
-      );
-      _mirrorSymmetricFloat(a, aOffset, n, lda, uplo);
-      return true;
-    }
-
-    return using((arena) {
-      final xLen = n <= 0 ? 0 : 1 + (n - 1) * incX.abs();
-      final yLen = n <= 0 ? 0 : 1 + (n - 1) * incY.abs();
-      final aLen = n * lda;
-
-      final xPtr = nativeX ?? arena<ffi.Float>(xLen);
-      if (nativeX == null) {
-        xPtr.asTypedList(xLen).setRange(0, xLen, x, xOffset);
-      }
-      final yPtr = nativeY ?? arena<ffi.Float>(yLen);
-      if (nativeY == null) {
-        yPtr.asTypedList(yLen).setRange(0, yLen, y, yOffset);
-      }
-      final aPtr = nativeA ?? arena<ffi.Float>(aLen);
-      if (nativeA == null) {
-        aPtr.asTypedList(aLen).setRange(0, aLen, a, aOffset);
-      }
-
-      fn(cblasRowMajor, uplo, n, alpha, xPtr, incX, yPtr, incY, aPtr, lda);
-
-      if (nativeA == null) {
-        a.setRange(aOffset, aOffset + aLen, aPtr.asTypedList(aLen));
-      }
-      _mirrorSymmetricFloat(a, aOffset, n, lda, uplo);
-      return true;
-    });
+    if (!_hasSsyr2) return false;
+    final xView = xOffset == 0 ? x : Float32List.sublistView(x, xOffset);
+    final yView = yOffset == 0 ? y : Float32List.sublistView(y, yOffset);
+    final aView = aOffset == 0 ? a : Float32List.sublistView(a, aOffset);
+    _cblasSsyr2(
+      cblasRowMajor,
+      uplo,
+      n,
+      alpha,
+      xView.address,
+      incX,
+      yView.address,
+      incY,
+      aView.address,
+      lda,
+    );
+    _mirrorSymmetricFloat(a, aOffset, n, lda, uplo);
+    return true;
   }
 
   bool dsymm({
@@ -1244,92 +618,26 @@ class BlasLibrary {
     int cOffset = 0,
     required int ldc,
   }) {
-    final fn = _dsymm;
-    if (fn == null) return false;
-    if (m == 0 || n == 0) return true;
-
-    final nativeA = _pointerForDouble(a, aOffset);
-    final nativeB = _pointerForDouble(b, bOffset);
-    final nativeC = _pointerForDouble(c, cOffset);
-
-    if (nativeA != null && nativeB != null && nativeC != null) {
-      fn(
-        cblasRowMajor,
-        side,
-        uplo,
-        m,
-        n,
-        alpha,
-        nativeA,
-        lda,
-        nativeB,
-        ldb,
-        beta,
-        nativeC,
-        ldc,
-      );
-      return true;
-    }
-
-    return using((arena) {
-      final aRows = side == cblasLeft ? m : n;
-      final aLen = aRows * lda;
-      final bLen = m * ldb;
-      final cLen = m * ldc;
-
-      final aPtr = nativeA ?? arena<ffi.Double>(aLen);
-      if (nativeA == null) {
-        for (var i = 0; i < aRows; i++) {
-          aPtr
-              .asTypedList(aLen)
-              .setRange(i * lda, i * lda + aRows, a, aOffset + i * lda);
-        }
-      }
-      final bPtr = nativeB ?? arena<ffi.Double>(bLen);
-      if (nativeB == null) {
-        for (var i = 0; i < m; i++) {
-          bPtr
-              .asTypedList(bLen)
-              .setRange(i * ldb, i * ldb + n, b, bOffset + i * ldb);
-        }
-      }
-      final cPtr = nativeC ?? arena<ffi.Double>(cLen);
-      if (nativeC == null && beta != 0.0) {
-        for (var i = 0; i < m; i++) {
-          cPtr
-              .asTypedList(cLen)
-              .setRange(i * ldc, i * ldc + n, c, cOffset + i * ldc);
-        }
-      }
-
-      fn(
-        cblasRowMajor,
-        side,
-        uplo,
-        m,
-        n,
-        alpha,
-        aPtr,
-        lda,
-        bPtr,
-        ldb,
-        beta,
-        cPtr,
-        ldc,
-      );
-
-      if (nativeC == null) {
-        for (var i = 0; i < m; i++) {
-          c.setRange(
-            cOffset + i * ldc,
-            cOffset + i * ldc + n,
-            cPtr.asTypedList(cLen),
-            i * ldc,
-          );
-        }
-      }
-      return true;
-    });
+    if (!_hasDsymm) return false;
+    final aView = aOffset == 0 ? a : Float64List.sublistView(a, aOffset);
+    final bView = bOffset == 0 ? b : Float64List.sublistView(b, bOffset);
+    final cView = cOffset == 0 ? c : Float64List.sublistView(c, cOffset);
+    _cblasDsymm(
+      cblasRowMajor,
+      side,
+      uplo,
+      m,
+      n,
+      alpha,
+      aView.address,
+      lda,
+      bView.address,
+      ldb,
+      beta,
+      cView.address,
+      ldc,
+    );
+    return true;
   }
 
   bool ssymm({
@@ -1349,92 +657,26 @@ class BlasLibrary {
     int cOffset = 0,
     required int ldc,
   }) {
-    final fn = _ssymm;
-    if (fn == null) return false;
-    if (m == 0 || n == 0) return true;
-
-    final nativeA = _pointerForFloat(a, aOffset);
-    final nativeB = _pointerForFloat(b, bOffset);
-    final nativeC = _pointerForFloat(c, cOffset);
-
-    if (nativeA != null && nativeB != null && nativeC != null) {
-      fn(
-        cblasRowMajor,
-        side,
-        uplo,
-        m,
-        n,
-        alpha,
-        nativeA,
-        lda,
-        nativeB,
-        ldb,
-        beta,
-        nativeC,
-        ldc,
-      );
-      return true;
-    }
-
-    return using((arena) {
-      final aRows = side == cblasLeft ? m : n;
-      final aLen = aRows * lda;
-      final bLen = m * ldb;
-      final cLen = m * ldc;
-
-      final aPtr = nativeA ?? arena<ffi.Float>(aLen);
-      if (nativeA == null) {
-        for (var i = 0; i < aRows; i++) {
-          aPtr
-              .asTypedList(aLen)
-              .setRange(i * lda, i * lda + aRows, a, aOffset + i * lda);
-        }
-      }
-      final bPtr = nativeB ?? arena<ffi.Float>(bLen);
-      if (nativeB == null) {
-        for (var i = 0; i < m; i++) {
-          bPtr
-              .asTypedList(bLen)
-              .setRange(i * ldb, i * ldb + n, b, bOffset + i * ldb);
-        }
-      }
-      final cPtr = nativeC ?? arena<ffi.Float>(cLen);
-      if (nativeC == null && beta != 0.0) {
-        for (var i = 0; i < m; i++) {
-          cPtr
-              .asTypedList(cLen)
-              .setRange(i * ldc, i * ldc + n, c, cOffset + i * ldc);
-        }
-      }
-
-      fn(
-        cblasRowMajor,
-        side,
-        uplo,
-        m,
-        n,
-        alpha,
-        aPtr,
-        lda,
-        bPtr,
-        ldb,
-        beta,
-        cPtr,
-        ldc,
-      );
-
-      if (nativeC == null) {
-        for (var i = 0; i < m; i++) {
-          c.setRange(
-            cOffset + i * ldc,
-            cOffset + i * ldc + n,
-            cPtr.asTypedList(cLen),
-            i * ldc,
-          );
-        }
-      }
-      return true;
-    });
+    if (!_hasSsymm) return false;
+    final aView = aOffset == 0 ? a : Float32List.sublistView(a, aOffset);
+    final bView = bOffset == 0 ? b : Float32List.sublistView(b, bOffset);
+    final cView = cOffset == 0 ? c : Float32List.sublistView(c, cOffset);
+    _cblasSsymm(
+      cblasRowMajor,
+      side,
+      uplo,
+      m,
+      n,
+      alpha,
+      aView.address,
+      lda,
+      bView.address,
+      ldb,
+      beta,
+      cView.address,
+      ldc,
+    );
+    return true;
   }
 
   bool dtrmm({
@@ -1452,80 +694,25 @@ class BlasLibrary {
     int bOffset = 0,
     required int ldb,
   }) {
-    final fn = _dtrmm;
-    if (fn == null) return false;
+    if (!_hasDtrmm) return false;
     if (m == 0 || n == 0) return true;
-
-    final nativeA = _pointerForDouble(a, aOffset);
-    final nativeB = _pointerForDouble(b, bOffset);
-
-    if (nativeA != null && nativeB != null) {
-      fn(
-        cblasRowMajor,
-        side,
-        uplo,
-        transA,
-        diag,
-        m,
-        n,
-        alpha,
-        nativeA,
-        lda,
-        nativeB,
-        ldb,
-      );
-      return true;
-    }
-
-    return using((arena) {
-      final aRows = side == cblasLeft ? m : n;
-      final aLen = aRows * lda;
-      final bLen = m * ldb;
-
-      final aPtr = nativeA ?? arena<ffi.Double>(aLen);
-      if (nativeA == null) {
-        for (var i = 0; i < aRows; i++) {
-          aPtr
-              .asTypedList(aLen)
-              .setRange(i * lda, i * lda + aRows, a, aOffset + i * lda);
-        }
-      }
-      final bPtr = nativeB ?? arena<ffi.Double>(bLen);
-      if (nativeB == null) {
-        for (var i = 0; i < m; i++) {
-          bPtr
-              .asTypedList(bLen)
-              .setRange(i * ldb, i * ldb + n, b, bOffset + i * ldb);
-        }
-      }
-
-      fn(
-        cblasRowMajor,
-        side,
-        uplo,
-        transA,
-        diag,
-        m,
-        n,
-        alpha,
-        aPtr,
-        lda,
-        bPtr,
-        ldb,
-      );
-
-      if (nativeB == null) {
-        for (var i = 0; i < m; i++) {
-          b.setRange(
-            bOffset + i * ldb,
-            bOffset + i * ldb + n,
-            bPtr.asTypedList(bLen),
-            i * ldb,
-          );
-        }
-      }
-      return true;
-    });
+    final aView = aOffset == 0 ? a : Float64List.sublistView(a, aOffset);
+    final bView = bOffset == 0 ? b : Float64List.sublistView(b, bOffset);
+    _cblasDtrmm(
+      cblasRowMajor,
+      side,
+      uplo,
+      transA,
+      diag,
+      m,
+      n,
+      alpha,
+      aView.address,
+      lda,
+      bView.address,
+      ldb,
+    );
+    return true;
   }
 
   bool strmm({
@@ -1543,80 +730,25 @@ class BlasLibrary {
     int bOffset = 0,
     required int ldb,
   }) {
-    final fn = _strmm;
-    if (fn == null) return false;
+    if (!_hasStrmm) return false;
     if (m == 0 || n == 0) return true;
-
-    final nativeA = _pointerForFloat(a, aOffset);
-    final nativeB = _pointerForFloat(b, bOffset);
-
-    if (nativeA != null && nativeB != null) {
-      fn(
-        cblasRowMajor,
-        side,
-        uplo,
-        transA,
-        diag,
-        m,
-        n,
-        alpha,
-        nativeA,
-        lda,
-        nativeB,
-        ldb,
-      );
-      return true;
-    }
-
-    return using((arena) {
-      final aRows = side == cblasLeft ? m : n;
-      final aLen = aRows * lda;
-      final bLen = m * ldb;
-
-      final aPtr = nativeA ?? arena<ffi.Float>(aLen);
-      if (nativeA == null) {
-        for (var i = 0; i < aRows; i++) {
-          aPtr
-              .asTypedList(aLen)
-              .setRange(i * lda, i * lda + aRows, a, aOffset + i * lda);
-        }
-      }
-      final bPtr = nativeB ?? arena<ffi.Float>(bLen);
-      if (nativeB == null) {
-        for (var i = 0; i < m; i++) {
-          bPtr
-              .asTypedList(bLen)
-              .setRange(i * ldb, i * ldb + n, b, bOffset + i * ldb);
-        }
-      }
-
-      fn(
-        cblasRowMajor,
-        side,
-        uplo,
-        transA,
-        diag,
-        m,
-        n,
-        alpha,
-        aPtr,
-        lda,
-        bPtr,
-        ldb,
-      );
-
-      if (nativeB == null) {
-        for (var i = 0; i < m; i++) {
-          b.setRange(
-            bOffset + i * ldb,
-            bOffset + i * ldb + n,
-            bPtr.asTypedList(bLen),
-            i * ldb,
-          );
-        }
-      }
-      return true;
-    });
+    final aView = aOffset == 0 ? a : Float32List.sublistView(a, aOffset);
+    final bView = bOffset == 0 ? b : Float32List.sublistView(b, bOffset);
+    _cblasStrmm(
+      cblasRowMajor,
+      side,
+      uplo,
+      transA,
+      diag,
+      m,
+      n,
+      alpha,
+      aView.address,
+      lda,
+      bView.address,
+      ldb,
+    );
+    return true;
   }
 
   bool dpotrf({
@@ -1626,42 +758,21 @@ class BlasLibrary {
     int aOffset = 0,
     required int lda,
   }) {
-    final fn = _dpotrf;
-    if (fn == null) return false;
-
+    if (!_hasDpotrf) return false;
     return using((arena) {
-      final aLen = n * lda;
-      final nativeA = _pointerForDouble(a, aOffset);
-      final aPtr = nativeA ?? arena<ffi.Double>(aLen);
-      if (nativeA == null) {
-        aPtr.asTypedList(aLen).setRange(0, aLen, a, aOffset);
-      }
-
-      // For row-major: upper triangle in row-major is lower triangle in Fortran
-      // column-major ('L'=76, 'U'=85)
       final fortranUplo = uplo == cblasUpper ? 76 : 85;
       final uploPtr = arena<ffi.Uint8>()..value = fortranUplo;
       final nPtr = arena<ffi.Int32>()..value = n;
       final ldaPtr = arena<ffi.Int32>()..value = lda >= n ? lda : n;
       final info = arena<ffi.Int32>();
+      final aView = aOffset == 0 ? a : Float64List.sublistView(a, aOffset);
 
-      fn(uploPtr, nPtr, aPtr, ldaPtr, info);
-      if (info.value == 0) {
-        if (nativeA == null) {
-          a.setRange(aOffset, aOffset + aLen, aPtr.asTypedList(aLen));
-        }
-        return true;
-      }
-      return false;
+      _fortranDpotrf(uploPtr, nPtr, aView.address, ldaPtr, info);
+      return info.value == 0;
     });
   }
 
   /// Solves the general linear system $A X = B$ for $X$.
-  ///
-  /// Supports both single-RHS ([nrhs] = 1) and multi-RHS ([nrhs] > 1). For
-  /// Fortran LAPACK routines expecting column-major matrices, multi-RHS
-  /// right-hand side matrices are transposed to column-major layout prior to
-  /// solving and the solution is transposed back to row-major layout.
   bool dgesv({
     required int n,
     required int nrhs,
@@ -1679,7 +790,7 @@ class BlasLibrary {
     if (a.length < aRequired || b.length < bRequired) return false;
 
     // coverage:ignore-start
-    if (_lapackeDgesv != null) {
+    if (_hasLapackeDgesv || _hasClapackDgesv) {
       return using((arena) {
         final aLen = n * lda;
         final aPtr = arena<ffi.Double>(aLen);
@@ -1694,54 +805,76 @@ class BlasLibrary {
         }
 
         final isContiguous1D = nrhs == 1 && ldb == 1;
-        final ffi.Pointer<ffi.Double> bPtr;
+        final ipiv = arena<ffi.Int32>(n);
+
         if (isContiguous1D) {
-          final nativeB = _pointerForDouble(b, bOffset);
-          bPtr = nativeB ?? arena<ffi.Double>(n);
-          if (nativeB == null) {
-            bPtr.asTypedList(n).setRange(0, n, b, bOffset);
-          }
+          final bView = bOffset == 0 ? b : Float64List.sublistView(b, bOffset);
+          final info = _hasLapackeDgesv
+              ? _lapackeDgesv(
+                  cblasRowMajor,
+                  n,
+                  nrhs,
+                  aPtr,
+                  lda,
+                  ipiv,
+                  bView.address,
+                  ldb,
+                )
+              : _clapackDgesv(
+                  cblasRowMajor,
+                  n,
+                  nrhs,
+                  aPtr,
+                  lda,
+                  ipiv,
+                  bView.address,
+                  ldb,
+                );
+          return info == 0;
         } else {
           final bLen = n * ldb;
-          bPtr = arena<ffi.Double>(bLen);
+          final bPtr = arena<ffi.Double>(bLen);
           for (var i = 0; i < n; i++) {
             for (var j = 0; j < nrhs; j++) {
               bPtr[i * ldb + j] = b[bOffset + i * ldb + j];
             }
           }
-        }
-        final ipiv = arena<ffi.Int32>(n);
-
-        final info = _lapackeDgesv!(
-          cblasRowMajor,
-          n,
-          nrhs,
-          aPtr,
-          lda,
-          ipiv,
-          bPtr,
-          ldb,
-        );
-        if (info == 0) {
-          if (isContiguous1D) {
-            if (_pointerForDouble(b, bOffset) == null) {
-              b.setRange(bOffset, bOffset + n, bPtr.asTypedList(n));
-            }
-          } else {
+          final info = _hasLapackeDgesv
+              ? _lapackeDgesv(
+                  cblasRowMajor,
+                  n,
+                  nrhs,
+                  aPtr,
+                  lda,
+                  ipiv,
+                  bPtr,
+                  ldb,
+                )
+              : _clapackDgesv(
+                  cblasRowMajor,
+                  n,
+                  nrhs,
+                  aPtr,
+                  lda,
+                  ipiv,
+                  bPtr,
+                  ldb,
+                );
+          if (info == 0) {
             for (var i = 0; i < n; i++) {
               for (var j = 0; j < nrhs; j++) {
                 b[bOffset + i * ldb + j] = bPtr[i * ldb + j];
               }
             }
+            return true;
           }
-          return true;
+          return false;
         }
-        return false;
       });
     }
     // coverage:ignore-end
 
-    if (_dgetrf != null && _dgetrs != null) {
+    if (_hasDgetrf && _hasDgetrs) {
       return using((arena) {
         final aLen = n * lda;
         final aPtr = arena<ffi.Double>(aLen);
@@ -1756,22 +889,6 @@ class BlasLibrary {
         }
 
         final isContiguous1D = nrhs == 1 && ldb == 1;
-        final ffi.Pointer<ffi.Double> bPtr;
-        if (!isContiguous1D) {
-          bPtr = arena<ffi.Double>(n * nrhs);
-          for (var j = 0; j < nrhs; j++) {
-            for (var i = 0; i < n; i++) {
-              bPtr[j * n + i] = b[bOffset + i * ldb + j];
-            }
-          }
-        } else {
-          final nativeB = _pointerForDouble(b, bOffset);
-          bPtr = nativeB ?? arena<ffi.Double>(n);
-          if (nativeB == null) {
-            bPtr.asTypedList(n).setRange(0, n, b, bOffset);
-          }
-        }
-
         final nPtr = arena<ffi.Int32>()..value = n;
         final nrhsPtr = arena<ffi.Int32>()..value = nrhs;
         final ldaPtr = arena<ffi.Int32>()..value = lda >= n ? lda : n;
@@ -1780,29 +897,54 @@ class BlasLibrary {
         final info = arena<ffi.Int32>();
         final trans = arena<ffi.Uint8>()..value = 84; // 'T'
 
-        _dgetrf!(nPtr, nPtr, aPtr, ldaPtr, ipiv, info);
+        _fortranDgetrf(nPtr, nPtr, aPtr, ldaPtr, ipiv, info);
         if (info.value != 0) return false;
 
-        _dgetrs!(trans, nPtr, nrhsPtr, aPtr, ldaPtr, ipiv, bPtr, ldbPtr, info);
-        if (info.value != 0) return false;
-
-        if (!isContiguous1D) {
+        if (isContiguous1D) {
+          final bView = bOffset == 0 ? b : Float64List.sublistView(b, bOffset);
+          _fortranDgetrs(
+            trans,
+            nPtr,
+            nrhsPtr,
+            aPtr,
+            ldaPtr,
+            ipiv,
+            bView.address,
+            ldbPtr,
+            info,
+          );
+          return info.value == 0;
+        } else {
+          final bPtr = arena<ffi.Double>(n * nrhs);
+          for (var j = 0; j < nrhs; j++) {
+            for (var i = 0; i < n; i++) {
+              bPtr[j * n + i] = b[bOffset + i * ldb + j];
+            }
+          }
+          _fortranDgetrs(
+            trans,
+            nPtr,
+            nrhsPtr,
+            aPtr,
+            ldaPtr,
+            ipiv,
+            bPtr,
+            ldbPtr,
+            info,
+          );
+          if (info.value != 0) return false;
           for (var i = 0; i < n; i++) {
             for (var j = 0; j < nrhs; j++) {
               b[bOffset + i * ldb + j] = bPtr[j * n + i];
             }
           }
-        } else {
-          if (_pointerForDouble(b, bOffset) == null) {
-            b.setRange(bOffset, bOffset + n, bPtr.asTypedList(n));
-          }
+          return true;
         }
-        return true;
       });
     }
 
     // coverage:ignore-start
-    if (_dgesv != null) {
+    if (_hasDgesv) {
       return using((arena) {
         final aTrans = arena<ffi.Double>(n * n);
         for (var i = 0; i < n; i++) {
@@ -1812,22 +954,6 @@ class BlasLibrary {
         }
 
         final isContiguous1D = nrhs == 1 && ldb == 1;
-        final ffi.Pointer<ffi.Double> bPtr;
-        if (!isContiguous1D) {
-          bPtr = arena<ffi.Double>(n * nrhs);
-          for (var j = 0; j < nrhs; j++) {
-            for (var i = 0; i < n; i++) {
-              bPtr[j * n + i] = b[bOffset + i * ldb + j];
-            }
-          }
-        } else {
-          final nativeB = _pointerForDouble(b, bOffset);
-          bPtr = nativeB ?? arena<ffi.Double>(n);
-          if (nativeB == null) {
-            bPtr.asTypedList(n).setRange(0, n, b, bOffset);
-          }
-        }
-
         final nPtr = arena<ffi.Int32>()..value = n;
         final nrhsPtr = arena<ffi.Int32>()..value = nrhs;
         final ldaPtr = arena<ffi.Int32>()..value = n;
@@ -1835,22 +961,44 @@ class BlasLibrary {
         final ipiv = arena<ffi.Int32>(n);
         final info = arena<ffi.Int32>();
 
-        _dgesv!(nPtr, nrhsPtr, aTrans, ldaPtr, ipiv, bPtr, ldbPtr, info);
-        if (info.value == 0) {
-          if (!isContiguous1D) {
+        if (isContiguous1D) {
+          final bView = bOffset == 0 ? b : Float64List.sublistView(b, bOffset);
+          _fortranDgesv(
+            nPtr,
+            nrhsPtr,
+            aTrans,
+            ldaPtr,
+            ipiv,
+            bView.address,
+            ldbPtr,
+            info,
+          );
+          return info.value == 0;
+        } else {
+          final bPtr = arena<ffi.Double>(n * nrhs);
+          for (var j = 0; j < nrhs; j++) {
             for (var i = 0; i < n; i++) {
-              for (var j = 0; j < nrhs; j++) {
-                b[bOffset + i * ldb + j] = bPtr[j * n + i];
-              }
+              bPtr[j * n + i] = b[bOffset + i * ldb + j];
             }
-          } else {
-            if (_pointerForDouble(b, bOffset) == null) {
-              b.setRange(bOffset, bOffset + n, bPtr.asTypedList(n));
+          }
+          _fortranDgesv(
+            nPtr,
+            nrhsPtr,
+            aTrans,
+            ldaPtr,
+            ipiv,
+            bPtr,
+            ldbPtr,
+            info,
+          );
+          if (info.value != 0) return false;
+          for (var i = 0; i < n; i++) {
+            for (var j = 0; j < nrhs; j++) {
+              b[bOffset + i * ldb + j] = bPtr[j * n + i];
             }
           }
           return true;
         }
-        return false;
       });
     }
     // coverage:ignore-end
@@ -1869,66 +1017,29 @@ class BlasLibrary {
     int bOffset = 0,
     required int ldb,
   }) {
+    final aView = aOffset == 0 ? a : Float64List.sublistView(a, aOffset);
+    final bView = bOffset == 0 ? b : Float64List.sublistView(b, bOffset);
+
     // coverage:ignore-start
-    if (_lapackeDgels != null) {
-      return using((arena) {
-        final aLen = m * lda;
-        final bLen = (m > n ? m : n) * ldb;
-
-        final nativeA = _pointerForDouble(a, aOffset);
-        final nativeB = _pointerForDouble(b, bOffset);
-
-        final aPtr = nativeA ?? arena<ffi.Double>(aLen);
-        if (nativeA == null) {
-          aPtr.asTypedList(aLen).setRange(0, aLen, a, aOffset);
-        }
-
-        final bPtr = nativeB ?? arena<ffi.Double>(bLen);
-        if (nativeB == null) {
-          bPtr.asTypedList(bLen).setRange(0, m, b, bOffset);
-        }
-
-        final info = _lapackeDgels!(
-          cblasRowMajor,
-          78, // 'N'
-          m,
-          n,
-          nrhs,
-          aPtr,
-          lda,
-          bPtr,
-          ldb,
-        );
-        if (info == 0) {
-          if (nativeB == null) {
-            b.setRange(bOffset, bOffset + n * ldb, bPtr.asTypedList(bLen));
-          }
-          return true;
-        }
-        return false;
-      });
+    if (_hasLapackeDgels) {
+      final info = _lapackeDgels(
+        cblasRowMajor,
+        78, // 'N'
+        m,
+        n,
+        nrhs,
+        aView.address,
+        lda,
+        bView.address,
+        ldb,
+      );
+      return info == 0;
     }
     // coverage:ignore-end
 
-    if (_dgels != null) {
+    if (_hasDgels) {
       return using((arena) {
-        final aLen = m * lda;
         final maxMN = m > n ? m : n;
-        final bLen = maxMN * nrhs;
-
-        final nativeA = _pointerForDouble(a, aOffset);
-        final nativeB = _pointerForDouble(b, bOffset);
-
-        final aPtr = nativeA ?? arena<ffi.Double>(aLen);
-        if (nativeA == null) {
-          aPtr.asTypedList(aLen).setRange(0, aLen, a, aOffset);
-        }
-
-        final bPtr = nativeB ?? arena<ffi.Double>(bLen);
-        if (nativeB == null) {
-          bPtr.asTypedList(bLen).setRange(0, m, b, bOffset);
-        }
-
         final trans = arena<ffi.Uint8>()..value = 84; // 'T'
         final fRows = arena<ffi.Int32>()..value = n;
         final fCols = arena<ffi.Int32>()..value = m;
@@ -1939,14 +1050,14 @@ class BlasLibrary {
 
         final lworkQuery = arena<ffi.Int32>()..value = -1;
         final workQuery = arena<ffi.Double>(1);
-        _dgels!(
+        _fortranDgels(
           trans,
           fRows,
           fCols,
           nrhsPtr,
-          aPtr,
+          aView.address,
           ldaPtr,
-          bPtr,
+          bView.address,
           ldbPtr,
           workQuery,
           lworkQuery,
@@ -1958,26 +1069,20 @@ class BlasLibrary {
         final work = arena<ffi.Double>(optLwork);
         final lwork = arena<ffi.Int32>()..value = optLwork;
 
-        _dgels!(
+        _fortranDgels(
           trans,
           fRows,
           fCols,
           nrhsPtr,
-          aPtr,
+          aView.address,
           ldaPtr,
-          bPtr,
+          bView.address,
           ldbPtr,
           work,
           lwork,
           info,
         );
-        if (info.value == 0) {
-          if (nativeB == null) {
-            b.setRange(bOffset, bOffset + n, bPtr.asTypedList(bLen));
-          }
-          return true;
-        }
-        return false;
+        return info.value == 0;
       });
     }
 
@@ -2003,43 +1108,37 @@ class BlasLibrary {
     final wRequired = wOffset + n;
     if (a.length < aRequired || w.length < wRequired) return false;
 
+    final aView = aOffset == 0 ? a : Float64List.sublistView(a, aOffset);
+    final wView = wOffset == 0 ? w : Float64List.sublistView(w, wOffset);
+
     // coverage:ignore-start
-    if (_lapackeDsyev != null) {
-      return using((arena) {
-        final aLen = n * lda;
-        final aPtr = arena<ffi.Double>(aLen);
-        for (var i = 0; i < n; i++) {
-          for (var j = 0; j < n; j++) {
-            aPtr[i * lda + j] = a[aOffset + i * lda + j];
-          }
-        }
-        final wPtr = arena<ffi.Double>(n);
-        final info = _lapackeDsyev!(
-          cblasRowMajor,
-          normJobz.codeUnitAt(0),
-          uplo == cblasUpper ? 85 : 76,
-          n,
-          aPtr,
-          lda,
-          wPtr,
-        );
-        if (info == 0) {
-          if (normJobz == 'V') {
-            for (var i = 0; i < n; i++) {
-              for (var j = 0; j < n; j++) {
-                a[aOffset + i * lda + j] = aPtr[j * lda + i];
-              }
+    if (_hasLapackeDsyev) {
+      final info = _lapackeDsyev(
+        cblasRowMajor,
+        normJobz.codeUnitAt(0),
+        uplo == cblasUpper ? 85 : 76,
+        n,
+        aView.address,
+        lda,
+        wView.address,
+      );
+      if (info == 0) {
+        if (normJobz == 'V') {
+          for (var i = 0; i < n; i++) {
+            for (var j = i + 1; j < n; j++) {
+              final tmp = a[aOffset + i * lda + j];
+              a[aOffset + i * lda + j] = a[aOffset + j * lda + i];
+              a[aOffset + j * lda + i] = tmp;
             }
           }
-          w.setRange(wOffset, wOffset + n, wPtr.asTypedList(n));
-          return true;
         }
-        return false;
-      });
+        return true;
+      }
+      return false;
     }
     // coverage:ignore-end
 
-    if (_dsyev != null) {
+    if (_hasDsyev) {
       return using((arena) {
         final fA = arena<ffi.Double>(n * n);
         for (var i = 0; i < n; i++) {
@@ -2047,7 +1146,6 @@ class BlasLibrary {
             fA[j * n + i] = a[aOffset + i * lda + j];
           }
         }
-        final wPtr = arena<ffi.Double>(n);
         final jobzPtr = arena<ffi.Uint8>()..value = normJobz.codeUnitAt(0);
         final uploPtr = arena<ffi.Uint8>()
           ..value = uplo == cblasUpper ? 85 : 76;
@@ -2057,13 +1155,13 @@ class BlasLibrary {
 
         final lworkQuery = arena<ffi.Int32>()..value = -1;
         final workQuery = arena<ffi.Double>(1);
-        _dsyev!(
+        _fortranDsyev(
           jobzPtr,
           uploPtr,
           nPtr,
           fA,
           ldaPtr,
-          wPtr,
+          wView.address,
           workQuery,
           lworkQuery,
           info,
@@ -2077,7 +1175,17 @@ class BlasLibrary {
         final work = arena<ffi.Double>(lworkVal);
         final lwork = arena<ffi.Int32>()..value = lworkVal;
 
-        _dsyev!(jobzPtr, uploPtr, nPtr, fA, ldaPtr, wPtr, work, lwork, info);
+        _fortranDsyev(
+          jobzPtr,
+          uploPtr,
+          nPtr,
+          fA,
+          ldaPtr,
+          wView.address,
+          work,
+          lwork,
+          info,
+        );
         if (info.value == 0) {
           if (normJobz == 'V') {
             for (var i = 0; i < n; i++) {
@@ -2086,7 +1194,6 @@ class BlasLibrary {
               }
             }
           }
-          w.setRange(wOffset, wOffset + n, wPtr.asTypedList(n));
           return true;
         }
         return false;
@@ -2115,43 +1222,37 @@ class BlasLibrary {
     final wRequired = wOffset + n;
     if (a.length < aRequired || w.length < wRequired) return false;
 
+    final aView = aOffset == 0 ? a : Float32List.sublistView(a, aOffset);
+    final wView = wOffset == 0 ? w : Float32List.sublistView(w, wOffset);
+
     // coverage:ignore-start
-    if (_lapackeSsyev != null) {
-      return using((arena) {
-        final aLen = n * lda;
-        final aPtr = arena<ffi.Float>(aLen);
-        for (var i = 0; i < n; i++) {
-          for (var j = 0; j < n; j++) {
-            aPtr[i * lda + j] = a[aOffset + i * lda + j];
-          }
-        }
-        final wPtr = arena<ffi.Float>(n);
-        final info = _lapackeSsyev!(
-          cblasRowMajor,
-          normJobz.codeUnitAt(0),
-          uplo == cblasUpper ? 85 : 76,
-          n,
-          aPtr,
-          lda,
-          wPtr,
-        );
-        if (info == 0) {
-          if (normJobz == 'V') {
-            for (var i = 0; i < n; i++) {
-              for (var j = 0; j < n; j++) {
-                a[aOffset + i * lda + j] = aPtr[j * lda + i];
-              }
+    if (_hasLapackeSsyev) {
+      final info = _lapackeSsyev(
+        cblasRowMajor,
+        normJobz.codeUnitAt(0),
+        uplo == cblasUpper ? 85 : 76,
+        n,
+        aView.address,
+        lda,
+        wView.address,
+      );
+      if (info == 0) {
+        if (normJobz == 'V') {
+          for (var i = 0; i < n; i++) {
+            for (var j = i + 1; j < n; j++) {
+              final tmp = a[aOffset + i * lda + j];
+              a[aOffset + i * lda + j] = a[aOffset + j * lda + i];
+              a[aOffset + j * lda + i] = tmp;
             }
           }
-          w.setRange(wOffset, wOffset + n, wPtr.asTypedList(n));
-          return true;
         }
-        return false;
-      });
+        return true;
+      }
+      return false;
     }
     // coverage:ignore-end
 
-    if (_ssyev != null) {
+    if (_hasSsyev) {
       return using((arena) {
         final fA = arena<ffi.Float>(n * n);
         for (var i = 0; i < n; i++) {
@@ -2159,7 +1260,6 @@ class BlasLibrary {
             fA[j * n + i] = a[aOffset + i * lda + j];
           }
         }
-        final wPtr = arena<ffi.Float>(n);
         final jobzPtr = arena<ffi.Uint8>()..value = normJobz.codeUnitAt(0);
         final uploPtr = arena<ffi.Uint8>()
           ..value = uplo == cblasUpper ? 85 : 76;
@@ -2169,13 +1269,13 @@ class BlasLibrary {
 
         final lworkQuery = arena<ffi.Int32>()..value = -1;
         final workQuery = arena<ffi.Float>(1);
-        _ssyev!(
+        _fortranSsyev(
           jobzPtr,
           uploPtr,
           nPtr,
           fA,
           ldaPtr,
-          wPtr,
+          wView.address,
           workQuery,
           lworkQuery,
           info,
@@ -2189,7 +1289,17 @@ class BlasLibrary {
         final work = arena<ffi.Float>(lworkVal);
         final lwork = arena<ffi.Int32>()..value = lworkVal;
 
-        _ssyev!(jobzPtr, uploPtr, nPtr, fA, ldaPtr, wPtr, work, lwork, info);
+        _fortranSsyev(
+          jobzPtr,
+          uploPtr,
+          nPtr,
+          fA,
+          ldaPtr,
+          wView.address,
+          work,
+          lwork,
+          info,
+        );
         if (info.value == 0) {
           if (normJobz == 'V') {
             for (var i = 0; i < n; i++) {
@@ -2198,7 +1308,6 @@ class BlasLibrary {
               }
             }
           }
-          w.setRange(wOffset, wOffset + n, wPtr.asTypedList(n));
           return true;
         }
         return false;
@@ -2206,45 +1315,6 @@ class BlasLibrary {
     }
 
     return false;
-  }
-
-  T? _lookup<T extends Function>(T Function(ffi.DynamicLibrary lib) lookup) {
-    for (final lib in _libraries) {
-      try {
-        return lookup(lib);
-      } catch (_) {}
-    }
-    return null;
-  }
-
-  static ffi.Pointer<ffi.Double>? _pointerForDouble(
-    Float64List list,
-    int offset,
-  ) {
-    final nb = NativeBuffer.find(list);
-    if (nb != null && !nb.isDisposed) {
-      final ptr = nb.asDoublePointer;
-      if (ptr != null) {
-        final elemOffset = list.offsetInBytes ~/ 8;
-        return ptr + elemOffset + offset;
-      }
-    }
-    return null;
-  }
-
-  static ffi.Pointer<ffi.Float>? _pointerForFloat(
-    Float32List list,
-    int offset,
-  ) {
-    final nb = NativeBuffer.find(list);
-    if (nb != null && !nb.isDisposed) {
-      final ptr = nb.asFloatPointer;
-      if (ptr != null) {
-        final elemOffset = list.offsetInBytes ~/ 4;
-        return ptr + elemOffset + offset;
-      }
-    }
-    return null;
   }
 
   static void _mirrorSymmetricDouble(
@@ -2262,8 +1332,8 @@ class BlasLibrary {
       }
     } else {
       for (var i = 0; i < n; i++) {
-        for (var j = i + 1; j < n; j++) {
-          c[cOffset + i * ldc + j] = c[cOffset + j * ldc + i];
+        for (var j = 0; j < i; j++) {
+          c[cOffset + j * ldc + i] = c[cOffset + i * ldc + j];
         }
       }
     }
@@ -2284,8 +1354,8 @@ class BlasLibrary {
       }
     } else {
       for (var i = 0; i < n; i++) {
-        for (var j = i + 1; j < n; j++) {
-          c[cOffset + i * ldc + j] = c[cOffset + j * ldc + i];
+        for (var j = 0; j < i; j++) {
+          c[cOffset + j * ldc + i] = c[cOffset + i * ldc + j];
         }
       }
     }
@@ -2297,6 +1367,12 @@ List<ffi.DynamicLibrary> _loadPlatformLibraries() {
   void tryOpen(String name) {
     try {
       libs.add(ffi.DynamicLibrary.open(name));
+      if (!Platform.isWindows) {
+        using((arena) {
+          final str = name.toNativeUtf8(allocator: arena);
+          _posixDlopen(str.cast(), 1 | 0x100);
+        });
+      }
     } catch (_) {}
   }
 
@@ -2336,23 +1412,306 @@ List<ffi.DynamicLibrary> _loadPlatformLibraries() {
   return libs;
 }
 
-typedef _CblasDgemmNative = ffi.Void Function(
-  ffi.Int32 order,
-  ffi.Int32 transA,
-  ffi.Int32 transB,
-  ffi.Int32 m,
-  ffi.Int32 n,
-  ffi.Int32 k,
-  ffi.Double alpha,
-  ffi.Pointer<ffi.Double> a,
-  ffi.Int32 lda,
-  ffi.Pointer<ffi.Double> b,
-  ffi.Int32 ldb,
-  ffi.Double beta,
-  ffi.Pointer<ffi.Double> c,
-  ffi.Int32 ldc,
+@ffi.Native<ffi.Pointer<ffi.Void> Function(ffi.Pointer<ffi.Char>, ffi.Int32)>(
+  symbol: 'dlopen',
+  isLeaf: true,
+)
+external ffi.Pointer<ffi.Void> _posixDlopen(
+  ffi.Pointer<ffi.Char> file,
+  int mode,
 );
-typedef _CblasDgemm = void Function(
+
+// --- Native bindings ---
+
+@ffi.Native<
+  ffi.Double Function(
+    ffi.Int32,
+    ffi.Pointer<ffi.Double>,
+    ffi.Int32,
+    ffi.Pointer<ffi.Double>,
+    ffi.Int32,
+  )
+>(symbol: 'cblas_ddot', isLeaf: true)
+external double _cblasDdot(
+  int n,
+  ffi.Pointer<ffi.Double> x,
+  int incX,
+  ffi.Pointer<ffi.Double> y,
+  int incY,
+);
+
+@ffi.Native<
+  ffi.Float Function(
+    ffi.Int32,
+    ffi.Pointer<ffi.Float>,
+    ffi.Int32,
+    ffi.Pointer<ffi.Float>,
+    ffi.Int32,
+  )
+>(symbol: 'cblas_sdot', isLeaf: true)
+external double _cblasSdot(
+  int n,
+  ffi.Pointer<ffi.Float> x,
+  int incX,
+  ffi.Pointer<ffi.Float> y,
+  int incY,
+);
+
+@ffi.Native<ffi.Double Function(ffi.Int32, ffi.Pointer<ffi.Double>, ffi.Int32)>(
+  symbol: 'cblas_dnrm2',
+  isLeaf: true,
+)
+external double _cblasDnrm2(int n, ffi.Pointer<ffi.Double> x, int incX);
+
+@ffi.Native<ffi.Float Function(ffi.Int32, ffi.Pointer<ffi.Float>, ffi.Int32)>(
+  symbol: 'cblas_snrm2',
+  isLeaf: true,
+)
+external double _cblasSnrm2(int n, ffi.Pointer<ffi.Float> x, int incX);
+
+@ffi.Native<
+  ffi.Void Function(
+    ffi.Int32,
+    ffi.Double,
+    ffi.Pointer<ffi.Double>,
+    ffi.Int32,
+    ffi.Pointer<ffi.Double>,
+    ffi.Int32,
+  )
+>(symbol: 'cblas_daxpy', isLeaf: true)
+external void _cblasDaxpy(
+  int n,
+  double alpha,
+  ffi.Pointer<ffi.Double> x,
+  int incX,
+  ffi.Pointer<ffi.Double> y,
+  int incY,
+);
+
+@ffi.Native<
+  ffi.Void Function(
+    ffi.Int32,
+    ffi.Float,
+    ffi.Pointer<ffi.Float>,
+    ffi.Int32,
+    ffi.Pointer<ffi.Float>,
+    ffi.Int32,
+  )
+>(symbol: 'cblas_saxpy', isLeaf: true)
+external void _cblasSaxpy(
+  int n,
+  double alpha,
+  ffi.Pointer<ffi.Float> x,
+  int incX,
+  ffi.Pointer<ffi.Float> y,
+  int incY,
+);
+
+@ffi.Native<
+  ffi.Void Function(ffi.Int32, ffi.Double, ffi.Pointer<ffi.Double>, ffi.Int32)
+>(symbol: 'cblas_dscal', isLeaf: true)
+external void _cblasDscal(
+  int n,
+  double alpha,
+  ffi.Pointer<ffi.Double> x,
+  int incX,
+);
+
+@ffi.Native<
+  ffi.Void Function(ffi.Int32, ffi.Float, ffi.Pointer<ffi.Float>, ffi.Int32)
+>(symbol: 'cblas_sscal', isLeaf: true)
+external void _cblasSscal(
+  int n,
+  double alpha,
+  ffi.Pointer<ffi.Float> x,
+  int incX,
+);
+
+@ffi.Native<
+  ffi.Void Function(
+    ffi.Int32,
+    ffi.Int32,
+    ffi.Int32,
+    ffi.Int32,
+    ffi.Double,
+    ffi.Pointer<ffi.Double>,
+    ffi.Int32,
+    ffi.Pointer<ffi.Double>,
+    ffi.Int32,
+    ffi.Double,
+    ffi.Pointer<ffi.Double>,
+    ffi.Int32,
+  )
+>(symbol: 'cblas_dgemv', isLeaf: true)
+external void _cblasDgemv(
+  int order,
+  int transA,
+  int m,
+  int n,
+  double alpha,
+  ffi.Pointer<ffi.Double> a,
+  int lda,
+  ffi.Pointer<ffi.Double> x,
+  int incX,
+  double beta,
+  ffi.Pointer<ffi.Double> y,
+  int incY,
+);
+
+@ffi.Native<
+  ffi.Void Function(
+    ffi.Int32,
+    ffi.Int32,
+    ffi.Int32,
+    ffi.Int32,
+    ffi.Float,
+    ffi.Pointer<ffi.Float>,
+    ffi.Int32,
+    ffi.Pointer<ffi.Float>,
+    ffi.Int32,
+    ffi.Float,
+    ffi.Pointer<ffi.Float>,
+    ffi.Int32,
+  )
+>(symbol: 'cblas_sgemv', isLeaf: true)
+external void _cblasSgemv(
+  int order,
+  int transA,
+  int m,
+  int n,
+  double alpha,
+  ffi.Pointer<ffi.Float> a,
+  int lda,
+  ffi.Pointer<ffi.Float> x,
+  int incX,
+  double beta,
+  ffi.Pointer<ffi.Float> y,
+  int incY,
+);
+
+@ffi.Native<
+  ffi.Void Function(
+    ffi.Int32,
+    ffi.Int32,
+    ffi.Int32,
+    ffi.Int32,
+    ffi.Int32,
+    ffi.Pointer<ffi.Double>,
+    ffi.Int32,
+    ffi.Pointer<ffi.Double>,
+    ffi.Int32,
+  )
+>(symbol: 'cblas_dtrmv', isLeaf: true)
+external void _cblasDtrmv(
+  int order,
+  int uplo,
+  int trans,
+  int diag,
+  int n,
+  ffi.Pointer<ffi.Double> a,
+  int lda,
+  ffi.Pointer<ffi.Double> x,
+  int incX,
+);
+
+@ffi.Native<
+  ffi.Void Function(
+    ffi.Int32,
+    ffi.Int32,
+    ffi.Int32,
+    ffi.Int32,
+    ffi.Int32,
+    ffi.Pointer<ffi.Float>,
+    ffi.Int32,
+    ffi.Pointer<ffi.Float>,
+    ffi.Int32,
+  )
+>(symbol: 'cblas_strmv', isLeaf: true)
+external void _cblasStrmv(
+  int order,
+  int uplo,
+  int trans,
+  int diag,
+  int n,
+  ffi.Pointer<ffi.Float> a,
+  int lda,
+  ffi.Pointer<ffi.Float> x,
+  int incX,
+);
+
+@ffi.Native<
+  ffi.Void Function(
+    ffi.Int32,
+    ffi.Int32,
+    ffi.Int32,
+    ffi.Double,
+    ffi.Pointer<ffi.Double>,
+    ffi.Int32,
+    ffi.Pointer<ffi.Double>,
+    ffi.Int32,
+    ffi.Pointer<ffi.Double>,
+    ffi.Int32,
+  )
+>(symbol: 'cblas_dsyr2', isLeaf: true)
+external void _cblasDsyr2(
+  int order,
+  int uplo,
+  int n,
+  double alpha,
+  ffi.Pointer<ffi.Double> x,
+  int incX,
+  ffi.Pointer<ffi.Double> y,
+  int incY,
+  ffi.Pointer<ffi.Double> a,
+  int lda,
+);
+
+@ffi.Native<
+  ffi.Void Function(
+    ffi.Int32,
+    ffi.Int32,
+    ffi.Int32,
+    ffi.Float,
+    ffi.Pointer<ffi.Float>,
+    ffi.Int32,
+    ffi.Pointer<ffi.Float>,
+    ffi.Int32,
+    ffi.Pointer<ffi.Float>,
+    ffi.Int32,
+  )
+>(symbol: 'cblas_ssyr2', isLeaf: true)
+external void _cblasSsyr2(
+  int order,
+  int uplo,
+  int n,
+  double alpha,
+  ffi.Pointer<ffi.Float> x,
+  int incX,
+  ffi.Pointer<ffi.Float> y,
+  int incY,
+  ffi.Pointer<ffi.Float> a,
+  int lda,
+);
+
+@ffi.Native<
+  ffi.Void Function(
+    ffi.Int32,
+    ffi.Int32,
+    ffi.Int32,
+    ffi.Int32,
+    ffi.Int32,
+    ffi.Int32,
+    ffi.Double,
+    ffi.Pointer<ffi.Double>,
+    ffi.Int32,
+    ffi.Pointer<ffi.Double>,
+    ffi.Int32,
+    ffi.Double,
+    ffi.Pointer<ffi.Double>,
+    ffi.Int32,
+  )
+>(symbol: 'cblas_dgemm', isLeaf: true)
+external void _cblasDgemm(
   int order,
   int transA,
   int transB,
@@ -2369,23 +1728,25 @@ typedef _CblasDgemm = void Function(
   int ldc,
 );
 
-typedef _CblasSgemmNative = ffi.Void Function(
-  ffi.Int32 order,
-  ffi.Int32 transA,
-  ffi.Int32 transB,
-  ffi.Int32 m,
-  ffi.Int32 n,
-  ffi.Int32 k,
-  ffi.Float alpha,
-  ffi.Pointer<ffi.Float> a,
-  ffi.Int32 lda,
-  ffi.Pointer<ffi.Float> b,
-  ffi.Int32 ldb,
-  ffi.Float beta,
-  ffi.Pointer<ffi.Float> c,
-  ffi.Int32 ldc,
-);
-typedef _CblasSgemm = void Function(
+@ffi.Native<
+  ffi.Void Function(
+    ffi.Int32,
+    ffi.Int32,
+    ffi.Int32,
+    ffi.Int32,
+    ffi.Int32,
+    ffi.Int32,
+    ffi.Float,
+    ffi.Pointer<ffi.Float>,
+    ffi.Int32,
+    ffi.Pointer<ffi.Float>,
+    ffi.Int32,
+    ffi.Float,
+    ffi.Pointer<ffi.Float>,
+    ffi.Int32,
+  )
+>(symbol: 'cblas_sgemm', isLeaf: true)
+external void _cblasSgemm(
   int order,
   int transA,
   int transB,
@@ -2402,190 +1763,22 @@ typedef _CblasSgemm = void Function(
   int ldc,
 );
 
-typedef _CblasDgemvNative = ffi.Void Function(
-  ffi.Int32 order,
-  ffi.Int32 transA,
-  ffi.Int32 m,
-  ffi.Int32 n,
-  ffi.Double alpha,
-  ffi.Pointer<ffi.Double> a,
-  ffi.Int32 lda,
-  ffi.Pointer<ffi.Double> x,
-  ffi.Int32 incX,
-  ffi.Double beta,
-  ffi.Pointer<ffi.Double> y,
-  ffi.Int32 incY,
-);
-typedef _CblasDgemv = void Function(
-  int order,
-  int transA,
-  int m,
-  int n,
-  double alpha,
-  ffi.Pointer<ffi.Double> a,
-  int lda,
-  ffi.Pointer<ffi.Double> x,
-  int incX,
-  double beta,
-  ffi.Pointer<ffi.Double> y,
-  int incY,
-);
-
-typedef _CblasSgemvNative = ffi.Void Function(
-  ffi.Int32 order,
-  ffi.Int32 transA,
-  ffi.Int32 m,
-  ffi.Int32 n,
-  ffi.Float alpha,
-  ffi.Pointer<ffi.Float> a,
-  ffi.Int32 lda,
-  ffi.Pointer<ffi.Float> x,
-  ffi.Int32 incX,
-  ffi.Float beta,
-  ffi.Pointer<ffi.Float> y,
-  ffi.Int32 incY,
-);
-typedef _CblasSgemv = void Function(
-  int order,
-  int transA,
-  int m,
-  int n,
-  double alpha,
-  ffi.Pointer<ffi.Float> a,
-  int lda,
-  ffi.Pointer<ffi.Float> x,
-  int incX,
-  double beta,
-  ffi.Pointer<ffi.Float> y,
-  int incY,
-);
-
-typedef _CblasDdotNative = ffi.Double Function(
-  ffi.Int32 n,
-  ffi.Pointer<ffi.Double> x,
-  ffi.Int32 incX,
-  ffi.Pointer<ffi.Double> y,
-  ffi.Int32 incY,
-);
-typedef _CblasDdot = double Function(
-  int n,
-  ffi.Pointer<ffi.Double> x,
-  int incX,
-  ffi.Pointer<ffi.Double> y,
-  int incY,
-);
-
-typedef _CblasSdotNative = ffi.Float Function(
-  ffi.Int32 n,
-  ffi.Pointer<ffi.Float> x,
-  ffi.Int32 incX,
-  ffi.Pointer<ffi.Float> y,
-  ffi.Int32 incY,
-);
-typedef _CblasSdot = double Function(
-  int n,
-  ffi.Pointer<ffi.Float> x,
-  int incX,
-  ffi.Pointer<ffi.Float> y,
-  int incY,
-);
-
-typedef _CblasDnrm2Native = ffi.Double Function(
-  ffi.Int32 n,
-  ffi.Pointer<ffi.Double> x,
-  ffi.Int32 incX,
-);
-typedef _CblasDnrm2 = double Function(
-  int n,
-  ffi.Pointer<ffi.Double> x,
-  int incX,
-);
-
-typedef _CblasSnrm2Native = ffi.Float Function(
-  ffi.Int32 n,
-  ffi.Pointer<ffi.Float> x,
-  ffi.Int32 incX,
-);
-typedef _CblasSnrm2 = double Function(
-  int n,
-  ffi.Pointer<ffi.Float> x,
-  int incX,
-);
-
-typedef _CblasDaxpyNative = ffi.Void Function(
-  ffi.Int32 n,
-  ffi.Double alpha,
-  ffi.Pointer<ffi.Double> x,
-  ffi.Int32 incX,
-  ffi.Pointer<ffi.Double> y,
-  ffi.Int32 incY,
-);
-typedef _CblasDaxpy = void Function(
-  int n,
-  double alpha,
-  ffi.Pointer<ffi.Double> x,
-  int incX,
-  ffi.Pointer<ffi.Double> y,
-  int incY,
-);
-
-typedef _CblasSaxpyNative = ffi.Void Function(
-  ffi.Int32 n,
-  ffi.Float alpha,
-  ffi.Pointer<ffi.Float> x,
-  ffi.Int32 incX,
-  ffi.Pointer<ffi.Float> y,
-  ffi.Int32 incY,
-);
-typedef _CblasSaxpy = void Function(
-  int n,
-  double alpha,
-  ffi.Pointer<ffi.Float> x,
-  int incX,
-  ffi.Pointer<ffi.Float> y,
-  int incY,
-);
-
-typedef _CblasDscalNative = ffi.Void Function(
-  ffi.Int32 n,
-  ffi.Double alpha,
-  ffi.Pointer<ffi.Double> x,
-  ffi.Int32 incX,
-);
-typedef _CblasDscal = void Function(
-  int n,
-  double alpha,
-  ffi.Pointer<ffi.Double> x,
-  int incX,
-);
-
-typedef _CblasSscalNative = ffi.Void Function(
-  ffi.Int32 n,
-  ffi.Float alpha,
-  ffi.Pointer<ffi.Float> x,
-  ffi.Int32 incX,
-);
-typedef _CblasSscal = void Function(
-  int n,
-  double alpha,
-  ffi.Pointer<ffi.Float> x,
-  int incX,
-);
-
-typedef _CblasDsyrkNative = ffi.Void Function(
-  ffi.Int32 order,
-  ffi.Int32 uplo,
-  ffi.Int32 trans,
-  ffi.Int32 n,
-  ffi.Int32 k,
-  ffi.Double alpha,
-  ffi.Pointer<ffi.Double> a,
-  ffi.Int32 lda,
-  ffi.Double beta,
-  ffi.Pointer<ffi.Double> c,
-  ffi.Int32 ldc,
-);
-typedef _CblasDsyrk = void Function(
+@ffi.Native<
+  ffi.Void Function(
+    ffi.Int32,
+    ffi.Int32,
+    ffi.Int32,
+    ffi.Int32,
+    ffi.Int32,
+    ffi.Double,
+    ffi.Pointer<ffi.Double>,
+    ffi.Int32,
+    ffi.Double,
+    ffi.Pointer<ffi.Double>,
+    ffi.Int32,
+  )
+>(symbol: 'cblas_dsyrk', isLeaf: true)
+external void _cblasDsyrk(
   int order,
   int uplo,
   int trans,
@@ -2599,20 +1792,22 @@ typedef _CblasDsyrk = void Function(
   int ldc,
 );
 
-typedef _CblasSsyrkNative = ffi.Void Function(
-  ffi.Int32 order,
-  ffi.Int32 uplo,
-  ffi.Int32 trans,
-  ffi.Int32 n,
-  ffi.Int32 k,
-  ffi.Float alpha,
-  ffi.Pointer<ffi.Float> a,
-  ffi.Int32 lda,
-  ffi.Float beta,
-  ffi.Pointer<ffi.Float> c,
-  ffi.Int32 ldc,
-);
-typedef _CblasSsyrk = void Function(
+@ffi.Native<
+  ffi.Void Function(
+    ffi.Int32,
+    ffi.Int32,
+    ffi.Int32,
+    ffi.Int32,
+    ffi.Int32,
+    ffi.Float,
+    ffi.Pointer<ffi.Float>,
+    ffi.Int32,
+    ffi.Float,
+    ffi.Pointer<ffi.Float>,
+    ffi.Int32,
+  )
+>(symbol: 'cblas_ssyrk', isLeaf: true)
+external void _cblasSsyrk(
   int order,
   int uplo,
   int trans,
@@ -2625,190 +1820,148 @@ typedef _CblasSsyrk = void Function(
   ffi.Pointer<ffi.Float> c,
   int ldc,
 );
-typedef _CblasDsyr2Native = ffi.Void Function(
-  ffi.Int32 order,
-  ffi.Int32 uplo,
-  ffi.Int32 n,
-  ffi.Double alpha,
-  ffi.Pointer<ffi.Double> x,
-  ffi.Int32 incX,
-  ffi.Pointer<ffi.Double> y,
-  ffi.Int32 incY,
-  ffi.Pointer<ffi.Double> a,
-  ffi.Int32 lda,
-);
-typedef _CblasDsyr2 = void Function(
+
+@ffi.Native<
+  ffi.Void Function(
+    ffi.Int32,
+    ffi.Int32,
+    ffi.Int32,
+    ffi.Int32,
+    ffi.Int32,
+    ffi.Double,
+    ffi.Pointer<ffi.Double>,
+    ffi.Int32,
+    ffi.Pointer<ffi.Double>,
+    ffi.Int32,
+    ffi.Double,
+    ffi.Pointer<ffi.Double>,
+    ffi.Int32,
+  )
+>(symbol: 'cblas_dsymm', isLeaf: true)
+external void _cblasDsymm(
   int order,
+  int side,
   int uplo,
+  int m,
   int n,
   double alpha,
-  ffi.Pointer<ffi.Double> x,
-  int incX,
-  ffi.Pointer<ffi.Double> y,
-  int incY,
   ffi.Pointer<ffi.Double> a,
   int lda,
+  ffi.Pointer<ffi.Double> b,
+  int ldb,
+  double beta,
+  ffi.Pointer<ffi.Double> c,
+  int ldc,
 );
 
-typedef _CblasSsyr2Native = ffi.Void Function(
-  ffi.Int32 order,
-  ffi.Int32 uplo,
-  ffi.Int32 n,
-  ffi.Float alpha,
-  ffi.Pointer<ffi.Float> x,
-  ffi.Int32 incX,
-  ffi.Pointer<ffi.Float> y,
-  ffi.Int32 incY,
-  ffi.Pointer<ffi.Float> a,
-  ffi.Int32 lda,
-);
-typedef _CblasSsyr2 = void Function(
+@ffi.Native<
+  ffi.Void Function(
+    ffi.Int32,
+    ffi.Int32,
+    ffi.Int32,
+    ffi.Int32,
+    ffi.Int32,
+    ffi.Float,
+    ffi.Pointer<ffi.Float>,
+    ffi.Int32,
+    ffi.Pointer<ffi.Float>,
+    ffi.Int32,
+    ffi.Float,
+    ffi.Pointer<ffi.Float>,
+    ffi.Int32,
+  )
+>(symbol: 'cblas_ssymm', isLeaf: true)
+external void _cblasSsymm(
   int order,
+  int side,
   int uplo,
+  int m,
   int n,
   double alpha,
-  ffi.Pointer<ffi.Float> x,
-  int incX,
-  ffi.Pointer<ffi.Float> y,
-  int incY,
   ffi.Pointer<ffi.Float> a,
   int lda,
+  ffi.Pointer<ffi.Float> b,
+  int ldb,
+  double beta,
+  ffi.Pointer<ffi.Float> c,
+  int ldc,
 );
 
-typedef _FortranDgesvNative = ffi.Void Function(
-  ffi.Pointer<ffi.Int32> n,
-  ffi.Pointer<ffi.Int32> nrhs,
+@ffi.Native<
+  ffi.Void Function(
+    ffi.Int32,
+    ffi.Int32,
+    ffi.Int32,
+    ffi.Int32,
+    ffi.Int32,
+    ffi.Int32,
+    ffi.Int32,
+    ffi.Double,
+    ffi.Pointer<ffi.Double>,
+    ffi.Int32,
+    ffi.Pointer<ffi.Double>,
+    ffi.Int32,
+  )
+>(symbol: 'cblas_dtrmm', isLeaf: true)
+external void _cblasDtrmm(
+  int order,
+  int side,
+  int uplo,
+  int transA,
+  int diag,
+  int m,
+  int n,
+  double alpha,
   ffi.Pointer<ffi.Double> a,
-  ffi.Pointer<ffi.Int32> lda,
-  ffi.Pointer<ffi.Int32> ipiv,
+  int lda,
   ffi.Pointer<ffi.Double> b,
-  ffi.Pointer<ffi.Int32> ldb,
-  ffi.Pointer<ffi.Int32> info,
-);
-typedef _FortranDgesv = void Function(
-  ffi.Pointer<ffi.Int32> n,
-  ffi.Pointer<ffi.Int32> nrhs,
-  ffi.Pointer<ffi.Double> a,
-  ffi.Pointer<ffi.Int32> lda,
-  ffi.Pointer<ffi.Int32> ipiv,
-  ffi.Pointer<ffi.Double> b,
-  ffi.Pointer<ffi.Int32> ldb,
-  ffi.Pointer<ffi.Int32> info,
+  int ldb,
 );
 
-typedef _FortranDpotrfNative = ffi.Void Function(
-  ffi.Pointer<ffi.Uint8> uplo,
-  ffi.Pointer<ffi.Int32> n,
-  ffi.Pointer<ffi.Double> a,
-  ffi.Pointer<ffi.Int32> lda,
-  ffi.Pointer<ffi.Int32> info,
-);
-typedef _FortranDpotrf = void Function(
-  ffi.Pointer<ffi.Uint8> uplo,
-  ffi.Pointer<ffi.Int32> n,
-  ffi.Pointer<ffi.Double> a,
-  ffi.Pointer<ffi.Int32> lda,
-  ffi.Pointer<ffi.Int32> info,
-);
-
-typedef _FortranDgeqrfNative = ffi.Void Function(
-  ffi.Pointer<ffi.Int32> m,
-  ffi.Pointer<ffi.Int32> n,
-  ffi.Pointer<ffi.Double> a,
-  ffi.Pointer<ffi.Int32> lda,
-  ffi.Pointer<ffi.Double> tau,
-  ffi.Pointer<ffi.Double> work,
-  ffi.Pointer<ffi.Int32> lwork,
-  ffi.Pointer<ffi.Int32> info,
-);
-typedef _FortranDgeqrf = void Function(
-  ffi.Pointer<ffi.Int32> m,
-  ffi.Pointer<ffi.Int32> n,
-  ffi.Pointer<ffi.Double> a,
-  ffi.Pointer<ffi.Int32> lda,
-  ffi.Pointer<ffi.Double> tau,
-  ffi.Pointer<ffi.Double> work,
-  ffi.Pointer<ffi.Int32> lwork,
-  ffi.Pointer<ffi.Int32> info,
+@ffi.Native<
+  ffi.Void Function(
+    ffi.Int32,
+    ffi.Int32,
+    ffi.Int32,
+    ffi.Int32,
+    ffi.Int32,
+    ffi.Int32,
+    ffi.Int32,
+    ffi.Float,
+    ffi.Pointer<ffi.Float>,
+    ffi.Int32,
+    ffi.Pointer<ffi.Float>,
+    ffi.Int32,
+  )
+>(symbol: 'cblas_strmm', isLeaf: true)
+external void _cblasStrmm(
+  int order,
+  int side,
+  int uplo,
+  int transA,
+  int diag,
+  int m,
+  int n,
+  double alpha,
+  ffi.Pointer<ffi.Float> a,
+  int lda,
+  ffi.Pointer<ffi.Float> b,
+  int ldb,
 );
 
-typedef _FortranDgesvdNative = ffi.Void Function(
-  ffi.Pointer<ffi.Uint8> jobu,
-  ffi.Pointer<ffi.Uint8> jobvt,
-  ffi.Pointer<ffi.Int32> m,
-  ffi.Pointer<ffi.Int32> n,
-  ffi.Pointer<ffi.Double> a,
-  ffi.Pointer<ffi.Int32> lda,
-  ffi.Pointer<ffi.Double> s,
-  ffi.Pointer<ffi.Double> u,
-  ffi.Pointer<ffi.Int32> ldu,
-  ffi.Pointer<ffi.Double> vt,
-  ffi.Pointer<ffi.Int32> ldvt,
-  ffi.Pointer<ffi.Double> work,
-  ffi.Pointer<ffi.Int32> lwork,
-  ffi.Pointer<ffi.Int32> info,
-);
-typedef _FortranDgesvd = void Function(
-  ffi.Pointer<ffi.Uint8> jobu,
-  ffi.Pointer<ffi.Uint8> jobvt,
-  ffi.Pointer<ffi.Int32> m,
-  ffi.Pointer<ffi.Int32> n,
-  ffi.Pointer<ffi.Double> a,
-  ffi.Pointer<ffi.Int32> lda,
-  ffi.Pointer<ffi.Double> s,
-  ffi.Pointer<ffi.Double> u,
-  ffi.Pointer<ffi.Int32> ldu,
-  ffi.Pointer<ffi.Double> vt,
-  ffi.Pointer<ffi.Int32> ldvt,
-  ffi.Pointer<ffi.Double> work,
-  ffi.Pointer<ffi.Int32> lwork,
-  ffi.Pointer<ffi.Int32> info,
-);
-
-typedef _FortranDgesddNative = ffi.Void Function(
-  ffi.Pointer<ffi.Uint8> jobz,
-  ffi.Pointer<ffi.Int32> m,
-  ffi.Pointer<ffi.Int32> n,
-  ffi.Pointer<ffi.Double> a,
-  ffi.Pointer<ffi.Int32> lda,
-  ffi.Pointer<ffi.Double> s,
-  ffi.Pointer<ffi.Double> u,
-  ffi.Pointer<ffi.Int32> ldu,
-  ffi.Pointer<ffi.Double> vt,
-  ffi.Pointer<ffi.Int32> ldvt,
-  ffi.Pointer<ffi.Double> work,
-  ffi.Pointer<ffi.Int32> lwork,
-  ffi.Pointer<ffi.Int32> iwork,
-  ffi.Pointer<ffi.Int32> info,
-);
-typedef _FortranDgesdd = void Function(
-  ffi.Pointer<ffi.Uint8> jobz,
-  ffi.Pointer<ffi.Int32> m,
-  ffi.Pointer<ffi.Int32> n,
-  ffi.Pointer<ffi.Double> a,
-  ffi.Pointer<ffi.Int32> lda,
-  ffi.Pointer<ffi.Double> s,
-  ffi.Pointer<ffi.Double> u,
-  ffi.Pointer<ffi.Int32> ldu,
-  ffi.Pointer<ffi.Double> vt,
-  ffi.Pointer<ffi.Int32> ldvt,
-  ffi.Pointer<ffi.Double> work,
-  ffi.Pointer<ffi.Int32> lwork,
-  ffi.Pointer<ffi.Int32> iwork,
-  ffi.Pointer<ffi.Int32> info,
-);
-
-typedef _LapackeDgesvNative = ffi.Int32 Function(
-  ffi.Int32 matrixLayout,
-  ffi.Int32 n,
-  ffi.Int32 nrhs,
-  ffi.Pointer<ffi.Double> a,
-  ffi.Int32 lda,
-  ffi.Pointer<ffi.Int32> ipiv,
-  ffi.Pointer<ffi.Double> b,
-  ffi.Int32 ldb,
-);
-typedef _LapackeDgesv = int Function(
+@ffi.Native<
+  ffi.Int32 Function(
+    ffi.Int32,
+    ffi.Int32,
+    ffi.Int32,
+    ffi.Pointer<ffi.Double>,
+    ffi.Int32,
+    ffi.Pointer<ffi.Int32>,
+    ffi.Pointer<ffi.Double>,
+    ffi.Int32,
+  )
+>(symbol: 'LAPACKE_dgesv', isLeaf: true)
+external int _lapackeDgesv(
   int matrixLayout,
   int n,
   int nrhs,
@@ -2819,15 +1972,40 @@ typedef _LapackeDgesv = int Function(
   int ldb,
 );
 
-typedef _FortranDgetrfNative = ffi.Void Function(
-  ffi.Pointer<ffi.Int32> m,
-  ffi.Pointer<ffi.Int32> n,
+@ffi.Native<
+  ffi.Int32 Function(
+    ffi.Int32,
+    ffi.Int32,
+    ffi.Int32,
+    ffi.Pointer<ffi.Double>,
+    ffi.Int32,
+    ffi.Pointer<ffi.Int32>,
+    ffi.Pointer<ffi.Double>,
+    ffi.Int32,
+  )
+>(symbol: 'clapack_dgesv', isLeaf: true)
+external int _clapackDgesv(
+  int matrixLayout,
+  int n,
+  int nrhs,
   ffi.Pointer<ffi.Double> a,
-  ffi.Pointer<ffi.Int32> lda,
+  int lda,
   ffi.Pointer<ffi.Int32> ipiv,
-  ffi.Pointer<ffi.Int32> info,
+  ffi.Pointer<ffi.Double> b,
+  int ldb,
 );
-typedef _FortranDgetrf = void Function(
+
+@ffi.Native<
+  ffi.Void Function(
+    ffi.Pointer<ffi.Int32>,
+    ffi.Pointer<ffi.Int32>,
+    ffi.Pointer<ffi.Double>,
+    ffi.Pointer<ffi.Int32>,
+    ffi.Pointer<ffi.Int32>,
+    ffi.Pointer<ffi.Int32>,
+  )
+>(symbol: 'dgetrf_', isLeaf: true)
+external void _fortranDgetrf(
   ffi.Pointer<ffi.Int32> m,
   ffi.Pointer<ffi.Int32> n,
   ffi.Pointer<ffi.Double> a,
@@ -2836,7 +2014,20 @@ typedef _FortranDgetrf = void Function(
   ffi.Pointer<ffi.Int32> info,
 );
 
-typedef _FortranDgetrsNative = ffi.Void Function(
+@ffi.Native<
+  ffi.Void Function(
+    ffi.Pointer<ffi.Uint8>,
+    ffi.Pointer<ffi.Int32>,
+    ffi.Pointer<ffi.Int32>,
+    ffi.Pointer<ffi.Double>,
+    ffi.Pointer<ffi.Int32>,
+    ffi.Pointer<ffi.Int32>,
+    ffi.Pointer<ffi.Double>,
+    ffi.Pointer<ffi.Int32>,
+    ffi.Pointer<ffi.Int32>,
+  )
+>(symbol: 'dgetrs_', isLeaf: true)
+external void _fortranDgetrs(
   ffi.Pointer<ffi.Uint8> trans,
   ffi.Pointer<ffi.Int32> n,
   ffi.Pointer<ffi.Int32> nrhs,
@@ -2847,8 +2038,20 @@ typedef _FortranDgetrsNative = ffi.Void Function(
   ffi.Pointer<ffi.Int32> ldb,
   ffi.Pointer<ffi.Int32> info,
 );
-typedef _FortranDgetrs = void Function(
-  ffi.Pointer<ffi.Uint8> trans,
+
+@ffi.Native<
+  ffi.Void Function(
+    ffi.Pointer<ffi.Int32>,
+    ffi.Pointer<ffi.Int32>,
+    ffi.Pointer<ffi.Double>,
+    ffi.Pointer<ffi.Int32>,
+    ffi.Pointer<ffi.Int32>,
+    ffi.Pointer<ffi.Double>,
+    ffi.Pointer<ffi.Int32>,
+    ffi.Pointer<ffi.Int32>,
+  )
+>(symbol: 'dgesv_', isLeaf: true)
+external void _fortranDgesv(
   ffi.Pointer<ffi.Int32> n,
   ffi.Pointer<ffi.Int32> nrhs,
   ffi.Pointer<ffi.Double> a,
@@ -2859,18 +2062,20 @@ typedef _FortranDgetrs = void Function(
   ffi.Pointer<ffi.Int32> info,
 );
 
-typedef _LapackeDgelsNative = ffi.Int32 Function(
-  ffi.Int32 matrixLayout,
-  ffi.Uint8 trans,
-  ffi.Int32 m,
-  ffi.Int32 n,
-  ffi.Int32 nrhs,
-  ffi.Pointer<ffi.Double> a,
-  ffi.Int32 lda,
-  ffi.Pointer<ffi.Double> b,
-  ffi.Int32 ldb,
-);
-typedef _LapackeDgels = int Function(
+@ffi.Native<
+  ffi.Int32 Function(
+    ffi.Int32,
+    ffi.Uint8,
+    ffi.Int32,
+    ffi.Int32,
+    ffi.Int32,
+    ffi.Pointer<ffi.Double>,
+    ffi.Int32,
+    ffi.Pointer<ffi.Double>,
+    ffi.Int32,
+  )
+>(symbol: 'LAPACKE_dgels', isLeaf: true)
+external int _lapackeDgels(
   int matrixLayout,
   int trans,
   int m,
@@ -2882,7 +2087,22 @@ typedef _LapackeDgels = int Function(
   int ldb,
 );
 
-typedef _FortranDgelsNative = ffi.Void Function(
+@ffi.Native<
+  ffi.Void Function(
+    ffi.Pointer<ffi.Uint8>,
+    ffi.Pointer<ffi.Int32>,
+    ffi.Pointer<ffi.Int32>,
+    ffi.Pointer<ffi.Int32>,
+    ffi.Pointer<ffi.Double>,
+    ffi.Pointer<ffi.Int32>,
+    ffi.Pointer<ffi.Double>,
+    ffi.Pointer<ffi.Int32>,
+    ffi.Pointer<ffi.Double>,
+    ffi.Pointer<ffi.Int32>,
+    ffi.Pointer<ffi.Int32>,
+  )
+>(symbol: 'dgels_', isLeaf: true)
+external void _fortranDgels(
   ffi.Pointer<ffi.Uint8> trans,
   ffi.Pointer<ffi.Int32> m,
   ffi.Pointer<ffi.Int32> n,
@@ -2895,196 +2115,36 @@ typedef _FortranDgelsNative = ffi.Void Function(
   ffi.Pointer<ffi.Int32> lwork,
   ffi.Pointer<ffi.Int32> info,
 );
-typedef _FortranDgels = void Function(
-  ffi.Pointer<ffi.Uint8> trans,
-  ffi.Pointer<ffi.Int32> m,
+
+@ffi.Native<
+  ffi.Void Function(
+    ffi.Pointer<ffi.Uint8>,
+    ffi.Pointer<ffi.Int32>,
+    ffi.Pointer<ffi.Double>,
+    ffi.Pointer<ffi.Int32>,
+    ffi.Pointer<ffi.Int32>,
+  )
+>(symbol: 'dpotrf_', isLeaf: true)
+external void _fortranDpotrf(
+  ffi.Pointer<ffi.Uint8> uplo,
   ffi.Pointer<ffi.Int32> n,
-  ffi.Pointer<ffi.Int32> nrhs,
   ffi.Pointer<ffi.Double> a,
   ffi.Pointer<ffi.Int32> lda,
-  ffi.Pointer<ffi.Double> b,
-  ffi.Pointer<ffi.Int32> ldb,
-  ffi.Pointer<ffi.Double> work,
-  ffi.Pointer<ffi.Int32> lwork,
   ffi.Pointer<ffi.Int32> info,
 );
 
-typedef _CblasDtrmvNative = ffi.Void Function(
-  ffi.Int32 order,
-  ffi.Int32 uplo,
-  ffi.Int32 transA,
-  ffi.Int32 diag,
-  ffi.Int32 n,
-  ffi.Pointer<ffi.Double> a,
-  ffi.Int32 lda,
-  ffi.Pointer<ffi.Double> x,
-  ffi.Int32 incX,
-);
-typedef _CblasDtrmv = void Function(
-  int order,
-  int uplo,
-  int transA,
-  int diag,
-  int n,
-  ffi.Pointer<ffi.Double> a,
-  int lda,
-  ffi.Pointer<ffi.Double> x,
-  int incX,
-);
-
-typedef _CblasStrmvNative = ffi.Void Function(
-  ffi.Int32 order,
-  ffi.Int32 uplo,
-  ffi.Int32 transA,
-  ffi.Int32 diag,
-  ffi.Int32 n,
-  ffi.Pointer<ffi.Float> a,
-  ffi.Int32 lda,
-  ffi.Pointer<ffi.Float> x,
-  ffi.Int32 incX,
-);
-typedef _CblasStrmv = void Function(
-  int order,
-  int uplo,
-  int transA,
-  int diag,
-  int n,
-  ffi.Pointer<ffi.Float> a,
-  int lda,
-  ffi.Pointer<ffi.Float> x,
-  int incX,
-);
-
-typedef _CblasDsymmNative = ffi.Void Function(
-  ffi.Int32 order,
-  ffi.Int32 side,
-  ffi.Int32 uplo,
-  ffi.Int32 m,
-  ffi.Int32 n,
-  ffi.Double alpha,
-  ffi.Pointer<ffi.Double> a,
-  ffi.Int32 lda,
-  ffi.Pointer<ffi.Double> b,
-  ffi.Int32 ldb,
-  ffi.Double beta,
-  ffi.Pointer<ffi.Double> c,
-  ffi.Int32 ldc,
-);
-typedef _CblasDsymm = void Function(
-  int order,
-  int side,
-  int uplo,
-  int m,
-  int n,
-  double alpha,
-  ffi.Pointer<ffi.Double> a,
-  int lda,
-  ffi.Pointer<ffi.Double> b,
-  int ldb,
-  double beta,
-  ffi.Pointer<ffi.Double> c,
-  int ldc,
-);
-
-typedef _CblasSsymmNative = ffi.Void Function(
-  ffi.Int32 order,
-  ffi.Int32 side,
-  ffi.Int32 uplo,
-  ffi.Int32 m,
-  ffi.Int32 n,
-  ffi.Float alpha,
-  ffi.Pointer<ffi.Float> a,
-  ffi.Int32 lda,
-  ffi.Pointer<ffi.Float> b,
-  ffi.Int32 ldb,
-  ffi.Float beta,
-  ffi.Pointer<ffi.Float> c,
-  ffi.Int32 ldc,
-);
-typedef _CblasSsymm = void Function(
-  int order,
-  int side,
-  int uplo,
-  int m,
-  int n,
-  double alpha,
-  ffi.Pointer<ffi.Float> a,
-  int lda,
-  ffi.Pointer<ffi.Float> b,
-  int ldb,
-  double beta,
-  ffi.Pointer<ffi.Float> c,
-  int ldc,
-);
-
-typedef _CblasDtrmmNative = ffi.Void Function(
-  ffi.Int32 order,
-  ffi.Int32 side,
-  ffi.Int32 uplo,
-  ffi.Int32 transA,
-  ffi.Int32 diag,
-  ffi.Int32 m,
-  ffi.Int32 n,
-  ffi.Double alpha,
-  ffi.Pointer<ffi.Double> a,
-  ffi.Int32 lda,
-  ffi.Pointer<ffi.Double> b,
-  ffi.Int32 ldb,
-);
-typedef _CblasDtrmm = void Function(
-  int order,
-  int side,
-  int uplo,
-  int transA,
-  int diag,
-  int m,
-  int n,
-  double alpha,
-  ffi.Pointer<ffi.Double> a,
-  int lda,
-  ffi.Pointer<ffi.Double> b,
-  int ldb,
-);
-
-typedef _CblasStrmmNative = ffi.Void Function(
-  ffi.Int32 order,
-  ffi.Int32 side,
-  ffi.Int32 uplo,
-  ffi.Int32 transA,
-  ffi.Int32 diag,
-  ffi.Int32 m,
-  ffi.Int32 n,
-  ffi.Float alpha,
-  ffi.Pointer<ffi.Float> a,
-  ffi.Int32 lda,
-  ffi.Pointer<ffi.Float> b,
-  ffi.Int32 ldb,
-);
-typedef _CblasStrmm = void Function(
-  int order,
-  int side,
-  int uplo,
-  int transA,
-  int diag,
-  int m,
-  int n,
-  double alpha,
-  ffi.Pointer<ffi.Float> a,
-  int lda,
-  ffi.Pointer<ffi.Float> b,
-  int ldb,
-);
-
-typedef _LapackeDsyevNative = ffi.Int32 Function(
-  ffi.Int32 matrixLayout,
-  ffi.Uint8 jobz,
-  ffi.Uint8 uplo,
-  ffi.Int32 n,
-  ffi.Pointer<ffi.Double> a,
-  ffi.Int32 lda,
-  ffi.Pointer<ffi.Double> w,
-);
-typedef _LapackeDsyev = int Function(
+@ffi.Native<
+  ffi.Int32 Function(
+    ffi.Int32,
+    ffi.Uint8,
+    ffi.Uint8,
+    ffi.Int32,
+    ffi.Pointer<ffi.Double>,
+    ffi.Int32,
+    ffi.Pointer<ffi.Double>,
+  )
+>(symbol: 'LAPACKE_dsyev', isLeaf: true)
+external int _lapackeDsyev(
   int matrixLayout,
   int jobz,
   int uplo,
@@ -3094,16 +2154,18 @@ typedef _LapackeDsyev = int Function(
   ffi.Pointer<ffi.Double> w,
 );
 
-typedef _LapackeSsyevNative = ffi.Int32 Function(
-  ffi.Int32 matrixLayout,
-  ffi.Uint8 jobz,
-  ffi.Uint8 uplo,
-  ffi.Int32 n,
-  ffi.Pointer<ffi.Float> a,
-  ffi.Int32 lda,
-  ffi.Pointer<ffi.Float> w,
-);
-typedef _LapackeSsyev = int Function(
+@ffi.Native<
+  ffi.Int32 Function(
+    ffi.Int32,
+    ffi.Uint8,
+    ffi.Uint8,
+    ffi.Int32,
+    ffi.Pointer<ffi.Float>,
+    ffi.Int32,
+    ffi.Pointer<ffi.Float>,
+  )
+>(symbol: 'LAPACKE_ssyev', isLeaf: true)
+external int _lapackeSsyev(
   int matrixLayout,
   int jobz,
   int uplo,
@@ -3113,18 +2175,20 @@ typedef _LapackeSsyev = int Function(
   ffi.Pointer<ffi.Float> w,
 );
 
-typedef _FortranDsyevNative = ffi.Void Function(
-  ffi.Pointer<ffi.Uint8> jobz,
-  ffi.Pointer<ffi.Uint8> uplo,
-  ffi.Pointer<ffi.Int32> n,
-  ffi.Pointer<ffi.Double> a,
-  ffi.Pointer<ffi.Int32> lda,
-  ffi.Pointer<ffi.Double> w,
-  ffi.Pointer<ffi.Double> work,
-  ffi.Pointer<ffi.Int32> lwork,
-  ffi.Pointer<ffi.Int32> info,
-);
-typedef _FortranDsyev = void Function(
+@ffi.Native<
+  ffi.Void Function(
+    ffi.Pointer<ffi.Uint8>,
+    ffi.Pointer<ffi.Uint8>,
+    ffi.Pointer<ffi.Int32>,
+    ffi.Pointer<ffi.Double>,
+    ffi.Pointer<ffi.Int32>,
+    ffi.Pointer<ffi.Double>,
+    ffi.Pointer<ffi.Double>,
+    ffi.Pointer<ffi.Int32>,
+    ffi.Pointer<ffi.Int32>,
+  )
+>(symbol: 'dsyev_', isLeaf: true)
+external void _fortranDsyev(
   ffi.Pointer<ffi.Uint8> jobz,
   ffi.Pointer<ffi.Uint8> uplo,
   ffi.Pointer<ffi.Int32> n,
@@ -3136,18 +2200,20 @@ typedef _FortranDsyev = void Function(
   ffi.Pointer<ffi.Int32> info,
 );
 
-typedef _FortranSsyevNative = ffi.Void Function(
-  ffi.Pointer<ffi.Uint8> jobz,
-  ffi.Pointer<ffi.Uint8> uplo,
-  ffi.Pointer<ffi.Int32> n,
-  ffi.Pointer<ffi.Float> a,
-  ffi.Pointer<ffi.Int32> lda,
-  ffi.Pointer<ffi.Float> w,
-  ffi.Pointer<ffi.Float> work,
-  ffi.Pointer<ffi.Int32> lwork,
-  ffi.Pointer<ffi.Int32> info,
-);
-typedef _FortranSsyev = void Function(
+@ffi.Native<
+  ffi.Void Function(
+    ffi.Pointer<ffi.Uint8>,
+    ffi.Pointer<ffi.Uint8>,
+    ffi.Pointer<ffi.Int32>,
+    ffi.Pointer<ffi.Float>,
+    ffi.Pointer<ffi.Int32>,
+    ffi.Pointer<ffi.Float>,
+    ffi.Pointer<ffi.Float>,
+    ffi.Pointer<ffi.Int32>,
+    ffi.Pointer<ffi.Int32>,
+  )
+>(symbol: 'ssyev_', isLeaf: true)
+external void _fortranSsyev(
   ffi.Pointer<ffi.Uint8> jobz,
   ffi.Pointer<ffi.Uint8> uplo,
   ffi.Pointer<ffi.Int32> n,

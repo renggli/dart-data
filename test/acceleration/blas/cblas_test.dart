@@ -235,19 +235,19 @@ void main() {
       check(bCopy[5]).equals(444.0); // padding guard
     });
 
-    test('multi-RHS solve with NativeBuffer backing', () {
-      if (!NativeBuffer.isSupported || !NativeBuffer.isActive) return;
+    test('multi-RHS solve with Float64List backing', () {
+      if (!AccelerationManager.isBlasAvailable) return;
 
       final aMat = Matrix<double>.fromRows([
         [2.0, 1.0],
         [1.0, 3.0],
       ], type: DataType.float64);
 
-      final bNative = NativeBuffer<double>(4, type: DataType.float64);
-      bNative.data[0] = 4.0;
-      bNative.data[1] = 5.0;
-      bNative.data[2] = 7.0;
-      bNative.data[3] = 10.0;
+      final b = Float64List(4);
+      b[0] = 4.0;
+      b[1] = 5.0;
+      b[2] = 7.0;
+      b[3] = 10.0;
 
       final aCopy = Float64List.fromList(aMat.tensor.data);
       final ok = AccelerationManager.dgesv(
@@ -255,37 +255,35 @@ void main() {
         nrhs: 2,
         a: aCopy,
         lda: 2,
-        b: bNative.data as Float64List,
+        b: b,
         ldb: 2,
       );
       check(ok).isTrue();
-      check(bNative.data[0]).isCloseTo(1.0, 1e-9);
-      check(bNative.data[1]).isCloseTo(1.0, 1e-9);
-      check(bNative.data[2]).isCloseTo(2.0, 1e-9);
-      check(bNative.data[3]).isCloseTo(3.0, 1e-9);
-      bNative.dispose();
+      check(b[0]).isCloseTo(1.0, 1e-9);
+      check(b[1]).isCloseTo(1.0, 1e-9);
+      check(b[2]).isCloseTo(2.0, 1e-9);
+      check(b[3]).isCloseTo(3.0, 1e-9);
     });
 
-    test('single-RHS contiguous in-place solve with NativeBuffer backing', () {
-      if (!NativeBuffer.isSupported || !NativeBuffer.isActive) return;
+    test('single-RHS contiguous in-place solve with Float64List backing', () {
+      if (!AccelerationManager.isBlasAvailable) return;
 
       final a = Float64List.fromList([2.0, 1.0, 1.0, 3.0]);
-      final bNative = NativeBuffer<double>(2, type: DataType.float64);
-      bNative.data[0] = 4.0;
-      bNative.data[1] = 7.0;
+      final b = Float64List(2);
+      b[0] = 4.0;
+      b[1] = 7.0;
 
       final ok = AccelerationManager.dgesv(
         n: 2,
         nrhs: 1,
         a: a,
         lda: 2,
-        b: bNative.data as Float64List,
+        b: b,
         ldb: 1,
       );
       check(ok).isTrue();
-      check(bNative.data[0]).isCloseTo(1.0, 1e-9);
-      check(bNative.data[1]).isCloseTo(2.0, 1e-9);
-      bNative.dispose();
+      check(b[0]).isCloseTo(1.0, 1e-9);
+      check(b[1]).isCloseTo(2.0, 1e-9);
     });
 
     test('parameter validation and dimension bounds', () {

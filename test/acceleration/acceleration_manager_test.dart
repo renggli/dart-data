@@ -43,65 +43,10 @@ void main() {
     });
   });
 
-  group('NativeBuffer and native-allocated containers', () {
-    test('NativeBuffer float64 allocation, typed view, and dispose', () {
-      final buffer = NativeBuffer<double>(10, type: DataType.float64);
-      check(buffer.length).equals(10);
-      check(buffer.isDisposed).isFalse();
-      check(buffer.data).isA<Float64List>();
-      check(buffer.byteLength).equals(80);
-
-      // Read/write via typed data list
-      for (var i = 0; i < 10; i++) {
-        buffer.data[i] = i * 2.5;
-      }
-      for (var i = 0; i < 10; i++) {
-        check(buffer.data[i]).equals(i * 2.5);
-      }
-
-      // Expando lookup succeeds
-      final found = NativeBuffer.find(buffer.data);
-      check(found).isNotNull();
-
-      buffer.dispose();
-      check(buffer.isDisposed).isTrue();
-      check(NativeBuffer.find(buffer.data)).isNull();
-    });
-
-    test('NativeBuffer float32 allocation respects DataType.float32', () {
-      final buffer = NativeBuffer<double>(10, type: DataType.float32);
-      check(buffer.length).equals(10);
-      check(buffer.isDisposed).isFalse();
-      check(buffer.data).isA<Float32List>();
-      check(buffer.byteLength).equals(40);
-
-      buffer.data[0] = 3.14;
-      check(buffer.data[0]).isCloseTo(3.14, 1e-5);
-
-      buffer.dispose();
-      check(buffer.isDisposed).isTrue();
-    });
-
-    test('NativeBuffer int32, int64, and uint8 allocation', () {
-      final buf32 = NativeBuffer<int>(8, type: DataType.int32);
-      check(buf32.data).isA<Int32List>();
-      check(buf32.byteLength).equals(32);
-      buf32.dispose();
-
-      final buf64 = NativeBuffer<int>(8, type: DataType.int64);
-      check(buf64.data).isA<Int64List>();
-      check(buf64.byteLength).equals(64);
-      buf64.dispose();
-
-      final buf8 = NativeBuffer<int>(8, type: DataType.uint8);
-      check(buf8.data).isA<Uint8List>();
-      check(buf8.byteLength).equals(8);
-      buf8.dispose();
-    });
-
-    test('Tensor, Matrix, and Vector native zero-copy BLAS', () {
-      final tNativeA = Tensor<double>.filled(0.0, shape: [2, 2], native: true);
-      final tNativeB = Tensor<double>.filled(0.0, shape: [2, 2], native: true);
+  group('Native-accelerated containers', () {
+    test('Tensor, Matrix, and Vector zero-copy BLAS', () {
+      final tNativeA = Tensor<double>.filled(0.0, shape: [2, 2]);
+      final tNativeB = Tensor<double>.filled(0.0, shape: [2, 2]);
       tNativeA.setValue([0, 0], 1.0);
       tNativeA.setValue([0, 1], 2.0);
       tNativeA.setValue([1, 0], 3.0);
@@ -115,7 +60,7 @@ void main() {
       final tNativeC = tNativeA.matmul(tNativeB);
       check(tNativeC.toFlatList()).deepEquals([19.0, 22.0, 43.0, 50.0]);
 
-      final mNative = Matrix<double>.filled(2, 2, 0.0, native: true);
+      final mNative = Matrix<double>.filled(2, 2, 0.0);
       mNative.set(0, 0, 2.0);
       mNative.set(0, 1, 1.0);
       mNative.set(1, 0, 1.0);
@@ -123,7 +68,7 @@ void main() {
       check(mNative.get(0, 0)).equals(2.0);
       check(mNative.get(1, 1)).equals(3.0);
 
-      final vNative = Vector<double>.filled(3, 0.0, native: true);
+      final vNative = Vector<double>.filled(3, 0.0);
       vNative[0] = 10.0;
       vNative[1] = 20.0;
       vNative[2] = 30.0;
@@ -131,30 +76,24 @@ void main() {
       check(vNative[1]).equals(20.0);
     });
 
-    test('automatic native buffer transparent instantiation on supported platforms', () {
-      check(NativeBuffer.isSupported).isTrue();
-      check(NativeBuffer.isActive).isTrue();
-
-      // Standard Vector.filled and fromList use native buffer automatically
+    test('Standard Vector and Matrix operations backed by typed list', () {
       final vFilled = Vector<double>.filled(5, 0.0);
-      check(NativeBuffer.find(vFilled.tensor.data)).isNotNull();
+      check(vFilled.tensor.data).isA<Float64List>();
 
       final vFromList = Vector<double>.fromList([1.0, 2.0, 3.0]);
-      check(NativeBuffer.find(vFromList.tensor.data)).isNotNull();
+      check(vFromList.tensor.data).isA<Float64List>();
 
-      // Standard Matrix.filled and fromRows use native buffer automatically
       final mFilled = Matrix<double>.filled(2, 2, 0.0);
-      check(NativeBuffer.find(mFilled.tensor.data)).isNotNull();
+      check(mFilled.tensor.data).isA<Float64List>();
 
       final mFromRows = Matrix<double>.fromRows([
         [1.0, 2.0],
         [3.0, 4.0],
       ]);
-      check(NativeBuffer.find(mFromRows.tensor.data)).isNotNull();
+      check(mFromRows.tensor.data).isA<Float64List>();
 
-      // Matrix multiplication result automatically backed by native buffer
       final mResult = mFromRows * mFromRows;
-      check(NativeBuffer.find(mResult.tensor.data)).isNotNull();
+      check(mResult.tensor.data).isA<Float64List>();
       check(mResult.get(0, 0)).equals(7.0);
       check(mResult.get(0, 1)).equals(10.0);
       check(mResult.get(1, 0)).equals(15.0);
@@ -165,95 +104,6 @@ void main() {
       check(dotVal).equals(14.0);
     });
 
-    test('NativeBuffer.isEnabled toggle falls back cleanly to heap', () {
-      NativeBuffer.isEnabled = false;
-      check(NativeBuffer.isActive).isFalse();
-
-      final vHeap = Vector<double>.filled(4, 1.0);
-      check(NativeBuffer.find(vHeap.tensor.data)).isNull();
-
-      NativeBuffer.isEnabled = true;
-      check(NativeBuffer.isActive).isTrue();
-
-      final vNative = Vector<double>.filled(4, 1.0);
-      check(NativeBuffer.find(vNative.tensor.data)).isNotNull();
-    });
-
-    test('NativeBuffer safe zero-length allocation', () {
-      final buf0 = NativeBuffer<double>(0, type: DataType.float64);
-      check(buf0.length).equals(0);
-      check(buf0.data).isEmpty();
-      buf0.dispose();
-      check(buf0.isDisposed).isTrue();
-    });
-
-    test('All integer types support NativeBuffer allocation', () {
-      for (final type in [
-        DataType.int8,
-        DataType.int16,
-        DataType.int32,
-        DataType.int64,
-        DataType.uint8,
-        DataType.uint16,
-        DataType.uint32,
-        DataType.uint64,
-      ]) {
-        final list = type.newList(4);
-        check(NativeBuffer.find(list)).isNotNull();
-      }
-    });
-
-    test('NativeBuffer.find polymorphic resolution across types', () {
-      final buf = NativeBuffer<double>(5, type: DataType.float64);
-      // Finding on NativeBuffer itself
-      check(NativeBuffer.find(buf)).equals(buf);
-
-      // Finding on Tensor
-      final tensor = Tensor<double>.internal(
-        type: DataType.float64,
-        layout: Layout(shape: [5]),
-        data: buf.data,
-      );
-      check(NativeBuffer.find(tensor)).equals(buf);
-
-      // Finding on Vector and Matrix
-      final vec = Vector<double>.filled(3, 1.0);
-      check(NativeBuffer.find(vec)).isNotNull();
-
-      final mat = Matrix<double>.filled(2, 2, 1.0);
-      check(NativeBuffer.find(mat)).isNotNull();
-
-      // Finding on null or non-buffer
-      check(NativeBuffer.find(null)).isNull();
-      check(NativeBuffer.find(123)).isNull();
-      check(NativeBuffer.find('abc')).isNull();
-    });
-
-    test('NativeBuffer typed integer pointer getters', () {
-      final i32Buf = NativeBuffer<int>(4, type: DataType.int32);
-      check(i32Buf.asInt32Pointer).isNotNull();
-
-      final i64Buf = NativeBuffer<int>(4, type: DataType.int64);
-      check(i64Buf.asInt64Pointer).isNotNull();
-
-      final u8Buf = NativeBuffer<int>(4, type: DataType.uint8);
-      check(u8Buf.asUint8Pointer).isNotNull();
-
-      i32Buf.dispose();
-      check(i32Buf.asInt32Pointer).isNull();
-    });
-
-    test(
-      'NativeBuffer rejects negative lengths and unsupported data types',
-      () {
-        check(() => NativeBuffer<double>(-1, type: DataType.float64))
-            .throws<RangeError>();
-
-        check(() => NativeBuffer<String>(5, type: DataType.string))
-            .throws<ArgumentError>();
-      },
-    );
-
     test('Offset subview pointer calculations and dgels zero-copy', () {
       final matA = Matrix<double>.fromRows([
         [1.0, 1.0],
@@ -262,23 +112,17 @@ void main() {
       ]);
       final vecB = Vector<double>.fromList([2.0, 3.0, 4.0]);
 
-      // Both inputs automatically backed by NativeBuffer
-      check(NativeBuffer.find(matA)).isNotNull();
-      check(NativeBuffer.find(vecB)).isNotNull();
-
       final solution = leastSquares(matA, vecB);
       check(solution.length).equals(2);
       check(solution[0]).isCloseTo(1.0, 1e-6);
       check(solution[1]).isCloseTo(1.0, 1e-6);
 
       // Verify subview with non-zero offsetInBytes computes correctly via BLAS
-      final buf = NativeBuffer<double>(10, type: DataType.float64);
+      final rawList = Float64List(10);
       for (var i = 0; i < 10; i++) {
-        buf.data[i] = i * 1.0;
+        rawList[i] = i * 1.0;
       }
-      final rawList = buf.data as Float64List;
       final subList = rawList.buffer.asFloat64List(24, 5); // starts at index 3
-      NativeBuffer.register(subList, buf);
 
       final ones = Float64List.fromList([1.0, 1.0, 1.0, 1.0, 1.0]);
       final dotVal = AccelerationManager.ddot(
@@ -1113,165 +957,132 @@ void main() {
     });
 
     accelerationTest(
-      'native zero-copy float32 and heap-allocated dgesv/dgels acceleration',
+      'zero-copy float32 and heap-allocated dgesv/dgels acceleration',
       () {
-        // Native float32 buffers
-        final bufX = NativeBuffer<double>(4, type: DataType.float32);
-        final bufY = NativeBuffer<double>(4, type: DataType.float32);
-        try {
-          final x = bufX.data as Float32List;
-          final y = bufY.data as Float32List;
-          for (var i = 0; i < 4; i++) {
-            x[i] = (i + 1).toDouble();
-            y[i] = (i + 2).toDouble();
-          }
-
-          final dot = AccelerationManager.sdot(n: 4, x: x, y: y);
-          check(dot!).isCloseTo(1 * 2 + 2 * 3 + 3 * 4 + 4 * 5, 1e-4);
-
-          final nrm = AccelerationManager.snrm2(n: 4, x: x);
-          check(nrm!).isCloseTo(math.sqrt(1 + 4 + 9 + 16), 1e-4);
-
-          AccelerationManager.saxpy(n: 4, alpha: 2.0, x: x, y: y);
-          check(y[0]).isCloseTo(2.0 + 2.0 * 1.0, 1e-4);
-
-          AccelerationManager.sscal(n: 4, alpha: 3.0, x: x);
-          check(x[0]).isCloseTo(3.0, 1e-4);
-
-          // Heap-allocated dgesv (copy-to-arena path)
-          final aHeap = Float64List.fromList([3.0, 1.0, 1.0, 2.0]);
-          final bHeap = Float64List.fromList([9.0, 8.0]);
-          final okSolve = AccelerationManager.dgesv(
-            n: 2,
-            nrhs: 1,
-            a: aHeap,
-            lda: 2,
-            b: bHeap,
-            ldb: 1,
-          );
-          check(okSolve).isTrue();
-          check(bHeap[0]).isCloseTo(2.0, 1e-9);
-          check(bHeap[1]).isCloseTo(3.0, 1e-9);
-
-          // Heap-allocated dgels (copy-to-arena path)
-          final aGelsHeap = Float64List.fromList([
-            1.0,
-            1.0,
-            1.0,
-            2.0,
-            1.0,
-            3.0,
-          ]);
-          final bGelsHeap = Float64List.fromList([6.0, 5.0, 7.0]);
-          final okGels = AccelerationManager.dgels(
-            m: 3,
-            n: 2,
-            nrhs: 1,
-            a: aGelsHeap,
-            lda: 2,
-            b: bGelsHeap,
-            ldb: 1,
-          );
-          check(okGels).isTrue();
-          check(bGelsHeap[0]).isCloseTo(5.0, 1e-6);
-          check(bGelsHeap[1]).isCloseTo(0.5, 1e-6);
-        } finally {
-          bufX.dispose();
-          bufY.dispose();
+        // float32 buffers
+        final x = Float32List(4);
+        final y = Float32List(4);
+        for (var i = 0; i < 4; i++) {
+          x[i] = (i + 1).toDouble();
+          y[i] = (i + 2).toDouble();
         }
+
+        final dot = AccelerationManager.sdot(n: 4, x: x, y: y);
+        check(dot!).isCloseTo(1 * 2 + 2 * 3 + 3 * 4 + 4 * 5, 1e-4);
+
+        final nrm = AccelerationManager.snrm2(n: 4, x: x);
+        check(nrm!).isCloseTo(math.sqrt(1 + 4 + 9 + 16), 1e-4);
+
+        AccelerationManager.saxpy(n: 4, alpha: 2.0, x: x, y: y);
+        check(y[0]).isCloseTo(2.0 + 2.0 * 1.0, 1e-4);
+
+        AccelerationManager.sscal(n: 4, alpha: 3.0, x: x);
+        check(x[0]).isCloseTo(3.0, 1e-4);
+
+        // Heap-allocated dgesv (copy-to-arena path)
+        final aHeap = Float64List.fromList([3.0, 1.0, 1.0, 2.0]);
+        final bHeap = Float64List.fromList([9.0, 8.0]);
+        final okSolve = AccelerationManager.dgesv(
+          n: 2,
+          nrhs: 1,
+          a: aHeap,
+          lda: 2,
+          b: bHeap,
+          ldb: 1,
+        );
+        check(okSolve).isTrue();
+        check(bHeap[0]).isCloseTo(2.0, 1e-9);
+        check(bHeap[1]).isCloseTo(3.0, 1e-9);
+
+        // Heap-allocated dgels (copy-to-arena path)
+        final aGelsHeap = Float64List.fromList([1.0, 1.0, 1.0, 2.0, 1.0, 3.0]);
+        final bGelsHeap = Float64List.fromList([6.0, 5.0, 7.0]);
+        final okGels = AccelerationManager.dgels(
+          m: 3,
+          n: 2,
+          nrhs: 1,
+          a: aGelsHeap,
+          lda: 2,
+          b: bGelsHeap,
+          ldb: 1,
+        );
+        check(okGels).isTrue();
+        check(bGelsHeap[0]).isCloseTo(5.0, 1e-6);
+        check(bGelsHeap[1]).isCloseTo(0.5, 1e-6);
       },
     );
 
-    test(
-      'SimdEngine constructor & NativeBuffer sgemm, ssyrk, dsyr2, ssyr2 paths',
-      () {
-        const simd = SimdEngine();
-        check(simd).isNotNull();
+    test('SimdEngine constructor & sgemm, ssyrk, dsyr2, ssyr2 paths', () {
+      const simd = SimdEngine();
+      check(simd).isNotNull();
 
-        // Native sgemm
-        final bufA = NativeBuffer<double>(4, type: DataType.float32);
-        final bufB = NativeBuffer<double>(4, type: DataType.float32);
-        final bufC = NativeBuffer<double>(4, type: DataType.float32);
-        bufA.data.setRange(0, 4, [1.0, 2.0, 3.0, 4.0]);
-        bufB.data.setRange(0, 4, [5.0, 6.0, 7.0, 8.0]);
-        final okSgemm = AccelerationManager.sgemm(
-          m: 2,
-          n: 2,
-          k: 2,
-          alpha: 1.0,
-          a: bufA.data as Float32List,
-          lda: 2,
-          b: bufB.data as Float32List,
-          ldb: 2,
-          beta: 0.0,
-          c: bufC.data as Float32List,
-          ldc: 2,
-        );
-        check(okSgemm).isTrue();
-        check(bufC.data[0]).isCloseTo(19.0, 1e-4);
+      // sgemm
+      final a = Float32List.fromList([1.0, 2.0, 3.0, 4.0]);
+      final b = Float32List.fromList([5.0, 6.0, 7.0, 8.0]);
+      final c = Float32List(4);
+      final okSgemm = AccelerationManager.sgemm(
+        m: 2,
+        n: 2,
+        k: 2,
+        alpha: 1.0,
+        a: a,
+        lda: 2,
+        b: b,
+        ldb: 2,
+        beta: 0.0,
+        c: c,
+        ldc: 2,
+      );
+      check(okSgemm).isTrue();
+      check(c[0]).isCloseTo(19.0, 1e-4);
 
-        // Heap ssyrk with beta != 0.0
-        final aHeapFloat = Float32List.fromList([1.0, 2.0, 3.0, 4.0]);
-        final cHeapFloat = Float32List.fromList([1.0, 0.0, 0.0, 1.0]);
-        final okSsyrk = AccelerationManager.ssyrk(
-          n: 2,
-          k: 2,
-          alpha: 1.0,
-          a: aHeapFloat,
-          lda: 2,
-          beta: 2.0,
-          c: cHeapFloat,
-          ldc: 2,
-        );
-        check(okSsyrk).isTrue();
+      // ssyrk with beta != 0.0
+      final aHeapFloat = Float32List.fromList([1.0, 2.0, 3.0, 4.0]);
+      final cHeapFloat = Float32List.fromList([1.0, 0.0, 0.0, 1.0]);
+      final okSsyrk = AccelerationManager.ssyrk(
+        n: 2,
+        k: 2,
+        alpha: 1.0,
+        a: aHeapFloat,
+        lda: 2,
+        beta: 2.0,
+        c: cHeapFloat,
+        ldc: 2,
+      );
+      check(okSsyrk).isTrue();
 
-        // Native dsyr2
-        final bufX64 = NativeBuffer<double>(2, type: DataType.float64);
-        final bufY64 = NativeBuffer<double>(2, type: DataType.float64);
-        final bufA64 = NativeBuffer<double>(4, type: DataType.float64);
-        bufX64.data.setRange(0, 2, [1.0, 2.0]);
-        bufY64.data.setRange(0, 2, [3.0, 4.0]);
-        final okDsyr2 = AccelerationManager.dsyr2(
-          n: 2,
-          alpha: 1.0,
-          x: bufX64.data as Float64List,
-          incX: 1,
-          y: bufY64.data as Float64List,
-          incY: 1,
-          a: bufA64.data as Float64List,
-          lda: 2,
-        );
-        check(okDsyr2).isTrue();
+      // dsyr2
+      final x64 = Float64List.fromList([1.0, 2.0]);
+      final y64 = Float64List.fromList([3.0, 4.0]);
+      final a64 = Float64List(4);
+      final okDsyr2 = AccelerationManager.dsyr2(
+        n: 2,
+        alpha: 1.0,
+        x: x64,
+        incX: 1,
+        y: y64,
+        incY: 1,
+        a: a64,
+        lda: 2,
+      );
+      check(okDsyr2).isTrue();
 
-        // Native ssyr2
-        final bufX32 = NativeBuffer<double>(2, type: DataType.float32);
-        final bufY32 = NativeBuffer<double>(2, type: DataType.float32);
-        final bufA32 = NativeBuffer<double>(4, type: DataType.float32);
-        bufX32.data.setRange(0, 2, [1.0, 2.0]);
-        bufY32.data.setRange(0, 2, [3.0, 4.0]);
-        final okSsyr2 = AccelerationManager.ssyr2(
-          n: 2,
-          alpha: 1.0,
-          x: bufX32.data as Float32List,
-          incX: 1,
-          y: bufY32.data as Float32List,
-          incY: 1,
-          a: bufA32.data as Float32List,
-          lda: 2,
-        );
-        check(okSsyr2).isTrue();
-
-        bufA.dispose();
-        bufB.dispose();
-        bufC.dispose();
-        bufX64.dispose();
-        bufY64.dispose();
-        bufA64.dispose();
-        bufX32.dispose();
-        bufY32.dispose();
-        bufA32.dispose();
-      },
-    );
+      // ssyr2
+      final x32 = Float32List.fromList([1.0, 2.0]);
+      final y32 = Float32List.fromList([3.0, 4.0]);
+      final a32 = Float32List(4);
+      final okSsyr2 = AccelerationManager.ssyr2(
+        n: 2,
+        alpha: 1.0,
+        x: x32,
+        incX: 1,
+        y: y32,
+        incY: 1,
+        a: a32,
+        lda: 2,
+      );
+      check(okSsyr2).isTrue();
+    });
 
     accelerationTest('AccelerationManager transposition branches', () {
       // dgemm with transA == cblasNoTrans and transB == cblasNoTrans

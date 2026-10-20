@@ -15,8 +15,8 @@
 /// - **Algebraic Fields ([Field])**: Axiomatic algebraic structures specifying
 ///   additive identity ($0$), multiplicative identity ($1$), operations ($+$,
 ///   $-$, $\times$, $\div$), and inversion over a type.
-/// - **Memory Storage ([NativeBuffer])**: Flat typed byte buffers that enable
-///   zero-copy passing to native FFI algorithms and hardware accelerators.
+/// - **Memory Storage**: Flat typed byte buffers that enable zero-copy passing
+///   to native FFI algorithms and hardware accelerators.
 /// - **Equivalence & Ordering**: [Equality] and comparator utilities for
 ///   deterministic hashing and sorting.
 ///
@@ -41,7 +41,6 @@
 /// ```
 library;
 
-import 'src/type/buffers/native_buffer.dart';
 import 'src/type/data_type.dart';
 import 'src/type/models/equality.dart';
 import 'src/type/models/field.dart';
@@ -49,8 +48,6 @@ import 'src/type/models/field.dart';
 export 'package:more/comparator.dart';
 export 'package:more/number.dart' show Complex, Fraction, Quaternion;
 
-export 'src/type/buffers/memory.dart';
-export 'src/type/buffers/native_buffer.dart';
 export 'src/type/data_type.dart';
 export 'src/type/default_data_type.dart';
 export 'src/type/models/equality.dart';

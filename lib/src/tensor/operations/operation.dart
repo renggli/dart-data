@@ -1,4 +1,5 @@
 import '../../../type.dart';
+import '../../type/utils/memory.dart';
 import '../layout.dart';
 import '../tensor.dart';
 

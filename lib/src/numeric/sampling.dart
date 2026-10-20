@@ -54,14 +54,12 @@ Vector<double> linearSpaced(
   int count = 50,
   bool endpoint = true,
   DataType<double>? type,
-  bool? native,
 }) => Vector<double>.linspace(
   start,
   stop,
   count: count,
   endpoint: endpoint,
   type: type,
-  native: native,
 );
 
 /// Generates a [Vector] with a sequence of [count] evenly spaced values on a
@@ -83,7 +81,6 @@ Vector<double> logarithmicSpaced(
   double base = 10.0,
   bool endpoint = true,
   DataType<double>? type,
-  bool? native,
 }) => Vector<double>.logspace(
   start,
   stop,
@@ -91,7 +88,6 @@ Vector<double> logarithmicSpaced(
   base: base,
   endpoint: endpoint,
   type: type,
-  native: native,
 );
 
 /// Generates a [Vector] with a sequence of [count] geometrically spaced values
@@ -111,14 +107,12 @@ Vector<double> geometricSpaced(
   int count = 50,
   bool endpoint = true,
   DataType<double>? type,
-  bool? native,
 }) => Vector<double>.geomspace(
   start,
   stop,
   count: count,
   endpoint: endpoint,
   type: type,
-  native: native,
 );
 
 /// Adaptively samples a 1D function [f] over `[a, b]` with curvature refinement

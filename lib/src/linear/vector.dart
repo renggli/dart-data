@@ -30,13 +30,12 @@ class Vector<T> {
     : assert(tensor.rank == 1, 'Tensor must have rank 1, got ${tensor.rank}');
 
   /// Constructs a [Vector] filled with [value].
-  factory filled(int length, T value, {DataType<T>? type, bool? native}) {
+  factory filled(int length, T value, {DataType<T>? type}) {
     final effectiveType = type ?? DataType.fromInstance(value);
     final tensor = Tensor<T>.filled(
       value,
       shape: [length],
       type: effectiveType,
-      native: native,
     );
     return Vector(tensor);
   }
@@ -46,10 +45,9 @@ class Vector<T> {
     int length,
     T Function(int index) generator, {
     DataType<T>? type,
-    bool? native,
   }) {
     final effectiveType = type ?? DataType.fromType<T>();
-    final data = effectiveType.newList(length, native: native);
+    final data = effectiveType.newList(length);
     for (var i = 0; i < length; i++) {
       data[i] = generator(i);
     }
@@ -63,27 +61,19 @@ class Vector<T> {
   }
 
   /// Constructs a [Vector] from a list of elements.
-  factory fromList(List<T> list, {DataType<T>? type, bool? native}) {
+  factory fromList(List<T> list, {DataType<T>? type}) {
     final effectiveType = type ?? DataType.fromIterable(list);
     final tensor = Tensor<T>.fromIterable(
       list,
       shape: [list.length],
       type: effectiveType,
-      native: native,
     );
     return Vector(tensor);
   }
 
   /// Constructs a [Vector] from an iterable of elements.
-  factory fromIterable(
-    Iterable<T> iterable, {
-    DataType<T>? type,
-    bool? native,
-  }) => Vector.fromList(
-    iterable.toList(growable: false),
-    type: type,
-    native: native,
-  );
+  factory fromIterable(Iterable<T> iterable, {DataType<T>? type}) =>
+      Vector.fromList(iterable.toList(growable: false), type: type);
 
   /// Constructs a [Vector] with a sequence of [count] evenly spaced values over
   /// the interval `[start, stop]`.
@@ -105,13 +95,12 @@ class Vector<T> {
     int count = 50,
     bool endpoint = true,
     DataType<T>? type,
-    bool? native,
   }) {
     if (count < 0) {
       throw ArgumentError.value(count, 'count', 'Count must be non-negative.');
     }
     final effectiveType = type ?? (DataType.float64 as DataType<T>);
-    final data = effectiveType.newList(count, native: native);
+    final data = effectiveType.newList(count);
     if (count == 1) {
       data[0] = start as T;
     } else if (count > 1) {
@@ -153,7 +142,6 @@ class Vector<T> {
     double base = 10.0,
     bool endpoint = true,
     DataType<T>? type,
-    bool? native,
   }) {
     if (count < 0) {
       throw ArgumentError.value(count, 'count', 'Count must be non-negative.');
@@ -162,7 +150,7 @@ class Vector<T> {
       throw ArgumentError.value(base, 'base', 'Base must be positive.');
     }
     final effectiveType = type ?? (DataType.float64 as DataType<T>);
-    final data = effectiveType.newList(count, native: native);
+    final data = effectiveType.newList(count);
     if (count == 1) {
       data[0] = math.pow(base, start).toDouble() as T;
     } else if (count > 1) {
@@ -205,7 +193,6 @@ class Vector<T> {
     int count = 50,
     bool endpoint = true,
     DataType<T>? type,
-    bool? native,
   }) {
     if (count < 0) {
       throw ArgumentError.value(count, 'count', 'Count must be non-negative.');
@@ -235,7 +222,7 @@ class Vector<T> {
     final logStart = math.log(effectiveStart);
     final logStop = math.log(effectiveStop);
     final effectiveType = type ?? (DataType.float64 as DataType<T>);
-    final data = effectiveType.newList(count, native: native);
+    final data = effectiveType.newList(count);
     if (count == 1) {
       data[0] = start as T;
     } else if (count > 1) {

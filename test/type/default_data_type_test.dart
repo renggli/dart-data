@@ -10,7 +10,6 @@ void main() {
       check(DefaultDataType.index).equals(DataType.uint32);
       check(DefaultDataType.integer).equals(DataType.int32);
       check(DefaultDataType.float).equals(DataType.float64);
-      check(DefaultDataType.isNative).equals(NativeBuffer.isActive);
     });
 
     test('attributes of default types', () {
@@ -48,22 +47,6 @@ void main() {
       check(DefaultDataType.integer).equals(DataType.int32);
     });
 
-    test('native frames scoping', () {
-      check(DefaultDataType.isNative).equals(NativeBuffer.isActive);
-
-      DefaultDataType.withDefault(() {
-        check(DefaultDataType.isNative).isTrue();
-      }, native: true);
-
-      check(DefaultDataType.isNative).equals(NativeBuffer.isActive);
-
-      DefaultDataType.withDefault(() {
-        check(DefaultDataType.isNative).isFalse();
-      }, native: false);
-
-      check(DefaultDataType.isNative).equals(NativeBuffer.isActive);
-    });
-
     test('closure invocation patterns', () {
       final res1 = DefaultDataType.withDefault(
         () => DefaultDataType.float,
@@ -97,27 +80,20 @@ void main() {
     });
 
     test('nested multi-property inheritance and overrides', () {
-      DefaultDataType.withDefault(
-        () {
-          check(DefaultDataType.float).equals(DataType.float32);
-          check(DefaultDataType.isNative).isTrue();
-          check(DefaultDataType.integer).equals(DataType.int32);
+      DefaultDataType.withDefault(() {
+        check(DefaultDataType.float).equals(DataType.float32);
+        check(DefaultDataType.integer).equals(DataType.int32);
 
-          DefaultDataType.withDefault(() {
-            // Inherited from outer zone
-            check(DefaultDataType.float).equals(DataType.float32);
-            check(DefaultDataType.isNative).isTrue();
-            // Overridden in inner zone
-            check(DefaultDataType.integer).equals(DataType.int64);
-          }, integer: DataType.int64);
-
+        DefaultDataType.withDefault(() {
+          // Inherited from outer zone
           check(DefaultDataType.float).equals(DataType.float32);
-          check(DefaultDataType.isNative).isTrue();
-          check(DefaultDataType.integer).equals(DataType.int32);
-        },
-        float: DataType.float32,
-        native: true,
-      );
+          // Overridden in inner zone
+          check(DefaultDataType.integer).equals(DataType.int64);
+        }, integer: DataType.int64);
+
+        check(DefaultDataType.float).equals(DataType.float32);
+        check(DefaultDataType.integer).equals(DataType.int32);
+      }, float: DataType.float32);
     });
 
     test('exception unwinding restores zone', () {
@@ -173,168 +149,6 @@ void main() {
       check(tRoot.type).equals(DataType.int32);
     });
 
-    void checkNative(dynamic target, {required bool native}) {
-      if (NativeBuffer.isSupported && native) {
-        check(NativeBuffer.find(target)).isNotNull();
-      } else {
-        check(NativeBuffer.find(target)).isNull();
-      }
-    }
-
-    test('Tensor, Matrix, and Vector respect native zone frames', () {
-      DefaultDataType.withDefault(() {
-        final t = Tensor.filled(1.0, shape: [2, 2]);
-        checkNative(t.data, native: true);
-
-        final m = Matrix.filled(2, 2, 1.0);
-        checkNative(m.tensor.data, native: true);
-
-        final v = Vector.filled(4, 1.0);
-        checkNative(v.tensor.data, native: true);
-      }, native: true);
-
-      DefaultDataType.withDefault(() {
-        final t = Tensor.filled(1.0, shape: [2, 2]);
-        checkNative(t.data, native: false);
-
-        final m = Matrix.filled(2, 2, 1.0);
-        checkNative(m.tensor.data, native: false);
-
-        final v = Vector.filled(4, 1.0);
-        checkNative(v.tensor.data, native: false);
-      }, native: false);
-    });
-
-    test('explicit native constructor parameter overrides zone defaults', () {
-      DefaultDataType.withDefault(() {
-        final tExplicitHeap = Tensor.filled(1.0, shape: [2, 2], native: false);
-        checkNative(tExplicitHeap.data, native: false);
-
-        final mExplicitHeap = Matrix.filled(2, 2, 1.0, native: false);
-        checkNative(mExplicitHeap.tensor.data, native: false);
-
-        final vExplicitHeap = Vector.filled(4, 1.0, native: false);
-        checkNative(vExplicitHeap.tensor.data, native: false);
-      }, native: true);
-
-      DefaultDataType.withDefault(() {
-        final tExplicitNative = Tensor.filled(1.0, shape: [2, 2], native: true);
-        checkNative(tExplicitNative.data, native: true);
-
-        final mExplicitNative = Matrix.filled(2, 2, 1.0, native: true);
-        checkNative(mExplicitNative.tensor.data, native: true);
-
-        final vExplicitNative = Vector.filled(4, 1.0, native: true);
-        checkNative(vExplicitNative.tensor.data, native: true);
-      }, native: false);
-    });
-
-    test(
-      'all container constructor variants respect native zone and overrides',
-      () {
-        DefaultDataType.withDefault(() {
-          // Tensor generate, fromIterable, fromObject
-          final tGen = Tensor<double>.generate((k) => 1.0, shape: [2, 2]);
-          checkNative(tGen.data, native: true);
-
-          final tFromIter = Tensor<double>.fromIterable([1.0, 2.0, 3.0]);
-          checkNative(tFromIter.data, native: true);
-
-          final tFromObj = Tensor<double>.fromObject([
-            [1.0, 2.0],
-            [3.0, 4.0],
-          ]);
-          checkNative(tFromObj.data, native: true);
-
-          // Matrix generate, identity, fromRows, fromColumns, diagonal
-          final mGen = Matrix<double>.generate(2, 2, (r, c) => 1.0);
-          checkNative(mGen.tensor.data, native: true);
-
-          final mIdent = Matrix<double>.identity(3);
-          checkNative(mIdent.tensor.data, native: true);
-
-          final mRows = Matrix<double>.fromRows([
-            [1.0, 2.0],
-            [3.0, 4.0],
-          ]);
-          checkNative(mRows.tensor.data, native: true);
-
-          final mCols = Matrix<double>.fromColumns([
-            [1.0, 2.0],
-            [3.0, 4.0],
-          ]);
-          checkNative(mCols.tensor.data, native: true);
-
-          final diagVec = Vector<double>.filled(3, 2.0);
-          final mDiag = Matrix<double>.diagonal(diagVec);
-          checkNative(mDiag.tensor.data, native: true);
-
-          // Vector generate, fromList, fromIterable
-          final vGen = Vector<double>.generate(4, (i) => 1.0);
-          checkNative(vGen.tensor.data, native: true);
-
-          final vList = Vector<double>.fromList([1.0, 2.0]);
-          checkNative(vList.tensor.data, native: true);
-
-          final vIter = Vector<double>.fromIterable([1.0, 2.0]);
-          checkNative(vIter.tensor.data, native: true);
-
-          // Explicit overrides inside native: true zone
-          final tGenHeap = Tensor<double>.generate(
-            (k) => 1.0,
-            shape: [2, 2],
-            native: false,
-          );
-          checkNative(tGenHeap.data, native: false);
-
-          final mRowsHeap = Matrix<double>.fromRows([
-            [1.0, 2.0],
-          ], native: false);
-          checkNative(mRowsHeap.tensor.data, native: false);
-
-          final vListHeap = Vector<double>.fromList([1.0, 2.0], native: false);
-          checkNative(vListHeap.tensor.data, native: false);
-        }, native: true);
-      },
-    );
-
-    test('non-typed container allocations in native zone succeed safely', () {
-      DefaultDataType.withDefault(() {
-        final tStr = Tensor<String>.filled('hello', shape: [2, 2]);
-        checkNative(tStr.data, native: false);
-        check(tStr.getValue([0, 0])).equals('hello');
-
-        final mStr = Matrix<String>.filled(2, 2, 'matrix');
-        checkNative(mStr.tensor.data, native: false);
-        check(mStr.get(0, 0)).equals('matrix');
-
-        final vStr = Vector<String>.filled(3, 'vector');
-        checkNative(vStr.tensor.data, native: false);
-        check(vStr[0]).equals('vector');
-      }, native: true);
-    });
-
-    test(
-      'nested native zone frames: outer native, inner heap, restored outer',
-      () {
-        DefaultDataType.withDefault(() {
-          check(DefaultDataType.isNative).isTrue();
-          final t1 = Tensor.filled(1.0, shape: [2]);
-          checkNative(t1.data, native: true);
-
-          DefaultDataType.withDefault(() {
-            check(DefaultDataType.isNative).isFalse();
-            final t2 = Tensor.filled(1.0, shape: [2]);
-            checkNative(t2.data, native: false);
-          }, native: false);
-
-          check(DefaultDataType.isNative).isTrue();
-          final t3 = Tensor.filled(1.0, shape: [2]);
-          checkNative(t3.data, native: true);
-        }, native: true);
-      },
-    );
-
     test('DataType resolution helpers respect zone defaults', () {
       check(DataType.fromType<double>()).equals(DataType.float64);
       check(DataType.fromType<int>()).equals(DataType.int32);
@@ -360,53 +174,19 @@ void main() {
     test(
       'async zone propagation across Future and microtask boundaries',
       () async {
-        await DefaultDataType.withDefault(
-          () async {
-            check(DefaultDataType.float).equals(DataType.float32);
-            check(DefaultDataType.isNative).isTrue();
+        await DefaultDataType.withDefault(() async {
+          check(DefaultDataType.float).equals(DataType.float32);
 
-            await Future<void>.delayed(Duration.zero);
+          await Future<void>.delayed(Duration.zero);
 
-            check(DefaultDataType.float).equals(DataType.float32);
-            check(DefaultDataType.isNative).isTrue();
+          check(DefaultDataType.float).equals(DataType.float32);
 
-            final tAsync = Tensor.filled(2.0, shape: [2, 2]);
-            check(tAsync.type).equals(DataType.float32);
-            checkNative(tAsync.data, native: true);
-          },
-          float: DataType.float32,
-          native: true,
-        );
+          final tAsync = Tensor.filled(2.0, shape: [2, 2]);
+          check(tAsync.type).equals(DataType.float32);
+        }, float: DataType.float32);
 
         check(DefaultDataType.float).equals(DataType.float64);
-        check(DefaultDataType.isNative).equals(NativeBuffer.isActive);
       },
     );
-
-    test('copyList respects native zone and explicit native parameter', () {
-      DefaultDataType.withDefault(() {
-        final listNative = DataType.float64.copyList([1.0, 2.0, 3.0]);
-        checkNative(listNative, native: true);
-
-        final listExplicitHeap = DataType.float64.copyList([
-          1.0,
-          2.0,
-          3.0,
-        ], native: false);
-        checkNative(listExplicitHeap, native: false);
-      }, native: true);
-
-      DefaultDataType.withDefault(() {
-        final listHeap = DataType.float64.copyList([1.0, 2.0, 3.0]);
-        checkNative(listHeap, native: false);
-
-        final listExplicitNative = DataType.float64.copyList([
-          1.0,
-          2.0,
-          3.0,
-        ], native: true);
-        checkNative(listExplicitNative, native: true);
-      }, native: false);
-    });
   });
 }

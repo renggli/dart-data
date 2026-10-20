@@ -26,17 +26,16 @@ This document describes the achieved architecture across all subsystems of `pack
 
 ### 1.3 Unified Type System & Algebraic Fields
 
-- **Reasoning**: Numeric and scientific operations require consistent algebraic structures (identities, field operations, numerical stability). Legacy mutable globals (`DataType.index`, `DataType.integer`, `DataType.float`) caused race conditions across isolates and tests. Concurrency isolates, ML pipelines, and graphics tasks need to configure floating-point precision (`float32` vs `float64`), integer precision (`int32` vs `int64`), and native off-heap storage frames without mutating global state.
+- **Reasoning**: Numeric and scientific operations require consistent algebraic structures (identities, field operations, numerical stability). Legacy mutable globals (`DataType.index`, `DataType.integer`, `DataType.float`) caused race conditions across isolates and tests. Concurrency isolates, ML pipelines, and graphics tasks need to configure floating-point precision (`float32` vs `float64`) and integer precision (`int32` vs `int64`) without mutating global state.
 - **Implementation & Constraints**:
   - Mutable globals are purged; default data types are isolate-safe and zone-scoped via `DefaultDataType`:
     - `DefaultDataType.index`: Static constant `DataType.uint32` for indexing collections, rows, and columns.
     - `DefaultDataType.integer`: Zone-scoped accessor defaulting to `DataType.int32` via `#data_default_integer`.
     - `DefaultDataType.float`: Zone-scoped accessor defaulting to `DataType.float64` via `#data_default_float`.
-    - `DefaultDataType.isNative`: Zone-scoped accessor delegating to `NativeBuffer.isActive` via `#data_default_native`.
   - `DefaultDataType.withDefault<R>` provides the canonical, thread-safe way to configure execution contexts:
-    - Supports standard positional trailing closures: `DefaultDataType.withDefault(computation, {integer, float, native})`.
+    - Supports standard positional trailing closures: `DefaultDataType.withDefault(computation, {integer, float})`.
     - Nested zone configurations preserve outer settings upon normal exit or exception unwinding.
-    - Container constructors (`Tensor`, `Matrix`, `Vector`) and `DataType.newList` automatically respect `DefaultDataType.float`, `DefaultDataType.integer`, and `DefaultDataType.isNative` when no explicit type or native storage flag is specified.
+    - Container constructors (`Tensor`, `Matrix`, `Vector`) and `DataType.newList` automatically respect `DefaultDataType.float` and `DefaultDataType.integer` when no explicit type is specified.
   - `Field<T>` and `ExtendedField<T>` in `lib/src/type/models/field.dart` define strict algebraic contracts:
     - Standard operations: `additiveIdentity`, `multiplicativeIdentity`, `add`, `sub`, `mul`, `div`, `neg`, `inv`, `scale`.
     - Extended operations: `abs`, `norm`, `sqrt`, `exp`, `log`, `conjugate`.
@@ -339,15 +338,14 @@ This document describes the achieved architecture across all subsystems of `pack
     - `dgesvd`: Singular value decomposition computing singular values and singular vectors.
     - `dsyev`, `ssyev`: LAPACK symmetric eigenvalue solvers computing real eigenvalues in ascending order and corresponding orthonormal eigenvectors. Transparently dispatched by `EigenvalueDecomposition` when matrices are symmetric with `DataType.float64` under active hardware acceleration, seamlessly falling back to pure Dart Householder tridiagonal reduction (`_tred2`) and implicit QL iteration (`_tql2`) when acceleration is disabled or for non-float64 types.
 
-### 5.4 Off-Heap Native Memory Lifecycle
+### 5.4 Zero-Copy Direct Address Native Acceleration
 
-- **Reasoning**: Allocating gigabyte-scale tensors in the Dart garbage-collected heap causes GC pauses and memory fragmentation. ML and GPU pipelines require transparent switching between managed typed lists and native memory frames.
+- **Reasoning**: Previous designs relied on off-heap manual allocations (`NativeBuffer`, `calloc`/`malloc`, `NativeFinalizer`, fallback arena copying). Dart FFI supports passing the native memory address of Dart-managed typed arrays directly (`typedList.address`, e.g., `Float64ListAddress.address`) to `@Native(isLeaf: true)` external calls without memory allocation, copying, or finalization overhead.
 - **Implementation & Constraints**:
-  - `NativeBuffer` allocates native off-heap memory via `calloc` / `malloc`.
-  - Container constructors (`Tensor.filled`, `Tensor.generate`, `Matrix.filled`, `Matrix.generate`, `Vector.filled`, etc.) allocate via `DataType.newList(length, native: native)`, seamlessly switching between standard heap-managed typed buffers and off-heap native memory frames via `DefaultDataType.withDefault(native: true)` or explicit `native: true/false` parameters.
-  - Redundant factory constructors (`Tensor.native`, `Matrix.native`, `Vector.native`) and `allocateData` helper have been removed in favor of the canonical `newList` API and `native` arguments.
-  - `DefaultDataType.isNative` dynamically respects zone-level `#data_default_native` overrides before falling back to `NativeBuffer.isActive`.
-  - Memory cleanup is automatically coordinated via Dart's `NativeFinalizer`, ensuring that native pointers are freed when containers are garbage-collected without requiring manual `free()` calls.
+  - Direct typed data addresses: Hardware acceleration routines in BLAS, LAPACK, and Apple vDSP / vForce bind to native symbols via `@ffi.Native(isLeaf: true)` external declarations.
+  - Zero-copy execution: Standard `Float64List` and `Float32List` buffers backing `Tensor`, `Matrix`, and `Vector` containers pass directly to native routines via `.address` (or `Float64List.sublistView(list, offset).address` for offset slices).
+  - Leaf calls: Native functions are marked `isLeaf: true`, allowing the Dart runtime to pin typed data memory during the call without garbage collector interference.
+  - Platform symbol probing: Dynamic symbol availability is queried cleanly using `DynamicLibrary.process().providesSymbol(...)` or loaded shared library handles before dispatching to external functions.
 
 ### 5.5 Pure-Dart SIMD Acceleration Fallback
 
@@ -420,12 +418,12 @@ This document describes the achieved architecture across all subsystems of `pack
   - `polynomialRegression`: Vandermonde polynomial fitting using QR decomposition with optional Tikhonov / Ridge L2 regularization (`lambda`) suppressing high-frequency Runge oscillations and conditioning rank-deficient systems.
   - `levenbergMarquardt`: Damped Gauss-Newton nonlinear least-squares curve fitting.
 
-### 6.6 Precision & Native Memory Scoping in Numerical Solvers
+### 6.6 Precision Scoping in Numerical Solvers
 
-- **Reasoning**: Complex iterative numerical routines (e.g. nonlinear optimizers, ODE integrators, curve fitting, FFT) require seamless switching between double-precision scientific convergence and single-precision or native off-heap memory frames without invasive algorithm rewrites.
+- **Reasoning**: Complex iterative numerical routines (e.g. nonlinear optimizers, ODE integrators, curve fitting, FFT) require seamless switching between double-precision scientific convergence and single-precision memory profiles without invasive algorithm rewrites.
 - **Implementation & Constraints**:
-  - Routines allocate intermediate vectors and matrices via standard container constructors, dynamically inheriting the zone's active precision (`DefaultDataType.float`) and storage frame (`DefaultDataType.isNative`).
-  - High-precision algorithms (e.g. adaptive Dormand-Prince `rk45` or BFGS quasi-Newton line searches) allow users to wrap execution inside `DefaultDataType.withDefault(float: DataType.float64)` or `DefaultDataType.withDefault(native: true)` to ensure convergence or offload large coordinate traces into native off-heap memory.
+  - Routines allocate intermediate vectors and matrices via standard container constructors, dynamically inheriting the zone's active precision (`DefaultDataType.float`).
+  - High-precision algorithms (e.g. adaptive Dormand-Prince `rk45` or BFGS quasi-Newton line searches) allow users to wrap execution inside `DefaultDataType.withDefault(float: DataType.float64)` to ensure convergence.
 
 ### 6.7 Coordinate Grids & Adaptive Curve Sampling (`lib/src/numeric/sampling.dart`)
 

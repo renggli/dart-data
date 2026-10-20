@@ -1,8 +1,8 @@
 import 'package:more/number.dart';
 
-import 'data_type.dart';
-import 'default_data_type.dart';
-import 'types/object.dart';
+import '../data_type.dart';
+import '../default_data_type.dart';
+import '../types/object.dart';
 
 /// Derives a fitting [DataType] from [T].
 DataType<T> fromType<T>() =>

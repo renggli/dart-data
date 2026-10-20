@@ -24,43 +24,24 @@ import 'vector.dart';
 /// ```
 extension type Float64Vector(Vector<double> _vector) implements Vector<double> {
   /// Constructs a [Float64Vector] filled with [value].
-  factory filled(int length, double value, {bool? native}) => Float64Vector(
-    Vector<double>.filled(
-      length,
-      value,
-      type: DataType.float64,
-      native: native,
-    ),
+  factory filled(int length, double value) => Float64Vector(
+    Vector<double>.filled(length, value, type: DataType.float64),
   );
 
   /// Constructs a [Float64Vector] populated by [generator].
-  factory generate(
-    int length,
-    double Function(int index) generator, {
-    bool? native,
-  }) => Float64Vector(
-    Vector<double>.generate(
-      length,
-      generator,
-      type: DataType.float64,
-      native: native,
-    ),
-  );
+  factory generate(int length, double Function(int index) generator) =>
+      Float64Vector(
+        Vector<double>.generate(length, generator, type: DataType.float64),
+      );
 
   /// Constructs a [Float64Vector] from a list of elements.
-  factory fromList(List<double> list, {bool? native}) => Float64Vector(
-    Vector<double>.fromList(list, type: DataType.float64, native: native),
-  );
+  factory fromList(List<double> list) =>
+      Float64Vector(Vector<double>.fromList(list, type: DataType.float64));
 
   /// Constructs a [Float64Vector] from an iterable of elements.
-  factory fromIterable(Iterable<double> iterable, {bool? native}) =>
-      Float64Vector(
-        Vector<double>.fromIterable(
-          iterable,
-          type: DataType.float64,
-          native: native,
-        ),
-      );
+  factory fromIterable(Iterable<double> iterable) => Float64Vector(
+    Vector<double>.fromIterable(iterable, type: DataType.float64),
+  );
 
   /// Constructs a [Float64Vector] with a sequence of [count] evenly spaced
   /// values over the interval `[start, stop]`.
@@ -69,7 +50,6 @@ extension type Float64Vector(Vector<double> _vector) implements Vector<double> {
     double stop, {
     int count = 50,
     bool endpoint = true,
-    bool? native,
   }) => Float64Vector(
     Vector<double>.linspace(
       start,
@@ -77,7 +57,6 @@ extension type Float64Vector(Vector<double> _vector) implements Vector<double> {
       count: count,
       endpoint: endpoint,
       type: DataType.float64,
-      native: native,
     ),
   );
 
@@ -89,7 +68,6 @@ extension type Float64Vector(Vector<double> _vector) implements Vector<double> {
     int count = 50,
     double base = 10.0,
     bool endpoint = true,
-    bool? native,
   }) => Float64Vector(
     Vector<double>.logspace(
       start,
@@ -98,7 +76,6 @@ extension type Float64Vector(Vector<double> _vector) implements Vector<double> {
       base: base,
       endpoint: endpoint,
       type: DataType.float64,
-      native: native,
     ),
   );
 
@@ -109,7 +86,6 @@ extension type Float64Vector(Vector<double> _vector) implements Vector<double> {
     double stop, {
     int count = 50,
     bool endpoint = true,
-    bool? native,
   }) => Float64Vector(
     Vector<double>.geomspace(
       start,
@@ -117,7 +93,6 @@ extension type Float64Vector(Vector<double> _vector) implements Vector<double> {
       count: count,
       endpoint: endpoint,
       type: DataType.float64,
-      native: native,
     ),
   );
 
