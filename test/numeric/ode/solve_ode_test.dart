@@ -2,12 +2,12 @@ import 'dart:math' as math;
 
 import 'package:checks/checks.dart';
 import 'package:data/linear.dart';
-import 'package:data/src/numeric/ode.dart';
+import 'package:data/numeric.dart';
 import 'package:data/type.dart';
 import 'package:test/test.dart';
 
 void main() {
-  group('Canonical ODE Solver (solveOde)', () {
+  group('solveOde', () {
     test('solveOde with OdeMethod.rk4 on exponential decay dy/dt = -2y', () {
       // dy/dt = -2y, y(0) = 1.0 => y(t) = exp(-2t)
       Vector<double> derivative(double time, Vector<double> y) =>

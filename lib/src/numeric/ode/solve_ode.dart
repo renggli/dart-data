@@ -1,34 +1,8 @@
 import 'dart:math' as math;
 
-import '../../linear.dart';
-
-/// Trajectory of an ODE simulation containing time points [t] and state vectors
-/// [y].
-class OdeSolution {
-  /// Constructs an ODE solution.
-  const new({required this.t, required this.y});
-
-  /// The recorded time points.
-  final List<double> t;
-
-  /// The state vectors at each corresponding time point.
-  final List<Vector<double>> y;
-
-  /// The final state vector of the simulation.
-  Vector<double> get last => y.last;
-
-  /// Number of recorded steps.
-  int get stepCount => t.length;
-}
-
-/// Numerical integration method for ordinary differential equations.
-enum OdeMethod {
-  /// Classical 4th-order Runge-Kutta with fixed step size.
-  rk4,
-
-  /// Adaptive 5(4) Dormand-Prince Runge-Kutta with dynamic step-size control.
-  dormandPrince45,
-}
+import '../../../linear.dart';
+import 'ode_method.dart';
+import 'ode_solution.dart';
 
 /// Solves an initial value problem $\frac{dy}{dt} = f(t, y)$ from [t0] to
 /// [tEnd] starting at state [y0] using the specified [method].
