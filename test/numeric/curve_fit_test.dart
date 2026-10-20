@@ -367,6 +367,72 @@ void main() {
           lowerBounds: Vector<double>.fromList([0.0]),
         ),
       ).throws<ArgumentError>();
+
+      // Upper bounds length mismatch
+      check(
+        () => curveFit(
+          xs: Vector<double>.fromList([1.0, 2.0, 3.0]),
+          ys: Vector<double>.fromList([1.0, 2.0, 3.0]),
+          model: CurveModels.exponential,
+          initialParams: Vector<double>.fromList([1.0, 1.0]),
+          upperBounds: Vector<double>.fromList([5.0]),
+        ),
+      ).throws<ArgumentError>();
+    });
+
+    test('leastSquares rank-deficient and integer RHS', () {
+      final a = Matrix<double>.fromRows([
+        [1.0, 2.0],
+        [2.0, 4.0],
+      ]);
+      final b = Vector<int>.fromList([3, 6]);
+      final x = leastSquares(a, b);
+      check(x.length).equals(2);
+      final ax = a.apply(x);
+      check(ax[0]).isCloseTo(3.0, 1e-8);
+      check(ax[1]).isCloseTo(6.0, 1e-8);
+    });
+
+    test('polynomialRegression edge cases', () {
+      check(
+        () => polynomialRegression(
+          Vector<double>.fromList([]),
+          Vector<double>.fromList([]),
+          degree: 1,
+          lambda: 1.0,
+        ),
+      ).throws<ArgumentError>();
+
+      final xs = Vector<double>.fromList([1.0, 2.0, 3.0]);
+      final ys = Vector<int>.fromList([2, 4, 6]);
+      final res = polynomialRegression(xs, ys, degree: 1);
+      check(res[1]).isCloseTo(2.0, 1e-6);
+    });
+
+    test(
+      'curveFit with constant values yields rSquared 0.0 (ssTot == 0.0)',
+      () {
+        final xs = Vector<double>.fromList([1.0, 2.0, 3.0]);
+        final ys = Vector<double>.fromList([5.0, 5.0, 5.0]);
+        final res = curveFit(
+          xs: xs,
+          ys: ys,
+          model: (x, p) => p[0],
+          initialParams: Vector<double>.fromList([1.0]),
+        );
+        check(res.rSquared).equals(0.0);
+      },
+    );
+
+    test('fitNonlinear step rejection', () {
+      final p = fitNonlinear(
+        residualFunction: (v) =>
+            Vector<double>.fromList([10.0 * (v[1] - v[0] * v[0]), 1.0 - v[0]]),
+        initialParams: Vector<double>.fromList([-1.2, 1.0]),
+        damping: 1e-4,
+        maxIterations: 10,
+      );
+      check(p.length).equals(2);
     });
   });
 }

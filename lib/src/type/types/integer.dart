@@ -54,6 +54,9 @@ abstract base class IntegerDataType<L extends List<int>>
   @override
   int cast(dynamic value) {
     if (value is num) {
+      if (bits >= 64) {
+        return value.toInt();
+      }
       if (isSigned) {
         return value.toInt().toSigned(bits);
       } else {

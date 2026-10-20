@@ -339,5 +339,13 @@ void main() {
       check(syntax.parse('DBL(3)'))
           .equals(VariableFunction('DBL', [IntegerNumber.of(3)]));
     });
+
+    test('implicit multiplication and invalid argument count errors', () {
+      final implicit = ExprSyntax(implicitMultiplication: true);
+      check(implicit.parse('2x').toString()).equals('2 * x');
+
+      check(() => Expr.parse('integrate(x)')).throws<FormatException>();
+      check(() => Expr.parse('limit(x, y)')).throws<FormatException>();
+    });
   });
 }

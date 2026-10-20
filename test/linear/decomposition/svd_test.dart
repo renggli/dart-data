@@ -93,6 +93,24 @@ void main() {
       final svd = a.svd;
       check(svd.rank).equals(2);
       check(svd.cond).equals(double.infinity);
+
+      // Bidiagonal matrix with zero interior diagonal entry (triggers kase = 2 QR step)
+      final bidiagZero = Matrix<double>.fromRows([
+        [2.0, 3.0, 0.0, 0.0],
+        [0.0, 0.0, 4.0, 0.0],
+        [0.0, 0.0, 5.0, 6.0],
+        [0.0, 0.0, 0.0, 7.0],
+      ], type: DataType.float64);
+      final svdZero = bidiagZero.svd;
+      check(svdZero.s.length).equals(4);
+      check(svdZero.rank).equals(3);
+
+      final svdZeroNoVectors = SingularValueDecomposition(
+        bidiagZero,
+        computeVectors: false,
+      );
+      check(svdZeroNoVectors.s.length).equals(4);
+      check(svdZeroNoVectors.rank).equals(3);
     });
   });
 }

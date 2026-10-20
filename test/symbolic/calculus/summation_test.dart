@@ -130,12 +130,18 @@ void main() {
 
       // Repeated pole rational telescoping: 1/k^2 - 1/(k+1)^2
       final repTele =
-          (IntegerNumber.one / (k * k) -
+          (IntegerNumber.one / Pow(k, IntegerNumber.two) -
                   IntegerNumber.one /
                       Pow(k + IntegerNumber.one, IntegerNumber.two))
               .sum('k', 1, n);
       check(repTele.substitute('n', IntegerNumber.of(3)).simplify())
           .equals(RationalNumber(15, 16));
+
+      // Case 2 general telescoping where shifted term appears first
+      final case2Tele = (-Sin(k + IntegerNumber.one) + Sin(k)).sum('k', 1, n);
+      check(
+        case2Tele.substitute('n', IntegerNumber.of(2)).simplify(),
+      ).equals((Sin(IntegerNumber.one) - Sin(IntegerNumber.of(3))).simplify());
 
       // Reverse order general telescoping: -ln(k + 1) + ln(k)
       final revLogTele = (Ln(k) - Ln(k + IntegerNumber.two)).sum('k', 1, n);

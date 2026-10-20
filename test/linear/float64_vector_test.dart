@@ -1,6 +1,7 @@
 import 'dart:typed_data';
 
 import 'package:checks/checks.dart';
+import 'package:data/acceleration.dart';
 import 'package:data/linear.dart';
 import 'package:test/test.dart';
 
@@ -75,6 +76,42 @@ void main() {
       check(scaled.asTypedList).deepEquals([3.0, 6.0, 9.0]);
     });
 
+    test('pure Dart fallback execution mode', () {
+      final prev = AccelerationManager.mode;
+      try {
+        AccelerationManager.mode = AccelerationMode.dart;
+        final a = Float64Vector.fromList([1.0, 2.0, 3.0]);
+        final b = Float64Vector.fromList([4.0, 5.0, 6.0]);
+
+        check(a.dot(b)).equals(32.0);
+        check(Float64Vector.fromList([3.0, 4.0]).norm2()).equals(5.0);
+        check((a + b).asTypedList).deepEquals([5.0, 7.0, 9.0]);
+        check((b - a).asTypedList).deepEquals([3.0, 3.0, 3.0]);
+        check((a * b).asTypedList).deepEquals([4.0, 10.0, 18.0]);
+        check((b / a).asTypedList).deepEquals([4.0, 2.5, 2.0]);
+        check((-a).asTypedList).deepEquals([-1.0, -2.0, -3.0]);
+        check(a.scale(2.0).asTypedList).deepEquals([2.0, 4.0, 6.0]);
+      } finally {
+        AccelerationManager.mode = prev;
+      }
+    });
+
+    test('non-contiguous strided dot product', () {
+      final m1 = Matrix<double>.fromRows([
+        [1.0, 2.0],
+        [3.0, 4.0],
+      ]);
+      final m2 = Matrix<double>.fromRows([
+        [5.0, 6.0],
+        [7.0, 8.0],
+      ]);
+      // Column vectors have stride > 1
+      final c1 = Float64Vector(m1.col(0));
+      final c2 = Float64Vector(m2.col(0));
+      // 1*5 + 3*7 = 5 + 21 = 26
+      check(c1.dot(c2)).equals(26.0);
+    });
+
     test('dimension mismatch error handling', () {
       final a = Float64Vector.filled(3, 1.0);
       final b = Float64Vector.filled(4, 2.0);
@@ -84,6 +121,43 @@ void main() {
       check(() => a * b).throws<ArgumentError>();
       check(() => a / b).throws<ArgumentError>();
       check(() => a.dot(b)).throws<ArgumentError>();
+    });
+
+    test('operations with generic Vector<double> and non-contiguous views', () {
+      final a = Float64Vector.fromList([1.0, 2.0, 3.0]);
+      // Generic Vector backed by List<double> (not Float64Vector)
+      final genericVec = Vector<double>.generate(3, (i) => (i + 1) * 10.0);
+
+      // dot
+      check(a.dot(genericVec)).equals(140.0);
+
+      // +
+      final sum = a + genericVec;
+      check(sum.asTypedList).deepEquals([11.0, 22.0, 33.0]);
+
+      // -
+      final diff = a - genericVec;
+      check(diff.asTypedList).deepEquals([-9.0, -18.0, -27.0]);
+
+      // *
+      final prod = a * genericVec;
+      check(prod.asTypedList).deepEquals([10.0, 40.0, 90.0]);
+
+      // /
+      final div = a / genericVec;
+      check(div[0]).isCloseTo(0.1, 1e-9);
+
+      // Vector with non-zero offset
+      final full = Float64Vector.fromList([0.0, 10.0, 20.0, 30.0, 0.0]);
+      final offsetVec = full.subVector(1, 4);
+      final sumOffset = a + offsetVec;
+      check(sumOffset.asTypedList).deepEquals([11.0, 22.0, 33.0]);
+      final diffOffset = a - offsetVec;
+      check(diffOffset.asTypedList).deepEquals([-9.0, -18.0, -27.0]);
+      final prodOffset = a * offsetVec;
+      check(prodOffset.asTypedList).deepEquals([10.0, 40.0, 90.0]);
+      final divOffset = a / offsetVec;
+      check(divOffset[0]).isCloseTo(0.1, 1e-9);
     });
   });
 }

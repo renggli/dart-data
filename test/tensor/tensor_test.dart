@@ -18,6 +18,18 @@ void main() {
       check(layout.toKey(3)).deepEquals([3]);
     });
 
+    test('empty layout and parameter validation errors', () {
+      final empty = Layout();
+      check(empty.rank).equals(0);
+      check(empty.length).equals(0);
+
+      check(() => Layout(shape: [-1, 2])).throws<ArgumentError>();
+      check(() => Layout(shape: [2, 3], strides: [1])).throws<ArgumentError>();
+
+      final layout = Layout(shape: [2, 3]);
+      check(() => layout[5]).throws<RangeError>();
+    });
+
     test('2D contiguous layout and indexing', () {
       final layout = Layout(shape: [2, 3]);
       check(layout.rank).equals(2);

@@ -1,6 +1,7 @@
 import 'package:checks/checks.dart';
 import 'package:data/src/symbolic/algebra/simplify/transcendental.dart';
 import 'package:data/symbolic.dart';
+import 'package:data/type.dart';
 import 'package:test/test.dart';
 
 void main() {
@@ -374,6 +375,94 @@ void main() {
           .equals(Re(z, isSimplified: true));
       check(toRectangularExpr(Im(z), assumptions: complexZ))
           .equals(Im(z, isSimplified: true));
+    });
+
+    test('complex decomposition and syntactic real simplification', () {
+      const realAssumptions = Assumptions(
+        domains: {'x': VariableDomain.real, 'y': VariableDomain.real},
+      );
+      const x = Variable('x');
+      const y = Variable('y');
+      const w = Variable('w');
+
+      const complexW = Assumptions(domains: {'w': VariableDomain.complex});
+      // Complex variable without decomposition returns Re(w) and Im(w)
+      check(simplifyRe(w, assumptions: complexW))
+          .equals(Re(w, isSimplified: true));
+      check(simplifyIm(w, assumptions: complexW))
+          .equals(Im(w, isSimplified: true));
+
+      // Syntactically real expressions: Tanh, Asinh, Erf, Erfc, Gamma, Ln, Binomial, Beta, Mod
+      check(simplifyIm(Tanh(x), assumptions: realAssumptions))
+          .equals(IntegerNumber.zero);
+      check(simplifyIm(Asinh(x), assumptions: realAssumptions))
+          .equals(IntegerNumber.zero);
+      check(simplifyIm(Erf(x), assumptions: realAssumptions))
+          .equals(IntegerNumber.zero);
+      check(simplifyIm(Erfc(x), assumptions: realAssumptions))
+          .equals(IntegerNumber.zero);
+      check(simplifyIm(Gamma(x), assumptions: realAssumptions))
+          .equals(IntegerNumber.zero);
+      check(simplifyIm(Binomial(x, y), assumptions: realAssumptions))
+          .equals(IntegerNumber.zero);
+      check(simplifyIm(Beta(x, y), assumptions: realAssumptions))
+          .equals(IntegerNumber.zero);
+      check(simplifyIm(Mod(x, y), assumptions: realAssumptions))
+          .equals(IntegerNumber.zero);
+
+      // Decompose Conjugate, Re, Im via toRectangularExpr
+      final expr = Add([
+        x,
+        Mul([ComplexNumber.i, y]),
+      ]);
+      check(
+        toRectangularExpr(
+          Conjugate(expr),
+          assumptions: realAssumptions,
+        ).toString(),
+      ).equals('x - i * y');
+      check(toRectangularExpr(Re(expr), assumptions: realAssumptions))
+          .equals(x);
+      check(toRectangularExpr(Im(expr), assumptions: realAssumptions))
+          .equals(y);
+
+      // NotEqual simplification
+      check(Expr.parse('1 != 2').simplify()).equals(IntegerNumber.one);
+      check(Expr.parse('2 != 2').simplify()).equals(IntegerNumber.zero);
+
+      // Polar and rectangular decompositions for unconstrained and constant expressions
+      const z = Variable('z');
+      const complexZ = Assumptions(domains: {'z': VariableDomain.complex});
+      final polarZ = toPolarExpr(z, assumptions: complexZ);
+      check(polarZ is Mul).isTrue();
+
+      final rectC = toRectangularExpr(const Constant('c', Complex(1.0, 2.0)));
+      check(rectC).isA<ComplexNumber>();
+      check((rectC as ComplexNumber).real).equals(const RealNumber(1.0));
+      check(rectC.imaginary).equals(const RealNumber(2.0));
+      check(toRectangularExpr(Conjugate(z), assumptions: complexZ).toString())
+          .equals('re(z) - i * im(z)');
+      check(toRectangularExpr(Re(z), assumptions: complexZ))
+          .equals(Re(z, isSimplified: true));
+      check(toRectangularExpr(Im(z), assumptions: complexZ))
+          .equals(Im(z, isSimplified: true));
+
+      // Abs of exp with complex exponent: |exp(3 + 4i)| = exp(3)
+      final expComp = Pow(
+        Constant.e,
+        Add([
+          IntegerNumber.of(3),
+          Mul([ComplexNumber.i, IntegerNumber.of(4)]),
+        ]),
+      );
+      check(simplifyAbs(expComp))
+          .equals(Pow(Constant.e, IntegerNumber.of(3), isSimplified: true));
+
+      // isEvenIntegerExpr on Add and Pow
+      check(isEvenIntegerExpr(Add([IntegerNumber.of(2), IntegerNumber.of(4)])))
+          .isTrue();
+      check(isEvenIntegerExpr(Pow(IntegerNumber.of(2), IntegerNumber.of(3))))
+          .isTrue();
     });
   });
 }

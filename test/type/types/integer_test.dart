@@ -30,6 +30,7 @@ void main() {
         check(type.cast(1)).equals(1);
         check(type.cast('42')).equals(42);
         check(type.cast(BigInt.from(10))).equals(10);
+        check(type.cast(Fraction(7, 2))).equals(3);
       });
 
       test('cast errors', () {
@@ -71,5 +72,51 @@ void main() {
       min: 0,
       max: 4294967295,
     );
+    testInteger(
+      DataType.int64,
+      isSigned: true,
+      bits: 64,
+      min: -4294967296 * 2147483648,
+      max: 454279 * 649657 * 31252369,
+    );
+    testInteger(
+      DataType.uint64,
+      isSigned: false,
+      bits: 64,
+      min: 0,
+      max: 4294967296 * 4294967296 - 1,
+    );
+
+    test('safeBits, safeMin, safeMax', () {
+      check(DataType.int64.safeBits).isGreaterThan(50);
+      check(DataType.int64.safeMin).isLessThan(0);
+      check(DataType.int64.safeMax).isGreaterThan(0);
+      check(DataType.uint64.safeBits).isGreaterThan(50);
+      check(DataType.uint64.safeMin).equals(0);
+      check(DataType.uint64.safeMax).isGreaterThan(0);
+    });
+
+    test('IntegerField extended operations', () {
+      final field = DataType.int32.field;
+      check(field.inv(2)).equals(0);
+      check(field.scale(4, 2.5)).equals(10);
+      check(field.div(10, 3)).equals(3);
+      check(field.mod(10, 3)).equals(1);
+      check(field.division(10, 3)).equals(3);
+      check(field.remainder(10, 3)).equals(1);
+      check(field.pow(2, 3)).equals(8);
+      check(field.modPow(2, 3, 5)).equals(3);
+      check(field.modInverse(3, 11)).equals(4);
+      check(field.gcd(12, 18)).equals(6);
+      check(field.abs(-5)).equals(5);
+      check(field.norm(-5)).equals(5.0);
+      check(field.sqrt(16)).equals(4);
+      check(field.exp(2)).equals(7);
+      check(field.log(10)).equals(2);
+      check(field.conjugate(5)).equals(5);
+      check(() => field.nan).throws<UnsupportedError>();
+      check(() => field.infinity).throws<UnsupportedError>();
+      check(() => field.negativeInfinity).throws<UnsupportedError>();
+    });
   });
 }

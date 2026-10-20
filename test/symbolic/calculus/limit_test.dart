@@ -372,6 +372,29 @@ void main() {
           check(Sin(x).limit('x', Constant.pi / IntegerNumber.two))
               .equals(IntegerNumber.one);
           check(() => x.limit('x', '??? invalid')).throws<ArgumentError>();
+
+          // Exponential limits at infinity
+          check(Pow(IntegerNumber.two, x).limit('x', Constant.infinity))
+              .equals(Constant.infinity);
+          check(Pow(FractionNumber.half, x).limit('x', -Constant.infinity))
+              .equals(Constant.infinity);
+
+          // Bounded oscillation with multiple non-oscillating factors
+          final multiFactorOsc =
+              (Mul([IntegerNumber.two, x, Sin(x)])) /
+              (Pow(x, IntegerNumber.two) + IntegerNumber.one);
+          check(multiFactorOsc.limit('x', Constant.infinity))
+              .equals(IntegerNumber.zero);
+
+          // Asymptotic degree analysis scanning composite AST nodes
+          final compositeExpr = Add([
+            Derivative(x, 'x'),
+            Limit(x, 't', IntegerNumber.zero),
+            Sum(x, 'k', IntegerNumber.one, IntegerNumber.of(5)),
+            Product(x, 'k', IntegerNumber.one, IntegerNumber.of(5)),
+            VariableFunction('f', [x]),
+          ]);
+          check(compositeExpr.limit('x', Constant.infinity)).isNotNull();
         },
       );
     },

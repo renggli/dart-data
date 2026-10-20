@@ -1,4 +1,5 @@
 import 'package:checks/checks.dart';
+import 'package:data/acceleration.dart';
 import 'package:data/linear.dart';
 import 'package:data/type.dart';
 import 'package:test/test.dart';
@@ -159,6 +160,10 @@ void main() {
       final emptyFromCols = Matrix<int>.fromColumns([]);
       check(emptyFromCols.rowCount).equals(0);
       check(emptyFromCols.colCount).equals(0);
+
+      final emptyFromColList = Matrix<int>.fromColumns([[]]);
+      check(emptyFromColList.rowCount).equals(0);
+      check(emptyFromColList.colCount).equals(1);
 
       final emptyNestedRows = Matrix<int>.fromRows([[], []]);
       check(emptyNestedRows.rowCount).equals(2);
@@ -482,6 +487,93 @@ void main() {
       check(x[1][1]).isCloseTo(3.0, 1e-10);
     });
 
+    test('underdetermined rectangular matrix with Matrix RHS', () {
+      final a = Matrix<double>.fromRows([
+        [1.0, 2.0, 3.0],
+        [2.0, 1.0, 0.0],
+      ]);
+      final b = Matrix<double>.fromRows([
+        [1.0, 2.0],
+        [3.0, 4.0],
+      ]);
+      final x = a.solve(b);
+      check(x.rowCount).equals(3);
+      check(x.colCount).equals(2);
+      final ax = a * x;
+      check(ax[0][0]).isCloseTo(1.0, 1e-10);
+      check(ax[0][1]).isCloseTo(2.0, 1e-10);
+      check(ax[1][0]).isCloseTo(3.0, 1e-10);
+      check(ax[1][1]).isCloseTo(4.0, 1e-10);
+    });
+
+    test('exact solve with Fraction and row swap in RREF', () {
+      final a = Matrix<Fraction>.fromRows([
+        [Fraction.zero, Fraction.one],
+        [Fraction.one, Fraction.one],
+      ]);
+      final b = Vector<Fraction>.fromList([Fraction(2), Fraction(5)]);
+      final x = a.solve(b);
+      check(x[0]).equals(Fraction(3));
+      check(x[1]).equals(Fraction(2));
+
+      final bMat = Matrix<Fraction>.fromRows([
+        [Fraction(2), Fraction(4)],
+        [Fraction(5), Fraction(7)],
+      ]);
+      final xMat = a.solve(bMat);
+      check(xMat[0][0]).equals(Fraction(3));
+      check(xMat[1][0]).equals(Fraction(2));
+      check(xMat[0][1]).equals(Fraction(3));
+      check(xMat[1][1]).equals(Fraction(4));
+    });
+
+    test('RREF inconsistent and rank deficient systems throw StateError', () {
+      final a = Matrix<Fraction>.fromRows([
+        [Fraction.one, Fraction.one],
+        [Fraction(2), Fraction(2)],
+        [Fraction(3), Fraction(3)],
+      ]);
+      final bDeficient = Vector<Fraction>.fromList([
+        Fraction(1),
+        Fraction(2),
+        Fraction(3),
+      ]);
+      check(() => a.solve(bDeficient)).throws<StateError>();
+
+      final aInc = Matrix<Fraction>.fromRows([
+        [Fraction.one, Fraction.one],
+        [Fraction.one, Fraction.one],
+        [Fraction.zero, Fraction.zero],
+      ]);
+      final bInc = Vector<Fraction>.fromList([
+        Fraction(1),
+        Fraction(2),
+        Fraction(1),
+      ]);
+      check(() => aInc.solve(bInc)).throws<StateError>();
+    });
+
+    test('Matrix.solve cross-type casting of Vector and Matrix RHS', () {
+      final a = Matrix<double>.fromRows([
+        [2.0, 0.0],
+        [0.0, 3.0],
+      ]);
+      final bVec = Vector<num>.fromList([4, 9]);
+      final xVec = a.solve<Vector<num>>(bVec);
+      check(xVec[0]).isCloseTo(2.0, 1e-10);
+      check(xVec[1]).isCloseTo(3.0, 1e-10);
+
+      final bMat = Matrix<num>.fromRows([
+        [4, 8],
+        [9, 6],
+      ]);
+      final xMat = a.solve<Matrix<num>>(bMat);
+      check(xMat[0][0]).isCloseTo(2.0, 1e-10);
+      check(xMat[1][0]).isCloseTo(3.0, 1e-10);
+      check(xMat[0][1]).isCloseTo(4.0, 1e-10);
+      check(xMat[1][1]).isCloseTo(2.0, 1e-10);
+    });
+
     test('dimension mismatch and invalid argument errors', () {
       final a = Matrix<double>.fromRows([
         [1.0, 2.0],
@@ -581,6 +673,83 @@ void main() {
       check(cInv[0][0].b).isCloseTo(-0.5, 1e-10);
       check(cInv[1][1].a).isCloseTo(0.5, 1e-10);
       check(cInv[1][1].b).isCloseTo(0.0, 1e-10);
+    });
+
+    test('solve non-square matrix with Fraction Matrix RHS', () {
+      final a = Matrix<Fraction>.fromRows([
+        [Fraction(1), Fraction(2), Fraction(0)],
+        [Fraction(0), Fraction(1), Fraction(1)],
+      ], type: DataType.fraction);
+      final b = Matrix<Fraction>.fromRows([
+        [Fraction(5), Fraction(1)],
+        [Fraction(3), Fraction(2)],
+      ], type: DataType.fraction);
+      final x = a.solve(b);
+      check(x.rowCount).equals(3);
+      check(x.colCount).equals(2);
+      check((a * x).toNestedList()).deepEquals(b.toNestedList());
+    });
+
+    test('solve underdetermined system with Vector RHS in pure Dart', () {
+      final prev = AccelerationManager.mode;
+      try {
+        AccelerationManager.mode = AccelerationMode.dart;
+        final a = Matrix<double>.fromRows([
+          [1.0, 2.0, 3.0],
+          [4.0, 5.0, 6.0],
+        ], type: DataType.float64);
+        final b = Vector<double>.fromList([1.0, 2.0], type: DataType.float64);
+        final x = a.solve(b);
+        check(x.length).equals(3);
+        final ax = a.apply(x);
+        check(ax[0]).isCloseTo(1.0, 1e-10);
+        check(ax[1]).isCloseTo(2.0, 1e-10);
+      } finally {
+        AccelerationManager.mode = prev;
+      }
+    });
+
+    test('subMatrix with omitted rowEnd and colEnd', () {
+      final m = Matrix<int>.fromRows([
+        [1, 2, 3],
+        [4, 5, 6],
+        [7, 8, 9],
+      ]);
+      final sub = m.subMatrix(rowStart: 1, colStart: 1);
+      check(sub.rowCount).equals(2);
+      check(sub.colCount).equals(2);
+      check(sub[0][0]).equals(5);
+      check(sub[1][1]).equals(9);
+    });
+
+    test('transposed matrix vector apply both directions', () {
+      final m = Matrix<double>.fromRows([
+        [1.0, 2.0, 3.0],
+        [4.0, 5.0, 6.0],
+      ], type: DataType.float64);
+      final v = Vector<double>.fromList([1.0, 2.0], type: DataType.float64);
+      final mt = m.transposed;
+      final res1 = mt.apply(v);
+      check(res1.length).equals(3);
+      check(res1[0]).equals(9.0);
+
+      final v3 = Vector<double>.fromList([
+        1.0,
+        2.0,
+        3.0,
+      ], type: DataType.float64);
+      final res2 = mt.applyTranspose(v3);
+      check(res2.length).equals(2);
+    });
+
+    test('syrk fallback on integer matrix', () {
+      final m = Matrix<int>.fromRows([
+        [1, 2],
+        [3, 4],
+      ]);
+      final res = m.syrk();
+      check(res.rowCount).equals(2);
+      check(res.colCount).equals(2);
     });
   });
 }

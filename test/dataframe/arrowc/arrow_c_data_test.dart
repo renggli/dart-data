@@ -18,6 +18,7 @@ import 'package:data/dataframe.dart'
         importDataFrameFromArrowC,
         importSeriesFromArrowC;
 import 'package:data/src/dataframe/arrowc/arrow_c_data_ffi.dart';
+import 'package:data/type.dart';
 import 'package:ffi/ffi.dart';
 import 'package:test/test.dart';
 
@@ -150,8 +151,65 @@ void main() {
       check(() => importSeriesFromArrowC(outArray, outSchema))
           .throws<StateError>();
 
+      check(() => importDataFrameFromArrowC(outArray, outSchema))
+          .throws<StateError>();
+
       calloc.free(outSchema);
       calloc.free(outArray);
+    });
+
+    test('Round-trips all primitive integer and float series types', () {
+      final types = [
+        (Series.fromList('i8', [-5, 10], type: DataType.int8), 'c'),
+        (Series.fromList('i16', [-500, 1000], type: DataType.int16), 's'),
+        (
+          Series.fromList('i64', [
+            -5000000000,
+            10000000000,
+          ], type: DataType.int64),
+          'l',
+        ),
+        (Series.fromList('u8', [5, 200], type: DataType.uint8), 'C'),
+        (Series.fromList('u16', [500, 50000], type: DataType.uint16), 'S'),
+        (
+          Series.fromList('u32', [50000, 3000000000], type: DataType.uint32),
+          'I',
+        ),
+        (
+          Series.fromList('u64', [50000, 8000000000], type: DataType.uint64),
+          'L',
+        ),
+        (Series.fromList('f32', [1.5, -2.5], type: DataType.float32), 'f'),
+      ];
+
+      for (final (series, expectedFormat) in types) {
+        final outArray = calloc<ArrowArray>();
+        final outSchema = calloc<ArrowSchema>();
+        try {
+          series.exportToArrowC(outArray, outSchema);
+          check(outSchema.ref.format.toDartString()).equals(expectedFormat);
+          final imported = importSeriesFromArrowC(outArray, outSchema);
+          check(imported.length).equals(series.length);
+          if (series.dataType == DataType.float32) {
+            check(imported[0] as double).isCloseTo(1.5, 1e-5);
+          } else {
+            check(imported.toList()).deepEquals(series.toList());
+          }
+        } finally {
+          if (outSchema.ref.release != ffi.nullptr) {
+            outSchema.ref.release
+                .asFunction<void Function(ffi.Pointer<ArrowSchema>)>()(
+              outSchema,
+            );
+          }
+          if (outArray.ref.release != ffi.nullptr) {
+            outArray.ref.release
+                .asFunction<void Function(ffi.Pointer<ArrowArray>)>()(outArray);
+          }
+          calloc.free(outSchema);
+          calloc.free(outArray);
+        }
+      }
     });
   });
 }

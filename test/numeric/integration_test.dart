@@ -126,5 +126,50 @@ void main() {
       check(() => integrate((x) => x, double.nan, 1.0)).throws<ArgumentError>();
       check(() => integrate((x) => x, 0.0, double.nan)).throws<ArgumentError>();
     });
+
+    test('IntegrateError formatting and edge cases', () {
+      final err = IntegrateError(IntegrateWarning.doesNotConverge, 0.5);
+      check(
+        err.toString(),
+      ).equals('IntegrateError: IntegrateWarning.doesNotConverge near x = 0.5');
+
+      // NaN integrand causes doesNotConverge warning/error
+      check(() => integrate((x) => double.nan, 0.0, 1.0))
+          .throws<IntegrateError>();
+
+      final warnings = <IntegrateWarning>[];
+      integrate(
+        (x) => double.nan,
+        0.0,
+        1.0,
+        onWarning: (type, x) => warnings.add(type),
+      );
+      check(warnings).contains(IntegrateWarning.doesNotConverge);
+
+      // Gauss-Kronrod depth too shallow with onWarning
+      final gkWarnings = <IntegrateWarning>[];
+      integrate(
+        (x) => math.sin(100.0 * x),
+        0.0,
+        1.0,
+        maxDepth: 1,
+        tolerance: 1e-15,
+        onWarning: (type, x) => gkWarnings.add(type),
+      );
+      check(gkWarnings).contains(IntegrateWarning.depthTooShallow);
+
+      // Overlapping interior poles merge intervals
+      final mergedRes = integrate(
+        (x) => (x - 1.0).abs(),
+        0.0,
+        2.0,
+        poles: [1.0, 1.0000001],
+      );
+      check(mergedRes).isCloseTo(1.0, 1e-5);
+
+      // Exterior poles are ignored
+      final extRes = integrate((x) => x, 0.0, 1.0, poles: [5.0, -2.0]);
+      check(extRes).isCloseTo(0.5, 1e-8);
+    });
   });
 }

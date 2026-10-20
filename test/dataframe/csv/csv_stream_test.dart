@@ -172,5 +172,28 @@ void main() {
       check(df['b'].toList()).deepEquals([null, null, 6]);
       check(df['c'].toList()).deepEquals([3, 4, null]);
     });
+
+    test('handles column with all null values and CRLF line breaks', () async {
+      const csv = 'a,b\r\n1,\r\n2,\r\n';
+      final df = await CsvStream.readStream(Stream.value(csv));
+      check(df.rowCount).equals(2);
+      check(df['a'].toList()).deepEquals([1, 2]);
+      check(df['b'].toList()).deepEquals([null, null]);
+
+      // Quoted field followed by CRLF and LF
+      const quotedCrlf = 'a,b\r\n"hello","world"\r\n"foo","bar"\n';
+      final dfQuoted = await CsvStream.readStream(Stream.value(quotedCrlf));
+      check(dfQuoted.rowCount).equals(2);
+      check(dfQuoted['a'].toList()).deepEquals(['hello', 'foo']);
+
+      // Empty CSV with columnTypes
+      const emptyHeader = 'x,y\n';
+      final dfEmptyTyped = await CsvStream.readStream(
+        Stream.value(emptyHeader),
+        columnTypes: {'x': DataType.int32, 'y': DataType.string},
+      );
+      check(dfEmptyTyped.rowCount).equals(0);
+      check(dfEmptyTyped['x'].dataType).equals(DataType.int32);
+    });
   });
 }

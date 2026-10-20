@@ -138,6 +138,26 @@ void main() {
       check(outer.getValue([0, 0])).equals(3.0);
       check(outer.getValue([0, 1])).equals(4.0);
       check(outer.getValue([1, 2])).equals(10.0);
+
+      // Top-level innerProduct and outerProduct
+      check(innerProduct(a, a).shape).deepEquals([]);
+      check(outerProduct(a, b).shape).deepEquals([2, 3]);
+
+      // axes as record of ints and nested list
+      final a2D = a.reshape([2, 1]);
+      final b2D = b.reshape([1, 3]);
+      check(a2D.tensordot(b2D, axes: (1, 0)).shape).deepEquals([2, 3]);
+      check(
+        a2D
+            .tensordot(
+              b2D,
+              axes: [
+                [1],
+                [0],
+              ],
+            )
+            .shape,
+      ).deepEquals([2, 3]);
     });
 
     test('error validation', () {
@@ -163,6 +183,10 @@ void main() {
 
       // Unequal axes lists length
       check(() => a.tensordot(b, axes: ([0, 1], [0]))).throws<ArgumentError>();
+
+      // Duplicate axis in contraction list
+      check(() => a.tensordot(b, axes: ([1, 1], [0, 1])))
+          .throws<ArgumentError>();
     });
   });
 }

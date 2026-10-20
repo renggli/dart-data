@@ -245,6 +245,37 @@ void main() {
       // Division by zero throws
       final zero = CompressedPolynomial<double>.zero();
       check(() => a.divide(zero)).throws<UnsupportedError>();
+
+      // Division by DensePolynomial
+      final denseDiv = Polynomial<double>.fromCoefficients([-1.0, 1.0]);
+      final divDense = a.divide(denseDiv);
+      check(divDense.quotient.degree).equals(19999);
+
+      // Compressed addition and subtraction with trailing terms and cross-types
+      final cShort = CompressedPolynomial<int>([1], [2], type: DataType.int32);
+      final cLong = CompressedPolynomial<int>(
+        [1, 5],
+        [3, 4],
+        type: DataType.int32,
+      );
+      final sumTrailing = cShort + cLong;
+      check(sumTrailing[5]).equals(4);
+      final diffTrailing = cShort - cLong;
+      check(diffTrailing[5]).equals(-4);
+
+      // Compressed - Dense
+      final denseSub = Polynomial<int>.fromCoefficients([1, 2]);
+      final diffDense = cLong - denseSub;
+      check(diffDense[5]).equals(4);
+
+      // Multiplication combining overlapping exponent
+      final xPlusOne = CompressedPolynomial<int>(
+        [0, 1],
+        [1, 1],
+        type: DataType.int32,
+      );
+      final sq = xPlusOne * xPlusOne;
+      check(sq[1]).equals(2);
     });
 
     test('composition and power', () {
@@ -338,6 +369,36 @@ void main() {
         0: 7,
       }, type: DataType.int32);
       check(constP.toString()).equals('7');
+
+      final mixedP = CompressedPolynomial<int>.fromMap({
+        1: 1,
+        2: 3,
+        5: 1,
+      }, type: DataType.int32);
+      check(mixedP.toString()).equals('x^5 + 3x^2 + x');
+      check(mixedP.nonZeroTerms.toList()).deepEquals([(1, 1), (2, 3), (5, 1)]);
+      check(mixedP.hashCode).equals(mixedP.toCompressed().hashCode);
+
+      // Multiply by zero
+      final zeroP = CompressedPolynomial<int>.zero(type: DataType.int32);
+      check((mixedP * zeroP).degree).equals(-1);
+
+      // Division where degree(dividend) < degree(divisor)
+      final divRes = constP.divide(mixedP);
+      check(divRes.quotient.degree).equals(-1);
+      check(divRes.remainder).equals(constP);
+
+      // Addition and subtraction with non-overlapping exponents
+      final pA = CompressedPolynomial<int>.fromMap({
+        5: 1,
+        1: 2,
+      }, type: DataType.int32);
+      final pB = CompressedPolynomial<int>.fromMap({
+        4: 3,
+        0: 4,
+      }, type: DataType.int32);
+      check((pA + pB).toString()).equals('x^5 + 3x^4 + 2x + 4');
+      check((pA - pB).toString()).equals('x^5 + -3x^4 + 2x + -4');
 
       // Analytical linear root
       final lin = CompressedPolynomial<double>.fromMap({

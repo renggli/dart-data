@@ -55,6 +55,10 @@ void main() {
 
       final e3 = Expr.parse('x^2 + 2*x + 1');
       check(e3.cancel().toString()).equals('1 + 2 * x + x ^ 2');
+
+      // Powers of rational expressions
+      final ePow = Expr.parse('((x^2 - 1) / (x + 1))^2');
+      check(ePow.cancel().toString()).equals('(-1 + x) ^ 2');
     });
   });
 
@@ -172,6 +176,25 @@ void main() {
           .equals('(1 + x) ^ 2 / (-1 + x) ^ 2');
       check(Expr.parse('-x + a * b * x * sin(x)').collect('x').toString())
           .equals('-x + a * b * x * sin(x)');
+      check(() => Expr.parse('x / 0').apart('x')).throws<UnsupportedError>();
+
+      // Polynomial division by zero throws ArgumentError
+      check(() => const Variable('x').polynomialDivide(IntegerNumber.zero, 'x'))
+          .throws<ArgumentError>();
+
+      // cancel with positive power of rational
+      final posPow = Pow(Expr.parse('(x + 1) / (x - 1)'), IntegerNumber.of(2));
+      check(posPow.cancel().toString()).equals('(1 + x) ^ 2 / (-1 + x) ^ 2');
+
+      // apart with degree >= 2 polynomial factor in denominator
+      final eCubic = Expr.parse('1 / ((x^3 + x + 1) * (x + 1))');
+      final pfCubic = eCubic.apart('x');
+      check(pfCubic.together().cancel().toString())
+          .equals(eCubic.cancel().toString());
+
+      // together with negative and fractional denominators
+      final eNegDen = Expr.parse('x / (-2 * y) + 3 / (y / 3)');
+      check(eNegDen.together().toString()).contains('y');
     });
   });
 }

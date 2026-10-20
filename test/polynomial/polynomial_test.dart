@@ -239,6 +239,20 @@ void main() {
       check(div.quotient.degree).equals(-1);
       check(div.remainder.coefficients).deepEquals([1]);
 
+      // termCount and toDense on DensePolynomial
+      check(poly.termCount).equals(2);
+      check(poly.toDense() as Polynomial<int>).equals(poly);
+
+      // dense - compressed
+      final comp = Polynomial<int>.compressed([1], [2]);
+      final diff = poly - comp;
+      check(diff.degree).equals(0);
+      check(diff[0]).equals(1);
+
+      // constant polynomial compose
+      final constPoly = Polynomial<int>.fromCoefficients([5]);
+      check(constPoly.compose(poly)[0]).equals(5);
+
       // Coprime gcd
       final p1 = Polynomial<double>.fromCoefficients([1.0, 1.0]); // x + 1
       final p2 = Polynomial<double>.fromCoefficients([2.0, 1.0]); // x + 2

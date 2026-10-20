@@ -43,5 +43,35 @@ void main() {
       BigInt.from(2),
       BigInt.from(10),
     ]);
+
+    test('BigIntField extended operations', () {
+      final field = type.field;
+      check(field.inv(BigInt.two)).equals(BigInt.zero);
+      check(field.scale(BigInt.from(10), 0.5)).equals(BigInt.from(5));
+      check(field.div(BigInt.from(10), BigInt.from(3))).equals(BigInt.from(3));
+      check(field.mod(BigInt.from(10), BigInt.from(3))).equals(BigInt.one);
+      check(field.division(BigInt.from(10), BigInt.from(3)))
+          .equals(BigInt.from(3));
+      check(field.remainder(BigInt.from(10), BigInt.from(3)))
+          .equals(BigInt.one);
+      check(field.pow(BigInt.two, BigInt.from(3))).equals(BigInt.from(8));
+      check(field.modPow(BigInt.two, BigInt.from(3), BigInt.from(5)))
+          .equals(BigInt.from(3));
+      check(field.modInverse(BigInt.from(3), BigInt.from(11)))
+          .equals(BigInt.from(4));
+      check(field.gcd(BigInt.from(12), BigInt.from(18))).equals(BigInt.from(6));
+      check(field.abs(BigInt.from(-7))).equals(BigInt.from(7));
+      check(field.norm(BigInt.from(-7))).equals(7.0);
+      check(field.sqrt(BigInt.from(16))).equals(BigInt.from(4));
+      check(field.sqrt(BigInt.zero)).equals(BigInt.zero);
+      check(field.sqrt(BigInt.one)).equals(BigInt.one);
+      check(() => field.sqrt(BigInt.from(-1))).throws<ArgumentError>();
+      check(field.exp(BigInt.zero)).equals(BigInt.one);
+      check(field.log(BigInt.one)).equals(BigInt.zero);
+      check(field.conjugate(BigInt.from(42))).equals(BigInt.from(42));
+      check(() => field.nan).throws<UnsupportedError>();
+      check(() => field.infinity).throws<UnsupportedError>();
+      check(() => field.negativeInfinity).throws<UnsupportedError>();
+    });
   });
 }

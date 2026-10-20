@@ -1,6 +1,7 @@
 import 'dart:typed_data';
 
 import 'package:checks/checks.dart';
+import 'package:data/acceleration.dart';
 import 'package:data/linear.dart';
 import 'package:test/test.dart';
 
@@ -126,6 +127,25 @@ void main() {
       check(scaled.asTypedList).deepEquals([2.0, 4.0, 6.0, 8.0]);
     });
 
+    test('pure Dart fallback execution mode', () {
+      final prev = AccelerationManager.mode;
+      try {
+        AccelerationManager.mode = AccelerationMode.dart;
+        final a = Float64Matrix.fromList(2, 2, [1.0, 2.0, 3.0, 4.0]);
+        final b = Float64Matrix.fromList(2, 2, [10.0, 20.0, 30.0, 40.0]);
+        final x = Float64Vector.fromList([2.0, 3.0]);
+
+        check((a * b).asTypedList).deepEquals([70.0, 100.0, 150.0, 220.0]);
+        check(a.apply(x).asTypedList).deepEquals([8.0, 18.0]);
+        check((a + b).asTypedList).deepEquals([11.0, 22.0, 33.0, 44.0]);
+        check((b - a).asTypedList).deepEquals([9.0, 18.0, 27.0, 36.0]);
+        check((-a).asTypedList).deepEquals([-1.0, -2.0, -3.0, -4.0]);
+        check(a.scale(2.0).asTypedList).deepEquals([2.0, 4.0, 6.0, 8.0]);
+      } finally {
+        AccelerationManager.mode = prev;
+      }
+    });
+
     test('dimension mismatch error handling', () {
       final a = Float64Matrix.filled(2, 3, 1.0);
       final b = Float64Matrix.filled(2, 2, 1.0);
@@ -135,6 +155,41 @@ void main() {
       check(() => a - b).throws<ArgumentError>();
       check(() => a * b).throws<ArgumentError>();
       check(() => a.apply(x)).throws<ArgumentError>();
+    });
+
+    test('operations with generic Matrix<double> and non-contiguous views', () {
+      final a = Float64Matrix.fromList(2, 2, [1.0, 2.0, 3.0, 4.0]);
+      final genericMat = Matrix<double>.generate(
+        2,
+        2,
+        (r, c) => (r * 2 + c + 1) * 10.0,
+      );
+
+      final sum = a + genericMat;
+      check(sum.asTypedList).deepEquals([11.0, 22.0, 33.0, 44.0]);
+
+      final diff = a - genericMat;
+      check(diff.asTypedList).deepEquals([-9.0, -18.0, -27.0, -36.0]);
+
+      final prod = a * genericMat;
+      check(prod.asTypedList).deepEquals([70.0, 100.0, 150.0, 220.0]);
+
+      final full = Float64Matrix.fromList(3, 3, [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        10.0,
+        20.0,
+        0.0,
+        30.0,
+        40.0,
+      ]);
+      final offsetMat = full.subMatrix(rowStart: 1, colStart: 1);
+      final sumOffset = a + offsetMat;
+      check(sumOffset.asTypedList).deepEquals([11.0, 22.0, 33.0, 44.0]);
+      final diffOffset = a - offsetMat;
+      check(diffOffset.asTypedList).deepEquals([-9.0, -18.0, -27.0, -36.0]);
     });
   });
 }

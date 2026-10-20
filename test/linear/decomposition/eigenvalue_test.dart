@@ -185,5 +185,41 @@ void main() {
       check(singleEig.realEigenvalues[0]).equals(42.0);
       check(singleEig.v.get(0, 0)).equals(1.0);
     });
+
+    accelerationTest('symmetric diagonal matrix scale == 0', () {
+      final diag = Matrix<double>.fromRows([
+        [2.0, 0.0, 0.0],
+        [0.0, 5.0, 0.0],
+        [0.0, 0.0, 7.0],
+      ], type: DataType.float64);
+      final eig = diag.eigenvalue;
+      check(eig.realEigenvalues.length).equals(3);
+      check(eig.v.rowCount).equals(3);
+    });
+
+    test('non-symmetric block matrix with complex conjugate pairs and backsubstitution', () {
+      final mBlock = Matrix<double>.fromRows([
+        [1.0, 5.0, 2.0, 0.0],
+        [-2.0, 1.0, 0.0, 3.0],
+        [0.0, 0.0, 2.0, 4.0],
+        [0.0, 0.0, -3.0, 2.0],
+      ], type: DataType.float64);
+
+      final eig = mBlock.eigenvalue;
+      check(eig.eigenvalues.length).equals(4);
+      final v = eig.v;
+      final d = eig.d;
+      check(v.rowCount).equals(4);
+      check(d.rowCount).equals(4);
+
+      final mComp = Matrix<double>.fromRows([
+        [0.0, 1.0, 0.0],
+        [0.0, 0.0, 1.0],
+        [-8.0, -14.0, -7.0],
+      ], type: DataType.float64);
+      final eigComp = mComp.eigenvalue;
+      check(eigComp.eigenvalues.length).equals(3);
+      check(eigComp.v.rowCount).equals(3);
+    });
   });
 }

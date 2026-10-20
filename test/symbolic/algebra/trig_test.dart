@@ -17,6 +17,14 @@ void main() {
           .equals('sinh(x) * sinh(y) + cosh(x) * cosh(y)');
       check(Expr.parse('tanh(x + y)').expandTrig().toString())
           .equals('(tanh(x) + tanh(y)) / (1 + tanh(x) * tanh(y))');
+
+      // 3-term angle addition triggers n-ary sublist splitting
+      check(Expr.parse('sin(x + y + z)').expandTrig()).isNotNull();
+      check(Expr.parse('cos(x + y + z)').expandTrig()).isNotNull();
+      check(Expr.parse('tan(x + y + z)').expandTrig()).isNotNull();
+      check(Expr.parse('sinh(x + y + z)').expandTrig()).isNotNull();
+      check(Expr.parse('cosh(x + y + z)').expandTrig()).isNotNull();
+      check(Expr.parse('tanh(x + y + z)').expandTrig()).isNotNull();
     });
 
     test('expands multiple-angle expressions via De Moivre formulas', () {
@@ -77,6 +85,16 @@ void main() {
             .simplifyTrig()
             .toString(),
       ).equals('cosh(x + y)');
+
+      // Product-to-sum pairs with reverse structural order
+      check(Expr.parse('cos(y) * cos(x)').simplifyTrig().toString())
+          .equals('1/2 * cos(x + y) + 1/2 * cos(x - y)');
+      check(Expr.parse('sin(y) * sin(x)').simplifyTrig().toString())
+          .equals('-1/2 * cos(x + y) + 1/2 * cos(x - y)');
+      check(Expr.parse('cosh(y) * cosh(x)').simplifyTrig().toString())
+          .equals('1/2 * cosh(x + y) + 1/2 * cosh(x - y)');
+      check(Expr.parse('sinh(y) * sinh(x)').simplifyTrig().toString())
+          .equals('1/2 * cosh(x + y) - 1/2 * cosh(x - y)');
     });
   });
 

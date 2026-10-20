@@ -38,6 +38,8 @@ void main() {
       final skewed = [1.0, 1.0, 1.0, 2.0, 10.0];
       check(skewness(skewed)).isGreaterThan(1.0);
       check(kurtosis(skewed, excess: true)).isGreaterThan(0.0);
+      check(kurtosis(skewed, excess: false))
+          .isCloseTo(kurtosis(skewed, excess: true) + 3.0, 1e-10);
     });
 
     test('geometric and harmonic means', () {
@@ -111,10 +113,27 @@ void main() {
       check(matrix.mean()).isCloseTo(3.0, 1e-10);
       final covM = matrix.covarianceMatrix();
       check(covM.get(0, 0)).isCloseTo(1.0, 1e-10);
+      final covRow = matrix.covarianceMatrix(rowVar: true);
+      check(covRow.rowCount).equals(3);
       final corrM = matrix.pearsonCorrelationMatrix();
       check(corrM.get(0, 1)).isCloseTo(1.0, 1e-10);
       final spearmanM = matrix.spearmanCorrelationMatrix();
       check(spearmanM.get(0, 1)).isCloseTo(1.0, 1e-10);
+
+      // Large contiguous vector accelerated statistics
+      final Vector<num> largeVec = Vector<double>.generate(
+        100,
+        (i) => i.toDouble(),
+        type: DataType.float64,
+      );
+      check(DescriptiveVectorNumExtension(largeVec).sum())
+          .isCloseTo(4950.0, 1e-10);
+      check(largeVec.mean()).isCloseTo(49.5, 1e-10);
+      check(largeVec.variance()).isGreaterThan(0.0);
+
+      // Invalid matrix data error checking
+      check(() => covarianceMatrix('invalid')).throws<ArgumentError>();
+      check(() => spearmanCorrelationMatrix('invalid')).throws<ArgumentError>();
     });
 
     test('Pearson and Spearman correlations', () {

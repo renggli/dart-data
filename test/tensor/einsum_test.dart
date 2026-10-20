@@ -50,6 +50,14 @@ void main() {
       final resImplicit = einsum('ij,jk', [a, b]);
       check(resImplicit.shape).deepEquals([2, 2]);
       check(resImplicit.getValue([0, 0])).equals(19.0);
+
+      // Transposed contraction output via tensordot path
+      final resTrans = einsum('ij,jk->ki', [a, b]);
+      check(resTrans.shape).deepEquals([2, 2]);
+      check(resTrans.getValue([0, 0])).equals(19.0);
+      check(resTrans.getValue([1, 0])).equals(22.0);
+      check(resTrans.getValue([0, 1])).equals(43.0);
+      check(resTrans.getValue([1, 1])).equals(50.0);
     });
 
     test('matrix transpose', () {
@@ -178,6 +186,7 @@ void main() {
       );
 
       // Mismatched operand count
+      check(() => einsum('i', [])).throws<ArgumentError>();
       check(() => einsum('ij,jk->ik', [a])).throws<ArgumentError>();
 
       // Mismatched rank and label length

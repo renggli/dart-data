@@ -462,6 +462,88 @@ void main() {
       );
       check(rightOuter.rowCount).equals(2);
       check(rightOuter['id'].toList()).deepEquals([1, 2]);
+
+      final leftOuter = non.sortMergeJoin(
+        empty,
+        on: ['id'],
+        type: JoinType.left,
+        isSorted: true,
+      );
+      check(leftOuter.rowCount).equals(2);
+      check(leftOuter['id'].toList()).deepEquals([1, 2]);
     });
+
+    test(
+      'sortMergeJoin with null keys, strings, custom objects, and outer joins',
+      () {
+        final left = DataFrame.fromColumns({
+          'key': ['alpha', null, 'gamma', 'omega'],
+          'l_val': [1, 2, 3, 4],
+        });
+        final right = DataFrame.fromColumns({
+          'key': [null, 'beta', 'gamma'],
+          'r_val': [10, 20, 30],
+        });
+
+        // Left join with nulls and remaining left rows
+        final leftJoin = left.join(
+          right,
+          on: ['key'],
+          type: JoinType.left,
+          method: JoinMethod.sortMerge,
+        );
+        check(leftJoin.rowCount).equals(4);
+
+        // Right join with nulls and remaining right rows
+        final rightJoin = left.join(
+          right,
+          on: ['key'],
+          type: JoinType.right,
+          method: JoinMethod.sortMerge,
+        );
+        check(rightJoin.rowCount).equals(3);
+
+        // Full outer join
+        final outerJoin = left.join(
+          right,
+          on: ['key'],
+          type: JoinType.outer,
+          method: JoinMethod.sortMerge,
+        );
+        check(outerJoin.rowCount).equals(6);
+
+        // Non-Comparable objects compared by toString()
+        final leftObj = DataFrame([
+          ObjectSeries<Object?>.fromList('key', [
+            const _Item('a'),
+            const _Item('b'),
+          ]),
+          Series.fromList('v', [1, 2]),
+        ]);
+        final rightObj = DataFrame([
+          ObjectSeries<Object?>.fromList('key', [
+            const _Item('b'),
+            const _Item('c'),
+          ]),
+          Series.fromList('v', [20, 30]),
+        ]);
+        final objJoin = leftObj.join(
+          rightObj,
+          on: ['key'],
+          type: JoinType.inner,
+          method: JoinMethod.sortMerge,
+        );
+        check(objJoin.rowCount).equals(1);
+        check(objJoin['key'][0].toString()).equals('b');
+      },
+    );
   });
+}
+
+final class _Item {
+  const new(this.name);
+  final String name;
+
+  @override
+  String toString() => name;
 }

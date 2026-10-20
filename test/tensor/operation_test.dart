@@ -546,5 +546,54 @@ void main() {
       check(copied).identicalTo(validTarget);
       check(validTarget.toFlatList()).deepEquals([1, 2, 3, 4, 5, 6]);
     });
+
+    test('unaryOperation memory hazard with overlapping sub-tensors', () {
+      final base = Tensor<int>.fromIterable(
+        [1, 2, 3, 4, 5, 6],
+        shape: [6],
+        type: DataType.int32,
+      );
+      final src = base.getRange(axis: 0, start: 0, end: 3);
+      final dst = base.getRange(axis: 0, start: 1, end: 4);
+      final res = src.unaryOperation((x) => x * 10, target: dst);
+      check(res).identicalTo(dst);
+      check(dst.toFlatList() as List).deepEquals([10, 20, 30]);
+    });
+
+    test('binaryOperation broadcast type inference R == T and R == O', () {
+      final a = Tensor<int>.fromIterable(
+        [1, 2, 3],
+        shape: [1, 3],
+        type: DataType.int32,
+      );
+      final b = Tensor<double>.fromIterable(
+        [0.5, 1.5, 2.5, 3.5, 4.5, 5.5],
+        shape: [2, 3],
+        type: DataType.float64,
+      );
+      final resT = a.binaryOperation<double, int>(b, (x, y) => (x + y).toInt());
+      check(resT.type).equals(DataType.int32);
+      check(resT.shape).deepEquals([2, 3]);
+
+      final resO = a.binaryOperation<double, double>(b, (x, y) => x + y);
+      check(resO.type).equals(DataType.float64);
+      check(resO.shape).deepEquals([2, 3]);
+    });
+
+    test(
+      'binaryOperation memory hazard with broadcast and overlapping target',
+      () {
+        final base = Tensor<int>.fromIterable(
+          [1, 2, 3, 4, 5, 6, 7, 8],
+          shape: [8],
+          type: DataType.int32,
+        );
+        final a = base.getRange(axis: 0, start: 0, end: 2);
+        final b = base.getRange(axis: 0, start: 1, end: 3);
+        final dst = base.getRange(axis: 0, start: 2, end: 4);
+        final res = a.binaryOperation(b, (x, y) => x + y, target: dst);
+        check(res).identicalTo(dst);
+      },
+    );
   });
 }

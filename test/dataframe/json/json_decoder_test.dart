@@ -80,5 +80,42 @@ void main() {
       check(() => DataFrameJsonDecoder.decode('invalid json'))
           .throws<FormatException>();
     });
+
+    test('empty json payloads with explicit columnTypes', () {
+      final dfCols = DataFrameJsonDecoder.decode(
+        '{}',
+        orient: JsonOrient.columns,
+        columnTypes: {'c1': DataType.int32, 'c2': DataType.string},
+      );
+      check(dfCols.rowCount).equals(0);
+      check(dfCols.columnNames).deepEquals(['c1', 'c2']);
+
+      final dfVals = DataFrameJsonDecoder.decode(
+        '[]',
+        orient: JsonOrient.values_,
+        columnTypes: {'v1': DataType.int32, 'v2': DataType.string},
+      );
+      check(dfVals.rowCount).equals(0);
+      check(dfVals.columnNames).deepEquals(['v1', 'v2']);
+
+      // values with columnTypes length exceeding row length
+      final dfPadded = DataFrameJsonDecoder.decode(
+        '[[10]]',
+        orient: JsonOrient.values_,
+        columnTypes: {'v1': DataType.int32, 'v2': DataType.string},
+      );
+      check(dfPadded.rowCount).equals(1);
+      check(dfPadded.columnNames).deepEquals(['v1', 'v2']);
+      check(dfPadded['v1'].toList()).deepEquals([10]);
+      check(dfPadded['v2'].toList()).deepEquals([null]);
+
+      // columns orient with index map with int and string keys
+      final dfMapIndex = DataFrameJsonDecoder.decode(
+        '{"c1": {"0": 100, "1": 200}, "c2": {"0": 300, "1": 400}}',
+        orient: JsonOrient.columns,
+      );
+      check(dfMapIndex.rowCount).equals(2);
+      check(dfMapIndex['c1'].toList()).deepEquals([100, 200]);
+    });
   });
 }

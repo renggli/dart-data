@@ -122,6 +122,41 @@ void main() {
       // Upper triangular: [2*1 + 3*2, 4*2] = [8, 8]
       check(x64[0]).equals(8.0);
       check(x64[1]).equals(8.0);
+
+      // Lower triangular, transpose, unit diagonal
+      final aLower = Float64List.fromList([9.0, 0.0, 5.0, 9.0]);
+      final xTrans = Float64List.fromList([2.0, 3.0]);
+      check(
+        PureDartBlas2.dtrmv(
+          uplo: cblasLower,
+          trans: cblasTrans,
+          diag: cblasUnit,
+          n: 2,
+          a: aLower,
+          lda: 2,
+          x: xTrans,
+        ),
+      ).isTrue();
+      // Unit diag, transposed: x0 = 1*2 + 5*3 = 17, x1 = 1*3 = 3
+      check(xTrans[0]).equals(17.0);
+      check(xTrans[1]).equals(3.0);
+
+      // Single-precision strmv lower and transpose
+      final aLower32 = Float32List.fromList([9.0, 0.0, 5.0, 9.0]);
+      final xTrans32 = Float32List.fromList([2.0, 3.0]);
+      check(
+        PureDartBlas2.strmv(
+          uplo: cblasLower,
+          trans: cblasTrans,
+          diag: cblasUnit,
+          n: 2,
+          a: aLower32,
+          lda: 2,
+          x: xTrans32,
+        ),
+      ).isTrue();
+      check(xTrans32[0]).equals(17.0);
+      check(xTrans32[1]).equals(3.0);
     });
   });
 
@@ -175,6 +210,51 @@ void main() {
       check(c64[1]).equals(1.0);
       check(c64[2]).equals(1.0);
       check(c64[3]).equals(3.0);
+
+      // dsymm side right, uplo lower
+      final cRight = Float64List(4);
+      check(
+        PureDartBlas3.dsymm(
+          side: cblasRight,
+          uplo: cblasLower,
+          m: 2,
+          n: 2,
+          alpha: 1.0,
+          a: a64,
+          lda: 2,
+          b: b64,
+          ldb: 2,
+          beta: 0.0,
+          c: cRight,
+          ldc: 2,
+        ),
+      ).isTrue();
+      check(cRight[0]).equals(2.0);
+      check(cRight[1]).equals(1.0);
+      check(cRight[2]).equals(1.0);
+      check(cRight[3]).equals(3.0);
+
+      // ssymm side right, uplo lower
+      final a32 = Float32List.fromList([2.0, 1.0, 1.0, 3.0]);
+      final b32 = Float32List.fromList([1.0, 0.0, 0.0, 1.0]);
+      final c32 = Float32List(4);
+      check(
+        PureDartBlas3.ssymm(
+          side: cblasRight,
+          uplo: cblasLower,
+          m: 2,
+          n: 2,
+          alpha: 1.0,
+          a: a32,
+          lda: 2,
+          b: b32,
+          ldb: 2,
+          beta: 0.0,
+          c: c32,
+          ldc: 2,
+        ),
+      ).isTrue();
+      check(c32[0]).equals(2.0);
     });
 
     test('dtrmm and strmm', () {
@@ -199,6 +279,254 @@ void main() {
       check(b64[1]).equals(8.0);
       check(b64[2]).equals(9.0);
       check(b64[3]).equals(12.0);
+
+      // dtrmm side right, uplo lower, unit diag, transpose
+      final aLower = Float64List.fromList([9.0, 0.0, 2.0, 9.0]);
+      final bLower = Float64List.fromList([1.0, 2.0, 3.0, 4.0]);
+      check(
+        PureDartBlas3.dtrmm(
+          side: cblasRight,
+          uplo: cblasLower,
+          transA: cblasTrans,
+          diag: cblasUnit,
+          m: 2,
+          n: 2,
+          alpha: 1.0,
+          a: aLower,
+          lda: 2,
+          b: bLower,
+          ldb: 2,
+        ),
+      ).isTrue();
+      // B = B * A^T where A = [1, 0; 2, 1] so A^T = [1, 2; 0, 1]
+      // B * A^T = [1, 2; 3, 4] * [1, 2; 0, 1] = [1*1+2*0, 1*2+2*1; 3*1+4*0, 3*2+4*1] = [1, 4; 3, 10]
+      check(bLower[0]).equals(1.0);
+      check(bLower[1]).equals(4.0);
+      check(bLower[2]).equals(3.0);
+      check(bLower[3]).equals(10.0);
+
+      // strmm side right, uplo lower, unit diag, transpose
+      final aLower32 = Float32List.fromList([9.0, 0.0, 2.0, 9.0]);
+      final bLower32 = Float32List.fromList([1.0, 2.0, 3.0, 4.0]);
+      check(
+        PureDartBlas3.strmm(
+          side: cblasRight,
+          uplo: cblasLower,
+          transA: cblasTrans,
+          diag: cblasUnit,
+          m: 2,
+          n: 2,
+          alpha: 1.0,
+          a: aLower32,
+          lda: 2,
+          b: bLower32,
+          ldb: 2,
+        ),
+      ).isTrue();
+      check(bLower32[0]).equals(1.0);
+      check(bLower32[1]).equals(4.0);
+      check(bLower32[2]).equals(3.0);
+      check(bLower32[3]).equals(10.0);
+
+      // dtrmm left transposed and right non-transposed
+      final aTr = Float64List.fromList([2.0, 1.0, 0.0, 3.0]);
+      final bTr = Float64List.fromList([1.0, 2.0, 3.0, 4.0]);
+      check(
+        PureDartBlas3.dtrmm(
+          side: cblasLeft,
+          uplo: cblasUpper,
+          transA: cblasTrans,
+          m: 2,
+          n: 2,
+          alpha: 1.0,
+          a: aTr,
+          lda: 2,
+          b: bTr,
+          ldb: 2,
+        ),
+      ).isTrue();
+
+      final aTrRight = Float64List.fromList([2.0, 1.0, 0.0, 3.0]);
+      final bTrRight = Float64List.fromList([1.0, 2.0, 3.0, 4.0]);
+      check(
+        PureDartBlas3.dtrmm(
+          side: cblasRight,
+          uplo: cblasUpper,
+          transA: cblasNoTrans,
+          m: 2,
+          n: 2,
+          alpha: 1.0,
+          a: aTrRight,
+          lda: 2,
+          b: bTrRight,
+          ldb: 2,
+        ),
+      ).isTrue();
+
+      // strmm left transposed and right non-transposed
+      final aTr32 = Float32List.fromList([2.0, 1.0, 0.0, 3.0]);
+      final bTr32 = Float32List.fromList([1.0, 2.0, 3.0, 4.0]);
+      check(
+        PureDartBlas3.strmm(
+          side: cblasLeft,
+          uplo: cblasUpper,
+          transA: cblasTrans,
+          m: 2,
+          n: 2,
+          alpha: 1.0,
+          a: aTr32,
+          lda: 2,
+          b: bTr32,
+          ldb: 2,
+        ),
+      ).isTrue();
+
+      final aTrRight32 = Float32List.fromList([2.0, 1.0, 0.0, 3.0]);
+      final bTrRight32 = Float32List.fromList([1.0, 2.0, 3.0, 4.0]);
+      check(
+        PureDartBlas3.strmm(
+          side: cblasRight,
+          uplo: cblasUpper,
+          transA: cblasNoTrans,
+          m: 2,
+          n: 2,
+          alpha: 1.0,
+          a: aTrRight32,
+          lda: 2,
+          b: bTrRight32,
+          ldb: 2,
+        ),
+      ).isTrue();
+
+      // dsymm and ssymm remaining triangle combinations
+      final aSym64 = Float64List.fromList([2.0, 1.0, 1.0, 3.0]);
+      final bSym64 = Float64List.fromList([1.0, 0.0, 0.0, 1.0]);
+      final cSym64 = Float64List(4);
+      check(
+        PureDartBlas3.dsymm(
+          side: cblasLeft,
+          uplo: cblasLower,
+          m: 2,
+          n: 2,
+          alpha: 1.0,
+          a: aSym64,
+          lda: 2,
+          b: bSym64,
+          ldb: 2,
+          beta: 0.0,
+          c: cSym64,
+          ldc: 2,
+        ),
+      ).isTrue();
+
+      final cSymRight64 = Float64List(4);
+      check(
+        PureDartBlas3.dsymm(
+          side: cblasRight,
+          uplo: cblasUpper,
+          m: 2,
+          n: 2,
+          alpha: 1.0,
+          a: aSym64,
+          lda: 2,
+          b: bSym64,
+          ldb: 2,
+          beta: 0.0,
+          c: cSymRight64,
+          ldc: 2,
+        ),
+      ).isTrue();
+
+      final aSym32 = Float32List.fromList([2.0, 1.0, 1.0, 3.0]);
+      final bSym32 = Float32List.fromList([1.0, 0.0, 0.0, 1.0]);
+      final cSym32 = Float32List(4);
+      check(
+        PureDartBlas3.ssymm(
+          side: cblasLeft,
+          uplo: cblasLower,
+          m: 2,
+          n: 2,
+          alpha: 1.0,
+          a: aSym32,
+          lda: 2,
+          b: bSym32,
+          ldb: 2,
+          beta: 0.0,
+          c: cSym32,
+          ldc: 2,
+        ),
+      ).isTrue();
+
+      final cSymRight32 = Float32List(4);
+      check(
+        PureDartBlas3.ssymm(
+          side: cblasRight,
+          uplo: cblasUpper,
+          m: 2,
+          n: 2,
+          alpha: 1.0,
+          a: aSym32,
+          lda: 2,
+          b: bSym32,
+          ldb: 2,
+          beta: 0.0,
+          c: cSymRight32,
+          ldc: 2,
+        ),
+      ).isTrue();
+
+      // dgemm and sgemm block loop unrolling with 5x5 matrices across all trans positions
+      final a5_64 = Float64List(25)..fillRange(0, 25, 1.0);
+      final b5_64 = Float64List(25)..fillRange(0, 25, 2.0);
+      final c5_64 = Float64List(25);
+      for (final transA in [cblasNoTrans, cblasTrans]) {
+        for (final transB in [cblasNoTrans, cblasTrans]) {
+          check(
+            PureDartBlas3.gemmFloat64(
+              transA: transA,
+              transB: transB,
+              m: 5,
+              n: 5,
+              k: 5,
+              alpha: 1.0,
+              a: a5_64,
+              lda: 5,
+              b: b5_64,
+              ldb: 5,
+              beta: 0.0,
+              c: c5_64,
+              ldc: 5,
+            ),
+          ).isTrue();
+          check(c5_64[0]).equals(10.0);
+        }
+      }
+
+      final a5_32 = Float32List(25)..fillRange(0, 25, 1.0);
+      final b5_32 = Float32List(25)..fillRange(0, 25, 2.0);
+      final c5_32 = Float32List(25);
+      for (final transA in [cblasNoTrans, cblasTrans]) {
+        for (final transB in [cblasNoTrans, cblasTrans]) {
+          check(
+            PureDartBlas3.gemmFloat32(
+              transA: transA,
+              transB: transB,
+              m: 5,
+              n: 5,
+              k: 5,
+              alpha: 1.0,
+              a: a5_32,
+              lda: 5,
+              b: b5_32,
+              ldb: 5,
+              beta: 0.0,
+              c: c5_32,
+              ldc: 5,
+            ),
+          ).isTrue();
+          check(c5_32[0]).equals(10.0);
+        }
+      }
     });
   });
 

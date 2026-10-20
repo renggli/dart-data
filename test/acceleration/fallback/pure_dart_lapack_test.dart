@@ -97,5 +97,81 @@ void main() {
       check(PureDartLapack.dpotrf(uplo: cblasUpper, n: 2, a: notPosDef, lda: 2))
           .isFalse();
     });
+
+    test('pureDartDsyev with lower triangle and diagonal matrix', () {
+      // Diagonal 3x3 matrix: off-diagonal elements in row are zero (scale == 0.0)
+      final a = Float64List.fromList([
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        2.0,
+        0.0,
+        0.0,
+        0.0,
+        3.0,
+      ]);
+      final w = Float64List(3);
+      final ok = PureDartLapack.dsyev(
+        jobz: 'V',
+        uplo: cblasLower,
+        n: 3,
+        a: a,
+        aOffset: 0,
+        lda: 3,
+        w: w,
+        wOffset: 0,
+      );
+      check(ok).isTrue();
+      check(w[0]).isCloseTo(1.0, 1e-10);
+      check(w[1]).isCloseTo(2.0, 1e-10);
+      check(w[2]).isCloseTo(3.0, 1e-10);
+    });
+
+    test(
+      'pureDartDgels overdetermined (m >= n) and underdetermined (m < n)',
+      () {
+        // Overdetermined: 3 x 2
+        // [1 1; 1 2; 1 3] * [c0; c1] = [2; 3; 5] -> c0 = 1/3, c1 = 1.5
+        final aOver = Float64List.fromList([1.0, 1.0, 1.0, 2.0, 1.0, 3.0]);
+        final bOver = Float64List.fromList([2.0, 3.0, 5.0]);
+        final okOver = PureDartLapack.dgels(
+          m: 3,
+          n: 2,
+          nrhs: 1,
+          a: aOver,
+          aOffset: 0,
+          lda: 2,
+          b: bOver,
+          bOffset: 0,
+          ldb: 1,
+        );
+        check(okOver).isTrue();
+        check(bOver[0]).isCloseTo(1.0 / 3.0, 1e-10);
+        check(bOver[1]).isCloseTo(1.5, 1e-10);
+
+        // Underdetermined: 2 x 3
+        // A = [1 0 0; 0 1 0], b = [4; 7] -> x = [4, 7, 0]
+        final aUnder = Float64List.fromList([1.0, 0.0, 0.0, 0.0, 1.0, 0.0]);
+        final bUnder = Float64List(3);
+        bUnder[0] = 4.0;
+        bUnder[1] = 7.0;
+        final okUnder = PureDartLapack.dgels(
+          m: 2,
+          n: 3,
+          nrhs: 1,
+          a: aUnder,
+          aOffset: 0,
+          lda: 3,
+          b: bUnder,
+          bOffset: 0,
+          ldb: 1,
+        );
+        check(okUnder).isTrue();
+        check(bUnder[0]).isCloseTo(4.0, 1e-10);
+        check(bUnder[1]).isCloseTo(7.0, 1e-10);
+        check(bUnder[2]).isCloseTo(0.0, 1e-10);
+      },
+    );
   });
 }

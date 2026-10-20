@@ -297,6 +297,20 @@ void main() {
         check(mixedTensor.getValue([2, 1])).equals(3.5);
         check(mixedTensor.getValue([0, 2])).equals(0.0); // string -> 0.0
 
+        // Float64 target data type with TypedSeries<double> (allDoubleNonNull bulk paths)
+        final doubleDf = DataFrame([
+          Series.fromList('x', [1.0, 2.0, 3.0], type: DataType.float64),
+          Series.fromList('y', [4.0, 5.0, 6.0], type: DataType.float64),
+        ]);
+        final multiDoubleTensor = doubleDf.toTensor();
+        check(multiDoubleTensor.shape).deepEquals([3, 2]);
+        check(multiDoubleTensor.getValue([0, 0])).equals(1.0);
+        check(multiDoubleTensor.getValue([0, 1])).equals(4.0);
+
+        final singleDoubleTensor = doubleDf.toTensor(columns: ['x']);
+        check(singleDoubleTensor.shape).deepEquals([3, 1]);
+        check(singleDoubleTensor.getValue([0, 0])).equals(1.0);
+
         // Float32 target data type
         final f32Tensor = df.toTensor(type: DataType.float32);
         check(f32Tensor.type).equals(DataType.float32);

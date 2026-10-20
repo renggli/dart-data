@@ -1,6 +1,7 @@
 import 'dart:typed_data';
 
 import 'package:checks/checks.dart';
+import 'package:data/acceleration.dart';
 import 'package:data/tensor.dart';
 import 'package:test/test.dart';
 
@@ -92,9 +93,48 @@ void main() {
       ).transpose([1, 0]);
       final b = Float64Tensor.filled(1.0, shape: [2, 2]);
 
-      final res = a + b;
-      check(res.shape).deepEquals([2, 2]);
-      check(res.getValue([0, 1])).equals(3.0);
+      final resSum = a + b;
+      check(resSum.shape).deepEquals([2, 2]);
+      check(resSum.getValue([0, 1])).equals(3.0);
+
+      final resDiff = a - b;
+      check(resDiff.getValue([0, 1])).equals(1.0);
+
+      final resProd = a * b;
+      check(resProd.getValue([0, 1])).equals(2.0);
+
+      final resDiv = a / b;
+      check(resDiv.getValue([0, 1])).equals(2.0);
+
+      final resNeg = -a;
+      check(resNeg.getValue([0, 1])).equals(-2.0);
+
+      final resScale = a.scale(3.0);
+      check(resScale.getValue([0, 1])).equals(6.0);
+    });
+
+    test('pure Dart fallback execution mode', () {
+      final prev = AccelerationManager.mode;
+      try {
+        AccelerationManager.mode = AccelerationMode.dart;
+        final a = Float64Tensor.fromIterable(
+          [1.0, 2.0, 3.0, 4.0],
+          shape: [2, 2],
+        );
+        final b = Float64Tensor.fromIterable(
+          [10.0, 20.0, 30.0, 40.0],
+          shape: [2, 2],
+        );
+
+        check((a + b).asTypedList).deepEquals([11.0, 22.0, 33.0, 44.0]);
+        check((b - a).asTypedList).deepEquals([9.0, 18.0, 27.0, 36.0]);
+        check((a * b).asTypedList).deepEquals([10.0, 40.0, 90.0, 160.0]);
+        check((b / a).asTypedList).deepEquals([10.0, 10.0, 10.0, 10.0]);
+        check((-a).asTypedList).deepEquals([-1.0, -2.0, -3.0, -4.0]);
+        check(a.scale(2.5).asTypedList).deepEquals([2.5, 5.0, 7.5, 10.0]);
+      } finally {
+        AccelerationManager.mode = prev;
+      }
     });
   });
 }
