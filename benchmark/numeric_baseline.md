@@ -15,6 +15,7 @@ dart run benchmark/numeric_benchmark.dart solve
 ```
 
 Every benchmark executes untimed warmup iterations first, then evaluates timed runs under:
+
 1. `AccelerationMode.dart` (forcing pure Dart scalar / SIMD execution).
 2. `AccelerationMode.accelerated` (forcing native BLAS / LAPACK / Apple vDSP & vForce execution via leaf `@ffi.Native` direct-address bindings).
 
