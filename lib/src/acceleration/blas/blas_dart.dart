@@ -692,6 +692,7 @@ abstract final class BlasDart {
         c[cIdx] = alpha * sum + (beta == 0.0 ? 0.0 : beta * c[cIdx]);
       }
     }
+    _mirrorSymmetricDouble(c, cOffset, n, ldc, uplo);
     return true;
   }
 
@@ -729,6 +730,7 @@ abstract final class BlasDart {
         c[cIdx] = alpha * sum + (beta == 0.0 ? 0.0 : beta * c[cIdx]);
       }
     }
+    _mirrorSymmetricFloat(c, cOffset, n, ldc, uplo);
     return true;
   }
 
@@ -964,5 +966,49 @@ abstract final class BlasDart {
       }
     }
     return true;
+  }
+
+  static void _mirrorSymmetricDouble(
+    Float64List c,
+    int cOffset,
+    int n,
+    int ldc,
+    int uplo,
+  ) {
+    if (uplo == cblasUpper) {
+      for (var i = 0; i < n; i++) {
+        for (var j = i + 1; j < n; j++) {
+          c[cOffset + j * ldc + i] = c[cOffset + i * ldc + j];
+        }
+      }
+    } else {
+      for (var i = 0; i < n; i++) {
+        for (var j = 0; j < i; j++) {
+          c[cOffset + j * ldc + i] = c[cOffset + i * ldc + j];
+        }
+      }
+    }
+  }
+
+  static void _mirrorSymmetricFloat(
+    Float32List c,
+    int cOffset,
+    int n,
+    int ldc,
+    int uplo,
+  ) {
+    if (uplo == cblasUpper) {
+      for (var i = 0; i < n; i++) {
+        for (var j = i + 1; j < n; j++) {
+          c[cOffset + j * ldc + i] = c[cOffset + i * ldc + j];
+        }
+      }
+    } else {
+      for (var i = 0; i < n; i++) {
+        for (var j = 0; j < i; j++) {
+          c[cOffset + j * ldc + i] = c[cOffset + i * ldc + j];
+        }
+      }
+    }
   }
 }
