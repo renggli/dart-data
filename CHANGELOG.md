@@ -2,17 +2,15 @@
 
 ## 0.16.0 (Unpublished)
 
-- Greenfield multi-dimensional `Tensor` subsystem with generalized strided layout, broadcasting, slicing, contractions, and Einstein summation.
-- Hardware acceleration engine featuring dynamic native BLAS/LAPACK FFI auto-detection and Dart SIMD (`Float32x4` / `Float64x2`) fallback routing.
-- Arrow-aligned columnar `DataFrame` engine with streaming CSV parsing, schema inference, relational joins, grouping, and aggregations.
-- Exact symbolic calculus engine: expression ASTs, automatic analytical differentiation, algebraic simplification, LaTeX formatting, and JIT compilation to Dart closures.
-- Linear algebra factorizations: Cholesky ($L L^T$), LU ($P A = L U$), QR, SVD, and Eigenvalue decompositions, matrix norms, and condition numbers.
-- Iterative Krylov subspace solvers: GMRES, BiCGSTAB, and Conjugate Gradient.
-- Numerical algorithms: ODE solvers (Runge-Kutta 4th-order, adaptive Dormand-Prince 5(4)), optimization (Nelder-Mead, BFGS), root-finding (Brent, Newton-Raphson), and numerical integration.
-- 1D and 2D interpolation algorithms: Linear, Cubic Spline (natural and clamped), monotonic PCHIP, Nearest Neighbor, Step-wise (Previous / Next), and Lagrange polynomial interpolation.
-- Curve fitting: non-linear Levenberg-Marquardt damped least-squares, polynomial regression, and multiple linear regression.
-- Special functions: complete elliptic integrals $K(k)$ and $E(k)$, confluent and Gauss hypergeometric functions $_1F_1$ and $_2F_1$, Gamma, Beta, and Bessel functions ($J_\nu, Y_\nu$).
-- Expanded probability distributions: Cauchy, Degenerate, Laplace, LogNormal, Logistic, Pareto, Weibull, Geometric, Hypergeometric, NegativeBinomial, Rademacher, and more.
+- Multi-dimensional `Tensor` subsystem with strided layouts, broadcasting, slicing, contractions, and Einstein summation.
+- Zero-cost `Float64Tensor`, `Float64Matrix`, and `Float64Vector` extension types with direct unboxed buffer access.
+- Hardware acceleration engine for BLAS, LAPACK, FFT, and vector math with transparent pure Dart fallbacks.
+- Apache Arrow columnar `DataFrame` engine with streaming CSV parsing, relational joins, Arrow IPC, and Arrow C Data interoperability.
+- Exact symbolic mathematics and computer algebra engine with analytical calculus, equation and system solving, LaTeX/MathML formatting, and compiled evaluation.
+- Full linear algebra decompositions (Cholesky, LU, QR, SVD, Eigenvalue), condition numbers, and iterative Krylov solvers.
+- Numerical algorithms for ODE solving, optimization, root finding, curve fitting, 1D/2D interpolation, and adaptive curve sampling.
+- Comprehensive statistics toolkit with 25+ probability distributions, hypothesis testing, and Bootstrap/Jackknife resampling.
+- Interactive web applications: Library Showcase, Symbolic Calculator PWA, Expressions Explorer, and Distributions Dashboard.
 
 ## 0.15.2
 

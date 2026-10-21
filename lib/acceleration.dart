@@ -20,8 +20,7 @@
 ///   matrix-vector (Level 2), and general matrix-matrix multiplication (Level 3).
 /// - [Lapack]: Linear system solvers, matrix factorizations (Cholesky, LU, QR),
 ///   and eigenvalue/eigenvector decompositions.
-/// - [Fft]: In-place 1D and 2D complex Fourier transforms on [Float64ComplexList],
-///
+/// - [Fft]: In-place 1D and 2D complex Fourier transforms on [Float64ComplexList].
 /// - [Vforce]: Elementwise transcendental functions (sin, cos, exp, log, sqrt, pow),
 ///   vector reductions (sum, mean, variance), and 1D signal convolutions.
 /// - [AccelerationManager]: Subsystem coordinator controlling [AccelerationMode]

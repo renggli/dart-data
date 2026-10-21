@@ -8,25 +8,26 @@
 [![GitHub Stars](https://img.shields.io/github/stars/renggli/dart-data.svg)](https://github.com/renggli/dart-data/stargazers)
 [![GitHub License](https://img.shields.io/badge/license-MIT-blue.svg)](https://raw.githubusercontent.com/renggli/dart-data/main/LICENSE)
 
-**Dart Data** is a modern, high-performance scientific computing, linear algebra, and data science toolkit for Dart and Flutter. Engineered for speed and memory efficiency, it features N-dimensional tensors with NumPy-style striding, dynamic BLAS/LAPACK hardware acceleration, Arrow-aligned columnar DataFrames, exact symbolic calculus, full matrix decompositions, and comprehensive probability distributions.
+**Dart Data** is a modern, high-performance scientific computing, linear algebra, and data science toolkit for Dart and Flutter. Engineered for speed and memory efficiency, it features N-dimensional tensors with NumPy-style striding, dynamic BLAS/LAPACK/FFT hardware acceleration, Arrow-aligned columnar DataFrames with Arrow C Data / IPC interoperability, exact symbolic calculus, full matrix decompositions, and comprehensive probability distributions.
 
 ## Key Features
 
 - **Tensors & Multi-dimensional Arrays**: Zero-copy strided layouts, multidimensional slicing, broadcasting, einsum, contraction, and tensor transformations.
-- **Hardware Acceleration**: Dynamic native FFI discovery for BLAS (GEMM, GEMV, SYRK) and LAPACK (GESV, GELSF, POTRF), with transparent Dart SIMD (`Float32x4`) and pure Dart fallbacks.
-- **Linear Algebra**: Vectors and Matrices, full matrix decompositions (Cholesky, LU, QR, SVD, Eigenvalue), matrix norms and condition numbers, plus iterative Krylov subspace solvers (GMRES, BiCGSTAB, Conjugate Gradient).
-- **Columnar DataFrames**: Arrow-aligned columnar tables with zero-copy chunking, schema inference, streaming CSV parser, relational joins, grouping, aggregations, and expressive filtering.
-- **Exact Symbolic Mathematics**: Symbolic expression ASTs, automatic analytical differentiation, algebraic simplification, LaTeX generation, and fast JIT compilation to Dart closures.
-- **Probability & Statistics**: 25+ continuous and discrete probability distributions with exact PDF/CDF/quantile calculations, random sampling, descriptive statistics, Pearson/Spearman correlation, and kernel density estimation.
-- **Numeric Algorithms & Special Functions**: ODE solvers (Runge-Kutta, Dormand-Prince), optimization (Nelder-Mead, BFGS), numerical integration, 1D/2D interpolation, curve fitting (Levenberg-Marquardt, Polynomial, Multiple Linear Regression), FFT, and special functions ($\Gamma$, $\mathrm{B}$, Bessel $J_\nu / Y_\nu$, complete elliptic integrals $K / E$, and hypergeometric functions $_1F_1, {}_2F_1$).
+- **Hardware Acceleration**: Dynamic native FFI discovery for BLAS (GEMM, GEMV, SYRK, AXPY, DOT, NRM2), LAPACK (GESV, GELSF, POTRF), cross-platform FFT (Apple Accelerate vDSP and FFTW3), and Apple vForce vector math via direct leaf `@ffi.Native` bindings, with transparent Dart SIMD (`Float32x4`) and pure Dart fallbacks.
+- **Linear Algebra**: Vectors and Matrices, zero-cost `Float64Matrix` and `Float64Vector` extension types, full decompositions (Cholesky, LU, QR, SVD, Eigenvalue), matrix norms and condition numbers, plus iterative Krylov subspace solvers (GMRES, BiCGSTAB, Conjugate Gradient).
+- **Columnar DataFrames & Arrow**: Apache Arrow-aligned columnar tables with zero-copy chunking, schema inference, streaming CSV parser, relational joins, grouping, aggregations, Arrow IPC streaming/file format, and the Arrow C Data interface for zero-copy memory sharing with Python, C++, DuckDB, and Polars.
+- **Exact Symbolic Mathematics**: Symbolic expression ASTs, exact numeric tower (`Integer`, `RationalNumber`, `ComplexNumber`), canonical simplification under domain assumptions, closed-form summation and products, exact calculus (derivatives, integration, limits, power series), polynomial/transcendental equation solving, Gröbner bases, multivariable calculus (`gradient`, `hessian`, `jacobian`), LaTeX/MathML generation, and fast bytecode VM compilation to Dart closures.
+- **Probability & Statistics**: 25+ continuous and discrete probability distributions with exact PDF/CDF/quantile calculations, random sampling, descriptive statistics, Pearson/Spearman correlation, PCA, hypothesis testing (t-tests, ANOVA, Chi-squared, Kolmogorov-Smirnov, Mann-Whitney U, Wilcoxon, Jarque-Bera), and non-parametric Bootstrap & Jackknife resampling.
+- **Numeric Algorithms & Special Functions**: Differential equations (`solveOde` with Dormand-Prince 45 and RK4), non-linear optimization (`minimize` with Nelder-Mead, BFGS, L-BFGS, Brent), numerical integration (`integrate` with adaptive Simpson and Gauss-Kronrod), root finding (`solve` with Brent-Dekker, Newton-Raphson, Bisection, and `solveSystem`), 1D/2D interpolation (Linear, Cubic Spline, PCHIP, Bilinear, Bicubic), curve fitting (`curveFit`, `leastSquares`, `linearRegression`, `polynomialRegression`, `fitNonlinear`), coordinate sampling & adaptive curve sampling (`linearSpaced`, `sampleCurve`), cross-platform 1D FFT, and special functions ($\Gamma$, $\mathrm{B}$, Bessel $J_\nu / Y_\nu / I_\nu / K_\nu$, complete elliptic integrals $K / E$, hypergeometric functions $_1F_1, {}_2F_1$, and Lambert $W$).
 
 ## Interactive Web Examples
 
 Explore the interactive web applications hosted on [GitHub Pages](https://renggli.github.io/dart-data/):
 
-- **[Distributions Dashboard](https://renggli.github.io/dart-data/distributions/)**: Interactive probability density, cumulative distribution, quantile plots, and random sampling across 25+ continuous and discrete distributions.
+- **[Library Catalog & Showcase](https://renggli.github.io/dart-data/)**: Interactive feature catalog, component overview, and documentation portal.
+- **[Symbolic Calculator](https://renggli.github.io/dart-data/calculator/)**: Notebook & RPN symbolic calculator PWA with live MathML preview, 2D function plotting, and Gröbner basis system solving.
 - **[Symbolic Expressions Explorer](https://renggli.github.io/dart-data/expressions/)**: Interactive symbolic algebra, rational & trigonometric rewriting, exact calculus, Taylor series, summations, and equation solving.
-- **[Symbolic Calculator](https://renggli.github.io/dart-data/calculator/)**: Notebook & RPN symbolic calculator with live MathML preview, 2D function plotting, and Gröbner basis system solving.
+- **[Distributions Dashboard](https://renggli.github.io/dart-data/distributions/)**: Interactive probability density, cumulative distribution, quantile plots, and random sampling across 25+ continuous and discrete distributions.
 
 ## Tutorial & Examples
 
@@ -50,7 +51,7 @@ print(product.toNestedList());
 // [[14.0, 32.0], [32.0, 77.0]]
 
 // Slicing and broadcasting
-final slice = a.slice([Range.to(1), Range.all()]); // row 0
+final slice = a.slice(const [Slice(0, 1), Slice.all]); // row 0
 print(slice.shape); // [1, 3]
 ```
 
@@ -67,7 +68,7 @@ final b = Vector<double>.fromList([10.0, 11.0]);
 
 // Solve Ax = b
 final x = matrix.solve(b);
-print(x); // Vector([2.0, 1.0])
+print(x); // Vector([1.75, 1.5])
 
 // Cholesky decomposition (for symmetric positive-definite matrices)
 final cholesky = matrix.cholesky;
@@ -77,8 +78,8 @@ print(cholesky.l); // Lower triangular factor L
 final lu = matrix.lu;
 final qr = matrix.qr;
 final svd = matrix.svd;
-print('Determinant: ${matrix.determinant}');
-print('Condition number: ${matrix.cond()}');
+print('Determinant: ${matrix.det}');
+print('Condition number: ${matrix.cond}');
 ```
 
 ### 3. Columnar DataFrames
@@ -99,9 +100,9 @@ Diana,29,61000.0,Design
 final engineers = df.filterBy((row) => row['department'] == 'Engineering');
 
 // Column operations & aggregations
-final salaries = df('salary') as Series<double>;
-print('Average salary: ${salaries.mean()}');
-print('Max salary: ${salaries.max()}');
+final salaries = df['salary'] as Series<double>;
+print('Average salary: ${salaries.mean}');
+print('Max salary: ${salaries.max}');
 ```
 
 ### 4. Symbolic Calculus & Compilation
@@ -115,7 +116,7 @@ final f = x.pow(3) + Sin(x);
 
 // Analytical derivative: f'(x) = 3 * x^2 + cos(x)
 final df = f.derivative('x').simplify();
-print(df.toLatex()); // 3 * x^{2} + \cos(x)
+print(df.toLatex()); // \cos(x) + 3 \, {x}^{2}
 
 // JIT-compile into a fast Dart closure
 final fastDf = df.toFunction1D('x');
@@ -144,39 +145,42 @@ print('Samples: ${poisson.samples().take(5).toList()}');
 Fit non-linear curves using Levenberg-Marquardt or solve ordinary differential equations:
 
 ```dart
-// Non-linear Levenberg-Marquardt fit: y = a * exp(b * x)
-final xs = [0.0, 1.0, 2.0, 3.0];
-final ys = [2.5, 4.12, 6.80, 11.20];
+// Non-linear curve fitting: y = a * exp(b * x)
+final xs = Vector<double>.fromList([0.0, 1.0, 2.0, 3.0]);
+final ys = Vector<double>.fromList([2.5, 4.12, 6.80, 11.20]);
 
-final initialGuess = Vector<double>.fromList([1.0, 1.0]);
-final fittedParams = levenbergMarquardt(
-  residualFunction: (p) => Vector<double>.fromList(
-    List.generate(xs.length, (i) => p[0] * exp(p[1] * xs[i]) - ys[i]),
-  ),
-  initialParams: initialGuess,
+final result = curveFit(
+  xs: xs,
+  ys: ys,
+  model: (x, p) => p[0] * exp(p[1] * x),
+  initialParams: Vector<double>.fromList([1.0, 1.0]),
 );
-print('Fitted a: ${fittedParams[0]}, b: ${fittedParams[1]}');
+print('Fitted a: ${result.parameters[0]}, b: ${result.parameters[1]}');
 
 // Numerical ODE integration: dy/dt = -2 * y
-final solution = odeRk4(
-  f: (t, y) => -2.0 * y,
+final solution = solveOde(
+  f: (t, y) => Vector<double>.fromList([-2.0 * y[0]]),
   t0: 0.0,
-  y0: 1.0,
-  t1: 2.0,
-  steps: 100,
+  tEnd: 2.0,
+  y0: Vector<double>.fromList([1.0]),
 );
-print('y(2.0) = ${solution.last}');
+print('y(2.0) = ${solution.last[0]}');
 ```
 
 ## Interactive Web Demo
 
-Experience the interactive probability distributions playground directly in your browser:
+Experience the interactive web applications directly in your browser:
 
 ```bash
 dart run build_runner serve web
 ```
 
-Then navigate to `http://localhost:8080/distributions/` to explore PDF/CDF curves, parameter adjustments, and real-time sampling histograms.
+Then navigate to:
+
+- `http://localhost:8080/` for the interactive library catalog and showcase
+- `http://localhost:8080/calculator/` for the Symbolic Calculator PWA
+- `http://localhost:8080/expressions/` for the Symbolic Expressions Explorer
+- `http://localhost:8080/distributions/` for the Probability Distributions Dashboard
 
 ## Related Packages
 

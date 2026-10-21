@@ -1,19 +1,81 @@
 # Data Examples
 
-This package contains examples to illustrate the use of [Data](https://github.com/renggli/dart-data). A tutorial and full documentation is contained in the [package description](https://pub.dev/packages/data) and [API documentation](https://pub.dev/documentation/data/latest/).
+This directory contains executable command-line examples and sample datasets illustrating the capabilities of [Data](https://github.com/renggli/dart-data). A complete tutorial and documentation are available in the [package description](https://pub.dev/packages/data) and [API documentation](https://pub.dev/documentation/data/latest/).
 
-### Magic Square
+## Command-Line Examples
 
-Generates magic squares of different sizes and computes decomposition and iterative linear solver properties (`example/magic_square.dart`).
+Run any example directly from the project root using `dart run`:
 
-### Numerical Algorithms Demo
+### Magic Square (`example/magic_square.dart`)
 
-Demonstrates fast Fourier transforms (FFT/iFFT/rFFT), numerical integration (adaptive Simpson and Gauss-Kronrod), root finding (Brent-Dekker), non-linear optimization (Nelder-Mead and BFGS), adaptive ODE integration (RK45), and Levenberg-Marquardt curve fitting (`example/numeric_demo.dart`).
+Generates magic squares of various sizes (odd, doubly-even, and singly-even) and computes their structural properties, condition numbers, matrix norms, eigenvalue spectra, matrix decompositions (LU, QR, SVD, Cholesky), and iterative Krylov subspace solver convergence (GMRES, BiCGSTAB, Conjugate Gradient).
 
-### Statistics Demo
+```bash
+dart run example/magic_square.dart
+```
 
-Demonstrates descriptive statistics, Pearson and Spearman correlation matrices, Principal Component Analysis (PCA), parametric probability distributions, hypothesis testing (two-sample t-tests, ANOVA, Chi-squared), and non-parametric Bootstrap resampling (`example/stats_demo.dart`).
+### Numerical Algorithms Demo (`example/numeric_demo.dart`)
 
-### Polynomial Algebra Demo
+Demonstrates modern numerical computing algorithms:
 
-Demonstrates polynomial arithmetic, Horner evaluation, polynomial calculus (derivatives and antiderivatives), polynomial root-finding via companion matrix eigenvalues, orthogonal polynomial families (Chebyshev, Legendre, Hermite), and Clenshaw summation (`example/polynomial_demo.dart`).
+- **Fast Fourier Transform (FFT)**: 1D complex forward and inverse FFT on time-domain signals.
+- **Numerical Integration**: Adaptive Simpson and Gauss-Kronrod quadrature on $[0, \pi]$.
+- **Root Finding**: Brent-Dekker root finding for non-linear equations ($\cos(x) - x = 0$).
+- **Non-Linear Optimization**: Quasi-Newton BFGS minimization on the 2D Rosenbrock banana function.
+- **Adaptive ODE Integration**: Runge-Kutta Dormand-Prince 45 adaptive step-size integration of an undamped harmonic oscillator.
+- **Non-Linear Curve Fitting**: Damped Gauss-Newton Levenberg-Marquardt parameter estimation (`fitNonlinear`).
+
+```bash
+dart run example/numeric_demo.dart
+```
+
+### Statistics & Analysis Demo (`example/stats_demo.dart`)
+
+Demonstrates statistical analysis and probability workflows:
+
+- **Descriptive Statistics & Covariance**: Sample mean, standard deviation, median, interquartile range (IQR), and Pearson/Spearman correlation coefficients.
+- **Principal Component Analysis (PCA)**: Covariance-based dimensionality reduction, explained variance ratios, and 2D coordinate projections.
+- **Hypothesis Testing**: Two-sample Welch t-test for unequal variances.
+- **Parametric Distributions**: Normal, Student-t, and Fisher-Snedecor $F$ distributions with PDF, CDF, survival, and quantile evaluation.
+- **Non-Parametric Resampling**: Bootstrap resampling with standard error estimation, percentile intervals, and bias-corrected accelerated (BCa) confidence intervals.
+
+```bash
+dart run example/stats_demo.dart
+```
+
+### Polynomial Algebra Demo (`example/polynomial_demo.dart`)
+
+Demonstrates polynomial manipulation and approximation theory:
+
+- **Polynomial Algebra**: Arithmetic operations, Horner polynomial evaluation, and degree analysis.
+- **Polynomial Calculus**: Analytical differentiation and formal indefinite integration.
+- **Root Finding**: Polynomial root isolation via companion matrix eigenvalues.
+- **Orthogonal Polynomial Families**: Chebyshev $T_n(x)$, Legendre $P_n(x)$, and Hermite $H_n(x)$ polynomials.
+- **Clenshaw Algorithm**: Fast Clenshaw summation for evaluating orthogonal series expansions.
+
+```bash
+dart run example/polynomial_demo.dart
+```
+
+## Sample Datasets (`example/data/`)
+
+Standard datasets formatted as CSV files for exploring columnar DataFrames, relational operations, and statistical pipelines:
+
+- `cars.csv`: Multi-attribute vehicle specifications, horsepower, weight, acceleration, and fuel economy.
+- `cereal.csv`: Nutritional contents, calories, vitamins, sugars, and consumer ratings for breakfast cereals.
+- `countries.csv`: Global demographic, economic, and geographic indicators across countries.
+- `iris.csv`: Morphological measurements (sepal and petal length/width) across Iris flower species.
+- `tips.csv`: Food server tips, total bills, party sizes, and dining metadata.
+
+## Interactive Web Applications
+
+Interactive web applications located in `web/` can be launched with `build_runner`:
+
+```bash
+dart run build_runner serve web
+```
+
+- **[Catalog & Showcase](web/index.html)**: Interactive documentation portal, feature overview, and package highlights.
+- **[Symbolic Calculator](web/calculator/)**: Progressive Web App (PWA) supporting Notebook and RPN calculation modes, live MathML rendering, 2D function plotting, and multivariate system solving.
+- **[Symbolic Expressions Explorer](web/expressions/)**: Interactive algebra, calculus, Taylor series, limits, and equation solving playground.
+- **[Distributions Dashboard](web/distributions/)**: Probability density, cumulative distribution, quantile visualizations, and real-time sampling histograms for 25+ distributions.
