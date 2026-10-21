@@ -4,8 +4,6 @@ import 'dart:typed_data';
 import '../../linear.dart';
 import '../../polynomial.dart';
 import '../../type.dart';
-import '../acceleration/acceleration_manager.dart';
-import '../acceleration/acceleration_mode.dart';
 import '../acceleration/lapack/lapack.dart';
 
 /// Curve fitting and regression algorithms using numerically stable QR and SVD
@@ -37,9 +35,7 @@ Vector<double> leastSquares(Matrix<num> a, Vector<num> b) {
   }
   final rows = a.rowCount;
   final cols = a.colCount;
-  if (rows >= cols &&
-      (AccelerationManager.isAccelerated ||
-          AccelerationManager.mode == AccelerationMode.accelerated)) {
+  if (rows >= cols) {
     final Float64List aData;
     if (a.type == DataType.float64 &&
         a.tensor.isContiguous &&
@@ -77,7 +73,7 @@ Vector<double> leastSquares(Matrix<num> a, Vector<num> b) {
       a: aData,
       lda: cols,
       b: bData,
-      ldb: rows,
+      ldb: 1,
     );
     if (success) {
       return Vector<double>.fromList(

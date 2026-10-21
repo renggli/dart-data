@@ -23,7 +23,7 @@ void main() {
         check(buffer[i].a).isCloseTo(orig[2 * i], 1e-10);
         check(buffer[i].b).isCloseTo(orig[2 * i + 1], 1e-10);
       }
-    });
+    }, isSupported: Fft.isAvailable);
 
     accelerationTest('2D FFT / IFFT in-place roundtrip', () {
       final buffer = Float64ComplexList(16); // 4x4
@@ -38,6 +38,6 @@ void main() {
       for (var i = 0; i < 16; i++) {
         check(buffer[i].a).isCloseTo(orig[2 * i], 1e-10);
       }
-    });
+    }, isSupported: Fft.isAvailable);
   });
 }

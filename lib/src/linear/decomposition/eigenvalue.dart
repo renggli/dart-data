@@ -2,8 +2,6 @@ import 'dart:math' as math;
 import 'dart:typed_data';
 
 import '../../../type.dart';
-import '../../acceleration/acceleration_manager.dart';
-import '../../acceleration/acceleration_mode.dart';
 import '../../acceleration/blas/cblas_constants.dart';
 import '../../acceleration/lapack/lapack.dart';
 import '../matrix.dart';
@@ -69,45 +67,41 @@ class EigenvalueDecomposition {
       );
     }
     if (_n == 0) return;
+    if (_isSymmetric && matrix.type == DataType.float64) {
+      final aList = Float64List(_n * _n);
+      for (var i = 0; i < _n; i++) {
+        for (var j = 0; j < _n; j++) {
+          aList[i * _n + j] = matrix.getUnchecked(i, j).toDouble();
+        }
+      }
+      final wList = Float64List(_n);
+      final ok = Lapack.dsyev(
+        jobz: 'V',
+        uplo: cblasUpper,
+        n: _n,
+        a: aList,
+        lda: _n,
+        w: wList,
+      );
+      if (ok) {
+        for (var i = 0; i < _n; i++) {
+          _d[i] = wList[i];
+          _e[i] = 0.0;
+          for (var j = 0; j < _n; j++) {
+            _v.setUnchecked(j, i, aList[j * _n + i]);
+          }
+        }
+        return;
+      }
+    }
     if (_isSymmetric) {
-      var accelerated = false;
-      if (matrix.type == DataType.float64 &&
-          (AccelerationManager.isAccelerated ||
-              AccelerationManager.mode == AccelerationMode.accelerated)) {
-        final aList = Float64List(_n * _n);
-        for (var i = 0; i < _n; i++) {
-          for (var j = 0; j < _n; j++) {
-            aList[i * _n + j] = matrix.getUnchecked(i, j).toDouble();
-          }
-        }
-        final wList = Float64List(_n);
-        accelerated = Lapack.dsyev(
-          jobz: 'V',
-          uplo: cblasUpper,
-          n: _n,
-          a: aList,
-          lda: _n,
-          w: wList,
-        );
-        if (accelerated) {
-          for (var i = 0; i < _n; i++) {
-            _d[i] = wList[i];
-            _e[i] = 0.0;
-            for (var j = 0; j < _n; j++) {
-              _v.setUnchecked(j, i, aList[j * _n + i]);
-            }
-          }
+      for (var i = 0; i < _n; i++) {
+        for (var j = 0; j < _n; j++) {
+          _v.setUnchecked(i, j, matrix.getUnchecked(i, j).toDouble());
         }
       }
-      if (!accelerated) {
-        for (var i = 0; i < _n; i++) {
-          for (var j = 0; j < _n; j++) {
-            _v.setUnchecked(i, j, matrix.getUnchecked(i, j).toDouble());
-          }
-        }
-        _tred2();
-        _tql2();
-      }
+      _tred2();
+      _tql2();
     } else {
       for (var j = 0; j < _n; j++) {
         for (var i = 0; i < _n; i++) {
