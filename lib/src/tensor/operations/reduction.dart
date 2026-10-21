@@ -1,6 +1,8 @@
 import 'dart:math' as math;
+import 'dart:typed_data';
 
 import '../../../type.dart';
+import '../../acceleration/blas/blas.dart';
 import '../../type/utils/memory.dart';
 import '../layout.dart';
 import '../tensor.dart';
@@ -139,6 +141,21 @@ extension ReductionTensorExtension<T> on Tensor<T> {
       }
       return sum;
     } else if (pNorm == 2) {
+      if (layout.isContiguous && data is Float64List) {
+        return Blas.dnrm2(
+          n: length,
+          x: data as Float64List,
+          xOffset: offset,
+          incX: 1,
+        );
+      } else if (layout.isContiguous && data is Float32List) {
+        return Blas.snrm2(
+          n: length,
+          x: data as Float32List,
+          xOffset: offset,
+          incX: 1,
+        );
+      }
       var sumSq = 0.0;
       for (final val in values) {
         final normVal = type.field.norm(val);
