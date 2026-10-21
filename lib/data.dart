@@ -20,7 +20,7 @@
 ///   grouping ([DataFrame], [Series], [GroupBy]).
 /// - **Acceleration** (`acceleration.dart`): Transparent routing to native
 ///   BLAS/LAPACK/vDSP via FFI ([AccelerationManager]) and 128-bit SIMD vector
-///   instructions ([SimdEngine]).
+///   instructions.
 /// - **Symbolic Computation** (`symbolic.dart`): Exact algebraic expressions
 ///   ([Expr]), analytical differentiation, Taylor expansions, LaTeX formatting,
 ///   and JIT compilation.

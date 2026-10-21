@@ -1,8 +1,8 @@
 import 'dart:typed_data';
 
 import '../../type.dart';
-import '../acceleration/acceleration_manager.dart';
-import '../acceleration/blas/cblas.dart';
+import '../acceleration/blas/blas.dart';
+import '../acceleration/lapack/lapack.dart';
 import '../tensor/layout.dart';
 import '../tensor/operations/matmul.dart';
 import '../tensor/operations/operation.dart';
@@ -446,7 +446,7 @@ class Matrix<T> implements LinearOperator<T> {
           final bData = Float64List.fromList(
             bVec.copy().tensor.data as List<double>,
           );
-          final success = AccelerationManager.dgesv(
+          final success = Lapack.dgesv(
             n: rowCount,
             nrhs: 1,
             a: aData,
@@ -495,7 +495,7 @@ class Matrix<T> implements LinearOperator<T> {
           final bData = Float64List.fromList(
             bMat.copy().tensor.data as List<double>,
           );
-          final success = AccelerationManager.dgesv(
+          final success = Lapack.dgesv(
             n: rowCount,
             nrhs: bMat.colCount,
             a: aData,
@@ -912,7 +912,7 @@ class Matrix<T> implements LinearOperator<T> {
 
       if (effectiveTrans != null && lda != null) {
         if (tensor.data is Float64List && result.tensor.data is Float64List) {
-          final success = AccelerationManager.dsyrk(
+          final success = Blas.dsyrk(
             uplo: cblasUpper,
             trans: effectiveTrans,
             n: dim,
@@ -929,7 +929,7 @@ class Matrix<T> implements LinearOperator<T> {
           if (success) return result;
         } else if (tensor.data is Float32List &&
             result.tensor.data is Float32List) {
-          final success = AccelerationManager.ssyrk(
+          final success = Blas.ssyrk(
             uplo: cblasUpper,
             trans: effectiveTrans,
             n: dim,
@@ -977,7 +977,7 @@ class Matrix<T> implements LinearOperator<T> {
     if (tensor.data is Float64List &&
         x.tensor.data is Float64List &&
         res.tensor.data is Float64List) {
-      return AccelerationManager.dgemv(
+      return Blas.dgemv(
         transA: transA,
         m: m,
         n: n,
@@ -996,7 +996,7 @@ class Matrix<T> implements LinearOperator<T> {
     } else if (tensor.data is Float32List &&
         x.tensor.data is Float32List &&
         res.tensor.data is Float32List) {
-      return AccelerationManager.sgemv(
+      return Blas.sgemv(
         transA: transA,
         m: m,
         n: n,

@@ -49,7 +49,7 @@ void accelerationTest(
       final previousMode = AccelerationManager.mode;
       try {
         AccelerationManager.mode = AccelerationMode.accelerated;
-        final supported = isSupported ?? AccelerationManager.isBlasAvailable;
+        final supported = isSupported ?? Blas.isAvailable;
         if (supported) {
           final result = body();
           if (result is Future) {

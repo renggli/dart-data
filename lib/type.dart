@@ -63,3 +63,4 @@ export 'src/type/types/numeric.dart';
 export 'src/type/types/object.dart';
 export 'src/type/types/quaternion.dart';
 export 'src/type/types/string.dart';
+export 'src/type/types/typed.dart';

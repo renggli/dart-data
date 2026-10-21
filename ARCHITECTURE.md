@@ -306,74 +306,71 @@ This document describes the achieved architecture across all subsystems of `pack
 
 ## 5. Hardware Acceleration & FFI Subsystem (`lib/src/acceleration/`)
 
-### 5.1 Dynamic Library Discovery & Platform Detection
+### 5.1 Architecture & Domain Decomposition
 
-- **Reasoning**: High-performance linear algebra must transparently leverage hardware-tuned BLAS and LAPACK vendor libraries when available on the host OS.
+- **Reasoning**: Hardware-tuned linear algebra and numerical signal processing routines must provide high-throughput SIMD and multi-core vendor execution on desktop and server environments while maintaining 100% portable, numerically identical pure Dart fallbacks on platforms without FFI (e.g., Web, Wasm).
+- **Sub-Package Layout**: The acceleration subsystem is decomposed into focused mathematical domains, each following a uniform structure (`domain/` containing the public dispatch interface, `domain_dart.dart` for pure Dart fallbacks, and conditional FFI bindings via `domain_native.dart` and `domain_stub.dart`):
+  - `lib/src/acceleration/blas/`: Unified Basic Linear Algebra Subprograms (Levels 1, 2, and 3) in `Blas`.
+  - `lib/src/acceleration/lapack/`: Linear system solvers and matrix decompositions in `Lapack`.
+  - `lib/src/acceleration/fft/`: In-place 1D and 2D complex and real Fast Fourier Transforms in `Fft`.
+  - `lib/src/acceleration/vforce/`: Vectorized transcendental functions, reductions, and 1D convolutions in `Vforce`.
+  - `lib/src/acceleration/ffi/`: Shared dynamic library resolution and platform symbol probing (`library_loader.dart`).
+- **Acceleration Coordination**: `AccelerationManager` serves as a lightweight coordinator controlling execution `mode` (`AccelerationMode.auto`, `AccelerationMode.accelerated`, `AccelerationMode.dart`) and reporting active hardware acceleration status (`isAccelerated`). Each domain module exposes its own `isAvailable` boolean flag.
+
+### 5.2 Dynamic Library Discovery & Platform Detection
+
+- **Reasoning**: High-performance linear algebra transparently leverages hardware-tuned BLAS, LAPACK, and Apple vDSP vendor libraries available on the host OS.
 - **Implementation & Constraints**:
-  - `loadBlas()` in `lib/src/acceleration/blas/cblas_ffi.dart` dynamically queries system libraries:
+  - `loadPlatformLibraries()` in `lib/src/acceleration/ffi/library_loader_ffi.dart` dynamically queries system libraries:
     - macOS: Apple Accelerate framework (`Accelerate.framework/Accelerate`).
     - Linux: `libopenblas.so`, `libblas.so`, `liblapack.so`.
     - Windows: `openblas.dll`.
-  - If native libraries are missing, the system gracefully falls back to pure-Dart algorithms without crashing.
+  - `hasSymbol(symbol, libraries)` tests symbol export availability across candidate libraries using `DynamicLibrary.process().providesSymbol(...)` or loaded handles.
+  - Platforms without FFI support conditionally compile against stubs (`*_stub.dart`) with zero runtime overhead or code bloat.
 
-### 5.2 BLAS Level 1, 2, 3 FFI Dispatch
+### 5.3 Unified BLAS Subsystem (`lib/src/acceleration/blas/`)
 
-- **Reasoning**: Hardware BLAS provides multi-threaded, SIMD-vectorized matrix arithmetic operating at tens of GFLOPS.
+- **Reasoning**: Unifies vector-vector, matrix-vector, and matrix-matrix routines under a single, coherent `Blas` interface, replacing fragmented level-specific classes.
+- **Routines**:
+  - Level 1: `ddot`, `sdot` (dot products), `dnrm2`, `snrm2` (Euclidean norms), `daxpy`, `saxpy` ($y \leftarrow \alpha x + y$), `dscal`, `sscal` (vector scaling).
+  - Level 2: `dgemv`, `sgemv` (matrix-vector multiplication), `dsyr2`, `ssyr2` (symmetric rank-2 update), `dtrmv`, `strmv` (triangular matrix-vector multiplication).
+  - Level 3: `dgemm`, `sgemm` (general matrix multiplication), `dsyrk`, `ssyrk` (symmetric rank-$k$ update with automatic upper/lower triangle mirroring), `dsymm`, `ssymm` (symmetric matrix multiplication), `dtrmm`, `strmm` (triangular matrix multiplication).
+- **Pure Dart Fallback (`BlasDart`)**: Provides high-efficiency pure Dart implementations with cache-blocked tiled GEMM ($32 \times 32$ block tiles fitting within L1 data caches) and $4\times$ loop unrolling, supporting all transposition combinations (`cblasNoTrans`, `cblasTrans`) and accumulation scalings ($\alpha$, $\beta$).
+
+### 5.4 LAPACK Solvers & Factorizations (`lib/src/acceleration/lapack/`)
+
+- **Reasoning**: Production scientific systems rely on LAPACK for numerically stable factorizations and solves.
+- **Routines**:
+  - `dgesv`: General linear system solver $A X = B$ with partial pivoting. Multi-RHS matrices ($N \times \text{nrhs}$) and strided RHS matrices transparently gather to column-major layout for Fortran LAPACK routines (`dgetrf`/`dgetrs` or `dgesv_`) and scatter back to row-major format, with a zero-copy fast path for contiguous single RHS ($nrhs = 1, ldb = 1$).
+  - `dpotrf`: Cholesky factorization of symmetric positive-definite matrices.
+  - `dgels`: Linear least-squares solver $\min \|A X - B\|_2$ via QR/LQ factorizations.
+  - `dsyev`, `ssyev`: Real symmetric eigenvalue solvers computing eigenvalues in ascending order and orthonormal eigenvectors. Transparently dispatched by `EigenvalueDecomposition` when matrices are symmetric with `DataType.float64` under active hardware acceleration, seamlessly falling back to pure Dart Householder tridiagonal reduction (`_tred2`) and implicit QL iteration (`_tql2`).
+
+### 5.5 Fast Fourier Transform Subsystem (`lib/src/acceleration/fft/`)
+
+- **Reasoning**: Frequency-domain analysis requires high-performance, in-place Fourier transforms that eliminate parallel list allocations and unnecessary conversions.
 - **Implementation & Constraints**:
-  - Bound via `dart:ffi`:
-    - Level 1: `ddot`, `sdot` (dot products), `dnrm2`, `snrm2` (Euclidean norms), `daxpy`, `saxpy` ($y \leftarrow \alpha x + y$), `dscal`, `sscal` (scaling).
-    - Level 2: `dgemv`, `sgemv` (matrix-vector multiplication), `dtrmv`, `strmv` (triangular matrix-vector multiplication).
-    - Level 3: `dgemm`, `sgemm` (general matrix multiplication), `dsymm`, `ssymm` (symmetric matrix multiplication), `dtrmm`, `strmm` (triangular matrix multiplication), `dsyrk`, `ssyrk`, `dsyr2`, `ssyr2` (symmetric rank-$k$ and rank-2 updates).
-  - Zero-copy interop: Contiguous `Float64List` and `Float32List` buffers pass directly to native C pointers via `Pointer.fromAddress` or typed data addresses without intermediate heap copying.
+  - `Float64ComplexList`: Dedicated interleaved complex typed data list implementing `TypedDataList<Complex>` backed by a single contiguous interleaved `Float64List data` storage array `[re0, im0, re1, im1, ...]`.
+  - In-Place Execution: `Fft.fft` and `Fft.fft2` operate directly in-place on `Float64ComplexList` buffers without copying or intermediate allocations, accepting a boolean `inverse` flag (no redundant wrapper functions like `ifft`/`ifft2`).
+  - Cross-Platform Native Acceleration (`FftNative`): Binds directly to Apple Accelerate's interleaved double-precision DFT routines (`vDSP_DFT_Interleaved_CreateSetupD`, `vDSP_DFT_Interleaved_ExecuteD`) on macOS/iOS, and to FFTW3 (`fftw_plan_dft_1d`, `fftw_plan_dft_2d`, `fftw_execute_dft`) on Linux, Android, and Windows.
+  - Pure Dart Fallback (`FftDart`): Cooley-Tukey decimation-in-time radix-2 in-place 1D and separable 2D Fourier transforms operating directly on interleaved float buffers.
 
-### 5.3 LAPACK Solvers & Decompositions
+### 5.6 Vectorized Functions & Signal Processing (`lib/src/acceleration/vforce/`)
 
-- **Reasoning**: Production scientific systems rely on LAPACK for numerically stable factorizations.
+- **Reasoning**: Bulk element-wise math and reductions benefit dramatically from vectorized hardware pipelines.
+- **Routines**:
+  - Element-wise Transcendental Math: `sin`, `cos`, `exp`, `log`, `sqrt`, `pow` operating directly across input/output `Float64List` buffers.
+  - Vector Reductions: `sum`, `mean`, `meanSquared`, `variance` (sample and population) operating in-place with native Apple vDSP vector reductions (`vDSP_sveD`, `vDSP_meanvD`, `vDSP_measqvD`).
+  - 1D Signal Processing: `convolve` (linear convolution) and `correlate` (cross-correlation).
+
+### 5.7 Zero-Copy Direct Memory Address & Leaf Calls
+
+- **Reasoning**: Passing memory directly between Dart and native code avoids expensive off-heap memory management and copies.
 - **Implementation & Constraints**:
-  - Bound via `dart:ffi`:
-    - `dgesv`: General linear system solver with partial pivoting. Transparently handles row-major to column-major layout transposition for multi-RHS matrices ($N \times \text{nrhs}$) and strided RHS matrices when interfacing with Fortran LAPACK routines (`dgetrf`/`dgetrs` or `dgesv_`), with a zero-copy fast path for contiguous single RHS ($nrhs = 1, ldb = 1$).
-    - `dpotrf`: Cholesky factorization of symmetric positive-definite matrices.
-    - `dgels`: Linear least-squares solver via QR or LQ factorization.
-    - `dgeqrf`: Householder QR decomposition.
-    - `dgesvd`: Singular value decomposition computing singular values and singular vectors.
-    - `dsyev`, `ssyev`: LAPACK symmetric eigenvalue solvers computing real eigenvalues in ascending order and corresponding orthonormal eigenvectors. Transparently dispatched by `EigenvalueDecomposition` when matrices are symmetric with `DataType.float64` under active hardware acceleration, seamlessly falling back to pure Dart Householder tridiagonal reduction (`_tred2`) and implicit QL iteration (`_tql2`) when acceleration is disabled or for non-float64 types.
-
-### 5.4 Zero-Copy Direct Address Native Acceleration
-
-- **Reasoning**: Previous designs relied on off-heap manual allocations (`NativeBuffer`, `calloc`/`malloc`, `NativeFinalizer`, fallback arena copying). Dart FFI supports passing the native memory address of Dart-managed typed arrays directly (`typedList.address`, e.g., `Float64ListAddress.address`) to `@Native(isLeaf: true)` external calls without memory allocation, copying, or finalization overhead.
-- **Implementation & Constraints**:
-  - Direct typed data addresses: Hardware acceleration routines in BLAS, LAPACK, and Apple vDSP / vForce bind to native symbols via `@ffi.Native(isLeaf: true)` external declarations.
-  - Zero-copy execution: Standard `Float64List` and `Float32List` buffers backing `Tensor`, `Matrix`, and `Vector` containers pass directly to native routines via `.address` (or `Float64List.sublistView(list, offset).address` for offset slices).
-  - Leaf calls: Native functions are marked `isLeaf: true`, allowing the Dart runtime to pin typed data memory during the call without garbage collector interference.
-  - Platform symbol probing: Dynamic symbol availability is queried cleanly using `DynamicLibrary.process().providesSymbol(...)` or loaded shared library handles before dispatching to external functions.
-
-### 5.5 Pure-Dart SIMD Acceleration Fallback
-
-- **Reasoning**: Environments without FFI support (e.g. Flutter Web, Wasm) still benefit from CPU vector hardware.
-- **Implementation & Constraints**:
-  - `SimdEngine` (`lib/src/acceleration/fallback/simd.dart`) leverages Dart's native `Float32x4List` and `Float32x4` types.
-  - Evaluates 4-lane parallel floating-point arithmetic for element-wise vector/matrix addition, subtraction, multiplication, and dot products.
-
-### 5.6 Pure-Dart Fallback Architecture (`lib/src/acceleration/fallback/`)
-
-- **Reasoning**: Environments where native acceleration is disabled or unsupported (such as Flutter Web, Wasm, or `AccelerationMode.dart`) require robust, numerically stable reference implementations of all BLAS, LAPACK, FFT, and vForce operations without depending on native shared libraries.
-- **Implementation & Constraints**:
-  - `PureDartBlas1` (`pure_dart_blas1.dart`): Pure Dart Level 1 vector-vector routines (`ddot`, `sdot`, `dnrm2`, `snrm2`, `daxpy`, `saxpy`, `dscal`, `sscal`), integrating SIMD acceleration when buffers are aligned and contiguous.
-  - `PureDartBlas2` (`pure_dart_blas2.dart`): Pure Dart Level 2 matrix-vector routines (`dgemv`, `sgemv`, `dsyr2`, `ssyr2`, `dtrmv`, `strmv`).
-  - `PureDartBlas3` (`pure_dart_blas3.dart`): Pure Dart Level 3 matrix-matrix routines (`dsyrk`, `ssyrk`, `dsymm`, `ssymm`, `dtrmm`, `strmm`, and cache-blocked GEMM).
-  - Cache-Blocked GEMM (`pure_dart_gemm.dart`): Cache-tiled matrix multiplication (`cacheBlockedGemmFloat64`, `cacheBlockedGemmFloat32`) with $32 \times 32$ block tiles ($32 \times 32 \times 8\text{ bytes} = 8\text{ KB}$, fitting within L1 data caches) and $4\times$ loop unrolling, supporting all transposition combinations (`cblasNoTrans`, `cblasTrans`) and accumulation scalings ($\alpha$, $\beta$).
-  - `PureDartLapack` (`pure_dart_lapack.dart`): Decomposition and solver algorithms (Cholesky factorization `dpotrf`, LU solver `luSolve`, least-squares `dgels`, and symmetric tridiagonal eigenvalue solver `dsyev`/`ssyev`).
-  - `PureDartVforce` (`pure_dart_vforce.dart`): Elementwise transcendental math (`vsin`, `vcos`, `vexp`, `vlog`, `vsqrt`, `vpow`), vector reductions (`sum`, `mean`, `variance`), and 1D signal processing (`convolve`, `correlate`).
-  - `PureDartFft` (`pure_dart_fft.dart`): Cooley-Tukey decimation-in-time radix-2 1D/2D FFT and inverse transforms (`fft`, `rfft`, `irfft`, `fft2`).
-
-### 5.7 Routine Dispatchers (`lib/src/acceleration/routines/dispatcher.dart`)
-
-- **Reasoning**: Routine definitions across BLAS, LAPACK, FFT, and vForce share identical mode-handling, platform-probing, threshold-gating, and error-raising behavior across `AccelerationMode.accelerated`, `AccelerationMode.auto`, and `AccelerationMode.dart`.
-- **Implementation & Constraints**:
-  - `executeAccelerated<T>`: Unified higher-order dispatcher for value-returning routines. Invokes `accelerate()`, verifies non-null output, and falls back to `fallback()` or raises `AccelerationUnavailableError` / `AccelerationFailedError`.
-  - `executeAcceleratedOperation`: Unified higher-order dispatcher for boolean in-place and solver routines with configurable `failOnError` semantics (e.g. `failOnError: false` for `dpotrf` and `dgesv` where `false` denotes a singular or non-positive-definite matrix rather than hardware execution failure).
-  - Threshold gating: In `AccelerationMode.auto`, kernels with fixed overheads (e.g. GEMM or vForce) inspect input size thresholds ($N \ge 64$) to bypass native FFI call transitions when scalar/cache-blocked execution is faster.
-  - Zero-overhead dispatch: Higher-order functions execute in $< 5\text{ ns}$, completely dominated by inner numeric computations and FFI calls.
+  - Direct Typed Data Addresses: Hardware acceleration routines bind to native symbols via `@ffi.Native(isLeaf: true)` external declarations.
+  - Zero-Copy Addresses: Standard `Float64List` and `Float32List` buffers pass directly to native routines via `.address` (or `Float64List.sublistView(list, offset).address` for offset slices).
+  - Leaf Calls: Native functions are marked `isLeaf: true`, allowing the Dart runtime to pin typed data memory during the call without garbage collector interference.
+  - Strict Parameter Contracts: Internal native and fallback methods enforce strictly named, non-null, `required` parameters with zero optionals, guaranteeing unambiguous call signatures.
 
 ---
 
@@ -415,7 +412,6 @@ This document describes the achieved architecture across all subsystems of `pack
   - Pure-Dart radix-2 Cooley-Tukey algorithm with bit-reversal sorting.
   - Operations in `lib/src/numeric/fft.dart`:
     - `fft` and `ifft`: 1D complex-to-complex forward and inverse transforms.
-    - `rfft` and `irfft`: Real-valued 1D transforms exploiting Hermitian symmetry to compute $N/2 + 1$ unique complex frequencies.
     - `fft2` and `ifft2`: 2D transforms executing row-column separable passes over 2D matrices.
   - Immutability constraint: Input vectors/matrices are never modified in place; newly allocated containers are returned.
 

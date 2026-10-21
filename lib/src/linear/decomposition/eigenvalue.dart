@@ -4,7 +4,8 @@ import 'dart:typed_data';
 import '../../../type.dart';
 import '../../acceleration/acceleration_manager.dart';
 import '../../acceleration/acceleration_mode.dart';
-import '../../acceleration/blas/cblas.dart';
+import '../../acceleration/blas/cblas_constants.dart';
+import '../../acceleration/lapack/lapack.dart';
 import '../matrix.dart';
 
 /// Extension methods providing Eigenvalue decomposition on numeric matrices.
@@ -80,7 +81,7 @@ class EigenvalueDecomposition {
           }
         }
         final wList = Float64List(_n);
-        accelerated = AccelerationManager.dsyev(
+        accelerated = Lapack.dsyev(
           jobz: 'V',
           uplo: cblasUpper,
           n: _n,

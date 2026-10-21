@@ -1,8 +1,8 @@
 import 'dart:math' as math;
 
 import '../../../type.dart';
-import '../../acceleration/acceleration_manager.dart';
-import '../../acceleration/fallback/pure_dart_fft.dart';
+import '../../acceleration/fft/fft.dart';
+import '../../acceleration/fft/fft_dart.dart';
 import '../polynomial.dart';
 import 'compressed_polynomial.dart';
 
@@ -160,31 +160,35 @@ class DensePolynomial<T> extends Polynomial<T> {
     final dynamicType = type as DataType<dynamic>;
     if (outDegree >= 64 &&
         (dynamicType == DataType.float64 || dynamicType == DataType.float32)) {
-      final n = PureDartFft.nextPowerOf2(outDegree + 1);
-      final aList = List<Complex>.generate(
-        n,
-        (i) =>
-            i <= deg1 ? Complex((this[i] as num).toDouble(), 0) : Complex.zero,
-        growable: false,
-      );
-      final bList = List<Complex>.generate(
-        n,
-        (i) =>
-            i <= deg2 ? Complex((other[i] as num).toDouble(), 0) : Complex.zero,
-        growable: false,
-      );
+      final n = FftDart.nextPowerOf2(value: outDegree + 1);
+      final aList = DataType.complex.newList(n);
+      final bList = DataType.complex.newList(n);
 
-      final fftA = AccelerationManager.fft(aList);
-      final fftB = AccelerationManager.fft(bList);
-      final fftC = List<Complex>.generate(
-        n,
-        (i) => fftA[i] * fftB[i],
-        growable: false,
-      );
-      final reconstructed = AccelerationManager.ifft(fftC);
+      final aData = aList.data;
+      for (var i = 0; i <= deg1; i++) {
+        aData[2 * i] = (this[i] as num).toDouble();
+      }
+      final bData = bList.data;
+      for (var i = 0; i <= deg2; i++) {
+        bData[2 * i] = (other[i] as num).toDouble();
+      }
+
+      Fft.fft(buffer: aList);
+      Fft.fft(buffer: bList);
+
+      for (var i = 0; i < n; i++) {
+        final idx = 2 * i;
+        final ar = aData[idx];
+        final ai = aData[idx + 1];
+        final br = bData[idx];
+        final bi = bData[idx + 1];
+        aData[idx] = ar * br - ai * bi;
+        aData[idx + 1] = ar * bi + ai * br;
+      }
+      Fft.fft(buffer: aList, inverse: true);
 
       final resultCoeffs = List<T>.generate(outDegree + 1, (i) {
-        final val = reconstructed[i].a.toDouble();
+        final val = aData[2 * i];
         return (dynamicType == DataType.float32 ? val.toDouble() : val) as T;
       }, growable: false);
 

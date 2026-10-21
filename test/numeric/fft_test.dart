@@ -1,5 +1,3 @@
-import 'dart:math' as math;
-
 import 'package:checks/checks.dart';
 import 'package:data/src/numeric/fft.dart';
 import 'package:data/type.dart';
@@ -8,115 +6,102 @@ import 'package:test/test.dart';
 void main() {
   group('Fast Fourier Transform (FFT)', () {
     test('empty inputs', () {
-      check(fft([])).isEmpty();
-      check(rfft([])).isEmpty();
-      check(irfft([])).isEmpty();
-      check(fft2([])).isEmpty();
+      final empty = <Complex>[];
+      fft(empty);
+      check(empty).isEmpty();
+
+      final empty2 = <Complex>[];
+      fft2(empty2, rows: 0, cols: 0);
+      check(empty2).isEmpty();
     });
 
-    test('1D FFT of DC signal', () {
+    test('1D FFT of DC signal in-place on List<Complex>', () {
       final input = [
         const Complex(1.0, 0.0),
         const Complex(1.0, 0.0),
         const Complex(1.0, 0.0),
         const Complex(1.0, 0.0),
       ];
-      final output = fft(input);
-      check(output).length.equals(4);
-      check(output[0].a).isCloseTo(4.0, 1e-9);
-      check(output[0].b).isCloseTo(0.0, 1e-9);
-      check(output[1].abs()).isCloseTo(0.0, 1e-9);
-      check(output[2].abs()).isCloseTo(0.0, 1e-9);
-      check(output[3].abs()).isCloseTo(0.0, 1e-9);
-
-      // Input was not mutated
-      check(input[0].a).equals(1.0);
+      fft(input);
+      check(input.length).equals(4);
+      check(input[0].a).isCloseTo(4.0, 1e-9);
+      check(input[0].b).isCloseTo(0.0, 1e-9);
+      check(input[1].abs()).isCloseTo(0.0, 1e-9);
+      check(input[2].abs()).isCloseTo(0.0, 1e-9);
+      check(input[3].abs()).isCloseTo(0.0, 1e-9);
     });
 
-    test('1D FFT roundtrip (fft then ifft)', () {
+    test('1D FFT of DC signal in-place on Float64ComplexList', () {
+      final input = Float64ComplexList.fromList([
+        const Complex(1.0, 0.0),
+        const Complex(1.0, 0.0),
+        const Complex(1.0, 0.0),
+        const Complex(1.0, 0.0),
+      ]);
+      fft(input);
+      check(input.length).equals(4);
+      check(input[0].a).isCloseTo(4.0, 1e-9);
+      check(input[0].b).isCloseTo(0.0, 1e-9);
+      check(input[1].abs()).isCloseTo(0.0, 1e-9);
+      check(input[2].abs()).isCloseTo(0.0, 1e-9);
+      check(input[3].abs()).isCloseTo(0.0, 1e-9);
+    });
+
+    test('1D FFT roundtrip on List<Complex>', () {
       final signal = [
         const Complex(2.0, 1.0),
         const Complex(-1.5, 0.5),
         const Complex(3.0, -2.0),
         const Complex(0.5, 4.0),
       ];
-      final spectrum = fft(signal);
-      final reconstructed = ifft(spectrum);
-      check(reconstructed).length.equals(signal.length);
+      final orig = List.of(signal);
+
+      fft(signal);
+      fft(signal, inverse: true);
+
+      check(signal.length).equals(orig.length);
       for (var i = 0; i < signal.length; i++) {
-        check(reconstructed[i].a).isCloseTo(signal[i].a, 1e-6);
-        check(reconstructed[i].b).isCloseTo(signal[i].b, 1e-6);
+        check(signal[i].a).isCloseTo(orig[i].a, 1e-6);
+        check(signal[i].b).isCloseTo(orig[i].b, 1e-6);
       }
     });
 
-    test('rfft and irfft on real cosine wave', () {
-      const size = 16;
-      final wave = List<double>.generate(
-        size,
-        (i) => math.cos(2.0 * math.pi * 2.0 * i / size),
-      );
-      final rSpectrum = rfft(wave);
-      check(rSpectrum).length.equals(size ~/ 2 + 1);
-      // Frequency bin 2 should have peak magnitude n/2 = 8
-      check(rSpectrum[2].a).isCloseTo(8.0, 1e-6);
-
-      final recovered = irfft(rSpectrum, size);
-      for (var i = 0; i < size; i++) {
-        check(recovered[i]).isCloseTo(wave[i], 1e-6);
-      }
-    });
-
-    test('2D FFT and IFFT power of 2', () {
+    test('2D FFT and IFFT power of 2 (List<Complex>)', () {
       final image = [
-        [const Complex(1.0, 0.0), const Complex(2.0, 0.0)],
-        [const Complex(3.0, 0.0), const Complex(4.0, 0.0)],
+        const Complex(1.0, 0.0),
+        const Complex(2.0, 0.0),
+        const Complex(3.0, 0.0),
+        const Complex(4.0, 0.0),
       ];
-      final spectrum2d = fft2(image);
-      check(spectrum2d).length.equals(2);
-      check(spectrum2d[0]).length.equals(2);
+      final orig = List.of(image);
+
+      fft2(image, rows: 2, cols: 2);
       // DC component is sum of all elements = 1 + 2 + 3 + 4 = 10
-      check(spectrum2d[0][0].a).isCloseTo(10.0, 1e-9);
+      check(image[0].a).isCloseTo(10.0, 1e-9);
 
-      final restored2d = ifft2(spectrum2d);
-      for (var row = 0; row < 2; row++) {
-        for (var col = 0; col < 2; col++) {
-          check(restored2d[row][col].a).isCloseTo(image[row][col].a, 1e-6);
-          check(restored2d[row][col].b).isCloseTo(image[row][col].b, 1e-6);
-        }
+      fft2(image, rows: 2, cols: 2, inverse: true);
+      for (var i = 0; i < 4; i++) {
+        check(image[i].a).isCloseTo(orig[i].a, 1e-6);
+        check(image[i].b).isCloseTo(orig[i].b, 1e-6);
       }
     });
 
-    test('2D FFT and IFFT non-power of 2 (3x3)', () {
-      final image = [
-        [
-          const Complex(1.0, 0.0),
-          const Complex(2.0, 0.0),
-          const Complex(3.0, 0.0),
-        ],
-        [
-          const Complex(4.0, 0.0),
-          const Complex(5.0, 0.0),
-          const Complex(6.0, 0.0),
-        ],
-        [
-          const Complex(7.0, 0.0),
-          const Complex(8.0, 0.0),
-          const Complex(9.0, 0.0),
-        ],
-      ];
-      final spectrum2d = fft2(image);
-      // Padded to 4x4
-      check(spectrum2d).length.equals(4);
-      check(spectrum2d[0]).length.equals(4);
-      // DC component is sum of all elements = 45
-      check(spectrum2d[0][0].a).isCloseTo(45.0, 1e-9);
+    test('2D FFT and IFFT power of 2 (Float64ComplexList)', () {
+      final image = Float64ComplexList.fromList([
+        const Complex(1.0, 0.0),
+        const Complex(2.0, 0.0),
+        const Complex(3.0, 0.0),
+        const Complex(4.0, 0.0),
+      ]);
+      final orig = List<Complex>.from(image);
 
-      final restored2d = ifft2(spectrum2d);
-      for (var row = 0; row < 3; row++) {
-        for (var col = 0; col < 3; col++) {
-          check(restored2d[row][col].a).isCloseTo(image[row][col].a, 1e-6);
-          check(restored2d[row][col].b).isCloseTo(image[row][col].b, 1e-6);
-        }
+      fft2(image, rows: 2, cols: 2);
+      check(image[0].a).isCloseTo(10.0, 1e-9);
+
+      fft2(image, rows: 2, cols: 2, inverse: true);
+      for (var i = 0; i < 4; i++) {
+        check(image[i].a).isCloseTo(orig[i].a, 1e-6);
+        check(image[i].b).isCloseTo(0.0, 1e-6);
       }
     });
 
@@ -124,7 +109,7 @@ void main() {
       final signal = [1.0, 2.0, 3.0, 4.0, 5.0];
       final filter = [1.0, 2.0];
       final result = convolve(signal, filter);
-      check(result).length.equals(4);
+      check(result.length).equals(4);
       check(result[0]).isCloseTo(4.0, 1e-9);
       check(result[1]).isCloseTo(7.0, 1e-9);
       check(result[2]).isCloseTo(10.0, 1e-9);
@@ -135,7 +120,7 @@ void main() {
       final signal = [1.0, 2.0, 3.0, 4.0, 5.0];
       final filter = [1.0, 2.0];
       final result = correlate(signal, filter);
-      check(result).length.equals(4);
+      check(result.length).equals(4);
       check(result[0]).isCloseTo(5.0, 1e-9);
       check(result[1]).isCloseTo(8.0, 1e-9);
       check(result[2]).isCloseTo(11.0, 1e-9);

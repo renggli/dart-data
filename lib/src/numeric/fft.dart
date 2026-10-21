@@ -2,83 +2,71 @@ import 'dart:typed_data';
 
 import 'package:more/number.dart' show Complex;
 
-import '../acceleration/acceleration_manager.dart';
+import '../acceleration/fft/fft.dart' as acc;
+import '../acceleration/vforce/vforce.dart';
+import '../type/types/complex.dart';
 
-/// Computes the 1-dimensional Discrete Fourier Transform (FFT) of [input].
+/// Computes the 1-dimensional Discrete Fourier Transform (FFT) in-place on
+/// [buffer].
 ///
 /// Conceptually, the Fast Fourier Transform acts like a prism: it decomposes a
 /// signal measured over time into its constituent sinusoidal frequencies and
 /// their corresponding amplitudes and phases. Formally, it computes the
 /// discrete Fourier transform $X_k = \sum_{n=0}^{N-1} x_n e^{-2\pi i k n / N}$
 /// using the Cooley-Tukey decimation-in-time radix-2 algorithm in
-/// $\mathcal{O}(N \log N)$ time, with native vDSP hardware acceleration when
-/// available. Inputs are zero-padded to the next power of 2 if needed.
+/// $\mathcal{O}(N \log N)$ time, with native hardware acceleration when
+/// available.
+///
+/// If [buffer] is a [Float64ComplexList], the transform executes directly
+/// in-place on its internal interleaved storage array with zero memory
+/// allocations or copies.
+///
+/// If [buffer] is a `List<Complex>`, the transform operates in-place,
+/// replacing elements with their transformed complex values.
+///
+/// The length of [buffer] must be a power of 2.
 ///
 /// ```dart
-/// final signal = [
-///   Complex(1.0, 0.0),
-///   Complex(1.0, 0.0),
-///   Complex(0.0, 0.0),
-///   Complex(0.0, 0.0),
-/// ];
-/// final spectrum = fft(signal);
+/// final buffer = Float64ComplexList.fromList([
+///   const Complex(1.0, 0.0),
+///   const Complex(1.0, 0.0),
+///   const Complex(0.0, 0.0),
+///   const Complex(0.0, 0.0),
+/// ]);
+/// fft(buffer);
+/// fft(buffer, inverse: true);
 /// ```
-List<Complex> fft(Iterable<Complex> input) => AccelerationManager.fft(input);
+void fft(List<Complex> buffer, {bool inverse = false}) {
+  if (buffer is Float64ComplexList) {
+    acc.Fft.fft(buffer: buffer, inverse: inverse);
+    return;
+  }
 
-/// Computes the 1-dimensional Inverse Discrete Fourier Transform (IFFT) of
-/// [input].
-///
-/// Conceptually, this reverses the FFT, synthesizing the original time-domain
-/// signal from its frequency spectrum. Formally, it computes
-/// $x_n = \frac{1}{N} \sum_{k=0}^{N-1} X_k e^{2\pi i k n / N}$ satisfying
-/// $\text{ifft}(\text{fft}(x)) = x$.
-///
-/// ```dart
-/// final signal = [
-///   Complex(1.0, 0.0),
-///   Complex(1.0, 0.0),
-///   Complex(0.0, 0.0),
-///   Complex(0.0, 0.0),
-/// ];
-/// final spectrum = fft(signal);
-/// final reconstructed = ifft(spectrum);
-/// ```
-List<Complex> ifft(Iterable<Complex> input) => AccelerationManager.ifft(input);
+  final length = buffer.length;
+  if (length <= 1) return;
+  if ((length & (length - 1)) != 0) {
+    throw ArgumentError.value(
+      length,
+      'buffer.length',
+      'Length must be a power of 2',
+    );
+  }
 
-/// Computes the 1-dimensional Discrete Fourier Transform for real-valued
-/// [input].
-///
-/// For purely real-valued input signals (such as audio samples), this computes
-/// the frequency spectrum without requiring prior conversion to complex
-/// numbers. Formally, it exploits Hermitian conjugate symmetry
-/// $X_{N-k} = X_k^*$ for real sequences, returning only non-redundant
-/// frequencies of length $N/2 + 1$.
-///
-/// ```dart
-/// final realSignal = [1.0, 2.0, 3.0, 4.0];
-/// final spectrum = rfft(realSignal);
-/// ```
-List<Complex> rfft(Iterable<num> input) => AccelerationManager.rfft(input);
+  final temp = Float64ComplexList(length);
+  final data = temp.data;
+  for (var i = 0; i < length; i++) {
+    final c = buffer[i];
+    data[2 * i] = c.a.toDouble();
+    data[2 * i + 1] = c.b.toDouble();
+  }
+  acc.Fft.fft(buffer: temp, inverse: inverse);
+  for (var i = 0; i < length; i++) {
+    buffer[i] = Complex(data[2 * i], data[2 * i + 1]);
+  }
+}
 
-/// Computes the Inverse Discrete Fourier Transform for real-valued signals from
-/// positive frequency spectrum [input].
-///
-/// Conceptually, this reconstructs the original real-valued time-domain signal
-/// from its one-sided frequency spectrum. Formally, it synthesizes the full
-/// Hermitian symmetric spectrum and computes the inverse DFT, discarding
-/// numerical imaginary roundoff artifacts.
-///
-/// If [n] is not provided, it defaults to $2 \times (\text{input.length} - 1)$.
-///
-/// ```dart
-/// final realSignal = [1.0, 2.0, 3.0, 4.0];
-/// final spectrum = rfft(realSignal);
-/// final restored = irfft(spectrum, realSignal.length);
-/// ```
-List<double> irfft(List<Complex> input, [int? n]) =>
-    AccelerationManager.irfft(input, n);
-
-/// Computes the 2-dimensional Discrete Fourier Transform of [matrix].
+/// Computes the 2-dimensional Discrete Fourier Transform in-place on flat
+/// row-major [flat] buffer of dimensions [rows] x [cols].
 ///
 /// Conceptually, 2D FFT analyzes 2D grids (such as images or spatial fields) to
 /// identify directional wave patterns, textures, and spatial frequencies.
@@ -86,31 +74,60 @@ List<double> irfft(List<Complex> input, [int? n]) =>
 /// in $\mathcal{O}(M N \log(M N))$ time with hardware acceleration when
 /// available.
 ///
+/// If [flat] is a [Float64ComplexList], the transform executes directly
+/// in-place on its internal interleaved storage array with zero memory
+/// allocations or copies.
+///
+/// The dimensions [rows] and [cols] must each be a power of 2, and the length
+/// of [flat] must equal `rows * cols`.
+///
 /// ```dart
-/// final image = [
-///   [Complex(1.0, 0.0), Complex(2.0, 0.0)],
-///   [Complex(3.0, 0.0), Complex(4.0, 0.0)],
-/// ];
-/// final spectrum2d = fft2(image);
+/// final image = Float64ComplexList.fromList([
+///   const Complex(1.0, 0.0), const Complex(2.0, 0.0),
+///   const Complex(3.0, 0.0), const Complex(4.0, 0.0),
+/// ]);
+/// fft2(image, rows: 2, cols: 2);
+/// fft2(image, rows: 2, cols: 2, inverse: true);
 /// ```
-List<List<Complex>> fft2(List<List<Complex>> matrix) =>
-    AccelerationManager.fft2(matrix);
+void fft2(
+  List<Complex> flat, {
+  required int rows,
+  required int cols,
+  bool inverse = false,
+}) {
+  if (flat is Float64ComplexList) {
+    acc.Fft.fft2(buffer: flat, rows: rows, cols: cols, inverse: inverse);
+    return;
+  }
 
-/// Computes the 2-dimensional Inverse Discrete Fourier Transform of [matrix].
-///
-/// Conceptually, this reconstructs a 2D spatial grid or image from its 2D
-/// frequency spectrum. Formally, it applies the 2D inverse DFT satisfying
-/// $\text{ifft2}(\text{fft2}(A)) = A$.
-///
-/// ```dart
-/// final image = [
-///   [Complex(1.0, 0.0), Complex(2.0, 0.0)],
-///   [Complex(3.0, 0.0), Complex(4.0, 0.0)],
-/// ];
-/// final restored = ifft2(fft2(image));
-/// ```
-List<List<Complex>> ifft2(List<List<Complex>> matrix) =>
-    AccelerationManager.ifft2(matrix);
+  if (rows <= 0 || cols <= 0) return;
+  if ((rows & (rows - 1)) != 0) {
+    throw ArgumentError.value(rows, 'rows', 'Rows must be a power of 2');
+  }
+  if ((cols & (cols - 1)) != 0) {
+    throw ArgumentError.value(cols, 'cols', 'Cols must be a power of 2');
+  }
+  final total = rows * cols;
+  if (flat.length != total) {
+    throw ArgumentError.value(
+      flat.length,
+      'flat.length',
+      'Buffer length must equal rows * cols ($rows * $cols = $total)',
+    );
+  }
+
+  final temp = Float64ComplexList(total);
+  final data = temp.data;
+  for (var i = 0; i < total; i++) {
+    final c = flat[i];
+    data[2 * i] = c.a.toDouble();
+    data[2 * i + 1] = c.b.toDouble();
+  }
+  acc.Fft.fft2(buffer: temp, rows: rows, cols: cols, inverse: inverse);
+  for (var i = 0; i < total; i++) {
+    flat[i] = Complex(data[2 * i], data[2 * i + 1]);
+  }
+}
 
 /// Computes the 1-dimensional discrete linear convolution of [signal] and
 /// [filter].
@@ -128,7 +145,7 @@ List<List<Complex>> ifft2(List<List<Complex>> matrix) =>
 List<double> convolve(Iterable<num> signal, Iterable<num> filter) {
   final s = Float64List.fromList([for (final x in signal) x.toDouble()]);
   final f = Float64List.fromList([for (final x in filter) x.toDouble()]);
-  return AccelerationManager.convolve(s, f);
+  return Vforce.convolve(signal: s, filter: f);
 }
 
 /// Computes the 1-dimensional discrete cross-correlation of [signal] and
@@ -147,5 +164,5 @@ List<double> convolve(Iterable<num> signal, Iterable<num> filter) {
 List<double> correlate(Iterable<num> signal, Iterable<num> filter) {
   final s = Float64List.fromList([for (final x in signal) x.toDouble()]);
   final f = Float64List.fromList([for (final x in filter) x.toDouble()]);
-  return AccelerationManager.correlate(s, f);
+  return Vforce.correlate(signal: s, filter: f);
 }

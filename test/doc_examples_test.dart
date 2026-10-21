@@ -493,18 +493,19 @@ void main() {
     });
 
     test('FFT and IFFT', () {
-      final signal = [
-        const Complex(1.0, 0.0),
-        const Complex(1.0, 0.0),
-        const Complex(0.0, 0.0),
-        const Complex(0.0, 0.0),
-      ];
-      final spectrum = fft(signal);
-      final reconstructed = ifft(spectrum);
-      for (var i = 0; i < 4; i++) {
-        check(reconstructed[i].a).isCloseTo(signal[i].a, 1e-6);
-        check(reconstructed[i].b).isCloseTo(signal[i].b, 1e-6);
-      }
+      final buffer = DataType.complex.newList(4);
+      buffer[0] = const Complex(1.0);
+      buffer[1] = const Complex(1.0);
+      fft(buffer);
+      fft(buffer, inverse: true);
+      check(buffer[0].a).isCloseTo(1.0, 1e-6);
+      check(buffer[0].b).isCloseTo(0.0, 1e-6);
+      check(buffer[1].a).isCloseTo(1.0, 1e-6);
+      check(buffer[1].b).isCloseTo(0.0, 1e-6);
+      check(buffer[2].a).isCloseTo(0.0, 1e-6);
+      check(buffer[2].b).isCloseTo(0.0, 1e-6);
+      check(buffer[3].a).isCloseTo(0.0, 1e-6);
+      check(buffer[3].b).isCloseTo(0.0, 1e-6);
     });
 
     test('calculus derivatives, gradient, Jacobian, Hessian', () {
@@ -586,7 +587,7 @@ void main() {
       final b = Float64List.fromList([5.0, 6.0, 7.0, 8.0]);
       final c = Float64List(4);
 
-      AccelerationManager.dgemm(
+      Blas.dgemm(
         m: 2,
         n: 2,
         k: 2,

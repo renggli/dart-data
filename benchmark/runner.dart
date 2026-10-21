@@ -178,10 +178,10 @@ class BenchmarkSuite {
     print('=' * 72);
     if (compareModes) {
       print('Platform hardware acceleration status:');
-      print('  BLAS available:    ${AccelerationManager.isBlasAvailable}');
-      print('  vDSP available:    ${AccelerationManager.isVdspAvailable}');
-      print('  FFT available:     ${AccelerationManager.isFftAvailable}');
-      print('  vForce available:  ${AccelerationManager.isVForceAvailable}');
+      print('  BLAS available:    ${Blas.isAvailable}');
+      print('  vDSP available:    ${Fft.isAvailable || Vforce.isAvailable}');
+      print('  FFT available:     ${Fft.isAvailable}');
+      print('  vForce available:  ${Vforce.isAvailable}');
       print('-' * 72);
     }
     print('');

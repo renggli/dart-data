@@ -1,10 +1,12 @@
 import 'dart:math' as math;
 import 'dart:typed_data';
 
-import '../../acceleration.dart';
 import '../../linear.dart';
 import '../../polynomial.dart';
 import '../../type.dart';
+import '../acceleration/acceleration_manager.dart';
+import '../acceleration/acceleration_mode.dart';
+import '../acceleration/lapack/lapack.dart';
 
 /// Curve fitting and regression algorithms using numerically stable QR and SVD
 /// matrix decompositions.
@@ -68,7 +70,7 @@ Vector<double> leastSquares(Matrix<num> a, Vector<num> b) {
         bData[i] = b[i].toDouble();
       }
     }
-    final success = AccelerationManager.dgels(
+    final success = Lapack.dgels(
       m: rows,
       n: cols,
       nrhs: 1,

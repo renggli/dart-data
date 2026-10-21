@@ -2,7 +2,7 @@ import 'dart:math' as math;
 import 'dart:typed_data';
 
 import '../../type.dart';
-import '../acceleration/acceleration_manager.dart';
+import '../acceleration/vforce/vforce.dart';
 import '../linear/matrix.dart';
 import '../linear/vector.dart';
 import '../tensor/tensor.dart';
@@ -340,7 +340,7 @@ extension DescriptiveVectorNumExtension on Vector<num> {
   double sum() {
     final tData = tensor.data;
     if (tData is Float64List && tensor.layout.isContiguous && length >= 64) {
-      return AccelerationManager.sum(tData);
+      return Vforce.sum(x: tData);
     }
     var total = 0.0;
     for (var i = 0; i < length; i++) {
@@ -353,7 +353,7 @@ extension DescriptiveVectorNumExtension on Vector<num> {
   double mean() {
     final tData = tensor.data;
     if (tData is Float64List && tensor.layout.isContiguous && length >= 64) {
-      return AccelerationManager.mean(tData);
+      return Vforce.mean(x: tData);
     }
     return _mean(toList());
   }
@@ -362,7 +362,7 @@ extension DescriptiveVectorNumExtension on Vector<num> {
   double variance({bool population = false}) {
     final tData = tensor.data;
     if (tData is Float64List && tensor.layout.isContiguous && length >= 64) {
-      return AccelerationManager.variance(tData, sample: !population);
+      return Vforce.variance(x: tData, sample: !population);
     }
     return _variance(toList(), population: population);
   }

@@ -29,7 +29,7 @@
 /// - **Interpolation**: 1D linear ([LinearInterpolation]), cubic spline
 ///   ([CubicSpline]), monotonic cubic ([PchipInterpolation]), and 2D bilinear
 ///   ([BilinearInterpolation]) / bicubic ([BicubicInterpolation]).
-/// - **Fast Fourier Transform**: [fft] and [ifft] for 1D complex
+/// - **Fast Fourier Transform**: [fft] for 1D complex
 ///   frequency-domain signal processing.
 ///
 /// ## Example

@@ -2,7 +2,7 @@ import 'dart:math' as math;
 import 'dart:typed_data';
 
 import '../../type.dart';
-import '../acceleration/acceleration_manager.dart';
+import '../acceleration/blas/blas.dart';
 import '../tensor/layout.dart';
 import '../tensor/operations/operation.dart';
 import '../tensor/tensor.dart';
@@ -327,7 +327,7 @@ class Vector<T> {
         other.tensor.strides[0] > 0 &&
         tensor.data is Float64List &&
         other.tensor.data is Float64List) {
-      final res = AccelerationManager.ddot(
+      final res = Blas.ddot(
         n: length,
         x: tensor.data as Float64List,
         xOffset: tensor.offset,
@@ -336,13 +336,13 @@ class Vector<T> {
         yOffset: other.tensor.offset,
         incY: other.tensor.strides[0],
       );
-      if (res != null) return res as T;
+      return res as T;
     } else if (T == double &&
         tensor.strides[0] > 0 &&
         other.tensor.strides[0] > 0 &&
         tensor.data is Float32List &&
         other.tensor.data is Float32List) {
-      final res = AccelerationManager.sdot(
+      final res = Blas.sdot(
         n: length,
         x: tensor.data as Float32List,
         xOffset: tensor.offset,
@@ -351,7 +351,7 @@ class Vector<T> {
         yOffset: other.tensor.offset,
         incY: other.tensor.strides[0],
       );
-      if (res != null) return res as T;
+      return res as T;
     }
 
     final field = type.field;
@@ -469,23 +469,21 @@ class Vector<T> {
     }
     if (pNorm == 2) {
       if (T == double && tensor.strides[0] > 0 && tensor.data is Float64List) {
-        final res = AccelerationManager.dnrm2(
+        return Blas.dnrm2(
           n: length,
           x: tensor.data as Float64List,
           xOffset: tensor.offset,
           incX: tensor.strides[0],
         );
-        if (res != null) return res;
       } else if (T == double &&
           tensor.strides[0] > 0 &&
           tensor.data is Float32List) {
-        final res = AccelerationManager.snrm2(
+        return Blas.snrm2(
           n: length,
           x: tensor.data as Float32List,
           xOffset: tensor.offset,
           incX: tensor.strides[0],
         );
-        if (res != null) return res;
       }
 
       var sumSq = 0.0;
@@ -515,7 +513,7 @@ class Vector<T> {
         other.tensor.strides[0] > 0 &&
         tensor.data is Float64List &&
         other.tensor.data is Float64List) {
-      final success = AccelerationManager.daxpy(
+      final success = Blas.daxpy(
         n: length,
         alpha: alpha.toDouble(),
         x: other.tensor.data as Float64List,
@@ -532,7 +530,7 @@ class Vector<T> {
         other.tensor.strides[0] > 0 &&
         tensor.data is Float32List &&
         other.tensor.data is Float32List) {
-      final success = AccelerationManager.saxpy(
+      final success = Blas.saxpy(
         n: length,
         alpha: alpha.toDouble(),
         x: other.tensor.data as Float32List,
@@ -559,7 +557,7 @@ class Vector<T> {
         scalar is num &&
         tensor.strides[0] > 0 &&
         tensor.data is Float64List) {
-      final success = AccelerationManager.dscal(
+      final success = Blas.dscal(
         n: length,
         alpha: scalar.toDouble(),
         x: tensor.data as Float64List,
@@ -571,7 +569,7 @@ class Vector<T> {
         scalar is num &&
         tensor.strides[0] > 0 &&
         tensor.data is Float32List) {
-      final success = AccelerationManager.sscal(
+      final success = Blas.sscal(
         n: length,
         alpha: scalar.toDouble(),
         x: tensor.data as Float32List,

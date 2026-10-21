@@ -9,15 +9,17 @@ void main() {
   // 1. Fast Fourier Transform (FFT)
   stdout.writeln('1. Fast Fourier Transform (FFT)');
   const n = 8;
-  final signal = List<double>.generate(
-    n,
-    (i) => math.sin(2.0 * math.pi * 1.0 * i / n),
+  final signal = Float64ComplexList.fromList(
+    List<Complex>.generate(
+      n,
+      (i) => Complex(math.sin(2.0 * math.pi * 1.0 * i / n), 0.0),
+    ),
   );
-  stdout.writeln('   Time-domain signal: $signal');
-  final spectrum = rfft(signal);
-  stdout.writeln('   Frequency spectrum (rfft): $spectrum');
-  final reconstructed = irfft(spectrum, n);
-  stdout.writeln('   Reconstructed signal (irfft): $reconstructed\n');
+  stdout.writeln('   Time-domain signal: ${signal.toList()}');
+  fft(signal);
+  stdout.writeln('   Frequency spectrum: ${signal.toList()}');
+  fft(signal, inverse: true);
+  stdout.writeln('   Reconstructed signal: ${signal.toList()}\n');
 
   // 2. Numerical Integration
   stdout.writeln('2. Numerical Integration');
