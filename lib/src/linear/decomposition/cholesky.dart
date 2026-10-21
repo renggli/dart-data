@@ -1,6 +1,9 @@
 import 'dart:math' as math;
+import 'dart:typed_data';
 
 import '../../../type.dart';
+import '../../acceleration/blas/cblas_constants.dart';
+import '../../acceleration/lapack/lapack.dart';
 import '../matrix.dart';
 import '../vector.dart';
 
@@ -117,27 +120,37 @@ class CholeskyDecomposition<T> {
   }
 
   void _decomposeFloat64(Matrix<double> matrix, Matrix<double> l) {
-    for (var j = 0; j < _n; j++) {
-      var diag = 0.0;
-      for (var k = 0; k < j; k++) {
-        var sum = 0.0;
-        for (var i = 0; i < k; i++) {
-          sum += l.getUnchecked(k, i) * l.getUnchecked(j, i);
+    // Check symmetry
+    for (var i = 0; i < _n; i++) {
+      for (var j = i + 1; j < _n; j++) {
+        if (matrix.getUnchecked(i, j) != matrix.getUnchecked(j, i)) {
+          _isSymmetricPositiveDefinite = false;
+          return;
         }
-        sum = (matrix.getUnchecked(j, k) - sum) / l.getUnchecked(k, k);
-        l.setUnchecked(j, k, sum);
-        diag += sum * sum;
-        _isSymmetricPositiveDefinite =
-            _isSymmetricPositiveDefinite &&
-            (matrix.getUnchecked(k, j) == matrix.getUnchecked(j, k));
       }
-      diag = matrix.getUnchecked(j, j) - diag;
-      _isSymmetricPositiveDefinite =
-          _isSymmetricPositiveDefinite && (diag > 0.0);
-      l.setUnchecked(j, j, math.sqrt(math.max(diag, 0.0)));
-      for (var k = j + 1; k < _n; k++) {
-        l.setUnchecked(j, k, 0.0);
+    }
+
+    final aList = Float64List(_n * _n);
+    for (var i = 0; i < _n; i++) {
+      for (var j = 0; j < _n; j++) {
+        aList[i * _n + j] = matrix.getUnchecked(i, j);
       }
+    }
+
+    final success = Lapack.dpotrf(uplo: cblasLower, n: _n, a: aList, lda: _n);
+
+    if (success) {
+      _isSymmetricPositiveDefinite = true;
+      for (var i = 0; i < _n; i++) {
+        for (var j = 0; j <= i; j++) {
+          l.setUnchecked(i, j, aList[i * _n + j]);
+        }
+        for (var j = i + 1; j < _n; j++) {
+          l.setUnchecked(i, j, 0.0);
+        }
+      }
+    } else {
+      _isSymmetricPositiveDefinite = false;
     }
   }
 
