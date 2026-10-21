@@ -40,7 +40,7 @@ jobs:
       - name: "Build Web Applications"
         run: dart run build_runner build --release --output web:build/web
       - name: "Configure GitHub Pages"
-        uses: actions/configure-pages@v5
+        uses: actions/configure-pages@v6
         with:
           enablement: true
       - name: "Upload Pages Artifact"
