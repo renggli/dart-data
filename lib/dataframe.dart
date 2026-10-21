@@ -55,9 +55,9 @@ import 'src/dataframe/join.dart';
 import 'src/dataframe/json/json_orient.dart';
 import 'src/dataframe/series.dart';
 
+export 'src/dataframe/arrow/arrow_c_data.dart';
+export 'src/dataframe/arrow/arrow_ipc.dart';
 export 'src/dataframe/arrow_string_series.dart';
-export 'src/dataframe/arrowc/arrow_c_data.dart';
-export 'src/dataframe/arrowc/arrow_ipc.dart';
 export 'src/dataframe/bitmask.dart';
 export 'src/dataframe/csv/csv_reader.dart';
 export 'src/dataframe/csv/csv_stream.dart';

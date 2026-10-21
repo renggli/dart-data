@@ -119,12 +119,12 @@ final class ArrowArray extends ffi.Struct {
 }
 
 /// Exports a [DataFrame] to Apache Arrow C Data structures.
-void exportDataFrameToArrowC(
-  DataFrame df,
-  ffi.Pointer<ArrowArray> outArray,
-  ffi.Pointer<ArrowSchema> outSchema,
-) {
-  final columnCount = df.columnCount;
+void exportDataFrameToArrowC({
+  required DataFrame dataFrame,
+  required ffi.Pointer<ArrowArray> outArray,
+  required ffi.Pointer<ArrowSchema> outSchema,
+}) {
+  final columnCount = dataFrame.columnCount;
 
   // 1. Populate top-level ArrowSchema for Struct ("+s")
   outSchema.ref.format = '+s'.toNativeUtf8();
@@ -140,7 +140,7 @@ void exportDataFrameToArrowC(
   outSchema.ref.children = schemaChildren;
 
   // 2. Populate top-level ArrowArray for Struct
-  outArray.ref.length = df.rowCount;
+  outArray.ref.length = dataFrame.rowCount;
   outArray.ref.null_count = 0;
   outArray.ref.offset = 0;
   outArray.ref.n_buffers = 1;
@@ -157,20 +157,24 @@ void exportDataFrameToArrowC(
 
   // 3. Export each child column
   for (var i = 0; i < columnCount; i++) {
-    final col = df.columns[i];
+    final col = dataFrame.columns[i];
     final childSchema = calloc<ArrowSchema>();
     final childArray = calloc<ArrowArray>();
     schemaChildren[i] = childSchema;
     arrayChildren[i] = childArray;
-    exportSeriesToArrowC(col, childArray, childSchema);
+    exportSeriesToArrowC(
+      series: col,
+      outArray: childArray,
+      outSchema: childSchema,
+    );
   }
 }
 
 /// Imports a [DataFrame] from Apache Arrow C Data structures.
-DataFrame importDataFrameFromArrowC(
-  ffi.Pointer<ArrowArray> array,
-  ffi.Pointer<ArrowSchema> schema,
-) {
+DataFrame importDataFrameFromArrowC({
+  required ffi.Pointer<ArrowArray> array,
+  required ffi.Pointer<ArrowSchema> schema,
+}) {
   if (array.ref.release == ffi.nullptr) {
     throw StateError('Cannot import from already-released ArrowArray.');
   }
@@ -191,18 +195,18 @@ DataFrame importDataFrameFromArrowC(
   for (var i = 0; i < columnCount; i++) {
     final childSchema = schema.ref.children[i];
     final childArray = array.ref.children[i];
-    columns.add(importSeriesFromArrowC(childArray, childSchema));
+    columns.add(importSeriesFromArrowC(array: childArray, schema: childSchema));
   }
 
   return DataFrame(columns);
 }
 
 /// Exports a single [Series] to Apache Arrow C Data structures.
-void exportSeriesToArrowC(
-  Series<Object?> series,
-  ffi.Pointer<ArrowArray> outArray,
-  ffi.Pointer<ArrowSchema> outSchema,
-) {
+void exportSeriesToArrowC({
+  required Series<Object?> series,
+  required ffi.Pointer<ArrowArray> outArray,
+  required ffi.Pointer<ArrowSchema> outSchema,
+}) {
   final formatCode = _getFormatCode(series);
   final isNullable = series.hasNulls;
 
@@ -295,10 +299,10 @@ void exportSeriesToArrowC(
 }
 
 /// Imports a single [Series] from Apache Arrow C Data structures.
-Series<Object?> importSeriesFromArrowC(
-  ffi.Pointer<ArrowArray> array,
-  ffi.Pointer<ArrowSchema> schema,
-) {
+Series<Object?> importSeriesFromArrowC({
+  required ffi.Pointer<ArrowArray> array,
+  required ffi.Pointer<ArrowSchema> schema,
+}) {
   if (array.ref.release == ffi.nullptr) {
     throw StateError('Cannot import from already-released ArrowArray.');
   }
@@ -457,19 +461,27 @@ Series<Object?> importSeriesFromArrowC(
 /// Extension methods for exporting a [DataFrame] to Arrow C Data.
 extension ArrowCDataFrameExtension on DataFrame {
   /// Exports this DataFrame into provided [outArray] and [outSchema] structs.
-  void exportToArrowC(
-    ffi.Pointer<ArrowArray> outArray,
-    ffi.Pointer<ArrowSchema> outSchema,
-  ) => exportDataFrameToArrowC(this, outArray, outSchema);
+  void exportToArrowC({
+    required ffi.Pointer<ArrowArray> outArray,
+    required ffi.Pointer<ArrowSchema> outSchema,
+  }) => exportDataFrameToArrowC(
+    dataFrame: this,
+    outArray: outArray,
+    outSchema: outSchema,
+  );
 }
 
 /// Extension methods for exporting a [Series] to Arrow C Data.
 extension ArrowCSeriesExtension on Series<Object?> {
   /// Exports this Series into provided [outArray] and [outSchema] structs.
-  void exportToArrowC(
-    ffi.Pointer<ArrowArray> outArray,
-    ffi.Pointer<ArrowSchema> outSchema,
-  ) => exportSeriesToArrowC(this, outArray, outSchema);
+  void exportToArrowC({
+    required ffi.Pointer<ArrowArray> outArray,
+    required ffi.Pointer<ArrowSchema> outSchema,
+  }) => exportSeriesToArrowC(
+    series: this,
+    outArray: outArray,
+    outSchema: outSchema,
+  );
 }
 
 String _getFormatCode(Series<Object?> series) {

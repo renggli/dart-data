@@ -4,7 +4,7 @@ import 'dart:typed_data';
 import '../../type.dart';
 import '../linear/matrix.dart';
 import '../tensor/tensor.dart';
-import 'arrowc/arrow_ipc.dart';
+import 'arrow/arrow_ipc.dart';
 import 'csv/csv_reader.dart';
 import 'csv/csv_writer.dart';
 import 'groupby.dart';

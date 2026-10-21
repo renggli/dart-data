@@ -17,7 +17,7 @@ import 'package:data/dataframe.dart'
         exportSeriesToArrowC,
         importDataFrameFromArrowC,
         importSeriesFromArrowC;
-import 'package:data/src/dataframe/arrowc/arrow_c_data_ffi.dart';
+import 'package:data/src/dataframe/arrow/arrow_c_data_ffi.dart';
 import 'package:data/type.dart';
 import 'package:ffi/ffi.dart';
 import 'package:test/test.dart';
@@ -41,7 +41,7 @@ void main() {
       final outSchema = calloc<ArrowSchema>();
 
       try {
-        df.exportToArrowC(outArray, outSchema);
+        df.exportToArrowC(outArray: outArray, outSchema: outSchema);
 
         check(outSchema.ref.format.toDartString()).equals('+s');
         check(outSchema.ref.n_children).equals(4);
@@ -66,7 +66,10 @@ void main() {
         check(outSchema.ref.children[3].ref.format.toDartString()).equals('b');
 
         // Import back to DataFrame
-        final importedDf = importDataFrameFromArrowC(outArray, outSchema);
+        final importedDf = importDataFrameFromArrowC(
+          array: outArray,
+          schema: outSchema,
+        );
 
         check(importedDf.rowCount).equals(3);
         check(importedDf.columnCount).equals(4);
@@ -109,13 +112,16 @@ void main() {
       final outSchema = calloc<ArrowSchema>();
 
       try {
-        series.exportToArrowC(outArray, outSchema);
+        series.exportToArrowC(outArray: outArray, outSchema: outSchema);
 
         check(outSchema.ref.format.toDartString()).equals('u');
         check(outArray.ref.length).equals(4);
         check(outArray.ref.null_count).equals(1);
 
-        final imported = importSeriesFromArrowC(outArray, outSchema);
+        final imported = importSeriesFromArrowC(
+          array: outArray,
+          schema: outSchema,
+        );
         check(imported.name).equals('languages');
         check(imported.length).equals(4);
         check(imported.nullCount).equals(1);
@@ -139,7 +145,7 @@ void main() {
       final outSchema = calloc<ArrowSchema>();
 
       final series = Series<int>.fromList('nums', [1, 2, 3]);
-      series.exportToArrowC(outArray, outSchema);
+      series.exportToArrowC(outArray: outArray, outSchema: outSchema);
 
       // Release
       outSchema.ref.release
@@ -148,10 +154,10 @@ void main() {
         outArray,
       );
 
-      check(() => importSeriesFromArrowC(outArray, outSchema))
+      check(() => importSeriesFromArrowC(array: outArray, schema: outSchema))
           .throws<StateError>();
 
-      check(() => importDataFrameFromArrowC(outArray, outSchema))
+      check(() => importDataFrameFromArrowC(array: outArray, schema: outSchema))
           .throws<StateError>();
 
       calloc.free(outSchema);
@@ -186,9 +192,12 @@ void main() {
         final outArray = calloc<ArrowArray>();
         final outSchema = calloc<ArrowSchema>();
         try {
-          series.exportToArrowC(outArray, outSchema);
+          series.exportToArrowC(outArray: outArray, outSchema: outSchema);
           check(outSchema.ref.format.toDartString()).equals(expectedFormat);
-          final imported = importSeriesFromArrowC(outArray, outSchema);
+          final imported = importSeriesFromArrowC(
+            array: outArray,
+            schema: outSchema,
+          );
           check(imported.length).equals(series.length);
           if (series.dataType == DataType.float32) {
             check(imported[0] as double).isCloseTo(1.5, 1e-5);
