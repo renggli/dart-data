@@ -223,14 +223,14 @@ class ArrowStringSeries extends Series<String> {
   }
 
   @override
-  Series<String> sort({bool ascending = true}) {
+  Series<String> sort({bool ascending = true, bool nullsLast = true}) {
     final indices = List<int>.generate(length, (i) => i);
     indices.sort((a, b) {
       final aNull = isNull(a);
       final bNull = isNull(b);
       if (aNull && bNull) return 0;
-      if (aNull) return 1;
-      if (bNull) return -1;
+      if (aNull) return nullsLast ? 1 : -1;
+      if (bNull) return nullsLast ? -1 : 1;
       final strA = this[a]!;
       final strB = this[b]!;
       final cmp = strA.compareTo(strB);

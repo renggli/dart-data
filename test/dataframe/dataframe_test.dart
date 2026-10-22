@@ -66,8 +66,15 @@ void main() {
 
       final sorted = series.sort(ascending: false);
       check(sorted.toList().first).equals(40.0);
+      check(sorted.toList().last).isNull();
       final sortedAsc = series.sort(ascending: true);
       check(sortedAsc.toList().first).equals(10.0);
+      check(sortedAsc.toList().last).isNull();
+      final sortedAscNullsFirst = series.sort(
+        ascending: true,
+        nullsLast: false,
+      );
+      check(sortedAscNullsFirst.toList().first).isNull();
 
       final renamed = series.rename('temperature');
       check(renamed.name).equals('temperature');
@@ -102,6 +109,13 @@ void main() {
       check(strSliced.length).equals(2);
       final strSorted = strCol.sort(ascending: true);
       check(strSorted[0]).equals('Alice');
+      check(strSorted[3]).isNull();
+      final strSortedNullsFirst = strCol.sort(
+        ascending: true,
+        nullsLast: false,
+      );
+      check(strSortedNullsFirst[0]).isNull();
+      check(strSortedNullsFirst[1]).equals('Alice');
       final strRenamed = strCol.rename('full_names');
       check(strRenamed.name).equals('full_names');
 
@@ -120,6 +134,12 @@ void main() {
       check(boolSliced.length).equals(2);
       final boolSorted = boolCol.sort(ascending: true);
       check(boolSorted[0]).equals(false);
+      check(boolSorted[3]).isNull();
+      final boolSortedNullsFirst = boolCol.sort(
+        ascending: true,
+        nullsLast: false,
+      );
+      check(boolSortedNullsFirst[0]).isNull();
       final boolRenamed = boolCol.rename('is_active');
       check(boolRenamed.name).equals('is_active');
     });
@@ -141,6 +161,13 @@ void main() {
       check(objFiltered.length).equals(2);
       final objSliced = objSeries.slice(0, 2);
       check(objSliced.length).equals(2);
+      final objSorted = objSeries.sort(ascending: true);
+      check(objSorted[2]).isNull();
+      final objSortedNullsFirst = objSeries.sort(
+        ascending: true,
+        nullsLast: false,
+      );
+      check(objSortedNullsFirst[0]).isNull();
       final objRenamed = objSeries.rename('dates');
       check(objRenamed.name).equals('dates');
 
@@ -241,6 +268,41 @@ void main() {
       final sortedDesc = df.sortBy('val', ascending: false);
       check(sortedDesc['val'].toList().first).equals(60);
 
+      // Null handling in sortBy
+      final nullDf = DataFrame.fromColumns({
+        'x': [2, null, 1, null, 3],
+        'y': ['b', 'null1', 'a', 'null2', 'c'],
+      });
+      final sortAscNullsLast = nullDf.sortBy(
+        'x',
+        ascending: true,
+        nullsLast: true,
+      );
+      check(sortAscNullsLast['x'].toList()).deepEquals([1, 2, 3, null, null]);
+      check(sortAscNullsLast['y'].toList())
+          .deepEquals(['a', 'b', 'c', 'null1', 'null2']);
+
+      final sortAscNullsFirst = nullDf.sortBy(
+        'x',
+        ascending: true,
+        nullsLast: false,
+      );
+      check(sortAscNullsFirst['x'].toList()).deepEquals([null, null, 1, 2, 3]);
+
+      final sortDescNullsLast = nullDf.sortBy(
+        'x',
+        ascending: false,
+        nullsLast: true,
+      );
+      check(sortDescNullsLast['x'].toList()).deepEquals([3, 2, 1, null, null]);
+
+      final sortDescNullsFirst = nullDf.sortBy(
+        'x',
+        ascending: false,
+        nullsLast: false,
+      );
+      check(sortDescNullsFirst['x'].toList()).deepEquals([null, null, 3, 2, 1]);
+
       final head2 = sorted.head(2);
       check(head2.rowCount).equals(2);
       check(head2['val'].toList()).deepEquals([10, 20]);
@@ -287,15 +349,43 @@ void main() {
           'd': [1.5, null, 3.5],
           's': ['a', 'b', 'c'],
         });
-        final mixedTensor = mixedDf.toTensor();
-        check(mixedTensor.shape).deepEquals([3, 3]);
+        // Non-numeric column 's' triggers UnsupportedError
+        check(mixedDf.toTensor).throws<UnsupportedError>();
+        check(mixedDf.toMatrix).throws<UnsupportedError>();
+        check(() => mixedDf.toTensor(columns: ['s']))
+            .throws<UnsupportedError>();
+
+        // Selected numeric columns map nulls to double.nan by default
+        final mixedTensor = mixedDf.toTensor(columns: ['i', 'd']);
+        check(mixedTensor.shape).deepEquals([3, 2]);
         check(mixedTensor.getValue([0, 0])).equals(10.0);
         check(mixedTensor.getValue([1, 0])).equals(20.0);
-        check(mixedTensor.getValue([2, 0])).equals(0.0); // null -> 0.0
+        check(mixedTensor.getValue([2, 0]).isNaN).isTrue();
         check(mixedTensor.getValue([0, 1])).equals(1.5);
-        check(mixedTensor.getValue([1, 1])).equals(0.0); // null -> 0.0
+        check(mixedTensor.getValue([1, 1]).isNaN).isTrue();
         check(mixedTensor.getValue([2, 1])).equals(3.5);
-        check(mixedTensor.getValue([0, 2])).equals(0.0); // string -> 0.0
+
+        // Custom nullValue
+        final customNullTensor = mixedDf.toTensor(
+          columns: ['i', 'd'],
+          nullValue: -1.0,
+        );
+        check(customNullTensor.getValue([2, 0])).equals(-1.0);
+        check(customNullTensor.getValue([1, 1])).equals(-1.0);
+
+        final customNullMatrix = mixedDf.toMatrix(
+          columns: ['i', 'd'],
+          nullValue: 99.0,
+        );
+        check(customNullMatrix.get(2, 0)).equals(99.0);
+        check(customNullMatrix.get(1, 1)).equals(99.0);
+
+        // Non-numeric BoolSeries triggers UnsupportedError
+        final boolDf = DataFrame.fromColumns({
+          'b': [true, false, true],
+        });
+        check(boolDf.toTensor).throws<UnsupportedError>();
+        check(boolDf.toMatrix).throws<UnsupportedError>();
 
         // Float64 target data type with TypedSeries<double> (allDoubleNonNull bulk paths)
         final doubleDf = DataFrame([

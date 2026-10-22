@@ -212,14 +212,23 @@ class DataFrame {
       slice(math.max(0, rowCount - count), rowCount);
 
   /// Sorts rows by the values in [columnName].
-  DataFrame sortBy(String columnName, {bool ascending = true}) {
+  ///
+  /// The [ascending] flag specifies whether to sort in ascending or descending
+  /// order. The [nullsLast] flag controls whether `null` values appear at the
+  /// end of the sorted rows (when `true`, default) or at the beginning.
+  DataFrame sortBy(
+    String columnName, {
+    bool ascending = true,
+    bool nullsLast = true,
+  }) {
     final col = column(columnName);
     final indices = List<int>.generate(rowCount, (i) => i);
     indices.sort((a, b) {
       final valA = col[a];
       final valB = col[b];
       if (valA == null && valB == null) return 0;
-      if (valA == null) return 1;
+      if (valA == null) return nullsLast ? 1 : -1;
+      if (valB == null) return nullsLast ? -1 : 1;
       final int cmp;
       if (valA is bool && valB is bool) {
         cmp = (valA ? 1 : 0).compareTo(valB ? 1 : 0);
@@ -240,16 +249,38 @@ class DataFrame {
   }
 
   /// Converts selected numeric columns into a 2D [Matrix].
-  Matrix<double> toMatrix({List<String>? columns, DataType<double>? type}) {
-    final tensor = toTensor(columns: columns, type: type);
+  ///
+  /// Throws [UnsupportedError] if any selected column is non-numeric.
+  /// Missing values are mapped to [nullValue] (defaults to [double.nan]).
+  Matrix<double> toMatrix({
+    List<String>? columns,
+    DataType<double>? type,
+    double nullValue = double.nan,
+  }) {
+    final tensor = toTensor(columns: columns, type: type, nullValue: nullValue);
     return Matrix(tensor);
   }
 
   /// Converts selected numeric columns into a rank-2 [Tensor].
-  Tensor<double> toTensor({List<String>? columns, DataType<double>? type}) {
+  ///
+  /// Throws [UnsupportedError] if any selected column is non-numeric.
+  /// Missing values are mapped to [nullValue] (defaults to [double.nan]).
+  Tensor<double> toTensor({
+    List<String>? columns,
+    DataType<double>? type,
+    double nullValue = double.nan,
+  }) {
     final targetCols = columns != null
         ? columns.map(column).toList()
         : _columns;
+    for (final col in targetCols) {
+      if (!col.dataType.isNumeric && col is! Series<num>) {
+        throw UnsupportedError(
+          'Cannot convert non-numeric column "${col.name}" of type '
+          '${col.dataType} to numeric tensor.',
+        );
+      }
+    }
     final effType = type ?? DataType.float64;
     final rows = rowCount;
     final cols = targetCols.length;
@@ -300,15 +331,21 @@ class DataFrame {
         final colData = col.data;
         for (var i = 0; i < rows; i++) {
           tensorData[colOffset + i * rowStride] = col.isNull(i)
-              ? 0.0
+              ? nullValue
               : colData[i].toDouble();
         }
       } else {
         for (var i = 0; i < rows; i++) {
           final val = col[i];
-          tensorData[colOffset + i * rowStride] = val is num
-              ? val.toDouble()
-              : 0.0;
+          if (val == null) {
+            tensorData[colOffset + i * rowStride] = nullValue;
+          } else if (val is num) {
+            tensorData[colOffset + i * rowStride] = val.toDouble();
+          } else {
+            throw UnsupportedError(
+              'Cannot convert non-numeric value "$val" in column "${col.name}" to double.',
+            );
+          }
         }
       }
     }

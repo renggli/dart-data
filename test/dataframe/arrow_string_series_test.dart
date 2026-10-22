@@ -110,8 +110,18 @@ void main() {
       final sortedAsc = series.sort() as ArrowStringSeries;
       check(sortedAsc.toList()).deepEquals(['apple', 'mango', 'zebra', null]);
 
+      final sortedAscNullsFirst =
+          series.sort(ascending: true, nullsLast: false) as ArrowStringSeries;
+      check(sortedAscNullsFirst.toList())
+          .deepEquals([null, 'apple', 'mango', 'zebra']);
+
       final sortedDesc = series.sort(ascending: false) as ArrowStringSeries;
       check(sortedDesc.toList()).deepEquals(['zebra', 'mango', 'apple', null]);
+
+      final sortedDescNullsFirst =
+          series.sort(ascending: false, nullsLast: false) as ArrowStringSeries;
+      check(sortedDescNullsFirst.toList())
+          .deepEquals([null, 'zebra', 'mango', 'apple']);
     });
 
     test('aggregations min, max, sum, mean', () {

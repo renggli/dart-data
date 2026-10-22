@@ -75,7 +75,7 @@ abstract class Series<T> {
   Series<T> slice(int start, int end);
 
   /// Sorts this series.
-  Series<T> sort({bool ascending = true});
+  Series<T> sort({bool ascending = true, bool nullsLast = true});
 
   /// Returns a copy of this series with a new [name].
   Series<T> rename(String newName);
@@ -333,14 +333,14 @@ class TypedSeries<T extends num> extends Series<T> {
   }
 
   @override
-  Series<T> sort({bool ascending = true}) {
+  Series<T> sort({bool ascending = true, bool nullsLast = true}) {
     final indices = List<int>.generate(length, (i) => i);
     indices.sort((a, b) {
       final aNull = isNull(a);
       final bNull = isNull(b);
       if (aNull && bNull) return 0;
-      if (aNull) return 1;
-      if (bNull) return -1;
+      if (aNull) return nullsLast ? 1 : -1;
+      if (bNull) return nullsLast ? -1 : 1;
       final cmp = data[a].compareTo(data[b]);
       return ascending ? cmp : -cmp;
     });
@@ -485,14 +485,14 @@ class BoolSeries extends Series<bool> {
   }
 
   @override
-  Series<bool> sort({bool ascending = true}) {
+  Series<bool> sort({bool ascending = true, bool nullsLast = true}) {
     final indices = List<int>.generate(length, (i) => i);
     indices.sort((a, b) {
       final aNull = isNull(a);
       final bNull = isNull(b);
       if (aNull && bNull) return 0;
-      if (aNull) return 1;
-      if (bNull) return -1;
+      if (aNull) return nullsLast ? 1 : -1;
+      if (bNull) return nullsLast ? -1 : 1;
       final cmp = (data[a] ? 1 : 0).compareTo(data[b] ? 1 : 0);
       return ascending ? cmp : -cmp;
     });
@@ -613,15 +613,33 @@ class ObjectSeries<T> extends Series<T> {
   }
 
   @override
-  Series<T> sort({bool ascending = true}) {
+  Series<T> sort({bool ascending = true, bool nullsLast = true}) {
     final indices = List<int>.generate(length, (i) => i);
-    final cmp = dataType.comparator;
+    var supportsDataTypeCmp = true;
+    for (var i = 0; i < length; i++) {
+      if (!isNull(i)) {
+        try {
+          dataType.comparator(data[i], data[i]);
+        } on UnsupportedError {
+          supportsDataTypeCmp = false;
+        }
+        break;
+      }
+    }
+    final cmp = supportsDataTypeCmp
+        ? dataType.comparator
+        : (T a, T b) {
+            if (a is Comparable) {
+              return (a as Comparable).compareTo(b);
+            }
+            return '$a'.compareTo('$b');
+          };
     indices.sort((a, b) {
       final aNull = isNull(a);
       final bNull = isNull(b);
       if (aNull && bNull) return 0;
-      if (aNull) return 1;
-      if (bNull) return -1;
+      if (aNull) return nullsLast ? 1 : -1;
+      if (bNull) return nullsLast ? -1 : 1;
       final comparison = cmp(data[a], data[b]);
       return ascending ? comparison : -comparison;
     });
