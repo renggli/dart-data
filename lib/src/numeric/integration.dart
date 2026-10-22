@@ -194,46 +194,53 @@ double _integratePoles(
     );
   }
 
-  bool isSingular(double p) {
-    try {
-      final v = function(p);
-      return v.isNaN || v.isInfinite;
-    } catch (_) {
-      return true;
+  // Filter and merge close poles (< 1e-6)
+  final mergedPoles = <double>[normalized.first];
+  for (var i = 1; i < normalized.length; i++) {
+    if ((normalized[i] - mergedPoles.last).abs() >= 1e-6) {
+      mergedPoles.add(normalized[i]);
     }
   }
 
-  final poleBuffer = tolerance > 1e-6 ? 1e-6 : tolerance;
-  final intervals = <({double lo, double hi})>[];
-  for (final pole in normalized) {
-    if (isSingular(pole)) {
-      intervals.add((lo: pole - poleBuffer, hi: pole + poleBuffer));
-    } else {
-      intervals.add((lo: pole, hi: pole));
-    }
-  }
+  // Partition [a, b] into segments with endpoints in sortedPts
+  final sortedPts = <double>{a, ...mergedPoles, b}.toList()..sort();
+  final poleSet = mergedPoles.toSet();
 
-  final mergedIntervals = <({double lo, double hi})>[];
-  var current = intervals[0];
-  for (var i = 1; i < intervals.length; i++) {
-    final next = intervals[i];
-    if (next.lo <= current.hi) {
-      current = (lo: current.lo, hi: math.max(current.hi, next.hi));
-    } else {
-      mergedIntervals.add(current);
-      current = next;
-    }
-  }
-  mergedIntervals.add(current);
+  double integrateSubinterval(double u, double v) {
+    if ((v - u).abs() <= 1e-15) return 0.0;
+    final uIsPole = poleSet.any((p) => (p - u).abs() < 1e-9);
+    final vIsPole = poleSet.any((p) => (p - v).abs() < 1e-9);
 
-  var last = a;
-  var result = 0.0;
-  for (final interval in mergedIntervals) {
-    if (last < interval.lo) {
-      result += integrate(
-        function,
-        last,
-        interval.lo,
+    if (uIsPole && vIsPole) {
+      final m = 0.5 * (u + v);
+      return integrateSubinterval(u, m) + integrateSubinterval(m, v);
+    }
+
+    if (uIsPole) {
+      final length = v - u;
+      final limit = math.sqrt(length);
+      double transformed(double t) {
+        if (t == 0.0) {
+          const eps = 1e-12;
+          try {
+            final fx = function(u + eps * eps);
+            if (!fx.isNaN && !fx.isInfinite) return 2.0 * eps * fx;
+          } catch (_) {}
+          return 0.0;
+        }
+        try {
+          final fx = function(u + t * t);
+          if (fx.isNaN || fx.isInfinite) return 0.0;
+          return 2.0 * t * fx;
+        } catch (_) {
+          return 0.0;
+        }
+      }
+
+      return integrate(
+        transformed,
+        0.0,
+        limit,
         method: method,
         tolerance: tolerance,
         maxDepth: maxDepth,
@@ -241,13 +248,44 @@ double _integratePoles(
         onWarning: onWarning,
       );
     }
-    last = math.max(last, interval.hi);
-  }
-  if (last < b) {
-    result += integrate(
+
+    if (vIsPole) {
+      final length = v - u;
+      final limit = math.sqrt(length);
+      double transformed(double t) {
+        if (t == 0.0) {
+          const eps = 1e-12;
+          try {
+            final fx = function(v - eps * eps);
+            if (!fx.isNaN && !fx.isInfinite) return 2.0 * eps * fx;
+          } catch (_) {}
+          return 0.0;
+        }
+        try {
+          final fx = function(v - t * t);
+          if (fx.isNaN || fx.isInfinite) return 0.0;
+          return 2.0 * t * fx;
+        } catch (_) {
+          return 0.0;
+        }
+      }
+
+      return integrate(
+        transformed,
+        0.0,
+        limit,
+        method: method,
+        tolerance: tolerance,
+        maxDepth: maxDepth,
+        poles: const [],
+        onWarning: onWarning,
+      );
+    }
+
+    return integrate(
       function,
-      last,
-      b,
+      u,
+      v,
       method: method,
       tolerance: tolerance,
       maxDepth: maxDepth,
@@ -255,7 +293,12 @@ double _integratePoles(
       onWarning: onWarning,
     );
   }
-  return result;
+
+  var total = 0.0;
+  for (var i = 0; i < sortedPts.length - 1; i++) {
+    total += integrateSubinterval(sortedPts[i], sortedPts[i + 1]);
+  }
+  return total;
 }
 
 double _adaptiveSimpsonStep(
@@ -290,7 +333,8 @@ double _adaptiveSimpsonStep(
     return sum;
   }
 
-  if (delta.abs() <= 15.0 * tol) {
+  final threshold = math.max(15.0 * tol, 1e-10 * sum.abs());
+  if (delta.abs() <= threshold) {
     return sum + delta / 15.0;
   }
 
@@ -405,7 +449,8 @@ double _gaussKronrodStep(
     return kronrodResult;
   }
 
-  if (error <= tol) {
+  final threshold = math.max(tol, 1e-10 * kronrodResult.abs());
+  if (error <= threshold) {
     return kronrodResult;
   }
 

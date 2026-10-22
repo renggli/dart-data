@@ -98,5 +98,22 @@ void main() {
         () => solveSystem(eq, Vector.fromList([0.0, 0.0]), maxIterations: 1),
       ).throws<StateError>();
     });
+
+    test('throws StateError when equation evaluation returns NaN', () {
+      final eq = <double Function(Vector<double>)>[
+        (v) => double.nan,
+        (v) => v[1] - 1.0,
+      ];
+      check(() => solveSystem(eq, Vector.fromList([0.0, 0.0])))
+          .throws<StateError>();
+    });
+
+    test('validates tolerance and maxIterations arguments', () {
+      final eq = <double Function(Vector<double>)>[(v) => v[0]];
+      check(() => solveSystem(eq, Vector.fromList([0.0]), tolerance: 0.0))
+          .throws<ArgumentError>();
+      check(() => solveSystem(eq, Vector.fromList([0.0]), maxIterations: 0))
+          .throws<ArgumentError>();
+    });
   });
 }

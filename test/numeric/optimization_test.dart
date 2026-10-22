@@ -392,5 +392,59 @@ void main() {
       // Missing initialPoint and interval
       check(() => minimize((v) => 0.0)).throws<ArgumentError>();
     });
+
+    test('Convergence flags on iteration exhaustion', () {
+      double function(Vector<double> v) => (v[0] - 5.0) * (v[0] - 5.0);
+
+      final brentRes = minimize(
+        function,
+        a: 0.0,
+        b: 10.0,
+        method: OptimizationMethod.brent,
+        maxIterations: 1,
+      );
+      check(brentRes.converged).isFalse();
+
+      final nmRes = minimize(
+        function,
+        initialPoint: Vector<double>.fromList([0.0], type: DataType.float64),
+        method: OptimizationMethod.nelderMead,
+        maxIterations: 1,
+      );
+      check(nmRes.converged).isFalse();
+    });
+
+    test('Bound-constrained optimization with Nelder-Mead and L-BFGS', () {
+      // f(x, y) = (x - 2)^2 + (y - 3)^2, with bounds x in [0, 1], y in [0, 1]
+      // Minimum inside bounds should be at (1, 1)
+      double fn(Vector<double> v) =>
+          (v[0] - 2.0) * (v[0] - 2.0) + (v[1] - 3.0) * (v[1] - 3.0);
+
+      final start = Vector<double>.fromList([0.0, 0.0], type: DataType.float64);
+      const bounds = [
+        BoxBound(lower: 0.0, upper: 1.0),
+        BoxBound(lower: 0.0, upper: 1.0),
+      ];
+
+      final nmRes = minimize(
+        fn,
+        initialPoint: start,
+        bounds: bounds,
+        method: OptimizationMethod.nelderMead,
+        maxIterations: 500,
+      );
+      check(nmRes.point[0]).isCloseTo(1.0, 0.05);
+      check(nmRes.point[1]).isCloseTo(1.0, 0.05);
+
+      final lbfgsRes = minimize(
+        fn,
+        initialPoint: start,
+        bounds: bounds,
+        method: OptimizationMethod.lbfgs,
+        maxIterations: 500,
+      );
+      check(lbfgsRes.point[0]).isCloseTo(1.0, 1e-4);
+      check(lbfgsRes.point[1]).isCloseTo(1.0, 1e-4);
+    });
   });
 }

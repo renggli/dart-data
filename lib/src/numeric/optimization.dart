@@ -102,7 +102,7 @@ OptimizationResult minimize(
       point: Vector<double>.fromList([res.point], type: DataType.float64),
       value: res.value,
       iterations: res.iterations,
-      converged: true,
+      converged: res.converged,
     );
   }
 
@@ -114,6 +114,9 @@ OptimizationResult minimize(
       bounds: bnds,
       inequalities: inequalities,
       equalities: equalities,
+      method: resolvedMethod,
+      step: step,
+      memorySize: memorySize,
       tolerance: tolerance,
       maxIterations: maxIterations,
     );
@@ -139,7 +142,7 @@ OptimizationResult minimize(
         point: res.point,
         value: res.value,
         iterations: res.iterations,
-        converged: true,
+        converged: res.converged,
       );
     case OptimizationMethod.bfgs:
       final res = bfgs(

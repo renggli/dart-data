@@ -171,5 +171,25 @@ void main() {
       final extRes = integrate((x) => x, 0.0, 1.0, poles: [5.0, -2.0]);
       check(extRes).isCloseTo(0.5, 1e-8);
     });
+
+    test('algebraic pole transformation converges accurately', () {
+      // \int_{-1}^1 1 / sqrt(|x|) dx = 2 * [2 * sqrt(x)]_0^1 = 4.0
+      double invSqrt(double x) {
+        if (x == 0.0) return double.infinity;
+        return 1.0 / math.sqrt(x.abs());
+      }
+
+      final resGK = integrate(invSqrt, -1.0, 1.0, poles: [0.0]);
+      check(resGK).isCloseTo(4.0, 1e-8);
+
+      final resSimp = integrate(
+        invSqrt,
+        -1.0,
+        1.0,
+        poles: [0.0],
+        method: IntegrationMethod.simpson,
+      );
+      check(resSimp).isCloseTo(4.0, 1e-4);
+    });
   });
 }

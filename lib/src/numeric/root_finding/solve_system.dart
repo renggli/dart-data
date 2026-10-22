@@ -31,12 +31,28 @@ Vector<double> solveSystem(
       'Number of equations (${equations.length}) must match dimension of initialGuess ($n).',
     );
   }
+  if (tolerance <= 0) {
+    throw ArgumentError.value(
+      tolerance,
+      'tolerance',
+      'Tolerance must be positive.',
+    );
+  }
+  if (maxIterations <= 0) {
+    throw ArgumentError.value(
+      maxIterations,
+      'maxIterations',
+      'Max iterations must be positive.',
+    );
+  }
   final x = initialGuess.copy();
   for (var iter = 0; iter < maxIterations; iter++) {
     final residual = Vector<double>.generate(n, (i) => equations[i](x));
     var maxRes = 0.0;
     for (var i = 0; i < n; i++) {
-      final r = residual[i].abs();
+      final val = residual[i];
+      if (val.isNaN) throw StateError('Function evaluation returned NaN');
+      final r = val.abs();
       if (r > maxRes) maxRes = r;
     }
     if (maxRes <= tolerance) {
@@ -69,7 +85,9 @@ Vector<double> solveSystem(
   final finalResidual = Vector<double>.generate(n, (i) => equations[i](x));
   var maxRes = 0.0;
   for (var i = 0; i < n; i++) {
-    final r = finalResidual[i].abs();
+    final val = finalResidual[i];
+    if (val.isNaN) throw StateError('Function evaluation returned NaN');
+    final r = val.abs();
     if (r > maxRes) maxRes = r;
   }
   if (maxRes <= tolerance) {

@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import '../../../linear.dart';
 import '../../../type.dart';
 import '../calculus/gradient.dart' as calculus;
+import 'nelder_mead.dart';
 import 'optimization_types.dart';
 import 'quasi_newton.dart';
 
@@ -22,6 +23,9 @@ minimizeConstrained(
   List<BoxBound>? bounds,
   List<double Function(Vector<double>)>? inequalities,
   List<double Function(Vector<double>)>? equalities,
+  OptimizationMethod method = OptimizationMethod.bfgs,
+  double step = 1.0,
+  int memorySize = 7,
   double tolerance = 1e-6,
   int maxIterations = 200,
 }) {
@@ -69,15 +73,51 @@ minimizeConstrained(
       return boxTransform.chainRuleGradient(gradX, y);
     }
 
-    final bfgsResult = bfgs(
-      transformedFn,
-      y0,
-      gradient: transformedGrad,
-      tolerance: tolerance,
-      maxIterations: maxIterations,
-    );
+    final Vector<double> endY;
+    final int iters;
+    final double gNorm;
+    final bool conv;
 
-    final xAtEnd = boxTransform.toX(bfgsResult.point);
+    if (method == OptimizationMethod.nelderMead) {
+      final nmRes = nelderMead(
+        transformedFn,
+        y0,
+        step: step,
+        tolerance: tolerance,
+        maxIterations: maxIterations,
+      );
+      endY = nmRes.point;
+      iters = nmRes.iterations;
+      gNorm = transformedGrad(nmRes.point).norm();
+      conv = nmRes.converged;
+    } else if (method == OptimizationMethod.lbfgs) {
+      final lbfgsRes = lbfgs(
+        transformedFn,
+        y0,
+        gradient: transformedGrad,
+        memorySize: memorySize,
+        tolerance: tolerance,
+        maxIterations: maxIterations,
+      );
+      endY = lbfgsRes.point;
+      iters = lbfgsRes.iterations;
+      gNorm = lbfgsRes.gradientNorm;
+      conv = lbfgsRes.gradientNorm <= tolerance;
+    } else {
+      final bfgsResult = bfgs(
+        transformedFn,
+        y0,
+        gradient: transformedGrad,
+        tolerance: tolerance,
+        maxIterations: maxIterations,
+      );
+      endY = bfgsResult.point;
+      iters = bfgsResult.iterations;
+      gNorm = bfgsResult.gradientNorm;
+      conv = bfgsResult.gradientNorm <= tolerance;
+    }
+
+    final xAtEnd = boxTransform.toX(endY);
     final gradAtEnd = baseGradFn(xAtEnd);
     final finalPoint = boxTransform.projectToFeasible(
       xAtEnd,
@@ -88,9 +128,9 @@ minimizeConstrained(
     return (
       point: finalPoint,
       value: finalVal,
-      gradientNorm: bfgsResult.gradientNorm,
-      iterations: bfgsResult.iterations,
-      converged: bfgsResult.gradientNorm <= tolerance,
+      gradientNorm: gNorm,
+      iterations: iters,
+      converged: conv,
     );
   }
 
@@ -155,13 +195,50 @@ minimizeConstrained(
     }
 
     final innerMax = math.max(10, remainingIterations);
-    final subResult = bfgs(
-      transformedAugmentedLagrangian,
-      currentY,
-      gradient: transformedAugmentedLagrangianGrad,
-      tolerance: math.max(tolerance * 0.1, 1e-8),
-      maxIterations: innerMax,
-    );
+    final ({Vector<double> point, int iterations, double gradientNorm})
+    subResult;
+    if (method == OptimizationMethod.nelderMead) {
+      final nmRes = nelderMead(
+        transformedAugmentedLagrangian,
+        currentY,
+        step: step,
+        tolerance: math.max(tolerance * 0.1, 1e-8),
+        maxIterations: innerMax,
+      );
+      final gNorm = transformedAugmentedLagrangianGrad(nmRes.point).norm();
+      subResult = (
+        point: nmRes.point,
+        iterations: nmRes.iterations,
+        gradientNorm: gNorm,
+      );
+    } else if (method == OptimizationMethod.lbfgs) {
+      final lbfgsRes = lbfgs(
+        transformedAugmentedLagrangian,
+        currentY,
+        gradient: transformedAugmentedLagrangianGrad,
+        memorySize: memorySize,
+        tolerance: math.max(tolerance * 0.1, 1e-8),
+        maxIterations: innerMax,
+      );
+      subResult = (
+        point: lbfgsRes.point,
+        iterations: lbfgsRes.iterations,
+        gradientNorm: lbfgsRes.gradientNorm,
+      );
+    } else {
+      final bfgsRes = bfgs(
+        transformedAugmentedLagrangian,
+        currentY,
+        gradient: transformedAugmentedLagrangianGrad,
+        tolerance: math.max(tolerance * 0.1, 1e-8),
+        maxIterations: innerMax,
+      );
+      subResult = (
+        point: bfgsRes.point,
+        iterations: bfgsRes.iterations,
+        gradientNorm: bfgsRes.gradientNorm,
+      );
+    }
 
     totalIterations += subResult.iterations;
     currentY = subResult.point;

@@ -4,7 +4,8 @@ import '../../../linear.dart';
 import '../../../type.dart';
 
 /// Derivative-free Nelder-Mead downhill simplex algorithm.
-({Vector<double> point, double value, int iterations}) nelderMead(
+({Vector<double> point, double value, int iterations, bool converged})
+nelderMead(
   double Function(Vector<double>) fn,
   Vector<double> initialPoint, {
   double step = 1.0,
@@ -57,6 +58,7 @@ import '../../../type.dart';
         point: simplex[bestIdx],
         value: values[bestIdx],
         iterations: iter,
+        converged: true,
       );
     }
 
@@ -127,5 +129,10 @@ import '../../../type.dart';
     dim + 1,
     (i) => i,
   ).reduce((a, b) => values[a] < values[b] ? a : b);
-  return (point: simplex[bestIdx], value: values[bestIdx], iterations: iter);
+  return (
+    point: simplex[bestIdx],
+    value: values[bestIdx],
+    iterations: iter,
+    converged: false,
+  );
 }

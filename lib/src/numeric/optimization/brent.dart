@@ -1,6 +1,6 @@
 /// 1D Brent minimization combining golden section search and parabolic
 /// interpolation.
-({double point, double value, int iterations}) brentMinimize(
+({double point, double value, int iterations, bool converged}) brentMinimize(
   double Function(double) fn, {
   required double a,
   required double b,
@@ -21,12 +21,14 @@
   var eStep = 0.0;
 
   var iter = 0;
+  var converged = false;
   for (; iter < maxIterations; iter++) {
     final xm = 0.5 * (xA + xB);
     final tol1 = 1e-10 * x.abs() + tolerance;
     final tol2 = 2.0 * tol1;
 
     if ((x - xm).abs() <= (tol2 - 0.5 * (xB - xA))) {
+      converged = true;
       break;
     }
 
@@ -95,5 +97,5 @@
     }
   }
 
-  return (point: x, value: fx, iterations: iter);
+  return (point: x, value: fx, iterations: iter, converged: converged);
 }

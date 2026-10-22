@@ -59,7 +59,56 @@ void main() {
         final tMid = sol.t[halfPiIdx];
         check(sol.y[halfPiIdx][0]).isCloseTo(math.sin(tMid), 1e-4);
         check(sol.y[halfPiIdx][1]).isCloseTo(math.cos(tMid), 1e-4);
+        check(sol.converged).isTrue();
       },
     );
+
+    test('validates non-positive arguments', () {
+      Vector<double> derivative(double time, Vector<double> y) => y;
+      final y0 = Vector<double>.fromList([1.0], type: DataType.float64);
+
+      check(
+        () =>
+            solveOde(f: derivative, t0: 0.0, tEnd: 1.0, y0: y0, stepSize: 0.0),
+      ).throws<ArgumentError>();
+      check(
+        () => solveOde(
+          f: derivative,
+          t0: 0.0,
+          tEnd: 1.0,
+          y0: y0,
+          initialStep: -0.1,
+        ),
+      ).throws<ArgumentError>();
+      check(
+        () => solveOde(f: derivative, t0: 0.0, tEnd: 1.0, y0: y0, maxSteps: 0),
+      ).throws<ArgumentError>();
+    });
+
+    test('convergence flag is false when maxSteps is exceeded', () {
+      Vector<double> derivative(double time, Vector<double> y) => y;
+      final y0 = Vector<double>.fromList([1.0], type: DataType.float64);
+
+      final rk4Sol = solveOde(
+        f: derivative,
+        t0: 0.0,
+        tEnd: 10.0,
+        y0: y0,
+        method: OdeMethod.rk4,
+        stepSize: 0.1,
+        maxSteps: 5,
+      );
+      check(rk4Sol.converged).isFalse();
+
+      final rk45Sol = solveOde(
+        f: derivative,
+        t0: 0.0,
+        tEnd: 10.0,
+        y0: y0,
+        method: OdeMethod.dormandPrince45,
+        maxSteps: 5,
+      );
+      check(rk45Sol.converged).isFalse();
+    });
   });
 }

@@ -34,9 +34,38 @@ OdeSolution solveOde({
   double maxStep = 1.0,
   int maxSteps = 100000,
 }) {
+  if (stepSize <= 0) {
+    throw ArgumentError.value(
+      stepSize,
+      'stepSize',
+      'Step size must be positive',
+    );
+  }
+  if (initialStep <= 0) {
+    throw ArgumentError.value(
+      initialStep,
+      'initialStep',
+      'Initial step must be positive',
+    );
+  }
+  if (maxSteps <= 0) {
+    throw ArgumentError.value(
+      maxSteps,
+      'maxSteps',
+      'Max steps must be positive',
+    );
+  }
+
   switch (method) {
     case OdeMethod.rk4:
-      return _rk4(f: f, t0: t0, tEnd: tEnd, y0: y0, stepSize: stepSize);
+      return _rk4(
+        f: f,
+        t0: t0,
+        tEnd: tEnd,
+        y0: y0,
+        stepSize: stepSize,
+        maxSteps: maxSteps,
+      );
     case OdeMethod.dormandPrince45:
       return _rk45(
         f: f,
@@ -59,6 +88,7 @@ OdeSolution _rk4({
   required double tEnd,
   required Vector<double> y0,
   double stepSize = 0.01,
+  int maxSteps = 100000,
 }) {
   final tList = <double>[t0];
   final yList = <Vector<double>>[y0.copy()];
@@ -68,7 +98,9 @@ OdeSolution _rk4({
   final direction = tEnd >= t0 ? 1.0 : -1.0;
   var step = direction * stepSize.abs();
 
-  while ((tEnd - currentTime) * direction > 1e-12) {
+  var stepCount = 0;
+  while ((tEnd - currentTime) * direction > 1e-12 && stepCount < maxSteps) {
+    stepCount++;
     if ((currentTime + step - tEnd) * direction > 0.0) {
       step = tEnd - currentTime;
     }
@@ -96,7 +128,8 @@ OdeSolution _rk4({
     yList.add(y.copy());
   }
 
-  return OdeSolution(t: tList, y: yList);
+  final converged = (tEnd - currentTime).abs() <= 1e-12;
+  return OdeSolution(t: tList, y: yList, converged: converged);
 }
 
 OdeSolution _rk45({
@@ -205,5 +238,6 @@ OdeSolution _rk45({
         direction * math.min(maxStep, math.max(minStep, (step * factor).abs()));
   }
 
-  return OdeSolution(t: tList, y: yList);
+  final converged = (tEnd - currentTime).abs() <= 1e-12;
+  return OdeSolution(t: tList, y: yList, converged: converged);
 }
