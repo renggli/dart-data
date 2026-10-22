@@ -9,15 +9,14 @@ void main() {
       () {
         const posX = Assumptions(domains: {'x': VariableDomain.positive});
         final sqrtSq = Expr.parse('sqrt(x^2)');
-        check(sqrtSq.simplify().toString()).equals('abs(x)');
+        check(sqrtSq.simplify().toString()).equals('sqrt(x ^ 2)');
 
         final simplified = sqrtSq.simplify(assumptions: posX);
         check(simplified).equals(const Variable('x'));
 
         // Re-simplifying an already-simplified Abs(x) with positive assumptions
-        final alreadySimplified = sqrtSq.simplify();
-        check(alreadySimplified.simplify(assumptions: posX))
-            .equals(const Variable('x'));
+        final absX = Expr.parse('abs(x)').simplify();
+        check(absX.simplify(assumptions: posX)).equals(const Variable('x'));
 
         check(Expr.parse('sign(x)').simplify(assumptions: posX))
             .equals(IntegerNumber.one);

@@ -13,11 +13,10 @@ void main() {
       check(simplifyPow(IntegerNumber.zero, IntegerNumber.two))
           .equals(IntegerNumber.zero);
 
-      check(() => simplifyPow(IntegerNumber.zero, IntegerNumber.negativeOne))
-          .throws<UnsupportedError>();
-      check(
-        () => simplifyPow(IntegerNumber.zero, Mul([IntegerNumber.of(-2), x])),
-      ).throws<UnsupportedError>();
+      check(simplifyPow(IntegerNumber.zero, IntegerNumber.negativeOne))
+          .equals(Constant.undefined);
+      check(simplifyPow(IntegerNumber.zero, Mul([IntegerNumber.of(-2), x])))
+          .equals(Constant.undefined);
     });
 
     test('simplifies natural exponential powers of logarithms', () {
@@ -87,9 +86,22 @@ void main() {
       const x = Variable('x');
       const y = Variable('y');
 
-      // (u^2)^(1/2) -> |u| (including with RealNumber 2.0 and 0.5)
+      // (u^2)^(1/2) -> |u| under real assumptions, stays (x^2)^(1/2) under none
       check(simplifyPow(Pow(x, const RealNumber(2.0)), const RealNumber(0.5)))
-          .equals(Abs(x));
+          .equals(
+            Pow(
+              Pow(x, const RealNumber(2.0)),
+              const RealNumber(0.5),
+              isSimplified: true,
+            ),
+          );
+      check(
+        simplifyPow(
+          Pow(x, const RealNumber(2.0)),
+          const RealNumber(0.5),
+          assumptions: Assumptions.real,
+        ),
+      ).equals(Abs(x));
 
       // Nested powers: (e^x)^y -> e^(x*y), (x^(1/3))^(3/2) -> x^(1/2), (x^y)^2 -> x^(2*y)
       check(simplifyPow(Pow(Constant.e, x), y).toString()).equals('exp(x * y)');
@@ -113,8 +125,13 @@ void main() {
       // Product raised to fractional power: sqrt(4 * pi^2) -> 2 * pi
       check(Expr.parse('sqrt(4 * pi^2)').simplify().toString())
           .equals('2 * pi');
+      check(
+        Expr.parse('sqrt(12 * x^2)')
+            .simplify(assumptions: Assumptions.real)
+            .toString(),
+      ).equals('2 * sqrt(3) * abs(x)');
       check(Expr.parse('sqrt(12 * x^2)').simplify().toString())
-          .equals('2 * sqrt(3) * abs(x)');
+          .equals('2 * sqrt(3 * x ^ 2)');
       check(Expr.parse('sqrt(4 * exp(2 * x))').simplify().toString())
           .equals('2 * exp(x)');
 
@@ -126,8 +143,16 @@ void main() {
       final tangent = (fx0 + dfx0 * (x - x0)).expand().simplify();
       check(tangent.toString()).equals('-2 * x');
 
-      // |x|^2 -> x^2
-      check(simplifyPow(Abs(x), IntegerNumber.two).toString()).equals('x ^ 2');
+      // |x|^2 -> x^2 under real assumptions, stays abs(x)^2 under none
+      check(simplifyPow(Abs(x), IntegerNumber.two).toString())
+          .equals('abs(x) ^ 2');
+      check(
+        simplifyPow(
+          Abs(x),
+          IntegerNumber.two,
+          assumptions: Assumptions.real,
+        ).toString(),
+      ).equals('x ^ 2');
 
       // OrderTerm^k -> OrderTerm(var, order * k)
       check(simplifyPow(const OrderTerm('x', 2), IntegerNumber.of(3)))

@@ -8,8 +8,13 @@ Expr simplifyPow(
   Expr exponent, {
   Assumptions assumptions = Assumptions.none,
 }) {
+  if (base == Constant.undefined || exponent == Constant.undefined) {
+    return Constant.undefined;
+  }
+
   // 1. Trivial exponent identities: b^0 = 1, b^1 = b
   if (exponent is Number && exponent.isZero) {
+    if (base == Constant.infinity) return Constant.undefined;
     return IntegerNumber.one;
   }
   if (exponent is Number && exponent.isOne) {
@@ -21,12 +26,22 @@ Expr simplifyPow(
     if (exponent
         case RealNumeric(isNegative: true) ||
             Mul(factors: [RealNumeric(isNegative: true), ...])) {
-      throw UnsupportedError('Division by zero in negative power of zero');
+      return Constant.undefined;
     }
     return IntegerNumber.zero;
   }
   if (base is Number && base.isOne) {
     return IntegerNumber.one;
+  }
+  if (base == Constant.infinity) {
+    if (exponent
+        case RealNumeric(isNegative: true) ||
+            Mul(factors: [RealNumeric(isNegative: true), ...])) {
+      return IntegerNumber.zero;
+    }
+    if (exponent is RealNumeric && !exponent.isNegative) {
+      return Constant.infinity;
+    }
   }
 
   // 3. Natural exponential base e: e^(ln(u)) = u, e^(k * ln(u)) = u^k
@@ -99,12 +114,12 @@ Expr simplifyPow(
   if (base is Pow &&
       _isTwo(base.exponent) &&
       _isHalf(exponent) &&
-      isRealExpr(base.base, assumptions)) {
+      isProvenReal(base.base, assumptions)) {
     return simplifyAbs(base.base, assumptions: assumptions);
   }
   if (base
       case Pow(base: final innerBase, exponent: IntegerNumber(value: final p))
-      when isRealExpr(innerBase, assumptions) &&
+      when isProvenReal(innerBase, assumptions) &&
           p > Integer.zero &&
           p.isEven &&
           exponent == RationalNumber.of(Integer.one, p)) {
@@ -127,7 +142,7 @@ Expr simplifyPow(
           exponent is FractionNumber &&
           exponent.denominator.isEven) {
         final prod = innerExp.mulRational(exponent);
-        if (isRealExpr(innerBase, assumptions) &&
+        if (isProvenReal(innerBase, assumptions) &&
             prod is IntegerNumber &&
             prod.value.isOdd) {
           return simplifyPow(
@@ -136,7 +151,7 @@ Expr simplifyPow(
             assumptions: assumptions,
           );
         }
-        if (!isRealExpr(innerBase, assumptions)) {
+        if (!isProvenReal(innerBase, assumptions)) {
           return Pow(base, exponent, isSimplified: true);
         }
       }
@@ -200,9 +215,13 @@ Expr simplifyPow(
             assumptions: assumptions,
           ),
         );
-      } else if (f case Pow(exponent: IntegerNumber(value: final m))
+      } else if (f
+          case Pow(
+            base: final innerBase,
+            exponent: IntegerNumber(value: final m),
+          )
           when m.abs().gcd(q) > Integer.one &&
-              isNonNegativeExpr(f, assumptions: assumptions)) {
+              isProvenReal(innerBase, assumptions)) {
         extractedFactors.add(
           simplifyPow(f, exponent, assumptions: assumptions),
         );
@@ -225,8 +244,8 @@ Expr simplifyPow(
     }
   }
 
-  // 8. |u|^2 => u^2
-  if (base is Abs && _isTwo(exponent)) {
+  // 8. |u|^2 => u^2 for real u
+  if (base is Abs && _isTwo(exponent) && isProvenReal(base.expr, assumptions)) {
     return simplifyPow(base.expr, exponent, assumptions: assumptions);
   }
 

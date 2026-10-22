@@ -18,14 +18,22 @@ void main() {
 
     test('combines radical bases with positive and negative fractional exponents', () {
       check(Expr.parse('sqrt(x) * sqrt(y)').simplify().toString())
-          .equals('sqrt(x * y)');
-      check(Expr.parse('sqrt(x) / sqrt(y)').simplify().toString())
-          .equals('sqrt(x / y)');
+          .equals('sqrt(x) * sqrt(y)');
+      check(
+        Expr.parse('sqrt(x) * sqrt(y)')
+            .simplify(assumptions: Assumptions.positive)
+            .toString(),
+      ).equals('sqrt(x * y)');
+      check(
+        Expr.parse('sqrt(x) / sqrt(y)')
+            .simplify(assumptions: Assumptions.positive)
+            .toString(),
+      ).equals('sqrt(x / y)');
       check(
         simplifyMul([
           Pow(const Variable('x'), FractionNumber.negativeHalf),
           Pow(const Variable('y'), FractionNumber.half),
-        ]).toString(),
+        ], assumptions: Assumptions.positive).toString(),
       ).equals('sqrt(y / x)');
 
       // When combinedBase already exists in baseExponents (unflattened via Pow)
@@ -36,14 +44,14 @@ void main() {
         Pow(xy, IntegerNumber.two),
         Pow(x, FractionNumber.half),
         Pow(y, FractionNumber.half),
-      ]);
+      ], assumptions: Assumptions.positive);
       check(mergedExisting.toString()).equals('(x * y) ^ (5/2)');
 
       final cancelledExisting = simplifyMul([
         Pow(xy, const RealNumber(-0.5)),
         Pow(x, FractionNumber.half),
         Pow(y, FractionNumber.half),
-      ]);
+      ], assumptions: Assumptions.positive);
       check(cancelledExisting).equals(IntegerNumber.one);
     });
 
@@ -89,8 +97,8 @@ void main() {
     });
 
     test('simplifies division and sorts symbolic products with same base', () {
-      check(() => simplifyDiv(const Variable('x'), IntegerNumber.zero))
-          .throws<UnsupportedError>();
+      check(simplifyDiv(const Variable('x'), IntegerNumber.zero))
+          .equals(Constant.undefined);
       check(simplifyDiv(IntegerNumber.of(6), IntegerNumber.two))
           .equals(IntegerNumber.of(3));
 

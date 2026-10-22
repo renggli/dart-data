@@ -229,6 +229,22 @@ sealed class Expr {
     RealNumeric() || Variable() || OrderTerm() => true,
     Add(:final terms) => terms.every(_isRealSubtree),
     Mul(:final factors) => factors.every(_isRealSubtree),
+    Pow(:final base, :final exponent) =>
+      _isRealSubtree(base) &&
+          (exponent is IntegerNumber ||
+              (base is RealNumeric && !base.isNegative) ||
+              base is Abs),
+    Ln(:final expr) =>
+      _isRealSubtree(expr) &&
+          !(expr is RealNumeric && (expr.isNegative || expr.isZero)),
+    Asin(:final expr) || Acos(:final expr) =>
+      _isRealSubtree(expr) &&
+          !(expr is RealNumeric && expr.toDouble().abs() > 1.0),
+    Acosh(:final expr) =>
+      _isRealSubtree(expr) && !(expr is RealNumeric && expr.toDouble() < 1.0),
+    Atanh(:final expr) =>
+      _isRealSubtree(expr) &&
+          !(expr is RealNumeric && expr.toDouble().abs() >= 1.0),
     BinaryExpr(:final left, :final right) =>
       _isRealSubtree(left) && _isRealSubtree(right),
     UnaryExpr(:final expr) => _isRealSubtree(expr),

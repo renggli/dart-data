@@ -117,9 +117,6 @@ Expr simplifyAsin(Expr expr) {
     return Mul([FractionNumber.negativeHalf, Constant.pi], isSimplified: true);
   }
 
-  // Involution: asin(sin(u)) = u
-  if (expr is Sin) return expr.expr;
-
   // Parity: asin(-u) = -asin(u)
   final (posExpr, isNeg) = extractSign(expr);
   if (isNeg) {
@@ -151,9 +148,6 @@ Expr simplifyAcos(Expr expr) {
   if (expr is Number && expr.isNegativeOne) {
     return Constant.pi;
   }
-
-  // Involution: acos(cos(u)) = u
-  if (expr is Cos) return expr.expr;
 
   final (posExpr, isNeg) = extractSign(expr);
   if (isNeg) {
@@ -206,9 +200,6 @@ Expr simplifyAtan(Expr expr) {
       Constant.pi,
     ], isSimplified: true);
   }
-
-  // Involution: atan(tan(u)) = u
-  if (expr is Tan) return expr.expr;
 
   // Parity: atan(-u) = -atan(u)
   final (posExpr, isNeg) = extractSign(expr);
@@ -306,6 +297,57 @@ Expr simplifyAbs(Expr expr, {Assumptions assumptions = Assumptions.none}) {
 
   return Abs(expr, isSimplified: true);
 }
+
+/// Returns `true` if [expr] is known to be real-valued under [assumptions].
+bool isProvenReal(Expr expr, [Assumptions assumptions = Assumptions.none]) =>
+    switch (expr) {
+      RealNumeric() ||
+      Abs() ||
+      Re() ||
+      Im() ||
+      Arg() ||
+      Floor() ||
+      Ceil() ||
+      Round() ||
+      Sign() ||
+      Factorial() ||
+      Binomial() => true,
+      ComplexNumber(:final imaginary) => imaginary.isZero,
+      Constant(:final isReal) => isReal,
+      Variable(:final name) => switch (assumptions.domainOf(name)) {
+        VariableDomain.real ||
+        VariableDomain.positive ||
+        VariableDomain.integer => true,
+        _ => false,
+      },
+      Add(:final terms) => terms.every((t) => isProvenReal(t, assumptions)),
+      Mul(:final factors) => factors.every((f) => isProvenReal(f, assumptions)),
+      Pow(:final base, :final exponent) =>
+        isProvenReal(base, assumptions) &&
+            (exponent is IntegerNumber ||
+                isNonNegativeExpr(base, assumptions: assumptions)),
+      _ => false,
+    };
+
+/// Returns `true` if [expr] is known to be strictly positive under [assumptions].
+bool isPositiveExpr(Expr expr, {Assumptions assumptions = Assumptions.none}) =>
+    switch (expr) {
+      RealNumeric(:final isNegative, :final isZero) => !isNegative && !isZero,
+      Constant(:final value) => value.b == 0.0 && value.a > 0.0,
+      Variable(:final name) =>
+        assumptions.domainOf(name) == VariableDomain.positive,
+      Pow(base: Constant.e, :final exponent) => isProvenReal(
+        exponent,
+        assumptions,
+      ),
+      Pow(:final base, :final exponent) =>
+        isPositiveExpr(base, assumptions: assumptions) &&
+            isProvenReal(exponent, assumptions),
+      Mul(:final factors) => factors.every(
+        (f) => isPositiveExpr(f, assumptions: assumptions),
+      ),
+      _ => false,
+    };
 
 /// Returns `true` if [expr] contains no complex numbers, non-real constants,
 /// or variables assumed [VariableDomain.complex] under [assumptions].
@@ -414,21 +456,54 @@ Expr simplifyExp(Expr expr, {Assumptions assumptions = Assumptions.none}) =>
     simplifyPow(Constant.e, expr, assumptions: assumptions);
 
 /// Simplifies a natural logarithm expression $\ln(expr)$.
-Expr simplifyLn(Expr expr) {
+Expr simplifyLn(Expr expr, {Assumptions assumptions = Assumptions.none}) {
+  if (expr == Constant.undefined) return Constant.undefined;
   if (expr == Constant.e) return IntegerNumber.one;
-  if (expr is RealNumeric && (expr.isNegative || expr.isZero)) {
-    throw ArgumentError(
-      'Natural logarithm domain error: non-positive argument',
-    );
+  if (expr is Number && expr.isZero) {
+    return simplifyNeg(Constant.infinity);
+  }
+  if (expr is RealNumeric && expr.isNegative) {
+    final absLn = simplifyLn(expr.abs(), assumptions: assumptions);
+    return simplifyAdd([
+      absLn,
+      Mul([ComplexNumber.i, Constant.pi], isSimplified: true),
+    ], assumptions: assumptions);
   }
   if (expr is Number && expr.isOne) {
     return IntegerNumber.zero;
   }
+  if (expr == Constant.infinity) {
+    return Constant.infinity;
+  }
 
-  // ln(e^u) = u and ln(u^k) = k * ln(u)
+  // ln(e^u) = u
+  if (expr is Pow && expr.base == Constant.e) {
+    return expr.exponent;
+  }
+
+  // ln(u^k)
   if (expr is Pow) {
-    if (expr.base == Constant.e) return expr.exponent;
-    return simplifyMul([expr.exponent, Ln(expr.base, isSimplified: true)]);
+    final k = expr.exponent;
+    final u = expr.base;
+    if (k is IntegerNumber && k.value.isEven) {
+      if (isPositiveExpr(u, assumptions: assumptions)) {
+        return simplifyMul([
+          k,
+          Ln(u, isSimplified: true),
+        ], assumptions: assumptions);
+      }
+      if (isProvenReal(u, assumptions)) {
+        return simplifyMul([
+          k,
+          Ln(simplifyAbs(u, assumptions: assumptions), isSimplified: true),
+        ], assumptions: assumptions);
+      }
+      return Ln(expr, isSimplified: true);
+    }
+    return simplifyMul([
+      k,
+      Ln(u, isSimplified: true),
+    ], assumptions: assumptions);
   }
 
   return Ln(expr, isSimplified: true);

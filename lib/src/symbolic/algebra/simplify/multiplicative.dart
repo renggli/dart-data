@@ -29,11 +29,25 @@ Expr simplifyMul(
   if (flatFactors.isEmpty) return IntegerNumber.one;
   if (flatFactors.length == 1) return flatFactors.first;
 
+  // Undefined annihilator: anything * undefined = undefined
+  if (flatFactors.any((f) => f == Constant.undefined)) {
+    return Constant.undefined;
+  }
+
+  // Check for 0 * infinity:
+  final hasZero = flatFactors.any((f) => f is Number && f.isZero);
+  final hasInfinity = flatFactors.any(
+    (f) =>
+        f == Constant.infinity ||
+        (f is Mul && f.factors.contains(Constant.infinity)),
+  );
+  if (hasZero && hasInfinity) {
+    return Constant.undefined;
+  }
+
   // Fast annihilator check: 0 * anything = 0
-  for (final f in flatFactors) {
-    if (f is Number && f.isZero) {
-      return IntegerNumber.zero;
-    }
+  if (hasZero) {
+    return IntegerNumber.zero;
   }
 
   // Handle OrderTerm products and scalings if any factor is an OrderTerm
@@ -105,7 +119,7 @@ Expr simplifyMul(
   }
 
   // Combine radical factors with matching fractional exponents (e.g. sqrt(x) * sqrt(y) -> sqrt(x * y))
-  _combineRadicalBases(baseExponents);
+  _combineRadicalBases(baseExponents, assumptions: assumptions);
 
   // Fold rational coefficient factors into matching integer radical bases (e.g. 2 * 2^(-1/2) -> 2^(1/2))
   if (coeff is RationalNumber && !coeff.isOne && !coeff.isNegativeOne) {
@@ -153,8 +167,11 @@ Expr simplifyDiv(
   Expr right, {
   Assumptions assumptions = Assumptions.none,
 }) {
+  if (left == Constant.undefined || right == Constant.undefined) {
+    return Constant.undefined;
+  }
   if (right is Number && right.isZero) {
-    throw UnsupportedError('Division by zero in simplification');
+    return Constant.undefined;
   }
   if (left is Number && right is Number) {
     return left.div(right);
@@ -188,7 +205,10 @@ Expr simplifySymbolicProduct(Number coeff, List<Expr> remainingFactors) {
   return Mul([coeff, ...remainingFactors], isSimplified: true);
 }
 
-void _combineRadicalBases(Map<Expr, Expr> baseExponents) {
+void _combineRadicalBases(
+  Map<Expr, Expr> baseExponents, {
+  Assumptions assumptions = Assumptions.none,
+}) {
   if (baseExponents.length < 2) return;
   var fractionCount = 0;
   for (final exp in baseExponents.values) {
@@ -228,6 +248,11 @@ void _combineRadicalBases(Map<Expr, Expr> baseExponents) {
       if (expB is FractionNumber &&
           expB.denominator == denA &&
           expB.numerator.abs() == absNumA) {
+        if (denA.isEven &&
+            !isPositiveExpr(baseA, assumptions: assumptions) &&
+            !isPositiveExpr(baseB, assumptions: assumptions)) {
+          continue;
+        }
         if (expB.isNegative) {
           matchingDenBases.add(baseB);
         } else {

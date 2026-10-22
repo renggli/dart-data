@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 
+import '../assumptions.dart';
 import '../ast.dart';
 import 'expand.dart';
 import 'simplify.dart';
@@ -12,10 +13,13 @@ class MonomialAccumulator {
   ///
   /// An optional [simplify] callback performs sub-expression reduction during
   /// logarithmic and fraction combination.
-  new({this.simplify});
+  new({this.simplify, this.assumptions = Assumptions.none});
 
   /// Optional simplifier callback.
   final Expr Function(Expr)? simplify;
+
+  /// Assumptions context.
+  final Assumptions assumptions;
 
   /// Map of (variable, point) to minimum Landau order term exponent.
   final Map<(String, Expr), int> orderTerms = {};
@@ -32,12 +36,22 @@ class MonomialAccumulator {
   /// Whether any transcendental term (Sin, Cos, Sinh, Cosh, Ln, etc.) was added.
   bool hasTranscendental = false;
 
+  /// Whether an undefined / indeterminate result was encountered.
+  bool hasUndefined = false;
+
+  /// Direction of infinity: +1 for +inf, -1 for -inf.
+  int? infinitySign;
+
   /// Recursively flattens and accumulates [expr] multiplied by [scale].
   void add(Expr expr, [Number scale = IntegerNumber.one]) {
     if (_containsRealNumber(scale)) {
       hasReal = true;
     }
     if (scale.isZero) return;
+    if (expr == Constant.undefined) {
+      hasUndefined = true;
+      return;
+    }
 
     switch (expr) {
       case Add(:final terms):
@@ -70,6 +84,26 @@ class MonomialAccumulator {
       hasReal = true;
     }
     if (coeff.isZero) return;
+    if (base == Constant.undefined) {
+      hasUndefined = true;
+      return;
+    }
+    if (base == Constant.infinity) {
+      final sign = coeff is RealNumeric && coeff.isNegative ? -1 : 1;
+      if (infinitySign != null) {
+        if (infinitySign != sign) {
+          hasUndefined = true;
+          terms.remove(Constant.infinity);
+          return;
+        }
+        return;
+      }
+      infinitySign = sign;
+      terms[Constant.infinity] = sign == 1
+          ? IntegerNumber.one
+          : IntegerNumber.negativeOne;
+      return;
+    }
     if (base is Number && base.isOne) {
       constant = constant.add(coeff);
       return;
@@ -366,6 +400,7 @@ class MonomialAccumulator {
 
   /// Reconstructs the canonical [Expr] AST tree from accumulated terms and constants.
   Expr build() {
+    if (hasUndefined) return Constant.undefined;
     _absorbOrderTerms();
     if (simplify != null) {
       combineFractions();

@@ -106,7 +106,10 @@ Expr simplifyExpr(Expr expr, {Assumptions assumptions = Assumptions.none}) {
       simplifyExpr(expr, assumptions: assumptions),
       assumptions: assumptions,
     ),
-    Ln(:final expr) => simplifyLn(simplifyExpr(expr, assumptions: assumptions)),
+    Ln(:final expr) => simplifyLn(
+      simplifyExpr(expr, assumptions: assumptions),
+      assumptions: assumptions,
+    ),
     Re(:final expr) => simplifyRe(
       simplifyExpr(expr, assumptions: assumptions),
       assumptions: assumptions,

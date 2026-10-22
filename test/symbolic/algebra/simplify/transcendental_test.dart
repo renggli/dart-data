@@ -1,5 +1,5 @@
 import 'package:checks/checks.dart';
-import 'package:data/src/symbolic/algebra/simplify/transcendental.dart';
+import 'package:data/src/symbolic/algebra/simplify.dart';
 import 'package:data/symbolic.dart';
 import 'package:data/type.dart';
 import 'package:test/test.dart';
@@ -48,7 +48,7 @@ void main() {
       check(simplifyAsin(IntegerNumber.one).toString()).equals('1/2 * pi');
       check(simplifyAsin(IntegerNumber.negativeOne).toString())
           .equals('-1/2 * pi');
-      check(simplifyAsin(Sin(x))).equals(x);
+      check(simplifyAsin(Sin(x))).equals(Asin(Sin(x), isSimplified: true));
       check(simplifyAsin(Mul([IntegerNumber.negativeOne, x])).toString())
           .equals('-asin(x)');
       check(simplifyAsin(x)).equals(Asin(x, isSimplified: true));
@@ -56,14 +56,14 @@ void main() {
       check(simplifyAcos(IntegerNumber.one)).equals(IntegerNumber.zero);
       check(simplifyAcos(IntegerNumber.zero).toString()).equals('1/2 * pi');
       check(simplifyAcos(IntegerNumber.negativeOne)).equals(Constant.pi);
-      check(simplifyAcos(Cos(x))).equals(x);
+      check(simplifyAcos(Cos(x))).equals(Acos(Cos(x), isSimplified: true));
       check(simplifyAcos(x)).equals(Acos(x, isSimplified: true));
 
       check(simplifyAtan(IntegerNumber.zero)).equals(IntegerNumber.zero);
       check(simplifyAtan(IntegerNumber.one).toString()).equals('1/4 * pi');
       check(simplifyAtan(IntegerNumber.negativeOne).toString())
           .equals('-1/4 * pi');
-      check(simplifyAtan(Tan(x))).equals(x);
+      check(simplifyAtan(Tan(x))).equals(Atan(Tan(x), isSimplified: true));
       check(simplifyAtan(Mul([IntegerNumber.negativeOne, x])).toString())
           .equals('-atan(x)');
       check(simplifyAtan(x)).equals(Atan(x, isSimplified: true));
@@ -97,8 +97,15 @@ void main() {
         const p = Variable('p');
 
         check(simplifyExp(IntegerNumber.zero)).equals(IntegerNumber.one);
-        check(() => simplifyLn(IntegerNumber.zero)).throws<ArgumentError>();
-        check(() => simplifyLn(IntegerNumber.of(-3))).throws<ArgumentError>();
+        check(simplifyLn(IntegerNumber.zero)).equals(-Constant.infinity);
+        check(simplifyLn(IntegerNumber.negativeOne))
+            .equals(Mul([ComplexNumber.i, Constant.pi]));
+        check(simplifyLn(IntegerNumber.of(-3))).equals(
+          simplifyAdd([
+            simplifyLn(IntegerNumber.of(3)),
+            Mul([ComplexNumber.i, Constant.pi]),
+          ]),
+        );
         check(simplifyLn(Pow(x, IntegerNumber.of(3))).toString())
             .equals('3 * ln(x)');
 

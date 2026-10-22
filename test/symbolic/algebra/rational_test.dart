@@ -176,7 +176,7 @@ void main() {
           .equals('(1 + x) ^ 2 / (-1 + x) ^ 2');
       check(Expr.parse('-x + a * b * x * sin(x)').collect('x').toString())
           .equals('-x + a * b * x * sin(x)');
-      check(() => Expr.parse('x / 0').apart('x')).throws<UnsupportedError>();
+      check(Expr.parse('x / 0').apart('x')).equals(Constant.undefined);
 
       // Polynomial division by zero throws ArgumentError
       check(() => const Variable('x').polynomialDivide(IntegerNumber.zero, 'x'))

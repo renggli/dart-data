@@ -21,6 +21,7 @@ Expr simplifyAdd(
 
   final acc = MonomialAccumulator(
     simplify: (e) => simplifyExpr(e, assumptions: assumptions),
+    assumptions: assumptions,
   );
   for (final term in terms) {
     acc.add(term);
