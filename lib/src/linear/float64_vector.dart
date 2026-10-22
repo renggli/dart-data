@@ -22,24 +22,54 @@ import 'vector.dart';
 /// final v = Float64Vector.filled(3, 2.5);
 /// print(v.length); // 3
 /// ```
-extension type Float64Vector(Vector<double> _vector) implements Vector<double> {
+extension type Float64Vector._(Vector<double> _vector)
+    implements Vector<double> {
+  /// Constructs a [Float64Vector] wrapping [vector].
+  ///
+  /// Throws an [ArgumentError] if `vector.tensor.data` is not a [Float64List].
+  factory(Vector<double> vector) {
+    if (vector.tensor.data is! Float64List) {
+      throw ArgumentError.value(
+        vector,
+        'vector',
+        'Float64Vector requires underlying data to be Float64List, got ${vector.tensor.data.runtimeType}',
+      );
+    }
+    return Float64Vector._(vector);
+  }
+
+  /// Constructs a [Float64Vector] from any [Vector<double>], copying elements
+  /// to a [Float64List] if not already backed by one.
+  factory fromDoubleVector(Vector<double> vector) {
+    if (vector.tensor.data is Float64List) {
+      return Float64Vector._(vector);
+    }
+    return Float64Vector._(
+      Vector<double>.generate(
+        vector.length,
+        (i) => vector[i],
+        type: DataType.float64,
+      ),
+    );
+  }
+
   /// Constructs a [Float64Vector] filled with [value].
-  factory filled(int length, double value) => Float64Vector(
+  factory filled(int length, double value) => Float64Vector._(
     Vector<double>.filled(length, value, type: DataType.float64),
   );
 
   /// Constructs a [Float64Vector] populated by [generator].
   factory generate(int length, double Function(int index) generator) =>
-      Float64Vector(
+      Float64Vector._(
         Vector<double>.generate(length, generator, type: DataType.float64),
       );
 
   /// Constructs a [Float64Vector] from a list of elements.
   factory fromList(List<double> list) =>
-      Float64Vector(Vector<double>.fromList(list, type: DataType.float64));
+      Float64Vector._(Vector<double>.fromList(list, type: DataType.float64));
 
   /// Constructs a [Float64Vector] from an iterable of elements.
-  factory fromIterable(Iterable<double> iterable) => Float64Vector(
+  factory fromIterable(Iterable<double> iterable) => Float64Vector._(
     Vector<double>.fromIterable(iterable, type: DataType.float64),
   );
 
@@ -50,7 +80,7 @@ extension type Float64Vector(Vector<double> _vector) implements Vector<double> {
     double stop, {
     int count = 50,
     bool endpoint = true,
-  }) => Float64Vector(
+  }) => Float64Vector._(
     Vector<double>.linspace(
       start,
       stop,
@@ -68,7 +98,7 @@ extension type Float64Vector(Vector<double> _vector) implements Vector<double> {
     int count = 50,
     double base = 10.0,
     bool endpoint = true,
-  }) => Float64Vector(
+  }) => Float64Vector._(
     Vector<double>.logspace(
       start,
       stop,
@@ -86,7 +116,7 @@ extension type Float64Vector(Vector<double> _vector) implements Vector<double> {
     double stop, {
     int count = 50,
     bool endpoint = true,
-  }) => Float64Vector(
+  }) => Float64Vector._(
     Vector<double>.geomspace(
       start,
       stop,
@@ -97,25 +127,44 @@ extension type Float64Vector(Vector<double> _vector) implements Vector<double> {
   );
 
   /// Direct zero-copy access to the underlying [Float64List] buffer.
-  Float64List get asTypedList => _vector.tensor.data is Float64List
-      ? _vector.tensor.data as Float64List
-      : Float64List.fromList(_vector.tensor.data);
+  Float64List get asTypedList => _vector.tensor.data as Float64List;
+
+  /// Fast element access at [index] without bounds checking.
+  @pragma('vm:prefer-inline')
+  @redeclare
+  double getUnchecked(int index) {
+    final t = _vector.tensor;
+    return asTypedList[t.offset + index * t.strides[0]];
+  }
+
+  /// Fast element mutation at [index] without bounds checking.
+  @pragma('vm:prefer-inline')
+  @redeclare
+  void setUnchecked(int index, double value) {
+    final t = _vector.tensor;
+    asTypedList[t.offset + index * t.strides[0]] = value;
+  }
 
   /// Fast element access at [index].
   @pragma('vm:prefer-inline')
   @redeclare
   double operator [](int index) {
-    final t = _vector.tensor;
-    return asTypedList[t.offset + index * t.strides[0]];
+    RangeError.checkValidIndex(index, this, 'index', length);
+    return getUnchecked(index);
   }
 
   /// Fast element mutation at [index].
   @pragma('vm:prefer-inline')
   @redeclare
   void operator []=(int index, double value) {
-    final t = _vector.tensor;
-    asTypedList[t.offset + index * t.strides[0]] = value;
+    RangeError.checkValidIndex(index, this, 'index', length);
+    setUnchecked(index, value);
   }
+
+  /// Returns a zero-copy subvector view from [start] to [end] as [Float64Vector].
+  @redeclare
+  Float64Vector subVector(int start, [int? end]) =>
+      Float64Vector._(_vector.subVector(start, end));
 
   /// Algebraic inner dot product routing directly to BLAS `ddot`.
   @redeclare
@@ -127,11 +176,9 @@ extension type Float64Vector(Vector<double> _vector) implements Vector<double> {
     }
     final tA = _vector.tensor;
     final tB = other.tensor;
-    final bData = other is Float64Vector
-        ? other.asTypedList
-        : (tB.data is Float64List
-              ? tB.data as Float64List
-              : Float64List.fromList(tB.data));
+    final bData = tB.data is Float64List
+        ? tB.data as Float64List
+        : Float64List.fromList(tB.data);
     if (tA.strides[0] > 0 && tB.strides[0] > 0) {
       return Blas.ddot(
         n: length,
@@ -186,15 +233,13 @@ extension type Float64Vector(Vector<double> _vector) implements Vector<double> {
         tB.offset == 0) {
       final out = Float64List(length);
       final a = asTypedList;
-      final b = other is Float64Vector
-          ? other.asTypedList
-          : (tB.data is Float64List
-                ? tB.data as Float64List
-                : Float64List.fromList(tB.data));
+      final b = tB.data is Float64List
+          ? tB.data as Float64List
+          : Float64List.fromList(tB.data);
       for (var i = 0; i < length; i++) {
         out[i] = a[i] + b[i];
       }
-      return Float64Vector(
+      return Float64Vector._(
         Vector(
           Tensor.internal(
             type: DataType.float64,
@@ -204,7 +249,7 @@ extension type Float64Vector(Vector<double> _vector) implements Vector<double> {
         ),
       );
     }
-    return Float64Vector(_vector + other);
+    return Float64Vector._(_vector + other);
   }
 
   /// Inlined vector subtraction.
@@ -223,15 +268,13 @@ extension type Float64Vector(Vector<double> _vector) implements Vector<double> {
         tB.offset == 0) {
       final out = Float64List(length);
       final a = asTypedList;
-      final b = other is Float64Vector
-          ? other.asTypedList
-          : (tB.data is Float64List
-                ? tB.data as Float64List
-                : Float64List.fromList(tB.data));
+      final b = tB.data is Float64List
+          ? tB.data as Float64List
+          : Float64List.fromList(tB.data);
       for (var i = 0; i < length; i++) {
         out[i] = a[i] - b[i];
       }
-      return Float64Vector(
+      return Float64Vector._(
         Vector(
           Tensor.internal(
             type: DataType.float64,
@@ -241,7 +284,7 @@ extension type Float64Vector(Vector<double> _vector) implements Vector<double> {
         ),
       );
     }
-    return Float64Vector(_vector - other);
+    return Float64Vector._(_vector - other);
   }
 
   /// Inlined Hadamard (element-wise) multiplication.
@@ -260,15 +303,13 @@ extension type Float64Vector(Vector<double> _vector) implements Vector<double> {
         tB.offset == 0) {
       final out = Float64List(length);
       final a = asTypedList;
-      final b = other is Float64Vector
-          ? other.asTypedList
-          : (tB.data is Float64List
-                ? tB.data as Float64List
-                : Float64List.fromList(tB.data));
+      final b = tB.data is Float64List
+          ? tB.data as Float64List
+          : Float64List.fromList(tB.data);
       for (var i = 0; i < length; i++) {
         out[i] = a[i] * b[i];
       }
-      return Float64Vector(
+      return Float64Vector._(
         Vector(
           Tensor.internal(
             type: DataType.float64,
@@ -278,7 +319,7 @@ extension type Float64Vector(Vector<double> _vector) implements Vector<double> {
         ),
       );
     }
-    return Float64Vector(_vector * other);
+    return Float64Vector._(_vector * other);
   }
 
   /// Inlined element-wise division.
@@ -297,15 +338,13 @@ extension type Float64Vector(Vector<double> _vector) implements Vector<double> {
         tB.offset == 0) {
       final out = Float64List(length);
       final a = asTypedList;
-      final b = other is Float64Vector
-          ? other.asTypedList
-          : (tB.data is Float64List
-                ? tB.data as Float64List
-                : Float64List.fromList(tB.data));
+      final b = tB.data is Float64List
+          ? tB.data as Float64List
+          : Float64List.fromList(tB.data);
       for (var i = 0; i < length; i++) {
         out[i] = a[i] / b[i];
       }
-      return Float64Vector(
+      return Float64Vector._(
         Vector(
           Tensor.internal(
             type: DataType.float64,
@@ -315,7 +354,7 @@ extension type Float64Vector(Vector<double> _vector) implements Vector<double> {
         ),
       );
     }
-    return Float64Vector(_vector / other);
+    return Float64Vector._(_vector / other);
   }
 
   /// Inlined vector negation.
@@ -328,7 +367,7 @@ extension type Float64Vector(Vector<double> _vector) implements Vector<double> {
       for (var i = 0; i < length; i++) {
         out[i] = -a[i];
       }
-      return Float64Vector(
+      return Float64Vector._(
         Vector(
           Tensor.internal(
             type: DataType.float64,
@@ -338,7 +377,7 @@ extension type Float64Vector(Vector<double> _vector) implements Vector<double> {
         ),
       );
     }
-    return Float64Vector(-_vector);
+    return Float64Vector._(-_vector);
   }
 
   /// Inlined vector scaling.
@@ -351,7 +390,7 @@ extension type Float64Vector(Vector<double> _vector) implements Vector<double> {
       for (var i = 0; i < length; i++) {
         out[i] = a[i] * scalar;
       }
-      return Float64Vector(
+      return Float64Vector._(
         Vector(
           Tensor.internal(
             type: DataType.float64,
@@ -361,6 +400,6 @@ extension type Float64Vector(Vector<double> _vector) implements Vector<double> {
         ),
       );
     }
-    return Float64Vector(_vector.scale(scalar));
+    return Float64Vector._(_vector.scale(scalar));
   }
 }

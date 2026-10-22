@@ -24,9 +24,40 @@ import 'vector.dart';
 /// final m = Float64Matrix.filled(2, 2, 1.5);
 /// print(m.rowCount); // 2
 /// ```
-extension type Float64Matrix(Matrix<double> _matrix) implements Matrix<double> {
+extension type Float64Matrix._(Matrix<double> _matrix)
+    implements Matrix<double> {
+  /// Constructs a [Float64Matrix] wrapping [matrix].
+  ///
+  /// Throws an [ArgumentError] if `matrix.tensor.data` is not a [Float64List].
+  factory(Matrix<double> matrix) {
+    if (matrix.tensor.data is! Float64List) {
+      throw ArgumentError.value(
+        matrix,
+        'matrix',
+        'Float64Matrix requires underlying data to be Float64List, got ${matrix.tensor.data.runtimeType}',
+      );
+    }
+    return Float64Matrix._(matrix);
+  }
+
+  /// Constructs a [Float64Matrix] from any [Matrix<double>], copying elements
+  /// to a [Float64List] if not already backed by one.
+  factory fromDoubleMatrix(Matrix<double> matrix) {
+    if (matrix.tensor.data is Float64List) {
+      return Float64Matrix._(matrix);
+    }
+    return Float64Matrix._(
+      Matrix<double>.generate(
+        matrix.rowCount,
+        matrix.colCount,
+        (r, c) => matrix.get(r, c),
+        type: DataType.float64,
+      ),
+    );
+  }
+
   /// Constructs a [rowCount] by [colCount] [Float64Matrix] filled with [value].
-  factory filled(int rowCount, int colCount, double value) => Float64Matrix(
+  factory filled(int rowCount, int colCount, double value) => Float64Matrix._(
     Matrix<double>.filled(rowCount, colCount, value, type: DataType.float64),
   );
 
@@ -35,7 +66,7 @@ extension type Float64Matrix(Matrix<double> _matrix) implements Matrix<double> {
     int rowCount,
     int colCount,
     double Function(int row, int col) generator,
-  ) => Float64Matrix(
+  ) => Float64Matrix._(
     Matrix<double>.generate(
       rowCount,
       colCount,
@@ -46,15 +77,15 @@ extension type Float64Matrix(Matrix<double> _matrix) implements Matrix<double> {
 
   /// Constructs a [Float64Matrix] from row vectors or row iterables.
   factory fromRows(Iterable<Iterable<double>> rows) =>
-      Float64Matrix(Matrix<double>.fromRows(rows, type: DataType.float64));
+      Float64Matrix._(Matrix<double>.fromRows(rows, type: DataType.float64));
 
   /// Constructs a [Float64Matrix] from column vectors or column iterables.
   factory fromColumns(Iterable<Iterable<double>> cols) =>
-      Float64Matrix(Matrix<double>.fromColumns(cols, type: DataType.float64));
+      Float64Matrix._(Matrix<double>.fromColumns(cols, type: DataType.float64));
 
   /// Constructs a matrix from a flat list in row-major order.
   factory fromList(int rowCount, int colCount, List<double> values) =>
-      Float64Matrix(
+      Float64Matrix._(
         Matrix<double>(
           Tensor<double>.fromIterable(
             values,
@@ -66,31 +97,53 @@ extension type Float64Matrix(Matrix<double> _matrix) implements Matrix<double> {
 
   /// Constructs an identity matrix of dimension [size] by [size].
   factory identity(int size) =>
-      Float64Matrix(Matrix<double>.identity(size, type: DataType.float64));
+      Float64Matrix._(Matrix<double>.identity(size, type: DataType.float64));
 
   /// Constructs a diagonal matrix from [diagonal] vector.
-  factory diagonal(Vector<double> diagonal) =>
-      Float64Matrix(Matrix<double>.diagonal(diagonal));
+  factory diagonal(Vector<double> diagonal) => Float64Matrix._(
+    Matrix<double>.generate(
+      diagonal.length,
+      diagonal.length,
+      (row, col) => row == col ? diagonal[row] : 0.0,
+      type: DataType.float64,
+    ),
+  );
 
   /// Direct zero-copy access to the underlying [Float64List] buffer.
-  Float64List get asTypedList => _matrix.tensor.data is Float64List
-      ? _matrix.tensor.data as Float64List
-      : Float64List.fromList(_matrix.tensor.data);
+  Float64List get asTypedList => _matrix.tensor.data as Float64List;
+
+  /// Fast element access at [row] and [col] without bounds checking.
+  @pragma('vm:prefer-inline')
+  @redeclare
+  double getUnchecked(int row, int col) {
+    final t = _matrix.tensor;
+    return asTypedList[t.offset + row * t.strides[0] + col * t.strides[1]];
+  }
+
+  /// Fast element mutation at [row] and [col] without bounds checking.
+  @pragma('vm:prefer-inline')
+  @redeclare
+  void setUnchecked(int row, int col, double value) {
+    final t = _matrix.tensor;
+    asTypedList[t.offset + row * t.strides[0] + col * t.strides[1]] = value;
+  }
 
   /// Fast element access at [row] and [col].
   @pragma('vm:prefer-inline')
   @redeclare
   double get(int row, int col) {
-    final t = _matrix.tensor;
-    return asTypedList[t.offset + row * t.strides[0] + col * t.strides[1]];
+    RangeError.checkValidIndex(row, this, 'row', rowCount);
+    RangeError.checkValidIndex(col, this, 'col', colCount);
+    return getUnchecked(row, col);
   }
 
   /// Fast element mutation at [row] and [col].
   @pragma('vm:prefer-inline')
   @redeclare
   void set(int row, int col, double value) {
-    final t = _matrix.tensor;
-    asTypedList[t.offset + row * t.strides[0] + col * t.strides[1]] = value;
+    RangeError.checkValidIndex(row, this, 'row', rowCount);
+    RangeError.checkValidIndex(col, this, 'col', colCount);
+    setUnchecked(row, col, value);
   }
 
   /// Returns a mutable [Float64Vector] view of the given [row].
@@ -102,7 +155,10 @@ extension type Float64Matrix(Matrix<double> _matrix) implements Matrix<double> {
   /// ```
   @pragma('vm:prefer-inline')
   @redeclare
-  Float64Vector operator [](int row) => this.row(row);
+  Float64Vector operator [](int row) {
+    RangeError.checkValidIndex(row, this, 'row', rowCount);
+    return this.row(row);
+  }
 
   /// Sets the element at [pos] `(row, col)` to [value].
   @pragma('vm:prefer-inline')
@@ -114,15 +170,37 @@ extension type Float64Matrix(Matrix<double> _matrix) implements Matrix<double> {
 
   /// Slices [row] index into a 1D [Float64Vector].
   @redeclare
-  Float64Vector row(int row) => Float64Vector(_matrix.row(row));
+  Float64Vector row(int row) {
+    RangeError.checkValidIndex(row, this, 'row', rowCount);
+    return Float64Vector(_matrix.row(row));
+  }
 
   /// Slices [col] index into a 1D [Float64Vector].
   @redeclare
-  Float64Vector col(int col) => Float64Vector(_matrix.col(col));
+  Float64Vector col(int col) {
+    RangeError.checkValidIndex(col, this, 'col', colCount);
+    return Float64Vector(_matrix.col(col));
+  }
+
+  /// Returns a zero-copy submatrix view as [Float64Matrix].
+  @redeclare
+  Float64Matrix subMatrix({
+    int rowStart = 0,
+    int? rowEnd,
+    int colStart = 0,
+    int? colEnd,
+  }) => Float64Matrix._(
+    _matrix.subMatrix(
+      rowStart: rowStart,
+      rowEnd: rowEnd,
+      colStart: colStart,
+      colEnd: colEnd,
+    ),
+  );
 
   /// Returns a zero-copy transposed view as [Float64Matrix].
   @redeclare
-  Float64Matrix transpose() => Float64Matrix(_matrix.transpose());
+  Float64Matrix transpose() => Float64Matrix._(_matrix.transpose());
 
   /// Returns a zero-copy transposed view as [Float64Matrix].
   @redeclare
@@ -136,7 +214,7 @@ extension type Float64Matrix(Matrix<double> _matrix) implements Matrix<double> {
   double get det => _matrix.det;
 
   /// Computes the multiplicative inverse of this square, non-singular matrix.
-  Float64Matrix get inverse => Float64Matrix(_matrix.inverse);
+  Float64Matrix get inverse => Float64Matrix._(_matrix.inverse);
 
   /// High-performance matrix multiplication routing directly to BLAS `dgemm`.
   @redeclare
@@ -157,11 +235,9 @@ extension type Float64Matrix(Matrix<double> _matrix) implements Matrix<double> {
         tA.offset == 0 &&
         tB.offset == 0) {
       final out = Float64List(m * n);
-      final bData = other is Float64Matrix
-          ? other.asTypedList
-          : (tB.data is Float64List
-                ? tB.data as Float64List
-                : Float64List.fromList(tB.data));
+      final bData = tB.data is Float64List
+          ? tB.data as Float64List
+          : Float64List.fromList(tB.data);
       final success = Blas.dgemm(
         m: m,
         n: n,
@@ -176,7 +252,7 @@ extension type Float64Matrix(Matrix<double> _matrix) implements Matrix<double> {
         ldc: n,
       );
       if (success) {
-        return Float64Matrix(
+        return Float64Matrix._(
           Matrix(
             Tensor.internal(
               type: DataType.float64,
@@ -187,7 +263,7 @@ extension type Float64Matrix(Matrix<double> _matrix) implements Matrix<double> {
         );
       }
     }
-    return Float64Matrix(_matrix * other);
+    return Float64Matrix._(_matrix * other);
   }
 
   /// High-performance matrix-vector multiplication routing directly to BLAS
@@ -209,11 +285,9 @@ extension type Float64Matrix(Matrix<double> _matrix) implements Matrix<double> {
         tA.offset == 0 &&
         tX.offset == 0) {
       final out = Float64List(m);
-      final xData = x is Float64Vector
-          ? x.asTypedList
-          : (tX.data is Float64List
-                ? tX.data as Float64List
-                : Float64List.fromList(tX.data));
+      final xData = tX.data is Float64List
+          ? tX.data as Float64List
+          : Float64List.fromList(tX.data);
       final success = Blas.dgemv(
         m: m,
         n: n,
@@ -252,7 +326,7 @@ extension type Float64Matrix(Matrix<double> _matrix) implements Matrix<double> {
       for (var i = 0; i < len; i++) {
         out[i] = data[i] * scalar;
       }
-      return Float64Matrix(
+      return Float64Matrix._(
         Matrix(
           Tensor.internal(
             type: DataType.float64,
@@ -262,7 +336,7 @@ extension type Float64Matrix(Matrix<double> _matrix) implements Matrix<double> {
         ),
       );
     }
-    return Float64Matrix(_matrix.scale(scalar));
+    return Float64Matrix._(_matrix.scale(scalar));
   }
 
   /// Inlined matrix addition.
@@ -282,15 +356,13 @@ extension type Float64Matrix(Matrix<double> _matrix) implements Matrix<double> {
         tB.offset == 0) {
       final out = Float64List(len);
       final a = asTypedList;
-      final b = other is Float64Matrix
-          ? other.asTypedList
-          : (tB.data is Float64List
-                ? tB.data as Float64List
-                : Float64List.fromList(tB.data));
+      final b = tB.data is Float64List
+          ? tB.data as Float64List
+          : Float64List.fromList(tB.data);
       for (var i = 0; i < len; i++) {
         out[i] = a[i] + b[i];
       }
-      return Float64Matrix(
+      return Float64Matrix._(
         Matrix(
           Tensor.internal(
             type: DataType.float64,
@@ -300,7 +372,7 @@ extension type Float64Matrix(Matrix<double> _matrix) implements Matrix<double> {
         ),
       );
     }
-    return Float64Matrix(_matrix + other);
+    return Float64Matrix._(_matrix + other);
   }
 
   /// Inlined matrix subtraction.
@@ -320,15 +392,13 @@ extension type Float64Matrix(Matrix<double> _matrix) implements Matrix<double> {
         tB.offset == 0) {
       final out = Float64List(len);
       final a = asTypedList;
-      final b = other is Float64Matrix
-          ? other.asTypedList
-          : (tB.data is Float64List
-                ? tB.data as Float64List
-                : Float64List.fromList(tB.data));
+      final b = tB.data is Float64List
+          ? tB.data as Float64List
+          : Float64List.fromList(tB.data);
       for (var i = 0; i < len; i++) {
         out[i] = a[i] - b[i];
       }
-      return Float64Matrix(
+      return Float64Matrix._(
         Matrix(
           Tensor.internal(
             type: DataType.float64,
@@ -338,7 +408,7 @@ extension type Float64Matrix(Matrix<double> _matrix) implements Matrix<double> {
         ),
       );
     }
-    return Float64Matrix(_matrix - other);
+    return Float64Matrix._(_matrix - other);
   }
 
   /// Inlined matrix negation.
@@ -352,7 +422,7 @@ extension type Float64Matrix(Matrix<double> _matrix) implements Matrix<double> {
       for (var i = 0; i < len; i++) {
         out[i] = -a[i];
       }
-      return Float64Matrix(
+      return Float64Matrix._(
         Matrix(
           Tensor.internal(
             type: DataType.float64,
@@ -362,6 +432,6 @@ extension type Float64Matrix(Matrix<double> _matrix) implements Matrix<double> {
         ),
       );
     }
-    return Float64Matrix(-_matrix);
+    return Float64Matrix._(-_matrix);
   }
 }

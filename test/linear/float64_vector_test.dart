@@ -3,6 +3,7 @@ import 'dart:typed_data';
 import 'package:checks/checks.dart';
 import 'package:data/acceleration.dart';
 import 'package:data/linear.dart';
+import 'package:data/type.dart';
 import 'package:test/test.dart';
 
 void main() {
@@ -159,5 +160,41 @@ void main() {
       final divOffset = a / offsetVec;
       check(divOffset[0]).isCloseTo(0.1, 1e-9);
     });
+
+    test('subVector out-of-bounds indexing throws RangeError', () {
+      final v = Float64Vector.fromList([10.0, 20.0, 30.0, 40.0]);
+      final sub = v.subVector(0, 2);
+      check(sub.length).equals(2);
+      check(sub[0]).equals(10.0);
+      check(sub[1]).equals(20.0);
+
+      check(() => sub[2]).throws<RangeError>();
+      check(() => sub[3]).throws<RangeError>();
+      check(() => sub[-1]).throws<RangeError>();
+      check(() => sub[2] = 99.0).throws<RangeError>();
+      check(() => sub[-1] = 99.0).throws<RangeError>();
+
+      // getUnchecked and setUnchecked bypass bounds checks
+      check(sub.getUnchecked(2)).equals(30.0);
+      sub.setUnchecked(2, 35.0);
+      check(v[2]).equals(35.0);
+      v[2] = 30.0;
+    });
+
+    test(
+      'constructor rejects non-Float64List backing and fromDoubleVector copies',
+      () {
+        final f32Vec = Vector<double>.filled(3, 1.0, type: DataType.float32);
+        check(() => Float64Vector(f32Vec)).throws<ArgumentError>();
+
+        final copied = Float64Vector.fromDoubleVector(f32Vec);
+        check(copied.length).equals(3);
+        check(copied.asTypedList).isA<Float64List>();
+        check(copied.asTypedList).deepEquals([1.0, 1.0, 1.0]);
+        copied[0] = 42.0;
+        check(copied[0]).equals(42.0);
+        check(f32Vec[0]).equals(1.0);
+      },
+    );
   });
 }

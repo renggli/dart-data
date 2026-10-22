@@ -21,10 +21,45 @@ import 'tensor.dart';
 /// final t = Float64Tensor.filled(0.0, shape: [2, 3]);
 /// print(t.rank); // 2
 /// ```
-extension type Float64Tensor(Tensor<double> _tensor) implements Tensor<double> {
+extension type Float64Tensor._(Tensor<double> _tensor)
+    implements Tensor<double> {
+  /// Constructs a [Float64Tensor] wrapping [tensor].
+  ///
+  /// Throws an [ArgumentError] if `tensor.data` is not a [Float64List].
+  factory(Tensor<double> tensor) {
+    if (tensor.data is! Float64List) {
+      throw ArgumentError.value(
+        tensor,
+        'tensor',
+        'Float64Tensor requires underlying data to be Float64List, got ${tensor.data.runtimeType}',
+      );
+    }
+    return Float64Tensor._(tensor);
+  }
+
+  /// Constructs a [Float64Tensor] from any [Tensor<double>], copying elements
+  /// to a [Float64List] if not already backed by one.
+  factory fromDoubleTensor(Tensor<double> tensor) {
+    if (tensor.data is Float64List) {
+      return Float64Tensor._(tensor);
+    }
+    final copy = Float64List(tensor.data.length);
+    final data = tensor.data;
+    for (var i = 0; i < copy.length; i++) {
+      copy[i] = data[i];
+    }
+    return Float64Tensor._(
+      Tensor.internal(
+        type: DataType.float64,
+        layout: tensor.layout,
+        data: copy,
+      ),
+    );
+  }
+
   /// Constructs a [Float64Tensor] filled with [value].
   factory filled(double value, {List<int>? shape, List<int>? strides}) =>
-      Float64Tensor(
+      Float64Tensor._(
         Tensor<double>.filled(
           value,
           shape: shape,
@@ -38,7 +73,7 @@ extension type Float64Tensor(Tensor<double> _tensor) implements Tensor<double> {
     double Function(List<int> key) generator, {
     required List<int> shape,
     List<int>? strides,
-  }) => Float64Tensor(
+  }) => Float64Tensor._(
     Tensor<double>.generate(
       generator,
       shape: shape,
@@ -52,7 +87,7 @@ extension type Float64Tensor(Tensor<double> _tensor) implements Tensor<double> {
     Iterable<double> iterable, {
     List<int>? shape,
     List<int>? strides,
-  }) => Float64Tensor(
+  }) => Float64Tensor._(
     Tensor<double>.fromIterable(
       iterable,
       shape: shape,
@@ -62,9 +97,7 @@ extension type Float64Tensor(Tensor<double> _tensor) implements Tensor<double> {
   );
 
   /// Direct zero-copy access to the underlying [Float64List] buffer.
-  Float64List get asTypedList => _tensor.data is Float64List
-      ? _tensor.data as Float64List
-      : Float64List.fromList(_tensor.data);
+  Float64List get asTypedList => _tensor.data as Float64List;
 
   /// Fast element access for 1D tensors.
   @pragma('vm:prefer-inline')
@@ -92,12 +125,12 @@ extension type Float64Tensor(Tensor<double> _tensor) implements Tensor<double> {
   /// Returns a reshaped view as [Float64Tensor].
   @redeclare
   Float64Tensor reshape(List<int> newShape) =>
-      Float64Tensor(_tensor.reshape(newShape));
+      Float64Tensor._(_tensor.reshape(newShape));
 
   /// Returns a transposed view as [Float64Tensor].
   @redeclare
   Float64Tensor transpose([List<int>? permutation]) =>
-      Float64Tensor(_tensor.transpose(permutation));
+      Float64Tensor._(_tensor.transpose(permutation));
 
   /// Inlined contiguous element-wise addition.
   Float64Tensor operator +(Tensor<double> other) {
@@ -114,7 +147,7 @@ extension type Float64Tensor(Tensor<double> _tensor) implements Tensor<double> {
       for (var i = 0; i < length; i++) {
         out[i] = a[aOff + i] + b[bOff + i];
       }
-      return Float64Tensor(
+      return Float64Tensor._(
         Tensor.internal(
           type: DataType.float64,
           layout: Layout(shape: shape),
@@ -122,7 +155,7 @@ extension type Float64Tensor(Tensor<double> _tensor) implements Tensor<double> {
         ),
       );
     }
-    return Float64Tensor(_tensor + other);
+    return Float64Tensor._(_tensor + other);
   }
 
   /// Inlined contiguous element-wise subtraction.
@@ -140,7 +173,7 @@ extension type Float64Tensor(Tensor<double> _tensor) implements Tensor<double> {
       for (var i = 0; i < length; i++) {
         out[i] = a[aOff + i] - b[bOff + i];
       }
-      return Float64Tensor(
+      return Float64Tensor._(
         Tensor.internal(
           type: DataType.float64,
           layout: Layout(shape: shape),
@@ -148,7 +181,7 @@ extension type Float64Tensor(Tensor<double> _tensor) implements Tensor<double> {
         ),
       );
     }
-    return Float64Tensor(_tensor - other);
+    return Float64Tensor._(_tensor - other);
   }
 
   /// Inlined contiguous element-wise multiplication.
@@ -166,7 +199,7 @@ extension type Float64Tensor(Tensor<double> _tensor) implements Tensor<double> {
       for (var i = 0; i < length; i++) {
         out[i] = a[aOff + i] * b[bOff + i];
       }
-      return Float64Tensor(
+      return Float64Tensor._(
         Tensor.internal(
           type: DataType.float64,
           layout: Layout(shape: shape),
@@ -174,7 +207,7 @@ extension type Float64Tensor(Tensor<double> _tensor) implements Tensor<double> {
         ),
       );
     }
-    return Float64Tensor(_tensor * other);
+    return Float64Tensor._(_tensor * other);
   }
 
   /// Inlined contiguous element-wise division.
@@ -192,7 +225,7 @@ extension type Float64Tensor(Tensor<double> _tensor) implements Tensor<double> {
       for (var i = 0; i < length; i++) {
         out[i] = a[aOff + i] / b[bOff + i];
       }
-      return Float64Tensor(
+      return Float64Tensor._(
         Tensor.internal(
           type: DataType.float64,
           layout: Layout(shape: shape),
@@ -200,7 +233,7 @@ extension type Float64Tensor(Tensor<double> _tensor) implements Tensor<double> {
         ),
       );
     }
-    return Float64Tensor(_tensor / other);
+    return Float64Tensor._(_tensor / other);
   }
 
   /// Inlined unary negation.
@@ -212,7 +245,7 @@ extension type Float64Tensor(Tensor<double> _tensor) implements Tensor<double> {
       for (var i = 0; i < length; i++) {
         out[i] = -a[aOff + i];
       }
-      return Float64Tensor(
+      return Float64Tensor._(
         Tensor.internal(
           type: DataType.float64,
           layout: Layout(shape: shape),
@@ -220,7 +253,7 @@ extension type Float64Tensor(Tensor<double> _tensor) implements Tensor<double> {
         ),
       );
     }
-    return Float64Tensor(-_tensor);
+    return Float64Tensor._(-_tensor);
   }
 
   /// Scales all elements by [scalar].
@@ -232,7 +265,7 @@ extension type Float64Tensor(Tensor<double> _tensor) implements Tensor<double> {
       for (var i = 0; i < length; i++) {
         out[i] = a[aOff + i] * scalar;
       }
-      return Float64Tensor(
+      return Float64Tensor._(
         Tensor.internal(
           type: DataType.float64,
           layout: Layout(shape: shape),
@@ -240,7 +273,7 @@ extension type Float64Tensor(Tensor<double> _tensor) implements Tensor<double> {
         ),
       );
     }
-    return Float64Tensor(_tensor.unaryOperation((val) => val * scalar));
+    return Float64Tensor._(_tensor.unaryOperation((val) => val * scalar));
   }
 }
 

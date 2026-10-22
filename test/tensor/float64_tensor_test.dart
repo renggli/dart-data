@@ -3,6 +3,7 @@ import 'dart:typed_data';
 import 'package:checks/checks.dart';
 import 'package:data/acceleration.dart';
 import 'package:data/tensor.dart';
+import 'package:data/type.dart';
 import 'package:test/test.dart';
 
 void main() {
@@ -136,5 +137,25 @@ void main() {
         AccelerationManager.mode = prev;
       }
     });
+
+    test(
+      'constructor rejects non-Float64List backing and fromDoubleTensor copies',
+      () {
+        final f32Tensor = Tensor<double>.filled(
+          1.0,
+          shape: [2, 2],
+          type: DataType.float32,
+        );
+        check(() => Float64Tensor(f32Tensor)).throws<ArgumentError>();
+
+        final copied = Float64Tensor.fromDoubleTensor(f32Tensor);
+        check(copied.shape).deepEquals([2, 2]);
+        check(copied.asTypedList).isA<Float64List>();
+        check(copied.asTypedList).deepEquals([1.0, 1.0, 1.0, 1.0]);
+        copied.set2D(0, 0, 42.0);
+        check(copied.get2D(0, 0)).equals(42.0);
+        check(f32Tensor.getValue([0, 0])).equals(1.0);
+      },
+    );
   });
 }

@@ -3,6 +3,7 @@ import 'dart:typed_data';
 import 'package:checks/checks.dart';
 import 'package:data/acceleration.dart';
 import 'package:data/linear.dart';
+import 'package:data/type.dart';
 import 'package:test/test.dart';
 
 void main() {
@@ -191,5 +192,75 @@ void main() {
       final diffOffset = a - offsetMat;
       check(diffOffset.asTypedList).deepEquals([-9.0, -18.0, -27.0, -36.0]);
     });
+
+    test('subMatrix and row/col out-of-bounds indexing throws RangeError', () {
+      final full = Float64Matrix.fromList(3, 3, [
+        1.0,
+        2.0,
+        3.0,
+        4.0,
+        5.0,
+        6.0,
+        7.0,
+        8.0,
+        9.0,
+      ]);
+      final sub = full.subMatrix(
+        rowStart: 0,
+        rowEnd: 2,
+        colStart: 0,
+        colEnd: 2,
+      );
+      check(sub.rowCount).equals(2);
+      check(sub.colCount).equals(2);
+      check(sub.get(0, 0)).equals(1.0);
+      check(sub.get(1, 1)).equals(5.0);
+
+      // Checked access
+      check(() => sub.get(2, 0)).throws<RangeError>();
+      check(() => sub.get(0, 2)).throws<RangeError>();
+      check(() => sub.get(-1, 0)).throws<RangeError>();
+      check(() => sub.get(0, -1)).throws<RangeError>();
+
+      check(() => sub.set(2, 0, 99.0)).throws<RangeError>();
+      check(() => sub.set(0, 2, 99.0)).throws<RangeError>();
+      check(() => sub.set(-1, 0, 99.0)).throws<RangeError>();
+      check(() => sub.set(0, -1, 99.0)).throws<RangeError>();
+
+      // operator [] row and col
+      check(() => sub[2]).throws<RangeError>();
+      check(() => sub[-1]).throws<RangeError>();
+      check(() => sub[0][2]).throws<RangeError>();
+      check(() => sub[0][-1]).throws<RangeError>();
+      check(() => sub[0][2] = 99.0).throws<RangeError>();
+
+      check(() => sub.row(2)).throws<RangeError>();
+      check(() => sub.row(-1)).throws<RangeError>();
+      check(() => sub.col(2)).throws<RangeError>();
+      check(() => sub.col(-1)).throws<RangeError>();
+
+      // getUnchecked and setUnchecked bypass bounds checks
+      check(sub.getUnchecked(0, 2)).equals(3.0);
+      sub.setUnchecked(0, 2, 33.0);
+      check(full.get(0, 2)).equals(33.0);
+      full.set(0, 2, 3.0);
+    });
+
+    test(
+      'constructor rejects non-Float64List backing and fromDoubleMatrix copies',
+      () {
+        final f32Mat = Matrix<double>.filled(2, 2, 1.0, type: DataType.float32);
+        check(() => Float64Matrix(f32Mat)).throws<ArgumentError>();
+
+        final copied = Float64Matrix.fromDoubleMatrix(f32Mat);
+        check(copied.rowCount).equals(2);
+        check(copied.colCount).equals(2);
+        check(copied.asTypedList).isA<Float64List>();
+        check(copied.asTypedList).deepEquals([1.0, 1.0, 1.0, 1.0]);
+        copied.set(0, 0, 42.0);
+        check(copied.get(0, 0)).equals(42.0);
+        check(f32Mat.get(0, 0)).equals(1.0);
+      },
+    );
   });
 }
