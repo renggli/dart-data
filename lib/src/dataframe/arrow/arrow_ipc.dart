@@ -1,6 +1,8 @@
 import 'dart:convert' show utf8;
 import 'dart:typed_data';
 
+import 'package:meta/meta.dart';
+
 import '../../../type.dart';
 import '../bitmask.dart';
 import '../dataframe.dart';
@@ -41,7 +43,15 @@ void _writeUint64(ByteData data, int offset, int val) {
 abstract final class ArrowIpc {
   /// Encodes a [DataFrame] into an Apache Arrow IPC stream byte buffer.
   static Uint8List encode(DataFrame df) {
-    final builder = _ArrowIpcStreamWriter(df);
+    final builder = _ArrowIpcStreamWriter([df]);
+    return builder.build();
+  }
+
+  /// Encodes multiple [DataFrame] batches sharing the same schema into an
+  /// Apache Arrow IPC stream byte buffer.
+  static Uint8List encodeBatches(List<DataFrame> batches) {
+    if (batches.isEmpty) return encode(DataFrame([]));
+    final builder = _ArrowIpcStreamWriter(batches);
     return builder.build();
   }
 
@@ -50,22 +60,47 @@ abstract final class ArrowIpc {
     final reader = _ArrowIpcStreamReader(bytes);
     return reader.read();
   }
+
+  /// For testing: encodes an Apache Arrow IPC stream with mock dictionary
+  /// encoding or batch compression.
+  @visibleForTesting
+  static Uint8List encodeForTesting(
+    DataFrame df, {
+    bool dictionaryEncoding = false,
+    bool recordBatchCompression = false,
+  }) {
+    final builder = _ArrowIpcStreamWriter(
+      [df],
+      dictionaryEncoding: dictionaryEncoding,
+      recordBatchCompression: recordBatchCompression,
+    );
+    return builder.build();
+  }
 }
 
 class _ArrowIpcStreamWriter {
-  new(this.df);
+  new(
+    this.batches, {
+    this.dictionaryEncoding = false,
+    this.recordBatchCompression = false,
+  });
 
-  final DataFrame df;
+  final List<DataFrame> batches;
+  final bool dictionaryEncoding;
+  final bool recordBatchCompression;
   final BytesBuilder _builder = BytesBuilder(copy: false);
 
   Uint8List build() {
+    final schemaDf = batches.isNotEmpty ? batches.first : DataFrame([]);
     // 1. Write Schema Message
-    final schemaFb = _buildSchemaFlatBuffer();
+    final schemaFb = _buildSchemaFlatBuffer(schemaDf);
     _writeMessage(schemaFb, null);
 
-    // 2. Write RecordBatch Message if there are rows or columns
-    final (batchFb, bodyBytes) = _buildRecordBatchFlatBufferAndBody();
-    _writeMessage(batchFb, bodyBytes);
+    // 2. Write RecordBatch Messages
+    for (final df in batches) {
+      final (batchFb, bodyBytes) = _buildRecordBatchFlatBufferAndBody(df);
+      _writeMessage(batchFb, bodyBytes);
+    }
 
     // 3. Write End-of-Stream Message (4 bytes 0xFFFFFFFF, 4 bytes 0x00000000)
     final eos = Uint8List(8);
@@ -103,25 +138,35 @@ class _ArrowIpcStreamWriter {
     }
   }
 
-  Uint8List _buildSchemaFlatBuffer() {
+  Uint8List _buildSchemaFlatBuffer(DataFrame schemaDf) {
     final fb = _FlatBufferWriter();
 
     // 1. Serialize each field
     final fieldOffsets = <int>[];
-    for (final col in df.columns) {
+    for (final col in schemaDf.columns) {
       final nameOffset = fb.addString(col.name);
       final (typeType, typeOffset) = _serializeType(fb, col);
 
-      // Field table: name, nullable, type_type, type
-      // vtable: [name: 0, nullable: 1, type_type: 2, type: 3]
+      // Field table: name, nullable, type_type, type, dictionary
+      // vtable: [name: 0, nullable: 1, type_type: 2, type: 3, dictionary: 4]
+      final dummyDictOffset = dictionaryEncoding
+          ? fb.addTable([0, 0], [_FbFieldType.int64, _FbFieldType.offset])
+          : null;
       fieldOffsets.add(
         fb.addTable(
-          [nameOffset, if (col.hasNulls) 1 else 0, typeType, typeOffset],
+          [
+            nameOffset,
+            if (col.hasNulls) 1 else 0,
+            typeType,
+            typeOffset,
+            ?dummyDictOffset,
+          ],
           [
             _FbFieldType.offset,
             _FbFieldType.boolean,
             _FbFieldType.uint8,
             _FbFieldType.offset,
+            if (dummyDictOffset != null) _FbFieldType.offset,
           ],
         ),
       );
@@ -219,7 +264,7 @@ class _ArrowIpcStreamWriter {
     throw UnsupportedError('Unsupported Arrow type for column ${col.name}');
   }
 
-  (Uint8List, Uint8List) _buildRecordBatchFlatBufferAndBody() {
+  (Uint8List, Uint8List) _buildRecordBatchFlatBufferAndBody(DataFrame batchDf) {
     final bodyBuilder = BytesBuilder(copy: false);
     var currentBodyOffset = 0;
 
@@ -241,7 +286,7 @@ class _ArrowIpcStreamWriter {
       }
     }
 
-    for (final col in df.columns) {
+    for (final col in batchDf.columns) {
       nodes.add((col.length, col.nullCount));
 
       // 1. Validity buffer (Buffer 0)
@@ -330,10 +375,18 @@ class _ArrowIpcStreamWriter {
       writer.putInt64(offset);
     }, 16);
 
-    // RecordBatch table: length (int64), nodes (vector), buffers (vector)
+    // RecordBatch table: length (int64), nodes (vector), buffers (vector), compression (table)
+    final dummyCompOffset = recordBatchCompression
+        ? fb.addTable([0, 0], [_FbFieldType.int16, _FbFieldType.int16])
+        : null;
     final batchOffset = fb.addTable(
-      [df.rowCount, nodesVecOffset, buffersVecOffset],
-      [_FbFieldType.int64, _FbFieldType.offset, _FbFieldType.offset],
+      [batchDf.rowCount, nodesVecOffset, buffersVecOffset, ?dummyCompOffset],
+      [
+        _FbFieldType.int64,
+        _FbFieldType.offset,
+        _FbFieldType.offset,
+        if (dummyCompOffset != null) _FbFieldType.offset,
+      ],
     );
 
     // Message table: version = 4, header_type = 2 (RecordBatch), header =
@@ -361,7 +414,7 @@ class _ArrowIpcStreamReader {
 
   DataFrame read() {
     List<_ArrowFieldDesc>? schemaFields;
-    DataFrame? resultDf;
+    final batches = <DataFrame>[];
 
     while (_cursor + 8 <= bytes.length) {
       final headerView = ByteData.sublistView(bytes, _cursor, _cursor + 8);
@@ -419,17 +472,29 @@ class _ArrowIpcStreamReader {
         _cursor += bodyPadding;
 
         if (headerOffset != null) {
-          resultDf = _readRecordBatch(
+          final batchDf = _readRecordBatch(
             fbBytes,
             headerOffset,
             schemaFields,
             bodyBytes,
           );
+          batches.add(batchDf);
         }
       }
     }
 
-    if (resultDf != null) return resultDf;
+    if (batches.length == 1) {
+      return batches.first;
+    } else if (batches.length > 1) {
+      final fields = schemaFields!;
+      final columns = <Series<dynamic>>[];
+      for (var i = 0; i < fields.length; i++) {
+        final field = fields[i];
+        final colBatches = [for (final b in batches) b.columns[i]];
+        columns.add(_concatSeries(field.name, field.typeCode, colBatches));
+      }
+      return DataFrame(columns);
+    }
 
     // If no RecordBatch was emitted (e.g. empty DataFrame with schema)
     if (schemaFields != null) {
@@ -531,6 +596,12 @@ class _ArrowIpcStreamReader {
       final nullable = (reader.readUint8(fieldPos, 1) ?? 1) == 1;
       final typeType = reader.readUint8(fieldPos, 2) ?? 0;
       final typePos = reader.readTableOffset(fieldPos, 3);
+      final dictPos = reader.readTableOffset(fieldPos, 4);
+      if (dictPos != null) {
+        throw UnsupportedError(
+          'Dictionary-encoded Arrow fields are currently not supported (field: "$name").',
+        );
+      }
 
       var typeCode = 0;
       if (typeType == 5) {
@@ -563,6 +634,12 @@ class _ArrowIpcStreamReader {
     Uint8List body,
   ) {
     final reader = _FlatBufferReader(fbBytes);
+    final compressionPos = reader.readTableOffset(batchPos, 3);
+    if (compressionPos != null) {
+      throw UnsupportedError(
+        'Compressed Arrow IPC RecordBatches are currently not supported.',
+      );
+    }
     final nodesVec = reader.readVectorOffset(batchPos, 1);
     final buffersVec = reader.readVectorOffset(batchPos, 2);
 
@@ -712,22 +789,16 @@ class _ArrowIpcStreamReader {
   ) {
     switch (typeCode) {
       case 302:
-        final data = Float64List.fromList(
-          Float64List.sublistView(body, offset, offset + length * 8),
-        );
         return TypedSeries<double>(
           name: name,
-          data: data,
+          data: _readFloat64Buffer(body, offset, length),
           mask: mask,
           dataType: DataType.float64,
         );
       case 301:
-        final data = Float32List.fromList(
-          Float32List.sublistView(body, offset, offset + length * 4),
-        );
         return TypedSeries<double>(
           name: name,
-          data: data,
+          data: _readFloat32Buffer(body, offset, length),
           mask: mask,
           dataType: DataType.float32,
         );
@@ -744,22 +815,16 @@ class _ArrowIpcStreamReader {
           dataType: DataType.int64,
         );
       case 232:
-        final data = Int32List.fromList(
-          Int32List.sublistView(body, offset, offset + length * 4),
-        );
         return TypedSeries<int>(
           name: name,
-          data: data,
+          data: _readInt32Buffer(body, offset, length),
           mask: mask,
           dataType: DataType.int32,
         );
       case 216:
-        final data = Int16List.fromList(
-          Int16List.sublistView(body, offset, offset + length * 2),
-        );
         return TypedSeries<int>(
           name: name,
-          data: data,
+          data: _readInt16Buffer(body, offset, length),
           mask: mask,
           dataType: DataType.int16,
         );
@@ -786,22 +851,16 @@ class _ArrowIpcStreamReader {
           dataType: DataType.uint64,
         );
       case 132:
-        final data = Uint32List.fromList(
-          Uint32List.sublistView(body, offset, offset + length * 4),
-        );
         return TypedSeries<int>(
           name: name,
-          data: data,
+          data: _readUint32Buffer(body, offset, length),
           mask: mask,
           dataType: DataType.uint32,
         );
       case 116:
-        final data = Uint16List.fromList(
-          Uint16List.sublistView(body, offset, offset + length * 2),
-        );
         return TypedSeries<int>(
           name: name,
-          data: data,
+          data: _readUint16Buffer(body, offset, length),
           mask: mask,
           dataType: DataType.uint16,
         );
@@ -817,6 +876,328 @@ class _ArrowIpcStreamReader {
         );
       default:
         throw UnsupportedError('Unsupported type code: $typeCode');
+    }
+  }
+
+  static Float64List _readFloat64Buffer(
+    Uint8List body,
+    int offset,
+    int length,
+  ) {
+    if (length == 0) return Float64List(0);
+    final byteLength = length * 8;
+    if ((body.offsetInBytes + offset) % 8 == 0) {
+      return Float64List.fromList(
+        Float64List.sublistView(body, offset, offset + byteLength),
+      );
+    }
+    final aligned = Uint8List(byteLength);
+    aligned.setRange(0, byteLength, body, offset);
+    return Float64List.sublistView(aligned);
+  }
+
+  static Float32List _readFloat32Buffer(
+    Uint8List body,
+    int offset,
+    int length,
+  ) {
+    if (length == 0) return Float32List(0);
+    final byteLength = length * 4;
+    if ((body.offsetInBytes + offset) % 4 == 0) {
+      return Float32List.fromList(
+        Float32List.sublistView(body, offset, offset + byteLength),
+      );
+    }
+    final aligned = Uint8List(byteLength);
+    aligned.setRange(0, byteLength, body, offset);
+    return Float32List.sublistView(aligned);
+  }
+
+  static Int32List _readInt32Buffer(Uint8List body, int offset, int length) {
+    if (length == 0) return Int32List(0);
+    final byteLength = length * 4;
+    if ((body.offsetInBytes + offset) % 4 == 0) {
+      return Int32List.fromList(
+        Int32List.sublistView(body, offset, offset + byteLength),
+      );
+    }
+    final aligned = Uint8List(byteLength);
+    aligned.setRange(0, byteLength, body, offset);
+    return Int32List.sublistView(aligned);
+  }
+
+  static Int16List _readInt16Buffer(Uint8List body, int offset, int length) {
+    if (length == 0) return Int16List(0);
+    final byteLength = length * 2;
+    if ((body.offsetInBytes + offset) % 2 == 0) {
+      return Int16List.fromList(
+        Int16List.sublistView(body, offset, offset + byteLength),
+      );
+    }
+    final aligned = Uint8List(byteLength);
+    aligned.setRange(0, byteLength, body, offset);
+    return Int16List.sublistView(aligned);
+  }
+
+  static Uint32List _readUint32Buffer(Uint8List body, int offset, int length) {
+    if (length == 0) return Uint32List(0);
+    final byteLength = length * 4;
+    if ((body.offsetInBytes + offset) % 4 == 0) {
+      return Uint32List.fromList(
+        Uint32List.sublistView(body, offset, offset + byteLength),
+      );
+    }
+    final aligned = Uint8List(byteLength);
+    aligned.setRange(0, byteLength, body, offset);
+    return Uint32List.sublistView(aligned);
+  }
+
+  static Uint16List _readUint16Buffer(Uint8List body, int offset, int length) {
+    if (length == 0) return Uint16List(0);
+    final byteLength = length * 2;
+    if ((body.offsetInBytes + offset) % 2 == 0) {
+      return Uint16List.fromList(
+        Uint16List.sublistView(body, offset, offset + byteLength),
+      );
+    }
+    final aligned = Uint8List(byteLength);
+    aligned.setRange(0, byteLength, body, offset);
+    return Uint16List.sublistView(aligned);
+  }
+
+  Series<dynamic> _concatSeries(
+    String name,
+    int typeCode,
+    List<Series<dynamic>> seriesList,
+  ) {
+    final totalLength = seriesList.fold<int>(0, (sum, s) => sum + s.length);
+    final anyHasNulls = seriesList.any((s) => s.hasNulls);
+    ValidityMask? combinedMask;
+    if (anyHasNulls) {
+      combinedMask = ValidityMask(totalLength);
+      var offset = 0;
+      for (final s in seriesList) {
+        if (s.hasNulls) {
+          final mask = s.mask;
+          for (var i = 0; i < s.length; i++) {
+            if (mask != null ? mask.isNull(i) : s.isNull(i)) {
+              combinedMask.setNull(offset + i);
+            }
+          }
+        }
+        offset += s.length;
+      }
+    }
+
+    if (typeCode == 5) {
+      var totalBytes = 0;
+      for (final s in seriesList) {
+        if (s is ArrowStringSeries) {
+          totalBytes += s.bytes.length;
+        } else {
+          for (var i = 0; i < s.length; i++) {
+            final val = s[i] as String?;
+            if (val != null) totalBytes += utf8.encode(val).length;
+          }
+        }
+      }
+      final combinedBytes = Uint8List(totalBytes);
+      final combinedOffsets = Uint32List(totalLength + 1);
+      var byteOffset = 0;
+      var rowOffset = 0;
+      combinedOffsets[0] = 0;
+
+      for (final s in seriesList) {
+        if (s is ArrowStringSeries) {
+          final sBytes = s.bytes;
+          final sOffsets = s.offsets;
+          combinedBytes.setRange(
+            byteOffset,
+            byteOffset + sBytes.length,
+            sBytes,
+          );
+          for (var i = 0; i < s.length; i++) {
+            combinedOffsets[rowOffset + i + 1] = byteOffset + sOffsets[i + 1];
+          }
+          byteOffset += sBytes.length;
+        } else {
+          for (var i = 0; i < s.length; i++) {
+            final val = s[i] as String?;
+            if (val != null) {
+              final encoded = utf8.encode(val);
+              combinedBytes.setRange(
+                byteOffset,
+                byteOffset + encoded.length,
+                encoded,
+              );
+              byteOffset += encoded.length;
+            }
+            combinedOffsets[rowOffset + i + 1] = byteOffset;
+          }
+        }
+        rowOffset += s.length;
+      }
+
+      return ArrowStringSeries(
+        name: name,
+        bytes: combinedBytes,
+        offsets: combinedOffsets,
+        mask: combinedMask,
+      );
+    } else if (typeCode == 6) {
+      final combinedData = List<bool>.filled(totalLength, false);
+      var offset = 0;
+      for (final s in seriesList) {
+        final sBool = s as BoolSeries;
+        combinedData.setRange(offset, offset + s.length, sBool.data);
+        offset += s.length;
+      }
+      return BoolSeries(name: name, data: combinedData, mask: combinedMask);
+    } else {
+      switch (typeCode) {
+        case 302:
+          final combinedData = Float64List(totalLength);
+          var offset = 0;
+          for (final s in seriesList) {
+            final data = (s as TypedSeries<double>).data as Float64List;
+            combinedData.setRange(offset, offset + s.length, data);
+            offset += s.length;
+          }
+          return TypedSeries<double>(
+            name: name,
+            data: combinedData,
+            mask: combinedMask,
+            dataType: DataType.float64,
+          );
+        case 301:
+          final combinedData = Float32List(totalLength);
+          var offset = 0;
+          for (final s in seriesList) {
+            final data = (s as TypedSeries<double>).data as Float32List;
+            combinedData.setRange(offset, offset + s.length, data);
+            offset += s.length;
+          }
+          return TypedSeries<double>(
+            name: name,
+            data: combinedData,
+            mask: combinedMask,
+            dataType: DataType.float32,
+          );
+        case 264:
+          final combinedData = DataType.int64.emptyList(totalLength);
+          var offset = 0;
+          for (final s in seriesList) {
+            final data = (s as TypedSeries<int>).data;
+            combinedData.setRange(offset, offset + s.length, data);
+            offset += s.length;
+          }
+          return TypedSeries<int>(
+            name: name,
+            data: combinedData,
+            mask: combinedMask,
+            dataType: DataType.int64,
+          );
+        case 232:
+          final combinedData = Int32List(totalLength);
+          var offset = 0;
+          for (final s in seriesList) {
+            final data = (s as TypedSeries<int>).data as Int32List;
+            combinedData.setRange(offset, offset + s.length, data);
+            offset += s.length;
+          }
+          return TypedSeries<int>(
+            name: name,
+            data: combinedData,
+            mask: combinedMask,
+            dataType: DataType.int32,
+          );
+        case 216:
+          final combinedData = Int16List(totalLength);
+          var offset = 0;
+          for (final s in seriesList) {
+            final data = (s as TypedSeries<int>).data as Int16List;
+            combinedData.setRange(offset, offset + s.length, data);
+            offset += s.length;
+          }
+          return TypedSeries<int>(
+            name: name,
+            data: combinedData,
+            mask: combinedMask,
+            dataType: DataType.int16,
+          );
+        case 208:
+          final combinedData = Int8List(totalLength);
+          var offset = 0;
+          for (final s in seriesList) {
+            final data = (s as TypedSeries<int>).data as Int8List;
+            combinedData.setRange(offset, offset + s.length, data);
+            offset += s.length;
+          }
+          return TypedSeries<int>(
+            name: name,
+            data: combinedData,
+            mask: combinedMask,
+            dataType: DataType.int8,
+          );
+        case 164:
+          final combinedData = DataType.uint64.emptyList(totalLength);
+          var offset = 0;
+          for (final s in seriesList) {
+            final data = (s as TypedSeries<int>).data;
+            combinedData.setRange(offset, offset + s.length, data);
+            offset += s.length;
+          }
+          return TypedSeries<int>(
+            name: name,
+            data: combinedData,
+            mask: combinedMask,
+            dataType: DataType.uint64,
+          );
+        case 132:
+          final combinedData = Uint32List(totalLength);
+          var offset = 0;
+          for (final s in seriesList) {
+            final data = (s as TypedSeries<int>).data as Uint32List;
+            combinedData.setRange(offset, offset + s.length, data);
+            offset += s.length;
+          }
+          return TypedSeries<int>(
+            name: name,
+            data: combinedData,
+            mask: combinedMask,
+            dataType: DataType.uint32,
+          );
+        case 116:
+          final combinedData = Uint16List(totalLength);
+          var offset = 0;
+          for (final s in seriesList) {
+            final data = (s as TypedSeries<int>).data as Uint16List;
+            combinedData.setRange(offset, offset + s.length, data);
+            offset += s.length;
+          }
+          return TypedSeries<int>(
+            name: name,
+            data: combinedData,
+            mask: combinedMask,
+            dataType: DataType.uint16,
+          );
+        case 108:
+          final combinedData = Uint8List(totalLength);
+          var offset = 0;
+          for (final s in seriesList) {
+            final data = (s as TypedSeries<int>).data as Uint8List;
+            combinedData.setRange(offset, offset + s.length, data);
+            offset += s.length;
+          }
+          return TypedSeries<int>(
+            name: name,
+            data: combinedData,
+            mask: combinedMask,
+            dataType: DataType.uint8,
+          );
+        default:
+          throw UnsupportedError('Unsupported type code: $typeCode');
+      }
     }
   }
 }

@@ -218,5 +218,86 @@ void main() {
       ]);
       check(df.toArrowIpc).throws<UnsupportedError>();
     });
+
+    test('multi-batch stream accumulates and concatenates all batches', () {
+      final batch1 = DataFrame.fromColumns({
+        'str': ['a', 'b'],
+        'num': [10.0, 20.0],
+        'flag': [true, false],
+      });
+      final batch2 = DataFrame.fromColumns({
+        'str': ['c', null, 'e'],
+        'num': [30.0, null, 50.0],
+        'flag': [true, true, false],
+      });
+      final batch3 = DataFrame.fromColumns({
+        'str': ['f'],
+        'num': [60.0],
+        'flag': [true],
+      });
+
+      final multiBytes = ArrowIpc.encodeBatches([batch1, batch2, batch3]);
+      final imported = ArrowIpc.decode(multiBytes);
+
+      check(imported.rowCount).equals(6);
+      check(imported.columnCount).equals(3);
+      check(imported['str'].toList())
+          .deepEquals(['a', 'b', 'c', null, 'e', 'f']);
+      check(imported['str'].nullCount).equals(1);
+      check(imported['num'].toList())
+          .deepEquals([10.0, 20.0, 30.0, null, 50.0, 60.0]);
+      check(imported['num'].nullCount).equals(1);
+      check(imported['flag'].toList())
+          .deepEquals([true, false, true, true, false, true]);
+    });
+
+    test('unaligned Uint8List.sublistView decodes without alignment crash', () {
+      final df = DataFrame.fromColumns({
+        'f64': [1.1, 2.2, 3.3, 4.4],
+        'f32': [10.5, 20.5, 30.5, 40.5],
+        'i32': [100, 200, 300, 400],
+        'i16': [1, 2, 3, 4],
+        'str': ['one', 'two', 'three', 'four'],
+        'bool': [true, false, true, false],
+      });
+      final original = df.toArrowIpc();
+
+      for (final offset in [1, 2, 3, 4, 5, 6, 7]) {
+        final padded = Uint8List(original.length + offset + 8);
+        padded.setRange(offset, offset + original.length, original);
+        final slice = Uint8List.sublistView(
+          padded,
+          offset,
+          offset + original.length,
+        );
+
+        final imported = ArrowIpc.decode(slice);
+        check(imported.rowCount).equals(4);
+        check(imported.columnCount).equals(6);
+        check(imported['f64'].toList()).deepEquals([1.1, 2.2, 3.3, 4.4]);
+        check(imported['i32'].toList()).deepEquals([100, 200, 300, 400]);
+        check(imported['str'].toList())
+            .deepEquals(['one', 'two', 'three', 'four']);
+      }
+    });
+
+    test('throws UnsupportedError on dictionary-encoded fields', () {
+      final df = DataFrame.fromColumns({
+        'x': [1, 2, 3],
+      });
+      final dictBytes = ArrowIpc.encodeForTesting(df, dictionaryEncoding: true);
+      check(() => ArrowIpc.decode(dictBytes)).throws<UnsupportedError>();
+    });
+
+    test('throws UnsupportedError on compressed record batches', () {
+      final df = DataFrame.fromColumns({
+        'x': [1, 2, 3],
+      });
+      final compBytes = ArrowIpc.encodeForTesting(
+        df,
+        recordBatchCompression: true,
+      );
+      check(() => ArrowIpc.decode(compBytes)).throws<UnsupportedError>();
+    });
   });
 }
