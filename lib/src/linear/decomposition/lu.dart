@@ -123,9 +123,10 @@ class LUDecomposition<T> {
     final field = _type.field;
     final zero = field.additiveIdentity;
     final one = field.multiplicativeIdentity;
-    final result = Matrix<T>.filled(_m, _n, zero, type: _type);
+    final k = math.min(_m, _n);
+    final result = Matrix<T>.filled(_m, k, zero, type: _type);
     for (var i = 0; i < _m; i++) {
-      for (var j = 0; j < _n; j++) {
+      for (var j = 0; j < k; j++) {
         if (i > j) {
           result.setUnchecked(i, j, _lu.getUnchecked(i, j));
         } else if (i == j) {
@@ -140,8 +141,9 @@ class LUDecomposition<T> {
   Matrix<T> get upper {
     final field = _type.field;
     final zero = field.additiveIdentity;
-    final result = Matrix<T>.filled(_n, _n, zero, type: _type);
-    for (var i = 0; i < _n; i++) {
+    final k = math.min(_m, _n);
+    final result = Matrix<T>.filled(k, _n, zero, type: _type);
+    for (var i = 0; i < k; i++) {
       for (var j = 0; j < _n; j++) {
         if (i <= j) {
           result.setUnchecked(i, j, _lu.getUnchecked(i, j));
@@ -204,27 +206,33 @@ class LUDecomposition<T> {
         lu.setUnchecked(i, j, lu.getUnchecked(i, j) - sum);
       }
 
-      var pivot = j;
-      for (var i = j + 1; i < _m; i++) {
-        if (lu.getUnchecked(i, j).abs() > lu.getUnchecked(pivot, j).abs()) {
-          pivot = i;
-        }
-      }
-      if (pivot != j) {
-        for (var k = 0; k < _n; k++) {
-          final temp = lu.getUnchecked(pivot, k);
-          lu.setUnchecked(pivot, k, lu.getUnchecked(j, k));
-          lu.setUnchecked(j, k, temp);
-        }
-        final k = _piv[pivot];
-        _piv[pivot] = _piv[j];
-        _piv[j] = k;
-        _pivSign = -_pivSign;
-      }
-
-      if (j < _m && lu.getUnchecked(j, j) != 0.0) {
+      if (j < _m) {
+        var pivot = j;
         for (var i = j + 1; i < _m; i++) {
-          lu.setUnchecked(i, j, lu.getUnchecked(i, j) / lu.getUnchecked(j, j));
+          if (lu.getUnchecked(i, j).abs() > lu.getUnchecked(pivot, j).abs()) {
+            pivot = i;
+          }
+        }
+        if (pivot != j) {
+          for (var k = 0; k < _n; k++) {
+            final temp = lu.getUnchecked(pivot, k);
+            lu.setUnchecked(pivot, k, lu.getUnchecked(j, k));
+            lu.setUnchecked(j, k, temp);
+          }
+          final k = _piv[pivot];
+          _piv[pivot] = _piv[j];
+          _piv[j] = k;
+          _pivSign = -_pivSign;
+        }
+
+        if (lu.getUnchecked(j, j) != 0.0) {
+          for (var i = j + 1; i < _m; i++) {
+            lu.setUnchecked(
+              i,
+              j,
+              lu.getUnchecked(i, j) / lu.getUnchecked(j, j),
+            );
+          }
         }
       }
     }
@@ -248,31 +256,33 @@ class LUDecomposition<T> {
         _lu.setUnchecked(i, j, field.sub(_lu.getUnchecked(i, j), sum));
       }
 
-      var pivot = j;
-      var maxNorm = _pivotNorm(field, _lu.getUnchecked(pivot, j), zero);
-      for (var i = j + 1; i < _m; i++) {
-        final norm = _pivotNorm(field, _lu.getUnchecked(i, j), zero);
-        if (norm > maxNorm) {
-          pivot = i;
-          maxNorm = norm;
-        }
-      }
-      if (pivot != j) {
-        for (var k = 0; k < _n; k++) {
-          final temp = _lu.getUnchecked(pivot, k);
-          _lu.setUnchecked(pivot, k, _lu.getUnchecked(j, k));
-          _lu.setUnchecked(j, k, temp);
-        }
-        final k = _piv[pivot];
-        _piv[pivot] = _piv[j];
-        _piv[j] = k;
-        _pivSign = -_pivSign;
-      }
-
-      if (j < _m && field.add(_lu.getUnchecked(j, j), zero) != zero) {
-        final ujj = _lu.getUnchecked(j, j);
+      if (j < _m) {
+        var pivot = j;
+        var maxNorm = _pivotNorm(field, _lu.getUnchecked(pivot, j), zero);
         for (var i = j + 1; i < _m; i++) {
-          _lu.setUnchecked(i, j, field.div(_lu.getUnchecked(i, j), ujj));
+          final norm = _pivotNorm(field, _lu.getUnchecked(i, j), zero);
+          if (norm > maxNorm) {
+            pivot = i;
+            maxNorm = norm;
+          }
+        }
+        if (pivot != j) {
+          for (var k = 0; k < _n; k++) {
+            final temp = _lu.getUnchecked(pivot, k);
+            _lu.setUnchecked(pivot, k, _lu.getUnchecked(j, k));
+            _lu.setUnchecked(j, k, temp);
+          }
+          final k = _piv[pivot];
+          _piv[pivot] = _piv[j];
+          _piv[j] = k;
+          _pivSign = -_pivSign;
+        }
+
+        if (field.add(_lu.getUnchecked(j, j), zero) != zero) {
+          final ujj = _lu.getUnchecked(j, j);
+          for (var i = j + 1; i < _m; i++) {
+            _lu.setUnchecked(i, j, field.div(_lu.getUnchecked(i, j), ujj));
+          }
         }
       }
     }

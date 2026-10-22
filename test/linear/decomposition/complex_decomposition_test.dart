@@ -375,5 +375,72 @@ void main() {
       ], type: DataType.complex);
       check(() => lu.solveVector(b)).throws<ArgumentError>();
     });
+
+    test('rectangular complex matrix decomposition 2x3 (m < n)', () {
+      final a = Matrix<Complex>.fromRows([
+        [
+          const Complex(1.0, 1.0),
+          const Complex(2.0, -1.0),
+          const Complex(3.0, 0.0),
+        ],
+        [
+          const Complex(4.0, 2.0),
+          const Complex(5.0, 0.0),
+          const Complex(6.0, -2.0),
+        ],
+      ], type: DataType.complex);
+
+      final lu = a.lu;
+      check(lu.m).equals(2);
+      check(lu.n).equals(3);
+      check(lu.isNonsingular).isFalse();
+
+      final l = lu.lower;
+      final u = lu.upper;
+      final piv = lu.pivot;
+
+      check(l.rowCount).equals(2);
+      check(l.colCount).equals(2);
+      check(u.rowCount).equals(2);
+      check(u.colCount).equals(3);
+
+      final luProd = l * u;
+      for (var i = 0; i < 2; i++) {
+        for (var j = 0; j < 3; j++) {
+          final paVal = a.get(piv[i], j);
+          check(luProd.get(i, j).closeTo(paVal, 1e-6)).isTrue();
+        }
+      }
+    });
+
+    test('rectangular complex matrix decomposition 3x2 (m > n)', () {
+      final a = Matrix<Complex>.fromRows([
+        [const Complex(1.0, 1.0), const Complex(2.0, -1.0)],
+        [const Complex(4.0, 2.0), const Complex(5.0, 0.0)],
+        [const Complex(0.0, 3.0), const Complex(-1.0, 2.0)],
+      ], type: DataType.complex);
+
+      final lu = a.lu;
+      check(lu.m).equals(3);
+      check(lu.n).equals(2);
+      check(lu.isNonsingular).isFalse();
+
+      final l = lu.lower;
+      final u = lu.upper;
+      final piv = lu.pivot;
+
+      check(l.rowCount).equals(3);
+      check(l.colCount).equals(2);
+      check(u.rowCount).equals(2);
+      check(u.colCount).equals(2);
+
+      final luProd = l * u;
+      for (var i = 0; i < 3; i++) {
+        for (var j = 0; j < 2; j++) {
+          final paVal = a.get(piv[i], j);
+          check(luProd.get(i, j).closeTo(paVal, 1e-6)).isTrue();
+        }
+      }
+    });
   });
 }

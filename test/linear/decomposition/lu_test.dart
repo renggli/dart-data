@@ -121,5 +121,78 @@ void main() {
       check(lu.isNonsingular).isFalse();
       check(() => lu.solve(a)).throws<ArgumentError>();
     });
+
+    test('rectangular matrix decomposition 2x3 (m < n)', () {
+      final a = Matrix<double>.fromRows([
+        [1.0, 2.0, 4.0],
+        [3.0, 8.0, 14.0],
+      ], type: DataType.float64);
+
+      final lu = a.lu;
+      check(lu.m).equals(2);
+      check(lu.n).equals(3);
+      check(lu.isNonsingular).isFalse();
+      check(() => lu.det).throws<ArgumentError>();
+
+      final lower = lu.lower;
+      final upper = lu.upper;
+      final piv = lu.pivot;
+
+      check(lower.rowCount).equals(2);
+      check(lower.colCount).equals(2);
+      check(lower.get(0, 0)).equals(1.0);
+      check(lower.get(1, 1)).equals(1.0);
+      check(lower.get(0, 1)).equals(0.0);
+
+      check(upper.rowCount).equals(2);
+      check(upper.colCount).equals(3);
+      check(upper.get(1, 0)).equals(0.0);
+
+      final luProd = lower * upper;
+      check(luProd.rowCount).equals(2);
+      check(luProd.colCount).equals(3);
+      for (var i = 0; i < 2; i++) {
+        for (var j = 0; j < 3; j++) {
+          check(luProd.get(i, j)).isCloseTo(a.get(piv[i], j), 1e-6);
+        }
+      }
+    });
+
+    test('rectangular matrix decomposition 3x2 (m > n)', () {
+      final a = Matrix<double>.fromRows([
+        [1.0, 2.0],
+        [3.0, 8.0],
+        [2.0, 6.0],
+      ], type: DataType.float64);
+
+      final lu = a.lu;
+      check(lu.m).equals(3);
+      check(lu.n).equals(2);
+      check(lu.isNonsingular).isFalse();
+      check(() => lu.det).throws<ArgumentError>();
+
+      final lower = lu.lower;
+      final upper = lu.upper;
+      final piv = lu.pivot;
+
+      check(lower.rowCount).equals(3);
+      check(lower.colCount).equals(2);
+      check(lower.get(0, 0)).equals(1.0);
+      check(lower.get(1, 1)).equals(1.0);
+      check(lower.get(0, 1)).equals(0.0);
+
+      check(upper.rowCount).equals(2);
+      check(upper.colCount).equals(2);
+      check(upper.get(1, 0)).equals(0.0);
+
+      final luProd = lower * upper;
+      check(luProd.rowCount).equals(3);
+      check(luProd.colCount).equals(2);
+      for (var i = 0; i < 3; i++) {
+        for (var j = 0; j < 2; j++) {
+          check(luProd.get(i, j)).isCloseTo(a.get(piv[i], j), 1e-6);
+        }
+      }
+    });
   });
 }
