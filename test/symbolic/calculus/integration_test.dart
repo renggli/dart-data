@@ -91,6 +91,22 @@ void main() {
 
       final oscImproper = Cos(x).integrate('x', from: 0, to: double.infinity);
       check(oscImproper).isA<Integral>();
+
+      // Interior singularity pole detection:
+      final divergentPole = Expr.parse('1/x^2').integrate('x', from: -1, to: 1);
+      check(divergentPole).isA<Integral>();
+
+      final shiftedPole = Expr.parse('1/(x - 1)^2')
+          .integrate('x', from: 0, to: 2);
+      check(shiftedPole).isA<Integral>();
+
+      // Non-overlapping interval with pole outside [1, 2] evaluates cleanly:
+      final outsidePole = Expr.parse('1/x^2').integrate('x', from: 1, to: 2);
+      check(outsidePole).equals(RationalNumber(1, 2));
+
+      // Negative bounds for logarithmic antiderivatives:
+      final negBoundsLog = Expr.parse('1/x').integrate('x', from: -2, to: -1);
+      check(negBoundsLog).equals(-Ln(IntegerNumber.two));
     });
   });
 
@@ -200,6 +216,9 @@ void main() {
         verifyAntiderivative(Pow(Constant.e, lin));
         verifyAntiderivative(Pow(IntegerNumber.two, lin));
         verifyAntiderivative(Pow(const RealNumber(2.5), lin));
+
+        // Negative float powers:
+        check(Expr.parse('x^(-1.0)').integrate('x')).equals(Ln(x));
 
         check(Pow(IntegerNumber.of(-2), x).integrate('x')).isA<Integral>();
         check(Pow(x, x).integrate('x')).isA<Integral>();
@@ -343,6 +362,10 @@ void main() {
       ]) {
         verifyAntiderivative(f, points: const [0.4, 0.7, 1.1]);
       }
+
+      // Chain rule power u-substitution with power -1 (such as 1/(x * ln(x))):
+      final xLnX = Expr.parse('1/(x * ln(x))').integrate('x');
+      check(xLnX).equals(Ln(Ln(x)));
     });
 
     test('integrates products via linear, cyclic, and higher-degree IBP', () {

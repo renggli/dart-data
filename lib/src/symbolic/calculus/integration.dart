@@ -6,6 +6,7 @@ import '../algebra/term_accumulator.dart';
 import '../assumptions.dart';
 import '../ast.dart';
 import '../compiler.dart';
+import '../solver/univariate.dart';
 import 'differentiation.dart';
 import 'limit.dart';
 import 'linear_form.dart';
@@ -130,13 +131,39 @@ Expr _symbolicIntegrate(
         isSimplified: true,
       );
     }
+    // Check for interior singularities/poles in finite intervals [a, b]
+    if (!_isInfiniteBound(fromExpr) && !_isInfiniteBound(toExpr)) {
+      final numFrom = _evaluateBoundNumeric(fromExpr);
+      final numTo = _evaluateBoundNumeric(toExpr);
+      if (numFrom != null && numTo != null) {
+        final low = numFrom < numTo ? numFrom : numTo;
+        final high = numFrom < numTo ? numTo : numFrom;
+        final poles = _findDenominatorRoots(function, variable);
+        for (final pole in poles) {
+          if (pole > low && pole < high) {
+            return Integral(
+              function.simplify(assumptions: assumptions),
+              variable,
+              lower: fromExpr,
+              upper: toExpr,
+              isSimplified: true,
+            );
+          }
+        }
+      }
+    }
+    final effectiveAntiDeriv = _wrapLnWithAbs(antiDeriv);
     try {
       final upper = _isInfiniteBound(toExpr)
-          ? antiDeriv.limit(variable, toExpr, assumptions: assumptions)
-          : antiDeriv.substitute(variable, toExpr);
+          ? effectiveAntiDeriv.limit(variable, toExpr, assumptions: assumptions)
+          : effectiveAntiDeriv.substitute(variable, toExpr);
       final lower = _isInfiniteBound(fromExpr)
-          ? antiDeriv.limit(variable, fromExpr, assumptions: assumptions)
-          : antiDeriv.substitute(variable, fromExpr);
+          ? effectiveAntiDeriv.limit(
+              variable,
+              fromExpr,
+              assumptions: assumptions,
+            )
+          : effectiveAntiDeriv.substitute(variable, fromExpr);
       return (upper - lower).simplify(assumptions: assumptions);
     } on Object {
       return Integral(
@@ -149,7 +176,84 @@ Expr _symbolicIntegrate(
     }
   }
 
-  return _antiDerivative(function, variable).simplify(assumptions: assumptions);
+  try {
+    return _antiDerivative(
+      function,
+      variable,
+    ).simplify(assumptions: assumptions);
+  } on Object {
+    return Integral(
+      function.simplify(assumptions: assumptions),
+      variable,
+      isSimplified: true,
+    );
+  }
+}
+
+double? _evaluateBoundNumeric(Expr bound) {
+  if (bound is Number) return bound.toDouble();
+  if (bound.freeVariables.isEmpty) {
+    try {
+      final v = bound.evaluate(const {});
+      if (v.isFinite) return v;
+    } catch (_) {}
+  }
+  return null;
+}
+
+List<Expr> _extractDenominatorFactors(Expr expr) {
+  final factors = <Expr>[];
+  void visit(Expr e) {
+    if (e is Pow) {
+      final exp = e.exponent;
+      if (exp is Number && exp.toDouble() < 0) {
+        factors.add(e.base);
+      }
+    } else if (e is Mul) {
+      for (final f in e.factors) {
+        visit(f);
+      }
+    } else if (e is Add) {
+      for (final t in e.terms) {
+        visit(t);
+      }
+    }
+  }
+
+  visit(expr);
+  return factors;
+}
+
+List<double> _findDenominatorRoots(Expr expr, String variable) {
+  final roots = <double>{};
+  final factors = _extractDenominatorFactors(expr);
+  for (final factor in factors) {
+    if (factor.dependsOn(variable)) {
+      try {
+        final solutions = factor.solve(variable);
+        for (final sol in solutions) {
+          if (sol is Number) {
+            final val = sol.toDouble();
+            if (val.isFinite) roots.add(val);
+          } else {
+            try {
+              final val = sol.evaluate(const {});
+              if (val.isFinite) roots.add(val);
+            } catch (_) {}
+          }
+        }
+      } catch (_) {}
+    }
+  }
+  return roots.toList();
+}
+
+Expr _wrapLnWithAbs(Expr expr) {
+  if (expr is Ln) {
+    if (expr.expr is Abs) return expr;
+    return Ln(Abs(_wrapLnWithAbs(expr.expr)));
+  }
+  return expr.mapChildren(_wrapLnWithAbs);
 }
 
 bool _hasUnevaluatedIntegral(Expr expr, String variable) => expr.anyNode(
@@ -468,7 +572,8 @@ Expr _antiDerivPow(Expr base, Expr exponent, Expr original, String variable) {
   // Form: (ax + b)^n
   if (!exponent.dependsOn(variable)) {
     if (base.matchLinear(variable) case (:final a, b: _)) {
-      if (exponent is IntegerNumber && exponent.isNegativeOne) {
+      if (exponent == IntegerNumber.negativeOne ||
+          (exponent is RealNumber && exponent.value == -1.0)) {
         return (Ln(base) / a).simplify();
       }
       final nPlus1 = (exponent + IntegerNumber.one).simplify();
@@ -808,6 +913,10 @@ Expr? _tryChainRulePower(
   final uPrime = base.derivative(variable).simplify();
   final k = factor.matchScalarMultiple(uPrime, variable);
   if (k != null) {
+    if (exponent == IntegerNumber.negativeOne ||
+        (exponent is RealNumber && exponent.value == -1.0)) {
+      return Ln(base).scale(k);
+    }
     final nPlus1 = (exponent + IntegerNumber.one).simplify();
     final fU = (Pow(base, nPlus1) / nPlus1).simplify();
     return fU.scale(k);
