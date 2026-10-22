@@ -153,7 +153,7 @@ sealed class Number extends Expr {
       RealNumber(:final value)
           when value == value.roundToDouble() &&
               value.abs() < 9007199254740992.0 =>
-        Integer(value.round()),
+        Integer.from(value.round()),
       _ => null,
     };
     if (intExp == null) return null;
@@ -253,24 +253,50 @@ sealed class Number extends Expr {
   }
 
   static Integer? _exactIntegerRoot(Integer n, int q) {
-    if (n.isNegative) return null;
+    if (n.isNegative || q <= 0) return null;
     if (n.isZero) return Integer.zero;
     if (n.isOne || q == 1) return n;
-    final approx = math.pow(n.toDouble(), 1.0 / q);
-    if (!approx.isFinite) return null;
-    final rInt = approx.round();
-    final candidate = Integer(rInt);
-    if (candidate.pow(q) == n) {
-      return candidate;
+    if (!n.isBig) {
+      final nInt = n.asInt;
+      if (nInt != null) {
+        final approx = math.pow(nInt, 1.0 / q);
+        if (approx.isFinite) {
+          final rInt = approx.round();
+          final candidate = Integer.from(rInt);
+          if (candidate.pow(q) == n) return candidate;
+          if (rInt > 0) {
+            final lower = Integer.from(rInt - 1);
+            if (lower.pow(q) == n) return lower;
+          }
+          final upper = Integer.from(rInt + 1);
+          if (upper.pow(q) == n) return upper;
+          return null;
+        }
+      }
     }
-    // Check neighbors in case of 1-ULP floating-point rounding
-    if (rInt > 0) {
-      final lower = Integer(rInt - 1);
-      if (lower.pow(q) == n) return lower;
+    final bigN = n.toBigInt();
+    final r = _bigIntNthRoot(bigN, q);
+    if (r != null && r.pow(q) == bigN) {
+      return Integer.big(r);
     }
-    final upper = Integer(rInt + 1);
-    if (upper.pow(q) == n) return upper;
     return null;
+  }
+
+  static BigInt? _bigIntNthRoot(BigInt n, int q) {
+    if (q <= 0) return null;
+    if (q == 1) return n;
+    if (q >= n.bitLength) return null;
+    var x = BigInt.one << ((n.bitLength + q - 1) ~/ q + 1);
+    final bigQ = BigInt.from(q);
+    final bigQMinus1 = BigInt.from(q - 1);
+    while (true) {
+      final xPowQMinus1 = x.pow(q - 1);
+      if (xPowQMinus1 == BigInt.zero) return null;
+      final next = (bigQMinus1 * x + n ~/ xPowQMinus1) ~/ bigQ;
+      if (next >= x) break;
+      x = next;
+    }
+    return x;
   }
 }
 
@@ -322,7 +348,13 @@ sealed class RationalNumber extends RealNumeric {
   /// [denominator], reducing by their greatest common divisor and returning
   /// an [IntegerNumber] when the reduced denominator is $1$.
   factory(int numerator, [int denominator = 1]) =>
-      RationalNumber.of(Integer(numerator), Integer(denominator));
+      RationalNumber.of(Integer.from(numerator), Integer.from(denominator));
+
+  /// Creates an exact rational number from a [Fraction].
+  factory fromFraction(Fraction fraction) => RationalNumber.of(
+    Integer.from(fraction.numerator),
+    Integer.from(fraction.denominator),
+  );
 
   /// Creates an exact rational number from arbitrary-precision [Integer]
   /// [numerator] and [denominator], reducing by their greatest common divisor

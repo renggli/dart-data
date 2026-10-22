@@ -528,7 +528,7 @@ Expr simplifyErfc(Expr expr) {
 /// Simplifies an Euler gamma function expression $\Gamma(expr)$.
 Expr simplifyGamma(Expr expr) {
   if (expr case IntegerNumber(asInt: final n?) when n > 0 && n <= 18) {
-    return IntegerNumber(Integer(n - 1).factorial());
+    return IntegerNumber(Integer.from(n - 1).factorial());
   }
   if (expr == FractionNumber.half) {
     return Pow(Constant.pi, FractionNumber.half, isSimplified: true);
@@ -543,9 +543,9 @@ Expr simplifyBeta(Expr a, Expr b) {
   }
   if (a case IntegerNumber(asInt: final m?) when m > 0) {
     if (b case IntegerNumber(asInt: final n?) when n > 0 && m + n <= 18) {
-      final factM = Integer(m - 1).factorial();
-      final factN = Integer(n - 1).factorial();
-      final factTotal = Integer(m + n - 1).factorial();
+      final factM = Integer.from(m - 1).factorial();
+      final factN = Integer.from(n - 1).factorial();
+      final factTotal = Integer.from(m + n - 1).factorial();
       return RationalNumber.of(factM * factN, factTotal);
     }
     if (m == 1) {
@@ -738,7 +738,7 @@ Expr simplifyLimit(
 /// Simplifies a factorial expression $n!$.
 Expr simplifyFactorial(Expr expr) {
   if (expr case IntegerNumber(asInt: final n?) when n >= 0 && n <= 100) {
-    return IntegerNumber(Integer(n).factorial());
+    return IntegerNumber(Integer.from(n).factorial());
   }
   if (expr == FractionNumber.negativeHalf) {
     return Pow(Constant.pi, FractionNumber.half, isSimplified: true);
@@ -765,7 +765,7 @@ Expr simplifyBinomial(Expr nExpr, Expr kExpr) {
       if (k < 0 || k > n) return IntegerNumber.zero;
       final m = k < n - k ? k : n - k;
       if (m <= 1000) {
-        return IntegerNumber(Integer(n).binomial(Integer(k)));
+        return IntegerNumber(Integer.from(n).binomial(Integer.from(k)));
       }
     }
   }

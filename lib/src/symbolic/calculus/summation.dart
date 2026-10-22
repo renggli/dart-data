@@ -322,7 +322,7 @@ Expr _faulhaberAntidifference(String variable, int p) {
   for (var j = 0; j <= p; j++) {
     final bj = bernoulli[j];
     if (bj.isZero) continue;
-    final binom = Integer(pPlus1).binomial(Integer(j));
+    final binom = Integer.from(pPlus1).binomial(Integer.from(j));
     final coeff = bj
         .mulRational(IntegerNumber(binom))
         .divRational(IntegerNumber.of(pPlus1));
@@ -347,7 +347,9 @@ List<RationalNumber> _bernoulliNumbers(int maxIndex) {
     var sum = IntegerNumber.zero as RationalNumber;
     for (var j = 0; j < m; j++) {
       if (b[j].isZero) continue;
-      final binom = IntegerNumber(Integer(m + 1).binomial(Integer(j)));
+      final binom = IntegerNumber(
+        Integer.from(m + 1).binomial(Integer.from(j)),
+      );
       sum = sum.addRational(binom.mulRational(b[j]));
     }
     b.add(sum.neg().divRational(IntegerNumber.of(m + 1)));
@@ -410,7 +412,7 @@ Expr? _solvePolynomialGeometricGosper(
   for (var i = maxDeg; i >= 0; i--) {
     var rhs = pCoeffs[i] ?? IntegerNumber.zero;
     for (var j = i + 1; j <= maxDeg; j++) {
-      final binom = IntegerNumber(Integer(j).binomial(Integer(i)));
+      final binom = IntegerNumber(Integer.from(j).binomial(Integer.from(i)));
       rhs = (rhs - r * binom * qCoeffs[j]).simplify();
     }
     qCoeffs[i] = (rhs / rMinus1).simplify();
@@ -465,7 +467,9 @@ Expr? _solvePolynomialFactorialGosper(Map<int, Expr> pCoeffs, String variable) {
     // In (k + 1) * sum_{j} q_j (k + 1)^j - sum_j q_j k^j = sum_j q_j ((k + 1)^(j + 1) - k^j)
     for (var j = m; j <= qDeg; j++) {
       // Coefficient of k^m in (k + 1)^(j + 1) - k^j:
-      final binom = IntegerNumber(Integer(j + 1).binomial(Integer(m)));
+      final binom = IntegerNumber(
+        Integer.from(j + 1).binomial(Integer.from(m)),
+      );
       final subCoeff = j == m ? (binom - IntegerNumber.one).simplify() : binom;
       rhs = (rhs - subCoeff * qCoeffs[j]).simplify();
     }

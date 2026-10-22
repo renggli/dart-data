@@ -1,6 +1,7 @@
 import 'package:checks/checks.dart';
 import 'package:data/symbolic.dart';
-import 'package:more/number.dart' show Complex;
+import 'package:more/feature.dart' show isJavaScript;
+import 'package:more/number.dart' show Complex, Fraction;
 import 'package:test/test.dart';
 
 void main() {
@@ -55,6 +56,23 @@ void main() {
       final quotient = expr / expr;
       check(quotient).equals(IntegerNumber.one);
       check((quotient as IntegerNumber).value.isBig).isFalse();
+    });
+
+    test('RationalNumber construction with values exceeding 2^53 and 2^64', () {
+      final bigNum = Integer.big(BigInt.one << 70);
+      final bigDen = Integer.big(BigInt.one << 69);
+      final rat = RationalNumber.of(bigNum, bigDen);
+      check(rat).equals(IntegerNumber.two);
+
+      final frac = RationalNumber.fromFraction(Fraction(3, 9));
+      check(frac).equals(FractionNumber.third);
+
+      if (!isJavaScript) {
+        const int60 = 1 << 60;
+        const int59 = 1 << 59;
+        final ratMachine = RationalNumber(int60, int59);
+        check(ratMachine).equals(IntegerNumber.two);
+      }
     });
   });
 
@@ -203,6 +221,25 @@ void main() {
             .equals(RationalNumber(4, 9));
         check(IntegerNumber.two.powNumber(FractionNumber.half)).isNull();
         check(IntegerNumber.of(4).powNumber(RationalNumber(1, 100))).isNull();
+
+        // Large BigInt exact integer roots exceeding 2^53 and 2^64
+        final big120 = Integer.big(BigInt.one << 120);
+        final big60 = Integer.big(BigInt.one << 60);
+        check(IntegerNumber(big120).powNumber(FractionNumber.half))
+            .equals(IntegerNumber(big60));
+        check(Pow(IntegerNumber(big120), FractionNumber.half).simplify())
+            .equals(IntegerNumber(big60));
+
+        final cubeRoot = Integer.big(BigInt.one << 30);
+        final big90 = Integer.big((BigInt.one << 30).pow(3));
+        check(IntegerNumber(big90).powNumber(FractionNumber.third))
+            .equals(IntegerNumber(cubeRoot));
+
+        // Inexact BigInt roots return null
+        check(
+          IntegerNumber(Integer.big((BigInt.one << 120) + BigInt.one))
+              .powNumber(FractionNumber.half),
+        ).isNull();
 
         check(ComplexNumber.i.powNumber(IntegerNumber.zero))
             .equals(IntegerNumber.one);

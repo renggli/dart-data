@@ -109,7 +109,7 @@ bool isSqrt(Expr expr, int n) => switch (expr) {
     base: IntegerNumber(:final value),
     exponent: FractionNumber(:final numerator, :final denominator),
   ) =>
-    value == Integer(n) && numerator.isOne && denominator == Integer.two,
+    value == Integer.from(n) && numerator.isOne && denominator == Integer.two,
   _ => false,
 };
 

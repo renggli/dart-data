@@ -49,10 +49,7 @@ sealed class Expr {
       return IntegerNumber(Integer.big(value));
     }
     if (value is Fraction) {
-      return RationalNumber.of(
-        Integer(value.numerator),
-        Integer(value.denominator),
-      );
+      return RationalNumber.fromFraction(value);
     }
     if (value is double) {
       return RealNumber.fromDouble(value);
@@ -220,7 +217,7 @@ sealed class Expr {
       return IntegerNumber(Integer.from(value));
     }
     if (value == value.truncateToDouble() && value.abs() < 9007199254740992.0) {
-      return IntegerNumber(Integer(value.toInt()));
+      return IntegerNumber(Integer.from(value.toInt()));
     }
     return RealNumber.fromDouble(value.toDouble());
   }

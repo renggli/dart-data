@@ -246,8 +246,9 @@ Expr simplifyPow(
 /// Evaluates integer powers of rational numbers.
 Expr foldRationalPower(Integer num, Integer den, int exp) {
   final rat = RationalNumber.of(num, den);
-  final folded = rat.powNumber(IntegerNumber(Integer(exp)));
-  return folded ?? Pow(rat, IntegerNumber(Integer(exp)), isSimplified: true);
+  final expNumber = IntegerNumber.of(exp);
+  final folded = rat.powNumber(expNumber);
+  return folded ?? Pow(rat, expNumber, isSimplified: true);
 }
 
 bool _isTwo(Expr expr) =>
@@ -342,7 +343,7 @@ Expr? _extractRationalRadical(RationalNumber base, FractionNumber exponent) {
       d += 2;
     }
     final finalRem = restored * unfactored;
-    return (Integer(root), Integer(finalRem));
+    return (Integer.from(root), Integer.from(finalRem));
   }
   return (Integer.one, n);
 }

@@ -290,7 +290,7 @@ class PowerSeries {
     final m = valuation;
     if (m != 0) {
       if (exponent is RationalNumber) {
-        final prod = Integer(m) * exponent.numerator;
+        final prod = Integer.from(m) * exponent.numerator;
         if ((prod % exponent.denominator).isZero) {
           final newM = (prod ~/ exponent.denominator).toInt();
           final shiftedCoeffs = <int, Expr>{
@@ -859,7 +859,7 @@ PowerSeries _expandAbs(Expr inner, String variable, Expr point, int order) {
 
 RationalNumber _lambertWMaclaurinCoeff(int k) {
   final numBig = BigInt.from(k).pow(k - 1);
-  final denBig = Integer(k).factorial().toBigInt();
+  final denBig = Integer.from(k).factorial().toBigInt();
   final g = numBig.gcd(denBig);
   var numRed = Integer.big(numBig ~/ g);
   final denRed = Integer.big(denBig ~/ g);
