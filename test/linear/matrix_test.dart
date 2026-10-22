@@ -751,5 +751,28 @@ void main() {
       check(res.rowCount).equals(2);
       check(res.colCount).equals(2);
     });
+
+    test('applyTranspose vs applyConjugateTranspose on complex matrix', () {
+      final a = Matrix<Complex>.fromRows([
+        [const Complex(1, 2), const Complex(3, 4)],
+        [const Complex(5, 6), const Complex(7, 8)],
+      ], type: DataType.complex);
+      final v = Vector<Complex>.fromList([
+        const Complex(1, 0),
+        const Complex(0, 1),
+      ], type: DataType.complex);
+
+      final atV = a.applyTranspose(v);
+      final atVExpected = a.transposed.apply(v);
+      check(atV.toList()).deepEquals(atVExpected.toList());
+      check(atV[0]).equals(const Complex(-5, 7));
+      check(atV[1]).equals(const Complex(-5, 11));
+
+      final ahV = a.applyConjugateTranspose(v);
+      final ahVExpected = a.conjugateTranspose.apply(v);
+      check(ahV.toList()).deepEquals(ahVExpected.toList());
+      check(ahV[0]).equals(const Complex(7, 3));
+      check(ahV[1]).equals(const Complex(11, 3));
+    });
   });
 }

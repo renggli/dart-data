@@ -134,6 +134,27 @@ class CsrMatrix<T> implements LinearOperator<T> {
       final end = rowPointers[i + 1];
       for (var ptr = start; ptr < end; ptr++) {
         final col = colIndices[ptr];
+        res[col] = field.add(res[col], field.mul(values[ptr], xi));
+      }
+    }
+    return res;
+  }
+
+  @override
+  Vector<T> applyConjugateTranspose(Vector<T> x) {
+    if (rowCount != x.length) {
+      throw ArgumentError(
+        'Vector length (${x.length}) must match rowCount ($rowCount)',
+      );
+    }
+    final field = type.field;
+    final res = Vector<T>.filled(colCount, field.additiveIdentity, type: type);
+    for (var i = 0; i < rowCount; i++) {
+      final xi = x[i];
+      final start = rowPointers[i];
+      final end = rowPointers[i + 1];
+      for (var ptr = start; ptr < end; ptr++) {
+        final col = colIndices[ptr];
         res[col] = field.add(
           res[col],
           field.mul(field.conjugate(values[ptr]), xi),

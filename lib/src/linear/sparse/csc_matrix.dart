@@ -126,6 +126,40 @@ class CscMatrix<T> implements LinearOperator<T> {
         for (var ptr = start; ptr < end; ptr++) {
           sum = field.add(
             sum,
+            field.mul(values[ptr], xData[xOffset + rowIndices[ptr]]),
+          );
+        }
+      } else {
+        for (var ptr = start; ptr < end; ptr++) {
+          sum = field.add(sum, field.mul(values[ptr], x[rowIndices[ptr]]));
+        }
+      }
+      res[j] = sum;
+    }
+    return res;
+  }
+
+  @override
+  Vector<T> applyConjugateTranspose(Vector<T> x) {
+    if (rowCount != x.length) {
+      throw ArgumentError(
+        'Vector length (${x.length}) must match rowCount ($rowCount)',
+      );
+    }
+    final field = type.field;
+    final res = Vector<T>.filled(colCount, field.additiveIdentity, type: type);
+    final xContig = x.tensor.isContiguous;
+    final xData = x.tensor.data;
+    final xOffset = x.tensor.offset;
+
+    for (var j = 0; j < colCount; j++) {
+      final start = colPointers[j];
+      final end = colPointers[j + 1];
+      var sum = field.additiveIdentity;
+      if (xContig) {
+        for (var ptr = start; ptr < end; ptr++) {
+          sum = field.add(
+            sum,
             field.mul(
               field.conjugate(values[ptr]),
               xData[xOffset + rowIndices[ptr]],

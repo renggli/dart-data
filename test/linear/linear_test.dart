@@ -228,6 +228,37 @@ void main() {
       check(csr.applyTranspose(yT).toList()).deepEquals(expectedT.toList());
       check(csc.applyTranspose(yT).toList()).deepEquals(expectedT.toList());
     });
+
+    test(
+      'Sparse matrices complex applyTranspose vs applyConjugateTranspose',
+      () {
+        final dense = Matrix<Complex>.fromRows([
+          [const Complex(1, 2), const Complex(3, 4)],
+          [const Complex(5, 6), const Complex(7, 8)],
+        ], type: DataType.complex);
+        final coo = CooMatrix<Complex>.fromDense(dense);
+        final csr = coo.toCsr();
+        final csc = coo.toCsc();
+
+        final v = Vector<Complex>.fromList([
+          const Complex(1, 0),
+          const Complex(0, 1),
+        ], type: DataType.complex);
+
+        final expectedTranspose = [const Complex(-5, 7), const Complex(-5, 11)];
+        check(dense.applyTranspose(v).toList()).deepEquals(expectedTranspose);
+        check(coo.applyTranspose(v).toList()).deepEquals(expectedTranspose);
+        check(csr.applyTranspose(v).toList()).deepEquals(expectedTranspose);
+        check(csc.applyTranspose(v).toList()).deepEquals(expectedTranspose);
+
+        final expectedAdj = [const Complex(7, 3), const Complex(11, 3)];
+        check(dense.applyConjugateTranspose(v).toList())
+            .deepEquals(expectedAdj);
+        check(coo.applyConjugateTranspose(v).toList()).deepEquals(expectedAdj);
+        check(csr.applyConjugateTranspose(v).toList()).deepEquals(expectedAdj);
+        check(csc.applyConjugateTranspose(v).toList()).deepEquals(expectedAdj);
+      },
+    );
   });
 
   group('Iterative solvers', () {

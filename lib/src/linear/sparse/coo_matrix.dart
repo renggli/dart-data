@@ -168,6 +168,24 @@ class CooMatrix<T> implements LinearOperator<T> {
       final row = rowIndices[k];
       final col = colIndices[k];
       final val = values[k];
+      res[col] = field.add(res[col], field.mul(val, x[row]));
+    }
+    return res;
+  }
+
+  @override
+  Vector<T> applyConjugateTranspose(Vector<T> x) {
+    if (rowCount != x.length) {
+      throw ArgumentError(
+        'Vector length (${x.length}) must match rowCount ($rowCount)',
+      );
+    }
+    final field = type.field;
+    final res = Vector<T>.filled(colCount, field.additiveIdentity, type: type);
+    for (var k = 0; k < nnz; k++) {
+      final row = rowIndices[k];
+      final col = colIndices[k];
+      final val = values[k];
       res[col] = field.add(res[col], field.mul(field.conjugate(val), x[row]));
     }
     return res;

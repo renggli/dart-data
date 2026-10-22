@@ -871,6 +871,62 @@ class Matrix<T> implements LinearOperator<T> {
       for (var j = 0; j < colCount; j++) {
         res.setUnchecked(
           j,
+          field.add(res.getUnchecked(j), field.mul(getUnchecked(i, j), xi)),
+        );
+      }
+    }
+    return res;
+  }
+
+  @override
+  Vector<T> applyConjugateTranspose(Vector<T> x) {
+    if (rowCount != x.length) {
+      throw ArgumentError(
+        'Vector length (${x.length}) must match rowCount ($rowCount)',
+      );
+    }
+    final field = type.field;
+    final res = Vector<T>.filled(colCount, field.additiveIdentity, type: type);
+
+    // Fast-path: hardware-accelerated DGEMV / SGEMV
+    if (T == double && x.tensor.strides[0] > 0 && res.tensor.strides[0] > 0) {
+      final s0 = tensor.strides[0];
+      final s1 = tensor.strides[1];
+      int? transA;
+      int? mVal;
+      int? nVal;
+      int? lda;
+      if (s1 == 1 && (s0 >= colCount || rowCount == 1)) {
+        transA = cblasTrans;
+        mVal = rowCount;
+        nVal = colCount;
+        lda = rowCount == 1 ? (colCount > 0 ? colCount : 1) : s0;
+      } else if (s0 == 1 && (s1 >= rowCount || colCount == 1)) {
+        transA = cblasNoTrans;
+        mVal = colCount;
+        nVal = rowCount;
+        lda = colCount == 1 ? (rowCount > 0 ? rowCount : 1) : s1;
+      }
+
+      if (transA != null && lda != null) {
+        if (_tryAcceleratedGemv(
+          transA: transA,
+          m: mVal!,
+          n: nVal!,
+          lda: lda,
+          x: x,
+          res: res,
+        )) {
+          return res;
+        }
+      }
+    }
+
+    for (var i = 0; i < rowCount; i++) {
+      final xi = x.getUnchecked(i);
+      for (var j = 0; j < colCount; j++) {
+        res.setUnchecked(
+          j,
           field.add(
             res.getUnchecked(j),
             field.mul(field.conjugate(getUnchecked(i, j)), xi),

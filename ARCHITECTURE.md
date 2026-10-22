@@ -156,6 +156,7 @@ This document describes the achieved architecture across all subsystems of `pack
       DataType<T> get type;
       Vector<T> apply(Vector<T> x, {Vector<T>? target});
       Vector<T> applyTranspose(Vector<T> x, {Vector<T>? target});
+      Vector<T> applyConjugateTranspose(Vector<T> x, {Vector<T>? target});
       Matrix<T> matmul(Matrix<T> other, {Matrix<T>? target});
     }
     ```

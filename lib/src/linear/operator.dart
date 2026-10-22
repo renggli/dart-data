@@ -19,6 +19,10 @@ abstract interface class LinearOperator<T> {
   /// Computes the action of the transpose operator on vector [x]: y = A^T * x.
   Vector<T> applyTranspose(Vector<T> x);
 
+  /// Computes the action of the conjugate transpose (Hermitian adjoint) operator
+  /// on vector [x]: y = A^H * x.
+  Vector<T> applyConjugateTranspose(Vector<T> x);
+
   /// Computes the operator composition: (A * other).
   LinearOperator<T> matmul(LinearOperator<T> other);
 }
