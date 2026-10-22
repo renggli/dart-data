@@ -58,13 +58,34 @@ sealed class IteratedExpr extends Expr {
   });
 
   @override
-  Expr substitute(String variable, Expr replacement) => copyWith(
-    expr: variable == this.variable
-        ? expr
-        : expr.substitute(variable, replacement),
-    lower: lower.substitute(variable, replacement),
-    upper: upper.substitute(variable, replacement),
-  );
+  Expr substitute(String variable, Expr replacement) {
+    if (variable == this.variable) {
+      return copyWith(
+        expr: expr,
+        lower: lower.substitute(variable, replacement),
+        upper: upper.substitute(variable, replacement),
+      );
+    }
+    var boundVar = this.variable;
+    var body = expr;
+    if (replacement.freeVariables.contains(boundVar)) {
+      final used = <String>{
+        ...body.freeVariables,
+        ...replacement.freeVariables,
+        ...lower.freeVariables,
+        ...upper.freeVariables,
+      };
+      final fresh = _freshBoundVariable(boundVar, used);
+      body = body.substitute(boundVar, Variable(fresh));
+      boundVar = fresh;
+    }
+    return copyWith(
+      expr: body.substitute(variable, replacement),
+      variable: boundVar,
+      lower: lower.substitute(variable, replacement),
+      upper: upper.substitute(variable, replacement),
+    );
+  }
 
   @override
   Expr mapChildren(Expr Function(Expr) transform) => copyWith(

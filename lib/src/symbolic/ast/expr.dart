@@ -256,3 +256,13 @@ sealed class Expr {
     VariableFunction(:final arguments) => arguments.every(_isRealSubtree),
   };
 }
+
+String _freshBoundVariable(String base, Set<String> used) {
+  var candidate = '${base}_1';
+  var counter = 1;
+  while (used.contains(candidate)) {
+    counter++;
+    candidate = '${base}_$counter';
+  }
+  return candidate;
+}

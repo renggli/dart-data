@@ -64,12 +64,34 @@ final class Limit extends Expr {
       point.dependsOn(variable);
 
   @override
-  Expr substitute(String variable, Expr replacement) => Limit(
-    variable == this.variable ? expr : expr.substitute(variable, replacement),
-    this.variable,
-    point.substitute(variable, replacement),
-    direction: direction,
-  );
+  Expr substitute(String variable, Expr replacement) {
+    if (variable == this.variable) {
+      return Limit(
+        expr,
+        this.variable,
+        point.substitute(variable, replacement),
+        direction: direction,
+      );
+    }
+    var boundVar = this.variable;
+    var body = expr;
+    if (replacement.freeVariables.contains(boundVar)) {
+      final used = <String>{
+        ...body.freeVariables,
+        ...replacement.freeVariables,
+        ...point.freeVariables,
+      };
+      final fresh = _freshBoundVariable(boundVar, used);
+      body = body.substitute(boundVar, Variable(fresh));
+      boundVar = fresh;
+    }
+    return Limit(
+      body.substitute(variable, replacement),
+      boundVar,
+      point.substitute(variable, replacement),
+      direction: direction,
+    );
+  }
 
   @override
   Expr mapChildren(Expr Function(Expr) transform) =>

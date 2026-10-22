@@ -45,6 +45,18 @@ void main() {
       final substituted = sum.substitute('n', IntegerNumber.of(10)) as Sum;
       check(substituted.upper).equals(IntegerNumber.of(10));
 
+      // Alpha-renaming prevents variable capture when substituting free variable with expr containing bound variable
+      final subAlpha = sum.substitute('n', k + IntegerNumber.one) as Sum;
+      check(subAlpha.variable).equals('k_1');
+      check(subAlpha).equals(
+        Sum(
+          const Variable('k_1'),
+          'k_1',
+          IntegerNumber.one,
+          k + IntegerNumber.one,
+        ),
+      );
+
       // Map children
       final mapped = sum.mapChildren((e) => e + IntegerNumber.one) as Sum;
       check(mapped.lower).equals(IntegerNumber.one + IntegerNumber.one);

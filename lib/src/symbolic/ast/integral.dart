@@ -72,11 +72,31 @@ final class Integral extends Expr {
   @override
   Expr substitute(String variable, Expr replacement) {
     if (isDefinite) {
+      if (variable == this.variable) {
+        // Dummy integration variable is bound; only substitute in bounds
+        return Integral(
+          integrand,
+          this.variable,
+          lower: lower!.substitute(variable, replacement),
+          upper: upper!.substitute(variable, replacement),
+        );
+      }
+      var boundVar = this.variable;
+      var body = integrand;
+      if (replacement.freeVariables.contains(boundVar)) {
+        final used = <String>{
+          ...body.freeVariables,
+          ...replacement.freeVariables,
+          if (lower != null) ...lower!.freeVariables,
+          if (upper != null) ...upper!.freeVariables,
+        };
+        final fresh = _freshBoundVariable(boundVar, used);
+        body = body.substitute(boundVar, Variable(fresh));
+        boundVar = fresh;
+      }
       return Integral(
-        variable == this.variable
-            ? integrand
-            : integrand.substitute(variable, replacement),
-        this.variable,
+        body.substitute(variable, replacement),
+        boundVar,
         lower: lower!.substitute(variable, replacement),
         upper: upper!.substitute(variable, replacement),
       );

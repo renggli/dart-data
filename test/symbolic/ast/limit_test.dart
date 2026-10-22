@@ -87,6 +87,13 @@ void main() {
 
       final subX = lim.substitute('x', IntegerNumber.two);
       check(subX).equals(Limit(x + y, 'x', y));
+
+      // Alpha-renaming prevents variable capture when replacing free variable with expr containing bound variable
+      final subAlpha = lim.substitute('y', x + IntegerNumber.one) as Limit;
+      check(subAlpha.variable).equals('x_1');
+      check(subAlpha.point).equals(x + IntegerNumber.one);
+      check(subAlpha.expr)
+          .equals(Add([const Variable('x_1'), x + IntegerNumber.one]));
     });
 
     test('mapChildren and anyNode', () {

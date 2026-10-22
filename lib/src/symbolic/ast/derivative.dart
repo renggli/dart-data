@@ -34,11 +34,23 @@ final class Derivative extends Expr {
       variable == this.variable || expr.dependsOn(variable);
 
   @override
-  Expr substitute(String variable, Expr replacement) => Derivative(
-    expr.substitute(variable, replacement),
-    this.variable,
-    order: order,
-  );
+  Expr substitute(String variable, Expr replacement) {
+    if (variable == this.variable) {
+      if (replacement is Variable) {
+        return Derivative(
+          expr.substitute(variable, replacement),
+          replacement.name,
+          order: order,
+        );
+      }
+      return Derivative(expr, this.variable, order: order);
+    }
+    return Derivative(
+      expr.substitute(variable, replacement),
+      this.variable,
+      order: order,
+    );
+  }
 
   @override
   Expr mapChildren(Expr Function(Expr) transform) =>

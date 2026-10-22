@@ -53,6 +53,19 @@ void main() {
           upper: IntegerNumber.two,
         ),
       );
+
+      // Alpha-renaming prevents variable capture when replacement contains bound variable 't'
+      final subAlpha =
+          defParam.substitute('x', t + IntegerNumber.one) as Integral;
+      check(subAlpha.variable).equals('t_1');
+      check(subAlpha).equals(
+        Integral(
+          const Variable('t_1') * (t + IntegerNumber.one),
+          't_1',
+          lower: IntegerNumber.zero,
+          upper: t + IntegerNumber.one,
+        ),
+      );
       check(defParam.mapChildren((e) => e)).equals(defParam);
       check(defParam.anyNode((e) => e == IntegerNumber.zero)).isTrue();
       check(defParam.anyNode((e) => e == const Variable('z'))).isFalse();

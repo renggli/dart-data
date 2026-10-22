@@ -50,6 +50,14 @@ void main() {
       final sub = d.substitute('y', IntegerNumber.of(5));
       check(sub).equals(Derivative(x + IntegerNumber.of(5), 'x', order: 2));
 
+      // Variable renaming
+      final subVar = d.substitute('x', const Variable('z'));
+      check(subVar).equals(Derivative(const Variable('z') + y, 'z', order: 2));
+
+      // Non-variable replacement on differentiation variable is ignored to prevent point-eval bugs
+      final subConst = d.substitute('x', IntegerNumber.two);
+      check(subConst).equals(d);
+
       final mapped = d.mapChildren((child) => child * IntegerNumber.two);
       check(mapped)
           .equals(Derivative((x + y) * IntegerNumber.two, 'x', order: 2));
