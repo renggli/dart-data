@@ -4,6 +4,7 @@ import 'dart:typed_data';
 import '../../type.dart';
 import '../linear/matrix.dart';
 import '../tensor/tensor.dart';
+import 'arrow/arrow_c_data.dart';
 import 'arrow/arrow_ipc.dart';
 import 'csv/csv_reader.dart';
 import 'csv/csv_writer.dart';
@@ -369,6 +370,29 @@ class DataFrame {
 
   /// Serializes this [DataFrame] to Apache Arrow IPC stream byte format.
   Uint8List toArrowIpc() => ArrowIpc.encode(this);
+
+  /// Exports this [DataFrame] to Apache Arrow C Data structures.
+  ///
+  /// Populates [outSchema] (`Pointer<ArrowSchema>`) and [outArray]
+  /// (`Pointer<ArrowArray>`). Requires `dart:ffi`.
+  void exportTo({required dynamic outSchema, required dynamic outArray}) =>
+      exportDataFrameToArrowC(
+        dataFrame: this,
+        outSchema: outSchema,
+        outArray: outArray,
+      );
+
+  /// Imports a [DataFrame] from Apache Arrow C Data structures.
+  ///
+  /// Consumes [schema] (`Pointer<ArrowSchema>`) and [array]
+  /// (`Pointer<ArrowArray>`). If [release] is true (default), the producer's
+  /// release callbacks are invoked upon import completion.
+  static DataFrame importFrom({
+    required dynamic schema,
+    required dynamic array,
+    bool release = true,
+  }) =>
+      importDataFrameFromArrowC(schema: schema, array: array, release: release);
 
   @override
   String toString() {

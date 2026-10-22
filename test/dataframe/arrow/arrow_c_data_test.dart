@@ -7,8 +7,6 @@ import 'package:checks/checks.dart';
 import 'package:data/dataframe.dart'
     hide
         ArrowArray,
-        ArrowCDataFrameExtension,
-        ArrowCSeriesExtension,
         ArrowSchema,
         arrowFlagDictionaryOrdered,
         arrowFlagMapKeysSorted,
@@ -41,7 +39,7 @@ void main() {
       final outSchema = calloc<ArrowSchema>();
 
       try {
-        df.exportToArrowC(outArray: outArray, outSchema: outSchema);
+        df.exportTo(outSchema: outSchema, outArray: outArray);
 
         check(outSchema.ref.format.toDartString()).equals('+s');
         check(outSchema.ref.n_children).equals(4);
@@ -65,10 +63,10 @@ void main() {
             .equals('active');
         check(outSchema.ref.children[3].ref.format.toDartString()).equals('b');
 
-        // Import back to DataFrame
-        final importedDf = importDataFrameFromArrowC(
-          array: outArray,
+        // Import back to DataFrame using DataFrame.importFrom
+        final importedDf = DataFrame.importFrom(
           schema: outSchema,
+          array: outArray,
         );
 
         check(importedDf.rowCount).equals(3);
@@ -81,8 +79,11 @@ void main() {
         check(importedDf['age'].toList()).deepEquals([30, 25, 40]);
         check(importedDf['score'].toList()).deepEquals([95.5, null, 88.0]);
         check(importedDf['active'].toList()).deepEquals([true, false, true]);
+
+        // Producer release should have been called and pointers cleared to nullptr
+        check(outSchema.ref.release).equals(ffi.nullptr);
+        check(outArray.ref.release).equals(ffi.nullptr);
       } finally {
-        // Release resources
         if (outSchema.ref.release != ffi.nullptr) {
           outSchema.ref.release
               .asFunction<void Function(ffi.Pointer<ArrowSchema>)>()(outSchema);
@@ -91,9 +92,6 @@ void main() {
           outArray.ref.release
               .asFunction<void Function(ffi.Pointer<ArrowArray>)>()(outArray);
         }
-
-        check(outSchema.ref.release).equals(ffi.nullptr);
-        check(outArray.ref.release).equals(ffi.nullptr);
 
         calloc.free(outSchema);
         calloc.free(outArray);
@@ -112,20 +110,20 @@ void main() {
       final outSchema = calloc<ArrowSchema>();
 
       try {
-        series.exportToArrowC(outArray: outArray, outSchema: outSchema);
+        series.exportTo(outSchema: outSchema, outArray: outArray);
 
         check(outSchema.ref.format.toDartString()).equals('u');
         check(outArray.ref.length).equals(4);
         check(outArray.ref.null_count).equals(1);
 
-        final imported = importSeriesFromArrowC(
-          array: outArray,
-          schema: outSchema,
-        );
+        final imported = Series.importFrom(schema: outSchema, array: outArray);
         check(imported.name).equals('languages');
         check(imported.length).equals(4);
         check(imported.nullCount).equals(1);
         check(imported.toList()).deepEquals(['Dart', 'Rust', null, 'Python']);
+
+        check(outSchema.ref.release).equals(ffi.nullptr);
+        check(outArray.ref.release).equals(ffi.nullptr);
       } finally {
         if (outSchema.ref.release != ffi.nullptr) {
           outSchema.ref.release
@@ -145,19 +143,19 @@ void main() {
       final outSchema = calloc<ArrowSchema>();
 
       final series = Series<int>.fromList('nums', [1, 2, 3]);
-      series.exportToArrowC(outArray: outArray, outSchema: outSchema);
+      series.exportTo(outSchema: outSchema, outArray: outArray);
 
-      // Release
+      // Release explicitly
       outSchema.ref.release
           .asFunction<void Function(ffi.Pointer<ArrowSchema>)>()(outSchema);
       outArray.ref.release.asFunction<void Function(ffi.Pointer<ArrowArray>)>()(
         outArray,
       );
 
-      check(() => importSeriesFromArrowC(array: outArray, schema: outSchema))
+      check(() => Series.importFrom(schema: outSchema, array: outArray))
           .throws<StateError>();
 
-      check(() => importDataFrameFromArrowC(array: outArray, schema: outSchema))
+      check(() => DataFrame.importFrom(schema: outSchema, array: outArray))
           .throws<StateError>();
 
       calloc.free(outSchema);
@@ -192,11 +190,11 @@ void main() {
         final outArray = calloc<ArrowArray>();
         final outSchema = calloc<ArrowSchema>();
         try {
-          series.exportToArrowC(outArray: outArray, outSchema: outSchema);
+          series.exportTo(outSchema: outSchema, outArray: outArray);
           check(outSchema.ref.format.toDartString()).equals(expectedFormat);
-          final imported = importSeriesFromArrowC(
-            array: outArray,
+          final imported = Series.importFrom(
             schema: outSchema,
+            array: outArray,
           );
           check(imported.length).equals(series.length);
           if (series.dataType == DataType.float32) {
@@ -220,5 +218,234 @@ void main() {
         }
       }
     });
+
+    test('Imports sliced ArrowArray with non-zero offset', () {
+      // Create a 5-element float64 array [10.0, 20.0, 30.0, 40.0, 50.0]
+      // and slice with offset = 2, length = 3 -> [30.0, 40.0, 50.0]
+      final schema = calloc<ArrowSchema>();
+      final array = calloc<ArrowArray>();
+
+      schema.ref.format = 'g'.toNativeUtf8();
+      schema.ref.name = 'sliced_col'.toNativeUtf8();
+      schema.ref.flags = 0;
+      schema.ref.n_children = 0;
+      schema.ref.children = ffi.nullptr;
+      schema.ref.dictionary = ffi.nullptr;
+      schema.ref.release = _mockReleaseSchemaPtr;
+
+      array.ref.length = 3;
+      array.ref.offset = 2;
+      array.ref.null_count = 0;
+      array.ref.n_buffers = 2;
+      final buffers = calloc<ffi.Pointer<ffi.Void>>(2);
+      buffers[0] = ffi.nullptr; // No nulls
+
+      final dataPtr = calloc<ffi.Double>(5);
+      final rawData = dataPtr.asTypedList(5);
+      rawData[0] = 10.0;
+      rawData[1] = 20.0;
+      rawData[2] = 30.0;
+      rawData[3] = 40.0;
+      rawData[4] = 50.0;
+      buffers[1] = dataPtr.cast();
+
+      array.ref.buffers = buffers;
+      array.ref.n_children = 0;
+      array.ref.children = ffi.nullptr;
+      array.ref.dictionary = ffi.nullptr;
+      array.ref.release = _mockReleaseArrayPtr;
+
+      _lastReleasedBuffers = buffers;
+      _lastReleasedData = dataPtr.cast();
+
+      final imported = Series.importFrom(schema: schema, array: array);
+      check(imported.name).equals('sliced_col');
+      check(imported.length).equals(3);
+      check(imported.toList()).deepEquals([30.0, 40.0, 50.0]);
+      check(schema.ref.release).equals(ffi.nullptr);
+      check(array.ref.release).equals(ffi.nullptr);
+
+      calloc.free(schema);
+      calloc.free(array);
+    });
+
+    test('Imports sliced ArrowStringSeries with non-zero offset', () {
+      // 4 strings: ["hello", "world", "dart", "arrow"]
+      // Offsets: [0, 5, 10, 14, 19]
+      // Slice offset = 1, length = 2 -> ["world", "dart"]
+      final schema = calloc<ArrowSchema>();
+      final array = calloc<ArrowArray>();
+
+      schema.ref.format = 'u'.toNativeUtf8();
+      schema.ref.name = 'sliced_strings'.toNativeUtf8();
+      schema.ref.flags = 0;
+      schema.ref.n_children = 0;
+      schema.ref.children = ffi.nullptr;
+      schema.ref.dictionary = ffi.nullptr;
+      schema.ref.release = _mockReleaseSchemaPtr;
+
+      array.ref.length = 2;
+      array.ref.offset = 1;
+      array.ref.null_count = 0;
+      array.ref.n_buffers = 3;
+      final buffers = calloc<ffi.Pointer<ffi.Void>>(3);
+      buffers[0] = ffi.nullptr;
+
+      final offsetsPtr = calloc<ffi.Uint32>(5);
+      final rawOffsets = offsetsPtr.asTypedList(5);
+      rawOffsets.setAll(0, [0, 5, 10, 14, 19]);
+      buffers[1] = offsetsPtr.cast();
+
+      final bytesPtr = 'helloworlddartarrow'.toNativeUtf8();
+      buffers[2] = bytesPtr.cast();
+
+      array.ref.buffers = buffers;
+      array.ref.n_children = 0;
+      array.ref.children = ffi.nullptr;
+      array.ref.dictionary = ffi.nullptr;
+      array.ref.release = _mockReleaseArrayPtr;
+
+      _lastReleasedBuffers = buffers;
+      _lastReleasedData = offsetsPtr.cast();
+      _lastReleasedExtra = bytesPtr.cast();
+
+      final imported = Series.importFrom(schema: schema, array: array);
+      check(imported.name).equals('sliced_strings');
+      check(imported.length).equals(2);
+      check(imported.toList()).deepEquals(['world', 'dart']);
+      check(schema.ref.release).equals(ffi.nullptr);
+      check(array.ref.release).equals(ffi.nullptr);
+
+      calloc.free(schema);
+      calloc.free(array);
+    });
+
+    test(
+      'Imports sliced BoolSeries with non-zero offset and null_count == -1',
+      () {
+        // 8 booleans: [false, true, false, true, true, false, true, false]
+        // Null validity bitmap with element 3 null (bit 3 == 0)
+        // null_count = -1 (unknown null count)
+        // Slice with offset = 2, length = 4:
+        // elements 2, 3, 4, 5 -> [false, null, true, false]
+        final schema = calloc<ArrowSchema>();
+        final array = calloc<ArrowArray>();
+
+        schema.ref.format = 'b'.toNativeUtf8();
+        schema.ref.name = 'sliced_bools'.toNativeUtf8();
+        schema.ref.flags = arrowFlagNullable;
+        schema.ref.n_children = 0;
+        schema.ref.children = ffi.nullptr;
+        schema.ref.dictionary = ffi.nullptr;
+        schema.ref.release = _mockReleaseSchemaPtr;
+
+        array.ref.length = 4;
+        array.ref.offset = 2;
+        array.ref.null_count = -1; // Unknown null count
+        array.ref.n_buffers = 2;
+        final buffers = calloc<ffi.Pointer<ffi.Void>>(2);
+
+        // Validity mask: 1 byte: 11110111 (bit 3 is 0, rest 1) = 0xF7
+        final maskPtr = calloc<ffi.Uint8>(1);
+        maskPtr[0] = 0xF7;
+        buffers[0] = maskPtr.cast();
+
+        // Boolean data: bits: 0, 1, 0, 1, 1, 0, 1, 0 = 0x5A
+        final boolPtr = calloc<ffi.Uint8>(1);
+        boolPtr[0] = 0x5A;
+        buffers[1] = boolPtr.cast();
+
+        array.ref.buffers = buffers;
+        array.ref.n_children = 0;
+        array.ref.children = ffi.nullptr;
+        array.ref.dictionary = ffi.nullptr;
+        array.ref.release = _mockReleaseArrayPtr;
+
+        _lastReleasedBuffers = buffers;
+        _lastReleasedData = maskPtr.cast();
+        _lastReleasedExtra = boolPtr.cast();
+
+        final imported = Series.importFrom(schema: schema, array: array);
+        check(imported.name).equals('sliced_bools');
+        check(imported.length).equals(4);
+        check(imported.nullCount).equals(1);
+        check(imported.toList()).deepEquals([false, null, true, false]);
+        check(schema.ref.release).equals(ffi.nullptr);
+        check(array.ref.release).equals(ffi.nullptr);
+
+        calloc.free(schema);
+        calloc.free(array);
+      },
+    );
+
+    test('Zero-length array import handles empty structures cleanly', () {
+      final schema = calloc<ArrowSchema>();
+      final array = calloc<ArrowArray>();
+
+      schema.ref.format = 'g'.toNativeUtf8();
+      schema.ref.name = 'empty_col'.toNativeUtf8();
+      schema.ref.flags = 0;
+      schema.ref.n_children = 0;
+      schema.ref.children = ffi.nullptr;
+      schema.ref.dictionary = ffi.nullptr;
+      schema.ref.release = _mockReleaseSchemaPtr;
+
+      array.ref.length = 0;
+      array.ref.offset = 0;
+      array.ref.null_count = 0;
+      array.ref.n_buffers = 0;
+      array.ref.buffers = ffi.nullptr;
+      array.ref.n_children = 0;
+      array.ref.children = ffi.nullptr;
+      array.ref.dictionary = ffi.nullptr;
+      array.ref.release = _mockReleaseArrayPtr;
+
+      _lastReleasedBuffers = ffi.nullptr;
+      _lastReleasedData = ffi.nullptr;
+
+      final imported = Series.importFrom(schema: schema, array: array);
+      check(imported.name).equals('empty_col');
+      check(imported.length).equals(0);
+      check(imported.toList()).isEmpty();
+
+      calloc.free(schema);
+      calloc.free(array);
+    });
   });
 }
+
+ffi.Pointer<ffi.Pointer<ffi.Void>> _lastReleasedBuffers = ffi.nullptr;
+ffi.Pointer<ffi.Void> _lastReleasedData = ffi.nullptr;
+ffi.Pointer<ffi.Void> _lastReleasedExtra = ffi.nullptr;
+
+void _mockReleaseSchema(ffi.Pointer<ArrowSchema> schema) {
+  if (schema.ref.format != ffi.nullptr) calloc.free(schema.ref.format);
+  if (schema.ref.name != ffi.nullptr) calloc.free(schema.ref.name);
+  schema.ref.release = ffi.nullptr;
+}
+
+void _mockReleaseArray(ffi.Pointer<ArrowArray> array) {
+  if (_lastReleasedBuffers != ffi.nullptr) {
+    calloc.free(_lastReleasedBuffers);
+    _lastReleasedBuffers = ffi.nullptr;
+  }
+  if (_lastReleasedData != ffi.nullptr) {
+    calloc.free(_lastReleasedData);
+    _lastReleasedData = ffi.nullptr;
+  }
+  if (_lastReleasedExtra != ffi.nullptr) {
+    calloc.free(_lastReleasedExtra);
+    _lastReleasedExtra = ffi.nullptr;
+  }
+  array.ref.release = ffi.nullptr;
+}
+
+final _mockReleaseSchemaPtr =
+    ffi.Pointer.fromFunction<ffi.Void Function(ffi.Pointer<ArrowSchema>)>(
+      _mockReleaseSchema,
+    );
+
+final _mockReleaseArrayPtr =
+    ffi.Pointer.fromFunction<ffi.Void Function(ffi.Pointer<ArrowArray>)>(
+      _mockReleaseArray,
+    );

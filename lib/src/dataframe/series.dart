@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 
 import '../../type.dart';
+import 'arrow/arrow_c_data.dart';
 import 'arrow_string_series.dart';
 import 'bitmask.dart';
 
@@ -79,6 +80,28 @@ abstract class Series<T> {
 
   /// Returns a copy of this series with a new [name].
   Series<T> rename(String newName);
+
+  /// Exports this [Series] to Apache Arrow C Data structures.
+  ///
+  /// Populates [outSchema] (`Pointer<ArrowSchema>`) and [outArray]
+  /// (`Pointer<ArrowArray>`). Requires `dart:ffi`.
+  void exportTo({required dynamic outSchema, required dynamic outArray}) =>
+      exportSeriesToArrowC(
+        series: this,
+        outSchema: outSchema,
+        outArray: outArray,
+      );
+
+  /// Imports a [Series] from Apache Arrow C Data structures.
+  ///
+  /// Consumes [schema] (`Pointer<ArrowSchema>`) and [array]
+  /// (`Pointer<ArrowArray>`). If [release] is true (default), the producer's
+  /// release callbacks are invoked upon import completion.
+  static Series<Object?> importFrom({
+    required dynamic schema,
+    required dynamic array,
+    bool release = true,
+  }) => importSeriesFromArrowC(schema: schema, array: array, release: release);
 
   /// Minimum value in the series, ignoring nulls.
   T? get min;

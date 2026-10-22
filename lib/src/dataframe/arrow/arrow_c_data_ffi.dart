@@ -121,59 +121,99 @@ final class ArrowArray extends ffi.Struct {
 /// Exports a [DataFrame] to Apache Arrow C Data structures.
 void exportDataFrameToArrowC({
   required DataFrame dataFrame,
-  required ffi.Pointer<ArrowArray> outArray,
   required ffi.Pointer<ArrowSchema> outSchema,
+  required ffi.Pointer<ArrowArray> outArray,
 }) {
   final columnCount = dataFrame.columnCount;
 
-  // 1. Populate top-level ArrowSchema for Struct ("+s")
-  outSchema.ref.format = '+s'.toNativeUtf8();
-  outSchema.ref.name = ''.toNativeUtf8();
+  // Initialize pointers to nullptr for safe unwinding in case of exception
+  outSchema.ref.format = ffi.nullptr;
+  outSchema.ref.name = ffi.nullptr;
   outSchema.ref.metadata = ffi.nullptr;
   outSchema.ref.flags = 0;
-  outSchema.ref.n_children = columnCount;
+  outSchema.ref.n_children = 0;
+  outSchema.ref.children = ffi.nullptr;
   outSchema.ref.dictionary = ffi.nullptr;
-  outSchema.ref.release = _releaseArrowSchemaPtr;
+  outSchema.ref.release = ffi.nullptr;
   outSchema.ref.private_data = ffi.nullptr;
 
-  final schemaChildren = calloc<ffi.Pointer<ArrowSchema>>(columnCount);
-  outSchema.ref.children = schemaChildren;
-
-  // 2. Populate top-level ArrowArray for Struct
-  outArray.ref.length = dataFrame.rowCount;
+  outArray.ref.length = 0;
   outArray.ref.null_count = 0;
   outArray.ref.offset = 0;
-  outArray.ref.n_buffers = 1;
-  final topBuffers = calloc<ffi.Pointer<ffi.Void>>(1);
-  topBuffers[0] = ffi.nullptr;
-  outArray.ref.buffers = topBuffers;
-  outArray.ref.n_children = columnCount;
+  outArray.ref.n_buffers = 0;
+  outArray.ref.buffers = ffi.nullptr;
+  outArray.ref.n_children = 0;
+  outArray.ref.children = ffi.nullptr;
   outArray.ref.dictionary = ffi.nullptr;
-  outArray.ref.release = _releaseArrowArrayPtr;
+  outArray.ref.release = ffi.nullptr;
   outArray.ref.private_data = ffi.nullptr;
 
-  final arrayChildren = calloc<ffi.Pointer<ArrowArray>>(columnCount);
-  outArray.ref.children = arrayChildren;
+  ffi.Pointer<ffi.Pointer<ArrowSchema>>? schemaChildren;
+  ffi.Pointer<ffi.Pointer<ArrowArray>>? arrayChildren;
+  ffi.Pointer<ffi.Pointer<ffi.Void>>? topBuffers;
 
-  // 3. Export each child column
-  for (var i = 0; i < columnCount; i++) {
-    final col = dataFrame.columns[i];
-    final childSchema = calloc<ArrowSchema>();
-    final childArray = calloc<ArrowArray>();
-    schemaChildren[i] = childSchema;
-    arrayChildren[i] = childArray;
-    exportSeriesToArrowC(
-      series: col,
-      outArray: childArray,
-      outSchema: childSchema,
-    );
+  try {
+    // 1. Populate top-level ArrowSchema for Struct ("+s")
+    outSchema.ref.format = '+s'.toNativeUtf8();
+    outSchema.ref.name = ''.toNativeUtf8();
+    outSchema.ref.flags = 0;
+    outSchema.ref.dictionary = ffi.nullptr;
+    outSchema.ref.release = _releaseArrowSchemaPtr;
+
+    if (columnCount > 0) {
+      schemaChildren = calloc<ffi.Pointer<ArrowSchema>>(columnCount);
+      for (var i = 0; i < columnCount; i++) {
+        schemaChildren[i] = ffi.nullptr;
+      }
+      outSchema.ref.children = schemaChildren;
+    }
+
+    // 2. Populate top-level ArrowArray for Struct
+    outArray.ref.length = dataFrame.rowCount;
+    outArray.ref.null_count = 0;
+    outArray.ref.offset = 0;
+    outArray.ref.n_buffers = 1;
+    topBuffers = calloc<ffi.Pointer<ffi.Void>>(1);
+    topBuffers[0] = ffi.nullptr;
+    outArray.ref.buffers = topBuffers;
+    outArray.ref.dictionary = ffi.nullptr;
+    outArray.ref.release = _releaseArrowArrayPtr;
+
+    if (columnCount > 0) {
+      arrayChildren = calloc<ffi.Pointer<ArrowArray>>(columnCount);
+      for (var i = 0; i < columnCount; i++) {
+        arrayChildren[i] = ffi.nullptr;
+      }
+      outArray.ref.children = arrayChildren;
+    }
+
+    // 3. Export each child column, incrementing n_children dynamically
+    for (var i = 0; i < columnCount; i++) {
+      final col = dataFrame.columns[i];
+      final childSchema = calloc<ArrowSchema>();
+      final childArray = calloc<ArrowArray>();
+      schemaChildren![i] = childSchema;
+      arrayChildren![i] = childArray;
+      outSchema.ref.n_children = i + 1;
+      outArray.ref.n_children = i + 1;
+      exportSeriesToArrowC(
+        series: col,
+        outSchema: childSchema,
+        outArray: childArray,
+      );
+    }
+  } catch (e) {
+    _releaseArrowSchema(outSchema);
+    _releaseArrowArray(outArray);
+    rethrow;
   }
 }
 
 /// Imports a [DataFrame] from Apache Arrow C Data structures.
 DataFrame importDataFrameFromArrowC({
-  required ffi.Pointer<ArrowArray> array,
   required ffi.Pointer<ArrowSchema> schema,
+  required ffi.Pointer<ArrowArray> array,
+  bool release = true,
 }) {
   if (array.ref.release == ffi.nullptr) {
     throw StateError('Cannot import from already-released ArrowArray.');
@@ -182,126 +222,168 @@ DataFrame importDataFrameFromArrowC({
     throw StateError('Cannot import from already-released ArrowSchema.');
   }
 
-  final formatStr = schema.ref.format.toDartString();
-  if (formatStr != '+s') {
-    throw FormatException(
-      'Expected struct format "+s" for DataFrame, got "$formatStr".',
-    );
+  try {
+    final formatStr = schema.ref.format.toDartString();
+    if (formatStr != '+s') {
+      throw FormatException(
+        'Expected struct format "+s" for DataFrame, got "$formatStr".',
+      );
+    }
+
+    final columnCount = schema.ref.n_children;
+    final columns = <Series<Object?>>[];
+
+    for (var i = 0; i < columnCount; i++) {
+      final childSchema = schema.ref.children[i];
+      final childArray = array.ref.children[i];
+      // Do not release child arrays individually; top-level release handles tree
+      columns.add(
+        importSeriesFromArrowC(
+          schema: childSchema,
+          array: childArray,
+          release: false,
+        ),
+      );
+    }
+
+    return DataFrame(columns);
+  } finally {
+    if (release) {
+      _invokeRelease(schema: schema, array: array);
+    }
   }
-
-  final columnCount = schema.ref.n_children;
-  final columns = <Series<Object?>>[];
-
-  for (var i = 0; i < columnCount; i++) {
-    final childSchema = schema.ref.children[i];
-    final childArray = array.ref.children[i];
-    columns.add(importSeriesFromArrowC(array: childArray, schema: childSchema));
-  }
-
-  return DataFrame(columns);
 }
 
 /// Exports a single [Series] to Apache Arrow C Data structures.
 void exportSeriesToArrowC({
   required Series<Object?> series,
-  required ffi.Pointer<ArrowArray> outArray,
   required ffi.Pointer<ArrowSchema> outSchema,
+  required ffi.Pointer<ArrowArray> outArray,
 }) {
   final formatCode = _getFormatCode(series);
   final isNullable = series.hasNulls;
 
-  // 1. Populate ArrowSchema
-  outSchema.ref.format = formatCode.toNativeUtf8();
-  outSchema.ref.name = series.name.toNativeUtf8();
+  // Initialize structs to nullptr for safe unwinding
+  outSchema.ref.format = ffi.nullptr;
+  outSchema.ref.name = ffi.nullptr;
   outSchema.ref.metadata = ffi.nullptr;
-  outSchema.ref.flags = isNullable ? arrowFlagNullable : 0;
+  outSchema.ref.flags = 0;
   outSchema.ref.n_children = 0;
   outSchema.ref.children = ffi.nullptr;
   outSchema.ref.dictionary = ffi.nullptr;
-  outSchema.ref.release = _releaseArrowSchemaPtr;
+  outSchema.ref.release = ffi.nullptr;
   outSchema.ref.private_data = ffi.nullptr;
 
-  // 2. Populate ArrowArray
-  outArray.ref.length = series.length;
-  outArray.ref.null_count = series.nullCount;
+  outArray.ref.length = 0;
+  outArray.ref.null_count = 0;
   outArray.ref.offset = 0;
+  outArray.ref.n_buffers = 0;
+  outArray.ref.buffers = ffi.nullptr;
   outArray.ref.n_children = 0;
   outArray.ref.children = ffi.nullptr;
   outArray.ref.dictionary = ffi.nullptr;
-  outArray.ref.release = _releaseArrowArrayPtr;
+  outArray.ref.release = ffi.nullptr;
   outArray.ref.private_data = ffi.nullptr;
 
-  // Allocate validity mask buffer if nulls are present
-  var maskBuffer = ffi.Pointer<ffi.Void>.fromAddress(0);
-  if (series.nullCount > 0 && series.mask != null) {
-    final maskBytes = (series.length + 7) ~/ 8;
-    final maskPtr = calloc<ffi.Uint8>(maskBytes);
-    maskPtr
-        .asTypedList(maskBytes)
-        .setAll(0, series.mask!.bytes.sublist(0, maskBytes));
-    maskBuffer = maskPtr.cast();
-  }
+  try {
+    // 1. Populate ArrowSchema
+    outSchema.ref.format = formatCode.toNativeUtf8();
+    outSchema.ref.name = series.name.toNativeUtf8();
+    outSchema.ref.metadata = ffi.nullptr;
+    outSchema.ref.flags = isNullable ? arrowFlagNullable : 0;
+    outSchema.ref.n_children = 0;
+    outSchema.ref.children = ffi.nullptr;
+    outSchema.ref.dictionary = ffi.nullptr;
+    outSchema.ref.release = _releaseArrowSchemaPtr;
+    outSchema.ref.private_data = ffi.nullptr;
 
-  if (series is ArrowStringSeries) {
-    outArray.ref.n_buffers = 3;
-    final buffers = calloc<ffi.Pointer<ffi.Void>>(3);
-    buffers[0] = maskBuffer;
+    // 2. Populate ArrowArray
+    outArray.ref.length = series.length;
+    outArray.ref.null_count = series.nullCount;
+    outArray.ref.offset = 0;
+    outArray.ref.n_children = 0;
+    outArray.ref.children = ffi.nullptr;
+    outArray.ref.dictionary = ffi.nullptr;
+    outArray.ref.release = _releaseArrowArrayPtr;
+    outArray.ref.private_data = ffi.nullptr;
 
-    final offsetsByteLength = (series.length + 1) * 4;
-    final offsetsPtr = calloc<ffi.Uint8>(offsetsByteLength);
-    offsetsPtr
-        .asTypedList(offsetsByteLength)
-        .setAll(0, Uint8List.sublistView(series.offsets));
-    buffers[1] = offsetsPtr.cast();
-
-    final bytesLength = series.bytes.length;
-    final bytesPtr = calloc<ffi.Uint8>(bytesLength == 0 ? 1 : bytesLength);
-    if (bytesLength > 0) {
-      bytesPtr.asTypedList(bytesLength).setAll(0, series.bytes);
+    // Allocate validity mask buffer if nulls are present
+    var maskBuffer = ffi.Pointer<ffi.Void>.fromAddress(0);
+    if (series.nullCount > 0 && series.mask != null) {
+      final maskBytes = (series.length + 7) ~/ 8;
+      final maskPtr = calloc<ffi.Uint8>(maskBytes);
+      maskPtr
+          .asTypedList(maskBytes)
+          .setAll(0, series.mask!.bytes.sublist(0, maskBytes));
+      maskBuffer = maskPtr.cast();
     }
-    buffers[2] = bytesPtr.cast();
-    outArray.ref.buffers = buffers;
-  } else if (series is BoolSeries) {
-    outArray.ref.n_buffers = 2;
-    final buffers = calloc<ffi.Pointer<ffi.Void>>(2);
-    buffers[0] = maskBuffer;
 
-    final boolBytes = (series.length + 7) ~/ 8;
-    final boolPtr = calloc<ffi.Uint8>(boolBytes == 0 ? 1 : boolBytes);
-    final typedBool = boolPtr.asTypedList(boolBytes);
-    for (var i = 0; i < series.length; i++) {
-      if (series.data[i]) {
-        typedBool[i >> 3] |= 1 << (i & 7);
+    if (series is ArrowStringSeries) {
+      outArray.ref.n_buffers = 3;
+      final buffers = calloc<ffi.Pointer<ffi.Void>>(3);
+      buffers[0] = maskBuffer;
+
+      final offsetsByteLength = (series.length + 1) * 4;
+      final offsetsPtr = calloc<ffi.Uint8>(offsetsByteLength);
+      offsetsPtr
+          .asTypedList(offsetsByteLength)
+          .setAll(0, Uint8List.sublistView(series.offsets));
+      buffers[1] = offsetsPtr.cast();
+
+      final bytesLength = series.bytes.length;
+      final bytesPtr = calloc<ffi.Uint8>(bytesLength == 0 ? 1 : bytesLength);
+      if (bytesLength > 0) {
+        bytesPtr.asTypedList(bytesLength).setAll(0, series.bytes);
       }
-    }
-    buffers[1] = boolPtr.cast();
-    outArray.ref.buffers = buffers;
-  } else if (series is TypedSeries) {
-    outArray.ref.n_buffers = 2;
-    final buffers = calloc<ffi.Pointer<ffi.Void>>(2);
-    buffers[0] = maskBuffer;
+      buffers[2] = bytesPtr.cast();
+      outArray.ref.buffers = buffers;
+    } else if (series is BoolSeries) {
+      outArray.ref.n_buffers = 2;
+      final buffers = calloc<ffi.Pointer<ffi.Void>>(2);
+      buffers[0] = maskBuffer;
 
-    final typedData = series.data as TypedData;
-    final byteLength = typedData.lengthInBytes;
-    final dataPtr = calloc<ffi.Uint8>(byteLength == 0 ? 1 : byteLength);
-    if (byteLength > 0) {
-      dataPtr
-          .asTypedList(byteLength)
-          .setAll(0, Uint8List.sublistView(typedData));
+      final boolBytes = (series.length + 7) ~/ 8;
+      final boolPtr = calloc<ffi.Uint8>(boolBytes == 0 ? 1 : boolBytes);
+      final typedBool = boolPtr.asTypedList(boolBytes);
+      for (var i = 0; i < series.length; i++) {
+        if (series.data[i]) {
+          typedBool[i >> 3] |= 1 << (i & 7);
+        }
+      }
+      buffers[1] = boolPtr.cast();
+      outArray.ref.buffers = buffers;
+    } else if (series is TypedSeries) {
+      outArray.ref.n_buffers = 2;
+      final buffers = calloc<ffi.Pointer<ffi.Void>>(2);
+      buffers[0] = maskBuffer;
+
+      final typedData = series.data as TypedData;
+      final byteLength = typedData.lengthInBytes;
+      final dataPtr = calloc<ffi.Uint8>(byteLength == 0 ? 1 : byteLength);
+      if (byteLength > 0) {
+        dataPtr
+            .asTypedList(byteLength)
+            .setAll(0, Uint8List.sublistView(typedData));
+      }
+      buffers[1] = dataPtr.cast();
+      outArray.ref.buffers = buffers;
+    } else {
+      throw UnsupportedError(
+        'Exporting series of type ${series.runtimeType} is not supported.',
+      );
     }
-    buffers[1] = dataPtr.cast();
-    outArray.ref.buffers = buffers;
-  } else {
-    throw UnsupportedError(
-      'Exporting series of type ${series.runtimeType} is not supported.',
-    );
+  } catch (e) {
+    _releaseArrowSchema(outSchema);
+    _releaseArrowArray(outArray);
+    rethrow;
   }
 }
 
 /// Imports a single [Series] from Apache Arrow C Data structures.
 Series<Object?> importSeriesFromArrowC({
-  required ffi.Pointer<ArrowArray> array,
   required ffi.Pointer<ArrowSchema> schema,
+  required ffi.Pointer<ArrowArray> array,
+  bool release = true,
 }) {
   if (array.ref.release == ffi.nullptr) {
     throw StateError('Cannot import from already-released ArrowArray.');
@@ -310,178 +392,336 @@ Series<Object?> importSeriesFromArrowC({
     throw StateError('Cannot import from already-released ArrowSchema.');
   }
 
-  final name = schema.ref.name == ffi.nullptr
-      ? 'col'
-      : schema.ref.name.toDartString();
-  final format = schema.ref.format.toDartString();
-  final length = array.ref.length;
-  final nullCount = array.ref.null_count;
+  try {
+    final name = schema.ref.name == ffi.nullptr
+        ? 'col'
+        : schema.ref.name.toDartString();
+    final format = schema.ref.format.toDartString();
+    final length = array.ref.length;
+    final nullCount = array.ref.null_count;
+    final offset = array.ref.offset;
 
-  ValidityMask? mask;
-  if (nullCount > 0 && array.ref.buffers[0] != ffi.nullptr) {
-    final maskBytes = (length + 7) ~/ 8;
-    final maskList = Uint8List.fromList(
-      array.ref.buffers[0].cast<ffi.Uint8>().asTypedList(maskBytes),
+    if (length == 0) {
+      return _createEmptySeries(name: name, format: format);
+    }
+
+    final mask = _extractValidityMask(
+      buffers: array.ref.buffers,
+      offset: offset,
+      length: length,
+      nullCount: nullCount,
     );
-    mask = ValidityMask.fromBytes(length, maskList, nullCount);
-  }
 
+    switch (format) {
+      case 'g':
+        final raw = array.ref.buffers[1].cast<ffi.Double>().asTypedList(
+          offset + length,
+        );
+        final data = Float64List.fromList(
+          Float64List.sublistView(raw, offset, offset + length),
+        );
+        return TypedSeries<double>(
+          name: name,
+          data: data,
+          mask: mask,
+          dataType: DataType.float64,
+        );
+      case 'f':
+        final raw = array.ref.buffers[1].cast<ffi.Float>().asTypedList(
+          offset + length,
+        );
+        final data = Float32List.fromList(
+          Float32List.sublistView(raw, offset, offset + length),
+        );
+        return TypedSeries<double>(
+          name: name,
+          data: data,
+          mask: mask,
+          dataType: DataType.float32,
+        );
+      case 'i':
+        final raw = array.ref.buffers[1].cast<ffi.Int32>().asTypedList(
+          offset + length,
+        );
+        final data = Int32List.fromList(
+          Int32List.sublistView(raw, offset, offset + length),
+        );
+        return TypedSeries<int>(
+          name: name,
+          data: data,
+          mask: mask,
+          dataType: DataType.int32,
+        );
+      case 'l':
+        final raw = array.ref.buffers[1].cast<ffi.Int64>().asTypedList(
+          offset + length,
+        );
+        final data = Int64List.fromList(
+          Int64List.sublistView(raw, offset, offset + length),
+        );
+        return TypedSeries<int>(
+          name: name,
+          data: data,
+          mask: mask,
+          dataType: DataType.int64,
+        );
+      case 's':
+        final raw = array.ref.buffers[1].cast<ffi.Int16>().asTypedList(
+          offset + length,
+        );
+        final data = Int16List.fromList(
+          Int16List.sublistView(raw, offset, offset + length),
+        );
+        return TypedSeries<int>(
+          name: name,
+          data: data,
+          mask: mask,
+          dataType: DataType.int16,
+        );
+      case 'c':
+        final raw = array.ref.buffers[1].cast<ffi.Int8>().asTypedList(
+          offset + length,
+        );
+        final data = Int8List.fromList(
+          Int8List.sublistView(raw, offset, offset + length),
+        );
+        return TypedSeries<int>(
+          name: name,
+          data: data,
+          mask: mask,
+          dataType: DataType.int8,
+        );
+      case 'I':
+        final raw = array.ref.buffers[1].cast<ffi.Uint32>().asTypedList(
+          offset + length,
+        );
+        final data = Uint32List.fromList(
+          Uint32List.sublistView(raw, offset, offset + length),
+        );
+        return TypedSeries<int>(
+          name: name,
+          data: data,
+          mask: mask,
+          dataType: DataType.uint32,
+        );
+      case 'L':
+        final raw = array.ref.buffers[1].cast<ffi.Uint64>().asTypedList(
+          offset + length,
+        );
+        final data = Uint64List.fromList(
+          Uint64List.sublistView(raw, offset, offset + length),
+        );
+        return TypedSeries<int>(
+          name: name,
+          data: data,
+          mask: mask,
+          dataType: DataType.uint64,
+        );
+      case 'S':
+        final raw = array.ref.buffers[1].cast<ffi.Uint16>().asTypedList(
+          offset + length,
+        );
+        final data = Uint16List.fromList(
+          Uint16List.sublistView(raw, offset, offset + length),
+        );
+        return TypedSeries<int>(
+          name: name,
+          data: data,
+          mask: mask,
+          dataType: DataType.uint16,
+        );
+      case 'C':
+        final raw = array.ref.buffers[1].cast<ffi.Uint8>().asTypedList(
+          offset + length,
+        );
+        final data = Uint8List.fromList(
+          Uint8List.sublistView(raw, offset, offset + length),
+        );
+        return TypedSeries<int>(
+          name: name,
+          data: data,
+          mask: mask,
+          dataType: DataType.uint8,
+        );
+      case 'u':
+        final rawOffsets = array.ref.buffers[1].cast<ffi.Uint32>().asTypedList(
+          offset + length + 1,
+        );
+        final baseByte = rawOffsets[offset];
+        final totalBytes = rawOffsets[offset + length] - baseByte;
+        final sliceOffsets = Uint32List(length + 1);
+        for (var i = 0; i <= length; i++) {
+          sliceOffsets[i] = rawOffsets[offset + i] - baseByte;
+        }
+
+        Uint8List bytes;
+        if (totalBytes == 0) {
+          bytes = Uint8List(0);
+        } else {
+          final rawBytes = array.ref.buffers[2].cast<ffi.Uint8>().asTypedList(
+            baseByte + totalBytes,
+          );
+          bytes = Uint8List.fromList(
+            Uint8List.sublistView(rawBytes, baseByte, baseByte + totalBytes),
+          );
+        }
+        return ArrowStringSeries(
+          name: name,
+          bytes: bytes,
+          offsets: sliceOffsets,
+          mask: mask,
+        );
+      case 'b':
+        final rawBytes = array.ref.buffers[1].cast<ffi.Uint8>().asTypedList(
+          (offset + length + 7) ~/ 8,
+        );
+        final boolData = List<bool>.generate(length, (i) {
+          final bitIndex = offset + i;
+          return ((rawBytes[bitIndex >> 3] >> (bitIndex & 7)) & 1) == 1;
+        });
+        return BoolSeries(name: name, data: boolData, mask: mask);
+      default:
+        throw UnsupportedError('Unsupported Arrow format: $format');
+    }
+  } finally {
+    if (release) {
+      _invokeRelease(schema: schema, array: array);
+    }
+  }
+}
+
+Series<Object?> _createEmptySeries({
+  required String name,
+  required String format,
+}) {
   switch (format) {
     case 'g':
-      final data = Float64List.fromList(
-        array.ref.buffers[1].cast<ffi.Double>().asTypedList(length),
-      );
       return TypedSeries<double>(
         name: name,
-        data: data,
-        mask: mask,
+        data: Float64List(0),
         dataType: DataType.float64,
       );
     case 'f':
-      final data = Float32List.fromList(
-        array.ref.buffers[1].cast<ffi.Float>().asTypedList(length),
-      );
       return TypedSeries<double>(
         name: name,
-        data: data,
-        mask: mask,
+        data: Float32List(0),
         dataType: DataType.float32,
       );
     case 'i':
-      final data = Int32List.fromList(
-        array.ref.buffers[1].cast<ffi.Int32>().asTypedList(length),
-      );
       return TypedSeries<int>(
         name: name,
-        data: data,
-        mask: mask,
+        data: Int32List(0),
         dataType: DataType.int32,
       );
     case 'l':
-      final data = Int64List.fromList(
-        array.ref.buffers[1].cast<ffi.Int64>().asTypedList(length),
-      );
       return TypedSeries<int>(
         name: name,
-        data: data,
-        mask: mask,
+        data: Int64List(0),
         dataType: DataType.int64,
       );
     case 's':
-      final data = Int16List.fromList(
-        array.ref.buffers[1].cast<ffi.Int16>().asTypedList(length),
-      );
       return TypedSeries<int>(
         name: name,
-        data: data,
-        mask: mask,
+        data: Int16List(0),
         dataType: DataType.int16,
       );
     case 'c':
-      final data = Int8List.fromList(
-        array.ref.buffers[1].cast<ffi.Int8>().asTypedList(length),
-      );
       return TypedSeries<int>(
         name: name,
-        data: data,
-        mask: mask,
+        data: Int8List(0),
         dataType: DataType.int8,
       );
     case 'I':
-      final data = Uint32List.fromList(
-        array.ref.buffers[1].cast<ffi.Uint32>().asTypedList(length),
-      );
       return TypedSeries<int>(
         name: name,
-        data: data,
-        mask: mask,
+        data: Uint32List(0),
         dataType: DataType.uint32,
       );
     case 'L':
-      final data = Uint64List.fromList(
-        array.ref.buffers[1].cast<ffi.Uint64>().asTypedList(length),
-      );
       return TypedSeries<int>(
         name: name,
-        data: data,
-        mask: mask,
+        data: Uint64List(0),
         dataType: DataType.uint64,
       );
     case 'S':
-      final data = Uint16List.fromList(
-        array.ref.buffers[1].cast<ffi.Uint16>().asTypedList(length),
-      );
       return TypedSeries<int>(
         name: name,
-        data: data,
-        mask: mask,
+        data: Uint16List(0),
         dataType: DataType.uint16,
       );
     case 'C':
-      final data = Uint8List.fromList(
-        array.ref.buffers[1].cast<ffi.Uint8>().asTypedList(length),
-      );
       return TypedSeries<int>(
         name: name,
-        data: data,
-        mask: mask,
+        data: Uint8List(0),
         dataType: DataType.uint8,
       );
     case 'u':
-      final offsets = Uint32List.fromList(
-        array.ref.buffers[1].cast<ffi.Uint32>().asTypedList(length + 1),
-      );
-      final totalBytes = offsets[length];
-      final bytes = totalBytes == 0
-          ? Uint8List(0)
-          : Uint8List.fromList(
-              array.ref.buffers[2].cast<ffi.Uint8>().asTypedList(totalBytes),
-            );
       return ArrowStringSeries(
         name: name,
-        bytes: bytes,
-        offsets: offsets,
-        mask: mask,
+        bytes: Uint8List(0),
+        offsets: Uint32List.fromList([0]),
       );
     case 'b':
-      final byteCount = (length + 7) ~/ 8;
-      final rawBytes = array.ref.buffers[1].cast<ffi.Uint8>().asTypedList(
-        byteCount,
-      );
-      final boolData = List<bool>.generate(
-        length,
-        (i) => ((rawBytes[i >> 3] >> (i & 7)) & 1) == 1,
-      );
-      return BoolSeries(name: name, data: boolData, mask: mask);
+      return BoolSeries(name: name, data: const []);
     default:
       throw UnsupportedError('Unsupported Arrow format: $format');
   }
 }
 
-/// Extension methods for exporting a [DataFrame] to Arrow C Data.
-extension ArrowCDataFrameExtension on DataFrame {
-  /// Exports this DataFrame into provided [outArray] and [outSchema] structs.
-  void exportToArrowC({
-    required ffi.Pointer<ArrowArray> outArray,
-    required ffi.Pointer<ArrowSchema> outSchema,
-  }) => exportDataFrameToArrowC(
-    dataFrame: this,
-    outArray: outArray,
-    outSchema: outSchema,
-  );
+ValidityMask? _extractValidityMask({
+  required ffi.Pointer<ffi.Pointer<ffi.Void>> buffers,
+  required int offset,
+  required int length,
+  required int nullCount,
+}) {
+  // Arrow C Data specification: null_count == 0 means no nulls (validity bitmap may be null).
+  // null_count == -1 means null count unknown; validity bitmap is present if buffers[0] != nullptr.
+  // null_count > 0 means validity bitmap is present at buffers[0].
+  if (nullCount == 0 || buffers == ffi.nullptr || buffers[0] == ffi.nullptr) {
+    return null;
+  }
+
+  final totalBits = offset + length;
+  final totalBytes = (totalBits + 7) ~/ 8;
+  final rawMaskBytes = buffers[0].cast<ffi.Uint8>().asTypedList(totalBytes);
+
+  final outBytesCount = (length + 7) ~/ 8;
+  final outMaskBytes = Uint8List(outBytesCount);
+
+  var actualNulls = 0;
+  for (var i = 0; i < length; i++) {
+    final bitPos = offset + i;
+    final isSet = ((rawMaskBytes[bitPos >> 3] >> (bitPos & 7)) & 1) == 1;
+    if (isSet) {
+      outMaskBytes[i >> 3] |= 1 << (i & 7);
+    } else {
+      actualNulls++;
+    }
+  }
+
+  if (actualNulls == 0) {
+    return null;
+  }
+
+  return ValidityMask.fromBytes(length, outMaskBytes, actualNulls);
 }
 
-/// Extension methods for exporting a [Series] to Arrow C Data.
-extension ArrowCSeriesExtension on Series<Object?> {
-  /// Exports this Series into provided [outArray] and [outSchema] structs.
-  void exportToArrowC({
-    required ffi.Pointer<ArrowArray> outArray,
-    required ffi.Pointer<ArrowSchema> outSchema,
-  }) => exportSeriesToArrowC(
-    series: this,
-    outArray: outArray,
-    outSchema: outSchema,
-  );
+void _invokeRelease({
+  required ffi.Pointer<ArrowSchema> schema,
+  required ffi.Pointer<ArrowArray> array,
+}) {
+  if (schema != ffi.nullptr && schema.ref.release != ffi.nullptr) {
+    final schemaRelease = schema.ref.release
+        .asFunction<void Function(ffi.Pointer<ArrowSchema>)>();
+    schemaRelease(schema);
+    schema.ref.release = ffi.nullptr;
+  }
+  if (array != ffi.nullptr && array.ref.release != ffi.nullptr) {
+    final arrayRelease = array.ref.release
+        .asFunction<void Function(ffi.Pointer<ArrowArray>)>();
+    arrayRelease(array);
+    array.ref.release = ffi.nullptr;
+  }
 }
 
 String _getFormatCode(Series<Object?> series) {

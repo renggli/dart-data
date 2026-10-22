@@ -31,16 +31,17 @@ class ArrowArray {
 /// Exports a [DataFrame] to Apache Arrow C Data structures (stub).
 void exportDataFrameToArrowC({
   required DataFrame dataFrame,
-  required dynamic outArray,
   required dynamic outSchema,
+  required dynamic outArray,
 }) {
   throw UnsupportedError('Arrow C Data interface requires dart:ffi.');
 }
 
 /// Imports a [DataFrame] from Apache Arrow C Data structures (stub).
 DataFrame importDataFrameFromArrowC({
-  required dynamic array,
   required dynamic schema,
+  required dynamic array,
+  bool release = true,
 }) {
   throw UnsupportedError('Arrow C Data interface requires dart:ffi.');
 }
@@ -48,34 +49,17 @@ DataFrame importDataFrameFromArrowC({
 /// Exports a single [Series] to Apache Arrow C Data structures (stub).
 void exportSeriesToArrowC({
   required Series<Object?> series,
-  required dynamic outArray,
   required dynamic outSchema,
+  required dynamic outArray,
 }) {
   throw UnsupportedError('Arrow C Data interface requires dart:ffi.');
 }
 
 /// Imports a single [Series] from Apache Arrow C Data structures (stub).
 Series<Object?> importSeriesFromArrowC({
-  required dynamic array,
   required dynamic schema,
+  required dynamic array,
+  bool release = true,
 }) {
   throw UnsupportedError('Arrow C Data interface requires dart:ffi.');
-}
-
-/// Extension methods for exporting a [DataFrame] to Arrow C Data (stub).
-extension ArrowCDataFrameExtension on DataFrame {
-  /// Exports this DataFrame into provided structs (stub).
-  void exportToArrowC({
-    required dynamic outArray,
-    required dynamic outSchema,
-  }) => throw UnsupportedError('Arrow C Data interface requires dart:ffi.');
-}
-
-/// Extension methods for exporting a [Series] to Arrow C Data (stub).
-extension ArrowCSeriesExtension on Series<Object?> {
-  /// Exports this Series into provided structs (stub).
-  void exportToArrowC({
-    required dynamic outArray,
-    required dynamic outSchema,
-  }) => throw UnsupportedError('Arrow C Data interface requires dart:ffi.');
 }
