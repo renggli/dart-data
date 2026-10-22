@@ -3,6 +3,7 @@ import 'dart:ffi' as ffi;
 import 'dart:typed_data';
 
 import '../utils/library_loader_ffi.dart';
+import 'blas_validation.dart';
 import 'cblas_constants.dart';
 
 /// Native CBLAS bindings via dart:ffi using leaf native calls.
@@ -51,6 +52,7 @@ abstract final class BlasNative {
     required int yOffset,
     required int incY,
   }) {
+    if (n <= 0) return 0.0;
     if (!_hasDdot) return null;
     final xView = xOffset == 0 ? x : Float64List.sublistView(x, xOffset);
     final yView = yOffset == 0 ? y : Float64List.sublistView(y, yOffset);
@@ -66,6 +68,7 @@ abstract final class BlasNative {
     required int yOffset,
     required int incY,
   }) {
+    if (n <= 0) return 0.0;
     if (!_hasSdot) return null;
     final xView = xOffset == 0 ? x : Float32List.sublistView(x, xOffset);
     final yView = yOffset == 0 ? y : Float32List.sublistView(y, yOffset);
@@ -78,6 +81,7 @@ abstract final class BlasNative {
     required int xOffset,
     required int incX,
   }) {
+    if (n <= 0) return 0.0;
     if (!_hasDnrm2) return null;
     final xView = xOffset == 0 ? x : Float64List.sublistView(x, xOffset);
     return _cblasDnrm2(n, xView.address, incX);
@@ -89,6 +93,7 @@ abstract final class BlasNative {
     required int xOffset,
     required int incX,
   }) {
+    if (n <= 0) return 0.0;
     if (!_hasSnrm2) return null;
     final xView = xOffset == 0 ? x : Float32List.sublistView(x, xOffset);
     return _cblasSnrm2(n, xView.address, incX);
@@ -104,6 +109,7 @@ abstract final class BlasNative {
     required int yOffset,
     required int incY,
   }) {
+    if (n <= 0) return true;
     if (!_hasDaxpy) return false;
     final xView = xOffset == 0 ? x : Float64List.sublistView(x, xOffset);
     final yView = yOffset == 0 ? y : Float64List.sublistView(y, yOffset);
@@ -121,6 +127,7 @@ abstract final class BlasNative {
     required int yOffset,
     required int incY,
   }) {
+    if (n <= 0) return true;
     if (!_hasSaxpy) return false;
     final xView = xOffset == 0 ? x : Float32List.sublistView(x, xOffset);
     final yView = yOffset == 0 ? y : Float32List.sublistView(y, yOffset);
@@ -135,6 +142,7 @@ abstract final class BlasNative {
     required int xOffset,
     required int incX,
   }) {
+    if (n <= 0) return true;
     if (!_hasDscal) return false;
     final xView = xOffset == 0 ? x : Float64List.sublistView(x, xOffset);
     _cblasDscal(n, alpha, xView.address, incX);
@@ -148,6 +156,7 @@ abstract final class BlasNative {
     required int xOffset,
     required int incX,
   }) {
+    if (n <= 0) return true;
     if (!_hasSscal) return false;
     final xView = xOffset == 0 ? x : Float32List.sublistView(x, xOffset);
     _cblasSscal(n, alpha, xView.address, incX);
@@ -172,6 +181,21 @@ abstract final class BlasNative {
     required int yOffset,
     required int incY,
   }) {
+    final lenY = transA == cblasTrans ? n : m;
+    if (m <= 0 || n <= 0) {
+      if (lenY > 0) {
+        if (beta == 0.0) {
+          for (var i = 0; i < lenY; i++) {
+            y[yOffset + i * incY] = 0.0;
+          }
+        } else if (beta != 1.0) {
+          for (var i = 0; i < lenY; i++) {
+            y[yOffset + i * incY] *= beta;
+          }
+        }
+      }
+      return true;
+    }
     if (!_hasDgemv) return false;
     final aView = aOffset == 0 ? a : Float64List.sublistView(a, aOffset);
     final xView = xOffset == 0 ? x : Float64List.sublistView(x, xOffset);
@@ -209,6 +233,21 @@ abstract final class BlasNative {
     required int yOffset,
     required int incY,
   }) {
+    final lenY = transA == cblasTrans ? n : m;
+    if (m <= 0 || n <= 0) {
+      if (lenY > 0) {
+        if (beta == 0.0) {
+          for (var i = 0; i < lenY; i++) {
+            y[yOffset + i * incY] = 0.0;
+          }
+        } else if (beta != 1.0) {
+          for (var i = 0; i < lenY; i++) {
+            y[yOffset + i * incY] *= beta;
+          }
+        }
+      }
+      return true;
+    }
     if (!_hasSgemv) return false;
     final aView = aOffset == 0 ? a : Float32List.sublistView(a, aOffset);
     final xView = xOffset == 0 ? x : Float32List.sublistView(x, xOffset);
@@ -244,6 +283,7 @@ abstract final class BlasNative {
     required int aOffset,
     required int lda,
   }) {
+    if (n <= 0) return true;
     if (!_hasDsyr2) return false;
     final xView = xOffset == 0 ? x : Float64List.sublistView(x, xOffset);
     final yView = yOffset == 0 ? y : Float64List.sublistView(y, yOffset);
@@ -260,7 +300,7 @@ abstract final class BlasNative {
       aView.address,
       lda,
     );
-    _mirrorSymmetricDouble(a, aOffset, n, lda, uplo);
+    mirrorSymmetricDouble(a, aOffset, n, lda, uplo);
     return true;
   }
 
@@ -278,6 +318,7 @@ abstract final class BlasNative {
     required int aOffset,
     required int lda,
   }) {
+    if (n <= 0) return true;
     if (!_hasSsyr2) return false;
     final xView = xOffset == 0 ? x : Float32List.sublistView(x, xOffset);
     final yView = yOffset == 0 ? y : Float32List.sublistView(y, yOffset);
@@ -294,7 +335,7 @@ abstract final class BlasNative {
       aView.address,
       lda,
     );
-    _mirrorSymmetricFloat(a, aOffset, n, lda, uplo);
+    mirrorSymmetricFloat(a, aOffset, n, lda, uplo);
     return true;
   }
 
@@ -310,6 +351,7 @@ abstract final class BlasNative {
     required int xOffset,
     required int incX,
   }) {
+    if (n <= 0) return true;
     if (!_hasDtrmv) return false;
     final aView = aOffset == 0 ? a : Float64List.sublistView(a, aOffset);
     final xView = xOffset == 0 ? x : Float64List.sublistView(x, xOffset);
@@ -339,6 +381,7 @@ abstract final class BlasNative {
     required int xOffset,
     required int incX,
   }) {
+    if (n <= 0) return true;
     if (!_hasStrmv) return false;
     final aView = aOffset == 0 ? a : Float32List.sublistView(a, aOffset);
     final xView = xOffset == 0 ? x : Float32List.sublistView(x, xOffset);
@@ -376,6 +419,23 @@ abstract final class BlasNative {
     required int cOffset,
     required int ldc,
   }) {
+    if (m <= 0 || n <= 0) return true;
+    if (k <= 0 || alpha == 0.0) {
+      if (beta == 0.0) {
+        for (var i = 0; i < m; i++) {
+          final cRow = cOffset + i * ldc;
+          c.fillRange(cRow, cRow + n, 0.0);
+        }
+      } else if (beta != 1.0) {
+        for (var i = 0; i < m; i++) {
+          final cRow = cOffset + i * ldc;
+          for (var j = 0; j < n; j++) {
+            c[cRow + j] *= beta;
+          }
+        }
+      }
+      return true;
+    }
     if (!_hasDgemm) return false;
     final aView = aOffset == 0 ? a : Float64List.sublistView(a, aOffset);
     final bView = bOffset == 0 ? b : Float64List.sublistView(b, bOffset);
@@ -417,6 +477,23 @@ abstract final class BlasNative {
     required int cOffset,
     required int ldc,
   }) {
+    if (m <= 0 || n <= 0) return true;
+    if (k <= 0 || alpha == 0.0) {
+      if (beta == 0.0) {
+        for (var i = 0; i < m; i++) {
+          final cRow = cOffset + i * ldc;
+          c.fillRange(cRow, cRow + n, 0.0);
+        }
+      } else if (beta != 1.0) {
+        for (var i = 0; i < m; i++) {
+          final cRow = cOffset + i * ldc;
+          for (var j = 0; j < n; j++) {
+            c[cRow + j] *= beta;
+          }
+        }
+      }
+      return true;
+    }
     if (!_hasSgemm) return false;
     final aView = aOffset == 0 ? a : Float32List.sublistView(a, aOffset);
     final bView = bOffset == 0 ? b : Float32List.sublistView(b, bOffset);
@@ -454,6 +531,20 @@ abstract final class BlasNative {
     required int cOffset,
     required int ldc,
   }) {
+    if (n <= 0) return true;
+    if (k <= 0 || alpha == 0.0) {
+      final isUpper = uplo == cblasUpper;
+      for (var i = 0; i < n; i++) {
+        final jStart = isUpper ? i : 0;
+        final jEnd = isUpper ? n : i + 1;
+        for (var j = jStart; j < jEnd; j++) {
+          final cIdx = cOffset + i * ldc + j;
+          c[cIdx] = (beta == 0.0 ? 0.0 : beta * c[cIdx]);
+        }
+      }
+      mirrorSymmetricDouble(c, cOffset, n, ldc, uplo);
+      return true;
+    }
     if (!_hasDsyrk) return false;
     final aView = aOffset == 0 ? a : Float64List.sublistView(a, aOffset);
     final cView = cOffset == 0 ? c : Float64List.sublistView(c, cOffset);
@@ -470,7 +561,7 @@ abstract final class BlasNative {
       cView.address,
       ldc,
     );
-    _mirrorSymmetricDouble(c, cOffset, n, ldc, uplo);
+    mirrorSymmetricDouble(c, cOffset, n, ldc, uplo);
     return true;
   }
 
@@ -488,6 +579,20 @@ abstract final class BlasNative {
     required int cOffset,
     required int ldc,
   }) {
+    if (n <= 0) return true;
+    if (k <= 0 || alpha == 0.0) {
+      final isUpper = uplo == cblasUpper;
+      for (var i = 0; i < n; i++) {
+        final jStart = isUpper ? i : 0;
+        final jEnd = isUpper ? n : i + 1;
+        for (var j = jStart; j < jEnd; j++) {
+          final cIdx = cOffset + i * ldc + j;
+          c[cIdx] = (beta == 0.0 ? 0.0 : beta * c[cIdx]);
+        }
+      }
+      mirrorSymmetricFloat(c, cOffset, n, ldc, uplo);
+      return true;
+    }
     if (!_hasSsyrk) return false;
     final aView = aOffset == 0 ? a : Float32List.sublistView(a, aOffset);
     final cView = cOffset == 0 ? c : Float32List.sublistView(c, cOffset);
@@ -504,7 +609,7 @@ abstract final class BlasNative {
       cView.address,
       ldc,
     );
-    _mirrorSymmetricFloat(c, cOffset, n, ldc, uplo);
+    mirrorSymmetricFloat(c, cOffset, n, ldc, uplo);
     return true;
   }
 
@@ -525,6 +630,7 @@ abstract final class BlasNative {
     required int cOffset,
     required int ldc,
   }) {
+    if (m <= 0 || n <= 0) return true;
     if (!_hasDsymm) return false;
     final aView = aOffset == 0 ? a : Float64List.sublistView(a, aOffset);
     final bView = bOffset == 0 ? b : Float64List.sublistView(b, bOffset);
@@ -564,6 +670,7 @@ abstract final class BlasNative {
     required int cOffset,
     required int ldc,
   }) {
+    if (m <= 0 || n <= 0) return true;
     if (!_hasSsymm) return false;
     final aView = aOffset == 0 ? a : Float32List.sublistView(a, aOffset);
     final bView = bOffset == 0 ? b : Float32List.sublistView(b, bOffset);
@@ -601,6 +708,7 @@ abstract final class BlasNative {
     required int bOffset,
     required int ldb,
   }) {
+    if (m <= 0 || n <= 0) return true;
     if (!_hasDtrmm) return false;
     final aView = aOffset == 0 ? a : Float64List.sublistView(a, aOffset);
     final bView = bOffset == 0 ? b : Float64List.sublistView(b, bOffset);
@@ -636,6 +744,7 @@ abstract final class BlasNative {
     required int bOffset,
     required int ldb,
   }) {
+    if (m <= 0 || n <= 0) return true;
     if (!_hasStrmm) return false;
     final aView = aOffset == 0 ? a : Float32List.sublistView(a, aOffset);
     final bView = bOffset == 0 ? b : Float32List.sublistView(b, bOffset);
@@ -654,50 +763,6 @@ abstract final class BlasNative {
       ldb,
     );
     return true;
-  }
-
-  static void _mirrorSymmetricDouble(
-    Float64List c,
-    int cOffset,
-    int n,
-    int ldc,
-    int uplo,
-  ) {
-    if (uplo == cblasUpper) {
-      for (var i = 0; i < n; i++) {
-        for (var j = i + 1; j < n; j++) {
-          c[cOffset + j * ldc + i] = c[cOffset + i * ldc + j];
-        }
-      }
-    } else {
-      for (var i = 0; i < n; i++) {
-        for (var j = 0; j < i; j++) {
-          c[cOffset + j * ldc + i] = c[cOffset + i * ldc + j];
-        }
-      }
-    }
-  }
-
-  static void _mirrorSymmetricFloat(
-    Float32List c,
-    int cOffset,
-    int n,
-    int ldc,
-    int uplo,
-  ) {
-    if (uplo == cblasUpper) {
-      for (var i = 0; i < n; i++) {
-        for (var j = i + 1; j < n; j++) {
-          c[cOffset + j * ldc + i] = c[cOffset + i * ldc + j];
-        }
-      }
-    } else {
-      for (var i = 0; i < n; i++) {
-        for (var j = 0; j < i; j++) {
-          c[cOffset + j * ldc + i] = c[cOffset + i * ldc + j];
-        }
-      }
-    }
   }
 }
 

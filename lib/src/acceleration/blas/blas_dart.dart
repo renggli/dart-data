@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 import 'dart:typed_data';
 
+import 'blas_validation.dart';
 import 'cblas_constants.dart';
 
 /// Block tile size for cache-blocked GEMM.
@@ -299,6 +300,7 @@ abstract final class BlasDart {
     required int xOffset,
     required int incX,
   }) {
+    if (n <= 0) return true;
     final temp = Float64List(n);
     final isUpper = uplo == cblasUpper;
     final isUnit = diag == cblasUnit;
@@ -341,6 +343,7 @@ abstract final class BlasDart {
     required int xOffset,
     required int incX,
   }) {
+    if (n <= 0) return true;
     final temp = Float32List(n);
     final isUpper = uplo == cblasUpper;
     final isUnit = diag == cblasUnit;
@@ -392,7 +395,7 @@ abstract final class BlasDart {
     required int cOffset,
     required int ldc,
   }) {
-    if (m == 0 || n == 0) return true;
+    if (m <= 0 || n <= 0) return true;
 
     if (beta == 0.0) {
       for (var i = 0; i < m; i++) {
@@ -408,7 +411,7 @@ abstract final class BlasDart {
       }
     }
 
-    if (alpha == 0.0 || k == 0) return true;
+    if (alpha == 0.0 || k <= 0) return true;
 
     if (transA == cblasNoTrans && transB == cblasNoTrans) {
       for (var ii = 0; ii < m; ii += _gemmBlockSize) {
@@ -535,7 +538,7 @@ abstract final class BlasDart {
     required int cOffset,
     required int ldc,
   }) {
-    if (m == 0 || n == 0) return true;
+    if (m <= 0 || n <= 0) return true;
 
     if (beta == 0.0) {
       for (var i = 0; i < m; i++) {
@@ -551,7 +554,7 @@ abstract final class BlasDart {
       }
     }
 
-    if (alpha == 0.0 || k == 0) return true;
+    if (alpha == 0.0 || k <= 0) return true;
 
     if (transA == cblasNoTrans && transB == cblasNoTrans) {
       for (var ii = 0; ii < m; ii += _gemmBlockSize) {
@@ -673,6 +676,7 @@ abstract final class BlasDart {
     required int cOffset,
     required int ldc,
   }) {
+    if (n <= 0) return true;
     final isUpper = uplo == cblasUpper;
     for (var i = 0; i < n; i++) {
       final jStart = isUpper ? i : 0;
@@ -692,7 +696,7 @@ abstract final class BlasDart {
         c[cIdx] = alpha * sum + (beta == 0.0 ? 0.0 : beta * c[cIdx]);
       }
     }
-    _mirrorSymmetricDouble(c, cOffset, n, ldc, uplo);
+    mirrorSymmetricDouble(c, cOffset, n, ldc, uplo);
     return true;
   }
 
@@ -711,6 +715,7 @@ abstract final class BlasDart {
     required int cOffset,
     required int ldc,
   }) {
+    if (n <= 0) return true;
     final isUpper = uplo == cblasUpper;
     for (var i = 0; i < n; i++) {
       final jStart = isUpper ? i : 0;
@@ -730,7 +735,7 @@ abstract final class BlasDart {
         c[cIdx] = alpha * sum + (beta == 0.0 ? 0.0 : beta * c[cIdx]);
       }
     }
-    _mirrorSymmetricFloat(c, cOffset, n, ldc, uplo);
+    mirrorSymmetricFloat(c, cOffset, n, ldc, uplo);
     return true;
   }
 
@@ -753,6 +758,7 @@ abstract final class BlasDart {
     required int cOffset,
     required int ldc,
   }) {
+    if (m <= 0 || n <= 0) return true;
     final isLeft = side == cblasLeft;
     final isUpper = uplo == cblasUpper;
     for (var i = 0; i < m; i++) {
@@ -798,6 +804,7 @@ abstract final class BlasDart {
     required int cOffset,
     required int ldc,
   }) {
+    if (m <= 0 || n <= 0) return true;
     final isLeft = side == cblasLeft;
     final isUpper = uplo == cblasUpper;
     for (var i = 0; i < m; i++) {
@@ -842,6 +849,7 @@ abstract final class BlasDart {
     required int bOffset,
     required int ldb,
   }) {
+    if (m <= 0 || n <= 0) return true;
     final temp = Float64List(m * n);
     final isLeft = side == cblasLeft;
     final isUpper = uplo == cblasUpper;
@@ -913,6 +921,7 @@ abstract final class BlasDart {
     required int bOffset,
     required int ldb,
   }) {
+    if (m <= 0 || n <= 0) return true;
     final temp = Float32List(m * n);
     final isLeft = side == cblasLeft;
     final isUpper = uplo == cblasUpper;
@@ -966,49 +975,5 @@ abstract final class BlasDart {
       }
     }
     return true;
-  }
-
-  static void _mirrorSymmetricDouble(
-    Float64List c,
-    int cOffset,
-    int n,
-    int ldc,
-    int uplo,
-  ) {
-    if (uplo == cblasUpper) {
-      for (var i = 0; i < n; i++) {
-        for (var j = i + 1; j < n; j++) {
-          c[cOffset + j * ldc + i] = c[cOffset + i * ldc + j];
-        }
-      }
-    } else {
-      for (var i = 0; i < n; i++) {
-        for (var j = 0; j < i; j++) {
-          c[cOffset + j * ldc + i] = c[cOffset + i * ldc + j];
-        }
-      }
-    }
-  }
-
-  static void _mirrorSymmetricFloat(
-    Float32List c,
-    int cOffset,
-    int n,
-    int ldc,
-    int uplo,
-  ) {
-    if (uplo == cblasUpper) {
-      for (var i = 0; i < n; i++) {
-        for (var j = i + 1; j < n; j++) {
-          c[cOffset + j * ldc + i] = c[cOffset + i * ldc + j];
-        }
-      }
-    } else {
-      for (var i = 0; i < n; i++) {
-        for (var j = 0; j < i; j++) {
-          c[cOffset + j * ldc + i] = c[cOffset + i * ldc + j];
-        }
-      }
-    }
   }
 }

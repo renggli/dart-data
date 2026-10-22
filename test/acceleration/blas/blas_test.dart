@@ -416,4 +416,194 @@ void main() {
       check(b[3]).isCloseTo(16.0, 1e-5);
     });
   });
+
+  group('Blas Edge Cases & Dimension Safety', () {
+    accelerationTest('0x0 zero dimensions Level 1, 2, and 3', () {
+      final x64 = Float64List(0);
+      final y64 = Float64List(0);
+      check(Blas.ddot(n: 0, x: x64, y: y64)).equals(0.0);
+      check(Blas.dnrm2(n: 0, x: x64)).equals(0.0);
+      check(Blas.daxpy(n: 0, alpha: 2.0, x: x64, y: y64)).isTrue();
+      check(Blas.dscal(n: 0, alpha: 2.0, x: x64)).isTrue();
+
+      final x32 = Float32List(0);
+      final y32 = Float32List(0);
+      check(Blas.sdot(n: 0, x: x32, y: y32)).equals(0.0);
+      check(Blas.snrm2(n: 0, x: x32)).equals(0.0);
+      check(Blas.saxpy(n: 0, alpha: 2.0, x: x32, y: y32)).isTrue();
+      check(Blas.sscal(n: 0, alpha: 2.0, x: x32)).isTrue();
+
+      final a64 = Float64List(0);
+      final b64 = Float64List(0);
+      final c64 = Float64List(0);
+      check(Blas.dgemv(m: 0, n: 0, a: a64, lda: 1, x: x64, y: y64)).isTrue();
+      check(
+        Blas.dgemm(
+          m: 0,
+          n: 0,
+          k: 0,
+          a: a64,
+          lda: 1,
+          b: b64,
+          ldb: 1,
+          c: c64,
+          ldc: 1,
+        ),
+      ).isTrue();
+
+      final a32 = Float32List(0);
+      final b32 = Float32List(0);
+      final c32 = Float32List(0);
+      check(Blas.sgemv(m: 0, n: 0, a: a32, lda: 1, x: x32, y: y32)).isTrue();
+      check(
+        Blas.sgemm(
+          m: 0,
+          n: 0,
+          k: 0,
+          a: a32,
+          lda: 1,
+          b: b32,
+          ldb: 1,
+          c: c32,
+          ldc: 1,
+        ),
+      ).isTrue();
+    });
+
+    accelerationTest(
+      '2x0 * 0x2 multiplication and beta scaling with k == 0',
+      () {
+        final a = Float64List(0);
+        final b = Float64List(0);
+        final cZero = Float64List.fromList([1.0, 2.0, 3.0, 4.0]);
+        final okZero = Blas.dgemm(
+          m: 2,
+          n: 2,
+          k: 0,
+          alpha: 1.0,
+          a: a,
+          lda: 1,
+          b: b,
+          ldb: 2,
+          beta: 0.0,
+          c: cZero,
+          ldc: 2,
+        );
+        check(okZero).isTrue();
+        check(cZero[0]).equals(0.0);
+        check(cZero[1]).equals(0.0);
+        check(cZero[2]).equals(0.0);
+        check(cZero[3]).equals(0.0);
+
+        final cScaled = Float64List.fromList([1.0, 2.0, 3.0, 4.0]);
+        final okScaled = Blas.dgemm(
+          m: 2,
+          n: 2,
+          k: 0,
+          alpha: 1.0,
+          a: a,
+          lda: 1,
+          b: b,
+          ldb: 2,
+          beta: 2.5,
+          c: cScaled,
+          ldc: 2,
+        );
+        check(okScaled).isTrue();
+        check(cScaled[0]).isCloseTo(2.5, 1e-10);
+        check(cScaled[1]).isCloseTo(5.0, 1e-10);
+        check(cScaled[2]).isCloseTo(7.5, 1e-10);
+        check(cScaled[3]).isCloseTo(10.0, 1e-10);
+
+        final yZero = Float64List.fromList([10.0, 20.0]);
+        final okGemvZero = Blas.dgemv(
+          m: 2,
+          n: 0,
+          a: a,
+          lda: 1,
+          x: Float64List(0),
+          beta: 0.0,
+          y: yZero,
+        );
+        check(okGemvZero).isTrue();
+        check(yZero[0]).equals(0.0);
+        check(yZero[1]).equals(0.0);
+
+        final yScaled = Float64List.fromList([10.0, 20.0]);
+        final okGemvScaled = Blas.dgemv(
+          m: 2,
+          n: 0,
+          a: a,
+          lda: 1,
+          x: Float64List(0),
+          beta: 3.0,
+          y: yScaled,
+        );
+        check(okGemvScaled).isTrue();
+        check(yScaled[0]).isCloseTo(30.0, 1e-10);
+        check(yScaled[1]).isCloseTo(60.0, 1e-10);
+      },
+    );
+
+    test('out-of-bounds buffer views throw RangeError', () {
+      final shortVec = Float64List(3);
+      final otherVec = Float64List(3);
+      check(() => Blas.ddot(n: 4, x: shortVec, y: otherVec))
+          .throws<RangeError>();
+      check(() => Blas.dnrm2(n: 4, x: shortVec)).throws<RangeError>();
+      check(() => Blas.daxpy(n: 4, alpha: 1.0, x: shortVec, y: otherVec))
+          .throws<RangeError>();
+      check(() => Blas.dscal(n: 4, alpha: 1.0, x: shortVec))
+          .throws<RangeError>();
+      check(
+        () => Blas.ddot(n: 2, x: shortVec, xOffset: 2, incX: 2, y: otherVec),
+      ).throws<RangeError>();
+      check(() => Blas.ddot(n: 2, x: shortVec, xOffset: -1, y: otherVec))
+          .throws<RangeError>();
+
+      final shortMat = Float64List(3);
+      final vec2 = Float64List(2);
+      check(() => Blas.dgemv(m: 2, n: 2, a: shortMat, lda: 2, x: vec2, y: vec2))
+          .throws<RangeError>();
+      check(
+        () => Blas.dgemm(
+          m: 2,
+          n: 2,
+          k: 2,
+          a: shortMat,
+          lda: 2,
+          b: Float64List(4),
+          ldb: 2,
+          c: Float64List(4),
+          ldc: 2,
+        ),
+      ).throws<RangeError>();
+    });
+
+    test('invalid enum or leading dimension throws ArgumentError', () {
+      final mat = Float64List(4);
+      final vec = Float64List(2);
+      check(() => Blas.dgemv(m: 2, n: 2, a: mat, lda: 1, x: vec, y: vec))
+          .throws<ArgumentError>();
+      check(
+        () =>
+            Blas.dgemv(transA: 999, m: 2, n: 2, a: mat, lda: 2, x: vec, y: vec),
+      ).throws<ArgumentError>();
+      check(() => Blas.ddot(n: 2, x: vec, incX: 0, y: vec))
+          .throws<ArgumentError>();
+      check(
+        () => Blas.dgemm(
+          m: 2,
+          n: 2,
+          k: 2,
+          a: mat,
+          lda: 1,
+          b: mat,
+          ldb: 2,
+          c: mat,
+          ldc: 2,
+        ),
+      ).throws<ArgumentError>();
+    });
+  });
 }

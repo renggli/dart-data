@@ -534,6 +534,33 @@ void main() {
       a.matmul(b, target: a);
       check(a.toFlatList()).deepEquals(expected.toFlatList());
     });
+
+    test('matmul with zero-sized dimensions and pre-allocated target', () {
+      // 2x0 * 0x2 -> 2x2
+      final a = Tensor<double>.filled(1.0, shape: [2, 0]);
+      final b = Tensor<double>.filled(2.0, shape: [0, 2]);
+      final res = a.matmul(b);
+      check(res.shape).deepEquals([2, 2]);
+      check(res.toFlatList()).deepEquals([0.0, 0.0, 0.0, 0.0]);
+
+      // Pre-allocated non-zero target must be zero-filled
+      final target = Tensor<double>.filled(42.0, shape: [2, 2]);
+      final targetRes = a.matmul(b, target: target);
+      check(identical(targetRes, target)).isTrue();
+      check(target.toFlatList()).deepEquals([0.0, 0.0, 0.0, 0.0]);
+
+      // 0x0 * 0x0 -> 0x0
+      final zeroA = Tensor<double>.filled(0.0, shape: [0, 0]);
+      final zeroB = Tensor<double>.filled(0.0, shape: [0, 0]);
+      final zeroC = zeroA.matmul(zeroB);
+      check(zeroC.shape).deepEquals([0, 0]);
+      check(zeroC.length).equals(0);
+
+      // Target shape mismatch validation
+      check(
+        () => a.matmul(b, target: Tensor<double>.filled(0.0, shape: [3, 2])),
+      ).throws<ArgumentError>();
+    });
   });
 
   group('Tensor operations comprehensive suite', () {

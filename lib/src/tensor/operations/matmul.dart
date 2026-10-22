@@ -47,6 +47,40 @@ extension MatmulTensorExtension<T> on Tensor<T> {
     final batchShape = _broadcastBatchShapes(thisBatch, otherBatch);
     final outShape = [...batchShape, mRows, nCols];
 
+    if (target != null) {
+      if (target.rank != outShape.length) {
+        throw ArgumentError(
+          'Target rank ${target.rank} does not match output rank ${outShape.length}',
+        );
+      }
+      for (var i = 0; i < outShape.length; i++) {
+        if (target.layout.shape[i] != outShape[i]) {
+          throw ArgumentError(
+            'Target shape ${target.layout.shape} does not match output shape $outShape',
+          );
+        }
+      }
+    }
+
+    final field = type.field;
+
+    // When the contracted inner dimension is zero, matrix multiplication
+    // is an empty sum, producing the additive identity everywhere.
+    if (kDim == 0) {
+      final result =
+          target ??
+          Tensor<T>.filled(field.additiveIdentity, shape: outShape, type: type);
+      if (target != null) {
+        _fillTensor(result, field.additiveIdentity);
+      }
+      return result;
+    }
+
+    if (mRows == 0 || nCols == 0) {
+      return target ??
+          Tensor<T>.filled(field.additiveIdentity, shape: outShape, type: type);
+    }
+
     final hasHazard =
         target != null &&
         (sharesMemory(target.data, data) ||
@@ -54,7 +88,6 @@ extension MatmulTensorExtension<T> on Tensor<T> {
     final result = (target != null && !hasHazard)
         ? target
         : Tensor<T>.filled(type.defaultValue, shape: outShape, type: type);
-    final field = type.field;
 
     // Fast 2D path
     if (rank == 2 && other.rank == 2) {
@@ -95,6 +128,16 @@ extension MatmulTensorExtension<T> on Tensor<T> {
     int colsB,
     Field<T> field,
   ) {
+    if (rowsA == 0 || colsB == 0) return;
+    if (innerDim == 0) {
+      for (var i = 0; i < rowsA; i++) {
+        for (var j = 0; j < colsB; j++) {
+          tensorC.set2D(i, j, field.additiveIdentity);
+        }
+      }
+      return;
+    }
+
     // Transparent hardware acceleration when contiguous or transposed row-major
     int? transA;
     int? lda;
@@ -103,11 +146,13 @@ extension MatmulTensorExtension<T> on Tensor<T> {
       transA = cblasNoTrans;
       lda = rowsA == 1
           ? (innerDim > 0 ? innerDim : 1)
-          : tensorA.layout.strides[0];
+          : (tensorA.layout.strides[0] > 0 ? tensorA.layout.strides[0] : 1);
     } else if (tensorA.layout.strides[0] == 1 &&
         (tensorA.layout.strides[1] >= rowsA || innerDim == 1)) {
       transA = cblasTrans;
-      lda = innerDim == 1 ? (rowsA > 0 ? rowsA : 1) : tensorA.layout.strides[1];
+      lda = innerDim == 1
+          ? (rowsA > 0 ? rowsA : 1)
+          : (tensorA.layout.strides[1] > 0 ? tensorA.layout.strides[1] : 1);
     }
 
     int? transB;
@@ -115,19 +160,23 @@ extension MatmulTensorExtension<T> on Tensor<T> {
     if (tensorB.layout.strides[1] == 1 &&
         (tensorB.layout.strides[0] >= colsB || innerDim == 1)) {
       transB = cblasNoTrans;
-      ldb = innerDim == 1 ? (colsB > 0 ? colsB : 1) : tensorB.layout.strides[0];
+      ldb = innerDim == 1
+          ? (colsB > 0 ? colsB : 1)
+          : (tensorB.layout.strides[0] > 0 ? tensorB.layout.strides[0] : 1);
     } else if (tensorB.layout.strides[0] == 1 &&
         (tensorB.layout.strides[1] >= innerDim || colsB == 1)) {
       transB = cblasTrans;
       ldb = colsB == 1
           ? (innerDim > 0 ? innerDim : 1)
-          : tensorB.layout.strides[1];
+          : (tensorB.layout.strides[1] > 0 ? tensorB.layout.strides[1] : 1);
     }
 
     int? ldc;
     if (tensorC.layout.strides[1] == 1 &&
         (tensorC.layout.strides[0] >= colsB || rowsA == 1)) {
-      ldc = rowsA == 1 ? (colsB > 0 ? colsB : 1) : tensorC.layout.strides[0];
+      ldc = rowsA == 1
+          ? (colsB > 0 ? colsB : 1)
+          : (tensorC.layout.strides[0] > 0 ? tensorC.layout.strides[0] : 1);
     }
 
     if (transA != null && transB != null && ldc != null) {
@@ -214,6 +263,20 @@ extension MatmulTensorExtension<T> on Tensor<T> {
       final dim = targetBatch[i];
       return dim == 1 ? 0 : fullBatchKey[offset + i];
     });
+  }
+
+  static void _fillTensor<T>(Tensor<T> tensor, T value) {
+    if (tensor.layout.isContiguous) {
+      tensor.data.fillRange(
+        tensor.layout.offset,
+        tensor.layout.offset + tensor.length,
+        value,
+      );
+    } else {
+      for (final key in tensor.layout.keys) {
+        tensor.setValue(key, value);
+      }
+    }
   }
 
   static Tensor<T> _slice2D<T>(
