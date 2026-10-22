@@ -1,7 +1,6 @@
 import 'package:more/number.dart';
 
 import '../data_type.dart';
-import '../default_data_type.dart';
 import '../types/object.dart';
 
 /// Derives a fitting [DataType] from [T].
@@ -21,8 +20,8 @@ DataType<T> fromInstance<T>(T instance) {
 
 /// Derives a fitting [DataType] from an [iterable].
 DataType<T> fromIterable<T>(Iterable<T> iterable) {
-  if (T == int) return DefaultDataType.integer as DataType<T>;
-  if (T == double) return DefaultDataType.float as DataType<T>;
+  if (T == int) return DataType.integer as DataType<T>;
+  if (T == double) return DataType.float as DataType<T>;
   if (iterable.isNotEmpty) {
     return fromInstance<T>(iterable.first);
   }
@@ -30,8 +29,8 @@ DataType<T> fromIterable<T>(Iterable<T> iterable) {
 }
 
 DataType<Object?>? _fromType(Type type) => switch (type) {
-  const (int) => DefaultDataType.integer,
-  const (double) => DefaultDataType.float,
+  const (int) => DataType.integer,
+  const (double) => DataType.float,
   const (bool) => DataType.boolean,
   const (String) => DataType.string,
   const (Complex) => DataType.complex,

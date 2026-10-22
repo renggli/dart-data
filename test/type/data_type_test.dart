@@ -67,9 +67,9 @@ void main() {
 
   group('DataType promotion and factory methods', () {
     test('defaults are immutable const', () {
-      check(DefaultDataType.index).equals(DataType.uint32);
-      check(DefaultDataType.integer).equals(DataType.int32);
-      check(DefaultDataType.float).equals(DataType.float64);
+      check(DataType.index).equals(DataType.uint32);
+      check(DataType.integer).equals(DataType.int32);
+      check(DataType.float).equals(DataType.float64);
     });
 
     test('safe promotion', () {

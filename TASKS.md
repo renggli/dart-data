@@ -269,14 +269,12 @@ Each task specifies:
   3. In `integration.dart`, combine absolute and relative tolerance (`math.max(tolerance / numSubIntervals, relativeTolerance * i2.abs())`) and apply quadratic/tanh-sinh coordinate transformation on intervals adjacent to declared `poles` so integrable algebraic singularities like $x^{-1/2}$ converge cleanly.
   4. In `solve_ode.dart`, validate `stepSize > 0`, enforce `maxSteps` in `rk4`, and add `final bool converged` (or throw `StateError` on step exhaustion) to `OdeSolution`.
 
-### TASK-2.7: Fix Statistics Distribution Bounds, Quantiles & Hypothesis Test Bugs (`InvalidProbability.check(NaN)`, `Geometric`/`NegativeBinomial`/`Poisson` Upper Bounds, `LogNormal` Lower Bound, Discrete Quantiles, `ANOVA`, `KS`)
+### TASK-2.7: Fix Statistics Distribution Quantiles, LogNormal Lower Bound & Hypothesis Test Bugs (`InvalidProbability.check(NaN)`, `LogNormal` Lower Bound, Discrete Quantiles, `ANOVA`, `KS`)
 
 - **Severity**: High
 - **Target Files**:
-  - `lib/src/stats/distribution.dart`
   - `lib/src/stats/distributions/errors.dart`
   - `lib/src/stats/distributions/discrete.dart`
-  - `lib/src/stats/distributions/discrete/geometric.dart`
   - `lib/src/stats/distributions/discrete/uniform.dart`
   - `lib/src/stats/distributions/discrete/poisson.dart`
   - `lib/src/stats/distributions/discrete/negative_binomial.dart`
@@ -286,26 +284,21 @@ Each task specifies:
   - `lib/src/stats/hypothesis/kolmogorov_smirnov.dart`
   - `test/stats/distributions/continuous_test.dart`
   - `test/stats/distributions/discrete_test.dart`
-  - `web/distributions/index.dart`
 - **Problem & Evidence**:
-  - **`GeometricDistribution`, `NegativeBinomialDistribution`, and `PoissonDistribution` upper bound is `9007199254740991` instead of infinity**:
-    - Because `Distribution<T>` declares `T get lowerBound` and `T get upperBound`, `DiscreteDistribution` (`Distribution<int>`) uses `minSafeInteger = -9007199254740991` and `maxSafeInteger = 9007199254740991` as stand-ins for $-\infty$ and $+\infty$ (`lib/src/stats/distributions/discrete.dart` lines 4–22; `lib/src/stats/distributions/discrete/geometric.dart` line 29).
-    - Furthermore, in `web/distributions/index.dart` (lines 520–529), `if (upper is double)` evaluates to `true` for all numbers when compiled to JavaScript (`dart compile js`), so the `else if (upper is int) { if (upper >= 9007199254740991) uStr = '∞'; }` branch is unreachable dead code on the web, causing `GeometricDistribution`, `NegativeBinomialDistribution`, and `PoissonDistribution` to display `[0, 9007199254740991]` instead of `[0, ∞]`.
   - **`LogNormalDistribution.lowerBound` is `double.minPositive` (`5e-324`) instead of `double.negativeInfinity`**:
     - `lib/src/stats/distributions/continuous/log_normal.dart` (line 30) overrides `double get lowerBound => double.minPositive;`, whereas `LogNormalDistribution` should have a `lowerBound` of `double.negativeInfinity` (matching the default in `ContinuousDistribution`).
   - **`InvalidProbability.check(double.nan)` does not throw**: `if (probability < 0.0 || probability > 1.0)` evaluates to `false` when `probability` is `NaN`, allowing `NaN` into every `inverseCumulativeProbability` implementation (which in `DiscreteDistribution.inverseCumulativeProbability` causes an infinite `while (p > sum)` loop up to `upperBound`!).
   - **`UniformDiscreteDistribution(a, b).inverseCumulativeProbability(p)` off-by-one at exact quantiles**: `UniformDiscreteDistribution(0, 1).inverseCumulativeProbability(0.5)` returns `1` instead of `0` because it uses `a + ((b - a + 1) * probability).floor()` instead of `a + ((b - a + 1) * probability).ceil() - 1` (the smallest $k$ with $F(k) \ge p$).
-  - **`PoissonDistribution` & `DiscreteDistribution` quantile hang for large $\lambda$ or $p \approx 1$**: `DiscreteDistribution.inverseCumulativeProbability` sums `probability(k)` linearly from `0` to `maxSafeInteger` ($9 \times 10^{15}$). When floating-point rounding causes $\sum_{k} P(X=k)$ to saturate at $1.0 - 10^{-16} < p$, the loop runs $9 \times 10^{15}$ iterations and hangs forever!
+  - **`PoissonDistribution` & `DiscreteDistribution` quantile hang for large $\lambda$ or $p \approx 1$**: `DiscreteDistribution.inverseCumulativeProbability` sums `probability(k)` linearly from `0` to `upperBound` (`DataType.integer.safeMax` = $2 \times 10^9$). When floating-point rounding causes $\sum_{k} P(X=k)$ to saturate at $1.0 - 10^{-16} < p$, the loop runs $2 \times 10^9$ iterations and hangs!
   - **`oneWayAnova` returns `F = 0, p = 1` when within-group variance is 0 and group means differ**: `final fStat = msw > 0.0 ? msb / msw : 0.0;` returns `statistic: 0.0, pValue: 1.0` for `[[1, 1], [2, 2]]` instead of `statistic: double.infinity, pValue: 0.0`. Same bug in `tTestOneSample` / `tTestTwoSample` when sample variance is `0` and $\bar{x} \ne \mu_0$.
   - **`kolmogorovSmirnovTest` discrete distribution crash & tail clamp**: `distribution.cumulativeProbability(list[i])` passes a `double` to `Distribution<num>.cumulativeProbability`, which throws a runtime `TypeError` when `distribution` is a `DiscreteDistribution` (expects `int`). Also `_kolmogorovPValue` hard-clamps `if (lambda >= 3.0) return 0.0;` even though $2 e^{-2 \cdot 3^2} \approx 3 \times 10^{-8}$ is representable in IEEE 754 `double`.
 - **Actionable Fix & Acceptance Criteria**:
-  1. Change `Distribution<T>.lowerBound` and `Distribution<T>.upperBound` in `lib/src/stats/distribution.dart` to return `num` (or `double`) so `DiscreteDistribution.lowerBound` returns `double.negativeInfinity` and `DiscreteDistribution.upperBound` (inherited by `GeometricDistribution`, `NegativeBinomialDistribution`, and `PoissonDistribution`) returns `double.infinity`. Remove `int get upperBound => maxSafeInteger` from `GeometricDistribution`, remove exported `minSafeInteger`/`maxSafeInteger` from `discrete.dart`, update `web/distributions/index.dart` (lines 515–555), and update `test/stats/distributions/discrete_test.dart` (lines 152, 245, 337, 507) to assert `double.infinity` / `double.negativeInfinity`.
-  2. In `lib/src/stats/distributions/continuous/log_normal.dart` (line 30), change `lowerBound` from `double.minPositive` to `double.negativeInfinity` (or remove the override so it inherits `double.negativeInfinity` from `ContinuousDistribution`), and update `test/stats/distributions/continuous_test.dart` (line 610) to check `check(dist.lowerBound).equals(double.negativeInfinity)`.
-  3. Change `InvalidProbability.check` to `if (!(probability >= 0.0 && probability <= 1.0))` so `NaN` throws `InvalidProbability`.
-  4. Fix `UniformDiscreteDistribution.inverseCumulativeProbability` to return `probability == 0 ? a : (a + ((b - a + 1) * probability).ceil() - 1).clamp(a, b)`.
-  5. Implement Cornelis-normal initial guess + bracketed binary search using `cumulativeProbability(k)` in `DiscreteDistribution.inverseCumulativeProbability` (and use `ibeta` for `BinomialDistribution.cumulativeProbability` and `NegativeBinomialDistribution.cumulativeProbability` instead of $O(k)$ summation).
-  6. Fix zero-variance edge cases in `oneWayAnova` and `tTest*`: if `msw == 0` (or `se == 0`), return `statistic: diff == 0 ? 0.0 : double.infinity` and `pValue: diff == 0 ? 1.0 : 0.0`.
-  7. In `kolmogorovSmirnovTest`, pass `distribution is DiscreteDistribution ? list[i].floor() : list[i]` and replace the `lambda >= 3.0` cutoff with `lambda >= 6.5` (where $2 e^{-2\lambda^2} < 10^{-36}$).
+  1. In `lib/src/stats/distributions/continuous/log_normal.dart` (line 30), change `lowerBound` from `double.minPositive` to `double.negativeInfinity` (or remove the override so it inherits `double.negativeInfinity` from `ContinuousDistribution`), and update `test/stats/distributions/continuous_test.dart` (line 610) to check `check(dist.lowerBound).equals(double.negativeInfinity)`.
+  2. Change `InvalidProbability.check` to `if (!(probability >= 0.0 && probability <= 1.0))` so `NaN` throws `InvalidProbability`.
+  3. Fix `UniformDiscreteDistribution.inverseCumulativeProbability` to return `probability == 0 ? a : (a + ((b - a + 1) * probability).ceil() - 1).clamp(a, b)`.
+  4. Implement Cornelis-normal initial guess + bracketed binary search using `cumulativeProbability(k)` in `DiscreteDistribution.inverseCumulativeProbability` (and use `ibeta` for `BinomialDistribution.cumulativeProbability` and `NegativeBinomialDistribution.cumulativeProbability` instead of $O(k)$ summation).
+  5. Fix zero-variance edge cases in `oneWayAnova` and `tTest*`: if `msw == 0` (or `se == 0`), return `statistic: diff == 0 ? 0.0 : double.infinity` and `pValue: diff == 0 ? 1.0 : 0.0`.
+  6. In `kolmogorovSmirnovTest`, pass `distribution is DiscreteDistribution ? list[i].floor() : list[i]` and replace the `lambda >= 3.0` cutoff with `lambda >= 6.5` (where $2 e^{-2\lambda^2} < 10^{-36}$).
 
 ### TASK-2.8: Fix `DataType` Promotion Bugs, `NullableDataType` Delegation, `Equality.isClose(..., 0)`, and `Dense`/`Compressed` Polynomial Hash Contract
 
@@ -417,7 +410,7 @@ Each task specifies:
     - `solveOde`: accepts both `stepSize` and `initialStep` for the same quantity.
   - **Leaked internal helpers & unexported return types**:
     - `lib/type.dart` publicly exports `unsupportedOperation()` (from `field.dart`) and `editDistance()` (from `string.dart`), while `DataType.dynamicType` returns `DynamicDataType` which is not exported in `lib/type.dart`!
-    - `lib/stats.dart` publicly exports `minSafeInteger` and `maxSafeInteger` from `discrete.dart`, and `JackknifeResampling` alongside `Jackknife`.
+    - `lib/stats.dart` publicly exports `JackknifeResampling` alongside `Jackknife`.
     - `lib/polynomial.dart` publicly exports `OrthogonalPolynomials.computeRoots` (internal companion-matrix solver).
     - `lib/symbolic.dart` publicly exports internal `SymbolicParser` PetitParser token builders (`identifier`, `number`, etc.) and `IteratedExpr.equalsIterated`.
 - **Actionable Fix & Acceptance Criteria**:

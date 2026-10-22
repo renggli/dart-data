@@ -49,7 +49,6 @@ export 'package:more/comparator.dart';
 export 'package:more/number.dart' show Complex, Fraction, Quaternion;
 
 export 'src/type/data_type.dart';
-export 'src/type/default_data_type.dart';
 export 'src/type/models/equality.dart';
 export 'src/type/models/field.dart';
 export 'src/type/types/bigint.dart';

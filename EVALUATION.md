@@ -21,13 +21,13 @@ Below is a detailed verification of achievements against `PROPOSED_CHANGES.md` a
 | **Abolish Lazy Arithmetic Views** | **Achieved** | All arithmetic operators (`+`, `-`, `*`, `/`, `matmul`) across `Tensor`, `Matrix`, and `Vector` are strictly eager. All 45+ legacy lazy view classes (`BinaryOperationMatrix`, `MatrixMatrixMultiplicationMatrix`, etc.) have been deleted. |
 | **Purge Defunct `Storage` Abstraction** | **Achieved** | `Storage` interface and `Set<Storage> get storage` completely deleted. |
 | **Memory Buffer & Aliasing Detection** | **Achieved** | Direct `ByteBuffer` memory utilities implemented in `lib/src/type/buffers/memory.dart` (`sharesMemory`, `hasOverlap`). In-place mutation hazards are detected in `Tensor.unaryOperation`, `binaryOperation`, `matmul`, and `reduction`. |
-| **Eliminate Mutable Global State** | **Achieved** | `DataType.index`, `DataType.integer`, and `DataType.float` are replaced by `static const` fields on `DefaultDataType` (`DataType.uint32`, `DataType.int32`, `DataType.float64`). |
+| **Eliminate Mutable Global State** | **Achieved** | `DataType.index`, `DataType.integer`, and `DataType.float` are `static const` fields on `DataType` (`DataType.uint32`, `DataType.int32`, `DataType.float64`). |
 | **Fix `IntegerField.scale` & `BigIntField.scale`** | **Achieved** | Corrected rounding order in `lib/src/type/types/integer.dart` (`(a * f).round()`) and `lib/src/type/types/bigint.dart` (exact `Fraction.fromDouble` multiplication before truncation). |
 | **Extended Algebraic Field (`ExtendedField<T>`)** | **Achieved** | Defined in `lib/src/type/models/field.dart` with `abs`, `norm`, `sqrt`, `exp`, `log`, and `conjugate`. Implemented across `FloatField`, `ComplexField`, `BigIntField`, `IntegerField`, and `FractionField`. |
 | **Type Promotion Matrix** | **Partial** | `DataType.promoteWith(other)` implemented in `lib/src/type/data_type.dart`, but not yet integrated into `Tensor` or `Matrix` operators. |
 | **Sealed `DType` Enum** | **Missed** | The proposed `enum DType { float32, float64, ... }` was not adopted; the codebase retains the open class hierarchy `DataType<T>`. |
 | **Extension Types** | **Missed** | Zero-cost extension types (`Float64Tensor`, `Float64Matrix`, etc.) were not implemented. |
-| **Dart 3 Class Modifiers** | **Partial** | `DefaultDataType` uses `abstract final`, `LinearOperator` uses `abstract interface`, but `DataType` and `Field` remain plain `abstract class`. |
+| **Dart 3 Class Modifiers** | **Partial** | `LinearOperator` uses `abstract interface`, but `DataType` and `Field` remain plain `abstract class`. |
 
 ### 1.2 Tensor Subsystem (`docs/02`)
 

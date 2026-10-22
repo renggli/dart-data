@@ -2,6 +2,7 @@ import 'dart:math';
 
 import 'package:more/printer.dart';
 
+import '../../../type/data_type.dart';
 import '../discrete.dart';
 import '../errors.dart';
 
@@ -19,8 +20,8 @@ class UniformDiscreteDistribution extends DiscreteDistribution {
     if (samples.isEmpty) {
       throw ArgumentError.value(samples, 'samples', 'Cannot fit empty samples');
     }
-    var minVal = maxSafeInteger;
-    var maxVal = minSafeInteger;
+    var minVal = DataType.integer.safeMax;
+    var maxVal = DataType.integer.safeMin;
     for (final x in samples) {
       final intVal = x.round();
       if (intVal < minVal) minVal = intVal;

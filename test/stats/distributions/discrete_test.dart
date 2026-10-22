@@ -2,6 +2,7 @@ import 'dart:math' as math;
 
 import 'package:checks/checks.dart';
 import 'package:data/stats.dart';
+import 'package:data/type.dart';
 import 'package:test/test.dart';
 
 void main() {
@@ -149,7 +150,7 @@ void main() {
       const dist = PoissonDistribution(4.0);
       check(dist.rate).equals(4.0);
       check(dist.lowerBound).equals(0);
-      check(dist.upperBound).equals(9007199254740991);
+      check(dist.upperBound).equals(DataType.integer.safeMax);
       check(dist.isLowerBoundOpen).isFalse();
       check(dist.isUpperBoundOpen).isTrue();
 
@@ -242,7 +243,7 @@ void main() {
       const dist = GeometricDistribution(0.5);
       check(dist.p).equals(0.5);
       check(dist.lowerBound).equals(0);
-      check(dist.upperBound).equals(9007199254740991);
+      check(dist.upperBound).equals(DataType.integer.safeMax);
       check(dist.isLowerBoundOpen).isFalse();
       check(dist.isUpperBoundOpen).isTrue();
 
@@ -334,7 +335,7 @@ void main() {
       check(dist.r).equals(1.0);
       check(dist.p).equals(0.5);
       check(dist.lowerBound).equals(0);
-      check(dist.upperBound).equals(9007199254740991);
+      check(dist.upperBound).equals(DataType.integer.safeMax);
       check(dist.isLowerBoundOpen).isFalse();
       check(dist.isUpperBoundOpen).isTrue();
 
@@ -504,7 +505,7 @@ void main() {
 
     test('DiscreteDistribution default implementations', () {
       final custom = _TestDiscreteDist();
-      check(custom.lowerBound).equals(-9007199254740991);
+      check(custom.lowerBound).equals(DataType.integer.safeMin);
       check(custom.probability(0)).equals(0.5);
     });
   });

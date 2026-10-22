@@ -56,6 +56,12 @@ abstract base class DataType<T> {
   /// [bool] object data type.
   static const BooleanDataType boolean = BooleanDataType();
 
+  /// Default data type to index collections, rows, columns, etc.
+  static const IntegerDataType index = uint32;
+
+  /// Default data type for integer arithmetic.
+  static const IntegerDataType integer = int32;
+
   /// Signed 8-bit [int] data type.
   static const Int8DataType int8 = Int8DataType();
 
@@ -79,6 +85,9 @@ abstract base class DataType<T> {
 
   /// Unsigned 64-bit [int] data type.
   static const Uint64DataType uint64 = Uint64DataType();
+
+  /// Default data type for floating point arithmetic.
+  static const FloatDataType float = float64;
 
   /// 32-bit [double] data type.
   static const Float32DataType float32 = Float32DataType();

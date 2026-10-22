@@ -576,7 +576,7 @@ Each item follows the conventions in `AGENTS.md` and `ARCHITECTURE.md`: solution
 
 **E7 — Cooperative computation budgets.** new `lib/src/symbolic/budget.dart`
 
-- `ComputationBudget.run<R>(R Function() body, {Duration? timeout, int? maxSteps})` is zone-scoped, following the `DefaultDataType.withDefault` pattern. A `checkBudget()` call in hot loops (integration rules, Risch-like recursion, Gröbner/Buchberger, FGLM, limit/Gruntz, factorization, series composition) throws `ComputationLimitException`.
+- `ComputationBudget.run<R>(R Function() body, {Duration? timeout, int? maxSteps})` is zone-scoped. A `checkBudget()` call in hot loops (integration rules, Risch-like recursion, Gröbner/Buchberger, FGLM, limit/Gruntz, factorization, series composition) throws `ComputationLimitException`.
 - *Why*: responsive cancellation without killing the worker. Worker termination stays as the hard fallback.
 
 **E8 — Number theory and rounding.** `lib/src/symbolic/ast/`, `algebra/factor/`

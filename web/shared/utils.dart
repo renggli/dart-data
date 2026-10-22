@@ -1,6 +1,7 @@
 import 'dart:js_interop';
 
 import 'package:data/symbolic.dart';
+import 'package:data/type.dart';
 import 'package:web/web.dart' as web;
 
 /// Copies a given [text] to the system clipboard using the Web Clipboard API.
@@ -166,7 +167,9 @@ void initGlobalCopyHandler() {
 String formatNumber(num value, {int precision = 4}) {
   if (value.isNaN) return 'Undefined';
   if (value.isInfinite) return value.isNegative ? '-∞' : '∞';
-  if (value.abs() < 1e-12) return '0.00';
+  if (value == DataType.integer.safeMin) return '-∞';
+  if (value == DataType.integer.safeMax) return '∞';
+  if (value.abs() < 1e-12) return '0';
   if (value % 1 == 0 && value.abs() < 1e12) {
     return value.toInt().toString();
   }

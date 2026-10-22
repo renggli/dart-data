@@ -26,16 +26,12 @@ This document describes the achieved architecture across all subsystems of `pack
 
 ### 1.3 Unified Type System & Algebraic Fields
 
-- **Reasoning**: Numeric and scientific operations require consistent algebraic structures (identities, field operations, numerical stability). Legacy mutable globals (`DataType.index`, `DataType.integer`, `DataType.float`) caused race conditions across isolates and tests. Concurrency isolates, ML pipelines, and graphics tasks need to configure floating-point precision (`float32` vs `float64`) and integer precision (`int32` vs `int64`) without mutating global state.
+- **Reasoning**: Numeric and scientific operations require consistent algebraic structures (identities, field operations, numerical stability). Immutable defaults eliminate race conditions:
+  - `DataType.index`: Static constant `DataType.uint32` for indexing collections, rows, and columns.
+  - `DataType.integer`: Static constant `DataType.int32` for integer arithmetic.
+  - `DataType.float`: Static constant `DataType.float64` for floating point arithmetic.
 - **Implementation & Constraints**:
-  - Mutable globals are purged; default data types are isolate-safe and zone-scoped via `DefaultDataType`:
-    - `DefaultDataType.index`: Static constant `DataType.uint32` for indexing collections, rows, and columns.
-    - `DefaultDataType.integer`: Zone-scoped accessor defaulting to `DataType.int32` via `#data_default_integer`.
-    - `DefaultDataType.float`: Zone-scoped accessor defaulting to `DataType.float64` via `#data_default_float`.
-  - `DefaultDataType.withDefault<R>` provides the canonical, thread-safe way to configure execution contexts:
-    - Supports standard positional trailing closures: `DefaultDataType.withDefault(computation, {integer, float})`.
-    - Nested zone configurations preserve outer settings upon normal exit or exception unwinding.
-    - Container constructors (`Tensor`, `Matrix`, `Vector`) and `DataType.newList` automatically respect `DefaultDataType.float` and `DefaultDataType.integer` when no explicit type is specified.
+  - Container constructors (`Tensor`, `Matrix`, `Vector`) and `DataType.newList` automatically respect `DataType.float` and `DataType.integer` when no explicit type is specified.
   - `Field<T>` and `ExtendedField<T>` in `lib/src/type/models/field.dart` define strict algebraic contracts:
     - Standard operations: `additiveIdentity`, `multiplicativeIdentity`, `add`, `sub`, `mul`, `div`, `neg`, `inv`, `scale`.
     - Extended operations: `abs`, `norm`, `sqrt`, `exp`, `log`, `conjugate`.
@@ -427,12 +423,11 @@ This document describes the achieved architecture across all subsystems of `pack
   - `polynomialRegression`: Vandermonde polynomial fitting using QR decomposition with optional Tikhonov / Ridge L2 regularization (`lambda`) suppressing high-frequency Runge oscillations and conditioning rank-deficient systems.
   - `levenbergMarquardt`: Damped Gauss-Newton nonlinear least-squares curve fitting.
 
-### 6.6 Precision Scoping in Numerical Solvers
+### 6.6 Precision in Numerical Solvers
 
-- **Reasoning**: Complex iterative numerical routines (e.g. nonlinear optimizers, ODE integrators, curve fitting, FFT) require seamless switching between double-precision scientific convergence and single-precision memory profiles without invasive algorithm rewrites.
+- **Reasoning**: Complex iterative numerical routines (e.g. nonlinear optimizers, ODE integrators, curve fitting, FFT) require consistent precision profiles without invasive algorithm rewrites.
 - **Implementation & Constraints**:
-  - Routines allocate intermediate vectors and matrices via standard container constructors, dynamically inheriting the zone's active precision (`DefaultDataType.float`).
-  - High-precision algorithms (e.g. adaptive Dormand-Prince `rk45` or BFGS quasi-Newton line searches) allow users to wrap execution inside `DefaultDataType.withDefault(float: DataType.float64)` to ensure convergence.
+  - Routines allocate intermediate vectors and matrices via standard container constructors, using default double precision (`DataType.float` / `DataType.float64`).
 
 ### 6.7 Coordinate Grids & Adaptive Curve Sampling (`lib/src/numeric/sampling.dart`)
 

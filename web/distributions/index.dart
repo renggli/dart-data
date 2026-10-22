@@ -513,21 +513,13 @@ void updateTelemetry() {
 
   // Format bounds
   try {
-    final lower = activeDist.lowerBound;
-    final upper = activeDist.upperBound;
-    var lStr = lower.toString();
-    var uStr = upper.toString();
-    if (lower is double) {
-      if (lower.isInfinite) lStr = '-∞';
-    } else if (lower is int) {
-      if (lower <= -9007199254740991) lStr = '-∞';
-    }
-    if (upper is double) {
-      if (upper.isInfinite) uStr = '∞';
-    } else if (upper is int) {
-      if (upper >= 9007199254740991) uStr = '∞';
-    }
-    setAttrValue(valBounds, '[$lStr, $uStr]');
+    final buffer = StringBuffer();
+    buffer.write(activeDist.isLowerBoundOpen ? '(' : '[');
+    buffer.write(formatNumber(activeDist.lowerBound));
+    buffer.write(', ');
+    buffer.write(formatNumber(activeDist.upperBound));
+    buffer.write(activeDist.isUpperBoundOpen ? ')' : ']');
+    setAttrValue(valBounds, buffer.toString());
   } catch (_) {
     setAttrValue(valBounds, '[-]');
   }

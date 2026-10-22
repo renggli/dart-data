@@ -26,9 +26,6 @@ class GeometricDistribution extends DiscreteDistribution {
   int get lowerBound => 0;
 
   @override
-  int get upperBound => maxSafeInteger;
-
-  @override
   double get mean => (1 - p) / p;
 
   @override

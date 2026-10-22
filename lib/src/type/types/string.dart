@@ -1,7 +1,6 @@
 import 'dart:math' as math;
 
 import '../data_type.dart';
-import '../default_data_type.dart';
 import '../models/equality.dart';
 
 final class StringDataType extends DataType<String> {
@@ -37,8 +36,8 @@ int editDistance(String a, String b) {
   if (a.length < b.length) {
     return editDistance(b, a);
   }
-  var v0 = DefaultDataType.index.newList(b.length + 1);
-  var v1 = DefaultDataType.index.newList(b.length + 1);
+  var v0 = DataType.index.newList(b.length + 1);
+  var v1 = DataType.index.newList(b.length + 1);
   for (var i = 0; i <= b.length; i++) {
     v0[i] = i;
   }
