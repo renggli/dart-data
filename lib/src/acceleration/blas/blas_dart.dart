@@ -21,9 +21,12 @@ abstract final class BlasDart {
     required int yOffset,
     required int incY,
   }) {
+    if (n <= 0) return 0.0;
+    final startX = xOffset + (incX < 0 ? (1 - n) * incX : 0);
+    final startY = yOffset + (incY < 0 ? (1 - n) * incY : 0);
     var sum = 0.0;
     for (
-      var i = 0, xi = xOffset, yi = yOffset;
+      var i = 0, xi = startX, yi = startY;
       i < n;
       i++, xi += incX, yi += incY
     ) {
@@ -42,9 +45,12 @@ abstract final class BlasDart {
     required int yOffset,
     required int incY,
   }) {
+    if (n <= 0) return 0.0;
+    final startX = xOffset + (incX < 0 ? (1 - n) * incX : 0);
+    final startY = yOffset + (incY < 0 ? (1 - n) * incY : 0);
     var sum = 0.0;
     for (
-      var i = 0, xi = xOffset, yi = yOffset;
+      var i = 0, xi = startX, yi = startY;
       i < n;
       i++, xi += incX, yi += incY
     ) {
@@ -60,12 +66,24 @@ abstract final class BlasDart {
     required int xOffset,
     required int incX,
   }) {
-    var sumSq = 0.0;
-    for (var i = 0, xi = xOffset; i < n; i++, xi += incX) {
+    if (n <= 0) return 0.0;
+    if (n == 1) return x[xOffset].abs();
+    var scale = 0.0;
+    var sumsq = 1.0;
+    final startX = xOffset + (incX < 0 ? (1 - n) * incX : 0);
+    for (var i = 0, xi = startX; i < n; i++, xi += incX) {
       final val = x[xi];
-      sumSq += val * val;
+      if (val != 0.0) {
+        final absVal = val.abs();
+        if (scale < absVal) {
+          sumsq = 1.0 + sumsq * (scale / absVal) * (scale / absVal);
+          scale = absVal;
+        } else {
+          sumsq += (absVal / scale) * (absVal / scale);
+        }
+      }
     }
-    return math.sqrt(sumSq);
+    return scale * math.sqrt(sumsq);
   }
 
   /// Computes Euclidean norm of a [Float32List] vector.
@@ -75,12 +93,24 @@ abstract final class BlasDart {
     required int xOffset,
     required int incX,
   }) {
-    var sumSq = 0.0;
-    for (var i = 0, xi = xOffset; i < n; i++, xi += incX) {
+    if (n <= 0) return 0.0;
+    if (n == 1) return x[xOffset].abs();
+    var scale = 0.0;
+    var sumsq = 1.0;
+    final startX = xOffset + (incX < 0 ? (1 - n) * incX : 0);
+    for (var i = 0, xi = startX; i < n; i++, xi += incX) {
       final val = x[xi];
-      sumSq += val * val;
+      if (val != 0.0) {
+        final absVal = val.abs();
+        if (scale < absVal) {
+          sumsq = 1.0 + sumsq * (scale / absVal) * (scale / absVal);
+          scale = absVal;
+        } else {
+          sumsq += (absVal / scale) * (absVal / scale);
+        }
+      }
     }
-    return math.sqrt(sumSq);
+    return scale * math.sqrt(sumsq);
   }
 
   /// Computes in-place scaled addition `y = alpha * x + y` for [Float64List].
@@ -94,8 +124,11 @@ abstract final class BlasDart {
     required int yOffset,
     required int incY,
   }) {
+    if (n <= 0 || alpha == 0.0) return true;
+    final startX = xOffset + (incX < 0 ? (1 - n) * incX : 0);
+    final startY = yOffset + (incY < 0 ? (1 - n) * incY : 0);
     for (
-      var i = 0, xi = xOffset, yi = yOffset;
+      var i = 0, xi = startX, yi = startY;
       i < n;
       i++, xi += incX, yi += incY
     ) {
@@ -115,8 +148,11 @@ abstract final class BlasDart {
     required int yOffset,
     required int incY,
   }) {
+    if (n <= 0 || alpha == 0.0) return true;
+    final startX = xOffset + (incX < 0 ? (1 - n) * incX : 0);
+    final startY = yOffset + (incY < 0 ? (1 - n) * incY : 0);
     for (
-      var i = 0, xi = xOffset, yi = yOffset;
+      var i = 0, xi = startX, yi = startY;
       i < n;
       i++, xi += incX, yi += incY
     ) {
@@ -133,7 +169,9 @@ abstract final class BlasDart {
     required int xOffset,
     required int incX,
   }) {
-    for (var i = 0, xi = xOffset; i < n; i++, xi += incX) {
+    if (n <= 0) return true;
+    final startX = xOffset + (incX < 0 ? (1 - n) * incX : 0);
+    for (var i = 0, xi = startX; i < n; i++, xi += incX) {
       x[xi] *= alpha;
     }
     return true;
@@ -147,7 +185,9 @@ abstract final class BlasDart {
     required int xOffset,
     required int incX,
   }) {
-    for (var i = 0, xi = xOffset; i < n; i++, xi += incX) {
+    if (n <= 0) return true;
+    final startX = xOffset + (incX < 0 ? (1 - n) * incX : 0);
+    for (var i = 0, xi = startX; i < n; i++, xi += incX) {
       x[xi] *= alpha;
     }
     return true;
@@ -173,17 +213,20 @@ abstract final class BlasDart {
     required int yOffset,
     required int incY,
   }) {
-    final lenY = transA == cblasTrans ? n : m;
-    final lenX = transA == cblasTrans ? m : n;
+    final isTransA = transA == cblasTrans || transA == cblasConjTrans;
+    final lenY = isTransA ? n : m;
+    final lenX = isTransA ? m : n;
+    final startX = xOffset + (incX < 0 ? (1 - lenX) * incX : 0);
+    final startY = yOffset + (incY < 0 ? (1 - lenY) * incY : 0);
     for (var i = 0; i < lenY; i++) {
       var sum = 0.0;
       for (var j = 0; j < lenX; j++) {
-        final aVal = transA == cblasTrans
+        final aVal = isTransA
             ? a[aOffset + j * lda + i]
             : a[aOffset + i * lda + j];
-        sum += aVal * x[xOffset + j * incX];
+        sum += aVal * x[startX + j * incX];
       }
-      final yIdx = yOffset + i * incY;
+      final yIdx = startY + i * incY;
       y[yIdx] = alpha * sum + (beta == 0.0 ? 0.0 : beta * y[yIdx]);
     }
     return true;
@@ -207,17 +250,20 @@ abstract final class BlasDart {
     required int yOffset,
     required int incY,
   }) {
-    final lenY = transA == cblasTrans ? n : m;
-    final lenX = transA == cblasTrans ? m : n;
+    final isTransA = transA == cblasTrans || transA == cblasConjTrans;
+    final lenY = isTransA ? n : m;
+    final lenX = isTransA ? m : n;
+    final startX = xOffset + (incX < 0 ? (1 - lenX) * incX : 0);
+    final startY = yOffset + (incY < 0 ? (1 - lenY) * incY : 0);
     for (var i = 0; i < lenY; i++) {
       var sum = 0.0;
       for (var j = 0; j < lenX; j++) {
-        final aVal = transA == cblasTrans
+        final aVal = isTransA
             ? a[aOffset + j * lda + i]
             : a[aOffset + i * lda + j];
-        sum += aVal * x[xOffset + j * incX];
+        sum += aVal * x[startX + j * incX];
       }
-      final yIdx = yOffset + i * incY;
+      final yIdx = startY + i * incY;
       y[yIdx] = alpha * sum + (beta == 0.0 ? 0.0 : beta * y[yIdx]);
     }
     return true;
@@ -239,12 +285,14 @@ abstract final class BlasDart {
     required int aOffset,
     required int lda,
   }) {
+    final startX = xOffset + (incX < 0 ? (1 - n) * incX : 0);
+    final startY = yOffset + (incY < 0 ? (1 - n) * incY : 0);
     for (var i = 0; i < n; i++) {
-      final xi = x[xOffset + i * incX];
-      final yi = y[yOffset + i * incY];
+      final xi = x[startX + i * incX];
+      final yi = y[startY + i * incY];
       for (var j = i; j < n; j++) {
-        final xj = x[xOffset + j * incX];
-        final yj = y[yOffset + j * incY];
+        final xj = x[startX + j * incX];
+        final yj = y[startY + j * incY];
         final val = alpha * (xi * yj + yi * xj);
         a[aOffset + i * lda + j] += val;
         if (i != j) {
@@ -271,12 +319,14 @@ abstract final class BlasDart {
     required int aOffset,
     required int lda,
   }) {
+    final startX = xOffset + (incX < 0 ? (1 - n) * incX : 0);
+    final startY = yOffset + (incY < 0 ? (1 - n) * incY : 0);
     for (var i = 0; i < n; i++) {
-      final xi = x[xOffset + i * incX];
-      final yi = y[yOffset + i * incY];
+      final xi = x[startX + i * incX];
+      final yi = y[startY + i * incY];
       for (var j = i; j < n; j++) {
-        final xj = x[xOffset + j * incX];
-        final yj = y[yOffset + j * incY];
+        final xj = x[startX + j * incX];
+        final yj = y[startY + j * incY];
         final val = alpha * (xi * yj + yi * xj);
         a[aOffset + i * lda + j] += val;
         if (i != j) {
@@ -304,28 +354,30 @@ abstract final class BlasDart {
     final temp = Float64List(n);
     final isUpper = uplo == cblasUpper;
     final isUnit = diag == cblasUnit;
+    final isNoTrans = trans == cblasNoTrans;
+    final startX = xOffset + (incX < 0 ? (1 - n) * incX : 0);
 
     for (var i = 0; i < n; i++) {
       var sum = 0.0;
-      if (trans == cblasNoTrans) {
+      if (isNoTrans) {
         final start = isUpper ? i : 0;
         final end = isUpper ? n : i + 1;
         for (var j = start; j < end; j++) {
           final aVal = (i == j && isUnit) ? 1.0 : a[aOffset + i * lda + j];
-          sum += aVal * x[xOffset + j * incX];
+          sum += aVal * x[startX + j * incX];
         }
       } else {
         final start = isUpper ? 0 : i;
         final end = isUpper ? i + 1 : n;
         for (var j = start; j < end; j++) {
           final aVal = (i == j && isUnit) ? 1.0 : a[aOffset + j * lda + i];
-          sum += aVal * x[xOffset + j * incX];
+          sum += aVal * x[startX + j * incX];
         }
       }
       temp[i] = sum;
     }
     for (var i = 0; i < n; i++) {
-      x[xOffset + i * incX] = temp[i];
+      x[startX + i * incX] = temp[i];
     }
     return true;
   }
@@ -347,28 +399,30 @@ abstract final class BlasDart {
     final temp = Float32List(n);
     final isUpper = uplo == cblasUpper;
     final isUnit = diag == cblasUnit;
+    final isNoTrans = trans == cblasNoTrans;
+    final startX = xOffset + (incX < 0 ? (1 - n) * incX : 0);
 
     for (var i = 0; i < n; i++) {
       var sum = 0.0;
-      if (trans == cblasNoTrans) {
+      if (isNoTrans) {
         final start = isUpper ? i : 0;
         final end = isUpper ? n : i + 1;
         for (var j = start; j < end; j++) {
           final aVal = (i == j && isUnit) ? 1.0 : a[aOffset + i * lda + j];
-          sum += aVal * x[xOffset + j * incX];
+          sum += aVal * x[startX + j * incX];
         }
       } else {
         final start = isUpper ? 0 : i;
         final end = isUpper ? i + 1 : n;
         for (var j = start; j < end; j++) {
           final aVal = (i == j && isUnit) ? 1.0 : a[aOffset + j * lda + i];
-          sum += aVal * x[xOffset + j * incX];
+          sum += aVal * x[startX + j * incX];
         }
       }
       temp[i] = sum;
     }
     for (var i = 0; i < n; i++) {
-      x[xOffset + i * incX] = temp[i];
+      x[startX + i * incX] = temp[i];
     }
     return true;
   }
@@ -413,7 +467,10 @@ abstract final class BlasDart {
 
     if (alpha == 0.0 || k <= 0) return true;
 
-    if (transA == cblasNoTrans && transB == cblasNoTrans) {
+    final isTransA = transA == cblasTrans || transA == cblasConjTrans;
+    final isTransB = transB == cblasTrans || transB == cblasConjTrans;
+
+    if (!isTransA && !isTransB) {
       for (var ii = 0; ii < m; ii += _gemmBlockSize) {
         final iLimit = math.min(ii + _gemmBlockSize, m);
         for (var kk = 0; kk < k; kk += _gemmBlockSize) {
@@ -442,7 +499,7 @@ abstract final class BlasDart {
           }
         }
       }
-    } else if (transA == cblasTrans && transB == cblasNoTrans) {
+    } else if (isTransA && !isTransB) {
       for (var ii = 0; ii < m; ii += _gemmBlockSize) {
         final iLimit = math.min(ii + _gemmBlockSize, m);
         for (var kk = 0; kk < k; kk += _gemmBlockSize) {
@@ -470,7 +527,7 @@ abstract final class BlasDart {
           }
         }
       }
-    } else if (transA == cblasNoTrans && transB == cblasTrans) {
+    } else if (!isTransA && isTransB) {
       for (var ii = 0; ii < m; ii += _gemmBlockSize) {
         final iLimit = math.min(ii + _gemmBlockSize, m);
         for (var jj = 0; jj < n; jj += _gemmBlockSize) {
@@ -556,7 +613,10 @@ abstract final class BlasDart {
 
     if (alpha == 0.0 || k <= 0) return true;
 
-    if (transA == cblasNoTrans && transB == cblasNoTrans) {
+    final isTransA = transA == cblasTrans || transA == cblasConjTrans;
+    final isTransB = transB == cblasTrans || transB == cblasConjTrans;
+
+    if (!isTransA && !isTransB) {
       for (var ii = 0; ii < m; ii += _gemmBlockSize) {
         final iLimit = math.min(ii + _gemmBlockSize, m);
         for (var kk = 0; kk < k; kk += _gemmBlockSize) {
@@ -585,7 +645,7 @@ abstract final class BlasDart {
           }
         }
       }
-    } else if (transA == cblasTrans && transB == cblasNoTrans) {
+    } else if (isTransA && !isTransB) {
       for (var ii = 0; ii < m; ii += _gemmBlockSize) {
         final iLimit = math.min(ii + _gemmBlockSize, m);
         for (var kk = 0; kk < k; kk += _gemmBlockSize) {
@@ -613,7 +673,7 @@ abstract final class BlasDart {
           }
         }
       }
-    } else if (transA == cblasNoTrans && transB == cblasTrans) {
+    } else if (!isTransA && isTransB) {
       for (var ii = 0; ii < m; ii += _gemmBlockSize) {
         final iLimit = math.min(ii + _gemmBlockSize, m);
         for (var jj = 0; jj < n; jj += _gemmBlockSize) {
@@ -678,18 +738,19 @@ abstract final class BlasDart {
   }) {
     if (n <= 0) return true;
     final isUpper = uplo == cblasUpper;
+    final isTrans = trans == cblasTrans || trans == cblasConjTrans;
     for (var i = 0; i < n; i++) {
       final jStart = isUpper ? i : 0;
       final jEnd = isUpper ? n : i + 1;
       for (var j = jStart; j < jEnd; j++) {
         var sum = 0.0;
         for (var p = 0; p < k; p++) {
-          final aVal1 = trans == cblasNoTrans
-              ? a[aOffset + i * lda + p]
-              : a[aOffset + p * lda + i];
-          final aVal2 = trans == cblasNoTrans
-              ? a[aOffset + j * lda + p]
-              : a[aOffset + p * lda + j];
+          final aVal1 = isTrans
+              ? a[aOffset + p * lda + i]
+              : a[aOffset + i * lda + p];
+          final aVal2 = isTrans
+              ? a[aOffset + p * lda + j]
+              : a[aOffset + j * lda + p];
           sum += aVal1 * aVal2;
         }
         final cIdx = cOffset + i * ldc + j;
@@ -717,18 +778,19 @@ abstract final class BlasDart {
   }) {
     if (n <= 0) return true;
     final isUpper = uplo == cblasUpper;
+    final isTrans = trans == cblasTrans || trans == cblasConjTrans;
     for (var i = 0; i < n; i++) {
       final jStart = isUpper ? i : 0;
       final jEnd = isUpper ? n : i + 1;
       for (var j = jStart; j < jEnd; j++) {
         var sum = 0.0;
         for (var p = 0; p < k; p++) {
-          final aVal1 = trans == cblasNoTrans
-              ? a[aOffset + i * lda + p]
-              : a[aOffset + p * lda + i];
-          final aVal2 = trans == cblasNoTrans
-              ? a[aOffset + j * lda + p]
-              : a[aOffset + p * lda + j];
+          final aVal1 = isTrans
+              ? a[aOffset + p * lda + i]
+              : a[aOffset + i * lda + p];
+          final aVal2 = isTrans
+              ? a[aOffset + p * lda + j]
+              : a[aOffset + j * lda + p];
           sum += aVal1 * aVal2;
         }
         final cIdx = cOffset + i * ldc + j;
@@ -854,12 +916,13 @@ abstract final class BlasDart {
     final isLeft = side == cblasLeft;
     final isUpper = uplo == cblasUpper;
     final isUnit = diag == cblasUnit;
+    final isTransA = transA == cblasTrans || transA == cblasConjTrans;
 
     for (var i = 0; i < m; i++) {
       for (var j = 0; j < n; j++) {
         var sum = 0.0;
         if (isLeft) {
-          if (transA == cblasNoTrans) {
+          if (!isTransA) {
             final start = isUpper ? i : 0;
             final end = isUpper ? m : i + 1;
             for (var k = start; k < end; k++) {
@@ -875,7 +938,7 @@ abstract final class BlasDart {
             }
           }
         } else {
-          if (transA == cblasNoTrans) {
+          if (!isTransA) {
             final start = isUpper ? 0 : j;
             final end = isUpper ? j + 1 : n;
             for (var k = start; k < end; k++) {
@@ -926,12 +989,13 @@ abstract final class BlasDart {
     final isLeft = side == cblasLeft;
     final isUpper = uplo == cblasUpper;
     final isUnit = diag == cblasUnit;
+    final isTransA = transA == cblasTrans || transA == cblasConjTrans;
 
     for (var i = 0; i < m; i++) {
       for (var j = 0; j < n; j++) {
         var sum = 0.0;
         if (isLeft) {
-          if (transA == cblasNoTrans) {
+          if (!isTransA) {
             final start = isUpper ? i : 0;
             final end = isUpper ? m : i + 1;
             for (var k = start; k < end; k++) {
@@ -947,7 +1011,7 @@ abstract final class BlasDart {
             }
           }
         } else {
-          if (transA == cblasNoTrans) {
+          if (!isTransA) {
             final start = isUpper ? 0 : j;
             final end = isUpper ? j + 1 : n;
             for (var k = start; k < end; k++) {

@@ -30,6 +30,13 @@ void main() {
       check(dot).isCloseTo(1.0 * 3.0 + 2.0 * 4.0, 1e-10);
     });
 
+    accelerationTest('ddot with negative stride', () {
+      final x = Float64List.fromList([1.0, 2.0, 3.0]);
+      final y = Float64List.fromList([4.0, 5.0, 6.0]);
+      final dot = Blas.ddot(n: 3, x: x, incX: -1, y: y, incY: 1);
+      check(dot).isCloseTo(28.0, 1e-10);
+    });
+
     accelerationTest('sdot with negative values', () {
       final x = Float32List.fromList([1.0, -2.0, 3.0]);
       final y = Float32List.fromList([-4.0, 5.0, -6.0]);
@@ -43,10 +50,28 @@ void main() {
       check(norm).isCloseTo(5.0, 1e-10);
     });
 
+    accelerationTest('dnrm2 large values avoid overflow', () {
+      final x = Float64List.fromList([1e200, 1e200]);
+      final norm = Blas.dnrm2(n: 2, x: x);
+      check(norm).isCloseTo(1.414213562373095e200, 1e190);
+    });
+
+    accelerationTest('dnrm2 small values avoid underflow', () {
+      final x = Float64List.fromList([1e-200, 1e-200]);
+      final norm = Blas.dnrm2(n: 2, x: x);
+      check(norm).isCloseTo(1.414213562373095e-200, 1e-210);
+    });
+
     accelerationTest('snrm2 Euclidean norm', () {
       final x = Float32List.fromList([3.0, 4.0]);
       final norm = Blas.snrm2(n: 2, x: x);
       check(norm).isCloseTo(5.0, 1e-5);
+    });
+
+    accelerationTest('snrm2 large values avoid overflow', () {
+      final x = Float32List.fromList([1e20, 1e20]);
+      final norm = Blas.snrm2(n: 2, x: x);
+      check(norm).isCloseTo(1.4142135e20, 1e15);
     });
 
     accelerationTest('daxpy vector update', () {
@@ -57,6 +82,16 @@ void main() {
       check(y[0]).isCloseTo(6.0, 1e-10);
       check(y[1]).isCloseTo(9.0, 1e-10);
       check(y[2]).isCloseTo(12.0, 1e-10);
+    });
+
+    accelerationTest('daxpy with negative stride', () {
+      final x = Float64List.fromList([1.0, 2.0, 3.0]);
+      final y = Float64List.fromList([4.0, 5.0, 6.0]);
+      final ok = Blas.daxpy(n: 3, alpha: 2.0, x: x, incX: -1, y: y, incY: 1);
+      check(ok).isTrue();
+      check(y[0]).isCloseTo(10.0, 1e-10);
+      check(y[1]).isCloseTo(9.0, 1e-10);
+      check(y[2]).isCloseTo(8.0, 1e-10);
     });
 
     accelerationTest('saxpy vector update', () {
@@ -114,6 +149,26 @@ void main() {
       final y = Float64List(2);
       final ok = Blas.dgemv(
         transA: cblasTrans,
+        m: 2,
+        n: 2,
+        alpha: 1.0,
+        a: a,
+        lda: 2,
+        x: x,
+        beta: 0.0,
+        y: y,
+      );
+      check(ok).isTrue();
+      check(y[0]).isCloseTo(4.0, 1e-10);
+      check(y[1]).isCloseTo(6.0, 1e-10);
+    });
+
+    accelerationTest('dgemv conjugate transpose multiplication', () {
+      final a = Float64List.fromList([1.0, 2.0, 3.0, 4.0]);
+      final x = Float64List.fromList([1.0, 1.0]);
+      final y = Float64List(2);
+      final ok = Blas.dgemv(
+        transA: cblasConjTrans,
         m: 2,
         n: 2,
         alpha: 1.0,
@@ -235,6 +290,31 @@ void main() {
       final c = Float64List(4);
       final ok = Blas.dgemm(
         transA: cblasTrans,
+        m: 2,
+        n: 2,
+        k: 2,
+        alpha: 1.0,
+        a: a,
+        lda: 2,
+        b: b,
+        ldb: 2,
+        beta: 0.0,
+        c: c,
+        ldc: 2,
+      );
+      check(ok).isTrue();
+      check(c[0]).isCloseTo(19.0, 1e-10);
+      check(c[1]).isCloseTo(22.0, 1e-10);
+      check(c[2]).isCloseTo(43.0, 1e-10);
+      check(c[3]).isCloseTo(50.0, 1e-10);
+    });
+
+    accelerationTest('dgemm conjugate transpose', () {
+      final a = Float64List.fromList([1.0, 3.0, 2.0, 4.0]);
+      final b = Float64List.fromList([5.0, 6.0, 7.0, 8.0]);
+      final c = Float64List(4);
+      final ok = Blas.dgemm(
+        transA: cblasConjTrans,
         m: 2,
         n: 2,
         k: 2,

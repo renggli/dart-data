@@ -18,6 +18,15 @@ void main() {
       check(a[3]).isCloseTo(2.0, 1e-10);
     });
 
+    accelerationTest(
+      'dpotrf on non-SPD matrix returns false without throwing',
+      () {
+        final a = Float64List.fromList([4.0, 6.0, 6.0, 5.0]);
+        final ok = Lapack.dpotrf(n: 2, a: a, lda: 2);
+        check(ok).isFalse();
+      },
+    );
+
     accelerationTest('dgesv linear system solve', () {
       final a = Float64List.fromList([2.0, 1.0, 1.0, 3.0]);
       final b = Float64List.fromList([5.0, 5.0]);
@@ -26,6 +35,16 @@ void main() {
       check(b[0]).isCloseTo(2.0, 1e-10);
       check(b[1]).isCloseTo(1.0, 1e-10);
     });
+
+    accelerationTest(
+      'dgesv on singular matrix returns false without throwing',
+      () {
+        final a = Float64List.fromList([1.0, 2.0, 2.0, 4.0]);
+        final b = Float64List.fromList([1.0, 2.0]);
+        final ok = Lapack.dgesv(n: 2, nrhs: 1, a: a, lda: 2, b: b, ldb: 1);
+        check(ok).isFalse();
+      },
+    );
 
     accelerationTest('dgels linear least squares overdetermined', () {
       // 3 equations, 2 unknowns

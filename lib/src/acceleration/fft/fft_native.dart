@@ -9,7 +9,7 @@ import 'fft_dart.dart';
 enum _FftBackend { none, vdsp, fftw }
 
 const int _vDspDftForward = 1;
-const int _vDspDftInverse = 2;
+const int _vDspDftInverse = -1;
 const int _vDspDftInterleavedComplextoComplex = 0;
 
 const int _fftwForward = -1;
@@ -339,7 +339,7 @@ abstract final class FftNative {
   ffi.Pointer<ffi.Void> Function(
     ffi.Pointer<ffi.Void>,
     ffi.Uint64,
-    ffi.Uint32,
+    ffi.Int32,
     ffi.Uint32,
   )
 >(symbol: 'vDSP_DFT_Interleaved_CreateSetupD', isLeaf: true)

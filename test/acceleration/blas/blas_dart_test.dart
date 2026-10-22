@@ -174,5 +174,153 @@ void main() {
       check(b[2]).isCloseTo(18.0, 1e-10);
       check(b[3]).isCloseTo(16.0, 1e-10);
     });
+
+    test('dgemv with cblasConjTrans', () {
+      final a = Float64List.fromList([1.0, 2.0, 3.0, 4.0]);
+      final x = Float64List.fromList([1.0, 1.0]);
+      final y = Float64List(2);
+      check(
+        BlasDart.dgemv(
+          transA: cblasConjTrans,
+          m: 2,
+          n: 2,
+          alpha: 1.0,
+          a: a,
+          aOffset: 0,
+          lda: 2,
+          x: x,
+          xOffset: 0,
+          incX: 1,
+          beta: 0.0,
+          y: y,
+          yOffset: 0,
+          incY: 1,
+        ),
+      ).isTrue();
+      check(y[0]).isCloseTo(4.0, 1e-10);
+      check(y[1]).isCloseTo(6.0, 1e-10);
+    });
+
+    test('dgemm with cblasConjTrans matches cblasTrans', () {
+      final a = Float64List.fromList([1.0, 3.0, 2.0, 4.0]);
+      final b = Float64List.fromList([5.0, 6.0, 7.0, 8.0]);
+      final c = Float64List(4);
+      check(
+        BlasDart.dgemm(
+          transA: cblasConjTrans,
+          transB: cblasNoTrans,
+          m: 2,
+          n: 2,
+          k: 2,
+          alpha: 1.0,
+          a: a,
+          aOffset: 0,
+          lda: 2,
+          b: b,
+          bOffset: 0,
+          ldb: 2,
+          beta: 0.0,
+          c: c,
+          cOffset: 0,
+          ldc: 2,
+        ),
+      ).isTrue();
+      check(c[0]).isCloseTo(19.0, 1e-10);
+      check(c[1]).isCloseTo(22.0, 1e-10);
+      check(c[2]).isCloseTo(43.0, 1e-10);
+      check(c[3]).isCloseTo(50.0, 1e-10);
+    });
+
+    test('ddot and daxpy with negative increments', () {
+      final x = Float64List.fromList([1.0, 2.0, 3.0]);
+      final y = Float64List.fromList([4.0, 5.0, 6.0]);
+      final dot = BlasDart.ddot(
+        n: 3,
+        x: x,
+        xOffset: 0,
+        incX: -1,
+        y: y,
+        yOffset: 0,
+        incY: 1,
+      );
+      check(dot).isCloseTo(28.0, 1e-10);
+
+      check(
+        BlasDart.daxpy(
+          n: 3,
+          alpha: 2.0,
+          x: x,
+          xOffset: 0,
+          incX: -1,
+          y: y,
+          yOffset: 0,
+          incY: 1,
+        ),
+      ).isTrue();
+      check(y[0]).isCloseTo(10.0, 1e-10);
+      check(y[1]).isCloseTo(9.0, 1e-10);
+      check(y[2]).isCloseTo(8.0, 1e-10);
+    });
+
+    test('dnrm2 scaled accumulation avoids overflow and underflow', () {
+      final large = Float64List.fromList([1e200, 1e200]);
+      check(BlasDart.dnrm2(n: 2, x: large, xOffset: 0, incX: 1))
+          .isCloseTo(1.414213562373095e200, 1e190);
+
+      final small = Float64List.fromList([1e-200, 1e-200]);
+      check(BlasDart.dnrm2(n: 2, x: small, xOffset: 0, incX: 1))
+          .isCloseTo(1.414213562373095e-200, 1e-210);
+    });
+
+    test('dsyrk with cblasConjTrans', () {
+      final a = Float64List.fromList([1.0, 2.0, 3.0, 4.0]);
+      final c = Float64List(4);
+      check(
+        BlasDart.dsyrk(
+          uplo: cblasUpper,
+          trans: cblasConjTrans,
+          n: 2,
+          k: 2,
+          alpha: 1.0,
+          a: a,
+          aOffset: 0,
+          lda: 2,
+          beta: 0.0,
+          c: c,
+          cOffset: 0,
+          ldc: 2,
+        ),
+      ).isTrue();
+      check(c[0]).isCloseTo(10.0, 1e-10);
+      check(c[1]).isCloseTo(14.0, 1e-10);
+      check(c[2]).isCloseTo(14.0, 1e-10);
+      check(c[3]).isCloseTo(20.0, 1e-10);
+    });
+
+    test('dtrmm with cblasConjTrans', () {
+      final a = Float64List.fromList([2.0, 3.0, 0.0, 4.0]);
+      final b = Float64List.fromList([1.0, 2.0, 3.0, 4.0]);
+      check(
+        BlasDart.dtrmm(
+          side: cblasRight,
+          uplo: cblasUpper,
+          transA: cblasConjTrans,
+          diag: cblasNonUnit,
+          m: 2,
+          n: 2,
+          alpha: 1.0,
+          a: a,
+          aOffset: 0,
+          lda: 2,
+          b: b,
+          bOffset: 0,
+          ldb: 2,
+        ),
+      ).isTrue();
+      check(b[0]).isCloseTo(8.0, 1e-10);
+      check(b[1]).isCloseTo(8.0, 1e-10);
+      check(b[2]).isCloseTo(18.0, 1e-10);
+      check(b[3]).isCloseTo(16.0, 1e-10);
+    });
   });
 }

@@ -59,13 +59,10 @@ void checkBlasVectorBounds(
   String name,
 ) {
   if (n <= 0) return;
-  final first = offset;
-  final last = offset + (n - 1) * inc;
-  final minIdx = inc > 0 ? first : last;
-  final maxIdx = inc > 0 ? last : first;
-  if (minIdx < 0 || maxIdx >= bufferLength) {
+  final maxIdx = offset + (n - 1) * inc.abs();
+  if (offset < 0 || maxIdx >= bufferLength) {
     throw RangeError(
-      'Vector $name bounds check failed: indices [$minIdx, $maxIdx] exceed buffer length $bufferLength',
+      'Vector $name bounds check failed: indices [$offset, $maxIdx] exceed buffer length $bufferLength',
     );
   }
 }

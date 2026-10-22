@@ -28,14 +28,20 @@ abstract final class LapackNative {
       _libs.isNotEmpty &&
       (_hasDpotrf || _hasDgesv || _hasLapackeDgesv || _hasClapackDgesv);
 
-  static bool dpotrf({
+  static bool get hasDpotrf => _hasDpotrf;
+  static bool get hasDgesv => _hasLapackeDgesv || _hasClapackDgesv || _hasDgesv;
+  static bool get hasDgels => _hasLapackeDgels || _hasDgels;
+  static bool get hasDsyev => _hasLapackeDsyev || _hasDsyev;
+  static bool get hasSsyev => _hasLapackeSsyev || _hasSsyev;
+
+  static bool? dpotrf({
     required int uplo,
     required int n,
     required Float64List a,
     required int aOffset,
     required int lda,
   }) {
-    if (!_hasDpotrf) return false;
+    if (!_hasDpotrf) return null;
     return using((arena) {
       final fortranUplo = uplo == cblasUpper ? 76 : 85;
       final uploPtr = arena<ffi.Uint8>()..value = fortranUplo;
@@ -49,7 +55,7 @@ abstract final class LapackNative {
     });
   }
 
-  static bool dgesv({
+  static bool? dgesv({
     required int n,
     required int nrhs,
     required Float64List a,
@@ -59,6 +65,7 @@ abstract final class LapackNative {
     required int bOffset,
     required int ldb,
   }) {
+    if (!hasDgesv) return null;
     if (n < 0 || nrhs < 0 || lda < n || (nrhs > 0 && ldb < nrhs)) return false;
     if (n == 0 || nrhs == 0) return true;
     final aRequired = aOffset + (n - 1) * lda + n;
@@ -197,7 +204,7 @@ abstract final class LapackNative {
     return false;
   }
 
-  static bool dgels({
+  static bool? dgels({
     required int m,
     required int n,
     required int nrhs,
@@ -208,6 +215,7 @@ abstract final class LapackNative {
     required int bOffset,
     required int ldb,
   }) {
+    if (!hasDgels) return null;
     final aView = aOffset == 0 ? a : Float64List.sublistView(a, aOffset);
     final bView = bOffset == 0 ? b : Float64List.sublistView(b, bOffset);
 
@@ -278,7 +286,7 @@ abstract final class LapackNative {
     return false;
   }
 
-  static bool dsyev({
+  static bool? dsyev({
     required String jobz,
     required int uplo,
     required int n,
@@ -288,6 +296,7 @@ abstract final class LapackNative {
     required Float64List w,
     required int wOffset,
   }) {
+    if (!hasDsyev) return null;
     if (n < 0 || lda < n) return false;
     if (n == 0) return true;
     final normJobz = jobz.toUpperCase();
@@ -390,7 +399,7 @@ abstract final class LapackNative {
     return false;
   }
 
-  static bool ssyev({
+  static bool? ssyev({
     required String jobz,
     required int uplo,
     required int n,
@@ -400,6 +409,7 @@ abstract final class LapackNative {
     required Float32List w,
     required int wOffset,
   }) {
+    if (!hasSsyev) return null;
     if (n < 0 || lda < n) return false;
     if (n == 0) return true;
     final normJobz = jobz.toUpperCase();

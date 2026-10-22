@@ -319,8 +319,9 @@ abstract final class Blas {
     checkBlasOffset(aOffset, a.length, 'aOffset');
     checkBlasOffset(xOffset, x.length, 'xOffset');
     checkBlasOffset(yOffset, y.length, 'yOffset');
-    final lenY = transA == cblasTrans ? n : m;
-    final lenX = transA == cblasTrans ? m : n;
+    final isTransA = transA == cblasTrans || transA == cblasConjTrans;
+    final lenY = isTransA ? n : m;
+    final lenX = isTransA ? m : n;
     checkBlasMatrixLeadingDim(lda, 'lda', n);
     checkBlasMatrixBounds(a.length, m, n, aOffset, lda, 'a');
     checkBlasVectorBounds(x.length, lenX, xOffset, incX, 'x');
@@ -388,8 +389,9 @@ abstract final class Blas {
     checkBlasOffset(aOffset, a.length, 'aOffset');
     checkBlasOffset(xOffset, x.length, 'xOffset');
     checkBlasOffset(yOffset, y.length, 'yOffset');
-    final lenY = transA == cblasTrans ? n : m;
-    final lenX = transA == cblasTrans ? m : n;
+    final isTransA = transA == cblasTrans || transA == cblasConjTrans;
+    final lenY = isTransA ? n : m;
+    final lenX = isTransA ? m : n;
     checkBlasMatrixLeadingDim(lda, 'lda', n);
     checkBlasMatrixBounds(a.length, m, n, aOffset, lda, 'a');
     checkBlasVectorBounds(x.length, lenX, xOffset, incX, 'x');

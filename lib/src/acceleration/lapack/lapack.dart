@@ -22,11 +22,10 @@ abstract final class Lapack {
     required Float64List a,
     int aOffset = 0,
     required int lda,
-  }) => executeAcceleratedOperation(
+  }) => executeAccelerated<bool>(
     feature: 'LAPACK',
     operation: 'dpotrf',
-    isAvailable: isAvailable,
-    failOnError: false,
+    isAvailable: LapackNative.hasDpotrf,
     accelerate: () =>
         LapackNative.dpotrf(uplo: uplo, n: n, a: a, aOffset: aOffset, lda: lda),
     fallback: () =>
@@ -44,11 +43,10 @@ abstract final class Lapack {
     required Float64List b,
     int bOffset = 0,
     required int ldb,
-  }) => executeAcceleratedOperation(
+  }) => executeAccelerated<bool>(
     feature: 'LAPACK',
     operation: 'dgesv',
-    isAvailable: isAvailable,
-    failOnError: false,
+    isAvailable: LapackNative.hasDgesv,
     accelerate: () => LapackNative.dgesv(
       n: n,
       nrhs: nrhs,
@@ -83,10 +81,10 @@ abstract final class Lapack {
     required Float64List b,
     int bOffset = 0,
     required int ldb,
-  }) => executeAcceleratedOperation(
+  }) => executeAccelerated<bool>(
     feature: 'LAPACK',
     operation: 'dgels',
-    isAvailable: isAvailable,
+    isAvailable: LapackNative.hasDgels,
     accelerate: () => LapackNative.dgels(
       m: m,
       n: n,
@@ -122,10 +120,10 @@ abstract final class Lapack {
     required int lda,
     required Float64List w,
     int wOffset = 0,
-  }) => executeAcceleratedOperation(
+  }) => executeAccelerated<bool>(
     feature: 'LAPACK',
     operation: 'dsyev',
-    isAvailable: isAvailable,
+    isAvailable: LapackNative.hasDsyev,
     accelerate: () => LapackNative.dsyev(
       jobz: jobz,
       uplo: uplo,
@@ -159,10 +157,10 @@ abstract final class Lapack {
     required int lda,
     required Float32List w,
     int wOffset = 0,
-  }) => executeAcceleratedOperation(
+  }) => executeAccelerated<bool>(
     feature: 'LAPACK',
     operation: 'ssyev',
-    isAvailable: isAvailable,
+    isAvailable: LapackNative.hasSsyev,
     accelerate: () => LapackNative.ssyev(
       jobz: jobz,
       uplo: uplo,
