@@ -25,7 +25,12 @@ void main() {
       check(dist.probability(0.0))
           .isCloseTo(1.0 / math.sqrt(2 * math.pi), 1e-6);
       check(dist.cumulativeProbability(0.0)).isCloseTo(0.5, 1e-6);
+      check(dist.cumulativeProbability(1.96))
+          .isCloseTo(0.9750021048517795, 1e-12);
+      check(dist.cumulativeProbability(-10.0)).isGreaterThan(0.0);
       check(dist.survival(0.0)).isCloseTo(0.5, 1e-6);
+      check(dist.survival(1.96)).isCloseTo(1.0 - 0.9750021048517795, 1e-12);
+      check(dist.survival(10.0)).isGreaterThan(0.0);
       check(dist.inverseCumulativeProbability(0.5)).isCloseTo(0.0, 1e-6);
       check(dist.inverseSurvival(0.5)).isCloseTo(0.0, 1e-6);
       check(dist.inverseCumulativeProbability(0.975)).isCloseTo(1.95996, 1e-4);

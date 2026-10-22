@@ -45,5 +45,15 @@ void main() {
       check(erfInv(erf(-0.75))).isCloseTo(-0.75, 1e-6);
       check(erfcInv(erfc(0.5))).isCloseTo(0.5, 1e-6);
     });
+
+    test('erf and erfc near-machine precision (Cody)', () {
+      // Reference: erf(1.0) = 0.84270079294971486934
+      check(erf(1.0)).isCloseTo(0.8427007929497149, 1e-15);
+      // Reference: erfc(1.0) = 0.15729920705028513066
+      check(erfc(1.0)).isCloseTo(0.15729920705028513, 1e-15);
+      // Deep tail: erfc(10.0) = 2.0884875837625446e-45
+      check(erfc(10.0)).isCloseTo(2.0884875837625446e-45, 1e-55);
+      check(erfc(-10.0)).equals(2.0);
+    });
   });
 }

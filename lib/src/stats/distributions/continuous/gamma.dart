@@ -95,6 +95,9 @@ class GammaDistribution extends ContinuousDistribution {
       x <= 0.0 ? 0.0 : lowRegGamma(shape, x / scale);
 
   @override
+  double survival(double x) => x <= 0.0 ? 1.0 : gammaq(shape, x / scale);
+
+  @override
   double inverseCumulativeProbability(num probability) {
     InvalidProbability.check(probability);
     return gammapInv(probability, shape) * scale;

@@ -78,7 +78,13 @@ class NormalDistribution extends ContinuousDistribution {
   @override
   double cumulativeProbability(double x) {
     final z = (x - mean) / (sqrt2 * standardDeviation);
-    return 0.5 * (1.0 + erf(z));
+    return z < 0.0 ? 0.5 * erfc(-z) : 0.5 * (1.0 + erf(z));
+  }
+
+  @override
+  double survival(double x) {
+    final z = (x - mean) / (sqrt2 * standardDeviation);
+    return z < 0.0 ? 0.5 * (1.0 + erf(-z)) : 0.5 * erfc(z);
   }
 
   @override

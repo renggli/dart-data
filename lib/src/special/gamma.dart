@@ -15,6 +15,9 @@ import 'dart:math';
 /// final val = gamma(5); // 24.0
 /// ```
 double gamma(num x) {
+  if (x.isNaN) return double.nan;
+  if (x == double.infinity) return double.infinity;
+  if (x == double.negativeInfinity) return double.nan;
   const lanczosG = 7;
   const lanczosCoeffs = [
     0.99999999999980993,
@@ -57,6 +60,9 @@ double gamma(num x) {
 /// final logVal = gammaLn(5); // ~ 3.17805383
 /// ```
 double gammaLn(num x) {
+  if (x.isNaN) return double.nan;
+  if (x == double.infinity) return double.infinity;
+  if (x <= 0.0) return double.nan;
   const lanczosG = 607 / 128;
   const lanczosCoeffs = [
     0.99999999999999709182,
@@ -86,8 +92,54 @@ double gammaLn(num x) {
   return 0.5 * log(2.0 * pi) + (x + 0.5) * log(tVal) - tVal + log(y) - log(x);
 }
 
-/// Returns the lower incomplete gamma function $\gamma(a, x)$.
-double gammap(num a, num x) => lowRegGamma(a, x) * gamma(a);
+/// Returns the lower regularized incomplete gamma function $P(a, x)$.
+///
+/// Follows standard numerical conventions (e.g. SciPy `gammainc` and Numerical
+/// Recipes $P(a, x) = \frac{\gamma(a, x)}{\Gamma(a)}$).
+double gammap(num a, num x) => lowRegGamma(a, x);
+
+/// Returns the upper regularized incomplete gamma function $Q(a, x) = 1 - P(a, x)$.
+///
+/// Follows standard numerical conventions (e.g. SciPy `gammaincc` and Numerical
+/// Recipes $Q(a, x) = \frac{\Gamma(a, x)}{\Gamma(a)}$).
+double gammaq(num a, num x) {
+  if (x.isNaN || a.isNaN || x < 0 || a <= 0) {
+    return double.nan;
+  }
+  if (x == double.infinity) {
+    return 0.0;
+  }
+  if (a == double.infinity) {
+    return 1.0;
+  }
+  if (x == 0.0) {
+    return 1.0;
+  }
+  final aln = gammaLn(a);
+  if (x < a + 1.0) {
+    return 1.0 - lowRegGamma(a, x);
+  }
+  var b = x + 1.0 - a;
+  var cVal = 1.0 / 1.0e-30;
+  var dVal = 1.0 / b;
+  var hVal = dVal;
+  final maxIter = (log(a >= 1 ? a : 1.0 / a) * 8.5 + a * 0.4 + 17).ceil();
+  for (var i = 1; i <= maxIter; i++) {
+    final an = -i * (i - a);
+    b += 2.0;
+    dVal = an * dVal + b;
+    if (dVal.abs() < 1.0e-30) dVal = 1.0e-30;
+    cVal = b + an / cVal;
+    if (cVal.abs() < 1.0e-30) cVal = 1.0e-30;
+    dVal = 1.0 / dVal;
+    final delStep = dVal * cVal;
+    hVal *= delStep;
+    if ((delStep - 1.0).abs() < 1.0e-15) {
+      break;
+    }
+  }
+  return hVal * exp(-x + a * log(x) - aln);
+}
 
 /// Returns the inverse of the lower regularized incomplete gamma function.
 double gammapInv(num probability, num a) {
@@ -99,7 +151,7 @@ double gammapInv(num probability, num a) {
   var lna1 = 0.0;
 
   if (probability >= 1.0) {
-    return max(100, a + 100 * sqrt(a));
+    return double.infinity;
   } else if (probability <= 0) {
     return 0.0;
   } else if (a > 1.0) {
@@ -148,8 +200,17 @@ double gammapInv(num probability, num a) {
 
 /// Returns the lower regularized incomplete gamma function $P(a, x)$.
 double lowRegGamma(num a, num x) {
-  if (x < 0 || a <= 0) {
+  if (x.isNaN || a.isNaN || x < 0 || a <= 0) {
     return double.nan;
+  }
+  if (x == double.infinity) {
+    return 1.0;
+  }
+  if (a == double.infinity) {
+    return 0.0;
+  }
+  if (x == 0.0) {
+    return 0.0;
   }
   final aln = gammaLn(a);
   var ap = a;
@@ -199,8 +260,30 @@ double factorialLn(num value) =>
 /// ```dart
 /// print(combination(5, 2));  // 10.0
 /// ```
-double combination(num total, num choose) =>
-    factorial(total) / factorial(choose) / factorial(total - choose);
+double combination(num total, num choose) {
+  if (total.isNaN || choose.isNaN || choose < 0 || choose > total) {
+    return 0.0;
+  }
+  if (choose == 0 || choose == total) {
+    return 1.0;
+  }
+  var k = choose;
+  if (k > total - k) {
+    k = total - k;
+  }
+  final isTotalInt = total.roundToDouble() == total;
+  final isChooseInt = k.roundToDouble() == k;
+  if (isTotalInt && isChooseInt && k <= 1000) {
+    var res = BigInt.one;
+    final totalInt = BigInt.from(total);
+    final kInt = k.toInt();
+    for (var i = 1; i <= kInt; i++) {
+      res = (res * (totalInt - BigInt.from(kInt - i))) ~/ BigInt.from(i);
+    }
+    return res.toDouble();
+  }
+  return exp(combinationLn(total, choose));
+}
 
 /// Returns the logarithm of the combinations based on the [gammaLn] function.
 double combinationLn(num total, num choose) =>
@@ -211,8 +294,26 @@ double combinationLn(num total, num choose) =>
 /// ```dart
 /// print(permutation(5, 2));  // 20.0
 /// ```
-double permutation(num total, num count) =>
-    factorial(total) / factorial(total - count);
+double permutation(num total, num count) {
+  if (total.isNaN || count.isNaN || count < 0 || count > total) {
+    return 0.0;
+  }
+  if (count == 0) {
+    return 1.0;
+  }
+  final isTotalInt = total.roundToDouble() == total;
+  final isCountInt = count.roundToDouble() == count;
+  if (isTotalInt && isCountInt && count <= 1000) {
+    var res = BigInt.one;
+    final totalInt = BigInt.from(total);
+    final countInt = count.toInt();
+    for (var i = 0; i < countInt; i++) {
+      res *= totalInt - BigInt.from(i);
+    }
+    return res.toDouble();
+  }
+  return exp(permutationLn(total, count));
+}
 
 /// Returns the logarithm of the permutations based on the [gammaLn] function.
 double permutationLn(num total, num count) =>

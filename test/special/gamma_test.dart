@@ -76,16 +76,24 @@ void main() {
       check(gammaLn(-1)).isNaN();
     });
 
-    test('gammap and lowRegGamma', () {
+    test('gammap, gammaq, and lowRegGamma', () {
       check(lowRegGamma(1, 1)).isCloseTo(1.0 - math.exp(-1), 1e-6);
       check(gammap(1, 1)).isCloseTo(1.0 - math.exp(-1), 1e-6);
+      check(gammaq(1, 1)).isCloseTo(math.exp(-1), 1e-6);
       check(lowRegGamma(-1, 1)).isNaN();
       check(lowRegGamma(1, -1)).isNaN();
+      check(gammaq(-1, 1)).isNaN();
+      check(gammaq(1, -1)).isNaN();
+      check(gamma(double.infinity)).equals(double.infinity);
+      check(gammaLn(double.infinity)).equals(double.infinity);
+      check(lowRegGamma(2.0, double.infinity)).equals(1.0);
+      check(gammap(2.0, double.infinity)).equals(1.0);
+      check(gammaq(2.0, double.infinity)).equals(0.0);
     });
 
     test('gammapInv', () {
       check(gammapInv(0.0, 2.0)).equals(0.0);
-      check(gammapInv(1.0, 2.0)).isGreaterThan(10.0);
+      check(gammapInv(1.0, 2.0)).equals(double.infinity);
       final prob = lowRegGamma(2.5, 3.0);
       check(gammapInv(prob, 2.5)).isCloseTo(3.0, 1e-4);
 
@@ -109,9 +117,11 @@ void main() {
       check(factorial(5)).isCloseTo(120.0, 1e-8);
       check(factorial(-1)).isNaN();
       check(factorialLn(5)).isCloseTo(math.log(120.0), 1e-6);
-      check(combination(5, 2)).isCloseTo(10.0, 1e-6);
+      check(combination(5, 2)).equals(10.0);
+      check(combination(200, 2)).equals(19900.0);
       check(combinationLn(5, 2)).isCloseTo(math.log(10.0), 1e-6);
-      check(permutation(5, 2)).isCloseTo(20.0, 1e-6);
+      check(permutation(5, 2)).equals(20.0);
+      check(permutation(200, 2)).equals(39800.0);
       check(permutationLn(5, 2)).isCloseTo(math.log(20.0), 1e-6);
     });
   });
