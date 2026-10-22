@@ -208,7 +208,11 @@ String _formatMulNumerator(List<Expr> factors, int parentPrec) {
           parts.add(formatExpr(Mul([IntegerNumber.negativeOne, next]), 2));
           i++;
         } else {
-          final reqPrec = (i > 0 && f is Mul && !_isUnaryNegMul(f)) ? 3 : 2;
+          final reqPrec = (i > 0 && f is FractionNumber)
+              ? 3
+              : (i > 0 && f is Mul && !_isUnaryNegMul(f))
+              ? 3
+              : 2;
           parts.add(formatExpr(f, reqPrec));
         }
       }

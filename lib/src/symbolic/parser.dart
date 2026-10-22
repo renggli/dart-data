@@ -513,8 +513,15 @@ class ExprSyntax {
 
   static Expr _parseIntegralArgs(List<Expr> args) => switch (args) {
     [final integrand, Variable(:final name)] => Integral(integrand, name),
+    [final integrand, final v] when _asVariableName(v) != null => Integral(
+      integrand,
+      _asVariableName(v)!,
+    ),
     [final integrand, Variable(:final name), final lower, final upper] =>
       Integral(integrand, name, lower: lower, upper: upper),
+    [final integrand, final v, final lower, final upper]
+        when _asVariableName(v) != null =>
+      Integral(integrand, _asVariableName(v)!, lower: lower, upper: upper),
     [_, final invalidVar, ...] => throw FormatException(
       'integrate second argument must be a variable identifier, got: $invalidVar',
     ),
@@ -525,9 +532,16 @@ class ExprSyntax {
 
   static Expr _parseDerivativeArgs(List<Expr> args) => switch (args) {
     [final expr, Variable(:final name)] => Derivative(expr, name),
+    [final expr, final v] when _asVariableName(v) != null => Derivative(
+      expr,
+      _asVariableName(v)!,
+    ),
     [final expr, Variable(:final name), IntegerNumber(asInt: final order?)]
         when order >= 1 =>
       Derivative(expr, name, order: order),
+    [final expr, final v, IntegerNumber(asInt: final order?)]
+        when order >= 1 && _asVariableName(v) != null =>
+      Derivative(expr, _asVariableName(v)!, order: order),
     [_, Variable(), final invalidOrder] => throw FormatException(
       'diff order must be a positive integer, got: $invalidOrder',
     ),
@@ -545,12 +559,25 @@ class ExprSyntax {
       name,
       point,
     ),
+    [final expr, final v, final point] when _asVariableName(v) != null => Limit(
+      expr,
+      _asVariableName(v)!,
+      point,
+    ),
     [final expr, Variable(:final name), final point, final dirExpr] => Limit(
       expr,
       name,
       point,
       direction: _parseLimitDirection(dirExpr),
     ),
+    [final expr, final v, final point, final dirExpr]
+        when _asVariableName(v) != null =>
+      Limit(
+        expr,
+        _asVariableName(v)!,
+        point,
+        direction: _parseLimitDirection(dirExpr),
+      ),
     [_, final invalidVar, ...] => throw FormatException(
       'limit second argument must be a variable identifier, got: $invalidVar',
     ),
@@ -578,6 +605,9 @@ class ExprSyntax {
       lower,
       upper,
     ),
+    [final expr, final v, final lower, final upper]
+        when _asVariableName(v) != null =>
+      Sum(expr, _asVariableName(v)!, lower, upper),
     [_, final invalidVar, _, _] => throw FormatException(
       'sum second argument must be a variable identifier, got: $invalidVar',
     ),
@@ -591,12 +621,25 @@ class ExprSyntax {
       lower,
       upper,
     ),
+    [final expr, final v, final lower, final upper]
+        when _asVariableName(v) != null =>
+      Product(expr, _asVariableName(v)!, lower, upper),
     [_, final invalidVar, _, _] => throw FormatException(
       'product second argument must be a variable identifier, got: $invalidVar',
     ),
     _ => throw FormatException(
       'product requires 4 arguments, got ${args.length}',
     ),
+  };
+
+  static String? _asVariableName(Expr expr) => switch (expr) {
+    Variable(:final name) => name,
+    ComplexNumber(:final real, :final imaginary)
+        when real.isZero && imaginary.isOne =>
+      'i',
+    Constant.e => 'e',
+    Constant.pi => 'pi',
+    _ => null,
   };
 
   static Expr _evalGcdBinary(Expr a, Expr b) {

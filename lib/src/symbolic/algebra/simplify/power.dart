@@ -44,7 +44,7 @@ Expr simplifyPow(
     }
   }
 
-  // 3. Natural exponential base e: e^(ln(u)) = u, e^(k * ln(u)) = u^k
+  // 3. Natural exponential base e: e^(ln(u)) = u, e^(k * ln(u)) = u^k, e^(i * k * pi)
   if (base == Constant.e) {
     if (exponent is Ln) {
       return exponent.expr;
@@ -61,6 +61,41 @@ Expr simplifyPow(
               ? otherFactors.first
               : simplifyMul(otherFactors, assumptions: assumptions);
           return simplifyPow(expr, k, assumptions: assumptions);
+        }
+      }
+
+      // Euler's identity: exp(i * theta) where theta is a rational multiple of pi
+      var iIdx = exponent.factors.indexOf(ComplexNumber.i);
+      Expr? scale;
+      if (iIdx == -1) {
+        for (var idx = 0; idx < exponent.factors.length; idx++) {
+          final f = exponent.factors[idx];
+          if (f is ComplexNumber &&
+              f.real.isZero &&
+              f.imaginary is RationalNumber) {
+            iIdx = idx;
+            scale = f.imaginary;
+            break;
+          }
+        }
+      }
+      if (iIdx != -1) {
+        final otherFactors = <Expr>[
+          ?scale,
+          for (var i = 0; i < exponent.factors.length; i++)
+            if (i != iIdx) exponent.factors[i],
+        ];
+        final theta = otherFactors.length == 1
+            ? otherFactors.first
+            : simplifyMul(otherFactors, assumptions: assumptions);
+        final piMult = matchPiMultiple(theta);
+        if (piMult != null) {
+          final cosVal = simplifyCos(theta, assumptions: assumptions);
+          final sinVal = simplifySin(theta, assumptions: assumptions);
+          return simplifyAdd([
+            cosVal,
+            simplifyMul([ComplexNumber.i, sinVal], assumptions: assumptions),
+          ], assumptions: assumptions);
         }
       }
     }

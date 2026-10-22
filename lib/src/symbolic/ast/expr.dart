@@ -180,6 +180,9 @@ sealed class Expr {
         when !b.isZero) {
       return a.divRational(b);
     }
+    if (this is IntegerNumber && (this as IntegerNumber).isOne) {
+      return Pow(rhs, IntegerNumber.negativeOne);
+    }
     return this * Pow(rhs, IntegerNumber.negativeOne);
   }
 

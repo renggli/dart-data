@@ -63,16 +63,43 @@ void main() {
 
   group('Exact trigonometric and inverse trigonometric evaluations', () {
     test('evaluates sin, cos, and tan at special multiples of pi', () {
+      check(Expr.parse('sin(pi / 6)').simplify().toString()).equals('1/2');
+      check(Expr.parse('sin(pi / 4)').simplify().toString())
+          .equals('1/2 * sqrt(2)');
+      check(Expr.parse('sin(pi / 3)').simplify().toString())
+          .equals('1/2 * sqrt(3)');
       check(Expr.parse('sin(pi / 2)').simplify()).equals(IntegerNumber.one);
       check(Expr.parse('sin(3 * pi / 2)').simplify())
           .equals(IntegerNumber.negativeOne);
       check(Expr.parse('sin(pi)').simplify()).equals(IntegerNumber.zero);
+
+      check(Expr.parse('cos(pi / 6)').simplify().toString())
+          .equals('1/2 * sqrt(3)');
+      check(Expr.parse('cos(pi / 4)').simplify().toString())
+          .equals('1/2 * sqrt(2)');
+      check(Expr.parse('cos(pi / 3)').simplify().toString()).equals('1/2');
       check(Expr.parse('cos(pi)').simplify()).equals(IntegerNumber.negativeOne);
       check(Expr.parse('cos(2 * pi)').simplify()).equals(IntegerNumber.one);
       check(Expr.parse('cos(pi / 2)').simplify()).equals(IntegerNumber.zero);
+
+      check(Expr.parse('tan(pi / 6)').simplify().toString())
+          .equals('1/3 * sqrt(3)');
       check(Expr.parse('tan(pi / 4)').simplify()).equals(IntegerNumber.one);
+      check(Expr.parse('tan(pi / 3)').simplify().toString()).equals('sqrt(3)');
       check(Expr.parse('tan(3 * pi / 4)').simplify())
           .equals(IntegerNumber.negativeOne);
+      check(Expr.parse('tan(pi / 2)').simplify()).equals(Constant.undefined);
+    });
+
+    test('evaluates Euler identity e^(i * k * pi)', () {
+      check(Expr.parse('exp(i * pi)').simplify())
+          .equals(IntegerNumber.negativeOne);
+      check(Expr.parse('exp(2 * i * pi)').simplify()).equals(IntegerNumber.one);
+      check(Expr.parse('exp(i * pi / 2)').simplify()).equals(ComplexNumber.i);
+      check(Expr.parse('exp(-i * pi / 2)').simplify())
+          .equals(ComplexNumber.negativeI);
+      check(Expr.parse('exp(i * pi / 3)').simplify().toString())
+          .equals('1/2 + 1/2 * i * sqrt(3)');
     });
 
     test('evaluates asin, acos, and atan at all exact special radicals', () {

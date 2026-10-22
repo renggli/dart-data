@@ -133,6 +133,8 @@ void main() {
         'integrate(sin(x ^ 2), x)',
         'integrate(sin(x ^ 2), x, 0, pi)',
         'f(x, y + 1)',
+        '1 / x',
+        'x * (1/2)',
       ];
 
       for (final src in inputs) {
@@ -145,6 +147,27 @@ void main() {
         final rendered2 = e2.toString();
         final reparsed2 = Expr.parse(rendered2).simplify();
         check(reparsed2).equals(e2);
+      }
+
+      // Explicit AST round-tripping
+      final directNodes = <Expr>[
+        Pow(const Variable('x'), IntegerNumber.negativeOne),
+        Mul([const Variable('x'), RationalNumber(1, 2)]),
+        Mul([RationalNumber(1, 2), const Variable('x')]),
+        Mul([
+          const Variable('x'),
+          const FractionNumber(Integer.one, Integer.two),
+        ]),
+        Pow(const Variable('y'), IntegerNumber.of(-2)),
+        Mul([
+          const Variable('x'),
+          Pow(const Variable('y'), IntegerNumber.negativeOne),
+        ]),
+      ];
+      for (final e in directNodes) {
+        final rendered = e.toString();
+        final reparsed = Expr.parse(rendered);
+        check(reparsed).equals(e);
       }
     });
 

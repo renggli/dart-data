@@ -178,8 +178,32 @@ void main() {
         check(syntax.parse('integral(x, x)')).equals(Integral(x, 'x'));
         check(syntax.parse('diff(x^2, x)'))
             .equals(Derivative(Pow(x, IntegerNumber.two), 'x'));
+        check(syntax.parse('diff(x^2, i)'))
+            .equals(Derivative(Pow(x, IntegerNumber.two), 'i'));
+        check(syntax.parse('diff(x^2, e)'))
+            .equals(Derivative(Pow(x, IntegerNumber.two), 'e'));
         check(syntax.parse('derivative(x^3, x, 2)'))
             .equals(Derivative(Pow(x, IntegerNumber.of(3)), 'x', order: 2));
+        check(syntax.parse('sum(i^2, i, 1, n)')).equals(
+          Sum(
+            Pow(ComplexNumber.i, IntegerNumber.two),
+            'i',
+            IntegerNumber.one,
+            const Variable('n'),
+          ),
+        );
+        check(syntax.parse('product(i, i, 1, n)')).equals(
+          Product(ComplexNumber.i, 'i', IntegerNumber.one, const Variable('n')),
+        );
+        check(syntax.parse('integrate(exp(e), e)'))
+            .equals(Integral(Pow(Constant.e, Constant.e), 'e'));
+        check(syntax.parse('limit(1 / i, i, 0)')).equals(
+          Limit(
+            Pow(ComplexNumber.i, IntegerNumber.negativeOne),
+            'i',
+            IntegerNumber.zero,
+          ),
+        );
         check(() => syntax.parse('diff(x, x, 0)')).throws<FormatException>();
         check(() => syntax.parse('diff(x, 2)')).throws<FormatException>();
         check(() => syntax.parse('diff(x)')).throws<FormatException>();
