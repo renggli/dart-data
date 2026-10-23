@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.16.0 (Unpublished)
+## 0.16.0
 
 - Multi-dimensional `Tensor` subsystem with strided layouts, broadcasting, slicing, contractions, and Einstein summation.
 - Zero-cost `Float64Tensor`, `Float64Matrix`, and `Float64Vector` extension types with direct unboxed buffer access.
@@ -11,6 +11,14 @@
 - Numerical algorithms for ODE solving, optimization, root finding, curve fitting, 1D/2D interpolation, and adaptive curve sampling.
 - Comprehensive statistics toolkit with 25+ probability distributions, hypothesis testing, and Bootstrap/Jackknife resampling.
 - Interactive web applications: Library Showcase, Symbolic Calculator PWA, Expressions Explorer, and Distributions Dashboard.
+
+### Breaking Changes & Migration
+
+- **Unified Linear Algebra Entrypoint**: `package:data/matrix.dart` and `package:data/vector.dart` barrels have been removed. Import `package:data/linear.dart` directly instead.
+- **Removed Constructors & Methods**:
+  - `Vector.fromString` and `Matrix.fromString`: Parse data through `DataType` parsers or CSV/table readers in `package:data/dataframe.dart`.
+  - `Vector.fromTensor` and `Matrix.fromTensor`: Use zero-copy extension types (`Float64Matrix`, `Float64Vector`) or matrix/vector views directly.
+  - `Vector.distance` and `Vector.distanceSquared`: Use `(a - b).norm()` or `(a - b).norm() * (a - b).norm()` via vector norm operations in `package:data/linear.dart`.
 
 ## 0.15.2
 
