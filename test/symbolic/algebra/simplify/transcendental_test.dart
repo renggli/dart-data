@@ -131,7 +131,12 @@ void main() {
         check(simplifyAbs(const RealNumber(-2.5)))
             .equals(const RealNumber(2.5));
         check(simplifyAbs(Mul([IntegerNumber.of(-3), x])).toString())
-            .equals('abs(3 * x)');
+            .equals('3 * abs(x)');
+        check(Expr.parse('abs(x * y)').simplify().toString())
+            .equals('abs(x) * abs(y)');
+        check(Expr.parse('log(8, 2)').simplify().toString()).equals('1/3');
+        check(Expr.parse('ln(8) - 3 * ln(2)').simplify().toString())
+            .equals('0');
         check(simplifyAbs(Constant.pi)).equals(Constant.pi);
         check(simplifyAbs(Abs(x))).equals(Abs(x));
         check(simplifyAbs(Pow(Constant.e, x))).equals(Pow(Constant.e, x));

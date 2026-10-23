@@ -429,6 +429,22 @@ Expr simplifyAbs(Expr expr, {Assumptions assumptions = Assumptions.none}) {
     return expr;
   }
 
+  // Multiplicative: |a * b| = |a| * |b|
+  if (expr is Mul) {
+    return simplifyMul([
+      for (final f in expr.factors) simplifyAbs(f, assumptions: assumptions),
+    ], assumptions: assumptions);
+  }
+
+  // Integer powers: |u^k| = |u|^k for integer k
+  if (expr is Pow && expr.exponent is IntegerNumber) {
+    return simplifyPow(
+      simplifyAbs(expr.base, assumptions: assumptions),
+      expr.exponent,
+      assumptions: assumptions,
+    );
+  }
+
   return Abs(expr, isSimplified: true);
 }
 
@@ -608,6 +624,24 @@ Expr simplifyLn(Expr expr, {Assumptions assumptions = Assumptions.none}) {
   }
   if (expr == Constant.infinity) {
     return Constant.infinity;
+  }
+
+  // ln(1/n) = -ln(n) for positive integer denominator
+  if (expr is FractionNumber && expr.numerator.isOne) {
+    return simplifyNeg(
+      simplifyLn(IntegerNumber(expr.denominator), assumptions: assumptions),
+      assumptions: assumptions,
+    );
+  }
+
+  // ln(b^k) = k * ln(b) for integer powers
+  if (expr is IntegerNumber && !expr.isNegative && !expr.isZero) {
+    if (Number.integerPower(expr.value) case (final base, final exp)?) {
+      return simplifyMul([
+        IntegerNumber.of(exp),
+        simplifyLn(IntegerNumber(base), assumptions: assumptions),
+      ], assumptions: assumptions);
+    }
   }
 
   // ln(e^u) = u for real u

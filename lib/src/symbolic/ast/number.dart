@@ -275,6 +275,24 @@ sealed class Number extends Expr {
     return exponent < 0 ? IntegerNumber.one.div(result) : result;
   }
 
+  /// If [n] can be written as $b^k$ for integer $b \ge 2$ and maximal integer $k \ge 2$,
+  /// returns `(b, k)`; otherwise returns `null`.
+  static (Integer, int)? integerPower(Integer n) {
+    if (n.isNegative || n.isZero || n.isOne) return null;
+    final maxK = switch (n.asInt) {
+      final int nInt when nInt <= 3 => 1,
+      final int nInt => (math.log(nInt) / math.ln2 + 1e-12).floor(),
+      _ => n.toBigInt().bitLength - 1,
+    };
+    for (var k = maxK; k >= 2; k--) {
+      final root = _exactIntegerRoot(n, k);
+      if (root != null && root > Integer.one) {
+        return (root, k);
+      }
+    }
+    return null;
+  }
+
   static Integer? _exactIntegerRoot(Integer n, int q) {
     if (n.isNegative || q <= 0) return null;
     if (n.isZero) return Integer.zero;
