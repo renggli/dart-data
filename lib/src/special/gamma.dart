@@ -123,7 +123,7 @@ double gammaq(num a, num x) {
   var cVal = 1.0 / 1.0e-30;
   var dVal = 1.0 / b;
   var hVal = dVal;
-  final maxIter = (log(a >= 1 ? a : 1.0 / a) * 8.5 + a * 0.4 + 17).ceil();
+  final maxIter = max(200, (a + x).ceil() * 2);
   for (var i = 1; i <= maxIter; i++) {
     final an = -i * (i - a);
     b += 2.0;
@@ -212,36 +212,22 @@ double lowRegGamma(num a, num x) {
   if (x == 0.0) {
     return 0.0;
   }
+  if (x >= a + 1.0) {
+    return 1.0 - gammaq(a, x);
+  }
   final aln = gammaLn(a);
   var ap = a;
   var sum = 1.0 / a;
   var del = sum;
-  var b = x + 1.0 - a;
-  var cVal = 1.0 / 1.0e-30;
-  var dVal = 1.0 / b;
-  var hVal = dVal;
-  final maxIter = (log(a >= 1 ? a : 1.0 / a) * 8.5 + a * 0.4 + 17).ceil();
-  if (x < a + 1) {
-    for (var i = 1; i <= maxIter; i++) {
-      sum += del *= x / ++ap;
-    }
-    return sum * exp(-x + a * log(x) - aln);
-  }
+  final maxIter = max(200, (a + x).ceil() * 2);
   for (var i = 1; i <= maxIter; i++) {
-    final an = -i * (i - a);
-    b += 2.0;
-    dVal = an * dVal + b;
-    if (dVal.abs() < 1.0e-30) dVal = 1.0e-30;
-    cVal = b + an / cVal;
-    if (cVal.abs() < 1.0e-30) cVal = 1.0e-30;
-    dVal = 1.0 / dVal;
-    final delStep = dVal * cVal;
-    hVal *= delStep;
-    if ((delStep - 1.0).abs() < 1.0e-15) {
+    del *= x / ++ap;
+    sum += del;
+    if (del.abs() < sum.abs() * 1.0e-15) {
       break;
     }
   }
-  return 1.0 - hVal * exp(-x + a * log(x) - aln);
+  return sum * exp(-x + a * log(x) - aln);
 }
 
 /// Returns the factorial based on the [gamma] function.

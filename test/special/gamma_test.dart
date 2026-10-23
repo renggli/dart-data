@@ -77,9 +77,18 @@ void main() {
     });
 
     test('gammap, gammaq, and lowRegGamma', () {
-      check(lowRegGamma(1, 1)).isCloseTo(1.0 - math.exp(-1), 1e-6);
-      check(gammap(1, 1)).isCloseTo(1.0 - math.exp(-1), 1e-6);
-      check(gammaq(1, 1)).isCloseTo(math.exp(-1), 1e-6);
+      check(lowRegGamma(1, 1)).isCloseTo(1.0 - math.exp(-1), 1e-14);
+      check(gammap(1, 1)).isCloseTo(1.0 - math.exp(-1), 1e-14);
+      check(gammaq(1, 1)).isCloseTo(math.exp(-1), 1e-14);
+      // High-precision partition and convergence tests across x < a+1 and x >= a+1
+      for (final (a, x) in [
+        (5.0, 3.0),
+        (5.0, 7.0),
+        (12.0, 10.0),
+        (12.0, 15.0),
+      ]) {
+        check(gammap(a, x) + gammaq(a, x)).isCloseTo(1.0, 1e-14);
+      }
       check(lowRegGamma(-1, 1)).isNaN();
       check(lowRegGamma(1, -1)).isNaN();
       check(gammaq(-1, 1)).isNaN();
