@@ -38,7 +38,7 @@ extension OperationTensorExtension<T> on Tensor<T> {
         data: resultData,
       );
     } else {
-      if (!_areShapesEqual(target.layout.shape, layout.shape)) {
+      if (!areShapesEqual(target.layout.shape, layout.shape)) {
         throw ArgumentError(
           'Target shape ${target.layout.shape} does not match shape ${layout.shape}',
         );
@@ -97,12 +97,12 @@ extension OperationTensorExtension<T> on Tensor<T> {
     final isTargetMatching =
         target == null ||
         (target.layout.isContiguous &&
-            _areShapesEqual(target.layout.shape, layout.shape));
+            areShapesEqual(target.layout.shape, layout.shape));
 
     // Fast contiguous path without broadcasting
     if (layout.isContiguous &&
         other.layout.isContiguous &&
-        _areShapesEqual(layout.shape, other.layout.shape) &&
+        areShapesEqual(layout.shape, other.layout.shape) &&
         isTargetMatching) {
       final len = layout.length;
       if (target == null) {
@@ -171,7 +171,7 @@ extension OperationTensorExtension<T> on Tensor<T> {
       );
     } else {
       final expectedShape = thisLayout.shape;
-      if (!_areShapesEqual(target.layout.shape, expectedShape)) {
+      if (!areShapesEqual(target.layout.shape, expectedShape)) {
         throw ArgumentError(
           'Target shape ${target.layout.shape} does not match broadcasted shape $expectedShape',
         );
@@ -182,7 +182,7 @@ extension OperationTensorExtension<T> on Tensor<T> {
         if (target.layout.isContiguous &&
             opLayout.isContiguous &&
             target.layout.offset == opLayout.offset &&
-            _areShapesEqual(target.layout.strides, opLayout.strides)) {
+            areShapesEqual(target.layout.strides, opLayout.strides)) {
           return false;
         }
         return true;
@@ -291,13 +291,4 @@ extension LogicalTensorExtension on Tensor<bool> {
   /// Computes element-wise logical OR $(A \lor B)$ supporting broadcasting.
   Tensor<bool> operator |(Tensor<bool> other) =>
       binaryOperation<bool, bool>(other, (a, b) => a || b, type: type);
-}
-
-bool _areShapesEqual(List<int> a, List<int> b) {
-  if (identical(a, b)) return true;
-  if (a.length != b.length) return false;
-  for (var i = 0; i < a.length; i++) {
-    if (a[i] != b[i]) return false;
-  }
-  return true;
 }

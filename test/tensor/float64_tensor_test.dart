@@ -155,7 +155,34 @@ void main() {
         copied.set2D(0, 0, 42.0);
         check(copied.get2D(0, 0)).equals(42.0);
         check(f32Tensor.getValue([0, 0])).equals(1.0);
+
+        // View/sliced non-Float64List tensor copies only the view
+        final largeF32 = Tensor<double>.fromIterable(
+          [1.0, 2.0, 3.0, 4.0, 5.0, 6.0],
+          shape: [2, 3],
+          type: DataType.float32,
+        );
+        final slicedF32 = largeF32[1]; // shape: [3], offset: 3, length: 3
+        final copiedSlice = Float64Tensor.fromDoubleTensor(slicedF32);
+        check(copiedSlice.shape).deepEquals([3]);
+        check(copiedSlice.length).equals(3);
+        check(copiedSlice.asTypedList.length).equals(3);
+        check(copiedSlice.asTypedList).deepEquals([4.0, 5.0, 6.0]);
       },
     );
+
+    test('arithmetic with non-Float64List contiguous operand', () {
+      final a = Float64Tensor.fromIterable([10.0, 20.0, 30.0], shape: [3]);
+      final b = Tensor<double>.fromIterable(
+        [2.0, 4.0, 5.0],
+        shape: [3],
+        type: DataType.float32,
+      );
+
+      check((a + b).asTypedList).deepEquals([12.0, 24.0, 35.0]);
+      check((a - b).asTypedList).deepEquals([8.0, 16.0, 25.0]);
+      check((a * b).asTypedList).deepEquals([20.0, 80.0, 150.0]);
+      check((a / b).asTypedList).deepEquals([5.0, 5.0, 6.0]);
+    });
   });
 }

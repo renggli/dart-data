@@ -336,11 +336,7 @@ class Tensor<T> {
   bool operator ==(Object other) {
     if (identical(this, other)) return true;
     if (other is! Tensor) return false;
-    final otherShape = other.layout.shape;
-    if (layout.rank != otherShape.length) return false;
-    for (var i = 0; i < layout.rank; i++) {
-      if (layout.shape[i] != otherShape[i]) return false;
-    }
+    if (!areShapesEqual(layout.shape, other.layout.shape)) return false;
     if (length == 0) return true;
     final it1 = values.iterator;
     final it2 = other.values.iterator;

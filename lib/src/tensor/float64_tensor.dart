@@ -43,15 +43,24 @@ extension type Float64Tensor._(Tensor<double> _tensor)
     if (tensor.data is Float64List) {
       return Float64Tensor._(tensor);
     }
-    final copy = Float64List(tensor.data.length);
-    final data = tensor.data;
-    for (var i = 0; i < copy.length; i++) {
-      copy[i] = data[i];
+    final len = tensor.length;
+    final copy = Float64List(len);
+    if (tensor.isContiguous) {
+      final data = tensor.data;
+      final off = tensor.offset;
+      for (var i = 0; i < len; i++) {
+        copy[i] = data[off + i];
+      }
+    } else {
+      var i = 0;
+      for (final val in tensor.values) {
+        copy[i++] = val;
+      }
     }
     return Float64Tensor._(
       Tensor.internal(
         type: DataType.float64,
-        layout: tensor.layout,
+        layout: Layout(shape: tensor.shape),
         data: copy,
       ),
     );
@@ -120,11 +129,9 @@ extension type Float64Tensor._(Tensor<double> _tensor)
   Float64Tensor operator +(Tensor<double> other) {
     if (isContiguous &&
         other.isContiguous &&
-        _haveMatchingShapes(shape, other.shape)) {
+        areShapesEqual(shape, other.shape)) {
       final a = asTypedList;
-      final b = other.data is Float64List
-          ? other.data as Float64List
-          : Float64List.fromList(other.data);
+      final b = other.data;
       final out = Float64List(length);
       final aOff = offset;
       final bOff = other.offset;
@@ -146,11 +153,9 @@ extension type Float64Tensor._(Tensor<double> _tensor)
   Float64Tensor operator -(Tensor<double> other) {
     if (isContiguous &&
         other.isContiguous &&
-        _haveMatchingShapes(shape, other.shape)) {
+        areShapesEqual(shape, other.shape)) {
       final a = asTypedList;
-      final b = other.data is Float64List
-          ? other.data as Float64List
-          : Float64List.fromList(other.data);
+      final b = other.data;
       final out = Float64List(length);
       final aOff = offset;
       final bOff = other.offset;
@@ -172,11 +177,9 @@ extension type Float64Tensor._(Tensor<double> _tensor)
   Float64Tensor operator *(Tensor<double> other) {
     if (isContiguous &&
         other.isContiguous &&
-        _haveMatchingShapes(shape, other.shape)) {
+        areShapesEqual(shape, other.shape)) {
       final a = asTypedList;
-      final b = other.data is Float64List
-          ? other.data as Float64List
-          : Float64List.fromList(other.data);
+      final b = other.data;
       final out = Float64List(length);
       final aOff = offset;
       final bOff = other.offset;
@@ -198,11 +201,9 @@ extension type Float64Tensor._(Tensor<double> _tensor)
   Float64Tensor operator /(Tensor<double> other) {
     if (isContiguous &&
         other.isContiguous &&
-        _haveMatchingShapes(shape, other.shape)) {
+        areShapesEqual(shape, other.shape)) {
       final a = asTypedList;
-      final b = other.data is Float64List
-          ? other.data as Float64List
-          : Float64List.fromList(other.data);
+      final b = other.data;
       final out = Float64List(length);
       final aOff = offset;
       final bOff = other.offset;
@@ -259,13 +260,4 @@ extension type Float64Tensor._(Tensor<double> _tensor)
     }
     return Float64Tensor._(_tensor.unaryOperation((val) => val * scalar));
   }
-}
-
-bool _haveMatchingShapes(List<int> a, List<int> b) {
-  if (identical(a, b)) return true;
-  if (a.length != b.length) return false;
-  for (var i = 0; i < a.length; i++) {
-    if (a[i] != b[i]) return false;
-  }
-  return true;
 }

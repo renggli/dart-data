@@ -510,3 +510,13 @@ class Layout {
   String toString() =>
       'Layout(rank: $rank, length: $length, offset: $offset, shape: $shape, strides: $strides, isContiguous: $isContiguous)';
 }
+
+/// Returns whether two shapes [a] and [b] are structurally identical.
+bool areShapesEqual(List<int> a, List<int> b) {
+  if (identical(a, b)) return true;
+  if (a.length != b.length) return false;
+  for (var i = 0; i < a.length; i++) {
+    if (a[i] != b[i]) return false;
+  }
+  return true;
+}
