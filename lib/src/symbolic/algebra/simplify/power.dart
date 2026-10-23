@@ -166,15 +166,22 @@ Expr simplifyPow(
 
   // 6. Nested powers: (u^e1)^e2
   if (base case Pow(base: final innerBase, exponent: final innerExp)) {
-    if (innerBase == Constant.e ||
-        isNonNegativeExpr(innerBase, assumptions: assumptions)) {
+    if (exponent is IntegerNumber) {
       return simplifyPow(
         innerBase,
         simplifyMul([innerExp, exponent], assumptions: assumptions),
         assumptions: assumptions,
       );
     }
-    if (exponent is IntegerNumber) {
+    if (innerBase == Constant.e) {
+      if (isProvenReal(innerExp, assumptions)) {
+        return simplifyPow(
+          innerBase,
+          simplifyMul([innerExp, exponent], assumptions: assumptions),
+          assumptions: assumptions,
+        );
+      }
+    } else if (isNonNegativeExpr(innerBase, assumptions: assumptions)) {
       return simplifyPow(
         innerBase,
         simplifyMul([innerExp, exponent], assumptions: assumptions),

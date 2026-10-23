@@ -103,8 +103,30 @@ void main() {
         ),
       ).equals(Abs(x));
 
-      // Nested powers: (e^x)^y -> e^(x*y), (x^(1/3))^(3/2) -> x^(1/2), (x^y)^2 -> x^(2*y)
-      check(simplifyPow(Pow(Constant.e, x), y).toString()).equals('exp(x * y)');
+      // Nested powers: (e^x)^y -> e^(x*y) under real assumptions or integer exponent
+      check(simplifyPow(Pow(Constant.e, x), y))
+          .equals(Pow(Pow(Constant.e, x), y, isSimplified: true));
+      check(
+        simplifyPow(
+          Pow(Constant.e, x),
+          y,
+          assumptions: Assumptions.real,
+        ).toString(),
+      ).equals('exp(x * y)');
+      check(simplifyPow(Pow(Constant.e, x), IntegerNumber.two).toString())
+          .equals('exp(2 * x)');
+      check(
+        simplifyPow(
+          Pow(Constant.e, Mul([IntegerNumber.of(4), ComplexNumber.i])),
+          FractionNumber.half,
+        ),
+      ).equals(
+        Pow(
+          Pow(Constant.e, Mul([IntegerNumber.of(4), ComplexNumber.i])),
+          FractionNumber.half,
+          isSimplified: true,
+        ),
+      );
       check(
         simplifyPow(
           Pow(x, FractionNumber.third),
