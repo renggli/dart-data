@@ -49,7 +49,11 @@ List<Map<String, Expr>> solvePolynomialSystemEquations(
         try {
           final res = SylvesterResultantSolver.solve(f, g, variables);
           if (res.isNotEmpty) return res;
-        } catch (_) {
+        } on ArgumentError {
+          // Fall back to Gröbner basis
+        } on UnsupportedError {
+          // Fall back to Gröbner basis
+        } on StateError {
           // Fall back to Gröbner basis
         }
       }

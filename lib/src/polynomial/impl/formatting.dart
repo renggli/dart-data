@@ -43,7 +43,11 @@ bool _isNegativeCoefficient<T>(DataType<T> type, T value) {
   if (value is BigInt) return value.isNegative;
   try {
     return type.comparator(value, type.field.additiveIdentity) < 0;
-  } catch (_) {
+  } on UnsupportedError {
+    return false;
+  } on ArgumentError {
+    return false;
+  } on TypeError {
     return false;
   }
 }

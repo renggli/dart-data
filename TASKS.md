@@ -158,7 +158,7 @@ Pre-release review of `lib/` at `2fc36d4`. Baseline: `dart analyze` clean, READM
 
 ### 2. Charter & Hygiene Follow-Ups
 
-#### FU-2.1: Generic `catch` Blocks Added Across `lib/` — Medium
+#### FU-2.1 [COMPLETED]: Generic `catch` Blocks Added Across `lib/` — Medium
 
 - **Locations**:
   - `lib/src/symbolic/solver/polynomial_system.dart:52`

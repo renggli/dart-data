@@ -197,7 +197,8 @@ double? _evaluateBoundNumeric(Expr bound) {
     try {
       final v = bound.evaluate(const {});
       if (v.isFinite) return v;
-    } catch (_) {}
+    } on ArgumentError {
+    } on UnsupportedError {}
   }
   return null;
 }
@@ -240,10 +241,13 @@ List<double> _findDenominatorRoots(Expr expr, String variable) {
             try {
               final val = sol.evaluate(const {});
               if (val.isFinite) roots.add(val);
-            } catch (_) {}
+            } on ArgumentError {
+            } on UnsupportedError {}
           }
         }
-      } catch (_) {}
+      } on ArgumentError {
+      } on UnsupportedError {
+      } on StateError {}
     }
   }
   return roots.toList();
@@ -1273,7 +1277,8 @@ bool _isPositiveConstant(Expr expr) {
   if (expr.freeVariables.isEmpty) {
     try {
       return expr.evaluate(const {}) > 0.0;
-    } catch (_) {}
+    } on ArgumentError {
+    } on UnsupportedError {}
   }
   return false;
 }

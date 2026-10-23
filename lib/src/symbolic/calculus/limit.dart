@@ -205,11 +205,14 @@ Expr _computeFiniteLimit(
           final cm = (leadNum.coefficient / leadDen.coefficient).simplify();
           return _deduceLimitFromLaurentLeading(m, cm, direction, point);
         }
-      } on Object catch (e) {
-        if (e is UnsupportedError &&
-            (e.message?.contains('Two-sided limit') ?? false)) {
+      } on UnsupportedError catch (e) {
+        if (e.message?.contains('Two-sided limit') ?? false) {
           rethrow;
         }
+        break;
+      } on ArgumentError {
+        break;
+      } on StateError {
         break;
       }
     }
@@ -237,50 +240,46 @@ Expr _computeFiniteLimit(
       direction,
       point,
     );
-  } on Object catch (e) {
-    if (e is UnsupportedError &&
-        (e.message?.contains('Two-sided limit') ?? false)) {
+  } on UnsupportedError catch (e) {
+    if (e.message?.contains('Two-sided limit') ?? false) {
       rethrow;
     }
+  } on ArgumentError {
+  } on StateError {}
 
-    const t = Variable('_t');
-    const tAssumptions = Assumptions(domains: {'_t': VariableDomain.positive});
-    final invT = IntegerNumber.one / t;
-    return switch (direction) {
-      LimitDirection.fromAbove => _computeInfiniteLimit(
-        expr
-            .substitute(variable, point + invT)
-            .simplify(assumptions: tAssumptions),
-        '_t',
-        isPositive: true,
-      ),
-      LimitDirection.fromBelow => _computeInfiniteLimit(
-        expr
-            .substitute(variable, point - invT)
-            .simplify(assumptions: tAssumptions),
-        '_t',
-        isPositive: true,
-      ),
-      LimitDirection.both => () {
-        final rightExpr = expr
-            .substitute(variable, point + invT)
-            .simplify(assumptions: tAssumptions);
-        final leftExpr = expr
-            .substitute(variable, point - invT)
-            .simplify(assumptions: tAssumptions);
-        final rightLim = _computeInfiniteLimit(
-          rightExpr,
-          '_t',
-          isPositive: true,
-        );
-        final leftLim = _computeInfiniteLimit(leftExpr, '_t', isPositive: true);
-        if (rightLim == leftLim) return rightLim;
-        throw UnsupportedError(
-          'Two-sided limit does not exist at $point: left ($leftLim) and right ($rightLim) limits differ',
-        );
-      }(),
-    };
-  }
+  const t = Variable('_t');
+  const tAssumptions = Assumptions(domains: {'_t': VariableDomain.positive});
+  final invT = IntegerNumber.one / t;
+  return switch (direction) {
+    LimitDirection.fromAbove => _computeInfiniteLimit(
+      expr
+          .substitute(variable, point + invT)
+          .simplify(assumptions: tAssumptions),
+      '_t',
+      isPositive: true,
+    ),
+    LimitDirection.fromBelow => _computeInfiniteLimit(
+      expr
+          .substitute(variable, point - invT)
+          .simplify(assumptions: tAssumptions),
+      '_t',
+      isPositive: true,
+    ),
+    LimitDirection.both => () {
+      final rightExpr = expr
+          .substitute(variable, point + invT)
+          .simplify(assumptions: tAssumptions);
+      final leftExpr = expr
+          .substitute(variable, point - invT)
+          .simplify(assumptions: tAssumptions);
+      final rightLim = _computeInfiniteLimit(rightExpr, '_t', isPositive: true);
+      final leftLim = _computeInfiniteLimit(leftExpr, '_t', isPositive: true);
+      if (rightLim == leftLim) return rightLim;
+      throw UnsupportedError(
+        'Two-sided limit does not exist at $point: left ($leftLim) and right ($rightLim) limits differ',
+      );
+    }(),
+  };
 }
 
 Expr _deduceLimitFromLaurentLeading(

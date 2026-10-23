@@ -265,7 +265,8 @@ bool isRealConstantOutOfRange(Expr c, double maxAbs) {
         if (comp.b.abs() < 1e-12) {
           return comp.a.abs() > maxAbs + 1e-12;
         }
-      } catch (_) {}
+      } on ArgumentError {
+      } on UnsupportedError {}
     case _:
       break;
   }
@@ -466,7 +467,8 @@ double? _tryEvalReal(Expr expr) {
       try {
         final v = expr.evaluate(const {});
         if (v.isFinite) return v;
-      } catch (_) {}
+      } on ArgumentError {
+      } on UnsupportedError {}
     case _:
       break;
   }

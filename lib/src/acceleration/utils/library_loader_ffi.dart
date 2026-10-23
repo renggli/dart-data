@@ -40,9 +40,12 @@ List<ffi.DynamicLibrary> _loadBlasLibraries() {
           _posixDlopen(str.cast(), 1 | 0x100);
         });
       }
-    } catch (_) {}
+    } catch (_) {
+      // Dynamic library probing: ignore missing candidate libraries.
+    }
   }
 
+  // Dynamic library candidate probing: catch failed opens across search paths.
   try {
     if (Platform.isMacOS || Platform.isIOS) {
       for (final name in [
@@ -73,7 +76,9 @@ List<ffi.DynamicLibrary> _loadBlasLibraries() {
         tryOpen(name);
       }
     }
-  } catch (_) {}
+  } catch (_) {
+    // Dynamic library candidate probing: catch failed opens across search paths.
+  }
   return libs;
 }
 
@@ -81,13 +86,16 @@ List<ffi.DynamicLibrary> _loadVdspLibraries() {
   final libs = <ffi.DynamicLibrary>[];
   if (!Platform.isMacOS && !Platform.isIOS) return libs;
 
+  // Dynamic library candidate probing: catch failed opens.
   try {
     libs.add(
       ffi.DynamicLibrary.open(
         '/System/Library/Frameworks/Accelerate.framework/Accelerate',
       ),
     );
-  } catch (_) {}
+  } catch (_) {
+    // Dynamic library probing: ignore missing candidate library.
+  }
   return libs;
 }
 
@@ -102,9 +110,12 @@ List<ffi.DynamicLibrary> _loadFftLibraries() {
           _posixDlopen(str.cast(), 1 | 0x100);
         });
       }
-    } catch (_) {}
+    } catch (_) {
+      // Dynamic library probing: ignore missing candidate libraries.
+    }
   }
 
+  // Dynamic library candidate probing: catch failed opens across search paths.
   try {
     if (Platform.isMacOS || Platform.isIOS) {
       tryOpen('/System/Library/Frameworks/Accelerate.framework/Accelerate');
@@ -124,7 +135,9 @@ List<ffi.DynamicLibrary> _loadFftLibraries() {
         tryOpen(name);
       }
     }
-  } catch (_) {}
+  } catch (_) {
+    // Dynamic library candidate probing: catch failed opens across search paths.
+  }
   return libs;
 }
 

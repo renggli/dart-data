@@ -337,7 +337,13 @@ CurveSample sampleCurve(
 double _evalSafe(double Function(double) f, double x) {
   try {
     return f(x);
-  } on Object {
+  } on ArgumentError {
+    return double.nan;
+  } on StateError {
+    return double.nan;
+  } on UnsupportedError {
+    return double.nan;
+  } on Exception {
     return double.nan;
   }
 }

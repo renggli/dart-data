@@ -73,7 +73,11 @@ Vector<double> solveSystem(
     Vector<double> delta;
     try {
       delta = jac.solveVector(residual);
-    } on Object catch (e) {
+    } on ArgumentError catch (e) {
+      throw StateError(
+        'Failed to converge: Jacobian is singular or step failed ($e).',
+      );
+    } on StateError catch (e) {
       throw StateError(
         'Failed to converge: Jacobian is singular or step failed ($e).',
       );

@@ -149,7 +149,9 @@ bool _isRealRoot(Expr expr) {
     try {
       final c = expr.evaluateComplex();
       return !c.isNaN && c.b.abs() < 1e-12;
-    } on Object {
+    } on ArgumentError {
+      return false;
+    } on UnsupportedError {
       return false;
     }
   }
@@ -166,7 +168,9 @@ bool _isPositiveRealRoot(Expr expr) {
       try {
         final v = expr.evaluate();
         return !v.isNaN && v > 0.0;
-      } on Object {
+      } on ArgumentError {
+        return false;
+      } on UnsupportedError {
         return false;
       }
     case _:
@@ -184,7 +188,8 @@ bool isZeroExpr(Expr expr) {
       try {
         final c = expr.evaluateComplex();
         if (c.a.abs() < 1e-10 && c.b.abs() < 1e-10) return true;
-      } catch (_) {}
+      } on ArgumentError {
+      } on UnsupportedError {}
     case _:
       break;
   }
@@ -209,7 +214,8 @@ List<Expr> deduplicateRoots(List<Expr> list) {
           final c1 = existing.evaluateComplex();
           final c2 = simplified.evaluateComplex();
           return (c1.a - c2.a).abs() < 1e-12 && (c1.b - c2.b).abs() < 1e-12;
-        } catch (_) {}
+        } on ArgumentError {
+        } on UnsupportedError {}
       }
       return false;
     });
@@ -244,8 +250,10 @@ bool _isZeroAt(Expr expr, String variable, Expr value) {
   try {
     final sub = expr.substitute(variable, value).simplify();
     return isZeroExpr(sub);
-  } catch (_) {
+  } on ArgumentError {
     // If evaluating the denominator at value throws (e.g. pole), exclude value.
+    return true;
+  } on UnsupportedError {
     return true;
   }
 }
