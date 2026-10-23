@@ -557,27 +557,65 @@ CurveFitResult curveFit({
 
   final jTj = j.syrk(transpose: true);
   final eye = Matrix<double>.identity(numParams, type: DataType.float64);
-  Matrix<double> inv;
+  final Matrix<double> inv;
+  Matrix<double>? solvedInv;
   try {
-    inv = jTj.solve(eye);
-  } catch (_) {
-    inv = Matrix<double>.generate(numParams, numParams, (r, c) {
-      if (r == c) {
-        final diag = jTj.get(r, c);
-        return diag > 1e-12 ? 1.0 / diag : 0.0;
+    solvedInv = jTj.solve(eye);
+  } on ArgumentError {
+    solvedInv = null;
+  } on StateError {
+    solvedInv = null;
+  }
+  if (solvedInv != null) {
+    inv = solvedInv;
+  } else {
+    final svd = SingularValueDecomposition(jTj);
+    final s = svd.s;
+    final maxS = s.length > 0 ? s[0] : 0.0;
+    final tol = numParams * maxS * 2.220446049250313e-16;
+    final vt = svd.vt;
+    final sInv = List<double>.filled(numParams, 0.0);
+    final hasZeroSingular = List<bool>.filled(numParams, false);
+    for (var i = 0; i < numParams; i++) {
+      if (s[i] > tol) {
+        sInv[i] = 1.0 / s[i];
+      } else {
+        hasZeroSingular[i] = true;
       }
-      return 0.0;
+    }
+    final nonIdentifiable = List<bool>.filled(numParams, false);
+    for (var p = 0; p < numParams; p++) {
+      for (var k = 0; k < numParams; k++) {
+        if (hasZeroSingular[k] && vt.getUnchecked(k, p).abs() > 1e-6) {
+          nonIdentifiable[p] = true;
+          break;
+        }
+      }
+    }
+    inv = Matrix<double>.generate(numParams, numParams, (r, c) {
+      if (nonIdentifiable[r] || nonIdentifiable[c]) {
+        return r == c ? double.infinity : double.nan;
+      }
+      var sum = 0.0;
+      for (var k = 0; k < numParams; k++) {
+        if (sInv[k] > 0.0) {
+          sum += vt.getUnchecked(k, r) * sInv[k] * vt.getUnchecked(k, c);
+        }
+      }
+      return sum;
     }, type: DataType.float64);
   }
   final rseSq = rse * rse;
-  final covariance = Matrix<double>.generate(
-    numParams,
-    numParams,
-    (r, c) => inv.get(r, c) * rseSq,
-    type: DataType.float64,
-  );
+  final covariance = Matrix<double>.generate(numParams, numParams, (r, c) {
+    final v = inv.get(r, c);
+    if (v.isInfinite) return double.infinity;
+    if (v.isNaN) return double.nan;
+    return v * rseSq;
+  }, type: DataType.float64);
   final standardErrors = Vector<double>.generate(numParams, (i) {
     final v = covariance.get(i, i);
+    if (v.isNaN) return double.nan;
+    if (v.isInfinite) return double.infinity;
     return v > 0.0 ? math.sqrt(v) : 0.0;
   }, type: DataType.float64);
 

@@ -458,5 +458,24 @@ void main() {
       // Now it's initial (1) + numParams (2) + candidate (1) = 4 calls.
       check(callCount).isLessThan(10);
     });
+
+    test('curveFit handles degenerate rank-deficient model with singular covariance', () {
+      final xs = Vector<double>.fromList([1.0, 2.0, 3.0, 4.0, 5.0]);
+      final ys = Vector<double>.fromList([2.0, 4.0, 6.0, 8.0, 10.0]);
+
+      // Degenerate model a * x + b * x with collinear parameters
+      final res = curveFit(
+        xs: xs,
+        ys: ys,
+        model: (x, p) => p[0] * x + p[1] * x,
+        initialParams: Vector<double>.fromList([1.0, 1.0]),
+      );
+
+      // Non-identifiable parameters should have infinite variance / standard error
+      check(res.covariance.get(0, 0)).equals(double.infinity);
+      check(res.covariance.get(1, 1)).equals(double.infinity);
+      check(res.standardErrors[0]).equals(double.infinity);
+      check(res.standardErrors[1]).equals(double.infinity);
+    });
   });
 }

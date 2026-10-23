@@ -123,7 +123,7 @@ Pre-release review of `lib/` at `2fc36d4`. Baseline: `dart analyze` clean, READM
   2. Propagate non-finite samples as a divergence or non-convergence flag (or an `IntegrationResult` warning).
   3. Add tests covering divergent endpoint singularities.
 
-#### FU-1.3: `CurveFitResult.covariance` Uses a Diagonal Fallback When the Matrix Is Singular — Medium
+#### FU-1.3 [COMPLETED]: `CurveFitResult.covariance` Uses a Diagonal Fallback When the Matrix Is Singular — Medium
 
 - **File**: `lib/src/numeric/curve_fit.dart` (~L558–570).
 - **Problem**: When $J^TJ$ is singular, a generic `catch (_)` replaces $(J^TJ)^{-1}$ with `1/diag`. This produces confident but wrong standard errors.
