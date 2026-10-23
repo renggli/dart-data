@@ -4,7 +4,7 @@ import 'package:data/type.dart';
 import 'package:test/test.dart';
 
 void main() {
-  group('einsum', () {
+  group('einsum basic contractions', () {
     test('vector dot product', () {
       final a = Tensor<double>.fromIterable(
         [1.0, 2.0, 3.0],
@@ -94,7 +94,9 @@ void main() {
       check(diag.getValue([1])).equals(5.0);
       check(diag.getValue([2])).equals(9.0);
     });
+  });
 
+  group('einsum permutations and batch operations', () {
     test('batched matrix multiplication', () {
       // Shape: [batch=2, 2, 2]
       final a = Tensor<double>.fromIterable(
@@ -172,7 +174,9 @@ void main() {
       check(outer3.getValue([0, 0, 0])).equals(15.0); // 1 * 3 * 5
       check(outer3.getValue([1, 1, 1])).equals(48.0); // 2 * 4 * 6
     });
+  });
 
+  group('einsum error handling', () {
     test('error handling', () {
       final a = Tensor<double>.filled(
         1.0,

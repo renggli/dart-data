@@ -6,431 +6,14 @@ import 'package:data/type.dart';
 import 'package:test/test.dart';
 
 void main() {
-  group('discrete distributions', () {
-    test('Bernoulli distribution', () {
-      final dist = BernoulliDistribution(0.7);
-      check(dist.p).equals(0.7);
-      check(dist.lowerBound).equals(0);
-      check(dist.upperBound).equals(1);
-      check(dist.isLowerBoundOpen).isFalse();
-      check(dist.isUpperBoundOpen).isFalse();
-
-      check(dist.mean).equals(0.7);
-      check(dist.median).equals(1.0);
-      check(dist.mode).equals(1.0);
-      check(dist.variance).isCloseTo(0.21, 1e-6);
-      check(dist.standardDeviation).isCloseTo(math.sqrt(0.21), 1e-6);
-      check(dist.skewness).isCloseTo((1 - 2 * 0.7) / math.sqrt(0.21), 1e-6);
-      check(dist.excessKurtosis).isCloseTo((1 - 6 * 0.7 * 0.3) / 0.21, 1e-6);
-      check(dist.excessKurtosis).equals(dist.excessKurtosis);
-
-      // Quantile and CDF
-      check(dist.inverseCumulativeProbability(0.0)).equals(0);
-      check(dist.inverseCumulativeProbability(0.29)).equals(0);
-      check(dist.inverseCumulativeProbability(0.31)).equals(1);
-      check(dist.inverseCumulativeProbability(1.0)).equals(1);
-      check(() => dist.inverseCumulativeProbability(-0.1))
-          .throws<InvalidProbability>();
-      check(() => dist.inverseCumulativeProbability(1.1))
-          .throws<InvalidProbability>();
-
-      check(dist.probability(-1)).equals(0.0);
-      check(dist.probability(0)).isCloseTo(0.3, 1e-6);
-      check(dist.probability(1)).isCloseTo(0.7, 1e-6);
-      check(dist.probability(2)).equals(0.0);
-
-      check(dist.cumulativeProbability(-1)).equals(0.0);
-      check(dist.cumulativeProbability(0)).isCloseTo(0.3, 1e-6);
-      check(dist.cumulativeProbability(1)).equals(1.0);
-      check(dist.cumulativeProbability(2)).equals(1.0);
-
-      // Median for p < 0.5 and p == 0.5
-      final distLow = BernoulliDistribution(0.3);
-      check(distLow.median).equals(0.0);
-      check(distLow.mode).equals(0.0);
-
-      final distHalf = BernoulliDistribution(0.5);
-      check(distHalf.median).equals(0.5);
-
-      // Samples
-      final samples = dist.samples(random: math.Random(42)).take(100).toList();
-      check(samples.every((sample) => sample == 0 || sample == 1)).isTrue();
-
-      // Fit
-      final fitted = BernoulliDistribution.fit(const [
-        1,
-        1,
-        1,
-        0,
-        1,
-        0,
-        1,
-        1,
-        0,
-        1,
-      ]);
-      check(fitted.p).isCloseTo(0.7, 1e-6);
-      check(() => BernoulliDistribution.fit(const [])).throws<ArgumentError>();
-      check(() => BernoulliDistribution.fit(const [0, 2]))
-          .throws<ArgumentError>();
-
-      // Constructor validation
-      check(() => BernoulliDistribution(-0.1)).throws<ArgumentError>();
-      check(() => BernoulliDistribution(1.1)).throws<ArgumentError>();
-
-      // toString
-      check(dist.toString()).contains('BernoulliDistribution');
+  group('DiscreteDistribution contracts and defaults', () {
+    test('default implementations and bounds', () {
+      final custom = _TestDiscreteDist();
+      check(custom.lowerBound).equals(DataType.integer.safeMin);
+      check(custom.probability(0)).equals(0.5);
     });
 
-    test('Binomial distribution', () {
-      final dist = BinomialDistribution(10, 0.5);
-      check(dist.n).equals(10);
-      check(dist.p).equals(0.5);
-      check(dist.lowerBound).equals(0);
-      check(dist.upperBound).equals(10);
-      check(dist.isLowerBoundOpen).isFalse();
-      check(dist.isUpperBoundOpen).isFalse();
-
-      check(dist.mean).equals(5.0);
-      check(dist.median).equals(5.0);
-      check(dist.mode).equals(5.0);
-      check(dist.variance).equals(2.5);
-      check(dist.standardDeviation).isCloseTo(math.sqrt(2.5), 1e-6);
-      check(dist.skewness).equals(0.0);
-      check(dist.excessKurtosis).isCloseTo((1.0 - 6.0 * 0.5 * 0.5) / 2.5, 1e-6);
-
-      check(dist.probability(-1)).equals(0.0);
-      check(dist.probability(5)).isCloseTo(252.0 / 1024.0, 1e-6);
-      check(dist.probability(11)).equals(0.0);
-
-      check(dist.cumulativeProbability(-1)).equals(0.0);
-      check(dist.cumulativeProbability(0)).isCloseTo(1.0 / 1024.0, 1e-6);
-      check(dist.cumulativeProbability(10)).equals(1.0);
-      check(dist.cumulativeProbability(11)).equals(1.0);
-
-      check(dist.inverseCumulativeProbability(0.0)).equals(0);
-      check(dist.inverseCumulativeProbability(0.5)).equals(5);
-      check(dist.inverseCumulativeProbability(1.0)).equals(10);
-      check(() => dist.inverseCumulativeProbability(-0.1))
-          .throws<InvalidProbability>();
-
-      // Degenerate p = 0 and p = 1
-      final dist0 = BinomialDistribution(5, 0.0);
-      check(dist0.probability(0)).equals(1.0);
-      check(dist0.probability(1)).equals(0.0);
-
-      final dist1 = BinomialDistribution(5, 1.0);
-      check(dist1.probability(5)).equals(1.0);
-      check(dist1.probability(4)).equals(0.0);
-
-      // Samples
-      final samples = dist.samples(random: math.Random(42)).take(50).toList();
-      check(samples.every((sample) => sample >= 0 && sample <= 10)).isTrue();
-
-      // Fit
-      final fitted = BinomialDistribution.fit(samples, n: 10);
-      check(fitted.n).equals(10);
-      check(fitted.p).isCloseTo(0.5, 0.1);
-      check(() => BinomialDistribution.fit(const [], n: 10))
-          .throws<ArgumentError>();
-      check(() => BinomialDistribution.fit(const [-1], n: 10))
-          .throws<ArgumentError>();
-      check(() => BinomialDistribution.fit(const [1.5], n: 10))
-          .throws<ArgumentError>();
-
-      // Constructor validation
-      check(() => BinomialDistribution(-1, 0.5)).throws<ArgumentError>();
-      check(() => BinomialDistribution(10, -0.1)).throws<ArgumentError>();
-      check(() => BinomialDistribution(10, 1.1)).throws<ArgumentError>();
-
-      check(dist.toString()).contains('BinomialDistribution');
-    });
-
-    test('Poisson distribution', () {
-      final dist = PoissonDistribution(4.0);
-      check(dist.rate).equals(4.0);
-      check(dist.lowerBound).equals(0);
-      check(dist.upperBound).equals(DataType.integer.safeMax);
-      check(dist.isLowerBoundOpen).isFalse();
-      check(dist.isUpperBoundOpen).isTrue();
-
-      check(dist.mean).equals(4.0);
-      check(dist.variance).equals(4.0);
-      check(dist.standardDeviation).equals(2.0);
-      check(dist.mode).equals(4.0);
-      check(dist.skewness).equals(0.5);
-      check(dist.excessKurtosis).equals(0.25);
-      check(dist.median).isA<double>();
-
-      check(dist.probability(-1)).equals(0.0);
-      check(dist.probability(0)).isCloseTo(math.exp(-4.0), 1e-6);
-      check(dist.cumulativeProbability(-1)).equals(0.0);
-      check(dist.cumulativeProbability(0)).isCloseTo(math.exp(-4.0), 1e-6);
-      check(dist.cumulativeProbability(4)).isGreaterThan(0.5);
-
-      check(dist.inverseCumulativeProbability(0.0)).equals(0);
-      check(dist.inverseCumulativeProbability(0.99)).isGreaterThan(5);
-      check(() => dist.inverseCumulativeProbability(-0.1))
-          .throws<InvalidProbability>();
-
-      // Samples
-      final samples = dist.samples(random: math.Random(42)).take(50).toList();
-      check(samples.every((sample) => sample >= 0)).isTrue();
-
-      // Fit
-      final fitted = PoissonDistribution.fit(samples);
-      check(fitted.rate).isCloseTo(4.0, 0.5);
-      check(() => PoissonDistribution.fit(const [])).throws<ArgumentError>();
-      check(() => PoissonDistribution.fit(const [-1])).throws<ArgumentError>();
-
-      // Constructor validation
-      check(() => PoissonDistribution(0.0)).throws<ArgumentError>();
-      check(() => PoissonDistribution(-2.0)).throws<ArgumentError>();
-
-      check(dist.toString()).contains('PoissonDistribution');
-    });
-
-    test('discrete uniform distribution', () {
-      final dist = UniformDiscreteDistribution(1, 6);
-      check(dist.min).equals(1);
-      check(dist.max).equals(6);
-      check(dist.lowerBound).equals(1);
-      check(dist.upperBound).equals(6);
-      check(dist.isLowerBoundOpen).isFalse();
-      check(dist.isUpperBoundOpen).isFalse();
-
-      check(dist.mean).equals(3.5);
-      check(dist.variance).isCloseTo(35.0 / 12.0, 1e-6);
-      check(dist.standardDeviation).isCloseTo(math.sqrt(35.0 / 12.0), 1e-6);
-      check(dist.median).equals(3.5);
-      check(dist.mode.isNaN).isTrue();
-      check(dist.skewness).equals(0.0);
-      check(dist.excessKurtosis).isCloseTo(-1.2685714, 1e-4);
-
-      check(dist.probability(0)).equals(0.0);
-      check(dist.probability(1)).isCloseTo(1.0 / 6.0, 1e-6);
-      check(dist.probability(7)).equals(0.0);
-
-      check(dist.cumulativeProbability(0)).equals(0.0);
-      check(dist.cumulativeProbability(3)).isCloseTo(0.5, 1e-6);
-      check(dist.cumulativeProbability(6)).equals(1.0);
-      check(dist.cumulativeProbability(7)).equals(1.0);
-
-      check(dist.inverseCumulativeProbability(0.0)).equals(1);
-      check(dist.inverseCumulativeProbability(0.5)).equals(3);
-      check(dist.inverseCumulativeProbability(1.0)).equals(6);
-      check(() => dist.inverseCumulativeProbability(-0.1))
-          .throws<InvalidProbability>();
-      check(() => dist.inverseCumulativeProbability(double.nan))
-          .throws<InvalidProbability>();
-
-      final u01 = UniformDiscreteDistribution(0, 1);
-      check(u01.inverseCumulativeProbability(0.5)).equals(0);
-      check(u01.inverseCumulativeProbability(0.51)).equals(1);
-
-      // Samples
-      final samples = dist.samples(random: math.Random(42)).take(50).toList();
-      check(samples.every((sample) => sample >= 1 && sample <= 6)).isTrue();
-
-      // Fit
-      final fitted = UniformDiscreteDistribution.fit(samples);
-      check(fitted.min).isGreaterThan(0);
-      check(fitted.max).isLessThan(7);
-      check(() => UniformDiscreteDistribution.fit(const []))
-          .throws<ArgumentError>();
-
-      // Constructor validation
-      check(() => UniformDiscreteDistribution(5, 3)).throws<ArgumentError>();
-
-      check(dist.toString()).contains('UniformDiscreteDistribution');
-    });
-
-    test('Geometric distribution', () {
-      final dist = GeometricDistribution(0.5);
-      check(dist.p).equals(0.5);
-      check(dist.lowerBound).equals(0);
-      check(dist.upperBound).equals(DataType.integer.safeMax);
-      check(dist.isLowerBoundOpen).isFalse();
-      check(dist.isUpperBoundOpen).isTrue();
-
-      check(dist.mean).equals(1.0);
-      check(dist.variance).equals(2.0);
-      check(dist.standardDeviation).isCloseTo(math.sqrt(2.0), 1e-6);
-      check(dist.mode).equals(0.0);
-      check(dist.median).isA<double>();
-      check(dist.skewness).isCloseTo((2.0 - 0.5) / math.sqrt(0.5), 1e-6);
-      check(dist.excessKurtosis).isCloseTo(6.0 + 0.25 / 0.5, 1e-6);
-
-      check(dist.probability(-1)).equals(0.0);
-      check(dist.probability(0)).equals(0.5);
-      check(dist.probability(1)).equals(0.25);
-
-      check(dist.cumulativeProbability(-1)).equals(0.0);
-      check(dist.cumulativeProbability(0)).equals(0.5);
-      check(dist.cumulativeProbability(1)).equals(0.75);
-
-      check(dist.inverseCumulativeProbability(0.0)).equals(0);
-      check(dist.inverseCumulativeProbability(0.5)).equals(0);
-      check(dist.inverseCumulativeProbability(0.75)).equals(1);
-      check(() => dist.inverseCumulativeProbability(-0.1))
-          .throws<InvalidProbability>();
-
-      // Samples
-      final samples = dist.samples(random: math.Random(42)).take(50).toList();
-      check(samples.every((sample) => sample >= 0)).isTrue();
-
-      // Constructor validation
-      check(() => GeometricDistribution(0.0)).throws<ArgumentError>();
-      check(() => GeometricDistribution(-0.5)).throws<ArgumentError>();
-      check(() => GeometricDistribution(1.5)).throws<ArgumentError>();
-
-      check(dist.toString()).contains('GeometricDistribution');
-    });
-
-    test('Hypergeometric distribution', () {
-      final dist = HypergeometricDistribution(50, 10, 5);
-      check(dist.populationSize).equals(50);
-      check(dist.successStates).equals(10);
-      check(dist.draws).equals(5);
-      check(dist.lowerBound).equals(0);
-      check(dist.upperBound).equals(5);
-      check(dist.isLowerBoundOpen).isFalse();
-      check(dist.isUpperBoundOpen).isFalse();
-
-      check(dist.mean).equals(1.0);
-      check(dist.variance)
-          .isCloseTo(5.0 * (10.0 / 50.0) * (40.0 / 50.0) * (45.0 / 49.0), 1e-6);
-      check(dist.standardDeviation).isGreaterThan(0.0);
-      check(dist.mode).isA<double>();
-      check(dist.median).isA<double>();
-      check(dist.skewness).isA<double>();
-      check(dist.excessKurtosis).isA<double>();
-
-      check(dist.probability(-1)).equals(0.0);
-      check(dist.probability(0)).isGreaterThan(0.3);
-      check(dist.probability(6)).equals(0.0);
-
-      check(dist.cumulativeProbability(-1)).equals(0.0);
-      check(dist.cumulativeProbability(5)).equals(1.0);
-
-      check(dist.inverseCumulativeProbability(0.0)).equals(0);
-      check(dist.inverseCumulativeProbability(1.0)).equals(5);
-      check(() => dist.inverseCumulativeProbability(-0.1))
-          .throws<InvalidProbability>();
-
-      // Samples
-      final samples = dist.samples(random: math.Random(42)).take(50).toList();
-      check(samples.every((sample) => sample >= 0 && sample <= 5)).isTrue();
-
-      // Constructor validation
-      check(() => HypergeometricDistribution(0, 5, 2)).throws<ArgumentError>();
-      check(() => HypergeometricDistribution(10, -1, 2))
-          .throws<ArgumentError>();
-      check(() => HypergeometricDistribution(10, 11, 2))
-          .throws<ArgumentError>();
-      check(() => HypergeometricDistribution(10, 5, -1))
-          .throws<ArgumentError>();
-      check(() => HypergeometricDistribution(10, 5, 11))
-          .throws<ArgumentError>();
-
-      check(dist.toString()).contains('HypergeometricDistribution');
-    });
-
-    test('Negative Binomial distribution', () {
-      final dist = NegativeBinomialDistribution(1.0, 0.5);
-      check(dist.r).equals(1.0);
-      check(dist.p).equals(0.5);
-      check(dist.lowerBound).equals(0);
-      check(dist.upperBound).equals(DataType.integer.safeMax);
-      check(dist.isLowerBoundOpen).isFalse();
-      check(dist.isUpperBoundOpen).isTrue();
-
-      check(dist.mean).equals(1.0);
-      check(dist.variance).equals(2.0);
-      check(dist.standardDeviation).isCloseTo(math.sqrt(2.0), 1e-6);
-      check(dist.mode).isA<double>();
-      check(dist.median).isA<double>();
-      check(dist.skewness).isCloseTo((2.0 - 0.5) / math.sqrt(1.0 * 0.5), 1e-6);
-      check(dist.excessKurtosis).isCloseTo(6.0 / 1.0 + 0.25 / 0.5, 1e-6);
-
-      check(dist.probability(-1)).equals(0.0);
-      check(dist.probability(0)).isCloseTo(0.5, 1e-12);
-      check(dist.probability(1)).isCloseTo(0.25, 1e-12);
-
-      check(dist.cumulativeProbability(-1)).equals(0.0);
-      check(dist.cumulativeProbability(0)).isCloseTo(0.5, 1e-12);
-      check(dist.cumulativeProbability(1)).isCloseTo(0.75, 1e-12);
-
-      check(dist.inverseCumulativeProbability(0.0)).equals(0);
-      check(dist.inverseCumulativeProbability(0.5)).equals(0);
-      check(() => dist.inverseCumulativeProbability(-0.1))
-          .throws<InvalidProbability>();
-
-      // Samples
-      final samples = dist.samples(random: math.Random(42)).take(50).toList();
-      check(samples.every((sample) => sample >= 0)).isTrue();
-
-      // Constructor validation
-      check(() => NegativeBinomialDistribution(0.0, 0.5))
-          .throws<ArgumentError>();
-      check(() => NegativeBinomialDistribution(-1.0, 0.5))
-          .throws<ArgumentError>();
-      check(() => NegativeBinomialDistribution(1.0, -0.1))
-          .throws<ArgumentError>();
-      check(() => NegativeBinomialDistribution(1.0, 1.1))
-          .throws<ArgumentError>();
-
-      check(dist.toString()).contains('NegativeBinomialDistribution');
-    });
-
-    test('Rademacher distribution', () {
-      const dist = RademacherDistribution();
-      check(dist.lowerBound).equals(-1);
-      check(dist.upperBound).equals(1);
-      check(dist.isLowerBoundOpen).isFalse();
-      check(dist.isUpperBoundOpen).isFalse();
-
-      check(dist.mean).equals(0.0);
-      check(dist.median).equals(0.0);
-      check(dist.mode.isNaN).isTrue();
-      check(dist.variance).equals(1.0);
-      check(dist.standardDeviation).equals(1.0);
-      check(dist.skewness).equals(0.0);
-      check(dist.excessKurtosis).equals(-2.0);
-
-      check(dist.probability(-2)).equals(0.0);
-      check(dist.probability(-1)).equals(0.5);
-      check(dist.probability(0)).equals(0.0);
-      check(dist.probability(1)).equals(0.5);
-      check(dist.probability(2)).equals(0.0);
-
-      check(dist.cumulativeProbability(-2)).equals(0.0);
-      check(dist.cumulativeProbability(-1)).equals(0.5);
-      check(dist.cumulativeProbability(0)).equals(0.5);
-      check(dist.cumulativeProbability(1)).equals(1.0);
-      check(dist.cumulativeProbability(2)).equals(1.0);
-
-      check(dist.inverseCumulativeProbability(0.0)).equals(-1);
-      check(dist.inverseCumulativeProbability(0.49)).equals(-1);
-      check(dist.inverseCumulativeProbability(0.51)).equals(1);
-      check(dist.inverseCumulativeProbability(1.0)).equals(1);
-      check(() => dist.inverseCumulativeProbability(-0.1))
-          .throws<InvalidProbability>();
-
-      // Samples
-      final samples = dist.samples(random: math.Random(42)).take(50).toList();
-      check(samples.every((sample) => sample == -1 || sample == 1)).isTrue();
-
-      check(dist.toString()).contains('RademacherDistribution');
-    });
-
-    test('InvalidProbability error', () {
-      final err = InvalidProbability(1.5);
-      check(err.probability).equals(1.5);
-      check(err.toString()).contains('Invalid probability');
-    });
-
-    test('Discrete distributions equality, hashCode, default random, and sampling branches', () {
+    test('equality, hashCode, default random, and sampling branches', () {
       // Bernoulli
       final b1 = BernoulliDistribution(0.4);
       final b2 = BernoulliDistribution(0.4);
@@ -508,19 +91,10 @@ void main() {
       check(u1.hashCode).equals(u2.hashCode);
       check(u1.sample()).isNotNull();
     });
+  });
 
-    test('DiscreteDistribution default implementations', () {
-      final custom = _TestDiscreteDist();
-      check(custom.lowerBound).equals(DataType.integer.safeMin);
-      check(custom.probability(0)).equals(0.5);
-    });
-
-    test('InvalidProbability.check throws on NaN', () {
-      check(() => InvalidProbability.check(double.nan))
-          .throws<InvalidProbability>();
-    });
-
-    test('Discrete quantiles for large parameters do not hang', () {
+  group('DiscreteDistribution quantiles and probability', () {
+    test('quantiles for large parameters do not hang', () {
       final pois = PoissonDistribution(1000.0);
       final pQuant = pois.inverseCumulativeProbability(0.999);
       check(pQuant).isGreaterThan(1000);
@@ -536,7 +110,7 @@ void main() {
       check(nbinom.cumulativeProbability(nbQuant)).isGreaterOrEqual(0.95);
     });
 
-    test('DiscreteDistribution logProbability evaluation', () {
+    test('logProbability evaluation', () {
       final binom = BinomialDistribution(10, 0.5);
       check(binom.logProbability(5))
           .isCloseTo(math.log(binom.probability(5)), 1e-12);
@@ -544,6 +118,19 @@ void main() {
       final pois = PoissonDistribution(4.0);
       check(pois.logProbability(3))
           .isCloseTo(math.log(pois.probability(3)), 1e-12);
+    });
+  });
+
+  group('InvalidProbability errors', () {
+    test('error creation and toString', () {
+      final err = InvalidProbability(1.5);
+      check(err.probability).equals(1.5);
+      check(err.toString()).contains('Invalid probability');
+    });
+
+    test('InvalidProbability.check throws on NaN', () {
+      check(() => InvalidProbability.check(double.nan))
+          .throws<InvalidProbability>();
     });
   });
 }

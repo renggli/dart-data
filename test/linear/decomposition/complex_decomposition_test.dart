@@ -3,6 +3,13 @@ import 'package:data/linear.dart';
 import 'package:data/type.dart';
 import 'package:test/test.dart';
 
+extension on Subject<Complex> {
+  void isCloseTo(Complex other, double delta) {
+    has((c) => c.a, 'real').isCloseTo(other.a, delta);
+    has((c) => c.b, 'imaginary').isCloseTo(other.b, delta);
+  }
+}
+
 void main() {
   group('Matrix<Complex> conjugateTranspose', () {
     test('conjugates and transposes elements', () {
@@ -80,12 +87,12 @@ void main() {
       final aReconstructed = l * lH;
       for (var r = 0; r < 2; r++) {
         for (var c = 0; c < 2; c++) {
-          check(aReconstructed.get(r, c).closeTo(a.get(r, c), 1e-6)).isTrue();
+          check(aReconstructed.get(r, c)).isCloseTo(a.get(r, c), 1e-6);
         }
       }
 
       // det(A) = 4*3 - (1-i)(1+i) = 12 - 2 = 10
-      check(cholesky.det.closeTo(const Complex(10.0, 0.0), 1e-6)).isTrue();
+      check(cholesky.det).isCloseTo(const Complex(10.0, 0.0), 1e-6);
 
       // Solve A * x = b
       final b = Vector<Complex>.fromList([
@@ -95,7 +102,7 @@ void main() {
       final x = cholesky.solveVector(b);
       final ax = a.apply(x);
       for (var i = 0; i < 2; i++) {
-        check(ax[i].closeTo(b[i], 1e-6)).isTrue();
+        check(ax[i]).isCloseTo(b[i], 1e-6);
       }
     });
 
@@ -119,7 +126,7 @@ void main() {
       final aRec = l * l.conjugateTranspose;
       for (var r = 0; r < 3; r++) {
         for (var c = 0; c < 3; c++) {
-          check(aRec.get(r, c).closeTo(a.get(r, c), 1e-6)).isTrue();
+          check(aRec.get(r, c)).isCloseTo(a.get(r, c), 1e-6);
         }
       }
 
@@ -134,7 +141,7 @@ void main() {
       final ax = a * x;
       for (var r = 0; r < 3; r++) {
         for (var c = 0; c < 2; c++) {
-          check(ax.get(r, c).closeTo(b.get(r, c), 1e-6)).isTrue();
+          check(ax.get(r, c)).isCloseTo(b.get(r, c), 1e-6);
         }
       }
     });
@@ -194,14 +201,14 @@ void main() {
       for (var i = 0; i < 3; i++) {
         for (var j = 0; j < 3; j++) {
           final expected = i == j ? Complex.one : Complex.zero;
-          check(qHq.get(i, j).closeTo(expected, 1e-6)).isTrue();
+          check(qHq.get(i, j)).isCloseTo(expected, 1e-6);
         }
       }
 
       // R must be upper triangular
       for (var i = 0; i < 3; i++) {
         for (var j = 0; j < i; j++) {
-          check(r.get(i, j).closeTo(Complex.zero, 1e-6)).isTrue();
+          check(r.get(i, j)).isCloseTo(Complex.zero, 1e-6);
         }
       }
 
@@ -209,7 +216,7 @@ void main() {
       final qrProd = q * r;
       for (var i = 0; i < 3; i++) {
         for (var j = 0; j < 3; j++) {
-          check(qrProd.get(i, j).closeTo(a.get(i, j), 1e-6)).isTrue();
+          check(qrProd.get(i, j)).isCloseTo(a.get(i, j), 1e-6);
         }
       }
 
@@ -222,7 +229,7 @@ void main() {
       final x = qr.solveVector(b);
       final ax = a.apply(x);
       for (var i = 0; i < 3; i++) {
-        check(ax[i].closeTo(b[i], 1e-6)).isTrue();
+        check(ax[i]).isCloseTo(b[i], 1e-6);
       }
     });
 
@@ -245,7 +252,7 @@ void main() {
       for (var i = 0; i < 2; i++) {
         for (var j = 0; j < 2; j++) {
           final expected = i == j ? Complex.one : Complex.zero;
-          check(qHq.get(i, j).closeTo(expected, 1e-6)).isTrue();
+          check(qHq.get(i, j)).isCloseTo(expected, 1e-6);
         }
       }
 
@@ -253,7 +260,7 @@ void main() {
       final qrProd = q * r;
       for (var i = 0; i < 4; i++) {
         for (var j = 0; j < 2; j++) {
-          check(qrProd.get(i, j).closeTo(a.get(i, j), 1e-6)).isTrue();
+          check(qrProd.get(i, j)).isCloseTo(a.get(i, j), 1e-6);
         }
       }
 
@@ -331,7 +338,7 @@ void main() {
       for (var i = 0; i < 3; i++) {
         for (var j = 0; j < 3; j++) {
           final paVal = a.get(piv[i], j);
-          check(luProd.get(i, j).closeTo(paVal, 1e-6)).isTrue();
+          check(luProd.get(i, j)).isCloseTo(paVal, 1e-6);
         }
       }
 
@@ -344,7 +351,7 @@ void main() {
       final x = lu.solveVector(b);
       final ax = a.apply(x);
       for (var i = 0; i < 3; i++) {
-        check(ax[i].closeTo(b[i], 1e-6)).isTrue();
+        check(ax[i]).isCloseTo(b[i], 1e-6);
       }
 
       // Solve A * X = B
@@ -357,7 +364,7 @@ void main() {
       final aX = a * xMat;
       for (var r = 0; r < 3; r++) {
         for (var c = 0; c < 2; c++) {
-          check(aX.get(r, c).closeTo(bMat.get(r, c), 1e-6)).isTrue();
+          check(aX.get(r, c)).isCloseTo(bMat.get(r, c), 1e-6);
         }
       }
     });
@@ -408,7 +415,7 @@ void main() {
       for (var i = 0; i < 2; i++) {
         for (var j = 0; j < 3; j++) {
           final paVal = a.get(piv[i], j);
-          check(luProd.get(i, j).closeTo(paVal, 1e-6)).isTrue();
+          check(luProd.get(i, j)).isCloseTo(paVal, 1e-6);
         }
       }
     });
@@ -438,7 +445,7 @@ void main() {
       for (var i = 0; i < 3; i++) {
         for (var j = 0; j < 2; j++) {
           final paVal = a.get(piv[i], j);
-          check(luProd.get(i, j).closeTo(paVal, 1e-6)).isTrue();
+          check(luProd.get(i, j)).isCloseTo(paVal, 1e-6);
         }
       }
     });

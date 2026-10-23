@@ -4,7 +4,7 @@ import 'package:data/type.dart';
 import 'package:test/test.dart';
 
 void main() {
-  group('tensordot and products', () {
+  group('tensordot contraction', () {
     test('matrix multiplication equivalence (axes = 1)', () {
       // A: [2, 3], B: [3, 4] -> C: [2, 4]
       final a = Tensor<double>.fromIterable(
@@ -87,7 +87,9 @@ void main() {
       check(res.getValue([0, 0])).equals(24.0);
       check(res.getValue([1, 4])).equals(24.0);
     });
+  });
 
+  group('inner and outer products', () {
     test('innerProduct produces rank-0 scalar tensor', () {
       final a = Tensor<double>.fromIterable(
         [1.0, 2.0, 3.0],
@@ -145,7 +147,9 @@ void main() {
       check(a2D.tensordot(b2D, contractAxes: (self: [1], other: [0])).shape)
           .deepEquals([2, 3]);
     });
+  });
 
+  group('contraction validation and errors', () {
     test('error validation', () {
       final a = Tensor<double>.filled(
         1.0,

@@ -6,7 +6,7 @@ import 'package:data/type.dart';
 import 'package:test/test.dart';
 
 void main() {
-  group('CompressedPolynomial', () {
+  group('CompressedPolynomial construction', () {
     test('construction, properties, and zero representation', () {
       final zero = CompressedPolynomial<double>.zero(type: DataType.float64);
       check(zero.degree).equals(-1);
@@ -88,7 +88,9 @@ void main() {
       check(pComp).isA<CompressedPolynomial<double>>();
       check(pComp == pSparse).isTrue();
     });
+  });
 
+  group('CompressedPolynomial evaluation and calculus', () {
     test('high-degree sparse evaluation: x^10000 - 1', () {
       // P(x) = x^10000 - 1
       final p = CompressedPolynomial<double>.fromMap({
@@ -204,7 +206,9 @@ void main() {
         check(neg[0]).equals(1.0);
       },
     );
+  });
 
+  group('CompressedPolynomial algebra and interoperability', () {
     test('sparse polynomial division and GCD', () {
       // Dividend: A(x) = x^20000 - 1
       // Divisor:  B(x) = x^10000 - 1
@@ -367,7 +371,9 @@ void main() {
       }, type: DataType.float64);
       check(pLow.coefficients).deepEquals([1.0, 0.0, 0.0, 0.0, 0.0, 1.0]);
     });
+  });
 
+  group('CompressedPolynomial formatting and integration', () {
     test('toString formatting and roots', () {
       final p = CompressedPolynomial<int>.fromMap({
         0: -1,
