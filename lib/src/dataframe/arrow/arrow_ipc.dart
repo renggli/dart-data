@@ -159,7 +159,7 @@ class _ArrowIpcStreamWriter {
         fb.addTable(
           [
             nameOffset,
-            if (col.hasNulls) 1 else 0,
+            1, // nullable: true
             typeType,
             typeOffset,
             dummyDictOffset,
@@ -438,7 +438,7 @@ class _ArrowIpcStreamReader {
       }
 
       _cursor += 8;
-      if (_cursor + metaLength > bytes.length) {
+      if (metaLength < 0 || _cursor + metaLength > bytes.length) {
         throw const FormatException('Arrow IPC stream message truncated');
       }
 
@@ -469,11 +469,21 @@ class _ArrowIpcStreamReader {
         }
 
         final bodyLength = reader.readInt64(rootTable, 3) ?? 0;
+        if (bodyLength < 0 || _cursor + bodyLength > bytes.length) {
+          throw FormatException(
+            'Invalid bodyLength ($bodyLength) in Arrow IPC stream at offset $_cursor (stream length: ${bytes.length})',
+          );
+        }
         final bodyBytes = bodyLength > 0
             ? Uint8List.sublistView(bytes, _cursor, _cursor + bodyLength)
             : Uint8List(0);
         _cursor += bodyLength;
         final bodyPadding = (8 - (bodyLength % 8)) % 8;
+        if (_cursor + bodyPadding > bytes.length) {
+          throw const FormatException(
+            'Truncated padding after record batch body in Arrow IPC stream',
+          );
+        }
         _cursor += bodyPadding;
 
         if (headerOffset != null) {

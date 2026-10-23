@@ -477,5 +477,86 @@ void main() {
 
       check(() => ArrowIpc.decode(bytes)).throws<UnsupportedError>();
     });
+
+    test('schema emits nullable=true on fields', () {
+      final df = DataFrame.fromColumns({
+        'non_null': [1, 2, 3],
+      });
+      final bytes = df.toArrowIpc();
+      final byteData = ByteData.sublistView(bytes);
+
+      final rootTableOffset = byteData.getUint32(8, Endian.little);
+      final vtableOffset = byteData.getInt32(
+        8 + rootTableOffset,
+        Endian.little,
+      );
+      final vtablePos = 8 + rootTableOffset - vtableOffset;
+      final headerOffsetInTable = byteData.getUint16(
+        vtablePos + 8,
+        Endian.little,
+      );
+      final headerPos = 8 + rootTableOffset + headerOffsetInTable;
+      final schemaOffset =
+          headerPos + byteData.getUint32(headerPos, Endian.little);
+
+      final schemaVtableOffset = byteData.getInt32(schemaOffset, Endian.little);
+      final schemaVtablePos = schemaOffset - schemaVtableOffset;
+      final fieldsVecOffsetInSchema = byteData.getUint16(
+        schemaVtablePos + 6,
+        Endian.little,
+      );
+      final fieldsVecPos = schemaOffset + fieldsVecOffsetInSchema;
+      final fieldsVecTablePos =
+          fieldsVecPos + byteData.getUint32(fieldsVecPos, Endian.little);
+
+      final field0Pos =
+          fieldsVecTablePos +
+          4 +
+          byteData.getUint32(fieldsVecTablePos + 4, Endian.little);
+      final field0VtableOffset = byteData.getInt32(field0Pos, Endian.little);
+      final field0VtablePos = field0Pos - field0VtableOffset;
+
+      // slot 1 in field0 is nullable (uint8)
+      final nullableOffset = byteData.getUint16(
+        field0VtablePos + 6,
+        Endian.little,
+      );
+      final nullableVal = byteData.getUint8(field0Pos + nullableOffset);
+      check(nullableVal).equals(1);
+    });
+
+    test('throws FormatException on invalid bodyLength', () {
+      final df = DataFrame.fromColumns({
+        'x': [10, 20],
+      });
+      final bytes = Uint8List.fromList(df.toArrowIpc());
+      final byteData = ByteData.sublistView(bytes);
+
+      // Locate second message (RecordBatch)
+      final meta1Len = byteData.getUint32(4, Endian.little);
+      final msg2Pos = 8 + meta1Len;
+
+      final root2Offset = byteData.getUint32(msg2Pos + 8, Endian.little);
+      final vtable2Offset = byteData.getInt32(
+        msg2Pos + 8 + root2Offset,
+        Endian.little,
+      );
+      final vtable2Pos = msg2Pos + 8 + root2Offset - vtable2Offset;
+
+      // slot 3 in Message table is bodyLength (int64)
+      final bodyLenOffsetInTable = byteData.getUint16(
+        vtable2Pos + 10,
+        Endian.little,
+      );
+      final bodyLenPos = msg2Pos + 8 + root2Offset + bodyLenOffsetInTable;
+
+      // Set huge bodyLength exceeding buffer size
+      byteData.setInt32(bodyLenPos, 999999, Endian.little);
+      check(() => ArrowIpc.decode(bytes)).throws<FormatException>();
+
+      // Set negative bodyLength
+      byteData.setInt32(bodyLenPos, -5, Endian.little);
+      check(() => ArrowIpc.decode(bytes)).throws<FormatException>();
+    });
   });
 }

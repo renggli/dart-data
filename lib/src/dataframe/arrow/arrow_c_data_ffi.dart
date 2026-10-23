@@ -288,9 +288,10 @@ void exportSeriesToArrowC({
   required Series<Object?> series,
   required ffi.Pointer<ArrowSchema> outSchema,
   required ffi.Pointer<ArrowArray> outArray,
+  bool? nullable,
 }) {
   final formatCode = _getFormatCode(series);
-  final isNullable = series.hasNulls;
+  final isNullable = nullable ?? true;
 
   // Initialize structs to nullptr for safe unwinding
   outSchema.ref.format = ffi.nullptr;
