@@ -183,7 +183,9 @@ double _newtonRaphson(
     x -= step;
     if (step.abs() < tolerance) return x;
   }
-  return x;
+  throw StateError(
+    'Newton-Raphson failed to converge after $maxIterations iterations.',
+  );
 }
 
 double _bisection(

@@ -159,6 +159,33 @@ void main() {
           .throws<ArgumentError>();
     });
 
+    test(
+      'CG and GMRES throw StateError when non-converged after maxIterations',
+      () {
+        final a = Matrix<double>.fromRows([
+          [4.0, 1.0],
+          [1.0, 3.0],
+        ]);
+        final b = Vector<double>.fromList([1.0, 2.0]);
+        check(
+          () => solveIterative(
+            a,
+            b,
+            method: IterativeMethod.conjugateGradient,
+            maxIterations: 0,
+          ),
+        ).throws<StateError>();
+        check(
+          () => solveIterative(
+            a,
+            b,
+            method: IterativeMethod.gmres,
+            maxIterations: 0,
+          ),
+        ).throws<StateError>();
+      },
+    );
+
     test('GMRES handles early breakdown without RangeError', () {
       // Matrix where vector is an eigenvector:
       // A = [2, 1; 0, 3], v = [1, 1] => A*v = [3, 3] = 3*v

@@ -35,6 +35,18 @@ void main() {
       check(root).isCloseTo(math.sqrt(2.0), 1e-10);
     });
 
+    test('Newton-Raphson throws StateError when maxIterations is exceeded', () {
+      double fNoRoot(double x) => x * x + 1.0;
+      check(
+        () => solve(
+          fNoRoot,
+          1.0,
+          method: RootMethod.newtonRaphson,
+          maxIterations: 5,
+        ),
+      ).throws<StateError>();
+    });
+
     test(
       'Newton-Raphson with explicit derivative and zero derivative error',
       () {

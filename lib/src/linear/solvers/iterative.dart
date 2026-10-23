@@ -93,10 +93,15 @@ Vector<T> _conjugateGradient<T>(
   final direction = residual.copy();
   var rsOld = residual.dot(residual);
 
-  if (field.norm(rsOld) < tolerance * tolerance) {
+  final bNorm = b.norm();
+  final tolNorm = bNorm == 0.0 ? tolerance : math.max(tolerance * bNorm, 1e-15);
+  final tolSq = tolNorm * tolNorm;
+
+  if (field.norm(rsOld) <= tolSq) {
     return x;
   }
 
+  var converged = false;
   for (var i = 0; i < maxIterations; i++) {
     final ap = a.apply(direction);
     final pap = direction.dot(ap);
@@ -105,13 +110,20 @@ Vector<T> _conjugateGradient<T>(
     x.addScaled(direction, alpha);
     residual.addScaled(ap, field.neg(alpha));
     final rsNew = residual.dot(residual);
-    if (field.norm(rsNew) < tolerance * tolerance) {
+    if (field.norm(rsNew) <= tolSq) {
+      converged = true;
       break;
     }
     final beta = field.div(rsNew, rsOld);
     direction.scaleInPlace(beta);
     direction.addScaled(residual, field.multiplicativeIdentity);
     rsOld = rsNew;
+  }
+
+  if (!converged && field.norm(residual.dot(residual)) > tolSq) {
+    throw StateError(
+      'Conjugate gradient failed to converge after $maxIterations iterations.',
+    );
   }
 
   return x;
@@ -144,10 +156,13 @@ Vector<T> _gmres<T>(
   final maxBasis = math.min(restart, dim);
   var totalIter = 0;
 
+  final bNorm = b.norm();
+  final tolNorm = bNorm == 0.0 ? tolerance : math.max(tolerance * bNorm, 1e-15);
+
   while (totalIter < maxIterations) {
     final residual = b - a.apply(x);
     final beta = residual.norm();
-    if (beta < tolerance) {
+    if (beta <= tolNorm) {
       return x;
     }
 
@@ -229,7 +244,7 @@ Vector<T> _gmres<T>(
       rhs[k + 1] = -sn[k] * rhs[k];
       rhs[k] = cs[k] * rhs[k];
 
-      if (rhs[k + 1].abs() < tolerance) {
+      if (rhs[k + 1].abs() <= tolNorm) {
         k++;
         break;
       }
@@ -253,9 +268,16 @@ Vector<T> _gmres<T>(
       );
     }
 
-    if (rhs[k].abs() < tolerance) {
+    if (rhs[k].abs() <= tolNorm) {
       break;
     }
+  }
+
+  final finalRes = (b - a.apply(x)).norm();
+  if (finalRes > tolNorm) {
+    throw StateError(
+      'GMRES failed to converge after $maxIterations iterations.',
+    );
   }
 
   return x;
