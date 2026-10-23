@@ -11,8 +11,8 @@ import '../utils/library_loader_ffi.dart';
 abstract final class LapackNative {
   static final List<ffi.DynamicLibrary> _libs = platformBlasLibraries;
 
-  static final bool _hasDpotrf =
-      hasSymbol('dpotrf_', _libs) || hasSymbol('LAPACKE_dpotrf', _libs);
+  static final bool _hasLapackeDpotrf = hasSymbol('LAPACKE_dpotrf', _libs);
+  static final bool _hasDpotrf = hasSymbol('dpotrf_', _libs);
   static final bool _hasLapackeDgesv = hasSymbol('LAPACKE_dgesv', _libs);
   static final bool _hasClapackDgesv = hasSymbol('clapack_dgesv', _libs);
   static final bool _hasDgesv = hasSymbol('dgesv_', _libs);
@@ -26,9 +26,13 @@ abstract final class LapackNative {
   /// Whether native LAPACK is available.
   static bool get isAvailable =>
       _libs.isNotEmpty &&
-      (_hasDpotrf || _hasDgesv || _hasLapackeDgesv || _hasClapackDgesv);
+      (_hasLapackeDpotrf ||
+          _hasDpotrf ||
+          _hasDgesv ||
+          _hasLapackeDgesv ||
+          _hasClapackDgesv);
 
-  static bool get hasDpotrf => _hasDpotrf;
+  static bool get hasDpotrf => _hasLapackeDpotrf || _hasDpotrf;
   static bool get hasDgesv => _hasLapackeDgesv || _hasClapackDgesv || _hasDgesv;
   static bool get hasDgels => _hasLapackeDgels || _hasDgels;
   static bool get hasDsyev => _hasLapackeDsyev || _hasDsyev;
@@ -41,19 +45,40 @@ abstract final class LapackNative {
     required int aOffset,
     required int lda,
   }) {
-    if (!_hasDpotrf) return null;
+    if (!hasDpotrf) return null;
+    if (n < 0 || lda < n) return false;
+    if (uplo != cblasUpper && uplo != cblasLower) return false;
     if (n == 0) return true;
-    return using((arena) {
-      final fortranUplo = uplo == cblasUpper ? 76 : 85;
-      final uploPtr = arena<ffi.Uint8>()..value = fortranUplo;
-      final nPtr = arena<ffi.Int32>()..value = n;
-      final ldaPtr = arena<ffi.Int32>()..value = lda >= n ? lda : n;
-      final info = arena<ffi.Int32>();
-      final aView = aOffset == 0 ? a : Float64List.sublistView(a, aOffset);
+    final aRequired = aOffset + (n - 1) * lda + n;
+    if (a.length < aRequired) return false;
 
-      _fortranDpotrf(uploPtr, nPtr, aView.address, ldaPtr, info);
-      return info.value == 0;
-    });
+    final aView = aOffset == 0 ? a : Float64List.sublistView(a, aOffset);
+
+    if (_hasLapackeDpotrf) {
+      final info = _lapackeDpotrf(
+        cblasRowMajor,
+        uplo == cblasUpper ? 85 : 76,
+        n,
+        aView.address,
+        lda,
+      );
+      return info == 0;
+    }
+
+    if (_hasDpotrf) {
+      return using((arena) {
+        final fortranUplo = uplo == cblasUpper ? 76 : 85;
+        final uploPtr = arena<ffi.Uint8>()..value = fortranUplo;
+        final nPtr = arena<ffi.Int32>()..value = n;
+        final ldaPtr = arena<ffi.Int32>()..value = lda;
+        final info = arena<ffi.Int32>();
+
+        _fortranDpotrf(uploPtr, nPtr, aView.address, ldaPtr, info);
+        return info.value == 0;
+      });
+    }
+
+    return false;
   }
 
   static bool? dgesv({
@@ -523,6 +548,23 @@ abstract final class LapackNative {
 }
 
 // --- LAPACK Native FFI Declarations ---
+
+@ffi.Native<
+  ffi.Int32 Function(
+    ffi.Int32,
+    ffi.Uint8,
+    ffi.Int32,
+    ffi.Pointer<ffi.Double>,
+    ffi.Int32,
+  )
+>(symbol: 'LAPACKE_dpotrf', isLeaf: true)
+external int _lapackeDpotrf(
+  int matrixLayout,
+  int uplo,
+  int n,
+  ffi.Pointer<ffi.Double> a,
+  int lda,
+);
 
 @ffi.Native<
   ffi.Void Function(
