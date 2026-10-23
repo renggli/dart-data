@@ -549,6 +549,10 @@ Each task specifies:
 - **Actionable Fix & Acceptance Criteria**:
   1. Replace the $O(n^3)$ matrix-matrix product in BFGS with the $O(n^2)$ rank-2 vector update using $w = H y$.
   2. Reuse the function value `fNext` computed at the end of line search instead of re-evaluating `f(x)`.
+- **Implementation Report**:
+  - Implemented the $O(n^2)$ symmetric rank-2 BFGS update $H_{k+1} = H_k - \rho (s w^T + w s^T) + \rho (1 + \rho (y \cdot w)) s s^T$ where $w = H_k y$, eliminating two $O(n^3)$ matrix multiplies and 11 matrix allocations per iteration.
+  - Reused `fxCandidate` from backtracking line search across both `bfgs` and `lbfgs`, eliminating redundant evaluations of $f(x)$ at the step point.
+  - Added unit tests verifying convergence on a 10D problem and confirming zero redundant function evaluations across VM, Node.js, and Chrome.
 
 ### TASK-5.3: Fix `MatrixNormExtension` Recomputing Full SVD Twice on `norm2` and Every Call
 

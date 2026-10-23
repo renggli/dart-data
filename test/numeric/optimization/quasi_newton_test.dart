@@ -35,6 +35,57 @@ void main() {
       check(res.point[1]).isCloseTo(0.0, 1e-5);
       check(res.value).isCloseTo(0.0, 1e-5);
     });
+
+    test(
+      'minimizes 10D quadratic form efficiently using O(n^2) rank-2 update',
+      () {
+        // f(x) = sum_{i=0..9} (i + 1) * (x_i - (i + 1))^2
+        double f(Vector<double> v) {
+          var sum = 0.0;
+          for (var i = 0; i < 10; i++) {
+            final diff = v[i] - (i + 1.0);
+            sum += (i + 1.0) * diff * diff;
+          }
+          return sum;
+        }
+
+        Vector<double> grad(Vector<double> v) => Vector<double>.generate(
+          10,
+          (i) => 2.0 * (i + 1.0) * (v[i] - (i + 1.0)),
+          type: DataType.float64,
+        );
+
+        final start = Vector<double>.filled(10, 0.0, type: DataType.float64);
+        final res = bfgs(f, start, gradient: grad);
+
+        for (var i = 0; i < 10; i++) {
+          check(res.point[i]).isCloseTo(i + 1.0, 1e-4);
+        }
+        check(res.value).isCloseTo(0.0, 1e-4);
+        check(res.gradientNorm).isLessThan(1e-4);
+      },
+    );
+
+    test('eliminates redundant function evaluations in line search', () {
+      var evalCount = 0;
+      double f(Vector<double> v) {
+        evalCount++;
+        return v[0] * v[0] + v[1] * v[1];
+      }
+
+      Vector<double> grad(Vector<double> v) => Vector<double>.fromList([
+        2.0 * v[0],
+        2.0 * v[1],
+      ], type: DataType.float64);
+
+      final start = Vector<double>.fromList([2.0, 2.0], type: DataType.float64);
+      final res = bfgs(f, start, gradient: grad);
+      // Quadratic function with exact gradient:
+      // Initial f(x) [1] + line search step alpha=1 [1] + alpha=0.5 [1] = 3 evals
+      // (Without reuse of fxCandidate, an extra redundant eval fn(xNext) occurred = 4 evals)
+      check(res.iterations).equals(1);
+      check(evalCount).equals(3);
+    });
   });
 
   group('lbfgs', () {

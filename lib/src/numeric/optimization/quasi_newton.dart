@@ -29,41 +29,49 @@ bfgs(
 
     final dir = -hMat.apply(grad);
 
-    const c1 = 1e-4;
-    var alpha = 1.0;
     final slope = grad.dot(dir);
+    final stepDir = slope >= 0.0 ? -grad : dir;
+    final effectiveSlope = slope >= 0.0 ? grad.dot(stepDir) : slope;
     if (slope >= 0.0) {
       hMat = Matrix<double>.identity(dim, type: DataType.float64);
-      final pReset = -grad;
-      final slopeReset = grad.dot(pReset);
-      var a = 1.0;
-      while (fn(x + pReset.scale(a)) > fx + c1 * a * slopeReset && a > 1e-12) {
-        a *= 0.5;
-      }
-      alpha = a;
-    } else {
-      while (fn(x + dir.scale(alpha)) > fx + c1 * alpha * slope &&
-          alpha > 1e-12) {
-        alpha *= 0.5;
-      }
     }
 
-    final step = (slope >= 0.0 ? -grad : dir).scale(alpha);
-    final xNext = x + step;
-    final fxNext = fn(xNext);
+    const c1 = 1e-4;
+    var alpha = 1.0;
+    var xCandidate = x + stepDir.scale(alpha);
+    var fxCandidate = fn(xCandidate);
+    while (fxCandidate > fx + c1 * alpha * effectiveSlope && alpha > 1e-12) {
+      alpha *= 0.5;
+      xCandidate = x + stepDir.scale(alpha);
+      fxCandidate = fn(xCandidate);
+    }
+
+    final step = stepDir.scale(alpha);
+    final xNext = xCandidate;
+    final fxNext = fxCandidate;
     final gNext = gradFn(xNext);
     final y = gNext - grad;
 
     final ys = y.dot(step);
     if (ys > 1e-10) {
       final rho = 1.0 / ys;
-      final eye = Matrix<double>.identity(dim, type: DataType.float64);
-      final syT = step.outer(y).scale(rho);
-      final ysT = y.outer(step).scale(rho);
-      final v1 = eye - syT;
-      final v2 = eye - ysT;
-      final ssT = step.outer(step).scale(rho);
-      hMat = (v1 * hMat * v2) + ssT;
+      final w = hMat.apply(y);
+      final yw = y.dot(w);
+      final c = rho * (1.0 + rho * yw);
+      for (var i = 0; i < dim; i++) {
+        final si = step[i];
+        final wi = w[i];
+        for (var j = i; j < dim; j++) {
+          final val =
+              hMat.get(i, j) -
+              rho * (si * w[j] + wi * step[j]) +
+              c * si * step[j];
+          hMat.set(i, j, val);
+          if (i != j) {
+            hMat.set(j, i, val);
+          }
+        }
+      }
     }
 
     x = xNext;
@@ -132,14 +140,17 @@ lbfgs(
     final dir = slope < 0.0 ? searchDir : -grad;
     final effectiveSlope = slope < 0.0 ? slope : -grad.dot(grad);
 
-    while (fn(x + dir.scale(alpha)) > fx + c1 * alpha * effectiveSlope &&
-        alpha > 1e-12) {
+    var xCandidate = x + dir.scale(alpha);
+    var fxCandidate = fn(xCandidate);
+    while (fxCandidate > fx + c1 * alpha * effectiveSlope && alpha > 1e-12) {
       alpha *= 0.5;
+      xCandidate = x + dir.scale(alpha);
+      fxCandidate = fn(xCandidate);
     }
 
     final step = dir.scale(alpha);
-    final xNext = x + step;
-    final fxNext = fn(xNext);
+    final xNext = xCandidate;
+    final fxNext = fxCandidate;
     final gradNext = gradFn(xNext);
     final yGrad = gradNext - grad;
 
