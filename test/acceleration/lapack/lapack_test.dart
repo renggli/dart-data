@@ -93,12 +93,25 @@ void main() {
     });
 
     accelerationTest('ssyev float32 eigenvalue solve', () {
-      final a = Float32List.fromList([2.0, 1.0, 1.0, 2.0]);
+      final a0 = [2.0, 1.0, 1.0, 2.0];
+      final a = Float32List.fromList(a0);
       final w = Float32List(2);
       final ok = Lapack.ssyev(n: 2, a: a, lda: 2, w: w);
       check(ok).isTrue();
       check(w[0]).isCloseTo(1.0, 1e-5);
       check(w[1]).isCloseTo(3.0, 1e-5);
+
+      for (var j = 0; j < 2; j++) {
+        final lambda = w[j];
+        for (var i = 0; i < 2; i++) {
+          var avI = 0.0;
+          for (var k = 0; k < 2; k++) {
+            avI += a0[i * 2 + k] * a[k * 2 + j];
+          }
+          final lvI = lambda * a[i * 2 + j];
+          check(avI).isCloseTo(lvI, 1e-5);
+        }
+      }
     });
 
     accelerationTest('Lapack routines handle n = 0 without error', () {
