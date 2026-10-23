@@ -102,6 +102,8 @@ void main() {
 
       // transpose error
       check(() => layout2D.transpose([0])).throws<ArgumentError>();
+      check(() => layout2D.transpose([0, 0])).throws<ArgumentError>();
+      check(() => layout2D.transpose([0, 2])).throws<ArgumentError>();
 
       // reshape errors and inference
       final inferred = layout2D.reshape([-1, 2]);

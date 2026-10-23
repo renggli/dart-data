@@ -252,7 +252,7 @@ extension MatmulTensorExtension<T> on Tensor<T> {
       if (aDim != bDim && aDim != 1 && bDim != 1) {
         throw ArgumentError('Cannot broadcast batch shapes $a and $b');
       }
-      result[maxLen - 1 - i] = aDim > bDim ? aDim : bDim;
+      result[maxLen - 1 - i] = aDim == 1 ? bDim : aDim;
     }
     return result;
   }

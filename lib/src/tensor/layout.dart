@@ -104,8 +104,8 @@ class Layout {
       rank: rank,
       length: length,
       offset: offset,
-      shape: shapeList,
-      strides: str,
+      shape: shapeList.asUnmodifiableView(),
+      strides: str.asUnmodifiableView(),
       isContiguous: isContiguous,
     );
   }
@@ -214,6 +214,17 @@ class Layout {
         'Permutation length (${perm.length}) must match rank ($rank)',
       );
     }
+    final seen = List<bool>.filled(rank, false);
+    for (var i = 0; i < rank; i++) {
+      final axis = perm[i];
+      if (axis < 0 || axis >= rank) {
+        throw ArgumentError('Axis $axis out of bounds for rank $rank');
+      }
+      if (seen[axis]) {
+        throw ArgumentError('Duplicate axis $axis in permutation: $perm');
+      }
+      seen[axis] = true;
+    }
     final newShape = List<int>.generate(rank, (i) => shape[perm[i]]);
     final newStrides = List<int>.generate(rank, (i) => strides[perm[i]]);
     return Layout(shape: newShape, strides: newStrides, offset: offset);
@@ -289,7 +300,7 @@ class Layout {
         );
       }
 
-      final outDim = thisDim > otherDim ? thisDim : otherDim;
+      final outDim = thisDim == 1 ? otherDim : thisDim;
       outShape[maxRank - 1 - i] = outDim;
 
       thisStrides[maxRank - 1 - i] = thisDim == 1
