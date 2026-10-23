@@ -6,7 +6,9 @@ import '../data_type.dart';
 import '../models/equality.dart';
 import '../models/field.dart';
 
+/// Data type descriptor for arbitrary precision integers ([BigInt]).
 final class BigIntDataType extends DataType<BigInt> {
+  /// Creates a new [BigIntDataType] instance.
   const new();
 
   @override
@@ -37,7 +39,9 @@ final class BigIntDataType extends DataType<BigInt> {
   Field<BigInt> get field => const BigIntField();
 }
 
+/// Equality relation for [BigInt] values with proximity testing.
 final class BigIntEquality extends NaturalEquality<BigInt> {
+  /// Creates a new [BigIntEquality] instance.
   const new();
 
   @override
@@ -48,7 +52,9 @@ final class BigIntEquality extends NaturalEquality<BigInt> {
   }
 }
 
+/// Algebraic field operations over arbitrary precision integers ([BigInt]).
 final class BigIntField implements ExtendedField<BigInt> {
+  /// Creates a new [BigIntField] instance.
   const new();
 
   @override

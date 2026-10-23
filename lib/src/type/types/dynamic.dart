@@ -1,6 +1,8 @@
 import '../data_type.dart';
 
+/// Data type descriptor for untyped values ([dynamic]).
 final class DynamicDataType extends DataType<dynamic> {
+  /// Creates a new [DynamicDataType] instance.
   const new();
 
   @override

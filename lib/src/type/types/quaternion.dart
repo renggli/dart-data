@@ -4,7 +4,9 @@ import '../data_type.dart';
 import '../models/equality.dart';
 import '../models/field.dart';
 
+/// Data type descriptor for quaternions ([Quaternion]).
 final class QuaternionDataType extends DataType<Quaternion> {
+  /// Creates a new [QuaternionDataType] instance.
   const new();
 
   @override
@@ -38,7 +40,9 @@ final class QuaternionDataType extends DataType<Quaternion> {
   Equality<Quaternion> get equality => const QuaternionEquality();
 }
 
+/// Equality relation for [Quaternion] numbers with proximity testing.
 final class QuaternionEquality extends NaturalEquality<Quaternion> {
+  /// Creates a new [QuaternionEquality] instance.
   const new();
 
   @override
@@ -46,7 +50,9 @@ final class QuaternionEquality extends NaturalEquality<Quaternion> {
       a.closeTo(b, epsilon);
 }
 
+/// Algebraic field operations over [Quaternion] numbers.
 final class QuaternionField implements Field<Quaternion> {
+  /// Creates a new [QuaternionField] instance.
   const new();
 
   @override

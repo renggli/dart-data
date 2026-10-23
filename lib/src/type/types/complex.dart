@@ -7,7 +7,9 @@ import '../models/equality.dart';
 import '../models/field.dart';
 import 'typed.dart';
 
+/// Data type descriptor for complex numbers ([Complex]).
 final class ComplexDataType extends TypedDataType<Complex, Float64ComplexList> {
+  /// Creates a new [ComplexDataType] instance.
   const new();
 
   @override
@@ -57,14 +59,18 @@ final class ComplexDataType extends TypedDataType<Complex, Float64ComplexList> {
   Field<Complex> get field => const ComplexField();
 }
 
+/// Equality relation for [Complex] numbers with proximity testing.
 final class ComplexEquality extends NaturalEquality<Complex> {
+  /// Creates a new [ComplexEquality] instance.
   const new();
 
   @override
   bool isClose(Complex a, Complex b, double epsilon) => a.closeTo(b, epsilon);
 }
 
+/// Algebraic field operations over [Complex] numbers.
 final class ComplexField implements ExtendedField<Complex> {
+  /// Creates a new [ComplexField] instance.
   const new();
 
   @override

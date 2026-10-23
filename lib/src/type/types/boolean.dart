@@ -5,7 +5,9 @@ import 'package:more/functional.dart';
 
 import '../data_type.dart';
 
+/// Data type descriptor for boolean values ([bool]).
 final class BooleanDataType extends DataType<bool> {
+  /// Creates a new [BooleanDataType] instance.
   const new();
 
   @override

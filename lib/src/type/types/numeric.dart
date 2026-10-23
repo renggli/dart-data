@@ -6,7 +6,9 @@ import '../data_type.dart';
 import '../models/equality.dart';
 import '../models/field.dart';
 
+/// Data type descriptor for generic numeric values ([num]).
 final class NumericDataType extends DataType<num> {
+  /// Creates a new [NumericDataType] instance.
   const new();
 
   @override
@@ -42,7 +44,9 @@ final class NumericDataType extends DataType<num> {
   }
 }
 
+/// Algebraic field operations over generic numeric values ([num]).
 final class NumericField implements ExtendedField<num> {
+  /// Creates a new [NumericField] instance.
   const new();
 
   @override
@@ -122,7 +126,9 @@ final class NumericField implements ExtendedField<num> {
   num get negativeInfinity => double.negativeInfinity;
 }
 
+/// Equality relation for [num] values with proximity testing.
 final class NumericEquality extends NaturalEquality<num> {
+  /// Creates a new [NumericEquality] instance.
   const new();
 
   @override

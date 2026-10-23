@@ -9,8 +9,10 @@ import '../models/equality.dart';
 import '../models/field.dart';
 import 'typed.dart';
 
+/// Abstract base data type descriptor for fixed-width integers.
 abstract base class IntegerDataType<L extends List<int>>
     extends TypedDataType<int, L> {
+  /// Default constant constructor for [IntegerDataType].
   const new();
 
   /// Returns the true, if this integer is signed.
@@ -80,7 +82,9 @@ abstract base class IntegerDataType<L extends List<int>>
   Printer<int> get printer => FixedNumberPrinter<int>();
 }
 
+/// Data type descriptor for 8-bit signed integers.
 final class Int8DataType extends IntegerDataType<Int8List> {
+  /// Creates a new [Int8DataType] instance.
   const new();
 
   @override
@@ -102,7 +106,9 @@ final class Int8DataType extends IntegerDataType<Int8List> {
   Int8List readonlyList(Int8List list) => list.asUnmodifiableView();
 }
 
+/// Data type descriptor for 8-bit unsigned integers.
 final class Uint8DataType extends IntegerDataType<Uint8List> {
+  /// Creates a new [Uint8DataType] instance.
   const new();
 
   @override
@@ -124,7 +130,9 @@ final class Uint8DataType extends IntegerDataType<Uint8List> {
   Uint8List readonlyList(Uint8List list) => list.asUnmodifiableView();
 }
 
+/// Data type descriptor for 16-bit signed integers.
 final class Int16DataType extends IntegerDataType<Int16List> {
+  /// Creates a new [Int16DataType] instance.
   const new();
 
   @override
@@ -146,7 +154,9 @@ final class Int16DataType extends IntegerDataType<Int16List> {
   Int16List readonlyList(Int16List list) => list.asUnmodifiableView();
 }
 
+/// Data type descriptor for 16-bit unsigned integers.
 final class Uint16DataType extends IntegerDataType<Uint16List> {
+  /// Creates a new [Uint16DataType] instance.
   const new();
 
   @override
@@ -168,7 +178,9 @@ final class Uint16DataType extends IntegerDataType<Uint16List> {
   Uint16List readonlyList(Uint16List list) => list.asUnmodifiableView();
 }
 
+/// Data type descriptor for 32-bit signed integers.
 final class Int32DataType extends IntegerDataType<Int32List> {
+  /// Creates a new [Int32DataType] instance.
   const new();
 
   @override
@@ -190,7 +202,9 @@ final class Int32DataType extends IntegerDataType<Int32List> {
   Int32List readonlyList(Int32List list) => list.asUnmodifiableView();
 }
 
+/// Data type descriptor for 32-bit unsigned integers.
 final class Uint32DataType extends IntegerDataType<Uint32List> {
+  /// Creates a new [Uint32DataType] instance.
   const new();
 
   @override
@@ -212,7 +226,9 @@ final class Uint32DataType extends IntegerDataType<Uint32List> {
   Uint32List readonlyList(Uint32List list) => list.asUnmodifiableView();
 }
 
+/// Data type descriptor for 64-bit signed integers.
 final class Int64DataType extends IntegerDataType<List<int>> {
+  /// Creates a new [Int64DataType] instance.
   const new();
 
   @override
@@ -255,7 +271,9 @@ final class Int64DataType extends IntegerDataType<List<int>> {
   }
 }
 
+/// Data type descriptor for 64-bit unsigned integers.
 final class Uint64DataType extends IntegerDataType<List<int>> {
+  /// Creates a new [Uint64DataType] instance.
   const new();
 
   @override
@@ -297,7 +315,9 @@ final class Uint64DataType extends IntegerDataType<List<int>> {
   }
 }
 
+/// Algebraic field operations over integers ([int]).
 final class IntegerField implements ExtendedField<int> {
+  /// Creates a new [IntegerField] instance.
   const new();
 
   @override
@@ -377,7 +397,9 @@ final class IntegerField implements ExtendedField<int> {
   int get negativeInfinity => unsupportedOperation('negativeInfinity');
 }
 
+/// Equality relation for integer values with proximity testing.
 final class IntegerEquality extends NaturalEquality<int> {
+  /// Creates a new [IntegerEquality] instance.
   const new();
 
   @override

@@ -1,6 +1,8 @@
 import '../data_type.dart';
 
+/// Data type descriptor for generic Dart objects ([Object]).
 final class ObjectDataType<T> extends DataType<T> {
+  /// Creates a new [ObjectDataType] instance with a specified [defaultValue].
   const new(this.defaultValue);
 
   @override

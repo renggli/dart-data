@@ -3,7 +3,9 @@ import 'dart:math' as math;
 import '../data_type.dart';
 import '../models/equality.dart';
 
+/// Data type descriptor for string values ([String]).
 final class StringDataType extends DataType<String> {
+  /// Creates a new [StringDataType] instance.
   const new();
 
   @override
@@ -22,7 +24,9 @@ final class StringDataType extends DataType<String> {
   String cast(dynamic value) => value.toString();
 }
 
+/// Equality relation for [String] values with edit-distance proximity testing.
 final class StringEquality extends NaturalEquality<String> {
+  /// Creates a new [StringEquality] instance.
   const new();
 
   @override

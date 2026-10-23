@@ -11,10 +11,14 @@ import '../data_type.dart';
 /// Some [DataType] instances do not support `null` values in the way they
 /// represent their data. This wrapper turns those types into nullable ones.
 final class NullableDataType<T> extends DataType<T?> {
+  /// Creates a new [NullableDataType] wrapping [delegate].
   new(this.delegate, {this.nullsFirst = false})
     : assert(!delegate.isNullable, '$delegate is already nullable');
 
+  /// The wrapped non-nullable [DataType].
   final DataType<T> delegate;
+
+  /// Whether null values sort first or last.
   final bool nullsFirst;
   late final Comparator<T?> _comparator = nullsFirst
       ? delegate.comparator.nullsFirst
@@ -86,13 +90,17 @@ final class NullableDataType<T> extends DataType<T?> {
 /// [BitList]. For certain types of typed lists, this is the only way to track
 /// `null` values.
 final class NullableList<T> extends ListBase<T?> with NonGrowableListMixin<T?> {
+  /// Constructs a new [NullableList] wrapping [delegate] with a bitmask.
   new(this.delegate, this.defaultValue, bool isDefined)
     : defined = BitList.filled(delegate.length, isDefined);
 
+  /// The underlying non-nullable data list.
   final List<T> delegate;
 
+  /// The bitmask indicating whether an index is non-null.
   final BitList defined;
 
+  /// The default fill value placed in [delegate] when an entry is set to null.
   final T defaultValue;
 
   @override

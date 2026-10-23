@@ -94,7 +94,7 @@ Pre-release review of `lib/` at `2fc36d4`. Baseline: `dart analyze` clean, READM
 | --- | --- | --- | --- | --- |
 | R7.1 [COMPLETED] | High | `CHANGELOG.md:3-13` | No breaking-changes section. `lib/matrix.dart` and `lib/vector.dart` were removed, as were `Vector/Matrix.fromString`, `fromTensor`, `distance`, and `distanceSquared`. | Add a "Breaking changes" section with migration hints. |
 | R7.2 [COMPLETED] | Medium | `CHANGELOG.md:3` | The heading still says `(Unpublished)`. | Fix it at release. |
-| R7.3 | Medium | `lib/src/type/types/*.dart`, `lib/src/acceleration/blas/cblas_constants.dart` | Exported public members lack `///` docs (234 `public_member_api_docs` hits in total). | Document the exported members. Consider enabling the lint. |
+| R7.3 [COMPLETED] | Medium | `lib/src/type/types/*.dart`, `lib/src/acceleration/blas/cblas_constants.dart` | Exported public members lack `///` docs (234 `public_member_api_docs` hits in total). | Document the exported members. Consider enabling the lint. |
 | R7.4 | Low | `.pubignore` | It shadows `.gitignore`, so `pubspec.lock`, `coverage/` and `*.dart.js*` are published. | Copy those patterns. Check with `dart pub publish --dry-run`. |
 | R7.5 | Low | `ARCHITECTURE.md:309` | Describes nested `domain/` directories, but the actual acceleration layout is flat. | Update the description. |
 | R7.6 | Low | `README.md:16,30` | Claims a `Float32x4` SIMD fallback (none exists), says "GELSF" (should be GELS), and says "25+" dashboard distributions (actually 24). | Correct the text. |

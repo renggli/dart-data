@@ -5,7 +5,9 @@ import 'package:more/functional.dart';
 
 import '../data_type.dart';
 
+/// Base data type descriptor for fixed-size typed storage lists ([L]).
 abstract base class TypedDataType<T, L extends List<T>> extends DataType<T> {
+  /// Default constant constructor for [TypedDataType].
   const new();
 
   /// Returns the size of one value in bits.

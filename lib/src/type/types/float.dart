@@ -9,8 +9,10 @@ import '../models/equality.dart';
 import '../models/field.dart';
 import 'typed.dart';
 
+/// Abstract base data type descriptor for floating-point numbers.
 abstract base class FloatDataType<L extends List<double>>
     extends TypedDataType<double, L> {
+  /// Default constant constructor for [FloatDataType].
   const new();
 
   /// Returns the smallest positive value larger than zero.
@@ -62,7 +64,9 @@ abstract base class FloatDataType<L extends List<double>>
   }
 }
 
+/// Data type descriptor for 32-bit single-precision floating-point numbers.
 final class Float32DataType extends FloatDataType<Float32List> {
+  /// Creates a new [Float32DataType] instance.
   const new();
 
   @override
@@ -93,7 +97,9 @@ final class Float32DataType extends FloatDataType<Float32List> {
   );
 }
 
+/// Data type descriptor for 64-bit double-precision floating-point numbers.
 final class Float64DataType extends FloatDataType<Float64List> {
+  /// Creates a new [Float64DataType] instance.
   const new();
 
   @override
@@ -125,7 +131,9 @@ final class Float64DataType extends FloatDataType<Float64List> {
   );
 }
 
+/// Algebraic field operations over floating-point numbers ([double]).
 final class FloatField implements ExtendedField<double> {
+  /// Creates a new [FloatField] instance.
   const new();
 
   @override
@@ -207,7 +215,9 @@ final class FloatField implements ExtendedField<double> {
   double get negativeInfinity => double.negativeInfinity;
 }
 
+/// Equality relation for [double] numbers with proximity testing.
 final class FloatEquality extends NaturalEquality<double> {
+  /// Creates a new [FloatEquality] instance.
   const new();
 
   @override

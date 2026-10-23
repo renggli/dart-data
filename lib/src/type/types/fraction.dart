@@ -6,7 +6,9 @@ import '../data_type.dart';
 import '../models/equality.dart';
 import '../models/field.dart';
 
+/// Data type descriptor for rational fractions ([Fraction]).
 final class FractionDataType extends DataType<Fraction> {
+  /// Creates a new [FractionDataType] instance.
   const new();
 
   @override
@@ -41,14 +43,18 @@ final class FractionDataType extends DataType<Fraction> {
   Field<Fraction> get field => const FractionField();
 }
 
+/// Equality relation for [Fraction] numbers with proximity testing.
 final class FractionEquality extends NaturalEquality<Fraction> {
+  /// Creates a new [FractionEquality] instance.
   const new();
 
   @override
   bool isClose(Fraction a, Fraction b, double epsilon) => a.closeTo(b, epsilon);
 }
 
+/// Algebraic field operations over [Fraction] numbers.
 final class FractionField implements ExtendedField<Fraction> {
+  /// Creates a new [FractionField] instance.
   const new();
 
   @override
