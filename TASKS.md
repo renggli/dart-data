@@ -621,19 +621,27 @@ Each task specifies:
 
 ## 6. High-Value Missing Features Users Expect
 
-### TASK-6.1: `DataFrame` & `Series` Essential Tabular Operations
+### TASK-6.1: `DataFrame` & `Series` Essential Tabular Operations [COMPLETED]
 
 - **Severity**: Medium
 - **Target Files**:
   - `lib/src/dataframe/dataframe.dart`
   - `lib/src/dataframe/series.dart`
   - `lib/src/dataframe/groupby.dart`
+  - `lib/src/dataframe/join.dart`
 - **Missing Capabilities & Actionable Additions**:
   1. **Null handling**: `df.dropNulls({List<String>? subset})`, `df.fillNull(Object value)` / `series.dropNulls()`, `series.fillNull(T value)`.
   2. **Column & row transformations**: `df.rename(Map<String, String> mapping)`, `df.drop(List<String> columns)`, `df.withColumn(Series column)`, `df.concat(DataFrame other)` (vertical concatenation), `series.map<R>(R Function(T) fn)`, `series.unique()`, `series.valueCounts()`.
   3. **Summary statistics**: `df.describe()` returning a summary `DataFrame` (`count`, `mean`, `std`, `min`, `25%`, `50%`, `75%`, `max`).
   4. **Multi-column sorting & join keys**: Support `df.sortBy(List<String> columns, ...)` and `leftOn` / `rightOn` in `df.join(...)`.
   5. **Per-column `GroupBy.count()`**: Currently `GroupBy.count()` only counts non-nulls in the first non-key column; update it to count non-null values per aggregated column (matching Pandas/Polars).
+- **Implementation Report**:
+  - Implemented `Series.dropNulls()`, `Series.fillNull(T value)`, `Series.map<R>(R Function(T) fn)`, `Series.unique()`, and `Series.valueCounts()`.
+  - Added `DataFrame.rename(Map<String, String> mapping)` with existence validation, `DataFrame.concat(DataFrame other)` with schema validation, `DataFrame.dropNulls({List<String>? subset})`, `DataFrame.fillNull(Object value)`, and `DataFrame.describe()`.
+  - Extended `DataFrame.sortBy` to accept single `String` or `List<String>`, with per-column or scalar `ascending` and `nullsLast` controls.
+  - Extended `DataFrame.join` to accept `leftOn` and `rightOn` across both `JoinMethod.hash` and `JoinMethod.sortMerge`.
+  - Updated `GroupBy.count()` to compute counts for all non-key columns.
+  - Added unit test suites across VM and Node.js testing all new capabilities and error conditions.
 
 ### TASK-6.2: `numeric` & `stats` Completeness Improvements
 

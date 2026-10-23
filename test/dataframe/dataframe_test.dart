@@ -685,4 +685,114 @@ line 2",10
       check(seriesCreationCount).equals(2);
     });
   });
+
+  group('Tabular Transformations', () {
+    test('rename columns', () {
+      final df = DataFrame.fromColumns({
+        'a': [1, 2],
+        'b': [3, 4],
+      });
+      final renamed = df.rename({'a': 'first', 'b': 'second'});
+      check(renamed.columnNames).deepEquals(['first', 'second']);
+      check(renamed['first'].toList()).deepEquals([1, 2]);
+
+      check(() => df.rename({'non_existent': 'x'})).throws<ArgumentError>();
+    });
+
+    test('concat DataFrames vertically', () {
+      final df1 = DataFrame.fromColumns({
+        'a': [1, 2],
+        'b': ['x', 'y'],
+      });
+      final df2 = DataFrame.fromColumns({
+        'a': [3, 4],
+        'b': ['z', 'w'],
+      });
+      final combined = df1.concat(df2);
+      check(combined.rowCount).equals(4);
+      check(combined['a'].toList()).deepEquals([1, 2, 3, 4]);
+      check(combined['b'].toList()).deepEquals(['x', 'y', 'z', 'w']);
+
+      final mismatchedCols = DataFrame.fromColumns({
+        'a': [5],
+      });
+      check(() => df1.concat(mismatchedCols)).throws<ArgumentError>();
+
+      final mismatchedNames = DataFrame.fromColumns({
+        'a': [5],
+        'c': ['u'],
+      });
+      check(() => df1.concat(mismatchedNames)).throws<ArgumentError>();
+    });
+
+    test('dropNulls with and without subset', () {
+      final df = DataFrame.fromColumns({
+        'a': [1, null, 3, 4],
+        'b': ['x', 'y', null, 'w'],
+        'c': [10, 20, 30, 40],
+      });
+
+      // Default: drops any row with any null
+      final droppedAll = df.dropNulls();
+      check(droppedAll.rowCount).equals(2);
+      check(droppedAll['a'].toList()).deepEquals([1, 4]);
+      check(droppedAll['b'].toList()).deepEquals(['x', 'w']);
+
+      // Subset on 'a' only: row 2 (which has null in 'b') is kept
+      final droppedSubsetA = df.dropNulls(subset: ['a']);
+      check(droppedSubsetA.rowCount).equals(3);
+      check(droppedSubsetA['a'].toList()).deepEquals([1, 3, 4]);
+      check(droppedSubsetA['b'].toList()).deepEquals(['x', null, 'w']);
+
+      // Unknown subset column
+      check(() => df.dropNulls(subset: ['unknown'])).throws<ArgumentError>();
+    });
+
+    test('fillNull replaces all null entries', () {
+      final df = DataFrame.fromColumns({
+        'a': [1, null, 3],
+        'b': [10, 20, null],
+      });
+      final filled = df.fillNull(0);
+      check(filled['a'].toList()).deepEquals([1, 0, 3]);
+      check(filled['b'].toList()).deepEquals([10, 20, 0]);
+    });
+
+    test('describe computes summary statistics for numeric columns', () {
+      final df = DataFrame.fromColumns({
+        'name': ['Alice', 'Bob', 'Charlie', 'David'],
+        'val': [10.0, 20.0, 30.0, 40.0],
+      });
+      final stats = df.describe();
+      check(stats.columnNames).deepEquals(['statistic', 'val']);
+      check(
+        stats['statistic'].toList(),
+      ).deepEquals(['count', 'mean', 'std', 'min', '25%', '50%', '75%', 'max']);
+      check(stats['val'][0]).equals(4.0); // count
+      check(stats['val'][1]).equals(25.0); // mean
+      check(stats['val'][3]).equals(10.0); // min
+      check(stats['val'][4]).equals(17.5); // 25% percentile
+      check(stats['val'][5]).equals(25.0); // median
+      check(stats['val'][6]).equals(32.5); // 75% percentile
+      check(stats['val'][7]).equals(40.0); // max
+    });
+
+    test('sortBy supports multiple columns and directions', () {
+      final df = DataFrame.fromColumns({
+        'dept': ['IT', 'HR', 'IT', 'HR'],
+        'salary': [100.0, 80.0, 120.0, 90.0],
+      });
+
+      // Sort by dept ascending, then salary descending
+      final sorted = df.sortBy(['dept', 'salary'], ascending: [true, false]);
+      check(sorted['dept'].toList()).deepEquals(['HR', 'HR', 'IT', 'IT']);
+      check(sorted['salary'].toList()).deepEquals([90.0, 80.0, 120.0, 100.0]);
+
+      // Mismatched list lengths
+      check(() => df.sortBy(['dept', 'salary'], ascending: [true]))
+          .throws<ArgumentError>();
+      check(() => df.sortBy(['dept'], nullsLast: [true, false]))
+          .throws<ArgumentError>();
+    });
+  });
 }

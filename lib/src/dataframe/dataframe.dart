@@ -181,6 +181,146 @@ class DataFrame {
     return DataFrame(newCols);
   }
 
+  /// Renames columns according to [mapping].
+  DataFrame rename(Map<String, String> mapping) {
+    for (final oldName in mapping.keys) {
+      if (!_columnIndex.containsKey(oldName)) {
+        throw ArgumentError('Column "$oldName" does not exist in DataFrame.');
+      }
+    }
+    final newCols = <Series<dynamic>>[];
+    for (final col in _columns) {
+      final newName = mapping[col.name];
+      newCols.add(newName != null ? col.rename(newName) : col);
+    }
+    return DataFrame(newCols);
+  }
+
+  /// Concatenates this [DataFrame] vertically with [other].
+  DataFrame concat(DataFrame other) {
+    if (columnCount != other.columnCount) {
+      throw ArgumentError(
+        'Cannot concatenate DataFrames with different column counts ($columnCount vs ${other.columnCount}).',
+      );
+    }
+    for (final col in _columns) {
+      if (!other._columnIndex.containsKey(col.name)) {
+        throw ArgumentError(
+          'Cannot concatenate DataFrames: column "${col.name}" missing in other DataFrame.',
+        );
+      }
+    }
+    final newCols = <Series<dynamic>>[];
+    for (final col in _columns) {
+      final otherCol = other.column(col.name);
+      final combinedVals = <dynamic>[...col.values, ...otherCol.values];
+      final combinedType = col.dataType == otherCol.dataType
+          ? col.dataType
+          : col.dataType.promoteWith(otherCol.dataType);
+      newCols.add(Series.fromList(col.name, combinedVals, type: combinedType));
+    }
+    return DataFrame(newCols);
+  }
+
+  /// Drops rows containing null values in any column (or any column in [subset]).
+  DataFrame dropNulls({List<String>? subset}) {
+    final targetCols = subset != null ? subset.map(column).toList() : _columns;
+    final mask = <bool>[];
+    for (var r = 0; r < rowCount; r++) {
+      var keep = true;
+      for (var c = 0; c < targetCols.length; c++) {
+        if (targetCols[c].isNull(r)) {
+          keep = false;
+          break;
+        }
+      }
+      mask.add(keep);
+    }
+    return filter(mask);
+  }
+
+  /// Returns a new [DataFrame] with null values replaced by [value] in all columns.
+  DataFrame fillNull(Object value) {
+    final newCols = <Series<dynamic>>[];
+    for (final col in _columns) {
+      if (col.hasNulls) {
+        newCols.add(col.fillNull(value));
+      } else {
+        newCols.add(col);
+      }
+    }
+    return DataFrame(newCols);
+  }
+
+  /// Generates descriptive summary statistics for numeric columns.
+  DataFrame describe() {
+    final numericCols = _columns
+        .where((col) => col.dataType.isNumeric || col is Series<num>)
+        .toList();
+    final stats = <String, List<dynamic>>{
+      'statistic': ['count', 'mean', 'std', 'min', '25%', '50%', '75%', 'max'],
+    };
+
+    for (final col in numericCols) {
+      final nonNulls = <double>[];
+      for (var i = 0; i < rowCount; i++) {
+        final val = col[i];
+        if (val != null) {
+          nonNulls.add((val as num).toDouble());
+        }
+      }
+      nonNulls.sort();
+      final n = nonNulls.length;
+      if (n == 0) {
+        stats[col.name] = [
+          0.0,
+          double.nan,
+          double.nan,
+          double.nan,
+          double.nan,
+          double.nan,
+          double.nan,
+          double.nan,
+        ];
+      } else {
+        var sum = 0.0;
+        for (var i = 0; i < n; i++) {
+          sum += nonNulls[i];
+        }
+        final mean = sum / n;
+        var varSum = 0.0;
+        for (var i = 0; i < n; i++) {
+          final diff = nonNulls[i] - mean;
+          varSum += diff * diff;
+        }
+        final std = n > 1 ? math.sqrt(varSum / (n - 1)) : 0.0;
+        final min = nonNulls.first;
+        final max = nonNulls.last;
+
+        double quantile(double p) {
+          final idx = p * (n - 1);
+          final low = idx.floor();
+          final frac = idx - low;
+          if (low >= n - 1) return nonNulls.last;
+          return nonNulls[low] + frac * (nonNulls[low + 1] - nonNulls[low]);
+        }
+
+        stats[col.name] = [
+          n.toDouble(),
+          mean,
+          std,
+          min,
+          quantile(0.25),
+          quantile(0.50),
+          quantile(0.75),
+          max,
+        ];
+      }
+    }
+
+    return DataFrame.fromColumns(stats);
+  }
+
   /// Filters rows using a boolean mask.
   DataFrame filter(List<bool> condition) {
     if (condition.length != rowCount) {
@@ -214,33 +354,65 @@ class DataFrame {
   DataFrame tail([int count = 5]) =>
       slice(math.max(0, rowCount - count), rowCount);
 
-  /// Sorts rows by the values in [columnName].
+  /// Sorts rows by the values in [by] (column name or list of column names).
   ///
-  /// The [ascending] flag specifies whether to sort in ascending or descending
-  /// order. The [nullsLast] flag controls whether `null` values appear at the
-  /// end of the sorted rows (when `true`, default) or at the beginning.
+  /// The [ascending] parameter can be a single `bool` or a `List<bool>` for each
+  /// column. The [nullsLast] parameter can be a `bool` or a `List<bool>`.
   DataFrame sortBy(
-    String columnName, {
-    bool ascending = true,
-    bool nullsLast = true,
+    Object by, {
+    Object ascending = true,
+    Object nullsLast = true,
   }) {
-    final col = column(columnName);
+    final List<String> sortCols;
+    if (by is String) {
+      sortCols = [by];
+    } else if (by is List<String>) {
+      sortCols = by;
+    } else {
+      throw ArgumentError.value(by, 'by', 'Must be a String or List<String>');
+    }
+
+    final ascList = ascending is List<bool>
+        ? ascending
+        : List<bool>.filled(sortCols.length, ascending as bool);
+    if (ascList.length != sortCols.length) {
+      throw ArgumentError(
+        'ascending list length (${ascList.length}) must match columns length (${sortCols.length}).',
+      );
+    }
+    final nullsList = nullsLast is List<bool>
+        ? nullsLast
+        : List<bool>.filled(sortCols.length, nullsLast as bool);
+    if (nullsList.length != sortCols.length) {
+      throw ArgumentError(
+        'nullsLast list length (${nullsList.length}) must match columns length (${sortCols.length}).',
+      );
+    }
+
+    final cols = sortCols.map(column).toList(growable: false);
     final indices = List<int>.generate(rowCount, (i) => i);
     indices.sort((a, b) {
-      final valA = col[a];
-      final valB = col[b];
-      if (valA == null && valB == null) return 0;
-      if (valA == null) return nullsLast ? 1 : -1;
-      if (valB == null) return nullsLast ? -1 : 1;
-      final int cmp;
-      if (valA is bool && valB is bool) {
-        cmp = (valA ? 1 : 0).compareTo(valB ? 1 : 0);
-      } else if (valA is Comparable) {
-        cmp = valA.compareTo(valB);
-      } else {
-        cmp = '$valA'.compareTo('$valB');
+      for (var c = 0; c < sortCols.length; c++) {
+        final col = cols[c];
+        final valA = col[a];
+        final valB = col[b];
+        if (valA == null && valB == null) continue;
+        final nLast = nullsList[c];
+        if (valA == null) return nLast ? 1 : -1;
+        if (valB == null) return nLast ? -1 : 1;
+        final int cmp;
+        if (valA is bool && valB is bool) {
+          cmp = (valA ? 1 : 0).compareTo(valB ? 1 : 0);
+        } else if (valA is Comparable) {
+          cmp = valA.compareTo(valB);
+        } else {
+          cmp = '$valA'.compareTo('$valB');
+        }
+        if (cmp != 0) {
+          return ascList[c] ? cmp : -cmp;
+        }
       }
-      return ascending ? cmp : -cmp;
+      return 0;
     });
 
     final sortedCols = <Series<dynamic>>[];

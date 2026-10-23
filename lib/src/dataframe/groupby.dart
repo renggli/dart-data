@@ -172,11 +172,10 @@ class GroupBy {
   DataFrame count() {
     final targetCols = dataFrame.columnNames
         .where((col) => !byColumns.contains(col))
-        .take(1)
         .toList();
-    final col = targetCols.isNotEmpty ? targetCols.first : byColumns.first;
+    final cols = targetCols.isNotEmpty ? targetCols : [byColumns.first];
     return aggregate({
-      col: [Agg.count],
+      for (final col in cols) col: [Agg.count],
     });
   }
 

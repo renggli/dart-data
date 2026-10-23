@@ -55,27 +55,57 @@ extension JoinDataFrameExtension on DataFrame {
   /// ```
   DataFrame join(
     DataFrame other, {
-    required List<String> on,
+    List<String>? on,
+    List<String>? leftOn,
+    List<String>? rightOn,
     JoinType type = JoinType.inner,
     JoinMethod method = JoinMethod.hash,
     String suffix = '_other',
     bool isSorted = false,
   }) {
-    for (final col in on) {
+    final List<String> effectiveLeftOn;
+    final List<String> effectiveRightOn;
+    if (on != null) {
+      effectiveLeftOn = on;
+      effectiveRightOn = on;
+    } else if (leftOn != null && rightOn != null) {
+      if (leftOn.length != rightOn.length) {
+        throw ArgumentError(
+          'leftOn length (${leftOn.length}) must match rightOn length (${rightOn.length}).',
+        );
+      }
+      effectiveLeftOn = leftOn;
+      effectiveRightOn = rightOn;
+    } else {
+      throw ArgumentError(
+        'Must specify either "on" or both "leftOn" and "rightOn".',
+      );
+    }
+
+    for (final col in effectiveLeftOn) {
       if (!columnNames.contains(col)) {
         throw ArgumentError('Join column "$col" missing in left DataFrame');
       }
+    }
+    for (final col in effectiveRightOn) {
       if (!other.columnNames.contains(col)) {
         throw ArgumentError('Join column "$col" missing in right DataFrame');
       }
     }
 
     final matchedPairs = switch (method) {
-      JoinMethod.hash => _hashJoinPairs(this, other, on, type),
+      JoinMethod.hash => _hashJoinPairs(
+        this,
+        other,
+        effectiveLeftOn,
+        effectiveRightOn,
+        type,
+      ),
       JoinMethod.sortMerge => _sortMergeJoinPairs(
         this,
         other,
-        on,
+        effectiveLeftOn,
+        effectiveRightOn,
         type,
         isSorted,
       ),
@@ -83,26 +113,28 @@ extension JoinDataFrameExtension on DataFrame {
 
     // Build output columns
     final resultCols = <String, List<dynamic>>{};
-    final onSet = on.toSet();
+    final onSet = on != null ? on.toSet() : const <String>{};
 
-    // Key columns
-    for (final keyCol in on) {
-      final leftCol = column(keyCol);
-      final rightCol = other.column(keyCol);
-      final vals = <dynamic>[];
-      for (final (leftIdx, rightIdx) in matchedPairs) {
-        if (leftIdx != null) {
-          vals.add(leftCol[leftIdx]);
-        } else if (rightIdx != null) {
-          vals.add(rightCol[rightIdx]);
-        } else {
-          vals.add(null); // coverage:ignore-line
+    if (on != null) {
+      // Key columns
+      for (final keyCol in on) {
+        final leftCol = column(keyCol);
+        final rightCol = other.column(keyCol);
+        final vals = <dynamic>[];
+        for (final (leftIdx, rightIdx) in matchedPairs) {
+          if (leftIdx != null) {
+            vals.add(leftCol[leftIdx]);
+          } else if (rightIdx != null) {
+            vals.add(rightCol[rightIdx]);
+          } else {
+            vals.add(null);
+          }
         }
+        resultCols[keyCol] = vals;
       }
-      resultCols[keyCol] = vals;
     }
 
-    // Non-key columns from left
+    // Non-key columns from left (or all left columns if on == null)
     for (final col in columnNames) {
       if (onSet.contains(col)) continue;
       final leftCol = column(col);
@@ -112,7 +144,7 @@ extension JoinDataFrameExtension on DataFrame {
       ];
     }
 
-    // Non-key columns from right
+    // Non-key columns from right (or all right columns if on == null)
     for (final col in other.columnNames) {
       if (onSet.contains(col)) continue;
       final outName = resultCols.containsKey(col) ? '$col$suffix' : col;
@@ -130,11 +162,12 @@ extension JoinDataFrameExtension on DataFrame {
 List<(int?, int?)> _hashJoinPairs(
   DataFrame left,
   DataFrame right,
-  List<String> on,
+  List<String> leftOn,
+  List<String> rightOn,
   JoinType type,
 ) {
   // Build hash index on right DataFrame
-  final rightExtractor = RowKeyExtractor(on.map(right.column).toList());
+  final rightExtractor = RowKeyExtractor(rightOn.map(right.column).toList());
   final rightIndex = <Object?, List<int>>{};
   for (var rightRow = 0; rightRow < right.rowCount; rightRow++) {
     final key = rightExtractor.extractKeyOrNull(rightRow);
@@ -146,7 +179,7 @@ List<(int?, int?)> _hashJoinPairs(
   final matchedRightIndices = <int>{};
 
   // Scan left DataFrame
-  final leftExtractor = RowKeyExtractor(on.map(left.column).toList());
+  final leftExtractor = RowKeyExtractor(leftOn.map(left.column).toList());
   for (var leftRow = 0; leftRow < left.rowCount; leftRow++) {
     final key = leftExtractor.extractKeyOrNull(leftRow);
     if (key == null) {
@@ -184,12 +217,13 @@ List<(int?, int?)> _hashJoinPairs(
 List<(int?, int?)> _sortMergeJoinPairs(
   DataFrame left,
   DataFrame right,
-  List<String> on,
+  List<String> leftOn,
+  List<String> rightOn,
   JoinType type,
   bool isSorted,
 ) {
-  final leftCols = [for (final c in on) left.column(c)];
-  final rightCols = [for (final c in on) right.column(c)];
+  final leftCols = [for (final c in leftOn) left.column(c)];
+  final rightCols = [for (final c in rightOn) right.column(c)];
 
   bool hasNullInKey(List<Series<dynamic>> cols, int row) {
     for (var i = 0; i < cols.length; i++) {
@@ -231,14 +265,14 @@ List<(int?, int?)> _sortMergeJoinPairs(
     for (var i = 1; i < left.rowCount; i++) {
       if (compareRows(leftCols, i - 1, leftCols, i) > 0) {
         throw ArgumentError(
-          'Left DataFrame is not sorted by join keys ($on) at row $i',
+          'Left DataFrame is not sorted by join keys ($leftOn) at row $i',
         );
       }
     }
     for (var i = 1; i < right.rowCount; i++) {
       if (compareRows(rightCols, i - 1, rightCols, i) > 0) {
         throw ArgumentError(
-          'Right DataFrame is not sorted by join keys ($on) at row $i',
+          'Right DataFrame is not sorted by join keys ($rightOn) at row $i',
         );
       }
     }

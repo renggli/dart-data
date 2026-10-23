@@ -563,6 +563,58 @@ void main() {
       },
     );
   });
+
+  group('DataFrame.join - Asymmetric Keys (leftOn and rightOn)', () {
+    final left = DataFrame.fromColumns({
+      'user_id': [1, 2, 3],
+      'name': ['Alice', 'Bob', 'Charlie'],
+    });
+    final right = DataFrame.fromColumns({
+      'id': [2, 3, 4],
+      'score': [90, 85, 95],
+    });
+
+    test('hash join with leftOn and rightOn', () {
+      final joined = left.join(
+        right,
+        leftOn: ['user_id'],
+        rightOn: ['id'],
+        type: JoinType.inner,
+      );
+      check(joined.rowCount).equals(2);
+      check(joined.columnNames).deepEquals(['user_id', 'name', 'id', 'score']);
+      check(joined['user_id'].toList()).deepEquals([2, 3]);
+      check(joined['id'].toList()).deepEquals([2, 3]);
+      check(joined['name'].toList()).deepEquals(['Bob', 'Charlie']);
+      check(joined['score'].toList()).deepEquals([90, 85]);
+    });
+
+    test('sortMerge join with leftOn and rightOn', () {
+      final joined = left.join(
+        right,
+        leftOn: ['user_id'],
+        rightOn: ['id'],
+        type: JoinType.inner,
+        method: JoinMethod.sortMerge,
+      );
+      check(joined.rowCount).equals(2);
+      check(joined['user_id'].toList()).deepEquals([2, 3]);
+      check(joined['id'].toList()).deepEquals([2, 3]);
+    });
+
+    test('validation errors for leftOn and rightOn', () {
+      check(() => left.join(right)).throws<ArgumentError>();
+      check(() => left.join(right, leftOn: ['user_id']))
+          .throws<ArgumentError>();
+      check(
+        () => left.join(right, leftOn: ['user_id'], rightOn: ['id', 'score']),
+      ).throws<ArgumentError>();
+      check(() => left.join(right, leftOn: ['bad_col'], rightOn: ['id']))
+          .throws<ArgumentError>();
+      check(() => left.join(right, leftOn: ['user_id'], rightOn: ['bad_col']))
+          .throws<ArgumentError>();
+    });
+  });
 }
 
 final class _Item {

@@ -4,6 +4,7 @@ import '../../type.dart';
 import 'arrow/arrow_c_data.dart';
 import 'arrow_string_series.dart';
 import 'bitmask.dart';
+import 'dataframe.dart';
 
 /// 1-dimensional columnar series with optional Apache Arrow validity bitmask.
 ///
@@ -102,6 +103,68 @@ abstract class Series<T> {
 
   /// Returns a copy of this series with a new [name].
   Series<T> rename(String newName);
+
+  /// Returns a copy of this series with null values removed.
+  Series<T> dropNulls() {
+    if (!hasNulls) return this;
+    final mask = [for (var i = 0; i < length; i++) !isNull(i)];
+    return filter(mask);
+  }
+
+  /// Returns a copy of this series with null values replaced by [value].
+  Series<T> fillNull(T value) {
+    if (!hasNulls) return this;
+    final list = [
+      for (var i = 0; i < length; i++)
+        if (isNull(i)) value else this[i],
+    ];
+    return Series.fromList(name, list, type: dataType);
+  }
+
+  /// Transforms elements of this series using [fn], ignoring null entries.
+  Series<R> map<R>(R Function(T value) fn, {String? name, DataType<R>? type}) {
+    final newName = name ?? this.name;
+    final list = <R?>[];
+    for (var i = 0; i < length; i++) {
+      if (isNull(i)) {
+        list.add(null);
+      } else {
+        list.add(fn(this[i] as T));
+      }
+    }
+    return Series.fromList(newName, list, type: type);
+  }
+
+  /// Returns a series containing only unique values in order of appearance.
+  Series<T> unique() {
+    final seen = <T?>{};
+    final mask = <bool>[];
+    for (var i = 0; i < length; i++) {
+      mask.add(seen.add(this[i]));
+    }
+    return filter(mask);
+  }
+
+  /// Returns a [DataFrame] containing unique values and their occurrence counts.
+  DataFrame valueCounts({bool ascending = false, bool dropNulls = false}) {
+    final counts = <T?, int>{};
+    for (var i = 0; i < length; i++) {
+      final val = this[i];
+      if (dropNulls && val == null) continue;
+      counts[val] = (counts[val] ?? 0) + 1;
+    }
+    final entries = counts.entries.toList();
+    entries.sort(
+      (a, b) =>
+          ascending ? a.value.compareTo(b.value) : b.value.compareTo(a.value),
+    );
+    final valueList = [for (final e in entries) e.key];
+    final countList = [for (final e in entries) e.value];
+    return DataFrame([
+      Series.fromList(name, valueList, type: dataType),
+      Series<int>.fromList('count', countList, type: DataType.int32),
+    ]);
+  }
 
   /// Exports this [Series] to Apache Arrow C Data structures.
   ///

@@ -180,4 +180,57 @@ void main() {
       check(() => strSeries.getNonNull(1)).throws<StateError>();
     });
   });
+
+  group('Series tabular transformations', () {
+    test('dropNulls filters out null entries', () {
+      final s = Series<int>.fromList('x', [1, null, 2, null, 3]);
+      final clean = s.dropNulls();
+      check(clean.toList()).deepEquals([1, 2, 3]);
+      check(clean.hasNulls).isFalse();
+
+      final noNulls = Series<int>.fromList('y', [1, 2, 3]);
+      check(noNulls.dropNulls().toList()).deepEquals([1, 2, 3]);
+    });
+
+    test('fillNull replaces null entries', () {
+      final s = Series<int>.fromList('x', [1, null, 2, null, 3]);
+      final filled = s.fillNull(0);
+      check(filled.toList()).deepEquals([1, 0, 2, 0, 3]);
+
+      final noNulls = Series<int>.fromList('y', [1, 2, 3]);
+      check(identical(noNulls.fillNull(99), noNulls)).isTrue();
+    });
+
+    test('map transforms non-null elements preserving null positions', () {
+      final s = Series<int>.fromList('x', [1, null, 3]);
+      final mapped = s.map((v) => 'num_$v', name: 'strings');
+      check(mapped.name).equals('strings');
+      check(mapped.toList()).deepEquals(['num_1', null, 'num_3']);
+    });
+
+    test('unique returns distinct elements preserving order of appearance', () {
+      final s = Series<int>.fromList('x', [3, null, 1, 3, null, 2, 1]);
+      final u = s.unique();
+      check(u.toList()).deepEquals([3, null, 1, 2]);
+
+      final allUnique = Series<String>.fromList('words', ['a', 'b', 'c']);
+      check(allUnique.unique().toList()).deepEquals(['a', 'b', 'c']);
+    });
+
+    test('valueCounts aggregates and sorts descending', () {
+      final s = Series<String>.fromList('cat', [
+        'apple',
+        'banana',
+        'apple',
+        'orange',
+        'apple',
+        'banana',
+      ]);
+      final counts = s.valueCounts();
+      check(counts.columnNames).deepEquals(['cat', 'count']);
+      check(counts.rowCount).equals(3);
+      check(counts['cat'].toList()).deepEquals(['apple', 'banana', 'orange']);
+      check(counts['count'].toList()).deepEquals([3, 2, 1]);
+    });
+  });
 }

@@ -206,6 +206,18 @@ void main() {
       final countDf = grouped.count();
       check(countDf['score_count'].toList()).deepEquals([2, 1]);
     });
+
+    test('count() counts non-null entries for every non-key column', () {
+      final df = DataFrame.fromColumns({
+        'group': ['A', 'A', 'B'],
+        'v1': [1, null, 3],
+        'v2': ['x', 'y', 'z'],
+      });
+      final countDf = df.groupBy(['group']).count();
+      check(countDf.columnNames).deepEquals(['group', 'v1_count', 'v2_count']);
+      check(countDf['v1_count'].toList()).deepEquals([1, 1]);
+      check(countDf['v2_count'].toList()).deepEquals([2, 1]);
+    });
   });
 
   group('GroupBy - Validation & Errors', () {
