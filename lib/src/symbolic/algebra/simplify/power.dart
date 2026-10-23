@@ -269,7 +269,8 @@ Expr simplifyPow(
             exponent: IntegerNumber(value: final m),
           )
           when m.abs().gcd(q) > Integer.one &&
-              isProvenReal(innerBase, assumptions)) {
+              ((m.isEven && isProvenReal(innerBase, assumptions)) ||
+                  isNonNegativeExpr(innerBase, assumptions: assumptions))) {
         extractedFactors.add(
           simplifyPow(f, exponent, assumptions: assumptions),
         );

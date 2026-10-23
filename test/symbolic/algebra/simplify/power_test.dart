@@ -189,6 +189,18 @@ void main() {
       check(Expr.parse('sqrt(4 * exp(2 * x))').simplify().toString())
           .equals('2 * exp(x)');
 
+      // Odd powers in product fractional roots require non-negative base
+      check(
+        Expr.parse('(x^3 * y)^(1/3)')
+            .simplify(assumptions: Assumptions.real)
+            .toString(),
+      ).equals('(x ^ 3 * y) ^ (1/3)');
+      check(
+        Expr.parse('(x^3 * y)^(1/3)')
+            .simplify(assumptions: Assumptions.positive)
+            .toString(),
+      ).equals('x * y ^ (1/3)');
+
       // Tangent of f(x) = sqrt(x^2) + abs(x) at x0 = -2 * pi simplifies to -2 * x
       final f = Expr.parse('sqrt(x^2) + abs(x)');
       final x0 = Expr.parse('-2 * pi').simplify();
