@@ -1,6 +1,8 @@
 import 'dart:typed_data';
 
 import '../../../type.dart';
+import '../../tensor/layout.dart';
+import '../../tensor/tensor.dart';
 import '../vector.dart';
 
 /// Solves a tridiagonal linear system $A x = d$ in $\mathcal{O}(N)$ time using
@@ -66,97 +68,67 @@ Vector<double> solveTridiagonal(
     ], type: DataType.float64);
   }
 
+  final subData = _asFloat64List(sub);
+  final diagData = _asFloat64List(diag);
+  final supData = _asFloat64List(sup);
+  final rhsData = _asFloat64List(rhs);
+
   final cp = Float64List(n - 1);
-  final x = Vector<double>.filled(n, 0.0, type: DataType.float64);
+  final xData = Float64List(n);
 
-  final subTensor = sub.tensor;
-  final diagTensor = diag.tensor;
-  final supTensor = sup.tensor;
-  final rhsTensor = rhs.tensor;
-
-  if (subTensor.isContiguous &&
-      diagTensor.isContiguous &&
-      supTensor.isContiguous &&
-      rhsTensor.isContiguous &&
-      x.tensor.isContiguous) {
-    final subData = subTensor.data;
-    final diagData = diagTensor.data;
-    final supData = supTensor.data;
-    final rhsData = rhsTensor.data;
-    final xData = x.tensor.data;
-
-    final subOff = subTensor.offset;
-    final diagOff = diagTensor.offset;
-    final supOff = supTensor.offset;
-    final rhsOff = rhsTensor.offset;
-    final xOff = x.tensor.offset;
-
-    var w = diagData[diagOff].toDouble();
-    if (w == 0.0 || w.isNaN) {
-      throw ArgumentError('Matrix is singular (zero pivot at index 0).');
-    }
-    cp[0] = supData[supOff].toDouble() / w;
-    xData[xOff] = rhsData[rhsOff].toDouble() / w;
-
-    for (var i = 1; i < n - 1; i++) {
-      final ai = subData[subOff + i - 1].toDouble();
-      w = diagData[diagOff + i].toDouble() - ai * cp[i - 1];
-      if (w == 0.0 || w.isNaN) {
-        throw ArgumentError('Matrix is singular (zero pivot at index $i).');
-      }
-      cp[i] = supData[supOff + i].toDouble() / w;
-      xData[xOff + i] =
-          (rhsData[rhsOff + i].toDouble() - ai * xData[xOff + i - 1]) / w;
-    }
-
-    final an = subData[subOff + n - 2].toDouble();
-    w = diagData[diagOff + n - 1].toDouble() - an * cp[n - 2];
-    if (w == 0.0 || w.isNaN) {
-      throw ArgumentError('Matrix is singular (zero pivot at index ${n - 1}).');
-    }
-    xData[xOff + n - 1] =
-        (rhsData[rhsOff + n - 1].toDouble() - an * xData[xOff + n - 2]) / w;
-
-    for (var i = n - 2; i >= 0; i--) {
-      xData[xOff + i] = xData[xOff + i] - cp[i] * xData[xOff + i + 1];
-    }
-
-    return x;
-  }
-
-  var w = diag.getUnchecked(0).toDouble();
+  var w = diagData[0];
   if (w == 0.0 || w.isNaN) {
     throw ArgumentError('Matrix is singular (zero pivot at index 0).');
   }
-  cp[0] = sup.getUnchecked(0).toDouble() / w;
-  x.setUnchecked(0, rhs.getUnchecked(0).toDouble() / w);
+  cp[0] = supData[0] / w;
+  xData[0] = rhsData[0] / w;
 
   for (var i = 1; i < n - 1; i++) {
-    final ai = sub.getUnchecked(i - 1).toDouble();
-    w = diag.getUnchecked(i).toDouble() - ai * cp[i - 1];
+    final ai = subData[i - 1];
+    w = diagData[i] - ai * cp[i - 1];
     if (w == 0.0 || w.isNaN) {
       throw ArgumentError('Matrix is singular (zero pivot at index $i).');
     }
-    cp[i] = sup.getUnchecked(i).toDouble() / w;
-    x.setUnchecked(
-      i,
-      (rhs.getUnchecked(i).toDouble() - ai * x.getUnchecked(i - 1)) / w,
-    );
+    cp[i] = supData[i] / w;
+    xData[i] = (rhsData[i] - ai * xData[i - 1]) / w;
   }
 
-  final an = sub.getUnchecked(n - 2).toDouble();
-  w = diag.getUnchecked(n - 1).toDouble() - an * cp[n - 2];
+  final an = subData[n - 2];
+  w = diagData[n - 1] - an * cp[n - 2];
   if (w == 0.0 || w.isNaN) {
     throw ArgumentError('Matrix is singular (zero pivot at index ${n - 1}).');
   }
-  x.setUnchecked(
-    n - 1,
-    (rhs.getUnchecked(n - 1).toDouble() - an * x.getUnchecked(n - 2)) / w,
-  );
+  xData[n - 1] = (rhsData[n - 1] - an * xData[n - 2]) / w;
 
   for (var i = n - 2; i >= 0; i--) {
-    x.setUnchecked(i, x.getUnchecked(i) - cp[i] * x.getUnchecked(i + 1));
+    xData[i] -= cp[i] * xData[i + 1];
   }
 
-  return x;
+  return Vector(
+    Tensor<double>.internal(
+      type: DataType.float64,
+      layout: Layout(shape: [n]),
+      data: xData,
+    ),
+  );
+}
+
+Float64List _asFloat64List(Vector<num> v) {
+  final tensor = v.tensor;
+  final data = tensor.data;
+  if (data is Float64List && tensor.isContiguous) {
+    if (tensor.offset == 0 && tensor.length == data.length) {
+      return data;
+    }
+    return Float64List.sublistView(
+      data,
+      tensor.offset,
+      tensor.offset + tensor.length,
+    );
+  }
+  final result = Float64List(v.length);
+  for (var i = 0; i < v.length; i++) {
+    result[i] = v.getUnchecked(i).toDouble();
+  }
+  return result;
 }
