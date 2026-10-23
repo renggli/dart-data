@@ -1,4 +1,5 @@
 import 'dart:math' as math;
+import 'dart:typed_data';
 
 import '../../../type.dart';
 import '../matrix.dart';
@@ -193,31 +194,37 @@ class LUDecomposition<T> {
   }
 
   void _decomposeFloat64() {
-    final lu = _lu as Matrix<double>;
+    final luData = _lu.tensor.data as Float64List;
     _pivSign = 1;
 
     for (var j = 0; j < _n; j++) {
       for (var i = 0; i < _m; i++) {
         final kmax = math.min(i, j);
         var sum = 0.0;
+        final iOffset = i * _n;
         for (var k = 0; k < kmax; k++) {
-          sum += lu.getUnchecked(i, k) * lu.getUnchecked(k, j);
+          sum += luData[iOffset + k] * luData[k * _n + j];
         }
-        lu.setUnchecked(i, j, lu.getUnchecked(i, j) - sum);
+        luData[iOffset + j] -= sum;
       }
 
       if (j < _m) {
         var pivot = j;
+        var maxVal = luData[j * _n + j].abs();
         for (var i = j + 1; i < _m; i++) {
-          if (lu.getUnchecked(i, j).abs() > lu.getUnchecked(pivot, j).abs()) {
+          final val = luData[i * _n + j].abs();
+          if (val > maxVal) {
+            maxVal = val;
             pivot = i;
           }
         }
         if (pivot != j) {
+          final pivotOffset = pivot * _n;
+          final jOffset = j * _n;
           for (var k = 0; k < _n; k++) {
-            final temp = lu.getUnchecked(pivot, k);
-            lu.setUnchecked(pivot, k, lu.getUnchecked(j, k));
-            lu.setUnchecked(j, k, temp);
+            final temp = luData[pivotOffset + k];
+            luData[pivotOffset + k] = luData[jOffset + k];
+            luData[jOffset + k] = temp;
           }
           final k = _piv[pivot];
           _piv[pivot] = _piv[j];
@@ -225,13 +232,10 @@ class LUDecomposition<T> {
           _pivSign = -_pivSign;
         }
 
-        if (lu.getUnchecked(j, j) != 0.0) {
+        final diag = luData[j * _n + j];
+        if (diag != 0.0) {
           for (var i = j + 1; i < _m; i++) {
-            lu.setUnchecked(
-              i,
-              j,
-              lu.getUnchecked(i, j) / lu.getUnchecked(j, j),
-            );
+            luData[i * _n + j] /= diag;
           }
         }
       }
@@ -298,7 +302,7 @@ class LUDecomposition<T> {
   }
 
   Matrix<double> _solveFloat64(Matrix<double> b) {
-    final lu = _lu as Matrix<double>;
+    final luData = _lu.tensor.data as Float64List;
     final nx = b.colCount;
     final x = Matrix<double>.generate(
       _m,
@@ -306,32 +310,32 @@ class LUDecomposition<T> {
       (row, col) => b.getUnchecked(_piv[row], col),
       type: DataType.float64,
     );
+    final xData = x.tensor.data as Float64List;
 
     // Solve L * Y = B(piv,:)
     for (var k = 0; k < _n; k++) {
+      final kOffset = k * nx;
       for (var i = k + 1; i < _n; i++) {
+        final lik = luData[i * _n + k];
+        final iOffset = i * nx;
         for (var j = 0; j < nx; j++) {
-          x.setUnchecked(
-            i,
-            j,
-            x.getUnchecked(i, j) - x.getUnchecked(k, j) * lu.getUnchecked(i, k),
-          );
+          xData[iOffset + j] -= xData[kOffset + j] * lik;
         }
       }
     }
 
     // Solve U * X = Y
     for (var k = _n - 1; k >= 0; k--) {
+      final ukk = luData[k * _n + k];
+      final kOffset = k * nx;
       for (var j = 0; j < nx; j++) {
-        x.setUnchecked(k, j, x.getUnchecked(k, j) / lu.getUnchecked(k, k));
+        xData[kOffset + j] /= ukk;
       }
       for (var i = 0; i < k; i++) {
+        final uik = luData[i * _n + k];
+        final iOffset = i * nx;
         for (var j = 0; j < nx; j++) {
-          x.setUnchecked(
-            i,
-            j,
-            x.getUnchecked(i, j) - x.getUnchecked(k, j) * lu.getUnchecked(i, k),
-          );
+          xData[iOffset + j] -= xData[kOffset + j] * uik;
         }
       }
     }

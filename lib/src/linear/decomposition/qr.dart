@@ -1,4 +1,5 @@
 import 'dart:math' as math;
+import 'dart:typed_data';
 
 import '../../../type.dart';
 import '../matrix.dart';
@@ -251,14 +252,14 @@ class QRDecomposition<T> {
   }
 
   void _decomposeFloat64(Matrix<double> matrix) {
-    final qr = _qr as Matrix<double>;
+    final qrData = _qr.tensor.data as Float64List;
     final rdiag = _rdiag as List<double>;
 
     for (var k = 0; k < _n; k++) {
       var scale = 0.0;
       var sumsq = 1.0;
       for (var i = k; i < _m; i++) {
-        final val = qr.getUnchecked(i, k);
+        final val = qrData[i * _n + k];
         if (val != 0.0) {
           final absVal = val.abs();
           if (scale < absVal) {
@@ -272,26 +273,23 @@ class QRDecomposition<T> {
       var nrm = scale * math.sqrt(sumsq);
 
       if (nrm != 0.0) {
-        if (qr.getUnchecked(k, k) < 0) {
+        if (qrData[k * _n + k] < 0) {
           nrm = -nrm;
         }
         for (var i = k; i < _m; i++) {
-          qr.setUnchecked(i, k, qr.getUnchecked(i, k) / nrm);
+          qrData[i * _n + k] /= nrm;
         }
-        qr.setUnchecked(k, k, qr.getUnchecked(k, k) + 1.0);
+        qrData[k * _n + k] += 1.0;
 
+        final qkk = qrData[k * _n + k];
         for (var j = k + 1; j < _n; j++) {
           var sum = 0.0;
           for (var i = k; i < _m; i++) {
-            sum += qr.getUnchecked(i, k) * qr.getUnchecked(i, j);
+            sum += qrData[i * _n + k] * qrData[i * _n + j];
           }
-          sum = -sum / qr.getUnchecked(k, k);
+          sum = -sum / qkk;
           for (var i = k; i < _m; i++) {
-            qr.setUnchecked(
-              i,
-              j,
-              qr.getUnchecked(i, j) + sum * qr.getUnchecked(i, k),
-            );
+            qrData[i * _n + j] += sum * qrData[i * _n + k];
           }
         }
       }
@@ -362,26 +360,24 @@ class QRDecomposition<T> {
   }
 
   Matrix<double> _qFloat64() {
-    final qr = _qr as Matrix<double>;
+    final qrData = _qr.tensor.data as Float64List;
     final result = Matrix<double>.filled(_m, _n, 0.0, type: DataType.float64);
+    final resData = result.tensor.data as Float64List;
     for (var k = _n - 1; k >= 0; k--) {
       for (var i = 0; i < _m; i++) {
-        result.setUnchecked(i, k, 0.0);
+        resData[i * _n + k] = 0.0;
       }
-      result.setUnchecked(k, k, 1.0);
-      for (var j = k; j < _n; j++) {
-        if (qr.getUnchecked(k, k) != 0.0) {
+      resData[k * _n + k] = 1.0;
+      final qkk = qrData[k * _n + k];
+      if (qkk != 0.0) {
+        for (var j = k; j < _n; j++) {
           var sum = 0.0;
           for (var i = k; i < _m; i++) {
-            sum += qr.getUnchecked(i, k) * result.getUnchecked(i, j);
+            sum += qrData[i * _n + k] * resData[i * _n + j];
           }
-          sum = -sum / qr.getUnchecked(k, k);
+          sum = -sum / qkk;
           for (var i = k; i < _m; i++) {
-            result.setUnchecked(
-              i,
-              j,
-              result.getUnchecked(i, j) + sum * qr.getUnchecked(i, k),
-            );
+            resData[i * _n + j] += sum * qrData[i * _n + k];
           }
         }
       }
@@ -390,7 +386,7 @@ class QRDecomposition<T> {
   }
 
   Matrix<double> _solveFloat64(Matrix<double> b) {
-    final qr = _qr as Matrix<double>;
+    final qrData = _qr.tensor.data as Float64List;
     final rdiag = _rdiag as List<double>;
     final nx = b.colCount;
     final x = Matrix<double>.generate(
@@ -399,37 +395,35 @@ class QRDecomposition<T> {
       (row, col) => b.getUnchecked(row, col),
       type: DataType.float64,
     );
+    final xData = x.tensor.data as Float64List;
 
     // Compute Y = Q^T * B
     for (var k = 0; k < _n; k++) {
+      final qkk = qrData[k * _n + k];
       for (var j = 0; j < nx; j++) {
         var sum = 0.0;
         for (var i = k; i < _m; i++) {
-          sum += qr.getUnchecked(i, k) * x.getUnchecked(i, j);
+          sum += qrData[i * _n + k] * xData[i * nx + j];
         }
-        sum = -sum / qr.getUnchecked(k, k);
+        sum = -sum / qkk;
         for (var i = k; i < _m; i++) {
-          x.setUnchecked(
-            i,
-            j,
-            x.getUnchecked(i, j) + sum * qr.getUnchecked(i, k),
-          );
+          xData[i * nx + j] += sum * qrData[i * _n + k];
         }
       }
     }
 
     // Solve R * X = Y
     for (var k = _n - 1; k >= 0; k--) {
+      final rk = rdiag[k];
+      final kOffset = k * nx;
       for (var j = 0; j < nx; j++) {
-        x.setUnchecked(k, j, x.getUnchecked(k, j) / rdiag[k]);
+        xData[kOffset + j] /= rk;
       }
       for (var i = 0; i < k; i++) {
+        final qik = qrData[i * _n + k];
+        final iOffset = i * nx;
         for (var j = 0; j < nx; j++) {
-          x.setUnchecked(
-            i,
-            j,
-            x.getUnchecked(i, j) - x.getUnchecked(k, j) * qr.getUnchecked(i, k),
-          );
+          xData[iOffset + j] -= xData[kOffset + j] * qik;
         }
       }
     }
