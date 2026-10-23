@@ -169,7 +169,7 @@ Pre-release review of `lib/` at `2fc36d4`. Baseline: `dart analyze` clean, READM
   - the symbolic `integrate` simplification fallback
 - **Fix**: Narrow each one to the exceptions it actually expects (`ArgumentError`, `UnsupportedError`, `StateError`). `catch (_)` in `library_loader_ffi.dart` (dynamic library probing) is acceptable but should be documented.
 
-#### FU-2.2: Publishing Blocker: Git `dependency_overrides` on `more` — Medium
+#### FU-2.2 [COMPLETED]: Publishing Blocker: Git `dependency_overrides` on `more` — Medium
 
 - **File**: `pubspec.yaml` L30–32. The agent kept this on purpose (it needs the `asinh` fix from git `dart-more`).
 - **Fix**: Release `more` and pin the version constraint, then remove the override before publishing `0.16.0`. `dart pub publish --dry-run` currently fails.
