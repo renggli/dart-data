@@ -1,751 +1,201 @@
-# Engineering Audit & Action-Oriented Task Specification (`package:data`)
+# Release Tasks
 
-This document provides a comprehensive, prioritized engineering roadmap of confirmed bugs, safety and FFI boundary hazards, public API inconsistencies, algorithmic performance optimizations, missing high-value features, and test/documentation gaps across all 10 subsystems of `package:data`.
+Pre-release review of `lib/` at `2fc36d4`. Baseline: `dart analyze` clean, README snippets run, no `.$N` accessors, no TODO/FIXME markers, no temp-like test names.
 
-Each task specifies:
-
-- **Severity**: `Critical` (process crash / memory corruption / data loss / silent wrong mathematical result), `High` (runtime exception on valid input / major contract violation / severe performance bottleneck), `Medium` (API inconsistency / edge-case inaccuracy / charter rule violation), or `Low` (ergonomics / minor cleanup).
-- **Target Files**: Exact repository-relative paths.
-- **Problem & Evidence**: Concrete code behavior or reproducible failure output.
-- **Actionable Fix & Acceptance Criteria**: Exact implementation steps and unit test requirements.
+**Severity**: `High` (wrong result, crash, or interop break), `Medium` (accuracy, charter, or API gap), `Low` (hygiene/perf).
+**Verified** = reproduced with a scratch script. All other findings come from reading the code and should be confirmed with a failing test before fixing.
 
 ---
 
-## 1. Critical Bugs & Memory / Process Safety Hazards
+## R1. Symbolic: Unsound Branch Simplifications
 
-### TASK-1.1: Prevent Native CBLAS `cblas_xerbla` Process Aborts on Zero-Sized or Invalid Leading Dimensions [COMPLETED]
+| ID | Sev | Location | Problem | Fix |
+| --- | --- | --- | --- | --- |
+| R1.1 | High | `lib/src/symbolic/algebra/simplify/power.dart:177-201` | Verified: `(x^3)^(1/3) -> x` and `(x^2)^(1/3) -> x^(2/3)`. Both are wrong for `x<0` (principal branch). | Fold only for an integer outer exponent, a base proven non-negative, or an inner exponent in `(-1,1]`. |
+| R1.2 | High | `lib/src/symbolic/algebra/simplify/multiplicative.dart:251-258` | Verified: `_combineRadicalBases` gives `sqrt(2)/sqrt(y) -> sqrt(2/y)`, `sqrt(2)sqrt(x)sqrt(y) -> sqrt(2xy)` and `x^(1/3)y^(1/3) -> (xy)^(1/3)` with no domain checks. | Require all but at most one numerator base, and every denominator base, to be proven positive. |
+| R1.3 | High | `lib/src/symbolic/assumptions.dart:69-70` | Verified: `domainOf` returns the parent's default before it checks the child's `defaultDomain`, so `copyWith(defaultDomain: positive)` has no effect. | Walk the explicit `domains` up the chain, then fall back to `this.defaultDomain`. |
+| R1.4 | High | `lib/src/symbolic/algebra/simplify/transcendental.dart:614-616,637-640` | Verified: `ln(x^3) -> 3ln(x)` and `ln(1/x) -> -ln(x)` are applied unconditionally. `ln(e^u) -> u` is too. | Require `u` real (for `e^u`), `u` positive, or `k` in `(-1,1]`. |
+| R1.5 | Medium | `power.dart:169-175` | Verified: `(e^z)^w -> e^(zw)` has no condition. `exp(4i)^(1/2)` gives the wrong branch. | Restrict to an integer `w` or a real `z`. |
+| R1.6 | Medium | `power.dart:256-265` | Verified: rule 7b turns `(x^3 y)^(1/3)` into `x y^(1/3)` under `Assumptions.real`, which is wrong for `x<0`. | Require an even `m` or a non-negative base. |
+| R1.7 | Medium | `power.dart:28-35` | Verified: `0^x -> 0`, which is wrong at `x=0`. | Return 0 only when `Re(exponent)` is proven positive. |
+| R1.8 | Medium | `lib/src/symbolic/ast/integral.dart:104` | Verified: indefinite `Integral.substitute('x', y)` substitutes the integrand but keeps `dx`. | Rename the integration variable, or return a lazy node. Mirror FU-1.1. |
+| R1.9 | Medium | `power.dart:137-141` | `2.5^2` and `2^0.5` are never evaluated, unlike `Add`. | Use `powNumber` when an operand is a `RealNumber`. |
+| R1.10 | Low | `lib/src/symbolic/ast/number.dart:153-156`, `power.dart:19-21`, `multiplicative.dart:41-54` | Float contagion is lost: `(1+i)^2.0 -> 2i`, `x^0.0 -> 1`, `0.0*x -> 0`. | Return a `RealNumber` result when an input was a `RealNumber`. |
+| R1.11 | Low | `multiplicative.dart:280-285`, `power.dart:119,125,331,347` | Recursive `simplify*` calls drop `assumptions`. | Pass `assumptions` through on every call. |
+| R1.12 | Low | `transcendental.dart` (Ln/Abs) | Missing reductions: `log(8,2) -> 1/3`, `ln(8)-3ln(2) -> 0`, `abs(xy) -> abs(x)abs(y)`. | Split integer prime powers in `ln`. Make `abs` multiplicative. |
 
-- **Severity**: Critical
-- **Target Files**:
-  - `lib/src/acceleration/blas/blas_native.dart`
-  - `lib/src/acceleration/blas/blas_dart.dart`
-  - `lib/src/tensor/operations/matmul.dart`
-- **Problem & Evidence**:
-  - Calling `Tensor.matmul` on zero-extent dimensions (e.g., `Tensor<double>.filled(0.0, shape: [2, 0]).matmul(Tensor<double>.filled(0.0, shape: [0, 2]))`) or calling `Blas.dgemm` / `Blas.dgemv` with `m == 0`, `n == 0`, or `k == 0` when `lda == 0` invokes Apple Accelerate's native `cblas_dgemm`/`cblas_dgemv` with `lda = 0`.
-  - Native CBLAS requires `lda >= max(1, k)` (or `max(1, m)`) even when dimensions are zero; otherwise `cblas_xerbla` prints `LDA must be >= MAX(K,1): LDA=0 K=0. BLAS error: Parameter number 9 passed to cblas_dgemm had an invalid value` and **terminates the Dart VM process with exit code 255 (`abort()`)**.
-  - Additionally, passing buffers smaller than required by `(n - 1) * incX.abs() + 1 + xOffset` (or matrix leading dimensions) to `blas_native.dart` passes raw pointers directly to C without bounds checking, causing out-of-bounds heap reads/writes in native mode while `blas_dart.dart` throws `RangeError`.
-- **Actionable Fix & Acceptance Criteria**:
-  1. In `blas_native.dart` (and `blas.dart`), add fast early returns when `n <= 0` (Level 1) or `m <= 0 || n <= 0` (Level 2/3, after applying `beta` scaling to `y`/`c` when `k == 0`), before invoking FFI `@Native` functions.
-  2. Validate `trans`/`uplo`/`side`/`diag` enum constants, `lda >= max(1, ...)`, `incX != 0`, and buffer bounds (`offset >= 0` and required span fits within `.length`) in `Blas` before FFI dispatch; throw `RangeError` or `ArgumentError` consistently across `dart`, `auto`, and `accelerated` modes.
-  3. In `lib/src/tensor/operations/matmul.dart`, when the contracted inner dimension `k == 0`, zero-fill `target` (using `type.field. additiveIdentity`) before returning so pre-allocated non-zero targets are not left with stale values.
-  4. Verify with `accelerationTest` covering `0x0`, `2x0 * 0x2`, and out-of-bounds buffer views.
+## R2. Acceleration: Native vs. Dart Divergence
 
-### TASK-1.2: Fix `Float64Vector` and `Float64Matrix` Unchecked Buffer Overruns & Silent Write Loss [COMPLETED]
+| ID | Sev | Location | Problem | Fix |
+| --- | --- | --- | --- | --- |
+| R2.1 | High | `lib/src/acceleration/lapack/lapack_native.dart:323-331` | The LAPACKE `dsyev` path transposes eigenvectors into rows. The Fortran and Dart paths return columns. | Remove the transpose. Add a test that checks eigenvectors. |
+| R2.2 | High | `lapack_native.dart:244-257` | The Fortran `dgels` hardcodes `LDA=n` and passes row-major `B` as column-major, so it is wrong for `nrhs>1` or `lda≠n`. | Use `lda`. Transpose `B` through an arena buffer, as `dgesv` does. |
+| R2.3 | High | `lib/src/acceleration/lapack/lapack.dart:19-110` | The `Lapack` facade has no argument or bounds checks, so native calls can read or write out of bounds. `LapackDart.dsyev(n=0)` hits `e[-1]`. | Add the `blas_validation` checks and an `n==0` early return to every entry point. |
+| R2.4 | Medium | `lapack_native.dart:14-15,53` | `_hasDpotrf` is true when only `LAPACKE_dpotrf` exists, but the code calls `dpotrf_`. | Split the flags or add the LAPACKE binding. |
+| R2.5 | Medium | `lib/src/acceleration/lapack/lapack_dart.dart:18-30,68-71,120,238` | `uplo` is ignored (`dsyev`, `dpotrf`). `dgesv` copies `n*lda` elements, past the validated bounds. | Read only the declared triangle. Copy only `n×n` and `n×nrhs` entries. |
+| R2.6 | Medium | `lapack_dart.dart:136-212` | The `dgels` fallback uses normal equations, which squares the condition number. Native uses QR. | Implement Householder QR/LQ. |
+| R2.7 | Medium | `lib/src/acceleration/blas/blas_dart.dart:290-336`, `blas_native.dart:184,236` | Dart `dsyr2`/`ssyr2` ignore `uplo`. The native `gemv` zero-size path misses `ConjTrans`. | Update only the `uplo` triangle, then mirror. Test `transA != cblasNoTrans`. |
+| R2.8 | Medium | `lib/src/acceleration/vforce/vforce_native.dart:190`, `vforce.dart:102,180,209` | An empty filter throws natively. `convolve` is gated on `isAvailable`, not on `convD`. `vpow` and the unary ops don't validate lengths. | Add `hasConvolution`. Validate lengths in the facade. |
+| R2.9 | Medium | `test/tensor/operations/`, `test/acceleration/lapack/lapack_test.dart:49-67` | `matmul` and `reduction` have no tests. The LAPACK tests don't check `dgels` values, `nrhs>1`, `lda≠n`, or eigenvectors. | Add `accelerationTest` suites for these cases. |
 
-- **Severity**: Critical
-- **Target Files**:
-  - `lib/src/linear/float64_vector.dart`
-  - `lib/src/linear/float64_matrix.dart`
-  - `lib/src/tensor/float64_tensor.dart`
-- **Problem & Evidence**:
-  - **Out-of-bounds read/write on views**: `Float64Vector.operator []` and `operator []=` check `if (layout.isContiguous && layout.offset == 0)` and index `_list[index]` directly without checking `index < length`. For a prefix subvector view `final sub = Float64Vector(v.subVector(0, 2))` of a 4-element vector `[10, 20, 30, 40]`, `sub.isContiguous` is `true` and `sub.layout.offset` is `0`, so `sub[3]` silently returns `40.0` instead of throwing `RangeError`!
-  - **Silent write loss on non-`Float64List` backing**: `Float64Tensor.asTypedList` returns `data is Float64List ? data : Float64List.fromList(data)`. When a `Matrix<double>` or `Vector<double>` is backed by `Float32List` (e.g., created with `type: DataType.float32`) or a generic `List<double>`, `Float64Matrix(m).set(0, 0, 99.0)` writes into the temporary `Float64List.fromList(data)` copy and silently discards the mutation (`m.get(0, 0)` remains `1.0`), and `get1D`/`get2D` copy the entire buffer on every element read ($O(N)$ per access).
-- **Actionable Fix & Acceptance Criteria**:
-  1. In `Float64Tensor(...)`, `Float64Matrix(...)`, and `Float64Vector(...)` constructors, validate `tensor.data is Float64List` and throw `ArgumentError` if the underlying storage is not a `Float64List` (or provide an explicit `.fromDoubleTensor` copying factory), eliminating the defensive `Float64List.fromList` allocation in `asTypedList`.
-  2. In `Float64Vector.operator []` / `operator []=` and `Float64Matrix.get` / `set` / `operator []`, enforce `RangeError.checkValidIndex(index, this, 'index', length)` (and row/col bounds checks for matrices) before accessing `_list`. Keep unchecked access strictly on `getUnchecked`/`setUnchecked` or `get1D`/`set1D`.
-  3. Add unit tests in `test/linear/float64_vector_test.dart` and `test/linear/float64_matrix_test.dart` verifying that out-of-bounds indexing on `subVector(0, k)` throws `RangeError`.
+## R3. Tensor
 
-### TASK-1.3: Fix `LUDecomposition` Out-of-Bounds Crash on Rectangular Matrices ($m < n$) [COMPLETED]
+| ID | Sev | Location | Problem | Fix |
+| --- | --- | --- | --- | --- |
+| R3.1 | Medium | `lib/src/tensor/tensor.dart:44-177` | `filled`/`generate`/`fromIterable` accept arbitrary `strides` but allocate only `layout.length`. Length mismatches truncate or pad silently. `fromObject` accepts ragged lists. | Validate the input or drop the `strides` parameter. Throw `ArgumentError`. |
+| R3.2 | Medium | `lib/src/tensor/layout.dart:177-191,432-441` | `indices` allocates a `List` per element. `toKey` is O(rank²). Every non-contiguous path pays for this. | Use an allocation-free odometer over the strides. |
+| R3.3 | Medium | `lib/src/tensor/float64_tensor.dart:46-50,141-219` | Copies the whole backing buffer of a non-`Float64List` operand, and `fromDoubleTensor` copies the whole buffer instead of the view. | Index the operand directly. Copy only the view. Dedupe the shape helpers. |
+| R3.4 | Medium | `tensor.dart:145,219` | `fromObject(dynamic)` and `dynamic toNestedList()`. | Use `Object?`. |
 
-- **Severity**: Critical
-- **Target Files**:
-  - `lib/src/linear/decomposition/lu.dart`
-- **Problem & Evidence**:
-  - Calling `m.lu` on a wide rectangular matrix ($m < n$, e.g. $2 \times 3$) throws `RangeError (length): Invalid value: Not in inclusive range 0..5: 8` inside `LUDecomposition` because loop bounds and `lower`/`upper` dimensions assume $m \ge n$ (allocating $n \times n$ for `upper` and indexing row $i \ge m$ in `_lu`).
-- **Actionable Fix & Acceptance Criteria**:
-  1. Support general $m \times n$ LU factorization with `minMN = math.min(m, n)`: `lower` has shape $m \times \text{min}(m, n)$ with unit diagonal, and `upper` has shape $\text{min}(m, n) \times n$ (or restrict `LUDecomposition` to $m \ge n$ / square matrices with a clear `ArgumentError` and document it).
-  2. Add tests for $2 \times 3$ and $3 \times 2$ matrices in `test/linear/decomposition/lu_test.dart`.
+## R4. Numeric / Linear / Polynomial
 
-### TASK-1.4: Fix `DataFrame.sortBy` Null Comparator Crash & `DataFrame.toTensor` Silent Null/String Corruption [COMPLETED]
+| ID | Sev | Location | Problem | Fix |
+| --- | --- | --- | --- | --- |
+| R4.1 | High | `lib/src/numeric/ode/solve_ode.dart:309-327` | BDF2 uses uniform-step coefficients on a truncated last step, which gives an O(h) endpoint error. | Use variable-step coefficients, or a BE/trapezoid last step. |
+| R4.2 | High | `lib/src/numeric/root_finding/solve.dart:199-219` | Bisection ignores `f(a)==0`/`f(b)==0` and walks away from the root. NaN is not guarded. | Return the endpoint early. Add the NaN guard from `_brent`. |
+| R4.3 | Medium | `lib/src/linear/solvers/iterative.dart:171-178` | GMRES collapses complex dot products to their norm. On breakdown, `krylovBasis[k+1]` throws `RangeError`. | Keep `H` in `T`, or restrict to real types. Break cleanly on breakdown. |
+| R4.4 | Medium | `solve_ode.dart:244-248` | RK45 at `minStep` rejects forever until `maxSteps`. | Accept the step, or abort with `converged=false`. |
+| R4.5 | Medium | `lib/src/linear/matrix.dart:466-470,515-519` | The docs promise `dgels` for rectangular solves, but the code uses pure-Dart QR. | Route `double` through `Lapack.dgels`. |
+| R4.6 | Medium | `matrix.dart:441-446,490-495` | `dgesv` copies twice. A `Float64List` is stored under a `float32` `DataType`. | Copy once. Use the correct `DataType`. |
+| R4.7 | Medium | `matrix.dart:429` | `S solve<S extends Object>(S b)` uses runtime `as S` casts. | Split into `solve(Matrix<T>)` and `solveVector(Vector<T>)`. |
+| R4.8 | Medium | `lib/src/linear/decomposition/qr.dart:89`, `svd.dart:152` | Absolute rank tolerances (`1e-12`, `1e-15`) are not scale-invariant. | Use `max(m,n)·eps·max | diag | `. |
+| R4.9 | Medium | `lib/src/polynomial/polynomial.dart:439-457` | `as num` cast fails for complex coefficients. The quadratic formula suffers cancellation. | Use the stable `q` formula. Handle the field or throw `ArgumentError`. |
+| R4.10 | Low | `lu.dart:195-239`, `qr.dart:244-429` | The "Float64" paths still use virtual `getUnchecked`/`setUnchecked`. | Operate on the contiguous `Float64List`. |
+| R4.11 | Low | `solve.dart:186`, `iterative.dart:111,246` | Newton/CG/GMRES return non-converged results silently. The tolerances are absolute. | Signal non-convergence. Use `‖r‖ ≤ tol·‖b‖`. |
+| R4.12 | Low | `lib/src/polynomial/orthogonal.dart:40` | Public `clenshawEvaluate` is named after the algorithm (charter violation). | Rename, e.g. `evaluateOrthogonalSeries`. |
+| R4.13 | Low | `iterative.dart:235-239`, `tridiagonal.dart:127-161` | GMRES allocates a vector per term. The Thomas algorithm is duplicated. | Use `addScaled`. Keep a single path. |
 
-- **Severity**: Critical
-- **Target Files**:
-  - `lib/src/dataframe/dataframe.dart`
-- **Problem & Evidence**:
-  - In `DataFrame.sortBy` (`lib/src/dataframe/dataframe.dart` lines 253–269), when `valA != null && valB == null`, the comparator skips the `if (valA == null)` block and executes `(valA as Comparable).compareTo(valB)`, which immediately crashes with `TypeError: type 'Null' is not a subtype of type 'num' of 'other'`. Reproduction: `DataFrame.fromColumns({'x': [2, null, 1]}).sortBy('x')` throws `TypeError`.
-  - In `DataFrame.toTensor` (`lib/src/dataframe/dataframe.dart` lines 354–384), null entries and non-numeric `Object`/`String` entries silently convert to `0.0` (`val is num ? val.toDouble() : 0.0`) instead of `double.nan` (for nulls) and throwing `FormatException`/`UnsupportedError` (for non-numeric columns).
-- **Actionable Fix & Acceptance Criteria**:
-  1. Fix `DataFrame.sortBy` to check `if (valB == null) return nullsLast ? -1 : 1;` before calling `compareTo`.
-  2. In `DataFrame.toTensor`, map null values in numeric columns to `double.nan` (or add `{double nullValue = double.nan}`), and throw `UnsupportedError` if a selected column is non-numeric (`String`, `bool`, arbitrary objects).
-  3. Add unit tests for sorting columns with interspersed nulls (`ascending: true/false`, `nullsLast: true/false`) and converting nullable/non-numeric columns to tensors.
+## R5. DataFrame / Arrow / CSV
 
-### TASK-1.5: Fix Arrow IPC Multi-Batch Data Loss, Unaligned Buffer Views Crash, and Dictionary/Compression Handling [COMPLETED]
+| ID | Sev | Location | Problem | Fix |
+| --- | --- | --- | --- | --- |
+| R5.1 | High | `lib/src/dataframe/arrow/arrow_ipc.dart:156-172` | The Field never writes `children`, which Arrow C++/pyarrow reject (from memory, not tested). | Always emit an empty vector. Add a pyarrow round-trip check. |
+| R5.2 | High | `arrow_ipc.dart:607-621` | Unsupported types silently map to `typeCode 0`. Half floats are read as 8-byte doubles. | Throw `UnsupportedError` at schema time. |
+| R5.3 | Medium | `lib/src/dataframe/arrow/arrow_c_data_ffi.dart:237-246` | Struct import ignores the parent offset, length, and validity bitmap. | Apply the parent offset, or reject `offset≠0`. |
+| R5.4 | Medium | `arrow_ipc.dart:160,469`, `arrow_c_data_ffi.dart:265` | `nullable` comes from the first batch only. `bodyLength` is unchecked. | Emit `nullable=true` or OR it across batches. Throw `FormatException`. |
+| R5.5 | Medium | `lib/src/dataframe/csv/csv_stream.dart:345-361` | A trailing empty field at EOF is dropped. An unterminated quote never closes the sink. | Track a pending field. Close after `addError`. |
+| R5.6 | Medium | `lib/src/dataframe/csv/csv_writer.dart:23-41` | `null` and `''` are both written as empty. A single-column null row is skipped on read. | Quote `''` as `""`. |
+| R5.7 | Medium | `lib/src/dataframe/dataframe.dart:335,552,564`, `series.dart:173-187`, `json/json_decoder.dart`, `arrow/arrow_ipc.dart`, `tuple_key.dart` | Heavy `dynamic` use in public signatures (`filterBy`, `Series<dynamic>`). Overlaps FU-1.5. | Switch to `Object?`, starting with the public API. |
 
-- **Severity**: Critical
-- **Target Files**:
-  - `lib/src/dataframe/arrow/arrow_ipc.dart`
-- **Problem & Evidence**:
-  - **Multi-batch overwrite**: In `ArrowIpc.decode` (`lib/src/dataframe/arrow/arrow_ipc.dart` lines 88–103), each `RecordBatch` message overwrites `resultDf = _readRecordBatch(...)` instead of accumulating batches, silently dropping all batches except the last one in multi-batch Arrow IPC streams/files produced by PyArrow, Polars, or DuckDB.
-  - **Unaligned `Uint8List` view crash**: `_readRecordBatch` creates typed views via `Float64List.sublistView(bytes, ...)` assuming `bytes.offsetInBytes == 0`. When `bytes` is a `Uint8List.sublistView` starting at an offset not divisible by 8 (e.g. offset 4 from a network frame or file header), `ArrowIpc.decode` crashes with `RangeError: Offset (276) must be a multiple of BYTES_PER_ELEMENT (8)`.
-  - **Silent corruption on dictionary-encoded or compressed batches**: Schema `dictionary` fields and `RecordBatch` `compression` fields are ignored, causing dictionary index buffers or LZ4/ZSTD compressed bytes to be reinterpreted as raw primitive values.
-- **Actionable Fix & Acceptance Criteria**:
-  1. Accumulate decoded columns across all `RecordBatch` messages and concatenate them (or construct chunked series) before returning the final `DataFrame`.
-  2. Check `(bytes.offsetInBytes + dataStart) % elementSize == 0` before calling `sublistView`; when unaligned, copy the slice into an aligned `Uint8List` buffer first.
-  3. Detect non-null `dictionary` on `Field` and non-null `compression` on `RecordBatch` and either support them or throw a descriptive `UnsupportedError`.
-  4. Add tests in `test/dataframe/arrow/arrow_ipc_test.dart` for multi-batch streams and unaligned `Uint8List.sublistView` inputs.
+## R6. Stats / Special Functions
 
-### TASK-1.6: Fix Arrow C Data Interface Memory Leaks, Missing `offset` Handling, `null_count == -1`, and Charter Signature Mismatch [COMPLETED]
+| ID | Sev | Location | Problem | Fix |
+| --- | --- | --- | --- | --- |
+| R6.1 | Medium | `lib/src/special/gamma.dart:126,223-230` | The incomplete gamma series and continued fraction run a fixed iteration count with no convergence test (about 1e-11 error). This affects Poisson, χ², Gamma, and Jarque-Bera. | Iterate until the relative term is below 1e-15, with a generous cap. |
+| R6.2 | Medium | `lib/src/special/beta.dart:89,127-159` | `_betacf` caps at 100 iterations, too few for large `a`,`b`. `ibetaInv` uses `eps=1e-8` and 10 Newton steps. | Scale the cap with the parameters. Use `eps≈1e-14` plus a bisection fallback. |
+| R6.3 | Medium | `lib/src/stats/distributions/continuous/student_t.dart:113-117`, `f.dart:111-115` | No `survival` override, so p-values floor at about 1e-16. The t cdf cancels for large negative x. | Use `ibeta`-based cdf and survival with symmetry. |
+| R6.4 | Medium | `lib/src/special/erf.dart:173` | `erfcInv(x) = -erfInv(x-1)` cancels for small x. Normal quantiles go to −∞ below p≈1e-17. | Use a direct tail approximation or AS241. |
+| R6.5 | Medium | `lib/src/stats/hypothesis/mann_whitney.dart:42-44` | No tie or continuity correction, so results don't match scipy/R. | Apply the tie-corrected σ and a ±0.5 correction. |
+| R6.6 | Medium | `lib/src/stats/hypothesis/kolmogorov_smirnov.dart:27-37,101-118` | Wrong for discrete distributions. Inaccurate asymptotics for small n. | Reject `DiscreteDistribution`. Use the exact MTW method for n ≲ 100. |
 
-- **Severity**: Critical
-- **Target Files**:
-  - `lib/src/dataframe/arrow/arrow_c_data_ffi.dart`
-  - `lib/src/dataframe/arrow/arrow_c_data_stub.dart`
-- **Problem & Evidence**:
-  - **Memory leak on import**: `ArrowCDataExtension.importFromC` / `SeriesCDataExtension.importFromC` never calls the producer's `release` callback on `ArrowSchema` or `ArrowArray` after copying the buffers (nor zeroes `schema.release`/`array.release`), leaking foreign C/Python/DuckDB memory on every import per the Arrow C Data specification.
-  - **Non-zero `array.offset` ignored**: Imported arrays ignore `array.offset`, reading from index 0 of validity bitmaps, primitive buffers, and string offset buffers—producing corrupted data when importing sliced arrays from Polars/PyArrow.
-  - **`null_count == -1` drops all nulls**: In Arrow C Data, `null_count == -1` means "unknown null count, check validity bitmap", but `_importValidityMask` checks `if (nullCount <= 0 || validityPtr == nullptr) return null;`, silently discarding all nulls when a producer sets `null_count = -1`!
-  - **Charter API mismatch**: `AGENTS.md` mandates `exportTo({required outSchema, required outArray})` and `importFrom({required schema, required array})`, whereas the code uses positional `exportToC(schemaPtr, arrayPtr)` and `SeriesCDataExtension.importFromC(name, schemaPtr, arrayPtr)` (and lacks `DataFrame.importFrom` as a static/factory method).
-- **Actionable Fix & Acceptance Criteria**:
-  1. Rename methods to canonical `exportTo({required outSchema, required outArray})` and `importFrom({required schema, required array})` on `DataFrame` and `Series`.
-  2. Respect `array.offset` across primitive buffers, validity bitmaps, and `Utf8` offset buffers.
-  3. Treat `null_count != 0 && validityPtr != nullptr` (including `null_count == -1`) as having a validity bitmap, computing the actual null count from the bitmask when `null_count == -1`.
-  4. Invoke the producer's `release` callbacks on `array` and `schema` in a `try`/`finally` block once import finishes.
-  5. Guard partial allocations during `exportTo` so an exception on column $k$ releases columns $0 \dots k-1$.
+## R7. Release Hygiene
 
-### TASK-1.7: Fix Symbolic Definite Integration Returning Finite Values Across Divergent Singularities & Throwing on Negative Float Powers [COMPLETED]
-
-- **Severity**: Critical
-- **Target Files**:
-  - `lib/src/symbolic/calculus/integration.dart`
-- **Problem & Evidence**:
-  - **False finite result on divergent integral**: `Expr.parse('1/x^2').integrate('x', from: -1, to: 1)` applies $F(b) - F(a) = (-1/1) - (-1/-1) = -2$ across the pole at $x = 0$, returning `-2` for $\int_{-1}^1 x^{-2}\,dx = +\infty$!
-  - **Uncaught exception on `x^(-1.0)` and `1/(x*ln(x))`**:
-    - `Expr.parse('x^(-1.0)').integrate('x')` and `Expr.parse('1/(x*ln(x))').integrate('x')` throw `UnsupportedError: Division by zero in negative power of zero` inside `_antiDerivPow` / `_tryChainRulePower` because `exponent` is `RealNumber(-1.0)` (not `IntegerNumber.negativeOne`, or in `1/(x*ln(x))`, $u = \ln(x)$ has power $-1$ which hits `pow + 1 = 0` division in `_tryChainRulePower`), violating the `AGENTS.md` rule: *"Symbolic integration (`integrate`) returns an unevaluated `Integral` AST node when no elementary closed-form antiderivative exists rather than throwing exceptions."*
-  - **Logarithmic antiderivative missing `abs` on negative bounds**: `Expr.parse('1/x').integrate('x', from: -2, to: -1)` fails to evaluate to `ln(2)` because $\int x^{-1}\,dx$ returns `ln(x)` instead of `ln(abs(x))` (or handling negative intervals in definite evaluation).
-- **Actionable Fix & Acceptance Criteria**:
-  1. In `_tryChainRulePower` and `_antiDerivPow`, check `if (n == IntegerNumber.negativeOne || (n is RealNumber && n.value == -1.0))` and return `Ln(u)` (or `Ln(Abs(u))` under real assumptions). Wrap internal simplification in `_symbolicIntegrate` so any domain error falls back to returning an unevaluated `Integral` node rather than throwing.
-  2. Before applying $F(b) - F(a)$ on finite intervals $[a, b]$, detect interior poles where denominator factors vanish on $[a, b]$ (e.g., via root solving on denominators of rational/trig expressions) and split the interval at interior singularities or return an unevaluated `Integral` / `Constant.infinity`.
-
-### TASK-1.8: Fix `Derivative.substitute` and `Integral.substitute` Bound-Variable Capture & Point-Evaluation Bug [COMPLETED]
-
-- **Severity**: Critical
-- **Target Files**:
-  - `lib/src/symbolic/ast/derivative.dart`
-  - `lib/src/symbolic/ast/integral.dart`
-  - `lib/src/symbolic/ast/limit.dart`
-  - `lib/src/symbolic/ast/summation.dart`
-- **Problem & Evidence**:
-  - `Derivative(Expr.parse('x^2'), 'x').substitute('x', IntegerNumber.two).simplify()` substitutes `x = 2` *inside* the operand before differentiating, producing `Derivative(4, 'x') -> 0` instead of $\left.\frac{d}{dx}(x^2)\right|_{x=2} = 4$!
-  - Similarly, `Integral(f, 'x', lower: a, upper: b).substitute('x', val)` substitutes the dummy integration variable `'x'` inside `f` even though `'x'` is bound in a definite integral, and when substituting a free variable `y -> x` into `Integral(f(x, y), 'x')`, variable capture occurs because bound `'x'` is not alpha-renamed.
-- **Actionable Fix & Acceptance Criteria**:
-  1. In `Definite Integral`, `Limit`, `Sum`, and `Product`, do not substitute the bound variable in the body (only in `lower`/`upper`/`point` bounds), and alpha-rename the bound variable if `replacement.freeVariables.contains(variable)`.
-  2. In `Derivative.substitute(v, replacement)`, if `v == variable` and `replacement` is not a simple `Variable`, either evaluate the derivative first (`expr.derivative(variable, order: order).substitute(v, replacement)`) or keep an evaluation node rather than substituting a constant into the differentiation target.
-
-### TASK-1.9: Fix `Integer` Safe-Range Assertion Crash in `RationalNumber` and `_exactIntegerRoot` for Large `BigInt`s [COMPLETED]
-
-- **Severity**: Critical
-- **Target Files**:
-  - `lib/src/symbolic/ast/number.dart`
-  - `lib/src/symbolic/number/rational.dart`
-- **Problem & Evidence**:
-  - `Pow(IntegerNumber(Integer.big(BigInt.one << 120)), FractionNumber.half).simplify()` crashes with `AssertionError: 'package:data/src/symbolic/number/integer.dart': line 30: '-maxSafe <= value && value <= maxSafe': Value 1152921504606846976 is outside the safe range, use Integer.from` because `_exactIntegerRoot` in `lib/src/symbolic/ast/number.dart` calls `Integer(rInt)` (the `const` small-integer constructor) instead of `Integer.from(rInt)` / `Integer.big(...)`.
-  - Likewise, `RationalNumber.fromFraction` and `RationalNumber(int, int)` call `Integer(value)` directly instead of `Integer.from(value)`, failing when a `vm` 64-bit `int` exceeds $2^{53} - 1$.
-- **Actionable Fix & Acceptance Criteria**:
-  1. Replace all non-compile-time-constant `Integer(x)` calls in `lib/src/symbolic/ast/number.dart` and `lib/src/symbolic/number/rational.dart` with `Integer.from(x)` or `Integer.big(x)`.
-  2. Add unit tests in `test/symbolic/number_test.dart` for exact roots and rationals with values $> 2^{53}$ and $> 2^{64}$.
+| ID | Sev | Location | Problem | Fix |
+| --- | --- | --- | --- | --- |
+| R7.1 | High | `CHANGELOG.md:3-13` | No breaking-changes section. `lib/matrix.dart` and `lib/vector.dart` were removed, as were `Vector/Matrix.fromString`, `fromTensor`, `distance`, and `distanceSquared`. | Add a "Breaking changes" section with migration hints. |
+| R7.2 | Medium | `CHANGELOG.md:3` | The heading still says `(Unpublished)`. | Fix it at release. |
+| R7.3 | Medium | `lib/src/type/types/*.dart`, `lib/src/acceleration/blas/cblas_constants.dart` | Exported public members lack `///` docs (234 `public_member_api_docs` hits in total). | Document the exported members. Consider enabling the lint. |
+| R7.4 | Low | `.pubignore` | It shadows `.gitignore`, so `pubspec.lock`, `coverage/` and `*.dart.js*` are published. | Copy those patterns. Check with `dart pub publish --dry-run`. |
+| R7.5 | Low | `ARCHITECTURE.md:309` | Describes nested `domain/` directories, but the actual acceleration layout is flat. | Update the description. |
+| R7.6 | Low | `README.md:16,30` | Claims a `Float32x4` SIMD fallback (none exists), says "GELSF" (should be GELS), and says "25+" dashboard distributions (actually 24). | Correct the text. |
+| R7.7 | Low | `lib/src/acceleration/utils/library_loader.dart`, `lib/src/dataframe/arrow/arrow_c_data.dart` | Export-only conditional selectors inside `lib/src` (the charter prohibits barrels there). | Document the exception in `AGENTS.md`. |
 
 ---
 
-## 2. High-Severity Correctness & Numerical Bugs
+## Carried Over: Open Follow-Ups (FU-*)
 
-### TASK-2.1: Fix Symbolic Simplification Unsoundness Under `Assumptions.none` and Indeterminate `Infinity` Forms [COMPLETED]
+#### FU-1.1: `Derivative.substitute` Drops the Point Evaluation (Regression of TASK-1.8) — High
 
-- **Severity**: High
-- **Target Files**:
-  - `lib/src/symbolic/algebra/simplify/power.dart`
-  - `lib/src/symbolic/algebra/simplify/multiplicative.dart`
-  - `lib/src/symbolic/algebra/simplify/additive.dart`
-  - `lib/src/symbolic/algebra/simplify/transcendental.dart`
-  - `lib/src/symbolic/ast/expr.dart`
-- **Problem & Evidence**:
-  - **Indeterminate forms simplified to `0`**:
-    - `Expr.parse('0 * infinity').simplify()` returns `0` instead of `Constant.undefined` because `simplifyMul` short-circuits to `0` on `IntegerNumber.zero` without checking for `Constant.infinity` or `Constant.undefined` factors.
-    - `Expr.parse('infinity - infinity').simplify()` returns `0` because `TermAccumulator` cancels `+1 * infinity` and `-1 * infinity` like an ordinary variable.
-  - **Domain-unsound algebraic rewrites**:
-    - `Expr.parse('ln(x^2)').simplify(assumptions: Assumptions.real)` returns `2 * ln(x)` (undefined for $x < 0$; must be `2 * ln(abs(x))` for `real` and `2 * ln(x)` only for `positive`).
-    - `Expr.parse('asin(sin(x))').simplify()`, `atan(tan(x)).simplify()`, and `acos(cos(x)).simplify()` unconditionally return `x` for all $x$, which is false outside the principal branch (e.g. $\arcsin(\sin(\pi)) = 0 \ne \pi$).
-    - `Expr.parse('sqrt(x) * sqrt(y)').simplify()` (with `Assumptions.none`) collapses to `sqrt(x * y)`, which is false for negative/complex numbers ($\sqrt{-1}\sqrt{-1} = -1 \ne \sqrt{(-1)(-1)} = 1$).
-    - `Expr.parse('(x^2)^(1/2)').simplify()` under `Assumptions.none` (where `defaultDomain` is `VariableDomain.unknown`) simplifies to `abs(x)`, which fails for complex $x = i$ ($\sqrt{i^2} = i \ne |i| = 1$).
-    - `Expr.parse('ln(-1)').simplify()` throws `ArgumentError: Natural logarithm domain error: non-positive argument` instead of returning $i\pi$ (`Mul([ComplexNumber.i, Constant.pi])`) in a complex-capable CAS, and `ln(0)` / `0^(-1)` throw instead of returning `-Constant.infinity` / `Constant.undefined`.
-    - `Expr.isReal` (`lib/src/symbolic/ast/expr.dart` lines 229–256) returns `true` for `Pow(IntegerNumber(-1), FractionNumber.half)` ($\sqrt{-1}$) and `Ln(IntegerNumber(-1))` before simplification because it only checks child `.isReal` without checking negative bases of fractional powers or negative arguments of `Ln`/`Asin`/`Acos`.
-- **Actionable Fix & Acceptance Criteria**:
-  1. In `simplifyMul` and `TermAccumulator`, check for `Constant.infinity` and `Constant.undefined` before zero-annihilation or additive cancellation: `0 * infinity -> Constant.undefined`, `infinity - infinity -> Constant.undefined`, `infinity + infinity -> Constant.infinity`.
-  2. Restrict `sqrt(a) * sqrt(b) -> sqrt(a * b)` and `(a * b)^r -> a^r * b^r` to when at least one factor is known `positive` (or both are positive), and restrict `sqrt(x^2) -> abs(x)` and `abs(x)^2 -> x^2` to `real`/`integer`/`positive` domains (not `unknown`/`complex`).
-  3. Simplify `ln(x^even)` to `even * ln(x)` only when `x` is `positive`, and to `even * ln(abs(x))` when `x` is `real`/`integer`.
-  4. Remove unconditional `asin(sin(x)) -> x`, `acos(cos(x)) -> x`, `atan(tan(x)) -> x` for arbitrary symbolic `x` (keep `sin(asin(x)) -> x`, `cos(acos(x)) -> x`, `tan(atan(x)) -> x`, and evaluate inverse-of-trig only for numeric constants reduced into the principal branch).
-  5. Evaluate `Ln(negative)` to `Ln(abs(x)) + i * pi` and fail-safe `isReal` on `Pow(base, exp)` with non-integer exponent unless `base` is proven non-negative.
+- **File**: `lib/src/symbolic/ast/derivative.dart` (`substitute`, ~L37–53).
+- **Problem**: When `variable == this.variable` and `replacement` is not a `Variable`, it returns `Derivative(expr, variable)` unchanged. This throws the substitution away: `Derivative(x^2, 'x').substitute('x', 2).simplify()` gives `2*x`, not `4`. The task asked for either evaluate-then-substitute or an evaluation node.
+- **Problem (variable capture)**: Renaming to a `Variable` replacement that is already free in `expr` captures it. For example, `d/dx (x*y)` with `x -> y` becomes `d/dy (y*y)`.
+- **Fix**:
+  1. Return `expr.derivative(variable, order: order).substitute(variable, replacement)`. If no closed form exists, return a point-evaluation node instead.
+  2. Alpha-rename on capture, the same way `Integral`, `Limit`, `Sum`, and `Product` do.
+  3. Add regression tests for both cases.
 
-### TASK-2.2: Wire Up Unused `exact_constants.dart` & Fix Symbolic Print/Parse Round-Trip Failures [COMPLETED]
+#### FU-1.2: Numeric Pole Integration Silently Hides Divergence — High
 
-- **Severity**: High
-- **Target Files**:
-  - `lib/src/symbolic/algebra/exact_constants.dart`
-  - `lib/src/symbolic/algebra/simplify/transcendental.dart`
-  - `lib/src/symbolic/textualization/string.dart`
-  - `lib/src/symbolic/parser.dart`
-- **Problem & Evidence**:
-  - **Exact trig table never triggers on simplified expressions**: `Expr.parse('sin(pi/6)').simplify()` returns `sin(1/6 * pi)` (unsimplified!) instead of `1/2` because `pi / 6` simplifies to `Mul([FractionNumber(1, 6), Constant.pi])`, whereas `_matchPiMultiple` in `transcendental.dart` only matches `Pow(IntegerNumber, -1)` or `IntegerNumber` factors and misses `FractionNumber`! Similarly, `exp(i * pi).simplify()` returns `exp(i * pi)` instead of `-1`.
-  - **Print/parse round-trip failures**:
-    - `Pow(Variable('x'), IntegerNumber.negativeOne)` formats as `"1 / x"`, which reparses as `Mul([IntegerNumber.one, Pow(Variable('x'), IntegerNumber.negativeOne)])` (`e == Expr.parse(e.toString())` is `false`!).
-    - `Mul([Variable('x'), RationalNumber(1, 2)])` formats as `"x * 1/2"`, which reparses as `Mul([Mul([Variable('x'), IntegerNumber.one]), Pow(IntegerNumber.two, IntegerNumber.negativeOne)])` (`eq == false`).
-    - `Expr.parse('sum(i^2, i, 1, n)')` throws `FormatException: sum second argument must be a variable identifier, got: i` because the parser converts `i` to `ComplexNumber.i` before checking the summation index argument.
-- **Actionable Fix & Acceptance Criteria**:
-  1. In `transcendental.dart`, update `_matchPiMultiple` to match `FractionNumber(num, den) * Constant.pi` and handle Euler's identity `exp(i * k * pi)` in `power.dart`.
-  2. In `parser.dart`, simplify `1 / rhs` directly to `Pow(rhs, IntegerNumber.negativeOne)` when the numerator is `IntegerNumber.one`, parenthesize `FractionNumber` when multiplied on the right in `string.dart` (or give `/` tighter rational binding), and allow `i` (or `e`) as bound variable identifiers in `sum(...)`, `product(...)`, `diff(...)`, `integrate(...)`, and `limit(...)`.
-  3. Add property tests verifying `Expr.parse(e.toString()) == e` across all AST node shapes.
+- **File**: `lib/src/numeric/integration.dart` (~L220–270, the endpoint-pole transform).
+- **Problem**: `catch (_)` blocks, plus mapping `NaN` and `Infinity` to `0.0`, can turn a divergent integral (for example $\int_0^1 1/x\,dx$) into a finite number with no error or warning. This breaks the charter's convergence error/warning contract.
+- **Fix**:
+  1. Catch only specific exceptions.
+  2. Propagate non-finite samples as a divergence or non-convergence flag (or an `IntegrationResult` warning).
+  3. Add tests covering divergent endpoint singularities.
 
-### TASK-2.3: Fix Special Functions (`gamma`, `gammap`, `gammapInv`, `combination`, `erf`) Bugs & Precision Limits [COMPLETED]
+#### FU-1.3: `CurveFitResult.covariance` Uses a Diagonal Fallback When the Matrix Is Singular — Medium
 
-- **Severity**: High
-- **Target Files**:
-  - `lib/src/special/gamma.dart`
-  - `lib/src/special/erf.dart`
-- **Problem & Evidence**:
-  - **`gammap` vs `gammapInv` contract contradiction**: `gammap(a, x)` (`lib/src/special/gamma.dart:90`) computes `lowRegGamma(a, x) * gamma(a)` (the *unregularized* lower incomplete gamma $\gamma(a, x)$), whereas `gammapInv(p, a)` inverts `lowRegGamma(a, x)` (the *regularized* lower incomplete gamma $P(a, x)$)! Thus `gammapInv(gammap(2, 1.5), 2)` does NOT return `1.5`. Standard convention (Numerical Recipes / SciPy `gammainc`) defines `gammap` as regularized $P(a, x)$.
-  - **`gammapInv(1.0, a)` returns finite number instead of `double.infinity`**: `gammapInv(1.0, 2.0)` returns `143.4213562373095` (`math.max(100, a + 100 * sqrt(a))`) instead of `double.infinity`, breaking `ChiSquaredDistribution.inverseCumulativeProbability(1.0)` and `GammaDistribution.inverseCumulativeProbability(1.0)`.
-  - **`gamma(double.infinity)` and `lowRegGamma(a, double.infinity)` return `NaN`**: `gamma(double.infinity)` returns `NaN` (should be `double.infinity`), and `lowRegGamma(2.0, double.infinity)` returns `NaN` (should be `1.0`).
-  - **`combination(n, k)` and `permutation(n, k)` return `NaN` for $n > 170$**: `combination(200, 2)` computes `factorial(200) / (factorial(2) * factorial(198)) = Infinity / Infinity = NaN` instead of `19900.0`! Even for small $n$, `combination(5, 2)` uses `gamma` and suffers floating-point drift instead of exact multiplicative loop or `exp(combinationLn(n, k)).roundToDouble()`.
-  - **`erf` / `erfc` accuracy capped at $\approx 1.2 \times 10^{-7}$**: `lib/src/special/erf.dart` uses the 10-term Numerical Recipes Chebyshev approximation with max error $1.2 \times 10^{-7}$, limiting `NormalDistribution.cumulativeProbability(1.96)` to `0.9750021070...` (wrong in the 8th digit vs exact `0.9750021048517795`) and `NormalDistribution.cumulativeProbability(-10)` underflows to `0.0` because `normal.dart` computes `0.5 * (1 + erf(z / sqrt2))` instead of `0.5 * erfc(-z / sqrt2)`.
-- **Actionable Fix & Acceptance Criteria**:
-  1. Replace `erf` / `erfc` with Cody's rational Chebyshev approximation (accurate to $10^{-16}$ across all double regimes) and use `0.5 * erfc(-z / sqrt2)` in `NormalDistribution.cumulativeProbability` and `survival`.
-  2. Make `gammap(a, x)` an alias for (or replace `lowRegGamma` with) the regularized lower incomplete gamma $P(a, x)$, add regularized upper incomplete gamma `gammaq(a, x)` ($Q(a, x)$) so `ChiSquaredDistribution.survival` and `GammaDistribution.survival` avoid `1 - P(a, x)` catastrophic cancellation in the right tail, and return `double.infinity` from `gammapInv(1.0, a)`.
-  3. Handle `x == double.infinity` in `gamma`, `gammaLn`, `lowRegGamma`, and `gammaq`.
-  4. Compute `combination(n, k)` and `permutation(n, k)` via exact multiplicative accumulation for moderate integer $k$ and `exp(combinationLn(n, k))` for large arguments so `combination(200, 2) == 19900.0`.
+- **File**: `lib/src/numeric/curve_fit.dart` (~L558–570).
+- **Problem**: When $J^TJ$ is singular, a generic `catch (_)` replaces $(J^TJ)^{-1}$ with `1/diag`. This produces confident but wrong standard errors.
+- **Fix**:
+  1. Use an SVD pseudo-inverse, or return `NaN` or `Infinity` entries for non-identifiable parameters.
+  2. Catch only the specific solver exception.
+  3. Test with a degenerate model, e.g. `a*x + b*x`.
 
-### TASK-2.4: Fix `Blas` & `Lapack` Native/Dart Behavioral Divergences (`cblasConjTrans`, `dpotrf` In-Place Corruption, `dnrm2` Overflow) [COMPLETED]
+#### FU-1.4: Accelerated FFT Paths Are Incomplete — Medium
 
-- **Severity**: High
-- **Target Files**:
-  - `lib/src/acceleration/blas/blas_dart.dart`
-  - `lib/src/acceleration/lapack/lapack.dart`
-  - `lib/src/acceleration/lapack/lapack_native.dart`
-  - `lib/src/acceleration/fft/fft_native.dart`
-- **Problem & Evidence**:
-  - **`cblasConjTrans` bug in `blas_dart.dart`**: For real matrices, `cblasConjTrans` (113) is mathematically identical to `cblasTrans` (112). In `blas_dart.dart`:
-    - `dgemv` / `sgemv` throw `ArgumentError('Invalid trans: 113')` while native Accelerate succeeds and returns `[5.0, 7.0, 9.0]`.
-    - `dgemm` / `sgemm` check `transA == cblasTrans` and treat `cblasConjTrans` as `cblasNoTrans`! Probe confirmed: `Blas.dgemm(transA: cblasConjTrans, ...)` produces `[7, 15, 10, 22]` in `dart` mode vs `[10, 14, 14, 20]` in `accelerated` mode.
-  - **Negative increments (`incX < 0`) in `blas_dart.dart`**: CBLAS defines negative `incX` as starting at `(1 - n) * incX` relative to `xOffset`, whereas `blas_dart.dart` starts at `xOffset` and steps by `incX`, throwing `RangeError: -1` on the second element while native `ddot`/`daxpy` succeed.
-  - **`dnrm2` / `snrm2` overflow/underflow in `blas_dart.dart`**: Naive `sum += xi * xi` overflows to `Infinity` for `1e200` and underflows to `0.0` for `1e-200`, whereas native CBLAS uses Blue's scaling algorithm and returns `1.414213562373095e+200` / `1.414213562373095e-200`.
-  - **`Lapack.dpotrf` and `Lapack.dgels` in-place mutation before `auto` fallback**: When `Lapack.dpotrf` is called in `auto` mode on a non-SPD matrix like `[[4, 6], [6, 5]]`, `LapackNative.dpotrf` partially overwrites `a` in-place (`[2.0, 3.0, 6.0, 5.0]`) and returns `false`; `Dispatcher.callWithFallback` treats `false` as "native unavailable" and runs `LapackDart.dpotrf` on the **already-corrupted** array `a`!
-  - **Apple Accelerate `vDSP_DFT_Interleaved_CreateSetupD` direction constant**: `lib/src/acceleration/fft/fft_native.dart` passes `direction = inverse ? 2 : 1` with `@ffi.Uint32() int direction`, whereas `<Accelerate/vDSP.h>` defines `enum vDSP_DFT_Direction { vDSP_DFT_FORWARD = +1, vDSP_DFT_INVERSE = -1 }` (signed `int32`). Passing `2` relies on undocumented internal `direction == 1 ? +1 : -1` branching in vDSP.
-- **Actionable Fix & Acceptance Criteria**:
-  1. In `blas_dart.dart`, treat `trans == cblasTrans || trans == cblasConjTrans` as transposed in `dgemv`, `sgemv`, `dgemm`, `sgemm`, `dtrmm`, `dsyrk`, `ssyrk`.
-  2. Support negative increments in `blas_dart.dart` using `final startX = xOffset + (incX < 0 ? (1 - n) * incX : 0);` and implement scaled sum-of-squares in `dnrm2`/`snrm2`.
-  3. In `Lapack`, distinguish between "native symbol unavailable" (should fall back to Dart in `auto` mode) and "matrix is singular / not positive definite (`info > 0`)" (must return `false` immediately without re-running Dart on the partially mutated buffer).
-  4. In `fft_native.dart`, change the `vDSP_DFT_Interleaved_CreateSetupD` FFI signature for `direction` to `@ffi.Int32()` and pass `-1` (`vDSP_DFT_INVERSE`) for inverse transforms.
+- **Files**: `lib/src/acceleration/fft/fft.dart`, `fft_dart.dart`.
+- **Problems**:
+  - Non-power-of-2 lengths always use Dart Bluestein. FFTW supports arbitrary sizes natively. Bluestein's inner power-of-2 FFTs also do not go through the accelerated `Fft.fft`.
+  - `Fft.fft2` still throws for non-power-of-2 `rows`/`cols`, which is inconsistent with the 1D behavior.
+- **Fix**:
+  1. Send Bluestein's inner transforms through `Fft.fft`.
+  2. Allow arbitrary sizes in `fft2` (row/column passes reuse the 1D path).
+  3. Add `accelerationTest` coverage for odd and prime lengths in all modes.
 
-### TASK-2.5: Fix `Matrix.applyTranspose` Computing Conjugate Transpose $A^H x$ Instead of $A^T x$ for Complex Matrices [COMPLETED]
+#### FU-1.5: Arrow C Data Public API Uses `dynamic` and Duplicates Entry Points — Medium
 
-- **Severity**: High
-- **Target Files**:
-  - `lib/src/linear/matrix.dart`
-- **Problem & Evidence**:
-  - In `Matrix.applyTranspose` (`lib/src/linear/matrix.dart`), the generic loop applies `field.conjugate(getUnchecked(i, j))`, computing $A^H x$ (Hermitian conjugate transpose) instead of $A^T x$.
-  - Probe confirmed: for $A = \begin{bmatrix} 1+2i & 3+4i \\ 5+6i & 7+8i \end{bmatrix}$ and $v = [1, i]^T$, `m.applyTranspose(v)` returns `[7+3i, 11+3i]` ($A^H v$) whereas `m.transposed.apply(v)` returns `[-5+7i, -5+11i]` ($A^T v$).
-- **Actionable Fix & Acceptance Criteria**:
-  1. Remove `field.conjugate` from `Matrix.applyTranspose` so `m.applyTranspose(v)` always equals `m.transposed.apply(v)`.
-  2. If Hermitian adjoint multiplication is desired, provide `applyConjugateTranspose(v)` (or `conjugateTransposed.apply(v)`).
-
-### TASK-2.6: Fix Numerical Optimization, Root-Finding, Integration, and ODE Solver Silent Failure & Convergence Bugs [COMPLETED]
-
-- **Severity**: High
-- **Target Files**:
-  - `lib/src/numeric/optimization.dart`
-  - `lib/src/numeric/optimization/brent.dart`
-  - `lib/src/numeric/optimization/nelder_mead.dart`
-  - `lib/src/numeric/optimization/constrained.dart`
-  - `lib/src/numeric/root_finding/solve_system.dart`
-  - `lib/src/numeric/integration.dart`
-  - `lib/src/numeric/ode/solve_ode.dart`
-- **Problem & Evidence**:
-  - **`brent` and `nelderMead` hardcode `converged: true`**: Even when `maxIterations: 1` is exhausted far from the minimum, `minimize(..., method: OptimizationMethod.nelderMead, maxIterations: 1)` and `OptimizationMethod.brent` return `OptimizationResult(converged: true, ...)`!
-  - **`minimize` with `bounds` or `constraints` silently ignores `method`**: Passing `bounds: [...]` and `method: OptimizationMethod.nelderMead` silently overrides the method and runs penalty-BFGS in `constrained.dart`.
-  - **`solveSystem` silently succeeds on `NaN` residuals**: In `lib/src/numeric/root_finding/solve_system.dart`, `if (val > maxRes) maxRes = val;` evaluates to `false` when `val` is `NaN`, leaving `maxRes == 0.0 < tolerance` and returning the initial guess immediately as if it converged!
-  - **`integrate` with `poles` fails with `IntegrateError` on integrable singularities**: `integrate((x) => 1.0 / sqrt(x.abs()), -1.0, 1.0, poles: [0.0])` throws `IntegrateError: IntegrateWarning.depthTooShallow near x = -4.57e-8` instead of converging to `4.0`, because adaptive Gauss-Kronrod uses a pure absolute tolerance and fixed `1e-12` pole offset without IMT/tanh-sinh endpoint transformation or relative error scaling.
-  - **`solveOde` (`rk45`) lacks convergence status and `rk4` ignores `maxSteps`**: `solveOde` with `OdeMethod.rk45` silently truncates integration at `t < tEnd` when `maxSteps` is reached without setting a `converged`/`completed` flag on `OdeSolution` or throwing, while `OdeMethod.rk4` ignores `maxSteps` completely (and infinite-loops if `stepSize <= 0`).
-- **Actionable Fix & Acceptance Criteria**:
-  1. Track whether the stopping tolerance was actually met in `brent.dart` and `nelder_mead.dart` and set `converged: false` when the loop exits via `iter >= maxIterations`.
-  2. In `solve_system.dart`, check `if (val.isNaN) throw StateError('Function evaluation returned NaN');`.
-  3. In `integration.dart`, combine absolute and relative tolerance (`math.max(tolerance / numSubIntervals, relativeTolerance * i2.abs())`) and apply quadratic/tanh-sinh coordinate transformation on intervals adjacent to declared `poles` so integrable algebraic singularities like $x^{-1/2}$ converge cleanly.
-  4. In `solve_ode.dart`, validate `stepSize > 0`, enforce `maxSteps` in `rk4`, and add `final bool converged` (or throw `StateError` on step exhaustion) to `OdeSolution`.
-
-### TASK-2.7: Fix Statistics Distribution Quantiles, LogNormal Lower Bound & Hypothesis Test Bugs (`InvalidProbability.check(NaN)`, `LogNormal` Lower Bound, Discrete Quantiles, `ANOVA`, `KS`) [COMPLETED]
-
-- **Severity**: High
-- **Target Files**:
-  - `lib/src/stats/distributions/errors.dart`
-  - `lib/src/stats/distributions/discrete.dart`
-  - `lib/src/stats/distributions/discrete/uniform.dart`
-  - `lib/src/stats/distributions/discrete/poisson.dart`
-  - `lib/src/stats/distributions/discrete/negative_binomial.dart`
-  - `lib/src/stats/distributions/continuous/log_normal.dart`
-  - `lib/src/stats/hypothesis/anova.dart`
-  - `lib/src/stats/hypothesis/t_test.dart`
-  - `lib/src/stats/hypothesis/kolmogorov_smirnov.dart`
-  - `test/stats/distributions/continuous_test.dart`
-  - `test/stats/distributions/discrete_test.dart`
-- **Problem & Evidence**:
-  - **`LogNormalDistribution.lowerBound` is `double.minPositive` (`5e-324`) instead of `double.negativeInfinity`**:
-    - `lib/src/stats/distributions/continuous/log_normal.dart` (line 30) overrides `double get lowerBound => double.minPositive;`, whereas `LogNormalDistribution` should have a `lowerBound` of `double.negativeInfinity` (matching the default in `ContinuousDistribution`).
-  - **`InvalidProbability.check(double.nan)` does not throw**: `if (probability < 0.0 || probability > 1.0)` evaluates to `false` when `probability` is `NaN`, allowing `NaN` into every `inverseCumulativeProbability` implementation (which in `DiscreteDistribution.inverseCumulativeProbability` causes an infinite `while (p > sum)` loop up to `upperBound`!).
-  - **`UniformDiscreteDistribution(a, b).inverseCumulativeProbability(p)` off-by-one at exact quantiles**: `UniformDiscreteDistribution(0, 1).inverseCumulativeProbability(0.5)` returns `1` instead of `0` because it uses `a + ((b - a + 1) * probability).floor()` instead of `a + ((b - a + 1) * probability).ceil() - 1` (the smallest $k$ with $F(k) \ge p$).
-  - **`PoissonDistribution` & `DiscreteDistribution` quantile hang for large $\lambda$ or $p \approx 1$**: `DiscreteDistribution.inverseCumulativeProbability` sums `probability(k)` linearly from `0` to `upperBound` (`DataType.integer.safeMax` = $2 \times 10^9$). When floating-point rounding causes $\sum_{k} P(X=k)$ to saturate at $1.0 - 10^{-16} < p$, the loop runs $2 \times 10^9$ iterations and hangs!
-  - **`oneWayAnova` returns `F = 0, p = 1` when within-group variance is 0 and group means differ**: `final fStat = msw > 0.0 ? msb / msw : 0.0;` returns `statistic: 0.0, pValue: 1.0` for `[[1, 1], [2, 2]]` instead of `statistic: double.infinity, pValue: 0.0`. Same bug in `tTestOneSample` / `tTestTwoSample` when sample variance is `0` and $\bar{x} \ne \mu_0$.
-  - **`kolmogorovSmirnovTest` discrete distribution crash & tail clamp**: `distribution.cumulativeProbability(list[i])` passes a `double` to `Distribution<num>.cumulativeProbability`, which throws a runtime `TypeError` when `distribution` is a `DiscreteDistribution` (expects `int`). Also `_kolmogorovPValue` hard-clamps `if (lambda >= 3.0) return 0.0;` even though $2 e^{-2 \cdot 3^2} \approx 3 \times 10^{-8}$ is representable in IEEE 754 `double`.
-- **Actionable Fix & Acceptance Criteria**:
-  1. In `lib/src/stats/distributions/continuous/log_normal.dart` (line 30), change `lowerBound` from `double.minPositive` to `double.negativeInfinity` (or remove the override so it inherits `double.negativeInfinity` from `ContinuousDistribution`), and update `test/stats/distributions/continuous_test.dart` (line 610) to check `check(dist.lowerBound).equals(double.negativeInfinity)`.
-  2. Change `InvalidProbability.check` to `if (!(probability >= 0.0 && probability <= 1.0))` so `NaN` throws `InvalidProbability`.
-  3. Fix `UniformDiscreteDistribution.inverseCumulativeProbability` to return `probability == 0 ? a : (a + ((b - a + 1) * probability).ceil() - 1).clamp(a, b)`.
-  4. Implement Cornelis-normal initial guess + bracketed binary search using `cumulativeProbability(k)` in `DiscreteDistribution.inverseCumulativeProbability` (and use `ibeta` for `BinomialDistribution.cumulativeProbability` and `NegativeBinomialDistribution.cumulativeProbability` instead of $O(k)$ summation).
-  5. Fix zero-variance edge cases in `oneWayAnova` and `tTest*`: if `msw == 0` (or `se == 0`), return `statistic: diff == 0 ? 0.0 : double.infinity` and `pValue: diff == 0 ? 1.0 : 0.0`.
-  6. In `kolmogorovSmirnovTest`, pass `distribution is DiscreteDistribution ? list[i].floor() : list[i]` and replace the `lambda >= 3.0` cutoff with `lambda >= 6.5` (where $2 e^{-2\lambda^2} < 10^{-36}$).
-
-### TASK-2.8: Fix `DataType` Promotion Bugs, `NullableDataType` Delegation, `Equality.isClose(..., 0)`, and `Dense`/`Compressed` Polynomial Hash Contract [COMPLETED]
-
-- **Severity**: High
-- **Target Files**:
-  - `lib/src/type/data_type.dart`
-  - `lib/src/type/types/nullable.dart`
-  - `lib/src/type/types/integer.dart`
-  - `lib/src/type/types/bigint.dart`
-  - `lib/src/type/types/string.dart`
-  - `lib/src/polynomial/impl/dense_polynomial.dart`
-  - `lib/src/polynomial/impl/compressed_polynomial.dart`
-- **Problem & Evidence**:
-  - **Lossy integer type promotions**: `DataType.uint8.promoteWith(DataType.int8)` returns `DataType.int8` (truncating `128..255`!) instead of `DataType.int16`. Similarly `DataType.uint16.promoteWith(DataType.int16)` returns `DataType.int16` (should be `DataType.int32`), and `DataType.uint32.promoteWith(DataType.int32)` returns `DataType.int32` (should be `DataType.int64`).
-  - **`DataType.fromType<num>()` crashes with `TypeError`**: `DataType.fromType<num>()` is missing a `num` branch and falls through to `ObjectDataType<T>(null as T)`, throwing `TypeError: type 'Null' is not a subtype of type 'num' in type cast`.
-  - **`NullableDataType` does not delegate metadata getters**: `DataType.int32.nullable.isInteger` and `DataType.float64.nullable.isNumeric` return `false`!
-  - **`equality.isClose(a, a, 0)` returns `false`**: `Int32DataType`, `BigIntDataType`, and `StringDataType` implement `isClose(a, b, epsilon)` with strict `< epsilon` instead of `<= epsilon`, so `DataType.int32.equality.isClose(5, 5, 0)` and `DataType.string.equality.isClose('a', 'a', 0)` return `false`!
-  - **Broken `operator ==` / `hashCode` contract between `DensePolynomial` and `CompressedPolynomial`**:
-    - `final d = Polynomial<double>.fromCoefficients([1.0, 0.0, 2.0]);`
-    - `final c = CompressedPolynomial<double>.fromMap({0: 1.0, 2: 2.0});`
-    - `d == c` is `true`, `c == d` is `true`, but `d.hashCode == c.hashCode` is `false`! `DensePolynomial.hashCode` hashes all coefficients from `0..degree` whereas `CompressedPolynomial.hashCode` hashes `(exponents, values)`.
-  - **`CompressedPolynomial.divide` overwrites quotient terms**: In `lib/src/polynomial/impl/compressed_polynomial.dart` line 326, `qTerms[qExp] = factor;` overwrites instead of accumulating with `field.add` when floating-point rounding or integer division fails to annihilate the leading term in one step, and can loop indefinitely on `CompressedPolynomial<int>` when `field.div` truncates to `0`.
-- **Actionable Fix & Acceptance Criteria**:
-  1. Fix `DataType.promoteWith` so signed $N$-bit + unsigned $N$-bit promotes to signed $2N$-bit (`int16`, `int32`, `int64`, `bigInt`).
-  2. Handle `T == num` in `DataType.fromType<T>()` (returning `DataType.numeric`), delegate `isNumeric`, `isInteger`, `isFloat`, `isSigned`, `bits` in `NullableDataType` to `delegate`, and change `< epsilon` to `<= epsilon` in all `Equality.isClose` implementations.
-  3. Unify `Polynomial.hashCode` in the base `Polynomial<T>` class (e.g., hashing `Object.hashAll` over canonical `(exponent, coefficient)` pairs of non-zero terms) so equal `DensePolynomial` and `CompressedPolynomial` instances always produce identical `hashCode`s.
-  4. In `CompressedPolynomial.divide`, explicitly strip the eliminated leading term from the remainder at each step and guard against zero quotient factors in integer rings.
-
-### TASK-2.9: Fix `Layout` Immutability Breach, Unvalidated `transpose` Permutations, and `0`-Extent Broadcast Bug [COMPLETED]
-
-- **Severity**: High
-- **Target Files**:
-  - `lib/src/tensor/layout.dart`
-- **Problem & Evidence**:
-  - **Mutable `shape` and `strides` lists**: `Layout.shape` and `Layout.strides` return the internal `Int32List` directly. Executing `layout.shape[0] = 999` mutates the layout in-place while `layout.length` remains `6`!
-  - **Invalid `transpose` axes accepted**: `Layout(shape: [2, 3]).transpose([0, 0])` silently returns a corrupted layout with shape `[2, 2]` instead of throwing `ArgumentError` for duplicate/out-of-range axes.
-  - **Zero-dimension broadcast bug**: `Layout(shape: [0]).broadcast(Layout(shape: [1]))` broadcasts dimension `0` with `1` to `math.max(0, 1) = 1` (producing a length-1 layout reading out of bounds on a 0-length buffer!) instead of `0` as required by NumPy/Array-API broadcasting rules (where an axis of size `1` stretches to match the other axis's size `0`).
-- **Actionable Fix & Acceptance Criteria**:
-  1. Wrap `shape` and `strides` in `UnmodifiableInt32ListView` (or `List.unmodifiable`).
-  2. In `Layout.transpose`, validate that `axes` is a valid permutation of `0 .. rank - 1` (no duplicates, all in range).
-  3. In `Layout.broadcast`, when one dimension is `1` and the other is `d` (including `d == 0`), the resulting dimension must be `d` (`0`), with stride `0` on the size-`1` operand.
+- **Files**: `lib/src/dataframe/dataframe.dart` (~L552–570), `series.dart` (~L173–190), `arrow/arrow_c_data*.dart`, `lib/dataframe.dart`.
+- **Problems**:
+  - `exportTo`/`importFrom` take `required dynamic` arguments, so type safety is lost and the charter's "avoid `dynamic`" rule is violated.
+  - The low-level `exportDataFrameToArrowC`, `importDataFrameFromArrowC`, `exportSeriesToArrowC`, and `importSeriesFromArrowC` are also exported publicly. That gives two ways to do the same thing, which violates the single-canonical-API rule.
+- **Fix**:
+  1. Type the parameters as `ffi.Pointer<ArrowSchema>`/`ffi.Pointer<ArrowArray>` in an FFI-only extension, or as `Object` with a checked cast.
+  2. Stop exporting the top-level helpers.
+  3. Update `ARCHITECTURE.md`.
 
 ---
 
-## 3. Architectural & Charter Compliance Fixes
+### 2. Charter & Hygiene Follow-Ups
 
-### TASK-3.1: Decouple `package:data/numeric.dart` from `package:data/symbolic.dart` [COMPLETED]
+#### FU-2.1: Generic `catch` Blocks Added Across `lib/` — Medium
 
-- **Severity**: High
-- **Target Files**:
-  - `lib/src/numeric/curve_fit.dart`
-  - `lib/src/polynomial/polynomial.dart`
-  - `lib/src/symbolic/algebra/polynomial_conversion.dart` (or `lib/src/symbolic/calculus/series.dart`)
-- **Problem & Evidence**:
-  - `AGENTS.md` strictly mandates: *"The `numeric` subsystem is a foundational mathematical layer that must have zero knowledge of or dependencies on `symbolic`."*
-  - Currently, `lib/src/numeric/curve_fit.dart` imports `../../polynomial.dart` (`for polynomialRegression`), and `lib/src/polynomial/polynomial.dart` imports `../../symbolic.dart` (for `Polynomial.fromExpr`). Consequently, importing `package:data/numeric.dart` transitively pulls in the entire 21,000-line `symbolic` CAS and `petitparser`!
-- **Actionable Fix & Acceptance Criteria**:
-  1. Remove `import '../../symbolic.dart';` and `Polynomial.fromExpr` from `lib/src/polynomial/polynomial.dart`.
-  2. Move symbolic-to-polynomial conversion into `lib/src/symbolic/` as an extension method `Expr.toPolynomial(String variable, {num point = 0, int order = 5})` (and/or `extension SymbolicPolynomialFactory on Polynomial` in `symbolic`).
-  3. Add an architectural test asserting that transitive imports of `lib/numeric.dart`, `lib/linear.dart`, `lib/tensor.dart`, `lib/stats.dart`, `lib/special.dart`, and `lib/polynomial.dart` never import any file under `lib/src/symbolic/` or `lib/symbolic.dart`.
-- **Implementation Report**:
-  - `Polynomial.fromExpr` removed from polynomial subsystem and converted to `Expr.toPolynomial` and `SymbolicPolynomialFactory` in `lib/src/symbolic/calculus/series.dart`.
-  - Clarified architectural rule: `package:petitparser` can be used anywhere in the codebase for any parsing-related concern; only the `symbolic` CAS subsystem is decoupled from foundational math layers.
-  - Implemented the architectural boundary test suite in `test/architecture/dependency_decoupling_test.dart` using `package:more/graph.dart` rather than custom graph traversal code.
+- **Locations**:
+  - `lib/src/symbolic/solver/polynomial_system.dart:52`
+  - `lib/src/symbolic/solver/transcendental.dart:268,469`
+  - `lib/src/symbolic/solver/univariate.dart:152,169` (`on Object`)
+  - `lib/src/numeric/sampling.dart:340` (`on Object`)
+  - `lib/src/numeric/root_finding/solve_system.dart:76`
+  - the symbolic `integrate` simplification fallback
+- **Fix**: Narrow each one to the exceptions it actually expects (`ArgumentError`, `UnsupportedError`, `StateError`). `catch (_)` in `library_loader_ffi.dart` (dynamic library probing) is acceptable but should be documented.
 
-### TASK-3.2: Eliminate Positional Record Accessors (`.$1`, `.$2`), Named Record Gaps, and Intermediate Internal Barrel Files [COMPLETED]
+#### FU-2.2: Publishing Blocker: Git `dependency_overrides` on `more` — Medium
 
-- **Severity**: Medium
-- **Target Files**:
-  - `lib/src/stats/hypothesis/hypothesis_test_result.dart`
-  - `lib/src/stats/resampling/bootstrap.dart`
-  - `lib/src/stats/resampling/jackknife.dart`
-  - `lib/src/polynomial/impl/compressed_polynomial.dart`
-  - `lib/src/tensor/layout.dart`
-  - `web/calculator/src/ui/soft_keys.dart`
-  - `benchmark/runner.dart`
-  - `lib/src/symbolic/ast.dart`
-  - `lib/src/symbolic/algebra/simplify.dart`
-- **Problem & Evidence**:
-  - `AGENTS.md` states: *"Never use positional record field accessors (`.$1`, `.$2`, etc.). Prefer named record fields (or `typedef`s with named fields)."* and *"Intermediate internal barrel files inside `lib/src/` are prohibited; root `lib/<subsystem>.dart` files must export public declarations directly."*
-  - `web/calculator/src/ui/soft_keys.dart:173–175` and `benchmark/runner.dart:52–55` use `. $1` / `.$2` directly.
-  - Public APIs still return unnamed positional records:
-    - `HypothesisTestResult.confidenceInterval` is `(double, double)?` (forcing `benchmark/runner.dart` to use `?.$1` and `?.$2`) instead of `({double lower, double upper})?`.
-    - `BootstrapResult` / `JackknifeResult` confidence intervals use positional `(double, double)`.
-    - `CompressedPolynomial.nonZeroTerms` yields `Iterable<(int, T)>` instead of `Iterable<({int exponent, T coefficient})>`.
-    - `Layout.broadcast(Layout other)` returns `(Layout, Layout)` instead of `({Layout first, Layout second})` or `({Layout self, Layout other})`.
-  - Intermediate barrel files exist in `lib/src/`: `lib/src/symbolic/ast.dart` (re-exporting `ast/*.dart` and `number/*.dart`), `lib/src/symbolic/algebra/simplify.dart` (re-exporting `simplify/*.dart`), `lib/src/dataframe/series.dart` (re-exporting `arrow_string_series.dart`), and `lib/src/acceleration/blas/blas.dart` (re-exporting `cblas_constants.dart`).
-- **Actionable Fix & Acceptance Criteria**:
-  1. Convert `confidenceInterval`, `nonZeroTerms`, `Layout.broadcast`, and `soft_keys.dart` tuples to named records (`({double lower, double upper})`, `({int exponent, T coefficient})`, etc.).
-  2. Export leaf files directly from `lib/symbolic.dart`, `lib/dataframe.dart`, and `lib/acceleration.dart`, and remove intermediate `export` directives inside `lib/src/` (keeping only conditional FFI/stub exports).
+- **File**: `pubspec.yaml` L30–32. The agent kept this on purpose (it needs the `asinh` fix from git `dart-more`).
+- **Fix**: Release `more` and pin the version constraint, then remove the override before publishing `0.16.0`. `dart pub publish --dry-run` currently fails.
 
-### TASK-3.3: Remove Redundant Duplicate APIs and Unexported / Leaked Internal Symbols [COMPLETED]
+#### FU-2.3: Close Gaps in the 1:1 Test Mirror — Low
 
-- **Severity**: Medium
-- **Target Files**:
-  - `lib/src/dataframe/dataframe.dart`
-  - `lib/src/dataframe/csv/csv_reader.dart`, `lib/src/dataframe/csv/csv_stream.dart`, `lib/src/dataframe/csv/csv_writer.dart`
-  - `lib/src/dataframe/json/json_decoder.dart`, `lib/src/dataframe/json/json_encoder.dart`
-  - `lib/src/dataframe/join.dart`
-  - `lib/src/linear/matrix.dart`, `lib/src/linear/vector.dart`, `lib/src/linear/float64_vector.dart`
-  - `lib/src/tensor/operations/contraction.dart`
-  - `lib/src/numeric/sampling.dart`
-  - `lib/src/polynomial/polynomial.dart`, `lib/src/polynomial/orthogonal.dart`
-  - `lib/src/type/models/field.dart`, `lib/src/type/types/string.dart`, `lib/src/type/types/dynamic.dart`
-- **Problem & Evidence**:
-  - `AGENTS.md` states: *"Provide a single canonical way to perform an operation; avoid redundant convenience aliases, parameter aliases, or duplicate invocation styles."*
-  - **Duplicate invocation pathways**:
-    - `DataFrame`: `DataFrame.fromCsv` vs `CsvReader.parse`; `df.toCsv()` vs `CsvWriter.write(df)`; `CsvReader.parseStream` vs `CsvStream.readStream`; `DataFrame.fromJson` vs `JsonDecoder.decode`; `df.toJson()` vs `JsonEncoder.encode(df)`; `DataFrame.fromArrowIpc` vs `ArrowIpc.decode`; `df.toArrowIpc()` vs `ArrowIpc.encode(df)`; `df.sortMergeJoin(...)` vs `df.join(..., method: JoinMethod.sortMerge)`.
-    - `Matrix`: `m.transpose()` vs `m.transposed`; `Float64Vector.norm2()` vs `v.norm(2)`.
-    - `Vector` / `numeric`: `Vector.linspace` / `logspace` / `geomspace` vs top-level `linearSpaced` / `logarithmicSpaced` / `geometricSpaced` (and `linearSpaced` is exported from both `lib/linear.dart` and `lib/numeric.dart`).
-    - `Tensor`: `a.innerProduct(b)` / `a.outerProduct(b)` extension methods vs top-level `innerProduct(a, b)` / `outerProduct(a, b)`; `tensordot` `axes` parameter typed as `Object` accepting 4 different shapes (`int`, `List<int>`, `(List<int>, List<int>)`, `List<List<int>>`).
-    - `Polynomial`: `p.differentiate()` vs `p.derivative()`; `Polynomial.chebyshevT` / `chebyshevU` / `legendreP` / `hermiteH` / `hermiteHe` / `laguerreL` vs `OrthogonalPolynomials.*` and top-level `laguerreL`.
-    - `solveOde`: accepts both `stepSize` and `initialStep` for the same quantity.
-  - **Leaked internal helpers & unexported return types**:
-    - `lib/type.dart` publicly exports `unsupportedOperation()` (from `field.dart`) and `editDistance()` (from `string.dart`), while `DataType.dynamicType` returns `DynamicDataType` which is not exported in `lib/type.dart`!
-    - `lib/stats.dart` publicly exports `JackknifeResampling` alongside `Jackknife`.
-    - `lib/polynomial.dart` publicly exports `OrthogonalPolynomials.computeRoots` (internal companion-matrix solver).
-    - `lib/symbolic.dart` publicly exports internal `SymbolicParser` PetitParser token builders (`identifier`, `number`, etc.) and `IteratedExpr.equalsIterated`.
-- **Actionable Fix & Acceptance Criteria**:
-  1. Consolidate each duplicate pair to a single canonical API (e.g., keep `DataFrame.fromCsv` / `toCsv`, `fromJson` / `toJson`, `fromArrowIpc` / `toArrowIpc`, `df.join(..., method: ...)`; keep `Matrix.transposed`; keep `Polynomial.derivative()`; keep `linearSpaced`/`logarithmicSpaced`/`geometricSpaced`; unify `solveOde` on `stepSize`).
-  2. Hide internal helpers (`_unsupportedOperation`, `_editDistance`, `_computeRoots`, `_equalsIterated`) and export `DynamicDataType` from `lib/type.dart`.
-- **Implementation Report**:
-  - Consolidated duplicate APIs across DataFrame, Matrix, Float64Vector, Vector/numeric sampling, Tensor contractions, and solveOde.
-  - Hid internal helpers and exported `DynamicDataType`.
-  - Exception to token builder privatization: `ExprSyntax.identifierTokenParser` and `ExprSyntax.numberTokenParser` remain public static parsers on `ExprSyntax` with full doc comments, as `web/calculator/src/language/grammar.dart` directly reuses and composes them for expression grammar rules.
+- **Lib files without a matching `_test.dart`**:
+  - `acceleration/blas/blas_validation`, `acceleration/utils/dispatcher`
+  - `linear/operator`
+  - `numeric/interpolation/{search,interpolator}`
+  - `tensor/operations/{reduction,matmul}`
+  - `polynomial/impl/formatting`
+  - `stats/distribution`, `stats/distributions/errors`, `stats/hypothesis/hypothesis_test_result`
+  - Enum/constant-only files (`*_method`, `acceleration_mode`, `cblas_constants`, `acceleration_error`, `library_loader`) can be skipped.
+- **Orphan tests without a matching lib file**: `test/linear/linear_test.dart`, `test/linear/decomposition/complex_decomposition_test.dart`, `test/dataframe/json/json_test.dart`. Merge them into their canonical files or rename them.
+- **Fix**: Move existing coverage for these into canonical files. Do not add new aggregate suites.
 
-### TASK-3.4: Clean Up `pubspec.yaml`, `.gitignore`, and Package Publishing Hygiene [COMPLETED]
+#### FU-2.4: Re-run Multi-Platform Tests — Low
 
-- **Severity**: Medium
-- **Target Files**:
-  - `pubspec.yaml`
-  - `CHANGELOG.md`
-  - `.pubignore` (create)
-- **Problem & Evidence**:
-  - `pubspec.yaml` contains a git `dependency_overrides` block (`more: git: https://github.com/renggli/dart-more`) which blocks `dart pub publish`, even though the published `more: ^4.7.0` on pub.dev already satisfies all APIs used by `package:data` (confirmed via offline compilation probe).
-  - `pubspec.yaml` declares `version: 0.15.0`, whereas `CHANGELOG.md` already has entries for `0.16.0`, `0.15.2`, `0.15.1`, and `0.15.0`.
-  - `dart pub publish --dry-run` packages internal agent/development files (`AGENTS.md`, `EVALUATION.md`, `TASKS.md`, `ARCHITECTURE.md`, `doc/calculator_design.md`, `benchmark/`, `test/`, `web/` including untracked `web/distributions/index.dart.js.deps` and `.map`).
-- **Actionable Fix & Acceptance Criteria**:
-  1. Remove `dependency_overrides` from `pubspec.yaml` and bump `version: 0.16.0` to match `CHANGELOG.md`.
-  2. Add a `.pubignore` file excluding `AGENTS.md`, `EVALUATION.md`, `TASKS.md`, `doc/`, `benchmark/`, `test/`, `web/`, and `.agents/`.
-  3. Delete untracked build artifacts `web/distributions/index.dart.js.deps` and `web/distributions/index.dart.js.map`.
-- **Implementation Report**:
-  - Bumped version to `0.16.0` in `pubspec.yaml` matching `CHANGELOG.md`.
-  - Added `.pubignore` excluding internal agent files, developer documents (`AGENTS.md`, `ARCHITECTURE.md`, `EVALUATION.md`, `TASKS.md`, `.agents/`), and non-package folders (`benchmark/`, `doc/`, `test/`, `web/`).
-  - Removed untracked distribution build artifacts.
-  - Instruction tweak: Kept `dependency_overrides` for `more` (`git: https://github.com/renggli/dart-more`) because required bug fixes (e.g. `asinh` asymptotic branch handling) in git `dart-more` are still needed until the next version of `dart-more` is released on pub.dev.
+- Run `dart test -p node,chrome` (and `-c dart2wasm` if configured). The changes touch `BigInt` paths (Pollard's rho, `Integer.from`, exact combinations) and UTF-8 byte sorting, where JS semantics can differ.
 
 ---
 
-## 4. Public API Inconsistencies & Design Improvements
+### 3. Verification Gaps (Quick Checks)
 
-### TASK-4.1: Unify Naming, Method Signatures, and UI Label Capitalization Across Subsystems [COMPLETED]
-
-- **Severity**: Medium
-- **Target Files**:
-  - `lib/src/tensor/operations/reduction.dart`
-  - `lib/src/dataframe/groupby.dart`
-  - `lib/src/dataframe/json/json_orient.dart`
-  - `lib/src/linear/matrix.dart`, `lib/src/linear/vector.dart`
-  - `lib/src/numeric/interpolation/*.dart`
-  - `lib/src/stats/distributions/continuous/*.dart`
-  - `lib/src/stats/hypothesis/kolmogorov_smirnov.dart`
-  - `lib/src/symbolic/algebra/approximate.dart`, `lib/src/symbolic/linear/matrix.dart`
-  - `web/distributions/index.html`, `web/distributions/index.dart`
-- **Problem & Evidence**:
-  - **Uncapitalized labels in the Distributions web application**:
-    - In `web/distributions/index.html`, all `.attr-label` elements in the "Mathematical Properties" panel (lines 101–130: `mean`, `median`, `mode`, `variance`, `std deviation`, `skewness`, `kurtosis (exc)`, `bounds`) and the "Random Sampling" panel (lines 158–167: `sample mean`, `sample std dev`, `sample variance`) are lowercase, whereas `web/expressions/index.html` uses capitalized Title Case (`Parsed AST`, `Simplified`, etc.).
-    - In `web/distributions/index.dart` (lines 998, 1022), the chart reference line labels `'med'` and `'mode'` are lowercase.
-  - **Trailing underscore identifiers**: `Tensor.var_`, `GroupBy.var_`, and `JsonOrient.values_` use ugly trailing underscores (and `GroupBy.var_` generates output column names like `'salary_var_'`). Rename `var_` to `variance` (matching `Series.variance`, `Distribution.variance`, and `stats.variance`) and `JsonOrient.values_` to `JsonOrient.valueMatrix` or `JsonOrient.array`.
-  - **Distribution constructor parameter order & naming**:
-    - `GammaDistribution(shape, scale)` and `InverseGammaDistribution(shape, scale)` take `(shape, scale)`, whereas `WeibullDistribution(scale, shape)` and `ParetoDistribution(scale, shape)` take `(scale, shape)` (`k, lambda` vs `xo, alpha`)!
-    - `CauchyDistribution([this.xo = 0, this.gamma = 1])`, `LaplaceDistribution([this.mu = 0, this.b = 1])`, and `LogisticDistribution([this.mu = 0, this.s = 1])` use cryptic Greek/symbol field names instead of `location` and `scale` (used by `NormalDistribution(mean, standardDeviation)`).
-    - `HypergeometricDistribution` uses uppercase field names `N` and `K` (`final int N; final int K;`), violating Effective Dart `lowerCamelCase`.
-  - **Hypothesis test naming**: `tTestTwoSample` vs `kolmogorovSmirnov2Sample` (`TwoSample` vs `2Sample`).
-  - **Container equality (`==` / `hashCode`)**: `Tensor`, `Matrix`, `Vector`, and `DataFrame` do not override `operator ==` or `hashCode` (using reference identity), which also breaks `MultivariateNormalDistribution ==` and `DirichletDistribution ==` (they compare `mean == other.mean && covariance == other.covariance`, which evaluates to `false` for two distributions constructed with equal `Vector`/`Matrix` values!).
-  - **`Interpolator` vs `Interpolator2D` call convention**: `Interpolator` uses `double call(double x)` (no `evaluate`), while `Interpolator2D` defines both `evaluate(double x, double y)` and `call(double x, double y)`, and `LagrangeInterpolation` / `CubicSpline` constructors accept `Iterable<num>` while `BilinearInterpolator` / `BicubicInterpolator` require `Vector<double>` and `Matrix<double>`.
-  - **`SymbolicMatrixExtension.approximate` vs `ApproximationExtension.approximate`**: `Expr.approximate([Map<String, Expr> bindings = const {}])` takes `Map<String, Expr>`, whereas `Matrix<Expr>.approximate({Map<String, num> bindings = const {}})` takes named `Map<String, num>` (and `ARCHITECTURE.md` claims `approximate({int precision = 53, Assumptions assumptions = Assumptions.none})`).
-- **Actionable Fix & Acceptance Criteria**:
-  1. Capitalize all distribution labels in `web/distributions/index.html` (`Mean`, `Median`, `Mode`, `Variance`, `Std Deviation`, `Skewness`, `Kurtosis (Exc)`, `Bounds`, `Sample Mean`, `Sample Std Dev`, `Sample Variance`) and chart reference labels in `web/distributions/index.dart` (`'Med'`, `'Mode'`).
-  2. Rename `var_` -> `variance` on `Tensor` and `GroupBy`, `kolmogorovSmirnov2Sample` -> `kolmogorovSmirnovTwoSample`, and `HypergeometricDistribution` fields `N, K, n` -> `populationSize, successStates, draws`.
-  3. Standardize `location` / `scale` / `shape` parameter names and order across continuous distributions, and replace debug-only `assert(...)` in distribution constructors with runtime `ArgumentError.value` checks (so invalid parameters like `NormalDistribution(0, -1)` throw in release mode too).
-  4. Implement structural `operator ==` and `hashCode` (or `DataType.equality` integration) on `Layout`, `Tensor`, `Matrix`, `Vector`, and `DataFrame` so value classes like `MultivariateNormalDistribution` satisfy value equality.
-  5. Standardize `Interpolator` and `Interpolator2D` on `call` (removing duplicate `evaluate`), and unify `Expr.approximate` / `Matrix<Expr>.approximate` signatures.
-- **Implementation Report**:
-  - Capitalized telemetry and reference line labels in `web/distributions/index.html` and `web/distributions/index.dart`.
-  - Renamed `Tensor.var_` to `Tensor.variance`, `Agg.var_` to `Agg.variance` (and output column suffix to `_variance`), `JsonOrient.values_` to `JsonOrient.array`, `kolmogorovSmirnov2Sample` to `kolmogorovSmirnovTwoSample`, and `HypergeometricDistribution` fields to `populationSize, successStates, draws`.
-  - Standardized continuous distribution parameters: `WeibullDistribution(shape, scale)` and `ParetoDistribution(shape, scale)` aligned to `(shape, scale)`; Cauchy, Laplace, and Logistic standardized on `location, scale`.
-  - Replaced debug assertions across all continuous and discrete distribution constructors with runtime `ArgumentError.value` validation, retaining `const` standard constructors where applicable.
-  - Implemented structural value equality and hashing on `Layout`, `Tensor`, `Matrix`, `Vector`, `Series`, and `DataFrame`, verifying `MultivariateNormalDistribution` and `DirichletDistribution` value equality.
-  - Standardized `Interpolator2D` on `double call(double x, double y)`, removing duplicate `evaluate`. Verified `Expr.approximate` and `Matrix<Expr>.approximate` alignment.
-
-### TASK-4.2: Improve `Polynomial.toString` and `RationalFunction` Ergonomics [COMPLETED]
-
-- **Severity**: Medium
-- **Target Files**:
-  - `lib/src/polynomial/polynomial.dart`
-  - `lib/src/polynomial/rational.dart`
-- **Problem & Evidence**:
-  - `Polynomial.toString()` prints ugly `+ -` sequences such as `"x^2 + -5.0x + 6.0"` (visible in `example/polynomial_demo.dart` output and contradicted by the doc comment on `Polynomial.fromRoots` which claims `// x^2 - 5.0x + 6.0`).
-  - `DensePolynomial` does not strip trailing zero coefficients on construction (`Polynomial<double>.fromCoefficients([1.0, 2.0, 0.0, 0.0]).coefficients` has length 4 while `degree` is 1).
-  - `RationalFunction(num, den)` does not auto-simplify by `gcd` as claimed in `ARCHITECTURE.md` Section 7.2, and lacks `derivative()`, `evaluateComplex(Complex z)`, and scalar arithmetic operators.
-- **Actionable Fix & Acceptance Criteria**:
-  1. Format negative coefficients in `Polynomial.toString()` using ` - ` instead of `+ -`.
-  2. Strip trailing zero coefficients in `DensePolynomial` (and wrap `coefficients` in an unmodifiable view).
-  3. Add `derivative()` and `evaluateComplex(Complex z)` to `RationalFunction`.
-- **Implementation Report**:
-  - Extracted shared formatting helper `formatPolynomialTerms` supporting subtraction operator ` - ` for negative coefficients across both `DensePolynomial` and `CompressedPolynomial`.
-  - Updated `DensePolynomial.fromCoefficients` to strip trailing zero coefficients and wrap the storage in an unmodifiable list view.
-  - Added `RationalFunction.simplified` factory constructor, `evaluateComplex(Complex z)` with pole detection, and `scale(T scalar)` to `RationalFunction`.
-  - Added comprehensive tests for negative coefficient polynomial formatting, unmodifiable zero-stripped dense polynomial coefficients, and rational function operations across both VM and Chrome.
-
----
-
-## 5. Performance & Algorithmic Optimizations
-
-### TASK-5.1: Reduce Numerical `jacobian` from $O(m \cdot n)$ to $O(n)$ Vector Function Evaluations & `curveFit` from $O(N^2 p)$ to $O(N p)$ [COMPLETED]
-
-- **Severity**: High
-- **Target Files**:
-  - `lib/src/numeric/calculus/jacobian.dart`
-  - `lib/src/numeric/calculus/hessian.dart`
-  - `lib/src/numeric/curve_fit.dart`
-- **Problem & Evidence**:
-  - **Numerical `jacobian`**: In `lib/src/numeric/calculus/jacobian.dart`, for each matrix entry `(i, j)` of the $m \times n$ Jacobian, `derivative((double xj) => f(x perturbed)[i], x[j])` is called inside a double loop over `i` and `j`. This evaluates the full vector function $f: \mathbb{R}^n \to \mathbb{R}^m$ **$m$ times per column** ($4 m n$ evaluations for 5-point stencil instead of $4 n$ evaluations!).
-  - **`curveFit` Levenberg-Marquardt Jacobian**: `lib/src/numeric/curve_fit.dart` uses `jacobian(residualFn, p)` where `residualFn` evaluates the model at all $N$ data points. Because `jacobian` re-evaluates `residualFn` for every row `i = 0 .. N-1` and parameter `j = 0 .. p-1`, a 1,000-point curve fit with 3 parameters performs **$3{,}000{,}000$ model evaluations per LM iteration instead of $3{,}000$** ($1000\times$ slower)!
-  - **Numerical `hessian`**: `lib/src/numeric/calculus/hessian.dart` computes both `(i, j)` and `(j, i)` independently without exploiting Hessian symmetry $H_{ij} = H_{ji}$, doing $2\times$ the necessary off-diagonal function evaluations.
-  - **Unscaled finite-difference step `h`**: `derivative`, `gradient`, `jacobian`, `hessian`, and `curveFit` use a fixed absolute step `h = 1e-5` (or `1e-7`) instead of scaling by `math.max(1.0, x.abs()) * h`, losing all precision when $|x| \ge 10^8$.
-- **Actionable Fix & Acceptance Criteria**:
-  1. Rewrite `jacobian` to perturb coordinate `j` once per stencil offset, evaluate the vector $f(\mathbf{x} + s h \mathbf{e}_j)$ once, and accumulate across all $m$ output rows simultaneously ($O(n)$ vector evaluations).
-  2. In `hessian`, compute only the upper triangle $j \ge i$ and mirror $H_{ji} = H_{ij}$.
-  3. Scale default finite-difference step sizes by `math.max(1.0, x.abs())`.
-  4. In `curve_fit.dart`, evaluate the perturbed parameter vector across the $N$ points directly in $O(N p)$ model calls.
-- **Implementation Report**:
-  - Rewrote `jacobian` to evaluate vector functions once per coordinate perturbation offset across all $m$ output rows ($O(n)$ vector calls).
-  - Optimized `hessian` to compute diagonal and upper triangle ($j > i$), mirroring $H_{ji} = H_{ij}$ to eliminate redundant function calls and vector copies.
-  - Scaled finite-difference step sizes across `derivative`, `gradient`, `jacobian`, `hessian`, and `curveFit`/`fitNonlinear` by `math.max(1.0, x.abs())`.
-  - Optimized Levenberg-Marquardt finite-difference Jacobian in `curveFit` and `fitNonlinear` to evaluate perturbed residual vectors once per parameter column in $O(N p)$ instead of $O(N^2 p)$.
-  - Added unit tests verifying $O(n)$ Jacobian vector calls, symmetric Hessian evaluation counts, large-coordinate scaling ($|x| \ge 10^8$), and $O(p)$ residual evaluations per LM iteration.
-
-### TASK-5.2: Fix BFGS $O(n^3)$ Matrix Multiply Update to $O(n^2)$ Rank-2 Update & Eliminate Redundant Evaluations [COMPLETED]
-
-- **Severity**: High
-- **Target Files**:
-  - `lib/src/numeric/optimization/quasi_newton.dart`
-- **Problem & Evidence**:
-  - In `lib/src/numeric/optimization/quasi_newton.dart`, BFGS updates the inverse Hessian approximation $H_{k+1} = (I - \rho s y^T) H_k (I - \rho y s^T) + \rho s s^T$ by explicitly constructing two $n \times n$ dense matrices and performing two $O(n^3)$ matrix multiplications instead of computing the vector $w = H_k y$ in $O(n^2)$ and applying the rank-2 update $H_{k+1} = H_k - \rho (s w^T + w s^T) + \rho (1 + \rho (y^T w)) s s^T$ in $O(n^2)$.
-  - Furthermore, after backtracking line search already evaluates `f(xNext)`, the main loop immediately calls `f(x)` again on the same point.
-- **Actionable Fix & Acceptance Criteria**:
-  1. Replace the $O(n^3)$ matrix-matrix product in BFGS with the $O(n^2)$ rank-2 vector update using $w = H y$.
-  2. Reuse the function value `fNext` computed at the end of line search instead of re-evaluating `f(x)`.
-- **Implementation Report**:
-  - Implemented the $O(n^2)$ symmetric rank-2 BFGS update $H_{k+1} = H_k - \rho (s w^T + w s^T) + \rho (1 + \rho (y \cdot w)) s s^T$ where $w = H_k y$, eliminating two $O(n^3)$ matrix multiplies and 11 matrix allocations per iteration.
-  - Reused `fxCandidate` from backtracking line search across both `bfgs` and `lbfgs`, eliminating redundant evaluations of $f(x)$ at the step point.
-  - Added unit tests verifying convergence on a 10D problem and confirming zero redundant function evaluations across VM, Node.js, and Chrome.
-
-### TASK-5.3: Fix `MatrixNormExtension` Recomputing Full SVD Twice on `norm2` and Every Call [COMPLETED]
-
-- **Severity**: Medium
-- **Target Files**:
-  - `lib/src/linear/decomposition/norm.dart`
-- **Problem & Evidence**:
-  - `MatrixNormExtension.norm2` (`lib/src/linear/decomposition/norm.dart`) evaluates `svd.singularValues.isEmpty ? 0.0 : svd.singularValues[0]`, where `svd` is a getter that constructs a brand-new `SingularValueDecomposition` on each access—so calling `m.norm2` computes the full SVD **twice**!
-- **Actionable Fix & Acceptance Criteria**:
-  1. Bind `final s = svd.singularValues;` to a local variable in `norm2`, `cond`, and `rank`.
-- **Implementation Report**:
-  - Bound `final singularValues = svd.s;` in `MatrixNormExtension.norm2`, eliminating the duplicate SVD recomputation on each spectral 2-norm access.
-  - Verified correctness and performance across VM, Node.js, and Chrome.
-
-### TASK-5.4: Dispatch Unaccelerated Operations to `Blas`, `Lapack`, and `Vforce` Facades [COMPLETED]
-
-- **Severity**: Medium
-- **Target Files**:
-  - `lib/src/tensor/operations/operation.dart`
-  - `lib/src/tensor/operations/reduction.dart`
-  - `lib/src/linear/decomposition/lu.dart`
-  - `lib/src/linear/decomposition/qr.dart`
-  - `lib/src/stats/distributions/multivariate/multivariate_normal.dart`
-  - `lib/src/polynomial/impl/dense_polynomial.dart`
-- **Problem & Evidence**:
-  - `Tensor.sum()` (full reduction with `axis == null` on contiguous `Float64List`) uses a Dart loop instead of `Vforce.sum`.
-  - In-place unary operations on a tensor (`a.sin(target: a)`) in `lib/src/tensor/operations/operation.dart` call `_hasHazard(this, target)` which flags `identical(a.data, target.data)` even when layouts are identical (`this.layout == target.layout`), allocating a redundant temporary copy on every in-place unary operation!
-  - `MultivariateNormalDistribution` (`lib/src/stats/distributions/multivariate/multivariate_normal.dart`) implements its own private `_cholesky` loop instead of calling `covariance.cholesky` (which uses `Lapack.dpotrf`).
-  - `DensePolynomial` (`lib/src/polynomial/impl/dense_polynomial.dart`) imports `FftDart.nextPowerOf2` directly from `lib/src/acceleration/fft/fft_dart.dart` instead of exposing `Fft.nextPowerOf2` on the `Fft` facade. Also, FFT-based multiplication is triggered for `Polynomial<int>` at degree $\ge 64$, introducing floating-point rounding errors into exact integer polynomials with large coefficients.
-- **Actionable Fix & Acceptance Criteria**:
-  1. Dispatch contiguous `Float64List` full `Tensor.sum()` to `Vforce.sum`.
-  2. In `operation.dart`, allow zero-allocation in-place unary execution when `identical(a.data, target.data) && a.layout == target.layout`.
-  3. Delegate `MultivariateNormalDistribution` Cholesky factorization to `covariance.cholesky`.
-  4. Move `nextPowerOf2` onto the `Fft` facade and restrict FFT polynomial multiplication in `DensePolynomial` to floating-point/complex fields (`DataType.float64`, `DataType.float32`, `DataType.complex`), keeping exact fields (`int`, `BigInt`, `Fraction`) exact.
-- **Implementation Report**:
-  - Dispatched contiguous `Float64List` full `Tensor.sum()` directly to `Vforce.sum` using a zero-copy subview.
-  - Allowed zero-allocation in-place execution in `OperationTensorExtension.unaryOperation` when target and source share data with matching layouts and offsets.
-  - Delegated `MultivariateNormalDistribution` Cholesky factorization directly to `covariance.cholesky` utilizing accelerated `Lapack.dpotrf`.
-  - Exposed `Fft.nextPowerOf2` on the `Fft` facade, eliminated direct `FftDart` import in `DensePolynomial`, and maintained exact convolution for exact polynomial fields.
-  - Verified test suite pass across VM, Node.js, and Chrome.
-
-### TASK-5.5: Eliminate Per-Row Map Allocations & $O(N^2)$ Bottlenecks in `DataFrame` and `DataType.castList` [COMPLETED]
-
-- **Severity**: Medium
-- **Target Files**:
-  - `lib/src/dataframe/dataframe.dart`
-  - `lib/src/dataframe/arrow_string_series.dart`
-  - `lib/src/dataframe/csv/csv_writer.dart`
-  - `lib/src/type/data_type.dart`
-- **Problem & Evidence**:
-  - `DataFrame(columns)` constructor calls `columns.map((c) => c.name).toList()`, `columns.elementAt(i)` inside a loop, and `columns.map(...)` multiple times without materializing `columns` to a `List` first; if a lazy mapped `Iterable<Series>` is passed, every series is constructed 3 times!
-  - `ArrowStringSeries.sort` decodes two UTF-8 strings on every comparator call ($O(N \log N)$ UTF-8 allocations) instead of comparing raw UTF-8 bytes lexicographically (which for UTF-8 is identical to code-point order!).
-  - `DataType.castList(Iterable<dynamic> elements)` (`lib/src/type/data_type.dart`) calls `elements.length` on every iteration of `for (var i = 0; i < elements.length; i++)`, which is $O(N^2)$ when `elements` is a lazy `WhereIterable`.
-- **Actionable Fix & Acceptance Criteria**:
-  1. Materialize `final columnList = columns.toList(growable: false);` at the top of `DataFrame(Iterable<Series<dynamic>> columns)`.
-  2. Compare raw UTF-8 `Uint8List` slices lexicographically in `ArrowStringSeries.sort`.
-  3. Hoist `final list = elements is List ? elements : elements.toList(growable: false);` in `DataType.castList`.
-- **Implementation Report**:
-  - Refactored `DataFrame` constructor to materialize columns to a list once, indexing column names and verifying row counts in a single $O(C)$ pass without multiple iterations or `elementAt` traversals.
-  - Implemented lexicographical raw byte slice comparison and zero-allocation slice copying in `ArrowStringSeries.sort`, eliminating string decoding and allocations during sorting.
-  - Optimized `CsvWriter.write` by caching columns in a local list and writing directly to `StringBuffer`, eliminating per-row column map lookups and list allocations.
-  - Hoisted list length check in `DataType.castList` with direct list indexing and single-pass materialization for lazy iterables.
-  - Added unit tests for lazy evaluation counts and UTF-8 multi-byte sorting across VM, Node.js, and Chrome.
-
----
-
-## 6. High-Value Missing Features Users Expect
-
-### TASK-6.1: `DataFrame` & `Series` Essential Tabular Operations [COMPLETED]
-
-- **Severity**: Medium
-- **Target Files**:
-  - `lib/src/dataframe/dataframe.dart`
-  - `lib/src/dataframe/series.dart`
-  - `lib/src/dataframe/groupby.dart`
-  - `lib/src/dataframe/join.dart`
-- **Missing Capabilities & Actionable Additions**:
-  1. **Null handling**: `df.dropNulls({List<String>? subset})`, `df.fillNull(Object value)` / `series.dropNulls()`, `series.fillNull(T value)`.
-  2. **Column & row transformations**: `df.rename(Map<String, String> mapping)`, `df.drop(List<String> columns)`, `df.withColumn(Series column)`, `df.concat(DataFrame other)` (vertical concatenation), `series.map<R>(R Function(T) fn)`, `series.unique()`, `series.valueCounts()`.
-  3. **Summary statistics**: `df.describe()` returning a summary `DataFrame` (`count`, `mean`, `std`, `min`, `25%`, `50%`, `75%`, `max`).
-  4. **Multi-column sorting & join keys**: Support `df.sortBy(List<String> columns, ...)` and `leftOn` / `rightOn` in `df.join(...)`.
-  5. **Per-column `GroupBy.count()`**: Currently `GroupBy.count()` only counts non-nulls in the first non-key column; update it to count non-null values per aggregated column (matching Pandas/Polars).
-- **Implementation Report**:
-  - Implemented `Series.dropNulls()`, `Series.fillNull(T value)`, `Series.map<R>(R Function(T) fn)`, `Series.unique()`, and `Series.valueCounts()`.
-  - Added `DataFrame.rename(Map<String, String> mapping)` with existence validation, `DataFrame.concat(DataFrame other)` with schema validation, `DataFrame.dropNulls({List<String>? subset})`, `DataFrame.fillNull(Object value)`, and `DataFrame.describe()`.
-  - Extended `DataFrame.sortBy` to accept single `String` or `List<String>`, with per-column or scalar `ascending` and `nullsLast` controls.
-  - Extended `DataFrame.join` to accept `leftOn` and `rightOn` across both `JoinMethod.hash` and `JoinMethod.sortMerge`.
-  - Updated `GroupBy.count()` to compute counts for all non-key columns.
-  - Added unit test suites across VM and Node.js testing all new capabilities and error conditions.
-
-### TASK-6.2: `numeric` & `stats` Completeness Improvements [COMPLETED]
-
-- **Severity**: Medium
-- **Target Files**:
-  - `lib/src/numeric/curve_fit.dart`
-  - `lib/src/numeric/ode/solve_ode.dart`
-  - `lib/src/numeric/ode/ode_method.dart`
-  - `lib/src/numeric/fft.dart`
-  - `lib/src/acceleration/fft/fft.dart`
-  - `lib/src/acceleration/fft/fft_dart.dart`
-  - `lib/src/stats/distribution.dart`
-  - `lib/src/stats/distributions/continuous.dart`
-  - `lib/src/stats/distributions/continuous/*.dart`
-- **Missing Capabilities & Actionable Additions**:
-  1. **`CurveFitResult` parameter uncertainty metrics**: Compute and expose `Matrix<double> covariance` ($(J^T J)^{-1} \cdot \text{RSE}^2$) and `Vector<double> standardErrors` on `CurveFitResult` (fulfilling `AGENTS.md`: *"high-level parametric curve fitting with confidence metrics"*).
-  2. **Stiff ODE solver & evaluation grid (`tEval`)**: Add an implicit/stiff method (e.g., `OdeMethod.bdf2` or `OdeMethod.radau` / implicit trapezoidal) and an optional `Iterable<double>? tEval` parameter to `solveOde` via dense Hermite interpolation.
-  3. **Non-power-of-2 FFT (Bluestein / Chirp-Z)**: Support arbitrary-length signals in `Fft.fft` / `fft` via Bluestein's algorithm instead of throwing on non-power-of-2 lengths, and add `ConvolutionMode { full, same, valid }` to `convolve`.
-  4. **Exact distribution medians & `logProbability`**: Implement `median` via `inverseCumulativeProbability(0.5)` in `ContinuousDistribution` (currently `GammaDistribution`, `BetaDistribution`, `FDistribution`, and `InverseGammaDistribution` return `double.nan` for `median`, and `ChiSquaredDistribution.median` uses an inaccurate approximation), and add `logProbability(T x)` to `Distribution<T>`.
-- **Implementation Report**:
-  - Added `covariance` and `standardErrors` to `CurveFitResult`, evaluated from the Jacobian at optimal parameters via $(J^T J)^{-1} \cdot \text{RSE}^2$ and diagonal square roots.
-  - Added `OdeMethod.bdf2` with Newton-Raphson nonlinear algebraic solve and numerical Jacobian for stiff ODE systems.
-  - Added optional `tEval` grid parameter to `solveOde` with $C^1$-continuous cubic Hermite interpolation.
-  - Implemented Bluestein's Chirp-Z transform algorithm in `FftDart.bluestein` enabling $\mathcal{O}(N \log N)$ FFT for arbitrary non-power-of-2 signal lengths, and removed power-of-2 restrictions in `Fft.fft` and `fft`.
-  - Added `ConvolutionMode { full, same, valid }` to `convolve` and exported it from `package:data/numeric.dart`.
-  - Added `logProbability(T x)` to `Distribution<T>` and implemented exact continuous distribution `median` via `inverseCumulativeProbability(0.5)` in `ContinuousDistribution`, removing `double.nan` and inaccurate approximations in `GammaDistribution`, `BetaDistribution`, `FDistribution`, `InverseGammaDistribution`, and `ChiSquaredDistribution`.
-  - Verified across VM and Node.js with comprehensive unit tests.
-
-### TASK-6.3: `symbolic` CAS Completeness Improvements [COMPLETED]
-
-- **Severity**: Low
-- **Target Files**:
-  - `lib/src/symbolic/calculus/integration.dart`
-  - `lib/src/symbolic/algebra/factor/univariate.dart`
-  - `lib/src/symbolic/algebra/factor.dart`
-- **Missing Capabilities & Actionable Additions**:
-  1. **Elementary integrals**: Extend `_symbolicIntegrate` to handle standard trig powers and products ($\int \sin^2(x)\,dx$, $\int \cos^2(x)\,dx$, $\int \tan^2(x)\,dx$, $\int \sin(ax)\cos(bx)\,dx$, $\int \sec(x)\,dx$), completing-the-square quadratics ($\int \frac{1}{x^2 + bx + c}\,dx$, $\int \frac{1}{\sqrt{a - x^2}}\,dx$), and general $u' \cdot f(u)$ chain-rule forms like $\int \frac{\ln(x)}{x}\,dx$ and $\int \sinh(x)\cosh(x)\,dx$.
-  2. **Integer & cyclotomic factoring**: Complete `IntegerNumber.factor()` for composite `BigInt`s $> 2^{63}$ (e.g. Pollard's rho) and support biquadratic/Sophie Germain polynomial factoring ($x^4 + 4$, $x^4 + x^2 + 1$).
-- **Implementation Report**:
-  - Extended `_symbolicIntegrate` with exact integration closed forms for standard trig powers ($\sin^2, \cos^2, \tan^2, \sinh^2, \cosh^2$), secant and cosecant ($\sec(x), \csc(x)$), trigonometric product-to-sum rules ($\sin(ax)\cos(bx), \cos(ax)\cos(bx), \sin(ax)\sin(bx)$), completing-the-square quadratics ($\int \frac{c}{Ax^2 + Bx + C}\,dx$ across $\Delta > 0, = 0, < 0$), general inverse sine forms $\int \frac{c}{\sqrt{a - (d x + e)^2}}\,dx$, and chain-rule forms $\int u(x) u'(x)\,dx$ (e.g., $\ln(x)/x$ and $\sinh(x)\cosh(x)$).
-  - Added Pollard's rho integer factorization algorithm with Brent cycle finding for composite `BigInt`s exceeding small prime trial division limits.
-  - Implemented Sophie Germain and cyclotomic difference-of-squares factorization in univariate factoring for biquadratics ($x^4 + 4$, $x^4 + x^2 + 1$).
-  - Added comprehensive test suites in `test/symbolic/algebra/factor_test.dart` and `test/symbolic/calculus/integration_test.dart` verified across VM and Node.js.
-
----
-
-## 7. Documentation, Examples & Test Suite Alignment
-
-### TASK-7.1: Sync `ARCHITECTURE.md` and `README.md` with Actual Codebase Paths and Symbols [COMPLETED]
-
-- **Severity**: Medium
-- **Target Files**:
-  - `ARCHITECTURE.md`
-  - `README.md`
-  - `example/README.md`
-  - `lib/numeric.dart`
-- **Problem & Evidence**:
-  - **Non-existent file paths in `ARCHITECTURE.md`**:
-    - Line 22: `lib/src/type/buffers/memory.dart` (actual: `lib/src/type/utils/memory.dart`).
-    - Line 289: `lib/src/dataframe/json.dart` (actual: `lib/src/dataframe/json/json_encoder.dart`, `json_decoder.dart`, `json_orient.dart`, `json_stream.dart`).
-    - Lines 317, 324: `lib/src/acceleration/ffi/` and `lib/src/acceleration/ffi/library_loader_ffi.dart` (actual: `lib/src/acceleration/utils/library_loader_ffi.dart`).
-  - **Renames not reflected in `ARCHITECTURE.md`**:
-    - Section 6 still references old algorithm-named functions (`brentMinimize`, `nelderMead`, `bfgs`, `lbfgs`, `minimizeConstrained`, `rk4`, `rk45`, `numericalDerivative`, `numericalGradient`, `numericalJacobian`, `numericalHessian`, `levenbergMarquardt`, `ifft`, `ifft2`) that were replaced by solution-oriented APIs (`minimize`, `solveOde`, `derivative`, `gradient`, `jacobian`, `hessian`, `curveFit`, `fitNonlinear`, `fft(..., inverse: true)`).
-    - Section 4 claims `BoolSeries` uses bit-packed `ValidityMask` storage for values (actual `BoolSeries` in `lib/src/dataframe/series.dart` stores `final List<bool> data`) and references `df.column<T>(name)` (actual: `df.typedColumn<T>(name)`).
-    - Section 6.4 claims `fft` is non-mutating and returns a new buffer (actual `void fft(List<Complex> buffer, {bool inverse = false})` mutates `buffer` in-place).
-    - Section 8 claims `Assumptions` has a `parent` field and `copyWith` method (actual `Assumptions` has `assume` and `merge`, no `parent`/`copyWith`).
-  - **`README.md` & `example/README.md` inaccuracies**:
-    - `README.md` line 40 claims `BiCGSTAB` is implemented in `package:data/linear.dart`, and `example/README.md` claims `example/magic_square.dart` tests `SVD, Cholesky, GMRES, BiCGSTAB, CG` (only `conjugateGradient` and `gmres` exist in `IterativeMethod`, and `magic_square.dart` only runs `lu`, `qr`, `eigen`, and `inverse`).
-- **Actionable Fix & Acceptance Criteria**:
-  1. Update all stale file paths and function signatures in `ARCHITECTURE.md` to match the current codebase.
-  2. Update `README.md` and `example/README.md` (or add BiCGSTAB to `IterativeMethod`).
-  3. List `multipleLinearRegression`, `fft2`, and `convolve` in the library doc comment of `lib/numeric.dart`.
-- **Implementation Report**:
-  - Corrected internal file paths in `ARCHITECTURE.md` (`lib/src/type/utils/memory.dart`, `lib/src/dataframe/json/`, `lib/src/acceleration/utils/library_loader_ffi.dart`).
-  - Updated `ARCHITECTURE.md` Section 4 with `df.typedColumn<T>` and `List<bool>` buffer description for `BoolSeries`.
-  - Updated `ARCHITECTURE.md` Section 6 to document solution-oriented numerical APIs (`minimize` with `OptimizationMethod`, `solveOde` with `OdeMethod`, `derivative`, `gradient`, `jacobian`, `hessian`, in-place arbitrary-length `fft`, `fft2`, `convolve`, and `curveFit`/`fitNonlinear`).
-  - Corrected solver lists in `README.md` and `example/README.md` removing non-existent BiCGSTAB and Cholesky references from magic square demo.
-  - Added `multipleLinearRegression`, `fft2`, `convolve`, and `OdeMethod.bdf2` to `lib/numeric.dart` library documentation comment.
-  - Verified static analysis clean with 0 warnings/infos.
-
-### TASK-7.2: Mirror `test/` Directory Hierarchy 1:1 with `lib/src/` and Split Single-Group Test Files [COMPLETED]
-
-- **Severity**: Medium
-- **Target Files**:
-  - `test/polynomial/compressed_polynomial_test.dart` -> `test/polynomial/impl/compressed_polynomial_test.dart`
-  - `test/polynomial/impl/dense_polynomial_test.dart` (create)
-  - `test/tensor/contraction_test.dart`, `einsum_test.dart`, `manipulation_test.dart`, `operation_test.dart` -> `test/tensor/operations/`
-  - `test/tensor/layout_test.dart`
-  - `test/linear/solvers/iterative_test.dart`, `test/linear/sparse/coo_matrix_test.dart`, `csc_matrix_test.dart`, `csr_matrix_test.dart` (split from `test/linear/linear_test.dart`)
-  - `test/stats/distributions/continuous/*_test.dart`, `test/stats/distributions/discrete/*_test.dart` (mirror `lib/src/stats/distributions/`)
-  - `test/type/utils/derive_test.dart` (create)
-- **Problem & Evidence**:
-  - `AGENTS.md` states: *"Structure the tests following the same folder structure as the code under test (e.g., `lib/src/foo/bar.dart` -> `test/foo/bar_test.dart`). Maintain a strict parallel hierarchy matching `lib/src/`."* and *"Group tests by functionality using `group('description', () { ... })`. Avoid declaring a single top-level group in a file."*
-  - Currently, 40+ files in `lib/src/` lack their 1:1 counterpart in `test/` because tests are either placed at the wrong nesting level (`test/tensor/operation_test.dart` instead of `test/tensor/operations/operation_test.dart`, `test/polynomial/compressed_polynomial_test.dart` instead of `test/polynomial/impl/compressed_polynomial_test.dart`) or bundled into monolithic files (`test/linear/linear_test.dart`, `test/stats/distributions/continuous_test.dart`, `test/stats/distributions/discrete_test.dart`).
-  - 93 of 188 test files wrap all tests in a single top-level `group('...', () { ... })`.
-- **Actionable Fix & Acceptance Criteria**:
-  1. Reorganize `test/` so every non-stub implementation file in `lib/src/` has a matching `test/<subsystem>/.../<file>_test.dart` file.
-  2. Replace single top-level `group(...)` wrappers in test files with multiple functional `group(...)` blocks testing distinct aspects of each module.
-  3. Remove the remaining `closeTo(...).isTrue()` calls in `test/linear/decomposition/complex_decomposition_test.dart` in favor of idiomatically typed `check(...)` assertions.
-- **Implementation Report**:
-  - Reorganized `test/tensor/` operations into `test/tensor/operations/` matching `lib/src/tensor/operations/` (`contraction_test.dart`, `einsum_test.dart`, `manipulation_test.dart`, `operation_test.dart`).
-  - Reorganized `test/polynomial/` to mirror `lib/src/polynomial/impl/` (`compressed_polynomial_test.dart`, and created `dense_polynomial_test.dart`).
-  - Created `test/type/utils/derive_test.dart` mirroring `lib/src/type/utils/derive.dart`.
-  - Split `test/linear/linear_test.dart` into `test/linear/solvers/iterative_test.dart` and `test/linear/sparse/` (`coo_matrix_test.dart`, `csr_matrix_test.dart`, `csc_matrix_test.dart`).
-  - Mirrored `lib/src/stats/distributions/` 1:1 into dedicated test suites across `test/stats/distributions/continuous/` (16 test files) and `test/stats/distributions/discrete/` (8 test files), each with multiple functional groups.
-  - Replaced all 16 `closeTo(...).isTrue()` calls in `test/linear/decomposition/complex_decomposition_test.dart` with custom `Subject<Complex>.isCloseTo` checks.
-  - Verified 1,052+ tests passing across VM and Node.js with 0 analysis issues and clean code formatting.
+- **FU-3.1** (TASK-2.1): Confirm that `ln(negative)` → `ln|x| + iπ` applies only when the argument is a known negative number, and that `ln(x)` with `Assumptions.none` stays unevaluated.
+- **FU-3.2** (TASK-6.2, BDF2): The Newton iteration uses a finite-difference Jacobian on every iteration (`_approximateJacobian` in `solve_ode.dart` ~L291). Reuse the Jacobian across iterations and steps (modified Newton), and report failure to converge through `OdeSolution.converged`.
+- **FU-3.3** (TASK-6.1): Check that `DataFrame.describe()` and `concat()` handle nullable and mixed-type columns and keep the Arrow-backed series types (no forced boxing to `Series<dynamic>`).
+- **FU-3.4** (TASK-3.3): `ExprSyntax.identifierTokenParser` and `numberTokenParser` were left public on purpose for `web/calculator`. Document this exception in `ARCHITECTURE.md`.
