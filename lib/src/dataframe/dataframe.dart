@@ -213,10 +213,19 @@ class DataFrame {
     final newCols = <Series<Object?>>[];
     for (final col in _columns) {
       final otherCol = other.column(col.name);
-      final combinedVals = <Object?>[...col.values, ...otherCol.values];
       final combinedType = col.dataType == otherCol.dataType
           ? col.dataType
           : col.dataType.promoteWith(otherCol.dataType);
+      final List<Object?> combinedVals;
+      if (combinedType == col.dataType && combinedType == otherCol.dataType) {
+        combinedVals = <Object?>[...col.values, ...otherCol.values];
+      } else {
+        combinedVals = <Object?>[
+          for (final v in col.values) v == null ? null : combinedType.cast(v),
+          for (final v in otherCol.values)
+            v == null ? null : combinedType.cast(v),
+        ];
+      }
       newCols.add(Series.fromList(col.name, combinedVals, type: combinedType));
     }
     return DataFrame(newCols);

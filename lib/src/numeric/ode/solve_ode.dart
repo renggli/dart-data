@@ -274,6 +274,7 @@ OdeSolution _bdf2({
 
   var currentTime = t0;
   var stepCount = 0;
+  var allStepsConverged = true;
 
   // Step 1: implicit trapezoidal rule
   if ((tEnd - currentTime) * direction > 1e-12 && stepCount < maxSteps) {
@@ -286,21 +287,32 @@ OdeSolution _bdf2({
     var y1 = y0 + f0.scale(step1);
     final gamma = step1 * 0.5;
 
+    var stepConverged = false;
+    Matrix<double>? mat;
     for (var iter = 0; iter < maxNewtonIters; iter++) {
       final f1 = f(t1, y1);
       final residual = y1 - y0 - (f0 + f1).scale(gamma);
-      if (residual.norm() < tolerance) break;
+      if (residual.norm() < tolerance) {
+        stepConverged = true;
+        break;
+      }
 
-      final jac = _approximateJacobian(f, t1, y1, f1);
-      final mat = Matrix<double>.generate(dim, dim, (r, c) {
-        final id = r == c ? 1.0 : 0.0;
-        return id - gamma * jac.get(r, c);
-      }, type: DataType.float64);
+      if (mat == null || iter >= 5) {
+        final jac = _approximateJacobian(f, t1, y1, f1);
+        mat = Matrix<double>.generate(dim, dim, (r, c) {
+          final id = r == c ? 1.0 : 0.0;
+          return id - gamma * jac.get(r, c);
+        }, type: DataType.float64);
+      }
 
       final delta = mat.solveVector(-residual);
       y1 += delta;
-      if (delta.norm() < tolerance) break;
+      if (delta.norm() < tolerance) {
+        stepConverged = true;
+        break;
+      }
     }
+    if (!stepConverged) allStepsConverged = false;
 
     currentTime = t1;
     tList.add(currentTime);
@@ -308,7 +320,11 @@ OdeSolution _bdf2({
     stepCount++;
   }
 
-  // Subsequent steps: BDF2
+  // Subsequent steps: BDF2 (Modified Newton with Jacobian reuse)
+  Matrix<double>? cachedJac;
+  double? cachedGamma;
+  Matrix<double>? cachedMat;
+
   while ((tEnd - currentTime) * direction > 1e-12 && stepCount < maxSteps) {
     var step = h;
     if ((currentTime + step - tEnd) * direction > 0.0) {
@@ -326,22 +342,33 @@ OdeSolution _bdf2({
 
     var yNext = yN.scale(1.0 + omega) - yPrev.scale(omega);
 
+    var stepConverged = false;
     for (var iter = 0; iter < maxNewtonIters; iter++) {
       final fNext = f(tNext, yNext);
       final residual =
           yNext - yN.scale(alpha) + yPrev.scale(beta) - fNext.scale(gamma);
-      if (residual.norm() < tolerance) break;
+      if (residual.norm() < tolerance) {
+        stepConverged = true;
+        break;
+      }
 
-      final jac = _approximateJacobian(f, tNext, yNext, fNext);
-      final mat = Matrix<double>.generate(dim, dim, (r, c) {
-        final id = r == c ? 1.0 : 0.0;
-        return id - gamma * jac.get(r, c);
-      }, type: DataType.float64);
+      if (cachedMat == null || cachedGamma != gamma || iter >= 3) {
+        cachedJac = _approximateJacobian(f, tNext, yNext, fNext);
+        cachedGamma = gamma;
+        cachedMat = Matrix<double>.generate(dim, dim, (r, c) {
+          final id = r == c ? 1.0 : 0.0;
+          return id - gamma * cachedJac!.get(r, c);
+        }, type: DataType.float64);
+      }
 
-      final delta = mat.solveVector(-residual);
+      final delta = cachedMat.solveVector(-residual);
       yNext += delta;
-      if (delta.norm() < tolerance) break;
+      if (delta.norm() < tolerance) {
+        stepConverged = true;
+        break;
+      }
     }
+    if (!stepConverged) allStepsConverged = false;
 
     currentTime = tNext;
     tList.add(currentTime);
@@ -349,8 +376,12 @@ OdeSolution _bdf2({
     stepCount++;
   }
 
-  final converged = (tEnd - currentTime).abs() <= 1e-12;
-  return OdeSolution(t: tList, y: yList, converged: converged);
+  final reachedEnd = (tEnd - currentTime).abs() <= 1e-12;
+  return OdeSolution(
+    t: tList,
+    y: yList,
+    converged: reachedEnd && allStepsConverged,
+  );
 }
 
 Matrix<double> _approximateJacobian(

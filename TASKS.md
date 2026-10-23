@@ -195,7 +195,7 @@ Pre-release review of `lib/` at `2fc36d4`. Baseline: `dart analyze` clean, READM
 
 ### 3. Verification Gaps (Quick Checks)
 
-- **FU-3.1** (TASK-2.1): Confirm that `ln(negative)` → `ln|x| + iπ` applies only when the argument is a known negative number, and that `ln(x)` with `Assumptions.none` stays unevaluated.
-- **FU-3.2** (TASK-6.2, BDF2): The Newton iteration uses a finite-difference Jacobian on every iteration (`_approximateJacobian` in `solve_ode.dart` ~L291). Reuse the Jacobian across iterations and steps (modified Newton), and report failure to converge through `OdeSolution.converged`.
-- **FU-3.3** (TASK-6.1): Check that `DataFrame.describe()` and `concat()` handle nullable and mixed-type columns and keep the Arrow-backed series types (no forced boxing to `Series<dynamic>`).
-- **FU-3.4** (TASK-3.3): `ExprSyntax.identifierTokenParser` and `numberTokenParser` were left public on purpose for `web/calculator`. Document this exception in `ARCHITECTURE.md`.
+- **FU-3.1 [COMPLETED]** (TASK-2.1): Confirm that `ln(negative)` → `ln|x| + iπ` applies only when the argument is a known negative number, and that `ln(x)` with `Assumptions.none` stays unevaluated.
+- **FU-3.2 [COMPLETED]** (TASK-6.2, BDF2): The Newton iteration uses a finite-difference Jacobian on every iteration (`_approximateJacobian` in `solve_ode.dart` ~L291). Reuse the Jacobian across iterations and steps (modified Newton), and report failure to converge through `OdeSolution.converged`.
+- **FU-3.3 [COMPLETED]** (TASK-6.1): Check that `DataFrame.describe()` and `concat()` handle nullable and mixed-type columns and keep the Arrow-backed series types (no forced boxing to `Series<dynamic>`).
+- **FU-3.4 [COMPLETED]** (TASK-3.3): `ExprSyntax.identifierTokenParser` and `numberTokenParser` were left public on purpose for `web/calculator`. Document this exception in `ARCHITECTURE.md`.

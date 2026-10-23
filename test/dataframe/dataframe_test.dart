@@ -777,6 +777,31 @@ line 2",10
       check(stats['val'][7]).equals(40.0); // max
     });
 
+    test('describe handles nullable numeric columns and ignores nulls', () {
+      final df = DataFrame.fromColumns({
+        'val': [10.0, null, 30.0, null],
+      });
+      final stats = df.describe();
+      check(stats['val'][0]).equals(2.0); // non-null count
+      check(stats['val'][1]).equals(20.0); // mean of 10 and 30
+      check(stats['val'][3]).equals(10.0); // min
+      check(stats['val'][7]).equals(30.0); // max
+    });
+
+    test('concat promotes types without dynamic Series', () {
+      final df1 = DataFrame([
+        Series.fromList('a', [1, 2], type: DataType.int32),
+      ]);
+      final df2 = DataFrame([
+        Series.fromList('a', [3.5, 4.5], type: DataType.float64),
+      ]);
+      final combined = df1.concat(df2);
+      check(combined['a'].dataType).equals(DataType.float64);
+      check(combined['a'].toList()).deepEquals([1.0, 2.0, 3.5, 4.5]);
+      check(combined['a'].dataType)
+          .not((it) => it.equals(DataType.dynamicType));
+    });
+
     test('sortBy supports multiple columns and directions', () {
       final df = DataFrame.fromColumns({
         'dept': ['IT', 'HR', 'IT', 'HR'],

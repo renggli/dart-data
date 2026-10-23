@@ -657,6 +657,7 @@ This document describes the achieved architecture across all subsystems of `pack
   - `ExprSyntax` (`lib/src/symbolic/parser.dart`):
     - Direct declarative configuration via `ExprSyntax({constants, unaryFunctions, binaryFunctions, variadicFunctions})` (which merges custom bindings with standard mathematical constants and functions, including canonical parse-time rewrites for `sec`, `csc`, `cot`, `asec`/`arcsec`, `acsc`/`arccsc`, `acot`/`arccot`, `sech`, `csch`, `coth`, `asech`/`arcsech`, `acsch`/`arccsch`, `acoth`/`arccoth`, `log2`, and `log10`) and `ExprSyntax.empty({...})` (which starts with empty bindings), plus `ExprSyntax.standard`.
     - Strictly case-sensitive PetitParser `ExpressionBuilder<Expr>` grammar (`builder.loopback`, `resolve(builder.build()).end()`) where identifiers are any character sequence not starting with a digit and containing no whitespace or mathematical operator/delimiter symbols. Unbound 0-argument identifiers resolve to `Variable(name)`, and unbound function calls resolve to `VariableFunction(name, arguments)`.
+    - Lower-level lexical token parsers `ExprSyntax.identifierTokenParser` and `ExprSyntax.numberTokenParser` are intentionally exposed as public static APIs to allow web applications (such as `web/calculator`) to syntax-highlight and tokenize input equations with identical lexical rules.
 
 ### 9.8 Domain Assumptions (`Assumptions`)
 
