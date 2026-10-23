@@ -535,6 +535,16 @@ void main() {
       check(nbQuant).isGreaterThan(0);
       check(nbinom.cumulativeProbability(nbQuant)).isGreaterOrEqual(0.95);
     });
+
+    test('DiscreteDistribution logProbability evaluation', () {
+      final binom = BinomialDistribution(10, 0.5);
+      check(binom.logProbability(5))
+          .isCloseTo(math.log(binom.probability(5)), 1e-12);
+
+      final pois = PoissonDistribution(4.0);
+      check(pois.logProbability(3))
+          .isCloseTo(math.log(pois.probability(3)), 1e-12);
+    });
   });
 }
 

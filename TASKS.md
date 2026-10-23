@@ -643,20 +643,32 @@ Each task specifies:
   - Updated `GroupBy.count()` to compute counts for all non-key columns.
   - Added unit test suites across VM and Node.js testing all new capabilities and error conditions.
 
-### TASK-6.2: `numeric` & `stats` Completeness Improvements
+### TASK-6.2: `numeric` & `stats` Completeness Improvements [COMPLETED]
 
 - **Severity**: Medium
 - **Target Files**:
   - `lib/src/numeric/curve_fit.dart`
   - `lib/src/numeric/ode/solve_ode.dart`
+  - `lib/src/numeric/ode/ode_method.dart`
   - `lib/src/numeric/fft.dart`
+  - `lib/src/acceleration/fft/fft.dart`
+  - `lib/src/acceleration/fft/fft_dart.dart`
+  - `lib/src/stats/distribution.dart`
+  - `lib/src/stats/distributions/continuous.dart`
   - `lib/src/stats/distributions/continuous/*.dart`
-  - `lib/src/stats/distributions/discrete/*.dart`
 - **Missing Capabilities & Actionable Additions**:
   1. **`CurveFitResult` parameter uncertainty metrics**: Compute and expose `Matrix<double> covariance` ($(J^T J)^{-1} \cdot \text{RSE}^2$) and `Vector<double> standardErrors` on `CurveFitResult` (fulfilling `AGENTS.md`: *"high-level parametric curve fitting with confidence metrics"*).
   2. **Stiff ODE solver & evaluation grid (`tEval`)**: Add an implicit/stiff method (e.g., `OdeMethod.bdf2` or `OdeMethod.radau` / implicit trapezoidal) and an optional `Iterable<double>? tEval` parameter to `solveOde` via dense Hermite interpolation.
   3. **Non-power-of-2 FFT (Bluestein / Chirp-Z)**: Support arbitrary-length signals in `Fft.fft` / `fft` via Bluestein's algorithm instead of throwing on non-power-of-2 lengths, and add `ConvolutionMode { full, same, valid }` to `convolve`.
   4. **Exact distribution medians & `logProbability`**: Implement `median` via `inverseCumulativeProbability(0.5)` in `ContinuousDistribution` (currently `GammaDistribution`, `BetaDistribution`, `FDistribution`, and `InverseGammaDistribution` return `double.nan` for `median`, and `ChiSquaredDistribution.median` uses an inaccurate approximation), and add `logProbability(T x)` to `Distribution<T>`.
+- **Implementation Report**:
+  - Added `covariance` and `standardErrors` to `CurveFitResult`, evaluated from the Jacobian at optimal parameters via $(J^T J)^{-1} \cdot \text{RSE}^2$ and diagonal square roots.
+  - Added `OdeMethod.bdf2` with Newton-Raphson nonlinear algebraic solve and numerical Jacobian for stiff ODE systems.
+  - Added optional `tEval` grid parameter to `solveOde` with $C^1$-continuous cubic Hermite interpolation.
+  - Implemented Bluestein's Chirp-Z transform algorithm in `FftDart.bluestein` enabling $\mathcal{O}(N \log N)$ FFT for arbitrary non-power-of-2 signal lengths, and removed power-of-2 restrictions in `Fft.fft` and `fft`.
+  - Added `ConvolutionMode { full, same, valid }` to `convolve` and exported it from `package:data/numeric.dart`.
+  - Added `logProbability(T x)` to `Distribution<T>` and implemented exact continuous distribution `median` via `inverseCumulativeProbability(0.5)` in `ContinuousDistribution`, removing `double.nan` and inaccurate approximations in `GammaDistribution`, `BetaDistribution`, `FDistribution`, `InverseGammaDistribution`, and `ChiSquaredDistribution`.
+  - Verified across VM and Node.js with comprehensive unit tests.
 
 ### TASK-6.3: `symbolic` CAS Completeness Improvements
 

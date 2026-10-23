@@ -71,9 +71,6 @@ class GammaDistribution extends ContinuousDistribution {
   double get mean => shape * scale;
 
   @override
-  double get median => double.nan;
-
-  @override
   double get mode => shape > 1 ? (shape - 1) * scale : 0.0;
 
   @override

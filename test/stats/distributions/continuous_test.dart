@@ -166,7 +166,7 @@ void main() {
       check(dist.d2).equals(20.0);
       check(dist.lowerBound).equals(0.0);
       check(dist.mean).isCloseTo(20.0 / 18.0, 1e-6);
-      check(dist.median.isNaN).isTrue();
+      check(dist.cumulativeProbability(dist.median)).isCloseTo(0.5, 1e-4);
       check(dist.mode).isGreaterThan(0.0);
       check(dist.variance).isGreaterThan(0.0);
       check(dist.skewness).isGreaterThan(0.0);
@@ -260,7 +260,7 @@ void main() {
       check(dist.scale).equals(2.0);
       check(dist.lowerBound).equals(0.0);
       check(dist.mean).equals(6.0);
-      check(dist.median.isNaN).isTrue();
+      check(dist.cumulativeProbability(dist.median)).isCloseTo(0.5, 1e-4);
       check(dist.mode).equals(4.0);
       check(dist.variance).equals(12.0);
       check(dist.skewness).isCloseTo(2.0 / math.sqrt(3.0), 1e-6);
@@ -320,7 +320,7 @@ void main() {
       check(dist.isLowerBoundOpen).isFalse();
       check(dist.isUpperBoundOpen).isFalse();
       check(dist.mean).isCloseTo(2.0 / 7.0, 1e-6);
-      check(dist.median.isNaN).isTrue();
+      check(dist.cumulativeProbability(dist.median)).isCloseTo(0.5, 1e-4);
       check(dist.mode).isCloseTo(1.0 / 5.0, 1e-6);
       check(dist.variance).isCloseTo(10.0 / (49.0 * 8.0), 1e-6);
       check(dist.skewness).isGreaterThan(0.0);
@@ -438,7 +438,7 @@ void main() {
       check(dist.scale).equals(6.0);
       check(dist.lowerBound).equals(0.0);
       check(dist.mean).isCloseTo(2.0, 1e-6);
-      check(dist.median.isNaN).isTrue();
+      check(dist.cumulativeProbability(dist.median)).isCloseTo(0.5, 1e-4);
       check(dist.mode).isCloseTo(1.2, 1e-6);
       check(dist.variance).isCloseTo(2.0, 1e-6);
       check(dist.skewness).isCloseTo(4.0 * math.sqrt(2.0), 1e-6);
@@ -810,6 +810,18 @@ void main() {
       // Inverse Gamma
       final invGamma = InverseGammaDistribution(2.0, 1.0);
       check(invGamma.sample() > 0.0).isTrue();
+    });
+
+    test('logProbability evaluation', () {
+      const normal = NormalDistribution.standard();
+      check(normal.logProbability(0.0))
+          .isCloseTo(math.log(normal.probability(0.0)), 1e-12);
+      check(normal.logProbability(1.5))
+          .isCloseTo(math.log(normal.probability(1.5)), 1e-12);
+
+      final exp = ExponentialDistribution(2.0);
+      check(exp.logProbability(1.0))
+          .isCloseTo(math.log(exp.probability(1.0)), 1e-12);
     });
   });
 }

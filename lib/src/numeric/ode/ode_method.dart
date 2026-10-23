@@ -5,4 +5,7 @@ enum OdeMethod {
 
   /// Adaptive 5(4) Dormand-Prince Runge-Kutta with dynamic step-size control.
   dormandPrince45,
+
+  /// Implicit 2nd-order Backward Differentiation Formula for stiff problems.
+  bdf2,
 }

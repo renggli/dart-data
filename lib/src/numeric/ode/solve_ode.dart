@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 
 import '../../../linear.dart';
+import '../../../type.dart';
 import 'ode_method.dart';
 import 'ode_solution.dart';
 
@@ -10,7 +11,11 @@ import 'ode_solution.dart';
 /// Conceptually, this simulates how a dynamic system evolves over time (such as
 /// an orbital trajectory or harmonic oscillator). Formally, it executes the
 /// chosen [method] ([OdeMethod.dormandPrince45] by default for adaptive
-/// step-size error control, or [OdeMethod.rk4] for fixed step size).
+/// step-size error control, [OdeMethod.rk4] for fixed step size, or
+/// [OdeMethod.bdf2] for stiff systems).
+///
+/// If [tEval] is provided, dense cubic Hermite interpolation evaluates the
+/// solution at the requested time coordinates.
 ///
 /// ```dart
 /// final sol = solveOde(
@@ -32,6 +37,7 @@ OdeSolution solveOde({
   double minStep = 1e-12,
   double maxStep = 1.0,
   int maxSteps = 100000,
+  Iterable<double>? tEval,
 }) {
   if (stepSize <= 0) {
     throw ArgumentError.value(
@@ -48,30 +54,42 @@ OdeSolution solveOde({
     );
   }
 
-  switch (method) {
-    case OdeMethod.rk4:
-      return _rk4(
-        f: f,
-        t0: t0,
-        tEnd: tEnd,
-        y0: y0,
-        stepSize: stepSize,
-        maxSteps: maxSteps,
-      );
-    case OdeMethod.dormandPrince45:
-      return _rk45(
-        f: f,
-        t0: t0,
-        tEnd: tEnd,
-        y0: y0,
-        initialStep: stepSize,
-        relativeTolerance: relativeTolerance,
-        absoluteTolerance: absoluteTolerance,
-        minStep: minStep,
-        maxStep: maxStep,
-        maxSteps: maxSteps,
-      );
+  final rawSol = switch (method) {
+    OdeMethod.rk4 => _rk4(
+      f: f,
+      t0: t0,
+      tEnd: tEnd,
+      y0: y0,
+      stepSize: stepSize,
+      maxSteps: maxSteps,
+    ),
+    OdeMethod.dormandPrince45 => _rk45(
+      f: f,
+      t0: t0,
+      tEnd: tEnd,
+      y0: y0,
+      initialStep: stepSize,
+      relativeTolerance: relativeTolerance,
+      absoluteTolerance: absoluteTolerance,
+      minStep: minStep,
+      maxStep: maxStep,
+      maxSteps: maxSteps,
+    ),
+    OdeMethod.bdf2 => _bdf2(
+      f: f,
+      t0: t0,
+      tEnd: tEnd,
+      y0: y0,
+      stepSize: stepSize,
+      tolerance: absoluteTolerance,
+      maxSteps: maxSteps,
+    ),
+  };
+
+  if (tEval != null) {
+    return _interpolateHermite(raw: rawSol, f: f, tEval: tEval);
   }
+  return rawSol;
 }
 
 OdeSolution _rk4({
@@ -232,4 +250,214 @@ OdeSolution _rk45({
 
   final converged = (tEnd - currentTime).abs() <= 1e-12;
   return OdeSolution(t: tList, y: yList, converged: converged);
+}
+
+OdeSolution _bdf2({
+  required Vector<double> Function(double t, Vector<double> y) f,
+  required double t0,
+  required double tEnd,
+  required Vector<double> y0,
+  double stepSize = 0.01,
+  double tolerance = 1e-8,
+  int maxNewtonIters = 20,
+  int maxSteps = 100000,
+}) {
+  final tList = <double>[t0];
+  final yList = <Vector<double>>[y0.copy()];
+
+  final direction = tEnd >= t0 ? 1.0 : -1.0;
+  final h = direction * stepSize.abs();
+  final dim = y0.length;
+
+  var currentTime = t0;
+  var stepCount = 0;
+
+  // Step 1: implicit trapezoidal rule
+  if ((tEnd - currentTime) * direction > 1e-12 && stepCount < maxSteps) {
+    var step1 = h;
+    if ((currentTime + step1 - tEnd) * direction > 0.0) {
+      step1 = tEnd - currentTime;
+    }
+    final t1 = currentTime + step1;
+    final f0 = f(currentTime, y0);
+    var y1 = y0 + f0.scale(step1);
+    final gamma = step1 * 0.5;
+
+    for (var iter = 0; iter < maxNewtonIters; iter++) {
+      final f1 = f(t1, y1);
+      final residual = y1 - y0 - (f0 + f1).scale(gamma);
+      if (residual.norm() < tolerance) break;
+
+      final jac = _approximateJacobian(f, t1, y1, f1);
+      final mat = Matrix<double>.generate(dim, dim, (r, c) {
+        final id = r == c ? 1.0 : 0.0;
+        return id - gamma * jac.get(r, c);
+      }, type: DataType.float64);
+
+      final delta = mat.solve(-residual);
+      y1 += delta;
+      if (delta.norm() < tolerance) break;
+    }
+
+    currentTime = t1;
+    tList.add(currentTime);
+    yList.add(y1.copy());
+    stepCount++;
+  }
+
+  // Subsequent steps: BDF2
+  while ((tEnd - currentTime) * direction > 1e-12 && stepCount < maxSteps) {
+    var step = h;
+    if ((currentTime + step - tEnd) * direction > 0.0) {
+      step = tEnd - currentTime;
+    }
+    final tNext = currentTime + step;
+    final yN = yList[yList.length - 1];
+    final yPrev = yList[yList.length - 2];
+
+    var yNext = yN.scale(2.0) - yPrev;
+    final gamma = (2.0 / 3.0) * step;
+
+    for (var iter = 0; iter < maxNewtonIters; iter++) {
+      final fNext = f(tNext, yNext);
+      final residual =
+          yNext -
+          yN.scale(4.0 / 3.0) +
+          yPrev.scale(1.0 / 3.0) -
+          fNext.scale(gamma);
+      if (residual.norm() < tolerance) break;
+
+      final jac = _approximateJacobian(f, tNext, yNext, fNext);
+      final mat = Matrix<double>.generate(dim, dim, (r, c) {
+        final id = r == c ? 1.0 : 0.0;
+        return id - gamma * jac.get(r, c);
+      }, type: DataType.float64);
+
+      final delta = mat.solve(-residual);
+      yNext += delta;
+      if (delta.norm() < tolerance) break;
+    }
+
+    currentTime = tNext;
+    tList.add(currentTime);
+    yList.add(yNext.copy());
+    stepCount++;
+  }
+
+  final converged = (tEnd - currentTime).abs() <= 1e-12;
+  return OdeSolution(t: tList, y: yList, converged: converged);
+}
+
+Matrix<double> _approximateJacobian(
+  Vector<double> Function(double t, Vector<double> y) f,
+  double t,
+  Vector<double> y,
+  Vector<double> fy,
+) {
+  final dim = y.length;
+  final j = Matrix<double>.filled(dim, dim, 0.0, type: DataType.float64);
+  const eps = 1e-8;
+  final yPerturbed = y.copy();
+  for (var col = 0; col < dim; col++) {
+    final yVal = y[col];
+    final h = eps * math.max(1.0, yVal.abs());
+    yPerturbed[col] = yVal + h;
+    final fPerturbed = f(t, yPerturbed);
+    yPerturbed[col] = yVal;
+
+    final invH = 1.0 / h;
+    for (var row = 0; row < dim; row++) {
+      j.set(row, col, (fPerturbed[row] - fy[row]) * invH);
+    }
+  }
+  return j;
+}
+
+OdeSolution _interpolateHermite({
+  required OdeSolution raw,
+  required Vector<double> Function(double t, Vector<double> y) f,
+  required Iterable<double> tEval,
+}) {
+  final tRaw = raw.t;
+  final yRaw = raw.y;
+  final n = tRaw.length;
+  if (n == 0) {
+    return OdeSolution(t: const [], y: const [], converged: raw.converged);
+  }
+  if (n == 1) {
+    return OdeSolution(
+      t: [for (final t in tEval) t],
+      y: [for (final _ in tEval) yRaw[0].copy()],
+      converged: raw.converged,
+    );
+  }
+
+  final fRaw = <Vector<double>>[
+    for (var i = 0; i < n; i++) f(tRaw[i], yRaw[i]),
+  ];
+  final dim = yRaw[0].length;
+
+  final evalT = <double>[];
+  final evalY = <Vector<double>>[];
+
+  for (final t in tEval) {
+    evalT.add(t);
+    var k = 0;
+    final isAscending = tRaw.last >= tRaw.first;
+    if (isAscending) {
+      if (t <= tRaw.first) {
+        evalY.add(yRaw.first.copy());
+        continue;
+      }
+      if (t >= tRaw.last) {
+        evalY.add(yRaw.last.copy());
+        continue;
+      }
+      while (k < n - 2 && tRaw[k + 1] < t) {
+        k++;
+      }
+    } else {
+      if (t >= tRaw.first) {
+        evalY.add(yRaw.first.copy());
+        continue;
+      }
+      if (t <= tRaw.last) {
+        evalY.add(yRaw.last.copy());
+        continue;
+      }
+      while (k < n - 2 && tRaw[k + 1] > t) {
+        k++;
+      }
+    }
+
+    final t0 = tRaw[k];
+    final t1 = tRaw[k + 1];
+    final h = t1 - t0;
+    if (h.abs() < 1e-15) {
+      evalY.add(yRaw[k].copy());
+      continue;
+    }
+    final theta = (t - t0) / h;
+    final theta2 = theta * theta;
+    final theta3 = theta2 * theta;
+
+    final h00 = 2 * theta3 - 3 * theta2 + 1;
+    final h10 = (theta3 - 2 * theta2 + theta) * h;
+    final h01 = -2 * theta3 + 3 * theta2;
+    final h11 = (theta3 - theta2) * h;
+
+    final y0 = yRaw[k];
+    final y1 = yRaw[k + 1];
+    final f0 = fRaw[k];
+    final f1 = fRaw[k + 1];
+
+    final interp = Vector<double>.generate(
+      dim,
+      (i) => h00 * y0[i] + h10 * f0[i] + h01 * y1[i] + h11 * f1[i],
+      type: DataType.float64,
+    );
+    evalY.add(interp);
+  }
+
+  return OdeSolution(t: evalT, y: evalY, converged: raw.converged);
 }

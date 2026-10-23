@@ -251,6 +251,13 @@ void main() {
       check(result.residualStandardError).isLessThan(1e-5);
       check(result.predict(4.0)).isCloseTo(3.0 * math.exp(0.5 * 4.0), 1e-4);
       check(result.iterations).isGreaterThan(0);
+      check(result.covariance.rowCount).equals(2);
+      check(result.covariance.colCount).equals(2);
+      check(result.standardErrors.length).equals(2);
+      check(result.standardErrors[0])
+          .isCloseTo(math.sqrt(result.covariance.get(0, 0)), 1e-12);
+      check(result.standardErrors[1])
+          .isCloseTo(math.sqrt(result.covariance.get(1, 1)), 1e-12);
     });
 
     test('CurveModels.power law fitting', () {

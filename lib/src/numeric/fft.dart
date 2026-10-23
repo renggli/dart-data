@@ -13,9 +13,9 @@ import '../type/types/complex.dart';
 /// signal measured over time into its constituent sinusoidal frequencies and
 /// their corresponding amplitudes and phases. Formally, it computes the
 /// discrete Fourier transform $X_k = \sum_{n=0}^{N-1} x_n e^{-2\pi i k n / N}$
-/// using the Cooley-Tukey decimation-in-time radix-2 algorithm in
-/// $\mathcal{O}(N \log N)$ time, with native hardware acceleration when
-/// available.
+/// in $\mathcal{O}(N \log N)$ time for arbitrary signal lengths (using
+/// Cooley-Tukey radix-2 for power-of-2 lengths and Bluestein's chirp Z-transform
+/// for arbitrary lengths).
 ///
 /// If [buffer] is a [Float64ComplexList], the transform executes directly
 /// in-place on its internal interleaved storage array with zero memory
@@ -23,8 +23,6 @@ import '../type/types/complex.dart';
 ///
 /// If [buffer] is a `List<Complex>`, the transform operates in-place,
 /// replacing elements with their transformed complex values.
-///
-/// The length of [buffer] must be a power of 2.
 ///
 /// ```dart
 /// final buffer = Float64ComplexList.fromList([
@@ -44,13 +42,6 @@ void fft(List<Complex> buffer, {bool inverse = false}) {
 
   final length = buffer.length;
   if (length <= 1) return;
-  if ((length & (length - 1)) != 0) {
-    throw ArgumentError.value(
-      length,
-      'buffer.length',
-      'Length must be a power of 2',
-    );
-  }
 
   final temp = Float64ComplexList(length);
   final data = temp.data;
@@ -129,23 +120,59 @@ void fft2(
   }
 }
 
+/// Mode of 1-dimensional discrete linear convolution.
+enum ConvolutionMode {
+  /// The output is the full linear convolution of length $N + M - 1$.
+  full,
+
+  /// The output has the same length as the input signal, centered with respect
+  /// to the full convolution.
+  same,
+
+  /// The output consists only of those elements that do not rely on
+  /// zero-padding, of length $\max(N - M + 1, 0)$.
+  valid,
+}
+
 /// Computes the 1-dimensional discrete linear convolution of [signal] and
 /// [filter].
 ///
 /// Conceptually, convolution filters or transforms an input signal by sliding
 /// a filter kernel across it and computing weighted sums. Formally, it computes
-/// $c_n = \sum_{p=0}^{P-1} s_{n+p} f_{P-1-p}$ for valid overlap length
-/// $N = \text{signal.length} - \text{filter.length} + 1$.
+/// $(s * f)_n = \sum_p s_p f_{n-p}$ according to the chosen [mode].
 ///
 /// ```dart
 /// final signal = [1.0, 2.0, 3.0, 4.0];
 /// final filter = [0.5, 0.5];
-/// final smoothed = convolve(signal, filter);
+/// final full = convolve(signal, filter);
+/// final valid = convolve(signal, filter, mode: ConvolutionMode.valid);
 /// ```
-List<double> convolve(Iterable<num> signal, Iterable<num> filter) {
+List<double> convolve(
+  Iterable<num> signal,
+  Iterable<num> filter, {
+  ConvolutionMode mode = ConvolutionMode.full,
+}) {
   final s = Float64List.fromList([for (final x in signal) x.toDouble()]);
   final f = Float64List.fromList([for (final x in filter) x.toDouble()]);
-  return Vforce.convolve(signal: s, filter: f);
+  final n = s.length;
+  final m = f.length;
+
+  if (n == 0 || m == 0) return const [];
+
+  switch (mode) {
+    case ConvolutionMode.valid:
+      return Vforce.convolve(signal: s, filter: f);
+    case ConvolutionMode.full:
+      final padded = Float64List(n + 2 * m - 2);
+      padded.setRange(m - 1, m - 1 + n, s);
+      return Vforce.convolve(signal: padded, filter: f);
+    case ConvolutionMode.same:
+      final padded = Float64List(n + 2 * m - 2);
+      padded.setRange(m - 1, m - 1 + n, s);
+      final full = Vforce.convolve(signal: padded, filter: f);
+      final start = (m - 1) ~/ 2;
+      return full.sublist(start, start + n);
+  }
 }
 
 /// Computes the 1-dimensional discrete cross-correlation of [signal] and

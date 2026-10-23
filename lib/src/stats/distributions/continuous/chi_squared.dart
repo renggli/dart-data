@@ -55,9 +55,6 @@ class ChiSquaredDistribution extends ContinuousDistribution {
   double get mean => dof;
 
   @override
-  double get median => dof * pow(1.0 - 2.0 / (9.0 * dof), 3).toDouble();
-
-  @override
   double get mode => dof >= 2.0 ? dof - 2.0 : 0.0;
 
   @override

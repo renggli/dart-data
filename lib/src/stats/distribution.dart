@@ -54,6 +54,10 @@ abstract class Distribution<T extends num> with ToStringPrinter {
   /// Returns the probability density (PDF) or probability mass (PMF) at [x].
   double probability(T x);
 
+  /// Returns the natural logarithm of the probability density (PDF) or
+  /// probability mass (PMF) at [x].
+  double logProbability(T x) => log(probability(x));
+
   /// Returns the cumulative distribution function (CDF) at [x], i.e.,
   /// $P(X \le x)$.
   double cumulativeProbability(T x);

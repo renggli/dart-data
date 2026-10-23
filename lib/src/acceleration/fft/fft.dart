@@ -16,24 +16,21 @@ abstract final class Fft {
   static void fft({required Float64ComplexList buffer, bool inverse = false}) {
     final length = buffer.length;
     if (length <= 1) return;
-    if ((length & (length - 1)) != 0) {
-      throw ArgumentError.value(
-        length,
-        'buffer.length',
-        'Length must be a power of 2',
+
+    if ((length & (length - 1)) == 0) {
+      final log2n = _log2(length);
+
+      executeAcceleratedVoid(
+        feature: 'FFT',
+        operation: 'fft',
+        isAvailable: isAvailable,
+        accelerate: () =>
+            FftNative.fft1d(buffer: buffer, log2n: log2n, inverse: inverse),
+        fallback: () => FftDart.fft(buffer: buffer, inverse: inverse),
       );
+    } else {
+      FftDart.fft(buffer: buffer, inverse: inverse);
     }
-
-    final log2n = _log2(length);
-
-    executeAcceleratedVoid(
-      feature: 'FFT',
-      operation: 'fft',
-      isAvailable: isAvailable,
-      accelerate: () =>
-          FftNative.fft1d(buffer: buffer, log2n: log2n, inverse: inverse),
-      fallback: () => FftDart.fft(buffer: buffer, inverse: inverse),
-    );
   }
 
   /// Computes the 2D discrete Fourier transform in-place on flat row-major

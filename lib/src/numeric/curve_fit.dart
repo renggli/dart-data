@@ -325,6 +325,8 @@ class CurveFitResult {
     required this.residualStandardError,
     required this.residuals,
     required this.iterations,
+    required this.covariance,
+    required this.standardErrors,
   });
 
   /// The optimal parameter vector $\hat{\boldsymbol{\theta}}$.
@@ -346,6 +348,12 @@ class CurveFitResult {
 
   /// The number of optimization iterations performed.
   final int iterations;
+
+  /// The estimated parameter covariance matrix $(J^T J)^{-1} \cdot \text{RSE}^2$.
+  final Matrix<double> covariance;
+
+  /// The standard errors for each fitted parameter.
+  final Vector<double> standardErrors;
 }
 
 /// Predefined parametric models for non-linear curve fitting with [curveFit].
@@ -530,6 +538,49 @@ CurveFitResult curveFit({
   final rse = math.sqrt(ssRes / math.max(df, 1));
 
   final optimalParams = params.copy();
+
+  final j = Matrix<double>.filled(n, numParams, 0.0, type: DataType.float64);
+  final pWork = optimalParams.copy();
+  const step = 1e-7;
+  for (var col = 0; col < numParams; col++) {
+    final pj = optimalParams[col];
+    final h = step * math.max(1.0, pj.abs());
+    pWork[col] = pj + h;
+    final rForward = computeResiduals(pWork);
+    pWork[col] = pj;
+
+    final invH = 1.0 / h;
+    for (var row = 0; row < n; row++) {
+      j.set(row, col, (rForward[row] - residuals[row]) * invH);
+    }
+  }
+
+  final jTj = j.syrk(transpose: true);
+  final eye = Matrix<double>.identity(numParams, type: DataType.float64);
+  Matrix<double> inv;
+  try {
+    inv = jTj.solve(eye);
+  } catch (_) {
+    inv = Matrix<double>.generate(numParams, numParams, (r, c) {
+      if (r == c) {
+        final diag = jTj.get(r, c);
+        return diag > 1e-12 ? 1.0 / diag : 0.0;
+      }
+      return 0.0;
+    }, type: DataType.float64);
+  }
+  final rseSq = rse * rse;
+  final covariance = Matrix<double>.generate(
+    numParams,
+    numParams,
+    (r, c) => inv.get(r, c) * rseSq,
+    type: DataType.float64,
+  );
+  final standardErrors = Vector<double>.generate(numParams, (i) {
+    final v = covariance.get(i, i);
+    return v > 0.0 ? math.sqrt(v) : 0.0;
+  }, type: DataType.float64);
+
   return CurveFitResult(
     parameters: optimalParams,
     predict: (double x) => model(x, optimalParams),
@@ -537,6 +588,8 @@ CurveFitResult curveFit({
     residualStandardError: rse,
     residuals: residuals,
     iterations: iter,
+    covariance: covariance,
+    standardErrors: standardErrors,
   );
 }
 

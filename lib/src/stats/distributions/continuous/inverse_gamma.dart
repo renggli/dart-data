@@ -34,9 +34,6 @@ class InverseGammaDistribution extends ContinuousDistribution {
   double get mean => shape > 1.0 ? scale / (shape - 1.0) : double.nan;
 
   @override
-  double get median => double.nan;
-
-  @override
   double get mode => scale / (shape + 1.0);
 
   @override

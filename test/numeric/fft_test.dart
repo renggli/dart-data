@@ -105,15 +105,52 @@ void main() {
       }
     });
 
-    test('convolve 1D valid linear convolution', () {
+    test('1D FFT of non-power-of-2 signals via Bluestein', () {
+      for (final length in [3, 5, 6, 7, 10, 15]) {
+        final signal = [
+          for (var i = 0; i < length; i++)
+            Complex(i.toDouble() + 1.0, (length - i).toDouble()),
+        ];
+        final orig = List.of(signal);
+
+        fft(signal);
+        fft(signal, inverse: true);
+
+        check(signal.length).equals(orig.length);
+        for (var i = 0; i < signal.length; i++) {
+          check(signal[i].a).isCloseTo(orig[i].a, 1e-5);
+          check(signal[i].b).isCloseTo(orig[i].b, 1e-5);
+        }
+      }
+    });
+
+    test('convolve with ConvolutionMode full, same, and valid', () {
       final signal = [1.0, 2.0, 3.0, 4.0, 5.0];
       final filter = [1.0, 2.0];
-      final result = convolve(signal, filter);
-      check(result.length).equals(4);
-      check(result[0]).isCloseTo(4.0, 1e-9);
-      check(result[1]).isCloseTo(7.0, 1e-9);
-      check(result[2]).isCloseTo(10.0, 1e-9);
-      check(result[3]).isCloseTo(13.0, 1e-9);
+
+      final full = convolve(signal, filter, mode: ConvolutionMode.full);
+      check(full.length).equals(6);
+      check(full[0]).isCloseTo(1.0, 1e-9);
+      check(full[1]).isCloseTo(4.0, 1e-9);
+      check(full[2]).isCloseTo(7.0, 1e-9);
+      check(full[3]).isCloseTo(10.0, 1e-9);
+      check(full[4]).isCloseTo(13.0, 1e-9);
+      check(full[5]).isCloseTo(10.0, 1e-9);
+
+      final same = convolve(signal, filter, mode: ConvolutionMode.same);
+      check(same.length).equals(5);
+      check(same[0]).isCloseTo(1.0, 1e-9);
+      check(same[1]).isCloseTo(4.0, 1e-9);
+      check(same[2]).isCloseTo(7.0, 1e-9);
+      check(same[3]).isCloseTo(10.0, 1e-9);
+      check(same[4]).isCloseTo(13.0, 1e-9);
+
+      final valid = convolve(signal, filter, mode: ConvolutionMode.valid);
+      check(valid.length).equals(4);
+      check(valid[0]).isCloseTo(4.0, 1e-9);
+      check(valid[1]).isCloseTo(7.0, 1e-9);
+      check(valid[2]).isCloseTo(10.0, 1e-9);
+      check(valid[3]).isCloseTo(13.0, 1e-9);
     });
 
     test('correlate 1D valid cross-correlation', () {

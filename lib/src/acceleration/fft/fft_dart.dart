@@ -9,14 +9,87 @@ abstract final class FftDart {
   static void fft({required Float64ComplexList buffer, required bool inverse}) {
     final length = buffer.length;
     if (length <= 1) return;
-    if ((length & (length - 1)) != 0) {
-      throw ArgumentError.value(
-        length,
-        'buffer.length',
-        'Length must be a power of 2',
-      );
+    if ((length & (length - 1)) == 0) {
+      fftInterleaved(data: buffer.data, length: length, inverse: inverse);
+    } else {
+      bluestein(buffer: buffer, inverse: inverse);
     }
-    fftInterleaved(data: buffer.data, length: length, inverse: inverse);
+  }
+
+  /// Computes the discrete Fourier transform of an arbitrary-length [buffer]
+  /// using Bluestein's chirp Z-transform algorithm in $\mathcal{O}(N \log N)$
+  /// time.
+  static void bluestein({
+    required Float64ComplexList buffer,
+    required bool inverse,
+  }) {
+    final n = buffer.length;
+    if (n <= 1) return;
+
+    final m = nextPowerOf2(value: 2 * n - 1);
+    final a = Float64ComplexList(m);
+    final b = Float64ComplexList(m);
+
+    final aData = a.data;
+    final bData = b.data;
+    final bufData = buffer.data;
+
+    final sign = inverse ? 1.0 : -1.0;
+    final scale = sign * math.pi / n;
+
+    final wReal = Float64List(n);
+    final wImag = Float64List(n);
+    for (var i = 0; i < n; i++) {
+      final angle = ((i * i) % (2 * n)) * scale;
+      wReal[i] = math.cos(angle);
+      wImag[i] = math.sin(angle);
+    }
+
+    for (var i = 0; i < n; i++) {
+      final xR = bufData[2 * i];
+      final xI = bufData[2 * i + 1];
+      final wR = wReal[i];
+      final wI = wImag[i];
+      aData[2 * i] = xR * wR - xI * wI;
+      aData[2 * i + 1] = xR * wI + xI * wR;
+    }
+
+    bData[0] = 1.0;
+    bData[1] = 0.0;
+    for (var i = 1; i < n; i++) {
+      final wR = wReal[i];
+      final wI = -wImag[i];
+      bData[2 * i] = wR;
+      bData[2 * i + 1] = wI;
+
+      final wrapIdx = m - i;
+      bData[2 * wrapIdx] = wR;
+      bData[2 * wrapIdx + 1] = wI;
+    }
+
+    fftInterleaved(data: aData, length: m, inverse: false);
+    fftInterleaved(data: bData, length: m, inverse: false);
+
+    for (var i = 0; i < m; i++) {
+      final ar = aData[2 * i];
+      final ai = aData[2 * i + 1];
+      final br = bData[2 * i];
+      final bi = bData[2 * i + 1];
+      aData[2 * i] = ar * br - ai * bi;
+      aData[2 * i + 1] = ar * bi + ai * br;
+    }
+
+    fftInterleaved(data: aData, length: m, inverse: true);
+
+    final invFactor = inverse ? (1.0 / n) : 1.0;
+    for (var i = 0; i < n; i++) {
+      final cR = aData[2 * i];
+      final cI = aData[2 * i + 1];
+      final wR = wReal[i];
+      final wI = wImag[i];
+      buffer.data[2 * i] = (cR * wR - cI * wI) * invFactor;
+      buffer.data[2 * i + 1] = (cR * wI + cI * wR) * invFactor;
+    }
   }
 
   /// Cooley-Tukey decimation-in-time radix-2 FFT kernel operating directly on

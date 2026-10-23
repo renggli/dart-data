@@ -82,7 +82,7 @@ class BetaDistribution extends ContinuousDistribution {
   double get mean => alpha / (alpha + beta);
 
   @override
-  double get median => alpha == beta ? 0.5 : double.nan;
+  double get median => alpha == beta ? 0.5 : inverseCumulativeProbability(0.5);
 
   @override
   double get mode => (alpha > 1.0 && beta > 1.0)

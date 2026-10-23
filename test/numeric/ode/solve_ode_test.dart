@@ -101,5 +101,48 @@ void main() {
       );
       check(rk45Sol.converged).isFalse();
     });
+
+    test('OdeMethod.bdf2 solves stiff decay stably', () {
+      // Stiff problem: dy/dt = -50y, y(0) = 1.0 => y(t) = exp(-50t)
+      Vector<double> derivative(double time, Vector<double> y) =>
+          Vector<double>.fromList([-50.0 * y[0]], type: DataType.float64);
+
+      final y0 = Vector<double>.fromList([1.0], type: DataType.float64);
+      final sol = solveOde(
+        f: derivative,
+        t0: 0.0,
+        tEnd: 0.5,
+        y0: y0,
+        method: OdeMethod.bdf2,
+        stepSize: 0.005,
+      );
+
+      check(sol.converged).isTrue();
+      check(sol.last[0]).isCloseTo(math.exp(-50.0 * 0.5), 1e-4);
+    });
+
+    test('solveOde with tEval dense Hermite interpolation', () {
+      // dy/dt = y, y(0) = 1 => y(t) = exp(t)
+      Vector<double> derivative(double time, Vector<double> y) =>
+          Vector<double>.fromList([y[0]], type: DataType.float64);
+
+      final y0 = Vector<double>.fromList([1.0], type: DataType.float64);
+      final tGrid = [0.0, 0.25, 0.5, 0.75, 1.0];
+      final sol = solveOde(
+        f: derivative,
+        t0: 0.0,
+        tEnd: 1.0,
+        y0: y0,
+        stepSize: 0.1,
+        tEval: tGrid,
+      );
+
+      check(sol.t).deepEquals(tGrid);
+      check(sol.y.length).equals(5);
+      for (var i = 0; i < tGrid.length; i++) {
+        final expected = math.exp(tGrid[i]);
+        check(sol.y[i][0]).isCloseTo(expected, 1e-4);
+      }
+    });
   });
 }

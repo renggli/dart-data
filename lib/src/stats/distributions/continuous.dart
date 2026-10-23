@@ -6,6 +6,9 @@ abstract class ContinuousDistribution extends Distribution<double> {
   const new();
 
   @override
+  double get median => inverseCumulativeProbability(0.5);
+
+  @override
   double get lowerBound => double.negativeInfinity;
 
   @override
