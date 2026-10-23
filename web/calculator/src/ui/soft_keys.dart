@@ -155,24 +155,24 @@ final class SoftKeyBar {
   List<_SoftKeyItem> _itemsForMenu(String menu, Environment env) {
     if (menu == 'STACK') {
       return [
-        for (final op in const [
-          ('SWAP', 'Swap levels 1: and 2:'),
-          ('DUP', 'Duplicate level 1:'),
-          ('DROP', 'Drop level 1:'),
-          ('OVER', 'Copy level 2: to top'),
-          ('ROT', 'Rotate top 3 stack levels'),
-          ('UNDO', 'Undo last stack operation'),
-          ('REDO', 'Redo stack operation'),
-          ('LASTARG', 'Recall arguments of last operation'),
-          ('PICK', 'Copy level n: to top'),
-          ('ROLL', 'Roll level n: to top'),
-          ('DEPTH', 'Push current stack depth'),
-          ('CLEAR', 'Clear entire stack'),
+        for (final (:name, :tooltip) in const [
+          (name: 'SWAP', tooltip: 'Swap levels 1: and 2:'),
+          (name: 'DUP', tooltip: 'Duplicate level 1:'),
+          (name: 'DROP', tooltip: 'Drop level 1:'),
+          (name: 'OVER', tooltip: 'Copy level 2: to top'),
+          (name: 'ROT', tooltip: 'Rotate top 3 stack levels'),
+          (name: 'UNDO', tooltip: 'Undo last stack operation'),
+          (name: 'REDO', tooltip: 'Redo stack operation'),
+          (name: 'LASTARG', tooltip: 'Recall arguments of last operation'),
+          (name: 'PICK', tooltip: 'Copy level n: to top'),
+          (name: 'ROLL', tooltip: 'Roll level n: to top'),
+          (name: 'DEPTH', tooltip: 'Push current stack depth'),
+          (name: 'CLEAR', tooltip: 'Clear entire stack'),
         ])
           _SoftKeyItem(
-            label: op.$1,
-            tooltip: op.$2,
-            action: () => onExecuteRpnCommand(op.$1),
+            label: name,
+            tooltip: tooltip,
+            action: () => onExecuteRpnCommand(name),
           ),
       ];
     }

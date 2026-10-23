@@ -64,7 +64,7 @@ HypothesisTestResult tTestOneSample(
   }
 
   final tCrit = dist.inverseCumulativeProbability(1.0 - alpha / 2.0);
-  final ci = (sampleMean - tCrit * se, sampleMean + tCrit * se);
+  final ci = (lower: sampleMean - tCrit * se, upper: sampleMean + tCrit * se);
 
   return HypothesisTestResult(
     testName: 'One-Sample t-test',
@@ -163,7 +163,7 @@ HypothesisTestResult tTestTwoSample(
   }
 
   final tCrit = dist.inverseCumulativeProbability(1.0 - alpha / 2.0);
-  final ci = (diff - tCrit * se, diff + tCrit * se);
+  final ci = (lower: diff - tCrit * se, upper: diff + tCrit * se);
 
   return HypothesisTestResult(
     testName: equalVariance

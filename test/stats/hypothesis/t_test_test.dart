@@ -10,7 +10,7 @@ void main() {
       check(resNullTrue.isSignificant).isFalse();
       check(resNullTrue.pValue).isGreaterThan(0.5);
       check(resNullTrue.confidenceInterval).isNotNull();
-      final (lower, upper) = resNullTrue.confidenceInterval!;
+      final (:lower, :upper) = resNullTrue.confidenceInterval!;
       check(lower).isLessThan(10.0);
       check(upper).isGreaterThan(10.0);
 

@@ -13,6 +13,7 @@ import '../algebra/simplify.dart';
 import '../algebra/structural_order.dart';
 import '../ast.dart';
 import '../compiler.dart';
+import '../number/integer.dart';
 
 /// Canonical singleton instance of [ExprDataType].
 const ExprDataType exprDataType = ExprDataType();

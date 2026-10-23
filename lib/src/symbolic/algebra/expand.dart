@@ -1,6 +1,8 @@
 import '../assumptions.dart';
 import '../ast.dart';
 import 'simplify.dart';
+import 'simplify/multiplicative.dart';
+import 'simplify/power.dart';
 import 'term_accumulator.dart';
 
 /// Algebraic expansion extension on [Expr].

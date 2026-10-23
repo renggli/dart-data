@@ -56,6 +56,10 @@ class Jackknife<T> with ToStringPrinter {
   /// The upper bound of the confidence interval.
   late final double upperBound = estimate + _zScore * standardError;
 
+  /// The confidence interval.
+  ({double lower, double upper}) get confidenceInterval =>
+      (lower: lowerBound, upper: upperBound);
+
   @override
   ObjectPrinter get toStringPrinter => super.toStringPrinter
     ..addValue(estimate, name: 'estimate')

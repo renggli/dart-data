@@ -95,25 +95,19 @@ class Bootstrap<T> with ToStringPrinter {
   late final double bias = mean(bootstrapEstimates) - estimate;
 
   /// Percentile confidence interval (lower, upper).
-  late final (double, double) percentileInterval = (
-    quantile(bootstrapEstimates, _alpha / 2.0),
-    quantile(bootstrapEstimates, 1.0 - _alpha / 2.0),
+  late final ({double lower, double upper}) percentileInterval = (
+    lower: quantile(bootstrapEstimates, _alpha / 2.0),
+    upper: quantile(bootstrapEstimates, 1.0 - _alpha / 2.0),
   );
 
   /// Bias-corrected and accelerated (BCa) confidence interval (lower, upper).
-  late final (double, double) bcaInterval = _computeBcaInterval();
+  late final ({double lower, double upper}) bcaInterval = _computeBcaInterval();
 
   /// The lower bound of the BCa confidence interval.
-  double get lowerBound {
-    final (lower, _) = bcaInterval;
-    return lower;
-  }
+  double get lowerBound => bcaInterval.lower;
 
   /// The upper bound of the BCa confidence interval.
-  double get upperBound {
-    final (_, upper) = bcaInterval;
-    return upper;
-  }
+  double get upperBound => bcaInterval.upper;
 
   @override
   ObjectPrinter get toStringPrinter => super.toStringPrinter
@@ -150,7 +144,7 @@ class Bootstrap<T> with ToStringPrinter {
     return estimates;
   }
 
-  (double, double) _computeBcaInterval() {
+  ({double lower, double upper}) _computeBcaInterval() {
     final sortedEstimates = bootstrapEstimates;
     final n = resamples;
 
@@ -198,6 +192,6 @@ class Bootstrap<T> with ToStringPrinter {
     final bcaLower = quantile(sortedEstimates, q1);
     final bcaUpper = quantile(sortedEstimates, q2);
 
-    return (bcaLower, bcaUpper);
+    return (lower: bcaLower, upper: bcaUpper);
   }
 }

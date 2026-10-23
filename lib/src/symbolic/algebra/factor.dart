@@ -1,10 +1,14 @@
 import '../assumptions.dart';
 import '../ast.dart';
+import '../number/integer.dart';
 import 'expand.dart';
 import 'factor/fraction.dart';
 import 'factor/multivariate.dart';
 import 'factor/univariate.dart';
 import 'simplify.dart';
+import 'simplify/additive.dart';
+import 'simplify/multiplicative.dart';
+import 'simplify/power.dart';
 
 /// Extension providing polynomial factorization and factor grouping on [Expr].
 extension FactorExtension on Expr {

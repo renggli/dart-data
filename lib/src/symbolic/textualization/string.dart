@@ -1,4 +1,5 @@
 import '../ast.dart';
+import '../number/integer.dart';
 import 'formatting.dart';
 
 /// Formats the symbolic [expr] into a clean mathematical string representation

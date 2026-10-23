@@ -5,6 +5,8 @@ import '../ast.dart';
 import 'expand.dart';
 import 'rational.dart';
 import 'simplify.dart';
+import 'simplify/additive.dart';
+import 'simplify/multiplicative.dart';
 import 'structural_order.dart';
 import 'term_accumulator.dart';
 

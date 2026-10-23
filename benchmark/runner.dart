@@ -29,7 +29,7 @@ class BenchmarkResult {
   final List<double> samples;
 
   /// Empirical 95% bootstrap confidence interval `(lower, upper)`.
-  final (double, double)? confidenceInterval;
+  final ({double lower, double upper})? confidenceInterval;
 
   /// Empirical standard error of the estimate.
   final double? standardError;
@@ -49,10 +49,10 @@ class BenchmarkResult {
   double get max => samples.last;
 
   /// The lower bound of the 95% confidence interval, if available.
-  double? get ciLower => confidenceInterval?.$1;
+  double? get ciLower => confidenceInterval?.lower;
 
   /// The upper bound of the 95% confidence interval, if available.
-  double? get ciUpper => confidenceInterval?.$2;
+  double? get ciUpper => confidenceInterval?.upper;
 
   @override
   String toString() {
@@ -196,7 +196,7 @@ class BenchmarkSuite {
   }
 
   void _runStandard(List<BenchmarkSpec> filtered) {
-    final results = <(BenchmarkSpec, BenchmarkResult)>[];
+    final results = <({BenchmarkSpec spec, BenchmarkResult result})>[];
     var currentCategory = '';
 
     for (final spec in filtered) {
@@ -212,7 +212,7 @@ class BenchmarkSuite {
         runs: spec.runs,
         inner: spec.inner,
       );
-      results.add((spec, result));
+      results.add((spec: spec, result: result));
 
       final med = '${formatDuration(result.median)} us'.padLeft(11);
       final ci = result.confidenceInterval != null
@@ -232,13 +232,13 @@ class BenchmarkSuite {
     }
 
     print('\n\n## Benchmark Summary Table\n');
-    final hasCategories = results.any((pair) => pair.$1.category.isNotEmpty);
+    final hasCategories = results.any((pair) => pair.spec.category.isNotEmpty);
     if (hasCategories) {
       print(
         '| Benchmark | Category | Median (µs) | 95% CI (µs) | Min–Max (µs) |',
       );
       print('| --- | --- | ---: | ---: | ---: |');
-      for (final (spec, res) in results) {
+      for (final (:spec, result: res) in results) {
         final med = formatDuration(res.median);
         final ci = res.confidenceInterval != null
             ? '[${formatDuration(res.ciLower!)}, ${formatDuration(res.ciUpper!)}]'
@@ -249,7 +249,7 @@ class BenchmarkSuite {
     } else {
       print('| Benchmark | Median (µs) | 95% CI (µs) | Min–Max (µs) |');
       print('| --- | ---: | ---: | ---: |');
-      for (final (spec, res) in results) {
+      for (final (:spec, result: res) in results) {
         final med = formatDuration(res.median);
         final ci = res.confidenceInterval != null
             ? '[${formatDuration(res.ciLower!)}, ${formatDuration(res.ciUpper!)}]'
@@ -261,7 +261,7 @@ class BenchmarkSuite {
   }
 
   void _runComparison(List<BenchmarkSpec> filtered) {
-    final comparisons = <(BenchmarkSpec, ModeComparison)>[];
+    final comparisons = <({BenchmarkSpec spec, ModeComparison comparison})>[];
     var currentCategory = '';
 
     for (final spec in filtered) {
@@ -308,7 +308,7 @@ class BenchmarkSuite {
         nativeResult: nativeRes,
         note: note,
       );
-      comparisons.add((spec, comparison));
+      comparisons.add((spec: spec, comparison: comparison));
 
       final speedupStr = comparison.speedup != null
           ? '${comparison.speedup!.toStringAsFixed(1)}x'.padLeft(7)
@@ -335,7 +335,7 @@ class BenchmarkSuite {
       '| Benchmark | Category | Pure Dart (µs) | Dart 95% CI | Native (µs) | Native 95% CI | Speedup |',
     );
     print('| --- | --- | ---: | ---: | ---: | ---: | ---: |');
-    for (final (spec, c) in comparisons) {
+    for (final (:spec, comparison: c) in comparisons) {
       final dartMed = formatDuration(c.dartResult.median);
       final dartCi = c.dartResult.confidenceInterval != null
           ? '[${formatDuration(c.dartResult.ciLower!)}, ${formatDuration(c.dartResult.ciUpper!)}]'
@@ -385,7 +385,7 @@ BenchmarkResult measure(
   }
   samples.sort();
 
-  (double, double)? ci;
+  ({double lower, double upper})? ci;
   double? se;
   if (samples.length >= 3) {
     try {

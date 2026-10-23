@@ -7,8 +7,6 @@ import 'number/rational.dart';
 import 'parser.dart';
 import 'textualization/string.dart';
 
-export 'number/integer.dart';
-
 part 'ast/constant.dart';
 part 'ast/derivative.dart';
 part 'ast/expr.dart';

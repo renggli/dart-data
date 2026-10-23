@@ -1,7 +1,8 @@
 import 'dart:math' as math;
 
 import '../../ast.dart';
-import '../simplify.dart';
+import '../simplify/additive.dart';
+import '../simplify/multiplicative.dart';
 import '../term_accumulator.dart';
 import 'fraction.dart';
 import 'multivariate.dart';

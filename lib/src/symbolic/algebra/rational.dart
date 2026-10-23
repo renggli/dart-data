@@ -2,11 +2,15 @@ import '../../../linear.dart';
 import '../assumptions.dart';
 import '../ast.dart';
 import '../linear/bareiss.dart';
+import '../number/integer.dart';
 import '../type/expr_data_type.dart';
 import 'expand.dart';
 import 'factor.dart';
 import 'factor/fraction.dart';
 import 'simplify.dart';
+import 'simplify/additive.dart';
+import 'simplify/multiplicative.dart';
+import 'simplify/power.dart';
 import 'structural_order.dart';
 import 'term_accumulator.dart';
 

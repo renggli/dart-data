@@ -23,6 +23,8 @@ void main() {
       check(jackknife.standardError).isCloseTo(0.95742710, 1e-6);
       check(jackknife.lowerBound).isCloseTo(2.62347735, 1e-6);
       check(jackknife.upperBound).isCloseTo(6.37652265, 1e-6);
+      check(jackknife.confidenceInterval.lower).isCloseTo(2.62347735, 1e-6);
+      check(jackknife.confidenceInterval.upper).isCloseTo(6.37652265, 1e-6);
     });
 
     test('variance', () {

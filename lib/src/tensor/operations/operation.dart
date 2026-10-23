@@ -146,7 +146,9 @@ extension OperationTensorExtension<T> on Tensor<T> {
       }
     }
 
-    final (thisLayout, otherLayout) = layout.broadcast(other.layout);
+    final (self: thisLayout, other: otherLayout) = layout.broadcast(
+      other.layout,
+    );
 
     if (target == null) {
       final resultType =

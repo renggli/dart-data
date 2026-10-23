@@ -5,8 +5,6 @@ import 'arrow/arrow_c_data.dart';
 import 'arrow_string_series.dart';
 import 'bitmask.dart';
 
-export 'arrow_string_series.dart';
-
 /// 1-dimensional columnar series with optional Apache Arrow validity bitmask.
 ///
 /// Conceptually, a [Series] is a single named column in a table (such as a

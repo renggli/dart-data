@@ -7,6 +7,7 @@ import '../algebra/simplify.dart';
 import '../assumptions.dart';
 import '../ast.dart';
 import '../compiler.dart';
+import '../number/integer.dart';
 import 'differentiation.dart';
 
 /// Extension providing formal power series and Laurent expansion on [Expr].

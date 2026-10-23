@@ -73,6 +73,7 @@ export 'src/acceleration/acceleration_error.dart';
 export 'src/acceleration/acceleration_manager.dart';
 export 'src/acceleration/acceleration_mode.dart';
 export 'src/acceleration/blas/blas.dart';
+export 'src/acceleration/blas/cblas_constants.dart';
 export 'src/acceleration/fft/fft.dart';
 export 'src/acceleration/lapack/lapack.dart';
 export 'src/acceleration/vforce/vforce.dart';

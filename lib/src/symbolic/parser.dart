@@ -4,6 +4,7 @@ import '../linear/matrix.dart';
 import '../linear/vector.dart';
 import 'algebra/simplify.dart';
 import 'ast.dart';
+import 'number/integer.dart';
 import 'type/expr_data_type.dart';
 
 /// Extensible case-sensitive syntax and parser for mathematical [Expr] strings.

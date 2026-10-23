@@ -1,8 +1,11 @@
 import '../../assumptions.dart';
 import '../../ast.dart';
-import '../simplify.dart';
+import '../../number/integer.dart';
 import '../structural_order.dart';
 import '../term_accumulator.dart';
+import 'additive.dart';
+import 'power.dart';
+import 'transcendental.dart';
 
 /// Simplifies an N-ary multiplication expression across [factors].
 Expr simplifyMul(

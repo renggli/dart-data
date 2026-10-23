@@ -60,7 +60,7 @@ void main() {
     test('broadcast layout', () {
       final layout1 = Layout(shape: [1, 3]);
       final layout2 = Layout(shape: [4, 1]);
-      final (b1, b2) = layout1.broadcast(layout2);
+      final (self: b1, other: b2) = layout1.broadcast(layout2);
       check(b1.shape).deepEquals([4, 3]);
       check(b1.strides).deepEquals([0, 1]);
       check(b1.isContiguous).isFalse();

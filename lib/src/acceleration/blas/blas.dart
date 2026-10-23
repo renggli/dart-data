@@ -6,8 +6,6 @@ import 'blas_stub.dart' if (dart.library.ffi) 'blas_native.dart';
 import 'blas_validation.dart';
 import 'cblas_constants.dart';
 
-export 'cblas_constants.dart';
-
 /// Basic Linear Algebra Subprograms (BLAS) covering vector-vector (Level 1),
 /// matrix-vector (Level 2), and matrix-matrix (Level 3) routines.
 ///

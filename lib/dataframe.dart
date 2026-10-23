@@ -46,6 +46,7 @@
 /// ```
 library;
 
+import 'src/dataframe/arrow_string_series.dart';
 import 'src/dataframe/bitmask.dart';
 import 'src/dataframe/csv/csv_reader.dart';
 import 'src/dataframe/csv/csv_writer.dart';

@@ -2,8 +2,13 @@ import 'dart:math' as math;
 
 import '../assumptions.dart';
 import '../ast.dart';
+import '../number/integer.dart';
 import 'expand.dart';
 import 'simplify.dart';
+import 'simplify/additive.dart';
+import 'simplify/multiplicative.dart';
+import 'simplify/power.dart';
+import 'simplify/transcendental.dart';
 import 'structural_order.dart';
 
 /// Accumulates additive and monomial terms, separating numeric constants

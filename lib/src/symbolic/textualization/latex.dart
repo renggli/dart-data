@@ -1,4 +1,5 @@
 import '../ast.dart';
+import '../number/integer.dart';
 import 'formatting.dart';
 
 /// LaTeX serialization extension on [Expr].

@@ -2,6 +2,7 @@ import 'dart:math' as math;
 
 import '../../ast.dart';
 import '../simplify.dart';
+import '../simplify/multiplicative.dart';
 
 /// Whether [expr] is a pure monomial.
 bool isMonomial(Expr expr) => switch (expr) {

@@ -1,6 +1,9 @@
 import '../../assumptions.dart';
 import '../../ast.dart';
-import '../simplify.dart';
+import '../../number/integer.dart';
+import 'additive.dart';
+import 'multiplicative.dart';
+import 'transcendental.dart';
 
 /// Simplifies an exponentiation expression [base] ^ [exponent].
 Expr simplifyPow(

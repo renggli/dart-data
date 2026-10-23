@@ -53,7 +53,7 @@ void main() {
       test('broadcast with 0-extent and 1-extent', () {
         final layout0 = Layout(shape: [0]);
         final layout1 = Layout(shape: [1]);
-        final (b0, b1) = layout0.broadcast(layout1);
+        final (self: b0, other: b1) = layout0.broadcast(layout1);
         check(b0.shape).deepEquals([0]);
         check(b0.length).equals(0);
         check(b0.strides).deepEquals([1]);
@@ -65,7 +65,7 @@ void main() {
       test('broadcast with 1-extent and 0-extent (reverse)', () {
         final layout1 = Layout(shape: [1]);
         final layout0 = Layout(shape: [0]);
-        final (b1, b0) = layout1.broadcast(layout0);
+        final (self: b1, other: b0) = layout1.broadcast(layout0);
         check(b1.shape).deepEquals([0]);
         check(b1.length).equals(0);
         check(b1.strides).deepEquals([0]);
@@ -77,7 +77,7 @@ void main() {
       test('broadcast multi-dimensional with 0-extent', () {
         final layoutA = Layout(shape: [2, 0, 3]);
         final layoutB = Layout(shape: [1, 1, 3]);
-        final (bA, bB) = layoutA.broadcast(layoutB);
+        final (self: bA, other: bB) = layoutA.broadcast(layoutB);
         check(bA.shape).deepEquals([2, 0, 3]);
         check(bA.length).equals(0);
         check(bB.shape).deepEquals([2, 0, 3]);
@@ -95,7 +95,7 @@ void main() {
       test('standard broadcasting', () {
         final layout1 = Layout(shape: [1, 3]);
         final layout2 = Layout(shape: [4, 1]);
-        final (b1, b2) = layout1.broadcast(layout2);
+        final (self: b1, other: b2) = layout1.broadcast(layout2);
         check(b1.shape).deepEquals([4, 3]);
         check(b1.strides).deepEquals([0, 1]);
         check(b2.shape).deepEquals([4, 3]);

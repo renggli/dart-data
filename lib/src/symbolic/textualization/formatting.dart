@@ -1,4 +1,5 @@
 import '../ast.dart';
+import '../number/integer.dart';
 
 /// Strips a leading negative sign from [term] for subtraction reconstruction in
 /// additive sums (`a + (-b) -> a - b`), returning the positive remainder or

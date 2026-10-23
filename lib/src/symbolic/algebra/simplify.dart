@@ -6,11 +6,6 @@ import 'simplify/multiplicative.dart';
 import 'simplify/power.dart';
 import 'simplify/transcendental.dart';
 
-export 'simplify/additive.dart';
-export 'simplify/multiplicative.dart';
-export 'simplify/power.dart';
-export 'simplify/transcendental.dart';
-
 /// Canonical algebraic simplification extension on [Expr].
 extension SimplifierExtension on Expr {
   /// Canonically simplifies this expression by performing constant folding,

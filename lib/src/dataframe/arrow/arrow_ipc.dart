@@ -4,6 +4,7 @@ import 'dart:typed_data';
 import 'package:meta/meta.dart';
 
 import '../../../type.dart';
+import '../arrow_string_series.dart';
 import '../bitmask.dart';
 import '../dataframe.dart';
 import '../series.dart';

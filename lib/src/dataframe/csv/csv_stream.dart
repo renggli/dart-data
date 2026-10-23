@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert' show utf8;
 
 import '../../../type.dart';
+import '../arrow_string_series.dart';
 import '../dataframe.dart';
 import '../series.dart';
 

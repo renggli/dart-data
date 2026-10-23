@@ -1,9 +1,13 @@
 import '../../assumptions.dart';
 import '../../ast.dart';
 import '../../compiler.dart';
+import '../../number/integer.dart';
 import '../exact_constants.dart';
 import '../simplify.dart';
 import '../structural_order.dart';
+import 'additive.dart';
+import 'multiplicative.dart';
+import 'power.dart';
 
 /// Simplifies a sine expression $\sin(expr)$.
 Expr simplifySin(Expr expr, {Assumptions assumptions = Assumptions.none}) {

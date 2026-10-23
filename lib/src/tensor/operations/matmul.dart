@@ -2,6 +2,7 @@ import 'dart:typed_data';
 
 import '../../../type.dart';
 import '../../acceleration/blas/blas.dart';
+import '../../acceleration/blas/cblas_constants.dart';
 import '../../type/utils/memory.dart';
 import '../layout.dart';
 import '../tensor.dart';

@@ -47,13 +47,13 @@ void main() {
       check(result.standardError).isGreaterThan(0.2);
       check(result.standardError).isLessThan(0.5);
 
-      final (pLow, pHigh) = result.percentileInterval;
+      final (lower: pLow, upper: pHigh) = result.percentileInterval;
       check(pLow).isLessThan(result.estimate);
       check(pHigh).isGreaterThan(result.estimate);
       check(pLow).isGreaterThan(49.0);
       check(pHigh).isLessThan(52.0);
 
-      final (bcaLow, bcaHigh) = result.bcaInterval;
+      final (lower: bcaLow, upper: bcaHigh) = result.bcaInterval;
       check(bcaLow).isLessThan(result.estimate);
       check(bcaHigh).isGreaterThan(result.estimate);
       check(bcaLow).isGreaterThan(49.0);
@@ -89,8 +89,8 @@ void main() {
 
       check(result.estimate).isCloseTo(50.28, 0.1);
       check(result.standardError).isGreaterThan(0.1);
-      final (pLow, pHigh) = result.percentileInterval;
-      final (bcaLow, bcaHigh) = result.bcaInterval;
+      final (lower: pLow, upper: pHigh) = result.percentileInterval;
+      final (lower: bcaLow, upper: bcaHigh) = result.bcaInterval;
       check(pLow).isLessThan(result.estimate);
       check(pHigh).isGreaterThan(result.estimate);
       check(bcaLow).isLessThan(result.estimate);

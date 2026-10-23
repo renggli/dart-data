@@ -386,7 +386,11 @@ void main() {
         5: 1,
       }, type: DataType.int32);
       check(mixedP.toString()).equals('x^5 + 3x^2 + x');
-      check(mixedP.nonZeroTerms.toList()).deepEquals([(1, 1), (2, 3), (5, 1)]);
+      check(mixedP.nonZeroTerms.toList()).deepEquals([
+        (exponent: 1, coefficient: 1),
+        (exponent: 2, coefficient: 3),
+        (exponent: 5, coefficient: 1),
+      ]);
       check(mixedP.hashCode).equals(mixedP.toCompressed().hashCode);
 
       // Multiply by zero

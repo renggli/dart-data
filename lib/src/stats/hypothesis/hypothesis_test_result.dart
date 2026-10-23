@@ -41,7 +41,7 @@ class HypothesisTestResult with ToStringPrinter {
 
   /// Confidence interval for the parameter of interest at $(1 - \alpha)$, if
   /// applicable.
-  final (double, double)? confidenceInterval;
+  final ({double lower, double upper})? confidenceInterval;
 
   /// Significance level threshold.
   final double alpha;

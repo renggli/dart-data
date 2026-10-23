@@ -104,6 +104,7 @@ import 'src/symbolic/calculus/series.dart';
 import 'src/symbolic/calculus/summation.dart';
 import 'src/symbolic/compiler.dart';
 import 'src/symbolic/linear/matrix.dart';
+import 'src/symbolic/number/integer.dart';
 import 'src/symbolic/parser.dart';
 import 'src/symbolic/solver/polynomial_system.dart';
 import 'src/symbolic/solver/system.dart';

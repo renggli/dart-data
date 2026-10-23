@@ -2,6 +2,7 @@ import 'dart:typed_data';
 
 import '../../type.dart';
 import '../acceleration/blas/blas.dart';
+import '../acceleration/blas/cblas_constants.dart';
 import '../acceleration/lapack/lapack.dart';
 import '../tensor/layout.dart';
 import '../tensor/operations/matmul.dart';

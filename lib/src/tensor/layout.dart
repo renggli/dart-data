@@ -282,7 +282,7 @@ class Layout {
   }
 
   /// Broadcasts this layout with [other] to a common shape.
-  (Layout, Layout) broadcast(Layout other) {
+  ({Layout self, Layout other}) broadcast(Layout other) {
     final maxRank = rank > other.rank ? rank : other.rank;
     final outShape = List<int>.filled(maxRank, 0);
     final thisStrides = List<int>.filled(maxRank, 0);
@@ -321,7 +321,7 @@ class Layout {
       strides: otherStrides,
       offset: other.offset,
     );
-    return (outThis, outOther);
+    return (self: outThis, other: outOther);
   }
 
   /// Slices a range along [axis].

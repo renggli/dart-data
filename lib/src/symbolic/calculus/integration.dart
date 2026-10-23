@@ -6,6 +6,7 @@ import '../algebra/term_accumulator.dart';
 import '../assumptions.dart';
 import '../ast.dart';
 import '../compiler.dart';
+import '../number/integer.dart';
 import '../solver/univariate.dart';
 import 'differentiation.dart';
 import 'limit.dart';
