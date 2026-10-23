@@ -231,6 +231,17 @@ DataFrame importDataFrameFromArrowC({
       );
     }
 
+    final parentLength = array.ref.length;
+    final parentOffset = array.ref.offset;
+    final parentNullCount = array.ref.null_count;
+
+    final parentMask = _extractValidityMask(
+      buffers: array.ref.buffers,
+      offset: parentOffset,
+      length: parentLength,
+      nullCount: parentNullCount,
+    );
+
     final columnCount = schema.ref.n_children;
     final columns = <Series<Object?>>[];
 
@@ -238,13 +249,30 @@ DataFrame importDataFrameFromArrowC({
       final childSchema = schema.ref.children[i];
       final childArray = array.ref.children[i];
       // Do not release child arrays individually; top-level release handles tree
-      columns.add(
-        importSeriesFromArrowC(
-          schema: childSchema,
-          array: childArray,
-          release: false,
-        ),
+      var childSeries = importSeriesFromArrowC(
+        schema: childSchema,
+        array: childArray,
+        release: false,
       );
+
+      if (parentOffset > 0 || childSeries.length != parentLength) {
+        if (childSeries.length < parentOffset + parentLength) {
+          throw FormatException(
+            'Child series "${childSeries.name}" length (${childSeries.length}) '
+            'is smaller than required parent slice ($parentOffset + $parentLength = ${parentOffset + parentLength}).',
+          );
+        }
+        childSeries = childSeries.slice(
+          parentOffset,
+          parentOffset + parentLength,
+        );
+      }
+
+      if (parentMask != null) {
+        childSeries = _applyParentMask(childSeries, parentMask);
+      }
+
+      columns.add(childSeries);
     }
 
     return DataFrame(columns);
@@ -744,6 +772,60 @@ String _getFormatCode(Series<Object?> series) {
   throw UnsupportedError(
     'Unsupported series data type for Arrow C Data: ${series.dataType}',
   );
+}
+
+ValidityMask _combineMasks(ValidityMask parentMask, ValidityMask? childMask) {
+  if (childMask == null) {
+    return parentMask;
+  }
+  final len = parentMask.length;
+  final numBytes = (len + 7) ~/ 8;
+  final pBytes = parentMask.bytes;
+  final cBytes = childMask.bytes;
+  final combined = Uint8List(numBytes);
+  for (var i = 0; i < numBytes; i++) {
+    combined[i] = pBytes[i] & cBytes[i];
+  }
+  return ValidityMask.fromBytes(len, combined);
+}
+
+Series<Object?> _applyParentMask(
+  Series<Object?> series,
+  ValidityMask parentMask,
+) {
+  final combinedMask = _combineMasks(parentMask, series.mask);
+  return switch (series) {
+    final TypedSeries<int> s => TypedSeries<int>(
+      name: s.name,
+      data: s.data,
+      dataType: s.dataType,
+      mask: combinedMask,
+    ),
+    final TypedSeries<double> s => TypedSeries<double>(
+      name: s.name,
+      data: s.data,
+      dataType: s.dataType,
+      mask: combinedMask,
+    ),
+    final TypedSeries<num> s => TypedSeries<num>(
+      name: s.name,
+      data: s.data,
+      dataType: s.dataType,
+      mask: combinedMask,
+    ),
+    final ArrowStringSeries s => ArrowStringSeries(
+      name: s.name,
+      bytes: s.bytes,
+      offsets: s.offsets,
+      mask: combinedMask,
+    ),
+    final BoolSeries s => BoolSeries(
+      name: s.name,
+      data: s.data,
+      mask: combinedMask,
+    ),
+    _ => series,
+  };
 }
 
 void _releaseArrowSchema(ffi.Pointer<ArrowSchema> schema) {

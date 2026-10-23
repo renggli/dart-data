@@ -411,6 +411,84 @@ void main() {
       calloc.free(schema);
       calloc.free(array);
     });
+
+    test('Imports sliced DataFrame with parent struct offset and length', () {
+      final df = DataFrame.fromColumns({
+        'val': [10, 20, 30, 40, 50],
+        'str': ['a', 'b', 'c', 'd', 'e'],
+      });
+
+      final outArray = calloc<ArrowArray>();
+      final outSchema = calloc<ArrowSchema>();
+
+      try {
+        df.exportTo(outSchema: outSchema, outArray: outArray);
+
+        // Slice the parent struct array
+        outArray.ref.offset = 1;
+        outArray.ref.length = 3;
+
+        final imported = DataFrame.importFrom(
+          schema: outSchema,
+          array: outArray,
+        );
+
+        check(imported.rowCount).equals(3);
+        check(imported['val'].toList()).deepEquals([20, 30, 40]);
+        check(imported['str'].toList()).deepEquals(['b', 'c', 'd']);
+      } finally {
+        if (outSchema.ref.release != ffi.nullptr) {
+          outSchema.ref.release
+              .asFunction<void Function(ffi.Pointer<ArrowSchema>)>()(outSchema);
+        }
+        if (outArray.ref.release != ffi.nullptr) {
+          outArray.ref.release
+              .asFunction<void Function(ffi.Pointer<ArrowArray>)>()(outArray);
+        }
+        calloc.free(outSchema);
+        calloc.free(outArray);
+      }
+    });
+
+    test('Imports DataFrame with parent struct validity bitmap', () {
+      final df = DataFrame.fromColumns({
+        'val': [10, 20, 30, 40],
+        'str': ['a', 'b', 'c', 'd'],
+      });
+
+      final outArray = calloc<ArrowArray>();
+      final outSchema = calloc<ArrowSchema>();
+      final maskPtr = calloc<ffi.Uint8>(1);
+
+      try {
+        df.exportTo(outSchema: outSchema, outArray: outArray);
+
+        // Set row 2 as null in parent struct mask (0b1011 = 11)
+        maskPtr.value = 0x0B;
+        outArray.ref.null_count = 1;
+        outArray.ref.buffers[0] = maskPtr.cast();
+
+        final imported = DataFrame.importFrom(
+          schema: outSchema,
+          array: outArray,
+        );
+
+        check(imported.rowCount).equals(4);
+        check(imported['val'].toList()).deepEquals([10, 20, null, 40]);
+        check(imported['str'].toList()).deepEquals(['a', 'b', null, 'd']);
+      } finally {
+        if (outSchema.ref.release != ffi.nullptr) {
+          outSchema.ref.release
+              .asFunction<void Function(ffi.Pointer<ArrowSchema>)>()(outSchema);
+        }
+        if (outArray.ref.release != ffi.nullptr) {
+          outArray.ref.release
+              .asFunction<void Function(ffi.Pointer<ArrowArray>)>()(outArray);
+        }
+        calloc.free(outSchema);
+        calloc.free(outArray);
+      }
+    });
   });
 }
 
