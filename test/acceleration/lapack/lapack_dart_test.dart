@@ -39,6 +39,26 @@ void main() {
       ).isFalse();
     });
 
+    test('dgels overdetermined system (m > n)', () {
+      final a = Float64List.fromList([1.0, 1.0, 1.0, 2.0, 1.0, 3.0]);
+      final b = Float64List.fromList([6.0, 0.0, 0.0]);
+      check(
+        LapackDart.dgels(
+          m: 3,
+          n: 2,
+          nrhs: 1,
+          a: a,
+          aOffset: 0,
+          lda: 2,
+          b: b,
+          bOffset: 0,
+          ldb: 1,
+        ),
+      ).isTrue();
+      check(b[0]).isCloseTo(8.0, 1e-10);
+      check(b[1]).isCloseTo(-3.0, 1e-10);
+    });
+
     test('dgels underdetermined system (m < n)', () {
       // 2 equations, 3 unknowns
       final a = Float64List.fromList([1.0, 0.0, 1.0, 0.0, 1.0, 1.0]);
@@ -56,8 +76,9 @@ void main() {
           ldb: 1,
         ),
       ).isTrue();
-      check(b[0]).isA<double>();
-      check(b[1]).isA<double>();
+      check(b[0]).isCloseTo(1.0 / 3.0, 1e-10);
+      check(b[1]).isCloseTo(4.0 / 3.0, 1e-10);
+      check(b[2]).isCloseTo(5.0 / 3.0, 1e-10);
     });
 
     test('dsyev n = 0 and n = 1 scalar case', () {

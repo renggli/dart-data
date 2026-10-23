@@ -150,79 +150,189 @@ abstract final class LapackDart {
     required int ldb,
   }) {
     if (m == 0 || n == 0 || nrhs == 0) return true;
+
     if (m >= n) {
-      final atA = Float64List(n * n);
-      for (var j = 0; j < n; j++) {
-        for (var k = 0; k < n; k++) {
-          var sum = 0.0;
-          for (var i = 0; i < m; i++) {
-            sum += a[aOffset + i * lda + j] * a[aOffset + i * lda + k];
-          }
-          atA[j * n + k] = sum;
+      // Overdetermined system: QR factorization via Householder reflections.
+      final qr = Float64List(m * n);
+      for (var i = 0; i < m; i++) {
+        for (var j = 0; j < n; j++) {
+          qr[i * n + j] = a[aOffset + i * lda + j];
         }
       }
-      final atB = Float64List(n * nrhs);
-      for (var j = 0; j < n; j++) {
+
+      final bx = Float64List(m * nrhs);
+      for (var i = 0; i < m; i++) {
         for (var col = 0; col < nrhs; col++) {
-          var sum = 0.0;
-          for (var i = 0; i < m; i++) {
-            sum += a[aOffset + i * lda + j] * b[bOffset + i * ldb + col];
-          }
-          atB[j * nrhs + col] = sum;
+          bx[i * nrhs + col] = b[bOffset + i * ldb + col];
         }
       }
-      final ok = dgesv(
-        n: n,
-        nrhs: nrhs,
-        a: atA,
-        aOffset: 0,
-        lda: n,
-        b: atB,
-        bOffset: 0,
-        ldb: nrhs,
-      );
-      if (!ok) return false;
-      for (var i = 0; i < n; i++) {
+
+      final v = Float64List(m);
+      for (var k = 0; k < n; k++) {
+        var scale = 0.0;
+        for (var i = k; i < m; i++) {
+          final absVal = qr[i * n + k].abs();
+          if (absVal > scale) scale = absVal;
+        }
+
+        if (scale == 0.0) {
+          return false;
+        }
+
+        var sumsq = 0.0;
+        for (var i = k; i < m; i++) {
+          final val = qr[i * n + k] / scale;
+          sumsq += val * val;
+        }
+        var nrm = scale * math.sqrt(sumsq);
+        final alpha = qr[k * n + k];
+        if (alpha > 0) {
+          nrm = -nrm;
+        }
+        final beta = alpha - nrm;
+        v[k] = 1.0;
+        for (var i = k + 1; i < m; i++) {
+          v[i] = qr[i * n + k] / beta;
+        }
+        final tau = -beta / nrm;
+
+        // Apply H_k = I - tau * v * v^T to qr[:, k+1:n]
+        for (var j = k + 1; j < n; j++) {
+          var w = qr[k * n + j];
+          for (var i = k + 1; i < m; i++) {
+            w += v[i] * qr[i * n + j];
+          }
+          final tauW = tau * w;
+          qr[k * n + j] -= tauW;
+          for (var i = k + 1; i < m; i++) {
+            qr[i * n + j] -= tauW * v[i];
+          }
+        }
+        qr[k * n + k] = nrm;
+
+        // Apply H_k to bx
         for (var col = 0; col < nrhs; col++) {
-          b[bOffset + i * ldb + col] = atB[i * nrhs + col];
+          var w = bx[k * nrhs + col];
+          for (var i = k + 1; i < m; i++) {
+            w += v[i] * bx[i * nrhs + col];
+          }
+          final tauW = tau * w;
+          bx[k * nrhs + col] -= tauW;
+          for (var i = k + 1; i < m; i++) {
+            bx[i * nrhs + col] -= tauW * v[i];
+          }
+        }
+      }
+
+      for (var k = 0; k < n; k++) {
+        if (qr[k * n + k] == 0.0) return false;
+      }
+
+      // Back-substitution: R[0:n, 0:n] * X = bx[0:n, :]
+      for (var col = 0; col < nrhs; col++) {
+        for (var i = n - 1; i >= 0; i--) {
+          var sum = bx[i * nrhs + col];
+          for (var j = i + 1; j < n; j++) {
+            sum -= qr[i * n + j] * bx[j * nrhs + col];
+          }
+          bx[i * nrhs + col] = sum / qr[i * n + i];
+        }
+      }
+
+      for (var i = 0; i < m; i++) {
+        for (var col = 0; col < nrhs; col++) {
+          b[bOffset + i * ldb + col] = bx[i * nrhs + col];
         }
       }
       return true;
     } else {
-      final aAt = Float64List(m * m);
+      // Underdetermined system: LQ factorization via Householder reflections.
+      final lq = Float64List(m * n);
       for (var i = 0; i < m; i++) {
-        for (var j = 0; j < m; j++) {
-          var sum = 0.0;
-          for (var k = 0; k < n; k++) {
-            sum += a[aOffset + i * lda + k] * a[aOffset + j * lda + k];
-          }
-          aAt[i * m + j] = sum;
+        for (var j = 0; j < n; j++) {
+          lq[i * n + j] = a[aOffset + i * lda + j];
         }
       }
-      final y = Float64List(m * nrhs);
-      for (var i = 0; i < m; i++) {
-        for (var col = 0; col < nrhs; col++) {
-          y[i * nrhs + col] = b[bOffset + i * ldb + col];
+
+      final taus = Float64List(m);
+      for (var k = 0; k < m; k++) {
+        var scale = 0.0;
+        for (var j = k; j < n; j++) {
+          final absVal = lq[k * n + j].abs();
+          if (absVal > scale) scale = absVal;
+        }
+
+        if (scale == 0.0) {
+          return false;
+        }
+
+        var sumsq = 0.0;
+        for (var j = k; j < n; j++) {
+          final val = lq[k * n + j] / scale;
+          sumsq += val * val;
+        }
+        var nrm = scale * math.sqrt(sumsq);
+        final alpha = lq[k * n + k];
+        if (alpha > 0) {
+          nrm = -nrm;
+        }
+        final beta = alpha - nrm;
+        taus[k] = -beta / nrm;
+        for (var j = k + 1; j < n; j++) {
+          lq[k * n + j] /= beta;
+        }
+
+        // Apply H_k = I - tau * v * v^T on the right to lq[k+1:m, :]
+        for (var i = k + 1; i < m; i++) {
+          var w = lq[i * n + k];
+          for (var j = k + 1; j < n; j++) {
+            w += lq[i * n + j] * lq[k * n + j];
+          }
+          final tauW = taus[k] * w;
+          lq[i * n + k] -= tauW;
+          for (var j = k + 1; j < n; j++) {
+            lq[i * n + j] -= tauW * lq[k * n + j];
+          }
+        }
+        lq[k * n + k] = nrm;
+      }
+
+      for (var k = 0; k < m; k++) {
+        if (lq[k * n + k] == 0.0) return false;
+      }
+
+      // Forward-substitution: L[0:m, 0:m] * Y = B[0:m, :]
+      final x = Float64List(n * nrhs);
+      for (var col = 0; col < nrhs; col++) {
+        for (var i = 0; i < m; i++) {
+          var sum = b[bOffset + i * ldb + col];
+          for (var j = 0; j < i; j++) {
+            sum -= lq[i * n + j] * x[j * nrhs + col];
+          }
+          x[i * nrhs + col] = sum / lq[i * n + i];
         }
       }
-      final ok = dgesv(
-        n: m,
-        nrhs: nrhs,
-        a: aAt,
-        aOffset: 0,
-        lda: m,
-        b: y,
-        bOffset: 0,
-        ldb: nrhs,
-      );
-      if (!ok) return false;
-      for (var k = 0; k < n; k++) {
+
+      // Compute X = Q^T * [Y; 0] = H_0 * H_1 * ... * H_{m-1} * [Y; 0]
+      for (var k = m - 1; k >= 0; k--) {
+        final tau = taus[k];
+        if (tau == 0.0) continue;
         for (var col = 0; col < nrhs; col++) {
-          var sum = 0.0;
-          for (var i = 0; i < m; i++) {
-            sum += a[aOffset + i * lda + k] * y[i * nrhs + col];
+          var w = x[k * nrhs + col];
+          for (var j = k + 1; j < n; j++) {
+            w += lq[k * n + j] * x[j * nrhs + col];
           }
-          b[bOffset + k * ldb + col] = sum;
+          final tauW = tau * w;
+          x[k * nrhs + col] -= tauW;
+          for (var j = k + 1; j < n; j++) {
+            x[j * nrhs + col] -= tauW * lq[k * n + j];
+          }
+        }
+      }
+
+      for (var i = 0; i < n; i++) {
+        for (var col = 0; col < nrhs; col++) {
+          b[bOffset + i * ldb + col] = x[i * nrhs + col];
         }
       }
       return true;

@@ -53,7 +53,11 @@ void main() {
           .equals(const Quaternion(4, 6, 8, 10));
       check(field.div(const Quaternion(4, 6, 8, 10), const Quaternion(2)))
           .equals(const Quaternion(4, 6, 8, 10) / const Quaternion(2));
-      check(field.pow(const Quaternion(2), const Quaternion(3)).isNaN).isTrue();
+      check(
+        field
+            .pow(const Quaternion(2), const Quaternion(3))
+            .closeTo(const Quaternion(8), 1e-10),
+      ).isTrue();
       check(field.abs(const Quaternion(1, 2, 2, 4)))
           .equals(const Quaternion(5));
       check(field.norm(const Quaternion(1, 2, 2, 4))).equals(5.0);
