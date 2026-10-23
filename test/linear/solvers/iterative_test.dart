@@ -1,7 +1,6 @@
 import 'package:checks/checks.dart';
 import 'package:data/linear.dart';
 import 'package:data/type.dart';
-import 'package:more/number.dart';
 import 'package:test/test.dart';
 
 void main() {
@@ -149,12 +148,12 @@ void main() {
 
       // Non-real type rejected
       final complexMat = Matrix<Complex>.fromRows([
-        [Complex(1, 0), Complex(0, 0)],
-        [Complex(0, 0), Complex(1, 0)],
+        [const Complex(1, 0), const Complex(0, 0)],
+        [const Complex(0, 0), const Complex(1, 0)],
       ], type: DataType.complex);
       final complexVec = Vector<Complex>.fromList([
-        Complex(1, 0),
-        Complex(2, 0),
+        const Complex(1, 0),
+        const Complex(2, 0),
       ], type: DataType.complex);
       check(() => solveIterative(complexMat, complexVec))
           .throws<ArgumentError>();

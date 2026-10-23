@@ -137,7 +137,7 @@ Vector<T> _gmres<T>(
   }
 
   final field = a.type.field;
-  var x =
+  final x =
       x0?.copy() ??
       Vector<T>.filled(b.length, field.additiveIdentity, type: a.type);
   final dim = b.length;

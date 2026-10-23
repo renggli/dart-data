@@ -170,7 +170,7 @@ void main() {
         [1.0, 3.0],
       ]);
       final b = Vector<double>.fromList([4.0, 7.0]);
-      final x = a.solve(b);
+      final x = a.solveVector(b);
       check(x[0]).isCloseTo(1.0, 1e-6);
       check(x[1]).isCloseTo(2.0, 1e-6);
     });
@@ -511,8 +511,8 @@ void main() {
         [1.0, 2.0],
       ]);
       final nonSquareD = Matrix<double>.filled(2, 3, 1.0);
-      check(() => nonSquareD.solve(v2)).throws<StateError>();
-      check(() => m2d.solve(v3)).throws<ArgumentError>();
+      check(() => nonSquareD.solveVector(v2)).throws<StateError>();
+      check(() => m2d.solveVector(v3)).throws<ArgumentError>();
 
       // 6. solve on non-double matrix (falls back to GMRES)
       final mComp = Matrix<Complex>.fromRows([
@@ -523,7 +523,7 @@ void main() {
         const Complex(4.0),
         const Complex(9.0),
       ]);
-      final xComp = mComp.solve(vComp);
+      final xComp = mComp.solveVector(vComp);
       check(xComp[0].a).isCloseTo(2.0, 1e-5);
       check(xComp[1].a).isCloseTo(3.0, 1e-5);
 

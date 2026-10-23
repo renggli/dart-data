@@ -297,7 +297,7 @@ OdeSolution _bdf2({
         return id - gamma * jac.get(r, c);
       }, type: DataType.float64);
 
-      final delta = mat.solve(-residual);
+      final delta = mat.solveVector(-residual);
       y1 += delta;
       if (delta.norm() < tolerance) break;
     }
@@ -338,7 +338,7 @@ OdeSolution _bdf2({
         return id - gamma * jac.get(r, c);
       }, type: DataType.float64);
 
-      final delta = mat.solve(-residual);
+      final delta = mat.solveVector(-residual);
       yNext += delta;
       if (delta.norm() < tolerance) break;
     }

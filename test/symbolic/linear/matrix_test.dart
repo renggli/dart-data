@@ -106,13 +106,13 @@ void main() {
         // [[x, 1], [1, x]] * [u, v] = [x + 1, x + 1] -> [1, 1]
         final symMat = syntax.parseMatrix('[[x, 1], [1, x]]');
         final rhs = syntax.parseVector('[x + 1, x + 1]');
-        final sol = symMat.solve(rhs);
+        final sol = symMat.solveVector(rhs);
         check(sol.format()).equals('[1, 1]');
 
         // Rectangular overdetermined consistent symbolic solve:
         final overA = syntax.parseMatrix('[[1, 1], [1, -1], [2, 0]]');
         final overB = syntax.parseVector('[x + y, x - y, 2 * x]');
-        check(overA.solve(overB).format()).equals('[x, y]');
+        check(overA.solveVector(overB).format()).equals('[x, y]');
       },
     );
 

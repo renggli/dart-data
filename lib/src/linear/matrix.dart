@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'dart:typed_data';
 
 import '../../type.dart';
@@ -426,102 +427,280 @@ class Matrix<T> implements LinearOperator<T> {
   /// final b = Vector<double>.fromList([4.0, 7.0]);
   /// final x = a.solve(b); // [1.0, 2.0]
   /// ```
-  S solve<S extends Object>(S b) {
-    if (b is Vector) {
-      if (b.length != rowCount) {
-        throw ArgumentError(
-          'Dimension mismatch: Matrix $rowCount x $colCount, Vector ${b.length}',
-        );
-      }
-      final bVec = b is Vector<T>
-          ? b
-          : Vector<T>.generate(b.length, (i) => type.cast(b[i]), type: type);
-      if (rowCount == colCount) {
-        if (T == double) {
-          final aData = Float64List.fromList(
-            tensor.copy().data as List<double>,
-          );
-          final bData = Float64List.fromList(
-            bVec.copy().tensor.data as List<double>,
-          );
-          final success = Lapack.dgesv(
-            n: rowCount,
-            nrhs: 1,
-            a: aData,
-            lda: colCount,
-            b: bData,
-            ldb: 1,
-          );
-          if (success) {
-            return Vector<T>(
-              Tensor.internal(
-                type: type,
-                layout: Layout(shape: [colCount]),
-                data: bData as List<T>,
-              ),
-            ) as S;
-          }
-        }
-        return LUDecomposition<T>(this).solveVector(bVec) as S;
-      } else if (T == double || T == num || T == Complex) {
-        if (rowCount > colCount) {
-          return QRDecomposition<T>(this).solveVector(bVec) as S;
-        }
-        return _solveUnderdetermined(bVec) as S;
-      } else {
-        return _solveRref(bVec.toMatrix()).col(0).copy() as S;
-      }
-    } else if (b is Matrix) {
-      if (b.rowCount != rowCount) {
-        throw ArgumentError(
-          'Dimension mismatch: Matrix $rowCount x $colCount, Matrix RHS ${b.rowCount} x ${b.colCount}',
-        );
-      }
-      final bMat = b is Matrix<T>
-          ? b
-          : Matrix<T>.generate(
-              b.rowCount,
-              b.colCount,
-              (r, c) => type.cast(b.get(r, c)),
-              type: type,
-            );
-      if (rowCount == colCount) {
-        if (T == double) {
-          final aData = Float64List.fromList(
-            tensor.copy().data as List<double>,
-          );
-          final bData = Float64List.fromList(
-            bMat.copy().tensor.data as List<double>,
-          );
-          final success = Lapack.dgesv(
-            n: rowCount,
-            nrhs: bMat.colCount,
-            a: aData,
-            lda: colCount,
-            b: bData,
-            ldb: bMat.colCount,
-          );
-          if (success) {
-            return Matrix<T>(
-              Tensor.internal(
-                type: type,
-                layout: Layout(shape: [colCount, bMat.colCount]),
-                data: bData as List<T>,
-              ),
-            ) as S;
-          }
-        }
-        return LUDecomposition<T>(this).solve(bMat) as S;
-      } else if (T == double || T == num || T == Complex) {
-        if (rowCount > colCount) {
-          return QRDecomposition<T>(this).solve(bMat) as S;
-        }
-        return _solveUnderdetermined(bMat) as S;
-      } else {
-        return _solveRref(bMat) as S;
-      }
+  /// Solves the linear system $A x = b$ or linear least-squares problem
+  /// $A x \approx b$ for a vector right-hand side [b].
+  ///
+  /// For square matrices ($m = n$), the system is solved via LU decomposition
+  /// with partial pivoting (`dgesv` or pure-Dart LU). For rectangular matrices
+  /// ($m \ne n$), the least-squares solution is computed via QR/LQ
+  /// decomposition (`dgels` or pure-Dart QR).
+  ///
+  /// ```dart
+  /// final a = Matrix<double>.fromRows([
+  ///   [2.0, 1.0],
+  ///   [1.0, 3.0],
+  /// ]);
+  /// final b = Vector<double>.fromList([4.0, 7.0]);
+  /// final x = a.solveVector(b); // [1.0, 2.0]
+  /// ```
+  Vector<T> solveVector(Vector<T> b) {
+    if (b.length != rowCount) {
+      throw ArgumentError(
+        'Dimension mismatch: Matrix $rowCount x $colCount, Vector ${b.length}',
+      );
     }
-    throw ArgumentError.value(b, 'b', 'Expected Vector or Matrix');
+    if (rowCount == colCount) {
+      if ((type as DataType) == DataType.float64) {
+        final aData = Float64List(rowCount * colCount);
+        if (tensor.layout.isContiguous && tensor.data is Float64List) {
+          aData.setRange(
+            0,
+            aData.length,
+            tensor.data as Float64List,
+            tensor.layout.offset,
+          );
+        } else {
+          var i = 0;
+          for (final v in tensor.values) {
+            aData[i++] = (v as num).toDouble();
+          }
+        }
+        final bData = Float64List(colCount);
+        if (b.tensor.layout.isContiguous && b.tensor.data is Float64List) {
+          bData.setRange(
+            0,
+            bData.length,
+            b.tensor.data as Float64List,
+            b.tensor.layout.offset,
+          );
+        } else {
+          var i = 0;
+          for (final v in b.tensor.values) {
+            bData[i++] = (v as num).toDouble();
+          }
+        }
+        final success = Lapack.dgesv(
+          n: rowCount,
+          nrhs: 1,
+          a: aData,
+          lda: colCount,
+          b: bData,
+          ldb: 1,
+        );
+        if (success) {
+          return Vector<T>(
+            Tensor.internal(
+              type: type,
+              layout: Layout(shape: [colCount]),
+              data: bData as List<T>,
+            ),
+          );
+        }
+      }
+      return LUDecomposition<T>(this).solveVector(b);
+    } else if ((type as DataType) == DataType.float64) {
+      final aData = Float64List(rowCount * colCount);
+      if (tensor.layout.isContiguous && tensor.data is Float64List) {
+        aData.setRange(
+          0,
+          aData.length,
+          tensor.data as Float64List,
+          tensor.layout.offset,
+        );
+      } else {
+        var i = 0;
+        for (final v in tensor.values) {
+          aData[i++] = (v as num).toDouble();
+        }
+      }
+      final maxMN = math.max(rowCount, colCount);
+      final bData = Float64List(maxMN);
+      if (b.tensor.layout.isContiguous && b.tensor.data is Float64List) {
+        bData.setRange(
+          0,
+          rowCount,
+          b.tensor.data as Float64List,
+          b.tensor.layout.offset,
+        );
+      } else {
+        var i = 0;
+        for (final v in b.tensor.values) {
+          bData[i++] = (v as num).toDouble();
+        }
+      }
+      final success = Lapack.dgels(
+        m: rowCount,
+        n: colCount,
+        nrhs: 1,
+        a: aData,
+        lda: colCount,
+        b: bData,
+        ldb: 1,
+      );
+      if (success) {
+        final resultData = maxMN == colCount
+            ? bData
+            : bData.sublist(0, colCount);
+        return Vector<T>(
+          Tensor.internal(
+            type: type,
+            layout: Layout(shape: [colCount]),
+            data: resultData as List<T>,
+          ),
+        );
+      }
+      if (rowCount > colCount) {
+        return QRDecomposition<T>(this).solveVector(b);
+      }
+      return _solveUnderdeterminedVector(b);
+    } else if (T == double || T == num || T == Complex) {
+      if (rowCount > colCount) {
+        return QRDecomposition<T>(this).solveVector(b);
+      }
+      return _solveUnderdeterminedVector(b);
+    } else {
+      return _solveRref(b.toMatrix()).col(0).copy();
+    }
+  }
+
+  /// Solves the linear system $A X = B$ or linear least-squares problem
+  /// $A X \approx B$ for a matrix right-hand side [b].
+  ///
+  /// For square matrices ($m = n$), the system is solved via LU decomposition
+  /// with partial pivoting (`dgesv` or pure-Dart LU). For rectangular matrices
+  /// ($m \ne n$), the least-squares solution is computed via QR/LQ
+  /// decomposition (`dgels` or pure-Dart QR).
+  ///
+  /// ```dart
+  /// final a = Matrix<double>.fromRows([
+  ///   [2.0, 1.0],
+  ///   [1.0, 3.0],
+  /// ]);
+  /// final b = Matrix<double>.fromRows([
+  ///   [4.0, 5.0],
+  ///   [7.0, 5.0],
+  /// ]);
+  /// final x = a.solve(b);
+  /// ```
+  Matrix<T> solve(Matrix<T> b) {
+    if (b.rowCount != rowCount) {
+      throw ArgumentError(
+        'Dimension mismatch: Matrix $rowCount x $colCount, Matrix RHS ${b.rowCount} x ${b.colCount}',
+      );
+    }
+    final nrhs = b.colCount;
+    if (rowCount == colCount) {
+      if ((type as DataType) == DataType.float64) {
+        final aData = Float64List(rowCount * colCount);
+        if (tensor.layout.isContiguous && tensor.data is Float64List) {
+          aData.setRange(
+            0,
+            aData.length,
+            tensor.data as Float64List,
+            tensor.layout.offset,
+          );
+        } else {
+          var i = 0;
+          for (final v in tensor.values) {
+            aData[i++] = (v as num).toDouble();
+          }
+        }
+        final bData = Float64List(rowCount * nrhs);
+        if (b.tensor.layout.isContiguous && b.tensor.data is Float64List) {
+          bData.setRange(
+            0,
+            bData.length,
+            b.tensor.data as Float64List,
+            b.tensor.layout.offset,
+          );
+        } else {
+          var i = 0;
+          for (final v in b.tensor.values) {
+            bData[i++] = (v as num).toDouble();
+          }
+        }
+        final success = Lapack.dgesv(
+          n: rowCount,
+          nrhs: nrhs,
+          a: aData,
+          lda: colCount,
+          b: bData,
+          ldb: nrhs,
+        );
+        if (success) {
+          return Matrix<T>(
+            Tensor.internal(
+              type: type,
+              layout: Layout(shape: [colCount, nrhs]),
+              data: bData as List<T>,
+            ),
+          );
+        }
+      }
+      return LUDecomposition<T>(this).solve(b);
+    } else if ((type as DataType) == DataType.float64) {
+      final aData = Float64List(rowCount * colCount);
+      if (tensor.layout.isContiguous && tensor.data is Float64List) {
+        aData.setRange(
+          0,
+          aData.length,
+          tensor.data as Float64List,
+          tensor.layout.offset,
+        );
+      } else {
+        var i = 0;
+        for (final v in tensor.values) {
+          aData[i++] = (v as num).toDouble();
+        }
+      }
+      final maxMN = math.max(rowCount, colCount);
+      final bData = Float64List(maxMN * nrhs);
+      if (b.tensor.layout.isContiguous && b.tensor.data is Float64List) {
+        bData.setRange(
+          0,
+          rowCount * nrhs,
+          b.tensor.data as Float64List,
+          b.tensor.layout.offset,
+        );
+      } else {
+        var i = 0;
+        for (final v in b.tensor.values) {
+          bData[i++] = (v as num).toDouble();
+        }
+      }
+      final success = Lapack.dgels(
+        m: rowCount,
+        n: colCount,
+        nrhs: nrhs,
+        a: aData,
+        lda: colCount,
+        b: bData,
+        ldb: nrhs,
+      );
+      if (success) {
+        final resultData = maxMN == colCount
+            ? bData
+            : bData.sublist(0, colCount * nrhs);
+        return Matrix<T>(
+          Tensor.internal(
+            type: type,
+            layout: Layout(shape: [colCount, nrhs]),
+            data: resultData as List<T>,
+          ),
+        );
+      }
+      if (rowCount > colCount) {
+        return QRDecomposition<T>(this).solve(b);
+      }
+      return _solveUnderdeterminedMatrix(b);
+    } else if (T == double || T == num || T == Complex) {
+      if (rowCount > colCount) {
+        return QRDecomposition<T>(this).solve(b);
+      }
+      return _solveUnderdeterminedMatrix(b);
+    } else {
+      return _solveRref(b);
+    }
   }
 
   Matrix<T> _solveRref(Matrix<T> b) {
@@ -597,7 +776,7 @@ class Matrix<T> implements LinearOperator<T> {
     return result;
   }
 
-  S _solveUnderdetermined<S extends Object>(S b) {
+  Vector<T> _solveUnderdeterminedVector(Vector<T> b) {
     final at = transposed;
     final qr = QRDecomposition<T>(at);
     if (!qr.isFullRank) {
@@ -605,64 +784,68 @@ class Matrix<T> implements LinearOperator<T> {
     }
     final field = type.field;
     final rMat = qr.r;
-    if (b is Vector<T>) {
-      final y = Vector<T>.filled(rowCount, field.additiveIdentity, type: type);
+    final y = Vector<T>.filled(rowCount, field.additiveIdentity, type: type);
+    for (var i = 0; i < rowCount; i++) {
+      var sum = b.getUnchecked(i);
+      for (var k = 0; k < i; k++) {
+        sum = field.sub(
+          sum,
+          field.mul(rMat.getUnchecked(k, i), y.getUnchecked(k)),
+        );
+      }
+      y.setUnchecked(i, field.div(sum, rMat.getUnchecked(i, i)));
+    }
+    final qMat = qr.q;
+    return Vector<T>.generate(colCount, (i) {
+      var sum = field.additiveIdentity;
+      for (var k = 0; k < rowCount; k++) {
+        sum = field.add(
+          sum,
+          field.mul(qMat.getUnchecked(i, k), y.getUnchecked(k)),
+        );
+      }
+      return sum;
+    }, type: type);
+  }
+
+  Matrix<T> _solveUnderdeterminedMatrix(Matrix<T> b) {
+    final at = transposed;
+    final qr = QRDecomposition<T>(at);
+    if (!qr.isFullRank) {
+      throw StateError('Matrix is rank deficient.');
+    }
+    final field = type.field;
+    final rMat = qr.r;
+    final nx = b.colCount;
+    final y = Matrix<T>.generate(
+      rowCount,
+      nx,
+      (r, c) => field.additiveIdentity,
+      type: type,
+    );
+    for (var j = 0; j < nx; j++) {
       for (var i = 0; i < rowCount; i++) {
-        var sum = b.getUnchecked(i);
+        var sum = b.getUnchecked(i, j);
         for (var k = 0; k < i; k++) {
           sum = field.sub(
             sum,
-            field.mul(rMat.getUnchecked(k, i), y.getUnchecked(k)),
+            field.mul(rMat.getUnchecked(k, i), y.getUnchecked(k, j)),
           );
         }
-        y.setUnchecked(i, field.div(sum, rMat.getUnchecked(i, i)));
+        y.setUnchecked(i, j, field.div(sum, rMat.getUnchecked(i, i)));
       }
-      final qMat = qr.q;
-      final x = Vector<T>.generate(colCount, (i) {
-        var sum = field.additiveIdentity;
-        for (var k = 0; k < rowCount; k++) {
-          sum = field.add(
-            sum,
-            field.mul(qMat.getUnchecked(i, k), y.getUnchecked(k)),
-          );
-        }
-        return sum;
-      }, type: type);
-      return x as S;
-    } else if (b is Matrix<T>) {
-      final nx = b.colCount;
-      final y = Matrix<T>.generate(
-        rowCount,
-        nx,
-        (r, c) => field.additiveIdentity,
-        type: type,
-      );
-      for (var j = 0; j < nx; j++) {
-        for (var i = 0; i < rowCount; i++) {
-          var sum = b.getUnchecked(i, j);
-          for (var k = 0; k < i; k++) {
-            sum = field.sub(
-              sum,
-              field.mul(rMat.getUnchecked(k, i), y.getUnchecked(k, j)),
-            );
-          }
-          y.setUnchecked(i, j, field.div(sum, rMat.getUnchecked(i, i)));
-        }
-      }
-      final qMat = qr.q;
-      final x = Matrix<T>.generate(colCount, nx, (i, j) {
-        var sum = field.additiveIdentity;
-        for (var k = 0; k < rowCount; k++) {
-          sum = field.add(
-            sum,
-            field.mul(qMat.getUnchecked(i, k), y.getUnchecked(k, j)),
-          );
-        }
-        return sum;
-      }, type: type);
-      return x as S;
     }
-    throw ArgumentError.value(b, 'b', 'Expected Vector or Matrix');
+    final qMat = qr.q;
+    return Matrix<T>.generate(colCount, nx, (i, j) {
+      var sum = field.additiveIdentity;
+      for (var k = 0; k < rowCount; k++) {
+        sum = field.add(
+          sum,
+          field.mul(qMat.getUnchecked(i, k), y.getUnchecked(k, j)),
+        );
+      }
+      return sum;
+    }, type: type);
   }
 
   /// Slices a submatrix over the given row and column ranges.

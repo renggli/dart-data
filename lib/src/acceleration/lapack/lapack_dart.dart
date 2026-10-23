@@ -224,8 +224,14 @@ abstract final class LapackDart {
         }
       }
 
+      var maxDiag = 0.0;
       for (var k = 0; k < n; k++) {
-        if (qr[k * n + k] == 0.0) return false;
+        final d = qr[k * n + k].abs();
+        if (d > maxDiag) maxDiag = d;
+      }
+      final tol = math.max(1e-12, m * 2.220446049250313e-16 * maxDiag);
+      for (var k = 0; k < n; k++) {
+        if (qr[k * n + k].abs() < tol) return false;
       }
 
       // Back-substitution: R[0:n, 0:n] * X = bx[0:n, :]
@@ -297,8 +303,14 @@ abstract final class LapackDart {
         lq[k * n + k] = nrm;
       }
 
+      var maxDiag = 0.0;
       for (var k = 0; k < m; k++) {
-        if (lq[k * n + k] == 0.0) return false;
+        final d = lq[k * n + k].abs();
+        if (d > maxDiag) maxDiag = d;
+      }
+      final tol = math.max(1e-12, n * 2.220446049250313e-16 * maxDiag);
+      for (var k = 0; k < m; k++) {
+        if (lq[k * n + k].abs() < tol) return false;
       }
 
       // Forward-substitution: L[0:m, 0:m] * Y = B[0:m, :]

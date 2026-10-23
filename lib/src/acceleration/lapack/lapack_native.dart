@@ -1,5 +1,6 @@
 // coverage:ignore-file
 import 'dart:ffi' as ffi;
+import 'dart:math' as math;
 import 'dart:typed_data';
 
 import 'package:ffi/ffi.dart';
@@ -258,7 +259,21 @@ abstract final class LapackNative {
         bView.address,
         ldb,
       );
-      return info == 0;
+      if (info == 0) {
+        final minMN = m < n ? m : n;
+        final maxMN = m > n ? m : n;
+        var maxDiag = 0.0;
+        for (var k = 0; k < minMN; k++) {
+          final d = aView[k * lda + k].abs();
+          if (d > maxDiag) maxDiag = d;
+        }
+        final tol = math.max(1e-12, maxMN * 2.220446049250313e-16 * maxDiag);
+        for (var k = 0; k < minMN; k++) {
+          if (aView[k * lda + k].abs() < tol) return false;
+        }
+        return true;
+      }
+      return false;
     }
 
     if (_hasDgels) {
@@ -324,6 +339,16 @@ abstract final class LapackNative {
           info,
         );
         if (info.value == 0) {
+          final minMN = m < n ? m : n;
+          var maxDiag = 0.0;
+          for (var k = 0; k < minMN; k++) {
+            final d = fA[k * m + k].abs();
+            if (d > maxDiag) maxDiag = d;
+          }
+          final tol = math.max(1e-12, maxMN * 2.220446049250313e-16 * maxDiag);
+          for (var k = 0; k < minMN; k++) {
+            if (fA[k * m + k].abs() < tol) return false;
+          }
           for (var i = 0; i < maxMN; i++) {
             for (var j = 0; j < nrhs; j++) {
               b[bOffset + i * ldb + j] = fB[j * maxMN + i];

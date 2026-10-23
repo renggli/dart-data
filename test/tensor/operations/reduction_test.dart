@@ -134,11 +134,11 @@ void main() {
       check(empty.sum().getValue([])).equals(0.0);
       check(empty.norm(2)).equals(0.0);
 
-      check(() => empty.mean()).throws<StateError>();
-      check(() => empty.min()).throws<StateError>();
-      check(() => empty.max()).throws<StateError>();
-      check(() => empty.argmin()).throws<StateError>();
-      check(() => empty.argmax()).throws<StateError>();
+      check(empty.mean).throws<StateError>();
+      check(empty.min).throws<StateError>();
+      check(empty.max).throws<StateError>();
+      check(empty.argmin).throws<StateError>();
+      check(empty.argmax).throws<StateError>();
     });
   });
 }

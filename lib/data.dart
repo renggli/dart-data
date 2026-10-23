@@ -54,7 +54,7 @@
 ///     [1.0, 3.0],
 ///   ]);
 ///   final b = Vector<double>.fromList([4.0, 7.0]);
-///   final x = a.solve(b);
+///   final x = a.solveVector(b);
 ///   print(x);
 ///
 ///   // Columnar DataFrames

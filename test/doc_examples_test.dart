@@ -280,7 +280,7 @@ void main() {
         [1.0, 3.0],
       ]);
       final b = Vector<double>.fromList([4.0, 7.0]);
-      final x = a.solve(b);
+      final x = a.solveVector(b);
       check(x[0]).isCloseTo(1.0, 1e-6);
       check(x[1]).isCloseTo(2.0, 1e-6);
     });
@@ -556,7 +556,7 @@ void main() {
         [1.0, 3.0],
       ]);
       final b = Vector<double>.fromList([4.0, 7.0]);
-      final x = a.solve(b);
+      final x = a.solveVector(b);
       check(x[0]).isCloseTo(1.0, 1e-6);
       check(x[1]).isCloseTo(2.0, 1e-6);
 

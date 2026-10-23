@@ -411,7 +411,7 @@ void main() {
         [1.0, 3.0],
       ]);
       final b = Vector<double>.fromList([4.0, 7.0]);
-      final x = a.solve(b);
+      final x = a.solveVector(b);
 
       check(x.length).equals(2);
       check(x[0]).isCloseTo(1.0, 1e-10);
@@ -454,7 +454,7 @@ void main() {
         [1.0, 3.0],
       ]);
       final b = Vector<double>.fromList([2.0, 3.0, 5.0]);
-      final x = a.solve(b);
+      final x = a.solveVector(b);
 
       check(x.length).equals(2);
       // Normal equations: A^T A x = A^T b
@@ -512,7 +512,7 @@ void main() {
         [Fraction.one, Fraction.one],
       ]);
       final b = Vector<Fraction>.fromList([Fraction(2), Fraction(5)]);
-      final x = a.solve(b);
+      final x = a.solveVector(b);
       check(x[0]).equals(Fraction(3));
       check(x[1]).equals(Fraction(2));
 
@@ -538,7 +538,7 @@ void main() {
         Fraction(2),
         Fraction(3),
       ]);
-      check(() => a.solve(bDeficient)).throws<StateError>();
+      check(() => a.solveVector(bDeficient)).throws<StateError>();
 
       final aInc = Matrix<Fraction>.fromRows([
         [Fraction.one, Fraction.one],
@@ -550,24 +550,24 @@ void main() {
         Fraction(2),
         Fraction(1),
       ]);
-      check(() => aInc.solve(bInc)).throws<StateError>();
+      check(() => aInc.solveVector(bInc)).throws<StateError>();
     });
 
-    test('Matrix.solve cross-type casting of Vector and Matrix RHS', () {
+    test('Matrix.solve and Matrix.solveVector on diagonal matrix', () {
       final a = Matrix<double>.fromRows([
         [2.0, 0.0],
         [0.0, 3.0],
       ]);
-      final bVec = Vector<num>.fromList([4, 9]);
-      final xVec = a.solve<Vector<num>>(bVec);
+      final bVec = Vector<double>.fromList([4.0, 9.0]);
+      final xVec = a.solveVector(bVec);
       check(xVec[0]).isCloseTo(2.0, 1e-10);
       check(xVec[1]).isCloseTo(3.0, 1e-10);
 
-      final bMat = Matrix<num>.fromRows([
-        [4, 8],
-        [9, 6],
+      final bMat = Matrix<double>.fromRows([
+        [4.0, 8.0],
+        [9.0, 6.0],
       ]);
-      final xMat = a.solve<Matrix<num>>(bMat);
+      final xMat = a.solve(bMat);
       check(xMat[0][0]).isCloseTo(2.0, 1e-10);
       check(xMat[1][0]).isCloseTo(3.0, 1e-10);
       check(xMat[0][1]).isCloseTo(4.0, 1e-10);
@@ -582,9 +582,8 @@ void main() {
       final v3 = Vector<double>.fromList([1.0, 2.0, 3.0]);
       final m3 = Matrix<double>.filled(3, 2, 1.0);
 
-      check(() => a.solve(v3)).throws<ArgumentError>();
+      check(() => a.solveVector(v3)).throws<ArgumentError>();
       check(() => a.solve(m3)).throws<ArgumentError>();
-      check(() => a.solve('invalid')).throws<ArgumentError>();
     });
   });
 
@@ -699,7 +698,7 @@ void main() {
           [4.0, 5.0, 6.0],
         ], type: DataType.float64);
         final b = Vector<double>.fromList([1.0, 2.0], type: DataType.float64);
-        final x = a.solve(b);
+        final x = a.solveVector(b);
         check(x.length).equals(3);
         final ax = a.apply(x);
         check(ax[0]).isCloseTo(1.0, 1e-10);
@@ -707,6 +706,52 @@ void main() {
       } finally {
         AccelerationManager.mode = prev;
       }
+    });
+
+    test('rectangular solve via dgels with Matrix and Vector RHS', () {
+      // Overdetermined 3x2:
+      final aOver = Matrix<double>.fromRows([
+        [1.0, 0.0],
+        [0.0, 1.0],
+        [1.0, 1.0],
+      ], type: DataType.float64);
+      final bOverVec = Vector<double>.fromList([
+        1.0,
+        2.0,
+        3.0,
+      ], type: DataType.float64);
+      final xOverVec = aOver.solveVector(bOverVec);
+      check(xOverVec.length).equals(2);
+      check(xOverVec[0]).isCloseTo(1.0, 1e-10);
+      check(xOverVec[1]).isCloseTo(2.0, 1e-10);
+
+      final bOverMat = Matrix<double>.fromRows([
+        [1.0, 2.0],
+        [2.0, 1.0],
+        [3.0, 3.0],
+      ], type: DataType.float64);
+      final xOverMat = aOver.solve(bOverMat);
+      check(xOverMat.rowCount).equals(2);
+      check(xOverMat.colCount).equals(2);
+      check(xOverMat[0][0]).isCloseTo(1.0, 1e-10);
+      check(xOverMat[1][0]).isCloseTo(2.0, 1e-10);
+      check(xOverMat[0][1]).isCloseTo(2.0, 1e-10);
+      check(xOverMat[1][1]).isCloseTo(1.0, 1e-10);
+
+      // Underdetermined 2x3:
+      final aUnder = Matrix<double>.fromRows([
+        [1.0, 0.0, 0.0],
+        [0.0, 1.0, 0.0],
+      ], type: DataType.float64);
+      final bUnderVec = Vector<double>.fromList([
+        3.0,
+        4.0,
+      ], type: DataType.float64);
+      final xUnderVec = aUnder.solveVector(bUnderVec);
+      check(xUnderVec.length).equals(3);
+      check(xUnderVec[0]).isCloseTo(3.0, 1e-10);
+      check(xUnderVec[1]).isCloseTo(4.0, 1e-10);
+      check(xUnderVec[2]).isCloseTo(0.0, 1e-10);
     });
 
     test('subMatrix with omitted rowEnd and colEnd', () {
