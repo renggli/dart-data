@@ -187,7 +187,7 @@ Pre-release review of `lib/` at `2fc36d4`. Baseline: `dart analyze` clean, READM
 - **Orphan tests without a matching lib file**: `test/linear/linear_test.dart`, `test/linear/decomposition/complex_decomposition_test.dart`, `test/dataframe/json/json_test.dart`. Merge them into their canonical files or rename them.
 - **Fix**: Move existing coverage for these into canonical files. Do not add new aggregate suites.
 
-#### FU-2.4: Re-run Multi-Platform Tests — Low
+#### FU-2.4 [COMPLETED]: Re-run Multi-Platform Tests — Low
 
 - Run `dart test -p node,chrome` (and `-c dart2wasm` if configured). The changes touch `BigInt` paths (Pollard's rho, `Integer.from`, exact combinations) and UTF-8 byte sorting, where JS semantics can differ.
 
