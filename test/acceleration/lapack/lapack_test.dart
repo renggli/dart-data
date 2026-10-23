@@ -100,5 +100,49 @@ void main() {
       check(w[0]).isCloseTo(1.0, 1e-5);
       check(w[1]).isCloseTo(3.0, 1e-5);
     });
+
+    accelerationTest('Lapack routines handle n = 0 without error', () {
+      final empty64 = Float64List(0);
+      final empty32 = Float32List(0);
+      check(Lapack.dpotrf(n: 0, a: empty64, lda: 1)).isTrue();
+      check(Lapack.dgesv(n: 0, nrhs: 0, a: empty64, lda: 1, b: empty64, ldb: 1))
+          .isTrue();
+      check(
+        Lapack.dgels(
+          m: 0,
+          n: 0,
+          nrhs: 0,
+          a: empty64,
+          lda: 1,
+          b: empty64,
+          ldb: 1,
+        ),
+      ).isTrue();
+      check(Lapack.dsyev(n: 0, a: empty64, lda: 1, w: empty64)).isTrue();
+      check(Lapack.ssyev(n: 0, a: empty32, lda: 1, w: empty32)).isTrue();
+    });
+
+    test('Lapack routines validate bounds and argument constraints', () {
+      final a = Float64List(4);
+      final w = Float64List(2);
+      check(() => Lapack.dpotrf(uplo: 999, n: 2, a: a, lda: 2))
+          .throws<ArgumentError>();
+      check(() => Lapack.dpotrf(n: 2, a: Float64List(2), lda: 2))
+          .throws<RangeError>();
+      check(
+        () => Lapack.dgesv(
+          n: 2,
+          nrhs: 1,
+          a: a,
+          lda: 2,
+          b: Float64List(1),
+          ldb: 1,
+        ),
+      ).throws<RangeError>();
+      check(() => Lapack.dsyev(jobz: 'X', n: 2, a: a, lda: 2, w: w))
+          .throws<ArgumentError>();
+      check(() => Lapack.dsyev(n: 2, a: a, lda: 2, w: Float64List(1)))
+          .throws<RangeError>();
+    });
   });
 }

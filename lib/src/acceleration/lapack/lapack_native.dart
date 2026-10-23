@@ -42,6 +42,7 @@ abstract final class LapackNative {
     required int lda,
   }) {
     if (!_hasDpotrf) return null;
+    if (n == 0) return true;
     return using((arena) {
       final fortranUplo = uplo == cblasUpper ? 76 : 85;
       final uploPtr = arena<ffi.Uint8>()..value = fortranUplo;
@@ -216,6 +217,7 @@ abstract final class LapackNative {
     required int ldb,
   }) {
     if (!hasDgels) return null;
+    if (m == 0 || n == 0 || nrhs == 0) return true;
     final aView = aOffset == 0 ? a : Float64List.sublistView(a, aOffset);
     final bView = bOffset == 0 ? b : Float64List.sublistView(b, bOffset);
 

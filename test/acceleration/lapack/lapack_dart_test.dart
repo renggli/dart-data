@@ -60,7 +60,34 @@ void main() {
       check(b[1]).isA<double>();
     });
 
-    test('dsyev n = 1 scalar case', () {
+    test('dsyev n = 0 and n = 1 scalar case', () {
+      final a0 = Float64List(0);
+      final w0 = Float64List(0);
+      check(
+        LapackDart.dsyev(
+          jobz: 'V',
+          uplo: cblasUpper,
+          n: 0,
+          a: a0,
+          aOffset: 0,
+          lda: 1,
+          w: w0,
+          wOffset: 0,
+        ),
+      ).isTrue();
+      check(
+        LapackDart.ssyev(
+          jobz: 'V',
+          uplo: cblasUpper,
+          n: 0,
+          a: Float32List(0),
+          aOffset: 0,
+          lda: 1,
+          w: Float32List(0),
+          wOffset: 0,
+        ),
+      ).isTrue();
+
       final a = Float64List.fromList([42.0]);
       final w = Float64List(1);
       check(

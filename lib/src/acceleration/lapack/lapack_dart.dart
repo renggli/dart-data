@@ -13,6 +13,7 @@ abstract final class LapackDart {
     required int aOffset,
     required int lda,
   }) {
+    if (n == 0) return true;
     final lower = Float64List(n * n);
     for (var i = 0; i < n; i++) {
       for (var j = 0; j <= i; j++) {
@@ -133,6 +134,7 @@ abstract final class LapackDart {
     required int bOffset,
     required int ldb,
   }) {
+    if (m == 0 || n == 0 || nrhs == 0) return true;
     if (m >= n) {
       final atA = Float64List(n * n);
       for (var j = 0; j < n; j++) {
@@ -223,6 +225,7 @@ abstract final class LapackDart {
     required Float64List w,
     required int wOffset,
   }) {
+    if (n == 0) return true;
     if (n == 1) {
       w[wOffset] = a[aOffset];
       if (jobz.toUpperCase() == 'V') a[aOffset] = 1.0;
@@ -427,6 +430,7 @@ abstract final class LapackDart {
     required Float32List w,
     required int wOffset,
   }) {
+    if (n == 0) return true;
     final a64 = Float64List(n * lda);
     for (var i = 0; i < n; i++) {
       for (var j = 0; j < n; j++) {
