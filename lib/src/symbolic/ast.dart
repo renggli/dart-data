@@ -2,6 +2,7 @@ import 'dart:math' as math;
 
 import 'package:more/number.dart' show Complex, Fraction;
 
+import 'calculus/differentiation.dart';
 import 'number/integer.dart';
 import 'number/rational.dart';
 import 'parser.dart';

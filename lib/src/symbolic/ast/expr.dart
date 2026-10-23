@@ -260,7 +260,8 @@ sealed class Expr {
       _isRealSubtree(integrand) &&
           (lower == null || _isRealSubtree(lower)) &&
           (upper == null || _isRealSubtree(upper)),
-    Derivative(:final expr) => _isRealSubtree(expr),
+    Derivative(:final expr, :final point) =>
+      _isRealSubtree(expr) && (point == null || _isRealSubtree(point)),
     Limit(:final expr, :final point) =>
       _isRealSubtree(expr) && _isRealSubtree(point),
     Sum(:final expr, :final lower, :final upper) ||

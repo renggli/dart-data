@@ -104,7 +104,7 @@ Pre-release review of `lib/` at `2fc36d4`. Baseline: `dart analyze` clean, READM
 
 ## Carried Over: Open Follow-Ups (FU-*)
 
-#### FU-1.1: `Derivative.substitute` Drops the Point Evaluation (Regression of TASK-1.8) — High
+#### FU-1.1 [COMPLETED]: `Derivative.substitute` Drops the Point Evaluation (Regression of TASK-1.8) — High
 
 - **File**: `lib/src/symbolic/ast/derivative.dart` (`substitute`, ~L37–53).
 - **Problem**: When `variable == this.variable` and `replacement` is not a `Variable`, it returns `Derivative(expr, variable)` unchanged. This throws the substitution away: `Derivative(x^2, 'x').substitute('x', 2).simplify()` gives `2*x`, not `4`. The task asked for either evaluate-then-substitute or an evaluation node.

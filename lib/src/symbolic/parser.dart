@@ -534,6 +534,17 @@ class ExprSyntax {
     [final expr, final v, IntegerNumber(asInt: final order?)]
         when order >= 1 && _asVariableName(v) != null =>
       Derivative(expr, _asVariableName(v)!, order: order),
+    [
+      final expr,
+      Variable(:final name),
+      IntegerNumber(asInt: final order?),
+      final point,
+    ]
+        when order >= 1 =>
+      Derivative(expr, name, order: order, point: point),
+    [final expr, final v, IntegerNumber(asInt: final order?), final point]
+        when order >= 1 && _asVariableName(v) != null =>
+      Derivative(expr, _asVariableName(v)!, order: order, point: point),
     [_, Variable(), final invalidOrder] => throw FormatException(
       'diff order must be a positive integer, got: $invalidOrder',
     ),
@@ -541,7 +552,7 @@ class ExprSyntax {
       'diff second argument must be a variable identifier, got: $invalidVar',
     ),
     _ => throw FormatException(
-      'diff requires 2 or 3 arguments, got ${args.length}',
+      'diff requires 2, 3, or 4 arguments, got ${args.length}',
     ),
   };
 

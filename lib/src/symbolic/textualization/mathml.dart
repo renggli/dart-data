@@ -131,12 +131,16 @@ String _toMathMl(Expr expr) => switch (expr) {
     lower != null && upper != null
         ? '<mrow><msubsup><mo>&#x222B;</mo>${_toMathMl(lower)}${_toMathMl(upper)}</msubsup>${_toMathMl(integrand)}<mspace width="thinmathspace"/><mi>d</mi><mi>${_escapeXml(variable)}</mi></mrow>'
         : '<mrow><mo>&#x222B;</mo>${_toMathMl(integrand)}<mspace width="thinmathspace"/><mi>d</mi><mi>${_escapeXml(variable)}</mi></mrow>',
-  Derivative(:final expr, :final variable, :final order) => () {
+  Derivative(:final expr, :final variable, :final order, :final point) => () {
     final vXml = _escapeXml(variable);
     final diffOp = order == 1
         ? '<mfrac><mi>d</mi><mrow><mi>d</mi><mi>$vXml</mi></mrow></mfrac>'
         : '<mfrac><msup><mi>d</mi><mn>$order</mn></msup><mrow><mi>d</mi><msup><mi>$vXml</mi><mn>$order</mn></msup></mrow></mfrac>';
-    return '<mrow>$diffOp${_formatMulRight(expr)}</mrow>';
+    final base = '<mrow>$diffOp${_formatMulRight(expr)}</mrow>';
+    if (point != null) {
+      return '<mrow><msub><mrow><mo>|</mo>$base</mrow><mrow><mi>$vXml</mi><mo>=</mo>${_toMathMl(point)}</mrow></msub></mrow>';
+    }
+    return base;
   }(),
   Limit(:final expr, :final variable, :final point, :final direction) => () {
     final vXml = _escapeXml(variable);

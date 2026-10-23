@@ -117,7 +117,14 @@ int compareStructural(Expr a, Expr b) {
       if (cmpVar != 0) return cmpVar;
       final cmpOrd = da.order.compareTo(db.order);
       if (cmpOrd != 0) return cmpOrd;
-      return compareStructural(da.expr, db.expr);
+      final cmpExpr = compareStructural(da.expr, db.expr);
+      if (cmpExpr != 0) return cmpExpr;
+      return switch ((da.point, db.point)) {
+        (null, null) => 0,
+        (null, _) => -1,
+        (_, null) => 1,
+        (final pa?, final pb?) => compareStructural(pa, pb),
+      };
     }(),
     (final Limit la, final Limit lb) => () {
       final cmpVar = la.variable.compareTo(lb.variable);

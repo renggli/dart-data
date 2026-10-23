@@ -86,10 +86,14 @@ String formatExpr(Expr expr, [int parentPrec = 0]) {
       lower != null && upper != null
           ? 'integrate(${formatExpr(integrand)}, $variable, ${formatExpr(lower)}, ${formatExpr(upper)})'
           : 'integrate(${formatExpr(integrand)}, $variable)',
-    Derivative(:final expr, :final variable, :final order) =>
-      order == 1
-          ? 'diff(${formatExpr(expr)}, $variable)'
-          : 'diff(${formatExpr(expr)}, $variable, $order)',
+    Derivative(:final expr, :final variable, :final order, :final point) =>
+      point != null
+          ? (order == 1
+                ? 'diff(${formatExpr(expr)}, $variable, ${formatExpr(point)})'
+                : 'diff(${formatExpr(expr)}, $variable, $order, ${formatExpr(point)})')
+          : (order == 1
+                ? 'diff(${formatExpr(expr)}, $variable)'
+                : 'diff(${formatExpr(expr)}, $variable, $order)'),
     Limit(:final expr, :final variable, :final point, :final direction) =>
       switch (direction) {
         LimitDirection.both =>

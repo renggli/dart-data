@@ -185,11 +185,12 @@ Expr simplifyExpr(Expr expr, {Assumptions assumptions = Assumptions.none}) {
         upper: upper,
         assumptions: assumptions,
       ),
-    Derivative(:final expr, :final variable, :final order) =>
+    Derivative(:final expr, :final variable, :final order, :final point) =>
       simplifyDerivative(
         expr,
         variable,
         order: order,
+        point: point,
         assumptions: assumptions,
       ),
     Limit(:final expr, :final variable, :final point, :final direction) =>

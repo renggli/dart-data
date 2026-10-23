@@ -1,5 +1,6 @@
 import '../../assumptions.dart';
 import '../../ast.dart';
+import '../../calculus/differentiation.dart';
 import '../../compiler.dart';
 import '../../number/integer.dart';
 import '../exact_constants.dart';
@@ -944,17 +945,42 @@ Expr simplifyDerivative(
   Expr expr,
   String variable, {
   int order = 1,
+  Expr? point,
   Assumptions assumptions = Assumptions.none,
 }) {
   final sExpr = expr.simplify(assumptions: assumptions);
+  final sPoint = point?.simplify(assumptions: assumptions);
   if (!sExpr.dependsOn(variable)) {
     return IntegerNumber.zero;
+  }
+  if (sPoint != null) {
+    final derived = sExpr.derivative(
+      variable,
+      order: order,
+      assumptions: assumptions,
+    );
+    if (!derived.anyNode(
+      (node) =>
+          node is Derivative && node.variable == variable && node.point == null,
+    )) {
+      return derived
+          .substitute(variable, sPoint)
+          .simplify(assumptions: assumptions);
+    }
+    return Derivative(
+      sExpr,
+      variable,
+      order: order,
+      point: sPoint,
+      isSimplified: true,
+    );
   }
   if (sExpr
       case Derivative(
         expr: final inner,
         variable: final innerVar,
         order: final innerOrder,
+        point: null,
       )
       when innerVar == variable) {
     return Derivative(

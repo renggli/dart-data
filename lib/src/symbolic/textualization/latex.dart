@@ -91,10 +91,14 @@ String _toLatex(Expr expr) => switch (expr) {
     lower != null && upper != null
         ? '\\int_{${_toLatex(lower)}}^{${_toLatex(upper)}} ${_toLatex(integrand)} \\, d$variable'
         : '\\int ${_toLatex(integrand)} \\, d$variable',
-  Derivative(:final expr, :final variable, :final order) =>
-    order == 1
-        ? '\\frac{d}{d$variable} ${_formatMulRight(expr)}'
-        : '\\frac{d^{$order}}{d$variable^{$order}} ${_formatMulRight(expr)}',
+  Derivative(:final expr, :final variable, :final order, :final point) =>
+    point != null
+        ? (order == 1
+              ? '\\left. \\frac{d}{d$variable} ${_formatMulRight(expr)} \\right|_{$variable = ${_toLatex(point)}}'
+              : '\\left. \\frac{d^{$order}}{d$variable^{$order}} ${_formatMulRight(expr)} \\right|_{$variable = ${_toLatex(point)}}')
+        : (order == 1
+              ? '\\frac{d}{d$variable} ${_formatMulRight(expr)}'
+              : '\\frac{d^{$order}}{d$variable^{$order}} ${_formatMulRight(expr)}'),
   Limit(:final expr, :final variable, :final point, :final direction) => () {
     final dirSuffix = switch (direction) {
       LimitDirection.both => '',

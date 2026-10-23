@@ -556,8 +556,9 @@ void _forEachChild(Expr node, void Function(Expr) visit) {
       visit(integrand);
       if (lower != null) visit(lower);
       if (upper != null) visit(upper);
-    case Derivative(:final expr):
+    case Derivative(:final expr, :final point):
       visit(expr);
+      if (point != null) visit(point);
     case Limit(:final expr, :final point):
       visit(expr);
       visit(point);
