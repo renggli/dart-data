@@ -17,6 +17,12 @@ void main() {
           .equals(Constant.undefined);
       check(simplifyPow(IntegerNumber.zero, Mul([IntegerNumber.of(-2), x])))
           .equals(Constant.undefined);
+
+      check(simplifyPow(IntegerNumber.zero, x))
+          .equals(Pow(IntegerNumber.zero, x, isSimplified: true));
+      check(
+        simplifyPow(IntegerNumber.zero, x, assumptions: Assumptions.positive),
+      ).equals(IntegerNumber.zero);
     });
 
     test('simplifies natural exponential powers of logarithms', () {

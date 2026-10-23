@@ -31,7 +31,14 @@ Expr simplifyPow(
             Mul(factors: [RealNumeric(isNegative: true), ...])) {
       return Constant.undefined;
     }
-    return IntegerNumber.zero;
+    final re = simplifyRe(exponent, assumptions: assumptions);
+    if (re is RealNumeric && re.isNegative) {
+      return Constant.undefined;
+    }
+    if (isPositiveExpr(re, assumptions: assumptions)) {
+      return IntegerNumber.zero;
+    }
+    return Pow(base, exponent, isSimplified: true);
   }
   if (base is Number && base.isOne) {
     return IntegerNumber.one;
