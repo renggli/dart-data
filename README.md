@@ -13,11 +13,11 @@
 ## Key Features
 
 - **Tensors & Multi-dimensional Arrays**: Zero-copy strided layouts, multidimensional slicing, broadcasting, einsum, contraction, and tensor transformations.
-- **Hardware Acceleration**: Dynamic native FFI discovery for BLAS (GEMM, GEMV, SYRK, AXPY, DOT, NRM2), LAPACK (GESV, GELSF, POTRF), cross-platform FFT (Apple Accelerate vDSP and FFTW3), and Apple vForce vector math via direct leaf `@ffi.Native` bindings, with transparent Dart SIMD (`Float32x4`) and pure Dart fallbacks.
+- **Hardware Acceleration**: Dynamic native FFI discovery for BLAS (GEMM, GEMV, SYRK, AXPY, DOT, NRM2), LAPACK (GESV, GELS, POTRF), cross-platform FFT (Apple Accelerate vDSP and FFTW3), and Apple vForce vector math via direct leaf `@ffi.Native` bindings, with pure Dart fallbacks.
 - **Linear Algebra**: Vectors and Matrices, zero-cost `Float64Matrix` and `Float64Vector` extension types, full decompositions (Cholesky, LU, QR, SVD, Eigenvalue), matrix norms and condition numbers, plus iterative Krylov subspace solvers (GMRES, Conjugate Gradient).
 - **Columnar DataFrames & Arrow**: Apache Arrow-aligned columnar tables with zero-copy chunking, schema inference, streaming CSV parser, relational joins, grouping, aggregations, Arrow IPC streaming/file format, and the Arrow C Data interface for zero-copy memory sharing with Python, C++, DuckDB, and Polars.
 - **Exact Symbolic Mathematics**: Symbolic expression ASTs, exact numeric tower (`Integer`, `RationalNumber`, `ComplexNumber`), canonical simplification under domain assumptions, closed-form summation and products, exact calculus (derivatives, integration, limits, power series), polynomial/transcendental equation solving, Gröbner bases, multivariable calculus (`gradient`, `hessian`, `jacobian`), LaTeX/MathML generation, and fast bytecode VM compilation to Dart closures.
-- **Probability & Statistics**: 25+ continuous and discrete probability distributions with exact PDF/CDF/quantile calculations, random sampling, descriptive statistics, Pearson/Spearman correlation, PCA, hypothesis testing (t-tests, ANOVA, Chi-squared, Kolmogorov-Smirnov, Mann-Whitney U, Wilcoxon, Jarque-Bera), and non-parametric Bootstrap & Jackknife resampling.
+- **Probability & Statistics**: 24 continuous and discrete probability distributions with exact PDF/CDF/quantile calculations, random sampling, descriptive statistics, Pearson/Spearman correlation, PCA, hypothesis testing (t-tests, ANOVA, Chi-squared, Kolmogorov-Smirnov, Mann-Whitney U, Wilcoxon, Jarque-Bera), and non-parametric Bootstrap & Jackknife resampling.
 - **Numeric Algorithms & Special Functions**: Differential equations (`solveOde` with Dormand-Prince 45 and RK4), non-linear optimization (`minimize` with Nelder-Mead, BFGS, L-BFGS, Brent), numerical integration (`integrate` with adaptive Simpson and Gauss-Kronrod), root finding (`solve` with Brent-Dekker, Newton-Raphson, Bisection, and `solveSystem`), 1D/2D interpolation (Linear, Cubic Spline, PCHIP, Bilinear, Bicubic), curve fitting (`curveFit`, `leastSquares`, `linearRegression`, `polynomialRegression`, `fitNonlinear`), coordinate sampling & adaptive curve sampling (`linearSpaced`, `sampleCurve`), cross-platform 1D FFT, and special functions ($\Gamma$, $\mathrm{B}$, Bessel $J_\nu / Y_\nu / I_\nu / K_\nu$, complete elliptic integrals $K / E$, hypergeometric functions $_1F_1, {}_2F_1$, and Lambert $W$).
 
 ## Interactive Web Examples
@@ -27,7 +27,7 @@ Explore the interactive web applications hosted on [GitHub Pages](https://renggl
 - **[Library Catalog & Showcase](https://renggli.github.io/dart-data/)**: Interactive feature catalog, component overview, and documentation portal.
 - **[Symbolic Calculator](https://renggli.github.io/dart-data/calculator/)**: Notebook & RPN symbolic calculator PWA with live MathML preview, 2D function plotting, and Gröbner basis system solving.
 - **[Symbolic Expressions Explorer](https://renggli.github.io/dart-data/expressions/)**: Interactive symbolic algebra, rational & trigonometric rewriting, exact calculus, Taylor series, summations, and equation solving.
-- **[Distributions Dashboard](https://renggli.github.io/dart-data/distributions/)**: Interactive probability density, cumulative distribution, quantile plots, and random sampling across 25+ continuous and discrete distributions.
+- **[Distributions Dashboard](https://renggli.github.io/dart-data/distributions/)**: Interactive probability density, cumulative distribution, quantile plots, and random sampling across 24 continuous and discrete distributions.
 
 ## Tutorial & Examples
 
