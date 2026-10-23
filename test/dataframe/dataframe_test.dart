@@ -672,5 +672,17 @@ line 2",10
       final objDesc = objSeries.sort(ascending: false);
       check(objDesc.toList()).deepEquals([30, 20, 10, null]);
     });
+
+    test('DataFrame constructor materializes lazy Iterable of Series once', () {
+      var seriesCreationCount = 0;
+      final lazyColumns = [1, 2].map((i) {
+        seriesCreationCount++;
+        return Series<int>.fromList('col$i', [i, i * 2]);
+      });
+      final df = DataFrame(lazyColumns);
+      check(df.columnCount).equals(2);
+      check(df.rowCount).equals(2);
+      check(seriesCreationCount).equals(2);
+    });
   });
 }

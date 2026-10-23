@@ -201,10 +201,13 @@ abstract base class DataType<T> {
 
   /// Casts an existing [elements] to this data type.
   List<T> castList(Iterable<Object?> elements) {
-    final list = newList(elements.length);
-    final it = elements.iterator;
-    for (var i = 0; i < elements.length && it.moveNext(); i++) {
-      list[i] = cast(it.current);
+    final source = elements is List<Object?>
+        ? elements
+        : elements.toList(growable: false);
+    final len = source.length;
+    final list = newList(len);
+    for (var i = 0; i < len; i++) {
+      list[i] = cast(source[i]);
     }
     return list;
   }

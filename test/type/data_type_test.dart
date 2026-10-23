@@ -458,5 +458,16 @@ void main() {
       check(DataType.float64.bits).equals(64);
       check(DataType.string.comparator('apple', 'banana')).isLessThan(0);
     });
+
+    test('castList with lazy Iterable evaluates elements once', () {
+      var evalCount = 0;
+      final lazyIterable = [1, 2, 3].map((x) {
+        evalCount++;
+        return x;
+      });
+      final res = DataType.float64.castList(lazyIterable);
+      check(res).deepEquals([1.0, 2.0, 3.0]);
+      check(evalCount).equals(3);
+    });
   });
 }

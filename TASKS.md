@@ -610,6 +610,12 @@ Each task specifies:
   1. Materialize `final columnList = columns.toList(growable: false);` at the top of `DataFrame(Iterable<Series<dynamic>> columns)`.
   2. Compare raw UTF-8 `Uint8List` slices lexicographically in `ArrowStringSeries.sort`.
   3. Hoist `final list = elements is List ? elements : elements.toList(growable: false);` in `DataType.castList`.
+- **Implementation Report**:
+  - Refactored `DataFrame` constructor to materialize columns to a list once, indexing column names and verifying row counts in a single $O(C)$ pass without multiple iterations or `elementAt` traversals.
+  - Implemented lexicographical raw byte slice comparison and zero-allocation slice copying in `ArrowStringSeries.sort`, eliminating string decoding and allocations during sorting.
+  - Optimized `CsvWriter.write` by caching columns in a local list and writing directly to `StringBuffer`, eliminating per-row column map lookups and list allocations.
+  - Hoisted list length check in `DataType.castList` with direct list indexing and single-pass materialization for lazy iterables.
+  - Added unit tests for lazy evaluation counts and UTF-8 multi-byte sorting across VM, Node.js, and Chrome.
 
 ---
 

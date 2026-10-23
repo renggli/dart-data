@@ -231,14 +231,64 @@ class ArrowStringSeries extends Series<String> {
       if (aNull && bNull) return 0;
       if (aNull) return nullsLast ? 1 : -1;
       if (bNull) return nullsLast ? -1 : 1;
-      final strA = this[a]!;
-      final strB = this[b]!;
-      final cmp = strA.compareTo(strB);
+
+      final startA = offsets[a];
+      final endA = offsets[a + 1];
+      final startB = offsets[b];
+      final endB = offsets[b + 1];
+      final lenA = endA - startA;
+      final lenB = endB - startB;
+      final minLen = lenA < lenB ? lenA : lenB;
+      var cmp = 0;
+      for (var k = 0; k < minLen; k++) {
+        final byteA = bytes[startA + k];
+        final byteB = bytes[startB + k];
+        if (byteA != byteB) {
+          cmp = byteA.compareTo(byteB);
+          break;
+        }
+      }
+      if (cmp == 0) {
+        cmp = lenA.compareTo(lenB);
+      }
       return ascending ? cmp : -cmp;
     });
-    return ArrowStringSeries.fromList(name, [
-      for (final idx in indices) this[idx],
-    ]);
+
+    final count = length;
+    var totalBytes = 0;
+    ValidityMask? newMask;
+    for (var i = 0; i < count; i++) {
+      final oldIdx = indices[i];
+      if (isNull(oldIdx)) {
+        newMask ??= ValidityMask(count);
+        newMask.setNull(i);
+      } else {
+        totalBytes += offsets[oldIdx + 1] - offsets[oldIdx];
+      }
+    }
+
+    final newBytes = Uint8List(totalBytes);
+    final newOffsets = Uint32List(count + 1);
+    var curOffset = 0;
+    for (var i = 0; i < count; i++) {
+      newOffsets[i] = curOffset;
+      final oldIdx = indices[i];
+      if (!isNull(oldIdx)) {
+        final start = offsets[oldIdx];
+        final end = offsets[oldIdx + 1];
+        final len = end - start;
+        newBytes.setRange(curOffset, curOffset + len, bytes, start);
+        curOffset += len;
+      }
+    }
+    newOffsets[count] = curOffset;
+
+    return ArrowStringSeries(
+      name: name,
+      bytes: newBytes,
+      offsets: newOffsets,
+      mask: newMask,
+    );
   }
 
   @override

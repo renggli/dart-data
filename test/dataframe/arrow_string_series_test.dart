@@ -124,6 +124,19 @@ void main() {
           .deepEquals([null, 'zebra', 'mango', 'apple']);
     });
 
+    test('sort orders UTF-8 multibyte characters and prefixes', () {
+      final series = ArrowStringSeries.fromList('unicode', [
+        'café',
+        'cafe',
+        'cafés',
+        'apple',
+        '⚡',
+        '✨',
+      ]);
+      final sortedAsc = series.sort().toList();
+      check(sortedAsc).deepEquals(['apple', 'cafe', 'café', 'cafés', '⚡', '✨']);
+    });
+
     test('aggregations min, max, sum, mean', () {
       final series = ArrowStringSeries.fromList('words', [
         'banana',

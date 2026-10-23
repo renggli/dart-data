@@ -39,12 +39,14 @@ class DataFrame {
   /// final df = DataFrame([s1, s2]);
   /// ```
   new(Iterable<Series<dynamic>> columns)
-    : _columns = columns.toList(growable: false),
-      _columnIndex = {
-        for (var i = 0; i < columns.length; i++) columns.elementAt(i).name: i,
-      },
-      rowCount = columns.isEmpty ? 0 : columns.first.length {
-    for (final col in _columns) {
+    : this._(columns.toList(growable: false));
+
+  new _(List<Series<dynamic>> list)
+    : _columns = list,
+      rowCount = list.isEmpty ? 0 : list[0].length,
+      _columnIndex = {for (var i = 0; i < list.length; i++) list[i].name: i} {
+    for (var i = 0; i < list.length; i++) {
+      final col = list[i];
       if (col.length != rowCount) {
         throw ArgumentError(
           'All columns must have identical length ($rowCount), but column "${col.name}" has ${col.length}',

@@ -5,26 +5,29 @@ class CsvWriter {
   /// Serializes [DataFrame] to a CSV formatted string.
   static String write(DataFrame df, {String separator = ','}) {
     final sb = StringBuffer();
+    final columns = df.columns;
+    final numCols = columns.length;
+
     // Header
-    sb.writeln(
-      df.columnNames.map((name) => _escape(name, separator)).join(separator),
-    );
+    for (var i = 0; i < numCols; i++) {
+      if (i > 0) sb.write(separator);
+      sb.write(_escape(columns[i].name, separator));
+    }
+    sb.writeln();
 
     // Rows
     for (var rowIdx = 0; rowIdx < df.rowCount; rowIdx++) {
-      final rowVals = [
-        for (final col in df.columnNames)
-          _formatVal(df.column(col)[rowIdx], separator),
-      ];
-      sb.writeln(rowVals.join(separator));
+      for (var colIdx = 0; colIdx < numCols; colIdx++) {
+        if (colIdx > 0) sb.write(separator);
+        final val = columns[colIdx][rowIdx];
+        if (val != null) {
+          sb.write(_escape('$val', separator));
+        }
+      }
+      sb.writeln();
     }
 
     return sb.toString();
-  }
-
-  static String _formatVal(dynamic val, String separator) {
-    if (val == null) return '';
-    return _escape('$val', separator);
   }
 
   static String _escape(String field, String separator) {
