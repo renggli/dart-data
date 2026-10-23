@@ -161,6 +161,11 @@ void main() {
       check(t1.shape).deepEquals([2, 2]);
       check(t1.getValue([1, 0])).equals(3);
 
+      check(() => Tensor<int>.fromIterable([1, 2, 3], shape: [2, 2]))
+          .throws<ArgumentError>();
+      check(() => Tensor<int>.fromIterable([1, 2, 3, 4, 5], shape: [2, 2]))
+          .throws<ArgumentError>();
+
       final t2 = Tensor<int>.fromObject([
         [1, 2],
         [3, 4],
@@ -171,6 +176,26 @@ void main() {
         [1, 2],
         [3, 4],
       ]);
+
+      // Ragged nested lists throw ArgumentError
+      check(
+        () => Tensor<int>.fromObject([
+          [1, 2],
+          [3],
+        ]),
+      ).throws<ArgumentError>();
+      check(
+        () => Tensor<int>.fromObject([
+          [1, 2],
+          [3, 4, 5],
+        ]),
+      ).throws<ArgumentError>();
+      check(
+        () => Tensor<int>.fromObject([
+          [1, 2],
+          3,
+        ]),
+      ).throws<ArgumentError>();
     });
 
     test('slicing operator[]', () {

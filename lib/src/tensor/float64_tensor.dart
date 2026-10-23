@@ -58,43 +58,27 @@ extension type Float64Tensor._(Tensor<double> _tensor)
   }
 
   /// Constructs a [Float64Tensor] filled with [value].
-  factory filled(double value, {List<int>? shape, List<int>? strides}) =>
-      Float64Tensor._(
-        Tensor<double>.filled(
-          value,
-          shape: shape,
-          strides: strides,
-          type: DataType.float64,
-        ),
-      );
+  factory filled(double value, {List<int>? shape}) => Float64Tensor._(
+    Tensor<double>.filled(value, shape: shape, type: DataType.float64),
+  );
 
   /// Constructs a [Float64Tensor] using [generator] for each coordinate key.
   factory generate(
     double Function(List<int> key) generator, {
     required List<int> shape,
-    List<int>? strides,
   }) => Float64Tensor._(
-    Tensor<double>.generate(
-      generator,
-      shape: shape,
-      strides: strides,
-      type: DataType.float64,
-    ),
+    Tensor<double>.generate(generator, shape: shape, type: DataType.float64),
   );
 
   /// Constructs a [Float64Tensor] from an iterable.
-  factory fromIterable(
-    Iterable<double> iterable, {
-    List<int>? shape,
-    List<int>? strides,
-  }) => Float64Tensor._(
-    Tensor<double>.fromIterable(
-      iterable,
-      shape: shape,
-      strides: strides,
-      type: DataType.float64,
-    ),
-  );
+  factory fromIterable(Iterable<double> iterable, {List<int>? shape}) =>
+      Float64Tensor._(
+        Tensor<double>.fromIterable(
+          iterable,
+          shape: shape,
+          type: DataType.float64,
+        ),
+      );
 
   /// Direct zero-copy access to the underlying [Float64List] buffer.
   Float64List get asTypedList => _tensor.data as Float64List;

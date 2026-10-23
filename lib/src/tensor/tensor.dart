@@ -41,14 +41,9 @@ class Tensor<T> {
   /// final t = Tensor<int>.filled(7, shape: [2, 3]);
   /// // [[7, 7, 7], [7, 7, 7]]
   /// ```
-  factory filled(
-    T value, {
-    List<int>? shape,
-    List<int>? strides,
-    DataType<T>? type,
-  }) {
+  factory filled(T value, {List<int>? shape, DataType<T>? type}) {
     final effectiveType = type ?? DataType.fromInstance(value);
-    final effectiveLayout = Layout(shape: shape, strides: strides);
+    final effectiveLayout = Layout(shape: shape);
     final data = effectiveType.newList(
       effectiveLayout.length,
       fillValue: value,
@@ -79,10 +74,9 @@ class Tensor<T> {
   factory generate(
     T Function(List<int> key) generator, {
     required List<int> shape,
-    List<int>? strides,
     DataType<T>? type,
   }) {
-    final effectiveLayout = Layout(shape: shape, strides: strides);
+    final effectiveLayout = Layout(shape: shape);
     final effectiveType = type ?? DataType.fromType<T>();
     final data = effectiveType.newList(effectiveLayout.length);
     final tensor = Tensor.internal(
@@ -111,16 +105,20 @@ class Tensor<T> {
   factory fromIterable(
     Iterable<T> iterable, {
     List<int>? shape,
-    List<int>? strides,
     DataType<T>? type,
   }) {
     final list = iterable.toList(growable: false);
     final effectiveType = type ?? DataType.fromIterable(list);
     final effectiveLayout = shape != null
-        ? Layout(shape: shape, strides: strides)
-        : Layout(shape: [list.length], strides: strides);
+        ? Layout(shape: shape)
+        : Layout(shape: [list.length]);
+    if (list.length != effectiveLayout.length) {
+      throw ArgumentError(
+        'Iterable length (${list.length}) does not match shape length (${effectiveLayout.length})',
+      );
+    }
     final data = effectiveType.newList(effectiveLayout.length);
-    for (var i = 0; i < list.length && i < effectiveLayout.length; i++) {
+    for (var i = 0; i < effectiveLayout.length; i++) {
       data[i] = list[i];
     }
     return Tensor.internal(
@@ -142,7 +140,7 @@ class Tensor<T> {
   /// final t = Tensor<int>.fromObject([[1, 2, 3], [4, 5, 6]]);
   /// // t.rank == 2, t.shape == [2, 3]
   /// ```
-  factory fromObject(dynamic object, {DataType<T>? type}) {
+  factory fromObject(Object? object, {DataType<T>? type}) {
     if (object is! Iterable) {
       if (object is T) {
         return Tensor.filled(object, shape: const [], type: type);
@@ -154,25 +152,45 @@ class Tensor<T> {
       return Tensor.fromIterable(<T>[], shape: const [0], type: effectiveType);
     }
     final shape = <int>[];
-    dynamic current = object;
+    Object? current = object;
     while (current is Iterable) {
-      shape.add(current.length);
-      if (current.isEmpty) break;
-      current = current.first;
+      final curList = current is List
+          ? current
+          : current.toList(growable: false);
+      shape.add(curList.length);
+      if (curList.isEmpty) break;
+      current = curList.first;
     }
 
     final flatList = <T>[];
-    void flatten(dynamic item) {
-      if (item is Iterable) {
-        for (final child in item) {
-          flatten(child);
+    void validateAndFlatten(Object? item, int depth) {
+      if (depth < shape.length) {
+        if (item is! Iterable) {
+          throw ArgumentError(
+            'Expected an Iterable at depth $depth, got $item',
+          );
+        }
+        final itemIter = item is List ? item : item.toList(growable: false);
+        if (itemIter.length != shape[depth]) {
+          throw ArgumentError(
+            'Ragged nested list: expected length ${shape[depth]} at depth $depth, '
+            'but got ${itemIter.length}',
+          );
+        }
+        for (final child in itemIter) {
+          validateAndFlatten(child, depth + 1);
         }
       } else {
+        if (item is Iterable) {
+          throw ArgumentError(
+            'Unexpected Iterable at leaf depth $depth: $item',
+          );
+        }
         flatList.add(item as T);
       }
     }
 
-    flatten(object);
+    validateAndFlatten(object, 0);
     return Tensor.fromIterable(flatList, shape: shape, type: type);
   }
 
@@ -216,13 +234,13 @@ class Tensor<T> {
   List<T> toFlatList() => values.toList(growable: false);
 
   /// Converts the tensor to a nested Dart list structure matching [shape].
-  dynamic toNestedList() {
-    dynamic build(List<int> prefix, int dim) {
+  Object? toNestedList() {
+    Object? build(List<int> prefix, int dim) {
       if (dim == rank) {
         return getValue(prefix);
       }
       final len = shape[dim];
-      final res = List<dynamic>.filled(len, null, growable: false);
+      final res = List<Object?>.filled(len, null, growable: false);
       for (var i = 0; i < len; i++) {
         prefix.add(i);
         res[i] = build(prefix, dim + 1);

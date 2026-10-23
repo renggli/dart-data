@@ -42,10 +42,10 @@ Pre-release review of `lib/` at `2fc36d4`. Baseline: `dart analyze` clean, READM
 
 | ID | Sev | Location | Problem | Fix |
 | --- | --- | --- | --- | --- |
-| R3.1 | Medium | `lib/src/tensor/tensor.dart:44-177` | `filled`/`generate`/`fromIterable` accept arbitrary `strides` but allocate only `layout.length`. Length mismatches truncate or pad silently. `fromObject` accepts ragged lists. | Validate the input or drop the `strides` parameter. Throw `ArgumentError`. |
+| R3.1 [COMPLETED] | Medium | `lib/src/tensor/tensor.dart:44-177` | `filled`/`generate`/`fromIterable` accept arbitrary `strides` but allocate only `layout.length`. Length mismatches truncate or pad silently. `fromObject` accepts ragged lists. | Validate the input or drop the `strides` parameter. Throw `ArgumentError`. |
 | R3.2 | Medium | `lib/src/tensor/layout.dart:177-191,432-441` | `indices` allocates a `List` per element. `toKey` is O(rank²). Every non-contiguous path pays for this. | Use an allocation-free odometer over the strides. |
 | R3.3 | Medium | `lib/src/tensor/float64_tensor.dart:46-50,141-219` | Copies the whole backing buffer of a non-`Float64List` operand, and `fromDoubleTensor` copies the whole buffer instead of the view. | Index the operand directly. Copy only the view. Dedupe the shape helpers. |
-| R3.4 | Medium | `tensor.dart:145,219` | `fromObject(dynamic)` and `dynamic toNestedList()`. | Use `Object?`. |
+| R3.4 [COMPLETED] | Medium | `tensor.dart:145,219` | `fromObject(dynamic)` and `dynamic toNestedList()`. | Use `Object?`. |
 
 ## R4. Numeric / Linear / Polynomial
 
