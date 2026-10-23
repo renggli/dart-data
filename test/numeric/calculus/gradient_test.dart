@@ -18,5 +18,18 @@ void main() {
       check(grad[0]).isCloseTo(8.0, 1e-4);
       check(grad[1]).isCloseTo(15.0, 1e-4);
     });
+
+    test(
+      'scales finite-difference step size for large coordinates |x| >= 10^8',
+      () {
+        double function(Vector<double> v) => v[0] * v[0] + v[1] * v[1];
+
+        final pt = Vector<double>.fromList([1e9, 2e9], type: DataType.float64);
+        final grad = gradient(function, pt);
+        // grad = [2e9, 4e9]
+        check((grad[0] - 2e9).abs() / 2e9).isLessThan(1e-4);
+        check((grad[1] - 4e9).abs() / 4e9).isLessThan(1e-4);
+      },
+    );
   });
 }

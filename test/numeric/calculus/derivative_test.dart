@@ -26,5 +26,15 @@ void main() {
       check(() => derivative(function, 2.0, accuracy: 5))
           .throws<ArgumentError>();
     });
+
+    test(
+      'scales finite-difference step size for large coordinate |x| >= 10^8',
+      () {
+        double poly(double x) => x * x;
+        // d/dx(x^2) at x = 1e9 is 2e9
+        final d = derivative(poly, 1e9);
+        check((d - 2e9).abs() / 2e9).isLessThan(1e-4);
+      },
+    );
   });
 }

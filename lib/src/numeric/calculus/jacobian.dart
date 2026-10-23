@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import '../../../linear.dart';
 import '../../../type.dart';
 
@@ -25,13 +27,28 @@ Matrix<double> jacobian(
   final dim = point.length;
   final f0 = function(point);
   final numFuncs = f0.length;
-  return Matrix<double>.generate(numFuncs, dim, (row, col) {
-    final xPlus = point.copy();
-    final xMinus = point.copy();
-    xPlus[col] += step;
-    xMinus[col] -= step;
-    final fPlus = function(xPlus);
-    final fMinus = function(xMinus);
-    return (fPlus[row] - fMinus[row]) / (2.0 * step);
-  }, type: DataType.float64);
+  final result = Matrix<double>.filled(
+    numFuncs,
+    dim,
+    0.0,
+    type: DataType.float64,
+  );
+  if (dim == 0 || numFuncs == 0) return result;
+
+  final xWork = point.copy();
+  for (var col = 0; col < dim; col++) {
+    final original = point[col];
+    final h = step * math.max(1.0, original.abs());
+    xWork[col] = original + h;
+    final fPlus = function(xWork);
+    xWork[col] = original - h;
+    final fMinus = function(xWork);
+    xWork[col] = original;
+
+    final invTwoH = 1.0 / (2.0 * h);
+    for (var row = 0; row < numFuncs; row++) {
+      result.set(row, col, (fPlus[row] - fMinus[row]) * invTwoH);
+    }
+  }
+  return result;
 }

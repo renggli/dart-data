@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import '../../../linear.dart';
 import '../../../type.dart';
 
@@ -23,11 +25,19 @@ Vector<double> gradient(
   double step = 1e-5,
 }) {
   final dim = point.length;
-  return Vector<double>.generate(dim, (i) {
-    final xPlus = point.copy();
-    final xMinus = point.copy();
-    xPlus[i] += step;
-    xMinus[i] -= step;
-    return (function(xPlus) - function(xMinus)) / (2.0 * step);
-  }, type: DataType.float64);
+  final result = Vector<double>.filled(dim, 0.0, type: DataType.float64);
+  if (dim == 0) return result;
+
+  final xWork = point.copy();
+  for (var i = 0; i < dim; i++) {
+    final xi = point[i];
+    final h = step * math.max(1.0, xi.abs());
+    xWork[i] = xi + h;
+    final fPlus = function(xWork);
+    xWork[i] = xi - h;
+    final fMinus = function(xWork);
+    xWork[i] = xi;
+    result[i] = (fPlus - fMinus) / (2.0 * h);
+  }
+  return result;
 }

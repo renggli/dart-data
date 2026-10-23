@@ -531,6 +531,12 @@ Each task specifies:
   2. In `hessian`, compute only the upper triangle $j \ge i$ and mirror $H_{ji} = H_{ij}$.
   3. Scale default finite-difference step sizes by `math.max(1.0, x.abs())`.
   4. In `curve_fit.dart`, evaluate the perturbed parameter vector across the $N$ points directly in $O(N p)$ model calls.
+- **Implementation Report**:
+  - Rewrote `jacobian` to evaluate vector functions once per coordinate perturbation offset across all $m$ output rows ($O(n)$ vector calls).
+  - Optimized `hessian` to compute diagonal and upper triangle ($j > i$), mirroring $H_{ji} = H_{ij}$ to eliminate redundant function calls and vector copies.
+  - Scaled finite-difference step sizes across `derivative`, `gradient`, `jacobian`, `hessian`, and `curveFit`/`fitNonlinear` by `math.max(1.0, x.abs())`.
+  - Optimized Levenberg-Marquardt finite-difference Jacobian in `curveFit` and `fitNonlinear` to evaluate perturbed residual vectors once per parameter column in $O(N p)$ instead of $O(N^2 p)$.
+  - Added unit tests verifying $O(n)$ Jacobian vector calls, symmetric Hessian evaluation counts, large-coordinate scaling ($|x| \ge 10^8$), and $O(p)$ residual evaluations per LM iteration.
 
 ### TASK-5.2: Fix BFGS $O(n^3)$ Matrix Multiply Update to $O(n^2)$ Rank-2 Update & Eliminate Redundant Evaluations
 

@@ -32,7 +32,7 @@ double derivative(
       'Must be one of ${accuracyToWeights.keys.join(', ')} for order $order',
     );
   }
-  final h =
+  final hBase =
       step ??
       switch (order) {
         1 => 1e-5,
@@ -43,6 +43,7 @@ double derivative(
         6 => 2e-1,
         _ => 1e-3,
       };
+  final h = hBase * math.max(1.0, x.abs());
   final offset = weights.length ~/ 2;
   var result = 0.0;
   for (var i = 0; i < weights.length; i++) {

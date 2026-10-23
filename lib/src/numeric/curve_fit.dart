@@ -455,12 +455,20 @@ CurveFitResult curveFit({
     if (math.sqrt(currentCost) < tolerance) break;
 
     const step = 1e-7;
-    final j = Matrix<double>.generate(n, numParams, (row, col) {
-      final pForward = params.copy();
-      pForward[col] += step;
-      final rForward = computeResiduals(pForward);
-      return (rForward[row] - residuals[row]) / step;
-    }, type: DataType.float64);
+    final j = Matrix<double>.filled(n, numParams, 0.0, type: DataType.float64);
+    final pWork = params.copy();
+    for (var col = 0; col < numParams; col++) {
+      final pj = params[col];
+      final h = step * math.max(1.0, pj.abs());
+      pWork[col] = pj + h;
+      final rForward = computeResiduals(pWork);
+      pWork[col] = pj;
+
+      final invH = 1.0 / h;
+      for (var row = 0; row < n; row++) {
+        j.set(row, col, (rForward[row] - residuals[row]) * invH);
+      }
+    }
 
     final jTj = j.syrk(transpose: true);
     final jTr = j.applyTranspose(residuals);
@@ -556,12 +564,25 @@ Vector<double> fitNonlinear({
     final numParams = params.length;
     const step = 1e-7;
 
-    final j = Matrix<double>.generate(numResiduals, numParams, (row, col) {
-      final pForward = params.copy();
-      pForward[col] += step;
-      final rForward = residualFunction(pForward);
-      return (rForward[row] - residuals[row]) / step;
-    }, type: DataType.float64);
+    final j = Matrix<double>.filled(
+      numResiduals,
+      numParams,
+      0.0,
+      type: DataType.float64,
+    );
+    final pWork = params.copy();
+    for (var col = 0; col < numParams; col++) {
+      final pj = params[col];
+      final h = step * math.max(1.0, pj.abs());
+      pWork[col] = pj + h;
+      final rForward = residualFunction(pWork);
+      pWork[col] = pj;
+
+      final invH = 1.0 / h;
+      for (var row = 0; row < numResiduals; row++) {
+        j.set(row, col, (rForward[row] - residuals[row]) * invH);
+      }
+    }
 
     // Augmented normal equations: (J^T J + lambda * diag(J^T J)) delta = -J^T r
     final jTj = j.syrk(transpose: true);

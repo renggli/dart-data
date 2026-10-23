@@ -434,5 +434,22 @@ void main() {
       );
       check(p.length).equals(2);
     });
+
+    test('fitNonlinear evaluates residual function O(p) times per iteration', () {
+      var callCount = 0;
+      // N = 50 residuals, P = 2 params
+      final p = fitNonlinear(
+        residualFunction: (v) {
+          callCount++;
+          return Vector<double>.generate(50, (i) => (i + 1) * v[0] - v[1]);
+        },
+        initialParams: Vector<double>.fromList([1.0, 2.0]),
+        maxIterations: 1,
+      );
+      check(p.length).equals(2);
+      // With N = 50, previously this would have been > 100 calls per iteration.
+      // Now it's initial (1) + numParams (2) + candidate (1) = 4 calls.
+      check(callCount).isLessThan(10);
+    });
   });
 }

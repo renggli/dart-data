@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import '../../../linear.dart';
 import '../../../type.dart';
 
@@ -22,28 +24,56 @@ Matrix<double> hessian(
 }) {
   final dim = point.length;
   final f0 = function(point);
-  return Matrix<double>.generate(dim, dim, (i, j) {
-    if (i == j) {
-      final xPlus = point.copy();
-      final xMinus = point.copy();
-      xPlus[i] += step;
-      xMinus[i] -= step;
-      return (function(xPlus) - 2.0 * f0 + function(xMinus)) / (step * step);
-    } else {
-      final xPP = point.copy();
-      final xPM = point.copy();
-      final xMP = point.copy();
-      final xMM = point.copy();
-      xPP[i] += step;
-      xPP[j] += step;
-      xPM[i] += step;
-      xPM[j] -= step;
-      xMP[i] -= step;
-      xMP[j] += step;
-      xMM[i] -= step;
-      xMM[j] -= step;
-      return (function(xPP) - function(xPM) - function(xMP) + function(xMM)) /
-          (4.0 * step * step);
+  final result = Matrix<double>.filled(dim, dim, 0.0, type: DataType.float64);
+  if (dim == 0) return result;
+
+  final xWork = point.copy();
+  for (var i = 0; i < dim; i++) {
+    final xi = point[i];
+    final hi = step * math.max(1.0, xi.abs());
+
+    // Diagonal entry: H_ii
+    xWork[i] = xi + hi;
+    final fPlus = function(xWork);
+    xWork[i] = xi - hi;
+    final fMinus = function(xWork);
+    xWork[i] = xi;
+
+    final diagVal = (fPlus - 2.0 * f0 + fMinus) / (hi * hi);
+    result.set(i, i, diagVal);
+
+    // Off-diagonal entries: H_ij = H_ji for j > i (exploiting symmetry)
+    for (var j = i + 1; j < dim; j++) {
+      final xj = point[j];
+      final hj = step * math.max(1.0, xj.abs());
+
+      // f(x + hi*ei + hj*ej)
+      xWork[i] = xi + hi;
+      xWork[j] = xj + hj;
+      final fPP = function(xWork);
+
+      // f(x + hi*ei - hj*ej)
+      xWork[j] = xj - hj;
+      final fPM = function(xWork);
+
+      // f(x - hi*ei + hj*ej)
+      xWork[i] = xi - hi;
+      xWork[j] = xj + hj;
+      final fMP = function(xWork);
+
+      // f(x - hi*ei - hj*ej)
+      xWork[j] = xj - hj;
+      final fMM = function(xWork);
+
+      // Restore
+      xWork[i] = xi;
+      xWork[j] = xj;
+
+      final offDiagVal = (fPP - fPM - fMP + fMM) / (4.0 * hi * hj);
+      result.set(i, j, offDiagVal);
+      result.set(j, i, offDiagVal);
     }
-  }, type: DataType.float64);
+  }
+
+  return result;
 }
