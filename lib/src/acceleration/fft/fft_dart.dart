@@ -22,6 +22,7 @@ abstract final class FftDart {
   static void bluestein({
     required Float64ComplexList buffer,
     required bool inverse,
+    void Function({required Float64ComplexList buffer, bool inverse})? innerFft,
   }) {
     final n = buffer.length;
     if (n <= 1) return;
@@ -67,8 +68,13 @@ abstract final class FftDart {
       bData[2 * wrapIdx + 1] = wI;
     }
 
-    fftInterleaved(data: aData, length: m, inverse: false);
-    fftInterleaved(data: bData, length: m, inverse: false);
+    if (innerFft != null) {
+      innerFft(buffer: a, inverse: false);
+      innerFft(buffer: b, inverse: false);
+    } else {
+      fftInterleaved(data: aData, length: m, inverse: false);
+      fftInterleaved(data: bData, length: m, inverse: false);
+    }
 
     for (var i = 0; i < m; i++) {
       final ar = aData[2 * i];
@@ -79,7 +85,11 @@ abstract final class FftDart {
       aData[2 * i + 1] = ar * bi + ai * br;
     }
 
-    fftInterleaved(data: aData, length: m, inverse: true);
+    if (innerFft != null) {
+      innerFft(buffer: a, inverse: true);
+    } else {
+      fftInterleaved(data: aData, length: m, inverse: true);
+    }
 
     final invFactor = inverse ? (1.0 / n) : 1.0;
     for (var i = 0; i < n; i++) {
@@ -174,12 +184,6 @@ abstract final class FftDart {
     required bool inverse,
   }) {
     if (rows <= 0 || cols <= 0) return;
-    if ((rows & (rows - 1)) != 0) {
-      throw ArgumentError.value(rows, 'rows', 'Rows must be a power of 2');
-    }
-    if ((cols & (cols - 1)) != 0) {
-      throw ArgumentError.value(cols, 'cols', 'Cols must be a power of 2');
-    }
     if (buffer.length != rows * cols) {
       throw ArgumentError.value(
         buffer.length,
@@ -187,12 +191,55 @@ abstract final class FftDart {
         'Buffer length must equal rows * cols ($rows * $cols = ${rows * cols})',
       );
     }
-    fft2Interleaved(
-      data: buffer.data,
-      rows: rows,
-      cols: cols,
-      inverse: inverse,
-    );
+    if ((rows & (rows - 1)) == 0 && (cols & (cols - 1)) == 0) {
+      fft2Interleaved(
+        data: buffer.data,
+        rows: rows,
+        cols: cols,
+        inverse: inverse,
+      );
+      return;
+    }
+
+    final data = buffer.data;
+    final rowStride = cols << 1;
+
+    // 1. Row transforms
+    final rowBuf = Float64ComplexList(cols);
+    final rowData = rowBuf.data;
+    for (var r = 0; r < rows; r++) {
+      final rowOffset = r * rowStride;
+      for (var c = 0; c < rowStride; c++) {
+        rowData[c] = data[rowOffset + c];
+      }
+      fft(buffer: rowBuf, inverse: inverse);
+      for (var c = 0; c < rowStride; c++) {
+        data[rowOffset + c] = rowData[c];
+      }
+    }
+
+    // 2. Column transforms
+    final colBuf = Float64ComplexList(rows);
+    final colData = colBuf.data;
+    for (var c = 0; c < cols; c++) {
+      var srcIdx = c << 1;
+      var colIdx = 0;
+      for (var r = 0; r < rows; r++) {
+        colData[colIdx] = data[srcIdx];
+        colData[colIdx + 1] = data[srcIdx + 1];
+        colIdx += 2;
+        srcIdx += rowStride;
+      }
+      fft(buffer: colBuf, inverse: inverse);
+      var dstIdx = c << 1;
+      colIdx = 0;
+      for (var r = 0; r < rows; r++) {
+        data[dstIdx] = colData[colIdx];
+        data[dstIdx + 1] = colData[colIdx + 1];
+        colIdx += 2;
+        dstIdx += rowStride;
+      }
+    }
   }
 
   /// 2D FFT kernel operating directly on flat interleaved [data] buffer of size

@@ -9,7 +9,7 @@ import '../test_utils.dart';
 
 void main() {
   group('Fft Transforms', () {
-    accelerationTest('1D FFT / IFFT in-place roundtrip', () {
+    accelerationTest('1D FFT / IFFT in-place roundtrip (powers of 2)', () {
       final buffer = Float64ComplexList(8);
       for (var i = 0; i < 8; i++) {
         buffer[i] = Complex(i.toDouble(), (8 - i).toDouble());
@@ -25,7 +25,25 @@ void main() {
       }
     }, isSupported: Fft.isAvailable);
 
-    accelerationTest('2D FFT / IFFT in-place roundtrip', () {
+    accelerationTest('1D FFT / IFFT in-place roundtrip (odd/prime sizes)', () {
+      for (final n in [3, 5, 7, 13]) {
+        final buffer = Float64ComplexList(n);
+        for (var i = 0; i < n; i++) {
+          buffer[i] = Complex(i.toDouble(), (n - i).toDouble());
+        }
+        final orig = Float64List.fromList(buffer.data);
+
+        Fft.fft(buffer: buffer);
+        Fft.fft(buffer: buffer, inverse: true);
+
+        for (var i = 0; i < n; i++) {
+          check(buffer[i].a).isCloseTo(orig[2 * i], 1e-10);
+          check(buffer[i].b).isCloseTo(orig[2 * i + 1], 1e-10);
+        }
+      }
+    }, isSupported: Fft.isAvailable);
+
+    accelerationTest('2D FFT / IFFT in-place roundtrip (power of 2)', () {
       final buffer = Float64ComplexList(16); // 4x4
       for (var i = 0; i < 16; i++) {
         buffer[i] = Complex(i.toDouble(), 0.0);
@@ -39,5 +57,27 @@ void main() {
         check(buffer[i].a).isCloseTo(orig[2 * i], 1e-10);
       }
     }, isSupported: Fft.isAvailable);
+
+    accelerationTest(
+      '2D FFT / IFFT in-place roundtrip (arbitrary dimensions)',
+      () {
+        const rows = 3;
+        const cols = 5;
+        final buffer = Float64ComplexList(rows * cols);
+        for (var i = 0; i < rows * cols; i++) {
+          buffer[i] = Complex(i.toDouble(), (rows * cols - i).toDouble());
+        }
+        final orig = Float64List.fromList(buffer.data);
+
+        Fft.fft2(buffer: buffer, rows: rows, cols: cols);
+        Fft.fft2(buffer: buffer, rows: rows, cols: cols, inverse: true);
+
+        for (var i = 0; i < rows * cols; i++) {
+          check(buffer[i].a).isCloseTo(orig[2 * i], 1e-10);
+          check(buffer[i].b).isCloseTo(orig[2 * i + 1], 1e-10);
+        }
+      },
+      isSupported: Fft.isAvailable,
+    );
   });
 }

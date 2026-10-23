@@ -132,7 +132,7 @@ Pre-release review of `lib/` at `2fc36d4`. Baseline: `dart analyze` clean, READM
   2. Catch only the specific solver exception.
   3. Test with a degenerate model, e.g. `a*x + b*x`.
 
-#### FU-1.4: Accelerated FFT Paths Are Incomplete — Medium
+#### FU-1.4 [COMPLETED]: Accelerated FFT Paths Are Incomplete — Medium
 
 - **Files**: `lib/src/acceleration/fft/fft.dart`, `fft_dart.dart`.
 - **Problems**:

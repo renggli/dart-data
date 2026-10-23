@@ -1,4 +1,5 @@
 import 'dart:math' as math;
+import 'dart:typed_data';
 
 import 'package:checks/checks.dart';
 import 'package:data/src/acceleration/fft/fft_dart.dart';
@@ -45,14 +46,28 @@ void main() {
   });
 
   group('FftDart 2D', () {
-    test('fft2 throws on invalid dimensions', () {
+    test('fft2 throws on buffer length mismatch', () {
       final b8 = Float64ComplexList(8);
-      check(() => FftDart.fft2(buffer: b8, rows: 3, cols: 2, inverse: false))
-          .throws<ArgumentError>();
-      check(() => FftDart.fft2(buffer: b8, rows: 2, cols: 3, inverse: false))
+      check(() => FftDart.fft2(buffer: b8, rows: 3, cols: 3, inverse: false))
           .throws<ArgumentError>();
       check(() => FftDart.fft2(buffer: b8, rows: 4, cols: 4, inverse: false))
           .throws<ArgumentError>();
+    });
+
+    test('fft2 on arbitrary dimensions computes 2D DFT and inverts', () {
+      final b6 = Float64ComplexList(6); // 2 rows x 3 cols
+      for (var i = 0; i < 6; i++) {
+        b6[i] = Complex(i.toDouble(), (6 - i).toDouble());
+      }
+      final orig = Float64List.fromList(b6.data);
+
+      FftDart.fft2(buffer: b6, rows: 2, cols: 3, inverse: false);
+      FftDart.fft2(buffer: b6, rows: 2, cols: 3, inverse: true);
+
+      for (var i = 0; i < 6; i++) {
+        check(b6[i].a).isCloseTo(orig[2 * i], 1e-10);
+        check(b6[i].b).isCloseTo(orig[2 * i + 1], 1e-10);
+      }
     });
   });
 }
