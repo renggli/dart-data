@@ -142,14 +142,16 @@ class _ArrowIpcStreamWriter {
   Uint8List _buildSchemaFlatBuffer(DataFrame schemaDf) {
     final fb = _FlatBufferWriter();
 
+    final emptyChildrenOffset = fb.addOffsetVector(const <int>[]);
+
     // 1. Serialize each field
     final fieldOffsets = <int>[];
     for (final col in schemaDf.columns) {
       final nameOffset = fb.addString(col.name);
       final (typeType, typeOffset) = _serializeType(fb, col);
 
-      // Field table: name, nullable, type_type, type, dictionary
-      // vtable: [name: 0, nullable: 1, type_type: 2, type: 3, dictionary: 4]
+      // Field table: name, nullable, type_type, type, dictionary, children
+      // vtable: [name: 0, nullable: 1, type_type: 2, type: 3, dictionary: 4, children: 5]
       final dummyDictOffset = dictionaryEncoding
           ? fb.addTable([0, 0], [_FbFieldType.int64, _FbFieldType.offset])
           : null;
@@ -160,14 +162,16 @@ class _ArrowIpcStreamWriter {
             if (col.hasNulls) 1 else 0,
             typeType,
             typeOffset,
-            ?dummyDictOffset,
+            dummyDictOffset,
+            emptyChildrenOffset,
           ],
           [
             _FbFieldType.offset,
             _FbFieldType.boolean,
             _FbFieldType.uint8,
             _FbFieldType.offset,
-            if (dummyDictOffset != null) _FbFieldType.offset,
+            _FbFieldType.offset,
+            _FbFieldType.offset,
           ],
         ),
       );
@@ -601,6 +605,12 @@ class _ArrowIpcStreamReader {
       if (dictPos != null) {
         throw UnsupportedError(
           'Dictionary-encoded Arrow fields are currently not supported (field: "$name").',
+        );
+      }
+      final childrenVec = reader.readVectorOffset(fieldPos, 5);
+      if (childrenVec != null && reader.vectorLength(childrenVec) > 0) {
+        throw UnsupportedError(
+          'Nested Arrow fields (with children) are currently not supported (field: "$name").',
         );
       }
 
@@ -1387,11 +1397,13 @@ class _FlatBufferWriter {
       }
     }
 
-    final tableSize =
-        tableStart -
-        (fieldLocs.isNotEmpty && fieldLocs.last != 0
-            ? fieldLocs.last
-            : tableStart);
+    var minLoc = tableStart;
+    for (final loc in fieldLocs) {
+      if (loc != 0 && loc < minLoc) {
+        minLoc = loc;
+      }
+    }
+    final tableSize = minLoc < tableStart ? tableStart - minLoc : 4;
     final vtableLength = 4 + 2 * fieldValues.length;
 
     pad(2);

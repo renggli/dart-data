@@ -69,7 +69,7 @@ Pre-release review of `lib/` at `2fc36d4`. Baseline: `dart analyze` clean, READM
 
 | ID | Sev | Location | Problem | Fix |
 | --- | --- | --- | --- | --- |
-| R5.1 | High | `lib/src/dataframe/arrow/arrow_ipc.dart:156-172` | The Field never writes `children`, which Arrow C++/pyarrow reject (from memory, not tested). | Always emit an empty vector. Add a pyarrow round-trip check. |
+| R5.1 [COMPLETED] | High | `lib/src/dataframe/arrow/arrow_ipc.dart:156-172` | The Field never writes `children`, which Arrow C++/pyarrow reject (from memory, not tested). | Always emit an empty vector. Add a pyarrow round-trip check. |
 | R5.2 | High | `arrow_ipc.dart:607-621` | Unsupported types silently map to `typeCode 0`. Half floats are read as 8-byte doubles. | Throw `UnsupportedError` at schema time. |
 | R5.3 | Medium | `lib/src/dataframe/arrow/arrow_c_data_ffi.dart:237-246` | Struct import ignores the parent offset, length, and validity bitmap. | Apply the parent offset, or reject `offset≠0`. |
 | R5.4 | Medium | `arrow_ipc.dart:160,469`, `arrow_c_data_ffi.dart:265` | `nullable` comes from the first batch only. `bodyLength` is unchecked. | Emit `nullable=true` or OR it across batches. Throw `FormatException`. |

@@ -299,5 +299,75 @@ void main() {
       );
       check(() => ArrowIpc.decode(compBytes)).throws<UnsupportedError>();
     });
+
+    test('field table schema emits empty children vector for Arrow C++/PyArrow compatibility', () {
+      final df = DataFrame.fromColumns({
+        'int_col': [1, 2],
+        'str_col': ['a', 'b'],
+      });
+      final bytes = df.toArrowIpc();
+      final byteData = ByteData.sublistView(bytes);
+      final metaLength = byteData.getUint32(4, Endian.little);
+
+      // Read FlatBuffer Schema message
+      final fbBytes = bytes.sublist(8, 8 + metaLength);
+      final fbReader = ByteData.sublistView(fbBytes);
+      final rootTableOffset = fbReader.getUint32(0, Endian.little);
+
+      // Schema table is at header (slot 2) of Message table
+      final vtableOffset = fbReader.getInt32(rootTableOffset, Endian.little);
+      final vtablePos = rootTableOffset - vtableOffset;
+      // slot 2 offset in message table:
+      final headerOffsetInTable = fbReader.getUint16(
+        vtablePos + 8,
+        Endian.little,
+      );
+      final headerPos = rootTableOffset + headerOffsetInTable;
+      final schemaOffset =
+          headerPos + fbReader.getUint32(headerPos, Endian.little);
+
+      // In Schema table, fields vector is at slot 1
+      final schemaVtableOffset = fbReader.getInt32(schemaOffset, Endian.little);
+      final schemaVtablePos = schemaOffset - schemaVtableOffset;
+      final fieldsVecOffsetInSchema = fbReader.getUint16(
+        schemaVtablePos + 6,
+        Endian.little,
+      );
+      final fieldsVecPos = schemaOffset + fieldsVecOffsetInSchema;
+      final fieldsVecTablePos =
+          fieldsVecPos + fbReader.getUint32(fieldsVecPos, Endian.little);
+      final fieldCount = fbReader.getUint32(fieldsVecTablePos, Endian.little);
+      check(fieldCount).equals(2);
+
+      // Check slot 5 (children) on each field table
+      for (var i = 0; i < fieldCount; i++) {
+        final fieldElemPos = fieldsVecTablePos + 4 + i * 4;
+        final fieldPos =
+            fieldElemPos + fbReader.getUint32(fieldElemPos, Endian.little);
+        final fieldVtableOffset = fbReader.getInt32(fieldPos, Endian.little);
+        final fieldVtablePos = fieldPos - fieldVtableOffset;
+        final fieldVtableLen = fbReader.getUint16(
+          fieldVtablePos,
+          Endian.little,
+        );
+
+        // vtable must have at least slot 5 (vtable len >= 4 + 2 * 6 = 16)
+        check(fieldVtableLen).isGreaterOrEqual(16);
+        // slot 5 is children vector: 4 (vtable header) + 5 * 2 = 14
+        final childrenOffsetInField = fbReader.getUint16(
+          fieldVtablePos + 14,
+          Endian.little,
+        );
+        check(childrenOffsetInField).isGreaterThan(0);
+        final childrenVecPos = fieldPos + childrenOffsetInField;
+        final childrenVecActualPos =
+            childrenVecPos + fbReader.getUint32(childrenVecPos, Endian.little);
+        final childrenLen = fbReader.getUint32(
+          childrenVecActualPos,
+          Endian.little,
+        );
+        check(childrenLen).equals(0);
+      }
+    });
   });
 }
