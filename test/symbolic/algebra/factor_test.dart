@@ -131,5 +131,43 @@ void main() {
         check(sqFree2).equals(Expr.parse('(1 + x + x^2)^2').simplify());
       },
     );
+
+    test(
+      'Sophie Germain and biquadratic difference-of-squares factorization',
+      () {
+        final sg1 = Expr.parse('x^4 + 4').factor();
+        check(sg1).isA<Mul>();
+        check((sg1.expand() - Expr.parse('x^4 + 4')).simplify())
+            .equals(IntegerNumber.zero);
+        check(sg1)
+            .equals(Expr.parse('(x^2 - 2*x + 2) * (x^2 + 2*x + 2)').simplify());
+
+        final sg2 = Expr.parse('x^4 + x^2 + 1').factor();
+        check(sg2).isA<Mul>();
+        check((sg2.expand() - Expr.parse('x^4 + x^2 + 1')).simplify())
+            .equals(IntegerNumber.zero);
+        check(sg2)
+            .equals(Expr.parse('(x^2 - x + 1) * (x^2 + x + 1)').simplify());
+      },
+    );
+
+    test('Pollard rho factorization of large composite integers > 10^6', () {
+      // Product of two primes: 1000003 * 1000033 = 1000036000099
+      final bigComposite = IntegerNumber(Integer.parse('1000036000099'));
+      final factored = bigComposite.factor();
+      check(factored).isA<Mul>();
+      check(factored.simplify()).equals(bigComposite);
+      check(factored.toString()).equals('1000003 * 1000033');
+
+      // Product of two larger primes exceeding 63 bits:
+      // p1 = 3037000493, p2 = 3037000507
+      // n = 9223372063853112951 > 2^63 - 1 (which is 9223372036854775807)
+      final hugeComposite = IntegerNumber(
+        Integer.big(BigInt.parse('9223372063853112951')),
+      );
+      final hugeFactored = hugeComposite.factor();
+      check(hugeFactored).isA<Mul>();
+      check(hugeFactored.simplify()).equals(hugeComposite);
+    });
   });
 }

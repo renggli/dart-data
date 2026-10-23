@@ -230,6 +230,26 @@ Expr factorUnivariatePoly(PolyQ poly, String variable) {
         return buildFactoredExpr(scalar: scalar, factors: factors);
       }
     }
+
+    // Sophie Germain / cyclotomic difference of squares:
+    // a x^4 + b x^2 + c = (sA x^2 + sC)^2 - (k x)^2 = (sA x^2 - k x + sC)(sA x^2 + k x + sC)
+    if (a > 0 && c > 0) {
+      final sA = integerSqrt(a);
+      final sC = integerSqrt(c);
+      if (sA != null && sC != null) {
+        final mid = 2 * sA * sC - b;
+        if (mid > 0) {
+          final k = integerSqrt(mid);
+          if (k != null) {
+            final q1 = buildPolyExpr([sC, -k, sA], variable);
+            final q2 = buildPolyExpr([sC, k, sA], variable);
+            factors[q1] = (factors[q1] ?? 0) + 1;
+            factors[q2] = (factors[q2] ?? 0) + 1;
+            return buildFactoredExpr(scalar: scalar, factors: factors);
+          }
+        }
+      }
+    }
   }
 
   // 7. Square-free decomposition for repeated nonlinear factors (e.g. (x^2 + x + 1)^2)

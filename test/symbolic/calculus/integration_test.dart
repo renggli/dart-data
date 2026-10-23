@@ -462,4 +462,51 @@ void main() {
       check(nested.evaluate()).isCloseTo(0.946083070367183, 1e-12);
     });
   });
+
+  group('Elementary integrals', () {
+    test('standard trigonometric powers: sin^2, cos^2, tan^2', () {
+      verifyAntiderivative(Expr.parse('sin(x)^2'));
+      verifyAntiderivative(Expr.parse('cos(x)^2'));
+      verifyAntiderivative(Expr.parse('tan(x)^2'), points: [0.1, 0.3, 0.5]);
+    });
+
+    test('trigonometric products: sin(ax) * cos(bx)', () {
+      verifyAntiderivative(Expr.parse('sin(2*x) * cos(3*x)'));
+      verifyAntiderivative(Expr.parse('sin(3*x) * sin(5*x)'));
+      verifyAntiderivative(Expr.parse('cos(2*x) * cos(4*x)'));
+    });
+
+    test('secant and cosecant: 1 / cos(x), 1 / sin(x)', () {
+      verifyAntiderivative(Expr.parse('1 / cos(x)'), points: [0.1, 0.3, 0.5]);
+      verifyAntiderivative(Expr.parse('1 / sin(x)'), points: [0.5, 0.8, 1.2]);
+    });
+
+    test('quadratic denominators and completing the square', () {
+      // Delta > 0: 1 / (x^2 + x + 1)
+      verifyAntiderivative(Expr.parse('1 / (x^2 + x + 1)'));
+      // Delta = 0: 1 / (x^2 + 2*x + 1)
+      verifyAntiderivative(Expr.parse('1 / (x^2 + 2*x + 1)'));
+      // Delta < 0: 1 / (x^2 + x - 2)
+      verifyAntiderivative(
+        Expr.parse('1 / (x^2 + x - 2)'),
+        points: [0.1, 0.3, 0.5],
+      );
+    });
+
+    test('inverse sine with general constant: 1 / sqrt(a - x^2)', () {
+      verifyAntiderivative(
+        Expr.parse('1 / sqrt(4 - x^2)'),
+        points: [0.2, 0.5, 1.0],
+      );
+      verifyAntiderivative(
+        Expr.parse('1 / sqrt(9 - x^2)'),
+        points: [0.5, 1.0, 2.0],
+      );
+    });
+
+    test('chain-rule forms: ln(x)/x and sinh(x)*cosh(x)', () {
+      verifyAntiderivative(Expr.parse('ln(x) / x'), points: [0.5, 1.0, 2.0]);
+      verifyAntiderivative(Expr.parse('sinh(x) * cosh(x)'));
+    });
+  });
 }

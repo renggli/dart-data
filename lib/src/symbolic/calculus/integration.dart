@@ -582,6 +582,52 @@ Expr _antiDerivPow(Expr base, Expr exponent, Expr original, String variable) {
       final numer = Pow(base, nPlus1).simplify();
       return (numer / denom).simplify();
     }
+    // Standard trig powers: sin^2, cos^2, tan^2, sinh^2, cosh^2, tanh^2
+    if (exponent == IntegerNumber.two ||
+        (exponent is RealNumber && exponent.value == 2.0)) {
+      if (base case Sin(expr: final inner)) {
+        if (inner.matchLinear(variable) case (:final a, b: _)) {
+          final xVar = Variable(variable);
+          final twoInner = (IntegerNumber.two * inner).simplify();
+          return (xVar / IntegerNumber.two -
+                  Sin(twoInner) / (const IntegerNumber(Integer(4)) * a))
+              .simplify();
+        }
+      }
+      if (base case Cos(expr: final inner)) {
+        if (inner.matchLinear(variable) case (:final a, b: _)) {
+          final xVar = Variable(variable);
+          final twoInner = (IntegerNumber.two * inner).simplify();
+          return (xVar / IntegerNumber.two +
+                  Sin(twoInner) / (const IntegerNumber(Integer(4)) * a))
+              .simplify();
+        }
+      }
+      if (base case Tan(expr: final inner)) {
+        if (inner.matchLinear(variable) case (:final a, b: _)) {
+          final xVar = Variable(variable);
+          return (Tan(inner) / a - xVar).simplify();
+        }
+      }
+      if (base case Sinh(expr: final inner)) {
+        if (inner.matchLinear(variable) case (:final a, b: _)) {
+          final xVar = Variable(variable);
+          final twoInner = (IntegerNumber.two * inner).simplify();
+          return (Sinh(twoInner) / (const IntegerNumber(Integer(4)) * a) -
+                  xVar / IntegerNumber.two)
+              .simplify();
+        }
+      }
+      if (base case Cosh(expr: final inner)) {
+        if (inner.matchLinear(variable) case (:final a, b: _)) {
+          final xVar = Variable(variable);
+          final twoInner = (IntegerNumber.two * inner).simplify();
+          return (Sinh(twoInner) / (const IntegerNumber(Integer(4)) * a) +
+                  xVar / IntegerNumber.two)
+              .simplify();
+        }
+      }
+    }
     if (exponent is IntegerNumber && exponent.value > Integer.one) {
       final expanded = original.expand().simplify();
       if (expanded != original) {
@@ -643,6 +689,51 @@ Expr? _tryAntiDerivDiv(Expr left, Expr right, String variable) {
       }
     }
 
+    // int c / cos(ax + b) dx = (c / a) * ln| (1 + sin(ax + b)) / cos(ax + b) |
+    if (right case Cos(expr: final inner)) {
+      if (inner.matchLinear(variable) case (:final a, b: _)) {
+        final secTan = ((IntegerNumber.one + Sin(inner)) / Cos(inner))
+            .simplify();
+        return ((left * Ln(Abs(secTan))) / a).simplify();
+      }
+    }
+
+    // int c / sin(ax + b) dx = -(c / a) * ln| (1 + cos(ax + b)) / sin(ax + b) |
+    if (right case Sin(expr: final inner)) {
+      if (inner.matchLinear(variable) case (:final a, b: _)) {
+        final cscCot = ((IntegerNumber.one + Cos(inner)) / Sin(inner))
+            .simplify();
+        return ((-left * Ln(Abs(cscCot))) / a).simplify();
+      }
+    }
+
+    // Completing the square for quadratic denominator: c / (Ax^2 + Bx + C)
+    final coeffs = extractPolynomialCoefficients(right, variable);
+    if (coeffs != null && maxPolynomialDegree(coeffs) == 2) {
+      final a = coeffs[2] ?? IntegerNumber.zero;
+      final b = coeffs[1] ?? IntegerNumber.zero;
+      final c = coeffs[0] ?? IntegerNumber.zero;
+      final delta = (const IntegerNumber(Integer(4)) * a * c - b * b)
+          .simplify();
+      final twoA = (IntegerNumber.two * a).simplify();
+      final twoAxPlusB = (twoA * Variable(variable) + b).simplify();
+
+      if (delta case RealNumeric(:final sign) when sign > 0) {
+        final sqrtDelta = Pow(delta, FractionNumber.half).simplify();
+        return ((IntegerNumber.two * left / sqrtDelta) *
+                Atan(twoAxPlusB / sqrtDelta))
+            .simplify();
+      } else if (delta case RealNumeric(:final sign) when sign == 0) {
+        final xPlus = (twoAxPlusB / twoA).simplify();
+        return (-left / (a * xPlus)).simplify();
+      } else if (delta case RealNumeric(:final sign) when sign < 0) {
+        final dPos = (-delta).simplify();
+        final sqrtD = Pow(dPos, FractionNumber.half).simplify();
+        final arg = ((twoAxPlusB - sqrtD) / (twoAxPlusB + sqrtD)).simplify();
+        return ((left / sqrtD) * Ln(Abs(arg))).simplify();
+      }
+    }
+
     // int c / (d + exp(ax + b)) dx = (c / d) * (x - (1 / a) * ln(d + exp(ax + b)))
     if (right
         case Add(terms: [final rL, Pow(base: Constant.e, :final exponent)])
@@ -678,24 +769,21 @@ Expr? _tryAntiDerivDiv(Expr left, Expr right, String variable) {
     }
   }
 
-  // int u'(x) / sqrt(1 - u(x)^2) dx = asin(u(x))
+  // int u'(x) / sqrt(a - u(x)^2) dx = asin(u(x) / sqrt(a))
   if (right
-      case Pow(
-        base: Add(
-          terms: [
-            RationalNumber(isOne: true) || RealNumber(value: 1.0),
-            final t1,
-          ],
-        ),
-        :final exponent,
-      )
-      when exponent == FractionNumber.half ||
-          (exponent is RealNumber && exponent.value == 0.5)) {
+      case Pow(base: Add(terms: [final aConst, final t1]), :final exponent)
+      when (exponent == FractionNumber.half ||
+              (exponent is RealNumber && exponent.value == 0.5)) &&
+          !aConst.dependsOn(variable) &&
+          _isPositiveConstant(aConst)) {
     final negTerm = (-t1).simplify();
     if (_extractSquareBase(negTerm) case final u? when u.dependsOn(variable)) {
       final uPrime = u.derivative(variable).simplify();
       if (left.matchScalarMultiple(uPrime, variable) case final k?) {
-        return Asin(u).scale(k);
+        final sqrtA = aConst == IntegerNumber.one
+            ? IntegerNumber.one
+            : Pow(aConst, FractionNumber.half).simplify();
+        return Asin(u / sqrtA).scale(k);
       }
     }
   }
@@ -786,6 +874,13 @@ Expr _antiDerivMul(Mul original, String variable) {
     }
   }
 
+  // 3b. Product of sines and cosines:
+  if (varFactors case [final f1, final f2]) {
+    if (_tryTrigProduct(f1, f2, variable) case final trigRes?) {
+      return trigRes;
+    }
+  }
+
   // 4. Integration by parts (try pairing one factor with the rest):
   if (varFactors case [final left, final right]) {
     if (_tryIntegrationByParts(left, right, variable) case final ibpLR?) {
@@ -841,64 +936,102 @@ Expr _antiDerivMul(Mul original, String variable) {
   return _unsupported(original, variable);
 }
 
-Expr? _tryChainRule(Expr candidate, Expr factor, String variable) =>
-    switch (candidate) {
-      Cos(:final expr) when expr.dependsOn(variable) => _scaleMatch(
-        factor,
-        expr.derivative(variable).simplify(),
-        Sin(expr),
-        variable,
-      ),
-      Sin(:final expr) when expr.dependsOn(variable) => _scaleMatch(
-        factor,
-        expr.derivative(variable).simplify(),
-        (-Cos(expr)).simplify(),
-        variable,
-      ),
-      Ln(:final expr) when expr.dependsOn(variable) => _scaleMatch(
-        factor,
-        expr.derivative(variable).simplify(),
-        expr * Ln(expr) - expr,
-        variable,
-      ),
-      Tan(:final expr) when expr.dependsOn(variable) => _scaleMatch(
-        factor,
-        expr.derivative(variable).simplify(),
-        -Ln(Cos(expr)),
-        variable,
-      ),
-      Sinh(:final expr) when expr.dependsOn(variable) => _scaleMatch(
-        factor,
-        expr.derivative(variable).simplify(),
-        Cosh(expr),
-        variable,
-      ),
-      Cosh(:final expr) when expr.dependsOn(variable) => _scaleMatch(
-        factor,
-        expr.derivative(variable).simplify(),
-        Sinh(expr),
-        variable,
-      ),
-      Tanh(:final expr) when expr.dependsOn(variable) => _scaleMatch(
-        factor,
-        expr.derivative(variable).simplify(),
-        Ln(Cosh(expr)),
-        variable,
-      ),
-      Abs(:final expr) when expr.dependsOn(variable) => _scaleMatch(
-        factor,
-        expr.derivative(variable).simplify(),
-        (expr * Abs(expr)) / IntegerNumber.two,
-        variable,
-      ),
-      Pow(:final base, :final exponent)
-          when !exponent.dependsOn(variable) && base.dependsOn(variable) =>
-        _tryChainRulePower(base, exponent, factor, variable),
-      Pow(:final base, :final exponent)
-          when !base.dependsOn(variable) && exponent.dependsOn(variable) =>
-        _tryChainRuleExponential(candidate, base, exponent, factor, variable),
-      _ => null,
-    };
+Expr? _tryTrigProduct(Expr left, Expr right, String variable) {
+  if (left case Sin(expr: final a) when a.matchLinear(variable) != null) {
+    if (right case Cos(expr: final b) when b.matchLinear(variable) != null) {
+      final sum = (a + b).simplify();
+      final diff = (a - b).simplify();
+      final expanded = ((Sin(sum) + Sin(diff)) / IntegerNumber.two).simplify();
+      return _antiDerivative(expanded, variable);
+    }
+    if (right case Sin(expr: final b) when b.matchLinear(variable) != null) {
+      final diff = (a - b).simplify();
+      final sum = (a + b).simplify();
+      final expanded = ((Cos(diff) - Cos(sum)) / IntegerNumber.two).simplify();
+      return _antiDerivative(expanded, variable);
+    }
+  }
+  if (left case Cos(expr: final a) when a.matchLinear(variable) != null) {
+    if (right case Sin()) {
+      return _tryTrigProduct(right, left, variable);
+    }
+    if (right case Cos(expr: final b) when b.matchLinear(variable) != null) {
+      final diff = (a - b).simplify();
+      final sum = (a + b).simplify();
+      final expanded = ((Cos(diff) + Cos(sum)) / IntegerNumber.two).simplify();
+      return _antiDerivative(expanded, variable);
+    }
+  }
+  return null;
+}
+
+Expr? _tryChainRule(Expr candidate, Expr factor, String variable) {
+  // General u(x) * u'(x) chain rule: int u * u' dx = 1/2 * u^2
+  if (candidate.dependsOn(variable)) {
+    final uPrime = candidate.derivative(variable).simplify();
+    if (factor.matchScalarMultiple(uPrime, variable) case final k?) {
+      return (Pow(candidate, IntegerNumber.two) / IntegerNumber.two).scale(k);
+    }
+  }
+
+  return switch (candidate) {
+    Cos(:final expr) when expr.dependsOn(variable) => _scaleMatch(
+      factor,
+      expr.derivative(variable).simplify(),
+      Sin(expr),
+      variable,
+    ),
+    Sin(:final expr) when expr.dependsOn(variable) => _scaleMatch(
+      factor,
+      expr.derivative(variable).simplify(),
+      (-Cos(expr)).simplify(),
+      variable,
+    ),
+    Ln(:final expr) when expr.dependsOn(variable) => _scaleMatch(
+      factor,
+      expr.derivative(variable).simplify(),
+      expr * Ln(expr) - expr,
+      variable,
+    ),
+    Tan(:final expr) when expr.dependsOn(variable) => _scaleMatch(
+      factor,
+      expr.derivative(variable).simplify(),
+      -Ln(Cos(expr)),
+      variable,
+    ),
+    Sinh(:final expr) when expr.dependsOn(variable) => _scaleMatch(
+      factor,
+      expr.derivative(variable).simplify(),
+      Cosh(expr),
+      variable,
+    ),
+    Cosh(:final expr) when expr.dependsOn(variable) => _scaleMatch(
+      factor,
+      expr.derivative(variable).simplify(),
+      Sinh(expr),
+      variable,
+    ),
+    Tanh(:final expr) when expr.dependsOn(variable) => _scaleMatch(
+      factor,
+      expr.derivative(variable).simplify(),
+      Ln(Cosh(expr)),
+      variable,
+    ),
+    Abs(:final expr) when expr.dependsOn(variable) => _scaleMatch(
+      factor,
+      expr.derivative(variable).simplify(),
+      (expr * Abs(expr)) / IntegerNumber.two,
+      variable,
+    ),
+    Pow(:final base, :final exponent)
+        when !exponent.dependsOn(variable) && base.dependsOn(variable) =>
+      _tryChainRulePower(base, exponent, factor, variable),
+    Pow(:final base, :final exponent)
+        when !base.dependsOn(variable) && exponent.dependsOn(variable) =>
+      _tryChainRuleExponential(candidate, base, exponent, factor, variable),
+    _ => null,
+  };
+}
 
 Expr? _scaleMatch(Expr factor, Expr deriv, Expr target, String variable) {
   final k = factor.matchScalarMultiple(deriv, variable);
