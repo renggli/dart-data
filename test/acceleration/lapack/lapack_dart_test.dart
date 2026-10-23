@@ -105,5 +105,117 @@ void main() {
       check(w[0]).equals(42.0);
       check(a[0]).equals(1.0);
     });
+
+    test('dpotrf only accesses referenced triangle', () {
+      // Upper triangle valid, lower triangle contains NaNs
+      final aUpper = Float64List.fromList([
+        4.0, 2.0, // row 0: a[0,0]=4, a[0,1]=2
+        double.nan, 5.0, // row 1: lower triangle NaN, a[1,1]=5
+      ]);
+      check(
+        LapackDart.dpotrf(
+          uplo: cblasUpper,
+          n: 2,
+          a: aUpper,
+          aOffset: 0,
+          lda: 2,
+        ),
+      ).isTrue();
+      check(aUpper[0]).isCloseTo(2.0, 1e-10);
+      check(aUpper[1]).isCloseTo(1.0, 1e-10);
+      check(aUpper[3]).isCloseTo(2.0, 1e-10);
+
+      // Lower triangle valid, upper triangle contains NaNs
+      final aLower = Float64List.fromList([
+        4.0, double.nan, // row 0: a[0,0]=4, upper triangle NaN
+        2.0, 5.0, // row 1: a[1,0]=2, a[1,1]=5
+      ]);
+      check(
+        LapackDart.dpotrf(
+          uplo: cblasLower,
+          n: 2,
+          a: aLower,
+          aOffset: 0,
+          lda: 2,
+        ),
+      ).isTrue();
+      check(aLower[0]).isCloseTo(2.0, 1e-10);
+      check(aLower[2]).isCloseTo(1.0, 1e-10);
+      check(aLower[3]).isCloseTo(2.0, 1e-10);
+    });
+
+    test('dsyev and ssyev only access referenced triangle', () {
+      // Upper triangle valid, lower triangle NaN
+      final aUpper = Float64List.fromList([
+        2.0, 1.0, //
+        double.nan, 2.0, //
+      ]);
+      final wUpper = Float64List(2);
+      check(
+        LapackDart.dsyev(
+          jobz: 'N',
+          uplo: cblasUpper,
+          n: 2,
+          a: aUpper,
+          aOffset: 0,
+          lda: 2,
+          w: wUpper,
+          wOffset: 0,
+        ),
+      ).isTrue();
+      check(wUpper[0]).isCloseTo(1.0, 1e-10);
+      check(wUpper[1]).isCloseTo(3.0, 1e-10);
+
+      // Lower triangle valid, upper triangle NaN
+      final aLower = Float64List.fromList([
+        2.0, double.nan, //
+        1.0, 2.0, //
+      ]);
+      final wLower = Float64List(2);
+      check(
+        LapackDart.dsyev(
+          jobz: 'N',
+          uplo: cblasLower,
+          n: 2,
+          a: aLower,
+          aOffset: 0,
+          lda: 2,
+          w: wLower,
+          wOffset: 0,
+        ),
+      ).isTrue();
+      check(wLower[0]).isCloseTo(1.0, 1e-10);
+      check(wLower[1]).isCloseTo(3.0, 1e-10);
+    });
+
+    test(
+      'dgesv handles padded lda and ldb without accessing out of bounds',
+      () {
+        // 2x2 system with lda=3, so size needed is (2-1)*3 + 2 = 5 elements
+        final a = Float64List.fromList([
+          3.0, 1.0, 999.0, // row 0: 3, 1, pad
+          1.0, 2.0, // row 1: 1, 2 (no trailing pad)
+        ]);
+        // 2x1 rhs with ldb=2, so size needed is (2-1)*2 + 1 = 3 elements
+        final b = Float64List.fromList([
+          9.0, 999.0, // row 0: 9, pad
+          8.0, // row 1: 8 (no trailing pad)
+        ]);
+        check(
+          LapackDart.dgesv(
+            n: 2,
+            nrhs: 1,
+            a: a,
+            aOffset: 0,
+            lda: 3,
+            b: b,
+            bOffset: 0,
+            ldb: 2,
+          ),
+        ).isTrue();
+        check(b[0]).isCloseTo(2.0, 1e-10);
+        check(b[2]).isCloseTo(3.0, 1e-10);
+      },
+    );
   });
 }

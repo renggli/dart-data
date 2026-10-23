@@ -28,7 +28,10 @@ abstract final class LapackDart {
         } else {
           final denom = lower[j * n + j];
           if (denom == 0.0) return false;
-          lower[i * n + j] = (a[aOffset + i * lda + j] - sum) / denom;
+          final aij = uplo == cblasUpper
+              ? a[aOffset + j * lda + i]
+              : a[aOffset + i * lda + j];
+          lower[i * n + j] = (aij - sum) / denom;
         }
       }
     }
@@ -66,16 +69,24 @@ abstract final class LapackDart {
     final bRequired = bOffset + (n - 1) * ldb + nrhs;
     if (a.length < aRequired || b.length < bRequired) return false;
 
-    final aCopy = Float64List(n * lda);
-    aCopy.setRange(0, n * lda, a, aOffset);
-    final bCopy = Float64List(n * ldb);
-    bCopy.setRange(0, n * ldb, b, bOffset);
+    final aCopy = Float64List(n * n);
+    for (var i = 0; i < n; i++) {
+      for (var j = 0; j < n; j++) {
+        aCopy[i * n + j] = a[aOffset + i * lda + j];
+      }
+    }
+    final bCopy = Float64List(n * nrhs);
+    for (var i = 0; i < n; i++) {
+      for (var j = 0; j < nrhs; j++) {
+        bCopy[i * nrhs + j] = b[bOffset + i * ldb + j];
+      }
+    }
 
     for (var i = 0; i < n; i++) {
-      var maxVal = aCopy[i * lda + i].abs();
+      var maxVal = aCopy[i * n + i].abs();
       var maxRow = i;
       for (var row = i + 1; row < n; row++) {
-        final val = aCopy[row * lda + i].abs();
+        final val = aCopy[row * n + i].abs();
         if (val > maxVal) {
           maxVal = val;
           maxRow = row;
@@ -85,40 +96,44 @@ abstract final class LapackDart {
 
       if (maxRow != i) {
         for (var k = 0; k < n; k++) {
-          final temp = aCopy[i * lda + k];
-          aCopy[i * lda + k] = aCopy[maxRow * lda + k];
-          aCopy[maxRow * lda + k] = temp;
+          final temp = aCopy[i * n + k];
+          aCopy[i * n + k] = aCopy[maxRow * n + k];
+          aCopy[maxRow * n + k] = temp;
         }
         for (var k = 0; k < nrhs; k++) {
-          final temp = bCopy[i * ldb + k];
-          bCopy[i * ldb + k] = bCopy[maxRow * ldb + k];
-          bCopy[maxRow * ldb + k] = temp;
+          final temp = bCopy[i * nrhs + k];
+          bCopy[i * nrhs + k] = bCopy[maxRow * nrhs + k];
+          bCopy[maxRow * nrhs + k] = temp;
         }
       }
 
-      final diag = aCopy[i * lda + i];
+      final diag = aCopy[i * n + i];
       for (var row = i + 1; row < n; row++) {
-        final factor = aCopy[row * lda + i] / diag;
-        aCopy[row * lda + i] = factor;
+        final factor = aCopy[row * n + i] / diag;
+        aCopy[row * n + i] = factor;
         for (var col = i + 1; col < n; col++) {
-          aCopy[row * lda + col] -= factor * aCopy[i * lda + col];
+          aCopy[row * n + col] -= factor * aCopy[i * n + col];
         }
         for (var col = 0; col < nrhs; col++) {
-          bCopy[row * ldb + col] -= factor * bCopy[i * ldb + col];
+          bCopy[row * nrhs + col] -= factor * bCopy[i * nrhs + col];
         }
       }
     }
 
     for (var col = 0; col < nrhs; col++) {
       for (var i = n - 1; i >= 0; i--) {
-        var sum = bCopy[i * ldb + col];
+        var sum = bCopy[i * nrhs + col];
         for (var k = i + 1; k < n; k++) {
-          sum -= aCopy[i * lda + k] * bCopy[k * ldb + col];
+          sum -= aCopy[i * n + k] * bCopy[k * nrhs + col];
         }
-        bCopy[i * ldb + col] = sum / aCopy[i * lda + i];
+        bCopy[i * nrhs + col] = sum / aCopy[i * n + i];
       }
     }
-    b.setRange(bOffset, bOffset + n * ldb, bCopy);
+    for (var i = 0; i < n; i++) {
+      for (var j = 0; j < nrhs; j++) {
+        b[bOffset + i * ldb + j] = bCopy[i * nrhs + j];
+      }
+    }
     return true;
   }
 
@@ -238,8 +253,14 @@ abstract final class LapackDart {
 
     for (var i = 0; i < n; i++) {
       for (var j = 0; j < n; j++) {
-        final r = (uplo == cblasUpper && i > j) ? j : i;
-        final c = (uplo == cblasUpper && i > j) ? i : j;
+        final int r, c;
+        if (uplo == cblasUpper) {
+          r = i <= j ? i : j;
+          c = i <= j ? j : i;
+        } else {
+          r = i >= j ? i : j;
+          c = i >= j ? j : i;
+        }
         v[i * n + j] = a[aOffset + r * lda + c];
       }
     }
@@ -431,10 +452,18 @@ abstract final class LapackDart {
     required int wOffset,
   }) {
     if (n == 0) return true;
-    final a64 = Float64List(n * lda);
+    final a64 = Float64List(n * n);
     for (var i = 0; i < n; i++) {
       for (var j = 0; j < n; j++) {
-        a64[i * lda + j] = a[aOffset + i * lda + j];
+        final int r, c;
+        if (uplo == cblasUpper) {
+          r = i <= j ? i : j;
+          c = i <= j ? j : i;
+        } else {
+          r = i >= j ? i : j;
+          c = i >= j ? j : i;
+        }
+        a64[i * n + j] = a[aOffset + r * lda + c];
       }
     }
     final w64 = Float64List(n);
@@ -444,7 +473,7 @@ abstract final class LapackDart {
       n: n,
       a: a64,
       aOffset: 0,
-      lda: lda,
+      lda: n,
       w: w64,
       wOffset: 0,
     );
@@ -455,7 +484,7 @@ abstract final class LapackDart {
     if (jobz.toUpperCase() == 'V') {
       for (var i = 0; i < n; i++) {
         for (var j = 0; j < n; j++) {
-          a[aOffset + i * lda + j] = a64[i * lda + j];
+          a[aOffset + i * lda + j] = a64[i * n + j];
         }
       }
     }
