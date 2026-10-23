@@ -221,19 +221,27 @@ double _integratePoles(
       final limit = math.sqrt(length);
       double transformed(double t) {
         if (t == 0.0) {
-          const eps = 1e-12;
+          final delta = math.min(1e-7 * length, 1e-7);
           try {
-            final fx = function(u + eps * eps);
-            if (!fx.isNaN && !fx.isInfinite) return 2.0 * eps * fx;
-          } catch (_) {}
-          return 0.0;
+            final fx = function(u + delta * delta);
+            if (fx.isNaN || fx.isInfinite) return double.nan;
+            final res = 2.0 * delta * fx;
+            return res.isFinite ? res : double.nan;
+          } on ArgumentError {
+            return double.nan;
+          }
+        }
+        final x = u + t * t;
+        if (x == u) {
+          return double.nan;
         }
         try {
-          final fx = function(u + t * t);
-          if (fx.isNaN || fx.isInfinite) return 0.0;
-          return 2.0 * t * fx;
-        } catch (_) {
-          return 0.0;
+          final fx = function(x);
+          if (fx.isNaN || fx.isInfinite) return double.nan;
+          final res = 2.0 * t * fx;
+          return res.isFinite ? res : double.nan;
+        } on ArgumentError {
+          return double.nan;
         }
       }
 
@@ -254,19 +262,27 @@ double _integratePoles(
       final limit = math.sqrt(length);
       double transformed(double t) {
         if (t == 0.0) {
-          const eps = 1e-12;
+          final delta = math.min(1e-7 * length, 1e-7);
           try {
-            final fx = function(v - eps * eps);
-            if (!fx.isNaN && !fx.isInfinite) return 2.0 * eps * fx;
-          } catch (_) {}
-          return 0.0;
+            final fx = function(v - delta * delta);
+            if (fx.isNaN || fx.isInfinite) return double.nan;
+            final res = 2.0 * delta * fx;
+            return res.isFinite ? res : double.nan;
+          } on ArgumentError {
+            return double.nan;
+          }
+        }
+        final x = v - t * t;
+        if (x == v) {
+          return double.nan;
         }
         try {
-          final fx = function(v - t * t);
-          if (fx.isNaN || fx.isInfinite) return 0.0;
-          return 2.0 * t * fx;
-        } catch (_) {
-          return 0.0;
+          final fx = function(x);
+          if (fx.isNaN || fx.isInfinite) return double.nan;
+          final res = 2.0 * t * fx;
+          return res.isFinite ? res : double.nan;
+        } on ArgumentError {
+          return double.nan;
         }
       }
 
@@ -324,7 +340,7 @@ double _adaptiveSimpsonStep(
   final sum = left + right;
   final delta = sum - whole;
 
-  if (sum.isNaN || delta.isNaN) {
+  if (sum.isNaN || delta.isNaN || sum.isInfinite || delta.isInfinite) {
     if (onWarning != null) {
       onWarning(IntegrateWarning.doesNotConverge, mid);
     } else {
@@ -440,7 +456,10 @@ double _gaussKronrodStep(
   final gaussResult = halfWidth * gaussSum;
   final error = (kronrodResult - gaussResult).abs();
 
-  if (error.isNaN || kronrodResult.isNaN) {
+  if (error.isNaN ||
+      kronrodResult.isNaN ||
+      error.isInfinite ||
+      kronrodResult.isInfinite) {
     if (onWarning != null) {
       onWarning(IntegrateWarning.doesNotConverge, center);
     } else {

@@ -114,7 +114,7 @@ Pre-release review of `lib/` at `2fc36d4`. Baseline: `dart analyze` clean, READM
   2. Alpha-rename on capture, the same way `Integral`, `Limit`, `Sum`, and `Product` do.
   3. Add regression tests for both cases.
 
-#### FU-1.2: Numeric Pole Integration Silently Hides Divergence — High
+#### FU-1.2 [COMPLETED]: Numeric Pole Integration Silently Hides Divergence — High
 
 - **File**: `lib/src/numeric/integration.dart` (~L220–270, the endpoint-pole transform).
 - **Problem**: `catch (_)` blocks, plus mapping `NaN` and `Infinity` to `0.0`, can turn a divergent integral (for example $\int_0^1 1/x\,dx$) into a finite number with no error or warning. This breaks the charter's convergence error/warning contract.

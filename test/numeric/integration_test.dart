@@ -191,5 +191,38 @@ void main() {
       );
       check(resSimp).isCloseTo(4.0, 1e-4);
     });
+
+    test('divergent endpoint singularities throw IntegrateError or invoke onWarning', () {
+      double divX(double x) => x == 0.0 ? double.infinity : 1.0 / x;
+
+      // Without onWarning, divergent integral throws IntegrateError
+      check(() => integrate(divX, 0.0, 1.0, poles: [0.0]))
+          .throws<IntegrateError>();
+
+      // With onWarning, warning callback is invoked
+      var warningTriggered = false;
+      integrate(
+        divX,
+        0.0,
+        1.0,
+        poles: [0.0],
+        onWarning: (warning, x) {
+          warningTriggered = true;
+          check(warning).which(
+            (it) => it.anyOf([
+              (w) => w.equals(IntegrateWarning.doesNotConverge),
+              (w) => w.equals(IntegrateWarning.depthTooShallow),
+            ]),
+          );
+        },
+      );
+      check(warningTriggered).isTrue();
+
+      // Test divergent 1/x^2 singularity at upper endpoint
+      double divX2(double x) =>
+          x == 1.0 ? double.infinity : 1.0 / math.pow(1.0 - x, 2);
+      check(() => integrate(divX2, 0.0, 1.0, poles: [1.0]))
+          .throws<IntegrateError>();
+    });
   });
 }
