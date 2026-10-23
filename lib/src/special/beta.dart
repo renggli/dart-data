@@ -86,7 +86,7 @@ double ibetaInv(num probability, num a, num b) {
   if (a <= 0 || b <= 0) {
     return double.nan;
   }
-  const epsilon = 1.0e-8;
+  const epsilon = 1.0e-14;
   final a1 = a - 1.0;
   final b1 = b - 1.0;
   if (probability <= 0.0) {
@@ -124,20 +124,47 @@ double ibetaInv(num probability, num a, num b) {
     }
   }
   final afac = -gammaLn(a) - gammaLn(b) + gammaLn(a + b);
-  for (var j = 0; j < 10; j++) {
-    if (x == 0 || x == 1) return x;
-    final err = ibeta(x, a, b) - probability;
-    final tVal = exp(a1 * log(x) + b1 * log(1 - x) + afac);
+  var xMin = 0.0;
+  var xMax = 1.0;
+  if (x <= 0.0 || x >= 1.0 || x.isNaN) {
+    x = 0.5;
+  }
+  for (var j = 0; j < 60; j++) {
+    if (x <= xMin || x >= xMax) {
+      x = 0.5 * (xMin + xMax);
+    }
+    final curProb = ibeta(x, a, b);
+    final err = curProb - probability;
+    if (err > 0) {
+      if (x < xMax) xMax = x;
+    } else {
+      if (x > xMin) xMin = x;
+    }
+    if (err.abs() <= 1.0e-15 || (xMax - xMin) <= epsilon * x) {
+      break;
+    }
+    final tVal = exp(a1 * log(x) + b1 * log(1.0 - x) + afac);
+    if (tVal <= 0.0 || tVal.isNaN || tVal.isInfinite) {
+      x = 0.5 * (xMin + xMax);
+      continue;
+    }
     final uVal = err / tVal;
-    final step = uVal / (1 - 0.5 * min(1, uVal * (a1 / x - b1 / (1 - x))));
-    x -= step;
-    if (x <= 0) {
-      x = 0.5 * (x + step);
+    final denom = 1.0 - 0.5 * min(1.0, uVal * (a1 / x - b1 / (1.0 - x)));
+    if (denom <= 0.0 || denom.isNaN) {
+      x = 0.5 * (xMin + xMax);
+      continue;
     }
-    if (x >= 1) {
-      x = 0.5 * (x + step + 1);
+    final step = uVal / denom;
+    final nextX = x - step;
+    if (nextX <= xMin || nextX >= xMax || nextX.isNaN) {
+      x = 0.5 * (xMin + xMax);
+    } else {
+      final change = (x - nextX).abs();
+      x = nextX;
+      if (change < epsilon * x && j > 0) {
+        break;
+      }
     }
-    if (step.abs() < epsilon * x && j > 0) break;
   }
   return x;
 }
@@ -156,7 +183,8 @@ double _betacf(num x, num a, num b) {
   }
   dVal = 1.0 / dVal;
   var hVal = dVal;
-  for (var stepIdx = 1; stepIdx <= 100; stepIdx++) {
+  final maxIter = max(200, ((a + b) * 2).ceil());
+  for (var stepIdx = 1; stepIdx <= maxIter; stepIdx++) {
     final m2 = 2.0 * stepIdx;
     var aa = stepIdx * (b - stepIdx) * x / ((qam + m2) * (a + m2));
     dVal = 1.0 + aa * dVal;

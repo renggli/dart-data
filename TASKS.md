@@ -82,7 +82,7 @@ Pre-release review of `lib/` at `2fc36d4`. Baseline: `dart analyze` clean, READM
 | ID | Sev | Location | Problem | Fix |
 | --- | --- | --- | --- | --- |
 | R6.1 [COMPLETED] | Medium | `lib/src/special/gamma.dart:126,223-230` | The incomplete gamma series and continued fraction run a fixed iteration count with no convergence test (about 1e-11 error). This affects Poisson, χ², Gamma, and Jarque-Bera. | Iterate until the relative term is below 1e-15, with a generous cap. |
-| R6.2 | Medium | `lib/src/special/beta.dart:89,127-159` | `_betacf` caps at 100 iterations, too few for large `a`,`b`. `ibetaInv` uses `eps=1e-8` and 10 Newton steps. | Scale the cap with the parameters. Use `eps≈1e-14` plus a bisection fallback. |
+| R6.2 [COMPLETED] | Medium | `lib/src/special/beta.dart:89,127-159` | `_betacf` caps at 100 iterations, too few for large `a`,`b`. `ibetaInv` uses `eps=1e-8` and 10 Newton steps. | Scale the cap with the parameters. Use `eps≈1e-14` plus a bisection fallback. |
 | R6.3 | Medium | `lib/src/stats/distributions/continuous/student_t.dart:113-117`, `f.dart:111-115` | No `survival` override, so p-values floor at about 1e-16. The t cdf cancels for large negative x. | Use `ibeta`-based cdf and survival with symmetry. |
 | R6.4 | Medium | `lib/src/special/erf.dart:173` | `erfcInv(x) = -erfInv(x-1)` cancels for small x. Normal quantiles go to −∞ below p≈1e-17. | Use a direct tail approximation or AS241. |
 | R6.5 | Medium | `lib/src/stats/hypothesis/mann_whitney.dart:42-44` | No tie or continuity correction, so results don't match scipy/R. | Apply the tie-corrected σ and a ±0.5 correction. |

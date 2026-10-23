@@ -46,12 +46,23 @@ void main() {
       check(ibetaInv(1.0, 2.5, 0.5)).equals(1.0);
       check(ibeta(0.0, 2.0, 3.0)).equals(0.0);
       check(ibeta(1.0, 2.0, 3.0)).equals(1.0);
-      check(ibeta(0.5, 1.0, 1.0)).isCloseTo(0.5, 1e-6);
+      check(ibeta(0.5, 1.0, 1.0)).isCloseTo(0.5, 1e-12);
       check(ibeta(-0.1, 1, 1)).isNaN();
       check(ibeta(1.1, 1, 1)).isNaN();
 
       final prob = ibeta(0.4, 3.0, 4.0);
-      check(ibetaInv(prob, 3.0, 4.0)).isCloseTo(0.4, 1e-5);
+      check(ibetaInv(prob, 3.0, 4.0)).isCloseTo(0.4, 1e-10);
+
+      // Inversion accuracy and round-trip on diverse (a, b) including large parameters
+      for (final (a, b, x) in [
+        (2.0, 5.0, 0.3),
+        (10.0, 10.0, 0.5),
+        (50.0, 50.0, 0.48),
+        (100.0, 50.0, 0.65),
+      ]) {
+        final p = ibeta(x, a, b);
+        check(ibetaInv(p, a, b)).isCloseTo(x, 1e-8);
+      }
     });
   });
 }
