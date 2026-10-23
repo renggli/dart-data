@@ -56,6 +56,14 @@ void main() {
       check(csv).contains(',y');
       check(csv).contains('3,');
     });
+
+    test('quotes empty string as "" distinguishing it from null', () {
+      final df = DataFrame.fromColumns({
+        'str': ['', null, 'text'],
+      });
+      final csv = CsvWriter.write(df);
+      check(csv).equals('str\n""\n\ntext\n');
+    });
   });
 
   group('CSV roundtrip', () {

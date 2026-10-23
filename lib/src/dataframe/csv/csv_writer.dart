@@ -31,7 +31,8 @@ class CsvWriter {
   }
 
   static String _escape(String field, String separator) {
-    if (field.contains(separator) ||
+    if (field.isEmpty ||
+        field.contains(separator) ||
         field.contains('"') ||
         field.contains('\n') ||
         field.contains('\r')) {
