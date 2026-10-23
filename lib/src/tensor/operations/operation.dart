@@ -48,16 +48,10 @@ extension OperationTensorExtension<T> on Tensor<T> {
       final sharesMem = sharesMemory(targetData, data);
       final hasHazard =
           sharesMem &&
-          (!layout.isContiguous ||
-              !target.layout.isContiguous ||
-              target.layout.offset != layout.offset ||
-              hasOverlap(
-                target.data,
-                target.layout.offset,
-                data,
-                layout.offset,
-                len,
-              ));
+          !(identical(data, targetData) && layout == target.layout) &&
+          !(layout.isContiguous &&
+              target.layout.isContiguous &&
+              layout.offset == target.layout.offset);
 
       if (hasHazard) {
         final temp = unaryOperation<R>(function, type: resultType);

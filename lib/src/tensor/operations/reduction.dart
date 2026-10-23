@@ -3,6 +3,7 @@ import 'dart:typed_data';
 
 import '../../../type.dart';
 import '../../acceleration/blas/blas.dart';
+import '../../acceleration/vforce/vforce.dart';
 import '../../type/utils/memory.dart';
 import '../layout.dart';
 import '../tensor.dart';
@@ -12,6 +13,28 @@ extension ReductionTensorExtension<T> on Tensor<T> {
   /// Computes the sum of elements over the given [axis], or all elements if
   /// [axis] is null.
   Tensor<T> sum({int? axis, bool keepDims = false, Tensor<T>? target}) {
+    if (axis == null && layout.isContiguous && data is Float64List) {
+      final double result;
+      if (length == 0) {
+        result = 0.0;
+      } else {
+        final f64Data = data as Float64List;
+        final view = (layout.offset == 0 && length == f64Data.length)
+            ? f64Data
+            : Float64List.sublistView(
+                f64Data,
+                layout.offset,
+                layout.offset + length,
+              );
+        result = Vforce.sum(x: view);
+      }
+      final outShape = keepDims ? List<int>.filled(rank, 1) : <int>[];
+      if (target != null) {
+        target.setValue(List<int>.filled(outShape.length, 0), result as T);
+        return target;
+      }
+      return Tensor<T>.filled(result as T, shape: outShape, type: type);
+    }
     final field = type.field;
     return _reduceAxis(
       axis: axis,

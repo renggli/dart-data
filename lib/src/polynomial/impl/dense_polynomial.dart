@@ -2,7 +2,6 @@ import 'dart:math' as math;
 
 import '../../../type.dart';
 import '../../acceleration/fft/fft.dart';
-import '../../acceleration/fft/fft_dart.dart';
 import '../polynomial.dart';
 import 'compressed_polynomial.dart';
 import 'formatting.dart';
@@ -165,7 +164,7 @@ class DensePolynomial<T> extends Polynomial<T> {
     final dynamicType = type as DataType<dynamic>;
     if (outDegree >= 64 &&
         (dynamicType == DataType.float64 || dynamicType == DataType.float32)) {
-      final n = FftDart.nextPowerOf2(value: outDegree + 1);
+      final n = Fft.nextPowerOf2(value: outDegree + 1);
       final aList = DataType.complex.newList(n);
       final bList = DataType.complex.newList(n);
 

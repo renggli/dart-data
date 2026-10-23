@@ -3,6 +3,7 @@ import 'dart:math';
 import 'package:more/printer.dart';
 
 import '../../../../type.dart';
+import '../../../linear/decomposition/cholesky.dart';
 import '../../../linear/matrix.dart';
 import '../../../linear/vector.dart';
 import '../continuous/normal.dart';
@@ -15,46 +16,23 @@ import 'multivariate_distribution.dart';
 class MultivariateNormalDistribution extends MultivariateDistribution<double> {
   /// Constructs a multivariate normal distribution with given [mean] and
   /// [covariance].
-  new(this.mean, this.covariance)
-    : dimensions = mean.length,
-      _l = Matrix<double>.filled(
-        mean.length,
-        mean.length,
-        0.0,
-        type: DataType.float64,
-      ) {
+  new(this.mean, this.covariance) : dimensions = mean.length {
     if (mean.length != covariance.rowCount ||
         covariance.rowCount != covariance.colCount) {
       throw ArgumentError(
         'Mean length (${mean.length}) must match square covariance dimension (${covariance.rowCount}x${covariance.colCount}).',
       );
     }
-    final n = dimensions;
+    final chol = covariance.cholesky;
+    if (!chol.isSymmetricPositiveDefinite) {
+      throw ArgumentError(
+        'Covariance matrix must be symmetric positive definite.',
+      );
+    }
+    _l = chol.l;
     var logDetHalf = 0.0;
-    // Cholesky decomposition L * L^T = Sigma
-    for (var j = 0; j < n; j++) {
-      var diag = 0.0;
-      for (var k = 0; k < j; k++) {
-        var sum = 0.0;
-        for (var i = 0; i < k; i++) {
-          sum += _l.getUnchecked(k, i) * _l.getUnchecked(j, i);
-        }
-        sum = (covariance.getUnchecked(j, k) - sum) / _l.getUnchecked(k, k);
-        _l.setUnchecked(j, k, sum);
-        diag += sum * sum;
-        if (covariance.getUnchecked(k, j) != covariance.getUnchecked(j, k)) {
-          throw ArgumentError('Covariance matrix must be symmetric.');
-        }
-      }
-      diag = covariance.getUnchecked(j, j) - diag;
-      if (diag <= 0.0) {
-        throw ArgumentError(
-          'Covariance matrix must be positive definite (non-positive pivot at $j: $diag).',
-        );
-      }
-      final ljj = sqrt(diag);
-      _l.setUnchecked(j, j, ljj);
-      logDetHalf += log(ljj);
+    for (var j = 0; j < dimensions; j++) {
+      logDetHalf += log(_l.getUnchecked(j, j));
     }
     _logDetSigma = 2.0 * logDetHalf;
   }
@@ -88,7 +66,7 @@ class MultivariateNormalDistribution extends MultivariateDistribution<double> {
   @override
   final Matrix<double> covariance;
 
-  final Matrix<double> _l;
+  late final Matrix<double> _l;
   late final double _logDetSigma;
 
   static const double _ln2pi = 1.8378770664093454835606594728112;

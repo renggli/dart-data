@@ -560,6 +560,20 @@ void main() {
       check(dst.toFlatList() as List).deepEquals([10, 20, 30]);
     });
 
+    test(
+      'in-place unaryOperation with identical target avoids temporary copy',
+      () {
+        final a = Tensor<double>.fromIterable(
+          [1.0, 2.0, 3.0, 4.0],
+          shape: [2, 2],
+          type: DataType.float64,
+        );
+        final res = a.unaryOperation((x) => x * 2.0, target: a);
+        check(res).identicalTo(a);
+        check(a.toFlatList()).deepEquals([2.0, 4.0, 6.0, 8.0]);
+      },
+    );
+
     test('binaryOperation broadcast type inference R == T and R == O', () {
       final a = Tensor<int>.fromIterable(
         [1, 2, 3],

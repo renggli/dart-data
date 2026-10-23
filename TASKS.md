@@ -587,6 +587,12 @@ Each task specifies:
   2. In `operation.dart`, allow zero-allocation in-place unary execution when `identical(a.data, target.data) && a.layout == target.layout`.
   3. Delegate `MultivariateNormalDistribution` Cholesky factorization to `covariance.cholesky`.
   4. Move `nextPowerOf2` onto the `Fft` facade and restrict FFT polynomial multiplication in `DensePolynomial` to floating-point/complex fields (`DataType.float64`, `DataType.float32`, `DataType.complex`), keeping exact fields (`int`, `BigInt`, `Fraction`) exact.
+- **Implementation Report**:
+  - Dispatched contiguous `Float64List` full `Tensor.sum()` directly to `Vforce.sum` using a zero-copy subview.
+  - Allowed zero-allocation in-place execution in `OperationTensorExtension.unaryOperation` when target and source share data with matching layouts and offsets.
+  - Delegated `MultivariateNormalDistribution` Cholesky factorization directly to `covariance.cholesky` utilizing accelerated `Lapack.dpotrf`.
+  - Exposed `Fft.nextPowerOf2` on the `Fft` facade, eliminated direct `FftDart` import in `DensePolynomial`, and maintained exact convolution for exact polynomial fields.
+  - Verified test suite pass across VM, Node.js, and Chrome.
 
 ### TASK-5.5: Eliminate Per-Row Map Allocations & $O(N^2)$ Bottlenecks in `DataFrame` and `DataType.castList`
 

@@ -258,6 +258,10 @@ void main() {
       check(negAxisSum.shape).deepEquals([2, 1]);
       check(negAxisSum.toFlatList()).deepEquals([6.0, 15.0]);
 
+      // Slice with non-zero offset on contiguous Float64List dispatched to Vforce.sum
+      final slice = a.getRange(axis: 0, start: 1, end: 2);
+      check(slice.sum().getValue([])).equals(15.0);
+
       // Target with and without memory hazard
       final targetSum = Tensor<double>.filled(0.0, shape: [2]);
       a.sum(axis: 1, target: targetSum);

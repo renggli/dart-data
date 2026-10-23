@@ -81,6 +81,10 @@ abstract final class Fft {
     );
   }
 
+  /// Returns the smallest power of 2 greater than or equal to [value].
+  static int nextPowerOf2({required int value}) =>
+      FftDart.nextPowerOf2(value: value);
+
   static int _log2(int value) {
     var v = value;
     var log = 0;
