@@ -20,9 +20,14 @@ import 'gamma.dart';
 class BetaDistribution extends ContinuousDistribution {
   /// A Beta distribution with shape parameters [alpha] $\alpha$ and [beta]
   /// $\beta$.
-  const new(this.alpha, this.beta)
-    : assert(alpha > 0, 'α > 0'),
-      assert(beta > 0, 'β > 0');
+  new(this.alpha, this.beta) {
+    if (alpha <= 0) {
+      throw ArgumentError.value(alpha, 'alpha', 'Must be positive');
+    }
+    if (beta <= 0) {
+      throw ArgumentError.value(beta, 'beta', 'Must be positive');
+    }
+  }
 
   /// Fits a beta distribution to [samples] in $(0, 1)$ using method of moments.
   factory fit(Iterable<num> samples) {

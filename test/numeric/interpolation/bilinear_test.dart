@@ -20,8 +20,6 @@ void main() {
 
       for (var r = 0; r < 3; r++) {
         for (var c = 0; c < 3; c++) {
-          check(interp.evaluate(xs[r], ys[c]))
-              .isCloseTo(values.getUnchecked(r, c), 1e-12);
           check(interp(xs[r], ys[c]))
               .isCloseTo(values.getUnchecked(r, c), 1e-12);
         }

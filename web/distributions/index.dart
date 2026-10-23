@@ -987,7 +987,7 @@ void renderCanvas(
       vp,
       medianVal,
       color: 'rgba(16, 185, 129, 0.7)',
-      label: 'med',
+      label: 'Med',
       labelYOffset: yOffset,
     );
   }
@@ -1011,7 +1011,7 @@ void renderCanvas(
       vp,
       modeVal,
       color: 'rgba(168, 85, 247, 0.7)',
-      label: 'mode',
+      label: 'Mode',
       labelYOffset: yOffset,
     );
   }

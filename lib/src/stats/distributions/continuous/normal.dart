@@ -14,12 +14,21 @@ import 'uniform.dart';
 class NormalDistribution extends ContinuousDistribution {
   /// A normal distribution with parameters [mean] μ and
   /// [standardDeviation] σ.
-  const new(this.mean, this.standardDeviation)
-    : assert(standardDeviation > 0, 'σ > 0');
+  new(this.mean, this.standardDeviation) {
+    if (standardDeviation <= 0) {
+      throw ArgumentError.value(
+        standardDeviation,
+        'standardDeviation',
+        'Standard deviation must be strictly positive',
+      );
+    }
+  }
 
   /// A standard normal distribution centered around 0 with standard deviation
   /// 1.
-  const new standard() : this(0.0, 1.0);
+  const new standard() : this._(0.0, 1.0);
+
+  const new _(this.mean, this.standardDeviation);
 
   /// Fits a normal distribution to [samples] using maximum likelihood
   /// estimation.
@@ -101,7 +110,7 @@ class NormalDistribution extends ContinuousDistribution {
 
   @override
   Iterable<double> samples({Random? random}) sync* {
-    const uniform = UniformDistribution(-1.0, 1.0);
+    final uniform = UniformDistribution(-1.0, 1.0);
     for (;;) {
       double xVal, yVal, rSq;
       do {

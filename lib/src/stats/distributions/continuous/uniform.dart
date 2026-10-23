@@ -10,10 +10,16 @@ import '../errors.dart';
 /// See https://en.wikipedia.org/wiki/Continuous_uniform_distribution.
 class UniformDistribution extends ContinuousDistribution {
   /// Creates a continuous uniform distribution with bounds [min] and [max].
-  const new(this.min, this.max) : assert(min < max, 'min < max');
+  new(this.min, this.max) {
+    if (min >= max) {
+      throw ArgumentError.value(min, 'min', 'Must be strictly less than max');
+    }
+  }
 
   /// Creates a standard uniform distribution on the interval `[0.0, 1.0]`.
-  const new standard() : this(0.0, 1.0);
+  const new standard() : this._(0.0, 1.0);
+
+  const new _(this.min, this.max);
 
   /// Fits a uniform distribution to [samples] using minimum and maximum values.
   factory fit(Iterable<num> samples) {

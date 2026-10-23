@@ -80,10 +80,12 @@ void main() {
     });
 
     test('equality, hashCode, and toString', () {
-      final mean = Vector<double>.fromList([0.0, 0.0]);
-      final cov = Matrix<double>.identity(2, type: DataType.float64);
-      final dist1 = MultivariateNormalDistribution(mean, cov);
-      final dist2 = MultivariateNormalDistribution(mean, cov);
+      final mean1 = Vector<double>.fromList([0.0, 0.0]);
+      final mean2 = Vector<double>.fromList([0.0, 0.0]);
+      final cov1 = Matrix<double>.identity(2, type: DataType.float64);
+      final cov2 = Matrix<double>.identity(2, type: DataType.float64);
+      final dist1 = MultivariateNormalDistribution(mean1, cov1);
+      final dist2 = MultivariateNormalDistribution(mean2, cov2);
       final dist3 = MultivariateNormalDistribution.standard(3);
 
       check(dist1 == dist2).isTrue();

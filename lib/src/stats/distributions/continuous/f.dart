@@ -13,9 +13,14 @@ import 'chi_squared.dart';
 class FDistribution extends ContinuousDistribution {
   /// An F-distribution with numerator degrees of freedom [d1] and denominator
   /// degrees of freedom [d2].
-  const new(this.d1, this.d2)
-    : assert(d1 > 0, 'd1 > 0'),
-      assert(d2 > 0, 'd2 > 0');
+  new(this.d1, this.d2) {
+    if (d1 <= 0) {
+      throw ArgumentError.value(d1, 'd1', 'd1 must be strictly positive');
+    }
+    if (d2 <= 0) {
+      throw ArgumentError.value(d2, 'd2', 'd2 must be strictly positive');
+    }
+  }
 
   /// Fits an F-distribution to [samples] using method of moments estimation.
   factory fit(Iterable<num> samples) {

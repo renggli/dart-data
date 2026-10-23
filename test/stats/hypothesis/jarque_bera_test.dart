@@ -18,7 +18,7 @@ void main() {
       check(resNormal.degreesOfFreedom).equals(2.0);
       check(resNormal.pValue).isGreaterThan(0.05);
 
-      const uniform = UniformDistribution(0.0, 1.0);
+      const uniform = UniformDistribution.standard();
       final uniformSample = uniform
           .samples(random: math.Random(42))
           .take(200)

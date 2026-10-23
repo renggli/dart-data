@@ -12,7 +12,15 @@ import 'gamma.dart';
 /// See https://en.wikipedia.org/wiki/Chi-squared_distribution.
 class ChiSquaredDistribution extends ContinuousDistribution {
   /// A Chi-squared distribution with degrees of freedom [dof] k.
-  const new(this.dof) : assert(dof > 0, 'k > 0');
+  new(this.dof) {
+    if (dof <= 0) {
+      throw ArgumentError.value(
+        dof,
+        'dof',
+        'Degrees of freedom must be strictly positive',
+      );
+    }
+  }
 
   /// Fits a Chi-squared distribution to [samples] using maximum likelihood
   /// estimation.

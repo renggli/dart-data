@@ -133,7 +133,7 @@ void main() {
             Bootstrap<double>(samples, (list) => list[0], confidenceLevel: 1.0),
       ).throws<AssertionError>();
 
-      const norm = NormalDistribution(0.0, 1.0);
+      const norm = NormalDistribution.standard();
       check(
         () => Bootstrap.distribution(
           samples: [1.0],

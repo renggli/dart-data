@@ -6,8 +6,8 @@ import '../continuous.dart';
 import '../errors.dart';
 
 /// The Cauchy distribution, also called the Lorentz distribution, is a
-/// continuous probability distribution parameterized by location parameter [xo]
-/// and scale parameter [gamma] (γ).
+/// continuous probability distribution parameterized by [location] parameter
+/// and [scale] parameter (γ).
 ///
 /// See https://en.wikipedia.org/wiki/Cauchy_distribution.
 ///
@@ -16,14 +16,23 @@ import '../errors.dart';
 /// print(distribution.median);  // 0.0
 /// ```
 class CauchyDistribution extends ContinuousDistribution {
-  /// A Cauchy distribution with parameter [xo] and [gamma].
-  const new([this.xo = 0, this.gamma = 1]) : assert(gamma > 0, 'gamma > 0');
+  /// A Cauchy distribution with [location] and [scale].
+  new([this.location = 0.0, this.scale = 1.0]) {
+    if (scale <= 0) {
+      throw ArgumentError.value(scale, 'scale', 'Scale must be positive');
+    }
+  }
 
-  /// The location parameter xo.
-  final double xo;
+  /// A standard Cauchy distribution with location 0 and scale 1.
+  const new standard() : this._(0.0, 1.0);
 
-  /// The scale parameter gamma (γ).
-  final double gamma;
+  const new _(this.location, this.scale);
+
+  /// The location parameter.
+  final double location;
+
+  /// The scale parameter.
+  final double scale;
 
   @override
   double get lowerBound => double.negativeInfinity;
@@ -35,10 +44,10 @@ class CauchyDistribution extends ContinuousDistribution {
   double get mean => double.nan;
 
   @override
-  double get median => xo;
+  double get median => location;
 
   @override
-  double get mode => xo;
+  double get mode => location;
 
   @override
   double get variance => double.nan;
@@ -51,36 +60,39 @@ class CauchyDistribution extends ContinuousDistribution {
 
   @override
   double probability(double x) =>
-      1 / (pi * gamma * (1 + pow((x - xo) / gamma, 2)));
+      1 / (pi * scale * (1 + pow((x - location) / scale, 2)));
 
   @override
-  double cumulativeProbability(double x) => atan((x - xo) / gamma) / pi + 0.5;
+  double cumulativeProbability(double x) =>
+      atan((x - location) / scale) / pi + 0.5;
 
   @override
   double inverseCumulativeProbability(num probability) {
     InvalidProbability.check(probability);
     if (probability == 0) return double.negativeInfinity;
     if (probability == 1) return double.infinity;
-    return xo + gamma * tan(pi * (probability - 0.5));
+    return location + scale * tan(pi * (probability - 0.5));
   }
 
   @override
   double sample({Random? random}) {
     final uniform = (random ?? _random).nextDouble();
-    return xo + gamma * tan(pi * (uniform - 0.5));
+    return location + scale * tan(pi * (uniform - 0.5));
   }
 
   @override
   bool operator ==(Object other) =>
-      other is CauchyDistribution && xo == other.xo && gamma == other.gamma;
+      other is CauchyDistribution &&
+      location == other.location &&
+      scale == other.scale;
 
   @override
-  int get hashCode => Object.hash(CauchyDistribution, xo, gamma);
+  int get hashCode => Object.hash(CauchyDistribution, location, scale);
 
   @override
   ObjectPrinter get toStringPrinter => super.toStringPrinter
-    ..addValue(xo, name: 'xo')
-    ..addValue(gamma, name: 'gamma');
+    ..addValue(location, name: 'location')
+    ..addValue(scale, name: 'scale');
 }
 
 final _random = Random();

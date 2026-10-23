@@ -12,9 +12,16 @@ import '../discrete.dart';
 /// See https://en.wikipedia.org/wiki/Binomial_distribution.
 class BinomialDistribution extends DiscreteDistribution {
   /// A binomial distribution with [n] trials and success probability [p].
-  const new(this.n, this.p)
-    : assert(0 <= n, 'n >= 0'),
-      assert(0.0 <= p && p <= 1.0, '0 <= p <= 1');
+  new(this.n, this.p) {
+    if (n < 0) {
+      throw ArgumentError.value(n, 'n', 'Must be non-negative');
+    }
+    if (p < 0.0 || p > 1.0) {
+      throw ArgumentError.value(p, 'p', 'Must be between 0.0 and 1.0');
+    }
+  }
+
+  const new _(this.n, this.p);
 
   /// Fits a binomial distribution to [samples] with given number of trials [n].
   ///
@@ -41,7 +48,7 @@ class BinomialDistribution extends DiscreteDistribution {
     }
     final actualN = n ?? maxVal;
     if (actualN == 0) {
-      return const BinomialDistribution(0, 0.0);
+      return const BinomialDistribution._(0, 0.0);
     }
     final mean = sum / count;
     final prob = (mean / actualN).clamp(0.0, 1.0);

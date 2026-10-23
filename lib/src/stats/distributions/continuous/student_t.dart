@@ -14,7 +14,15 @@ import 'normal.dart';
 /// See https://en.wikipedia.org/wiki/Student%27s_t-distribution.
 class StudentDistribution extends ContinuousDistribution {
   /// A Student's t-distribution with degrees of freedom [dof] ν.
-  const new(this.dof) : assert(dof > 0, 'ν > 0');
+  new(this.dof) {
+    if (dof <= 0) {
+      throw ArgumentError.value(
+        dof,
+        'dof',
+        'Degrees of freedom must be strictly positive',
+      );
+    }
+  }
 
   /// Fits a Student's t-distribution to [samples] using maximum likelihood
   /// estimation.

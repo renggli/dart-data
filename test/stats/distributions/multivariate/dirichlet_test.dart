@@ -88,9 +88,10 @@ void main() {
     });
 
     test('equality, hashCode, and toString', () {
-      final alpha = Vector<double>.fromList([2.0, 3.0]);
-      final dist1 = DirichletDistribution(alpha);
-      final dist2 = DirichletDistribution(alpha);
+      final alpha1 = Vector<double>.fromList([2.0, 3.0]);
+      final alpha2 = Vector<double>.fromList([2.0, 3.0]);
+      final dist1 = DirichletDistribution(alpha1);
+      final dist2 = DirichletDistribution(alpha2);
       final dist3 = DirichletDistribution.symmetric(3, 3.0);
 
       check(dist1 == dist2).isTrue();

@@ -11,7 +11,11 @@ import '../errors.dart';
 /// See https://en.wikipedia.org/wiki/Bernoulli_distribution.
 class BernoulliDistribution extends DiscreteDistribution {
   /// A Bernoulli distribution with success probability [p].
-  const new(this.p) : assert(0.0 <= p && p <= 1.0, '0 <= p <= 1');
+  new(this.p) {
+    if (p < 0.0 || p > 1.0) {
+      throw ArgumentError.value(p, 'p', 'Must be between 0.0 and 1.0');
+    }
+  }
 
   /// Fits a Bernoulli distribution to [samples] consisting of 0s and 1s.
   factory fit(Iterable<num> samples) {

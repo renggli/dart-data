@@ -81,9 +81,9 @@ extension ReductionTensorExtension<T> on Tensor<T> {
   /// final t = Tensor<double>.fromIterable(
   ///   [2.0, 4.0, 4.0, 4.0, 5.0, 5.0, 7.0, 9.0],
   /// );
-  /// final v = t.var_().toFlatList().first; // 4.0
+  /// final v = t.variance().toFlatList().first; // 4.0
   /// ```
-  Tensor<double> var_({
+  Tensor<double> variance({
     int? axis,
     bool keepDims = false,
     int ddof = 0,
@@ -116,7 +116,7 @@ extension ReductionTensorExtension<T> on Tensor<T> {
     int ddof = 0,
     Tensor<double>? target,
   }) {
-    final varTensor = var_(axis: axis, keepDims: keepDims, ddof: ddof);
+    final varTensor = variance(axis: axis, keepDims: keepDims, ddof: ddof);
     return varTensor.unaryOperation<double>(
       math.sqrt,
       type: DataType.float64,

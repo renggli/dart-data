@@ -156,7 +156,7 @@ void main() {
           Agg.first,
           Agg.last,
           Agg.std,
-          Agg.var_,
+          Agg.variance,
           Agg.median,
         ],
       });
@@ -172,7 +172,7 @@ void main() {
       check(result['v_first'][0]).equals(10.0);
       check(result['v_last'][0]).equals(30.0);
       check(result['v_std'][0]).equals(10.0);
-      check(result['v_var_'][0]).equals(100.0);
+      check(result['v_variance'][0]).equals(100.0);
       check(result['v_median'][0]).equals(20.0);
 
       // Group B (only null value)
@@ -184,7 +184,7 @@ void main() {
       check(result['v_first'][1]).isNull();
       check(result['v_last'][1]).isNull();
       check(result['v_std'][1]).equals(0.0);
-      check(result['v_var_'][1]).isNull();
+      check(result['v_variance'][1]).isNull();
       check(result['v_median'][1]).isNull();
     });
 
@@ -356,22 +356,22 @@ void main() {
       });
 
       final res = dfWithPair.groupBy(['group']).aggregate({
-        'val': [Agg.count, Agg.var_, Agg.median],
+        'val': [Agg.count, Agg.variance, Agg.median],
       });
 
       for (var row = 0; row < res.rowCount; row++) {
         final g = res['group'][row];
         if (g == 'single_a') {
           check(res['val_count'][row]).equals(1);
-          check(res['val_var_'][row]).isNull();
+          check(res['val_variance'][row]).isNull();
           check(res['val_median'][row]).equals(42.0);
         } else if (g == 'single_b') {
           check(res['val_count'][row]).equals(1);
-          check(res['val_var_'][row]).isNull();
+          check(res['val_variance'][row]).isNull();
           check(res['val_median'][row]).equals(99.0);
         } else if (g == 'pair') {
           check(res['val_count'][row]).equals(2);
-          check(res['val_var_'][row]).equals(50.0);
+          check(res['val_variance'][row]).equals(50.0);
           check(res['val_median'][row]).equals(15.0);
         }
       }
@@ -394,22 +394,22 @@ void main() {
       });
 
       final res = df.groupBy(['cat']).aggregate({
-        'x': [Agg.count, Agg.var_, Agg.median],
+        'x': [Agg.count, Agg.variance, Agg.median],
       });
 
       for (var row = 0; row < res.rowCount; row++) {
         final cat = res['cat'][row];
         if (cat == 'all_null') {
           check(res['x_count'][row]).equals(0);
-          check(res['x_var_'][row]).isNull();
+          check(res['x_variance'][row]).isNull();
           check(res['x_median'][row]).isNull();
         } else if (cat == 'one_valid') {
           check(res['x_count'][row]).equals(1);
-          check(res['x_var_'][row]).isNull();
+          check(res['x_variance'][row]).isNull();
           check(res['x_median'][row]).equals(100.0);
         } else if (cat == 'mixed') {
           check(res['x_count'][row]).equals(3);
-          check(res['x_var_'][row]).equals(100.0);
+          check(res['x_variance'][row]).equals(100.0);
           check(res['x_median'][row]).equals(20.0);
         }
       }
@@ -450,21 +450,21 @@ void main() {
       });
 
       final res = df.groupBy(['set']).aggregate({
-        'v': [Agg.mean, Agg.var_, Agg.std, Agg.median],
+        'v': [Agg.mean, Agg.variance, Agg.std, Agg.median],
       });
 
       for (var row = 0; row < res.rowCount; row++) {
         final s = res['set'][row];
         if (s == 'b1') {
           check(res['v_mean'][row]).equals(5.0);
-          final var1 = res['v_var_'][row] as double;
+          final var1 = res['v_variance'][row] as double;
           check(var1).isCloseTo(32.0 / 7.0, 1e-12);
           final std1 = res['v_std'][row] as double;
           check(std1).isCloseTo(math.sqrt(32.0 / 7.0), 1e-12);
           check(res['v_median'][row]).equals(4.5);
         } else if (s == 'b2') {
           check(res['v_mean'][row]).equals(30.0);
-          check(res['v_var_'][row]).equals(250.0);
+          check(res['v_variance'][row]).equals(250.0);
           final std2 = res['v_std'][row] as double;
           check(std2).isCloseTo(math.sqrt(250.0), 1e-12);
           check(res['v_median'][row]).equals(30.0);
@@ -480,7 +480,7 @@ void main() {
       });
 
       final res = df.groupBy(['dept', 'role']).aggregate({
-        'salary': [Agg.count, Agg.mean, Agg.var_, Agg.median, Agg.std],
+        'salary': [Agg.count, Agg.mean, Agg.variance, Agg.median, Agg.std],
       });
 
       check(res.rowCount).equals(3);
@@ -491,20 +491,20 @@ void main() {
         if (dept == 'IT' && role == 'dev') {
           check(res['salary_count'][row]).equals(2);
           check(res['salary_mean'][row]).equals(110.0);
-          check(res['salary_var_'][row]).equals(200.0);
+          check(res['salary_variance'][row]).equals(200.0);
           check(res['salary_median'][row]).equals(110.0);
           final stdVal = res['salary_std'][row] as double;
           check(stdVal).isCloseTo(math.sqrt(200.0), 1e-12);
         } else if (dept == 'IT' && role == 'qa') {
           check(res['salary_count'][row]).equals(1);
           check(res['salary_mean'][row]).equals(90.0);
-          check(res['salary_var_'][row]).isNull();
+          check(res['salary_variance'][row]).isNull();
           check(res['salary_median'][row]).equals(90.0);
           check(res['salary_std'][row]).equals(0.0);
         } else if (dept == 'HR' && role == 'recruiter') {
           check(res['salary_count'][row]).equals(2);
           check(res['salary_mean'][row]).equals(60.0);
-          check(res['salary_var_'][row]).equals(200.0);
+          check(res['salary_variance'][row]).equals(200.0);
           check(res['salary_median'][row]).equals(60.0);
           final stdVal = res['salary_std'][row] as double;
           check(stdVal).isCloseTo(math.sqrt(200.0), 1e-12);
@@ -530,20 +530,20 @@ void main() {
         });
 
         final res = df.groupBy(['group']).aggregate({
-          'val': [Agg.median, Agg.var_],
+          'val': [Agg.median, Agg.variance],
         });
 
         for (var row = 0; row < res.rowCount; row++) {
           final g = res['group'][row];
           if (g == 'neg') {
             check(res['val_median'][row]).equals(-20.0);
-            check(res['val_var_'][row]).equals(100.0);
+            check(res['val_variance'][row]).equals(100.0);
           } else if (g == 'ident') {
             check(res['val_median'][row]).equals(7.0);
-            check(res['val_var_'][row]).equals(0.0);
+            check(res['val_variance'][row]).equals(0.0);
           } else if (g == 'str') {
             check(res['val_median'][row]).isNull();
-            check(res['val_var_'][row]).isNull();
+            check(res['val_variance'][row]).isNull();
           }
         }
       },
@@ -556,11 +556,11 @@ void main() {
       });
 
       final res = df.groupBy(['group']).aggregate({
-        'val': [Agg.median, Agg.var_],
+        'val': [Agg.median, Agg.variance],
       });
 
       check((res['val_median'][0] as double).isNaN).isTrue();
-      check((res['val_var_'][0] as double).isNaN).isTrue();
+      check((res['val_variance'][0] as double).isNaN).isTrue();
     });
 
     test(

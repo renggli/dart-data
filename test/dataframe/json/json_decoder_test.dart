@@ -33,9 +33,9 @@ void main() {
       check(df['c2'].toList()).deepEquals(['a', 'b']);
     });
 
-    test('decodes values_ format with auto-generated names', () {
+    test('decodes array format with auto-generated names', () {
       const json = '[[1, 2], [3, 4]]';
-      final df = DataFrameJsonDecoder.decode(json, orient: JsonOrient.values_);
+      final df = DataFrameJsonDecoder.decode(json, orient: JsonOrient.array);
       check(df.rowCount).equals(2);
       check(df.columnNames).deepEquals(['col_0', 'col_1']);
       check(df['col_0'].toList()).deepEquals([1, 3]);
@@ -61,7 +61,7 @@ void main() {
         DataFrameJsonDecoder.detectOrient([
           [1, 2],
         ]),
-      ).equals(JsonOrient.values_);
+      ).equals(JsonOrient.array);
       check(
         DataFrameJsonDecoder.detectOrient({
           'columns': ['a'],
@@ -93,7 +93,7 @@ void main() {
 
       final dfVals = DataFrameJsonDecoder.decode(
         '[]',
-        orient: JsonOrient.values_,
+        orient: JsonOrient.array,
         columnTypes: {'v1': DataType.int32, 'v2': DataType.string},
       );
       check(dfVals.rowCount).equals(0);
@@ -102,7 +102,7 @@ void main() {
       // values with columnTypes length exceeding row length
       final dfPadded = DataFrameJsonDecoder.decode(
         '[[10]]',
-        orient: JsonOrient.values_,
+        orient: JsonOrient.array,
         columnTypes: {'v1': DataType.int32, 'v2': DataType.string},
       );
       check(dfPadded.rowCount).equals(1);

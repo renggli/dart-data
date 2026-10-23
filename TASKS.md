@@ -482,6 +482,13 @@ Each task specifies:
   3. Standardize `location` / `scale` / `shape` parameter names and order across continuous distributions, and replace debug-only `assert(...)` in distribution constructors with runtime `ArgumentError.value` checks (so invalid parameters like `NormalDistribution(0, -1)` throw in release mode too).
   4. Implement structural `operator ==` and `hashCode` (or `DataType.equality` integration) on `Layout`, `Tensor`, `Matrix`, `Vector`, and `DataFrame` so value classes like `MultivariateNormalDistribution` satisfy value equality.
   5. Standardize `Interpolator` and `Interpolator2D` on `call` (removing duplicate `evaluate`), and unify `Expr.approximate` / `Matrix<Expr>.approximate` signatures.
+- **Implementation Report**:
+  - Capitalized telemetry and reference line labels in `web/distributions/index.html` and `web/distributions/index.dart`.
+  - Renamed `Tensor.var_` to `Tensor.variance`, `Agg.var_` to `Agg.variance` (and output column suffix to `_variance`), `JsonOrient.values_` to `JsonOrient.array`, `kolmogorovSmirnov2Sample` to `kolmogorovSmirnovTwoSample`, and `HypergeometricDistribution` fields to `populationSize, successStates, draws`.
+  - Standardized continuous distribution parameters: `WeibullDistribution(shape, scale)` and `ParetoDistribution(shape, scale)` aligned to `(shape, scale)`; Cauchy, Laplace, and Logistic standardized on `location, scale`.
+  - Replaced debug assertions across all continuous and discrete distribution constructors with runtime `ArgumentError.value` validation, retaining `const` standard constructors where applicable.
+  - Implemented structural value equality and hashing on `Layout`, `Tensor`, `Matrix`, `Vector`, `Series`, and `DataFrame`, verifying `MultivariateNormalDistribution` and `DirichletDistribution` value equality.
+  - Standardized `Interpolator2D` on `double call(double x, double y)`, removing duplicate `evaluate`. Verified `Expr.approximate` and `Matrix<Expr>.approximate` alignment.
 
 ### TASK-4.2: Improve `Polynomial.toString` and `RationalFunction` Ergonomics
 

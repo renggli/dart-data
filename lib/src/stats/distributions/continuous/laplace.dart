@@ -6,7 +6,7 @@ import '../continuous.dart';
 import '../errors.dart';
 
 /// The Laplace distribution is a continuous probability distribution defined by
-/// its location [mu] and scale [b] parameters. It is also known as the double
+/// its [location] and [scale] parameters. It is also known as the double
 /// exponential distribution.
 ///
 /// See https://en.wikipedia.org/wiki/Laplace_distribution.
@@ -16,14 +16,23 @@ import '../errors.dart';
 /// print(distribution.variance);  // 2.0
 /// ```
 class LaplaceDistribution extends ContinuousDistribution {
-  /// A Laplace distribution with parameter [mu] and [b].
-  const new([this.mu = 0, this.b = 1]) : assert(b > 0, 'b > 0');
+  /// A Laplace distribution with [location] and [scale].
+  new([this.location = 0.0, this.scale = 1.0]) {
+    if (scale <= 0) {
+      throw ArgumentError.value(scale, 'scale', 'Scale must be positive');
+    }
+  }
 
-  /// The location parameter mu.
-  final double mu;
+  /// A standard Laplace distribution with location 0 and scale 1.
+  const new standard() : this._(0.0, 1.0);
 
-  /// The scale parameter b.
-  final double b;
+  const new _(this.location, this.scale);
+
+  /// The location parameter.
+  final double location;
+
+  /// The scale parameter.
+  final double scale;
 
   @override
   double get lowerBound => double.negativeInfinity;
@@ -32,16 +41,16 @@ class LaplaceDistribution extends ContinuousDistribution {
   double get upperBound => double.infinity;
 
   @override
-  double get mean => mu;
+  double get mean => location;
 
   @override
-  double get median => mu;
+  double get median => location;
 
   @override
-  double get mode => mu;
+  double get mode => location;
 
   @override
-  double get variance => 2 * b * b;
+  double get variance => 2 * scale * scale;
 
   @override
   double get skewness => 0;
@@ -50,12 +59,13 @@ class LaplaceDistribution extends ContinuousDistribution {
   double get excessKurtosis => 3;
 
   @override
-  double probability(double x) => exp(-(x - mu).abs() / b) / (2 * b);
+  double probability(double x) =>
+      exp(-(x - location).abs() / scale) / (2 * scale);
 
   @override
   double cumulativeProbability(double x) {
-    final diff = x - mu;
-    return diff < 0 ? 0.5 * exp(diff / b) : 1 - 0.5 * exp(-diff / b);
+    final diff = x - location;
+    return diff < 0 ? 0.5 * exp(diff / scale) : 1 - 0.5 * exp(-diff / scale);
   }
 
   @override
@@ -64,9 +74,9 @@ class LaplaceDistribution extends ContinuousDistribution {
     if (probability == 0) return double.negativeInfinity;
     if (probability == 1) return double.infinity;
     if (probability < 0.5) {
-      return mu + b * log(2 * probability);
+      return location + scale * log(2 * probability);
     } else {
-      return mu - b * log(2 * (1 - probability));
+      return location - scale * log(2 * (1 - probability));
     }
   }
 
@@ -78,15 +88,17 @@ class LaplaceDistribution extends ContinuousDistribution {
 
   @override
   bool operator ==(Object other) =>
-      other is LaplaceDistribution && mu == other.mu && b == other.b;
+      other is LaplaceDistribution &&
+      location == other.location &&
+      scale == other.scale;
 
   @override
-  int get hashCode => Object.hash(LaplaceDistribution, mu, b);
+  int get hashCode => Object.hash(LaplaceDistribution, location, scale);
 
   @override
   ObjectPrinter get toStringPrinter => super.toStringPrinter
-    ..addValue(mu, name: 'mu')
-    ..addValue(b, name: 'b');
+    ..addValue(location, name: 'location')
+    ..addValue(scale, name: 'scale');
 }
 
 final _random = Random();

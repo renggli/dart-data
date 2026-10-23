@@ -12,9 +12,14 @@ import 'gamma.dart';
 /// See https://en.wikipedia.org/wiki/Inverse-gamma_distribution.
 class InverseGammaDistribution extends ContinuousDistribution {
   /// An inverse gamma distribution with parameters [shape] α and [scale] β.
-  const new(this.shape, this.scale)
-    : assert(shape > 0, 'α > 0'),
-      assert(scale > 0, 'β > 0');
+  new(this.shape, this.scale) {
+    if (shape <= 0) {
+      throw ArgumentError.value(shape, 'shape', 'Must be positive');
+    }
+    if (scale <= 0) {
+      throw ArgumentError.value(scale, 'scale', 'Must be positive');
+    }
+  }
 
   /// The shape parameter α.
   final double shape;

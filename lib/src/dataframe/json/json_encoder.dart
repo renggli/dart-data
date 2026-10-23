@@ -22,7 +22,7 @@ abstract final class DataFrameJsonEncoder {
       JsonOrient.columns => {
         for (var c = 0; c < names.length; c++) names[c]: cols[c].toList(),
       },
-      JsonOrient.values_ => [
+      JsonOrient.array => [
         for (var r = 0; r < rowCount; r++)
           [for (var c = 0; c < names.length; c++) cols[c][r]],
       ],

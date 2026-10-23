@@ -202,17 +202,17 @@ void main() {
     });
   });
 
-  group('JsonOrient.values_', () {
+  group('JsonOrient.array', () {
     test('round-trip serialization with default column names', () {
       final df = DataFrame([
         Series.fromList('a', [1, 2]),
         Series.fromList('b', [3, 4]),
       ]);
 
-      final jsonStr = df.toJson(orient: JsonOrient.values_);
+      final jsonStr = df.toJson(orient: JsonOrient.array);
       check(jsonStr).equals('[[1,3],[2,4]]');
 
-      final decoded = DataFrame.fromJson(jsonStr, orient: JsonOrient.values_);
+      final decoded = DataFrame.fromJson(jsonStr, orient: JsonOrient.array);
       check(decoded.rowCount).equals(2);
       check(decoded.columnCount).equals(2);
       check(decoded.columnNames).deepEquals(['col_0', 'col_1']);
@@ -224,7 +224,7 @@ void main() {
       const jsonStr = '[[10, 20.5], [30, 40.5]]';
       final df = DataFrame.fromJson(
         jsonStr,
-        orient: JsonOrient.values_,
+        orient: JsonOrient.array,
         columnTypes: {'first': DataType.int32, 'second': DataType.float64},
       );
 
@@ -238,7 +238,7 @@ void main() {
 
     test('handles empty values array', () {
       const jsonStr = '[]';
-      final df = DataFrame.fromJson(jsonStr, orient: JsonOrient.values_);
+      final df = DataFrame.fromJson(jsonStr, orient: JsonOrient.array);
       check(df.rowCount).equals(0);
       check(df.columnCount).equals(0);
     });
@@ -249,7 +249,7 @@ void main() {
         const jsonStr = '[[1, 2], [3, 4]]';
         final df = DataFrame.fromJson(
           jsonStr,
-          orient: JsonOrient.values_,
+          orient: JsonOrient.array,
           columnTypes: {'col_1': DataType.int32},
         );
         check(df.columnCount).equals(2);
@@ -412,7 +412,7 @@ void main() {
 
     test('values with null entries', () {
       const jsonStr = '[[null, "foo"], [10, null]]';
-      final df = DataFrame.fromJson(jsonStr, orient: JsonOrient.values_);
+      final df = DataFrame.fromJson(jsonStr, orient: JsonOrient.array);
 
       check(df.rowCount).equals(2);
       check(df['col_0'].toList()).deepEquals([null, 10]);
@@ -432,7 +432,7 @@ void main() {
       check(df.toJson(orient: JsonOrient.split))
           .equals('{"columns":[],"data":[]}');
       check(df.toJson(orient: JsonOrient.columns)).equals('{}');
-      check(df.toJson(orient: JsonOrient.values_)).equals('[]');
+      check(df.toJson(orient: JsonOrient.array)).equals('[]');
 
       check(DataFrame.fromJson('[]').rowCount).equals(0);
       check(DataFrame.fromJson('{"columns":[],"data":[]}').rowCount).equals(0);
@@ -532,7 +532,7 @@ void main() {
           .throws<FormatException>();
 
       // Values expects List, got Map
-      check(() => DataFrame.fromJson('{"a": 1}', orient: JsonOrient.values_))
+      check(() => DataFrame.fromJson('{"a": 1}', orient: JsonOrient.array))
           .throws<FormatException>();
 
       // Columns expects Map, got List
@@ -580,7 +580,7 @@ void main() {
 
     test('throws FormatException on malformed values structure', () {
       // Element is not a List
-      check(() => DataFrame.fromJson('[123, 456]', orient: JsonOrient.values_))
+      check(() => DataFrame.fromJson('[123, 456]', orient: JsonOrient.array))
           .throws<FormatException>();
     });
 

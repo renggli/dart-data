@@ -212,7 +212,8 @@ void main() {
 
         // Tensor extensions
         final tensor = Tensor<double>.fromIterable([1.0, 2.0, 3.0, 4.0]);
-        check(tensor.variance()).isCloseTo(5.0 / 3.0, 1e-10);
+        check(DescriptiveTensorNumExtension(tensor).variance())
+            .isCloseTo(5.0 / 3.0, 1e-10);
         check(tensor.standardDeviation())
             .isCloseTo(math.sqrt(5.0 / 3.0), 1e-10);
         check(tensor.quantile(0.5)).isCloseTo(2.5, 1e-10);

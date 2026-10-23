@@ -6,7 +6,7 @@ import '../continuous.dart';
 import '../errors.dart';
 
 /// The Logistic distribution is a continuous probability distribution
-/// parameterized by its location [mu] and scale [s] parameters. Its cumulative
+/// parameterized by its [location] and [scale] parameters. Its cumulative
 /// distribution function is the logistic function.
 ///
 /// See https://en.wikipedia.org/wiki/Logistic_distribution.
@@ -16,14 +16,23 @@ import '../errors.dart';
 /// print(distribution.mean);  // 0.0
 /// ```
 class LogisticDistribution extends ContinuousDistribution {
-  /// A Logistic distribution with parameter [mu] and [s].
-  const new([this.mu = 0, this.s = 1]) : assert(s > 0, 's > 0');
+  /// A Logistic distribution with [location] and [scale].
+  new([this.location = 0.0, this.scale = 1.0]) {
+    if (scale <= 0) {
+      throw ArgumentError.value(scale, 'scale', 'Scale must be positive');
+    }
+  }
 
-  /// The location parameter mu.
-  final double mu;
+  /// A standard Logistic distribution with location 0 and scale 1.
+  const new standard() : this._(0.0, 1.0);
 
-  /// The scale parameter s.
-  final double s;
+  const new _(this.location, this.scale);
+
+  /// The location parameter.
+  final double location;
+
+  /// The scale parameter.
+  final double scale;
 
   @override
   double get lowerBound => double.negativeInfinity;
@@ -32,16 +41,16 @@ class LogisticDistribution extends ContinuousDistribution {
   double get upperBound => double.infinity;
 
   @override
-  double get mean => mu;
+  double get mean => location;
 
   @override
-  double get median => mu;
+  double get median => location;
 
   @override
-  double get mode => mu;
+  double get mode => location;
 
   @override
-  double get variance => pi * pi * s * s / 3;
+  double get variance => pi * pi * scale * scale / 3;
 
   @override
   double get skewness => 0;
@@ -51,14 +60,14 @@ class LogisticDistribution extends ContinuousDistribution {
 
   @override
   double probability(double x) {
-    final z = (x - mu) / s;
+    final z = (x - location) / scale;
     final ez = exp(-z.abs());
-    return ez / (s * pow(1 + ez, 2));
+    return ez / (scale * pow(1 + ez, 2));
   }
 
   @override
   double cumulativeProbability(double x) {
-    final z = (x - mu) / s;
+    final z = (x - location) / scale;
     return 1 / (1 + exp(-z));
   }
 
@@ -67,7 +76,7 @@ class LogisticDistribution extends ContinuousDistribution {
     InvalidProbability.check(probability);
     if (probability == 0) return double.negativeInfinity;
     if (probability == 1) return double.infinity;
-    return mu + s * log(probability / (1 - probability));
+    return location + scale * log(probability / (1 - probability));
   }
 
   @override
@@ -78,15 +87,17 @@ class LogisticDistribution extends ContinuousDistribution {
 
   @override
   bool operator ==(Object other) =>
-      other is LogisticDistribution && mu == other.mu && s == other.s;
+      other is LogisticDistribution &&
+      location == other.location &&
+      scale == other.scale;
 
   @override
-  int get hashCode => Object.hash(LogisticDistribution, mu, s);
+  int get hashCode => Object.hash(LogisticDistribution, location, scale);
 
   @override
   ObjectPrinter get toStringPrinter => super.toStringPrinter
-    ..addValue(mu, name: 'mu')
-    ..addValue(s, name: 's');
+    ..addValue(location, name: 'location')
+    ..addValue(scale, name: 'scale');
 }
 
 final _random = Random();

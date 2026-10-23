@@ -464,6 +464,32 @@ class Layout {
   }
 
   @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    if (other is! Layout) return false;
+    if (rank != other.rank ||
+        offset != other.offset ||
+        length != other.length) {
+      return false;
+    }
+    for (var i = 0; i < rank; i++) {
+      if (shape[i] != other.shape[i] || strides[i] != other.strides[i]) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  @override
+  int get hashCode {
+    var hash = Object.hash(rank, length, offset);
+    for (var i = 0; i < rank; i++) {
+      hash = Object.hash(hash, shape[i], strides[i]);
+    }
+    return hash;
+  }
+
+  @override
   String toString() =>
       'Layout(rank: $rank, length: $length, offset: $offset, shape: $shape, strides: $strides, isContiguous: $isContiguous)';
 }

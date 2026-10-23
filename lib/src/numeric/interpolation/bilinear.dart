@@ -47,7 +47,7 @@ class BilinearInterpolation implements Interpolator2D {
   late final Matrix<double> _values;
 
   @override
-  double evaluate(double x, double y) {
+  double call(double x, double y) {
     final xClamped = x.clamp(_xs.first, _xs.last);
     final yClamped = y.clamp(_ys.first, _ys.last);
 
@@ -72,9 +72,6 @@ class BilinearInterpolation implements Interpolator2D {
         (1.0 - u) * v * q01 +
         u * v * q11;
   }
-
-  @override
-  double call(double x, double y) => evaluate(x, y);
 
   /// Computes the partial gradient
   /// $(\frac{\partial f}{\partial x}, \frac{\partial f}{\partial y})$ at ([x],

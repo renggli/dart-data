@@ -539,4 +539,11 @@ class Vector<T> {
     }
     return result;
   }
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) || other is Vector && other.tensor == tensor;
+
+  @override
+  int get hashCode => tensor.hashCode;
 }

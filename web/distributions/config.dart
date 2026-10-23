@@ -131,7 +131,7 @@ final List<DistributionConfig> distributions = [
     isContinuous: true,
     parameters: [
       const ParameterConfig(
-        name: 'xo',
+        name: 'location',
         label: 'Location (x₀)',
         min: -10.0,
         max: 10.0,
@@ -139,7 +139,7 @@ final List<DistributionConfig> distributions = [
         step: 0.1,
       ),
       const ParameterConfig(
-        name: 'gamma',
+        name: 'scale',
         label: 'Scale (γ)',
         min: 0.1,
         max: 10.0,
@@ -295,7 +295,7 @@ final List<DistributionConfig> distributions = [
     isContinuous: false,
     parameters: [
       const ParameterConfig(
-        name: 'N',
+        name: 'populationSize',
         label: 'Population Size (N)',
         min: 10,
         max: 150,
@@ -304,7 +304,7 @@ final List<DistributionConfig> distributions = [
         isInt: true,
       ),
       const ParameterConfig(
-        name: 'K',
+        name: 'successStates',
         label: 'Success States (K)',
         min: 1,
         max: 150,
@@ -313,7 +313,7 @@ final List<DistributionConfig> distributions = [
         isInt: true,
       ),
       const ParameterConfig(
-        name: 'n',
+        name: 'draws',
         label: 'Draws (n)',
         min: 1,
         max: 150,
@@ -323,10 +323,10 @@ final List<DistributionConfig> distributions = [
       ),
     ],
     creator: (p) {
-      final N = p[0].toInt();
-      final K = math.min(p[1].toInt(), N);
-      final n = math.min(p[2].toInt(), N);
-      return HypergeometricDistribution(N, K, n);
+      final populationSize = p[0].toInt();
+      final successStates = math.min(p[1].toInt(), populationSize);
+      final draws = math.min(p[2].toInt(), populationSize);
+      return HypergeometricDistribution(populationSize, successStates, draws);
     },
   ),
   DistributionConfig(
@@ -367,7 +367,7 @@ final List<DistributionConfig> distributions = [
     isContinuous: true,
     parameters: [
       const ParameterConfig(
-        name: 'mu',
+        name: 'location',
         label: 'Location (μ)',
         min: -10.0,
         max: 10.0,
@@ -375,7 +375,7 @@ final List<DistributionConfig> distributions = [
         step: 0.1,
       ),
       const ParameterConfig(
-        name: 'b',
+        name: 'scale',
         label: 'Scale (b)',
         min: 0.1,
         max: 10.0,
@@ -423,7 +423,7 @@ final List<DistributionConfig> distributions = [
     isContinuous: true,
     parameters: [
       const ParameterConfig(
-        name: 'mu',
+        name: 'location',
         label: 'Location (μ)',
         min: -10.0,
         max: 10.0,
@@ -431,7 +431,7 @@ final List<DistributionConfig> distributions = [
         step: 0.1,
       ),
       const ParameterConfig(
-        name: 's',
+        name: 'scale',
         label: 'Scale (s)',
         min: 0.1,
         max: 10.0,
@@ -507,19 +507,19 @@ final List<DistributionConfig> distributions = [
     isContinuous: true,
     parameters: [
       const ParameterConfig(
-        name: 'xo',
-        label: 'Scale (x₀)',
-        min: 0.5,
-        max: 5.0,
-        defaultValue: 1.0,
-        step: 0.1,
-      ),
-      const ParameterConfig(
-        name: 'alpha',
+        name: 'shape',
         label: 'Shape (α)',
         min: 0.5,
         max: 10.0,
         defaultValue: 3.0,
+        step: 0.1,
+      ),
+      const ParameterConfig(
+        name: 'scale',
+        label: 'Scale (x₀)',
+        min: 0.5,
+        max: 5.0,
+        defaultValue: 1.0,
         step: 0.1,
       ),
     ],
@@ -651,19 +651,19 @@ final List<DistributionConfig> distributions = [
     isContinuous: true,
     parameters: [
       const ParameterConfig(
-        name: 'scale',
-        label: 'Scale (λ)',
-        min: 0.1,
-        max: 10.0,
-        defaultValue: 1.5,
-        step: 0.1,
-      ),
-      const ParameterConfig(
         name: 'shape',
         label: 'Shape (k)',
         min: 0.1,
         max: 10.0,
         defaultValue: 2.0,
+        step: 0.1,
+      ),
+      const ParameterConfig(
+        name: 'scale',
+        label: 'Scale (λ)',
+        min: 0.1,
+        max: 10.0,
+        defaultValue: 1.5,
         step: 0.1,
       ),
     ],

@@ -21,9 +21,14 @@ import 'poisson.dart';
 /// ```
 class NegativeBinomialDistribution extends DiscreteDistribution {
   /// A negative binomial distribution with parameters [r] and [p].
-  const new(this.r, this.p)
-    : assert(r > 0, 'r > 0'),
-      assert(0 <= p && p <= 1, '0 <= p <= 1');
+  new(this.r, this.p) {
+    if (r <= 0) {
+      throw ArgumentError.value(r, 'r', 'Must be positive');
+    }
+    if (p < 0.0 || p > 1.0) {
+      throw ArgumentError.value(p, 'p', 'Must be between 0.0 and 1.0');
+    }
+  }
 
   /// Number of failures until the experiment is stopped.
   final double r;

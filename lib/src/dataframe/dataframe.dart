@@ -395,6 +395,28 @@ class DataFrame {
       importDataFrameFromArrowC(schema: schema, array: array, release: release);
 
   @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    if (other is! DataFrame) return false;
+    if (rowCount != other.rowCount || columnCount != other.columnCount) {
+      return false;
+    }
+    for (var i = 0; i < columnCount; i++) {
+      if (_columns[i] != other._columns[i]) return false;
+    }
+    return true;
+  }
+
+  @override
+  int get hashCode {
+    var hash = Object.hash(rowCount, columnCount);
+    for (var i = 0; i < columnCount; i++) {
+      hash = Object.hash(hash, _columns[i]);
+    }
+    return hash;
+  }
+
+  @override
   String toString() {
     final buffer = StringBuffer(
       'DataFrame($rowCount rows x $columnCount columns)\n',

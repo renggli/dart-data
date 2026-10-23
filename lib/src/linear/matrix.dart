@@ -1069,4 +1069,11 @@ class Matrix<T> implements LinearOperator<T> {
     }
     return false;
   }
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) || other is Matrix && other.tensor == tensor;
+
+  @override
+  int get hashCode => tensor.hashCode;
 }

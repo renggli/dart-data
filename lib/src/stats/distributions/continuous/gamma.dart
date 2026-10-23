@@ -13,12 +13,17 @@ import 'uniform.dart';
 /// See https://en.wikipedia.org/wiki/Gamma_distribution.
 class GammaDistribution extends ContinuousDistribution {
   /// A gamma distribution with parameters [shape] α and [scale] β.
-  const new(this.shape, this.scale)
-    : assert(shape > 0, 'α > 0'),
-      assert(scale > 0, 'β > 0');
+  new(this.shape, this.scale) {
+    if (shape <= 0) {
+      throw ArgumentError.value(shape, 'shape', 'Must be positive');
+    }
+    if (scale <= 0) {
+      throw ArgumentError.value(scale, 'scale', 'Must be positive');
+    }
+  }
 
   /// Creates a standard gamma distribution with given [shape] and unit scale 1.
-  const new shape(double shape) : this(shape, 1.0);
+  new shape(double shape) : this(shape, 1.0);
 
   /// Fits a gamma distribution to [samples] using method of moments.
   factory fit(Iterable<num> samples) {

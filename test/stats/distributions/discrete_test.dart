@@ -8,7 +8,7 @@ import 'package:test/test.dart';
 void main() {
   group('discrete distributions', () {
     test('Bernoulli distribution', () {
-      const dist = BernoulliDistribution(0.7);
+      final dist = BernoulliDistribution(0.7);
       check(dist.p).equals(0.7);
       check(dist.lowerBound).equals(0);
       check(dist.upperBound).equals(1);
@@ -45,11 +45,11 @@ void main() {
       check(dist.cumulativeProbability(2)).equals(1.0);
 
       // Median for p < 0.5 and p == 0.5
-      const distLow = BernoulliDistribution(0.3);
+      final distLow = BernoulliDistribution(0.3);
       check(distLow.median).equals(0.0);
       check(distLow.mode).equals(0.0);
 
-      const distHalf = BernoulliDistribution(0.5);
+      final distHalf = BernoulliDistribution(0.5);
       check(distHalf.median).equals(0.5);
 
       // Samples
@@ -75,15 +75,15 @@ void main() {
           .throws<ArgumentError>();
 
       // Constructor validation
-      check(() => BernoulliDistribution(-0.1)).throws<AssertionError>();
-      check(() => BernoulliDistribution(1.1)).throws<AssertionError>();
+      check(() => BernoulliDistribution(-0.1)).throws<ArgumentError>();
+      check(() => BernoulliDistribution(1.1)).throws<ArgumentError>();
 
       // toString
       check(dist.toString()).contains('BernoulliDistribution');
     });
 
     test('Binomial distribution', () {
-      const dist = BinomialDistribution(10, 0.5);
+      final dist = BinomialDistribution(10, 0.5);
       check(dist.n).equals(10);
       check(dist.p).equals(0.5);
       check(dist.lowerBound).equals(0);
@@ -115,11 +115,11 @@ void main() {
           .throws<InvalidProbability>();
 
       // Degenerate p = 0 and p = 1
-      const dist0 = BinomialDistribution(5, 0.0);
+      final dist0 = BinomialDistribution(5, 0.0);
       check(dist0.probability(0)).equals(1.0);
       check(dist0.probability(1)).equals(0.0);
 
-      const dist1 = BinomialDistribution(5, 1.0);
+      final dist1 = BinomialDistribution(5, 1.0);
       check(dist1.probability(5)).equals(1.0);
       check(dist1.probability(4)).equals(0.0);
 
@@ -139,15 +139,15 @@ void main() {
           .throws<ArgumentError>();
 
       // Constructor validation
-      check(() => BinomialDistribution(-1, 0.5)).throws<AssertionError>();
-      check(() => BinomialDistribution(10, -0.1)).throws<AssertionError>();
-      check(() => BinomialDistribution(10, 1.1)).throws<AssertionError>();
+      check(() => BinomialDistribution(-1, 0.5)).throws<ArgumentError>();
+      check(() => BinomialDistribution(10, -0.1)).throws<ArgumentError>();
+      check(() => BinomialDistribution(10, 1.1)).throws<ArgumentError>();
 
       check(dist.toString()).contains('BinomialDistribution');
     });
 
     test('Poisson distribution', () {
-      const dist = PoissonDistribution(4.0);
+      final dist = PoissonDistribution(4.0);
       check(dist.rate).equals(4.0);
       check(dist.lowerBound).equals(0);
       check(dist.upperBound).equals(DataType.integer.safeMax);
@@ -184,14 +184,14 @@ void main() {
       check(() => PoissonDistribution.fit(const [-1])).throws<ArgumentError>();
 
       // Constructor validation
-      check(() => PoissonDistribution(0.0)).throws<AssertionError>();
-      check(() => PoissonDistribution(-2.0)).throws<AssertionError>();
+      check(() => PoissonDistribution(0.0)).throws<ArgumentError>();
+      check(() => PoissonDistribution(-2.0)).throws<ArgumentError>();
 
       check(dist.toString()).contains('PoissonDistribution');
     });
 
     test('discrete uniform distribution', () {
-      const dist = UniformDiscreteDistribution(1, 6);
+      final dist = UniformDiscreteDistribution(1, 6);
       check(dist.min).equals(1);
       check(dist.max).equals(6);
       check(dist.lowerBound).equals(1);
@@ -224,7 +224,7 @@ void main() {
       check(() => dist.inverseCumulativeProbability(double.nan))
           .throws<InvalidProbability>();
 
-      const u01 = UniformDiscreteDistribution(0, 1);
+      final u01 = UniformDiscreteDistribution(0, 1);
       check(u01.inverseCumulativeProbability(0.5)).equals(0);
       check(u01.inverseCumulativeProbability(0.51)).equals(1);
 
@@ -240,13 +240,13 @@ void main() {
           .throws<ArgumentError>();
 
       // Constructor validation
-      check(() => UniformDiscreteDistribution(5, 3)).throws<AssertionError>();
+      check(() => UniformDiscreteDistribution(5, 3)).throws<ArgumentError>();
 
       check(dist.toString()).contains('UniformDiscreteDistribution');
     });
 
     test('Geometric distribution', () {
-      const dist = GeometricDistribution(0.5);
+      final dist = GeometricDistribution(0.5);
       check(dist.p).equals(0.5);
       check(dist.lowerBound).equals(0);
       check(dist.upperBound).equals(DataType.integer.safeMax);
@@ -280,18 +280,18 @@ void main() {
       check(samples.every((sample) => sample >= 0)).isTrue();
 
       // Constructor validation
-      check(() => GeometricDistribution(0.0)).throws<AssertionError>();
-      check(() => GeometricDistribution(-0.5)).throws<AssertionError>();
-      check(() => GeometricDistribution(1.5)).throws<AssertionError>();
+      check(() => GeometricDistribution(0.0)).throws<ArgumentError>();
+      check(() => GeometricDistribution(-0.5)).throws<ArgumentError>();
+      check(() => GeometricDistribution(1.5)).throws<ArgumentError>();
 
       check(dist.toString()).contains('GeometricDistribution');
     });
 
     test('Hypergeometric distribution', () {
-      const dist = HypergeometricDistribution(50, 10, 5);
-      check(dist.N).equals(50);
-      check(dist.K).equals(10);
-      check(dist.n).equals(5);
+      final dist = HypergeometricDistribution(50, 10, 5);
+      check(dist.populationSize).equals(50);
+      check(dist.successStates).equals(10);
+      check(dist.draws).equals(5);
       check(dist.lowerBound).equals(0);
       check(dist.upperBound).equals(5);
       check(dist.isLowerBoundOpen).isFalse();
@@ -323,21 +323,21 @@ void main() {
       check(samples.every((sample) => sample >= 0 && sample <= 5)).isTrue();
 
       // Constructor validation
-      check(() => HypergeometricDistribution(0, 5, 2)).throws<AssertionError>();
+      check(() => HypergeometricDistribution(0, 5, 2)).throws<ArgumentError>();
       check(() => HypergeometricDistribution(10, -1, 2))
-          .throws<AssertionError>();
+          .throws<ArgumentError>();
       check(() => HypergeometricDistribution(10, 11, 2))
-          .throws<AssertionError>();
+          .throws<ArgumentError>();
       check(() => HypergeometricDistribution(10, 5, -1))
-          .throws<AssertionError>();
+          .throws<ArgumentError>();
       check(() => HypergeometricDistribution(10, 5, 11))
-          .throws<AssertionError>();
+          .throws<ArgumentError>();
 
       check(dist.toString()).contains('HypergeometricDistribution');
     });
 
     test('Negative Binomial distribution', () {
-      const dist = NegativeBinomialDistribution(1.0, 0.5);
+      final dist = NegativeBinomialDistribution(1.0, 0.5);
       check(dist.r).equals(1.0);
       check(dist.p).equals(0.5);
       check(dist.lowerBound).equals(0);
@@ -372,13 +372,13 @@ void main() {
 
       // Constructor validation
       check(() => NegativeBinomialDistribution(0.0, 0.5))
-          .throws<AssertionError>();
+          .throws<ArgumentError>();
       check(() => NegativeBinomialDistribution(-1.0, 0.5))
-          .throws<AssertionError>();
+          .throws<ArgumentError>();
       check(() => NegativeBinomialDistribution(1.0, -0.1))
-          .throws<AssertionError>();
+          .throws<ArgumentError>();
       check(() => NegativeBinomialDistribution(1.0, 1.1))
-          .throws<AssertionError>();
+          .throws<ArgumentError>();
 
       check(dist.toString()).contains('NegativeBinomialDistribution');
     });
@@ -432,27 +432,27 @@ void main() {
 
     test('Discrete distributions equality, hashCode, default random, and sampling branches', () {
       // Bernoulli
-      const b1 = BernoulliDistribution(0.4);
-      const b2 = BernoulliDistribution(0.4);
-      const b3 = BernoulliDistribution(0.6);
+      final b1 = BernoulliDistribution(0.4);
+      final b2 = BernoulliDistribution(0.4);
+      final b3 = BernoulliDistribution(0.6);
       check(b1 == b2).isTrue();
       check(b1 == b3).isFalse();
       check(b1.hashCode).equals(b2.hashCode);
       check(b1.sample()).isNotNull();
 
       // Binomial
-      const bin1 = BinomialDistribution(10, 0.4);
-      const bin2 = BinomialDistribution(10, 0.4);
-      const bin3 = BinomialDistribution(10, 0.5);
+      final bin1 = BinomialDistribution(10, 0.4);
+      final bin2 = BinomialDistribution(10, 0.4);
+      final bin3 = BinomialDistribution(10, 0.5);
       check(bin1 == bin2).isTrue();
       check(bin1 == bin3).isFalse();
       check(bin1.hashCode).equals(bin2.hashCode);
       check(bin1.sample()).isNotNull();
 
       // Poisson rate >= 30 (normal approximation)
-      const p1 = PoissonDistribution(50.0);
-      const p2 = PoissonDistribution(50.0);
-      const p3 = PoissonDistribution(10.0);
+      final p1 = PoissonDistribution(50.0);
+      final p2 = PoissonDistribution(50.0);
+      final p3 = PoissonDistribution(10.0);
       check(p1 == p2).isTrue();
       check(p1 == p3).isFalse();
       check(p1.hashCode).equals(p2.hashCode);
@@ -460,33 +460,33 @@ void main() {
       check(p3.sample()).isNotNull();
 
       // Geometric
-      const g1 = GeometricDistribution(0.3);
-      const g2 = GeometricDistribution(0.3);
-      const g3 = GeometricDistribution(0.7);
+      final g1 = GeometricDistribution(0.3);
+      final g2 = GeometricDistribution(0.3);
+      final g3 = GeometricDistribution(0.7);
       check(g1 == g2).isTrue();
       check(g1 == g3).isFalse();
       check(g1.hashCode).equals(g2.hashCode);
       check(g1.sample()).isNotNull();
 
       // Hypergeometric early breaks (K == 0, K == N)
-      const h1 = HypergeometricDistribution(50, 20, 10);
-      const h2 = HypergeometricDistribution(50, 20, 10);
-      const h3 = HypergeometricDistribution(50, 25, 10);
+      final h1 = HypergeometricDistribution(50, 20, 10);
+      final h2 = HypergeometricDistribution(50, 20, 10);
+      final h3 = HypergeometricDistribution(50, 25, 10);
       check(h1 == h2).isTrue();
       check(h1 == h3).isFalse();
       check(h1.hashCode).equals(h2.hashCode);
       check(h1.sample()).isNotNull();
 
-      const hZeroK = HypergeometricDistribution(10, 0, 5);
+      final hZeroK = HypergeometricDistribution(10, 0, 5);
       check(hZeroK.sample()).equals(0);
 
-      const hAllK = HypergeometricDistribution(10, 10, 5);
+      final hAllK = HypergeometricDistribution(10, 10, 5);
       check(hAllK.sample()).equals(5);
 
       // Negative Binomial
-      const nb1 = NegativeBinomialDistribution(5, 0.5);
-      const nb2 = NegativeBinomialDistribution(5, 0.5);
-      const nb3 = NegativeBinomialDistribution(5, 0.6);
+      final nb1 = NegativeBinomialDistribution(5, 0.5);
+      final nb2 = NegativeBinomialDistribution(5, 0.5);
+      final nb3 = NegativeBinomialDistribution(5, 0.6);
       check(nb1 == nb2).isTrue();
       check(nb1 == nb3).isFalse();
       check(nb1.hashCode).equals(nb2.hashCode);
@@ -500,9 +500,9 @@ void main() {
       check(r1.sample()).isNotNull();
 
       // Uniform Discrete
-      const u1 = UniformDiscreteDistribution(1, 6);
-      const u2 = UniformDiscreteDistribution(1, 6);
-      const u3 = UniformDiscreteDistribution(1, 10);
+      final u1 = UniformDiscreteDistribution(1, 6);
+      final u2 = UniformDiscreteDistribution(1, 6);
+      final u3 = UniformDiscreteDistribution(1, 10);
       check(u1 == u2).isTrue();
       check(u1 == u3).isFalse();
       check(u1.hashCode).equals(u2.hashCode);
@@ -521,16 +521,16 @@ void main() {
     });
 
     test('Discrete quantiles for large parameters do not hang', () {
-      const pois = PoissonDistribution(1000.0);
+      final pois = PoissonDistribution(1000.0);
       final pQuant = pois.inverseCumulativeProbability(0.999);
       check(pQuant).isGreaterThan(1000);
       check(pois.cumulativeProbability(pQuant)).isGreaterOrEqual(0.999);
 
-      const binom = BinomialDistribution(10000, 0.5);
+      final binom = BinomialDistribution(10000, 0.5);
       final bQuant = binom.inverseCumulativeProbability(0.5);
       check(bQuant).equals(5000);
 
-      const nbinom = NegativeBinomialDistribution(50, 0.4);
+      final nbinom = NegativeBinomialDistribution(50, 0.4);
       final nbQuant = nbinom.inverseCumulativeProbability(0.95);
       check(nbQuant).isGreaterThan(0);
       check(nbinom.cumulativeProbability(nbQuant)).isGreaterOrEqual(0.95);

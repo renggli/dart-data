@@ -18,7 +18,20 @@ import 'normal.dart';
 /// ```
 class LogNormalDistribution extends ContinuousDistribution {
   /// A log-normal distribution with parameters [mu] μ and [sigma] σ.
-  const new(this.mu, this.sigma) : assert(sigma > 0, 'sigma > 0');
+  new(this.mu, this.sigma) {
+    if (sigma <= 0) {
+      throw ArgumentError.value(
+        sigma,
+        'sigma',
+        'Sigma must be strictly positive',
+      );
+    }
+  }
+
+  /// A standard log-normal distribution with μ = 0 and σ = 1.
+  const new standard() : this._(0.0, 1.0);
+
+  const new _(this.mu, this.sigma);
 
   /// The parameter μ (mean of logarithm).
   final double mu;

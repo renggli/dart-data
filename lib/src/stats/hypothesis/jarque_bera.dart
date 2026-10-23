@@ -21,7 +21,7 @@ HypothesisTestResult jarqueBeraTest(
   final k = kurtosis(list, excess: true, bias: true);
   final jb = (n / 6.0) * (s * s + 0.25 * k * k);
 
-  const dist = ChiSquaredDistribution(2.0);
+  final dist = ChiSquaredDistribution(2.0);
   final pValue = dist.survival(jb).clamp(0.0, 1.0);
 
   return HypothesisTestResult(

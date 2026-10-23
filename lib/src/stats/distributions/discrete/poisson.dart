@@ -12,7 +12,11 @@ import '../discrete.dart';
 /// See https://en.wikipedia.org/wiki/Poisson_distribution.
 class PoissonDistribution extends DiscreteDistribution {
   /// A Poisson distribution with expected arrival [rate] $\lambda$.
-  const new(this.rate) : assert(rate > 0, 'λ > 0');
+  new(this.rate) {
+    if (rate <= 0) {
+      throw ArgumentError.value(rate, 'rate', 'Must be positive');
+    }
+  }
 
   /// Fits a Poisson distribution to [samples] using maximum likelihood
   /// estimation.

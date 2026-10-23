@@ -281,12 +281,12 @@ void main() {
       check(maxAxis.toFlatList()).deepEquals([4.0, 5.0, 6.0]);
 
       // Variance and Standard Deviation
-      final variance = a.var_();
+      final variance = a.variance();
       check(variance.getValue([])).isCloseTo(35.0 / 12.0, 1e-4);
       final stdDev = a.std();
       check(stdDev.getValue([])).isCloseTo(math.sqrt(35.0 / 12.0), 1e-4);
 
-      final vAxis = a.var_(axis: 1, ddof: 1);
+      final vAxis = a.variance(axis: 1, ddof: 1);
       check(vAxis.shape).deepEquals([2]);
       check(vAxis.toFlatList()).deepEquals([1.0, 1.0]);
 
@@ -301,7 +301,7 @@ void main() {
       check(empty.mean).throws<StateError>();
       check(empty.min).throws<StateError>();
       check(empty.max).throws<StateError>();
-      check(() => a.var_(ddof: 6)).throws<StateError>();
+      check(() => a.variance(ddof: 6)).throws<StateError>();
 
       // Non-contiguous reduction (transposed tensor)
       final transposed = a.transpose();

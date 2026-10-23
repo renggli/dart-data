@@ -6,91 +6,103 @@ import '../continuous.dart';
 import '../errors.dart';
 
 /// The Pareto distribution is a power-law probability distribution defined on
-/// the interval [xo, infinity) parameterized by scale parameter [xo] and shape
-/// parameter [alpha] (α).
+/// the interval [scale, infinity) parameterized by shape parameter [shape] (α)
+/// and scale parameter [scale] (xo).
 ///
 /// See https://en.wikipedia.org/wiki/Pareto_distribution.
 ///
 /// ```dart
-/// final distribution = ParetoDistribution(1, 3);
+/// final distribution = ParetoDistribution(3, 1);
 /// print(distribution.mean);  // 1.5
 /// ```
 class ParetoDistribution extends ContinuousDistribution {
-  /// A Pareto distribution with parameters [xo] and [alpha].
-  const new(this.xo, this.alpha)
-    : assert(xo > 0, 'xo > 0'),
-      assert(alpha > 0, 'alpha > 0');
+  /// A Pareto distribution with parameters [shape] and [scale].
+  new(this.shape, this.scale) {
+    if (shape <= 0) {
+      throw ArgumentError.value(shape, 'shape', 'Shape must be positive');
+    }
+    if (scale <= 0) {
+      throw ArgumentError.value(scale, 'scale', 'Scale must be positive');
+    }
+  }
 
-  /// The scale parameter xo.
-  final double xo;
+  /// A standard Pareto distribution with shape 1 and scale 1.
+  const new standard() : this._(1.0, 1.0);
 
-  /// The shape parameter alpha (α).
-  final double alpha;
+  const new _(this.shape, this.scale);
 
-  @override
-  double get lowerBound => xo;
+  /// The shape parameter (α).
+  final double shape;
 
-  @override
-  double get mean => alpha > 1 ? alpha * xo / (alpha - 1) : double.infinity;
-
-  @override
-  double get median => xo * pow(2, 1 / alpha).toDouble();
-
-  @override
-  double get mode => xo;
+  /// The scale parameter (xo).
+  final double scale;
 
   @override
-  double get variance => alpha > 2
-      ? alpha * xo * xo / (pow(alpha - 1, 2).toDouble() * (alpha - 2))
-      : (alpha > 1 ? double.infinity : double.nan);
+  double get lowerBound => scale;
 
   @override
-  double get skewness => alpha > 3
-      ? 2 * (1 + alpha) / (alpha - 3) * sqrt((alpha - 2) / alpha)
+  double get mean => shape > 1 ? shape * scale / (shape - 1) : double.infinity;
+
+  @override
+  double get median => scale * pow(2, 1 / shape).toDouble();
+
+  @override
+  double get mode => scale;
+
+  @override
+  double get variance => shape > 2
+      ? shape * scale * scale / (pow(shape - 1, 2).toDouble() * (shape - 2))
+      : (shape > 1 ? double.infinity : double.nan);
+
+  @override
+  double get skewness => shape > 3
+      ? 2 * (1 + shape) / (shape - 3) * sqrt((shape - 2) / shape)
       : double.nan;
 
   @override
-  double get excessKurtosis => alpha > 4
+  double get excessKurtosis => shape > 4
       ? 6 *
-            (pow(alpha, 3).toDouble() +
-                pow(alpha, 2).toDouble() -
-                6 * alpha -
+            (pow(shape, 3).toDouble() +
+                pow(shape, 2).toDouble() -
+                6 * shape -
                 2) /
-            (alpha * (alpha - 3) * (alpha - 4))
+            (shape * (shape - 3) * (shape - 4))
       : double.nan;
 
   @override
-  double probability(double x) => x < xo
+  double probability(double x) => x < scale
       ? 0.0
-      : alpha * pow(xo, alpha).toDouble() / pow(x, alpha + 1).toDouble();
+      : shape * pow(scale, shape).toDouble() / pow(x, shape + 1).toDouble();
 
   @override
   double cumulativeProbability(double x) =>
-      x < xo ? 0.0 : 1.0 - pow(xo / x, alpha).toDouble();
+      x < scale ? 0.0 : 1.0 - pow(scale / x, shape).toDouble();
 
   @override
   double inverseCumulativeProbability(num probability) {
     InvalidProbability.check(probability);
-    return xo / pow(1 - probability, 1 / alpha).toDouble();
+    return scale / pow(1 - probability, 1 / shape).toDouble();
   }
 
   @override
   double sample({Random? random}) {
     final uniform = (random ?? _random).nextDouble();
-    return xo / pow(uniform, 1 / alpha).toDouble();
+    return scale / pow(uniform, 1 / shape).toDouble();
   }
 
   @override
   bool operator ==(Object other) =>
-      other is ParetoDistribution && xo == other.xo && alpha == other.alpha;
+      other is ParetoDistribution &&
+      shape == other.shape &&
+      scale == other.scale;
 
   @override
-  int get hashCode => Object.hash(ParetoDistribution, xo, alpha);
+  int get hashCode => Object.hash(ParetoDistribution, shape, scale);
 
   @override
   ObjectPrinter get toStringPrinter => super.toStringPrinter
-    ..addValue(xo, name: 'xo')
-    ..addValue(alpha, name: 'alpha');
+    ..addValue(shape, name: 'shape')
+    ..addValue(scale, name: 'scale');
 }
 
 final _random = Random();

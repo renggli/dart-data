@@ -315,6 +315,36 @@ class Tensor<T> {
   }
 
   @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    if (other is! Tensor) return false;
+    final otherShape = other.layout.shape;
+    if (layout.rank != otherShape.length) return false;
+    for (var i = 0; i < layout.rank; i++) {
+      if (layout.shape[i] != otherShape[i]) return false;
+    }
+    if (length == 0) return true;
+    final it1 = values.iterator;
+    final it2 = other.values.iterator;
+    while (it1.moveNext() && it2.moveNext()) {
+      if (it1.current != it2.current) return false;
+    }
+    return true;
+  }
+
+  @override
+  int get hashCode {
+    var hash = Object.hash(rank, length);
+    for (var i = 0; i < rank; i++) {
+      hash = Object.hash(hash, layout.shape[i]);
+    }
+    for (final v in values) {
+      hash = Object.hash(hash, v);
+    }
+    return hash;
+  }
+
+  @override
   String toString() =>
       'Tensor(type: $type, layout: $layout, values: ${values.take(10).toList()}${length > 10 ? '...' : ''})';
 }

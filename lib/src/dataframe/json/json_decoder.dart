@@ -26,7 +26,7 @@ abstract final class DataFrameJsonDecoder {
       JsonOrient.records => _decodeRecords(decoded, columnTypes: columnTypes),
       JsonOrient.split => _decodeSplit(decoded, columnTypes: columnTypes),
       JsonOrient.columns => _decodeColumns(decoded, columnTypes: columnTypes),
-      JsonOrient.values_ => _decodeValues(decoded, columnTypes: columnTypes),
+      JsonOrient.array => _decodeValues(decoded, columnTypes: columnTypes),
     };
   }
 
@@ -78,7 +78,7 @@ abstract final class DataFrameJsonDecoder {
         return JsonOrient.records;
       }
       if (first is List) {
-        return JsonOrient.values_;
+        return JsonOrient.array;
       }
       throw FormatException(
         'Cannot auto-detect JsonOrient: List elements must be Map or List, got ${first.runtimeType}',

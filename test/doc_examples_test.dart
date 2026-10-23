@@ -167,7 +167,7 @@ void main() {
         7.0,
         9.0,
       ]);
-      check(t.var_().toFlatList().first).isCloseTo(4.0, 1e-6);
+      check(t.variance().toFlatList().first).isCloseTo(4.0, 1e-6);
 
       final a = Tensor<int>.fromObject([
         [1, 2],

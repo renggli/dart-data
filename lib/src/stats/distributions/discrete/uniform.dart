@@ -12,7 +12,15 @@ import '../errors.dart';
 /// See https://en.wikipedia.org/wiki/Discrete_uniform_distribution.
 class UniformDiscreteDistribution extends DiscreteDistribution {
   /// A discrete uniform distribution with integer bounds [min] and [max].
-  const new(this.min, this.max) : assert(min <= max, 'min <= max');
+  new(this.min, this.max) {
+    if (min > max) {
+      throw ArgumentError.value(
+        min,
+        'min',
+        'Must be less than or equal to max',
+      );
+    }
+  }
 
   /// Fits a discrete uniform distribution to [samples] using min and max
   /// values.

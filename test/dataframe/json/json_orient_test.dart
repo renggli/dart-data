@@ -8,7 +8,7 @@ void main() {
       check(JsonOrient.values).contains(JsonOrient.records);
       check(JsonOrient.values).contains(JsonOrient.split);
       check(JsonOrient.values).contains(JsonOrient.columns);
-      check(JsonOrient.values).contains(JsonOrient.values_);
+      check(JsonOrient.values).contains(JsonOrient.array);
     });
   });
 }

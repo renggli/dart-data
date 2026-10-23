@@ -67,6 +67,30 @@ abstract class Series<T> {
   /// Converts values to a list.
   List<T?> toList() => values.toList(growable: false);
 
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    if (other is! Series) return false;
+    if (name != other.name ||
+        length != other.length ||
+        dataType != other.dataType) {
+      return false;
+    }
+    for (var i = 0; i < length; i++) {
+      if (this[i] != other[i]) return false;
+    }
+    return true;
+  }
+
+  @override
+  int get hashCode {
+    var hash = Object.hash(name, length, dataType);
+    for (var i = 0; i < length; i++) {
+      hash = Object.hash(hash, this[i]);
+    }
+    return hash;
+  }
+
   /// Filters this series using a boolean [mask].
   Series<T> filter(List<bool> mask);
 

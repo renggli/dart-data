@@ -7,8 +7,9 @@ import '../discrete.dart';
 
 /// The Hypergeometric distribution is a discrete probability distribution that
 /// describes the probability of k successes (random draws for which the object
-/// drawn has a specified feature) in [n] draws, without replacement, from a
-/// population of size [N] that contains exactly [K] objects with that feature.
+/// drawn has a specified feature) in [draws], without replacement, from a
+/// population of size [populationSize] that contains exactly [successStates]
+/// objects with that feature.
 ///
 /// See https://en.wikipedia.org/wiki/Hypergeometric_distribution.
 ///
@@ -17,53 +18,85 @@ import '../discrete.dart';
 /// print(distribution.mean);  // 1.0
 /// ```
 class HypergeometricDistribution extends DiscreteDistribution {
-  /// A hypergeometric distribution with population size [N], success count in
-  /// population [K], and draw count [n].
-  const new(this.N, this.K, this.n)
-    : assert(N >= 0, 'N >= 0'),
-      assert(0 <= K && K <= N, '0 <= K <= N'),
-      assert(0 <= n && n <= N, '0 <= n <= N');
+  /// A hypergeometric distribution with [populationSize], [successStates] in
+  /// the population, and number of [draws].
+  new(this.populationSize, this.successStates, this.draws) {
+    if (populationSize < 0) {
+      throw ArgumentError.value(
+        populationSize,
+        'populationSize',
+        'Population size must be non-negative',
+      );
+    }
+    if (successStates < 0 || successStates > populationSize) {
+      throw ArgumentError.value(
+        successStates,
+        'successStates',
+        'Success count must be between 0 and populationSize',
+      );
+    }
+    if (draws < 0 || draws > populationSize) {
+      throw ArgumentError.value(
+        draws,
+        'draws',
+        'Number of draws must be between 0 and populationSize',
+      );
+    }
+  }
 
   /// Population size.
-  final int N;
+  final int populationSize;
 
   /// Success count in population.
-  final int K;
+  final int successStates;
 
   /// Number of draws.
-  final int n;
+  final int draws;
 
   @override
-  int get lowerBound => max(0, n - (N - K));
+  int get lowerBound => max(0, draws - (populationSize - successStates));
 
   @override
-  int get upperBound => min(n, K);
+  int get upperBound => min(draws, successStates);
 
   @override
-  double get mean => n * K / N;
+  double get mean => draws * successStates / populationSize;
 
   @override
   double get median => mean.roundToDouble();
 
   @override
-  double get mode => ((n + 1) * (K + 1) / (N + 2)).floorToDouble();
+  double get mode => ((draws + 1) * (successStates + 1) / (populationSize + 2))
+      .floorToDouble();
 
   @override
-  double get variance =>
-      N > 1 ? n * (K / N) * ((N - K) / N) * ((N - n) / (N - 1)) : 0.0;
+  double get variance => populationSize > 1
+      ? draws *
+            (successStates / populationSize) *
+            ((populationSize - successStates) / populationSize) *
+            ((populationSize - draws) / (populationSize - 1))
+      : 0.0;
 
   @override
-  double get skewness => N > 2
-      ? ((N - 2 * K) * sqrt(N - 1) * (N - 2 * n)) /
-            (sqrt(n * K * (N - K) * (N - n).toDouble()) * (N - 2))
+  double get skewness => populationSize > 2
+      ? ((populationSize - 2 * successStates) *
+                sqrt(populationSize - 1) *
+                (populationSize - 2 * draws)) /
+            (sqrt(
+                  draws *
+                      successStates *
+                      (populationSize - successStates) *
+                      (populationSize - draws).toDouble(),
+                ) *
+                (populationSize - 2))
       : double.nan;
 
   @override
   double get excessKurtosis {
-    if (N <= 3) return double.nan;
-    final numK = K.toDouble();
-    final numN = N.toDouble();
-    final numn = n.toDouble();
+    if (populationSize <= 3) return double.nan;
+    final numK = successStates.toDouble();
+    final numN = populationSize.toDouble();
+    final numn = draws.toDouble();
     final numerator =
         (numN - 1) *
         numN *
@@ -84,7 +117,9 @@ class HypergeometricDistribution extends DiscreteDistribution {
   double probability(int k) {
     if (k < lowerBound || k > upperBound) return 0;
     return exp(
-      combinationLn(K, k) + combinationLn(N - K, n - k) - combinationLn(N, n),
+      combinationLn(successStates, k) +
+          combinationLn(populationSize - successStates, draws - k) -
+          combinationLn(populationSize, draws),
     );
   }
 
@@ -92,12 +127,12 @@ class HypergeometricDistribution extends DiscreteDistribution {
   int sample({Random? random}) {
     final rand = random ?? _random;
     var successes = 0;
-    var remainingPopulation = N;
-    var remainingSuccesses = K;
-    for (var i = 0; i < n; i++) {
+    var remainingPopulation = populationSize;
+    var remainingSuccesses = successStates;
+    for (var i = 0; i < draws; i++) {
       if (remainingSuccesses == 0) break;
       if (remainingPopulation == remainingSuccesses) {
-        successes += n - i;
+        successes += draws - i;
         break;
       }
       final pSuccess = remainingSuccesses / remainingPopulation;
@@ -113,18 +148,23 @@ class HypergeometricDistribution extends DiscreteDistribution {
   @override
   bool operator ==(Object other) =>
       other is HypergeometricDistribution &&
-      N == other.N &&
-      K == other.K &&
-      n == other.n;
+      populationSize == other.populationSize &&
+      successStates == other.successStates &&
+      draws == other.draws;
 
   @override
-  int get hashCode => Object.hash(HypergeometricDistribution, N, K, n);
+  int get hashCode => Object.hash(
+    HypergeometricDistribution,
+    populationSize,
+    successStates,
+    draws,
+  );
 
   @override
   ObjectPrinter get toStringPrinter => super.toStringPrinter
-    ..addValue(N, name: 'N')
-    ..addValue(K, name: 'K')
-    ..addValue(n, name: 'n');
+    ..addValue(populationSize, name: 'populationSize')
+    ..addValue(successStates, name: 'successStates')
+    ..addValue(draws, name: 'draws');
 }
 
 final _random = Random();

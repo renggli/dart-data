@@ -11,7 +11,15 @@ import 'uniform.dart';
 /// See https://en.wikipedia.org/wiki/Exponential_distribution.
 class ExponentialDistribution extends ContinuousDistribution {
   /// An exponential distribution with [rate] $\lambda$.
-  const new(this.rate) : assert(rate > 0, 'λ > 0');
+  new(this.rate) {
+    if (rate <= 0) {
+      throw ArgumentError.value(rate, 'rate', 'Rate must be strictly positive');
+    }
+  }
+
+  const new standard() : this._(1.0);
+
+  const new _(this.rate);
 
   /// Fits an exponential distribution to [samples] using maximum likelihood
   /// estimation.

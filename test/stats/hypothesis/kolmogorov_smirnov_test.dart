@@ -18,7 +18,7 @@ void main() {
       check(resNormal.pValue).isGreaterThan(0.05);
       check(resNormal.statistic).isLessThan(0.15);
 
-      const uniform = UniformDistribution(0.0, 1.0);
+      const uniform = UniformDistribution.standard();
       final uniformSample = uniform
           .samples(random: math.Random(42))
           .take(100)
@@ -37,23 +37,23 @@ void main() {
       final sample1 = normal.samples(random: math.Random(1)).take(100).toList();
       final sample2 = normal.samples(random: math.Random(2)).take(100).toList();
 
-      final resSame = kolmogorovSmirnov2Sample(sample1, sample2);
+      final resSame = kolmogorovSmirnovTwoSample(sample1, sample2);
       check(resSame.isSignificant).isFalse();
       check(resSame.pValue).isGreaterThan(0.05);
 
       final shiftedSample = sample1.map((x) => x + 3.0).toList();
-      final resDiff = kolmogorovSmirnov2Sample(sample1, shiftedSample);
+      final resDiff = kolmogorovSmirnovTwoSample(sample1, shiftedSample);
       check(resDiff.isSignificant).isTrue();
       check(resDiff.pValue).isLessThan(1e-4);
 
-      check(() => kolmogorovSmirnov2Sample(<double>[], sample2))
+      check(() => kolmogorovSmirnovTwoSample(<double>[], sample2))
           .throws<ArgumentError>();
-      check(() => kolmogorovSmirnov2Sample(sample1, <double>[]))
+      check(() => kolmogorovSmirnovTwoSample(sample1, <double>[]))
           .throws<ArgumentError>();
     });
 
     test('Kolmogorov-Smirnov with discrete distribution does not throw', () {
-      const poisson = PoissonDistribution(3.0);
+      final poisson = PoissonDistribution(3.0);
       final sample = poisson.samples(random: math.Random(42)).take(50).toList();
       final res = kolmogorovSmirnovTest(sample, poisson);
       check(res.pValue).isGreaterThan(0.0);

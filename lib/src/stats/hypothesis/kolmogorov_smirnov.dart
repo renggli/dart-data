@@ -52,7 +52,7 @@ HypothesisTestResult kolmogorovSmirnovTest(
 ///
 /// Tests the null hypothesis that both samples are drawn from the same
 /// continuous distribution.
-HypothesisTestResult kolmogorovSmirnov2Sample(
+HypothesisTestResult kolmogorovSmirnovTwoSample(
   Iterable<num> sample1,
   Iterable<num> sample2, {
   double alpha = 0.05,

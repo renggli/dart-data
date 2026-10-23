@@ -12,5 +12,5 @@ enum JsonOrient {
   columns,
 
   /// 2D array of row values: `[[v1, v2], ...]`.
-  values_,
+  array,
 }

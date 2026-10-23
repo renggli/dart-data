@@ -18,13 +18,13 @@
 /// - **Relational Hash Joins**: Inner, left, right, and full outer joins
 ///   ([JoinType]) powered by collision-free composite keys.
 /// - **Group-by & Aggregations**: Grouping rows by one or more keys and
-///   aggregating with numerically stable Welford variance ([Agg.var_]), median
+///   aggregating with numerically stable Welford variance ([Agg.variance]), median
 ///   ([Agg.median]), mean ([Agg.mean]), sum ([Agg.sum]), min ([Agg.min]), and
 ///   max ([Agg.max]).
 /// - **Data Ingestion & Export**: Robust RFC 4180 CSV/TSV parsing
 ///   ([DataFrame.fromCsv]), CSV formatting ([DataFrame.toCsv]), and JSON serialization
 ///   ([DataFrame.fromJson], [DataFrame.toJson]) supporting [JsonOrient.records],
-///   [JsonOrient.split], [JsonOrient.columns], and [JsonOrient.values_] orientations.
+///   [JsonOrient.split], [JsonOrient.columns], and [JsonOrient.array] orientations.
 ///
 /// ## Example
 ///

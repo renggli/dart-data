@@ -25,7 +25,7 @@ enum Agg {
   std,
 
   /// Sample variance (Bessel's correction, n - 1).
-  var_,
+  variance,
 
   /// Median value.
   median,
@@ -275,7 +275,7 @@ class GroupBy {
         if (count <= 1) return 0.0;
         final variance = m2 / (count - 1);
         return math.sqrt(variance < 0.0 ? 0.0 : variance);
-      case Agg.var_:
+      case Agg.variance:
         var count = 0;
         var mean = 0.0;
         var m2 = 0.0;

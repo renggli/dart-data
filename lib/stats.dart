@@ -29,7 +29,7 @@
 ///   Welch's $t$-tests), [tTestPaired], [oneWayAnova] ($F$-test),
 ///   [chiSquaredTest], [chiSquaredContingency], [mannWhitneyUTest],
 ///   [wilcoxonSignedRankTest], [kolmogorovSmirnovTest],
-///   [kolmogorovSmirnov2Sample], and [jarqueBeraTest].
+///   [kolmogorovSmirnovTwoSample], and [jarqueBeraTest].
 /// - **Resampling & Inference**: [Bootstrap] (non-parametric confidence
 ///   intervals and distributions) and [Jackknife].
 /// - **Distribution Infrastructure**: [Distribution] abstract contract and

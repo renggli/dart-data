@@ -47,11 +47,8 @@ void main() {
           .deepEquals(['Alice', 'Bob']);
     });
 
-    test('encodes values_ orientation', () {
-      final jsonStr = DataFrameJsonEncoder.encode(
-        df,
-        orient: JsonOrient.values_,
-      );
+    test('encodes array orientation', () {
+      final jsonStr = DataFrameJsonEncoder.encode(df, orient: JsonOrient.array);
       final decoded = (jsonDecode(jsonStr) as List<dynamic>)
           .cast<List<dynamic>>();
       check(decoded).deepEquals([

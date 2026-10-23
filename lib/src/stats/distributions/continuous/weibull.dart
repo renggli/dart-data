@@ -16,16 +16,26 @@ import 'uniform.dart';
 /// print(distribution.mean);  // 1.0
 /// ```
 class WeibullDistribution extends ContinuousDistribution {
-  /// A weibull distribution with parameters [scale] λ and [shape] k.
-  const new(this.scale, this.shape)
-    : assert(scale > 0, 'scale > 0'),
-      assert(shape > 0, 'shape > 0');
+  /// A weibull distribution with parameters [shape] k and [scale] λ.
+  new(this.shape, this.scale) {
+    if (shape <= 0) {
+      throw ArgumentError.value(shape, 'shape', 'Shape must be positive');
+    }
+    if (scale <= 0) {
+      throw ArgumentError.value(scale, 'scale', 'Scale must be positive');
+    }
+  }
 
-  /// The scale parameter λ.
-  final double scale;
+  /// A standard weibull distribution with shape 1 and scale 1.
+  const new standard() : this._(1.0, 1.0);
+
+  const new _(this.shape, this.scale);
 
   /// The shape parameter k.
   final double shape;
+
+  /// The scale parameter λ.
+  final double scale;
 
   @override
   double get lowerBound => 0.0;
@@ -93,14 +103,14 @@ class WeibullDistribution extends ContinuousDistribution {
   @override
   bool operator ==(Object other) =>
       other is WeibullDistribution &&
-      scale == other.scale &&
-      shape == other.shape;
+      shape == other.shape &&
+      scale == other.scale;
 
   @override
-  int get hashCode => Object.hash(WeibullDistribution, scale, shape);
+  int get hashCode => Object.hash(WeibullDistribution, shape, scale);
 
   @override
   ObjectPrinter get toStringPrinter => super.toStringPrinter
-    ..addValue(scale, name: 'scale')
-    ..addValue(shape, name: 'shape');
+    ..addValue(shape, name: 'shape')
+    ..addValue(scale, name: 'scale');
 }
