@@ -238,12 +238,18 @@ void _combineRadicalBases(
 
     final matchingNumBases = <Expr>[];
     final matchingDenBases = <Expr>[];
+    var nonPositiveNumBases = 0;
     if (expA.isNegative) {
+      if (!isPositiveExpr(baseA, assumptions: assumptions)) continue;
       matchingDenBases.add(baseA);
     } else {
+      if (!isPositiveExpr(baseA, assumptions: assumptions)) {
+        nonPositiveNumBases++;
+      }
       matchingNumBases.add(baseA);
     }
 
+    final matchedB = <Expr>[];
     for (var j = i + 1; j < entries.length; j++) {
       final baseB = entries[j].key;
       if (used.contains(baseB) || baseB == Constant.e) continue;
@@ -251,23 +257,25 @@ void _combineRadicalBases(
       if (expB is FractionNumber &&
           expB.denominator == denA &&
           expB.numerator.abs() == absNumA) {
-        if (denA.isEven &&
-            !isPositiveExpr(baseA, assumptions: assumptions) &&
-            !isPositiveExpr(baseB, assumptions: assumptions)) {
-          continue;
-        }
         if (expB.isNegative) {
+          if (!isPositiveExpr(baseB, assumptions: assumptions)) continue;
           matchingDenBases.add(baseB);
         } else {
+          final isPos = isPositiveExpr(baseB, assumptions: assumptions);
+          if (!isPos) {
+            if (nonPositiveNumBases >= 1) continue;
+            nonPositiveNumBases++;
+          }
           matchingNumBases.add(baseB);
         }
-        used.add(baseB);
+        matchedB.add(baseB);
       }
     }
 
     if (matchingNumBases.length + matchingDenBases.length >= 2 &&
         matchingNumBases.isNotEmpty) {
       used.add(baseA);
+      used.addAll(matchedB);
       for (final b in matchingNumBases) {
         baseExponents.remove(b);
       }
@@ -277,12 +285,15 @@ void _combineRadicalBases(
       final combinedFactors = <Expr>[
         ...matchingNumBases,
         for (final b in matchingDenBases)
-          simplifyPow(b, IntegerNumber.negativeOne),
+          simplifyPow(b, IntegerNumber.negativeOne, assumptions: assumptions),
       ];
-      final combinedBase = simplifyMul(combinedFactors);
+      final combinedBase = simplifyMul(
+        combinedFactors,
+        assumptions: assumptions,
+      );
       final existing = baseExponents[combinedBase];
       if (existing != null) {
-        final sum = simplifyAdd([existing, posExp]);
+        final sum = simplifyAdd([existing, posExp], assumptions: assumptions);
         if (sum is Number && sum.isZero) {
           baseExponents.remove(combinedBase);
         } else {

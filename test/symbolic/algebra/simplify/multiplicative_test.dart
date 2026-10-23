@@ -53,6 +53,29 @@ void main() {
         Pow(y, FractionNumber.half),
       ], assumptions: Assumptions.positive);
       check(cancelledExisting).equals(IntegerNumber.one);
+
+      // Radical bases combination requires positive domain for denominator and at most one non-positive numerator
+      check(Expr.parse('sqrt(2) / sqrt(y)').simplify().toString())
+          .equals('sqrt(2) * y ^ (-1/2)');
+      check(
+        Expr.parse('sqrt(2) / sqrt(y)')
+            .simplify(assumptions: Assumptions.positive)
+            .toString(),
+      ).equals('sqrt(2 / y)');
+      check(Expr.parse('sqrt(2) * sqrt(x) * sqrt(y)').simplify().toString())
+          .equals('sqrt(y) * sqrt(2 * x)');
+      check(
+        Expr.parse('sqrt(2) * sqrt(x) * sqrt(y)')
+            .simplify(assumptions: Assumptions.positive)
+            .toString(),
+      ).equals('sqrt(2 * x * y)');
+      check(Expr.parse('x^(1/3) * y^(1/3)').simplify().toString())
+          .equals('x ^ (1/3) * y ^ (1/3)');
+      check(
+        Expr.parse('x^(1/3) * y^(1/3)')
+            .simplify(assumptions: Assumptions.positive)
+            .toString(),
+      ).equals('(x * y) ^ (1/3)');
     });
 
     test('absorbs rational coefficients into negative integer radicals', () {
