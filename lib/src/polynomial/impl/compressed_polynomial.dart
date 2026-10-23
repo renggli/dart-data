@@ -1,6 +1,7 @@
 import '../../../type.dart';
 import '../polynomial.dart';
 import 'dense_polynomial.dart';
+import 'formatting.dart';
 
 /// Sparse compressed univariate polynomial storing non-zero
 /// `(exponent, coefficient)` pairs.
@@ -561,25 +562,11 @@ class CompressedPolynomial<T> extends Polynomial<T> {
   String toString() {
     final deg = degree;
     if (deg < 0) return '0';
-    final parts = <String>[];
+    final terms = <({int exponent, T coefficient})>[];
     for (var i = _exponents.length - 1; i >= 0; i--) {
-      final exp = _exponents[i];
-      final coeff = _coefficients[i];
-      if (exp == 0) {
-        parts.add('$coeff');
-      } else if (exp == 1) {
-        parts.add(
-          coeff == type.field.multiplicativeIdentity ? 'x' : '${coeff}x',
-        );
-      } else {
-        parts.add(
-          coeff == type.field.multiplicativeIdentity
-              ? 'x^$exp'
-              : '${coeff}x^$exp',
-        );
-      }
+      terms.add((exponent: _exponents[i], coefficient: _coefficients[i]));
     }
-    return parts.isEmpty ? '0' : parts.join(' + ');
+    return formatPolynomialTerms(type, terms);
   }
 }
 

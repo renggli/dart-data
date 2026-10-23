@@ -1,5 +1,6 @@
 import 'package:checks/checks.dart';
 import 'package:data/polynomial.dart';
+import 'package:data/type.dart';
 import 'package:test/test.dart';
 
 void main() {
@@ -130,6 +131,44 @@ void main() {
 
       check(rf1 == rf2).isTrue();
       check(rf1.hashCode).equals(rf2.hashCode);
+    });
+
+    test('evaluateComplex with valid values and pole handling', () {
+      // R(z) = (z + 1) / (z - 1)
+      final num = Polynomial<double>.fromCoefficients([1.0, 1.0]);
+      final den = Polynomial<double>.fromCoefficients([-1.0, 1.0]);
+      final rf = RationalFunction(num, den);
+
+      // At z = 1 + i: (2 + i) / i = 1 - 2i
+      final result = rf.evaluateComplex(const Complex(1.0, 1.0));
+      check(result.a).isCloseTo(1.0, 1e-9);
+      check(result.b).isCloseTo(-2.0, 1e-9);
+
+      // Pole at z = 1 + 0i throws
+      check(() => rf.evaluateComplex(const Complex(1.0, 0.0)))
+          .throws<UnsupportedError>();
+    });
+
+    test('scale by non-zero and zero scalar', () {
+      final num = Polynomial<double>.fromCoefficients([1.0, 1.0]);
+      final den = Polynomial<double>.fromCoefficients([2.0, 1.0]);
+      final rf = RationalFunction(num, den);
+
+      final scaled = rf.scale(3.0);
+      check(scaled.evaluate(0.0)).isCloseTo(1.5, 1e-9); // 3 * 0.5 = 1.5
+
+      final scaledZero = rf.scale(0.0);
+      check(scaledZero.numerator.degree).equals(-1);
+    });
+
+    test('RationalFunction.simplified factory', () {
+      // (x^2 - 1) / (x - 1) -> x + 1
+      final num = Polynomial<double>.fromCoefficients([-1.0, 0.0, 1.0]);
+      final den = Polynomial<double>.fromCoefficients([-1.0, 1.0]);
+      final rf = RationalFunction.simplified(num, den);
+      check(rf.denominator.degree).equals(0);
+      check(rf.numerator.degree).equals(1);
+      check(rf.evaluate(3.0)).equals(4.0);
     });
   });
 }

@@ -504,6 +504,11 @@ Each task specifies:
   1. Format negative coefficients in `Polynomial.toString()` using ` - ` instead of `+ -`.
   2. Strip trailing zero coefficients in `DensePolynomial` (and wrap `coefficients` in an unmodifiable view).
   3. Add `derivative()` and `evaluateComplex(Complex z)` to `RationalFunction`.
+- **Implementation Report**:
+  - Extracted shared formatting helper `formatPolynomialTerms` supporting subtraction operator ` - ` for negative coefficients across both `DensePolynomial` and `CompressedPolynomial`.
+  - Updated `DensePolynomial.fromCoefficients` to strip trailing zero coefficients and wrap the storage in an unmodifiable list view.
+  - Added `RationalFunction.simplified` factory constructor, `evaluateComplex(Complex z)` with pole detection, and `scale(T scalar)` to `RationalFunction`.
+  - Added comprehensive tests for negative coefficient polynomial formatting, unmodifiable zero-stripped dense polynomial coefficients, and rational function operations across both VM and Chrome.
 
 ---
 

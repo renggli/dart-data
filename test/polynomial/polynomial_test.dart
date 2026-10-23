@@ -338,5 +338,50 @@ void main() {
       check(() => Polynomial.laguerreL(-1)).throws<ArgumentError>();
       check(() => laguerreEvaluate(-1, 0.0)).throws<ArgumentError>();
     });
+
+    test('DensePolynomial strips trailing zeros and exposes unmodifiable coefficients', () {
+      final pWithZeros = Polynomial<double>.fromCoefficients([
+        1.0,
+        2.0,
+        0.0,
+        0.0,
+      ]);
+      check(pWithZeros.degree).equals(1);
+      check(pWithZeros.coefficients.length).equals(2);
+      check(pWithZeros.leadingCoefficient).equals(2.0);
+      check(pWithZeros.coefficients).deepEquals([1.0, 2.0]);
+      check(() => pWithZeros.coefficients[0] = 99.0).throws<UnsupportedError>();
+
+      final allZeros = Polynomial<double>.fromCoefficients([0.0, 0.0, 0.0]);
+      check(allZeros.degree).equals(-1);
+      check(allZeros.coefficients.isEmpty).isTrue();
+      check(allZeros.leadingCoefficient).equals(0.0);
+    });
+
+    test(
+      'Polynomial.toString formats negative coefficients with minus signs',
+      () {
+        final fromRoots = Polynomial<double>.fromRoots([2.0, 3.0]);
+        check(fromRoots.toString())
+            .matchesPattern(RegExp(r'^x\^2 - 5(\.0)?x \+ 6(\.0)?$'));
+
+        final leadingNeg = Polynomial<double>.fromCoefficients([
+          6.0,
+          5.0,
+          -1.0,
+        ]);
+        check(leadingNeg.toString())
+            .matchesPattern(RegExp(r'^-x\^2 \+ 5(\.0)?x \+ 6(\.0)?$'));
+
+        final negConst = Polynomial<int>.fromCoefficients([-2, 1]);
+        check(negConst.toString()).equals('x - 2');
+
+        final negLinear = Polynomial<int>.fromCoefficients([1, -1, 1]);
+        check(negLinear.toString()).equals('x^2 - x + 1');
+
+        final allNeg = Polynomial<int>.fromCoefficients([-4, -3, -2]);
+        check(allNeg.toString()).equals('-2x^2 - 3x - 4');
+      },
+    );
   });
 }

@@ -24,6 +24,10 @@ class RationalFunction<T> {
     }
   }
 
+  /// Constructs a rational function and simplifies it by cancelling $\gcd(P, Q)$.
+  factory simplified(Polynomial<T> numerator, Polynomial<T> denominator) =>
+      RationalFunction(numerator, denominator).simplify();
+
   /// Constructs a rational function from a single [polynomial] with denominator
   /// 1.
   factory fromPolynomial(Polynomial<T> polynomial) {
@@ -83,6 +87,24 @@ class RationalFunction<T> {
       throw UnsupportedError('Evaluation resulted in division by zero.');
     }
     return numVal / denVal;
+  }
+
+  /// Evaluates $R(z) = P(z) / Q(z)$ for a complex argument [z].
+  Complex evaluateComplex(Complex z) {
+    final numVal = numerator.evaluateComplex(z);
+    final denVal = denominator.evaluateComplex(z);
+    if (denVal == Complex.zero) {
+      throw UnsupportedError('Evaluation resulted in division by zero.');
+    }
+    return numVal / denVal;
+  }
+
+  /// Scales this rational function by [scalar].
+  RationalFunction<T> scale(T scalar) {
+    if (scalar == type.field.additiveIdentity) {
+      return RationalFunction.fromPolynomial(Polynomial<T>.zero(type: type));
+    }
+    return RationalFunction(numerator.scale(scalar), denominator).simplify();
   }
 
   /// Addition:

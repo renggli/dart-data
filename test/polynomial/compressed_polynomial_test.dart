@@ -373,7 +373,7 @@ void main() {
         0: -1,
         10000: 1,
       }, type: DataType.int32);
-      check(p.toString()).equals('x^10000 + -1');
+      check(p.toString()).equals('x^10000 - 1');
 
       final constP = CompressedPolynomial<int>.fromMap({
         0: 7,
@@ -412,7 +412,7 @@ void main() {
         0: 4,
       }, type: DataType.int32);
       check((pA + pB).toString()).equals('x^5 + 3x^4 + 2x + 4');
-      check((pA - pB).toString()).equals('x^5 + -3x^4 + 2x + -4');
+      check((pA - pB).toString()).equals('x^5 - 3x^4 + 2x - 4');
 
       // Analytical linear root
       final lin = CompressedPolynomial<double>.fromMap({

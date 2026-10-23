@@ -5,6 +5,7 @@ import '../../acceleration/fft/fft.dart';
 import '../../acceleration/fft/fft_dart.dart';
 import '../polynomial.dart';
 import 'compressed_polynomial.dart';
+import 'formatting.dart';
 
 /// Dense univariate polynomial backed by a contiguous list of coefficients.
 ///
@@ -13,9 +14,23 @@ import 'compressed_polynomial.dart';
 class DensePolynomial<T> extends Polynomial<T> {
   /// Constructs a dense polynomial from [coefficients] where index $i$
   /// corresponds to the power $x^i$.
-  new fromCoefficients(Iterable<T> coefficients, {DataType<T>? type})
-    : type = type ?? DataType.fromIterable(coefficients),
-      _coefficients = coefficients.toList(growable: false);
+  factory fromCoefficients(Iterable<T> coefficients, {DataType<T>? type}) {
+    final effectiveType = type ?? DataType.fromIterable(coefficients);
+    final zero = effectiveType.field.additiveIdentity;
+    final list = coefficients.toList();
+    var lastNonZero = list.length - 1;
+    while (lastNonZero >= 0 && list[lastNonZero] == zero) {
+      lastNonZero--;
+    }
+    final trimmed = lastNonZero < 0
+        ? <T>[]
+        : lastNonZero == list.length - 1
+        ? list
+        : list.sublist(0, lastNonZero + 1);
+    return DensePolynomial._(List<T>.unmodifiable(trimmed), effectiveType);
+  }
+
+  const new _(this._coefficients, this.type);
 
   @override
   final DataType<T> type;
@@ -26,19 +41,11 @@ class DensePolynomial<T> extends Polynomial<T> {
   List<T> get coefficients => _coefficients;
 
   @override
-  int get degree {
-    final field = type.field;
-    final zero = field.additiveIdentity;
-    for (var i = _coefficients.length - 1; i >= 0; i--) {
-      if (_coefficients[i] != zero) return i;
-    }
-    return -1;
-  }
+  int get degree => _coefficients.length - 1;
 
   @override
   int get termCount {
-    final field = type.field;
-    final zero = field.additiveIdentity;
+    final zero = type.field.additiveIdentity;
     var count = 0;
     for (var i = 0; i < _coefficients.length; i++) {
       if (_coefficients[i] != zero) count++;
@@ -55,10 +62,8 @@ class DensePolynomial<T> extends Polynomial<T> {
   }
 
   @override
-  T get leadingCoefficient {
-    final deg = degree;
-    return deg < 0 ? type.field.additiveIdentity : _coefficients[deg];
-  }
+  T get leadingCoefficient =>
+      _coefficients.isEmpty ? type.field.additiveIdentity : _coefficients.last;
 
   @override
   T evaluate(T x) {
@@ -365,22 +370,13 @@ class DensePolynomial<T> extends Polynomial<T> {
   String toString() {
     final deg = degree;
     if (deg < 0) return '0';
-    final parts = <String>[];
+    final zero = type.field.additiveIdentity;
+    final terms = <({int exponent, T coefficient})>[];
     for (var i = deg; i >= 0; i--) {
-      final coeff = this[i];
-      if (coeff == type.field.additiveIdentity && deg > 0) continue;
-      if (i == 0) {
-        parts.add('$coeff');
-      } else if (i == 1) {
-        parts.add(
-          coeff == type.field.multiplicativeIdentity ? 'x' : '${coeff}x',
-        );
-      } else {
-        parts.add(
-          coeff == type.field.multiplicativeIdentity ? 'x^$i' : '${coeff}x^$i',
-        );
-      }
+      final coeff = _coefficients[i];
+      if (coeff == zero && deg > 0) continue;
+      terms.add((exponent: i, coefficient: coeff));
     }
-    return parts.join(' + ');
+    return formatPolynomialTerms(type, terms);
   }
 }
