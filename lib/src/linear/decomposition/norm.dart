@@ -83,8 +83,11 @@ extension MatrixNormExtension<T extends num> on Matrix<T> {
   /// ]);
   /// print(m.norm2); // 5.0
   /// ```
-  double get norm2 =>
-      (rowCount == 0 || colCount == 0 || svd.s.length == 0) ? 0.0 : svd.s[0];
+  double get norm2 {
+    if (rowCount == 0 || colCount == 0) return 0.0;
+    final singularValues = svd.s;
+    return singularValues.length == 0 ? 0.0 : singularValues[0];
+  }
 
   /// Returns the infinity norm: maximum absolute row sum
   /// $\max_i \sum_j |a_{ij}|$.

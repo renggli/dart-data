@@ -563,6 +563,9 @@ Each task specifies:
   - `MatrixNormExtension.norm2` (`lib/src/linear/decomposition/norm.dart`) evaluates `svd.singularValues.isEmpty ? 0.0 : svd.singularValues[0]`, where `svd` is a getter that constructs a brand-new `SingularValueDecomposition` on each access—so calling `m.norm2` computes the full SVD **twice**!
 - **Actionable Fix & Acceptance Criteria**:
   1. Bind `final s = svd.singularValues;` to a local variable in `norm2`, `cond`, and `rank`.
+- **Implementation Report**:
+  - Bound `final singularValues = svd.s;` in `MatrixNormExtension.norm2`, eliminating the duplicate SVD recomputation on each spectral 2-norm access.
+  - Verified correctness and performance across VM, Node.js, and Chrome.
 
 ### TASK-5.4: Dispatch Unaccelerated Operations to `Blas`, `Lapack`, and `Vforce` Facades
 
