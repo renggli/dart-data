@@ -316,7 +316,7 @@ This document describes the achieved architecture across all subsystems of `pack
 ### 5.1 Architecture & Domain Decomposition
 
 - **Reasoning**: Hardware-tuned linear algebra and numerical signal processing routines must provide high-throughput SIMD and multi-core vendor execution on desktop and server environments while maintaining 100% portable, numerically identical pure Dart fallbacks on platforms without FFI (e.g., Web, Wasm).
-- **Sub-Package Layout**: The acceleration subsystem is decomposed into focused mathematical domains, each following a uniform structure (`domain/` containing the public dispatch interface, `domain_dart.dart` for pure Dart fallbacks, and conditional FFI bindings via `domain_native.dart` and `domain_stub.dart`):
+- **Sub-Package Layout**: The acceleration subsystem is decomposed into focused mathematical domains, each following a uniform structure (`<domain>.dart` containing the public dispatch interface, `<domain>_dart.dart` for pure Dart fallbacks, and conditional FFI bindings via `<domain>_native.dart` and `<domain>_stub.dart`):
   - `lib/src/acceleration/blas/`: Unified Basic Linear Algebra Subprograms (Levels 1, 2, and 3) in `Blas`.
   - `lib/src/acceleration/lapack/`: Linear system solvers and matrix decompositions in `Lapack`.
   - `lib/src/acceleration/fft/`: In-place 1D and 2D complex and real Fast Fourier Transforms in `Fft`.
