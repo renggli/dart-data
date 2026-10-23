@@ -320,15 +320,6 @@ abstract final class LapackNative {
         wView.address,
       );
       if (info == 0) {
-        if (normJobz == 'V') {
-          for (var i = 0; i < n; i++) {
-            for (var j = i + 1; j < n; j++) {
-              final tmp = a[aOffset + i * lda + j];
-              a[aOffset + i * lda + j] = a[aOffset + j * lda + i];
-              a[aOffset + j * lda + i] = tmp;
-            }
-          }
-        }
         return true;
       }
       return false;
@@ -433,15 +424,6 @@ abstract final class LapackNative {
         wView.address,
       );
       if (info == 0) {
-        if (normJobz == 'V') {
-          for (var i = 0; i < n; i++) {
-            for (var j = i + 1; j < n; j++) {
-              final tmp = a[aOffset + i * lda + j];
-              a[aOffset + i * lda + j] = a[aOffset + j * lda + i];
-              a[aOffset + j * lda + i] = tmp;
-            }
-          }
-        }
         return true;
       }
       return false;

@@ -28,7 +28,7 @@ Pre-release review of `lib/` at `2fc36d4`. Baseline: `dart analyze` clean, READM
 
 | ID | Sev | Location | Problem | Fix |
 | --- | --- | --- | --- | --- |
-| R2.1 | High | `lib/src/acceleration/lapack/lapack_native.dart:323-331` | The LAPACKE `dsyev` path transposes eigenvectors into rows. The Fortran and Dart paths return columns. | Remove the transpose. Add a test that checks eigenvectors. |
+| R2.1 [COMPLETED] | High | `lib/src/acceleration/lapack/lapack_native.dart:323-331` | The LAPACKE `dsyev` path transposes eigenvectors into rows. The Fortran and Dart paths return columns. | Remove the transpose. Add a test that checks eigenvectors. |
 | R2.2 | High | `lapack_native.dart:244-257` | The Fortran `dgels` hardcodes `LDA=n` and passes row-major `B` as column-major, so it is wrong for `nrhs>1` or `lda≠n`. | Use `lda`. Transpose `B` through an arena buffer, as `dgesv` does. |
 | R2.3 | High | `lib/src/acceleration/lapack/lapack.dart:19-110` | The `Lapack` facade has no argument or bounds checks, so native calls can read or write out of bounds. `LapackDart.dsyev(n=0)` hits `e[-1]`. | Add the `blas_validation` checks and an `n==0` early return to every entry point. |
 | R2.4 | Medium | `lapack_native.dart:14-15,53` | `_hasDpotrf` is true when only `LAPACKE_dpotrf` exists, but the code calls `dpotrf_`. | Split the flags or add the LAPACKE binding. |

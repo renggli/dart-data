@@ -57,13 +57,28 @@ void main() {
     });
 
     accelerationTest('dsyev symmetric eigenvalue solve', () {
-      final a = Float64List.fromList([2.0, 1.0, 1.0, 2.0]);
-      final w = Float64List(2);
-      final ok = Lapack.dsyev(n: 2, a: a, lda: 2, w: w);
+      final a0 = [2.0, 1.0, 0.0, 1.0, 3.0, 1.0, 0.0, 1.0, 2.0];
+      final a = Float64List.fromList(a0);
+      final w = Float64List(3);
+      final ok = Lapack.dsyev(n: 3, a: a, lda: 3, w: w);
       check(ok).isTrue();
-      // Eigenvalues of [[2, 1], [1, 2]] are 1 and 3
+      // Eigenvalues of tridiagonal [[2,1,0],[1,3,1],[0,1,2]] are 1, 2, 4
       check(w[0]).isCloseTo(1.0, 1e-9);
-      check(w[1]).isCloseTo(3.0, 1e-9);
+      check(w[1]).isCloseTo(2.0, 1e-9);
+      check(w[2]).isCloseTo(4.0, 1e-9);
+
+      // Verify that eigenvectors are stored in columns of a: A0 * v_j = lambda_j * v_j
+      for (var j = 0; j < 3; j++) {
+        final lambda = w[j];
+        for (var i = 0; i < 3; i++) {
+          var avI = 0.0;
+          for (var k = 0; k < 3; k++) {
+            avI += a0[i * 3 + k] * a[k * 3 + j];
+          }
+          final lvI = lambda * a[i * 3 + j];
+          check(avI).isCloseTo(lvI, 1e-9);
+        }
+      }
     });
 
     accelerationTest('ssyev float32 eigenvalue solve', () {
