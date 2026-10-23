@@ -369,5 +369,113 @@ void main() {
         check(childrenLen).equals(0);
       }
     });
+
+    test('throws UnsupportedError on half-precision float at schema time', () {
+      final df = DataFrame.fromColumns({
+        'f': [1.0, 2.0],
+      });
+      final bytes = Uint8List.fromList(df.toArrowIpc());
+      final byteData = ByteData.sublistView(bytes);
+
+      // In the message FlatBuffer:
+      final rootTableOffset = byteData.getUint32(8, Endian.little);
+      final vtableOffset = byteData.getInt32(
+        8 + rootTableOffset,
+        Endian.little,
+      );
+      final vtablePos = 8 + rootTableOffset - vtableOffset;
+      final headerOffsetInTable = byteData.getUint16(
+        vtablePos + 8,
+        Endian.little,
+      );
+      final headerPos = 8 + rootTableOffset + headerOffsetInTable;
+      final schemaOffset =
+          headerPos + byteData.getUint32(headerPos, Endian.little);
+
+      final schemaVtableOffset = byteData.getInt32(schemaOffset, Endian.little);
+      final schemaVtablePos = schemaOffset - schemaVtableOffset;
+      final fieldsVecOffsetInSchema = byteData.getUint16(
+        schemaVtablePos + 6,
+        Endian.little,
+      );
+      final fieldsVecPos = schemaOffset + fieldsVecOffsetInSchema;
+      final fieldsVecTablePos =
+          fieldsVecPos + byteData.getUint32(fieldsVecPos, Endian.little);
+
+      final field0Pos =
+          fieldsVecTablePos +
+          4 +
+          byteData.getUint32(fieldsVecTablePos + 4, Endian.little);
+      final field0VtableOffset = byteData.getInt32(field0Pos, Endian.little);
+      final field0VtablePos = field0Pos - field0VtableOffset;
+
+      // slot 3 in field0 is type table (FloatingPoint)
+      final typeOffsetInField = byteData.getUint16(
+        field0VtablePos + 10,
+        Endian.little,
+      );
+      final typePos = field0Pos + typeOffsetInField;
+      final fpTablePos = typePos + byteData.getUint32(typePos, Endian.little);
+      final fpVtableOffset = byteData.getInt32(fpTablePos, Endian.little);
+      final fpVtablePos = fpTablePos - fpVtableOffset;
+      final precOffset = byteData.getUint16(fpVtablePos + 4, Endian.little);
+      final precPos = fpTablePos + precOffset;
+
+      // Mutate precision from 2 (Double) to 0 (Half)
+      byteData.setInt16(precPos, 0, Endian.little);
+
+      check(() => ArrowIpc.decode(bytes)).throws<UnsupportedError>();
+    });
+
+    test('throws UnsupportedError on unsupported typeType at schema time', () {
+      final df = DataFrame.fromColumns({
+        'f': [1.0, 2.0],
+      });
+      final bytes = Uint8List.fromList(df.toArrowIpc());
+      final byteData = ByteData.sublistView(bytes);
+
+      final rootTableOffset = byteData.getUint32(8, Endian.little);
+      final vtableOffset = byteData.getInt32(
+        8 + rootTableOffset,
+        Endian.little,
+      );
+      final vtablePos = 8 + rootTableOffset - vtableOffset;
+      final headerOffsetInTable = byteData.getUint16(
+        vtablePos + 8,
+        Endian.little,
+      );
+      final headerPos = 8 + rootTableOffset + headerOffsetInTable;
+      final schemaOffset =
+          headerPos + byteData.getUint32(headerPos, Endian.little);
+
+      final schemaVtableOffset = byteData.getInt32(schemaOffset, Endian.little);
+      final schemaVtablePos = schemaOffset - schemaVtableOffset;
+      final fieldsVecOffsetInSchema = byteData.getUint16(
+        schemaVtablePos + 6,
+        Endian.little,
+      );
+      final fieldsVecPos = schemaOffset + fieldsVecOffsetInSchema;
+      final fieldsVecTablePos =
+          fieldsVecPos + byteData.getUint32(fieldsVecPos, Endian.little);
+
+      final field0Pos =
+          fieldsVecTablePos +
+          4 +
+          byteData.getUint32(fieldsVecTablePos + 4, Endian.little);
+      final field0VtableOffset = byteData.getInt32(field0Pos, Endian.little);
+      final field0VtablePos = field0Pos - field0VtableOffset;
+
+      // slot 2 in field0 is typeType (uint8)
+      final typeTypeOffset = byteData.getUint16(
+        field0VtablePos + 8,
+        Endian.little,
+      );
+      final typeTypePos = field0Pos + typeTypeOffset;
+
+      // Mutate typeType from 3 (FloatingPoint) to 99 (unknown)
+      byteData.setUint8(typeTypePos, 99);
+
+      check(() => ArrowIpc.decode(bytes)).throws<UnsupportedError>();
+    });
   });
 }

@@ -614,7 +614,7 @@ class _ArrowIpcStreamReader {
         );
       }
 
-      var typeCode = 0;
+      final int typeCode;
       if (typeType == 5) {
         typeCode = 5; // Utf8
       } else if (typeType == 6) {
@@ -622,12 +622,32 @@ class _ArrowIpcStreamReader {
       } else if (typeType == 3 && typePos != null) {
         // FloatingPoint: precision (0=Half, 1=Single, 2=Double)
         final prec = reader.readInt16(typePos, 0) ?? 2;
-        typeCode = prec == 1 ? 301 : 302;
+        if (prec == 1) {
+          typeCode = 301;
+        } else if (prec == 2) {
+          typeCode = 302;
+        } else {
+          throw UnsupportedError(
+            'Unsupported floating-point precision ($prec) in field "$name" (half-precision float16 is not supported).',
+          );
+        }
       } else if (typeType == 2 && typePos != null) {
         // Int: bitWidth, is_signed
         final bitWidth = reader.readInt32(typePos, 0) ?? 32;
+        if (bitWidth != 8 &&
+            bitWidth != 16 &&
+            bitWidth != 32 &&
+            bitWidth != 64) {
+          throw UnsupportedError(
+            'Unsupported integer bit-width ($bitWidth) in field "$name".',
+          );
+        }
         final isSigned = (reader.readUint8(typePos, 1) ?? 1) == 1;
         typeCode = (isSigned ? 200 : 100) + bitWidth;
+      } else {
+        throw UnsupportedError(
+          'Unsupported Arrow field type (typeType: $typeType) in field "$name".',
+        );
       }
 
       fields.add(
