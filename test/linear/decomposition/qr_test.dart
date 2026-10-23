@@ -3,6 +3,13 @@ import 'package:data/linear.dart';
 import 'package:data/type.dart';
 import 'package:test/test.dart';
 
+extension on Subject<Complex> {
+  void isCloseTo(Complex other, double delta) {
+    has((c) => c.a, 'real').isCloseTo(other.a, delta);
+    has((c) => c.b, 'imaginary').isCloseTo(other.b, delta);
+  }
+}
+
 void main() {
   group('QR Decomposition', () {
     test('square matrix decomposition A = Q * R', () {
@@ -153,6 +160,121 @@ void main() {
         [2e15, 4e15],
       ], type: DataType.float64);
       check(largeRankDef.qr.isFullRank).isFalse();
+    });
+  });
+
+  group('Complex QR Decomposition', () {
+    test('square complex matrix decomposition A = Q * R', () {
+      final a = Matrix<Complex>.fromRows([
+        [
+          const Complex(1.0, 1.0),
+          const Complex(-1.0, 2.0),
+          const Complex(0.0, 1.0),
+        ],
+        [
+          const Complex(2.0, 0.0),
+          const Complex(3.0, -1.0),
+          const Complex(1.0, 1.0),
+        ],
+        [
+          const Complex(0.0, -1.0),
+          const Complex(4.0, 0.0),
+          const Complex(2.0, -1.0),
+        ],
+      ], type: DataType.complex);
+
+      final qr = a.qr;
+      check(qr.isFullRank).isTrue();
+
+      final q = qr.q;
+      final r = qr.r;
+
+      final qHq = q.conjugateTranspose * q;
+      for (var i = 0; i < 3; i++) {
+        for (var j = 0; j < 3; j++) {
+          final expected = i == j ? Complex.one : Complex.zero;
+          check(qHq.get(i, j)).isCloseTo(expected, 1e-6);
+        }
+      }
+
+      for (var i = 0; i < 3; i++) {
+        for (var j = 0; j < i; j++) {
+          check(r.get(i, j)).isCloseTo(Complex.zero, 1e-6);
+        }
+      }
+
+      final qrProd = q * r;
+      for (var i = 0; i < 3; i++) {
+        for (var j = 0; j < 3; j++) {
+          check(qrProd.get(i, j)).isCloseTo(a.get(i, j), 1e-6);
+        }
+      }
+
+      final b = Vector<Complex>.fromList([
+        const Complex(2.0, 3.0),
+        const Complex(-1.0, 0.0),
+        const Complex(4.0, -2.0),
+      ], type: DataType.complex);
+      final x = qr.solveVector(b);
+      final ax = a.apply(x);
+      for (var i = 0; i < 3; i++) {
+        check(ax[i]).isCloseTo(b[i], 1e-6);
+      }
+    });
+
+    test('rectangular complex least squares solve', () {
+      final a = Matrix<Complex>.fromRows([
+        [const Complex(1.0, 0.0), const Complex(0.0, 0.0)],
+        [const Complex(0.0, 0.0), const Complex(1.0, 0.0)],
+        [const Complex(1.0, 1.0), const Complex(1.0, -1.0)],
+        [const Complex(2.0, 0.0), const Complex(0.0, -1.0)],
+      ], type: DataType.complex);
+
+      final qr = a.qr;
+      check(qr.isFullRank).isTrue();
+
+      final q = qr.q;
+      final r = qr.r;
+
+      final qHq = q.conjugateTranspose * q;
+      for (var i = 0; i < 2; i++) {
+        for (var j = 0; j < 2; j++) {
+          final expected = i == j ? Complex.one : Complex.zero;
+          check(qHq.get(i, j)).isCloseTo(expected, 1e-6);
+        }
+      }
+
+      final qrProd = q * r;
+      for (var i = 0; i < 4; i++) {
+        for (var j = 0; j < 2; j++) {
+          check(qrProd.get(i, j)).isCloseTo(a.get(i, j), 1e-6);
+        }
+      }
+
+      final b = Matrix<Complex>.fromRows([
+        [const Complex(1.0, 0.0), const Complex(2.0, 1.0)],
+        [const Complex(2.0, 0.0), const Complex(0.0, -1.0)],
+        [const Complex(3.0, 1.0), const Complex(2.0, 0.0)],
+        [const Complex(2.0, -2.0), const Complex(4.0, 1.0)],
+      ], type: DataType.complex);
+
+      final x = qr.solve(b);
+      check(x.rowCount).equals(2);
+      check(x.colCount).equals(2);
+    });
+
+    test('rank deficient matrix solve throws StateError', () {
+      final a = Matrix<Complex>.fromRows([
+        [const Complex(1.0, 1.0), const Complex(2.0, 2.0)],
+        [const Complex(2.0, 2.0), const Complex(4.0, 4.0)],
+      ], type: DataType.complex);
+      final qr = a.qr;
+      check(qr.isFullRank).isFalse();
+      final b = Vector<Complex>.fromList([
+        const Complex(1.0, 0.0),
+        const Complex(2.0, 0.0),
+      ], type: DataType.complex);
+      check(() => qr.solveVector(b)).throws<StateError>();
     });
   });
 }

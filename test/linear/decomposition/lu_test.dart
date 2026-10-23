@@ -3,6 +3,13 @@ import 'package:data/linear.dart';
 import 'package:data/type.dart';
 import 'package:test/scaffolding.dart';
 
+extension on Subject<Complex> {
+  void isCloseTo(Complex other, double delta) {
+    has((c) => c.a, 'real').isCloseTo(other.a, delta);
+    has((c) => c.b, 'imaginary').isCloseTo(other.b, delta);
+  }
+}
+
 void main() {
   group('LU Decomposition', () {
     test('square matrix decomposition P * A = L * U', () {
@@ -191,6 +198,161 @@ void main() {
       for (var i = 0; i < 3; i++) {
         for (var j = 0; j < 2; j++) {
           check(luProd.get(i, j)).isCloseTo(a.get(piv[i], j), 1e-6);
+        }
+      }
+    });
+  });
+
+  group('Complex LU Decomposition', () {
+    test('3x3 complex matrix decomposition P * A = L * U', () {
+      final a = Matrix<Complex>.fromRows([
+        [
+          const Complex(1.0, 1.0),
+          const Complex(2.0, -1.0),
+          const Complex(3.0, 0.0),
+        ],
+        [
+          const Complex(0.0, 0.0),
+          const Complex(4.0, 2.0),
+          const Complex(1.0, -1.0),
+        ],
+        [
+          const Complex(2.0, 0.0),
+          const Complex(-1.0, 1.0),
+          const Complex(0.0, 5.0),
+        ],
+      ], type: DataType.complex);
+
+      final lu = a.lu;
+      check(lu.isNonsingular).isTrue();
+
+      final l = lu.lower;
+      final u = lu.upper;
+      final piv = lu.pivot;
+
+      for (var i = 0; i < 3; i++) {
+        check(l.get(i, i)).equals(Complex.one);
+        for (var j = i + 1; j < 3; j++) {
+          check(l.get(i, j)).equals(Complex.zero);
+        }
+      }
+
+      for (var i = 0; i < 3; i++) {
+        for (var j = 0; j < i; j++) {
+          check(u.get(i, j)).equals(Complex.zero);
+        }
+      }
+
+      final luProd = l * u;
+      for (var i = 0; i < 3; i++) {
+        for (var j = 0; j < 3; j++) {
+          final paVal = a.get(piv[i], j);
+          check(luProd.get(i, j)).isCloseTo(paVal, 1e-6);
+        }
+      }
+
+      final b = Vector<Complex>.fromList([
+        const Complex(1.0, 2.0),
+        const Complex(-3.0, 1.0),
+        const Complex(4.0, 0.0),
+      ], type: DataType.complex);
+      final x = lu.solveVector(b);
+      final ax = a.apply(x);
+      for (var i = 0; i < 3; i++) {
+        check(ax[i]).isCloseTo(b[i], 1e-6);
+      }
+
+      final bMat = Matrix<Complex>.fromRows([
+        [const Complex(1.0, 0.0), const Complex(0.0, 1.0)],
+        [const Complex(0.0, 2.0), const Complex(2.0, 0.0)],
+        [const Complex(-1.0, 1.0), const Complex(3.0, -1.0)],
+      ], type: DataType.complex);
+      final xMat = lu.solve(bMat);
+      final aX = a * xMat;
+      for (var r = 0; r < 3; r++) {
+        for (var c = 0; c < 2; c++) {
+          check(aX.get(r, c)).isCloseTo(bMat.get(r, c), 1e-6);
+        }
+      }
+    });
+
+    test('singular complex matrix', () {
+      final a = Matrix<Complex>.fromRows([
+        [const Complex(1.0, 2.0), const Complex(2.0, 4.0)],
+        [const Complex(2.0, 4.0), const Complex(4.0, 8.0)],
+      ], type: DataType.complex);
+      final lu = a.lu;
+      check(lu.isNonsingular).isFalse();
+      final b = Vector<Complex>.fromList([
+        const Complex(1.0, 0.0),
+        const Complex(2.0, 0.0),
+      ], type: DataType.complex);
+      check(() => lu.solveVector(b)).throws<ArgumentError>();
+    });
+
+    test('rectangular complex matrix decomposition 2x3 (m < n)', () {
+      final a = Matrix<Complex>.fromRows([
+        [
+          const Complex(1.0, 1.0),
+          const Complex(2.0, -1.0),
+          const Complex(3.0, 0.0),
+        ],
+        [
+          const Complex(4.0, 2.0),
+          const Complex(5.0, 0.0),
+          const Complex(6.0, -2.0),
+        ],
+      ], type: DataType.complex);
+
+      final lu = a.lu;
+      check(lu.m).equals(2);
+      check(lu.n).equals(3);
+      check(lu.isNonsingular).isFalse();
+
+      final l = lu.lower;
+      final u = lu.upper;
+      final piv = lu.pivot;
+
+      check(l.rowCount).equals(2);
+      check(l.colCount).equals(2);
+      check(u.rowCount).equals(2);
+      check(u.colCount).equals(3);
+
+      final luProd = l * u;
+      for (var i = 0; i < 2; i++) {
+        for (var j = 0; j < 3; j++) {
+          final paVal = a.get(piv[i], j);
+          check(luProd.get(i, j)).isCloseTo(paVal, 1e-6);
+        }
+      }
+    });
+
+    test('rectangular complex matrix decomposition 3x2 (m > n)', () {
+      final a = Matrix<Complex>.fromRows([
+        [const Complex(1.0, 1.0), const Complex(2.0, -1.0)],
+        [const Complex(4.0, 2.0), const Complex(5.0, 0.0)],
+        [const Complex(0.0, 3.0), const Complex(-1.0, 2.0)],
+      ], type: DataType.complex);
+
+      final lu = a.lu;
+      check(lu.m).equals(3);
+      check(lu.n).equals(2);
+      check(lu.isNonsingular).isFalse();
+
+      final l = lu.lower;
+      final u = lu.upper;
+      final piv = lu.pivot;
+
+      check(l.rowCount).equals(3);
+      check(l.colCount).equals(2);
+      check(u.rowCount).equals(2);
+      check(u.colCount).equals(2);
+
+      final luProd = l * u;
+      for (var i = 0; i < 3; i++) {
+        for (var j = 0; j < 2; j++) {
+          final paVal = a.get(piv[i], j);
+          check(luProd.get(i, j)).isCloseTo(paVal, 1e-6);
         }
       }
     });

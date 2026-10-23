@@ -174,7 +174,7 @@ Pre-release review of `lib/` at `2fc36d4`. Baseline: `dart analyze` clean, READM
 - **File**: `pubspec.yaml` L30–32. The agent kept this on purpose (it needs the `asinh` fix from git `dart-more`).
 - **Fix**: Release `more` and pin the version constraint, then remove the override before publishing `0.16.0`. `dart pub publish --dry-run` currently fails.
 
-#### FU-2.3: Close Gaps in the 1:1 Test Mirror — Low
+#### FU-2.3 [COMPLETED]: Close Gaps in the 1:1 Test Mirror — Low
 
 - **Lib files without a matching `_test.dart`**:
   - `acceleration/blas/blas_validation`, `acceleration/utils/dispatcher`

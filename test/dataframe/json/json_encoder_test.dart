@@ -63,5 +63,25 @@ void main() {
       check(records[0]).deepEquals({'id': 1, 'name': 'Alice'});
       check(records[1]).deepEquals({'id': 2, 'name': 'Bob'});
     });
+
+    test('encodes empty DataFrame across orientations', () {
+      final empty = DataFrame([]);
+      check(empty.toJson(orient: JsonOrient.records)).equals('[]');
+      check(empty.toJson(orient: JsonOrient.split))
+          .equals('{"columns":[],"data":[]}');
+      check(empty.toJson(orient: JsonOrient.columns)).equals('{}');
+      check(empty.toJson(orient: JsonOrient.array)).equals('[]');
+    });
+
+    test('encodes DataFrame with 0 rows but declared columns', () {
+      final dfEmptyRows = DataFrame([
+        Series.fromList('col_a', <int>[]),
+        Series.fromList('col_b', <String>[]),
+      ]);
+      check(dfEmptyRows.toJson(orient: JsonOrient.split))
+          .equals('{"columns":["col_a","col_b"],"data":[]}');
+      check(dfEmptyRows.toJson(orient: JsonOrient.columns))
+          .equals('{"col_a":[],"col_b":[]}');
+    });
   });
 }

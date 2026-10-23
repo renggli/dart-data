@@ -249,4 +249,128 @@ void main() {
       check(() => v.cumprod(target: badTarget)).throws<ArgumentError>();
     });
   });
+
+  group('Vector operations and arithmetic', () {
+    test('creation and element access', () {
+      final vector = Vector<double>.fromList([1.0, 2.0, 3.0]);
+      check(vector.length).equals(3);
+      check(vector[0]).equals(1.0);
+      check(vector[2]).equals(3.0);
+      vector[1] = 5.0;
+      check(vector[1]).equals(5.0);
+      check(vector.toList()).deepEquals([1.0, 5.0, 3.0]);
+    });
+
+    test('arithmetic operations', () {
+      final a = Vector<double>.fromList([1.0, 2.0, 3.0]);
+      final b = Vector<double>.fromList([4.0, 5.0, 6.0]);
+
+      check((a + b).toList()).deepEquals([5.0, 7.0, 9.0]);
+      check((b - a).toList()).deepEquals([3.0, 3.0, 3.0]);
+      check((a * b).toList()).deepEquals([4.0, 10.0, 18.0]);
+      check((b / a).toList()).deepEquals([4.0, 2.5, 2.0]);
+      check((-a).toList()).deepEquals([-1.0, -2.0, -3.0]);
+      check(a.scale(2.0).toList()).deepEquals([2.0, 4.0, 6.0]);
+    });
+
+    test('dot product and outer product', () {
+      final a = Vector<double>.fromList([1.0, 2.0, 3.0]);
+      final b = Vector<double>.fromList([4.0, 5.0, 6.0]);
+      check(a.dot(b)).equals(32.0);
+
+      final outer = a.outer(b);
+      check(outer.rowCount).equals(3);
+      check(outer.colCount).equals(3);
+      check(outer.get(0, 0)).equals(4.0);
+      check(outer.get(0, 1)).equals(5.0);
+      check(outer.get(1, 0)).equals(8.0);
+      check(outer.get(2, 2)).equals(18.0);
+    });
+
+    test('norm and normalized', () {
+      final vector = Vector<double>.fromList([3.0, 4.0]);
+      check(vector.norm(2)).equals(5.0);
+      check(vector.norm(1)).equals(7.0);
+      check(vector.norm(double.infinity)).equals(4.0);
+
+      final normalized = vector.normalized();
+      check(normalized[0]).isCloseTo(0.6, 1e-10);
+      check(normalized[1]).isCloseTo(0.8, 1e-10);
+      check(normalized.norm(2)).isCloseTo(1.0, 1e-10);
+    });
+
+    test('matrix conversion and subVector', () {
+      final vector = Vector<double>.fromList([1.0, 2.0, 3.0, 4.0]);
+      final colMat = vector.toMatrix(asColumn: true);
+      check(colMat.rowCount).equals(4);
+      check(colMat.colCount).equals(1);
+      check(colMat.get(2, 0)).equals(3.0);
+
+      final sub = vector.subVector(1, 3);
+      check(sub.length).equals(2);
+      check(sub.toList()).deepEquals([2.0, 3.0]);
+    });
+
+    test('Vector comprehensive constructors, operations, and errors', () {
+      final filledVec = Vector<double>.filled(3, 7.0);
+      check(filledVec.toList()).deepEquals([7.0, 7.0, 7.0]);
+
+      final genVec = Vector<int>.generate(4, (i) => i * 3);
+      check(genVec.toList()).deepEquals([0, 3, 6, 9]);
+
+      final nativeVec = Vector<double>.filled(3, 0.0);
+      check(nativeVec.length).equals(3);
+
+      final fromIter = Vector<int>.fromIterable([10, 20, 30]);
+      check(fromIter.toList()).deepEquals([10, 20, 30]);
+
+      final copyVec = fromIter.copy();
+      check(copyVec.toList()).deepEquals(fromIter.toList());
+      check(copyVec.sum).equals(60);
+      check(copyVec.toString()).equals('Vector([10, 20, 30])');
+
+      check(fromIter.subVector(1).toList()).deepEquals([20, 30]);
+
+      final vector = Vector<double>.fromList([1.0, 2.0, 2.0]);
+      check(vector.norm(3)).isCloseTo(2.57128159, 1e-5);
+
+      final intNormVec = Vector<int>.fromList([3, 4]);
+      check(intNormVec.norm(2)).equals(5.0);
+
+      final zeroVec = Vector<double>.fromList([0.0, 0.0]);
+      check(zeroVec.normalized).throws<StateError>();
+
+      final v3 = Vector<double>.fromList([1.0, 2.0, 3.0]);
+      final v2 = Vector<double>.fromList([1.0, 2.0]);
+      check(() => v3.dot(v2)).throws<ArgumentError>();
+      check(() => v3.addScaled(v2, 2.0)).throws<ArgumentError>();
+
+      final vInt1 = Vector<int>.fromList([1, 2, 3]);
+      final vInt2 = Vector<int>.fromList([10, 20, 30]);
+      vInt1.addScaled(vInt2, 2);
+      check(vInt1.toList()).deepEquals([21, 42, 63]);
+
+      vInt1.scaleInPlace(2);
+      check(vInt1.toList()).deepEquals([42, 84, 126]);
+
+      final f32_1 = Vector<double>.fromList([
+        1.0,
+        2.0,
+        3.0,
+      ], type: DataType.float32);
+      final f32_2 = Vector<double>.fromList([
+        4.0,
+        5.0,
+        6.0,
+      ], type: DataType.float32);
+      check(f32_1.dot(f32_2)).equals(32.0);
+      check(f32_1.norm(2)).isCloseTo(3.741657, 1e-4);
+
+      f32_1.addScaled(f32_2, 2.0);
+      check(f32_1.toList()[0]).isCloseTo(9.0, 1e-4);
+
+      f32_1.scaleInPlace(0.5);
+      check(f32_1.toList()[0]).isCloseTo(4.5, 1e-4);
+    });
+  });
 }

@@ -820,4 +820,255 @@ void main() {
       check(ahV[1]).equals(const Complex(11, 3));
     });
   });
+
+  group('Matrix constructors, views, and arithmetic', () {
+    test('constructors: identity, fromRows, fromColumns, diagonal', () {
+      final eye = Matrix<double>.identity(3);
+      check(eye.rowCount).equals(3);
+      check(eye.colCount).equals(3);
+      check(eye.get(0, 0)).equals(1.0);
+      check(eye.get(0, 1)).equals(0.0);
+      check(eye.get(1, 1)).equals(1.0);
+
+      final fromRows = Matrix<int>.fromRows([
+        [1, 2],
+        [3, 4],
+      ]);
+      check(fromRows.get(1, 0)).equals(3);
+
+      final fromCols = Matrix<int>.fromColumns([
+        [1, 3],
+        [2, 4],
+      ]);
+      check(fromCols.get(1, 0)).equals(3);
+
+      final diag = Matrix<double>.diagonal(Vector<double>.fromList([2.0, 5.0]));
+      check(diag.get(0, 0)).equals(2.0);
+      check(diag.get(1, 1)).equals(5.0);
+      check(diag.get(0, 1)).equals(0.0);
+    });
+
+    test('views: row, col, transpose, subMatrix', () {
+      final m = Matrix<int>.fromRows([
+        [1, 2, 3],
+        [4, 5, 6],
+      ]);
+      check(m.row(0).toList()).deepEquals([1, 2, 3]);
+      check(m.col(2).toList()).deepEquals([3, 6]);
+
+      final mt = m.transposed;
+      check(mt.rowCount).equals(3);
+      check(mt.colCount).equals(2);
+      check(mt.get(2, 1)).equals(6);
+
+      final sub = m.subMatrix(rowStart: 0, rowEnd: 2, colStart: 1, colEnd: 3);
+      check(sub.rowCount).equals(2);
+      check(sub.colCount).equals(2);
+      check(sub.toNestedList() as List).deepEquals([
+        [2, 3],
+        [5, 6],
+      ]);
+    });
+
+    test('matrix arithmetic and multiplication', () {
+      final a = Matrix<double>.fromRows([
+        [1.0, 2.0],
+        [3.0, 4.0],
+      ]);
+      final b = Matrix<double>.fromRows([
+        [5.0, 6.0],
+        [7.0, 8.0],
+      ]);
+
+      check((a + b).toNestedList() as List).deepEquals([
+        [6.0, 8.0],
+        [10.0, 12.0],
+      ]);
+
+      check(a.hadamard(b).toNestedList() as List).deepEquals([
+        [5.0, 12.0],
+        [21.0, 32.0],
+      ]);
+
+      final prod = a * b;
+      check(prod.toNestedList() as List).deepEquals([
+        [19.0, 22.0],
+        [43.0, 50.0],
+      ]);
+    });
+
+    test('matrix diagonal, trace, and transposed getters', () {
+      final m = Matrix<int>.fromRows([
+        [1, 2, 3],
+        [4, 5, 6],
+        [7, 8, 9],
+      ]);
+      final diag = m.diagonal();
+      check(diag.toList()).deepEquals([1, 5, 9]);
+      check(diag.sum).equals(15);
+      check(m.trace).equals(15);
+      check(m.transposed.get(0, 1)).equals(4);
+    });
+
+    test(
+      'matrix predicates: isSquare, isSymmetric, isDiagonal, triangular',
+      () {
+        final square = Matrix<int>.fromRows([
+          [1, 2],
+          [2, 3],
+        ]);
+        check(square.isSquare).isTrue();
+        check(square.isSymmetric).isTrue();
+        check(square.isDiagonal).isFalse();
+
+        final rect = Matrix<int>.fromRows([
+          [1, 2, 3],
+          [4, 5, 6],
+        ]);
+        check(rect.isSquare).isFalse();
+        check(rect.isSymmetric).isFalse();
+
+        final diag = Matrix<int>.fromRows([
+          [5, 0],
+          [0, 8],
+        ]);
+        check(diag.isDiagonal).isTrue();
+        check(diag.isLowerTriangular).isTrue();
+        check(diag.isUpperTriangular).isTrue();
+      },
+    );
+
+    test('matrix transformations: flipped, rotated, concatenated', () {
+      final m = Matrix<int>.fromRows([
+        [1, 2],
+        [3, 4],
+      ]);
+
+      final flipH = m.flippedHorizontal();
+      check(flipH.toNestedList() as List).deepEquals([
+        [2, 1],
+        [4, 3],
+      ]);
+
+      final flipV = m.flippedVertical();
+      check(flipV.toNestedList() as List).deepEquals([
+        [3, 4],
+        [1, 2],
+      ]);
+
+      final rot1 = m.rotated(1);
+      check(rot1.toNestedList() as List).deepEquals([
+        [3, 1],
+        [4, 2],
+      ]);
+
+      final rot2 = m.rotated(2);
+      check(rot2.toNestedList() as List).deepEquals([
+        [4, 3],
+        [2, 1],
+      ]);
+
+      final m2 = Matrix<int>.fromRows([
+        [5, 6],
+        [7, 8],
+      ]);
+      final catH = m.concatHorizontal(m2);
+      check(catH.toNestedList() as List).deepEquals([
+        [1, 2, 5, 6],
+        [3, 4, 7, 8],
+      ]);
+
+      final catV = m.concatVertical(m2);
+      check(catV.toNestedList() as List).deepEquals([
+        [1, 2],
+        [3, 4],
+        [5, 6],
+        [7, 8],
+      ]);
+    });
+
+    test('matrix norms and condition', () {
+      final a = Matrix<double>.fromRows([
+        [1.0, 2.0],
+        [3.0, 4.0],
+      ]);
+      check(a.normFrobenius).isCloseTo(5.477225575, 1e-6);
+      check(a.norm1).equals(6.0);
+      check(a.normInfinity).equals(7.0);
+      check(a.norm2).isCloseTo(5.4649857, 1e-4);
+      check(a.rank).equals(2);
+      check(a.cond).isGreaterThan(1.0);
+      check(a.trace).equals(5.0);
+    });
+
+    test('matrix error handling on invalid shapes', () {
+      check(
+        () => Matrix.fromRows([
+          [1, 2],
+          [3],
+        ]),
+      ).throws<ArgumentError>();
+
+      final nonSquare = Matrix<int>.filled(2, 3, 1);
+      check(() => nonSquare.trace).throws<ArgumentError>();
+
+      final m2 = Matrix<int>.fromRows([
+        [1, 2],
+        [3, 4],
+      ]);
+      final diffRows = Matrix<int>.filled(3, 2, 1);
+      final diffCols = Matrix<int>.filled(2, 3, 1);
+      check(() => m2.concatHorizontal(diffRows)).throws<ArgumentError>();
+      check(() => m2.concatVertical(diffCols)).throws<ArgumentError>();
+    });
+  });
+
+  group('Matrix<Complex> conjugateTranspose', () {
+    test('conjugates and transposes elements', () {
+      final a = Matrix<Complex>.fromRows([
+        [const Complex(1.0, 2.0), const Complex(3.0, -4.0)],
+        [const Complex(5.0, 0.0), const Complex(0.0, -6.0)],
+      ], type: DataType.complex);
+
+      final aH = a.conjugateTranspose;
+      check(aH.rowCount).equals(2);
+      check(aH.colCount).equals(2);
+
+      check(aH.get(0, 0)).equals(const Complex(1.0, -2.0));
+      check(aH.get(0, 1)).equals(const Complex(5.0, 0.0));
+      check(aH.get(1, 0)).equals(const Complex(3.0, 4.0));
+      check(aH.get(1, 1)).equals(const Complex(0.0, 6.0));
+
+      final aHH = aH.conjugateTranspose;
+      for (var r = 0; r < 2; r++) {
+        for (var c = 0; c < 2; c++) {
+          check(aHH.get(r, c)).equals(a.get(r, c));
+        }
+      }
+    });
+
+    test('conjugate transpose on rectangular matrix', () {
+      final a = Matrix<Complex>.fromRows([
+        [
+          const Complex(1.0, 1.0),
+          const Complex(2.0, 0.0),
+          const Complex(0.0, -3.0),
+        ],
+        [
+          const Complex(-1.0, 4.0),
+          const Complex(5.0, -2.0),
+          const Complex(6.0, 1.0),
+        ],
+      ], type: DataType.complex);
+
+      final aH = a.conjugateTranspose;
+      check(aH.rowCount).equals(3);
+      check(aH.colCount).equals(2);
+
+      check(aH.get(0, 0)).equals(const Complex(1.0, -1.0));
+      check(aH.get(0, 1)).equals(const Complex(-1.0, -4.0));
+      check(aH.get(2, 0)).equals(const Complex(0.0, 3.0));
+      check(aH.get(2, 1)).equals(const Complex(6.0, -1.0));
+    });
+  });
 }

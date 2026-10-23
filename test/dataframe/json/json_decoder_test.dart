@@ -119,4 +119,82 @@ void main() {
       check(dfMapIndex['c1'].toList()).deepEquals([100, 200]);
     });
   });
+
+  group('DataFrame.fromJson orientations and edge cases', () {
+    test('handles missing keys in records by inserting null', () {
+      const jsonStr = '[{"a": 1, "b": 2}, {"a": 3}]';
+      final df = DataFrame.fromJson(jsonStr, orient: JsonOrient.records);
+
+      check(df.rowCount).equals(2);
+      check(df.columnNames).deepEquals(['a', 'b']);
+      check(df['a'].toList()).deepEquals([1, 3]);
+      check(df['b'].toList()).deepEquals([2, null]);
+      check(df['b'].nullCount).equals(1);
+      check(df['b'].isNull(1)).isTrue();
+    });
+
+    test('handles out-of-order keys across rows', () {
+      const jsonStr = '[{"b": 20, "a": 10}, {"a": 30, "b": 40}]';
+      final df = DataFrame.fromJson(jsonStr, orient: JsonOrient.records);
+
+      check(df.rowCount).equals(2);
+      check(df.columnNames).deepEquals(['b', 'a']);
+      check(df['b'].toList()).deepEquals([20, 40]);
+      check(df['a'].toList()).deepEquals([10, 30]);
+    });
+
+    test('supports pandas-style split format with optional index key', () {
+      const jsonStr = '''
+      {
+        "columns": ["col_x", "col_y"],
+        "index": [0, 1],
+        "data": [[100, "foo"], [200, "bar"]]
+      }
+      ''';
+      final df = DataFrame.fromJson(jsonStr, orient: JsonOrient.split);
+      check(df.rowCount).equals(2);
+      check(df.columnNames).deepEquals(['col_x', 'col_y']);
+      check(df['col_x'].toList()).deepEquals([100, 200]);
+      check(df['col_y'].toList()).deepEquals(['foo', 'bar']);
+    });
+
+    test('decodes row-indexed maps with non-zero integer labels', () {
+      const jsonStr = '''
+      {
+        "col1": {"10": "a", "20": "b"},
+        "col2": {"10": 1, "20": 2}
+      }
+      ''';
+      final df = DataFrame.fromJson(jsonStr, orient: JsonOrient.columns);
+      check(df.rowCount).equals(2);
+      check(df['col1'].toList()).deepEquals(['a', 'b']);
+      check(df['col2'].toList()).deepEquals([1, 2]);
+    });
+
+    test('explicit columnTypes casts and preserves order', () {
+      const jsonStr =
+          '[{"first": "Alice", "score": "95.5"}, {"first": "Bob", "score": "88.0"}]';
+      final df = DataFrame.fromJson(
+        jsonStr,
+        columnTypes: {'first': DataType.string, 'score': DataType.float64},
+      );
+      check(df.rowCount).equals(2);
+      check(df.columnNames).deepEquals(['first', 'score']);
+      check(df['score'].dataType).equals(DataType.float64);
+      check(df['score'].toList()).deepEquals([95.5, 88.0]);
+    });
+
+    test('error handling on malformed JSON structure', () {
+      check(() => DataFrame.fromJson('{bad json')).throws<FormatException>();
+      check(() => DataFrame.fromJson('[1, 2]', orient: JsonOrient.split))
+          .throws<FormatException>();
+      check(
+        () =>
+            DataFrame.fromJson('{"columns": ["a"]}', orient: JsonOrient.split),
+      ).throws<FormatException>();
+      check(() => DataFrame.fromJson('[123, 456]', orient: JsonOrient.records))
+          .throws<FormatException>();
+      check(() => DataFrame.fromJson('"string"')).throws<FormatException>();
+    });
+  });
 }
