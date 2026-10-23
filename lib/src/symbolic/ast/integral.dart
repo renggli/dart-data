@@ -101,7 +101,39 @@ final class Integral extends Expr {
         upper: upper!.substitute(variable, replacement),
       );
     }
-    return Integral(integrand.substitute(variable, replacement), this.variable);
+    if (variable == this.variable) {
+      if (replacement is Variable) {
+        var boundVar = this.variable;
+        var body = integrand;
+        if (replacement.name != boundVar &&
+            body.freeVariables.contains(replacement.name)) {
+          final used = <String>{
+            ...body.freeVariables,
+            ...replacement.freeVariables,
+          };
+          final fresh = _freshBoundVariable(boundVar, used);
+          body = body.substitute(boundVar, Variable(fresh));
+          boundVar = fresh;
+        }
+        return Integral(
+          body.substitute(boundVar, replacement),
+          replacement.name,
+        );
+      }
+      return Integral(integrand, this.variable);
+    }
+    var boundVar = this.variable;
+    var body = integrand;
+    if (replacement.freeVariables.contains(boundVar)) {
+      final used = <String>{
+        ...body.freeVariables,
+        ...replacement.freeVariables,
+      };
+      final fresh = _freshBoundVariable(boundVar, used);
+      body = body.substitute(boundVar, Variable(fresh));
+      boundVar = fresh;
+    }
+    return Integral(body.substitute(variable, replacement), boundVar);
   }
 
   @override

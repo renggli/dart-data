@@ -18,7 +18,7 @@ Pre-release review of `lib/` at `2fc36d4`. Baseline: `dart analyze` clean, READM
 | R1.5 [COMPLETED] | Medium | `power.dart:169-175` | Verified: `(e^z)^w -> e^(zw)` has no condition. `exp(4i)^(1/2)` gives the wrong branch. | Restrict to an integer `w` or a real `z`. |
 | R1.6 [COMPLETED] | Medium | `power.dart:256-265` | Verified: rule 7b turns `(x^3 y)^(1/3)` into `x y^(1/3)` under `Assumptions.real`, which is wrong for `x<0`. | Require an even `m` or a non-negative base. |
 | R1.7 [COMPLETED] | Medium | `power.dart:28-35` | Verified: `0^x -> 0`, which is wrong at `x=0`. | Return 0 only when `Re(exponent)` is proven positive. |
-| R1.8 | Medium | `lib/src/symbolic/ast/integral.dart:104` | Verified: indefinite `Integral.substitute('x', y)` substitutes the integrand but keeps `dx`. | Rename the integration variable, or return a lazy node. Mirror FU-1.1. |
+| R1.8 [COMPLETED] | Medium | `lib/src/symbolic/ast/integral.dart:104` | Verified: indefinite `Integral.substitute('x', y)` substitutes the integrand but keeps `dx`. | Rename the integration variable, or return a lazy node. Mirror FU-1.1. |
 | R1.9 | Medium | `power.dart:137-141` | `2.5^2` and `2^0.5` are never evaluated, unlike `Add`. | Use `powNumber` when an operand is a `RealNumber`. |
 | R1.10 | Low | `lib/src/symbolic/ast/number.dart:153-156`, `power.dart:19-21`, `multiplicative.dart:41-54` | Float contagion is lost: `(1+i)^2.0 -> 2i`, `x^0.0 -> 1`, `0.0*x -> 0`. | Return a `RealNumber` result when an input was a `RealNumber`. |
 | R1.11 | Low | `multiplicative.dart:280-285`, `power.dart:119,125,331,347` | Recursive `simplify*` calls drop `assumptions`. | Pass `assumptions` through on every call. |

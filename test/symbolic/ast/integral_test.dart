@@ -19,6 +19,13 @@ void main() {
       check(indef.dependsOn('z')).isFalse();
       check(indef.substitute('a', IntegerNumber.two))
           .equals(Integral(IntegerNumber.two * t, 't'));
+      const y = Variable('y');
+      check(indef.substitute('t', y)).equals(Integral(a * y, 'y'));
+      check(indef.substitute('t', IntegerNumber.two)).equals(indef);
+      final alphaRenamed = indef.substitute('a', t);
+      check(alphaRenamed).isA<Integral>();
+      check((alphaRenamed as Integral).variable).not((v) => v.equals('t'));
+      check(alphaRenamed.dependsOn('t')).isTrue();
       check(indef.mapChildren((e) => e)).equals(indef);
       check(indef.anyNode((e) => e == a)).isTrue();
       check(indef.hashCode).equals(Integral(a * t, 't').hashCode);
