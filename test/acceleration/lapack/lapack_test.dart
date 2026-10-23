@@ -47,13 +47,24 @@ void main() {
     );
 
     accelerationTest('dgels linear least squares overdetermined', () {
-      // 3 equations, 2 unknowns
-      final a = Float64List.fromList([1.0, 1.0, 1.0, 2.0, 1.0, 3.0]);
-      final b = Float64List.fromList([6.0, 0.0, 0.0]);
-      final ok = Lapack.dgels(m: 3, n: 2, nrhs: 1, a: a, lda: 2, b: b, ldb: 1);
+      // 3 equations, 2 unknowns, 2 RHS, lda = 3 > n, ldb = 2
+      final a = Float64List.fromList([
+        1.0, 1.0, 99.0, // row 0 (padded)
+        1.0, 2.0, 99.0, // row 1 (padded)
+        1.0, 3.0, 99.0, // row 2 (padded)
+      ]);
+      final b = Float64List.fromList([
+        1.0, 1.0, // row 0: RHS1=1, RHS2=1
+        2.0, 1.0, // row 1: RHS1=2, RHS2=1
+        3.0, 1.0, // row 2: RHS1=3, RHS2=1
+      ]);
+      final ok = Lapack.dgels(m: 3, n: 2, nrhs: 2, a: a, lda: 3, b: b, ldb: 2);
       check(ok).isTrue();
-      check(b[0]).isA<double>();
-      check(b[1]).isA<double>();
+      // RHS 1 solution is [0, 1], RHS 2 solution is [1, 0]
+      check(b[0 * 2 + 0]).isCloseTo(0.0, 1e-9);
+      check(b[0 * 2 + 1]).isCloseTo(1.0, 1e-9);
+      check(b[1 * 2 + 0]).isCloseTo(1.0, 1e-9);
+      check(b[1 * 2 + 1]).isCloseTo(0.0, 1e-9);
     });
 
     accelerationTest('dsyev symmetric eigenvalue solve', () {

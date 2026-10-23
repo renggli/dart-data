@@ -237,11 +237,27 @@ abstract final class LapackNative {
     if (_hasDgels) {
       return using((arena) {
         final maxMN = m > n ? m : n;
-        final trans = arena<ffi.Uint8>()..value = 84; // 'T'
-        final fRows = arena<ffi.Int32>()..value = n;
-        final fCols = arena<ffi.Int32>()..value = m;
+        final fA = arena<ffi.Double>(m * n);
+        for (var i = 0; i < m; i++) {
+          for (var j = 0; j < n; j++) {
+            fA[j * m + i] = a[aOffset + i * lda + j];
+          }
+        }
+
+        final fB = arena<ffi.Double>(maxMN * nrhs);
+        for (var i = 0; i < maxMN; i++) {
+          for (var j = 0; j < nrhs; j++) {
+            fB[j * maxMN + i] = (i < m || i < n)
+                ? b[bOffset + i * ldb + j]
+                : 0.0;
+          }
+        }
+
+        final trans = arena<ffi.Uint8>()..value = 78; // 'N'
+        final mPtr = arena<ffi.Int32>()..value = m;
+        final nPtr = arena<ffi.Int32>()..value = n;
         final nrhsPtr = arena<ffi.Int32>()..value = nrhs;
-        final ldaPtr = arena<ffi.Int32>()..value = n;
+        final ldaPtr = arena<ffi.Int32>()..value = m;
         final ldbPtr = arena<ffi.Int32>()..value = maxMN;
         final info = arena<ffi.Int32>();
 
@@ -249,12 +265,12 @@ abstract final class LapackNative {
         final workQuery = arena<ffi.Double>(1);
         _fortranDgels(
           trans,
-          fRows,
-          fCols,
+          mPtr,
+          nPtr,
           nrhsPtr,
-          aView.address,
+          fA,
           ldaPtr,
-          bView.address,
+          fB,
           ldbPtr,
           workQuery,
           lworkQuery,
@@ -263,23 +279,32 @@ abstract final class LapackNative {
         if (info.value != 0) return false;
 
         final optLwork = workQuery[0].toInt();
-        final work = arena<ffi.Double>(optLwork);
-        final lwork = arena<ffi.Int32>()..value = optLwork;
+        final lworkVal = optLwork > 0 ? optLwork : 1;
+        final work = arena<ffi.Double>(lworkVal);
+        final lwork = arena<ffi.Int32>()..value = lworkVal;
 
         _fortranDgels(
           trans,
-          fRows,
-          fCols,
+          mPtr,
+          nPtr,
           nrhsPtr,
-          aView.address,
+          fA,
           ldaPtr,
-          bView.address,
+          fB,
           ldbPtr,
           work,
           lwork,
           info,
         );
-        return info.value == 0;
+        if (info.value == 0) {
+          for (var i = 0; i < maxMN; i++) {
+            for (var j = 0; j < nrhs; j++) {
+              b[bOffset + i * ldb + j] = fB[j * maxMN + i];
+            }
+          }
+          return true;
+        }
+        return false;
       });
     }
 
