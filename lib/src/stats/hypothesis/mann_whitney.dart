@@ -6,11 +6,16 @@ import 'hypothesis_test_result.dart';
 
 /// Mann-Whitney U test (Wilcoxon rank-sum test) for two independent groups [x]
 /// and [y].
+///
+/// Computes the rank-sum statistic $U$ and calculates the asymptotic p-value
+/// using the normal approximation with tie correction and optional
+/// [continuityCorrection] (defaults to `true`).
 HypothesisTestResult mannWhitneyUTest(
   Iterable<num> x,
   Iterable<num> y, {
   AlternativeHypothesis alternative = AlternativeHypothesis.twoSided,
   double alpha = 0.05,
+  bool continuityCorrection = true,
 }) {
   final xList = x.map((val) => val.toDouble()).toList();
   final yList = y.map((val) => val.toDouble()).toList();
@@ -37,20 +42,54 @@ HypothesisTestResult mannWhitneyUTest(
     AlternativeHypothesis.greater => u1,
   };
 
-  // Normal approximation
+  final n = n1 + n2;
   final muU = (n1 * n2) / 2.0;
-  final sigmaU = math.sqrt((n1 * n2 * (n1 + n2 + 1.0)) / 12.0);
 
-  final z = (uStat - muU) / sigmaU;
+  // Tie correction
+  final tieCounts = <double, int>{};
+  for (final val in combined) {
+    tieCounts[val] = (tieCounts[val] ?? 0) + 1;
+  }
+  var tieTerm = 0.0;
+  for (final count in tieCounts.values) {
+    if (count > 1) {
+      tieTerm += count * count * count - count;
+    }
+  }
+
+  final tieCorrection = tieTerm / (n * (n - 1.0));
+  final varU = (n1 * n2 / 12.0) * (n + 1.0 - tieCorrection);
+  if (varU <= 0.0) {
+    return HypothesisTestResult(
+      testName: 'Mann-Whitney U Test',
+      statistic: uStat,
+      pValue: 1.0,
+      alpha: alpha,
+      alternative: alternative,
+    );
+  }
+
+  final sigmaU = math.sqrt(varU);
   const normal = NormalDistribution.standard();
 
   final double pValue;
   switch (alternative) {
     case AlternativeHypothesis.twoSided:
-      pValue = (2.0 * normal.cumulativeProbability(-z.abs())).clamp(0.0, 1.0);
+      final diff = (u1 - muU).abs();
+      final adjustedDiff = continuityCorrection
+          ? math.max(0.0, diff - 0.5)
+          : diff;
+      final z = adjustedDiff / sigmaU;
+      pValue = (2.0 * normal.survival(z)).clamp(0.0, 1.0);
     case AlternativeHypothesis.less:
+      final diff = u1 - muU;
+      final adjustedDiff = continuityCorrection ? diff + 0.5 : diff;
+      final z = adjustedDiff / sigmaU;
       pValue = normal.cumulativeProbability(z).clamp(0.0, 1.0);
     case AlternativeHypothesis.greater:
+      final diff = u1 - muU;
+      final adjustedDiff = continuityCorrection ? diff - 0.5 : diff;
+      final z = adjustedDiff / sigmaU;
       pValue = normal.survival(z).clamp(0.0, 1.0);
   }
 
