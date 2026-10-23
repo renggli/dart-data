@@ -244,21 +244,30 @@ Expr _computeFiniteLimit(
     }
 
     const t = Variable('_t');
+    const tAssumptions = Assumptions(domains: {'_t': VariableDomain.positive});
     final invT = IntegerNumber.one / t;
     return switch (direction) {
       LimitDirection.fromAbove => _computeInfiniteLimit(
-        expr.substitute(variable, point + invT).simplify(),
+        expr
+            .substitute(variable, point + invT)
+            .simplify(assumptions: tAssumptions),
         '_t',
         isPositive: true,
       ),
       LimitDirection.fromBelow => _computeInfiniteLimit(
-        expr.substitute(variable, point - invT).simplify(),
+        expr
+            .substitute(variable, point - invT)
+            .simplify(assumptions: tAssumptions),
         '_t',
         isPositive: true,
       ),
       LimitDirection.both => () {
-        final rightExpr = expr.substitute(variable, point + invT).simplify();
-        final leftExpr = expr.substitute(variable, point - invT).simplify();
+        final rightExpr = expr
+            .substitute(variable, point + invT)
+            .simplify(assumptions: tAssumptions);
+        final leftExpr = expr
+            .substitute(variable, point - invT)
+            .simplify(assumptions: tAssumptions);
         final rightLim = _computeInfiniteLimit(
           rightExpr,
           '_t',
@@ -309,7 +318,13 @@ Expr _computeInfiniteLimit(
     return _computeInfiniteLimit(reflected, variable, isPositive: true);
   }
 
-  final resolved = _resolveAsymptoticAbsAndPiecewise(expr, variable).simplify();
+  final posAssumptions = Assumptions(
+    domains: {variable: VariableDomain.positive},
+  );
+  final resolved = _resolveAsymptoticAbsAndPiecewise(
+    expr,
+    variable,
+  ).simplify(assumptions: posAssumptions);
   if (!resolved.dependsOn(variable)) return resolved;
 
   final ratLim = _rationalFunctionLimitAtInfinity(resolved, variable);
@@ -436,7 +451,10 @@ Expr _gruntzLimit(Expr expr, String variable) {
 
   if (expScale == null && _containsLogOfVariable(f, variable)) {
     const u = Variable('_u');
-    final transformed = f.substitute(variable, Pow(Constant.e, u)).simplify();
+    const uAssumptions = Assumptions(domains: {'_u': VariableDomain.real});
+    final transformed = f
+        .substitute(variable, Pow(Constant.e, u))
+        .simplify(assumptions: uAssumptions);
     return _computeInfiniteLimit(transformed, '_u', isPositive: true);
   }
 

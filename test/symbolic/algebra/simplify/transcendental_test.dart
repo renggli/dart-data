@@ -108,7 +108,24 @@ void main() {
           ]),
         );
         check(simplifyLn(Pow(x, IntegerNumber.of(3))).toString())
-            .equals('3 * ln(x)');
+            .equals('ln(x ^ 3)');
+        check(
+          simplifyLn(
+            Pow(x, IntegerNumber.of(3)),
+            assumptions: Assumptions.positive,
+          ).toString(),
+        ).equals('3 * ln(x)');
+        check(simplifyLn(Pow(x, IntegerNumber.negativeOne)).toString())
+            .equals('ln(1 / x)');
+        check(
+          simplifyLn(
+            Pow(x, IntegerNumber.negativeOne),
+            assumptions: Assumptions.positive,
+          ).toString(),
+        ).equals('-ln(x)');
+        check(simplifyLn(Pow(Constant.e, x)).toString()).equals('ln(exp(x))');
+        check(simplifyLn(Pow(Constant.e, x), assumptions: Assumptions.real))
+            .equals(x);
 
         check(simplifyAbs(IntegerNumber.of(-5))).equals(IntegerNumber.of(5));
         check(simplifyAbs(const RealNumber(-2.5)))

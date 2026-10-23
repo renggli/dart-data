@@ -610,34 +610,45 @@ Expr simplifyLn(Expr expr, {Assumptions assumptions = Assumptions.none}) {
     return Constant.infinity;
   }
 
-  // ln(e^u) = u
+  // ln(e^u) = u for real u
   if (expr is Pow && expr.base == Constant.e) {
-    return expr.exponent;
+    if (isProvenReal(expr.exponent, assumptions)) {
+      return expr.exponent;
+    }
+    return Ln(expr, isSimplified: true);
   }
 
   // ln(u^k)
   if (expr is Pow) {
     final k = expr.exponent;
     final u = expr.base;
+    if (isPositiveExpr(u, assumptions: assumptions)) {
+      return simplifyMul([
+        k,
+        simplifyLn(u, assumptions: assumptions),
+      ], assumptions: assumptions);
+    }
     if (k is IntegerNumber && k.value.isEven) {
-      if (isPositiveExpr(u, assumptions: assumptions)) {
-        return simplifyMul([
-          k,
-          Ln(u, isSimplified: true),
-        ], assumptions: assumptions);
-      }
       if (isProvenReal(u, assumptions)) {
         return simplifyMul([
           k,
-          Ln(simplifyAbs(u, assumptions: assumptions), isSimplified: true),
+          simplifyLn(
+            simplifyAbs(u, assumptions: assumptions),
+            assumptions: assumptions,
+          ),
         ], assumptions: assumptions);
       }
       return Ln(expr, isSimplified: true);
     }
-    return simplifyMul([
-      k,
-      Ln(u, isSimplified: true),
-    ], assumptions: assumptions);
+    if (k is RationalNumber &&
+        k.numerator > -k.denominator &&
+        k.numerator <= k.denominator) {
+      return simplifyMul([
+        k,
+        simplifyLn(u, assumptions: assumptions),
+      ], assumptions: assumptions);
+    }
+    return Ln(expr, isSimplified: true);
   }
 
   return Ln(expr, isSimplified: true);
