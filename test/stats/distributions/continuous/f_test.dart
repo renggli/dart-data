@@ -21,7 +21,13 @@ void main() {
       check(dist.probability(-1.0)).equals(0.0);
       check(dist.probability(1.0)).isGreaterThan(0.0);
       check(dist.cumulativeProbability(-1.0)).equals(0.0);
+      check(dist.survival(-1.0)).equals(1.0);
       check(dist.cumulativeProbability(0.0)).equals(0.0);
+      check(dist.survival(0.0)).equals(1.0);
+      check(dist.survival(1.0) + dist.cumulativeProbability(1.0))
+          .isCloseTo(1.0, 1e-12);
+      check(dist.survival(100.0)).isGreaterThan(0.0);
+      check(dist.survival(100.0)).isLessThan(1e-10);
       check(dist.cumulativeProbability(1.0)).isGreaterThan(0.4);
       check(dist.cumulativeProbability(1.0)).isLessThan(0.6);
 

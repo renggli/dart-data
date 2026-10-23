@@ -17,6 +17,15 @@ void main() {
       check(dist.excessKurtosis).isCloseTo(6.0 / 6.0, 1e-6);
       check(dist.probability(0.0)).isGreaterThan(0.3);
       check(dist.cumulativeProbability(0.0)).isCloseTo(0.5, 1e-6);
+      check(dist.survival(0.0)).isCloseTo(0.5, 1e-6);
+      check(dist.survival(2.0) + dist.cumulativeProbability(2.0))
+          .isCloseTo(1.0, 1e-12);
+      check(dist.survival(-2.0) + dist.cumulativeProbability(-2.0))
+          .isCloseTo(1.0, 1e-12);
+      // Extreme tails do not floor at 0 due to cancellation
+      check(dist.survival(50.0)).isGreaterThan(0.0);
+      check(dist.cumulativeProbability(-50.0)).isGreaterThan(0.0);
+      check(dist.survival(50.0)).equals(dist.cumulativeProbability(-50.0));
       check(dist.inverseCumulativeProbability(0.5)).isCloseTo(0.0, 1e-6);
       // For df = 10, t_0.975 ≈ 2.2281
       check(dist.inverseCumulativeProbability(0.975)).isCloseTo(2.2281, 1e-3);

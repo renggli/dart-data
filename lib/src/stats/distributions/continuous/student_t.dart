@@ -110,11 +110,26 @@ class StudentDistribution extends ContinuousDistribution {
       (sqrt(dof * pi) * pow(1.0 + x * x / dof, 0.5 * (dof + 1.0)));
 
   @override
-  double cumulativeProbability(double x) => ibeta(
-    (x + sqrt(x * x + dof)) / (2.0 * sqrt(x * x + dof)),
-    0.5 * dof,
-    0.5 * dof,
-  );
+  double cumulativeProbability(double x) {
+    if (x.isNaN) return double.nan;
+    if (x == double.infinity) return 1.0;
+    if (x == double.negativeInfinity) return 0.0;
+    if (x == 0.0) return 0.5;
+    final z = dof / (dof + x * x);
+    final halfIbeta = 0.5 * ibeta(z, 0.5 * dof, 0.5);
+    return x > 0.0 ? 1.0 - halfIbeta : halfIbeta;
+  }
+
+  @override
+  double survival(double x) {
+    if (x.isNaN) return double.nan;
+    if (x == double.infinity) return 0.0;
+    if (x == double.negativeInfinity) return 1.0;
+    if (x == 0.0) return 0.5;
+    final z = dof / (dof + x * x);
+    final halfIbeta = 0.5 * ibeta(z, 0.5 * dof, 0.5);
+    return x > 0.0 ? halfIbeta : 1.0 - halfIbeta;
+  }
 
   @override
   double inverseCumulativeProbability(num probability) {
