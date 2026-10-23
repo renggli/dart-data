@@ -114,6 +114,10 @@ Expr simplifyPow(
 
   // 4. Numeric base and numeric exponent
   if (base is Number && exponent is Number) {
+    if (base is RealNumber || exponent is RealNumber) {
+      final folded = base.powNumber(exponent);
+      if (folded != null) return folded;
+    }
     if (base is RationalNumber && exponent is RationalNumber) {
       if (exponent is IntegerNumber) {
         final folded = base.powNumber(exponent);

@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:checks/checks.dart';
 import 'package:data/src/symbolic/algebra/simplify/power.dart';
 import 'package:data/symbolic.dart';
@@ -57,9 +59,14 @@ void main() {
             .equals(IntegerNumber.negativeOne);
         check(simplifyPow(ComplexNumber.i, FractionNumber.half).toString())
             .equals('sqrt(i)');
+        check(simplifyPow(const RealNumber(2.5), const RealNumber(3.5)))
+            .equals(RealNumber(math.pow(2.5, 3.5).toDouble()));
         check(
-          simplifyPow(const RealNumber(2.5), const RealNumber(3.5)).toString(),
-        ).equals('2.5 ^ 3.5');
+          simplifyPow(const RealNumber(2.5), const IntegerNumber(Integer(2))),
+        ).equals(const RealNumber(6.25));
+        check(
+          simplifyPow(const IntegerNumber(Integer(2)), const RealNumber(0.5)),
+        ).equals(RealNumber(math.sqrt(2)));
 
         check(foldRationalPower(const Integer(2), const Integer(3), 2))
             .equals(RationalNumber(4, 9));
