@@ -24,7 +24,7 @@ void main() {
       }
 
       // L * L^T == A
-      final lLt = lower * lower.transpose();
+      final lLt = lower * lower.transposed;
       for (var i = 0; i < 3; i++) {
         for (var j = 0; j < 3; j++) {
           check(lLt.get(i, j)).isCloseTo(a.get(i, j), 1e-6);

@@ -29,15 +29,13 @@ final class StringEquality extends NaturalEquality<String> {
   bool isClose(String a, String b, double epsilon) {
     if (a == b) return epsilon >= 0;
     if (epsilon < 1) return false;
-    return editDistance(a, b) <= epsilon;
+    return _editDistance(a, b) <= epsilon;
   }
 }
 
-/// Computes the Levenshtein edit distance between two strings [a] and [b]:
-/// https://en.wikipedia.org/wiki/Levenshtein_distance
-int editDistance(String a, String b) {
+int _editDistance(String a, String b) {
   if (a.length < b.length) {
-    return editDistance(b, a);
+    return _editDistance(b, a);
   }
   var v0 = DataType.index.newList(b.length + 1);
   var v1 = DataType.index.newList(b.length + 1);

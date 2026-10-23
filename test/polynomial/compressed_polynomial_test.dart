@@ -127,7 +127,7 @@ void main() {
       }, type: DataType.float64);
 
       // P'(x) = 10000 * x^9999
-      final dp = p.differentiate();
+      final dp = p.derivative();
       check(dp.degree).equals(9999);
       check(dp.leadingCoefficient).equals(10000.0);
       check(dp.termCount).equals(1);

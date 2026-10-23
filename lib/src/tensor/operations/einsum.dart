@@ -159,13 +159,13 @@ Tensor<T> einsum<T>(String equation, List<Tensor<T>> operands) {
         if (tdOutputLabels == outputPart) {
           return operands[0].tensordot(
             operands[1],
-            axes: (contractedA, contractedB),
+            contractAxes: (self: contractedA, other: contractedB),
           );
         } else if (tdOutputLabels.length == outputPart.length &&
             tdOutputLabels.split('').toSet().containsAll(outSet)) {
           final td = operands[0].tensordot(
             operands[1],
-            axes: (contractedA, contractedB),
+            contractAxes: (self: contractedA, other: contractedB),
           );
           final perm = [
             for (var i = 0; i < outputPart.length; i++)

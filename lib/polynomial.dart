@@ -13,7 +13,7 @@
 ///   greatest common divisor (GCD).
 /// - **Fast Evaluation**: Efficient $\mathcal{O}(n)$ Horner's rule via
 ///   [Polynomial.evaluate].
-/// - **Calculus**: Analytical derivatives ([Polynomial.differentiate]) and
+/// - **Calculus**: Analytical derivatives ([Polynomial.derivative]) and
 ///   anti-derivatives ([Polynomial.integrate]).
 /// - **Root Finding**: Finds all real and complex roots of polynomials using
 ///   companion matrix eigenvalues via [Polynomial.roots].
@@ -34,7 +34,7 @@
 ///   final p = Polynomial<double>.fromCoefficients([-4.0, 0.0, 1.0]);
 ///
 ///   // Differentiate: p'(x) = 2x
-///   final dp = p.differentiate();
+///   final dp = p.derivative();
 ///   print('Derivative: $dp');
 ///
 ///   // Evaluate at x = 3: p(3) = 9 - 4 = 5

@@ -612,18 +612,18 @@ line 2",10
 
       // 3. CSV header: false, CRLF, only nulls column, and escaping
       const noHeaderCsv = '10,foo\r\n20,bar';
-      final dfNoHeader = CsvReader.parse(noHeaderCsv, header: false);
+      final dfNoHeader = DataFrame.fromCsv(noHeaderCsv, header: false);
       check(dfNoHeader.columnNames).deepEquals(['col_0', 'col_1']);
       check(dfNoHeader.rowCount).equals(2);
 
       const nullColCsv = 'a,b\n1,\n2,null\n';
-      final dfNullCol = CsvReader.parse(nullColCsv);
+      final dfNullCol = DataFrame.fromCsv(nullColCsv);
       check(dfNullCol['b'].nullCount).equals(2);
 
       final dfEscaped = DataFrame.fromColumns({
         'text': ['hello, world', 'quote "test"', 'line1\nline2'],
       });
-      final csvOut = CsvWriter.write(dfEscaped);
+      final csvOut = dfEscaped.toCsv();
       check(csvOut).contains('"hello, world"');
       check(csvOut).contains('"quote ""test"""');
 

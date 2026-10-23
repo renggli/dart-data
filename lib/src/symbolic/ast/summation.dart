@@ -94,8 +94,7 @@ sealed class IteratedExpr extends Expr {
     upper: transform(upper),
   );
 
-  /// Tests equality against another [IteratedExpr] of the same runtime type.
-  bool equalsIterated(IteratedExpr other) =>
+  bool _equalsIterated(IteratedExpr other) =>
       variable == other.variable &&
       expr == other.expr &&
       lower == other.lower &&
@@ -136,7 +135,7 @@ final class Sum extends IteratedExpr {
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
-      (other is Sum && hashCode == other.hashCode && equalsIterated(other));
+      (other is Sum && hashCode == other.hashCode && _equalsIterated(other));
 }
 
 /// Symbolic product node representing an unevaluated definite product
@@ -173,5 +172,7 @@ final class Product extends IteratedExpr {
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
-      (other is Product && hashCode == other.hashCode && equalsIterated(other));
+      (other is Product &&
+          hashCode == other.hashCode &&
+          _equalsIterated(other));
 }

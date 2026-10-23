@@ -50,10 +50,11 @@ export 'package:more/number.dart' show Complex, Fraction, Quaternion;
 
 export 'src/type/data_type.dart';
 export 'src/type/models/equality.dart';
-export 'src/type/models/field.dart';
+export 'src/type/models/field.dart' hide unsupportedOperation;
 export 'src/type/types/bigint.dart';
 export 'src/type/types/boolean.dart';
 export 'src/type/types/complex.dart';
+export 'src/type/types/dynamic.dart';
 export 'src/type/types/float.dart';
 export 'src/type/types/fraction.dart';
 export 'src/type/types/integer.dart';

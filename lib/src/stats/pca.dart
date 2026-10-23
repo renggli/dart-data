@@ -59,7 +59,7 @@ class PcaResult {
         centered.set(i, j, val);
       }
     }
-    return centered * components.transpose();
+    return centered * components.transposed;
   }
 
   /// Transforms [x] from principal component space back to original feature

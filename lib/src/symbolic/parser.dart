@@ -199,44 +199,33 @@ class ExprSyntax {
   /// multiplication.
   final bool implicitMultiplication;
 
-  /// Reusable untrimmed PetitParser [Parser] for identifier tokens.
+  /// Parser for identifier tokens without whitespace trimming.
   static final Parser<String> identifierTokenParser =
       _buildIdentifierTokenParser();
 
-  /// Reusable untrimmed PetitParser [Parser] for numeric literals.
+  /// Parser for number literal tokens without whitespace trimming.
   static final Parser<Expr> numberTokenParser = _buildNumberTokenParser();
 
-  /// Reusable unanchored PetitParser [Parser] for identifier tokens.
-  late final Parser<String> identifierParser = identifierTokenParser.trim();
-
-  /// Reusable unanchored PetitParser [Parser] for numeric literals.
-  late final Parser<Expr> numberParser = numberTokenParser.trim();
-
-  /// Reusable unanchored PetitParser [Parser] for [Expr] subexpressions.
-  late final Parser<Expr> expressionParser = _buildExprParser();
+  late final Parser<String> _identifierParser = identifierTokenParser.trim();
+  late final Parser<Expr> _numberParser = numberTokenParser.trim();
+  late final Parser<Expr> _expressionParser = _buildExprParser();
 
   /// Underlying anchored PetitParser [Parser] for [Expr] strings.
-  late final Parser<Expr> parser = expressionParser.end();
+  late final Parser<Expr> parser = _expressionParser.end();
 
-  /// Reusable unanchored PetitParser [Parser] for `[a, b, c]` [Vector] literals.
-  late final Parser<Vector<Expr>> vectorElementParser =
+  late final Parser<Vector<Expr>> _vectorElementParser =
       _buildBracketedExprList().map(
         (elements) => Vector<Expr>.fromList(elements, type: exprDataType),
       );
+  late final Parser<Vector<Expr>> _vectorParser = _vectorElementParser.end();
 
-  /// Underlying anchored PetitParser [Parser] for `[a, b, c]` [Vector] literals.
-  late final Parser<Vector<Expr>> vectorParser = vectorElementParser.end();
-
-  /// Reusable unanchored PetitParser [Parser] for `[[a, b], [c, d]]` [Matrix] literals.
-  late final Parser<Matrix<Expr>> matrixElementParser =
+  late final Parser<Matrix<Expr>> _matrixElementParser =
       _buildBracketedExprList()
           .plusSeparated(char(',').trim())
           .map((list) => list.elements)
           .skip(before: char('[').trim(), after: char(']').trim())
           .map(_createMatrix);
-
-  /// Underlying anchored PetitParser [Parser] for `[[a, b], [c, d]]` [Matrix] literals.
-  late final Parser<Matrix<Expr>> matrixParser = matrixElementParser.end();
+  late final Parser<Matrix<Expr>> _matrixParser = _matrixElementParser.end();
 
   /// Parses [input] into an [Expr], throwing [FormatException] on syntax error.
   Expr parse(String input) => switch (parser.parse(input)) {
@@ -262,20 +251,21 @@ class ExprSyntax {
 
   /// Parses a bracketed vector literal `[a, b, c]` into a symbolic [Vector],
   /// throwing [FormatException] on syntax error.
-  Vector<Expr> parseVector(String input) => switch (vectorParser.parse(input)) {
-    Success(:final value) => value,
-    Failure(:final message, :final position) => throw FormatException(
-      message,
-      input,
-      position,
-    ),
-  };
+  Vector<Expr> parseVector(String input) =>
+      switch (_vectorParser.parse(input)) {
+        Success(:final value) => value,
+        Failure(:final message, :final position) => throw FormatException(
+          message,
+          input,
+          position,
+        ),
+      };
 
   /// Parses a bracketed vector literal `[a, b, c]` into a symbolic [Vector],
   /// or returns `null` if [input] is invalid.
   Vector<Expr>? tryParseVector(String input) {
     try {
-      return switch (vectorParser.parse(input)) {
+      return switch (_vectorParser.parse(input)) {
         Success(:final value) => value,
         Failure() => null,
       };
@@ -286,20 +276,21 @@ class ExprSyntax {
 
   /// Parses a nested bracketed matrix literal `[[a, b], [c, d]]` into a
   /// symbolic [Matrix], throwing [FormatException] on syntax error or ragged rows.
-  Matrix<Expr> parseMatrix(String input) => switch (matrixParser.parse(input)) {
-    Success(:final value) => value,
-    Failure(:final message, :final position) => throw FormatException(
-      message,
-      input,
-      position,
-    ),
-  };
+  Matrix<Expr> parseMatrix(String input) =>
+      switch (_matrixParser.parse(input)) {
+        Success(:final value) => value,
+        Failure(:final message, :final position) => throw FormatException(
+          message,
+          input,
+          position,
+        ),
+      };
 
   /// Parses a nested bracketed matrix literal `[[a, b], [c, d]]` into a
   /// symbolic [Matrix], or returns `null` if [input] is invalid.
   Matrix<Expr>? tryParseMatrix(String input) {
     try {
-      return switch (matrixParser.parse(input)) {
+      return switch (_matrixParser.parse(input)) {
         Success(:final value) => value,
         Failure() => null,
       };
@@ -308,7 +299,7 @@ class ExprSyntax {
     }
   }
 
-  Parser<List<Expr>> _buildBracketedExprList() => expressionParser
+  Parser<List<Expr>> _buildBracketedExprList() => _expressionParser
       .starSeparated(char(',').trim())
       .map((list) => list.elements)
       .skip(before: char('[').trim(), after: char(']').trim());
@@ -345,11 +336,11 @@ class ExprSyntax {
 
     builder
       // Numbers
-      ..primitive(numberParser)
+      ..primitive(_numberParser)
       // Constants, variables, and functions
       ..primitive(
         seq2(
-          identifierParser,
+          _identifierParser,
           builder.loopback
               .plusSeparated(char(',').trim())
               .map((list) => list.elements)

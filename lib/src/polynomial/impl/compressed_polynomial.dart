@@ -466,7 +466,7 @@ class CompressedPolynomial<T> extends Polynomial<T> {
   }
 
   @override
-  Polynomial<T> differentiate() {
+  Polynomial<T> derivative() {
     if (_exponents.isEmpty) return CompressedPolynomial<T>.zero(type: type);
     final field = type.field;
     final zero = field.additiveIdentity;
@@ -515,9 +515,6 @@ class CompressedPolynomial<T> extends Polynomial<T> {
       type: type,
     );
   }
-
-  @override
-  List<Complex> get roots => Polynomial.computeRoots(this);
 
   @override
   CompressedPolynomial<T> toCompressed() => this;

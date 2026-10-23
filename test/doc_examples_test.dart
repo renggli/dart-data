@@ -87,7 +87,7 @@ void main() {
       final pRoots = Polynomial<double>.fromRoots([2.0, 3.0]);
       check(pRoots.evaluate(2.0)).isCloseTo(0.0, 1e-6);
 
-      final d = p.differentiate();
+      final d = p.derivative();
       check(d.degree).equals(1);
 
       final integrated = p.integrate();
@@ -626,7 +626,7 @@ void main() {
 
     test('lib/polynomial.dart quick start', () {
       final p = Polynomial<double>.fromCoefficients([-4.0, 0.0, 1.0]);
-      final dp = p.differentiate();
+      final dp = p.derivative();
       check(dp.degree).equals(1);
       check(p.evaluate(3.0)).equals(5.0);
       final rootValues = p.roots.map((c) => c.a).toList();

@@ -1,5 +1,6 @@
 import 'package:checks/checks.dart';
 import 'package:data/dataframe.dart';
+import 'package:data/src/dataframe/json/json_decoder.dart';
 import 'package:data/type.dart';
 import 'package:test/test.dart';
 

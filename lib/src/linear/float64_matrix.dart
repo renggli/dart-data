@@ -200,11 +200,7 @@ extension type Float64Matrix._(Matrix<double> _matrix)
 
   /// Returns a zero-copy transposed view as [Float64Matrix].
   @redeclare
-  Float64Matrix transpose() => Float64Matrix._(_matrix.transpose());
-
-  /// Returns a zero-copy transposed view as [Float64Matrix].
-  @redeclare
-  Float64Matrix get transposed => transpose();
+  Float64Matrix get transposed => Float64Matrix._(_matrix.transposed);
 
   /// Returns a zero-copy 1D view of the main diagonal.
   @redeclare

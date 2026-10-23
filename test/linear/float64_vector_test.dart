@@ -51,7 +51,7 @@ void main() {
       check(a.dot(b)).equals(12.0);
 
       final v = Float64Vector.fromList([3.0, 4.0]);
-      check(v.norm2()).equals(5.0);
+      check(v.norm()).equals(5.0);
     });
 
     test('inlined arithmetic operations', () {
@@ -85,7 +85,7 @@ void main() {
         final b = Float64Vector.fromList([4.0, 5.0, 6.0]);
 
         check(a.dot(b)).equals(32.0);
-        check(Float64Vector.fromList([3.0, 4.0]).norm2()).equals(5.0);
+        check(Float64Vector.fromList([3.0, 4.0]).norm()).equals(5.0);
         check((a + b).asTypedList).deepEquals([5.0, 7.0, 9.0]);
         check((b - a).asTypedList).deepEquals([3.0, 3.0, 3.0]);
         check((a * b).asTypedList).deepEquals([4.0, 10.0, 18.0]);

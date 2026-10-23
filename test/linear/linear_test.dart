@@ -105,7 +105,7 @@ void main() {
       check(m.row(0).toList()).deepEquals([1, 2, 3]);
       check(m.col(2).toList()).deepEquals([3, 6]);
 
-      final mt = m.transpose();
+      final mt = m.transposed;
       check(mt.rowCount).equals(3);
       check(mt.colCount).equals(2);
       check(mt.get(2, 1)).equals(6);
@@ -837,7 +837,7 @@ void main() {
 
       // 9. apply and applyTranspose with non-contiguous matrices/vectors and
       // Float32List
-      final mTransposed = m2.transpose();
+      final mTransposed = m2.transposed;
       final applied = mTransposed.apply(Vector<int>.fromList([1, 2]));
       check(applied.toList()).deepEquals([7, 10]);
 

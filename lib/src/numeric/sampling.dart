@@ -2,6 +2,8 @@ import 'dart:math' as math;
 
 import '../../linear.dart';
 import '../../type.dart';
+import '../tensor/layout.dart';
+import '../tensor/tensor.dart';
 
 /// A single continuous polyline segment of a sampled 1D curve.
 typedef CurveSegment = ({Vector<double> x, Vector<double> y});
@@ -54,13 +56,35 @@ Vector<double> linearSpaced(
   int count = 50,
   bool endpoint = true,
   DataType<double>? type,
-}) => Vector<double>.linspace(
-  start,
-  stop,
-  count: count,
-  endpoint: endpoint,
-  type: type,
-);
+}) {
+  if (count < 0) {
+    throw ArgumentError.value(count, 'count', 'Count must be non-negative.');
+  }
+  final effectiveType = type ?? DataType.float64;
+  final data = effectiveType.newList(count);
+  if (count == 1) {
+    data[0] = start;
+  } else if (count > 1) {
+    final divisor = endpoint ? count - 1 : count;
+    for (var i = 0; i < count; i++) {
+      if (i == 0) {
+        data[i] = start;
+      } else if (endpoint && i == count - 1) {
+        data[i] = stop;
+      } else {
+        final t = i / divisor;
+        data[i] = start * (1.0 - t) + stop * t;
+      }
+    }
+  }
+  return Vector(
+    Tensor.internal(
+      type: effectiveType,
+      layout: Layout(shape: [count]),
+      data: data,
+    ),
+  );
+}
 
 /// Generates a [Vector] with a sequence of [count] evenly spaced values on a
 /// logarithmic scale over `[base^start, base^stop]`.
@@ -81,14 +105,39 @@ Vector<double> logarithmicSpaced(
   double base = 10.0,
   bool endpoint = true,
   DataType<double>? type,
-}) => Vector<double>.logspace(
-  start,
-  stop,
-  count: count,
-  base: base,
-  endpoint: endpoint,
-  type: type,
-);
+}) {
+  if (count < 0) {
+    throw ArgumentError.value(count, 'count', 'Count must be non-negative.');
+  }
+  if (base <= 0.0) {
+    throw ArgumentError.value(base, 'base', 'Base must be positive.');
+  }
+  final effectiveType = type ?? DataType.float64;
+  final data = effectiveType.newList(count);
+  if (count == 1) {
+    data[0] = math.pow(base, start).toDouble();
+  } else if (count > 1) {
+    final divisor = endpoint ? count - 1 : count;
+    for (var i = 0; i < count; i++) {
+      if (i == 0) {
+        data[i] = math.pow(base, start).toDouble();
+      } else if (endpoint && i == count - 1) {
+        data[i] = math.pow(base, stop).toDouble();
+      } else {
+        final t = i / divisor;
+        final exp = start * (1.0 - t) + stop * t;
+        data[i] = math.pow(base, exp).toDouble();
+      }
+    }
+  }
+  return Vector(
+    Tensor.internal(
+      type: effectiveType,
+      layout: Layout(shape: [count]),
+      data: data,
+    ),
+  );
+}
 
 /// Generates a [Vector] with a sequence of [count] geometrically spaced values
 /// over the interval `[start, stop]`.
@@ -107,13 +156,58 @@ Vector<double> geometricSpaced(
   int count = 50,
   bool endpoint = true,
   DataType<double>? type,
-}) => Vector<double>.geomspace(
-  start,
-  stop,
-  count: count,
-  endpoint: endpoint,
-  type: type,
-);
+}) {
+  if (count < 0) {
+    throw ArgumentError.value(count, 'count', 'Count must be non-negative.');
+  }
+  if (start == 0.0) {
+    throw ArgumentError.value(
+      start,
+      'start',
+      'Geometric spacing requires non-zero start.',
+    );
+  }
+  if (stop == 0.0) {
+    throw ArgumentError.value(
+      stop,
+      'stop',
+      'Geometric spacing requires non-zero stop.',
+    );
+  }
+  if ((start > 0.0) != (stop > 0.0)) {
+    throw ArgumentError(
+      'Geometric spacing requires start ($start) and stop ($stop) to have the same sign.',
+    );
+  }
+  final sign = start > 0.0 ? 1.0 : -1.0;
+  final logStart = math.log(start.abs());
+  final logStop = math.log(stop.abs());
+  final effectiveType = type ?? DataType.float64;
+  final data = effectiveType.newList(count);
+  if (count == 1) {
+    data[0] = start;
+  } else if (count > 1) {
+    final divisor = endpoint ? count - 1 : count;
+    for (var i = 0; i < count; i++) {
+      if (i == 0) {
+        data[i] = start;
+      } else if (endpoint && i == count - 1) {
+        data[i] = stop;
+      } else {
+        final t = i / divisor;
+        final logVal = logStart * (1.0 - t) + logStop * t;
+        data[i] = sign * math.exp(logVal);
+      }
+    }
+  }
+  return Vector(
+    Tensor.internal(
+      type: effectiveType,
+      layout: Layout(shape: [count]),
+      data: data,
+    ),
+  );
+}
 
 /// Adaptively samples a 1D function [f] over `[a, b]` with curvature refinement
 /// and automatic splitting at vertical asymptotes, jump discontinuities, and

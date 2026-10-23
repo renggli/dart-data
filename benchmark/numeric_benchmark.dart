@@ -187,7 +187,7 @@ List<BenchmarkSpec> _buildSpecs() {
       name: 'dsyrk 128x128',
       category: 'BLAS Level 3 (GEMM)',
       isNativeSupported: () => Blas.isAvailable,
-      action: () => m128A.transpose() * m128A,
+      action: () => m128A.transposed * m128A,
       runs: 15,
       inner: 2,
     ),

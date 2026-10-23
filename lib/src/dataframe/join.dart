@@ -125,29 +125,6 @@ extension JoinDataFrameExtension on DataFrame {
 
     return DataFrame.fromColumns(resultCols);
   }
-
-  /// Performs a sort-merge relational join between this [DataFrame] and
-  /// [other].
-  ///
-  /// Convenience canonical method equivalent to calling [join] with
-  /// `method: JoinMethod.sortMerge`. If [isSorted] is `true`, both DataFrames
-  /// must already be sorted in ascending order by the join key columns in [on],
-  /// running in $\mathcal{O}(M + N)$ time and $\mathcal{O}(1)$ auxiliary
-  /// memory.
-  DataFrame sortMergeJoin(
-    DataFrame other, {
-    required List<String> on,
-    JoinType type = JoinType.inner,
-    String suffix = '_other',
-    bool isSorted = false,
-  }) => join(
-    other,
-    on: on,
-    type: type,
-    method: JoinMethod.sortMerge,
-    suffix: suffix,
-    isSorted: isSorted,
-  );
 }
 
 List<(int?, int?)> _hashJoinPairs(

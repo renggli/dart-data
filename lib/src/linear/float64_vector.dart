@@ -73,59 +73,6 @@ extension type Float64Vector._(Vector<double> _vector)
     Vector<double>.fromIterable(iterable, type: DataType.float64),
   );
 
-  /// Constructs a [Float64Vector] with a sequence of [count] evenly spaced
-  /// values over the interval `[start, stop]`.
-  factory linspace(
-    double start,
-    double stop, {
-    int count = 50,
-    bool endpoint = true,
-  }) => Float64Vector._(
-    Vector<double>.linspace(
-      start,
-      stop,
-      count: count,
-      endpoint: endpoint,
-      type: DataType.float64,
-    ),
-  );
-
-  /// Constructs a [Float64Vector] with a sequence of [count] evenly spaced
-  /// values on a logarithmic scale over `[base^start, base^stop]`.
-  factory logspace(
-    double start,
-    double stop, {
-    int count = 50,
-    double base = 10.0,
-    bool endpoint = true,
-  }) => Float64Vector._(
-    Vector<double>.logspace(
-      start,
-      stop,
-      count: count,
-      base: base,
-      endpoint: endpoint,
-      type: DataType.float64,
-    ),
-  );
-
-  /// Constructs a [Float64Vector] with a sequence of [count] geometrically
-  /// spaced values over the interval `[start, stop]`.
-  factory geomspace(
-    double start,
-    double stop, {
-    int count = 50,
-    bool endpoint = true,
-  }) => Float64Vector._(
-    Vector<double>.geomspace(
-      start,
-      stop,
-      count: count,
-      endpoint: endpoint,
-      type: DataType.float64,
-    ),
-  );
-
   /// Direct zero-copy access to the underlying [Float64List] buffer.
   Float64List get asTypedList => _vector.tensor.data as Float64List;
 
@@ -203,18 +150,24 @@ extension type Float64Vector._(Vector<double> _vector)
     return sum;
   }
 
-  /// Euclidean L2 norm routing directly to BLAS `dnrm2`.
-  double norm2() {
-    final t = _vector.tensor;
-    if (t.strides[0] > 0) {
-      return Blas.dnrm2(
-        n: length,
-        x: asTypedList,
-        xOffset: t.offset,
-        incX: t.strides[0],
-      );
+  /// Computes the $p$-norm of this vector.
+  ///
+  /// For $p = 2$ (default Euclidean norm), routes directly to BLAS `dnrm2`.
+  @redeclare
+  double norm([num pNorm = 2]) {
+    if (pNorm == 2) {
+      final t = _vector.tensor;
+      if (t.strides[0] > 0) {
+        return Blas.dnrm2(
+          n: length,
+          x: asTypedList,
+          xOffset: t.offset,
+          incX: t.strides[0],
+        );
+      }
+      return math.sqrt(dot(this));
     }
-    return math.sqrt(dot(this));
+    return _vector.norm(pNorm);
   }
 
   /// Inlined vector addition.

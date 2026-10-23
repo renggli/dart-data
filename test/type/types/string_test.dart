@@ -29,8 +29,8 @@ void main() {
       check(type.cast(null)).equals('null');
     });
 
-    test('editDistance and isClose', () {
-      check(editDistance('kitten', 'sitting')).equals(3);
+    test('isClose', () {
+      check(type.equality.isClose('kitten', 'sitting', 3.0)).isTrue();
       check(type.equality.isClose('kitten', 'sitting', 3.5)).isTrue();
       check(type.equality.isClose('kitten', 'sitting', 2.0)).isFalse();
     });

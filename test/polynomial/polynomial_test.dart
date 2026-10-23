@@ -163,7 +163,7 @@ void main() {
       ], type: DataType.float64);
 
       // P'(x) = 4 + 6x + 6x^2
-      final deriv = poly.differentiate();
+      final deriv = poly.derivative();
       check(deriv.coefficients).deepEquals([4.0, 6.0, 6.0]);
 
       // \int P'(x) dx with C=5 gives P(x)

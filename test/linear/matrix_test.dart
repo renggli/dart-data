@@ -303,7 +303,7 @@ void main() {
         [4.0, 5.0, 6.0],
         [7.0, 8.0, 9.0],
       ]);
-      check(mat.transpose().trace).equals(15.0);
+      check(mat.transposed.trace).equals(15.0);
       check(mat.subMatrix(rowStart: 0, rowEnd: 2, colStart: 0, colEnd: 2).trace)
           .equals(6.0);
       check(mat.subMatrix(rowStart: 1, rowEnd: 3, colStart: 1, colEnd: 3).trace)

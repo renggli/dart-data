@@ -1,5 +1,7 @@
 import 'package:checks/checks.dart';
 import 'package:data/dataframe.dart';
+import 'package:data/src/dataframe/csv/csv_reader.dart';
+import 'package:data/src/dataframe/csv/csv_writer.dart';
 import 'package:test/scaffolding.dart';
 
 void main() {

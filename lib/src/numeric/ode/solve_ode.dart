@@ -27,7 +27,6 @@ OdeSolution solveOde({
   required Vector<double> y0,
   OdeMethod method = OdeMethod.dormandPrince45,
   double stepSize = 0.01,
-  double initialStep = 0.01,
   double relativeTolerance = 1e-6,
   double absoluteTolerance = 1e-8,
   double minStep = 1e-12,
@@ -39,13 +38,6 @@ OdeSolution solveOde({
       stepSize,
       'stepSize',
       'Step size must be positive',
-    );
-  }
-  if (initialStep <= 0) {
-    throw ArgumentError.value(
-      initialStep,
-      'initialStep',
-      'Initial step must be positive',
     );
   }
   if (maxSteps <= 0) {
@@ -72,7 +64,7 @@ OdeSolution solveOde({
         t0: t0,
         tEnd: tEnd,
         y0: y0,
-        initialStep: initialStep,
+        initialStep: stepSize,
         relativeTolerance: relativeTolerance,
         absoluteTolerance: absoluteTolerance,
         minStep: minStep,

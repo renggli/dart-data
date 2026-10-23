@@ -303,7 +303,12 @@ void main() {
         'age': [25, 30, 40],
       });
 
-      final merged = left.sortMergeJoin(right, on: ['id'], isSorted: true);
+      final merged = left.join(
+        right,
+        on: ['id'],
+        method: JoinMethod.sortMerge,
+        isSorted: true,
+      );
       check(merged.rowCount).equals(2);
       check(merged['id'].toList()).deepEquals([2, 4]);
       check(merged['name'].toList()).deepEquals(['Bob', 'Dave']);
@@ -367,7 +372,12 @@ void main() {
         'val_r': ['u', 'v', 'w', 'x', 'y'],
       });
 
-      final merged = left.sortMergeJoin(right, on: ['id'], isSorted: true);
+      final merged = left.join(
+        right,
+        on: ['id'],
+        method: JoinMethod.sortMerge,
+        isSorted: true,
+      );
       // id 1: 2 * 3 = 6 rows
       // id 3: 2 * 1 = 2 rows
       check(merged.rowCount).equals(8);
@@ -388,7 +398,7 @@ void main() {
         'age': [30, 25, 40],
       });
 
-      final merged = left.sortMergeJoin(right, on: ['id']);
+      final merged = left.join(right, on: ['id'], method: JoinMethod.sortMerge);
       check(merged.rowCount).equals(2);
       check(merged['id'].toList()).deepEquals([2, 4]);
       check(merged['name'].toList()).deepEquals(['Bob', 'Dave']);
@@ -406,12 +416,20 @@ void main() {
       });
 
       check(
-        () =>
-            unsortedLeft.sortMergeJoin(sortedRight, on: ['id'], isSorted: true),
+        () => unsortedLeft.join(
+          sortedRight,
+          on: ['id'],
+          method: JoinMethod.sortMerge,
+          isSorted: true,
+        ),
       ).throws<ArgumentError>();
       check(
-        () =>
-            sortedRight.sortMergeJoin(unsortedLeft, on: ['id'], isSorted: true),
+        () => sortedRight.join(
+          unsortedLeft,
+          on: ['id'],
+          method: JoinMethod.sortMerge,
+          isSorted: true,
+        ),
       ).throws<ArgumentError>();
     });
 
@@ -451,22 +469,29 @@ void main() {
         'val': ['a', 'b'],
       });
 
-      final inner = empty.sortMergeJoin(non, on: ['id'], isSorted: true);
+      final inner = empty.join(
+        non,
+        on: ['id'],
+        method: JoinMethod.sortMerge,
+        isSorted: true,
+      );
       check(inner.rowCount).equals(0);
 
-      final rightOuter = empty.sortMergeJoin(
+      final rightOuter = empty.join(
         non,
         on: ['id'],
         type: JoinType.right,
+        method: JoinMethod.sortMerge,
         isSorted: true,
       );
       check(rightOuter.rowCount).equals(2);
       check(rightOuter['id'].toList()).deepEquals([1, 2]);
 
-      final leftOuter = non.sortMergeJoin(
+      final leftOuter = non.join(
         empty,
         on: ['id'],
         type: JoinType.left,
+        method: JoinMethod.sortMerge,
         isSorted: true,
       );
       check(leftOuter.rowCount).equals(2);

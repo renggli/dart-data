@@ -25,7 +25,7 @@ void main() {
 
   // 2. Calculus on Polynomials
   stdout.writeln('2. Polynomial Calculus');
-  final dProduct = product.differentiate();
+  final dProduct = product.derivative();
   final iProduct = product.integrate();
   stdout.writeln('   d/dx ($product) = $dProduct');
   stdout.writeln('   ∫ ($product) dx = $iProduct\n');

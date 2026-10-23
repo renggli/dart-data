@@ -104,7 +104,7 @@ void main() {
       final px = Polynomial<double>.fromCoefficients([0.0, 1.0]);
       final r = RationalFunction(p1, px);
 
-      final deriv = r.differentiate();
+      final deriv = r.derivative();
       check(deriv.evaluate(2.0)).isCloseTo(-0.25, 1e-9);
       check(deriv.evaluate(3.0)).isCloseTo(-1.0 / 9.0, 1e-9);
 
@@ -113,7 +113,7 @@ void main() {
       final pxSq = Polynomial<double>.fromCoefficients([0.0, 0.0, 1.0]);
       final pxPlus1 = Polynomial<double>.fromCoefficients([1.0, 1.0]);
       final r2 = RationalFunction(pxSq, pxPlus1);
-      final deriv2 = r2.differentiate();
+      final deriv2 = r2.derivative();
       // At x = 1: (1 + 2) / 4 = 0.75
       check(deriv2.evaluate(1.0)).isCloseTo(0.75, 1e-9);
     });

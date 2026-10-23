@@ -209,12 +209,9 @@ abstract class Polynomial<T> {
   ///
   /// ```dart
   /// final p = Polynomial.fromCoefficients([1, 2, 3]); // 1 + 2x + 3x^2
-  /// final dp = p.differentiate(); // 2 + 6x
+  /// final dp = p.derivative(); // 2 + 6x
   /// ```
-  Polynomial<T> differentiate();
-
-  /// Computes the formal derivative $P'(x)$.
-  Polynomial<T> derivative() => differentiate();
+  Polynomial<T> derivative();
 
   /// Computes the formal antiderivative
   /// $\int P(x) dx = C + c_0 x + \frac{c_1}{2} x^2 + \dots$
@@ -238,7 +235,7 @@ abstract class Polynomial<T> {
   /// ); // x^2 - 4
   /// final r = p.roots; // [Complex(-2.0), Complex(2.0)]
   /// ```
-  List<Complex> get roots;
+  List<Complex> get roots => _computeRoots(this);
 
   /// Converts this polynomial to a sparse [CompressedPolynomial].
   CompressedPolynomial<T> toCompressed();
@@ -432,7 +429,7 @@ abstract class Polynomial<T> {
 
   /// Computes complex roots for [poly] using closed-form solutions for low degrees
   /// and Frobenius companion matrix eigenvalue decomposition for higher degrees.
-  static List<Complex> computeRoots<T>(
+  static List<Complex> _computeRoots<T>(
     Polynomial<T> poly, {
     int maxCompanionDegree = 1000,
   }) {

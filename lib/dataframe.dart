@@ -22,9 +22,9 @@
 ///   ([Agg.median]), mean ([Agg.mean]), sum ([Agg.sum]), min ([Agg.min]), and
 ///   max ([Agg.max]).
 /// - **Data Ingestion & Export**: Robust RFC 4180 CSV/TSV parsing
-///   ([CsvReader]), CSV formatting ([CsvWriter]), and JSON serialization
-///   supporting [JsonOrient.records], [JsonOrient.split], [JsonOrient.columns],
-///   and [JsonOrient.values_] orientations.
+///   ([DataFrame.fromCsv]), CSV formatting ([DataFrame.toCsv]), and JSON serialization
+///   ([DataFrame.fromJson], [DataFrame.toJson]) supporting [JsonOrient.records],
+///   [JsonOrient.split], [JsonOrient.columns], and [JsonOrient.values_] orientations.
 ///
 /// ## Example
 ///
@@ -48,8 +48,6 @@ library;
 
 import 'src/dataframe/arrow_string_series.dart';
 import 'src/dataframe/bitmask.dart';
-import 'src/dataframe/csv/csv_reader.dart';
-import 'src/dataframe/csv/csv_writer.dart';
 import 'src/dataframe/dataframe.dart';
 import 'src/dataframe/groupby.dart';
 import 'src/dataframe/join.dart';
@@ -60,14 +58,10 @@ export 'src/dataframe/arrow/arrow_c_data.dart';
 export 'src/dataframe/arrow/arrow_ipc.dart';
 export 'src/dataframe/arrow_string_series.dart';
 export 'src/dataframe/bitmask.dart';
-export 'src/dataframe/csv/csv_reader.dart';
 export 'src/dataframe/csv/csv_stream.dart';
-export 'src/dataframe/csv/csv_writer.dart';
 export 'src/dataframe/dataframe.dart';
 export 'src/dataframe/groupby.dart';
 export 'src/dataframe/join.dart';
-export 'src/dataframe/json/json_decoder.dart';
-export 'src/dataframe/json/json_encoder.dart';
 export 'src/dataframe/json/json_orient.dart';
 export 'src/dataframe/json/json_stream.dart';
 export 'src/dataframe/series.dart';

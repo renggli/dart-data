@@ -146,4 +146,4 @@ export 'src/stats/hypothesis/t_test.dart';
 export 'src/stats/hypothesis/wilcoxon.dart';
 export 'src/stats/pca.dart';
 export 'src/stats/resampling/bootstrap.dart';
-export 'src/stats/resampling/jackknife.dart';
+export 'src/stats/resampling/jackknife.dart' hide JackknifeResampling;

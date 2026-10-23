@@ -277,7 +277,7 @@ class DensePolynomial<T> extends Polynomial<T> {
   }
 
   @override
-  Polynomial<T> differentiate() {
+  Polynomial<T> derivative() {
     final deg = degree;
     if (deg <= 0) return Polynomial<T>.zero(type: type);
 
@@ -313,9 +313,6 @@ class DensePolynomial<T> extends Polynomial<T> {
 
     return DensePolynomial<T>.fromCoefficients(newCoeffs, type: type);
   }
-
-  @override
-  List<Complex> get roots => Polynomial.computeRoots(this);
 
   @override
   CompressedPolynomial<T> toCompressed() {

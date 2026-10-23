@@ -126,9 +126,9 @@ class RationalFunction<T> {
 
   /// Computes the formal derivative
   /// $\left(\frac{P}{Q}\right)' = \frac{P' Q - P Q'}{Q^2}$.
-  RationalFunction<T> differentiate() {
-    final pPrime = numerator.differentiate();
-    final qPrime = denominator.differentiate();
+  RationalFunction<T> derivative() {
+    final pPrime = numerator.derivative();
+    final qPrime = denominator.derivative();
     final numVal = (pPrime * denominator) - (numerator * qPrime);
     final denVal = denominator * denominator;
     return RationalFunction(numVal, denVal).simplify();

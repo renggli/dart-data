@@ -27,8 +27,11 @@ extension ContractionTensorExtension<T> on Tensor<T> {
   /// final c = a.tensordot(b, axes: 1);
   /// // c has shape [2, 2] and values [[19, 22], [43, 50]]
   /// ```
-  Tensor<T> tensordot(Tensor<T> other, {Object axes = 2}) =>
-      _tensorDot(this, other, axes: axes);
+  Tensor<T> tensordot(
+    Tensor<T> other, {
+    int axes = 2,
+    ({List<int> self, List<int> other})? contractAxes,
+  }) => _tensorDot(this, other, axes: axes, contractAxes: contractAxes);
 
   /// Computes the tensor inner product (Frobenius / full contraction) with
   /// [other].
@@ -49,9 +52,9 @@ extension ContractionTensorExtension<T> on Tensor<T> {
   Tensor<T> innerProduct(Tensor<T> other) => _tensorDot(
     this,
     other,
-    axes: (
-      List<int>.generate(rank, (i) => i),
-      List<int>.generate(other.rank, (i) => i),
+    contractAxes: (
+      self: List<int>.generate(rank, (i) => i),
+      other: List<int>.generate(other.rank, (i) => i),
     ),
   );
 
@@ -75,8 +78,13 @@ extension ContractionTensorExtension<T> on Tensor<T> {
   Tensor<T> outerProduct(Tensor<T> other) => _tensorDot(this, other, axes: 0);
 }
 
-Tensor<T> _tensorDot<T>(Tensor<T> a, Tensor<T> b, {dynamic axes = 2}) {
-  final (axesA, axesB) = _parseAxes(a.rank, b.rank, axes);
+Tensor<T> _tensorDot<T>(
+  Tensor<T> a,
+  Tensor<T> b, {
+  int axes = 2,
+  ({List<int> self, List<int> other})? contractAxes,
+}) {
+  final (axesA, axesB) = _parseAxes(a.rank, b.rank, axes, contractAxes);
   if (axesA.length != axesB.length) {
     throw ArgumentError(
       'Number of contracted axes must match: ${axesA.length} != ${axesB.length}',
@@ -124,50 +132,33 @@ Tensor<T> _tensorDot<T>(Tensor<T> a, Tensor<T> b, {dynamic axes = 2}) {
   return prodMat.reshape(outShape);
 }
 
-/// Computes the full inner product of two tensors.
-Tensor<T> innerProduct<T>(Tensor<T> a, Tensor<T> b) => a.innerProduct(b);
-
-/// Computes the outer product of two tensors.
-Tensor<T> outerProduct<T>(Tensor<T> a, Tensor<T> b) => a.outerProduct(b);
-
-(List<int>, List<int>) _parseAxes(int rankA, int rankB, dynamic axes) {
-  if (axes is int) {
-    if (axes < 0) {
-      throw ArgumentError.value(
-        axes,
-        'axes',
-        'Number of axes must be non-negative',
-      );
-    }
-    if (axes > rankA || axes > rankB) {
-      throw ArgumentError(
-        'Number of axes ($axes) exceeds tensor rank ($rankA, $rankB)',
-      );
-    }
-    final axesA = List<int>.generate(axes, (i) => rankA - axes + i);
-    final axesB = List<int>.generate(axes, (i) => i);
-    return (axesA, axesB);
-  } else if (axes is (List<int>, List<int>)) {
-    final (aAxes, bAxes) = axes;
-    return (_normalizeAxes(rankA, aAxes), _normalizeAxes(rankB, bAxes));
-  } else if (axes is (int, int)) {
-    final (aAxis, bAxis) = axes;
-    return (_normalizeAxes(rankA, [aAxis]), _normalizeAxes(rankB, [bAxis]));
-  } else if (axes is List && axes.length == 2) {
-    final aList = axes[0] is int
-        ? [axes[0] as int]
-        : (axes[0] as Iterable).cast<int>().toList();
-    final bList = axes[1] is int
-        ? [axes[1] as int]
-        : (axes[1] as Iterable).cast<int>().toList();
-    return (_normalizeAxes(rankA, aList), _normalizeAxes(rankB, bList));
-  } else {
+(List<int>, List<int>) _parseAxes(
+  int rankA,
+  int rankB,
+  int axes,
+  ({List<int> self, List<int> other})? contractAxes,
+) {
+  if (contractAxes != null) {
+    return (
+      _normalizeAxes(rankA, contractAxes.self),
+      _normalizeAxes(rankB, contractAxes.other),
+    );
+  }
+  if (axes < 0) {
     throw ArgumentError.value(
       axes,
       'axes',
-      'Invalid axes specification for tensordot: expected int, (List<int>, List<int>), or (int, int)',
+      'Number of axes must be non-negative',
     );
   }
+  if (axes > rankA || axes > rankB) {
+    throw ArgumentError(
+      'Number of axes ($axes) exceeds tensor rank ($rankA, $rankB)',
+    );
+  }
+  final axesA = List<int>.generate(axes, (i) => rankA - axes + i);
+  final axesB = List<int>.generate(axes, (i) => i);
+  return (axesA, axesB);
 }
 
 List<int> _normalizeAxes(int rank, List<int> axes) {

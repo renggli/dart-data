@@ -72,15 +72,6 @@ void main() {
             solveOde(f: derivative, t0: 0.0, tEnd: 1.0, y0: y0, stepSize: 0.0),
       ).throws<ArgumentError>();
       check(
-        () => solveOde(
-          f: derivative,
-          t0: 0.0,
-          tEnd: 1.0,
-          y0: y0,
-          initialStep: -0.1,
-        ),
-      ).throws<ArgumentError>();
-      check(
         () => solveOde(f: derivative, t0: 0.0, tEnd: 1.0, y0: y0, maxSteps: 0),
       ).throws<ArgumentError>();
     });

@@ -1,6 +1,5 @@
 import 'package:checks/checks.dart';
-import 'package:data/linear.dart';
-import 'package:data/numeric.dart' as numeric;
+import 'package:data/numeric.dart';
 import 'package:data/type.dart';
 import 'package:test/test.dart';
 
@@ -82,23 +81,6 @@ void main() {
       check(v[0]).equals(0.0);
       check(v[4]).equals(1.0);
     });
-
-    test('Vector.linspace parity', () {
-      final v1 = Vector<double>.linspace(0.0, 4.0, count: 5);
-      final v2 = linearSpaced(0.0, 4.0, count: 5);
-      check(v1.length).equals(v2.length);
-      for (var i = 0; i < v1.length; i++) {
-        check(v1[i]).equals(v2[i]);
-      }
-    });
-
-    test('Float64Vector.linspace parity', () {
-      final fv = Float64Vector.linspace(0.0, 4.0, count: 5);
-      check(fv.length).equals(5);
-      check(fv[0]).equals(0.0);
-      check(fv[2]).equals(2.0);
-      check(fv[4]).equals(4.0);
-    });
   });
 
   group('logarithmicSpaced', () {
@@ -160,22 +142,6 @@ void main() {
           .throws<ArgumentError>();
       check(() => logarithmicSpaced(0.0, 3.0, base: -2.0))
           .throws<ArgumentError>();
-    });
-
-    test('Vector.logspace parity', () {
-      final v1 = Vector<double>.logspace(0.0, 3.0, count: 4);
-      final v2 = logarithmicSpaced(0.0, 3.0, count: 4);
-      check(v1.length).equals(v2.length);
-      for (var i = 0; i < v1.length; i++) {
-        check(v1[i]).isCloseTo(v2[i], 1e-12);
-      }
-    });
-
-    test('Float64Vector.logspace parity', () {
-      final fv = Float64Vector.logspace(0.0, 3.0, count: 4);
-      check(fv.length).equals(4);
-      check(fv[0]).isCloseTo(1.0, 1e-12);
-      check(fv[3]).isCloseTo(1000.0, 1e-12);
     });
   });
 
@@ -259,27 +225,11 @@ void main() {
       check(() => geometricSpaced(-1.0, 10.0)).throws<ArgumentError>();
       check(() => geometricSpaced(1.0, -10.0)).throws<ArgumentError>();
     });
-
-    test('Vector.geomspace parity', () {
-      final v1 = Vector<double>.geomspace(1.0, 1000.0, count: 4);
-      final v2 = geometricSpaced(1.0, 1000.0, count: 4);
-      check(v1.length).equals(v2.length);
-      for (var i = 0; i < v1.length; i++) {
-        check(v1[i]).isCloseTo(v2[i], 1e-12);
-      }
-    });
-
-    test('Float64Vector.geomspace parity', () {
-      final fv = Float64Vector.geomspace(1.0, 1000.0, count: 4);
-      check(fv.length).equals(4);
-      check(fv[0]).isCloseTo(1.0, 1e-12);
-      check(fv[3]).isCloseTo(1000.0, 1e-12);
-    });
   });
 
   group('sampleCurve', () {
     test('samples smooth continuous curves into a single segment', () {
-      final sample = numeric.sampleCurve((x) => x * x, -2.0, 2.0);
+      final sample = sampleCurve((x) => x * x, -2.0, 2.0);
       check(sample.segments.length).equals(1);
       check(sample.pointCount).isGreaterOrEqual(65);
       final seg = sample.segments.first;
@@ -291,7 +241,7 @@ void main() {
 
     test('splits vertical asymptotes and poles into separate segments', () {
       // 1 / x on [-1, 1] has a pole at x = 0 -> 2 segments
-      final invSample = numeric.sampleCurve((x) => 1.0 / x, -1.0, 1.0);
+      final invSample = sampleCurve((x) => 1.0 / x, -1.0, 1.0);
       check(invSample.segments.length).equals(2);
       final seg0 = invSample.segments[0];
       final seg1 = invSample.segments[1];
@@ -299,21 +249,17 @@ void main() {
       check(seg1.x[0]).isGreaterThan(0.0);
 
       // tan(x) on [-3, 3] has poles at -pi/2 and +pi/2 -> 3 segments
-      final tanSample = numeric.sampleCurve(_tan, -3.0, 3.0);
+      final tanSample = sampleCurve(_tan, -3.0, 3.0);
       check(tanSample.segments.length).equals(3);
     });
 
     test('splits step discontinuities and handles out-of-domain intervals', () {
       // Sign / step function on [-1, 1] -> 2 segments
-      final stepSample = numeric.sampleCurve(
-        (x) => x < 0.0 ? -1.0 : 1.0,
-        -1.0,
-        1.0,
-      );
+      final stepSample = sampleCurve((x) => x < 0.0 ? -1.0 : 1.0, -1.0, 1.0);
       check(stepSample.segments.length).equals(2);
 
       // Out-of-domain NaN on [-1, 0) for sqrt(x) on [-1, 1] -> 1 segment on [0, 1]
-      final sqrtSample = numeric.sampleCurve(_sqrt, -1.0, 1.0);
+      final sqrtSample = sampleCurve(_sqrt, -1.0, 1.0);
       check(sqrtSample.segments.length).equals(1);
       final seg = sqrtSample.segments.first;
       check(seg.x[0]).isGreaterOrEqual(0.0);
@@ -321,7 +267,7 @@ void main() {
     });
 
     test('validates arguments and respects maxPoints budget', () {
-      final bounded = numeric.sampleCurve(
+      final bounded = sampleCurve(
         _sin10,
         0.0,
         1.0,
@@ -330,31 +276,24 @@ void main() {
       );
       check(bounded.pointCount).isLessOrEqual(25);
 
-      check(() => numeric.sampleCurve((x) => x, 2.0, 1.0))
-          .throws<ArgumentError>();
-      check(() => numeric.sampleCurve((x) => x, 0.0, 1.0, initialPoints: 2))
+      check(() => sampleCurve((x) => x, 2.0, 1.0)).throws<ArgumentError>();
+      check(() => sampleCurve((x) => x, 0.0, 1.0, initialPoints: 2))
           .throws<ArgumentError>();
       check(
-        () => numeric.sampleCurve(
-          (x) => x,
-          0.0,
-          1.0,
-          initialPoints: 20,
-          maxPoints: 10,
-        ),
+        () => sampleCurve((x) => x, 0.0, 1.0, initialPoints: 20, maxPoints: 10),
       ).throws<ArgumentError>();
-      check(() => numeric.sampleCurve((x) => x, 0.0, 1.0, tolerance: 0.0))
+      check(() => sampleCurve((x) => x, 0.0, 1.0, tolerance: 0.0))
           .throws<ArgumentError>();
     });
   });
 
   group('package:data/numeric.dart exports', () {
     test('provides linearSpaced, logarithmicSpaced, geometricSpaced', () {
-      final v1 = numeric.linearSpaced(0.0, 1.0, count: 5);
+      final v1 = linearSpaced(0.0, 1.0, count: 5);
       check(v1.length).equals(5);
-      final v2 = numeric.logarithmicSpaced(0.0, 3.0, count: 4);
+      final v2 = logarithmicSpaced(0.0, 3.0, count: 4);
       check(v2.length).equals(4);
-      final v3 = numeric.geometricSpaced(1.0, 100.0, count: 3);
+      final v3 = geometricSpaced(1.0, 100.0, count: 3);
       check(v3.length).equals(3);
     });
   });

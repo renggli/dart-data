@@ -239,10 +239,7 @@ class Matrix<T> implements LinearOperator<T> {
   Vector<T> col(int col) => Vector(tensor.transpose([1, 0])[col]);
 
   /// Returns a zero-copy transposed view of this matrix.
-  Matrix<T> transpose() => Matrix(tensor.transpose([1, 0]));
-
-  /// Returns a zero-copy transposed view of this matrix.
-  Matrix<T> get transposed => transpose();
+  Matrix<T> get transposed => Matrix(tensor.transpose([1, 0]));
 
   /// Returns the conjugate transpose (Hermitian adjoint $A^* = (\bar{A})^T$) of
   /// this matrix.
@@ -361,9 +358,9 @@ class Matrix<T> implements LinearOperator<T> {
     final normalized = count % 4;
     return switch (normalized) {
       0 => this,
-      1 => transpose().flippedHorizontal(),
+      1 => transposed.flippedHorizontal(),
       2 => flippedHorizontal().flippedVertical(),
-      3 => transpose().flippedVertical(),
+      3 => transposed.flippedVertical(),
       _ => this,
     };
   }
@@ -1004,8 +1001,8 @@ class Matrix<T> implements LinearOperator<T> {
         }
       }
     }
-    final aOp = transpose ? this.transpose() : this;
-    final aOther = transpose ? this : this.transpose();
+    final aOp = transpose ? transposed : this;
+    final aOther = transpose ? this : transposed;
     return (aOp * aOther).scale(
       field.scale(field.multiplicativeIdentity, alpha),
     );

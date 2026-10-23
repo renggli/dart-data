@@ -71,12 +71,12 @@ void main() {
       check(df['col2'].toList()).deepEquals([20, 40]);
     });
 
-    test('delegates through CsvReader static methods', () async {
+    test('reads through CsvStream methods', () async {
       const csv = 'a,b\n1,2\n3,4\n';
-      final df = await CsvReader.parseStream(Stream.value(csv));
+      final df = await CsvStream.readStream(Stream.value(csv));
       check(df.rowCount).equals(2);
 
-      final chunked = await CsvReader.parseStreamChunks(
+      final chunked = await CsvStream.readChunks(
         Stream.value(csv),
         chunkSize: 1,
       ).toList();
