@@ -10,3 +10,19 @@ benchmark/
 doc/
 test/
 web/
+
+# Build artifacts, dependencies, and IDE files
+.config/
+.dart_tool/
+.DS_Store
+.idea/
+.packages
+.pub/
+.opencode/
+*.iml
+pubspec.lock
+coverage/
+*.dart.js
+*.dart.js.map
+*.dart.js.deps
+
