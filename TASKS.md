@@ -358,7 +358,7 @@ Each task specifies:
 - **Actionable Fix & Acceptance Criteria**:
   1. Remove `import '../../symbolic.dart';` and `Polynomial.fromExpr` from `lib/src/polynomial/polynomial.dart`.
   2. Move symbolic-to-polynomial conversion into `lib/src/symbolic/` as an extension method `Expr.toPolynomial(String variable, {num point = 0, int order = 5})` (and/or `extension SymbolicPolynomialFactory on Polynomial` in `symbolic`).
-  3. Add an architectural test asserting that transitive imports of `lib/numeric.dart`, `lib/linear.dart`, `lib/tensor.dart`, `lib/stats.dart`, `lib/special.dart`, and `lib/polynomial.dart` never import any file under `lib/src/symbolic/` or `package:petitparser`.
+  3. Add an architectural test asserting that transitive imports of `lib/numeric.dart`, `lib/linear.dart`, `lib/tensor.dart`, `lib/stats.dart`, `lib/special.dart`, and `lib/polynomial.dart` never import any file under `lib/src/symbolic/` or `lib/symbolic.dart`.
 
 ### TASK-3.2: Eliminate Positional Record Accessors (`.$1`, `.$2`), Named Record Gaps, and Intermediate Internal Barrel Files
 

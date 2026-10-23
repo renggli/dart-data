@@ -1,7 +1,6 @@
 import 'dart:math' as math;
 
 import '../../linear.dart';
-import '../../symbolic.dart';
 import '../../type.dart';
 import 'impl/compressed_polynomial.dart';
 import 'impl/dense_polynomial.dart';
@@ -104,82 +103,6 @@ abstract class Polynomial<T> {
       result = result * factor;
     }
     return result;
-  }
-
-  /// Constructs a polynomial from a symbolic [expr] by computing its Taylor
-  /// expansion with respect to [variable] up to [order] around [around].
-  ///
-  /// Conceptually, this converts a symbolic algebraic expression into a
-  /// polynomial approximation. Formally, it maps an analytic function to its
-  /// truncated Taylor series representation.
-  ///
-  /// ```dart
-  /// final x = Variable('x');
-  /// final p = Polynomial<double>.fromExpr(Exp(x), 'x', order: 2);
-  /// // coefficients: [1.0, 1.0, 0.5]
-  /// ```
-  factory fromExpr(
-    Expr expr,
-    String variable, {
-    double around = 0.0,
-    int order = 4,
-    DataType<T>? type,
-  }) {
-    final effectiveType = (type ?? DataType.float64) as DataType<T>;
-    final field = effectiveType.field;
-    if (order < 0) {
-      return Polynomial<T>.zero(type: effectiveType);
-    }
-    if (around == 0.0) {
-      final coeffs = List<T>.filled(order + 1, field.additiveIdentity);
-      var currentDeriv = expr;
-      var factorial = 1.0;
-      for (var k = 0; k <= order; k++) {
-        if (k > 0) {
-          currentDeriv = currentDeriv.derivative(variable);
-          factorial *= k;
-        }
-        final valExpr = currentDeriv
-            .substitute(variable, IntegerNumber.zero)
-            .simplify();
-        final val = valExpr is Number
-            ? valExpr.toDouble()
-            : valExpr.evaluate(const {});
-        coeffs[k] = effectiveType.cast(val / factorial);
-      }
-      return Polynomial<T>.fromCoefficients(coeffs, type: effectiveType);
-    } else {
-      var result = Polynomial<T>.zero(type: effectiveType);
-      final xMinusA = Polynomial<T>.fromCoefficients([
-        effectiveType.cast(-around),
-        field.multiplicativeIdentity,
-      ], type: effectiveType);
-      var currentPower = Polynomial<T>.fromCoefficients([
-        field.multiplicativeIdentity,
-      ], type: effectiveType);
-      var currentDeriv = expr;
-      var factorial = 1.0;
-      for (var k = 0; k <= order; k++) {
-        if (k > 0) {
-          currentDeriv = currentDeriv.derivative(variable);
-          factorial *= k;
-        }
-        final valExpr = currentDeriv
-            .substitute(variable, RealNumber(around).rationalize())
-            .simplify();
-        final val = valExpr is Number
-            ? valExpr.toDouble()
-            : valExpr.evaluate(const {});
-        final coeff = effectiveType.cast(val / factorial);
-        if (coeff != field.additiveIdentity) {
-          result = result + currentPower.scale(coeff);
-        }
-        if (k < order) {
-          currentPower = currentPower * xMinusA;
-        }
-      }
-      return result;
-    }
   }
 
   /// The data type of the coefficients.

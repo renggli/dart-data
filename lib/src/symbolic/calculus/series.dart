@@ -1,10 +1,13 @@
 import 'dart:math' as math;
 
+import '../../polynomial/polynomial.dart';
+import '../../type/data_type.dart';
 import '../algebra/approximate.dart';
 import '../algebra/simplify.dart';
 import '../assumptions.dart';
 import '../ast.dart';
 import '../compiler.dart';
+import 'differentiation.dart';
 
 /// Extension providing formal power series and Laurent expansion on [Expr].
 extension SeriesExtension on Expr {
@@ -47,6 +50,96 @@ extension SeriesExtension on Expr {
     _wrapSeriesPoint(point),
     order,
   );
+
+  /// Converts this symbolic expression into a [Polynomial] approximation by
+  /// computing its Taylor expansion with respect to [variable] up to [order]
+  /// around [point].
+  ///
+  /// Conceptually, this converts a symbolic algebraic expression into a
+  /// polynomial approximation. Formally, it maps an analytic function to its
+  /// truncated Taylor series representation.
+  ///
+  /// ```dart
+  /// final x = Variable('x');
+  /// final p = Exp(x).toPolynomial('x', order: 2);
+  /// // coefficients: [1.0, 1.0, 0.5]
+  /// ```
+  Polynomial<T> toPolynomial<T>(
+    String variable, {
+    num point = 0,
+    int order = 5,
+    DataType<T>? type,
+  }) {
+    final effectiveType = (type ?? DataType.float64) as DataType<T>;
+    final field = effectiveType.field;
+    if (order < 0) {
+      return Polynomial<T>.zero(type: effectiveType);
+    }
+    final around = point.toDouble();
+    if (around == 0.0) {
+      final coeffs = List<T>.filled(order + 1, field.additiveIdentity);
+      var currentDeriv = this;
+      var factorial = 1.0;
+      for (var k = 0; k <= order; k++) {
+        if (k > 0) {
+          currentDeriv = currentDeriv.derivative(variable);
+          factorial *= k;
+        }
+        final valExpr = currentDeriv
+            .substitute(variable, IntegerNumber.zero)
+            .simplify();
+        final val = valExpr is Number
+            ? valExpr.toDouble()
+            : valExpr.evaluate(const {});
+        coeffs[k] = effectiveType.cast(val / factorial);
+      }
+      return Polynomial<T>.fromCoefficients(coeffs, type: effectiveType);
+    } else {
+      var result = Polynomial<T>.zero(type: effectiveType);
+      final xMinusA = Polynomial<T>.fromCoefficients([
+        effectiveType.cast(-around),
+        field.multiplicativeIdentity,
+      ], type: effectiveType);
+      var currentPower = Polynomial<T>.fromCoefficients([
+        field.multiplicativeIdentity,
+      ], type: effectiveType);
+      var currentDeriv = this;
+      var factorial = 1.0;
+      for (var k = 0; k <= order; k++) {
+        if (k > 0) {
+          currentDeriv = currentDeriv.derivative(variable);
+          factorial *= k;
+        }
+        final valExpr = currentDeriv
+            .substitute(variable, RealNumber(around).rationalize())
+            .simplify();
+        final val = valExpr is Number
+            ? valExpr.toDouble()
+            : valExpr.evaluate(const {});
+        final coeff = effectiveType.cast(val / factorial);
+        if (coeff != field.additiveIdentity) {
+          result = result + currentPower.scale(coeff);
+        }
+        if (k < order) {
+          currentPower = currentPower * xMinusA;
+        }
+      }
+      return result;
+    }
+  }
+}
+
+/// Extension on [Polynomial] to construct polynomials from symbolic expressions.
+extension SymbolicPolynomialFactory<T> on Polynomial<T> {
+  /// Constructs a polynomial from a symbolic [expr] by computing its Taylor
+  /// expansion with respect to [variable] up to [order] around [point].
+  static Polynomial<R> fromExpr<R>(
+    Expr expr,
+    String variable, {
+    num point = 0,
+    int order = 5,
+    DataType<R>? type,
+  }) => expr.toPolynomial<R>(variable, point: point, order: order, type: type);
 }
 
 Expr _wrapSeriesPoint(Object point) => switch (point) {

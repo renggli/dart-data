@@ -346,4 +346,91 @@ void main() {
       check(absMinusPi).equals(Constant.pi - x);
     });
   });
+
+  group('Expr.toPolynomial and SymbolicPolynomialFactory', () {
+    test('exact polynomial recovery around 0.0', () {
+      const x = Variable('x');
+      // P(x) = 1 + 2x + 3x^2
+      final expr =
+          IntegerNumber.of(1) +
+          (IntegerNumber.of(2) * x) +
+          (IntegerNumber.of(3) * x.pow(IntegerNumber.of(2)));
+      final poly = expr.toPolynomial<double>('x', order: 2);
+
+      check(poly.degree).equals(2);
+      check(poly[0]).isCloseTo(1.0, 1e-9);
+      check(poly[1]).isCloseTo(2.0, 1e-9);
+      check(poly[2]).isCloseTo(3.0, 1e-9);
+
+      // Verify via SymbolicPolynomialFactory.fromExpr as well
+      final polyFactory = SymbolicPolynomialFactory.fromExpr<double>(
+        expr,
+        'x',
+        order: 2,
+      );
+      check(polyFactory.degree).equals(2);
+      check(polyFactory[0]).isCloseTo(1.0, 1e-9);
+      check(polyFactory[1]).isCloseTo(2.0, 1e-9);
+      check(polyFactory[2]).isCloseTo(3.0, 1e-9);
+    });
+
+    test('Taylor expansion of exp(x) around 0.0', () {
+      const x = Variable('x');
+      final expr = Pow(Constant.e, x);
+      final poly = expr.toPolynomial<double>('x', order: 4);
+
+      check(poly.degree).equals(4);
+      check(poly[0]).isCloseTo(1.0, 1e-9); // 1/0!
+      check(poly[1]).isCloseTo(1.0, 1e-9); // 1/1!
+      check(poly[2]).isCloseTo(0.5, 1e-9); // 1/2!
+      check(poly[3]).isCloseTo(1.0 / 6.0, 1e-9); // 1/3!
+      check(poly[4]).isCloseTo(1.0 / 24.0, 1e-9); // 1/4!
+
+      // Evaluates close to e^0.5
+      check(poly.evaluate(0.5)).isCloseTo(1.6484375, 1e-4);
+    });
+
+    test('Taylor expansion of sin(x) and cos(x) around 0.0', () {
+      const x = Variable('x');
+      final sinPoly = Sin(x).toPolynomial<double>('x', order: 5);
+      // sin(x) = x - x^3/6 + x^5/120
+      check(sinPoly[0]).isCloseTo(0.0, 1e-9);
+      check(sinPoly[1]).isCloseTo(1.0, 1e-9);
+      check(sinPoly[2]).isCloseTo(0.0, 1e-9);
+      check(sinPoly[3]).isCloseTo(-1.0 / 6.0, 1e-9);
+      check(sinPoly[4]).isCloseTo(0.0, 1e-9);
+      check(sinPoly[5]).isCloseTo(1.0 / 120.0, 1e-9);
+
+      final cosPoly = Cos(x).toPolynomial<double>('x', order: 4);
+      // cos(x) = 1 - x^2/2 + x^4/24
+      check(cosPoly[0]).isCloseTo(1.0, 1e-9);
+      check(cosPoly[1]).isCloseTo(0.0, 1e-9);
+      check(cosPoly[2]).isCloseTo(-0.5, 1e-9);
+      check(cosPoly[3]).isCloseTo(0.0, 1e-9);
+      check(cosPoly[4]).isCloseTo(1.0 / 24.0, 1e-9);
+    });
+
+    test('Taylor expansion around non-zero point', () {
+      const x = Variable('x');
+      // f(x) = (x - 2)^3 = x^3 - 6x^2 + 12x - 8
+      final expr = (x - IntegerNumber.of(2)).pow(IntegerNumber.of(3));
+      final poly = expr.toPolynomial<double>('x', point: 2.0, order: 3);
+
+      check(poly.degree).equals(3);
+      check(poly[0]).isCloseTo(-8.0, 1e-9);
+      check(poly[1]).isCloseTo(12.0, 1e-9);
+      check(poly[2]).isCloseTo(-6.0, 1e-9);
+      check(poly[3]).isCloseTo(1.0, 1e-9);
+
+      check(poly.evaluate(2.0)).isCloseTo(0.0, 1e-9);
+      check(poly.evaluate(3.0)).isCloseTo(1.0, 1e-9);
+      check(poly.evaluate(4.0)).isCloseTo(8.0, 1e-9);
+    });
+
+    test('negative order returns zero polynomial', () {
+      const x = Variable('x');
+      final poly = Pow(Constant.e, x).toPolynomial<double>('x', order: -1);
+      check(poly.degree).equals(-1);
+    });
+  });
 }
