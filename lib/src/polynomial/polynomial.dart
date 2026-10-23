@@ -435,26 +435,57 @@ abstract class Polynomial<T> {
   }) {
     final deg = poly.degree;
     if (deg <= 0) return const [];
+
+    Complex toComplex(T val) {
+      if (val is num) return Complex(val.toDouble());
+      if (val is Complex) return val;
+      throw ArgumentError(
+        'Polynomial roots require numeric or complex coefficients, but found ${poly.type}.',
+      );
+    }
+
     if (deg == 1) {
-      final c0 = (poly[0] as num).toDouble();
-      final c1 = (poly[1] as num).toDouble();
-      return [Complex(-c0 / c1)];
+      final c0 = toComplex(poly[0]);
+      final c1 = toComplex(poly[1]);
+      if (c1 == Complex.zero) {
+        throw ArgumentError('Leading coefficient cannot be zero.');
+      }
+      return [-c0 / c1];
     }
     if (deg == 2) {
-      final c0 = (poly[0] as num).toDouble();
-      final c1 = (poly[1] as num).toDouble();
-      final c2 = (poly[2] as num).toDouble();
-      final disc = c1 * c1 - 4.0 * c2 * c0;
-      if (disc >= 0) {
-        final sqrtDisc = math.sqrt(disc);
-        return [
-          Complex((-c1 + sqrtDisc) / (2.0 * c2)),
-          Complex((-c1 - sqrtDisc) / (2.0 * c2)),
-        ];
+      final c0 = toComplex(poly[0]);
+      final c1 = toComplex(poly[1]);
+      final c2 = toComplex(poly[2]);
+      if (c2 == Complex.zero) {
+        throw ArgumentError('Leading coefficient cannot be zero.');
+      }
+      // If all coefficients are real, use numerically stable real q formula.
+      if (c0.b == 0.0 && c1.b == 0.0 && c2.b == 0.0) {
+        final a = c2.a;
+        final b = c1.a;
+        final c = c0.a;
+        final disc = b * b - 4.0 * a * c;
+        if (disc >= 0) {
+          final sgn = b >= 0 ? 1.0 : -1.0;
+          final q = -0.5 * (b + sgn * math.sqrt(disc));
+          final r1 = q / a;
+          final r2 = (q == 0.0) ? 0.0 : c / q;
+          return [Complex(r1), Complex(r2)];
+        } else {
+          final realPart = -b / (2.0 * a);
+          final imagPart = math.sqrt(-disc) / (2.0 * a);
+          return [Complex(realPart, imagPart), Complex(realPart, -imagPart)];
+        }
       } else {
-        final realPart = -c1 / (2.0 * c2);
-        final imagPart = math.sqrt(-disc) / (2.0 * c2);
-        return [Complex(realPart, imagPart), Complex(realPart, -imagPart)];
+        // Complex coefficients: discriminant in C and sign-aligned q formula
+        final disc = c1 * c1 - const Complex(4.0) * c2 * c0;
+        final s = _complexSqrt(disc);
+        final dot = c1.a * s.a + c1.b * s.b;
+        final sign = dot >= 0 ? 1.0 : -1.0;
+        final q = (c1 + s * sign) * -0.5;
+        final r1 = q / c2;
+        final r2 = (q.a == 0.0 && q.b == 0.0) ? Complex.zero : c0 / q;
+        return [r1, r2];
       }
     }
     if (deg > maxCompanionDegree) {
@@ -463,10 +494,17 @@ abstract class Polynomial<T> {
         'for high-degree sparse polynomials (degree $deg > $maxCompanionDegree).',
       );
     }
-    final lead = (poly[deg] as num).toDouble();
+    for (var i = 0; i <= deg; i++) {
+      if (toComplex(poly[i]).b != 0.0) {
+        throw UnsupportedError(
+          'Roots of polynomials with complex coefficients are only supported for degrees <= 2.',
+        );
+      }
+    }
+    final lead = toComplex(poly[deg]).a;
     final companion = Matrix<double>.generate(deg, deg, (row, col) {
       if (row == deg - 1) {
-        return -(poly[col] as num).toDouble() / lead;
+        return -toComplex(poly[col]).a / lead;
       } else if (row + 1 == col) {
         return 1.0;
       } else {
@@ -475,5 +513,19 @@ abstract class Polynomial<T> {
     }, type: DataType.float64);
 
     return companion.eigenvalue.eigenvalues;
+  }
+
+  static Complex _complexSqrt(Complex z) {
+    if (z.b == 0.0) {
+      if (z.a >= 0.0) return Complex(math.sqrt(z.a));
+      return Complex(0.0, math.sqrt(-z.a));
+    }
+    final r = math.sqrt(z.a * z.a + z.b * z.b);
+    final theta = math.atan2(z.b, z.a);
+    final sqrtR = math.sqrt(r);
+    return Complex(
+      sqrtR * math.cos(theta / 2.0),
+      sqrtR * math.sin(theta / 2.0),
+    );
   }
 }

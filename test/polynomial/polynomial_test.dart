@@ -1,5 +1,6 @@
 import 'package:checks/checks.dart';
 import 'package:data/polynomial.dart';
+import 'package:data/symbolic.dart';
 import 'package:data/type.dart';
 import 'package:test/test.dart';
 
@@ -216,6 +217,49 @@ void main() {
       check(realParts4[0]).isCloseTo(1.0, 1e-6);
       check(realParts4[1]).isCloseTo(2.0, 1e-6);
       check(realParts4[2]).isCloseTo(3.0, 1e-6);
+
+      // Numerically stable quadratic (avoids catastrophic cancellation)
+      // x^2 + 1e8 * x + 1 = 0 => x1 ~ -1e8, x2 ~ -1e-8
+      final pCancel = Polynomial<double>.fromCoefficients([
+        1.0,
+        1e8,
+        1.0,
+      ], type: DataType.float64);
+      final rootsCancel = pCancel.roots;
+      check(rootsCancel.length).equals(2);
+      final rParts = rootsCancel.map((r) => r.a).toList()..sort();
+      check(rParts[0]).isCloseTo(-1e8, 1.0);
+      check(rParts[1]).isCloseTo(-1e-8, 1e-16);
+
+      // Complex coefficient polynomials
+      // Linear: (1 + i)x + (2 - 2i) = 0 => x = 2i
+      final pCompLin = Polynomial<Complex>.fromCoefficients([
+        const Complex(2.0, -2.0),
+        const Complex(1.0, 1.0),
+      ], type: DataType.complex);
+      final rootsCompLin = pCompLin.roots;
+      check(rootsCompLin.length).equals(1);
+      check(rootsCompLin[0].a).isCloseTo(0.0, 1e-9);
+      check(rootsCompLin[0].b).isCloseTo(2.0, 1e-9);
+
+      // Quadratic complex: x^2 - (2 + i)x + (1 + i) = (x - 1)(x - (1 + i))
+      final pCompQuad = Polynomial<Complex>.fromCoefficients([
+        const Complex(1.0, 1.0),
+        const Complex(-2.0, -1.0),
+        const Complex(1.0, 0.0),
+      ], type: DataType.complex);
+      final rootsCompQuad = pCompQuad.roots;
+      check(rootsCompQuad.length).equals(2);
+      final realPartsCQ = rootsCompQuad.map((r) => r.a).toList()..sort();
+      check(realPartsCQ[0]).isCloseTo(1.0, 1e-9);
+      check(realPartsCQ[1]).isCloseTo(1.0, 1e-9);
+
+      // Non-numeric polynomial roots throws ArgumentError
+      final pExpr = Polynomial<Expr>.fromCoefficients(const [
+        Variable('x'),
+        Variable('y'),
+      ], type: exprDataType);
+      check(() => pExpr.roots).throws<ArgumentError>();
     });
 
     test('Polynomial factories, division errors, integration on zero, and toString', () {

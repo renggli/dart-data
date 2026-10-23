@@ -59,7 +59,7 @@ Pre-release review of `lib/` at `2fc36d4`. Baseline: `dart analyze` clean, READM
 | R4.6 [COMPLETED] | Medium | `matrix.dart:441-446,490-495` | `dgesv` copies twice. A `Float64List` is stored under a `float32` `DataType`. | Copy once. Use the correct `DataType`. |
 | R4.7 [COMPLETED] | Medium | `matrix.dart:429` | `S solve<S extends Object>(S b)` uses runtime `as S` casts. | Split into `solve(Matrix<T>)` and `solveVector(Vector<T>)`. |
 | R4.8 [COMPLETED] | Medium | `lib/src/linear/decomposition/qr.dart:89`, `svd.dart:152` | Absolute rank tolerances (`1e-12`, `1e-15`) are not scale-invariant. | Use `max(m,n)·eps·max | diag | `. |
-| R4.9 | Medium | `lib/src/polynomial/polynomial.dart:439-457` | `as num` cast fails for complex coefficients. The quadratic formula suffers cancellation. | Use the stable `q` formula. Handle the field or throw `ArgumentError`. |
+| R4.9 [COMPLETED] | Medium | `lib/src/polynomial/polynomial.dart:439-457` | `as num` cast fails for complex coefficients. The quadratic formula suffers cancellation. | Use the stable `q` formula. Handle the field or throw `ArgumentError`. |
 | R4.10 | Low | `lu.dart:195-239`, `qr.dart:244-429` | The "Float64" paths still use virtual `getUnchecked`/`setUnchecked`. | Operate on the contiguous `Float64List`. |
 | R4.11 | Low | `solve.dart:186`, `iterative.dart:111,246` | Newton/CG/GMRES return non-converged results silently. The tolerances are absolute. | Signal non-convergence. Use `‖r‖ ≤ tol·‖b‖`. |
 | R4.12 | Low | `lib/src/polynomial/orthogonal.dart:40` | Public `clenshawEvaluate` is named after the algorithm (charter violation). | Rename, e.g. `evaluateOrthogonalSeries`. |
