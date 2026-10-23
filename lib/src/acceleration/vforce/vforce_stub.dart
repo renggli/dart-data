@@ -6,6 +6,7 @@ abstract final class VforceNative {
   static bool get isAvailable => false;
   static bool get hasVForce => false;
   static bool get hasReductions => false;
+  static bool get hasConvolution => false;
 
   static bool vsin({
     required Float64List input,

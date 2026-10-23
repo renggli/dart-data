@@ -33,6 +33,9 @@ abstract final class VforceNative {
   static bool get hasReductions =>
       _hasSveD && _hasMeanvD && _hasVsaddD && _hasSvesqD;
 
+  /// Whether native convolution / cross-correlation is available.
+  static bool get hasConvolution => _hasConvD;
+
   static bool vsin({
     required Float64List input,
     required Float64List output,
@@ -184,6 +187,7 @@ abstract final class VforceNative {
 
     final signalLen = signal.length;
     final filterLen = filter.length;
+    if (signalLen == 0 || filterLen == 0) return false;
     final resultLen = signalLen - filterLen + 1;
     if (resultLen <= 0 || output.length < resultLen) return false;
 
@@ -210,6 +214,7 @@ abstract final class VforceNative {
 
     final signalLen = signal.length;
     final filterLen = filter.length;
+    if (signalLen == 0 || filterLen == 0) return false;
     final resultLen = signalLen - filterLen + 1;
     if (resultLen <= 0 || output.length < resultLen) return false;
 

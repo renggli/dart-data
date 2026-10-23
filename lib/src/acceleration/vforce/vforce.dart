@@ -16,6 +16,11 @@ abstract final class Vforce {
   /// Computes elementwise sine: `output[i] = sin(input[i])`.
   static Float64List vsin({required Float64List input, Float64List? output}) {
     final len = input.length;
+    if (output != null && output.length < len) {
+      throw RangeError(
+        'Output buffer length (${output.length}) must be at least input length ($len)',
+      );
+    }
     final dest = output ?? Float64List(len);
     if (len == 0) return dest;
 
@@ -32,6 +37,11 @@ abstract final class Vforce {
   /// Computes elementwise cosine: `output[i] = cos(input[i])`.
   static Float64List vcos({required Float64List input, Float64List? output}) {
     final len = input.length;
+    if (output != null && output.length < len) {
+      throw RangeError(
+        'Output buffer length (${output.length}) must be at least input length ($len)',
+      );
+    }
     final dest = output ?? Float64List(len);
     if (len == 0) return dest;
 
@@ -48,6 +58,11 @@ abstract final class Vforce {
   /// Computes elementwise exponential: `output[i] = exp(input[i])`.
   static Float64List vexp({required Float64List input, Float64List? output}) {
     final len = input.length;
+    if (output != null && output.length < len) {
+      throw RangeError(
+        'Output buffer length (${output.length}) must be at least input length ($len)',
+      );
+    }
     final dest = output ?? Float64List(len);
     if (len == 0) return dest;
 
@@ -64,6 +79,11 @@ abstract final class Vforce {
   /// Computes elementwise natural logarithm: `output[i] = ln(input[i])`.
   static Float64List vlog({required Float64List input, Float64List? output}) {
     final len = input.length;
+    if (output != null && output.length < len) {
+      throw RangeError(
+        'Output buffer length (${output.length}) must be at least input length ($len)',
+      );
+    }
     final dest = output ?? Float64List(len);
     if (len == 0) return dest;
 
@@ -80,6 +100,11 @@ abstract final class Vforce {
   /// Computes elementwise square root: `output[i] = sqrt(input[i])`.
   static Float64List vsqrt({required Float64List input, Float64List? output}) {
     final len = input.length;
+    if (output != null && output.length < len) {
+      throw RangeError(
+        'Output buffer length (${output.length}) must be at least input length ($len)',
+      );
+    }
     final dest = output ?? Float64List(len);
     if (len == 0) return dest;
 
@@ -99,7 +124,18 @@ abstract final class Vforce {
     required Float64List exponent,
     Float64List? output,
   }) {
+    if (base.length != exponent.length) {
+      throw ArgumentError(
+        'Base and exponent vectors must have matching lengths: '
+        '${base.length} != ${exponent.length}',
+      );
+    }
     final len = base.length;
+    if (output != null && output.length < len) {
+      throw RangeError(
+        'Output buffer length (${output.length}) must be at least base length ($len)',
+      );
+    }
     final dest = output ?? Float64List(len);
     if (len == 0) return dest;
 
@@ -170,14 +206,19 @@ abstract final class Vforce {
   }) {
     final sLen = signal.length;
     final fLen = filter.length;
-    final rLen = sLen - fLen + 1;
+    final rLen = fLen == 0 ? 0 : sLen - fLen + 1;
     if (rLen <= 0) return Float64List(0);
+    if (output != null && output.length < rLen) {
+      throw RangeError(
+        'Output buffer length (${output.length}) must be at least result length ($rLen)',
+      );
+    }
     final dest = output ?? Float64List(rLen);
 
     executeAcceleratedVoid(
       feature: 'vDSP',
       operation: 'convolve',
-      isAvailable: VforceNative.isAvailable,
+      isAvailable: VforceNative.hasConvolution,
       accelerate: () =>
           VforceNative.convolve(signal: signal, filter: filter, output: dest),
       fallback: () => VforceDart.convolve(
@@ -199,14 +240,19 @@ abstract final class Vforce {
   }) {
     final sLen = signal.length;
     final fLen = filter.length;
-    final rLen = sLen - fLen + 1;
+    final rLen = fLen == 0 ? 0 : sLen - fLen + 1;
     if (rLen <= 0) return Float64List(0);
+    if (output != null && output.length < rLen) {
+      throw RangeError(
+        'Output buffer length (${output.length}) must be at least result length ($rLen)',
+      );
+    }
     final dest = output ?? Float64List(rLen);
 
     executeAcceleratedVoid(
       feature: 'vDSP',
       operation: 'correlate',
-      isAvailable: VforceNative.isAvailable,
+      isAvailable: VforceNative.hasConvolution,
       accelerate: () =>
           VforceNative.correlate(signal: signal, filter: filter, output: dest),
       fallback: () => VforceDart.correlate(

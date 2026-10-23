@@ -35,7 +35,7 @@ Pre-release review of `lib/` at `2fc36d4`. Baseline: `dart analyze` clean, READM
 | R2.5 [COMPLETED] | Medium | `lib/src/acceleration/lapack/lapack_dart.dart:18-30,68-71,120,238` | `uplo` is ignored (`dsyev`, `dpotrf`). `dgesv` copies `n*lda` elements, past the validated bounds. | Read only the declared triangle. Copy only `n×n` and `n×nrhs` entries. |
 | R2.6 [COMPLETED] | Medium | `lapack_dart.dart:136-212` | The `dgels` fallback uses normal equations, which squares the condition number. Native uses QR. | Implement Householder QR/LQ. |
 | R2.7 [COMPLETED] | Medium | `lib/src/acceleration/blas/blas_dart.dart:290-336`, `blas_native.dart:184,236` | Dart `dsyr2`/`ssyr2` ignore `uplo`. The native `gemv` zero-size path misses `ConjTrans`. | Update only the `uplo` triangle, then mirror. Test `transA != cblasNoTrans`. |
-| R2.8 | Medium | `lib/src/acceleration/vforce/vforce_native.dart:190`, `vforce.dart:102,180,209` | An empty filter throws natively. `convolve` is gated on `isAvailable`, not on `convD`. `vpow` and the unary ops don't validate lengths. | Add `hasConvolution`. Validate lengths in the facade. |
+| R2.8 [COMPLETED] | Medium | `lib/src/acceleration/vforce/vforce_native.dart:190`, `vforce.dart:102,180,209` | An empty filter throws natively. `convolve` is gated on `isAvailable`, not on `convD`. `vpow` and the unary ops don't validate lengths. | Add `hasConvolution`. Validate lengths in the facade. |
 | R2.9 | Medium | `test/tensor/operations/`, `test/acceleration/lapack/lapack_test.dart:49-67` | `matmul` and `reduction` have no tests. The LAPACK tests don't check `dgels` values, `nrhs>1`, `lda≠n`, or eigenvectors. | Add `accelerationTest` suites for these cases. |
 
 ## R3. Tensor

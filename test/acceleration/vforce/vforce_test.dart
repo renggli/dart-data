@@ -79,6 +79,49 @@ void main() {
       check(corr[0]).isCloseTo(1.5, 1e-9);
       check(corr[1]).isCloseTo(2.5, 1e-9);
       check(corr[2]).isCloseTo(3.5, 1e-9);
+
+      final emptyFilter = Float64List(0);
+      check(Vforce.convolve(signal: signal, filter: emptyFilter)).isEmpty();
+      check(Vforce.correlate(signal: signal, filter: emptyFilter)).isEmpty();
+    });
+
+    test('validates buffer lengths', () {
+      final input = Float64List.fromList([1.0, 2.0, 3.0]);
+      final tooSmall = Float64List(2);
+      check(() => Vforce.vsin(input: input, output: tooSmall))
+          .throws<RangeError>();
+      check(() => Vforce.vcos(input: input, output: tooSmall))
+          .throws<RangeError>();
+      check(() => Vforce.vexp(input: input, output: tooSmall))
+          .throws<RangeError>();
+      check(() => Vforce.vlog(input: input, output: tooSmall))
+          .throws<RangeError>();
+      check(() => Vforce.vsqrt(input: input, output: tooSmall))
+          .throws<RangeError>();
+
+      final expMismatch = Float64List.fromList([1.0, 2.0]);
+      check(() => Vforce.vpow(base: input, exponent: expMismatch))
+          .throws<ArgumentError>();
+      check(() => Vforce.vpow(base: input, exponent: input, output: tooSmall))
+          .throws<RangeError>();
+
+      final filter = Float64List.fromList([0.5, 0.5]);
+      // result length is 3 - 2 + 1 = 2
+      final convTooSmall = Float64List(1);
+      check(
+        () => Vforce.convolve(
+          signal: input,
+          filter: filter,
+          output: convTooSmall,
+        ),
+      ).throws<RangeError>();
+      check(
+        () => Vforce.correlate(
+          signal: input,
+          filter: filter,
+          output: convTooSmall,
+        ),
+      ).throws<RangeError>();
     });
   });
 }
