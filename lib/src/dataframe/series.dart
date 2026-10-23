@@ -170,7 +170,7 @@ abstract class Series<T> {
   ///
   /// Populates [outSchema] (`Pointer<ArrowSchema>`) and [outArray]
   /// (`Pointer<ArrowArray>`). Requires `dart:ffi`.
-  void exportTo({required dynamic outSchema, required dynamic outArray}) =>
+  void exportTo({required Object outSchema, required Object outArray}) =>
       exportSeriesToArrowC(
         series: this,
         outSchema: outSchema,
@@ -183,8 +183,8 @@ abstract class Series<T> {
   /// (`Pointer<ArrowArray>`). If [release] is true (default), the producer's
   /// release callbacks are invoked upon import completion.
   static Series<Object?> importFrom({
-    required dynamic schema,
-    required dynamic array,
+    required Object schema,
+    required Object array,
     bool release = true,
   }) => importSeriesFromArrowC(schema: schema, array: array, release: release);
 

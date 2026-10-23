@@ -12,9 +12,9 @@ abstract final class DataFrameJsonDecoder {
   static DataFrame decode(
     String source, {
     JsonOrient? orient,
-    Map<String, DataType<dynamic>>? columnTypes,
+    Map<String, DataType<Object?>>? columnTypes,
   }) {
-    final dynamic decoded;
+    final Object? decoded;
     try {
       decoded = jsonDecode(source);
     } on FormatException catch (e) {
@@ -32,8 +32,8 @@ abstract final class DataFrameJsonDecoder {
 
   /// Constructs a [DataFrame] from an iterable of [records].
   static DataFrame fromRecords(
-    Iterable<Map<String, dynamic>> records, {
-    Map<String, DataType<dynamic>>? columnTypes,
+    Iterable<Map<String, Object?>> records, {
+    Map<String, DataType<Object?>>? columnTypes,
   }) {
     final recordsList = records.toList(growable: false);
     if (recordsList.isEmpty) {
@@ -54,10 +54,10 @@ abstract final class DataFrameJsonDecoder {
       colNames.addAll(columnTypes.keys);
     }
 
-    final columns = <Series<dynamic>>[];
+    final columns = <Series<Object?>>[];
     for (final name in colNames) {
       final type = columnTypes?[name];
-      final values = <dynamic>[];
+      final values = <Object?>[];
       for (final record in recordsList) {
         final val = record[name];
         values.add(val != null && type != null ? type.cast(val) : val);
@@ -68,7 +68,7 @@ abstract final class DataFrameJsonDecoder {
   }
 
   /// Auto-detects the [JsonOrient] from a decoded JSON object.
-  static JsonOrient detectOrient(dynamic decoded) {
+  static JsonOrient detectOrient(Object? decoded) {
     if (decoded is List) {
       if (decoded.isEmpty) {
         return JsonOrient.records;
@@ -96,8 +96,8 @@ abstract final class DataFrameJsonDecoder {
   }
 
   static DataFrame _decodeRecords(
-    dynamic decoded, {
-    Map<String, DataType<dynamic>>? columnTypes,
+    Object? decoded, {
+    Map<String, DataType<Object?>>? columnTypes,
   }) {
     if (decoded is! List) {
       throw FormatException(
@@ -115,7 +115,7 @@ abstract final class DataFrameJsonDecoder {
       return DataFrame([]);
     }
 
-    final records = <Map<String, dynamic>>[];
+    final records = <Map<String, Object?>>[];
     for (var i = 0; i < rawList.length; i++) {
       final item = rawList[i];
       if (item is! Map) {
@@ -130,8 +130,8 @@ abstract final class DataFrameJsonDecoder {
   }
 
   static DataFrame _decodeSplit(
-    dynamic decoded, {
-    Map<String, DataType<dynamic>>? columnTypes,
+    Object? decoded, {
+    Map<String, DataType<Object?>>? columnTypes,
   }) {
     if (decoded is! Map) {
       throw FormatException(
@@ -158,12 +158,12 @@ abstract final class DataFrameJsonDecoder {
 
     final colNames = rawCols.map((c) => c.toString()).toList(growable: false);
     final rowCount = rawData.length;
-    final columns = <Series<dynamic>>[];
+    final columns = <Series<Object?>>[];
 
     for (var colIdx = 0; colIdx < colNames.length; colIdx++) {
       final name = colNames[colIdx];
       final type = columnTypes?[name];
-      final values = <dynamic>[];
+      final values = <Object?>[];
       for (var rowIdx = 0; rowIdx < rowCount; rowIdx++) {
         final row = rawData[rowIdx];
         if (row is! List) {
@@ -181,8 +181,8 @@ abstract final class DataFrameJsonDecoder {
   }
 
   static DataFrame _decodeColumns(
-    dynamic decoded, {
-    Map<String, DataType<dynamic>>? columnTypes,
+    Object? decoded, {
+    Map<String, DataType<Object?>>? columnTypes,
   }) {
     if (decoded is! Map) {
       throw FormatException(
@@ -260,12 +260,12 @@ abstract final class DataFrameJsonDecoder {
       rowCount = math.max(maxListLen, rowKeysList.length);
     }
 
-    final columns = <Series<dynamic>>[];
+    final columns = <Series<Object?>>[];
     for (final entry in decoded.entries) {
       final colName = entry.key.toString();
       final colVal = entry.value;
       final type = columnTypes?[colName];
-      final values = <dynamic>[];
+      final values = <Object?>[];
 
       if (colVal is List) {
         for (var r = 0; r < rowCount; r++) {
@@ -298,8 +298,8 @@ abstract final class DataFrameJsonDecoder {
   }
 
   static DataFrame _decodeValues(
-    dynamic decoded, {
-    Map<String, DataType<dynamic>>? columnTypes,
+    Object? decoded, {
+    Map<String, DataType<Object?>>? columnTypes,
   }) {
     if (decoded is! List) {
       throw FormatException(
@@ -349,11 +349,11 @@ abstract final class DataFrameJsonDecoder {
       }
     }
 
-    final columns = <Series<dynamic>>[];
+    final columns = <Series<Object?>>[];
     for (var colIdx = 0; colIdx < numCols; colIdx++) {
       final name = colNames[colIdx];
       final type = columnTypes?[name];
-      final values = <dynamic>[];
+      final values = <Object?>[];
       for (var rowIdx = 0; rowIdx < decoded.length; rowIdx++) {
         final row = decoded[rowIdx] as List;
         final val = colIdx < row.length ? row[colIdx] : null;

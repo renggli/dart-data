@@ -127,7 +127,7 @@ class GroupBy {
       }
     }
 
-    final outputSeries = <Series<dynamic>>[];
+    final outputSeries = <Series<Object?>>[];
     for (final col in byColumns) {
       final origCol = dataFrame.column(col);
       outputSeries.add(
@@ -192,8 +192,8 @@ class GroupBy {
     }
   }
 
-  dynamic _computeAgg(
-    Series<dynamic> col,
+  Object? _computeAgg(
+    Series<Object?> col,
     List<int> indices,
     Agg agg,
     List<double> scratch,

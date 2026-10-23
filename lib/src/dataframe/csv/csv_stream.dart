@@ -124,7 +124,7 @@ abstract final class CsvStream {
     Map<String, DataType<dynamic>>? columnTypes,
   ) {
     if (dataRows.isEmpty) {
-      final cols = <Series<dynamic>>[];
+      final cols = <Series<Object?>>[];
       for (final name in colNames) {
         final type = columnTypes?[name];
         cols.add(Series.fromList(name, const [], type: type));
@@ -133,7 +133,7 @@ abstract final class CsvStream {
     }
 
     final rowCount = dataRows.length;
-    final columns = <Series<dynamic>>[];
+    final columns = <Series<Object?>>[];
 
     for (var colIdx = 0; colIdx < colNames.length; colIdx++) {
       final name = colNames[colIdx];

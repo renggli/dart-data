@@ -225,7 +225,7 @@ List<(int?, int?)> _sortMergeJoinPairs(
   final leftCols = [for (final c in leftOn) left.column(c)];
   final rightCols = [for (final c in rightOn) right.column(c)];
 
-  bool hasNullInKey(List<Series<dynamic>> cols, int row) {
+  bool hasNullInKey(List<Series<Object?>> cols, int row) {
     for (var i = 0; i < cols.length; i++) {
       if (cols[i].isNull(row)) return true;
     }
@@ -233,9 +233,9 @@ List<(int?, int?)> _sortMergeJoinPairs(
   }
 
   int compareRows(
-    List<Series<dynamic>> colsA,
+    List<Series<Object?>> colsA,
     int rowA,
-    List<Series<dynamic>> colsB,
+    List<Series<Object?>> colsB,
     int rowB,
   ) {
     for (var i = 0; i < colsA.length; i++) {

@@ -54,7 +54,13 @@ import 'src/dataframe/join.dart';
 import 'src/dataframe/json/json_orient.dart';
 import 'src/dataframe/series.dart';
 
-export 'src/dataframe/arrow/arrow_c_data.dart';
+export 'src/dataframe/arrow/arrow_c_data.dart'
+    show
+        ArrowArray,
+        ArrowSchema,
+        arrowFlagDictionaryOrdered,
+        arrowFlagMapKeysSorted,
+        arrowFlagNullable;
 export 'src/dataframe/arrow/arrow_ipc.dart';
 export 'src/dataframe/arrow_string_series.dart';
 export 'src/dataframe/bitmask.dart';

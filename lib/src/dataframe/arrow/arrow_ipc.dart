@@ -201,7 +201,7 @@ class _ArrowIpcStreamWriter {
     return fb.toBytes();
   }
 
-  (int, int) _serializeType(_FlatBufferWriter fb, Series<dynamic> col) {
+  (int, int) _serializeType(_FlatBufferWriter fb, Series<Object?> col) {
     final dt = col.dataType;
     if (col is ArrowStringSeries || dt == DataType.string) {
       final typeOffset = fb.addTable([], []);
@@ -502,7 +502,7 @@ class _ArrowIpcStreamReader {
       return batches.first;
     } else if (batches.length > 1) {
       final fields = schemaFields!;
-      final columns = <Series<dynamic>>[];
+      final columns = <Series<Object?>>[];
       for (var i = 0; i < fields.length; i++) {
         final field = fields[i];
         final colBatches = [for (final b in batches) b.columns[i]];
@@ -513,7 +513,7 @@ class _ArrowIpcStreamReader {
 
     // If no RecordBatch was emitted (e.g. empty DataFrame with schema)
     if (schemaFields != null) {
-      final columns = <Series<dynamic>>[];
+      final columns = <Series<Object?>>[];
       for (final f in schemaFields) {
         columns.add(_createEmptySeries(f.name, f.typeCode));
       }
@@ -523,7 +523,7 @@ class _ArrowIpcStreamReader {
     return DataFrame([]);
   }
 
-  Series<dynamic> _createEmptySeries(String name, int typeCode) {
+  Series<Object?> _createEmptySeries(String name, int typeCode) {
     switch (typeCode) {
       case 5:
         return ArrowStringSeries(
@@ -688,7 +688,7 @@ class _ArrowIpcStreamReader {
       return DataFrame([]);
     }
 
-    final columns = <Series<dynamic>>[];
+    final columns = <Series<Object?>>[];
     var bufferIdx = 0;
 
     for (var i = 0; i < fields.length; i++) {
@@ -820,7 +820,7 @@ class _ArrowIpcStreamReader {
     return DataFrame(columns);
   }
 
-  Series<dynamic> _createTypedSeries(
+  Series<Object?> _createTypedSeries(
     String name,
     int typeCode,
     int length,
@@ -1006,10 +1006,10 @@ class _ArrowIpcStreamReader {
     return Uint16List.sublistView(aligned);
   }
 
-  Series<dynamic> _concatSeries(
+  Series<Object?> _concatSeries(
     String name,
     int typeCode,
-    List<Series<dynamic>> seriesList,
+    List<Series<Object?>> seriesList,
   ) {
     final totalLength = seriesList.fold<int>(0, (sum, s) => sum + s.length);
     final anyHasNulls = seriesList.any((s) => s.hasNulls);
@@ -1390,7 +1390,7 @@ class _FlatBufferWriter {
     return offset;
   }
 
-  int addTable(List<dynamic> fieldValues, List<_FbFieldType> fieldTypes) {
+  int addTable(List<Object?> fieldValues, List<_FbFieldType> fieldTypes) {
     final fieldLocs = List<int>.filled(fieldValues.length, 0);
 
     // Write table fields in forward order (so higher offset fields are written

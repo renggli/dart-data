@@ -38,10 +38,10 @@ class DataFrame {
   /// final s2 = Series<String>.fromList('b', ['x', 'y']);
   /// final df = DataFrame([s1, s2]);
   /// ```
-  new(Iterable<Series<dynamic>> columns)
+  new(Iterable<Series<Object?>> columns)
     : this._(columns.toList(growable: false));
 
-  new _(List<Series<dynamic>> list)
+  new _(List<Series<Object?>> list)
     : _columns = list,
       rowCount = list.isEmpty ? 0 : list[0].length,
       _columnIndex = {for (var i = 0; i < list.length; i++) list[i].name: i} {
@@ -57,8 +57,8 @@ class DataFrame {
 
   /// Constructs a [DataFrame] from an ordered mapping of column names to row
   /// values.
-  factory fromColumns(Map<String, List<dynamic>> data) {
-    final cols = <Series<dynamic>>[];
+  factory fromColumns(Map<String, List<Object?>> data) {
+    final cols = <Series<Object?>>[];
     for (final entry in data.entries) {
       cols.add(Series.fromList(entry.key, entry.value));
     }
@@ -66,10 +66,10 @@ class DataFrame {
   }
 
   /// Constructs a [DataFrame] from a list of row maps.
-  factory fromRows(List<Map<String, dynamic>> rows) {
+  factory fromRows(List<Map<String, Object?>> rows) {
     if (rows.isEmpty) return DataFrame([]);
     final colNames = rows.first.keys.toList();
-    final colData = <String, List<dynamic>>{
+    final colData = <String, List<Object?>>{
       for (final name in colNames) name: [],
     };
     for (final row in rows) {
@@ -107,21 +107,21 @@ class DataFrame {
 
   /// Number of rows.
   final int rowCount;
-  final List<Series<dynamic>> _columns;
+  final List<Series<Object?>> _columns;
   final Map<String, int> _columnIndex;
 
   /// Number of columns.
   int get columnCount => _columns.length;
 
   /// Ordered list of all column [Series] in this DataFrame.
-  List<Series<dynamic>> get columns => _columns;
+  List<Series<Object?>> get columns => _columns;
 
   /// List of column names in schema order.
   List<String> get columnNames =>
       _columns.map((column) => column.name).toList(growable: false);
 
   /// Accesses a column by [name].
-  Series<dynamic> column(String name) {
+  Series<Object?> column(String name) {
     final idx = _columnIndex[name];
     if (idx == null) {
       throw ArgumentError('Column "$name" not found in DataFrame');
@@ -133,10 +133,10 @@ class DataFrame {
   Series<T> typedColumn<T>(String name) => column(name) as Series<T>;
 
   /// Accesses a column by [name].
-  Series<dynamic> operator [](String name) => column(name);
+  Series<Object?> operator [](String name) => column(name);
 
   /// Returns the row map at [index].
-  Map<String, dynamic> getRow(int index) {
+  Map<String, Object?> getRow(int index) {
     if (index < 0 || index >= rowCount) {
       throw RangeError.index(index, this, 'index', null, rowCount);
     }
@@ -144,7 +144,7 @@ class DataFrame {
   }
 
   /// Returns an iterable over all rows as maps.
-  Iterable<Map<String, dynamic>> get rows sync* {
+  Iterable<Map<String, Object?>> get rows sync* {
     for (var i = 0; i < rowCount; i++) {
       yield getRow(i);
     }
@@ -166,8 +166,8 @@ class DataFrame {
   }
 
   /// Adds or replaces [series] in this [DataFrame].
-  DataFrame withColumn(Series<dynamic> series) {
-    final newCols = <Series<dynamic>>[];
+  DataFrame withColumn(Series<Object?> series) {
+    final newCols = <Series<Object?>>[];
     var replaced = false;
     for (final col in _columns) {
       if (col.name == series.name) {
@@ -188,7 +188,7 @@ class DataFrame {
         throw ArgumentError('Column "$oldName" does not exist in DataFrame.');
       }
     }
-    final newCols = <Series<dynamic>>[];
+    final newCols = <Series<Object?>>[];
     for (final col in _columns) {
       final newName = mapping[col.name];
       newCols.add(newName != null ? col.rename(newName) : col);
@@ -210,10 +210,10 @@ class DataFrame {
         );
       }
     }
-    final newCols = <Series<dynamic>>[];
+    final newCols = <Series<Object?>>[];
     for (final col in _columns) {
       final otherCol = other.column(col.name);
-      final combinedVals = <dynamic>[...col.values, ...otherCol.values];
+      final combinedVals = <Object?>[...col.values, ...otherCol.values];
       final combinedType = col.dataType == otherCol.dataType
           ? col.dataType
           : col.dataType.promoteWith(otherCol.dataType);
@@ -241,7 +241,7 @@ class DataFrame {
 
   /// Returns a new [DataFrame] with null values replaced by [value] in all columns.
   DataFrame fillNull(Object value) {
-    final newCols = <Series<dynamic>>[];
+    final newCols = <Series<Object?>>[];
     for (final col in _columns) {
       if (col.hasNulls) {
         newCols.add(col.fillNull(value));
@@ -257,7 +257,7 @@ class DataFrame {
     final numericCols = _columns
         .where((col) => col.dataType.isNumeric || col is Series<num>)
         .toList();
-    final stats = <String, List<dynamic>>{
+    final stats = <String, List<Object?>>{
       'statistic': ['count', 'mean', 'std', 'min', '25%', '50%', '75%', 'max'],
     };
 
@@ -332,7 +332,7 @@ class DataFrame {
   }
 
   /// Filters rows using a row predicate.
-  DataFrame filterBy(bool Function(Map<String, dynamic> row) predicate) {
+  DataFrame filterBy(bool Function(Map<String, Object?> row) predicate) {
     final mask = <bool>[];
     for (var i = 0; i < rowCount; i++) {
       mask.add(predicate(getRow(i)));
@@ -415,7 +415,7 @@ class DataFrame {
       return 0;
     });
 
-    final sortedCols = <Series<dynamic>>[];
+    final sortedCols = <Series<Object?>>[];
     for (final col in _columns) {
       final sortedVals = [for (final idx in indices) col[idx]];
       sortedCols.add(Series.fromList(col.name, sortedVals, type: col.dataType));
@@ -549,7 +549,7 @@ class DataFrame {
   ///
   /// Populates [outSchema] (`Pointer<ArrowSchema>`) and [outArray]
   /// (`Pointer<ArrowArray>`). Requires `dart:ffi`.
-  void exportTo({required dynamic outSchema, required dynamic outArray}) =>
+  void exportTo({required Object outSchema, required Object outArray}) =>
       exportDataFrameToArrowC(
         dataFrame: this,
         outSchema: outSchema,
@@ -562,8 +562,8 @@ class DataFrame {
   /// (`Pointer<ArrowArray>`). If [release] is true (default), the producer's
   /// release callbacks are invoked upon import completion.
   static DataFrame importFrom({
-    required dynamic schema,
-    required dynamic array,
+    required Object schema,
+    required Object array,
     bool release = true,
   }) =>
       importDataFrameFromArrowC(schema: schema, array: array, release: release);

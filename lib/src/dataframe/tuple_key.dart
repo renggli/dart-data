@@ -48,7 +48,7 @@ Object? extractKey(List<Object?> values) => switch (values.length) {
 /// and 3 columns, falling back to [TupleKey] for 4 or more columns.
 abstract interface class RowKeyExtractor {
   /// Creates an optimized key extractor for the given [columns].
-  factory(List<Series<dynamic>> columns) => switch (columns.length) {
+  factory(List<Series<Object?>> columns) => switch (columns.length) {
     1 => _SingleKeyExtractor(columns[0]),
     2 => _PairKeyExtractor(columns[0], columns[1]),
     3 => _TripleKeyExtractor(columns[0], columns[1], columns[2]),
@@ -69,7 +69,7 @@ abstract interface class RowKeyExtractor {
 final class _SingleKeyExtractor implements RowKeyExtractor {
   const new(this._col);
 
-  final Series<dynamic> _col;
+  final Series<Object?> _col;
 
   @override
   Object? extractKey(int rowIndex) => _col[rowIndex];
@@ -84,8 +84,8 @@ final class _SingleKeyExtractor implements RowKeyExtractor {
 final class _PairKeyExtractor implements RowKeyExtractor {
   const new(this._col0, this._col1);
 
-  final Series<dynamic> _col0;
-  final Series<dynamic> _col1;
+  final Series<Object?> _col0;
+  final Series<Object?> _col1;
 
   @override
   Object? extractKey(int rowIndex) => (_col0[rowIndex], _col1[rowIndex]);
@@ -107,9 +107,9 @@ final class _PairKeyExtractor implements RowKeyExtractor {
 final class _TripleKeyExtractor implements RowKeyExtractor {
   const new(this._col0, this._col1, this._col2);
 
-  final Series<dynamic> _col0;
-  final Series<dynamic> _col1;
-  final Series<dynamic> _col2;
+  final Series<Object?> _col0;
+  final Series<Object?> _col1;
+  final Series<Object?> _col2;
 
   @override
   Object? extractKey(int rowIndex) =>
@@ -136,7 +136,7 @@ final class _TripleKeyExtractor implements RowKeyExtractor {
 final class _MultiKeyExtractor implements RowKeyExtractor {
   const new(this._columns);
 
-  final List<Series<dynamic>> _columns;
+  final List<Series<Object?>> _columns;
 
   @override
   Object? extractKey(int rowIndex) =>

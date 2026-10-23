@@ -10,11 +10,7 @@ import 'package:data/dataframe.dart'
         ArrowSchema,
         arrowFlagDictionaryOrdered,
         arrowFlagMapKeysSorted,
-        arrowFlagNullable,
-        exportDataFrameToArrowC,
-        exportSeriesToArrowC,
-        importDataFrameFromArrowC,
-        importSeriesFromArrowC;
+        arrowFlagNullable;
 import 'package:data/src/dataframe/arrow/arrow_c_data_ffi.dart';
 import 'package:data/type.dart';
 import 'package:ffi/ffi.dart';

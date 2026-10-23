@@ -31,16 +31,16 @@ class ArrowArray {
 /// Exports a [DataFrame] to Apache Arrow C Data structures (stub).
 void exportDataFrameToArrowC({
   required DataFrame dataFrame,
-  required dynamic outSchema,
-  required dynamic outArray,
+  required Object outSchema,
+  required Object outArray,
 }) {
   throw UnsupportedError('Arrow C Data interface requires dart:ffi.');
 }
 
 /// Imports a [DataFrame] from Apache Arrow C Data structures (stub).
 DataFrame importDataFrameFromArrowC({
-  required dynamic schema,
-  required dynamic array,
+  required Object schema,
+  required Object array,
   bool release = true,
 }) {
   throw UnsupportedError('Arrow C Data interface requires dart:ffi.');
@@ -49,16 +49,17 @@ DataFrame importDataFrameFromArrowC({
 /// Exports a single [Series] to Apache Arrow C Data structures (stub).
 void exportSeriesToArrowC({
   required Series<Object?> series,
-  required dynamic outSchema,
-  required dynamic outArray,
+  required Object outSchema,
+  required Object outArray,
+  bool? nullable,
 }) {
   throw UnsupportedError('Arrow C Data interface requires dart:ffi.');
 }
 
 /// Imports a single [Series] from Apache Arrow C Data structures (stub).
 Series<Object?> importSeriesFromArrowC({
-  required dynamic schema,
-  required dynamic array,
+  required Object schema,
+  required Object array,
   bool release = true,
 }) {
   throw UnsupportedError('Arrow C Data interface requires dart:ffi.');

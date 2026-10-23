@@ -48,7 +48,7 @@ class CsvReader {
     }
 
     final rowCount = dataRows.length;
-    final columns = <Series<dynamic>>[];
+    final columns = <Series<Object?>>[];
 
     for (var colIdx = 0; colIdx < colNames.length; colIdx++) {
       final name = colNames[colIdx];

@@ -75,7 +75,7 @@ Pre-release review of `lib/` at `2fc36d4`. Baseline: `dart analyze` clean, READM
 | R5.4 [COMPLETED] | Medium | `arrow_ipc.dart:160,469`, `arrow_c_data_ffi.dart:265` | `nullable` comes from the first batch only. `bodyLength` is unchecked. | Emit `nullable=true` or OR it across batches. Throw `FormatException`. |
 | R5.5 [COMPLETED] | Medium | `lib/src/dataframe/csv/csv_stream.dart:345-361` | A trailing empty field at EOF is dropped. An unterminated quote never closes the sink. | Track a pending field. Close after `addError`. |
 | R5.6 [COMPLETED] | Medium | `lib/src/dataframe/csv/csv_writer.dart:23-41` | `null` and `''` are both written as empty. A single-column null row is skipped on read. | Quote `''` as `""`. |
-| R5.7 | Medium | `lib/src/dataframe/dataframe.dart:335,552,564`, `series.dart:173-187`, `json/json_decoder.dart`, `arrow/arrow_ipc.dart`, `tuple_key.dart` | Heavy `dynamic` use in public signatures (`filterBy`, `Series<dynamic>`). Overlaps FU-1.5. | Switch to `Object?`, starting with the public API. |
+| R5.7 [COMPLETED] | Medium | `lib/src/dataframe/dataframe.dart:335,552,564`, `series.dart:173-187`, `json/json_decoder.dart`, `arrow/arrow_ipc.dart`, `tuple_key.dart` | Heavy `dynamic` use in public signatures (`filterBy`, `Series<dynamic>`). Overlaps FU-1.5. | Switch to `Object?`, starting with the public API. |
 
 ## R6. Stats / Special Functions
 
@@ -143,7 +143,7 @@ Pre-release review of `lib/` at `2fc36d4`. Baseline: `dart analyze` clean, READM
   2. Allow arbitrary sizes in `fft2` (row/column passes reuse the 1D path).
   3. Add `accelerationTest` coverage for odd and prime lengths in all modes.
 
-#### FU-1.5: Arrow C Data Public API Uses `dynamic` and Duplicates Entry Points — Medium
+#### FU-1.5 [COMPLETED]: Arrow C Data Public API Uses `dynamic` and Duplicates Entry Points — Medium
 
 - **Files**: `lib/src/dataframe/dataframe.dart` (~L552–570), `series.dart` (~L173–190), `arrow/arrow_c_data*.dart`, `lib/dataframe.dart`.
 - **Problems**:

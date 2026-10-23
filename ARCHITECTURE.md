@@ -299,6 +299,16 @@ This document describes the achieved architecture across all subsystems of `pack
     - Full null tracking preserved across all orientations with underlying `ValidityMask`.
   - Zero-overhead record extraction: `df.toRecords()` and `DataFrame.fromRecords` provide direct in-memory record conversions without JSON string encoding round-trips.
 
+### 4.7 Apache Arrow IPC & C Data Interface Interoperability
+
+- **Reasoning**: Interoperating zero-copy across analytic frameworks (DuckDB, Polars, PyArrow) and serialized Arrow streaming/file pipelines requires adherence to Arrow specifications and clean Dart typing without unconstrained `dynamic` APIs.
+- **Implementation & Constraints**:
+  - Apache Arrow C Data Interface: Standardized in-memory exchange via `DataFrame.exportTo({required outSchema, required outArray})`, `DataFrame.importFrom({required schema, required array})`, `Series.exportTo(...)`, and `Series.importFrom(...)`.
+    - Pointers are typed as `Object` in cross-platform declarations and checked-cast to `ffi.Pointer<ArrowSchema>` / `ffi.Pointer<ArrowArray>` on Dart VM native platforms.
+    - Low-level export/import functions are internal; `DataFrame` and `Series` methods form the single canonical entry point.
+    - On Web/Wasm targets, invoking FFI Arrow C Data operations throws `UnsupportedError`.
+  - Apache Arrow IPC: Binary streaming and file format serialization via `DataFrame.toArrowIpcBytes()` and `DataFrame.fromArrowIpcBytes()` with full validity bitmask alignment, null tracking, and multi-chunk concatenation.
+
 ---
 
 ## 5. Hardware Acceleration & FFI Subsystem (`lib/src/acceleration/`)
