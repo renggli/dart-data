@@ -85,7 +85,7 @@ void main() {
           coeffs[1] * Polynomial.chebyshevT(1).evaluateDouble(x) +
           coeffs[2] * Polynomial.chebyshevT(2).evaluateDouble(x) +
           coeffs[3] * Polynomial.chebyshevT(3).evaluateDouble(x);
-      final tClenshaw = clenshawEvaluate(
+      final tClenshaw = evaluateOrthogonalSeries(
         coeffs,
         x,
         family: OrthogonalFamily.chebyshevT,
@@ -98,7 +98,7 @@ void main() {
           coeffs[1] * Polynomial.chebyshevU(1).evaluateDouble(x) +
           coeffs[2] * Polynomial.chebyshevU(2).evaluateDouble(x) +
           coeffs[3] * Polynomial.chebyshevU(3).evaluateDouble(x);
-      final uClenshaw = clenshawEvaluate(
+      final uClenshaw = evaluateOrthogonalSeries(
         coeffs,
         x,
         family: OrthogonalFamily.chebyshevU,
@@ -111,7 +111,7 @@ void main() {
           coeffs[1] * Polynomial.legendreP(1).evaluateDouble(x) +
           coeffs[2] * Polynomial.legendreP(2).evaluateDouble(x) +
           coeffs[3] * Polynomial.legendreP(3).evaluateDouble(x);
-      final pClenshaw = clenshawEvaluate(
+      final pClenshaw = evaluateOrthogonalSeries(
         coeffs,
         x,
         family: OrthogonalFamily.legendreP,
@@ -124,7 +124,7 @@ void main() {
           coeffs[1] * Polynomial.hermiteH(1).evaluateDouble(x) +
           coeffs[2] * Polynomial.hermiteH(2).evaluateDouble(x) +
           coeffs[3] * Polynomial.hermiteH(3).evaluateDouble(x);
-      final hClenshaw = clenshawEvaluate(
+      final hClenshaw = evaluateOrthogonalSeries(
         coeffs,
         x,
         family: OrthogonalFamily.hermiteH,
@@ -137,7 +137,7 @@ void main() {
           coeffs[1] * Polynomial.hermiteHe(1).evaluateDouble(x) +
           coeffs[2] * Polynomial.hermiteHe(2).evaluateDouble(x) +
           coeffs[3] * Polynomial.hermiteHe(3).evaluateDouble(x);
-      final heClenshaw = clenshawEvaluate(
+      final heClenshaw = evaluateOrthogonalSeries(
         coeffs,
         x,
         family: OrthogonalFamily.hermiteHe,

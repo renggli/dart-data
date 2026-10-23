@@ -22,7 +22,7 @@
 /// - **Orthogonal Polynomials**: [Polynomial.chebyshevT],
 ///   [Polynomial.chebyshevU], [Polynomial.legendreP], [Polynomial.hermiteH],
 ///   [Polynomial.hermiteHe], and [Polynomial.laguerreL] with stable
-///   $\mathcal{O}(n)$ Clenshaw recurrence evaluation ([clenshawEvaluate]).
+///   $\mathcal{O}(n)$ Clenshaw recurrence evaluation ([evaluateOrthogonalSeries]).
 ///
 /// ## Example
 ///

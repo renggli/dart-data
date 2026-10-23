@@ -104,7 +104,7 @@ Below is a detailed verification of achievements against `PROPOSED_CHANGES.md` a
 | Proposed Milestone | Status | Verification Details |
 | :--- | :--- | :--- |
 | **Immutable Polynomial Representation** | **Achieved** | `Polynomial<T>` is an immutable value-backed container; `copyInto` aliasing defects are eliminated by design. |
-| **Orthogonal Polynomial Families** | **Achieved** | Static generators `chebyshevT`, `chebyshevU`, `legendreP`, `hermiteH`, `hermiteHe` on `Polynomial`, and `clenshawEvaluate` in `lib/src/polynomial/orthogonal.dart`. |
+| **Orthogonal Polynomial Families** | **Achieved** | Static generators `chebyshevT`, `chebyshevU`, `legendreP`, `hermiteH`, `hermiteHe` on `Polynomial`, and `evaluateOrthogonalSeries` in `lib/src/polynomial/orthogonal.dart`. |
 | **Polynomial Division & GCD** | **Achieved** | Formal division with remainder (`divide`, `/`, `%`) and Euclidean `gcd`. |
 | **Roots via Companion Matrix** | **Achieved** | Real roots for linear/quadratic, and complex roots for arbitrary degree via eigenvalue decomposition of the companion matrix. |
 | **Polynomial Composition & Rational Functions** | **Missed** | $P(Q(x))$ and `RationalFunction<T>` were not implemented. |

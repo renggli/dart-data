@@ -55,7 +55,7 @@ void main() {
   // 5. Clenshaw Algorithm Evaluation
   stdout.writeln('5. Clenshaw Algorithm Evaluation');
   // Evaluate series c_0*T_0 + c_1*T_1 + c_2*T_2 at x = 0.5
-  final clenshawVal = clenshawEvaluate(
+  final clenshawVal = evaluateOrthogonalSeries(
     [1.0, 0.5, 0.25],
     0.5,
     family: OrthogonalFamily.chebyshevT,

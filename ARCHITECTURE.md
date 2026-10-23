@@ -514,7 +514,7 @@ This document describes the achieved architecture across all subsystems of `pack
     - Legendre polynomials ($P_n(x)$).
     - Hermite polynomials (physicist $H_n(x)$ and probabilist $He_n(x)$).
     - Generalized Laguerre polynomials ($L_n^{(\alpha)}(x)$ via `Polynomial.laguerreL` / `laguerreL` in `lib/src/polynomial/orthogonal.dart`) computed via 3-term recurrence: $L_{k+1}^{(\alpha)}(x) = \frac{1}{k+1} ((2k + 1 + \alpha - x) L_k^{(\alpha)}(x) - (k + \alpha) L_{k-1}^{(\alpha)}(x))$. Direct point evaluation available via `laguerreEvaluate(n, x, {alpha})`.
-  - Evaluated via `clenshawEvaluate` (`lib/src/polynomial/orthogonal.dart`), which evaluates three-term recurrence relations stably without expanding polynomial coefficients.
+  - Evaluated via `evaluateOrthogonalSeries` (`lib/src/polynomial/orthogonal.dart`), which evaluates three-term recurrence relations stably without expanding polynomial coefficients.
 
 ### 8.3 Formal Polynomial Arithmetic, Composition & Root Isolation
 

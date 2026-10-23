@@ -62,7 +62,7 @@ Pre-release review of `lib/` at `2fc36d4`. Baseline: `dart analyze` clean, READM
 | R4.9 [COMPLETED] | Medium | `lib/src/polynomial/polynomial.dart:439-457` | `as num` cast fails for complex coefficients. The quadratic formula suffers cancellation. | Use the stable `q` formula. Handle the field or throw `ArgumentError`. |
 | R4.10 [COMPLETED] | Low | `lu.dart:195-239`, `qr.dart:244-429` | The "Float64" paths still use virtual `getUnchecked`/`setUnchecked`. | Operate on the contiguous `Float64List`. |
 | R4.11 [COMPLETED] | Low | `solve.dart:186`, `iterative.dart:111,246` | Newton/CG/GMRES return non-converged results silently. The tolerances are absolute. | Signal non-convergence. Use `‖r‖ ≤ tol·‖b‖`. |
-| R4.12 | Low | `lib/src/polynomial/orthogonal.dart:40` | Public `clenshawEvaluate` is named after the algorithm (charter violation). | Rename, e.g. `evaluateOrthogonalSeries`. |
+| R4.12 [COMPLETED] | Low | `lib/src/polynomial/orthogonal.dart:40` | Public `clenshawEvaluate` is named after the algorithm (charter violation). | Rename, e.g. `evaluateOrthogonalSeries`. |
 | R4.13 | Low | `iterative.dart:235-239`, `tridiagonal.dart:127-161` | GMRES allocates a vector per term. The Thomas algorithm is duplicated. | Use `addScaled`. Keep a single path. |
 
 ## R5. DataFrame / Arrow / CSV

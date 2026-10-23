@@ -30,14 +30,14 @@ enum OrthogonalFamily {
 /// relation in $\mathcal{O}(n)$ time and $\mathcal{O}(1)$ auxiliary memory.
 ///
 /// ```dart
-/// final val = clenshawEvaluate(
+/// final val = evaluateOrthogonalSeries(
 ///   [1.0, 2.0],
 ///   0.5,
 ///   family: OrthogonalFamily.chebyshevT,
 /// );
 /// // T_0(0.5)*1 + T_1(0.5)*2 = 1.0 + 0.5*2 = 2.0
 /// ```
-double clenshawEvaluate(
+double evaluateOrthogonalSeries(
   List<num> coefficients,
   num x, {
   required OrthogonalFamily family,

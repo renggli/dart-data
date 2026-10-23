@@ -97,8 +97,8 @@ void main() {
       check(comp.degree).equals(2);
     });
 
-    test('clenshawEvaluate and laguerreL', () {
-      final val = clenshawEvaluate(
+    test('evaluateOrthogonalSeries and laguerreL', () {
+      final val = evaluateOrthogonalSeries(
         [1.0, 2.0],
         0.5,
         family: OrthogonalFamily.chebyshevT,
